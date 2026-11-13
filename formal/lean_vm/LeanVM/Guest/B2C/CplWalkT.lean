@@ -30,7 +30,7 @@ open LeanVM.Guest.Check LeanVM.Guest.Memory
 
 /-! ## The jump table -/
 
-theorem tbl_tcOk {X : CX} (hG : X.G = glob) {base na nr : ℕ} :
+theorem tbl_tcOk {X : CX} (hG : X.G = glob.restrict X.callees) {base na nr : ℕ} :
     ∀ (fs : List String) (i : ℕ), tcOk X base na nr i fs = true →
     ∀ k (hk : k < fs.length), ∃ pc j', X.G.jt.get (base + (i + k)) = some pc ∧ calleeC X pc = some j' ∧
       fs[k] = (X.G.sig j').name ∧ (X.G.sig j').nargs = na ∧ (X.G.sig j').nret = nr
@@ -379,7 +379,7 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
       L.read (addressOfIndex (fp + a2)) = some (ofK (addressOfIndex (X.entry + (t0 :: ts)[k]))) := by
     intro k hkt hvk
     have hslot := tbl_armsOk (t0 :: ts) 0 hao k hkt
-    rw [Nat.zero_add, H.G] at hslot
+    rw [Nat.zero_add, H.G, Glob.restrict_jt] at hslot
     obtain ⟨hfind, hlt⟩ := tbl_slot H.jt H.tab hslot
     have hσk : σ (V.n v.idx) = ofK (addressOfIndex k) := by rw [← hvn]; exact hvk
     refine ⟨hslot, ?_⟩
@@ -478,9 +478,9 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
   obtain ⟨k, hkf, hvk, rfl⟩ := tbl_pick fs 0 hpk
   rw [Nat.zero_add] at hvk
   obtain ⟨pc, j', hslot, hj, hf, -, -⟩ := tbl_tcOk H.G fs 0 htc k hkf
-  rw [Nat.zero_add, H.G] at hslot
+  rw [Nat.zero_add, H.G, Glob.restrict_jt] at hslot
   obtain ⟨hj1, hj2, he⟩ := calleeC_some H.G hj
-  have hfn : fs[k] = (coreOf j').name := by rw [hf, H.G]; rfl
+  have hfn : fs[k] = (coreOf j').name := by rw [hf, calleeC_sig H.G hj]; rfl
   have hw' : o = (walk σ ss).pre [.call fs[k] args rets] := by rw [hw0, hpk]; rfl
   have hst' : walk σ ss ≠ .stuck := fun h ↦ hs (by rw [hw', h]; rfl)
   have hes2 : es = ebef ++ Ev.call fs[k] args rets :: ((walk σ ss).evs ++ eaft) := by

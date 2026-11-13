@@ -1,5 +1,5 @@
 """The generated guest data, read into Python: the core IR (`Data/Core*.lean`), the powers of `g`
-the constants name (`Data/Pows.lean`), each compiled function's `pmax` (`Data/Plumb*.lean`), the
+the constants name (`Data/Pows.lean`), each compiled function's `pmax` (its pack's `Bundle.lean`), the
 frame sizes (`Data/FrameSizes.lean`) and the separately counted arms (`Data/CplArms.lean`).
 
 Every loader takes the data directory, `lean_vm/LeanVM/Guest/Data/`. A function is a dict
@@ -170,13 +170,20 @@ def load_pows(D):
 
 
 def load_pmax(D):
-    """Each compiled function's `pmax` (`B2C.plumbOf j`), by compiled index; `[]` when absent."""
+    """Each compiled function's `pmax` (`B2C.plumbOf j`, its pack's `Fn.«name».plumb`), by compiled
+    index; `[]` when absent."""
+    names = open(os.path.join(D, 'Names.lean'), encoding='utf-8').read()
+    sec = names[names.index('\nnamespace I\n'):]
+    index = {n: int(k) + 1 for n, k in re.findall(r'^abbrev «([^»]*)» : Nat := (\d+)$', sec, re.M)}
     pm = {}
-    for f in sorted(glob.glob(os.path.join(D, 'Plumb[0-9][0-9].lean'))):
+    for f in sorted(glob.glob(os.path.join(D, '..', 'Pack', '*', 'Bundle.lean'))):
         cur = None
         for line in open(f, encoding='utf-8'):
-            m = re.match(r'noncomputable def plumb(\d+) : B2C.Plumb where', line)
-            if m: cur = int(m.group(1)); pm[cur] = []; continue
+            m = re.match(r'namespace LeanVM\.Guest\.Fn\.«([^»]*)»$', line)
+            if m: cur = index[m.group(1)]; continue
+            if line.startswith('noncomputable def plumb : B2C.Plumb where'):
+                pm[cur] = []
+                continue
             m = re.match(r'\s+pmax := \[([\d, ]*)\]', line)
             if m and cur is not None:
                 pm[cur] = [int(x) for x in m.group(1).replace(' ', '').split(',') if x]

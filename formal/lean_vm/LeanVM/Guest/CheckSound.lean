@@ -2890,6 +2890,29 @@ theorem checkWin_fpOne {main : Bool} (hc : checkWin G f cf C main 0 = true) : ma
     beq_iff_eq] at hc
   exact hc.1.2.2
 
+/-- The contracts of a context hold in its view from callees `cs`: a callee's is the same, and a
+non-callee's precondition fails, the view not counting it good. -/
+theorem funSpec_restrict {cs : List ℕ} {Kb : ℕ}
+    (hC : ∀ j, FunSpecLtReached guestProgram L Kb (G.sig j).entry (Pre G L j) (Post Prog G L cert A j)) :
+    ∀ j, FunSpecLtReached guestProgram L Kb ((G.restrict cs).sig j).entry (Pre (G.restrict cs) L j)
+      (Post Prog (G.restrict cs) L cert A j) := by
+  intro j
+  cases hj : cs.contains j
+  · intro fp k _ hP
+    have := hP.1
+    simp only [Glob.restrict, hj, Bool.false_and, Bool.false_eq_true] at this
+  · have hs : (G.restrict cs).sig j = G.sig j := by simp only [Glob.restrict, hj, Bool.cond_true]
+    have hg : (G.restrict cs).good j = G.good j := by simp only [Glob.restrict, hj, Bool.true_and]
+    have hP : Pre (G.restrict cs) L j = Pre G L j := by
+      unfold Pre
+      rw [hs, hg]
+      rfl
+    have hQ : Post Prog (G.restrict cs) L cert A j = Post Prog G L cert A j := by
+      unfold Post
+      rw [hs]
+    rw [hs, hP, hQ]
+    exact hC j
+
 /-- **A checked window's run**, from its start with `k ≤ Kb` steps left, the windows' cells
 consecutive: its statements hold under the function's valuation, and the run reaches the next
 window's start, or, the last window, its statements end by the return; the first window has the
@@ -2927,7 +2950,8 @@ theorem checkWin_run {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = tr
   have H : WalkHyp L fp f X := ⟨hctx, guest_fetches hf, rfl, fun s hs ↦
     execWinS_good hctx (guest_fetches hf) _ _ _ _ s (by rw [hR]; exact hs), rfl, hlink⟩
   have W : WalkEnv Prog cert A L fp f X Kb :=
-    ⟨H, hjt, (memIf_of_pre hmem).append ((memIf_of_known hknown).append hknownIf), hknown, hsems, hC⟩
+    ⟨H, hjt, (memIf_of_pre hmem).append ((memIf_of_known hknown).append hknownIf), hknown, hsems,
+      funSpec_restrict hC⟩
   have hret : RetWords L fp X Kb = RetOf L fp G f cf C main Kb := rfl
   have hconv : ∀ {N : Prop}, Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc)
       (C.stmtsAt cf i) N (RetWords L fp X Kb) →

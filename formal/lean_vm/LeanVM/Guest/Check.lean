@@ -493,6 +493,7 @@ structure Sig where
   post : List (ℕ × ℕ)
   mem : List (ℕ × ℕ × ℕ)
   sem : List (ℕ × List ℕ)
+  deriving DecidableEq
 
 /-- The start of a window of a function's check after the first: at the code offset `J`, in the
 environment `env`, at core statement `start`, with the atoms `facts` filed under their cells and
@@ -547,6 +548,34 @@ structure Glob where
   good : ℕ → Bool
   jt : Trie ℕ
   sem : ℕ → Core.Reader → List E → Prop
+
+/-- No function: the signature a context gives an index it does not name. -/
+def Sig.none : Sig := ⟨"", 0, 0, 0, [], [], [], [], []⟩
+
+/-- The context `G` as a function with callees `cs` sees it: their signatures, and no other
+function. A window's check reads the context only so (`Cert.fxAt`), so two contexts agreeing on
+the callees give it alike (`Glob.restrict_congr`): a check stated over a function's own view of
+its callees is the check over the whole program's. -/
+def Glob.restrict (G : Glob) (cs : List ℕ) : Glob :=
+  ⟨fun j ↦ bif cs.contains j then G.sig j else Sig.none, fun j ↦ cs.contains j && G.good j, G.jt,
+    G.sem⟩
+
+theorem Glob.restrict_congr {G G' : Glob} {cs : List ℕ}
+    (h : ∀ j ∈ cs, G.sig j = G'.sig j ∧ G.good j = G'.good j) (hjt : G.jt = G'.jt)
+    (hsem : G.sem = G'.sem) : G.restrict cs = G'.restrict cs := by
+  unfold Glob.restrict
+  rw [hjt, hsem]
+  congr 1
+  · funext j
+    cases hj : cs.contains j
+    · rfl
+    · simp only [Bool.cond_true]
+      exact (h j (List.contains_iff_mem.mp hj)).1
+  · funext j
+    cases hj : cs.contains j
+    · rfl
+    · simp only [Bool.true_and]
+      exact (h j (List.contains_iff_mem.mp hj)).2
 
 /-- The tag of the relation `a ≠ b` on two words, which the checker discharges itself at a call
 guarded by `a + b` (`neAt`). -/
@@ -1231,7 +1260,8 @@ def Cert.stmtsAt (C : Cert) (cf : Core.Fn) (i : ℕ) : List Core.Stmt :=
 noncomputable def Cert.fxAt (G : Glob) (f : CompiledFunction) (cf : Core.Fn) (C : Cert) (main
     : Bool)
     (i : ℕ) (segs : List Exec.Seg) (idx : Trie Exec.Seg) (loc : Trie ℕ) : Fx :=
-  ⟨G, C.facts, f.entryPc, segs, idx, loc, cf.params.length, C.nret, main, C.callees, C.post,
+  ⟨G.restrict C.callees, C.facts, f.entryPc, segs, idx, loc, cf.params.length, C.nret, main,
+    C.callees, C.post,
     C.mem ++ ((C.cutAt i).known ++ (C.cutAt i).knownIf), (C.cutAt i).known, (C.cutAt i).sems,
     bif Nat.blt i C.cuts.length then
       some ((C.cutAt (i + 1)).J, (C.cutAt (i + 1)).facts, (C.cutAt (i + 1)).bnd)

@@ -744,7 +744,7 @@ theorem checkWinC_of_split {G : Glob} {j : ℕ} {cf : Core.Fn} {C : Cert} {main 
     obtain ⟨g', hg', h1, h2⟩ := hcov e he
     obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
     exact ⟨g, hg, h1, h2⟩
-  unfold checkWinC
+  unfold checkWinC checkWinCF
   rcases hR : execWinCS C.facts (fnOf j) (C.cutAt i).J (C.cutAt i).env ((C.succAt i).drop 1)
     (C.endAt (fnOf j) i) with ⟨segs, dead⟩
   simp only [listSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true]

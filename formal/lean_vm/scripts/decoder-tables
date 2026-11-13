@@ -3,9 +3,10 @@
 
 For each compiled function `j < nFns`: its entry pc (`(fnOf j).entryPc`), its number of arguments
 (`(coreOf j).params.length`), of return words (`(certOf j).nret`), and its certificate's frame
-cells (`(certOf j).locs`, by reference to the certificate data `Data.cert{j}_w{i}_{k}`). Read off
-the generated sources (the core IR through `scripts/coredata.py`, `LeanVM/Guest/Data/Cert*.lean`)
-and an entry list (`--entries FILE`, `(List.range nFns).map fun j ↦ (fnOf j).entryPc`, the line `entries: …` that
+cells (`(certOf j).locs`, by reference to the certificate data `Fn.«name».cert_w{i}_{k}`). Read off
+the generated sources (the core IR through `scripts/coredata.py`, `Data/Cert.lean`, the packs'
+`Pack/<pack>/Bundle.lean`, the stable names of `Data/Names.lean`) and an entry list
+(`--entries FILE`, `(List.range nFns).map fun j ↦ (fnOf j).entryPc`, the line `entries: …` that
 `lake env lean scripts/decoder-tables-entries.lean` prints after `lake build LeanVM.Guest.Glob`, as
 `scripts/regen-guest.sh` runs it, or `decoder-tables-inputs.lean` once the tables are built);
 `Cost/Decoder/GuestTablesCheck.lean` proves the tables equal to their definitions in the kernel.
@@ -32,22 +33,41 @@ def cores():
     return out
 
 
+def keys():
+    """Each compiled function's stable name, by index: `I.«s» : Nat := k` names function `k + 1`."""
+    s = open("LeanVM/Guest/Data/Names.lean").read()
+    sec = s[s.index("\nnamespace I\n"):]
+    return {int(k) + 1: n for n, k in re.findall(r"^abbrev «([^»]*)» : Nat := (\d+)$", sec, re.M)}
+
+
+def cert_body(s, name):
+    m = re.search(r"noncomputable def " + name + r" : Check\.Cert where\n(.*?)(?=\n\n|\Z)", s, re.S)
+    body = m.group(1)
+    cells = re.search(r"  cells := \[(.*?)\]\n  ins :=", body, re.S).group(1)
+    names = [c.strip() for c in cells.split(",") if c.strip()]
+    nret = int(re.search(r"  nret := (\d+)", body).group(1))
+    return names, nret
+
+
 def certs():
-    out = {}
-    for f in sorted(glob.glob("LeanVM/Guest/Data/Cert*.lean")):
-        s = open(f).read()
-        for m in re.finditer(r"noncomputable def cert(\d+) : Check\.Cert where\n(.*?)(?=\n\n|\Z)", s, re.S):
-            body = m.group(2)
-            cells = re.search(r"  cells := \[(.*?)\]\n  ins :=", body, re.S).group(1)
-            names = [c.strip() for c in cells.split(",") if c.strip()]
-            nret = int(re.search(r"  nret := (\d+)", body).group(1))
-            out[int(m.group(1))] = (names, nret)
+    """Each function's certificate's cells' lists, as references, and its return count."""
+    names, nret = cert_body(open("LeanVM/Guest/Data/Cert.lean").read(), "cert0")
+    out = {0: ([f"Data.{n}" for n in names], nret)}
+    # each function's block of its pack's data (`Pack/<pack>/Bundle.lean`), by stable name
+    blocks = {}
+    for f in glob.glob("LeanVM/Guest/Pack/*/Bundle.lean"):
+        for m in re.finditer(r"^namespace LeanVM\.Guest\.Fn\.«([^»]*)»\n(.*?)^end LeanVM\.Guest\.Fn\.«\1»$",
+                             open(f).read(), re.S | re.M):
+            blocks[m.group(1)] = m.group(2)
+    for j, key in keys().items():
+        names, nret = cert_body(blocks[key], "cert")
+        out[j] = ([n if n == "[]" else f"Fn.«{key}».{n}" for n in names], nret)
     return out
 
 
 def ref(n):
     """A window's cells: its data list, or an empty window's literal `[]`."""
-    return "[]" if n == "[]" else f"Data.{n}"
+    return n
 
 
 def chunks(xs, n):

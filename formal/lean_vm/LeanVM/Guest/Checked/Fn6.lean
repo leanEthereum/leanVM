@@ -8,106 +8,700 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F330_0
-public import LeanVM.Guest.Checked.F336_2
-public import LeanVM.Guest.Checked.F336_2
-public import LeanVM.Guest.Checked.F337_1
-public import LeanVM.Guest.Checked.F338_0
-public import LeanVM.Guest.Checked.F338_8
-public import LeanVM.Guest.Checked.F338_8
-public import LeanVM.Guest.Checked.F339_7
-public import LeanVM.Guest.Checked.F339_7
-public import LeanVM.Guest.Checked.F340_5
-public import LeanVM.Guest.Checked.F340_5
-public import LeanVM.Guest.Checked.F341_2
-public import LeanVM.Guest.Checked.F341_10
-public import LeanVM.Guest.Checked.F341_10
-public import LeanVM.Guest.Checked.F342_6
-public import LeanVM.Guest.Checked.F342_6
-public import LeanVM.Guest.Checked.F343_2
-public import LeanVM.Guest.Checked.F343_10
-public import LeanVM.Guest.Checked.F343_10
-public import LeanVM.Guest.Checked.F344_6
-public import LeanVM.Guest.Checked.F345_0
-public import LeanVM.Guest.Checked.F345_8
-public import LeanVM.Guest.Checked.F345_8
-public import LeanVM.Guest.Checked.F346_2
-public import LeanVM.Guest.Checked.F346_10
-public import LeanVM.Guest.Checked.F346_10
+meta import LeanVM.Guest.KernelLit
+import LeanVM.Guest.Checked.Link0
+import LeanVM.Guest.Checked.Link1
+import LeanVM.Guest.Checked.Link2
+import LeanVM.Guest.Checked.Link3
+import LeanVM.Guest.Checked.Link4
+import LeanVM.Guest.Checked.Link5
+import LeanVM.Guest.Checked.Link6
+import LeanVM.Guest.Checked.Link7
+import LeanVM.Guest.Checked.Link8
+import LeanVM.Guest.Checked.Link9
+import LeanVM.Guest.Checked.Link10
+import LeanVM.Guest.Checked.Link11
+import LeanVM.Guest.Checked.Link12
+import LeanVM.Guest.Checked.Link13
+import LeanVM.Guest.Checked.Link14
+import LeanVM.Guest.Checked.Link15
+import LeanVM.Guest.Checked.Link16
+public import LeanVM.Guest.Pack.«P9».Core
+public import LeanVM.Guest.Pack.«P9».Bundle
+public import LeanVM.Guest.Pack.«P54».Core
+public import LeanVM.Guest.Pack.«P54».Bundle
+public import LeanVM.Guest.Pack.«P7».Core
+public import LeanVM.Guest.Pack.«P7».Bundle
+public import LeanVM.Guest.Pack.«P52».Core
+public import LeanVM.Guest.Pack.«P52».Bundle
+public import LeanVM.Guest.Pack.«P38».Core
+public import LeanVM.Guest.Pack.«P38».Bundle
+public import LeanVM.Guest.Pack.«P57».Core
+public import LeanVM.Guest.Pack.«P57».Bundle
+public import LeanVM.Guest.Pack.«P35».Sig
+public import LeanVM.Guest.Pack.«P24».Core
+public import LeanVM.Guest.Pack.«P24».Bundle
+public import LeanVM.Guest.Pack.«P10».Core
+public import LeanVM.Guest.Pack.«P10».Bundle
+public import LeanVM.Guest.Pack.«P35».Core
+public import LeanVM.Guest.Pack.«P35».Bundle
+public import LeanVM.Guest.Pack.«P16».Core
+public import LeanVM.Guest.Pack.«P16».Bundle
+public import LeanVM.Guest.Pack.«P21».Core
+public import LeanVM.Guest.Pack.«P21».Bundle
+public import LeanVM.Guest.Pack.«P2».Core
+public import LeanVM.Guest.Pack.«P2».Bundle
+public import LeanVM.Guest.Pack.«P47».Core
+public import LeanVM.Guest.Pack.«P47».Bundle
+public import LeanVM.Guest.Pack.«P28».Core
+public import LeanVM.Guest.Pack.«P28».Bundle
+public import LeanVM.Guest.Pack.«P33».Core
+public import LeanVM.Guest.Pack.«P33».Bundle
+public import LeanVM.Guest.Pack.«P14».Core
+public import LeanVM.Guest.Pack.«P14».Bundle
+public import LeanVM.Guest.Pack.«P0».Core
+public import LeanVM.Guest.Pack.«P0».Bundle
+public import LeanVM.Guest.Pack.«P17».Core
+public import LeanVM.Guest.Pack.«P17».Bundle
+public import LeanVM.Guest.Pack.«P36».Sig
+public import LeanVM.Guest.Pack.«P62».Core
+public import LeanVM.Guest.Pack.«P62».Bundle
+public import LeanVM.Guest.Pack.«P57».Sig
+public import LeanVM.Guest.Pack.«P43».Core
+public import LeanVM.Guest.Pack.«P43».Bundle
+public import LeanVM.Guest.Pack.«P38».Sig
+public import LeanVM.Guest.Pack.«P26».Sig
+public import LeanVM.Guest.Pack.«P29».Core
+public import LeanVM.Guest.Pack.«P29».Bundle
+public import LeanVM.Guest.Pack.«P45».Sig
+public import LeanVM.Guest.Pack.«P52».Sig
+public import LeanVM.Guest.Pack.«P55».Core
+public import LeanVM.Guest.Pack.«P55».Bundle
+public import LeanVM.Guest.Pack.«P7».Sig
+public import LeanVM.Guest.Pack.«P36».Core
+public import LeanVM.Guest.Pack.«P36».Bundle
+public import LeanVM.Guest.Pack.«P14».Sig
+public import LeanVM.Guest.Pack.«P33».Sig
+public import LeanVM.Guest.Pack.«P40».Sig
+public import LeanVM.Guest.Pack.«P59».Sig
+public import LeanVM.Guest.Pack.«P2».Sig
+public import LeanVM.Guest.Pack.«P21».Sig
+public import LeanVM.Guest.Pack.«P3».Sig
+public import LeanVM.Guest.Pack.«P53».Core
+public import LeanVM.Guest.Pack.«open_stacked__L0».Bundle
+public import LeanVM.Guest.Pack.«P0».Sig
+public import LeanVM.Guest.Pack.«P10».Sig
+public import LeanVM.Guest.Pack.«P41».Sig
+public import LeanVM.Guest.Pack.«P6».Sig
+public import LeanVM.Guest.Pack.«P61».Sig
+public import LeanVM.Guest.Pack.«P58».Sig
+public import LeanVM.Guest.Pack.«P37».Sig
+public import LeanVM.Guest.Pack.«P42».Sig
+public import LeanVM.Guest.Pack.«P16».Sig
+public import LeanVM.Guest.Pack.«P50».Sig
+public import LeanVM.Guest.Pack.«P63».Sig
+public import LeanVM.Guest.Pack.«P18».Sig
+public import LeanVM.Guest.Pack.«P5».Sig
+public import LeanVM.Guest.Pack.«P44».Sig
+public import LeanVM.Guest.Pack.«P29».Sig
+public import LeanVM.Guest.Pack.«P17».Sig
+public import LeanVM.Guest.Pack.«P15».Sig
+public import LeanVM.Guest.Pack.«P49».Sig
+public import LeanVM.Guest.Pack.«P55».Sig
+public import LeanVM.Guest.Pack.«P22».Sig
+public import LeanVM.Guest.Pack.«P46».Sig
+public import LeanVM.Guest.Pack.«P31».Sig
+public import LeanVM.Guest.Pack.«P1».Sig
+public import LeanVM.Guest.Pack.«P39».Sig
+public import LeanVM.Guest.Pack.«P20».Sig
+public import LeanVM.Guest.Pack.«P12».Sig
+public import LeanVM.Guest.Pack.«P4».Sig
+public import LeanVM.Guest.Pack.«P34».Sig
+public import LeanVM.Guest.Pack.«P19».Sig
+public import LeanVM.Guest.Pack.«P34».Core
+public import LeanVM.Guest.Pack.«open_stacked__L1».Bundle
+public import LeanVM.Guest.Pack.«P25».Sig
+public import LeanVM.Guest.Pack.«P11».Sig
+public import LeanVM.Guest.Pack.«P48».Sig
+public import LeanVM.Guest.Pack.«P60».Sig
+public import LeanVM.Guest.Pack.«P43».Sig
+public import LeanVM.Guest.Pack.«P32».Sig
+public import LeanVM.Guest.Pack.«P24».Sig
+public import LeanVM.Guest.Pack.«P53».Sig
+public import LeanVM.Guest.Pack.«P56».Sig
+public import LeanVM.Guest.Pack.«P15».Core
+public import LeanVM.Guest.Pack.«open_stacked__L2».Bundle
+public import LeanVM.Guest.Pack.«P8».Sig
+public import LeanVM.Guest.Pack.«P9».Sig
+public import LeanVM.Guest.Pack.«P62».Sig
+public import LeanVM.Guest.Pack.«P51».Sig
+public import LeanVM.Guest.Pack.«P30».Sig
+public import LeanVM.Guest.Pack.«P54».Sig
+public import LeanVM.Guest.Pack.«P60».Core
+public import LeanVM.Guest.Pack.«open_stacked__L3».Bundle
+public import LeanVM.Guest.Pack.«P23».Sig
+public import LeanVM.Guest.Pack.«P13».Sig
+public import LeanVM.Guest.Pack.«P41».Core
+public import LeanVM.Guest.Pack.«open_stacked__L4».Bundle
+public import LeanVM.Guest.Pack.«P22».Core
+public import LeanVM.Guest.Pack.«open_stacked__L5».Bundle
+public import LeanVM.Guest.Pack.«P28».Sig
+public import LeanVM.Guest.Pack.«P3».Core
+public import LeanVM.Guest.Pack.«open_stacked__L6».Bundle
+public import LeanVM.Guest.Pack.«P27».Sig
+public import LeanVM.Guest.Pack.«P48».Core
+public import LeanVM.Guest.Pack.«open_stacked__L7».Bundle
+public import LeanVM.Guest.Pack.«P47».Sig
+public import LeanVM.Guest.Pack.«P13».Core
+public import LeanVM.Guest.Pack.«open_stacked__L8».Bundle
+public import LeanVM.Guest.Pack.«P58».Core
+public import LeanVM.Guest.Pack.«open_stacked__L9».Bundle
+public import LeanVM.Guest.Pack.«open_stacked__L10».Bundle
+public import LeanVM.Guest.Pack.«P4».Core
+public import LeanVM.Guest.Pack.«P4».Bundle
+public import LeanVM.Guest.Pack.«P23».Core
+public import LeanVM.Guest.Pack.«P23».Bundle
+import LeanVM.Guest.Pack.«P9».Checked
+import LeanVM.Guest.Pack.«P54».Checked
+import LeanVM.Guest.Pack.«P7».Checked
+import LeanVM.Guest.Pack.«P52».Checked
+import LeanVM.Guest.Pack.«P38».Checked
+import LeanVM.Guest.Pack.«P57».Checked
+import LeanVM.Guest.Pack.«P24».Checked
+import LeanVM.Guest.Pack.«P10».Checked
+import LeanVM.Guest.Pack.«P35».Checked
+import LeanVM.Guest.Pack.«P16».Checked
+import LeanVM.Guest.Pack.«P21».Checked
+import LeanVM.Guest.Pack.«P2».Checked
+import LeanVM.Guest.Pack.«P47».Checked
+import LeanVM.Guest.Pack.«P28».Checked
+import LeanVM.Guest.Pack.«P33».Checked
+import LeanVM.Guest.Pack.«P14».Checked
+import LeanVM.Guest.Pack.«P0».Checked
+import LeanVM.Guest.Pack.«P17».Checked
+import LeanVM.Guest.Pack.«P62».Checked
+import LeanVM.Guest.Pack.«P43».Checked
+import LeanVM.Guest.Pack.«P29».Checked
+import LeanVM.Guest.Pack.«P55».Checked
+import LeanVM.Guest.Pack.«P36».Checked
+import LeanVM.Guest.Pack.«open_stacked__L0».Checked0
+import LeanVM.Guest.Pack.«open_stacked__L0».Checked8
+import LeanVM.Guest.Pack.«open_stacked__L1».Checked0
+import LeanVM.Guest.Pack.«open_stacked__L1».Checked8
+import LeanVM.Guest.Pack.«open_stacked__L2».Checked0
+import LeanVM.Guest.Pack.«open_stacked__L2».Checked8
+import LeanVM.Guest.Pack.«open_stacked__L3».Checked0
+import LeanVM.Guest.Pack.«open_stacked__L3».Checked8
+import LeanVM.Guest.Pack.«open_stacked__L4».Checked0
+import LeanVM.Guest.Pack.«open_stacked__L4».Checked8
+import LeanVM.Guest.Pack.«open_stacked__L5».Checked0
+import LeanVM.Guest.Pack.«open_stacked__L5».Checked8
+import LeanVM.Guest.Pack.«open_stacked__L6».Checked0
+import LeanVM.Guest.Pack.«open_stacked__L6».Checked8
+import LeanVM.Guest.Pack.«open_stacked__L7».Checked0
+import LeanVM.Guest.Pack.«open_stacked__L7».Checked8
+import LeanVM.Guest.Pack.«open_stacked__L8».Checked0
+import LeanVM.Guest.Pack.«open_stacked__L8».Checked8
+import LeanVM.Guest.Pack.«open_stacked__L9».Checked0
+import LeanVM.Guest.Pack.«open_stacked__L9».Checked8
+import LeanVM.Guest.Pack.«open_stacked__L10».Checked0
+import LeanVM.Guest.Pack.«open_stacked__L10».Checked8
+import LeanVM.Guest.Pack.«P4».Checked
+import LeanVM.Guest.Pack.«P23».Checked
 
 namespace LeanVM.Guest.Checked
 
+open LeanVM.Guest.Check
+
 @[expose] public section
+
+theorem link301 : Link 301 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L26».code Fn.«column_selector__L26».core (Fn.«column_selector__L26».cert.withPows Data.powTree) :=
+  Link.of code301 core301 cert301 SigsOk.nil
+    (by decide +kernel)
+
+theorem w301_0 : WinOk 301 0 := link301.win rfl Fn.«column_selector__L26».w0
+
+theorem ok301 : CheckOk 301 := checkOk_one (by decide +kernel) w301_0
 
 theorem plain301 : Plain 301 := plain_of_nil (by decide +kernel)
 
+theorem link302 : Link 302 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L27».code Fn.«column_selector__L27».core (Fn.«column_selector__L27».cert.withPows Data.powTree) :=
+  Link.of code302 core302 cert302 SigsOk.nil
+    (by decide +kernel)
+
+theorem w302_0 : WinOk 302 0 := link302.win rfl Fn.«column_selector__L27».w0
+
+theorem ok302 : CheckOk 302 := checkOk_one (by decide +kernel) w302_0
+
 theorem plain302 : Plain 302 := plain_of_nil (by decide +kernel)
+
+theorem link303 : Link 303 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L28».code Fn.«column_selector__L28».core (Fn.«column_selector__L28».cert.withPows Data.powTree) :=
+  Link.of code303 core303 cert303 SigsOk.nil
+    (by decide +kernel)
+
+theorem w303_0 : WinOk 303 0 := link303.win rfl Fn.«column_selector__L28».w0
+
+theorem ok303 : CheckOk 303 := checkOk_one (by decide +kernel) w303_0
 
 theorem plain303 : Plain 303 := plain_of_nil (by decide +kernel)
 
+theorem link304 : Link 304 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L29».code Fn.«column_selector__L29».core (Fn.«column_selector__L29».cert.withPows Data.powTree) :=
+  Link.of code304 core304 cert304 SigsOk.nil
+    (by decide +kernel)
+
+theorem w304_0 : WinOk 304 0 := link304.win rfl Fn.«column_selector__L29».w0
+
+theorem ok304 : CheckOk 304 := checkOk_one (by decide +kernel) w304_0
+
 theorem plain304 : Plain 304 := plain_of_nil (by decide +kernel)
+
+theorem link305 : Link 305 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L30».code Fn.«column_selector__L30».core (Fn.«column_selector__L30».cert.withPows Data.powTree) :=
+  Link.of code305 core305 cert305 SigsOk.nil
+    (by decide +kernel)
+
+theorem w305_0 : WinOk 305 0 := link305.win rfl Fn.«column_selector__L30».w0
+
+theorem ok305 : CheckOk 305 := checkOk_one (by decide +kernel) w305_0
 
 theorem plain305 : Plain 305 := plain_of_nil (by decide +kernel)
 
+theorem link306 : Link 306 (Glob.ofSigs ([(4, Fn.«assert_small_g_power».sig)]) Data.jtTrie globSem)
+    Fn.«log2_ceil_in_the_exponent__L0_L34».code Fn.«log2_ceil_in_the_exponent__L0_L34».core (Fn.«log2_ceil_in_the_exponent__L0_L34».cert.withPows Data.powTree) :=
+  Link.of code306 core306 cert306 
+    (SigsOk.cons sig4 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w306_0 : WinOk 306 0 := link306.win rfl Fn.«log2_ceil_in_the_exponent__L0_L34».w0
+
+theorem ok306 : CheckOk 306 := checkOk_one (by decide +kernel) w306_0
+
 theorem plain306 : Plain 306 := plain_of_nil (by decide +kernel)
+
+theorem link307 : Link 307 (Glob.ofSigs ([(4, Fn.«assert_small_g_power».sig)]) Data.jtTrie globSem)
+    Fn.«log2_ceil_in_the_exponent__L16_L34».code Fn.«log2_ceil_in_the_exponent__L16_L34».core (Fn.«log2_ceil_in_the_exponent__L16_L34».cert.withPows Data.powTree) :=
+  Link.of code307 core307 cert307 
+    (SigsOk.cons sig4 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w307_0 : WinOk 307 0 := link307.win rfl Fn.«log2_ceil_in_the_exponent__L16_L34».w0
+
+theorem ok307 : CheckOk 307 := checkOk_one (by decide +kernel) w307_0
 
 theorem plain307 : Plain 307 := plain_of_nil (by decide +kernel)
 
+theorem link308 : Link 308 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«grind_check__L15».code Fn.«grind_check__L15».core (Fn.«grind_check__L15».cert.withPows Data.powTree) :=
+  Link.of code308 core308 cert308 SigsOk.nil
+    (by decide +kernel)
+
+theorem w308_0 : WinOk 308 0 := link308.win rfl Fn.«grind_check__L15».w0
+
+theorem ok308 : CheckOk 308 := checkOk_one (by decide +kernel) w308_0
+
 theorem plain308 : Plain 308 := plain_of_nil (by decide +kernel)
+
+theorem link309 : Link 309 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«squeeze_point_from__L20».code Fn.«squeeze_point_from__L20».core (Fn.«squeeze_point_from__L20».cert.withPows Data.powTree) :=
+  Link.of code309 core309 cert309 SigsOk.nil
+    (by decide +kernel)
+
+theorem w309_0 : WinOk 309 0 := link309.win rfl Fn.«squeeze_point_from__L20».w0
+
+theorem ok309 : CheckOk 309 := checkOk_one (by decide +kernel) w309_0
 
 theorem plain309 : Plain 309 := plain_of_nil (by decide +kernel)
 
+theorem link310 : Link 310 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«squeeze_point_from__L21».code Fn.«squeeze_point_from__L21».core (Fn.«squeeze_point_from__L21».cert.withPows Data.powTree) :=
+  Link.of code310 core310 cert310 SigsOk.nil
+    (by decide +kernel)
+
+theorem w310_0 : WinOk 310 0 := link310.win rfl Fn.«squeeze_point_from__L21».w0
+
+theorem ok310 : CheckOk 310 := checkOk_one (by decide +kernel) w310_0
+
 theorem plain310 : Plain 310 := plain_of_nil (by decide +kernel)
+
+theorem link311 : Link 311 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«squeeze_point_from__L22».code Fn.«squeeze_point_from__L22».core (Fn.«squeeze_point_from__L22».cert.withPows Data.powTree) :=
+  Link.of code311 core311 cert311 SigsOk.nil
+    (by decide +kernel)
+
+theorem w311_0 : WinOk 311 0 := link311.win rfl Fn.«squeeze_point_from__L22».w0
+
+theorem ok311 : CheckOk 311 := checkOk_one (by decide +kernel) w311_0
 
 theorem plain311 : Plain 311 := plain_of_nil (by decide +kernel)
 
+theorem link312 : Link 312 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«squeeze_point_from__L23».code Fn.«squeeze_point_from__L23».core (Fn.«squeeze_point_from__L23».cert.withPows Data.powTree) :=
+  Link.of code312 core312 cert312 SigsOk.nil
+    (by decide +kernel)
+
+theorem w312_0 : WinOk 312 0 := link312.win rfl Fn.«squeeze_point_from__L23».w0
+
+theorem ok312 : CheckOk 312 := checkOk_one (by decide +kernel) w312_0
+
 theorem plain312 : Plain 312 := plain_of_nil (by decide +kernel)
+
+theorem link313 : Link 313 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«squeeze_point_from__L24».code Fn.«squeeze_point_from__L24».core (Fn.«squeeze_point_from__L24».cert.withPows Data.powTree) :=
+  Link.of code313 core313 cert313 SigsOk.nil
+    (by decide +kernel)
+
+theorem w313_0 : WinOk 313 0 := link313.win rfl Fn.«squeeze_point_from__L24».w0
+
+theorem ok313 : CheckOk 313 := checkOk_one (by decide +kernel) w313_0
 
 theorem plain313 : Plain 313 := plain_of_nil (by decide +kernel)
 
+theorem link314 : Link 314 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«squeeze_point_from__L25».code Fn.«squeeze_point_from__L25».core (Fn.«squeeze_point_from__L25».cert.withPows Data.powTree) :=
+  Link.of code314 core314 cert314 SigsOk.nil
+    (by decide +kernel)
+
+theorem w314_0 : WinOk 314 0 := link314.win rfl Fn.«squeeze_point_from__L25».w0
+
+theorem ok314 : CheckOk 314 := checkOk_one (by decide +kernel) w314_0
+
 theorem plain314 : Plain 314 := plain_of_nil (by decide +kernel)
+
+theorem link315 : Link 315 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«squeeze_point_from__L26».code Fn.«squeeze_point_from__L26».core (Fn.«squeeze_point_from__L26».cert.withPows Data.powTree) :=
+  Link.of code315 core315 cert315 SigsOk.nil
+    (by decide +kernel)
+
+theorem w315_0 : WinOk 315 0 := link315.win rfl Fn.«squeeze_point_from__L26».w0
+
+theorem ok315 : CheckOk 315 := checkOk_one (by decide +kernel) w315_0
 
 theorem plain315 : Plain 315 := plain_of_nil (by decide +kernel)
 
+theorem link316 : Link 316 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«squeeze_point_from__L27».code Fn.«squeeze_point_from__L27».core (Fn.«squeeze_point_from__L27».cert.withPows Data.powTree) :=
+  Link.of code316 core316 cert316 SigsOk.nil
+    (by decide +kernel)
+
+theorem w316_0 : WinOk 316 0 := link316.win rfl Fn.«squeeze_point_from__L27».w0
+
+theorem ok316 : CheckOk 316 := checkOk_one (by decide +kernel) w316_0
+
 theorem plain316 : Plain 316 := plain_of_nil (by decide +kernel)
+
+theorem link317 : Link 317 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«squeeze_point_from__L28».code Fn.«squeeze_point_from__L28».core (Fn.«squeeze_point_from__L28».cert.withPows Data.powTree) :=
+  Link.of code317 core317 cert317 SigsOk.nil
+    (by decide +kernel)
+
+theorem w317_0 : WinOk 317 0 := link317.win rfl Fn.«squeeze_point_from__L28».w0
+
+theorem ok317 : CheckOk 317 := checkOk_one (by decide +kernel) w317_0
 
 theorem plain317 : Plain 317 := plain_of_nil (by decide +kernel)
 
+theorem link318 : Link 318 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«squeeze_point_from__L29».code Fn.«squeeze_point_from__L29».core (Fn.«squeeze_point_from__L29».cert.withPows Data.powTree) :=
+  Link.of code318 core318 cert318 SigsOk.nil
+    (by decide +kernel)
+
+theorem w318_0 : WinOk 318 0 := link318.win rfl Fn.«squeeze_point_from__L29».w0
+
+theorem ok318 : CheckOk 318 := checkOk_one (by decide +kernel) w318_0
+
 theorem plain318 : Plain 318 := plain_of_nil (by decide +kernel)
+
+theorem link319 : Link 319 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«squeeze_point_from__L30».code Fn.«squeeze_point_from__L30».core (Fn.«squeeze_point_from__L30».cert.withPows Data.powTree) :=
+  Link.of code319 core319 cert319 SigsOk.nil
+    (by decide +kernel)
+
+theorem w319_0 : WinOk 319 0 := link319.win rfl Fn.«squeeze_point_from__L30».w0
+
+theorem ok319 : CheckOk 319 := checkOk_one (by decide +kernel) w319_0
 
 theorem plain319 : Plain 319 := plain_of_nil (by decide +kernel)
 
+theorem link320 : Link 320 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«opening_message__L1_L1».code Fn.«opening_message__L1_L1».core (Fn.«opening_message__L1_L1».cert.withPows Data.powTree) :=
+  Link.of code320 core320 cert320 SigsOk.nil
+    (by decide +kernel)
+
+theorem w320_0 : WinOk 320 0 := link320.win rfl Fn.«opening_message__L1_L1».w0
+
+theorem ok320 : CheckOk 320 := checkOk_one (by decide +kernel) w320_0
+
 theorem plain320 : Plain 320 := plain_of_nil (by decide +kernel)
+
+theorem link321 : Link 321 (Glob.ofSigs ([(448, Fn.«grind_check__L17».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L0».code Fn.«bus_grind_check__L0».core (Fn.«bus_grind_check__L0».cert.withPows Data.powTree) :=
+  Link.of code321 core321 cert321 
+    (SigsOk.cons sig448 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w321_0 : WinOk 321 0 := link321.win rfl Fn.«bus_grind_check__L0».w0
+
+theorem ok321 : CheckOk 321 := checkOk_one (by decide +kernel) w321_0
 
 theorem plain321 : Plain 321 := plain_of_nil (by decide +kernel)
 
+theorem link322 : Link 322 (Glob.ofSigs ([(449, Fn.«grind_check__L18».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L1».code Fn.«bus_grind_check__L1».core (Fn.«bus_grind_check__L1».cert.withPows Data.powTree) :=
+  Link.of code322 core322 cert322 
+    (SigsOk.cons sig449 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w322_0 : WinOk 322 0 := link322.win rfl Fn.«bus_grind_check__L1».w0
+
+theorem ok322 : CheckOk 322 := checkOk_one (by decide +kernel) w322_0
+
 theorem plain322 : Plain 322 := plain_of_nil (by decide +kernel)
+
+theorem link323 : Link 323 (Glob.ofSigs ([(450, Fn.«grind_check__L19».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L2».code Fn.«bus_grind_check__L2».core (Fn.«bus_grind_check__L2».cert.withPows Data.powTree) :=
+  Link.of code323 core323 cert323 
+    (SigsOk.cons sig450 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w323_0 : WinOk 323 0 := link323.win rfl Fn.«bus_grind_check__L2».w0
+
+theorem ok323 : CheckOk 323 := checkOk_one (by decide +kernel) w323_0
 
 theorem plain323 : Plain 323 := plain_of_nil (by decide +kernel)
 
+theorem link324 : Link 324 (Glob.ofSigs ([(451, Fn.«grind_check__L20».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L3».code Fn.«bus_grind_check__L3».core (Fn.«bus_grind_check__L3».cert.withPows Data.powTree) :=
+  Link.of code324 core324 cert324 
+    (SigsOk.cons sig451 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w324_0 : WinOk 324 0 := link324.win rfl Fn.«bus_grind_check__L3».w0
+
+theorem ok324 : CheckOk 324 := checkOk_one (by decide +kernel) w324_0
+
 theorem plain324 : Plain 324 := plain_of_nil (by decide +kernel)
+
+theorem link325 : Link 325 (Glob.ofSigs ([(452, Fn.«grind_check__L21».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L4».code Fn.«bus_grind_check__L4».core (Fn.«bus_grind_check__L4».cert.withPows Data.powTree) :=
+  Link.of code325 core325 cert325 
+    (SigsOk.cons sig452 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w325_0 : WinOk 325 0 := link325.win rfl Fn.«bus_grind_check__L4».w0
+
+theorem ok325 : CheckOk 325 := checkOk_one (by decide +kernel) w325_0
 
 theorem plain325 : Plain 325 := plain_of_nil (by decide +kernel)
 
+theorem link326 : Link 326 (Glob.ofSigs ([(453, Fn.«grind_check__L22».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L5».code Fn.«bus_grind_check__L5».core (Fn.«bus_grind_check__L5».cert.withPows Data.powTree) :=
+  Link.of code326 core326 cert326 
+    (SigsOk.cons sig453 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w326_0 : WinOk 326 0 := link326.win rfl Fn.«bus_grind_check__L5».w0
+
+theorem ok326 : CheckOk 326 := checkOk_one (by decide +kernel) w326_0
+
 theorem plain326 : Plain 326 := plain_of_nil (by decide +kernel)
+
+theorem link327 : Link 327 (Glob.ofSigs ([(454, Fn.«grind_check__L23».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L6».code Fn.«bus_grind_check__L6».core (Fn.«bus_grind_check__L6».cert.withPows Data.powTree) :=
+  Link.of code327 core327 cert327 
+    (SigsOk.cons sig454 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w327_0 : WinOk 327 0 := link327.win rfl Fn.«bus_grind_check__L6».w0
+
+theorem ok327 : CheckOk 327 := checkOk_one (by decide +kernel) w327_0
 
 theorem plain327 : Plain 327 := plain_of_nil (by decide +kernel)
 
+theorem link328 : Link 328 (Glob.ofSigs ([(455, Fn.«grind_check__L24».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L7».code Fn.«bus_grind_check__L7».core (Fn.«bus_grind_check__L7».cert.withPows Data.powTree) :=
+  Link.of code328 core328 cert328 
+    (SigsOk.cons sig455 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w328_0 : WinOk 328 0 := link328.win rfl Fn.«bus_grind_check__L7».w0
+
+theorem ok328 : CheckOk 328 := checkOk_one (by decide +kernel) w328_0
+
 theorem plain328 : Plain 328 := plain_of_nil (by decide +kernel)
+
+theorem link329 : Link 329 (Glob.ofSigs ([(456, Fn.«grind_check__L25».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L8».code Fn.«bus_grind_check__L8».core (Fn.«bus_grind_check__L8».cert.withPows Data.powTree) :=
+  Link.of code329 core329 cert329 
+    (SigsOk.cons sig456 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w329_0 : WinOk 329 0 := link329.win rfl Fn.«bus_grind_check__L8».w0
+
+theorem ok329 : CheckOk 329 := checkOk_one (by decide +kernel) w329_0
 
 theorem plain329 : Plain 329 := plain_of_nil (by decide +kernel)
 
+theorem link330 : Link 330 (Glob.ofSigs ([(457, Fn.«grind_check__L26».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L9».code Fn.«bus_grind_check__L9».core (Fn.«bus_grind_check__L9».cert.withPows Data.powTree) :=
+  Link.of code330 core330 cert330 
+    (SigsOk.cons sig457 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w330_0 : WinOk 330 0 := link330.win rfl Fn.«bus_grind_check__L9».w0
+
+theorem ok330 : CheckOk 330 := checkOk_one (by decide +kernel) w330_0
+
 theorem plain330 : Plain 330 := plain_of_nil (by decide +kernel)
+
+theorem link331 : Link 331 (Glob.ofSigs ([(458, Fn.«grind_check__L27».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L10».code Fn.«bus_grind_check__L10».core (Fn.«bus_grind_check__L10».cert.withPows Data.powTree) :=
+  Link.of code331 core331 cert331 
+    (SigsOk.cons sig458 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w331_0 : WinOk 331 0 := link331.win rfl Fn.«bus_grind_check__L10».w0
+
+theorem ok331 : CheckOk 331 := checkOk_one (by decide +kernel) w331_0
 
 theorem plain331 : Plain 331 := plain_of_nil (by decide +kernel)
 
+theorem link332 : Link 332 (Glob.ofSigs ([(459, Fn.«grind_check__L28».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L11».code Fn.«bus_grind_check__L11».core (Fn.«bus_grind_check__L11».cert.withPows Data.powTree) :=
+  Link.of code332 core332 cert332 
+    (SigsOk.cons sig459 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w332_0 : WinOk 332 0 := link332.win rfl Fn.«bus_grind_check__L11».w0
+
+theorem ok332 : CheckOk 332 := checkOk_one (by decide +kernel) w332_0
+
 theorem plain332 : Plain 332 := plain_of_nil (by decide +kernel)
+
+theorem link333 : Link 333 (Glob.ofSigs ([(460, Fn.«grind_check__L29».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L12».code Fn.«bus_grind_check__L12».core (Fn.«bus_grind_check__L12».cert.withPows Data.powTree) :=
+  Link.of code333 core333 cert333 
+    (SigsOk.cons sig460 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w333_0 : WinOk 333 0 := link333.win rfl Fn.«bus_grind_check__L12».w0
+
+theorem ok333 : CheckOk 333 := checkOk_one (by decide +kernel) w333_0
 
 theorem plain333 : Plain 333 := plain_of_nil (by decide +kernel)
 
+theorem link334 : Link 334 (Glob.ofSigs ([(461, Fn.«grind_check__L30».sig)]) Data.jtTrie globSem)
+    Fn.«bus_grind_check__L13».code Fn.«bus_grind_check__L13».core (Fn.«bus_grind_check__L13».cert.withPows Data.powTree) :=
+  Link.of code334 core334 cert334 
+    (SigsOk.cons sig461 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w334_0 : WinOk 334 0 := link334.win rfl Fn.«bus_grind_check__L13».w0
+
+theorem ok334 : CheckOk 334 := checkOk_one (by decide +kernel) w334_0
+
 theorem plain334 : Plain 334 := plain_of_nil (by decide +kernel)
 
+theorem link335 : Link 335 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«grind_check__L13».code Fn.«grind_check__L13».core (Fn.«grind_check__L13».cert.withPows Data.powTree) :=
+  Link.of code335 core335 cert335 SigsOk.nil
+    (by decide +kernel)
+
+theorem w335_0 : WinOk 335 0 := link335.win rfl Fn.«grind_check__L13».w0
+
+theorem ok335 : CheckOk 335 := checkOk_one (by decide +kernel) w335_0
+
 theorem plain335 : Plain 335 := plain_of_nil (by decide +kernel)
+
+theorem link336 : Link 336 (Glob.ofSigs ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (463, Fn.«squeeze_point_from__L14».sig), (464, Fn.«level_positions__L28_L15_L3».sig), (465, Fn.«level_positions__L14_L16_L4».sig), (466, Fn.«level_positions__L11_L17_L5».sig), (467, Fn.«level_positions__L8_L18_L6».sig), (468, Fn.«level_queries__L219_L1_L6_L32_L15_L3_L0_L0_L0_L0».sig), (469, Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0».sig), (470, Fn.«level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (471, Fn.«level_queries__L55_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (472, Fn.«opening_message__L6_L1».sig), (473, Fn.«squeeze_point_from__L10».sig)] ++ [(474, Fn.«level_positions__L7_L14_L2».sig), (475, Fn.«level_positions__L6_L15_L3».sig), (476, Fn.«level_positions__L5_L16_L4».sig), (477, Fn.«level_positions__L5_L17_L5».sig), (478, Fn.«level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (479, Fn.«level_queries__L44_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (480, Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (481, Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (482, Fn.«squeeze_point_from__L6».sig), (483, Fn.«level_positions__L4_L13_L7».sig), (484, Fn.«level_positions__L4_L14_L2».sig), (485, Fn.«level_positions__L4_L15_L3».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (487, Fn.«level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0».sig), (488, Fn.«level_queries__L29_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (489, Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig)] ++ [(490, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (491, Fn.«level_positions__L3_L12_L6».sig), (492, Fn.«level_positions__L3_L13_L7».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (495, Fn.«level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1».sig), (496, Fn.«level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».sig), (497, Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».sig), (498, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».sig), (499, Fn.«fold_final_msg__L2».sig), (500, Fn.«level_residual__L219_L14_L6_L3».sig), (501, Fn.«level_residual__L109_L14_L6_L3».sig), (502, Fn.«level_residual__L73_L14_L6_L3».sig), (503, Fn.«level_residual__L55_L14_L6_L3».sig), (504, Fn.«level_residual__L55_L10_L4_L2».sig), (505, Fn.«level_residual__L44_L10_L4_L2».sig)] ++ [(506, Fn.«level_residual__L37_L10_L4_L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (508, Fn.«level_residual__L33_L6_L4_L2».sig), (509, Fn.«level_residual__L29_L6_L4_L2».sig), (510, Fn.«level_residual__L25_L6_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig)]) Data.jtTrie globSem)
+    Fn.«open_stacked__L0».code Fn.«open_stacked__L0».core (Fn.«open_stacked__L0».cert.withPows Data.powTree) :=
+  have h3 : SigsOk ([(506, Fn.«level_residual__L37_L10_L4_L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (508, Fn.«level_residual__L33_L6_L4_L2».sig), (509, Fn.«level_residual__L29_L6_L4_L2».sig), (510, Fn.«level_residual__L25_L6_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig)]) :=
+    (SigsOk.cons sig506 rfl 
+    (SigsOk.cons sig507 rfl 
+    (SigsOk.cons sig508 rfl 
+    (SigsOk.cons sig509 rfl 
+    (SigsOk.cons sig510 rfl 
+    (SigsOk.cons sig511 rfl SigsOk.nil))))))
+  have h2 : SigsOk ([(490, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (491, Fn.«level_positions__L3_L12_L6».sig), (492, Fn.«level_positions__L3_L13_L7».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (495, Fn.«level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1».sig), (496, Fn.«level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».sig), (497, Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».sig), (498, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».sig), (499, Fn.«fold_final_msg__L2».sig), (500, Fn.«level_residual__L219_L14_L6_L3».sig), (501, Fn.«level_residual__L109_L14_L6_L3».sig), (502, Fn.«level_residual__L73_L14_L6_L3».sig), (503, Fn.«level_residual__L55_L14_L6_L3».sig), (504, Fn.«level_residual__L55_L10_L4_L2».sig), (505, Fn.«level_residual__L44_L10_L4_L2».sig)] ++ [(506, Fn.«level_residual__L37_L10_L4_L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (508, Fn.«level_residual__L33_L6_L4_L2».sig), (509, Fn.«level_residual__L29_L6_L4_L2».sig), (510, Fn.«level_residual__L25_L6_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(490, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (491, Fn.«level_positions__L3_L12_L6».sig), (492, Fn.«level_positions__L3_L13_L7».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (495, Fn.«level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1».sig), (496, Fn.«level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».sig), (497, Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».sig), (498, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».sig), (499, Fn.«fold_final_msg__L2».sig), (500, Fn.«level_residual__L219_L14_L6_L3».sig), (501, Fn.«level_residual__L109_L14_L6_L3».sig), (502, Fn.«level_residual__L73_L14_L6_L3».sig), (503, Fn.«level_residual__L55_L14_L6_L3».sig), (504, Fn.«level_residual__L55_L10_L4_L2».sig), (505, Fn.«level_residual__L44_L10_L4_L2».sig)]) (l₂ := ([(506, Fn.«level_residual__L37_L10_L4_L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (508, Fn.«level_residual__L33_L6_L4_L2».sig), (509, Fn.«level_residual__L29_L6_L4_L2».sig), (510, Fn.«level_residual__L25_L6_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig)]))
+    
+    (SigsOk.cons sig490 rfl 
+    (SigsOk.cons sig491 rfl 
+    (SigsOk.cons sig492 rfl 
+    (SigsOk.cons sig493 rfl 
+    (SigsOk.cons sig494 rfl 
+    (SigsOk.cons sig495 rfl 
+    (SigsOk.cons sig496 rfl 
+    (SigsOk.cons sig497 rfl 
+    (SigsOk.cons sig498 rfl 
+    (SigsOk.cons sig499 rfl 
+    (SigsOk.cons sig500 rfl 
+    (SigsOk.cons sig501 rfl 
+    (SigsOk.cons sig502 rfl 
+    (SigsOk.cons sig503 rfl 
+    (SigsOk.cons sig504 rfl 
+    (SigsOk.cons sig505 rfl SigsOk.nil)))))))))))))))) h3
+  have h1 : SigsOk ([(474, Fn.«level_positions__L7_L14_L2».sig), (475, Fn.«level_positions__L6_L15_L3».sig), (476, Fn.«level_positions__L5_L16_L4».sig), (477, Fn.«level_positions__L5_L17_L5».sig), (478, Fn.«level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (479, Fn.«level_queries__L44_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (480, Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (481, Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (482, Fn.«squeeze_point_from__L6».sig), (483, Fn.«level_positions__L4_L13_L7».sig), (484, Fn.«level_positions__L4_L14_L2».sig), (485, Fn.«level_positions__L4_L15_L3».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (487, Fn.«level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0».sig), (488, Fn.«level_queries__L29_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (489, Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig)] ++ [(490, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (491, Fn.«level_positions__L3_L12_L6».sig), (492, Fn.«level_positions__L3_L13_L7».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (495, Fn.«level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1».sig), (496, Fn.«level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».sig), (497, Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».sig), (498, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».sig), (499, Fn.«fold_final_msg__L2».sig), (500, Fn.«level_residual__L219_L14_L6_L3».sig), (501, Fn.«level_residual__L109_L14_L6_L3».sig), (502, Fn.«level_residual__L73_L14_L6_L3».sig), (503, Fn.«level_residual__L55_L14_L6_L3».sig), (504, Fn.«level_residual__L55_L10_L4_L2».sig), (505, Fn.«level_residual__L44_L10_L4_L2».sig)] ++ [(506, Fn.«level_residual__L37_L10_L4_L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (508, Fn.«level_residual__L33_L6_L4_L2».sig), (509, Fn.«level_residual__L29_L6_L4_L2».sig), (510, Fn.«level_residual__L25_L6_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(474, Fn.«level_positions__L7_L14_L2».sig), (475, Fn.«level_positions__L6_L15_L3».sig), (476, Fn.«level_positions__L5_L16_L4».sig), (477, Fn.«level_positions__L5_L17_L5».sig), (478, Fn.«level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (479, Fn.«level_queries__L44_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (480, Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (481, Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (482, Fn.«squeeze_point_from__L6».sig), (483, Fn.«level_positions__L4_L13_L7».sig), (484, Fn.«level_positions__L4_L14_L2».sig), (485, Fn.«level_positions__L4_L15_L3».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (487, Fn.«level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0».sig), (488, Fn.«level_queries__L29_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (489, Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig)]) (l₂ := ([(490, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (491, Fn.«level_positions__L3_L12_L6».sig), (492, Fn.«level_positions__L3_L13_L7».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (495, Fn.«level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1».sig), (496, Fn.«level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».sig), (497, Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».sig), (498, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».sig), (499, Fn.«fold_final_msg__L2».sig), (500, Fn.«level_residual__L219_L14_L6_L3».sig), (501, Fn.«level_residual__L109_L14_L6_L3».sig), (502, Fn.«level_residual__L73_L14_L6_L3».sig), (503, Fn.«level_residual__L55_L14_L6_L3».sig), (504, Fn.«level_residual__L55_L10_L4_L2».sig), (505, Fn.«level_residual__L44_L10_L4_L2».sig)] ++ [(506, Fn.«level_residual__L37_L10_L4_L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (508, Fn.«level_residual__L33_L6_L4_L2».sig), (509, Fn.«level_residual__L29_L6_L4_L2».sig), (510, Fn.«level_residual__L25_L6_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig)]))
+    
+    (SigsOk.cons sig474 rfl 
+    (SigsOk.cons sig475 rfl 
+    (SigsOk.cons sig476 rfl 
+    (SigsOk.cons sig477 rfl 
+    (SigsOk.cons sig478 rfl 
+    (SigsOk.cons sig479 rfl 
+    (SigsOk.cons sig480 rfl 
+    (SigsOk.cons sig481 rfl 
+    (SigsOk.cons sig482 rfl 
+    (SigsOk.cons sig483 rfl 
+    (SigsOk.cons sig484 rfl 
+    (SigsOk.cons sig485 rfl 
+    (SigsOk.cons sig486 rfl 
+    (SigsOk.cons sig487 rfl 
+    (SigsOk.cons sig488 rfl 
+    (SigsOk.cons sig489 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (463, Fn.«squeeze_point_from__L14».sig), (464, Fn.«level_positions__L28_L15_L3».sig), (465, Fn.«level_positions__L14_L16_L4».sig), (466, Fn.«level_positions__L11_L17_L5».sig), (467, Fn.«level_positions__L8_L18_L6».sig), (468, Fn.«level_queries__L219_L1_L6_L32_L15_L3_L0_L0_L0_L0».sig), (469, Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0».sig), (470, Fn.«level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (471, Fn.«level_queries__L55_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (472, Fn.«opening_message__L6_L1».sig), (473, Fn.«squeeze_point_from__L10».sig)] ++ [(474, Fn.«level_positions__L7_L14_L2».sig), (475, Fn.«level_positions__L6_L15_L3».sig), (476, Fn.«level_positions__L5_L16_L4».sig), (477, Fn.«level_positions__L5_L17_L5».sig), (478, Fn.«level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (479, Fn.«level_queries__L44_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (480, Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (481, Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (482, Fn.«squeeze_point_from__L6».sig), (483, Fn.«level_positions__L4_L13_L7».sig), (484, Fn.«level_positions__L4_L14_L2».sig), (485, Fn.«level_positions__L4_L15_L3».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (487, Fn.«level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0».sig), (488, Fn.«level_queries__L29_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (489, Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig)] ++ [(490, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (491, Fn.«level_positions__L3_L12_L6».sig), (492, Fn.«level_positions__L3_L13_L7».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (495, Fn.«level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1».sig), (496, Fn.«level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».sig), (497, Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».sig), (498, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».sig), (499, Fn.«fold_final_msg__L2».sig), (500, Fn.«level_residual__L219_L14_L6_L3».sig), (501, Fn.«level_residual__L109_L14_L6_L3».sig), (502, Fn.«level_residual__L73_L14_L6_L3».sig), (503, Fn.«level_residual__L55_L14_L6_L3».sig), (504, Fn.«level_residual__L55_L10_L4_L2».sig), (505, Fn.«level_residual__L44_L10_L4_L2».sig)] ++ [(506, Fn.«level_residual__L37_L10_L4_L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (508, Fn.«level_residual__L33_L6_L4_L2».sig), (509, Fn.«level_residual__L29_L6_L4_L2».sig), (510, Fn.«level_residual__L25_L6_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (463, Fn.«squeeze_point_from__L14».sig), (464, Fn.«level_positions__L28_L15_L3».sig), (465, Fn.«level_positions__L14_L16_L4».sig), (466, Fn.«level_positions__L11_L17_L5».sig), (467, Fn.«level_positions__L8_L18_L6».sig), (468, Fn.«level_queries__L219_L1_L6_L32_L15_L3_L0_L0_L0_L0».sig), (469, Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0».sig), (470, Fn.«level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (471, Fn.«level_queries__L55_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (472, Fn.«opening_message__L6_L1».sig), (473, Fn.«squeeze_point_from__L10».sig)]) (l₂ := ([(474, Fn.«level_positions__L7_L14_L2».sig), (475, Fn.«level_positions__L6_L15_L3».sig), (476, Fn.«level_positions__L5_L16_L4».sig), (477, Fn.«level_positions__L5_L17_L5».sig), (478, Fn.«level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (479, Fn.«level_queries__L44_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (480, Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (481, Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (482, Fn.«squeeze_point_from__L6».sig), (483, Fn.«level_positions__L4_L13_L7».sig), (484, Fn.«level_positions__L4_L14_L2».sig), (485, Fn.«level_positions__L4_L15_L3».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (487, Fn.«level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0».sig), (488, Fn.«level_queries__L29_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (489, Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig)] ++ [(490, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (491, Fn.«level_positions__L3_L12_L6».sig), (492, Fn.«level_positions__L3_L13_L7».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (495, Fn.«level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1».sig), (496, Fn.«level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».sig), (497, Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».sig), (498, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».sig), (499, Fn.«fold_final_msg__L2».sig), (500, Fn.«level_residual__L219_L14_L6_L3».sig), (501, Fn.«level_residual__L109_L14_L6_L3».sig), (502, Fn.«level_residual__L73_L14_L6_L3».sig), (503, Fn.«level_residual__L55_L14_L6_L3».sig), (504, Fn.«level_residual__L55_L10_L4_L2».sig), (505, Fn.«level_residual__L44_L10_L4_L2».sig)] ++ [(506, Fn.«level_residual__L37_L10_L4_L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (508, Fn.«level_residual__L33_L6_L4_L2».sig), (509, Fn.«level_residual__L29_L6_L4_L2».sig), (510, Fn.«level_residual__L25_L6_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig)]))
+    
+    (SigsOk.cons sig8 rfl 
+    (SigsOk.cons sig9 rfl 
+    (SigsOk.cons sig308 rfl 
+    (SigsOk.cons sig448 rfl 
+    (SigsOk.cons sig462 rfl 
+    (SigsOk.cons sig463 rfl 
+    (SigsOk.cons sig464 rfl 
+    (SigsOk.cons sig465 rfl 
+    (SigsOk.cons sig466 rfl 
+    (SigsOk.cons sig467 rfl 
+    (SigsOk.cons sig468 rfl 
+    (SigsOk.cons sig469 rfl 
+    (SigsOk.cons sig470 rfl 
+    (SigsOk.cons sig471 rfl 
+    (SigsOk.cons sig472 rfl 
+    (SigsOk.cons sig473 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code336 core336 cert336 h0
+    (by decide +kernel)
+
+theorem w336_0 : WinOk 336 0 := link336.win rfl Fn.«open_stacked__L0».w0
+
+theorem w336_1 : WinOk 336 1 := link336.win rfl Fn.«open_stacked__L0».w1
+
+theorem w336_2 : WinOk 336 2 := link336.win rfl Fn.«open_stacked__L0».w2
+
+theorem w336_3 : WinOk 336 3 := link336.win rfl Fn.«open_stacked__L0».w3
+
+theorem w336_4 : WinOk 336 4 := link336.win rfl Fn.«open_stacked__L0».w4
+
+theorem w336_5 : WinOk 336 5 := link336.win rfl Fn.«open_stacked__L0».w5
+
+theorem w336_6 : WinOk 336 6 := link336.win rfl Fn.«open_stacked__L0».w6
+
+theorem w336_7 : WinOk 336 7 := link336.win rfl Fn.«open_stacked__L0».w7
+
+theorem w336_8 : WinOk 336 8 := link336.win rfl Fn.«open_stacked__L0».w8
 
 theorem ok336 : CheckOk 336 := fun i hi ↦ by
   have h : (certOf 336).cuts.length = 8 := by decide +kernel
@@ -123,6 +717,94 @@ theorem ok336 : CheckOk 336 := fun i hi ↦ by
   · exact w336_7
   · exact w336_8
 
+theorem link337 : Link 337 (Glob.ofSigs ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (484, Fn.«level_positions__L4_L14_L2».sig), (485, Fn.«level_positions__L4_L15_L3».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (492, Fn.«level_positions__L3_L13_L7».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (512, Fn.«squeeze_point_from__L15».sig), (513, Fn.«level_positions__L28_L16_L4».sig), (514, Fn.«level_positions__L16_L17_L5».sig), (515, Fn.«level_positions__L11_L18_L6».sig)] ++ [(516, Fn.«level_positions__L10_L19_L7».sig), (517, Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».sig), (518, Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (519, Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (520, Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (521, Fn.«squeeze_point_from__L11».sig), (522, Fn.«level_positions__L7_L15_L3».sig), (523, Fn.«level_positions__L6_L16_L4».sig), (524, Fn.«level_positions__L6_L17_L5».sig), (525, Fn.«level_positions__L5_L18_L6».sig), (526, Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (527, Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (528, Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (529, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (530, Fn.«squeeze_point_from__L7».sig), (531, Fn.«level_positions__L4_L16_L4».sig)] ++ [(532, Fn.«level_positions__L4_L17_L5».sig), (533, Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (534, Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (535, Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (536, Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (537, Fn.«opening_message__L12_L1».sig), (538, Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».sig), (539, Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».sig), (540, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».sig), (541, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (543, Fn.«level_residual__L218_L15_L6_L3».sig), (544, Fn.«level_residual__L109_L15_L6_L3».sig), (545, Fn.«level_residual__L73_L15_L6_L3».sig), (546, Fn.«level_residual__L55_L15_L6_L3».sig), (547, Fn.«level_residual__L55_L11_L4_L2».sig)] ++ [(548, Fn.«level_residual__L44_L11_L4_L2».sig), (549, Fn.«level_residual__L37_L11_L4_L2».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (551, Fn.«level_residual__L32_L7_L4_L2».sig), (552, Fn.«level_residual__L28_L7_L4_L2».sig), (553, Fn.«level_residual__L25_L7_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig)]) Data.jtTrie globSem)
+    Fn.«open_stacked__L1».code Fn.«open_stacked__L1».core (Fn.«open_stacked__L1».cert.withPows Data.powTree) :=
+  have h3 : SigsOk ([(548, Fn.«level_residual__L44_L11_L4_L2».sig), (549, Fn.«level_residual__L37_L11_L4_L2».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (551, Fn.«level_residual__L32_L7_L4_L2».sig), (552, Fn.«level_residual__L28_L7_L4_L2».sig), (553, Fn.«level_residual__L25_L7_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig)]) :=
+    (SigsOk.cons sig548 rfl 
+    (SigsOk.cons sig549 rfl 
+    (SigsOk.cons sig550 rfl 
+    (SigsOk.cons sig551 rfl 
+    (SigsOk.cons sig552 rfl 
+    (SigsOk.cons sig553 rfl 
+    (SigsOk.cons sig554 rfl SigsOk.nil)))))))
+  have h2 : SigsOk ([(532, Fn.«level_positions__L4_L17_L5».sig), (533, Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (534, Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (535, Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (536, Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (537, Fn.«opening_message__L12_L1».sig), (538, Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».sig), (539, Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».sig), (540, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».sig), (541, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (543, Fn.«level_residual__L218_L15_L6_L3».sig), (544, Fn.«level_residual__L109_L15_L6_L3».sig), (545, Fn.«level_residual__L73_L15_L6_L3».sig), (546, Fn.«level_residual__L55_L15_L6_L3».sig), (547, Fn.«level_residual__L55_L11_L4_L2».sig)] ++ [(548, Fn.«level_residual__L44_L11_L4_L2».sig), (549, Fn.«level_residual__L37_L11_L4_L2».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (551, Fn.«level_residual__L32_L7_L4_L2».sig), (552, Fn.«level_residual__L28_L7_L4_L2».sig), (553, Fn.«level_residual__L25_L7_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(532, Fn.«level_positions__L4_L17_L5».sig), (533, Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (534, Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (535, Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (536, Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (537, Fn.«opening_message__L12_L1».sig), (538, Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».sig), (539, Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».sig), (540, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».sig), (541, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (543, Fn.«level_residual__L218_L15_L6_L3».sig), (544, Fn.«level_residual__L109_L15_L6_L3».sig), (545, Fn.«level_residual__L73_L15_L6_L3».sig), (546, Fn.«level_residual__L55_L15_L6_L3».sig), (547, Fn.«level_residual__L55_L11_L4_L2».sig)]) (l₂ := ([(548, Fn.«level_residual__L44_L11_L4_L2».sig), (549, Fn.«level_residual__L37_L11_L4_L2».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (551, Fn.«level_residual__L32_L7_L4_L2».sig), (552, Fn.«level_residual__L28_L7_L4_L2».sig), (553, Fn.«level_residual__L25_L7_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig)]))
+    
+    (SigsOk.cons sig532 rfl 
+    (SigsOk.cons sig533 rfl 
+    (SigsOk.cons sig534 rfl 
+    (SigsOk.cons sig535 rfl 
+    (SigsOk.cons sig536 rfl 
+    (SigsOk.cons sig537 rfl 
+    (SigsOk.cons sig538 rfl 
+    (SigsOk.cons sig539 rfl 
+    (SigsOk.cons sig540 rfl 
+    (SigsOk.cons sig541 rfl 
+    (SigsOk.cons sig542 rfl 
+    (SigsOk.cons sig543 rfl 
+    (SigsOk.cons sig544 rfl 
+    (SigsOk.cons sig545 rfl 
+    (SigsOk.cons sig546 rfl 
+    (SigsOk.cons sig547 rfl SigsOk.nil)))))))))))))))) h3
+  have h1 : SigsOk ([(516, Fn.«level_positions__L10_L19_L7».sig), (517, Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».sig), (518, Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (519, Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (520, Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (521, Fn.«squeeze_point_from__L11».sig), (522, Fn.«level_positions__L7_L15_L3».sig), (523, Fn.«level_positions__L6_L16_L4».sig), (524, Fn.«level_positions__L6_L17_L5».sig), (525, Fn.«level_positions__L5_L18_L6».sig), (526, Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (527, Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (528, Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (529, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (530, Fn.«squeeze_point_from__L7».sig), (531, Fn.«level_positions__L4_L16_L4».sig)] ++ [(532, Fn.«level_positions__L4_L17_L5».sig), (533, Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (534, Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (535, Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (536, Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (537, Fn.«opening_message__L12_L1».sig), (538, Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».sig), (539, Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».sig), (540, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».sig), (541, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (543, Fn.«level_residual__L218_L15_L6_L3».sig), (544, Fn.«level_residual__L109_L15_L6_L3».sig), (545, Fn.«level_residual__L73_L15_L6_L3».sig), (546, Fn.«level_residual__L55_L15_L6_L3».sig), (547, Fn.«level_residual__L55_L11_L4_L2».sig)] ++ [(548, Fn.«level_residual__L44_L11_L4_L2».sig), (549, Fn.«level_residual__L37_L11_L4_L2».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (551, Fn.«level_residual__L32_L7_L4_L2».sig), (552, Fn.«level_residual__L28_L7_L4_L2».sig), (553, Fn.«level_residual__L25_L7_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(516, Fn.«level_positions__L10_L19_L7».sig), (517, Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».sig), (518, Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (519, Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (520, Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (521, Fn.«squeeze_point_from__L11».sig), (522, Fn.«level_positions__L7_L15_L3».sig), (523, Fn.«level_positions__L6_L16_L4».sig), (524, Fn.«level_positions__L6_L17_L5».sig), (525, Fn.«level_positions__L5_L18_L6».sig), (526, Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (527, Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (528, Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (529, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (530, Fn.«squeeze_point_from__L7».sig), (531, Fn.«level_positions__L4_L16_L4».sig)]) (l₂ := ([(532, Fn.«level_positions__L4_L17_L5».sig), (533, Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (534, Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (535, Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (536, Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (537, Fn.«opening_message__L12_L1».sig), (538, Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».sig), (539, Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».sig), (540, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».sig), (541, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (543, Fn.«level_residual__L218_L15_L6_L3».sig), (544, Fn.«level_residual__L109_L15_L6_L3».sig), (545, Fn.«level_residual__L73_L15_L6_L3».sig), (546, Fn.«level_residual__L55_L15_L6_L3».sig), (547, Fn.«level_residual__L55_L11_L4_L2».sig)] ++ [(548, Fn.«level_residual__L44_L11_L4_L2».sig), (549, Fn.«level_residual__L37_L11_L4_L2».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (551, Fn.«level_residual__L32_L7_L4_L2».sig), (552, Fn.«level_residual__L28_L7_L4_L2».sig), (553, Fn.«level_residual__L25_L7_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig)]))
+    
+    (SigsOk.cons sig516 rfl 
+    (SigsOk.cons sig517 rfl 
+    (SigsOk.cons sig518 rfl 
+    (SigsOk.cons sig519 rfl 
+    (SigsOk.cons sig520 rfl 
+    (SigsOk.cons sig521 rfl 
+    (SigsOk.cons sig522 rfl 
+    (SigsOk.cons sig523 rfl 
+    (SigsOk.cons sig524 rfl 
+    (SigsOk.cons sig525 rfl 
+    (SigsOk.cons sig526 rfl 
+    (SigsOk.cons sig527 rfl 
+    (SigsOk.cons sig528 rfl 
+    (SigsOk.cons sig529 rfl 
+    (SigsOk.cons sig530 rfl 
+    (SigsOk.cons sig531 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (484, Fn.«level_positions__L4_L14_L2».sig), (485, Fn.«level_positions__L4_L15_L3».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (492, Fn.«level_positions__L3_L13_L7».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (512, Fn.«squeeze_point_from__L15».sig), (513, Fn.«level_positions__L28_L16_L4».sig), (514, Fn.«level_positions__L16_L17_L5».sig), (515, Fn.«level_positions__L11_L18_L6».sig)] ++ [(516, Fn.«level_positions__L10_L19_L7».sig), (517, Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».sig), (518, Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (519, Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (520, Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (521, Fn.«squeeze_point_from__L11».sig), (522, Fn.«level_positions__L7_L15_L3».sig), (523, Fn.«level_positions__L6_L16_L4».sig), (524, Fn.«level_positions__L6_L17_L5».sig), (525, Fn.«level_positions__L5_L18_L6».sig), (526, Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (527, Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (528, Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (529, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (530, Fn.«squeeze_point_from__L7».sig), (531, Fn.«level_positions__L4_L16_L4».sig)] ++ [(532, Fn.«level_positions__L4_L17_L5».sig), (533, Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (534, Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (535, Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (536, Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (537, Fn.«opening_message__L12_L1».sig), (538, Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».sig), (539, Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».sig), (540, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».sig), (541, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (543, Fn.«level_residual__L218_L15_L6_L3».sig), (544, Fn.«level_residual__L109_L15_L6_L3».sig), (545, Fn.«level_residual__L73_L15_L6_L3».sig), (546, Fn.«level_residual__L55_L15_L6_L3».sig), (547, Fn.«level_residual__L55_L11_L4_L2».sig)] ++ [(548, Fn.«level_residual__L44_L11_L4_L2».sig), (549, Fn.«level_residual__L37_L11_L4_L2».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (551, Fn.«level_residual__L32_L7_L4_L2».sig), (552, Fn.«level_residual__L28_L7_L4_L2».sig), (553, Fn.«level_residual__L25_L7_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (484, Fn.«level_positions__L4_L14_L2».sig), (485, Fn.«level_positions__L4_L15_L3».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (492, Fn.«level_positions__L3_L13_L7».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (512, Fn.«squeeze_point_from__L15».sig), (513, Fn.«level_positions__L28_L16_L4».sig), (514, Fn.«level_positions__L16_L17_L5».sig), (515, Fn.«level_positions__L11_L18_L6».sig)]) (l₂ := ([(516, Fn.«level_positions__L10_L19_L7».sig), (517, Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».sig), (518, Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (519, Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (520, Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (521, Fn.«squeeze_point_from__L11».sig), (522, Fn.«level_positions__L7_L15_L3».sig), (523, Fn.«level_positions__L6_L16_L4».sig), (524, Fn.«level_positions__L6_L17_L5».sig), (525, Fn.«level_positions__L5_L18_L6».sig), (526, Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (527, Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (528, Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (529, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (530, Fn.«squeeze_point_from__L7».sig), (531, Fn.«level_positions__L4_L16_L4».sig)] ++ [(532, Fn.«level_positions__L4_L17_L5».sig), (533, Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig), (534, Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (535, Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (536, Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (537, Fn.«opening_message__L12_L1».sig), (538, Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».sig), (539, Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».sig), (540, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».sig), (541, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (543, Fn.«level_residual__L218_L15_L6_L3».sig), (544, Fn.«level_residual__L109_L15_L6_L3».sig), (545, Fn.«level_residual__L73_L15_L6_L3».sig), (546, Fn.«level_residual__L55_L15_L6_L3».sig), (547, Fn.«level_residual__L55_L11_L4_L2».sig)] ++ [(548, Fn.«level_residual__L44_L11_L4_L2».sig), (549, Fn.«level_residual__L37_L11_L4_L2».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (551, Fn.«level_residual__L32_L7_L4_L2».sig), (552, Fn.«level_residual__L28_L7_L4_L2».sig), (553, Fn.«level_residual__L25_L7_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig)]))
+    
+    (SigsOk.cons sig8 rfl 
+    (SigsOk.cons sig9 rfl 
+    (SigsOk.cons sig308 rfl 
+    (SigsOk.cons sig448 rfl 
+    (SigsOk.cons sig462 rfl 
+    (SigsOk.cons sig472 rfl 
+    (SigsOk.cons sig484 rfl 
+    (SigsOk.cons sig485 rfl 
+    (SigsOk.cons sig486 rfl 
+    (SigsOk.cons sig492 rfl 
+    (SigsOk.cons sig493 rfl 
+    (SigsOk.cons sig494 rfl 
+    (SigsOk.cons sig512 rfl 
+    (SigsOk.cons sig513 rfl 
+    (SigsOk.cons sig514 rfl 
+    (SigsOk.cons sig515 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code337 core337 cert337 h0
+    (by decide +kernel)
+
+theorem w337_0 : WinOk 337 0 := link337.win rfl Fn.«open_stacked__L1».w0
+
+theorem w337_1 : WinOk 337 1 := link337.win rfl Fn.«open_stacked__L1».w1
+
+theorem w337_2 : WinOk 337 2 := link337.win rfl Fn.«open_stacked__L1».w2
+
+theorem w337_3 : WinOk 337 3 := link337.win rfl Fn.«open_stacked__L1».w3
+
+theorem w337_4 : WinOk 337 4 := link337.win rfl Fn.«open_stacked__L1».w4
+
+theorem w337_5 : WinOk 337 5 := link337.win rfl Fn.«open_stacked__L1».w5
+
+theorem w337_6 : WinOk 337 6 := link337.win rfl Fn.«open_stacked__L1».w6
+
+theorem w337_7 : WinOk 337 7 := link337.win rfl Fn.«open_stacked__L1».w7
+
+theorem w337_8 : WinOk 337 8 := link337.win rfl Fn.«open_stacked__L1».w8
+
 theorem ok337 : CheckOk 337 := fun i hi ↦ by
   have h : (certOf 337).cuts.length = 8 := by decide +kernel
   rw [h] at hi
@@ -137,6 +819,94 @@ theorem ok337 : CheckOk 337 := fun i hi ↦ by
   · exact w337_7
   · exact w337_8
 
+theorem link338 : Link 338 (Glob.ofSigs ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (485, Fn.«level_positions__L4_L15_L3».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (531, Fn.«level_positions__L4_L16_L4».sig), (532, Fn.«level_positions__L4_L17_L5».sig), (555, Fn.«squeeze_point_from__L16».sig), (556, Fn.«level_positions__L32_L17_L5».sig), (557, Fn.«level_positions__L16_L18_L6».sig), (558, Fn.«level_positions__L13_L19_L7».sig)] ++ [(559, Fn.«level_positions__L10_L20_L2».sig), (560, Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (561, Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (562, Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (563, Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (564, Fn.«squeeze_point_from__L12».sig), (565, Fn.«level_positions__L7_L16_L4».sig), (566, Fn.«level_positions__L7_L17_L5».sig), (567, Fn.«level_positions__L6_L18_L6».sig), (568, Fn.«level_positions__L6_L19_L7».sig), (569, Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (570, Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (571, Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (572, Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (573, Fn.«squeeze_point_from__L8».sig), (574, Fn.«level_positions__L4_L18_L6».sig)] ++ [(575, Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (576, Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (577, Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (578, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (579, Fn.«opening_message__L20_L1».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (581, Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».sig), (582, Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».sig), (583, Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».sig), (584, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (586, Fn.«level_residual__L218_L16_L6_L3».sig), (587, Fn.«level_residual__L109_L16_L6_L3».sig), (588, Fn.«level_residual__L73_L16_L6_L3».sig), (589, Fn.«level_residual__L55_L16_L6_L3».sig), (590, Fn.«level_residual__L55_L12_L4_L2».sig)] ++ [(591, Fn.«level_residual__L44_L12_L4_L2».sig), (592, Fn.«level_residual__L37_L12_L4_L2».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (594, Fn.«level_residual__L32_L8_L4_L2».sig), (595, Fn.«level_residual__L28_L8_L4_L2».sig), (596, Fn.«level_residual__L25_L8_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig)]) Data.jtTrie globSem)
+    Fn.«open_stacked__L2».code Fn.«open_stacked__L2».core (Fn.«open_stacked__L2».cert.withPows Data.powTree) :=
+  have h3 : SigsOk ([(591, Fn.«level_residual__L44_L12_L4_L2».sig), (592, Fn.«level_residual__L37_L12_L4_L2».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (594, Fn.«level_residual__L32_L8_L4_L2».sig), (595, Fn.«level_residual__L28_L8_L4_L2».sig), (596, Fn.«level_residual__L25_L8_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig)]) :=
+    (SigsOk.cons sig591 rfl 
+    (SigsOk.cons sig592 rfl 
+    (SigsOk.cons sig593 rfl 
+    (SigsOk.cons sig594 rfl 
+    (SigsOk.cons sig595 rfl 
+    (SigsOk.cons sig596 rfl 
+    (SigsOk.cons sig597 rfl SigsOk.nil)))))))
+  have h2 : SigsOk ([(575, Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (576, Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (577, Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (578, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (579, Fn.«opening_message__L20_L1».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (581, Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».sig), (582, Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».sig), (583, Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».sig), (584, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (586, Fn.«level_residual__L218_L16_L6_L3».sig), (587, Fn.«level_residual__L109_L16_L6_L3».sig), (588, Fn.«level_residual__L73_L16_L6_L3».sig), (589, Fn.«level_residual__L55_L16_L6_L3».sig), (590, Fn.«level_residual__L55_L12_L4_L2».sig)] ++ [(591, Fn.«level_residual__L44_L12_L4_L2».sig), (592, Fn.«level_residual__L37_L12_L4_L2».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (594, Fn.«level_residual__L32_L8_L4_L2».sig), (595, Fn.«level_residual__L28_L8_L4_L2».sig), (596, Fn.«level_residual__L25_L8_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(575, Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (576, Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (577, Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (578, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (579, Fn.«opening_message__L20_L1».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (581, Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».sig), (582, Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».sig), (583, Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».sig), (584, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (586, Fn.«level_residual__L218_L16_L6_L3».sig), (587, Fn.«level_residual__L109_L16_L6_L3».sig), (588, Fn.«level_residual__L73_L16_L6_L3».sig), (589, Fn.«level_residual__L55_L16_L6_L3».sig), (590, Fn.«level_residual__L55_L12_L4_L2».sig)]) (l₂ := ([(591, Fn.«level_residual__L44_L12_L4_L2».sig), (592, Fn.«level_residual__L37_L12_L4_L2».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (594, Fn.«level_residual__L32_L8_L4_L2».sig), (595, Fn.«level_residual__L28_L8_L4_L2».sig), (596, Fn.«level_residual__L25_L8_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig)]))
+    
+    (SigsOk.cons sig575 rfl 
+    (SigsOk.cons sig576 rfl 
+    (SigsOk.cons sig577 rfl 
+    (SigsOk.cons sig578 rfl 
+    (SigsOk.cons sig579 rfl 
+    (SigsOk.cons sig580 rfl 
+    (SigsOk.cons sig581 rfl 
+    (SigsOk.cons sig582 rfl 
+    (SigsOk.cons sig583 rfl 
+    (SigsOk.cons sig584 rfl 
+    (SigsOk.cons sig585 rfl 
+    (SigsOk.cons sig586 rfl 
+    (SigsOk.cons sig587 rfl 
+    (SigsOk.cons sig588 rfl 
+    (SigsOk.cons sig589 rfl 
+    (SigsOk.cons sig590 rfl SigsOk.nil)))))))))))))))) h3
+  have h1 : SigsOk ([(559, Fn.«level_positions__L10_L20_L2».sig), (560, Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (561, Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (562, Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (563, Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (564, Fn.«squeeze_point_from__L12».sig), (565, Fn.«level_positions__L7_L16_L4».sig), (566, Fn.«level_positions__L7_L17_L5».sig), (567, Fn.«level_positions__L6_L18_L6».sig), (568, Fn.«level_positions__L6_L19_L7».sig), (569, Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (570, Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (571, Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (572, Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (573, Fn.«squeeze_point_from__L8».sig), (574, Fn.«level_positions__L4_L18_L6».sig)] ++ [(575, Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (576, Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (577, Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (578, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (579, Fn.«opening_message__L20_L1».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (581, Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».sig), (582, Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».sig), (583, Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».sig), (584, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (586, Fn.«level_residual__L218_L16_L6_L3».sig), (587, Fn.«level_residual__L109_L16_L6_L3».sig), (588, Fn.«level_residual__L73_L16_L6_L3».sig), (589, Fn.«level_residual__L55_L16_L6_L3».sig), (590, Fn.«level_residual__L55_L12_L4_L2».sig)] ++ [(591, Fn.«level_residual__L44_L12_L4_L2».sig), (592, Fn.«level_residual__L37_L12_L4_L2».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (594, Fn.«level_residual__L32_L8_L4_L2».sig), (595, Fn.«level_residual__L28_L8_L4_L2».sig), (596, Fn.«level_residual__L25_L8_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(559, Fn.«level_positions__L10_L20_L2».sig), (560, Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (561, Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (562, Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (563, Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (564, Fn.«squeeze_point_from__L12».sig), (565, Fn.«level_positions__L7_L16_L4».sig), (566, Fn.«level_positions__L7_L17_L5».sig), (567, Fn.«level_positions__L6_L18_L6».sig), (568, Fn.«level_positions__L6_L19_L7».sig), (569, Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (570, Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (571, Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (572, Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (573, Fn.«squeeze_point_from__L8».sig), (574, Fn.«level_positions__L4_L18_L6».sig)]) (l₂ := ([(575, Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (576, Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (577, Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (578, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (579, Fn.«opening_message__L20_L1».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (581, Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».sig), (582, Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».sig), (583, Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».sig), (584, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (586, Fn.«level_residual__L218_L16_L6_L3».sig), (587, Fn.«level_residual__L109_L16_L6_L3».sig), (588, Fn.«level_residual__L73_L16_L6_L3».sig), (589, Fn.«level_residual__L55_L16_L6_L3».sig), (590, Fn.«level_residual__L55_L12_L4_L2».sig)] ++ [(591, Fn.«level_residual__L44_L12_L4_L2».sig), (592, Fn.«level_residual__L37_L12_L4_L2».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (594, Fn.«level_residual__L32_L8_L4_L2».sig), (595, Fn.«level_residual__L28_L8_L4_L2».sig), (596, Fn.«level_residual__L25_L8_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig)]))
+    
+    (SigsOk.cons sig559 rfl 
+    (SigsOk.cons sig560 rfl 
+    (SigsOk.cons sig561 rfl 
+    (SigsOk.cons sig562 rfl 
+    (SigsOk.cons sig563 rfl 
+    (SigsOk.cons sig564 rfl 
+    (SigsOk.cons sig565 rfl 
+    (SigsOk.cons sig566 rfl 
+    (SigsOk.cons sig567 rfl 
+    (SigsOk.cons sig568 rfl 
+    (SigsOk.cons sig569 rfl 
+    (SigsOk.cons sig570 rfl 
+    (SigsOk.cons sig571 rfl 
+    (SigsOk.cons sig572 rfl 
+    (SigsOk.cons sig573 rfl 
+    (SigsOk.cons sig574 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (485, Fn.«level_positions__L4_L15_L3».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (531, Fn.«level_positions__L4_L16_L4».sig), (532, Fn.«level_positions__L4_L17_L5».sig), (555, Fn.«squeeze_point_from__L16».sig), (556, Fn.«level_positions__L32_L17_L5».sig), (557, Fn.«level_positions__L16_L18_L6».sig), (558, Fn.«level_positions__L13_L19_L7».sig)] ++ [(559, Fn.«level_positions__L10_L20_L2».sig), (560, Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (561, Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (562, Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (563, Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (564, Fn.«squeeze_point_from__L12».sig), (565, Fn.«level_positions__L7_L16_L4».sig), (566, Fn.«level_positions__L7_L17_L5».sig), (567, Fn.«level_positions__L6_L18_L6».sig), (568, Fn.«level_positions__L6_L19_L7».sig), (569, Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (570, Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (571, Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (572, Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (573, Fn.«squeeze_point_from__L8».sig), (574, Fn.«level_positions__L4_L18_L6».sig)] ++ [(575, Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (576, Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (577, Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (578, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (579, Fn.«opening_message__L20_L1».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (581, Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».sig), (582, Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».sig), (583, Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».sig), (584, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (586, Fn.«level_residual__L218_L16_L6_L3».sig), (587, Fn.«level_residual__L109_L16_L6_L3».sig), (588, Fn.«level_residual__L73_L16_L6_L3».sig), (589, Fn.«level_residual__L55_L16_L6_L3».sig), (590, Fn.«level_residual__L55_L12_L4_L2».sig)] ++ [(591, Fn.«level_residual__L44_L12_L4_L2».sig), (592, Fn.«level_residual__L37_L12_L4_L2».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (594, Fn.«level_residual__L32_L8_L4_L2».sig), (595, Fn.«level_residual__L28_L8_L4_L2».sig), (596, Fn.«level_residual__L25_L8_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (485, Fn.«level_positions__L4_L15_L3».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (493, Fn.«level_positions__L3_L14_L2».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (531, Fn.«level_positions__L4_L16_L4».sig), (532, Fn.«level_positions__L4_L17_L5».sig), (555, Fn.«squeeze_point_from__L16».sig), (556, Fn.«level_positions__L32_L17_L5».sig), (557, Fn.«level_positions__L16_L18_L6».sig), (558, Fn.«level_positions__L13_L19_L7».sig)]) (l₂ := ([(559, Fn.«level_positions__L10_L20_L2».sig), (560, Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig), (561, Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (562, Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (563, Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (564, Fn.«squeeze_point_from__L12».sig), (565, Fn.«level_positions__L7_L16_L4».sig), (566, Fn.«level_positions__L7_L17_L5».sig), (567, Fn.«level_positions__L6_L18_L6».sig), (568, Fn.«level_positions__L6_L19_L7».sig), (569, Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (570, Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (571, Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (572, Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (573, Fn.«squeeze_point_from__L8».sig), (574, Fn.«level_positions__L4_L18_L6».sig)] ++ [(575, Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig), (576, Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (577, Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (578, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (579, Fn.«opening_message__L20_L1».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (581, Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».sig), (582, Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».sig), (583, Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».sig), (584, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (586, Fn.«level_residual__L218_L16_L6_L3».sig), (587, Fn.«level_residual__L109_L16_L6_L3».sig), (588, Fn.«level_residual__L73_L16_L6_L3».sig), (589, Fn.«level_residual__L55_L16_L6_L3».sig), (590, Fn.«level_residual__L55_L12_L4_L2».sig)] ++ [(591, Fn.«level_residual__L44_L12_L4_L2».sig), (592, Fn.«level_residual__L37_L12_L4_L2».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (594, Fn.«level_residual__L32_L8_L4_L2».sig), (595, Fn.«level_residual__L28_L8_L4_L2».sig), (596, Fn.«level_residual__L25_L8_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig)]))
+    
+    (SigsOk.cons sig8 rfl 
+    (SigsOk.cons sig9 rfl 
+    (SigsOk.cons sig308 rfl 
+    (SigsOk.cons sig448 rfl 
+    (SigsOk.cons sig462 rfl 
+    (SigsOk.cons sig472 rfl 
+    (SigsOk.cons sig485 rfl 
+    (SigsOk.cons sig486 rfl 
+    (SigsOk.cons sig493 rfl 
+    (SigsOk.cons sig494 rfl 
+    (SigsOk.cons sig531 rfl 
+    (SigsOk.cons sig532 rfl 
+    (SigsOk.cons sig555 rfl 
+    (SigsOk.cons sig556 rfl 
+    (SigsOk.cons sig557 rfl 
+    (SigsOk.cons sig558 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code338 core338 cert338 h0
+    (by decide +kernel)
+
+theorem w338_0 : WinOk 338 0 := link338.win rfl Fn.«open_stacked__L2».w0
+
+theorem w338_1 : WinOk 338 1 := link338.win rfl Fn.«open_stacked__L2».w1
+
+theorem w338_2 : WinOk 338 2 := link338.win rfl Fn.«open_stacked__L2».w2
+
+theorem w338_3 : WinOk 338 3 := link338.win rfl Fn.«open_stacked__L2».w3
+
+theorem w338_4 : WinOk 338 4 := link338.win rfl Fn.«open_stacked__L2».w4
+
+theorem w338_5 : WinOk 338 5 := link338.win rfl Fn.«open_stacked__L2».w5
+
+theorem w338_6 : WinOk 338 6 := link338.win rfl Fn.«open_stacked__L2».w6
+
+theorem w338_7 : WinOk 338 7 := link338.win rfl Fn.«open_stacked__L2».w7
+
+theorem w338_8 : WinOk 338 8 := link338.win rfl Fn.«open_stacked__L2».w8
+
 theorem ok338 : CheckOk 338 := fun i hi ↦ by
   have h : (certOf 338).cuts.length = 8 := by decide +kernel
   rw [h] at hi
@@ -150,6 +920,96 @@ theorem ok338 : CheckOk 338 := fun i hi ↦ by
   · exact w338_6
   · exact w338_7
   · exact w338_8
+
+theorem link339 : Link 339 (Glob.ofSigs ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (531, Fn.«level_positions__L4_L16_L4».sig), (532, Fn.«level_positions__L4_L17_L5».sig), (574, Fn.«level_positions__L4_L18_L6».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (598, Fn.«squeeze_point_from__L17».sig), (599, Fn.«level_positions__L32_L18_L6».sig), (600, Fn.«level_positions__L19_L19_L7».sig), (601, Fn.«level_positions__L13_L20_L2».sig)] ++ [(602, Fn.«level_positions__L10_L21_L3».sig), (603, Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (604, Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (605, Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (606, Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig), (607, Fn.«squeeze_point_from__L13».sig), (608, Fn.«level_positions__L8_L17_L5».sig), (609, Fn.«level_positions__L7_L18_L6».sig), (610, Fn.«level_positions__L7_L19_L7».sig), (611, Fn.«level_positions__L6_L20_L2».sig), (612, Fn.«level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (613, Fn.«level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (614, Fn.«level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (615, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (616, Fn.«squeeze_point_from__L9».sig), (617, Fn.«level_positions__L4_L19_L7».sig)] ++ [(618, Fn.«level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (619, Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (620, Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (621, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (622, Fn.«opening_message__L36_L1».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (624, Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».sig), (625, Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».sig), (626, Fn.«level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1».sig), (627, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig), (628, Fn.«fold_final_msg__L5».sig), (629, Fn.«level_residual__L218_L17_L6_L3».sig), (630, Fn.«level_residual__L109_L17_L6_L3».sig), (631, Fn.«level_residual__L73_L17_L6_L3».sig), (632, Fn.«level_residual__L55_L17_L6_L3».sig), (633, Fn.«level_residual__L55_L13_L4_L2».sig)] ++ [(634, Fn.«level_residual__L44_L13_L4_L2».sig), (635, Fn.«level_residual__L37_L13_L4_L2».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (637, Fn.«level_residual__L32_L9_L4_L2».sig), (638, Fn.«level_residual__L28_L9_L4_L2».sig), (639, Fn.«level_residual__L25_L9_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig)]) Data.jtTrie globSem)
+    Fn.«open_stacked__L3».code Fn.«open_stacked__L3».core (Fn.«open_stacked__L3».cert.withPows Data.powTree) :=
+  have h3 : SigsOk ([(634, Fn.«level_residual__L44_L13_L4_L2».sig), (635, Fn.«level_residual__L37_L13_L4_L2».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (637, Fn.«level_residual__L32_L9_L4_L2».sig), (638, Fn.«level_residual__L28_L9_L4_L2».sig), (639, Fn.«level_residual__L25_L9_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig)]) :=
+    (SigsOk.cons sig634 rfl 
+    (SigsOk.cons sig635 rfl 
+    (SigsOk.cons sig636 rfl 
+    (SigsOk.cons sig637 rfl 
+    (SigsOk.cons sig638 rfl 
+    (SigsOk.cons sig639 rfl 
+    (SigsOk.cons sig640 rfl SigsOk.nil)))))))
+  have h2 : SigsOk ([(618, Fn.«level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (619, Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (620, Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (621, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (622, Fn.«opening_message__L36_L1».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (624, Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».sig), (625, Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».sig), (626, Fn.«level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1».sig), (627, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig), (628, Fn.«fold_final_msg__L5».sig), (629, Fn.«level_residual__L218_L17_L6_L3».sig), (630, Fn.«level_residual__L109_L17_L6_L3».sig), (631, Fn.«level_residual__L73_L17_L6_L3».sig), (632, Fn.«level_residual__L55_L17_L6_L3».sig), (633, Fn.«level_residual__L55_L13_L4_L2».sig)] ++ [(634, Fn.«level_residual__L44_L13_L4_L2».sig), (635, Fn.«level_residual__L37_L13_L4_L2».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (637, Fn.«level_residual__L32_L9_L4_L2».sig), (638, Fn.«level_residual__L28_L9_L4_L2».sig), (639, Fn.«level_residual__L25_L9_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(618, Fn.«level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (619, Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (620, Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (621, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (622, Fn.«opening_message__L36_L1».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (624, Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».sig), (625, Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».sig), (626, Fn.«level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1».sig), (627, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig), (628, Fn.«fold_final_msg__L5».sig), (629, Fn.«level_residual__L218_L17_L6_L3».sig), (630, Fn.«level_residual__L109_L17_L6_L3».sig), (631, Fn.«level_residual__L73_L17_L6_L3».sig), (632, Fn.«level_residual__L55_L17_L6_L3».sig), (633, Fn.«level_residual__L55_L13_L4_L2».sig)]) (l₂ := ([(634, Fn.«level_residual__L44_L13_L4_L2».sig), (635, Fn.«level_residual__L37_L13_L4_L2».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (637, Fn.«level_residual__L32_L9_L4_L2».sig), (638, Fn.«level_residual__L28_L9_L4_L2».sig), (639, Fn.«level_residual__L25_L9_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig)]))
+    
+    (SigsOk.cons sig618 rfl 
+    (SigsOk.cons sig619 rfl 
+    (SigsOk.cons sig620 rfl 
+    (SigsOk.cons sig621 rfl 
+    (SigsOk.cons sig622 rfl 
+    (SigsOk.cons sig623 rfl 
+    (SigsOk.cons sig624 rfl 
+    (SigsOk.cons sig625 rfl 
+    (SigsOk.cons sig626 rfl 
+    (SigsOk.cons sig627 rfl 
+    (SigsOk.cons sig628 rfl 
+    (SigsOk.cons sig629 rfl 
+    (SigsOk.cons sig630 rfl 
+    (SigsOk.cons sig631 rfl 
+    (SigsOk.cons sig632 rfl 
+    (SigsOk.cons sig633 rfl SigsOk.nil)))))))))))))))) h3
+  have h1 : SigsOk ([(602, Fn.«level_positions__L10_L21_L3».sig), (603, Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (604, Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (605, Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (606, Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig), (607, Fn.«squeeze_point_from__L13».sig), (608, Fn.«level_positions__L8_L17_L5».sig), (609, Fn.«level_positions__L7_L18_L6».sig), (610, Fn.«level_positions__L7_L19_L7».sig), (611, Fn.«level_positions__L6_L20_L2».sig), (612, Fn.«level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (613, Fn.«level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (614, Fn.«level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (615, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (616, Fn.«squeeze_point_from__L9».sig), (617, Fn.«level_positions__L4_L19_L7».sig)] ++ [(618, Fn.«level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (619, Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (620, Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (621, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (622, Fn.«opening_message__L36_L1».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (624, Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».sig), (625, Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».sig), (626, Fn.«level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1».sig), (627, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig), (628, Fn.«fold_final_msg__L5».sig), (629, Fn.«level_residual__L218_L17_L6_L3».sig), (630, Fn.«level_residual__L109_L17_L6_L3».sig), (631, Fn.«level_residual__L73_L17_L6_L3».sig), (632, Fn.«level_residual__L55_L17_L6_L3».sig), (633, Fn.«level_residual__L55_L13_L4_L2».sig)] ++ [(634, Fn.«level_residual__L44_L13_L4_L2».sig), (635, Fn.«level_residual__L37_L13_L4_L2».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (637, Fn.«level_residual__L32_L9_L4_L2».sig), (638, Fn.«level_residual__L28_L9_L4_L2».sig), (639, Fn.«level_residual__L25_L9_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(602, Fn.«level_positions__L10_L21_L3».sig), (603, Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (604, Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (605, Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (606, Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig), (607, Fn.«squeeze_point_from__L13».sig), (608, Fn.«level_positions__L8_L17_L5».sig), (609, Fn.«level_positions__L7_L18_L6».sig), (610, Fn.«level_positions__L7_L19_L7».sig), (611, Fn.«level_positions__L6_L20_L2».sig), (612, Fn.«level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (613, Fn.«level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (614, Fn.«level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (615, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (616, Fn.«squeeze_point_from__L9».sig), (617, Fn.«level_positions__L4_L19_L7».sig)]) (l₂ := ([(618, Fn.«level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (619, Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (620, Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (621, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (622, Fn.«opening_message__L36_L1».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (624, Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».sig), (625, Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».sig), (626, Fn.«level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1».sig), (627, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig), (628, Fn.«fold_final_msg__L5».sig), (629, Fn.«level_residual__L218_L17_L6_L3».sig), (630, Fn.«level_residual__L109_L17_L6_L3».sig), (631, Fn.«level_residual__L73_L17_L6_L3».sig), (632, Fn.«level_residual__L55_L17_L6_L3».sig), (633, Fn.«level_residual__L55_L13_L4_L2».sig)] ++ [(634, Fn.«level_residual__L44_L13_L4_L2».sig), (635, Fn.«level_residual__L37_L13_L4_L2».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (637, Fn.«level_residual__L32_L9_L4_L2».sig), (638, Fn.«level_residual__L28_L9_L4_L2».sig), (639, Fn.«level_residual__L25_L9_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig)]))
+    
+    (SigsOk.cons sig602 rfl 
+    (SigsOk.cons sig603 rfl 
+    (SigsOk.cons sig604 rfl 
+    (SigsOk.cons sig605 rfl 
+    (SigsOk.cons sig606 rfl 
+    (SigsOk.cons sig607 rfl 
+    (SigsOk.cons sig608 rfl 
+    (SigsOk.cons sig609 rfl 
+    (SigsOk.cons sig610 rfl 
+    (SigsOk.cons sig611 rfl 
+    (SigsOk.cons sig612 rfl 
+    (SigsOk.cons sig613 rfl 
+    (SigsOk.cons sig614 rfl 
+    (SigsOk.cons sig615 rfl 
+    (SigsOk.cons sig616 rfl 
+    (SigsOk.cons sig617 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (531, Fn.«level_positions__L4_L16_L4».sig), (532, Fn.«level_positions__L4_L17_L5».sig), (574, Fn.«level_positions__L4_L18_L6».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (598, Fn.«squeeze_point_from__L17».sig), (599, Fn.«level_positions__L32_L18_L6».sig), (600, Fn.«level_positions__L19_L19_L7».sig), (601, Fn.«level_positions__L13_L20_L2».sig)] ++ [(602, Fn.«level_positions__L10_L21_L3».sig), (603, Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (604, Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (605, Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (606, Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig), (607, Fn.«squeeze_point_from__L13».sig), (608, Fn.«level_positions__L8_L17_L5».sig), (609, Fn.«level_positions__L7_L18_L6».sig), (610, Fn.«level_positions__L7_L19_L7».sig), (611, Fn.«level_positions__L6_L20_L2».sig), (612, Fn.«level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (613, Fn.«level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (614, Fn.«level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (615, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (616, Fn.«squeeze_point_from__L9».sig), (617, Fn.«level_positions__L4_L19_L7».sig)] ++ [(618, Fn.«level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (619, Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (620, Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (621, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (622, Fn.«opening_message__L36_L1».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (624, Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».sig), (625, Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».sig), (626, Fn.«level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1».sig), (627, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig), (628, Fn.«fold_final_msg__L5».sig), (629, Fn.«level_residual__L218_L17_L6_L3».sig), (630, Fn.«level_residual__L109_L17_L6_L3».sig), (631, Fn.«level_residual__L73_L17_L6_L3».sig), (632, Fn.«level_residual__L55_L17_L6_L3».sig), (633, Fn.«level_residual__L55_L13_L4_L2».sig)] ++ [(634, Fn.«level_residual__L44_L13_L4_L2».sig), (635, Fn.«level_residual__L37_L13_L4_L2».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (637, Fn.«level_residual__L32_L9_L4_L2».sig), (638, Fn.«level_residual__L28_L9_L4_L2».sig), (639, Fn.«level_residual__L25_L9_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (531, Fn.«level_positions__L4_L16_L4».sig), (532, Fn.«level_positions__L4_L17_L5».sig), (574, Fn.«level_positions__L4_L18_L6».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (598, Fn.«squeeze_point_from__L17».sig), (599, Fn.«level_positions__L32_L18_L6».sig), (600, Fn.«level_positions__L19_L19_L7».sig), (601, Fn.«level_positions__L13_L20_L2».sig)]) (l₂ := ([(602, Fn.«level_positions__L10_L21_L3».sig), (603, Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig), (604, Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (605, Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (606, Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig), (607, Fn.«squeeze_point_from__L13».sig), (608, Fn.«level_positions__L8_L17_L5».sig), (609, Fn.«level_positions__L7_L18_L6».sig), (610, Fn.«level_positions__L7_L19_L7».sig), (611, Fn.«level_positions__L6_L20_L2».sig), (612, Fn.«level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (613, Fn.«level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (614, Fn.«level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (615, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (616, Fn.«squeeze_point_from__L9».sig), (617, Fn.«level_positions__L4_L19_L7».sig)] ++ [(618, Fn.«level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (619, Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (620, Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (621, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (622, Fn.«opening_message__L36_L1».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (624, Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».sig), (625, Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».sig), (626, Fn.«level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1».sig), (627, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig), (628, Fn.«fold_final_msg__L5».sig), (629, Fn.«level_residual__L218_L17_L6_L3».sig), (630, Fn.«level_residual__L109_L17_L6_L3».sig), (631, Fn.«level_residual__L73_L17_L6_L3».sig), (632, Fn.«level_residual__L55_L17_L6_L3».sig), (633, Fn.«level_residual__L55_L13_L4_L2».sig)] ++ [(634, Fn.«level_residual__L44_L13_L4_L2».sig), (635, Fn.«level_residual__L37_L13_L4_L2».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (637, Fn.«level_residual__L32_L9_L4_L2».sig), (638, Fn.«level_residual__L28_L9_L4_L2».sig), (639, Fn.«level_residual__L25_L9_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig)]))
+    
+    (SigsOk.cons sig8 rfl 
+    (SigsOk.cons sig9 rfl 
+    (SigsOk.cons sig308 rfl 
+    (SigsOk.cons sig448 rfl 
+    (SigsOk.cons sig462 rfl 
+    (SigsOk.cons sig472 rfl 
+    (SigsOk.cons sig486 rfl 
+    (SigsOk.cons sig494 rfl 
+    (SigsOk.cons sig531 rfl 
+    (SigsOk.cons sig532 rfl 
+    (SigsOk.cons sig574 rfl 
+    (SigsOk.cons sig580 rfl 
+    (SigsOk.cons sig598 rfl 
+    (SigsOk.cons sig599 rfl 
+    (SigsOk.cons sig600 rfl 
+    (SigsOk.cons sig601 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code339 core339 cert339 h0
+    (by decide +kernel)
+
+theorem w339_0 : WinOk 339 0 := link339.win rfl Fn.«open_stacked__L3».w0
+
+theorem w339_1 : WinOk 339 1 := link339.win rfl Fn.«open_stacked__L3».w1
+
+theorem w339_2 : WinOk 339 2 := link339.win rfl Fn.«open_stacked__L3».w2
+
+theorem w339_3 : WinOk 339 3 := link339.win rfl Fn.«open_stacked__L3».w3
+
+theorem w339_4 : WinOk 339 4 := link339.win rfl Fn.«open_stacked__L3».w4
+
+theorem w339_5 : WinOk 339 5 := link339.win rfl Fn.«open_stacked__L3».w5
+
+theorem w339_6 : WinOk 339 6 := link339.win rfl Fn.«open_stacked__L3».w6
+
+theorem w339_7 : WinOk 339 7 := link339.win rfl Fn.«open_stacked__L3».w7
+
+theorem w339_8 : WinOk 339 8 := link339.win rfl Fn.«open_stacked__L3».w8
+
+theorem w339_9 : WinOk 339 9 := link339.win rfl Fn.«open_stacked__L3».w9
 
 theorem ok339 : CheckOk 339 := fun i hi ↦ by
   have h : (certOf 339).cuts.length = 9 := by decide +kernel
@@ -166,6 +1026,107 @@ theorem ok339 : CheckOk 339 := fun i hi ↦ by
   · exact w339_8
   · exact w339_9
 
+theorem link340 : Link 340 (Glob.ofSigs ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (463, Fn.«squeeze_point_from__L14».sig), (467, Fn.«level_positions__L8_L18_L6».sig), (472, Fn.«opening_message__L6_L1».sig), (473, Fn.«squeeze_point_from__L10».sig), (477, Fn.«level_positions__L5_L17_L5».sig), (481, Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (482, Fn.«squeeze_point_from__L6».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (490, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (498, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».sig)] ++ [(499, Fn.«fold_final_msg__L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig), (574, Fn.«level_positions__L4_L18_L6».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (641, Fn.«squeeze_point_from__L18».sig), (642, Fn.«level_positions__L37_L19_L7».sig), (643, Fn.«level_positions__L19_L20_L2».sig), (644, Fn.«level_positions__L13_L21_L3».sig), (645, Fn.«level_positions__L11_L22_L4».sig), (646, Fn.«level_queries__L218_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (647, Fn.«level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (648, Fn.«level_queries__L73_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig), (649, Fn.«level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (650, Fn.«level_positions__L8_L19_L7».sig)] ++ [(651, Fn.«level_positions__L7_L20_L2».sig), (652, Fn.«level_positions__L6_L21_L3».sig), (653, Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (654, Fn.«level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (655, Fn.«level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (656, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (657, Fn.«level_positions__L5_L19_L7».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (659, Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (660, Fn.«level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (661, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (663, Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (664, Fn.«level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (665, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (666, Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».sig)] ++ [(667, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (669, Fn.«level_residual__L218_L18_L6_L3».sig), (670, Fn.«level_residual__L109_L18_L6_L3».sig), (671, Fn.«level_residual__L73_L18_L6_L3».sig), (672, Fn.«level_residual__L55_L18_L6_L3».sig), (673, Fn.«level_residual__L55_L14_L4_L2».sig), (674, Fn.«level_residual__L44_L14_L4_L2».sig), (675, Fn.«level_residual__L37_L14_L4_L2».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (677, Fn.«level_residual__L28_L10_L4_L2».sig), (678, Fn.«level_residual__L25_L10_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (680, Fn.«level_residual__L21_L6_L4_L2».sig), (681, Fn.«level_residual__L19_L6_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig)]) Data.jtTrie globSem)
+    Fn.«open_stacked__L4».code Fn.«open_stacked__L4».core (Fn.«open_stacked__L4».cert.withPows Data.powTree) :=
+  have h3 : SigsOk ([(667, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (669, Fn.«level_residual__L218_L18_L6_L3».sig), (670, Fn.«level_residual__L109_L18_L6_L3».sig), (671, Fn.«level_residual__L73_L18_L6_L3».sig), (672, Fn.«level_residual__L55_L18_L6_L3».sig), (673, Fn.«level_residual__L55_L14_L4_L2».sig), (674, Fn.«level_residual__L44_L14_L4_L2».sig), (675, Fn.«level_residual__L37_L14_L4_L2».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (677, Fn.«level_residual__L28_L10_L4_L2».sig), (678, Fn.«level_residual__L25_L10_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (680, Fn.«level_residual__L21_L6_L4_L2».sig), (681, Fn.«level_residual__L19_L6_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig)]) :=
+    (SigsOk.cons sig667 rfl 
+    (SigsOk.cons sig668 rfl 
+    (SigsOk.cons sig669 rfl 
+    (SigsOk.cons sig670 rfl 
+    (SigsOk.cons sig671 rfl 
+    (SigsOk.cons sig672 rfl 
+    (SigsOk.cons sig673 rfl 
+    (SigsOk.cons sig674 rfl 
+    (SigsOk.cons sig675 rfl 
+    (SigsOk.cons sig676 rfl 
+    (SigsOk.cons sig677 rfl 
+    (SigsOk.cons sig678 rfl 
+    (SigsOk.cons sig679 rfl 
+    (SigsOk.cons sig680 rfl 
+    (SigsOk.cons sig681 rfl 
+    (SigsOk.cons sig682 rfl SigsOk.nil))))))))))))))))
+  have h2 : SigsOk ([(651, Fn.«level_positions__L7_L20_L2».sig), (652, Fn.«level_positions__L6_L21_L3».sig), (653, Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (654, Fn.«level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (655, Fn.«level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (656, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (657, Fn.«level_positions__L5_L19_L7».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (659, Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (660, Fn.«level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (661, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (663, Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (664, Fn.«level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (665, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (666, Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».sig)] ++ [(667, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (669, Fn.«level_residual__L218_L18_L6_L3».sig), (670, Fn.«level_residual__L109_L18_L6_L3».sig), (671, Fn.«level_residual__L73_L18_L6_L3».sig), (672, Fn.«level_residual__L55_L18_L6_L3».sig), (673, Fn.«level_residual__L55_L14_L4_L2».sig), (674, Fn.«level_residual__L44_L14_L4_L2».sig), (675, Fn.«level_residual__L37_L14_L4_L2».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (677, Fn.«level_residual__L28_L10_L4_L2».sig), (678, Fn.«level_residual__L25_L10_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (680, Fn.«level_residual__L21_L6_L4_L2».sig), (681, Fn.«level_residual__L19_L6_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(651, Fn.«level_positions__L7_L20_L2».sig), (652, Fn.«level_positions__L6_L21_L3».sig), (653, Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (654, Fn.«level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (655, Fn.«level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (656, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (657, Fn.«level_positions__L5_L19_L7».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (659, Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (660, Fn.«level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (661, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (663, Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (664, Fn.«level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (665, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (666, Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».sig)]) (l₂ := ([(667, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (669, Fn.«level_residual__L218_L18_L6_L3».sig), (670, Fn.«level_residual__L109_L18_L6_L3».sig), (671, Fn.«level_residual__L73_L18_L6_L3».sig), (672, Fn.«level_residual__L55_L18_L6_L3».sig), (673, Fn.«level_residual__L55_L14_L4_L2».sig), (674, Fn.«level_residual__L44_L14_L4_L2».sig), (675, Fn.«level_residual__L37_L14_L4_L2».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (677, Fn.«level_residual__L28_L10_L4_L2».sig), (678, Fn.«level_residual__L25_L10_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (680, Fn.«level_residual__L21_L6_L4_L2».sig), (681, Fn.«level_residual__L19_L6_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig)]))
+    
+    (SigsOk.cons sig651 rfl 
+    (SigsOk.cons sig652 rfl 
+    (SigsOk.cons sig653 rfl 
+    (SigsOk.cons sig654 rfl 
+    (SigsOk.cons sig655 rfl 
+    (SigsOk.cons sig656 rfl 
+    (SigsOk.cons sig657 rfl 
+    (SigsOk.cons sig658 rfl 
+    (SigsOk.cons sig659 rfl 
+    (SigsOk.cons sig660 rfl 
+    (SigsOk.cons sig661 rfl 
+    (SigsOk.cons sig662 rfl 
+    (SigsOk.cons sig663 rfl 
+    (SigsOk.cons sig664 rfl 
+    (SigsOk.cons sig665 rfl 
+    (SigsOk.cons sig666 rfl SigsOk.nil)))))))))))))))) h3
+  have h1 : SigsOk ([(499, Fn.«fold_final_msg__L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig), (574, Fn.«level_positions__L4_L18_L6».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (641, Fn.«squeeze_point_from__L18».sig), (642, Fn.«level_positions__L37_L19_L7».sig), (643, Fn.«level_positions__L19_L20_L2».sig), (644, Fn.«level_positions__L13_L21_L3».sig), (645, Fn.«level_positions__L11_L22_L4».sig), (646, Fn.«level_queries__L218_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (647, Fn.«level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (648, Fn.«level_queries__L73_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig), (649, Fn.«level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (650, Fn.«level_positions__L8_L19_L7».sig)] ++ [(651, Fn.«level_positions__L7_L20_L2».sig), (652, Fn.«level_positions__L6_L21_L3».sig), (653, Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (654, Fn.«level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (655, Fn.«level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (656, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (657, Fn.«level_positions__L5_L19_L7».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (659, Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (660, Fn.«level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (661, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (663, Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (664, Fn.«level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (665, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (666, Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».sig)] ++ [(667, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (669, Fn.«level_residual__L218_L18_L6_L3».sig), (670, Fn.«level_residual__L109_L18_L6_L3».sig), (671, Fn.«level_residual__L73_L18_L6_L3».sig), (672, Fn.«level_residual__L55_L18_L6_L3».sig), (673, Fn.«level_residual__L55_L14_L4_L2».sig), (674, Fn.«level_residual__L44_L14_L4_L2».sig), (675, Fn.«level_residual__L37_L14_L4_L2».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (677, Fn.«level_residual__L28_L10_L4_L2».sig), (678, Fn.«level_residual__L25_L10_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (680, Fn.«level_residual__L21_L6_L4_L2».sig), (681, Fn.«level_residual__L19_L6_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(499, Fn.«fold_final_msg__L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig), (574, Fn.«level_positions__L4_L18_L6».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (641, Fn.«squeeze_point_from__L18».sig), (642, Fn.«level_positions__L37_L19_L7».sig), (643, Fn.«level_positions__L19_L20_L2».sig), (644, Fn.«level_positions__L13_L21_L3».sig), (645, Fn.«level_positions__L11_L22_L4».sig), (646, Fn.«level_queries__L218_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (647, Fn.«level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (648, Fn.«level_queries__L73_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig), (649, Fn.«level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (650, Fn.«level_positions__L8_L19_L7».sig)]) (l₂ := ([(651, Fn.«level_positions__L7_L20_L2».sig), (652, Fn.«level_positions__L6_L21_L3».sig), (653, Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (654, Fn.«level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (655, Fn.«level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (656, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (657, Fn.«level_positions__L5_L19_L7».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (659, Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (660, Fn.«level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (661, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (663, Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (664, Fn.«level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (665, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (666, Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».sig)] ++ [(667, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (669, Fn.«level_residual__L218_L18_L6_L3».sig), (670, Fn.«level_residual__L109_L18_L6_L3».sig), (671, Fn.«level_residual__L73_L18_L6_L3».sig), (672, Fn.«level_residual__L55_L18_L6_L3».sig), (673, Fn.«level_residual__L55_L14_L4_L2».sig), (674, Fn.«level_residual__L44_L14_L4_L2».sig), (675, Fn.«level_residual__L37_L14_L4_L2».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (677, Fn.«level_residual__L28_L10_L4_L2».sig), (678, Fn.«level_residual__L25_L10_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (680, Fn.«level_residual__L21_L6_L4_L2».sig), (681, Fn.«level_residual__L19_L6_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig)]))
+    
+    (SigsOk.cons sig499 rfl 
+    (SigsOk.cons sig507 rfl 
+    (SigsOk.cons sig511 rfl 
+    (SigsOk.cons sig574 rfl 
+    (SigsOk.cons sig580 rfl 
+    (SigsOk.cons sig623 rfl 
+    (SigsOk.cons sig641 rfl 
+    (SigsOk.cons sig642 rfl 
+    (SigsOk.cons sig643 rfl 
+    (SigsOk.cons sig644 rfl 
+    (SigsOk.cons sig645 rfl 
+    (SigsOk.cons sig646 rfl 
+    (SigsOk.cons sig647 rfl 
+    (SigsOk.cons sig648 rfl 
+    (SigsOk.cons sig649 rfl 
+    (SigsOk.cons sig650 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (463, Fn.«squeeze_point_from__L14».sig), (467, Fn.«level_positions__L8_L18_L6».sig), (472, Fn.«opening_message__L6_L1».sig), (473, Fn.«squeeze_point_from__L10».sig), (477, Fn.«level_positions__L5_L17_L5».sig), (481, Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (482, Fn.«squeeze_point_from__L6».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (490, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (498, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».sig)] ++ [(499, Fn.«fold_final_msg__L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig), (574, Fn.«level_positions__L4_L18_L6».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (641, Fn.«squeeze_point_from__L18».sig), (642, Fn.«level_positions__L37_L19_L7».sig), (643, Fn.«level_positions__L19_L20_L2».sig), (644, Fn.«level_positions__L13_L21_L3».sig), (645, Fn.«level_positions__L11_L22_L4».sig), (646, Fn.«level_queries__L218_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (647, Fn.«level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (648, Fn.«level_queries__L73_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig), (649, Fn.«level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (650, Fn.«level_positions__L8_L19_L7».sig)] ++ [(651, Fn.«level_positions__L7_L20_L2».sig), (652, Fn.«level_positions__L6_L21_L3».sig), (653, Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (654, Fn.«level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (655, Fn.«level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (656, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (657, Fn.«level_positions__L5_L19_L7».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (659, Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (660, Fn.«level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (661, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (663, Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (664, Fn.«level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (665, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (666, Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».sig)] ++ [(667, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (669, Fn.«level_residual__L218_L18_L6_L3».sig), (670, Fn.«level_residual__L109_L18_L6_L3».sig), (671, Fn.«level_residual__L73_L18_L6_L3».sig), (672, Fn.«level_residual__L55_L18_L6_L3».sig), (673, Fn.«level_residual__L55_L14_L4_L2».sig), (674, Fn.«level_residual__L44_L14_L4_L2».sig), (675, Fn.«level_residual__L37_L14_L4_L2».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (677, Fn.«level_residual__L28_L10_L4_L2».sig), (678, Fn.«level_residual__L25_L10_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (680, Fn.«level_residual__L21_L6_L4_L2».sig), (681, Fn.«level_residual__L19_L6_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (463, Fn.«squeeze_point_from__L14».sig), (467, Fn.«level_positions__L8_L18_L6».sig), (472, Fn.«opening_message__L6_L1».sig), (473, Fn.«squeeze_point_from__L10».sig), (477, Fn.«level_positions__L5_L17_L5».sig), (481, Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (482, Fn.«squeeze_point_from__L6».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (490, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig), (494, Fn.«level_positions__L3_L15_L3».sig), (498, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».sig)]) (l₂ := ([(499, Fn.«fold_final_msg__L2».sig), (507, Fn.«level_residual__L32_L10_L4_L2».sig), (511, Fn.«level_residual__L23_L6_L4_L2».sig), (574, Fn.«level_positions__L4_L18_L6».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (641, Fn.«squeeze_point_from__L18».sig), (642, Fn.«level_positions__L37_L19_L7».sig), (643, Fn.«level_positions__L19_L20_L2».sig), (644, Fn.«level_positions__L13_L21_L3».sig), (645, Fn.«level_positions__L11_L22_L4».sig), (646, Fn.«level_queries__L218_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig), (647, Fn.«level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig), (648, Fn.«level_queries__L73_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig), (649, Fn.«level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (650, Fn.«level_positions__L8_L19_L7».sig)] ++ [(651, Fn.«level_positions__L7_L20_L2».sig), (652, Fn.«level_positions__L6_L21_L3».sig), (653, Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (654, Fn.«level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (655, Fn.«level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (656, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (657, Fn.«level_positions__L5_L19_L7».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (659, Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (660, Fn.«level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (661, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (663, Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (664, Fn.«level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (665, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (666, Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».sig)] ++ [(667, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (669, Fn.«level_residual__L218_L18_L6_L3».sig), (670, Fn.«level_residual__L109_L18_L6_L3».sig), (671, Fn.«level_residual__L73_L18_L6_L3».sig), (672, Fn.«level_residual__L55_L18_L6_L3».sig), (673, Fn.«level_residual__L55_L14_L4_L2».sig), (674, Fn.«level_residual__L44_L14_L4_L2».sig), (675, Fn.«level_residual__L37_L14_L4_L2».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (677, Fn.«level_residual__L28_L10_L4_L2».sig), (678, Fn.«level_residual__L25_L10_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (680, Fn.«level_residual__L21_L6_L4_L2».sig), (681, Fn.«level_residual__L19_L6_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig)]))
+    
+    (SigsOk.cons sig8 rfl 
+    (SigsOk.cons sig9 rfl 
+    (SigsOk.cons sig308 rfl 
+    (SigsOk.cons sig448 rfl 
+    (SigsOk.cons sig462 rfl 
+    (SigsOk.cons sig463 rfl 
+    (SigsOk.cons sig467 rfl 
+    (SigsOk.cons sig472 rfl 
+    (SigsOk.cons sig473 rfl 
+    (SigsOk.cons sig477 rfl 
+    (SigsOk.cons sig481 rfl 
+    (SigsOk.cons sig482 rfl 
+    (SigsOk.cons sig486 rfl 
+    (SigsOk.cons sig490 rfl 
+    (SigsOk.cons sig494 rfl 
+    (SigsOk.cons sig498 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code340 core340 cert340 h0
+    (by decide +kernel)
+
+theorem w340_0 : WinOk 340 0 := link340.win rfl Fn.«open_stacked__L4».w0
+
+theorem w340_1 : WinOk 340 1 := link340.win rfl Fn.«open_stacked__L4».w1
+
+theorem w340_2 : WinOk 340 2 := link340.win rfl Fn.«open_stacked__L4».w2
+
+theorem w340_3 : WinOk 340 3 := link340.win rfl Fn.«open_stacked__L4».w3
+
+theorem w340_4 : WinOk 340 4 := link340.win rfl Fn.«open_stacked__L4».w4
+
+theorem w340_5 : WinOk 340 5 := link340.win rfl Fn.«open_stacked__L4».w5
+
+theorem w340_6 : WinOk 340 6 := link340.win rfl Fn.«open_stacked__L4».w6
+
+theorem w340_7 : WinOk 340 7 := link340.win rfl Fn.«open_stacked__L4».w7
+
+theorem w340_8 : WinOk 340 8 := link340.win rfl Fn.«open_stacked__L4».w8
+
+theorem w340_9 : WinOk 340 9 := link340.win rfl Fn.«open_stacked__L4».w9
+
+theorem w340_10 : WinOk 340 10 := link340.win rfl Fn.«open_stacked__L4».w10
+
 theorem ok340 : CheckOk 340 := fun i hi ↦ by
   have h : (certOf 340).cuts.length = 10 := by decide +kernel
   rw [h] at hi
@@ -181,6 +1142,115 @@ theorem ok340 : CheckOk 340 := fun i hi ↦ by
   · exact w340_8
   · exact w340_9
   · exact w340_10
+
+theorem link341 : Link 341 (Glob.ofSigs ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (512, Fn.«squeeze_point_from__L15».sig), (516, Fn.«level_positions__L10_L19_L7».sig), (521, Fn.«squeeze_point_from__L11».sig), (525, Fn.«level_positions__L5_L18_L6».sig), (529, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (530, Fn.«squeeze_point_from__L7».sig), (532, Fn.«level_positions__L4_L17_L5».sig), (536, Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (537, Fn.«opening_message__L12_L1».sig)] ++ [(541, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (657, Fn.«level_positions__L5_L19_L7».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (683, Fn.«squeeze_point_from__L19».sig), (684, Fn.«level_positions__L37_L20_L8».sig), (685, Fn.«level_positions__L19_L21_L3».sig), (686, Fn.«level_positions__L15_L22_L4».sig), (687, Fn.«level_positions__L11_L23_L5».sig), (688, Fn.«level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0».sig), (689, Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig)] ++ [(690, Fn.«level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (691, Fn.«level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (692, Fn.«level_positions__L8_L20_L2».sig), (693, Fn.«level_positions__L7_L21_L3».sig), (694, Fn.«level_positions__L7_L22_L4».sig), (695, Fn.«level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (696, Fn.«level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (697, Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (698, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (699, Fn.«level_positions__L5_L20_L2».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (701, Fn.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (702, Fn.«level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (703, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (705, Fn.«level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig)] ++ [(706, Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (708, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».sig), (709, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (711, Fn.«level_residual__L218_L19_L6_L3».sig), (712, Fn.«level_residual__L109_L19_L6_L3».sig), (713, Fn.«level_residual__L73_L19_L6_L3».sig), (714, Fn.«level_residual__L55_L19_L6_L3».sig), (715, Fn.«level_residual__L55_L15_L4_L2».sig), (716, Fn.«level_residual__L44_L15_L4_L2».sig), (717, Fn.«level_residual__L37_L15_L4_L2».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (719, Fn.«level_residual__L28_L11_L4_L2».sig), (720, Fn.«level_residual__L25_L11_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig)] ++ [(722, Fn.«level_residual__L21_L7_L4_L2».sig), (723, Fn.«level_residual__L19_L7_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig)]) Data.jtTrie globSem)
+    Fn.«open_stacked__L5».code Fn.«open_stacked__L5».core (Fn.«open_stacked__L5».cert.withPows Data.powTree) :=
+  have h4 : SigsOk ([(722, Fn.«level_residual__L21_L7_L4_L2».sig), (723, Fn.«level_residual__L19_L7_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig)]) :=
+    (SigsOk.cons sig722 rfl 
+    (SigsOk.cons sig723 rfl 
+    (SigsOk.cons sig724 rfl SigsOk.nil)))
+  have h3 : SigsOk ([(706, Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (708, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».sig), (709, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (711, Fn.«level_residual__L218_L19_L6_L3».sig), (712, Fn.«level_residual__L109_L19_L6_L3».sig), (713, Fn.«level_residual__L73_L19_L6_L3».sig), (714, Fn.«level_residual__L55_L19_L6_L3».sig), (715, Fn.«level_residual__L55_L15_L4_L2».sig), (716, Fn.«level_residual__L44_L15_L4_L2».sig), (717, Fn.«level_residual__L37_L15_L4_L2».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (719, Fn.«level_residual__L28_L11_L4_L2».sig), (720, Fn.«level_residual__L25_L11_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig)] ++ [(722, Fn.«level_residual__L21_L7_L4_L2».sig), (723, Fn.«level_residual__L19_L7_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(706, Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (708, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».sig), (709, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (711, Fn.«level_residual__L218_L19_L6_L3».sig), (712, Fn.«level_residual__L109_L19_L6_L3».sig), (713, Fn.«level_residual__L73_L19_L6_L3».sig), (714, Fn.«level_residual__L55_L19_L6_L3».sig), (715, Fn.«level_residual__L55_L15_L4_L2».sig), (716, Fn.«level_residual__L44_L15_L4_L2».sig), (717, Fn.«level_residual__L37_L15_L4_L2».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (719, Fn.«level_residual__L28_L11_L4_L2».sig), (720, Fn.«level_residual__L25_L11_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig)]) (l₂ := ([(722, Fn.«level_residual__L21_L7_L4_L2».sig), (723, Fn.«level_residual__L19_L7_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig)]))
+    
+    (SigsOk.cons sig706 rfl 
+    (SigsOk.cons sig707 rfl 
+    (SigsOk.cons sig708 rfl 
+    (SigsOk.cons sig709 rfl 
+    (SigsOk.cons sig710 rfl 
+    (SigsOk.cons sig711 rfl 
+    (SigsOk.cons sig712 rfl 
+    (SigsOk.cons sig713 rfl 
+    (SigsOk.cons sig714 rfl 
+    (SigsOk.cons sig715 rfl 
+    (SigsOk.cons sig716 rfl 
+    (SigsOk.cons sig717 rfl 
+    (SigsOk.cons sig718 rfl 
+    (SigsOk.cons sig719 rfl 
+    (SigsOk.cons sig720 rfl 
+    (SigsOk.cons sig721 rfl SigsOk.nil)))))))))))))))) h4
+  have h2 : SigsOk ([(690, Fn.«level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (691, Fn.«level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (692, Fn.«level_positions__L8_L20_L2».sig), (693, Fn.«level_positions__L7_L21_L3».sig), (694, Fn.«level_positions__L7_L22_L4».sig), (695, Fn.«level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (696, Fn.«level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (697, Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (698, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (699, Fn.«level_positions__L5_L20_L2».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (701, Fn.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (702, Fn.«level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (703, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (705, Fn.«level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig)] ++ [(706, Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (708, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».sig), (709, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (711, Fn.«level_residual__L218_L19_L6_L3».sig), (712, Fn.«level_residual__L109_L19_L6_L3».sig), (713, Fn.«level_residual__L73_L19_L6_L3».sig), (714, Fn.«level_residual__L55_L19_L6_L3».sig), (715, Fn.«level_residual__L55_L15_L4_L2».sig), (716, Fn.«level_residual__L44_L15_L4_L2».sig), (717, Fn.«level_residual__L37_L15_L4_L2».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (719, Fn.«level_residual__L28_L11_L4_L2».sig), (720, Fn.«level_residual__L25_L11_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig)] ++ [(722, Fn.«level_residual__L21_L7_L4_L2».sig), (723, Fn.«level_residual__L19_L7_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(690, Fn.«level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (691, Fn.«level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (692, Fn.«level_positions__L8_L20_L2».sig), (693, Fn.«level_positions__L7_L21_L3».sig), (694, Fn.«level_positions__L7_L22_L4».sig), (695, Fn.«level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (696, Fn.«level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (697, Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (698, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (699, Fn.«level_positions__L5_L20_L2».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (701, Fn.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (702, Fn.«level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (703, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (705, Fn.«level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig)]) (l₂ := ([(706, Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (708, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».sig), (709, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (711, Fn.«level_residual__L218_L19_L6_L3».sig), (712, Fn.«level_residual__L109_L19_L6_L3».sig), (713, Fn.«level_residual__L73_L19_L6_L3».sig), (714, Fn.«level_residual__L55_L19_L6_L3».sig), (715, Fn.«level_residual__L55_L15_L4_L2».sig), (716, Fn.«level_residual__L44_L15_L4_L2».sig), (717, Fn.«level_residual__L37_L15_L4_L2».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (719, Fn.«level_residual__L28_L11_L4_L2».sig), (720, Fn.«level_residual__L25_L11_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig)] ++ [(722, Fn.«level_residual__L21_L7_L4_L2».sig), (723, Fn.«level_residual__L19_L7_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig)]))
+    
+    (SigsOk.cons sig690 rfl 
+    (SigsOk.cons sig691 rfl 
+    (SigsOk.cons sig692 rfl 
+    (SigsOk.cons sig693 rfl 
+    (SigsOk.cons sig694 rfl 
+    (SigsOk.cons sig695 rfl 
+    (SigsOk.cons sig696 rfl 
+    (SigsOk.cons sig697 rfl 
+    (SigsOk.cons sig698 rfl 
+    (SigsOk.cons sig699 rfl 
+    (SigsOk.cons sig700 rfl 
+    (SigsOk.cons sig701 rfl 
+    (SigsOk.cons sig702 rfl 
+    (SigsOk.cons sig703 rfl 
+    (SigsOk.cons sig704 rfl 
+    (SigsOk.cons sig705 rfl SigsOk.nil)))))))))))))))) h3
+  have h1 : SigsOk ([(541, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (657, Fn.«level_positions__L5_L19_L7».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (683, Fn.«squeeze_point_from__L19».sig), (684, Fn.«level_positions__L37_L20_L8».sig), (685, Fn.«level_positions__L19_L21_L3».sig), (686, Fn.«level_positions__L15_L22_L4».sig), (687, Fn.«level_positions__L11_L23_L5».sig), (688, Fn.«level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0».sig), (689, Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig)] ++ [(690, Fn.«level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (691, Fn.«level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (692, Fn.«level_positions__L8_L20_L2».sig), (693, Fn.«level_positions__L7_L21_L3».sig), (694, Fn.«level_positions__L7_L22_L4».sig), (695, Fn.«level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (696, Fn.«level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (697, Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (698, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (699, Fn.«level_positions__L5_L20_L2».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (701, Fn.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (702, Fn.«level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (703, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (705, Fn.«level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig)] ++ [(706, Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (708, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».sig), (709, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (711, Fn.«level_residual__L218_L19_L6_L3».sig), (712, Fn.«level_residual__L109_L19_L6_L3».sig), (713, Fn.«level_residual__L73_L19_L6_L3».sig), (714, Fn.«level_residual__L55_L19_L6_L3».sig), (715, Fn.«level_residual__L55_L15_L4_L2».sig), (716, Fn.«level_residual__L44_L15_L4_L2».sig), (717, Fn.«level_residual__L37_L15_L4_L2».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (719, Fn.«level_residual__L28_L11_L4_L2».sig), (720, Fn.«level_residual__L25_L11_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig)] ++ [(722, Fn.«level_residual__L21_L7_L4_L2».sig), (723, Fn.«level_residual__L19_L7_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(541, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (657, Fn.«level_positions__L5_L19_L7».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (683, Fn.«squeeze_point_from__L19».sig), (684, Fn.«level_positions__L37_L20_L8».sig), (685, Fn.«level_positions__L19_L21_L3».sig), (686, Fn.«level_positions__L15_L22_L4».sig), (687, Fn.«level_positions__L11_L23_L5».sig), (688, Fn.«level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0».sig), (689, Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig)]) (l₂ := ([(690, Fn.«level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (691, Fn.«level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (692, Fn.«level_positions__L8_L20_L2».sig), (693, Fn.«level_positions__L7_L21_L3».sig), (694, Fn.«level_positions__L7_L22_L4».sig), (695, Fn.«level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (696, Fn.«level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (697, Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (698, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (699, Fn.«level_positions__L5_L20_L2».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (701, Fn.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (702, Fn.«level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (703, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (705, Fn.«level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig)] ++ [(706, Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (708, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».sig), (709, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (711, Fn.«level_residual__L218_L19_L6_L3».sig), (712, Fn.«level_residual__L109_L19_L6_L3».sig), (713, Fn.«level_residual__L73_L19_L6_L3».sig), (714, Fn.«level_residual__L55_L19_L6_L3».sig), (715, Fn.«level_residual__L55_L15_L4_L2».sig), (716, Fn.«level_residual__L44_L15_L4_L2».sig), (717, Fn.«level_residual__L37_L15_L4_L2».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (719, Fn.«level_residual__L28_L11_L4_L2».sig), (720, Fn.«level_residual__L25_L11_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig)] ++ [(722, Fn.«level_residual__L21_L7_L4_L2».sig), (723, Fn.«level_residual__L19_L7_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig)]))
+    
+    (SigsOk.cons sig541 rfl 
+    (SigsOk.cons sig542 rfl 
+    (SigsOk.cons sig550 rfl 
+    (SigsOk.cons sig554 rfl 
+    (SigsOk.cons sig580 rfl 
+    (SigsOk.cons sig617 rfl 
+    (SigsOk.cons sig623 rfl 
+    (SigsOk.cons sig657 rfl 
+    (SigsOk.cons sig662 rfl 
+    (SigsOk.cons sig683 rfl 
+    (SigsOk.cons sig684 rfl 
+    (SigsOk.cons sig685 rfl 
+    (SigsOk.cons sig686 rfl 
+    (SigsOk.cons sig687 rfl 
+    (SigsOk.cons sig688 rfl 
+    (SigsOk.cons sig689 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (512, Fn.«squeeze_point_from__L15».sig), (516, Fn.«level_positions__L10_L19_L7».sig), (521, Fn.«squeeze_point_from__L11».sig), (525, Fn.«level_positions__L5_L18_L6».sig), (529, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (530, Fn.«squeeze_point_from__L7».sig), (532, Fn.«level_positions__L4_L17_L5».sig), (536, Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (537, Fn.«opening_message__L12_L1».sig)] ++ [(541, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (657, Fn.«level_positions__L5_L19_L7».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (683, Fn.«squeeze_point_from__L19».sig), (684, Fn.«level_positions__L37_L20_L8».sig), (685, Fn.«level_positions__L19_L21_L3».sig), (686, Fn.«level_positions__L15_L22_L4».sig), (687, Fn.«level_positions__L11_L23_L5».sig), (688, Fn.«level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0».sig), (689, Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig)] ++ [(690, Fn.«level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (691, Fn.«level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (692, Fn.«level_positions__L8_L20_L2».sig), (693, Fn.«level_positions__L7_L21_L3».sig), (694, Fn.«level_positions__L7_L22_L4».sig), (695, Fn.«level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (696, Fn.«level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (697, Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (698, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (699, Fn.«level_positions__L5_L20_L2».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (701, Fn.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (702, Fn.«level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (703, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (705, Fn.«level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig)] ++ [(706, Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (708, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».sig), (709, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (711, Fn.«level_residual__L218_L19_L6_L3».sig), (712, Fn.«level_residual__L109_L19_L6_L3».sig), (713, Fn.«level_residual__L73_L19_L6_L3».sig), (714, Fn.«level_residual__L55_L19_L6_L3».sig), (715, Fn.«level_residual__L55_L15_L4_L2».sig), (716, Fn.«level_residual__L44_L15_L4_L2».sig), (717, Fn.«level_residual__L37_L15_L4_L2».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (719, Fn.«level_residual__L28_L11_L4_L2».sig), (720, Fn.«level_residual__L25_L11_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig)] ++ [(722, Fn.«level_residual__L21_L7_L4_L2».sig), (723, Fn.«level_residual__L19_L7_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (486, Fn.«level_positions__L3_L16_L4».sig), (512, Fn.«squeeze_point_from__L15».sig), (516, Fn.«level_positions__L10_L19_L7».sig), (521, Fn.«squeeze_point_from__L11».sig), (525, Fn.«level_positions__L5_L18_L6».sig), (529, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (530, Fn.«squeeze_point_from__L7».sig), (532, Fn.«level_positions__L4_L17_L5».sig), (536, Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig), (537, Fn.«opening_message__L12_L1».sig)]) (l₂ := ([(541, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (550, Fn.«level_residual__L32_L11_L4_L2».sig), (554, Fn.«level_residual__L23_L7_L4_L2».sig), (580, Fn.«level_positions__L3_L17_L5».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (657, Fn.«level_positions__L5_L19_L7».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (683, Fn.«squeeze_point_from__L19».sig), (684, Fn.«level_positions__L37_L20_L8».sig), (685, Fn.«level_positions__L19_L21_L3».sig), (686, Fn.«level_positions__L15_L22_L4».sig), (687, Fn.«level_positions__L11_L23_L5».sig), (688, Fn.«level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0».sig), (689, Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig)] ++ [(690, Fn.«level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (691, Fn.«level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (692, Fn.«level_positions__L8_L20_L2».sig), (693, Fn.«level_positions__L7_L21_L3».sig), (694, Fn.«level_positions__L7_L22_L4».sig), (695, Fn.«level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (696, Fn.«level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (697, Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (698, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (699, Fn.«level_positions__L5_L20_L2».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (701, Fn.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (702, Fn.«level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (703, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (705, Fn.«level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig)] ++ [(706, Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (708, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».sig), (709, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (711, Fn.«level_residual__L218_L19_L6_L3».sig), (712, Fn.«level_residual__L109_L19_L6_L3».sig), (713, Fn.«level_residual__L73_L19_L6_L3».sig), (714, Fn.«level_residual__L55_L19_L6_L3».sig), (715, Fn.«level_residual__L55_L15_L4_L2».sig), (716, Fn.«level_residual__L44_L15_L4_L2».sig), (717, Fn.«level_residual__L37_L15_L4_L2».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (719, Fn.«level_residual__L28_L11_L4_L2».sig), (720, Fn.«level_residual__L25_L11_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig)] ++ [(722, Fn.«level_residual__L21_L7_L4_L2».sig), (723, Fn.«level_residual__L19_L7_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig)]))
+    
+    (SigsOk.cons sig8 rfl 
+    (SigsOk.cons sig9 rfl 
+    (SigsOk.cons sig308 rfl 
+    (SigsOk.cons sig448 rfl 
+    (SigsOk.cons sig462 rfl 
+    (SigsOk.cons sig472 rfl 
+    (SigsOk.cons sig486 rfl 
+    (SigsOk.cons sig512 rfl 
+    (SigsOk.cons sig516 rfl 
+    (SigsOk.cons sig521 rfl 
+    (SigsOk.cons sig525 rfl 
+    (SigsOk.cons sig529 rfl 
+    (SigsOk.cons sig530 rfl 
+    (SigsOk.cons sig532 rfl 
+    (SigsOk.cons sig536 rfl 
+    (SigsOk.cons sig537 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code341 core341 cert341 h0
+    (by decide +kernel)
+
+theorem w341_0 : WinOk 341 0 := link341.win rfl Fn.«open_stacked__L5».w0
+
+theorem w341_1 : WinOk 341 1 := link341.win rfl Fn.«open_stacked__L5».w1
+
+theorem w341_2 : WinOk 341 2 := link341.win rfl Fn.«open_stacked__L5».w2
+
+theorem w341_3 : WinOk 341 3 := link341.win rfl Fn.«open_stacked__L5».w3
+
+theorem w341_4 : WinOk 341 4 := link341.win rfl Fn.«open_stacked__L5».w4
+
+theorem w341_5 : WinOk 341 5 := link341.win rfl Fn.«open_stacked__L5».w5
+
+theorem w341_6 : WinOk 341 6 := link341.win rfl Fn.«open_stacked__L5».w6
+
+theorem w341_7 : WinOk 341 7 := link341.win rfl Fn.«open_stacked__L5».w7
+
+theorem w341_8 : WinOk 341 8 := link341.win rfl Fn.«open_stacked__L5».w8
+
+theorem w341_9 : WinOk 341 9 := link341.win rfl Fn.«open_stacked__L5».w9
+
+theorem w341_10 : WinOk 341 10 := link341.win rfl Fn.«open_stacked__L5».w10
+
+theorem w341_11 : WinOk 341 11 := link341.win rfl Fn.«open_stacked__L5».w11
 
 theorem ok341 : CheckOk 341 := fun i hi ↦ by
   have h : (certOf 341).cuts.length = 11 := by decide +kernel
@@ -199,6 +1269,116 @@ theorem ok341 : CheckOk 341 := fun i hi ↦ by
   · exact w341_10
   · exact w341_11
 
+theorem link342 : Link 342 (Glob.ofSigs ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (309, Fn.«squeeze_point_from__L20».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (555, Fn.«squeeze_point_from__L16».sig), (559, Fn.«level_positions__L10_L20_L2».sig), (564, Fn.«squeeze_point_from__L12».sig), (568, Fn.«level_positions__L6_L19_L7».sig), (572, Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (573, Fn.«squeeze_point_from__L8».sig), (574, Fn.«level_positions__L4_L18_L6».sig), (578, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (579, Fn.«opening_message__L20_L1».sig)] ++ [(580, Fn.«level_positions__L3_L17_L5».sig), (584, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (699, Fn.«level_positions__L5_L20_L2».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (725, Fn.«level_positions__L37_L21_L3».sig), (726, Fn.«level_positions__L22_L22_L4».sig), (727, Fn.«level_positions__L15_L23_L5».sig), (728, Fn.«level_positions__L11_L24_L6».sig), (729, Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig)] ++ [(730, Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (731, Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (732, Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (733, Fn.«level_positions__L8_L21_L3».sig), (734, Fn.«level_positions__L8_L22_L4».sig), (735, Fn.«level_positions__L7_L23_L5».sig), (736, Fn.«level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (737, Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (738, Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (739, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (740, Fn.«level_positions__L5_L21_L3».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (742, Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (743, Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (744, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (745, Fn.«level_positions__L3_L21_L3».sig)] ++ [(746, Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (747, Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (749, Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».sig), (750, Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (752, Fn.«level_residual__L218_L20_L6_L3».sig), (753, Fn.«level_residual__L109_L20_L6_L3».sig), (754, Fn.«level_residual__L73_L20_L6_L3».sig), (755, Fn.«level_residual__L55_L20_L6_L3».sig), (756, Fn.«level_residual__L55_L16_L4_L2».sig), (757, Fn.«level_residual__L44_L16_L4_L2».sig), (758, Fn.«level_residual__L37_L16_L4_L2».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (760, Fn.«level_residual__L28_L12_L4_L2».sig), (761, Fn.«level_residual__L25_L12_L4_L2».sig)] ++ [(762, Fn.«level_residual__L23_L12_L4_L2».sig), (763, Fn.«level_residual__L21_L8_L4_L2».sig), (764, Fn.«level_residual__L19_L8_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig)]) Data.jtTrie globSem)
+    Fn.«open_stacked__L6».code Fn.«open_stacked__L6».core (Fn.«open_stacked__L6».cert.withPows Data.powTree) :=
+  have h4 : SigsOk ([(762, Fn.«level_residual__L23_L12_L4_L2».sig), (763, Fn.«level_residual__L21_L8_L4_L2».sig), (764, Fn.«level_residual__L19_L8_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig)]) :=
+    (SigsOk.cons sig762 rfl 
+    (SigsOk.cons sig763 rfl 
+    (SigsOk.cons sig764 rfl 
+    (SigsOk.cons sig765 rfl SigsOk.nil))))
+  have h3 : SigsOk ([(746, Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (747, Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (749, Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».sig), (750, Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (752, Fn.«level_residual__L218_L20_L6_L3».sig), (753, Fn.«level_residual__L109_L20_L6_L3».sig), (754, Fn.«level_residual__L73_L20_L6_L3».sig), (755, Fn.«level_residual__L55_L20_L6_L3».sig), (756, Fn.«level_residual__L55_L16_L4_L2».sig), (757, Fn.«level_residual__L44_L16_L4_L2».sig), (758, Fn.«level_residual__L37_L16_L4_L2».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (760, Fn.«level_residual__L28_L12_L4_L2».sig), (761, Fn.«level_residual__L25_L12_L4_L2».sig)] ++ [(762, Fn.«level_residual__L23_L12_L4_L2».sig), (763, Fn.«level_residual__L21_L8_L4_L2».sig), (764, Fn.«level_residual__L19_L8_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(746, Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (747, Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (749, Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».sig), (750, Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (752, Fn.«level_residual__L218_L20_L6_L3».sig), (753, Fn.«level_residual__L109_L20_L6_L3».sig), (754, Fn.«level_residual__L73_L20_L6_L3».sig), (755, Fn.«level_residual__L55_L20_L6_L3».sig), (756, Fn.«level_residual__L55_L16_L4_L2».sig), (757, Fn.«level_residual__L44_L16_L4_L2».sig), (758, Fn.«level_residual__L37_L16_L4_L2».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (760, Fn.«level_residual__L28_L12_L4_L2».sig), (761, Fn.«level_residual__L25_L12_L4_L2».sig)]) (l₂ := ([(762, Fn.«level_residual__L23_L12_L4_L2».sig), (763, Fn.«level_residual__L21_L8_L4_L2».sig), (764, Fn.«level_residual__L19_L8_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig)]))
+    
+    (SigsOk.cons sig746 rfl 
+    (SigsOk.cons sig747 rfl 
+    (SigsOk.cons sig748 rfl 
+    (SigsOk.cons sig749 rfl 
+    (SigsOk.cons sig750 rfl 
+    (SigsOk.cons sig751 rfl 
+    (SigsOk.cons sig752 rfl 
+    (SigsOk.cons sig753 rfl 
+    (SigsOk.cons sig754 rfl 
+    (SigsOk.cons sig755 rfl 
+    (SigsOk.cons sig756 rfl 
+    (SigsOk.cons sig757 rfl 
+    (SigsOk.cons sig758 rfl 
+    (SigsOk.cons sig759 rfl 
+    (SigsOk.cons sig760 rfl 
+    (SigsOk.cons sig761 rfl SigsOk.nil)))))))))))))))) h4
+  have h2 : SigsOk ([(730, Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (731, Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (732, Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (733, Fn.«level_positions__L8_L21_L3».sig), (734, Fn.«level_positions__L8_L22_L4».sig), (735, Fn.«level_positions__L7_L23_L5».sig), (736, Fn.«level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (737, Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (738, Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (739, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (740, Fn.«level_positions__L5_L21_L3».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (742, Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (743, Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (744, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (745, Fn.«level_positions__L3_L21_L3».sig)] ++ [(746, Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (747, Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (749, Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».sig), (750, Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (752, Fn.«level_residual__L218_L20_L6_L3».sig), (753, Fn.«level_residual__L109_L20_L6_L3».sig), (754, Fn.«level_residual__L73_L20_L6_L3».sig), (755, Fn.«level_residual__L55_L20_L6_L3».sig), (756, Fn.«level_residual__L55_L16_L4_L2».sig), (757, Fn.«level_residual__L44_L16_L4_L2».sig), (758, Fn.«level_residual__L37_L16_L4_L2».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (760, Fn.«level_residual__L28_L12_L4_L2».sig), (761, Fn.«level_residual__L25_L12_L4_L2».sig)] ++ [(762, Fn.«level_residual__L23_L12_L4_L2».sig), (763, Fn.«level_residual__L21_L8_L4_L2».sig), (764, Fn.«level_residual__L19_L8_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(730, Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (731, Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (732, Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (733, Fn.«level_positions__L8_L21_L3».sig), (734, Fn.«level_positions__L8_L22_L4».sig), (735, Fn.«level_positions__L7_L23_L5».sig), (736, Fn.«level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (737, Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (738, Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (739, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (740, Fn.«level_positions__L5_L21_L3».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (742, Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (743, Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (744, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (745, Fn.«level_positions__L3_L21_L3».sig)]) (l₂ := ([(746, Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (747, Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (749, Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».sig), (750, Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (752, Fn.«level_residual__L218_L20_L6_L3».sig), (753, Fn.«level_residual__L109_L20_L6_L3».sig), (754, Fn.«level_residual__L73_L20_L6_L3».sig), (755, Fn.«level_residual__L55_L20_L6_L3».sig), (756, Fn.«level_residual__L55_L16_L4_L2».sig), (757, Fn.«level_residual__L44_L16_L4_L2».sig), (758, Fn.«level_residual__L37_L16_L4_L2».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (760, Fn.«level_residual__L28_L12_L4_L2».sig), (761, Fn.«level_residual__L25_L12_L4_L2».sig)] ++ [(762, Fn.«level_residual__L23_L12_L4_L2».sig), (763, Fn.«level_residual__L21_L8_L4_L2».sig), (764, Fn.«level_residual__L19_L8_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig)]))
+    
+    (SigsOk.cons sig730 rfl 
+    (SigsOk.cons sig731 rfl 
+    (SigsOk.cons sig732 rfl 
+    (SigsOk.cons sig733 rfl 
+    (SigsOk.cons sig734 rfl 
+    (SigsOk.cons sig735 rfl 
+    (SigsOk.cons sig736 rfl 
+    (SigsOk.cons sig737 rfl 
+    (SigsOk.cons sig738 rfl 
+    (SigsOk.cons sig739 rfl 
+    (SigsOk.cons sig740 rfl 
+    (SigsOk.cons sig741 rfl 
+    (SigsOk.cons sig742 rfl 
+    (SigsOk.cons sig743 rfl 
+    (SigsOk.cons sig744 rfl 
+    (SigsOk.cons sig745 rfl SigsOk.nil)))))))))))))))) h3
+  have h1 : SigsOk ([(580, Fn.«level_positions__L3_L17_L5».sig), (584, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (699, Fn.«level_positions__L5_L20_L2».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (725, Fn.«level_positions__L37_L21_L3».sig), (726, Fn.«level_positions__L22_L22_L4».sig), (727, Fn.«level_positions__L15_L23_L5».sig), (728, Fn.«level_positions__L11_L24_L6».sig), (729, Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig)] ++ [(730, Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (731, Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (732, Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (733, Fn.«level_positions__L8_L21_L3».sig), (734, Fn.«level_positions__L8_L22_L4».sig), (735, Fn.«level_positions__L7_L23_L5».sig), (736, Fn.«level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (737, Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (738, Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (739, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (740, Fn.«level_positions__L5_L21_L3».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (742, Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (743, Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (744, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (745, Fn.«level_positions__L3_L21_L3».sig)] ++ [(746, Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (747, Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (749, Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».sig), (750, Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (752, Fn.«level_residual__L218_L20_L6_L3».sig), (753, Fn.«level_residual__L109_L20_L6_L3».sig), (754, Fn.«level_residual__L73_L20_L6_L3».sig), (755, Fn.«level_residual__L55_L20_L6_L3».sig), (756, Fn.«level_residual__L55_L16_L4_L2».sig), (757, Fn.«level_residual__L44_L16_L4_L2».sig), (758, Fn.«level_residual__L37_L16_L4_L2».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (760, Fn.«level_residual__L28_L12_L4_L2».sig), (761, Fn.«level_residual__L25_L12_L4_L2».sig)] ++ [(762, Fn.«level_residual__L23_L12_L4_L2».sig), (763, Fn.«level_residual__L21_L8_L4_L2».sig), (764, Fn.«level_residual__L19_L8_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(580, Fn.«level_positions__L3_L17_L5».sig), (584, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (699, Fn.«level_positions__L5_L20_L2».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (725, Fn.«level_positions__L37_L21_L3».sig), (726, Fn.«level_positions__L22_L22_L4».sig), (727, Fn.«level_positions__L15_L23_L5».sig), (728, Fn.«level_positions__L11_L24_L6».sig), (729, Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig)]) (l₂ := ([(730, Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (731, Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (732, Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (733, Fn.«level_positions__L8_L21_L3».sig), (734, Fn.«level_positions__L8_L22_L4».sig), (735, Fn.«level_positions__L7_L23_L5».sig), (736, Fn.«level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (737, Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (738, Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (739, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (740, Fn.«level_positions__L5_L21_L3».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (742, Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (743, Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (744, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (745, Fn.«level_positions__L3_L21_L3».sig)] ++ [(746, Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (747, Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (749, Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».sig), (750, Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (752, Fn.«level_residual__L218_L20_L6_L3».sig), (753, Fn.«level_residual__L109_L20_L6_L3».sig), (754, Fn.«level_residual__L73_L20_L6_L3».sig), (755, Fn.«level_residual__L55_L20_L6_L3».sig), (756, Fn.«level_residual__L55_L16_L4_L2».sig), (757, Fn.«level_residual__L44_L16_L4_L2».sig), (758, Fn.«level_residual__L37_L16_L4_L2».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (760, Fn.«level_residual__L28_L12_L4_L2».sig), (761, Fn.«level_residual__L25_L12_L4_L2».sig)] ++ [(762, Fn.«level_residual__L23_L12_L4_L2».sig), (763, Fn.«level_residual__L21_L8_L4_L2».sig), (764, Fn.«level_residual__L19_L8_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig)]))
+    
+    (SigsOk.cons sig580 rfl 
+    (SigsOk.cons sig584 rfl 
+    (SigsOk.cons sig585 rfl 
+    (SigsOk.cons sig593 rfl 
+    (SigsOk.cons sig597 rfl 
+    (SigsOk.cons sig617 rfl 
+    (SigsOk.cons sig623 rfl 
+    (SigsOk.cons sig658 rfl 
+    (SigsOk.cons sig662 rfl 
+    (SigsOk.cons sig699 rfl 
+    (SigsOk.cons sig704 rfl 
+    (SigsOk.cons sig725 rfl 
+    (SigsOk.cons sig726 rfl 
+    (SigsOk.cons sig727 rfl 
+    (SigsOk.cons sig728 rfl 
+    (SigsOk.cons sig729 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (309, Fn.«squeeze_point_from__L20».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (555, Fn.«squeeze_point_from__L16».sig), (559, Fn.«level_positions__L10_L20_L2».sig), (564, Fn.«squeeze_point_from__L12».sig), (568, Fn.«level_positions__L6_L19_L7».sig), (572, Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (573, Fn.«squeeze_point_from__L8».sig), (574, Fn.«level_positions__L4_L18_L6».sig), (578, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (579, Fn.«opening_message__L20_L1».sig)] ++ [(580, Fn.«level_positions__L3_L17_L5».sig), (584, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (699, Fn.«level_positions__L5_L20_L2».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (725, Fn.«level_positions__L37_L21_L3».sig), (726, Fn.«level_positions__L22_L22_L4».sig), (727, Fn.«level_positions__L15_L23_L5».sig), (728, Fn.«level_positions__L11_L24_L6».sig), (729, Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig)] ++ [(730, Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (731, Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (732, Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (733, Fn.«level_positions__L8_L21_L3».sig), (734, Fn.«level_positions__L8_L22_L4».sig), (735, Fn.«level_positions__L7_L23_L5».sig), (736, Fn.«level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (737, Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (738, Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (739, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (740, Fn.«level_positions__L5_L21_L3».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (742, Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (743, Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (744, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (745, Fn.«level_positions__L3_L21_L3».sig)] ++ [(746, Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (747, Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (749, Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».sig), (750, Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (752, Fn.«level_residual__L218_L20_L6_L3».sig), (753, Fn.«level_residual__L109_L20_L6_L3».sig), (754, Fn.«level_residual__L73_L20_L6_L3».sig), (755, Fn.«level_residual__L55_L20_L6_L3».sig), (756, Fn.«level_residual__L55_L16_L4_L2».sig), (757, Fn.«level_residual__L44_L16_L4_L2».sig), (758, Fn.«level_residual__L37_L16_L4_L2».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (760, Fn.«level_residual__L28_L12_L4_L2».sig), (761, Fn.«level_residual__L25_L12_L4_L2».sig)] ++ [(762, Fn.«level_residual__L23_L12_L4_L2».sig), (763, Fn.«level_residual__L21_L8_L4_L2».sig), (764, Fn.«level_residual__L19_L8_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (309, Fn.«squeeze_point_from__L20».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (555, Fn.«squeeze_point_from__L16».sig), (559, Fn.«level_positions__L10_L20_L2».sig), (564, Fn.«squeeze_point_from__L12».sig), (568, Fn.«level_positions__L6_L19_L7».sig), (572, Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (573, Fn.«squeeze_point_from__L8».sig), (574, Fn.«level_positions__L4_L18_L6».sig), (578, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig), (579, Fn.«opening_message__L20_L1».sig)]) (l₂ := ([(580, Fn.«level_positions__L3_L17_L5».sig), (584, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (593, Fn.«level_residual__L32_L12_L4_L2».sig), (597, Fn.«level_residual__L23_L8_L4_L2».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (699, Fn.«level_positions__L5_L20_L2».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (725, Fn.«level_positions__L37_L21_L3».sig), (726, Fn.«level_positions__L22_L22_L4».sig), (727, Fn.«level_positions__L15_L23_L5».sig), (728, Fn.«level_positions__L11_L24_L6».sig), (729, Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig)] ++ [(730, Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (731, Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (732, Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (733, Fn.«level_positions__L8_L21_L3».sig), (734, Fn.«level_positions__L8_L22_L4».sig), (735, Fn.«level_positions__L7_L23_L5».sig), (736, Fn.«level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (737, Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (738, Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (739, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (740, Fn.«level_positions__L5_L21_L3».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (742, Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (743, Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (744, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (745, Fn.«level_positions__L3_L21_L3».sig)] ++ [(746, Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (747, Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (749, Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».sig), (750, Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (752, Fn.«level_residual__L218_L20_L6_L3».sig), (753, Fn.«level_residual__L109_L20_L6_L3».sig), (754, Fn.«level_residual__L73_L20_L6_L3».sig), (755, Fn.«level_residual__L55_L20_L6_L3».sig), (756, Fn.«level_residual__L55_L16_L4_L2».sig), (757, Fn.«level_residual__L44_L16_L4_L2».sig), (758, Fn.«level_residual__L37_L16_L4_L2».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (760, Fn.«level_residual__L28_L12_L4_L2».sig), (761, Fn.«level_residual__L25_L12_L4_L2».sig)] ++ [(762, Fn.«level_residual__L23_L12_L4_L2».sig), (763, Fn.«level_residual__L21_L8_L4_L2».sig), (764, Fn.«level_residual__L19_L8_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig)]))
+    
+    (SigsOk.cons sig8 rfl 
+    (SigsOk.cons sig9 rfl 
+    (SigsOk.cons sig308 rfl 
+    (SigsOk.cons sig309 rfl 
+    (SigsOk.cons sig448 rfl 
+    (SigsOk.cons sig462 rfl 
+    (SigsOk.cons sig472 rfl 
+    (SigsOk.cons sig555 rfl 
+    (SigsOk.cons sig559 rfl 
+    (SigsOk.cons sig564 rfl 
+    (SigsOk.cons sig568 rfl 
+    (SigsOk.cons sig572 rfl 
+    (SigsOk.cons sig573 rfl 
+    (SigsOk.cons sig574 rfl 
+    (SigsOk.cons sig578 rfl 
+    (SigsOk.cons sig579 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code342 core342 cert342 h0
+    (by decide +kernel)
+
+theorem w342_0 : WinOk 342 0 := link342.win rfl Fn.«open_stacked__L6».w0
+
+theorem w342_1 : WinOk 342 1 := link342.win rfl Fn.«open_stacked__L6».w1
+
+theorem w342_2 : WinOk 342 2 := link342.win rfl Fn.«open_stacked__L6».w2
+
+theorem w342_3 : WinOk 342 3 := link342.win rfl Fn.«open_stacked__L6».w3
+
+theorem w342_4 : WinOk 342 4 := link342.win rfl Fn.«open_stacked__L6».w4
+
+theorem w342_5 : WinOk 342 5 := link342.win rfl Fn.«open_stacked__L6».w5
+
+theorem w342_6 : WinOk 342 6 := link342.win rfl Fn.«open_stacked__L6».w6
+
+theorem w342_7 : WinOk 342 7 := link342.win rfl Fn.«open_stacked__L6».w7
+
+theorem w342_8 : WinOk 342 8 := link342.win rfl Fn.«open_stacked__L6».w8
+
+theorem w342_9 : WinOk 342 9 := link342.win rfl Fn.«open_stacked__L6».w9
+
+theorem w342_10 : WinOk 342 10 := link342.win rfl Fn.«open_stacked__L6».w10
+
+theorem w342_11 : WinOk 342 11 := link342.win rfl Fn.«open_stacked__L6».w11
+
 theorem ok342 : CheckOk 342 := fun i hi ↦ by
   have h : (certOf 342).cuts.length = 11 := by decide +kernel
   rw [h] at hi
@@ -216,6 +1396,116 @@ theorem ok342 : CheckOk 342 := fun i hi ↦ by
   · exact w342_10
   · exact w342_11
 
+theorem link343 : Link 343 (Glob.ofSigs ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (310, Fn.«squeeze_point_from__L21».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (598, Fn.«squeeze_point_from__L17».sig), (602, Fn.«level_positions__L10_L21_L3».sig), (607, Fn.«squeeze_point_from__L13».sig), (611, Fn.«level_positions__L6_L20_L2».sig), (615, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (616, Fn.«squeeze_point_from__L9».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (621, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (622, Fn.«opening_message__L36_L1».sig)] ++ [(623, Fn.«level_positions__L3_L18_L6».sig), (627, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig), (628, Fn.«fold_final_msg__L5».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (740, Fn.«level_positions__L5_L21_L3».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (766, Fn.«level_positions__L44_L22_L4».sig), (767, Fn.«level_positions__L22_L23_L5».sig), (768, Fn.«level_positions__L15_L24_L6».sig), (769, Fn.«level_positions__L11_L25_L7».sig)] ++ [(770, Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (771, Fn.«level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (772, Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (773, Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (774, Fn.«level_positions__L9_L22_L4».sig), (775, Fn.«level_positions__L8_L23_L5».sig), (776, Fn.«level_positions__L7_L24_L6».sig), (777, Fn.«level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (778, Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (779, Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (780, Fn.«level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (782, Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (783, Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (784, Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (785, Fn.«level_positions__L4_L22_L4».sig)] ++ [(786, Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (787, Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (788, Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (789, Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».sig), (790, Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».sig), (791, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».sig), (792, Fn.«level_residual__L218_L21_L6_L3».sig), (793, Fn.«level_residual__L109_L21_L6_L3».sig), (794, Fn.«level_residual__L73_L21_L6_L3».sig), (795, Fn.«level_residual__L55_L21_L6_L3».sig), (796, Fn.«level_residual__L55_L17_L4_L2».sig), (797, Fn.«level_residual__L44_L17_L4_L2».sig), (798, Fn.«level_residual__L37_L17_L4_L2».sig), (799, Fn.«level_residual__L32_L17_L4_L2».sig), (800, Fn.«level_residual__L28_L13_L4_L2».sig), (801, Fn.«level_residual__L25_L13_L4_L2».sig)] ++ [(802, Fn.«level_residual__L23_L13_L4_L2».sig), (803, Fn.«level_residual__L21_L9_L4_L2».sig), (804, Fn.«level_residual__L19_L9_L4_L2».sig), (805, Fn.«level_residual__L18_L9_L4_L2».sig)]) Data.jtTrie globSem)
+    Fn.«open_stacked__L7».code Fn.«open_stacked__L7».core (Fn.«open_stacked__L7».cert.withPows Data.powTree) :=
+  have h4 : SigsOk ([(802, Fn.«level_residual__L23_L13_L4_L2».sig), (803, Fn.«level_residual__L21_L9_L4_L2».sig), (804, Fn.«level_residual__L19_L9_L4_L2».sig), (805, Fn.«level_residual__L18_L9_L4_L2».sig)]) :=
+    (SigsOk.cons sig802 rfl 
+    (SigsOk.cons sig803 rfl 
+    (SigsOk.cons sig804 rfl 
+    (SigsOk.cons sig805 rfl SigsOk.nil))))
+  have h3 : SigsOk ([(786, Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (787, Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (788, Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (789, Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».sig), (790, Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».sig), (791, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».sig), (792, Fn.«level_residual__L218_L21_L6_L3».sig), (793, Fn.«level_residual__L109_L21_L6_L3».sig), (794, Fn.«level_residual__L73_L21_L6_L3».sig), (795, Fn.«level_residual__L55_L21_L6_L3».sig), (796, Fn.«level_residual__L55_L17_L4_L2».sig), (797, Fn.«level_residual__L44_L17_L4_L2».sig), (798, Fn.«level_residual__L37_L17_L4_L2».sig), (799, Fn.«level_residual__L32_L17_L4_L2».sig), (800, Fn.«level_residual__L28_L13_L4_L2».sig), (801, Fn.«level_residual__L25_L13_L4_L2».sig)] ++ [(802, Fn.«level_residual__L23_L13_L4_L2».sig), (803, Fn.«level_residual__L21_L9_L4_L2».sig), (804, Fn.«level_residual__L19_L9_L4_L2».sig), (805, Fn.«level_residual__L18_L9_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(786, Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (787, Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (788, Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (789, Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».sig), (790, Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».sig), (791, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».sig), (792, Fn.«level_residual__L218_L21_L6_L3».sig), (793, Fn.«level_residual__L109_L21_L6_L3».sig), (794, Fn.«level_residual__L73_L21_L6_L3».sig), (795, Fn.«level_residual__L55_L21_L6_L3».sig), (796, Fn.«level_residual__L55_L17_L4_L2».sig), (797, Fn.«level_residual__L44_L17_L4_L2».sig), (798, Fn.«level_residual__L37_L17_L4_L2».sig), (799, Fn.«level_residual__L32_L17_L4_L2».sig), (800, Fn.«level_residual__L28_L13_L4_L2».sig), (801, Fn.«level_residual__L25_L13_L4_L2».sig)]) (l₂ := ([(802, Fn.«level_residual__L23_L13_L4_L2».sig), (803, Fn.«level_residual__L21_L9_L4_L2».sig), (804, Fn.«level_residual__L19_L9_L4_L2».sig), (805, Fn.«level_residual__L18_L9_L4_L2».sig)]))
+    
+    (SigsOk.cons sig786 rfl 
+    (SigsOk.cons sig787 rfl 
+    (SigsOk.cons sig788 rfl 
+    (SigsOk.cons sig789 rfl 
+    (SigsOk.cons sig790 rfl 
+    (SigsOk.cons sig791 rfl 
+    (SigsOk.cons sig792 rfl 
+    (SigsOk.cons sig793 rfl 
+    (SigsOk.cons sig794 rfl 
+    (SigsOk.cons sig795 rfl 
+    (SigsOk.cons sig796 rfl 
+    (SigsOk.cons sig797 rfl 
+    (SigsOk.cons sig798 rfl 
+    (SigsOk.cons sig799 rfl 
+    (SigsOk.cons sig800 rfl 
+    (SigsOk.cons sig801 rfl SigsOk.nil)))))))))))))))) h4
+  have h2 : SigsOk ([(770, Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (771, Fn.«level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (772, Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (773, Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (774, Fn.«level_positions__L9_L22_L4».sig), (775, Fn.«level_positions__L8_L23_L5».sig), (776, Fn.«level_positions__L7_L24_L6».sig), (777, Fn.«level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (778, Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (779, Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (780, Fn.«level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (782, Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (783, Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (784, Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (785, Fn.«level_positions__L4_L22_L4».sig)] ++ [(786, Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (787, Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (788, Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (789, Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».sig), (790, Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».sig), (791, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».sig), (792, Fn.«level_residual__L218_L21_L6_L3».sig), (793, Fn.«level_residual__L109_L21_L6_L3».sig), (794, Fn.«level_residual__L73_L21_L6_L3».sig), (795, Fn.«level_residual__L55_L21_L6_L3».sig), (796, Fn.«level_residual__L55_L17_L4_L2».sig), (797, Fn.«level_residual__L44_L17_L4_L2».sig), (798, Fn.«level_residual__L37_L17_L4_L2».sig), (799, Fn.«level_residual__L32_L17_L4_L2».sig), (800, Fn.«level_residual__L28_L13_L4_L2».sig), (801, Fn.«level_residual__L25_L13_L4_L2».sig)] ++ [(802, Fn.«level_residual__L23_L13_L4_L2».sig), (803, Fn.«level_residual__L21_L9_L4_L2».sig), (804, Fn.«level_residual__L19_L9_L4_L2».sig), (805, Fn.«level_residual__L18_L9_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(770, Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (771, Fn.«level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (772, Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (773, Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (774, Fn.«level_positions__L9_L22_L4».sig), (775, Fn.«level_positions__L8_L23_L5».sig), (776, Fn.«level_positions__L7_L24_L6».sig), (777, Fn.«level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (778, Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (779, Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (780, Fn.«level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (782, Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (783, Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (784, Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (785, Fn.«level_positions__L4_L22_L4».sig)]) (l₂ := ([(786, Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (787, Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (788, Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (789, Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».sig), (790, Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».sig), (791, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».sig), (792, Fn.«level_residual__L218_L21_L6_L3».sig), (793, Fn.«level_residual__L109_L21_L6_L3».sig), (794, Fn.«level_residual__L73_L21_L6_L3».sig), (795, Fn.«level_residual__L55_L21_L6_L3».sig), (796, Fn.«level_residual__L55_L17_L4_L2».sig), (797, Fn.«level_residual__L44_L17_L4_L2».sig), (798, Fn.«level_residual__L37_L17_L4_L2».sig), (799, Fn.«level_residual__L32_L17_L4_L2».sig), (800, Fn.«level_residual__L28_L13_L4_L2».sig), (801, Fn.«level_residual__L25_L13_L4_L2».sig)] ++ [(802, Fn.«level_residual__L23_L13_L4_L2».sig), (803, Fn.«level_residual__L21_L9_L4_L2».sig), (804, Fn.«level_residual__L19_L9_L4_L2».sig), (805, Fn.«level_residual__L18_L9_L4_L2».sig)]))
+    
+    (SigsOk.cons sig770 rfl 
+    (SigsOk.cons sig771 rfl 
+    (SigsOk.cons sig772 rfl 
+    (SigsOk.cons sig773 rfl 
+    (SigsOk.cons sig774 rfl 
+    (SigsOk.cons sig775 rfl 
+    (SigsOk.cons sig776 rfl 
+    (SigsOk.cons sig777 rfl 
+    (SigsOk.cons sig778 rfl 
+    (SigsOk.cons sig779 rfl 
+    (SigsOk.cons sig780 rfl 
+    (SigsOk.cons sig781 rfl 
+    (SigsOk.cons sig782 rfl 
+    (SigsOk.cons sig783 rfl 
+    (SigsOk.cons sig784 rfl 
+    (SigsOk.cons sig785 rfl SigsOk.nil)))))))))))))))) h3
+  have h1 : SigsOk ([(623, Fn.«level_positions__L3_L18_L6».sig), (627, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig), (628, Fn.«fold_final_msg__L5».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (740, Fn.«level_positions__L5_L21_L3».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (766, Fn.«level_positions__L44_L22_L4».sig), (767, Fn.«level_positions__L22_L23_L5».sig), (768, Fn.«level_positions__L15_L24_L6».sig), (769, Fn.«level_positions__L11_L25_L7».sig)] ++ [(770, Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (771, Fn.«level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (772, Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (773, Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (774, Fn.«level_positions__L9_L22_L4».sig), (775, Fn.«level_positions__L8_L23_L5».sig), (776, Fn.«level_positions__L7_L24_L6».sig), (777, Fn.«level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (778, Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (779, Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (780, Fn.«level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (782, Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (783, Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (784, Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (785, Fn.«level_positions__L4_L22_L4».sig)] ++ [(786, Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (787, Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (788, Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (789, Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».sig), (790, Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».sig), (791, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».sig), (792, Fn.«level_residual__L218_L21_L6_L3».sig), (793, Fn.«level_residual__L109_L21_L6_L3».sig), (794, Fn.«level_residual__L73_L21_L6_L3».sig), (795, Fn.«level_residual__L55_L21_L6_L3».sig), (796, Fn.«level_residual__L55_L17_L4_L2».sig), (797, Fn.«level_residual__L44_L17_L4_L2».sig), (798, Fn.«level_residual__L37_L17_L4_L2».sig), (799, Fn.«level_residual__L32_L17_L4_L2».sig), (800, Fn.«level_residual__L28_L13_L4_L2».sig), (801, Fn.«level_residual__L25_L13_L4_L2».sig)] ++ [(802, Fn.«level_residual__L23_L13_L4_L2».sig), (803, Fn.«level_residual__L21_L9_L4_L2».sig), (804, Fn.«level_residual__L19_L9_L4_L2».sig), (805, Fn.«level_residual__L18_L9_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(623, Fn.«level_positions__L3_L18_L6».sig), (627, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig), (628, Fn.«fold_final_msg__L5».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (740, Fn.«level_positions__L5_L21_L3».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (766, Fn.«level_positions__L44_L22_L4».sig), (767, Fn.«level_positions__L22_L23_L5».sig), (768, Fn.«level_positions__L15_L24_L6».sig), (769, Fn.«level_positions__L11_L25_L7».sig)]) (l₂ := ([(770, Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (771, Fn.«level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (772, Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (773, Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (774, Fn.«level_positions__L9_L22_L4».sig), (775, Fn.«level_positions__L8_L23_L5».sig), (776, Fn.«level_positions__L7_L24_L6».sig), (777, Fn.«level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (778, Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (779, Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (780, Fn.«level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (782, Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (783, Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (784, Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (785, Fn.«level_positions__L4_L22_L4».sig)] ++ [(786, Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (787, Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (788, Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (789, Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».sig), (790, Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».sig), (791, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».sig), (792, Fn.«level_residual__L218_L21_L6_L3».sig), (793, Fn.«level_residual__L109_L21_L6_L3».sig), (794, Fn.«level_residual__L73_L21_L6_L3».sig), (795, Fn.«level_residual__L55_L21_L6_L3».sig), (796, Fn.«level_residual__L55_L17_L4_L2».sig), (797, Fn.«level_residual__L44_L17_L4_L2».sig), (798, Fn.«level_residual__L37_L17_L4_L2».sig), (799, Fn.«level_residual__L32_L17_L4_L2».sig), (800, Fn.«level_residual__L28_L13_L4_L2».sig), (801, Fn.«level_residual__L25_L13_L4_L2».sig)] ++ [(802, Fn.«level_residual__L23_L13_L4_L2».sig), (803, Fn.«level_residual__L21_L9_L4_L2».sig), (804, Fn.«level_residual__L19_L9_L4_L2».sig), (805, Fn.«level_residual__L18_L9_L4_L2».sig)]))
+    
+    (SigsOk.cons sig623 rfl 
+    (SigsOk.cons sig627 rfl 
+    (SigsOk.cons sig628 rfl 
+    (SigsOk.cons sig636 rfl 
+    (SigsOk.cons sig640 rfl 
+    (SigsOk.cons sig658 rfl 
+    (SigsOk.cons sig662 rfl 
+    (SigsOk.cons sig700 rfl 
+    (SigsOk.cons sig704 rfl 
+    (SigsOk.cons sig740 rfl 
+    (SigsOk.cons sig741 rfl 
+    (SigsOk.cons sig745 rfl 
+    (SigsOk.cons sig766 rfl 
+    (SigsOk.cons sig767 rfl 
+    (SigsOk.cons sig768 rfl 
+    (SigsOk.cons sig769 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (310, Fn.«squeeze_point_from__L21».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (598, Fn.«squeeze_point_from__L17».sig), (602, Fn.«level_positions__L10_L21_L3».sig), (607, Fn.«squeeze_point_from__L13».sig), (611, Fn.«level_positions__L6_L20_L2».sig), (615, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (616, Fn.«squeeze_point_from__L9».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (621, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (622, Fn.«opening_message__L36_L1».sig)] ++ [(623, Fn.«level_positions__L3_L18_L6».sig), (627, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig), (628, Fn.«fold_final_msg__L5».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (740, Fn.«level_positions__L5_L21_L3».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (766, Fn.«level_positions__L44_L22_L4».sig), (767, Fn.«level_positions__L22_L23_L5».sig), (768, Fn.«level_positions__L15_L24_L6».sig), (769, Fn.«level_positions__L11_L25_L7».sig)] ++ [(770, Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (771, Fn.«level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (772, Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (773, Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (774, Fn.«level_positions__L9_L22_L4».sig), (775, Fn.«level_positions__L8_L23_L5».sig), (776, Fn.«level_positions__L7_L24_L6».sig), (777, Fn.«level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (778, Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (779, Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (780, Fn.«level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (782, Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (783, Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (784, Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (785, Fn.«level_positions__L4_L22_L4».sig)] ++ [(786, Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (787, Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (788, Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (789, Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».sig), (790, Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».sig), (791, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».sig), (792, Fn.«level_residual__L218_L21_L6_L3».sig), (793, Fn.«level_residual__L109_L21_L6_L3».sig), (794, Fn.«level_residual__L73_L21_L6_L3».sig), (795, Fn.«level_residual__L55_L21_L6_L3».sig), (796, Fn.«level_residual__L55_L17_L4_L2».sig), (797, Fn.«level_residual__L44_L17_L4_L2».sig), (798, Fn.«level_residual__L37_L17_L4_L2».sig), (799, Fn.«level_residual__L32_L17_L4_L2».sig), (800, Fn.«level_residual__L28_L13_L4_L2».sig), (801, Fn.«level_residual__L25_L13_L4_L2».sig)] ++ [(802, Fn.«level_residual__L23_L13_L4_L2».sig), (803, Fn.«level_residual__L21_L9_L4_L2».sig), (804, Fn.«level_residual__L19_L9_L4_L2».sig), (805, Fn.«level_residual__L18_L9_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (310, Fn.«squeeze_point_from__L21».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (598, Fn.«squeeze_point_from__L17».sig), (602, Fn.«level_positions__L10_L21_L3».sig), (607, Fn.«squeeze_point_from__L13».sig), (611, Fn.«level_positions__L6_L20_L2».sig), (615, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (616, Fn.«squeeze_point_from__L9».sig), (617, Fn.«level_positions__L4_L19_L7».sig), (621, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (622, Fn.«opening_message__L36_L1».sig)]) (l₂ := ([(623, Fn.«level_positions__L3_L18_L6».sig), (627, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».sig), (628, Fn.«fold_final_msg__L5».sig), (636, Fn.«level_residual__L32_L13_L4_L2».sig), (640, Fn.«level_residual__L23_L9_L4_L2».sig), (658, Fn.«level_positions__L4_L20_L2».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (740, Fn.«level_positions__L5_L21_L3».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (766, Fn.«level_positions__L44_L22_L4».sig), (767, Fn.«level_positions__L22_L23_L5».sig), (768, Fn.«level_positions__L15_L24_L6».sig), (769, Fn.«level_positions__L11_L25_L7».sig)] ++ [(770, Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0».sig), (771, Fn.«level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (772, Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (773, Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (774, Fn.«level_positions__L9_L22_L4».sig), (775, Fn.«level_positions__L8_L23_L5».sig), (776, Fn.«level_positions__L7_L24_L6».sig), (777, Fn.«level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (778, Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (779, Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (780, Fn.«level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (782, Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (783, Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (784, Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (785, Fn.«level_positions__L4_L22_L4».sig)] ++ [(786, Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (787, Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (788, Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (789, Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».sig), (790, Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».sig), (791, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».sig), (792, Fn.«level_residual__L218_L21_L6_L3».sig), (793, Fn.«level_residual__L109_L21_L6_L3».sig), (794, Fn.«level_residual__L73_L21_L6_L3».sig), (795, Fn.«level_residual__L55_L21_L6_L3».sig), (796, Fn.«level_residual__L55_L17_L4_L2».sig), (797, Fn.«level_residual__L44_L17_L4_L2».sig), (798, Fn.«level_residual__L37_L17_L4_L2».sig), (799, Fn.«level_residual__L32_L17_L4_L2».sig), (800, Fn.«level_residual__L28_L13_L4_L2».sig), (801, Fn.«level_residual__L25_L13_L4_L2».sig)] ++ [(802, Fn.«level_residual__L23_L13_L4_L2».sig), (803, Fn.«level_residual__L21_L9_L4_L2».sig), (804, Fn.«level_residual__L19_L9_L4_L2».sig), (805, Fn.«level_residual__L18_L9_L4_L2».sig)]))
+    
+    (SigsOk.cons sig8 rfl 
+    (SigsOk.cons sig9 rfl 
+    (SigsOk.cons sig308 rfl 
+    (SigsOk.cons sig310 rfl 
+    (SigsOk.cons sig448 rfl 
+    (SigsOk.cons sig462 rfl 
+    (SigsOk.cons sig472 rfl 
+    (SigsOk.cons sig598 rfl 
+    (SigsOk.cons sig602 rfl 
+    (SigsOk.cons sig607 rfl 
+    (SigsOk.cons sig611 rfl 
+    (SigsOk.cons sig615 rfl 
+    (SigsOk.cons sig616 rfl 
+    (SigsOk.cons sig617 rfl 
+    (SigsOk.cons sig621 rfl 
+    (SigsOk.cons sig622 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code343 core343 cert343 h0
+    (by decide +kernel)
+
+theorem w343_0 : WinOk 343 0 := link343.win rfl Fn.«open_stacked__L7».w0
+
+theorem w343_1 : WinOk 343 1 := link343.win rfl Fn.«open_stacked__L7».w1
+
+theorem w343_2 : WinOk 343 2 := link343.win rfl Fn.«open_stacked__L7».w2
+
+theorem w343_3 : WinOk 343 3 := link343.win rfl Fn.«open_stacked__L7».w3
+
+theorem w343_4 : WinOk 343 4 := link343.win rfl Fn.«open_stacked__L7».w4
+
+theorem w343_5 : WinOk 343 5 := link343.win rfl Fn.«open_stacked__L7».w5
+
+theorem w343_6 : WinOk 343 6 := link343.win rfl Fn.«open_stacked__L7».w6
+
+theorem w343_7 : WinOk 343 7 := link343.win rfl Fn.«open_stacked__L7».w7
+
+theorem w343_8 : WinOk 343 8 := link343.win rfl Fn.«open_stacked__L7».w8
+
+theorem w343_9 : WinOk 343 9 := link343.win rfl Fn.«open_stacked__L7».w9
+
+theorem w343_10 : WinOk 343 10 := link343.win rfl Fn.«open_stacked__L7».w10
+
+theorem w343_11 : WinOk 343 11 := link343.win rfl Fn.«open_stacked__L7».w11
+
 theorem ok343 : CheckOk 343 := fun i hi ↦ by
   have h : (certOf 343).cuts.length = 11 := by decide +kernel
   rw [h] at hi
@@ -232,6 +1522,129 @@ theorem ok343 : CheckOk 343 := fun i hi ↦ by
   · exact w343_9
   · exact w343_10
   · exact w343_11
+
+theorem link344 : Link 344 (Glob.ofSigs ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (311, Fn.«squeeze_point_from__L22».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (463, Fn.«squeeze_point_from__L14».sig), (472, Fn.«opening_message__L6_L1».sig), (473, Fn.«squeeze_point_from__L10».sig), (482, Fn.«squeeze_point_from__L6».sig), (499, Fn.«fold_final_msg__L2».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (641, Fn.«squeeze_point_from__L18».sig), (645, Fn.«level_positions__L11_L22_L4».sig), (652, Fn.«level_positions__L6_L21_L3».sig), (656, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig)] ++ [(658, Fn.«level_positions__L4_L20_L2».sig), (661, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (665, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (806, Fn.«level_positions__L44_L23_L5».sig), (807, Fn.«level_positions__L22_L24_L6».sig), (808, Fn.«level_positions__L15_L25_L7».sig)] ++ [(809, Fn.«level_positions__L14_L26_L2».sig), (810, Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (811, Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (812, Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (813, Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (814, Fn.«level_positions__L9_L23_L5».sig), (815, Fn.«level_positions__L8_L24_L6».sig), (816, Fn.«level_positions__L7_L25_L7».sig), (817, Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (818, Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (819, Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (820, Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (821, Fn.«level_positions__L6_L22_L4».sig), (822, Fn.«level_positions__L5_L24_L6».sig), (823, Fn.«level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (824, Fn.«level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig)] ++ [(825, Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (827, Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (828, Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (829, Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (831, Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (832, Fn.«level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (833, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (834, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».sig), (835, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».sig), (836, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».sig), (837, Fn.«level_residual__L218_L22_L6_L3».sig), (838, Fn.«level_residual__L109_L22_L6_L3».sig), (839, Fn.«level_residual__L73_L22_L6_L3».sig), (840, Fn.«level_residual__L55_L22_L6_L3».sig)] ++ [(841, Fn.«level_residual__L55_L18_L4_L2».sig), (842, Fn.«level_residual__L44_L18_L4_L2».sig), (843, Fn.«level_residual__L37_L18_L4_L2».sig), (844, Fn.«level_residual__L32_L18_L4_L2».sig), (845, Fn.«level_residual__L28_L14_L4_L2».sig), (846, Fn.«level_residual__L25_L14_L4_L2».sig), (847, Fn.«level_residual__L23_L14_L4_L2».sig), (848, Fn.«level_residual__L21_L10_L4_L2».sig), (849, Fn.«level_residual__L19_L10_L4_L2».sig), (850, Fn.«level_residual__L18_L10_L4_L2».sig), (851, Fn.«level_residual__L17_L6_L4_L2».sig), (852, Fn.«level_residual__L16_L6_L4_L2».sig), (853, Fn.«level_residual__L15_L6_L4_L2».sig)]) Data.jtTrie globSem)
+    Fn.«open_stacked__L8».code Fn.«open_stacked__L8».core (Fn.«open_stacked__L8».cert.withPows Data.powTree) :=
+  have h4 : SigsOk ([(841, Fn.«level_residual__L55_L18_L4_L2».sig), (842, Fn.«level_residual__L44_L18_L4_L2».sig), (843, Fn.«level_residual__L37_L18_L4_L2».sig), (844, Fn.«level_residual__L32_L18_L4_L2».sig), (845, Fn.«level_residual__L28_L14_L4_L2».sig), (846, Fn.«level_residual__L25_L14_L4_L2».sig), (847, Fn.«level_residual__L23_L14_L4_L2».sig), (848, Fn.«level_residual__L21_L10_L4_L2».sig), (849, Fn.«level_residual__L19_L10_L4_L2».sig), (850, Fn.«level_residual__L18_L10_L4_L2».sig), (851, Fn.«level_residual__L17_L6_L4_L2».sig), (852, Fn.«level_residual__L16_L6_L4_L2».sig), (853, Fn.«level_residual__L15_L6_L4_L2».sig)]) :=
+    (SigsOk.cons sig841 rfl 
+    (SigsOk.cons sig842 rfl 
+    (SigsOk.cons sig843 rfl 
+    (SigsOk.cons sig844 rfl 
+    (SigsOk.cons sig845 rfl 
+    (SigsOk.cons sig846 rfl 
+    (SigsOk.cons sig847 rfl 
+    (SigsOk.cons sig848 rfl 
+    (SigsOk.cons sig849 rfl 
+    (SigsOk.cons sig850 rfl 
+    (SigsOk.cons sig851 rfl 
+    (SigsOk.cons sig852 rfl 
+    (SigsOk.cons sig853 rfl SigsOk.nil)))))))))))))
+  have h3 : SigsOk ([(825, Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (827, Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (828, Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (829, Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (831, Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (832, Fn.«level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (833, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (834, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».sig), (835, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».sig), (836, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».sig), (837, Fn.«level_residual__L218_L22_L6_L3».sig), (838, Fn.«level_residual__L109_L22_L6_L3».sig), (839, Fn.«level_residual__L73_L22_L6_L3».sig), (840, Fn.«level_residual__L55_L22_L6_L3».sig)] ++ [(841, Fn.«level_residual__L55_L18_L4_L2».sig), (842, Fn.«level_residual__L44_L18_L4_L2».sig), (843, Fn.«level_residual__L37_L18_L4_L2».sig), (844, Fn.«level_residual__L32_L18_L4_L2».sig), (845, Fn.«level_residual__L28_L14_L4_L2».sig), (846, Fn.«level_residual__L25_L14_L4_L2».sig), (847, Fn.«level_residual__L23_L14_L4_L2».sig), (848, Fn.«level_residual__L21_L10_L4_L2».sig), (849, Fn.«level_residual__L19_L10_L4_L2».sig), (850, Fn.«level_residual__L18_L10_L4_L2».sig), (851, Fn.«level_residual__L17_L6_L4_L2».sig), (852, Fn.«level_residual__L16_L6_L4_L2».sig), (853, Fn.«level_residual__L15_L6_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(825, Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (827, Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (828, Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (829, Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (831, Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (832, Fn.«level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (833, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (834, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».sig), (835, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».sig), (836, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».sig), (837, Fn.«level_residual__L218_L22_L6_L3».sig), (838, Fn.«level_residual__L109_L22_L6_L3».sig), (839, Fn.«level_residual__L73_L22_L6_L3».sig), (840, Fn.«level_residual__L55_L22_L6_L3».sig)]) (l₂ := ([(841, Fn.«level_residual__L55_L18_L4_L2».sig), (842, Fn.«level_residual__L44_L18_L4_L2».sig), (843, Fn.«level_residual__L37_L18_L4_L2».sig), (844, Fn.«level_residual__L32_L18_L4_L2».sig), (845, Fn.«level_residual__L28_L14_L4_L2».sig), (846, Fn.«level_residual__L25_L14_L4_L2».sig), (847, Fn.«level_residual__L23_L14_L4_L2».sig), (848, Fn.«level_residual__L21_L10_L4_L2».sig), (849, Fn.«level_residual__L19_L10_L4_L2».sig), (850, Fn.«level_residual__L18_L10_L4_L2».sig), (851, Fn.«level_residual__L17_L6_L4_L2».sig), (852, Fn.«level_residual__L16_L6_L4_L2».sig), (853, Fn.«level_residual__L15_L6_L4_L2».sig)]))
+    
+    (SigsOk.cons sig825 rfl 
+    (SigsOk.cons sig826 rfl 
+    (SigsOk.cons sig827 rfl 
+    (SigsOk.cons sig828 rfl 
+    (SigsOk.cons sig829 rfl 
+    (SigsOk.cons sig830 rfl 
+    (SigsOk.cons sig831 rfl 
+    (SigsOk.cons sig832 rfl 
+    (SigsOk.cons sig833 rfl 
+    (SigsOk.cons sig834 rfl 
+    (SigsOk.cons sig835 rfl 
+    (SigsOk.cons sig836 rfl 
+    (SigsOk.cons sig837 rfl 
+    (SigsOk.cons sig838 rfl 
+    (SigsOk.cons sig839 rfl 
+    (SigsOk.cons sig840 rfl SigsOk.nil)))))))))))))))) h4
+  have h2 : SigsOk ([(809, Fn.«level_positions__L14_L26_L2».sig), (810, Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (811, Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (812, Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (813, Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (814, Fn.«level_positions__L9_L23_L5».sig), (815, Fn.«level_positions__L8_L24_L6».sig), (816, Fn.«level_positions__L7_L25_L7».sig), (817, Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (818, Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (819, Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (820, Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (821, Fn.«level_positions__L6_L22_L4».sig), (822, Fn.«level_positions__L5_L24_L6».sig), (823, Fn.«level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (824, Fn.«level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig)] ++ [(825, Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (827, Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (828, Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (829, Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (831, Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (832, Fn.«level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (833, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (834, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».sig), (835, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».sig), (836, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».sig), (837, Fn.«level_residual__L218_L22_L6_L3».sig), (838, Fn.«level_residual__L109_L22_L6_L3».sig), (839, Fn.«level_residual__L73_L22_L6_L3».sig), (840, Fn.«level_residual__L55_L22_L6_L3».sig)] ++ [(841, Fn.«level_residual__L55_L18_L4_L2».sig), (842, Fn.«level_residual__L44_L18_L4_L2».sig), (843, Fn.«level_residual__L37_L18_L4_L2».sig), (844, Fn.«level_residual__L32_L18_L4_L2».sig), (845, Fn.«level_residual__L28_L14_L4_L2».sig), (846, Fn.«level_residual__L25_L14_L4_L2».sig), (847, Fn.«level_residual__L23_L14_L4_L2».sig), (848, Fn.«level_residual__L21_L10_L4_L2».sig), (849, Fn.«level_residual__L19_L10_L4_L2».sig), (850, Fn.«level_residual__L18_L10_L4_L2».sig), (851, Fn.«level_residual__L17_L6_L4_L2».sig), (852, Fn.«level_residual__L16_L6_L4_L2».sig), (853, Fn.«level_residual__L15_L6_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(809, Fn.«level_positions__L14_L26_L2».sig), (810, Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (811, Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (812, Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (813, Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (814, Fn.«level_positions__L9_L23_L5».sig), (815, Fn.«level_positions__L8_L24_L6».sig), (816, Fn.«level_positions__L7_L25_L7».sig), (817, Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (818, Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (819, Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (820, Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (821, Fn.«level_positions__L6_L22_L4».sig), (822, Fn.«level_positions__L5_L24_L6».sig), (823, Fn.«level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (824, Fn.«level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig)]) (l₂ := ([(825, Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (827, Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (828, Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (829, Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (831, Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (832, Fn.«level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (833, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (834, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».sig), (835, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».sig), (836, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».sig), (837, Fn.«level_residual__L218_L22_L6_L3».sig), (838, Fn.«level_residual__L109_L22_L6_L3».sig), (839, Fn.«level_residual__L73_L22_L6_L3».sig), (840, Fn.«level_residual__L55_L22_L6_L3».sig)] ++ [(841, Fn.«level_residual__L55_L18_L4_L2».sig), (842, Fn.«level_residual__L44_L18_L4_L2».sig), (843, Fn.«level_residual__L37_L18_L4_L2».sig), (844, Fn.«level_residual__L32_L18_L4_L2».sig), (845, Fn.«level_residual__L28_L14_L4_L2».sig), (846, Fn.«level_residual__L25_L14_L4_L2».sig), (847, Fn.«level_residual__L23_L14_L4_L2».sig), (848, Fn.«level_residual__L21_L10_L4_L2».sig), (849, Fn.«level_residual__L19_L10_L4_L2».sig), (850, Fn.«level_residual__L18_L10_L4_L2».sig), (851, Fn.«level_residual__L17_L6_L4_L2».sig), (852, Fn.«level_residual__L16_L6_L4_L2».sig), (853, Fn.«level_residual__L15_L6_L4_L2».sig)]))
+    
+    (SigsOk.cons sig809 rfl 
+    (SigsOk.cons sig810 rfl 
+    (SigsOk.cons sig811 rfl 
+    (SigsOk.cons sig812 rfl 
+    (SigsOk.cons sig813 rfl 
+    (SigsOk.cons sig814 rfl 
+    (SigsOk.cons sig815 rfl 
+    (SigsOk.cons sig816 rfl 
+    (SigsOk.cons sig817 rfl 
+    (SigsOk.cons sig818 rfl 
+    (SigsOk.cons sig819 rfl 
+    (SigsOk.cons sig820 rfl 
+    (SigsOk.cons sig821 rfl 
+    (SigsOk.cons sig822 rfl 
+    (SigsOk.cons sig823 rfl 
+    (SigsOk.cons sig824 rfl SigsOk.nil)))))))))))))))) h3
+  have h1 : SigsOk ([(658, Fn.«level_positions__L4_L20_L2».sig), (661, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (665, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (806, Fn.«level_positions__L44_L23_L5».sig), (807, Fn.«level_positions__L22_L24_L6».sig), (808, Fn.«level_positions__L15_L25_L7».sig)] ++ [(809, Fn.«level_positions__L14_L26_L2».sig), (810, Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (811, Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (812, Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (813, Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (814, Fn.«level_positions__L9_L23_L5».sig), (815, Fn.«level_positions__L8_L24_L6».sig), (816, Fn.«level_positions__L7_L25_L7».sig), (817, Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (818, Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (819, Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (820, Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (821, Fn.«level_positions__L6_L22_L4».sig), (822, Fn.«level_positions__L5_L24_L6».sig), (823, Fn.«level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (824, Fn.«level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig)] ++ [(825, Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (827, Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (828, Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (829, Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (831, Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (832, Fn.«level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (833, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (834, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».sig), (835, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».sig), (836, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».sig), (837, Fn.«level_residual__L218_L22_L6_L3».sig), (838, Fn.«level_residual__L109_L22_L6_L3».sig), (839, Fn.«level_residual__L73_L22_L6_L3».sig), (840, Fn.«level_residual__L55_L22_L6_L3».sig)] ++ [(841, Fn.«level_residual__L55_L18_L4_L2».sig), (842, Fn.«level_residual__L44_L18_L4_L2».sig), (843, Fn.«level_residual__L37_L18_L4_L2».sig), (844, Fn.«level_residual__L32_L18_L4_L2».sig), (845, Fn.«level_residual__L28_L14_L4_L2».sig), (846, Fn.«level_residual__L25_L14_L4_L2».sig), (847, Fn.«level_residual__L23_L14_L4_L2».sig), (848, Fn.«level_residual__L21_L10_L4_L2».sig), (849, Fn.«level_residual__L19_L10_L4_L2».sig), (850, Fn.«level_residual__L18_L10_L4_L2».sig), (851, Fn.«level_residual__L17_L6_L4_L2».sig), (852, Fn.«level_residual__L16_L6_L4_L2».sig), (853, Fn.«level_residual__L15_L6_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(658, Fn.«level_positions__L4_L20_L2».sig), (661, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (665, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (806, Fn.«level_positions__L44_L23_L5».sig), (807, Fn.«level_positions__L22_L24_L6».sig), (808, Fn.«level_positions__L15_L25_L7».sig)]) (l₂ := ([(809, Fn.«level_positions__L14_L26_L2».sig), (810, Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (811, Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (812, Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (813, Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (814, Fn.«level_positions__L9_L23_L5».sig), (815, Fn.«level_positions__L8_L24_L6».sig), (816, Fn.«level_positions__L7_L25_L7».sig), (817, Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (818, Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (819, Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (820, Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (821, Fn.«level_positions__L6_L22_L4».sig), (822, Fn.«level_positions__L5_L24_L6».sig), (823, Fn.«level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (824, Fn.«level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig)] ++ [(825, Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (827, Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (828, Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (829, Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (831, Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (832, Fn.«level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (833, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (834, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».sig), (835, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».sig), (836, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».sig), (837, Fn.«level_residual__L218_L22_L6_L3».sig), (838, Fn.«level_residual__L109_L22_L6_L3».sig), (839, Fn.«level_residual__L73_L22_L6_L3».sig), (840, Fn.«level_residual__L55_L22_L6_L3».sig)] ++ [(841, Fn.«level_residual__L55_L18_L4_L2».sig), (842, Fn.«level_residual__L44_L18_L4_L2».sig), (843, Fn.«level_residual__L37_L18_L4_L2».sig), (844, Fn.«level_residual__L32_L18_L4_L2».sig), (845, Fn.«level_residual__L28_L14_L4_L2».sig), (846, Fn.«level_residual__L25_L14_L4_L2».sig), (847, Fn.«level_residual__L23_L14_L4_L2».sig), (848, Fn.«level_residual__L21_L10_L4_L2».sig), (849, Fn.«level_residual__L19_L10_L4_L2».sig), (850, Fn.«level_residual__L18_L10_L4_L2».sig), (851, Fn.«level_residual__L17_L6_L4_L2».sig), (852, Fn.«level_residual__L16_L6_L4_L2».sig), (853, Fn.«level_residual__L15_L6_L4_L2».sig)]))
+    
+    (SigsOk.cons sig658 rfl 
+    (SigsOk.cons sig661 rfl 
+    (SigsOk.cons sig662 rfl 
+    (SigsOk.cons sig665 rfl 
+    (SigsOk.cons sig668 rfl 
+    (SigsOk.cons sig676 rfl 
+    (SigsOk.cons sig679 rfl 
+    (SigsOk.cons sig682 rfl 
+    (SigsOk.cons sig700 rfl 
+    (SigsOk.cons sig704 rfl 
+    (SigsOk.cons sig745 rfl 
+    (SigsOk.cons sig781 rfl 
+    (SigsOk.cons sig785 rfl 
+    (SigsOk.cons sig806 rfl 
+    (SigsOk.cons sig807 rfl 
+    (SigsOk.cons sig808 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (311, Fn.«squeeze_point_from__L22».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (463, Fn.«squeeze_point_from__L14».sig), (472, Fn.«opening_message__L6_L1».sig), (473, Fn.«squeeze_point_from__L10».sig), (482, Fn.«squeeze_point_from__L6».sig), (499, Fn.«fold_final_msg__L2».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (641, Fn.«squeeze_point_from__L18».sig), (645, Fn.«level_positions__L11_L22_L4».sig), (652, Fn.«level_positions__L6_L21_L3».sig), (656, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig)] ++ [(658, Fn.«level_positions__L4_L20_L2».sig), (661, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (665, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (806, Fn.«level_positions__L44_L23_L5».sig), (807, Fn.«level_positions__L22_L24_L6».sig), (808, Fn.«level_positions__L15_L25_L7».sig)] ++ [(809, Fn.«level_positions__L14_L26_L2».sig), (810, Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (811, Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (812, Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (813, Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (814, Fn.«level_positions__L9_L23_L5».sig), (815, Fn.«level_positions__L8_L24_L6».sig), (816, Fn.«level_positions__L7_L25_L7».sig), (817, Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (818, Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (819, Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (820, Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (821, Fn.«level_positions__L6_L22_L4».sig), (822, Fn.«level_positions__L5_L24_L6».sig), (823, Fn.«level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (824, Fn.«level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig)] ++ [(825, Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (827, Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (828, Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (829, Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (831, Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (832, Fn.«level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (833, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (834, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».sig), (835, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».sig), (836, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».sig), (837, Fn.«level_residual__L218_L22_L6_L3».sig), (838, Fn.«level_residual__L109_L22_L6_L3».sig), (839, Fn.«level_residual__L73_L22_L6_L3».sig), (840, Fn.«level_residual__L55_L22_L6_L3».sig)] ++ [(841, Fn.«level_residual__L55_L18_L4_L2».sig), (842, Fn.«level_residual__L44_L18_L4_L2».sig), (843, Fn.«level_residual__L37_L18_L4_L2».sig), (844, Fn.«level_residual__L32_L18_L4_L2».sig), (845, Fn.«level_residual__L28_L14_L4_L2».sig), (846, Fn.«level_residual__L25_L14_L4_L2».sig), (847, Fn.«level_residual__L23_L14_L4_L2».sig), (848, Fn.«level_residual__L21_L10_L4_L2».sig), (849, Fn.«level_residual__L19_L10_L4_L2».sig), (850, Fn.«level_residual__L18_L10_L4_L2».sig), (851, Fn.«level_residual__L17_L6_L4_L2».sig), (852, Fn.«level_residual__L16_L6_L4_L2».sig), (853, Fn.«level_residual__L15_L6_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (311, Fn.«squeeze_point_from__L22».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (463, Fn.«squeeze_point_from__L14».sig), (472, Fn.«opening_message__L6_L1».sig), (473, Fn.«squeeze_point_from__L10».sig), (482, Fn.«squeeze_point_from__L6».sig), (499, Fn.«fold_final_msg__L2».sig), (623, Fn.«level_positions__L3_L18_L6».sig), (641, Fn.«squeeze_point_from__L18».sig), (645, Fn.«level_positions__L11_L22_L4».sig), (652, Fn.«level_positions__L6_L21_L3».sig), (656, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig)]) (l₂ := ([(658, Fn.«level_positions__L4_L20_L2».sig), (661, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (665, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig), (668, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».sig), (676, Fn.«level_residual__L32_L14_L4_L2».sig), (679, Fn.«level_residual__L23_L10_L4_L2».sig), (682, Fn.«level_residual__L18_L6_L4_L2».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (806, Fn.«level_positions__L44_L23_L5».sig), (807, Fn.«level_positions__L22_L24_L6».sig), (808, Fn.«level_positions__L15_L25_L7».sig)] ++ [(809, Fn.«level_positions__L14_L26_L2».sig), (810, Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».sig), (811, Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (812, Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (813, Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (814, Fn.«level_positions__L9_L23_L5».sig), (815, Fn.«level_positions__L8_L24_L6».sig), (816, Fn.«level_positions__L7_L25_L7».sig), (817, Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (818, Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (819, Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (820, Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (821, Fn.«level_positions__L6_L22_L4».sig), (822, Fn.«level_positions__L5_L24_L6».sig), (823, Fn.«level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (824, Fn.«level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig)] ++ [(825, Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (827, Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (828, Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (829, Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (831, Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (832, Fn.«level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (833, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (834, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».sig), (835, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».sig), (836, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».sig), (837, Fn.«level_residual__L218_L22_L6_L3».sig), (838, Fn.«level_residual__L109_L22_L6_L3».sig), (839, Fn.«level_residual__L73_L22_L6_L3».sig), (840, Fn.«level_residual__L55_L22_L6_L3».sig)] ++ [(841, Fn.«level_residual__L55_L18_L4_L2».sig), (842, Fn.«level_residual__L44_L18_L4_L2».sig), (843, Fn.«level_residual__L37_L18_L4_L2».sig), (844, Fn.«level_residual__L32_L18_L4_L2».sig), (845, Fn.«level_residual__L28_L14_L4_L2».sig), (846, Fn.«level_residual__L25_L14_L4_L2».sig), (847, Fn.«level_residual__L23_L14_L4_L2».sig), (848, Fn.«level_residual__L21_L10_L4_L2».sig), (849, Fn.«level_residual__L19_L10_L4_L2».sig), (850, Fn.«level_residual__L18_L10_L4_L2».sig), (851, Fn.«level_residual__L17_L6_L4_L2».sig), (852, Fn.«level_residual__L16_L6_L4_L2».sig), (853, Fn.«level_residual__L15_L6_L4_L2».sig)]))
+    
+    (SigsOk.cons sig8 rfl 
+    (SigsOk.cons sig9 rfl 
+    (SigsOk.cons sig308 rfl 
+    (SigsOk.cons sig311 rfl 
+    (SigsOk.cons sig448 rfl 
+    (SigsOk.cons sig462 rfl 
+    (SigsOk.cons sig463 rfl 
+    (SigsOk.cons sig472 rfl 
+    (SigsOk.cons sig473 rfl 
+    (SigsOk.cons sig482 rfl 
+    (SigsOk.cons sig499 rfl 
+    (SigsOk.cons sig623 rfl 
+    (SigsOk.cons sig641 rfl 
+    (SigsOk.cons sig645 rfl 
+    (SigsOk.cons sig652 rfl 
+    (SigsOk.cons sig656 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code344 core344 cert344 h0
+    (by decide +kernel)
+
+theorem w344_0 : WinOk 344 0 := link344.win rfl Fn.«open_stacked__L8».w0
+
+theorem w344_1 : WinOk 344 1 := link344.win rfl Fn.«open_stacked__L8».w1
+
+theorem w344_2 : WinOk 344 2 := link344.win rfl Fn.«open_stacked__L8».w2
+
+theorem w344_3 : WinOk 344 3 := link344.win rfl Fn.«open_stacked__L8».w3
+
+theorem w344_4 : WinOk 344 4 := link344.win rfl Fn.«open_stacked__L8».w4
+
+theorem w344_5 : WinOk 344 5 := link344.win rfl Fn.«open_stacked__L8».w5
+
+theorem w344_6 : WinOk 344 6 := link344.win rfl Fn.«open_stacked__L8».w6
+
+theorem w344_7 : WinOk 344 7 := link344.win rfl Fn.«open_stacked__L8».w7
+
+theorem w344_8 : WinOk 344 8 := link344.win rfl Fn.«open_stacked__L8».w8
+
+theorem w344_9 : WinOk 344 9 := link344.win rfl Fn.«open_stacked__L8».w9
+
+theorem w344_10 : WinOk 344 10 := link344.win rfl Fn.«open_stacked__L8».w10
+
+theorem w344_11 : WinOk 344 11 := link344.win rfl Fn.«open_stacked__L8».w11
+
+theorem w344_12 : WinOk 344 12 := link344.win rfl Fn.«open_stacked__L8».w12
+
+theorem w344_13 : WinOk 344 13 := link344.win rfl Fn.«open_stacked__L8».w13
 
 theorem ok344 : CheckOk 344 := fun i hi ↦ by
   have h : (certOf 344).cuts.length = 13 := by decide +kernel
@@ -252,6 +1665,129 @@ theorem ok344 : CheckOk 344 := fun i hi ↦ by
   · exact w344_12
   · exact w344_13
 
+theorem link345 : Link 345 (Glob.ofSigs ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (312, Fn.«squeeze_point_from__L23».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (512, Fn.«squeeze_point_from__L15».sig), (521, Fn.«squeeze_point_from__L11».sig), (530, Fn.«squeeze_point_from__L7».sig), (537, Fn.«opening_message__L12_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (683, Fn.«squeeze_point_from__L19».sig), (687, Fn.«level_positions__L11_L23_L5».sig), (694, Fn.«level_positions__L7_L22_L4».sig)] ++ [(698, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (703, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (822, Fn.«level_positions__L5_L24_L6».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (854, Fn.«level_positions__L44_L24_L6».sig)] ++ [(855, Fn.«level_positions__L22_L25_L7».sig), (856, Fn.«level_positions__L19_L26_L2».sig), (857, Fn.«level_positions__L14_L27_L3».sig), (858, Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (859, Fn.«level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (860, Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (861, Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (862, Fn.«level_positions__L9_L24_L6».sig), (863, Fn.«level_positions__L8_L25_L7».sig), (864, Fn.«level_positions__L8_L26_L2».sig), (865, Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (866, Fn.«level_queries__L44_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (867, Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (868, Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (869, Fn.«level_positions__L6_L23_L5».sig), (870, Fn.«level_positions__L5_L25_L7».sig)] ++ [(871, Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (872, Fn.«level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (873, Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (875, Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (876, Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (877, Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (878, Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (879, Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (881, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».sig), (882, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».sig), (883, Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».sig), (884, Fn.«level_residual__L218_L23_L6_L3».sig), (885, Fn.«level_residual__L109_L23_L6_L3».sig), (886, Fn.«level_residual__L73_L23_L6_L3».sig)] ++ [(887, Fn.«level_residual__L55_L23_L6_L3».sig), (888, Fn.«level_residual__L55_L19_L4_L2».sig), (889, Fn.«level_residual__L44_L19_L4_L2».sig), (890, Fn.«level_residual__L37_L19_L4_L2».sig), (891, Fn.«level_residual__L32_L19_L4_L2».sig), (892, Fn.«level_residual__L28_L15_L4_L2».sig), (893, Fn.«level_residual__L25_L15_L4_L2».sig), (894, Fn.«level_residual__L23_L15_L4_L2».sig), (895, Fn.«level_residual__L21_L11_L4_L2».sig), (896, Fn.«level_residual__L19_L11_L4_L2».sig), (897, Fn.«level_residual__L18_L11_L4_L2».sig), (898, Fn.«level_residual__L17_L7_L4_L2».sig), (899, Fn.«level_residual__L16_L7_L4_L2».sig)]) Data.jtTrie globSem)
+    Fn.«open_stacked__L9».code Fn.«open_stacked__L9».core (Fn.«open_stacked__L9».cert.withPows Data.powTree) :=
+  have h4 : SigsOk ([(887, Fn.«level_residual__L55_L23_L6_L3».sig), (888, Fn.«level_residual__L55_L19_L4_L2».sig), (889, Fn.«level_residual__L44_L19_L4_L2».sig), (890, Fn.«level_residual__L37_L19_L4_L2».sig), (891, Fn.«level_residual__L32_L19_L4_L2».sig), (892, Fn.«level_residual__L28_L15_L4_L2».sig), (893, Fn.«level_residual__L25_L15_L4_L2».sig), (894, Fn.«level_residual__L23_L15_L4_L2».sig), (895, Fn.«level_residual__L21_L11_L4_L2».sig), (896, Fn.«level_residual__L19_L11_L4_L2».sig), (897, Fn.«level_residual__L18_L11_L4_L2».sig), (898, Fn.«level_residual__L17_L7_L4_L2».sig), (899, Fn.«level_residual__L16_L7_L4_L2».sig)]) :=
+    (SigsOk.cons sig887 rfl 
+    (SigsOk.cons sig888 rfl 
+    (SigsOk.cons sig889 rfl 
+    (SigsOk.cons sig890 rfl 
+    (SigsOk.cons sig891 rfl 
+    (SigsOk.cons sig892 rfl 
+    (SigsOk.cons sig893 rfl 
+    (SigsOk.cons sig894 rfl 
+    (SigsOk.cons sig895 rfl 
+    (SigsOk.cons sig896 rfl 
+    (SigsOk.cons sig897 rfl 
+    (SigsOk.cons sig898 rfl 
+    (SigsOk.cons sig899 rfl SigsOk.nil)))))))))))))
+  have h3 : SigsOk ([(871, Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (872, Fn.«level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (873, Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (875, Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (876, Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (877, Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (878, Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (879, Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (881, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».sig), (882, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».sig), (883, Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».sig), (884, Fn.«level_residual__L218_L23_L6_L3».sig), (885, Fn.«level_residual__L109_L23_L6_L3».sig), (886, Fn.«level_residual__L73_L23_L6_L3».sig)] ++ [(887, Fn.«level_residual__L55_L23_L6_L3».sig), (888, Fn.«level_residual__L55_L19_L4_L2».sig), (889, Fn.«level_residual__L44_L19_L4_L2».sig), (890, Fn.«level_residual__L37_L19_L4_L2».sig), (891, Fn.«level_residual__L32_L19_L4_L2».sig), (892, Fn.«level_residual__L28_L15_L4_L2».sig), (893, Fn.«level_residual__L25_L15_L4_L2».sig), (894, Fn.«level_residual__L23_L15_L4_L2».sig), (895, Fn.«level_residual__L21_L11_L4_L2».sig), (896, Fn.«level_residual__L19_L11_L4_L2».sig), (897, Fn.«level_residual__L18_L11_L4_L2».sig), (898, Fn.«level_residual__L17_L7_L4_L2».sig), (899, Fn.«level_residual__L16_L7_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(871, Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (872, Fn.«level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (873, Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (875, Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (876, Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (877, Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (878, Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (879, Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (881, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».sig), (882, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».sig), (883, Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».sig), (884, Fn.«level_residual__L218_L23_L6_L3».sig), (885, Fn.«level_residual__L109_L23_L6_L3».sig), (886, Fn.«level_residual__L73_L23_L6_L3».sig)]) (l₂ := ([(887, Fn.«level_residual__L55_L23_L6_L3».sig), (888, Fn.«level_residual__L55_L19_L4_L2».sig), (889, Fn.«level_residual__L44_L19_L4_L2».sig), (890, Fn.«level_residual__L37_L19_L4_L2».sig), (891, Fn.«level_residual__L32_L19_L4_L2».sig), (892, Fn.«level_residual__L28_L15_L4_L2».sig), (893, Fn.«level_residual__L25_L15_L4_L2».sig), (894, Fn.«level_residual__L23_L15_L4_L2».sig), (895, Fn.«level_residual__L21_L11_L4_L2».sig), (896, Fn.«level_residual__L19_L11_L4_L2».sig), (897, Fn.«level_residual__L18_L11_L4_L2».sig), (898, Fn.«level_residual__L17_L7_L4_L2».sig), (899, Fn.«level_residual__L16_L7_L4_L2».sig)]))
+    
+    (SigsOk.cons sig871 rfl 
+    (SigsOk.cons sig872 rfl 
+    (SigsOk.cons sig873 rfl 
+    (SigsOk.cons sig874 rfl 
+    (SigsOk.cons sig875 rfl 
+    (SigsOk.cons sig876 rfl 
+    (SigsOk.cons sig877 rfl 
+    (SigsOk.cons sig878 rfl 
+    (SigsOk.cons sig879 rfl 
+    (SigsOk.cons sig880 rfl 
+    (SigsOk.cons sig881 rfl 
+    (SigsOk.cons sig882 rfl 
+    (SigsOk.cons sig883 rfl 
+    (SigsOk.cons sig884 rfl 
+    (SigsOk.cons sig885 rfl 
+    (SigsOk.cons sig886 rfl SigsOk.nil)))))))))))))))) h4
+  have h2 : SigsOk ([(855, Fn.«level_positions__L22_L25_L7».sig), (856, Fn.«level_positions__L19_L26_L2».sig), (857, Fn.«level_positions__L14_L27_L3».sig), (858, Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (859, Fn.«level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (860, Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (861, Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (862, Fn.«level_positions__L9_L24_L6».sig), (863, Fn.«level_positions__L8_L25_L7».sig), (864, Fn.«level_positions__L8_L26_L2».sig), (865, Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (866, Fn.«level_queries__L44_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (867, Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (868, Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (869, Fn.«level_positions__L6_L23_L5».sig), (870, Fn.«level_positions__L5_L25_L7».sig)] ++ [(871, Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (872, Fn.«level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (873, Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (875, Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (876, Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (877, Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (878, Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (879, Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (881, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».sig), (882, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».sig), (883, Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».sig), (884, Fn.«level_residual__L218_L23_L6_L3».sig), (885, Fn.«level_residual__L109_L23_L6_L3».sig), (886, Fn.«level_residual__L73_L23_L6_L3».sig)] ++ [(887, Fn.«level_residual__L55_L23_L6_L3».sig), (888, Fn.«level_residual__L55_L19_L4_L2».sig), (889, Fn.«level_residual__L44_L19_L4_L2».sig), (890, Fn.«level_residual__L37_L19_L4_L2».sig), (891, Fn.«level_residual__L32_L19_L4_L2».sig), (892, Fn.«level_residual__L28_L15_L4_L2».sig), (893, Fn.«level_residual__L25_L15_L4_L2».sig), (894, Fn.«level_residual__L23_L15_L4_L2».sig), (895, Fn.«level_residual__L21_L11_L4_L2».sig), (896, Fn.«level_residual__L19_L11_L4_L2».sig), (897, Fn.«level_residual__L18_L11_L4_L2».sig), (898, Fn.«level_residual__L17_L7_L4_L2».sig), (899, Fn.«level_residual__L16_L7_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(855, Fn.«level_positions__L22_L25_L7».sig), (856, Fn.«level_positions__L19_L26_L2».sig), (857, Fn.«level_positions__L14_L27_L3».sig), (858, Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (859, Fn.«level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (860, Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (861, Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (862, Fn.«level_positions__L9_L24_L6».sig), (863, Fn.«level_positions__L8_L25_L7».sig), (864, Fn.«level_positions__L8_L26_L2».sig), (865, Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (866, Fn.«level_queries__L44_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (867, Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (868, Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (869, Fn.«level_positions__L6_L23_L5».sig), (870, Fn.«level_positions__L5_L25_L7».sig)]) (l₂ := ([(871, Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (872, Fn.«level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (873, Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (875, Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (876, Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (877, Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (878, Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (879, Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (881, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».sig), (882, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».sig), (883, Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».sig), (884, Fn.«level_residual__L218_L23_L6_L3».sig), (885, Fn.«level_residual__L109_L23_L6_L3».sig), (886, Fn.«level_residual__L73_L23_L6_L3».sig)] ++ [(887, Fn.«level_residual__L55_L23_L6_L3».sig), (888, Fn.«level_residual__L55_L19_L4_L2».sig), (889, Fn.«level_residual__L44_L19_L4_L2».sig), (890, Fn.«level_residual__L37_L19_L4_L2».sig), (891, Fn.«level_residual__L32_L19_L4_L2».sig), (892, Fn.«level_residual__L28_L15_L4_L2».sig), (893, Fn.«level_residual__L25_L15_L4_L2».sig), (894, Fn.«level_residual__L23_L15_L4_L2».sig), (895, Fn.«level_residual__L21_L11_L4_L2».sig), (896, Fn.«level_residual__L19_L11_L4_L2».sig), (897, Fn.«level_residual__L18_L11_L4_L2».sig), (898, Fn.«level_residual__L17_L7_L4_L2».sig), (899, Fn.«level_residual__L16_L7_L4_L2».sig)]))
+    
+    (SigsOk.cons sig855 rfl 
+    (SigsOk.cons sig856 rfl 
+    (SigsOk.cons sig857 rfl 
+    (SigsOk.cons sig858 rfl 
+    (SigsOk.cons sig859 rfl 
+    (SigsOk.cons sig860 rfl 
+    (SigsOk.cons sig861 rfl 
+    (SigsOk.cons sig862 rfl 
+    (SigsOk.cons sig863 rfl 
+    (SigsOk.cons sig864 rfl 
+    (SigsOk.cons sig865 rfl 
+    (SigsOk.cons sig866 rfl 
+    (SigsOk.cons sig867 rfl 
+    (SigsOk.cons sig868 rfl 
+    (SigsOk.cons sig869 rfl 
+    (SigsOk.cons sig870 rfl SigsOk.nil)))))))))))))))) h3
+  have h1 : SigsOk ([(698, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (703, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (822, Fn.«level_positions__L5_L24_L6».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (854, Fn.«level_positions__L44_L24_L6».sig)] ++ [(855, Fn.«level_positions__L22_L25_L7».sig), (856, Fn.«level_positions__L19_L26_L2».sig), (857, Fn.«level_positions__L14_L27_L3».sig), (858, Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (859, Fn.«level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (860, Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (861, Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (862, Fn.«level_positions__L9_L24_L6».sig), (863, Fn.«level_positions__L8_L25_L7».sig), (864, Fn.«level_positions__L8_L26_L2».sig), (865, Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (866, Fn.«level_queries__L44_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (867, Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (868, Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (869, Fn.«level_positions__L6_L23_L5».sig), (870, Fn.«level_positions__L5_L25_L7».sig)] ++ [(871, Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (872, Fn.«level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (873, Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (875, Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (876, Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (877, Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (878, Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (879, Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (881, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».sig), (882, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».sig), (883, Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».sig), (884, Fn.«level_residual__L218_L23_L6_L3».sig), (885, Fn.«level_residual__L109_L23_L6_L3».sig), (886, Fn.«level_residual__L73_L23_L6_L3».sig)] ++ [(887, Fn.«level_residual__L55_L23_L6_L3».sig), (888, Fn.«level_residual__L55_L19_L4_L2».sig), (889, Fn.«level_residual__L44_L19_L4_L2».sig), (890, Fn.«level_residual__L37_L19_L4_L2».sig), (891, Fn.«level_residual__L32_L19_L4_L2».sig), (892, Fn.«level_residual__L28_L15_L4_L2».sig), (893, Fn.«level_residual__L25_L15_L4_L2».sig), (894, Fn.«level_residual__L23_L15_L4_L2».sig), (895, Fn.«level_residual__L21_L11_L4_L2».sig), (896, Fn.«level_residual__L19_L11_L4_L2».sig), (897, Fn.«level_residual__L18_L11_L4_L2».sig), (898, Fn.«level_residual__L17_L7_L4_L2».sig), (899, Fn.«level_residual__L16_L7_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(698, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (703, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (822, Fn.«level_positions__L5_L24_L6».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (854, Fn.«level_positions__L44_L24_L6».sig)]) (l₂ := ([(855, Fn.«level_positions__L22_L25_L7».sig), (856, Fn.«level_positions__L19_L26_L2».sig), (857, Fn.«level_positions__L14_L27_L3».sig), (858, Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (859, Fn.«level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (860, Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (861, Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (862, Fn.«level_positions__L9_L24_L6».sig), (863, Fn.«level_positions__L8_L25_L7».sig), (864, Fn.«level_positions__L8_L26_L2».sig), (865, Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (866, Fn.«level_queries__L44_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (867, Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (868, Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (869, Fn.«level_positions__L6_L23_L5».sig), (870, Fn.«level_positions__L5_L25_L7».sig)] ++ [(871, Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (872, Fn.«level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (873, Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (875, Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (876, Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (877, Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (878, Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (879, Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (881, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».sig), (882, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».sig), (883, Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».sig), (884, Fn.«level_residual__L218_L23_L6_L3».sig), (885, Fn.«level_residual__L109_L23_L6_L3».sig), (886, Fn.«level_residual__L73_L23_L6_L3».sig)] ++ [(887, Fn.«level_residual__L55_L23_L6_L3».sig), (888, Fn.«level_residual__L55_L19_L4_L2».sig), (889, Fn.«level_residual__L44_L19_L4_L2».sig), (890, Fn.«level_residual__L37_L19_L4_L2».sig), (891, Fn.«level_residual__L32_L19_L4_L2».sig), (892, Fn.«level_residual__L28_L15_L4_L2».sig), (893, Fn.«level_residual__L25_L15_L4_L2».sig), (894, Fn.«level_residual__L23_L15_L4_L2».sig), (895, Fn.«level_residual__L21_L11_L4_L2».sig), (896, Fn.«level_residual__L19_L11_L4_L2».sig), (897, Fn.«level_residual__L18_L11_L4_L2».sig), (898, Fn.«level_residual__L17_L7_L4_L2».sig), (899, Fn.«level_residual__L16_L7_L4_L2».sig)]))
+    
+    (SigsOk.cons sig698 rfl 
+    (SigsOk.cons sig700 rfl 
+    (SigsOk.cons sig703 rfl 
+    (SigsOk.cons sig704 rfl 
+    (SigsOk.cons sig707 rfl 
+    (SigsOk.cons sig710 rfl 
+    (SigsOk.cons sig718 rfl 
+    (SigsOk.cons sig721 rfl 
+    (SigsOk.cons sig724 rfl 
+    (SigsOk.cons sig741 rfl 
+    (SigsOk.cons sig745 rfl 
+    (SigsOk.cons sig785 rfl 
+    (SigsOk.cons sig822 rfl 
+    (SigsOk.cons sig826 rfl 
+    (SigsOk.cons sig830 rfl 
+    (SigsOk.cons sig854 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (312, Fn.«squeeze_point_from__L23».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (512, Fn.«squeeze_point_from__L15».sig), (521, Fn.«squeeze_point_from__L11».sig), (530, Fn.«squeeze_point_from__L7».sig), (537, Fn.«opening_message__L12_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (683, Fn.«squeeze_point_from__L19».sig), (687, Fn.«level_positions__L11_L23_L5».sig), (694, Fn.«level_positions__L7_L22_L4».sig)] ++ [(698, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (703, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (822, Fn.«level_positions__L5_L24_L6».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (854, Fn.«level_positions__L44_L24_L6».sig)] ++ [(855, Fn.«level_positions__L22_L25_L7».sig), (856, Fn.«level_positions__L19_L26_L2».sig), (857, Fn.«level_positions__L14_L27_L3».sig), (858, Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (859, Fn.«level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (860, Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (861, Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (862, Fn.«level_positions__L9_L24_L6».sig), (863, Fn.«level_positions__L8_L25_L7».sig), (864, Fn.«level_positions__L8_L26_L2».sig), (865, Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (866, Fn.«level_queries__L44_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (867, Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (868, Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (869, Fn.«level_positions__L6_L23_L5».sig), (870, Fn.«level_positions__L5_L25_L7».sig)] ++ [(871, Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (872, Fn.«level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (873, Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (875, Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (876, Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (877, Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (878, Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (879, Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (881, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».sig), (882, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».sig), (883, Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».sig), (884, Fn.«level_residual__L218_L23_L6_L3».sig), (885, Fn.«level_residual__L109_L23_L6_L3».sig), (886, Fn.«level_residual__L73_L23_L6_L3».sig)] ++ [(887, Fn.«level_residual__L55_L23_L6_L3».sig), (888, Fn.«level_residual__L55_L19_L4_L2».sig), (889, Fn.«level_residual__L44_L19_L4_L2».sig), (890, Fn.«level_residual__L37_L19_L4_L2».sig), (891, Fn.«level_residual__L32_L19_L4_L2».sig), (892, Fn.«level_residual__L28_L15_L4_L2».sig), (893, Fn.«level_residual__L25_L15_L4_L2».sig), (894, Fn.«level_residual__L23_L15_L4_L2».sig), (895, Fn.«level_residual__L21_L11_L4_L2».sig), (896, Fn.«level_residual__L19_L11_L4_L2».sig), (897, Fn.«level_residual__L18_L11_L4_L2».sig), (898, Fn.«level_residual__L17_L7_L4_L2».sig), (899, Fn.«level_residual__L16_L7_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (312, Fn.«squeeze_point_from__L23».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (512, Fn.«squeeze_point_from__L15».sig), (521, Fn.«squeeze_point_from__L11».sig), (530, Fn.«squeeze_point_from__L7».sig), (537, Fn.«opening_message__L12_L1».sig), (542, Fn.«fold_final_msg__L3».sig), (662, Fn.«level_positions__L3_L19_L7».sig), (683, Fn.«squeeze_point_from__L19».sig), (687, Fn.«level_positions__L11_L23_L5».sig), (694, Fn.«level_positions__L7_L22_L4».sig)]) (l₂ := ([(698, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (700, Fn.«level_positions__L4_L21_L3».sig), (703, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (707, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».sig), (710, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».sig), (718, Fn.«level_residual__L32_L15_L4_L2».sig), (721, Fn.«level_residual__L23_L11_L4_L2».sig), (724, Fn.«level_residual__L18_L7_L4_L2».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (822, Fn.«level_positions__L5_L24_L6».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (854, Fn.«level_positions__L44_L24_L6».sig)] ++ [(855, Fn.«level_positions__L22_L25_L7».sig), (856, Fn.«level_positions__L19_L26_L2».sig), (857, Fn.«level_positions__L14_L27_L3».sig), (858, Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».sig), (859, Fn.«level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (860, Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (861, Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (862, Fn.«level_positions__L9_L24_L6».sig), (863, Fn.«level_positions__L8_L25_L7».sig), (864, Fn.«level_positions__L8_L26_L2».sig), (865, Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (866, Fn.«level_queries__L44_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (867, Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (868, Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (869, Fn.«level_positions__L6_L23_L5».sig), (870, Fn.«level_positions__L5_L25_L7».sig)] ++ [(871, Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (872, Fn.«level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (873, Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (875, Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (876, Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (877, Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (878, Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (879, Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (881, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».sig), (882, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».sig), (883, Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».sig), (884, Fn.«level_residual__L218_L23_L6_L3».sig), (885, Fn.«level_residual__L109_L23_L6_L3».sig), (886, Fn.«level_residual__L73_L23_L6_L3».sig)] ++ [(887, Fn.«level_residual__L55_L23_L6_L3».sig), (888, Fn.«level_residual__L55_L19_L4_L2».sig), (889, Fn.«level_residual__L44_L19_L4_L2».sig), (890, Fn.«level_residual__L37_L19_L4_L2».sig), (891, Fn.«level_residual__L32_L19_L4_L2».sig), (892, Fn.«level_residual__L28_L15_L4_L2».sig), (893, Fn.«level_residual__L25_L15_L4_L2».sig), (894, Fn.«level_residual__L23_L15_L4_L2».sig), (895, Fn.«level_residual__L21_L11_L4_L2».sig), (896, Fn.«level_residual__L19_L11_L4_L2».sig), (897, Fn.«level_residual__L18_L11_L4_L2».sig), (898, Fn.«level_residual__L17_L7_L4_L2».sig), (899, Fn.«level_residual__L16_L7_L4_L2».sig)]))
+    
+    (SigsOk.cons sig8 rfl 
+    (SigsOk.cons sig9 rfl 
+    (SigsOk.cons sig308 rfl 
+    (SigsOk.cons sig312 rfl 
+    (SigsOk.cons sig448 rfl 
+    (SigsOk.cons sig462 rfl 
+    (SigsOk.cons sig472 rfl 
+    (SigsOk.cons sig512 rfl 
+    (SigsOk.cons sig521 rfl 
+    (SigsOk.cons sig530 rfl 
+    (SigsOk.cons sig537 rfl 
+    (SigsOk.cons sig542 rfl 
+    (SigsOk.cons sig662 rfl 
+    (SigsOk.cons sig683 rfl 
+    (SigsOk.cons sig687 rfl 
+    (SigsOk.cons sig694 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code345 core345 cert345 h0
+    (by decide +kernel)
+
+theorem w345_0 : WinOk 345 0 := link345.win rfl Fn.«open_stacked__L9».w0
+
+theorem w345_1 : WinOk 345 1 := link345.win rfl Fn.«open_stacked__L9».w1
+
+theorem w345_2 : WinOk 345 2 := link345.win rfl Fn.«open_stacked__L9».w2
+
+theorem w345_3 : WinOk 345 3 := link345.win rfl Fn.«open_stacked__L9».w3
+
+theorem w345_4 : WinOk 345 4 := link345.win rfl Fn.«open_stacked__L9».w4
+
+theorem w345_5 : WinOk 345 5 := link345.win rfl Fn.«open_stacked__L9».w5
+
+theorem w345_6 : WinOk 345 6 := link345.win rfl Fn.«open_stacked__L9».w6
+
+theorem w345_7 : WinOk 345 7 := link345.win rfl Fn.«open_stacked__L9».w7
+
+theorem w345_8 : WinOk 345 8 := link345.win rfl Fn.«open_stacked__L9».w8
+
+theorem w345_9 : WinOk 345 9 := link345.win rfl Fn.«open_stacked__L9».w9
+
+theorem w345_10 : WinOk 345 10 := link345.win rfl Fn.«open_stacked__L9».w10
+
+theorem w345_11 : WinOk 345 11 := link345.win rfl Fn.«open_stacked__L9».w11
+
+theorem w345_12 : WinOk 345 12 := link345.win rfl Fn.«open_stacked__L9».w12
+
+theorem w345_13 : WinOk 345 13 := link345.win rfl Fn.«open_stacked__L9».w13
+
 theorem ok345 : CheckOk 345 := fun i hi ↦ by
   have h : (certOf 345).cuts.length = 13 := by decide +kernel
   rw [h] at hi
@@ -270,6 +1806,130 @@ theorem ok345 : CheckOk 345 := fun i hi ↦ by
   · exact w345_11
   · exact w345_12
   · exact w345_13
+
+theorem link346 : Link 346 (Glob.ofSigs ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (309, Fn.«squeeze_point_from__L20».sig), (313, Fn.«squeeze_point_from__L24».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (555, Fn.«squeeze_point_from__L16».sig), (564, Fn.«squeeze_point_from__L12».sig), (573, Fn.«squeeze_point_from__L8».sig), (579, Fn.«opening_message__L20_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (728, Fn.«level_positions__L11_L24_L6».sig), (735, Fn.«level_positions__L7_L23_L5».sig)] ++ [(739, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (744, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (762, Fn.«level_residual__L23_L12_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (870, Fn.«level_positions__L5_L25_L7».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig)] ++ [(900, Fn.«level_positions__L44_L25_L7».sig), (901, Fn.«level_positions__L28_L26_L2».sig), (902, Fn.«level_positions__L19_L27_L3».sig), (903, Fn.«level_positions__L14_L28_L4».sig), (904, Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (905, Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (906, Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (907, Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».sig), (908, Fn.«level_positions__L9_L25_L7».sig), (909, Fn.«level_positions__L10_L26_L2».sig), (910, Fn.«level_positions__L8_L27_L3».sig), (911, Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (912, Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (913, Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (914, Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».sig), (915, Fn.«level_positions__L6_L24_L6».sig)] ++ [(916, Fn.«level_positions__L6_L26_L2».sig), (917, Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (918, Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (919, Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (920, Fn.«level_positions__L4_L25_L7».sig), (921, Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (922, Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (923, Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (924, Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (925, Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (926, Fn.«level_positions__L3_L23_L5».sig), (927, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».sig), (928, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».sig), (929, Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».sig), (930, Fn.«level_residual__L218_L24_L6_L3».sig), (931, Fn.«level_residual__L109_L24_L6_L3».sig)] ++ [(932, Fn.«level_residual__L73_L24_L6_L3».sig), (933, Fn.«level_residual__L55_L24_L6_L3».sig), (934, Fn.«level_residual__L55_L20_L4_L2».sig), (935, Fn.«level_residual__L44_L20_L4_L2».sig), (936, Fn.«level_residual__L37_L20_L4_L2».sig), (937, Fn.«level_residual__L32_L20_L4_L2».sig), (938, Fn.«level_residual__L28_L16_L4_L2».sig), (939, Fn.«level_residual__L25_L16_L4_L2».sig), (940, Fn.«level_residual__L23_L16_L4_L2».sig), (941, Fn.«level_residual__L21_L12_L4_L2».sig), (942, Fn.«level_residual__L19_L12_L4_L2».sig), (943, Fn.«level_residual__L18_L12_L4_L2».sig), (944, Fn.«level_residual__L17_L8_L4_L2».sig), (945, Fn.«level_residual__L16_L8_L4_L2».sig)]) Data.jtTrie globSem)
+    Fn.«open_stacked__L10».code Fn.«open_stacked__L10».core (Fn.«open_stacked__L10».cert.withPows Data.powTree) :=
+  have h4 : SigsOk ([(932, Fn.«level_residual__L73_L24_L6_L3».sig), (933, Fn.«level_residual__L55_L24_L6_L3».sig), (934, Fn.«level_residual__L55_L20_L4_L2».sig), (935, Fn.«level_residual__L44_L20_L4_L2».sig), (936, Fn.«level_residual__L37_L20_L4_L2».sig), (937, Fn.«level_residual__L32_L20_L4_L2».sig), (938, Fn.«level_residual__L28_L16_L4_L2».sig), (939, Fn.«level_residual__L25_L16_L4_L2».sig), (940, Fn.«level_residual__L23_L16_L4_L2».sig), (941, Fn.«level_residual__L21_L12_L4_L2».sig), (942, Fn.«level_residual__L19_L12_L4_L2».sig), (943, Fn.«level_residual__L18_L12_L4_L2».sig), (944, Fn.«level_residual__L17_L8_L4_L2».sig), (945, Fn.«level_residual__L16_L8_L4_L2».sig)]) :=
+    (SigsOk.cons sig932 rfl 
+    (SigsOk.cons sig933 rfl 
+    (SigsOk.cons sig934 rfl 
+    (SigsOk.cons sig935 rfl 
+    (SigsOk.cons sig936 rfl 
+    (SigsOk.cons sig937 rfl 
+    (SigsOk.cons sig938 rfl 
+    (SigsOk.cons sig939 rfl 
+    (SigsOk.cons sig940 rfl 
+    (SigsOk.cons sig941 rfl 
+    (SigsOk.cons sig942 rfl 
+    (SigsOk.cons sig943 rfl 
+    (SigsOk.cons sig944 rfl 
+    (SigsOk.cons sig945 rfl SigsOk.nil))))))))))))))
+  have h3 : SigsOk ([(916, Fn.«level_positions__L6_L26_L2».sig), (917, Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (918, Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (919, Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (920, Fn.«level_positions__L4_L25_L7».sig), (921, Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (922, Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (923, Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (924, Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (925, Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (926, Fn.«level_positions__L3_L23_L5».sig), (927, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».sig), (928, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».sig), (929, Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».sig), (930, Fn.«level_residual__L218_L24_L6_L3».sig), (931, Fn.«level_residual__L109_L24_L6_L3».sig)] ++ [(932, Fn.«level_residual__L73_L24_L6_L3».sig), (933, Fn.«level_residual__L55_L24_L6_L3».sig), (934, Fn.«level_residual__L55_L20_L4_L2».sig), (935, Fn.«level_residual__L44_L20_L4_L2».sig), (936, Fn.«level_residual__L37_L20_L4_L2».sig), (937, Fn.«level_residual__L32_L20_L4_L2».sig), (938, Fn.«level_residual__L28_L16_L4_L2».sig), (939, Fn.«level_residual__L25_L16_L4_L2».sig), (940, Fn.«level_residual__L23_L16_L4_L2».sig), (941, Fn.«level_residual__L21_L12_L4_L2».sig), (942, Fn.«level_residual__L19_L12_L4_L2».sig), (943, Fn.«level_residual__L18_L12_L4_L2».sig), (944, Fn.«level_residual__L17_L8_L4_L2».sig), (945, Fn.«level_residual__L16_L8_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(916, Fn.«level_positions__L6_L26_L2».sig), (917, Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (918, Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (919, Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (920, Fn.«level_positions__L4_L25_L7».sig), (921, Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (922, Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (923, Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (924, Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (925, Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (926, Fn.«level_positions__L3_L23_L5».sig), (927, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».sig), (928, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».sig), (929, Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».sig), (930, Fn.«level_residual__L218_L24_L6_L3».sig), (931, Fn.«level_residual__L109_L24_L6_L3».sig)]) (l₂ := ([(932, Fn.«level_residual__L73_L24_L6_L3».sig), (933, Fn.«level_residual__L55_L24_L6_L3».sig), (934, Fn.«level_residual__L55_L20_L4_L2».sig), (935, Fn.«level_residual__L44_L20_L4_L2».sig), (936, Fn.«level_residual__L37_L20_L4_L2».sig), (937, Fn.«level_residual__L32_L20_L4_L2».sig), (938, Fn.«level_residual__L28_L16_L4_L2».sig), (939, Fn.«level_residual__L25_L16_L4_L2».sig), (940, Fn.«level_residual__L23_L16_L4_L2».sig), (941, Fn.«level_residual__L21_L12_L4_L2».sig), (942, Fn.«level_residual__L19_L12_L4_L2».sig), (943, Fn.«level_residual__L18_L12_L4_L2».sig), (944, Fn.«level_residual__L17_L8_L4_L2».sig), (945, Fn.«level_residual__L16_L8_L4_L2».sig)]))
+    
+    (SigsOk.cons sig916 rfl 
+    (SigsOk.cons sig917 rfl 
+    (SigsOk.cons sig918 rfl 
+    (SigsOk.cons sig919 rfl 
+    (SigsOk.cons sig920 rfl 
+    (SigsOk.cons sig921 rfl 
+    (SigsOk.cons sig922 rfl 
+    (SigsOk.cons sig923 rfl 
+    (SigsOk.cons sig924 rfl 
+    (SigsOk.cons sig925 rfl 
+    (SigsOk.cons sig926 rfl 
+    (SigsOk.cons sig927 rfl 
+    (SigsOk.cons sig928 rfl 
+    (SigsOk.cons sig929 rfl 
+    (SigsOk.cons sig930 rfl 
+    (SigsOk.cons sig931 rfl SigsOk.nil)))))))))))))))) h4
+  have h2 : SigsOk ([(900, Fn.«level_positions__L44_L25_L7».sig), (901, Fn.«level_positions__L28_L26_L2».sig), (902, Fn.«level_positions__L19_L27_L3».sig), (903, Fn.«level_positions__L14_L28_L4».sig), (904, Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (905, Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (906, Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (907, Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».sig), (908, Fn.«level_positions__L9_L25_L7».sig), (909, Fn.«level_positions__L10_L26_L2».sig), (910, Fn.«level_positions__L8_L27_L3».sig), (911, Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (912, Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (913, Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (914, Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».sig), (915, Fn.«level_positions__L6_L24_L6».sig)] ++ [(916, Fn.«level_positions__L6_L26_L2».sig), (917, Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (918, Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (919, Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (920, Fn.«level_positions__L4_L25_L7».sig), (921, Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (922, Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (923, Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (924, Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (925, Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (926, Fn.«level_positions__L3_L23_L5».sig), (927, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».sig), (928, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».sig), (929, Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».sig), (930, Fn.«level_residual__L218_L24_L6_L3».sig), (931, Fn.«level_residual__L109_L24_L6_L3».sig)] ++ [(932, Fn.«level_residual__L73_L24_L6_L3».sig), (933, Fn.«level_residual__L55_L24_L6_L3».sig), (934, Fn.«level_residual__L55_L20_L4_L2».sig), (935, Fn.«level_residual__L44_L20_L4_L2».sig), (936, Fn.«level_residual__L37_L20_L4_L2».sig), (937, Fn.«level_residual__L32_L20_L4_L2».sig), (938, Fn.«level_residual__L28_L16_L4_L2».sig), (939, Fn.«level_residual__L25_L16_L4_L2».sig), (940, Fn.«level_residual__L23_L16_L4_L2».sig), (941, Fn.«level_residual__L21_L12_L4_L2».sig), (942, Fn.«level_residual__L19_L12_L4_L2».sig), (943, Fn.«level_residual__L18_L12_L4_L2».sig), (944, Fn.«level_residual__L17_L8_L4_L2».sig), (945, Fn.«level_residual__L16_L8_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(900, Fn.«level_positions__L44_L25_L7».sig), (901, Fn.«level_positions__L28_L26_L2».sig), (902, Fn.«level_positions__L19_L27_L3».sig), (903, Fn.«level_positions__L14_L28_L4».sig), (904, Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (905, Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (906, Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (907, Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».sig), (908, Fn.«level_positions__L9_L25_L7».sig), (909, Fn.«level_positions__L10_L26_L2».sig), (910, Fn.«level_positions__L8_L27_L3».sig), (911, Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (912, Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (913, Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (914, Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».sig), (915, Fn.«level_positions__L6_L24_L6».sig)]) (l₂ := ([(916, Fn.«level_positions__L6_L26_L2».sig), (917, Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (918, Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (919, Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (920, Fn.«level_positions__L4_L25_L7».sig), (921, Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (922, Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (923, Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (924, Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (925, Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (926, Fn.«level_positions__L3_L23_L5».sig), (927, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».sig), (928, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».sig), (929, Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».sig), (930, Fn.«level_residual__L218_L24_L6_L3».sig), (931, Fn.«level_residual__L109_L24_L6_L3».sig)] ++ [(932, Fn.«level_residual__L73_L24_L6_L3».sig), (933, Fn.«level_residual__L55_L24_L6_L3».sig), (934, Fn.«level_residual__L55_L20_L4_L2».sig), (935, Fn.«level_residual__L44_L20_L4_L2».sig), (936, Fn.«level_residual__L37_L20_L4_L2».sig), (937, Fn.«level_residual__L32_L20_L4_L2».sig), (938, Fn.«level_residual__L28_L16_L4_L2».sig), (939, Fn.«level_residual__L25_L16_L4_L2».sig), (940, Fn.«level_residual__L23_L16_L4_L2».sig), (941, Fn.«level_residual__L21_L12_L4_L2».sig), (942, Fn.«level_residual__L19_L12_L4_L2».sig), (943, Fn.«level_residual__L18_L12_L4_L2».sig), (944, Fn.«level_residual__L17_L8_L4_L2».sig), (945, Fn.«level_residual__L16_L8_L4_L2».sig)]))
+    
+    (SigsOk.cons sig900 rfl 
+    (SigsOk.cons sig901 rfl 
+    (SigsOk.cons sig902 rfl 
+    (SigsOk.cons sig903 rfl 
+    (SigsOk.cons sig904 rfl 
+    (SigsOk.cons sig905 rfl 
+    (SigsOk.cons sig906 rfl 
+    (SigsOk.cons sig907 rfl 
+    (SigsOk.cons sig908 rfl 
+    (SigsOk.cons sig909 rfl 
+    (SigsOk.cons sig910 rfl 
+    (SigsOk.cons sig911 rfl 
+    (SigsOk.cons sig912 rfl 
+    (SigsOk.cons sig913 rfl 
+    (SigsOk.cons sig914 rfl 
+    (SigsOk.cons sig915 rfl SigsOk.nil)))))))))))))))) h3
+  have h1 : SigsOk ([(739, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (744, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (762, Fn.«level_residual__L23_L12_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (870, Fn.«level_positions__L5_L25_L7».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig)] ++ [(900, Fn.«level_positions__L44_L25_L7».sig), (901, Fn.«level_positions__L28_L26_L2».sig), (902, Fn.«level_positions__L19_L27_L3».sig), (903, Fn.«level_positions__L14_L28_L4».sig), (904, Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (905, Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (906, Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (907, Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».sig), (908, Fn.«level_positions__L9_L25_L7».sig), (909, Fn.«level_positions__L10_L26_L2».sig), (910, Fn.«level_positions__L8_L27_L3».sig), (911, Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (912, Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (913, Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (914, Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».sig), (915, Fn.«level_positions__L6_L24_L6».sig)] ++ [(916, Fn.«level_positions__L6_L26_L2».sig), (917, Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (918, Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (919, Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (920, Fn.«level_positions__L4_L25_L7».sig), (921, Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (922, Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (923, Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (924, Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (925, Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (926, Fn.«level_positions__L3_L23_L5».sig), (927, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».sig), (928, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».sig), (929, Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».sig), (930, Fn.«level_residual__L218_L24_L6_L3».sig), (931, Fn.«level_residual__L109_L24_L6_L3».sig)] ++ [(932, Fn.«level_residual__L73_L24_L6_L3».sig), (933, Fn.«level_residual__L55_L24_L6_L3».sig), (934, Fn.«level_residual__L55_L20_L4_L2».sig), (935, Fn.«level_residual__L44_L20_L4_L2».sig), (936, Fn.«level_residual__L37_L20_L4_L2».sig), (937, Fn.«level_residual__L32_L20_L4_L2».sig), (938, Fn.«level_residual__L28_L16_L4_L2».sig), (939, Fn.«level_residual__L25_L16_L4_L2».sig), (940, Fn.«level_residual__L23_L16_L4_L2».sig), (941, Fn.«level_residual__L21_L12_L4_L2».sig), (942, Fn.«level_residual__L19_L12_L4_L2».sig), (943, Fn.«level_residual__L18_L12_L4_L2».sig), (944, Fn.«level_residual__L17_L8_L4_L2».sig), (945, Fn.«level_residual__L16_L8_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(739, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (744, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (762, Fn.«level_residual__L23_L12_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (870, Fn.«level_positions__L5_L25_L7».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig)]) (l₂ := ([(900, Fn.«level_positions__L44_L25_L7».sig), (901, Fn.«level_positions__L28_L26_L2».sig), (902, Fn.«level_positions__L19_L27_L3».sig), (903, Fn.«level_positions__L14_L28_L4».sig), (904, Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (905, Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (906, Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (907, Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».sig), (908, Fn.«level_positions__L9_L25_L7».sig), (909, Fn.«level_positions__L10_L26_L2».sig), (910, Fn.«level_positions__L8_L27_L3».sig), (911, Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (912, Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (913, Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (914, Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».sig), (915, Fn.«level_positions__L6_L24_L6».sig)] ++ [(916, Fn.«level_positions__L6_L26_L2».sig), (917, Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (918, Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (919, Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (920, Fn.«level_positions__L4_L25_L7».sig), (921, Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (922, Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (923, Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (924, Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (925, Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (926, Fn.«level_positions__L3_L23_L5».sig), (927, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».sig), (928, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».sig), (929, Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».sig), (930, Fn.«level_residual__L218_L24_L6_L3».sig), (931, Fn.«level_residual__L109_L24_L6_L3».sig)] ++ [(932, Fn.«level_residual__L73_L24_L6_L3».sig), (933, Fn.«level_residual__L55_L24_L6_L3».sig), (934, Fn.«level_residual__L55_L20_L4_L2».sig), (935, Fn.«level_residual__L44_L20_L4_L2».sig), (936, Fn.«level_residual__L37_L20_L4_L2».sig), (937, Fn.«level_residual__L32_L20_L4_L2».sig), (938, Fn.«level_residual__L28_L16_L4_L2».sig), (939, Fn.«level_residual__L25_L16_L4_L2».sig), (940, Fn.«level_residual__L23_L16_L4_L2».sig), (941, Fn.«level_residual__L21_L12_L4_L2».sig), (942, Fn.«level_residual__L19_L12_L4_L2».sig), (943, Fn.«level_residual__L18_L12_L4_L2».sig), (944, Fn.«level_residual__L17_L8_L4_L2».sig), (945, Fn.«level_residual__L16_L8_L4_L2».sig)]))
+    
+    (SigsOk.cons sig739 rfl 
+    (SigsOk.cons sig741 rfl 
+    (SigsOk.cons sig744 rfl 
+    (SigsOk.cons sig745 rfl 
+    (SigsOk.cons sig748 rfl 
+    (SigsOk.cons sig751 rfl 
+    (SigsOk.cons sig759 rfl 
+    (SigsOk.cons sig762 rfl 
+    (SigsOk.cons sig765 rfl 
+    (SigsOk.cons sig781 rfl 
+    (SigsOk.cons sig785 rfl 
+    (SigsOk.cons sig826 rfl 
+    (SigsOk.cons sig830 rfl 
+    (SigsOk.cons sig870 rfl 
+    (SigsOk.cons sig874 rfl 
+    (SigsOk.cons sig880 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (309, Fn.«squeeze_point_from__L20».sig), (313, Fn.«squeeze_point_from__L24».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (555, Fn.«squeeze_point_from__L16».sig), (564, Fn.«squeeze_point_from__L12».sig), (573, Fn.«squeeze_point_from__L8».sig), (579, Fn.«opening_message__L20_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (728, Fn.«level_positions__L11_L24_L6».sig), (735, Fn.«level_positions__L7_L23_L5».sig)] ++ [(739, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (744, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (762, Fn.«level_residual__L23_L12_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (870, Fn.«level_positions__L5_L25_L7».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig)] ++ [(900, Fn.«level_positions__L44_L25_L7».sig), (901, Fn.«level_positions__L28_L26_L2».sig), (902, Fn.«level_positions__L19_L27_L3».sig), (903, Fn.«level_positions__L14_L28_L4».sig), (904, Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (905, Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (906, Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (907, Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».sig), (908, Fn.«level_positions__L9_L25_L7».sig), (909, Fn.«level_positions__L10_L26_L2».sig), (910, Fn.«level_positions__L8_L27_L3».sig), (911, Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (912, Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (913, Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (914, Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».sig), (915, Fn.«level_positions__L6_L24_L6».sig)] ++ [(916, Fn.«level_positions__L6_L26_L2».sig), (917, Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (918, Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (919, Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (920, Fn.«level_positions__L4_L25_L7».sig), (921, Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (922, Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (923, Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (924, Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (925, Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (926, Fn.«level_positions__L3_L23_L5».sig), (927, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».sig), (928, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».sig), (929, Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».sig), (930, Fn.«level_residual__L218_L24_L6_L3».sig), (931, Fn.«level_residual__L109_L24_L6_L3».sig)] ++ [(932, Fn.«level_residual__L73_L24_L6_L3».sig), (933, Fn.«level_residual__L55_L24_L6_L3».sig), (934, Fn.«level_residual__L55_L20_L4_L2».sig), (935, Fn.«level_residual__L44_L20_L4_L2».sig), (936, Fn.«level_residual__L37_L20_L4_L2».sig), (937, Fn.«level_residual__L32_L20_L4_L2».sig), (938, Fn.«level_residual__L28_L16_L4_L2».sig), (939, Fn.«level_residual__L25_L16_L4_L2».sig), (940, Fn.«level_residual__L23_L16_L4_L2».sig), (941, Fn.«level_residual__L21_L12_L4_L2».sig), (942, Fn.«level_residual__L19_L12_L4_L2».sig), (943, Fn.«level_residual__L18_L12_L4_L2».sig), (944, Fn.«level_residual__L17_L8_L4_L2».sig), (945, Fn.«level_residual__L16_L8_L4_L2».sig)]) :=
+    SigsOk.append (l₁ := [(8, Fn.«opening_round».sig), (9, Fn.«opening_tail_round».sig), (308, Fn.«grind_check__L15».sig), (309, Fn.«squeeze_point_from__L20».sig), (313, Fn.«squeeze_point_from__L24».sig), (448, Fn.«grind_check__L17».sig), (462, Fn.«opening_message__L8_L1».sig), (472, Fn.«opening_message__L6_L1».sig), (555, Fn.«squeeze_point_from__L16».sig), (564, Fn.«squeeze_point_from__L12».sig), (573, Fn.«squeeze_point_from__L8».sig), (579, Fn.«opening_message__L20_L1».sig), (585, Fn.«fold_final_msg__L4».sig), (704, Fn.«level_positions__L3_L20_L2».sig), (728, Fn.«level_positions__L11_L24_L6».sig), (735, Fn.«level_positions__L7_L23_L5».sig)]) (l₂ := ([(739, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (741, Fn.«level_positions__L5_L22_L4».sig), (744, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (745, Fn.«level_positions__L3_L21_L3».sig), (748, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».sig), (751, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».sig), (759, Fn.«level_residual__L32_L16_L4_L2».sig), (762, Fn.«level_residual__L23_L12_L4_L2».sig), (765, Fn.«level_residual__L18_L8_L4_L2».sig), (781, Fn.«level_positions__L5_L23_L5».sig), (785, Fn.«level_positions__L4_L22_L4».sig), (826, Fn.«level_positions__L4_L23_L5».sig), (830, Fn.«level_positions__L3_L22_L4».sig), (870, Fn.«level_positions__L5_L25_L7».sig), (874, Fn.«level_positions__L4_L24_L6».sig), (880, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig)] ++ [(900, Fn.«level_positions__L44_L25_L7».sig), (901, Fn.«level_positions__L28_L26_L2».sig), (902, Fn.«level_positions__L19_L27_L3».sig), (903, Fn.«level_positions__L14_L28_L4».sig), (904, Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».sig), (905, Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».sig), (906, Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».sig), (907, Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».sig), (908, Fn.«level_positions__L9_L25_L7».sig), (909, Fn.«level_positions__L10_L26_L2».sig), (910, Fn.«level_positions__L8_L27_L3».sig), (911, Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (912, Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (913, Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (914, Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».sig), (915, Fn.«level_positions__L6_L24_L6».sig)] ++ [(916, Fn.«level_positions__L6_L26_L2».sig), (917, Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (918, Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (919, Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».sig), (920, Fn.«level_positions__L4_L25_L7».sig), (921, Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».sig), (922, Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (923, Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».sig), (924, Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».sig), (925, Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».sig), (926, Fn.«level_positions__L3_L23_L5».sig), (927, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».sig), (928, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».sig), (929, Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».sig), (930, Fn.«level_residual__L218_L24_L6_L3».sig), (931, Fn.«level_residual__L109_L24_L6_L3».sig)] ++ [(932, Fn.«level_residual__L73_L24_L6_L3».sig), (933, Fn.«level_residual__L55_L24_L6_L3».sig), (934, Fn.«level_residual__L55_L20_L4_L2».sig), (935, Fn.«level_residual__L44_L20_L4_L2».sig), (936, Fn.«level_residual__L37_L20_L4_L2».sig), (937, Fn.«level_residual__L32_L20_L4_L2».sig), (938, Fn.«level_residual__L28_L16_L4_L2».sig), (939, Fn.«level_residual__L25_L16_L4_L2».sig), (940, Fn.«level_residual__L23_L16_L4_L2».sig), (941, Fn.«level_residual__L21_L12_L4_L2».sig), (942, Fn.«level_residual__L19_L12_L4_L2».sig), (943, Fn.«level_residual__L18_L12_L4_L2».sig), (944, Fn.«level_residual__L17_L8_L4_L2».sig), (945, Fn.«level_residual__L16_L8_L4_L2».sig)]))
+    
+    (SigsOk.cons sig8 rfl 
+    (SigsOk.cons sig9 rfl 
+    (SigsOk.cons sig308 rfl 
+    (SigsOk.cons sig309 rfl 
+    (SigsOk.cons sig313 rfl 
+    (SigsOk.cons sig448 rfl 
+    (SigsOk.cons sig462 rfl 
+    (SigsOk.cons sig472 rfl 
+    (SigsOk.cons sig555 rfl 
+    (SigsOk.cons sig564 rfl 
+    (SigsOk.cons sig573 rfl 
+    (SigsOk.cons sig579 rfl 
+    (SigsOk.cons sig585 rfl 
+    (SigsOk.cons sig704 rfl 
+    (SigsOk.cons sig728 rfl 
+    (SigsOk.cons sig735 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code346 core346 cert346 h0
+    (by decide +kernel)
+
+theorem w346_0 : WinOk 346 0 := link346.win rfl Fn.«open_stacked__L10».w0
+
+theorem w346_1 : WinOk 346 1 := link346.win rfl Fn.«open_stacked__L10».w1
+
+theorem w346_2 : WinOk 346 2 := link346.win rfl Fn.«open_stacked__L10».w2
+
+theorem w346_3 : WinOk 346 3 := link346.win rfl Fn.«open_stacked__L10».w3
+
+theorem w346_4 : WinOk 346 4 := link346.win rfl Fn.«open_stacked__L10».w4
+
+theorem w346_5 : WinOk 346 5 := link346.win rfl Fn.«open_stacked__L10».w5
+
+theorem w346_6 : WinOk 346 6 := link346.win rfl Fn.«open_stacked__L10».w6
+
+theorem w346_7 : WinOk 346 7 := link346.win rfl Fn.«open_stacked__L10».w7
+
+theorem w346_8 : WinOk 346 8 := link346.win rfl Fn.«open_stacked__L10».w8
+
+theorem w346_9 : WinOk 346 9 := link346.win rfl Fn.«open_stacked__L10».w9
+
+theorem w346_10 : WinOk 346 10 := link346.win rfl Fn.«open_stacked__L10».w10
+
+theorem w346_11 : WinOk 346 11 := link346.win rfl Fn.«open_stacked__L10».w11
+
+theorem w346_12 : WinOk 346 12 := link346.win rfl Fn.«open_stacked__L10».w12
+
+theorem w346_13 : WinOk 346 13 := link346.win rfl Fn.«open_stacked__L10».w13
 
 theorem ok346 : CheckOk 346 := fun i hi ↦ by
   have h : (certOf 346).cuts.length = 13 := by decide +kernel
@@ -290,6 +1950,16 @@ theorem ok346 : CheckOk 346 := fun i hi ↦ by
   · exact w346_12
   · exact w346_13
 
+theorem link347 : Link 347 (Glob.ofSigs ([(347, Fn.«claim_list_digest_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«claim_list_digest_loop0».code Fn.«claim_list_digest_loop0».core (Fn.«claim_list_digest_loop0».cert.withPows Data.powTree) :=
+  Link.of code347 core347 cert347 
+    (SigsOk.cons sig347 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w347_0 : WinOk 347 0 := link347.win rfl Fn.«claim_list_digest_loop0».w0
+
+theorem w347_1 : WinOk 347 1 := link347.win rfl Fn.«claim_list_digest_loop0».w1
+
 theorem ok347 : CheckOk 347 := fun i hi ↦ by
   have h : (certOf 347).cuts.length = 1 := by decide +kernel
   rw [h] at hi
@@ -301,9 +1971,37 @@ theorem plain347 : Plain 347 := by
   unfold Plain
   decide +kernel
 
+theorem link348 : Link 348 (Glob.ofSigs ([(348, Fn.«claim_list_digest_loop1».sig)]) Data.jtTrie globSem)
+    Fn.«claim_list_digest_loop1».code Fn.«claim_list_digest_loop1».core (Fn.«claim_list_digest_loop1».cert.withPows Data.powTree) :=
+  Link.of code348 core348 cert348 
+    (SigsOk.cons sig348 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w348_0 : WinOk 348 0 := link348.win rfl Fn.«claim_list_digest_loop1».w0
+
+theorem ok348 : CheckOk 348 := checkOk_one (by decide +kernel) w348_0
+
 theorem plain348 : Plain 348 := plain_of_nil (by decide +kernel)
 
+theorem link349 : Link 349 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«claim_list_last__L0».code Fn.«claim_list_last__L0».core (Fn.«claim_list_last__L0».cert.withPows Data.powTree) :=
+  Link.of code349 core349 cert349 SigsOk.nil
+    (by decide +kernel)
+
+theorem w349_0 : WinOk 349 0 := link349.win rfl Fn.«claim_list_last__L0».w0
+
+theorem ok349 : CheckOk 349 := checkOk_one (by decide +kernel) w349_0
+
 theorem plain349 : Plain 349 := plain_of_nil (by decide +kernel)
+
+theorem link350 : Link 350 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«claim_list_last__L1».code Fn.«claim_list_last__L1».core (Fn.«claim_list_last__L1».cert.withPows Data.powTree) :=
+  Link.of code350 core350 cert350 SigsOk.nil
+    (by decide +kernel)
+
+theorem w350_0 : WinOk 350 0 := link350.win rfl Fn.«claim_list_last__L1».w0
+
+theorem ok350 : CheckOk 350 := checkOk_one (by decide +kernel) w350_0
 
 theorem plain350 : Plain 350 := plain_of_nil (by decide +kernel)
 

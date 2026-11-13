@@ -252,7 +252,7 @@ theorem u_ret (vs' : List V) (ss : List Stmt) (st : CW) : UGood X j σ (.ret vs'
   rw [← hw.1]
   exact sitesP_nil _
 
-theorem u_call (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob) (f : String) (args rets : List V) (ss : List Stmt)
+theorem u_call (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob.restrict X.callees) (f : String) (args rets : List V) (ss : List Stmt)
     (st : CW) (ih : ∀ st, UGood X j σ ss st) : UGood X j σ (.call f args rets :: ss) st := by
   intro hok
   obtain ⟨e, q, r, j', sr, -, -, -, -, -, -, -, hsite, hbit, -, -, haf, hcw⟩ := cw_call hG hok
@@ -330,7 +330,7 @@ theorem u_dispatch (hX : X.sites = (plumbOf j).sites) (v : V) (fs : List String)
       exact sitesP_append (hg g) (h2 e2 _ hws)
     | stuck => rw [hws] at hw; cases hw
 
-theorem u_callIf (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob) (c : V) (f : String) (args : List V)
+theorem u_callIf (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob.restrict X.callees) (c : V) (f : String) (args : List V)
     (ss : List Stmt) (st : CW) (ih : ∀ st, UGood X j σ ss st) :
     UGood X j σ (.callIf c f args :: ss) st := by
   intro hok
@@ -589,7 +589,7 @@ theorem u_enter (hW : ∀ ss st, UGood X j σ ss st) {o : ℕ} {succ : List ℕ}
 
 mutual
 /-- **The walk keeps the site cells apart**, for every block and position. -/
-theorem sites_Z (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob) : ∀ (ss : List Stmt) (st : CW), UGood X j σ ss st
+theorem sites_Z (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob.restrict X.callees) : ∀ (ss : List Stmt) (st : CW), UGood X j σ ss st
   | [], st => u_nil st
   | .atom a :: ss, st => u_atom a ss st (sites_Z hX hG ss)
   | .ite c z n :: ss, st => u_ite c z n ss st (sites_Z hX hG z) (sites_Z hX hG n) (sites_Z hX hG ss)
@@ -600,7 +600,7 @@ theorem sites_Z (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob) : ∀ (ss :
   | .dispatch v fs args rets :: ss, st => u_dispatch hX v fs args rets ss st (sites_Z hX hG ss)
   | .ret vs' :: ss, st => u_ret vs' ss st
 
-theorem sites_armsZ (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob) :
+theorem sites_armsZ (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob.restrict X.callees) :
     ∀ (arms : List (List Stmt)) (k : ℕ) (hk : k < arms.length) (st : CW), UGood X j σ arms[k] st
   | [], _, hk, _ => absurd hk (Nat.not_lt_zero _)
   | a :: _, 0, _, st => sites_Z hX hG a st
