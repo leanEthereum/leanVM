@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Ring.Loop14Complete
 public import LeanVM.Guest.B1.Tables.FlatAt
 public import LeanVM.Guest.B1.Fwd.PureIn
 public import LeanVM.Guest.Memory.LiftPure
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `ring_switch_target`, placed (TRIAGE G #64, #65)
@@ -18,7 +19,7 @@ public import LeanVM.Guest.Memory.LiftPure
 On the caller's words, the 64 slices `s` at `g^bs` and the sixteen challenges `chs` at `g^bm`,
 `ring_switch_target` is complete at every frame pointer `fp` (`rst_completeAt`): its chain
 (`HeapBuf` of 72 words) at `fp + fs "ring_switch_target"` holds the honest rows
-`chainWords s (chs.drop 8)`, its `__loop13` (pure) is complete by `l13_relIn` lifted by
+`chainWords s (chs.drop 8)`, its `ring_switch_target_loop0` (pure) is complete by `l13_relIn` lifted by
 `Lift.completeAtD_of_relIn`, and it returns `ringTarget s f g`. The body's valuation is its
 evaluation (`rstσ`); its value at the `ret` is `ringTarget` by the soundness theorem
 `ring_switch_target_holds` (`rst_sigma`), the relation it gives read on the honest words.
@@ -40,7 +41,7 @@ def rstPre : List Stmt :=
   [.atom (.hint (.alloc (.n 2) 72))] ++
   ((List.range 8).map fun p ↦
     [Stmt.atom (.const (.n (3 + p)) (word 0 0)), .atom (.load (.n (3 + p)) (.n 2) p)]).flatten ++
-  [.atom (.const (.n 11) (word 1 0)), .call "__loop13" [.n 11, .n 1, .n 0, .n 2] [],
+  [.atom (.const (.n 11) (word 1 0)), .call name% «ring_switch_target_loop0» [.n 11, .n 1, .n 0, .n 2] [],
     .atom (.const (.n 12) (word 27 0)), .atom (.mul (.n 13) (.n 2) (.n 12)),
     .atom (.load (.n 14) (.n 1) 0), .atom (.load (.n 15) (.n 13) 0),
     .atom (.mul (.n 16) (.n 14) (.n 15))] ++
@@ -50,7 +51,7 @@ def rstPre : List Stmt :=
 theorem rstT_split : rstT = rstPre ++ [.ret [.n 270]] := by
   simp only [rstT, rstPre, List.append_assoc, List.cons_append, List.nil_append]
 
-theorem rst_body' : Data.core13.body = rstPre ++ [.ret [.n 270]] := by
+theorem rst_body' : (fn% «ring_switch_target»).body = rstPre ++ [.ret [.n 270]] := by
   rw [rst_body, rstT_split]
 
 theorem rst_flat : rstPre.all Stmt.flat = true := by decide +kernel
@@ -61,7 +62,7 @@ theorem rst_allocs : rstPre.filterMap Main.Stmt.allocSz = [(.n 2, .inl 72)] := b
 
 theorem rst_not_loop : coreProgram.loop "ring_switch_target" = false := by decide +kernel
 
-theorem l13_pure : coreProgram.PureIn ["__loop13"] := Tables.pureIn_of_pureInB (by decide +kernel)
+theorem l13_pure : coreProgram.PureIn [name% «ring_switch_target_loop0»] := Tables.pureIn_of_pureInB (by decide +kernel)
 
 theorem rst_chk : chk 2 rstT = some 271 := by decide +kernel
 
@@ -89,10 +90,10 @@ def atomOrCall : Stmt → Bool
 theorem rst_kinds : rstPre.all atomOrCall = true := by decide +kernel
 
 theorem rst_callS : rstPre.filterMap Main.Stmt.callS =
-    [(none, "__loop13", [.n 11, .n 1, .n 0, .n 2], [])] := by decide +kernel
+    [(none, name% «ring_switch_target_loop0», [.n 11, .n 1, .n 0, .n 2], [])] := by decide +kernel
 
 theorem rst_callSF (σ : Val) : rstPre.filterMap (Stmt.callSF σ) =
-    [(none, "__loop13", [.n 11, .n 1, .n 0, .n 2], [])] := by
+    [(none, name% «ring_switch_target_loop0», [.n 11, .n 1, .n 0, .n 2], [])] := by
   rw [← rst_callS]
   refine List.filterMap_congr fun s hs => ?_
   have := List.all_eq_true.mp rst_kinds s hs
@@ -137,13 +138,13 @@ theorem rt_filterMap_of_loadsEv {σ : Val} : ∀ {pre : List Stmt}, pre.all rtNo
     · have := rt_filterMap_of_loadsEv hni.2 h
       cases hs : Stmt.loadS s <;> simp [hs, this]
 
-/-- The regions of `__loop13`'s caller's words. -/
+/-- The regions of `ring_switch_target_loop0`'s caller's words. -/
 def l13Lin (bs bm bc : ℕ) (s chs : List E) : Main.Layout :=
   [(bs, s), (bm, chs), (bc, chainWords s (chs.drop 8))]
 
 theorem l13_relIn_lin {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length = 64)
     (hc : chs.length = 16) (hL : MemL rd (l13Lin bs bm bc s chs)) :
-    coreProgram.RelIn rd (RegionL (l13Lin bs bm bc s chs)) "__loop13"
+    coreProgram.RelIn rd (RegionL (l13Lin bs bm bc s chs)) name% «ring_switch_target_loop0»
       [1, ofK (Parameters.addressOfIndex bm), ofK (Parameters.addressOfIndex bs),
         ofK (Parameters.addressOfIndex bc)] [] := by
   have := l13_relIn hs hc (hL (bs, s) (by simp [l13Lin])) (hL (bm, chs) (by simp [l13Lin]))
@@ -200,7 +201,7 @@ theorem rst_sigma {rd : Reader} {bs bm b : ℕ} {s chs : List E} (hs : s.length 
   simp only [List.getD_cons_zero, List.getD_cons_succ] at e0 e1
   have mA : ∀ a, Stmt.atom a ∈ rstPre → a ∈ rtAtoms rstPre := fun a h ↦ rt_atoms_mem h
   have hmem : ∀ st ∈ [Stmt.atom (.const (.n 11) (word 1 0)),
-      .call "__loop13" [.n 11, .n 1, .n 0, .n 2] [], .atom (.const (.n 12) (word 27 0)),
+      .call name% «ring_switch_target_loop0» [.n 11, .n 1, .n 0, .n 2] [], .atom (.const (.n 12) (word 27 0)),
       .atom (.mul (.n 13) (.n 2) (.n 12))], st ∈ rstPre := fun st h ↦ by
     simp only [rstPre, List.mem_append]; exact Or.inl (Or.inl (Or.inr (by simp at h ⊢; tauto)))
   have e2 : σ (.n 2) = ofK (Parameters.addressOfIndex b) :=
@@ -261,7 +262,7 @@ theorem rst_sigma {rd : Reader} {bs bm b : ℕ} {s chs : List E} (hs : s.length 
       rw [rst_callSF, List.mem_singleton] at hm
       simp only [Prod.mk.injEq] at hm
       obtain ⟨-, rfl, rfl, rfl⟩ := hm
-      show coreProgram.Rel rd "__loop13" [σ (.n 11), σ (.n 1), σ (.n 0), σ (.n 2)] []
+      show coreProgram.Rel rd name% «ring_switch_target_loop0» [σ (.n 11), σ (.n 1), σ (.n 0), σ (.n 2)] []
       rw [e11, e1, e0, e2]
       exact (l13_relIn_lin hs hc (bc := b) (fun q hq ↦ by
         simp only [l13Lin, List.mem_cons, List.not_mem_nil, or_false] at hq
@@ -295,15 +296,15 @@ theorem rst_hσ {bs bm : ℕ} {s chs : List E} (hs : s.length = 64) (hc : chs.le
     (rd : Reader) (hB : MemL rd (bufL (fp + fs "ring_switch_target") [72]
       [chainWords s (chs.drop 8)])) (hLin : MemL rd [(bs, s), (bm, chs)]) (o : List E × Main.Layout)
     (ho1 : o.1 = []) :
-    ∃ σ : Val, Data.core13.params.map σ = [ofK (Parameters.addressOfIndex bs),
+    ∃ σ : Val, (fn% «ring_switch_target»).params.map σ = [ofK (Parameters.addressOfIndex bs),
         ofK (Parameters.addressOfIndex bm)] ∧ (∀ s ∈ rstPre, DispOk σ s) ∧
-      Stmt.HoldsList (coreProgram.Rel rd) rd σ Data.core13.body False
+      Stmt.HoldsList (coreProgram.Rel rd) rd σ (fn% «ring_switch_target»).body False
         (fun r => r = [ringTarget s (chs.take ringMapWidth) (chs.drop ringMapWidth)]) ∧
       (rstPre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = [72] ∧
       ((rstPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
         (bases (fp + fs "ring_switch_target") [72]).map (fun b => ofK (Parameters.addressOfIndex b)) ∧
       CallsMatch σ ((rstPre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
-        [⟨"__loop13", true, [1, ofK (Parameters.addressOfIndex bm), ofK (Parameters.addressOfIndex bs),
+        [⟨name% «ring_switch_target_loop0», true, [1, ofK (Parameters.addressOfIndex bm), ofK (Parameters.addressOfIndex bs),
           ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))],
           l13Lin bs bm (fp + fs "ring_switch_target") s chs, Returns []⟩] [o] ∧
       (∀ q ∈ rstPre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 =
@@ -367,7 +368,7 @@ theorem rst_completeAt (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length 
       (Returns [ringTarget s (chs.take ringMapWidth) (chs.drop ringMapWidth)]) := by
   refine completeAt_flatD (fs := fs) (cert := cert) find_rst rst_not_loop κ _ _ _ rst_body' rst_flat
     rst_addrs [72] (fun _ ↦ [chainWords s (chs.drop 8)]) (fun _ ↦ by simp [chainWords_length])
-    (fun fp ↦ [⟨"__loop13", true, [1, ofK (Parameters.addressOfIndex bm),
+    (fun fp ↦ [⟨name% «ring_switch_target_loop0», true, [1, ofK (Parameters.addressOfIndex bm),
       ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))],
       l13Lin bs bm (fp + fs "ring_switch_target") s chs, Returns []⟩])
     ?_ ?_ ?_ ?_

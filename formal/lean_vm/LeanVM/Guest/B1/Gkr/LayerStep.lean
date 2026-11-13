@@ -1,16 +1,17 @@
 /-
   LeanVM.Guest.B1.Gkr.LayerStep
 
-  An iteration of `verify_bus_gkr`'s layer loop `__loop6` is one step of two levels of the
+  An iteration of `verify_bus_gkr`'s layer loop `verify_bus_gkr_loop0` is one step of two levels of the
   specification's GKR walk, between two layer slots.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Gkr.LayerTail
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# An iteration of `__loop6`
+# An iteration of `verify_bus_gkr_loop0`
 
 * `ly_stores`: the next slot's stores and the loop's next call;
 * `ly_step`: an iteration at `x = g^j` runs `gkrStep 2` from the slot of `L = 2j + 2 - sh` to the
@@ -39,7 +40,7 @@ theorem ly_stores (h : Stmt.HoldsList C rd σ lyPre True kret) :
         LoadHolds rd (σ (.n 9) * σ (.n 54)) 0 pv →
         LoadHolds rd (σ (.n 17)) 37 (σ (.n 53) * hv) ∧ LoadHolds rd (σ (.n 17)) 38 pv) ∧
       (σ (.n 0) * gen + σ (.n 1) ≠ 0 →
-        C "__loop6" [σ (.n 0) * gen, σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
+        C name% «verify_bus_gkr_loop0» [σ (.n 0) * gen, σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
           σ (.n 7), σ (.n 8), σ (.n 9)] []) := by
   have hnr := lyPre_noRet
   have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
@@ -70,7 +71,7 @@ theorem ly_stores (h : Stmt.HoldsList C rd σ lyPre True kret) :
   have a236 := a 188 (.add (.n 236) (.n 235) (.n 1)) (by decide +kernel)
   have c237 := a 189 (.const (.n 237) (word 2 0)) (by decide +kernel)
   have m238 := a 190 (.mul (.n 238) (.n 0) (.n 237)) (by decide +kernel)
-  obtain ⟨-, hcall⟩ := tb_holds_callIf hnr h 191 (.n 236) "__loop6"
+  obtain ⟨-, hcall⟩ := tb_holds_callIf hnr h 191 (.n 236) name% «verify_bus_gkr_loop0»
     [.n 238, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] (by decide +kernel)
   simp only [Atom.Holds] at l180 l194 hcs c195 m196 l196 c224 m225 l225 m226 c227 m228 l228
   simp only [Atom.Holds] at m229 l230 m231 l231 m232 l233 l233' c234 m235 a236 c237 m238
@@ -101,14 +102,14 @@ theorem ly_half_next (k : ℕ) : gen ^ (k / 4) * gen ^ ((k % 4 + 1) / 4) = gen ^
 theorem ly_parity_next (k : ℕ) : gen ^ ((k % 4 + 1) % 4) = gen ^ ((k + 1) % 4) := by
   congr 1; omega
 
-/-- **An iteration of `__loop6`**: one step of two levels of the walk between two slots, and the
+/-- **An iteration of `verify_bus_gkr_loop0`**: one step of two levels of the walk between two slots, and the
 next iteration below the bound. -/
 theorem ly_step (hGR : tb_gkr_rounds_Spec) {N sg layers tabs rounds claim og gmu kmn : E} (d : ℕ)
     (x : E)
-    (h : coreProgram.relN rd (d + 1) "__loop6"
+    (h : coreProgram.relN rd (d + 1) name% «verify_bus_gkr_loop0»
       (x :: [N, sg, layers, tabs, rounds, claim, og, gmu, kmn]) []) :
     LyB rd sg og layers kmn x ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop6"
+      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «verify_bus_gkr_loop0»
         (x * gen :: [N, sg, layers, tabs, rounds, claim, og, gmu, kmn]) []) := by
   obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
   obtain ⟨fn', hf', hp, hb⟩ := lyFound

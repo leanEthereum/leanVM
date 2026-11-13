@@ -127,45 +127,45 @@ def omRets (n nonce : ℕ) : List V :=
 def omBody (n nonce : ℕ) : List Stmt := (omAtoms n nonce).map Stmt.atom ++ [.ret (omRets n nonce)]
 
 set_option maxRecDepth 100000 in
-theorem om_found_1_1 : coreProgram.find? (omName (1, 1)) = some Data.core319 ∧
-    Data.core319.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core319.body = omBody 1 1 :=
-  ⟨coreProgram_find?_at (j := 319) rfl, rfl,
+theorem om_found_1_1 : coreProgram.find? (omName (1, 1)) = some fn% «opening_message__L1_L1» ∧
+    (fn% «opening_message__L1_L1»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      (fn% «opening_message__L1_L1»).body = omBody 1 1 :=
+  ⟨coreProgram_find?_at (j := idx% «opening_message__L1_L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem om_found_6_1 : coreProgram.find? (omName (6, 1)) = some Data.core471 ∧
-    Data.core471.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core471.body = omBody 6 1 :=
-  ⟨coreProgram_find?_at (j := 471) rfl, rfl,
+theorem om_found_6_1 : coreProgram.find? (omName (6, 1)) = some fn% «opening_message__L6_L1» ∧
+    (fn% «opening_message__L6_L1»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      (fn% «opening_message__L6_L1»).body = omBody 6 1 :=
+  ⟨coreProgram_find?_at (j := idx% «opening_message__L6_L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem om_found_8_1 : coreProgram.find? (omName (8, 1)) = some Data.core461 ∧
-    Data.core461.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core461.body = omBody 8 1 :=
-  ⟨coreProgram_find?_at (j := 461) rfl, rfl,
+theorem om_found_8_1 : coreProgram.find? (omName (8, 1)) = some fn% «opening_message__L8_L1» ∧
+    (fn% «opening_message__L8_L1»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      (fn% «opening_message__L8_L1»).body = omBody 8 1 :=
+  ⟨coreProgram_find?_at (j := idx% «opening_message__L8_L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem om_found_12_1 : coreProgram.find? (omName (12, 1)) = some Data.core536 ∧
-    Data.core536.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core536.body = omBody 12 1 :=
-  ⟨coreProgram_find?_at (j := 536) rfl, rfl,
+theorem om_found_12_1 : coreProgram.find? (omName (12, 1)) = some fn% «opening_message__L12_L1» ∧
+    (fn% «opening_message__L12_L1»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      (fn% «opening_message__L12_L1»).body = omBody 12 1 :=
+  ⟨coreProgram_find?_at (j := idx% «opening_message__L12_L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem om_found_20_1 : coreProgram.find? (omName (20, 1)) = some Data.core578 ∧
-    Data.core578.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core578.body = omBody 20 1 :=
-  ⟨coreProgram_find?_at (j := 578) rfl, rfl,
+theorem om_found_20_1 : coreProgram.find? (omName (20, 1)) = some fn% «opening_message__L20_L1» ∧
+    (fn% «opening_message__L20_L1»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      (fn% «opening_message__L20_L1»).body = omBody 20 1 :=
+  ⟨coreProgram_find?_at (j := idx% «opening_message__L20_L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem om_found_36_1 : coreProgram.find? (omName (36, 1)) = some Data.core621 ∧
-    Data.core621.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core621.body = omBody 36 1 :=
-  ⟨coreProgram_find?_at (j := 621) rfl, rfl,
+theorem om_found_36_1 : coreProgram.find? (omName (36, 1)) = some fn% «opening_message__L36_L1» ∧
+    (fn% «opening_message__L36_L1»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      (fn% «opening_message__L36_L1»).body = omBody 36 1 :=
+  ⟨coreProgram_find?_at (j := idx% «opening_message__L36_L1») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 end

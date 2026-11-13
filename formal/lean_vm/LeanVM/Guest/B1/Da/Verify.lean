@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Da.VerifyChk
 public import LeanVM.Guest.B1.Da.VerifyMath
 public import LeanVM.Guest.B1.Main.LoopsC
 public import LeanVM.Guest.B1.Main.Facts
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `da_verify`, sound
@@ -25,7 +26,7 @@ witness's rows are the symbols of the cell checks' frames (`colSyms`, at the cal
 its cell check); it mentions no hash. The run's loops make each blob's region
 hold its cell digests (the leaves of its tree, whose root `da_levels__L128_L7` computes) and its
 running sum of the cells' inner products with the dual codeword of `z` (`col_step`), which
-`__loop23` checks to be zero; the returned root is the tree's over the blob roots and the padding
+`da_verify_loop2` checks to be zero; the returned root is the tree's over the blob roots and the padding
 blob roots (`levels_root_of`).
 -/
 
@@ -43,18 +44,18 @@ theorem ordG_of {x : ℕ} (h : x ≤ 4096) : x < ordG := by unfold ordG; omega
 
 /-! ## The loops' steps -/
 
-theorem l17_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop21" (x :: ps) []) :
+theorem l17_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «da_verify_loop0» (x :: ps) []) :
     (∀ N bl rb, ps = [N, bl, rb] →
       LoadHolds rd (rb * x) 0 (bl * x ^ 641) ∧ LoadHolds rd (bl * x ^ 641) 512 0) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop21" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd name% «da_verify_loop0» (x * gen :: ps) []) := by
   have hok := l17_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq, l17Ok] at hok
   obtain ⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm15⟩, hm16⟩, hl15⟩, hc17⟩, hl17⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ :=
-    loop_stepF (find_of_idx dv_loops_idx.1 (by rw [coreProgram_length]; omega)) hshape h
+    loop_stepF (find_of_idx dv_loops_idx.1) hshape h
   refine ⟨fun N bl rb hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 403 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD idx% «da_verify_loop0» default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -66,20 +67,20 @@ theorem l17_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop21" (x :: 
   rw [p15, const_sound hc17 hat, word_zero] at b
   exact ⟨a, b⟩
 
-theorem l19_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop23" (x :: ps) []) :
+theorem l19_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «da_verify_loop2» (x :: ps) []) :
     (∀ N rb roots, ps = [N, rb, roots] → ∃ base c0 c1, LoadHolds rd (rb * x) 0 base ∧
       LoadHolds rd base 640 0 ∧ coreProgram.Rel rd "da_levels__L128_L7" [base] [c0, c1] ∧
       LoadHolds rd (roots * x ^ 2) 0 c0 ∧ LoadHolds rd (roots * x ^ 2) 1 c1) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop23" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd name% «da_verify_loop2» (x * gen :: ps) []) := by
   have hok := l19_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq, l19Ok] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm4⟩, hl5⟩, hl6⟩, hc7⟩, hae⟩, hcall⟩, hm10⟩, hm11⟩, hl8⟩,
     hl9⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ :=
-    loop_stepF (find_of_idx dv_loops_idx.2.2.1 (by rw [coreProgram_length]; omega)) hshape h
+    loop_stepF (find_of_idx dv_loops_idx.2.2.1) hshape h
   refine ⟨fun N rb roots hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 405 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD idx% «da_verify_loop2» default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -96,19 +97,19 @@ theorem l19_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop23" (x :: 
   rw [p11] at l8 l9
   exact ⟨_, _, _, l5, l6, c, l8, l9⟩
 
-theorem l20_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop24" (x :: ps) []) :
+theorem l20_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «da_verify_loop3» (x :: ps) []) :
     (∀ N roots nb, ps = [N, roots, nb] →
       LoadHolds rd (roots * nb ^ 2 * x ^ 2) 0 (digestHalves daPadBlobDigest).1 ∧
       LoadHolds rd (roots * nb ^ 2 * x ^ 2) 1 (digestHalves daPadBlobDigest).2) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop24" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd name% «da_verify_loop3» (x * gen :: ps) []) := by
   have hok := l20_ok
   simp only [Bool.and_eq_true, decide_eq_true_eq, l20Ok] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm4⟩, hm5⟩, hm6⟩, hm7⟩, hc8⟩, hl8⟩, hc9⟩, hl9⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ :=
-    loop_stepF (find_of_idx dv_loops_idx.2.2.2 (by rw [coreProgram_length]; omega)) hshape h
+    loop_stepF (find_of_idx dv_loops_idx.2.2.2) hshape h
   refine ⟨fun N roots nb hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 406 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD idx% «da_verify_loop3» default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -180,16 +181,15 @@ theorem loop_fromC {f : String} {ps : List E} {N : E} {m a : ℕ} {B : E → Pro
   intro j h1 h2
   exact key (m - a) a (by omega) h j h1 h2
 
-theorem l18_stepW (hVm : UnfoldsV rd C Vm) {x : E} {ps : List E} (h : C "__loop22" (x :: ps) []) :
+theorem l18_stepW (hVm : UnfoldsV rd C Vm) {x : E} {ps : List E} (h : C name% «da_verify_loop1» (x :: ps) []) :
     C "da_verify_column" (x :: ps) [] ∧
-      (x * gen + word 325 0 ≠ 0 → C "__loop22" (x * gen :: ps) []) := by
+      (x * gen + word 325 0 ≠ 0 → C name% «da_verify_loop1» (x * gen :: ps) []) := by
   have hok := l18_ok
   unfold l18Ok at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hparams, hbody⟩ := hok
-  obtain ⟨hpar, hb⟩ := body_ofV hVm (find_of_idx dv_loops_idx.2.1
-    (by rw [coreProgram_length]; omega)) h
-  set σ := Vm "__loop22" (x :: ps) [] with hσ
+  obtain ⟨hpar, hb⟩ := body_ofV hVm (find_of_idx dv_loops_idx.2.1) h
+  set σ := Vm name% «da_verify_loop1» (x :: ps) [] with hσ
   rw [stmtsEqb_sound hbody] at hb
   have r7 : (List.range 7).map V.n = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6] := rfl
   have r6 : (List.range 6).map (fun k => V.n (k + 1)) =
@@ -215,8 +215,8 @@ theorem l18_stepW (hVm : UnfoldsV rd C Vm) {x : E} {ps : List E} (h : C "__loop2
 lies below `coreProgram.Rel`, on a memory image with the exponent table at its argument, the
 returned words are the cells of a root and a challenge `z` that `dvWit σ Vm` opens. -/
 theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel rd))
-    (hm : MemOk rd) {σ : Val} {gsq : E} {rets : List E} (hpar0 : Data.core27.params.map σ = [gsq])
-    (hb : Stmt.HoldsList C rd σ (Fn.body Data.core27) False (fun rs => rs = rets))
+    (hm : MemOk rd) {σ : Val} {gsq : E} {rets : List E} (hpar0 : (fn% «da_verify»).params.map σ = [gsq])
+    (hb : Stmt.HoldsList C rd σ (Fn.body fn% «da_verify») False (fun rs => rs = rets))
     (hsq0 : SquaresAt rd gsq) :
     ∃ (root : Digest) (z : E), (dvWit σ Vm).Opens root z ∧ rets = digestCells root ++ [z] := by
   have hok := dv_ok
@@ -256,7 +256,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
   -- the regions
   have L17 : ∀ i < r, LoadHolds rd (σ (.n 22) * gen ^ i) 0 (σ (.n 21) * (gen ^ i) ^ 641) ∧
       LoadHolds rd (σ (.n 21) * (gen ^ i) ^ 641) 512 0 :=
-    loop_sound (f := "__loop21") (ps := [σ (.n 1), σ (.n 21), σ (.n 22)]) hr' h1
+    loop_sound (f := name% «da_verify_loop0») (ps := [σ (.n 1), σ (.n 21), σ (.n 22)]) hr' h1
       (fun y hy => by
         obtain ⟨k1, k2⟩ := l17_step hy
         exact ⟨k1 _ _ _ rfl, k2⟩)
@@ -266,7 +266,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
   simp only [List.map_cons, List.map_nil] at c18
   rw [const_sound hc36 hat, word_one, ← pow_zero gen] at c18
   have Cc : ∀ h < 128, C "da_verify_column" (dvColArgs σ h) [] := fun h hh =>
-    loop_fromC (C := C) (f := "__loop22") (N := gen ^ 128) (m := 128) (a := 0) (ordG_of (by omega))
+    loop_fromC (C := C) (f := name% «da_verify_loop1») (N := gen ^ 128) (m := 128) (a := 0) (ordG_of (by omega))
       rfl (fun x hx => by
         obtain ⟨k1, k2⟩ := l18_stepW hVm hx
         exact ⟨k1, by rw [← word_g128]; exact k2⟩) c18 h (Nat.zero_le _) hh
@@ -308,7 +308,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
   have L19 : ∀ i < r, ∃ base c0 c1, LoadHolds rd (σ (.n 22) * gen ^ i) 0 base ∧
       LoadHolds rd base 640 0 ∧ coreProgram.Rel rd "da_levels__L128_L7" [base] [c0, c1] ∧
       LoadHolds rd (σ (.n 29) * (gen ^ i) ^ 2) 0 c0 ∧ LoadHolds rd (σ (.n 29) * (gen ^ i) ^ 2) 1 c1 :=
-    loop_sound (f := "__loop23") (ps := [σ (.n 1), σ (.n 22), σ (.n 29)]) hr' h1
+    loop_sound (f := name% «da_verify_loop2») (ps := [σ (.n 1), σ (.n 22), σ (.n 29)]) hr' h1
       (fun y hy => by
         obtain ⟨k1, k2⟩ := l19_step hy
         exact ⟨k1 _ _ _ rfl, k2⟩)
@@ -350,7 +350,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
   have L20 : ∀ d < 2 ^ L - r, LoadHolds rd (σ (.n 29) * σ (.n 1) ^ 2 * (gen ^ d) ^ 2) 0
         (digestHalves daPadBlobDigest).1 ∧
       LoadHolds rd (σ (.n 29) * σ (.n 1) ^ 2 * (gen ^ d) ^ 2) 1 (digestHalves daPadBlobDigest).2 :=
-    loop_sound (f := "__loop24") (ps := [σ (.n 4), σ (.n 29), σ (.n 1)]) hg' h4
+    loop_sound (f := name% «da_verify_loop3») (ps := [σ (.n 4), σ (.n 29), σ (.n 1)]) hg' h4
       (fun y hy => by
         obtain ⟨k1, k2⟩ := l20_step hy
         exact ⟨k1 _ _ _ rfl, k2⟩)
@@ -379,7 +379,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
 theorem da_verify_holds : da_verify_sound_Spec := by
   intro rd hm args rets hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_verify _ _).mp hrel
-  have hp : Data.core27.params.map σ = [σ (.n 0)] := rfl
+  have hp : (fn% «da_verify»).params.map σ = [σ (.n 0)] := rfl
   rw [hp] at hpar
   subst hpar
   simp only [MeaningDaVerify]

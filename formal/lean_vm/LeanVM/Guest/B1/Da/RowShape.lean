@@ -83,7 +83,7 @@ def rsOk (fn : Fn) : Bool :=
   | none => false
 
 set_option maxRecDepth 100000 in
-theorem rs_ok : rsOk Data.core28 = true := by decide +kernel
+theorem rs_ok : rsOk fn% «da_row_shape» = true := by decide +kernel
 
 /-- The padded count: `2^L` when `2^L < 2r ≤ 2^(L+1)`. -/
 theorem nPad_of {r L : ℕ} (h1 : r ≤ 2 ^ L) (h2 : 2 ^ L < 2 * r) : LeanDa.paddedRowCount r = 2 ^ L := by

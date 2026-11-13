@@ -19,7 +19,7 @@ the checked inverse as its product, `fixNe`); `vb_good`, `rt_goodB`: the stateme
 and of the root-most layer's arms satisfy their equations.
 
 * `chc_read`, `chc_val`: a child's read and a tree's new value at two coordinates, on their
-  equations (shared with `__loop6`'s templates `chT`, `chValT`);
+  equations (shared with `verify_bus_gkr_loop0`'s templates `chT`, `chValT`);
 * `rtc_two`: the binary arm (`rtTwo`, an odd depth): six children, one coordinate, the slot of
   `L = 1`;
 * `rtc_four`: the radix-four arm (`rtFour`, an even depth): twelve children, two coordinates, the

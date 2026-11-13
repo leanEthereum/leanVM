@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.Body
 public import LeanVM.Guest.B1.Main.LoopsC
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main`'s facts
@@ -78,7 +79,7 @@ structure MainFacts (C : CallRel) (rd : Reader) (σ : Val) : Prop where
   slist : ClaimListOut rd (σ (.n 34)) (lg σ 3) [σ (.n 37), σ (.n 38)]
   bytes : Sig.ByteBits rd (σ (.n 47))
   spcov : σ (.n 46) = σ (.n 45) * σ (.n 22)
-  rawx : ∀ i < lg σ 2, C "__loop2" (gen ^ i :: l2Args σ) [] ∧
+  rawx : ∀ i < lg σ 2, C name% «main_loop2» (gen ^ i :: l2Args σ) [] ∧
     ∃ s, BelowLog (σ (.n 22)) s ∧ LoadHolds rd (σ (.n 45)) s (gen ^ i)
   tags : Sig.LxTagsHold (fun j => (l2Args σ).getD (4 + j) 0)
   raws : ∀ j < lg σ 5, RawSStepC C rd (σ (.n 23)) (σ (.n 45)) (σ (.n 22)) (σ (.n 2)) (σ (.n 34))
@@ -144,8 +145,8 @@ set_option maxRecDepth 100000 in
 (B1-a). -/
 theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     (hle : CallRel.Le C (coreProgram.Rel rd)) (hm : MemOk rd) (hexp : exponent_tables_Spec)
-    (hX : ∀ args, C "__loop2" args [] → ∃ sig, Loop2Out C rd args sig)
-    {σ : Val} (h : Stmt.HoldsList C rd σ (Fn.body Data.core0) False (fun rs => rs = [])) :
+    (hX : ∀ args, C name% «main_loop2» args [] → ∃ sig, Loop2Out C rd args sig)
+    {σ : Val} (h : Stmt.HoldsList C rd σ (Fn.body fn% «main») False (fun rs => rs = [])) :
     MainFacts C rd σ := by
   rw [core0_shape] at h
   simp only [List.append_assoc, holdsList_append] at h
@@ -248,8 +249,8 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     have := load_sound hlv atP
     rwa [const_sound hcv atP] at this
   · -- raw leanXMSS
-    refine loop_soundC (f := "__loop2") (ps := l2Args σ)
-      (N := σ (.n 2)) (B := fun x => C "__loop2" (x :: l2Args σ) [] ∧
+    refine loop_soundC (f := name% «main_loop2») (ps := l2Args σ)
+      (N := σ (.n 2)) (B := fun x => C name% «main_loop2» (x :: l2Args σ) [] ∧
         ∃ s, BelowLog (σ (.n 22)) s ∧ LoadHolds rd (σ (.n 45)) s x)
       (by unfold ordG; omega) c2 (fun x hx => ?_)
       (fun hne => by simpa [l2Args, lxTagsV, Function.comp_def] using hguard3 hne)
@@ -272,7 +273,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     congr 2
     omega
   · -- raw leanSPHINCS
-    refine loop_soundC (f := "__loop3")
+    refine loop_soundC (f := name% «main_loop3»)
       (ps := [σ (.n 5), σ (.n 23), σ (.n 46), σ (.n 2), σ (.n 34), σ (.n 47)])
       (N := σ (.n 5))
       (B := RawSStepC C rd (σ (.n 23)) (σ (.n 45)) (σ (.n 22)) (σ (.n 2)) (σ (.n 34)) (σ (.n 47)))
@@ -305,7 +306,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     rwa [isMul_sound mm381 atM, c2, c5, ← pow_add] at this
   · -- the children
     have hguard5 := guard_soundC ml5 hmid
-    refine loop_soundC (f := "__loop4")
+    refine loop_soundC (f := name% «main_loop4»)
       (ps := [σ (.n 6), σ (.n 398), σ (.n 31), σ (.n 45), σ (.n 22), σ (.n 34), σ (.n 46),
         σ (.n 23), σ (.n 395), σ (.n 364), σ (.n 26), σ (.n 27), σ (.n 383), σ (.n 28),
         σ (.n 389)])

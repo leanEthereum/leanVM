@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.Vt.Loop10
 
-  `verify_tables`' table sumcheck loop `__loop9`: one `sumcheck_round4` a record, its challenge
+  `verify_tables`' table sumcheck loop `verify_tables_loop0`: one `sumcheck_round4` a record, its challenge
   stored at its variable's place in `chi`, and the running product of the challenges.
 -/
 
@@ -9,11 +9,12 @@ module
 
 public import LeanVM.Guest.B1.Tables.Vt.ZcCert
 public import LeanVM.Guest.B1.Sumcheck.Round4
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# The table sumcheck's rounds (`__loop9`, G:2346-2356)
+# The table sumcheck's rounds (`verify_tables_loop0`, G:2346-2356)
 
-`__loop9(x, g^n, rounds, tabs, chi, g^n, cprod)` at `x = g^j`: the record `rounds·x^7` (capacity
+`verify_tables_loop0(x, g^n, rounds, tabs, chi, g^n, cprod)` at `x = g^j`: the record `rounds·x^7` (capacity
 cells `0 .. 4`, cursor `5`, claim `6`) runs `sumcheck_round4`, whose cursor and claim go to the next
 record; its challenge `r_j` is stored at `chi[g^(n-1)/x]`, and `cprod[x·g] = cprod[x]·r_j`.
 `l10_step`: an iteration's facts (`L10B`) and the next iteration's call.
@@ -30,7 +31,7 @@ theorem vtWInvGen_mul : vtWInvGen * gen = 1 := by
   rw [vtWInvGen, tb_word_eOfNat, eOfNat, ← tb_word_gen, tb_word_eOfNat, eOfNat, ← ofK_mul,
     show K.ofBits 9223372036854775821 * K.ofBits 2 = 1 by decide +kernel, ofK_one]
 
-/-- `__loop9`'s body. -/
+/-- `verify_tables_loop0`'s body. -/
 def l10Body : List Stmt :=
   [.atom (.mul (.n 7) (.n 0) (.n 0)), .atom (.mul (.n 8) (.n 7) (.n 0)),
     .atom (.mul (.n 9) (.n 8) (.n 8)), .atom (.mul (.n 10) (.n 9) (.n 0)),
@@ -46,16 +47,16 @@ def l10Body : List Stmt :=
     .atom (.const (.n 25) (word 2 0)), .atom (.mul (.n 26) (.n 0) (.n 25)),
     .atom (.add (.n 27) (.n 26) (.n 1)), .atom (.const (.n 28) (word 2 0)),
     .atom (.mul (.n 29) (.n 0) (.n 28)),
-    .callIf (.n 27) "__loop9" [.n 29, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], .ret []]
+    .callIf (.n 27) name% «verify_tables_loop0» [.n 29, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], .ret []]
 
 noncomputable def l10Check : Bool :=
-  match coreProgram.find? "__loop9" with
+  match coreProgram.find? name% «verify_tables_loop0» with
   | some fn => decide (fn.params = (List.range 7).map V.n) && tbStmtsEqb fn.body l10Body
   | none => false
 
 theorem l10Check_eq : l10Check = true := by decide +kernel
 
-theorem l10Found : ∃ fn : Fn, coreProgram.find? "__loop9" = some fn ∧
+theorem l10Found : ∃ fn : Fn, coreProgram.find? name% «verify_tables_loop0» = some fn ∧
     fn.params = (List.range 7).map V.n ∧ fn.body = l10Body := by
   have h := l10Check_eq
   unfold l10Check at h
@@ -75,12 +76,12 @@ def L10B (rd : Reader) (rounds tabs chi gn cprod x : E) : Prop :=
     (∃ y, gn * vtWInvGen = y * x ∧ LoadHolds rd (chi * y) 0 rk) ∧
     ∃ cp, LoadHolds rd (cprod * x) 0 cp ∧ LoadHolds rd (cprod * x) 1 (cp * rk)
 
-/-- **An iteration of `__loop9`.** -/
+/-- **An iteration of `verify_tables_loop0`.** -/
 theorem l10_step {rd : Reader} {N rounds tabs chi gn cprod : E} (d : ℕ) (x : E)
-    (h : coreProgram.relN rd (d + 1) "__loop9" (x :: [N, rounds, tabs, chi, gn, cprod]) []) :
+    (h : coreProgram.relN rd (d + 1) name% «verify_tables_loop0» (x :: [N, rounds, tabs, chi, gn, cprod]) []) :
     L10B rd rounds tabs chi gn cprod x ∧
       (x * gen + N ≠ 0 →
-        coreProgram.relN rd d "__loop9" (x * gen :: [N, rounds, tabs, chi, gn, cprod]) []) := by
+        coreProgram.relN rd d name% «verify_tables_loop0» (x * gen :: [N, rounds, tabs, chi, gn, cprod]) []) := by
   obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
   obtain ⟨fn', hf', hp, hb⟩ := l10Found
   rw [hf] at hf'

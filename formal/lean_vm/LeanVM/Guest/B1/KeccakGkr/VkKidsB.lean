@@ -10,13 +10,14 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.VkCI
 public import LeanVM.Guest.B1.KeccakGkr.FlatGB
 public import LeanVM.Guest.B1.KeccakGkr.LayerCPlacedB
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `verify_keccak`'s callees within their bounds
 
 `kids_completeB` is `kids_complete` with each call within its bound in `D.kidsB` (in order):
 
-* the copy loops `__loop10`, `__loop11`, `__loop12` (`τ - 4` words each): `(τ - 4) * KC` and the
+* the copy loops `verify_keccak_loop0`, `verify_keccak_loop1`, `verify_keccak_loop2` (`τ - 4` words each): `(τ - 4) * KC` and the
   loop's frame, from their runs' words (`TotalLeOn … LoopPre`, at most `KC` per iteration and
   their one phantom frame);
 * the twelve layers: `layerWords fs (firstOf s) (D.layer s).y KP KR` (`layer_completeAtFB`);
@@ -112,19 +113,19 @@ theorem plain_completeB {k0 : ℕ} (hk : k0 < 2) {K : ℕ}
 
 namespace VkData
 
-/-- **The calls' bounds**, in order: `__loop10`, the twelve layers, the committed outputs'
-rounds, `__loop11`, the inputs' rounds, their opening's rounds, `__loop12`. -/
+/-- **The calls' bounds**, in order: `verify_keccak_loop0`, the twelve layers, the committed outputs'
+rounds, `verify_keccak_loop1`, the inputs' rounds, their opening's rounds, `verify_keccak_loop2`. -/
 def kidsB (D : VkData) (fs : String → ℕ) (KC KP KR KO KI : ℕ) : List ℕ :=
-  [(D.τ - 4) * KC + fs "__loop10"] ++
+  [(D.τ - 4) * KC + fs name% «verify_keccak_loop0»] ++
   (List.range 12).map (fun s ↦ layerWords fs (firstOf s) (D.layer s).y KP KR) ++
-  [KO, (D.τ - 4) * KC + fs "__loop11", KI, KO, (D.τ - 4) * KC + fs "__loop12"]
+  [KO, (D.τ - 4) * KC + fs name% «verify_keccak_loop1», KI, KO, (D.τ - 4) * KC + fs name% «verify_keccak_loop2»]
 
 variable {D : VkData}
 
 /-- The bounds' sum. -/
 theorem kidsB_sum (D : VkData) (fs : String → ℕ) (KC KP KR KO KI : ℕ) :
     (D.kidsB fs KC KP KR KO KI).sum = 3 * ((D.τ - 4) * KC) +
-      (fs "__loop10" + fs "__loop11" + fs "__loop12") + 2 * KO + KI +
+      (fs name% «verify_keccak_loop0» + fs name% «verify_keccak_loop1» + fs name% «verify_keccak_loop2») + 2 * KO + KI +
       ((List.range 12).map (fun s ↦ layerWords fs (firstOf s) (D.layer s).y KP KR)).sum := by
   simp only [kidsB, List.sum_append, List.sum_cons, List.sum_nil]
   omega
@@ -144,7 +145,7 @@ loop's run and its one phantom frame), the openings' rounds `KO` (`plainName 0`)
 (`plainName 1`). -/
 theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE zvE slE tbE : ℕ)
     {KC KP KR KO KI : ℕ}
-    (hC : ∀ name ∈ ["__loop10", "__loop11", "__loop12"],
+    (hC : ∀ name ∈ [name% «verify_keccak_loop0», name% «verify_keccak_loop1», name% «verify_keccak_loop2»],
       TotalLeOn coreProgram fs name LoopPre fun a ↦ logG (a.getD 1 0) * KC + fs name)
     (hP : ∀ first < 2, TotalLeOn coreProgram fs (packLoopName first) LoopPre
       fun a ↦ logG (a.getD 1 0) * KP + fs (packLoopName first))
@@ -166,7 +167,7 @@ theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE 
   simp only [List.zip_cons_cons, List.zip_nil_right, List.mem_append, List.mem_cons,
     List.mem_map, List.mem_range, List.not_mem_nil, or_false] at hkb
   rcases hkb with ((rfl | ⟨s, hs, rfl⟩) | rfl | rfl | rfl | rfl | rfl)
-  · -- `__loop10`
+  · -- `verify_keccak_loop0`
     exact (loop_completeB find_copyLoop11 copyLoop_body11 rfl (by simp [vkKidS])
       (hC _ (by simp)) κ
       (L := [(chiE, D.chis), (B, D.c0.point)]) (dw := D.c0.point) (sw := D.chis)
@@ -203,7 +204,7 @@ theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE 
       rw [e]
       exact inR_entry (ws := D.op) (hlin (by simp))
         (by rw [op_length h]; simp [plainCount] at hj; omega)
-  · -- `__loop11`
+  · -- `verify_keccak_loop1`
     refine (loop_completeB find_copyLoop12 copyLoop_body12 rfl (by simp [vkKidS])
       (hC _ (by simp)) κ
       (L := [(zvE, D.op), (B, D.c0.point)]) (dw := D.op) (sw := D.c0.point) (m := D.τ - 4)
@@ -252,7 +253,7 @@ theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE 
       rw [e]
       exact inR_entry (ws := D.point) (hlin (by simp))
         (by rw [point_length h]; simp [plainCount] at hj; omega)
-  · -- `__loop12`
+  · -- `verify_keccak_loop2`
     have hL : (fun p ↦ [(zvE + qkeccakVarsCap, D.point),
         (D.lsOf fs (ps ++ [p]).dropLast 11, (D.layer 11).chs (firstOf 11))]) =
         fun _ ↦ [(zvE + qkeccakVarsCap, D.point),

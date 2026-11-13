@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Digest.ClaimListDefs
 
   The checks `claim_list_digest`'s proof evaluates (TRIAGE #88): `claim_list_last__L{k}`'s chain,
-  the frame loops' bodies, and the windows of the 64-block frame loop `__loop15`.
+  the frame loops' bodies, and the windows of the 64-block frame loop `claim_list_digest_loop0`.
 -/
 
 module
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Digest.Window
 # `claim_list_digest`: the checks
 
 What the kernel evaluates for `claim_list_digest` (`ClaimList`): `clOk` (`claim_list_last__L{k}`),
-`grpOk` (a frame loop of `m` claims), split for the big loop `__loop15` into `grpHead` and the
+`grpOk` (a frame loop of `m` claims), split for the big loop `claim_list_digest_loop0` into `grpHead` and the
 windows `bigWin i` (four blocks and 34 cells each, four to a module `ClaimListBig{q}`), which
 `grpOk_of_parts` puts back together. Only definitions and the gluing: the kernel checks sit in their own modules.
 -/
@@ -107,15 +107,15 @@ theorem grpOk_of_parts {fn : Fn} {f : String} {m c0 st0 ep w W v U : ℕ}
   simp only [grpOk, h1, h2, h4, h5, h6, h7, ChainSpec.check_of_blocks h3 hnb hb,
     loadsOk_of_wins (by simp [grpSpec]; exact hml) hl, Bool.and_self]
 
-/-! ## The big frame loop `__loop15` (136 claims, 64 blocks), in sixteen windows -/
+/-! ## The big frame loop `claim_list_digest_loop0` (136 claims, 64 blocks), in sixteen windows -/
 
-/-- `__loop15`'s atoms. -/
-noncomputable def bigAtoms : List Atom := loopAtoms (coreProgram.getD 346 default)
+/-- `claim_list_digest_loop0`'s atoms. -/
+noncomputable def bigAtoms : List Atom := loopAtoms (coreProgram.getD idx% «claim_list_digest_loop0» default)
 
-/-- `__loop15`'s chain. -/
+/-- `claim_list_digest_loop0`'s chain. -/
 noncomputable def bigSpec : ChainSpec := grpSpec 136 21 565 bigAtoms
 
-/-- Window `i` of `__loop15`: blocks `4i … 4i + 3` and cells `34i … 34i + 33`, each searched
+/-- Window `i` of `claim_list_digest_loop0`: blocks `4i … 4i + 3` and cells `34i … 34i + 33`, each searched
 from their atoms on. -/
 noncomputable def bigWin (i : ℕ) : Bool :=
   bigSpec.blocksFrom bigAtoms (4 * i) 4 && loadsFrom bigAtoms (V.n 20) bigSpec.msg (34 * i) 34

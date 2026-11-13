@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegComplete
 
-  `verify_lean_xmss`, inline in `__loop2`, is complete: for a claim held at the pointer in its
+  `verify_lean_xmss`, inline in `main_loop2`, is complete: for a claim held at the pointer in its
   canonical cells and a signature that verifies it, the check holds of a valuation changing only
   its own values (`verify_lean_xmss_complete_holds`).
 -/
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Sig.XmssSegPathC
 public import LeanVM.Guest.B1.Sig.XmssSegEnds
 
 /-!
-# `verify_lean_xmss` in `__loop2`, complete
+# `verify_lean_xmss` in `main_loop2`, complete
 
 The valuation: the prologue loads `P`, hints the leaf index's shifts and windows; each layer hints
 the signature's randomizer, its digest's digits (which decode, since the signature verifies:
@@ -255,7 +255,7 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
   rw [he6.apply (Or.inl (by norm_num)), hR5, e6]
   exact e_add_self _
 
-/-- **`verify_lean_xmss` is complete**, inline in `__loop2`. -/
+/-- **`verify_lean_xmss` is complete**, inline in `main_loop2`. -/
 theorem verify_lean_xmss_complete_holds : verify_lean_xmss_complete_Spec :=
   verify_lean_xmss_complete_holds_of lxWindowsC
 

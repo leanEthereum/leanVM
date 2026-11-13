@@ -33,7 +33,7 @@ def da_row_shape_complete_Spec : Prop :=
     r ≤ LeanDa.maxRows → 2 ^ L = LeanDa.paddedRowCount r →
       coreProgram.Rel rd "da_row_shape" [gen ^ r, gen ^ L, gsq] [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]
 
-theorem core25_body : Fn.body Data.core28 = [
+theorem core25_body : Fn.body fn% «da_row_shape» = [
     .atom (.const (.n 3) (word 1 0)), .atom (.add (.n 4) (.n 0) (.n 3)),
     .atom (.hint (.inverse (.n 4) (.n 5))), .atom (.assertNe (.n 4) (.n 5) (.n 6)),
     .atom (.const (.n 7) (word 281474976776218 0)),

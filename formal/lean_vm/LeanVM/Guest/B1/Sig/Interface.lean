@@ -27,15 +27,15 @@ public import LeanVM.Guest.B1.Common.Find
 # The signature verifiers' interface
 
 `verify_lean_xmss(signer, tags)` (`lean_ethereum.py:3847-3920`, inline in `main`'s raw-leanXMSS loop
-`__loop2`, `Data.core36`, as its statements `xSeg`) and
+`main_loop2`, `fn% «main_loop2»`, as its statements `xSeg`) and
 `verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:4143-4244`,
-`Data.core20`) check one signature of the claim at `signer`: four cells, the key (leanXMSS: its root
+`fn% «verify_sig_lean_sphincs»`) check one signature of the claim at `signer`: four cells, the key (leanXMSS: its root
 and parameter; leanSPHINCS: `PK.seed` and `PK.root`), then the message's two halves, the low
 first. `verify_lean_xmss` calls nothing (every helper is `@inline`
 and every `match` arm runs in the frame), so its statements hold under any call relation; its chain
-indices other than `0` and the powers of two are `__loop2`'s parameters `.n 5` to `.n 55`, which
+indices other than `0` and the powers of two are `main_loop2`'s parameters `.n 5` to `.n 55`, which
 `main` sets (`LxTagsHold`);
-`verify_sig_lean_sphincs` calls `sp_wots` (`Data.core19`) once per layer, so its soundness is
+`verify_sig_lean_sphincs` calls `sp_wots` (`fn% «sp_wots»`) once per layer, so its soundness is
 stated under a call relation that unfolds at a frame map (`UnfoldsV`), the signature read off its
 valuation and the frames of its calls.
 
@@ -131,7 +131,7 @@ def MemOK (rd : Reader) (n : ℕ) : Prop := ∀ i < n, (rd (addressOfIndex i)).i
 
 /-! ## The statements -/
 
-/-- **`verify_lean_xmss` is sound, inline in `__loop2`, for the signature `sigOf` reads off the
+/-- **`verify_lean_xmss` is sound, inline in `main_loop2`, for the signature `sigOf` reads off the
 loop's valuation**: whenever the check `xSeg` holds of `σ` before `rest` (under any call relation:
 it calls nothing), `rest` holds, and when the carried chain indices (`.n 5` to `.n 55`) hold their
 indices, `sigOf σ` verifies the claim at the pointer `σ (.n 65)`. -/
@@ -149,10 +149,10 @@ argument `σ (.n 1)` holds the byte table, `sigOf σ V` verifies the claim at it
 def verify_sig_lean_sphincs_sound_Spec (sigOf : Val → FrameMap → Sphincs.Signature) : Prop :=
   ∀ (C : CallRel) (V : FrameMap) {κ : ℕ} (L : MemoryImage κ), κ ≤ 32 → UnfoldsV L.read C V →
     ∀ (σ : Val) (rets : List E),
-      Stmt.HoldsList C L.read σ Data.core20.body False (fun rs => rs = rets) →
+      Stmt.HoldsList C L.read σ (fn% «verify_sig_lean_sphincs»).body False (fun rs => rs = rets) →
         rets = [] ∧ (ByteBits L.read (σ (.n 1)) → SphincsOut L.read (σ (.n 0)) (sigOf σ V))
 
-/-- **`verify_lean_xmss` is complete, inline in `__loop2`**: for a claim held at the pointer
+/-- **`verify_lean_xmss` is complete, inline in `main_loop2`**: for a claim held at the pointer
 `σ (.n 65)` in its cells and a signature that verifies it, the carried chain indices
 holding their indices, on a memory of at least `256` words (the windows and the digit words are
 range-checked below `g^255`), the check `xSeg` holds of a valuation
@@ -167,11 +167,11 @@ def verify_lean_xmss_complete_Spec : Prop :=
 
 /-! ## The functions, found -/
 
-theorem core20_params : Data.core20.params = [.n 0, .n 1] := rfl
+theorem core20_params : (fn% «verify_sig_lean_sphincs»).params = [.n 0, .n 1] := rfl
 
 theorem find_verify_sig_lean_sphincs :
-    coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
-  coreProgram_find?_at (j := 20) rfl
+    coreProgram.find? "verify_sig_lean_sphincs" = some fn% «verify_sig_lean_sphincs» :=
+  coreProgram_find?_at (j := idx% «verify_sig_lean_sphincs») rfl
 
 /-! ## The call relation, from the statements -/
 
@@ -185,7 +185,7 @@ theorem rel_iff_body {name : String} {fn : Fn} (h : coreProgram.find? name = som
   rw [rel_iff]
   simp only [h, Option.some.injEq, exists_eq_left', Fn.Sem]
 
-/-- **The check in `__loop2`**: `rest` holds, and with the carried chain indices held the claim at
+/-- **The check in `main_loop2`**: `rest` holds, and with the carried chain indices held the claim at
 the pointer is signed. -/
 theorem verify_lean_xmss_signed {sigOf : Val → LeanXmss.Signature}
     (hs : verify_lean_xmss_sound_Spec sigOf) {C : CallRel} {σ : Val} {rest : List Stmt}

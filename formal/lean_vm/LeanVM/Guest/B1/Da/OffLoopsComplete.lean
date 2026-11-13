@@ -30,13 +30,13 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 variable {rd : Reader}
 
 set_option maxRecDepth 100000 in
-theorem offLoops_body : ∀ b < 7, stmtsEqb (Fn.body (coreProgram.getD (423 + b) default))
+theorem offLoops_body : ∀ b < 7, stmtsEqb (Fn.body (coreProgram.getD (idx% «da_column_offsets_loop0» + b) default))
     ((offLoopA b).map Stmt.atom ++ tailAt (offLoopName b) 32 3) = true := by
   decide +kernel
 
 theorem find_off {b : ℕ} (hb : b < 7) :
-    coreProgram.find? (offLoopName b) = some (coreProgram.getD (423 + b) default) :=
-  find_of_idx (offLoop_idx b hb) (by rw [coreProgram_length]; omega)
+    coreProgram.find? (offLoopName b) = some (coreProgram.getD (idx% «da_column_offsets_loop0» + b) default) :=
+  find_of_idx (offLoop_idx b hb)
 
 /-- The words of the block's run: the counter's powers and the region, then each `j`'s source,
 step and sum, then the step to the next counter. -/
@@ -60,7 +60,7 @@ theorem off_block {b : ℕ} (hb : b < 7) {x N off st : E} (sv tv : ℕ → E)
     (h2 : ∀ j < 8, LoadHolds rd st j (tv j))
     (h3 : ∀ j < 8, LoadHolds rd (off * (x * x * (x * x) * (x * x * (x * x)))) (8 * 2 ^ b + j)
       (sv j + tv j)) :
-    LoopBlock rd (coreProgram.getD (423 + b) default) x N [off, st] := by
+    LoopBlock rd (coreProgram.getD (idx% «da_column_offsets_loop0» + b) default) x N [off, st] := by
   have hok := offLoop_ok b hb
   simp only [offLoopOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨hs, hl⟩, -⟩ := hok

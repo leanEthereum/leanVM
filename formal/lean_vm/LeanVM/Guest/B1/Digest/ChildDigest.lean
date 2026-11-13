@@ -27,12 +27,12 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- The branch of an empty list. -/
-noncomputable def cc25Zero : List Stmt := match Fn.body Data.core24 with
+noncomputable def cc25Zero : List Stmt := match Fn.body fn% «child_claim_list_digest» with
   | [_, _, .ite _ z _, _, _, _] => z
   | _ => []
 
 set_option maxRecDepth 100000 in
-theorem core24_shape : Fn.body Data.core24 =
+theorem core24_shape : Fn.body fn% «child_claim_list_digest» =
     [.atom (.const (.n 5) (word 1 0)), .atom (.add (.n 6) (.n 4) (.n 5)),
      .ite (.n 6) cc25Zero
       [.call "list_split" [.n 4] [.n 15, .n 16, .n 17],

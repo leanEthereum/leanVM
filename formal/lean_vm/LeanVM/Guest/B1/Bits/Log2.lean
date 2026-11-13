@@ -68,18 +68,18 @@ def lcBody (fl : ℕ) : List Stmt :=
     .atom (.const (.n 18) (word (2 ^ fl) 0)), .atom (.add (.n 19) (.n 4) (.n 18)),
     .ite (.n 19) [] lcMin, .atom (.copy (.n 27) (.n 4)), .ret [.n 27]]
 
-theorem core305_body : Fn.body Data.core305 = lcBody 0 := stmtsEqb_sound (by decide +kernel)
+theorem core305_body : Fn.body fn% «log2_ceil_in_the_exponent__L0_L34» = lcBody 0 := stmtsEqb_sound (by decide +kernel)
 
-theorem core306_body : Fn.body Data.core306 = lcBody 16 := stmtsEqb_sound (by decide +kernel)
+theorem core306_body : Fn.body fn% «log2_ceil_in_the_exponent__L16_L34» = lcBody 16 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem find_lce_L0 : coreProgram.find? "log2_ceil_in_the_exponent__L0_L34" = some Data.core305 :=
-  coreProgram_find?_at (j := 305) rfl
+theorem find_lce_L0 : coreProgram.find? "log2_ceil_in_the_exponent__L0_L34" = some fn% «log2_ceil_in_the_exponent__L0_L34» :=
+  coreProgram_find?_at (j := idx% «log2_ceil_in_the_exponent__L0_L34») rfl
 
 set_option maxRecDepth 100000 in
 theorem find_lce_L16 :
-    coreProgram.find? "log2_ceil_in_the_exponent__L16_L34" = some Data.core306 :=
-  coreProgram_find?_at (j := 306) rfl
+    coreProgram.find? "log2_ceil_in_the_exponent__L16_L34" = some fn% «log2_ceil_in_the_exponent__L16_L34» :=
+  coreProgram_find?_at (j := idx% «log2_ceil_in_the_exponent__L16_L34») rfl
 
 /-- The body, unfolded to its conditions. -/
 theorem lc_unfold {name : String} {f : Fn} (fl : ℕ) (hfind : coreProgram.find? name = some f)

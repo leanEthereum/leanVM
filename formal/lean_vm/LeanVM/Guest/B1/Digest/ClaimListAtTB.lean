@@ -11,13 +11,14 @@ public import LeanVM.Guest.B1.Digest.ClaimListAt
 public import LeanVM.Guest.B1.Digest.LoopAtB
 public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.B1.Main.IterK
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `claim_list_digest`, within bounds
 
 `clB fs SB SK n`: `claim_list_digest`'s words on `n = 136a + 17b + c` claims: its frame; when
-`n ≠ 0`, its chain buffer `13 (a + b + 1)`, `list_split`'s bound `SB "list_split"`, `__loop15`'s
-`a · iterK fs SK "__loop15"` and `__loop16`'s `b · iterK fs SK "__loop16"` and each loop's frame,
+`n ≠ 0`, its chain buffer `13 (a + b + 1)`, `list_split`'s bound `SB "list_split"`, `claim_list_digest_loop0`'s
+`a · iterK fs SK "claim_list_digest_loop0"` and `claim_list_digest_loop1`'s `b · iterK fs SK "claim_list_digest_loop1"` and each loop's frame,
 its run's phantom or, when not entered, the untaken call's, `claim_list_last__L{c}`'s `SB`. The
 static bounds `SB`, `SK` are hypotheses (`TotalLe`, `TotalLeOn` on `LoopPre`). `list_split_completeAtDTB`: `list_split` within its bound.
 -/
@@ -41,9 +42,9 @@ open LeanVM.Guest.Budget (NodeHonest)
 def clB (fs : String → ℕ) (SB SK : String → ℕ) (n : ℕ) : ℕ :=
   if n = 0 then fs "claim_list_digest" else
     fs "claim_list_digest" + 13 * (n / 136 + n % 136 / 17 + 1) + (SB "list_split" +
-      ((if n / 136 ≠ 0 then n / 136 * iterK fs SK "__loop15" + fs "__loop15" else fs "__loop15") +
-        ((if n % 136 / 17 ≠ 0 then n % 136 / 17 * iterK fs SK "__loop16" + fs "__loop16"
-          else fs "__loop16") +
+      ((if n / 136 ≠ 0 then n / 136 * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0» else fs name% «claim_list_digest_loop0») +
+        ((if n % 136 / 17 ≠ 0 then n % 136 / 17 * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1»
+          else fs name% «claim_list_digest_loop1») +
           (SB clNames[n % 17]! + 0))))
 
 /-- `list_split` within its static bound. -/
@@ -57,8 +58,8 @@ theorem list_split_completeAtDTB (fs : String → ℕ) (cert : String → V → 
     Lift.relIn_of_leaf find_list_split list_split_leafOk
       (fun σ es vs _ hw A hA => by
         have hall : (Out.ret es vs).All (Lift.EvLeafOk noLoad) := by
-          have := Lift.walk_leafOk (σ := σ) Data.core22.body list_split_leafOk
-          exact (show walk σ Data.core22.body = .ret es vs from hw) ▸ this
+          have := Lift.walk_leafOk (σ := σ) (fn% «list_split»).body list_split_leafOk
+          exact (show walk σ (fn% «list_split»).body = .ret es vs from hw) ▸ this
         rw [loads_none hall] at hA
         exact absurd hA List.not_mem_nil)
       (list_split_complete' rd (hl.mono hκ) _ _ ⟨a, ha, b, hb, c, hc, rfl, rfl⟩)
@@ -72,10 +73,10 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
     (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
     (hLr : ∀ k < cells.length, RegionL Lin (eP + k)) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
-    (hL15 : TotalLeOn coreProgram fs "__loop15" LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop15" + fs "__loop15"))
-    (hL16 : TotalLeOn coreProgram fs "__loop16" LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop16" + fs "__loop16"))
+    (hL15 : TotalLeOn coreProgram fs name% «claim_list_digest_loop0» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0»))
+    (hL16 : TotalLeOn coreProgram fs name% «claim_list_digest_loop1» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1»))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     CompleteAtDTB fs cert 20 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
       (Returns (digestCells (keccak256 (cellsBytes cells))))
@@ -189,13 +190,13 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
     -- the callees
     let ks : List Kid :=
       [⟨"list_split", true, [gen ^ n], [], Returns [gen ^ a, gen ^ b, gen ^ r]⟩,
-        ⟨"__loop15", decide (a ≠ 0), [1, gen ^ a, chain, gen ^ eP], Lin ++ Own, Returns []⟩,
-        ⟨"__loop16", decide (b ≠ 0), [1, gen ^ b, chain * gen ^ (13 * a), gen ^ eP * gen ^ (544 * a)],
+        ⟨name% «claim_list_digest_loop0», decide (a ≠ 0), [1, gen ^ a, chain, gen ^ eP], Lin ++ Own, Returns []⟩,
+        ⟨name% «claim_list_digest_loop1», decide (b ≠ 0), [1, gen ^ b, chain * gen ^ (13 * a), gen ^ eP * gen ^ (544 * a)],
           Lin ++ Own, Returns []⟩,
         ⟨clNames[r]!, true, [chain * gen ^ (13 * (a + b)), gen ^ eP * gen ^ (544 * a + 68 * b)],
           Lin ++ Own, Returns (digestCells D)⟩]
-    set Bs : List ℕ := [SB "list_split", a * iterK fs SK "__loop15" + fs "__loop15",
-      b * iterK fs SK "__loop16" + fs "__loop16", SB clNames[r]!] with hBs
+    set Bs : List ℕ := [SB "list_split", a * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0»,
+      b * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1», SB clNames[r]!] with hBs
     have hokB : KidsDTB fs cert 20 ks clTs Bs := by
       refine ⟨fun _ => ?_, fun ht => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
       · have := list_split_completeAtDTB fs cert (a := a) (b := b) (c := r) le_rfl
@@ -203,19 +204,19 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
         rwa [show claimBig * a + claimGroup * b + r = n by simp [claimBig, claimGroup]; omega] at this
       · simp only [decide_eq_true_eq] at ht
         refine (completeAt_of_rel_pureBat big_pure (List.mem_singleton_self _) (fun rd hm => ?_) 20
-          (B := a * iterK fs SK "__loop15" + fs "__loop15") (fun rd t hn hv hb => ?_)).toDTB
+          (B := a * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0») (fun rd t hn hv hb => ?_)).toDTB
         · have hr := hLe rd (memL_append.mp hm).1
           have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
-          exact (guard_complete (find_of_idx big_idx (by rw [coreProgram_length]; omega))
+          exact (guard_complete (find_of_idx big_idx)
             (grpc_shapeF grpc_big) (cl_bigBlocks hl hr hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
         · have := hL15 rd t _ _ hn (loopPre_gen (m := a) (by omega) (by omega) _) hv hb
           simpa [logG_gen_pow (show a < 2 ^ 64 - 1 by omega)] using this
       · simp only [decide_eq_true_eq] at ht
         refine (completeAt_of_rel_pureBat grp_pure (List.mem_singleton_self _) (fun rd hm => ?_) 20
-          (B := b * iterK fs SK "__loop16" + fs "__loop16") (fun rd t hn hv hb => ?_)).toDTB
+          (B := b * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1») (fun rd t hn hv hb => ?_)).toDTB
         · have hr := hLe rd (memL_append.mp hm).1
           have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
-          exact (guard_complete (find_of_idx grp_idx (by rw [coreProgram_length]; omega))
+          exact (guard_complete (find_of_idx grp_idx)
             (grpc_shapeF grpc_ok) (cl_grpBlocks hl hr hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
         · have := hL16 rd t _ _ hn (loopPre_gen (m := b) (by omega) (by omega) _) hv hb
           simpa [logG_gen_pow (show b < 2 ^ 64 - 1 by omega)] using this
@@ -333,8 +334,8 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
     have h69 : decide (σ (.n 58) ≠ 0) = decide (b ≠ 0) := by
       rw [hV.v69]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
     have hcalls : calls es = [⟨"list_split", [.n 1], [.n 12, .n 13, .n 14], true⟩,
-        ⟨"__loop15", [.n 39, .n 12, .n 23, .n 0], [], decide (a ≠ 0)⟩,
-        ⟨"__loop16", [.n 59, .n 13, .n 45, .n 56], [], decide (b ≠ 0)⟩,
+        ⟨name% «claim_list_digest_loop0», [.n 39, .n 12, .n 23, .n 0], [], decide (a ≠ 0)⟩,
+        ⟨name% «claim_list_digest_loop1», [.n 59, .n 13, .n 45, .n 56], [], decide (b ≠ 0)⟩,
         ⟨clNames[r]!, [.n 65, .n 73], [.n 74, .n 75], true⟩] := by
       rw [hes, es5_calls, hhc, hpc, hqc, htc, clP1_calls, hpostA.2.2.1]
       simp only [List.map_cons, List.map_nil, Main.mkCall, h49, h69, clHead, clTail,

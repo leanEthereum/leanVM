@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegStepC
 
-  leanXMSS's chain step inline in `__loop2`, for completeness: the step clamped to the chains,
+  leanXMSS's chain step inline in `main_loop2`, for completeness: the step clamped to the chains,
   steps and powers the codeword uses, its reads below the codeword's base; a block completing
   inside another's range, and a `KECCAK` writing an earlier run.
 -/
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Sig.XmssSegT
 public import LeanVM.Guest.B1.Sig.CompleteKit
 
 /-!
-# The chain step in `__loop2`, complete
+# The chain step in `main_loop2`, complete
 
 * `sWc`: `sW` with its step's address, chain index and power clamped (`sW_weq`, `sW_power`), so
   that every value it reads lies below the codeword's digits;

@@ -278,7 +278,7 @@ structure Facts where
   pows : PowTree := .leaf
   /-- The arm offsets of the table dispatch at each offset. -/
   arms : List (ℕ × List ℕ) := []
-  /-- More of them, by offset (a function of many table jumps: `__loop2`'s chained `match`es,
+  /-- More of them, by offset (a function of many table jumps: `main_loop2`'s chained `match`es,
   each arm's end one), looked up first. -/
   armsT : Trie (List ℕ) := .nil
   /-- The cells whose products by a power of `g` are tracked (a loop's self frame pointer). -/

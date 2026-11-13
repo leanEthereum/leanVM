@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Ring.Interface
 public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.B1.Eq.RsEqRun
@@ -13,7 +14,7 @@ public import LeanVM.Guest.B1.Eq.RsEqRun
 /-!
 # `ring_switch_weight` (TRIAGE G #66)
 
-`ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)` (G:3298-3307, `Data.core14`) writes a
+`ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)` (G:3298-3307, `fn% «ring_switch_weight»`) writes a
 row of `64` ones (`rswInit`), calls `rs_eq_run` on it, whose last row holds `ringRow 1 r p k`
 (`Π (r_n^(2^k) + p_n)`, B1-a's `MeaningRsEqRun`), and sums `c_table[k] · row[k]` (`rswTerm`).
 With `p = 1 + r'` the factor is `1 + r_n^(2^k) + r'_n`, so the sum is
@@ -140,10 +141,10 @@ def rswT : List Stmt :=
   ((List.range 64).map rswInit).flatten ++ [.call "rs_eq_run" [.n 12, .n 0, .n 1, .n 3] [.n 77]] ++
   ((List.range 64).map rswTerm).flatten ++ [.atom (.copy (.n 333) (.n 332)), .ret [.n 333]]
 
-theorem rsw_body : Data.core14.body = rswT := stmtsEqb_sound (by decide +kernel)
+theorem rsw_body : (fn% «ring_switch_weight»).body = rswT := stmtsEqb_sound (by decide +kernel)
 
-theorem find_rsw : coreProgram.find? "ring_switch_weight" = some Data.core14 :=
-  coreProgram_find?_at (j := 14) rfl
+theorem find_rsw : coreProgram.find? "ring_switch_weight" = some fn% «ring_switch_weight» :=
+  coreProgram_find?_at (j := idx% «ring_switch_weight») rfl
 
 theorem rswInit_noRet (k : ℕ) : Stmt.noRetList (rswInit k) = true := rfl
 
@@ -179,9 +180,9 @@ theorem rsw_acc (hm : ∀ k < 64, (k ≠ 0 → σ (.n (4 * k + 80)) = σ (.n (4 
 theorem ring_switch_weight_holds : ring_switch_weight_Spec := by
   intro rd args rets h
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_rsw args rets).mp h
-  simp only [Data.core14, List.map_cons, List.map_nil] at hpar hb
-  subst hpar
   rw [rsw_body] at hb
+  simp only [core_eq% «ring_switch_weight», List.map_cons, List.map_nil] at hpar hb
+  subst hpar
   simp only [rswT, holdsList_append] at hb
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hb
   obtain ⟨-, -, -, -, -, -, -, -, -, hb⟩ := hb

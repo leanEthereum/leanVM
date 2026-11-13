@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegDigestC
 
-  The prologue and the two message digests of leanXMSS's check inline in `__loop2` complete.
+  The prologue and the two message digests of leanXMSS's check inline in `main_loop2` complete.
 -/
 
 module

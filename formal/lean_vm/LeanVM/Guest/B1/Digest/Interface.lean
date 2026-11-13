@@ -190,18 +190,18 @@ def child_claim_list_digest_sound_Spec : Prop :=
 
 /-! ## The functions, found -/
 
-theorem find_statement_digest : coreProgram.find? "statement_digest" = some Data.core21 :=
-  coreProgram_find?_at (j := 21) rfl
+theorem find_statement_digest : coreProgram.find? "statement_digest" = some fn% «statement_digest» :=
+  coreProgram_find?_at (j := idx% «statement_digest») rfl
 
-theorem find_list_split : coreProgram.find? "list_split" = some Data.core22 :=
-  coreProgram_find?_at (j := 22) rfl
+theorem find_list_split : coreProgram.find? "list_split" = some fn% «list_split» :=
+  coreProgram_find?_at (j := idx% «list_split») rfl
 
-theorem find_claim_list_digest : coreProgram.find? "claim_list_digest" = some Data.core23 :=
-  coreProgram_find?_at (j := 23) rfl
+theorem find_claim_list_digest : coreProgram.find? "claim_list_digest" = some fn% «claim_list_digest» :=
+  coreProgram_find?_at (j := idx% «claim_list_digest») rfl
 
 theorem find_child_claim_list_digest :
-    coreProgram.find? "child_claim_list_digest" = some Data.core24 :=
-  coreProgram_find?_at (j := 24) rfl
+    coreProgram.find? "child_claim_list_digest" = some fn% «child_claim_list_digest» :=
+  coreProgram_find?_at (j := idx% «child_claim_list_digest») rfl
 
 end
 end LeanVM.Guest.B1.Digest

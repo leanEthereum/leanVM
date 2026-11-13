@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.VbgL7
 
-  `verify_bus_gkr`'s layer loop `__loop6` loads from a region holding its buffers and the cursor's
+  `verify_bus_gkr`'s layer loop `verify_bus_gkr_loop0` loads from a region holding its buffers and the cursor's
   words, on a memory holding the buffers' honest words.
 -/
 
@@ -9,12 +9,13 @@ module
 
 public import LeanVM.Guest.B1.Gkr.Loop7In
 public import LeanVM.Guest.B1.Gkr.VbgComplete
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `__loop6` in `verify_bus_gkr`, loading from its buffers
+# `verify_bus_gkr_loop0` in `verify_bus_gkr`, loading from its buffers
 
 `vbg_loop7_relIn`: on a memory holding the buffers' honest words (`vbgLay`), the call of
-`__loop6` from `1` below `g^((depth - 1)/2)` loads from any region holding the cursor's words and
+`verify_bus_gkr_loop0` from `1` below `g^((depth - 1)/2)` loads from any region holding the cursor's words and
 the buffers `layers`, `rounds`, the rows and `k_mod_next`: iteration `j`'s slot, row, records and
 cursor (`Ly7In`) are the honest slot's (`GkSlot`, layer index `j + 1 - sh`) and records'
 (`RecsAt`), inside the buffers.
@@ -31,8 +32,8 @@ theorem gkPos_closed (sh : ℕ) : ∀ j, gkPos sh j = sh + j * j + j * sh
   | 0 => by simp [gkPos]
   | j + 1 => by rw [gkPos, gkPos_closed sh j]; ring
 
-/-- **`__loop6` loads from the buffers** (TRIAGE G #43): at `3 ≤ depth ≤ 32`, an accepting run of
-`gkrPhase depth`, the buffers' honest words in memory (`vbgLay`), `__loop6`'s relation from `1`
+/-- **`verify_bus_gkr_loop0` loads from the buffers** (TRIAGE G #43): at `3 ≤ depth ≤ 32`, an accepting run of
+`gkrPhase depth`, the buffers' honest words in memory (`vbgLay`), `verify_bus_gkr_loop0`'s relation from `1`
 below `g^((depth - 1)/2)` loads from any region holding the cursor's words and the buffers. -/
 theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     {r : E × List E × List E} {cap' : List E}
@@ -43,10 +44,10 @@ theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     (hRx : ∀ i < xs.length, R (ec + i)) (hRL : ∀ i < 13 * (depth + 2), R (eL + i))
     (hRR : ∀ i < 6034, R (eR + i)) (hRr : ∀ i < 1640, R (eP + i)) (hRK : ∀ i < 8, R (eK + i))
     (hm0 : 0 < (depth - 1) / 2) {tabs claim : E}
-    (h : coreProgram.Rel rd "__loop6" [1, gen ^ ((depth - 1) / 2), gen ^ (2 - depth % 2),
+    (h : coreProgram.Rel rd name% «verify_bus_gkr_loop0» [1, gen ^ ((depth - 1) / 2), gen ^ (2 - depth % 2),
       ofK (addressOfIndex eL), tabs, ofK (addressOfIndex eR), claim, gen ^ (depth % 2),
       gen ^ depth, ofK (addressOfIndex eK)] []) :
-    coreProgram.RelIn rd R "__loop6" [1, gen ^ ((depth - 1) / 2), gen ^ (2 - depth % 2),
+    coreProgram.RelIn rd R name% «verify_bus_gkr_loop0» [1, gen ^ ((depth - 1) / 2), gen ^ (2 - depth % 2),
       ofK (addressOfIndex eL), tabs, ofK (addressOfIndex eR), claim, gen ^ (depth % 2),
       gen ^ depth, ofK (addressOfIndex eK)] [] := by
   obtain ⟨-, -, -, hsteps, -, -, -, -⟩ := gk_walk hrun hc

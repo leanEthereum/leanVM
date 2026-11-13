@@ -177,9 +177,9 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     (hB : MemL rd (bufL b0 [35, 35, 35, 41, 31]
       (termOwn (termD B layout bus out ringPoint coeffs x chis oodPoint rm gmu gzcn glm gtau gm
         lamCl)))) :
-    ∃ σ : Val, Data.core17.params.map σ = termArgs B rm gmu gzcn glm gtau lamCl inner yr target gm ∧
+    ∃ σ : Val, (fn% «check_opening_terminal»).params.map σ = termArgs B rm gmu gzcn glm gtau lamCl inner yr target gm ∧
       (∀ s ∈ termPre, DispOk σ s) ∧
-      Stmt.HoldsList (fun _ _ _ => True) rd σ Data.core17.body False (fun r => r = []) ∧
+      Stmt.HoldsList (fun _ _ _ => True) rd σ (fn% «check_opening_terminal»).body False (fun r => r = []) ∧
       (termPre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) =
         [35, 35, 35, 41, 31] ∧
       ((termPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =

@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Main.MainCChk
 public import LeanVM.Guest.Memory.Uniform
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main`'s path, checked
@@ -61,10 +62,10 @@ theorem mPre_calls : mPre.filterMap Main.Stmt.callS =
     [(none, "exponent_tables", [], [.n 28]),
       (none, "claim_list_digest", [.n 31, .n 0], [.n 35, .n 36]),
       (none, "claim_list_digest", [.n 34, .n 3], [.n 37, .n 38]),
-      (some (.n 40), "__loop0", [.n 41, .n 1, .n 31, .n 0], []),
-      (some (.n 43), "__loop1", [.n 44, .n 4, .n 34, .n 3], []),
-      (some (.n 356), "__loop2", [.n 357, .n 2, .n 22, .n 45, .n 31] ++ lxTagsV, []),
-      (some (.n 359), "__loop3", [.n 360, .n 5, .n 23, .n 46, .n 2, .n 34, .n 47], [])] := by
+      (some (.n 40), name% «main_loop0», [.n 41, .n 1, .n 31, .n 0], []),
+      (some (.n 43), name% «main_loop1», [.n 44, .n 4, .n 34, .n 3], []),
+      (some (.n 356), name% «main_loop2», [.n 357, .n 2, .n 22, .n 45, .n 31] ++ lxTagsV, []),
+      (some (.n 359), name% «main_loop3», [.n 360, .n 5, .n 23, .n 46, .n 2, .n 34, .n 47], [])] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -77,7 +78,7 @@ theorem mDaZ_calls : mDaZ.filterMap Main.Stmt.callS = [] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mMid_calls : mMid.filterMap Main.Stmt.callS =
-    [(some (.n 401), "__loop4", [.n 402, .n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23,
+    [(some (.n 401), name% «main_loop4», [.n 402, .n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23,
       .n 395, .n 364, .n 26, .n 27, .n 383, .n 28, .n 389], [])] := by decide +kernel
 
 set_option maxRecDepth 100000 in

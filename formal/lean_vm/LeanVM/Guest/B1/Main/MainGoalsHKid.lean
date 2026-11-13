@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.MainGoalsHKid
 
-  A child of `main`'s honest run as `__loop4` reads it (`hKid`): its counts, its base, its lists'
+  A child of `main`'s honest run as `main_loop4` reads it (`hKid`): its counts, its base, its lists'
   digests, its DA digest, its deferred cells; and its statement's digest.
 -/
 
@@ -134,7 +134,7 @@ theorem kid_segOf_sum : ∀ (ls : List ℕ) (c j : ℕ) (hc : c < ls.length), j 
 
 variable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
 
-/-- **Child `c` of the honest run**, as `__loop4` reads it. -/
+/-- **Child `c` of the honest run**, as `main_loop4` reads it. -/
 def hKid (c : ℕ) : KidH where
   ex := hEx w c
   es := hEs w c
@@ -171,7 +171,7 @@ theorem hKid_da {c : ℕ} (hc : c < w.children.length) :
 theorem hKid_defer {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).defer = w.children[c].statement.deferredClaim.cells := getD_map_lt _ _ _ hc
 
-/-- **Child `c`'s statement digest**, as `__loop4` computes it, is the child's statement's. -/
+/-- **Child `c`'s statement digest**, as `main_loop4` computes it, is the child's statement's. -/
 theorem hKid_pi {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).pi (digestHalves seed).1 (digestHalves seed).2 =
       digestHalves (statementDigest seed w.children[c].statement) := by

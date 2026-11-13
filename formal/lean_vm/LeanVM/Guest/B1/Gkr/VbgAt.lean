@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Gkr.VbgLoads
 public import LeanVM.Guest.B1.Gkr.VbgL7
 public import LeanVM.Guest.B1.Tables.Kids.Loop8
 public import LeanVM.Guest.B1.Tables.FlatLiftOut
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `verify_bus_gkr`, placed (TRIAGE G #43)
@@ -21,8 +22,8 @@ pointers) satisfies every statement with its calls by relations loading from a r
 holding the cursor's words, the point and the buffers, its loads land inside the buffers
 (`vbg_loadOk`, `vbg_ptrs`; the radix-four arm's fourteen words past the cursor are the run's at
 `depth ≥ 2`, `gk_xs_len`), its allocations are the buffers and it returns the accepting run's
-capacity, cursor and the values' buffer. `__loop7`'s relation loads from `R` (`loop8_relIn`), and
-`__loop6`'s (`vbg_loop7_relIn`).
+capacity, cursor and the values' buffer. `verify_bus_gkr_loop1`'s relation loads from `R` (`loop8_relIn`), and
+`verify_bus_gkr_loop0`'s (`vbg_loop7_relIn`).
 
 `verify_bus_gkr_completeAt`: `flat_completeAtOut` for `vbgFlat`, the buffers at the bump
 allocator's positions from `fp + fs "verify_bus_gkr"`, returned (`VbgOut`: the values' buffer is
@@ -48,13 +49,13 @@ def atomsDeep : Stmt → Bool
     | _ => false
   | _ => false
 
-/-- `__loop6`'s call. -/
+/-- `verify_bus_gkr_loop0`'s call. -/
 def vbgCall7 : Stmt :=
-  .callIf (.n 379) "__loop6" [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17, .n 63, .n 142, .n 6,
+  .callIf (.n 379) name% «verify_bus_gkr_loop0» [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17, .n 63, .n 142, .n 6,
     .n 64]
 
-/-- `__loop7`'s call. -/
-def vbgCall8 : Stmt := .callIf (.n 392) "__loop7" [.n 393, .n 6, .n 7, .n 390]
+/-- `verify_bus_gkr_loop1`'s call. -/
+def vbgCall8 : Stmt := .callIf (.n 392) name% «verify_bus_gkr_loop1» [.n 393, .n 6, .n 7, .n 390]
 
 /-- Every statement is an atom, an `ite` of atoms, or one of the two calls. -/
 def vbgKindB (s : Stmt) : Bool :=
@@ -130,7 +131,7 @@ noncomputable def vbgσ (rd : Reader) (depth : ℕ) (cap0 : List E) (tabs : E)
       (ofK (addressOfIndex eV)))
     (cap0 ++ [ofK (addressOfIndex ec), gen ^ depth, ofK (addressOfIndex ez), tabs])
 
-/-- The values the calls of `__loop6` and `__loop7` start and end at, and `__loop6`'s
+/-- The values the calls of `verify_bus_gkr_loop0` and `verify_bus_gkr_loop1` start and end at, and `verify_bus_gkr_loop0`'s
 arguments. -/
 def VbgVals (σ : Val) (depth eL eR eK : ℕ) (tabs : E) : Prop :=
   σ (.n 380) = 1 ∧ σ (.n 382) = gen ^ ((depth - 1) / 2) ∧ σ (.n 375) = gen ^ (2 - depth % 2) ∧

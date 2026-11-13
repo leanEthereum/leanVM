@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Tables.Vt.Rounds
 public import LeanVM.Guest.B1.Eq.EqPrefix
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The table sumcheck (G:2546-2587)
@@ -145,7 +146,7 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
   have a5254 := h.atomAt 2680 (.const (.n 2649) (word 2 0)) (by decide +kernel)
   have a5255 := h.atomAt 2681 (.mul (.n 2650) (.n 2544) (.n 2649)) (by decide +kernel)
   have a5257 := h.atomAt 2683 (.const (.n 2652) (word 1 0)) (by decide +kernel)
-  have hloop := h.callIfAt 2667 (.n 2635) "__loop9" [.n 2636, .n 2544, .n 2627, .n 18,
+  have hloop := h.callIfAt 2667 (.n 2635) name% «verify_tables_loop0» [.n 2636, .n 2544, .n 2627, .n 18,
     .n 16, .n 2544, .n 2630] (by decide +kernel)
   have hchain := h.callAt 2684 "eq_prefix_chain" [.n 2651, .n 2652, .n 16, .n 699, .n 2544] []
     (by decide +kernel)

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.AggL26Complete
 
-  `__loop34` (a child's lambdas) and `__loop35` (a child's weight), completely.
+  `aggregate_claims_loop1` (a child's lambdas) and `aggregate_claims_loop2` (a child's weight), completely.
 -/
 
 module
@@ -11,12 +11,12 @@ public import LeanVM.Guest.B1.Main.AggL26CChk
 /-!
 # A child's record and weight, completely
 
-`l26_block`: `__loop34`'s block at the child `x` holds on the evaluated valuation (`Fwd.ev`) when
+`l26_block`: `aggregate_claims_loop1`'s block at the child `x` holds on the evaluated valuation (`Fwd.ev`) when
 its record (`chain·x^2`) holds a power of `λ` and a running claim, the next record the power times
 `λ²` and the claim on, and the pointer tables the child's claims' values. Its atoms but its
 stores hold (their side conditions its loads), which its stores find.
 
-`l27_block`: `__loop35`'s block at `x` holds when the pointer tables point to the claims' points,
+`l27_block`: `aggregate_claims_loop2`'s block at `x` holds when the pointer tables point to the claims' points,
 `pt1` holds `bc_point1` (`r1`, the point `1 + r1`), the record the power of `λ`, and the weights' table at `x` the
 weight and the weight on.
 -/
@@ -32,20 +32,20 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Da
 variable {rd : Reader}
 
 set_option maxRecDepth 20000 in
-/-- **A child's record** (`__loop34`). -/
+/-- **A child's record** (`aggregate_claims_loop1`). -/
 theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
     (hrow : ReadsAt rd (chainT * x ^ 2) [pw, acc])
     (hnext : ReadsAt rd (chainT * x ^ 2 * gen ^ 2) [pw * lamSq, acc + pw * (fv + lam * cv)])
     (hlf : LoadHolds rd (lfT * x) 0 pf) (hlc : LoadHolds rd (lcT * x) 0 pc)
     (hfv : LoadHolds rd pf 23 fv) (hcv : LoadHolds rd pc 23 cv) :
-    LoopBlock rd (coreProgram.getD 432 default) x N [chainT, lfT, lcT, lamSq, lam] := by
+    LoopBlock rd (coreProgram.getD idx% «aggregate_claims_loop1» default) x N [chainT, lfT, lcT, lamSq, lam] := by
   obtain ⟨hshape, hlen⟩ := l26_shape
   have hcok := l26c_ok
   simp only [l26COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hneeds⟩, hm7⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩,
     hm12⟩, hl13⟩, hm14⟩, hl15⟩, hl16⟩, hl17⟩, hm18⟩, ha19⟩, hm20⟩, ha21⟩ := hcok
   simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hatoms hneeds
-  set fn := coreProgram.getD 432 default
+  set fn := coreProgram.getD idx% «aggregate_claims_loop1» default
   set A := atomsIn (loopPre fn)
   let args : List E := [x, N, chainT, lfT, lcT, lamSq, lam]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
@@ -124,7 +124,7 @@ theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
     exact ⟨hat a (mem_atomsIn hs), trivial⟩
 
 set_option maxRecDepth 20000 in
-/-- **A child's weight** (`__loop35`). -/
+/-- **A child's weight** (`aggregate_claims_loop2`). -/
 theorem l27_block {x N lfT lcT pt1 chainT wT lam pf pc pw wc : E} {pp pq r1 : List E}
     (hlf : LoadHolds rd (lfT * x) 0 pf) (hlc : LoadHolds rd (lcT * x) 0 pc)
     (hpf : ReadsAt rd pf pp) (hpc : ReadsAt rd pc pq) (hr : ReadsAt rd pt1 r1)
@@ -132,14 +132,14 @@ theorem l27_block {x N lfT lcT pt1 chainT wT lam pf pc pw wc : E} {pp pq r1 : Li
     (hpw : LoadHolds rd (chainT * x ^ 2) 0 pw) (hw : LoadHolds rd (wT * x) 0 wc)
     (hw1 : LoadHolds rd (wT * x) 1 (wc + pw * (eqEval pp (r1.map (1 + ·)) +
       lam * eqEval pq (r1.map (1 + ·))))) :
-    LoopBlock rd (coreProgram.getD 434 default) x N [lfT, lcT, pt1, chainT, wT, lam] := by
+    LoopBlock rd (coreProgram.getD idx% «aggregate_claims_loop2» default) x N [lfT, lcT, pt1, chainT, wT, lam] := by
   obtain ⟨hshape, hlen⟩ := l27_shape
   have hcok := l27c_ok
   simp only [l27COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hneeds⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, he1⟩,
     he2⟩, hm171⟩, hm172⟩, hm173⟩, hl174⟩, hl175⟩, hm176⟩, ha177⟩, hm178⟩, ha179⟩, hm180⟩ := hcok
   simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hatoms hneeds
-  set fn := coreProgram.getD 434 default
+  set fn := coreProgram.getD idx% «aggregate_claims_loop2» default
   set A := atomsIn (loopPre fn)
   let args : List E := [x, N, lfT, lcT, pt1, chainT, wT, lam]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩

@@ -14,8 +14,8 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
 # The pack rounds (`keccak_layer`, G:2700-2762)
 
 `keccak_layer` writes the record `rounds` (the capacity after the squeeze, the cursor past the
-product, the product's value at `s`, the scale `1`), runs `__loop37`/`__loop39` for `xs = g^j`,
-`j < ⌊y/8⌋` (`Pack8Step`: eight rounds on the coordinates `8j ..`), then `__loop38`/`__loop40`
+product, the product's value at `s`, the scale `1`), runs `keccak_layer__L1_loop0`/`keccak_layer__L0_loop0` for `xs = g^j`,
+`j < ⌊y/8⌋` (`Pack8Step`: eight rounds on the coordinates `8j ..`), then `keccak_layer__L1_loop1`/`keccak_layer__L0_loop1`
 for `x1 = g^k`, `k < y % 8`, on `rounds·g^⌊y/8⌋` (`PackRemStep`: one round on the coordinate
 `8⌊y/8⌋ + k`), and reads the record `rounds·g^⌊y/8⌋·g^(y % 8)`.
 

@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Gkr.LayerStep
 
 /-!
@@ -16,9 +17,9 @@ The root-most layer has no rounds: the combiner, drawn from the two roots waitin
 batches the three trees' roots into the claim the children's products check. `verify_bus_gkr`
 runs it in its body, in the two arms of an `ite` on `odd_g = g^(depth % 2)`:
 
-* `rt_two` (`Data.core9.s196_e`, an odd depth): two children a tree, `y` one coordinate (its
+* `rt_two` (`core% «verify_bus_gkr» s196_e`, an odd depth): two children a tree, `y` one coordinate (its
   grind of `0` bits a permutation of the two waiting), the slot of `L = 1`;
-* `rt_four` (`Data.core9.s196_t`, an even depth): four children a tree, `y` two coordinates, the
+* `rt_four` (`core% «verify_bus_gkr» s196_t`, an even depth): four children a tree, `y` two coordinates, the
   slot of `L = 2`.
 
 Both start from the body's combiner `σ 59`, the claim `σ 63`, the sponge's capacity after the
@@ -33,10 +34,10 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- The binary root layer, the `ite`'s else arm. -/
-noncomputable def rtTwo : List Stmt := Data.core9.s196_e
+noncomputable def rtTwo : List Stmt := (core% «verify_bus_gkr» s196_e)
 
 /-- The radix-four root layer, the `ite`'s then arm. -/
-noncomputable def rtFour : List Stmt := Data.core9.s196_t
+noncomputable def rtFour : List Stmt := (core% «verify_bus_gkr» s196_t)
 
 theorem rtTwo_noRet : Stmt.noRetList rtTwo = true := by decide +kernel
 

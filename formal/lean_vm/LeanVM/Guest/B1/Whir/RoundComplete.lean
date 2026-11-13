@@ -123,7 +123,7 @@ theorem round_complete {C : CallRel} {rd : Reader} {args rets : List E}
     (hg : ∀ w : E, (w.limb 0).lane.toNat % 2 ^ 7 = 0 → C "grind_check__L7" [w, args.getD 7 0] []) :
     ∃ xs : List E, xs.length = 5 ∧ ReadsAt rd (args.getD 5 0) xs ∧
       ((rdCell (rdS3 args xs) 1).limb 0).lane.toNat % 2 ^ 7 = 0 ∧
-      (Fn.params Data.core7).map (fun v ↦ rdVals args xs v.idx) = args ∧
+      (Fn.params fn% «opening_round»).map (fun v ↦ rdVals args xs v.idx) = args ∧
       Stmt.HoldsList C rd (fun v ↦ rdVals args xs v.idx) roundBody False (fun rs ↦ rs = rets) := by
   obtain ⟨f0, f1, f2, f3, f4, cur, claim, tabs, gp, cp, rfl⟩ :
       ∃ f0 f1 f2 f3 f4 cur claim tabs gp cp, args = [f0, f1, f2, f3, f4, cur, claim, tabs, gp, cp] := by

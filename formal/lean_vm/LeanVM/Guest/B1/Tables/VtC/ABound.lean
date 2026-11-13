@@ -11,13 +11,14 @@ public import LeanVM.Guest.B1.Tables.VtC.AComplete
 public import LeanVM.Guest.B1.Tables.VtC.Calls
 public import LeanVM.Guest.B1.Tables.FlatLiftT
 public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `verify_tables`, placed, within its bound
 
 The callees' words come as hypotheses in G7's forms: every statically bounded callee `g` of
 `vtKidS` within a constant `Kf g` (`TotalLe`), `shared_selector_tables` within `Ksh` on a run
-length `g^n`, `n < 64` (`TotalLeOn`), `__loop9`'s run within `K10` words an iteration and its one
+length `g^n`, `n < 64` (`TotalLeOn`), `verify_tables_loop0`'s run within `K10` words an iteration and its one
 phantom frame (`TotalLeOn … LoopPre`). Call by call (`vtCallBnd`): a call's callee's constant (`Ksh`
 for the shared tables), a dispatch's largest arm's, the rounds loop's run `vtRunB` at the honest
 round count `n`.
@@ -79,12 +80,12 @@ memories defined below `2^κ`, `κ ≥ 14`, its tree of at most `fs "verify_tabl
 buffers, its callees' bounds and its skipped frames. -/
 theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok)
     (hs : VtShape H) (B : VtBases) (Kf : String → ℕ) (Ksh K10 : ℕ)
-    (hKf : ∀ g ∈ vtKidS, g ≠ "__loop9" → g ≠ "__loop8" → g ≠ "shared_selector_tables" →
+    (hKf : ∀ g ∈ vtKidS, g ≠ name% «verify_tables_loop0» → g ≠ name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
     (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
       (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
-    (h10 : TotalLeOn coreProgram fs "__loop9" LoopPre
-      (fun a ↦ logG (a.getD 1 0) * K10 + fs "__loop9")) :
+    (h10 : TotalLeOn coreProgram fs name% «verify_tables_loop0» LoopPre
+      (fun a ↦ logG (a.getD 1 0) * K10 + fs name% «verify_tables_loop0»)) :
     CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))
       (fun _ ↦ True)
       (fs "verify_tables" + H.sizes.sum + ((vtBs Kf Ksh (vtRunB fs K10 H.n)).sum + ifFrames fs vtPre)) := by

@@ -26,9 +26,9 @@ open LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 
-theorem plain60_chk : Fwd.chk 11 Data.core268.body = some 180 := by decide +kernel
+theorem plain60_chk : Fwd.chk 11 (fn% «keccak_plain_rounds__L6_L0»).body = some 180 := by decide +kernel
 
-theorem plain60_stores : storesOf 11 Data.core268.body =
+theorem plain60_stores : storesOf 11 (fn% «keccak_plain_rounds__L6_L0»).body =
     [.load (.n 40) (.n 9) 0, .load (.n 65) (.n 9) 1, .load (.n 90) (.n 9) 2,
       .load (.n 115) (.n 9) 3, .load (.n 140) (.n 9) 4, .load (.n 165) (.n 9) 5] := by
   decide +kernel
@@ -52,12 +52,12 @@ theorem plain60_complete (rd : Reader) (args rets : List E)
       b5][k]'(by simpa using hk)) := fun k hk ↦ hreads k (by simpa using hk)
   -- the honest valuation
   set l : List E := [f0, f1, f2, f3, f4, p0, p1, cur, value, point, tabs] with hl
-  have g := (ev_spec rd (fun _ ↦ 0) Data.core268.body l plain60_chk).2.2
-  have pp : ∀ i (hi : i < 11), Val.ofArgs (ev rd (fun _ ↦ 0) l Data.core268.body) (.n i) =
+  have g := (ev_spec rd (fun _ ↦ 0) (fn% «keccak_plain_rounds__L6_L0»).body l plain60_chk).2.2
+  have pp : ∀ i (hi : i < 11), Val.ofArgs (ev rd (fun _ ↦ 0) l (fn% «keccak_plain_rounds__L6_L0»).body) (.n i) =
       l.getD i 0 := fun i hi ↦
     ev_params rd (fun _ ↦ 0) (l := l) plain60_chk (by simpa [hl] using hi)
   rw [show l.length = 11 from rfl, plain60_stores] at g
-  generalize Val.ofArgs (ev rd (fun _ ↦ 0) l Data.core268.body) = σ at g pp
+  generalize Val.ofArgs (ev rd (fun _ ↦ 0) l (fn% «keccak_plain_rounds__L6_L0»).body) = σ at g pp
   rw [body60] at g
   have p7 : σ (.n 7) = cur := pp 7 (by norm_num)
   have p9 : σ (.n 9) = point := pp 9 (by norm_num)
@@ -192,7 +192,7 @@ theorem plain60_complete (rd : Reader) (args rets : List E)
       pp 4 (by norm_num), pp 5 (by norm_num), pp 6 (by norm_num), pp 7 (by norm_num),
       pp 8 (by norm_num), pp 9 (by norm_num), pp 10 (by norm_num)]
     rfl
-  show Stmt.HoldsList _ rd σ Data.core268.body False (fun rs ↦ rs = rets)
+  show Stmt.HoldsList _ rd σ (fn% «keccak_plain_rounds__L6_L0»).body False (fun rs ↦ rs = rets)
   rw [body60]
   simp only [plain60T, holdsList_append, Stmt.HoldsList, Stmt.Holds]
   refine ⟨c11, c12, c13, c14, c15, f0r (st 0 (by norm_num)) (f1r (st 1 (by norm_num))

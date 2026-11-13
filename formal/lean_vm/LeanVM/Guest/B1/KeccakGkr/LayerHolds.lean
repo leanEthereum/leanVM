@@ -19,10 +19,10 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-theorem find_layer264 : coreProgram.find? "keccak_layer__L1" = some Data.core266 :=
-  coreProgram_find?_at (j := 266) rfl
-theorem find_layer265 : coreProgram.find? "keccak_layer__L0" = some Data.core267 :=
-  coreProgram_find?_at (j := 267) rfl
+theorem find_layer264 : coreProgram.find? "keccak_layer__L1" = some fn% «keccak_layer__L1» :=
+  coreProgram_find?_at (j := idx% «keccak_layer__L1») rfl
+theorem find_layer265 : coreProgram.find? "keccak_layer__L0" = some fn% «keccak_layer__L0» :=
+  coreProgram_find?_at (j := idx% «keccak_layer__L0») rfl
 
 /-- **`keccak_layer`** on a reader where `grind_check` of `3` bits has its meaning on the window
 table. -/

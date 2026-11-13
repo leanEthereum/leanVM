@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop7In
 
-  `__loop6` loads from any region holding, at each iteration, its layer slot, its row, its round
+  `verify_bus_gkr_loop0` loads from any region holding, at each iteration, its layer slot, its row, its round
   records and the words at the records' cursors.
 -/
 
@@ -9,11 +9,12 @@ module
 
 public import LeanVM.Guest.B1.Gkr.Layer
 public import LeanVM.Guest.B1.Gkr.RoundsIn
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `__loop6`, loading from a region
+# `verify_bus_gkr_loop0`, loading from a region
 
-`__loop6`'s body is straight but for a dispatch on its `parity = g^r` (`gkr_rounds__L{2r}`) and a
+`verify_bus_gkr_loop0`'s body is straight but for a dispatch on its `parity = g^r` (`gkr_rounds__L{2r}`) and a
 branch of straight statements ending in `gkr_rounds__L1` at an odd depth: it walks its statements
 in turn, the dispatch's callee and the branch's block when taken (`ly_walk`).
 
@@ -22,7 +23,7 @@ in turn, the dispatch's callee and the branch's block when taken (`ly_walk`).
   `parity = g^(k % 4)`, `k = j + 1 - sh`; the records from `rounds·pos` (`L + 5173` words),
   record `r`'s cursor `cj·g^(4r)`, the `4L + 12` words from `cj`.
 * `loop7_relIn`: with those at every `j < m` and the table `k_mod_next` (`8` words) in `R`,
-  iteration `j < m` of `__loop6` loads from `R`, by the depth of its derivation; its rounds by
+  iteration `j < m` of `verify_bus_gkr_loop0` loads from `R`, by the depth of its derivation; its rounds by
   `loop29_relIn` and `gkr_rounds_relIn`.
 -/
 
@@ -51,10 +52,10 @@ theorem walk1_ite_straight (σ : Val) (c : V) {z n : List Stmt}
   · simp only [hc, ↓reduceIte, walk_straight_fall σ hz, Out.pre, List.singleton_append]
   · simp only [hc, ↓reduceIte, walk_straight_fall σ hn, Out.pre, List.singleton_append]
 
-/-- `__loop6`'s statements through `__loop36` and the pointers of the dispatched rounds. -/
+/-- `verify_bus_gkr_loop0`'s statements through `verify_bus_gkr_loop0_loop0` and the pointers of the dispatched rounds. -/
 noncomputable def lyA : List Stmt := lyBody.take 49
 
-/-- `__loop6`'s statements after the rounds, before its `ret`. -/
+/-- `verify_bus_gkr_loop0`'s statements after the rounds, before its `ret`. -/
 noncomputable def lyB : List Stmt := lyPre.drop 53
 
 /-- The callees of the dispatch on `parity = g^r`: `gkr_rounds__L{2r}`. -/
@@ -75,10 +76,10 @@ theorem lyB_straight : lyB.all Main.Stmt.straight = true := by decide +kernel
 theorem ly73_straight : ly73.all Main.Stmt.straight = true := by decide +kernel
 
 theorem lyA_calls : lyA.filterMap Main.Stmt.callS =
-    [(some (.n 56), "__loop36", [.n 57, .n 53, .n 48, .n 46, .n 4], [])] := by decide +kernel
+    [(some (.n 56), name% «verify_bus_gkr_loop0_loop0», [.n 57, .n 53, .n 48, .n 46, .n 4], [])] := by decide +kernel
 
 theorem lyB_calls : lyB.filterMap Main.Stmt.callS =
-    [(some (.n 236), "__loop6", [.n 238, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9],
+    [(some (.n 236), name% «verify_bus_gkr_loop0», [.n 238, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9],
       [])] := by
   decide +kernel
 
@@ -99,7 +100,7 @@ theorem walk1_dispatch (σ : Val) (x : V) (fs : List String) (args rets : List V
     walk1 σ (.dispatch x fs args rets) = pick σ x args rets 0 fs := by
   rw [walk1]
 
-/-- **`__loop6`'s walk**, at `parity = g^r`: its statements in turn, the dispatch's callee
+/-- **`verify_bus_gkr_loop0`'s walk**, at `parity = g^r`: its statements in turn, the dispatch's callee
 `gkr_rounds__L{2r}`, the odd round's block when taken. -/
 theorem ly_walk (σ : Val) {r : ℕ} (hr : r < 4) (h54 : σ (.n 54) = ofK (addressOfIndex r)) :
     walk σ lyBody = .ret (lyA.flatMap (Main.slEvs σ) ++
@@ -158,15 +159,15 @@ theorem tb_lName_gkr_rounds : lName "gkr_rounds" 0 = "gkr_rounds__L0" ∧
 theorem lyRn_eq {r : ℕ} (hr : r < 4) : lyRn r = lName "gkr_rounds" (2 * r) ∧ 2 * r ∈ grCounts := by
   interval_cases r <;> exact ⟨rfl, by simp [grCounts]⟩
 
-/-- **`__loop6` loads from `R`**, every iteration `j < m`, its slots, rows, records and cursors
+/-- **`verify_bus_gkr_loop0` loads from `R`**, every iteration `j < m`, its slots, rows, records and cursors
 in `R` (`Ly7In`), and the table `k_mod_next` (`kmn`, `8` words) in `R`. -/
 theorem loop7_relIn {rd : Reader} {R : ℕ → Prop} {layers tabs rounds claim gmu kmn : E}
     {sh m : ℕ} (hsh2 : sh < 2) (hkR : PtrIn R kmn 8)
     (hit : ∀ j < m, Ly7In rd R layers rounds sh j) :
     ∀ d j, j < m →
-      coreProgram.relN rd d "__loop6" [gen ^ j, gen ^ m, gen ^ (2 - sh), layers, tabs, rounds,
+      coreProgram.relN rd d name% «verify_bus_gkr_loop0» [gen ^ j, gen ^ m, gen ^ (2 - sh), layers, tabs, rounds,
         claim, gen ^ sh, gmu, kmn] [] →
-      coreProgram.RelIn rd R "__loop6" [gen ^ j, gen ^ m, gen ^ (2 - sh), layers, tabs, rounds,
+      coreProgram.RelIn rd R name% «verify_bus_gkr_loop0» [gen ^ j, gen ^ m, gen ^ (2 - sh), layers, tabs, rounds,
         claim, gen ^ sh, gmu, kmn] [] := by
   intro d
   induction d with
@@ -292,11 +293,11 @@ theorem loop7_relIn {rd : Reader} {R : ℕ → Prop} {layers tabs rounds claim g
         (Main.straight_parts σ lyB lyB_straight).2.2.2, lyA_calls, lyB_calls] at hc
       simp only [List.mem_append] at hc
       rcases hc with ((hc | hc) | hc) | hc
-      · -- `__loop36`
+      · -- `verify_bus_gkr_loop0_loop0`
         simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc
         subst hc
         simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-        have hci := tb_holds_callIf hnr hP 43 (.n 56) "__loop36"
+        have hci := tb_holds_callIf hnr hP 43 (.n 56) name% «verify_bus_gkr_loop0_loop0»
           [.n 57, .n 53, .n 48, .n 46, .n 4] (by decide +kernel)
         have hrel := hci.2 ht
         have hK : 0 < k / 4 := by
@@ -357,7 +358,7 @@ theorem loop7_relIn {rd : Reader} {R : ℕ → Prop} {layers tabs rounds claim g
         simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc
         subst hc
         simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-        have hci := tb_holds_callIf hnr hP 191 (.n 236) "__loop6"
+        have hci := tb_holds_callIf hnr hP 191 (.n 236) name% «verify_bus_gkr_loop0»
           [.n 238, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] (by decide +kernel)
         have hrel := hci.2 ht
         have e238 : σ (.n 238) = gen ^ (j + 1) := by rw [m238, c237, p0, pow_succ]

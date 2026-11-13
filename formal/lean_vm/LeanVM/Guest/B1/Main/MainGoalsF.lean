@@ -2,12 +2,13 @@
   LeanVM.Guest.B1.Main.MainGoalsF
 
   `main`'s callees on an honest run, the first ones: the loops writing the hinted claims
-  (`__loop0`, `__loop1`) and the statement's digest; the claim lists' cells and bytes (their
+  (`main_loop0`, `main_loop1`) and the statement's digest; the claim lists' cells and bytes (their
   digests in `MainGoalsFCl`).
 -/
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Main.MainGoals
 public import LeanVM.Guest.B1.Main.MainGoalsFChk
 public import LeanVM.Guest.B1.Main.KidCoverAt
@@ -15,6 +16,7 @@ public import LeanVM.Guest.B1.Digest.ClaimListAt
 public import LeanVM.Guest.Limits
 public import LeanVM.Protocol.Verifier.Load
 public import LeanVM.Guest.Batch.Node
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main`'s first callees on an honest run
@@ -41,7 +43,7 @@ open LeanVM.Guest.B1 (CompleteAtD Returns bufL completeAt_of_rel_pureD)
 
 /-! ## The loops -/
 
-/-- `__loop0`'s and `__loop1`'s valuation at the counter `x`, the end `N`, the table `a` and the
+/-- `main_loop0`'s and `main_loop1`'s valuation at the counter `x`, the end `N`, the table `a` and the
 declared count's `b`. -/
 def mfσ1 (x N a b : E) : Val :=
   B1.Val.ofArgs [x, N, a, b, b * x, b * x * (b * x), b * x * (b * x) * (b * x * (b * x)),
@@ -49,14 +51,14 @@ def mfσ1 (x N a b : E) : Val :=
     word 2 0, x * word 2 0]
 
 theorem mfL1_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
-    coreProgram.Rel rd "__loop0" [1, gen ^ m, a, b] [] := by
-  have hf := find_of_idx mfL1_idx (by rw [coreProgram_length]; omega)
-  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD 34 default) (gen ^ j) (gen ^ m) [a, b] := by
+    coreProgram.Rel rd name% «main_loop0» [1, gen ^ m, a, b] [] := by
+  have hf := find_of_idx mfL1_idx
+  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD idx% «main_loop0» default) (gen ^ j) (gen ^ m) [a, b] := by
     intro j _
     refine ⟨mfσ1 (gen ^ j) (gen ^ m) a b, rfl, ?_⟩
-    rw [show loopPre (coreProgram.getD 34 default) = Data.core34.body.take 10 from rfl]
+    rw [show loopPre (coreProgram.getD idx% «main_loop0» default) = (core% «main_loop0» body).take 10 from rfl]
     intro t ht
-    simp only [Data.core34.body, List.take_succ_cons, List.take_zero, List.mem_cons,
+    simp only [core_eq% «main_loop0» body, List.take_succ_cons, List.take_zero, List.mem_cons,
       List.not_mem_nil, or_false] at ht
     rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     all_goals first | exact And.intro rfl trivial | exact And.intro trivial trivial
@@ -64,14 +66,14 @@ theorem mfL1_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
   rwa [pow_zero] at h
 
 theorem mfL2_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
-    coreProgram.Rel rd "__loop1" [1, gen ^ m, a, b] [] := by
-  have hf := find_of_idx mfL2_idx (by rw [coreProgram_length]; omega)
-  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD 35 default) (gen ^ j) (gen ^ m) [a, b] := by
+    coreProgram.Rel rd name% «main_loop1» [1, gen ^ m, a, b] [] := by
+  have hf := find_of_idx mfL2_idx
+  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD idx% «main_loop1» default) (gen ^ j) (gen ^ m) [a, b] := by
     intro j _
     refine ⟨mfσ1 (gen ^ j) (gen ^ m) a b, rfl, ?_⟩
-    rw [show loopPre (coreProgram.getD 35 default) = Data.core35.body.take 10 from rfl]
+    rw [show loopPre (coreProgram.getD idx% «main_loop1» default) = (core% «main_loop1» body).take 10 from rfl]
     intro t ht
-    simp only [Data.core35.body, List.take_succ_cons, List.take_zero, List.mem_cons,
+    simp only [core_eq% «main_loop1» body, List.take_succ_cons, List.take_zero, List.mem_cons,
       List.not_mem_nil, or_false] at ht
     rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     all_goals first | exact And.intro rfl trivial | exact And.intro trivial trivial

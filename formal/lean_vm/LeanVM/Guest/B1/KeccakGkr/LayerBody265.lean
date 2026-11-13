@@ -14,7 +14,7 @@ open LeanVM.Guest.Core LeanVM.Guest.B1
 
 @[expose] public section
 
-theorem layer_body265 : Data.core267.body = layerT 0 := stmtsEqb_sound (by decide +kernel)
+theorem layer_body265 : (fn% «keccak_layer__L0»).body = layerT 0 := stmtsEqb_sound (by decide +kernel)
 
 end
 end LeanVM.Guest.B1.VerifySub

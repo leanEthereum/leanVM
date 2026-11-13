@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegSound
 
-  The leanXMSS check inline in `__loop2` (`verify_lean_xmss`, `lean_ethereum.py:3848-3920`) is
+  The leanXMSS check inline in `main_loop2` (`verify_lean_xmss`, `lean_ethereum.py:3848-3920`) is
   sound: whenever its statements hold, the rest holds, and with the carried chain indices held the
   signature its valuation holds verifies the claim at its pointer (`verify_lean_xmss_sound_holds`).
 -/
@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Sig.XmssLayer
 public import LeanVM.Guest.B1.Sig.Interface
 
 /-!
-# The leanXMSS check of `__loop2`, sound
+# The leanXMSS check of `main_loop2`, sound
 
 `xmssSigOf σ`: the leaf index of the four windows the path's dispatches take (`sKw`, `lxIndex`),
 and per layer (`sPart`) the randomizer, the chain starts in the codeword's arms taken (`sStart`)
@@ -63,7 +63,7 @@ noncomputable def sPart (layer b : Nat) (σ : Val) : LeanXmss.LayerSignature :=
     fun i => xv (σ (sStart (sW layer b) σ (sA layer b + 6) (sA layer b + 6 + 70) i.val)),
     fun l => xv (sSibAt σ layer b l.val)⟩
 
-/-- **The leanXMSS signature the check of `__loop2` verifies**, read off the loop's valuation. -/
+/-- **The leanXMSS signature the check of `main_loop2` verifies**, read off the loop's valuation. -/
 noncomputable def xmssSigOf (σ : Val) : LeanXmss.Signature :=
   ⟨⟨lxIndex (sKw σ), lxIndex_lt fun w _ => sKw_lt σ w⟩, fun lay =>
     if lay = LeanXmss.bottomLayer then sPart 0 88 σ else sPart 1 (sLayer 0 88 (.n 0)).2.1 σ⟩
@@ -390,7 +390,7 @@ theorem sTag_eq (σ : Val) (i : Nat) :
   unfold sTag lxTagOf
   split_ifs <;> rfl
 
-/-- **The leanXMSS check of `__loop2` is sound**, for the signature its valuation holds. -/
+/-- **The leanXMSS check of `main_loop2` is sound**, for the signature its valuation holds. -/
 theorem verify_lean_xmss_sound_holds : verify_lean_xmss_sound_Spec xmssSigOf := by
   intro C rd σ rest next kret h
   simp only [xSeg, List.append_assoc] at h

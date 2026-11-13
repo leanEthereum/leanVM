@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Digest.ChildListAt0
 public import LeanVM.Guest.B1.Main.NodeHonestAt
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The walk by hinted indices, placed
@@ -19,7 +20,7 @@ public import LeanVM.Guest.B1.Main.NodeHonestAt
 `entries · g^(4 o j)`) among the caller's words, with `L ≤ 2^κ` (the range checks read below
 `2^κ`), `child_claim_list_any` on `[g^eP, g^rg, base, g^L, g^a, g^b, g^c]` is complete returning
 the cells' digest: its chain buffer (`chainCells`, `13 (a + b + 1)` words) after its frame, then
-`__loop17` over the `a` big frames, `__loop18` over the `b` groups (`anyLoop_completeAtB`),
+`child_claim_list_any_loop0` over the `a` big frames, `child_claim_list_any_loop1` over the `b` groups (`anyLoop_completeAtB`),
 `child_claim_list_last__L{c}` (`ccl_completeAtB`); by a tree of honest shape `anyHonest n`
 (`anyQ`, `anyCalls`, `anyBufs`), within `anyB fs n` words. `_completeAtT`, `_completeAt`: the
 same, forgetting the bound.
@@ -48,17 +49,17 @@ theorem regionL_append_right {L L' : Main.Layout} {i : ℕ} (h : RegionL L' i) :
 /-! ## The honest shape -/
 
 /-- `child_claim_list_any`'s words that end its loops and size its buffer (`n = 136a + 17b + c`):
-`g^a`, `g^b`, `g^c` at `v4`, `v5`, `v6` (the first two end `__loop17`, `__loop18`), the chain
+`g^a`, `g^b`, `g^c` at `v4`, `v5`, `v6` (the first two end `child_claim_list_any_loop0`, `child_claim_list_any_loop1`), the chain
 buffer's size `g^(13 (a + b + 1))` at `v16`, the loops' start `1` at `v33`, `v51`. -/
 def anyQ (n : ℕ) (σ : Val) : Prop :=
   σ (.n 4) = gen ^ (n / 136) ∧ σ (.n 5) = gen ^ (n % 136 / 17) ∧ σ (.n 6) = gen ^ (n % 17) ∧
     σ (.n 16) = gen ^ (13 * (n / 136 + n % 136 / 17 + 1)) ∧ σ (.n 33) = 1 ∧ σ (.n 51) = 1
 
-/-- `child_claim_list_any`'s calls: `__loop17` when `n / 136 ≠ 0`, `__loop18` when
+/-- `child_claim_list_any`'s calls: `child_claim_list_any_loop0` when `n / 136 ≠ 0`, `child_claim_list_any_loop1` when
 `n % 136 / 17 ≠ 0`, `child_claim_list_last__L{n % 17}`. -/
 def anyCalls (n : ℕ) (_ : Val) : List Call :=
-  [⟨"__loop17", [.n 33, .n 4, .n 17, .n 0, .n 1, .n 2, .n 8], [], decide (n / 136 ≠ 0)⟩,
-    ⟨"__loop18", [.n 51, .n 5, .n 39, .n 0, .n 1, .n 48, .n 8], [], decide (n % 136 / 17 ≠ 0)⟩,
+  [⟨name% «child_claim_list_any_loop0», [.n 33, .n 4, .n 17, .n 0, .n 1, .n 2, .n 8], [], decide (n / 136 ≠ 0)⟩,
+    ⟨name% «child_claim_list_any_loop1», [.n 51, .n 5, .n 39, .n 0, .n 1, .n 48, .n 8], [], decide (n % 136 / 17 ≠ 0)⟩,
     ⟨cclNames[n % 17]!, [.n 57, .n 0, .n 1, .n 63, .n 8], [.n 64, .n 65], true⟩]
 
 /-- `child_claim_list_any`'s `HeapBuf`: the chain buffer. -/
@@ -72,12 +73,12 @@ def anyHonest (n : ℕ) : Tree → Prop :=
   NodeHonest coreProgram "child_claim_list_any" (anyQ n) (anyCalls n) (anyBufs n) anyTs
 
 /-- **`child_claim_list_any`'s words** on `n = 136a + 17b + c` claims: its frame, its chain buffer
-`13 (a + b + 1)`, `__loop17` within `a + 1` frames (its frame when not entered), `__loop18` within
+`13 (a + b + 1)`, `child_claim_list_any_loop0` within `a + 1` frames (its frame when not entered), `child_claim_list_any_loop1` within
 `b + 1`, `child_claim_list_last__L{c}` a leaf within its frame. -/
 def anyB (fs : String → ℕ) (n : ℕ) : ℕ :=
   fs "child_claim_list_any" + 13 * (n / 136 + n % 136 / 17 + 1) +
-    ((if n / 136 ≠ 0 then (n / 136 + 1) * fs "__loop17" else fs "__loop17") +
-      ((if n % 136 / 17 ≠ 0 then (n % 136 / 17 + 1) * fs "__loop18" else fs "__loop18") +
+    ((if n / 136 ≠ 0 then (n / 136 + 1) * fs name% «child_claim_list_any_loop0» else fs name% «child_claim_list_any_loop0») +
+      ((if n % 136 / 17 ≠ 0 then (n % 136 / 17 + 1) * fs name% «child_claim_list_any_loop1» else fs name% «child_claim_list_any_loop1») +
         (fs (cclNames.getD (n % 17) "") + 0)))
 
 /-! ## Placed -/
@@ -123,18 +124,18 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
       (by rw [length_chainCells]; exact hk))
   -- the callees
   let ks : List Kid :=
-    [⟨"__loop17", decide (a ≠ 0), [1, gen ^ a, chain, gen ^ eP, gen ^ rg, base, last], Lin ++ Own,
+    [⟨name% «child_claim_list_any_loop0», decide (a ≠ 0), [1, gen ^ a, chain, gen ^ eP, gen ^ rg, base, last], Lin ++ Own,
         Returns []⟩,
-      ⟨"__loop18", decide (b ≠ 0), [1, gen ^ b, chain * gen ^ (13 * a), gen ^ eP, gen ^ rg,
+      ⟨name% «child_claim_list_any_loop1», decide (b ≠ 0), [1, gen ^ b, chain * gen ^ (13 * a), gen ^ eP, gen ^ rg,
         base * gen ^ (136 * a), last], Lin ++ Own, Returns []⟩,
       ⟨cclNames[r]!, true, [chain * gen ^ (13 * (a + b)), gen ^ eP, gen ^ rg,
         base * gen ^ (136 * a + 17 * b), last], Lin ++ Own, Returns (digestCells D)⟩]
   have hokB : KidsDTB fs cert κ ks anyTs
-      [(a + 1) * fs "__loop17", (b + 1) * fs "__loop18", fs (cclNames.getD r "")] := by
+      [(a + 1) * fs name% «child_claim_list_any_loop0», (b + 1) * fs name% «child_claim_list_any_loop1», fs (cclNames.getD r "")] := by
     refine ⟨fun ht => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
     · simp only [decide_eq_true_eq] at ht
       refine anyLoop_completeAtB fs cert (j := 365)
-        (find_of_idx any136_idx (by rw [coreProgram_length]; omega)) any136_ok any136c_head
+        (find_of_idx any136_idx) any136_ok any136c_head
         any136c_edge any136c_recs any136_nb any136_unplaced (by norm_num)
         (chP := b0) (n0 := 0) (pre0 := []) (o := o) (cells := cells) rfl rfl rfl (by simp)
         (by rw [hl]; omega) hlast hL33 hLκ (by omega) (by omega)
@@ -149,7 +150,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
       · rw [Nat.add_assoc]; exact hOR _ (by omega)
     · simp only [decide_eq_true_eq] at ht
       refine anyLoop_completeAtB fs cert (j := 366)
-        (find_of_idx any17_idx (by rw [coreProgram_length]; omega)) any17_ok any17c_parts.1
+        (find_of_idx any17_idx) any17_ok any17c_parts.1
         any17c_parts.2.1 any17c_parts.2.2 any17_nb any17_unplaced
         (by norm_num) (chP := b0 + 13 * a) (n0 := 64 * a)
         (pre0 := cellsBytes (cells.take (544 * a))) (o := fun i => o (136 * a + i))
@@ -194,7 +195,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
       rwa [← cellsBytes_append, List.take_append_drop] at this
   obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
     kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) κ ks anyTs
-      [(a + 1) * fs "__loop17", (b + 1) * fs "__loop18", fs (cclNames.getD r "")] hokB
+      [(a + 1) * fs name% «child_claim_list_any_loop0», (b + 1) * fs name% «child_claim_list_any_loop1», fs (cclNames.getD r "")] hokB
       (b0 + 13 * (a + b + 1))
   have hl0 : outs.length = 3 := hoo.length
   obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
@@ -229,7 +230,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
       _ = last := by rw [hV.v8, e3]
   -- the path
   have hx : σ (.n 6) = ofK (addressOfIndex r) := by rw [e6, gen_pow_eq_ofK]
-  have hw : walk σ (Fn.body Data.core25) =
+  have hw : walk σ (Fn.body fn% «child_claim_list_any») =
       .ret (anyP1.flatMap (Main.slEvs σ) ++ .call cclNames[r]! [.n 57, .n 0, .n 1, .n 63, .n 8]
         [.n 64, .n 65] :: anyPost.flatMap (Main.slEvs σ)) [.n 66, .n 67] := by
     rw [any_body]
@@ -277,9 +278,9 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
     rw [hV.v32]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
   have h50 : decide (σ (.n 50) ≠ 0) = decide (b ≠ 0) := by
     rw [hV.v50]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
-  have hcalls : calls es = [⟨"__loop17", [.n 33, .n 4, .n 17, .n 0, .n 1, .n 2, .n 8], [],
+  have hcalls : calls es = [⟨name% «child_claim_list_any_loop0», [.n 33, .n 4, .n 17, .n 0, .n 1, .n 2, .n 8], [],
         decide (a ≠ 0)⟩,
-      ⟨"__loop18", [.n 51, .n 5, .n 39, .n 0, .n 1, .n 48, .n 8], [], decide (b ≠ 0)⟩,
+      ⟨name% «child_claim_list_any_loop1», [.n 51, .n 5, .n 39, .n 0, .n 1, .n 48, .n 8], [], decide (b ≠ 0)⟩,
       ⟨cclNames[r]!, [.n 57, .n 0, .n 1, .n 63, .n 8], [.n 64, .n 65], true⟩] := by
     rw [hes, es3_calls, hpc, hqc, anyP1_calls, hpostA.2.2.1]
     simp only [List.map_cons, List.map_nil, Main.mkCall, h32, h50, List.cons_append,

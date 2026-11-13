@@ -133,14 +133,14 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
     (bytecode : List K) (hbl : bytecode.length = 2 ^ bytecodeVars) {κ : ℕ} (L : MemoryImage κ)
     (hκ : κ ≤ 32) (C : CallRel) (V : FrameMap) (hU : UnfoldsV L.read C V)
     (hLe : CallRel.Le C (coreProgram.Rel L.read)) (σ : Val) (rets : List E)
-    (hb : Stmt.HoldsList C L.read σ (Fn.body Data.core18) False (fun rs ↦ rs = rets))
-    (hpre : VerifySubPre L.read (Data.core18.params.map σ)) :
-    rets = [] ∧ Main.VerifySubOut bytecode L.read (Data.core18.params.map σ) (vsPiOf L.read σ V) := by
+    (hb : Stmt.HoldsList C L.read σ (Fn.body fn% «verify_sub») False (fun rs ↦ rs = rets))
+    (hpre : VerifySubPre L.read ((fn% «verify_sub»).params.map σ)) :
+    rets = [] ∧ Main.VerifySubOut bytecode L.read ((fn% «verify_sub»).params.map σ) (vsPiOf L.read σ V) := by
   obtain ⟨hexp, hwin⟩ : ExpTables L.read (σ (.n 4)) ∧ ExpWinTab L.read (σ (.n 4)) := by
     simpa [VerifySubPre, vs_params] using hpre
   have hκw := winTab_kappa hκ L hwin
   have hbl' : bytecode.length = 2 ^ 23 := hbl
-  rw [show Fn.body Data.core18 = vsT from vs_body] at hb
+  rw [show Fn.body fn% «verify_sub» = vsT from vs_body] at hb
   obtain ⟨⟨F⟩, hb⟩ := vs_front hκ L hLe hbl' hexp hwin hb
   simp only [vsBackT, holdsList_append] at hb
   have hHL := tableHeights_length F.rowsN F.hrowsL

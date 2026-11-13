@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Sumcheck.Meaning
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
@@ -765,31 +766,31 @@ theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n �
     rw [hr0, ev, gkVals_tail2]
 
 set_option maxRecDepth 100000 in
-theorem gkr_rounds_body1 : Fn.body Data.core441 = gkBody 1 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body1 : Fn.body fn% «gkr_rounds__L1» = gkBody 1 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem gkr_rounds_body2 : Fn.body Data.core438 = gkBody 2 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body2 : Fn.body fn% «gkr_rounds__L2» = gkBody 2 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem gkr_rounds_body4 : Fn.body Data.core439 = gkBody 4 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body4 : Fn.body fn% «gkr_rounds__L4» = gkBody 4 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem gkr_rounds_body6 : Fn.body Data.core440 = gkBody 6 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body6 : Fn.body fn% «gkr_rounds__L6» = gkBody 6 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- **`gkr_rounds`' core IR is its meaning**, at one, two, four and six rounds, and at none it
 returns `0`. -/
 theorem gkr_rounds_holds : gkr_rounds_Spec := by
-  have h1 : coreProgram.find? "gkr_rounds__L1" = some Data.core441 :=
-    coreProgram_find?_at (j := 441) rfl
-  have h2 : coreProgram.find? "gkr_rounds__L2" = some Data.core438 :=
-    coreProgram_find?_at (j := 438) rfl
-  have h4 : coreProgram.find? "gkr_rounds__L4" = some Data.core439 :=
-    coreProgram_find?_at (j := 439) rfl
-  have h6 : coreProgram.find? "gkr_rounds__L6" = some Data.core440 :=
-    coreProgram_find?_at (j := 440) rfl
-  have h0 : coreProgram.find? "gkr_rounds__L0" = some Data.core437 :=
-    coreProgram_find?_at (j := 437) rfl
+  have h1 : coreProgram.find? "gkr_rounds__L1" = some fn% «gkr_rounds__L1» :=
+    coreProgram_find?_at (j := idx% «gkr_rounds__L1») rfl
+  have h2 : coreProgram.find? "gkr_rounds__L2" = some fn% «gkr_rounds__L2» :=
+    coreProgram_find?_at (j := idx% «gkr_rounds__L2») rfl
+  have h4 : coreProgram.find? "gkr_rounds__L4" = some fn% «gkr_rounds__L4» :=
+    coreProgram_find?_at (j := idx% «gkr_rounds__L4») rfl
+  have h6 : coreProgram.find? "gkr_rounds__L6" = some fn% «gkr_rounds__L6» :=
+    coreProgram_find?_at (j := idx% «gkr_rounds__L6») rfl
+  have h0 : coreProgram.find? "gkr_rounds__L0" = some fn% «gkr_rounds__L0» :=
+    coreProgram_find?_at (j := idx% «gkr_rounds__L0») rfl
   refine ⟨fun n hn rd args rets ↦ ?_, fun rd args rets ↦ ?_⟩
   · simp only [gkrRoundsCounts, List.mem_cons, List.not_mem_nil, or_false] at hn
     rcases hn with rfl | rfl | rfl | rfl
@@ -802,7 +803,7 @@ theorem gkr_rounds_holds : gkr_rounds_Spec := by
     · exact ⟨gk_sound 6 (by decide) (by decide) h6 rfl gkr_rounds_body6 rd args rets,
         gk_complete 6 (by decide) (by decide) h6 rfl gkr_rounds_body6 rd args rets⟩
   · rw [rel_iff_sem h0]
-    simp only [Data.core437, Data.core437.body, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
+    simp only [core_eq% «gkr_rounds__L0», core_eq% «gkr_rounds__L0» body, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
       List.map_cons, List.map_nil]
     constructor
     · rintro ⟨σ, rfl, hc, rfl⟩

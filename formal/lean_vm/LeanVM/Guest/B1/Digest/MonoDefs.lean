@@ -3,7 +3,7 @@
 
   The checks `child_claim_list_mono`'s proof evaluates (G:4184-4252; TRIAGE #89): a claim of the
   gap walk (`child_claims_mono`), the walk's records, the frame loops' bodies, the specializations
-  `child_claim_list_mono_last__L{k}`, and the windows of the 64-block frame loop `__loop19`.
+  `child_claim_list_mono_last__L{k}`, and the windows of the 64-block frame loop `child_claim_list_mono_loop0`.
 -/
 
 module
@@ -188,15 +188,15 @@ def mlOk (k : ℕ) (f : Fn) : Bool :=
        | none => false)
   | _ => false
 
-/-! ## The big frame loop `__loop19` (136 claims, 64 blocks), in sixteen windows -/
+/-! ## The big frame loop `child_claim_list_mono_loop0` (136 claims, 64 blocks), in sixteen windows -/
 
-/-- `__loop19`'s atoms. -/
-noncomputable def mono136Atoms : List Atom := loopAtoms (coreProgram.getD 384 default)
+/-- `child_claim_list_mono_loop0`'s atoms. -/
+noncomputable def mono136Atoms : List Atom := loopAtoms (coreProgram.getD idx% «child_claim_list_mono_loop0» default)
 
-/-- `__loop19`'s chain. -/
+/-- `child_claim_list_mono_loop0`'s chain. -/
 noncomputable def mono136Spec : ChainSpec := monoSpec 136 1377 mono136Atoms
 
-/-- Window `i` of `__loop19`: blocks `4i … 4i + 3` (searched from their atoms on), claims
+/-- Window `i` of `child_claim_list_mono_loop0`: blocks `4i … 4i + 3` (searched from their atoms on), claims
 `9i … 9i + 8`. -/
 noncomputable def monoWinOk (i : ℕ) : Bool :=
   mono136Spec.blocksFrom mono136Atoms (4 * i) 4 &&

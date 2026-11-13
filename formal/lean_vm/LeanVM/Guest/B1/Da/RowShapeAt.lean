@@ -42,7 +42,7 @@ def rsAs : List Atom := [
     .rangeCheck (.n 26) (.n 27) (.n 28) (.n 29) (.n 22), .copy (.n 30) (.n 16),
     .copy (.n 31) (.n 17)]
 
-theorem rs_split : Fn.body Data.core28 = rsAs.map Stmt.atom ++ [.ret [.n 30, .n 31]] := by
+theorem rs_split : Fn.body fn% «da_row_shape» = rsAs.map Stmt.atom ++ [.ret [.n 30, .n 31]] := by
   rw [core25_body]; rfl
 
 theorem rs_loop : coreProgram.loop "da_row_shape" = false := by
@@ -66,7 +66,7 @@ theorem row_shape_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
   obtain ⟨σ, hp, hh⟩ := (rel_iff_sem find_da_row_shape _ _).mp hrel
   rw [rs_split, holdsList_atoms_ret] at hh
   obtain ⟨hat, hr⟩ := hh
-  have hpar : Data.core28.params = [.n 0, .n 1, .n 2] := rfl
+  have hpar : (fn% «da_row_shape»).params = [.n 0, .n 1, .n 2] := rfl
   rw [hpar] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
   have h15 : σ (.n 15) = gen ^ s * gen ^ L := by

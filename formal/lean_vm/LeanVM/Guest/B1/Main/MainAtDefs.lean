@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Main.MainWalkChk
 public import LeanVM.Guest.B1.Main.MainCore
 public import LeanVM.Guest.B1.Main.ExpTablesAt
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main`, placed: the definitions
@@ -89,14 +90,14 @@ def mKids (m : MainIn) (Lin : B1.Main.Layout) : List Kid :=
   let Y := m.nls + m.nsd
   [⟨"claim_list_digest", true, [m.a77, gen ^ m.nlx], Lin, Returns (digestCells m.xd)⟩,
     ⟨"claim_list_digest", true, [m.a80, gen ^ m.nls], Lin, Returns (digestCells m.sd)⟩,
-    ⟨"__loop0", decide (m.nxd ≠ 0), [one, gen ^ m.nxd, m.a77, gen ^ m.nlx], Lin, Returns []⟩,
-    ⟨"__loop1", decide (m.nsd ≠ 0), [one, gen ^ m.nsd, m.a80, gen ^ m.nls], Lin, Returns []⟩,
-    ⟨"__loop2", decide (m.nrx ≠ 0), [one, gen ^ m.nrx, gen ^ X, m.a117, m.a77] ++ lxTagWords, Lin,
+    ⟨name% «main_loop0», decide (m.nxd ≠ 0), [one, gen ^ m.nxd, m.a77, gen ^ m.nlx], Lin, Returns []⟩,
+    ⟨name% «main_loop1», decide (m.nsd ≠ 0), [one, gen ^ m.nsd, m.a80, gen ^ m.nls], Lin, Returns []⟩,
+    ⟨name% «main_loop2», decide (m.nrx ≠ 0), [one, gen ^ m.nrx, gen ^ X, m.a117, m.a77] ++ lxTagWords, Lin,
       Returns []⟩,
-    ⟨"__loop3", decide (m.nrs ≠ 0), [one, gen ^ m.nrs, gen ^ Y, m.a117 * gen ^ X, gen ^ m.nrx,
+    ⟨name% «main_loop3», decide (m.nrs ≠ 0), [one, gen ^ m.nrs, gen ^ Y, m.a117 * gen ^ X, gen ^ m.nrx,
       m.a80, m.a119], Lin, Returns []⟩] ++
   (if m.nd = 1 then [⟨"da_verify", true, [m.et], Lin, Returns m.daR⟩] else []) ++
-  [⟨"__loop4", decide (m.nc ≠ 0), [one, gen ^ m.nc, m.a409, m.a77, m.a117, gen ^ X, m.a80,
+  [⟨name% «main_loop4», decide (m.nc ≠ 0), [one, gen ^ m.nc, m.a409, m.a77, m.a117, gen ^ X, m.a80,
     m.a117 * gen ^ X, gen ^ Y, m.a406, m.aDa, (digestHalves m.seed).1, (digestHalves m.seed).2,
     m.a394, m.et, m.a400], Lin, Returns []⟩] ++
   (if m.nc = 0 then [] else

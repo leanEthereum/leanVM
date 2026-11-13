@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Da.Levels
 public import LeanVM.Guest.B1.Common.Find
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The specializations of `da_levels`
@@ -30,16 +31,16 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 /-- The specializations: `k`, the name, the core function, the level loops. -/
 def dlTab : List (ℕ × String × ℕ × List String) :=
   [(0, "da_levels__L1_L0", 407, []),
-    (1, "da_levels__L2_L1", 408, ["__loop41"]),
-    (2, "da_levels__L4_L2", 409, ["__loop42", "__loop43"]),
-    (3, "da_levels__L8_L3", 410, ["__loop44", "__loop45", "__loop46"]),
-    (4, "da_levels__L16_L4", 411, ["__loop47", "__loop48", "__loop49", "__loop50"]),
-    (5, "da_levels__L32_L5", 412, ["__loop51", "__loop52", "__loop53", "__loop54", "__loop55"]),
-    (6, "da_levels__L64_L6", 413, ["__loop56", "__loop57", "__loop58", "__loop59", "__loop60", "__loop61"]),
-    (7, "da_levels__L128_L7", 414, ["__loop62", "__loop63", "__loop64", "__loop65", "__loop66", "__loop67", "__loop68"]),
-    (8, "da_levels__L256_L8", 415, ["__loop69", "__loop70", "__loop71", "__loop72", "__loop73", "__loop74", "__loop75", "__loop76"]),
-    (9, "da_levels__L512_L9", 416, ["__loop77", "__loop78", "__loop79", "__loop80", "__loop81", "__loop82", "__loop83", "__loop84", "__loop85"]),
-    (10, "da_levels__L1024_L10", 417, ["__loop86", "__loop87", "__loop88", "__loop89", "__loop90", "__loop91", "__loop92", "__loop93", "__loop94", "__loop95"])]
+    (1, "da_levels__L2_L1", 408, [name% «da_levels__L2_L1_loop0»]),
+    (2, "da_levels__L4_L2", 409, [name% «da_levels__L4_L2_loop0», name% «da_levels__L4_L2_loop1»]),
+    (3, "da_levels__L8_L3", 410, [name% «da_levels__L8_L3_loop0», name% «da_levels__L8_L3_loop1», name% «da_levels__L8_L3_loop2»]),
+    (4, "da_levels__L16_L4", 411, [name% «da_levels__L16_L4_loop0», name% «da_levels__L16_L4_loop1», name% «da_levels__L16_L4_loop2», name% «da_levels__L16_L4_loop3»]),
+    (5, "da_levels__L32_L5", 412, [name% «da_levels__L32_L5_loop0», name% «da_levels__L32_L5_loop1», name% «da_levels__L32_L5_loop2», name% «da_levels__L32_L5_loop3», name% «da_levels__L32_L5_loop4»]),
+    (6, "da_levels__L64_L6", 413, [name% «da_levels__L64_L6_loop0», name% «da_levels__L64_L6_loop1», name% «da_levels__L64_L6_loop2», name% «da_levels__L64_L6_loop3», name% «da_levels__L64_L6_loop4», name% «da_levels__L64_L6_loop5»]),
+    (7, "da_levels__L128_L7", 414, [name% «da_levels__L128_L7_loop0», name% «da_levels__L128_L7_loop1», name% «da_levels__L128_L7_loop2», name% «da_levels__L128_L7_loop3», name% «da_levels__L128_L7_loop4», name% «da_levels__L128_L7_loop5», name% «da_levels__L128_L7_loop6»]),
+    (8, "da_levels__L256_L8", 415, [name% «da_levels__L256_L8_loop0», name% «da_levels__L256_L8_loop1», name% «da_levels__L256_L8_loop2», name% «da_levels__L256_L8_loop3», name% «da_levels__L256_L8_loop4», name% «da_levels__L256_L8_loop5», name% «da_levels__L256_L8_loop6», name% «da_levels__L256_L8_loop7»]),
+    (9, "da_levels__L512_L9", 416, [name% «da_levels__L512_L9_loop0», name% «da_levels__L512_L9_loop1», name% «da_levels__L512_L9_loop2», name% «da_levels__L512_L9_loop3», name% «da_levels__L512_L9_loop4», name% «da_levels__L512_L9_loop5», name% «da_levels__L512_L9_loop6», name% «da_levels__L512_L9_loop7», name% «da_levels__L512_L9_loop8»]),
+    (10, "da_levels__L1024_L10", 417, [name% «da_levels__L1024_L10_loop0», name% «da_levels__L1024_L10_loop1», name% «da_levels__L1024_L10_loop2», name% «da_levels__L1024_L10_loop3», name% «da_levels__L1024_L10_loop4», name% «da_levels__L1024_L10_loop5», name% «da_levels__L1024_L10_loop6», name% «da_levels__L1024_L10_loop7», name% «da_levels__L1024_L10_loop8», name% «da_levels__L1024_L10_loop9»])]
 /-- Entry `k`'s first level loop's core function; the others follow it. -/
 def dlLoop0 : List ℕ := [0, 945, 946, 948, 951, 955, 960, 966, 973, 981, 990]
 

@@ -21,7 +21,7 @@ The definitions `VerifySub/CompleteB` proves `verify_sub`'s completeness within,
 proof's imports, for the budget (`Budget/VsCount`).
 
 `VsWordsOs`: `VsWords` with `open_stacked`'s leaves' and residual loops' facts. `vsBs W Bvk`: the
-sixteen callees' bounds, in call order (`Data.core18`): two `g_power_of_word`s,
+sixteen callees' bounds, in call order (`fn% «verify_sub»`): two `g_power_of_word`s,
 `log2_ceil_in_the_exponent__L0_L34`, `certify_placement`, `log2_ceil_in_the_exponent__L16_L34`,
 `grind_check__L15`, the `squeeze_point_from` dispatch, `opening_message__L1_L1`, the
 `bus_grind_check` dispatch, `verify_bus_gkr`, `verify_tables`, `verify_keccak`, `grind_check__L13`,

@@ -219,7 +219,7 @@ theorem vsT_pre249 : vsT = (vsHeadT ++ vsReadsT ++ vsSizesT ++ vsPushT ++ vsRoot
 theorem vsKnown_of {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (hcp : Tables.certify_placement_Spec L.read)
     (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)))
-    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1545) True
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take 1545) True
       (fun _ ↦ True)) :
     ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 83)) i (ofK (addressOfIndex e)) := by
   have hκ : κ ≤ 32 := h32.trans (by decide)
@@ -229,7 +229,7 @@ theorem vsKnown_of {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem ≤ κ) (h
     have : 2 ^ κ ≤ 2 ^ 5 := Nat.pow_le_pow_right (by norm_num) (by omega)
     omega
   have hle : CallRel.Le (coreProgram.Rel L.read) (coreProgram.Rel L.read) := fun _ _ _ h ↦ h
-  rw [show Fn.body Data.core18 = vsT from vs_body, vsT_pre249, List.take_append,
+  rw [show Fn.body fn% «verify_sub» = vsT from vs_body, vsT_pre249, List.take_append,
     List.take_of_length_le (by rw [vsPre249_length]; omega)] at h
   simp only [holdsList_append] at h
   have h := ((holdsList_noRet _ vsHeadT_noRet _ _).1 h).2

@@ -12,6 +12,7 @@ public import LeanVM.Guest.Batch.Def
 public import LeanVM.Guest.B1.Sumcheck.Batch
 public import LeanVM.Guest.B1.Bits.Grind
 public import LeanVM.Guest.B1.Common.MemSize
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `aggregate_claims` (TRIAGE G #97)
@@ -23,14 +24,14 @@ public import LeanVM.Guest.B1.Common.MemSize
 the hint. For `m` children whose words the memory holds (`ChildWordsAt`), `batch_fs` reads
 `Node.batch` on the carried sponge:
 
-* the absorbing rows (`__loop33`, `l25_step`) carry the sponge after the count and the first `c`
+* the absorbing rows (`aggregate_claims_loop0`, `l25_step`) carry the sponge after the count and the first `c`
   children's words (`absorb_rows`);
 * the last absorbing row is permuted, the nonce absorbed with the tag `4` and permuted
   (`aggN`, `nonce_ins`), `grind_check__L2` on that permutation's cell `1` is its proof of work,
   `λ` its cell `0`, and its capacity the sponge `batch_sumcheck__L23` starts from (`aggLam`);
-* the records of `bc_chain` (`__loop34`, `l26_step`) hold `λ^(2c)` and the lambdas' combination
+* the records of `bc_chain` (`aggregate_claims_loop1`, `l26_step`) hold `λ^(2c)` and the lambdas' combination
   of the first `c` children's values (`chain_rows`); the last one's feeds `batch_sumcheck__L23`;
-* the weights (`__loop35`, `l27_step`) are the lambdas' combination of the claims' equality
+* the weights (`aggregate_claims_loop2`, `l27_step`) are the lambdas' combination of the claims' equality
   weights at the sumcheck's point (`weight_rows`), and the body checks that the final claim is
   the hint times the last.
 -/
@@ -331,8 +332,8 @@ theorem nonce_ins {s : Fs} (hs : s.pend.length = 4) (n : E) :
 the children whose words the memory holds. -/
 theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
     (hle : CallRel.Le C (coreProgram.Rel rd))
-    {σ : Val} {args rets : List E} (hpar : Data.core33.params.map σ = args)
-    (hbC : Stmt.HoldsList C rd σ (Fn.body Data.core33) False (fun rs => rs = rets)) :
+    {σ : Val} {args rets : List E} (hpar : (fn% «aggregate_claims»).params.map σ = args)
+    (hbC : Stmt.HoldsList C rd σ (Fn.body fn% «aggregate_claims») False (fun rs => rs = rets)) :
     MeaningAggregateClaimsW rd (aggHints rd σ) args rets := by
   have hb := holdsList_mono hle _ id (fun _ h => h) hbC
   have hok := agg_ok
@@ -357,7 +358,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
   -- the absorbing loop
   have L25 : ∀ c < m, L25Step rd (σ (.n 33)) (σ (.n 2)) (σ (.n 8)) (σ (.n 3)) (σ (.n 9))
       (σ (.n 1)) (gen ^ c) :=
-    loop_sound (f := "__loop33")
+    loop_sound (f := name% «aggregate_claims_loop0»)
       (ps := [σ (.n 0), σ (.n 33), σ (.n 2), σ (.n 8), σ (.n 3), σ (.n 9), σ (.n 1)])
       (by unfold ordG; omega) hN
       (fun y hy => by
@@ -486,7 +487,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
   -- the records
   have L26 : ∀ c < m, L26Step rd (σ (.n 98)) (σ (.n 8)) (σ (.n 9)) (σ (.n 81) * σ (.n 81))
       (σ (.n 81)) (gen ^ c) := by
-    have h := loop_sound (f := "__loop34")
+    have h := loop_sound (f := name% «aggregate_claims_loop1»)
       (ps := [σ (.n 0), σ (.n 98), σ (.n 8), σ (.n 9), σ (.n 94), σ (.n 81)])
       (B := fun x => L26Step rd (σ (.n 98)) (σ (.n 8)) (σ (.n 9)) (σ (.n 94)) (σ (.n 81)) x)
       (by unfold ordG; omega) hN
@@ -514,7 +515,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
   -- the weight
   have L27 : ∀ c < m, L27Step rd (σ (.n 8)) (σ (.n 9)) (σ (.n 116)) (σ (.n 98)) (σ (.n 188))
       (σ (.n 81)) (gen ^ c) :=
-    loop_sound (f := "__loop35")
+    loop_sound (f := name% «aggregate_claims_loop2»)
       (ps := [σ (.n 0), σ (.n 8), σ (.n 9), σ (.n 116), σ (.n 98), σ (.n 188), σ (.n 81)])
       (by unfold ordG; omega) hN
       (fun y hy => by

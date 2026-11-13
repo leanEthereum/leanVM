@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Ring.Weight
 public import LeanVM.Guest.B1.Ring.TargetComplete
 public import LeanVM.Guest.B1.Eq.RsEqRun
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `ring_switch_weight`, placed (TRIAGE G #66)
@@ -71,8 +72,8 @@ theorem rswChain_load {rd : Reader} {zs ps : List E} {count b : ℕ}
 
 /-! ## `rs_eq_run`, placed -/
 
-/-- `rs_eq_run`'s callees: `__loop5` and `rs_eq_rows__L{n}`, `n ≤ 8`. -/
-def rsPureNames : List String := ["rs_eq_run", "__loop5"] ++ rsEqRowsNames
+/-- `rs_eq_run`'s callees: `rs_eq_run_loop0` and `rs_eq_rows__L{n}`, `n ≤ 8`. -/
+def rsPureNames : List String := ["rs_eq_run", name% «rs_eq_run_loop0»] ++ rsEqRowsNames
 
 theorem rs_pure : coreProgram.PureIn rsPureNames := Tables.pureIn_of_pureInB (by decide +kernel)
 
@@ -121,8 +122,8 @@ def rswPre : List Stmt :=
 theorem rswT_split : rswT = rswPre ++ [.ret [.n 333]] := by
   simp only [rswT, rswPre, List.append_assoc, List.cons_append, List.nil_append]
 
-theorem rsw_body' : Fn.body Data.core14 = rswPre ++ [.ret [.n 333]] := by
-  rw [show Fn.body Data.core14 = rswT from rsw_body, rswT_split]
+theorem rsw_body' : Fn.body fn% «ring_switch_weight» = rswPre ++ [.ret [.n 333]] := by
+  rw [show Fn.body fn% «ring_switch_weight» = rswT from rsw_body, rswT_split]
 
 theorem rsw_flat : rswPre.all Stmt.flat = true := by decide +kernel
 

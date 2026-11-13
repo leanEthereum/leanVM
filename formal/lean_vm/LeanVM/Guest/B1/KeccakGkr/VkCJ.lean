@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.VkCCK.Steps
 public import LeanVM.Guest.B1.KeccakGkr.VkHolds
 public import LeanVM.Guest.B1.Tables.FlatAt
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The body, flat
@@ -63,16 +64,16 @@ def stepCall (s : ℕ) : Option V × String × List V × List V :=
 
 /-- **The calls.** -/
 def vkCalls : List (Option V × String × List V × List V) :=
-  [(some (.n 63), "__loop10", [.n 64, .n 18, .n 61, .n 66], [])] ++
+  [(some (.n 63), name% «verify_keccak_loop0», [.n 64, .n 18, .n 61, .n 66], [])] ++
     (List.range 12).map stepCall ++
     [(none, "keccak_plain_rounds__L6_L0", [.n 915, .n 916, .n 917, .n 918, .n 919, .n 922,
         .n 923, .n 920, .n 158, .n 921, .n 11], (List.range 7).map fun j ↦ .n (924 + j)),
-      (some (.n 1194), "__loop11", [.n 1195, .n 18, .n 1197, .n 61], []),
+      (some (.n 1194), name% «verify_keccak_loop1», [.n 1195, .n 18, .n 1197, .n 61], []),
       (none, "keccak_plain_rounds__L4_L1", [.n 924, .n 925, .n 926, .n 927, .n 928, .n 932,
         .n 933, .n 1199, .n 1200, .n 1202, .n 11], (List.range 7).map fun j ↦ .n (1203 + j)),
       (none, "keccak_plain_rounds__L6_L0", [.n 1203, .n 1204, .n 1205, .n 1206, .n 1207, .n 1331,
         .n 1332, .n 1208, .n 1209, .n 1330, .n 11], (List.range 7).map fun j ↦ .n (1333 + j)),
-      (some (.n 3360), "__loop12", [.n 3361, .n 18, .n 3363, .n 1745], [])]
+      (some (.n 3360), name% «verify_keccak_loop2», [.n 3361, .n 18, .n 3363, .n 1745], [])]
 
 theorem vkPre_kernel :
     vkPre.all Stmt.flat = true ∧ vkPre.filterMap Main.Stmt.addrS = [] ∧

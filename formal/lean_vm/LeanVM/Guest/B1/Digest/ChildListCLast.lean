@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildListCLast
 
-  `child_claim_list_any`'s frame loops `__loop17` and `__loop18`: a block's honest valuation, with
+  `child_claim_list_any`'s frame loops `child_claim_list_any_loop0` and `child_claim_list_any_loop1`: a block's honest valuation, with
   where its loads read.
 -/
 
@@ -15,11 +15,12 @@ public import LeanVM.Guest.B1.Digest.ChildListCW3
 public import LeanVM.Guest.B1.Digest.ChildListCRec
 public import LeanVM.Guest.B1.Digest.PlacedLib
 public import LeanVM.Guest.B1.Da.AtBase
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # A frame of child claims, completely
 
-`any_core`: a frame loop's block at the counter `x = g^xj` (`__loop17`, 136 claims, or `__loop18`,
+`any_core`: a frame loop's block at the counter `x = g^xj` (`child_claim_list_any_loop0`, 136 claims, or `child_claim_list_any_loop1`,
 17), from the state after whole blocks `pre` at `chain · x^13`, `m` honest records (`RecMem`:
 slots `os j` below the bound `g^L = last · g`, marks `base · x^m · g^j` at `region · g^(os j)`,
 cells at `entries · g^(4 os j)`) and the state after their cells at `chain · x^13` from offset
@@ -39,7 +40,7 @@ open LeanVM.Guest.B1.Da (limb0_gen_pow_mul)
 
 variable {rd : Reader}
 
-theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (367 + k) default) = true := by
+theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default) = true := by
   rcases Nat.lt_or_ge k 9 with h | h
   · exact ccc_lo k h
   · have := ccc_hi (k - 9) (by omega)
@@ -255,7 +256,7 @@ theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
 /-! ## The two frame loops -/
 
 theorem any136c_recs : ∀ i < 136,
-    recW (ccOwn (loopAtoms (coreProgram.getD 365 default)) 15 i) (anyP 21) 22 i = true :=
+    recW (ccOwn (loopAtoms (coreProgram.getD idx% «child_claim_list_any_loop0» default)) 15 i) (anyP 21) 22 i = true :=
   recs_of_wins (w := 9) (W := 16) (by norm_num) fun i hi => by
     have hw : ∀ i < 16, anycWin i = true := by
       intro i hi
@@ -265,9 +266,9 @@ theorem any136c_recs : ∀ i < 136,
         anycWin_14, anycWin_15]
     exact hw i hi
 
-theorem any17c_parts : anycHead (coreProgram.getD 366 default) "__loop18" = true ∧
-    anycEdge (coreProgram.getD 366 default) 17 19 12 18 255 = true ∧
-    ∀ i < 17, recW (ccOwn (loopAtoms (coreProgram.getD 366 default)) 12 i) (anyP 18) 19 i = true := by
+theorem any17c_parts : anycHead (coreProgram.getD idx% «child_claim_list_any_loop1» default) name% «child_claim_list_any_loop1» = true ∧
+    anycEdge (coreProgram.getD idx% «child_claim_list_any_loop1» default) 17 19 12 18 255 = true ∧
+    ∀ i < 17, recW (ccOwn (loopAtoms (coreProgram.getD idx% «child_claim_list_any_loop1» default)) 12 i) (anyP 18) 19 i = true := by
   have h := any17c_ok
   simp only [anycOk, Bool.and_eq_true] at h
   exact ⟨h.1.1, h.1.2, recs_of_wins (w := 17) (W := 1) le_rfl fun i hi => by

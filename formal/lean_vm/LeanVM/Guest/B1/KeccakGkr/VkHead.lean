@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkT
 public import LeanVM.Guest.B1.KeccakGkr.CopyLoop
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `y` in the exponent
@@ -193,7 +194,7 @@ theorem vkHeadT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ 
     σ (.n 34) = gen ^ ((τ - 3) / krStep) ∧ σ (.n 48) = gen ^ ((τ - 3) % krStep) ∧
     (∀ i < 4, LoadHolds rd (σ (.n 7)) i (σ (.n (55 + i))) ∧
       LoadHolds rd (σ (.n 9)) i (σ (.n (55 + i)))) ∧
-    (1 + σ (.n 18) ≠ 0 → C "__loop10" [1, σ (.n 18), σ (.n 61), σ (.n 7) * gen ^ 4] []) ∧
+    (1 + σ (.n 18) ≠ 0 → C name% «verify_keccak_loop0» [1, σ (.n 18), σ (.n 61), σ (.n 7) * gen ^ 4] []) ∧
     σ (.n 67) = σ (.n 61) * σ (.n 18) ∧
     (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).squeezeN 1 =
       ([σ (.n 86)], ⟨(cap5 81).map σ, []⟩) ∧

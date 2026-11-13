@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegCodeC
 
-  The codeword of leanXMSS's check inline in `__loop2` completes: its `15` digit words hinted at
+  The codeword of leanXMSS's check inline in `main_loop2` completes: its `15` digit words hinted at
   the honest digits, their range checks, the `15` dispatches back to back, the digest's first cell
   their encoding and the target their sum.
 -/
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Sig.XmssSegArms
 public import LeanVM.Guest.B1.Sig.XmssBound
 
 /-!
-# The codeword in `__loop2`, complete
+# The codeword in `main_loop2`, complete
 
 * `armM_c` … `sCodewordT_c`, `sSt_c`, `sStart_c`, `sTip_c`: the codeword with `sW` is the one with
   the clamped step `sWc` (the chains `< 58`, the steps `< 3`, the powers `≤ 12` it uses);
@@ -594,7 +594,7 @@ theorem sCodewordT_snd (W : WotsT) (target : E) (d0 : V) (dg : Nat) :
   simp only
   rw [hgs']
 
-/-- **The codeword of `__loop2` completes**: its digit words hinted at the honest digits `K`, its
+/-- **The codeword of `main_loop2` completes**: its digit words hinted at the honest digits `K`, its
 dispatches taking their arms, the chains' starts `vals` loaded, the digest's first cell `d0` the
 digits' base-4 number and the target `g` to their sum. -/
 theorem sCodewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)

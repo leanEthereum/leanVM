@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.B1.Common.Find
 
@@ -14,7 +15,7 @@ public import LeanVM.Guest.B1.Common.Find
 # `keccak_plain_rounds`
 
 `keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, tabs, n, k0)` (G:3036-3062): its
-specializations `__L6_L0` (`Data.core268`) and `__L4_L1` (`Data.core270`) copy the capacity, run
+specializations `__L6_L0` (`fn% «keccak_plain_rounds__L6_L0»`) and `__L4_L1` (`fn% «keccak_plain_rounds__L4_L1»`) copy the capacity, run
 `n` rounds, each a template `plainRoundT` (`c₀`, `c₂` read and packed by `fs_next`, one `KECCAK`
 atom on the waiting scalars' rate cells and the capacity, the round's grind of `0` bits,
 `challenge_from_state`, the challenge
@@ -185,7 +186,7 @@ def plain60T : List Stmt :=
     .atom (.copy (.n 178) (.n 177)), .atom (.copy (.n 179) (.n 170)),
     .ret [.n 171, .n 172, .n 173, .n 174, .n 175, .n 178, .n 179]]
 
-theorem body60 : Data.core268.body = plain60T := stmtsEqb_sound (by decide +kernel)
+theorem body60 : (fn% «keccak_plain_rounds__L6_L0»).body = plain60T := stmtsEqb_sound (by decide +kernel)
 
 /-- The two zero cells of `__L4_L1`'s first round. -/
 def plainMid41a : List Stmt :=
@@ -220,18 +221,18 @@ def plain41T : List Stmt :=
     .atom (.copy (.n 132) (.n 131)), .atom (.copy (.n 133) (.n 124)),
     .ret [.n 125, .n 126, .n 127, .n 128, .n 129, .n 132, .n 133]]
 
-theorem body41 : Data.core270.body = plain41T := stmtsEqb_sound (by decide +kernel)
+theorem body41 : (fn% «keccak_plain_rounds__L4_L1»).body = plain41T := stmtsEqb_sound (by decide +kernel)
 
-theorem find_plain60 : coreProgram.find? "keccak_plain_rounds__L6_L0" = some Data.core268 :=
-  coreProgram_find?_at (j := 268) rfl
+theorem find_plain60 : coreProgram.find? "keccak_plain_rounds__L6_L0" = some fn% «keccak_plain_rounds__L6_L0» :=
+  coreProgram_find?_at (j := idx% «keccak_plain_rounds__L6_L0») rfl
 
 theorem plain60_sound (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd "keccak_plain_rounds__L6_L0" args rets) :
     MeaningPlainRounds 6 0 rd args rets := by
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_plain60 args rets).mp h
-  simp only [Data.core268, List.map_cons, List.map_nil] at hpar hb
-  subst hpar
   rw [body60] at hb
+  simp only [core_eq% «keccak_plain_rounds__L6_L0», List.map_cons, List.map_nil] at hpar hb
+  subst hpar
   simp only [plain60T, holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hb
   obtain ⟨e11, e12, e13, e14, e15, hb⟩ := hb
   obtain ⟨⟨r0, m0⟩, hb⟩ := holds_plainRoundT rfl hb
@@ -312,16 +313,16 @@ theorem plain60_sound (rd : Reader) (args rets : List E)
       simp only [List.map_cons, List.map_nil, e171, e172, e173, e174, e175, e178, e177, e176, e179,
         List.cons_append, List.nil_append, word_4096]
 
-theorem find_plain41 : coreProgram.find? "keccak_plain_rounds__L4_L1" = some Data.core270 :=
-  coreProgram_find?_at (j := 270) rfl
+theorem find_plain41 : coreProgram.find? "keccak_plain_rounds__L4_L1" = some fn% «keccak_plain_rounds__L4_L1» :=
+  coreProgram_find?_at (j := idx% «keccak_plain_rounds__L4_L1») rfl
 
 theorem plain41_sound (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd "keccak_plain_rounds__L4_L1" args rets) :
     MeaningPlainRounds 4 1 rd args rets := by
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_plain41 args rets).mp h
-  simp only [Data.core270, List.map_cons, List.map_nil] at hpar hb
-  subst hpar
   rw [body41] at hb
+  simp only [core_eq% «keccak_plain_rounds__L4_L1», List.map_cons, List.map_nil] at hpar hb
+  subst hpar
   simp only [plain41T, holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hb
   obtain ⟨e11, e12, e13, e14, e15, e16, e17, hb⟩ := hb
   obtain ⟨⟨r0, m0⟩, hb⟩ := holds_plainRoundT rfl hb

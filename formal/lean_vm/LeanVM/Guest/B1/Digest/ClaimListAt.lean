@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Digest.ClaimListComplete
 public import LeanVM.Guest.B1.Digest.PlacedLib
 public import LeanVM.Guest.B1.Main.NodeHonestAt
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `claim_list_digest`, placed
@@ -18,7 +19,7 @@ public import LeanVM.Guest.B1.Main.NodeHonestAt
 The body is a branch on `n = 0` between two straight runs (`cl_body`). The empty list's arm is
 atoms (`clz_core`: the evaluated valuation, its atoms holding). The nonempty list's arm
 (`cl23Else_split`) calls `list_split`, allocates the chain buffer (`13 (m + 1)` words for
-`n = 17 m + r`), stores the zero state, runs `__loop15` over the groups when `m ≠ 0`, and
+`n = 17 m + r`), stores the zero state, runs `claim_list_digest_loop0` over the groups when `m ≠ 0`, and
 dispatches on `r` to `claim_list_last__L{r}` (`cl_core`: the evaluated valuation, its atoms holding
 on a memory holding the zero state at the buffer). `chainCells`: the buffer's honest words, the
 state after each group (`claimChainMem_of_reads`).
@@ -59,7 +60,7 @@ set_option maxRecDepth 100000 in
 theorem clPost_eq : clPost = [.atom (.copy (.n 10) (.n 74)), .atom (.copy (.n 11) (.n 75))] :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem cl_body : Fn.body Data.core23 =
+theorem cl_body : Fn.body fn% «claim_list_digest» =
     clHead ++ .ite (.n 3) cl23Zero cl23Else :: (clTail ++ [.ret [.n 76, .n 77]]) := by
   rw [core22_shape]; rfl
 
@@ -81,8 +82,8 @@ theorem clP1_addrs : clP1.filterMap Main.Stmt.addrS = [] := by decide +kernel
 set_option maxRecDepth 100000 in
 theorem clP1_calls : clP1.filterMap Main.Stmt.callS =
     [(none, "list_split", [.n 1], [.n 12, .n 13, .n 14]),
-      (some (.n 38), "__loop15", [.n 39, .n 12, .n 23, .n 0], []),
-      (some (.n 58), "__loop16", [.n 59, .n 13, .n 45, .n 56], [])] := by decide +kernel
+      (some (.n 38), name% «claim_list_digest_loop0», [.n 39, .n 12, .n 23, .n 0], []),
+      (some (.n 58), name% «claim_list_digest_loop1», [.n 59, .n 13, .n 45, .n 56], [])] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem clP1_loads : clP1.filterMap B1.Stmt.loadS = (List.range 13).map fun c => (.n 23, c) := by
@@ -403,19 +404,19 @@ theorem clNames_get {r : ℕ} (hr : r < 17) : clNames[r]! = clNames.getD r "" :=
 
 set_option maxRecDepth 100000 in
 theorem cl_pure_all : ∀ k < 17,
-    Stmt.pureList [clNames.getD k ""] (coreProgram.getD (348 + k) default).body = true := by
+    Stmt.pureList [clNames.getD k ""] (coreProgram.getD (idx% «claim_list_last__L0» + k) default).body = true := by
   decide +kernel
 
 theorem cl_pure {r : ℕ} (hr : r < 17) : coreProgram.PureIn [clNames.getD r ""] :=
-  pure_one (find_of_idx (cl_idx r hr) (by rw [coreProgram_length]; omega)) (cl_pure_all r hr)
+  pure_one (find_of_idx (cl_idx r hr)) (cl_pure_all r hr)
 
 set_option maxRecDepth 100000 in
-theorem big_pure : coreProgram.PureIn ["__loop15"] :=
-  pure_one (find_of_idx big_idx (by rw [coreProgram_length]; omega)) (by decide +kernel)
+theorem big_pure : coreProgram.PureIn [name% «claim_list_digest_loop0»] :=
+  pure_one (find_of_idx big_idx) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem grp_pure : coreProgram.PureIn ["__loop16"] :=
-  pure_one (find_of_idx grp_idx (by rw [coreProgram_length]; omega)) (by decide +kernel)
+theorem grp_pure : coreProgram.PureIn [name% «claim_list_digest_loop1»] :=
+  pure_one (find_of_idx grp_idx) (by decide +kernel)
 
 theorem one_add_gen_ne {a : ℕ} (ha : a < 2 ^ 64 - 1) : ((1 : E) + gen ^ a ≠ 0) ↔ a ≠ 0 := by
   rw [Ne, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff ha]
@@ -439,20 +440,20 @@ theorem slOk_atomS {rd : Reader} {σ : Val} {s : Stmt} (hs : isAtomS s = true)
 
 /-- `claim_list_digest`'s words that end its loops and size its buffer (`n = 136a + 17b + c`):
 the count at `v1`; when `n ≠ 0`, `list_split`'s returns at `v23`, `v24`, `v25` (the first two end
-`__loop15`, `__loop16`), the chain buffer's size `g^(13 (a + b + 1))` at `v33`, the loops' start
+`claim_list_digest_loop0`, `claim_list_digest_loop1`), the chain buffer's size `g^(13 (a + b + 1))` at `v33`, the loops' start
 `1` at `v50`, `v70`. -/
 def clQ (n : ℕ) (σ : Val) : Prop :=
   σ (.n 1) = gen ^ n ∧ (n ≠ 0 → σ (.n 12) = gen ^ (n / 136) ∧ σ (.n 13) = gen ^ (n % 136 / 17) ∧
     σ (.n 14) = gen ^ (n % 17) ∧ σ (.n 22) = gen ^ (13 * (n / 136 + n % 136 / 17 + 1)) ∧
     σ (.n 39) = 1 ∧ σ (.n 59) = 1)
 
-/-- `claim_list_digest`'s calls: none for the empty list; `list_split`, `__loop15` when
-`n / 136 ≠ 0`, `__loop16` when `n % 136 / 17 ≠ 0`, `claim_list_last__L{n % 17}`. -/
+/-- `claim_list_digest`'s calls: none for the empty list; `list_split`, `claim_list_digest_loop0` when
+`n / 136 ≠ 0`, `claim_list_digest_loop1` when `n % 136 / 17 ≠ 0`, `claim_list_last__L{n % 17}`. -/
 def clCalls (n : ℕ) (_ : Val) : List Call :=
   if n = 0 then [] else
     [⟨"list_split", [.n 1], [.n 12, .n 13, .n 14], true⟩,
-      ⟨"__loop15", [.n 39, .n 12, .n 23, .n 0], [], decide (n / 136 ≠ 0)⟩,
-      ⟨"__loop16", [.n 59, .n 13, .n 45, .n 56], [], decide (n % 136 / 17 ≠ 0)⟩,
+      ⟨name% «claim_list_digest_loop0», [.n 39, .n 12, .n 23, .n 0], [], decide (n / 136 ≠ 0)⟩,
+      ⟨name% «claim_list_digest_loop1», [.n 59, .n 13, .n 45, .n 56], [], decide (n % 136 / 17 ≠ 0)⟩,
       ⟨clNames[n % 17]!, [.n 65, .n 73], [.n 74, .n 75], true⟩]
 
 /-- The claim list's `HeapBuf`: the chain buffer (none for the empty list). -/
@@ -580,8 +581,8 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
     -- the callees
     let ks : List Kid :=
       [⟨"list_split", true, [gen ^ n], [], Returns [gen ^ a, gen ^ b, gen ^ r]⟩,
-        ⟨"__loop15", decide (a ≠ 0), [1, gen ^ a, chain, gen ^ eP], Lin ++ Own, Returns []⟩,
-        ⟨"__loop16", decide (b ≠ 0), [1, gen ^ b, chain * gen ^ (13 * a), gen ^ eP * gen ^ (544 * a)],
+        ⟨name% «claim_list_digest_loop0», decide (a ≠ 0), [1, gen ^ a, chain, gen ^ eP], Lin ++ Own, Returns []⟩,
+        ⟨name% «claim_list_digest_loop1», decide (b ≠ 0), [1, gen ^ b, chain * gen ^ (13 * a), gen ^ eP * gen ^ (544 * a)],
           Lin ++ Own, Returns []⟩,
         ⟨clNames[r]!, true, [chain * gen ^ (13 * (a + b)), gen ^ eP * gen ^ (544 * a + 68 * b)],
           Lin ++ Own, Returns (digestCells D)⟩]
@@ -596,13 +597,13 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
         refine completeAt_of_rel_pureD big_pure (List.mem_singleton_self _) (fun rd hm => ?_) 20
         have hr := hLe rd (memL_append.mp hm).1
         have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
-        exact (guard_complete (find_of_idx big_idx (by rw [coreProgram_length]; omega))
+        exact (guard_complete (find_of_idx big_idx)
           (grpc_shapeF grpc_big) (cl_bigBlocks hl hr hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
       · simp only [decide_eq_true_eq] at ht
         refine completeAt_of_rel_pureD grp_pure (List.mem_singleton_self _) (fun rd hm => ?_) 20
         have hr := hLe rd (memL_append.mp hm).1
         have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
-        have := (guard_complete (find_of_idx grp_idx (by rw [coreProgram_length]; omega))
+        have := (guard_complete (find_of_idx grp_idx)
           (grpc_shapeF grpc_ok) (cl_grpBlocks hl hr hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
         exact this
       · show CompleteAtD fs cert 20 clNames[r]! (Lin ++ Own) _ _
@@ -719,8 +720,8 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
     have h69 : decide (σ (.n 58) ≠ 0) = decide (b ≠ 0) := by
       rw [hV.v69]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
     have hcalls : calls es = [⟨"list_split", [.n 1], [.n 12, .n 13, .n 14], true⟩,
-        ⟨"__loop15", [.n 39, .n 12, .n 23, .n 0], [], decide (a ≠ 0)⟩,
-        ⟨"__loop16", [.n 59, .n 13, .n 45, .n 56], [], decide (b ≠ 0)⟩,
+        ⟨name% «claim_list_digest_loop0», [.n 39, .n 12, .n 23, .n 0], [], decide (a ≠ 0)⟩,
+        ⟨name% «claim_list_digest_loop1», [.n 59, .n 13, .n 45, .n 56], [], decide (b ≠ 0)⟩,
         ⟨clNames[r]!, [.n 65, .n 73], [.n 74, .n 75], true⟩] := by
       rw [hes, es5_calls, hhc, hpc, hqc, htc, clP1_calls, hpostA.2.2.1]
       simp only [List.map_cons, List.map_nil, Main.mkCall, h49, h69, clHead, clTail,

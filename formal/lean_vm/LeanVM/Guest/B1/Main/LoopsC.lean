@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Main.Loops
 public import LeanVM.Guest.B1.Main.Frames
 public import LeanVM.Guest.B1.Sig.XmssSegData
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main`'s loops, under a call relation
@@ -183,14 +184,14 @@ theorem body_ofV {Vm : FrameMap} (hVm : UnfoldsV rd C Vm) {f : String} {fn : Fn}
 
 /-! ## The callees' contracts -/
 
-theorem find_loop2 : coreProgram.find? "__loop2" = some Data.core36 :=
-  Program.find?_of_indexOf? (j := 36) l3_idx rfl
+theorem find_loop2 : coreProgram.find? name% «main_loop2» = some fn% «main_loop2» :=
+  Program.find?_of_indexOf? (j := idx% «main_loop2») l3_idx rfl
 
-/-- **`__loop2`'s run gives `Loop2Out`**, from the segment's statement: its body is the prelude,
+/-- **`main_loop2`'s run gives `Loop2Out`**, from the segment's statement: its body is the prelude,
 the segment, the epilogue; the prelude's atoms hold first, the segment hands the epilogue on. -/
 theorem loop2Out_of_body {sigOf : Val → LeanXmss.Signature} (hx : Sig.verify_lean_xmss_sound_Spec sigOf)
-    {σ : Val} {args : List E} (hp : Data.core36.params.map σ = args)
-    (hb : Stmt.HoldsList C rd σ Data.core36.body False (fun rs => rs = [])) :
+    {σ : Val} {args : List E} (hp : (fn% «main_loop2»).params.map σ = args)
+    (hb : Stmt.HoldsList C rd σ (fn% «main_loop2»).body False (fun rs => rs = [])) :
     Loop2Out C rd args (sigOf σ) := by
   have hpre : Stmt.noRetList Sig.l2Pre = true := by
     unfold Sig.l2Pre; decide +kernel
@@ -205,9 +206,9 @@ theorem loop2Out_of_body {sigOf : Val → LeanXmss.Signature} (hx : Sig.verify_l
 structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
     (wX : List E → LeanXmss.Signature) (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → Proof) (wA : List E → BatchingHints) : Prop where
-  /-- A raw leanXMSS iteration (`__loop2`, the leanXMSS check inline): its body around the
+  /-- A raw leanXMSS iteration (`main_loop2`, the leanXMSS check inline): its body around the
   segment, and the signature `wX args` verifying the claim at its signer (`Loop2Out`). -/
-  xmss : ∀ args, C "__loop2" args [] → Loop2Out C rd args (wX args)
+  xmss : ∀ args, C name% «main_loop2» args [] → Loop2Out C rd args (wX args)
   /-- A leanSPHINCS check with the byte table `bb0` (`main`'s): the signature `wS p` verifies the
   claim at `p`. -/
   sphincs : ∀ p, C "verify_sig_lean_sphincs" [p, bb0] [] →
@@ -232,7 +233,7 @@ structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
 
 /-! ## The iterations -/
 
-/-- **A raw leanXMSS signature** at the counter `x` of `__loop2` on `x :: ps`: a slot `s` below
+/-- **A raw leanXMSS signature** at the counter `x` of `main_loop2` on `x :: ps`: a slot `s` below
 the region's bound holding the mark `x`, and, when the tags `ps[4 ..]` hold the chain indices,
 the signature `sig` verifies the claim at slot `s`. -/
 def RawXStepC (rd : Reader) (lxs cover lxt : E) (ps : List E) (x : E) (sig : LeanXmss.Signature) :
@@ -253,7 +254,7 @@ theorem l2_param_getD (σ : Val) {k : ℕ} (hk : k < 55) :
     List.getElem?_range (by omega)]
   rfl
 
-/-- **A run of `__loop2` read as its meaning gives the raw leanXMSS signature's facts.** -/
+/-- **A run of `main_loop2` read as its meaning gives the raw leanXMSS signature's facts.** -/
 theorem rawX_of_out {rd : Reader} {C : CallRel} (hm : MemOk rd) {x : E} {ps : List E}
     {sig : LeanXmss.Signature} (hout : Loop2Out C rd (x :: ps) sig) :
     ∀ N lxs cover lxt tags, ps = N :: lxs :: cover :: lxt :: tags →
@@ -287,11 +288,11 @@ theorem rawX_of_out {rd : Reader} {C : CallRel} (hm : MemOk rd) {x : E} {ps : Li
     show _ = (((List.range 56).map V.n).tail.map σ).getD (4 + (Sig.lxTagSlot i - 1)) 0
     rw [l2_param_getD σ (by omega), show 4 + (Sig.lxTagSlot i - 1) + 1 = 5 + (Sig.lxTagSlot i - 1) by omega]
 
-/-- `__loop2`'s iteration at `x`: its run and, while `x·g ≠ N`, the run at `x·g`. -/
+/-- `main_loop2`'s iteration at `x`: its run and, while `x·g ≠ N`, the run at `x·g`. -/
 theorem l3_stepC {rd : Reader} {C : CallRel}
-    (hX : ∀ args, C "__loop2" args [] → ∃ sig, Loop2Out C rd args sig) {x : E} {ps : List E}
-    (h : C "__loop2" (x :: ps) []) :
-    C "__loop2" (x :: ps) [] ∧ (x * gen + ps.headD 0 ≠ 0 → C "__loop2" (x * gen :: ps) []) := by
+    (hX : ∀ args, C name% «main_loop2» args [] → ∃ sig, Loop2Out C rd args sig) {x : E} {ps : List E}
+    (h : C name% «main_loop2» (x :: ps) []) :
+    C name% «main_loop2» (x :: ps) [] ∧ (x * gen + ps.headD 0 ≠ 0 → C name% «main_loop2» (x * gen :: ps) []) := by
   have hok := l3_ok
   simp only [l3Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨σ, hp, hb, -⟩ := (hX _ h).choose_spec
@@ -305,21 +306,21 @@ def RawSStepC (C : CallRel) (rd : Reader) (lss cover lxs nrx lst bb x : E) : Pro
   ∃ s, BelowLog lss s ∧ LoadHolds rd (cover * (lxs * gen ^ s)) 0 (nrx * x) ∧
     C "verify_sig_lean_sphincs" [lst * gen ^ (4 * s), bb] []
 
-/-- `__loop3`'s iteration on `[N, lss, sp_cover, nrx, lst, bb]`, its region
+/-- `main_loop3`'s iteration on `[N, lss, sp_cover, nrx, lst, bb]`, its region
 `sp_cover = cover · lx_slots`. -/
 theorem l4_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C) (hm : MemOk rd) {x : E} {ps : List E}
-    (h : C "__loop3" (x :: ps) []) :
+    (h : C name% «main_loop3» (x :: ps) []) :
     (∀ N lss cover lxs nrx lst bb, ps = [N, lss, cover * lxs, nrx, lst, bb] →
       RawSStepC C rd lss cover lxs nrx lst bb x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → C "__loop3" (x * gen :: ps) []) := by
-  have hf := find_of_idx l4_idx (by rw [coreProgram_length]; omega)
+      (x * gen + ps.headD 0 ≠ 0 → C name% «main_loop3» (x * gen :: ps) []) := by
+  have hf := find_of_idx l4_idx
   have hok := l4_ok
   simp only [l4Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hrc⟩, hm13⟩, hm14⟩, hl⟩, hm17⟩, hcall⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepC hC hf hshape h
   refine ⟨fun N lss cover lxs nrx lst bb hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 37 default).params =
+  have hpar : (coreProgram.getD idx% «main_loop3» default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -356,13 +357,13 @@ def KidStepC (C : CallRel) (rd : Reader) (written lxt cover lxs lst spc lss carr
 
 theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     (hle : CallRel.Le C (coreProgram.Rel rd)) (hm : MemOk rd) {x : E} {ps : List E}
-    (h : C "__loop4" (x :: ps) []) :
+    (h : C name% «main_loop4» (x :: ps) []) :
     (∀ N written lxt cover lxs lst spc lss carried dadig s0 s1 cpi gsq cfresh,
       ps = [N, written, lxt, cover, lxs, lst, spc, lss, carried, dadig, s0, s1, cpi, gsq,
         cfresh] →
       KidStepC C rd written lxt cover lxs lst spc lss carried dadig s0 s1 cpi gsq cfresh x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → C "__loop4" (x * gen :: ps) []) := by
-  have hf := find_of_idx l5_idx (by rw [coreProgram_length]; omega)
+      (x * gen + ps.headD 0 ≠ 0 → C name% «main_loop4» (x * gen :: ps) []) := by
+  have hf := find_of_idx l5_idx
   have hok := l5_ok
   simp only [l5Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm16⟩, hl17⟩, hg18⟩, hg19⟩, hm28⟩, hcx⟩,
@@ -372,7 +373,7 @@ theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   refine ⟨fun N written lxt cover lxs lst spc lss carried dadig s0 s1 cpi gsq cfresh hN
     => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 38 default).params = (List.range 16).map V.n := by
+  have hpar : (coreProgram.getD idx% «main_loop4» default).params = (List.range 16).map V.n := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]

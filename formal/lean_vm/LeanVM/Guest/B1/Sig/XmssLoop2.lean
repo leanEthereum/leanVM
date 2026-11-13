@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssLoop2
 
-  An iteration of `__loop2` (`lean_ethereum.py:4546-4559`) is sound for its leanXMSS check: its body
+  An iteration of `main_loop2` (`lean_ethereum.py:4546-4559`) is sound for its leanXMSS check: its body
   holding, the statements before the check hold, the statements after it hold, and with the carried
   chain indices held the signature its valuation holds verifies the claim at `.n 65`.
 -/
@@ -12,9 +12,9 @@ public import LeanVM.Guest.B1.Sig.XmssSegSound
 public import LeanVM.Guest.B1.Sig.XmssSegData
 
 /-!
-# `__loop2`'s body, sound for its leanXMSS check
+# `main_loop2`'s body, sound for its leanXMSS check
 
-`loop2_xmss_sound`: from `Data.core36.body = l2Pre ++ (xSeg ++ l2Post)` (`loop2_split`) and
+`loop2_xmss_sound`: from `(fn% «main_loop2»).body = l2Pre ++ (xSeg ++ l2Post)` (`loop2_split`) and
 `verify_lean_xmss_sound_holds`. The form `main`'s soundness reads an iteration's claim off.
 -/
 
@@ -26,9 +26,9 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 theorem l2Pre_atoms : atomsOnly l2Pre = true := rfl
 
-/-- **An iteration of `__loop2`, sound for its check.** -/
+/-- **An iteration of `main_loop2`, sound for its check.** -/
 theorem loop2_xmss_sound {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ Data.core36.body next kret) :
+    (h : Stmt.HoldsList C rd σ (fn% «main_loop2»).body next kret) :
     AtomsHold rd σ l2Pre ∧ Stmt.HoldsList C rd σ l2Post next kret ∧
       (LxTagsHold (fun j => σ (sTagParam j)) → XmssOut rd (σ sSigner) (xmssSigOf σ)) := by
   rw [loop2_split] at h

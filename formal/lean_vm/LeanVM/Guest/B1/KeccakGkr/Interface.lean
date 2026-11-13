@@ -29,7 +29,7 @@ segment and lane's `keccakSegmentBits + keccakLaneBits`), plain permutations, bu
 a layer's `s`, of `grindingBits (productBits - 1) = 3` bits: its nonce is the stream word at the
 cursor and `grind_check` reads the window table `tabs`.
 
-The pack rounds of a layer run in two loops (`__loop37` .. `__loop40`, `PackLoop`): eight
+The pack rounds of a layer run in two loops (`keccak_layer__L1_loop0` .. `keccak_layer__L0_loop1`, `PackLoop`): eight
 equality-mode rounds an iteration, then one an iteration. The inline helpers (`carry_step`,
 `carry_wrap`, `keccak_shifts_eq`, `fold_node`, `fold_shifts`, `keccak_form`, `slice_weight`,
 `keccak_slot_lanes`, G:2720-2874, 3090-3103) have no core function of their

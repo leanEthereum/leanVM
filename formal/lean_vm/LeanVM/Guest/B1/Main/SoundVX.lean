@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Main.SoundVX
 
   `main`, soundly, its witness decoded from the frame map, for any reader of the leanXMSS
-  signature off `__loop2`'s frames whose segment statement holds.
+  signature off `main_loop2`'s frames whose segment statement holds.
 -/
 
 module
@@ -12,13 +12,14 @@ public import LeanVM.Guest.B1.Main.Aggregate
 public import LeanVM.Guest.B1.Da.Verify
 public import LeanVM.Guest.B1.Sig.SphincsSound
 public import LeanVM.Guest.B1.VerifySub.Interface
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main`, its witness decoded from the frame map, the leanXMSS reader a parameter
 
 `decWitVX sigOf σ rd V piOf` is `SoundV`'s `decWitV` with the leanXMSS signature of raw iteration
-`j` read by `sigOf` off `__loop2`'s frame at its arguments (`V "__loop2" args []`: the leanXMSS
-check is inline in `__loop2` at 40f877dc). `main_sound_VX`: given the segment's statement for
+`j` read by `sigOf` off `main_loop2`'s frame at its arguments (`V "main_loop2" args []`: the leanXMSS
+check is inline in `main_loop2` at 40f877dc). `main_sound_VX`: given the segment's statement for
 `sigOf` (`Sig.verify_lean_xmss_sound_Spec sigOf`) and `verify_sub`'s (`SubSoundW`), a run of
 `main`'s body gives the statement of the public input's digest, held by `decWitVX sigOf σ rd V
 piOf`. `SoundV` instantiates it with the xmss family's reader and proof.
@@ -35,14 +36,14 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 /-- **`main`'s witness, decoded from the frame map `V`**, the leanXMSS reader `sigOf`. -/
 noncomputable def decWitVX (sigOf : Val → LeanXmss.Signature) (σ : Val) (rd : Reader)
     (V : FrameMap) (piOf : Reader → Val → FrameMap → Proof) : NodeWitness :=
-  decWit σ rd (fun args => sigOf (V "__loop2" args []))
+  decWit σ rd (fun args => sigOf (V name% «main_loop2» args []))
     (fun p => Sig.sphincsSigOf (V "verify_sig_lean_sphincs" [p, σ (.n 47)] []) V)
     (fun args rets => Da.dvWit (V "da_verify" args rets) V)
     (fun args => piOf rd (V "verify_sub" args []) V)
     (fun args => aggHints rd (V "aggregate_claims" args []))
 
-theorem find_verify_sub : coreProgram.find? "verify_sub" = some Data.core18 :=
-  coreProgram_find?_at (j := 18) rfl
+theorem find_verify_sub : coreProgram.find? "verify_sub" = some fn% «verify_sub» :=
+  coreProgram_find?_at (j := idx% «verify_sub») rfl
 
 /-- **`verify_sub`'s statement, its proof named by `piOf`**: on a memory image of at most `2^32`
 words, under a call relation that unfolds at `V` and lies below `coreProgram.Rel`, a run of its
@@ -52,9 +53,9 @@ def SubSoundW (bytecode : List K) (piOf : Reader → Val → FrameMap → Proof)
   bytecode.length = 2 ^ bytecodeVars → ∀ {κ : ℕ} (L : MemoryImage κ), κ ≤ 32 →
     ∀ (C : CallRel) (V : FrameMap), UnfoldsV L.read C V → CallRel.Le C (coreProgram.Rel L.read) →
       ∀ (σ : Val) (rets : List E),
-        Stmt.HoldsList C L.read σ (Fn.body Data.core18) False (fun rs ↦ rs = rets) →
-        VerifySub.VerifySubPre L.read (Data.core18.params.map σ) →
-          rets = [] ∧ VerifySubOut bytecode L.read (Data.core18.params.map σ) (piOf L.read σ V)
+        Stmt.HoldsList C L.read σ (Fn.body fn% «verify_sub») False (fun rs ↦ rs = rets) →
+        VerifySub.VerifySubPre L.read ((fn% «verify_sub»).params.map σ) →
+          rets = [] ∧ VerifySubOut bytecode L.read ((fn% «verify_sub»).params.map σ) (piOf L.read σ V)
 
 /-- **`main` is sound, its witness decoded from the frame map**, the leanXMSS reader `sigOf`,
 given the segment's statement and `verify_sub`'s with its proof named. -/
@@ -64,7 +65,7 @@ theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap �
     bytecode.length = 2 ^ bytecodeVars → ∀ (rd : Reader), MemOk rd → ∀ (C : CallRel) (V : FrameMap),
       UnfoldsV rd C V → CallRel.Le C (coreProgram.Rel rd) → ∀ (D : Digest) (σ : Val),
         LoadHolds rd 1 0 (digestHalves D).1 → LoadHolds rd 1 1 (digestHalves D).2 →
-        Stmt.HoldsList C rd σ Data.core0.body False (fun rs ↦ rs = []) →
+        Stmt.HoldsList C rd σ (fn% «main»).body False (fun rs ↦ rs = []) →
           statementDigest (decSeed σ) (decStmt σ rd) = D ∧
             NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWitVX sigOf σ rd V piOf) := by
   intro hbl rd hm C V hV hle D σ hp0 hp1 hb

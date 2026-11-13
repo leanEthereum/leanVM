@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.XmssSegT
 
   `verify_lean_xmss` (`lean_ethereum.py:3847-3919`), inline in `main`'s raw-leanXMSS loop
-  `__loop2`, as a template: statements 9 to 321 of `__loop2`'s body, with the values numbered as
+  `main_loop2`, as a template: statements 9 to 321 of `main_loop2`'s body, with the values numbered as
   the renumbered expansion numbers them.
 -/
 
@@ -11,11 +11,12 @@ module
 public import LeanVM.Guest.B1.Sig.XmssT
 public import LeanVM.Guest.B1.Sig.XmssWindows
 public import LeanVM.Guest.B1.Sig.XmssGroups
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# The leanXMSS check in `__loop2`, as a template
+# The leanXMSS check in `main_loop2`, as a template
 
-`__loop2`'s parameters are the counter, `n`, `lx_slots`, `cover`, `lx_table` and the `51` carried
+`main_loop2`'s parameters are the counter, `n`, `lx_slots`, `cover`, `lx_table` and the `51` carried
 chain indices (`lx_tags`, `.n 5` to `.n 55`); its body checks the raw index and its cover word
 (statements `0` to `8`, the claim's pointer `.n 65`), then the leanXMSS check (`xSeg`, statements
 `9` to `321`), then steps the counter and calls itself (statements `322` to `328`).
@@ -238,14 +239,14 @@ def sLayer (layer b : Nat) (root : V) : List Stmt × Nat × V :=
     (sLeafK layer b).1 ++ (sWin0 layer b).1 ++ (sWin1 layer b).1, (sWin1 layer b).2.1,
     .n (sWin1 layer b).2.2)
 
-/-- **The leanXMSS check in `__loop2`** (statements `9` to `321` of its body). -/
+/-- **The leanXMSS check in `main_loop2`** (statements `9` to `321` of its body). -/
 def xSeg : List Stmt :=
   let l0 := sLayer 0 88 (.n 0)
   let l1 := sLayer 1 l0.2.1 l0.2.2
   sPrologue ++ l0.1 ++ l1.1 ++
     [loadS (.n l1.2.1) sSigner 0, .atom (.assertEq l1.2.2 (.n l1.2.1))]
 
-/-- `__loop2`'s statements before the check (`lean_ethereum.py:4546-4554`): the raw index, its range
+/-- `main_loop2`'s statements before the check (`lean_ethereum.py:4546-4554`): the raw index, its range
 check, the cover word, the claim's pointer `lx_table · idx^4`. -/
 def l2Pre : List Stmt :=
   [hintW "raw_index" [.n 56], cst 57 (word 9223372036854775821 0), mulS (.n 58) (.n 2) (.n 57),
@@ -253,13 +254,13 @@ def l2Pre : List Stmt :=
     loadS (.n 0) (.n 62) 0, mulS (.n 63) (.n 56) (.n 56), mulS (.n 64) (.n 63) (.n 63),
     mulS (.n 65) (.n 4) (.n 64)]
 
-/-- `__loop2`'s statements after the check: the next counter and the self-call, the carried tags
+/-- `main_loop2`'s statements after the check: the next counter and the self-call, the carried tags
 passed on unchanged. -/
 def l2Post : List Stmt :=
   [cst 120764 (word 2 0), mulS (.n 120765) (.n 0) (.n 120764),
     addS (.n 120766) (.n 120765) (.n 1), cst 120767 (word 2 0),
     mulS (.n 120768) (.n 0) (.n 120767),
-    .callIf (.n 120766) "__loop2" (.n 120768 :: (List.range 55).map fun j => V.n (j + 1)), .ret []]
+    .callIf (.n 120766) name% «main_loop2» (.n 120768 :: (List.range 55).map fun j => V.n (j + 1)), .ret []]
 
 end
 end LeanVM.Guest.B1.Sig

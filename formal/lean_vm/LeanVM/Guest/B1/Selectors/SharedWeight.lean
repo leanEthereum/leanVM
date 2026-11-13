@@ -2,20 +2,21 @@
   LeanVM.Guest.B1.Selectors.SharedWeight
 
   Every valid tree of `shared_selector_tables` on a length `g^n`, `n < 64`, weighs at most its
-  frame's weight, `__loop8`'s `n / 4` iterations' bound and the partial nibble's bound.
+  frame's weight, `shared_selector_tables_loop0`'s `n / 4` iterations' bound and the partial nibble's bound.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Selectors.SharedTotal
 public import LeanVM.Guest.Budget.Static
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `shared_selector_tables` within its weight
 
-`ss_weightLeOn`: `ss_totalLeOn` for a weight `ω`, `__loop8` within `K9` an iteration
+`ss_weightLeOn`: `ss_totalLeOn` for a weight `ω`, `shared_selector_tables_loop0` within `K9` an iteration
 (`Budget.LoopW`) and the partial nibbles within `Ksp` (`WeightLe`): at most
-`ω "shared_selector_tables" + max (ω "__loop8") (15·K9) + Ksp` (a loop not entered weighs its frame).
+`ω "shared_selector_tables" + max (ω "shared_selector_tables_loop0") (15·K9) + Ksp` (a loop not entered weighs its frame).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -26,7 +27,7 @@ open LeanVM.Protocol.Verifier (gen)
 @[expose] public section
 
 /-- **`shared_selector_tables` is within its weight**: every valid tree on a length `g^n`, `n < 64`. -/
-theorem ss_weightLeOn (ω : String → ℕ) (K9 Ksp : ℕ) (h9 : Budget.LoopW ω "__loop8" K9)
+theorem ss_weightLeOn (ω : String → ℕ) (K9 Ksp : ℕ) (h9 : Budget.LoopW ω name% «shared_selector_tables_loop0» K9)
     (hsp : ∀ j < 4, WeightLe coreProgram ω (lName "sel_partial_nibble" j) (fun _ ↦ Ksp)) :
     ∀ (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
       (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
@@ -82,7 +83,7 @@ theorem ss_weightLeOn (ω : String → ℕ) (K9 Ksp : ℕ) (h9 : Budget.LoopW ω
     exact hw.1.symm
   obtain ⟨-, i2, -, i4⟩ := Main.straight_parts σ ssS ssS_straight
   -- the calls
-  let cs : List Call := [⟨"__loop8", [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1, .n 4], [],
+  let cs : List Call := [⟨name% «shared_selector_tables_loop0», [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1, .n 4], [],
       decide (σ (.n 44) ≠ 0)⟩,
     ⟨lName "sel_partial_nibble" (n % 4), [.n 49, .n 50, .n 51, .n 52, .n 53], [.n 54], true⟩]
   have hcalls : calls es = cs := by
@@ -90,7 +91,7 @@ theorem ss_weightLeOn (ω : String → ℕ) (K9 Ksp : ℕ) (h9 : Budget.LoopW ω
     rfl
   have hq15 : n / 4 ≤ 15 := by omega
   have hw' := Budget.node_weight_le ω
-    (fun c ↦ if c.f = "__loop8" then n / 4 * K9 else Ksp) [fun _ ↦ True, fun _ ↦ True] hv hb
+    (fun c ↦ if c.f = name% «shared_selector_tables_loop0» then n / 4 * K9 else Ksp) [fun _ ↦ True, fun _ ↦ True] hv hb
     (fun fn' es' vs' hf'' hw' ↦ by
       rw [hf, Option.some.injEq] at hf''
       subst hf''

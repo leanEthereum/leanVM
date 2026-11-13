@@ -12,7 +12,7 @@ public import LeanVM.Guest.Batch.Def
 /-!
 # Honest values, step by step
 
-`absSt_succ`: the next absorbing row's sponge absorbs the child's words as `__loop33` reads
+`absSt_succ`: the next absorbing row's sponge absorbs the child's words as `aggregate_claims_loop0` reads
 them; `absSt_pend`: four scalars wait on every row; `absSt_last`: the last row's sponge is the
 batching's. `claimAt_succ`, `weightAt_succ`: the running claim and weight on one child.
 `kid_reads`: a child's words in memory, as the loops read them. `bsRun_cap`: the sumcheck leaves a

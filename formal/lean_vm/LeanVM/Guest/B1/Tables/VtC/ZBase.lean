@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Tables.VtC.Hon
 public import LeanVM.Guest.B1.Tables.VtC.ZLoop10
 public import LeanVM.Guest.B1.Tables.Vt.ZcRun
 public import LeanVM.Guest.B1.Tables.Vt.Pi
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The table sumcheck, honestly
@@ -22,7 +23,7 @@ sumcheck from the capacity `cap0` and the claim `cl0`, round `j` reading the wor
 (the challenges' running products), `zcChis` (the challenges, last first, as `chi` holds them).
 
 `zc_run`: the rounds are the specification's `sumcheck cl0 4 (replicate n none)`.
-`zc_l10B`: on a memory holding the buffers and the words, every iteration of `__loop9` has
+`zc_l10B`: on a memory holding the buffers and the words, every iteration of `verify_tables_loop0` has
 its facts.
 -/
 
@@ -114,7 +115,7 @@ noncomputable def zBlk : List Stmt := [
     .atom (.const (.n 2634) (word 1 0)),
     .atom (.add (.n 2635) (.n 2634) (.n 2544)),
     .atom (.const (.n 2636) (word 1 0)),
-    .callIf (.n 2635) "__loop9" [.n 2636, .n 2544, .n 2627, .n 18, .n 16, .n 2544, .n 2630],
+    .callIf (.n 2635) name% «verify_tables_loop0» [.n 2636, .n 2544, .n 2627, .n 18, .n 16, .n 2544, .n 2630],
     .atom (.mul (.n 2637) (.n 2544) (.n 2544)),
     .atom (.mul (.n 2638) (.n 2637) (.n 2544)),
     .atom (.mul (.n 2639) (.n 2638) (.n 2638)),
@@ -254,7 +255,7 @@ theorem zc_rec_parts {rd : Reader} {p : E} {cap : List E} {a b : E} (h5 : cap.le
   refine ⟨⟨h5, fun j hj => ?_⟩, h.2.1, h.2.2⟩
   simpa using h.1 j hj
 
-/-- **Every iteration of `__loop9` has its facts** on the honest buffers and words. -/
+/-- **Every iteration of `verify_tables_loop0` has its facts** on the honest buffers and words. -/
 theorem zc_l10B {rd : Reader} {R tabs chi C : E} {cap0 : List E} {cl0 cur0 : E} {xs : List E} {n : ℕ}
     (h5 : cap0.length = 5)
     (hR : TbReadsAt rd R (zcRoundsW cap0 cl0 cur0 xs n))

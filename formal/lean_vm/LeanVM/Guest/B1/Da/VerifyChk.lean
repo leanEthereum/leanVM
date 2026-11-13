@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Da.VerifyDefs
 public import LeanVM.Guest.B1.Common.Find
+public import LeanVM.Guest.Data.NameStrings
 
 namespace LeanVM.Guest.B1.Da
 
@@ -17,23 +18,23 @@ set_option maxRecDepth 100000 in
 theorem dv_ok : dvOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l17_ok : l17Ok (coreProgram.getD 403 default) = true := by decide +kernel
+theorem l17_ok : l17Ok (coreProgram.getD idx% «da_verify_loop0» default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l18_ok : l18Ok (coreProgram.getD 404 default) = true := by decide +kernel
+theorem l18_ok : l18Ok (coreProgram.getD idx% «da_verify_loop1» default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l19_ok : l19Ok (coreProgram.getD 405 default) = true := by decide +kernel
+theorem l19_ok : l19Ok (coreProgram.getD idx% «da_verify_loop2» default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l20_ok : l20Ok (coreProgram.getD 406 default) = true := by decide +kernel
+theorem l20_ok : l20Ok (coreProgram.getD idx% «da_verify_loop3» default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem dv_loops_idx : coreProgram.indexOf? "__loop21" = some 403 ∧
-    coreProgram.indexOf? "__loop22" = some 404 ∧ coreProgram.indexOf? "__loop23" = some 405 ∧
-    coreProgram.indexOf? "__loop24" = some 406 :=
-  ⟨coreProgram_indexOf?_at (j := 403) rfl, coreProgram_indexOf?_at (j := 404) rfl,
-    coreProgram_indexOf?_at (j := 405) rfl, coreProgram_indexOf?_at (j := 406) rfl⟩
+theorem dv_loops_idx : coreProgram.indexOf? name% «da_verify_loop0» = some idx% «da_verify_loop0» ∧
+    coreProgram.indexOf? name% «da_verify_loop1» = some idx% «da_verify_loop1» ∧ coreProgram.indexOf? name% «da_verify_loop2» = some idx% «da_verify_loop2» ∧
+    coreProgram.indexOf? name% «da_verify_loop3» = some idx% «da_verify_loop3» :=
+  ⟨coreProgram_indexOf?_at (j := idx% «da_verify_loop0») rfl, coreProgram_indexOf?_at (j := idx% «da_verify_loop1») rfl,
+    coreProgram_indexOf?_at (j := idx% «da_verify_loop2») rfl, coreProgram_indexOf?_at (j := idx% «da_verify_loop3») rfl⟩
 
 end
 end LeanVM.Guest.B1.Da

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.PackLoop
 
-  B1 of the pack rounds' loop helpers (`__loop37` .. `__loop40`, two per `keccak_layer`
+  B1 of the pack rounds' loop helpers (`keccak_layer__L1_loop0` .. `keccak_layer__L0_loop1`, two per `keccak_layer`
   specialization): eight equality-mode rounds an iteration, then one an iteration, from one round
   record to the next.
 -/
@@ -10,16 +10,17 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.Plain
 public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The pack rounds' loops (`keccak_layer`, G:2707-2758)
 
 `for xs in mul_range(1, step_g)` in `keccak_layer` is lowered to a helper of parameters
-`[xs, step_g, rounds, prev_point, point, tabs]` (`Data.core443`, `Data.core445`: the same body but
+`[xs, step_g, rounds, prev_point, point, tabs]` (`fn% «keccak_layer__L1_loop0»`, `fn% «keccak_layer__L0_loop0»`: the same body but
 for the self-call's name, `pack8T`). At `x = g^j` it reads the record `rounds·x`, the eight
 coordinates `prev_point[8j ..]` (`prev_point·x⁸`), runs eight equality-mode rounds (`eqRound`, a
 round each `packRoundT`), stores their challenges at `point[8j ..]` and writes the record
-`rounds·x·g` (`Pack8Step`). `for x1 in mul_range(1, rem_g)` (`Data.core444`, `Data.core446`,
+`rounds·x·g` (`Pack8Step`). `for x1 in mul_range(1, rem_g)` (`fn% «keccak_layer__L1_loop1»`, `fn% «keccak_layer__L0_loop1»`,
 `packRemT`, parameters `[x1, rem_g, rounds, prev_point, tabs, point]`) runs one round an iteration
 on `rounds·g^⌊y/8⌋`, `prev_point·g^(8⌊y/8⌋)`, `point·g^(8⌊y/8⌋)` (`PackRemStep`). Every grind of
 these rounds is of `0` bits: `tabs` is passed along, never read.
@@ -362,29 +363,29 @@ def packRemT (name : String) : List Stmt :=
 
 /-- The two helpers' names, by `keccak_layer` specialization: the eight-round loop. -/
 def packLoopName : ℕ → String
-  | 1 => "__loop37"
-  | _ => "__loop39"
+  | 1 => name% «keccak_layer__L1_loop0»
+  | _ => name% «keccak_layer__L0_loop0»
 
 /-- The remainder loop. -/
 def remLoopName : ℕ → String
-  | 1 => "__loop38"
-  | _ => "__loop40"
+  | 1 => name% «keccak_layer__L1_loop1»
+  | _ => name% «keccak_layer__L0_loop1»
 
-theorem pack8_body456 : Data.core443.body = pack8T "__loop37" := stmtsEqb_sound (by decide +kernel)
-theorem pack8_body458 : Data.core445.body = pack8T "__loop39" := stmtsEqb_sound (by decide +kernel)
-theorem packRem_body457 : Data.core444.body = packRemT "__loop38" :=
+theorem pack8_body456 : (fn% «keccak_layer__L1_loop0»).body = pack8T name% «keccak_layer__L1_loop0» := stmtsEqb_sound (by decide +kernel)
+theorem pack8_body458 : (fn% «keccak_layer__L0_loop0»).body = pack8T name% «keccak_layer__L0_loop0» := stmtsEqb_sound (by decide +kernel)
+theorem packRem_body457 : (fn% «keccak_layer__L1_loop1»).body = packRemT name% «keccak_layer__L1_loop1» :=
   stmtsEqb_sound (by decide +kernel)
-theorem packRem_body459 : Data.core446.body = packRemT "__loop40" :=
+theorem packRem_body459 : (fn% «keccak_layer__L0_loop1»).body = packRemT name% «keccak_layer__L0_loop1» :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem find_pack8_456 : coreProgram.find? "__loop37" = some Data.core443 :=
-  coreProgram_find?_at (j := 443) rfl
-theorem find_packRem_457 : coreProgram.find? "__loop38" = some Data.core444 :=
-  coreProgram_find?_at (j := 444) rfl
-theorem find_pack8_458 : coreProgram.find? "__loop39" = some Data.core445 :=
-  coreProgram_find?_at (j := 445) rfl
-theorem find_packRem_459 : coreProgram.find? "__loop40" = some Data.core446 :=
-  coreProgram_find?_at (j := 446) rfl
+theorem find_pack8_456 : coreProgram.find? name% «keccak_layer__L1_loop0» = some fn% «keccak_layer__L1_loop0» :=
+  coreProgram_find?_at (j := idx% «keccak_layer__L1_loop0») rfl
+theorem find_packRem_457 : coreProgram.find? name% «keccak_layer__L1_loop1» = some fn% «keccak_layer__L1_loop1» :=
+  coreProgram_find?_at (j := idx% «keccak_layer__L1_loop1») rfl
+theorem find_pack8_458 : coreProgram.find? name% «keccak_layer__L0_loop0» = some fn% «keccak_layer__L0_loop0» :=
+  coreProgram_find?_at (j := idx% «keccak_layer__L0_loop0») rfl
+theorem find_packRem_459 : coreProgram.find? name% «keccak_layer__L0_loop1» = some fn% «keccak_layer__L0_loop1» :=
+  coreProgram_find?_at (j := idx% «keccak_layer__L0_loop1») rfl
 
 /-- The loops' parameters: `[x, bound, rounds, prev_point, point, tabs]` for the eight-round
 loop, `[x, bound, rounds, prev_point, tabs, point]` for the remainder loop. -/

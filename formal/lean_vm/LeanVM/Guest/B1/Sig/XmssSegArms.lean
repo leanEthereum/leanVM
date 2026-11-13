@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegArms
 
-  The codeword of the leanXMSS check in `__loop2` (`lean_ethereum.py:3655-3675`), sound: its fifteen
+  The codeword of the leanXMSS check in `main_loop2` (`lean_ethereum.py:3655-3675`), sound: its fifteen
   dispatches each take one arm, and the arms' walks, products and encodings give the chains' tips,
   the target sum and the digest's first cell.
 -/
@@ -49,7 +49,7 @@ theorem armM_atoms {W : WotsT} (hW : StepAtoms W) (slots : Nat → Nat → Nat) 
   simp only [armM]
   split_ifs <;> simp [atomsOnly_append, walksT_atoms hW, atomsOnly, cst, copyS, mulS, addS]
 
-/-- **An arm of a group of `__loop2`'s codeword**: its walks reach their tips from their starts,
+/-- **An arm of a group of `main_loop2`'s codeword**: its walks reach their tips from their starts,
 the product and the encoding are folded. -/
 theorem armM_sound {W : WotsT} {f : Nat → Nat → E → E} (hs : StepSound rd σ W f)
     {slots : Nat → Nat → Nat} {first n : Nat} {fold : Bool} {prodIn encIn prodOut encOut : V}
@@ -234,7 +234,7 @@ noncomputable def sStart (W : WotsT) (σ : Val) (dg vb0 i : Nat) : V :=
 theorem sDigitChecks_atoms (dg : Nat) : atomsOnly (sDigitChecks dg) = true :=
   atomsOnly_flatMap _ (fun _ => rfl) _
 
-/-- **The codeword of `__loop2`, sound.** With the digits `lxDigit (sK σ dg)` its dispatches
+/-- **The codeword of `main_loop2`, sound.** With the digits `lxDigit (sK σ dg)` its dispatches
 choose, each chain's tip is its chain from its start, the digits sum to the target in the exponent,
 and the digest's first cell is their base-4 number. -/
 theorem sCodewordT_sound {W : WotsT} (hW : StepAtoms W) {f : Nat → Nat → E → E}

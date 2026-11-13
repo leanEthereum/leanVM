@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Gkr.VbgOdd
 public import LeanVM.Guest.B1.Gkr.Loop8Complete
 public import LeanVM.Guest.B1.Selectors.LayoutBasic
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `verify_bus_gkr`'s body, completely (G:1867-2048)
@@ -100,7 +101,7 @@ def vbR8 : List Stmt :=
     .atom (.load (.n 378) (.n 377) 0), .atom (.add (.n 379) (.n 376) (.n 378)),
     .atom (.const (.n 380) (word 1 0)), .atom (.mul (.n 381) (.n 73) (.n 6)),
     .atom (.load (.n 382) (.n 381) 0),
-    .callIf (.n 379) "__loop6" [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17, .n 63, .n 142, .n 6,
+    .callIf (.n 379) name% «verify_bus_gkr_loop0» [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17, .n 63, .n 142, .n 6,
       .n 64]]
 
 /-- The last slot, the point's copy, the values' buffer, the returns. -/
@@ -111,7 +112,7 @@ def vbR9 : List Stmt :=
     .atom (.load (.n 389) (.n 388) 5), .atom (.load (.n 390) (.n 388) 9),
     .atom (.const (.n 391) (word 1 0)), .atom (.add (.n 392) (.n 391) (.n 6)),
     .atom (.const (.n 393) (word 1 0)),
-    .callIf (.n 392) "__loop7" [.n 393, .n 6, .n 7, .n 390],
+    .callIf (.n 392) name% «verify_bus_gkr_loop1» [.n 393, .n 6, .n 7, .n 390],
     .atom (.hint (.alloc (.n 394) 3)),
     .atom (.load (.n 395) (.n 388) 6), .atom (.load (.n 395) (.n 394) 0),
     .atom (.load (.n 396) (.n 388) 7), .atom (.load (.n 396) (.n 394) 1),
@@ -562,7 +563,7 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
         · rw [a379, c376, e378, tb_word_one, h0, pow_zero, e_add_self] at hne
           exact absurd rfl hne
         · exact h0
-      show coreProgram.Rel rd "__loop6" (List.map σ [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17,
+      show coreProgram.Rel rd name% «verify_bus_gkr_loop0» (List.map σ [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17,
         .n 63, .n 142, .n 6, .n 64]) []
       simp only [List.map_cons, List.map_nil]
       rw [c380, tb_word_one, e382, e375, e16, e8, e17, e142, e6, e64]
@@ -576,7 +577,7 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
       trivial, l395, ?_, l396, ?_, l397, ?_, fun k hk => (rC k hk).2, q403, q404⟩
     · rw [a392, c391, tb_word_one, e6]
       exact tb_isInK_add tb_isInK_one (tb_gen_pow_isInK _)
-    · show coreProgram.Rel rd "__loop7" (List.map σ [.n 393, .n 6, .n 7, .n 390]) []
+    · show coreProgram.Rel rd name% «verify_bus_gkr_loop1» (List.map σ [.n 393, .n 6, .n 7, .n 390]) []
       simp only [List.map_cons, List.map_nil]
       rw [c393, tb_word_one, e6, e7, e390]
       exact l8_complete (by omega) (by omega) hplF hptF hz

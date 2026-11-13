@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegCwC
 
-  The dispatches of leanXMSS's codeword inline in `__loop2` complete: an arm `k` below `4^n` is
+  The dispatches of leanXMSS's codeword inline in `main_loop2` complete: an arm `k` below `4^n` is
   `armT`'s, and a group's dispatch completes by the arm of its honest digits.
 -/
 

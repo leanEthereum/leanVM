@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.Parity
 
-  The parity words `verify_bus_gkr`'s layer loop `__loop6` dispatches on are `g^e`, `e < 4`
+  The parity words `verify_bus_gkr`'s layer loop `verify_bus_gkr_loop0` dispatches on are `g^e`, `e < 4`
   (`GkrPar`, the checker's obligation at the loop's cuts and at the loop's call).
 -/
 
@@ -13,7 +13,7 @@ public import LeanVM.Guest.WalkTags
 /-!
 # The layer loop's parity (lean_ethereum.py:1894-1897, 1932, 1953, 1956-2039)
 
-`__loop6`'s iteration `x` dispatches `gkr_rounds__L{2r}` on `parity = layer[g^12]`,
+`verify_bus_gkr_loop0`'s iteration `x` dispatches `gkr_rounds__L{2r}` on `parity = layer[g^12]`,
 `layer = layers·(x²·start_g)^13` (`LAYER_SLOTS = 13`, `LAYER_PARITY = 12`).
 The checker of the certificates bounds the dispatch's selector by the obligation `GkrPar` on the
 loop's arguments `[layers, x, start_g, k_mod_next]` (`WalkTags.lean`): every `k_mod_next[g^r]`,
@@ -37,7 +37,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `__loop6` -/
+/-! ## `verify_bus_gkr_loop0` -/
 
 theorem lyBody_take49_noRet : Stmt.noRetList (lyBody.take 49) = true := by decide +kernel
 
@@ -47,7 +47,7 @@ section Loop
 
 variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
-/-- The first eight statements of `__loop6`: the layer's slot `σ 17`. -/
+/-- The first eight statements of `verify_bus_gkr_loop0`: the layer's slot `σ 17`. -/
 def lySlotT : List Stmt :=
   [.atom (.mul (.n 10) (.n 0) (.n 0)), .atom (.mul (.n 11) (.n 10) (.n 2)),
     .atom (.mul (.n 12) (.n 11) (.n 11)), .atom (.mul (.n 13) (.n 12) (.n 11)),

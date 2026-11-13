@@ -27,12 +27,12 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem find_sumcheck_round4 : coreProgram.find? "sumcheck_round4" = some Data.core6 :=
-  coreProgram_find?_at (j := 6) rfl
+theorem find_sumcheck_round4 : coreProgram.find? "sumcheck_round4" = some fn% «sumcheck_round4» :=
+  coreProgram_find?_at (j := idx% «sumcheck_round4») rfl
 
-theorem core6_params : Fn.params Data.core6 = [.n 0, .n 1, .n 2, .n 3] := rfl
+theorem core6_params : Fn.params fn% «sumcheck_round4» = [.n 0, .n 1, .n 2, .n 3] := rfl
 
-theorem core6_body : Fn.body Data.core6 =
+theorem core6_body : Fn.body fn% «sumcheck_round4» =
     [.atom (.load (.n 4) (.n 0) 0), .atom (.load (.n 5) (.n 0) 1), .atom (.load (.n 6) (.n 0) 2),
       .atom (.load (.n 7) (.n 0) 3), .atom (.load (.n 8) (.n 0) 4)] ++
     fsNextT (.n 1) 0 9 ++ fsNextT (.n 1) 1 12 ++ fsNextT (.n 1) 2 15 ++ zero2T 18 ++

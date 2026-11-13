@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Gkr.Fs
 `010cfb18`, G below, G:1892-2073) runs the bus's one GKR grand product over the push, pull and
 count trees (`verifyGkrGrandProducts`): it reads the shared root and the count root (asserted
 nonzero), runs the root-most layer on its own (binary at an odd depth, else radix four, with
-`gkr_children`, `gkr_product_check`), then the radix-four layers of `__loop6` (`gkrLayers`),
+`gkr_children`, `gkr_product_check`), then the radix-four layers of `verify_bus_gkr_loop0` (`gkrLayers`),
 writes the final point to `zeta` (`zeta[g^k]`, `k < depth`) and returns the carried capacity,
 the cursor past the words it read and a heap buffer of the three trees' values at the point.
 

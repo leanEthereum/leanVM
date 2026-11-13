@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkFirst
 /-!
 # `verify_keccak`, assembled
 
-The body is `vkT` (`vk_body`); its sections (`vkHeadT_holds`, the copy loop `__loop10`,
+The body is `vkT` (`vk_body`); its sections (`vkHeadT_holds`, the copy loop `verify_keccak_loop0`,
 `vkFirstT_holds`, `vkStepsT_holds`, `vkOutT_holds`, `vkInT_holds`, `vkFinT_holds`) give the sponge
 runs, the reads and the two opening checks (`vk_out_check`, `vk_in_check`), and `vk_runsTo`
 composes them into `keccakSeg`'s run.
@@ -28,8 +28,8 @@ open LeanVM.Protocol.KeccakGkr Finset
 
 @[expose] public section
 
-theorem find_vk : coreProgram.find? "verify_keccak" = some Data.core12 :=
-  coreProgram_find?_at (j := 12) rfl
+theorem find_vk : coreProgram.find? "verify_keccak" = some fn% «verify_keccak» :=
+  coreProgram_find?_at (j := idx% «verify_keccak») rfl
 
 theorem readsAt_single {rd : Reader} {p a : E} (h : LoadHolds rd p 0 a) : ReadsAt rd p [a] := by
   intro k hk
@@ -42,13 +42,13 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
     verify_keccak_Spec rd := by
   intro args rets hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_vk args rets).mp hrel
-  rw [show Data.core12.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
+  rw [show (fn% «verify_keccak»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
     .n 10, .n 11] from rfl] at hpar
   simp only [List.map_cons, List.map_nil] at hpar
   subst hpar
   simp only [MeaningVerifyKeccak]
   intro htabs τ chis outs hτ1 hτ2 htg hchiL hchi houtsL hol
-  rw [show Fn.body Data.core12 = vkT from vk_body, vkT, holdsList_append, holdsList_append, holdsList_append, holdsList_append,
+  rw [show Fn.body fn% «verify_keccak» = vkT from vk_body, vkT, holdsList_append, holdsList_append, holdsList_append, holdsList_append,
     holdsList_append] at hb
   -- the head
   replace hb := vkHeadT_holds hτ1 hτ2 htg hb

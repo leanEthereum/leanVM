@@ -8,13 +8,14 @@
 module
 
 public import LeanVM.Guest.B1.Selectors.SharedTables
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `shared_selector_tables`' loop end
 
 On every valuation satisfying the body's atoms before its loop (`ssA`; any memory, any call
 relation), with `len_g = g^n`, `n < 64`: the hinted bits rebuild `q_g = g^(n / 4)` (`σ 39`, the
-end `__loop8` runs to) and `r_g = g^(n % 4)` (`σ 20`, the dispatch's selector), the loop's
+end `shared_selector_tables_loop0` runs to) and `r_g = g^(n % 4)` (`σ 20`, the dispatch's selector), the loop's
 condition is `1 + g^(n / 4)` and its start `1` (`ss_body_vals`). No load or unpinned hint enters:
 the bits are pinned Boolean and their value by `q_g^4·r_g = len_g`.
 -/
@@ -115,7 +116,7 @@ def ssS : List Stmt := [
     .atom (.const (.n 43) (word 1 0)),
     .atom (.add (.n 44) (.n 43) (.n 39)),
     .atom (.const (.n 45) (word 1 0)),
-    .callIf (.n 44) "__loop8" [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1, .n 4],
+    .callIf (.n 44) name% «shared_selector_tables_loop0» [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1, .n 4],
     .atom (.mul (.n 46) (.n 41) (.n 41)),
     .atom (.mul (.n 47) (.n 46) (.n 46)),
     .atom (.mul (.n 48) (.n 0) (.n 47)),

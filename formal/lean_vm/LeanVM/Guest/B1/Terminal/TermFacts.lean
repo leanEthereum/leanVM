@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Terminal.Holds
 public import LeanVM.Guest.B1.Fwd.Canon
 public import LeanVM.Guest.B1.Tables.FlatAt
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `check_opening_terminal`'s body, for completeness
@@ -42,16 +43,16 @@ theorem termT_split : termT = termPre ++ [.ret []] := by
   rw [termT, termClaims_end, termTail_split, termPre]
   simp only [List.append_assoc]
 
-theorem find_term : coreProgram.find? "check_opening_terminal" = some Data.core17 :=
-  coreProgram_find?_at (j := 17) rfl
+theorem find_term : coreProgram.find? "check_opening_terminal" = some fn% «check_opening_terminal» :=
+  coreProgram_find?_at (j := idx% «check_opening_terminal») rfl
 
-theorem term_body' : Data.core17.body = termPre ++ [.ret []] := by
+theorem term_body' : (fn% «check_opening_terminal»).body = termPre ++ [.ret []] := by
   obtain ⟨fn, hf, -, hb⟩ := termFound
   rw [find_term, Option.some.injEq] at hf
   subst hf
   exact hb.trans termT_split
 
-theorem term_params : Data.core17.params = (List.range 20).map Core.V.n := by
+theorem term_params : (fn% «check_opening_terminal»).params = (List.range 20).map Core.V.n := by
   obtain ⟨fn, hf, hp, -⟩ := termFound
   rw [find_term, Option.some.injEq] at hf
   subst hf
@@ -94,7 +95,7 @@ theorem tail_noDisp : termTailPre.all noDispB = true := by decide +kernel
 theorem head_callS : termHeadT.filterMap Main.Stmt.callS =
     [(none, "eq_prefix_chain", [.n 20, .n 21, .n 1, .n 14, .n 4], []),
       (none, "eq_prefix_chain", [.n 22, .n 23, .n 2, .n 14, .n 5], []),
-      (some (.n 31), "__loop14", [.n 32, .n 6, .n 26, .n 14], []),
+      (some (.n 31), name% «check_opening_terminal_loop0», [.n 32, .n 6, .n 26, .n 14], []),
       (none, "selector_tables", [.n 13, .n 14], [.n 43])] := by decide +kernel
 
 theorem claims_callS : termClaims.1.filterMap Main.Stmt.callS = [] := by decide +kernel
@@ -131,7 +132,7 @@ theorem sels_callSF (σ : Val) :
 theorem term_callSF (σ : Val) : termPre.filterMap (Stmt.callSF σ) =
     [(none, "eq_prefix_chain", [.n 20, .n 21, .n 1, .n 14, .n 4], []),
       (none, "eq_prefix_chain", [.n 22, .n 23, .n 2, .n 14, .n 5], []),
-      (some (.n 31), "__loop14", [.n 32, .n 6, .n 26, .n 14], []),
+      (some (.n 31), name% «check_opening_terminal_loop0», [.n 32, .n 6, .n 26, .n 14], []),
       (none, "selector_tables", [.n 13, .n 14], [.n 43])] ++
     (List.range Tables.nCommittedCols).map (selCall σ) ++
     [(none, "eq_prefix_chain", [.n 1694, .n 1695, .n 11, .n 14, .n 1697], []),

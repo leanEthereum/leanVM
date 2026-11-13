@@ -114,8 +114,12 @@ theorem straight_digest {rd : Reader} {σ : Val} {atoms : List Atom} {s : ChainS
   simp only [retOk, Bool.and_eq_true] at hr
   rw [copy_sound hr.1 hat, copy_sound hr.2 hat, digestCells, ← hd]
 
+theorem idx_lt {name : String} {j : ℕ} (h : coreProgram.indexOf? name = some j) : j < coreProgram.length :=
+  (List.findIdx?_eq_some_iff_getElem.mp h).1
+
 theorem find_of_idx {name : String} {j : ℕ} (h : coreProgram.indexOf? name = some j)
-    (hj : j < coreProgram.length) : coreProgram.find? name = some (coreProgram.getD j default) := by
+    (hj : j < coreProgram.length := idx_lt h) :
+    coreProgram.find? name = some (coreProgram.getD j default) := by
   refine Program.find?_of_indexOf? h ?_
   rw [List.getElem?_eq_getElem hj, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]
   rfl

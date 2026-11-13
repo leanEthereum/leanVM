@@ -251,7 +251,7 @@ the digits `spDigitR σ` sum to `128`, the fourth argument is their encoding (`s
 `spDigitPos i`, `spX_digit`), and `leaf` is the one-time leaf of the chain values at `spStartR σ`
 (`spLeafCell`) at the address `(σ n1, σ n2)`. -/
 theorem sp_wots_sound_cells {rets : List E}
-    (h : Stmt.HoldsList C rd σ Data.core19.body False (fun rs => rs = rets)) :
+    (h : Stmt.HoldsList C rd σ (fn% «sp_wots»).body False (fun rs => rs = rets)) :
     ∃ leaf, rets = [leaf] ∧ (∀ i, spDigitR σ i < 4) ∧
       ∑ i ∈ Finset.range 64, spDigitR σ i = 128 ∧ σ (.n 3) = eOfNat128 (spX (spDigitR σ) 64) ∧
       leaf = spLeafCell (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (spDigitR σ) fun i => σ (spStartR σ i) := by

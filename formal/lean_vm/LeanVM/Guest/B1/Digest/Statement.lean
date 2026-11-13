@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Digest.Basic
 seed's two cells, the two claim lists' digests' two each, the DA digest's two, then the 24
 deferred cells (read at `defer`), each cell its two limbs: `512` bytes in four `KECCAK` blocks,
 the padding's `0x01` (byte `512`, cell `32`) and `0x80` (byte `543`, cell `33`) in the last. Its
-core IR (`Data.core21`) is the template `sdAtoms` (`sd_body`, by kernel evaluation);
+core IR (`fn% «statement_digest»`) is the template `sdAtoms` (`sd_body`, by kernel evaluation);
 `keccak_final_digest` makes the chain Keccak-256 of the cells' bytes.
 -/
 
@@ -84,10 +84,10 @@ def sdAtoms : List Atom :=
     sdBlk3 ++ [.copy (.n 115) (.n 113), .copy (.n 116) (.n 114)]
 
 set_option maxRecDepth 100000 in
-theorem sd_body : Fn.body Data.core21 = sdAtoms.map Stmt.atom ++ [.ret [.n 115, .n 116]] :=
+theorem sd_body : Fn.body fn% «statement_digest» = sdAtoms.map Stmt.atom ++ [.ret [.n 115, .n 116]] :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem sd_params : Fn.params Data.core21 =
+theorem sd_params : Fn.params fn% «statement_digest» =
     [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8] := rfl
 
 /-! ## The cells -/

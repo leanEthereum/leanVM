@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Main.MainGoalsClT
 public import LeanVM.Guest.B1.Digest.ClaimListAtTB
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main`'s claim lists, within bounds
@@ -62,10 +63,10 @@ theorem MainGoalClSTB.toT {SB SK : String → ℕ} (h : MainGoalClSTB fs cert fp
 `clB`.** -/
 theorem mainGoalClXTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
-    (hL15 : TotalLeOn coreProgram fs "__loop15" LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop15" + fs "__loop15"))
-    (hL16 : TotalLeOn coreProgram fs "__loop16" LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop16" + fs "__loop16"))
+    (hL15 : TotalLeOn coreProgram fs name% «claim_list_digest_loop0» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0»))
+    (hL16 : TotalLeOn coreProgram fs name% «claim_list_digest_loop1» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1»))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     MainGoalClXTB fs cert fp seed s w SB SK := by
   have hn : s.claims.xmss.length < claimBig * bigFramesCap := by
@@ -98,10 +99,10 @@ theorem mainGoalClXTB (hL : GuestLimits s w) {SB SK : String → ℕ}
 within `clB`.** -/
 theorem mainGoalClSTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
-    (hL15 : TotalLeOn coreProgram fs "__loop15" LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop15" + fs "__loop15"))
-    (hL16 : TotalLeOn coreProgram fs "__loop16" LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop16" + fs "__loop16"))
+    (hL15 : TotalLeOn coreProgram fs name% «claim_list_digest_loop0» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0»))
+    (hL16 : TotalLeOn coreProgram fs name% «claim_list_digest_loop1» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1»))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     MainGoalClSTB fs cert fp seed s w SB SK := by
   have hn : s.claims.sphincs.length < claimBig * bigFramesCap := by

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.MainGoalsHL5
 
-  `main`'s honest children loop `__loop4`: complete at `main`'s words (`MainGoalL5`).
+  `main`'s honest children loop `main_loop4`: complete at `main`'s words (`MainGoalL5`).
 -/
 
 module
@@ -182,7 +182,7 @@ theorem length_daDigests : ((w.children.map (·.statement.claims.daDigest) ++ [h
   rw [kid_length_flatMap_const (f := B1.Digest.digestCells) (k := 2) _ fun _ _ => rfl]
   simp
 
-/-- **Child `c` is as `__loop4` needs it**, at `main`'s honest words. -/
+/-- **Child `c` is as `main_loop4` needs it**, at `main`'s honest words. -/
 theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
     (hl : GuestLimits s w)

@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Data.Core07
+public import LeanVM.Guest.Data.Names
 public import LeanVM.Guest.B1.Sig.SpWotsLayout
 import LeanVM.Guest.B1.Sig.Decide
 import LeanVM.Guest.B1.Sig.SpWotsData0
@@ -20,7 +20,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-- **`sp_wots`'s body is the template**, renumbered as the guest numbers it, checked by the kernel
 in runs of `stmtsEqb` (`spBody_run_*`) and the leaf (`spBody_drop_127`). -/
-theorem spBody_eq : Data.core19.body = spBody := by
+theorem spBody_eq : (fn% «sp_wots»).body = spBody := by
   have h120 := drop_eq_of_take (stmtsEqb_sound spBody_run_120) spBody_drop_127
   have h112 := drop_eq_of_take (stmtsEqb_sound spBody_run_112) h120
   have h104 := drop_eq_of_take (stmtsEqb_sound spBody_run_104) h112

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.KidCChk
 
-  `__loop4`'s block (a child), evaluated (by kernel evaluation), for its placed completeness.
+  `main_loop4`'s block (a child), evaluated (by kernel evaluation), for its placed completeness.
 -/
 
 module
@@ -9,11 +9,12 @@ module
 public import LeanVM.Guest.B1.Main.Loops
 public import LeanVM.Guest.B1.Fwd.Canon
 public import LeanVM.Guest.Memory.Uniform
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # A child's block, evaluated
 
-`l5Pre`: `__loop4`'s statements before its tail call (`l5_body`). `l5COk`: the evaluator's pattern
+`l5Pre`: `main_loop4`'s statements before its tail call (`l5_body`). `l5COk`: the evaluator's pattern
 (`chk`), the stores (`l5S`: the statement's digest's two cells into `child_pi_table`, the next
 running count), every side condition a load of `written[x]` or of the
 child's DA digest's two hinted cells, a store, or a load through one of the child's two counts
@@ -26,7 +27,7 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 
 @[expose] public section
 
-/-- `__loop4`'s statements before its tail call. -/
+/-- `main_loop4`'s statements before its tail call. -/
 def l5Pre : List Stmt := [
     .atom (.mul (.n 16) (.n 2) (.n 0)),
     .atom (.load (.n 17) (.n 16) 0),
@@ -72,20 +73,20 @@ def l5Pre : List Stmt := [
     .atom (.const (.n 54) (word 2 0)),
     .atom (.mul (.n 55) (.n 0) (.n 54))]
 
-/-- `__loop4`'s tail call. -/
+/-- `main_loop4`'s tail call. -/
 def l5Tail : Stmt :=
-  .callIf (.n 53) "__loop4" [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n
+  .callIf (.n 53) name% «main_loop4» [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n
     11, .n 12, .n 13, .n 14, .n 15]
 
 set_option maxRecDepth 100000 in
-theorem l5_body : Fn.body (coreProgram.getD 38 default) = l5Pre ++ [l5Tail, .ret []] :=
+theorem l5_body : Fn.body (coreProgram.getD idx% «main_loop4» default) = l5Pre ++ [l5Tail, .ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem l5_params : (coreProgram.getD 38 default).params = (List.range 16).map V.n := by
+theorem l5_params : (coreProgram.getD idx% «main_loop4» default).params = (List.range 16).map V.n := by
   decide +kernel
 
-/-- `__loop4`'s stores. -/
+/-- `main_loop4`'s stores. -/
 def l5S : List Atom :=
   [.load (.n 38) (.n 41) 0, .load (.n 39) (.n 42) 1, .load (.n 49) (.n 50) 1]
 
@@ -99,7 +100,7 @@ def l5Calls : List Stmt :=
     .call "statement_digest" [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33]
       [.n 38, .n 39]]
 
-/-- **`__loop4`'s block, evaluated.** -/
+/-- **`main_loop4`'s block, evaluated.** -/
 def l5COk : Bool :=
   (chk 16 (l5Pre ++ [l5Tail, .ret []])).isSome &&
   decide (storesOf 16 (l5Pre ++ [l5Tail, .ret []]) = l5S) &&

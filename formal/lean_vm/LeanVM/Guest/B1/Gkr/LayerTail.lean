@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.LayerTail
 
-  The tail of a layer of `verify_bus_gkr` (`__loop6`): the rounds between its first and last
+  The tail of a layer of `verify_bus_gkr` (`verify_bus_gkr_loop0`): the rounds between its first and last
   records, the twelve children read and absorbed, their check, the two new coordinates squeezed,
   and the next slot's stores.
 -/
@@ -9,11 +9,12 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.Layer
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# A layer's rounds and children (`__loop6`, G:1997-2041)
+# A layer's rounds and children (`verify_bus_gkr_loop0`, G:1997-2041)
 
-* `ly_rounds`: `__loop36`, then `gkr_rounds__L{2r}` at the layer index's `r = k % 4`, then
+* `ly_rounds`: `verify_bus_gkr_loop0_loop0`, then `gkr_rounds__L{2r}` at the layer index's `r = k % 4`, then
   `gkr_rounds__L1` at an odd depth, run the `L = 2k + sh` rounds from the layer's first record;
 * `ly_tail`: the twelve words at the last record's cursor are the three trees' children
   (`gkr_children`), their products check the last claim (`gkr_product_check`), and the sponge
@@ -56,10 +57,10 @@ theorem chWords_eq (σ : Val) (b0 m : ℕ) : chWords σ b0 m = [σ (.n (chB b0 (
     σ (.n (chB b0 (4 * m + 1))), σ (.n (chB b0 (4 * m + 2))), σ (.n (chB b0 (4 * m + 3)))] := by
   simp [chWords, List.range_succ]
 
-/-- The first value of child `i`'s read in `__loop6` (at the tail cursor `σ 75`). -/
+/-- The first value of child `i`'s read in `verify_bus_gkr_loop0` (at the tail cursor `σ 75`). -/
 abbrev lyEv (i : ℕ) : ℕ := chB 76 i
 
-/-- Child `i`'s read in `__loop6`. -/
+/-- Child `i`'s read in `verify_bus_gkr_loop0`. -/
 abbrev lyEvT (i : ℕ) : List Stmt := chT (.n 75) 0 76 i
 
 /-- Child `i`'s read's first statement in `lyPre`. -/
@@ -69,10 +70,10 @@ theorem lyEvs_check : ∀ i < 12,
     tbStmtsEqb (lyEvT i) ((lyPre.drop (lyPos i)).take (lyEvT i).length) = true := by
   decide +kernel
 
-/-- The rate cells of `__loop6`'s children `4m .. 4m + 3`. -/
+/-- The rate cells of `verify_bus_gkr_loop0`'s children `4m .. 4m + 3`. -/
 abbrev lyRate (m : ℕ) : List V := chRate 76 m
 
-/-- The words of `__loop6`'s children `4m .. 4m + 3`. -/
+/-- The words of `verify_bus_gkr_loop0`'s children `4m .. 4m + 3`. -/
 abbrev lyCh (σ : Val) (m : ℕ) : List E := chWords σ 76 m
 
 theorem lyCh_length (σ : Val) (m : ℕ) : (lyCh σ m).length = 4 := chWords_length σ 76 m
@@ -109,7 +110,7 @@ theorem ch_ev {cur : V} {o b0 i : ℕ} (h : Stmt.HoldsList C rd σ (chT cur o b0
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hc
   exact ⟨hl, hp, hc⟩
 
-/-- Child `i`'s read in `__loop6`. -/
+/-- Child `i`'s read in `verify_bus_gkr_loop0`. -/
 theorem ly_ev {i : ℕ} (h : Stmt.HoldsList C rd σ (lyEvT i) True kret) :
     LoadHolds rd (σ (.n 75)) i (σ (.n (lyEv i))) ∧
       FsPackOk σ (.n (lyEv i)) (lyEv i + 1) dsObserve ∧ σ (.n (lyEv i + 3)) = σ (.n (lyEv i)) := by
@@ -148,7 +149,7 @@ theorem ch_perm_block {b0 m b : ℕ} {cap : List V}
   rw [hins] at hP hcap
   exact ⟨hP, hcap⟩
 
-/-- Four of `__loop6`'s children's permutation. -/
+/-- Four of `verify_bus_gkr_loop0`'s children's permutation. -/
 theorem ly_perm_block {m b : ℕ} {cap : List V}
     (hp : ∀ i < 4, FsPackOk σ (.n (lyEv (4 * m + i))) (lyEv (4 * m + i) + 1) dsObserve)
     (hk : (Atom.keccak (lyRate m ++ cap) (lyOuts b) false false).Holds rd σ) :
@@ -182,7 +183,7 @@ theorem ch_val {b0 c0 c1 slot t b off : ℕ}
   simp only [multilinearEval, List.foldl, foldPairs, List.headD]
   ring
 
-/-- `__loop6`'s tree `t`'s new value. -/
+/-- `verify_bus_gkr_loop0`'s tree `t`'s new value. -/
 abbrev lyValT (t b off : ℕ) : List Stmt := chValT 76 180 194 17 t b off
 
 theorem ly_val {t b off : ℕ} (h : Stmt.HoldsList C rd σ (lyValT t b off) True kret) :
@@ -196,7 +197,7 @@ def lySponge (σ : Val) : Fs :=
   (((⟨(List.range 5).map fun k ↦ σ (.n (70 + k)), []⟩ : Fs).absorbAll (lyCh σ 0)
     dsObserve).absorbAll (lyCh σ 1) dsObserve).absorbAll (lyCh σ 2) dsObserve
 
-/-- **The rounds of a layer**: `__loop36` (`8·(k/4)` rounds), `gkr_rounds__L{2r}` at `r = k % 4`,
+/-- **The rounds of a layer**: `verify_bus_gkr_loop0_loop0` (`8·(k/4)` rounds), `gkr_rounds__L{2r}` at `r = k % 4`,
 and `gkr_rounds__L1` at an odd depth are the `2k + sh` rounds from the first record. -/
 theorem ly_rounds (hC : CallRel.Le C (coreProgram.Rel rd)) (hGR : tb_gkr_rounds_Spec)
     (h : Stmt.HoldsList C rd σ lyPre True kret) {j k sh : ℕ} (hj : j < 2 ^ 30) (hsh : sh < 2)
@@ -217,7 +218,7 @@ theorem ly_rounds (hC : CallRel.Le C (coreProgram.Rel rd)) (hGR : tb_gkr_rounds_
   have c64 := a 50 (.const (.n 64) (word 1 0)) (by decide +kernel)
   have a65 := a 51 (.add (.n 65) (.n 7) (.n 64)) (by decide +kernel)
   simp only [Atom.Holds, tb_word_one] at c55 a56 c57 m58 m59 m60 m61 m62 c64 a65
-  obtain ⟨-, hc36⟩ := tb_holds_callIf hnr h 43 (.n 56) "__loop36" [.n 57, .n 53, .n 48, .n 46, .n 4]
+  obtain ⟨-, hc36⟩ := tb_holds_callIf hnr h 43 (.n 56) name% «verify_bus_gkr_loop0_loop0» [.n 57, .n 53, .n 48, .n 46, .n 4]
     (by decide +kernel)
   simp only [List.map_cons, List.map_nil, c57] at hc36
   have R8 := l29_loop (h := k / 4) e53 (by omega)

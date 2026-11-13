@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.B1.Da.VerifyDefs
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The pure callees
@@ -27,21 +28,21 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory
 
 /-- The level loops of the `da_levels` functions. -/
 def lvlLoops : List String :=
-  ["__loop41", "__loop42", "__loop43", "__loop44", "__loop45", "__loop46", "__loop47",
-  "__loop48", "__loop49", "__loop50", "__loop51", "__loop52", "__loop53", "__loop54",
-  "__loop55", "__loop56", "__loop57", "__loop58", "__loop59", "__loop60", "__loop61",
-  "__loop62", "__loop63", "__loop64", "__loop65", "__loop66", "__loop67", "__loop68",
-  "__loop69", "__loop70", "__loop71", "__loop72", "__loop73", "__loop74", "__loop75",
-  "__loop76", "__loop77", "__loop78", "__loop79", "__loop80", "__loop81", "__loop82",
-  "__loop83", "__loop84", "__loop85", "__loop86", "__loop87", "__loop88", "__loop89",
-  "__loop90", "__loop91", "__loop92", "__loop93", "__loop94", "__loop95"]
+  [name% «da_levels__L2_L1_loop0», name% «da_levels__L4_L2_loop0», name% «da_levels__L4_L2_loop1», name% «da_levels__L8_L3_loop0», name% «da_levels__L8_L3_loop1», name% «da_levels__L8_L3_loop2», name% «da_levels__L16_L4_loop0»,
+  name% «da_levels__L16_L4_loop1», name% «da_levels__L16_L4_loop2», name% «da_levels__L16_L4_loop3», name% «da_levels__L32_L5_loop0», name% «da_levels__L32_L5_loop1», name% «da_levels__L32_L5_loop2», name% «da_levels__L32_L5_loop3»,
+  name% «da_levels__L32_L5_loop4», name% «da_levels__L64_L6_loop0», name% «da_levels__L64_L6_loop1», name% «da_levels__L64_L6_loop2», name% «da_levels__L64_L6_loop3», name% «da_levels__L64_L6_loop4», name% «da_levels__L64_L6_loop5»,
+  name% «da_levels__L128_L7_loop0», name% «da_levels__L128_L7_loop1», name% «da_levels__L128_L7_loop2», name% «da_levels__L128_L7_loop3», name% «da_levels__L128_L7_loop4», name% «da_levels__L128_L7_loop5», name% «da_levels__L128_L7_loop6»,
+  name% «da_levels__L256_L8_loop0», name% «da_levels__L256_L8_loop1», name% «da_levels__L256_L8_loop2», name% «da_levels__L256_L8_loop3», name% «da_levels__L256_L8_loop4», name% «da_levels__L256_L8_loop5», name% «da_levels__L256_L8_loop6»,
+  name% «da_levels__L256_L8_loop7», name% «da_levels__L512_L9_loop0», name% «da_levels__L512_L9_loop1», name% «da_levels__L512_L9_loop2», name% «da_levels__L512_L9_loop3», name% «da_levels__L512_L9_loop4», name% «da_levels__L512_L9_loop5»,
+  name% «da_levels__L512_L9_loop6», name% «da_levels__L512_L9_loop7», name% «da_levels__L512_L9_loop8», name% «da_levels__L1024_L10_loop0», name% «da_levels__L1024_L10_loop1», name% «da_levels__L1024_L10_loop2», name% «da_levels__L1024_L10_loop3»,
+  name% «da_levels__L1024_L10_loop4», name% «da_levels__L1024_L10_loop5», name% «da_levels__L1024_L10_loop6», name% «da_levels__L1024_L10_loop7», name% «da_levels__L1024_L10_loop8», name% «da_levels__L1024_L10_loop9»]
 
-/-- **The pure callees of `da_verify`**: the cell check, the loops over the blobs (`__loop21`,
-`__loop23`, `__loop24`), the columns' row loop (`__loop25`), the offsets' doubling loops
-(`__loop26` to `__loop32`), the DA levels and their loops. -/
+/-- **The pure callees of `da_verify`**: the cell check, the loops over the blobs (`da_verify_loop0`,
+`da_verify_loop2`, `da_verify_loop3`), the columns' row loop (`da_verify_column_loop0`), the offsets' doubling loops
+(`da_column_offsets_loop0` to `da_column_offsets_loop6`), the DA levels and their loops. -/
 def daPureSet : List String :=
-  ["da_verify_cell", "__loop21", "__loop23", "__loop24", "__loop25", "__loop26", "__loop27",
-    "__loop28", "__loop29", "__loop30", "__loop31", "__loop32"] ++ dlNames ++ lvlLoops
+  ["da_verify_cell", name% «da_verify_loop0», name% «da_verify_loop2», name% «da_verify_loop3», name% «da_verify_column_loop0», name% «da_column_offsets_loop0», name% «da_column_offsets_loop1»,
+    name% «da_column_offsets_loop2», name% «da_column_offsets_loop3», name% «da_column_offsets_loop4», name% «da_column_offsets_loop5», name% «da_column_offsets_loop6»] ++ dlNames ++ lvlLoops
 
 /-- Every member's body places nothing and calls members only. -/
 noncomputable def daPureOk : Bool :=

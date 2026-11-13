@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Da.VecCChk
 public import LeanVM.Guest.B1.Da.FacAt
 public import LeanVM.Guest.B1.Da.ExpAt
@@ -80,7 +81,7 @@ theorem vec_sholds {rd : Reader} (z bz r25 r27 r28 r29 : E)
     (hav : ∀ j v, j < 15 → v = 0 → LoadHolds rd (bz * gen ^ 15) j v) :
     ∀ s ∈ vecP, SHolds (fun _ _ _ => True) rd (Val.ofArgs (vecVals z bz r25 r27 r28 r29)) s := by
   intro s hs
-  simp only [vecP, Data.core31, Data.core31.body, List.dropLast_cons_cons, List.dropLast_singleton,
+  simp only [vecP, core_eq% «da_vector», core_eq% «da_vector» body, List.dropLast_cons_cons, List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals simp only [SHolds, Atom.Holds, ofArgs_n, vecVals, List.getD_cons_succ,
@@ -102,7 +103,7 @@ theorem vec_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
   unfold vecCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
   obtain ⟨⟨⟨⟨⟨⟨hflat, hnd⟩, hni⟩, haddr⟩, halloc⟩, hcalls⟩, hloads⟩ := hcok
-  have hb : Fn.body Data.core31 = vecP ++ [.ret [.n 30, .n 31, .n 32, .n 33]] := rfl
+  have hb : Fn.body fn% «da_vector» = vecP ++ [.ret [.n 30, .n 31, .n 32, .n 33]] := rfl
   -- the reads every callee needs of `zs` and `above_top`
   have hzsR : ∀ {rd : Reader} {bz : ℕ} {L : Layout}, (bz, zsCells z) ∈ L → MemL rd L →
       ∀ j < 15, LoadHolds rd (gen ^ bz) j (zsVal z j) := fun hq hm j hj => by

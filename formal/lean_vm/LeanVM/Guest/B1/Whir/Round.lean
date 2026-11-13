@@ -57,12 +57,12 @@ def roundBody : List Stmt :=
     .ret [.n 86, .n 87, .n 88, .n 89, .n 90, .n 93, .n 94]]
 
 set_option maxRecDepth 100000 in
-theorem core7_body : Fn.body Data.core7 = roundBody := stmtsEqb_sound (by decide +kernel)
+theorem core7_body : Fn.body fn% «opening_round» = roundBody := stmtsEqb_sound (by decide +kernel)
 
-theorem core7_params : Fn.params Data.core7 = (List.range 10).map V.n := rfl
+theorem core7_params : Fn.params fn% «opening_round» = (List.range 10).map V.n := rfl
 
-theorem find_opening_round : coreProgram.find? "opening_round" = some Data.core7 :=
-  coreProgram_find?_at (j := 7) rfl
+theorem find_opening_round : coreProgram.find? "opening_round" = some fn% «opening_round» :=
+  coreProgram_find?_at (j := idx% «opening_round») rfl
 
 /-! ## The meaning -/
 

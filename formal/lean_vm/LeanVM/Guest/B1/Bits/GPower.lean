@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Common.Find
 
@@ -26,8 +27,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem find_g_power_of_word : coreProgram.find? "g_power_of_word" = some Data.core2 :=
-  coreProgram_find?_at (j := 2) rfl
+theorem find_g_power_of_word : coreProgram.find? "g_power_of_word" = some fn% «g_power_of_word» :=
+  coreProgram_find?_at (j := idx% «g_power_of_word») rfl
 
 /-- The folded factor constant `1 + g^(2^j)`. -/
 theorem word_gpow_one (j : ℕ) (hj : 2 ^ j < 64) (c : ℕ) (hc : c = 2 ^ 2 ^ j ^^^ 1) :
@@ -66,9 +67,9 @@ theorem g_power_of_word_holds : g_power_of_word_Spec := by
   have w257 := word_gpow_one 3 (by norm_num) 257 (by decide)
   have w65537 := word_gpow_one 4 (by norm_num) 65537 (by decide)
   have w4294967297 := word_gpow_one 5 (by norm_num) 4294967297 (by decide)
-  rw [rel_iff_sem find_g_power_of_word, show Fn.params Data.core2 = [.n 0] from rfl,
-    show Fn.body Data.core2 = Data.core2.body from rfl]
-  simp only [Data.core2.body, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
+  rw [rel_iff_sem find_g_power_of_word, show Fn.params fn% «g_power_of_word» = [.n 0] from rfl,
+    show Fn.body fn% «g_power_of_word» = (core% «g_power_of_word» body) from rfl]
+  simp only [core_eq% «g_power_of_word» body, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
     true_and]
   constructor
   · rintro ⟨σ, hp, b0, e7, e8, e9, e10, b1, e11, e12, e13, e14, e15, e16, e17, e18, b2, e19, e20,

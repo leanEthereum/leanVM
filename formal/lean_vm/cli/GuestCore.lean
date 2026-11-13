@@ -373,11 +373,106 @@ end
 end LeanVM.Guest.Data
 "
 
+/-! ## Stable names
+
+A proof names a core function by its name, not by its index, which an added function shifts; a
+loop helper (`__loop{n}`, numbered over the whole program by the compiler) by its caller and its
+place among the caller's loops: `{caller}_loop{k}`, the `k`-th loop the caller's body names. -/
+
+/-- The functions a block names, in order. -/
+partial def callees : List Stmt → List String
+  | [] => []
+  | s :: ss =>
+    let here := match s with
+      | .call f _ _ => [f]
+      | .callIf _ f _ => [f]
+      | .dispatch _ fs _ _ => fs
+      | .ite _ z e => callees z ++ callees e
+      | .match_ _ arms => arms.flatMap callees
+      | .atom _ | .ret _ => []
+    here ++ callees ss
+
+def isLoop (name : String) : Bool := name.startsWith "__loop"
+
+/-- Each function's stable name: its own, a loop's from its first caller (`{caller}_loop{k}`). -/
+partial def stableNames (P : Core.Program) : Array String := Id.run do
+  let names := P.toArray.map (·.name)
+  -- a loop's first caller other than itself, and its place among that caller's loops
+  let mut parent : Std.HashMap String (Nat × Nat) := {}
+  for (f, j) in P.zipIdx do
+    let loops := ((callees f.body).filter fun g => isLoop g && g != f.name).eraseDups
+    for (g, k) in loops.zipIdx do
+      if !parent.contains g then parent := parent.insert g (j, k)
+  let rec go (fuel j : Nat) : String :=
+    match fuel, parent.get? (names.getD j "") with
+    | fuel + 1, some (p, k) => if isLoop (names.getD j "") then s!"{go fuel p}_loop{k}" else names.getD j ""
+    | _, _ => names.getD j ""
+  return (List.range names.size).toArray.map (go names.size)
+
+def namesFile (P : Core.Program) : String :=
+  let st := stableNames P
+  let rows (f : String → Nat → String) : String :=
+    String.join ((P.zipIdx.map fun (_, j) => f (st.getD j "") j))
+  header "Names" "The core functions by their stable names." ++ "public import LeanVM.Guest.Data.Core
+public import LeanVM.Guest.Data.NameStrings
+
+/-!
+# The core functions by stable name
+
+`F.«s»` is the core function of stable name `s` and `I.«s»` its index in `coreProgram`
+(`NameStrings`: `N.«s»` its name): a function's own name, a loop helper's `{caller}_loop{k}` (the
+`k`-th loop its first caller names). Proofs name functions so, through `fn% s`, `idx% s` and
+`name% s` (`Guest/CoreRef.lean`), which elaborate to these values, and an added or removed
+function changes no proof.
+-/
+
+namespace LeanVM.Guest.Data
+
+set_option linter.all false
+
+@[expose] public section
+
+namespace F
+" ++ rows (fun s j => s!"noncomputable abbrev «{s}» : Core.Fn := core{j}\n") ++ "end F
+
+namespace I
+" ++ rows (fun s j => s!"abbrev «{s}» : Nat := {j}\n") ++ "end I
+
+end
+end LeanVM.Guest.Data
+"
+
+def nameStringsFile (P : Core.Program) : String :=
+  let st := stableNames P
+  header "NameStrings" "The core functions' names by their stable names." ++ "public import LeanVM.Guest.CoreRef
+
+/-!
+# The core functions' names by stable name
+
+`N.«s»` is the name of the core function of stable name `s` (`Names`), without the core IR: what a
+template naming a callee imports. `coreCount` is the number of core functions (`core_count%`).
+-/
+
+namespace LeanVM.Guest.Data
+
+set_option linter.all false
+
+@[expose] public section
+
+abbrev coreCount : Nat := " ++ toString P.length ++ "
+
+namespace N
+" ++ String.join (P.zipIdx.map fun (fn, j) => s!"abbrev «{st.getD j ""}» : String := {fn.name.quote}\n") ++ "end N
+
+end
+end LeanVM.Guest.Data
+"
+
 /-- The files, by name. -/
 def files (P : Core.Program) : List (String × String) :=
   let fs := pack (P.zipIdx.map fun (f, j) => pFn j f)
   (fs.toList.zipIdx.map fun (f, k) => (fileName k, f.text k)) ++
-    [("Core", indexFile fs.size P.length)]
+    [("Core", indexFile fs.size P.length), ("Names", namesFile P), ("NameStrings", nameStringsFile P)]
 
 /-- The generated files on disk. -/
 def existing : IO (List String) := do

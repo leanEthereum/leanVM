@@ -14,6 +14,7 @@ public import LeanVM.Guest.B1.Digest.Mono1
 public import LeanVM.Guest.B1.Digest.Mono2
 public import LeanVM.Guest.B1.Digest.Mono3
 public import LeanVM.Guest.B1.Digest.MonoLasts
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `child_claim_list_mono`
@@ -255,14 +256,14 @@ def MonoStep (rd : Reader) (m nb : ℕ) (chain mark x : E) : Prop :=
       LoadHolds rd (chain * x ^ 15) 29 (entries * gen ^ (4 * O'))
 
 theorem mono_step {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st0 cw ew nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1601)
+    (hidx : coreProgram.indexOf? f = some j)
     (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
     (hcw : word cw 0 = gen ^ m) (hew : word ew 0 = gen ^ (4 * m))
     (hnb : (monoSpec m st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {x : E} {ps : List E} (h : coreProgram.Rel rd f (x :: ps) []) :
     (∀ N chain mark, ps = [N, chain, mark] → MonoStep rd m nb chain mark x) ∧
       (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd f (x * gen :: ps) []) := by
-  have hf := find_of_idx hidx (by rw [coreProgram_length]; omega)
+  have hf := find_of_idx hidx
   simp only [monoOk, monoHead, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen4⟩, -⟩, hst⟩, hout⟩, hm10⟩, hl11⟩, hl12⟩, hoc⟩, hoe⟩, hc⟩,
     hrec⟩ := hok
@@ -346,7 +347,7 @@ theorem monoFrames_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb)
 /-- **A loop of frames of the walk**, called as `callIf (1 + N) f [1, N, chain, mark]` with
 `N = g^a`, `a < 2^34`. -/
 theorem monoFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st0 cw ew nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1601)
+    (hidx : coreProgram.indexOf? f = some j)
     (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
     (hcw : word cw 0 = gen ^ m) (hew : word ew 0 = gen ^ (4 * m))
     (hnb : (monoSpec m st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
@@ -356,28 +357,28 @@ theorem monoFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st
   loop_sound (f := f) (ps := [N, chain, mark]) (N := N)
     (B := MonoStep rd m nb chain mark) (by unfold ordG; omega) hN
     (fun x hx => by
-      obtain ⟨h1, h2⟩ := mono_step hm hidx hj hok hcw hew hnb hx
+      obtain ⟨h1, h2⟩ := mono_step hm hidx hok hcw hew hnb hx
       exact ⟨h1 _ _ _ rfl, h2⟩)
     hloop
 
 /-! ## The loops, checked -/
 
--- `__loop19`: 136 claims a frame, 64 blocks; its head here, its sixteen windows in `Mono{q}`.
+-- `child_claim_list_mono_loop0`: 136 claims a frame, 64 blocks; its head here, its sixteen windows in `Mono{q}`.
 set_option maxRecDepth 100000 in
-theorem mono136_idx : coreProgram.indexOf? "__loop19" = some 384 :=
-  coreProgram_indexOf?_at (j := 384) rfl
+theorem mono136_idx : coreProgram.indexOf? name% «child_claim_list_mono_loop0» = some idx% «child_claim_list_mono_loop0» :=
+  coreProgram_indexOf?_at (j := idx% «child_claim_list_mono_loop0») rfl
 
 set_option maxRecDepth 100000 in
-theorem mono136_nb : (monoSpec 136 1377 (loopAtoms (coreProgram.getD 384 default))).nb = 64 := by
+theorem mono136_nb : (monoSpec 136 1377 (loopAtoms (coreProgram.getD idx% «child_claim_list_mono_loop0» default))).nb = 64 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mono136_head :
-    monoHead (coreProgram.getD 384 default) "__loop19" 136 1377 83200 72058697844523035 = true := by
+    monoHead (coreProgram.getD idx% «child_claim_list_mono_loop0» default) name% «child_claim_list_mono_loop0» 136 1377 83200 72058697844523035 = true := by
   decide +kernel
 
 theorem mono136_ok :
-    monoOk (coreProgram.getD 384 default) "__loop19" 136 9 1377 83200 72058697844523035 = true := by
+    monoOk (coreProgram.getD idx% «child_claim_list_mono_loop0» default) name% «child_claim_list_mono_loop0» 136 9 1377 83200 72058697844523035 = true := by
   have hw : ∀ i < 16, monoWinOk i = true := by
     intro i hi
     interval_cases i
@@ -388,17 +389,17 @@ theorem mono136_ok :
   exact monoOk_of_parts (w := 4) (W := 16) (v := 9) (U := 16) mono136_head (by rw [mono136_nb])
     (fun i hi => ChainSpec.blocksOk_of_from (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
--- `__loop20`: 17 claims a frame, 8 blocks.
+-- `child_claim_list_mono_loop1`: 17 claims a frame, 8 blocks.
 set_option maxRecDepth 100000 in
-theorem mono17_idx : coreProgram.indexOf? "__loop20" = some 385 :=
-  coreProgram_indexOf?_at (j := 385) rfl
+theorem mono17_idx : coreProgram.indexOf? name% «child_claim_list_mono_loop1» = some idx% «child_claim_list_mono_loop1» :=
+  coreProgram_indexOf?_at (j := idx% «child_claim_list_mono_loop1») rfl
 
 set_option maxRecDepth 100000 in
-theorem mono17_nb : (monoSpec 17 187 (loopAtoms (coreProgram.getD 385 default))).nb = 8 := by
+theorem mono17_nb : (monoSpec 17 187 (loopAtoms (coreProgram.getD idx% «child_claim_list_mono_loop1» default))).nb = 8 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mono17_ok : monoOk (coreProgram.getD 385 default) "__loop20" 17 9 187 131072 432 = true := by
+theorem mono17_ok : monoOk (coreProgram.getD idx% «child_claim_list_mono_loop1» default) name% «child_claim_list_mono_loop1» 17 9 187 131072 432 = true := by
   decide +kernel
 
 theorem word_g17 : word 131072 0 = gen ^ 17 := word_two_pow (a := 17) (by decide)
@@ -447,10 +448,10 @@ theorem monoLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {ar
         rets = digestCells (keccak256 (pre ++ cellsBytes cells)) ∧
         ∃ e e', e < 2 ^ 32 ∧ e' < 2 ^ 32 ∧ region * gen ^ O' = gen ^ e * region ∧
           limit = gen ^ (e + e') := by
-  have hf := find_of_idx (ml_idx k hk) (by rw [coreProgram_length]; omega)
+  have hf := find_of_idx (ml_idx k hk)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := ml_all k hk
-  set f := coreProgram.getD (386 + k) default
+  set f := coreProgram.getD (idx% «child_claim_list_mono_last__L0» + k) default
   simp only [mlOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
@@ -511,10 +512,10 @@ theorem monoLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {ar
 /-! ## `child_claim_list_mono` -/
 
 /-- `child_claim_list_mono`'s body before its `ret`. -/
-noncomputable def monoFlat : List Stmt := (Fn.body Data.core26).dropLast
+noncomputable def monoFlat : List Stmt := (Fn.body fn% «child_claim_list_mono»).dropLast
 
 set_option maxRecDepth 100000 in
-theorem core26_shape : Fn.body Data.core26 = monoFlat ++ [.ret [.n 52, .n 53]] :=
+theorem core26_shape : Fn.body fn% «child_claim_list_mono» = monoFlat ++ [.ret [.n 52, .n 53]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The body: the zero state at `chain = .n 16`, `region` and `entries` at `chain · g^13`,
@@ -522,8 +523,8 @@ theorem core26_shape : Fn.body Data.core26 = monoFlat ++ [.ret [.n 52, .n 53]] :
 `last = mid · groups^15`, the dispatch on the rest. -/
 noncomputable def monoBodyOk : Bool :=
   monoFlat.all Stmt.flat &&
-  monoFlat.any (stmtEqb · (.callIf (.n 31) "__loop19" [.n 32, .n 4, .n 16, .n 2])) &&
-  monoFlat.any (stmtEqb · (.callIf (.n 41) "__loop20" [.n 42, .n 5, .n 39, .n 2])) &&
+  monoFlat.any (stmtEqb · (.callIf (.n 31) name% «child_claim_list_mono_loop0» [.n 32, .n 4, .n 16, .n 2])) &&
+  monoFlat.any (stmtEqb · (.callIf (.n 41) name% «child_claim_list_mono_loop1» [.n 42, .n 5, .n 39, .n 2])) &&
   monoFlat.any (stmtEqb · (.dispatch (.n 6) mlNames [.n 49, .n 1, .n 2, .n 3] [.n 50, .n 51])) &&
   (atomsIn monoFlat).any (isConstAt (.n 32) 1 0) &&
   (atomsIn monoFlat).any (isAddAt (.n 31) (.n 30) (.n 4)) &&
@@ -544,8 +545,8 @@ set_option maxRecDepth 100000 in
 theorem monoBody_ok : monoBodyOk = true := by decide +kernel
 
 theorem find_child_claim_list_mono :
-    coreProgram.find? "child_claim_list_mono" = some Data.core26 :=
-  coreProgram_find?_at (j := 26) rfl
+    coreProgram.find? "child_claim_list_mono" = some fn% «child_claim_list_mono» :=
+  coreProgram_find?_at (j := idx% «child_claim_list_mono») rfl
 
 /-- **`child_claim_list_mono`** (G:4440-4472): on `bigs = g^a`, `groups = g^b`, `rest = g^c`, the
 `136a + 17b + c` claims walked by hinted gaps from slot 0 to `O`, every claim marked `base`, their
@@ -583,7 +584,7 @@ theorem child_claim_list_mono_sound {rd : Reader} (hm : MemOk rd) {args rets : L
   have he0 : LoadHolds rd (σ (.n 16)) 14 (σ (.n 0) * gen ^ (4 * 0)) := by
     rw [mul_zero, pow_zero, mul_one]; exact load_sound hl0 hat
   -- the big frames
-  have hbig := monoFrames_of_loop hm mono136_idx (by norm_num) mono136_ok word_g136 word_g544
+  have hbig := monoFrames_of_loop hm mono136_idx mono136_ok word_g136 word_g544
     mono136_nb (chain := σ (.n 16)) (mark := σ (.n 2)) (by omega) h4 (fun hne => by
       have := (callIf_of_flat hall hl19).2
         (by rw [add_sound h31 hat, const_sound h30 hat, word_one]; exact hne)
@@ -593,7 +594,7 @@ theorem child_claim_list_mono_sound {rd : Reader} (hm : MemOk rd) {args rets : L
   -- the groups
   have h39 : σ (.n 39) = σ (.n 16) * gen ^ (15 * a) := by
     rw [monoIs_sound hm39 hat, h4, gen_pow_pow]
-  have hgrp := monoFrames_of_loop hm mono17_idx (by norm_num) mono17_ok word_g17 word_g68
+  have hgrp := monoFrames_of_loop hm mono17_idx mono17_ok word_g17 word_g68
     mono17_nb (chain := σ (.n 39)) (mark := σ (.n 2)) (by omega) h5 (fun hne => by
       have := (callIf_of_flat hall hl20).2
         (by rw [add_sound h41 hat, const_sound h40 hat, word_one]; exact hne)

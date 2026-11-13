@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Main.MainGoalsF
 public import LeanVM.Guest.B1.Main.MainGoalsG
 public import LeanVM.Guest.B1.Main.MainStaticB
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main`'s static callees on an honest run, bounded
@@ -39,27 +40,27 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 
 def MainGoalL1B : Prop :=
   (hm fs fp seed s w).nxd ≠ 0 →
-    CompleteAtDTB fs cert 20 "__loop0" (hLmain fs fp seed s w)
-      [1, gen ^ (hm fs fp seed s w).nxd, (hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx] (Returns []) (fun _ => True) ((hm fs fp seed s w).nxd * iterK fs SK "__loop0" + fs "__loop0")
+    CompleteAtDTB fs cert 20 name% «main_loop0» (hLmain fs fp seed s w)
+      [1, gen ^ (hm fs fp seed s w).nxd, (hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx] (Returns []) (fun _ => True) ((hm fs fp seed s w).nxd * iterK fs SK name% «main_loop0» + fs name% «main_loop0»)
 
 def MainGoalL2B : Prop :=
   (hm fs fp seed s w).nsd ≠ 0 →
-    CompleteAtDTB fs cert 20 "__loop1" (hLmain fs fp seed s w)
-      [1, gen ^ (hm fs fp seed s w).nsd, (hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls] (Returns []) (fun _ => True) ((hm fs fp seed s w).nsd * iterK fs SK "__loop1" + fs "__loop1")
+    CompleteAtDTB fs cert 20 name% «main_loop1» (hLmain fs fp seed s w)
+      [1, gen ^ (hm fs fp seed s w).nsd, (hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls] (Returns []) (fun _ => True) ((hm fs fp seed s w).nsd * iterK fs SK name% «main_loop1» + fs name% «main_loop1»)
 
 def MainGoalL3B : Prop :=
   (hm fs fp seed s w).nrx ≠ 0 →
-    CompleteAtDTB fs cert 23 "__loop2" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 23 name% «main_loop2» (hLmain fs fp seed s w)
       ([1, gen ^ (hm fs fp seed s w).nrx, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), (hm fs fp seed s w).a117, (hm fs fp seed s w).a77] ++ lxTagWords) (Returns []) (fun _ => True)
-      ((hm fs fp seed s w).nrx * iterK fs SK "__loop2" + fs "__loop2")
+      ((hm fs fp seed s w).nrx * iterK fs SK name% «main_loop2» + fs name% «main_loop2»)
 
 def MainGoalL4B : Prop :=
   (hm fs fp seed s w).nrs ≠ 0 →
-    CompleteAtDTB fs cert 23 "__loop3" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 23 name% «main_loop3» (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nrs, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
         (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         gen ^ (hm fs fp seed s w).nrx, (hm fs fp seed s w).a80, (hm fs fp seed s w).a119] (Returns [])
-      (fun _ => True) ((hm fs fp seed s w).nrs * iterK fs SK "__loop3" + fs "__loop3")
+      (fun _ => True) ((hm fs fp seed s w).nrs * iterK fs SK name% «main_loop3» + fs name% «main_loop3»)
 
 def MainGoalStB : Prop :=
   CompleteAtDTB fs cert 20 "statement_digest" (hLmain fs fp seed s w)
@@ -72,17 +73,17 @@ def MainGoalStB : Prop :=
 
 variable {fs cert fp seed s w SB SK} {bytecode : List K}
 
-/-- **`__loop0`, `__loop1` within their static bounds.** -/
-theorem mainGoalL1B (hT : TotalLeOn coreProgram fs "__loop0" LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop0" + fs "__loop0"))
+/-- **`main_loop0`, `main_loop1` within their static bounds.** -/
+theorem mainGoalL1B (hT : TotalLeOn coreProgram fs name% «main_loop0» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop0» + fs name% «main_loop0»))
     (hl : (hm fs fp seed s w).nxd < 2 ^ 64 - 1) : MainGoalL1B fs cert fp seed s w SK := fun hne =>
   (completeAt_of_rel_pureBat mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL1_rel rd _ _ hne) 20
     fun rd t hn hv hb => by
       have := hT rd t _ _ hn (loopPre_gen (Nat.pos_of_ne_zero hne) hl _) hv hb
       simpa [logG_gen hl] using this).toDTB
 
-theorem mainGoalL2B (hT : TotalLeOn coreProgram fs "__loop1" LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop1" + fs "__loop1"))
+theorem mainGoalL2B (hT : TotalLeOn coreProgram fs name% «main_loop1» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop1» + fs name% «main_loop1»))
     (hl : (hm fs fp seed s w).nsd < 2 ^ 64 - 1) : MainGoalL2B fs cert fp seed s w SK := fun hne =>
   (completeAt_of_rel_pureBat mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL2_rel rd _ _ hne) 20
     fun rd t hn hv hb => by
@@ -105,11 +106,11 @@ theorem mainGoalStB {bytecode : List K} (hR : NodeRelation bytecode seed s w)
     (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _)
     (digestBytes_eq_cells _) rfl)⟩
 
-/-- **`__loop2` on an honest run.** -/
+/-- **`main_loop2` on an honest run.** -/
 theorem mainGoalL3B (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hc : Sig.verify_lean_xmss_complete_Spec) {SK : String → ℕ}
-    (hT : TotalLeOn coreProgram fs "__loop2" LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop2" + fs "__loop2")) :
+    (hT : TotalLeOn coreProgram fs name% «main_loop2» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop2» + fs name% «main_loop2»)) :
     MainGoalL3B fs cert fp seed s w SK := by
   intro h0
   have hpos : 0 < (hRawX s w).length := Nat.pos_of_ne_zero h0
@@ -120,11 +121,11 @@ theorem mainGoalL3B (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
   rw [pow_zero] at h
   exact h
 
-/-- **`__loop3` on an honest run.** -/
+/-- **`main_loop3` on an honest run.** -/
 theorem mainGoalL4B (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hc : Sig.SphincsCompleteSpecs) {SK : String → ℕ}
-    (hT : TotalLeOn coreProgram fs "__loop3" LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop3" + fs "__loop3")) :
+    (hT : TotalLeOn coreProgram fs name% «main_loop3» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop3» + fs name% «main_loop3»)) :
     MainGoalL4B fs cert fp seed s w SK := by
   intro h0
   have hpos : 0 < (hRawS s w).length := Nat.pos_of_ne_zero h0

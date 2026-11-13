@@ -72,8 +72,8 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
       OutsOk (kidsAt (K fp) [] outs) outs → ∀ rd, LowDef κ rd → Main.MemL rd (own fp) →
       Main.MemL rd Lin →
       Main.MemL rd (outsL (kidsAt (K fp) [] outs) outs) →
-      ∃ σ : Val, (Fn.params Data.core18).map σ = args ∧ (∀ s ∈ vsCPre, DispOk σ s) ∧
-        Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (Fn.body Data.core18) False (fun r ↦ r = []) ∧
+      ∃ σ : Val, (Fn.params fn% «verify_sub»).map σ = args ∧ (∀ s ∈ vsCPre, DispOk σ s) ∧
+        Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (Fn.body fn% «verify_sub») False (fun r ↦ r = []) ∧
         (vsCPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) =
           vsSizes S.d ∧
         ((vsCPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
@@ -149,7 +149,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
         vsC_param hla (i := 2) (by norm_num), vsC_param hla (i := 3) (by norm_num),
         vsC_param hla (i := 4) (by norm_num), vsC_param hla (i := 5) (by norm_num)]
       rfl
-    · rw [show Fn.body Data.core18 = vsCPre ++ [.ret []] from vs_body.trans vsT_splitPre,
+    · rw [show Fn.body fn% «verify_sub» = vsCPre ++ [.ret []] from vs_body.trans vsT_splitPre,
         holdsList_append]
       exact vsCPre_complete D (by simp [Stmt.HoldsList, Stmt.Holds])
     · obtain ⟨i, hi, h⟩ := vs_loads hbl S b sqE outE hexp hout O hB q hq

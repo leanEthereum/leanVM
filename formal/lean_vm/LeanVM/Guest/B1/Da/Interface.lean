@@ -133,41 +133,41 @@ def da_levels_sound_Spec : Prop :=
 
 /-! ## The functions, found -/
 
-theorem find_da_verify : coreProgram.find? "da_verify" = some Data.core27 :=
-  coreProgram_find?_at (j := 27) rfl
+theorem find_da_verify : coreProgram.find? "da_verify" = some fn% «da_verify» :=
+  coreProgram_find?_at (j := idx% «da_verify») rfl
 
-theorem find_da_row_shape : coreProgram.find? "da_row_shape" = some Data.core28 :=
-  coreProgram_find?_at (j := 28) rfl
+theorem find_da_row_shape : coreProgram.find? "da_row_shape" = some fn% «da_row_shape» :=
+  coreProgram_find?_at (j := idx% «da_row_shape») rfl
 
-theorem find_da_verify_column : coreProgram.find? "da_verify_column" = some Data.core29 :=
-  coreProgram_find?_at (j := 29) rfl
+theorem find_da_verify_column : coreProgram.find? "da_verify_column" = some fn% «da_verify_column» :=
+  coreProgram_find?_at (j := idx% «da_verify_column») rfl
 
-theorem find_da_verify_cell : coreProgram.find? "da_verify_cell" = some Data.core30 :=
-  coreProgram_find?_at (j := 30) rfl
+theorem find_da_verify_cell : coreProgram.find? "da_verify_cell" = some fn% «da_verify_cell» :=
+  coreProgram_find?_at (j := idx% «da_verify_cell») rfl
 
-theorem find_da_vector : coreProgram.find? "da_vector" = some Data.core31 :=
-  coreProgram_find?_at (j := 31) rfl
+theorem find_da_vector : coreProgram.find? "da_vector" = some fn% «da_vector» :=
+  coreProgram_find?_at (j := idx% «da_vector») rfl
 
-theorem find_da_column_offsets : coreProgram.find? "da_column_offsets" = some Data.core32 :=
-  coreProgram_find?_at (j := 32) rfl
+theorem find_da_column_offsets : coreProgram.find? "da_column_offsets" = some fn% «da_column_offsets» :=
+  coreProgram_find?_at (j := idx% «da_column_offsets») rfl
 
 set_option maxRecDepth 100000 in
-theorem find_da_expand_L7_L8 : coreProgram.find? "da_expand__L7_L8" = some Data.core418 :=
-  coreProgram_find?_at (j := 418) rfl
+theorem find_da_expand_L7_L8 : coreProgram.find? "da_expand__L7_L8" = some fn% «da_expand__L7_L8» :=
+  coreProgram_find?_at (j := idx% «da_expand__L7_L8») rfl
 
 set_option maxRecDepth 100000 in
 theorem find_da_factors_L14_L7_L0 :
-    coreProgram.find? "da_factors__L14_L7_L0" = some Data.core420 :=
-  coreProgram_find?_at (j := 420) rfl
+    coreProgram.find? "da_factors__L14_L7_L0" = some fn% «da_factors__L14_L7_L0» :=
+  coreProgram_find?_at (j := idx% «da_factors__L14_L7_L0») rfl
 
 set_option maxRecDepth 100000 in
-theorem find_da_expand_L14_L7 : coreProgram.find? "da_expand__L14_L7" = some Data.core421 :=
-  coreProgram_find?_at (j := 421) rfl
+theorem find_da_expand_L14_L7 : coreProgram.find? "da_expand__L14_L7" = some fn% «da_expand__L14_L7» :=
+  coreProgram_find?_at (j := idx% «da_expand__L14_L7») rfl
 
 set_option maxRecDepth 100000 in
 theorem find_da_factors_L7_L8_L128 :
-    coreProgram.find? "da_factors__L7_L8_L128" = some Data.core422 :=
-  coreProgram_find?_at (j := 422) rfl
+    coreProgram.find? "da_factors__L7_L8_L128" = some fn% «da_factors__L7_L8_L128» :=
+  coreProgram_find?_at (j := idx% «da_factors__L7_L8_L128») rfl
 
 end
 end LeanVM.Guest.B1.Da

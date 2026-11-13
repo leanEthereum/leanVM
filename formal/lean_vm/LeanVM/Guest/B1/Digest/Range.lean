@@ -93,7 +93,7 @@ theorem word_g16 : word 65536 0 = gen ^ 16 := word_two_pow (a := 16) (by decide)
 
 theorem word_g7 : word 128 0 = gen ^ 7 := word_two_pow (a := 7) (by decide)
 
-theorem core21_body : Fn.body Data.core22 =
+theorem core21_body : Fn.body fn% «list_split» =
     [.atom (.hint (.witness "signers_split" (.stack [.n 1, .n 2, .n 3]))),
      .atom (.const (.n 4) (word 65536 0)),
      .atom (.rangeCheck (.n 3) (.n 5) (.n 6) (.n 7) (.n 4)),

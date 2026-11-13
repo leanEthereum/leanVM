@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimListCChk
 
-  `claim_list_digest`'s branches and its group loop `__loop16`, evaluated (by kernel evaluation), for its
+  `claim_list_digest`'s branches and its group loop `claim_list_digest_loop1`, evaluated (by kernel evaluation), for its
   completeness.
 -/
 
@@ -10,11 +10,12 @@ module
 public import LeanVM.Guest.B1.Digest.ClaimList
 public import LeanVM.Guest.B1.Digest.LoopComplete
 public import LeanVM.Guest.B1.Fwd.Canon
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `claim_list_digest`, evaluated
 
-`grpcOk`: a frame loop's block (`__loop16` here, the big `__loop15` in `ClaimListCBig`) evaluates
+`grpcOk`: a frame loop's block (`claim_list_digest_loop1` here, the big `claim_list_digest_loop0` in `ClaimListCBig`) evaluates
 in order (`Fwd.chk`), its atoms are `loopAtoms`, its stores write the chain's last state at `.n 9`
 from offset `13`, its side conditions are its loads. `clBrOk`: each branch of
 `claim_list_digest`, its values padded by hints up to the final copies (`fillH`), evaluates in
@@ -98,10 +99,10 @@ noncomputable def clEEval : List Stmt := clHead ++ fillH 4 12 ++ clElsePre ++ cl
 def clSplitS : Stmt := .call "list_split" [.n 1] [.n 12, .n 13, .n 14]
 
 /-- The big frames' loop call. -/
-def clBigS : Stmt := .callIf (.n 38) "__loop15" [.n 39, .n 12, .n 23, .n 0]
+def clBigS : Stmt := .callIf (.n 38) name% «claim_list_digest_loop0» [.n 39, .n 12, .n 23, .n 0]
 
 /-- The groups' loop call. -/
-def clGrpS : Stmt := .callIf (.n 58) "__loop16" [.n 59, .n 13, .n 45, .n 56]
+def clGrpS : Stmt := .callIf (.n 58) name% «claim_list_digest_loop1» [.n 59, .n 13, .n 45, .n 56]
 
 /-- The dispatch on the rest. -/
 def clDispS : Stmt := .dispatch (.n 14) clNames [.n 65, .n 73] [.n 74, .n 75]
@@ -128,15 +129,15 @@ set_option maxRecDepth 100000 in
 theorem clbr_ok : clBrOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grpc_ok : grpcOk (coreProgram.getD 347 default) "__loop16" 17 18 86 17 = true := by
+theorem grpc_ok : grpcOk (coreProgram.getD idx% «claim_list_digest_loop1» default) name% «claim_list_digest_loop1» 17 18 86 17 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem clc_lo : ∀ k < 9, clcOk k (coreProgram.getD (348 + k) default) = true := by
+theorem clc_lo : ∀ k < 9, clcOk k (coreProgram.getD (idx% «claim_list_last__L0» + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem clc_hi : ∀ k < 8, clcOk (9 + k) (coreProgram.getD (357 + k) default) = true := by
+theorem clc_hi : ∀ k < 8, clcOk (9 + k) (coreProgram.getD (idx% «claim_list_last__L9» + k) default) = true := by
   decide +kernel
 
 end

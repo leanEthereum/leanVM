@@ -38,7 +38,7 @@ theorem etBlks_eq : ∀ l : List ℕ, (l.map etBlk).flatten = (l.flatMap fun t =
     simp only [List.map_cons, List.flatten_cons, List.flatMap_cons, etBlks_eq l, etBlk,
       List.cons_append, List.nil_append]
 
-theorem et_split : Fn.body Data.core1 = etAs.map Stmt.atom ++ [.ret [.n 2285]] := by
+theorem et_split : Fn.body fn% «exponent_tables» = etAs.map Stmt.atom ++ [.ret [.n 2285]] := by
   rw [core1_body, etBody, etBlks_eq, etAs]
   simp only [List.map_append, List.map_cons, List.map_nil, List.append_assoc, List.cons_append,
     List.nil_append]

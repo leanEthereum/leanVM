@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.Final
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The callees' contracts, from their statements
@@ -51,10 +52,10 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
   obtain ⟨κ, h16, hκ, L, rfl⟩ := hm
   have hm' : MemOk L.read := ⟨κ, h16, hκ, L, rfl⟩
   -- the signatures
-  have ex : ∀ args, ∃ sig, coreProgram.Rel L.read "__loop2" args [] →
+  have ex : ∀ args, ∃ sig, coreProgram.Rel L.read name% «main_loop2» args [] →
       Loop2Out (coreProgram.Rel L.read) L.read args sig := by
     intro args
-    by_cases h : coreProgram.Rel L.read "__loop2" args []
+    by_cases h : coreProgram.Rel L.read name% «main_loop2» args []
     · obtain ⟨σ, hp, hb⟩ := (Sig.rel_iff_body find_loop2 args []).mp h
       exact ⟨sx σ, fun _ => loop2Out_of_body hx hp hb⟩
     · exact ⟨Classical.ofNonempty, fun h' => absurd h' h⟩
@@ -140,7 +141,7 @@ theorem main_sound_exists [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signat
     (hd : Da.da_verify_sound_Spec) (ha : aggregate_claims_sound_Spec)
     (hbl : bytecode.length = 2 ^ bytecodeVars) {rd : Reader} (hm : MemOk rd) {D : Digest}
     {σ : Val} (hp0 : LoadHolds rd 1 0 (digestHalves D).1) (hp1 : LoadHolds rd 1 1 (digestHalves D).2)
-    (hb : Stmt.HoldsList (coreProgram.Rel rd) rd σ Data.core0.body False (fun rs => rs = [])) :
+    (hb : Stmt.HoldsList (coreProgram.Rel rd) rd σ (fn% «main»).body False (fun rs => rs = [])) :
     statementDigest (decSeed σ) (decStmt σ rd) = D ∧
       ∃ w, NodeRelation bytecode (decSeed σ) (decStmt σ rd) w := by
   obtain ⟨wX, wS, wD, wV, wA, cw⟩ := callees_exist hx hs hv hd ha hm

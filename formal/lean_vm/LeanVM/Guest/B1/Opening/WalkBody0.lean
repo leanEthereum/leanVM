@@ -17,32 +17,32 @@ open LeanVM.Protocol.Verifier
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L6_L6`. -/
-theorem wpBody_L6_L6 : Data.core1599.body = wpBodyT ⟨0, 0, 6, 6, 0, [], 0, 0⟩ :=
+theorem wpBody_L6_L6 : (fn% «walk_path__L6_L6»).body = wpBodyT ⟨0, 0, 6, 6, 0, [], 0, 0⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L12_L3`. -/
-theorem wpBody_L12_L3 : Data.core1507.body = wpBodyT ⟨0, 0, 12, 3, 0, [], 0, 0⟩ :=
+theorem wpBody_L12_L3 : (fn% «walk_path__L12_L3»).body = wpBodyT ⟨0, 0, 12, 3, 0, [], 0, 0⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L12_L6`. -/
-theorem wpBody_L12_L6 : Data.core1513.body = wpBodyT ⟨0, 0, 12, 6, 0, [], 0, 0⟩ :=
+theorem wpBody_L12_L6 : (fn% «walk_path__L12_L6»).body = wpBodyT ⟨0, 0, 12, 6, 0, [], 0, 0⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L18_L2`. -/
-theorem wpBody_L18_L2 : Data.core1533.body = wpBodyT ⟨0, 0, 18, 2, 0, [], 0, 0⟩ :=
+theorem wpBody_L18_L2 : (fn% «walk_path__L18_L2»).body = wpBodyT ⟨0, 0, 18, 2, 0, [], 0, 0⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L18_L5`. -/
-theorem wpBody_L18_L5 : Data.core1556.body = wpBodyT ⟨0, 0, 18, 5, 0, [], 0, 0⟩ :=
+theorem wpBody_L18_L5 : (fn% «walk_path__L18_L5»).body = wpBodyT ⟨0, 0, 18, 5, 0, [], 0, 0⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L24_L2`. -/
-theorem wpBody_L24_L2 : Data.core1577.body = wpBodyT ⟨0, 0, 24, 2, 0, [], 0, 0⟩ :=
+theorem wpBody_L24_L2 : (fn% «walk_path__L24_L2»).body = wpBodyT ⟨0, 0, 24, 2, 0, [], 0, 0⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 end

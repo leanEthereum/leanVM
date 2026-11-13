@@ -108,7 +108,7 @@ theorem main_sound_C {bytecode : List K}
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 47)) wX wS wD wV wA) {D : Digest}
     (hp0 : LoadHolds rd 1 0 (digestHalves D).1) (hp1 : LoadHolds rd 1 1 (digestHalves D).2)
-    (hb : Stmt.HoldsList C rd σ Data.core0.body False (fun rs => rs = [])) :
+    (hb : Stmt.HoldsList C rd σ (fn% «main»).body False (fun rs => rs = [])) :
     statementDigest (decSeed σ) (decStmt σ rd) = D ∧
       NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWit σ rd wX wS wD wV wA) := by
   have MF := main_facts hCu hle hm exponent_tables_holds (fun _ h => ⟨_, cw.xmss _ h⟩) (σ := σ) hb

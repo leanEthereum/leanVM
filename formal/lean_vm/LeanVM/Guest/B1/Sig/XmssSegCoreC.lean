@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegCoreC
 
-  A layer of leanXMSS's check inline in `__loop2`, after its message digest, completes, given the
+  A layer of leanXMSS's check inline in `main_loop2`, after its message digest, completes, given the
   path windows' completeness (`LxWindowsC`), and reads the signature's layer back (`sPart_eq`).
 -/
 

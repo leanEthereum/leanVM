@@ -8,13 +8,14 @@ module
 
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.B1.Fwd.PureIn
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `verify_tables`' callees place nothing
 
 `vtKidS`: the 216 functions `verify_tables` calls, directly or not (`padding_weight`,
 `plus_one_run`, `shared_selector_tables`, `sel_partial_nibble`, `block_selector(_tab)`,
-`index_mle`, `__loop9`, `__loop8`, `sumcheck_round4`, `opening_tail_round`, `eq_prefix_chain`,
+`index_mle`, `verify_tables_loop0`, `shared_selector_tables_loop0`, `sumcheck_round4`, `opening_tail_round`, `eq_prefix_chain`,
 `eq_prefix_run`, their specializations). `vt_kids_pure`: no `HeapBuf` hint or `frameAddr` in their bodies, every callee
 in the set (`pureInB`, checked by the kernel), so each is placed anywhere from its relation
 (`completeAt_of_rel_pureD`).
@@ -28,8 +29,8 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory
 
 /-- `verify_tables`' callees, directly or not. -/
 def vtKidS : List String := [
-  "__loop9",
-  "__loop8",
+  name% «verify_tables_loop0»,
+  name% «shared_selector_tables_loop0»,
   "block_selector__L0",
   "block_selector__L1",
   "block_selector__L10",

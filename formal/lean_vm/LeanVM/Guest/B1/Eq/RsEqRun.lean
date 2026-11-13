@@ -8,13 +8,14 @@ module
 
 public import LeanVM.Guest.B1.Eq.RsLoop
 public import LeanVM.Guest.B1.Bits.GPower
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `rs_eq_run` (lean_ethereum.py:1040-1066)
 
 `rs_eq_run(chain, z_vals, point1, count_g)` hints the six bits of `count` (`count_g = g^count`),
 pins them by booleanity and `q_g^8 · r_g = count_g` (`r_g` from bits `0 .. 2`, `q_g` from bits
-`3 .. 5`, so `count = 8q + r`), runs `__loop5` over the `q` full chunks (`rs_eq_rows__L8` each),
+`3 .. 5`, so `count = 8q + r`), runs `rs_eq_run_loop0` over the `q` full chunks (`rs_eq_rows__L8` each),
 and dispatches the remainder's `rs_eq_rows__L{r}` on the row `chain·g^(64q)`; it returns that
 call's return, the last row (`rs_eq_run_holds`).
 
@@ -55,7 +56,7 @@ def rsBody : List Stmt :=
     .atom (.mul (.n 40) (.n 39) (.n 39)), .atom (.mul (.n 41) (.n 40) (.n 23)),
     .atom (.assertEq (.n 41) (.n 3)), .atom (.const (.n 42) (word 1 0)),
     .atom (.add (.n 43) (.n 42) (.n 37)), .atom (.const (.n 44) (word 1 0)),
-    .callIf (.n 43) "__loop5" [.n 44, .n 37, .n 0, .n 1, .n 2],
+    .callIf (.n 43) name% «rs_eq_run_loop0» [.n 44, .n 37, .n 0, .n 1, .n 2],
     .atom (.mul (.n 45) (.n 37) (.n 37)), .atom (.mul (.n 46) (.n 45) (.n 45)),
     .atom (.mul (.n 47) (.n 46) (.n 46)), .atom (.mul (.n 48) (.n 37) (.n 37)),
     .atom (.mul (.n 49) (.n 48) (.n 48)), .atom (.mul (.n 50) (.n 49) (.n 49)),
@@ -67,10 +68,10 @@ def rsBody : List Stmt :=
       [.n 57],
     .atom (.copy (.n 58) (.n 57)), .ret [.n 58]]
 
-theorem core5_body : Fn.body Data.core5 = rsBody := stmtsEqb_sound (by decide +kernel)
+theorem core5_body : Fn.body fn% «rs_eq_run» = rsBody := stmtsEqb_sound (by decide +kernel)
 
-theorem find_rs_eq_run : coreProgram.find? "rs_eq_run" = some Data.core5 :=
-  coreProgram_find?_at (j := 5) rfl
+theorem find_rs_eq_run : coreProgram.find? "rs_eq_run" = some fn% «rs_eq_run» :=
+  coreProgram_find?_at (j := idx% «rs_eq_run») rfl
 
 theorem rs_consts : word 3 0 = gen ^ 2 ^ 0 + 1 ∧ word 5 0 = gen ^ 2 ^ 1 + 1 ∧
     word 17 0 = gen ^ 2 ^ 2 + 1 :=
@@ -292,7 +293,7 @@ theorem chunk_of_meaning {rd : Reader} {chain z p ret : E} {n t : ℕ} (hn : 0 <
 theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd "rs_eq_run" args rets) : MeaningRsEqRun rd args rets := by
   obtain ⟨w3, w5, w17⟩ := rs_consts
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params Data.core5 = [.n 0, .n 1, .n 2, .n 3] from rfl,
+  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n 0, .n 1, .n 2, .n 3] from rfl,
     core5_body, rsBody] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and] at h
   obtain ⟨σ, hp, b0, h10, h11, h12, h13, b1, h14, h15, h16, h17, h18, b2, h19, h20, h21, h22, h23,
@@ -465,7 +466,7 @@ theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqR
   have e53 : t53 = gen ^ (64 * q) := by
     show t50 * t50 * (t50 * t50) * (t50 * t50 * (t50 * t50)) = _
     rw [e50]; ring
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params Data.core5 = [.n 0, .n 1, .n 2, .n 3] from rfl,
+  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n 0, .n 1, .n 2, .n 3] from rfl,
     core5_body, rsBody]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and]
   refine ⟨Val.ofArgs w, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm,
@@ -479,7 +480,7 @@ theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqR
     ring
   · show IsInK (word 1 0 + u37)
     rw [word_one, e37]; exact hloop.1
-  · show word 1 0 + u37 ≠ 0 → coreProgram.Rel rd "__loop5" [word 1 0, u37, chain, z, p] []
+  · show word 1 0 + u37 ≠ 0 → coreProgram.Rel rd name% «rs_eq_run_loop0» [word 1 0, u37, chain, z, p] []
     rw [word_one, e37]; exact hloop.2
   · show u23 = _
     rw [e23, gen_pow_eq_ofK]

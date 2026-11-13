@@ -62,7 +62,7 @@ theorem sLayerM_ptrs : ∀ q ∈ loadPtrs sLayerM.1, q < 5556 := by decide +kern
 
 /-- **The body's loads**: through the claim's `n0` at an offset below `4`, or through a pointer of
 `sPre`'s byte reads. -/
-theorem sBody_loads : listLoadsB (loadPtrs sPre) Data.core20.body = true := by
+theorem sBody_loads : listLoadsB (loadPtrs sPre) (fn% «verify_sig_lean_sphincs»).body = true := by
   rw [sBody_eq]; decide +kernel
 
 /-! ## The stages, complete -/

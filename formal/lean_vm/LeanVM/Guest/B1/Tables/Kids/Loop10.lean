@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.Kids.Loop10
 
-  `__loop9` (the table sumcheck's rounds) loads from any region holding the rounds' records, the
+  `verify_tables_loop0` (the table sumcheck's rounds) loads from any region holding the rounds' records, the
   challenges, the running products and the round polynomials at the records' cursors.
 -/
 
@@ -9,11 +9,12 @@ module
 
 public import LeanVM.Guest.B1.Tables.Kids.Loop9
 public import LeanVM.Guest.B1.Tables.Vt.Loop10
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `__loop9`, loading from a region
+# `verify_tables_loop0`, loading from a region
 
-Iteration `k < K` of `__loop9` (`x = g^k`, the end and `g^n` both `g^K`) reads record `k` at
+Iteration `k < K` of `verify_tables_loop0` (`x = g^k`, the end and `g^n` both `g^K`) reads record `k` at
 `rounds·g^(7k)` (offsets `5`, `6`, `12`, `13`; `sumcheck_round4` its first `12` words and the
 `3` words at its cursor, not `tabs`), writes the challenge at `chi·g^(K-1-k)` and the running product at
 `cprod·g^k` (offsets `0`, `1`). `loop10_relIn`: by induction on the derivation's depth, every
@@ -28,7 +29,7 @@ open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
 
-/-- `__loop9`'s statements before its `ret`. -/
+/-- `verify_tables_loop0`'s statements before its `ret`. -/
 def l10Pre : List Stmt := l10Body.dropLast
 
 theorem l10Body_eq : l10Body = l10Pre ++ [.ret []] := by simp [l10Pre, l10Body]
@@ -37,28 +38,28 @@ theorem l10_flat : l10Pre.all Stmt.flat = true := by decide +kernel
 
 theorem l10_noDisp : l10Pre.all noDispB = true := by decide +kernel
 
-/-- The pointers `__loop9` loads through, and their runs. -/
+/-- The pointers `verify_tables_loop0` loads through, and their runs. -/
 def l10Tbl : List (ℕ × ℕ) := [(11, 14), (20, 1), (21, 1), (24, 2)]
 
 theorem l10_loads : l10Pre.all (loadsViaB l10Tbl) = true := by decide +kernel
 
 theorem l10_calls : l10Pre.filterMap Main.Stmt.callS =
     [(none, "sumcheck_round4", [.n 11, .n 12, .n 13, .n 3], [.n 14, .n 15, .n 16]),
-      (some (.n 27), "__loop9", [.n 29, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], [])] := by
+      (some (.n 27), name% «verify_tables_loop0», [.n 29, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], [])] := by
   decide +kernel
 
 theorem gen_pow_pred_inv {K : ℕ} (hK : 0 < K) : gen ^ K * vtWInvGen = gen ^ (K - 1) := by
   obtain ⟨m, rfl⟩ : ∃ m, K = m + 1 := ⟨K - 1, by omega⟩
   rw [pow_succ, mul_assoc, mul_comm gen, vtWInvGen_mul, mul_one, Nat.add_sub_cancel]
 
-/-- **`__loop9` loads from `R`**, every iteration `k < K`. -/
+/-- **`verify_tables_loop0` loads from `R`**, every iteration `k < K`. -/
 theorem loop10_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} (hK : 0 < K)
     {rounds tabs chi cprod : E} (hr : PtrIn R rounds (7 * (K + 1))) (hc : PtrIn R chi K)
     (hp : PtrIn R cprod (K + 1))
     (hcur : ∀ k < K, ∀ c, LoadHolds rd (rounds * gen ^ (7 * k)) 5 c → PtrIn R c 3) :
     ∀ d k, k < K →
-      coreProgram.relN rd d "__loop9" [gen ^ k, gen ^ K, rounds, tabs, chi, gen ^ K, cprod] [] →
-      coreProgram.RelIn rd R "__loop9" [gen ^ k, gen ^ K, rounds, tabs, chi, gen ^ K, cprod] [] := by
+      coreProgram.relN rd d name% «verify_tables_loop0» [gen ^ k, gen ^ K, rounds, tabs, chi, gen ^ K, cprod] [] →
+      coreProgram.RelIn rd R name% «verify_tables_loop0» [gen ^ k, gen ^ K, rounds, tabs, chi, gen ^ K, cprod] [] := by
   intro d
   induction d with
   | zero => intro k _ h; exact h.elim

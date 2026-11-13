@@ -1,13 +1,14 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.CopyLoop
 
-  The copy loops of `verify_keccak` (`__loop10`, `__loop11`, `__loop12`, G:2755-2756, 2824-2825,
+  The copy loops of `verify_keccak` (`verify_keccak_loop0`, `verify_keccak_loop1`, `verify_keccak_loop2`, G:2755-2756, 2824-2825,
   2919-2920): `dst[x] = src[x]` for `x` over `g^0 .. g^(m-1)`.
 -/
 
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.PackChain
+public import LeanVM.Guest.Data.NameStrings
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -26,16 +27,16 @@ def copyLoopT (name : String) : List Stmt :=
     .atom (.const (.n 10) (word 2 0)), .atom (.mul (.n 11) (.n 0) (.n 10)),
     .callIf (.n 9) name [.n 11, .n 1, .n 2, .n 3], .ret []]
 
-theorem copyLoop_body11 : Data.core265.body = copyLoopT "__loop10" := stmtsEqb_sound (by decide +kernel)
-theorem copyLoop_body12 : Data.core269.body = copyLoopT "__loop11" := stmtsEqb_sound (by decide +kernel)
-theorem copyLoop_body13 : Data.core271.body = copyLoopT "__loop12" := stmtsEqb_sound (by decide +kernel)
+theorem copyLoop_body11 : (fn% «verify_keccak_loop0»).body = copyLoopT name% «verify_keccak_loop0» := stmtsEqb_sound (by decide +kernel)
+theorem copyLoop_body12 : (fn% «verify_keccak_loop1»).body = copyLoopT name% «verify_keccak_loop1» := stmtsEqb_sound (by decide +kernel)
+theorem copyLoop_body13 : (fn% «verify_keccak_loop2»).body = copyLoopT name% «verify_keccak_loop2» := stmtsEqb_sound (by decide +kernel)
 
-theorem find_copyLoop11 : coreProgram.find? "__loop10" = some Data.core265 :=
-  coreProgram_find?_at (j := 265) rfl
-theorem find_copyLoop12 : coreProgram.find? "__loop11" = some Data.core269 :=
-  coreProgram_find?_at (j := 269) rfl
-theorem find_copyLoop13 : coreProgram.find? "__loop12" = some Data.core271 :=
-  coreProgram_find?_at (j := 271) rfl
+theorem find_copyLoop11 : coreProgram.find? name% «verify_keccak_loop0» = some fn% «verify_keccak_loop0» :=
+  coreProgram_find?_at (j := idx% «verify_keccak_loop0») rfl
+theorem find_copyLoop12 : coreProgram.find? name% «verify_keccak_loop1» = some fn% «verify_keccak_loop1» :=
+  coreProgram_find?_at (j := idx% «verify_keccak_loop1») rfl
+theorem find_copyLoop13 : coreProgram.find? name% «verify_keccak_loop2» = some fn% «verify_keccak_loop2» :=
+  coreProgram_find?_at (j := idx% «verify_keccak_loop2») rfl
 
 /-- **A copy loop's step.** -/
 theorem copyLoop_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)

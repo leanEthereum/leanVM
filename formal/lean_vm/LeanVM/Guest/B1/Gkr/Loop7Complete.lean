@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop7Complete
 
-  `__loop6` is complete: an iteration holds on its honest valuation when the memory holds its
+  `verify_bus_gkr_loop0` is complete: an iteration holds on its honest valuation when the memory holds its
   slot, its step's words, its round records and the next slot; iterations at every `g^j`,
   `j < m`, give the loop.
 -/
@@ -9,15 +9,16 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.Loop7C
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `__loop6`, completely (G:1997-2041)
+# `verify_bus_gkr_loop0`, completely (G:1997-2041)
 
 `ly_iter`: from the slot of `L = 2j + 2 - sh` (`GkSlot`), one step of two levels
 (`GkStepD.Ok`), its words at the cursor, its round records (`RecsAt`) and the slot of `L + 2` the
 step leads to, the iteration at `g^j` holds (its body evaluated forward, region by region), given
 the next iteration below the bound. `LyIter`: those words for the iteration at `g^j`;
-`ly_complete`: with them at every `j < m`, `__loop6` holds from `1` below `g^m`.
+`ly_complete`: with them at every `j < m`, `verify_bus_gkr_loop0` holds from `1` below `g^m`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -44,11 +45,11 @@ theorem tb_squeezeN_two (s : Fs) : s.squeezeN 2 =
     ([challengeOf s.perm, challengeOf (permOf (rateOf [] ++ capOf s.perm))],
       ⟨capOf (permOf (rateOf [] ++ capOf s.perm)), []⟩) := rfl
 
-/-- `__loop6`'s arguments at `x = g^j`. -/
+/-- `verify_bus_gkr_loop0`'s arguments at `x = g^j`. -/
 def lyArgs (x N : E) (sh : ℕ) (layers tabs rounds claim gmu kmn : E) : List E :=
   [x, N, gen ^ (2 - sh), layers, tabs, rounds, claim, gen ^ sh, gmu, kmn]
 
-/-- **An iteration of `__loop6`, completely.** -/
+/-- **An iteration of `verify_bus_gkr_loop0`, completely.** -/
 theorem ly_iter {rd : Reader} {N layers tabs rounds claim gmu kmn : E} {j sh : ℕ}
     (hj : j < 2 ^ 30) (hsh2 : sh < 2) (hN : IsInK N) (hkmn : KModNext rd kmn)
     {s : Fs} {cur : E} {st : GkrState} {row pos : E} {D : GkStepD}
@@ -61,9 +62,9 @@ theorem ly_iter {rd : Reader} {N layers tabs rounds claim gmu kmn : E} {j sh : �
       (D.st' s st 2) (row * gen ^ 40) (pos * gen ^ (2 * j + 2 - sh + 1))
       (gen ^ ((j + 2 - sh) / 4)) (gen ^ ((j + 2 - sh) % 4)))
     (hnext : gen ^ j * gen + N ≠ 0 →
-      coreProgram.Rel rd "__loop6" (lyArgs (gen ^ j * gen) N sh layers tabs rounds claim gmu kmn)
+      coreProgram.Rel rd name% «verify_bus_gkr_loop0» (lyArgs (gen ^ j * gen) N sh layers tabs rounds claim gmu kmn)
         []) :
-    coreProgram.Rel rd "__loop6" (lyArgs (gen ^ j) N sh layers tabs rounds claim gmu kmn) [] := by
+    coreProgram.Rel rd name% «verify_bus_gkr_loop0» (lyArgs (gen ^ j) N sh layers tabs rounds claim gmu kmn) [] := by
   obtain ⟨fn, hf, hp, hb⟩ := lyFound
   obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp ly_chk
   set args : List E := lyArgs (gen ^ j) N sh layers tabs rounds claim gmu kmn with hargs
@@ -250,13 +251,13 @@ def LyIter (rd : Reader) (layers rounds : E) (sh j : ℕ) : Prop :=
       (row * gen ^ 40) (pos * gen ^ (2 * j + 2 - sh + 1)) (gen ^ ((j + 2 - sh) / 4))
       (gen ^ ((j + 2 - sh) % 4))
 
-/-- **`__loop6`, completely**: an iteration's words at every `j < m` give the loop from `1` below
+/-- **`verify_bus_gkr_loop0`, completely**: an iteration's words at every `j < m` give the loop from `1` below
 `g^m`. -/
 theorem ly_complete {rd : Reader} {layers tabs rounds claim gmu kmn : E} {sh m : ℕ} (hm : 0 < m)
     (hmb : m < 2 ^ 30) (hsh2 : sh < 2) (hkmn : KModNext rd kmn)
     (hit : ∀ j < m, LyIter rd layers rounds sh j) :
-    coreProgram.Rel rd "__loop6" (lyArgs 1 (gen ^ m) sh layers tabs rounds claim gmu kmn) [] := by
-  have key : ∀ t, t < m → coreProgram.Rel rd "__loop6"
+    coreProgram.Rel rd name% «verify_bus_gkr_loop0» (lyArgs 1 (gen ^ m) sh layers tabs rounds claim gmu kmn) [] := by
+  have key : ∀ t, t < m → coreProgram.Rel rd name% «verify_bus_gkr_loop0»
       (lyArgs (gen ^ (m - 1 - t)) (gen ^ m) sh layers tabs rounds claim gmu kmn) [] := by
     intro t
     induction t with

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegLayerC
 
-  A layer of leanXMSS's check inline in `__loop2`, after its message digest, up to its one-time
+  A layer of leanXMSS's check inline in `main_loop2`, after its message digest, up to its one-time
   leaf, completes: the step addresses, the codeword at the digest's digits and the leaf's
   `KECCAK`.
 -/

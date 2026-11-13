@@ -6,13 +6,14 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # `verify_tables`' body (TRIAGE G #52)
 
 `verify_tables` (G:2217-2694) is one function of 5560 statements, stored as 15 chunks
-(`Data.core11.c0 .. c14`, the last ending in its `ret`). Its soundness reads each fact it needs off
+(`core% «verify_tables» c0 .. c14`, the last ending in its `ret`). Its soundness reads each fact it needs off
 a chunk, by position (`VtH.atom`, `VtH.slice`, …), the kernel checking each statement read against
 the chunk: a valuation satisfying every chunk is what `vt_unfold` gives.
 -/
@@ -25,21 +26,21 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 
 /-- Chunk `i` of `verify_tables`' body, the last without its `ret`. -/
 noncomputable def vtChunk : ℕ → List Stmt
-  | 0 => Data.core11.c0
-  | 1 => Data.core11.c1
-  | 2 => Data.core11.c2
-  | 3 => Data.core11.c3
-  | 4 => Data.core11.c4
-  | 5 => Data.core11.c5
-  | 6 => Data.core11.c6
-  | 7 => Data.core11.c7
-  | 8 => Data.core11.c8
-  | 9 => Data.core11.c9
-  | 10 => Data.core11.c10
-  | 11 => Data.core11.c11
-  | 12 => Data.core11.c12
-  | 13 => Data.core11.c13
-  | _ => Data.core11.c14.take 156
+  | 0 => (core% «verify_tables» c0)
+  | 1 => (core% «verify_tables» c1)
+  | 2 => (core% «verify_tables» c2)
+  | 3 => (core% «verify_tables» c3)
+  | 4 => (core% «verify_tables» c4)
+  | 5 => (core% «verify_tables» c5)
+  | 6 => (core% «verify_tables» c6)
+  | 7 => (core% «verify_tables» c7)
+  | 8 => (core% «verify_tables» c8)
+  | 9 => (core% «verify_tables» c9)
+  | 10 => (core% «verify_tables» c10)
+  | 11 => (core% «verify_tables» c11)
+  | 12 => (core% «verify_tables» c12)
+  | 13 => (core% «verify_tables» c13)
+  | _ => (core% «verify_tables» c14).take 156
 
 /-- `verify_tables`' returned values. -/
 def vtRets : List V := [.n 5978, .n 5979, .n 5980, .n 5981, .n 5982, .n 5985, .n 5986,
@@ -56,10 +57,10 @@ theorem vtChunk_noRet (i : ℕ) : Stmt.noRetList (vtChunk i) = true := by
     rw [this]; exact vtChunk_noRet' 14 (by omega)
 
 theorem core11_body :
-    Data.core11.body = ((List.range 15).map vtChunk).flatten ++ [.ret vtRets] := by
-  have h14 : Data.core11.c14 = Data.core11.c14.take 156 ++ [.ret vtRets] :=
+    (core% «verify_tables» body) = ((List.range 15).map vtChunk).flatten ++ [.ret vtRets] := by
+  have h14 : (core% «verify_tables» c14) = (core% «verify_tables» c14).take 156 ++ [.ret vtRets] :=
     tbStmtsEqb_sound (by decide +kernel)
-  conv_lhs => rw [Data.core11.body, h14]
+  conv_lhs => rw [core_eq% «verify_tables» body, h14]
   simp only [List.range_succ, List.range_zero, List.map_append, List.map_cons,
     List.map_nil, List.flatten_append, List.flatten_cons, List.flatten_nil, List.nil_append,
     List.append_nil, vtChunk, List.append_assoc]
@@ -67,7 +68,7 @@ theorem core11_body :
 noncomputable def vtCheck : Bool :=
   match coreProgram.find? "verify_tables" with
   | some fn => decide (fn.params = (List.range 20).map V.n) &&
-      tbStmtsEqb fn.body Data.core11.body
+      tbStmtsEqb fn.body (core% «verify_tables» body)
   | none => false
 
 theorem vtCheck_eq : vtCheck = true := by decide +kernel

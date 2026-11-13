@@ -1,12 +1,12 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegData17
 
-  `__loop2`'s body agrees with the template `xSeg` on segment statement 167 (a dispatch).
+  `main_loop2`'s body agrees with the template `xSeg` on segment statement 167 (a dispatch).
 -/
 
 module
 
-public import LeanVM.Guest.Data.Core32
+public import LeanVM.Guest.Data.Names
 public import LeanVM.Guest.B1.Sig.XmssSegT
 import LeanVM.Guest.B1.Sig.Decide
 import LeanVM.Guest.B1.Common.Basic
@@ -18,7 +18,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_167 : ((Data.core36.body.drop 9).drop 167).take 1 = ((xSeg ++ l2Post).drop 167).take 1 :=
+theorem xSeg_slice_167 : (((fn% «main_loop2»).body.drop 9).drop 167).take 1 = ((xSeg ++ l2Post).drop 167).take 1 :=
   stmtsEqb_sound (by decide +kernel)
 
 end

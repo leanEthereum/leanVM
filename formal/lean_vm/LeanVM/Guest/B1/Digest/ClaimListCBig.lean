@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimListCBig
 
-  `claim_list_digest`'s big frame loop `__loop15` (136 claims, 64 blocks), evaluated (by kernel
+  `claim_list_digest`'s big frame loop `claim_list_digest_loop0` (136 claims, 64 blocks), evaluated (by kernel
   evaluation), for its completeness: `grpcOk`'s parts, each a kernel check of its own.
 -/
 
@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Digest.ClaimListCBig1
 public import LeanVM.Guest.B1.Digest.ClaimListCBig2
 public import LeanVM.Guest.B1.Digest.ClaimListCBig4
 public import LeanVM.Guest.B1.Digest.ClaimListCBig5
+public import LeanVM.Guest.Data.NameStrings
 
 namespace LeanVM.Guest.B1.Digest
 
@@ -18,7 +19,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 
-theorem grpc_big : grpcOk (coreProgram.getD 346 default) "__loop15" 136 21 565 20 = true := by
+theorem grpc_big : grpcOk (coreProgram.getD idx% «claim_list_digest_loop0» default) name% «claim_list_digest_loop0» 136 21 565 20 = true := by
   have h1 := big_c1
   have h2 := big_c2
   have h4 := big_c4

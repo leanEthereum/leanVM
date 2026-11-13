@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Da.Interface
 public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Sig.Interface
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main` and `aggregate_claims`: meanings (TRIAGE G #96, #97)
@@ -25,7 +26,7 @@ its last argument (`WinTabs`).
 
 **`main`** (G:4675-4851, `core0`). Its callees with a witness, each through a witness function of
 the call's words (`CalleesW`): a leanXMSS signature `wX args` for the raw iteration of
-`__loop2` at `args` (the leanXMSS check is inline there at 40f877dc: `Loop2Out`, its segment read
+`main_loop2` at `args` (the leanXMSS check is inline there at 40f877dc: `Loop2Out`, its segment read
 as `Sig.XmssOut` at its signer), a leanSPHINCS signature `wS p` (`verify_sig_lean_sphincs`,
 `Sig.SphincsOut`, with the byte table), a matrix `wD args rets` (`da_verify`, `Da.MatrixWitness.Opens`),
 a child's proof `wV args` (`verify_sub`: `verifyDeferred` of the child's public input under the
@@ -44,7 +45,7 @@ whose `…_Spec`s are stated in `Digest/Interface`, `Da/Interface`, `Bits/Meanin
   for a gap-walked list, else by mark, `kidStmt`; its fresh
   claim at `child_fresh · g^(24c)`; its proof `wV` at its `verify_sub` call's words); the raw
   signatures, the `j`-th leanXMSS one at the slot holding the mark `j` (`slotOf`), its signature
-  `wX` of `__loop2`'s iteration `j` (`l2Args`), the `j`-th
+  `wX` of `main_loop2`'s iteration `j` (`l2Args`), the `j`-th
   leanSPHINCS one at the slot holding `n_raw_x + j`, each with its slot's claim (`rawXmss`,
   `rawSphincs`); the matrix `da_verify` checks, with the claim it returns, when `n_direct_da = g`;
   and the batching's hints `wA`.
@@ -137,12 +138,12 @@ def VerifySubOut (bytecode : List K) (rd : Reader) (args : List E) (π : Proof) 
       (pi0, pi1) = digestHalves pi ∧ fresh.bytecodePoint.length = bytecodeVars ∧
       ReadsAt rd out (DeferredClaim.cells fresh) ∧ verifyDeferred bytecode seed pi fresh π = true
 
-/-- **A run of `__loop2` at `args`, its leanXMSS segment read as its meaning**: a valuation of its
+/-- **A run of `main_loop2` at `args`, its leanXMSS segment read as its meaning**: a valuation of its
 parameters at which its body without the segment holds (`l2Pre ++ l2Post`, `Sig.loop2_split`),
 and, when the tag parameters hold the chain indices, `sig` verifies the claim at the signer
 `.n 65`. -/
 def Loop2Out (C : CallRel) (rd : Reader) (args : List E) (sig : LeanXmss.Signature) : Prop :=
-  ∃ σ : Val, Data.core36.params.map σ = args ∧
+  ∃ σ : Val, (fn% «main_loop2»).params.map σ = args ∧
     Stmt.HoldsList C rd σ (Sig.l2Pre ++ Sig.l2Post) False (fun rs => rs = []) ∧
     (Sig.LxTagsHold (fun j => σ (.n (5 + j))) → Sig.XmssOut rd (σ (.n 65)) sig)
 
@@ -150,9 +151,9 @@ def Loop2Out (C : CallRel) (rd : Reader) (args : List E) (sig : LeanXmss.Signatu
 structure CalleesW (bytecode : List K) (rd : Reader) (wX : List E → LeanXmss.Signature)
     (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → Proof) (wA : List E → BatchingHints) : Prop where
-  /-- A raw leanXMSS iteration (`__loop2`, the leanXMSS check inline): its body around the
+  /-- A raw leanXMSS iteration (`main_loop2`, the leanXMSS check inline): its body around the
   segment, and the signature `wX args` verifying the claim at its signer (`Loop2Out`). -/
-  xmss : ∀ args, coreProgram.Rel rd "__loop2" args [] → Loop2Out (coreProgram.Rel rd) rd args (wX args)
+  xmss : ∀ args, coreProgram.Rel rd name% «main_loop2» args [] → Loop2Out (coreProgram.Rel rd) rd args (wX args)
   /-- A leanSPHINCS check with the byte table: the signature `wS p` verifies the claim at `p`. -/
   sphincs : ∀ p bb, coreProgram.Rel rd "verify_sig_lean_sphincs" [p, bb] [] →
     Sig.ByteBits rd bb → Sig.SphincsOut rd p (wS p)
@@ -280,13 +281,13 @@ noncomputable def nDirect (σ : Val) : ℕ := gLog (σ (.n 7))
 noncomputable def dvClaim (σ : Val) : DaClaim :=
   ⟨digestOfCells (σ (.n 369)) (σ (.n 370)), σ (.n 371)⟩
 
-/-- `__loop2`'s arguments after its counter: `n_raw_x`, `lx_slots`, `cover`, `lx_table`, then
+/-- `main_loop2`'s arguments after its counter: `n_raw_x`, `lx_slots`, `cover`, `lx_table`, then
 the `51` carried tags `lx_tags` (`.n 304 ..< .n 355`; lean_ethereum.py:4528-4541). -/
 def l2Args (σ : Val) : List E :=
   [σ (.n 2), σ (.n 22), σ (.n 45), σ (.n 31)] ++ (List.range 51).map fun j => σ (.n (304 + j))
 
 /-- The raw leanXMSS signature of mark `j`: the claim of the slot holding the mark, with the
-signature `wX` of `__loop2`'s iteration `j` (its arguments `g^j :: l2Args σ`). -/
+signature `wX` of `main_loop2`'s iteration `j` (its arguments `g^j :: l2Args σ`). -/
 noncomputable def rawXmss (rd : Reader) (σ : Val) (wX : List E → LeanXmss.Signature) (j : ℕ) :
     LeanXmssClaim × LeanXmss.Signature :=
   let s := slotOf rd σ 0 (lxSlots σ) j
@@ -326,17 +327,17 @@ def main_sound_Spec (bytecode : List K) : Prop :=
     CalleesW bytecode rd wX wS wD wV wA →
   ∀ (D : Digest) (σ : Val), LoadHolds rd 1 0 (digestHalves D).1 →
     LoadHolds rd 1 1 (digestHalves D).2 →
-    Stmt.HoldsList (coreProgram.Rel rd) rd σ Data.core0.body False (fun rs => rs = []) →
+    Stmt.HoldsList (coreProgram.Rel rd) rd σ (fn% «main»).body False (fun rs => rs = []) →
       statementDigest (decSeed σ) (decStmt σ rd) = D ∧
         NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWit σ rd wX wS wD wV wA)
 
 /-! ## The functions, found -/
 
-theorem find_main : coreProgram.find? "main" = some Data.core0 :=
-  coreProgram_find?_at (j := 0) rfl
+theorem find_main : coreProgram.find? "main" = some fn% «main» :=
+  coreProgram_find?_at (j := idx% «main») rfl
 
-theorem find_aggregate_claims : coreProgram.find? "aggregate_claims" = some Data.core33 :=
-  coreProgram_find?_at (j := 33) rfl
+theorem find_aggregate_claims : coreProgram.find? "aggregate_claims" = some fn% «aggregate_claims» :=
+  coreProgram_find?_at (j := idx% «aggregate_claims») rfl
 
 end
 end LeanVM.Guest.B1.Main

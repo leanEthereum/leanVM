@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimListCBig5
 
-  `claim_list_digest`'s big frame loop `__loop15`, evaluated: part 5 of `grpcOk` (kernel evaluation).
+  `claim_list_digest`'s big frame loop `claim_list_digest_loop0`, evaluated: part 5 of `grpcOk` (kernel evaluation).
 -/
 
 module

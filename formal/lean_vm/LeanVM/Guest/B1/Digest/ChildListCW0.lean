@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildListCW0
 
-  `child_claim_list_any`'s big frame loop `__loop17`, its records evaluated by windows of nine
+  `child_claim_list_any`'s big frame loop `child_claim_list_any_loop0`, its records evaluated by windows of nine
   (windows 0–3), each a kernel check of its own.
 -/
 

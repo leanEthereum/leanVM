@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildListCChk
 
-  `child_claim_list_any`'s records, frame loops (`__loop17`, `__loop18`) and
+  `child_claim_list_any`'s records, frame loops (`child_claim_list_any_loop0`, `child_claim_list_any_loop1`) and
   `child_claim_list_last__L{k}`, evaluated (by kernel evaluation), for their completeness.
 -/
 
@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Digest.ChildList
 public import LeanVM.Guest.B1.Digest.ClaimListCChk
 public import LeanVM.Guest.B1.Digest.ChainFilter
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `child_claim_list_any`, evaluated
@@ -135,23 +136,23 @@ def anycOk (fn : Fn) (f : String) (m o0 p0 mk st0 : ℕ) : Bool :=
   anycHead fn f && anycEdge fn m o0 p0 mk st0 &&
     recsWin (loopAtoms fn) (anyP mk) o0 p0 m 0 m
 
-/-- `__loop17`'s atoms. -/
-noncomputable def anyc136Atoms : List Atom := loopAtoms (coreProgram.getD 365 default)
+/-- `child_claim_list_any_loop0`'s atoms. -/
+noncomputable def anyc136Atoms : List Atom := loopAtoms (coreProgram.getD idx% «child_claim_list_any_loop0» default)
 
-/-- Window `i` of `__loop17`'s records: `9i … 9i + 8`. -/
+/-- Window `i` of `child_claim_list_any_loop0`'s records: `9i … 9i + 8`. -/
 noncomputable def anycWin (i : ℕ) : Bool := recsWin anyc136Atoms (anyP 21) 22 15 136 (9 * i) 9
 
 
 set_option maxRecDepth 100000 in
-theorem ccc_lo : ∀ k < 9, cccOk k (coreProgram.getD (367 + k) default) = true := by
+theorem ccc_lo : ∀ k < 9, cccOk k (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem ccc_hi : ∀ k < 8, cccOk (9 + k) (coreProgram.getD (376 + k) default) = true := by
+theorem ccc_hi : ∀ k < 8, cccOk (9 + k) (coreProgram.getD (idx% «child_claim_list_last__L9» + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any17c_ok : anycOk (coreProgram.getD 366 default) "__loop18" 17 19 12 18 255 = true := by
+theorem any17c_ok : anycOk (coreProgram.getD idx% «child_claim_list_any_loop1» default) name% «child_claim_list_any_loop1» 17 19 12 18 255 = true := by
   decide +kernel
 
 end

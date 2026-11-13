@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Tables.Kids.BlockSelTab
 public import LeanVM.Guest.B1.Tables.Kids.Shared
 public import LeanVM.Guest.B1.Tables.Kids.EqChain
 public import LeanVM.Guest.B1.Tables.Kids.Loop10
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The calls, placed
@@ -21,7 +22,7 @@ public import LeanVM.Guest.B1.Tables.Kids.Loop10
 (`vsh_plain`). `verify_tables`' other statements are its `119` calls (`vt_calls`, by the kernel):
 the padding weights (`pwCall`), `plus_one_run` (`porCall`), the shared selector tables (`shCall`),
 the framework blocks' selectors and `index_mle` (`fwCall`, `imCall`), the table blocks' selectors
-on their hinted digits (`selCall`), the slot sumcheck's tail rounds (`otrCall`), `__loop9` and
+on their hinted digits (`selCall`), the slot sumcheck's tail rounds (`otrCall`), `verify_tables_loop0` and
 `eq_prefix_chain`.
 
 A call's pointers are buffer bases times powers of `g` (from the statements' equations,
@@ -114,9 +115,9 @@ def selCall (x : ℕ × ℕ × ℕ × ℕ × Option ℕ × ℕ × ℕ × ℕ) : 
       .n (if x.2.2.2.1 = 0 then 702 else x.2.2.1 + 4)]
     [.n (vtSelE x.2.2.1 x.2.2.2.1), .n (vtSelE x.2.2.1 x.2.2.2.1 + 1)]
 
-/-- The `__loop9` call. -/
+/-- The `verify_tables_loop0` call. -/
 def loopCall : Stmt :=
-  .callIf (.n 2635) "__loop9" [.n 2636, .n 2544, .n 2627, .n 18, .n 16, .n 2544, .n 2630]
+  .callIf (.n 2635) name% «verify_tables_loop0» [.n 2636, .n 2544, .n 2627, .n 18, .n 16, .n 2544, .n 2630]
 
 /-- The `eq_prefix_chain` call. -/
 def epcCall : Stmt := .call "eq_prefix_chain" [.n 2651, .n 2652, .n 16, .n 699, .n 2544] []

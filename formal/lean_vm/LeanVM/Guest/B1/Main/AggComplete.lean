@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Main.AggMainCChk
 public import LeanVM.Guest.B1.Main.AggL25Complete
 public import LeanVM.Guest.B1.Main.AggL26Complete
 public import LeanVM.Guest.B1.Sumcheck.Batch
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `aggregate_claims`, completely
@@ -93,14 +94,14 @@ theorem agg_pow {cs : List ChildClaims} {n : E}
     ((cellsOfState (aggN cs n) false 1).limb 0).lane.toNat % 2 ^ 2 = 0 :=
   (grindOk_iff (s := aggAbs cs) (bits := 2) (by omega) n).mp (Or.inr h)
 
-theorem find_l25 : coreProgram.find? "__loop33" = some (coreProgram.getD 430 default) :=
-  find_of_idx l25_idx (by rw [coreProgram_length]; omega)
-theorem find_l26 : coreProgram.find? "__loop34" = some (coreProgram.getD 432 default) :=
-  find_of_idx l26_idx (by rw [coreProgram_length]; omega)
-theorem find_l27 : coreProgram.find? "__loop35" = some (coreProgram.getD 434 default) :=
-  find_of_idx l27_idx (by rw [coreProgram_length]; omega)
+theorem find_l25 : coreProgram.find? name% «aggregate_claims_loop0» = some (coreProgram.getD idx% «aggregate_claims_loop0» default) :=
+  find_of_idx l25_idx
+theorem find_l26 : coreProgram.find? name% «aggregate_claims_loop1» = some (coreProgram.getD idx% «aggregate_claims_loop1» default) :=
+  find_of_idx l26_idx
+theorem find_l27 : coreProgram.find? name% «aggregate_claims_loop2» = some (coreProgram.getD idx% «aggregate_claims_loop2» default) :=
+  find_of_idx l27_idx
 
-theorem l25_shape' : loopShapeF (coreProgram.getD 430 default) "__loop33" = true := by
+theorem l25_shape' : loopShapeF (coreProgram.getD idx% «aggregate_claims_loop0» default) name% «aggregate_claims_loop0» = true := by
   have hok := l25_ok
   simp only [l25Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩,
@@ -121,10 +122,10 @@ section Kids
 
 variable {cpi cfresh ccarried dst : E} {cs : List ChildClaims} {h : BatchingHints} {P : AggPtrs}
 
-/-- The absorbing rows (`__loop33`), from its guard's counter `1`. -/
+/-- The absorbing rows (`aggregate_claims_loop0`), from its guard's counter `1`. -/
 theorem agg_l25 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (hmem : AggMem rd cfresh ccarried dst cs h P) :
-    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 430 default) (gen ^ c)
+    ∀ c < cs.length, LoopBlock rd (coreProgram.getD idx% «aggregate_claims_loop0» default) (gen ^ c)
       (gen ^ cs.length) [P.absorb, cfresh, P.lf, ccarried, P.lc, cpi] := by
   intro c hc
   obtain ⟨-, -, -, -, -, -, hpi, hfr, hca⟩ := kid_reads (hcw c hc)
@@ -134,10 +135,10 @@ theorem agg_l25 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh cc
   exact l25_block (absSt_ok _ _ _) (absSt_pend hcw c hc.le) (hmem.absorb c hc.le) hnext
     (hmem.lf c hc) (hmem.lc c hc) hpi hfr hca
 
-/-- The records of `bc_chain` (`__loop34`). -/
+/-- The records of `bc_chain` (`aggregate_claims_loop1`). -/
 theorem agg_l26 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (hmem : AggMem rd cfresh ccarried dst cs h P) :
-    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 432 default) (gen ^ c)
+    ∀ c < cs.length, LoopBlock rd (coreProgram.getD idx% «aggregate_claims_loop1» default) (gen ^ c)
       (gen ^ cs.length) [P.chain, P.lf, P.lc, lamA cs h * lamA cs h, lamA cs h] := by
   intro c hc
   obtain ⟨-, -, -, -, hfv, hcv, -, -, -⟩ := kid_reads (hcw c hc)
@@ -147,10 +148,10 @@ theorem agg_l26 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh cc
     at hnext
   exact l26_block (hmem.chain c hc.le) hnext (hmem.lf c hc) (hmem.lc c hc) hfv hcv
 
-/-- The weights (`__loop35`). -/
+/-- The weights (`aggregate_claims_loop2`). -/
 theorem agg_l27 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (hrl : h.sumcheckMessages.length = 23) (hmem : AggMem rd cfresh ccarried dst cs h P) :
-    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 434 default) (gen ^ c)
+    ∀ c < cs.length, LoopBlock rd (coreProgram.getD idx% «aggregate_claims_loop2» default) (gen ^ c)
       (gen ^ cs.length) [P.lf, P.lc, P.pt1, P.chain, P.w, lamA cs h] := by
   intro c hc
   have hptl : ((aggRun cs h).1.1.map (1 + ·)).length = 23 := by
@@ -191,7 +192,7 @@ sumcheck's returns `aggOrc`'s. -/
 noncomputable def aggσ (rd : Reader) (m : ℕ) (cpi cfresh ccarried dst tabs : E) (P : AggPtrs)
     (cs : List ChildClaims) (h : BatchingHints) : Val :=
   B1.Val.ofArgs (ev rd (aggOrc P h (aggRun cs h)) [gen ^ m, cpi, cfresh, ccarried, dst, tabs]
-    (Fn.body Data.core33))
+    (Fn.body fn% «aggregate_claims»))
 
 /-- **What `aggregate_claims`' honest valuation is**: its atoms hold, and its words. -/
 structure AggVals (rd : Reader) (σ : Val) (m : ℕ) (cpi cfresh ccarried dst tabs : E) (P : AggPtrs)
@@ -268,10 +269,10 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
   let args : List E := [gen ^ cs.length, cpi, cfresh, ccarried, dst, tabs]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = aggσ rd cs.length cpi cfresh ccarried dst tabs P cs h := ⟨_, rfl⟩
   rw [← hσ]
-  have hσ' : σ = B1.Val.ofArgs (ev rd w args (Fn.body Data.core33)) := hσ
-  obtain ⟨-, -, hgs⟩ := ev_spec rd w (Fn.body Data.core33) args hchk
+  have hσ' : σ = B1.Val.ofArgs (ev rd w args (Fn.body fn% «aggregate_claims»)) := hσ
+  obtain ⟨-, -, hgs⟩ := ev_spec rd w (Fn.body fn% «aggregate_claims») args hchk
   rw [show args.length = 6 from rfl, ← hσ', hS] at hgs
-  have hmemP : ∀ s ∈ aggP, s ∈ Fn.body Data.core33 := fun s hs => by
+  have hmemP : ∀ s ∈ aggP, s ∈ Fn.body fn% «aggregate_claims» := fun s hs => by
     rw [hbody]; exact List.mem_append_left _ hs
   have hg : ∀ a ∈ atomsIn aggP, Good rd aggStores w σ a := fun a ha =>
     hgs (.atom a) (hmemP _ (atom_mem_of_atomsIn ha))

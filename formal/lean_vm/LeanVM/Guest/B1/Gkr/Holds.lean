@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Walk
 public import LeanVM.Guest.B1.Gkr.Loop8
 public import LeanVM.Guest.B1.Placement.Common
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `verify_bus_gkr` is sound (G:1867-2048)
@@ -17,8 +18,8 @@ The body (`vbgPre`, the core IR's): the range check of `g_bus_mu = g^depth` (`de
 two roots read and the count asserted nonzero, the combiner drawn from the two roots waiting
 (a grind of `0` bits) and the batched claim (`gkr_combine`), the tables `k_mod_next`,
 `loop_bounds[d] = g^((d - 1) / 2)` and `depth_odd[d] = g^(d % 2)`, the root-most layer
-(`rt_two` at an odd depth, `rt_four` at an even one), the layer loop `__loop6` (`ly_step`,
-`ly_chain`), the final slot, the point's copy to `zeta` (`__loop7`), the trees' values into a
+(`rt_two` at an odd depth, `rt_four` at an even one), the layer loop `verify_bus_gkr_loop0` (`ly_step`,
+`ly_chain`), the final slot, the point's copy to `zeta` (`verify_bus_gkr_loop1`), the trees' values into a
 buffer of three, and the return.
 -/
 
@@ -33,7 +34,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 def vbgParams : List V := (List.range 9).map V.n
 
 /-- `verify_bus_gkr`'s body, the core IR's. -/
-noncomputable def vbgBody : List Stmt := Data.core9.body
+noncomputable def vbgBody : List Stmt := (fn% «verify_bus_gkr»).body
 
 /-- `verify_bus_gkr`'s statements before its `ret`. -/
 noncomputable def vbgPre : List Stmt := vbgBody.take 233
@@ -210,7 +211,7 @@ theorem vbg_walk (hGR : tb_gkr_rounds_Spec) {rd : Reader} {σ : Val} {kret : Lis
   have a379 := a 202 (.add (.n 379) (.n 376) (.n 378)) (by decide +kernel)
   have c380 := a 203 (.const (.n 380) (word 1 0)) (by decide +kernel)
   simp only [Atom.Holds, tb_word_one] at c376 a379 c380
-  obtain ⟨-, h6⟩ := tb_holds_callIf hnr h 206 (.n 379) "__loop6"
+  obtain ⟨-, h6⟩ := tb_holds_callIf hnr h 206 (.n 379) name% «verify_bus_gkr_loop0»
     [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17, .n 63, .n 142, .n 6, .n 64] (by decide +kernel)
   have hB : ∀ j < (depth - 1) / 2, LyB rd (σ (.n 375)) (σ (.n 142)) (σ (.n 16)) (σ (.n 64)) (gen ^ j) := by
     intro j hj
@@ -366,7 +367,7 @@ theorem verify_bus_gkr_holds_of (hGR : tb_gkr_rounds_Spec) {μ : ℕ} (hμ : μ 
   have e389 := tb_loadHolds_unique (ld _ _ l389) hcur
   have e390 := tb_loadHolds_unique (ld _ _ l390) hrow
   -- the point's copy
-  obtain ⟨-, h7⟩ := tb_holds_callIf hnr h 218 (.n 392) "__loop7" [.n 393, .n 6, .n 7, .n 390]
+  obtain ⟨-, h7⟩ := tb_holds_callIf hnr h 218 (.n 392) name% «verify_bus_gkr_loop1» [.n 393, .n 6, .n 7, .n 390]
     (by decide +kernel)
   have hne7 : σ (.n 392) ≠ 0 := by
     rw [a392, c391, hg]

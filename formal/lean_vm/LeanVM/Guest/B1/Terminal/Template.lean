@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Terminal.Interface
 public import LeanVM.Guest.Data.Source
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `check_opening_terminal`, as a template
@@ -80,7 +81,7 @@ def selKap (c : ℕ) : List Stmt × ℕ × ℕ :=
 def selV (c : ℕ) : ℕ := (selKap c).2.2 + 2
 
 /-- The head (G:3415-3433): the chains at `zeta` (`20`) and `chi` (`22`), the slot points (`24`,
-`25`), the public input's chain (`26`, its loop `__loop14`) and its value (`34`), the base
+`25`), the public input's chain (`26`, its loop `check_opening_terminal_loop0`) and its value (`34`), the base
 `kappa_base` (`35 .. 42`), the selector tables (`43`). -/
 def termHeadT : List Stmt :=
   [.atom (.hint (.alloc (.n 20) 35)), .atom (.const (.n 21) (word 1 0)),
@@ -93,7 +94,7 @@ def termHeadT : List Stmt :=
     .atom (.add (.n 29) (.n 3) (.n 28)), .atom (.load (.n 29) (.n 26) 1),
     .atom (.const (.n 30) (word 2 0)), .atom (.add (.n 31) (.n 30) (.n 6)),
     .atom (.const (.n 32) (word 2 0)),
-    .callIf (.n 31) "__loop14" [.n 32, .n 6, .n 26, .n 14],
+    .callIf (.n 31) name% «check_opening_terminal_loop0» [.n 32, .n 6, .n 26, .n 14],
     .atom (.mul (.n 33) (.n 26) (.n 6)), .atom (.load (.n 34) (.n 33) 0),
     .atom (.load (.n 35) (.n 8) 0), .atom (.load (.n 36) (.n 8) 1),
     .atom (.load (.n 37) (.n 8) 2), .atom (.load (.n 38) (.n 8) 3),

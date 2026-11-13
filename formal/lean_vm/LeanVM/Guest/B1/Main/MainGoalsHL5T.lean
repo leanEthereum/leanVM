@@ -10,11 +10,12 @@ module
 public import LeanVM.Guest.B1.Main.MainGoalsHL5
 public import LeanVM.Guest.B1.Main.MainHonestT
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The children loop's trees
 
-`L5Node k Px Ps Pv Tt`: a `__loop4` node whose valuation holds child `k`'s hinted counts
+`L5Node k Px Ps Pv Tt`: a `main_loop4` node whose valuation holds child `k`'s hinted counts
 (`child_meta` at `v18`, `v19`), its last child (the tail call's tree) satisfying `Tt`.
 `L5From ex es m c`: the `m` iterations from child `c`, each `L5Node`. `l5_stepAtT`,
 `l5_completeAtT`: `l5_stepAt`, `l5_completeAt` (same proofs) with those trees. `L5Hinted w`: the
@@ -37,10 +38,10 @@ open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT Returns Kid OutsOk CallsMatch Reg
 
 @[expose] public section
 
-/-- `__loop4`'s events at `σ`: its block's, then its tail call's. -/
+/-- `main_loop4`'s events at `σ`: its block's, then its tail call's. -/
 noncomputable def l5Evs (σ : Val) : List Ev := (l5Pre ++ [l5Tail]).flatMap (Main.slEvs σ)
 
-/-- **`__loop4`'s calls at `σ`**, in order: the two claim lists' digests, the statement's digest,
+/-- **`main_loop4`'s calls at `σ`**, in order: the two claim lists' digests, the statement's digest,
 `verify_sub`, the tail call (taken when `v59 ≠ 0`). -/
 noncomputable def l5CallList (σ : Val) : List Call :=
   [⟨"child_claim_list_digest", [.n 3, .n 4, .n 17, .n 5, .n 18], [.n 23, .n 24], true⟩,
@@ -48,7 +49,7 @@ noncomputable def l5CallList (σ : Val) : List Call :=
     ⟨"statement_digest", [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33],
       [.n 38, .n 39], true⟩,
     ⟨"verify_sub", [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48], [], true⟩,
-    ⟨"__loop4", [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11,
+    ⟨name% «main_loop4», [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11,
       .n 12, .n 13, .n 14, .n 15], [], decide (σ (.n 53) ≠ 0)⟩]
 
 theorem l5_calls (σ : Val) : calls (l5Evs σ) = l5CallList σ := by
@@ -59,7 +60,7 @@ theorem l5_calls (σ : Val) : calls (l5Evs σ) = l5CallList σ := by
       (none, "statement_digest", [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33],
         [.n 38, .n 39]),
       (none, "verify_sub", [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48], []),
-      (some (.n 53), "__loop4", [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
+      (some (.n 53), name% «main_loop4», [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
         .n 10, .n 11, .n 12, .n 13, .n 14, .n 15], [])] from rfl]
   rfl
 
@@ -67,29 +68,29 @@ theorem l5_calls (σ : Val) : calls (l5Evs σ) = l5CallList σ := by
 def l5Ts4 (Px Ps Pv : Tree → Prop) : List (Tree → Prop) :=
   [Px, Ps, fun _ => True, Pv]
 
-/-- **The predicates on `__loop4`'s calls' trees**, aligned with `l5CallList`: `Px`, `Ps` on the
+/-- **The predicates on `main_loop4`'s calls' trees**, aligned with `l5CallList`: `Px`, `Ps` on the
 claim lists' digests', `Pv` on `verify_sub`'s, `Tt` on the tail call's, none on the statement
 digest's. -/
 def l5Ts (Px Ps Pv Tt : Tree → Prop) : List (Tree → Prop) := l5Ts4 Px Ps Pv ++ [Tt]
 
-/-- **A `__loop4` node for child `k`**: at a valuation `σ` holding `k`'s hinted counts
+/-- **A `main_loop4` node for child `k`**: at a valuation `σ` holding `k`'s hinted counts
 (`child_meta`'s `g^ex`, `g^es` at `v18`, `v19`), its walk's calls `l5CallList σ`, its children
 satisfying `KidsT (l5CallList σ) (l5Ts Px Ps Pv Tt)`. -/
 def L5Node (k : KidH) (Px Ps Pv Tt : Tree → Prop) (t : Tree) : Prop :=
-  ∃ σ bufs ks, t = .node "__loop4" σ bufs ks ∧ σ (.n 18) = gen ^ k.ex ∧
+  ∃ σ bufs ks, t = .node name% «main_loop4» σ bufs ks ∧ σ (.n 18) = gen ^ k.ex ∧
     σ (.n 19) = gen ^ k.es ∧ calls (l5Evs σ) = l5CallList σ ∧ KidsT (l5CallList σ) (l5Ts Px Ps Pv Tt) ks
 
-/-- **The `m` iterations from child `c`**: each a `__loop4` node at a valuation holding its
+/-- **The `m` iterations from child `c`**: each a `main_loop4` node at a valuation holding its
 child's hinted counts (`ex c`, `es c`), its walk's calls `l5CallList σ`, its claim lists' and
 `verify_sub` calls' trees satisfying `Pxs c`, `Pss c`, `Pvs c` and its tail call's the next
 iteration's. -/
 def L5From (ex es : ℕ → ℕ) (Pxs Pss Pvs : ℕ → Tree → Prop) : ℕ → ℕ → Tree → Prop
   | 0, _, _ => False
-  | m + 1, c, t => ∃ σ bufs ks, t = .node "__loop4" σ bufs ks ∧ σ (.n 18) = gen ^ ex c ∧
+  | m + 1, c, t => ∃ σ bufs ks, t = .node name% «main_loop4» σ bufs ks ∧ σ (.n 18) = gen ^ ex c ∧
       σ (.n 19) = gen ^ es c ∧ calls (l5Evs σ) = l5CallList σ ∧
       KidsT (l5CallList σ) (l5Ts (Pxs c) (Pss c) (Pvs c) (L5From ex es Pxs Pss Pvs m (c + 1))) ks
 
-/-- **The honest children loop's trees**: iteration `c < nc` is a `__loop4` node whose hinted
+/-- **The honest children loop's trees**: iteration `c < nc` is a `main_loop4` node whose hinted
 counts are child `c`'s statement's lists' lengths, in the exponent (`g^|xmss|`, `g^|sphincs|`),
 its calls' trees satisfying `Pxs c`, `Pss c`, `Pvs c`, its tail call's the next iteration's. -/
 def L5Hinted (w : NodeWitness) (Pxs Pss Pvs : ℕ → Tree → Prop) : Tree → Prop :=
@@ -107,14 +108,14 @@ theorem completeAtDT_mono {fs : String → ℕ} {cert : String → V → ℕ} {�
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 set_option maxRecDepth 20000 in
-/-- **One child of `__loop4`, placed, its tree exposed**: `l5_stepAt` (same proof), by the node
+/-- **One child of `main_loop4`, placed, its tree exposed**: `l5_stepAt` (same proof), by the node
 at the block's valuation, its hinted counts `k`'s, its calls' trees satisfying `Px`, `Ps`, `Pv`,
 its tail call's `Tt`. -/
 theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {k : KidH} {Px Ps Pv Tt : Tree → Prop}
     (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk)
     (hk : KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c k)
-    (htail : c + 1 < nk → CompleteAtDT fs cert 23 "__loop4" Lin
+    (htail : c + 1 < nk → CompleteAtDT fs cert 23 name% «main_loop4» Lin
       [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) Tt)
     (hVT : CompleteAtDT fs cert 20 "verify_sub" Lin
@@ -123,26 +124,26 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
       (Returns [k.cx.1, k.cx.2]) Px)
     (hST : CompleteAtDT fs cert 23 "child_claim_list_digest" Lin
       [lst, spc, k.base * gen ^ k.ex, lss, gen ^ k.es] (Returns [k.cs.1, k.cs.2]) Ps) :
-    CompleteAtDT fs cert 23 "__loop4" Lin
+    CompleteAtDT fs cert 23 name% «main_loop4» Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) (L5Node k Px Ps Pv Tt) := by
   intro fp
   -- the rest of the loop
-  obtain ⟨nt, Lt, hWt, hDt, hRt⟩ : ∃ nt Lt, Within Lt (fp + fs "__loop4") nt ∧ DisjL Lt ∧
+  obtain ⟨nt, Lt, hWt, hDt, hRt⟩ : ∃ nt Lt, Within Lt (fp + fs name% «main_loop4») nt ∧ DisjL Lt ∧
       ∀ rd, LowDef 23 rd → MemL rd (Lt ++ Lin) →
         if decide (c + 1 ≠ nk) = true then
-          RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs "__loop4") nt "__loop4"
+          RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs name% «main_loop4») nt name% «main_loop4»
             [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
               gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] [] Tt
-        else nt = fs "__loop4" := by
+        else nt = fs name% «main_loop4» := by
     by_cases hlast : c + 1 = nk
-    · exact ⟨fs "__loop4", [], fun q hq => by simp at hq, List.Pairwise.nil, fun _ _ _ => by
+    · exact ⟨fs name% «main_loop4», [], fun q hq => by simp at hq, List.Pairwise.nil, fun _ _ _ => by
         simp [hlast]⟩
-    · obtain ⟨nt, Lt, rt, Lot, ⟨rfl, rfl⟩, hW, hD, hR⟩ := htail (by omega) (fp + fs "__loop4")
+    · obtain ⟨nt, Lt, rt, Lot, ⟨rfl, rfl⟩, hW, hD, hR⟩ := htail (by omega) (fp + fs name% «main_loop4»)
       refine ⟨nt, Lt, by simpa using hW, by simpa using hD, fun rd hl hm => ?_⟩
       simp only [ne_eq, hlast, not_false_eq_true, decide_true, ↓reduceIte]
       exact hR rd hl (by simpa using hm)
-  set P1 := fp + fs "__loop4" + nt with hP1
+  set P1 := fp + fs name% «main_loop4» + nt with hP1
   -- the callees
   let ks : List Kid :=
     [⟨"child_claim_list_digest", true, [lxt, cover, k.base, lxs, gen ^ k.ex], Lin,
@@ -177,7 +178,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
   obtain rfl := List.eq_nil_of_length_eq_zero hl4
   obtain ⟨h1, h2, h3, h4, -⟩ := hoo
   -- the layout
-  refine ⟨fs "__loop4" + nt + Nk, Lt ++ Lk, [], [], ⟨rfl, rfl⟩, ?_,
+  refine ⟨fs name% «main_loop4» + nt + Nk, Lt ++ Lk, [], [], ⟨rfl, rfl⟩, ?_,
     by rw [List.nil_append]; exact disj_append hDt hD hWt hW (by omega), fun rd hlow hm => ?_⟩
   · rw [List.nil_append, within_append]
     exact ⟨hWt.mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
@@ -223,7 +224,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
         ⟨"statement_digest", [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33],
           [.n 38, .n 39], true⟩,
         ⟨"verify_sub", [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48], [], true⟩] ++
-      [⟨"__loop4", [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11,
+      [⟨name% «main_loop4», [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11,
         .n 12, .n 13, .n 14, .n 15], [], decide (c + 1 ≠ nk)⟩] := by
     rw [hpc, show (l5Pre ++ [l5Tail]).filterMap Main.Stmt.callS =
       [(none, "child_claim_list_digest", [.n 3, .n 4, .n 17, .n 5, .n 18], [.n 23, .n 24]),
@@ -231,7 +232,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
         (none, "statement_digest", [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33],
           [.n 38, .n 39]),
         (none, "verify_sub", [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48], []),
-        (some (.n 53), "__loop4", [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
+        (some (.n 53), name% «main_loop4», [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
           .n 10, .n 11, .n 12, .n 13, .n 14, .n 15], [])] from rfl]
     simp only [List.map_cons, List.map_nil, Main.mkCall, h59, List.cons_append, List.nil_append]
   have hev : ∀ e ∈ (l5Pre ++ [l5Tail]).flatMap (Main.slEvs σ), e.Holds rd σ := by
@@ -250,7 +251,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
       subst hs
       show IsInK (σ (.n 53))
       rw [hV.v59]; exact gen_pow_add_isInK _ _
-  have hparams : (coreProgram.getD 38 default).params.map σ = args := by
+  have hparams : (coreProgram.getD idx% «main_loop4» default).params.map σ = args := by
     rw [l5_params]
     refine List.ext_getElem (by simp [hargs]) fun i h1 h2 => ?_
     simp only [List.getElem_map, List.getElem_range]
@@ -338,7 +339,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
     · refine ⟨W + c + 1, ?_, Or.inr (Or.inl rW1)⟩
       rw [hV.v56]; exact hW' 1
 
-/-- **`__loop4` is complete, placed, its trees exposed**: `l5_completeAt`, from counter `c`, by
+/-- **`main_loop4` is complete, placed, its trees exposed**: `l5_completeAt`, from counter `c`, by
 the `nk - c` iterations' nodes holding the children's hinted counts, child `c`'s `verify_sub` call
 by a tree satisfying `Pvs c`. -/
 theorem l5_completeAtT {Lin : Layout} {W D Pi Cr nk : ℕ}
@@ -354,11 +355,11 @@ theorem l5_completeAtT {Lin : Layout} {W D Pi Cr nk : ℕ}
     (hST : ∀ c < nk, CompleteAtDT fs cert 23 "child_claim_list_digest" Lin
       [lst, spc, (kid c).base * gen ^ (kid c).ex, lss, gen ^ (kid c).es]
       (Returns [(kid c).cs.1, (kid c).cs.2]) (Pss c)) :
-    ∀ c < nk, CompleteAtDT fs cert 23 "__loop4" Lin
+    ∀ c < nk, CompleteAtDT fs cert 23 name% «main_loop4» Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])
       (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (nk - c) c) := by
-  have key : ∀ t c, c + 1 + t = nk → CompleteAtDT fs cert 23 "__loop4" Lin
+  have key : ∀ t c, c + 1 + t = nk → CompleteAtDT fs cert 23 name% «main_loop4» Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])
       (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (t + 1) c) := by

@@ -10,14 +10,15 @@ module
 public import LeanVM.Guest.B1.Ring.WeightComplete
 public import LeanVM.Guest.B1.Tables.FlatAtT
 public import LeanVM.Guest.Memory.SizeTotal
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The ring switch, placed, within a bound
 
 `rst_completeAtB`, `rsw_completeAtB`: `rst_completeAt`, `rsw_completeAt` with the size bounded
 before the memory (B1-c's `completeAt_flatDTB`, forgetting the tree's shape). Their only callee is
-a pure loop (`__loop13`) or a pure function (`rs_eq_run`) whose words are a hypothesis
-(`TotalLeOn`, fs-generic): `__loop13` called from `1` (its end the constant `g^8`), `rs_eq_run` on
+a pure loop (`ring_switch_target_loop0`) or a pure function (`rs_eq_run`) whose words are a hypothesis
+(`TotalLeOn`, fs-generic): `ring_switch_target_loop0` called from `1` (its end the constant `g^8`), `rs_eq_run` on
 `count` coordinates (its last argument `g^count`).
 -/
 
@@ -33,11 +34,11 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- **`ring_switch_target` is complete, placed, within `fs "ring_switch_target" + 72 + B14`**: its
-frame, its chain (`72` words) and `__loop13`'s words, at most `B14` when called from `1`
+frame, its chain (`72` words) and `ring_switch_target_loop0`'s words, at most `B14` when called from `1`
 (`hl14`). -/
 theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length = 64)
     (hc : chs.length = 16) {B14 : ℕ}
-    (hl14 : TotalLeOn coreProgram fs "__loop13" (fun a => a.getD 0 0 = 1) fun _ => B14) :
+    (hl14 : TotalLeOn coreProgram fs name% «ring_switch_target_loop0» (fun a => a.getD 0 0 = 1) fun _ => B14) :
     CompleteAtB fs cert κ "ring_switch_target" [(bs, s), (bm, chs)]
       [ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex bm)]
       (Returns [ringTarget s (chs.take ringMapWidth) (chs.drop ringMapWidth)])
@@ -47,7 +48,7 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
   refine B1.CompleteAtDTB.toCompleteAtB (completeAt_flatDTB (fs := fs) (cert := cert) find_rst
     rst_not_loop κ _ _ _ rst_body' rst_flat rst_addrs [72] (fun _ ↦ [chainWords s (chs.drop 8)])
     (fun _ ↦ by simp [chainWords_length])
-    (fun fp ↦ [⟨"__loop13", true, [1, ofK (Parameters.addressOfIndex bm),
+    (fun fp ↦ [⟨name% «ring_switch_target_loop0», true, [1, ofK (Parameters.addressOfIndex bm),
       ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))],
       l13Lin bs bm (fp + fs "ring_switch_target") s chs, Returns []⟩])
     (fun _ => True) [fun _ => True] [B14] B14 ?_ (fun _ => by simp [kidsBoundL]) (fun _ => le_rfl)

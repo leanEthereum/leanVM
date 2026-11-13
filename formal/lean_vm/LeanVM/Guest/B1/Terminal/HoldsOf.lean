@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Terminal.Support
 public import LeanVM.Guest.B1.Ring.Interface
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `check_opening_terminal`, assembled
@@ -214,10 +215,10 @@ theorem check_opening_terminal_holds_of (hep : eq_prefix_chain_Spec)
       have := gen_pow_inj_le (a := 1) (b := layout.logMemory) (by omega) (by omega)
         (by rw [pow_one]; exact e_add_eq_zero_iff.mp h0)
       omega
-    have hc : coreProgram.Rel Lm.read "__loop14"
+    have hc : coreProgram.Rel Lm.read name% «check_opening_terminal_loop0»
         (gen ^ 1 :: [σ (.n 6), σ (.n 26), σ (.n 14)]) [] := by
       rw [pow_one, ← word_gen, ← e32]; exact hloop hne
-    exact loop_sound (P := coreProgram) (f := "__loop14") (ps := [σ (.n 6), σ (.n 26), σ (.n 14)])
+    exact loop_sound (P := coreProgram) (f := name% «check_opening_terminal_loop0») (ps := [σ (.n 6), σ (.n 26), σ (.n 14)])
       (N := σ (.n 6)) (B := PiStep Lm.read (σ (.n 26)) (σ (.n 14))) (m := layout.logMemory)
       (fun d y h ↦ loop15_step d y _ _ _ h) hglm (by unfold ordG; omega) 1 hc k hk1 hk2
   have hx1_0 := loadHolds_unique l28 (readsAt_getD hpt1 (k := 0) (by rw [hpl40]; decide))

@@ -1,16 +1,17 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop29
 
-  `verify_bus_gkr`'s inner loop `__loop36`: eight GKR rounds an iteration, from one round record
+  `verify_bus_gkr`'s inner loop `verify_bus_gkr_loop0_loop0`: eight GKR rounds an iteration, from one round record
   to the record eight on.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Gkr.Rounds
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `__loop36` (G:1980-2001)
+# `verify_bus_gkr_loop0_loop0` (G:1980-2001)
 
 `for x8 in mul_range(1, half)` in a layer of `verify_bus_gkr`: the record at
 `rd = rounds·pos·x8^8`, the point row `pt = point_row·x8^8`, eight rounds (`gkRoundT`, from values
@@ -37,7 +38,7 @@ def l29Cap (q : ℕ) : List V :=
   if q = 0 then [.n 10, .n 11, .n 12, .n 13, .n 14]
   else (List.range 5).map fun k ↦ .n (l29B (q - 1) + 20 + k)
 
-/-- `__loop36`'s body. -/
+/-- `verify_bus_gkr_loop0_loop0`'s body. -/
 def l29Body : List Stmt :=
   [.atom (.mul (.n 5) (.n 0) (.n 0)), .atom (.mul (.n 6) (.n 5) (.n 5)),
     .atom (.mul (.n 7) (.n 6) (.n 6)),
@@ -53,16 +54,16 @@ def l29Body : List Stmt :=
     .atom (.const (.n 339) (word 2 0)), .atom (.mul (.n 340) (.n 0) (.n 339)),
     .atom (.add (.n 341) (.n 340) (.n 1)), .atom (.const (.n 342) (word 2 0)),
     .atom (.mul (.n 343) (.n 0) (.n 342)),
-    .callIf (.n 341) "__loop36" [.n 343, .n 1, .n 2, .n 3, .n 4], .ret []]
+    .callIf (.n 341) name% «verify_bus_gkr_loop0_loop0» [.n 343, .n 1, .n 2, .n 3, .n 4], .ret []]
 
 noncomputable def l29Check : Bool :=
-  match coreProgram.find? "__loop36" with
+  match coreProgram.find? name% «verify_bus_gkr_loop0_loop0» with
   | some fn => decide (fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4]) && tbStmtsEqb fn.body l29Body
   | none => false
 
 theorem l29Check_eq : l29Check = true := by decide +kernel
 
-theorem l29Found : ∃ fn : Fn, coreProgram.find? "__loop36" = some fn ∧
+theorem l29Found : ∃ fn : Fn, coreProgram.find? name% «verify_bus_gkr_loop0_loop0» = some fn ∧
     fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4] ∧ fn.body = l29Body := by
   have h := l29Check_eq
   unfold l29Check at h
@@ -90,11 +91,11 @@ theorem l29_round_cap (q : ℕ) (σ : Val) :
     (l29Cap (q + 1)).map σ = (List.range 5).map fun k ↦ σ (.n (l29B q + 20 + k)) := by
   simp [l29Cap]
 
-/-- **An iteration of `__loop36`**: eight rounds from the record at `head·x^8`. -/
+/-- **An iteration of `verify_bus_gkr_loop0_loop0`**: eight rounds from the record at `head·x^8`. -/
 theorem l29_step {N head ptrow tabs : E} (d : ℕ) (x : E)
-    (h : coreProgram.relN rd (d + 1) "__loop36" (x :: [N, head, ptrow, tabs]) []) :
+    (h : coreProgram.relN rd (d + 1) name% «verify_bus_gkr_loop0_loop0» (x :: [N, head, ptrow, tabs]) []) :
     TbGkrRoundsOut 8 rd (head * x ^ 8) (ptrow * x ^ 8) ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop36" (x * gen :: [N, head, ptrow, tabs]) []) := by
+      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «verify_bus_gkr_loop0_loop0» (x * gen :: [N, head, ptrow, tabs]) []) := by
   obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
   obtain ⟨fn', hf', hp, hb⟩ := l29Found
   rw [hf] at hf'
@@ -254,11 +255,11 @@ theorem gkrRoundsOut_zero {rd : Reader} {rec pt : E} {cap : List E} {cur claim :
     tbReadsAt_nil _ _, tbReadsAt_nil _ _, by simpa [gkrRun] using hc,
     by simpa using hcur, by simpa [gkrRun] using hcl⟩
 
-/-- **`__loop36` behind its guard**: from the record at `head`, `half = g^h` iterations are the
+/-- **`verify_bus_gkr_loop0_loop0` behind its guard**: from the record at `head`, `half = g^h` iterations are the
 `8h` rounds to the record at `head·g^(8h)`. -/
 theorem l29_loop {rd : Reader} {half head ptrow tabs : E} {h : ℕ} (hh : half = gen ^ h)
     (hhb : h < 2 ^ 62)
-    (hcall : 1 + half ≠ 0 → coreProgram.Rel rd "__loop36" [1, half, head, ptrow, tabs] [])
+    (hcall : 1 + half ≠ 0 → coreProgram.Rel rd name% «verify_bus_gkr_loop0_loop0» [1, half, head, ptrow, tabs] [])
     (h0 : TbGkrRoundsOut 0 rd head ptrow) : TbGkrRoundsOut (8 * h) rd head ptrow := by
   rcases Nat.eq_zero_or_pos h with rfl | hpos
   · simpa using h0

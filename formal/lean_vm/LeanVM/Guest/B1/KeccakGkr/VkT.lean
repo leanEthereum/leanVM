@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerT
 public import LeanVM.Guest.B1.Eq.EqTree
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `verify_keccak` as a template
@@ -16,17 +17,17 @@ The sections, in order:
 
 * `vkHeadT`: the capacity copied, `pack_g`, `y_g`, the bits of `y` (pinned boolean), `step_g`
   and `rem_g` (`assert step_g⁸·rem_g = y_g`); the instance coordinates copied to `z_vals`;
-  the point's pack coordinates copied (`__loop10`); the segment and the lane coordinates
+  the point's pack coordinates copied (`verify_keccak_loop0`); the segment and the lane coordinates
   squeezed (`sqZeroT`); the committed outputs' value read;
 * the first claim's record: `KC_KAPPA`, `KC_POINT`, the instance weights (`eqtreeT`, `muCopyT`),
   the lanes (`eqtreeT`), the segment weights (`eqtreeT`), the value (`dotLoadsT`);
 * twelve steps (`stepT`): the claim's segment weights (`eqfLevel0T`), its `ι` term (`flipsT`,
   `iotaSegT`), and `keccak_layer` (`stepTailT`);
 * the committed outputs: `keccak_plain_rounds` over the slot, the word, the slot's lane weights
-  (`slotLanesT`), their check; the pack coordinates copied (`__loop11`);
+  (`slotLanesT`), their check; the pack coordinates copied (`verify_keccak_loop1`);
 * the inputs: `keccak_plain_rounds` over the pack, `μ(low)`, over the slot, the 64 slices
   (`slicesT`, the full queue permuted), the slot's lane weights, the shifts of the slices
-  (`foldT`), `keccak_form` (`formAll`), the check; the pack coordinates copied (`__loop12`); the
+  (`foldT`), `keccak_form` (`formAll`), the check; the pack coordinates copied (`verify_keccak_loop2`); the
   return.
 -/
 
@@ -220,13 +221,13 @@ def vkBitsT : List Stmt :=
     .atom (.mul (.n 54) (.n 18) (.n 53)),
     .atom (.assertEq (.n 52) (.n 54))]
 
-/-- The point's allocation and the copy of its pack coordinates (`__loop10`). -/
+/-- The point's allocation and the copy of its pack coordinates (`verify_keccak_loop0`). -/
 def vkPointT : List Stmt :=
   [.atom (.const (.n 59) (word 2 0)), .atom (.mul (.n 60) (.n 18) (.n 59)),
     .atom (.hint (.allocDyn (.n 61) (.n 60))), .atom (.const (.n 62) (word 1 0)),
     .atom (.add (.n 63) (.n 62) (.n 18)), .atom (.const (.n 64) (word 1 0)),
     .atom (.const (.n 65) (word 16 0)), .atom (.mul (.n 66) (.n 7) (.n 65)),
-    .callIf (.n 63) "__loop10" [.n 64, .n 18, .n 61, .n 66],
+    .callIf (.n 63) name% «verify_keccak_loop0» [.n 64, .n 18, .n 61, .n 66],
     .atom (.mul (.n 67) (.n 61) (.n 18)), .atom (.const (.n 68) (word 1 0)),
     .atom (.const (.n 69) (word 0 0)), .atom (.const (.n 70) (word 0 0)),
     .atom (.const (.n 71) (word 0 0)), .atom (.const (.n 72) (word 0 0))]
@@ -371,7 +372,7 @@ def vkOutT : List Stmt :=
     .atom (.const (.n 1193) (word 1 0)), .atom (.add (.n 1194) (.n 1193) (.n 18)),
     .atom (.const (.n 1195) (word 1 0)), .atom (.const (.n 1196) (word 16 0)),
     .atom (.mul (.n 1197) (.n 9) (.n 1196)),
-    .callIf (.n 1194) "__loop11" [.n 1195, .n 18, .n 1197, .n 61]]
+    .callIf (.n 1194) name% «verify_keccak_loop1» [.n 1195, .n 18, .n 1197, .n 61]]
 
 /-- The inputs' opening up to the slices (G:2825-2877). -/
 def vkInT : List Stmt :=
@@ -404,7 +405,7 @@ def vkFinT : List Stmt :=
     .atom (.assertEq (.n 3358) (.n 1339)), .atom (.const (.n 3359) (word 1 0)),
     .atom (.add (.n 3360) (.n 3359) (.n 18)), .atom (.const (.n 3361) (word 1 0)),
     .atom (.const (.n 3362) (word 16 0)), .atom (.mul (.n 3363) (.n 1202) (.n 3362)),
-    .callIf (.n 3360) "__loop12" [.n 3361, .n 18, .n 3363, .n 1745]] ++
+    .callIf (.n 3360) name% «verify_keccak_loop2» [.n 3361, .n 18, .n 3363, .n 1745]] ++
   (List.range 5).map (fun j ↦ .atom (.copy (.n (3364 + j)) (.n (1740 + j)))) ++
   [.atom (.const (.n 3369) (word 27 0)), .atom (.mul (.n 3370) (.n 1338) (.n 3369)),
     .atom (.copy (.n 3371) (.n 3370)), .atom (.copy (.n 3372) (.n 931)),

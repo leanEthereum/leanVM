@@ -92,117 +92,117 @@ theorem gc_shape : ∀ b ∈ grindBitsDeployed,
   decide
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_2 : coreProgram.find? (grindCheckName 2) = some Data.core431 ∧
-    Data.core431.params = [.n 0, .n 1] ∧ Data.core431.body = gcBodyT 2 :=
-  ⟨coreProgram_find?_at (j := 431) rfl, rfl,
+theorem grind_check_found_2 : coreProgram.find? (grindCheckName 2) = some fn% «grind_check__L2» ∧
+    (fn% «grind_check__L2»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L2»).body = gcBodyT 2 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L2») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_3 : coreProgram.find? (grindCheckName 3) = some Data.core442 ∧
-    Data.core442.params = [.n 0, .n 1] ∧ Data.core442.body = gcBodyT 3 :=
-  ⟨coreProgram_find?_at (j := 442) rfl, rfl,
+theorem grind_check_found_3 : coreProgram.find? (grindCheckName 3) = some fn% «grind_check__L3» ∧
+    (fn% «grind_check__L3»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L3»).body = gcBodyT 3 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L3») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_7 : coreProgram.find? (grindCheckName 7) = some Data.core89 ∧
-    Data.core89.params = [.n 0, .n 1] ∧ Data.core89.body = gcBodyT 7 :=
-  ⟨coreProgram_find?_at (j := 89) rfl, rfl,
+theorem grind_check_found_7 : coreProgram.find? (grindCheckName 7) = some fn% «grind_check__L7» ∧
+    (fn% «grind_check__L7»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L7»).body = gcBodyT 7 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L7») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_13 : coreProgram.find? (grindCheckName 13) = some Data.core334 ∧
-    Data.core334.params = [.n 0, .n 1] ∧ Data.core334.body = gcBodyT 13 :=
-  ⟨coreProgram_find?_at (j := 334) rfl, rfl,
+theorem grind_check_found_13 : coreProgram.find? (grindCheckName 13) = some fn% «grind_check__L13» ∧
+    (fn% «grind_check__L13»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L13»).body = gcBodyT 13 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L13») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_15 : coreProgram.find? (grindCheckName 15) = some Data.core307 ∧
-    Data.core307.params = [.n 0, .n 1] ∧ Data.core307.body = gcBodyT 15 :=
-  ⟨coreProgram_find?_at (j := 307) rfl, rfl,
+theorem grind_check_found_15 : coreProgram.find? (grindCheckName 15) = some fn% «grind_check__L15» ∧
+    (fn% «grind_check__L15»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L15»).body = gcBodyT 15 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L15») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_17 : coreProgram.find? (grindCheckName 17) = some Data.core447 ∧
-    Data.core447.params = [.n 0, .n 1] ∧ Data.core447.body = gcBodyT 17 :=
-  ⟨coreProgram_find?_at (j := 447) rfl, rfl,
+theorem grind_check_found_17 : coreProgram.find? (grindCheckName 17) = some fn% «grind_check__L17» ∧
+    (fn% «grind_check__L17»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L17»).body = gcBodyT 17 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L17») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_18 : coreProgram.find? (grindCheckName 18) = some Data.core448 ∧
-    Data.core448.params = [.n 0, .n 1] ∧ Data.core448.body = gcBodyT 18 :=
-  ⟨coreProgram_find?_at (j := 448) rfl, rfl,
+theorem grind_check_found_18 : coreProgram.find? (grindCheckName 18) = some fn% «grind_check__L18» ∧
+    (fn% «grind_check__L18»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L18»).body = gcBodyT 18 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L18») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_19 : coreProgram.find? (grindCheckName 19) = some Data.core449 ∧
-    Data.core449.params = [.n 0, .n 1] ∧ Data.core449.body = gcBodyT 19 :=
-  ⟨coreProgram_find?_at (j := 449) rfl, rfl,
+theorem grind_check_found_19 : coreProgram.find? (grindCheckName 19) = some fn% «grind_check__L19» ∧
+    (fn% «grind_check__L19»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L19»).body = gcBodyT 19 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L19») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_20 : coreProgram.find? (grindCheckName 20) = some Data.core450 ∧
-    Data.core450.params = [.n 0, .n 1] ∧ Data.core450.body = gcBodyT 20 :=
-  ⟨coreProgram_find?_at (j := 450) rfl, rfl,
+theorem grind_check_found_20 : coreProgram.find? (grindCheckName 20) = some fn% «grind_check__L20» ∧
+    (fn% «grind_check__L20»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L20»).body = gcBodyT 20 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L20») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_21 : coreProgram.find? (grindCheckName 21) = some Data.core451 ∧
-    Data.core451.params = [.n 0, .n 1] ∧ Data.core451.body = gcBodyT 21 :=
-  ⟨coreProgram_find?_at (j := 451) rfl, rfl,
+theorem grind_check_found_21 : coreProgram.find? (grindCheckName 21) = some fn% «grind_check__L21» ∧
+    (fn% «grind_check__L21»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L21»).body = gcBodyT 21 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L21») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_22 : coreProgram.find? (grindCheckName 22) = some Data.core452 ∧
-    Data.core452.params = [.n 0, .n 1] ∧ Data.core452.body = gcBodyT 22 :=
-  ⟨coreProgram_find?_at (j := 452) rfl, rfl,
+theorem grind_check_found_22 : coreProgram.find? (grindCheckName 22) = some fn% «grind_check__L22» ∧
+    (fn% «grind_check__L22»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L22»).body = gcBodyT 22 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L22») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_23 : coreProgram.find? (grindCheckName 23) = some Data.core453 ∧
-    Data.core453.params = [.n 0, .n 1] ∧ Data.core453.body = gcBodyT 23 :=
-  ⟨coreProgram_find?_at (j := 453) rfl, rfl,
+theorem grind_check_found_23 : coreProgram.find? (grindCheckName 23) = some fn% «grind_check__L23» ∧
+    (fn% «grind_check__L23»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L23»).body = gcBodyT 23 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L23») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_24 : coreProgram.find? (grindCheckName 24) = some Data.core454 ∧
-    Data.core454.params = [.n 0, .n 1] ∧ Data.core454.body = gcBodyT 24 :=
-  ⟨coreProgram_find?_at (j := 454) rfl, rfl,
+theorem grind_check_found_24 : coreProgram.find? (grindCheckName 24) = some fn% «grind_check__L24» ∧
+    (fn% «grind_check__L24»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L24»).body = gcBodyT 24 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L24») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_25 : coreProgram.find? (grindCheckName 25) = some Data.core455 ∧
-    Data.core455.params = [.n 0, .n 1] ∧ Data.core455.body = gcBodyT 25 :=
-  ⟨coreProgram_find?_at (j := 455) rfl, rfl,
+theorem grind_check_found_25 : coreProgram.find? (grindCheckName 25) = some fn% «grind_check__L25» ∧
+    (fn% «grind_check__L25»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L25»).body = gcBodyT 25 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L25») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_26 : coreProgram.find? (grindCheckName 26) = some Data.core456 ∧
-    Data.core456.params = [.n 0, .n 1] ∧ Data.core456.body = gcBodyT 26 :=
-  ⟨coreProgram_find?_at (j := 456) rfl, rfl,
+theorem grind_check_found_26 : coreProgram.find? (grindCheckName 26) = some fn% «grind_check__L26» ∧
+    (fn% «grind_check__L26»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L26»).body = gcBodyT 26 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L26») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_27 : coreProgram.find? (grindCheckName 27) = some Data.core457 ∧
-    Data.core457.params = [.n 0, .n 1] ∧ Data.core457.body = gcBodyT 27 :=
-  ⟨coreProgram_find?_at (j := 457) rfl, rfl,
+theorem grind_check_found_27 : coreProgram.find? (grindCheckName 27) = some fn% «grind_check__L27» ∧
+    (fn% «grind_check__L27»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L27»).body = gcBodyT 27 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L27») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_28 : coreProgram.find? (grindCheckName 28) = some Data.core458 ∧
-    Data.core458.params = [.n 0, .n 1] ∧ Data.core458.body = gcBodyT 28 :=
-  ⟨coreProgram_find?_at (j := 458) rfl, rfl,
+theorem grind_check_found_28 : coreProgram.find? (grindCheckName 28) = some fn% «grind_check__L28» ∧
+    (fn% «grind_check__L28»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L28»).body = gcBodyT 28 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L28») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_29 : coreProgram.find? (grindCheckName 29) = some Data.core459 ∧
-    Data.core459.params = [.n 0, .n 1] ∧ Data.core459.body = gcBodyT 29 :=
-  ⟨coreProgram_find?_at (j := 459) rfl, rfl,
+theorem grind_check_found_29 : coreProgram.find? (grindCheckName 29) = some fn% «grind_check__L29» ∧
+    (fn% «grind_check__L29»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L29»).body = gcBodyT 29 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L29») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_30 : coreProgram.find? (grindCheckName 30) = some Data.core460 ∧
-    Data.core460.params = [.n 0, .n 1] ∧ Data.core460.body = gcBodyT 30 :=
-  ⟨coreProgram_find?_at (j := 460) rfl, rfl,
+theorem grind_check_found_30 : coreProgram.find? (grindCheckName 30) = some fn% «grind_check__L30» ∧
+    (fn% «grind_check__L30»).params = [.n 0, .n 1] ∧ (fn% «grind_check__L30»).body = gcBodyT 30 :=
+  ⟨coreProgram_find?_at (j := idx% «grind_check__L30») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 /-- **Every deployed `grind_check` is the template.** -/

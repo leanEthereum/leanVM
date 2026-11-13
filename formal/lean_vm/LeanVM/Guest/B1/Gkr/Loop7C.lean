@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop7C
 
-  `__loop6`, completely: on a memory holding a layer's slot, its step's words, its round records
+  `verify_bus_gkr_loop0`, completely: on a memory holding a layer's slot, its step's words, its round records
   and the next slot, an iteration's honest valuation satisfies its body, region by region.
 -/
 
@@ -13,9 +13,10 @@ public import LeanVM.Guest.B1.Gkr.RecsC
 public import LeanVM.Guest.B1.Gkr.SpecInv
 public import LeanVM.Guest.B1.Gkr.Loop29Complete
 public import LeanVM.Guest.B1.Sumcheck.Gkr
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `__loop6`, completely (G:1997-2041)
+# `verify_bus_gkr_loop0`, completely (G:1997-2041)
 
 An iteration at `x = g^j` from the slot of `L = 2j + 2 - sh` (`GkSlot`, the slot's words, nothing
 waiting) runs one step of two levels (`GkStepD`, read back from the walk by `gkrStep_invT`). On a
@@ -25,7 +26,7 @@ region (`lyR1 .. lyR6`):
 
 * `lyc_head`: the combiner's permutation, the first record stored, `half = g^(k/4)` and
   `parity = g^(k % 4)`, `k = j + 1 - sh` the layer index;
-* `lyc_rounds`: `__loop36`, `gkr_rounds__L{2r}` at `r = k % 4` (a dispatch), `gkr_rounds__L1` at
+* `lyc_rounds`: `verify_bus_gkr_loop0_loop0`, `gkr_rounds__L{2r}` at `r = k % 4` (a dispatch), `gkr_rounds__L1` at
   an odd depth;
 * `lyc_last`: the last record read;
 * `lyc_children`: the twelve children read and absorbed, four at a permutation;
@@ -64,12 +65,12 @@ theorem forall_flatten_range {P : Stmt → Prop} {n : ℕ} {g : ℕ → List Stm
 
 /-! ## The evaluation list and the regions -/
 
-/-- `__loop6`'s evaluation list: its body, its `ite`'s branches in order. -/
+/-- `verify_bus_gkr_loop0`'s evaluation list: its body, its `ite`'s branches in order. -/
 noncomputable def lyEvL : List Stmt := flatIte lyPre
 
 theorem ly_chk : (chk 10 lyEvL).isSome = true := by decide +kernel
 
-/-- `__loop6`'s stores. -/
+/-- `verify_bus_gkr_loop0`'s stores. -/
 noncomputable def lyS : List Atom := storesOf 10 lyEvL
 
 /-- The head: the slot's pointer, the combiner, the first record, `half`, `parity`. -/
@@ -97,7 +98,7 @@ def lyR1 : List Stmt :=
 
 /-- The rounds. -/
 def lyR2 : List Stmt :=
-  [.callIf (.n 56) "__loop36" [.n 57, .n 53, .n 48, .n 46, .n 4],
+  [.callIf (.n 56) name% «verify_bus_gkr_loop0_loop0» [.n 57, .n 53, .n 48, .n 46, .n 4],
     .atom (.mul (.n 58) (.n 53) (.n 53)), .atom (.mul (.n 59) (.n 58) (.n 58)),
     .atom (.mul (.n 60) (.n 59) (.n 59)), .atom (.mul (.n 61) (.n 48) (.n 60)),
     .atom (.mul (.n 62) (.n 46) (.n 60)),
@@ -154,7 +155,7 @@ def lyR6 : List Stmt :=
     .atom (.const (.n 234) (word 2 0)), .atom (.mul (.n 235) (.n 0) (.n 234)),
     .atom (.add (.n 236) (.n 235) (.n 1)), .atom (.const (.n 237) (word 2 0)),
     .atom (.mul (.n 238) (.n 0) (.n 237)),
-    .callIf (.n 236) "__loop6" [.n 238, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]]
+    .callIf (.n 236) name% «verify_bus_gkr_loop0» [.n 238, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]]
 
 set_option maxRecDepth 10000 in
 theorem lyPre_eq : lyPre = lyR1 ++ lyR2 ++ lyR3 ++ lyR4 ++ lyR5 ++ lyR6 :=
@@ -328,7 +329,7 @@ theorem lyc_head (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {j sh : 
 
 theorem tb_isInK_one : IsInK (1 : E) := by simpa using tb_gen_pow_isInK 0
 
-/-- **The rounds**: `__loop36` (`8·(k/4)` rounds), `gkr_rounds__L{2r}` at `r = k % 4` (the
+/-- **The rounds**: `verify_bus_gkr_loop0_loop0` (`8·(k/4)` rounds), `gkr_rounds__L{2r}` at `r = k % 4` (the
 dispatch on `parity = g^r`), and `gkr_rounds__L1` at an odd depth, each from its record, when the
 records hold every run of consecutive rounds. -/
 theorem lyc_rounds (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {j k sh : ℕ}
@@ -358,7 +359,7 @@ theorem lyc_rounds (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {j k s
   refine holdsList_of_vsh lyR2 (by decide +kernel) (fun s hs => ?_) trivial
   simp only [lyR2, List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · -- `__loop36`
+  · -- `verify_bus_gkr_loop0_loop0`
     refine ⟨by rw [e56]; exact tb_isInK_add tb_isInK_one (tb_gen_pow_isInK _), fun hne => ?_⟩
     have hpos : 0 < k / 4 := by
       rcases Nat.eq_zero_or_pos (k / 4) with h0 | h0
@@ -668,7 +669,7 @@ theorem lyc_stores (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s)
     (s38 : LoadHolds rd (σ (.n 17)) 38 pv)
     (hK : IsInK (σ (.n 0) * gen + σ (.n 1)))
     (hcall : σ (.n 0) * gen + σ (.n 1) ≠ 0 →
-      C "__loop6" [σ (.n 0) * gen, σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
+      C name% «verify_bus_gkr_loop0» [σ (.n 0) * gen, σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
         σ (.n 7), σ (.n 8), σ (.n 9)] []) :
     Stmt.HoldsList C rd σ lyR6 True kret := by
   have g := fun n a heq => ly_good (rd := rd) (σ := σ) hG n a heq
@@ -724,7 +725,7 @@ theorem lyc_stores (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s)
     show σ (.n 234) = word 2 0 by rw [c234, tb_word_gen], m235, a236,
     show σ (.n 237) = word 2 0 by rw [c237, tb_word_gen], m238,
     ⟨by rw [a236, m235, c234]; exact hK, fun hne => ?_⟩⟩
-  show C "__loop6" (List.map σ [.n 238, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]) []
+  show C name% «verify_bus_gkr_loop0» (List.map σ [.n 238, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]) []
   simp only [List.map_cons, List.map_nil]
   rw [m238, c237]
   exact hcall (by rw [a236, m235, c234] at hne; exact hne)

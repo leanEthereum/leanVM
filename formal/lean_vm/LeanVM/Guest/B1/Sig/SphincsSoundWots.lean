@@ -150,7 +150,7 @@ variable {C : CallRel} {rd : Reader}
 address cells the digest's digits reach the target sum and the word is the leaf the chain values
 `sChainValuesOf σ` recover. -/
 theorem sp_wots_sound_stmt {σ : Val} {rets : List E}
-    (h : Stmt.HoldsList C rd σ Data.core19.body False (fun rs => rs = rets)) :
+    (h : Stmt.HoldsList C rd σ (fn% «sp_wots»).body False (fun rs => rs = rets)) :
     ∃ leaf, rets = [leaf] ∧ ∀ (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
       (lf : Sphincs.TreeLeafIndex), (σ (.n 1), σ (.n 2)) = keyAdrsCells layer.val tree.val lf.val →
         Sphincs.TargetSum.Valid (Sphincs.TargetSum.base2bDigits (cellVal (σ (.n 3)))) ∧

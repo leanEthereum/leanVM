@@ -10,12 +10,13 @@ public import LeanVM.Guest.B1.Gkr.VbgComplete
 public import LeanVM.Guest.B1.Gkr.VbgBound
 public import LeanVM.Guest.B1.Tables.FlatLift
 public import LeanVM.Guest.B1.Fwd.PureIn
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `verify_bus_gkr`'s kernel facts and buffers
 
 `vbgFlat`: `verify_bus_gkr` as a flat function (`FlatFn`): its evaluation list `vbgEvL`, its
-range check's two reads (`vbgAux`, values `21`, `22`), its callees `vbgKidS` (`__loop6`, `__loop7`
+range check's two reads (`vbgAux`, values `21`, `22`), its callees `vbgKidS` (`verify_bus_gkr_loop0`, `verify_bus_gkr_loop1`
 and theirs, placing nothing).
 
 **The buffers.** `vbgLay` (`VbgComplete`) places the honest words as runs inside the seven
@@ -39,7 +40,7 @@ open LeanVM.Guest.B1.Fwd
 
 /-- `verify_bus_gkr`'s callees, directly or not. -/
 def vbgKidS : List String :=
-  ["__loop36", "__loop6", "__loop7", "gkr_rounds__L0", "gkr_rounds__L1", "gkr_rounds__L2",
+  [name% «verify_bus_gkr_loop0_loop0», name% «verify_bus_gkr_loop0», name% «verify_bus_gkr_loop1», "gkr_rounds__L0", "gkr_rounds__L1", "gkr_rounds__L2",
     "gkr_rounds__L4", "gkr_rounds__L6"]
 
 theorem vbg_kids_pure : coreProgram.PureIn vbgKidS := pureIn_of_pureInB (by decide +kernel)

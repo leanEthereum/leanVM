@@ -17,6 +17,7 @@ public import LeanVM.Guest.B1.Main.MainGoalsDvTB
 public import LeanVM.Guest.B1.Main.MainGoalsHAgTB
 public import LeanVM.Guest.B1.Main.MainGoalsHL5TB
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main` on an honest run, within its words
@@ -43,17 +44,17 @@ structure MainStatics (fs : String → ℕ) (SB SK : String → ℕ) : Prop wher
   main : MainStaticsMain fs SB SK
   dv : Da.DvStaticB fs SB SK
   ls : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")
-  l15 : TotalLeOn coreProgram fs "__loop15" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop15" + fs "__loop15")
-  l16 : TotalLeOn coreProgram fs "__loop16" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop16" + fs "__loop16")
+  l15 : TotalLeOn coreProgram fs name% «claim_list_digest_loop0» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0»)
+  l16 : TotalLeOn coreProgram fs name% «claim_list_digest_loop1» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1»)
   cl : ∀ j < 17, TotalLe coreProgram fs B1.Digest.clNames[j]! (fun _ => SB B1.Digest.clNames[j]!)
-  l25 : TotalLeOn coreProgram fs "__loop33" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop33" + fs "__loop33")
-  l26 : TotalLeOn coreProgram fs "__loop34" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop34" + fs "__loop34")
-  l27 : TotalLeOn coreProgram fs "__loop35" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop35" + fs "__loop35")
+  l25 : TotalLeOn coreProgram fs name% «aggregate_claims_loop0» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs name% «aggregate_claims_loop0»)
+  l26 : TotalLeOn coreProgram fs name% «aggregate_claims_loop1» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop1» + fs name% «aggregate_claims_loop1»)
+  l27 : TotalLeOn coreProgram fs name% «aggregate_claims_loop2» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop2» + fs name% «aggregate_claims_loop2»)
   bs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")
   gr : TotalLe coreProgram fs "grind_check__L2" (fun _ => SB "grind_check__L2")
 
