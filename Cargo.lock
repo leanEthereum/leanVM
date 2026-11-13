@@ -541,7 +541,6 @@ version = "0.1.0"
 dependencies = [
  "primitives",
  "rand",
- "signatures",
 ]
 
 [[package]]

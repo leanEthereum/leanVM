@@ -22,16 +22,12 @@ type RawLeanSphincs = (
     lean_sphincs::LeanSphincsSignature,
 );
 
-/// Cached signers `[from, to)`, as the aggregation API takes them: one message for
-/// all, each signature at its own signer's leaf index.
+/// Cached signers `[from, to)`, as the aggregation API takes them.
 fn signers(from: usize, to: usize) -> Vec<RawLeanXmss> {
     if to == 0 {
         return Vec::new();
     }
-    signers_cache::get_signers(to)[from..to]
-        .iter()
-        .map(|(pk, sig)| (*pk, signers_cache::message(), sig.clone()))
-        .collect()
+    signers_cache::get_signers(to)[from..to].to_vec()
 }
 
 /// Each leanSPHINCS signer comes with the message it signed, as the leanXMSS ones do.

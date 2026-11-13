@@ -3,7 +3,6 @@
 //! signs in it or prepares it, keeping the [`MAX_CACHED_BOTTOM_TREES`] it used last.
 
 use std::collections::VecDeque;
-use std::ops::RangeInclusive;
 use std::sync::{Arc, Mutex};
 
 use crate::lean_xmss::*;
@@ -157,27 +156,16 @@ impl std::fmt::Display for LeanXmssSignError {
 
 impl std::error::Error for LeanXmssSignError {}
 
-/// Every leaf index: what a key signs at, but for a mock key.
-pub(crate) const ALL_LEAVES: RangeInclusive<LeafIndex> = 0..=LeafIndex::MAX;
-
 /// A fresh key pair, its seed from the operating system's randomness.
 pub fn key_gen() -> (LeanXmssSecretKey, LeanXmssPublicKey) {
     key_gen_from_seed(rand::random())
 }
 
-/// Deterministic [`key_gen`]: the seed is the key's entire secret material. Never
-/// derive another key from it, a mock key included: the two would share one-time
-/// keys (see `mock`).
-pub fn key_gen_from_seed(seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
-    generate(seed, ALL_LEAVES)
-}
-
-/// The key over the leaf indices `leaves`; nodes over no leaf in it are fillers.
-pub(crate) fn generate(key_seed: Seed, leaves: RangeInclusive<LeafIndex>) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
+/// Deterministic [`key_gen`]: the seed is the key's entire secret material.
+pub fn key_gen_from_seed(key_seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
     let seed = scheme_seed(&key_seed);
     let public_param = public_param(&seed);
-    let (first, last) = (layer_index(*leaves.start(), 1), layer_index(*leaves.end(), 1));
-    let top = LayerTree::build(&public_param, &seed, 1, first, last);
+    let top = LayerTree::build(&public_param, &seed, 1, 0);
     let sk = LeanXmssSecretKey {
         key_seed,
         public_param,
@@ -195,7 +183,19 @@ pub fn sign(
     message: &Message,
     leaf_index: LeafIndex,
 ) -> Result<LeanXmssSignature, LeanXmssSignError> {
-    sk.sign_over(message, leaf_index, ALL_LEAVES)
+    let bottom = sk.bottom_tree(leaf_index)?;
+    let seed = scheme_seed(&sk.key_seed);
+    let (randomizer, chain_values) =
+        wots_sign(&sk.public_param, &seed, 0, leaf_index, message).ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
+    Ok(LeanXmssSignature {
+        leaf_index,
+        bottom: LayerSignature {
+            randomizer,
+            chain_values,
+            path: bottom.tree.path(leaf_index),
+        },
+        top: bottom.top_signature.clone(),
+    })
 }
 
 impl LeanXmssSecretKey {
@@ -221,48 +221,19 @@ impl LeanXmssSecretKey {
     /// the [`MAX_CACHED_BOTTOM_TREES`] it used last, and threads may prepare different
     /// trees at once.
     pub fn prepare(&self, leaf_index: LeafIndex) -> Result<(), LeanXmssSignError> {
-        self.bottom_tree(leaf_index, ALL_LEAVES).map(drop)
-    }
-
-    /// [`sign`], for a key whose trees hold only the leaf indices `leaves`.
-    pub(crate) fn sign_over(
-        &self,
-        message: &Message,
-        leaf_index: LeafIndex,
-        leaves: RangeInclusive<LeafIndex>,
-    ) -> Result<LeanXmssSignature, LeanXmssSignError> {
-        let bottom = self.bottom_tree(leaf_index, leaves)?;
-        let seed = scheme_seed(&self.key_seed);
-        let (randomizer, chain_values) = wots_sign(&self.public_param, &seed, 0, leaf_index, message)
-            .ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
-        Ok(LeanXmssSignature {
-            leaf_index,
-            bottom: LayerSignature {
-                randomizer,
-                chain_values,
-                path: bottom.tree.path(&self.public_param, &seed, leaf_index),
-            },
-            top: bottom.top_signature.clone(),
-        })
+        self.bottom_tree(leaf_index).map(drop)
     }
 
     /// The bottom tree `leaf_index` is in, with the top layer's signature of its root:
     /// the cached one, or built and cached. Built outside the lock, which is only ever
     /// held to read or update the cache.
-    fn bottom_tree(
-        &self,
-        leaf_index: LeafIndex,
-        leaves: RangeInclusive<LeafIndex>,
-    ) -> Result<Arc<BottomTree>, LeanXmssSignError> {
+    fn bottom_tree(&self, leaf_index: LeafIndex) -> Result<Arc<BottomTree>, LeanXmssSignError> {
         let index = layer_index(leaf_index, 1);
         if let Some(bottom) = use_cached(&mut self.bottoms.lock().unwrap(), index) {
             return Ok(bottom);
         }
         let (pp, seed) = (&self.public_param, &scheme_seed(&self.key_seed));
-        let base = index << LAYER_HEIGHT;
-        let first = (*leaves.start()).max(base);
-        let last = (*leaves.end()).min(base | ((1 << LAYER_HEIGHT) - 1));
-        let tree = LayerTree::build(pp, seed, 0, first, last);
+        let tree = LayerTree::build(pp, seed, 0, index);
         let (randomizer, chain_values) =
             wots_sign(pp, seed, 1, index, &tree.root()).ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
         let bottom = Arc::new(BottomTree {
@@ -270,7 +241,7 @@ impl LeanXmssSecretKey {
             top_signature: LayerSignature {
                 randomizer,
                 chain_values,
-                path: self.top.path(pp, seed, index),
+                path: self.top.path(index),
             },
             tree,
         });

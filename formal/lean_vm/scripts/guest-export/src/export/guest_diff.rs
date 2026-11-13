@@ -11,7 +11,7 @@
 //! list its length then its items; a section starts with its name, which the reader checks.
 
 use super::*;
-use crate::signers_cache::{get_lean_sphincs_signers, get_signers, message};
+use crate::signers_cache::{get_lean_sphincs_signers, get_signers};
 use lean_da::{BLOB_SYMBOLS, CODEWORD_SYMBOLS};
 use leanvm_core::cpu::{public_input_bytes, scalar_proof};
 use signatures::lean_sphincs::LeanSphincsSignature;
@@ -295,10 +295,7 @@ fn blob(seed: u64) -> Vec<u64> {
 fn guest_diff() {
     parallel::init();
     let wide = CLAIM_GROUP + 3;
-    let xmss: Vec<_> = get_signers(wide + 2)
-        .into_iter()
-        .map(|(pk, sig)| (pk, message(), sig))
-        .collect();
+    let xmss = get_signers(wide + 2);
     let sphincs = get_lean_sphincs_signers(3);
     let left = export("left", vec![], xmss[..2].to_vec(), sphincs[..2].to_vec(), &blob(1));
     let right = export("right", vec![], xmss[1..wide + 1].to_vec(), sphincs[1..].to_vec(), &[]);
@@ -312,9 +309,5 @@ fn guest_diff() {
 #[ignore]
 fn guest_diff_leaf() {
     parallel::init();
-    let xmss: Vec<_> = get_signers(1)
-        .into_iter()
-        .map(|(pk, sig)| (pk, message(), sig))
-        .collect();
-    export("leaf", vec![], xmss, vec![], &[]);
+    export("leaf", vec![], get_signers(1), vec![], &[]);
 }

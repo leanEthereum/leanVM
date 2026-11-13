@@ -1,10 +1,9 @@
-//! Persistent cache for deterministic benchmark signatures, one file per
-//! scheme.
+//! Persistent cache for deterministic benchmark signatures, one file per scheme
+//! and message.
 //!
-//! The cache grows as needed and is memoized in-process. Its filename binds the
-//! parameters, hash construction, encoding predicate, and key derivation. Loaded
-//! signatures are also verified, so stale entries are regenerated from the first
-//! invalid one.
+//! The cache grows as needed and is memoized in-process. Loaded signatures are
+//! verified, so a change to the scheme regenerates them from the first that no
+//! longer verifies; a change that leaves them valid bumps `SCHEMA_VERSION`.
 
 use std::collections::BTreeMap;
 use std::collections::hash_map::DefaultHasher;
@@ -12,8 +11,8 @@ use std::fs;
 use std::hash::{Hash, Hasher};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 
 use primitives::{pretty_f64, pretty_integer};
@@ -22,95 +21,135 @@ use rand::{Rng, SeedableRng};
 use signatures::lean_xmss::*;
 use signatures::{lean_sphincs, lean_xmss};
 
-type CachedSignature = (LeanXmssPublicKey, LeanXmssSignature);
+/// A cached leanXMSS signer, as the aggregation API takes it: the key, the message
+/// it signed, the signature.
+pub type LeanXmssSigner = (LeanXmssPublicKey, Message, LeanXmssSignature);
 
-const SCHEMA_VERSION: u32 = 7;
+const SCHEMA_VERSION: u32 = 8;
 
 /// One cached leanXMSS signer, as fixed-size bytes: the public key, then the signature.
 const LEAN_XMSS_RECORD: usize = PUB_KEY_SIZE + SIG_SIZE;
 
-/// The leaf indices every cached key signs at: mock keys (`lean_xmss::mock`), real
-/// only over this range, which a full key's top tree would make far slower to
-/// generate.
-const KEY_START: LeafIndex = 3_000_000_000;
-const KEY_END: LeafIndex = 3_000_000_015;
+/// The keys the cached leanXMSS signers share, a full key being slow to generate:
+/// signer `i` is key `i % NUM_KEYS` in round `i / NUM_KEYS`, each round signing a
+/// message of its own, so no two signers make the same claim.
+const NUM_KEYS: usize = 32;
 
-/// The message [`get_signers`] signs. leanSPHINCS signers carry their own.
+/// Message ids are below this, so that a key signs each message id and round at a
+/// leaf index of its own.
+const MESSAGE_IDS: u32 = 16;
+
+/// The message [`get_signers`] signs in round 0.
 pub fn message() -> Message {
     std::array::from_fn(|i| (i * 5 + 1) as u8)
 }
 
-/// The message of cache `message_id`: distinct per id, and exactly [`message`] at 0.
+/// The message of cache `message_id` in round 0: distinct per id, and exactly
+/// [`message`] at 0.
+#[cfg(test)]
 pub(crate) fn message_for(message_id: u32) -> Message {
+    signer_message(0, message_id)
+}
+
+/// The message signer `index` of cache `message_id` signs: distinct per id and round.
+fn signer_message(index: usize, message_id: u32) -> Message {
+    let round = (index / NUM_KEYS) as u32;
     let mut msg = message();
-    for (byte, delta) in msg.iter_mut().zip(message_id.to_le_bytes()) {
+    for (byte, delta) in msg
+        .iter_mut()
+        .zip([message_id.to_le_bytes(), round.to_le_bytes()].as_flattened())
+    {
         *byte ^= delta;
     }
     msg
 }
 
-/// The leaf index signer `index` signs [`message_for`]`(message_id)` at, shifted per
-/// message so one key signs messages fewer than 16 ids apart at distinct leaf indices.
+/// The bottom tree the cached signers sign in: far from the first, so that the top
+/// layer's index and path are not all zeros.
+const BOTTOM_TREE: LeafIndex = 3_000_000_000 >> LAYER_HEIGHT;
+
+/// The leaf index signer `index` of cache `message_id` signs at: its key's own for
+/// each message, in [`BOTTOM_TREE`] for the first `2^16 / MESSAGE_IDS` rounds.
 fn leaf_index_of(index: usize, message_id: u32) -> LeafIndex {
-    let span = (KEY_END - KEY_START + 1) as usize;
-    KEY_START + ((index + message_id as usize) % span) as LeafIndex
+    assert!(
+        message_id < MESSAGE_IDS,
+        "message id {message_id} is not below {MESSAGE_IDS}"
+    );
+    (BOTTOM_TREE << LAYER_HEIGHT) + (index / NUM_KEYS) as LeafIndex * MESSAGE_IDS + message_id
 }
 
-fn compute_signer(index: usize, message_id: u32) -> CachedSignature {
-    // The index over its full width: a one-byte seed repeats every 256 signers,
-    // and a repeated signer is invisible until something deduplicates the set,
-    // at which point a batch of 900 quietly becomes one of 256.
-    // One seed per signer, always over the one range KEY_START..=KEY_END: a seed
-    // must back one key only (`lean_xmss::mock`).
-    let mut seed = [10u8; 32];
-    seed[..8].copy_from_slice(&(index as u64).to_le_bytes());
-    let (sk, pk) = mock::key_gen_from_seed(seed, KEY_START, KEY_END);
-    let sig = mock::sign(&sk, &message_for(message_id), leaf_index_of(index, message_id)).expect("sign");
-    (pk, sig)
+fn key_seed(k: usize) -> Seed {
+    let mut seed = [10; SEED_LEN];
+    seed[..8].copy_from_slice(&(k as u64).to_le_bytes());
+    seed
+}
+
+/// The [`NUM_KEYS`] keys, each generated, with [`BOTTOM_TREE`] prepared, when first used.
+type Keys = [OnceLock<(LeanXmssSecretKey, LeanXmssPublicKey)>; NUM_KEYS];
+
+fn key(keys: &Keys, k: usize) -> &(LeanXmssSecretKey, LeanXmssPublicKey) {
+    keys[k].get_or_init(|| {
+        let (sk, pk) = key_gen_from_seed(key_seed(k));
+        sk.prepare(BOTTOM_TREE << LAYER_HEIGHT).expect("prepare");
+        (sk, pk)
+    })
+}
+
+fn compute_signer(keys: &Keys, index: usize, message_id: u32) -> LeanXmssSigner {
+    let (sk, pk) = key(keys, index % NUM_KEYS);
+    let message = signer_message(index, message_id);
+    let sig = sign(sk, &message, leaf_index_of(index, message_id)).expect("sign");
+    (*pk, message, sig)
 }
 
 fn cache_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/signers-cache")
 }
 
-/// The cache file of `message_id`, named after signer 0's key and signature, which
-/// any change to the scheme, its parameters, key derivation or grinding changes.
 fn cache_path(message_id: u32) -> PathBuf {
     let mut hasher = DefaultHasher::new();
+    // Key 0's public parameter, so that a new key derivation starts a new file.
+    let public_param = public_param(&scheme_seed(&key_seed(0)));
     (
         SCHEMA_VERSION,
         LEAN_XMSS_RECORD,
+        NUM_KEYS,
+        MESSAGE_IDS,
+        BOTTOM_TREE,
+        public_param,
         message_id,
-        compute_signer(0, message_id),
     )
         .hash(&mut hasher);
     cache_dir().join(format!("lean_xmss_signers_{:016x}.bin", hasher.finish()))
 }
 
-fn try_load_cache(path: &Path, message_id: u32) -> Option<Vec<CachedSignature>> {
+fn try_load_cache(path: &Path, message_id: u32) -> Option<Vec<LeanXmssSigner>> {
     let bytes = fs::read(path).ok()?;
-    let msg = message_for(message_id);
-    let mut signers = Vec::with_capacity(bytes.len() / LEAN_XMSS_RECORD);
+    let mut signers: Vec<LeanXmssSigner> = Vec::with_capacity(bytes.len() / LEAN_XMSS_RECORD);
     for record in bytes.as_chunks::<LEAN_XMSS_RECORD>().0 {
+        let index = signers.len();
         let (pk, sig) = record.split_at(PUB_KEY_SIZE);
         let pk = LeanXmssPublicKey::from_bytes(pk.try_into().unwrap());
         let sig = LeanXmssSignature::from_bytes(sig.try_into().unwrap());
-        if sig.leaf_index() != leaf_index_of(signers.len(), message_id) || lean_xmss::verify(&pk, &msg, &sig).is_err() {
+        let message = signer_message(index, message_id);
+        if index >= NUM_KEYS && pk != signers[index % NUM_KEYS].0
+            || sig.leaf_index() != leaf_index_of(index, message_id)
+            || lean_xmss::verify(&pk, &message, &sig).is_err()
+        {
             eprintln!(
-                "warning: signers cache {} is stale (signer {} no longer verifies); regenerating from there",
+                "warning: signers cache {} is stale at signer {index}; regenerating from there",
                 path.display(),
-                signers.len()
             );
             break;
         }
-        signers.push((pk, sig));
+        signers.push((pk, message, sig));
     }
     Some(signers)
 }
 
-fn save_cache(path: &Path, signers: &[CachedSignature]) {
+fn save_cache(path: &Path, signers: &[LeanXmssSigner]) {
     let mut bytes = Vec::with_capacity(signers.len() * LEAN_XMSS_RECORD);
-    for (pk, sig) in signers {
+    for (pk, _, sig) in signers {
         bytes.extend_from_slice(&pk.to_bytes());
         bytes.extend_from_slice(&sig.to_bytes());
     }
@@ -129,43 +168,38 @@ fn write_cache(path: &Path, bytes: &[u8]) {
 /// `f` over `start..end` on `parallel`, with a progress line naming `what`.
 fn generate<T: Send>(start: usize, end: usize, what: &str, f: impl Fn(usize) -> T + Sync) -> Vec<T> {
     let total = end - start;
+    let started = Instant::now();
     let done = AtomicUsize::new(0);
-    parallel::map_collect(total, |k| {
-        let signer = f(start + k);
+    let generated = parallel::map_collect(total, |k| {
+        let generated = f(start + k);
         let done = done.fetch_add(1, Ordering::Relaxed) + 1;
         print!(
-            "\r  generating {what} signers (one-time, then cached): {}/{}",
+            "\r  generating {what}: {}/{}",
             pretty_integer(done),
             pretty_integer(total)
         );
         let _ = std::io::stdout().flush();
-        signer
-    })
-}
-
-fn generate_range(start: usize, end: usize, message_id: u32) -> Vec<CachedSignature> {
-    let total = end - start;
-    let started = Instant::now();
-    let signers = generate(start, end, "leanXMSS", |index| compute_signer(index, message_id));
+        generated
+    });
     println!(
-        "\r  generated {} leanXMSS in {} s (cached to disk)                ",
+        "\r  generated {} {what} in {} s                              ",
         pretty_integer(total),
         pretty_f64(started.elapsed().as_secs_f64())
     );
-    signers
+    generated
 }
 
-static POOLS: Mutex<BTreeMap<u32, Vec<CachedSignature>>> = Mutex::new(BTreeMap::new());
+static POOLS: Mutex<BTreeMap<u32, Vec<LeanXmssSigner>>> = Mutex::new(BTreeMap::new());
 
-/// The first `n` cached signers of [`message`].
-pub fn get_signers(n: usize) -> Vec<CachedSignature> {
+/// The first `n` cached signers of [`message`] and the rounds after it.
+pub fn get_signers(n: usize) -> Vec<LeanXmssSigner> {
     get_signers_for(n, 0)
 }
 
-/// The first `n` cached signers, signing [`message_for`]`(message_id)`, signer `i` at
-/// `leaf_index_of(i, message_id)`: one cache file per message, the keys shared
+/// The first `n` cached signers of cache `message_id`, signer `i` at
+/// `leaf_index_of(i, message_id)`: one cache file per message id, the keys shared
 /// across them.
-pub(crate) fn get_signers_for(n: usize, message_id: u32) -> Vec<CachedSignature> {
+pub(crate) fn get_signers_for(n: usize, message_id: u32) -> Vec<LeanXmssSigner> {
     let mut pools = POOLS.lock().unwrap();
     let pool = pools.entry(message_id).or_default();
     if pool.len() < n {
@@ -176,7 +210,16 @@ pub(crate) fn get_signers_for(n: usize, message_id: u32) -> Vec<CachedSignature>
             *pool = disk;
         }
         if pool.len() < n {
-            let mut fresh = generate_range(pool.len(), n, message_id);
+            // The keys first, one task each: a worker claims a run of signers, whose
+            // keys it would otherwise generate one after another.
+            let keys: Keys = [const { OnceLock::new() }; NUM_KEYS];
+            let start = pool.len();
+            generate(start, n.min(start + NUM_KEYS), "leanXMSS keys", |index| {
+                key(&keys, index % NUM_KEYS);
+            });
+            let mut fresh = generate(pool.len(), n, "leanXMSS signatures", |index| {
+                compute_signer(&keys, index, message_id)
+            });
             pool.append(&mut fresh);
             save_cache(&path, pool);
         }
@@ -184,9 +227,7 @@ pub(crate) fn get_signers_for(n: usize, message_id: u32) -> Vec<CachedSignature>
     pool[..n].to_vec()
 }
 
-/// A leanSPHINCS signer, generated the same way, with the message it signed.
-/// Signing is stateless, so unlike leanXMSS there is no leaf index and no key range:
-/// one key answers for every index.
+/// A leanSPHINCS signer, one key each, with the message it signed.
 type CachedSphincsSignature = (
     lean_sphincs::LeanSphincsPublicKey,
     lean_sphincs::Message,
@@ -214,8 +255,8 @@ fn compute_lean_sphincs_signer(index: usize) -> CachedSphincsSignature {
     (public_key, message, signature)
 }
 
-/// Keyed, as the leanXMSS cache is, by signer 0's key, message and signature, so any
-/// change to the scheme invalidates the file. Computed once.
+/// Keyed by signer 0's key, message and signature, so any change to the scheme
+/// invalidates the file. Computed once.
 fn lean_sphincs_cache_path() -> PathBuf {
     static PATH: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
     PATH.get_or_init(|| {
@@ -279,27 +320,10 @@ pub fn get_lean_sphincs_signers(n: usize) -> Vec<CachedSphincsSignature> {
             *pool = disk;
         }
         if pool.len() < n {
-            let started = Instant::now();
-            let missing = n - pool.len();
-            let mut fresh = generate(pool.len(), n, "leanSPHINCS", compute_lean_sphincs_signer);
+            let mut fresh = generate(pool.len(), n, "leanSPHINCS signatures", compute_lean_sphincs_signer);
             pool.append(&mut fresh);
-            println!(
-                "\r  generated {} leanSPHINCS in {} s (cached to disk)              ",
-                pretty_integer(missing),
-                pretty_f64(started.elapsed().as_secs_f64())
-            );
             save_lean_sphincs_cache(&pool);
         }
     }
     pool[..n].to_vec()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn signer_seed_uses_more_than_one_byte() {
-        assert_ne!(compute_signer(0, 0).0, compute_signer(256, 0).0);
-    }
 }
