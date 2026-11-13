@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Protocol.Whir.Complete.Levels
+public import LeanVM.Protocol.Verifier.Phases
 
 /-!
 # Completeness of the stacked opening
@@ -34,7 +35,7 @@ theorem openingComplete : OpeningComplete := by
   obtain ⟨q₀, rest, hc, -⟩ := exists_ladder hadm
   have hμ6 : laneBits ≤ μ := le_trans (by decide) hadm.1
   have hμ28 : μ ≤ 30 := hadm.2.1
-  rw [verifyStackedOpening_eq, require_bind_of hlen]
+  rw [verifyStackedOpening_nf, require_bind_of (stackedOk_of hlen)]
   unfold honestOpening
   simp only [Script.bind_eq]
   refine Follows.bind (fun cs c c' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE _)

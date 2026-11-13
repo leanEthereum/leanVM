@@ -164,6 +164,10 @@ theorem liftOption (o : Option α) : Moves g c (fun a ↦ o = some a) (fun _ ↦
   · trivial
   · rfl
 
+/-- A pure step that may fail, its value unconstrained. -/
+theorem liftAny (o : Option α) : Moves g c (fun _ ↦ True) G (Verifier.liftOption o) :=
+  (liftOption o).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) (fun _ h ↦ h.elim)
+
 /-- A proof of work. -/
 theorem grindP {b : ℕ} (hb : b ≠ 0 → g b) :
     Moves g c (fun _ ↦ True) (fun _ ↦ True) (grindProofOfWork b) := by
@@ -471,8 +475,9 @@ theorem moves_tablePhase_le (hB : grindCap ≤ B) (layout : Layout) (bus : BusRe
     fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
 
 theorem moves_publicInputPhase_le (layout : Layout) (publicInput : Digest) :
-    Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (publicInputPhase layout publicInput) :=
-  Moves.seq' Moves.sampleE fun _ _ ↦ Moves.pure trivial
+    Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (publicInputPhase layout publicInput) := by
+  rw [publicInputPhase_eq]
+  exact Moves.seq' Moves.sampleE fun _ _ ↦ Moves.liftAny _
 
 /-! ### The Keccak reduction and ring switching -/
 
@@ -550,9 +555,10 @@ theorem moves_keccakPhase_le (hB : grindCap ≤ B) (layout : Layout)
   moves_verifyKeccak_le hB _ _ _
 
 theorem moves_ringSwitch_le (hB : grindCap ≤ B) (point s : List E) :
-    Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (ringSwitch point s) :=
-  Moves.seq (Moves.grindP fun _ ↦ le_of_le_grindCap hB (by decide))
-    (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.pure trivial)
+    Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (ringSwitch point s) := by
+  rw [ringSwitch_eq]
+  exact Moves.seq (Moves.grindP fun _ ↦ le_of_le_grindCap hB (by decide))
+    (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.liftAny _)
     fun _ _ _ ↦ Moves.startsSample_sampleChallenges (by decide) _
 
 /-! ### The WHIR opening -/
@@ -720,24 +726,23 @@ theorem moves_verifyWhir_le (hB : grindCap ≤ B) (logN logInvRate : ℕ) (targe
 
 theorem moves_commitStack_le (logN logInvRate : ℕ) :
     Moves (· ≤ B) True (fun _ ↦ True) (fun _ ↦ False) (commitStack logN logInvRate) := by
-  refine Moves.seq' ((Moves.liftOption _).mono (fun _ h ↦ h) False.elim (fun _ _ ↦ trivial) (fun _ h ↦ h))
-    fun config _ ↦ ?_
-  cases config with
-  | nil => exact Moves.fail
-  | cons level rest => exact Moves.commitP trivial _ _
+  rw [commitStack_eq]
+  exact Moves.seq' (Moves.liftOption _) fun _ _ ↦ Moves.commitP trivial _ _
 
 theorem moves_readOod_le (hB : grindCap ≤ B) {stackLog : ℕ} (h : stackLog ≠ 0) :
-    Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (readOod stackLog) :=
-  Moves.seq (Moves.grindP fun _ ↦ le_of_le_grindCap hB (by decide))
+    Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (readOod stackLog) := by
+  rw [readOod_eq]
+  exact Moves.seq (Moves.grindP fun _ ↦ le_of_le_grindCap hB (by decide))
     (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
-      Moves.pure trivial)
+      Moves.liftAny _)
     fun _ _ _ ↦ Moves.startsSample_sampleChallenges h _
 
 theorem moves_verifyStackedOpening_le (hB : grindCap ≤ B) (stackLog logInvRate : ℕ)
     (claims : List StackClaim) :
     Moves (· ≤ B) True (fun _ ↦ True) (fun _ ↦ False)
-      (verifyStackedOpening stackLog logInvRate claims) :=
-  Moves.seq' ((Moves.require _).mono (fun _ h ↦ h) False.elim (fun _ _ ↦ trivial) (fun _ h ↦ h)) fun _ _ ↦
+      (verifyStackedOpening stackLog logInvRate claims) := by
+  rw [verifyStackedOpening_nf]
+  exact Moves.seq' ((Moves.require _).mono (fun _ h ↦ h) False.elim (fun _ _ ↦ trivial) (fun _ h ↦ h)) fun _ _ ↦
     Moves.seq' Moves.sampleE fun _ _ ↦ moves_verifyWhir_le hB _ _ _ _
 
 /-! ### The whole program -/

@@ -336,22 +336,22 @@ theorem noCommit_verifyBusBalance_computed (layout : Layout) :
 theorem inRange_commitStack (μ r : ℕ) (hs : List ℕ) :
     InRange (commitStack μ r) hs fun _ hs' ↦ ∃ level rest,
       Whir.ladder μ r = some (level :: rest) ∧ hs' = hs ++ [μ - level.fold + level.logInvRate] := by
-  unfold commitStack
-  refine InRange.nc_bind (noCommit_liftOption _) fun config hc ↦ ?_
-  have hc' : Whir.ladder μ r = some config := by
+  rw [commitStack_eq]
+  refine InRange.nc_bind (noCommit_liftOption _) fun shape hc ↦ ?_
+  have hs' : commitShapeOf μ r = some shape := by
     unfold Verifier.liftOption at hc
     split at hc
     · cases hc
     · next a ha => rw [VerifierProgram.returns_ret hc]; exact ha
-  cases config with
-  | nil => trivial
-  | cons level rest => exact ⟨level, rest, hc', rfl⟩
+  obtain ⟨level, rest, hl, rfl⟩ := commitShapeOf_spec hs'
+  exact ⟨level, rest, hl, rfl⟩
 
 /-- The stacked opening opens in range, the stack committed at the ladder's first level. -/
 theorem inRange_verifyStackedOpening {μ r : ℕ} {level : Whir.Level} {rest : List Whir.Level}
     (hcfg : Whir.ladder μ r = some (level :: rest)) (cl : List StackClaim) :
     InRange (verifyStackedOpening μ r cl) [μ - level.fold + level.logInvRate] fun _ _ ↦ True := by
-  unfold verifyStackedOpening verifyWhir
+  rw [verifyStackedOpening_nf]
+  unfold verifyWhir
   simp only [VerifierProgram.bind_eq]
   refine InRange.nc_bind (noCommit_require _) fun _ _ ↦ ?_
   refine InRange.nc_bind noCommit_sampleE fun _ _ ↦ ?_

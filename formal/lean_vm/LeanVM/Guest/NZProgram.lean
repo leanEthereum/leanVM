@@ -192,7 +192,7 @@ theorem verifyWhirNZ_split (logN logInvRate : ℕ) (target : E) (eb : List E →
 /-- `verifyStackedOpening` refusing what makes the guest divide by zero. -/
 def verifyStackedOpeningNZ (stackLog logInvRate : ℕ) (claims : List StackClaim) : VerifierProgram
     Unit := do
-  VerifierProgram.require (claims.length ≤ maxStackedClaims)
+  VerifierProgram.require (StackedOk claims)
   let scales := powers (← VerifierProgram.sampleChallenge) claims.length
   verifyWhirNZ stackLog logInvRate (dot scales (claims.map (·.2)))
     fun point ↦ dot scales (claims.map fun c ↦ c.1 point)

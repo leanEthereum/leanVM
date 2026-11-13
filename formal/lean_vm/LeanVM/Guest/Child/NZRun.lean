@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Protocol.Verifier.WhirTarget
+public import LeanVM.Protocol.Verifier.Phases
 public import LeanVM.Guest.Child.Fresh
 public import LeanVM.Protocol.WithHash
 
@@ -147,7 +148,8 @@ theorem nz_verifyWhir (logN logInvRate : ℕ) (target : E) (eb : List E → E) :
 theorem nz_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) :
     NZ (Limits.verifyStackedOpeningNZ stackLog logInvRate claims)
       (verifyStackedOpening stackLog logInvRate claims) := by
-  unfold Limits.verifyStackedOpeningNZ verifyStackedOpening
+  rw [verifyStackedOpening_nf]
+  unfold Limits.verifyStackedOpeningNZ
   repeat (first | exact nz_verifyWhir _ _ _ _ | nz_step)
 
 /-- **The guest's refusing verifier refuses zero challenges of the verifier.** -/

@@ -70,6 +70,12 @@ theorem RetOK.fail {Q : α → Prop} : RetOK Q (VerifierProgram.fail : VerifierP
 theorem RetOK.true (p : VerifierProgram α) : RetOK (fun _ ↦ True) p :=
   fun _ _ _ ↦ trivial
 
+/-- A pure step that may fail returns the option's value. -/
+theorem RetOK.liftOption (o : Option α) : RetOK (fun a ↦ o = some a) (Verifier.liftOption o) := by
+  cases o with
+  | none => exact RetOK.fail
+  | some a => exact RetOK.ret rfl
+
 /-- A sequence that returns at once: both parts return. -/
 private theorem bind_eq_ret' {p : VerifierProgram α} {f : α → VerifierProgram β} {b : β} (h : p.bind
     f = .ret b) :
@@ -180,9 +186,10 @@ theorem retOK_busTable (ev : List K → List E → E → VerifierProgram Unit) (
 theorem retOK_publicInputPhase (layout : Layout) (publicInput : Digest) :
     RetOK (fun claims : List ColumnClaim ↦ claims.length ≤ 2)
       (publicInputPhase layout publicInput) := by
-  unfold publicInputPhase
-  refine RetOK.bind_true fun _ ↦ RetOK.ret ?_
-  simp only [List.length_zipWith, List.length_cons, List.length_nil]
+  rw [publicInputPhase_eq]
+  refine RetOK.bind_true fun _ ↦ (RetOK.liftOption _).mono fun cl h ↦ ?_
+  rw [publicClaimsOf_spec h]
+  simp only [publicClaims, List.length_zipWith, List.length_cons, List.length_nil]
   omega
 
 end

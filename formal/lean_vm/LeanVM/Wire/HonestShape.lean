@@ -290,9 +290,8 @@ theorem noOpen_keccakPhase (layout : Layout) (claims : List ColumnClaim) :
   exact noOpen_ret _
 
 theorem noOpen_ringSwitch (point s : List E) : NoOpen (ringSwitch point s) := by
-  unfold ringSwitch
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  exact NoOpen.bind (noOpen_grind _) fun _ ↦ NoOpen.bind (noOpen_sampleN _) fun _ ↦ noOpen_ret _
+  rw [ringSwitch_eq]
+  exact NoOpen.bind (noOpen_grind _) fun _ ↦ NoOpen.bind (noOpen_sampleN _) fun _ ↦ noOpen_liftOption _
 
 /-- The phases between the stack's commitment and the stacked opening. -/
 def claimsPhase (layout : Layout) (publicInput : Digest) : VerifierProgram (List StackClaim) := do
@@ -313,9 +312,10 @@ theorem noOpen_claimsPhase (layout : Layout) (pi : Digest) : NoOpen (claimsPhase
   obtain ⟨cl, kp, ks⟩ := x
   exact NoOpen.bind (noOpen_ringSwitch _ _) fun _ ↦ noOpen_ret _
 
-theorem noOpen_readOod (stackLog : ℕ) : NoOpen (readOod stackLog) :=
-  NoOpen.bind (noOpen_grind _) fun _ ↦ NoOpen.bind (noOpen_sampleN _) fun _ ↦
-    NoOpen.bind noOpen_readE fun _ ↦ noOpen_ret _
+theorem noOpen_readOod (stackLog : ℕ) : NoOpen (readOod stackLog) := by
+  rw [readOod_eq]
+  exact NoOpen.bind (noOpen_grind _) fun _ ↦ NoOpen.bind (noOpen_sampleN _) fun _ ↦
+    NoOpen.bind noOpen_readE fun _ ↦ noOpen_liftOption _
 
 /-- The verifier program, regrouped: the sizes, the stack's commitment, its out-of-domain sample,
 the claims, the stacked opening. -/
@@ -621,16 +621,15 @@ theorem wired_commitStack (μ r : ℕ) (shapes : List (ℕ × ℕ)) (n : ℕ) :
     Wired (commitStack μ r) shapes n fun _ shapes' n' ↦ n' = n ∧ ∃ level rest,
       Whir.ladder μ r = some (level :: rest) ∧
         shapes' = shapes ++ [(μ - level.fold + level.logInvRate, 2 ^ level.fold)] := by
-  unfold commitStack
-  refine Wired.no_bind (noOpen_liftOption _) fun config hc ↦ ?_
-  have hc' : Whir.ladder μ r = some config := by
+  rw [commitStack_eq]
+  refine Wired.no_bind (noOpen_liftOption _) fun shape hc ↦ ?_
+  have hs : commitShapeOf μ r = some shape := by
     unfold Verifier.liftOption at hc
     split at hc
     · cases hc
     · next a ha => rw [VerifierProgram.returns_ret hc]; exact ha
-  cases config with
-  | nil => trivial
-  | cons level rest => exact ⟨rfl, level, rest, hc', rfl⟩
+  obtain ⟨level, rest, hl, rfl⟩ := commitShapeOf_spec hs
+  exact ⟨rfl, level, rest, hl, rfl⟩
 
 /-- **The verifier program's openings are within the wire bounds**, from no commitment, with
 `wireMaxPhases` openings left. -/
@@ -644,7 +643,7 @@ theorem wired_leanVmProgram (bytecode : List K) (publicInput : Digest) :
   refine Wired.no_bind (noOpen_readOod _) fun _ _ ↦ ?_
   refine Wired.no_bind (noOpen_claimsPhase _ _) fun cl _ ↦ ?_
   refine Wired.bind (Q := fun _ _ _ ↦ True) ?_ fun _ _ _ _ ↦ trivial
-  rw [verifyStackedOpening_eq]
+  rw [verifyStackedOpening_nf]
   refine Wired.no_bind (noOpen_require _) fun _ _ ↦ ?_
   refine Wired.no_bind noOpen_sampleE fun _ _ ↦ ?_
   unfold verifyWhir

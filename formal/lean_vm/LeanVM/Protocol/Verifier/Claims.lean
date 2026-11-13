@@ -432,9 +432,10 @@ theorem tablePhaseClaims_eq (layout : Layout) (bus : BusResult) :
 theorem allRet_publicInputPhase (layout : Layout) (publicInput : Digest) :
     AllRet (publicInputPhase layout publicInput)
       fun claims ↦ ∀ c ∈ claims, c.column ∈ [memory0, memory1] := by
-  unfold publicInputPhase
-  simp only [VerifierProgram.bind_eq]
-  exact AllRet.bind (fun _ _ ↦ .ret fun c hc ↦ zipWith_columns _ _ _ id c hc) _ (allRet_true _)
+  rw [publicInputPhase_eq]
+  refine AllRet.bind (fun _ _ ↦ AllRet.mono (fun cl h c hc ↦ ?_) (allRet_liftOption _)) _ (allRet_true _)
+  rw [publicClaimsOf_spec h] at hc
+  exact zipWith_columns _ _ _ id c hc
 
 theorem allRet_verifyKeccak (logSteps : ℕ) (inst output : List E) :
     AllRet (verifyKeccak logSteps inst output) fun r ↦ ∀ c ∈ r.1, c.column = qkeccak := by

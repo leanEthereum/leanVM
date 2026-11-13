@@ -290,7 +290,7 @@ theorem widthsLE_verifyExecution (bytecode : List K) (publicInput : Digest) :
   refine WidthsLE.seq (WidthsLE.of_moves (moves_ringSwitch keccakPoint keccakSlices)) fun r ↦ ?_
   obtain ⟨ringTarget, ringWeight⟩ := r
   dsimp only
-  rw [verifyStackedOpening_eq]
+  rw [verifyStackedOpening_nf]
   exact WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False)
     (Moves.require _)) fun _ ↦
     WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False) Moves.sampleE)

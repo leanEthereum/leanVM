@@ -11,6 +11,7 @@ module
 
 public import LeanVM.Protocol.Whir.Sound.Start
 public import LeanVM.Protocol.Verifier.WhirTarget
+public import LeanVM.Protocol.Verifier.Phases
 
 /-!
 # The specification of the WHIR opening
@@ -254,11 +255,11 @@ noncomputable def stackedSpec {R : ℕ} {level : Whir.Level} {rest : List Whir.L
     fun ρ ↦ whirSpec (codes := codes) hc hℓ hμ hκ₀ hR₀ hthr (isMultiaffine_batched claims hcl ρ)
       B hA 0
   have S1 := Spec.bind S0 F0
-  have S2 : Spec (VerifierProgram.require (claims.length ≤ maxStackedClaims)) Pre (fun _ ↦ Pre)
+  have S2 : Spec (VerifierProgram.require (StackedOk claims)) Pre (fun _ ↦ Pre)
       εmax (eBatch claims.length L₀ + 0) (eBatch claims.length L₀ + 0) :=
     Spec.require fun _ hp _ ↦ hp
   have S3 := Spec.bind S2 fun _ ↦ S1
-  exact anyT (Spec.congr (verifyStackedOpening_eq μ R claims).symm
+  exact anyT (Spec.congr (verifyStackedOpening_nf μ R claims).symm
     (S3.mono (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl (by simp) le_rfl)) T
 
 end

@@ -558,7 +558,11 @@ theorem costs_tablePhase {layout : Layout} (hl : LayoutBounds layout) (bus : Bus
 theorem costs_publicInputPhase (layout : Layout) (publicInput : Digest) :
     VerifierProgram.Costs height (publicInputPhase layout publicInput) 4 fun cl ↦ ClaimsShort
         cl := by
-  refine VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun _ _ ↦ ?_) (by omega)
+  rw [publicInputPhase_eq]
+  refine VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE
+    (fun _ _ ↦ (costs_liftOption _ _).mono le_rfl fun cl hcl ↦ ?_) (by omega)
+  rw [publicClaimsOf_spec hcl]
+  simp only [publicClaims]
   intro c hc hcol
   exfalso
   have hbase : ∀ x ∈ keccakOutputColumns, 5 ≤ x := by
@@ -706,17 +710,21 @@ theorem costs_keccakPhase (layout : Layout) (claims : List ColumnClaim)
 
 /-- **Ring switching**: a proof of work and sixteen challenges. -/
 theorem costs_ringSwitch (point s : List E) :
-    VerifierProgram.Costs height (ringSwitch point s) ringCost fun _ ↦ True :=
-  VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
-    VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN _) (fun _ _ ↦ trivial)
+    VerifierProgram.Costs height (ringSwitch point s) ringCost fun _ ↦ True := by
+  rw [ringSwitch_eq]
+  exact VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
+    VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN _)
+      (fun _ _ ↦ (costs_liftOption _ _).mono le_rfl fun _ _ ↦ trivial)
       (by simp [ringCost])) (by simp [ringCost])
 
 /-- **The stack's out-of-domain sample**, on a stack of at most `30` variables. -/
 theorem costs_readOod (stackLog : ℕ) (h : stackLog ≤ Whir.maxLogStack) :
-    VerifierProgram.Costs height (readOod stackLog) oodCost fun _ ↦ True :=
-  VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
+    VerifierProgram.Costs height (readOod stackLog) oodCost fun _ ↦ True := by
+  rw [readOod_eq]
+  exact VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
     VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN _) (fun _ _ ↦
-      VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦ trivial) (by
+      VerifierProgram.Costs.seq VerifierProgram.Costs.readE
+        (fun _ _ ↦ (costs_liftOption _ _).mono le_rfl fun _ _ ↦ trivial) (by
         unfold oodCost; omega)) (by unfold oodCost; omega)) (by unfold oodCost; omega)
 
 end Phases2
@@ -890,13 +898,12 @@ theorem costs_commitStack (logN logInvRate : ℕ)
     (hH : ∀ levels, Whir.ladder logN logInvRate = some levels →
       stackHeightLE height logN levels = true) :
     VerifierProgram.Costs height (commitStack logN logInvRate) 2 fun _ ↦ True := by
-  refine VerifierProgram.Costs.seq (costs_liftOption _ 0) (fun config hc ↦ ?_) (Nat.zero_le _)
-  have h := hH config hc
-  cases config with
-  | nil => trivial
-  | cons level rest =>
-    simp only [stackHeightLE, decide_eq_true_eq] at h
-    exact VerifierProgram.Costs.commitP _ h
+  rw [commitStack_eq]
+  refine VerifierProgram.Costs.seq (costs_liftOption _ 0) (fun shape hs ↦ ?_) (Nat.zero_le _)
+  obtain ⟨level, rest, hl, rfl⟩ := commitShapeOf_spec hs
+  have h := hH _ hl
+  simp only [stackHeightLE, decide_eq_true_eq] at h
+  exact VerifierProgram.Costs.commitP _ h
 
 /-- **The stacked opening**: the batching challenge and WHIR. -/
 theorem costs_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim)
@@ -905,7 +912,7 @@ theorem costs_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List St
         whirCost height stackLog levels ≤ W) :
     VerifierProgram.Costs height (verifyStackedOpening stackLog logInvRate claims) (4 + W)
       fun _ ↦ True := by
-  rw [verifyStackedOpening_eq]
+  rw [verifyStackedOpening_nf]
   exact VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦
     VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun _ _ ↦
       (costs_verifyWhir _ _ _ _ W hW).mono (by omega) fun _ h ↦ h) (by omega)) (Nat.zero_le _)

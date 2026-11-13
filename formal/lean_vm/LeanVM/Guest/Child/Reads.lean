@@ -431,15 +431,11 @@ theorem reads_verifyBusBalance (ev : List K → List E → E → VerifierProgram
 
 theorem reads_readSizes (bytecode : List K) :
     Reads (readAnnouncedSizes bytecode) 8 SizesOK := by
-  refine Reads.seq (Reads.readN _) (fun announced _ ↦
-      Reads.seq
-    (Reads.require (n := 0) _) (fun _ _ ↦ Reads.seq
-        (Reads.require (n := 0) _)
-      (fun _ hr ↦ Reads.seq (reads_liftOption _ 0) (fun layout hl ↦
-          Reads.seq
-        (Reads.require (n := 0) _) (fun _ hs ↦ ?_) ?_) ?_) ?_) ?_) ?_
-  · exact ⟨layoutBounds_of_buildLayout hl, hr.1, hr.2, hs.1, hs.2⟩
-  all_goals simp [tables]
+  rw [readAnnouncedSizes_eq]
+  refine Reads.seq (Reads.readN _) (fun _ _ ↦ (Reads.liftOption _ _).mono le_rfl fun x hx ↦ ?_)
+    (by simp [tables])
+  have s := sizesOf_spec hx
+  exact ⟨layoutBounds_of_buildLayout s.layout, s.rate_ge, s.rate_le, s.stack_ge, s.stack_le⟩
 
 /-- The push side of a built layout has depth at most `36`. -/
 
@@ -529,7 +525,10 @@ theorem reads_tablePhase {layout : Layout} (hl : LayoutBounds layout) (bus : Bus
 theorem reads_publicInputPhase (layout : Layout) (publicInput : Digest) :
     Reads (publicInputPhase layout publicInput) 0 fun cl ↦ ClaimsShort
         cl := by
-  refine Reads.seq Reads.sampleE (fun _ _ ↦ ?_) (by omega)
+  rw [publicInputPhase_eq]
+  refine Reads.seq Reads.sampleE (fun _ _ ↦ (Reads.liftOption _ _).mono le_rfl fun cl hcl ↦ ?_) (by omega)
+  rw [publicClaimsOf_spec hcl]
+  simp only [publicClaims]
   intro c hc hcol
   exfalso
   have hbase : ∀ x ∈ keccakOutputColumns, 5 ≤ x := by
@@ -661,17 +660,19 @@ theorem reads_keccakPhase (layout : Layout) (claims : List ColumnClaim)
 
 /-- **Ring switching**: a proof of work and sixteen challenges. -/
 theorem reads_ringSwitch (point s : List E) :
-    Reads (ringSwitch point s) ringReads fun _ ↦ True :=
-  Reads.seq (Reads.grindP _) (fun _ _ ↦
-    Reads.seq (Reads.sampleN _) (fun _ _ ↦ trivial)
+    Reads (ringSwitch point s) ringReads fun _ ↦ True := by
+  rw [ringSwitch_eq]
+  exact Reads.seq (Reads.grindP _) (fun _ _ ↦
+    Reads.seq (Reads.sampleN _) (fun _ _ ↦ (Reads.liftOption _ _).mono le_rfl fun _ _ ↦ trivial)
       (by simp [ringReads])) (by simp [ringReads])
 
 /-- **The stack's out-of-domain sample**, on a stack of at most `28` variables. -/
 theorem reads_readOod (stackLog : ℕ) :
-    Reads (readOod stackLog) oodReads fun _ ↦ True :=
-  Reads.seq (Reads.grindP _) (fun _ _ ↦
+    Reads (readOod stackLog) oodReads fun _ ↦ True := by
+  rw [readOod_eq]
+  exact Reads.seq (Reads.grindP _) (fun _ _ ↦
     Reads.seq (Reads.sampleN _) (fun _ _ ↦
-      Reads.seq Reads.readE (fun _ _ ↦ trivial) (by
+      Reads.seq Reads.readE (fun _ _ ↦ (Reads.liftOption _ _).mono le_rfl fun _ _ ↦ trivial) (by
         unfold oodReads; omega)) (by unfold oodReads; omega)) (by unfold oodReads; omega)
 
 
@@ -776,17 +777,15 @@ theorem reads_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : L
 /-- **The stack's commitment.** -/
 theorem reads_commitStack (logN logInvRate : ℕ) :
     Reads (commitStack logN logInvRate) 2 fun _ ↦ True := by
-  refine Reads.seq (Reads.liftOption _ 0) (fun config hc ↦ ?_) (Nat.zero_le _)
-  cases config with
-  | nil => trivial
-  | cons level rest => exact Reads.commitP _ _
+  rw [commitStack_eq]
+  exact Reads.seq (Reads.liftOption _ 0) (fun _ _ ↦ Reads.commitP _ _) (Nat.zero_le _)
 
 /-- **The stacked opening**: the batching challenge and WHIR. -/
 theorem reads_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim)
     (W : ℕ) (hW : ∀ levels, Whir.ladder stackLog logInvRate = some levels →
       whirReads stackLog levels ≤ W) :
     Reads (verifyStackedOpening stackLog logInvRate claims) W fun _ ↦ True := by
-  rw [verifyStackedOpening_eq]
+  rw [verifyStackedOpening_nf]
   exact Reads.seq (Reads.require (n := 0) _) (fun _ _ ↦
     Reads.seq Reads.sampleE (fun _ _ ↦
       (reads_verifyWhir _ _ _ _ W hW).mono (by omega) fun _ h ↦ h) (by omega)) (Nat.zero_le _)

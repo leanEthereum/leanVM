@@ -100,7 +100,8 @@ theorem verifyWhirNZ_refines (logN logInvRate : ℕ) (target : E) (eb : List E �
 theorem verifyStackedOpeningNZ_refines (stackLog logInvRate : ℕ) (claims : List StackClaim) :
     Refines (verifyStackedOpeningNZ stackLog logInvRate claims)
       (verifyStackedOpening stackLog logInvRate claims) := by
-  unfold verifyStackedOpeningNZ verifyStackedOpening
+  rw [verifyStackedOpening_nf]
+  unfold verifyStackedOpeningNZ
   repeat (first | exact verifyWhirNZ_refines _ _ _ _ | refines_step)
 
 theorem deferredProgramNZ_refines (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
