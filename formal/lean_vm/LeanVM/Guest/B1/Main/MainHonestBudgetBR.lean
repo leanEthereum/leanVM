@@ -32,14 +32,26 @@ def mainPredsHP (fs : String → ℕ) (SB SK : String → ℕ) (Bv : ℕ → ℕ
 variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest) (s : NodeStatement)
   (w : NodeWitness)
 
+/-- **A tree predicate whose valid trees of `f` pop `ps rd`** on the memories the callee serves, the pops added to it. -/
+theorem _root_.LeanVM.Guest.B1.CompleteAtDTBR.withPopsN {fs : String → ℕ} {cert : String → V → ℕ} {k : ℕ} {f : String}
+    {Lin : Layout} {args : List E} {Out : List E → Layout → Prop} {B : ℕ} {ps : Reader → List Pop}
+    {T : Reader → Tree → Prop} (h : CompleteAtDTBR fs cert k f Lin args Out T B)
+    (hp : ∀ rd, LowDef k rd → MemL rd Lin → ∀ t rets, t.name = f → t.Valid coreProgram rd args rets → T rd t →
+      t.pops coreProgram rd = ps rd) :
+    CompleteAtDTBR fs cert k f Lin args Out (fun rd t => T rd t ∧ t.pops coreProgram rd = ps rd) B := fun fp =>
+  let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, hn, ho, hw, hd, fun rd hl hm =>
+    let ⟨t, ht, hT⟩ := hr rd hl hm
+    ⟨t, ht, hT, hp rd hl (memL_append.mp hm).2 t rets ht.1 ht.2.1 hT⟩⟩
+
 /-- **Route S**: every valid tree of `main_loop0`, `main_loop1` (any), `da_verify` and `aggregate_claims` (of honest shape) at `main`'s arguments, on a memory holding `main`'s words, pops `q`'s entries. -/
 structure MainPopsS (q : MainPops) : Prop where
   l1 : (hm fs fp seed s w).nxd ≠ 0 → ∀ rd, LowDef 20 rd → B1.Main.MemL rd (hLmain fs fp seed s w) →
-    ∀ (t : Tree) rets, t.Valid coreProgram rd
+    ∀ (t : Tree) rets, t.name = name% «main_loop0» → t.Valid coreProgram rd
       [1, gen ^ (hm fs fp seed s w).nxd, (hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx] rets →
       t.pops coreProgram rd = q.p0 rd
   l2 : (hm fs fp seed s w).nsd ≠ 0 → ∀ rd, LowDef 20 rd → B1.Main.MemL rd (hLmain fs fp seed s w) →
-    ∀ (t : Tree) rets, t.Valid coreProgram rd
+    ∀ (t : Tree) rets, t.name = name% «main_loop1» → t.Valid coreProgram rd
       [1, gen ^ (hm fs fp seed s w).nsd, (hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls] rets →
       t.pops coreProgram rd = q.p1 rd
   dv : (hm fs fp seed s w).nd = 1 → ∀ rd, LowDef 20 rd → B1.Main.MemL rd (hLmain fs fp seed s w) →
@@ -97,9 +109,9 @@ theorem mainGoalsTBR_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Pro
   have hg : MainStaticGoalsB fs cert fp seed s w SB SK := mainStaticGoalsB_of hbl hr hl hxc hsc hS.main
   have hT := (mainGoalsTB_honest (cert := cert) (fp := fp) hbl hr hl hrf hS hV).withTotal
   exact ⟨hR.clx, hR.cls,
-    fun hn => ((hg.l1 hn).withPops fun rd hl hL t rets hv _ => hPS.l1 hn rd hl hL t rets hv).mono le_rfl
+    fun hn => ((hg.l1 hn).toR.withPopsN fun rd hl hL t rets htn hv _ => hPS.l1 hn rd hl hL t rets htn hv).mono le_rfl
       fun _ _ h => h.2,
-    fun hn => ((hg.l2 hn).withPops fun rd hl hL t rets hv _ => hPS.l2 hn rd hl hL t rets hv).mono le_rfl
+    fun hn => ((hg.l2 hn).toR.withPopsN fun rd hl hL t rets htn hv _ => hPS.l2 hn rd hl hL t rets htn hv).mono le_rfl
       fun _ _ h => h.2,
     hR.l3, hR.l4,
     fun hn => (hT.dv hn).withPops fun rd hl hL t rets hv h => hPS.dv hn rd hl hL t rets hv h.1,
