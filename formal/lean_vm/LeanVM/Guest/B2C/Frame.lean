@@ -832,7 +832,7 @@ theorem frame_len {hdr : E × E} {T : Tree} {I : Inst} (hI : I ∈ honestInsts c
     {rd : Reader} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids)
     {es : List Ev} (hk : Tree.KidsValid coreProgram rd σ (calls es) kids) :
     I.kidFps.length = (calls es).length := by
-  rw [honest_kidFps hI, length_kidPos, List.length_map, ht]
+  rw [honest_kidFps hI, List.length_map, length_kidPos, List.length_map, ht]
   exact kidsValid_length hk
 
 /-- **The frame addresses** are the runs' addresses in the frame. -/
@@ -858,7 +858,7 @@ theorem frame_tail {hdr : E × E} {T : Tree} {I : Inst} (hI : I ∈ honestInsts 
   have hne : I.t.kids ≠ [] := by
     intro he
     have hlen := congrArg List.length (honest_kidFps hI)
-    rw [length_kidPos, List.length_map, he] at hlen
+    rw [List.length_map, length_kidPos, List.length_map, he] at hlen
     rw [List.length_eq_zero_iff.mp hlen] at hk
     cases hk
   rw [honest_kidFps_getLast? hI hlp hne] at hk
@@ -1003,20 +1003,20 @@ theorem H_K {I : Inst} (hl : coreProgram.loop I.t.name = false) (i : ℕ) : KHdr
 
 mutual
 /-- Every instance's header is its tree's, or of `K`. -/
-theorem insts_hdr : ∀ (t : Tree) (fp : ℕ) (h : E × E), ∀ J ∈ t.insts fs coreProgram.loop H fp h,
+theorem insts_hdr : ∀ (t : Tree) (pos : ℕ × ℕ) (h : E × E), ∀ J ∈ t.insts fs coreProgram.loop H pos h,
     J.hdr = h ∨ KHdr J.hdr
-  | .node f σ bufs kids, fp, h, J, hJ => by
+  | .node f σ bufs kids, pos, h, J, hJ => by
       rw [insts_node, List.mem_cons] at hJ
       rcases hJ with rfl | hJ
       · exact Or.inl rfl
       · rcases instsKids_hdr kids _ _ 0 J hJ with he | hk
         · exact Or.inl he
         · exact Or.inr hk
-  | .phantom .., fp, h, J, hJ => by
+  | .phantom .., pos, h, J, hJ => by
       rw [insts_phantom, List.mem_singleton] at hJ
       subst hJ; exact Or.inl rfl
 
-theorem instsKids_hdr : ∀ (ks : List Tree) (ps : List ℕ) (I : Inst) (i : ℕ),
+theorem instsKids_hdr : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)) (I : Inst) (i : ℕ),
     ∀ J ∈ Tree.instsKids fs coreProgram.loop H I i ps ks, J.hdr = I.hdr ∨ KHdr J.hdr
   | [], _, _, _, J, hJ => by rw [instsKids_nil] at hJ; exact absurd hJ List.not_mem_nil
   | _ :: _, [], _, _, J, hJ => by rw [instsKids_nil_left] at hJ; exact absurd hJ List.not_mem_nil
@@ -1029,7 +1029,8 @@ theorem instsKids_hdr : ∀ (ks : List Tree) (ps : List ℕ) (I : Inst) (i : ℕ
       · exact instsKids_hdr ks ps I (i + 1) J hJ
 end
 
-theorem instsKids_hdrK {I : Inst} (hI : ∀ i, KHdr (H I i)) : ∀ (ks : List Tree) (ps : List ℕ) (i : ℕ),
+theorem instsKids_hdrK {I : Inst} (hI : ∀ i, KHdr (H I i)) :
+    ∀ (ks : List Tree) (ps : List (ℕ × ℕ)) (i : ℕ),
     ∀ J ∈ Tree.instsKids fs coreProgram.loop H I i ps ks, KHdr J.hdr
   | [], _, _, J, hJ => by rw [instsKids_nil] at hJ; exact absurd hJ List.not_mem_nil
   | _ :: _, [], _, J, hJ => by rw [instsKids_nil_left] at hJ; exact absurd hJ List.not_mem_nil

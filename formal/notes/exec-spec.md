@@ -54,7 +54,7 @@ Choice: the hybrid.
   - A dispatch sizes its frame by the selected arm.
   - The untaken call gets its whole frame.
 - **Three guest functions change** (`zeta` in `verify_sub`, `chain` in `claim_list_digest`, `roots` in `da_verify`). Their sizes come from a callee's return, so the allocation moves into a small callee.
-- **The model follows the Rust for loops**: a loop's frames, then each iteration's callees in forward order. This touches the loop placement (`relAtIn_of_walk_loop`) and its seven B1 users.
+- **The model follows the Rust for loops**: a loop's frames, then each iteration's callees in forward order. Done: a subtree is placed at a frame and a cursor (`Memory/Alloc.lean`), a loop's iterations from one on are `RelAtInC`, `CompleteAtL`.
 
 The executor follows the hints whatever they are, so it changes with the Rust and stays its byte-for-byte mirror.
 

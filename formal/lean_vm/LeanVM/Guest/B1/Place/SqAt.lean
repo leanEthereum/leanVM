@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Place.SqAt
 
   `open_stacked`'s squeeze loop placed (`RelAtIn`): one iteration, its decode call before
-  its tail, and the loop from its first iteration `g^e`, its decoders' frame runs its data.
+  its tail's, and the loop from its first iteration `g^e`, its decoders' frame runs its data.
 -/
 
 module
@@ -17,9 +17,9 @@ A squeeze loop helper's body (`sqLoopBody lv name`) is straight-line: before its
 (`sqLoopPre`) it allocates nothing, has no `frameAddr`, calls
 `decode_query_windows__L{depth}_L{capDepth}` (`sqDecName`, at `sqDecArgs`) and its tail
 (`sqLoopPre_calls`), and loads only through the row `sqz·x^5`, at offsets below `10`
-(`sqLoopPre_loads`). A loop helper places its tail at `fp + fs L`, then its other callees: of `m`
-iterations, iteration `t` takes `(m - t + 1)·fs L + (m - t)·fs D` words (`sqTot`), its decoder
-at `sqDecAt`.
+(`sqLoopPre_loads`). A loop entered at `fp` has its `m + 1` frames at `fp + t·fs L`, then its
+iterations' decoders in order, decoder `t` at `sqDecAt`; from iteration `t` on it takes
+`(m - t + 1)·fs L + (m - t)·fs D` words (`sqTot`).
 
 `SqIterC lv`: one iteration's honest values on a memory holding its row and the next (the loop's
 body at them with every call unconstrained), what `Whir/CSqLoop` proves. `sqLoop_iter`: one
@@ -189,26 +189,28 @@ def SqIterC (lv : OsLv) : Prop :=
       σ (.n (sqLoopE lv + 2)) = X * gen + N ∧
       (sqTailArgs lv).map σ = [X * gen, N, sqz, qpos, qbp, tabs]
 
-/-- **One iteration of a squeeze loop, placed at `fp`**: its tail at `fp + fs L` (or skipped at
-the last), its decoder after the tail's `m` words, its loads through the row in `R`. -/
+/-- **One iteration of a squeeze loop, placed at `(fp, c)`**: its decoder at `c`, its tail's frames
+at `fp + fs L` and the rest after the decoder (or skipped at the last), its loads through the row
+in `R`. -/
 theorem sqLoop_iter (fs : String → ℕ) (cert : String → V → ℕ) {lv : OsLv} {name : String}
     {fn : Fn} (hfind : coreProgram.find? name = some fn) (hp : fn.params = osParams 6)
     (hb : fn.body = sqLoopBody lv name) (hlp : coreProgram.loop name = true) (hit : SqIterC lv)
     {rd : Reader} {R Rd Dd Dt : ℕ → Prop} {X N sqz qpos qbp tabs : E}
-    {cap : List E} (hcl : cap.length = 5) (fp : ℕ) {m : ℕ}
+    {cap : List E} (hcl : cap.length = 5) (fp c : ℕ) {Bt m : ℕ}
     (hrow : ∀ i < 5, LoadHolds rd (sqz * X ^ 5) i (cap.getD i 0))
     (hnext : ∀ i < 5, LoadHolds rd (sqz * X ^ 5) (5 + i) ((⟨cap, []⟩ : Fs).squeeze.2.cap.getD i 0))
-    (hdec : RelAtIn coreProgram fs cert rd Rd Dd (fp + fs name + m) (fs (sqDecName lv))
+    (hdec : RelAtIn coreProgram fs cert rd Rd Dd c (fs (sqDecName lv))
       (sqDecName lv) [(⟨cap, []⟩ : Fs).squeeze.1, qpos * gen ^ lv.posOff * X ^ (128 / lv.depth),
         qbp * gen ^ lv.posOff * X ^ (128 / lv.depth), tabs] [])
     (hRd : ∀ i, Rd i → R i) (hK : IsInK (X * gen + N))
     (htail : if X * gen + N ≠ 0 then
-      RelAtIn coreProgram fs cert rd R Dt (fp + fs name) m name [X * gen, N, sqz, qpos, qbp, tabs] []
-      else m = fs name)
+      RelAtInC coreProgram fs cert rd R Dt (fp + fs name) (c + fs (sqDecName lv)) Bt m name
+        [X * gen, N, sqz, qpos, qbp, tabs] []
+      else Bt = fs name ∧ m = 0)
     (hreg : ∀ t < 10, ∃ i, (sqz * X ^ 5).limb 0 * Parameters.addressOfIndex t =
         Parameters.addressOfIndex i ∧ R i) :
-    RelAtIn coreProgram fs cert rd R (fun i => Dd i ∨ (X * gen + N ≠ 0 ∧ Dt i)) fp
-      (fs name + m + fs (sqDecName lv)) name [X, N, sqz, qpos, qbp, tabs] [] := by
+    RelAtInC coreProgram fs cert rd R (fun i => Dd i ∨ (X * gen + N ≠ 0 ∧ Dt i)) fp c
+      (fs name + Bt) (fs (sqDecName lv) + m) name [X, N, sqz, qpos, qbp, tabs] [] := by
   obtain ⟨σ, hpar, hA, h8, hdargs, hg, hta⟩ := hit rd X N sqz qpos qbp tabs cap hcl hrow hnext
   have hpre : fn.body = sqLoopPre lv name ++ [.ret []] := hb.trans (sqLoopBody_pre lv name)
   have hst := sqLoopPre_straight lv name
@@ -231,14 +233,16 @@ theorem sqLoop_iter (fs : String → ℕ) (cert : String → V → ℕ) {lv : Os
     rw [hcl', sqLoopPre_calls]; rfl
   have h := relAtIn_of_walk_loop (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
     coreProgram_wf (R := R) (D := fun i => Dd i ∨ (X * gen + N ≠ 0 ∧ Dt i))
-    (Dk := fun i => False ∨ (true = true ∧ Dd i)) (Rt := R) (Dt := Dt) (fp := fp) (m := m)
+    (Dk := fun i => False ∨ (true = true ∧ Dd i)) (Rt := R) (Dt := Dt) (fp := fp) (c := c)
+    (Bt := Bt) (m := m)
     (N := fs (sqDecName lv)) (args := [X, N, sqz, qpos, qbp, tabs]) (rets := [])
     hfind hlp (by rw [hp]; exact hpar) hw rfl hev hcalls ?_
     (by rw [had, sqLoopPre_allocs, hal0]; rfl)
     (fun q hq' => by rw [hadr, sqLoopPre_addrs] at hq'; simp at hq')
     ?_ (fun i hi => Or.inl hi) (fun A hA => ?_) ?_
-  · rwa [hal0, List.sum_nil, Nat.add_zero] at h
-  · simp only [hg]
+  · rwa [hal0, List.sum_nil, Nat.zero_add] at h
+  · rw [hal0, List.sum_nil, Nat.add_zero]
+    simp only [hg]
     split
     · next hc =>
       have hne : X * gen + N ≠ 0 := by simpa using hc
@@ -273,28 +277,21 @@ and decoder, then the skipped tail's frame. -/
 def sqTot (fs : String → ℕ) (lv : OsLv) (name : String) (m t : ℕ) : ℕ :=
   (m - t + 1) * fs name + (m - t) * fs (sqDecName lv)
 
-/-- The tail's words after iteration `t`. -/
-def sqTailTot (fs : String → ℕ) (lv : OsLv) (name : String) (m t : ℕ) : ℕ :=
-  if t + 1 < m then sqTot fs lv name m (t + 1) else fs name
-
-/-- Iteration `t`'s decoder, the loop entered at `fp`. -/
+/-- Iteration `t`'s decoder, the loop of `m` iterations entered at `fp`: after the loop's frames,
+the earlier iterations' decoders. -/
 def sqDecAt (fs : String → ℕ) (lv : OsLv) (name : String) (m fp t : ℕ) : ℕ :=
-  fp + t * fs name + fs name + sqTailTot fs lv name m t
+  fp + (m + 1) * fs name + t * fs (sqDecName lv)
 
-theorem sqTot_step (fs : String → ℕ) (lv : OsLv) (name : String) {m t : ℕ} (ht : t < m) :
-    sqTot fs lv name m t = fs name + sqTailTot fs lv name m t + fs (sqDecName lv) := by
-  unfold sqTailTot sqTot
-  split
-  · rw [show m - t = (m - (t + 1)) + 1 by omega, Nat.add_mul, Nat.add_mul (m - (t + 1)) 1]; ring
-  · rw [show m - t = 1 by omega]; ring
+theorem sqDecAt_succ (fs : String → ℕ) (lv : OsLv) (name : String) (m fp t : ℕ) :
+    sqDecAt fs lv name m fp (t + 1) = sqDecAt fs lv name m fp t + fs (sqDecName lv) := by
+  unfold sqDecAt; ring
 
-theorem sqTot_le (fs : String → ℕ) (lv : OsLv) (name : String) {m t : ℕ} (ht : t ≤ m) :
-    t * fs name + sqTot fs lv name m t ≤ sqTot fs lv name m 0 := by
-  unfold sqTot
-  have h1 : (m - 0 + 1) * fs name = t * fs name + (m - t + 1) * fs name := by
-    rw [← Nat.add_mul]; congr 1; omega
-  have h2 : (m - t) * fs (sqDecName lv) ≤ (m - 0) * fs (sqDecName lv) :=
-    Nat.mul_le_mul_right _ (by omega)
+theorem sqDecAt_le (fs : String → ℕ) (lv : OsLv) (name : String) {m t : ℕ} (fp : ℕ) (ht : t < m) :
+    sqDecAt fs lv name m fp t + fs (sqDecName lv) ≤ fp + sqTot fs lv name m 0 := by
+  unfold sqDecAt sqTot
+  have h1 := Nat.mul_le_mul_right (fs (sqDecName lv)) (show t + 1 ≤ m by omega)
+  rw [Nat.succ_mul] at h1
+  rw [Nat.sub_zero]
   omega
 
 /-- The decoders' frame runs from iteration `t`, decoder `t'` decoding `w t'`. -/
@@ -316,15 +313,6 @@ theorem regionL_sqRuns {fs : String → ℕ} {cert : String → V → ℕ} {lv :
     refine ⟨q, ?_, h3, h4⟩
     simp only [sqRuns, List.mem_flatten, List.mem_map, List.mem_range]
     exact ⟨_, ⟨t' - t, by omega, by rw [show t + (t' - t) = t' by omega]⟩, hq⟩
-
-theorem sqDecAt_eq (fs : String → ℕ) (lv : OsLv) (name : String) {m t : ℕ} (fp : ℕ) (ht : t < m) :
-    sqDecAt fs lv name m fp t = fp + (m + 1) * fs name + (m - 1 - t) * fs (sqDecName lv) := by
-  obtain ⟨s, rfl⟩ : ∃ s, m = t + 1 + s := ⟨m - t - 1, by omega⟩
-  unfold sqDecAt sqTailTot sqTot
-  split
-  · rw [show t + 1 + s - (t + 1) = s by omega, show t + 1 + s - 1 - t = s by omega]; ring
-  · obtain rfl : s = 0 := by omega
-    rw [show t + 1 + 0 - 1 - t = 0 by omega]; ring
 
 /-- Blocks in pairwise disjoint windows, each disjoint, are disjoint: the first parts, then the
 second parts. -/
@@ -425,17 +413,15 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
       obtain ⟨_, ⟨t, ht, rfl⟩, hq⟩ := hq
       simp only [Nat.zero_add] at hq
       have hw := (Classical.choose_spec (hdecj t (by omega))).1 q (List.mem_append_left _ hq)
-      have := sqTot_le fs lv name (m := m) (t := t) (by omega)
-      have := sqTot_step fs lv name (m := m) (t := t) (by omega)
-      simp only [sqDecAt] at hw ⊢
+      have := sqDecAt_le fs lv name fp (m := m) (t := t) (by omega)
+      have : fp ≤ sqDecAt fs lv name m fp t := by unfold sqDecAt; omega
       omega
     · simp only [Lown, List.mem_flatten, List.mem_map, List.mem_range] at hq
       obtain ⟨_, ⟨t, ht, rfl⟩, hq⟩ := hq
       rw [hLj t ht] at hq
       have hw := (Classical.choose_spec (hdecj t ht)).1 q (List.mem_append_right _ hq)
-      have := sqTot_le fs lv name (m := m) (t := t) (by omega)
-      have := sqTot_step fs lv name (m := m) (t := t) ht
-      simp only [sqDecAt] at hw ⊢
+      have := sqDecAt_le fs lv name fp (m := m) (t := t) ht
+      have : fp ≤ sqDecAt fs lv name m fp t := by unfold sqDecAt; omega
       omega
   · have e1 : sqRuns fs cert lv name m fp w 0 =
         ((List.range m).map fun t =>
@@ -446,17 +432,17 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
       (fun t ht => ?_) (fun t ht => ?_) (fun i hi j hj hij => ?_)
     · rw [hLj t ht]; exact (Classical.choose_spec (hdecj t ht)).2.1
     · rw [hLj t ht]; exact (Classical.choose_spec (hdecj t ht)).1
-    · rw [sqDecAt_eq fs lv name fp hi, sqDecAt_eq fs lv name fp hj]
+    · unfold sqDecAt
       rcases Nat.lt_or_gt_of_ne hij with h | h
-      · right
-        have : (m - 1 - j + 1) * fs (sqDecName lv) ≤ (m - 1 - i) * fs (sqDecName lv) :=
-          Nat.mul_le_mul_right _ (by omega)
-        rw [Nat.add_mul, Nat.one_mul] at this
-        omega
       · left
-        have : (m - 1 - i + 1) * fs (sqDecName lv) ≤ (m - 1 - j) * fs (sqDecName lv) :=
+        have : (i + 1) * fs (sqDecName lv) ≤ j * fs (sqDecName lv) :=
           Nat.mul_le_mul_right _ (by omega)
-        rw [Nat.add_mul, Nat.one_mul] at this
+        rw [Nat.succ_mul] at this
+        omega
+      · right
+        have : (j + 1) * fs (sqDecName lv) ≤ i * fs (sqDecName lv) :=
+          Nat.mul_le_mul_right _ (by omega)
+        rw [Nat.succ_mul] at this
         omega
   obtain ⟨h12, hLin⟩ := Main.memL_append.mp hL
   obtain ⟨hR, hO⟩ := Main.memL_append.mp h12
@@ -480,10 +466,10 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
   have hKj : ∀ j, IsInK (gen ^ j * gen + gen ^ n) := fun j =>
     isInK_add (by rw [gen_pow_mul_gen]; exact gen_pow_isInK _) (gen_pow_isInK _)
   have hstep : ∀ s t, t + s + 1 = m →
-      RelAtIn coreProgram fs cert rd (RegionL Lin)
+      RelAtInC coreProgram fs cert rd (RegionL Lin)
         (fun i => RegionL (sqRuns fs cert lv name m fp w t) i)
-        (fp + t * fs name) (sqTot fs lv name m t) name [gen ^ (e + t), gen ^ n, sqz, qpos, qbp, tabs]
-        [] := by
+        (fp + t * fs name) (sqDecAt fs lv name m fp t) ((m - t + 1) * fs name)
+        ((m - t) * fs (sqDecName lv)) name [gen ^ (e + t), gen ^ n, sqz, qpos, qbp, tabs] [] := by
     intro s
     induction s with
     | zero =>
@@ -493,20 +479,14 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
         rw [gen_pow_add_eq_zero_iff]; congr 1; omega
       have := sqLoop_iter fs cert hfind hp hb hlp hit (rd := rd) (R := RegionL Lin)
         (Dt := fun _ => False) (N := gen ^ n) (sqz := sqz) (qpos := qpos) (qbp := qbp) (tabs := tabs)
-        (hcl (e + t)) (fp + t * fs name) (m := fs name) hr0 hn0
-        (by
-          have := hrel t (by omega)
-          simp only [sqDecAt, sqTailTot, show ¬ (t + 1 < m) by omega, ↓reduceIte] at this
-          exact this)
-        (fun i h => h) (hKj (e + t)) (by simp [h0])
+        (hcl (e + t)) (fp + t * fs name) (sqDecAt fs lv name m fp t) (Bt := fs name) (m := 0) hr0 hn0
+        (hrel t (by omega)) (fun i h => h) (hKj (e + t)) (by simp [h0])
         (fun t' ht' => hreg (e + t) (by omega) (by omega) t' ht')
-      rw [show sqTot fs lv name m t = fs name + fs name + fs (sqDecName lv) by
-        rw [sqTot_step fs lv name (by omega)]
-        simp only [sqTailTot, show ¬ (t + 1 < m) by omega, ↓reduceIte]]
-      refine relAtIn_dmono this fun i hi => ?_
+      rw [show (m - t + 1) * fs name = fs name + fs name by rw [show m - t = 1 by omega]; ring,
+        show (m - t) * fs (sqDecName lv) = fs (sqDecName lv) + 0 by rw [show m - t = 1 by omega]; ring]
+      refine this.dmono fun i hi => ?_
       obtain ⟨t', h1, h2, hi'⟩ := regionL_sqRuns.mp hi
       obtain rfl : t' = t := by omega
-      simp only [sqDecAt, sqTailTot, show ¬ (t' + 1 < m) by omega, ↓reduceIte] at hi'
       exact Or.inl hi'
     | succ s ih =>
       intro t ht
@@ -517,32 +497,32 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
         have := gen_pow_inj (by omega) (by omega) he
         omega
       have ht' := ih (t + 1) (by omega)
-      rw [Nat.add_mul, Nat.one_mul, ← Nat.add_assoc, ← Nat.add_assoc] at ht'
+      rw [Nat.add_mul, Nat.one_mul, ← Nat.add_assoc, ← Nat.add_assoc, sqDecAt_succ] at ht'
       have := sqLoop_iter fs cert hfind hp hb hlp hit (rd := rd) (R := RegionL Lin)
         (Dt := fun i => RegionL (sqRuns fs cert lv name m fp w (t + 1)) i)
         (N := gen ^ n) (sqz := sqz) (qpos := qpos) (qbp := qbp) (tabs := tabs)
-        (hcl (e + t)) (fp + t * fs name) (m := sqTot fs lv name m (t + 1)) hr0 hn0
-        (by
-          have := hrel t (by omega)
-          simp only [sqDecAt, sqTailTot, show t + 1 < m by omega, ↓reduceIte] at this
-          exact this)
-        (fun i h => h) (hKj (e + t))
+        (hcl (e + t)) (fp + t * fs name) (sqDecAt fs lv name m fp t)
+        (Bt := (m - (t + 1) + 1) * fs name) (m := (m - (t + 1)) * fs (sqDecName lv)) hr0 hn0
+        (hrel t (by omega)) (fun i h => h) (hKj (e + t))
         (by
           split
           · rw [gen_pow_mul_gen]; exact ht'
           · next h => exact absurd hne h)
         (fun t' ht'' => hreg (e + t) (by omega) (by omega) t' ht'')
-      rw [show sqTot fs lv name m t = fs name + sqTot fs lv name m (t + 1) + fs (sqDecName lv) by
-        rw [sqTot_step fs lv name (by omega)]
-        simp only [sqTailTot, show t + 1 < m by omega, ↓reduceIte]]
-      refine relAtIn_dmono this fun i hi => ?_
+      rw [show (m - t + 1) * fs name = fs name + (m - (t + 1) + 1) * fs name by
+          rw [show m - t = m - (t + 1) + 1 by omega]; ring,
+        show (m - t) * fs (sqDecName lv) = fs (sqDecName lv) + (m - (t + 1)) * fs (sqDecName lv) by
+          rw [show m - t = m - (t + 1) + 1 by omega]; ring]
+      refine this.dmono fun i hi => ?_
       obtain ⟨t', h1, h2, hi'⟩ := regionL_sqRuns.mp hi
       rcases Nat.eq_or_lt_of_le h1 with rfl | h1
-      · simp only [sqDecAt, sqTailTot, show t + 1 < m by omega, ↓reduceIte] at hi'
-        exact Or.inl hi'
+      · exact Or.inl hi'
       · exact Or.inr ⟨hne, regionL_sqRuns.mpr ⟨t', by omega, h2, hi'⟩⟩
   have := hstep (m - 1) 0 (by omega)
-  simpa using this
+  simp only [Nat.zero_mul, Nat.add_zero, Nat.sub_zero] at this
+  have h := (show sqDecAt fs lv name m fp 0 = fp + (m + 1) * fs name by unfold sqDecAt; ring) ▸ this
+  rw [show sqTot fs lv name m 0 = (m + 1) * fs name + m * fs (sqDecName lv) by unfold sqTot; simp]
+  exact h.relAtIn
 
 end
 end LeanVM.Guest.B1

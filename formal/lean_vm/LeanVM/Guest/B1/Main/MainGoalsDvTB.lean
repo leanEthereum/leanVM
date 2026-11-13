@@ -41,7 +41,7 @@ theorem completeAtDTB_lin_mono {fs : String → ℕ} {cert : String → V → �
   refine ⟨n, Lown, rets, Lout, hn, ho, hw, hd, fun rd hl hM => ?_⟩
   obtain ⟨t, ⟨hn', hv, hb, hp, ht, hlo, hdd⟩, hT⟩ := hR rd hl (by
     rw [memL_append] at hM ⊢; exact ⟨hM.1, hm rd hM.2⟩)
-  exact ⟨t, ⟨hn', hv, hb, hp, ht, loadsIn_mono t fp hr hlo, hdd⟩, hT⟩
+  exact ⟨t, ⟨hn', hv, hb, hp, ht, loadsIn_mono t _ hr hlo, hdd⟩, hT⟩
 
 /-- **`da_verify`'s words bound on the checked DA claim's witness.** -/
 def hDvB (fs : String → ℕ) (SB SK : String → ℕ) (w : NodeWitness) : ℕ :=

@@ -36,7 +36,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value Lea
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.Budget (NodeHonest)
-open LeanVM.Guest.B1 (CompleteAtDTB Returns DisjL Within disj_append within_append)
+open LeanVM.Guest.B1 (CompleteAtDTB CompleteAtL completeAtL_tail Returns DisjL Within disj_append
+  within_append)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append)
 
 @[expose] public section
@@ -96,42 +97,34 @@ set_option maxRecDepth 20000 in
 theorem l18_stepAtTB {Bc Bt : ℕ} {Tc Tt : Tree → Prop} {ps : List E} (hps : ps.length = 6)
     {Lin : Layout} {k : ℕ} (hk : k + 1 ≤ 128)
     (hcol : CompleteAtDTB fs cert 16 "da_verify_column" Lin (gen ^ k :: ps) (Returns []) Tc Bc)
-    (htail : k + 1 < 128 →
-      CompleteAtDTB fs cert 16 name% «da_verify_loop1» Lin (gen ^ (k + 1) :: ps) (Returns []) Tt Bt)
+    (htail : k + 1 < 128 → CompleteAtL fs cert 16 name% «da_verify_loop1» Lin (gen ^ (k + 1) :: ps)
+      (Returns []) Tt (· ≤ Bt))
     (hBt : fs name% «da_verify_loop1» ≤ Bt) :
-    CompleteAtDTB fs cert 16 name% «da_verify_loop1» Lin (gen ^ k :: ps) (Returns []) (l18NH k Tc
-        Tt)
-      (fs name% «da_verify_loop1» + Bt + Bc) := by
-  intro fp
+    CompleteAtL fs cert 16 name% «da_verify_loop1» Lin (gen ^ k :: ps) (Returns [])
+      (l18NH k Tc Tt) (· ≤ fs name% «da_verify_loop1» + Bt + Bc) := by
   -- the rest of the loop
-  obtain ⟨nt, Lt, hnt, hWt, hDt, hRt⟩ : ∃ nt Lt, nt ≤ Bt ∧ Within Lt (fp + fs
-      name% «da_verify_loop1») nt ∧
-      DisjL Lt ∧ ∀ rd, B1.LowDef 16 rd → MemL rd (Lt ++ Lin) →
-        if decide (k + 1 ≠ 128) = true then
-          RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs
-              name% «da_verify_loop1») nt
-            name% «da_verify_loop1» (gen ^ (k + 1) :: ps) [] Tt
-        else nt = fs name% «da_verify_loop1» := by
-    by_cases hlast : k + 1 = 128
-    · exact ⟨fs name% «da_verify_loop1», [], hBt, fun q hq => by simp at hq, List.Pairwise.nil,
-                                                                   fun _ _ _ => by
-        simp [hlast]⟩
-    · obtain ⟨nt, Lt, rt, Lot, hntB, ⟨rfl, rfl⟩, hW, hD, hR⟩ := htail (by omega) (fp + fs
-                                                                            name% «da_verify_loop1»)
-      refine ⟨nt, Lt, hntB, by simpa using hW, by simpa using hD, fun rd hl hm => ?_⟩
-      simp only [ne_eq, hlast, not_false_eq_true, decide_true, ↓reduceIte]
-      exact hR rd hl (by simpa using hm)
+  obtain ⟨Bt', hRest⟩ := completeAtL_tail (fs := fs) (cert := cert) (g := name% «da_verify_loop1»)
+    (last := k + 1 = 128) fun h => htail (by omega)
+  refine ⟨fs name% «da_verify_loop1» + Bt', fun fp cur hcur => ?_⟩
   -- the column
-  obtain ⟨nc, Lc, rc, Loc, hncB, ⟨rfl, rfl⟩, hWc, hDc, hRc⟩ := hcol (fp + fs
-      name% «da_verify_loop1» + nt)
+  obtain ⟨nc, Lc, rc, Loc, hncB, ⟨rfl, rfl⟩, hWc, hDc, hRc⟩ := hcol cur
   simp only [List.nil_append] at hWc hDc hRc
-  refine ⟨fs name% «da_verify_loop1» + nt + nc, Lt ++ Lc, [], [], by omega, ⟨rfl, rfl⟩, ?_,
-    by simpa using disj_append hDt hDc hWt hWc le_rfl, fun rd hlow hm => ?_⟩
+  obtain ⟨nt, Lt, hlt, hBdt, hWt, hDt, hRt⟩ :=
+    hRest (fp + fs name% «da_verify_loop1») (cur + nc) (by omega)
+  refine ⟨nc + nt, Lc ++ Lt, [], [], ?_, ⟨rfl, rfl⟩, ?_,
+    by simpa using disj_append hDc hDt hWc hWt le_rfl, fun rd hlow hm => ?_⟩
+  · by_cases hlast : k + 1 = 128
+    · obtain ⟨rfl, rfl⟩ := hlt hlast
+      show _ ≤ _
+      omega
+    · have := hBdt hlast
+      show _ ≤ _
+      omega
   · rw [List.nil_append, within_append]
-    exact ⟨hWt.mono (by omega) (by omega), hWc.mono (by omega) (by omega)⟩
+    exact ⟨hWc.mono le_rfl (by omega), hWt.mono (by omega) (by omega)⟩
   simp only [List.nil_append] at hm
   obtain ⟨hm1, hLin⟩ := memL_append.mp hm
-  obtain ⟨hmt, hmc⟩ := memL_append.mp hm1
+  obtain ⟨hmc, hmt⟩ := memL_append.mp hm1
   have ht := hRt rd hlow (memL_append.mpr ⟨hmt, hLin⟩)
   have hc := hRc rd hlow (memL_append.mpr ⟨hmc, hLin⟩)
   obtain ⟨p1, p2, p3, p4, p5, p6, rfl⟩ : ∃ p1 p2 p3 p4 p5 p6, ps = [p1, p2, p3, p4, p5, p6] := by
@@ -173,10 +166,11 @@ theorem l18_stepAtTB {Bc Bt : ℕ} {Tc Tt : Tree → Prop} {ps : List E} (hps : 
     rw [word_gen, gen_pow_mul_gen]
   have h := relAtInWT_of_walk_loop (P := coreProgram) (Ts := [Tc]) (Tt := Tt) (fs := fs)
     (cert := cert) (σ := σ) (rd := rd) (R := RegionL Lin) (D := RegionL []) (Dk := fun _ => False)
-    (Rt := RegionL Lin) (Dt := RegionL []) (fp := fp) (m := nt) (N := nc)
+    (Rt := RegionL Lin) (Dt := RegionL []) (fp := fp) (c := cur) (Bt := Bt') (m := nt) (N := nc)
     (args := gen ^ k :: [p1, p2, p3, p4, p5, p6]) coreProgram_wf find_l18 l18_loop
     (by rw [l18_params]; rfl) hw' rfl hev (by rw [hcalls]; rfl)
     (by
+      rw [hal, List.sum_nil, Nat.add_zero]
       by_cases hlast : k + 1 = 128
       · simpa [hlast] using ht
       · simp only [ne_eq, hlast, not_false_eq_true, decide_true, ↓reduceIte] at ht ⊢
@@ -198,11 +192,11 @@ theorem l18_stepAtTB {Bc Bt : ℕ} {Tc Tt : Tree → Prop} {ps : List E} (hps : 
         show l18Pre.filterMap B1.Stmt.loadS = [] from rfl] at hA
       simp at hA)
     (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq)
-  have h' := relAtInT_nodeHonest (Q := fun σ => σ (.n 0) = gen ^ k)
+  have h' := relAtInCT_nodeHonest (Q := fun σ => σ (.n 0) = gen ^ k)
     (cs := fun _ => l18Calls k) (bs := fun _ => []) (Ts := [Tc, Tt]) h find_l18 hw' rfl
     (by rw [hcalls]) hal (by simp [l18Calls])
   rw [hal] at h'
-  simp only [List.sum_nil, Nat.add_zero] at h'
+  simp only [List.sum_nil, Nat.zero_add] at h'
   exact h'
 
 /-- **The column loop is complete, placed, by trees of its honest shape** (`l18From`), from every
@@ -215,8 +209,8 @@ theorem l18_completeAtTB {Bc : ℕ} {Tc : Tree → Prop} {ps : List E} (hps : ps
       CompleteAtDTB fs cert 16 name% «da_verify_loop1» Lin (gen ^ k :: ps) (Returns [])
         (l18From Tc (128 - k) k) (clB fs name% «da_verify_loop1» Bc (128 - k)) := by
   have key : ∀ t k, a ≤ k → k + 1 + t = 128 →
-      CompleteAtDTB fs cert 16 name% «da_verify_loop1» Lin (gen ^ k :: ps) (Returns [])
-        (l18From Tc (t + 1) k) (clB fs name% «da_verify_loop1» Bc (t + 1)) := by
+      CompleteAtL fs cert 16 name% «da_verify_loop1» Lin (gen ^ k :: ps) (Returns [])
+        (l18From Tc (t + 1) k) (· ≤ clB fs name% «da_verify_loop1» Bc (t + 1)) := by
     intro t
     induction t with
     | zero =>
@@ -224,15 +218,17 @@ theorem l18_completeAtTB {Bc : ℕ} {Tc : Tree → Prop} {ps : List E} (hps : ps
       have h := l18_stepAtTB (Tt := l18From Tc 0 (k + 1)) (Bt := fs name% «da_verify_loop1») fs
           cert hps
         (by omega) (hcol k hak (by omega)) (fun h => absurd h (by omega)) le_rfl
-      exact h.mono (by simp only [clB]; omega) fun _ h => h
+      exact h.mono (fun x hx => by simp only [clB] at hx ⊢; omega) fun _ h => h
     | succ t ih =>
       intro k hak hk
       have h := l18_stepAtTB fs cert hps (by omega) (hcol k hak (by omega))
         (fun _ => ih (k + 1) (by omega) (by omega)) (by simp only [clB]; omega)
-      exact h.mono (by simp only [clB]; rw [Nat.add_mul (t + 1) 1]; omega) fun _ h => h
+      exact h.mono (fun x hx => by simp only [clB] at hx ⊢; rw [Nat.add_mul (t + 1) 1]; omega)
+        fun _ h => h
   intro k hak hk
   have := key (128 - k - 1) k hak (by omega)
-  rwa [show 128 - k - 1 + 1 = 128 - k by omega] at this
+  rw [show 128 - k - 1 + 1 = 128 - k by omega] at this
+  exact this.toDTB
 
 end
 end LeanVM.Guest.B1.Da

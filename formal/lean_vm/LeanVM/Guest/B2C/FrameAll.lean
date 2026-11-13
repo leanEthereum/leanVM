@@ -174,7 +174,7 @@ theorem frameHolds_all (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ (
   have hS := shareOk_of h1 h2
   have hC := hca _ h1 h2
   have hchk := End.winOk_of h1 h2
-  obtain ⟨es', vs', hw', he, hk⟩ := node_valid ht hj (insts_good T 0 hdr hH.valid I hI)
+  obtain ⟨es', vs', hw', he, hk⟩ := node_valid ht hj (insts_good T _ hdr hH.valid I hI)
   rw [hw] at hw'
   obtain ⟨rfl, rfl⟩ : es = es' ∧ vs = vs' := by cases hw'; exact ⟨rfl, rfl⟩
   have hgp : ∀ a o, (honest coreProgram fs H C hdr T).read (addressOfIndex a * addressOfIndex o) =

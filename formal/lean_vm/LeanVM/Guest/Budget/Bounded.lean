@@ -50,6 +50,16 @@ theorem CompleteAtDTB.toDT {k : ℕ} {f : String} {Lin : Layout} {args : List E}
     let ⟨n, Lown, rets, Lout, _, ho, hw, hd, hr⟩ := h fp
     ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩
 
+/-- **A loop entered fresh, within `B` words.** -/
+theorem CompleteAtL.toDTB {k : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} {T : Tree → Prop} {B : ℕ}
+    (h : CompleteAtL fs cert k f Lin args Out T (· ≤ B)) : CompleteAtDTB fs cert k f Lin args Out T B :=
+  fun fp =>
+    let ⟨Bl, hB⟩ := h
+    let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := hB fp (fp + Bl) le_rfl
+    ⟨Bl + n, Lown, rets, Lout, hn, ho, hw.mono (by omega) (by omega), hd,
+      fun rd hl hm => (hr rd hl hm).relAtInT⟩
+
 /-- A bounded completeness on memories defined below `2^k` holds on those defined below
 `2^k'`, `k ≤ k'`. -/
 theorem CompleteAtDTB.lowMono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
@@ -222,9 +232,9 @@ theorem completeAtDTB_of_relIn {S : List String} (hS : coreProgram.PureIn S) {g 
     fun rd hl hL => ?_⟩
   have hL' : MemL rd Lin := by simpa using hL
   have hr := relAtIn_transfer (fs := fs) (cert := cert) (D := fun _ => False) (fp := fp)
-    coreProgram_fresh hn hv hb (placed_of_pure hS t hv hb (hn ▸ hg) fp)
-    (loadsIn_of_loadsR t _ fp hlr) (fun _ h => h.elim) rd
-    (fun i hi => hi.elim (fun hi => ?_) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) fp i hd).elim)
+    coreProgram_fresh hn hv hb (placed_of_pure hS t hv hb (hn ▸ hg) _)
+    (loadsIn_of_loadsR t _ _ hlr) (fun _ h => h.elim) rd
+    (fun i hi => hi.elim (fun hi => ?_) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) _ i hd).elim)
     (fun A hA => ?_)
   · refine (relAtIn_dmono hr fun i hi => ?_).relAtInT
     obtain ⟨q, hq, _⟩ := hi; simp at hq

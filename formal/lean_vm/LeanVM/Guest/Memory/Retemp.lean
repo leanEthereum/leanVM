@@ -16,10 +16,10 @@ public import LeanVM.Guest.Memory.Fresh
 
 In a program whose temporaries are fresh (`Program.Fresh`), nothing but its own atom (a range
 check, a touch) reads a temporary, so a tree stays valid when they change, provided the memory
-holds the new values where those atoms read (`tmpReads`). `Tree.retemp P fs ν fp t` replaces,
+holds the new values where those atoms read (`tmpReads`). `Tree.retemp P fs ν p t` replaces,
 in every instance of
-`t` placed from `fp`, the value of each temporary `v` of its function `f` by `ν fp f σ v`, `σ`
-its old valuation (`retempVal`).
+`t` placed from `p`, the value of each temporary `v` of its function `f` by `ν fp f σ v`, `fp`
+its frame and `σ` its old valuation (`retempVal`).
 
 * `retemp_valid`: if `t` is valid on `rd0` and `rd` agrees with `rd0` on every word a path reads
   except at the temporaries' atoms, and holds the new temporaries where those read
@@ -241,14 +241,14 @@ def retempVal (fp : ℕ) (f : String) (σ : Val) : Val := fun v =>
   if v ∈ P.temps f then ν fp f σ v else σ v
 
 mutual
-/-- **The re-chosen tree**: every instance's temporaries re-chosen, placed from `fp`. -/
-def Tree.retemp (fp : ℕ) : Tree → Tree
-  | .node f σ bufs kids => .node f (retempVal P ν fp f σ) bufs
-      (Tree.retempKids (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids)
+/-- **The re-chosen tree**: every instance's temporaries re-chosen, placed from `pos`. -/
+def Tree.retemp (pos : ℕ × ℕ) : Tree → Tree
+  | .node f σ bufs kids => .node f (retempVal P ν pos.1 f σ) bufs
+      (Tree.retempKids (kidPos fs P.loop pos f bufs (kids.map (Tree.sz fs P.loop))) kids)
   | .phantom f σ => .phantom f σ
 
 /-- The re-chosen callees at `ps`. -/
-def Tree.retempKids : List ℕ → List Tree → List Tree
+def Tree.retempKids : List (ℕ × ℕ) → List Tree → List Tree
   | _, [] => []
   | [], k :: ks => k :: ks
   | p :: ps, k :: ks => k.retemp p :: Tree.retempKids ps ks
@@ -256,54 +256,54 @@ end
 
 variable {P fs ν}
 
-theorem retemp_node {fp : ℕ} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} :
-    (Tree.node f σ bufs kids).retemp P fs ν fp = .node f (retempVal P ν fp f σ) bufs
-      (Tree.retempKids P fs ν (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids) := by
+theorem retemp_node {pos : ℕ × ℕ} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} :
+    (Tree.node f σ bufs kids).retemp P fs ν pos = .node f (retempVal P ν pos.1 f σ) bufs
+      (Tree.retempKids P fs ν (kidPos fs P.loop pos f bufs (kids.map (Tree.sz fs P.loop))) kids) := by
   rw [Tree.retemp]
 
-theorem retemp_phantom {fp : ℕ} {f : String} {σ : Val} :
-    (Tree.phantom f σ).retemp P fs ν fp = .phantom f σ := by
+theorem retemp_phantom {pos : ℕ × ℕ} {f : String} {σ : Val} :
+    (Tree.phantom f σ).retemp P fs ν pos = .phantom f σ := by
   rw [Tree.retemp]
 
-theorem retempKids_cons {p : ℕ} {ps : List ℕ} {k : Tree} {ks : List Tree} :
+theorem retempKids_cons {p : ℕ × ℕ} {ps : List (ℕ × ℕ)} {k : Tree} {ks : List Tree} :
     Tree.retempKids P fs ν (p :: ps) (k :: ks) = k.retemp P fs ν p :: Tree.retempKids P fs ν ps ks := by
   rw [Tree.retempKids]
 
-theorem retempKids_nil {ps : List ℕ} : Tree.retempKids P fs ν ps [] = [] := by
+theorem retempKids_nil {ps : List (ℕ × ℕ)} : Tree.retempKids P fs ν ps [] = [] := by
   cases ps <;> rw [Tree.retempKids]
 
-theorem name_retemp (fp : ℕ) : ∀ t : Tree, (t.retemp P fs ν fp).name = t.name
+theorem name_retemp (pos : ℕ × ℕ) : ∀ t : Tree, (t.retemp P fs ν pos).name = t.name
   | .node .. => by rw [retemp_node]; rfl
   | .phantom .. => by rw [retemp_phantom]
 
 mutual
-theorem total_retemp : ∀ (t : Tree) (fp : ℕ), (t.retemp P fs ν fp).total fs = t.total fs
-  | .node f σ bufs kids, fp => by
-      rw [retemp_node, total_node, total_node, totalKids_retempKids kids _
-        (by rw [length_kidPos, List.length_map])]
-  | .phantom .., fp => by rw [retemp_phantom]
+theorem sz_retemp : ∀ (t : Tree) (pos : ℕ × ℕ), (t.retemp P fs ν pos).sz fs P.loop = t.sz fs P.loop
+  | .node f σ bufs kids, pos => by
+      rw [retemp_node, Tree.sz, Tree.sz, total_node, total_node, block_node, block_node,
+        ← sum_map_sz (lp := P.loop), ← sum_map_sz (lp := P.loop) kids,
+        map_sz_retempKids kids _ (by rw [length_kidPos, List.length_map])]
+  | .phantom .., pos => by rw [retemp_phantom]
 
-theorem totalKids_retempKids : ∀ (ks : List Tree) (ps : List ℕ), ps.length = ks.length →
-    Tree.totalKids fs (Tree.retempKids P fs ν ps ks) = Tree.totalKids fs ks
+theorem map_sz_retempKids : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)), ps.length = ks.length →
+    (Tree.retempKids P fs ν ps ks).map (Tree.sz fs P.loop) = ks.map (Tree.sz fs P.loop)
   | [], _, _ => by rw [retempKids_nil]
   | _ :: _, [], h => absurd h (by simp)
   | k :: ks, p :: ps, h => by
-      rw [retempKids_cons, totalKids_cons, totalKids_cons, total_retemp k p,
-        totalKids_retempKids ks ps (by simpa using h)]
+      rw [retempKids_cons, List.map_cons, List.map_cons, sz_retemp k p,
+        map_sz_retempKids ks ps (by simpa using h)]
 end
 
-theorem map_total_retempKids : ∀ (ks : List Tree) (ps : List ℕ), ps.length = ks.length →
-    (Tree.retempKids P fs ν ps ks).map (Tree.total fs) = ks.map (Tree.total fs)
-  | [], _, _ => by rw [retempKids_nil]
-  | _ :: _, [], h => absurd h (by simp)
-  | k :: ks, p :: ps, h => by
-      rw [retempKids_cons, List.map_cons, List.map_cons, total_retemp k p,
-        map_total_retempKids ks ps (by simpa using h)]
+theorem total_retemp (t : Tree) (pos : ℕ × ℕ) : (t.retemp P fs ν pos).total fs = t.total fs :=
+  congrArg Prod.fst (sz_retemp t pos)
 
-theorem map_total_retempKids_kidPos {fp : ℕ} {f : String} {bufs : List ℕ} {kids : List Tree} :
-    (Tree.retempKids P fs ν (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids).map
-      (Tree.total fs) = kids.map (Tree.total fs) :=
-  map_total_retempKids kids _ (by rw [length_kidPos, List.length_map])
+theorem block_retemp (t : Tree) (pos : ℕ × ℕ) :
+    (t.retemp P fs ν pos).block fs P.loop = t.block fs P.loop :=
+  congrArg Prod.snd (sz_retemp t pos)
+
+theorem map_sz_retempKids_kidPos {pos : ℕ × ℕ} {f : String} {bufs : List ℕ} {kids : List Tree} :
+    (Tree.retempKids P fs ν (kidPos fs P.loop pos f bufs (kids.map (Tree.sz fs P.loop))) kids).map
+      (Tree.sz fs P.loop) = kids.map (Tree.sz fs P.loop) :=
+  map_sz_retempKids kids _ (by rw [length_kidPos, List.length_map])
 
 /-! ## Paths of a re-chosen tree -/
 
@@ -360,15 +360,15 @@ mutual
 /-- **What a reader must give a re-chosen tree**: every atom of a path without temporaries
 reads what `rd0` reads, and every temporary read (a range check's, a touch's) reads the new
 temporary. -/
-def Tree.ReadsAs : ℕ → Tree → Prop
-  | fp, t@(.node f σ _ kids) =>
+def Tree.ReadsAs : ℕ × ℕ → Tree → Prop
+  | pos, t@(.node f σ _ kids) =>
       (∀ a, Ev.atom a ∈ t.events P → atomTmps a = [] → ∀ q ∈ atomEqns σ a, rd q.1 = rd0 q.1) ∧
-      (∀ a, Ev.atom a ∈ t.events P → ∀ r ∈ tmpReads σ a, rd r.2 = some (ν fp f σ r.1)) ∧
-      Tree.ReadsAsKids (kidPos fs P.loop fp f t.bufs (kids.map (Tree.total fs))) kids
+      (∀ a, Ev.atom a ∈ t.events P → ∀ r ∈ tmpReads σ a, rd r.2 = some (ν pos.1 f σ r.1)) ∧
+      Tree.ReadsAsKids (kidPos fs P.loop pos f t.bufs (kids.map (Tree.sz fs P.loop))) kids
   | _, .phantom .. => True
 
 /-- `Tree.ReadsAs` of the callees at `ps`. -/
-def Tree.ReadsAsKids : List ℕ → List Tree → Prop
+def Tree.ReadsAsKids : List (ℕ × ℕ) → List Tree → Prop
   | _, [] => True
   | [], _ :: _ => True
   | p :: ps, k :: ks => k.ReadsAs p ∧ Tree.ReadsAsKids ps ks
@@ -376,16 +376,16 @@ end
 
 variable {P fs ν rd rd0}
 
-theorem readsAs_node {fp : ℕ} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} :
-    (Tree.node f σ bufs kids).ReadsAs P fs ν rd rd0 fp ↔
+theorem readsAs_node {pos : ℕ × ℕ} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} :
+    (Tree.node f σ bufs kids).ReadsAs P fs ν rd rd0 pos ↔
       (∀ a, Ev.atom a ∈ (Tree.node f σ bufs kids).events P → atomTmps a = [] →
         ∀ q ∈ atomEqns σ a, rd q.1 = rd0 q.1) ∧
       (∀ a, Ev.atom a ∈ (Tree.node f σ bufs kids).events P → ∀ r ∈ tmpReads σ a,
-        rd r.2 = some (ν fp f σ r.1)) ∧
-      Tree.ReadsAsKids P fs ν rd rd0 (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids := by
+        rd r.2 = some (ν pos.1 f σ r.1)) ∧
+      Tree.ReadsAsKids P fs ν rd rd0 (kidPos fs P.loop pos f bufs (kids.map (Tree.sz fs P.loop))) kids := by
   rw [Tree.ReadsAs]; rfl
 
-theorem readsAsKids_cons {p : ℕ} {ps : List ℕ} {k : Tree} {ks : List Tree} :
+theorem readsAsKids_cons {p : ℕ × ℕ} {ps : List (ℕ × ℕ)} {k : Tree} {ks : List Tree} :
     Tree.ReadsAsKids P fs ν rd rd0 (p :: ps) (k :: ks) ↔
       k.ReadsAs P fs ν rd rd0 p ∧ Tree.ReadsAsKids P fs ν rd rd0 ps ks := by
   rw [Tree.ReadsAsKids]
@@ -430,15 +430,15 @@ theorem events_holds_retemp (hF : P.Fresh) {fn : Fn} {f : String} (hf : P.find? 
 
 mutual
 /-- **The re-chosen tree is valid** on a reader giving it what it reads. -/
-theorem retemp_valid (hF : P.Fresh) : ∀ (t : Tree) (fp : ℕ) {args rets : List E}, t.Valid P rd0 args rets →
-    t.ReadsAs P fs ν rd rd0 fp → (t.retemp P fs ν fp).Valid P rd args rets
-  | .node f σ bufs kids, fp, args, rets, ⟨fn, hf, hp, es, vs, hw, hr, hes, hk⟩, hra => by
-      have hag := evAgree_retemp (ν := ν) hF hf (fp := fp) hw
-      have hw' : walk (retempVal P ν fp f σ) fn.body = .ret es vs := by
+theorem retemp_valid (hF : P.Fresh) : ∀ (t : Tree) (pos : ℕ × ℕ) {args rets : List E}, t.Valid P rd0 args rets →
+    t.ReadsAs P fs ν rd rd0 pos → (t.retemp P fs ν pos).Valid P rd args rets
+  | .node f σ bufs kids, pos, args, rets, ⟨fn, hf, hp, es, vs, hw, hr, hes, hk⟩, hra => by
+      have hag := evAgree_retemp (ν := ν) hF hf (fp := pos.1) hw
+      have hw' : walk (retempVal P ν pos.1 f σ) fn.body = .ret es vs := by
         rw [walk_retemp hF hf]; exact hw
       have hev : (Tree.node f σ bufs kids).events P = es := events_node hf hw
       rw [readsAs_node, hev] at hra
-      have hvs : vs.map (retempVal P ν fp f σ) = vs.map σ := by
+      have hvs : vs.map (retempVal P ν pos.1 f σ) = vs.map σ := by
         have := walk_within (σ := σ) fn.body
         rw [hw] at this
         exact List.map_congr_left fun v hv => retempVal_uses hF hf (this.2.2 v hv)
@@ -460,7 +460,7 @@ theorem retemp_valid (hF : P.Fresh) : ∀ (t : Tree) (fp : ℕ) {args rets : Lis
   | .phantom .., _, _, _, h, _ => h.elim
 
 /-- `retemp_valid` for the callees. -/
-theorem retempKids_valid (hF : P.Fresh) : ∀ (ks : List Tree) (σ σ' : Val) (cs : List Call) (ps : List ℕ),
+theorem retempKids_valid (hF : P.Fresh) : ∀ (ks : List Tree) (σ σ' : Val) (cs : List Call) (ps : List (ℕ × ℕ)),
     ps.length = ks.length → (∀ c ∈ cs, ∀ v ∈ c.args ++ c.rets, σ' v = σ v) →
     Tree.KidsValid P rd0 σ cs ks → Tree.ReadsAsKids P fs ν rd rd0 ps ks →
       Tree.KidsValid P rd σ' cs (Tree.retempKids P fs ν ps ks)
@@ -494,16 +494,16 @@ end Valid
 section Keep
 
 mutual
-theorem bufsOk_retemp (hF : P.Fresh) : ∀ (t : Tree) (fp : ℕ) {args rets : List E}, t.Valid P rd0 args rets →
-    t.BufsOk P → (t.retemp P fs ν fp).BufsOk P
-  | .node f σ bufs kids, fp, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hb => by
+theorem bufsOk_retemp (hF : P.Fresh) : ∀ (t : Tree) (pos : ℕ × ℕ) {args rets : List E}, t.Valid P rd0 args rets →
+    t.BufsOk P → (t.retemp P fs ν pos).BufsOk P
+  | .node f σ bufs kids, pos, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hb => by
       rw [Tree.BufsOk, events_node hf hw] at hb
       rw [retemp_node, Tree.BufsOk, events_retemp hF, events_node hf hw (bufs := bufs) (kids := kids),
         allocs_congr (evAgree_retemp hF hf hw)]
       exact ⟨hb.1, bufsOkKids_retemp hF kids σ (calls es) _ hk hb.2⟩
-  | .phantom .., fp, _, _, _, _ => by rw [retemp_phantom, Tree.BufsOk]; trivial
+  | .phantom .., pos, _, _, _, _ => by rw [retemp_phantom, Tree.BufsOk]; trivial
 
-theorem bufsOkKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (σ : Val) (cs : List Call) (ps : List ℕ),
+theorem bufsOkKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (σ : Val) (cs : List Call) (ps : List (ℕ × ℕ)),
     Tree.KidsValid P rd0 σ cs ks → Tree.BufsOkKids P ks →
       Tree.BufsOkKids P (Tree.retempKids P fs ν ps ks)
   | [], _, _, _, _, _ => by rw [retempKids_nil, Tree.BufsOkKids]; trivial
@@ -524,19 +524,19 @@ end
 variable {cert : String → V → ℕ}
 
 mutual
-theorem placed_retemp (hF : P.Fresh) : ∀ (t : Tree) (fp : ℕ) {args rets : List E}, t.Valid P rd0 args rets →
-    t.Placed P fs cert fp → (t.retemp P fs ν fp).Placed P fs cert fp
-  | .node f σ bufs kids, fp, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hp => by
+theorem placed_retemp (hF : P.Fresh) : ∀ (t : Tree) (pos : ℕ × ℕ) {args rets : List E}, t.Valid P rd0 args rets →
+    t.Placed P fs cert pos → (t.retemp P fs ν pos).Placed P fs cert pos
+  | .node f σ bufs kids, pos, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hp => by
       rw [placed_node, events_node hf hw] at hp
-      have hag := evAgree_retemp (ν := ν) hF hf (fp := fp) hw
+      have hag := evAgree_retemp (ν := ν) hF hf (fp := pos.1) hw
       rw [retemp_node, placed_node, events_retemp hF, events_node hf hw (bufs := bufs) (kids := kids),
-        map_total_retempKids_kidPos]
+        map_sz_retempKids_kidPos]
       refine ⟨⟨by rw [allocDsts_congr hag]; exact hp.1.1, fun q hq => by
         rw [addrs_congr hag q hq]; exact hp.1.2 q hq⟩, ?_⟩
       exact placedKids_retemp hF kids σ (calls es) _ hk hp.2
-  | .phantom .., fp, _, _, _, _ => by rw [retemp_phantom]; exact placed_phantom
+  | .phantom .., pos, _, _, _, _ => by rw [retemp_phantom]; exact placed_phantom
 
-theorem placedKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (σ : Val) (cs : List Call) (ps : List ℕ),
+theorem placedKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (σ : Val) (cs : List Call) (ps : List (ℕ × ℕ)),
     Tree.KidsValid P rd0 σ cs ks → Tree.PlacedKids P fs cert ps ks →
       Tree.PlacedKids P fs cert ps (Tree.retempKids P fs ν ps ks)
   | [], _, _, _, _, _ => by rw [retempKids_nil]; exact placedKids_nil
@@ -555,14 +555,14 @@ theorem placedKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (σ : Val) (cs :
 end
 
 mutual
-theorem data_retemp (hF : P.Fresh) : ∀ (t : Tree) (fp : ℕ) (i : ℕ),
-    (t.retemp P fs ν fp).Data P fs cert fp i ↔ t.Data P fs cert fp i
-  | .node f σ bufs kids, fp, i => by
+theorem data_retemp (hF : P.Fresh) : ∀ (t : Tree) (pos : ℕ × ℕ) (i : ℕ),
+    (t.retemp P fs ν pos).Data P fs cert pos i ↔ t.Data P fs cert pos i
+  | .node f σ bufs kids, pos, i => by
       rw [retemp_node, data_node, data_node, events_retemp hF (bufs' := bufs) (ks' := kids),
-        map_total_retempKids_kidPos, dataKids_retemp hF kids _ i (by rw [length_kidPos, List.length_map])]
-  | .phantom .., fp, i => by rw [retemp_phantom]
+        map_sz_retempKids_kidPos, dataKids_retemp hF kids _ i (by rw [length_kidPos, List.length_map])]
+  | .phantom .., pos, i => by rw [retemp_phantom]
 
-theorem dataKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (ps : List ℕ) (i : ℕ), ps.length = ks.length →
+theorem dataKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)) (i : ℕ), ps.length = ks.length →
     (Tree.DataKids P fs cert ps (Tree.retempKids P fs ν ps ks) i ↔ Tree.DataKids P fs cert ps ks i)
   | [], _, i, _ => by rw [retempKids_nil]
   | _ :: _, [], _, h => absurd h (by simp)
@@ -572,26 +572,26 @@ theorem dataKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (ps : List ℕ) (i
 end
 
 mutual
-theorem loadsIn_retemp (hF : P.Fresh) : ∀ (t : Tree) (R : ℕ → Prop) (fp : ℕ) {args rets : List E},
-    t.Valid P rd0 args rets → t.LoadsIn P fs cert R fp → (t.retemp P fs ν fp).LoadsIn P fs cert R fp
-  | .node f σ bufs kids, R, fp, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hl => by
-      have hag := evAgree_retemp (ν := ν) hF hf (fp := fp) hw
+theorem loadsIn_retemp (hF : P.Fresh) : ∀ (t : Tree) (R : ℕ → Prop) (pos : ℕ × ℕ) {args rets : List E},
+    t.Valid P rd0 args rets → t.LoadsIn P fs cert R pos → (t.retemp P fs ν pos).LoadsIn P fs cert R pos
+  | .node f σ bufs kids, R, pos, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hl => by
+      have hag := evAgree_retemp (ν := ν) hF hf (fp := pos.1) hw
       rw [loadsIn_node, events_node hf hw] at hl
-      have hd : ∀ i, (Tree.node f (retempVal P ν fp f σ) bufs
-          (Tree.retempKids P fs ν (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids)).Data
-            P fs cert fp i ↔ (Tree.node f σ bufs kids).Data P fs cert fp i := fun i => by
-        rw [← retemp_node]; exact data_retemp hF _ fp i
+      have hd : ∀ i, (Tree.node f (retempVal P ν pos.1 f σ) bufs
+          (Tree.retempKids P fs ν (kidPos fs P.loop pos f bufs (kids.map (Tree.sz fs P.loop))) kids)).Data
+            P fs cert pos i ↔ (Tree.node f σ bufs kids).Data P fs cert pos i := fun i => by
+        rw [← retemp_node]; exact data_retemp hF _ pos i
       rw [retemp_node, loadsIn_node, events_retemp hF, events_node hf hw (bufs := bufs) (kids := kids),
-        map_total_retempKids_kidPos, loadAddrs_congr hag]
+        map_sz_retempKids_kidPos, loadAddrs_congr hag]
       refine ⟨fun A hA => ?_, ?_⟩
       · obtain ⟨i, hi, h⟩ := hl.1 A hA
         exact ⟨i, hi, h.imp_left (hd i).mpr⟩
       · exact loadsInKids_mono _ _ (fun i h => h.imp_left (hd i).mpr)
           (loadsInKids_retemp hF kids σ (calls es) _ _ hk hl.2)
-  | .phantom .., _, fp, _, _, _, _ => by rw [retemp_phantom]; exact loadsIn_phantom
+  | .phantom .., _, pos, _, _, _, _ => by rw [retemp_phantom]; exact loadsIn_phantom
 
 theorem loadsInKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (σ : Val) (cs : List Call) (R : ℕ → Prop)
-    (ps : List ℕ), Tree.KidsValid P rd0 σ cs ks → Tree.LoadsInKids P fs cert R ps ks →
+    (ps : List (ℕ × ℕ)), Tree.KidsValid P rd0 σ cs ks → Tree.LoadsInKids P fs cert R ps ks →
       Tree.LoadsInKids P fs cert R ps (Tree.retempKids P fs ν ps ks)
   | [], _, _, _, _, _, _ => by rw [retempKids_nil]; exact loadsInKids_nil
   | _ :: _, _, _, _, [], _, h => by rw [Tree.retempKids]; exact h
@@ -609,17 +609,17 @@ theorem loadsInKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (σ : Val) (cs 
 end
 
 mutual
-theorem loadsR_retemp (hF : P.Fresh) : ∀ (t : Tree) (R : ℕ → Prop) (fp : ℕ) {args rets : List E},
-    t.Valid P rd0 args rets → t.LoadsR P R → (t.retemp P fs ν fp).LoadsR P R
-  | .node f σ bufs kids, R, fp, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hl => by
+theorem loadsR_retemp (hF : P.Fresh) : ∀ (t : Tree) (R : ℕ → Prop) (pos : ℕ × ℕ) {args rets : List E},
+    t.Valid P rd0 args rets → t.LoadsR P R → (t.retemp P fs ν pos).LoadsR P R
+  | .node f σ bufs kids, R, pos, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hl => by
       rw [Tree.LoadsR, events_node hf hw] at hl
       rw [retemp_node, Tree.LoadsR, events_retemp hF, events_node hf hw (bufs := bufs) (kids := kids),
         loadAddrs_congr (evAgree_retemp hF hf hw)]
       exact ⟨hl.1, loadsRKids_retemp hF kids σ (calls es) R _ hk hl.2⟩
-  | .phantom .., _, fp, _, _, _, _ => by rw [retemp_phantom, Tree.LoadsR]; trivial
+  | .phantom .., _, pos, _, _, _, _ => by rw [retemp_phantom, Tree.LoadsR]; trivial
 
 theorem loadsRKids_retemp (hF : P.Fresh) : ∀ (ks : List Tree) (σ : Val) (cs : List Call) (R : ℕ → Prop)
-    (ps : List ℕ), Tree.KidsValid P rd0 σ cs ks → Tree.LoadsRKids P R ks →
+    (ps : List (ℕ × ℕ)), Tree.KidsValid P rd0 σ cs ks → Tree.LoadsRKids P R ks →
       Tree.LoadsRKids P R (Tree.retempKids P fs ν ps ks)
   | [], _, _, _, _, _, _ => by rw [retempKids_nil, Tree.LoadsRKids]; trivial
   | _ :: _, _, _, _, [], _, h => by rw [Tree.retempKids]; exact h
@@ -725,11 +725,11 @@ mutual
 /-- **A reader agreeing on a tree's region and data gives the re-chosen tree what it reads**,
 the temporaries read from it. -/
 theorem readsAs_nuRead (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd A).isSome) :
-    ∀ (t : Tree) (R : ℕ → Prop) (fp : ℕ) {args rets : List E}, t.Valid P rd0 args rets →
-    t.Placed P fs cert fp → t.LoadsIn P fs cert R fp →
-    (∀ i, R i ∨ t.Data P fs cert fp i → rd (addressOfIndex i) = rd0 (addressOfIndex i)) →
-    t.ReadsAs P fs (nuRead P rd) rd rd0 fp
-  | .node f σ bufs kids, R, fp, _, _, ⟨fn, hf, _, es, vs, hw, _, hes, hk⟩, hp, hl, hag => by
+    ∀ (t : Tree) (R : ℕ → Prop) (pos : ℕ × ℕ) {args rets : List E}, t.Valid P rd0 args rets →
+    t.Placed P fs cert pos → t.LoadsIn P fs cert R pos →
+    (∀ i, R i ∨ t.Data P fs cert pos i → rd (addressOfIndex i) = rd0 (addressOfIndex i)) →
+    t.ReadsAs P fs (nuRead P rd) rd rd0 pos
+  | .node f σ bufs kids, R, pos, _, _, ⟨fn, hf, _, es, vs, hw, _, hes, hk⟩, hp, hl, hag => by
       have hev : (Tree.node f σ bufs kids).events P = es := events_node hf hw
       rw [readsAs_node, hev]
       rw [placed_node, hev] at hp
@@ -749,9 +749,9 @@ theorem readsAs_nuRead (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd A).i
             | cons r rs =>
                 have hpv := hp.1.2 (p, r) (List.mem_filterMap.mpr ⟨_, ha, rfl⟩)
                 simp only at hpv hk ⊢
-                rw [hpv, show (ofK (addressOfIndex (fp + cert f r))).limb 0 = addressOfIndex (fp +
-                    cert f r) by simp,
-                  show addressOfIndex (fp + cert f r) * addressOfIndex k = addressOfIndex (fp + cert
+                rw [hpv, show (ofK (addressOfIndex (pos.1 + cert f r))).limb 0 =
+                    addressOfIndex (pos.1 + cert f r) by simp,
+                  show addressOfIndex (pos.1 + cert f r) * addressOfIndex k = addressOfIndex (pos.1 + cert
                       f r + k) by
                     simp only [addressOfIndex, pow_add]]
                 refine hag _ (Or.inr (data_node.mpr (Or.inl (Or.inr ⟨(r, rs.length + 1),
@@ -782,7 +782,7 @@ theorem readsAs_nuRead (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd A).i
 
 /-- `readsAs_nuRead` for the callees. -/
 theorem readsAsKids_nuRead (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd A).isSome) :
-    ∀ (ks : List Tree) (σ : Val) (cs : List Call) (R : ℕ → Prop) (ps : List ℕ),
+    ∀ (ks : List Tree) (σ : Val) (cs : List Call) (R : ℕ → Prop) (ps : List (ℕ × ℕ)),
     Tree.KidsValid P rd0 σ cs ks → Tree.PlacedKids P fs cert ps ks →
     Tree.LoadsInKids P fs cert R ps ks →
     (∀ i, R i ∨ Tree.DataKids P fs cert ps ks i → rd (addressOfIndex i) = rd0 (addressOfIndex i)) →
@@ -808,36 +808,42 @@ end
 /-- **A tree moves to another reader** agreeing with its own on its region and data and defined
 wherever it is: its temporaries re-read, it keeps everything else. -/
 theorem transfer (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd A).isSome) {t : Tree}
-    {R : ℕ → Prop} {fp : ℕ} {args rets : List E} (hv : t.Valid P rd0 args rets)
-    (hp : t.Placed P fs cert fp) (hl : t.LoadsIn P fs cert R fp)
-    (hag : ∀ i, R i ∨ t.Data P fs cert fp i → rd (addressOfIndex i) = rd0 (addressOfIndex i)) :
-    (t.retemp P fs (nuRead P rd) fp).name = t.name ∧
-      (t.retemp P fs (nuRead P rd) fp).Valid P rd args rets ∧
-      (t.BufsOk P → (t.retemp P fs (nuRead P rd) fp).BufsOk P) ∧
-      (t.retemp P fs (nuRead P rd) fp).Placed P fs cert fp ∧
-      (t.retemp P fs (nuRead P rd) fp).total fs = t.total fs ∧
-      (t.retemp P fs (nuRead P rd) fp).LoadsIn P fs cert R fp ∧
-      ∀ i, (t.retemp P fs (nuRead P rd) fp).Data P fs cert fp i ↔ t.Data P fs cert fp i :=
-  ⟨name_retemp fp t, retemp_valid hF t fp hv (readsAs_nuRead hF hdef t R fp hv hp hl hag),
-    bufsOk_retemp hF t fp hv, placed_retemp hF t fp hv hp, total_retemp t fp,
-    loadsIn_retemp hF t R fp hv hl, data_retemp hF t fp⟩
+    {R : ℕ → Prop} {pos : ℕ × ℕ} {args rets : List E} (hv : t.Valid P rd0 args rets)
+    (hp : t.Placed P fs cert pos) (hl : t.LoadsIn P fs cert R pos)
+    (hag : ∀ i, R i ∨ t.Data P fs cert pos i → rd (addressOfIndex i) = rd0 (addressOfIndex i)) :
+    (t.retemp P fs (nuRead P rd) pos).name = t.name ∧
+      (t.retemp P fs (nuRead P rd) pos).Valid P rd args rets ∧
+      (t.BufsOk P → (t.retemp P fs (nuRead P rd) pos).BufsOk P) ∧
+      (t.retemp P fs (nuRead P rd) pos).Placed P fs cert pos ∧
+      (t.retemp P fs (nuRead P rd) pos).total fs = t.total fs ∧
+      (t.retemp P fs (nuRead P rd) pos).LoadsIn P fs cert R pos ∧
+      ∀ i, (t.retemp P fs (nuRead P rd) pos).Data P fs cert pos i ↔ t.Data P fs cert pos i :=
+  ⟨name_retemp pos t, retemp_valid hF t pos hv (readsAs_nuRead hF hdef t R pos hv hp hl hag),
+    bufsOk_retemp hF t pos hv, placed_retemp hF t pos hv hp, total_retemp t pos,
+    loadsIn_retemp hF t R pos hv hl, data_retemp hF t pos⟩
 
 /-- **The placed relation of a tree on every reader** agreeing on its region and data. -/
 theorem relAtIn_transfer (hF : P.Fresh) {t : Tree} {R D : ℕ → Prop} {fp : ℕ} {f : String}
     {args rets : List E} (hn : t.name = f) (hv : t.Valid P rd0 args rets) (hb : t.BufsOk P)
-    (hp : t.Placed P fs cert fp) (hl : t.LoadsIn P fs cert R fp)
-    (hD : ∀ i, D i → t.Data P fs cert fp i) (rd : Reader)
-    (hag : ∀ i, R i ∨ t.Data P fs cert fp i → rd (addressOfIndex i) = rd0 (addressOfIndex i))
+    (hp : t.Placed P fs cert (fp, fp + t.block fs P.loop))
+    (hl : t.LoadsIn P fs cert R (fp, fp + t.block fs P.loop))
+    (hD : ∀ i, D i → t.Data P fs cert (fp, fp + t.block fs P.loop) i) (rd : Reader)
+    (hag : ∀ i, R i ∨ t.Data P fs cert (fp, fp + t.block fs P.loop) i →
+      rd (addressOfIndex i) = rd0 (addressOfIndex i))
     (hdef : ∀ A, (rd0 A).isSome → (rd A).isSome) :
     RelAtIn P fs cert rd R D fp (t.total fs) f args rets := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := transfer (rd := rd) hF hdef hv hp hl hag
-  exact ⟨_, h1.trans hn, h2, h3 hb, h4, h5, h6, fun i hi => (h7 i).mpr (hD i hi)⟩
+  refine ⟨_, h1.trans hn, h2, h3 hb, ?_, h5, ?_, fun i hi => ?_⟩ <;>
+    rw [block_retemp]
+  · exact h4
+  · exact h6
+  · exact (h7 i).mpr (hD i hi)
 
 theorem RelAtIn.mono {R R' D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E}
     (h : RelAtIn P fs cert rd R D fp n f args rets) (hR : ∀ i, R i → R' i) :
     RelAtIn P fs cert rd R' D fp n f args rets :=
   let ⟨t, hn, hv, hb, hp, ht, hl, hd⟩ := h
-  ⟨t, hn, hv, hb, hp, ht, loadsIn_mono t fp hR hl, hd⟩
+  ⟨t, hn, hv, hb, hp, ht, loadsIn_mono t _ hR hl, hd⟩
 
 /-! ### Pure functions on every reader -/
 
@@ -854,8 +860,8 @@ theorem runs_pure {es : List Ev} (h : ∀ e ∈ es, e.pure S) : runs es = [] := 
 mutual
 /-- A valid tree of a function of a pure set has no data. -/
 theorem not_data_of_pure (hS : P.PureIn S) : ∀ (t : Tree) {args rets : List E},
-    t.Valid P rd0 args rets → t.BufsOk P → t.name ∈ S → ∀ fp i, ¬ t.Data P fs cert fp i
-  | .node f σ bufs kids, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hb, hn, fp, i => by
+    t.Valid P rd0 args rets → t.BufsOk P → t.name ∈ S → ∀ pos i, ¬ t.Data P fs cert pos i
+  | .node f σ bufs kids, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hb, hn, pos, i => by
       have hpure : ∀ e ∈ es, e.pure S := by
         have := walk_pure (σ := σ) fn.body (hS f hn fn hf)
         rwa [hw] at this
@@ -898,9 +904,9 @@ theorem relAtIn_uniform_pure (hF : P.Fresh) (hS : P.PureIn S) {g : String} (hg :
       RelAtIn P fs cert rd R (fun _ => False) fp n g args rets := by
   obtain ⟨t, hn, hv, hb, hl⟩ := h
   refine ⟨t.total fs, fun fp rd hag hdef => ?_⟩
-  exact relAtIn_transfer hF hn hv hb (placed_of_pure hS t hv hb (hn ▸ hg) fp)
-    (loadsIn_of_loadsR t R fp hl) (fun _ h => h.elim) rd
-    (fun i hi => hi.elim (hag i) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) fp i hd).elim) hdef
+  exact relAtIn_transfer hF hn hv hb (placed_of_pure hS t hv hb (hn ▸ hg) _)
+    (loadsIn_of_loadsR t R _ hl) (fun _ h => h.elim) rd
+    (fun i hi => hi.elim (hag i) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) _ i hd).elim) hdef
 
 end Pure
 

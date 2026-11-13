@@ -81,7 +81,7 @@ theorem completeAtDT_lin_mono {κ : ℕ} {f : String} {Lin Lin' : Layout} {args 
   refine ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hM => ?_⟩
   obtain ⟨t, ⟨hn, hv, hb, hp, ht, hlo, hdd⟩, hT⟩ := hR rd hl (by
     rw [memL_append] at hM ⊢; exact ⟨hM.1, hm rd hM.2⟩)
-  exact ⟨t, ⟨hn, hv, hb, hp, ht, loadsIn_mono t fp hr hlo, hdd⟩, hT⟩
+  exact ⟨t, ⟨hn, hv, hb, hp, ht, loadsIn_mono t _ hr hlo, hdd⟩, hT⟩
 
 end
 end LeanVM.Guest.B1.Da

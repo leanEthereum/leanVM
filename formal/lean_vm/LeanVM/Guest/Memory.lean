@@ -75,9 +75,9 @@ def Inst.Good (P : Core.Program) (rd : Reader) (I : Inst) : Prop :=
 
 mutual
 /-- Every instance of a valid tree is valid or a phantom. -/
-theorem insts_good : ∀ (t : Tree) (fp : ℕ) (hdr : E × E) {args rets : List E},
-    t.Valid P rd args rets → ∀ I ∈ t.insts fs lp H fp hdr, I.Good P rd
-  | .node f σ bufs kids, fp, hdr, args, rets, hv, I, hI => by
+theorem insts_good : ∀ (t : Tree) (p : ℕ × ℕ) (hdr : E × E) {args rets : List E},
+    t.Valid P rd args rets → ∀ I ∈ t.insts fs lp H p hdr, I.Good P rd
+  | .node f σ bufs kids, p, hdr, args, rets, hv, I, hI => by
       rw [insts_node, List.mem_cons] at hI
       rcases hI with rfl | hI
       · exact Or.inl ⟨args, rets, hv⟩
@@ -87,7 +87,8 @@ theorem insts_good : ∀ (t : Tree) (fp : ℕ) (hdr : E × E) {args rets : List 
 
 /-- `insts_good` for the callees. -/
 theorem instsKids_good : ∀ (ks : List Tree) (σ : Val) (cs : List Call) (I : Inst) (j : ℕ)
-    (ps : List ℕ), Tree.KidsValid P rd σ cs ks → ∀ J ∈ Tree.instsKids fs lp H I j ps ks, J.Good P rd
+    (ps : List (ℕ × ℕ)), Tree.KidsValid P rd σ cs ks →
+      ∀ J ∈ Tree.instsKids fs lp H I j ps ks, J.Good P rd
   | [], _, _, _, _, _, _, J, hJ => by rw [instsKids_nil] at hJ; exact (List.not_mem_nil hJ).elim
   | _ :: _, _, _, _, _, [], _, J, hJ => by
       rw [instsKids_nil_left] at hJ; exact (List.not_mem_nil hJ).elim
@@ -124,7 +125,7 @@ variable (P : Core.Program) (fs : String → ℕ) (H : Inst → ℕ → E × E) 
   (hdr : E × E) (T : Tree)
 
 /-- The placed call instances, `main` at word `0`. -/
-def honestInsts : List Inst := T.insts fs P.loop H 0 hdr
+def honestInsts : List Inst := T.insts fs P.loop H (0, T.block fs P.loop) hdr
 
 /-- **The honest memory**: the frames' writes and the paths' equations, on `2^logMem` words for
 the words allocated. -/
@@ -155,7 +156,7 @@ structure HonestAt (cert : String → V → ℕ) (rd : Reader) (args rets : List
   /-- The `HeapBuf`s are those of the paths. -/
   bufsOk : T.BufsOk P
   /-- The tree is placed from word `0`. -/
-  placed : T.Placed P fs cert 0
+  placed : T.Placed P fs cert (0, T.block fs P.loop)
 
 variable {P fs H C hdr T} {rd : Reader} {args rets : List E}
 
@@ -166,16 +167,25 @@ theorem Honest.logMem_le (h : Honest P fs H C hdr T rd args rets) :
 theorem Honest.lt_64 (h : Honest P fs H C hdr T rd args rets) : logMem (T.total fs) < 64 := by
   have := h.logMem_le; unfold maxLogMem at this; omega
 
+/-- Every word an instance owns is in the allocation. -/
+theorem honest_owns {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {i : ℕ} (hi : I.Owns fs i) :
+    i < T.total fs := by
+  have h1 := insts_within T _ hdr (Nat.zero_add _).le I hI i hi
+  have := block_le_total (fs := fs) (lp := P.loop) T
+  unfold InReg Tree.sz at h1
+  simp only at h1
+  omega
+
 /-- Every instance's frame is in the allocation. -/
 theorem honest_within {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) (h0 : 0 < fs I.t.name) :
     I.fp + fs I.t.name ≤ T.total fs := by
-  have := insts_within T 0 hdr I hI (I.fp + fs I.t.name - 1) (Or.inl ⟨by omega, by omega⟩)
+  have := honest_owns hI (i := I.fp + fs I.t.name - 1) (Or.inl ⟨by omega, by omega⟩)
   omega
 
 /-- **Write-once consistency** of the honest memory's writes. -/
 theorem Honest.consistent (h : Honest P fs H C hdr T rd args rets) :
     Consistent (frameWrites C (honestInsts P fs H hdr T) ++ T.eqns P) :=
-  (frameWrites_consistent (insts_pairwise T 0 hdr) h.cells fun I hI => by
+  (frameWrites_consistent (insts_pairwise T _ hdr (Nat.zero_add _).le) h.cells fun I hI => by
     have := honest_within hI (by have := h.cells.two_le I hI; omega)
     have := h.size
     omega).append h.eqns h.cross
@@ -219,11 +229,12 @@ theorem Honest.valid_image (h : Honest P fs H C hdr T rd args rets) :
 /-- **Every instance is valid on the honest memory**, or a phantom. -/
 theorem Honest.inst_good (h : Honest P fs H C hdr T rd args rets) {I : Inst}
     (hI : I ∈ honestInsts P fs H hdr T) : I.Good P (honest P fs H C hdr T).read :=
-  insts_good T 0 hdr h.valid_image I hI
+  insts_good T _ hdr h.valid_image I hI
 
 /-- `main`'s instance: the root, at frame `g^0`, with the header `hdr`. -/
 theorem root_inst : ∃ I ∈ honestInsts P fs H hdr T, I.t = T ∧ I.fp = 0 ∧ I.hdr = hdr := by
-  obtain ⟨I, rest, he, ht, hfp, hh⟩ := head_insts (fs := fs) (H := H) T 0 hdr
+  obtain ⟨I, rest, he, ht, hfp, -, hh⟩ :=
+    head_insts (fs := fs) (lp := P.loop) (H := H) T (0, T.block fs P.loop) hdr
   exact ⟨I, by rw [honestInsts, he]; exact List.mem_cons_self, ht, hfp, hh⟩
 
 /-- **The public boundary**: with the public input as `main`'s header, the honest memory holds
@@ -250,19 +261,20 @@ with the header `H I i`. -/
 theorem honest_kid {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {i : ℕ} {k : Tree}
     (hk : I.t.kids[i]? = some k) :
     ∃ J ∈ honestInsts P fs H hdr T, J.t = k ∧ I.kidFps[i]? = some J.fp ∧ J.hdr = H I i :=
-  insts_kid T 0 hdr I hI i k hk
+  insts_kid T _ hdr I hI i k hk
 
 /-- **A loop's next iteration**: a loop helper's last callee's frame is at `fp + fs f`, the frame
 its code addresses as `fp · g^S`. -/
 theorem honest_kidFps_getLast? {I : Inst} (hI : I ∈ honestInsts P fs H hdr T)
     (hl : P.loop I.t.name = true) (hk : I.t.kids ≠ []) :
     I.kidFps.getLast? = some (I.fp + fs I.t.name) :=
-  (insts_placed T 0 hdr I hI).kidFps_getLast? hl hk
+  (insts_placed T _ hdr (Nat.zero_add _).le I hI).kidFps_getLast? hl hk
 
 /-- An instance's callees' frames, in call order. -/
 theorem honest_kidFps {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) :
-    I.kidFps = kidPos fs P.loop I.fp I.t.name I.t.bufs (I.t.kids.map (Tree.total fs)) :=
-  (insts_placed T 0 hdr I hI).1
+    I.kidFps = (kidPos fs P.loop (I.fp, I.cur) I.t.name I.t.bufs
+      (I.t.kids.map (Tree.sz fs P.loop))).map Prod.fst :=
+  (insts_placed T _ hdr (Nat.zero_add _).le I hI).1
 
 /-! ## Discharging the hypotheses -/
 
@@ -279,7 +291,7 @@ theorem frameWrites_not_buf (hok : CellsOk fs C (honestInsts P fs H hdr T))
     (hi : I.Buf i) : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), a.1 ≠ addressOfIndex i := by
   intro a ha he
   obtain ⟨J, hJ, o, ho, hao⟩ := frameWrites_addr hok ha
-  have hiw := insts_within T 0 hdr I hI i (Or.inr hi)
+  have hiw := honest_owns hI (Or.inr hi)
   have hJw := honest_within hJ (by omega)
   have hio : J.fp + o = i :=
     gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
@@ -287,8 +299,8 @@ theorem frameWrites_not_buf (hok : CellsOk fs C (honestInsts P fs H hdr T))
   have hF : J.Frame fs i := ⟨by omega, by omega⟩
   by_cases hIJ : I = J
   · subst hIJ
-    exact (insts_placed T 0 hdr I hI).frame_buf hF hi
-  · exact (insts_pairwise T 0 hdr).forall hI hJ hIJ i (Or.inr hi) (Or.inl hF)
+    exact (insts_placed T _ hdr (Nat.zero_add _).le I hI).frame_buf hF hi
+  · exact (insts_pairwise T _ hdr (Nat.zero_add _).le).forall hI hJ hIJ i (Or.inr hi) (Or.inl hF)
 
 /-! ## A placed tree -/
 
@@ -299,7 +311,7 @@ theorem HonestAt.nodeAt {cert : String → V → ℕ} (h : HonestAt P fs H C hdr
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) :
     (allocDsts (I.t.events P)).map σ = I.bufBases.map (fun b => ofK (addressOfIndex b)) ∧
       ∀ q ∈ addrs (I.t.events P), σ q.1 = ofK (addressOfIndex (I.fp + cert f q.2)) :=
-  Inst.nodeAt (insts_placedAt T 0 hdr h.placed I hI) (insts_placed T 0 hdr I hI) ht
+  Inst.nodeAt (insts_placedAt T _ hdr h.placed I hI) (insts_placed T _ hdr (Nat.zero_add _).le I hI) ht
 
 /-- **A `frameAddr`'s equations are frame writes** of a placed instance whose cells hold its run
 at the certificate's offsets. -/
