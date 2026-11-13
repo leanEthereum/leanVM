@@ -102,6 +102,13 @@ name = "leanvm-prove"
 root = "LeanvmProve"
 srcDir = "cli"
 
+# The statement's executor (`LeanVM.Prover.Exec.execute`), compiled, against the Rust interpreter's
+# executions (cli/LeanvmExecute.lean); not a default target.
+[[lean_exe]]
+name = "leanvm-execute"
+root = "LeanvmExecute"
+srcDir = "cli"
+
 # The Rust vectors' costly checks, compiled (cli/NodeVectors.lean): the guest's seed against the
 # statement's `deployedSeed guest`, and the DA vector digests; CI runs it after `lake test`.
 [[lean_exe]]

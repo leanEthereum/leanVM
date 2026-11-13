@@ -332,6 +332,98 @@ pub enum RHint {
     Print { label: String, cell: Off },
 }
 
+impl super::Program {
+    /// What [`super::Program::execute`] needs besides the bytecode, as text for the Lean executor
+    /// (`formal/lean_vm/cli/LeanvmExecute.lean` reads it): `main`'s frame size, the hints by pc
+    /// (`Print` left out), and the witness streams by name, each entry's words as hex limbs.
+    pub fn advice_text(&self) -> String {
+        use std::fmt::Write;
+        let dest = |d: &BitsDest| match d {
+            BitsDest::Stack(o) => format!("s {o}"),
+            BitsDest::Heap(o) => format!("h {o}"),
+        };
+        let mut out = format!("leanvm-advice 1\nmain_frame {}\n", self.main_frame);
+        let mut pcs: Vec<_> = self.hints.iter().collect();
+        pcs.sort_by_key(|(pc, _)| **pc);
+        writeln!(out, "hints {}", pcs.len()).unwrap();
+        for (pc, hs) in pcs {
+            let hs: Vec<String> = hs
+                .iter()
+                .filter_map(|h| {
+                    Some(match h {
+                        RHint::FrameAddress { offset } => format!("fa {offset}"),
+                        RHint::AllocFrames {
+                            ptr,
+                            size,
+                            end,
+                            start_inverse,
+                            tail,
+                        } => {
+                            format!("af {ptr} {size} {end} {:x} {tail}", start_inverse.0)
+                        }
+                        RHint::Alloc { ptr, size } => format!("al {ptr} {size}"),
+                        RHint::AllocDyn { ptr, size } => format!("ad {ptr} {size}"),
+                        RHint::WitnessStack { name, base, len } => format!("ws {name} {base} {len}"),
+                        RHint::WitnessHeap { name, ptr, lo, len } => format!("wh {name} {ptr} {lo} {len}"),
+                        RHint::Log2Ceil {
+                            bits,
+                            dst,
+                            nbits,
+                            floor,
+                        } => {
+                            format!("lc {} {dst} {nbits} {floor}", dest(bits))
+                        }
+                        RHint::BitDecompose { value, bits, nbits } => format!("bd {value} {} {nbits}", dest(bits)),
+                        RHint::BitDecomposeExp { value, bits, nbits } => {
+                            format!("be {value} {} {nbits}", dest(bits))
+                        }
+                        RHint::DigitDecomposeExp {
+                            value,
+                            dst,
+                            nbits,
+                            ndigits,
+                            digit_bits,
+                            start,
+                            start_cell,
+                        } => {
+                            let c = start_cell.map_or("-".to_string(), |c| c.to_string());
+                            format!("dd {value} {} {nbits} {ndigits} {digit_bits} {start} {c}", dest(dst))
+                        }
+                        RHint::WindowsExp {
+                            value,
+                            dest: d,
+                            at,
+                            start,
+                            width,
+                            count,
+                        } => {
+                            format!("we {value} {} {at} {start} {width} {count}", dest(d))
+                        }
+                        RHint::FieldLimbs { value, base, len } => format!("fl {value} {base} {len}"),
+                        RHint::Inverse { value, dst } => format!("iv {value} {dst}"),
+                        RHint::Print { .. } => return None,
+                    })
+                })
+                .collect();
+            writeln!(out, "{pc} {} {}", hs.len(), hs.join(" ")).unwrap();
+        }
+        let mut streams: Vec<_> = self.witness.iter().collect();
+        streams.sort_by_key(|(name, _)| name.as_str());
+        writeln!(out, "streams {}", streams.len()).unwrap();
+        for (name, entries) in streams {
+            write!(out, "{name} {}", entries.len()).unwrap();
+            for e in entries {
+                write!(out, " {}", e.len()).unwrap();
+                for w in e {
+                    write!(out, " {:x} {:x}", w.c0, w.c1).unwrap();
+                }
+            }
+            out.push('\n');
+        }
+        out
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

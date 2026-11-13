@@ -18,7 +18,7 @@ What is proved is [`statement.tex`](statement.tex), the one document a reviewer 
 
 ## Statement
 
-- `Statement/` is the trusted statement: seventeen files (`statement.tex`, the reviewer's document, lists them in reading order; keep it in step with every change to `Statement/`), the generated guest bytecode (`Statement/Data/`), the honest prover the completeness statements name (`Statement/Prover/`, its executable `LeanVM.Prover.prove`, fourteen files: a reviewer checks only that it is a genuine prover, its correctness proved in `lean_vm/LeanVM/Prover/`), and proved `@[csimp]` lemmas for speed only (`Statement/Fast/`, not part of what a reviewer reads). It imports only Mathlib, VCVio, CompPoly and its own files (CI checks it), and every change to it changes what is proved. No file beyond the seventeen without asking. Definitions and end statements only: a proof belongs to the proof projects, unless a definition needs it (a structure's law, a decidability instance).
+- `Statement/` is the trusted statement: seventeen files (`statement.tex`, the reviewer's document, lists them in reading order; keep it in step with every change to `Statement/`), the generated guest bytecode (`Statement/Data/`), the honest prover the completeness statements name (`Statement/Prover/`, its executable `LeanVM.Prover.prove` and the executor that runs a program on its advice, `LeanVM.Prover.Exec.execute`, fifteen files: a reviewer checks only that it is a genuine prover, its correctness proved in `lean_vm/LeanVM/Prover/`), and proved `@[csimp]` lemmas for speed only (`Statement/Fast/`, not part of what a reviewer reads). It imports only Mathlib, VCVio, CompPoly and its own files (CI checks it), and every change to it changes what is proved. No file beyond the seventeen without asking. Definitions and end statements only: a proof belongs to the proof projects, unless a definition needs it (a structure's law, a decidability instance).
 - Keep the leanVM definitions a faithful transcription of the leanVM sources they cite (`*.rs:N`, `doc/leanvm` sections), at the commit they name.
 - Only statements in the random-permutation model are end statements; the random-oracle model and the sponge's indifferentiability are proof steps, in the proof projects.
 - Each proof project's root module is its end file: it checks each end theorem against its `Statement` proposition and pins its axioms.
@@ -68,6 +68,7 @@ python3 -I ../lake-build.py . LeanVM --dev        # lean_vm, kernel skipped, nev
 lake test && lake exe node-vectors
 python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4     # after lake build leanvm-verify and cargo build of scripts/rust-verifier-cli
 python3 -I scripts/wire-diff.py tests/fixtures/verifier --jobs 8         # after lake build wire-diff and cargo build of scripts/wire-diff
+scripts/export-prover-traces-rust.sh /tmp/p && lake exe leanvm-execute /tmp/p/*/                 # the executor against the Rust interpreter
 scripts/export-prover-traces-rust.sh /tmp/p && python3 -I scripts/prover-diff.py /tmp/p --mutations 40 --jobs 4 --identical --expected tests/fixtures/verifier
 scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier          # after a protocol change
 scripts/regen-guest.sh --jobs 24 [--check] [--from STEP]                 # every file derived from the guest, after a change to it
