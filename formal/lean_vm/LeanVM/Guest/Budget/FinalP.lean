@@ -122,11 +122,7 @@ theorem mainComplete_of_mainP (fs : String → ℕ) (cert : String → V → ℕ
     {Q : Digest → NodeStatement → NodeWitness → MainPops}
     (ω : Opcode → String → ℕ) (jt : Opcode → ℕ) (H : ∀ op, MainCounts (ω op) fs)
     (hfs : 2 ≤ fs "main") (hxc : B1.Sig.verify_lean_xmss_complete_Spec)
-    (hsc : B1.Sig.SphincsCompleteSpecs) (hrf : Lift.RunsFit fs cert)
-    (hS : MainStatics fs SB SK)
-    (hV : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
-      ChildrenOk bytecode seed w →
-      VerifySubGoalsTB fs cert 0 seed s w (Pvs w) (childBv Bvf w))
+    (hsc : B1.Sig.SphincsCompleteSpecs) (hS : MainStatics fs SB SK)
     (hPS : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
       MainPopsS fs 0 seed s w (Q seed s w))
     (hR : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
@@ -168,7 +164,7 @@ theorem mainComplete_of_mainP (fs : String → ℕ) (cert : String → V → ℕ
     (fun seed s w => Bmain fs SB SK (childBv Bvf w) 0 seed s w) hfs ?_ ?_ ?_ hwords
   · intro seed s w hrel hlim hok
     obtain ⟨n, L, hn, hW, hab, hD, -, hR⟩ := main_honest_budgetBR bytecode_length hrel hlim hxc hsc
-      hrf hS (hV seed s w hrel hlim hok) (hPS seed s w hrel hlim hok) (hR seed s w hrel hlim hok)
+      hS (hPS seed s w hrel hlim hok) (hR seed s w hrel hlim hok)
     exact ⟨n, L, hn, hW, fun q hq => by simpa using hab q hq, hD, hR⟩
   · intro seed s w hrel hlim rd t hTt hv hb op
     obtain ⟨σ, bufs, ks, ht, hMV, hT, hc, -⟩ := hTt
@@ -195,11 +191,7 @@ theorem mainComplete_budgetP (fs : String → ℕ) (cert : String → V → ℕ)
     {Q : Digest → NodeStatement → NodeWitness → MainPops}
     (ω : Opcode → String → ℕ) (jt : Opcode → ℕ) (H : ∀ op, MainCounts (ω op) fs)
     (hfs : 2 ≤ fs "main") (hxc : B1.Sig.verify_lean_xmss_complete_Spec)
-    (hsc : B1.Sig.SphincsCompleteSpecs) (hrf : Lift.RunsFit fs cert)
-    (hS : MainStatics fs SB SK)
-    (hV : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
-      ChildrenOk bytecode seed w →
-      VerifySubGoalsTB fs cert 0 seed s w (Pvs w) (childBv Bvf w))
+    (hsc : B1.Sig.SphincsCompleteSpecs) (hS : MainStatics fs SB SK)
     (hPS : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
       MainPopsS fs 0 seed s w (Q seed s w))
     (hR : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
@@ -213,7 +205,7 @@ theorem mainComplete_budgetP (fs : String → ℕ) (cert : String → V → ℕ)
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (work s w)) :
     MainCompleteP fs cert cnt (mainBudget fs SB SK Bvf ω H c5 s5 v5 jt) :=
-  mainComplete_of_mainP fs cert cnt _ ω jt H hfs hxc hsc hrf hS hV hPS hR hseg hcnt
+  mainComplete_of_mainP fs cert cnt _ ω jt H hfs hxc hsc hS hPS hR hseg hcnt
     (fun op s _ => (H op).clA + (H op).clS * s.claims.xmss.length)
     (fun op s _ => (H op).clA + (H op).clS * s.claims.sphincs.length)
     (fun op s w => (H op).dvA + (H op).dvR * (work s w).rawDaRows +

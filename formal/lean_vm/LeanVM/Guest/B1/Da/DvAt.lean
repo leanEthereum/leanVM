@@ -167,6 +167,14 @@ def dvNH (r L : ℕ) : Tree → Prop :=
 def dvNHz (r L : ℕ) (z : E) : Tree → Prop :=
   NodeHonest coreProgram "da_verify" (dvQz r L z) (flatCalls dvP) (fun _ => dvSizes r L) (dvTs r)
 
+/-- The predicates on `da_verify`'s callees' trees, its columns by trees of `Tc`. -/
+def dvTsC (Tc : Tree → Prop) : List (Tree → Prop) :=
+  [fun _ => True, fun _ => True, fun _ => True, l18From Tc 128 0, fun _ => True, fun _ => True, fun _ => True]
+
+/-- **`da_verify`'s honest shape**, its challenge `z`, its columns by trees of `Tc`. -/
+def dvNHzC (r L : ℕ) (z : E) (Tc : Tree → Prop) : Tree → Prop :=
+  NodeHonest coreProgram "da_verify" (dvQz r L z) (flatCalls dvP) (fun _ => dvSizes r L) (dvTsC Tc)
+
 theorem dvNH_of_z {r L : ℕ} {z : E} {t : Tree} (h : dvNHz r L z t) : dvNH r L t :=
   let ⟨σ, ks, e, hQ, hw, hl, hk⟩ := h
   ⟨σ, ks, e, hQ.1, hw, hl, hk⟩
@@ -251,8 +259,9 @@ variable (fs : String → ℕ) (cert : String → V → ℕ)
 set_option maxRecDepth 20000 in
 /-- **`da_verify` is complete, placed, by a tree of its honest shape, within its frame, its
 buffers and its callees' bounds**, on `r` blobs of cells `syms` orthogonal to the dual codeword of
-`z`, the exponent table's `g^(2^L)` at `g^(s + L)`; its tree exposes the hinted words (`dvNHz`). -/
-theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
+`z`, the exponent table's `g^(2^L)` at `g^(s + L)`; its tree exposes the hinted words, its columns by trees of `Tc`
+when they are complete so (`hcol`). -/
+theorem dv_completeAtB_zC (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     (hT : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b)))
     (h17 : TotalLeOn coreProgram fs name% «da_verify_loop0» LoopPre
@@ -264,16 +273,17 @@ theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     (h20 : TotalLeOn coreProgram fs name% «da_verify_loop3» LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop3» + fs
           name% «da_verify_loop3»))
-    (h21 : TotalLeOn coreProgram fs name% «da_verify_column_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs
-          name% «da_verify_column_loop0»))
     {r L : ℕ} (hdl : TotalLe coreProgram fs (daLevelsName L) (fun _ => SB (daLevelsName L)))
     (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.paddedRowCount r)
-    {syms : ℕ → ℕ → List K} (hsl : ∀ i j, (syms i j).length = 256)
+    {syms : ℕ → ℕ → List K}
     {z : E} (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
-      dualAt z (256 * h + e) * ofK ((syms i h).getD e 0) = 0) (s : ℕ) :
+      dualAt z (256 * h + e) * ofK ((syms i h).getD e 0) = 0) (s : ℕ) {Tc : Tree → Prop}
+    (hcol : ∀ bz bt bc bo bb k : ℕ, k < 128 → CompleteAtDTB fs cert 16 "da_verify_column"
+      (colLin r syms z bz bt bc bo bb (bb + 641 * r))
+      [gen ^ k, gen ^ r, gen ^ (bb + 641 * r), gen ^ bz, gen ^ (bt + 2 ^ 7), gen ^ bc, gen ^ bo] (Returns []) Tc
+      (colBf fs SK r)) :
     CompleteAtDTB fs cert 16 "da_verify" [(s + L, [gen ^ 2 ^ L])] [gen ^ s]
-      (Returns (digestCells (daRoot r L syms) ++ [z])) (dvNHz r L z)
+      (Returns (digestCells (daRoot r L syms) ++ [z])) (dvNHzC r L z Tc)
       (fs "da_verify" + (dvSizes r L).sum + (dvBs fs SB SK r L).sum) := by
   -- the shape
   have hr' : r ≤ 1024 := hr
@@ -302,7 +312,7 @@ theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     (fun fp => dvKids r L syms z s (fp + fs "da_verify"))
     ["da_row_shape", "da_vector", name% «da_verify_loop0», name% «da_verify_loop1»,
         name% «da_verify_loop2», name% «da_verify_loop3», daLevelsName L]
-    (dvBs fs SB SK r L) (dvTs r) (dvQz r L z)
+    (dvBs fs SB SK r L) (dvTsC Tc) (dvQz r L z)
     (fun _ => .cons (fun _ => rfl) (.cons (fun _ => rfl) (.cons (fun _ => rfl) (.cons (fun _ => rfl)
       (.cons (fun _ => rfl) (.cons (fun _ => rfl) (.cons (fun _ => rfl) .nil)))))))
     (fun fp => ?_) (fun _ _ _ _ => rfl) (fun fp outs ho => ?_) (fun fp outs ho rd _ hB hLin hO => ?_)
@@ -325,7 +335,7 @@ theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
         gen ^ ((dvVb z pv).2.1 + 2 ^ 7), gen ^ (dvVb z pv).2.2.1, gen ^ (dvVb z pv).2.2.2]) rfl
         (Lin := colLin r syms z (dvVb z pv).1 (dvVb z pv).2.1 (dvVb z pv).2.2.1 (dvVb z pv).2.2.2 bb
           (bb + 641 * r)) (a := 0)
-        (fun k _ hk => col_completeAtB fs cert hrf h21 hr1 hr' hsl (z := z) (bb := bb) hk) 0 le_rfl
+        (fun k _ hk => hcol _ _ _ _ bb k hk) 0 le_rfl
         (by norm_num)
       rw [pow_zero, Nat.sub_zero] at this
       exact this
@@ -499,6 +509,34 @@ theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
       simp
     · refine ⟨⟨by rw [hσ]; rfl, s2, by rw [hσ]; rfl, by rw [hσ]; exact word_one, by rw [hσ]; exact word_one,
         by rw [hσ]; show word 1 0 + _ = _; rw [word_one], by rw [hσ]; exact word_one⟩, by rw [hσ]; rfl⟩
+
+/-- **`da_verify` is complete, placed, by a tree of its honest shape exposing the hinted words, within its frame, its
+buffers and its callees' bounds** (`dv_completeAtB_zC`, the columns by `col_completeAtB`). -/
+theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
+    (hT : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b)))
+    (h17 : TotalLeOn coreProgram fs name% «da_verify_loop0» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop0» + fs
+          name% «da_verify_loop0»))
+    (h19 : TotalLeOn coreProgram fs name% «da_verify_loop2» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop2» + fs
+          name% «da_verify_loop2»))
+    (h20 : TotalLeOn coreProgram fs name% «da_verify_loop3» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop3» + fs
+          name% «da_verify_loop3»))
+    (h21 : TotalLeOn coreProgram fs name% «da_verify_column_loop0» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs
+          name% «da_verify_column_loop0»))
+    {r L : ℕ} (hdl : TotalLe coreProgram fs (daLevelsName L) (fun _ => SB (daLevelsName L)))
+    (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.paddedRowCount r)
+    {syms : ℕ → ℕ → List K} (hsl : ∀ i j, (syms i j).length = 256)
+    {z : E} (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
+      dualAt z (256 * h + e) * ofK ((syms i h).getD e 0) = 0) (s : ℕ) :
+    CompleteAtDTB fs cert 16 "da_verify" [(s + L, [gen ^ 2 ^ L])] [gen ^ s]
+      (Returns (digestCells (daRoot r L syms) ++ [z])) (dvNHz r L z)
+      (fs "da_verify" + (dvSizes r L).sum + (dvBs fs SB SK r L).sum) :=
+  (dv_completeAtB_zC fs cert hrf hT h17 h19 h20 hdl hr1 hr hL hdot s (Tc := colNH r)
+    fun _ _ _ _ _ _ hk => col_completeAtB fs cert hrf h21 hr1 hr hsl hk).mono le_rfl fun _ h => h
 
 /-- **`da_verify` is complete, placed, by a tree of its honest shape, within its frame, its
 buffers and its callees' bounds** (`dv_completeAtB_z`, the challenge forgotten). -/

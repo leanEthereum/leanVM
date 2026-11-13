@@ -188,9 +188,9 @@ theorem dvHead_pops (rd : Reader) (σ : Val) (k : List Pop) :
   simpa [dvHead, Atom.pops, Hint.pops, Dest.words] using h
 
 /-- **`da_verify` of honest shape pops its shape and its challenge, then its column loop's entries.** -/
-theorem dv_pops {rd : Reader} {r L : ℕ} {z : E} (hL : L ≤ 10) {t : Memory.Tree} {args rets : List E}
-    (ht : dvNHz r L z t) (hv : t.Valid coreProgram rd args rets) :
-    ∃ k3 args3, k3.Valid coreProgram rd args3 [] ∧ l18From (colNH r) 128 0 k3 ∧
+theorem dv_pops {rd : Reader} {r L : ℕ} {z : E} {Tc : Memory.Tree → Prop} (hL : L ≤ 10) {t : Memory.Tree}
+    {args rets : List E} (ht : dvNHzC r L z Tc t) (hv : t.Valid coreProgram rd args rets) :
+    ∃ k3 args3, k3.Valid coreProgram rd args3 [] ∧ l18From Tc 128 0 k3 ∧
       t.pops coreProgram rd = ("da_shape", [gen ^ r, gen ^ L]) :: ("da_challenge", [z]) :: k3.pops coreProgram rd := by
   obtain ⟨σ, ks, rfl, ⟨⟨s1, s2, -⟩, s5⟩, hc, -, hT⟩ := ht
   obtain ⟨fn, hf, -, es, vs, hw, -, -, hkv⟩ := id hv
@@ -284,7 +284,7 @@ theorem da_verify_complete_pops (hrf : Lift.RunsFit fs cert) {w : LeanVM.Da.Matr
     have := dvBs_le hS (r := w.rows.length) hL10
     unfold dvB
     omega
-  · obtain ⟨k3, args3, v3, t3, e⟩ := dv_pops hL10 ht hv
+  · obtain ⟨k3, args3, v3, t3, e⟩ := dv_pops (Tc := colNH w.rows.length) hL10 ht hv
     rw [e, l18_pops hK 128 0 k3 args3 [] rfl t3 v3]
     exact daPops_sameStreams c w hr hL10
 
