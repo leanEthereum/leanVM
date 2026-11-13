@@ -1,6 +1,9 @@
-//! leanVM proves leanXMSS and leanSPHINCS signature claims and LeanDA blob well-formedness.
+//! leanVM aggregates:
+//! - leanXMSS signature (stateful, for the consensus layer)
+//! - leanSPHINCS (stateless, for the execution layer)
+//! - leanDA (PQ blobs)
 //!
-//! End to end in [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
+//! Example: [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
 
 pub use rec_aggregation::{
     AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, LeanSphincsClaim, LeanXmssClaim,
