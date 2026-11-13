@@ -83,7 +83,7 @@ with $\kpw'_j=\eq(\fc^{\mathrm{pos}},j)+\kbeta\,\eq(\fc^{\mathrm{pos}},\along{j}
 
 We prove $2^{\kbatch}$ permutations of Keccak-$f[1600]$ at once, indexed by $\kperm\in\cube{\kbatch}$ low bit first and written $\kperm=(i,p)$ with $i\in\cube{4}$ the low four bits and $p\in\cube{\kbatch-4}$ the pack of \S\ref{keccak:idea}.
 
-The prover commits the inputs as one multilinear $\qkeccak:\cube{\kbatch}\times\cube{5}\to\K$, slot $\ell<25$ of its second coordinate holding input lane $\ell$, bit $z$ being the coefficient of $x^z$; nothing here weighs the seven slots left over, which may hold anything. Its bit slices $Q_z$ satisfy $\qkeccak=\sum_{z<64}Q_z\,x^z$ (Annex~\ref{annex:rs}), so bit $z$ of input lane $\ell$ of permutation $\kperm$ is $Q_z(\kperm,\ell)$.
+The prover commits the inputs as one multilinear $\qkeccak:\cube{\kbatch}\times\cube{5}\to\K$, slot $\ell<25$ of its second coordinate holding input lane $\ell$, bit $z$ being the coefficient of $x^z$; nothing here weighs the seven slots left over, which may hold anything. (\S\ref{keccak:segments} widens the slot index to six bits, and fills the slots left over.) Its bit slices $Q_z$ satisfy $\qkeccak=\sum_{z<64}Q_z\,x^z$ (Annex~\ref{annex:rs}), so bit $z$ of input lane $\ell$ of permutation $\kperm$ is $Q_z(\kperm,\ell)$.
 
 Let $a_e(j;\kperm)$ be bit $j$ after $e$ rounds \eqref{keccak:eq:round} of permutation $\kperm$, from its committed input, and $\kout{\ell}(\kperm)=\sum_{z<64}a_{24}(z+64\ell;\kperm)\,x^z$ its output lane $\ell$. We are given values $\koutv{\ell}$, claimed to be $\mle{\kout{\ell}}$ at one point $(r_{\mathrm{low}},r_{\mathrm{pack}})\in\E^{4}\times\E^{\kbatch-4}$, and prove
 \begin{equation}\label{keccak:eq:statement}
@@ -119,7 +119,7 @@ Steps $2$ and $3$ are unchanged: $\kbatch+7$ sumcheck rounds bind $G(\kpt)$ (\S\
 c=\sum_{i\in\cube{4}}\kw_i\sum_{o\in\cube{5}}\sum_{z<64}\kpw^{\mathrm{in}}(o,z)\;\mle{Q_z}\bigl(i,r,o\bigr),\qquad
 \kpw^{\mathrm{in}}(\ell,\,z)=\kpw_{z+64\ell},
 \end{equation}
-$\kpw^{\mathrm{in}}$ being zero on slots $25$ and above. A degree-two sumcheck binds $i$ (challenges $\fc^{\mathrm{low}}\in\E^{4}$), then the slot (challenges $\fc^{\mathrm{in}}\in\E^{5}$); the prover sends $s_0,\dots,s_{63}$ and the verifier checks the final claim against $\mle{\kw}(\fc^{\mathrm{low}})\sum_z\mle{\kpw^{\mathrm{in}}}(\fc^{\mathrm{in}},z)\,s_z$, leaving
+$\kpw^{\mathrm{in}}$ being zero on slots $25$ and above. A degree-two sumcheck binds $i$ (challenges $\fc^{\mathrm{low}}\in\E^{4}$), then the slot (challenges $\fc^{\mathrm{in}}\in\E^{5}$, or $\E^{6}$ in \S\ref{keccak:segments}); the prover sends $s_0,\dots,s_{63}$ and the verifier checks the final claim against $\mle{\kw}(\fc^{\mathrm{low}})\sum_z\mle{\kpw^{\mathrm{in}}}(\fc^{\mathrm{in}},z)\,s_z$, leaving
 \begin{equation}\label{keccak:eq:in-claim}
 s_z=\mle{Q_z}\bigl(\fc^{\mathrm{low}},r,\fc^{\mathrm{in}}\bigr)\qquad(z<64),
 \end{equation}
@@ -127,7 +127,7 @@ which ring switching takes (Annex~\ref{annex:rs}).
 
 \subsection{Committing the middle state}\label{keccak:segments}
 
-This is an optimization to get smaller proofs and faster recursion: we also commit to each permutation's state after twelve rounds, its lane $\ell$ in slot $25+\ell$. Fifty lanes a permutation now, so a slot index takes six bits and $\qkeccak$ has $\nkeccak=\kbatch+6$ variables. A permutation becomes two runs of twelve rounds: half $0$ from the committed input to the middle state, half $1$ from there to the output. Writing $a_{m,e}$ for the state after $e$ rounds of half $m<2$ from its committed input, what we prove on top of \eqref{keccak:eq:statement} is that half $0$ lands where half $1$ starts:
+This is an optimization to get smaller proofs and faster recursion: we also commit to each permutation's state after twelve rounds, its lane $\ell$ in slot $25+\ell$. Fifty lanes a permutation now, so a slot index takes six bits and $\qkeccak$ has $\nkeccak=\kbatch+6$ variables. The reduction weighs nothing on the fourteen slots $50$ to $63$, so they carry the \texttt{KECCAK} table's first fourteen columns, $\pc$ to $\mathit{out}_{\mathit{all}}$ (\S\ref{sec:tab-keccak}): slot $50+k$ holds column $k$, which then takes no block of its own in the stack (\S\ref{sec:stacking}). A permutation becomes two runs of twelve rounds: half $0$ from the committed input to the middle state, half $1$ from there to the output. Writing $a_{m,e}$ for the state after $e$ rounds of half $m<2$ from its committed input, what we prove on top of \eqref{keccak:eq:statement} is that half $0$ lands where half $1$ starts:
 \begin{equation}\label{keccak:eq:chain}
 a_{0,12}(j;\kperm)=a_{1,0}(j;\kperm)\quad\text{for all }\kperm\text{ and }j<1600.
 \end{equation}

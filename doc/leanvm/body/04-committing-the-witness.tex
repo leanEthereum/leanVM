@@ -3,7 +3,7 @@
 
 \subsection{Multilinear stacking}\label{sec:stacking}
 
-Suppose we want to commit to $T$ multilinears $P_1,\dots,P_T$ over boolean hypercubes of various sizes. We could commit to each independently, at the cost of a large cumulative opening proof. Instead they are concatenated into a large multilinear polynomial $q$, which we commit to with an inner-product commitment scheme (Definition~\ref{def:ipcs}), with a protocol to reduce opening claims on $P_i$ to a claim on $q$. Order them by size, $\kappa_1\ge\dots\ge\kappa_T$ variables, and concatenate their values end to end,
+Suppose we want to commit to $T$ multilinears $P_1,\dots,P_T$ over boolean hypercubes of various sizes. We could commit to each independently, at the cost of a large cumulative opening proof. Instead they are concatenated into a large multilinear polynomial $q$, which we commit to with an inner-product commitment scheme (Definition~\ref{def:ipcs}), with a protocol to reduce opening claims on $P_i$ to a claim on $q$. They come in a fixed order (below). Sort them by size, largest first and ties in that order (a stable sort), relabel them so that $\kappa_1\ge\dots\ge\kappa_T$ variables, and concatenate their values end to end,
 \[
   q \;=\; P_1 \,\Vert\, P_2 \,\Vert\,\dots\,\Vert\, P_T \,\Vert\, 0,
 \]
@@ -20,6 +20,8 @@ the zero padding contributing nothing. An evaluation claim $\widetilde P_i(\zeta
   \widetilde q(\zeta,\mathsf{sel}_i)\;=\;\sum_{w\in\cube{M}}\eq\bigl((\zeta,\mathsf{sel}_i),w\bigr)\,\widetilde q(w)\;=\;c,
 \]
 a weighted sum over $\widetilde q$ with weight $W(w)=\eq((\zeta,\mathsf{sel}_i),w)$.
+
+\paragraph{The committed columns.} In leanVM the order is: $\mem_0$, $\mem_1$ (\S\ref{sec:memchan}), the memory's finalize counts, the bytecode's finalize counts (\S\ref{sec:lookup}), $\qkeccak$ (Annex~\ref{annex:keccak}), then every table's columns, tables in opcode order (\S\ref{sec:bytecode}) and columns in the order of \S\ref{sec:tables}. They have $\kmem$, $\kmem$, $\kmem$, $\kbc$, $\nkeccak$ and, for table $T_j$'s columns, $\tau_j$ variables (\S\ref{sec:m3}). Three kinds of \texttt{KECCAK} column take no piece: the output lanes, which are virtual, and the input lanes and first fourteen columns, which are slots of $\qkeccak$ (\S\ref{sec:tab-keccak}, \S\ref{keccak:segments}). The leaf stacks of the bus (\S\ref{sec:leafstack}) are placed by the same rule.
 
 \paragraph{Batching.} By the identity above, the claims the protocol raises on the $P_i$ transfer to a list of claims $\langle W_j,\widetilde q\rangle=c_j$ on the stack, with $\E$-valued weights and targets. The verifier then samples $\lambda\in\E$, and it remains to prove
 \[

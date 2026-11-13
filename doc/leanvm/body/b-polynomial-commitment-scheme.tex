@@ -11,7 +11,7 @@ A fold round combines two halves with the \emph{affine combiner} of the brillian
 
 \subsubsection{Codes, interleaving, and list decoding}\label{sec:codes}\label{sec:binary-rs}
 
-The encoder $\Enc_{\kappa,\rexp}$ of Definition~\ref{def:enc}, with $\rexp\ge1$ and $\kappa+\rexp\le64$, reads a message $g:\cube{\kappa}\to\E$ as the novel-basis polynomial $\mpoly_g$, of coefficient $g(u)$ on $\novel_{\langle u\rangle}$, and evaluates it on an additive domain $\dom$ of size $\blen=2^{\kappa+\rexp}$. It is a linear injection onto $\RS[\E,\dom,2^\kappa]$ (Definition~\ref{def:rs-code}) of rate $\rate=2^{-\rexp}$. The verifier uses its \emph{column weights}: for $x\in\dom$, $\Enc_{\kappa,\rexp}(g)[x]=\inner{W_x}{g}$ for every $g$, where the MLE $\mle{W_x}$ can be evaluated in $O(\kappa)$ field operations anywhere in $\E^\kappa$ (Lemma~\ref{lem:colweight}). A fold round raises degrees by one, so the analysis also uses polynomials of degree at most some $\dgr\ge2^\kappa$.
+The encoder $\Enc_{\kappa,\rexp}$ of Definition~\ref{def:enc}, with $\rexp\ge1$ and $\kappa+\rexp\le64$, reads a message $g:\cube{\kappa}\to\E$ as the novel-basis polynomial $\mpoly_g$, of coefficient $g(u)$ on $\novel_{\langle u\rangle}$, and evaluates it on an additive domain $\dom$ of size $\blen=2^{\kappa+\rexp}$. It is a linear injection onto $\RS[\E,\dom,2^\kappa]$ (Definition~\ref{def:rs-code}) of rate $\rate=2^{-\rexp}$. The verifier uses its \emph{column weights}: for $x\in\dom$, $\Enc_{\kappa,\rexp}(g)[x]=\inner{W_x}{g}$ for every $g$, where the MLE $\mle{W_x}$ can be evaluated in $O(\kappa)$ field operations anywhere in $\E^\kappa$ (Lemma~\ref{lem:colweight}). A fold round raises degrees by one, so the analysis also uses polynomials of degree at most some $\dgr\ge2^\kappa$, below $2^{62}$ for Lemma~\ref{lem:mulx}.
 
 \begin{definition}[Interleaved words, lists]\label{def:interleaved}
 An \emph{interleaved word} is a matrix $\orc \in \E^{\cube{\ell} \times \dom}$, of $2^\ell$ \emph{lanes}. A \emph{polynomial tuple} $U=(U_u)_{u\in\cube{\ell}}$ has degree at most $\dgr$ if every $U_u$ does; it \emph{agrees} with $\orc$ on $\aset\subseteq\dom$ if $U_u(x)=\orc[u,x]$ for all $u$ and all $x\in\aset$. For an agreement $\agr$, $\lst(\orc;\agr,\dgr)$ is the set of polynomial tuples of degree at most $\dgr$ agreeing with $\orc$ on at least $\agr$ coordinates. A tuple \emph{decodes} to the message $g_U:\cube{\ell+\kappa}\to\E$, where $g_U(u,\cdot)$ are the coefficients of $U_u$ below $2^\kappa$, its \emph{low part}; tuples of degree below $2^\kappa$ decode to distinct messages.
@@ -58,7 +58,7 @@ Polynomial tuples of degree at most $\dgr$ are a code as in Theorem~\ref{thm:joh
 
 \begin{protocol}[WHIR/Ligerito with affine folds]\label{fig:protocol}
 \ \par\smallskip
-\emph{Parameters.} The scheme commits to $f : \cube{\nv} \to \K$ across $\nlev \ge 1$ \emph{levels} $i = 0, \dots, \nlev-1$, with variable counts $\nv = \nv_0 > \nv_1 > \dots > \nv_\nlev \ge 0$, fold factors $\ell_i := \nv_i - \nv_{i+1}$ and $\nv_\nlev$ small (e.g.\ $\nv_\nlev \le 5$). Level $i$ encodes with $\Enc_i := \Enc_{\kappa_i, \rexp_i}$, $\kappa_i := \nv_{i+1}$, of rate $\rate_i = 2^{-\rexp_i}$ over a domain $\dom_i \subseteq \K$ of size $\blen_i = 2^{\kappa_i + \rexp_i}$ (requires $\kappa_i + \rexp_i \le 64$ and $\ell_i\le2^{\kappa_i}$), and takes $\nq_i$ queries. (The agreement thresholds appear only in the analysis.)
+\emph{Parameters.} The scheme commits to $f : \cube{\nv} \to \K$ across $\nlev \ge 1$ \emph{levels} $i = 0, \dots, \nlev-1$, with variable counts $\nv = \nv_0 > \nv_1 > \dots > \nv_\nlev \ge 0$, fold factors $\ell_i := \nv_i - \nv_{i+1}$ and $\nv_\nlev$ small (e.g.\ $\nv_\nlev \le 5$). Level $i$ encodes with $\Enc_i := \Enc_{\kappa_i, \rexp_i}$, $\kappa_i := \nv_{i+1}$, of rate $\rate_i = 2^{-\rexp_i}$ over a domain $\dom_i \subseteq \K$ of size $\blen_i = 2^{\kappa_i + \rexp_i}$ (requires $\kappa_i + \rexp_i \le 64$, $\ell_i\le2^{\kappa_i}$ and $\kappa_i\le61$, so that every lane has degree below $2^{\kappa_i}+\ell_i\le2^{62}$, as Lemma~\ref{lem:mulx} needs; in leanVM $\nv\le30$, so $\kappa_i\le24$), and takes $\nq_i$ queries. (The agreement thresholds appear only in the analysis.) \S\ref{sec:pcs-params} gives leanVM's parameters and encodings.
 
 \smallskip
 \textbf{Commit}$(f : \cube{\nv} \to \K)$: $\mathbf{P}$ sends the oracle $\orc^{(0)}[u, \cdot] := \Enc_0(f(u, \cdot))$, $u \in \cube{\ell_0}$, whose entries are $\K$ elements. Row $u$ evaluates on $\dom_0$ the \emph{lane} $P_u:=\mpoly_{f(u,\cdot)}$, the polynomial whose novel-basis coefficients are $f(u,\cdot)$, and the lanes form the polynomial tuple $P:=(P_u)_{u\in\cube{\ell_0}}$ (Definition~\ref{def:interleaved}), of message $g_P=f$. $\mathbf{V}$ sends $z_0\leftarrow\E^{\nv}$; $\mathbf{P}$ sends $\cood{0}\in\E$ (honestly $\mle{f}(z_0)$). The \emph{OOD claim} $(\eq(z_0,\cdot),\cood{0})$ joins the claims the opening proves.
@@ -135,7 +135,7 @@ Suppose that $(\agr^{(i)}_0)^2>\blen_i\dgr^{(i)}$ for every level $i$, so that t
 \textnormal{each of the } \nv_\nlev \textnormal{ tail rounds}: & \varepsilon^{\mathrm{tail}} &=& \dfrac{2}{|\E|} ,
 \end{array}
 \]
-the second query term being absent at the last level, $i=\nlev-1$. In leanVM, the ring-switching map (Annex~\ref{annex:rs}) is drawn in the same message as level $0$'s $\lambda$ (\S\ref{sec:e2e}), adding $2/|\E|$ to that row: after the commitment's OOD sample at most one list member answers its value (Lemma~\ref{lem:ood}), every other violates the OOD claim whatever the map, and the map fails on that one with probability at most $2/|\E|$. The parameters check the larger $(J_0+1)L_0/|\E|$. Each row is divided by $2^{b}$ for the grind of $b$ bits before its message, which the protocol leaves implicit; the \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest result, held to $2^{-125}$ (\S\ref{sec:grinding}).
+the second query term being absent at the last level, $i=\nlev-1$. In leanVM, the ring-switching map (Annex~\ref{annex:rs}) is drawn in the same message as level $0$'s $\lambda$ (\S\ref{sec:e2e}), adding $2/|\E|$ to that row: after the commitment's OOD sample at most one list member answers its value (Lemma~\ref{lem:ood}), every other violates the OOD claim whatever the map, and the map fails on that one with probability at most $2/|\E|$. Every list member is $\K$-valued, as Annex~\ref{annex:rs} needs to split it into bit slices: $\dom_0\subseteq\K$ and $\orc^{(0)}$ is $\K$-valued, so the $y$-part of each of its lanes, a polynomial of $\K[X]$ of degree at most $\dgr^{(0)}$, vanishes on its $\agr^{(0)}_0>\dgr^{(0)}$ agreement points (as $(\agr^{(0)}_0)^2>\blen_0\dgr^{(0)}$ and $\agr^{(0)}_0\le\blen_0$) and is zero, so its message, in the basis $\novel_j\in\K[X]$, is $\K$-valued too. The parameters check the larger $(J_0+1)L_0/|\E|$, which also covers the map by a plain union bound over the list, without the OOD sample. Each row is divided by $2^{b}$ for the grind of $b$ bits before its message, which the protocol leaves implicit; the \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest result, held to $2^{-125}$ (\S\ref{sec:grinding}).
 \end{theorem}
 
 \subsubsection{Proximity tools}\label{sec:tools}
@@ -213,7 +213,7 @@ Property (i) is the definition of false input claims. For (ii), each condition o
 
 \medskip\noindent\emph{Fold challenge $(\afa_j,\afb_j)$.} Since $\agr^{(i)}_{j-1}=\agr^{(i)}_j-1$, the condition $(\mathrm{I}_{i,j-1})$ is the hypothesis of Lemma~\ref{lem:fold-list} with $\agr=\agr^{(i)}_j$, whatever four values the prover sent. The lemma gives $(\mathrm{I}_{i,j})$, except with probability $\epsaff(\blen_i,\dgr^{(i)},\agr^{(i)}_j)+2\jl(\agr^{(i)}_j-1,\dgr^{(i)})/|\E|$.
 
-\medskip\noindent\emph{OOD point $z_{i+1}$.} The list $\lst^{(i+1)}_0$ is fixed by the prover's commitment, which comes before $z_{i+1}$. By Lemma~\ref{lem:ood}, its distinct messages have distinct values at $z_{i+1}$, except with probability $\binom{L_{i+1}}{2}\nv_{i+1}/|\E|$. The condition $(\mathrm{I}_{i,\ell_i})$ does not involve $z_{i+1}$, so it still holds. (The same bound at $z_0$ makes the commitment binding; the opening does not use it.)
+\medskip\noindent\emph{OOD point $z_{i+1}$.} The list $\lst^{(i+1)}_0$ is fixed by the prover's commitment, which comes before $z_{i+1}$. By Lemma~\ref{lem:ood}, its distinct messages have distinct values at $z_{i+1}$, except with probability $\binom{L_{i+1}}{2}\nv_{i+1}/|\E|$. The condition $(\mathrm{I}_{i,\ell_i})$ does not involve $z_{i+1}$, so it still holds.
 
 \medskip\noindent\emph{Query message of level $i<\nlev-1$.} Before it, the prover has sent $\cood{i+1}$. By separation, at most one message $g^\ast$ of $\lst^{(i+1)}_0$ has $\mle{g^\ast}(z_{i+1})=\cood{i+1}$, and $g^\ast$ and the high part $\phigh$ are fixed before the queries. We first show that, except with probability $\bigl((\agr^{(i)}_{\ell_i}-1)/\blen_i\bigr)^{\nq_i}$, every $U\in\lst^{(i+1)}_0$ violates at least one of the $J_{i+1}$ claims of step 2(e).
 
@@ -243,3 +243,61 @@ The committed $f$ is the stack of \S\ref{sec:stacking}: $\nstack$ elements of $\
 \item a Merkle leaf hashes all $2^{\ell_0}$ values of its column, but in reverse order, padding zeros first: the prover hashes the whole $136$-byte blocks of zeros once, shared by every leaf, and continues each leaf from that sponge state, and the proof stores only the $\nrows$ data values (\S\ref{sec:e2e-merkle-pruning}).
 \end{itemize}
 Both costs are thus proportional to $\nstack$, not to its next power of two. The padding inside the $\nstack$ elements, from instruction counts that are not powers of two, remains; the Jagged PCS \cite{jagged_pcs} would remove it.
+
+%=====================================================================
+\subsection{Parameters and encodings in leanVM}\label{sec:pcs-params}
+%=====================================================================
+
+The stack has $\nv=\nv_0$ variables, $16\le\nv\le30$, and the prover announces $\rexp_0\in\{1,\dots,4\}$ (\S\ref{sec:e2e-unrolled}). The rest follows from $(\nv,\rexp_0)$.
+
+\paragraph{Ladder.} Level $0$ folds $\ell_0=6$ variables. While more than $5$ variables remain, one more level folds $\ell_i=4$, so the last level leaves $\nv_\nlev\le5$ to the tail. The rates are $\rexp_1=\rexp_0+\ell_0-3$ and $\rexp_{i+1}=\rexp_i+\ell_i-1$ for $i\ge1$. Level $i$'s domain is $\dom_i=\subsp_{\kappa_i+\rexp_i}$ (Definition~\ref{def:enc}), its point of index $v$ being $x_v=\sum_cv_ce_c$ (\S\ref{sec:ntt}).
+
+\paragraph{Grinds.} Before each verifier message (\S\ref{sec:grinding}), in bits:
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\hline
+each fold round's $(\afa_j,\afb_j)$ & $7$\\
+level $0$'s batching message: the ring-switching map's sixteen challenges and $\lambda$ (\S\ref{rs:map}) & $13$\\
+each OOD point $z_i$, $z_0$ included & $15$\\
+each query message, the last level's included & $17$\\
+each tail round (degree two) & $0$\\
+\hline
+\end{tabular}
+\end{center}
+
+\paragraph{Queries.} Table~\ref{tab:whir-queries} gives $\nq_0,\dots,\nq_{\nlev-1}$ at each $(\nv,\rexp_0)$. It is normative: the verifier reads it rather than deriving it. It is the output of the search in \texttt{pcs::whir\_config}, which takes at each level the least agreement $\agr^{(i)}_{\ell_i}$ for which every row of Theorem~\ref{thm:rbr} but the query term clears $2^{-125}$ after the grinds above ($J_0\le512$, $L_0\le166$), then the fewest queries for which the query term does. The test \texttt{print\_whir\_query\_table} (\texttt{crates/leanvm\_core/tests/verifiers/whir\_query\_table.rs}) regenerates the table, and \texttt{whir\_query\_table\_matches\_the\_search} pins it.
+\begin{table}[htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}rllll@{}}
+\hline
+$\nv$ & $\rexp_0=1$ & $\rexp_0=2$ & $\rexp_0=3$ & $\rexp_0=4$\\
+\hline
+$16$ & 230, 60, 42 & 112, 47, 35 & 74, 39, 30 & 56, 33, 27 \\
+$17$ & 225, 58, 38 & 111, 46, 32 & 74, 38, 28 & 55, 32, 25 \\
+$18$ & 222, 57, 35 & 110, 45, 31 & 73, 37, 27 & 55, 32, 24 \\
+$19$ & 220, 56, 34 & 110, 45, 29 & 73, 37, 26 & 55, 32, 23 \\
+$20$ & 219, 55, 33, 27 & 109, 44, 29, 24 & 73, 37, 25, 22 & 55, 32, 23, 20 \\
+$21$ & 218, 55, 32, 25 & 109, 44, 28, 23 & 73, 37, 25, 20 & 55, 32, 23, 19 \\
+$22$ & 218, 55, 32, 24 & 109, 44, 28, 22 & 73, 37, 25, 20 & 55, 32, 23, 18 \\
+$23$ & 218, 55, 32, 23 & 109, 44, 28, 21 & 73, 37, 25, 19 & 55, 32, 23, 18 \\
+$24$ & 218, 55, 32, 23, 20 & 109, 44, 28, 21, 18 & 73, 37, 25, 19, 17 & 55, 32, 23, 18, 16 \\
+$25$ & 218, 55, 32, 23, 19 & 109, 44, 28, 21, 17 & 73, 37, 25, 19, 16 & 55, 32, 23, 18, 15 \\
+$26$ & 218, 55, 32, 23, 18 & 109, 44, 28, 21, 17 & 73, 37, 25, 19, 16 & 55, 32, 23, 18, 15 \\
+$27$ & 218, 55, 32, 23, 18 & 109, 44, 28, 21, 17 & 73, 37, 25, 19, 16 & 55, 32, 23, 18, 15 \\
+$28$ & 218, 55, 32, 23, 18, 16 & 109, 44, 28, 21, 17, 15 & 73, 37, 25, 19, 16, 15 & 55, 32, 23, 18, 15, 14 \\
+$29$ & 218, 55, 32, 23, 18, 15 & 109, 44, 28, 21, 17, 15 & 73, 37, 25, 19, 16, 14 & 55, 32, 23, 18, 16, 14 \\
+$30$ & 218, 55, 32, 23, 18, 15 & 109, 44, 28, 21, 17, 15 & 73, 37, 25, 19, 16, 15 & 55, 32, 23, 18, 16, 14 \\
+\hline
+\end{tabular}
+\caption{The query counts $\nq_0,\dots,\nq_{\nlev-1}$, one per level, at stack size $2^{\nv}$ and initial rate $2^{-\rexp_0}$.}\label{tab:whir-queries}
+\end{table}
+
+\paragraph{Sampling the queries.} A query message of level $i$ draws $\nq_i$ indices into $\dom_i$, of $\log_2\blen_i=\kappa_i+\rexp_i$ bits each. Every challenge $c_0+c_1y$, read as the $128$-bit integer $c_0+2^{64}c_1$, gives $\lfloor128/\log_2\blen_i\rfloor$ of them, the $k$-th being its $k$-th run of $\log_2\blen_i$ bits from the low end, until $\nq_i$ are drawn; the last challenge's unused bits are dropped, and an index may repeat. Below the last level, $\lambda$ is the next challenge.
+
+\paragraph{Order on the wire.} Level $i$ sends, for each fold round, $v_G,v_F,\tabx{0},\tabx{1}$, then grinds and draws $\afa_j$, then $\afb_j$. Below the last level it then sends the root of $\orc^{(i+1)}$ and $\phigh_0,\dots,\phigh_{\ell_i-1}$; grinds and draws $z_{i+1}$; sends $\cood{i+1}$; grinds and draws the queries and $\lambda$; and opens $\orc^{(i)}$ at the queries. The last level sends the $2^{\nv_\nlev}+\ell_i$ coefficients of $P$ in the novel basis, in index order; grinds and draws the queries; opens $\orc^{(i)}$ at them; and runs the tail.
+
+\paragraph{Merkle trees.} The hash is Keccak-256 (\S\ref{sec:prog-hashing}). A leaf is the hash of its words, each $8$ bytes little-endian, and an inner node the hash of its children's $32$-byte digests concatenated, left first. The path of leaf $v$ goes up from a left child at the heights where $v$ has a $0$ bit, bit $0$ at the bottom. A root travels on the stream as two elements of $\E$, digest bytes $0$ to $15$ then $16$ to $31$, each $c_0+c_1y$ with $c_0$ and $c_1$ read as $8$ bytes little-endian. The opening of an oracle is a phase of its own: each query's leaf and full path, siblings from the bottom, in query order (pruning is a wire compression, \S\ref{sec:e2e-merkle-pruning}).
+
+\paragraph{Leaves.} The leaf of $\orc^{(i)}$ at $x_v$ holds its column $\orc^{(i)}[\cdot,x_v]$. Its lanes $u$ are read as integers, low bit first, the low bit being the variable folded first, so lanes $2u'$ and $2u'+1$ are $F_{u'}$ and $G_{u'}$ of a fold round. At level $0$ the leaf is $2^{\ell_0}$ words of $\K$, from lane $2^{\ell_0}-1$ down to lane $0$, so that the padding zeros come first (\S\ref{sec:pcs-opt}). At level $i\ge1$ it is $2^{\ell_i+1}$ words, lane $0$ first, each lane $c_0+c_1y$ as its two words $c_0,c_1$.

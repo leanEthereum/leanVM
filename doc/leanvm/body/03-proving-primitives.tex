@@ -104,7 +104,12 @@ To prove that a polynomial $P$ vanishes on $\cube{\kappa}$, the verifier samples
 By Fact~\ref{fact:eq} that sum is $\mle{g}(r)$, for $g$ the restriction of $P$ to the boolean hypercube: the zero polynomial if $P$ vanishes there, and otherwise a nonzero multilinear, which a random $r$ sends to $0$ with probability at most $\kappa/|\E|$ (Lemma~\ref{lem:sz}).
 \end{definition}
 
-\paragraph{Two savings on a round message~\cite{Gru24}.} A round polynomial of degree $D$ travels as its coefficients, and would take $D+1$ of them, but the round check $h_j(0)+h_j(1)\qeq\rc{j-1}$ already pins one to the incoming claim, so $D$ are enough. The same idea applies to the known factor: a zerocheck's summand carries $\eq(r,\cdot)$, which the verifier can form itself, so only the cofactor travels and it is one degree lower. A zerocheck round on a degree-$d$ cofactor therefore costs $d$ field elements.
+\paragraph{The round message~\cite{Gru24}.} A round polynomial travels as coefficients $c_k$ of $Y^k$, one of which the round check pins, so the verifier derives it instead of checking it. There are two forms.
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+\item \emph{Plain.} The prover sends $h_j=\sum_{k\le D}c_kY^k$ as $c_0,c_2,c_3,\dots,c_D$. As $h_j(0)+h_j(1)=\sum_{k\ge1}c_k$ in characteristic two, the verifier sets $c_1=\rc{j-1}+\sum_{k\ge2}c_k$, and $\rc{j}=h_j(\fc_j)$.
+\item \emph{With an $\eq$ factor} (the GKR layers, \S\ref{sec:gkr}). The summand is $\eq(r,x)$ times a cofactor, $r$ known to the verifier, so $h_j(Y)=(1+r_j+Y)\,\bar h_j(Y)$, and the prover sends only the cofactor $\bar h_j=\sum_{k\le D}c_kY^k$, as $c_1,c_2,\dots,c_D$. The round check reads $(1+r_j)\,\bar h_j(0)+r_j\,\bar h_j(1)\qeq\rc{j-1}$, so the verifier sets $c_0=\rc{j-1}+r_j\sum_{k\ge1}c_k$, and $\rc{j}=\bar h_j(\fc_j)$: the factor $\eq(r_j,\fc_j)$ is dropped from every later claim, and the sumcheck ends on the cofactor's value at $\fc$.
+\end{itemize}
+Either way a round costs $D$ field elements, and the grind before $\fc_j$ is for the degree of $h_j$: $D$, or $D+1$ with the factor.
 
 \begin{definition}[RBR soundness, informal; cf.~\cite{CCHLRR19,ACFY25}]\label{def:rbr}
 A public-coin protocol is \emph{round-by-round (RBR) sound with errors} $(\varepsilon_1, \varepsilon_2, \dots)$, one per verifier message, if there is an \emph{invariant} on partial transcripts (not necessarily efficiently computable) marking the positions where a cheating prover has already lost:
@@ -118,7 +123,7 @@ A public-coin protocol is \emph{round-by-round (RBR) sound with errors} $(\varep
 
 Interactive soundness error is then at most $\sum_i \varepsilon_i$. After Fiat-Shamir, it is $\max_i \varepsilon_i$ per random-oracle query~\cite{CCHLRR19,BCS16}.
 
-\paragraph{Grinding.}\label{sec:grinding} Before a verifier message, the prover may have to find a proof of work of $b$ bits (\S\ref{sec:e2e-fiat-shamir}), which divides the message's round-by-round error (Definition~\ref{def:rbr}) by $2^b$. Every message is held to $2^{-125}$: one of error $N/|\E|$ grinds $\max(0,\lceil\log_2N\rceil-3)$ bits, hence none for $N\le8$, as for every sumcheck round. The PCS fixes its own grinds (Annex~\ref{annex:pcs}).
+\paragraph{Grinding.}\label{sec:grinding} Before a verifier message, the prover may have to find a proof of work of $b$ bits (\S\ref{sec:e2e-fiat-shamir}), which divides the message's round-by-round error (Definition~\ref{def:rbr}) by $2^b$. Every message is held to $2^{-125}$: one of error $N/|\E|$ grinds $\max(0,\lceil\log_2N\rceil-3)$ bits, hence none for $N\le8$, as for every sumcheck round. The PCS fixes its own grinds (\S\ref{sec:pcs-params}).
 
 \begin{definition}[Inner-product commitment scheme]\label{def:ipcs}
 A \emph{weighted claim} about a multilinear $g:\cube{M}\to\K$ is a pair $(W,c)$ asserting $\inner{W}{g}=c$, with $c\in\E$ and the weight $W:\cube{M}\to\E$ \emph{MLE-friendly}: the verifier can evaluate $\mle{W}$ anywhere in $\mathrm{poly}(M)$ operations. An \emph{inner-product commitment scheme} commits to $g$ and later proves any such claim,

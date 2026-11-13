@@ -139,14 +139,9 @@ costs are included in the bounds below.
 
 \section{The zkVM: knowledge soundness and completeness}\label{sec:zkvm}
 
-\paragraph{What a proof claims.} A proof claims that a program $\mathit{prog}$ (leanVM bytecode) runs to
-completion on a public input $x$. A \emph{valid execution} of $\mathit{prog}$ on $x$ (\lean{ValidExecution},
-\lean{Statement/LeanIsa.lean}) is a memory of $2^\kappa$ words, $2 \le 2^\kappa \le 2^{30}$,
-holding $x$ in words $0$ and $1$, together with a number of steps that run $\mathit{prog}$ on it from
-$(\mathit{pc}, \mathit{fp}) = (1, 1)$ to the final state $(g^{N_{\mathit{prog}}-1}, 1)$, where $N_{\mathit{prog}}$ is the
-bytecode's size: the last bytecode slot, in \texttt{main}'s frame. The machine halts when both
-registers equal the final state's, checked before each step. This is exactly the state the
-verifier's state bus checks for, so knowledge soundness needs no condition on the program.
+\paragraph{What a proof claims.} A proof claims that a program $\mathit{prog}$ (leanVM bytecode) runs to completion on a public input $x$. A \emph{valid execution} of $\mathit{prog}$ on $x$ (\lean{ValidExecution}, \lean{Statement/LeanIsa.lean}) is a memory of $2^\kappa$ words, $2 \le 2^\kappa \le 2^{30}$, holding $x$ in words $0$ and $1$, together with a number of steps that run $\mathit{prog}$ on it from $(\mathit{pc}, \mathit{fp}) = (1, 1)$ to the final state $(g^{N_{\mathit{prog}}-1}, 1)$, where $N_{\mathit{prog}}$ is the bytecode's size: the last bytecode slot, in \texttt{main}'s frame. The machine halts when both registers equal the final state's, checked before each step. This is exactly the state the verifier's state bus checks for.
+
+\paragraph{Well-formed programs only.} A program (\lean{LeanIsaProgram}) is $2^{k} \le 2^{30}$ typed instructions (\lean{LeanIsaInstruction}), and the verifier reads it as the table of words \lean{bytecodeWords}, sixteen per instruction (\lean{instructionSlots}). Such a table is well formed by construction: slots $0$ to $2$ and every slot the instruction does not use are zero, slot $3$ is one of the six opcodes, the \texttt{DEREF} flags are $(0,0)$, $(1,0)$ or $(0,1)$, never $(1,1)$ (\lean{derefFlags}), the \texttt{KECCAK} layout flags are $0$ or $1$, and its output flags are $(0,0)$, $(1,0)$ or $(1,1)$, one, two or all thirteen cells (\lean{keccakOutputFlags}); operands and immediates are any words. The Rust verifier accepts any table of $2^{k+4}$ words, and a table that is no program's \lean{bytecodeWords} is outside the statement. For a well-formed program, knowledge soundness needs no further condition.
 
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
 machine computes (\lean{LeanVM.extractorComputedBy}~$P$, \lean{Statement/CostMachine.lean}): the
@@ -806,6 +801,7 @@ room for about $1120$ signatures' encodings, or compute it from its input, freei
 \item How $D$ computes the witness: the statement accepts any program that computes it from the
 execution within its budget, not only one that reads it off the memory.
 \item A tight extractor budget: it is $2^{\max(80,\,2\mu + 25)} + O(N\log^3 N)$, priced at the worst shape of each stack size.
+\item Knowledge soundness for a bytecode table that encodes no program (Section~\ref{sec:zkvm}): the Rust verifier accepts any table of words, the statement only \lean{bytecodeWords} of a \lean{LeanIsaProgram}.
 \item The Rust verifier, prover and guests. They are tested against the Lean specification: the
 verifier differential fuzz; the wire differential (the Lean decoding against the Rust
 \texttt{Proof::from\_bytes} on honest wire proofs and their mutations); the prover differential (the Lean prover's proofs byte-identical to the

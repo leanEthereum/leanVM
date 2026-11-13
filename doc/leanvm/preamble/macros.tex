@@ -39,9 +39,6 @@
 \newcommand{\along}[2]{#1^{\rightarrow #2}}   % the position #2 columns along from #1 [along]
 \newcommand{\klin}{\mathsf{lin}}              % a round's linear map: theta, rho, pi [linear]
 \newcommand{\krc}{\mathsf{RC}}                % a round constant, as 64 bits
-\newcommand{\koff}[1]{\mathsf{off}_{#1}}      % rho's rotation offset of lane #1
-\newcommand{\kto}[1]{\mathsf{to}(#1)}         % the lane pi moves lane #1 to
-\newcommand{\krot}{\mathsf{rot}}              % rotation sum of two slice tables [shifts]
 \newcommand{\kemb}{\mathsf{emb}}              % the embedding of sixteen bits [embed]
 \newcommand{\kproj}{\mathsf{proj}}            % its projection of a product [project]
 \newcommand{\kw}{\sigma}                      % instance weights of a claim [mu]
@@ -57,7 +54,6 @@
 \newcommand{\kout}[1]{\mathsf{out}_{#1}}      % the KECCAK table's output lane #1, a virtual column
 \newcommand{\koutv}[1]{\mathsf{out}^{*}_{#1}} % the claimed value on it the reduction starts from [OutputClaim::lanes]
 \newcommand{\kmid}[1]{\mathsf{mid}_{#1}}   % segment 0's output lane #1, as a word (the VM's middle state)
-\newcommand{\kpair}{\Gamma}                  % a factored vector paired with a claim's position weights in the recursion
 
 % ---------- VM ----------
 \newcommand{\loc}[1]{\mem[\fp\cdot #1]}
@@ -113,10 +109,8 @@
 \newcommand{\nlev}{\Lambda}              % number of levels            (was r)
 \newcommand{\rate}{\rho}                 % code rate, the convention
 \newcommand{\rexp}{\nu}                  % rate exponent, rate = 2^-nu  (was R)
-\newcommand{\slack}{\eta}                % Johnson slack, the convention
 \newcommand{\rc}[1]{c^{(#1)}}            % round-#1 running claim      (was sigma_j)
 \newcommand{\nq}{\omega}                 % query count                 (was t_i)
-\newcommand{\qset}{\mathcal{Q}}          % sampled column indices      (was J_i)
 \newcommand{\blen}{n}                    % code block length, the convention
 \newcommand{\dom}{\mathcal{D}}           % evaluation domain           (was S)
 \newcommand{\orc}{Z}                     % oracle / interleaved word   (was C)
@@ -124,8 +118,6 @@
 \newcommand{\nstack}{N_{\mathrm{stack}}}  % field elements placed in the stack, before the zero padding
 \newcommand{\lst}{\mathcal{L}}           % list of nearby polynomial tuples
 \newcommand{\cood}[1]{c_{\mathrm{ood},#1}} % out-of-domain answer at point #1 (was y)
-\newcommand{\polyset}{\mathcal{G}}       % polynomials bound by a commitment
-\newcommand{\relopen}{\mathsf{R}_{\mathrm{open}}}
 \newcommand{\aset}{\mathcal{A}}          % an agreement set
 \newcommand{\agr}{t}                     % an agreement, a number of points (A in CWYZ26)
 \newcommand{\dgr}{\mathsf{d}}            % a degree bound of a fold round (d in CWYZ26)

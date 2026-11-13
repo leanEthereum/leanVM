@@ -45,7 +45,7 @@ Let $0\le\kappa<64$, $\rexp\ge0$, and $\kappa+\rexp\le64$. For $0 \le j < 2^{\ka
 a linear injection onto $\RS[\E, \dom, 2^{\kappa}]$ of rate $\rate = 2^{-\rexp}$; the $\novel_j$ take their values on $\dom \subseteq \K$, so a $\K$-valued message gives a $\K$-valued word. (The message is read \emph{directly} as novel-basis coefficients; no conversion is applied.)
 \end{definition}
 
-The payload consists of polynomial coefficients. Any $\kdim=2^\kappa$ distinct evaluations determine those coefficients by interpolation, but an evaluation prefix need not equal the payload.
+In the PCS the payload is the polynomial's coefficients: any $\kdim=2^\kappa$ distinct evaluations determine them by interpolation, but an evaluation prefix need not equal the payload. LeanDA instead takes the blob to be the evaluations on $\subsp_\kappa$, so its encoding is systematic (\S\ref{sec:da-commit}).
 
 \subsection{The additive NTT}\label{sec:ntt}
 
@@ -97,7 +97,7 @@ For $\ell \in \cube{d}$ let $\mpoly^{(d)}_{\ell} := \sum_{j < 2^{\kappa-d}} a_{\
 The affine fold of Annex~\ref{annex:pcs} multiplies a lane by $X$. In the novel basis this is not a shift of the coefficients, but each coefficient of the product reads only two coefficients of the factor.
 
 \begin{lemma}[Multiplication by $X$ in the novel basis]\label{lem:mulx}
-For $0\le d<63$ put $\nbc_d:=\vansub_{d+1}(e_{d+1})/\vansub_d(e_d)^2\in\K^\times$, so that $\ntmap_d=\nbc_d^{-1}X(X+1)$, and $\nbc_{<s}:=\prod_{d<s}\nbc_d$. Let $H=\sum_ch_c\novel_c$ have degree below $2^{62}$, with $h_c:=0$ past its degree. Then $XH=\sum_ch'_c\novel_c$ with $h'_0=0$ and, for $c\ge1$ with $s$ trailing zeros,
+For $0\le d<63$ let $\nbc_d\in\K^\times$ be $\vansub_{d+1}(e_{d+1})/\vansub_d(e_d)^2$, so that $\ntmap_d=\nbc_d^{-1}X(X+1)$, and $\nbc_{<s}:=\prod_{d<s}\nbc_d$. Let $H=\sum_ch_c\novel_c$ have degree below $2^{62}$, with $h_c:=0$ past its degree. Then $XH=\sum_ch'_c\novel_c$ with $h'_0=0$ and, for $c\ge1$ with $s$ trailing zeros,
 \[
 h'_c=\nbc_{<s}\bigl(h_{c-1}+h_{c+2^s-1}\bigr).
 \]

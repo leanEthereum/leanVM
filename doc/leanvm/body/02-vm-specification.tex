@@ -98,4 +98,6 @@ Additionally, it asserts $\loc{o_1} \in \K$. It reads $\loc{o_3}$ in every mode,
 \end{itemize}
 The \emph{free} limb, marked $\cdot$ above (cell $8$ even, cell $0$ odd), is ignored on input and set to zero on output.
 
+\paragraph{Well-formed programs.} The verifier reads the bytecode as a table of $2^{\kbc+4}$ words of $\K$, $\kbc\le30$ (\S\ref{sec:e2e-bc}), and accepts any such table. A table is a \emph{well-formed} program when each of its $2^{\kbc}$ rows encodes an instruction above: slots $0$ to $2$ and every slot the instruction does not use are zero, slot $3$ is one of the six opcodes, the \texttt{DEREF} flags $(f_{\pc},f_{\fp})$ are $(0,0)$, $(1,0)$ or $(0,1)$, never $(1,1)$, the \texttt{KECCAK} layout flags are in $\{0,1\}$, and its output flags $(\mathit{out}_{\mathit{two}},\mathit{out}_{\mathit{all}})$ are $(0,0)$, $(1,0)$ or $(1,1)$: one, two or all thirteen cells. Operands and immediate limbs may be any element of $\K$. The security proofs cover well-formed programs only, the Lean statement (\texttt{formal/statement.tex}) included, and so does the lookup argument for \texttt{KECCAK}'s gated writes (\S\ref{sec:tab-keccak}), which needs flags in $\{0,1\}$: on any other table the verifier still runs, but nothing is claimed.
+
 
