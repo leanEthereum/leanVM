@@ -27,6 +27,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (eOfNat)
 
+open LeanVM.Guest.Memory (FallPops SplicePops)
+
 @[expose] public section
 
 variable {C : CallRel} {rd : Reader}
@@ -65,7 +67,9 @@ theorem sHtLayer_complete {pad : Nat} {pp a0 key signed ctr : V} {bit val : Nat 
       (sHtLayer pad pp a0 key signed ctr bit val off height b).1 σ
       (fun σ' => AgreeBelow b σ σ' ∧
         σ' (sHtLayer pad pp a0 key signed ctr bit val off height b).2.2 =
-          pFold (pNodeE (σ pp) (σ a0) e sib) height leaf) := by
+          pFold (pNodeE (σ pp) (σ a0) e sib) height leaf ∧
+        ∀ k, SplicePops rd σ' (sHtLayer pad pp a0 key signed ctr bit val off height b).1 [k]
+          (k ++ climbPops "siblings" (pNodeE (σ pp) (σ a0) e sib) e.testBit sib height 0 leaf)) := by
   rw [sHtLayer_split]
   simp only [List.append_assoc]
   have hcells : ∀ c ∈ [KC.cell pp, .cell a0, .cell (.n (b + 1)), .cell signed, .cell ctr],
@@ -126,16 +130,22 @@ theorem sHtLayer_complete {pad : Nat} {pp a0 key signed ctr : V} {bit val : Nat 
   have hag2 : AgreeBelow (b + 10) σ1 σ2 := he2.agree
   have t2 : ∀ v, NBv b v → σ2 v = σ v := fun v hv =>
     (hag2.apply (hv.mono' (by omega))).trans (t1 v hv)
-  have hpv := sPath_complete_val (C := C) (rd := rd) (pad := pad) (pp := pp) (a0 := a0) (bit := bit)
+  have hpv := sPath_complete_pops (C := C) (rd := rd) (pad := pad) (pp := pp) (a0 := a0) (bit := bit)
     (val := val) (off := off) (sib := sib) hh he (cur := .n (b + 10)) (x := b + 11) σ2 (by omega)
     (hpp.mono' (by omega)) (ha0.mono' (by omega)) (fun j hj => (hbn j hj).mono' (by omega))
     (fun j hj => (hvn j hj).mono' (by omega)) ⟨b + 10, by omega, rfl⟩
     (hp.congr hpb fun j hj => by rw [t2 (.n j) ⟨j, hj, rfl⟩])
     (fun j hj => by rw [t2 _ (hbn j hj)]; exact hbit j hj)
     (fun j hj => by rw [t2 _ (hvn j hj)]; exact hval j hj)
-  refine hpv.mono le_rfl le_rfl (fun σ' ⟨hag', hr'⟩ => ⟨?_, ?_⟩)
+  refine hpv.mono le_rfl le_rfl (fun σ' ⟨hag', hr', hP'⟩ => ⟨?_, ?_, fun k => ?_⟩)
   · exact fun j hj => (t2 (.n j) ⟨j, hj, rfl⟩).symm.trans (hag' j (by omega))
   · rw [hr', t2 _ hpp, t2 _ ha0, hl2]
+  · rw [t2 _ hpp, t2 _ ha0, hl2] at hP'
+    have hq : quiet (layerPre pad pp a0 key signed ctr b) = true := by
+      simp only [layerPre, quiet_append, kMsg_quiet]; rfl
+    have h := (SplicePops.of_fallPops (fallPops_quiet (rd := rd) σ' hq)).append
+      ((SplicePops.call "sp_wots" [pp, a0, key, .n (b + 9)] [.n (b + 10)] k).append (SplicePops.of_fallPops hP'))
+    simpa only [List.nil_append, List.append_nil] using h
 
 end
 end LeanVM.Guest.B1.Sig

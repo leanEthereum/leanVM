@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Sig.SphincsGlue
 public import LeanVM.Guest.B1.Sig.CompleteKit
 public import LeanVM.Guest.B1.Sig.SphincsFieldsComplete
 public import LeanVM.Guest.B1.Sig.SphincsSoundFors
+public import LeanVM.Guest.B1.Sig.SphincsClimbPops
 
 /-!
 # The blocks' completeness, as the assembly consumes it
@@ -40,6 +41,8 @@ namespace LeanVM.Guest.B1.Sig
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (eOfNat)
+
+open LeanVM.Guest.Memory (FallPops SplicePops)
 
 @[expose] public section
 
@@ -97,6 +100,10 @@ theorem hintRun_complete (σ : Val) (s : String) (b n : Nat) (f : Nat → E) :
 
 /-! ## The blocks -/
 
+/-- **FORS's entries** at the bottom key's `A0` and key pair `kp`: each tree's secret and its levels' children (`forsTreePops`). -/
+def forsPops (pp a0 : E) (kp : Nat) (s : Nat → Nat) (secret : Nat → E) (sib : Nat → Nat → E) : List Pop :=
+  (List.range 24).flatMap fun c => forsTreePops pp a0 (adrsCell1 3 kp 0 0) c (s c) (secret c) (sib c)
+
 /-- **FORS completes** (`sForsB`, from `n1382` to `n5249`): at the bottom key's `A0` (`tree`) and
 `A1` (`kp`), the leaves `s c` read off the digest's bits and `vals` (their shifts with the trees'
 places, the FIPS 205 tree indices `fIdx c z (s c)`), any secrets and siblings, the FORS key is `T_k` of `P`, `A0`, `FORS_ROOTS` and the roots. -/
@@ -111,7 +118,8 @@ def ForsBlockCompletes : Prop :=
         (hcell ([σ sPP, adrsCell0 0 tree, adrsCell1 4 kp 0 0] ++
           List.ofFn fun c : Sphincs.ForsTreeIndex =>
             forsRootCell (σ sPP) (adrsCell0 0 tree) kp c.val (s c.val) (secret c.val)
-              (sib c.val))).1)
+              (sib c.val))).1 ∧
+        FallPops rd σ' sForsB.1 (forsPops (σ sPP) (adrsCell0 0 tree) kp s secret sib))
 
 /-- **A layer completes after its counter** (`sHtLayer` of layer `l` from `b`): its key's `A0`
 and `A1`, the value it signs and the counter's cell (`N`'s bytes reversed), the call relation
@@ -131,7 +139,9 @@ def HtLayerCompletes : Prop :=
       Completes C rd b (sHtLayer sPad sPP a0 a1 signed ctr sLeafBit sLVal (sOffOf l) (sHeightOf l) b).2.1
         (sHtLayer sPad sPP a0 a1 signed ctr sLeafBit sLVal (sOffOf l) (sHeightOf l) b).1 σ
         (fun σ' => σ' (sHtLayer sPad sPP a0 a1 signed ctr sLeafBit sLVal (sOffOf l) (sHeightOf l) b).2.2 =
-          pFold (pNodeE (σ sPP) (σ a0) e sib) (sHeightOf l) lv)
+          pFold (pNodeE (σ sPP) (σ a0) e sib) (sHeightOf l) lv ∧
+          ∀ k, SplicePops rd σ' (sHtLayer sPad sPP a0 a1 signed ctr sLeafBit sLVal (sOffOf l) (sHeightOf l) b).1
+            [k] (k ++ climbPops "siblings" (pNodeE (σ sPP) (σ a0) e sib) e.testBit sib (sHeightOf l) 0 lv))
 
 /-- **The blocks of `verify_sig_lean_sphincs` complete.** -/
 structure SphincsBlocksComplete : Prop where

@@ -30,6 +30,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Protocol.Verifier (eOfNat)
 open LeanVM.Protocol.KeccakHash
 
+open LeanVM.Guest.Memory (FallPops SplicePops)
+
 @[expose] public section
 
 variable {C : CallRel} {rd : Reader}
@@ -65,6 +67,25 @@ theorem sBody_loads : listLoadsB (loadPtrs sPre) (Fn.«verify_sig_lean_sphincs»
 
 /-! ## The stages, complete -/
 
+/-- The root layer `0` reaches, signing the FORS key, as a cell. -/
+abbrev sRoot0 (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Signature) : E :=
+  layerRootCell pk (digestIdx pk m sig) sig ⟨0, by decide⟩ (forsKeyCell pk m sig)
+
+/-- The root layer `1` reaches, signing layer `0`'s root, as a cell. -/
+abbrev sRoot1 (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Signature) : E :=
+  layerRootCell pk (digestIdx pk m sig) sig ⟨1, by decide⟩ (sRoot0 pk m sig)
+
+/-- **The entries of the statements before the root's check**, the three `sp_wots` calls' `k0`, `k1`, `k2`
+spliced in: the digest's and FORS's, then each layer's. -/
+def prePops (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Signature) (k0 k1 k2 : List Pop) :
+    List Pop :=
+  bottomPops pk m sig ++ (layerPops pk m sig ⟨0, by decide⟩ (forsKeyCell pk m sig) k0 ++
+    (layerPops pk m sig ⟨1, by decide⟩ (sRoot0 pk m sig) k1 ++
+      layerPops pk m sig ⟨2, by decide⟩ (sRoot1 pk m sig) k2))
+
+theorem sMidAddrs_quiet : quiet sMidAddrs = true := rfl
+theorem sTopAddrs_quiet : quiet sTopAddrs = true := rfl
+
 /-- **The statements before the root's check complete**, for a claim of `pk` and `m` at `n0`
 signed by `sig`, the byte table at `n1`: the top layer reaches the key's root, and the byte reads
 are the table's. -/
@@ -74,13 +95,14 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
     (h1 : σ (.n 1) = bb)
     (hat : ClaimAt rd (σ (.n 0)) (cellOf128 pk.publicSeed) (cellOf128 pk.root) (msgLo m) (msgHi m)) :
     Completes C rd 2 sLayerT.2.1 sPre σ (fun σ' => σ' sLayerT.2.2 = cellOf128 pk.root ∧
-      σ' sRoot = cellOf128 pk.root ∧ TablePtrs bb σ' sPre) := by
+      σ' sRoot = cellOf128 pk.root ∧ TablePtrs bb σ' sPre ∧
+      ∀ k0 k1 k2, SplicePops rd σ' sPre [k0, k1, k2] (prePops pk m sig k0 k1 k2)) := by
   obtain ⟨r0, r1, h0, h1', h2⟩ := (verifyWithKeccak_iff_stages pk m sig).mp hv
   rw [sForsKeyOf_eq] at h0
   have hT8 := sLayerT_le
   unfold sPre
   refine Completes.append (m := 5249) (by norm_num) (by omega) sBottom_nb
-    (sBottom_complete hB hm hbb pk m sig σ h1 hat) (fun σA heA hA => ?_)
+    (sBottom_complete hB hm hbb pk m sig σ h1 hat) (fun σA heA ⟨hA, hAP⟩ => ?_)
   have hA1 : σA (.n 1) = bb := by rw [heA.apply (Or.inl (by norm_num))]; exact h1
   -- the bottom layer
   obtain ⟨hr0, hL0⟩ := layer_stage hB hC hm hbb (l := 0) (by norm_num) h0
@@ -88,7 +110,7 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
   set R0 := layerRootCell pk (digestIdx pk m sig) sig ⟨0, by decide⟩ (forsKeyCell pk m sig)
     with hR0d
   refine Completes.append (m := 5398) (by norm_num) (by omega) sLayerB_nb hL0
-    (fun σB heB ⟨hB0, hBp⟩ => ?_)
+    (fun σB heB ⟨hB0, hBp, hBs⟩ => ?_)
   have tB : ∀ k < 5249, σB (.n k) = σA (.n k) := fun k hk => heB.apply (Or.inl hk)
   -- the middle layer's address
   refine Completes.seq sMidAddrs_seq (by omega) (fun σC heC hAtC => ?_)
@@ -106,7 +128,7 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
     σC (by rw [tCA 1 (by norm_num)]; exact hA1) hAC ha0C ha1C hsC
   set R1 := layerRootCell pk (digestIdx pk m sig) sig ⟨1, by decide⟩ R0 with hR1d
   refine Completes.append (m := 5556) (by norm_num) (by omega) sLayerM_nb hL1
-    (fun σD heD ⟨hD1, hDp⟩ => ?_)
+    (fun σD heD ⟨hD1, hDp, hDs⟩ => ?_)
   have tD : ∀ k < 5407, σD (.n k) = σC (.n k) := fun k hk => heD.apply (Or.inl hk)
   -- the top layer's address
   refine Completes.seq sTopAddrs_seq (by omega) (fun σE heE hAtE => ?_)
@@ -125,7 +147,7 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
     σE (by rw [tEA 1 (by norm_num)]; exact hA1) hAE ha0E ha1E hsE
   have hR2 : layerRootCell pk (digestIdx pk m sig) sig ⟨2, by decide⟩ R1 = cellOf128 pk.root := by
     rw [hr2, cellOf128_cellVal]
-  obtain ⟨σF, heF, ⟨hF2, hFp⟩, hhF⟩ := hL2
+  obtain ⟨σF, heF, ⟨hF2, hFp, hFs⟩, hhF⟩ := hL2
   have tF : ∀ k < 5562, σF (.n k) = σE (.n k) := fun k hk => heF.apply (Or.inl hk)
   have tFA : ∀ k < 5249, σF (.n k) = σA (.n k) := fun k hk => by rw [tF k (by omega), tEA k hk]
   have tFB : ∀ k < 5398, σF (.n k) = σB (.n k) := fun k hk => by
@@ -133,7 +155,15 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
   have tFD : ∀ k < 5556, σF (.n k) = σD (.n k) := fun k hk => by rw [tF k (by omega), tE k hk]
   obtain ⟨-, -, hrA, -, hqA, -⟩ := hA
   refine ⟨σF, heF, ⟨hF2.trans hR2, by rw [show sRoot = .n 3 from rfl, tFA 3 (by norm_num)]; exact hrA,
-    ?_⟩, hhF⟩
+    ?_, fun k0 k1 k2 => ?_⟩, hhF⟩
+  swap
+  · have h := (SplicePops.of_fallPops (hAP.agree sBottom_nb fun k hk => (tFA k hk).symm)).append
+      (((hBs k0).agree sLayerB_nb fun k hk => (tFB k hk).symm).append
+        ((SplicePops.of_fallPops (fallPops_quiet (rd := rd) σF sMidAddrs_quiet)).append
+          (((hDs k1).agree sLayerM_nb fun k hk => (tFD k hk).symm).append
+            ((SplicePops.of_fallPops (fallPops_quiet (rd := rd) σF sTopAddrs_quiet)).append (hFs k2)))))
+    simp only [List.nil_append, List.singleton_append] at h
+    exact h
   refine TablePtrs.append (TablePtrs.append (hqA.congr sDigestBlock_ptrs fun k hk => tFA k (by omega))
     (TablePtrs.nil_of sAfterDigest_ptrs.1)) ?_
   refine TablePtrs.append (hBp.congr sLayerB_ptrs tFB) (TablePtrs.append
@@ -150,7 +180,7 @@ theorem verify_sig_lean_sphincs_complete_loads_of (hB : SphincsBlocksComplete) :
     simp only [σ0]
     rw [Function.update_of_ne (by simp), Function.update_self]
   have e1 : σ0 (.n 1) = bb := Function.update_self ..
-  obtain ⟨σf, hef, ⟨hroot, hrt, hptrs⟩, hhf⟩ :=
+  obtain ⟨σf, hef, ⟨hroot, hrt, hptrs, -⟩, hhf⟩ :=
     sPre_complete hB hC hm hbb pk m sig hv σ0 e1 (by rw [e0]; exact hat)
   have f0 : σf (.n 0) = p := by rw [hef.apply (Or.inl (by norm_num))]; exact e0
   have f1 : σf (.n 1) = bb := by rw [hef.apply (Or.inl (by norm_num))]; exact e1

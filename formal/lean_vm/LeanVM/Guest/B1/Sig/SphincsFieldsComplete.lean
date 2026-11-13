@@ -117,7 +117,8 @@ theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb
     (h1 : σ (.n 1) = bb) :
     Completes C rd 28 1372 (sBitsHint ++ sBooleans ++ sForsFields ++ sLeafShifts ++ sMdBytes ++ sCheck) σ
       (fun σ' => DigestAt σ' (digestNatOf (σ sHm0) (σ sHm0b) (σ sHm1)) ∧
-        ∀ k ≤ 5, BytePtr bb (σ' (.n (fbPtr 1312 k)))) := by
+        (∀ k ≤ 5, BytePtr bb (σ' (.n (fbPtr 1312 k)))) ∧
+        ∀ j < 6, σ' (.n (1306 + j)) = ofK (addressOfIndex (unusedOf (σ sHm1) / 256 ^ j % 256))) := by
   set T := digestNatOf (σ sHm0) (σ sHm0b) (σ sHm1) with hT
   have hTlt : T < 2 ^ 272 := digestNatOf_lt _ _ _
   have n0 := cellNat_lt (σ sHm0)
@@ -242,9 +243,11 @@ theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb
       exact ofK_isInK _)
     (numBelow_of_all (by decide +kernel)) le_rfl ?_
   refine Completes.nil' ⟨⟨hTlt, hb1.congr fun k hk => t5 k (by omega), (hv1.congr fun k hk => t5 k (by omega)),
-    hl5, by rw [show sTreeMid = .n 1279 from rfl, t5 _ (by norm_num)]; exact tm1⟩, fun k hk => ?_⟩
-  rw [he5.apply (Or.inl (by simp only [fbPtr]; split <;> omega))]
-  exact hp4 k hk
+    hl5, by rw [show sTreeMid = .n 1279 from rfl, t5 _ (by norm_num)]; exact tm1⟩, fun k hk => ?_, fun j hj => ?_⟩
+  · rw [he5.apply (Or.inl (by simp only [fbPtr]; split <;> omega))]
+    exact hp4 k hk
+  · rw [he5.apply (Or.inl (by omega)), he4.apply (Or.inl (by omega)), hσu]
+    exact updRun_at σ2 1306 6 g hj
 
 /-! ## The whole block -/
 
@@ -274,7 +277,9 @@ theorem sDigestBlock_complete (hm : MemOK rd 256) {bb p : E} (hbb : ByteBits rd 
     Completes C rd 2 1372 sDigestBlock σ (fun σ' => σ' sPP = cellOf128 pk.publicSeed ∧
       σ' sRoot = cellOf128 pk.root ∧ σ' sRand = cellOf128 R ∧ PadOK σ' sPad ∧
       DigestAt σ' (Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600 pk R
-        msg)).toNat ∧ DigestPtrs σ' bb) := by
+        msg)).toNat ∧ DigestPtrs σ' bb ∧
+      ∀ j < 6, σ' (.n (1306 + j)) = ofK (addressOfIndex (unusedOf (digestHalves (keccak256
+        (hmsgBytes (cellOf128 R) (cellOf128 pk.publicSeed) (cellOf128 pk.root) msg.toNat 1))).1 / 256 ^ j % 256))) := by
   set M := msg.toNat with hMdef
   have hM : M < 2 ^ 256 := msg.isLt
   have e0 : cellOf128 (msg.extractLsb' 0 128) = eOfNat128 (M % 2 ^ 128) := by
@@ -326,8 +331,8 @@ theorem sDigestBlock_complete (hm : MemOK rd 256) {bb p : E} (hbb : ByteBits rd 
       by rw [show sRand = .n 6 from rfl, he.apply (Or.inl (by norm_num))]; exact q3,
       q4.congr (b := 28) (by simp [sPad]) (fun k hk => (he.apply (Or.inl hk)).symm)⟩)).mono
     le_rfl le_rfl ?_
-  rintro σ' ⟨⟨hD, hu⟩, q1, q2, q3, q4⟩
-  exact ⟨q1, q2, q3, q4, by rw [← hT]; exact hD, hu⟩
+  rintro σ' ⟨⟨hD, hu, hun⟩, q1, q2, q3, q4⟩
+  exact ⟨q1, q2, q3, q4, by rw [← hT]; exact hD, hu, fun j hj => by rw [hun j hj, d1]⟩
 
 end
 end LeanVM.Guest.B1.Sig
