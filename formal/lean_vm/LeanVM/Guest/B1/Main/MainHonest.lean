@@ -66,17 +66,25 @@ def segOf : List ℕ → ℕ → ℕ × ℕ
   | [], k => (0, k)
   | l :: ls, k => if k < l then (0, k) else ((segOf ls (k - l)).1 + 1, (segOf ls (k - l)).2)
 
-/-- The global index of the leanXMSS region's taker `k` (raw first, then the children's). -/
+/-- Whether child `c`'s leanXMSS list takes the gap walk: its slots strictly increase
+(`Hints.childSlotPushes`). -/
+def hMonoX (c : ℕ) : Bool := Hints.increasing ((xPlan s w).childSlots.getD c [])
+
+/-- Whether child `c`'s leanSPHINCS list takes the gap walk. -/
+def hMonoS (c : ℕ) : Bool := Hints.increasing ((sPlan s w).childSlots.getD c [])
+
+/-- The global index of the leanXMSS region's taker `k` (raw first, then the children's): a
+child's claim on the gap walk marks its list's first count, on the other its own. -/
 def hMarkX (k : ℕ) : ℕ :=
   if k < (hRawX s w).length then k
   else let p := segOf (w.children.map (·.statement.claims.xmss.length)) (k - (hRawX s w).length)
-    hW s w p.1 + p.2
+    hW s w p.1 + (if hMonoX s w p.1 then 0 else p.2)
 
 /-- The leanSPHINCS region's. -/
 def hMarkS (k : ℕ) : ℕ :=
   if k < (hRawS s w).length then (hRawX s w).length + k
   else let p := segOf (w.children.map (·.statement.claims.sphincs.length)) (k - (hRawS s w).length)
-    hW s w p.1 + hEx w p.1 + p.2
+    hW s w p.1 + hEx w p.1 + (if hMonoS s w p.1 then 0 else p.2)
 
 /-- **The coverage table's words**: each slot's taker's mark, region by region. -/
 def hCover : List E :=
