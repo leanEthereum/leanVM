@@ -7,6 +7,7 @@ import LeanVM.Guest.Budget.ClosedN
 import LeanVM.Guest.Budget.Fits
 import LeanVM.Prover.End
 import LeanVM.Prover.EndChild
+import LeanVM.Prover.ExecuteSound
 import LeanVM.Guest.HonestChildren
 import XmssSecurity.Rpm
 import Sphincs.Security
@@ -276,6 +277,16 @@ The pruning idea and its formalization on leanerVM's main branch are scaraven's
 /-- info: 'LeanVM.Wire.oneEncoding' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Wire.oneEncoding
+
+/-! ## The executor
+
+`LeanVM.Prover.Exec.execute_sound`: an execution the executor `LeanVM.Prover.Exec.execute`
+(`Statement/Prover/Execute.lean`) returns is a valid execution of the program on the public input,
+whatever the hints and streams (`LeanVM/Prover/ExecuteSound.lean`). -/
+
+/-- info: 'LeanVM.Prover.Exec.execute_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.Exec.execute_sound
 
 /-- **Every end theorem**, `Statement/Theorems.lean`, at the extractor
 `LeanVM.Cost.compiledKnowledgeExtractor` and any decoder program `decoderProgram` meeting its

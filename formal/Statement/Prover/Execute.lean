@@ -15,11 +15,11 @@ links them, a later write to either reaching both. The hints a `pc` carries (`RH
 of `main`'s frame), pop witness streams, and compute advice the instructions go on to check.
 
 Nothing here is trusted: a run that halts gives a valid execution whatever the program, its hints
-and its streams (`lean_vm`, `LeanVM/Prover/Execute.lean`). One difference from the Rust: an
+and its streams (`lean_vm`, `LeanVM/Prover/ExecuteSound.lean`). One difference from the Rust: an
 instruction reading an unwritten cell fails here, where the Rust reads zero and records the read,
 an execution its prover then refuses (`unconstrained_reads`); so the two accept the same runs. A
-run whose hints write past `maxCells` fails at its end, its memory being no stack's. A `DEREF` link is a class of cells sharing one value; the run ends by checking that every link's two
-cells agree.
+run whose hints write past `maxCells` fails at its end, its memory being no stack's. A `DEREF` link
+is a class of cells sharing one value; the run ends by checking that every link's two cells agree.
 -/
 
 @[expose] public section
