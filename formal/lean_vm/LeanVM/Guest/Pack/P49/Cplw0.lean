@@ -24,11 +24,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `da_verify_column`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(419, Fn.«da_expand__L7_L8».sig), (420, Fn.«da_verify_column_loop0».sig)]) Data.jtTrie globSem) code Fn.«da_verify_column».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(414, Fn.«da_expand__L7_L8».sig), (415, Fn.«da_verify_column_loop0».sig)]) Data.jtTrie globSem) code Fn.«da_verify_column».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `da_verify_column`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(419, Fn.«da_expand__L7_L8».sig), (420, Fn.«da_verify_column_loop0».sig)]) Data.jtTrie globSem) code Fn.«da_verify_column».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(414, Fn.«da_expand__L7_L8».sig), (415, Fn.«da_verify_column_loop0».sig)]) Data.jtTrie globSem) code Fn.«da_verify_column».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

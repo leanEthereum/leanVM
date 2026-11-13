@@ -78,11 +78,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `da_column_offsets`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(424, Fn.«da_column_offsets_loop0».sig), (425, Fn.«da_column_offsets_loop1».sig), (426, Fn.«da_column_offsets_loop2».sig), (427, Fn.«da_column_offsets_loop3».sig), (428, Fn.«da_column_offsets_loop4».sig), (429, Fn.«da_column_offsets_loop5».sig), (430, Fn.«da_column_offsets_loop6».sig)]) Data.jtTrie globSem) code Fn.«da_column_offsets».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(419, Fn.«da_column_offsets_loop0».sig), (420, Fn.«da_column_offsets_loop1».sig), (421, Fn.«da_column_offsets_loop2».sig), (422, Fn.«da_column_offsets_loop3».sig), (423, Fn.«da_column_offsets_loop4».sig), (424, Fn.«da_column_offsets_loop5».sig), (425, Fn.«da_column_offsets_loop6».sig)]) Data.jtTrie globSem) code Fn.«da_column_offsets».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `da_column_offsets`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(424, Fn.«da_column_offsets_loop0».sig), (425, Fn.«da_column_offsets_loop1».sig), (426, Fn.«da_column_offsets_loop2».sig), (427, Fn.«da_column_offsets_loop3».sig), (428, Fn.«da_column_offsets_loop4».sig), (429, Fn.«da_column_offsets_loop5».sig), (430, Fn.«da_column_offsets_loop6».sig)]) Data.jtTrie globSem) code Fn.«da_column_offsets».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(419, Fn.«da_column_offsets_loop0».sig), (420, Fn.«da_column_offsets_loop1».sig), (421, Fn.«da_column_offsets_loop2».sig), (422, Fn.«da_column_offsets_loop3».sig), (423, Fn.«da_column_offsets_loop4».sig), (424, Fn.«da_column_offsets_loop5».sig), (425, Fn.«da_column_offsets_loop6».sig)]) Data.jtTrie globSem) code Fn.«da_column_offsets».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

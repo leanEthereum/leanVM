@@ -22,28 +22,9 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop163`, once. -/
-theorem st : shareStaticD Fn.«level_residual__L25_L7_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop163`, window 0. -/
-theorem sw0 : shareWinD Fn.«level_residual__L25_L7_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop163`, window 1. -/
+/-- `__loop123`, window 1. -/
 theorem sw1 : shareWinD Fn.«level_residual__L25_L7_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
-
-/-- `__loop163`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_residual__L25_L7_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-  · exact sw1
-⟩
 
 end
 end LeanVM.Guest.Fn.«level_residual__L25_L7_L4_L2_loop0»
@@ -55,16 +36,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop168`, once. -/
+/-- `__loop128`, once. -/
 theorem st : shareStaticD Fn.«level_positions__L16_L18_L6_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop168`, window 0. -/
+/-- `__loop128`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_positions__L16_L18_L6_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop168`: its static sharing check and every window's. -/
+/-- `__loop128`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_positions__L16_L18_L6_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -82,21 +63,21 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop191`, once. -/
+/-- `__loop151`, once. -/
 theorem st : shareStaticD Fn.«level_residual__L32_L12_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop191`, window 0. -/
+/-- `__loop151`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_residual__L32_L12_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop191`, window 1. -/
+/-- `__loop151`, window 1. -/
 theorem sw1 : shareWinD Fn.«level_residual__L32_L12_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
-/-- `__loop191`: its static sharing check and every window's. -/
+/-- `__loop151`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L32_L12_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 1 := by decide +kernel
   rw [hc] at hi
@@ -107,4 +88,23 @@ theorem shareOk : ShareOkD Fn.«level_residual__L32_L12_L4_L2_loop0».core (cert
 
 end
 end LeanVM.Guest.Fn.«level_residual__L32_L12_L4_L2_loop0»
+
+namespace LeanVM.Guest.Fn.«level_residual__L28_L8_L4_L2_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `__loop153`, once. -/
+theorem st : shareStaticD Fn.«level_residual__L28_L8_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop153`, window 0. -/
+theorem sw0 : shareWinD Fn.«level_residual__L28_L8_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«level_residual__L28_L8_L4_L2_loop0»
 

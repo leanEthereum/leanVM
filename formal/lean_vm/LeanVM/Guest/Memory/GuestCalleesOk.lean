@@ -24,20 +24,17 @@ theorem nameT_ok_400 : RangeOk (fun j fn => decide (Data.nameT.find j = some fn.
 theorem nameT_ok_800 : RangeOk (fun j fn => decide (Data.nameT.find j = some fn.name)) 800 400 := by
   unfold RangeOk; decide +kernel
 
-theorem nameT_ok_1200 : RangeOk (fun j fn => decide (Data.nameT.find j = some fn.name)) 1200 400 := by
-  unfold RangeOk; decide +kernel
-
-theorem nameT_ok_1600 : RangeOk (fun j fn => decide (Data.nameT.find j = some fn.name)) 1600 1 := by
+theorem nameT_ok_1200 : RangeOk (fun j fn => decide (Data.nameT.find j = some fn.name)) 1200 364 := by
   unfold RangeOk; decide +kernel
 
 /-- **The names are the functions'.** -/
 theorem nameT_ok : RangeOk (fun j fn => decide (Data.nameT.find j = some fn.name)) 0 coreProgram.length := by
   rw [coreProgram_length]
-  have h := ((((nameT_ok_0.append nameT_ok_400).append nameT_ok_800).append nameT_ok_1200).append nameT_ok_1600)
+  have h := (((nameT_ok_0.append nameT_ok_400).append nameT_ok_800).append nameT_ok_1200)
   exact h
 
 /-- **The callees' indices are in range.** -/
-theorem calleeT_lt : calleeT.all (fun l => l.all fun k => Nat.blt k 1601) = true := by
+theorem calleeT_lt : calleeT.all (fun l => l.all fun k => Nat.blt k 1564) = true := by
   decide +kernel
 
 /-- **`nameT` names the functions.** -/

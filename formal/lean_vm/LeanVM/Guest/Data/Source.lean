@@ -769,10 +769,10 @@ def const_DA_LOG_K : Nat := 14
 def const_DA_LOG_CELL : Nat := 8
 
 /-- The global constant `DA_MAX_ROWS`. -/
-def const_DA_MAX_ROWS : Nat := 1024
+def const_DA_MAX_ROWS : Nat := 32
 
 /-- The global constant `DA_LOG_MAX_ROWS`. -/
-def const_DA_LOG_MAX_ROWS : Nat := 10
+def const_DA_LOG_MAX_ROWS : Nat := 5
 
 /-- The global constant `DA_PAD_BLOB_0`. -/
 def const_DA_PAD_BLOB_0 : Nat := 75782346877761445325744852649459957603
@@ -796,7 +796,7 @@ def const_DA_CELLS : Nat := 128
 def const_DA_PACKED : Nat := 128
 
 /-- The global constant `DA_TREE_ARMS`. -/
-def const_DA_TREE_ARMS : Nat := 11
+def const_DA_TREE_ARMS : Nat := 6
 
 /-- The global constant `DA_SUM`. -/
 def const_DA_SUM : Nat := 512
@@ -4104,7 +4104,7 @@ def fn_da_verify : Func :=
         .mk 4543 (.let_ "pad" (.mul (.mul (.var "roots") (.pow (.var "n_blob_g") (.lit 2))) (.pow (.var "xd") (.lit 2)))),
         .mk 4544 (.store (.var "pad") (.lit 1) (.lit 75782346877761445325744852649459957603)),
         .mk 4545 (.store (.var "pad") .gen (.lit 31763914487088020322649104629593420073))]),
-      .mk 4546 (.match_ [(.var "r0"), (.var "r1")] (.var "g_log_pad") [(.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 0)), (.lit 0)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 1)), (.lit 1)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 2)), (.lit 2)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 3)), (.lit 3)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 4)), (.lit 4)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 5)), (.lit 5)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 6)), (.lit 6)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 7)), (.lit 7)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 8)), (.lit 8)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 9)), (.lit 9)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 10)), (.lit 10)])]),
+      .mk 4546 (.match_ [(.var "r0"), (.var "r1")] (.var "g_log_pad") [(.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 0)), (.lit 0)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 1)), (.lit 1)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 2)), (.lit 2)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 3)), (.lit 3)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 4)), (.lit 4)]), (.call "da_levels" [(.var "roots"), (.pow (.lit 2) (.lit 5)), (.lit 5)])]),
       .mk 4547 (.ret [(.var "r0"), (.var "r1"), (.var "z")])] }
 
 /-- `da_row_shape`. -/
@@ -4113,12 +4113,12 @@ def fn_da_row_shape : Func :=
     inline := false,
     body := [
       .mk 4551 (.assertNe (.var "n_blob_g") (.lit 1)),
-      .mk 4552 (.assertLt (.var "n_blob_g") (.const 1025)),
-      .mk 4553 (.assertLt (.var "g_log_pad") (.const 11)),
+      .mk 4552 (.assertLt (.var "n_blob_g") (.const 33)),
+      .mk 4553 (.assertLt (.var "g_log_pad") (.const 6)),
       .mk 4554 (.let_ "n_pad_g" (.index (.var "g_squares") (.var "g_log_pad"))),
       .mk 4556 (.let_ "gap_g" (.fdiv (.var "n_pad_g") (.var "n_blob_g"))),
-      .mk 4557 (.assertLt (.var "gap_g") (.const 1025)),
-      .mk 4558 (.assertLt (.fdiv (.mul (.var "n_blob_g") (.var "n_blob_g")) (.mul (.var "n_pad_g") .gen)) (.const 1024)),
+      .mk 4557 (.assertLt (.var "gap_g") (.const 33)),
+      .mk 4558 (.assertLt (.fdiv (.mul (.var "n_blob_g") (.var "n_blob_g")) (.mul (.var "n_pad_g") .gen)) (.const 32)),
       .mk 4559 (.ret [(.var "n_pad_g"), (.var "gap_g")])] }
 
 /-- `da_verify_column`. -/

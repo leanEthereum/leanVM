@@ -13,12 +13,10 @@ public import LeanVM.Guest.Pack.«P28».Shared0
 public import LeanVM.Guest.Pack.«P28».Shared1
 public import LeanVM.Guest.Pack.«P28».Shared2
 public import LeanVM.Guest.Pack.«P28».Shared3
-public import LeanVM.Guest.Pack.«P28».Shared4
 public import LeanVM.Guest.Pack.«P28».Shared6
 public import LeanVM.Guest.Pack.«P28».Shared7
 public import LeanVM.Guest.Pack.«P28».Shared8
 public import LeanVM.Guest.Pack.«P28».Shared9
-public import LeanVM.Guest.Pack.«P28».Shared10
 
 namespace LeanVM.Guest.Fn.«index_mle__L11»
 
@@ -54,14 +52,14 @@ theorem shareOk : ShareOkD Fn.«squeeze_point_from__L27».core (cert.withPows Da
 end
 end LeanVM.Guest.Fn.«squeeze_point_from__L27»
 
-namespace LeanVM.Guest.Fn.«da_levels__L512_L9»
+namespace LeanVM.Guest.Fn.«da_column_offsets_loop1»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `da_levels__L512_L9`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«da_levels__L512_L9».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+/-- `__loop27`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«da_column_offsets_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
@@ -69,25 +67,7 @@ theorem shareOk : ShareOkD Fn.«da_levels__L512_L9».core (cert.withPows Data.po
 ⟩
 
 end
-end LeanVM.Guest.Fn.«da_levels__L512_L9»
-
-namespace LeanVM.Guest.Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-  · exact sw1
-⟩
-
-end
-end LeanVM.Guest.Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1»
+end LeanVM.Guest.Fn.«da_column_offsets_loop1»
 
 namespace LeanVM.Guest.Fn.«walk_path__L12_L4»
 
@@ -116,7 +96,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop545`: its static sharing check and every window's. -/
+/-- `__loop512`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 2 := by decide +kernel
   rw [hc] at hi
@@ -135,7 +115,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop563`: its static sharing check and every window's. -/
+/-- `__loop530`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 2 := by decide +kernel
   rw [hc] at hi

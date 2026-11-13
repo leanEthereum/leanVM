@@ -23,16 +23,16 @@ set_option maxRecDepth 100000
 def dvStNames : List String := ["da_row_shape", "da_vector", "da_expand__L7_L8"]
 
 /-- Their core indices. -/
-def dvStJ : List ℕ := [28, 31, 418]
+def dvStJ : List ℕ := [28, 31, 413]
 
 /-- `da_verify`'s row loops and its columns' row loop. -/
 def dvLpNames : List String := ["__loop21", "__loop23", "__loop24", "__loop25"]
 
 /-- Their core indices. -/
-def dvLpJ : List ℕ := [403, 405, 406, 419]
+def dvLpJ : List ℕ := [403, 405, 406, 414]
 
 /-- The core indices of the DA levels `B1.Da.dlNames`, by `L`. -/
-def dlJ : List ℕ := [407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417]
+def dlJ : List ℕ := [407, 408, 409, 410, 411, 412]
 
 /-- The core indices of `claim_list_last__L{k}`, `k < 17`. -/
 def clJ : List ℕ := [348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364]
@@ -69,12 +69,12 @@ def kcDvLpT : Opcode → List ℕ
 
 /-- The DA levels' instructions, by `L`. -/
 def kcDlT : Opcode → List ℕ
-  | .xor => [0, 2, 5, 10, 19, 36, 69, 134, 263, 520, 1033]
-  | .mulNative => [0, 13, 40, 94, 202, 418, 850, 1714, 3442, 6898, 13810]
-  | .setConstant => [1, 13, 36, 80, 166, 336, 674, 1348, 2694, 5384, 10762]
-  | .deref => [2, 14, 32, 62, 116, 218, 416, 806, 1580, 3122, 6200]
-  | .jump => [1, 4, 9, 18, 35, 68, 133, 262, 519, 1032, 2057]
-  | .keccak => [0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023]
+  | .xor => [0, 2, 5, 10, 19, 36]
+  | .mulNative => [0, 13, 40, 94, 202, 418]
+  | .setConstant => [1, 13, 36, 80, 166, 336]
+  | .deref => [2, 14, 32, 62, 116, 218]
+  | .jump => [1, 4, 9, 18, 35, 68]
+  | .keccak => [0, 1, 3, 7, 15, 31]
 
 /-- `claim_list_last__L{k}`'s instructions, by `k`. -/
 def kcClT : Opcode → List ℕ
@@ -154,7 +154,7 @@ noncomputable def mvTabOk (op : Opcode) : Bool :=
     kvSBJ op (dvStJ.getD i 0) == (kcDvStT op).getD i 0) &&
   (List.range 4).all (fun i => kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
     kvSKJ op (dvLpJ.getD i 0) == (kcDvLpT op).getD i 0) &&
-  (List.range 11).all (fun L => kvOkB op (dlJ.getD L 0) (B1.Da.dlNames.getD L "") &&
+  (List.range 6).all (fun L => kvOkB op (dlJ.getD L 0) (B1.Da.dlNames.getD L "") &&
     kvSBJ op (dlJ.getD L 0) == (kcDlT op).getD L 0) &&
   (List.range 17).all (fun k => kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
     kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) &&

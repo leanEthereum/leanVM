@@ -15,33 +15,6 @@ public import LeanVM.Guest.Pack.«P42».Bundle
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«da_levels__L128_L7_loop6»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `__loop68`, once. -/
-theorem st : shareStaticD Fn.«da_levels__L128_L7_loop6».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop68`, window 0. -/
-theorem sw0 : shareWinD Fn.«da_levels__L128_L7_loop6».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `__loop68`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«da_levels__L128_L7_loop6».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«da_levels__L128_L7_loop6»
-
 namespace LeanVM.Guest.Fn.«verify_merkle_cap__L4»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -76,16 +49,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop113`, once. -/
+/-- `__loop73`, once. -/
 theorem st : shareStaticD Fn.«level_residual__L219_L14_L6_L3_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop113`, window 0. -/
+/-- `__loop73`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_residual__L219_L14_L6_L3_loop1».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop113`: its static sharing check and every window's. -/
+/-- `__loop73`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L219_L14_L6_L3_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -103,16 +76,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop140`, once. -/
+/-- `__loop100`, once. -/
 theorem st : shareStaticD Fn.«level_positions__L6_L16_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop140`, window 0. -/
+/-- `__loop100`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_positions__L6_L16_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop140`: its static sharing check and every window's. -/
+/-- `__loop100`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_positions__L6_L16_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -122,4 +95,31 @@ theorem shareOk : ShareOkD Fn.«level_positions__L6_L16_L4_loop0».core (cert.wi
 
 end
 end LeanVM.Guest.Fn.«level_positions__L6_L16_L4_loop0»
+
+namespace LeanVM.Guest.Fn.«level_residual__L23_L9_L4_L2_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `__loop190`, once. -/
+theorem st : shareStaticD Fn.«level_residual__L23_L9_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop190`, window 0. -/
+theorem sw0 : shareWinD Fn.«level_residual__L23_L9_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `__loop190`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«level_residual__L23_L9_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«level_residual__L23_L9_L4_L2_loop1»
 

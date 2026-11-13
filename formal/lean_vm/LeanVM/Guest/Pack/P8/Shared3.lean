@@ -94,17 +94,17 @@ theorem shareOk : ShareOkD Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0
 end
 end LeanVM.Guest.Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0»
 
-namespace LeanVM.Guest.Fn.«da_levels__L1024_L10_loop2»
+namespace LeanVM.Guest.Fn.«level_residual__L73_L16_L6_L3_loop1»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop88`, once. -/
-theorem st : shareStaticD Fn.«da_levels__L1024_L10_loop2».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+/-- `__loop142`, once. -/
+theorem st : shareStaticD Fn.«level_residual__L73_L16_L6_L3_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 end
-end LeanVM.Guest.Fn.«da_levels__L1024_L10_loop2»
+end LeanVM.Guest.Fn.«level_residual__L73_L16_L6_L3_loop1»
 

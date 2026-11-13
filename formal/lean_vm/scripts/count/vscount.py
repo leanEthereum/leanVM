@@ -4,8 +4,14 @@ opcode, of `verify_sub`'s statically bounded callees (each child's opening arm
 of `verify_sub`, `child_claim_list_digest` and `__loop4`, as tables checked against the `V`
 count certificates (`Count/StaticV.lean`) by `decide +kernel`, one module per opcode; and
 `verify_tables`' and the terminal's bounds (`kcVtW`, `kcTermW`, from the `W` certificates)."""
-import os
+import os, re
 from core import L
+
+# The guest's constants, as `guest-export` writes them to `Data/Source.lean` (`guest_const%`).
+_SRC = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'LeanVM', 'Guest', 'Data',
+                         'Source.lean'), encoding='utf-8').read()
+def guest_const(name):
+    return int(re.search(r'def const_%s : Nat := (\d+)' % name, _SRC).group(1))
 
 def vs_st(g):
     """`verify_sub`'s statically bounded callees but its opening arm: its static calls, then the arms
@@ -221,11 +227,11 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
 # each a column, its weights' expansion and its row loop's `r` iterations.
 MV_ST = ['da_row_shape', 'da_vector', 'da_expand__L7_L8']
 MV_LP = [L('da_verify_loop0'), L('da_verify_loop2'), L('da_verify_loop3'), L('da_verify_column_loop0')]
-MV_DL = ['da_levels__L%d_L%d' % (2 ** L, L) for L in range(11)]
+DA_ARMS = guest_const('DA_TREE_ARMS')  # the DA levels `L = 0 ..` `DA_LOG_MAX_ROWS`
+MV_DL = ['da_levels__L%d_L%d' % (2 ** L, L) for L in range(DA_ARMS)]
 MV_CL = ['claim_list_last__L%d' % k for k in range(17)]
 MV_OM = ['da_verify', L('da_verify_loop1'), 'da_verify_column', 'claim_list_digest']
-MV_MAXROWS = 1024
-MV_COLS = 128  # `DA_CELLS`: the columns `__loop22` runs
+MV_COLS = guest_const('DA_CELLS')  # the columns `__loop22` runs
 
 
 def main_tables(g):
@@ -280,7 +286,7 @@ def write_main(g, OPS):
     def clog(r): return (r - 1).bit_length()
     for k in range(6):
         A, R, P = dv_aff(k)
-        assert all(dvW(k, r, L) <= A + R * r + P * 2 ** L for L in range(11) for r in range(1, 2 ** L + 1))
+        assert all(dvW(k, r, L) <= A + R * r + P * 2 ** L for L in range(DA_ARMS) for r in range(1, 2 ** L + 1))
         A, S = cl_aff(k)
         assert all(clW(k, n) <= A + S * n for n in range(0, 2 ** 17))
     def lst(xs): return '[' + ', '.join(str(x) for x in xs) + ']'
@@ -323,7 +329,7 @@ noncomputable def mvTabOk (op : Opcode) : Bool :=
     kvSBJ op (dvStJ.getD i 0) == (kcDvStT op).getD i 0) &&
   (List.range 4).all (fun i => kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
     kvSKJ op (dvLpJ.getD i 0) == (kcDvLpT op).getD i 0) &&
-  (List.range 11).all (fun L => kvOkB op (dlJ.getD L 0) (B1.Da.dlNames.getD L "") &&
+  (List.range %d).all (fun L => kvOkB op (dlJ.getD L 0) (B1.Da.dlNames.getD L "") &&
     kvSBJ op (dlJ.getD L 0) == (kcDlT op).getD L 0) &&
   (List.range 17).all (fun k => kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
     kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) &&
@@ -331,7 +337,7 @@ noncomputable def mvTabOk (op : Opcode) : Bool :=
     kvSKJ op (clLpJ.getD i 0) == (kcClLpT op).getD i 0) &&
   (List.range 4).all (fun i => decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) &&
     (B2C.plumbOf (mvOmJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (mvOmT op).getD i 0)
-''')
+''' % DA_ARMS)
     open(os.path.join(D, 'MvCountData.lean'), 'w', encoding='utf-8').write(
         HDR % ('MvCountData', 'The instruction counts of `main`\'s `da_verify`\'s and `claim_list_digest`\'s callees, per opcode.',
                'public import LeanVM.Guest.Count.StaticV\npublic import LeanVM.Guest.B1.Da.VerifyDefs\n'

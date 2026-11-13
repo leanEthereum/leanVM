@@ -5,9 +5,7 @@ import os, re
 from core import L
 import vscount
 
-DL = ["da_levels__L1_L0", "da_levels__L2_L1", "da_levels__L4_L2", "da_levels__L8_L3",
-      "da_levels__L16_L4", "da_levels__L32_L5", "da_levels__L64_L6", "da_levels__L128_L7",
-      "da_levels__L256_L8", "da_levels__L512_L9", "da_levels__L1024_L10"]
+DL = vscount.MV_DL
 CL = ['claim_list_last__L%d' % k for k in range(17)]
 CCL = ['child_claim_list_last__L%d' % k for k in range(17)]
 KS = 13  # `KECCAK_STATE`: a claim list's chain record

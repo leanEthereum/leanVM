@@ -67,33 +67,6 @@ theorem shareOk : ShareOkD Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0�
 end
 end LeanVM.Guest.Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0»
 
-namespace LeanVM.Guest.Fn.«da_levels__L128_L7_loop4»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `__loop66`, once. -/
-theorem st : shareStaticD Fn.«da_levels__L128_L7_loop4».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop66`, window 0. -/
-theorem sw0 : shareWinD Fn.«da_levels__L128_L7_loop4».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `__loop66`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«da_levels__L128_L7_loop4».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«da_levels__L128_L7_loop4»
-
 namespace LeanVM.Guest.Fn.«verify_merkle_cap__L6»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -104,6 +77,25 @@ set_option maxRecDepth 100000 in
 /-- `verify_merkle_cap__L6`, once. -/
 theorem st : shareStaticD Fn.«verify_merkle_cap__L6».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L6`, window 0. -/
+theorem sw0 : shareWinD Fn.«verify_merkle_cap__L6».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L6`, window 1. -/
+theorem sw1 : shareWinD Fn.«verify_merkle_cap__L6».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
+  decide +kernel
+
+/-- `verify_merkle_cap__L6`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«verify_merkle_cap__L6».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+  · exact sw1
+⟩
 
 end
 end LeanVM.Guest.Fn.«verify_merkle_cap__L6»

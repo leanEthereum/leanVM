@@ -13,8 +13,6 @@ public import LeanVM.Guest.Pack.«P5».Shared1
 public import LeanVM.Guest.Pack.«P5».Shared2
 public import LeanVM.Guest.Pack.«P5».Shared3
 public import LeanVM.Guest.Pack.«P5».Shared4
-public import LeanVM.Guest.Pack.«P5».Shared5
-public import LeanVM.Guest.Pack.«P5».Shared6
 
 namespace LeanVM.Guest.Fn.«level_residual__L18_L8_L4_L2»
 
@@ -50,14 +48,14 @@ theorem shareOk : ShareOkD Fn.«da_levels__L16_L4_loop2».core (cert.withPows Da
 end
 end LeanVM.Guest.Fn.«da_levels__L16_L4_loop2»
 
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0»
+namespace LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+/-- `opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
@@ -66,23 +64,5 @@ theorem shareOk : ShareOkD Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0
 ⟩
 
 end
-end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L25_L16_L4_L2_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `__loop489`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_residual__L25_L16_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-  · exact sw1
-⟩
-
-end
-end LeanVM.Guest.Fn.«level_residual__L25_L16_L4_L2_loop0»
+end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0»
 
