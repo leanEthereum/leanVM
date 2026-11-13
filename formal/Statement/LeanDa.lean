@@ -141,9 +141,9 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   challenge (the Rust search never ends); the relation then asks every row to be a codeword
   (`membershipCheckOpt`), which keeps an honest matrix's relation true for every permutation.
 
-The row count `r` is a parameter: the crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:59-63`;
+The row count `r` is a parameter: the crate takes `1 ≤ r ≤ 32` (`row_count`, `lib.rs:59-63`;
 `commit` rejects any other payload with a `BlobSizeError`, `commit.rs:42-50`, `lib.rs:40-57`);
-completeness and position binding hold for every `r`, code binding for `1 ≤ r ≤ 1024`
+completeness and position binding hold for every `r`, code binding for `1 ≤ r ≤ 32`
 (`maxRows`). The algorithms take a permutation `π` of the Keccak state as a parameter and hash with
 Keccak-256 over it (`keccakDigestBytes`, the hash `H` below): the crate's is Keccak-f[1600], the
 hash Keccak-256 (`verifier/src/hash.rs:76-96`); in the end statements `π` is the random
@@ -165,7 +165,7 @@ def cellSymbols : ℕ := 256
 def cellsPerRow : ℕ := 128
 
 /-- The most rows the crate commits to (`DA_MAX_ROWS`). -/
-def maxRows : ℕ := 1024
+def maxRows : ℕ := 32
 
 /-- A row's payload. -/
 abbrev Payload := Fin (2 ^ 14) → K
@@ -581,7 +581,7 @@ abbrev LeanDaPositionBinding : Prop :=
 
 /-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
 it** (Benedikt Wagner's framework and games, moved to the random-permutation model, with a
-straight-line argument in place of his forking lemma). For `1 ≤ r ≤ 1024` rows (`maxRows`, the
+straight-line argument in place of his forking lemma). For `1 ≤ r ≤ 32` rows (`maxRows`, the
 crate's bound), every argument `argument` (its prover and verifier querying the model's oracles) and
 straight-line extractor `extractor` (reading the adversary's transcript): if every adversary whose
 knowledge-soundness game (`knowledgeSoundnessGame`, the argument's verifier and the relation's check

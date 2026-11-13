@@ -90,7 +90,7 @@ theorem da_le (hlim : DeployedLimits s w) :
       (w.daMatrix.map fun p ↦ LeanDa.paddedRowCount p.2.rows.length).getD 0 ≤ 32 := by
   rcases h : w.daMatrix with _ | p
   · simp
-  · have hr := hlim.atMost32Rows p (Option.mem_def.mpr h)
+  · have hr : p.2.rows.length ≤ 32 := hlim.atMostMaxRows p (Option.mem_def.mpr h)
     refine ⟨le_rfl, hr, ?_⟩
     show 2 ^ Nat.clog 2 p.2.rows.length ≤ 2 ^ 5
     exact Nat.pow_le_pow_right (by norm_num) (Nat.clog_le_of_le_pow hr)

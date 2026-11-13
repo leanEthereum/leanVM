@@ -25,7 +25,7 @@ pub const DA_LOG_K: usize = 14;
 /// Symbols per sampling cell, as a logarithm (2 KiB).
 pub const DA_LOG_CELL: usize = 8;
 /// Maximum blobs in one commitment.
-pub const DA_MAX_ROWS: usize = 1024;
+pub const DA_MAX_ROWS: usize = 32;
 
 /// 64-bit symbols in one payload blob.
 pub const BLOB_SYMBOLS: usize = 1 << DA_LOG_K;

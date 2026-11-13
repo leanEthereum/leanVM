@@ -259,7 +259,7 @@ def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
       ∃ child ∈ witness.children, child.statement.claims.daDigest = statement.claims.daDigest
 
 /-- **The matrix opens the DA claim `⟨root, z⟩`** (`da_verify`, `lean_ethereum.py:4509-4547`):
-`1` to `1024` codewords of `2^15` symbols commit to `root` (the root of the matrix they form,
+`1` to `LeanDa.maxRows` codewords of `2^15` symbols commit to `root` (the root of the matrix they form,
 `LeanDa.commitCells`, over Keccak-f[1600] with LeanDA's digests as 32 bytes), and each is
 orthogonal to the dual codeword of `z`, `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` (`LeanDa.dualCodewordAt`,
 which the guest program builds from `z`: `da_vector`, `lean_ethereum.py:4605-4669`). Only where

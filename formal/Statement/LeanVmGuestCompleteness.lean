@@ -53,8 +53,8 @@ structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : P
   atMost2048Xmss : witness.xmssSignatures.length ≤ 2048
   /-- At most `512` raw leanSPHINCS signatures. -/
   atMost512Sphincs : witness.sphincsSignatures.length ≤ 512
-  /-- At most `32` rows in the blob matrix checked directly. -/
-  atMost32Rows : ∀ p ∈ witness.daMatrix, p.2.rows.length ≤ 32
+  /-- At most `LeanDa.maxRows` rows in the blob matrix checked directly. -/
+  atMostMaxRows : ∀ p ∈ witness.daMatrix, p.2.rows.length ≤ LeanDa.maxRows
 
 /-! ## The guest program's completeness
 
