@@ -198,7 +198,7 @@ noncomputable def aggσ (rd : Reader) (m : ℕ) (cpi cfresh ccarried dst tabs : 
   B1.Val.ofArgs (ev rd (aggOrc P h (aggRun cs h)) [gen ^ m, cpi, cfresh, ccarried, dst, tabs]
     (Fn.body fn% «aggregate_claims»))
 
-/-- **What `aggregate_claims`' honest valuation is**: its atoms hold, and its words. -/
+/-- **What `aggregate_claims`' honest valuation is**: its atoms hold, and its words, its hints' among them (`v6` the messages' buffer, `v7` the bytecode's value). -/
 structure AggVals (rd : Reader) (σ : Val) (m : ℕ) (cpi cfresh ccarried dst tabs : E) (P : AggPtrs)
     (cs : List ChildClaims) (h : BatchingHints) : Prop where
   atoms : ∀ a ∈ atomsIn aggP, a.Holds rd σ
@@ -209,6 +209,7 @@ structure AggVals (rd : Reader) (σ : Val) (m : ℕ) (cpi cfresh ccarried dst ta
   e4 : σ (.n 4) = dst
   e5 : σ (.n 5) = tabs
   v6 : σ (.n 6) = P.msgs
+  v7 : σ (.n 7) = h.finalBytecodeValue
   v8 : σ (.n 8) = P.lf
   v9 : σ (.n 9) = P.lc
   v33 : σ (.n 33) = P.absorb
@@ -521,7 +522,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
     rw [q 0 (by omega), lamA, Keccak.challengeOf_cells]
     rfl
   have q1 : σ (.n 82) = cellsOfState (aggN cs h.lambdaGrindNonce) false 1 := q 1 (by omega)
-  refine ⟨hat, e0, e1, e2, e3, e4, e5, v6, v8, v9, v33, v81,
+  refine ⟨hat, e0, e1, e2, e3, e4, e5, v6, v7, v8, v9, v33, v81,
     by rw [isMul_sound hm94 hP, v81], v98, v107, v116, v188, p42, p105, p193,
     by rw [g35, e0], g36, by rw [g102, e0], g103, by rw [g191, e0], g192, by rw [q1, e5], ?_, ?_⟩
   · rw [q 8 (by omega), q 9 (by omega), q 10 (by omega), q 11 (by omega), q 12 (by omega),

@@ -59,9 +59,13 @@ theorem weightLoad_spec {a : Atom} (h : isWeightLoad a = true) :
   · exact absurd h (by simp)
 
 set_option maxRecDepth 10000 in
-/-- **`da_verify_cell` is complete.** -/
-theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
-  intro rd lv syms ws hsl hwl hreads
+/-- **`da_verify_cell` is complete, its hinted symbols exposed**: a valuation of its parameter `lv`
+holding the symbols at `.n 1 ..= .n 256`, on which its body holds under every call relation,
+returning `cellRets syms ws`. -/
+theorem da_verify_cell_complete_vals (rd : Reader) (lv : E) (syms : List K) (ws : List E)
+    (hsl : syms.length = LeanDa.cellSymbols) (hwl : ws.length = LeanDa.cellSymbols) (hreads : ReadsAt rd lv ws) :
+    ∃ σ : Val, σ (.n 0) = lv ∧ (∀ j < 256, σ (.n (j + 1)) = ofK (syms.getD j 0)) ∧ ∀ C : CallRel,
+      Stmt.HoldsList C rd σ (Fn.body fn% «da_verify_cell») False (fun rs => rs = cellRets syms ws) := by
   simp only [LeanDa.cellSymbols] at hsl hwl
   have hok := cell_ok
   have hcok := cellc_ok
@@ -70,7 +74,7 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, List.isEmpty_iff, List.all_eq_true,
     Bool.or_eq_true, Bool.not_eq_true'] at hcok
-  obtain ⟨hparams, hok⟩ := hok
+  obtain ⟨-, hok⟩ := hok
   obtain ⟨⟨⟨⟨c', hchk⟩, hst⟩, hneedsT⟩, hcok⟩ := hcok
   split at hok
   · rename_i A vs hsp
@@ -165,10 +169,22 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
       refine congrArg List.sum (List.map_congr_left fun j hj => ?_)
       have hj' := List.mem_range.mp hj
       rw [e0, hsym j hj', memAt_of_load (hreads j (by omega)), List.getD_eq_getElem ws _ (by omega)]
-    refine (rel_iff_sem find_da_verify_cell _ _).mpr ⟨σ, by rw [hparams]; simp [e0], ?_⟩
+    refine ⟨σ, e0, hsym, fun C => ?_⟩
     rw [hbody, holdsList_atoms_ret]
     exact ⟨hat, hrets⟩
   · exact absurd hok (by simp)
+
+theorem da_verify_cell_params : (fn% «da_verify_cell»).params = [.n 0] := by
+  have hok := cell_ok
+  unfold cellOk at hok
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
+  exact hok.1
+
+/-- **`da_verify_cell` is complete.** -/
+theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
+  intro rd lv syms ws hsl hwl hreads
+  obtain ⟨σ, e0, -, h⟩ := da_verify_cell_complete_vals rd lv syms ws hsl hwl hreads
+  exact (rel_iff_sem find_da_verify_cell _ _).mpr ⟨σ, by rw [da_verify_cell_params]; simp [e0], h _⟩
 
 end
 end LeanVM.Guest.B1.Da
