@@ -46,7 +46,7 @@ WEIGHT = '''/-- **`%s`'s counts within its ratios of its words.** -/
 theorem kr%s_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E),
     t.name = "%s" → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       1000 * t.weight (ωArm xmssArmC op) ≤ kr%sA op * t.total fs :=
-  fun _ _ _ _ hn hv _ => kr_weight kr%s_closed kr%s_ratio (by decide +kernel)
+  fun _ _ _ _ hn hv _ => kr_weight kr%s_closed kr%s_ratio (x := %d) (by decide +kernel) (by decide +kernel)
     ⟨%d, by decide +kernel, by decide +kernel⟩ op hn hv
 '''
 
@@ -160,7 +160,7 @@ def write(g, roots, opdef, CH=48, W=750, fam='RatioV', two=False):
             return acc
         fin.append('theorem kr%s_closed : (kr%sJ).all (krClosedAt kr%sJ kr%sC) = true :=\n  %s\n' % (N, N, N, N, comb('closed')))
         fin.append('theorem kr%s_ratio : (kr%sJ).all (krRatioAt kr%sA) = true :=\n  %s\n' % (N, N, N, comb('ratio')))
-        fin.append(WEIGHT % (r, N, r, N, N, N, g.by[r]))
+        fin.append(WEIGHT % (r, N, r, N, N, N, g.xj, g.by[r]))
         print('ratio %s: %d functions, %d chunks, A = %s' % (r, len(J), len(chunks), A))
     open(os.path.join(D, fam + 'Data.lean'), 'w', encoding='utf-8').write(
         HDR % (fam + 'Data', 'The subtrees of the ratio bounds: their functions by index, their calls, their ratios.',

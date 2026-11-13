@@ -5,7 +5,7 @@ use super::error::{AggregateVerifyError, SnarkVerifyError};
 use super::statement::statement_digest;
 use super::{LeanSphincsClaim, LeanXmssClaim};
 use leanvm_core::cpu::{public_input_bytes, scalar_proof};
-use primitives::field::F192;
+use primitives::field::F128;
 
 /// What an aggregate attests: every `(pubkey, message)` in [`Self::xmss`] is backed by a valid
 /// leanXMSS signature, at a leaf index the statement does not record, every one in
@@ -42,7 +42,7 @@ pub struct EthereumProof {
     pub(super) proof: leanvm_core::cpu::Proof,
 }
 
-// The wire format: the deferred point as a little-endian u64 count of limb triples `c0, c1, c2`,
+// The wire format: the deferred point as a little-endian u64 count of limb pairs `c0, c1`,
 // each a little-endian u64, then the VM proof in its own encoding, to the end. The claims are not
 // sent: the receiver knows what it expects a proof to attest, and supplies it.
 //
@@ -50,7 +50,7 @@ pub struct EthereumProof {
 // proof's decoder rejects trailing bytes. Otherwise anything downstream that dedupes or indexes on the
 // serialized bytes could be made to see one aggregate as many.
 
-pub(super) fn encode(point: &[F192], proof: &[u8]) -> Vec<u8> {
+pub(super) fn encode(point: &[F128], proof: &[u8]) -> Vec<u8> {
     let mut out = (point.len() as u64).to_le_bytes().to_vec();
     out.extend(point.iter().flat_map(|x| x.to_limbs()).flat_map(u64::to_le_bytes));
     out.extend(proof);
@@ -59,16 +59,13 @@ pub(super) fn encode(point: &[F192], proof: &[u8]) -> Vec<u8> {
 
 /// The deferred point and the VM proof's bytes. The point's limbs are cut from the input before
 /// any is read, so a forged count allocates nothing.
-pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F192>, &[u8])> {
+pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F128>, &[u8])> {
     let (count, rest) = bytes.split_first_chunk::<8>()?;
     let count = usize::try_from(u64::from_le_bytes(*count)).ok()?;
-    let (limbs, proof) = rest.split_at_checked(count.checked_mul(24)?)?;
+    let (limbs, proof) = rest.split_at_checked(count.checked_mul(16)?)?;
     let limb = |bytes: &[u8; 8]| u64::from_le_bytes(*bytes);
-    let triples = limbs.as_chunks::<8>().0.as_chunks::<3>().0;
-    let point = triples
-        .iter()
-        .map(|[c0, c1, c2]| F192::new(limb(c0), limb(c1), limb(c2)))
-        .collect();
+    let pairs = limbs.as_chunks::<8>().0.as_chunks::<2>().0;
+    let point = pairs.iter().map(|[c0, c1]| F128::new(limb(c0), limb(c1))).collect();
     Some((point, proof))
 }
 
@@ -97,7 +94,7 @@ impl EthereumClaims {
 
 impl EthereumProof {
     /// The VM's public input for this aggregate: the digest of its claims and its deferred claim.
-    pub(super) fn vm_public_input(&self) -> [F192; 2] {
+    pub(super) fn vm_public_input(&self) -> [F128; 2] {
         let da = verifier::da::digest(self.claims.da_commitment);
         statement_digest(&self.claims.xmss, &self.claims.lean_sphincs, da, &self.defer)
     }
@@ -139,11 +136,11 @@ impl EthereumProof {
     /// transmitted point, and the VM proof satisfies the statement built from
     /// all of it.
     ///
-    /// This says "every `(pubkey, message)` in the claims' `xmss` is a valid leanXMSS signature,
-    /// and every one in their `lean_sphincs` a valid leanSPHINCS signature", and that the
-    /// `da_commitment`, if any, commits to a well-formed blob matrix: exactly the claims held,
-    /// which are the receiver's own after [`Self::from_proof_bytes`]. Which leaf index each
-    /// leanXMSS signature used is not part of the claim.
+    /// What `formal/` proves of it, in the random-permutation model, is one node: the guest ran on these claims, each
+    /// a signature it verified itself or a claim of a child proof it verified. That the children's claims are valid
+    /// signatures in turn, and that the `da_commitment`, if any, commits to a well-formed blob matrix, are not proved
+    /// (`formal/statement.tex`, "What is not proved"). The claims are the receiver's own after
+    /// [`Self::from_proof_bytes`]; which leaf index each leanXMSS signature used is not part of the claim.
     ///
     /// Every field operation, the proof check and its Merkle hashing run in the `verifier` crate: one thread, no explicit SIMD.
     pub fn verify(&self) -> Result<(), AggregateVerifyError> {

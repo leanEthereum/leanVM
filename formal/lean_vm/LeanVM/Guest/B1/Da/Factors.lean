@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.Factors
 
-  `da_factors`' template and its meaning (G:4443-4451).
+  `da_factors`' template and its meaning (G:4627-4635).
 -/
 
 module
@@ -10,15 +10,14 @@ public import LeanVM.Guest.B1.Da.Cell
 public import LeanVM.Guest.B1.Da.VectorMath
 
 /-!
-# `da_factors` (G:4443-4451)
+# `da_factors` (G:4627-4635)
 
-`da_factors(zs, top, D, at)` (`da_factors__L14_L7_L0`, `core404`; `da_factors__L7_L8_L128`,
-`core406`): a heap run `factors` (`.n 1`, `256` words); at each depth `d < D` the power
-`zs[top - d]` loaded into `.n (facB d)`, and for each node `2^d + y` the constant
-`Ŵ_(top-d)(y · 2^(top-d+1))` (`DA_VHAT[at + 2^d + y]`, here `facC top d y`, read off `wK`), its
-product with the power, plus one, written to `factors[2^d + y]` (`facNodeA`). The body is the
-template `facT top D` (`facOk`, checked by kernel evaluation in `FactorsChk`), which gives the
-meaning (`da_factors_val`).
+`da_factors(zs, top, D, at)` (`da_factors__L14_L7_L0`; `da_factors__L7_L8_L128`): a heap run
+`factors` (`.n 1`, `256` words); at each depth `d < D` the power `zs[top - d]` loaded into `.n (facB
+d)`, and for each node `2^d + y` the constant `Ŵ_(top-d)(y · 2^(top-d+1))` (`DA_VHAT[at + 2^d + y]`,
+here `facC top d y`, read off `wK`), its product with the power, plus one, written to `factors[2^d +
+y]` (`facNodeA`). The body is the template `facT top D` (`facOk`, checked by kernel evaluation in
+`FactorsChk`), which gives the meaning (`da_factors_val`).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -40,8 +39,8 @@ def facC (top d y : ℕ) : ℕ := (wK (top - d) (y * 2 ^ (top - d + 1))).toBitVe
 /-- Node `2^d + y`'s atoms. -/
 def facNodeA (top d y : ℕ) : List Atom :=
   let v := facB d + 1 + 4 * y
-  [.const (.n v) (word (facC top d y) 0 0), .mul (.n (v + 1)) (.n (facB d)) (.n v),
-    .const (.n (v + 2)) (word 1 0 0), .add (.n (v + 3)) (.n (v + 1)) (.n (v + 2)),
+  [.const (.n v) (word (facC top d y) 0), .mul (.n (v + 1)) (.n (facB d)) (.n v),
+    .const (.n (v + 2)) (word 1 0), .add (.n (v + 3)) (.n (v + 1)) (.n (v + 2)),
     .load (.n (v + 3)) (.n 1) (2 ^ d + y)]
 
 /-- Depth `d`'s atoms: its power, then its nodes. -/
@@ -59,7 +58,7 @@ def facOk (fn : Fn) (top D : ℕ) : Bool :=
   | some (A, vs) => decide (vs = [.n (facB D)]) && atomsEqb A (facT top D)
   | none => false
 
-theorem facC_word (top d y : ℕ) : word (facC top d y) 0 0 = ofK (wK (top - d) (y * 2 ^ (top - d + 1))) := by
+theorem facC_word (top d y : ℕ) : word (facC top d y) 0 = ofK (wK (top - d) (y * 2 ^ (top - d + 1))) := by
   rw [word_eOfNat, eOfNat, facC]
   congr 1
   simp [K.ofBits]

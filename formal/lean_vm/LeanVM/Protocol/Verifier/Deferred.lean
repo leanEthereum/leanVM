@@ -144,32 +144,36 @@ theorem run_of_le {α : Type} {p q : VerifierProgram α} (hpq : VerifierProgram.
   | read _ ih =>
     intro s r h
     simp only [runWithHash] at h ⊢
-    split at h
-    · simp at h
-    · next x xs hs => exact ih x h
+    rcases hs : s.stream with _ | ⟨x, xs⟩ <;> rcases hg : s.sponge.ground with _ | g <;>
+      simp only [hs, hg] at h ⊢
+    · simp [pure] at h
+    · simp [pure] at h
+    · exact ih x h
+    · simp [pure] at h
   | sample _ ih => intro s r h; simp only [runWithHash] at h ⊢; exact ih _ h
   | grind bits _ ih =>
     intro s r h
     simp only [runWithHash] at h ⊢
-    split at h
-    · simp at h
-    · next n xs hs =>
+    rcases hs : s.stream with _ | ⟨n, xs⟩ <;> rcases hg : s.sponge.ground with _ | g <;>
+      simp only [hs, hg] at h ⊢
+    · simp [pure] at h
+    · simp [pure] at h
+    · revert h
+      generalize absorbNonce F s.sponge n = pr
+      obtain ⟨pow, sp⟩ := pr
+      intro h
       change (if _ then _ else _) = _ at h
       change (if _ then _ else _) = _
       split at h
       · next hpow => simp only [hpow, ↓reduceIte]; exact ih h
-      · simp at h
+      · simp [pure] at h
+    · simp [pure] at h
   | commit height width _ ih =>
     intro s r h
     simp only [runWithHash] at h ⊢
-    split at h
-    · next x0 x1 xs hs =>
-      change (match digestFromHalves (x0, x1) with | some root => _ | none => _) = _ at h
-      change (match digestFromHalves (x0, x1) with | some root => _ | none => _) = _
-      split at h
-      · next root hroot => exact ih h
-      · simp at h
-    · simp at h
+    rcases hs : s.stream with _ | ⟨x0, _ | ⟨x1, xs⟩⟩ <;>
+      rcases hg : s.sponge.ground with _ | g <;> simp only [hs, hg] at h ⊢
+    all_goals first | exact ih h | simp [pure] at h
   | query i ps _ ih =>
     intro s r h
     obtain ⟨root, height, width, phase, rest, rows, hr, ho, hp, h⟩ :=
@@ -183,7 +187,7 @@ theorem runProof_of_le {P Q : VerifierProgram Bool} (hPQ : VerifierProgram.Le P 
     (h : runProofWithHash H F P seed π = true) : runProofWithHash H F Q seed π = true := by
   unfold runProofWithHash at h ⊢
   revert h
-  match hr : runWithHash H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
+  match hr : runWithHash H F P ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩ with
   | some (true, s) => rw [run_of_le H F hPQ hr]; exact id
   | some (false, _) => intro h; simp at h
   | none => intro h; simp at h
@@ -199,60 +203,65 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-/-- **`ev` refines `ev'` on the bytecode `bytecode`**: at every point, `ev`'s value is `ev'`'s or
-refused. -/
-def Evaluations.Le (bytecode : List K) (ev ev' : (List K → List E → VerifierProgram E)) : Prop :=
-  ∀ point, VerifierProgram.Le (ev bytecode point) (ev' bytecode point)
+/-- **`ev` refines `ev'` on the bytecode `bytecode`**: at every point and value, `ev`'s check
+passes only where `ev'`'s does. -/
+def Evaluations.Le (bytecode : List K) (ev ev' : List K → List E → E → VerifierProgram Unit) :
+    Prop :=
+  ∀ point value, VerifierProgram.Le (ev bytecode point value) (ev' bytecode point value)
 
 /-- True claims refine the computed values. -/
 theorem claimed_le_computed {bytecode : List K} {c : BytecodeClaim} (hc : c.Holds bytecode) :
     Evaluations.Le bytecode (claimedBytecodeValue c) computedBytecodeValue := by
-  intro point
+  intro point value
   simp only [claimedBytecodeValue, computedBytecodeValue, VerifierProgram.require]
   split
-  · next h => rw [h, ← hc]; exact .ret _
+  · next h =>
+    obtain ⟨rfl, rfl⟩ := h
+    simp only [show multilinearEval (bytecode.map ofK) c.bytecodePoint = c.bytecodeValue from hc,
+      ↓reduceIte]
+    exact .ret _
   · exact .fail _
 
 /-- The layout `readAnnouncedSizes` returns carries the bytecode it read. -/
 theorem readSizes_bytecode {bytecode : List K} {x : Layout × ℕ}
     (h : VerifierProgram.Returns (readAnnouncedSizes bytecode) x) : x.1.bytecode = bytecode := by
-  unfold readAnnouncedSizes at h
+  rw [readAnnouncedSizes_eq] at h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨layout, hl, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  rw [VerifierProgram.returns_ret h]
-  unfold liftOption at hl
-  split at hl
-  · cases hl
+  unfold liftOption at h
+  split at h
+  · cases h
   · next o ho =>
-    rw [VerifierProgram.returns_ret hl]
-    unfold buildLayout at ho
-    split at ho
-    · simp at ho
-    · split at ho
-      · simp only [Option.some.injEq] at ho; rw [← ho]
-      · simp at ho
+    rw [VerifierProgram.returns_ret h]
+    have hb := (sizesOf_spec ho).layout
+    unfold buildLayout at hb
+    split at hb
+    · simp at hb
+    · split at hb
+      · simp only [Option.some.injEq] at hb; rw [← hb]
+      · simp at hb
 
-theorem verifyBusBalance_le {ev ev' : (List K → List E → VerifierProgram E)} {layout : Layout}
-    (hev : Evaluations.Le layout.bytecode ev ev') :
+theorem verifyBusBalance_le {ev ev' : List K → List E → E → VerifierProgram Unit}
+    {layout : Layout} (hev : Evaluations.Le layout.bytecode ev ev') :
     VerifierProgram.Le (verifyBusBalance ev layout) (verifyBusBalance ev' layout) := by
   unfold verifyBusBalance
-  refine .bind (.refl _) fun _ ↦ .bind (.refl _) fun _ ↦ .bind (.refl _) fun x ↦ ?_
+  refine .bind (.refl _) fun _ ↦ .bind (.refl _) fun _ ↦ .bind (.refl _) fun _ ↦
+    .bind (.refl _) fun _ ↦ .bind (.refl _) fun x ↦ ?_
   obtain ⟨_, _, _⟩ := x
   refine .bind (.refl _) fun _ ↦ .bind (.refl _) fun _ ↦ .bind (.refl _) fun _ ↦
-    .bind (.refl _) fun _ ↦ .bind (hev _) fun _ ↦ .refl _
+    .bind (.refl _) fun _ ↦ .bind (.refl _) fun y ↦ ?_
+  obtain ⟨_, _, _⟩ := y
+  exact .bind (hev _ _) fun _ ↦ .refl _
 
 /-- **The verifier's run refines with its evaluations.** -/
-theorem verifyExecution_le {ev ev' : (List K → List E → VerifierProgram E)} {bytecode : List K}
+theorem verifyExecution_le {ev ev' : List K → List E → E → VerifierProgram Unit} {bytecode : List K}
     (hev : Evaluations.Le bytecode ev ev') (publicInput : Digest) :
     VerifierProgram.Le (verifyExecutionClaims ev bytecode publicInput) (verifyExecutionClaims ev' bytecode publicInput) := by
   unfold verifyExecutionClaims
   refine (VerifierProgram.Le.refl _).bind_of fun x hx ↦ ?_
   obtain ⟨layout, r⟩ := x
   have hb : layout.bytecode = bytecode := readSizes_bytecode hx
-  exact .bind (.refl _) fun _ ↦ .bind (verifyBusBalance_le (hb ▸ hev)) fun _ ↦ .refl _
+  exact .bind (.refl _) fun _ ↦ .bind (.refl _) fun _ ↦
+    .bind (verifyBusBalance_le (hb ▸ hev)) fun _ ↦ .refl _
 
 /-- **The deferring verifier, its claims true, is the deployed verifier**: a proof the deferring
 verifier accepts under the deployed IV, with a true claim of the bytecode,

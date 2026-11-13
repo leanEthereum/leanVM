@@ -8,7 +8,7 @@
 use super::*;
 use crate::compiler_overlay::{
     Ast, Expr, ForBound, Func, LtBound, ParamKind, Shape, Stmt, StmtKind, compile, parse, parse_const,
-    parse_with_replacements,
+    parse_with_constants,
 };
 use std::fmt::Write as _;
 
@@ -156,7 +156,7 @@ fn func_at(f: &Func, indent: usize) -> String {
     )
 }
 
-fn render(ast: &Ast, kbc: usize) -> String {
+fn render(ast: &Ast, consts: &[(String, String)], kbc: usize) -> String {
     let mut out = String::new();
     writeln!(
         out,
@@ -166,11 +166,14 @@ fn render(ast: &Ast, kbc: usize) -> String {
          /-!\n# The aggregation guest's source\n\n`crates/rec_aggregation/guests/lean_ethereum.py` as \
          `lean_compiler::parse_with_replacements` returns it with\nthe deployed placeholders \
          (`placeholder_map`, at the bytecode's log size `bytecodeLog`): one definition\nper \
-         function, then the constant arrays and the program.\n-/\n\nnamespace LeanVM.Guest.Data\n\n\
+         function, then the constant arrays and the program. The global constants come first, `const_NAME`, the\nliterals the compiler substitutes for them.\n-/\n\nnamespace LeanVM.Guest.Data\n\n\
          open LeanVM.Guest.Source\n\n@[expose] public section\n\n/-- The log size of the bytecode \
          the placeholders are computed for. -/\ndef bytecodeLog : Nat := {kbc}\n"
     )
     .unwrap();
+    for (name, value) in consts {
+        writeln!(out, "/-- The global constant `{name}`. -/\ndef const_{name} : Nat := {value}\n").unwrap();
+    }
     for f in &ast.funcs {
         writeln!(
             out,
@@ -182,10 +185,10 @@ fn render(ast: &Ast, kbc: usize) -> String {
         .unwrap();
     }
     for (name, values) in &ast.const_arrays {
-        let items = list(values.iter().map(|v| format!("({}, {}, {})", v.c0, v.c1, v.c2)));
+        let items = list(values.iter().map(|v| format!("({}, {})", v.c0, v.c1)));
         writeln!(
             out,
-            "/-- The constant array `{name}`. -/\ndef arr_{name} : List (Nat × Nat × Nat) :=\n  {items}\n"
+            "/-- The constant array `{name}`. -/\ndef arr_{name} : List (Nat × Nat) :=\n  {items}\n"
         )
         .unwrap();
     }
@@ -203,8 +206,8 @@ fn render(ast: &Ast, kbc: usize) -> String {
     out
 }
 
-fn word(x: F192) -> String {
-    format!("({}, {}, {})", x.c0, x.c1, x.c2)
+fn word(x: F128) -> String {
+    format!("({}, {})", x.c0, x.c1)
 }
 
 /// The compiler's test programs, each with the public input and the witness streams its
@@ -223,16 +226,16 @@ fn render_programs() -> String {
          test programs, `crates/lean_compiler/tests/programs/*.py`.\n-/\n\nimport LeanVM.Guest.Source\n\n\
          namespace LeanVMTests.Guest.Programs\n\nopen LeanVM.Guest.Source\n\n/-- A test program: its AST, \
          the public input it publishes and its witness streams, each word as its limbs. -/\n\
-         structure TestProgram where\n  name : String\n  program : Program\n  publicInput : List (Nat × Nat × Nat)\n  \
-         streams : List (String × List (List (Nat × Nat × Nat)))\n\n",
+         structure TestProgram where\n  name : String\n  program : Program\n  publicInput : List (Nat × Nat)\n  \
+         streams : List (String × List (List (Nat × Nat)))\n\n",
     );
     let mut names = Vec::new();
     for path in paths {
         let file = path.file_stem().unwrap().to_string_lossy().into_owned();
         let src = std::fs::read_to_string(&path).unwrap();
         let ast = parse(&src).unwrap();
-        let mut public = vec![F192::ZERO; 2];
-        let mut streams: BTreeMap<String, Vec<Vec<F192>>> = BTreeMap::new();
+        let mut public = vec![F128::ZERO; 2];
+        let mut streams: BTreeMap<String, Vec<Vec<F128>>> = BTreeMap::new();
         for line in src.lines().map(str::trim) {
             if let Some(rest) = line.strip_prefix("# public_input:") {
                 public = rest.split(',').map(|s| parse_const(s).unwrap()).collect();
@@ -248,7 +251,7 @@ fn render_programs() -> String {
             format!(
                 "({}, {})",
                 string(name),
-                list(values.iter().map(|v| format!("({}, {}, {})", v.c0, v.c1, v.c2)))
+                list(values.iter().map(|v| format!("({}, {})", v.c0, v.c1)))
             )
         }));
         let streams = list(streams.iter().map(|(k, es)| {
@@ -281,7 +284,7 @@ fn render_programs() -> String {
 /// `Source.lean` and `Programs.lean`.
 pub fn files() -> Vec<File> {
     let kbc = guest().prog().len().trailing_zeros() as usize;
-    let ast = parse_with_replacements(GUEST_SOURCE, &placeholder_map(kbc))
+    let (ast, consts) = parse_with_constants(GUEST_SOURCE, &placeholder_map(kbc))
         .expect("the repository aggregation guest must parse");
     // The AST is the one the deployed bytecode was compiled from.
     let recompiled = compile(&ast);
@@ -292,7 +295,7 @@ pub fn files() -> Vec<File> {
     vec![
         File {
             path: "LeanVM/Guest/Data/Source.lean".into(),
-            text: render(&ast, kbc),
+            text: render(&ast, &consts, kbc),
         },
         File {
             path: "tests/LeanVMTests/Guest/Programs.lean".into(),

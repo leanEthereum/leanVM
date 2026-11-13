@@ -5,9 +5,13 @@
   of `common`'s transfer game, on byte states.
 -/
 
-import LeanVM.Protocol.Rpm.Game
-import Common.Keccak
-import LeanVM.Protocol.WithHash
+module
+
+public import LeanVM.Protocol.Rpm.Game
+public import Common.Keccak
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # The experiment on lanes is the real world on bytes
@@ -168,3 +172,5 @@ theorem rpmHonest_evalDistEq {β : Type} (X : OracleComp KeccakCalls β) :
   exact EvalDistEq.rfl
 
 end LeanVM.Rpm
+
+end

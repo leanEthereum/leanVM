@@ -1,127 +1,116 @@
 /-
   LeanVM.Guest.B1.Whir.CFinPt
 
-  The point's buffers, honestly.
+  The finish's call of fold_final_msg, its point buffers and the heap buffers it allocates,
+  honestly.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Whir.CTail
+public import LeanVM.Guest.B1.Whir.CFinEval
 public import LeanVM.Guest.B1.Whir.Point
 
 /-!
-# The point's buffers, honestly
+# The point, honestly (G:1706-1730)
 
-`osPtBlk_complete`: one entry of the point (its source's word `v` loaded, stored at `pt[i]`, `1 + v`
-stored at `pt1[i]`; zero and one past the point). `osPtBlks_complete`: the entries `i ..`.
+`osPtBlks_complete`: the point's entries, each loaded from its source (`osPtSrc`) and stored in
+`point` and, plus one, in `point1`, on memory holding the honest words there.
 -/
 
 namespace LeanVM.Guest.B1.Whir
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
-open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {C : CallRel} {rd : Reader}
+variable {H : CallRel → Reader → Prop}
 
-/-- An entry's values. -/
-def ptVals (src : Option (ℕ × ℕ)) (v : E) : List E :=
-  match src with
-  | some _ => [v, word 1 0 0, v, word 1 0 0 + v]
-  | none => [word 0 0 0, word 1 0 0]
+/-- What memory holds of a point entry `i` of value `v` from the source `src`: the source's word,
+`v` in `point`, `1 + v` in `point1`. -/
+def PtMem (rd : Reader) (σ : Val) (pt pt1 i : ℕ) (src : Option (ℕ × ℕ)) (v : E) : Prop :=
+  PtSrcOk rd σ src v ∧ LoadHolds rd (σ (.n pt)) i v ∧ LoadHolds rd (σ (.n pt1)) i (1 + v)
 
-theorem osPtBlk_k (pt pt1 i k : ℕ) (src : Option (ℕ × ℕ)) :
-    (osPtBlk pt pt1 i k src).2 = k + (ptVals src 0).length := by
-  rcases src with _ | _ <;> rfl
+theorem osPtBlk_next (pt pt1 i k : ℕ) (src : Option (ℕ × ℕ)) :
+    k + 2 ≤ (osPtBlk pt pt1 i k src).2 := by
+  unfold osPtBlk; split <;> simp
 
-/-- **One entry, honestly.** -/
-theorem osPtBlk_complete {pt pt1 i k : ℕ} {src : Option (ℕ × ℕ)} {v : E} (σ : Val)
+/-- **One point entry, honestly.** -/
+theorem osPtBlk_complete {σ : Val} {pt pt1 i k : ℕ} {src : Option (ℕ × ℕ)} {v : E}
     (hpt : pt < k) (hpt1 : pt1 < k) (hsrc : ∀ b o, src = some (b, o) → b < k)
-    (hv : PtSrcOk rd σ src v) (hs : LoadHolds rd (σ (.n pt)) i v)
-    (hs1 : LoadHolds rd (σ (.n pt1)) i (1 + v)) :
-    BlkF C rd σ k (osPtBlk pt pt1 i k src).2 (fun j ↦ (ptVals src v).getD (j - k) 0)
-      (osPtBlk pt pt1 i k src).1 (fun σ' ↦ AgreeBelow k σ σ') := by
-  intro σ' ha hr
-  have ep := ha pt hpt; have ep1 := ha pt1 hpt1
-  refine ⟨?_, ha⟩
+    (hm : ∀ C rd, H C rd → PtMem rd σ pt pt1 i src v) :
+    BlkA H σ k (osPtBlk pt pt1 i k src).2 (osPtBlk pt pt1 i k src).1 (fun _ ↦ True) := by
   rcases src with _ | ⟨b, o⟩
-  · simp only [PtSrcOk] at hv
-    subst hv
-    have v0 := hr k le_rfl (by simp [osPtBlk])
-    have v1 := hr (k + 1) (by omega) (by simp [osPtBlk])
-    simp [ptVals] at v0 v1
-    simp only [osPtBlk, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
-    refine ⟨v0, by rw [v0, ep, word_zero]; exact hs, v1, by rw [v1, ep1, word_one]; simpa using hs1⟩
-  · simp only [PtSrcOk] at hv
-    have eb := ha b (hsrc b o rfl)
-    have v0 := hr k le_rfl (by simp [osPtBlk])
-    have v1 := hr (k + 1) (by omega) (by simp [osPtBlk])
-    have v2 := hr (k + 2) (by omega) (by simp [osPtBlk])
-    have v3 := hr (k + 3) (by omega) (by simp [osPtBlk])
-    simp [ptVals] at v0 v1 v2 v3
-    simp only [osPtBlk, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
-    refine ⟨by rw [v0, eb]; exact hv, by rw [v0, ep]; exact hs, v1, by rw [v2, eb]; exact hv,
-      by rw [v3, v1, v2], by rw [v3, ep1, word_one]; exact hs1⟩
+  · have hS : Ssa k (osPtBlk pt pt1 i k none).1 (osPtBlk pt pt1 i k none).2 :=
+      .cons (.const le_rfl) (.cons (.store (by omega) (by omega)) (.cons (.const (by omega))
+        (.cons (.store (by omega) (by omega)) .nil)))
+    refine ssa_blk (Pt := fun _ ↦ 0) hS (fun _ _ _ _ _ _ _ ↦ trivial) fun C rd hH σ' ha hr ↦ ?_
+    obtain ⟨hv, l0, l1⟩ := hm C rd hH
+    simp only [PtSrcOk] at hv
+    have e0 := hr k le_rfl (by simp [osPtBlk])
+    have e1 := hr (k + 1) (by omega) (by simp [osPtBlk])
+    simp [osPtBlk, evalV, stepV, stepW] at e0 e1
+    simp only [osPtBlk, SidesOk, Side, stepW, V.n, le_refl, ↓reduceIte, and_true, true_and,
+      show ¬ k + 1 ≤ k by omega, show ¬ k + 2 ≤ k + 1 by omega]
+    rw [ha _ hpt, ha _ hpt1, e0, e1, word_zero, word_one, ← hv]
+    exact ⟨l0, by rw [hv, add_zero] at l1; exact l1⟩
+  · have hb := hsrc b o rfl
+    have hS : Ssa k (osPtBlk pt pt1 i k (some (b, o))).1 (osPtBlk pt pt1 i k (some (b, o))).2 :=
+      .cons (.load le_rfl (by omega)) (.cons (.store (by omega) (by omega)) (.cons (.const (by omega))
+        (.cons (.load (by omega) (by omega)) (.cons (.add (by omega) (by omega) (by omega))
+          (.cons (.store (by omega) (by omega)) .nil)))))
+    refine ssa_blk (Pt := fun _ ↦ 0) hS (fun _ _ _ _ _ _ _ ↦ trivial) fun C rd hH σ' ha hr ↦ ?_
+    obtain ⟨hv, l0, l1⟩ := hm C rd hH
+    simp only [PtSrcOk] at hv
+    have em : memOf H (σ (.n b)) o = v := memOf_eq (fun C rd hH ↦ (hm C rd hH).1) hH
+    have e0 := hr k le_rfl (by simp [osPtBlk])
+    have e3 := hr (k + 3) (by omega) (by simp [osPtBlk])
+    simp [osPtBlk, evalV, stepV, stepW, show b ≠ k + 1 by omega, show b ≠ k by omega] at e0 e3
+    simp only [osPtBlk, SidesOk, Side, stepW, V.n, le_refl, ↓reduceIte, and_true, true_and,
+      show ¬ k + 1 ≤ k by omega, show ¬ k + 4 ≤ k + 3 by omega]
+    rw [ha _ hpt, ha _ hpt1, ha _ hb, e0, e3, em, word_one]
+    exact ⟨hv, l0, hv, l1⟩
+
+theorem ptMem_agree {rd : Reader} {σ σ' : Val} {pt pt1 i k : ℕ} {src : Option (ℕ × ℕ)} {v : E}
+    (hpt : pt < k) (hpt1 : pt1 < k) (hsrc : ∀ b o, src = some (b, o) → b < k)
+    (ha : AgreeBelow k σ σ') (h : PtMem rd σ pt pt1 i src v) : PtMem rd σ' pt pt1 i src v := by
+  obtain ⟨h1, h2, h3⟩ := h
+  refine ⟨?_, by rwa [ha _ hpt], by rwa [ha _ hpt1]⟩
+  rcases src with _ | ⟨b, o⟩
+  · exact h1
+  · simp only [PtSrcOk] at h1 ⊢; rwa [ha _ (hsrc b o rfl)]
 
 theorem osPtSrc_base {c : OsCfg} {tch i b o : ℕ} (h : osPtSrc c tch i = some (b, o)) :
     b = osFch ∨ b = tch := by
   unfold osPtSrc at h
   dsimp only at h
-  split_ifs at h <;> simp only [Option.some.injEq, Prod.mk.injEq] at h <;>
-    first | exact Or.inl h.1.symm | exact Or.inr h.1.symm
+  split_ifs at h <;> simp only [Option.some.injEq, Prod.mk.injEq] at h <;> omega
 
-/-- The values of the entries `i ..`. -/
-def ptsF (c : OsCfg) (pt pt1 tch : ℕ) (P : ℕ → E) : ℕ → ℕ → ℕ → Val → ℕ → E
-  | _, 0, _, _ => fun _ ↦ 0
-  | i, n + 1, k, σ =>
-    seqF σ k (osPtBlk pt pt1 i k (osPtSrc c tch i)).2
-      (fun j ↦ (ptVals (osPtSrc c tch i) (P i)).getD (j - k) 0)
-      fun σ1 ↦ ptsF c pt pt1 tch P (i + 1) n (osPtBlk pt pt1 i k (osPtSrc c tch i)).2 σ1
+theorem osPtBlks_next (c : OsCfg) (pt pt1 tch : ℕ) :
+    ∀ n i k, k ≤ (osPtBlks c pt pt1 tch i n k).2
+  | 0, _, _ => le_rfl
+  | n + 1, i, k => le_trans (by have := osPtBlk_next pt pt1 i k (osPtSrc c tch i); omega)
+      (osPtBlks_next c pt pt1 tch n (i + 1) _)
 
-theorem osPtBlks_k (c : OsCfg) (pt pt1 tch : ℕ) :
-    ∀ (i n k : ℕ), k ≤ (osPtBlks c pt pt1 tch i n k).2
-  | _, 0, _ => le_rfl
-  | i, n + 1, k => by
-    simp only [osPtBlks]
-    have := osPtBlks_k c pt pt1 tch (i + 1) n (osPtBlk pt pt1 i k (osPtSrc c tch i)).2
-    have h2 := osPtBlk_k pt pt1 i k (osPtSrc c tch i)
-    omega
-
-/-- **The entries `i ..`, honestly.** -/
-theorem osPtBlks_complete {c : OsCfg} {pt pt1 tch : ℕ} (P : ℕ → E) :
-    ∀ (i n k : ℕ) (σ : Val), pt < k → pt1 < k → tch < k → osFch < k →
-      (∀ j, i ≤ j → j < i + n → PtSrcOk rd σ (osPtSrc c tch j) (P j) ∧
-        LoadHolds rd (σ (.n pt)) j (P j) ∧ LoadHolds rd (σ (.n pt1)) j (1 + P j)) →
-      BlkF C rd σ k (osPtBlks c pt pt1 tch i n k).2 (ptsF c pt pt1 tch P i n k σ)
-        (osPtBlks c pt pt1 tch i n k).1 (fun σ' ↦ AgreeBelow k σ σ')
-  | _, 0, k, σ, _, _, _, _, _ => BlkF.nil fun _ h ↦ h
-  | i, n + 1, k, σ, hpt, hpt1, htch, hfch, h => by
-    have hsrc : ∀ b o, osPtSrc c tch i = some (b, o) → b < k := fun b o hb ↦ by
-      rcases osPtSrc_base hb with rfl | rfl <;> assumption
-    obtain ⟨h1, h2, h3⟩ := h i le_rfl (by omega)
-    have hA := osPtBlk_complete (C := C) (rd := rd) (pt := pt) (pt1 := pt1) (i := i) (k := k)
-      (src := osPtSrc c tch i) σ hpt hpt1 hsrc h1 h2 h3
-    have e : osPtBlks c pt pt1 tch i (n + 1) k = ((osPtBlk pt pt1 i k (osPtSrc c tch i)).1 ++
-        (osPtBlks c pt pt1 tch (i + 1) n (osPtBlk pt pt1 i k (osPtSrc c tch i)).2).1,
-        (osPtBlks c pt pt1 tch (i + 1) n (osPtBlk pt pt1 i k (osPtSrc c tch i)).2).2) := rfl
-    rw [e]
-    have hk1 := osPtBlk_k pt pt1 i k (osPtSrc c tch i)
-    have hk2 := osPtBlks_k c pt pt1 tch (i + 1) n (osPtBlk pt pt1 i k (osPtSrc c tch i)).2
-    refine BlkF.then (k1 := (osPtBlk pt pt1 i k (osPtSrc c tch i)).2) (by omega) hk2 hA
-      fun σ1 _ ha1 ↦ ?_
-    refine BlkF.mono (osPtBlks_complete P (i + 1) n _ σ1 (by omega) (by omega) (by omega) (by omega)
-      fun j hj1 hj2 ↦ ?_) fun σ' ha2 i' hi' ↦ (ha2 i' (by omega)).trans (ha1 i' hi')
-    obtain ⟨g1, g2, g3⟩ := h j (by omega) (by omega)
-    refine ⟨?_, by rw [ha1 pt hpt]; exact g2, by rw [ha1 pt1 hpt1]; exact g3⟩
-    unfold PtSrcOk at g1 ⊢
-    split
-    · next b o hb =>
-      rw [hb] at g1
-      have : b < k := by
-        rcases osPtSrc_base hb with rfl | rfl <;> omega
-      rw [ha1 b this]; exact g1
-    · next hb => rw [hb] at g1; exact g1
+/-- **The point's entries `i .. i + n - 1`, honestly.** -/
+theorem osPtBlks_complete {c : OsCfg} {pt pt1 tch : ℕ} (V : ℕ → E) :
+    ∀ (n i k : ℕ) (σ : Val), pt < k → pt1 < k → osFch < k → tch < k →
+      (∀ j < n, ∀ C rd, H C rd → PtMem rd σ pt pt1 (i + j) (osPtSrc c tch (i + j)) (V (i + j))) →
+      BlkA H σ k (osPtBlks c pt pt1 tch i n k).2 (osPtBlks c pt pt1 tch i n k).1 (fun _ ↦ True)
+  | 0, _, _, _, _, _, _, _, _ => BlkA.nil fun _ _ ↦ trivial
+  | n + 1, i, k, σ, hpt, hpt1, hf, ht, hm => by
+    have hsrc : ∀ b o, osPtSrc c tch i = some (b, o) → b < k := fun b o h ↦ by
+      rcases osPtSrc_base h with rfl | rfl <;> assumption
+    have h1 := osPtBlk_complete (H := H) hpt hpt1 hsrc (fun C rd hH ↦ by simpa using hm 0 (by omega) C rd hH)
+    have hn := osPtBlk_next pt pt1 i k (osPtSrc c tch i)
+    refine (BlkA.seq (OutB := fun _ ↦ True) (by omega) (osPtBlks_next c pt pt1 tch n (i + 1) _) h1
+      fun σ1 ha1 _ ↦ ?_).mono fun _ _ ↦ trivial
+    refine osPtBlks_complete V n (i + 1) _ σ1 (by omega) (by omega) (by omega) (by omega) fun j hj C rd hH ↦ ?_
+    have hsrc' : ∀ b o, osPtSrc c tch (i + 1 + j) = some (b, o) → b < k := fun b o h ↦ by
+      rcases osPtSrc_base h with rfl | rfl <;> assumption
+    have := hm (j + 1) (by omega) C rd hH
+    rw [show i + (j + 1) = i + 1 + j by ring] at this
+    exact ptMem_agree hpt hpt1 hsrc' ha1 this
 
 end
 end LeanVM.Guest.B1.Whir

@@ -9,9 +9,9 @@ module
 public import LeanVM.Guest.B1.Da.RowShape
 
 /-!
-# `da_verify_cell` (G:4395-4407)
+# `da_verify_cell` (G:4579-4591)
 
-`da_verify_cell(lvals)` (`core30`): `256` hinted symbols `.n 1 … .n 256`; pair `e`'s atoms
+`da_verify_cell(lvals)`: `256` hinted symbols `.n 1 … .n 256`; pair `e`'s atoms
 (`blkA e`, the template `tmplA`, compared atom by atom) assert both in `K`, pack them into the cell
 `sym[2e] + y·sym[2e + 1]` (`packV e`) and add `lvals[2e]·sym[2e] + lvals[2e + 1]·sym[2e + 1]` to the
 running sum (`accV e`, `acc_sum`); the `128` cells are hashed (`keccak_cells`, a `ChainSpec` from the
@@ -41,11 +41,11 @@ def packV (e : ℕ) : ℕ := if e = 0 then 259 else 256 + 9 * e + 2
 `sym[2e] + y·sym[2e + 1]`, and the two products `lvals[j]·sym[j]` added to the running sum. -/
 def blkA (e : ℕ) : List Atom :=
   if e = 0 then
-    [.assertInK (.n 1) (.n 2), .const (.n 257) (word 0 1 0), .mul (.n 258) (.n 257) (.n 2),
+    [.assertInK (.n 1) (.n 2), .const (.n 257) (word 0 1), .mul (.n 258) (.n 257) (.n 2),
       .add (.n 259) (.n 1) (.n 258), .load (.n 260) (.n 0) 0, .mul (.n 261) (.n 260) (.n 1),
       .load (.n 262) (.n 0) 1, .mul (.n 263) (.n 262) (.n 2), .add (.n 264) (.n 261) (.n 263)]
   else
-    [.assertInK (.n (2 * e + 1)) (.n (2 * e + 2)), .const (.n (256 + 9 * e)) (word 0 1 0),
+    [.assertInK (.n (2 * e + 1)) (.n (2 * e + 2)), .const (.n (256 + 9 * e)) (word 0 1),
       .mul (.n (256 + 9 * e + 1)) (.n (256 + 9 * e)) (.n (2 * e + 2)),
       .add (.n (256 + 9 * e + 2)) (.n (2 * e + 1)) (.n (256 + 9 * e + 1)),
       .load (.n (256 + 9 * e + 3)) (.n 0) (2 * e),
@@ -61,7 +61,7 @@ def tmplA : List Atom := (List.range 128).flatMap blkA
 /-- **Pair `e`'s facts.** -/
 theorem blk_sound {e : ℕ} (he : e < 128) (hat : ∀ a ∈ tmplA, a.Holds rd σ) :
     IsInK (σ (.n (2 * e + 1))) ∧ IsInK (σ (.n (2 * e + 2))) ∧
-    σ (.n (packV e)) = E.ofLimbs ((σ (.n (2 * e + 1))).limb 0) ((σ (.n (2 * e + 2))).limb 0) 0 ∧
+    σ (.n (packV e)) = E.ofLimbs ((σ (.n (2 * e + 1))).limb 0) ((σ (.n (2 * e + 2))).limb 0) ∧
     LoadHolds rd (σ (.n 0)) (2 * e) (memAt rd (σ (.n 0)) (2 * e)) ∧
     LoadHolds rd (σ (.n 0)) (2 * e + 1) (memAt rd (σ (.n 0)) (2 * e + 1)) ∧
     σ (.n (accV e)) = (if e = 0 then 0 else σ (.n (accV (e - 1)))) +

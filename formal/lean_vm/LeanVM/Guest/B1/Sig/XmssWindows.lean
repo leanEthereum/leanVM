@@ -3,7 +3,7 @@
 
   leanXMSS's leaf index, a window at a time (`lx_window`, `lx_top_window`, `lean_ethereum.py:
   3613-3653`): the windows pin the hinted shifts, and the path's addresses and bits are the index's.
-  The chain indices a chain step hashes (`walk`, `lean_ethereum.py:3545-3570`).
+  The chain indices a chain step hashes (`walk`, `lean_ethereum.py:3737-3762`).
 -/
 
 module
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Sig.Codeword
 /-!
 # The leaf index's windows, and the chain indices
 
-`verify_lean_xmss` (`lean_ethereum.py:3656-3728`, inline in `main`'s `__loop2`) hints the leaf
+`verify_lean_xmss` (`lean_ethereum.py:3848-3920`, inline in `main`'s `main_loop2`) hints the leaf
 index's shifts `his[v] = L >>> 8v` (`lx_index`) and its four 8-bit windows in the exponent
 (`lx_windows`), and dispatches the path a window at a time: arm `k` of window `w` walks the
 window's eight levels, its bit `r` the order of level `r`'s node against its hinted sibling, and
@@ -28,7 +28,7 @@ writes `his[w + 1] · g^8 + k` (the top window `k`) where the hinted `his[w]` is
 * `lx_bit`: arm `k`'s bit `r` is the index's bit `8w + r`;
 * `lx_layer_idx`: a layer's index cell (`his[0]`, `his[2] + LX_TOP`) is the index's key with the
   layer's bit;
-* `lxTagCarried`, `lxTagSlot`, `lxTagLog` (`LX_TAG_SLOT`, `LX_TAG_LOG`, `aggregation/placeholders.rs:900-914`):
+* `lxTagCarried`, `lxTagSlot`, `lxTagLog` (`LX_TAG_SLOT`, `LX_TAG_LOG`, `aggregation/placeholders.rs:987-998`):
   chain `i`'s index cell is the zero cell (`i = 0`), `powers[log₂ i]` (a power of two) or carried
   tag `lxTagSlot i - 1` (`LX_N_TAGS = 51` of them); `lx_tag`: each holds `i`.
 -/
@@ -117,14 +117,14 @@ def lxNodeConst (w r : Nat) : Nat :=
 /-- The address of level `r` of window `w`'s parent over the index `L`: the constant plus
 `L >>> (8w + r + 1)`, the top layer's root at index `0`. -/
 def lxNodeAddr (L w r : Nat) : E :=
-  word (lxNodeConst w r) 0 0 + if 8 * w + r + 1 = 32 then 0 else eOfNat (L >>> (8 * w + r + 1))
+  word (lxNodeConst w r) 0 + if 8 * w + r + 1 = 32 then 0 else eOfNat (L >>> (8 * w + r + 1))
 
 /-- The address `lx_levels` computes at level `r` of window `w` in arm `k`, from the next shift
 `hi` and the power `g^(7 - r)` `pw`. -/
 def lxAt (hi pw : E) (w r k : Nat) : E :=
-  if w + 1 = 4 then word (lxNodeConst w r + k / 2 ^ (r + 1)) 0 0
-  else if r + 1 = 8 then hi + word (lxNodeConst w r + k / 2 ^ (r + 1)) 0 0
-  else hi * pw + word (lxNodeConst w r + k / 2 ^ (r + 1)) 0 0
+  if w + 1 = 4 then word (lxNodeConst w r + k / 2 ^ (r + 1)) 0
+  else if r + 1 = 8 then hi + word (lxNodeConst w r + k / 2 ^ (r + 1)) 0
+  else hi * pw + word (lxNodeConst w r + k / 2 ^ (r + 1)) 0
 
 theorem lxNodeConst_eq (w r : Nat) :
     lxNodeConst w r = 2 ^ 32 * (3 * 2 ^ 24 + ((8 * w + r) % 16 + 1) + 2 ^ 23 * ((8 * w + r) / 16)) := by
@@ -133,7 +133,7 @@ theorem lxNodeConst_eq (w r : Nat) :
 
 /-- A constant above bit `32` plus a value below it. -/
 theorem word_split {q x : Nat} (hx : x < 2 ^ 32) :
-    word (2 ^ 32 * q + x) 0 0 = word (2 ^ 32 * q) 0 0 + eOfNat x := by
+    word (2 ^ 32 * q + x) 0 = word (2 ^ 32 * q) 0 + eOfNat x := by
   rw [word_eq_eOfNat, word_eq_eOfNat, eOfNat_add_of_lt hx]
 
 theorem lxNodeConst_lt {w r : Nat} (hw : w < 4) (hr : r < 8) : lxNodeConst w r + 2 ^ 32 < 2 ^ 64 := by
@@ -221,7 +221,7 @@ theorem lx_bit (L w r : Nat) (hr : r < 8) :
 on the layer with the top layer's bit `55`. -/
 theorem lx_layer_idx {L : Nat} (hL : L < 2 ^ 32) :
     eOfNat (L >>> (8 * 0)) = eOfNat (2 ^ 32 * (2 ^ 23 * 0) + L >>> (16 * 0)) ∧
-      eOfNat (L >>> (8 * 2)) + word lxTop 0 0 = eOfNat (2 ^ 32 * (2 ^ 23 * 1) + L >>> (16 * 1)) := by
+      eOfNat (L >>> (8 * 2)) + word lxTop 0 = eOfNat (2 ^ 32 * (2 ^ 23 * 1) + L >>> (16 * 1)) := by
   refine ⟨by simp, ?_⟩
   rw [word_eq_eOfNat, add_comm, show lxTop = 2 ^ 32 * (2 ^ 23 * 1) by simp [lxTop],
     eOfNat_add_of_lt (lt_of_le_of_lt (Nat.shiftRight_le _ _) hL)]
@@ -229,7 +229,7 @@ theorem lx_layer_idx {L : Nat} (hL : L < 2 ^ 32) :
 /-! ## The chain indices -/
 
 /-- Whether chain `i`'s index is carried as a tag: neither `0` nor a power of two
-(`aggregation/placeholders.rs:905-910`). -/
+(`aggregation/placeholders.rs:990-991`). -/
 def lxTagCarried (i : Nat) : Bool := i != 0 && (i &&& (i - 1)) != 0
 
 /-- Chain `i`'s tag slot, one past its carried tag (`LX_TAG_SLOT`), `0` if not carried. -/
@@ -242,14 +242,8 @@ def lxTagLog (i : Nat) : Nat := Nat.log2 i
 /-- The number of carried tags (`LX_N_TAGS`). -/
 def lxNTags : Nat := ((List.range 58).filter lxTagCarried).length
 
-theorem lxNTags_eq : lxNTags = 51 := by decide
-
 /-- The carried tags' slots are below `LX_N_TAGS` and distinct. -/
 theorem lxTagSlot_spec : ∀ i < 58, lxTagCarried i = true → 1 ≤ lxTagSlot i ∧ lxTagSlot i ≤ 51 := by
-  decide
-
-theorem lxTagSlot_inj : ∀ i < 58, ∀ j < 58, lxTagCarried i = true → lxTagCarried j = true →
-    lxTagSlot i = lxTagSlot j → i = j := by
   decide
 
 /-- An index neither `0` nor carried is a power of two below `2^6`. -/
@@ -261,7 +255,7 @@ tag `tags[slot - 1]`. -/
 def lxTagOf (z : E) (powers tags : Nat → E) (i : Nat) : E :=
   if i = 0 then z else if lxTagCarried i then tags (lxTagSlot i - 1) else powers (lxTagLog i)
 
-/-- **The carried tags hold their indices** (`main`'s `lx_tags`, `lean_ethereum.py:4576-4581`). -/
+/-- **The carried tags hold their indices** (`main`'s `lx_tags`, `lean_ethereum.py:4540-4545`). -/
 def LxTagsHold (tags : Nat → E) : Prop :=
   ∀ i < 58, lxTagCarried i = true → tags (lxTagSlot i - 1) = eOfNat i
 

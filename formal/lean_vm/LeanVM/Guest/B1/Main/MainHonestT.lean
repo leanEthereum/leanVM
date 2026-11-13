@@ -2,18 +2,19 @@
   LeanVM.Guest.B1.Main.MainHonestT
 
   `main` placed on a node's honest run, its children's loop by a tree satisfying a predicate
-  `T5`: `main`'s node then has a `__loop4` child satisfying `T5`.
+  `T5`: `main`'s node then has a `main_loop4` child satisfying `T5`.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Main.MainHonestEnd
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main` on an honest run, the children's loop's tree exposed
 
-`mTs m T5`: the predicates on `main`'s callees' trees, `T5` on `__loop4`'s, none on the others'.
+`mTs m T5`: the predicates on `main`'s callees' trees, `T5` on `main_loop4`'s, none on the others'.
 `mainKidsDT`: `MainGoals` and the children's loop complete by trees satisfying `T5` give
 `KidsDT`. `main_honest_relAtInT`: `main_honest_end` with `main`'s node's children satisfying
 `KidsT (mCalls σ m) (_ :: mTs m T5)`.
@@ -50,7 +51,7 @@ variable {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness} {bytec
 def MainGoalL5T (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (T5 : Tree → Prop) : Prop :=
   (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDT fs cert 23 "__loop4" (hLmain fs fp seed s w)
+    CompleteAtDT fs cert 23 name% «main_loop4» (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80,
@@ -79,7 +80,8 @@ structure MainGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
   ag : (hm fs fp seed s w).nc ≠ 0 →
     CompleteAtDT fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)
       [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
-        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns []) p.Pa
+        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
+          (hm fs fp seed s w).et * word 133823759239872512 0] (Returns []) p.Pa
   l5 : MainGoalL5T fs cert fp seed s w p.T5
 
 /-- **`main`'s callees, by trees satisfying `p`.** -/

@@ -46,7 +46,7 @@ theorem mem_steps : ∀ s < 12, ∀ st ∈ stepT s (stepB s) (stepCap s) (stepCu
 
 namespace VkData
 
-variable {D : VkData} {rd : Reader} {B curE chiE olE zvE slE : ℕ} {ls : ℕ → ℕ}
+variable {D : VkData} {rd : Reader} {B curE chiE olE zvE slE tbE : ℕ} {ls : ℕ → ℕ}
 
 theorem outWs_length (s : ℕ) : (D.outWs ls s).length = 22 := by
   simp [outWs, LayerData.outW, LayerData.next, layerClaim, keccakInstanceWeights_length]
@@ -82,7 +82,7 @@ theorem lanes_first (ht : ReadsAt rd (ptr (B + D.o274)) (eqLevels D.rl 5)) :
   exact this k (by simp [eqKernel_length, rl_length]; omega)
 
 /-- **Claim `s`'s record and buffers, in memory.** -/
-theorem CL_mem (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {s : ℕ} (hs : s < 12) :
+theorem CL_mem (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {s : ℕ} (hs : s < 12) :
     MemL rd ((D.CL B ls s).L (firstOf s) (D.layer s).c) := by
   obtain ⟨m58, -, m201, -, m274, -, -⟩ := own_mem (by have := h.1; omega) hm.own
   rcases s with _ | k
@@ -113,26 +113,26 @@ theorem CL_mem (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {s : ℕ} (
       rw [hw.2.2.2]
       exact hL _ (by simp [CL])
 
-theorem step_bounds : ∀ s < 12, 204 ≤ stepT0 s (stepB s) ∧ 17 ≤ stepB s ∧
+theorem step_bounds : ∀ s < 12, 162 ≤ stepT0 s (stepB s) ∧ 18 ≤ stepB s ∧
     stepCb s < stepT0 s (stepB s) ∧ stepPn s < stepT0 s (stepB s) := by decide +kernel
 
 set_option maxRecDepth 20000 in
 /-- **Step `s`, on the layout**: from the claim records' pointers it reads (`cb`: claim `s`'s,
 `pn`: claim `s + 1`'s, as the step before computed them). -/
-theorem step_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
-    (hσd : σ = D.val rd B curE chiE olE zvE slE) {s : ℕ} (hs : s < 12)
-    (h17 : σ (.n 17) = gen ^ (D.τ - 4))
-    (h201 : σ (.n 203) = ptr (B + D.o201)) (h274 : σ (.n 276) = ptr (B + D.o274))
-    (hcb : 1 ≤ s → σ (.n (stepCb s)) = σ (.n 203) * gen ^ (22 * (s - 1)))
-    (hpn : 1 ≤ s → σ (.n (stepPn s)) = σ (.n 203) * gen ^ (22 * s)) :
+theorem step_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
+    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE) {s : ℕ} (hs : s < 12)
+    (h17 : σ (.n 18) = gen ^ (D.τ - 4))
+    (h201 : σ (.n 161) = ptr (B + D.o201)) (h274 : σ (.n 234) = ptr (B + D.o274))
+    (hcb : 1 ≤ s → σ (.n (stepCb s)) = σ (.n 161) * gen ^ (22 * (s - 1)))
+    (hpn : 1 ≤ s → σ (.n (stepPn s)) = σ (.n 161) * gen ^ (22 * s)) :
     σ (.n (stepT0 s (stepB s) - 1)) = keccakIota D.τ s (D.layer s).c ∧
     (s = 0 → σ (.n (stepT0 s (stepB s) + 1)) = σ (.n 5) * gen ∧
       σ (.n (stepT0 s (stepB s) + 3)) = gen ^ (D.τ - 3) ∧
-      σ (.n (stepT0 s (stepB s) + 5)) = σ (.n 203) * gen ^ (22 * 1)) ∧
+      σ (.n (stepT0 s (stepB s) + 5)) = σ (.n 161) * gen ^ (22 * 1)) ∧
     (s ≠ 0 → σ (.n (stepT0 s (stepB s))) = 0 ∧ σ (.n (stepT0 s (stepB s) + 1)) = 0 ∧
       σ (.n (stepT0 s (stepB s) + 3)) = gen ^ (D.τ - 3) ∧
-      σ (.n (stepT0 s (stepB s) + 5)) = σ (.n 203) * gen ^ (22 * s) ∧
-      σ (.n (stepT0 s (stepB s) + 7)) = σ (.n 203) * gen ^ (22 * (s + 1))) ∧
+      σ (.n (stepT0 s (stepB s) + 5)) = σ (.n 161) * gen ^ (22 * s) ∧
+      σ (.n (stepT0 s (stepB s) + 7)) = σ (.n 161) * gen ^ (22 * (s + 1))) ∧
     ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList (fun _ _ _ ↦ True) rd σ
         (stepT s (stepB s) (stepCap s) (stepCur s) (stepCb s) (stepPn s)) next kret := by
@@ -162,7 +162,7 @@ theorem step_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (flipsT s (stepB s + 6)) next kret := by
     rcases Nat.eq_zero_or_pos s with rfl | hs0
     · obtain ⟨-, -, -, -, m274, -, -⟩ := own_mem (by omega) hm.own
-      have hL0 : LoadHolds rd (σ (.n 276)) 30 ((eqKernel D.rl).getD 0 0) := by
+      have hL0 : LoadHolds rd (σ (.n 234)) 30 ((eqKernel D.rl).getD 0 0) := by
         rw [h274]
         have := lanes_first m274 0 (by simp [eqKernel_length, rl_length])
         rw [← ptr_mul_gen, loadHolds_mul_gen_pow] at this

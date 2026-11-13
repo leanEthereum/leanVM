@@ -25,6 +25,7 @@ public import LeanVM.Guest.Memory.Size
   handed back (`Lout fp`) depending on the frame pointer `fp`. `level_positions` takes this form:
   the caller's window pointers point into its decoders' frames.
 * `BoundsAt fs f Bd`: `Bd` bounds every valid tree of `f`.
+* `CompleteAtE … n`: complete by a tree of exactly `n` words (`toD`, `toB`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -55,7 +56,27 @@ def CompleteAtPO (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (
     (∀ B ∈ Bd, n ≤ B) ∧ ∀ rd, LowDef k rd → MemL rd (Lout fp ++ Lown ++ Lin fp) →
       RelAtIn coreProgram fs cert rd (RegionL (Lin fp)) (RegionL (Lout fp)) fp n f args rets
 
+/-- **`f` is complete at every frame pointer, on disjoint layouts, by a tree of exactly `n`
+words.** -/
+def CompleteAtE (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String) (Lin : Layout)
+    (args : List E) (Out : List E → Layout → Prop) (n : ℕ) : Prop :=
+  ∀ fp, ∃ (Lown : Layout) (rets : List E) (Lout : Layout), Out rets Lout ∧
+    Within (Lout ++ Lown) fp n ∧ DisjL (Lout ++ Lown) ∧ ∀ rd, LowDef k rd →
+      MemL rd (Lout ++ Lown ++ Lin) →
+      RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets
+
 variable {fs : String → ℕ} {cert : String → V → ℕ} {k : ℕ} {f : String}
+
+theorem CompleteAtE.toD {Lin : Layout} {args : List E} {Out : List E → Layout → Prop} {n : ℕ}
+    (h : CompleteAtE fs cert k f Lin args Out n) : CompleteAtD fs cert k f Lin args Out := fun fp ↦
+  let ⟨Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩
+
+theorem CompleteAtE.toB {Lin : Layout} {args : List E} {Out : List E → Layout → Prop} {n B : ℕ}
+    (h : CompleteAtE fs cert k f Lin args Out n) (hn : n ≤ B) :
+    CompleteAtB fs cert k f Lin args Out B := fun fp ↦
+  let ⟨Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, hd, hn, hr⟩
 
 theorem CompleteAtO.toD {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
     (h : CompleteAtO fs cert k f Lin args Out none) : CompleteAtD fs cert k f Lin args Out := fun fp ↦

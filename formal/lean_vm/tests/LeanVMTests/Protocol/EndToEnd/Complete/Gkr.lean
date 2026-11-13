@@ -30,11 +30,11 @@ example : ∀ (D : ℕ) (L₀ L₁ L₂ : List E), L₀.length = 2 ^ D → L₁.
 /-! ## Small trees -/
 
 /-- A field element from three words. -/
-def eK (a b c : ℕ) : E := E.ofLimbs (K.ofBits a) (K.ofBits b) (K.ofBits c)
+def eK (a b : ℕ) : E := E.ofLimbs (K.ofBits a) (K.ofBits b)
 
 /-- A pseudo-random list of `n` entries. -/
 def tbl (seed n : ℕ) : List E :=
-  (List.range n).map fun i ↦ eK (i * 0x9E3779B97F4A7C15 + seed) (i * i + 3 * seed) (seed + 7 * i)
+  (List.range n).map fun i ↦ eK (i * 0x9E3779B97F4A7C15 + seed) (i * i + 3 * seed + 7 * i)
 
 /-- Three leaf lists of `2^3` entries, the second a permutation of the first. -/
 def C₀ : List E := tbl 1 8
@@ -48,17 +48,17 @@ def C₂ : List E := tbl 2 8
 -- A step of two levels from a point of one coordinate: the layers' batched values are the
 -- step's claim.
 #guard
-  let p := [eK 3 4 5]
-  let c := eK 6 7 8
+  let p := [eK 3 4]
+  let c := eK 6 7
   polyEval [multilinearEval (up 2 C₀) p, multilinearEval (up 2 C₁) p,
     multilinearEval (up 2 C₂) p] c == stepClaim C₀ C₁ C₂ 2 p c []
 
 -- Every round splits its claim as the equality-mode check reads it (a step of one level from a
 -- point of two coordinates).
 #guard
-  let p := [eK 3 4 5, eK 9 10 11]
-  let c := eK 6 7 8
-  let x := eK 12 13 14
+  let p := [eK 3 4, eK 9 10]
+  let c := eK 6 7
+  let x := eK 12 13
   [[], [x]].all fun pre ↦
     let r := p.getD pre.length 0
     (1 + r) * stepClaim C₀ C₁ C₂ 1 p c (pre ++ [0]) + r * stepClaim C₀ C₁ C₂ 1 p c (pre ++ [1]) ==
@@ -67,9 +67,9 @@ def C₂ : List E := tbl 2 8
 -- With every coordinate bound, the claim is the batched products of the children the honest
 -- prover sends; a tampered child breaks the check.
 #guard
-  let p := [eK 3 4 5, eK 9 10 11]
-  let c := eK 6 7 8
-  let x := [eK 12 13 14, eK 15 16 17]
+  let p := [eK 3 4, eK 9 10]
+  let c := eK 6 7
+  let x := [eK 12 13, eK 15 16]
   stepClaim C₀ C₁ C₂ 1 p c x == stepF C₀ C₁ C₂ 1 c x &&
     stepClaim C₀ C₁ C₂ 1 p c x !=
       polyEval [((child C₀ 1 x).set 0 1).prod, (child C₁ 1 x).prod, (child C₂ 1 x).prod] c

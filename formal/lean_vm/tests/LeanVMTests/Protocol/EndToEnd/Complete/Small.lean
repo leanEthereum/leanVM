@@ -52,8 +52,8 @@ example {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ :
   honestProofOf_isSome hv hbudget hρ H F fuel hpow
 
 example (prog : LeanIsaProgram) (s : Sizes) : (LeanVM.Protocol.LeanIsa.blocks prog s).total =
-    4 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (s.τ 5 + 6) + 15 * 2 ^ s.τ 0 + 15 * 2 ^ s.τ 1 +
-      8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 28 * 2 ^ s.τ 5 :=
+    3 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (s.τ 5 + 6) + 13 * 2 ^ s.τ 0 + 13 * 2 ^ s.τ 1 +
+      7 * 2 ^ s.τ 2 + 14 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 28 * 2 ^ s.τ 5 :=
   blocks_total_eq prog s
 
 /--

@@ -12,15 +12,14 @@ public import LeanVM.Semantics.Lemmas
 /-!
 # The bytecode encoding
 
-At leanVM main `40f877dc2c858f013c5974ab71ca594b31a7aec9`, transcribed
-from:
+At `leanvm-rev`, transcribed from:
 
 * specification §8.1 (`doc/leanvm/body/08-end-to-end-protocol.tex`): instruction `z` is sixteen
   `K` slots, the opcode in slot 3, the operands, immediate lanes and flags after it, zero
   elsewhere;
-* `crates/leanvm_core/src/cpu/layout.rs:292-366` (`bytecode_columns`): the thirteen public program
-  columns, the opcode then twelve operand slots (`BYTECODE_OPERANDS = 12`, `:287`), offsets as
-  g-powers, a `SET` immediate as its three limbs, the `DEREF` store-mode flags and `KECCAK`'s
+* `crates/leanvm_core/src/cpu/layout.rs:290-365` (`bytecode_columns`): the thirteen public program
+  columns, the opcode then twelve operand slots (`BYTECODE_OPERANDS = 12`, `:285`), offsets as
+  g-powers, a `SET` immediate as its two limbs, the `DEREF` store-mode flags and `KECCAK`'s
   layout and output flags as `0` or `1`, unused slots zero; `stack_columns` stacks them at slots
   `3..16` (`BYTECODE_PUBLIC_SLOT = 3`);
 * `crates/leanvm_core/src/cpu/isa.rs:85-93`: the `DEREF` store mode as the flag pair
@@ -45,15 +44,16 @@ loading/correspondence theorem. Those interfaces require separate coverage or re
 
 ## Wrong readings excluded
 
-* `SET_CONSTANT`'s `k₂` rides slot 7, coordinate 4 of the entry, the slot `DEREF` uses for
-  `f_pc`; `KECCAK`'s twelve operands ride slots 4 to 15 (`decode_entry` on every constructor).
+* `SET_CONSTANT`'s two limbs ride slots 5 and 6, coordinates 2 and 3 of the entry; coordinate 4,
+  the slot `DEREF` uses for `f_pc`, is a spare zero; `KECCAK`'s twelve operands ride slots 4 to 15
+  (`decode_entry` on every constructor).
 * The flag pair `(1, 1)` decodes to nothing, and so does every pair that is not one of the
   three. Likewise `KECCAK`'s output flag pair `(0, 1)`, which would write cells `2..13` and not
   cell `1`, and is no `OutCells`'s.
 * An output flag of `KECCAK` is `0` or `1`: that is what makes its gated memory pair either a
   read or a cancelled pair (`Tables.Keccak`), and `decode` is where it comes from.
 * A nonzero spare entry coordinate is not ignored. Each opcode table's bytecode tuple carries
-  literal zeros in its spare coordinates (`flushes_*`, `crates/verifier/src/layout.rs:209-371`),
+  literal zeros in its spare coordinates (`flushes_*`, `crates/verifier/src/layout.rs:208-362`),
   and `decode` rejects a tuple that violates that opcode's canonical entry shape. This is a
   thirteen-coordinate entry claim, not rejection by the typed program's address lookup.
 -/
@@ -112,7 +112,7 @@ def decode (v : Vector K 13) : Option LeanIsaInstruction :=
   | some .xor => if v[4] = 0 ∧ Spare5 v then some (.xor v[1] v[2] v[3]) else none
   | some .mulNative => if v[4] = 0 ∧ Spare5 v then some (.mulNative v[1] v[2] v[3]) else none
   | some .setConstant =>
-      if Spare5 v then some (.setConstant v[1] (E.ofLimbs v[2] v[3] v[4])) else none
+      if v[4] = 0 ∧ Spare5 v then some (.setConstant v[1] (E.ofLimbs v[2] v[3])) else none
   | some .deref =>
       match derefMode? v[4] v[5] with
       | some mode =>

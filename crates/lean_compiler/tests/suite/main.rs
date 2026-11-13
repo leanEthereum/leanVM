@@ -7,7 +7,6 @@ mod const_placeholder;
 mod determinism;
 mod disassemble;
 mod field_div;
-mod field_towers;
 mod hint_log2_ceil;
 mod inline_expr;
 mod loop_frames;

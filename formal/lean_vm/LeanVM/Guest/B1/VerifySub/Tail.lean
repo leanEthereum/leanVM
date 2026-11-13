@@ -1,23 +1,25 @@
 /-
   LeanVM.Guest.B1.VerifySub.Tail
 
-  `verify_sub`'s calls, the ring map's challenges, its tail, and the memory's size.
+  `verify_sub`'s three calls (`verify_bus_gkr`, `verify_tables`, `verify_keccak`) and its tail:
+  the dispatch to `open_stacked`, the terminal, the deferred claim.
 -/
 
 module
 
 public import LeanVM.Guest.B1.VerifySub.Front
+public import LeanVM.Guest.B1.VerifySub.Proof
+public import LeanVM.Guest.B1.Tables.Basic
+public import LeanVM.Guest.B1.Whir.Names
 
 /-!
 # The calls and the tail of `verify_sub`
 
-* `vsCallsT_holds`: the three calls (`verify_bus_gkr`, `verify_tables`, `verify_keccak`) on their
-  argument words, the cursor `stream·g^10`, the keccak table's `g^τ` from `dims_g`, the output
-  lanes at `col_eval_words·g^107`, the capacity copied;
-* `vsMapsT_holds`: the ring map's challenges, the first `verify_keccak`'s, five squeezed;
-* `vsTailT_holds`: `certify_placement`, the stack's log, its range check, the dispatch, the
-  terminal, the deferred claim's words, and the return;
-* `mem_size`: a memory image holding `n` words at one pointer has at least `n` words.
+* `vsCallsT_holds` (G:3624-3635): the three calls on their argument words, `tabs` three times,
+  the Keccak table's `g^τ` read off `dims_g`, the output lanes at `col_eval_words·g^101`.
+* `vsTailT_holds` (G:3691-3706): the call of the stack size's `open_stacked` specialization (the
+  dispatch on `size_sel`, the rate's selector its first argument), the cursor past the ring grind's nonce,
+  `check_opening_terminal`'s call, the deferred claim's words, and the return.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -29,155 +31,89 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 variable {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E → Prop}
 
-theorem word_1024 : word 1024 0 0 = gen ^ 10 := by
-  rw [show (1024 : ℕ) = 2 ^ 10 from rfl]; exact word_two_pow (by decide)
+set_option maxRecDepth 100000 in
+/-- `KECCAK_OUT_POOL - N_BUS_CLAIMS = 101`: the output lanes' offset in `col_eval_words`. -/
+theorem word_g101 : word 3710851743744 0 = gen ^ 101 := by
+  rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
+  congr 1
 
-/-- **The three calls** (G:3425-3436). -/
+/-- **The three calls** (G:3624-3635). -/
 theorem vsCallsT_holds (h : Stmt.HoldsList C rd σ vsCallsT next kret) :
-    σ (.n 625) = σ (.n 25) * gen ^ 10 ∧
-    C "verify_bus_gkr" [σ (.n 612), σ (.n 613), σ (.n 614), σ (.n 615), σ (.n 616), σ (.n 625),
-      σ (.n 309), σ (.n 310)] ((List.range 9).map fun k ↦ σ (.n (626 + k))) ∧
-    C "verify_tables" [σ (.n 626), σ (.n 627), σ (.n 628), σ (.n 629), σ (.n 630), σ (.n 631),
-      σ (.n 0), σ (.n 1), σ (.n 310), σ (.n 309), σ (.n 127), σ (.n 26), σ (.n 4), σ (.n 427),
-      σ (.n 623), σ (.n 6), σ (.n 635), σ (.n 632), σ (.n 633), σ (.n 634)]
-      ((List.range 10).map fun k ↦ σ (.n (636 + k))) ∧
-    LoadHolds rd (σ (.n 127)) 6 (σ (.n 646)) ∧ σ (.n 650) = σ (.n 645) * word 237494511599616 0 0 ∧
-    C "verify_keccak" [σ (.n 636), σ (.n 637), σ (.n 638), σ (.n 639), σ (.n 640), σ (.n 641),
-      σ (.n 646), σ (.n 635), σ (.n 650), σ (.n 647), σ (.n 648)]
-      ((List.range 8).map fun k ↦ σ (.n (651 + k))) ∧
-    (∀ i < 5, σ (.n (659 + i)) = σ (.n (651 + i))) ∧ next := by
-  simp only [vsCallsT, vsConst, vsMul, vsCall, vsAlloc, vsLd, holdsList_append, Stmt.HoldsList,
-    Stmt.Holds, List.map_cons, List.map_nil, List.map_map] at h
-  obtain ⟨c837, m838, cg, -, ct, l858, -, -, c861, m862, ck, h⟩ := h
-  simp only [Atom.Holds] at c837 m838 c861 m862
-  refine ⟨by rw [m838, c837, word_1024], ?_, ?_, l858, by rw [m862, c861], ?_, ?_, ?_⟩
-  · simpa [Function.comp_def] using cg
-  · simpa [Function.comp_def] using ct
-  · simpa [Function.comp_def] using ck
-  · simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil,
-      List.nil_append, List.cons_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
-    intro i hi
-    interval_cases i
-    · exact h.1
-    · exact h.2.1
-    · exact h.2.2.1
-    · exact h.2.2.2.1
-    · exact h.2.2.2.2.1
-  · simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil,
-      List.nil_append, List.cons_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
-    exact h.2.2.2.2.2
+    σ (.n 561) = σ (.n 4) * gen ^ winTabAt ∧
+    C "verify_bus_gkr" [σ (.n 554), σ (.n 555), σ (.n 556), σ (.n 557), σ (.n 558), σ (.n 320),
+      σ (.n 253), σ (.n 254), σ (.n 561)]
+      [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566), σ (.n 567), σ (.n 568)] ∧
+    σ (.n 572) = σ (.n 4) * gen ^ winTabAt ∧
+    C "verify_tables" [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566), σ (.n 567),
+      σ (.n 0), σ (.n 1), σ (.n 254), σ (.n 253), σ (.n 71), σ (.n 26), σ (.n 4), σ (.n 335),
+      σ (.n 559), σ (.n 6), σ (.n 569), σ (.n 568), σ (.n 572), σ (.n 570)]
+      [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577), σ (.n 578), σ (.n 579),
+        σ (.n 580), σ (.n 581), σ (.n 582)] ∧
+    LoadHolds rd (σ (.n 71)) 6 (σ (.n 583)) ∧ σ (.n 587) = σ (.n 582) * gen ^ 101 ∧
+    σ (.n 589) = σ (.n 4) * gen ^ winTabAt ∧
+    C "verify_keccak" [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577), σ (.n 578),
+      σ (.n 583), σ (.n 569), σ (.n 587), σ (.n 584), σ (.n 585), σ (.n 589)]
+      [σ (.n 590), σ (.n 591), σ (.n 592), σ (.n 593), σ (.n 594), σ (.n 595), σ (.n 596)] ∧
+    next := by
+  simp only [vsCallsT, vsTabsT, holdsList_append, Stmt.HoldsList, Stmt.Holds, vsCall, vsAlloc,
+    vsLd, vsConst, vsMul, Atom.Holds, List.map_cons, List.map_nil,
+    show List.range 7 = [0, 1, 2, 3, 4, 5, 6] from rfl,
+    show List.range 10 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] from rfl] at h
+  obtain ⟨c560, m561, cG, -, -, c571, m572, cT, l583, -, -, e586, m587, c588, m589, cK, hn⟩ := h
+  refine ⟨by rw [m561, c560, vsWinWord_eq], cG, by rw [m572, c571, vsWinWord_eq], cT, l583,
+    by rw [m587, e586, word_g101], by rw [m589, c588, vsWinWord_eq], cK, hn⟩
 
-/-- **The ring map's challenges** (G:3444-3450): the first `verify_keccak`'s, five squeezed from
-the capacity it returned. -/
-theorem vsMapsT_holds (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0) (h12 : σ (.n 10) = 0)
-    (h13 : σ (.n 11) = 0) (h : Stmt.HoldsList C rd σ vsMapsT next kret) :
-    (⟨[σ (.n 659), σ (.n 660), σ (.n 661), σ (.n 662), σ (.n 663)], []⟩ : Fs).squeezeN 5 =
-      ([σ (.n 685), σ (.n 705), σ (.n 725), σ (.n 745), σ (.n 765)],
-        ⟨[σ (.n 754), σ (.n 755), σ (.n 756), σ (.n 757), σ (.n 758)], []⟩) ∧
-      ReadsAt rd (σ (.n 664))
-        [σ (.n 658), σ (.n 685), σ (.n 705), σ (.n 725), σ (.n 745), σ (.n 765)] ∧ next := by
-  simp only [vsMapsT, holdsList_append] at h
-  obtain ⟨-, -, l0, h⟩ := h
-  obtain ⟨s1, l1, h⟩ := vsSqzT_holds h10 h11 h12 h13 h
-  obtain ⟨s2, l2, h⟩ := vsSqzT_holds h10 h11 h12 h13 h
-  obtain ⟨s3, l3, h⟩ := vsSqzT_holds h10 h11 h12 h13 h
-  obtain ⟨s4, l4, h⟩ := vsSqzT_holds h10 h11 h12 h13 h
-  obtain ⟨s5, l5, hn⟩ := vsSqzT_holds h10 h11 h12 h13 h
-  have e1 : (⟨[σ (.n 659), σ (.n 660), σ (.n 661), σ (.n 662), σ (.n 663)], []⟩ : Fs).squeeze =
-      (σ (.n 685), ⟨[σ (.n 674), σ (.n 675), σ (.n 676), σ (.n 677), σ (.n 678)], []⟩) := s1
-  have e2 : (⟨[σ (.n 674), σ (.n 675), σ (.n 676), σ (.n 677), σ (.n 678)], []⟩ : Fs).squeeze =
-      (σ (.n 705), ⟨[σ (.n 694), σ (.n 695), σ (.n 696), σ (.n 697), σ (.n 698)], []⟩) := s2
-  have e3 : (⟨[σ (.n 694), σ (.n 695), σ (.n 696), σ (.n 697), σ (.n 698)], []⟩ : Fs).squeeze =
-      (σ (.n 725), ⟨[σ (.n 714), σ (.n 715), σ (.n 716), σ (.n 717), σ (.n 718)], []⟩) := s3
-  have e4 : (⟨[σ (.n 714), σ (.n 715), σ (.n 716), σ (.n 717), σ (.n 718)], []⟩ : Fs).squeeze =
-      (σ (.n 745), ⟨[σ (.n 734), σ (.n 735), σ (.n 736), σ (.n 737), σ (.n 738)], []⟩) := s4
-  have e5 : (⟨[σ (.n 734), σ (.n 735), σ (.n 736), σ (.n 737), σ (.n 738)], []⟩ : Fs).squeeze =
-      (σ (.n 765), ⟨[σ (.n 754), σ (.n 755), σ (.n 756), σ (.n 757), σ (.n 758)], []⟩) := s5
-  refine ⟨by simp only [Fs.squeezeN, e1, e2, e3, e4, e5], fun k hk ↦ ?_, hn⟩
-  simp only [List.length_cons, List.length_nil] at hk
-  interval_cases k
-  · exact l0
-  · exact l1
-  · exact l2
-  · exact l3
-  · exact l4
-  · exact l5
+/-- `vsOpenNames` is `open_stacked`'s specializations in dispatch order. -/
+theorem vsOpenNames_natStr :
+    vsOpenNames = (List.range Whir.openArms).map fun m ↦ "open_stacked__L" ++ Whir.natStr m := by
+  decide +kernel
 
-/-- Copies of `n` words, `p[k]` to `q[qo k]`, through the values `b + k`. -/
-theorem holds_copyLoads (p q b : ℕ) (qo : ℕ → ℕ) : ∀ (n : ℕ) {X : Prop},
-    Stmt.HoldsList C rd σ ((List.range n).flatMap fun k ↦ [vsLd (b + k) p k, vsLd (b + k) q (qo k)])
-      X kret → (∀ k < n, ∃ v, LoadHolds rd (σ (.n p)) k v ∧ LoadHolds rd (σ (.n q)) (qo k) v) ∧ X
-  | 0, X, h => ⟨fun k hk ↦ absurd hk (Nat.not_lt_zero k), h⟩
-  | n + 1, X, h => by
-    rw [List.range_succ, List.flatMap_append, holdsList_append] at h
-    obtain ⟨hk, h⟩ := holds_copyLoads p q b qo n h
-    simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, Stmt.HoldsList, Stmt.Holds,
-      vsLd, Atom.Holds] at h
-    obtain ⟨l1, l2, hX⟩ := h
-    refine ⟨fun k hk' ↦ ?_, hX⟩
-    rcases Nat.lt_succ_iff_lt_or_eq.1 hk' with hk' | rfl
-    · exact hk k hk'
-    · exact ⟨_, l1, l2⟩
+theorem vsOpenNames_eq : vsOpenNames = Whir.openNames := by
+  rw [vsOpenNames_natStr, Whir.openNames]
+  simp only [Whir.natStr_eq]
 
-/-- **The tail** (G:3534-3557): the placement, the stack's log `g^m`, `size_sel = g^m·g^-19` below
-`g^14`, one specialization of `open_stacked` dispatched on it with the rate's selector
-`rate_sel` passed on, the terminal, the deferred claim's words, and no return word. -/
-theorem vsTailT_holds (h : Stmt.HoldsList C rd σ vsTailT next kret) :
-    C "certify_placement" [σ (.n 139), σ (.n 4)] [σ (.n 1682), σ (.n 1683)] ∧
-    C "log2_ceil_in_the_exponent__L16_L34" [σ (.n 1682), σ (.n 4)] [σ (.n 1684)] ∧
-    σ (.n 1686) = σ (.n 1684) * word 14347465658197868555 0 0 ∧
-    (LoadHolds rd (σ (.n 1686)) 0 (σ (.n 1689)) ∧ word 1024 0 0 = σ (.n 1686) * σ (.n 1688) ∧
-      LoadHolds rd (σ (.n 1688)) 0 (σ (.n 1690))) ∧
-    (∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1686) = ofK (addressOfIndex j) ∧
-      C vsOpenNames[j] [σ (.n 122), σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103),
-        σ (.n 1104), σ (.n 1681), σ (.n 324), σ (.n 334), σ (.n 656)]
-        [σ (.n 1691), σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695)]) ∧
-    C "check_opening_terminal" [σ (.n 4), σ (.n 310), σ (.n 635), σ (.n 644), σ (.n 309),
-      σ (.n 642), σ (.n 128), σ (.n 646), σ (.n 139), σ (.n 1111), σ (.n 1683), σ (.n 647),
-      σ (.n 665), σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1691)] [] ∧
-    (∀ k < 19, ∃ v, LoadHolds rd (σ (.n 310)) k v ∧ LoadHolds rd (σ (.n 5)) k v) ∧
-    (∀ k < 4, ∃ v, LoadHolds rd (σ (.n 346)) k v ∧ LoadHolds rd (σ (.n 5)) (19 + k) v) ∧
-    LoadHolds rd (σ (.n 5)) 23 (σ (.n 643)) ∧ kret [] := by
-  rw [vsTailT] at h
+/-- **The tail** (G:3691-3706): the call of the stack size's `open_stacked` on the rate's selector
+(the dispatch on `size_sel = g^(m - 20)`), the terminal, the deferred claim's words, the return. -/
+theorem vsTailT_holds {m : ℕ} (hm20 : Whir.minOpenLog ≤ m) (hm30 : m ≤ 30)
+    (h278 : σ (.n 278) = gen ^ (m - Whir.minOpenLog))
+    {rets : List E} (h : Stmt.HoldsList C rd σ vsTailT False (fun rs ↦ rs = rets)) :
+    rets = [] ∧ σ (.n 1919) = σ (.n 595) * gen ∧
+    σ (.n 1921) = σ (.n 4) * gen ^ winTabAt ∧ C (Whir.openName m) (vsOsArgs σ) (vsOsRets σ) ∧
+    C "check_opening_terminal" [σ (.n 4), σ (.n 254), σ (.n 569), σ (.n 581), σ (.n 253),
+      σ (.n 579), σ (.n 72), σ (.n 583), σ (.n 83), σ (.n 1375), σ (.n 275), σ (.n 584),
+      σ (.n 848), σ (.n 1923), σ (.n 1924), σ (.n 1925), σ (.n 1926), σ (.n 1922), σ (.n 304),
+      σ (.n 276)] [] ∧
+    (∀ k < 19, ∃ w, LoadHolds rd (σ (.n 254)) k w ∧ LoadHolds rd (σ (.n 5)) k w) ∧
+    (∀ k < 4, ∃ w, LoadHolds rd (σ (.n 570)) k w ∧ LoadHolds rd (σ (.n 5)) (19 + k) w) ∧
+    LoadHolds rd (σ (.n 5)) 23 (σ (.n 580)) := by
+  rw [vsTailT, List.flatMap_def, List.flatMap_def] at h
   simp only [holdsList_append] at h
-  simp only [vsConst, vsMul, vsCall, vsRange, vsLd, vsRun, Stmt.HoldsList, Stmt.Holds,
-    List.map_cons, List.map_nil] at h
-  obtain ⟨cp, cl, c1685, m1686, c1687, r1, hd, ct, h⟩ := h
-  obtain ⟨d1, h⟩ := holds_copyLoads 310 5 1696 (fun k ↦ k) 19 h
-  obtain ⟨d2, h⟩ := holds_copyLoads 346 5 1715 (fun k ↦ 19 + k) 4 h
-  simp only [Atom.Holds] at c1685 m1686 c1687 r1 h
-  refine ⟨cp, cl, by rw [m1686, c1685], by rw [← c1687]; exact r1, ?_, ct, d1, d2, h.1,
-    by simpa using h.2⟩
-  obtain ⟨j, hj, hx, hc⟩ := hd
-  exact ⟨j, hj, hx, by simpa [List.range_succ] using hc⟩
-
-/-! ## The memory's size -/
-
-/-- **A memory image holding `n` words at one pointer has at least `n` words.** -/
-theorem mem_size {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {n : ℕ} (hn : n ≤ 2 ^ 32)
-    (h : ∀ j < n, ∃ v, LoadHolds L.read p j v) : n ≤ 2 ^ κ := by
-  have hκ64 : κ < 64 := by omega
-  have hidx : ∀ j : Fin n, ∃ i : Fin (2 ^ κ), p.limb 0 * Parameters.addressOfIndex j =
-      Parameters.addressOfIndex i := by
-    intro j
-    obtain ⟨v, -, hv⟩ := h j j.isLt
-    obtain ⟨i, hi, -⟩ := (read_some_iff hκ64 L _ _).mp hv
-    exact ⟨i, hi⟩
-  choose f hf using hidx
-  have hinj : Function.Injective f := by
-    intro a b hab
-    have ea := hf a
-    have eb := hf b
-    rw [hab, ← eb] at ea
-    have hp : p.limb 0 ≠ 0 := by
-      intro h0
-      have := hf a
-      rw [h0, zero_mul] at this
-      exact Parameters.gpow_ne_zero _ this.symm
-    have := mul_left_cancel₀ hp ea
-    have hlt : ∀ x : Fin n, (x : ℕ) < 2 ^ 64 - 1 := fun x ↦ by have := x.isLt; omega
-    exact Fin.ext (gpow_injOn (hlt a) (hlt b) this)
-  simpa using Fintype.card_le_of_injective f hinj
+  rw [Tables.tb_holdsList_range_flatten 19 _ (fun _ ↦ rfl), Tables.tb_holdsList_range_flatten 4 _ (fun _ ↦ rfl)]
+    at h
+  simp only [vsTabsT, Stmt.HoldsList, Stmt.Holds, vsMul, vsConst, vsLd, Atom.Holds, List.map_nil] at h
+  obtain ⟨e1918, m1919, c1920, m1921, ⟨j, hj, hj278, hc⟩, cT, hz, hb, l580, hr⟩ := h
+  have h1921 : σ (.n 1921) = σ (.n 4) * gen ^ winTabAt := by rw [m1921, c1920, vsWinWord_eq]
+  -- the size's arm
+  have hlen : vsOpenNames.length = Whir.openArms := by rw [vsOpenNames_eq]; simp [Whir.openNames]
+  have hA : Whir.openArms = 11 := rfl
+  have hM : Whir.minOpenLog = 20 := rfl
+  have harm : m - Whir.minOpenLog < Whir.openArms := by omega
+  have hjc : j = m - Whir.minOpenLog := by
+    rw [h278] at hj278
+    exact (gen_pow_inj (by omega) (by omega) (by rw [hj278, gen_pow_eq_ofK])).symm
+  subst hjc
+  have hname : vsOpenNames[m - Whir.minOpenLog] = Whir.openName m := by
+    rw [Whir.openName, List.getD_eq_getElem _ _ (by rw [← vsOpenNames_eq]; omega)]
+    simp only [vsOpenNames_eq]
+  rw [hname] at hc
+  refine ⟨hr.symm, by rw [m1919, e1918, word_gen], h1921, hc, cT, fun k hk ↦ ?_,
+    fun k hk ↦ ?_, l580⟩
+  · have := hz k hk
+    simp only [and_true] at this
+    exact ⟨_, this⟩
+  · have := hb k hk
+    simp only [and_true] at this
+    exact ⟨_, this⟩
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -120,11 +120,12 @@ coefficients, `k` levels. -/
         interpolationYCap params * yWeight params + 2) < 2 ^ 64
 
 /-- The price of one lane beyond its Guruswami–Sudan run: at most `L` candidates of at most `k`
-coefficients, `N = 2^κ`, `M = 2^(κ+R)`. -/
+coefficients, each converted to its `N = 2^(κ+1)` novel coefficients (a decoded polynomial has
+degree `< 2^κ + 6`), deduplicated, sorted and re-encoded on `M = 2^(κ+R)` columns. -/
 @[expose] def laneExtraBound (κ R L k : ℕ) : ℕ :=
-  ((46 * k + 34) * 2 ^ κ + κ * (174 * 2 ^ κ + 2921) + 51) * L +
-    ((21 * 2 ^ κ + 26) * L + 25) * L + (53 * 2 ^ κ + 95) * (L * L) +
-    (κ * (171 * 2 ^ (κ + R) + 2924) + 28 * 2 ^ (κ + R) + 60) * L + 44
+  ((46 * k + 34) * 2 ^ (κ + 1) + (κ + 1) * (174 * 2 ^ (κ + 1) + 2921) + 60) * L +
+    ((21 * 2 ^ (κ + 1) + 26) * L + 25) * L + (53 * 2 ^ (κ + 1) + 95) * (L * L) +
+    ((κ + 1) * (171 * 2 ^ (κ + R) + 2924) + 28 * 2 ^ (κ + R) + 70) * L + 48
 
 /-- The bound of the pruning over `U` lanes of `n = 2^(κ+R)` columns: the word's table (a column
 price `BW`, columns of at most `Lw` symbols), per lane its candidates (`G`) and the pruning step
@@ -136,11 +137,11 @@ price `BW`, columns of at most `Lw` symbols), per lane its candidates (`G`) and 
 /-- The sizes at which a lane is bounded: word-sized parameters (`InterpSizes`, …), `k > 1`, at
 most `2^20` multiplicities tried. -/
 @[expose] def DecoderLaneSizes (κ R A : ℕ) : Prop :=
-  κ + R ≤ 30 ∧ A ≤ 2 ^ (κ + R) ∧ gsMultiplicityBoundAt (2 ^ κ) (2 ^ (κ + R)) A < 2 ^ 20 ∧
-    InterpSizes (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp ∧
-    1 < (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.messageDegree ∧
-    (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.weightedDegreeBound + 1 < 2 ^ 56 ∧
-    interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp + 2 < 2 ^ 28
+  κ + R ≤ 30 ∧ A ≤ 2 ^ (κ + R) ∧ gsMultiplicityBoundAt (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A < 2 ^ 20 ∧
+    InterpSizes (2 ^ (κ + R)) (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp ∧
+    1 < (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp.messageDegree ∧
+    (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp.weightedDegreeBound + 1 < 2 ^ 56 ∧
+    interpolationYCap (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp + 2 < 2 ^ 28
 
 instance (κ R A : ℕ) : Decidable (DecoderLaneSizes κ R A) := by
   unfold DecoderLaneSizes InterpSizes; infer_instance

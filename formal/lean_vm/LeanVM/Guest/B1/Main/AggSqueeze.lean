@@ -1,23 +1,24 @@
 /-
   LeanVM.Guest.B1.Main.AggSqueeze
 
-  `aggregate_claims`' squeezing loop (`__loop34`: the lambdas and the batched claim) and its
-  weighing loop (`__loop35`: the batched equality weight).
+  `aggregate_claims`' squeezing loop (`aggregate_claims_loop1`: the lambdas and the batched claim)
+  and its weighing loop (`aggregate_claims_loop2`: the batched equality weight).
 -/
 
 module
 
 public import LeanVM.Guest.B1.Main.AggAbsorb
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `__loop34` and `__loop35`
+# `aggregate_claims_loop1` and `aggregate_claims_loop2`
 
-* `l26_step` (`__loop34`, core function `416`): iteration `x = g^c` reads record `c` of
-  `bc_chain` (`chain·x^2`, two words: `λ`'s power `λ^(2c)` and the running claim), writes the
+* `l26_step` (`aggregate_claims_loop1`, core function `430`): iteration `x = g^c` reads record `c`
+  of `bc_chain` (`chain·x^2`, two words: `λ`'s power `λ^(2c)` and the running claim), writes the
   power times `λ²` into word `2` (record `c + 1`'s power) and the running claim plus the power
   times `fresh[23] + λ · carried[23]` of the child's claims (through the pointer tables `lf`,
   `lc`) into word `3` (record `c + 1`'s claim) (`L26Step`).
-* `l27_step` (`__loop35`, core function `418`): iteration `x = g^c` adds
+* `l27_step` (`aggregate_claims_loop2`, core function `447`): iteration `x = g^c` adds
   `p · (eq(fresh, r) + λ · eq(carried, r))` to the running weight `w[c]` into `w[c + 1]`, `p`
   record `c`'s power, `r = 1 + r1`, `r1` the `23` coordinates at `pt1` (`bc_point1 = 1 + bc_point`,
   `L27Step`); the equality polynomials are products `Π (p_j + r1_j) = Π (1 + p_j + r_j)` checked
@@ -56,24 +57,12 @@ theorem allIn_holds {as : List Atom} (h : allIn atoms as = true) (hat : ∀ a �
     cases he
     exact ha'), trivial⟩
 
-/-- `challengeT`'s atoms. -/
-def challA (s0 s1 : V) (b : ℕ) : List Atom :=
-  [.hint (.limbs s1 [.n b]), .add (.n (b + 1)) s1 (.n b), .const (.n (b + 2)) (word 1 0 1),
-    .mul (.n (b + 3)) (.n (b + 1)) (.n (b + 2)), .assertInK (.n b) (.n (b + 3)),
-    .const (.n (b + 4)) (word 0 0 1), .mul (.n (b + 5)) (.n (b + 4)) (.n b),
-    .add (.n (b + 6)) s0 (.n (b + 5))]
+/-! ## `aggregate_claims_loop1`: the powers of `λ` and the running claim -/
 
-theorem chal_sound {s0 s1 : V} {b : ℕ} (h : allIn atoms (challA s0 s1 b) = true)
-    (hat : ∀ a ∈ atoms, a.Holds rd σ) : ChallengeOk σ s0 s1 b :=
-  ((holds_challengeT (C := fun _ _ _ => True) s0 s1 b True (fun _ => True)).mp
-    (allIn_holds h hat _ _)).1
-
-/-! ## `__loop34`: the powers of `λ` and the running claim -/
-
-/-- **`__loop34`'s body, checked.** -/
+/-- **`aggregate_claims_loop1`'s body, checked.** -/
 def l26Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop34" && decide (fn.params.length = 7) &&
+  loopShapeF fn name% «aggregate_claims_loop1» && decide (fn.params.length = 7) &&
   isMul A (.n 7) (.n 0) (.n 0) && isMul A (.n 8) (.n 2) (.n 7) &&
   A.any (isLoadAt (.n 9) (.n 8) 0) &&
   isMul A (.n 10) (.n 3) (.n 0) && A.any (isLoadAt (.n 11) (.n 10) 0) &&
@@ -85,10 +74,13 @@ def l26Ok (fn : Fn) : Bool :=
   A.any (isAddAt (.n 21) (.n 15) (.n 20)) && A.any (isLoadAt (.n 21) (.n 8) 3)
 
 set_option maxRecDepth 100000 in
-theorem l26_ok : l26Ok (coreProgram.getD 402 default) = true := by decide +kernel
+theorem l26_ok : l26Ok (coreProgram.getD idx% «aggregate_claims_loop1» default) = true :=
+  by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l26_idx : coreProgram.indexOf? "__loop34" = some 402 := by decide +kernel
+theorem l26_idx : coreProgram.indexOf? name% «aggregate_claims_loop1» = some
+    idx% «aggregate_claims_loop1» :=
+  coreProgram_indexOf?_at (j := idx% «aggregate_claims_loop1») rfl
 
 /-- **Child `x`'s record**: the record at `chain·x^2` holds `λ`'s power and the running claim;
 the next record holds the power times `λ²` and the running claim plus the power times
@@ -99,11 +91,13 @@ def L26Step (rd : Reader) (chainT lfT lcT lamSq lam x : E) : Prop :=
     memAt rd (chainT * x ^ 2) 0 * (memAt rd (memAt rd (lfT * x) 0) 23 +
       lam * memAt rd (memAt rd (lcT * x) 0) 23))
 
-theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop34" (x :: ps) []) :
+theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate_claims_loop1» (x ::
+    ps) []) :
     (∀ N chainT lfT lcT lamSq lam, ps = [N, chainT, lfT, lcT, lamSq, lam] →
       L26Step rd chainT lfT lcT lamSq lam x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop34" (x * gen :: ps) []) := by
-  have hf := find_of_idx l26_idx (by rw [coreProgram_length]; omega)
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd name% «aggregate_claims_loop1» (x * gen :: ps)
+          []) := by
+  have hf := find_of_idx l26_idx
   have hok := l26_ok
   simp only [l26Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm7⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, hm12⟩, hl13⟩, hm14⟩,
@@ -111,7 +105,7 @@ theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop34" (x :: 
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N chainT lfT lcT lamSq lam hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 402 default).params =
+  have hpar : (coreProgram.getD idx% «aggregate_claims_loop1» default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -212,12 +206,12 @@ theorem map_one_add_twice (l : List E) : (l.map (1 + ·)).map (1 + ·) = l := by
   refine List.map_congr_left fun x _ => ?_
   rw [Function.comp_apply, ← add_assoc, e_add_self, zero_add, id]
 
-/-! ## `__loop35`: the weights -/
+/-! ## `aggregate_claims_loop2`: the weights -/
 
-/-- **`__loop35`'s body, checked.** -/
+/-- **`aggregate_claims_loop2`'s body, checked.** -/
 def l27Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop35" && decide (fn.params.length = 8) &&
+  loopShapeF fn name% «aggregate_claims_loop2» && decide (fn.params.length = 8) &&
   isMul A (.n 8) (.n 2) (.n 0) && A.any (isLoadAt (.n 9) (.n 8) 0) &&
   isMul A (.n 10) (.n 3) (.n 0) && A.any (isLoadAt (.n 11) (.n 10) 0) &&
   eqChainOk A (.n 9) (.n 4) 23 (.n 167) && eqChainOk A (.n 11) (.n 4) 23 (.n 170) &&
@@ -229,10 +223,13 @@ def l27Ok (fn : Fn) : Bool :=
   A.any (isLoadAt (.n 179) (.n 180) 1)
 
 set_option maxRecDepth 100000 in
-theorem l27_ok : l27Ok (coreProgram.getD 404 default) = true := by decide +kernel
+theorem l27_ok : l27Ok (coreProgram.getD idx% «aggregate_claims_loop2» default) = true :=
+  by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l27_idx : coreProgram.indexOf? "__loop35" = some 404 := by decide +kernel
+theorem l27_idx : coreProgram.indexOf? name% «aggregate_claims_loop2» = some
+    idx% «aggregate_claims_loop2» :=
+  coreProgram_indexOf?_at (j := idx% «aggregate_claims_loop2») rfl
 
 /-- **Child `x`'s weight**: `w[x·g] = w[x] + p · (eq(fresh, r) + λ · eq(carried, r))`, `p` the
 power of `λ` at `chain·x^2`, the claims' points through the pointer tables, `r = 1 + r1`, `r1`
@@ -242,11 +239,13 @@ def L27Step (rd : Reader) (lfT lcT pt1 chainT wT lam x : E) : Prop :=
     (eqEval (memRun rd (memAt rd (lfT * x) 0) 23) ((memRun rd pt1 23).map (1 + ·)) +
       lam * eqEval (memRun rd (memAt rd (lcT * x) 0) 23) ((memRun rd pt1 23).map (1 + ·))))
 
-theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop35" (x :: ps) []) :
+theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate_claims_loop2» (x ::
+    ps) []) :
     (∀ N lfT lcT pt1 chainT wT lam, ps = [N, lfT, lcT, pt1, chainT, wT, lam] →
       L27Step rd lfT lcT pt1 chainT wT lam x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop35" (x * gen :: ps) []) := by
-  have hf := find_of_idx l27_idx (by rw [coreProgram_length]; omega)
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd name% «aggregate_claims_loop2» (x * gen :: ps)
+          []) := by
+  have hf := find_of_idx l27_idx
   have hok := l27_ok
   simp only [l27Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, he1⟩, he2⟩, hm171⟩, hm172⟩,
@@ -254,7 +253,7 @@ theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop35" (x :: 
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N lfT lcT pt1 chainT wT lam hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 404 default).params =
+  have hpar : (coreProgram.getD idx% «aggregate_claims_loop2» default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs

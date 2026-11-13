@@ -45,12 +45,23 @@ theorem runD_roundsProg_bind {β : Type} (f : List E × E → VerifierProgram β
         2 * k ≤ zs.length ∧ ∃ x sp', runD (f x) ⟨sp', zs.drop (2 * k), os, roots⟩ = some r
   | 0, claim, sp, zs, os, roots, r, h => ⟨by omega, _, _, h⟩
   | k + 1, claim, sp, zs, os, roots, r, h => by
+    obtain ⟨st, pe, _ | c⟩ := sp
+    swap
+    · exfalso
+      revert h
+      rcases zs with _ | ⟨_, _⟩ <;> simp [sumcheckRoundsProgram, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash]
     rcases zs with _ | ⟨g1, _ | ⟨gInf, zs⟩⟩
     · exact absurd h (by simp [sumcheckRoundsProgram, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
     · exact absurd h (by simp [sumcheckRoundsProgram, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
     · simp only [sumcheckRoundsProgram, VerifierProgram.readScalar, VerifierProgram.sampleChallenge, VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
         VerifierProgram.ret_bind] at h
-      obtain ⟨hlen, x, sp', hx⟩ := runD_roundsProg_bind _ k _ _ zs os roots h
+      have h' : runD ((sumcheckRoundsProgram (sumcheckRoundPolynomial claim (g1, gInf)
+          (sq (obs (obs ⟨st, pe, none⟩ g1) gInf)).1) k).bind
+            fun a ↦ f ((sq (obs (obs ⟨st, pe, none⟩ g1) gInf)).1 :: a.1, a.2))
+          ⟨(sq (obs (obs ⟨st, pe, none⟩ g1) gInf)).2, zs, os, roots⟩ = some r := by
+        rw [runD_read_cons _ rfl, runD_read_cons _ ((obs_ground _ _).trans rfl), runD_sample] at h
+        exact h
+      obtain ⟨hlen, x, sp', hx⟩ := runD_roundsProg_bind _ k _ _ zs os roots h'
       have e : (g1 :: gInf :: zs).drop (2 * (k + 1)) = zs.drop (2 * k) := by
         rw [show 2 * (k + 1) = 2 * k + 2 by ring]
         rfl
@@ -60,8 +71,9 @@ theorem runD_roundsProg_bind {β : Type} (f : List E × E → VerifierProgram β
 /-- The stream of the batching, its parts. -/
 theorem batchStream_eq (cs : List ChildClaims) (h : BatchingHints) :
     batchingStream cs h = cellsBeforeChallenge cs ++
-      (h.sumcheckMessages.flatMap (fun g ↦ [g.1, g.2]) ++ [h.finalBytecodeValue]) := by
-  simp only [batchingStream, List.append_assoc]
+      (h.lambdaGrindNonce :: (h.sumcheckMessages.flatMap (fun g ↦ [g.1, g.2]) ++
+        [h.finalBytecodeValue])) := by
+  simp only [batchingStream, List.append_assoc, List.cons_append, List.nil_append]
 
 theorem length_rounds_flat (rounds : List (E × E)) :
     (rounds.flatMap fun g ↦ [g.1, g.2]).length = 2 * rounds.length := by
@@ -73,9 +85,9 @@ theorem length_rounds_flat (rounds : List (E × E)) :
 theorem runD_batchOf (check : DeferredClaim → Prop) {bytecode : List K} {cs : List ChildClaims}
     (rest : List E) :
     runD (nodeBatchingProgram check bytecode cs)
-        ⟨⟨batchSeed, []⟩, cellsBeforeChallenge cs ++ rest, [], []⟩ =
+        ⟨⟨batchSeed, [], none⟩, cellsBeforeChallenge cs ++ rest, [], []⟩ =
       runD (batchingAfterChildren check bytecode cs) ⟨batchSponge cs, rest, [], []⟩ := by
-  rw [nodeBatchingProgram, runD_bind_of_runsTo (runsTo_readN' _ (cellsBeforeChallenge cs) rfl),
+  rw [nodeBatchingProgram, runD_bind_of_runsTo (runsTo_readN' rfl (cellsBeforeChallenge cs) rfl),
     ← List.nil_append rest, runD_bind_of_runsTo (runsTo_require rfl _)]
   rfl
 
@@ -85,10 +97,15 @@ theorem runD_tail_accepts {c : E → Prop} {dc : DecidablePred c} {sp : Sponge} 
         @VerifierProgram.require (c bv) (dc bv) >>= fun _ ↦
       (pure true : VerifierProgram Bool)) ⟨sp, zs, [], []⟩ = some (true, s)) (hs : s.stream = []) :
     zs.length = 1 := by
+  obtain ⟨st, pe, _ | g⟩ := sp
+  swap
+  · exfalso
+    revert h
+    rcases zs with _ | ⟨_, _⟩ <;> simp [VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash]
   rcases zs with _ | ⟨v, ws⟩
   · exact absurd h (by simp [VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
   · have e := runD_bind_of_runsTo (f := fun bv ↦ @VerifierProgram.require (c bv) (dc bv) >>= fun _ ↦
-      (pure true : VerifierProgram Bool)) (runsTo_readE sp v) ws [] []
+      (pure true : VerifierProgram Bool)) (runsTo_readE (sp := ⟨st, pe, none⟩) rfl v) ws [] []
     simp only [List.singleton_append] at e
     rw [e, @runD_require_true (c v) (dc v)] at h
     split_ifs at h with hc
@@ -105,11 +122,16 @@ theorem rounds_length_of_accepts {check : DeferredClaim → Prop} {bytecode : Li
       ⟨batchingStream cs h, []⟩) = true) :
     h.sumcheckMessages.length = Nat.log2 bytecode.length := by
   change (match runD (nodeBatchingProgram check bytecode cs)
-      ⟨⟨batchSeed, []⟩, batchingStream cs h, [], []⟩ with
+      ⟨⟨batchSeed, [], none⟩, batchingStream cs h, [], []⟩ with
     | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
     | _ => false) = true at hacc
   rw [batchStream_eq, runD_batchOf check, batchingAfterChildren,
-    ← List.nil_append (List.flatMap _ _ ++ _), runD_bind_of_runsTo (runsTo_sampleE _)] at hacc
+    runD_grind_bind (by decide) _ (batchSponge_ground cs)] at hacc
+  by_cases hp : powOk batchLambdaGrindBits (powStep keccakF1600 (batchSponge cs) h.lambdaGrindNonce).1
+  swap
+  · simp [hp] at hacc
+  simp only [hp, ↓reduceIte] at hacc
+  rw [← List.nil_append (List.flatMap _ _ ++ _), runD_bind_of_runsTo (runsTo_sampleE _)] at hacc
   generalize hR : runD (sumcheckRoundsProgram _ _ >>= _) _ = R at hacc
   rcases R with _ | ⟨_ | _, s⟩
   · simp at hacc
@@ -130,17 +152,22 @@ theorem batchRun_iff_of_rounds {bytecode : List K} {cs : List ChildClaims} {h : 
     Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram (· = d) bytecode cs)
       ⟨batchingStream cs h, []⟩) = true ↔ batch cs h = some d := by
   change (match runD (nodeBatchingProgram (· = d) bytecode cs)
-      ⟨⟨batchSeed, []⟩, batchingStream cs h, [], []⟩ with
+      ⟨⟨batchSeed, [], none⟩, batchingStream cs h, [], []⟩ with
     | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
     | _ => false) = true ↔ _
   rw [batchStream_eq, runD_batchOf _, batchingAfterChildren,
-    ← List.nil_append (List.flatMap _ _ ++ _),
-    runD_bind_of_runsTo (runsTo_sampleE _),
-    runD_bind_of_runsTo (runsTo_roundsProg h.sumcheckMessages _ _ hr),
-    ← List.append_nil [h.finalBytecodeValue],
-    runD_bind_of_runsTo (runsTo_readE _ _), runD_require_true, batch_eq']
-  simp only [lambdasB, claimB, spB, sqL]
-  split_ifs <;> simp_all
+    runD_grind_bind (by decide) _ (batchSponge_ground cs), batch_eq']
+  rw [show powStep keccakF1600 (batchSponge cs) h.lambdaGrindNonce = powB cs h from rfl]
+  by_cases hp : powOk batchLambdaGrindBits (powB cs h).1
+  · simp only [hp, ↓reduceIte]
+    rw [← List.nil_append (List.flatMap _ _ ++ _),
+      runD_bind_of_runsTo (runsTo_sampleE _),
+      runD_bind_of_runsTo (runsTo_roundsProg h.sumcheckMessages _ (sq_ground _) hr),
+      ← List.append_nil [h.finalBytecodeValue],
+      runD_bind_of_runsTo (runsTo_readE (rsRun_ground _ _ (sq_ground _)) _), runD_require_true]
+    simp only [lambdasB, claimB, spB, sqL]
+    split_ifs <;> simp_all
+  · simp only [hp, Bool.false_eq_true, ↓reduceIte, reduceCtorEq]
 
 /-- `batch` defers a claim at a point of as many coordinates as the hints have rounds. -/
 theorem batch_point_length {cs : List ChildClaims} {h : BatchingHints} {d : DeferredClaim}

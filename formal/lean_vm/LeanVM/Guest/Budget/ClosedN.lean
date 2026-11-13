@@ -45,12 +45,12 @@ elsewhere, where no child of a node within `Limits`, its caps agreeing and no ze
 (`B1.Main.childShape_bounds`). -/
 def deployedBvAt (μ r : ℕ) : ℕ :=
   if 20 ≤ μ ∧ μ ≤ 30 ∧ 1 ≤ r ∧ r ≤ 4 then
-    [413983, 414545, 416763, 419477, 432523, 437771, 446135, 450466, 461748, 463457, 468272].getD (μ - 20) 0
+    [388016, 387619, 390584, 394633, 405250, 410562, 419149, 425180, 432727, 436026, 439001].getD (μ - 20) 0
   else 0
 
 /-- `open_stacked`'s words at the 11 arms (`Count/VsOsAll`). -/
 theorem osC_getD {m : ℕ} (hm : m < 11) : Count.osC m =
-    [212512, 213074, 215292, 218006, 231052, 236300, 244664, 248995, 260277, 261986, 266801].getD m 0 := by
+    [208731, 208334, 211299, 215348, 225965, 231277, 239864, 245895, 253442, 256741, 259716].getD m 0 := by
   interval_cases m
   · exact Count.osC_0
   · exact Count.osC_1
@@ -66,7 +66,7 @@ theorem osC_getD {m : ℕ} (hm : m < 11) : Count.osC m =
 
 /-- `verify_sub`'s bound at an opening arm is the table's. -/
 theorem vsBoundAt_eq_deployedBvAt {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
-    B1.VerifySub.vsBoundAt Count.vsWords B1.VerifySub.vkBound μ r = deployedBvAt μ r := by
+    B1.VerifySub.vsBoundAt Count.vsWordsOs B1.VerifySub.vkBound μ r = deployedBvAt μ r := by
   rw [Count.vsBoundAt_eq h1 h2, osC_getD (by omega)]
   unfold deployedBvAt
   rw [ite_eq_left ⟨h1, h2, h3, h4⟩]
@@ -80,11 +80,11 @@ theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvA
     fun p hp => by
       obtain ⟨ch, hch, rfl⟩ :=
         List.mem_map.mp (show p ∈ w.children.map (childShape bytecode) from hp)
-      obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds bytecode_length hok hch
+      obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds vsCompleteHyp_deployed hok hch
       exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
 /-- The largest child's words: `μ = 30`. -/
-theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 468272 := by
+theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 439001 := by
   unfold deployedBvAt
   split_ifs with h
   · obtain ⟨h1, h2, -, -⟩ := h

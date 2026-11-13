@@ -45,7 +45,7 @@ Let $0\le\kappa<64$, $\rexp\ge0$, and $\kappa+\rexp\le64$. For $0 \le j < 2^{\ka
 a linear injection onto $\RS[\E, \dom, 2^{\kappa}]$ of rate $\rate = 2^{-\rexp}$; the $\novel_j$ take their values on $\dom \subseteq \K$, so a $\K$-valued message gives a $\K$-valued word. (The message is read \emph{directly} as novel-basis coefficients; no conversion is applied.)
 \end{definition}
 
-The payload consists of polynomial coefficients. Any $\kdim=2^\kappa$ distinct evaluations determine those coefficients by interpolation, but an evaluation prefix need not equal the payload.
+In the PCS the payload is the polynomial's coefficients: any $\kdim=2^\kappa$ distinct evaluations determine them by interpolation, but an evaluation prefix need not equal the payload. LeanDA instead takes the blob to be the evaluations on $\subsp_\kappa$, so its encoding is systematic (\S\ref{sec:da-commit}).
 
 \subsection{The additive NTT}\label{sec:ntt}
 
@@ -78,7 +78,7 @@ $\Wn{b+1}^{(d)} = \Wn{b}^{(d+1)} \circ \ntmap_d$, so $\novel^{(d)}_{2j} = \novel
 \textbf{Additive NTT}~\cite{LCH14}. \emph{Input:} coefficients $a_0, \dots, a_{2^{\kappa}-1}$ of $\mpoly = \sum_j a_j \novel_j$. \emph{Output:} $(\mpoly(x))_{x \in \dom}$, identifying $\cube{\kappa+\rexp} \cong \dom$ via $v \mapsto x_v := \sum_c v_c e_c$.
 \begin{enumerate}[itemsep=1pt]
 \item Initialize $\bfarr(v) := a_{\langle (v_0, \dots, v_{\kappa-1}) \rangle}$ for all $v \in \cube{\kappa+\rexp}$ (the coefficient array, tiled $2^\rexp$ times).
-\item For $d = \kappa - 1$ down to $0$: for every $v$ with $v_d = 0$, with $v' := v \oplus \mathbf{1}_d$ and twiddle $t := \sum_{c > d} v_c \Wn{d}(e_c)$:\quad $\bfarr(v) \mathrel{+}= t \cdot \bfarr(v')$;\quad then\quad $\bfarr(v') \mathrel{+}= \bfarr(v)$.
+\item For $d = \kappa - 1$ down to $0$: for every $v$ with $v_d = 0$, with $v' := v \oplus \mathbf{1}_d$:\quad $\bfarr(v) \mathrel{+}= \bigl(\sum_{c > d} v_c \Wn{d}(e_c)\bigr) \cdot \bfarr(v')$;\quad then\quad $\bfarr(v') \mathrel{+}= \bfarr(v)$.
 \item Output $\bfarr$; then $\bfarr(v) = \mpoly(x_v)$.
 \end{enumerate}
 }}
@@ -91,6 +91,32 @@ The algorithm computes $\Enc_{\kappa,\rexp}$ with exactly $\tfrac12 \kappa \blen
 \begin{proof}[Proof sketch]
 For $\ell \in \cube{d}$ let $\mpoly^{(d)}_{\ell} := \sum_{j < 2^{\kappa-d}} a_{\langle \ell \rangle + 2^d j} \novel^{(d)}_j$ collect the coefficients congruent to $\langle \ell \rangle$ modulo $2^d$. Downward induction on $d$ maintains the invariant that after stages $\kappa-1, \dots, d$, $\ \bfarr(v) = \mpoly^{(d)}_{(v_0,\dots,v_{d-1})}\bigl(\Wn{d}(x_v)\bigr)$, where by linearity $\Wn{d}(x_v) = v_d + t$ with $t$ the twiddle of the algorithm (coordinates $c < d$ lie in $\ker \Wn{d} = \subsp_d$, and $\Wn{d}(e_d) = 1$). The base $d = \kappa$ is the tiled initialization. For the step, let $\ell := (v_0, \dots, v_{d-1})$: the order-$(d{+}1)$ even and odd parts of $\mpoly^{(d)}_{\ell}$ are $\mpoly^{(d+1)}_{(\ell,0)}$ and $\mpoly^{(d+1)}_{(\ell,1)}$ (as $\langle \ell \rangle + 2^d(2j+\iota) = \langle (\ell,\iota) \rangle + 2^{d+1} j$), whose values at $\Wn{d+1}(x_v) = \Wn{d+1}(x_{v'})$ are the pre-stage entries $\bfarr(v)$ and $\bfarr(v')$; Lemma~\ref{lem:evenodd} at the fiber $\{t, t+1\}$ of $\ntmap_d$ over this point (Lemma~\ref{lem:chain}) gives $\mpoly^{(d)}_{\ell}(t) = \bfarr(v) + t\,\bfarr(v')$ and $\mpoly^{(d)}_{\ell}(t+1) = \mpoly^{(d)}_{\ell}(t) + \bfarr(v')$, exactly the butterfly. At $d = 0$, $\bfarr(v) = \mpoly(x_v)$. Each of the $\kappa$ stages does $\blen/2$ butterflies of one multiplication and two additions.
 \end{proof}
+
+\subsection{Multiplication by \texorpdfstring{$X$}{X}}\label{sec:ntt-mulx}
+
+The affine fold of Annex~\ref{annex:pcs} multiplies a lane by $X$. In the novel basis this is not a shift of the coefficients, but each coefficient of the product reads only two coefficients of the factor.
+
+\begin{lemma}[Multiplication by $X$ in the novel basis]\label{lem:mulx}
+For $0\le d<63$ let $\nbc_d\in\K^\times$ be $\vansub_{d+1}(e_{d+1})/\vansub_d(e_d)^2$, so that $\ntmap_d=\nbc_d^{-1}X(X+1)$, and $\nbc_{<s}:=\prod_{d<s}\nbc_d$. Let $H=\sum_ch_c\novel_c$ have degree below $2^{62}$, with $h_c:=0$ past its degree. Then $XH=\sum_ch'_c\novel_c$ with $h'_0=0$ and, for $c\ge1$ with $s$ trailing zeros,
+\[
+h'_c=\nbc_{<s}\bigl(h_{c-1}+h_{c+2^s-1}\bigr).
+\]
+In particular, for every $\kappa$ the coefficients of $XH$ of index below $2^\kappa$ depend only on the $h_c$ with $c<2^\kappa$.
+\end{lemma}
+
+\begin{proof}
+We prove the formula in every basis $(\novel^{(d)}_c)_c$ of Lemma~\ref{lem:evenodd} (with $\kappa=63$), with $\nbc_d\cdots\nbc_{d+s-1}$ in place of $\nbc_{<s}$, by induction on the degree of $H$, the case $H=0$ being clear. By Lemma~\ref{lem:evenodd}, $H=H_0(\ntmap_d)+X\,H_1(\ntmap_d)$ with $H_\iota:=\sum_mh_{2m+\iota}\novel^{(d+1)}_m$. As $X^2=X+\nbc_d\ntmap_d$,
+\[
+XH=\nbc_d\,(XH_1)(\ntmap_d)+X\,(H_0+H_1)(\ntmap_d).
+\]
+By Lemma~\ref{lem:evenodd} again, the odd coefficients of $XH$ are those of $H_0+H_1$, so $h'_{2m+1}=h_{2m}+h_{2m+1}$: the formula for $s=0$. The even ones are $\nbc_d$ times those of $XH_1$ in the basis $(\novel^{(d+1)}_m)_m$. As $H_1$ has lower degree than $H$, induction gives $h'_0=0$, and for $m\ge1$ with $s'$ trailing zeros,
+\[
+h'_{2m}=\nbc_d\,\nbc_{d+1}\cdots\nbc_{d+s'}\bigl(h_{2m-1}+h_{2m+2^{s'+1}-1}\bigr),
+\]
+the formula for $c=2m$, $s=s'+1$. For the last claim, an index $c<2^\kappa$ with $s$ trailing zeros is a multiple of $2^s$ below $2^\kappa$, so $c+2^s-1<2^\kappa$.
+\end{proof}
+
+So $XH$ costs one pass over $H$: one addition per coefficient, and one multiplication by a constant of $\K$ at each even index.
 
 \subsection{Column weights}\label{sec:ntt-weights}
 

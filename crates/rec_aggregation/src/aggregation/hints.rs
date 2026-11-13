@@ -3,7 +3,7 @@
 use super::cells::{count, exponent_bytes, pack_16_bytes};
 use super::error::AggregationError;
 use leanvm_core::cpu::Program;
-use primitives::field::F192;
+use primitives::field::F128;
 use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use signatures::{lean_sphincs, lean_xmss};
@@ -40,7 +40,7 @@ const SP_LANE_END: usize = 32 + 8;
 const _: () = assert!(lean_sphincs::DIGEST_BYTES > 32 && lean_sphincs::DIGEST_BYTES <= SP_LANE_END);
 
 /// Named hint entries for a single sub-proof, ordered within each stream.
-pub(super) type SubHints = Vec<(&'static str, Vec<F192>)>;
+pub(super) type SubHints = Vec<(&'static str, Vec<F128>)>;
 
 /// An edit to a node's hints: how a test hands the guest a witness the honest host
 /// would not.
@@ -56,10 +56,10 @@ thread_local! {
 /// One `hint_witness` stream: a name and its entries, in the order the guest
 /// pops them.
 #[derive(Default)]
-pub(super) struct Hints(Vec<(String, Vec<Vec<F192>>)>);
+pub(super) struct Hints(Vec<(String, Vec<Vec<F128>>)>);
 
 impl Hints {
-    pub(super) fn push(&mut self, name: &str, entry: Vec<F192>) {
+    pub(super) fn push(&mut self, name: &str, entry: Vec<F128>) {
         match self.0.iter_mut().find(|(n, _)| n == name) {
             Some((_, entries)) => entries.push(entry),
             None => self.0.push((name.to_string(), vec![entry])),
@@ -68,7 +68,7 @@ impl Hints {
 
     /// Entry `i` of stream `name`, for a test to forge.
     #[cfg(test)]
-    pub(super) fn entry_mut(&mut self, name: &str, i: usize) -> &mut Vec<F192> {
+    pub(super) fn entry_mut(&mut self, name: &str, i: usize) -> &mut Vec<F128> {
         let (_, entries) = self.0.iter_mut().find(|(n, _)| n == name).expect("a hinted stream");
         &mut entries[i]
     }
@@ -83,7 +83,7 @@ impl Hints {
 /// The digits of a WOTS+C codeword as the guest dispatches on them: `group` at a
 /// time, then the rest, each group's index little endian in base `CHAIN_LEN`, in the
 /// exponent.
-fn digit_hints(codeword: &[u8], size: usize) -> impl Iterator<Item = Vec<F192>> + '_ {
+fn digit_hints(codeword: &[u8], size: usize) -> impl Iterator<Item = Vec<F128>> + '_ {
     codeword.chunks(size).map(|group| {
         let index = group
             .iter()
@@ -106,7 +106,7 @@ pub(super) fn lean_xmss_hints(
     let index = u64::from(sig.leaf_index());
     let windows = (0..lean_xmss::LOG_LIFETIME).step_by(LX_WINDOW).map(|s| index >> s);
     let mut hints: SubHints = vec![
-        ("lx_index", windows.clone().map(|x| F192::new(x, 0, 0)).collect()),
+        ("lx_index", windows.clone().map(|x| F128::new(x, 0)).collect()),
         (
             "lx_windows",
             windows.map(|x| count((x % (1 << LX_WINDOW)) as usize)).collect(),

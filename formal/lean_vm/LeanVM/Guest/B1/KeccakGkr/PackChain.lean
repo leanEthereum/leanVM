@@ -11,13 +11,14 @@ public import LeanVM.Guest.B1.KeccakGkr.PackLoop
 public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
 
 /-!
-# The pack rounds (`keccak_layer`, G:2750-2812)
+# The pack rounds (`keccak_layer`, G:2700-2762)
 
 `keccak_layer` writes the record `rounds` (the capacity after the squeeze, the cursor past the
-product, the product's value at `s`, the scale `1`), runs `__loop37`/`__loop39` for `xs = g^j`,
-`j < ⌊y/8⌋` (`Pack8Step`: eight rounds on the coordinates `8j ..`), then `__loop38`/`__loop40`
-for `x1 = g^k`, `k < y % 8`, on `rounds·g^⌊y/8⌋` (`PackRemStep`: one round on the coordinate
-`8⌊y/8⌋ + k`), and reads the record `rounds·g^⌊y/8⌋·g^(y % 8)`.
+product, the product's value at `s`, the scale `1`), runs
+`keccak_layer__L1_loop0`/`keccak_layer__L0_loop0` for `xs = g^j`, `j < ⌊y/8⌋` (`Pack8Step`: eight
+rounds on the coordinates `8j ..`), then `keccak_layer__L1_loop1`/`keccak_layer__L0_loop1` for `x1 =
+g^k`, `k < y % 8`, on `rounds·g^⌊y/8⌋` (`PackRemStep`: one round on the coordinate `8⌊y/8⌋ + k`),
+and reads the record `rounds·g^⌊y/8⌋·g^(y % 8)`.
 
 * `PackInv j n`: after `j` records and `n` coordinates, the messages and challenges so far, the
   record `j`, and `packRunF` of the first `n` coordinates; `packInv_extend`: a chain of rounds
@@ -111,9 +112,6 @@ theorem roundRec_succ {rec : E} {j : ℕ} {cap : List E} {cur cl sc : E}
   · rw [show 0 + 6 * krCap = 6 * krCap by omega, ← loadHolds_rec_succ]; exact h2
   · rw [show 0 + 7 * krCap = 7 * krCap by omega, ← loadHolds_rec_succ]; exact h3
 
-theorem eqRound_pend (s : Fs) (g1 g2 r v sc : E) : (eqRound s g1 g2 r v sc).2.2.2 =
-    ⟨(eqRound s g1 g2 r v sc).2.2.2.cap, []⟩ := rfl
-
 theorem gen_pow_ne_one {h : ℕ} (h0 : 0 < h) (hlt : h < ordG) : 1 + gen ^ h ≠ 0 := by
   intro e
   have : gen ^ h = gen ^ 0 := by rw [pow_zero]; exact (e_add_eq_zero_iff.mp e).symm
@@ -126,31 +124,17 @@ theorem flatMap_pairs_length (msgs : List (E × E)) :
   | nil => rfl
   | cons m ms ih => simp [List.flatMap_cons, ih]; ring
 
-theorem eqChain_canonical : ∀ {rs : List E} {ms : List (E × E)} {cl sc : E} {cap chs : List E}
-    {cl' sc' : E} {cap' : List E}, AllCanonical cap → EqChain rs ms cl sc cap chs cl' sc' cap' →
-    AllCanonical cap'
-  | [], [], _, _, _, _, _, _, _, hc, h => by obtain ⟨-, -, -, rfl⟩ := h; exact hc
-  | _ :: _, (_, _) :: _, _, _, _, _, _, _, _, _, h => by
-    obtain ⟨_, _, _, cap1, _, he, -, hc⟩ := h
-    refine eqChain_canonical ?_ hc
-    have := congrArg (fun o : E × E × E × Fs ↦ o.2.2.2.cap) he
-    simp only [eqRound] at this
-    rw [← this]
-    exact squeeze_cap_canonical _
-  | [], _ :: _, _, _, _, _, _, _, _, _, h => h.elim
-  | _ :: _, [], _, _, _, _, _, _, _, _, h => h.elim
-
 /-- The invariant after `j` records and `n` coordinates: the messages and challenges so far, the
 record `j`, and `packRunF` of the first `n` coordinates. -/
 def PackInv (rd : Reader) (rec pt cur hv : E) (capS pts : List E) (j n : ℕ) : Prop :=
   ∃ (msgs : List (E × E)) (chs cap : List E) (cl sc : E), msgs.length = n ∧
     chs.length = n ∧ ReadsAt rd cur (msgs.flatMap fun m ↦ [m.1, m.2]) ∧ ReadsAt rd pt chs ∧
-    RoundRec rd (rec * gen ^ j) 0 cap (cur * gen ^ (2 * n)) cl sc ∧ AllCanonical cap ∧
+    RoundRec rd (rec * gen ^ j) 0 cap (cur * gen ^ (2 * n)) cl sc ∧
     packRunF (pts.take n) msgs hv 1 ⟨capS, []⟩ = ((cl, sc, chs), ⟨cap, []⟩)
 
-theorem packInv_zero {rec pt cur hv : E} {capS pts : List E} (h0 : RoundRec rd rec 0 capS cur hv 1)
-    (hcan : AllCanonical capS) : PackInv rd rec pt cur hv capS pts 0 0 :=
-  ⟨[], [], capS, hv, 1, rfl, rfl, readsAt_nil _ _, readsAt_nil _ _, by simpa using h0, hcan, rfl⟩
+theorem packInv_zero {rec pt cur hv : E} {capS pts : List E} (h0 : RoundRec rd rec 0 capS cur hv 1) :
+    PackInv rd rec pt cur hv capS pts 0 0 :=
+  ⟨[], [], capS, hv, 1, rfl, rfl, readsAt_nil _ _, readsAt_nil _ _, by simpa using h0, rfl⟩
 
 /-- **A chain of rounds extends the invariant**: from record `j`, the coordinates `n ..` of the
 point, the messages at the cursor and the challenges at `point·g^n`, to record `j + 1`. -/
@@ -163,7 +147,7 @@ theorem packInv_extend {rec pt cur hv : E} {capS pts : List E} {j n : ℕ}
     (hch : EqChain rs ms cl0 sc0 cap0 chs' cl' sc' cap') (hchs : ReadsAt rd (pt * gen ^ n) chs')
     (hnext : RoundRec rd (rec * gen ^ j) 1 cap' (cur0 * gen ^ (2 * rs.length)) cl' sc') :
     PackInv rd rec pt cur hv capS pts (j + 1) (n + rs.length) := by
-  obtain ⟨msgs, chs, cap, cl, sc, hml, hcl, hrm, hrc, hrec, hcan, hrun⟩ := hI
+  obtain ⟨msgs, chs, cap, cl, sc, hml, hcl, hrm, hrc, hrec, hrun⟩ := hI
   obtain ⟨rfl, hcur, rfl, rfl⟩ := roundRec_unique hrec0 hrec
   obtain ⟨hmsl, hchl⟩ := packEqChain_length hch
   have htake : pts.take (n + rs.length) = pts.take n ++ rs := by
@@ -183,7 +167,7 @@ theorem packInv_extend {rec pt cur hv : E} {capS pts : List E} {j n : ℕ}
       · simp only [show ¬ k < n + rs.length by omega, ↓reduceIte]
         rw [List.getElem?_eq_none (by omega)]
   refine ⟨msgs ++ ms, chs ++ chs', cap', cl', sc', by simp [hml, hmsl], by simp [hcl, hchl], ?_, ?_,
-    ?_, eqChain_canonical hcan hch, ?_⟩
+    ?_, ?_⟩
   · rw [List.flatMap_append, readsAt_append, flatMap_pairs_length, hml]
     exact ⟨hrm, hcur ▸ hms⟩
   · rw [readsAt_append, hcl]
@@ -252,26 +236,26 @@ theorem pack_chain {first : ℕ} (hfirst : first < 2)
     {rec pp pt sg rg cur hv curL vL scL : E} {capS pts capL : List E} {y : ℕ}
     (hsg : sg = gen ^ (y / krStep)) (hrg : rg = gen ^ (y % krStep)) (hy32 : y < 32)
     (hpts : pts.length = y) (hpp : ReadsAt rd pp pts)
-    (h0 : RoundRec rd rec 0 capS cur hv 1) (hcan : AllCanonical capS)
+    (h0 : RoundRec rd rec 0 capS cur hv 1) {tb : E}
     (hloop : IsInK (1 + sg) ∧
-      (1 + sg ≠ 0 → coreProgram.Rel rd (packLoopName first) [1, sg, rec, pp, pt] []))
+      (1 + sg ≠ 0 → coreProgram.Rel rd (packLoopName first) [1, sg, rec, pp, pt, tb] []))
     (hrem : IsInK (1 + rg) ∧
-      (1 + rg ≠ 0 → coreProgram.Rel rd (remLoopName first) [1, rg, rec * sg, pp * sg ^ 8,
+      (1 + rg ≠ 0 → coreProgram.Rel rd (remLoopName first) [1, rg, rec * sg, pp * sg ^ 8, tb,
         pt * sg ^ 8] []))
     (hlast : RoundRec rd (rec * sg * rg) 0 capL curL vL scL) :
     ∃ (msgs : List (E × E)) (chs : List E), msgs.length = y ∧
       ReadsAt rd cur (msgs.flatMap fun m ↦ [m.1, m.2]) ∧ ReadsAt rd pt chs ∧ chs.length = y ∧
       curL = cur * gen ^ (2 * y) ∧ (packRunF pts msgs hv 1 ⟨capS, []⟩).1 = (vL, scL, chs) ∧
-      (packRunF pts msgs hv 1 ⟨capS, []⟩).2 = ⟨capL, []⟩ ∧ AllCanonical capL := by
+      (packRunF pts msgs hv 1 ⟨capS, []⟩).2 = ⟨capL, []⟩ := by
   have hlt : ∀ m, m < 32 → m < ordG := fun m hm ↦ by unfold ordG; omega
   have hsteps : ∀ j < y / krStep, Pack8Step rd rec pp pt (gen ^ j) := by
     intro j hj
     have hne := gen_pow_ne_one (h := y / krStep) (by omega) (hlt _ (by simp [krStep]; omega))
     obtain ⟨fn, hf, hb, hp⟩ := find_pack8 hfirst
     have hrel := hloop.2 (by rw [hsg]; exact hne)
-    exact loop_sound (P := coreProgram) (f := packLoopName first) (ps := [sg, rec, pp, pt])
+    exact loop_sound (P := coreProgram) (f := packLoopName first) (ps := [sg, rec, pp, pt, tb])
       (N := sg) (m := y / krStep) (B := Pack8Step rd rec pp pt)
-      (fun d x h' => pack8_step hf hb hp d x sg rec pp pt h') hsg (hlt _ (by simp [krStep]; omega))
+      (fun d x h' => pack8_step hf hb hp d x sg rec pp pt tb h') hsg (hlt _ (by simp [krStep]; omega))
       0 (by rw [pow_zero]; exact hrel) j (Nat.zero_le _) hj
   have hrems : ∀ k < y % krStep, PackRemStep rd (rec * sg) (pp * sg ^ 8) (pt * sg ^ 8) (gen ^ k) := by
     intro k hk
@@ -279,14 +263,14 @@ theorem pack_chain {first : ℕ} (hfirst : first < 2)
     obtain ⟨fn, hf, hb, hp⟩ := find_packRem hfirst
     have hrel := hrem.2 (by rw [hrg]; exact hne)
     exact loop_sound (P := coreProgram) (f := remLoopName first)
-      (ps := [rg, rec * sg, pp * sg ^ 8, pt * sg ^ 8]) (N := rg) (m := y % krStep)
+      (ps := [rg, rec * sg, pp * sg ^ 8, tb, pt * sg ^ 8]) (N := rg) (m := y % krStep)
       (B := PackRemStep rd (rec * sg) (pp * sg ^ 8) (pt * sg ^ 8))
-      (fun d x h' => packRem_step hf hb hp d x rg _ _ _ h') hrg (hlt _ (by simp [krStep]; omega))
+      (fun d x h' => packRem_step hf hb hp d x rg _ _ tb _ h') hrg (hlt _ (by simp [krStep]; omega))
       0 (by rw [pow_zero]; exact hrel) k (Nat.zero_le _) hk
   have hinv8 : ∀ j ≤ y / krStep, PackInv rd rec pt cur hv capS pts j (8 * j) := by
     intro j hj
     induction j with
-    | zero => exact packInv_zero h0 hcan
+    | zero => exact packInv_zero h0
     | succ j ih =>
       exact packInv_succ8 (ih (by omega)) (hsteps j (by omega)) hpp (by simp [krStep] at hj; omega)
   have hinvR : ∀ k ≤ y % krStep, PackInv rd rec pt cur hv capS pts (y / krStep + k)
@@ -299,13 +283,13 @@ theorem pack_chain {first : ℕ} (hfirst : first < 2)
         (by rw [← gen_pow_pow, ← hsg]; exact hrems k (by omega)) hpp
         (by simp [krStep] at hk ⊢; omega)
       simpa [Nat.add_assoc] using this
-  obtain ⟨msgs, chs, cap, cl, sc, hml, hcl, hrm, hrc, hrec, hcanc, hrun⟩ := hinvR _ le_rfl
+  obtain ⟨msgs, chs, cap, cl, sc, hml, hcl, hrm, hrc, hrec, hrun⟩ := hinvR _ le_rfl
   have hy : 8 * (y / krStep) + y % krStep = y := by simp only [krStep]; omega
   rw [hy] at hml hcl hrec hrun
   rw [hsg, hrg, mul_assoc, ← pow_add] at hlast
   obtain ⟨rfl, hcur, rfl, rfl⟩ := roundRec_unique hlast hrec
   rw [List.take_of_length_le (by omega)] at hrun
-  exact ⟨msgs, chs, hml, hrm, hrc, hcl, hcur, by rw [hrun], by rw [hrun], hcanc⟩
+  exact ⟨msgs, chs, hml, hrm, hrc, hcl, hcur, by rw [hrun], by rw [hrun]⟩
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -23,7 +23,7 @@ leanXMSS region the writer is a raw leanXMSS signature (`m < RX`, the `m`-th raw
 that slot) or a child's claim (the child `kid m`, whose rebuilt list holds the slot's claim,
 `kidStmt_eq`): `xmss_covered`; likewise for leanSPHINCS.
 
-`da_rel`: the DA digest at the slot `da_pick` (G:4644-4647) is, with the direct DA check, the
+`da_rel`: the DA digest at the slot `da_pick` (G:4594-4597) is, with the direct DA check, the
 node's own slot, the digest of the claim `da_verify` returns (`CalleesW.da` opens it); without it,
 the node's own slot's zeros or child `da_pick`'s digest.
 -/
@@ -262,54 +262,48 @@ theorem da_rel {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E 
     ((decWit σ rd wX wS wD wV wA).daMatrix = none → (decStmt σ rd).claims.daDigest = zeroDigest ∨
       ∃ c ∈ (decWit σ rd wX wS wD wV wA).children,
         c.statement.claims.daDigest = (decStmt σ rd).claims.daDigest) := by
-  have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ 406) := by
+  have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ 405) := by
     unfold decStmt; simp only [gLog_lg]
   obtain ⟨-, hpl, hp1⟩ := MF.pick
   have h7 := MF.direct.2
   have hown := MF.own
   by_cases hd : lg σ 7 = 1
   · have hdec : (decWit σ rd wX wS wD wV wA).daMatrix =
-        some (dvClaim σ, wD [σ (.n 28)] [σ (.n 369), σ (.n 370), σ (.n 371), σ (.n 372)]) := by
+        some (dvClaim σ, wD [σ (.n 28)] [σ (.n 369), σ (.n 370), σ (.n 371)]) := by
       unfold decWit; simp only [nDirect_eq, hd, ↓reduceIte]
     refine ⟨fun c m h => ?_, fun h => (by rw [hdec] at h; cases h)⟩
     rw [hdec, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
-    obtain ⟨hcall, hcan, l0, l1⟩ := MF.da hd
+    obtain ⟨hcall, l0, l1⟩ := MF.da hd
     rw [hown, loadHolds_gen_pow_iff, Nat.add_zero] at l0
     rw [hown, loadHolds_gen_pow_iff] at l1
-    obtain ⟨root, z, c2, hop, hc2, hrets⟩ := cw.da _ _ hcall (fun j hj => MF.exp.1 j hj)
-    simp only [digestCells, List.cons_append, List.nil_append, List.cons.injEq, and_true] at hrets
-    obtain ⟨r0, r1, r2, r3⟩ := hrets
-    have hz := (Keccak.fsPack_cells z c2 0 hc2 (by rw [← r2]; exact hcan _ (by simp))).2
-    rw [← r2, ← r3] at hz
+    obtain ⟨root, z, hop, hrets⟩ := cw.da _ _ hcall (fun j hj => MF.exp.1 j hj)
+    simp only [digestCells, List.cons_append, List.nil_append, List.cons.injEq] at hrets
+    obtain ⟨r0, r1, r2, -⟩ := hrets
     have hdv : dvClaim σ = ⟨root, z⟩ := by
       unfold dvClaim
-      rw [r0, r1, digestOfCells_scalars]
-      simp only [Prod.ext_iff] at hz
-      rw [hz.1, hz.2, Da.scalarOfCells, Keccak.scalarCells]
-      simp only [ofLimbs_limb0, ofLimbs_limb1]
-      rw [← eq_ofLimbs]
+      rw [r0, r1, r2, digestOfCells_scalars]
     refine ⟨?_, by rw [hdv]; exact hop⟩
     rw [eD, hp1 hd, (daDigestAt_of_loads l0 l1).1, digestOfCells_scalars]
     unfold daClaimDigest
     rw [hdv]
-    simp only [Prod.ext_iff] at hz
     congr 1
-    rw [show [σ (.n 369), σ (.n 370), σ (.n 371), σ (.n 372)] =
-      [(digestHalves root).1, (digestHalves root).2] ++ [σ (.n 371), σ (.n 372)] by rw [r0, r1]; rfl,
-      cellsBytes, List.flatMap_append, ← cellsBytes, ← digestBytes_eq_cells, hz.1, hz.2]
-    simp [Keccak.scalarCells, cellBytes, E.toBytes, List.append_assoc]
+    rw [show [σ (.n 369), σ (.n 370), σ (.n 371), 0] =
+      [(digestHalves root).1, (digestHalves root).2] ++ [z, 0] by rw [r0, r1, r2]; rfl,
+      cellsBytes, List.flatMap_append, ← cellsBytes, ← digestBytes_eq_cells]
+    have e0 : cellBytes (0 : E) = List.replicate 16 0 := by decide +kernel
+    simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, e0, List.append_assoc]
     rfl
   · have hd0 : lg σ 7 = 0 := by omega
     have hdec : (decWit σ rd wX wS wD wV wA).daMatrix = none := by
       unfold decWit; simp only [nDirect_eq, hd, ↓reduceIte]
     refine ⟨fun c m h => (by rw [hdec] at h; cases h), fun _ => ?_⟩
-    rcases Nat.lt_or_ge (lg σ 406) (lg σ 6) with hlt | hge
+    rcases Nat.lt_or_ge (lg σ 405) (lg σ 6) with hlt | hge
     · show _ ∨ ∃ c ∈ (List.range (nKids σ)).map (decKid rd σ wV), _
-      refine Or.inr ⟨decKid rd σ wV (lg σ 406),
-        List.mem_map.mpr ⟨lg σ 406, List.mem_range.mpr (by rw [nKids_eq]; exact hlt), rfl⟩, ?_⟩
+      refine Or.inr ⟨decKid rd σ wV (lg σ 405),
+        List.mem_map.mpr ⟨lg σ 405, List.mem_range.mpr (by rw [nKids_eq]; exact hlt), rfl⟩, ?_⟩
       rw [eD]; rfl
-    · have hpe : lg σ 406 = lg σ 6 := by omega
+    · have hpe : lg σ 405 = lg σ 6 := by omega
       obtain ⟨z0, z1⟩ := MF.daz hd0
       rw [hown, loadHolds_gen_pow_iff, Nat.add_zero] at z0
       rw [hown, loadHolds_gen_pow_iff] at z1

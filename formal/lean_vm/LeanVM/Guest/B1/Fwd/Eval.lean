@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.Renumber
 
 /-!
@@ -23,8 +24,7 @@ defined values' words: an atom's rule (`newA`), or the oracle `w` (hints, a call
 
 `ev_good`: on `Val.ofArgs (ev rd w args ss)`, every atom satisfies `Good`, its defining equations,
 and the parameters keep their words. `holds_of_good`: an atom satisfying `Good` and its side
-condition `Side` (a pointer in `K` with a defined word, a nonzero divisor, canonical `KECCAK`
-inputs, an assertion) holds. A load through an older value into an older value (a store) is in
+condition `Side` (a pointer in `K` with a defined word, a nonzero divisor, an assertion) holds. A load through an older value into an older value (a store) is in
 `storesOf`; its `Side` is the load itself.
 -/
 
@@ -129,7 +129,7 @@ def kecOut (ws : List E) (inOdd outOdd : Bool) (c : Nat) : E :=
   if h : c < 13 then cellsOfState (keccakF1600 (stateOfCells (cells13 ws) inOdd)) outOdd ⟨c, h⟩ else 0
 
 /-- Limb `j` of a word, in `K`. -/
-def limbAt (x : E) (j : Nat) : E := if h : j < 3 then ofK (x.limb ⟨j, h⟩) else 0
+def limbAt (x : E) (j : Nat) : E := if h : j < 2 then ofK (x.limb ⟨j, h⟩) else 0
 
 /-- The oracle's words of `n` values from `.n c`. -/
 def orc (w : Nat → E) (c n : Nat) : List E := (List.range n).map fun j => w (c + j)
@@ -214,7 +214,6 @@ def Side (rd : Reader) (S : List Atom) (σ : Val) : Atom → Prop
   | .rangeCheck x y _ _ k =>
       IsInK (σ x) ∧ (rd ((σ x).limb 0 * addressOfIndex 0)).isSome ∧ IsInK (σ y) ∧
         (rd ((σ y).limb 0 * addressOfIndex 0)).isSome ∧ (if k.idx < y.idx then σ x ≠ 0 else True)
-  | .keccak ins _ _ _ => ∀ c : Fin 13, IsCanonical128 (cells13 (ins.map σ) c)
   | .frameAddr p run => Atom.Holds rd σ (.frameAddr p run)
   | .touch _ p => IsInK (σ p) ∧ (rd ((σ p).limb 0 * addressOfIndex 0)).isSome
   | _ => True
@@ -271,7 +270,7 @@ theorem holds_of_good {rd : Reader} {S : List Atom} {w : Nat → E} {σ : Val} {
     obtain ⟨h1, h2, h3⟩ := hg
     have hk : KeccakCellsRelation (cells13 (ins.map σ)) i
         (cellsOfState (keccakF1600 (stateOfCells (cells13 (ins.map σ)) i)) o) o .all :=
-      ⟨hs, fun _ _ ↦ rfl⟩
+      fun _ _ ↦ rfl
     rcases h2 with h2 | h2 | h2
     · exact keccak_holds_of (oc := .one) h1 h2 hk h3
     · exact keccak_holds_of (oc := .two) h1 h2 hk h3
@@ -279,17 +278,6 @@ theorem holds_of_good {rd : Reader} {S : List Atom} {w : Nat → E} {σ : Val} {
   | frameAddr p run => exact hs
   | hint h => trivial
   | touch t p => exact load_of_rdAt hg hs.1 hs.2
-
-/-- **A thirteen-cell `KECCAK`'s equations** in the form of the written cells' `cells13`. -/
-theorem good_keccak13 {rd : Reader} {S : List Atom} {w : Nat → E} {σ : Val} {ins outs : List V}
-    {i o : Bool} (hg : Good rd S w σ (.keccak ins outs i o))
-    (ho : outs.length = 13 := by first | rfl | simp) :
-    ins.length = 13 ∧ outs.length = 13 ∧ ∀ c : Fin 13, cells13 (outs.map σ) c =
-      cellsOfState (keccakF1600 (stateOfCells (cells13 (ins.map σ)) i)) o c := by
-  obtain ⟨h1, -, h3⟩ := hg
-  refine ⟨h1, ho, fun c => ?_⟩
-  rw [cells13, List.getD_eq_getElem _ _ (by simp [ho]), List.getElem_map]
-  exact h3 c (by omega)
 
 /-! ## The checker's facts -/
 

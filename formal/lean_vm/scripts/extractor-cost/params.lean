@@ -7,7 +7,7 @@ import LeanVM.Protocol.Extraction.Extractor
 open LeanVM.Extraction LeanVM.Parameters.Whir
 def row (μ R : ℕ) : String :=
   let κ := μ - initialFold
-  let k := 2 ^ κ
+  let k := 2 ^ κ + initialFold
   let n := 2 ^ (κ + R)
   let A := johnsonThreshold μ R
   let m := gsMultiplicityAt k n A

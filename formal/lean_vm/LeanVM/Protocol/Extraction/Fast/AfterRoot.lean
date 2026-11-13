@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Protocol.Extraction.Extractor
+public import LeanVM.Protocol.Verifier.Phases
 
 /-!
 # The stack's root, without the verifier's free monad
@@ -55,24 +56,21 @@ theorem runDefault_bind {α β : Type} (p : VerifierProgram α) (f : α → Veri
   | read k ih =>
     simp only [runDefault, VerifierProgram.bind, Compile.run]
     split
-    · rfl
     · exact ih _ _
+    · rfl
   | sample k ih => exact ih _ _
   | grind b k ih =>
     simp only [runDefault, VerifierProgram.bind, Compile.run]
     split
-    · rfl
-    · simp only [bind, pure]
+    · show (if powOk b _ = true then _ else none) = Option.bind (if powOk b _ = true then _ else none) _
       split
       · exact ih _
       · rfl
+    · rfl
   | commit h w k ih =>
     simp only [runDefault, VerifierProgram.bind, Compile.run]
     split
-    · simp only [bind]
-      split
-      · exact ih _
-      · rfl
+    · exact ih _
     · rfl
   | query i ps k ih =>
     simp only [runDefault, VerifierProgram.bind, Compile.run]
@@ -106,6 +104,10 @@ theorem runPure_require_bind {β : Type} (c : Prop) [Decidable c] (f : Unit → 
   · simp only [VerifierProgram.require, hc, ↓reduceIte]; rfl
   · simp only [VerifierProgram.require, hc, ↓reduceIte]; rfl
 
+theorem runPure_liftOption {α : Type} (o : Option α) (s : VerifierProgramState) :
+    runPure (liftOption o) s = o.map fun a ↦ (a, s) := by
+  cases o <;> rfl
+
 theorem runPure_liftOption_bind {α β : Type} (o : Option α) (f : α → VerifierProgram β) (s :
     VerifierProgramState) :
     runPure (liftOption o >>= f) s = o.bind fun a ↦ runPure (f a) s := by
@@ -116,18 +118,18 @@ theorem runPure_liftOption_bind {α β : Type} (o : Option α) (f : α → Verif
 /-- `absorb` with every permutation answered by `default`: a full queue is replaced by the
 default state with an empty queue, then the scalar joins the queue. -/
 @[expose] def absorbPure (sp : Compile.Sponge) (x : E) (tag : ℕ) : Compile.Sponge :=
-  let sp : Compile.Sponge := if sp.pending.length = rateScalars then ⟨default, []⟩ else sp
+  let sp : Compile.Sponge := if sp.pending.length = rateScalars then ⟨default, [], sp.ground⟩ else sp
   { sp with pending := sp.pending ++ [(x, tag)] }
 
 /-- Read `n` prover scalars, each absorbed with `dsObserve` (`VerifierProgram.readScalars`). -/
 @[expose] def readPure : ℕ → VerifierProgramState → Option (List E × VerifierProgramState)
   | 0, s => some ([], s)
   | n + 1, s =>
-    match s.stream with
-    | [] => none
-    | x :: xs =>
+    match s.stream, s.sponge.ground with
+    | x :: xs, none =>
       (readPure n { s with sponge := absorbPure s.sponge x dsObserve, stream := xs }).map
         fun r ↦ (x :: r.1, r.2)
+    | _, _ => none
 
 /-- **`readScalars`, run**, is `readPure`. -/
 theorem runPure_readScalars (n : ℕ) (s : VerifierProgramState) :
@@ -135,19 +137,22 @@ theorem runPure_readScalars (n : ℕ) (s : VerifierProgramState) :
   induction n generalizing s with
   | zero => rfl
   | succ n ih =>
-    rcases s with ⟨sp, _ | ⟨x, xs⟩, os, roots⟩
+    rcases s with ⟨⟨st0, pend, gr⟩, _ | ⟨x, xs⟩, os, roots⟩
     · rfl
-    · have h1 : runPure VerifierProgram.readScalar ⟨sp, x :: xs, os, roots⟩ =
-          some (x, ⟨absorbPure sp x dsObserve, xs, os, roots⟩) := by
-        simp only [runPure, VerifierProgram.readScalar, Compile.run, Compile.absorb, Compile.duplex,
-          absorbPure]
-        split <;> rfl
-      show runPure (VerifierProgram.readScalar >>= fun y ↦ VerifierProgram.readScalars n >>= fun ys
-          ↦ pure (y :: ys))
-        ⟨sp, x :: xs, os, roots⟩ = _
-      rw [runPure_bind_of_some h1, runPure_bind, ih]
-      show _ = (readPure n ⟨absorbPure sp x dsObserve, xs, os, roots⟩).map fun r ↦ (x :: r.1, r.2)
-      cases readPure n ⟨absorbPure sp x dsObserve, xs, os, roots⟩ <;> rfl
+    · cases gr with
+      | some c => rfl
+      | none =>
+        have h1 : runPure VerifierProgram.readScalar ⟨⟨st0, pend, none⟩, x :: xs, os, roots⟩ =
+            some (x, ⟨absorbPure ⟨st0, pend, none⟩ x dsObserve, xs, os, roots⟩) := by
+          simp only [runPure, VerifierProgram.readScalar, Compile.run, Compile.absorb,
+            Compile.duplex, absorbPure]
+          split <;> rfl
+        show runPure (VerifierProgram.readScalar >>= fun y ↦ VerifierProgram.readScalars n >>= fun ys
+            ↦ pure (y :: ys)) ⟨⟨st0, pend, none⟩, x :: xs, os, roots⟩ = _
+        rw [runPure_bind_of_some h1, runPure_bind, ih]
+        show _ = (readPure n ⟨absorbPure ⟨st0, pend, none⟩ x dsObserve, xs, os, roots⟩).map
+          fun r ↦ (x :: r.1, r.2)
+        cases readPure n ⟨absorbPure ⟨st0, pend, none⟩ x dsObserve, xs, os, roots⟩ <;> rfl
 
 theorem runPure_readScalars_bind {β : Type} (n : ℕ) (f : List E → VerifierProgram β) (s :
     VerifierProgramState) :
@@ -159,52 +164,38 @@ theorem runPure_readScalars_bind {β : Type} (n : ℕ) (f : List E → VerifierP
 digest; the root is recorded with its shape. -/
 @[expose] def commitPure (height width : ℕ) (s : VerifierProgramState) : Option (Unit ×
     VerifierProgramState) :=
-  match s.stream with
-  | x0 :: x1 :: xs =>
-    match digestFromHalves (x0, x1) with
-    | some root =>
-      some ((), { s with
-        sponge := absorbPure (absorbPure s.sponge x0 dsObserve) x1 dsObserve
-        stream := xs
-        roots := s.roots ++ [(root, height, width)] })
-    | none => none
-  | _ => none
+  match s.stream, s.sponge.ground with
+  | x0 :: x1 :: xs, none =>
+    some ((), { s with
+      sponge := absorbPure (absorbPure s.sponge x0 dsObserve) x1 dsObserve
+      stream := xs
+      roots := s.roots ++ [(digestFromHalves (x0, x1), height, width)] })
+  | _, _ => none
 
 theorem runPure_readCommitment (height width : ℕ) (s : VerifierProgramState) :
     runPure (VerifierProgram.readCommitment height width) s = commitPure height width s := by
-  rcases s with ⟨sp, _ | ⟨x0, _ | ⟨x1, xs⟩⟩, os, roots⟩
+  rcases s with ⟨⟨st0, pend, gr⟩, _ | ⟨x0, _ | ⟨x1, xs⟩⟩, os, roots⟩
   · simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure]; rfl
   · simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure]; rfl
-  · simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure, Compile.absorb,
-      Compile.duplex, absorbPure]
-    cases digestFromHalves (x0, x1)
-    · simp [Id.run, bind, pure]
-    · simp [Id.run, bind, pure]
+  · cases gr with
+    | some c => simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure]; rfl
+    | none =>
+      simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure, Compile.absorb,
+        Compile.duplex, absorbPure]
+      simp [Id.run, bind, pure]
       split_ifs <;> simp_all
 
 /-! ## Steps 1 and 2 -/
 
 /-- `readAnnouncedSizes bytecode` (`Statement/LeanVmVerifier.lean`), run: the announced sizes, read and
-checked, and the layout they give. -/
+checked (`sizesOf`), and the layout they give. -/
 @[expose] def readSizesPure (bytecode : List K) (s : VerifierProgramState) :
     Option ((Layout × ℕ) × VerifierProgramState) :=
-  (readPure (2 + tables.length) s).bind fun r ↦
-    if (r.1.all fun value ↦ value.limb 1 = 0 ∧ value.limb 2 = 0) then
-      let logMemory := kToNat ((r.1.headD 0).limb 0)
-      let tableRows := ((r.1.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)
-      let logInverseRate := kToNat ((r.1.getLastD 0).limb 0)
-      if 1 ≤ logInverseRate ∧ logInverseRate ≤ 4 then
-        (buildLayout bytecode logMemory tableRows).bind fun layout ↦
-          if Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack then
-            some ((layout, logInverseRate), r.2)
-          else none
-      else none
-    else none
+  (readPure (2 + tables.length) s).bind fun r ↦ (sizesOf bytecode r.1).map fun x ↦ (x, r.2)
 
 theorem runPure_readSizes (bytecode : List K) (s : VerifierProgramState) :
     runPure (readAnnouncedSizes bytecode) s = readSizesPure bytecode s := by
-  simp only [readAnnouncedSizes, readSizesPure, runPure_readScalars_bind, runPure_require_bind,
-    runPure_liftOption_bind, runPure_pure]
+  simp only [readAnnouncedSizes_eq, readSizesPure, runPure_readScalars_bind, runPure_liftOption]
 
 /-- `commitStack logN logInvRate`, run: the stack's root, at the shape of the ladder's first
 level. -/
@@ -226,7 +217,7 @@ theorem runPure_commitStack (logN logInvRate : ℕ) (s : VerifierProgramState) :
       exact runPure_readCommitment (logN - level.fold + level.logInvRate) (2 ^ level.fold) s
 
 /-- The verifier's state at the start: the sponge's default state, the proof unread, no root. -/
-@[expose] def initialState (π : Proof) : VerifierProgramState := ⟨⟨default, []⟩, π.stream,
+@[expose] def initialState (π : Proof) : VerifierProgramState := ⟨⟨default, [], none⟩, π.stream,
     π.openings, []⟩
 
 /-- **`afterRoot`, direct**: the announced sizes, then the stack's root. -/
@@ -264,13 +255,17 @@ theorem readPure_carry (n : ℕ) (sp : Compile.Sponge) (st : List E) (os os' : L
   induction n generalizing sp st with
   | zero => rfl
   | succ n ih =>
+    obtain ⟨st0, pend, gr⟩ := sp
     cases st with
     | nil => rfl
     | cons x xs =>
-      show (readPure n ⟨absorbPure sp x dsObserve, xs, os', rs'⟩).map _ =
-        ((readPure n ⟨absorbPure sp x dsObserve, xs, os, rs⟩).map _).map _
-      rw [ih]
-      cases readPure n ⟨absorbPure sp x dsObserve, xs, os, rs⟩ <;> rfl
+      cases gr with
+      | some c => rfl
+      | none =>
+        show (readPure n ⟨absorbPure ⟨st0, pend, none⟩ x dsObserve, xs, os', rs'⟩).map _ =
+          ((readPure n ⟨absorbPure ⟨st0, pend, none⟩ x dsObserve, xs, os, rs⟩).map _).map _
+        rw [ih]
+        cases readPure n ⟨absorbPure ⟨st0, pend, none⟩ x dsObserve, xs, os, rs⟩ <;> rfl
 
 /-- `readSizesPure` reads only the sponge and the stream. -/
 theorem readSizesPure_carry (bytecode : List K) (sp : Compile.Sponge) (st : List E)
@@ -284,14 +279,7 @@ theorem readSizesPure_carry (bytecode : List K) (sp : Compile.Sponge) (st : List
   | none => rfl
   | some r =>
     dsimp only [Option.map_some, Option.bind_some]
-    split_ifs
-    · cases buildLayout bytecode (kToNat ((r.1.headD 0).limb 0))
-          (((r.1.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)) with
-      | none => rfl
-      | some layout =>
-        dsimp only [Option.bind_some]
-        split_ifs <;> rfl
-    all_goals rfl
+    cases sizesOf bytecode r.1 <;> rfl
 
 /-- **The shape `afterRoot` reads is the one the stream announces** (`announced`, which the
 statement's budget reads). -/
@@ -304,7 +292,7 @@ theorem announced_of_afterRoot {bytecode : List K} {π : Proof} {layout : Layout
   obtain ⟨t, -, ht⟩ := Option.map_eq_some_iff.1 hc
   have h1 : r.1 = (layout, R) := congrArg Prod.fst ht
   unfold initialState at hr
-  rw [readSizesPure_carry bytecode ⟨default, []⟩ π.stream [] π.openings [] []] at hr
+  rw [readSizesPure_carry bytecode ⟨default, [], none⟩ π.stream [] π.openings [] []] at hr
   obtain ⟨r', hr', rfl⟩ := Option.map_eq_some_iff.1 hr
   unfold announcedLayoutAndRate
   rw [runPure_readSizes, hr']
@@ -361,7 +349,7 @@ theorem buildLayoutLite_eq (bytecode : List K) (logMemory : ℕ) (tableRows : Li
 @[expose] def readSizesLite (bytecode : List K) (s : VerifierProgramState) :
     Option ((LayoutLite × ℕ) × VerifierProgramState) :=
   (readPure (2 + tables.length) s).bind fun r ↦
-    if (r.1.all fun value ↦ value.limb 1 = 0 ∧ value.limb 2 = 0) then
+    if (r.1.all fun value ↦ value.limb 1 = 0) then
       let logMemory := kToNat ((r.1.headD 0).limb 0)
       let tableRows := ((r.1.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)
       let logInverseRate := kToNat ((r.1.getLastD 0).limb 0)
@@ -378,22 +366,22 @@ theorem bind_map_layoutLite (o : Option Layout) (R : ℕ) (st : VerifierProgramS
         if Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack then
           some ((layout, R), st)
         else none) =
-      Option.map liteResult (o.bind fun layout ↦
+      Option.map liteResult ((o.bind fun layout ↦
         if Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack then
-          some ((layout, R), st)
-        else none) := by
+          some (layout, R)
+        else none).map fun x ↦ (x, st)) := by
   cases o with
   | none => rfl
   | some layout =>
     show (if Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack then
         some ((layoutLite layout, R), st) else none) =
-      Option.map liteResult (if Whir.minLogStack ≤ layout.stackLog ∧
-        layout.stackLog ≤ Whir.maxLogStack then some ((layout, R), st) else none)
+      Option.map liteResult ((if Whir.minLogStack ≤ layout.stackLog ∧
+        layout.stackLog ≤ Whir.maxLogStack then some (layout, R) else none).map fun x ↦ (x, st))
     split_ifs <;> rfl
 
 theorem readSizesLite_eq (bytecode : List K) (s : VerifierProgramState) :
     readSizesLite bytecode s = (readSizesPure bytecode s).map liteResult := by
-  unfold readSizesLite readSizesPure
+  unfold readSizesLite readSizesPure sizesOf
   cases readPure (2 + tables.length) s with
   | none => rfl
   | some r =>

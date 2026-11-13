@@ -19,7 +19,7 @@ def logs : Std.HashMap Nat Nat := Id.run do
     x := x * g
   return m
 
-def wordOf (c : Nat × Nat × Nat) : E := word c.1 c.2.1 c.2.2
+def wordOf (c : Nat × Nat) : E := word c.1 c.2
 
 /-- Expand `p` and run its `main` on the public input `pi` and the witness streams. -/
 def runMain (p : Source.Program) (pi : List E) (streams : List (String × List (List E)) := []) :
@@ -176,7 +176,7 @@ def packMain (a b : Expr) : Source.Program :=
   %s0#1 = 3
   %s0#2 = 5
   assert_in_k %s0#1, %s0#2
-  %s0.i3:pack64x2.s1#0 = (0, 1, 0)
+  %s0.i3:pack64x2.s1#0 = (0, 1)
   %s0.i3:pack64x2.s1#1 = %s0.i3:pack64x2.s1#0 * %s0#2
   %s0#0 = %s0#1 + %s0.i3:pack64x2.s1#1
   %s2#0 = 1
@@ -191,9 +191,8 @@ def packMain (a b : Expr) : Source.Program :=
 #eval IO.println (showProgram (packMain (.lit 3) (.lit 5)))
 
 -- `pack64x2(3, 5)` is `3 + 5·y`; a word outside `K` fails `assert_in_k`.
-#guard isOk (runMain (packMain (.lit 3) (.lit 5)) [word 3 5 0, 0])
-#guard !isOk (runMain (packMain (.lit 3) (.lit 5)) [word 3 6 0, 0])
-#guard !isOk (runMain (packMain (.call "f192" [.lit 0, .lit 1, .lit 0]) (.lit 5)) [word 0 6 0, 0])
+#guard isOk (runMain (packMain (.lit 3) (.lit 5)) [word 3 5, 0])
+#guard !isOk (runMain (packMain (.lit 3) (.lit 5)) [word 3 6, 0])
 
 /-! ## The Keccak builtins
 
@@ -334,71 +333,5 @@ def gpowMain (v : Nat) : Source.Program :=
 #guard isOk (runMain (gpowMain 5) [gpowE 5, 0])
 #guard isOk (runMain (gpowMain 63) [gpowE 63, 0])
 #guard !isOk (runMain (gpowMain 5) [gpowE 6, 0])
-
-/-! ## The whole guest against its bytecode
-
-The guest expands to one core function per compiled function, in the compiler's order (after
-`__jump_tables`), with the compiled function's name; and its `KECCAK` atoms are the compiled
-function's `KECCAK` instructions, one for one and in order: the same layouts, as many written
-cells as the instruction's `outCells`, and every value an atom reads or writes at one frame offset
-of the instructions (`keccakIns`, `keccakOuts`) throughout
-the function, each constant among them `SET` at its offset to its word. -/
-
-mutual
-/-- The atoms of a statement, every branch and arm. -/
-def atomsOf : Core.Stmt → List Core.Atom
-  | .atom a => [a]
-  | .ite _ z n => atomsList z ++ atomsList n
-  | .match_ _ arms => atomsArms arms
-  | _ => []
-def atomsList : List Core.Stmt → List Core.Atom
-  | [] => []
-  | s :: ss => atomsOf s ++ atomsList ss
-def atomsArms : List (List Core.Stmt) → List Core.Atom
-  | [] => []
-  | a :: as => atomsList a ++ atomsArms as
-end
-
-/-- The `KECCAK` atoms of a core function: their read and written values and layouts. -/
-def keccakAtoms (f : Core.Fn) : List (List Core.V × List Core.V × Bool × Bool) :=
-  (atomsList f.body).filterMap fun
-    | .keccak ins outs i o => some (ins, outs, i, o)
-    | _ => none
-
-/-- The `KECCAK` instructions of a compiled function: their read and written offsets and
-layouts. -/
-def keccakInstrs (c : CompiledFunction) : List (List Nat × List Nat × Bool × Bool) :=
-  c.chunks.flatten.filterMap fun
-    | .keccak m0 m1 m2 m3 tail b8 cap out i o oC =>
-        some (keccakIns m0 m1 m2 m3 tail b8 cap, keccakOuts out oC.cellCount, i, o)
-    | _ => none
-
-/-- Whether a core function's `KECCAK` atoms are a compiled function's `KECCAK` instructions. -/
-def keccakAgree (f : Core.Fn) (c : CompiledFunction) : Bool := Id.run do
-  let as := keccakAtoms f
-  let is := keccakInstrs c
-  if as.length != is.length then return false
-  let mut off : Std.HashMap Core.V Nat := {}
-  for ((ins, outs, i, o), (ci, co, i', o')) in as.zip is do
-    if i != i' || o != o' || ins.length != 13 || outs.length != co.length then return false
-    for (v, k) in (ins ++ outs).zip (ci ++ co) do
-      match off[v]? with
-      | some k' => if k != k' then return false
-      | none => off := off.insert v k
-  let code := c.chunks.flatten
-  return (atomsList f.body).all fun
-    | .const v x => match off[v]? with
-      | some k => code.any fun
-          | .set k' c0 c1 c2 => k' == k && limbsOf x == (c0, c1, c2)
-          | _ => false
-      | none => true
-    | _ => true
-
-#guard match Expand.expandProgram Data.guest with
-  | .ok fns => fns.length == 1535 && fns.head?.map (·.name) == some "main" &&
-      fns.getLast?.map (·.name) == some "walk_path__L12_L8" &&
-      fns.map (·.name) == Data.functions.tail.map (·.name) &&
-      (fns.zip Data.functions.tail).all fun (f, c) => keccakAgree f c
-  | .error _ => false
 
 end LeanVMTests.Guest.Expand

@@ -31,10 +31,10 @@ a candidate satisfying the leanISA relation. The bridges:
 * `commitment_eq`: on an accepted proof, the verifier's first two steps announce the layout of
   the announced sizes, the announced rate and a root whose committed word is the first word of the
   extracted history.
-* `thrOf_eq_johnsonThreshold`: the specification's threshold is level 0's, `thrOf` (through its
-  real form, `Extraction.johnsonThreshold_eq_real`).
 * `encode_eq`, `mem_candidates`: the specification's encoding is `enc` of the stack's blocks, so
-  the proof's candidates are the specification's.
+  the proof's candidates are the specification's; at level 0's threshold, which is the
+  specification's (`OpeningIface.thr₀_eq`), they are at most level 0's list bound
+  (`spec_candidates_ncard_le`).
 * `haltingRun_imageOf`: the specification's memory image is the witness's (`imageOf`).
 * `committedWord_eq`: the word read from the Keccak-256 answers of a prefix of the log is the
   word extracted from the whole log, provided no entry past the prefix answers the root.
@@ -74,10 +74,10 @@ theorem xrun_bind {α β : Type} (f : α → VerifierProgram β) :
   | .read k, s, h => by
     simp only [VerifierProgram.bind, xrun]
     split
-    · rfl
     · rcases Compile.absorb (m := Option) F s.sponge _ _ with _ | sp
       · rfl
       · exact xrun_bind f _ _ _
+    · rfl
   | .sample k, s, h => by
     simp only [VerifierProgram.bind, xrun]
     rcases squeeze (m := Option) F s.sponge with _ | r
@@ -86,16 +86,13 @@ theorem xrun_bind {α β : Type} (f : α → VerifierProgram β) :
   | .grind bits k, s, h => by
     simp only [VerifierProgram.bind, xrun]
     split
-    · rfl
-    · rcases Compile.absorb (m := Option) F s.sponge _ _ with _ | sp
+    · rcases absorbNonce (m := Option) F s.sponge _ with _ | r
       · rfl
       · simp only [Option.bind_some]
-        rcases squeeze (m := Option) F sp with _ | r
+        split
+        · exact xrun_bind f _ _ _
         · rfl
-        · simp only [Option.bind_some]
-          split
-          · exact xrun_bind f _ _ _
-          · rfl
+    · rfl
   | .commit height width k, s, h => by
     simp only [VerifierProgram.bind, xrun]
     split
@@ -104,10 +101,7 @@ theorem xrun_bind {α β : Type} (f : α → VerifierProgram β) :
       · simp only [Option.bind_some]
         rcases Compile.absorb (m := Option) F sp0 _ _ with _ | sp1
         · rfl
-        · simp only [Option.bind_some]
-          split
-          · exact xrun_bind f _ _ _
-          · rfl
+        · exact xrun_bind f _ _ _
     · rfl
   | .query i ps k, s, h => by
     simp only [VerifierProgram.bind, xrun]
@@ -123,23 +117,23 @@ def ReadsCommits (l : List Ev) : Prop :=
 
 /-- **A run of reads and commitments does not depend on the hash and the permutation**: an
 extracted run whose events are reads and commitments is a run with any hash `H'` and permutation
-`F'` from any sponge, reaching the same value and state up to the sponge. -/
+`F'` from any sponge with no challenge waiting, reaching the same value and state up to the
+sponge. -/
 theorem run_id_of_xrun (H' : Bytes → Digest) (F' : KeccakState → KeccakState) {α : Type} :
     ∀ (p : VerifierProgram α) (s : VerifierProgramState) (h l : List Ev) {a : α} {s' :
         VerifierProgramState},
-      xrun H F p s h = some (a, s', h ++ l) → ReadsCommits l → ∀ sp : Sponge,
+      xrun H F p s h = some (a, s', h ++ l) → ReadsCommits l → ∀ sp : Sponge, sp.ground = none →
         ∃ sp', Id.run (Compile.runWithHash H' F' p { s with sponge := sp }) =
           some (a, { s' with sponge := sp' })
-  | .ret a, s, h, l, _, _, hr, _, sp => by
+  | .ret a, s, h, l, _, _, hr, _, sp, _ => by
     simp only [xrun, Option.some.injEq, Prod.mk.injEq] at hr
     obtain ⟨rfl, rfl, -⟩ := hr
     exact ⟨sp, rfl⟩
-  | .fail, s, h, l, _, _, hr, _, _ => by simp [xrun] at hr
-  | .read k, s, h, l, _, _, hr, hrc, sp => by
+  | .fail, s, h, l, _, _, hr, _, _, _ => by simp [xrun] at hr
+  | .read k, s, h, l, _, _, hr, hrc, sp, hg => by
     simp only [xrun] at hr
     split at hr
-    · simp at hr
-    · rename_i x xs hs
+    · rename_i x xs hs _
       simp only [Option.bind_eq_some_iff] at hr
       obtain ⟨sp0, -, hr⟩ := hr
       obtain ⟨l', hl'⟩ := xrun_prefix H F _ _ _ hr
@@ -148,52 +142,53 @@ theorem run_id_of_xrun (H' : Bytes → Digest) (F' : KeccakState → KeccakState
       rw [← hl'] at hr
       obtain ⟨sp', hrun⟩ := run_id_of_xrun H' F' _ _ _ l' hr
         (fun e he ↦ hrc e (List.mem_cons_of_mem _ he))
-        (Compile.absorb (m := Id) F' sp x dsObserve)
+        (Compile.absorb (m := Id) F' sp x dsObserve) (by rw [← hg]; exact absorbI_ground F' sp x _)
       refine ⟨sp', ?_⟩
-      simp only [Compile.runWithHash, hs]
+      simp only [Compile.runWithHash, hs, hg]
       exact hrun
-  | .sample k, s, h, l, _, _, hr, hrc, _ => by
+    · simp at hr
+  | .sample k, s, h, l, _, _, hr, hrc, _, _ => by
     simp only [xrun, Option.bind_eq_some_iff] at hr
     obtain ⟨r, -, hr⟩ := hr
     obtain ⟨l', hl'⟩ := xrun_prefix H F _ _ _ hr
     have hl : l = Ev.sample r.1 :: l' := by simpa using hl'.symm
     subst hl
     rcases hrc _ List.mem_cons_self with ⟨x, hx⟩ | ⟨ht, w, W, hx⟩ <;> cases hx
-  | .grind bits k, s, h, l, _, _, hr, hrc, _ => by
+  | .grind bits k, s, h, l, _, _, hr, hrc, _, _ => by
     simp only [xrun] at hr
     split at hr
-    · simp at hr
     · simp only [Option.bind_eq_some_iff] at hr
-      obtain ⟨sp0, -, r, -, hr⟩ := hr
+      obtain ⟨r, -, hr⟩ := hr
       split at hr
       · obtain ⟨l', hl'⟩ := xrun_prefix H F _ _ _ hr
         have hl : l = Ev.grind bits :: l' := by simpa using hl'.symm
         subst hl
         rcases hrc _ List.mem_cons_self with ⟨x, hx⟩ | ⟨ht, w, W, hx⟩ <;> cases hx
       · simp at hr
-  | .commit height width k, s, h, l, _, _, hr, hrc, sp => by
+    · simp at hr
+  | .commit height width k, s, h, l, _, _, hr, hrc, sp, hg => by
     simp only [xrun] at hr
     split at hr
-    · rename_i x0 x1 xs hs
+    · rename_i x0 x1 xs hs _
       simp only [Option.bind_eq_some_iff] at hr
       obtain ⟨sp0, -, sp1, -, hr⟩ := hr
-      split at hr
-      · rename_i root hroot
-        obtain ⟨l', hl'⟩ := xrun_prefix H F _ _ _ hr
-        have hl : l = Ev.commit height width (extract H root height width) :: l' := by
-          simpa using hl'.symm
-        subst hl
-        rw [← hl'] at hr
-        obtain ⟨sp', hrun⟩ := run_id_of_xrun H' F' _ _ _ l' hr
-          (fun e he ↦ hrc e (List.mem_cons_of_mem _ he))
-          (Compile.absorb (m := Id) F' (Compile.absorb (m := Id) F' sp x0 dsObserve) x1
-            dsObserve)
-        refine ⟨sp', ?_⟩
-        simp only [Compile.runWithHash, hs, hroot]
-        exact hrun
-      · simp at hr
+      obtain ⟨l', hl'⟩ := xrun_prefix H F _ _ _ hr
+      have hl : l = Ev.commit height width (extract H (digestFromHalves (x0, x1)) height width) ::
+          l' := by
+        simpa using hl'.symm
+      subst hl
+      rw [← hl'] at hr
+      have hg1 : (Compile.absorb (m := Id) F' sp x0 dsObserve).ground = none := by
+        rw [← hg]; exact absorbI_ground F' sp x0 _
+      obtain ⟨sp', hrun⟩ := run_id_of_xrun H' F' _ _ _ l' hr
+        (fun e he ↦ hrc e (List.mem_cons_of_mem _ he))
+        (Compile.absorb (m := Id) F' (Compile.absorb (m := Id) F' sp x0 dsObserve) x1
+          dsObserve) (by rw [← hg1]; exact absorbI_ground F' _ x1 _)
+      refine ⟨sp', ?_⟩
+      simp only [Compile.runWithHash, hs, hg]
+      exact hrun
     · simp at hr
-  | .query i ps k, s, h, l, _, _, hr, hrc, _ => by
+  | .query i ps k, s, h, l, _, _, hr, hrc, _, _ => by
     simp only [xrun] at hr
     split at hr
     · next root ht w phase rest hroot hphase =>
@@ -220,11 +215,11 @@ theorem xrun_rootsInv {α : Type} :
   | .read k, s, h, _, _, _, hR, hr => by
     simp only [xrun] at hr
     split at hr
-    · simp at hr
-    · rename_i x xs hs
+    · rename_i x xs hs _
       simp only [Option.bind_eq_some_iff] at hr
       obtain ⟨sp, -, hr⟩ := hr
       exact xrun_rootsInv _ _ _ (rootsInv_append_read hR x sp xs) hr
+    · simp at hr
   | .sample k, s, h, _, _, _, hR, hr => by
     simp only [xrun, Option.bind_eq_some_iff] at hr
     obtain ⟨r, -, hr⟩ := hr
@@ -232,23 +227,21 @@ theorem xrun_rootsInv {α : Type} :
   | .grind bits k, s, h, _, _, _, hR, hr => by
     simp only [xrun] at hr
     split at hr
-    · simp at hr
-    · rename_i n xs hs
+    · rename_i n xs hs _
       simp only [Option.bind_eq_some_iff] at hr
-      obtain ⟨sp, -, r, -, hr⟩ := hr
+      obtain ⟨r, -, hr⟩ := hr
       split at hr
       · exact xrun_rootsInv _ _ _ (rootsInv_append_grind hR bits r.2 xs) hr
       · simp at hr
+    · simp at hr
   | .commit height width k, s, h, _, _, _, hR, hr => by
     simp only [xrun] at hr
     split at hr
-    · rename_i x0 x1 xs hs
+    · rename_i x0 x1 xs hs _
       simp only [Option.bind_eq_some_iff] at hr
       obtain ⟨sp0, -, sp1, -, hr⟩ := hr
-      split at hr
-      · rename_i root hroot
-        exact xrun_rootsInv _ _ _ (rootsInv_append_commit hR root height width sp1 xs) hr
-      · simp at hr
+      exact xrun_rootsInv _ _ _
+        (rootsInv_append_commit hR (digestFromHalves (x0, x1)) height width sp1 xs) hr
     · simp at hr
   | .query i ps k, s, h, _, _, _, hR, hr => by
     simp only [xrun] at hr
@@ -263,12 +256,6 @@ theorem xrun_rootsInv {α : Type} :
 end XRun
 
 /-! ## The commitment -/
-
-/-- Reads commit nothing. -/
-theorem commits_map_read (xs : List E) : commits (xs.map Ev.read) = [] := by
-  induction xs with
-  | nil => rfl
-  | cons x xs ih => simpa [commits] using ih
 
 variable {prog : LeanIsaProgram} {input : PublicInput}
 
@@ -296,8 +283,7 @@ theorem commitment_eq {c : KeccakCalls.QueryCache} {π : Proof}
       W = extract (fun x ↦ c (.inl x)) root ht w ∧
       ∃ st, Extraction.afterRoot (bytecodeWords prog) π = some ((verifierLayout prog s, ρ), st) ∧
         st.roots.head? = some (root, ht, w)) ∧
-      Good prog (verifierLayout prog s, ρ) s ∧
-      ∃ level rest, Whir.ladder (verifierLayout prog s).stackLog ρ = some (level :: rest) := by
+      Good prog (verifierLayout prog s, ρ) s := by
   set H : Bytes → Option Digest := fun x ↦ c (.inl x)
   set F : KeccakState → Option KeccakState := fun s ↦ c (.inr s)
   set hist := extractedHistory H F (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
@@ -305,19 +291,15 @@ theorem commitment_eq {c : KeccakCalls.QueryCache} {π : Proof}
   obtain ⟨seed, sf, hseed, hx⟩ := xrun_of_verify hv
   rw [← hhist] at hx
   -- The run: the announced sizes, the root, the rest.
-  have hP : leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input) =
-      ((readAnnouncedSizes (bytecodeWords prog)).bind fun a ↦ veBody (publicInputDigest input) a.1
-          a.2).bind
-        fun _ ↦ .ret true := by
-    rw [leanVmProgram_eq, verifyExecution_eq]
-  rw [hP, xrun_bind, Option.bind_eq_some_iff] at hx
+  rw [leanVmProgram_eq, verifyExecutionClaims_eq, VerifierProgram.bind_eq, xrun_bind,
+    Option.bind_eq_some_iff] at hx
   obtain ⟨⟨u, s3, h3⟩, hx3, hfin⟩ := hx
   simp only [xrun, Option.some.injEq, Prod.mk.injEq] at hfin
   obtain ⟨-, -, rfl⟩ := hfin
   rw [xrun_bind, Option.bind_eq_some_iff] at hx3
-  obtain ⟨⟨a, s1, h1⟩, hx1, hx3⟩ := hx3
-  obtain ⟨g, hg⟩ : ∃ g, veBody (publicInputDigest input) a.1 a.2 =
-      (commitStack a.1.stackLog a.2).bind g := ⟨_, rfl⟩
+  obtain ⟨⟨⟨lay, r0⟩, s1, h1⟩, hx1, hx3⟩ := hx3
+  obtain ⟨g, hg⟩ : ∃ g, veBody computedBytecodeValue (publicInputDigest input) lay r0 =
+      (commitStack lay.stackLog r0).bind g := ⟨_, rfl⟩
   simp only at hx3
   rw [hg, xrun_bind, Option.bind_eq_some_iff] at hx3
   obtain ⟨⟨v, s2, h2⟩, hx2, hx4⟩ := hx3
@@ -328,10 +310,9 @@ theorem commitment_eq {c : KeccakCalls.QueryCache} {π : Proof}
   subst h1
   obtain ⟨l₂, rfl, hc, -⟩ := xrun_after H F _ _ _ hx2
   obtain ⟨level, rest, W', hcfg, rfl⟩ := commitStack_after_ret hc
-  obtain ⟨s', hgood⟩ := good_of_readSizes prog ha
-  obtain ⟨s'', -, -, -, hreads⟩ := readSizes_ret_sizes prog ha
+  obtain ⟨s', hgood, hreads⟩ := good_of_readSizes ha
   -- The roots.
-  have hR0 : RootsInv H ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ [] := rfl
+  have hR0 : RootsInv H ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩ [] := rfl
   have hR1 := xrun_rootsInv H F _ _ _ hR0 hx1
   have hR2 := xrun_rootsInv H F _ _ _ hR1 hx2
   have hc1 : commits l₁ = [] := by rw [hreads]; exact commits_map_read _
@@ -349,27 +330,29 @@ theorem commitment_eq {c : KeccakCalls.QueryCache} {π : Proof}
   obtain ⟨hht, hw, hW'⟩ := hR2
   -- The announced sizes and the first word.
   have hann' := announced_eq prog ((List.prefix_append l₁ _).trans hpre2) ha hgood.1
-  rw [hann, Option.some.injEq, Prod.mk.injEq] at hann'
-  obtain ⟨rfl, rfl⟩ := hann'
-  have hfw2 : firstWord (l₁ ++ [Ev.commit (levelShape a.1.stackLog level (2 ^ level.fold)).1
-      (levelShape a.1.stackLog level (2 ^ level.fold)).2 W']) = some W' := by
+  rw [hann] at hann'
+  simp only [Option.some.injEq, Prod.mk.injEq] at hann'
+  obtain ⟨e1, e2⟩ := hann'
+  subst s' r0
+  have hfw2 : firstWord (l₁ ++ [Ev.commit (levelShape lay.stackLog level (2 ^ level.fold)).1
+      (levelShape lay.stackLog level (2 ^ level.fold)).2 W']) = some W' := by
     simp [firstWord, Compile.commits_append, hc1, commits]
   obtain ⟨m, hm⟩ := hpre2
   rw [← hm, firstWord_append hfw2 m, Option.some.injEq] at hfw
   subst hfw
   -- The specification's run of the two steps.
   have hxa : xrun H F (Extraction.announceSizesAndRoot (bytecodeWords prog))
-      ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ [] = some (a, s2, [] ++ (l₁ ++ [Ev.commit
-        (levelShape a.1.stackLog level (2 ^ level.fold)).1
-        (levelShape a.1.stackLog level (2 ^ level.fold)).2 W'])) := by
+      ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩ [] = some ((lay, ρ), s2, [] ++ (l₁ ++
+        [Ev.commit (levelShape lay.stackLog level (2 ^ level.fold)).1
+        (levelShape lay.stackLog level (2 ^ level.fold)).2 W'])) := by
     change xrun H F ((readAnnouncedSizes (bytecodeWords prog)).bind fun a ↦
       (commitStack a.1.stackLog a.2).bind fun _ ↦ .ret a) _ _ = _
     rw [xrun_bind, hx1, Option.bind_some]
     simp only
     rw [xrun_bind, hx2, Option.bind_some]
     rfl
-  have hrc : ReadsCommits (l₁ ++ [Ev.commit (levelShape a.1.stackLog level (2 ^ level.fold)).1
-      (levelShape a.1.stackLog level (2 ^ level.fold)).2 W']) := by
+  have hrc : ReadsCommits (l₁ ++ [Ev.commit (levelShape lay.stackLog level (2 ^ level.fold)).1
+      (levelShape lay.stackLog level (2 ^ level.fold)).2 W']) := by
     intro e he
     rcases List.mem_append.mp he with he | he
     · rw [hreads] at he
@@ -378,50 +361,18 @@ theorem commitment_eq {c : KeccakCalls.QueryCache} {π : Proof}
     · rw [List.mem_singleton] at he
       exact Or.inr ⟨_, _, _, he⟩
   obtain ⟨sp', hrun⟩ := run_id_of_xrun H F (fun _ ↦ default) (fun _ ↦ default) _ _ _ _ hxa hrc
-    ⟨default, []⟩
-  have haf : Extraction.afterRoot (bytecodeWords prog) π = some (a, { s2 with sponge := sp' }) := by
+    ⟨default, [], none⟩ rfl
+  have haf : Extraction.afterRoot (bytecodeWords prog) π =
+      some ((lay, ρ), { s2 with sponge := sp' }) := by
     rw [Extraction.afterRoot, Compile.runPure_eq_withHash]
     exact hrun
   refine ⟨⟨r.1, r.2.1, r.2.2, ?_, hW', { s2 with sponge := sp' }, ?_, ?_⟩,
-    by rw [← hgood.1]; exact hgood, by rw [← hgood.1]; exact ⟨level, rest, hcfg⟩⟩
+    by rw [← hgood.1]; exact hgood⟩
   · simp [announcedRoot, haf, hr2]
   · rw [haf, ← hgood.1]
   · show s2.roots.head? = _
     rw [hr2]
     rfl
-
-/-! ## The threshold -/
-
-/-- Level 0's certified slack is the specification's `johnsonSlack`, for every admissible
-shape (kernel evaluation). -/
-theorem certOf_e_eq : ∀ μ < 31, ∀ R < 5, Whir.Admissible μ R →
-    (Whir.Params.certOf μ R 0).e =
-      (Extraction.johnsonSlack.getD (R - 1) []).getD (μ - Whir.minLogStack) 0 := by
-  decide +kernel
-
-/-- **The specification's threshold is level 0's**, `thrOf`, at every admissible shape with a
-ladder: through its real form (`Extraction.johnsonThreshold_eq_real`). -/
-theorem thrOf_eq_johnsonThreshold {μ R : ℕ} (h : Whir.Admissible μ R) {level : Whir.Level}
-    {rest : List Whir.Level} (hc : Whir.ladder μ R = some (level :: rest)) :
-    thrOf μ R = Extraction.johnsonThreshold μ R := by
-  rw [← Extraction.johnsonThreshold_eq_real]
-  have hc' : Whir.ladder μ R = some (level :: rest) := hc
-  have hμ : μ < 31 := by have := h.2.1; unfold Whir.maxLogStack at this; omega
-  have hR : R < 5 := by have := h.2.2.2; omega
-  have hok := Whir.Params.shapeOK_all μ hμ R hR h
-  rw [Whir.Params.shapeOK, hc'] at hok
-  simp only [Bool.and_eq_true] at hok
-  obtain ⟨hchk, hd⟩ := hok
-  obtain ⟨hκ, hR', -, -⟩ := of_decide_eq_true hd
-  have h0 := Whir.Params.chkLevels_head hchk
-  have he := certOf_e_eq μ hμ R hR h
-  rw [thrOf, Whir.Params.deployedCodes, Whir.Params.codesOf, Whir.Params.mkCode_eq h0]
-  show ⌈ReedSolomon.HiddenDerivative.johnsonAgreement
-      (2 ^ ((Whir.Params.certOf μ R 0).κ + (Whir.Params.certOf μ R 0).R))
-      (2 ^ (Whir.Params.certOf μ R 0).κ - 1) (Whir.Params.certOf μ R 0).eta *
-      ((2 ^ ((Whir.Params.certOf μ R 0).κ + (Whir.Params.certOf μ R 0).R) : ℕ) : ℝ)⌉₊ = _
-  rw [hκ, hR', Whir.Params.Cert.eta, he]
-  rfl
 
 /-! ## The candidates -/
 
@@ -444,66 +395,55 @@ theorem encode_eq {μ R : ℕ} (q : Column μ) (u : Fin (2 ^ laneBits))
 theorem mem_candidates {μ R A A' : ℕ} {W : Word} {q : Column μ}
     (hq : q ∈ Candidates μ R A W) (hA : A' ≤ A) :
     (q.values : Vector K (2 ^ μ)) ∈ Extraction.Candidates μ R A' W := by
-  obtain ⟨S, hS, hag⟩ := hq
-  refine hA.trans (hS.trans ?_)
+  obtain ⟨S, hS, H, hH, hag⟩ := hq
+  refine ⟨H, hH, hA.trans (hS.trans ?_)⟩
   rw [← Finset.card_map Fin.valEmbedding]
   refine Finset.card_le_card fun v hv ↦ ?_
   obtain ⟨v, hvS, rfl⟩ := Finset.mem_map.mp hv
   refine Finset.mem_filter.mpr ⟨Finset.mem_range.mpr v.isLt, fun u ↦ ?_⟩
-  have h : laneOf W u v = ofK (Extraction.encode (μ := μ) q.values u v) :=
-    (hag v hvS u).trans (encode_eq q u v)
+  have h : laneOf W u v = ofK (Extraction.encode (μ := μ) q.values u v +
+      Extraction.subspacePoly (μ - Whir.initialFold) (K.ofBits v) * (H u).eval (K.ofBits v)) := by
+    rw [hag v hvS u]
+    unfold laneValue
+    rw [encode_eq q u v, ofK_add]
+    rfl
   exact ofK_injective h
 
-/-- **The specification's candidates are the proof's**: a stack whose encoding agrees with the
-word on at least `A` columns is a candidate of the proof's at `A`. -/
+/-- **The specification's candidates are the proof's**: a stack that agrees, for some high parts,
+with the word on at least `A` columns is a candidate of the proof's at `A`. -/
 theorem candidates_of_values {μ R A : ℕ} {W : Word} {q : Vector K (2 ^ μ)}
     (hq : q ∈ Extraction.Candidates μ R A W) : (⟨q⟩ : Column μ) ∈ Candidates μ R A W := by
+  obtain ⟨H, hH, hq⟩ := hq
   let S : Finset (Fin (2 ^ (μ - laneBits + R))) :=
-    Finset.univ.filter fun v ↦ (v : ℕ) ∈ Extraction.agreement R W q
-  refine ⟨S, hq.trans ?_, fun v hv u ↦ ?_⟩
+    Finset.univ.filter fun v ↦ (v : ℕ) ∈ Extraction.agreementWith R W q H
+  refine ⟨S, hq.trans ?_, H, hH, fun v hv u ↦ ?_⟩
   · rw [← Finset.card_map Fin.valEmbedding]
     refine Finset.card_le_card fun v hv ↦ ?_
     have hlt : v < 2 ^ (μ - laneBits + R) :=
       Finset.mem_range.mp (Finset.mem_filter.mp hv).1
     exact Finset.mem_map.mpr ⟨⟨v, hlt⟩, Finset.mem_filter.mpr ⟨Finset.mem_univ _, hv⟩, rfl⟩
   · have h := (Finset.mem_filter.mp (Finset.mem_filter.mp hv).2).2 u
-    refine Eq.trans ?_ (encode_eq (R := R) ⟨q⟩ u v).symm
+    unfold laneValue
+    rw [encode_eq (R := R) ⟨q⟩ u v, ← ofK_add]
     exact congrArg ofK h
 
-/-- An admissible shape has a ladder. -/
-theorem exists_ladder {μ R : ℕ} (h : Whir.Admissible μ R) :
-    ∃ level rest, Whir.ladder μ R = some (level :: rest) := by
-  have hμ : μ < 31 := by have := h.2.1; unfold Whir.maxLogStack at this; omega
-  have hR : R < 5 := by have := h.2.2.2; omega
-  have hok := Whir.Params.shapeOK_all μ hμ R hR h
-  rw [Whir.Params.shapeOK] at hok
-  rcases hc : Whir.ladder μ R with _ | config
-  · rw [hc] at hok
-    simp at hok
-  · have hl := Whir.ladder_length h config hc
-    match config, hl with
-    | level :: rest, _ => exact ⟨level, rest, rfl⟩
-
-/-- **The specification's candidates are at most `2^12`**: at every admissible shape, the
-stacks whose encoding agrees with a word on at least the Johnson threshold of columns are among
-the proof's candidates, at most level 0's list bound `listMax ≤ 2^12` (`candidates_ncard_le`,
-`Whir.Params.deployed_spec_hyps`). -/
-theorem spec_candidates_ncard_le {μ R : ℕ} (h : Whir.Admissible μ R) (W : Word) :
-    (Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W).ncard ≤ 2 ^ 12 := by
-  obtain ⟨level, rest, hc⟩ := exists_ladder h
-  obtain ⟨-, hμ, hκ, hR, hL, -, -⟩ := Whir.Params.deployed_spec_hyps h hc
-  have hthr : (Whir.Params.deployedCodes μ R 0).thr = Extraction.johnsonThreshold μ R :=
-    thrOf_eq_johnsonThreshold h hc
-  have hfin := candidates_finite (Whir.Params.deployedCodes μ R 0) hκ hR hμ W
-  have hcard := candidates_ncard_le (Whir.Params.deployedCodes μ R 0) hκ hR hμ W
-  rw [hthr] at hfin hcard
+/-- **The specification's candidates are at most level 0's list bound**: at every admissible
+shape, the stacks whose encoding agrees with a word on at least the Johnson threshold of columns
+are among the proof's candidates at level 0's threshold, which is the Johnson threshold
+(`OpeningIface.thr₀_eq`). -/
+theorem spec_candidates_ncard_le (O : OpeningIface) {μ R : ℕ} (h : Whir.Admissible μ R)
+    (W : Word) :
+    (Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W).ncard ≤ O.listMax₀ μ R := by
+  have hfin := O.candidates_finite W h
+  have hcard := O.card_candidates_le W h
+  rw [O.thr₀_eq h] at hfin hcard
   have hsub : Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W ⊆
       (fun c : Column μ ↦ (c.values : Vector K (2 ^ μ))) ''
         Candidates μ R (Extraction.johnsonThreshold μ R) W :=
     fun q hq ↦ ⟨⟨q⟩, candidates_of_values hq, rfl⟩
   calc _ ≤ _ := Set.ncard_le_ncard hsub (hfin.image _)
     _ ≤ _ := Set.ncard_image_le hfin
-    _ ≤ _ := hcard.trans hL
+    _ ≤ _ := hcard
 
 /-! ## The memory image -/
 
@@ -522,7 +462,7 @@ theorem getD_eq {n : ℕ} (v : Vector K n) {i j : ℕ} (hij : i = j) (h : i < n)
   simp [Vector.getD, h]
 
 /-- A cell of a memory column is the stack's cell at the column's placement. -/
-theorem cell_memCol (s : Sizes) (q : Column (leanIsaμ prog s)) (j : Fin 4)
+theorem cell_memCol (s : Sizes) (q : Column (leanIsaμ prog s)) (j : Fin 3)
     (x : Fin (2 ^ s.logMem)) :
     cell prog s q (memCol j) x =
       q.values.getD (((verifierLayout prog s).placement j).index + x) 0 := by
@@ -550,8 +490,7 @@ theorem haltingRun_imageOf (s : Sizes) (hs : s.logMem ≤ maxLogMem)
     rw [LeanIsa.imageRows, Array.size_ofFn]; exact lt_of_lt_of_eq i.isLt (by rw [hκ])
   rw [Array.getElem?_eq_getElem hi, Option.map_some, Option.getD_some]
   simp only [LeanIsa.imageRows, Array.getElem_ofFn, Extraction.memoryImage]
-  simp only [cell_memCol]
-  rfl
+  exact congrArg₂ E.ofLimbs (cell_memCol s q 0 _) (cell_memCol s q 1 _)
 
 /-- A witness representing a valid execution has its image's halting run, valid. -/
 theorem haltingRun_valid {κw : ℕ} {w : Air.Flat.EnsembleWitness (leanIsaEnsemble prog κw)}

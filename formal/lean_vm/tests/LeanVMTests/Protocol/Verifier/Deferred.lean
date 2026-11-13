@@ -33,11 +33,11 @@ def claimAt (value : E) : BytecodeClaim := ⟨[], value⟩
 /-- A false claim does not refine: the empty bytecode's value is `0`, the claim `1`. -/
 example : ¬ Evaluations.Le [] (claimedBytecodeValue (claimAt 1)) computedBytecodeValue := by
   intro h
-  have h0 := h []
+  have h0 := h [] 1
+  have hz : multilinearEval (List.map ofK []) [] ≠ 1 := by simp [multilinearEval]
   simp only [claimedBytecodeValue, computedBytecodeValue, VerifierProgram.require, claimAt,
-      ↓reduceIte] at h0
-  have := le_ret h0
-  simp [multilinearEval] at this
+      true_and, ↓reduceIte, hz] at h0
+  cases h0
 
 /-- A true claim on the bytecode: `[1]`'s value at the empty point is `1`. -/
 example : multilinearEval ([1].map ofK) (claimAt 1).bytecodePoint = (claimAt 1).bytecodeValue := by

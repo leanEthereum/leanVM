@@ -9,9 +9,9 @@ module
 public import LeanVM.Guest.B1.Main.Loops
 
 /-!
-# `da_row_shape` (G:4366-4375)
+# `da_row_shape` (G:4550-4559)
 
-`da_row_shape(n_blob_g, g_log_pad, g_squares)` (`core28`): `n_blob_g ≠ 1` (an inverse),
+`da_row_shape(n_blob_g, g_log_pad, g_squares)`: `n_blob_g ≠ 1` (an inverse),
 `n_blob_g = g^r` with `r ≤ 1024`, `g_log_pad = g^L` with `L ≤ 10` (range checks against
 `g^1024`, `g^10`), `n_pad_g = g_squares[L] = g^(2^L)`, `gap_g = n_pad_g / n_blob_g = g^d`
 (`d ≤ 1024`), and `n_blob_g² = f · n_pad_g · g` with `f = g^e`, `e ≤ 1023`. So
@@ -55,16 +55,16 @@ theorem ne_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x : V}
   exact zero_ne_one h2
 
 set_option maxRecDepth 100000 in
-theorem word_g1024 : word 281474976776218 0 0 = gen ^ 1024 := by
+theorem word_g1024 : word 281474976776218 0 = gen ^ 1024 := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 
 set_option maxRecDepth 100000 in
-theorem word_g1023 : word 140737488388109 0 0 = gen ^ 1023 := by
+theorem word_g1023 : word 140737488388109 0 = gen ^ 1023 := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 
-theorem word_g10 : word 1024 0 0 = gen ^ 10 := word_two_pow (a := 10) (by decide)
+theorem word_g10 : word 1024 0 = gen ^ 10 := word_two_pow (a := 10) (by decide)
 
 /-- **`da_row_shape`'s body, checked.** -/
 def rsOk (fn : Fn) : Bool :=
@@ -83,7 +83,7 @@ def rsOk (fn : Fn) : Bool :=
   | none => false
 
 set_option maxRecDepth 100000 in
-theorem rs_ok : rsOk Data.core28 = true := by decide +kernel
+theorem rs_ok : rsOk fn% «da_row_shape» = true := by decide +kernel
 
 /-- The padded count: `2^L` when `2^L < 2r ≤ 2^(L+1)`. -/
 theorem nPad_of {r L : ℕ} (h1 : r ≤ 2 ^ L) (h2 : 2 ^ L < 2 * r) : LeanDa.paddedRowCount r = 2 ^ L := by

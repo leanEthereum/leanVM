@@ -29,14 +29,6 @@ theorem getD_map_range {α : Type} {f : ℕ → α} {n l : ℕ} {d : α} (hl : l
     ((List.range n).map f).getD l d = f l := by
   simp [List.getD_eq_getElem?_getD, hl]
 
-theorem offAt_map {f : ℕ → ℕ → ℕ} {n m r k : ℕ} (hr : r < n) (hk : k < m) :
-    offAt ((List.range n).map fun r ↦ (List.range m).map (f r)) r k = f r k := by
-  simp [offAt, List.getD_eq_getElem?_getD, hr, hk]
-
-theorem ite_sigma {σ : Val} (p : Prop) [Decidable p] (x y : ℕ) :
-    σ (if p then V.n x else V.n y) = σ (.n (if p then x else y)) := by
-  split <;> rfl
-
 /-- A table of rows, each row an array. -/
 def tabA (t : List (List ℕ)) : Array (Array ℕ) := (t.map List.toArray).toArray
 

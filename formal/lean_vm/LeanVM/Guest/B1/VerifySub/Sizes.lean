@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Common.Run
 * `stackLog_eq`, `logBytecode_eq`: the layout's stack log-size and bytecode log-size, for the
   guest's bytecode of `2^23` words.
 * `pushDepth_eq`: the push side's bus cube is `log2Ceil` of the sum of `2^κ` over the guest's
-  `54` push blocks (`BLOCK_KAPPA_SRC`, `BLOCK_KAPPA_ADJ`, G:126-127, 3376-3388).
+  `54` push blocks (`BLOCK_KAPPA_SRC`, `BLOCK_KAPPA_ADJ`, G:126-127, 3326-3338).
 * `readSizes_runsTo`: on the words `logMem`, the six row counts, `lir`, `readAnnouncedSizes` returns
   the layout `layoutOf` and `lir`.
 -/
@@ -87,7 +87,7 @@ theorem stackLog_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem
 
 /-! ## The push side's cube -/
 
-/-- Push block `b`'s log-height (G:3377-3381, 3388): source `BLOCK_KAPPA_SRC[b]` of
+/-- Push block `b`'s log-height (G:3327-3331, 3338): source `BLOCK_KAPPA_SRC[b]` of
 `[0, log_mem, τ_0, …, τ_5]`, plus `BLOCK_KAPPA_ADJ[b]`. -/
 def pushKappa (logMem : ℕ) (hs : List ℕ) (b : ℕ) : ℕ :=
   ([0, logMem] ++ hs).getD (Tables.blockKappaSrc.getD b 0) 0 + Tables.blockKappaAdj b
@@ -123,7 +123,7 @@ theorem pushKappas_eq (logMem h0 h1 h2 h3 h4 h5 : ℕ) :
       [0, logMem, 19] ++ (List.replicate 5 h0 ++ List.replicate 5 h1 ++ List.replicate 3 h2 ++
         List.replicate 5 h3 ++ List.replicate 5 h4 ++ List.replicate 28 h5) := rfl
 
-/-- **The push side's cube** (G:3201-3204): its log-size is `log2Ceil` of the sum of `2^κ` over
+/-- **The push side's cube** (G:3151-3154): its log-size is `log2Ceil` of the sum of `2^κ` over
 the guest's `54` push blocks. -/
 theorem pushDepth_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem : ℕ)
     (rowsN : List ℕ) (hlen : rowsN.length = 6) :
@@ -166,8 +166,6 @@ theorem le_pow_of_log2Ceil {r k : ℕ} (h : log2Ceil r ≤ k) : r ≤ 2 ^ k := b
     omega
 
 theorem eOfNat_limb1 (n : ℕ) : (eOfNat n).limb 1 = 0 := by simp [eOfNat]
-
-theorem eOfNat_limb2 (n : ℕ) : (eOfNat n).limb 2 = 0 := by simp [eOfNat]
 
 theorem kToNat_eOfNat {n : ℕ} (h : n < 2 ^ 64) : kToNat ((eOfNat n).limb 0) = n := by
   simp [eOfNat, kToNat_ofBits]
@@ -230,8 +228,8 @@ theorem readSizes_runsTo {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {l
   have e3 : kToNat ((xs.getLastD 0).limb 0) = lir := by
     rw [hxs, List.getLastD_eq_getLast?, List.getLast?_append, List.getLast?_singleton]
     exact kToNat_eOfNat (by omega)
-  have hall : (xs.all fun value ↦ decide (value.limb 1 = 0 ∧ value.limb 2 = 0)) = true := by
-    simp [xs, eOfNat_limb1, eOfNat_limb2]
+  have hall : (xs.all fun value ↦ decide (value.limb 1 = 0)) = true := by
+    simp [xs, eOfNat_limb1]
   unfold readAnnouncedSizes
   refine (r.bind ?_).of_eq rfl (List.append_nil _) rfl rfl
   simp only [e1, e2, e3]

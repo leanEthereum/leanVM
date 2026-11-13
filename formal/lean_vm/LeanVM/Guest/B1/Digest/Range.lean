@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Digest.Range
 
   Range checks on a memory image, the compile-time powers of `g` the guest bounds them by, and B1
-  for `list_split` (G:4106-4121; TRIAGE #87).
+  for `list_split` (G:4291-4306; TRIAGE #87).
 -/
 
 module
@@ -82,22 +82,17 @@ theorem belowLog_lt {b : E} {e M : ℕ} (hM : M < 2 ^ 33) (hb : b = gen ^ M) (h 
 
 /-! ## Compile-time powers of `g` -/
 
-set_option maxRecDepth 100000 in
-theorem word_gmax : word 9272771591053052074 0 0 = gen ^ 65535 := by
-  rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
-  congr 1
+theorem word_g16 : word 65536 0 = gen ^ 16 := word_two_pow (a := 16) (by decide)
 
-theorem word_g16 : word 65536 0 0 = gen ^ 16 := word_two_pow (a := 16) (by decide)
+/-! ## `list_split` (G:4291-4306, TRIAGE #87) -/
 
-/-! ## `list_split` (G:4106-4121, TRIAGE #87) -/
+theorem word_g7 : word 128 0 = gen ^ 7 := word_two_pow (a := 7) (by decide)
 
-theorem word_g7 : word 128 0 0 = gen ^ 7 := word_two_pow (a := 7) (by decide)
-
-theorem core21_body : Fn.body Data.core22 =
+theorem list_split_body : Fn.body fn% «list_split» =
     [.atom (.hint (.witness "signers_split" (.stack [.n 1, .n 2, .n 3]))),
-     .atom (.const (.n 4) (word 65536 0 0)),
+     .atom (.const (.n 4) (word 65536 0)),
      .atom (.rangeCheck (.n 3) (.n 5) (.n 6) (.n 7) (.n 4)),
-     .atom (.const (.n 8) (word 128 0 0)),
+     .atom (.const (.n 8) (word 128 0)),
      .atom (.rangeCheck (.n 2) (.n 9) (.n 10) (.n 11) (.n 8)),
      .atom (.touch (.n 12) (.n 1)),
      .atom (.mul (.n 13) (.n 1) (.n 1)), .atom (.mul (.n 14) (.n 13) (.n 13)),
@@ -117,7 +112,7 @@ theorem core21_body : Fn.body Data.core22 =
 theorem list_split_sound : list_split_sound_Spec := by
   intro rd hm args rets h
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_list_split args rets).mp h
-  rw [core21_body] at hb
+  rw [list_split_body] at hb
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
   obtain ⟨-, c4, rc1, c8, rc2, l12, m13, m14, m15, m16, m17, m18, m19, m20, m21, m22, m23,
     m24, m25, m26, m27, aeq, e28, e29, e30, hr⟩ := hb

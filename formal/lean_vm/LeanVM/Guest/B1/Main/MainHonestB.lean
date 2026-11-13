@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Main.MainHonestT
 public import LeanVM.Guest.B1.Main.MainGoalsStaticB
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main` on an honest run, within its words
@@ -41,8 +42,11 @@ structure MainBs where
 
 /-- **Every callee's bound**, aligned with `mKids`. -/
 def mBs (fs SB SK : String → ℕ) (m : MainIn) (b : MainBs) : List ℕ :=
-  [b.Bx, b.Bs, m.nxd * iterK fs SK "__loop0" + fs "__loop0", m.nsd * iterK fs SK "__loop1" + fs "__loop1",
-    m.nrx * iterK fs SK "__loop2" + fs "__loop2", m.nrs * iterK fs SK "__loop3" + fs "__loop3"] ++ (if m.nd = 1 then [b.Bd] else []) ++ [b.B5] ++
+  [b.Bx, b.Bs, m.nxd * iterK fs SK name% «main_loop0» + fs name% «main_loop0»,
+      m.nsd * iterK fs SK name% «main_loop1» + fs name% «main_loop1»,
+    m.nrx * iterK fs SK name% «main_loop2» + fs name% «main_loop2»,
+        m.nrs * iterK fs SK name% «main_loop3» + fs name% «main_loop3»] ++ (if m.nd = 1 then [b.Bd]
+        else []) ++ [b.B5] ++
     (if m.nc = 0 then [] else [b.Ba]) ++ [SB "statement_digest"]
 
 /-- **`main`'s words**, its callees within `mBs`. -/
@@ -81,9 +85,10 @@ structure MainGoalsTB (p : MainPreds) (b : MainBs) : Prop where
   ag : (hm fs fp seed s w).nc ≠ 0 →
     CompleteAtDTB fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)
       [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
-        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns []) p.Pa b.Ba
+        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
+          (hm fs fp seed s w).et * word 133823759239872512 0] (Returns []) p.Pa b.Ba
   l5 : (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDTB fs cert 23 "__loop4" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 23 name% «main_loop4» (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80,
@@ -151,14 +156,14 @@ theorem main_honest_relAtInTB {SB SK : String → ℕ} {p : MainPreds} {b : Main
 
 /-- **The static bounds of `main`'s own static callees** (G7-cnt's certificates). -/
 structure MainStaticsMain (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
-  l1 : TotalLeOn coreProgram fs "__loop0" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop0" + fs "__loop0")
-  l2 : TotalLeOn coreProgram fs "__loop1" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop1" + fs "__loop1")
-  l3 : TotalLeOn coreProgram fs "__loop2" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop2" + fs "__loop2")
-  l4 : TotalLeOn coreProgram fs "__loop3" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop3" + fs "__loop3")
+  l1 : TotalLeOn coreProgram fs name% «main_loop0» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop0» + fs name% «main_loop0»)
+  l2 : TotalLeOn coreProgram fs name% «main_loop1» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop1» + fs name% «main_loop1»)
+  l3 : TotalLeOn coreProgram fs name% «main_loop2» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop2» + fs name% «main_loop2»)
+  l4 : TotalLeOn coreProgram fs name% «main_loop3» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop3» + fs name% «main_loop3»)
   st : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest")
 
 /-- **`main`'s static callees on the honest run, within their bounds.** -/

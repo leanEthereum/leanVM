@@ -190,10 +190,6 @@ theorem gpowAt_genPows (o : ℕ) : gpowAt genPows o = addressOfIndex o := by
 theorem symValAt_genPows (fp : K) (v : Sym) : symValAt genPows fp v = v.val fp := by
   cases v <;> simp [symValAt, Sym.val, gpowAt_genPows]
 
-theorem wordAt_genPows : wordAt genPows = wordWith := by
-  funext rd fp o
-  simp [wordAt, wordWith, gpowAt_genPows]
-
 theorem envOne_eq (rd : Reader) (fp : K) (p : ℕ × Sym) :
     envOne genPows rd fp p = decide (rd (fp * addressOfIndex p.1) = some (p.2.val fp)) := by
   rw [envOne, gpowAt_genPows, symValAt_genPows]
@@ -282,12 +278,6 @@ theorem squaresFrom_getD : ∀ (n : ℕ) (x : E) (j : ℕ), j < n → (squaresFr
   | n + 1, x, j + 1, h => by
     rw [squaresFrom, List.getD_cons_succ, squaresFrom_getD n (x * x) j (by omega), ← sq, ← pow_mul,
       pow_succ, mul_comm 2]
-
-/-- **Entry `j < 34` of the powers table is `gen^(2^j)`.** -/
-theorem genPows_getD {j : ℕ} (hj : j < B1.sizeBits) :
-    genPows.getD j 0 = Protocol.Verifier.gen ^ 2 ^ j := by
-  rw [genPows, Array.getD_eq_getD_getElem?, List.getElem?_toArray, ← List.getD_eq_getElem?_getD,
-    List.getD_append _ _ _ _ (by rw [length_squaresFrom]; exact hj), squaresFrom_getD _ _ _ hj]
 
 /-- **The test of an entry `fnPreOf s` is the three tests of `s`.** -/
 theorem fnPreTest_fnPreOf (rd : Reader) (fp : K) (s : Sig) :

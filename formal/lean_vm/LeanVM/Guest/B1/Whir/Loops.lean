@@ -116,13 +116,37 @@ theorem loop_guarded {f : String} {N : E} {rest : List E} {B : E → Prop} {n : 
   intro j hj
   exact hall j (Nat.zero_le j) (by omega)
 
+/-- **A loop entered at `g^e` behind its guard `g^e + g^n`** (`e < n < ord g`) ran its body at
+every `g^j`, `e ≤ j < n`. -/
+theorem loop_guarded_from {f : String} {N : E} {rest : List E} {B : E → Prop} {e n : ℕ}
+    (hen : e < n) (hn : n < ordG) (hN : N = gen ^ n)
+    (hloop : ∀ k, coreProgram.Rel rd f (gen ^ k :: N :: rest) [] →
+      ∃ m, k < m ∧ N = gen ^ m ∧ (∀ j, k < j → j < m → gen ^ j ≠ N) ∧
+        ∀ j, k ≤ j → j < m → B (gen ^ j))
+    (hg : gen ^ e + N ≠ 0 → coreProgram.Rel rd f (gen ^ e :: N :: rest) []) :
+    ∀ j, e ≤ j → j < n → B (gen ^ j) := by
+  have hne : gen ^ e + N ≠ 0 := by
+    intro h
+    have h1 : N = gen ^ e := (e_add_eq_zero_iff.mp h).symm
+    rw [hN] at h1
+    have := gen_pow_inj hn (lt_trans hen hn) h1
+    omega
+  obtain ⟨m, hm, hNm, hfirst, hall⟩ := hloop e (hg hne)
+  have hmn : m = n := by
+    by_contra hne'
+    rcases Nat.lt_or_ge m n with h | h
+    · have hmo : m < ordG := by omega
+      exact absurd (gen_pow_inj hmo hn (hNm.symm.trans hN)) hne'
+    · exact hfirst n hen (by omega) hN.symm
+  intro j hj1 hj
+  exact hall j hj1 (by omega)
+
 /-! ## The templates' loop tail -/
 
 /-- The loop tail's atoms. -/
 def osLoopTailA (k : ℕ) : List Stmt :=
-  [.atom (.const (.n k) (word 2 0 0)), .atom (.mul (.n (k + 1)) (.n 0) (.n k)),
-    .atom (.add (.n (k + 2)) (.n (k + 1)) (.n 1)), .atom (.const (.n (k + 3)) (word 2 0 0)),
-    .atom (.mul (.n (k + 4)) (.n 0) (.n (k + 3)))]
+  [osCst k (gw 1), osMul (k + 1) 0 k, osAdd (k + 2) (k + 1) 1, osCst (k + 3) (gw 1),
+    osMul (k + 4) 0 (k + 3)]
 
 theorem osLoopTail_split (name : String) (n k : ℕ) :
     osLoopTail name n k = osLoopTailA k ++
@@ -131,13 +155,22 @@ theorem osLoopTail_split (name : String) (n k : ℕ) :
 
 theorem osLoopTailA_val {C : CallRel} {σ : Val} {k : ℕ} (h : AllOk C rd σ (osLoopTailA k)) :
     σ (.n (k + 2)) = σ (.n 0) * gen + σ (.n 1) ∧ σ (.n (k + 4)) = σ (.n 0) * gen := by
-  simp only [osLoopTailA, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds] at h
+  simp only [osLoopTailA, osCst, osMul, osAdd, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds] at h
   obtain ⟨h0, h1, h2, h3, h4⟩ := h
+  have hg : gw 1 = gen := by rw [gw_eq (by decide), pow_one]
   refine ⟨?_, ?_⟩
-  · rw [h2, h1, h0, word_gen]
-  · rw [h4, h3, word_gen]
+  · rw [h2, h1, h0, hg]
+  · rw [h4, h3, hg]
 
 /-! ## Square and multiply -/
+
+theorem osPowSteps_flat (x : ℕ) : ∀ ds acc k, (osPowSteps x ds acc k).1.all Stmt.flat = true := by
+  intro ds
+  induction ds with
+  | nil => intro _ _; rfl
+  | cons d ds ih =>
+    intro acc k
+    cases d <;> simp [osPowSteps, ih, Stmt.flat]
 
 /-- The value of digits `ds` read after a leading `acc`. -/
 def digitsVal : List Bool → ℕ → ℕ
@@ -153,12 +186,12 @@ theorem osPowSteps_val {C : CallRel} {σ : Val} (x : ℕ) :
   | d :: ds, acc, k, a, ha, h => by
     cases d with
     | true =>
-      simp only [osPowSteps, ↓reduceIte, allOk_cons, StmtOk, Atom.Holds] at h ⊢
+      simp only [osPowSteps, osMul, ↓reduceIte, allOk_cons, StmtOk, Atom.Holds] at h ⊢
       obtain ⟨h0, h1, h⟩ := h
       refine osPowSteps_val x ds (k + 1) (k + 2) (2 * a + 1) ?_ h
       rw [h1, h0, ha]; ring
     | false =>
-      simp only [osPowSteps, Bool.false_eq_true, ↓reduceIte, allOk_cons, StmtOk, Atom.Holds] at h ⊢
+      simp only [osPowSteps, osMul, Bool.false_eq_true, ↓reduceIte, allOk_cons, StmtOk, Atom.Holds] at h ⊢
       obtain ⟨h0, h⟩ := h
       refine osPowSteps_val x ds k (k + 1) (2 * a + 0) ?_ h
       rw [h0, ha]; ring

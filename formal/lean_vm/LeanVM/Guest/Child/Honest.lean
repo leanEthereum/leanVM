@@ -99,21 +99,6 @@ noncomputable def childComp (prog : LeanIsaProgram) (input : PublicInput) (t : E
       (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose)) fuel
   else pure ⟨[], []⟩
 
-/-- **The specification's honest prover, `none` where it makes no proof**: `Rom.honestComp`
-before it stands the empty proof in for `none` (`honestComp_eq_getD`). -/
-def _root_.LeanVM.Protocol.Compile.Rom.honestComp? (σ : Seed) (P : VerifierProgram Bool) (S :
-    Strategy)
-    (fuel : ℕ) : OracleComp KeccakCalls (Option Proof) := do
-  let seed ← σ.run callKeccak256 callKeccakF1600
-  proveM callKeccak256 callKeccakF1600 P S seed fuel
-
-/-- `Rom.honestComp` is `Rom.honestComp?` with the empty proof for `none`. -/
-theorem honestComp_eq_getD (σ : Seed) (P : VerifierProgram Bool) (S : Strategy) (fuel : ℕ) :
-    Rom.honestComp σ P S fuel = (·.getD ⟨[], []⟩) <$> Rom.honestComp? σ P S fuel := by
-  unfold Rom.honestComp Rom.honestComp?
-  rw [map_bind]
-  simp only [map_eq_bind_pure_comp, Function.comp_def]
-
 open Classical in
 /-- The honest prover of a child, as an `HonestProverWithHash`: `Rom.honestComp?` at a child's
 witness (`ChildFor`, chosen classically); `none` when there is none. -/
@@ -168,24 +153,16 @@ theorem atKeccak_of_eq {A : HonestProverWithHash} {prog : LeanIsaProgram} {input
   rw [← proveM_id]
   rfl
 
-/-- The verifier refusing a zero challenge, at Keccak, is the run of `execWith`. -/
-theorem verifierNZ_eq (prog : LeanIsaProgram) (input : PublicInput) (π : Proof) :
-    Budget.verifierNZ (m := Id) keccak256 keccakF1600 prog input π =
-      Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
-        ((execWith computedBytecodeValue Limits.verifyStackedOpeningNZ (bytecodeWords prog)
-          (publicInputDigest input)).bind fun _ ↦ VerifierProgram.ret true)
-        (seed (bytecodeWords prog) (publicInputDigest input)) π) := rfl
-
 /-- The statement's refusing verifier, at Keccak, is the run of `execWith` refusing zero
 challenges. -/
 theorem verifierRZ_eq (prog : LeanIsaProgram) (input : PublicInput) (π : Proof) :
     Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 prog input π =
       Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
         ((execWith computedBytecodeValue verifyStackedOpening (bytecodeWords prog)
-          (publicInputDigest input)).bind fun _ ↦ VerifierProgram.ret true).refusingZeroChallenge
+          (publicInputDigest input)).bind fun _ ↦
+            VerifierProgram.ret true).refusingZeroChallenge
         (seed (bytecodeWords prog) (publicInputDigest input)) π) := by
   unfold Budget.verifierRefusingZeroWithHash
-  rw [Verifier.leanVmProgram_eq]
   rfl
 
 /-- **A proof with Keccak**, of a prover that is the specification at a child's witness or makes

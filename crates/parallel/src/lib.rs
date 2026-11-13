@@ -583,15 +583,15 @@ pub fn map_collect<T: Send, F: Fn(usize) -> T + Sync>(n_tasks: usize, f: F) -> V
 /// regardless of how the claims fall, because the answer is the global minimum
 /// rather than whichever hit landed first.
 ///
-/// Workers publish hits into a shared minimum and skip any claim that starts past
+/// Workers publish hits into a shared minimum and stop a claim at any index past
 /// it, so the search stops early without giving up determinism.
 pub fn find_first<P: Fn(usize) -> bool + Sync>(n_tasks: usize, pred: P) -> Option<usize> {
     let best = AtomicUsize::new(usize::MAX);
     for_each_chunk(n_tasks, |start, end| {
-        if start >= best.load(Ordering::Relaxed) {
-            return; // a smaller hit already exists
-        }
         for i in start..end {
+            if i >= best.load(Ordering::Relaxed) {
+                return; // a smaller hit already exists
+            }
             if pred(i) {
                 best.fetch_min(i, Ordering::Relaxed);
                 return; // later hits in this claim are larger

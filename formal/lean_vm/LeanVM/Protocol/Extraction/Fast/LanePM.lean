@@ -132,18 +132,18 @@ theorem mem_gsRunDistinctWith (S : ModularSolutionBasisContext K) {points : Arra
 /-- `gsLaneDistinct` on the solver `S`. -/
 @[expose] def gsLaneWith (S : ModularSolutionBasisContext K) (κ R A : ℕ) (Sym : ℕ → ℕ → K)
     (u : ℕ) : Array (CPolynomial K) :=
-  let params := gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A
+  let params := gsParamsFor (2 ^ κ + initialFold) (2 ^ (κ + R)) A
   gsRunDistinctWith S (lanePointsS (2 ^ (κ + R)) Sym u) params.interp params.radius
 
 /-- `laneListDistinct` on the solver `S`. -/
 @[expose] def laneListWith (S : ModularSolutionBasisContext K) (κ R A : ℕ) (Sym : ℕ → ℕ → K)
     (u : ℕ) : List (Array K) :=
-  (((gsLaneWith S κ R A Sym u).toList.map (toNovelFast κ)).dedup).mergeSort coeffsLE
+  (((gsLaneWith S κ R A Sym u).toList.map (toNovelFast (κ + 1))).dedup).mergeSort coeffsLE
 
 /-- `laneEncodedDistinct` on the solver `S`. -/
 @[expose] def laneEncodedWith (S : ModularSolutionBasisContext K) (κ R A : ℕ) (Sym : ℕ → ℕ → K)
     (u : ℕ) : List (Array K × Array K) :=
-  (laneListWith S κ R A Sym u).map fun c ↦ (c, novelFwd κ R c)
+  (laneListWith S κ R A Sym u).map fun c ↦ (c, novelFwd (κ + 1) (R - 1) c)
 
 /-- `pruneUpToDistinct` on the solver `S`. -/
 @[expose] def pruneUpToWith (S : ModularSolutionBasisContext K) (κ R A : ℕ) (W : ℕ → List K)
@@ -162,27 +162,27 @@ theorem mem_gsRunDistinctWith (S : ModularSolutionBasisContext K) {points : Arra
     fun s ↦ stackOf μ s.1
 
 theorem mem_gsLaneWith (S : ModularSolutionBasisContext K) {κ R A : ℕ}
-    (h : checkRedundant κ R (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A)) (Sym : ℕ → ℕ → K) (u : ℕ)
+    (h : checkRedundant κ R (gsParamsFor (2 ^ κ + initialFold) (2 ^ (κ + R)) A)) (Sym : ℕ → ℕ → K) (u : ℕ)
     (p : CPolynomial K) :
     p ∈ (gsLaneWith S κ R A Sym u).toList ↔ p ∈ (gsLaneDistinct κ R A Sym u).toList := by
   simp only [checkRedundant, Bool.and_eq_true, decide_eq_true_eq] at h
   have hd := distinct_lanePointsS _ (Nat.pow_le_pow_right (by norm_num) h.1) Sym u
-  have hW : (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.weightedDegreeBound <
-      (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.multiplicity *
-        ((lanePointsS (2 ^ (κ + R)) Sym u).size - (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).radius) := by
+  have hW : (gsParamsFor (2 ^ κ + initialFold) (2 ^ (κ + R)) A).interp.weightedDegreeBound <
+      (gsParamsFor (2 ^ κ + initialFold) (2 ^ (κ + R)) A).interp.multiplicity *
+        ((lanePointsS (2 ^ (κ + R)) Sym u).size - (gsParamsFor (2 ^ κ + initialFold) (2 ^ (κ + R)) A).radius) := by
     simpa [lanePointsS] using h.2
   exact mem_gsRunDistinctWith S hd hW p
 
 /-- **A lane's list does not depend on the solver**, where the final root check is redundant. -/
 theorem laneListWith_eq (S : ModularSolutionBasisContext K) {κ R A : ℕ}
-    (h : checkRedundant κ R (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A)) (Sym : ℕ → ℕ → K) (u : ℕ) :
+    (h : checkRedundant κ R (gsParamsFor (2 ^ κ + initialFold) (2 ^ (κ + R)) A)) (Sym : ℕ → ℕ → K) (u : ℕ) :
     laneListWith S κ R A Sym u = laneListDistinct κ R A Sym u := by
   rw [laneListWith, laneListDistinct]
   refine mergeSort_dedup_eq fun x ↦ ?_
   simp only [List.mem_map, mem_gsLaneWith S h]
 
 theorem pruneUpToWith_eq (S : ModularSolutionBasisContext K) {κ R A : ℕ}
-    (h : checkRedundant κ R (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A)) (W : ℕ → List K) (U : ℕ) :
+    (h : checkRedundant κ R (gsParamsFor (2 ^ κ + initialFold) (2 ^ (κ + R)) A)) (W : ℕ → List K) (U : ℕ) :
     pruneUpToWith S κ R A W U = pruneUpToDistinct κ R A W U := by
   simp only [pruneUpToWith, pruneUpToDistinct, laneEncodedWith, laneEncodedDistinct,
     laneListWith_eq S h]
@@ -219,11 +219,6 @@ theorem decodeStacksDistinctPM_eq {μ R : ℕ} (h : Whir.Admissible μ R) (W : �
 theorem decodeStacksDistinctPM_eq_fast {μ R : ℕ} (h : Whir.Admissible μ R) (W : ℕ → List K) :
     decodeStacksDistinctPM μ R W = decodeStacksFast μ R W := by
   rw [decodeStacksDistinctPM_eq h, decodeStacksDistinct_eq h]
-
-/-- `decodeStacksDistinctPM` is the statement's `decodeStacks` at admissible shapes. -/
-theorem decodeStacksDistinctPM_eq_decodeStacks {μ R : ℕ} (h : Whir.Admissible μ R)
-    (W : ℕ → List K) : decodeStacksDistinctPM μ R W = decodeStacks μ R W := by
-  rw [decodeStacksDistinctPM_eq_fast h, decodeStacksFast_eq]
 
 end
 

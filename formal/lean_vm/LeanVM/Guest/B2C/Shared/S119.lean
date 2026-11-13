@@ -16,36 +16,45 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L5`, window 5. -/
-theorem w312_5 : shareWin 312 (snapsOf 312) 5 = true := by decide +kernel
+/-- `da_expand__L7_L8`, window 0. -/
+theorem w419_0 : shareWin 419 (snapsOf 419) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L5`, window 6. -/
-theorem w312_6 : shareWin 312 (snapsOf 312) 6 = true := by decide +kernel
+/-- `da_expand__L7_L8`, window 1. -/
+theorem w419_1 : shareWin 419 (snapsOf 419) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L5`, window 7. -/
-theorem w312_7 : shareWin 312 (snapsOf 312) 7 = true := by decide +kernel
+/-- `da_expand__L7_L8`, window 2. -/
+theorem w419_2 : shareWin 419 (snapsOf 419) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, once. -/
-theorem st313 : shareStatic 313 = true := by decide +kernel
+/-- `da_expand__L7_L8`, window 3. -/
+theorem w419_3 : shareWin 419 (snapsOf 419) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 0. -/
-theorem w313_0 : shareWin 313 (snapsOf 313) 0 = true := by decide +kernel
+/-- `da_expand__L7_L8`, window 4. -/
+theorem w419_4 : shareWin 419 (snapsOf 419) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 1. -/
-theorem w313_1 : shareWin 313 (snapsOf 313) 1 = true := by decide +kernel
+/-- `__loop25`, once. -/
+theorem st420 : shareStatic 420 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 2. -/
-theorem w313_2 : shareWin 313 (snapsOf 313) 2 = true := by decide +kernel
+/-- `__loop25`, window 0. -/
+theorem w420_0 : shareWin 420 (snapsOf 420) 0 = true := by decide +kernel
+
+theorem ok420 : ShareOk 420 := ⟨st420, fun i hi ↦ by
+  have h : (snapsOf 420).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w420_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 3. -/
-theorem w313_3 : shareWin 313 (snapsOf 313) 3 = true := by decide +kernel
+/-- `da_factors__L14_L7_L0`, once. -/
+theorem st421 : shareStatic 421 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_factors__L14_L7_L0`, window 0. -/
+theorem w421_0 : shareWin 421 (snapsOf 421) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

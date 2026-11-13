@@ -12,9 +12,9 @@ public import LeanVM.Guest.B1.Selectors.SelPartial
 /-!
 # `block_selector_tab` (TRIAGE G #49)
 
-`block_selector_tab(digits, eq_tab, g_tab, n)` (G:2035-2054) reads, for each nibble `j` of the
+`block_selector_tab(digits, eq_tab, g_tab, n)` (G:2143-2162) reads, for each nibble `j` of the
 `n` bits (the last `n - 4j` wide, `w`), its hinted digit `d = g^u` at `digits`, range-checks
-`u < 2^w` (`assert_digit`, G:2022-2032), and multiplies the eq weight at `eq_tab·g^u` (offset
+`u < 2^w` (`assert_digit`, G:2130-2140), and multiplies the eq weight at `eq_tab·g^u` (offset
 `32j + 2^w - 2`) and the share at `g_tab·g^u` (offset `16j`). The bits are the digits' (`u`'s bit
 `t` the bit `4j + t`): the caller pins their `g`-power product to a certified offset.
 
@@ -51,7 +51,7 @@ the eq weight at `eq_tab·g^u`, the share at `g_tab·g^u`, the running products.
 def btNibT (n k : ℕ) : List Stmt :=
   let w := btW n k
   let c := btC k
-  [.atom (.load (.n c) (.n 0) k), .atom (.const (.n (c + 1)) (word (2 ^ (2 ^ w - 1)) 0 0)),
+  [.atom (.load (.n c) (.n 0) k), .atom (.const (.n (c + 1)) (word (2 ^ (2 ^ w - 1)) 0)),
     .atom (.rangeCheck (.n c) (.n (c + 2)) (.n (c + 3)) (.n (c + 4)) (.n (c + 1))),
     .atom (.mul (.n (c + 5)) (.n 1) (.n c)),
     .atom (.load (.n (c + 6)) (.n (c + 5)) (32 * k + 2 ^ w - 2))] ++
@@ -64,7 +64,7 @@ def btNibT (n k : ℕ) : List Stmt :=
 
 /-- `block_selector_tab__L{n}`'s statements before its `ret`. -/
 def btPre (n : ℕ) : List Stmt :=
-  if n = 0 then [.atom (.const (.n 3) (word 1 0 0)), .atom (.const (.n 4) (word 1 0 0))]
+  if n = 0 then [.atom (.const (.n 3) (word 1 0)), .atom (.const (.n 4) (word 1 0))]
   else ((List.range (btN n)).map (btNibT n)).flatten ++
     [.atom (.copy (.n (btC (btN n))) (.n (btSel (btN n - 1)))),
       .atom (.copy (.n (btC (btN n) + 1)) (.n (btRb (btN n - 1))))]
@@ -109,7 +109,7 @@ theorem btW_pos {n k : ℕ} (hk : k < btN n) : 1 ≤ btW n k := by
 
 /-- `g^(2^w - 1)`, the range check of a `w`-bit digit. -/
 theorem word_digit_bound {w : ℕ} (hw : w ≤ 4) :
-    word (2 ^ (2 ^ w - 1)) 0 0 = ofK (Parameters.addressOfIndex (2 ^ w - 1)) := by
+    word (2 ^ (2 ^ w - 1)) 0 = ofK (Parameters.addressOfIndex (2 ^ w - 1)) := by
   rw [tb_word_two_pow (by have : 2 ^ w ≤ 2 ^ 4 := Nat.pow_le_pow_right (by norm_num) hw; omega),
     gen_pow_eq_ofK]
 

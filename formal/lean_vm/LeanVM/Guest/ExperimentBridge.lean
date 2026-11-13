@@ -1,6 +1,10 @@
-import LeanVM.Protocol.ExperimentBridge
-import LeanVM.Guest.WithHash
-import LeanVM.Guest.AcceptableChild
+module
+
+public import LeanVM.Protocol.ExperimentBridge
+public import LeanVM.Guest.WithHash
+public import LeanVM.Guest.AcceptableChild
+
+@[expose] public section
 
 /-!
 # The guest's statements over `π` are the statements with the two calls
@@ -119,6 +123,9 @@ theorem honestProofWithDeployedKeccak_eq_withHash (prog : LeanIsaProgram) (input
   simp only [honestProofWithDeployedKeccak, honestProofWithDeployedKeccakWithHash,
       leanVmHonestProver,
     Prover.prove_eq_withHash, proverWithHash, simulateQ_proveWithHash]
+  have h1 : implH deployedKeccakCalls = keccak256With (m := Id) keccakF1600 := by funext x; rfl
+  have h2 : implF deployedKeccakCalls = keccakF1600 := by funext x; rfl
+  rw [h1, h2]
   rfl
 
 /-- **`GuestChildComplete`, from the statement with the two calls.** -/
@@ -145,3 +152,5 @@ end Budget
 end Guest
 
 end LeanVM
+
+end

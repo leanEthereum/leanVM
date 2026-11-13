@@ -59,7 +59,7 @@ noncomputable def kidsT (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (n : ℕ) : List Child :=
   (List.range n).map (decKidT D rd σ wV w380 p53 p56 tx ts)
 
-/-- The raw leanXMSS signatures `0 … n - 1`, off the leanXMSS region's table, `__loop2`'s other
+/-- The raw leanXMSS signatures `0 … n - 1`, off the leanXMSS region's table, `main_loop2`'s other
 arguments `args` read once. -/
 noncomputable def xmssRawsT (rd : Reader) (p53 : E) (wX : List E → LeanXmss.Signature)
     (args : List E) (tx : Array ℕ × Array ℕ) (n : ℕ) : List (LeanXmssClaim × LeanXmss.Signature) :=
@@ -73,7 +73,7 @@ noncomputable def sphincsRawsT (rd : Reader) (p56 : E) (wS : E → Sphincs.Signa
 
 theorem kidsT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (n : ℕ) :
-    kidsT D rd σ wV (σ (.n 399)) (σ (.n 31)) (σ (.n 34)) (lxTable D rd σ) (lsTable D rd σ) n =
+    kidsT D rd σ wV (σ (.n 398)) (σ (.n 31)) (σ (.n 34)) (lxTable D rd σ) (lsTable D rd σ) n =
       kidsAt D rd σ wV n :=
   List.map_congr_left fun c _ ↦ decKidT_eq D rd σ wV c
 
@@ -88,7 +88,7 @@ theorem sphincsRawsT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
   List.map_congr_left fun j _ ↦ sphincsRawT_eq D rd σ wS j
 
 /-- The witness off the tables: `nk` children, `nrx`, `nrs` raw signatures, `main`'s word
-`written` (`w380`), the tables' pointers, the regions' tables `tx`, `ts` and `__loop2`'s other
+`written` (`w380`), the tables' pointers, the regions' tables `tx`, `ts` and `main_loop2`'s other
 arguments `args`. -/
 noncomputable def decWitTab (D : DiscreteLogTables) (σ : Val) (rd : Reader)
     (wX : List E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
@@ -105,7 +105,7 @@ noncomputable def decWitAt (D : DiscreteLogTables) (σ : Val) (rd : Reader)
     (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (wA : List E → BatchingHints)
     (nk lx ls nrx nrs : ℕ) : NodeWitness :=
-  decWitTab D σ rd wX wS wD wV wA nk nrx nrs (σ (.n 399)) (σ (.n 31)) (σ (.n 34))
+  decWitTab D σ rd wX wS wD wV wA nk nrx nrs (σ (.n 398)) (σ (.n 31)) (σ (.n 34))
     (regionTable D rd (σ (.n 45)) 0 lx) (regionTable D rd (σ (.n 45)) lx ls) (l2ArgsD σ)
 
 /-- **The witness, staged**: `decWit`'s fields through `decWitAt`, the counts (logarithms)

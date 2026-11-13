@@ -59,12 +59,12 @@ def rangeS (x : V) (bound : E) (b : Nat) : List Stmt :=
 def booleans (base n : Nat) : List Stmt :=
   (List.range n).map fun j => mulS (.n (base + j)) (.n (base + j)) (.n (base + j))
 
-/-- `shifts(bits, 0, n, out)` (`lean_ethereum.py:3508-3514`): out `l` at `outBase + 3·(n - 1 - l)`,
+/-- `shifts(bits, 0, n, out)` (`lean_ethereum.py:3472-3478`): out `l` at `outBase + 3·(n - 1 - l)`,
 over the bits from `bitBase`. -/
 def shifts (bitBase n outBase : Nat) : List Stmt :=
   copyS (.n outBase) (.n (bitBase + n - 1)) ::
   (List.range (n - 1)).flatMap fun r' => let r := r' + 1;
-    [cst (outBase + 3 * r - 2) (word 2 0 0),
+    [cst (outBase + 3 * r - 2) (word 2 0),
       mulS (.n (outBase + 3 * r - 1)) (.n (outBase + 3 * r - 2)) (.n (outBase + 3 * r - 3)),
       addS (.n (outBase + 3 * r)) (.n (bitBase + n - 1 - r)) (.n (outBase + 3 * r - 1))]
 
@@ -77,7 +77,7 @@ def stepMul : Nat := 2 ^ 61
 def lxTop : Nat := 2 ^ 55
 
 /-- A 128-bit literal (`lit_field`). -/
-def lit (c : Nat) : E := word (c % 2 ^ 64) (c / 2 ^ 64 % 2 ^ 64) 0
+def lit (c : Nat) : E := word (c % 2 ^ 64) (c / 2 ^ 64 % 2 ^ 64)
 
 /-- The digit sum of `k`'s `n` low base-4 digits (`DIGIT_SUMS`). -/
 def digitSum (k : Nat) : Nat → Nat
@@ -99,7 +99,7 @@ def KC.isZero : KC → Bool
 
 open scoped Dec in
 /-- Whether a constant is `0x01`, the padding run's first cell. -/
-def isPadOne (c : E) : Bool := decide (c = word 1 0 0)
+def isPadOne (c : E) : Bool := decide (c = word 1 0)
 
 /-- The value holding a message cell (`sponge_cell`): the padding run's `0` or `1`, a fresh
 constant at `b`, or the value itself. Its statements, value and next base. -/
@@ -120,7 +120,7 @@ def kXor (pad : Nat) (st : V) (k : KC) (b : Nat) : List Stmt × V × Nat :=
 /-- A fresh run of the four tail cells (`sponge_run`'s copy): constants and copies, from `b`. -/
 def kRunFresh : List KC → Nat → List Stmt
   | [], _ => []
-  | .zero :: ks, b => cst b (word 0 0 0) :: kRunFresh ks (b + 1)
+  | .zero :: ks, b => cst b (word 0 0) :: kRunFresh ks (b + 1)
   | .const c :: ks, b => cst b c :: kRunFresh ks (b + 1)
   | .cell o :: ks, b => copyS (.n b) o :: kRunFresh ks (b + 1)
 
@@ -228,7 +228,7 @@ def kMsg (pad : Nat) (cells : List KC) (len : Nat) (tailRun : Bool) (out : Optio
 /-- `keccak([m0, m1], [m2, m3], out)` into a one-cell `out`: 64 bytes, its last byte's constant at
 `c`, the output at `o`. -/
 def k64 (pad : Nat) (m0 m1 m2 m3 : V) (c o : Nat) : List Stmt :=
-  [cst c (word (2 ^ 63) 0 0), kecS [m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n c,
+  [cst c (word (2 ^ 63) 0), kecS [m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n c,
     .n (pad + 1), .n (pad + 2), .n (pad + 3), .n (pad + 4)] (runV o 1) false false]
 
 theorem k64_eq (pad : Nat) (m0 m1 m2 m3 : V) (c o : Nat) :

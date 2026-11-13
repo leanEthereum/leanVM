@@ -61,11 +61,11 @@ theorem rowWithin_rowScaleCoeffX {C D : ℕ} {row : PolynomialRow K} (h : RowWit
 
 /-- **`c·X^d·p`** (`polynomialScaleCoeffX`): at most `86·D + 48·d + 55`. -/
 theorem polynomialScaleCoeffXC_cost
-    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.polynomialScaleCoeffX.c542.costDeps)
+    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.polynomialScaleCoeffX.c541.costDeps)
     (c : K) (d : ℕ) (p : CPolynomial K) {D : ℕ} (hp : p.val.size ≤ D) (hd : d + D < 2 ^ 62) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.polynomialScaleCoeffX.c542.costIdx
+    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.polynomialScaleCoeffX.c541.costIdx
         [encodeValue c, encodeValue d, encodeValue p] ≤ 86 * D + 48 * d + 55 := by
-  rw [Auto.CompPoly.PolynomialMatrix.Approximant.polynomialScaleCoeffX.c542.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.Approximant.polynomialScaleCoeffX.c541.costEq P hP]
   have hb := listBeqK_cost P (by includes) p.val.toList (↑(0 : CPolynomial K) : Array K).toList
   have hr := replicate_cost P (by includes) (0 : K) d (by omega)
   have hf := fun a ↦ RunsApp.of_spec (us := [encodeValue c]) (vs := [encodeValue a])
@@ -86,20 +86,20 @@ theorem polynomialScaleCoeffXC_cost
 
 /-- **`c·X^d·row`** (`rowScaleCoeffX`): at most `(86·D + 48·d + 78)·C + 12`. -/
 theorem rowScaleCoeffXC_cost
-    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.rowScaleCoeffX.c540.costDeps)
+    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.rowScaleCoeffX.c539.costDeps)
     (c : K) (d : ℕ) {C D : ℕ} (row : PolynomialRow K) (h : RowWithin C D row) (hd : d + D < 2 ^ 62) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.rowScaleCoeffX.c540.costIdx
+    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.rowScaleCoeffX.c539.costIdx
         [encodeValue c, encodeValue d, encodeValue row] ≤ (86 * D + 48 * d + 78) * C + 12 := by
-  rw [Auto.CompPoly.PolynomialMatrix.Approximant.rowScaleCoeffX.c540.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.Approximant.rowScaleCoeffX.c539.costEq P hP]
   have hm := map_cost P (by includes) (fun p ↦ polynomialScaleCoeffX c d p)
-    (.closure Auto.CompPoly.PolynomialMatrix.Approximant.rowScaleCoeffX.c540.lam0.costIdx
+    (.closure Auto.CompPoly.PolynomialMatrix.Approximant.rowScaleCoeffX.c539.lam0.costIdx
       [encodeValue c, encodeValue d])
     (fun a ↦ RunsApp.of_spec
-      (Auto.CompPoly.PolynomialMatrix.Approximant.rowScaleCoeffX.c540.lam0.costSpec P (by includes)
+      (Auto.CompPoly.PolynomialMatrix.Approximant.rowScaleCoeffX.c539.lam0.costSpec P (by includes)
         c d a)) (86 * D + 48 * d + 61) row.toList (fun a ha ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append, List.length_cons,
         List.length_cons, List.length_nil,
-        Auto.CompPoly.PolynomialMatrix.Approximant.rowScaleCoeffX.c540.lam0.costEq P (by includes)]
+        Auto.CompPoly.PolynomialMatrix.Approximant.rowScaleCoeffX.c539.lam0.costEq P (by includes)]
       have := polynomialScaleCoeffXC_cost P (by includes) c d a (h.2 a (by simpa using ha)) hd
       omega)
   have hs := h.1
@@ -120,17 +120,17 @@ theorem rowWithin_rowNeg {C D : ℕ} {row : PolynomialRow K} (h : RowWithin C D 
   rw [size_neg_val]; exact h.2 p hp
 
 /-- **`−row`** (`rowNeg`): at most `(18·D + 25)·C + 8`. -/
-theorem rowNegC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowNeg.c538.costDeps)
+theorem rowNegC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowNeg.c537.costDeps)
     {C D : ℕ} (row : PolynomialRow K) (h : RowWithin C D row) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.rowNeg.c538.costIdx [encodeValue row] ≤
+    machineCost P Auto.CompPoly.PolynomialMatrix.rowNeg.c537.costIdx [encodeValue row] ≤
       (18 * D + 25) * C + 8 := by
-  rw [Auto.CompPoly.PolynomialMatrix.rowNeg.c538.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.rowNeg.c537.costEq P hP]
   have hm := map_cost P (by includes) (fun p : CPolynomial K ↦ -p)
-    (.closure Auto.CompPoly.PolynomialMatrix.rowNeg.c538.lam0.costIdx [])
+    (.closure Auto.CompPoly.PolynomialMatrix.rowNeg.c537.lam0.costIdx [])
     (fun a ↦ RunsApp.of_spec
-      (Auto.CompPoly.PolynomialMatrix.rowNeg.c538.lam0.costSpec P (by includes) a))
+      (Auto.CompPoly.PolynomialMatrix.rowNeg.c537.lam0.costSpec P (by includes) a))
     (18 * D + 8) row.toList (fun a ha ↦ by
-      rw [appCost_fn, List.nil_append, List.length_nil, Auto.CompPoly.PolynomialMatrix.rowNeg.c538.lam0.costEq P
+      rw [appCost_fn, List.nil_append, List.length_nil, Auto.CompPoly.PolynomialMatrix.rowNeg.c537.lam0.costEq P
         (by includes)]
       have hf := fun x ↦ RunsApp.of_spec (us := []) (vs := [encodeValue x])
         (Auto.CompPoly.CPolynomial.Raw.sub.c49.lam0.costSpec P (by includes) x)
@@ -148,23 +148,23 @@ theorem rowNegC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowNeg.c538
   nlinarith
 
 /-- **`a + b`** (`rowAdd`): at most `(53·D + 110)·C + 27`. -/
-theorem rowAddC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowAdd.c536.costDeps)
+theorem rowAddC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowAdd.c535.costDeps)
     {C D : ℕ} (hC : C < 2 ^ 62) (hD : D < 2 ^ 60) (a b : PolynomialRow K) (ha : RowWithin C D a)
     (hb : RowWithin C D b) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.rowAdd.c536.costIdx [encodeValue a, encodeValue b] ≤
+    machineCost P Auto.CompPoly.PolynomialMatrix.rowAdd.c535.costIdx [encodeValue a, encodeValue b] ≤
       (53 * D + 110) * C + 27 := by
-  rw [Auto.CompPoly.PolynomialMatrix.rowAdd.c536.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.rowAdd.c535.costEq P hP]
   have h1 := ha.1
   have h2 := hb.1
   have hr := rangeLoop_cost P (by includes) (max a.size b.size) [] (by omega)
   have hm := map_cost P (by includes) (fun j ↦ rowGet a j + rowGet b j)
-    (.closure Auto.CompPoly.PolynomialMatrix.rowAdd.c536.lam0.costIdx [encodeValue a, encodeValue b])
+    (.closure Auto.CompPoly.PolynomialMatrix.rowAdd.c535.lam0.costIdx [encodeValue a, encodeValue b])
     (fun j ↦ RunsApp.of_spec
-      (Auto.CompPoly.PolynomialMatrix.rowAdd.c536.lam0.costSpec P (by includes) a b j))
+      (Auto.CompPoly.PolynomialMatrix.rowAdd.c535.lam0.costSpec P (by includes) a b j))
     (53 * D + 81) (List.range (max a.size b.size)) (fun j _ ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append, List.length_cons,
         List.length_cons, List.length_nil,
-        Auto.CompPoly.PolynomialMatrix.rowAdd.c536.lam0.costEq P (by includes),
+        Auto.CompPoly.PolynomialMatrix.rowAdd.c535.lam0.costEq P (by includes),
         rowGet_cost P (by includes), rowGet_cost P (by includes)]
       have hsa := ha.size_rowGet j
       have hsb := hb.size_rowGet j
@@ -178,12 +178,12 @@ theorem rowAddC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowAdd.c536
   split_ifs <;> nlinarith
 
 /-- **`a − b`** (`rowSub`): at most `(71·D + 135)·C + 39`. -/
-theorem rowSubC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowSub.c535.costDeps)
+theorem rowSubC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowSub.c534.costDeps)
     {C D : ℕ} (hC : C < 2 ^ 62) (hD : D < 2 ^ 60) (a b : PolynomialRow K) (ha : RowWithin C D a)
     (hb : RowWithin C D b) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.rowSub.c535.costIdx [encodeValue a, encodeValue b] ≤
+    machineCost P Auto.CompPoly.PolynomialMatrix.rowSub.c534.costIdx [encodeValue a, encodeValue b] ≤
       (71 * D + 135) * C + 39 := by
-  rw [Auto.CompPoly.PolynomialMatrix.rowSub.c535.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.rowSub.c534.costEq P hP]
   have := rowNegC_cost P (by includes) b hb
   have := rowAddC_cost P (by includes) hC hD a (rowNeg b) ha (rowWithin_rowNeg hb)
   nlinarith
@@ -195,14 +195,14 @@ theorem rowWithin_mono {C D D' : ℕ} {row : PolynomialRow K} (h : RowWithin C D
 /-- **One cancellation** (`cancelKernelLeafLeadingTerm`): at most
 `(276·D + 717)·C + 6·D + 3214`. -/
 theorem cancelKernelLeafLeadingTermC_cost
-    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.cancelKernelLeafLeadingTerm.c534.costDeps)
+    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.cancelKernelLeafLeadingTerm.c533.costDeps)
     {C D S : ℕ} (hC : C < 2 ^ 60) (hD : D < 2 ^ 58) (hDS : 2 * D + S < 2 ^ 61)
     (target reducer : PolynomialRow K) (ht : RowWithin C D target) (hr : RowWithin C D reducer)
     (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.cancelKernelLeafLeadingTerm.c534.costIdx
+    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.cancelKernelLeafLeadingTerm.c533.costIdx
         [encodeValue target, encodeValue reducer, encodeValue shift] ≤
       (276 * D + 717) * C + 6 * D + 3214 := by
-  rw [Auto.CompPoly.PolynomialMatrix.Approximant.cancelKernelLeafLeadingTerm.c534.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.Approximant.cancelKernelLeafLeadingTerm.c533.costEq P hP]
   have h1 := rowShiftedLeadingTerm_cost P (by includes) (by omega) (by omega) target ht shift hS
   have h2 := rowShiftedLeadingTerm_cost P (by includes) (by omega) (by omega) reducer hr shift hS
   have h3 : 717 * C ≤ (276 * D + 717) * C := Nat.mul_le_mul_right _ (by omega)

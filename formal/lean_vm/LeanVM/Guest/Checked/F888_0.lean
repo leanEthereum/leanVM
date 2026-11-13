@@ -17,31 +17,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `level_queries__L23_L0_L16_L24_L26_L2`, window 0. -/
+/-- `level_residual__L55_L19_L4_L2`, window 0. -/
 theorem w888_0 : WinOk 888 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L23_L0_L16_L24_L26_L2`, window 1. -/
-theorem w888_1 : WinOk 888 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_positions__L3_L25_L7`, window 0. -/
+/-- `level_residual__L44_L19_L4_L2`, window 0. -/
 theorem w889_0 : WinOk 889 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L21_L0_L16_L24_L23_L5`, window 0. -/
+/-- `level_residual__L37_L19_L4_L2`, window 0. -/
 theorem w890_0 : WinOk 890 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L21_L0_L16_L24_L23_L5`, window 1. -/
-theorem w890_1 : WinOk 890 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L19_L0_L16_L24_L24_L6`, window 0. -/
+/-- `level_residual__L32_L19_L4_L2`, window 0. -/
 theorem w891_0 : WinOk 891 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L19_L0_L16_L24_L24_L6`, window 1. -/
-theorem w891_1 : WinOk 891 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L18_L0_L16_L24_L25_L7`, window 0. -/
+/-- `level_residual__L28_L15_L4_L2`, window 0. -/
 theorem w892_0 : WinOk 892 0 := winOk_of_C (by decide +kernel)
 
+/-- `level_residual__L25_L15_L4_L2`, window 0. -/
+theorem w893_0 : WinOk 893 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_residual__L23_L15_L4_L2`, window 0. -/
+theorem w894_0 : WinOk 894 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_residual__L21_L11_L4_L2`, window 0. -/
+theorem w895_0 : WinOk 895 0 := winOk_of_C (by decide +kernel)
+
+theorem ok888 : CheckOk 888 := checkOk_one (by decide +kernel) w888_0
+
 theorem ok889 : CheckOk 889 := checkOk_one (by decide +kernel) w889_0
+
+theorem ok890 : CheckOk 890 := checkOk_one (by decide +kernel) w890_0
+
+theorem ok891 : CheckOk 891 := checkOk_one (by decide +kernel) w891_0
+
+theorem ok892 : CheckOk 892 := checkOk_one (by decide +kernel) w892_0
+
+theorem ok893 : CheckOk 893 := checkOk_one (by decide +kernel) w893_0
+
+theorem ok894 : CheckOk 894 := checkOk_one (by decide +kernel) w894_0
+
+theorem ok895 : CheckOk 895 := checkOk_one (by decide +kernel) w895_0
 
 end
 end LeanVM.Guest.Checked

@@ -150,7 +150,7 @@ abbrev Book := Trie (List Exec.Atom)
 def keys : Exec.Atom → List ℕ
   | .instr _ (.xor _ _ c) => [c]
   | .instr _ (.mul _ _ c) => [c]
-  | .instr _ (.set o _ _ _) => [o]
+  | .instr _ (.set o _ _) => [o]
   | .instr _ (.deref _ _ o3 .cell) => [o3]
   | .instr _ (.deref o1 _ _ .fp) => [o1]
   | .instr _ (.keccak _ _ _ _ _ _ _ out _ _ _) => [out]
@@ -195,16 +195,16 @@ section Atoms
 variable (F : Exec.Facts) (B : Book) (ψ : Trie Sym)
 
 /-- The bits of a limb. -/
-def limbNat (x : E) (i : Fin 3) : ℕ := (x.limb i).toBitVec.toNat
+def limbNat (x : E) (i : Fin 2) : ℕ := (x.limb i).toBitVec.toNat
 
-/-- `fp[c]` is the word of limbs `l0, l1, l2`, by a `SET`. -/
-noncomputable def setImm (c l0 l1 l2 : ℕ) : Bool :=
+/-- `fp[c]` is the word of limbs `l0, l1`, by a `SET`. -/
+noncomputable def setImm (c l0 l1 : ℕ) : Bool :=
   (look B c).any fun a ↦ match a with
-    | .instr _ (.set o k0 k1 k2) => o == c && l0 == k0 && l1 == k1 && l2 == k2
+    | .instr _ (.set o k0 k1) => o == c && l0 == k0 && l1 == k1
     | _ => false
 
 /-- `fp[c]` is the constant `x`, by a `SET` of its limbs. -/
-noncomputable def setIs (c : ℕ) (x : E) : Bool := setImm B c (limbNat x 0) (limbNat x 1) (limbNat x 2)
+noncomputable def setIs (c : ℕ) (x : E) : Bool := setImm B c (limbNat x 0) (limbNat x 1)
 
 /-- `(x, y, z)` is a permutation of `(p, q, r)`. -/
 def perm3 (x y z p q r : ℕ) : Bool :=
@@ -242,12 +242,12 @@ noncomputable def loadOk (d p off : ℕ) : Bool :=
 
 /-- The `!=` gadget: `fp[p] = fp[x] · fp[i]` and `fp[p] = 1` (its limbs, since a module's
 kernel does not reduce `1 : E`). -/
-noncomputable def neOk (x i p : ℕ) : Bool := mulOk B p x i && setImm B p 1 0 0
+noncomputable def neOk (x i p : ℕ) : Bool := mulOk B p x i && setImm B p 1 0
 
 /-- `fp[p] = fp[q]`: one cell, or two cells `SET` to one immediate. -/
 noncomputable def setSame (p q : ℕ) : Bool :=
   p == q || (look B p).any fun a ↦ match a with
-    | .instr _ (.set o k0 k1 k2) => o == p && setImm B q k0 k1 k2
+    | .instr _ (.set o k0 k1) => o == p && setImm B q k0 k1
     | _ => false
 
 /-- `fp[a] = fp[b]` by construction: `sameOk`, `setSame`, or products `fp[x]·fp[y]`,
@@ -310,7 +310,7 @@ noncomputable def gpAt (y : ℕ) : Option ℕ :=
   match ψ.get y with
   | some (.gp e) => some e
   | _ => ((look B y).findSome? fun a ↦ match a with
-      | .instr _ (.set o k0 0 0) => bif o == y then F.pows.find k0 else none
+      | .instr _ (.set o k0 0) => bif o == y then F.pows.find k0 else none
       | _ => none)
 
 /-- `fp[x] = fp · g^e` through at most `n` products by known powers of `g` from a cell `fpgAt`
@@ -710,7 +710,7 @@ variable (B : Book)
 /-- `fp[q] = 1 + g^k`, by a `SET`: `k`. -/
 noncomputable def selConst (q : ℕ) : Option ℕ :=
   (look B q).findSome? fun a ↦ match a with
-    | .instr _ (.set o k0 k1 k2) => optIf (o == q && k1 == 0 && k2 == 0) (onePlusPow k0)
+    | .instr _ (.set o k0 k1) => optIf (o == q && k1 == 0) (onePlusPow k0)
     | _ => none
 
 /-- `fp[u] = fp[b] · (1 + g^k)` with `fp[b]·fp[b] = fp[b]`, by a `MUL`: `k`. -/
@@ -725,8 +725,8 @@ noncomputable def boolScaled (u : ℕ) : Option ℕ :=
 noncomputable def boolSel (c : ℕ) : Option ℕ :=
   (look B c).findSome? fun a ↦ match a with
     | .instr _ (.xor x y z) =>
-        optIf (z == c) ((orOpt (optIf (setImm B x 1 0 0) (boolScaled B y))
-          (optIf (setImm B y 1 0 0) (boolScaled B x))).map (· + 1))
+        optIf (z == c) ((orOpt (optIf (setImm B x 1 0) (boolScaled B y))
+          (optIf (setImm B y 1 0) (boolScaled B x))).map (· + 1))
     | _ => none
 
 /-- **A bound on a selector from booleanity**: `boolSel`, or a `MUL` of two such, `fuel` deep. -/
@@ -837,7 +837,7 @@ noncomputable def semOk (B : Book) (ne : ℕ → ℕ → Bool) (sel : Option (�
     (sems.any (fun q ↦ q.2 == s.2.map (frameCell args) &&
       (q.1 == s.1 || (Nat.ble (2 ^ 32) q.1 && impBase q.1 == s.1 && Nat.blt s.1 (2 ^ 31) &&
         Nat.blt (impPos q.1) s.2.length &&
-        setImm B (listElementOrDefault q.2 (impPos q.1) 0) (impImm q.1) 0 0))) ||
+        setImm B (listElementOrDefault q.2 (impPos q.1) 0) (impImm q.1) 0))) ||
       (s.1 == tagNe && match s.2 with
         | [a, b] => ne (frameCell args a) (frameCell args b)
         | _ => false) || selOk sel sems args s)
@@ -1333,10 +1333,6 @@ noncomputable def walkFrom (X : Fx) (env : List (ℕ × Sym)) (sel : ℕ) (succ 
     (ss : List Core.Stmt) (st : CS) : Res :=
   bif succ.isEmpty then chkL X ss st []
   else bif startsOk X.idx env succ then chainL X sel succ st.book st.psi st.bnd ss [] else .fail
-
-theorem walkFrom_nil {X : Fx} {env : List (ℕ × Sym)} {sel : ℕ} {succ : List ℕ} (h : succ = [])
-    (ss : List Core.Stmt) (st : CS) : walkFrom X env sel succ ss st = chkL X ss st [] := by
-  simp [walkFrom, h]
 
 /-- **The check of window `i`** of `f` with core function `cf` and certificate `C`: its
 executor's segments are linked, its cells are the certificate's and cover its statements, its walk

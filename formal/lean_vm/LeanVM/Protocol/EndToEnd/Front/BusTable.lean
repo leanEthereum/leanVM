@@ -37,31 +37,50 @@ open scoped NNReal ENNReal
 variable (I : M3Instance) (hI : Bus.Conditions I) (cands : Word → Set (∀ i, TheOracle I i))
   (input : I.Stmt) (layout : Verifier.Layout) {εmax : ℝ≥0∞}
 
-/-- What a read of the bus phase of the right shape is. -/
+/-- What a read of the bus phase of the right shape is, its share the bytecode's. -/
 def BusWit.Shaped (w : BusWit) : Prop :=
-  w.point.length = I.μBus ∧ w.values.length = 3 ∧ w.memory.length = 3
+  w.point.length = I.μBus ∧ w.values.length = 3 ∧ w.memory.length = 2 ∧
+    w.share = shareTotal (vecOf (2 ^ 4) w.alphas)
+      (slotValues layout.bytecode (w.point.take layout.logBytecode))
 
-instance (w : BusWit) : Decidable (w.Shaped I) := inferInstanceAs (Decidable (_ ∧ _))
+open Classical in
+noncomputable instance (w : BusWit) : Decidable (w.Shaped I layout) := Classical.dec _
+
+/-- A lead whose discount by a grind of `b` bits is within `εmax` is within it at `b = 0`. -/
+theorem grindLead_le_of_discount {b : ℕ} {X : ℝ≥0∞} (h : (2 : ℝ≥0∞)⁻¹ ^ b * X ≤ εmax) :
+    (if b = 0 then X else 0) ≤ εmax := by
+  split_ifs with hb
+  · simpa [hb] using h
+  · exact zero_le
 
 /-- **The bus phase, then the table sumcheck**: from the commitment's doom to the table seam on
-the wire. -/
+the wire. The side conditions are the bus phase's (`busThenSpec`: the fingerprint challenges'
+discounted error `hab`, the GKR's, the bytecode share's `hs`) and the table phase's
+(`tablePhaseSpec`: `ξ`'s discounted error `hxi`, the rounds' `he3`). -/
 noncomputable def busTableSpec (colOf : I.ColumnId → ℕ)
-    (fid : ∀ w : BusWit, w.Shaped I → TableFid I hI input layout colOf w) (hd : I.d ≤ 2)
+    (fid : ∀ w : BusWit, w.Shaped I layout → w.alphas.length = 2 ^ busBits →
+      TableFid I hI input layout colOf w) (hd : I.d ≤ 2)
     {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite) (hcard : ∀ W, (cands W).ncard ≤ L₀)
     (hμ : I.μBus ≠ 0)
     (hdepth : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = I.μBus)
-    (hab : abError I L₀ < 1) (he4 : roundError L₀ 4 ≤ εmax)
+    (hbc : layout.bytecode.length = 2 ^ (layout.logBytecode + busBits))
+    (hlb : layout.logBytecode ≤ I.μBus) (o₀ : ∀ i, TheOracle I i)
+    (hlt : abError I L₀ < 1)
+    (hab : (2 : ℝ≥0∞)⁻¹ ^ busGrindingBits I.μBus * (abError I L₀ + 0) ≤ εmax)
+    (he4 : roundError L₀ 4 ≤ εmax)
     (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax) (hlam : lambdaError L₀ + 0 ≤ εmax)
-    {T : ℝ≥0∞} (he3 : roundError L₀ 3 + T ≤ εmax) (hTf : T ≤ εmax)
-    (hxi : xiError I L₀ + sumcheckLead (List.replicate (layout.tableLogHeights.foldl max 0) none)
-      T ≤ εmax) :
-    Spec ((verifyBusBalance computedBytecodeValue layout).bind (tablePhaseClaims layout)) (HDoom cands (Seam.commit I) input)
-      (TablePost I cands input colOf) εmax (abError I L₀ + 0) T :=
-  busThenSpec I hI cands input layout hxi
-    (fun w ↦ if hw : w.Shaped I then
-      tablePhaseSpec I hI cands input layout colOf w (fid w hw) hd hfin hcard he3 hTf
-    else specOfFalse fun _ hp ↦ hw ⟨hp.1, hp.2.1, hp.2.2.1⟩)
-    hfin hcard hμ hdepth hab he4 hT hlam
+    (hs : roundError 1 2 + 0 ≤ εmax)
+    {T : ℝ≥0∞} (he3 : roundError L₀ 3 ≤ εmax) (hTf : T ≤ εmax)
+    (hxi : (2 : ℝ≥0∞)⁻¹ ^ xiGrindBits * (xiError I L₀ +
+      sumcheckLead (List.replicate (layout.tableLogHeights.foldl max 0) none) T) ≤ εmax) :
+    Spec ((verifyBusBalance computedBytecodeValue layout).bind (tablePhaseClaims layout))
+      (HDoom cands (Seam.commit I) input) (TablePost I cands input colOf) εmax
+      (if busGrindingBits I.μBus = 0 then abError I L₀ + 0 else 0) T :=
+  busThenSpec I hI cands input layout (grindLead_le_of_discount hxi)
+    (fun w h16 ↦ if hw : w.Shaped I layout then
+      tablePhaseSpec I hI cands input layout colOf w (fid w hw h16) hd hfin hcard he3 hTf hxi
+    else specOfFalse fun _ hp ↦ hw ⟨hp.1, hp.2.1, hp.2.2.1, hp.2.2.2.1⟩)
+    hfin hcard hμ hdepth hbc hlb o₀ hlt hab he4 hT hlam hs
 
 /-! ## The commitment's doom at the leanISA instance -/
 
@@ -80,20 +99,6 @@ def candsOf (ρ : ℕ) (A : ℕ → ℕ → ℕ) (W : Word) :
 def candsL (ρ : ℕ) (A : ℕ → ℕ → ℕ) (h : List Ev) : Set (Column (verifierLayout prog s).stackLog) :=
   {q | ∃ W, firstWord h = some W ∧
     toI prog s q ∈ EndToEnd.Candidates (leanIsaμ prog s) ρ (A (leanIsaμ prog s) ρ) W}
-
-theorem candsL_mem (ρ : ℕ) (A : ℕ → ℕ → ℕ) :
-    ∀ h q, q ∈ candsL prog s ρ A h → ∀ W, firstWord h = some W →
-      (fun _ ↦ toI prog s q) ∈ candsOf prog s ρ A W := by
-  rintro h q ⟨W', hW', hq⟩ W hW
-  rw [hW] at hW'
-  cases hW'
-  exact ⟨_, hq, rfl⟩
-
-/-- The candidates as oracles are as many as the candidates. -/
-theorem candsOf_ncard (ρ : ℕ) (A : ℕ → ℕ → ℕ) (W : Word) :
-    (candsOf prog s ρ A W).ncard =
-      (EndToEnd.Candidates (leanIsaμ prog s) ρ (A (leanIsaμ prog s) ρ) W).ncard :=
-  Set.ncard_image_of_injective _ fun _ _ h ↦ congrFun h 0
 
 /-- Every opcode table has a push block, at its row count. -/
 theorem exists_pushBlock (s : Sizes) (t : Fin 6) :

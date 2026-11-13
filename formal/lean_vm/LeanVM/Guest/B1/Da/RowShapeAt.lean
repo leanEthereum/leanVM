@@ -31,19 +31,19 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 /-- `da_row_shape`'s atoms. -/
 def rsAs : List Atom := [
-    .const (.n 3) (word 1 0 0), .add (.n 4) (.n 0) (.n 3), .hint (.inverse (.n 4) (.n 5)),
-    .assertNe (.n 4) (.n 5) (.n 6), .const (.n 7) (word 281474976776218 0 0),
-    .rangeCheck (.n 0) (.n 8) (.n 9) (.n 10) (.n 7), .const (.n 11) (word 1024 0 0),
+    .const (.n 3) (word 1 0), .add (.n 4) (.n 0) (.n 3), .hint (.inverse (.n 4) (.n 5)),
+    .assertNe (.n 4) (.n 5) (.n 6), .const (.n 7) (word 281474976776218 0),
+    .rangeCheck (.n 0) (.n 8) (.n 9) (.n 10) (.n 7), .const (.n 11) (word 1024 0),
     .rangeCheck (.n 1) (.n 12) (.n 13) (.n 14) (.n 11), .mul (.n 15) (.n 2) (.n 1),
     .load (.n 16) (.n 15) 0, .mul (.n 16) (.n 17) (.n 0),
-    .const (.n 18) (word 281474976776218 0 0), .rangeCheck (.n 17) (.n 19) (.n 20) (.n 21) (.n 18),
-    .const (.n 22) (word 140737488388109 0 0), .mul (.n 23) (.n 0) (.n 0),
-    .const (.n 24) (word 2 0 0), .mul (.n 25) (.n 16) (.n 24), .mul (.n 23) (.n 26) (.n 25),
+    .const (.n 18) (word 281474976776218 0), .rangeCheck (.n 17) (.n 19) (.n 20) (.n 21) (.n 18),
+    .const (.n 22) (word 140737488388109 0), .mul (.n 23) (.n 0) (.n 0),
+    .const (.n 24) (word 2 0), .mul (.n 25) (.n 16) (.n 24), .mul (.n 23) (.n 26) (.n 25),
     .rangeCheck (.n 26) (.n 27) (.n 28) (.n 29) (.n 22), .copy (.n 30) (.n 16),
     .copy (.n 31) (.n 17)]
 
-theorem rs_split : Fn.body Data.core28 = rsAs.map Stmt.atom ++ [.ret [.n 30, .n 31]] := by
-  rw [core25_body]; rfl
+theorem rs_split : Fn.body fn% «da_row_shape» = rsAs.map Stmt.atom ++ [.ret [.n 30, .n 31]] := by
+  rw [da_row_shape_body]; rfl
 
 theorem rs_loop : coreProgram.loop "da_row_shape" = false := by
   rw [Program.loop_of_find? find_da_row_shape]; decide +kernel
@@ -66,7 +66,7 @@ theorem row_shape_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
   obtain ⟨σ, hp, hh⟩ := (rel_iff_sem find_da_row_shape _ _).mp hrel
   rw [rs_split, holdsList_atoms_ret] at hh
   obtain ⟨hat, hr⟩ := hh
-  have hpar : Data.core28.params = [.n 0, .n 1, .n 2] := rfl
+  have hpar : (fn% «da_row_shape»).params = [.n 0, .n 1, .n 2] := rfl
   rw [hpar] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
   have h15 : σ (.n 15) = gen ^ s * gen ^ L := by

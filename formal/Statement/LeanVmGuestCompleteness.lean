@@ -34,16 +34,16 @@ declared claims at most the claims held. -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
   signatures or by entries of the children's lists, each used once: each coverage slot is written
-  once and the declared claims have one slot each (`lean_ethereum.py:4597-4598, 4602-4603`; a
-  child's list by hinted indices, `:4184-4186`, or by strictly increasing hinted gaps, every claim
-  of the list writing one mark, `:4249-4254, 4309`; the count, `:4649`), where `NodeRelation` lets
+  once and the declared claims have one slot each (`lean_ethereum.py:4773-4774, 4778-4779`; a
+  child's list by hinted indices, `:4362-4364`, or by strictly increasing hinted gaps, every claim
+  of the list writing one mark, `:4427-4432, 4487`; the count, `:4825`), where `NodeRelation` lets
   two equal claims share one holder. -/
   claimsHeldWithMultiplicity :
     statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.xmss)).flatten) ∧
     statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.sphincs)).flatten)
-  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4532`). -/
+  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4708`). -/
   atMostSixteenChildren : witness.children.length ≤ 16
   /-- At most `2^17` claims in the children's lists, in all. -/
   atMost2Pow17ChildClaims :
@@ -67,14 +67,14 @@ namespace Completeness
 
 The guest program checks a child with the deployed Keccak, so the honest proof is made with it
 (the honest prover in `Id` over `keccakF1600`); what it can fail by (a proof of work without a
-nonce within its fuel, a zero challenge where the guest program divides) is bounded in the
+nonce within its fuel, a zero where the guest program divides) is bounded in the
 random-permutation model for the same prover and check (`verifierRefusingZero`).
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each level's batching challenge `λ`, `lean_ethereum.py:1393, 1738, 1743`), so a zero one makes
-it reject a child the verifier accepts; the honest child's hypothesis refuses a zero challenge
-anywhere (`VerifierProgram.refusingZeroChallenge`), a slightly stronger one, each challenge being
-zero with probability `2^-192`. -/
+and each non-final level's batching challenge `λ`, `lean_ethereum.py:1651, 1766, 1772`), so a zero
+there makes it reject a child the verifier accepts. The honest child's hypothesis refuses a zero
+challenge anywhere (`VerifierProgram.refusingZeroChallenge`, a slightly stronger one, each
+challenge being zero with probability `2^-128`). -/
 
 /-- **`program` refusing a zero challenge**: every sampled challenge `0` fails. -/
 def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : Type} :
@@ -87,31 +87,33 @@ def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : T
   | .commit height width k => .commit height width k.refusingZeroChallenge
   | .query i ps k => .query i ps fun rows ↦ (k rows).refusingZeroChallenge
 
-/-- **The leanVM verifier refusing a zero challenge** (`VerifierProgram.refusingZeroChallenge`):
-`leanVmVerifier π` with every sampled challenge `0` a failure. -/
+/-- **The leanVM verifier refusing every zero challenge** (`VerifierProgram.refusingZeroChallenge`),
+slightly stronger than refusing a zero only where the guest program divides. -/
 def verifierRefusingZero {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
     (program : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool := do
   let seed ← spongeSeedWith π (bytecodeWords program) (publicInputDigest input)
   runProof π
-    (leanVmVerifierProgram (bytecodeWords program) (publicInputDigest input)).refusingZeroChallenge
-        seed proof
+    (do
+      verifyExecution computedBytecodeValue (bytecodeWords program) (publicInputDigest input)
+      return true : VerifierProgram Bool).refusingZeroChallenge
+    seed proof
 
 open OracleComp OracleSpec in
-/-- **The honest proof is rarely refused**: in the random-permutation model, at `2^25` nonces per
+/-- **The honest proof is rarely refused**: in the random-permutation model, at `2^35` nonces per
 proof of work, the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover.prove`)
 makes no proof, or `verifierRefusingZero` rejects its proof, of a valid execution of committed size
-at most `2^30`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`. -/
+at most `2^30`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-100`. -/
 def HonestProofRarelyRefused : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
     ValidExecution program input execution → execution.committedSize ≤ 2 ^ 30 →
     1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let accepted ← Common.runWithRandomPermutation (do
         match ← LeanVM.leanVmHonestProver Common.queryPermutation program input execution ρ (2 ^
-            25) with
+            35) with
         | none => pure false
         | some proof =>
           verifierRefusingZero Common.queryPermutation program input proof)}[accepted = false] ≤
-      (2 : ℝ≥0∞)⁻¹ ^ 126
+      (2 : ℝ≥0∞)⁻¹ ^ 100
 
 /-- **A child carrying an honest proof**: its fresh claim on the bytecode is true, and its proof
 is the honest prover's, with the deployed Keccak, of an execution of the guest program on its
@@ -126,7 +128,7 @@ def HonestChild (child : Child) : Prop :=
   let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
   child.freshClaim.Holds (bytecodeWords guestProgram) ∧
     ∃ (execution : Execution guestProgram) (ρ : ℕ),
-      LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 25) =
+      LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 35) =
         some child.proof ∧
       verifierRefusingZero (m := Id) keccakF1600 guestProgram input child.proof = true
 
@@ -234,11 +236,11 @@ def SomeChildClaimFalse (bytecode : List K) (childCountBound : ℕ) (proof : Pro
       child.freshClaim.Holds bytecode ∧ child.carriedClaim.HoldsWithShape bytecode
 
 /-- **The batching program's query bound** on child counts below `childCountBound`: the seed's two
-queries, then a quarter of the program's cost (the count, the children's cells, the challenge, the
-sumcheck's rounds and the final value). -/
+queries, then a quarter of the program's cost (the count, the children's cells, the proof of work
+and the challenge, the sumcheck's rounds and the final value). -/
 def batchingQueryBound (bytecode : List K) (childCountBound : ℕ) : ℕ :=
   2 + (rateScalars + (childCountBound * (childWordCount (Nat.log2 bytecode.length) +
-    zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 4 + 6 * Nat.log2
+    zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 5 + 4 + 6 * Nat.log2
       bytecode.length + 1)) / 4
 
 open OracleComp OracleSpec in
@@ -246,11 +248,13 @@ open OracleComp OracleSpec in
 a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries to `π` and `π⁻¹`
 outputs a proof; the probability that the batching's verifier over `π` (Keccak-256 the sponge over
 `π`) accepts it while its stream begins with fewer than `M` children of the bytecode's shapes one
-of whose claims is false is at most `(QA + QV + 1) · M · 2^-191 + 5 (QA + QV)² · 2^-256`, for
-`QA ≤ 2^128` and the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the
-adversary's private coins are free. The factor `M` is the batching's one challenge `λ`: the
-children's `2n` claims, `n < M`, are combined with its powers, and a nonzero combination of degree
-below `2M` vanishes at fewer than `2M` values of `λ` (a sumcheck round's challenge at at most `2`).
+of whose claims is false is at most `(QA + QV + 1) · max(2M - 3, 8) · 2^-130 + 5 (QA + QV)² · 2^-256`,
+for `QA ≤ 2^128` and the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the
+adversary's private coins are free. The factor `max(2M - 3, 8) · 2^-130` bounds each query's chance at
+a challenge: a sumcheck round's is bad at no more than `2` values, `2/|E| = 8 · 2^-130`; the
+batching's one challenge `λ` combines the children's `2n` claims, `n < M`, with its powers, a
+nonzero combination of degree at most `2M - 3` vanishes at no more than `2M - 3` values of `λ`, and
+a query reaches `λ` only by passing the proof of work of `batchLambdaGrindBits = 2` bits before it.
 
 This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
 the guest program's in-circuit statements, whose `KECCAK` instruction computes the deployed
@@ -267,7 +271,8 @@ def BatchingSound : Prop :=
            runBatching Common.queryPermutation (boundedBatchingProgram M bytecode) output.2
          return (output, accepted))}[
       outcome.2 = true ∧ SomeChildClaimFalse bytecode M outcome.1.2] ≤
-      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 191 +
+      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) *
+          (2 : ℝ≥0∞)⁻¹ ^ 130 +
         5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end Batch

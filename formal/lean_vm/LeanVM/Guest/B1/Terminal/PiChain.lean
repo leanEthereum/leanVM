@@ -1,20 +1,21 @@
 /-
   LeanVM.Guest.B1.Terminal.PiChain
 
-  The public input's chain of `check_opening_terminal` (G:3245-3250): `__loop14` and the products
-  it writes.
+  The public input's chain of `check_opening_terminal` (G:3421-3426): `check_opening_terminal_loop0`
+  and the products it writes.
 -/
 
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.B1.Terminal.Template
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The public input's chain
 
 `check_opening_terminal` writes `pi_chain[0] = 1`, `pi_chain[1] = rm + point1[0]` and runs
-`__loop14` (`mul_range(GEN, g_log_mem)`), whose body at `x = g^k` writes
+`check_opening_terminal_loop0` (`mul_range(GEN, g_log_mem)`), whose body at `x = g^k` writes
 `pi_chain[k + 1] = pi_chain[k]·point1[k]`. `piChain_value`: for `1 ≤ k ≤ m`, `pi_chain[k]` is
 `(rm + point1[0])·Π_{0 < i < k} point1[i]`.
 -/
@@ -28,25 +29,25 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier Finset
 
 variable {rd : Reader}
 
-/-- `__loop14`'s body. -/
+/-- `check_opening_terminal_loop0`'s body. -/
 def loop15T : List Stmt :=
   [.atom (.mul (.n 4) (.n 2) (.n 0)), .atom (.load (.n 5) (.n 4) 0),
     .atom (.mul (.n 6) (.n 3) (.n 0)), .atom (.load (.n 7) (.n 6) 0),
     .atom (.mul (.n 8) (.n 5) (.n 7)), .atom (.mul (.n 9) (.n 2) (.n 0)),
-    .atom (.load (.n 8) (.n 9) 1), .atom (.const (.n 10) (word 2 0 0)),
+    .atom (.load (.n 8) (.n 9) 1), .atom (.const (.n 10) (word 2 0)),
     .atom (.mul (.n 11) (.n 0) (.n 10)), .atom (.add (.n 12) (.n 11) (.n 1)),
-    .atom (.const (.n 13) (word 2 0 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
-    .callIf (.n 12) "__loop14" [.n 14, .n 1, .n 2, .n 3], .ret []]
+    .atom (.const (.n 13) (word 2 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
+    .callIf (.n 12) name% «check_opening_terminal_loop0» [.n 14, .n 1, .n 2, .n 3], .ret []]
 
-/-- `__loop14`, found by name, has four parameters and the body `loop15T`. -/
+/-- `check_opening_terminal_loop0`, found by name, has four parameters and the body `loop15T`. -/
 noncomputable def loop15Check : Bool :=
-  match coreProgram.find? "__loop14" with
+  match coreProgram.find? name% «check_opening_terminal_loop0» with
   | some fn => decide (fn.params = [.n 0, .n 1, .n 2, .n 3]) && stmtsEqb fn.body loop15T
   | none => false
 
 theorem loop15Check_eq : loop15Check = true := by decide +kernel
 
-theorem loop15Found : ∃ fn : Fn, coreProgram.find? "__loop14" = some fn ∧
+theorem loop15Found : ∃ fn : Fn, coreProgram.find? name% «check_opening_terminal_loop0» = some fn ∧
     fn.params = [.n 0, .n 1, .n 2, .n 3] ∧ fn.body = loop15T := by
   have h := loop15Check_eq
   unfold loop15Check at h
@@ -61,11 +62,12 @@ def PiStep (rd : Reader) (chain p1 x : E) : Prop :=
   ∃ a b : E, LoadHolds rd (chain * x) 0 a ∧ LoadHolds rd (p1 * x) 0 b ∧
     LoadHolds rd (chain * x) 1 (a * b)
 
-/-- **`__loop14`'s step.** -/
+/-- **`check_opening_terminal_loop0`'s step.** -/
 theorem loop15_step (d : ℕ) (x N chain p1 : E)
-    (h : coreProgram.relN rd (d + 1) "__loop14" [x, N, chain, p1] []) :
+    (h : coreProgram.relN rd (d + 1) name% «check_opening_terminal_loop0» [x, N, chain, p1] []) :
     PiStep rd chain p1 x ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop14" [x * gen, N, chain, p1] []) := by
+      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «check_opening_terminal_loop0» [x * gen, N,
+          chain, p1] []) := by
   obtain ⟨fn, hf, σ, hpar, hb⟩ := h
   obtain ⟨fn', hf', hp', hb'⟩ := loop15Found
   rw [hf'] at hf

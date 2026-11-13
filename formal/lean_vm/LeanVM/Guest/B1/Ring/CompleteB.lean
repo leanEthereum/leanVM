@@ -10,15 +10,16 @@ module
 public import LeanVM.Guest.B1.Ring.WeightComplete
 public import LeanVM.Guest.B1.Tables.FlatAtT
 public import LeanVM.Guest.Memory.SizeTotal
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The ring switch, placed, within a bound
 
 `rst_completeAtB`, `rsw_completeAtB`: `rst_completeAt`, `rsw_completeAt` with the size bounded
 before the memory (B1-c's `completeAt_flatDTB`, forgetting the tree's shape). Their only callee is
-a pure loop (`__loop13`) or a pure function (`rs_eq_run`) whose words are a hypothesis
-(`TotalLeOn`, fs-generic): `__loop13` called from `1` (its end the constant `g^8`), `rs_eq_run` on
-`count` coordinates (its last argument `g^count`).
+a pure loop (`ring_switch_target_loop0`) or a pure function (`rs_eq_run`) whose words are a
+hypothesis (`TotalLeOn`, fs-generic): `ring_switch_target_loop0` called from `1` (its end the
+constant `g^8`), `rs_eq_run` on `count` coordinates (its last argument `g^count`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -32,36 +33,40 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- **`ring_switch_target` is complete, placed, within `fs "ring_switch_target" + 18 + B14`**: its
-frame, its chain (`18` words) and `__loop13`'s words, at most `B14` when called from `1` (`hl14`;
-at `B2C.fs` its words certificate gives `7 · 1322`). -/
+/-- **`ring_switch_target` is complete, placed, within `fs "ring_switch_target" + 72 + B14`**: its
+frame, its chain (`72` words) and `ring_switch_target_loop0`'s words, at most `B14` when called from
+`1`
+(`hl14`). -/
 theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length = 64)
-    (hc : chs.length = 6) {B14 : ℕ}
-    (hl14 : TotalLeOn coreProgram fs "__loop13" (fun a => a.getD 0 0 = 1) fun _ => B14) :
+    (hc : chs.length = 16) {B14 : ℕ}
+    (hl14 : TotalLeOn coreProgram fs name% «ring_switch_target_loop0» (fun a => a.getD 0 0 = 1) fun
+        _ => B14) :
     CompleteAtB fs cert κ "ring_switch_target" [(bs, s), (bm, chs)]
       [ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex bm)]
-      (Returns [polyEval (s.map (phiMap · chs)) gen]) (fs "ring_switch_target" + 18 + B14) := by
-  have e : fs "ring_switch_target" + 18 + B14 = fs "ring_switch_target" + [18].sum + B14 := by simp
+      (Returns [ringTarget s (chs.take ringMapWidth) (chs.drop ringMapWidth)])
+      (fs "ring_switch_target" + 72 + B14) := by
+  have e : fs "ring_switch_target" + 72 + B14 = fs "ring_switch_target" + [72].sum + B14 := by simp
   rw [e]
   refine B1.CompleteAtDTB.toCompleteAtB (completeAt_flatDTB (fs := fs) (cert := cert) find_rst
-    rst_not_loop κ _ _ _ rst_body' rst_flat rst_addrs [18] (fun _ ↦ [chainWords s chs]) (fun _ ↦ by simp [chainWords_length])
-    (fun fp ↦ [⟨"__loop13", true, [1, ofK (Parameters.addressOfIndex bs), ofK
-        (Parameters.addressOfIndex bm),
-      ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))], l14Lin bs bm (fp + fs "ring_switch_target") s chs, Returns []⟩])
+    rst_not_loop κ _ _ _ rst_body' rst_flat rst_addrs [72] (fun _ ↦ [chainWords s (chs.drop 8)])
+    (fun _ ↦ by simp [chainWords_length])
+    (fun fp ↦ [⟨name% «ring_switch_target_loop0», true, [1, ofK (Parameters.addressOfIndex bm),
+      ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))],
+      l13Lin bs bm (fp + fs "ring_switch_target") s chs, Returns []⟩])
     (fun _ => True) [fun _ => True] [B14] B14 ?_ (fun _ => by simp [kidsBoundL]) (fun _ => le_rfl)
     ?_ ?_ ?_)
   · -- the loop, placed, within `B14`
     intro fp
     refine ⟨fun _ => ?_, trivial⟩
-    exact completeAtDTB_of_relIn l14_pure (List.mem_singleton_self _)
+    exact completeAtDTB_of_relIn l13_pure (List.mem_singleton_self _)
       (fun rd t rets' hn hv hb => hl14 rd t _ rets' hn rfl hv hb)
-      fun rd _ hL ↦ l14_relIn_lin hs hc hL
+      fun rd _ hL ↦ l13_relIn_lin hs hc hL
   · -- the loop's words: the caller's and the chain
     intro fp k hk _ i hi
     rw [List.mem_singleton] at hk
     subst hk
     obtain ⟨q, hq, hi⟩ := hi
-    simp only [l14Lin, List.mem_cons, List.not_mem_nil, or_false] at hq
+    simp only [l13Lin, List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
     · exact Or.inl ⟨_, by simp, hi⟩
     · exact Or.inl ⟨_, by simp, hi⟩
@@ -70,91 +75,21 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
     rw [List.mem_singleton] at hk
     subst hk
     intro q hq
-    simp only [l14Lin, List.mem_cons, List.not_mem_nil, or_false] at hq
+    simp only [l13Lin, List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
     · exact hLin (bs, s) (by simp)
     · exact hLin (bm, chs) (by simp)
-    · exact hB (fp + fs "ring_switch_target", chainWords s chs) (by simp [bufL, bases])
+    · exact hB (fp + fs "ring_switch_target", chainWords s (chs.drop 8)) (by simp [bufL, bases])
   · -- the honest valuation
     intro fp outs ho rd _ hB hLin
-    have hsl : ReadsAt rd (ofK (Parameters.addressOfIndex bs)) s := hLin (bs, s) (by simp)
-    have hmc : ReadsAt rd (ofK (Parameters.addressOfIndex bm)) chs := hLin (bm, chs) (by simp)
-    have hch : ReadsAt rd (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))) (chainWords s chs) :=
-      hB (fp + fs "ring_switch_target", chainWords s chs) (by simp [bufL, bases])
     rcases outs with _ | ⟨o, _ | ⟨o', os⟩⟩
     · exact absurd ho (by simp [OutsOk])
     swap
     · exact absurd ho.2 (by simp [OutsOk])
     obtain ⟨ho', -⟩ := ho
     obtain ⟨ho1, -⟩ := ho' rfl
-    have hw16 : word 65536 0 0 = gen ^ 16 := by
-      rw [show (65536 : ℕ) = 2 ^ 16 from rfl]; exact word_two_pow (by decide)
-    refine ⟨rstσ (ofK (Parameters.addressOfIndex bs)) (ofK (Parameters.addressOfIndex bm))
-      (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))) (polyEval (s.map (phiMap · chs)) gen), rfl, ?_, ?_, ?_, ?_,
-      ?_, ?_, trivial⟩
-    · intro st hst
-      simp only [rstPre, List.mem_cons, List.not_mem_nil, or_false] at hst
-      rcases hst with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> trivial
-    · rw [rst_body']
-      refine Fwd.holdsList_straight _ _ _ _ (fun st hst ↦ ?_) rfl
-      simp only [rstPre, List.mem_cons, List.not_mem_nil, or_false] at hst
-      rcases hst with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-      · trivial
-      · rfl
-      · show LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))) 0
-          (word 1 0 0)
-        have := chain_load hch (k := 0) (by norm_num)
-        simpa [word_one] using this
-      · rfl
-      · show LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))) 1
-          (word 0 0 0)
-        have := chain_load hch (k := 1) (by norm_num)
-        simpa [word_zero, runL] using this
-      · rfl
-      · show coreProgram.Rel rd "__loop13" [word 1 0 0, ofK (Parameters.addressOfIndex bs),
-          ofK (Parameters.addressOfIndex bm), ofK (Parameters.addressOfIndex (fp + fs
-              "ring_switch_target"))] []
-        rw [word_one]
-        exact (l14_relIn_lin hs hc (fun q hq ↦ by
-          simp only [l14Lin, List.mem_cons, List.not_mem_nil, or_false] at hq
-          rcases hq with rfl | rfl | rfl
-          · exact hsl
-          · exact hmc
-          · exact hch)).rel
-      · rfl
-      · rfl
-      · show LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target")) * word
-          65536 0 0) 1
-          (polyEval (s.map (phiMap · chs)) gen)
-        rw [hw16, loadHolds_mul_gen_pow, ← runL_eight hs]
-        have := chain_load hch (k := 17) (by norm_num)
-        simpa using this
-    · rw [rst_allocs]; rfl
-    · rw [rst_allocs]; rfl
-    · unfold flatCalls
-      rw [rst_callSF]
-      refine ⟨rfl, rfl, fun _ ↦ ⟨?_, ?_⟩, trivial⟩
-      · change [word 1 0 0, ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex bm),
-          ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target"))] = _
-        rw [word_one]
-      · change [] = o.1
-        rw [ho1]
-    · intro q hq
-      replace hq := filterMap_of_loadsEv (by decide +kernel) hq
-      rw [rst_loads] at hq
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
-      rcases hq with rfl | rfl | rfl
-      · exact ⟨fp + fs "ring_switch_target" + 0, Main.addr_ofK _ _, Or.inr
-          ⟨(fp + fs "ring_switch_target", chainWords s chs), by simp [bufL, bases],
-            by simp [chainWords_length]⟩⟩
-      · exact ⟨fp + fs "ring_switch_target" + 1, Main.addr_ofK _ _, Or.inr
-          ⟨(fp + fs "ring_switch_target", chainWords s chs), by simp [bufL, bases],
-            by simp [chainWords_length]⟩⟩
-      · refine ⟨fp + fs "ring_switch_target" + 16 + 1, ?_, Or.inr
-          ⟨(fp + fs "ring_switch_target", chainWords s chs), by simp [bufL, bases],
-            by simp only [chainWords_length]; omega⟩⟩
-        show (ofK (Parameters.addressOfIndex (fp + fs "ring_switch_target")) * word 65536 0 0).limb 0 * Parameters.addressOfIndex 1 = _
-        rw [hw16, rt_addr_mul]
+    obtain ⟨σ, h1, h2, h3, h4, h5, h6, h7⟩ := rst_hσ hs hc fp rd hB hLin o ho1
+    exact ⟨σ, h1, h2, h3, h4, h5, h6, h7, trivial⟩
 
 
 /-- **`ring_switch_weight` is complete, placed, within
@@ -275,7 +210,7 @@ theorem rsw_completeAtB (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (h
       · show [σ (.n 77)] = o.1
         rw [ho1, e77]
     · intro q hq
-      obtain ⟨hoff, hp'⟩ := rsw_loads_ok (filterMap_of_loadsEv (by decide +kernel) hq)
+      obtain ⟨hoff, hp'⟩ := rsw_loads_ok (rt_filterMap_of_loadsEv (by decide +kernel) hq)
       rcases hp' with h | h | h <;> rw [h]
       · rw [e2, Main.addr_ofK]
         exact ⟨_, rfl, Or.inl ⟨(bc, cs), by simp, by simp [hc]; omega⟩⟩

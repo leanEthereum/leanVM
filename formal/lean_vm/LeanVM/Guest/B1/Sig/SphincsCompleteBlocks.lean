@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsCompleteBlocks
 
   The completeness of `verify_sig_lean_sphincs`'s FORS block and of a layer of its hypertree
-  (`lean_ethereum.py:3813-3948, 4031-4036` at leanVM main 40f877dc), as the statements its assembly
+  (`lean_ethereum.py:4005-4140, 4223-4228`), as the statements its assembly
   consumes; the byte table's pointers.
 -/
 
@@ -23,11 +23,11 @@ from the completeness of each block (`Completes`: a valuation extending the give
 block's fresh values, under which the block holds): the digest block's (`sDigestBlock_complete`)
 and `sp_from_bytes`'s (`sFromMarks_complete`), and the two stated here:
 
-* `ForsBlockCompletes` (`sForsB`, `G:4031-4036`): at the bottom key's `A0` and `A1`, the leaves `s c`
+* `ForsBlockCompletes` (`sForsB`, `G:4223-4228`): at the bottom key's `A0` and `A1`, the leaves `s c`
   (their bits, and their shifts with the trees' places, `fIdx`), any secrets and siblings, the FORS
   key is `T_k` of the roots
   (`forsRootCell`);
-* `HtLayerCompletes` (`sHtLayer`, `G:3941-3948`): a layer whose `sp_wots` call holds of the
+* `HtLayerCompletes` (`sHtLayer`, `G:4133-4140`): a layer whose `sp_wots` call holds of the
   encoding (`encDigestCell`) and a leaf `lv` reaches `pFold` of `pNodeE` from `lv`, along any
   siblings;
 * `SphincsBlocksComplete`: the two.
@@ -99,15 +99,14 @@ theorem hintRun_complete (σ : Val) (s : String) (b n : Nat) (f : Nat → E) :
 
 /-- **FORS completes** (`sForsB`, from `n1382` to `n5249`): at the bottom key's `A0` (`tree`) and
 `A1` (`kp`), the leaves `s c` read off the digest's bits and `vals` (their shifts with the trees'
-places, the FIPS 205 tree indices `fIdx c z (s c)`), any canonical secrets and siblings, the FORS key is `T_k` of `P`, `A0`, `FORS_ROOTS` and the roots. -/
+places, the FIPS 205 tree indices `fIdx c z (s c)`), any secrets and siblings, the FORS key is `T_k` of `P`, `A0`, `FORS_ROOTS` and the roots. -/
 def ForsBlockCompletes : Prop :=
   ∀ (C : CallRel) (rd : Reader) (σ : Val) (tree kp : Nat) (s : Nat → Nat) (secret : Nat → E)
     (sib : Nat → Nat → E),
-    PadOK σ sPad → IsCanonical128 (σ sPP) → σ sA0B = adrsCell0 0 tree →
+    PadOK σ sPad → σ sA0B = adrsCell0 0 tree →
     σ sKeyB = adrsCell1 0 kp 0 0 → (∀ c < 24, s c < 2 ^ 10) →
     (∀ c < 24, ∀ z < 10, σ (sForsBit (10 * c + z)) = if (s c).testBit z then 1 else 0) →
     (∀ c < 24, ∀ z < 10, σ (sVals (10 * c + z)) = eOfNat (fIdx c z (s c))) →
-    (∀ c, IsCanonical128 (secret c)) → (∀ c z, IsCanonical128 (sib c z)) →
       Completes C rd 1382 5249 sForsB.1 σ (fun σ' => σ' sForsPk =
         (hcell ([σ sPP, adrsCell0 0 tree, adrsCell1 4 kp 0 0] ++
           List.ofFn fun c : Sphincs.ForsTreeIndex =>
@@ -115,23 +114,20 @@ def ForsBlockCompletes : Prop :=
               (sib c.val))).1)
 
 /-- **A layer completes after its counter** (`sHtLayer` of layer `l` from `b`): its key's `A0`
-and `A1`, the value it signs and the counter's cell (`N`'s bytes reversed) canonical, the call
-relation holding of `sp_wots` on the encoding's digest (`encDigestCell`) returning a canonical
-`lv`, the leaf `e` read off the digest's bits and shifts, and any canonical siblings, the layer's
-root is `pFold` of `pNodeE` from `lv`. -/
+and `A1`, the value it signs and the counter's cell (`N`'s bytes reversed), the call relation
+holding of `sp_wots` on the encoding's digest (`encDigestCell`) returning `lv`, the leaf `e` read
+off the digest's bits and shifts, and any siblings, the layer's root is `pFold` of `pNodeE` from
+`lv`. -/
 def HtLayerCompletes : Prop :=
   ∀ (C : CallRel) (rd : Reader) (σ : Val) (l : Nat) (a0 a1 signed ctr : V) (b : Nat) (lv : E)
     (e : Nat) (sib : Nat → E),
     l < 3 → 1372 ≤ b → NBv b a0 → NBv b a1 → NBv b signed → NBv b ctr → PadOK σ sPad →
-    IsCanonical128 (σ sPP) → IsCanonical128 (σ a0) → IsCanonical128 (σ a1) →
-    IsCanonical128 (σ signed) → (∃ N < 2 ^ 32, σ ctr = eOfNat (beWordAt 0 N)) →
-    IsCanonical128 lv →
+    (∃ N < 2 ^ 32, σ ctr = eOfNat (beWordAt 0 N)) →
     C "sp_wots" [σ sPP, σ a0, σ a1,
       encDigestCell (σ sPP) (σ a0) (σ a1 + lit (7 * 2 ^ 24)) (σ signed) (σ ctr)] [lv] →
     e < 2 ^ sHeightOf l →
     (∀ z < sHeightOf l, σ (sLeafBit (sOffOf l + z)) = if e.testBit z then 1 else 0) →
     (∀ z < sHeightOf l, σ (sLVal (sOffOf l + z)) = eOfNat (e >>> z)) →
-    (∀ z, IsCanonical128 (sib z)) →
       Completes C rd b (sHtLayer sPad sPP a0 a1 signed ctr sLeafBit sLVal (sOffOf l) (sHeightOf l) b).2.1
         (sHtLayer sPad sPP a0 a1 signed ctr sLeafBit sLVal (sOffOf l) (sHeightOf l) b).1 σ
         (fun σ' => σ' (sHtLayer sPad sPP a0 a1 signed ctr sLeafBit sLVal (sOffOf l) (sHeightOf l) b).2.2 =

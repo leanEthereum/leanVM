@@ -28,12 +28,12 @@ namespace Dec
 
 /-- Equality of words by their limbs. -/
 scoped instance (priority := high) eDecEq : DecidableEq E := fun a b =>
-  decidable_of_iff (a.limb 0 = b.limb 0 ∧ a.limb 1 = b.limb 1 ∧ a.limb 2 = b.limb 2) (by
+  decidable_of_iff (a.limb 0 = b.limb 0 ∧ a.limb 1 = b.limb 1) (by
     constructor
-    · rintro ⟨h0, h1, h2⟩
-      rw [← ofLimbs_limb a, ← ofLimbs_limb b, h0, h1, h2]
+    · rintro ⟨h0, h1⟩
+      rw [← ofLimbs_limb a, ← ofLimbs_limb b, h0, h1]
     · rintro rfl
-      exact ⟨rfl, rfl, rfl⟩)
+      exact ⟨rfl, rfl⟩)
 
 end Dec
 
@@ -145,14 +145,6 @@ def matchArms : Stmt → List (List Stmt)
 theorem eq_of_match {s t : Stmt} (hs : isMatch s = true) (ht : isMatch t = true)
     (hx : matchVar s = matchVar t) (ha : matchArms s = matchArms t) : s = t := by
   cases s <;> cases t <;> simp_all [isMatch, matchVar, matchArms]
-
-/-- A one-element slice of two lists agreeing at the index. -/
-theorem take_one_of_getD {α : Type} [Inhabited α] {l r : List α} {i : Nat}
-    (h : l.getD i default = r.getD i default) (hl : i < l.length) (hr : i < r.length) :
-    (l.drop i).take 1 = (r.drop i).take 1 := by
-  rw [List.getD_eq_getElem _ _ hl, List.getD_eq_getElem _ _ hr] at h
-  rw [List.take_one_drop_eq_of_lt_length hl, List.take_one_drop_eq_of_lt_length hr]
-  simpa using h
 
 namespace Dec
 

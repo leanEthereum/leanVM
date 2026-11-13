@@ -18,7 +18,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Guest.Value
 #guard bitsVal (Nat.testBit 0b1011) 4 = 11
 #guard (∑ i ∈ Finset.range 4, bitE (Nat.testBit 11 i) * coordBasis i) = eOfNat 11
 #guard (∑ i ∈ Finset.range 4, bitE (Nat.testBit 11 i) * coordBasis (62 + i)) =
-  eOfNat192 (2 ^ 62 * 11)
+  eOfNat128 (2 ^ 62 * 11)
 #guard (∏ j ∈ Finset.range 4, (1 + bitE (Nat.testBit 11 j) * (gen ^ 2 ^ j + 1))) = gen ^ 11
 -- Without booleanity the bits are not unique: `x·e_0 = e_1`, and `x` fails `b·b = b`.
 #guard eOfNat 2 * coordBasis 0 + 0 * coordBasis 1 = 0 * coordBasis 0 + 1 * coordBasis 1
@@ -29,7 +29,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Guest.Value
 example : max 0 (log2Ceil 5) = 3 ∧ max 4 (log2Ceil 5) = 4 ∧ log2Ceil 8 = 3 ∧ log2Ceil 0 = 0 := by
   decide
 -- For `W = 5` the guest's product `(E(W mod 2^L) + E(W))·(E(W) + E(2^L))` vanishes at `L = 3`
--- and not at `L = 2`: so `L = 3` passes the upper bound (G:692) and the minimality (G:699, at
+-- and not at `L = 2`: so `L = 3` passes the upper bound (G:679) and the minimality (G:686, at
 -- `L - 1 = 2`), `L = 2` fails the upper bound, and `L = 4` fails the minimality (at `L - 1 = 3`).
 #guard (eOfNat (5 % 2 ^ 3) + eOfNat 5) * (eOfNat 5 + eOfNat (2 ^ 3)) = 0
 #guard (eOfNat (5 % 2 ^ 2) + eOfNat 5) * (eOfNat 5 + eOfNat (2 ^ 2)) ≠ 0

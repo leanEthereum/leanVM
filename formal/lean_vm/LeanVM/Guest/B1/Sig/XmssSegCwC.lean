@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegCwC
 
-  The dispatches of leanXMSS's codeword inline in `__loop2` complete: an arm `k` below `4^n` is
+  The dispatches of leanXMSS's codeword inline in `main_loop2` complete: an arm `k` below `4^n` is
   `armT`'s, and a group's dispatch completes by the arm of its honest digits.
 -/
 
@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Sig.XmssSegArms
   are `armsT`'s;
 * `armsM_append`: the arms of a table split at an arm;
 * `matchArm_complete`: a dispatch on `d` whose arm `k` is `armT`'s from `armB … k`, its chains'
-  starts `vals` loaded: the arm's atoms, its tips canonical and its starts kept, the step's reads
+  starts `vals` loaded: the arm's atoms and its starts kept, the step's reads
   (`good`) kept.
 -/
 
@@ -69,17 +69,16 @@ theorem armsM_append (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (
 /-- **A group's dispatch completes** by arm `k`, `armT`'s from `armB … k`, its starts `vals`
 loaded, the dispatch's end `Ee` past the arms. -/
 theorem matchArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
-    (hc : StepCanon W B good) (hWa : StepAtoms W) {first n : Nat} {fold : Bool} {prodIn encIn : V}
+    (hc : GoodStable B good) (hWa : StepAtoms W) {first n : Nat} {fold : Bool} {prodIn encIn : V}
     {b k d Ee : Nat} {arms : List (List Stmt)} (hk : k < 4 ^ n) (hB : B ≤ b + 6) (hpi : NBv B prodIn)
     (hei : NBv B encIn) (hpw : NBv B (W.power (digitSum k n))) (hkl : k < arms.length)
     (harm : arms[k] = (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b)
       (encT W fold n b) k (armB W first n fold prodIn encIn b k)).1)
     (hE : armB W first n fold prodIn encIn b (4 ^ n) ≤ Ee) (hd : d < b + 6) (vals : Nat → E)
-    (hv : ∀ t < n, IsCanonical128 (vals t)) (σ : Val) (hg : good σ)
+    (σ : Val) (hg : good σ)
     (hx : σ (.n d) = ofK (addressOfIndex k)) :
     Completes C rd (b + 6) Ee [.match_ (.n d) arms] σ
-      (fun σ' => good σ' ∧ (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
-        (∀ t < n, σ' (grpPos W first n fold prodIn encIn b k t) = vals t) ∧
+      (fun σ' => good σ' ∧ (∀ t < n, σ' (grpPos W first n fold prodIn encIn b k t) = vals t) ∧
         AtomsHold rd σ' (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b)
           (encT W fold n b) k (armB W first n fold prodIn encIn b k)).1) := by
   set σr := sLoad (grpPos W first n fold prodIn encIn b k) vals σ n with hσr
@@ -94,21 +93,17 @@ theorem matchArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
       exact hv j h1 h2 e
   have hat : ∀ t < n, σr (grpPos W first n fold prodIn encIn b k t) = vals t :=
     sLoad_at _ vals σ n (fun a c h1 h2 => grpPos_ne hk h1 h2)
-  have hgr : good σr := hc.1 _ _ (fun j hj => (hext.apply (Or.inl (by omega))).symm) hg
+  have hgr : good σr := hc _ _ (fun j hj => (hext.apply (Or.inl (by omega))).symm) hg
   have hxr : σr (.n d) = ofK (addressOfIndex k) := by rw [hext.apply (Or.inl hd)]; exact hx
   refine Completes.reload (hext.mono le_rfl hE) (match_complete hkl ⟨d, hd, rfl⟩ hxr ?_)
   rw [harm]
   obtain ⟨σ', he', hp', hh'⟩ := groupArm_complete (C := C) (rd := rd) (first := first) (n := n)
-    (fold := fold) (prodIn := prodIn) (encIn := encIn) (b := b) (k := k) hW hc hk hB hpi hei hpw σr hgr
-    (fun t ht => by
-      show IsCanonical128 (σr (grpPos W first n fold prodIn encIn b k t))
-      rw [hat t ht]
-      exact hv t ht)
-  refine ⟨σ', he'.mono le_rfl hE, ⟨hc.1 _ _ (fun j hj => (he'.apply (Or.inl (by omega))).symm) hgr,
-    hp'.2.1, fun t ht => ?_, atomsHold_of_holdsList (armT_atoms hWa ..)
+    (fold := fold) (prodIn := prodIn) (encIn := encIn) (b := b) (k := k) hW hk hB hpi hei hpw σr
+  refine ⟨σ', he'.mono le_rfl hE, ⟨hc _ _ (fun j hj => (he'.apply (Or.inl (by omega))).symm) hgr,
+    fun t ht => ?_, atomsHold_of_holdsList (armT_atoms hWa ..)
       (hh' True (fun _ => True) trivial)⟩, hh'⟩
   obtain ⟨j, ej, -⟩ := hpos t ht
-  rw [hp'.1, ej, fwd_hint_keep _ σr hp'.2.2
+  rw [hp'.1, ej, fwd_hint_keep _ σr hp'.2
     (armStart_mem W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) k
       (armB W first n fold prodIn encIn b k) ht) (.n j) (by rw [← ej]; exact List.mem_singleton_self _),
     ← ej, hat t ht]

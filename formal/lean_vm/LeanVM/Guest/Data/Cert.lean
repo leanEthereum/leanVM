@@ -12,6 +12,8 @@ public import LeanVM.Guest.Data.Cert01
 public import LeanVM.Guest.Data.Cert02
 public import LeanVM.Guest.Data.Cert03
 public import LeanVM.Guest.Data.Cert04
+public import LeanVM.Guest.Data.Cert05
+public import LeanVM.Guest.Data.Cert06
 public import LeanVM.Guest.Data.Cert37_0
 public import LeanVM.Guest.Data.Cert37_1
 
@@ -130,7 +132,12 @@ noncomputable def certs : List Check.Cert :=
   cert1472 :: cert1473 :: cert1474 :: cert1475 :: cert1476 :: cert1477 :: cert1478 :: cert1479 :: cert1480 :: cert1481 :: cert1482 :: cert1483 :: cert1484 :: cert1485 :: cert1486 :: cert1487 ::
   cert1488 :: cert1489 :: cert1490 :: cert1491 :: cert1492 :: cert1493 :: cert1494 :: cert1495 :: cert1496 :: cert1497 :: cert1498 :: cert1499 :: cert1500 :: cert1501 :: cert1502 :: cert1503 ::
   cert1504 :: cert1505 :: cert1506 :: cert1507 :: cert1508 :: cert1509 :: cert1510 :: cert1511 :: cert1512 :: cert1513 :: cert1514 :: cert1515 :: cert1516 :: cert1517 :: cert1518 :: cert1519 ::
-  cert1520 :: cert1521 :: cert1522 :: cert1523 :: cert1524 :: cert1525 :: cert1526 :: cert1527 :: cert1528 :: cert1529 :: cert1530 :: cert1531 :: cert1532 :: cert1533 :: cert1534 :: cert1535 :: []
+  cert1520 :: cert1521 :: cert1522 :: cert1523 :: cert1524 :: cert1525 :: cert1526 :: cert1527 :: cert1528 :: cert1529 :: cert1530 :: cert1531 :: cert1532 :: cert1533 :: cert1534 :: cert1535 ::
+  cert1536 :: cert1537 :: cert1538 :: cert1539 :: cert1540 :: cert1541 :: cert1542 :: cert1543 :: cert1544 :: cert1545 :: cert1546 :: cert1547 :: cert1548 :: cert1549 :: cert1550 :: cert1551 ::
+  cert1552 :: cert1553 :: cert1554 :: cert1555 :: cert1556 :: cert1557 :: cert1558 :: cert1559 :: cert1560 :: cert1561 :: cert1562 :: cert1563 :: cert1564 :: cert1565 :: cert1566 :: cert1567 ::
+  cert1568 :: cert1569 :: cert1570 :: cert1571 :: cert1572 :: cert1573 :: cert1574 :: cert1575 :: cert1576 :: cert1577 :: cert1578 :: cert1579 :: cert1580 :: cert1581 :: cert1582 :: cert1583 ::
+  cert1584 :: cert1585 :: cert1586 :: cert1587 :: cert1588 :: cert1589 :: cert1590 :: cert1591 :: cert1592 :: cert1593 :: cert1594 :: cert1595 :: cert1596 :: cert1597 :: cert1598 :: cert1599 ::
+  cert1600 :: cert1601 :: []
 
 end
 end LeanVM.Guest.Data

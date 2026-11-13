@@ -1,4 +1,5 @@
 import LeanVM.Cost.Decoder.Frames
+import LeanVMTests.Runs
 
 /-!
 # Tests: the signature and proof readers off arrays, against the readers they restate
@@ -13,7 +14,8 @@ the valuation a `g^k` computed, so its reads dominate): leanXMSS `612868 → 199
 `sp_wots`' tables at each call); the tables are built once per decoding at `16721` (`readerTabsC`).
 The child proof's reader is checked for its value only, against `vsPiOfA whirTabs`, which
 `vsPiOfA_tabs` proves is `vsPiOfN`: the restated `vsPiOfN` reads each position's bits off the
-windows by `gLog7`, a search of `128` powers of `g` per bit, too slow to run here.
+windows by `gLog7`, a search of `128` powers of `g` per bit, too slow to run here; and the reader
+is a run, compiled (`lake exe test-runs`).
 -/
 
 namespace LeanVMTests.Cost.DecoderReaders
@@ -62,14 +64,16 @@ def sphincsOld := runOn (sphincsOldC.costDeps ++ powSigmaC.costDeps ++ powFrames
   sphincsOldC.costIdx [sigmaV, vnV]
 
 def vsDeps := powSigmaC.costDeps ++ bitReaderC.costDeps ++ powFramesC.costDeps ++ cursor5C.costDeps
-def vsNew := runOn (vsPiOfNC.costDeps ++ vsDeps) vsPiOfNC.costIdx
-  [encodeValue whirTabs, rdV, sigmaV, vnV, clV]
 
 #guard (xmssNew.map (·.1)) == some (encodeValue (xmssSigOfN powSigma))
 #guard (xmssOld.map (·.1)) == some (encodeValue (xmssSigOfN powSigma))
 #guard (sphincsNew.map (·.1)) == some (encodeValue (sphincsSigOfN powSigma powFrames))
 #guard (sphincsOld.map (·.1)) == some (encodeValue (sphincsSigOfN powSigma powFrames))
-#guard (vsNew.map (·.1)) == some (encodeValue (vsPiOfA whirTabs bitReader powSigma powFrames cursor5))
+test_runs runs := [
+  ("vsPiOfNC is vsPiOfA whirTabs", fun _ ↦
+    ((runOn (vsPiOfNC.costDeps ++ vsDeps) vsPiOfNC.costIdx
+        [encodeValue whirTabs, rdV, sigmaV, vnV, clV]).map (·.1)) ==
+      some (encodeValue (vsPiOfA whirTabs bitReader powSigma powFrames cursor5)))]
 example : vsPiOfA whirTabs bitReader powSigma powFrames cursor5 =
     vsPiOfN bitReader powSigma powFrames cursor5 :=
   vsPiOfA_tabs _ _ _ _

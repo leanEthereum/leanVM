@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Bits.QueryWindows
 public import LeanVM.Guest.Word
 
 /-!
-# `decode_query_windows`' honest values (lean_ethereum.py:798-909 at 40f877dc)
+# `decode_query_windows`' honest values (`crates/rec_aggregation/guests/lean_ethereum.py`)
 
 On a word `w`, the honest run hints each window as `g^n`, `n` the window's bits of the word
 (`WindowsExp`, Interp's `execHint`: `n = Σ_{j<width} 2^j·bit(start + j)`, `winHintVal`,
@@ -19,7 +19,7 @@ On a word `w`, the honest run hints each window as `g^n`, `n` the window's bits 
 
 * position `j` is `qwPosOf d w j` (its `d` bits from `j·d`), its window `i` `qwVal d cd (qwPosOf d w j) i`
   (`qwVal_hint`: the hint's value at the window's place), and the `wins` run holds `qwRunW`, the
-  positions' windows in order (`qwRunList`, `192 / d · qwN` words);
+  positions' windows in order (`qwRunList`, `128 / d · qwN` words);
 * rest window `r` is `qwRestOf d w r`, the bits `qwRestWin d r` of the word;
 * the digits on tiles of an integer sum back to it (`tS_digits`): a position's windows to the
   position (`qw_pos_tS`), the positions and rest windows to the word (`qw_recon`).
@@ -45,9 +45,9 @@ theorem tS_digits {s v : ℕ → ℕ} {X m : ℕ} (h0 : s 0 = 0) (hs : ∀ t < m
       rw [← Nat.pow_add, Nat.add_sub_cancel' (hs n (by omega))]
     rw [this, Nat.mod_mul]
 
-theorem qw_eToNat_lt (x : E) : eToNat x < 2 ^ 192 := by
-  have h := eToNat_eOfNat192 (eToNat x)
-  rw [eOfNat192_eToNat] at h
+theorem qw_eToNat_lt (x : E) : eToNat x < 2 ^ 128 := by
+  have h := eToNat_eOfNat128 (eToNat x)
+  rw [eOfNat128_eToNat] at h
   rw [h]; exact Nat.mod_lt _ (by positivity)
 
 /-! ## A position's windows -/
@@ -80,8 +80,8 @@ theorem qwRestOf_lt (d : ℕ) (w : E) (r : ℕ) : qwRestOf d w r < 2 ^ (qwRestWi
 def qwRunW (d cd : ℕ) (w : E) (x : ℕ) : E :=
   gen ^ qwVal d cd (qwPosOf d w (x / qwN d cd)) (x % qwN d cd)
 
-/-- The `wins` run of the honest run: the positions' windows, `192 / d · qwN` words. -/
-def qwRunList (d cd : ℕ) (w : E) : List E := (List.range (192 / d * qwN d cd)).map (qwRunW d cd w)
+/-- The `wins` run of the honest run: the positions' windows, `128 / d · qwN` words. -/
+def qwRunList (d cd : ℕ) (w : E) : List E := (List.range (128 / d * qwN d cd)).map (qwRunW d cd w)
 
 theorem qwRunW_at {d cd : ℕ} (w : E) {j i : ℕ} (hi : i < qwN d cd) :
     qwRunW d cd w (j * qwN d cd + i) = gen ^ qwVal d cd (qwPosOf d w j) i := by
@@ -96,14 +96,14 @@ theorem qwRunW_at {d cd : ℕ} (w : E) {j i : ℕ} (hi : i < qwN d cd) :
 
 /-- Digit `t` of the reconstruction: a position, then a rest window. -/
 def qwDigit (d : ℕ) (w : E) (t : ℕ) : ℕ :=
-  if t < 192 / d then qwPosOf d w t else qwRestOf d w (t - 192 / d)
+  if t < 128 / d then qwPosOf d w t else qwRestOf d w (t - 128 / d)
 
 /-- **The positions and the rest windows sum back to the word.** -/
 theorem qw_recon {d cd : ℕ} (hs : QwShape d cd) (w : E) :
-    tS (qwTop d) (qwDigit d w) (192 / d + qwRestN d) = eToNat w := by
-  have hd12 := hs.1
-  have hper : 192 / d * d ≤ 192 := Nat.div_mul_le_self 192 d
-  set N := 192 / d
+    tS (qwTop d) (qwDigit d w) (128 / d + qwRestN d) = eToNat w := by
+  have hd14 := hs.1
+  have hper : 128 / d * d ≤ 128 := Nat.div_mul_le_self 128 d
+  set N := 128 / d
   have htop : ∀ t ≤ N, qwTop d t = t * d := fun t ht ↦ by
     unfold qwTop
     split_ifs with h
@@ -147,7 +147,7 @@ theorem div_two_pow_mod_two_limb (c H r : ℕ) (hc : c < 2 ^ 64) (hr : r < 64) :
   rw [this, Nat.add_mul_div_left _ _ (by positivity), Nat.add_mul_mod_self_left]
 
 theorem limbBit_eq (c0 c1 c2 : ℕ) (h0 : c0 < 2 ^ 64) (h1 : c1 < 2 ^ 64) {i : ℕ}
-    (hi : i < 192) :
+    (hi : i < 128) :
     (if i / 64 = 0 then c0 else if i / 64 = 1 then c1 else c2) / 2 ^ (i % 64) % 2 =
       (c0 + 2 ^ 64 * c1 + 2 ^ 128 * c2) / 2 ^ i % 2 := by
   have hr : i % 64 < 64 := Nat.mod_lt _ (by decide)
@@ -169,14 +169,15 @@ theorem limbBit_eq (c0 c1 c2 : ℕ) (h0 : c0 < 2 ^ 64) (h1 : c1 < 2 ^ 64) {i : �
       Nat.div_eq_of_lt (show c0 + 2 ^ 64 * c1 < 2 ^ 128 by omega), Nat.zero_add]
 
 /-- **`wordBit` is the integer's bit.** -/
-theorem wordBit_eq (x : E) {i : ℕ} (hi : i < 192) :
+theorem wordBit_eq (x : E) {i : ℕ} (hi : i < 128) :
     wordBit x i = decide ((eToNat x >>> i) % 2 = 1) := by
-  have hn := limbBit_eq _ _ (kToNat (x.limb 2)) (qw_kToNat_lt (x.limb 0)) (qw_kToNat_lt (x.limb 1)) hi
+  have hn := limbBit_eq _ _ 0 (qw_kToNat_lt (x.limb 0)) (qw_kToNat_lt (x.limb 1)) hi
+  rw [Nat.mul_zero, Nat.add_zero] at hn
   rw [Nat.shiftRight_eq_div_pow]
   exact congrArg (fun n : ℕ ↦ decide (n = 1)) hn
 
 /-- **The interpreter's window value is the word's integer, shifted and cut.** -/
-theorem winHintVal_eq (x : E) {start width : ℕ} (h : start + width ≤ 192) :
+theorem winHintVal_eq (x : E) {start width : ℕ} (h : start + width ≤ 128) :
     winHintVal x start width = (eToNat x >>> start) % 2 ^ width := by
   unfold winHintVal
   simp only [Nat.zero_mul, Nat.add_zero]
@@ -196,14 +197,14 @@ theorem qw_gpowE_eq {n : ℕ} (h : n < 2 ^ 64) : gpowE n = gen ^ n := by
 
 /-- **The honest windows are the interpreter's hints**: window `i` of position `j` is `g^` the
 hint's value of the window's bits of the word, at the window's place `j·d + off`. -/
-theorem qwVal_hint {d cd : ℕ} (hs : QwShape d cd) (w : E) {j i : ℕ} (hj : j < 192 / d)
+theorem qwVal_hint {d cd : ℕ} (hs : QwShape d cd) (w : E) {j i : ℕ} (hj : j < 128 / d)
     (hi : i < qwN d cd) :
     gen ^ qwVal d cd (qwPosOf d w j) i =
       gpowE (winHintVal w (j * d + (qwWin d cd i).1) (qwWin d cd i).2) := by
   obtain ⟨hw1, hw7, -, hd⟩ := hs.2.2.2.2.2.1 i hi
-  have hjd : j * d + d ≤ 192 := by
-    have := Nat.div_mul_le_self 192 d
-    have : (j + 1) * d ≤ 192 / d * d := Nat.mul_le_mul_right _ hj
+  have hjd : j * d + d ≤ 128 := by
+    have := Nat.div_mul_le_self 128 d
+    have : (j + 1) * d ≤ 128 / d * d := Nat.mul_le_mul_right _ hj
     nlinarith
   rw [winHintVal_eq w (by omega), qw_gpowE_eq (lt_of_lt_of_le (Nat.mod_lt _ (by positivity))
     (Nat.pow_le_pow_right (by decide) (by omega)))]

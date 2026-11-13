@@ -76,12 +76,11 @@ def main():
 /// A global constant may be a g-power, which is how the ISA writes every
 /// address and index.
 ///
-/// The scalar path tried an `f192` literal, then an integer expression, and
-/// stopped, so `GEN ** 2` was rejected as "not a compile-time integer constant
-/// expression" while `f192(4, 0, 0)` naming the same element was accepted. It
-/// now falls back to the field evaluator and renders the value as a decimal
-/// wherever it fits the low two limbs, so the constant still works in the
-/// positions that demand a literal rather than only as a value.
+/// The scalar path tried an integer expression and stopped, so `GEN ** 2` was
+/// rejected as "not a compile-time integer constant expression". It now falls
+/// back to the field evaluator and renders the value as the decimal its limbs
+/// spell, so the constant still works in the positions that demand a literal
+/// rather than only as a value.
 #[test]
 fn a_global_constant_may_be_a_g_power() {
     for (decl, exp) in [("GEN ** 2", 2usize), ("GEN * GEN", 2), ("GEN ** 70", 70)] {

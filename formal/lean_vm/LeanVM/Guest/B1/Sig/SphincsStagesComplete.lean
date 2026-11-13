@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsStagesComplete
 
-  The statement's leanSPHINCS verification (`Statement/LeanSphincs.lean` at leanVM main `40f877dc`) of
+  The statement's leanSPHINCS verification (`Statement/LeanSphincs.lean`) of
   an honest signature, stage by stage over the cells `verify_sig_lean_sphincs`'s completeness
   computes: the digest's number, the FORS key's cell, each layer's encoding, leaf and root.
 -/
@@ -127,21 +127,6 @@ theorem sForsKeyOf_eq (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphi
 def layerSibCell (sig : Sphincs.Signature) (l : Sphincs.Layer) (z : Nat) : E :=
   cellOf128 (Sphincs.Verification.layerPath sig l z)
 
-theorem canon_digestHalves_fst (I : List UInt8) : IsCanonical128 (digestHalves (keccak256 I)).1 := by
-  simp [IsCanonical128, digestHalves]
-
-theorem canon_encDigestCell (pp a0 a1 msg ctr : E) :
-    IsCanonical128 (encDigestCell pp a0 a1 msg ctr) := canon_digestHalves_fst _
-
-theorem canon_pFold_hcell {f : Nat → E → E} (hf : ∀ l v, IsCanonical128 (f l v)) :
-    ∀ (n : Nat) (x : E), IsCanonical128 x → IsCanonical128 (pFold f n x)
-  | 0, _, hx => hx
-  | n + 1, _, _ => hf n _
-
-theorem canon_pNodeE (pp a0 : E) (e : Nat) (sib : Nat → E) (z : Nat) (v : E) :
-    IsCanonical128 (pNodeE pp a0 e sib z v) := by
-  simp [pNodeE, IsCanonical128, hcell, digestHalves]
-
 /-- The encoding's digest cell of layer `l`'s key, signing the value of `S`. -/
 def layerEnc (pk : Sphincs.PublicKey) (idx : Sphincs.Index) (sig : Sphincs.Signature)
     (l : Sphincs.Layer) (S : E) : E :=
@@ -161,10 +146,6 @@ def layerRootCell (pk : Sphincs.PublicKey) (idx : Sphincs.Index) (sig : Sphincs.
   pFold (pNodeE (cellOf128 pk.publicSeed) (adrsCell0 l.val (Sphincs.treeOfIndex l idx).val)
     (Sphincs.leafOfIndex l idx).val (layerSibCell sig l)) (Sphincs.layerHeight l)
     (cellOf128 (layerLeaf pk idx sig l S))
-
-theorem canon_layerRootCell (pk : Sphincs.PublicKey) (idx : Sphincs.Index) (sig : Sphincs.Signature)
-    (l : Sphincs.Layer) (S : E) : IsCanonical128 (layerRootCell pk idx sig l S) :=
-  canon_pFold_hcell (fun _ _ => canon_pNodeE ..) _ _ (isCanonical128_cellOf128 _)
 
 theorem layerHeight_le (l : Sphincs.Layer) : Sphincs.layerHeight l ≤ 10 := by
   unfold Sphincs.layerHeight; split <;> omega
@@ -204,7 +185,7 @@ theorem layer_call {C : CallRel} (hC : SpWotsCalls C) {pk : Sphincs.PublicKey}
   have := hC pk.publicSeed l (Sphincs.treeOfIndex l idx) (Sphincs.leafOfIndex l idx)
     (cellVal (layerEnc pk idx sig l S)) (sig.layers l).chainValues hV
   have hc : cellOf128 (cellVal (layerEnc pk idx sig l S)) = layerEnc pk idx sig l S :=
-    cellOf128_cellVal (canon_encDigestCell ..)
+    cellOf128_cellVal _
   rw [hc] at this
   exact this
 

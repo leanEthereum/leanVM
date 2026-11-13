@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsBottomComplete
 
-  The first stages of `verify_sig_lean_sphincs` (`lean_ethereum.py:3951-4036` at leanVM main 40f877dc)
+  The first stages of `verify_sig_lean_sphincs` (`lean_ethereum.py:4143-4228`)
   are complete for an honest signature: the message digest, the bottom key's address, FORS.
 -/
 
@@ -13,8 +13,8 @@ public import LeanVM.Guest.B1.Sig.SphincsStagesComplete
 # The digest and FORS, complete
 
 `G` is `lean_ethereum.py`. From the arguments (`n0` the claim, `n1` the byte table) to `n5249`,
-the body is `sDigestBlock` (`G:3951-4024`), `sForsAddrs` (`G:4028-4029`) and `sForsB`
-(`G:4031-4036`). `sBottom_complete`: for a claim of `pk` and `m` and a signature `sig`, under the
+the body is `sDigestBlock` (`G:4143-4216`), `sForsAddrs` (`G:4220-4221`) and `sForsB`
+(`G:4223-4228`). `sBottom_complete`: for a claim of `pk` and `m` and a signature `sig`, under the
 blocks' completeness, they complete with the padding run, `PK.seed`, `PK.root`, the digest's number
 `digestT pk m sig` (`DigestAt`), the byte table's pointers, the bottom key's `A0` and `A1`, and the
 FORS key cell (`forsKeyCell`, whose value is the statement's FORS key, `sForsKeyOf_eq`). The
@@ -73,8 +73,6 @@ theorem sDigestBlock_ptrs : ∀ q ∈ loadPtrs sDigestBlock, q < 1372 := by deci
 
 theorem sForsAddrs_seq : SeqOK 1372 sForsAddrs 1382 := seqB_ok (by decide +kernel)
 
-theorem sForsB_nb : NumBelow 5249 (Stmt.valsList sForsB.1) := numBelow_of_all (by decide +kernel)
-
 /-- `BottomPost` reads values below `n5249` only. -/
 theorem BottomPost.congr {bb : E} {pk : Sphincs.PublicKey} {m : HashSig.Message}
     {sig : Sphincs.Signature} {σ σ' : Val} (h : BottomPost bb pk m sig σ)
@@ -114,7 +112,7 @@ theorem sBottom_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : 
   have hppB : σB sPP = cellOf128 pk.publicSeed := by
     rw [show sPP = .n 2 from rfl, tB 2 (by norm_num)]; exact hppA
   have hF := hB.fors C rd σB (layerTreeN T 0) (layerLeafN T 0) (forsLeafN T) (forsSecretCell sig)
-    (forsSibCell sig) hpB (by rw [hppB]; exact isCanonical128_cellOf128 _) ha0B hkB
+    (forsSibCell sig) hpB ha0B hkB
     (fun c _ => forsLeafN_lt T c)
     (fun c hc z hz => by
       have e : sForsBit (10 * c + z) = sMdBit (10 * c + 9 - z) := by
@@ -127,7 +125,6 @@ theorem sBottom_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : 
         simp only [sVals]
         rw [show (10 * c + z) / 10 = c by omega, show (10 * c + z) % 10 = z by omega]
       rw [e]; exact hdB.2.2.1 c hc z hz)
-    (fun _ => isCanonical128_cellOf128 _) (fun _ _ => isCanonical128_cellOf128 _)
   obtain ⟨σC, heC, hfC, hhC⟩ := hF
   have tC : ∀ k < 1382, σC (.n k) = σB (.n k) := fun k hk => heC.apply (Or.inl hk)
   have tCA : ∀ k < 1372, σC (.n k) = σA (.n k) := fun k hk => by rw [tC k (by omega), tB k hk]

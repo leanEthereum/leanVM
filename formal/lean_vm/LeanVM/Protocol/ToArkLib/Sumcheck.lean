@@ -593,20 +593,6 @@ variable {F : Type} [Field F] {d : ℕ}
 def coeffWeight (dom : SumcheckRound.WeightedDomain F) (i : ℕ) : F :=
   (dom.map fun p ↦ p.2 * p.1 ^ i).sum
 
-/-- The round's check is linear in the coefficients, coefficient `i` weighted by
-`coeffWeight dom i`. -/
-theorem weightedSum_eq_sum (dom : SumcheckRound.WeightedDomain F) (q : SumcheckRound.Message F d) :
-    SumcheckRound.weightedSum d dom q = ∑ i : Fin (d + 1), q[i] * coeffWeight dom i := by
-  simp only [SumcheckRound.weightedSum, SumcheckRound.evaluate, coeffWeight]
-  induction dom with
-  | nil => simp
-  | cons p dom ih =>
-    simp only [List.map_cons, List.sum_cons]
-    rw [ih, Finset.mul_sum]
-    simp only [mul_add, Finset.sum_add_distrib]
-    congr 1
-    exact Finset.sum_congr rfl fun i _ ↦ by ring
-
 /-- The message with coefficient `k` derived from the running claim: the value that makes the
 round's check hold, whatever the message carried there. -/
 def decodeRound (dom : SumcheckRound.WeightedDomain F) (k : Fin (d + 1)) (claim : F)

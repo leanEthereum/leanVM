@@ -18,11 +18,12 @@ facts about the proof-side definitions the extractor runs, `Fast/DecodeAdmissibl
   leaves are at most the sum of their roots' multiplicities, `rr_children_leaves_le`);
 * after the lane: `toNovelFast` has `2^κ` entries (`toNovelFast_size`), `novelFwd` `2^(κ+R)`
   (`novelFwd_size`); `laneListDistinct` and `laneEncodedDistinct` have at most `max 1 ℓ` entries
-  (`laneListDistinct_length_le`, `laneEncodedDistinct_length`), of those sizes
+  (`laneListDistinct_length_le`, `laneEncodedDistinct_length`), of `2^(κ+1)` coefficients (a
+  decoded polynomial's, of degree `< 2^κ + 6`) and `2^(κ+R)` evaluations
   (`mem_laneEncodedDistinct_size`);
 * the pruning: `pruneStep` multiplies the number of survivors by at most the lane's list length
   (`pruneStep_length_le`), so after `U` lanes at most `(max 1 ℓ)^U` survivors
-  (`pruneUpToDistinct_length_le`), each of `U` coefficient arrays of `2^κ` entries and at most `n`
+  (`pruneUpToDistinct_length_le`), each of `U` coefficient arrays of `2^(κ+1)` entries and at most `n`
   agreeing columns (`pruneUpToDistinct_mem`); `decodeStacksDistinct` has as many stacks
   (`decodeStacksDistinct_length`).
 
@@ -176,33 +177,34 @@ theorem lanePointsS_distinct {κ R : ℕ} (h : κ + R ≤ 64) (S : ℕ → ℕ �
 
 /-- **The lane's list has at most `max 1 ℓ` entries** (at `κ + R ≤ 64`, `k > 1`). -/
 theorem laneListDistinct_length_le {κ R A : ℕ} (h : κ + R ≤ 64)
-    (hk : 1 < (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.messageDegree) (S : ℕ → ℕ → K)
-    (u : ℕ) :
+    (hk : 1 < (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp.messageDegree)
+    (S : ℕ → ℕ → K) (u : ℕ) :
     (laneListDistinct κ R A S u).length ≤
-      max 1 (interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp) := by
+      max 1 (interpolationYCap (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp) := by
   rw [laneListDistinct, List.length_mergeSort]
   refine (List.dedup_sublist _).length_le.trans ?_
   rw [List.length_map, Array.length_toList, gsLaneDistinct]
   exact gsRunDistinctNF_size_le (lanePointsS_distinct h S u) _ _ hk
 
-/-- The lane's list entries have `2^κ` coefficients. -/
+/-- The lane's list entries have `2^(κ+1)` coefficients. -/
 theorem mem_laneListDistinct_size {κ R A : ℕ} {S : ℕ → ℕ → K} {u : ℕ} {c : Array K}
-    (hc : c ∈ laneListDistinct κ R A S u) : c.size = 2 ^ κ := by
+    (hc : c ∈ laneListDistinct κ R A S u) : c.size = 2 ^ (κ + 1) := by
   rw [laneListDistinct, List.mem_mergeSort, List.mem_dedup, List.mem_map] at hc
   obtain ⟨p, -, rfl⟩ := hc
-  exact toNovelFast_size κ p
+  exact toNovelFast_size (κ + 1) p
 
 theorem laneEncodedDistinct_length (κ R A : ℕ) (S : ℕ → ℕ → K) (u : ℕ) :
     (laneEncodedDistinct κ R A S u).length = (laneListDistinct κ R A S u).length := by
   rw [laneEncodedDistinct, List.length_map]
 
-/-- **The lane's encoded entries**: `2^κ` coefficients, `2^(κ+R)` evaluations. -/
-theorem mem_laneEncodedDistinct_size {κ R A : ℕ} {S : ℕ → ℕ → K} {u : ℕ} {e : Array K × Array K}
-    (he : e ∈ laneEncodedDistinct κ R A S u) :
-    e.1.size = 2 ^ κ ∧ e.2.size = 2 ^ (κ + R) := by
+/-- **The lane's encoded entries**: `2^(κ+1)` coefficients, `2^(κ+R)` evaluations (`1 ≤ R`). -/
+theorem mem_laneEncodedDistinct_size {κ R A : ℕ} (hR : 1 ≤ R) {S : ℕ → ℕ → K} {u : ℕ}
+    {e : Array K × Array K} (he : e ∈ laneEncodedDistinct κ R A S u) :
+    e.1.size = 2 ^ (κ + 1) ∧ e.2.size = 2 ^ (κ + R) := by
   rw [laneEncodedDistinct, List.mem_map] at he
   obtain ⟨c, hc, rfl⟩ := he
-  exact ⟨mem_laneListDistinct_size hc, novelFwd_size κ R c⟩
+  refine ⟨mem_laneListDistinct_size hc, ?_⟩
+  rw [novelFwd_size, show κ + 1 + (R - 1) = κ + R by omega]
 
 /-! ## The pruning -/
 
@@ -235,12 +237,12 @@ theorem mem_pruneStep {A : ℕ} {sym : ℕ → K} {L : List (Array K × Array K)
   · cases h
 
 /-- **The survivors after `U` lanes**: at most `B^U` (`B` bounding the lanes' list lengths), each
-`U` coefficient arrays of `2^κ` entries, its columns a sublist of the `n` columns. -/
+`U` coefficient arrays of `2^(κ+1)` entries, its columns a sublist of the `n` columns. -/
 theorem pruneUpToDistinct_bounds {κ R A B : ℕ} (W : ℕ → List K)
     (hB : ∀ u, (laneEncodedDistinct κ R A (tableSymbol (laneTable (2 ^ (κ + R)) W)) u).length ≤ B)
     (U : ℕ) :
     (pruneUpToDistinct κ R A W U).length ≤ B ^ U ∧
-      ∀ s ∈ pruneUpToDistinct κ R A W U, s.1.length = U ∧ (∀ c ∈ s.1, c.size = 2 ^ κ) ∧
+      ∀ s ∈ pruneUpToDistinct κ R A W U, s.1.length = U ∧ (∀ c ∈ s.1, c.size = 2 ^ (κ + 1)) ∧
         s.2.Sublist (List.range (2 ^ (κ + R))) := by
   rw [pruneUpToDistinct]
   induction U with
@@ -259,14 +261,17 @@ theorem pruneUpToDistinct_bounds {κ R A B : ℕ} (W : ℕ → List K)
         rw [h1, List.mem_append, List.mem_singleton] at hc
         rcases hc with hc | rfl
         · exact hs2 c hc
-        · exact (mem_laneEncodedDistinct_size hce).1
+        · rw [laneEncodedDistinct, List.mem_map] at hce
+          obtain ⟨c, hc, rfl⟩ := hce
+          exact mem_laneListDistinct_size hc
 
 /-- **The survivors after `U` lanes are at most `(max 1 ℓ)^U`** (at `κ + R ≤ 64`, `k > 1`). -/
 theorem pruneUpToDistinct_length_le {κ R A : ℕ} (h : κ + R ≤ 64)
-    (hk : 1 < (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.messageDegree) (W : ℕ → List K)
-    (U : ℕ) :
+    (hk : 1 < (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp.messageDegree)
+    (W : ℕ → List K) (U : ℕ) :
     (pruneUpToDistinct κ R A W U).length ≤
-      (max 1 (interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp)) ^ U :=
+      (max 1 (interpolationYCap
+        (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp)) ^ U :=
   (pruneUpToDistinct_bounds W (fun u ↦ by
     rw [laneEncodedDistinct_length]; exact laneListDistinct_length_le h hk _ u) U).1
 

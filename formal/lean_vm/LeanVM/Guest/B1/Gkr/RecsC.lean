@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Gkr.RecsC
 
   The honest round records of a run of GKR rounds: every run of consecutive rounds among them is
-  what `gkr_rounds` and `__loop36` ask.
+  what `gkr_rounds` and `verify_bus_gkr_loop0_loop0` ask.
 -/
 
 module
@@ -60,7 +60,7 @@ theorem tbReadsAt_drop_take {rd : Reader} {p : E} {xs : List E} (h : TbReadsAt r
 
 /-- **Consecutive rounds among the records** are `gkr_rounds`' meaning. -/
 theorem recs_rounds {rd : Reader} {rec cur pt claim : E} {cs : List (List E)} {es : List E}
-    {s : Fs} (hR : RecsAt rd rec cur cs es claim s) (hp : s.pend = []) (hcan : AllCanonical s.cap)
+    {s : Fs} (hR : RecsAt rd rec cur cs es claim s) (hp : s.pend = [])
     (hl : cs.length = es.length) (h4 : ∀ c ∈ cs, c.length = 4) (hx : TbReadsAt rd cur cs.flatten)
     (he : TbReadsAt rd pt es) (hch : TbReadsAt rd (pt * gen ^ 42) (gkrRun cs es claim s).1)
     {a k : ℕ} (hak : a + k ≤ cs.length) :
@@ -81,8 +81,7 @@ theorem recs_rounds {rd : Reader} {rec cur pt claim : E} {cs : List (List E)} {e
   rw [← hr1] at c0 l0
   have hc2 : cs2.length = k := by simp [cs2]; omega
   have he2 : es2.length = k := by simp [es2]; omega
-  refine ⟨r1.2.2.cap, cur * gen ^ (4 * a), r1.2.1, cs2, es2, c0,
-    tb_gkrRun_canonical _ _ _ _ hcan, u0, l0, hc2, fun c hc => h4 c
+  refine ⟨r1.2.2.cap, cur * gen ^ (4 * a), r1.2.1, cs2, es2, c0, u0, l0, hc2, fun c hc => h4 c
       (List.mem_of_mem_drop (List.mem_of_mem_take hc)), ?_, he2, ?_, ?_, ?_, ?_, ?_⟩
   · -- the rounds' words
     have hx' := tbReadsAt_drop_take hx (4 * a) (4 * k)

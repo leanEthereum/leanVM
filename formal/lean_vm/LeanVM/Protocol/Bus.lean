@@ -30,8 +30,8 @@ tuples come in *blocks*: a boundary block's `2 ^ κ` tuples, one flush of one ta
 row), one count column (a cell per row) (`Source`). A block's *leaves* are `β − π_α(t)` for its
 tuples `t`, with `π_α` the fingerprint, and a count column's leaves are its cells; on a padding
 row of a table (§8.3) a leaf is `φ(x) + 1 − φ(p)` instead, `φ` the executed leaf and `p` the
-public padding row, so `1` on an honest one and in general the fingerprint of
-`1 − t + t(p)`, a nonzero tuple when the separator is constant (`Conditions.separator`). The
+public padding row, so `1` on an honest one and in general `1 − π_α(t − t(p))`, `t` the row's
+tuple: never zero as a polynomial in `α`, whatever the row holds (Proposition `prop:pad`). The
 verifier evaluates `(1 − φ(p))·pad_{rows}(z)` itself (`Source.padTerm`, part of
 `Source.publicValue`), `pad_n` the extension of `[x ≥ n]` (`padWeight`). Each side's
 blocks are stacked largest first at aligned offsets, ties in the order of `sources` (on the
@@ -56,7 +56,7 @@ The phase (`busPhase`), a typed front component at the slot `busSlot I`:
    The verifier evaluates the boundary blocks' part from the values sent and subtracts it and the
    pad's from `v_s`: the remainder is the total, `rem_s` of §5.4. The tables' blocks are owed as
    forms, one per side and sumcheck table: for a flush block, the weight times `β` against the
-   constant row polynomial `1` and the weight times `−eq(α, i)` against coordinate `i`'s flush
+   constant row polynomial `1` and the weight times `−α_i` against coordinate `i`'s flush
    polynomial; for a count column, the weight against the column's variable.
 
 The grand-product argument carries the constraint polynomials of the tables as *riders*, tables
@@ -140,7 +140,7 @@ def padTuple (j : Fin I.ntab) (f : Fin (I.flushes j).length) : Vector K 16 :=
 /-- A block's leaf at row `x` (§5.4, the leaves `L_b`): on an executed row, `φ(x) = β − π_α(t)` for
 the row's tuple `t`, or the count cell; on a padding row of a table, `φ(x) + 1 − φ(p)` with `p` the
 public padding row, whatever the row holds, so `1` on an honest one. -/
-def Source.leaf (α : Fin 4 → E) (β : E) (q : Column I.μ) : (src : Source I) → Fin (2 ^ src.κ) → E
+def Source.leaf (α : Fin 16 → E) (β : E) (q : Column I.μ) : (src : Source I) → Fin (2 ^ src.κ) → E
   | .boundary b, x => β - fingerprint α ((Source.boundary b).tuple q x)
   | .flush j f, x => β - fingerprint α ((Source.flush j f).tuple q x) +
     padInd j x * (1 - (β - fingerprint α (padTuple j f)))
@@ -190,12 +190,12 @@ def blocks (k : Fin 3) : Blocks where
   descending := sorted_antitone I k
 
 /-- A side's blocks' leaves, one table per block. -/
-def tables (k : Fin 3) (α : Fin 4 → E) (β : E) (q : Column I.μ) : (blocks I k).Tables E :=
+def tables (k : Fin 3) (α : Fin 16 → E) (β : E) (q : Column I.μ) : (blocks I k).Tables E :=
   fun b ↦ Vector.ofFn (((sorted I k)[b]).leaf α β q)
 
 /-- A side's leaf stack: its blocks stacked largest first at aligned offsets, padded with `1`,
 on the push side's depth `μ_bus`. -/
-def sideLeaves (k : Fin 3) (α : Fin 4 → E) (β : E) (q : Column I.μ) :
+def sideLeaves (k : Fin 3) (α : Fin 16 → E) (β : E) (q : Column I.μ) :
     CMlPolynomialEval E I.μBus :=
   (blocks I k).stackAt (tables I k α β q) I.μBus 1
 
@@ -210,20 +210,20 @@ structure Conditions : Prop where
   pull_fits : leafCount I 1 ≤ 2 ^ I.μBus
   /-- The count side fits in the push side's depth. -/
   count_fits : leafCount I 2 ≤ 2 ^ I.μBus
-  /-- A flush's first coordinate, its domain separator, takes one value on every row (§5.1): a
-  padding row's leaf is then the fingerprint of a nonzero tuple (Proposition `prop:pad`). -/
+  /-- A flush's first coordinate, its domain separator, takes one value on every row (§5.1).
+  The linear fingerprint's padding leaves no longer need it (Proposition `prop:pad`). -/
   separator : ∀ j (f : Fin (I.flushes j).length) (r r' : Fin (I.width j) → K),
     ((flushPolys j f)[0]).eval r = ((flushPolys j f)[0]).eval r'
 
 end Bus
 
 /-- The push side's leaf stack (§5.3, §5.4). -/
-abbrev pushLeaves (I : M3Instance) (α : Fin 4 → E) (β : E) (q : Column I.μ) :
+abbrev pushLeaves (I : M3Instance) (α : Fin 16 → E) (β : E) (q : Column I.μ) :
     CMlPolynomialEval E I.μBus :=
   Bus.sideLeaves I 0 α β q
 
 /-- The pull side's leaf stack. -/
-abbrev pullLeaves (I : M3Instance) (α : Fin 4 → E) (β : E) (q : Column I.μ) :
+abbrev pullLeaves (I : M3Instance) (α : Fin 16 → E) (β : E) (q : Column I.μ) :
     CMlPolynomialEval E I.μBus :=
   Bus.sideLeaves I 1 α β q
 
@@ -391,15 +391,15 @@ def padWeight {m : ℕ} (n : ℕ) (z : Vector E m) : E :=
 /-- The public part of a table block's leaf extension: the padding term
 `(1 − φ(p))·pad_{rows}(z)` of equation `eq:pad_leaf`, `φ(p)` the leaf the padding row's tuple
 would have. -/
-def Source.padTerm (α : Fin 4 → E) (β : E) : (src : Source I) → Vector E src.κ → E
+def Source.padTerm (α : Fin 16 → E) (β : E) : (src : Source I) → Vector E src.κ → E
   | .boundary _, _ => 0
   | .flush j f, z => (1 - (β - fingerprint α (padTuple j f))) * padWeight (I.rows j) z
   | .count j c, z => (1 - ofK (I.padRow j c)) * padWeight (I.rows j) z
 
 /-- The extension of a block's leaves at a point of the block, as the verifier writes it:
-`β − Σ_i eq(α, i)·c̃_i(z)` with `c̃_i` the extension of coordinate `i`, or a count column's
+`β − Σ_i α_i·c̃_i(z)` with `c̃_i` the extension of coordinate `i`, or a count column's
 extension, plus a table block's padding term. -/
-def Source.leafEval (α : Fin 4 → E) (β : E) (q : Column I.μ) :
+def Source.leafEval (α : Fin 16 → E) (β : E) (q : Column I.μ) :
     (src : Source I) → Vector E src.κ → E
   | .boundary b, z =>
     let w := fingerprintWeights α
@@ -457,7 +457,7 @@ private theorem evalMle_coordCell (q : Column I.μ) {κ : ℕ} (co : Coord I.toS
     rw [ht, coordEval, eval₂Mle, ← evalMle_cast h _ (Vector.cast h.symm z), Vector.cast_cast,
       Vector.cast_rfl]
 
-private theorem evalMle_leaf_boundary (α : Fin 4 → E) (β : E) (q : Column I.μ)
+private theorem evalMle_leaf_boundary (α : Fin 16 → E) (β : E) (q : Column I.μ)
     (b : BoundaryBlock I.toShape) (z : Vector E b.κ) :
     evalMle (n := b.κ) (Vector.ofFn ((Source.boundary b).leaf α β q)) z =
       β - ∑ i : Fin 16, (fingerprintWeights α)[i.val] * coordEval q b.coords[i] z := by
@@ -472,7 +472,7 @@ private theorem evalMle_leaf_boundary (α : Fin 4 → E) (β : E) (q : Column I.
   rw [ht, evalMle_affine]
   exact congrArg (β - ·) (Finset.sum_congr rfl fun i _ ↦ by rw [evalMle_coordCell])
 
-private theorem evalMle_leaf_flush (α : Fin 4 → E) (β : E) (q : Column I.μ) (j : Fin I.ntab)
+private theorem evalMle_leaf_flush (α : Fin 16 → E) (β : E) (q : Column I.μ) (j : Fin I.ntab)
     (f : Fin (I.flushes j).length) (z : Vector E (I.τ j)) :
     evalMle (n := I.τ j) (Vector.ofFn ((Source.flush j f).leaf α β q)) z =
       β - ∑ i : Fin 16,
@@ -491,7 +491,7 @@ private theorem evalMle_leaf_flush (α : Fin 4 → E) (β : E) (q : Column I.μ)
   rw [ht, evalMle_affine]
   rfl
 
-private theorem evalMle_leaf_count (α : Fin 4 → E) (β : E) (q : Column I.μ) (j : Fin I.ntab)
+private theorem evalMle_leaf_count (α : Fin 16 → E) (β : E) (q : Column I.μ) (j : Fin I.ntab)
     (c : Fin (I.width j)) (z : Vector E (I.τ j)) :
     evalMle (n := I.τ j) (Vector.ofFn ((Source.count j c).leaf α β q)) z =
       eval₂Mle (I.column q ⟨j, c⟩).values (algebraMap K E) z +
@@ -504,7 +504,7 @@ private theorem evalMle_leaf_count (α : Fin 4 → E) (β : E) (q : Column I.μ)
   simp [CMlPolynomialEval.map, Extension.Ext.algebraMap_eq_ofBase, Vector.get_eq_getElem]
 
 /-- A block's leaves have the extension `leafEval`. -/
-private theorem Source.evalMle_leaf (α : Fin 4 → E) (β : E) (q : Column I.μ) (src : Source I)
+private theorem Source.evalMle_leaf (α : Fin 16 → E) (β : E) (q : Column I.μ) (src : Source I)
     (z : Vector E src.κ) :
     evalMle (Vector.ofFn (src.leaf α β q)) z = src.leafEval α β q z := by
   cases src with
@@ -530,13 +530,13 @@ def Source.busTuples (q : Column I.μ) : Source I → List (Vector K 16)
 def padRows (j : Fin I.ntab) : List (Fin (2 ^ I.τ j)) :=
   (List.finRange (2 ^ I.τ j)).filter fun x ↦ decide (I.rows j ≤ x.val)
 
-/-- The tuple whose fingerprint is a flush block's padding leaf at row `x`: `1 − t + t(p)` slot by
-slot, `t` the row's tuple and `t(p)` the public padding row's (Proposition `prop:pad`). -/
+/-- A flush block's padding row `x` against the public padding row: `t − t(p)` slot by slot, `t`
+the row's tuple; its leaf is `1 − π_α(t − t(p))` (Proposition `prop:pad`). -/
 def padDiff (q : Column I.μ) (j : Fin I.ntab) (f : Fin (I.flushes j).length)
     (x : Fin (2 ^ I.τ j)) : Vector K 16 :=
-  Vector.ofFn fun i ↦ 1 - (flushTuple q j f x)[i] + (padTuple j f)[i]
+  Vector.ofFn fun i ↦ (flushTuple q j f x)[i] - (padTuple j f)[i]
 
-/-- A flush block's padding leaves, as the tuples they fingerprint. -/
+/-- A flush block's padding rows, as their differences with the public padding row. -/
 def Source.padTuples (q : Column I.μ) : Source I → List (Vector K 16)
   | .flush j f => (padRows j).map (padDiff q j f)
   | _ => []
@@ -547,7 +547,7 @@ variable (I)
 def sideTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
   (sideSources I s).flatMap (·.busTuples q)
 
-/-- The padding tuples of a push or pull side, block by block. -/
+/-- The padding rows' differences of a push or pull side, block by block. -/
 def sidePadTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
   (sideSources I s).flatMap (·.padTuples q)
 
@@ -609,7 +609,7 @@ theorem sideTuples_perm (q : Column I.μ) (s : Side) : (sideTuples I q s).Perm (
 
 /-- The product of a side's leaf stack is the product, block by block, of its blocks' leaves:
 the pad is `1`. -/
-theorem prod_sideLeaves (k : Fin 3) (α : Fin 4 → E) (β : E) (q : Column I.μ)
+theorem prod_sideLeaves (k : Fin 3) (α : Fin 16 → E) (β : E) (q : Column I.μ)
     (hfit : (blocks I k).total ≤ 2 ^ I.μBus) :
     ∏ x : Fin (2 ^ I.μBus), (sideLeaves I k α β q)[x] =
       ((sources I k).map fun src ↦ ∏ y, src.leaf α β q y).prod := by
@@ -618,20 +618,21 @@ theorem prod_sideLeaves (k : Fin 3) (α : Fin 4 → E) (β : E) (q : Column I.μ
     ← Fin.prod_univ_fun_getElem]
   exact Finset.prod_congr rfl fun b _ ↦ Finset.prod_congr rfl fun y _ ↦ Vector.getElem_ofFn ..
 
-private theorem prod_leaf_boundary (α : Fin 4 → E) (β : E) (q : Column I.μ)
+private theorem prod_leaf_boundary (α : Fin 16 → E) (β : E) (q : Column I.μ)
     (b : BoundaryBlock I.toShape) :
     ∏ y : Fin (2 ^ b.κ), (β - fingerprint α (b.coords.map fun co ↦ I.coordCell q co y)) =
       (((List.finRange (2 ^ b.κ)).map fun x ↦ b.coords.map fun co ↦ I.coordCell q co x).map
-        fun t ↦ β - fingerprint α t).prod * (([] : List (Vector K 16)).map (fingerprint α)).prod := by
+        fun t ↦ β - fingerprint α t).prod *
+        (([] : List (Vector K 16)).map fun d ↦ 1 - fingerprint α d).prod := by
   rw [Fin.prod_univ_def, List.map_map, List.map_nil, List.prod_nil, mul_one]
   rfl
 
-private theorem prod_leaf_flush (α : Fin 4 → E) (β : E) (q : Column I.μ) (j : Fin I.ntab)
+private theorem prod_leaf_flush (α : Fin 16 → E) (β : E) (q : Column I.μ) (j : Fin I.ntab)
     (f : Fin (I.flushes j).length) :
     ∏ y : Fin (2 ^ I.τ j), (β - fingerprint α (flushTuple q j f y) +
         padInd j y * (1 - (β - fingerprint α (padTuple j f)))) =
       (((I.executed j).map (flushTuple q j f)).map fun t ↦ β - fingerprint α t).prod *
-        (((padRows j).map (padDiff q j f)).map (fingerprint α)).prod := by
+        (((padRows j).map (padDiff q j f)).map fun d ↦ 1 - fingerprint α d).prod := by
   rw [prod_rows, List.map_map, List.map_map]
   congr 1
   · refine congrArg List.prod (List.map_congr_left fun x hx ↦ ?_)
@@ -639,16 +640,15 @@ private theorem prod_leaf_flush (α : Fin 4 → E) (β : E) (q : Column I.μ) (j
     simp [padInd, Nat.not_le.mpr hx]
   · refine congrArg List.prod (List.map_congr_left fun x hx ↦ ?_)
     have hx : I.rows j ≤ x.val := of_decide_eq_true (List.mem_filter.mp hx).2
-    simp only [Function.comp_apply, padDiff, fingerprint_one_sub_add, padInd, hx, ite_true,
-      one_mul]
-    ring
+    simp only [Function.comp_apply, padInd, hx, ite_true, one_mul]
+    exact padLeaf_eq α β _ _
 
-/-- A block of a push or pull side multiplies `β − π_α(t)` over its tuples on the bus and the
-fingerprints of its padding tuples. -/
+/-- A block of a push or pull side multiplies `β − π_α(t)` over its tuples on the bus and
+`1 − π_α(d)` over its padding rows' differences `d`. -/
 private theorem prod_leaf_of_mem_sideSources {s : Side} {src : Source I}
-    (hs : src ∈ sideSources I s) (α : Fin 4 → E) (β : E) (q : Column I.μ) :
+    (hs : src ∈ sideSources I s) (α : Fin 16 → E) (β : E) (q : Column I.μ) :
     ∏ y, src.leaf α β q y = ((src.busTuples q).map fun t ↦ β - fingerprint α t).prod *
-      ((src.padTuples q).map (fingerprint α)).prod := by
+      ((src.padTuples q).map fun d ↦ 1 - fingerprint α d).prod := by
   cases src with
   | boundary b => exact prod_leaf_boundary α β q b
   | flush j f => exact prod_leaf_flush α β q j f
@@ -657,7 +657,7 @@ private theorem prod_leaf_of_mem_sideSources {s : Side} {src : Source I}
 /-- The product of a push or pull side's leaves is the side's product at `(α, β)` (§5.2) times
 the product of its padding leaves (Proposition `prop:pad`). -/
 theorem prod_sideLeaves_eq {k : Fin 3} {s : Side} (hk : sources I k = sideSources I s)
-    (α : Fin 4 → E) (β : E) (q : Column I.μ) (hfit : (blocks I k).total ≤ 2 ^ I.μBus) :
+    (α : Fin 16 → E) (β : E) (q : Column I.μ) (hfit : (blocks I k).total ≤ 2 ^ I.μBus) :
     ∏ x : Fin (2 ^ I.μBus), (sideLeaves I k α β q)[x] =
       sideProduct α β (I.tuples q s) * padProduct α (sidePadTuples I q s) := by
   rw [prod_sideLeaves k α β q hfit, hk, sideProduct,
@@ -668,19 +668,19 @@ theorem prod_sideLeaves_eq {k : Fin 3} {s : Side} (hk : sources I k = sideSource
     prod_leaf_of_mem_sideSources hs α β q)
 
 /-- The product of the push side's leaves. -/
-theorem prod_pushLeaves (α : Fin 4 → E) (β : E) (q : Column I.μ) :
+theorem prod_pushLeaves (α : Fin 16 → E) (β : E) (q : Column I.μ) :
     ∏ x : Fin (2 ^ I.μBus), (pushLeaves I α β q)[x] =
       sideProduct α β (I.tuples q .push) * padProduct α (sidePadTuples I q .push) :=
   prod_sideLeaves_eq rfl α β q (push_fits I)
 
 /-- The product of the pull side's leaves. -/
-theorem prod_pullLeaves (h : Conditions I) (α : Fin 4 → E) (β : E) (q : Column I.μ) :
+theorem prod_pullLeaves (h : Conditions I) (α : Fin 16 → E) (β : E) (q : Column I.μ) :
     ∏ x : Fin (2 ^ I.μBus), (pullLeaves I α β q)[x] =
       sideProduct α β (I.tuples q .pull) * padProduct α (sidePadTuples I q .pull) :=
   prod_sideLeaves_eq rfl α β q (h.fits 1)
 
 /-- With honest padding rows, every padding leaf is `1`. -/
-theorem padProduct_of_honest {q : Column I.μ} (hp : I.PaddingHonest q) (α : Fin 4 → E)
+theorem padProduct_of_honest {q : Column I.μ} (hp : I.PaddingHonest q) (α : Fin 16 → E)
     (s : Side) : padProduct α (sidePadTuples I q s) = 1 := by
   rw [padProduct, sidePadTuples, Multiset.map_coe, Multiset.prod_coe]
   refine List.prod_eq_one fun e he ↦ ?_
@@ -690,26 +690,10 @@ theorem padProduct_of_honest {q : Column I.μ} (hp : I.PaddingHonest q) (α : Fi
   | flush j f =>
     obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hu
     have hrow := hp j x (of_decide_eq_true (List.mem_filter.mp hx).2)
-    rw [padDiff, fingerprint_one_sub_add]
+    show 1 - fingerprint α (padDiff q j f x) = 1
+    rw [padDiff, fingerprint_sub]
     simp only [flushTuple, hrow, padTuple]
     ring
-  | boundary b => cases hu
-  | count j c => cases hu
-
-/-- A padding tuple is nonzero: its first slot, where both tuples hold the same separator, is
-`1`. -/
-theorem padTuple_ne_zero (h : Conditions I) {q : Column I.μ} {s : Side} {u : Vector K 16}
-    (hu : u ∈ sidePadTuples I q s) : ∃ i : Fin 16, u[i] ≠ 0 := by
-  obtain ⟨src, -, hu⟩ := List.mem_flatMap.mp hu
-  cases src with
-  | flush j f =>
-    obtain ⟨x, -, rfl⟩ := List.mem_map.mp hu
-    refine ⟨0, ?_⟩
-    simp only [padDiff, Fin.getElem_fin, Vector.getElem_ofFn, flushTuple, padTuple,
-      Vector.getElem_map]
-    rw [show ((flushPolys j f)[(0 : Fin 16).val]).eval (I.row q j x) =
-      ((flushPolys j f)[(0 : Fin 16).val]).eval (I.padRow j) from h.separator j f _ _]
-    simp
   | boundary b => cases hu
   | count j c => cases hu
 
@@ -733,7 +717,7 @@ theorem length_side {k : Fin 3} {s : Side} (hk : sources I k = sideSources I s)
 
 /-- The count side's product is zero when an executed count cell is (§6.2): a nonzero count root
 makes every executed count cell nonzero. -/
-theorem countsNonzero_of_prod (h : Conditions I) (α : Fin 4 → E) (β : E) (q : Column I.μ)
+theorem countsNonzero_of_prod (h : Conditions I) (α : Fin 16 → E) (β : E) (q : Column I.μ)
     (hnz : ∏ x : Fin (2 ^ I.μBus), (sideLeaves I 2 α β q)[x] ≠ 0) : I.CountsNonzero q := by
   rw [prod_sideLeaves 2 α β q (h.fits 2)] at hnz
   intro j c hc x hx h0
@@ -748,7 +732,7 @@ theorem countsNonzero_of_prod (h : Conditions I) (α : Fin 4 → E) (β : E) (q 
     exact _root_.map_zero (algebraMap K E)
 
 /-- With honest padding rows and nonzero executed counts, the count side's product is nonzero. -/
-theorem prod_countLeaves_ne_zero (h : Conditions I) (α : Fin 4 → E) (β : E) {q : Column I.μ}
+theorem prod_countLeaves_ne_zero (h : Conditions I) (α : Fin 16 → E) (β : E) {q : Column I.μ}
     (hp : I.PaddingHonest q) (hn : I.CountsNonzero q) :
     ∏ x : Fin (2 ^ I.μBus), (sideLeaves I 2 α β q)[x] ≠ 0 := by
   rw [prod_sideLeaves 2 α β q (h.fits 2)]
@@ -790,7 +774,7 @@ def linesRider (input : I.Stmt) (q : Column I.μ) : Σ τ : Fin (I.μBus + 1), C
 
 /-- The public data of the grand-product argument: the statement and the fingerprint challenges
 `(α, β)`. -/
-abbrev Data : Type := I.Stmt × ((Fin 4 → E) × E)
+abbrev Data : Type := I.Stmt × ((Fin 16 → E) × E)
 
 /-- The leaves of the three trees, read off the stack at the challenges: push, pull, count. -/
 def leaves (x : Data I) (o : ∀ i, TheOracle I i) : Fin 3 → CMlPolynomialEval E I.μBus :=
@@ -900,7 +884,7 @@ def coordValue (vals : Vector E I.busClaims) {κ : ℕ} : Coord I.toShape κ →
 
 /-- The part of a block the verifier evaluates itself, from the values sent: a boundary block's leaf
 extension, a table block's padding term (`padding_rows`, `crates/verifier/src/bus.rs:187-200`). -/
-def Source.publicValue (α : Fin 4 → E) (β : E) (vals : Vector E I.busClaims) :
+def Source.publicValue (α : Fin 16 → E) (β : E) (vals : Vector E I.busClaims) :
     (src : Source I) → Vector E src.κ → E
   | .boundary b, z =>
     let w := fingerprintWeights α
@@ -913,8 +897,8 @@ def oneRow (j : Fin I.ntab) : I.RowPoly j :=
   ⟨1, by rw [totalDegree_equiv (S := K), CPoly.map_one, MvPolynomial.totalDegree_one]; omega⟩
 
 /-- A flush block's terms on its table, at the block's weight `w`: `w·β` against `1`, and
-`−w·eq(α, i)` against coordinate `i`'s polynomial. -/
-def flushForm (j : Fin I.ntab) (f : Fin (I.flushes j).length) (w : E) (α : Fin 4 → E) (β : E) :
+`−w·α_i` against coordinate `i`'s polynomial. -/
+def flushForm (j : Fin I.ntab) (f : Fin (I.flushes j).length) (w : E) (α : Fin 16 → E) (β : E) :
     I.Form j :=
   let tw := fingerprintWeights α
   (w * β, oneRow j) :: (List.finRange 16).map fun i ↦ (-(w * tw[i.val]),
@@ -931,7 +915,7 @@ def countForm (hd : 1 ≤ I.d) (j : Fin I.ntab) (c : Fin (I.width j)) (w : E) : 
 
 /-- A block's terms on table `j`: its flush's or count column's if it is table `j`'s, none
 otherwise. -/
-def Source.form (hd : 1 ≤ I.d) (w : E) (α : Fin 4 → E) (β : E) (j : Fin I.ntab) :
+def Source.form (hd : 1 ≤ I.d) (w : E) (α : Fin 16 → E) (β : E) (j : Fin I.ntab) :
     Source I → I.Form j
   | .boundary _ => []
   | .flush j' f => if h : j' = j then h ▸ flushForm j' f w α β else []
@@ -948,7 +932,7 @@ abbrev lowAt (h : Conditions I) (k : Fin 3) (b : Fin (blocks I k).n) (ζ : Vecto
   (blocks I k).lowPoint (h.fits k) b ζ
 
 /-- Side `k`'s forms, per sumcheck table: its tables' blocks' terms. -/
-def forms (h : Conditions I) (k : Fin 3) (α : Fin 4 → E) (β : E) (ζ : Vector E I.μBus)
+def forms (h : Conditions I) (k : Fin 3) (α : Fin 16 → E) (β : E) (ζ : Vector E I.μBus)
     (j : I.SumcheckTables) : I.Form j.1 :=
   (List.finRange (blocks I k).n).flatMap fun b ↦
     (src I k b).form h.one_le_d (weight h k b ζ) α β j.1
@@ -956,7 +940,7 @@ def forms (h : Conditions I) (k : Fin 3) (α : Fin 4 → E) (β : E) (ζ : Vecto
 /-- Side `k`'s total: its leaf claim `v`, less its blocks' public part (the boundary blocks',
 evaluated from the values sent, and the table blocks' padding terms), and the pad's weight
 `1 + Σ_b eq(sel_b, ζ_{≥κ_b})`. -/
-def total (h : Conditions I) (k : Fin 3) (α : Fin 4 → E) (β : E) (ζ : Vector E I.μBus) (v : E)
+def total (h : Conditions I) (k : Fin 3) (α : Fin 16 → E) (β : E) (ζ : Vector E I.μBus) (v : E)
     (vals : Vector E I.busClaims) : E :=
   v - ((∑ b, weight h k b ζ * (src I k b).publicValue α β vals (lowAt h k b ζ)) +
     (1 + ∑ b, weight h k b ζ))
@@ -997,8 +981,8 @@ def rootsHonest (p : (Data I × ∀ i, TheOracle I i) × Unit) : E × E :=
 
 /-- The fingerprint challenges, as a typed component. -/
 def challengeStep :
-    Typed.Def (TheOracle I) I.Stmt Unit (Data I) Unit (Typed.drawSlot ((Fin 4 → E) × E)) :=
-  Typed.sampleChallenge (TheOracle I) ((Fin 4 → E) × E) (fun _ ↦ true) fun s ab ↦ (s, ab)
+    Typed.Def (TheOracle I) I.Stmt Unit (Data I) Unit (Typed.drawSlot ((Fin 16 → E) × E)) :=
+  Typed.sampleChallenge (TheOracle I) ((Fin 16 → E) × E) (fun _ ↦ true) fun s ab ↦ (s, ab)
 
 /-- The roots, as a typed component. -/
 def rootsStep :
@@ -1020,7 +1004,7 @@ open Bus in
 /-- **The leaves at a point** (§5.4, equation (2)): a side's leaf stack at `ζ` is the sum over
 its blocks of the selector weight `eq(sel_b, ζ_{≥κ_b})` times the block's leaf extension at
 `ζ_{<κ_b}`, plus the pad's weight `1 + Σ_b eq(sel_b, ζ_{≥κ_b})`. -/
-theorem leaf_decomposition {I : M3Instance} (h : Conditions I) (k : Fin 3) (α : Fin 4 → E)
+theorem leaf_decomposition {I : M3Instance} (h : Conditions I) (k : Fin 3) (α : Fin 16 → E)
     (β : E) (q : Column I.μ) (ζ : Vector E I.μBus) :
     evalMle (sideLeaves I k α β q) ζ =
       (∑ b, (blocks I k).selectorWeight (h.fits k) b ζ *
@@ -1141,7 +1125,7 @@ private theorem eval_flatMap {j : Fin I.ntab} {n : ℕ} (g : Fin n → I.Form j)
 /-- A flush block's terms evaluate to its weight times its leaf extension, less the padding
 term. -/
 private theorem eval_flushForm (q : Column I.μ) (j : Fin I.ntab) (f : Fin (I.flushes j).length)
-    (w : E) (α : Fin 4 → E) (β : E) (z : Vector E (I.τ j)) :
+    (w : E) (α : Fin 16 → E) (β : E) (z : Vector E (I.τ j)) :
     M3Instance.Form.eval I (flushForm j f w α β) q z = w * (β - ∑ i : Fin 16,
       (fingerprintWeights α)[i.val] * evalMle (I.virtualTable q j (flushPolys j f)[i]) z) := by
   have hone : evalMle (I.virtualTable q j 1) z = 1 := by
@@ -1177,7 +1161,7 @@ private theorem eval_countForm (hd : 1 ≤ I.d) (q : Column I.μ) (j : Fin I.nta
 
 /-- Block by block: a block's weighted leaf extension at its point is the part the verifier
 evaluates from the true values plus its terms on the sumcheck tables at their points. -/
-private theorem source_split (h : Conditions I) (k : Fin 3) (α : Fin 4 → E) (β : E)
+private theorem source_split (h : Conditions I) (k : Fin 3) (α : Fin 16 → E) (β : E)
     (q : Column I.μ) (ζ : Vector E I.μBus) (vals : Vector E I.busClaims)
     (hvals : ∀ i : Fin I.busClaims, vals[i] =
       eval₂Mle (I.column q I.boundaryColumns[i]).values (algebraMap K E) (columnPoint h ζ i))
@@ -1224,7 +1208,7 @@ private theorem src_mem (k : Fin 3) (b : Fin (blocks I k).n) : src I k b ∈ sou
 /-- **The leaf claims are owed by the forms.** With the true values of the boundary columns,
 side `k`'s forms sum to its total exactly when its leaf claim `v` is its leaves' extension at
 `ζ`. -/
-theorem sum_forms_eq_total_iff (h : Conditions I) (k : Fin 3) (α : Fin 4 → E) (β : E)
+theorem sum_forms_eq_total_iff (h : Conditions I) (k : Fin 3) (α : Fin 16 → E) (β : E)
     (q : Column I.μ) (ζ : Vector E I.μBus) (v : E) (vals : Vector E I.busClaims)
     (hvals : ∀ i : Fin I.busClaims, vals[i] =
       eval₂Mle (I.column q I.boundaryColumns[i]).values (algebraMap K E) (columnPoint h ζ i)) :
@@ -1264,7 +1248,7 @@ variable {I}
 count product is nonzero. -/
 theorem challenge_honest (h : Conditions I) (s : I.Stmt) (o : ∀ i, TheOracle I i) (w : Unit)
     (hin : ((s, o), w) ∈ Seam.commitHonest I) :
-    (fun _ ↦ true) s = true ∧ ∀ ab : (Fin 4 → E) × E, (((s, ab), o), w) ∈ afterChallenge I := by
+    (fun _ ↦ true) s = true ∧ ∀ ab : (Fin 16 → E) × E, (((s, ab), o), w) ∈ afterChallenge I := by
   obtain ⟨⟨hc, hb, hn, hl, ha⟩, hp⟩ := hin
   refine ⟨rfl, fun ab ↦ ⟨?_, prod_countLeaves_ne_zero h _ _ hp hn, hc, hl, ha⟩⟩
   change ∏ x : Fin (2 ^ I.μBus), (pushLeaves I ab.1 ab.2 (theStack o))[x] =

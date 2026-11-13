@@ -6,7 +6,7 @@ public import LeanVM.Cost.Bounds.Decoder.GuestLocs
 /-!
 # Bound: the guest's tables, their largest entries, by evaluation
 
-The largest entry pc (below `2^19`), argument count (`56`, `__loop2`'s), return count (`10`) and frame cell
+The largest entry pc (below `2^19`), argument count (`56`, `main_loop2`'s), return count (`10`) and frame cell
 (below `2^20`) of the guest's tables (`Cost/Decoder/GuestTables.lean`, literals of the decoder
 program), and how often an entry pc repeats (never: they increase, a linear check). The entry
 table's bounds (`Bounds/Decoder/EntryTable.lean`) read these.

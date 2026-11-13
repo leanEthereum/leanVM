@@ -2,7 +2,7 @@
 //! `verify_execution`) on a proof's files, so that its verdicts can be set beside the Lean
 //! verifier's (`lake exe leanvm-verify`) on the same bytes. Two forms of the proof:
 //!
-//! * structured: the scalar stream (`stream.bin`, 24-byte little-endian elements, three limbs
+//! * structured: the scalar stream (`stream.bin`, 16-byte little-endian elements, two limbs
 //!   each) and the Merkle openings phase by phase (`merkle_phases.bin`), the `verifier` crate's
 //!   `Proof { stream, merkle_openings: Vec<Vec<MerklePath>> }` (`crates/verifier/src/transcript.rs`)
 //!   written out field by field, every number little-endian: the phase count (`u32`); per phase
@@ -55,11 +55,11 @@ fn merkle_phases(bytes: &[u8]) -> Result<Vec<Vec<verifier::MerklePath>>, String>
 }
 
 fn stream(bytes: &[u8]) -> Result<Vec<verifier::E>, String> {
-    if bytes.len() % 24 != 0 {
+    if bytes.len() % 16 != 0 {
         return Err("the stream is not a whole number of field elements".into());
     }
-    let scalars = Reader(bytes).scalars(bytes.len() / 24).expect("a whole number of scalars");
-    Ok(scalars.into_iter().map(|[c0, c1, c2]| verifier::E { c0, c1, c2 }).collect())
+    let scalars = Reader(bytes).scalars(bytes.len() / 16).expect("a whole number of scalars");
+    Ok(scalars.into_iter().map(|[c0, c1]| verifier::E { c0, c1 }).collect())
 }
 
 /// `Proof::from_bytes`, then the `verifier` crate's form of the proof (`leanvm_core::cpu::scalar_proof`).
@@ -74,7 +74,7 @@ fn wire(bytes: &[u8]) -> Result<verifier::Proof, String> {
         stream: proof
             .stream
             .iter()
-            .map(|element| verifier::E { c0: element.c0, c1: element.c1, c2: element.c2 })
+            .map(|element| verifier::E { c0: element.c0, c1: element.c1 })
             .collect(),
         merkle_openings: proof.merkle.iter().map(|phase| phase.iter().map(path).collect()).collect(),
     })

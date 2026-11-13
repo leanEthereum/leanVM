@@ -3,7 +3,7 @@
 
 \subsection{Multilinear stacking}\label{sec:stacking}
 
-Suppose we want to commit to $T$ multilinears $P_1,\dots,P_T$ over boolean hypercubes of various sizes. We could commit to each independently, at the cost of a large cumulative opening proof. Instead they are concatenated into a large multilinear polynomial $q$, which we commit to with an inner-product commitment scheme (Definition~\ref{def:ipcs}), with a protocol to reduce opening claims on $P_i$ to a claim on $q$. Order them by size, $\kappa_1\ge\dots\ge\kappa_T$ variables, and concatenate their values end to end,
+Suppose we want to commit to $T$ multilinears $P_1,\dots,P_T$ over boolean hypercubes of various sizes. We could commit to each independently, at the cost of a large cumulative opening proof. Instead they are concatenated into a large multilinear polynomial $q$, which we commit to with an inner-product commitment scheme (Definition~\ref{def:ipcs}), with a protocol to reduce opening claims on $P_i$ to a claim on $q$. They come in a fixed order (below). Sort them by size, largest first and ties in that order (a stable sort), relabel them so that $\kappa_1\ge\dots\ge\kappa_T$ variables, and concatenate their values end to end,
 \[
   q \;=\; P_1 \,\Vert\, P_2 \,\Vert\,\dots\,\Vert\, P_T \,\Vert\, 0,
 \]
@@ -21,6 +21,8 @@ the zero padding contributing nothing. An evaluation claim $\widetilde P_i(\zeta
 \]
 a weighted sum over $\widetilde q$ with weight $W(w)=\eq((\zeta,\mathsf{sel}_i),w)$.
 
+\paragraph{The committed columns.} In leanVM the order is: $\mem_0$, $\mem_1$ (\S\ref{sec:memchan}), the memory's finalize counts, the bytecode's finalize counts (\S\ref{sec:lookup}), $\qkeccak$ (Annex~\ref{annex:keccak}), then every table's columns, tables in opcode order (\S\ref{sec:bytecode}) and columns in the order of \S\ref{sec:tables}. They have $\kmem$, $\kmem$, $\kmem$, $\kbc$, $\nkeccak$ and, for table $T_j$'s columns, $\tau_j$ variables (\S\ref{sec:m3}). Three kinds of \texttt{KECCAK} column take no piece: the output lanes, which are virtual, and the input lanes and first fourteen columns, which are slots of $\qkeccak$ (\S\ref{sec:tab-keccak}, \S\ref{keccak:segments}). The leaf stacks of the bus (\S\ref{sec:leafstack}) are placed by the same rule.
+
 \paragraph{Batching.} By the identity above, the claims the protocol raises on the $P_i$ transfer to a list of claims $\langle W_j,\widetilde q\rangle=c_j$ on the stack, with $\E$-valued weights and targets. The verifier then samples $\lambda\in\E$, and it remains to prove
 \[
   \Bigl\langle \sum_j\lambda^{j-1}W_j,\;\widetilde q\Bigr\rangle\qeq\sum_j\lambda^{j-1}c_j
@@ -29,4 +31,4 @@ via the PCS (Annex~\ref{annex:pcs}).
 
 \subsection{Committing to booleans via Ring-Switching}\label{sec:ringswitch}
 
-The Keccak GKR (Annex~\ref{annex:keccak}) terminates with a claim about the inputs (and intermediate layer) at the bit-level. Those bits are committed packed, (interpeting each $64$ consecutive bits as a $\K$-element), as the $\K$-valued multilinear $\qkeccak$ in $\nkeccak$ variables, which occupies one region of the stack in \S\ref{sec:stacking}. Ring switching~\cite{DP24} turns $64$ bit-level evaluations claims into one single claim on $\qkeccak$ (Annex~\ref{annex:rs}).
+The Keccak GKR (Annex~\ref{annex:keccak}) terminates with a claim about the inputs (and intermediate layer) at the bit-level. Those bits are committed packed (each $64$ consecutive bits as one $\K$-element), as the $\K$-valued multilinear $\qkeccak$ in $\nkeccak$ variables, which occupies one region of the stack in \S\ref{sec:stacking}. Ring switching~\cite{DP24} turns $64$ bit-level evaluation claims into a single claim on $\qkeccak$ (Annex~\ref{annex:rs}).

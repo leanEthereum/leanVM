@@ -8,6 +8,9 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Basic
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The squares of `g`
@@ -25,7 +28,7 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Guest.Value
 @[expose] public section
 
 /-- `SIZE_BITS` (G:52). -/
-abbrev tbSizeBits : ℕ := 34
+abbrev tbSizeBits : ℕ := guest_const% SIZE_BITS
 
 /-- `n` successive tbSquares from `x`: `x, x², x⁴, …`, as `sq_run *= sq_run` computes them. -/
 def tbSquares {R : Type} [Mul R] : ℕ → R → List R

@@ -64,6 +64,7 @@ def layerTail (claim : KeccakClaim) (s : E) (res : E × E × List E) (res2 : Lis
   VerifierProgram.require (res.2.1 * dot ((eqKernel res2.1).take keccakBits) claim.weights *
     (sumE (keccakInstanceWeights s) * t.getD 0 0 +
       (sumE (keccakInstanceWeights s) + t.getD 1 0) * t.getD 2 0) = res2.2) >>= fun _ ↦
+  VerifierProgram.grindProofOfWork (grindingBits 2) >>= fun _ ↦
   VerifierProgram.sampleChallenge >>= fun beta ↦
   VerifierProgram.ret ⟨t.getD 0 0 + beta * (t.getD 1 0 + beta * t.getD 2 0),
       keccakInstanceWeights s,
@@ -75,6 +76,7 @@ def layerProg (P step : ℕ) (claim : KeccakClaim) : VerifierProgram KeccakClaim
   VerifierProgram.require (projectedOf claim product + iotaOf P step claim * sumE claim.mu =
       claim.value) >>=
     fun _ ↦
+  VerifierProgram.grindProofOfWork (grindingBits (productBits - 1)) >>= fun _ ↦
   VerifierProgram.sampleChallenge >>= fun s ↦
   keccakPackRounds claim.point (polyEval product s) 1 >>= fun res ↦
   sumcheck res.1 4 (List.replicate keccakLocalBits none) >>= fun res2 ↦
@@ -164,7 +166,8 @@ noncomputable def tailSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀
     Spec (layerTail claim s res res2)
       (Doomed C (fun q ↦ res2.2 = res.2.1 * phi (Tq q) P s claim.weights res.2.2 res2.1 ∧ R q))
       (fun c h ↦ ClaimShape P c ∧ Doomed C (fun q ↦ ClaimTrue (Tq q) P c ∧ R q) h) εmax 0 T :=
-  (doomReadN (T := (L₀ : ℝ≥0∞) * errE 2 + T) hst _ hβ 2).bind' fun t ↦
+  (doomReadN (T := if grindingBits 2 = 0 then (L₀ : ℝ≥0∞) * errE 2 + T else 0) hst _
+    (grindLead_le' _ hβ) 2).bind' fun t ↦
     (Spec.require (Pre := fun h ↦ t.length = 2 + 1 ∧ Doomed C (fun q ↦ res2.2 =
         res.2.1 * phi (Tq q) P s claim.weights res.2.2 res2.1 ∧ R q) h)
       (Post := fun _ h ↦ Doomed C (fun q ↦ (t.getD 0 0 = Tk (Tq q) P s res.2.2 0 res2.1 ∧
@@ -173,6 +176,8 @@ noncomputable def tailSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀
       fun _ hpre hc ↦ Doomed.mono hpre.2 fun q ⟨ht, hR⟩ ↦
         ⟨final_check (Tq q) P s claim.weights res.2.2 res2.1 res.2.1 res2.2 t hres2
           hshape.2.2 ht hc, hR⟩).bind' fun _ ↦
+      ((doomGrind hst _ True (grindingBits 2) (discount_le _ hβ)).mono (fun _ h ↦ ⟨trivial, h⟩)
+        (fun _ _ h ↦ h.2) le_rfl le_rfl le_rfl).bind' fun _ ↦
       (doomSample (εmax := εmax) (T := T) hst hcard _
         (fun b q ↦ t.getD 0 0 + b * (t.getD 1 0 + b * t.getD 2 0) =
           Tk (Tq q) P s res.2.2 0 res2.1 + b * (Tk (Tq q) P s res.2.2 1 res2.1 +
@@ -195,17 +200,16 @@ a claim of the same shape. Lead `0`; the evaluation point's group `L₀·46/|E|`
 round's `L₀·3/|E|`, `β`'s `L₀·2/|E|` plus the follower's lead `T`. -/
 noncomputable def layerSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀) (R : β → Prop)
     (Tq : β → States) (step P : ℕ) (claim : KeccakClaim) (hshape : ClaimShape P claim)
-    (h46 : (L₀ : ℝ≥0∞) * errE 46 ≤ εmax)
-    (hβ : (L₀ : ℝ≥0∞) * errE 2 + T ≤ εmax) :
+    (h46 : (2 : ℝ≥0∞)⁻¹ ^ grindingBits (productBits - 1) * ((L₀ : ℝ≥0∞) * errE 46) ≤ εmax)
+    (h3 : (L₀ : ℝ≥0∞) * errE 3 ≤ εmax) (hβ : (L₀ : ℝ≥0∞) * errE 2 + T ≤ εmax) :
     Spec (verifyKeccakLayer (P + 4) step claim)
       (Doomed C (fun q ↦ ClaimTrue (afterRound (Tq q) step) P claim ∧ R q))
       (fun c h ↦ ClaimShape P c ∧ Doomed C (fun q ↦ ClaimTrue (Tq q) P c ∧ R q) h) εmax 0 T :=
-  have h3 : (L₀ : ℝ≥0∞) * errE 3 + 0 ≤ εmax := by
-    rw [add_zero]; exact le_trans (by gcongr; exact errE_mono (by norm_num)) h46
+  have h3 : (L₀ : ℝ≥0∞) * errE 3 + 0 ≤ εmax := by rw [add_zero]; exact h3
   have h0 : (0 : ℝ≥0∞) ≤ εmax := zero_le
+  have hb : grindingBits (productBits - 1) ≠ 0 := by rw [grindingBits_product]; norm_num
   Spec.congr (verifyKeccakLayer_eq P step claim).symm <|
-  (doomReadN (T := (L₀ : ℝ≥0∞) * errE 46 + 0) hst _ (by rw [add_zero]; exact h46) 46).bind'
-    fun product ↦
+  (doomReadN (T := 0) hst _ h0 46).bind' fun product ↦
   (Spec.require
     (Pre := fun h ↦ product.length = 46 + 1 ∧
       Doomed C (fun q ↦ ClaimTrue (afterRound (Tq q) step) P claim ∧ R q) h)
@@ -213,6 +217,9 @@ noncomputable def layerSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L�
       (Gpoly (Tq q) P claim.point claim.weights).coeff c) ∧ R q) h)
     fun _ hpre hc ↦ ⟨hpre.1, Doomed.mono hpre.2 fun q ⟨hG, hR⟩ ↦
       ⟨product_check (Tq q) step P claim hshape product hG hc, hR⟩⟩).bind' fun _ ↦
+  ((doomGrind (T := (L₀ : ℝ≥0∞) * errE 46 + 0) hst _ (product.length = 47)
+    (grindingBits (productBits - 1)) (by rw [add_zero]; exact h46)).mono (fun _ h ↦ h)
+    (fun _ _ h ↦ h) le_rfl (by simp [hb]) le_rfl).bind' fun _ ↦
   if hlen : product.length = 47 then
     ((doomSample (εmax := εmax) (T := 0) hst hcard _
       (fun s q ↦ polyEval product s = (Gpoly (Tq q) P claim.point claim.weights).eval s ∧ R q)

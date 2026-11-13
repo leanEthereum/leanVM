@@ -224,19 +224,6 @@ theorem RangeFresh.append {ss ss' : List Stmt} {ts ts' all : List ℕ} (h : Rang
   rw [usesList_append, idxMask_append, Nat.testBit_or, h1 t ht, h2 t ht]
   rfl
 
-/-- The ranges from `a` and from `a + n` make the range from `a`. -/
-theorem rangeFresh_drop {l : List Stmt} {a n : ℕ} {ts ts' all : List ℕ}
-    (h : RangeFresh ((l.drop a).take n) ts all) (h' : RangeFresh (l.drop (a + n)) ts' all) :
-    RangeFresh (l.drop a) (ts ++ ts') all := by
-  have := h.append h'
-  rwa [← List.drop_drop, List.take_append_drop] at this
-
-theorem rangeFresh_end {l : List Stmt} {a : ℕ} (ha : l.length ≤ a) (all : List ℕ) :
-    RangeFresh (l.drop a) [] all := by
-  rw [List.drop_eq_nil_of_le ha]
-  refine ⟨rfl, ?_⟩
-  simp [Stmt.usesList, idxMask]
-
 /-- **A body certified by ranges is fresh**: its temporaries are `all`, distinct, and no
 parameter. -/
 theorem fn_fresh_of_rangeFresh {fn : Fn} {all : List ℕ} (h : RangeFresh fn.body all all)

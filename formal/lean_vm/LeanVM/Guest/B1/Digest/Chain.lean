@@ -4,7 +4,7 @@
   A checker, by kernel evaluation, that a straight-line list of atoms holds a `KECCAK` chain over
   message cells (`keccak` and `keccak_cells`, as `emit_keccak_message` lowers them), and its
   soundness: the chain's last output is Keccak-256 of the cells' bytes (or, with `final=0`, the
-  sponge state after them), and the cells are canonical.
+  sponge state after them).
 -/
 
 module
@@ -32,8 +32,7 @@ the previous output's cell plus the padded message cell (`rateOk`), or the previ
 capacity cell (`capOk`). It is sound for every valuation satisfying the atoms:
 
 * `chain_final` (`final`): the last output's cells `0`, `1` are the digest of `pre ++` the
-  message's bytes, after a prefix `pre` of whole blocks absorbed into the initial state, and the
-  message cells are canonical;
+  message's bytes, after a prefix `pre` of whole blocks absorbed into the initial state;
 * `chain_whole` (`final=0`): the last output is the sponge state after `pre ++` the cells' bytes.
 -/
 
@@ -42,13 +41,15 @@ namespace LeanVM.Guest.B1.Digest
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
+open scoped VDec
+
 @[expose] public section
 
 /-! ## Atom matchers -/
 
-/-- `x` is set to the word `word lo hi 0`. -/
+/-- `x` is set to the word `word lo hi`. -/
 def isConstAt (x : V) (lo hi : ℕ) : Atom → Bool
-  | .const d c => decide (d = x) && eEqb c (word lo hi 0)
+  | .const d c => decide (d = x) && eEqb c (word lo hi)
   | _ => false
 
 /-- `x = y + z`. -/
@@ -81,7 +82,7 @@ theorem any_holds {atoms : List Atom} {p : Atom → Bool} (h : atoms.any p = tru
 
 theorem const_sound {atoms : List Atom} {x : V} {lo hi : ℕ}
     (h : atoms.any (isConstAt x lo hi) = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
-    σ x = word lo hi 0 := by
+    σ x = word lo hi := by
   obtain ⟨a, hp, ha⟩ := any_holds h hat
   cases a <;> simp only [isConstAt, Bool.false_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hp
   obtain ⟨rfl, he⟩ := hp
@@ -130,19 +131,31 @@ def srcVal (σ : Val) : Option V → E
   | some v => σ v
   | none => 0
 
-/-- **`x` is the message cell `src` plus the padding constant** `word lo hi 0`. -/
+/-- Some `XOR` into `x` of operands passing `f`: a membership test, so a check of a sublist is a
+check of the list (`addWith_sub`). -/
+def addWith (atoms : List Atom) (x : V) (f : V → V → Bool) : Bool :=
+  atoms.any fun a => match a with
+    | .add d p q => decide (d = x) && f p q
+    | _ => false
+
+theorem addWith_sound {atoms : List Atom} {x : V} {f : V → V → Bool} (h : addWith atoms x f = true)
+    (hat : ∀ a ∈ atoms, a.Holds rd σ) : ∃ p q, f p q = true ∧ σ x = σ p + σ q := by
+  obtain ⟨a, hp, ha⟩ := any_holds h hat
+  cases a <;> simp only [Bool.false_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hp
+  obtain ⟨rfl, hf⟩ := hp
+  exact ⟨_, _, hf, ha⟩
+
+/-- **`x` is the message cell `src` plus the padding constant** `word lo hi`. -/
 def evalP (atoms : List Atom) (x : V) (src : Option V) (lo hi : ℕ) : Bool :=
   match src with
   | some v => (lo == 0 && hi == 0 && decide (x = v)) ||
-      (match addOf atoms x with
-       | some (p, q) => (decide (p = v) && atoms.any (isConstAt q lo hi)) ||
-           (decide (q = v) && atoms.any (isConstAt p lo hi))
-       | none => false)
+      addWith atoms x fun p q => (decide (p = v) && atoms.any (isConstAt q lo hi)) ||
+        (decide (q = v) && atoms.any (isConstAt p lo hi))
   | none => atoms.any (isConstAt x lo hi)
 
 theorem evalP_sound {atoms : List Atom} {x : V} {src : Option V} {lo hi : ℕ}
     (h : evalP atoms x src lo hi = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
-    σ x = srcVal σ src + word lo hi 0 := by
+    σ x = srcVal σ src + word lo hi := by
   cases src with
   | none =>
     simp only [evalP] at h
@@ -151,14 +164,11 @@ theorem evalP_sound {atoms : List Atom} {x : V} {src : Option V} {lo hi : ℕ}
     simp only [evalP, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
     rcases h with ⟨⟨rfl, rfl⟩, rfl⟩ | h
     · rw [srcVal, word_zero, add_zero]
-    · split at h
-      · rename_i p q hpq
-        have hx := addOf_sound hpq hat
-        simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h
-        rcases h with ⟨rfl, hc⟩ | ⟨rfl, hc⟩
-        · rw [hx, const_sound hc hat, srcVal]
-        · rw [hx, const_sound hc hat, srcVal, add_comm]
-      · exact absurd h (by simp)
+    · obtain ⟨p, q, h, hx⟩ := addWith_sound h hat
+      simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h
+      rcases h with ⟨rfl, hc⟩ | ⟨rfl, hc⟩
+      · rw [hx, const_sound hc hat, srcVal]
+      · rw [hx, const_sound hc hat, srcVal, add_comm]
 
 /-- **The rate cell `x` is the previous output's cell `y` (`none`: zero) plus the padded
 message cell.** -/
@@ -167,14 +177,12 @@ def rateOk (atoms : List Atom) (x : V) (y : Option V) (src : Option V) (lo hi : 
   | none => evalP atoms x src lo hi
   | some y =>
     (src.isNone && lo == 0 && hi == 0 && (decide (x = y) || atoms.any (isCopyAt x y))) ||
-    (match addOf atoms x with
-     | some (p, q) => (decide (p = y) && evalP atoms q src lo hi) ||
-         (decide (q = y) && evalP atoms p src lo hi)
-     | none => false)
+    addWith atoms x fun p q => (decide (p = y) && evalP atoms q src lo hi) ||
+      (decide (q = y) && evalP atoms p src lo hi)
 
 theorem rateOk_sound {atoms : List Atom} {x : V} {y src : Option V} {lo hi : ℕ}
     (h : rateOk atoms x y src lo hi = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
-    σ x = srcVal σ y + (srcVal σ src + word lo hi 0) := by
+    σ x = srcVal σ y + (srcVal σ src + word lo hi) := by
   cases y with
   | none =>
     simp only [rateOk] at h
@@ -187,14 +195,49 @@ theorem rateOk_sound {atoms : List Atom} {x : V} {y src : Option V} {lo hi : ℕ
       rcases h with rfl | h
       · rfl
       · exact copy_sound h hat
-    · split at h
-      · rename_i p q hpq
-        have hx := addOf_sound hpq hat
-        simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h
-        rcases h with ⟨rfl, he⟩ | ⟨rfl, he⟩
-        · rw [hx, evalP_sound he hat, srcVal]
-        · rw [hx, evalP_sound he hat, srcVal, add_comm]
-      · exact absurd h (by simp)
+    · obtain ⟨p, q, h, hx⟩ := addWith_sound h hat
+      simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h
+      rcases h with ⟨rfl, he⟩ | ⟨rfl, he⟩
+      · rw [hx, evalP_sound he hat, srcVal]
+      · rw [hx, evalP_sound he hat, srcVal, add_comm]
+
+/-! ## Checks of a sublist
+
+Every check above is a membership test, so it holds of a list when it holds of a sublist: a window
+of the checks searches a slice of the atoms. -/
+
+theorem any_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {p : Atom → Bool} (h : l.any p = true) :
+    l'.any p = true := by
+  obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
+  exact List.any_eq_true.mpr ⟨a, hs a ha, hp⟩
+
+theorem addWith_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {x : V} {f f' : V → V → Bool}
+    (hf : ∀ p q, f p q = true → f' p q = true) (h : addWith l x f = true) :
+    addWith l' x f' = true := by
+  obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
+  refine List.any_eq_true.mpr ⟨a, hs a ha, ?_⟩
+  cases a <;> simp only [Bool.false_eq_true, Bool.and_eq_true] at hp ⊢
+  exact ⟨hp.1, hf _ _ hp.2⟩
+
+theorem evalP_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {x : V} {src : Option V} {lo hi : ℕ}
+    (h : evalP l x src lo hi = true) : evalP l' x src lo hi = true := by
+  cases src with
+  | none => exact any_sub hs h
+  | some v =>
+    simp only [evalP, Bool.or_eq_true] at h ⊢
+    refine h.imp id (addWith_sub hs fun p q hpq => ?_)
+    simp only [Bool.or_eq_true, Bool.and_eq_true] at hpq ⊢
+    exact hpq.imp (fun h => ⟨h.1, any_sub hs h.2⟩) (fun h => ⟨h.1, any_sub hs h.2⟩)
+
+theorem rateOk_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {x : V} {y src : Option V}
+    {lo hi : ℕ} (h : rateOk l x y src lo hi = true) : rateOk l' x y src lo hi = true := by
+  cases y with
+  | none => exact evalP_sub hs h
+  | some y =>
+    simp only [rateOk, Bool.or_eq_true, Bool.and_eq_true] at h ⊢
+    refine h.imp (fun h => ⟨h.1, h.2.imp id (any_sub hs)⟩) (addWith_sub hs fun p q hpq => ?_)
+    simp only [Bool.or_eq_true, Bool.and_eq_true] at hpq ⊢
+    exact hpq.imp (fun h => ⟨h.1, evalP_sub hs h.2⟩) (fun h => ⟨h.1, evalP_sub hs h.2⟩)
 
 /-! ## The padding constants -/
 
@@ -211,11 +254,11 @@ def padNat (len i : ℕ) : ℕ × ℕ :=
   let b := byteNat (rate * (len / rate + 1) - 1) 0x80 i
   (a.1 ^^^ b.1, a.2 ^^^ b.2)
 
-theorem word_xor (a b c d : ℕ) : word (a ^^^ c) (b ^^^ d) 0 = word a b 0 + word c d 0 := by
-  simp only [word, ofBits_xor, ofLimbs_add, ofBits_zero, add_zero]
+theorem word_xor (a b c d : ℕ) : word (a ^^^ c) (b ^^^ d) = word a b + word c d := by
+  simp only [word, ofBits_xor, ofLimbs_add]
 
 theorem word_byteNat (pos v i : ℕ) :
-    word (byteNat pos v i).1 (byteNat pos v i).2 0 = if i = pos / 16 then byteCell pos v else 0 := by
+    word (byteNat pos v i).1 (byteNat pos v i).2 = if i = pos / 16 then byteCell pos v else 0 := by
   unfold byteNat byteCell
   by_cases h : pos / 16 = i
   · rw [ite_pos' h, ite_pos' h.symm]
@@ -223,7 +266,7 @@ theorem word_byteNat (pos v i : ℕ) :
   · rw [ite_neg' h, ite_neg' (Ne.symm h), word_zero]
 
 theorem word_padNat (len i : ℕ) :
-    word (padNat len i).1 (padNat len i).2 0 =
+    word (padNat len i).1 (padNat len i).2 =
       (if i = len / 16 then byteCell len 1 else 0) +
         (if i = (rate * (len / rate + 1) - 1) / 16 then byteCell (rate * (len / rate + 1) - 1) 0x80
           else 0) := by
@@ -237,7 +280,7 @@ theorem getD_modify' {α : Type} (l : List α) (f : α → α) (j i : ℕ) (d : 
 
 /-- Cell `i` of the padded cells: the cell, plus the padding bytes it holds. -/
 theorem padCells_getD (cells : List E) (len : ℕ) {i : ℕ} (hi : i < padRead len) :
-    (padCells cells len).getD i 0 = cells.getD i 0 + word (padNat len i).1 (padNat len i).2 0 := by
+    (padCells cells len).getD i 0 = cells.getD i 0 + word (padNat len i).1 (padNat len i).2 := by
   rw [word_padNat]
   have hlen : i < (cells ++ List.replicate (padRead len - cells.length) 0).length := by
     rw [List.length_append, List.length_replicate]; omega
@@ -327,6 +370,22 @@ def check (atoms : List Atom) : Bool :=
     s.blockOk atoms k && (List.range 9).all (s.rateAt atoms k) &&
       (List.range 4).all fun j => s.capAt atoms k (9 + j)
 
+theorem blockOk_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {k : ℕ} (h : s.blockOk l k = true) :
+    s.blockOk l' k = true := by
+  simp only [blockOk, Bool.and_eq_true] at h ⊢
+  exact ⟨h.1, any_sub hs h.2⟩
+
+theorem rateAt_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {k c : ℕ} (h : s.rateAt l k c = true) :
+    s.rateAt l' k c = true :=
+  rateOk_sub hs h
+
+theorem capAt_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {k c : ℕ} (h : s.capAt l k c = true) :
+    s.capAt l' k c = true := by
+  unfold capAt at h ⊢
+  split at h
+  · exact any_sub hs h
+  · exact h
+
 /-- The message's values. -/
 def vals (σ : Val) : List E := s.msg.map (srcVal σ)
 
@@ -361,25 +420,6 @@ theorem cellsBytes_take (cs : List E) (m : ℕ) :
         show 16 * (m + 1) = (cellBytes c).length + 16 * m by rw [length_cellBytes]; ring,
         List.take_length_add_append, ih]
 
-theorem isCanonical128_add {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical128 b) :
-    IsCanonical128 (a + b) := by
-  unfold IsCanonical128 at *
-  rw [limb_add, ha, hb, add_zero]
-
-theorem isCanonical128_word (lo hi : ℕ) : IsCanonical128 (word lo hi 0) := by
-  unfold IsCanonical128 word
-  rw [ofLimbs_limb2, ofBits_zero]
-
-theorem isCanonical128_cellsOfState (S : KeccakState) (odd : Bool) (c : Fin 13) :
-    IsCanonical128 (cellsOfState S odd c) := by
-  unfold IsCanonical128 cellsOfState
-  rw [ofLimbs_limb2]
-
-theorem isCanonical128_of_add {a b : E} (hab : IsCanonical128 (a + b)) (hb : IsCanonical128 b) :
-    IsCanonical128 a := by
-  have := isCanonical128_add hab hb
-  rwa [add_assoc, CharTwo.add_self_eq_zero, add_zero] at this
-
 namespace ChainSpec
 
 variable {s : ChainSpec} {atoms : List Atom}
@@ -410,7 +450,7 @@ theorem keccak_of_check (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Hol
   obtain ⟨-, -, O', hK, -⟩ := keccak_holds_full (keccak_sound hk' hat)
   have e1 : cells13 ((s.blocks.getD k ([], [])).1.map σ) = s.I σ k := funext (cells13_map σ _ h1)
   rw [e1] at hK
-  exact ⟨hK.1, fun c _ => by simp [O]⟩
+  exact fun c _ => by simp [O]
 
 /-- Block `k`'s written values are the first cells of the state after it. -/
 theorem out_of_check (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd σ)
@@ -423,7 +463,7 @@ theorem out_of_check (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds 
   obtain ⟨-, -, O', hK, hw⟩ := keccak_holds_full (keccak_sound hk' hat)
   have e1 : cells13 ((s.blocks.getD k ([], [])).1.map σ) = s.I σ k := funext (cells13_map σ _ h1)
   rw [e1] at hK
-  rw [outV, List.getD_eq_getElem _ _ hc, hw c hc, hK.2 c c.isLt]
+  rw [outV, List.getD_eq_getElem _ _ hc, hw c hc, hK c c.isLt]
   simp [O]
 
 /-- A block before the last writes the thirteen cells of the state. -/
@@ -467,16 +507,11 @@ theorem prevV_val (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd 
       (by rw [outs_13 h (by omega)]; exact hc)
     rwa [Nat.sub_add_cancel (by omega)] at this
 
-theorem shape_init (h : s.shapeOk = true) : ∀ st, s.init = some st → st.length = 13 := by
-  intro st hst
-  simp only [shapeOk, hst, Bool.and_eq_true, beq_iff_eq] at h
-  exact h.1
-
 /-- The rate relation, for any padded cells `P` that hold the message cells plus `pad`. -/
 theorem rate_of_check (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd σ)
     {k : ℕ} (hk : k < s.nb) (c : Fin 13) (hc : c.val < 9) :
     s.I σ k c = s.O σ k c + (srcVal σ (s.msg.getD (17 * k / 2 + c) none) +
-      word (s.pad (17 * k / 2 + c)).1 (s.pad (17 * k / 2 + c)).2 0) := by
+      word (s.pad (17 * k / 2 + c)).1 (s.pad (17 * k / 2 + c)).2) := by
   obtain ⟨hs, hb⟩ := check_parts h
   obtain ⟨-, hr, -⟩ := hb k hk
   have := rateOk_sound (hr c hc) hat
@@ -509,14 +544,13 @@ end ChainSpec
 
 open ChainSpec in
 /-- **A padded chain computes Keccak-256** of `pre ++` its message's bytes, `pre` the whole blocks
-absorbed into the initial state; its message cells are canonical. -/
+absorbed into the initial state. -/
 theorem chain_final {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = true)
     (hfin : s.final = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) {pre : List UInt8} {n : ℕ}
     (hpre : pre.length = rate * n)
     (h0 : ∀ c : Fin 13, s.initCell σ c = cellsOfState (absorbChunks n zeroState pre) false c) :
     (σ (s.outV (s.nb - 1) 0), σ (s.outV (s.nb - 1) 1)) =
-        digestHalves (keccak256 (pre ++ cellsBytes ((s.vals σ).take (s.len / 16)))) ∧
-      AllCanonical ((s.vals σ).take (s.len / 16)) := by
+        digestHalves (keccak256 (pre ++ cellsBytes ((s.vals σ).take (s.len / 16)))) := by
   obtain ⟨hs, -⟩ := check_parts h
   have hs' := hs
   simp only [shapeOk, hfin, ↓reduceIte, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq,
@@ -565,46 +599,19 @@ theorem chain_final {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = tru
       rw [← hnb, this]
   rw [hout 0 (by decide), hout 1 (by decide)] at hdig
   have hm : s.len = 16 * (s.len / 16) := by omega
-  refine ⟨?_, ?_⟩
-  · show (σ (s.outV (s.nb - 1) ((0 : Fin 13) : ℕ)), σ (s.outV (s.nb - 1) ((1 : Fin 13) : ℕ))) = _
-    rw [hdig, ← cellsBytes_take, ← hm]
-  · -- every message cell before `len` is read by a block
-    intro x hx
-    obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hx
-    rw [List.length_take] at hi
-    have hi16 : i < s.len / 16 := by omega
-    rw [List.getElem_take]
-    have hk : 2 * i / 17 < s.len / rate + 1 := by
-      have : rate = 136 := rfl
-      rw [this]; omega
-    let c : Fin 13 := ⟨i - 17 * (2 * i / 17) / 2, by omega⟩
-    have hc : c.val < 9 := by simp only [c]; omega
-    have hci : 17 * (2 * i / 17) / 2 + c.val = i := by simp only [c]; omega
-    have hr := hrate _ hk c hc
-    have hcanI := (hK _ hk).1 c
-    rw [hr] at hcanI
-    have hcanO : IsCanonical128 (s.O σ (2 * i / 17) c) := by
-      by_cases hk0 : 2 * i / 17 = 0
-      · rw [hk0, hO0]; exact isCanonical128_cellsOfState _ _ _
-      · obtain ⟨k', hk'⟩ : ∃ k', 2 * i / 17 = k' + 1 := ⟨2 * i / 17 - 1, by omega⟩
-        rw [hk', (hK k' (by omega)).2 c c.isLt]
-        exact isCanonical128_cellsOfState _ _ _
-    have hP := isCanonical128_of_add (by rwa [add_comm] at hcanI) hcanO
-    rw [hci, padCells_getD _ _ (by unfold padRead; omega)] at hP
-    have := isCanonical128_of_add hP (isCanonical128_word _ _)
-    rwa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by rw [hvl]; omega),
-      Option.getD_some] at this
+  show (σ (s.outV (s.nb - 1) ((0 : Fin 13) : ℕ)), σ (s.outV (s.nb - 1) ((1 : Fin 13) : ℕ))) = _
+  rw [hdig, ← cellsBytes_take, ← hm]
 
 open ChainSpec in
 /-- **A chain of whole blocks without padding** (`final=0`) leaves the sponge state after
-`pre ++` its cells' bytes; its message cells are canonical. -/
+`pre ++` its cells' bytes. -/
 theorem chain_whole {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = true)
     (hfin : s.final = false) (hat : ∀ a ∈ atoms, a.Holds rd σ) {pre : List UInt8} {n : ℕ}
     (hpre : pre.length = rate * n)
     (h0 : ∀ c : Fin 13, s.initCell σ c = cellsOfState (absorbChunks n zeroState pre) false c) :
     (∀ c : Fin 13, σ (s.outV (s.nb - 1) c) =
         cellsOfState (absorbChunks (n + s.nb) zeroState (pre ++ cellsBytes (s.vals σ))) false c) ∧
-      (pre ++ cellsBytes (s.vals σ)).length = rate * (n + s.nb) ∧ AllCanonical (s.vals σ) := by
+      (pre ++ cellsBytes (s.vals σ)).length = rate * (n + s.nb) := by
   obtain ⟨hs, -⟩ := check_parts h
   have hs' := hs
   simp only [shapeOk, hfin, Bool.false_eq_true, ↓reduceIte, Bool.and_eq_true, beq_iff_eq,
@@ -627,34 +634,13 @@ theorem chain_whole {s : ChainSpec} {atoms : List Atom} (h : s.check atoms = tru
     funext c; simp only [O, ↓reduceIte]; exact h0 c
   have hB' : 16 * (s.vals σ).length = rate * s.nb := by rw [hvl]; exact hB
   obtain ⟨hw, hl⟩ := keccak_whole hpre hB' hO0 hrate hcap hK
-  refine ⟨fun c => ?_, hl, ?_⟩
-  · have : s.O σ s.nb c = σ (s.outV (s.nb - 1) c) := by
-      have := out_of_check h hat (k := s.nb - 1) (by omega) c
-        (by rw [outs_whole h hfin (by omega)]; exact c.isLt)
-      rw [Nat.sub_add_cancel (by omega)] at this
-      exact this.symm
-    rw [← this, hw]
-  · intro x hx
-    obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hx
-    rw [hvl] at hi
-    have hk : 2 * i / 17 < s.nb := by
-      have : rate = 136 := rfl
-      rw [this] at hB; omega
-    let c : Fin 13 := ⟨i - 17 * (2 * i / 17) / 2, by omega⟩
-    have hc : c.val < 9 := by simp only [c]; omega
-    have hci : 17 * (2 * i / 17) / 2 + c.val = i := by simp only [c]; omega
-    have hr := hrate _ hk c hc
-    have hcanI := (hK _ hk).1 c
-    rw [hr] at hcanI
-    have hcanO : IsCanonical128 (s.O σ (2 * i / 17) c) := by
-      by_cases hk0 : 2 * i / 17 = 0
-      · rw [hk0, hO0]; exact isCanonical128_cellsOfState _ _ _
-      · obtain ⟨k', hk'⟩ : ∃ k', 2 * i / 17 = k' + 1 := ⟨2 * i / 17 - 1, by omega⟩
-        rw [hk', (hK k' (by omega)).2 c c.isLt]
-        exact isCanonical128_cellsOfState _ _ _
-    have hP := isCanonical128_of_add (by rwa [add_comm] at hcanI) hcanO
-    rwa [hci, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by rw [hvl]; omega),
-      Option.getD_some] at hP
+  refine ⟨fun c => ?_, hl⟩
+  have : s.O σ s.nb c = σ (s.outV (s.nb - 1) c) := by
+    have := out_of_check h hat (k := s.nb - 1) (by omega) c
+      (by rw [outs_whole h hfin (by omega)]; exact c.isLt)
+    rw [Nat.sub_add_cancel (by omega)] at this
+    exact this.symm
+  rw [← this, hw]
 
 end
 end LeanVM.Guest.B1.Digest

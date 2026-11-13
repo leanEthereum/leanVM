@@ -13,7 +13,7 @@ public import Init
 /-!
 # The zkDSL source AST
 
-A transcription of `crates/lean_compiler/src/ast.rs` (leanVM `4af2cdddd`, `main`): what
+A transcription of `crates/lean_compiler/src/ast.rs` (leanVM at `leanvm-rev`): what
 `lean_compiler::parse_with_replacements` returns. Placeholders and scalar global constants are
 already substituted textually, `match` arms are already expanded per integer, and `x OP= e` is
 already `x = x OP (e)`; constant arrays stay named (`Program.constArrays`). A keyword argument
@@ -186,10 +186,10 @@ def Func.hasConstParams (f : Func) : Bool :=
   f.params.any fun p => p.kind == .const
 
 /-- A whole program (`Ast`): the functions, and the constant arrays by name, each element the
-three limbs of a word. -/
+two limbs of a word. -/
 structure Program where
   funcs : List Func
-  constArrays : List (String × List (Nat × Nat × Nat))
+  constArrays : List (String × List (Nat × Nat))
   deriving Repr, Inhabited
 
 /-! ## Substitution (`parser/subst.rs`) -/

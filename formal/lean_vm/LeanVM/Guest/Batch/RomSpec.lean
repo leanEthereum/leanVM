@@ -2,8 +2,8 @@
   LeanVM.Guest.Batch.RomSpec
 
   The doom specification of the batching after its children: children with a false claim leave
-  the prover doomed, and each challenge escapes with probability at most `2 max(M, 1)/|E|`, for
-  fewer than `M` children.
+  the prover doomed, and each challenge escapes with probability at most
+  `max(2M - 3, 8) · 2^-130`, for fewer than `M` children, `λ` after its proof of work.
 -/
 
 module
@@ -20,14 +20,16 @@ public import LeanVM.Guest.AcceptableChild
 For children `cs` of the bytecode's shapes with some nonzero gap (`SomeGap`), `restSpec` is a
 specification (`LeanVM.Protocol.Compile.Spec`) of `batchingAfterChildren bytecode cs` from the empty history,
 with doom at the start, rejection at the end, and every challenge escaping doom with
-probability at most `batchε M = 2 max(M, 1)/|E|`, for `n < M` children:
+probability at most `batchε M = max(2M - 3, 8) · 2^-130`, for `n < M` children, discounted by the
+proof of work before it:
 
 * **the challenge `λ`**: the gaps' combination by the lambdas, the powers `λ^0, …, λ^(2n-1)`, is
   the gaps' polynomial at `λ`, nonzero of degree below `2n` (`card_false_batch_le`): `λ` escapes
-  at at most `2n - 1` of its values;
+  at at most `2n - 1 ≤ 2M - 3` of its values, `(2M - 3)/|E|`, and its proof of work of
+  `batchLambdaGrindBits = 2` bits brings that to `(2M - 3) · 2^-130`;
 * **a round**: the claim is not the cube sum after the earlier challenges (`cubeSum`); the
   round's messages keep it, and its challenge breaks it at a root of the round's gap, a nonzero
-  quadratic: at most `2/|E|` (`quadratic_roots`);
+  quadratic: at most `2/|E| = 8 · 2^-130` (`quadratic_roots`);
 * **the final value and the check**: the final claim, not the polynomial at the challenges,
   contradicts the check and the deferred claim's truth, so the program rejects.
 -/
@@ -40,9 +42,10 @@ open scoped ENNReal
 
 @[expose] public section
 
-/-- The batching's escape bound per challenge, for fewer than `M` children: `2 max(M, 1)/|E|`
-(a round's at most `2/|E|`, `λ`'s below `2M/|E|`). -/
-noncomputable def batchε (M : ℕ) : ℝ≥0∞ := (2 * max M 1 : ℕ) / Fintype.card E
+/-- The batching's escape bound per challenge, for fewer than `M` children:
+`max(2M - 3, 8) · 2^-130` (a round's `2/|E| = 8 · 2^-130`; `λ`'s `(2M - 3)/|E|`, discounted by its
+proof of work of `2` bits). -/
+noncomputable def batchε (M : ℕ) : ℝ≥0∞ := (max (2 * M - 3) 8 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 130
 
 /-- Some child's claim leaves a nonzero gap. -/
 def SomeGap (bytecode : List K) (cs : List ChildClaims) : Prop :=
@@ -55,15 +58,35 @@ attribute [local instance 1100] LeanVM.Parameters.instFintypeK
 /-- `|E|⁻¹`, one challenge's share. -/
 noncomputable abbrev invE : ℝ≥0∞ := (Fintype.card E : ℝ≥0∞)⁻¹
 
-/-- `batchε M` is `2 max(M, 1)` times `|E|⁻¹`, whichever enumeration of `E` counts it. -/
-theorem batchε_eq (M : ℕ) : batchε M = invE * (2 * max M 1 : ℕ) := by
-  simp only [batchε, invE, ENNReal.div_eq_inv_mul, Fintype.card_eq_nat_card]
+/-- `|E|⁻¹ = 2^-128`. -/
+theorem invE_eq : invE = (2 : ℝ≥0∞)⁻¹ ^ 128 := by
+  have hc : Fintype.card E = 2 ^ 128 := by convert card_E
+  rw [invE, hc, Nat.cast_pow, Nat.cast_ofNat, ENNReal.inv_pow]
 
-/-- A round's bound, `2/|E|`, is within `batchε M`. -/
+/-- A round's bound, `2/|E| = 8 · 2^-130`, is within `batchε M`. -/
 theorem invE_two_le_batchε (M : ℕ) : invE * 2 ≤ batchε M := by
-  rw [batchε_eq]
-  gcongr
-  exact_mod_cast (show 2 ≤ 2 * max M 1 by omega)
+  have h4 : (2 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 2 = 1 := by
+    rw [← mul_pow, ENNReal.mul_inv_cancel two_ne_zero ENNReal.ofNat_ne_top, one_pow]
+  calc invE * 2 = (2 : ℝ≥0∞)⁻¹ ^ 128 * 2 * ((2 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 2) := by
+        rw [invE_eq, h4, mul_one]
+    _ = ((8 : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 130 := by push_cast; ring
+    _ ≤ batchε M := by
+        unfold batchε
+        gcongr
+        exact le_max_right _ _
+
+/-- **`λ`'s bound through its proof of work**: `(2M - 3)/|E|` discounted by `2⁻¹ ^ 2` is within
+`batchε M`. -/
+theorem grind_lam_le_batchε (M : ℕ) :
+    (2 : ℝ≥0∞)⁻¹ ^ batchLambdaGrindBits * (invE * (2 * M - 3 : ℕ)) ≤ batchε M := by
+  calc (2 : ℝ≥0∞)⁻¹ ^ batchLambdaGrindBits * (invE * (2 * M - 3 : ℕ))
+      = ((2 * M - 3 : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 130 := by
+        rw [invE_eq, show batchLambdaGrindBits = 2 from rfl]
+        ring
+    _ ≤ batchε M := by
+        unfold batchε
+        gcongr
+        exact le_max_left _ _
 
 /-- The average of a constant over the challenges is the constant. -/
 theorem avg_const (v : ℝ≥0∞) : invE * ∑ _c : E, v = v := by
@@ -147,17 +170,16 @@ theorem lam_bad_card {G : List E} {n : ℕ} (hG : G.length = 2 * n) (hg : ∃ g 
   simp [dot_powers_eq hG, LeanVM.Protocol.powerBatch]
 
 /-- **The challenge `λ`**, for `n < M` children whose `2n` gaps are not all zero: doom kept, the
-gaps' combination by `λ`'s powers nonzero, but for a fraction `batchε M` of its values. -/
+gaps' combination by `λ`'s powers nonzero, but for a fraction `(2M - 3)/|E|` of its values. -/
 noncomputable def lamSpec (G : List E) {n M : ℕ} (hG : G.length = 2 * n) (hn : n < M) :
     Spec VerifierProgram.sampleChallenge (fun _ ↦ ∃ g ∈ G, g ≠ 0)
-      (fun c _ ↦ dot (flat2 (lambdaPowers c n)) G ≠ 0) (batchε M) (batchε M) 0 :=
+      (fun c _ ↦ dot (flat2 (lambdaPowers c n)) G ≠ 0) (batchε M) (invE * (2 * M - 3 : ℕ)) 0 :=
   (Spec.sampleE (Pre := fun _ ↦ ∃ g ∈ G, g ≠ 0)
-      (Post := fun c _ ↦ dot (flat2 (lambdaPowers c n)) G ≠ 0) (T := 0) (batchε M)
+      (Post := fun c _ ↦ dot (flat2 (lambdaPowers c n)) G ≠ 0) (T := 0) (invE * (2 * M - 3 : ℕ))
       fun _ hg ↦ by
-        refine (card_filter_le (lam_bad_card hG hg)).trans ?_
-        rw [batchε_eq]
-        gcongr
-        exact_mod_cast (show 2 * n - 1 ≤ 2 * max M 1 by omega)).mono
+        exact (card_filter_le (lam_bad_card hG hg)).trans
+          (mul_le_mul_of_nonneg_left (Nat.cast_le.2 (show 2 * n - 1 ≤ 2 * M - 3 by omega))
+            zero_le)).mono
     (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl (add_zero _).le le_rfl
 
 /-- A flat map of blocks of `m` entries has `m` entries per element. -/
@@ -250,14 +272,18 @@ noncomputable def endSpec (M : ℕ) (φ : Prop) (C : E → Prop) {_ : ∀ a, Dec
     (Spec.require (Post := fun _ _ ↦ False) fun _ hφ hc ↦ h a hφ hc).bind' fun _ ↦
       Spec.dead
 
-/-- **The batching's doom specification** after `n < M` children with a nonzero gap: the
-challenge `λ` and the rounds tracked, then a fixed fact. -/
+/-- **The batching's doom specification** after `n < M` children with a nonzero gap: the proof of
+work, whose discount takes `λ`'s `(2M - 3)/|E|` within `batchε M`, the challenge `λ` and the rounds
+tracked, then a fixed fact. -/
 noncomputable def restSpec {M : ℕ} {bytecode : List K}
     (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) {cs : List ChildClaims}
     (hn : cs.length < M) (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c) (hg : SomeGap bytecode cs) :
     Spec (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs) (fun h ↦ h = [])
       (fun b _ ↦ b = false) (batchε M) (batchε M) 0 :=
-  ((lamSpec (gapsB bytecode cs) (length_gapsB bytecode cs) hn).bind' fun lam ↦
+  ((Spec.grindPos (Post := fun _ _ ↦ ∃ g ∈ gapsB bytecode cs, g ≠ 0) (by decide) (fun _ h ↦ h)
+      (grind_lam_le_batchε M)).bind'
+    fun _ ↦
+  (lamSpec (gapsB bytecode cs) (length_gapsB bytecode cs) hn).bind' fun lam ↦
     ((roundsSpec M (bytecode_quadraticIn hb (bytecodePoints hs) (lambdaPowers lam cs.length)) _
         (batchedClaim cs (lambdaPowers lam cs.length)) [] (by simp)).mono
         (fun _ h ↦ claimB_ne hb hs (length_lambdaPowers _ _) h) (fun _ _ h ↦ h) le_rfl le_rfl
@@ -266,7 +292,7 @@ noncomputable def restSpec {M : ℕ} {bytecode : List K}
         obtain ⟨-, -, hv⟩ := hc.2
         apply hφ
         rw [hc.1, List.nil_append, bytecodePoly, hv]).mono
-    (fun _ _ ↦ hg) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
+    (fun _ _ ↦ hg) (fun _ _ h ↦ h) le_rfl zero_le le_rfl
 
 end
 end LeanVM.Guest.Batch

@@ -15,8 +15,10 @@ public import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk6
 public import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk7
 public import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk8
 public import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk9
+public import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk10
+public import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk11
 
-/-! Bound: the guest's frame cells below `2^20`, the evaluations of `10` chunks of functions of at
+/-! Bound: the guest's frame cells below `2^20`, the evaluations of `12` chunks of functions of at
 most `40000` cells each (`GuestLocs/Chunk*.lean`, a module each: the whole table at once peaks over
 `12 GB` in the kernel), combined. -/
 
@@ -34,23 +36,25 @@ theorem all_of_drop {α : Type} (p : α → Bool) (l : List α) (a n : ℕ)
   exact ⟨h1, h2⟩
 
 set_option maxRecDepth 100000 in
-/-- The table of frame cells ends after `1536` functions. -/
-theorem guestLocsList_drop_end : guestLocsList.drop 1536 = [] := rfl
+/-- The table of frame cells ends after `1602` functions. -/
+theorem guestLocsList_drop_end : guestLocsList.drop 1602 = [] := rfl
 
 /-- Every frame cell is below `2^20`: the chunks' evaluations combined. -/
 theorem guestLocsList_lt : guestLocsList.all (fun l ↦ l.all (· < 2 ^ 20)) = true := by
   rw [← List.drop_zero (l := guestLocsList)]
-  refine all_of_drop _ _ 0 21 guestLocsChunk0_lt ?_
-  refine all_of_drop _ _ 21 16 guestLocsChunk1_lt ?_
+  refine all_of_drop _ _ 0 20 guestLocsChunk0_lt ?_
+  refine all_of_drop _ _ 20 17 guestLocsChunk1_lt ?_
   refine all_of_drop _ _ 37 1 guestLocsChunk2_lt ?_
-  refine all_of_drop _ _ 38 271 guestLocsChunk3_lt ?_
-  refine all_of_drop _ _ 309 81 guestLocsChunk4_lt ?_
-  refine all_of_drop _ _ 390 726 guestLocsChunk5_lt ?_
-  refine all_of_drop _ _ 1116 345 guestLocsChunk6_lt ?_
-  refine all_of_drop _ _ 1461 42 guestLocsChunk7_lt ?_
-  refine all_of_drop _ _ 1503 26 guestLocsChunk8_lt ?_
-  refine all_of_drop _ _ 1529 7 guestLocsChunk9_lt ?_
-  show (guestLocsList.drop 1536).all _ = true
+  refine all_of_drop _ _ 38 299 guestLocsChunk3_lt ?_
+  refine all_of_drop _ _ 337 86 guestLocsChunk4_lt ?_
+  refine all_of_drop _ _ 423 649 guestLocsChunk5_lt ?_
+  refine all_of_drop _ _ 1072 139 guestLocsChunk6_lt ?_
+  refine all_of_drop _ _ 1211 125 guestLocsChunk7_lt ?_
+  refine all_of_drop _ _ 1336 102 guestLocsChunk8_lt ?_
+  refine all_of_drop _ _ 1438 76 guestLocsChunk9_lt ?_
+  refine all_of_drop _ _ 1514 57 guestLocsChunk10_lt ?_
+  refine all_of_drop _ _ 1571 31 guestLocsChunk11_lt ?_
+  show (guestLocsList.drop 1602).all _ = true
   rw [guestLocsList_drop_end]
   rfl
 

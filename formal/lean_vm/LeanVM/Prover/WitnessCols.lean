@@ -32,10 +32,10 @@ open Air.Flat (EnsembleWitness)
 
 /-- Each opcode table's width. -/
 def tableWidth : ℕ → ℕ
-  | 0 => 15
-  | 1 => 15
-  | 2 => 8
-  | 3 => 15
+  | 0 => 13
+  | 1 => 13
+  | 2 => 7
+  | 3 => 14
   | 4 => 14
   | 5 => 92
   | _ => 92
@@ -45,13 +45,13 @@ theorem width_opIdx_eq : ∀ j : Fin 6, width (opIdx j) = tableWidth j := by dec
 
 /-- Each opcode table's first global column (`GLOBAL_COLUMN_BASES`), as numbers. -/
 def tableBase : ℕ → ℕ
-  | 0 => 6
-  | 1 => 21
-  | 2 => 36
-  | 3 => 44
-  | 4 => 59
-  | 5 => 73
-  | _ => 73
+  | 0 => 5
+  | 1 => 18
+  | 2 => 31
+  | 3 => 38
+  | 4 => 52
+  | 5 => 66
+  | _ => 66
 
 /-- The verifier's table bases are `tableBase`. -/
 theorem globalColumnBases_getD : ∀ j : Fin 6, globalColumnBases.getD j 0 = tableBase j := by
@@ -59,7 +59,7 @@ theorem globalColumnBases_getD : ∀ j : Fin 6, globalColumnBases.getD j 0 = tab
 
 /-- The columns, by number. -/
 theorem colsOf_getD {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ) (n : ℕ)
-    (hn : n < 165) :
+    (hn : n < 158) :
     (colsOf img acc logs).getD n #[] =
       columnAt img acc logs (midStates (acc.tabs.getD 5 #[]) (logs.getD 5 0))
         (outStates (acc.tabs.getD 5 #[]) (midStates (acc.tabs.getD 5 #[]) (logs.getD 5 0))) n := by
@@ -74,31 +74,31 @@ theorem columnAt_base {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : Lis
       if j = 5 ∧ 40 ≤ i ∧ i < 65 then
         Array.ofFn (n := 2 ^ logs.getD 5 0) fun x ↦ laneK (outs.getD x.val zeroState) (i - 40)
       else tableColumn (acc.tabs.getD j #[]) (logs.getD j 0) i := by
-  have hb : 6 ≤ tableBase j := by interval_cases j <;> decide
+  have hb : 5 ≤ tableBase j := by interval_cases j <;> decide
   have hidx : tableIndexOf (tableBase j + i) = j := by
     interval_cases j <;> simp only [tableBase, tableWidth] at hi ⊢ <;> unfold tableIndexOf <;>
       split_ifs <;> omega
   have hg : globalColumnBases.getD j 0 = tableBase j := globalColumnBases_getD ⟨j, hj⟩
   unfold columnAt
   rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
-    ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega)]
+    ite_eq_right (by omega), ite_eq_right (by omega)]
   simp only [hidx, hg, Nat.add_sub_cancel_left]
 
 /-- The memory's limb columns, by number. -/
 theorem columnAt_limb {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
-    (mids outs : Array KeccakState) (k : ℕ) (hk : k < 3) :
+    (mids outs : Array KeccakState) (k : ℕ) (hk : k < 2) :
     columnAt img acc logs mids outs k = Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb ⟨k, hk⟩ := by
   interval_cases k <;> rfl
 
+theorem columnAt_two {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
+    (mids outs : Array KeccakState) : columnAt img acc logs mids outs 2 = acc.mem := rfl
+
 theorem columnAt_three {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
-    (mids outs : Array KeccakState) : columnAt img acc logs mids outs 3 = acc.mem := rfl
+    (mids outs : Array KeccakState) : columnAt img acc logs mids outs 3 = acc.bc := rfl
 
 theorem columnAt_four {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
-    (mids outs : Array KeccakState) : columnAt img acc logs mids outs 4 = acc.bc := rfl
-
-theorem columnAt_five {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
     (mids outs : Array KeccakState) :
-    columnAt img acc logs mids outs 5 = qkeccakColumn (acc.tabs.getD 5 #[]) (logs.getD 5 0) mids :=
+    columnAt img acc logs mids outs 4 = qkeccakColumn (acc.tabs.getD 5 #[]) (logs.getD 5 0) mids :=
   rfl
 
 /-! ## The output lanes -/
@@ -142,7 +142,7 @@ theorem tabs_trace' (hv : ValidExecution prog input t) (hb : TraceBounds t) (j :
 
 /-- **The memory columns**, computed: the image's limbs and the finalize counts. -/
 theorem memColumn_trace (hv : ValidExecution prog input t) (hb : TraceBounds t) (logs : List ℕ)
-    (mids outs : Array KeccakState) (k : Fin 4) :
+    (mids outs : Array KeccakState) (k : Fin 3) :
     columnAt t.memory (traceRows t) logs mids outs k =
       (witnessColumn prog (witnessSizes (traceWitness prog input t) (traceWitness_pos hv hb))
         (traceWitness prog input t) (memCol k)).toArray := by
@@ -165,26 +165,26 @@ theorem memColumn_trace (hv : ValidExecution prog input t) (hb : TraceBounds t) 
   obtain ⟨k, hk⟩ := k
   by_cases hx : x < 2 ^ t.logMemorySize
   · rw [ite_eq_left hx, memCell_trace hb x hx]
-    by_cases hk3 : k < 3
-    · rw [columnAt_limb _ _ _ _ _ k hk3, Array.getElem?_ofFn, dite_eq_left_of_eq_true (eq_true hx)]
+    by_cases hk2 : k < 2
+    · rw [columnAt_limb _ _ _ _ _ k hk2, Array.getElem?_ofFn, dite_eq_left_of_eq_true (eq_true hx)]
       interval_cases k <;> simp [memRowCell]
-    · obtain rfl : k = 3 := by omega
-      rw [columnAt_three, Array.getElem?_eq_getElem (by rw [hI.mem.1]; exact hx), hI.mem.2]
+    · obtain rfl : k = 2 := by omega
+      rw [columnAt_two, Array.getElem?_eq_getElem (by rw [hI.mem.1]; exact hx), hI.mem.2]
       simp [memRowCell, skelMemFin]
   · rw [ite_eq_right hx]
-    by_cases hk3 : k < 3
-    · rw [columnAt_limb _ _ _ _ _ k hk3, Array.getElem?_ofFn, dite_eq_right_of_eq_false (eq_false hx)]
-    · obtain rfl : k = 3 := by omega
-      rw [columnAt_three, Array.getElem?_eq_none (by rw [hI.mem.1]; omega)]
+    by_cases hk2 : k < 2
+    · rw [columnAt_limb _ _ _ _ _ k hk2, Array.getElem?_ofFn, dite_eq_right_of_eq_false (eq_false hx)]
+    · obtain rfl : k = 2 := by omega
+      rw [columnAt_two, Array.getElem?_eq_none (by rw [hI.mem.1]; omega)]
 
 /-- **The bytecode's finalize counts**, computed. -/
 theorem bfcntColumn_trace (hv : ValidExecution prog input t) (hb : TraceBounds t) (logs : List ℕ)
     (mids outs : Array KeccakState) :
-    columnAt t.memory (traceRows t) logs mids outs 4 =
+    columnAt t.memory (traceRows t) logs mids outs 3 =
       (witnessColumn prog (witnessSizes (traceWitness prog input t) (traceWitness_pos hv hb))
         (traceWitness prog input t) bfcntCol).toArray := by
   have hI := rowsInv_trace (input := input) hv
-  rw [columnAt_four]
+  rw [columnAt_three]
   apply Array.ext_getElem?
   intro x
   rw [Vector.getElem?_toArray]
@@ -263,7 +263,7 @@ theorem cols_trace (hv : ValidExecution prog input t) (hb : TraceBounds t) (c : 
     obtain ⟨i, hi1⟩ := i
     obtain rfl : i = 0 := by change i < 1 at hi1; omega
     exact (congrArg (columnAt t.memory (traceRows t) logs _ _) refCol_keccakCol).trans
-      ((columnAt_five _ _ _ _ _).trans ((qkeccak_trace hv hb (hl 5 (by omega))).trans
+      ((columnAt_four _ _ _ _ _).trans ((qkeccak_trace hv hb (hl 5 (by omega))).trans
         (column_toArray_committed _ _ keccakCol not_isVirtual_keccakCol).symm))
   | j + 3, hj, i =>
     have hj6 : j < 6 := by omega

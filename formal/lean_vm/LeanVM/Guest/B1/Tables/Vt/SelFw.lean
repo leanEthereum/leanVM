@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Tables.Vt.SelBlock
 public import LeanVM.Guest.B1.Selectors.BlockSelector
 
 /-!
-# The framework blocks' selectors (G:2267-2275)
+# The framework blocks' selectors (G:2373-2383)
 
 The push side's framework blocks `0, 1, 2` (state, memory, bytecode) take their selector from
 `block_selector` over `1 + ζ` and the index MLE's factors above their `κ` (`vtFwSelT`).
@@ -31,7 +31,7 @@ def vtBsNames : List String := (List.range 34).map (lName "block_selector")
 def vtImNames : List String := (List.range 34).map (lName "index_mle")
 
 /-- `2^34`'s word: the offset bits' buffer, `g^34` words. -/
-abbrev vtW34 : E := word 17179869184 0 0
+abbrev vtW34 : E := word 17179869184 0
 
 /-- A framework block's running sum and copy. -/
 def vtFwTail (w : ℕ) : Option ℕ → List Stmt
@@ -45,29 +45,29 @@ def vtFwSelT (w b kv : ℕ) (prev : Option ℕ) : List Stmt :=
     .atom (.rangeCheck (.n w) (.n (w + 2)) (.n (w + 3)) (.n (w + 4)) (.n (w + 1))),
     .atom (.const (.n (w + 5)) vtW34), .atom (.hint (.allocDyn (.n (w + 6)) (.n (w + 5)))),
     .atom (.hint (.bitsExp (.n (vtBoffV b)) 34 (.heap (.n (w + 6)) 0 34))),
-    .atom (.mul (.n (w + 7)) (.n (w + 6)) (.n kv)), .atom (.mul (.n (w + 8)) (.n 703) (.n kv)),
-    .atom (.mul (.n (w + 9)) (.n 668) (.n kv)),
+    .atom (.mul (.n (w + 7)) (.n (w + 6)) (.n kv)), .atom (.mul (.n (w + 8)) (.n 699) (.n kv)),
+    .atom (.mul (.n (w + 9)) (.n 664) (.n kv)),
     .dispatch (.n w) vtBsNames [.n (w + 7), .n (w + 8), .n (w + 9)] [.n (w + 10), .n (w + 11)],
     .atom (.assertEq (.n (w + 11)) (.n (vtBoffV b)))] ++
   vtFwTail w prev
 
-theorem vtFw0_check : tbStmtsEqb (vtFwSelT 784 0 28 none)
-    ((vtAt 772).take (vtFwSelT 784 0 28 none).length) = true := by
+theorem vtFw0_check : tbStmtsEqb (vtFwSelT 778 0 25 none)
+    ((vtAt 766).take (vtFwSelT 778 0 25 none).length) = true := by
   decide +kernel
 
-theorem vtFw1_check : tbStmtsEqb (vtFwSelT 807 1 29 (some 794))
-    ((vtAt 794).take (vtFwSelT 807 1 29 (some 794)).length) = true := by
+theorem vtFw1_check : tbStmtsEqb (vtFwSelT 794 1 26 (some 788))
+    ((vtAt 781).take (vtFwSelT 794 1 26 (some 788)).length) = true := by
   decide +kernel
 
-theorem vtFw2_check : tbStmtsEqb (vtFwSelT 877 2 876 (some 819))
-    ((vtAt 864).take (vtFwSelT 877 2 876 (some 819)).length) = true := by
+theorem vtFw2_check : tbStmtsEqb (vtFwSelT 822 2 821 (some 806))
+    ((vtAt 811).take (vtFwSelT 822 2 821 (some 806)).length) = true := by
   decide +kernel
 
 /-- Block `2`'s `kappa_g = kb[0]·g^19`. -/
 theorem vt_fw2_kappa {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 876) = σ (.n 28) * gen ^ 19 := by
-  have c := h.atomAt 862 (.const (.n 875) (word 524288 0 0)) (by decide +kernel)
-  have m := h.atomAt 863 (.mul (.n 876) (.n 28) (.n 875)) (by decide +kernel)
+    σ (.n 821) = σ (.n 25) * gen ^ 19 := by
+  have c := h.atomAt 809 (.const (.n 820) (word 524288 0)) (by decide +kernel)
+  have m := h.atomAt 810 (.mul (.n 821) (.n 25) (.n 820)) (by decide +kernel)
   simp only [Atom.Holds] at c m
   rw [m, c, show (524288 : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]
 
@@ -94,8 +94,8 @@ include hμ
 theorem vt_fwblock {σ : Val} (h : VtH Lm.read σ) {w b kv pos : ℕ} {prev : Option ℕ}
     (hcheck : tbStmtsEqb (vtFwSelT w b kv prev) ((vtAt pos).take (vtFwSelT w b kv prev).length) =
       true) {point : List E} (hmu : σ (.n 9) = gen ^ point.length) (hml : point.length < 33)
-    (hz1 : TbReadsAt Lm.read (σ (.n 703)) (point.map (1 + ·)))
-    (hidxc : ∀ t < 34, LoadHolds Lm.read (σ (.n 668)) t (1 + gen ^ 2 ^ t))
+    (hz1 : TbReadsAt Lm.read (σ (.n 699)) (point.map (1 + ·)))
+    (hidxc : ∀ t < 34, LoadHolds Lm.read (σ (.n 664)) t (1 + gen ^ 2 ^ t))
     {κ : ℕ} (hκ : σ (.n kv) = gen ^ κ) (hκb : κ < 34)
     {off : ℕ} (hoff : σ (.n (vtBoffV b)) = gen ^ off) (hob : off < 2 ^ 62) :
     κ ≤ point.length ∧ σ (.n (w + 10)) = Placement.eqAbove ⟨κ, off⟩ point ∧
@@ -124,7 +124,7 @@ theorem vt_fwblock {σ : Val} (h : VtH Lm.read σ) {w b kv pos : ℕ} {prev : Op
   rw [m15, hκ] at hrc
   have ez1 : zs1 = (point.map (1 + ·)).drop κ :=
     tbReadsAt_unique hrz1 (tbReadsAt_drop hz1 κ) (by simp; omega)
-  have hidl : TbReadsAt Lm.read (σ (.n 668)) vtIdxcList := fun t ht => by
+  have hidl : TbReadsAt Lm.read (σ (.n 664)) vtIdxcList := fun t ht => by
     simp only [vtIdxcList, List.length_map, List.length_range] at ht
     simp only [vtIdxcList, List.getElem_map, List.getElem_range]
     exact hidxc t ht

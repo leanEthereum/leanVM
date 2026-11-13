@@ -21,7 +21,7 @@ on that run (`Check.EnteredAt`).
   shorter than `n` (`checkWins_run` on its checked windows, `Checked.all_ok`). Each window after
   the first takes its memory bounds and semantic tuples from the statements before it, the
   function's cut obligations (`CutsKnown`, `cutsKnown_of`): none for a `Plain` function; in
-  `verify_sub` (function `19`), whose second window starts at its call of `verify_tables`, the
+  `verify_sub`, whose second window starts at its call of `verify_tables`, the
   bound of entry `0` of `dims_g` from `VsDimsKnown`, and whose third starts at its call of
   `check_opening_terminal`, those and the bounds of the `8` entries of `kappa_base` from
   `VsKnown`, over the exponent table its precondition carries; in the windowed Merkle walks and
@@ -51,27 +51,41 @@ open LeanVM.Guest.Exec
 /-! ## B1's obligations -/
 
 /-- **`verify_sub`'s obligation** (B1's): on every memory image, over the exponent table at
-`verify_sub`'s argument `4` (`g_squares`), its first `1593` statements, up to its call of
-`check_opening_terminal`, put entry `c < 8` of `kappa_base` (the value `139`) among the powers
+`verify_sub`'s argument `4` (`g_squares`), its first `vsKbAt` statements, up to its call of
+`check_opening_terminal`, put entry `c < 8` of `kappa_base` (the value `vsKb`) among the powers
 `g^e`, `e < vsKbBound c`, which `check_opening_terminal` dispatches on. -/
-def VsKnown : Prop :=
+def VsKbKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpTables L.read (σ (.n 4)) →
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1593) True (fun _ ↦ True) →
-      ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n 139)) c (ofK (addressOfIndex e))
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsKbAt) True (fun _ ↦ True) →
+      ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n vsKb)) c (ofK (addressOfIndex e))
+
+/-- **`verify_sub`'s obligation at its dispatch to `open_stacked`** (B1's): over the window section
+of the exponent table at its argument `4`, its first `vsTabsAt` statements, up to the dispatch, put
+the window table at `tabs` (the value `vsTabs`), which `open_stacked` assumes (`tagTabs`). -/
+def VsTabsKnown : Prop :=
+  ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
+    B1.ExpWinTab L.read (σ (.n 4)) →
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsTabsAt) True (fun _ ↦ True) →
+      B1.WinTabs L.read (σ (.n vsTabs))
+
+/-- **`verify_sub`'s obligations**: `kappa_base`'s bounds and the window table. -/
+def VsKnown : Prop := VsKbKnown ∧ VsTabsKnown
 
 /-- **`verify_sub`'s obligation at its call of `verify_tables`** (B1's; REC-GUEST-IFACE 'tool:
-dims_g known', 'verifysub#7'): on every memory image, its first `552` statements, up to its call
-of `verify_tables`, put entry `0` of `dims_g` (the value `127`, `g^logMem`) among the powers
+dims_g known', 'verifysub#7'): on every memory image, its first `vsDimsAt` statements, up to its call
+of `verify_tables`, put entry `0` of `dims_g` (the value `vsDims`, `g^logMem`) among the powers
 `g^e`, `e < 34`, which `verify_tables` dispatches on. -/
 def VsDimsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 552) True (fun _ ↦ True) →
-      ∃ e < 34, LoadHolds L.read (σ (.n 127)) 0 (ofK (addressOfIndex e))
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsDimsAt) True (fun _ ↦ True) →
+      ∃ e < 34, LoadHolds L.read (σ (.n vsDims)) 0 (ofK (addressOfIndex e))
 
-/-- **`exponent_tables`' relation** (B1's): its returned pointer holds the exponent table. -/
+/-- **`exponent_tables`' relation** (B1's): its returned pointer holds the exponent table and its
+window section. -/
 def ExpTablesSound : Prop :=
-  ∀ (rd : Reader) (q : E), coreProgram.Rel rd "exponent_tables" [] [q] → B1.ExpTables rd q
+  ∀ (rd : Reader) (q : E), coreProgram.Rel rd "exponent_tables" [] [q] →
+    B1.ExpTables rd q ∧ B1.ExpWinTab rd q
 
 /-- **B1's obligations at function `j`'s cuts**: on every memory image, from the semantic tuples
 and memory bounds of `j`'s entry and the statements before each cut `i > 0` of `j`'s certificate,
@@ -89,11 +103,11 @@ def CutsKnown (j : ℕ) : Prop :=
 
 /-! ## `verify_sub`'s obligation -/
 
-/-- `verify_sub`'s first `552` statements hold under any longer prefix of its body. -/
-theorem vs_take552 {κ : ℕ} {L : MemoryImage κ} {σ : Val} {n : ℕ} (hn : 552 ≤ n)
-    (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take n) True
+/-- `verify_sub`'s first `m` statements hold under any longer prefix of its body. -/
+theorem vs_take {κ : ℕ} {L : MemoryImage κ} {σ : Val} {m n : ℕ} (hn : m ≤ n)
+    (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take n) True
       (fun _ ↦ True)) :
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 552) True
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take m) True
       (fun _ ↦ True) := by
   obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le hn
   rw [List.take_add, holdsList_append] at hl
@@ -101,43 +115,57 @@ theorem vs_take552 {κ : ℕ} {L : MemoryImage κ} {σ : Val} {n : ℕ} (hn : 55
 
 theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage κ}
     (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem) {fp : K}
-    (hsem : SemHolds glob L fp (certOf 19).sem) {i : ℕ}
-    (hi : i ≤ (certOf 19).cuts.length) (h0 : 0 < i)
-    (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 19))
-      ((coreOf 19).body.take ((certOf 19).cutAt i).start) True (fun _ ↦ True)) :
-    MemKnown L fp ((certOf 19).cutAt i).known ∧ MemIf L fp ((certOf 19).cutAt i).knownIf ∧
-      SemHolds glob L fp ((certOf 19).cutAt i).sems := by
-  have ht : B1.ExpTables L.read (valG L fp (certOf 19) (.n 4)) := by
+    (hsem : SemHolds glob L fp (certOf (fn_idx% «verify_sub»)).sem) {i : ℕ}
+    (hi : i ≤ (certOf (fn_idx% «verify_sub»)).cuts.length) (h0 : 0 < i)
+    (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_sub»)))
+      ((coreOf (fn_idx% «verify_sub»)).body.take ((certOf (fn_idx% «verify_sub»)).cutAt i).start) True (fun _ ↦ True)) :
+    MemKnown L fp ((certOf (fn_idx% «verify_sub»)).cutAt i).known ∧ MemIf L fp ((certOf (fn_idx% «verify_sub»)).cutAt i).knownIf ∧
+      SemHolds glob L fp ((certOf (fn_idx% «verify_sub»)).cutAt i).sems := by
+  have ht : B1.ExpTables L.read (valG L fp (certOf (fn_idx% «verify_sub»)) (.n 4)) ∧
+      B1.ExpWinTab L.read (valG L fp (certOf (fn_idx% «verify_sub»)) (.n 4)) := by
     have := (semRel_exp _ _).mp (hsem (0, [6]) (by rw [vs_sem]; exact List.mem_singleton_self _))
     simp only [valG, vs_cells]
     exact this
-  have hdims (n : ℕ) (hn : 552 ≤ n)
-      (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 19))
-        ((coreOf 19).body.take n) True (fun _ ↦ True)) :
-      MemKnown L fp (vsDimsKnown ((certOf 19).locs.getD 127 0)) := by
+  have hdims (n : ℕ) (hn : vsDimsAt ≤ n)
+      (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_sub»)))
+        ((coreOf (fn_idx% «verify_sub»)).body.take n) True (fun _ ↦ True)) :
+      MemKnown L fp (vsDimsKnown ((certOf (fn_idx% «verify_sub»)).locs.getD vsDims 0)) := by
     intro m hm
     rw [vsDimsKnown, List.mem_singleton] at hm
     subst hm
-    exact hvd L h16 h32 _ (vs_take552 hn hl)
+    exact hvd L h16 h32 _ (vs_take hn hl)
+  have htabs (n : ℕ) (hn : vsTabsAt ≤ n)
+      (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_sub»)))
+        ((coreOf (fn_idx% «verify_sub»)).body.take n) True (fun _ ↦ True)) :
+      SemHolds glob L fp [(tagTabs, [(certOf (fn_idx% «verify_sub»)).locs.getD vsTabs 0])] := by
+    intro t ht'
+    simp only [List.mem_singleton] at ht'
+    subst ht'
+    rw [semRel_tabs]
+    exact hvs.2 L h16 h32 _ ht.2 (vs_take hn hl)
   rw [vs_cuts] at hi
-  obtain rfl | rfl : i = 1 ∨ i = 2 := by omega
+  obtain rfl | rfl | rfl : i = 1 ∨ i = 2 ∨ i = 3 := by omega
   · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut1
     rw [hkn, hki, hsm]
     rw [hst] at hl
-    exact ⟨hdims 552 le_rfl hl, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
+    exact ⟨hdims vsDimsAt le_rfl hl, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
+  · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cutT
+    rw [hkn, hki, hsm]
+    rw [hst] at hl
+    exact ⟨hdims vsTabsAt (by decide) hl, fun _ h ↦ by simp at h, htabs vsTabsAt le_rfl hl⟩
   · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut
     rw [hkn, hki, hsm]
     rw [hst] at hl
-    refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
+    refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h, htabs vsKbAt (by decide) hl⟩
     rcases List.mem_append.mp hm with hm | hm
-    · exact hdims 1593 (by omega) hl m hm
+    · exact hdims vsKbAt (by decide) hl m hm
     obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hm
-    exact hvs L h16 h32 _ ht hl c (List.mem_range.mp hc)
+    exact hvs.1 L h16 h32 _ ht.1 hl c (List.mem_range.mp hc)
 
 /-! ## The walks' obligations -/
 
 /-- **The walks' obligations** (B1's: whir's `opening_queries*` and their loops, `walk_path`'s
-specializations, ostack's `open_stacked`, gkr's `verify_bus_gkr` and its layer loop `__loop6`;
+specializations, ostack's `open_stacked`, gkr's `verify_bus_gkr` and its layer loop `verify_bus_gkr_loop0`;
 REC-GUEST-IFACE 'tool: walk obligations — IMPLEMENTED', 'tool: gkr obligations', PR661-IFACE
 'walk-K'): the cut obligations (`CutsKnown`) of every function the certificates hand something on
 at its cuts (`Checked.oblFns`) but `main` and `verify_sub`. Checker K hands on there the window
@@ -149,7 +177,7 @@ calls (`sems`: the walk along `opening_queries`' loop, `WinsAt` of the window po
 certificates' cells (`WalkKnown.lean`'s `loop0_cutsKnown`, `loop1_cutsKnown`, `main_cutsKnown`,
 `wp_cutsKnown`; `walkKnown_proved`). -/
 def WalkKnown : Prop :=
-  ∀ j ∈ Checked.oblFns, j ≠ 1 → j ≠ 19 → CutsKnown j
+  ∀ j ∈ Checked.oblFns, j ≠ 1 → j ≠ fn_idx% «verify_sub» → CutsKnown j
 
 /-- **Every callee's cut obligations**: `verify_sub`'s from `VsDimsKnown` and `VsKnown`, the
 walks' from `WalkKnown`, and nothing for the others (`Plain`, `Checked.all_plain`). -/

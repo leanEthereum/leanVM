@@ -158,17 +158,17 @@ theorem holds_spPre_iff {w : ℕ} :
     ((((((LoadHolds rd (σ (.n 3)) 0 (σ (.n 5)) ∧ LoadHolds rd (σ (.n 2)) 0 (σ (.n 6))) ∧
     (∀ t < w - 1, Stmt.HoldsList C rd σ (spLevel (t + 1)) True kret)) ∧
     (∀ e < 2 ^ (w + 1) - 2, LoadHolds rd (σ (.n 0)) e (σ (.n (spEq e))))) ∧
-    (σ (.n (spC w)) = word 1 0 0 ∧ LoadHolds rd (σ (.n 4)) 0 (σ (.n (spC w + 1))))) ∧
+    (σ (.n (spC w)) = word 1 0 ∧ LoadHolds rd (σ (.n 4)) 0 (σ (.n (spC w + 1))))) ∧
     (∀ t < w - 1, Stmt.HoldsList C rd σ (spGStep w (t + 1)) True kret)) ∧
     (∀ u < 2 ^ w, LoadHolds rd (σ (.n 1)) u (σ (.n (spG w u))))) ∧
-    σ (.n (spC w + 2 ^ w + w - 1)) = word 0 0 0 := by
+    σ (.n (spC w + 2 ^ w + w - 1)) = word 0 0 := by
   have nL := tb_noRetList_flatten_range (w - 1) _ (fun t => spLevel_noRet (t + 1))
   have nG := tb_noRetList_flatten_range (w - 1) _ (fun t => spGStep_noRet w (t + 1))
   have nA := tb_noRetList_mapAtoms (2 ^ (w + 1) - 2) (fun e ↦ .load (.n (spEq e)) (.n 0) e)
   have nB := tb_noRetList_mapAtoms (2 ^ w) (fun u ↦ .load (.n (spG w u)) (.n 1) u)
   have n0 : Stmt.noRetList [Stmt.atom (.load (.n 5) (.n 3) 0), Stmt.atom (.load (.n 6) (.n 2) 0)] =
     true := rfl
-  have n1 : Stmt.noRetList [Stmt.atom (.const (.n (spC w)) (word 1 0 0)),
+  have n1 : Stmt.noRetList [Stmt.atom (.const (.n (spC w)) (word 1 0)),
     Stmt.atom (.load (.n (spC w + 1)) (.n 4) 0)] = true := rfl
   rw [spPre]
   rw [tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nG, nA, nB, n0, n1,
@@ -286,7 +286,7 @@ theorem sel_partial_nibble_complete_holds : sel_partial_nibble_complete_Spec := 
       have := heqr e (by rw [hlen]; exact he)
       rwa [← List.getD_eq_getElem _ 0, hv] at this
     · -- the one
-      show F (spC w) = word 1 0 0
+      show F (spC w) = word 1 0
       have := spVal_G (by omega) hw3 P zs zs1 gl (u := 0) (by positivity)
       simp only [spG, ↓reduceIte] at this
       rw [hF, this, tb_word_one, spGV]
@@ -324,7 +324,7 @@ theorem sel_partial_nibble_complete_holds : sel_partial_nibble_complete_Spec := 
       have h2 := this u (by rw [hlen]; exact hu)
       rwa [← List.getD_eq_getElem _ 0, gTable_getD hgl hu] at h2
     · -- the return
-      show F (spC w + 2 ^ w + w - 1) = word 0 0 0
+      show F (spC w + 2 ^ w + w - 1) = word 0 0
       rw [hF, hlast, tb_word_zero]
   | [], _, h => simp [SelPartialOut] at h
   | [_], _, h => simp [SelPartialOut] at h

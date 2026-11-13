@@ -45,7 +45,7 @@ theorem forall₂_of_map_length : ∀ (l : List (List E)) (ss : List ℕ), l.map
     simp only [List.map_cons, List.cons.injEq] at h
     exact .cons h.1.le (forall₂_of_map_length l ss h.2)
 
-theorem length_daCells (c : DaClaim) : (daCells c).length = 4 := by
+theorem length_daCells (c : DaClaim) : (daCells c).length = 3 := by
   simp [daCells, B1.Digest.digestCells]
 
 theorem length_claimCells (r p : BitVec 128) (m : BitVec 256) : (claimCells r p m).length = 4 := by
@@ -184,20 +184,13 @@ theorem daPick_digest (hr : NodeRelation bytecode seed s w) :
           List.getElem_append_left (by simp; omega), List.getElem_map]
         exact beq_iff_eq.mp hp
 
-theorem daCells_canon (c : DaClaim) : AllCanonical (daCells c) := by
-  intro x hx
-  simp only [daCells, B1.Digest.digestCells, List.mem_append, List.mem_cons, List.not_mem_nil,
-    or_false] at hx
-  rcases hx with (rfl | rfl) | (rfl | rfl)
-  exacts [(digestScalars_canonical _).1, (digestScalars_canonical _).2,
-    (isCanonical128_ofLimbs_iff _ _ _).mpr rfl, (isCanonical128_ofLimbs_iff _ _ _).mpr rfl]
-
 theorem daCells_bytes (c : DaClaim) :
-    cellsBytes (daCells c) = digestBytes c.daRoot ++ E.toBytes c.membershipChallenge ++
-      List.replicate 8 0 := by
+    cellsBytes (daCells c ++ [0]) = digestBytes c.daRoot ++ E.toBytes c.membershipChallenge ++
+      List.replicate 16 0 := by
+  have e0 : Keccak.cellBytes (0 : E) = List.replicate 16 0 := by decide +kernel
   rw [digestBytes_eq_cells]
-  simp [daCells, B1.Digest.digestCells, cellsBytes, Keccak.scalarCells, Keccak.cellBytes, E.toBytes,
-    List.append_assoc]
+  simp only [daCells, B1.Digest.digestCells, cellsBytes, List.cons_append, List.nil_append,
+    List.flatMap_cons, List.flatMap_nil, List.append_nil, e0, List.append_assoc]
   rfl
 
 /-- A run of digests' cells: digest `k`'s at `2k`. -/
@@ -242,11 +235,10 @@ theorem hData_bounds (hl : GuestLimits s w) (fs : String → ℕ) (fp : ℕ) :
     | none => simp [hw] at h'
     | some p => exact daPick_da (by simp [hw])
   · have h' : (w.daMatrix.map fun _ => 1).getD 0 = 1 := h
-    show ((w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0, 0]).length = 4 ∧
-      AllCanonical ((w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0, 0])
+    show ((w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0]).length = 3
     cases hw : w.daMatrix with
     | none => simp [hw] at h'
-    | some p => exact ⟨length_daCells _, daCells_canon _⟩
+    | some p => exact length_daCells _
 
 /-! ## `main`'s words on an honest memory -/
 
@@ -300,7 +292,7 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytec
     | some p =>
       have e1 : hOwnDa w = daClaimDigest p.1 := by simp [hOwnDa, hw]
       have e2 : MainIn.ownDa ((hData seed s w).toIn fs fp) =
-          B1.Digest.digestCells (keccak256 (cellsBytes (daCells p.1))) := by
+          B1.Digest.digestCells (keccak256 (cellsBytes (daCells p.1 ++ [0]))) := by
         simp [MainIn.ownDa, hData, MainData.toIn, hw]
       rw [e1, daClaimDigest, ← daCells_bytes] at this
       rw [e2]; exact this

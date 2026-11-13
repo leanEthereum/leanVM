@@ -2,7 +2,7 @@ module
 
 public import LeanVM.Semantics.Lemmas
 meta import Statement.LeanIsa
-meta import Statement.Fast.CubicExt
+meta import Statement.Fast.QuadExt
 meta import Statement.Fast.FieldWords
 
 /-!
@@ -24,7 +24,7 @@ public section
 
 /-! ## A program -/
 
-def i0 : LeanIsaInstruction := .setConstant (addressOfIndex 2) (E.ofLimbs (K.ofBits 7) 0 0)
+def i0 : LeanIsaInstruction := .setConstant (addressOfIndex 2) (E.ofLimbs (K.ofBits 7) 0)
 def i1 : LeanIsaInstruction := .xor (addressOfIndex 2) (addressOfIndex 3) (addressOfIndex 4)
 def i2 : LeanIsaInstruction := .deref (addressOfIndex 4) 1 (addressOfIndex 5) .pc
 def i3 : LeanIsaInstruction := .jump (addressOfIndex 2) (addressOfIndex 3) (addressOfIndex 4)
@@ -70,7 +70,7 @@ example : prog.fetch 0 = none := prog.fetch_zero
       (addressOfIndex 8) (addressOfIndex 9) (addressOfIndex 13) false false .two
 #guard LeanIsaInstruction.deref 1 g (addressOfIndex 2) .pc ≠ LeanIsaInstruction.deref 1 g
     (addressOfIndex 2) .fp
-#guard LeanIsaInstruction.setConstant 1 (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)) ≠ LeanIsaInstruction.setConstant 1 (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 4))
+#guard LeanIsaInstruction.setConstant 1 (E.ofLimbs 1 (K.ofBits 3)) ≠ LeanIsaInstruction.setConstant 1 (E.ofLimbs 1 (K.ofBits 4))
 
 /-! ## The bytecode cap -/
 

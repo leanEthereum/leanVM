@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.FoldT
 
-  `fold_shifts`' statements (`foldT`, G:2626-2652) compute `foldF`.
+  `fold_shifts`' statements (`foldT`, G:2576-2602) compute `foldF`.
 -/
 
 module
@@ -72,7 +72,7 @@ theorem foldLevelT_holds {src : ℕ → ℕ} {b : ℕ} {a : V} {t : ℕ} (ht : t
   have a2 := hall _ m2
   have a3 := hall _ m3
   have lB := hall (.load (.n (b + 195 * t)) a t) (by simp [foldLevelT])
-  have c1 := hall (.const (.n (b + 195 * t + 1)) (word 1 0 0)) (by simp [foldLevelT])
+  have c1 := hall (.const (.n (b + 195 * t + 1)) (word 1 0)) (by simp [foldLevelT])
   have e2 := hall (.add (.n (b + 195 * t + 2)) (.n (b + 195 * t + 1)) (.n (b + 195 * t)))
     (by simp [foldLevelT])
   simp only [Atom.Holds] at a1 a2 a3 lB c1 e2
@@ -98,7 +98,7 @@ theorem foldLevelT_holds {src : ℕ → ℕ} {b : ℕ} {a : V} {t : ℕ} (ht : t
     (Nat.mod_lt _ (by positivity))
   rw [hx0, hx1, foldF_succ A hAl S ht hp hb hk]
 
-/-- **`fold_shifts`** (G:2638-2652): the used shifts `Σ_z V[z]·eq(a, z + r)`. -/
+/-- **`fold_shifts`** (G:2793-2807): the used shifts `Σ_z V[z]·eq(a, z + r)`. -/
 theorem foldT_holds {src : ℕ → ℕ} {b : ℕ} {a : V} {A : List E} {S : ℕ → E} (hAl : A.length = 6)
     (hA : ∀ t < 6, ∀ v, LoadHolds rd (σ a) t v → v = A.getD t 0)
     (hsrc : ∀ j < 64, σ (.n (src j)) = S j) {next : Prop} {kret : List E → Prop}

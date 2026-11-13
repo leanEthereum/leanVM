@@ -17,7 +17,7 @@ independently: run with FIPS 202's padding `0x06` it gives `hashlib.sha3_256` on
 well-known `f1258f79…`) and on the lanes `0 … 24`; `hash_pair` and `hash_words` on known
 inputs; a 64-byte message as one permutation of its padded block; the hash chain of
 `crates/rec_aggregation/src/hash_chain.rs` (eight `compress` steps from the zero digest); and
-the digest encoding: a round trip and the rejection of a nonzero top limb.
+the digest encoding's round trip.
 
 `Statement.Fast.Keccak` compiles the hash here (`@[csimp]`); the `"abc"` vector and the zero
 state's permutation are also decided in the kernel, on the definitions themselves.
@@ -114,20 +114,11 @@ example : keccakF1600 (Vector.replicate 25 0) = keccakFZero := by decide +kernel
 
 /- The first half of the `"abc"` digest: its words `0` and `1` as the two low limbs. -/
 #guard (digestHalves abcDigest).1 =
-  E.ofLimbs (K.ofBits 0x4fa945ea7a65034e) (K.ofBits 0x67d6c826a87bd4c7) 0
+  E.ofLimbs (K.ofBits 0x4fa945ea7a65034e) (K.ofBits 0x67d6c826a87bd4c7)
 
 #guard (digestHalves abcDigest).2 =
-  E.ofLimbs (K.ofBits 0x36a0643ae3e6d1c0) (K.ofBits 0x456c2da18ff544ec) 0
+  E.ofLimbs (K.ofBits 0x36a0643ae3e6d1c0) (K.ofBits 0x456c2da18ff544ec)
 
-#guard digestFromHalves (digestHalves abcDigest) = some abcDigest
-
-/- A nonzero top limb in either half is rejected (`Digest::from_halves`). -/
-#guard digestFromHalves
-  (E.ofLimbs (K.ofBits 0x4fa945ea7a65034e) (K.ofBits 0x67d6c826a87bd4c7) (K.ofBits 1),
-    (digestHalves abcDigest).2) = none
-
-#guard digestFromHalves
-  ((digestHalves abcDigest).1,
-    E.ofLimbs (K.ofBits 0x36a0643ae3e6d1c0) (K.ofBits 0x456c2da18ff544ec) (K.ofBits 1)) = none
+#guard digestFromHalves (digestHalves abcDigest) = abcDigest
 
 end LeanVMTests.Protocol.KeccakHash

@@ -330,14 +330,21 @@ const LEAVES_OUT: &str = "LEANVM_LEAVES_OUT";
 /// memory is the process's high-water mark, which proving them here would make a leaf's.
 fn leaves_from_subprocess(n: usize) -> Vec<EthereumProof> {
     let out = std::env::temp_dir().join(format!("leanvm-leaves-{}.bin", std::process::id()));
+    // Created here, refusing one already there, so no other user can plant or swap it in a shared `/tmp`.
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&out)
+        .expect("the leaves' file is created");
     let status = std::process::Command::new(std::env::current_exe().expect("this binary's path"))
         .args(std::env::args_os().skip(1))
         .env(LEAVES_OUT, &out)
         .status()
         .expect("the leaves' process starts");
-    assert!(status.success(), "the leaves' process failed");
-    let bytes = std::fs::read(&out).expect("the leaves are read");
+    let bytes = std::fs::read(&out);
     std::fs::remove_file(&out).expect("the leaves' file is removed");
+    assert!(status.success(), "the leaves' process failed");
+    let bytes = bytes.expect("the leaves are read");
 
     let mut file = LeavesFile(&bytes);
     let mut leaves = Vec::with_capacity(n);

@@ -8,19 +8,18 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F1439_0
-public import LeanVM.Guest.Checked.F1439_0
-public import LeanVM.Guest.Checked.F1439_0
-public import LeanVM.Guest.Checked.F1441_1
-public import LeanVM.Guest.Checked.F1441_1
-public import LeanVM.Guest.Checked.F1441_1
-public import LeanVM.Guest.Checked.F1443_2
-public import LeanVM.Guest.Checked.F1443_2
-public import LeanVM.Guest.Checked.F1443_2
-public import LeanVM.Guest.Checked.F1446_1
-public import LeanVM.Guest.Checked.F1446_1
-public import LeanVM.Guest.Checked.F1446_1
-public import LeanVM.Guest.Checked.F1449_0
+public import LeanVM.Guest.Checked.F1414_0
+public import LeanVM.Guest.Checked.F1414_0
+public import LeanVM.Guest.Checked.F1419_2
+public import LeanVM.Guest.Checked.F1419_2
+public import LeanVM.Guest.Checked.F1426_0
+public import LeanVM.Guest.Checked.F1426_0
+public import LeanVM.Guest.Checked.F1426_0
+public import LeanVM.Guest.Checked.F1426_0
+public import LeanVM.Guest.Checked.F1430_1
+public import LeanVM.Guest.Checked.F1430_1
+public import LeanVM.Guest.Checked.F1430_1
+public import LeanVM.Guest.Checked.F1436_0
 
 namespace LeanVM.Guest.Checked
 
@@ -60,9 +59,20 @@ theorem plain1416 : Plain 1416 := plain_of_nil (by decide +kernel)
 
 theorem plain1417 : Plain 1417 := plain_of_nil (by decide +kernel)
 
-theorem plain1418 : Plain 1418 := plain_of_nil (by decide +kernel)
+theorem ok1418 : CheckOk 1418 := fun i hi ↦ by
+  have h : (certOf 1418).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1418_0
+  · exact w1418_1
 
-theorem plain1419 : Plain 1419 := plain_of_nil (by decide +kernel)
+theorem ok1419 : CheckOk 1419 := fun i hi ↦ by
+  have h : (certOf 1419).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1419_0
+  · exact w1419_1
+  · exact w1419_2
 
 theorem plain1420 : Plain 1420 := plain_of_nil (by decide +kernel)
 
@@ -70,7 +80,12 @@ theorem plain1421 : Plain 1421 := plain_of_nil (by decide +kernel)
 
 theorem plain1422 : Plain 1422 := plain_of_nil (by decide +kernel)
 
-theorem plain1423 : Plain 1423 := plain_of_nil (by decide +kernel)
+theorem ok1423 : CheckOk 1423 := fun i hi ↦ by
+  have h : (certOf 1423).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1423_0
+  · exact w1423_1
 
 theorem plain1424 : Plain 1424 := plain_of_nil (by decide +kernel)
 
@@ -78,115 +93,102 @@ theorem plain1425 : Plain 1425 := plain_of_nil (by decide +kernel)
 
 theorem plain1426 : Plain 1426 := plain_of_nil (by decide +kernel)
 
-theorem plain1427 : Plain 1427 := plain_of_nil (by decide +kernel)
+theorem ok1427 : CheckOk 1427 := fun i hi ↦ by
+  have h : (certOf 1427).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1427_0
+  · exact w1427_1
 
-theorem plain1428 : Plain 1428 := plain_of_nil (by decide +kernel)
+theorem ok1428 : CheckOk 1428 := fun i hi ↦ by
+  have h : (certOf 1428).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1428_0
+  · exact w1428_1
 
-theorem plain1429 : Plain 1429 := plain_of_nil (by decide +kernel)
+theorem ok1429 : CheckOk 1429 := fun i hi ↦ by
+  have h : (certOf 1429).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1429_0
+  · exact w1429_1
 
-theorem plain1430 : Plain 1430 := plain_of_nil (by decide +kernel)
+theorem ok1430 : CheckOk 1430 := fun i hi ↦ by
+  have h : (certOf 1430).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1430_0
+  · exact w1430_1
+
+theorem plain1430 : Plain 1430 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain1431 : Plain 1431 := plain_of_nil (by decide +kernel)
 
-theorem plain1432 : Plain 1432 := plain_of_nil (by decide +kernel)
+theorem ok1432 : CheckOk 1432 := fun i hi ↦ by
+  have h : (certOf 1432).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1432_0
+  · exact w1432_1
+
+theorem plain1432 : Plain 1432 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain1433 : Plain 1433 := plain_of_nil (by decide +kernel)
 
-theorem plain1434 : Plain 1434 := plain_of_nil (by decide +kernel)
+theorem ok1434 : CheckOk 1434 := fun i hi ↦ by
+  have h : (certOf 1434).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1434_0
+  · exact w1434_1
+
+theorem plain1434 : Plain 1434 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain1435 : Plain 1435 := plain_of_nil (by decide +kernel)
 
-theorem plain1436 : Plain 1436 := plain_of_nil (by decide +kernel)
+theorem ok1436 : CheckOk 1436 := fun i hi ↦ by
+  have h : (certOf 1436).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1436_0
+  · exact w1436_1
+
+theorem plain1436 : Plain 1436 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain1437 : Plain 1437 := plain_of_nil (by decide +kernel)
 
 theorem plain1438 : Plain 1438 := plain_of_nil (by decide +kernel)
 
-theorem ok1439 : CheckOk 1439 := fun i hi ↦ by
-  have h : (certOf 1439).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1439_0
-  · exact w1439_1
-  · exact w1439_2
+theorem plain1439 : Plain 1439 := plain_of_nil (by decide +kernel)
 
-theorem ok1440 : CheckOk 1440 := fun i hi ↦ by
-  have h : (certOf 1440).cuts.length = 3 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1440_0
-  · exact w1440_1
-  · exact w1440_2
-  · exact w1440_3
+theorem plain1440 : Plain 1440 := plain_of_nil (by decide +kernel)
 
-theorem ok1441 : CheckOk 1441 := fun i hi ↦ by
-  have h : (certOf 1441).cuts.length = 3 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1441_0
-  · exact w1441_1
-  · exact w1441_2
-  · exact w1441_3
+theorem plain1441 : Plain 1441 := plain_of_nil (by decide +kernel)
 
-theorem ok1442 : CheckOk 1442 := fun i hi ↦ by
-  have h : (certOf 1442).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1442_0
-  · exact w1442_1
-  · exact w1442_2
+theorem plain1442 : Plain 1442 := plain_of_nil (by decide +kernel)
 
-theorem ok1443 : CheckOk 1443 := fun i hi ↦ by
-  have h : (certOf 1443).cuts.length = 3 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1443_0
-  · exact w1443_1
-  · exact w1443_2
-  · exact w1443_3
+theorem plain1443 : Plain 1443 := plain_of_nil (by decide +kernel)
 
-theorem ok1444 : CheckOk 1444 := fun i hi ↦ by
-  have h : (certOf 1444).cuts.length = 3 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1444_0
-  · exact w1444_1
-  · exact w1444_2
-  · exact w1444_3
+theorem plain1444 : Plain 1444 := plain_of_nil (by decide +kernel)
 
 theorem plain1445 : Plain 1445 := plain_of_nil (by decide +kernel)
 
-theorem ok1446 : CheckOk 1446 := fun i hi ↦ by
-  have h : (certOf 1446).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1446_0
-  · exact w1446_1
-  · exact w1446_2
+theorem plain1446 : Plain 1446 := plain_of_nil (by decide +kernel)
 
-theorem ok1447 : CheckOk 1447 := fun i hi ↦ by
-  have h : (certOf 1447).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1447_0
-  · exact w1447_1
-  · exact w1447_2
+theorem plain1447 : Plain 1447 := plain_of_nil (by decide +kernel)
 
-theorem ok1448 : CheckOk 1448 := fun i hi ↦ by
-  have h : (certOf 1448).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1448_0
-  · exact w1448_1
-  · exact w1448_2
+theorem plain1448 : Plain 1448 := plain_of_nil (by decide +kernel)
 
-theorem ok1449 : CheckOk 1449 := fun i hi ↦ by
-  have h : (certOf 1449).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1449_0
-  · exact w1449_1
-  · exact w1449_2
+theorem plain1449 : Plain 1449 := plain_of_nil (by decide +kernel)
 
 theorem plain1450 : Plain 1450 := plain_of_nil (by decide +kernel)
 

@@ -5,9 +5,13 @@
   on lane states) are `common`'s (`Common.pathsOf`, on byte states) read on lanes.
 -/
 
-import Common.Lanes
-import Statement.LeanVm
-import LeanVM.Protocol.WithHash
+module
+
+public import Common.Lanes
+public import Statement.LeanVm
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # The transcript's paths on lanes and on bytes
@@ -332,3 +336,5 @@ theorem hashesOf_transcriptPaths (T : PermutationTranscript) :
   rfl
 
 end LeanVM.Rpm
+
+end

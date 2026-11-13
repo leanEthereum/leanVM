@@ -21,8 +21,8 @@ theorem clC_eq : clC B2C.fs wSB = 4744 := by
   unfold clC
   rw [cl_sum,
     fs_idx (j := 23) (f := "claim_list_digest") (by decide +kernel),
-    fs_idx (j := 317) (f := "__loop15") (by decide +kernel),
-    fs_idx (j := 318) (f := "__loop16") (by decide +kernel),
+    fs_idx (j := 346) (f := "__loop15") (by decide +kernel),
+    fs_idx (j := 347) (f := "__loop16") (by decide +kernel),
     wSB_idx (j := 22) (f := "list_split") (by decide +kernel)]
   decide +kernel
 
@@ -31,8 +31,8 @@ theorem ccC_eq : ccC B2C.fs wSB = 11620 := by
   rw [ccl_sum,
     fs_idx (j := 24) (f := "child_claim_list_digest") (by decide +kernel),
     fs_idx (j := 25) (f := "child_claim_list_any") (by decide +kernel),
-    fs_idx (j := 336) (f := "__loop17") (by decide +kernel),
-    fs_idx (j := 337) (f := "__loop18") (by decide +kernel),
+    fs_idx (j := 365) (f := "__loop17") (by decide +kernel),
+    fs_idx (j := 366) (f := "__loop18") (by decide +kernel),
     wSB_idx (j := 22) (f := "list_split") (by decide +kernel)]
   decide +kernel
 
@@ -43,13 +43,13 @@ theorem l5A0_eq : l5A0 B2C.fs = 60 := by
 
 theorem clS_eq : clS B2C.fs wSK = 33 := by
   unfold clS B1.Main.iterK
-  rw [fs_idx (j := 317) (f := "__loop15") (by decide +kernel),
-    fs_idx (j := 318) (f := "__loop16") (by decide +kernel),
-    wSK_idx (j := 317) (f := "__loop15") (by decide +kernel),
-    wSK_idx (j := 318) (f := "__loop16") (by decide +kernel)]
+  rw [fs_idx (j := 346) (f := "__loop15") (by decide +kernel),
+    fs_idx (j := 347) (f := "__loop16") (by decide +kernel),
+    wSK_idx (j := 346) (f := "__loop15") (by decide +kernel),
+    wSK_idx (j := 347) (f := "__loop16") (by decide +kernel)]
   decide +kernel
 
-theorem l5A1_eq : l5A1 B2C.fs wSB = 23678 := by
+theorem l5A1_eq : l5A1 B2C.fs wSB = 23420 := by
   unfold l5A1
   rw [ccC_eq,
     fs_idx (j := 38) (f := "__loop4") (by decide +kernel),
@@ -58,24 +58,25 @@ theorem l5A1_eq : l5A1 B2C.fs wSB = 23678 := by
 
 theorem l5A2_eq : l5A2 B2C.fs = 51 := by
   unfold l5A2 ccS
-  rw [fs_idx (j := 336) (f := "__loop17") (by decide +kernel),
-    fs_idx (j := 337) (f := "__loop18") (by decide +kernel)]
+  rw [fs_idx (j := 365) (f := "__loop17") (by decide +kernel),
+    fs_idx (j := 366) (f := "__loop18") (by decide +kernel)]
   decide +kernel
 
-theorem agA0_eq : agA0 B2C.fs wSB = 1453 := by
+theorem agA0_eq : agA0 B2C.fs wSB = 1244 := by
   unfold agA0
   rw [fs_idx (j := 33) (f := "aggregate_claims") (by decide +kernel),
-    wSB_idx (j := 403) (f := "batch_sumcheck__L23") (by decide +kernel)]
+    wSB_idx (j := 431) (f := "grind_check__L2") (by decide +kernel),
+    wSB_idx (j := 433) (f := "batch_sumcheck__L23") (by decide +kernel)]
   decide +kernel
 
-theorem agA1_eq : agA1 B2C.fs wSK = 1644 := by
+theorem agA1_eq : agA1 B2C.fs wSK = 1224 := by
   unfold agA1 B1.Main.iterK
-  rw [fs_idx (j := 401) (f := "__loop33") (by decide +kernel),
-    fs_idx (j := 402) (f := "__loop34") (by decide +kernel),
-    fs_idx (j := 404) (f := "__loop35") (by decide +kernel),
-    wSK_idx (j := 401) (f := "__loop33") (by decide +kernel),
-    wSK_idx (j := 402) (f := "__loop34") (by decide +kernel),
-    wSK_idx (j := 404) (f := "__loop35") (by decide +kernel)]
+  rw [fs_idx (j := 430) (f := "__loop33") (by decide +kernel),
+    fs_idx (j := 432) (f := "__loop34") (by decide +kernel),
+    fs_idx (j := 434) (f := "__loop35") (by decide +kernel),
+    wSK_idx (j := 430) (f := "__loop33") (by decide +kernel),
+    wSK_idx (j := 432) (f := "__loop34") (by decide +kernel),
+    wSK_idx (j := 434) (f := "__loop35") (by decide +kernel)]
   decide +kernel
 
 end

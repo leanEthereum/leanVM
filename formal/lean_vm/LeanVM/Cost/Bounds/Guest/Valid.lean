@@ -71,9 +71,9 @@ theorem mainFacts_valid {input : PublicInput} {t : Execution guestProgram}
   rw [mainVal_valid hv]
   have hm : Digest.MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1,
     (by have := hv.1.2.1; unfold maxLogMem at this; omega), t.memory, rfl⟩
-  have hU := unfolds_of_V (Located.unfoldsV_replay End.b2SoundL hv)
+  have hU := unfolds_of_V (Located.unfoldsV_replay (End.b2SoundL End.endPending_proved) hv)
   refine main_facts hU (Located.rlg_le_rel t.memory) hm exponent_tables_holds (fun args h ↦ ?_)
-    (End.mainBodyL_of End.b2SoundL hv).1
+    (End.mainBodyL_of (End.b2SoundL End.endPending_proved) hv).1
   obtain ⟨fn, σ, hf, hp, hb⟩ := hU _ _ _ h
   rw [find_loop2] at hf
   cases hf
@@ -135,7 +135,7 @@ theorem valid_counts {input : PublicInput} {t : Execution guestProgram}
 /-- A child proof's stream begins with its cursor's words. -/
 theorem cursor_le_stream (T : Fast.WhirTabs) (rd : Reader) (σ : Val) (Vn : Fast.NFrames)
     (cl : E → E → ℕ) :
-    cl (σ (.n 25)) (σ (.n 656)) ≤ (Fast.vsPiOfA T rd σ Vn cl).stream.length := by
+    cl (σ (.n 25)) (σ (.n 1919)) ≤ (Fast.vsPiOfA T rd σ Vn cl).stream.length := by
   have hw : ∀ (a : K) (n : ℕ), (Fast.wordsFrom rd a n).length = n := by
     intro a n
     induction n generalizing a with
@@ -156,7 +156,7 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
     let fr := frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
       (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
         (memoryVector t.memory)) rd) rd 19 (subArgsK rd σ c) []
-    cursorLength discreteLogTables (fr (.n 25)) (fr (.n 656)) ≤ 8192 := by
+    cursorLength discreteLogTables (fr (.n 25)) (fr (.n 1919)) ≤ 8192 := by
   intro rd σ fr
   have hk : Node.ExplainsPublicInput guestProgram input (End.decode t.memory) := End.guest_knowledge input t hv
   rw [← decTop_eq] at hk
@@ -179,7 +179,7 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
       (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
         (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
           (memoryVector t.memory)) rd) rd) (cursorLength discreteLogTables))
-      (σ (.n 399)) (σ (.n 31)) (σ (.n 34)) (lxTable discreteLogTables rd σ)
+      (σ (.n 398)) (σ (.n 31)) (σ (.n 34)) (lxTable discreteLogTables rd σ)
       (lsTable discreteLogTables rd σ) c ∈ w.children := by
     simp only [w, decWitNStaged, decWitStaged, decWitAt, decWitTab, nodeWitnessOf, kidsT]
     exact List.mem_map.2 ⟨c, List.mem_range.2 hc, rfl⟩

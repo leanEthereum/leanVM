@@ -264,8 +264,8 @@ end SatisfiedByB
 /-! ## The sends of the verifier and the blocks -/
 
 /-- The limbs of word `i` of an image. -/
-def limbsOf {κ : ℕ} (img : MemoryImage κ) (i : Fin (2 ^ κ)) : Vector K 3 :=
-  #v[(img i).limb 0, (img i).limb 1, (img i).limb 2]
+def limbsOf {κ : ℕ} (img : MemoryImage κ) (i : Fin (2 ^ κ)) : Vector K 2 :=
+  #v[(img i).limb 0, (img i).limb 1]
 
 /-- What the memory block sends for the image `img` and the finalize counts `fin`: per word the
 seed push `(g^i, 1, m_i)` and the finalize pull `(g^i, fin i, m_i)`. -/
@@ -447,7 +447,7 @@ theorem chanOf_bcSeed_eq_nil (fin : Fin (2 ^ prog.logSize) → K) {n : String}
 /-! ## The read counts -/
 
 /-- A read a row makes is a memory pull of its sends. -/
-theorem RowRec.mem_chan_of_real {x : RowRec} {y : K × K × Vector K 3} (hy : y ∈ x.real) :
+theorem RowRec.mem_chan_of_real {x : RowRec} {y : K × K × Vector K 2} (hy : y ∈ x.real) :
     memMsgOf y.1 y.2.1 y.2.2 ∈ chanOf MemPull.name x.sends := by
   rw [RowRec.sends, chanOf, List.filter_append, List.map_append, sendsOf_memPull,
     gatedSends_memPull]

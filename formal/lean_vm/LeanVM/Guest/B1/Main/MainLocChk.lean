@@ -26,24 +26,25 @@ theorem mStores_eq : mStores = mStoresL := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mByte_ok : (List.range 256).all (fun v =>
-    (atomsIn mFlatE).any (atomEqb (.const (.n (48 + v)) (word v 0 0)))) = true := by decide +kernel
+    (atomsIn mFlatE).any (atomEqb (.const (.n (48 + v)) (word v 0)))) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mLeafC_ok : (List.range 23).all (fun k =>
-    (atomsIn mFlatE).any (atomEqb (.const (.n (421 + k)) (word 0 0 0)))) = true := by decide +kernel
+    (atomsIn mFlatE).any (atomEqb (.const (.n (420 + k)) (word 0 0)))) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- Each block's stores. -/
 theorem mStoresIn :
     (atomsIn (mPre ++ mMid ++ mPost)).filter (fun a => decide (a ∈ mStoresL)) =
-      (List.range 256).map (fun v => .load (.n (48 + v)) (.n 47) v) ++ [.load (.n 400) (.n 399) 0] ∧
+      (List.range 256).map (fun v => .load (.n (48 + v)) (.n 47) v) ++ [.load (.n 399) (.n 398) 0] ∧
     (atomsIn mDa).filter (fun a => decide (a ∈ mStoresL)) =
-      [.load (.n 379) (.n 366) 0, .load (.n 380) (.n 366) 1] ∧
+      [.load (.n 378) (.n 366) 0, .load (.n 379) (.n 366) 1] ∧
     (atomsIn mDaZ).filter (fun a => decide (a ∈ mStoresL)) =
-      [.load (.n 381) (.n 366) 0, .load (.n 382) (.n 366) 1] ∧
+      [.load (.n 380) (.n 366) 0, .load (.n 381) (.n 366) 1] ∧
     (atomsIn mLeaf).filter (fun a => decide (a ∈ mStoresL)) =
-      (List.range 23).map (fun k => .load (.n (421 + k)) (.n 417) k) ++
-        [.load (.n 420) (.n 417) 23] := by
+      (List.range 23).map (fun k => .load (.n (420 + k)) (.n 416) k) ++
+        [.load (.n 419) (.n 416) 23] ∧
+    (atomsIn mAgg).filter (fun a => decide (a ∈ mStoresL)) = [] := by
   decide +kernel
 
 theorem mem_storesIn {P : List Stmt} {L : List Atom}
@@ -54,15 +55,15 @@ theorem mem_storesIn {P : List Stmt} {L : List Atom}
   exact List.mem_filter.mpr ⟨ha, by simpa using hs⟩
 
 set_option maxRecDepth 100000 in
-theorem mDaZC_ok : (atomsIn mDaZ).any (atomEqb (.const (.n 381) (word 0 0 0))) = true ∧
-    (atomsIn mDaZ).any (atomEqb (.const (.n 382) (word 0 0 0))) = true := by decide +kernel
+theorem mDaZC_ok : (atomsIn mDaZ).any (atomEqb (.const (.n 380) (word 0 0))) = true ∧
+    (atomsIn mDaZ).any (atomEqb (.const (.n 381) (word 0 0))) = true := by decide +kernel
 
 /-- The own DA claim's digest, its chain on `mDa`'s atoms but the stores. -/
-noncomputable def daSpec : ChainSpec := pairSpec (.n 369) (.n 370) (.n 371) (.n 372) (noStores mDa)
+noncomputable def daSpec : ChainSpec := pairSpec (.n 369) (.n 370) (.n 371) (.n 373) (noStores mDa)
 
 set_option maxRecDepth 100000 in
 theorem daSpec_ok : daSpec.check (noStores mDa) = true ∧
-    daSpec.outV (daSpec.nb - 1) 0 = .n 379 ∧ daSpec.outV (daSpec.nb - 1) 1 = .n 380 := by
+    daSpec.outV (daSpec.nb - 1) 0 = .n 378 ∧ daSpec.outV (daSpec.nb - 1) 1 = .n 379 := by
   decide +kernel
 
 end

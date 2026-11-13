@@ -8,15 +8,16 @@
 module
 
 public import LeanVM.Guest.B1.Selectors.SharedTables
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `shared_selector_tables`' loop end
 
 On every valuation satisfying the body's atoms before its loop (`ssA`; any memory, any call
 relation), with `len_g = g^n`, `n < 64`: the hinted bits rebuild `q_g = g^(n / 4)` (`σ 39`, the
-end `__loop8` runs to) and `r_g = g^(n % 4)` (`σ 20`, the dispatch's selector), the loop's
-condition is `1 + g^(n / 4)` and its start `1` (`ss_body_vals`). No load or unpinned hint enters:
-the bits are pinned Boolean and their value by `q_g^4·r_g = len_g`.
+end `shared_selector_tables_loop0` runs to) and `r_g = g^(n % 4)` (`σ 20`, the dispatch's selector),
+the loop's condition is `1 + g^(n / 4)` and its start `1` (`ss_body_vals`). No load or unpinned hint
+enters: the bits are pinned Boolean and their value by `q_g^4·r_g = len_g`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -35,31 +36,31 @@ def ssA : List Stmt := [
     .atom (.mul (.n 9) (.n 9) (.n 9)),
     .atom (.mul (.n 10) (.n 10) (.n 10)),
     .atom (.mul (.n 11) (.n 11) (.n 11)),
-    .atom (.const (.n 12) (word 1 0 0)),
-    .atom (.const (.n 13) (word (imFactor 0) 0 0)),
+    .atom (.const (.n 12) (word 1 0)),
+    .atom (.const (.n 13) (word (imFactor 0) 0)),
     .atom (.mul (.n 14) (.n 6) (.n 13)),
     .atom (.add (.n 15) (.n 12) (.n 14)),
-    .atom (.const (.n 16) (word 1 0 0)),
-    .atom (.const (.n 17) (word (imFactor 1) 0 0)),
+    .atom (.const (.n 16) (word 1 0)),
+    .atom (.const (.n 17) (word (imFactor 1) 0)),
     .atom (.mul (.n 18) (.n 7) (.n 17)),
     .atom (.add (.n 19) (.n 16) (.n 18)),
     .atom (.mul (.n 20) (.n 15) (.n 19)),
-    .atom (.const (.n 21) (word 1 0 0)),
-    .atom (.const (.n 22) (word (imFactor 0) 0 0)),
+    .atom (.const (.n 21) (word 1 0)),
+    .atom (.const (.n 22) (word (imFactor 0) 0)),
     .atom (.mul (.n 23) (.n 8) (.n 22)),
     .atom (.add (.n 24) (.n 21) (.n 23)),
-    .atom (.const (.n 25) (word 1 0 0)),
-    .atom (.const (.n 26) (word (imFactor 1) 0 0)),
+    .atom (.const (.n 25) (word 1 0)),
+    .atom (.const (.n 26) (word (imFactor 1) 0)),
     .atom (.mul (.n 27) (.n 9) (.n 26)),
     .atom (.add (.n 28) (.n 25) (.n 27)),
     .atom (.mul (.n 29) (.n 24) (.n 28)),
-    .atom (.const (.n 30) (word 1 0 0)),
-    .atom (.const (.n 31) (word (imFactor 2) 0 0)),
+    .atom (.const (.n 30) (word 1 0)),
+    .atom (.const (.n 31) (word (imFactor 2) 0)),
     .atom (.mul (.n 32) (.n 10) (.n 31)),
     .atom (.add (.n 33) (.n 30) (.n 32)),
     .atom (.mul (.n 34) (.n 29) (.n 33)),
-    .atom (.const (.n 35) (word 1 0 0)),
-    .atom (.const (.n 36) (word (imFactor 3) 0 0)),
+    .atom (.const (.n 35) (word 1 0)),
+    .atom (.const (.n 36) (word (imFactor 3) 0)),
     .atom (.mul (.n 37) (.n 11) (.n 36)),
     .atom (.add (.n 38) (.n 35) (.n 37)),
     .atom (.mul (.n 39) (.n 34) (.n 38)),
@@ -67,9 +68,9 @@ def ssA : List Stmt := [
     .atom (.mul (.n 41) (.n 40) (.n 40)),
     .atom (.mul (.n 42) (.n 41) (.n 20)),
     .atom (.assertEq (.n 42) (.n 5)),
-    .atom (.const (.n 43) (word 1 0 0)),
+    .atom (.const (.n 43) (word 1 0)),
     .atom (.add (.n 44) (.n 43) (.n 39)),
-    .atom (.const (.n 45) (word 1 0 0))]
+    .atom (.const (.n 45) (word 1 0))]
 
 /-- The body's straight statements, before its dispatch. -/
 def ssS : List Stmt := [
@@ -80,31 +81,31 @@ def ssS : List Stmt := [
     .atom (.mul (.n 9) (.n 9) (.n 9)),
     .atom (.mul (.n 10) (.n 10) (.n 10)),
     .atom (.mul (.n 11) (.n 11) (.n 11)),
-    .atom (.const (.n 12) (word 1 0 0)),
-    .atom (.const (.n 13) (word (imFactor 0) 0 0)),
+    .atom (.const (.n 12) (word 1 0)),
+    .atom (.const (.n 13) (word (imFactor 0) 0)),
     .atom (.mul (.n 14) (.n 6) (.n 13)),
     .atom (.add (.n 15) (.n 12) (.n 14)),
-    .atom (.const (.n 16) (word 1 0 0)),
-    .atom (.const (.n 17) (word (imFactor 1) 0 0)),
+    .atom (.const (.n 16) (word 1 0)),
+    .atom (.const (.n 17) (word (imFactor 1) 0)),
     .atom (.mul (.n 18) (.n 7) (.n 17)),
     .atom (.add (.n 19) (.n 16) (.n 18)),
     .atom (.mul (.n 20) (.n 15) (.n 19)),
-    .atom (.const (.n 21) (word 1 0 0)),
-    .atom (.const (.n 22) (word (imFactor 0) 0 0)),
+    .atom (.const (.n 21) (word 1 0)),
+    .atom (.const (.n 22) (word (imFactor 0) 0)),
     .atom (.mul (.n 23) (.n 8) (.n 22)),
     .atom (.add (.n 24) (.n 21) (.n 23)),
-    .atom (.const (.n 25) (word 1 0 0)),
-    .atom (.const (.n 26) (word (imFactor 1) 0 0)),
+    .atom (.const (.n 25) (word 1 0)),
+    .atom (.const (.n 26) (word (imFactor 1) 0)),
     .atom (.mul (.n 27) (.n 9) (.n 26)),
     .atom (.add (.n 28) (.n 25) (.n 27)),
     .atom (.mul (.n 29) (.n 24) (.n 28)),
-    .atom (.const (.n 30) (word 1 0 0)),
-    .atom (.const (.n 31) (word (imFactor 2) 0 0)),
+    .atom (.const (.n 30) (word 1 0)),
+    .atom (.const (.n 31) (word (imFactor 2) 0)),
     .atom (.mul (.n 32) (.n 10) (.n 31)),
     .atom (.add (.n 33) (.n 30) (.n 32)),
     .atom (.mul (.n 34) (.n 29) (.n 33)),
-    .atom (.const (.n 35) (word 1 0 0)),
-    .atom (.const (.n 36) (word (imFactor 3) 0 0)),
+    .atom (.const (.n 35) (word 1 0)),
+    .atom (.const (.n 36) (word (imFactor 3) 0)),
     .atom (.mul (.n 37) (.n 11) (.n 36)),
     .atom (.add (.n 38) (.n 35) (.n 37)),
     .atom (.mul (.n 39) (.n 34) (.n 38)),
@@ -112,10 +113,11 @@ def ssS : List Stmt := [
     .atom (.mul (.n 41) (.n 40) (.n 40)),
     .atom (.mul (.n 42) (.n 41) (.n 20)),
     .atom (.assertEq (.n 42) (.n 5)),
-    .atom (.const (.n 43) (word 1 0 0)),
+    .atom (.const (.n 43) (word 1 0)),
     .atom (.add (.n 44) (.n 43) (.n 39)),
-    .atom (.const (.n 45) (word 1 0 0)),
-    .callIf (.n 44) "__loop8" [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1, .n 4],
+    .atom (.const (.n 45) (word 1 0)),
+    .callIf (.n 44) name% «shared_selector_tables_loop0» [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1,
+        .n 4],
     .atom (.mul (.n 46) (.n 41) (.n 41)),
     .atom (.mul (.n 47) (.n 46) (.n 46)),
     .atom (.mul (.n 48) (.n 0) (.n 47)),

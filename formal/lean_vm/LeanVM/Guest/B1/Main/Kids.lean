@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Main.Kids
 
   What each child of `main` establishes, its records named: the digest family's statements
-  applied to the calls of `__loop4`.
+  applied to the calls of `main_loop4`.
 -/
 
 module
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Digest.Statement
 /-!
 # The children's records
 
-`KidStepC` (`__loop4`'s iteration) names the calls; with the digest family's statements
+`KidStepC` (`main_loop4`'s iteration) names the calls; with the digest family's statements
 (`child_claim_list_digest_sound`, `statement_digest_sound`) each child's records are values
 (`KidRec`) with their facts (`KidOk`): its leanXMSS and leanSPHINCS claims' slots and cells, its
 lists' digests, its DA digest's cells at `da_digests · g^(2c)`, its statement's digest at
@@ -55,18 +55,16 @@ structure KidRec where
 
 /-- **What child `c` establishes.** -/
 structure KidOk (C : CallRel) (rd : Reader) (σ : Val) (c : ℕ) (k : KidRec) : Prop where
-  base : LoadHolds rd (σ (.n 399)) c k.base
-  next : LoadHolds rd (σ (.n 399)) (c + 1) (k.base * (gen ^ k.ex * gen ^ k.es))
+  base : LoadHolds rd (σ (.n 398)) c k.base
+  next : LoadHolds rd (σ (.n 398)) (c + 1) (k.base * (gen ^ k.ex * gen ^ k.es))
   bounds : k.ex < 2 ^ 32 ∧ k.es < 2 ^ 32
   xlen : k.cellsx.length = 4 * k.ex
-  xcan : AllCanonical k.cellsx
   xrec : ∀ j < k.ex, SlotBelow (σ (.n 22)) (k.ox j) ∧
     LoadHolds rd (σ (.n 45)) (k.ox j) (k.base * gen ^ (if k.mx then 0 else j)) ∧
     ∀ i < 4, LoadHolds rd (σ (.n 31)) (4 * k.ox j + i) (k.cellsx.getD (4 * j + i) 0)
   xmono : k.mx = true → ∀ i j, i < j → j < k.ex → k.ox i < k.ox j
   xdig : [k.cx0, k.cx1] = digestCells (keccak256 (cellsBytes k.cellsx))
   slen : k.cellss.length = 4 * k.es
-  scan : AllCanonical k.cellss
   srec : ∀ j < k.es, SlotBelow (σ (.n 23)) (k.os j) ∧
     LoadHolds rd (σ (.n 46)) (k.os j) (k.base * gen ^ k.ex * gen ^ (if k.ms then 0 else j)) ∧
     ∀ i < 4, LoadHolds rd (σ (.n 34)) (4 * k.os j + i) (k.cellss.getD (4 * j + i) 0)
@@ -75,14 +73,13 @@ structure KidOk (C : CallRel) (rd : Reader) (σ : Val) (c : ℕ) (k : KidRec) : 
   da0 : LoadHolds rd (σ (.n 364)) (2 * c) k.d0
   da1 : LoadHolds rd (σ (.n 364)) (2 * c + 1) k.d1
   deflen : k.defer.length = 24
-  defreads : ReadsAt rd (σ (.n 396) * gen ^ (24 * c)) k.defer
-  hdrcan : AllCanonical [σ (.n 26), σ (.n 27), k.cx0, k.cx1, k.cs0, k.cs1, k.d0, k.d1]
+  defreads : ReadsAt rd (σ (.n 395) * gen ^ (24 * c)) k.defer
   pdig : [k.p0, k.p1] = digestCells (keccak256
     (stmtBytes [σ (.n 26), σ (.n 27), k.cx0, k.cx1, k.cs0, k.cs1, k.d0, k.d1] k.defer))
-  pi0 : LoadHolds rd (σ (.n 384)) (2 * c) k.p0
-  pi1 : LoadHolds rd (σ (.n 384)) (2 * c + 1) k.p1
+  pi0 : LoadHolds rd (σ (.n 383)) (2 * c) k.p0
+  pi1 : LoadHolds rd (σ (.n 383)) (2 * c + 1) k.p1
   sub : C "verify_sub"
-    [k.p0, k.p1, σ (.n 26), σ (.n 27), σ (.n 28), σ (.n 390) * gen ^ (24 * c)] []
+    [k.p0, k.p1, σ (.n 26), σ (.n 27), σ (.n 28), σ (.n 389) * gen ^ (24 * c)] []
 
 theorem loadHolds_gen_pow_iff {rd : Reader} {p : E} {c k : ℕ} {w : E} :
     LoadHolds rd (p * gen ^ c) k w ↔ LoadHolds rd p (c + k) w :=
@@ -95,17 +92,17 @@ theorem kid_rec {rd : Reader} (hm : MemOk rd) {σ : Val} (MF : MainFacts C rd σ
   obtain ⟨base, cx0, cx1, cs0, cs1, d0, d1, p0, p1, ex, es, hb, hex, hes, hcx, hcs, hd0, hd1, hsd,
     hp0, hp1, hsub, hnext⟩ := MF.children c hc
   -- the leanXMSS records
-  obtain ⟨mx, ox, cellsx, hlx, hcanx, hmonox, hrecx, hdigx⟩ :=
+  obtain ⟨mx, ox, cellsx, hlx, hmonox, hrecx, hdigx⟩ :=
     child_claim_list_digest_sound rd hm _ _ hcx ex (by omega) rfl
   -- the leanSPHINCS records
-  obtain ⟨ms, os, cellss, hls, hcans, hmonos, hrecs, hdigs⟩ :=
+  obtain ⟨ms, os, cellss, hls, hmonos, hrecs, hdigs⟩ :=
     child_claim_list_digest_sound rd hm _ _ hcs es (by omega) rfl
   -- the statement's digest
-  obtain ⟨defer, hdlen, hdefr, hhdr, hpdig⟩ := statement_digest_sound rd _ _ hsd
+  obtain ⟨defer, hdlen, hdefr, hpdig⟩ := statement_digest_sound rd _ _ hsd
   refine ⟨⟨base, cx0, cx1, cs0, cs1, d0, d1, p0, p1, ex, es, ox, cellsx, os, cellss, defer, mx, ms⟩,
     ?_⟩
-  refine ⟨?_, ?_, ⟨hex, hes⟩, hlx, hcanx, hrecx, hmonox, hdigx, hls, hcans, hrecs, hmonos, hdigs,
-    ?_, ?_, hdlen, ?_, hhdr, hpdig, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ⟨hex, hes⟩, hlx, hrecx, hmonox, hdigx, hls, hrecs, hmonos, hdigs,
+    ?_, ?_, hdlen, ?_, hpdig, ?_, ?_, ?_⟩
   · have := loadHolds_gen_pow_iff.mp hb; simpa using this
   · have := loadHolds_gen_pow_iff.mp hnext; exact this
   · rw [gen_pow_pow] at hd0

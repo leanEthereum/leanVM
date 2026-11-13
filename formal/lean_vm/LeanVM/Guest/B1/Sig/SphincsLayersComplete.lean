@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsLayersComplete
 
-  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3936-3948` at leanVM main 40f877dc,
+  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:4128-4140`,
   after its counter) is complete: its encoding hashed, the key's leaf by the call of `sp_wots`, the
   path to the root.
 -/
@@ -36,9 +36,6 @@ def encOf (pp a0 key signed : E) (N : Nat) : E :=
   (digestHalves (keccak256 (cellsBytes [pp, a0, key + lit (7 * 2 ^ 24), signed] ++
     leBytes N 4))).1
 
-theorem canon_encOf (pp a0 key signed : E) (N : Nat) : IsCanonical128 (encOf pp a0 key signed N) := by
-  simp [IsCanonical128, encOf, digestHalves]
-
 /-- **A call returning one word completes** when the call relation holds of its arguments. -/
 theorem call_complete {f : String} {args : List V} {d : Nat} (σ : Val) (w : E)
     (hargs : NumBelow d args) (hC : C f (args.map σ) [w]) :
@@ -56,15 +53,13 @@ theorem call_complete {f : String} {args : List V} {d : Nat} (σ : Val) (w : E)
 siblings `sib`. -/
 theorem sHtLayer_complete {pad : Nat} {pp a0 key signed ctr : V} {bit val : Nat → V}
     {off e height b N : Nat} (hh : height ≤ 16) (he : e < 2 ^ height) {sib : Nat → E}
-    (hsib : ∀ j, IsCanonical128 (sib j)) (σ : Val) (hpb : pad + 5 ≤ b) (hpp : NBv b pp)
+    (σ : Val) (hpb : pad + 5 ≤ b) (hpp : NBv b pp)
     (ha0 : NBv b a0) (hkey : NBv b key) (hsg : NBv b signed) (hct : NBv b ctr)
     (hbn : ∀ j < height, NBv b (bit (off + j))) (hvn : ∀ j < height, NBv b (val (off + j)))
-    (hp : PadOK σ pad) (hppc : IsCanonical128 (σ pp)) (ha0c : IsCanonical128 (σ a0))
-    (hkc : IsCanonical128 (σ key)) (hsc : IsCanonical128 (σ signed)) (hN : N < 2 ^ 32)
+    (hp : PadOK σ pad) (hN : N < 2 ^ 32)
     (hctr : σ ctr = eOfNat N)
     (hbit : ∀ j < height, σ (bit (off + j)) = if e.testBit j then 1 else 0)
     (hval : ∀ j < height, σ (val (off + j)) = eOfNat (e >>> j)) {leaf : E}
-    (hlc : IsCanonical128 leaf)
     (hcall : C "sp_wots" [σ pp, σ a0, σ key, encOf (σ pp) (σ a0) (σ key) (σ signed) N] [leaf]) :
     Completes C rd b (sHtLayer pad pp a0 key signed ctr bit val off height b).2.1
       (sHtLayer pad pp a0 key signed ctr bit val off height b).1 σ
@@ -94,23 +89,10 @@ theorem sHtLayer_complete {pad : Nat} {pp a0 key signed ctr : V} {bit val : Nat 
   have hpre : Completes C rd b (b + 10) (layerPre pad pp a0 key signed ctr b) σ
       (fun σ' => AgreeBelow b σ σ' ∧ σ' (.n (b + 9)) = encOf (σ pp) (σ a0) (σ key) (σ signed) N) := by
     have h := Completes.seqThen (C := C) (rd := rd) (Q := fun _ => True) hs1 (hi := b + 10)
-      (by omega) (fun σ1 he1 hA1 => by
+      (by omega) (fun σ1 he1 _ => by
         have hag1 : AgreeBelow b σ σ1 := he1.agree
-        have a1 : σ1 (.n (b + 1)) = σ1 key + σ1 (.n b) :=
-          hA1.atom (a := .add (.n (b + 1)) _ _) (by simp [addS])
-        have c0 : σ1 (.n b) = lit (7 * 2 ^ 24) := hA1.atom (a := .const (.n b) _) (by simp [cst])
         have hk := (kMsg_complete (C := C) (rd := rd) σ1 (hp.congr hpb hag1) (by omega)
-          (len := 68) (tailRun := false) (fun c hc => ⟨hcells c hc, by
-            simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
-            rcases hc with rfl | rfl | rfl | rfl | rfl
-            · show IsCanonical128 (σ1 pp); rw [hag1.apply hpp]; exact hppc
-            · show IsCanonical128 (σ1 a0); rw [hag1.apply ha0]; exact ha0c
-            · show IsCanonical128 (σ1 (.n (b + 1)))
-              rw [a1, c0, hag1.apply hkey]; exact canon_add hkc (canon_word _ _)
-            · show IsCanonical128 (σ1 signed); rw [hag1.apply hsg]; exact hsc
-            · show IsCanonical128 (σ1 ctr)
-              rw [hag1.apply hct, hctr, ← word_eq_eOfNat]; exact canon_word _ _⟩)
-          (fun h => by simp at h)).1
+          (len := 68) (tailRun := false) hcells (fun h => by simp at h)).1
         rw [(kEnc_shape ..).1] at hk
         exact hk)
     refine (h.withAtoms (by simp only [atomsOnly_append, kMsg_atoms]; rfl)).withExt.mono le_rfl
@@ -145,14 +127,13 @@ theorem sHtLayer_complete {pad : Nat} {pp a0 key signed ctr : V} {bit val : Nat 
   have t2 : ∀ v, NBv b v → σ2 v = σ v := fun v hv =>
     (hag2.apply (hv.mono' (by omega))).trans (t1 v hv)
   have hpv := sPath_complete_val (C := C) (rd := rd) (pad := pad) (pp := pp) (a0 := a0) (bit := bit)
-    (val := val) (off := off) hh he hsib (cur := .n (b + 10)) (x := b + 11) σ2 (by omega)
+    (val := val) (off := off) (sib := sib) hh he (cur := .n (b + 10)) (x := b + 11) σ2 (by omega)
     (hpp.mono' (by omega)) (ha0.mono' (by omega)) (fun j hj => (hbn j hj).mono' (by omega))
     (fun j hj => (hvn j hj).mono' (by omega)) ⟨b + 10, by omega, rfl⟩
     (hp.congr hpb fun j hj => by rw [t2 (.n j) ⟨j, hj, rfl⟩])
-    (by rw [t2 _ hpp]; exact hppc) (by rw [t2 _ ha0]; exact ha0c) (by rw [hl2]; exact hlc)
     (fun j hj => by rw [t2 _ (hbn j hj)]; exact hbit j hj)
     (fun j hj => by rw [t2 _ (hvn j hj)]; exact hval j hj)
-  refine hpv.mono le_rfl le_rfl (fun σ' ⟨hag', hr', _⟩ => ⟨?_, ?_⟩)
+  refine hpv.mono le_rfl le_rfl (fun σ' ⟨hag', hr'⟩ => ⟨?_, ?_⟩)
   · exact fun j hj => (t2 (.n j) ⟨j, hj, rfl⟩).symm.trans (hag' j (by omega))
   · rw [hr', t2 _ hpp, t2 _ ha0, hl2]
 

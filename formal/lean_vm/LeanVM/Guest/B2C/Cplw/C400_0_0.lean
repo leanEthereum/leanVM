@@ -16,26 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop31`, window 0, part 0. -/
+/-- `child_claim_list_mono_last__L13`, window 0, part 0. -/
 theorem cw400_0_0 : cplWin 400 0 0 = true := by decide +kernel
 
-/-- `__loop32`, window 0, part 0. -/
+/-- `child_claim_list_mono_last__L14`, window 0, part 0. -/
 theorem cw401_0_0 : cplWin 401 0 0 = true := by decide +kernel
 
-/-- `__loop33`, window 0, part 0. -/
+/-- `child_claim_list_mono_last__L15`, window 0, part 0. -/
 theorem cw402_0_0 : cplWin 402 0 0 = true := by decide +kernel
 
-/-- `__loop34`, window 0, part 0. -/
+/-- `child_claim_list_mono_last__L16`, window 0, part 0. -/
 theorem cw403_0_0 : cplWin 403 0 0 = true := by decide +kernel
 
-/-- `batch_sumcheck__L23`, window 0, part 0. -/
+/-- `__loop21`, window 0, part 0. -/
 theorem cw404_0_0 : cplWin 404 0 0 = true := by decide +kernel
 
-/-- `__loop35`, window 0, part 0. -/
+/-- `__loop22`, window 0, part 0. -/
 theorem cw405_0_0 : cplWin 405 0 0 = true := by decide +kernel
 
-/-- `rs_eq_rows__L8`, window 0, part 0. -/
+/-- `__loop23`, window 0, part 0. -/
 theorem cw406_0_0 : cplWin 406 0 0 = true := by decide +kernel
+
+/-- `__loop24`, window 0, part 0. -/
+theorem cw407_0_0 : cplWin 407 0 0 = true := by decide +kernel
 
 theorem ok400 : CplOk 400 := by
   intro i hi k hk
@@ -96,6 +99,26 @@ theorem ok405 : CplOk 405 := by
     rw [hn] at hk
     interval_cases k
     · exact cw405_0_0
+
+theorem ok406 : CplOk 406 := by
+  intro i hi k hk
+  have hc : (certOf 406).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 406 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw406_0_0
+
+theorem ok407 : CplOk 407 := by
+  intro i hi k hk
+  have hc : (certOf 407).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 407 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw407_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

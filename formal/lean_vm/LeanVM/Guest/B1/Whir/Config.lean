@@ -9,20 +9,21 @@ module
 
 public import LeanVM.Guest.Data.Source
 public import LeanVM.Guest.B1.Whir.MatPlan
+public import LeanVM.Guest.GuestConst
 
 /-!
-# The `LIG_*` tables and a candidate's configuration (TRIAGE G #42)
+# The `LIG_*` tables and a size's configuration (TRIAGE G #42)
 
 `open_stacked(m_idx, rate_sel, …)` (`lean_ethereum.py`, `open_stacked`) is specialized on the
 committed log-size alone, `m_idx = μ - 20`, and reads the rate `g^rate_sel` at runtime. At compile
 time it reads the row `m_idx` of the per-size tables (`LIG_N_LEVELS`, `LIG_YR_LEVEL`, …), the rows
 `ml = m_idx · LIG_MAX_LEVELS + lvl` of the per-level ones that no rate changes (`LIG_FOLDS`,
-`LIG_INTERLEAVE`, …), and, through a `match` on the rate, the rows
+`LIG_LOG_MSG_COLS`, …), and, through a `match` on the rate, the rows
 `(r · LIG_N_LOG_SIZES + m_idx) · LIG_MAX_LEVELS + lvl` of those a rate changes (`LIG_QUERIES`,
-`LIG_TREE_DEPTH`, `LIG_CAP_DEPTH`, `LIG_SQUEEZES`). The tables are the
-deployed placeholders, as the source data holds them (`Data.arr_LIG_*`, `Guest/Data/Source.lean`);
-nothing here is trusted: the template of the body built from them (`Whir/Template.lean`) is
-checked equal to the core IR, and their facts against the Spec are decided (`Whir/Facts.lean`).
+`LIG_TREE_DEPTH`, `LIG_CAP_DEPTH`, `LIG_SQUEEZES`). The tables are the deployed placeholders, as
+the source data holds them (`Data.arr_LIG_*`, `Guest/Data/Source.lean`); nothing here is trusted:
+the template of the body built from them (`Whir/Template.lean`) is checked equal to the core IR,
+and their facts against the Spec are decided (`Whir/Facts.lean`).
 
 * `lig a i`: entry `i` of the table `a`, its low limb (the tables hold integers, the vanishing
   tables words of `K`);
@@ -36,41 +37,40 @@ namespace LeanVM.Guest.B1.Whir
 @[expose] public section
 
 /-- Entry `i` of a constant array, its low limb. -/
-def lig (a : List (Nat × Nat × Nat)) (i : Nat) : Nat := (a.getD i (0, 0, 0)).1
+def lig (a : List (Nat × Nat)) (i : Nat) : Nat := (a.getD i (0, 0)).1
 
-/-- `LIG_MAX_LEVELS`: the rows of a candidate in the per-level tables. -/
-abbrev ligMaxLevels : Nat := 6
+/-- `LIG_MAX_LEVELS`: the rows of a size in the per-level tables. -/
+abbrev ligMaxLevels : Nat := guest_const% LIG_MAX_LEVELS
 
 /-- `LIG_N_LOG_SIZES`: the sizes a rate's rows cover. -/
-abbrev ligNSizes : Nat := 11
+abbrev ligNSizes : Nat := guest_const% LIG_N_LOG_SIZES
 
 /-- `LIG_N_RATES`. -/
-abbrev ligNRates : Nat := 4
+abbrev ligNRates : Nat := guest_const% LIG_N_RATES
 
 /-- `LIG_LEVEL_POSITIONS_CAP`: a level's slots in `query_positions` and `query_win_ptrs`. -/
-abbrev ligPosCap : Nat := 232
+abbrev ligPosCap : Nat := guest_const% LIG_LEVEL_POSITIONS_CAP
 
-/-- `LIG_LOG_MSG_COLS_CAP`: the stride of a level's row in `ood_z` and `basis_d`. -/
-abbrev ligColsCap : Nat := 24
-
-/-- `OOD_SLOTS`: the stride of a sample in `ood`. -/
-abbrev oodSlots : Nat := 4
+/-- `LIG_LOG_MSG_COLS_CAP`: the stride of a sample's row in `ood_z` and of a level's in
+`basis_d`. -/
+abbrev ligColsCap : Nat := guest_const% LIG_LOG_MSG_COLS_CAP
 
 /-- `YR_LOG_CAP`: the length of `tail_challenges`. -/
-abbrev yrLogCap : Nat := 5
+abbrev yrLogCap : Nat := guest_const% YR_LOG_CAP
+
+/-- `2 ^ HIGH_BITS_CAP`: the stride of a level's high part in `level_hs`. -/
+abbrev hsStride : Nat := 2 ^ guest_const% HIGH_BITS_CAP
 
 /-- One level's row of the tables. -/
 structure OsLv where
-  /-- `LIG_FOLDS`: the level's sumcheck rounds. -/
+  /-- `LIG_FOLDS`: the level's fold rounds. -/
   folds : Nat
-  /-- `LIG_FOLDS_OFF`: the folds before the level. -/
+  /-- `LIG_FOLDS_OFF`: the fold rounds before the level. -/
   foldsOff : Nat
   /-- `LIG_QUERIES`, at the rate. -/
   queries : Nat
   /-- `LIG_TREE_DEPTH`, at the rate: the height of the level's commitment. -/
   depth : Nat
-  /-- `LIG_INTERLEAVE`: the words of a row (`K` words at level 0, `E` words deeper). -/
-  interleave : Nat
   /-- `LIG_LEAF_CELLS`: the cells a leaf hashes. -/
   leafCells : Nat
   /-- The level's first slot in `query_positions`, `lvl · LIG_LEVEL_POSITIONS_CAP`. -/
@@ -81,12 +81,8 @@ structure OsLv where
   squeezes : Nat
   /-- `LIG_LOG_MSG_COLS`: the message log after the level's folds. -/
   logCols : Nat
-  /-- `LIG_OOD_SAMPLES` of this level: the samples of its own commitment. -/
-  oodHere : Nat
-  /-- `LIG_OOD_SAMPLES` of the next level: the samples of the commitment read here. -/
-  oodNext : Nat
-  /-- `LIG_QUERY_GRIND_BITS`. -/
-  grind : Nat
+  /-- `LIG_HIGH_BITS`: the index bits of the level's high part. -/
+  highBits : Nat
   /-- `LIG_RESIDUAL_PREFIX_LEN`: the fold challenges of the level's induced weight. -/
   prefixLen : Nat
   /-- `LIG_RESIDUAL_FOLD_OFF`: the first of them. -/
@@ -105,15 +101,14 @@ def osLvR (m r lvl : Nat) : OsLv :=
   let cols := lig Data.arr_LIG_LOG_MSG_COLS i
   { folds := lig Data.arr_LIG_FOLDS i, foldsOff := lig Data.arr_LIG_FOLDS_OFF i,
     queries := lig Data.arr_LIG_QUERIES j, depth := lig Data.arr_LIG_TREE_DEPTH j,
-    interleave := lig Data.arr_LIG_INTERLEAVE i, leafCells := lig Data.arr_LIG_LEAF_CELLS i,
-    posOff := lvl * ligPosCap, capDepth := lig Data.arr_LIG_CAP_DEPTH j,
-    squeezes := lig Data.arr_LIG_SQUEEZES j,
-    logCols := cols, oodHere := lig Data.arr_LIG_OOD_SAMPLES i,
-    oodNext := lig Data.arr_LIG_OOD_SAMPLES (i + 1),
-    grind := lig Data.arr_LIG_QUERY_GRIND_BITS i,
+    leafCells := lig Data.arr_LIG_LEAF_CELLS i, posOff := lvl * ligPosCap,
+    capDepth := lig Data.arr_LIG_CAP_DEPTH j, squeezes := lig Data.arr_LIG_SQUEEZES j,
+    logCols := cols, highBits := lig Data.arr_LIG_HIGH_BITS i,
     prefixLen := lig Data.arr_LIG_RESIDUAL_PREFIX_LEN i,
-    resFoldOff := lig Data.arr_LIG_RESIDUAL_FOLD_OFF i,
-    vanish := cols * (cols + 1) / 2 }
+    resFoldOff := lig Data.arr_LIG_RESIDUAL_FOLD_OFF i, vanish := cols * (cols + 1) / 2 }
+
+/-- Level `lvl`'s row of size `m` at the first rate: its rate-free columns are every rate's. -/
+abbrev osLv (m lvl : Nat) : OsLv := osLvR m 0 lvl
 
 /-- A size's configuration. -/
 structure OsCfg where
@@ -123,16 +118,14 @@ structure OsCfg where
   levels : List OsLv
   /-- Its levels at every rate, by rate: the arms of the dispatches. -/
   levelsAt : List (List OsLv)
-  /-- `LIG_YR_LEVEL`: the level that reads the final message. -/
+  /-- `LIG_YR_LEVEL`: the final level, the last. -/
   yrLevel : Nat
-  /-- `LIG_YR_LOG_LEN`: the final message's log length, the tail's rounds. -/
+  /-- `LIG_YR_LOG_LEN`: the final lane's low part's log length, the closing rounds. -/
   yrLog : Nat
   /-- `LIG_YR_LEN`. -/
   yrLen : Nat
   /-- `LIG_TOTAL_FOLDS`. -/
   nFolds : Nat
-  /-- `LIG_MAX_INTERLEAVE`. -/
-  maxIl : Nat
   /-- The compiler's choices of a shifted pointer's source (`osMatPlan`). -/
   plan : List (Nat × Nat × Nat)
   deriving Repr, Inhabited
@@ -148,7 +141,13 @@ def osCfg (m : Nat) : OsCfg :=
   { m, levels := osLevelsR m 0, levelsAt := (List.range ligNRates).map (osLevelsR m),
     yrLevel := lig Data.arr_LIG_YR_LEVEL m, yrLog := lig Data.arr_LIG_YR_LOG_LEN m,
     yrLen := lig Data.arr_LIG_YR_LEN m, nFolds := lig Data.arr_LIG_TOTAL_FOLDS m,
-    maxIl := lig Data.arr_LIG_MAX_INTERLEAVE m, plan := osMatPlan m }
+    plan := osMatPlan m }
+
+/-- The configuration with the levels `L`. -/
+abbrev OsCfg.withLevels (c : OsCfg) (L : List OsLv) : OsCfg := { c with levels := L }
+
+/-- Size `m`'s configuration with its levels at rate `ri`. -/
+def osCfgR (m ri : Nat) : OsCfg := (osCfg m).withLevels (osLevelsR m ri)
 
 /-- Level `lvl` at every rate, by rate: the rows the dispatches' arms specialize on. -/
 def OsCfg.lvAt (c : OsCfg) (lvl : Nat) : List OsLv :=

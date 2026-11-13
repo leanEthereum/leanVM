@@ -198,11 +198,6 @@ theorem vt_mulAt (hl : args.length = 20) (n : ℕ) {d x y : ℕ} (hx : x < d) (h
   rw [ite_pos' ⟨hx, hy⟩] at h
   exact h
 
-theorem vt_addAt (hl : args.length = 20) (n : ℕ) {d x y : V}
-    (heq : tbStmtsEqb [.atom (.add d x y)] ((vtAt n).take 1) = true) :
-    vtσ rd w args d = vtσ rd w args x + vtσ rd w args y :=
-  vt_goodAt (rd := rd) (w := w) hl n _ heq
-
 /-- **A read at `vtAt`** of a word the memory holds holds, and reads it. -/
 theorem vt_readAt (hl : args.length = 20) (n : ℕ) {d p : V} {off : ℕ}
     (heq : tbStmtsEqb [.atom (.load d p off)] ((vtAt n).take 1) = true)

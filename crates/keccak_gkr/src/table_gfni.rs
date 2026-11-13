@@ -6,7 +6,7 @@
 //! byte, output byte): byte `t` of the group's 32 bytes holds bits `8 (t % 2) ..` of pack `t / 2`,
 //! and each of its bits maps to the reduced product of one unit embedding by that pack's weight.
 //! A block is byte-transposed 64 positions at a time (register `b` = byte `b` of the 64 positions),
-//! each group then costs `32 * 24` affine products per 64 positions, and the 24 output bytes are
+//! each group then costs `32 * 16` affine products per 64 positions, and the 16 output bytes are
 //! transposed back to the row's words.
 //!
 //! The scheme is the table fill of hashmancer-keccak's GFNI kernels.
@@ -23,7 +23,7 @@ use crate::witness::BLOCK_WORDS;
 
 /// Bytes of a group of a position (16 packs of 16 bits), and of a reduced value.
 const GROUP_BYTES: usize = 32;
-const VALUE_BYTES: usize = 24;
+const VALUE_BYTES: usize = 16;
 /// Positions per register.
 const REGISTER_POSITIONS: usize = 64;
 
@@ -35,11 +35,11 @@ pub struct RowMaps {
 
 impl RowMaps {
     /// From the fold weights `fold[k][q]` (word `k` of pack `q`'s weight, in the power basis).
-    pub fn new(field: &PowerField, fold: &[[u64; GROUP]; 3]) -> Self {
+    pub fn new(field: &PowerField, fold: &[[u64; GROUP]; 2]) -> Self {
         // The value of bit `i` of pack `q` alone, image `16 q + i`: its unit embedding times the pack's
-        // weight, reduced, a row of four-word products laid out by word as the carry-less path's.
+        // weight, reduced, a row of three-word products laid out by word as the carry-less path's.
         const IMAGES: usize = 16 * GROUP;
-        let mut wide = vec![0u64; 4 * IMAGES];
+        let mut wide = vec![0u64; 3 * IMAGES];
         for q in 0..GROUP {
             for (i, &e) in RMFE.emb.iter().enumerate() {
                 for (k, w) in fold.iter().enumerate() {
@@ -49,7 +49,7 @@ impl RowMaps {
                 }
             }
         }
-        let mut images = vec![0u64; 3 * IMAGES];
+        let mut images = vec![0u64; 2 * IMAGES];
         field.reduce_row(&mut images, &wide, IMAGES);
         let bit = |image: usize, n: usize| (images[(n / 64) * IMAGES + image] >> (n % 64)) as u8 & 1;
         // An affine byte map reads output bit `k` off matrix byte `7 - k`: its bit `c` is bit `8 o + k`
@@ -66,9 +66,9 @@ impl RowMaps {
     }
 
     /// The rows of a block's first `halves` groups: row `h`, word `k` of position `j` at
-    /// `rows[h * 3 BITS + k * BITS + j]`.
+    /// `rows[h * 2 BITS + k * BITS + j]`.
     pub fn rows(&self, block: &[u64], rows: &mut [u64], halves: usize) {
-        assert!(block.len() >= BITS * BLOCK_WORDS && halves <= 2 && rows.len() >= halves * 3 * BITS);
+        assert!(block.len() >= BITS * BLOCK_WORDS && halves <= 2 && rows.len() >= halves * 2 * BITS);
         // SAFETY: AVX-512F/BW and GFNI are enabled at compile time (module cfg); every load reads
         // positions inside `block` and every store writes words inside `rows` (asserted).
         unsafe {
@@ -76,9 +76,9 @@ impl RowMaps {
                 let y = transpose_position_bytes(block.as_ptr().add(REGISTER_POSITIONS * g * BLOCK_WORDS));
                 for h in 0..halves {
                     let acc = self.accumulate(&y[GROUP_BYTES * h..][..GROUP_BYTES]);
-                    for k in 0..3 {
+                    for k in 0..2 {
                         let words = byte_planes_to_words(acc[8 * k..][..8].try_into().unwrap());
-                        let dst = rows.as_mut_ptr().add(h * 3 * BITS + k * BITS + REGISTER_POSITIONS * g);
+                        let dst = rows.as_mut_ptr().add(h * 2 * BITS + k * BITS + REGISTER_POSITIONS * g);
                         for (r, w) in words.iter().enumerate() {
                             _mm512_storeu_si512(dst.add(8 * r).cast(), *w);
                         }
@@ -213,30 +213,30 @@ mod tests {
             let field = PowerField::new(rng.ext()).expect("a generator");
             // The fold weights: field elements in the power basis, by word.
             let elems: Vec<Element> = (0..GROUP).map(|_| field.to_poly(rng.ext())).collect();
-            let fold: [[u64; GROUP]; 3] = std::array::from_fn(|k| std::array::from_fn(|q| elems[q][k]));
+            let fold: [[u64; GROUP]; 2] = std::array::from_fn(|k| std::array::from_fn(|q| elems[q][k]));
             let block: Vec<u64> = (0..BITS * BLOCK_WORDS).map(|_| rng.next_u64()).collect();
-            let mut want = vec![0u64; 2 * 3 * BITS];
-            let mut wide = vec![0u64; 2 * 4 * BITS];
+            let mut want = vec![0u64; 2 * 2 * BITS];
+            let mut wide = vec![0u64; 2 * 3 * BITS];
             for j in 0..BITS {
                 let sums = fold_groups(&embed(words(&block, j)), &fold);
                 for (h, sum) in sums.iter().enumerate() {
-                    let sum: [u64; 4] = carry(sum);
+                    let sum: [u64; 3] = carry(sum);
                     for (k, &w) in sum.iter().enumerate() {
-                        wide[h * 4 * BITS + k * BITS + j] = w;
+                        wide[h * 3 * BITS + k * BITS + j] = w;
                     }
                 }
             }
             for h in 0..2 {
                 field.reduce_row(
-                    &mut want[h * 3 * BITS..][..3 * BITS],
-                    &wide[h * 4 * BITS..][..4 * BITS],
+                    &mut want[h * 2 * BITS..][..2 * BITS],
+                    &wide[h * 3 * BITS..][..3 * BITS],
                     BITS,
                 );
             }
             for halves in [2, 1] {
-                let mut got = vec![0u64; 2 * 3 * BITS];
+                let mut got = vec![0u64; 2 * 2 * BITS];
                 RowMaps::new(&field, &fold).rows(&block, &mut got, halves);
-                assert_eq!(got[..halves * 3 * BITS], want[..halves * 3 * BITS], "{halves} halves");
+                assert_eq!(got[..halves * 2 * BITS], want[..halves * 2 * BITS], "{halves} halves");
             }
         }
     }

@@ -33,17 +33,17 @@ namespace VkData
 variable (D : VkData)
 
 /-- `verify_keccak`'s arguments. -/
-def args (curE chiE olE zvE slE : ℕ) : List E :=
-  D.f ++ [ptr curE, gen ^ D.τ, ptr chiE, ptr olE, ptr zvE, ptr slE]
+def args (curE chiE olE zvE slE tbE : ℕ) : List E :=
+  D.f ++ [ptr curE, gen ^ D.τ, ptr chiE, ptr olE, ptr zvE, ptr slE, ptr tbE]
 
 /-- **The honest valuation.** -/
-def val (rd : Reader) (B curE chiE olE zvE slE : ℕ) : Val :=
-  vkσ rd (D.w B curE) (D.args curE chiE olE zvE slE)
+def val (rd : Reader) (B curE chiE olE zvE slE tbE : ℕ) : Val :=
+  vkσ rd (D.w B curE) (D.args curE chiE olE zvE slE tbE)
 
 /-- The memory holds the buffers, the caller's words and the layers' buffers. -/
-structure Mem (rd : Reader) (B curE chiE olE zvE slE : ℕ) (ls : ℕ → ℕ) : Prop where
+structure Mem (rd : Reader) (B curE chiE olE zvE slE tbE : ℕ) (ls : ℕ → ℕ) : Prop where
   own : MemL rd (bufL B D.sizes (D.own B ls))
-  lin : MemL rd (D.lin curE chiE olE zvE slE)
+  lin : MemL rd (D.lin curE chiE olE zvE slE tbE)
   lay : ∀ s < 12, MemL rd (layerBufs (D.layer s) (firstOf s) (ptr (curE + D.lcur s)) (ls s))
 
 variable {D}
@@ -93,31 +93,36 @@ theorem vk_ker2 : noStoreVia [.n 5, .n 7] vkSt = true ∧
     (vkFirstT ++ vkStepsT ++ vkOutT ++ vkInT ++ vkFinT).all (fun s ↦ !pinB s) = true := by
   decide +kernel
 
-variable {rd : Reader} {B curE chiE olE zvE slE : ℕ} {ls : ℕ → ℕ}
+variable {rd : Reader} {B curE chiE olE zvE slE tbE : ℕ} {ls : ℕ → ℕ}
 
-theorem args_length (h : D.Ok) : (D.args curE chiE olE zvE slE).length = 11 := by
+theorem args_length (h : D.Ok) : (D.args curE chiE olE zvE slE tbE).length = 12 := by
   simp [args, h.2.2.2.2.1]
 
 /-- The facts every section starts from: the values by index, the equations, the arguments. -/
 theorem val_good (h : D.Ok) :
-    (∀ v, D.val rd B curE chiE olE zvE slE v = D.val rd B curE chiE olE zvE slE (.n v.idx)) ∧
-    (∀ s ∈ vkT, pinB s = false → GoodS rd vkSt (D.w B curE) (D.val rd B curE chiE olE zvE slE) s) ∧
-    (∀ i < 11, D.val rd B curE chiE olE zvE slE (.n i) = (D.args curE chiE olE zvE slE).getD i 0) :=
+    (∀ v, D.val rd B curE chiE olE zvE slE tbE v = D.val rd B curE chiE olE zvE slE tbE (.n v.idx)) ∧
+    (∀ s ∈ vkT, pinB s = false → GoodS rd vkSt (D.w B curE) (D.val rd B curE chiE olE zvE slE tbE) s) ∧
+    (∀ i < 12, D.val rd B curE chiE olE zvE slE tbE (.n i) = (D.args curE chiE olE zvE slE tbE).getD i 0) :=
   ⟨fun v ↦ vkσ_idx v, fun _ hs hp ↦ vk_good (args_length h) hs hp,
     fun _ hi ↦ vk_param (args_length h) hi⟩
+
+theorem val_tabs (h : D.Ok) : D.val rd B curE chiE olE zvE slE tbE (.n 11) = ptr tbE := by
+  rw [(val_good h).2.2 11 (by norm_num), args,
+    List.getD_append_right _ _ _ _ (by rw [h.2.2.2.2.1]; norm_num), h.2.2.2.2.1]
+  rfl
 
 /-- Every statement after the head satisfies its equations. -/
 theorem val_good' (h : D.Ok) {s : Stmt}
     (hs : s ∈ vkFirstT ++ vkStepsT ++ vkOutT ++ vkInT ++ vkFinT) :
-    GoodS rd vkSt (D.w B curE) (D.val rd B curE chiE olE zvE slE) s :=
+    GoodS rd vkSt (D.w B curE) (D.val rd B curE chiE olE zvE slE tbE) s :=
   (val_good h).2.1 s (by
     rw [vkT]; simp only [List.append_assoc, List.mem_append] at hs ⊢; exact Or.inr hs)
     (by have := List.all_eq_true.mp vk_ker2.2 s hs; simpa using this)
 
 theorem val_alloc (h : D.Ok) :
-    ∀ x ∈ vkAllocs, D.val rd B curE chiE olE zvE slE x.1 = D.w B curE x.1.idx := by
+    ∀ x ∈ vkAllocs, D.val rd B curE chiE olE zvE slE tbE x.1 = D.w B curE x.1.idx := by
   have := alloc_goodP (pre := vkPre) (fun s hs hp ↦ (val_good (rd := rd) (B := B) (curE := curE)
-    (chiE := chiE) (olE := olE) (zvE := zvE) (slE := slE) h).2.1 s
+    (chiE := chiE) (olE := olE) (zvE := zvE) (slE := slE) (tbE := tbE) h).2.1 s
     (by rw [vkT_pre]; exact List.mem_append_left _ hs) hp)
   rwa [vkPre_kernel.2.2.1] at this
 

@@ -14,8 +14,8 @@ def set_pows(p):
 
 def word_exp(w):
     """The exponent `e` with `constOk w e`: the word is `g^e`, `e < 2^20`."""
-    c0, c1, c2 = w
-    if c1 or c2: return None
+    c0, c1 = w
+    if c1: return None
     e = POWS.get(c0)
     if e is None and c0 > 0 and c0 & (c0 - 1) == 0 and c0 < 2**64: e = c0.bit_length() - 1
     if e is None or e >= 2**20: return None
@@ -343,4 +343,143 @@ def gen(fns, omega, alpha=False, hand=None, only=None):
     for i in sorted(fns):
         if only is None or fns[i]['name'] in only: visit(fns[i]['name'])
     return fns, cert
+
+
+# --- a walk by ranges of statements (mirror of `stmtR`, `stmtRV` and `StaticCut.runS`) ---
+def stmt_step(cx, rho, s):
+    """A statement's bound and the constants after it (`stmtR`), the latter `None` at a `ret`; `None`
+    if it fails."""
+    t = s[0]
+    if t == 'atom': return atomB(cx, rho, s)
+    if t == 'ret': return acc0(), None
+    if t == 'ite': r = maxacc(blockB(cx, rho, s[2]), blockB(cx, rho, s[3]))
+    elif t == 'match': r = armsB(cx, rho, s[2])
+    elif t == 'call': r = siteB(cx, rho, s[1], s[2])
+    elif t == 'callIf':
+        if s[2] == cx.self: return None
+        ph = ((cx.om[s[2]], [], []) if s[2] in cx.om else None) if cx.alpha else acc0()
+        r = add(siteB(cx, rho, s[2], s[3]), ph)
+    elif t == 'dispatch': r = maxB(lambda g: siteB(cx, rho, g, s[3]), s[2])
+    else: raise ValueError(t)
+    return None if r is None else (r, rho)
+
+
+def run_range(step, add_, cx, rho, ss):
+    """A nonempty range's walk (`runS`): its bounds added and the constants after it, `None` once it
+    stops; `None` if a statement fails."""
+    acc = None
+    for s in ss:
+        q = step(cx, rho, s)
+        if q is None: return None
+        acc = q[0] if acc is None else add_(acc, q[0])
+        if q[1] is None: return acc, None
+        rho = q[1]
+    return acc, rho
+
+
+# The vector checker (`StaticVec.lean`): a bound's numbers are `Vec`s, read as zero past their end.
+def vadd(a, b):
+    return [x + y for x, y in zip(a, b)] + a[len(b):] + b[len(a):]
+
+def vmax(a, b):
+    return [max(x, y) for x, y in zip(a, b)] + a[len(b):] + b[len(a):]
+
+def vscale(n, a): return [n * x for x in a]
+
+def accv0(): return ([], [], [])
+
+def addv(a, b):
+    if a is None or b is None: return None
+    return (vadd(a[0], b[0]), a[1] + b[1], a[2] + b[2])
+
+def joinv(a, b):
+    if a is None or b is None: return None
+    return (vmax(a[0], b[0]), a[1] + b[1], a[2] + b[2])
+
+def certv(cs):
+    """The vector certificate of one function's certificates `cs`, a coordinate each, of one shape."""
+    c0 = cs[0]
+    def aff(bs): return ([b[0] for b in bs], [(q[0], [b[1][t][1] for b in bs]) for t, q in enumerate(bs[0][1])])
+    if c0[0] == 'stat': return ('stat', c0[1], aff([c[2] for c in cs]), c0[3])
+    return ('loop', c0[1], c0[2], aff([c[3] for c in cs]), c0[4])
+
+def foldv(f, op, l):
+    r = accv0()
+    for x in reversed([f(y) for y in l]): r = op(x, r)
+    return r
+
+def termBV(cx, rho, args, q):
+    k, coef = q
+    if k >= len(args): return None
+    c = cx.cls(rho, args[k])
+    if c[0] == 'pow': return (vscale(c[1], coef), [], [])
+    if c[0] == 'param': return ([], [(c[1], coef)], [])
+    return None
+
+def preBV(cx, rho, args, q):
+    k, a = q
+    if k >= len(args): return None
+    c = cx.cls(rho, args[k])
+    if c[0] == 'pow': return accv0() if (a < c[1] and c[1] < ORD) else None
+    if c[0] == 'param': return ([], [], [(c[1], a)])
+    return None
+
+def transBV(cx, rho, args, pre, b):
+    return addv((b[0], [], []), addv(foldv(lambda q: termBV(cx, rho, args, q), addv, b[1]),
+                                    foldv(lambda q: preBV(cx, rho, args, q), addv, pre)))
+
+def siteBV(cx, rho, g, args):
+    c = cx.cert.get(g)
+    if c is None: return None
+    if c[0] == 'stat': return transBV(cx, rho, args, c[1], c[2])
+    _, endc, pre, b, ks = c
+    if not args: return None
+    v0 = cx.cls(rho, args[0])
+    if v0[0] != 'pow': return None
+    a0 = v0[1]
+    if endc is not None: endv = ('pow', endc)
+    elif len(args) > 1: endv = cx.cls(rho, args[1])
+    else: endv = ('none',)
+    if endv[0] == 'pow':
+        e = endv[1]
+        if not (a0 < e and e < ORD): return None
+        r = transBV(cx, rho, args, pre, b)
+        if r is None: return None
+        n = e - a0
+        return (vscale(n, r[0]), [(k, vscale(n, v)) for (k, v) in r[1]], r[2])
+    if endv[0] == 'param':
+        r = transBV(cx, rho, args, pre, b)
+        if r is None or r[1] != []: return None
+        return ([], [(endv[1], r[0])], [(endv[1], a0)] + r[2])
+    return None
+
+def env_atom(cx, rho, s):
+    """The constants after an atom, not counting words (`envAtom`)."""
+    if s[1] == 'const':
+        v, w = s[2]
+        e = next((ee for (x, ee) in cx.ks if x == v), None)
+        if e is not None and word_exp(w) == e: return ([(v, e)] + rho[0], rho[1])
+    return rho
+
+def blockBV(cx, rho, ss):
+    if not ss: return accv0()
+    q = stmt_stepV(cx, rho, ss[0])
+    if q is None: return None
+    if q[1] is None: return q[0]
+    return addv(q[0], blockBV(cx, q[1], ss[1:]))
+
+def stmt_stepV(cx, rho, s):
+    """`stmt_step` of the vector checker (`stmtRV`)."""
+    t = s[0]
+    if t == 'atom': return accv0(), env_atom(cx, rho, s)
+    if t == 'ret': return accv0(), None
+    if t == 'ite': r = joinv(blockBV(cx, rho, s[2]), blockBV(cx, rho, s[3]))
+    elif t == 'match': r = foldv(lambda a: blockBV(cx, rho, a), joinv, s[2])
+    elif t == 'call': r = siteBV(cx, rho, s[1], s[2])
+    elif t == 'callIf':
+        if s[2] == cx.self: return None
+        r = addv(siteBV(cx, rho, s[2], s[3]), accv0())
+    elif t == 'dispatch': r = foldv(lambda g: siteBV(cx, rho, g, s[3]), joinv, s[2])
+    else: raise ValueError(t)
+    return None if r is None else (r, rho)
 

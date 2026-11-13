@@ -23,9 +23,9 @@ open LeanVM LeanVM.Guest LeanVM.Guest.End LeanVM.Node LeanVM.Semantics
 #guard_msgs in
 #print axioms LeanVM.Guest.End.b2SoundL
 
-/-- info: 'LeanVM.Guest.End.subSoundW' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Guest.B1.VerifySub.verify_sub_sound_w' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.End.subSoundW
+#print axioms LeanVM.Guest.B1.VerifySub.verify_sub_sound_w
 
 /-- info: 'LeanVM.Guest.End.aggregate_knowledge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

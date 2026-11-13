@@ -11,8 +11,12 @@ public import LeanVM.Guest.CoreData
 /-!
 # Distinct function names
 
-Strings are never compared in the kernel: each name is encoded as a natural number, and the
-encodings are checked pairwise distinct (`coreProgram_names_nodup`).
+Strings are compared slowly in the kernel, so names are never compared with each other: each is
+encoded once as a number (`encS`), reduced modulo `namesMod`, and the residues are checked
+pairwise distinct in one pass through a bit set (`nodupBits`, `coreProgram_codes_nodup`); equal
+names would give equal residues (`coreProgram_names_nodup`). `namesMod` is the smallest modulus
+under which the residues differ, from `scripts/core-names-modulus`, rerun when the guest's names
+change.
 -/
 
 namespace LeanVM.Guest
@@ -29,159 +33,38 @@ def encL : List UInt8 → ℕ
 /-- The encoding of a name. -/
 def encS (s : String) : ℕ := encL s.toByteArray.data.toList
 
-/-- Pairwise distinctness by `Nat.beq`, with no `Decidable` instances. -/
-def nodupB : List ℕ → Bool
-  | [] => true
-  | x :: xs => !(xs.any (Nat.beq x)) && nodupB xs
+/-- The modulus under which the names' encodings differ (`scripts/core-names-modulus`). -/
+def namesMod : ℕ := 108082
 
-theorem nodup_of_nodupB : ∀ {l : List ℕ}, nodupB l = true → l.Nodup
-  | [], _ => List.nodup_nil
-  | x :: xs, h => by
-    simp only [nodupB, Bool.and_eq_true, Bool.not_eq_true', List.any_eq_false, Nat.beq_eq] at h
-    exact List.nodup_cons.mpr ⟨fun hx ↦ h.1 x hx rfl, nodup_of_nodupB h.2⟩
+/-- Pairwise distinctness through the bit set `seen`: each entry's bit is clear, then set. -/
+def nodupBits : List ℕ → ℕ → Bool
+  | [], _ => true
+  | x :: xs, seen => !seen.testBit x && nodupBits xs (seen ||| 2 ^ x)
 
-/-- Entry `i` differs from every later one. -/
-def ndAt (l : List ℕ) (i : ℕ) : Bool := !((l.drop (i + 1)).any (Nat.beq (l.getD i 0)))
-
-theorem nodupB_of_ndAt : ∀ {l : List ℕ}, (∀ i < l.length, ndAt l i = true) → nodupB l = true
-  | [], _ => rfl
-  | x :: xs, h => by
-    have h0 := h 0 (by simp)
-    simp only [nodupB, Bool.and_eq_true]
-    refine ⟨h0, nodupB_of_ndAt fun i hi ↦ ?_⟩
-    have := h (i + 1) (by simpa using hi)
-    simpa [ndAt] using this
-
-/-- The names' encodings. -/
-noncomputable def coreCodes : List ℕ := coreProgram.map fun f ↦ encS f.name
-
-theorem ndAt_of_ge {l : List ℕ} {i : ℕ} (h : l.length ≤ i) : ndAt l i = true := by
-  simp [ndAt, List.drop_eq_nil_of_le (Nat.le_succ_of_le h)]
+theorem nodup_of_nodupBits : ∀ {l : List ℕ} {seen : ℕ}, nodupBits l seen = true →
+    l.Nodup ∧ ∀ x ∈ l, seen.testBit x = false
+  | [], _, _ => ⟨List.nodup_nil, by simp⟩
+  | x :: xs, seen, h => by
+    simp only [nodupBits, Bool.and_eq_true, Bool.not_eq_true'] at h
+    obtain ⟨hn, hb⟩ := nodup_of_nodupBits h.2
+    refine ⟨List.nodup_cons.mpr ⟨fun hm ↦ ?_, hn⟩, fun y hy ↦ ?_⟩
+    · simpa [Nat.testBit_or, Nat.testBit_two_pow_self] using hb x hm
+    · rcases List.mem_cons.mp hy with rfl | hy
+      · exact h.1
+      · have := hb y hy
+        simp only [Nat.testBit_or, Bool.or_eq_false_iff] at this
+        exact this.1
 
 set_option maxRecDepth 100000 in
-theorem coreCodes_length : coreCodes.length ≤ 1820 := by decide +kernel
-
-/-! The check is split into windows of indices, one declaration each, to keep the kernel's
-memory low. -/
-
-set_option maxRecDepth 100000 in
-theorem coreCodes_w0 : ∀ i ∈ List.range' 0 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w1 : ∀ i ∈ List.range' 70 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w2 : ∀ i ∈ List.range' 140 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w3 : ∀ i ∈ List.range' 210 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w4 : ∀ i ∈ List.range' 280 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w5 : ∀ i ∈ List.range' 350 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w6 : ∀ i ∈ List.range' 420 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w7 : ∀ i ∈ List.range' 490 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w8 : ∀ i ∈ List.range' 560 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w9 : ∀ i ∈ List.range' 630 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w10 : ∀ i ∈ List.range' 700 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w11 : ∀ i ∈ List.range' 770 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w12 : ∀ i ∈ List.range' 840 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w13 : ∀ i ∈ List.range' 910 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w14 : ∀ i ∈ List.range' 980 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w15 : ∀ i ∈ List.range' 1050 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w16 : ∀ i ∈ List.range' 1120 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w17 : ∀ i ∈ List.range' 1190 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w18 : ∀ i ∈ List.range' 1260 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w19 : ∀ i ∈ List.range' 1330 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w20 : ∀ i ∈ List.range' 1400 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w21 : ∀ i ∈ List.range' 1470 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w22 : ∀ i ∈ List.range' 1540 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w23 : ∀ i ∈ List.range' 1610 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w24 : ∀ i ∈ List.range' 1680 70, ndAt coreCodes i = true := by decide +kernel
-set_option maxRecDepth 100000 in
-theorem coreCodes_w25 : ∀ i ∈ List.range' 1750 70, ndAt coreCodes i = true := by decide +kernel
-
-theorem coreCodes_nd : ∀ i < 1820, ndAt coreCodes i = true := by
-  intro i hi
-  by_cases h0 : i < 70
-  · exact coreCodes_w0 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h1 : i < 140
-  · exact coreCodes_w1 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h2 : i < 210
-  · exact coreCodes_w2 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h3 : i < 280
-  · exact coreCodes_w3 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h4 : i < 350
-  · exact coreCodes_w4 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h5 : i < 420
-  · exact coreCodes_w5 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h6 : i < 490
-  · exact coreCodes_w6 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h7 : i < 560
-  · exact coreCodes_w7 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h8 : i < 630
-  · exact coreCodes_w8 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h9 : i < 700
-  · exact coreCodes_w9 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h10 : i < 770
-  · exact coreCodes_w10 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h11 : i < 840
-  · exact coreCodes_w11 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h12 : i < 910
-  · exact coreCodes_w12 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h13 : i < 980
-  · exact coreCodes_w13 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h14 : i < 1050
-  · exact coreCodes_w14 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h15 : i < 1120
-  · exact coreCodes_w15 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h16 : i < 1190
-  · exact coreCodes_w16 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h17 : i < 1260
-  · exact coreCodes_w17 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h18 : i < 1330
-  · exact coreCodes_w18 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h19 : i < 1400
-  · exact coreCodes_w19 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h20 : i < 1470
-  · exact coreCodes_w20 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h21 : i < 1540
-  · exact coreCodes_w21 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h22 : i < 1610
-  · exact coreCodes_w22 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h23 : i < 1680
-  · exact coreCodes_w23 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  by_cases h24 : i < 1750
-  · exact coreCodes_w24 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  exact coreCodes_w25 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-
-theorem coreProgram_encodings_nodup : (coreProgram.map fun f ↦ encS f.name).Nodup := by
-  refine nodup_of_nodupB (nodupB_of_ndAt fun i _ ↦ ?_)
-  by_cases hi : i < 1820
-  · exact coreCodes_nd i hi
-  · exact ndAt_of_ge (by have := coreCodes_length; unfold coreCodes at this; omega)
+/-- **The names' residues are distinct**, by one kernel evaluation. -/
+theorem coreProgram_codes_nodup : (coreProgram.map fun f ↦ encS f.name % namesMod).Nodup :=
+  (nodup_of_nodupBits (seen := 0) (by decide +kernel)).1
 
 theorem coreProgram_names_nodup : (coreProgram.map (·.name)).Nodup := by
-  have h := coreProgram_encodings_nodup
-  have h' : ((coreProgram.map (·.name)).map encS).Nodup := by
-    rwa [List.map_map]
-  exact h'.of_map _
+  have h : ((coreProgram.map (·.name)).map fun s ↦ encS s % namesMod).Nodup := by
+    rw [List.map_map]
+    exact coreProgram_codes_nodup
+  exact h.of_map _
 
 private theorem find_getElem_of_nodup :
     ∀ {l : List Fn}, (l.map (·.name)).Nodup → ∀ {j : ℕ} (h : j < l.length),

@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Opening.QueriesFlat
 /-!
 # Flat blocks with calls
 
-At 40f877dc a query of `opening_queries` calls `walk_path` (a function of its own, lean_ethereum.py:1308-1343)
+A query of `opening_queries` calls `walk_path` (a function of its own, lean_ethereum.py:1303-1338)
 instead of walking its path inline. `FlatC ss`: every statement is an atom, a `match` of atom arms or
 a call. `holdsList_flatC`: such a block holds exactly when every statement does (`StmtOkC C`: a call
 holds in the call relation `C`), then `next`. `blockOkC_relN`: a block holding under the program's
@@ -148,39 +148,6 @@ def FlatBodyC (C : CallRel) (rd : Reader) (params : List V) (A : List Stmt) (arg
 theorem FlatBodyC.monoC {C C' : CallRel} (hC : CallRel.Le C C') {params : List V} {A : List Stmt}
     {args : List E} (h : FlatBodyC C rd params A args) : FlatBodyC C' rd params A args :=
   let ⟨σ, hp, hA⟩ := h; ⟨σ, hp, hA.monoC hC⟩
-
-theorem flatBodyC_relN (P : Core.Program) {params : List V} {A : List Stmt} {args : List E}
-    (h : FlatBodyC (P.Rel rd) rd params A args) : ∃ D, FlatBodyC (P.relN rd D) rd params A args :=
-  let ⟨σ, hp, hA⟩ := h
-  let ⟨D, hD⟩ := blockOkC_relN P hA
-  ⟨D, σ, hp, hD⟩
-
-/-- **A loop of a flat body with calls** (`loop_step_flat`, the body's calls one level down). -/
-theorem loop_step_flatC {P : Core.Program} {f : String} {fn : Fn}
-    (hf : P.find? f = some fn) {A : List Stmt} {c : ℕ} {args : List V}
-    (hb : fn.body = A ++ [.callIf (.n c) f args, .ret []]) (hA : FlatC A)
-    {x N : E} {rest : List E}
-    (hc : ∀ (C : CallRel) (σ : Val), fn.params.map σ = x :: N :: rest → BlockOkC C rd σ A →
-      σ (.n c) = x * gen + N ∧ args.map σ = x * gen :: N :: rest) (d : ℕ) :
-    P.relN rd (d + 1) f (x :: N :: rest) [] ↔
-      FlatBodyC (P.relN rd d) rd fn.params A (x :: N :: rest) ∧ IsInK (x * gen + N) ∧
-        (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: N :: rest) []) := by
-  rw [relN_succ_iff hf, hb]
-  constructor
-  · rintro ⟨σ, hp, h⟩
-    rw [holdsList_append, holdsList_flatC hA] at h
-    obtain ⟨hall, hK, hcall, -⟩ := h
-    obtain ⟨e1, e2⟩ := hc _ σ hp hall
-    rw [e1] at hK hcall
-    rw [e2] at hcall
-    exact ⟨⟨σ, hp, hall⟩, hK, hcall⟩
-  · rintro ⟨⟨σ, hp, hall⟩, hK, hcall⟩
-    obtain ⟨e1, e2⟩ := hc _ σ hp hall
-    refine ⟨σ, hp, ?_⟩
-    rw [holdsList_append, holdsList_flatC hA]
-    refine ⟨hall, ?_, ?_, rfl⟩
-    · rw [e1]; exact hK
-    · rw [e1, e2]; exact hcall
 
 /-- **A `mul_range` loop whose body calls** (`loop_iff` with the body's meaning `B C x` read in
 the call relation `C`, monotone in it and reached at a finite depth). -/

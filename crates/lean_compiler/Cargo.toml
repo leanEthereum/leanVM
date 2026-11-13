@@ -11,5 +11,3 @@ workspace = true
 primitives.workspace = true
 leanvm_core.workspace = true
 
-[dev-dependencies]
-rand.workspace = true

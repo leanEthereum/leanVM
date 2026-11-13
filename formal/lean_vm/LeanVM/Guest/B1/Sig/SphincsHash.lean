@@ -2,8 +2,8 @@
   LeanVM.Guest.B1.Sig.SphincsHash
 
   leanSPHINCS's addressed hash (the statement's, over Keccak-f[1600] in `Id`) as a function of the
-  guest's cells (leanVM main 40f877dc, `crates/signatures/src/lean_sphincs/hash.rs:28-93`,
-  `lean_ethereum.py:483-509, 3735-3746, 3937-3946`).
+  guest's cells (`crates/signatures/src/lean_sphincs/hash.rs:28-93`,
+  `lean_ethereum.py:501-519, 3708-3713, 4058-4069`).
 -/
 
 module
@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Sig.SphincsAdrs
 The statement's addressed hash (`Sphincs.Verification.addressedHash`) is
 `Trunc_16(H(PK.seed ‖ ADRS ‖ M))` (`th`, `hash.rs:85-88`), the address 32 bytes of big-endian
 words (`Address.toBytes`, `as_bytes`, `hash.rs:75-77`). The guest hashes cells, 16 little-endian
-bytes each, and holds the address as two (`adrsCell0`, `adrsCell1`, `lean_ethereum.py:483-500`):
+bytes each, and holds the address as two (`adrsCell0`, `adrsCell1`, `lean_ethereum.py:501-513`):
 
 * `bigEndianBytes_four`, `bigEndianBytes_eight`: a big-endian word's bytes are the little-endian
   bytes of its byte reversal, `beWordAt 0`;
@@ -31,13 +31,13 @@ bytes each, and holds the address as two (`adrsCell0`, `adrsCell1`, `lean_ethere
   `wots.rs:68-73`), are the first 68 bytes of the cells `[P, A0, A1] ++ M ++ [counter]`, the
   counter cell holding `BE_32(c)` in its low four bytes: the number `beWordAt 0 c`, `c`'s bytes
   reversed. The guest builds that number from four hinted bytes, the first lowest
-  (`sp_from_bytes`, `lean_ethereum.py:3735-3746`; `sp_layer`, `lean_ethereum.py:3937-3946`), so
+  (`sp_from_bytes`, `lean_ethereum.py:3926-3937`; `sp_layer`, `lean_ethereum.py:4128-4137`), so
   the hinted bytes are `BE_32(c)` in order;
 * `adrsCell1_add_words23`, `adrsCell1_add_word0`, `adrsCell1_add_step`, `adrsCell1_add_type`: the
   guest's constants added to an `A1` cell (field addition is XOR, the bits disjoint) set its words:
-  a chain step's `i·2^88 + s·2^120` (`walk`, `lean_ethereum.py:3545-3571`), a type's `t·2^24`;
+  a chain step's `i·2^88 + s·2^120` (`walk`, `lean_ethereum.py:3736-3762`), a type's `t·2^24`;
 * `hashDomainCells`, `hashDomain_cells`, `tweakableHash_sphincsCells`: each hash domain's two
-  address cells (`hashDomainFields`, `wots.rs:41-73`, `scheme.rs:245-253`, `fors.rs:27-59`).
+  address cells (`hashDomainFields`, `wots.rs:41-73`, `scheme.rs:252-260`, `fors.rs:27-59`).
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -205,27 +205,12 @@ theorem flatMap_bytes_cellVal (l : List E) :
   | nil => rfl
   | cons x l ih => simp only [List.map_cons, List.flatMap_cons, bytesLE_cellVal, ih]
 
-/-- The bytes of digests that are cells' values, mapped. -/
-theorem flatMap_bytes_map (f : Nat → E) (l : List Nat) :
-    (l.map fun i => cellVal (f i)).flatMap (littleEndianBytes 16) = (l.map f).flatMap cellBytes := by
-  induction l with
-  | nil => rfl
-  | cons x l ih => simp only [List.map_cons, List.flatMap_cons, bytesLE_cellVal, ih]
-
 /-- A vector of digests that are cells' values. -/
 theorem digestsPayload_cells {n : Nat} (c : Fin n → E) :
     digestsPayload (fun i => cellVal (c i)) = (List.ofFn c).flatMap cellBytes := by
   have e : (List.ofFn fun i => (cellVal (c i) : HashSig.Digest)) = (List.ofFn c).map cellVal :=
     (List.map_ofFn (f := c) (g := cellVal)).symm
   exact (congrArg (fun l => List.flatMap (littleEndianBytes 16) l) e).trans (flatMap_bytes_cellVal _)
-
-/-- The 256-bit hash of a byte string, as the two cells of its digest. -/
-theorem keccakBits_cells (I : List UInt8) :
-    Node.keccakBits I = cellPairVal (digestHalves (keccak256 I)).1 (digestHalves (keccak256 I)).2 := by
-  apply BitVec.eq_of_toNat_eq
-  rw [keccakBits_toNat, cellPairVal, BitVec.toNat_append, toNat_cellVal, toNat_cellVal,
-    Nat.shiftLeft_eq, Nat.mul_comm _ (2 ^ 128), two_pow_mul_or (cellNat_lt _)]
-  omega
 
 theorem addressedHash_digest (pp x : E) (layer tree : Nat) (ty : Sphincs.AddressType)
     (kp w2 w3 : Nat) :
@@ -337,11 +322,10 @@ theorem cellsBytes_counterCell_zero (cs : List E) (ctr : Nat) :
 
 /-! ## Constants added to an address cell -/
 
-/-- A canonical cell is the 192-bit word of its number. -/
-theorem cellOf128_eq_eOfNat192 {n : Nat} (h : n < 2 ^ 128) :
-    cellOf128 (BitVec.ofNat 128 n) = eOfNat192 n := by
-  have h2 : n / 2 ^ 128 = 0 := Nat.div_eq_of_lt h
-  simp only [cellOf128, eOfNat192, h2]
+/-- A cell is the 128-bit word of its number. -/
+theorem cellOf128_eq_eOfNat128 {n : Nat} (h : n < 2 ^ 128) :
+    cellOf128 (BitVec.ofNat 128 n) = eOfNat128 n := by
+  simp only [cellOf128, eOfNat128]
   congr 1
   · apply BF64.toBitVec_injective
     simp only [K.ofBits, BF64.toBitVec_ofBitVec]
@@ -368,10 +352,10 @@ theorem adrsNat1_lt (type keyPair word2 word3 : Nat) : adrsNat1 type keyPair wor
     Nat.reduceMul, Nat.reducePow] at h0 h1 h2 h3 ⊢
   omega
 
-/-- The second address cell is the 192-bit word of its number. -/
+/-- The second address cell is the 128-bit word of its number. -/
 theorem adrsCell1_eq (type keyPair word2 word3 : Nat) :
-    adrsCell1 type keyPair word2 word3 = eOfNat192 (adrsNat1 type keyPair word2 word3) :=
-  cellOf128_eq_eOfNat192 (adrsNat1_lt type keyPair word2 word3)
+    adrsCell1 type keyPair word2 word3 = eOfNat128 (adrsNat1 type keyPair word2 word3) :=
+  cellOf128_eq_eOfNat128 (adrsNat1_lt type keyPair word2 word3)
 
 /-- **Words 2 and 3 added to an address cell whose words 2 and 3 are zero** (field addition is
 XOR, and the bits are disjoint). -/
@@ -389,7 +373,7 @@ theorem adrsCell1_add_words23 (type keyPair word2 word3 : Nat) :
     simp only [adrsNat1, beWordAt_of_zero, beWordAt_eq 1 keyPair]; ring
   have hlo : adrsNat1 type keyPair 0 0 < 2 ^ 64 := by rw [hN]; omega
   rw [adrsCell1_eq, adrsCell1_eq, lit_eq (beWordAt 2 word2 + beWordAt 3 word3) (by rw [hc]; omega),
-    ← eOfNat192_xor, hc, Nat.xor_comm, two_pow_mul_xor hlo, hN]
+    ← eOfNat128_xor, hc, Nat.xor_comm, two_pow_mul_xor hlo, hN]
   congr 1
   simp only [adrsNat1, beWordAt_eq 1 keyPair, beWordAt_eq 2 word2, beWordAt_eq 3 word3]
   ring
@@ -403,7 +387,7 @@ theorem adrsCell1_add_word0 (type keyPair word2 word3 : Nat) :
     simp only [adrsNat1, beWordAt_of_zero, beWordAt_eq 1 keyPair, beWordAt_eq 2 word2,
       beWordAt_eq 3 word3]
     ring
-  rw [adrsCell1_eq, adrsCell1_eq, lit_eq (beWordAt 0 type) (by omega), ← eOfNat192_xor, hN,
+  rw [adrsCell1_eq, adrsCell1_eq, lit_eq (beWordAt 0 type) (by omega), ← eOfNat128_xor, hN,
     two_pow_mul_xor hr]
   congr 1
   simp only [adrsNat1, beWordAt_eq 1 keyPair, beWordAt_eq 2 word2, beWordAt_eq 3 word3]
@@ -431,11 +415,11 @@ theorem beWordAt_three_of_lt_pow16 {j : Nat} (h : j < 2 ^ 16) :
   omega
 
 /-- A literal below `2^64` is a word. -/
-theorem lit_of_lt {c : Nat} (h : c < 2 ^ 64) : lit c = word c 0 0 := by
+theorem lit_of_lt {c : Nat} (h : c < 2 ^ 64) : lit c = word c 0 := by
   rw [lit, Nat.mod_eq_of_lt h, Nat.div_eq_of_lt h, Nat.zero_mod]
 
 /-- **A chain step's constant** (`spStepC i s = i·2^88 + s·2^120`, `walk`,
-`lean_ethereum.py:3545-3571`) added to the key's address cell: chain `i`, step `s`. -/
+`lean_ethereum.py:3736-3762`) added to the key's address cell: chain `i`, step `s`. -/
 theorem adrsCell1_add_step {type keyPair i s : Nat} (hi : i < 256) (hs : s < 256) :
     adrsCell1 type keyPair 0 0 + lit (i * 2 ^ 88 + s * 2 ^ 120) = adrsCell1 type keyPair i s := by
   rw [← beWordAt_two_of_lt hi, ← beWordAt_three_of_lt hs]
@@ -444,7 +428,7 @@ theorem adrsCell1_add_step {type keyPair i s : Nat} (hi : i < 256) (hs : s < 256
 /-- **A type constant** (`t·2^24`, as `SP_WOTS_PK` and the others) added to an address cell of type
 zero. -/
 theorem adrsCell1_add_type {t keyPair word2 word3 : Nat} (ht : t < 256) :
-    adrsCell1 0 keyPair word2 word3 + word (t * 2 ^ 24) 0 0 = adrsCell1 t keyPair word2 word3 := by
+    adrsCell1 0 keyPair word2 word3 + word (t * 2 ^ 24) 0 = adrsCell1 t keyPair word2 word3 := by
   rw [← lit_of_lt (c := t * 2 ^ 24) (by omega), ← beWordAt_zero_of_lt ht]
   exact adrsCell1_add_word0 t keyPair word2 word3
 

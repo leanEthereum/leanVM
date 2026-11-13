@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundLayer
 
-  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3936-3948` at leanVM main 40f877dc, after its counter) is sound: its encoding digest is the hash of `P`, `A0`,
+  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:4128-4140`, after its counter) is sound: its encoding digest is the hash of `P`, `A0`,
   `key + WOTS_ENC`, the value it signs and the counter's four bytes, and its root the path's fold
   from the leaf `sp_wots` returns.
 -/
@@ -53,11 +53,6 @@ theorem sHtLayer_split (pad : Nat) (pp a0 key signed ctr : V) (bit val : Nat →
         (sPath pad pp a0 bit val off height 0 (.n (b + 10)) (b + 11)).2.1,
         (sPath pad pp a0 bit val off height 0 (.n (b + 10)) (b + 11)).2.2) := by
   simp only [sHtLayer, layerPre, (kEnc_shape ..).1, (kEnc_shape ..).2, List.append_assoc]
-
-theorem layerPre_atoms (pad : Nat) (pp a0 key signed ctr : V) (b : Nat) :
-    atomsOnly (layerPre pad pp a0 key signed ctr b) = true := by
-  simp only [layerPre, atomsOnly_append, kMsg_atoms]
-  rfl
 
 variable {rd : Reader} {σ : Val}
 

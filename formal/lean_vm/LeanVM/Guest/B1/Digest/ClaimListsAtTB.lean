@@ -16,10 +16,11 @@ public import LeanVM.Guest.B1.Digest.ClaimListAtTB
 
 `ccB fs SB n`: `child_claim_list_digest`'s words on `n = 136a + 17b + c` claims: its frame; when
 `n ≠ 0`, `list_split`'s static bound `SB "list_split"` (a hypothesis, `TotalLe`) and
-`child_claim_list_any`'s `anyB fs n` (its frame, its chain buffer `13 (a + b + 1)`, `__loop17`
-within `a + 1` frames, `__loop18` within `b + 1`, `child_claim_list_last__L{c}` a leaf within its
-frame; a loop's frame alone when not entered). `child_claim_list_digest_completeAtTB`: the placed
-completeness by a tree of honest shape within `ccB fs SB n`.
+`child_claim_list_any`'s `anyB fs n` (its frame, its chain buffer `13 (a + b + 1)`,
+`child_claim_list_any_loop0` within `a + 1` frames, `child_claim_list_any_loop1` within `b + 1`,
+`child_claim_list_last__L{c}` a leaf within its frame; a loop's frame alone when not entered).
+`child_claim_list_digest_completeAtTB`: the placed completeness by a tree of honest shape within
+`ccB fs SB n`.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -61,7 +62,7 @@ theorem list_split_nB (fs : String → ℕ) (cert : String → V → ℕ) {κ n 
 cells' digest. -/
 theorem child_claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     (hκ : 20 ≤ κ) {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))
@@ -81,7 +82,7 @@ theorem child_claim_list_digest_completeAtTB (fs : String → ℕ) (cert : Strin
   have hok : KidsDTB fs cert κ (ccKids Lin eP rg L n base (keccak256 (cellsBytes cells))) (ccTs n)
       [SB "list_split", anyB fs n] :=
     ⟨fun _ => list_split_nB fs cert hκ hn hLS,
-      fun _ => child_claim_list_any_completeAtTB fs cert hn hl hc hL33 hLκ hrec hR2 hR3, trivial⟩
+      fun _ => child_claim_list_any_completeAtTB fs cert hn hl hL33 hLκ hrec hR2 hR3, trivial⟩
   obtain ⟨N, Lown, rets, Lout, hN, ⟨rfl, rfl⟩, hW, hD, hr⟩ :=
     cc_nonempty fs cert (by omega) hn fp (kidsAt_of_kidsDTB hok _)
   refine ⟨_, Lown, _, [], ?_, ⟨rfl, rfl⟩, hW, hD, hr⟩

@@ -76,8 +76,8 @@ def plan(m):
 
 
 def main():
-    arms = int(re.search(r"abbrev ligNSizes : Nat := (\d+)",
-                         open("LeanVM/Guest/B1/Whir/Config.lean").read()).group(1))
+    arms = int(re.search(r"def const_LIG_N_LOG_SIZES : Nat := (\d+)",
+                         open("LeanVM/Guest/Data/Source.lean").read()).group(1))
     rows = [plan(m) for m in range(arms)]
     body = "\n".join(
         f"  | {m} => [{', '.join(f'({b}, {e}, {s})' for b, e, s in r)}]" for m, r in enumerate(rows))
@@ -93,8 +93,8 @@ module
 # The shifted pointers `open_stacked` materializes from earlier ones
 
 `osMatPlan m`: the triples `(base, exp, src)` of size `m`: the compiler materializes the
-pointer `base·g^exp` (the value `base` one of the buffers the body allocates: `fold_challenges`
-18, `query_positions` 24, `query_win_ptrs` 26, `ood_z` 158, `basis_d`) from its materialization `base·g^src`
+pointer `base·g^exp` (the value `base` one of the buffers the body allocates) from its
+materialization `base·g^src`
 (`materialize`, `Guest/Expand.lean`: from the nearest earlier one whose distance is a constant
 already set). The template (`osMatP`) follows it; `Whir/Data*.lean` check the result.
 -/

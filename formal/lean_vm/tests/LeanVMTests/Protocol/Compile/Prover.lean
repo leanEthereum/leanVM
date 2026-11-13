@@ -13,8 +13,8 @@ the completeness theorem, instantiated with the interactive completeness and sha
 strategy, says so for every proof the prover can produce. Then the load-bearing checks: a
 tampered leaf, a tampered sibling, the other row, a tampered root scalar, an opening missing and
 an extra scalar are rejected, and so is the honest proof of a strategy that loses
-interactively; a fuel too small for the proof-of-work search makes the prover fail, while at
-zero bits the first nonce passes; the nonce found is the smallest that passes.
+interactively; a fuel too small for the proof-of-work search makes the prover fail, while a
+zero-bit proof of work passes at the first nonce; the nonce found is the smallest that passes.
 -/
 
 namespace LeanVMTests.Protocol.Compile.Prover
@@ -38,7 +38,7 @@ def prog (bits : ℕ) : VerifierProgram Bool :=
 
 /-- The honest strategy: the scalar `3`, then `word0`. -/
 def strat : Strategy where
-  msg := fun _ ↦ E.ofLimbs (w 3) 0 0
+  msg := fun _ ↦ E.ofLimbs (w 3) 0
   word := fun _ ↦ word0
 
 /-- The seed of the sponge. -/
@@ -54,6 +54,68 @@ theorem shaped (bits : ℕ) (chal : List Ev → E) : shapedI (prog bits) strat c
   refine ⟨fun p ↦ ?_, trivial⟩
   unfold word0
   split <;> rfl
+
+/-! ## Each proof of work is followed at once by a challenge -/
+
+section GrindThenSample
+
+variable {α : Type}
+
+theorem gts_ret (a : α) : GrindThenSample (.ret a : VerifierProgram α) := by
+  intro l b k hl
+  cases l with
+  | nil => simp [VerifierProgram.after] at hl
+  | cons e es => cases e <;> simp [VerifierProgram.after] at hl
+
+theorem gts_read {f : E → VerifierProgram α} (h : ∀ x, GrindThenSample (f x)) :
+    GrindThenSample (.read f) := by
+  intro l b k hl
+  cases l with
+  | nil => simp [VerifierProgram.after] at hl
+  | cons e es => cases e <;> simp [VerifierProgram.after] at hl; exact h _ _ _ _ hl
+
+theorem gts_sample {f : E → VerifierProgram α} (h : ∀ c, GrindThenSample (f c)) :
+    GrindThenSample (.sample f) := by
+  intro l b k hl
+  cases l with
+  | nil => simp [VerifierProgram.after] at hl
+  | cons e es => cases e <;> simp [VerifierProgram.after] at hl; exact h _ _ _ _ hl
+
+theorem gts_query {i : ℕ} {ps : List ℕ} {f : List (List K) → VerifierProgram α}
+    (h : ∀ rows, GrindThenSample (f rows)) : GrindThenSample (.query i ps f) := by
+  intro l b k hl
+  cases l with
+  | nil => simp [VerifierProgram.after] at hl
+  | cons e es => cases e <;> simp [VerifierProgram.after] at hl; exact h _ _ _ _ hl
+
+theorem gts_commit {hgt w : ℕ} {p : VerifierProgram α} (h : GrindThenSample p) :
+    GrindThenSample (.commit hgt w p) := by
+  intro l b k hl
+  cases l with
+  | nil => simp [VerifierProgram.after] at hl
+  | cons e es =>
+    cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at hl
+    split at hl
+    · exact h _ _ _ hl
+    · cases hl
+
+theorem gts_grind {bits : ℕ} {f : E → VerifierProgram α} (h : ∀ c, GrindThenSample (f c)) :
+    GrindThenSample (.grind bits (.sample f)) := by
+  intro l b k hl
+  cases l with
+  | nil =>
+    simp only [VerifierProgram.after, Option.some.injEq, VerifierProgram.grind.injEq] at hl
+    exact ⟨f, hl.2.symm⟩
+  | cons e es =>
+    cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at hl
+    split at hl
+    · exact gts_sample h _ _ _ hl
+    · cases hl
+
+end GrindThenSample
+
+theorem grindThenSample (bits : ℕ) : GrindThenSample (prog bits) :=
+  gts_read fun _ ↦ gts_commit (gts_grind fun _ ↦ gts_query fun _ ↦ gts_ret _)
 
 /-! ## The honest proof is accepted -/
 
@@ -73,13 +135,14 @@ def accepts (bits : ℕ) : Option Proof → Bool
 /-- Completeness at Keccak: every proof the prover produces is accepted. -/
 theorem proof_accepted {π : Proof} (h : proof? = some π) :
     runProofWithHash (m := Id) keccak256 keccakF1600 (prog 3) seed π = true :=
-  runProof_prove keccak256 keccakF1600 (prog 3) strat seed 1000 (complete 3) (shaped 3) h
+  runProof_prove keccak256 keccakF1600 (prog 3) strat seed 1000 (grindThenSample 3) (complete 3)
+    (shaped 3) h
 
 /-! ## The nonce is the smallest that passes -/
 
 /-- The sponge at the proof of work: after the scalar and the root's two scalars. -/
 def grindState (π : Proof) : Sponge :=
-  π.stream.take 3 |>.foldl (fun sp x ↦ absorbI keccakF1600 sp x dsObserve) ⟨seed, []⟩
+  π.stream.take 3 |>.foldl (fun sp x ↦ absorbI keccakF1600 sp x dsObserve) ⟨seed, [], none⟩
 
 /-- The nonce is the first `m` below the fuel that passes, and every smaller `m` fails. -/
 def smallestNonce (π : Proof) : Bool :=
@@ -143,9 +206,8 @@ def badStrat : Strategy where
 /- No nonce below the fuel: the three-bit search with no fuel fails. -/
 #guard (prove keccak256 keccakF1600 (prog 3) strat seed 0).isNone
 
-/- At zero bits every nonce passes: a fuel of one finds `0`. -/
+/- A zero-bit proof of work passes at the first nonce, `0`. -/
 #guard accepts 0 (prove keccak256 keccakF1600 (prog 0) strat seed 1)
-#guard (prove keccak256 keccakF1600 (prog 0) strat seed 1).map (·.stream[3]?) = some (some (nonceOf 0))
 
 /-- The search fails exactly when no nonce below the fuel passes. -/
 example (sp : Sponge) : findNonce keccakF1600 3 sp 0 = none :=

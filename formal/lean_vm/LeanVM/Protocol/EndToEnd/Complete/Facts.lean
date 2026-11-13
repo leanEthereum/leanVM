@@ -63,6 +63,8 @@ structure BusGood (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ pro
     Prop where
   /-- The framework claims are true. -/
   claims : TrueClaims prog s q b.claims
+  /-- Four framework claims: the memory's two limbs and the two finalize counts. -/
+  claims_length : b.claims.length = 4
   /-- The point covers every table's coordinates. -/
   point_length : ∀ t : Fin 6, s.τ t ≤ b.point.length
   /-- One row of forms per table. -/

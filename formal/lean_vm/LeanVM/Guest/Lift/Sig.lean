@@ -16,9 +16,9 @@ public import LeanVM.Guest.Lift.XmssLeaf
 /-!
 # The signature verifiers, placed
 
-**`verify_lean_xmss`** is inline in `__loop2`: its statements `xSeg` are a leaf block whose only
+**`verify_lean_xmss`** is inline in `main_loop2`: its statements `xSeg` are a leaf block whose only
 loads are the claim's four words at the pointer `.n 65` (`segLoad`, by the kernel on the data:
-`xSeg_leafOk`; `loads_seg`), for the placed form of `__loop2`.
+`xSeg_leafOk`; `loads_seg`), for the placed form of `main_loop2`.
 
 **`sp_wots`** is a leaf body loading nothing (`spWots_leafOk`): with B1's completeness
 (`sp_wots_complete_Spec`), on a memory defined below `2^6`, every honest call of it holds in any
@@ -41,17 +41,17 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-! ## `verify_lean_xmss`, inline in `__loop2` -/
+/-! ## `verify_lean_xmss`, inline in `main_loop2` -/
 
-/-- `xSeg`, `__loop2`'s statements `9` to `321`. -/
+/-- `xSeg`, `main_loop2`'s statements `9` to `321`. -/
 theorem xSeg_length : B1.Sig.xSeg.length = 313 := by
   have h := congrArg List.length B1.Sig.loop2_split
-  rw [core36_length, List.length_append, List.length_append] at h
+  rw [main_loop2_length, List.length_append, List.length_append] at h
   have h9 : B1.Sig.l2Pre.length = 9 := rfl
   have h7 : B1.Sig.l2Post.length = 7 := rfl
   omega
 
-theorem xSeg_eq_data : B1.Sig.xSeg = (Data.core36.body.drop 9).take 313 := by
+theorem xSeg_eq_data : B1.Sig.xSeg = ((fn% «main_loop2»).body.drop 9).take 313 := by
   rw [B1.Sig.loop2_split, List.drop_left' (show B1.Sig.l2Pre.length = 9 from rfl),
     List.take_left' xSeg_length]
 
@@ -90,8 +90,8 @@ theorem sp_wots_relIn (hc : B1.Sig.sp_wots_complete_Spec) {rd : Reader} (R : ℕ
     ((B1.Sig.rel_iff_body B1.Sig.find_sp_wots _ _).mpr
       ⟨σ, by rw [B1.Sig.sp_wots_params]; simp only at h1 h2; simp [h0, h1, h2, h3], hb⟩)
   have hall : (Out.ret es vs).All (EvLeafOk noLoad) := by
-    have := walk_leafOk (σ := σ') Data.core19.body spWots_leafOk
-    exact (show walk σ' Data.core19.body = .ret es vs from hw) ▸ this
+    have := walk_leafOk (σ := σ') (fn% «sp_wots»).body spWots_leafOk
+    exact (show walk σ' (fn% «sp_wots»).body = .ret es vs from hw) ▸ this
   obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
   have hok := hall e he
   cases e with
@@ -117,9 +117,9 @@ theorem verify_sig_lean_sphincs_relIn (hc : B1.Sig.SphincsCompleteSpecs)
     coreProgram.RelIn rd R "verify_sig_lean_sphincs" [p, bb] [] := by
   obtain ⟨σ, h0, h1, hb, hloads⟩ := hc.verify (coreProgram.RelIn rd R) rd p bb pk m sig
     (sp_wots_relIn hc.sp_wots R fun i hi => hrd i (by omega)) hrd hbb hat hv
-  have hsat := walk_sat (P := coreProgram) Data.core20.body
+  have hsat := walk_sat (P := coreProgram) (fn% «verify_sig_lean_sphincs»).body
     (coreProgram_wf _ (List.mem_of_find?_eq_some B1.Sig.find_verify_sig_lean_sphincs)) hb
-  cases hw : walk σ Data.core20.body with
+  cases hw : walk σ (fn% «verify_sig_lean_sphincs»).body with
   | fall es => rw [hw] at hsat; exact hsat.2.elim
   | stuck => rw [hw] at hsat; exact hsat.elim
   | ret es vs =>

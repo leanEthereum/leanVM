@@ -12,8 +12,8 @@ import LeanVM.Protocol.Whir.Sound.Spec
 /-!
 # WHIR soundness controls
 
-* **Inhabitant.** `smallCode` is a `LevelCode` (`κ = 1`, `R = 1`, `η = 1/4`, agreement fraction
-  `√(1/4) + 1/4 = 3/4 ≤ 1`), so the hypotheses of ArkLib's Johnson count are satisfiable.
+* **Inhabitant.** `smallCode` is a `LevelCode` (`κ = 1`, `R = 1`, one fold, last threshold `4`),
+  whose first round's list is defined (`n·d₀ < A₀²`).
 * **Lane order.** `dot(row, eq_kernel([a, b]))` is the fold with `a` on the low lane bit
   (`dot_eqKernel`); folding with the challenges swapped gives a different value, so the order of
   `foldsN` is load-bearing.
@@ -26,7 +26,7 @@ import LeanVM.Protocol.Whir.Sound.Spec
 * **Distinct powers.** The glued claim uses the powers `1, λ, λ², λ³, …`; with a repeated power
   (the out-of-domain claim and the first query both with `λ`) a nonzero discrepancy vector
   `(0, 1, −1)` gives a batched discrepancy that vanishes at every `λ`, so the distinct powers of
-  `card_glue_bad_le` are load-bearing.
+  `card_lambda_bad_le` are load-bearing.
 -/
 
 namespace LeanVMTests.Protocol.Whir.Sound
@@ -36,28 +36,20 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-! ## A concrete level code -/
 
-private theorem smallAgreement : johnsonAgreement (2 ^ (1 + 1)) (2 ^ 1 - 1) (1 / 4) ≤ 1 := by
-  have h : √(johnsonRhoMinus (2 ^ (1 + 1)) (2 ^ 1 - 1)) ≤ 1 / 2 := by
-    rw [Real.sqrt_le_iff]
-    norm_num [johnsonRhoMinus]
-  rw [johnsonAgreement]
-  linarith
-
-/-- A level code: `κ = 1`, `R = 1`, `η = 1/4`. -/
-noncomputable def smallCode : LevelCode :=
-  ⟨1, 1, 1 / 4, by norm_num, le_rfl, le_rfl, by norm_num, smallAgreement⟩
+/-- A level code: `κ = 1`, `R = 1`, one fold, last threshold `4`. -/
+def smallCode : LevelCode := ⟨1, 1, 1, 4, by norm_num, le_rfl⟩
 
 example : smallCode.n = 4 := rfl
-example : smallCode.D = 1 := rfl
-example : 2 ^ smallCode.κ ≤ smallCode.thr := smallCode.two_pow_le_thr
+example : smallCode.thr 0 = 3 := rfl
+example : smallCode.n * smallCode.deg < smallCode.thr 0 * smallCode.thr 0 := by decide
 
 /-! ## Lane order -/
 
-private def a₀ : E := E.ofLimbs (K.ofBits 3) (K.ofBits 5) 0
-private def b₀ : E := E.ofLimbs (K.ofBits 7) 0 (K.ofBits 2)
+private def a₀ : E := E.ofLimbs (K.ofBits 3) (K.ofBits 5)
+private def b₀ : E := E.ofLimbs (K.ofBits 7) (K.ofBits 2)
 private def row₀ : List E :=
-  [E.ofLimbs (K.ofBits 1) 0 0, E.ofLimbs (K.ofBits 9) (K.ofBits 4) 0,
-    E.ofLimbs 0 (K.ofBits 6) (K.ofBits 1), E.ofLimbs (K.ofBits 12) 0 (K.ofBits 8)]
+  [E.ofLimbs (K.ofBits 1) 0, E.ofLimbs (K.ofBits 9) (K.ofBits 4),
+    E.ofLimbs (K.ofBits 6) (K.ofBits 1), E.ofLimbs (K.ofBits 12) (K.ofBits 8)]
 
 /-- The row folded low bit first, written out: `(1+a)(1+b) r₀ + a(1+b) r₁ + (1+a) b r₂ +
 a b r₃` (characteristic two). -/
@@ -74,9 +66,9 @@ example : dot row₀ (eqKernel [a₀, b₀]) =
 
 /-! ## The round polynomial -/
 
-private def σ₀ : E := E.ofLimbs (K.ofBits 11) (K.ofBits 13) (K.ofBits 17)
-private def c₀ : E := E.ofLimbs (K.ofBits 19) 0 (K.ofBits 23)
-private def c₂ : E := E.ofLimbs 0 (K.ofBits 29) (K.ofBits 31)
+private def σ₀ : E := E.ofLimbs (K.ofBits 11) (K.ofBits 13)
+private def c₀ : E := E.ofLimbs (K.ofBits 19) (K.ofBits 23)
+private def c₂ : E := E.ofLimbs (K.ofBits 29) (K.ofBits 31)
 
 #guard polyEval [c₀, σ₀ + sumE [c₂], c₂] 0 + polyEval [c₀, σ₀ + sumE [c₂], c₂] 1 == σ₀
 #guard polyEval [c₀, σ₀ + c₀, c₂] 0 + polyEval [c₀, σ₀ + c₀, c₂] 1 != σ₀
@@ -98,8 +90,8 @@ private def leaf : List K := [K.ofBits 2, K.ofBits 3, K.ofBits 5, K.ofBits 7]
 
 /-! ## Distinct powers -/
 
-private def lams : List E := [E.ofLimbs (K.ofBits 2) 0 0, E.ofLimbs (K.ofBits 3) (K.ofBits 1) 0,
-  E.ofLimbs 0 0 (K.ofBits 5), E.ofLimbs (K.ofBits 9) (K.ofBits 9) (K.ofBits 9)]
+private def lams : List E := [E.ofLimbs (K.ofBits 2) 0, E.ofLimbs (K.ofBits 3) (K.ofBits 1),
+  E.ofLimbs 0 (K.ofBits 5), E.ofLimbs (K.ofBits 9) (K.ofBits 9)]
 
 -- Repeated power: the discrepancy `(0, 1, −1)` batched with `(1, λ, λ)` vanishes everywhere.
 #guard lams.all fun lam ↦ 0 + lam * 1 + lam * (0 - 1) == (0 : E)
@@ -114,10 +106,10 @@ noncomputable example {μ R : ℕ} {codes : ℕ → LevelCode} {εmax : ENNReal}
     (hℓ : level.fold = LeanVM.Protocol.EndToEnd.laneBits)
     (hμ : LeanVM.Protocol.EndToEnd.laneBits ≤ μ)
     (hκ₀ : (codes 0).κ = μ - LeanVM.Protocol.EndToEnd.laneBits) (hR₀ : (codes 0).R = R)
-    (hw : LeanVM.Protocol.EndToEnd.IsMultilinearFn μ w)
-    (hA : LadderArith μ codes 0 0 (level :: rest)) (hε : whirEps codes (level :: rest) ≤ εmax) :
-    Spec (verifyWhirT μ R t w) (fun h ↦ WhirPre μ R (codes 0) w t (commits h)) (fun _ _ ↦ False)
+    (hthr : (codes 0).deg < (codes 0).thr 0) (hw : IsMultiaffine μ w)
+    (B : ∀ j, RoundBounds (codes j) εmax) (hA : LadderOK codes εmax 0 (level :: rest)) :
+    Spec (verifyWhir μ R t w) (fun h ↦ WhirPre μ R (codes 0) w t (commits h)) (fun _ _ ↦ False)
       εmax 0 0 :=
-  whirSpec hc hℓ hμ hκ₀ hR₀ (isMultiaffine_of_isMultilinearFn hw) hA hε 0
+  whirSpec hc hℓ hμ hκ₀ hR₀ hthr hw B hA 0
 
 end LeanVMTests.Protocol.Whir.Sound

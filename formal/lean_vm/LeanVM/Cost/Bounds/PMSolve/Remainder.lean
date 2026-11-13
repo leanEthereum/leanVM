@@ -62,18 +62,18 @@ theorem limbCount_le_of_lt {n L : ℕ} (hL : 1 ≤ L) (h : n < 2 ^ (64 * L)) : l
     omega
 
 /-- `Raw.reverse n p`: at most `29·n + 15`. -/
-theorem reverseC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.reverse.c422.costDeps)
+theorem reverseC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.reverse.c421.costDeps)
     (n : ℕ) (hn : n < 2 ^ 62) (p : CPolynomial.Raw K) :
-    machineCost P Auto.CompPoly.CPolynomial.Raw.reverse.c422.costIdx [encodeValue n, encodeValue p] ≤
+    machineCost P Auto.CompPoly.CPolynomial.Raw.reverse.c421.costIdx [encodeValue n, encodeValue p] ≤
       29 * n + 15 := by
-  rw [Auto.CompPoly.CPolynomial.Raw.reverse.c422.costEq P hP]
+  rw [Auto.CompPoly.CPolynomial.Raw.reverse.c421.costEq P hP]
   have hf := fun i ↦ RunsApp.of_spec (us := [encodeValue n, encodeValue p]) (vs := [encodeValue i])
-    (Auto.CompPoly.CPolynomial.Raw.reverse.c422.lam0.costSpec P (by includes) n p i)
+    (Auto.CompPoly.CPolynomial.Raw.reverse.c421.lam0.costSpec P (by includes) n p i)
   have := ofFnFrom_cost P (by includes) (n := n) (by omega) _
-    (.closure Auto.CompPoly.CPolynomial.Raw.reverse.c422.lam0.costIdx [encodeValue n, encodeValue p])
+    (.closure Auto.CompPoly.CPolynomial.Raw.reverse.c421.lam0.costIdx [encodeValue n, encodeValue p])
     hf 10 (fun i ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [Auto.CompPoly.CPolynomial.Raw.reverse.c422.lam0.costEq P (by includes)]
+      rw [Auto.CompPoly.CPolynomial.Raw.reverse.c421.lam0.costEq P (by includes)]
       have := i.isLt
       cost_simp
       omega) 0 (by omega)
@@ -86,12 +86,12 @@ theorem size_reverse (n : ℕ) (p : CPolynomial.Raw K) : (CPolynomial.Raw.revers
 
 /-- `modByMonicWith fftModContext p M`, `M` monic and longer than `p`: the first branch, at most
 `42·|p| + 81·|M| + 99`. -/
-theorem modByMonicWithC_first_cost (hP : Includes P modByMonicWith.c559.costDeps)
+theorem modByMonicWithC_first_cost (hP : Includes P modByMonicWith.c558.costDeps)
     (p M : CPolynomial K) (hM : M.monic = true) (hpM : p.val.size < M.val.size)
     (hMs : M.val.size < 2 ^ 60) :
-    machineCost P modByMonicWith.c559.costIdx [encodeValue p, encodeValue M] ≤
+    machineCost P modByMonicWith.c558.costIdx [encodeValue p, encodeValue M] ≤
       42 * p.val.size + 81 * M.val.size + 99 := by
-  rw [modByMonicWith.c559.costEq P hP]
+  rw [modByMonicWith.c558.costEq P hP]
   have := listBeqK_cost P (by includes) M.val.toList (↑(0 : CPolynomial K) : Array K).toList
   have := modByMonicFFTC_first_cost P (by includes) _ _ hM hpM hMs
   have hz : (↑(0 : CPolynomial K) : Array K).size = 0 := rfl
@@ -103,17 +103,17 @@ monic: on the first branch, or on the cached branch (`k ≤ K ≤ Nq`, the suppl
 size: it is truncated): at most `100·|p| + 200·|q| + LBq + LB + 600`, `LBq` the quotient's
 truncated product (precision `k ≤ Nq`), `LB` the back-product's (precision `|q| − 1 ≤ Nb`). -/
 theorem rawModByMonicCachedC_cost
-    (hP : Includes P Auto.LeanVM.Extraction.Fast.rawModByMonicCached.c574.costDeps)
+    (hP : Includes P Auto.LeanVM.Extraction.Fast.rawModByMonicCached.c573.costDeps)
     {N Nb Nq LB LBq : ℕ} (hLB : LowBound P Nb LB) (hLq : LowBound P Nq LBq)
     (inv : CPolynomial.Raw K) (Kp : ℕ)
     (p q : CPolynomial K) (hq : q.monic = true) (hN : N < 2 ^ 58) (hKp : Kp < 2 ^ 64) (hKq : Kp ≤ Nq)
     (hpN : p.val.size ≤ N)
     (hqN : q.val.size ≤ N) (hqb : q.val.size ≤ Nb + 1)
     (hk : p.val.size < q.val.size ∨ p.val.size - q.val.size + 1 ≤ Kp) :
-    machineCost P Auto.LeanVM.Extraction.Fast.rawModByMonicCached.c574.costIdx
+    machineCost P Auto.LeanVM.Extraction.Fast.rawModByMonicCached.c573.costIdx
         [encodeValue inv, encodeValue Kp, encodeValue p.val, encodeValue q.val] ≤
       100 * p.val.size + 200 * q.val.size + LBq + LB + 600 := by
-  rw [Auto.LeanVM.Extraction.Fast.rawModByMonicCached.c574.costEq P hP]
+  rw [Auto.LeanVM.Extraction.Fast.rawModByMonicCached.c573.costEq P hP]
   have hpt := cpoly_trim_eq p
   have hqt := cpoly_trim_eq q
   have hlc : (CPolynomial.Raw.leadingCoeff q.val == 1) = true := by

@@ -9,14 +9,17 @@ module
 
 public import LeanVM.Guest.CheckWinC
 public import LeanVM.Guest.Checked.F1_0
-public import LeanVM.Guest.Checked.F8_0
-public import LeanVM.Guest.Checked.F8_0
-public import LeanVM.Guest.Checked.F12_3
-public import LeanVM.Guest.Checked.F12_3
-public import LeanVM.Guest.Checked.F13_2
-public import LeanVM.Guest.Checked.F18_0
-public import LeanVM.Guest.Checked.F18_0
-public import LeanVM.Guest.Checked.F18_0
+public import LeanVM.Guest.Checked.F1_0
+public import LeanVM.Guest.Checked.F2_6
+public import LeanVM.Guest.Checked.F9_0
+public import LeanVM.Guest.Checked.F9_0
+public import LeanVM.Guest.Checked.F12_4
+public import LeanVM.Guest.Checked.F12_4
+public import LeanVM.Guest.Checked.F13_3
+public import LeanVM.Guest.Checked.F13_3
+public import LeanVM.Guest.Checked.F18_1
+public import LeanVM.Guest.Checked.F18_1
+public import LeanVM.Guest.Checked.F18_1
 public import LeanVM.Guest.Checked.F20_2
 public import LeanVM.Guest.Checked.F20_7
 public import LeanVM.Guest.Checked.F20_12
@@ -43,6 +46,7 @@ public import LeanVM.Guest.Checked.F37_12
 public import LeanVM.Guest.Checked.F37_13
 public import LeanVM.Guest.Checked.F37_14
 public import LeanVM.Guest.Checked.F37_15
+public import LeanVM.Guest.Checked.F37_16
 public import LeanVM.Guest.Checked.F37_17
 public import LeanVM.Guest.Checked.F37_18
 public import LeanVM.Guest.Checked.F37_19
@@ -62,6 +66,7 @@ public import LeanVM.Guest.Checked.F37_32
 public import LeanVM.Guest.Checked.F37_33
 public import LeanVM.Guest.Checked.F37_34
 public import LeanVM.Guest.Checked.F37_35
+public import LeanVM.Guest.Checked.F37_36
 public import LeanVM.Guest.Checked.F37_37
 public import LeanVM.Guest.Checked.F37_38
 public import LeanVM.Guest.Checked.F37_39
@@ -78,7 +83,22 @@ theorem ok1 : CheckOk 1 := fun i hi ↦ by
   · exact w1_0
   · exact w1_1
 
-theorem plain2 : Plain 2 := plain_of_nil (by decide +kernel)
+theorem ok2 : CheckOk 2 := fun i hi ↦ by
+  have h : (certOf 2).cuts.length = 7 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w2_0
+  · exact w2_1
+  · exact w2_2
+  · exact w2_3
+  · exact w2_4
+  · exact w2_5
+  · exact w2_6
+  · exact w2_7
+
+theorem plain2 : Plain 2 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain3 : Plain 3 := plain_of_nil (by decide +kernel)
 
@@ -157,12 +177,13 @@ theorem plain18 : Plain 18 := by
   decide +kernel
 
 theorem ok19 : CheckOk 19 := fun i hi ↦ by
-  have h : (certOf 19).cuts.length = 2 := by decide +kernel
+  have h : (certOf 19).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w19_0
   · exact w19_1
   · exact w19_2
+  · exact w19_3
 
 theorem ok20 : CheckOk 20 := fun i hi ↦ by
   have h : (certOf 20).cuts.length = 20 := by decide +kernel

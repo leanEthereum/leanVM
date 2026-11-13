@@ -325,7 +325,7 @@ instance : MachineEncoding Bool := ⟨MachineValue.ofBool⟩
 instance {w : ℕ} : MachineEncoding (BitVec w) := ⟨fun v ↦ .nat v.toNat⟩
 instance : MachineEncoding K := ⟨fun a ↦ .nat a.lane.toNat⟩
 instance : MachineEncoding E :=
-  ⟨fun x ↦ .constructor 0 [encodeValue (x.limb 0), encodeValue (x.limb 1), encodeValue (x.limb 2)]⟩
+  ⟨fun x ↦ .constructor 0 [encodeValue (x.limb 0), encodeValue (x.limb 1)]⟩
 
 instance {α : Type} [MachineEncoding α] : MachineEncoding (List α) :=
   ⟨fun l ↦ .ofList (l.map encodeValue)⟩
@@ -394,8 +394,7 @@ def encodeLeanVmKnowledgeExtractorInput (program : Semantics.LeanIsaProgram) (in
 
 /-- A word of `E` from its encoding (each limb modulo `2^64`). -/
 def decodeExtensionElement : MachineValue → Option E
-  | .constructor 0 [.nat a, .nat b, .nat c] =>
-    some (E.ofLimbs (K.ofLane a.toUInt64) (K.ofLane b.toUInt64) (K.ofLane c.toUInt64))
+  | .constructor 0 [.nat a, .nat b] => some (E.ofLimbs (K.ofLane a.toUInt64) (K.ofLane b.toUInt64))
   | _ => none
 
 /-- **An execution from its encoding**: the memory's log-size `κ`, its `2^κ` words, the steps;
@@ -415,22 +414,20 @@ def decodeExecution (program : Semantics.LeanIsaProgram) : MachineValue → Opti
 /-- **The extractor's budget**, for a proof announcing a stack of `2^μ` elements
 (`stackLog = μ`) and a transcript of `N = permutationQueryCount` permutation queries: the most the
 extractor's run may cost, in the machine's price (the sum of its steps' prices, each at least `1`,
-so also the most steps it may execute), `2^max(81, 2μ + 22) + (N + 2^30)·(D + 2)²·(2^15 + 2D)`,
+so also the most steps it may execute), `2^max(80, 2μ + 25) + (N + 2^30)·(D + 2)²·(2^15 + 2D)`,
 with `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript.
 `lean_vm` proves the compiled extractor's price at most this at every shape the replay admits
 (stack log-size `16` to `30`, rate exponent `1` to `4`, memory and program log-sizes at most `30`):
-the first term bounds the list decoder (its `64` lanes' Guruswami–Sudan decoding at the stack's
-worst rate, each lane interpolated by an approximant basis: the term is `2^81` up to `μ = 29`,
-then `2^82`) and the runs of the candidate executions; the second term bounds the transcript's
-index (per query and level squared, a level's positions growing by a limb per `64` levels) and the
-committed leaves (`2^30` at most). So, at a stack of `2^29` or less, about `2^81` for at most
-`2^50` queries, `2^86.98` for `2^60`, `2^107.76` for `2^80` and `2^157.08` for `2^128` (at a
-stack of `2^30`, about `2^82` for at most `2^50` queries and `2^87.01` for `2^60`): past
-`2^128` from about `2^100` queries, where the soundness bound is still `2^-28` (`statement.tex`,
-*What is not proved*, says what the regime leaves out). A proof announcing no layout is given the
-budget of `μ = 0`. -/
+the first term bounds the list decoder (its `64` lanes' Guruswami-Sudan decoding at the stack's
+worst rate, each lane interpolated by an approximant basis: about `2^78.96` at `μ = 27`, `2^80.93`
+at `28`, `2^82.91` at `29` and `2^84.91` at `30`, so the term is `2^80` up to `μ = 27`, then
+`2^81`, `2^83`, `2^85`) and the runs of the candidate executions; the second term bounds the
+transcript's index (per query and level squared, a level's positions growing by a limb per `64`
+levels) and the committed leaves (`2^30` at most). Past `2^128` from about `2^100` queries, where
+the soundness bound is still about `2^-25` (`statement.tex`, *What is not proved*, says what the regime
+leaves out). A proof announcing no layout is given the budget of `μ = 0`. -/
 def leanVmKnowledgeExtractorBudget (stackLog permutationQueryCount : ℕ) : ℕ :=
-  2 ^ max 81 (2 * stackLog + 22) +
+  2 ^ max 80 (2 * stackLog + 25) +
     (permutationQueryCount + 2 ^ 30) * (Nat.log2 (permutationQueryCount + 2) + 3) ^ 2 *
       (2 ^ 15 + 2 * (Nat.log2 (permutationQueryCount + 2) + 1))
 
@@ -453,12 +450,12 @@ open Common
 
 @[expose] public section
 
-/-- **The bound on the extractor program's size** (`MachineProgram.size`): `14640`, the compiled
-extractor's size (`14365`: its `700` compiled bodies and the entry, at `713` indices, `12` of
-them holes, a literal `0` each) and a slack of `275`, less than one leanXMSS signature's encoding
+/-- **The bound on the extractor program's size** (`MachineProgram.size`): `14159`, the compiled
+extractor's size (`14039`: its `699` compiled bodies and the entry, at `712` indices, `12` of
+them holes, a literal `0` each) and a slack of `120`, less than one leanXMSS signature's encoding
 (`309`: two layers of `153`, each a randomizer, `58` chain values and a path of `16`, digests of
 two limbs), so the compiled extractor could carry no useful table of witnesses beside its code. -/
-def leanVmKnowledgeExtractorSizeBound : ℕ := 14640
+def leanVmKnowledgeExtractorSizeBound : ℕ := 14159
 
 /-- **The extractor a program computes**: the program, of size at most
 `leanVmKnowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof

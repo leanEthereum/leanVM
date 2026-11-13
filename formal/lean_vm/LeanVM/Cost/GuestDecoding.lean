@@ -165,7 +165,9 @@ instance : MachineDecoding Child where
     | _ => none
 
 instance : MachineDecoding BatchingHints where
-  decodeValue | .constructor 0 [m, v] => do pure ⟨← decodeValue m, ← decodeValue v⟩ | _ => none
+  decodeValue
+    | .constructor 0 [n, m, v] => do pure ⟨← decodeValue n, ← decodeValue m, ← decodeValue v⟩
+    | _ => none
 
 instance : MachineDecoding NodeWitness where
   decodeValue
@@ -334,8 +336,10 @@ instance : LawfulMachineDecoding Child := ⟨fun ⟨s, f, p⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue s), ← decodeValue (encodeValue f), ← decodeValue (encodeValue p)⟩ : Option Child) = _
   simp⟩
 
-instance : LawfulMachineDecoding BatchingHints := ⟨fun ⟨m, v⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue m), ← decodeValue (encodeValue v)⟩ : Option BatchingHints) = _; simp⟩
+instance : LawfulMachineDecoding BatchingHints := ⟨fun ⟨n, m, v⟩ ↦ by
+  show (do pure ⟨← decodeValue (encodeValue n), ← decodeValue (encodeValue m), ← decodeValue (encodeValue v)⟩ :
+    Option BatchingHints) = _
+  simp⟩
 
 instance : LawfulMachineDecoding NodeWitness := ⟨fun ⟨c, x, s, d, h⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue c), ← decodeValue (encodeValue x), ← decodeValue (encodeValue s),

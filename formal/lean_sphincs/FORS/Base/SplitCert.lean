@@ -1,6 +1,7 @@
 module
 
 public import FORS.Base.Split
+public import Mathlib.Analysis.Complex.ExponentialBounds
 
 @[expose] public section
 

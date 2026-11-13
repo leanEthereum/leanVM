@@ -63,9 +63,6 @@ theorem kidT_hX (cert : String → V → ℕ) (hl : GuestLimits s w) {c : ℕ}
     (cells := w.children[c].statement.claims.xmss.flatMap fun c => claimCells c.1.root c.1.parameter c.2)
     (by rw [hKid_ex hc]; simp only [B1.Digest.claimBig, B1.Digest.bigFramesCap]; omega)
     (by rw [hKid_ex hc]; exact kid_length_flatMap_const _ fun a _ => kid_length_claimCells _ _ _)
-    (fun x hx => by
-      obtain ⟨a, -, hx⟩ := List.mem_flatMap.mp hx
-      exact claimCells_canonical _ _ _ x hx)
     (by omega) (by omega)
     (fun rd hM j hj => by
       rw [hKid_ex hc] at hj
@@ -145,9 +142,6 @@ theorem kidT_hS (cert : String → V → ℕ) (hl : GuestLimits s w) {c : ℕ}
       fun c => claimCells c.1.publicSeed c.1.root c.2)
     (by rw [hKid_es hc]; simp only [B1.Digest.claimBig, B1.Digest.bigFramesCap]; omega)
     (by rw [hKid_es hc]; exact kid_length_flatMap_const _ fun a _ => kid_length_claimCells _ _ _)
-    (fun x hx => by
-      obtain ⟨a, -, hx⟩ := List.mem_flatMap.mp hx
-      exact claimCells_canonical _ _ _ x hx)
     (by omega) (by omega)
     (fun rd hM j hj => by
       rw [hKid_es hc] at hj

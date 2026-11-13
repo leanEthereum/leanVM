@@ -58,10 +58,10 @@ noncomputable def daWitness (D : DiscreteLogTables) (σ : Val)
     (wD : List E → List E → LeanVM.Da.MatrixWitness) :
     Option (DaClaim × LeanVM.Da.MatrixWitness) :=
   if nDirectD D σ = 1 then
-    some (dvClaim σ, wD [σ (.n 28)] [σ (.n 369), σ (.n 370), σ (.n 371), σ (.n 372)])
+    some (dvClaim σ, wD [σ (.n 28)] [σ (.n 369), σ (.n 370), σ (.n 371)])
   else none
 
-/-- `__loop2`'s arguments after the counter (`l2Args`), read one by one: `n_raw_x`, `lx_slots`,
+/-- `main_loop2`'s arguments after the counter (`l2Args`), read one by one: `n_raw_x`, `lx_slots`,
 `cover`, `lx_table` and the `51` carried chain indices (`main`'s `.n 304` to `.n 354`). -/
 def l2ArgsD (σ : Val) : List E :=
   [σ (.n 2), σ (.n 22), σ (.n 45), σ (.n 31), σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307),
@@ -77,12 +77,12 @@ theorem l2ArgsD_eq : l2ArgsD = l2Args := by
   simp [l2ArgsD, l2Args, List.range_succ]
 
 /-- The words of `aggregate_claims`' call. -/
-def aggArgs (σ : Val) : List E := [σ (.n 6), σ (.n 384), σ (.n 390), σ (.n 396), σ (.n 417)]
+def aggArgs (σ : Val) : List E :=
+  [σ (.n 6), σ (.n 383), σ (.n 389), σ (.n 395), σ (.n 416), σ (.n 444)]
 
 cost_compile nRawXC := nRawXD
 cost_compile nRawSC := nRawSD
 cost_compile nDirectC := nDirectD
-cost_compile scalarOfCellsC := LeanVM.Guest.B1.Da.scalarOfCells
 cost_compile dvClaimC := dvClaim
 cost_compile daWitnessC := daWitness
 cost_compile aggArgsC := aggArgs
@@ -96,13 +96,13 @@ address by a power in `K` (`mulK`), computed once. `xmssRawT_eq`, `sphincsRawT_e
 built they are `rawXmssD`, `rawSphincsD`. -/
 
 /-- The raw leanXMSS signature of mark `j` at the address `p53 · a`: its slot's claim and `wX` at
-`__loop2`'s iteration `j` (its arguments `g^j :: args`, `args` the loop's others, `l2Args`). -/
+`main_loop2`'s iteration `j` (its arguments `g^j :: args`, `args` the loop's others, `l2Args`). -/
 noncomputable def xmssRawAt (rd : Reader) (p53 : E) (wX : List E → LeanXmss.Signature)
     (args : List E) (a : K) (j : ℕ) : LeanXmssClaim × LeanXmss.Signature :=
   (xmssAtK rd (p53.limb 0 * a), wX (ofK (Parameters.g ^ j) :: args))
 
 /-- **The raw leanXMSS signature of mark `j`** (`rawXmssD`), off the region's table `tm`, `ts`,
-`__loop2`'s other arguments `args` read once. -/
+`main_loop2`'s other arguments `args` read once. -/
 noncomputable def xmssRawT (rd : Reader) (p53 : E) (wX : List E → LeanXmss.Signature)
     (args : List E) (tm ts : Array ℕ) (j : ℕ) : LeanXmssClaim × LeanXmss.Signature :=
   xmssRawAt rd p53 wX args (Parameters.g ^ (4 * slotIn tm ts j)) j

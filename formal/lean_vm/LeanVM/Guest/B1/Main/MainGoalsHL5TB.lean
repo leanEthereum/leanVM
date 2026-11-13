@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Main.MainGoalsHL5T
 public import LeanVM.Guest.B1.Main.KidCoverAtB
 public import LeanVM.Guest.B1.Main.ChildListGoalsTB
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The children loop, bounded
@@ -42,15 +43,15 @@ def l5K (SB : String → ℕ) (Bx Bs Bv : ℕ) : ℕ := Bx + Bs + SB "statement_
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 set_option maxRecDepth 20000 in
-/-- **One child of `__loop4` within its bound, placed, its tree exposed**: `l5_stepAtT` (same
+/-- **One child of `main_loop4` within its bound, placed, its tree exposed**: `l5_stepAtT` (same
 proof), its callees within their bounds, the tail call within `Bt`. -/
 theorem l5_stepAtTB (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     {Bt Bv Bx Bs : ℕ} {Lin : Layout} {W D Pi Cr nk c : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {k : KidH} {Px Ps Pv Tt : Tree → Prop}
-    (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk) (hs01 : AllCanonical [s0, s1])
+    (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk)
     (hk : KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c k)
-    (htail : c + 1 < nk → CompleteAtDTB fs cert 23 "__loop4" Lin
+    (htail : c + 1 < nk → CompleteAtDTB fs cert 23 name% «main_loop4» Lin
       [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) Tt Bt)
     (hVT : CompleteAtDTB fs cert 20 "verify_sub" Lin
@@ -59,29 +60,34 @@ theorem l5_stepAtTB (SB : String → ℕ)
       (Returns [k.cx.1, k.cx.2]) Px Bx)
     (hST : CompleteAtDTB fs cert 23 "child_claim_list_digest" Lin
       [lst, spc, k.base * gen ^ k.ex, lss, gen ^ k.es] (Returns [k.cs.1, k.cs.2]) Ps Bs) :
-    CompleteAtDTB fs cert 23 "__loop4" Lin
+    CompleteAtDTB fs cert 23 name% «main_loop4» Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) (L5Node k Px Ps Pv Tt)
-      (fs "__loop4" + (if c + 1 < nk then Bt else fs "__loop4") + l5K SB Bx Bs Bv) := by
+      (fs name% «main_loop4» + (if c + 1 < nk then Bt else fs name% «main_loop4») + l5K SB Bx Bs
+          Bv) := by
   intro fp
   -- the rest of the loop
-  obtain ⟨nt, Lt, hnt, hWt, hDt, hRt⟩ : ∃ nt Lt, nt ≤ (if c + 1 < nk then Bt else fs "__loop4") ∧
-      Within Lt (fp + fs "__loop4") nt ∧ DisjL Lt ∧
+  obtain ⟨nt, Lt, hnt, hWt, hDt, hRt⟩ : ∃ nt Lt, nt ≤ (if c + 1 < nk then Bt else fs
+      name% «main_loop4») ∧
+      Within Lt (fp + fs name% «main_loop4») nt ∧ DisjL Lt ∧
       ∀ rd, LowDef 23 rd → MemL rd (Lt ++ Lin) →
         if decide (c + 1 ≠ nk) = true then
-          RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs "__loop4") nt "__loop4"
+          RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs name% «main_loop4»)
+              nt name% «main_loop4»
             [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
               gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] [] Tt
-        else nt = fs "__loop4" := by
+        else nt = fs name% «main_loop4» := by
     by_cases hlast : c + 1 = nk
-    · exact ⟨fs "__loop4", [], by simp [hlast], fun q hq => by simp at hq, List.Pairwise.nil,
+    · exact ⟨fs name% «main_loop4», [], by simp [hlast], fun q hq => by simp at hq,
+                                                                          List.Pairwise.nil,
         fun _ _ _ => by simp [hlast]⟩
-    · obtain ⟨nt, Lt, rt, Lot, hnB, ⟨rfl, rfl⟩, hW, hD, hR⟩ := htail (by omega) (fp + fs "__loop4")
+    · obtain ⟨nt, Lt, rt, Lot, hnB, ⟨rfl, rfl⟩, hW, hD, hR⟩ := htail (by omega) (fp + fs
+                                                                           name% «main_loop4»)
       refine ⟨nt, Lt, by simpa [show c + 1 < nk by omega] using hnB, by simpa using hW,
         by simpa using hD, fun rd hl hm => ?_⟩
       simp only [ne_eq, hlast, not_false_eq_true, decide_true, ↓reduceIte]
       exact hR rd hl (by simpa using hm)
-  set P1 := fp + fs "__loop4" + nt with hP1
+  set P1 := fp + fs name% «main_loop4» + nt with hP1
   -- the callees
   let ks : List Kid :=
     [⟨"child_claim_list_digest", true, [lxt, cover, k.base, lxs, gen ^ k.ex], Lin,
@@ -96,13 +102,7 @@ theorem l5_stepAtTB (SB : String → ℕ)
       (args := [s0, s1, k.cx.1, k.cx.2, k.cs.1, k.cs.2, k.da.1, k.da.2, gen ^ Cr * gen ^ (24 * c)])
       (rets := [(k.pi s0 s1).1, (k.pi s0 s1).2]) SB hSD fun rd hm => by
     obtain ⟨-, -, -, -, -, -, hdef⟩ := hk.mem rd hm
-    refine ⟨k.defer, hk.defer_len, by rw [← pow_add]; exact hdef, ?_, rfl⟩
-    intro x hx
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-    rcases hx with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · exact hs01 _ (by simp)
-    · exact hs01 _ (by simp)
-    all_goals exact hk.can _ (by simp)
+    exact ⟨k.defer, hk.defer_len, by rw [← pow_add]; exact hdef, rfl⟩
   have hokB : KidsDTB fs cert 23 ks (l5Ts4 Px Ps Pv) [Bx, Bs, SB "statement_digest", Bv] :=
     ⟨fun _ => hXT, fun _ => hST, fun _ => ksd, fun _ => hVT.lowMono (by norm_num), trivial⟩
   obtain ⟨Nk, Lk, outs, hNB, hoo, hW, hD, -, hKids⟩ :=
@@ -119,7 +119,8 @@ theorem l5_stepAtTB (SB : String → ℕ)
   obtain rfl := List.eq_nil_of_length_eq_zero hl4
   obtain ⟨h1, h2, h3, h4, -⟩ := hoo
   -- the layout
-  refine ⟨fs "__loop4" + nt + Nk, Lt ++ Lk, [], [], by simp only [l5K]; omega, ⟨rfl, rfl⟩, ?_,
+  refine ⟨fs name% «main_loop4» + nt + Nk, Lt ++ Lk, [], [], by simp only [l5K]; omega, ⟨rfl, rfl⟩,
+                                                                  ?_,
     by rw [List.nil_append]; exact disj_append hDt hD hWt hW (by omega), fun rd hlow hm => ?_⟩
   · rw [List.nil_append, within_append]
     exact ⟨hWt.mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
@@ -165,7 +166,8 @@ theorem l5_stepAtTB (SB : String → ℕ)
         ⟨"statement_digest", [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33],
           [.n 38, .n 39], true⟩,
         ⟨"verify_sub", [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48], [], true⟩] ++
-      [⟨"__loop4", [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11,
+      [⟨name% «main_loop4», [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10,
+          .n 11,
         .n 12, .n 13, .n 14, .n 15], [], decide (c + 1 ≠ nk)⟩] := by
     rw [hpc, show (l5Pre ++ [l5Tail]).filterMap Main.Stmt.callS =
       [(none, "child_claim_list_digest", [.n 3, .n 4, .n 17, .n 5, .n 18], [.n 23, .n 24]),
@@ -173,7 +175,8 @@ theorem l5_stepAtTB (SB : String → ℕ)
         (none, "statement_digest", [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33],
           [.n 38, .n 39]),
         (none, "verify_sub", [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48], []),
-        (some (.n 53), "__loop4", [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
+        (some (.n 53), name% «main_loop4», [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8,
+            .n 9,
           .n 10, .n 11, .n 12, .n 13, .n 14, .n 15], [])] from rfl]
     simp only [List.map_cons, List.map_nil, Main.mkCall, h59, List.cons_append, List.nil_append]
   have hev : ∀ e ∈ (l5Pre ++ [l5Tail]).flatMap (Main.slEvs σ), e.Holds rd σ := by
@@ -192,7 +195,7 @@ theorem l5_stepAtTB (SB : String → ℕ)
       subst hs
       show IsInK (σ (.n 53))
       rw [hV.v59]; exact gen_pow_add_isInK _ _
-  have hparams : (coreProgram.getD 38 default).params.map σ = args := by
+  have hparams : (coreProgram.getD idx% «main_loop4» default).params.map σ = args := by
     rw [l5_params]
     refine List.ext_getElem (by simp [hargs]) fun i h1 h2 => ?_
     simp only [List.getElem_map, List.getElem_range]
@@ -280,19 +283,20 @@ theorem l5_stepAtTB (SB : String → ℕ)
     · refine ⟨W + c + 1, ?_, Or.inr (Or.inl rW1)⟩
       rw [hV.v56]; exact hW' 1
 
-/-- **`__loop4`'s words over its last `t + 1` iterations from child `c`**: each iteration's frame
+/-- **`main_loop4`'s words over its last `t + 1` iterations from child `c`**: each iteration's frame
 and constant part `K c`, the last one's phantom tail call's frame. -/
 def l5ChainB (fs : String → ℕ) (K : ℕ → ℕ) : ℕ → ℕ → ℕ
-  | 0, c => fs "__loop4" + fs "__loop4" + K c
-  | t + 1, c => fs "__loop4" + l5ChainB fs K t (c + 1) + K c
+  | 0, c => fs name% «main_loop4» + fs name% «main_loop4» + K c
+  | t + 1, c => fs name% «main_loop4» + l5ChainB fs K t (c + 1) + K c
 
-/-- **`__loop4` is complete within `l5ChainB`, placed, its trees exposed**: `l5_completeAtT`, each
+/-- **`main_loop4` is complete within `l5ChainB`, placed, its trees exposed**: `l5_completeAtT`,
+each
 iteration's callees within their bounds. -/
 theorem l5_completeAtTB (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     {Bv Bxs Bss : ℕ → ℕ} {Lin : Layout} {W D Pi Cr nk : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {kid : ℕ → KidH} {Pxs Pss Pvs : ℕ → Tree → Prop}
-    (hnk : nk < 2 ^ 34) (hs01 : AllCanonical [s0, s1])
+    (hnk : nk < 2 ^ 34)
     (hk : ∀ c < nk, KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c
       (kid c))
     (hVT : ∀ c < nk, CompleteAtDTB fs cert 20 "verify_sub" Lin
@@ -304,12 +308,12 @@ theorem l5_completeAtTB (SB : String → ℕ)
     (hST : ∀ c < nk, CompleteAtDTB fs cert 23 "child_claim_list_digest" Lin
       [lst, spc, (kid c).base * gen ^ (kid c).ex, lss, gen ^ (kid c).es]
       (Returns [(kid c).cs.1, (kid c).cs.2]) (Pss c) (Bss c)) :
-    ∀ c < nk, CompleteAtDTB fs cert 23 "__loop4" Lin
+    ∀ c < nk, CompleteAtDTB fs cert 23 name% «main_loop4» Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])
       (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (nk - c) c)
       (l5ChainB fs (fun c => l5K SB (Bxs c) (Bss c) (Bv c)) (nk - c - 1) c) := by
-  have key : ∀ t c, c + 1 + t = nk → CompleteAtDTB fs cert 23 "__loop4" Lin
+  have key : ∀ t c, c + 1 + t = nk → CompleteAtDTB fs cert 23 name% «main_loop4» Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])
       (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (t + 1) c)
@@ -318,13 +322,13 @@ theorem l5_completeAtTB (SB : String → ℕ)
     induction t with
     | zero =>
       intro c hc
-      refine (l5_stepAtTB fs cert SB hSD (Bt := 0) (Tt := fun _ => False) hnk (by omega) hs01
+      refine (l5_stepAtTB fs cert SB hSD (Bt := 0) (Tt := fun _ => False) hnk (by omega)
         (hk c (by omega)) (fun h => absurd h (by omega)) (hVT c (by omega)) (hXT c (by omega))
         (hST c (by omega))).mono (le_of_eq ?_) fun _ ht => ht
       simp only [l5ChainB, show ¬ c + 1 < nk by omega, ↓reduceIte]
     | succ t ih =>
       intro c hc
-      refine (l5_stepAtTB fs cert SB hSD hnk (by omega) hs01 (hk c (by omega))
+      refine (l5_stepAtTB fs cert SB hSD hnk (by omega) (hk c (by omega))
         (fun _ => ih (c + 1) (by omega)) (hVT c (by omega)) (hXT c (by omega)) (hST c (by omega))).mono
         (le_of_eq ?_) fun _ ht => ht
       simp only [l5ChainB, show c + 1 < nk by omega, ↓reduceIte]
@@ -360,7 +364,7 @@ theorem VerifySubGoalsTB.mono {fp : ℕ} {seed : Digest} {s : NodeStatement} {w 
 def MainGoalL5TB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (T5 : Tree → Prop) (B5 : ℕ) : Prop :=
   (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDTB fs cert 23 "__loop4" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 23 name% «main_loop4» (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80,
@@ -397,17 +401,9 @@ theorem mainGoalL5TB (SB : String → ℕ)
     (Lin := hLmain fs fp seed s w) (W := hP fs fp seed s w 8) (D := hP fs fp seed s w 4)
     (Pi := hP fs fp seed s w 5) (Cr := hP fs fp seed s w 7) (nk := w.children.length)
     (kid := hKid s w) (Pxs := Pxs) (Pss := Pss) (Pvs := Pvs) (by omega)
-    (fun x hx => by
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-      rcases hx with rfl | rfl
-      · exact (digestScalars_canonical _).1
-      · exact (digestScalars_canonical _).2)
     (fun c hc => kidOk cert hbl hrel hl hV.goals (CompleteAtDTB.toDT (hX c hc).1).toD
       (CompleteAtDTB.toDT (hX c hc).2).toD hc)
-    (fun c hc => by
-      have hsh := kid_shapes hbl hrel _ (List.getElem_mem hc)
-      rw [hKid_pi seed (s := s) hc (by simp [DeferredClaim.cells, hsh.2, bytecodeVars])]
-      exact hV c hc) (fun c hc => (hX c hc).1) (fun c hc => (hX c hc).2) 0 (by have : w.children.length ≠ 0 := hnc; omega)
+    (fun c hc => by rw [hKid_pi seed (s := s) hc]; exact hV c hc) (fun c hc => (hX c hc).1) (fun c hc => (hX c hc).2) 0 (by have : w.children.length ≠ 0 := hnc; omega)
   rw [pow_zero, Nat.sub_zero] at h
   exact h
 

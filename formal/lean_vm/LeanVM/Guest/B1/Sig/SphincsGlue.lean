@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsGlue
 
-  The addresses `verify_sig_lean_sphincs` builds between its stages (`lean_ethereum.py:4028-4029,
-  4044-4045, 4048-4049` at leanVM main 40f877dc): each layer's `A0` and its key pair's `A1`, from the
+  The addresses `verify_sig_lean_sphincs` builds between its stages (`lean_ethereum.py:4220-4221,
+  4235-4236, 4239-4240`): each layer's `A0` and its key pair's `A1`, from the
   digest's leaves.
 -/
 
@@ -19,15 +19,15 @@ public import LeanVM.Guest.B1.Sig.SphincsHash
 leaf `layerLeafN T l` (`T` the digest's number, `SphincsSoundDigest`). The guest builds the key's
 address cells from the leaves' bytes and their shifts (`lvals`, `tree_mid`):
 
-* `sForsAddrs_vals` (`G:4028-4029`): `a0_b = lvals[8]·2^120 + tree_mid·2^112 + lvals[24]·2^104` is
+* `sForsAddrs_vals` (`G:4220-4221`): `a0_b = lvals[8]·2^120 + tree_mid·2^112 + lvals[24]·2^104` is
   `adrsCell0 0 (layerTreeN T 0)`, `key_b = lvals[0]·2^56` is `adrsCell1 0 (layerLeafN T 0) 0 0`;
-* `sMidAddrs_vals` (`G:4043-4044`): `a0_m = 2^24 + tree_mid·2^120 + lvals[24]·2^112`, `key_m =
+* `sMidAddrs_vals` (`G:4235-4236`): `a0_m = 2^24 + tree_mid·2^120 + lvals[24]·2^112`, `key_m =
   lvals[8]·2^56`;
-* `sTopAddrs_vals` (`G:4047-4048`): `key_t = tree_mid·2^56 + lvals[24]·2^48`, `a0_t = 2^25`;
+* `sTopAddrs_vals` (`G:4239-4240`): `key_t = tree_mid·2^56 + lvals[24]·2^48`, `a0_t = 2^25`;
 * `layerAddrs`: all three as `sA0Of l`, `sA1Of l`.
 
 Field addition is XOR, so a sum of words of disjoint bits is the word of their sum
-(`eOfNat192_shift_add`).
+(`eOfNat128_shift_add`).
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -45,9 +45,9 @@ variable {rd : Reader} {σ : Val}
 `112`, `104`. -/
 theorem adrsCell0_eq192 {layer t : Nat} (hl : layer < 256) (ht : t < 2 ^ 24) :
     adrsCell0 layer t =
-      eOfNat192 (layer * 2 ^ 24 + 2 ^ 104 * (2 ^ 8 * (2 ^ 8 * (t % 256) + t / 256 % 256) + t / 65536)) := by
+      eOfNat128 (layer * 2 ^ 24 + 2 ^ 104 * (2 ^ 8 * (2 ^ 8 * (t % 256) + t / 256 % 256) + t / 65536)) := by
   unfold adrsCell0
-  rw [cellOf128_eq_eOfNat192 (by simp only [beWordAt, Nat.reducePow, Nat.reduceMul]; omega)]
+  rw [cellOf128_eq_eOfNat128 (by simp only [beWordAt, Nat.reducePow, Nat.reduceMul]; omega)]
   congr 1
   simp only [beWordAt, Nat.reducePow, Nat.reduceMul]
   omega
@@ -55,7 +55,7 @@ theorem adrsCell0_eq192 {layer t : Nat} (hl : layer < 256) (ht : t < 2 ^ 24) :
 /-- **A key pair's `A1` as a word** (type `WOTS_HASH`): its two low bytes reversed at bits `56`,
 `48`. -/
 theorem adrsCell1_key_eq192 {kp : Nat} (hk : kp < 2 ^ 16) :
-    adrsCell1 0 kp 0 0 = eOfNat192 (2 ^ 48 * (2 ^ 8 * (kp % 256) + kp / 256)) := by
+    adrsCell1 0 kp 0 0 = eOfNat128 (2 ^ 48 * (2 ^ 8 * (kp % 256) + kp / 256)) := by
   rw [adrsCell1_eq]
   congr 1
   simp only [adrsNat1, beWordAt, Nat.reducePow, Nat.reduceMul]
@@ -63,7 +63,7 @@ theorem adrsCell1_key_eq192 {kp : Nat} (hk : kp < 2 ^ 16) :
 
 /-- A byte value times `2^s`. -/
 theorem mul_lit_pow {v s : Nat} (hs : s < 128) (h : 2 ^ (s % 64) * v < 2 ^ 64) (e : lit (2 ^ s) = pw s) :
-    eOfNat v * lit (2 ^ s) = eOfNat192 (2 ^ s * v) := by
+    eOfNat v * lit (2 ^ s) = eOfNat128 (2 ^ s * v) := by
   rw [e, pw_mul hs h]
 
 theorem lit120 : lit (2 ^ 120) = pw 120 := rfl
@@ -98,7 +98,7 @@ theorem treeMid_eq {T : Nat} (hm : σ sTreeMid = eOfNat (byteN T 31)) :
 
 /-! ## The glue -/
 
-/-- **The bottom layer's address** (`G:4028-4029`): `a0_b` is the bottom key's tree's `A0`, `key_b`
+/-- **The bottom layer's address** (`G:4220-4221`): `a0_b` is the bottom key's tree's `A0`, `key_b`
 its leaf's `A1`. -/
 theorem sForsAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat (byteN T 31))
     (h : AtomsHold rd σ sForsAddrs) :
@@ -122,10 +122,10 @@ theorem sForsAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat
       mul_lit_pow (by norm_num) (by norm_num; omega) lit112,
       mul_lit_pow (by norm_num) (by norm_num; omega) lit104,
       show 2 ^ 120 * layerLeafN T 1 = 2 ^ 112 * (2 ^ 8 * layerLeafN T 1) by ring,
-      eOfNat192_shift_add (k := 8) (by omega),
+      eOfNat128_shift_add (k := 8) (by omega),
       show 2 ^ 112 * (2 ^ 8 * layerLeafN T 1 + layerLeafN T 2 % 256) =
         2 ^ 104 * (2 ^ 8 * (2 ^ 8 * layerLeafN T 1 + layerLeafN T 2 % 256)) by ring,
-      eOfNat192_shift_add (k := 8) (by omega),
+      eOfNat128_shift_add (k := 8) (by omega),
       adrsCell0_eq192 (by norm_num) (by simp only [layerTreeN]; norm_num; omega)]
     congr 1
     simp only [layerTreeN, ↓reduceIte]
@@ -140,7 +140,7 @@ theorem sForsAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat
     congr 1
     omega
 
-/-- **The middle layer's address** (`G:4043-4044`). -/
+/-- **The middle layer's address** (`G:4235-4236`). -/
 theorem sMidAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat (byteN T 31))
     (h : AtomsHold rd σ sMidAddrs) :
     σ (sA0Of 1) = adrsCell0 1 (layerTreeN T 1) ∧ σ (sA1Of 1) = adrsCell1 0 (layerLeafN T 1) 0 0 := by
@@ -161,7 +161,7 @@ theorem sMidAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat 
       mul_lit_pow (by norm_num) (by norm_num; omega) lit120,
       mul_lit_pow (by norm_num) (by norm_num; omega) lit112, add_assoc,
       show 2 ^ 120 * (layerLeafN T 2 % 256) = 2 ^ 112 * (2 ^ 8 * (layerLeafN T 2 % 256)) by ring,
-      eOfNat192_shift_add (k := 8) (by omega), lit_eq _ (by norm_num), add_comm, ← eOfNat192_xor,
+      eOfNat128_shift_add (k := 8) (by omega), lit_eq _ (by norm_num), add_comm, ← eOfNat128_xor,
       two_pow_mul_xor (by norm_num),
       adrsCell0_eq192 (by norm_num) (by simp only [layerTreeN]; norm_num; omega)]
     congr 1
@@ -172,7 +172,7 @@ theorem sMidAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat 
     congr 1
     omega
 
-/-- **The top layer's address** (`G:4047-4048`): its tree is `0`. -/
+/-- **The top layer's address** (`G:4239-4240`): its tree is `0`. -/
 theorem sTopAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat (byteN T 31))
     (h : AtomsHold rd σ sTopAddrs) :
     σ (sA0Of 2) = adrsCell0 2 (layerTreeN T 2) ∧ σ (sA1Of 2) = adrsCell1 0 (layerLeafN T 2) 0 0 := by
@@ -193,7 +193,7 @@ theorem sTopAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat 
       mul_lit_pow (by norm_num) (by norm_num; omega) lit56,
       mul_lit_pow (by norm_num) (by norm_num; omega) lit48,
       show 2 ^ 56 * (layerLeafN T 2 % 256) = 2 ^ 48 * (2 ^ 8 * (layerLeafN T 2 % 256)) by ring,
-      eOfNat192_shift_add (k := 8) (by omega), adrsCell1_key_eq192 (by omega)]
+      eOfNat128_shift_add (k := 8) (by omega), adrsCell1_key_eq192 (by omega)]
 
 end
 end LeanVM.Guest.B1.Sig

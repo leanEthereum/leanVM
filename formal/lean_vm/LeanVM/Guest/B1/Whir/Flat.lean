@@ -101,6 +101,18 @@ theorem holdsList_flat_ret (ss : List Stmt) (h : ss.all Stmt.flat = true) (vs : 
   rw [holdsList_append, holdsList_flat ss h]
   simp [Stmt.HoldsList, Stmt.Holds]
 
+/-! ## Atoms -/
+
+theorem holds_const (d : V) (c : E) : (Atom.const d c).Holds rd σ ↔ σ d = c := Iff.rfl
+theorem holds_add (d a b : V) : (Atom.add d a b).Holds rd σ ↔ σ d = σ a + σ b := Iff.rfl
+theorem holds_mul (d a b : V) : (Atom.mul d a b).Holds rd σ ↔ σ d = σ a * σ b := Iff.rfl
+theorem holds_copy (d s : V) : (Atom.copy d s).Holds rd σ ↔ σ d = σ s := Iff.rfl
+theorem holds_load (d p : V) (o : ℕ) : (Atom.load d p o).Holds rd σ ↔ LoadHolds rd (σ p) o (σ d) :=
+  Iff.rfl
+theorem stmtOk_atom (a : Atom) : StmtOk C rd σ (.atom a) ↔ a.Holds rd σ := Iff.rfl
+theorem stmtOk_call (f : String) (args rets : List V) :
+    StmtOk C rd σ (.call f args rets) ↔ C f (args.map σ) (rets.map σ) := Iff.rfl
+
 /-! ## Words -/
 
 /-- The template's g-power words. -/
@@ -181,20 +193,6 @@ theorem osMatP_eq {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {base of
   unfold osMatP osMatSD
   simp only [h0, ↓reduceIte]
   split <;> rename_i h <;> simp only [h]
-
-/-- The source times `g^dist` is the base times `g^off`. -/
-theorem osMatSD_ok {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} (hm : MatsOk σ mats)
-    {base off : ℕ} (h : off < u128Bound) :
-    (osMatSD plan mats base off).2 < u128Bound ∧ σ (.n (osMatSD plan mats base off).1) *
-      gen ^ (osMatSD plan mats base off).2 = σ (.n base) * gen ^ off := by
-  unfold osMatSD
-  split
-  · rename_i m hf
-    have he := List.find?_some hf
-    simp only [Bool.and_eq_true, beq_iff_eq] at he
-    obtain ⟨-, hd, -, hs⟩ := hm m (List.mem_of_find?_eq_some hf)
-    exact ⟨hd, by rw [hs, he.1, he.2]⟩
-  · exact osMatSrc_ok hm h
 
 /-- The materializations' values lie below `K`. -/
 def MatsBelow (K : ℕ) (mats : List OsMat) : Prop := ∀ m ∈ mats, m.out < K ∧ m.src < K ∧ m.base < K

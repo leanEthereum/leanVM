@@ -33,7 +33,7 @@ open LeanVM.Guest.Check
 @[expose] public section
 
 /-- The number of compiled functions. -/
-def nFns : ℕ := 1536
+def nFns : ℕ := fn_count%
 
 instance : Inhabited CompiledFunction := ⟨⟨"", 0, 0, []⟩⟩
 
@@ -62,16 +62,18 @@ noncomputable def sigOf (j : ℕ) : Sig :=
 /-- The callees: every function but `__jump_tables` and `main`. -/
 def good (j : ℕ) : Bool := Nat.ble 2 j && Nat.blt j nFns
 
-/-- The semantic relations by tag (`WalkTags.lean`): `0` the exponent table (`B1.ExpTables`),
-which `verify_sub` and `__loop4` assume of an argument; `1` the checker's own (`Check.tagNe`, here
-unused); `tagGkr` the GKR layer loop's parity (`GkrPar`); from `2^21` `level_queries`' windows
-(`lqSem`); the others the windowed Merkle walk's (`walkSem`). -/
+/-- The semantic relations by tag (`WalkTags.lean`): `0` the exponent table with its window
+section (`B1.ExpTables`, `B1.ExpWinTab`), which `verify_sub` and `main_loop4` assume of an argument;
+`1` the checker's own (`Check.tagNe`, here unused); `tagGkr` the GKR layer loop's parity
+(`GkrPar`); `tagTabs` `open_stacked`'s window table (`B1.WinTabs`); from `2^21` `level_queries`'
+windows (`lqSem`); the others the windowed Merkle walk's (`walkSem`). -/
 def globSem (t : ℕ) (rd : Core.Reader) (ws : List LeanVM.Parameters.E) : Prop :=
   match t with
-  | 0 => B1.ExpTables rd (ws.getD 0 0)
+  | 0 => B1.ExpTables rd (ws.getD 0 0) ∧ B1.ExpWinTab rd (ws.getD 0 0)
   | 1 => True
   | t => if t = tagGkr then
-      GkrPar rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) (ws.getD 3 0) (ws.getD 4 0)
+      GkrPar rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) (ws.getD 3 0)
+    else if t = tagTabs then B1.WinTabs rd (ws.getD 0 0)
     else if 2 ^ 21 ≤ t then lqSem t rd ws else walkSem t rd ws
 
 /-- The context the guest's checks share, with the semantic relations `globSem`. -/
@@ -85,6 +87,12 @@ noncomputable instance (j i : ℕ) : Decidable (WinOk j i) := inferInstanceAs (D
 
 /-- **The check of function `j`**: every window's. -/
 noncomputable def CheckOk (j : ℕ) : Prop := ∀ i ≤ (certOf j).cuts.length, WinOk j i
+
+/-- `P j` from `P k` at `j = k`, by its bounds: a leaf of the generated proofs over all functions
+(`Checked.all_ok` and the like). -/
+theorem at_of_bounds {P : ℕ → Prop} {j k : ℕ} (h1 : k ≤ j) (h2 : j < k + 1) (h : P k) : P j := by
+  obtain rfl : j = k := by omega
+  exact h
 
 theorem checkOk_one {j : ℕ} (h : (certOf j).cuts.length = 0) (w : WinOk j 0) : CheckOk j := by
   intro i hi

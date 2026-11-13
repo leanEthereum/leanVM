@@ -8,7 +8,7 @@
 
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{prove, verify};
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F64, F128, g_pow};
 
 use crate::common::mix;
 
@@ -33,7 +33,7 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    let want = [F192::from(g_pow(12)), F192::from(g_pow(5))];
+    let want = [F128::from(g_pow(12)), F128::from(g_pow(5))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     // 2 DEREFs per range check (4 checks) + 2 publishing stores.
     assert_eq!(mix(src, want)[3], 10, "DEREF count");
@@ -55,7 +55,7 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    let want = [F192::from(g_pow(300)), F192::from(g_pow(300))];
+    let want = [F128::from(g_pow(300)), F128::from(g_pow(300))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("unwritten touches verify");
 }
@@ -71,7 +71,7 @@ fn range_check_complement_sizes_the_memory() {
             "def main():\n    x = GEN ** 0\n    assert log x < {k}\n    p = 1\n    p[1] = x\n    p[GEN] = x\n    return\n"
         );
         let program = compile(&parse(&src).expect("parse"));
-        let want = [F192::from(g_pow(0)); 2];
+        let want = [F128::from(g_pow(0)); 2];
         let (proof, stats) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         assert_eq!(stats.log_mem, log_mem, "bound {k}");
         verify(&program, &want, &proof).unwrap_or_else(|e| panic!("bound {k}: {e:?}"));
@@ -94,7 +94,7 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    let want = [F192::from(F64(5)), F192::from(F64(7))];
+    let want = [F128::from(F64(5)), F128::from(F64(7))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     // 6 iterations × 2 range-check DEREFs, plus call/publish plumbing.
     assert!(mix(src, want)[3] >= 12, "at least the 12 range-check DEREFs");
@@ -115,7 +115,7 @@ fn range_check_empty_bound_rejected() {
 fn range_check_bound_past_the_prover_is_an_error() {
     let src = "def main():\n    x = GEN ** 5\n    assert log x < 268435472\n    return\n";
     let program = compile(&parse(src).expect("parse"));
-    match program.execute([F192::ZERO; 2]) {
+    match program.execute([F128::ZERO; 2]) {
         Err(err) => assert!(
             matches!(err.fault, leanvm_core::cpu::Fault::WildPointer { .. }),
             "{err}"
@@ -142,8 +142,8 @@ def main():
     return
 ";
     let mut program = compile(&parse(src).expect("parse"));
-    program.set_witness("n", vec![vec![F192::from(g_pow(5000))]]);
-    let want = [F192::from(g_pow(3)); 2];
+    program.set_witness("n", vec![vec![F128::from(g_pow(5000))]]);
+    let want = [F128::from(g_pow(3)); 2];
     let (proof, stats) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     assert_eq!(stats.log_mem, 13);
     verify(&program, &want, &proof).expect("hinted g-power range checks verify");
@@ -188,8 +188,8 @@ def main():
     return
 ";
     let mut program = compile(&parse(src).expect("parse"));
-    program.set_witness("n", vec![vec![F192::from(g_pow(6))]]);
-    let want = [F192::from(g_pow(5)), F192::from(g_pow(6))];
+    program.set_witness("n", vec![vec![F128::from(g_pow(6))]]);
+    let want = [F128::from(g_pow(5)), F128::from(g_pow(6))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("runtime-bound range check verifies");
 }

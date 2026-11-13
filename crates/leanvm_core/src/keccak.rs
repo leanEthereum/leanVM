@@ -19,7 +19,7 @@
 use crate::transcript::ProverState;
 use keccak_gkr::witness::{BLOCK, block_lanes};
 use keccak_gkr::{Openings, OutputClaim, Shape, Witness};
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 use primitives::hash::STATE_LANES;
 
 /// Rounds between two committed states.
@@ -81,9 +81,9 @@ pub const fn cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); STATE_CEL
 }
 
 /// The 25 lanes the thirteen state cells `cell(0..13)` hold in a layout.
-pub(crate) fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F192) -> [u64; STATE_LANES] {
+pub(crate) fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F128) -> [u64; STATE_LANES] {
     // The layout is a constant, so the loop compiles to straight-line moves.
-    fn read<const ODD: bool>(cell: impl Fn(usize) -> F192) -> [u64; STATE_LANES] {
+    fn read<const ODD: bool>(cell: impl Fn(usize) -> F128) -> [u64; STATE_LANES] {
         let mut s = [0; STATE_LANES];
         for c in 0..STATE_CELLS {
             let (lo, hi) = const { cell_lanes(ODD) }[c];
@@ -100,18 +100,18 @@ pub(crate) fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F192) -> [u64; S
     if odd { read::<true>(cell) } else { read::<false>(cell) }
 }
 
-/// The thirteen canonical state cells holding 25 lanes in a layout, a free lane zero.
-pub(crate) fn cells_of_state(s: &[u64; STATE_LANES], odd: bool) -> [F192; STATE_CELLS] {
+/// The thirteen state cells holding 25 lanes in a layout, a free lane zero.
+pub(crate) fn cells_of_state(s: &[u64; STATE_LANES], odd: bool) -> [F128; STATE_CELLS] {
     let lanes = cell_lanes(odd);
     std::array::from_fn(|c| {
         let (lo, hi) = lanes[c];
-        F192::new(lo.map_or(0, |l| s[l]), hi.map_or(0, |h| s[h]), 0)
+        F128::new(lo.map_or(0, |l| s[l]), hi.map_or(0, |h| s[h]))
     })
 }
 
 /// What a `KECCAK` instruction writes, given the cells it reads.
 #[cfg(test)]
-pub(crate) fn permute_cells(cells: &[F192; STATE_CELLS], in_odd: bool, out_odd: bool) -> [F192; STATE_CELLS] {
+pub(crate) fn permute_cells(cells: &[F128; STATE_CELLS], in_odd: bool, out_odd: bool) -> [F128; STATE_CELLS] {
     let mut s = state_of_cells(in_odd, |c| cells[c]);
     primitives::hash::keccak_f(&mut s);
     cells_of_state(&s, out_odd)
@@ -262,7 +262,7 @@ mod tests {
             // What the columns riding the spare slots left there is none of the reduction's
             // business, but both openings fold it, so the two runs have to see the same.
             q_keccak[states..].fill(f(0x5151_5151));
-            let point = (0..n_steps_log(n)).map(|i| F192::new(3 + i as u64, 5, 7)).collect();
+            let point = (0..n_steps_log(n)).map(|i| F128::new(3 + i as u64, 5)).collect();
             let output = OutputClaim::of_inputs(shape(n), &instances, point);
             let mut ps = ProverState::from_label(b"blocks");
             let deferred = (witness.prove(&mut ps, &q_keccak, &output), ps.into_proof());
@@ -290,16 +290,16 @@ mod tests {
             padded.resize(blocks * RATE + 8, 0);
             padded[n] ^= PAD_FIRST;
             padded[blocks * RATE - 1] ^= PAD_LAST;
-            let cells: Vec<F192> = padded
+            let cells: Vec<F128> = padded
                 .as_chunks::<16>()
                 .0
                 .iter()
                 .map(|c| {
                     let w = |k: usize| u64::from_le_bytes(c[8 * k..8 * k + 8].try_into().unwrap());
-                    F192::new(w(0), w(1), 0)
+                    F128::new(w(0), w(1))
                 })
                 .collect();
-            let mut state = [F192::ZERO; STATE_CELLS];
+            let mut state = [F128::ZERO; STATE_CELLS];
             for k in 0..blocks {
                 for (j, cell) in state.iter_mut().take(9).enumerate() {
                     *cell += cells[17 * k / 2 + j];

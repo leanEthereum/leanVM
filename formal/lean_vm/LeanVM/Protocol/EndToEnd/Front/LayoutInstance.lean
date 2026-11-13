@@ -12,10 +12,9 @@ public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 public import LeanVM.Protocol.LeanIsa.Read
 public import LeanVM.Protocol.Verifier
-public import Statement.LeanVm
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 
 /-!
@@ -31,7 +30,7 @@ vector:
   (`bytecodeColumn`, `FixedColumns.lean`) as a list: `2 ^ (logSize + 4)` words, instruction bits
   low, slot bits high, sixteen slots per instruction, the entry at slots 3 to 13.
 * `refCol c`: the verifier's global column number of the instance's column `c`, its position in the
-  instance's global order (`columns`): the memory columns `0 to 3`, `BFCNT` `4`, `QKECCAK` `5`, then
+  instance's global order (`columns`): the memory columns `0 to 2`, `BFCNT` `3`, `QKECCAK` `4`, then
   the six opcode tables' columns in order. `refCol_*` give the named columns.
 * `buildLayout_eq`: the layout is built from the announced rows (`tableRows`) exactly when the
   sizes are in the windows `buildLayout` checks (`LayoutOk`), and is then `verifierLayout prog s`,
@@ -130,16 +129,16 @@ theorem logHeights_tableRows (s : Sizes) :
 order. -/
 def refCol (c : Col) : ℕ := columns.idxOf c
 
-/-- The instance has `165` columns, as the verifier. -/
-theorem length_columns : columns.length = 165 := by decide +kernel
+/-- The instance has `158` columns, as the verifier. -/
+theorem length_columns : columns.length = 158 := by decide +kernel
 
 /-- Every column is in the global order. -/
 theorem mem_columns (c : Col) : c ∈ columns := by
   simp only [columns, List.mem_flatMap, List.mem_finRange, List.mem_map, true_and]
   exact ⟨c.1, c.2, rfl⟩
 
-/-- A global column number is below `165`. -/
-theorem refCol_lt (c : Col) : refCol c < 165 :=
+/-- A global column number is below `158`. -/
+theorem refCol_lt (c : Col) : refCol c < 158 :=
   length_columns ▸ List.idxOf_lt_length_of_mem (mem_columns c)
 
 /-- The column at a global number. -/
@@ -147,9 +146,9 @@ theorem getElem_columns_pyCol (c : Col) :
     columns[refCol c]'(length_columns ▸ refCol_lt c) = c :=
   List.getElem_idxOf _
 
-/-- The memory columns are global columns `0 to 3`: `MEMORY_0, MEMORY_1, MEMORY_2` and
+/-- The memory columns are global columns `0 to 2`: `MEMORY_0, MEMORY_1` and
 `MEMORY_FINAL_COUNTERS`. -/
-theorem refCol_memCol (i : Fin 4) : refCol (memCol i) = i := by
+theorem refCol_memCol (i : Fin 3) : refCol (memCol i) = i := by
   revert i; decide +kernel
 
 /-- `BFCNT` is `BYTECODE_FINAL_COUNTERS`. -/
@@ -224,8 +223,8 @@ theorem buildLayout_eq (prog : LeanIsaProgram) (s : Sizes) :
 /-! ## The column sizes and the blocks -/
 
 /-- The instance's widths, table by table. -/
-theorem width_vals : width 0 = 4 ∧ width 1 = 1 ∧ width 2 = 1 ∧ width 3 = 15 ∧ width 4 = 15 ∧
-    width 5 = 8 ∧ width 6 = 15 ∧ width 7 = 14 ∧ width 8 = 92 := by
+theorem width_vals : width 0 = 3 ∧ width 1 = 1 ∧ width 2 = 1 ∧ width 3 = 13 ∧ width 4 = 13 ∧
+    width 5 = 7 ∧ width 6 = 14 ∧ width 7 = 14 ∧ width 8 = 92 := by
   decide +kernel
 
 /-- A function of the table, along the global order. -/
@@ -261,28 +260,28 @@ theorem getD_pyKappas (prog : LeanIsaProgram) (s : Sizes) (c : Col) :
     exact refCol_lt c
   rw [refKappas_eq, List.getD_eq_getElem _ _ h, List.getElem_map, getElem_columns_pyCol]
 
-/-- The verifier has `165` columns. -/
-theorem length_pyKappas (prog : LeanIsaProgram) (s : Sizes) : (refKappas prog s).length = 165 := by
+/-- The verifier has `158` columns. -/
+theorem length_pyKappas (prog : LeanIsaProgram) (s : Sizes) : (refKappas prog s).length = 158 := by
   rw [refKappas_eq, List.length_map, length_columns]
 
-/-- The `q_keccak` slot of a global column below `165`: lane `l`'s for input lane `l` (global
-columns `88 … 112`), `50 + k` for the `KECCAK` table's column `k < 14` (global `73 … 86`), none
+/-- The `q_keccak` slot of a global column below `158`: lane `l`'s for input lane `l` (global
+columns `81 … 105`), `50 + k` for the `KECCAK` table's column `k < 14` (global `66 … 79`), none
 otherwise. Checked in the kernel. -/
-theorem keccakSlot_lt : ∀ c : Fin 165,
-    keccakSlot c = if 88 ≤ c.val ∧ c.val < 113 then some (c.val - 88)
-      else if 73 ≤ c.val ∧ c.val < 87 then some (c.val - 23) else none := by
+theorem keccakSlot_lt : ∀ c : Fin 158,
+    keccakSlot c = if 81 ≤ c.val ∧ c.val < 106 then some (c.val - 81)
+      else if 66 ≤ c.val ∧ c.val < 80 then some (c.val - 16) else none := by
   decide +kernel
 
-/-- The output lanes are global columns `113 … 137`. -/
-theorem keccakOutputColumns_eq : keccakOutputColumns = (List.range 25).map (113 + ·) := by
+/-- The output lanes are global columns `106 … 130`. -/
+theorem keccakOutputColumns_eq : keccakOutputColumns = (List.range 25).map (106 + ·) := by
   decide +kernel
 
-/-- The instance's input lanes are global columns `88 … 112`, its output lanes `113 … 137`, its
-spare columns `73 … 86`. -/
-theorem refCol_lanes : ∀ c : Col, (IsLane c ∧ ¬ IsOut c ↔ 88 ≤ refCol c ∧ refCol c < 113) ∧
-    (IsOut c ↔ 113 ≤ refCol c ∧ refCol c < 138) ∧
-    (IsSpare c ↔ 73 ≤ refCol c ∧ refCol c < 87) ∧
-    (IsVirtual c → refCol c = 73 + c.2.val) := by
+/-- The instance's input lanes are global columns `81 … 105`, its output lanes `106 … 130`, its
+spare columns `66 … 79`. -/
+theorem refCol_lanes : ∀ c : Col, (IsLane c ∧ ¬ IsOut c ↔ 81 ≤ refCol c ∧ refCol c < 106) ∧
+    (IsOut c ↔ 106 ≤ refCol c ∧ refCol c < 131) ∧
+    (IsSpare c ↔ 66 ≤ refCol c ∧ refCol c < 80) ∧
+    (IsVirtual c → refCol c = 66 + c.2.val) := by
   decide +kernel
 
 /-- The `q_keccak` slot of a global column: its `qSlot` for a virtual column but an output lane
@@ -319,12 +318,12 @@ theorem mem_keccakOutputColumns_pyCol (c : Col) :
   simp only [List.mem_map, List.mem_range]
   constructor
   · rintro ⟨l, hl, he⟩; omega
-  · intro h; exact ⟨refCol c - 113, by omega, by omega⟩
+  · intro h; exact ⟨refCol c - 106, by omega, by omega⟩
 
 /-- The verifier's committed columns (`blocks` in `build_layout`) are the instance's, in global
 order. -/
 theorem blockCols_eq :
-    (List.range 165).filter (fun c ↦ (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns) =
+    (List.range 158).filter (fun c ↦ (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns) =
       committedColumns.map refCol := by
   decide +kernel
 

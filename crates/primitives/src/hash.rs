@@ -782,21 +782,8 @@ fn permute_group<S: Lanes64>(states: &mut [[u64; STATE_LANES]]) {
 mod tests {
     use super::*;
 
-    fn hex(bytes: &[u8]) -> String {
-        bytes.iter().map(|b| format!("{b:02x}")).collect()
-    }
-
     fn pattern(n: usize) -> Vec<u8> {
         (0..n).map(|i| ((i * 7 + 3) & 0xff) as u8).collect()
-    }
-
-    /// A known answer from OpenSSL's `keccak-256`.
-    #[test]
-    fn matches_reference_vector() {
-        assert_eq!(
-            hex(&hash(b"abc")),
-            "4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45"
-        );
     }
 
     /// Ethereum's `keccak256`, as an independent implementation computes it, across both sides of

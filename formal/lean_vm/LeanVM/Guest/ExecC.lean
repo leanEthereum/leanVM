@@ -29,14 +29,14 @@ def codeFrom (f : CompiledFunction) (a : ℕ) : List OffsetInstruction :=
   (f.chunks.drop (a / chunkSize)).flatten.drop (a % chunkSize)
 
 /-- `execWin`, the window's code read by `codeFrom`. -/
-noncomputable def execWinC (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
+def execWinC (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
     (b : ℕ) :
     Result :=
   pass F f.entryPc f.instructionCount ((codeFrom f a).take (b - a)) a (some (Cur.init a (envOf
       env))) [] [] 0
 
 /-- `execWinS`, the window's code read by `codeFrom`. -/
-noncomputable def execWinCS (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
+def execWinCS (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
     (seeds : List ℕ) (b : ℕ) : Result :=
   pass F f.entryPc f.instructionCount ((codeFrom f a).take (b - a)) a (some (Cur.init a (envOf
       env))) (seeds.map fun t ↦ (t, envOf env)) [] 0
@@ -82,9 +82,6 @@ theorem execWinC_eq (j : ℕ) (F : Facts) (a : ℕ) (env : List (ℕ × Sym)) (b
     execWinC F (fnOf j) a env b = execWin F (fnOf j) a env b := by
   unfold execWinC execWin codeFrom CompiledFunction.code
   rw [← drop_flatten_chunked (by decide) (fnOf_wellChunked j)]
-
-theorem execWinCS_nil (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
-    execWinCS F f a env [] b = execWinC F f a env b := rfl
 
 theorem execWinCS_eq (j : ℕ) (F : Facts) (a : ℕ) (env : List (ℕ × Sym)) (seeds : List ℕ) (b : ℕ) :
     execWinCS F (fnOf j) a env seeds b = execWinS F (fnOf j) a env seeds b := by

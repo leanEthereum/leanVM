@@ -6,7 +6,7 @@ public import LeanVM.Cost.Decoder.Xmss
 /-!
 # Bounds on the guest decoder's prices: a leanXMSS signature
 
-The reader of a leanXMSS signature off `__loop2`'s iteration frame, off its tables as arrays
+The reader of a leanXMSS signature off `main_loop2`'s iteration frame, off its tables as arrays
 (`Cost/Decoder/Xmss.lean`: `xmssSigOfNC` is `xmssSigOfA`, `Guest/Fast/Xmss.lean`), in the price
 `S` of an application of the frame:
 

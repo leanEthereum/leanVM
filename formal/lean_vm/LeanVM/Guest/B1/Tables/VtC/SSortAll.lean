@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.SSortAll
 
-  `verify_tables`' statements `0 ..< 566` hold on the honest valuation: the capacity and claims
+  `verify_tables`' statements `0 ..< 563` hold on the honest valuation: the capacity and claims
   copied, `kappa_base` read, the groups' keys and sizes stored, both sides' ranks certified, every
   push and count block's offset its side's `stackOffsets` offset.
 -/
@@ -11,11 +11,11 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SSort
 
 /-!
-# The block certification's statements, honestly (G:2109-2171)
+# The block certification's statements, honestly (G:2234-2277)
 
 `vtS_sort`: on a memory holding `dims_g`'s `g^log_mem` and heights, the exponent tables at
 `g_squares` and the four group buffers' honest words (`vtGKeyW`, `vtGSizeW`, `vtGBaseW`, `vtGOrdW`),
-defined below `2^14`, statements `0 ..< 566` hold; the copies and `kappa_base` are the arguments'
+defined below `2^14`, statements `0 ..< 563` hold; the copies and `kappa_base` are the arguments'
 and `dims_g`'s, the group buffers the allocator's, and the blocks' offsets `g^stackOffsets`
 (`vtc_side_offsets`: the soundness's side argument, from the ranks' facts).
 -/
@@ -53,16 +53,16 @@ its ranks' facts, the groups' keys and sizes, the bases and steps, every block's
 `stackOffsets`'s. -/
 theorem vtc_side_offsets {rd : Reader} {σ : Val} {lm : ℕ} {τ : ℕ → ℕ}
     (hκ34 : ∀ k < 15, vtKap lm τ (vtB0 k) < 34)
-    (hG : ∀ k < 15, (∃ key, LoadHolds rd (σ (.n 36)) (vtGi k) key ∧
-      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 254)) ∧
-      LoadHolds rd (σ (.n 37)) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))))
-    (hB : ∀ k < 15, LoadHolds rd (σ (.n 38)) (vtGi k)
+    (hG : ∀ k < 15, (∃ key, LoadHolds rd (σ (.n 33)) (vtGi k) key ∧
+      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 247)) ∧
+      LoadHolds rd (σ (.n 34)) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))))
+    (hB : ∀ k < 15, LoadHolds rd (σ (.n 35)) (vtGi k)
         (σ (.n (vtBoffData.getD k default).2.2.2)) ∧
       σ (.n ((vtBoffData.getD k default).2.2.2 - 1)) = gen ^ 2 ^ vtKap lm τ (vtB0 k) ∧
       ∀ i < vtLen k - 1, σ (.n ((vtBoffData.getD k default).2.2.2 + 1 + i)) =
         σ (.n ((vtBoffData.getD k default).2.2.2 + i)) *
           σ (.n ((vtBoffData.getD k default).2.2.2 - 1)))
-    (hsideT : ∀ e < 24, LoadHolds rd (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0 0)) :
+    (hsideT : ∀ e < 24, LoadHolds rd (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0)) :
     ∀ (base G0 kOff m n v0 s : ℕ), base + n ≤ 153 → s < 3 →
     (∀ r < m, VtRankFacts rd σ v0 s r) →
     (∀ e < 24, vtGroupSide e = s → G0 ≤ e ∧ e < G0 + m) →
@@ -151,22 +151,22 @@ theorem vt_kbList_getD {lm : ℕ} {τ : ℕ → ℕ} {i : ℕ} (hi : i < 7) :
     simp
 
 set_option maxRecDepth 100000 in
-/-- **`verify_tables`' statements `0 ..< 566`, honestly.** -/
+/-- **`verify_tables`' statements `0 ..< 563`, honestly.** -/
 theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ : ℕ → ℕ}
     (hlm : lm ≤ 32) (hτ : ∀ t < 6, τ t < 33)
     (hdims : TbReadsAt rd (σv (.n 10)) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
     (hE : ExpTablesAt rd (σv (.n 12)))
-    (hkeyW : TbReadsAt rd (w 36) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 37) (vtGSizeW lm τ))
-    (hbaseW : TbReadsAt rd (w 38) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 39) (vtGOrdW lm τ)) :
-    (∀ s ∈ (vtPre.drop 0).take 566, VSH (coreProgram.Rel rd) rd σv s) ∧
-      (∀ i < 5, σv (.n (20 + i)) = σv (.n i)) ∧ (∀ i < 3, σv (.n (25 + i)) = σv (.n (17 + i))) ∧
-      (∀ i < 8, σv (.n (28 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
-      (∀ i < 4, σv (.n (36 + i)) = w (36 + i)) ∧
+    (hkeyW : TbReadsAt rd (w 33) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 34) (vtGSizeW lm τ))
+    (hbaseW : TbReadsAt rd (w 35) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 36) (vtGOrdW lm τ)) :
+    (∀ s ∈ (vtPre.drop 0).take 563, VSH (coreProgram.Rel rd) rd σv s) ∧
+      (∀ i < 5, σv (.n (20 + i)) = σv (.n i)) ∧
+      (∀ i < 8, σv (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
+      (∀ i < 4, σv (.n (33 + i)) = w (33 + i)) ∧
       (∀ x < 54, σv (.n (vtBoffV x)) =
         gen ^ (stackOffsets ((List.range 54).map (vtKap lm τ))).1.getD x 0) ∧
       (∀ x < 45, σv (.n (vtBoffV (108 + x))) =
         gen ^ (stackOffsets ((List.range 45).map fun c ↦ vtKap lm τ (108 + c))).1.getD x 0) := by
-  obtain ⟨hsq, hrk, hsd⟩ := hE
+  obtain ⟨hsq, hrk, hsd, -⟩ := hE
   -- the prologue
   have hgd : ∀ (n : ℕ) (s : Stmt), tbStmtsEqb [s] ((vtAt n).take 1) = true →
       GoodS rd vtSL w σv (fixNe s) := fun n s h ↦ vt_goodAt hl n s h
@@ -178,47 +178,41 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     · exact vt_copyAt hl 2 (by decide +kernel)
     · exact vt_copyAt hl 3 (by decide +kernel)
     · exact vt_copyAt hl 4 (by decide +kernel)
-  have hcc : ∀ i < 3, σv (.n (25 + i)) = σv (.n (17 + i)) := by
+  have hal : ∀ i < 4, σv (.n (33 + i)) = w (33 + i) := by
     intro i hi
     interval_cases i
-    · exact vt_copyAt hl 5 (by decide +kernel)
-    · exact vt_copyAt hl 6 (by decide +kernel)
-    · exact vt_copyAt hl 7 (by decide +kernel)
-  have hal : ∀ i < 4, σv (.n (36 + i)) = w (36 + i) := by
-    intro i hi
-    interval_cases i
+    · exact vt_allocAt hl 13 (k := 24) (by decide +kernel)
+    · exact vt_allocAt hl 14 (k := 24) (by decide +kernel)
+    · exact vt_allocAt hl 15 (k := 24) (by decide +kernel)
     · exact vt_allocAt hl 16 (k := 24) (by decide +kernel)
-    · exact vt_allocAt hl 17 (k := 24) (by decide +kernel)
-    · exact vt_allocAt hl 18 (k := 24) (by decide +kernel)
-    · exact vt_allocAt hl 19 (k := 24) (by decide +kernel)
   -- `kappa_base`
   have hdimsL : ∀ i < 7, LoadHolds rd (σv (.n 10)) i (gen ^ ([lm] ++ vtTauList τ).getD i 0) := by
     intro i hi
     have := hdims i (by simp [vtTauList]; omega)
     rwa [← List.getD_eq_getElem _ 0, vt_kbList_getD hi] at this
-  have hkbR : ∀ i < 7, σv (.n (29 + i)) = gen ^ ([lm] ++ vtTauList τ).getD i 0 ∧
-      VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n (29 + i)) (.n 10) i)) := by
+  have hkbR : ∀ i < 7, σv (.n (26 + i)) = gen ^ ([lm] ++ vtTauList τ).getD i 0 ∧
+      VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n (26 + i)) (.n 10) i)) := by
     intro i hi
     interval_cases i
-    · exact vt_readAt hl 9 (by decide +kernel) (by decide +kernel) (hdimsL 0 (by norm_num))
-    · exact vt_readAt hl 10 (by decide +kernel) (by decide +kernel) (hdimsL 1 (by norm_num))
-    · exact vt_readAt hl 11 (by decide +kernel) (by decide +kernel) (hdimsL 2 (by norm_num))
-    · exact vt_readAt hl 12 (by decide +kernel) (by decide +kernel) (hdimsL 3 (by norm_num))
-    · exact vt_readAt hl 13 (by decide +kernel) (by decide +kernel) (hdimsL 4 (by norm_num))
-    · exact vt_readAt hl 14 (by decide +kernel) (by decide +kernel) (hdimsL 5 (by norm_num))
-    · exact vt_readAt hl 15 (by decide +kernel) (by decide +kernel) (hdimsL 6 (by norm_num))
-  have hkb : ∀ i < 8, σv (.n (28 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
+    · exact vt_readAt hl 6 (by decide +kernel) (by decide +kernel) (hdimsL 0 (by norm_num))
+    · exact vt_readAt hl 7 (by decide +kernel) (by decide +kernel) (hdimsL 1 (by norm_num))
+    · exact vt_readAt hl 8 (by decide +kernel) (by decide +kernel) (hdimsL 2 (by norm_num))
+    · exact vt_readAt hl 9 (by decide +kernel) (by decide +kernel) (hdimsL 3 (by norm_num))
+    · exact vt_readAt hl 10 (by decide +kernel) (by decide +kernel) (hdimsL 4 (by norm_num))
+    · exact vt_readAt hl 11 (by decide +kernel) (by decide +kernel) (hdimsL 5 (by norm_num))
+    · exact vt_readAt hl 12 (by decide +kernel) (by decide +kernel) (hdimsL 6 (by norm_num))
+  have hkb : ∀ i < 8, σv (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
     intro i hi
     rcases i with _ | i
-    · rw [vt_constAt hl 8 (e := word 1 0 0) (by decide +kernel), tb_word_one]; simp
+    · rw [vt_constAt hl 5 (e := word 1 0) (by decide +kernel), tb_word_one]; simp
     · have := (hkbR i (by omega)).1
-      rw [show 28 + (i + 1) = 29 + i by omega, this]
+      rw [show 25 + (i + 1) = 26 + i by omega, this]
       rfl
-  have hpro : ∀ s ∈ (vtPre.drop 0).take 21, VSH (coreProgram.Rel rd) rd σv s := by
-    refine vt_blockR hl 0 21 [.atom (.load (.n 29) (.n 10) 0), .atom (.load (.n 30) (.n 10) 1),
-      .atom (.load (.n 31) (.n 10) 2), .atom (.load (.n 32) (.n 10) 3),
-      .atom (.load (.n 33) (.n 10) 4), .atom (.load (.n 34) (.n 10) 5),
-      .atom (.load (.n 35) (.n 10) 6)] (by decide +kernel) ?_
+  have hpro : ∀ s ∈ (vtPre.drop 0).take 18, VSH (coreProgram.Rel rd) rd σv s := by
+    refine vt_blockR hl 0 18 [.atom (.load (.n 26) (.n 10) 0), .atom (.load (.n 27) (.n 10) 1),
+      .atom (.load (.n 28) (.n 10) 2), .atom (.load (.n 29) (.n 10) 3),
+      .atom (.load (.n 30) (.n 10) 4), .atom (.load (.n 31) (.n 10) 5),
+      .atom (.load (.n 32) (.n 10) 6)] (by decide +kernel) ?_
     intro s hs _
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
     rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl
@@ -232,7 +226,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     rw [vtKv, hkb _ (hsrc k hk), ← pow_add, vtKap, vtAdj]
   have hb153 : ∀ k < 15, vtB0 k < 153 := by decide +kernel
   have hκ34 : ∀ k < 15, vtKap lm τ (vtB0 k) < 34 := fun k hk ↦ vt_kap_lt lm τ hlm hτ (hb153 k hk)
-  have hrkK : ∀ κ < 34, LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 254)) := by
+  have hrkK : ∀ κ < 34, LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 247)) := by
     intro κ hκ
     have r1 := hrk κ (by simp [rankKeysList]; exact hκ)
     rw [tb_loadHolds_mul_gen_pow] at r1 ⊢
@@ -243,22 +237,22 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     have s1 := hsq κ (by simp [gSquaresList]; exact hκ)
     rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]
     simpa [gSquaresList] using s1
-  have e36 : σv (.n 36) = w 36 := hal 0 (by norm_num)
-  have e37 : σv (.n 37) = w 37 := hal 1 (by norm_num)
-  have e38 : σv (.n 38) = w 38 := hal 2 (by norm_num)
-  have e39 : σv (.n 39) = w 39 := hal 3 (by norm_num)
+  have e36 : σv (.n 33) = w 33 := hal 0 (by norm_num)
+  have e37 : σv (.n 34) = w 34 := hal 1 (by norm_num)
+  have e38 : σv (.n 35) = w 35 := hal 2 (by norm_num)
+  have e39 : σv (.n 36) = w 36 := hal 3 (by norm_num)
   rw [← e36] at hkeyW
   rw [← e37] at hszW
   rw [← e38] at hbaseW
   rw [← e39] at hordW
   have hgi24 : ∀ k < 15, vtGi k < 24 := by decide +kernel
-  have hkeyG : ∀ k < 15, LoadHolds rd (σv (.n 36)) (vtGi k)
-      (gen ^ (vtKap lm τ (vtB0 k) * 254) * (gen ^ vtB0 k)⁻¹) := by
+  have hkeyG : ∀ k < 15, LoadHolds rd (σv (.n 33)) (vtGi k)
+      (gen ^ (vtKap lm τ (vtB0 k) * 247) * (gen ^ vtB0 k)⁻¹) := by
     intro k hk
     have := hkeyW (vtGi k) (by simp [vtGKeyW]; exact hgi24 k hk)
     simp only [vtGKeyW, List.getElem_map, List.getElem_range] at this
     exact this
-  have hszG : ∀ k < 15, LoadHolds rd (σv (.n 37)) (vtGi k)
+  have hszG : ∀ k < 15, LoadHolds rd (σv (.n 34)) (vtGi k)
       (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))) := by
     intro k hk
     have := hszW (vtGi k) (by simp [vtGSizeW]; exact hgi24 k hk)
@@ -267,16 +261,16 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
   have hgrp : ∀ k < 15, ∀ s ∈ (vtPre.drop (vtGrpA k)).take (vtGrpL k),
       VSH (coreProgram.Rel rd) rd σv s := fun k hk ↦
     vtc_grps hl hk (hkx k hk) (hrkK _ (hκ34 k hk)) (hsqK _ (hκ34 k hk)) (hkeyG k hk) (hszG k hk)
-  have hgP : ∀ s ∈ (vtPre.drop 21).take 92, VSH (coreProgram.Rel rd) rd σv s := by
+  have hgP : ∀ s ∈ (vtPre.drop 18).take 92, VSH (coreProgram.Rel rd) rd σv s := by
     have := forall_slices vtGrpA vtGrpL 9 (by decide) (fun k hk ↦ hgrp k (by omega))
-    rwa [show vtGrpA 0 = 21 from rfl, show ∑ k ∈ range 9, vtGrpL k = 92 by decide] at this
-  have hgC : ∀ s ∈ (vtPre.drop 342).take 64, VSH (coreProgram.Rel rd) rd σv s := by
+    rwa [show vtGrpA 0 = 18 from rfl, show ∑ k ∈ range 9, vtGrpL k = 92 by decide] at this
+  have hgC : ∀ s ∈ (vtPre.drop 339).take 64, VSH (coreProgram.Rel rd) rd σv s := by
     have := forall_slices (fun k ↦ vtGrpA (9 + k)) (fun k ↦ vtGrpL (9 + k)) 6 (by decide)
       (fun k hk ↦ hgrp (9 + k) (by omega))
-    rwa [show vtGrpA (9 + 0) = 342 from rfl,
+    rwa [show vtGrpA (9 + 0) = 339 from rfl,
       show ∑ k ∈ range 6, vtGrpL (9 + k) = 64 by decide] at this
   -- the exponent tables' sides
-  have hsideT : ∀ e < 24, LoadHolds rd (σv (.n 12)) (212 + e) (word (vtGroupSide e) 0 0) := by
+  have hsideT : ∀ e < 24, LoadHolds rd (σv (.n 12)) (212 + e) (word (vtGroupSide e) 0) := by
     intro e he
     have := hsd e (by simp [sideTabList]; exact he)
     rw [tb_loadHolds_mul_gen_pow] at this
@@ -284,7 +278,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     exact this
   -- one side's ranks
   have hside : ∀ s0 ∈ [0, 2], ∀ r < vtGm s0,
-      LoadHolds rd (σv (.n 12) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 212 (word s0 0 0) := by
+      LoadHolds rd (σv (.n 12) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 212 (word s0 0) := by
     intro s0 hs0 r hr
     have hp := vtPi_lt (lm := lm) (τ := τ) hr
     rw [tb_loadHolds_mul_gen_pow, Nat.add_comm]
@@ -295,8 +289,8 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hs0
     rcases hs0 with rfl | rfl <;> simp [vtG0, vtGm, vtGroupSide] at hp ⊢ <;> omega
   have hkeyR : ∀ s0 ∈ [0, 2], ∀ r < vtGm s0, LoadHolds rd
-      (σv (.n 36) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
-      (gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 r) * 254) *
+      (σv (.n 33) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
+      (gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 r) * 247) *
         (gen ^ blockGroupStart.getD (vtG0 s0 + vtPi lm τ s0 r) 0)⁻¹) := by
     intro s0 hs0 r hr
     have hp := vtPi_lt (lm := lm) (τ := τ) hr
@@ -308,7 +302,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     simp only [vtGKeyW, List.getElem_map, List.getElem_range] at this
     exact this
   have hszR : ∀ s0 ∈ [0, 2], ∀ r < vtGm s0, LoadHolds rd
-      (σv (.n 37) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
+      (σv (.n 34) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
       (gen ^ vtGsz lm τ (vtG0 s0 + vtPi lm τ s0 r)) := by
     intro s0 hs0 r hr
     have hp := vtPi_lt (lm := lm) (τ := τ) hr
@@ -320,7 +314,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     simp only [vtGSizeW, List.getElem_map, List.getElem_range] at this
     exact this
   have hbaseR : ∀ s0 ∈ [0, 2], ∀ r < vtGm s0, LoadHolds rd
-      (σv (.n 38) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
+      (σv (.n 35) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
       (gen ^ ∑ r' ∈ range r, vtGsz lm τ (vtG0 s0 + vtPi lm τ s0 r')) := by
     intro s0 hs0 r hr
     have hp := vtPi_lt (lm := lm) (τ := τ) hr
@@ -343,10 +337,10 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
       simp only [vtG0, show (2 : ℕ) ≠ 0 by norm_num, ↓reduceIte] at hrho ⊢
       rw [hrho, vtGP] at this
       simpa only [vtG0, show (2 : ℕ) ≠ 0 by norm_num, ↓reduceIte] using this
-  have hstepR : ∀ s0 ∈ [0, 2], ∀ r, r + 1 < vtGm s0 → ∃ d ≤ 8635,
-      gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 r) * 254) *
+  have hstepR : ∀ s0 ∈ [0, 2], ∀ r, r + 1 < vtGm s0 → ∃ d ≤ 8397,
+      gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 r) * 247) *
         (gen ^ blockGroupStart.getD (vtG0 s0 + vtPi lm τ s0 r) 0)⁻¹ =
-      gen ^ (d + 1) * (gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 (r + 1)) * 254) *
+      gen ^ (d + 1) * (gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 (r + 1)) * 247) *
         (gen ^ blockGroupStart.getD (vtG0 s0 + vtPi lm τ s0 (r + 1)) 0)⁻¹) := by
     intro s0 hs0 r hr
     have hp1 := vtPi_lt (lm := lm) (τ := τ) (s := s0) (r := r) (by omega)
@@ -379,23 +373,23 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     generalize vtKg lm τ (vtG0 s0 + vtPi lm τ s0 (r + 1)) = B at *
     generalize blockGroupStart.getD (vtG0 s0 + vtPi lm τ s0 r) 0 = a at *
     generalize blockGroupStart.getD (vtG0 s0 + vtPi lm τ s0 (r + 1)) 0 = b at *
-    refine ⟨A * 254 + b - (B * 254 + a) - 1, ?_, gpow_inv_step ?_⟩
+    refine ⟨A * 247 + b - (B * 247 + a) - 1, ?_, gpow_inv_step ?_⟩
     · rcases hcase with h | h
       · omega
-      · have : (B + 1) * 254 ≤ A * 254 := Nat.mul_le_mul_right _ h
+      · have : (B + 1) * 247 ≤ A * 247 := Nat.mul_le_mul_right _ h
         omega
     · rcases hcase with h | h
       · omega
-      · have : (B + 1) * 254 ≤ A * 254 := Nat.mul_le_mul_right _ h
+      · have : (B + 1) * 247 ≤ A * 247 := Nat.mul_le_mul_right _ h
         omega
-  have hk0 : ∀ gi : ℕ, gen ^ (vtKg lm τ gi * 254) * (gen ^ blockGroupStart.getD gi 0)⁻¹ ≠ 0 :=
+  have hk0 : ∀ gi : ℕ, gen ^ (vtKg lm τ gi * 247) * (gen ^ blockGroupStart.getD gi 0)⁻¹ ≠ 0 :=
     fun gi ↦ mul_ne_zero (gen_pow_ne_zero _) (inv_ne_zero (gen_pow_ne_zero _))
-  have hordP : ∀ r < 9, LoadHolds rd (σv (.n 39)) (0 + r) (gen ^ (vtG0 0 + vtPi lm τ 0 r)) := by
+  have hordP : ∀ r < 9, LoadHolds rd (σv (.n 36)) (0 + r) (gen ^ (vtG0 0 + vtPi lm τ 0 r)) := by
     intro r hr
     have := hordW r (by simp [vtGOrdW]; omega)
     simp only [vtGOrdW, List.getElem_map, List.getElem_range, hr, ↓reduceIte] at this
     simpa [vtG0] using this
-  have hordC : ∀ r < 6, LoadHolds rd (σv (.n 39)) (18 + r) (gen ^ (vtG0 2 + vtPi lm τ 2 r)) := by
+  have hordC : ∀ r < 6, LoadHolds rd (σv (.n 36)) (18 + r) (gen ^ (vtG0 2 + vtPi lm τ 2 r)) := by
     intro r hr
     have := hordW (18 + r) (by simp [vtGOrdW]; omega)
     simp only [vtGOrdW, List.getElem_map, List.getElem_range,
@@ -412,27 +406,27 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
   obtain ⟨rP, fP⟩ := side_ok (m := 9) hl hlow (by norm_num) (by norm_num) vtPush0_check
     vtPush_check (by decide +kernel) (by decide +kernel)
     (fun r ↦ vtG0 0 + vtPi lm τ 0 r)
-    (fun r ↦ gen ^ (vtKg lm τ (vtG0 0 + vtPi lm τ 0 r) * 254) *
+    (fun r ↦ gen ^ (vtKg lm τ (vtG0 0 + vtPi lm τ 0 r) * 247) *
       (gen ^ blockGroupStart.getD (vtG0 0 + vtPi lm τ 0 r) 0)⁻¹)
     (fun r ↦ vtGsz lm τ (vtG0 0 + vtPi lm τ 0 r)) hordP (hgiR 0 m0) (hside 0 m0) (hkeyR 0 m0)
     (hszR 0 m0) (hbaseR 0 m0) (hstepR 0 m0) (fun _ _ ↦ hk0 _)
   obtain ⟨rC, fC⟩ := side_ok (m := 6) hl hlow (by norm_num) (by norm_num) vtCount0_check
     vtCount_check (by decide +kernel) (by decide +kernel)
     (fun r ↦ vtG0 2 + vtPi lm τ 2 r)
-    (fun r ↦ gen ^ (vtKg lm τ (vtG0 2 + vtPi lm τ 2 r) * 254) *
+    (fun r ↦ gen ^ (vtKg lm τ (vtG0 2 + vtPi lm τ 2 r) * 247) *
       (gen ^ blockGroupStart.getD (vtG0 2 + vtPi lm τ 2 r) 0)⁻¹)
     (fun r ↦ vtGsz lm τ (vtG0 2 + vtPi lm τ 2 r)) hordC (hgiR 2 m2) (hside 2 m2) (hkeyR 2 m2)
     (hszR 2 m2) (hbaseR 2 m2) (hstepR 2 m2) (fun _ _ ↦ hk0 _)
   -- the groups' block offsets
   have hsS : ∀ k < 15, Atom.load (.n ((vtBoffData.getD k default).2.2.2 - 1))
       (.n ((vtBoffData.getD k default).2.2.2 - 2)) (vtBoffData.getD k default).2.2.1 ∉ vtSL ∧
-      Atom.load (.n (vtBoffData.getD k default).2.2.2) (.n 38) (vtGi k) ∉ vtSL ∧
+      Atom.load (.n (vtBoffData.getD k default).2.2.2) (.n 35) (vtGi k) ∉ vtSL ∧
       (vtBoffData.getD k default).2.1 + 2 < (vtBoffData.getD k default).2.2.2 ∧
       14 < (vtBoffData.getD k default).2.2.2 := by decide +kernel
   have hbo : ∀ k < 15, (∀ st ∈ vtBoffT (vtBoffData.getD k default).2.1
         (vtBoffData.getD k default).2.2.1 (vtGi k) (vtBoffData.getD k default).2.2.2 (vtLen k),
         VSH (coreProgram.Rel rd) rd σv st) ∧
-      LoadHolds rd (σv (.n 38)) (vtGi k) (σv (.n (vtBoffData.getD k default).2.2.2)) ∧
+      LoadHolds rd (σv (.n 35)) (vtGi k) (σv (.n (vtBoffData.getD k default).2.2.2)) ∧
       σv (.n ((vtBoffData.getD k default).2.2.2 - 1)) = gen ^ 2 ^ vtKap lm τ (vtB0 k) ∧
       ∀ i < vtLen k - 1, σv (.n ((vtBoffData.getD k default).2.2.2 + 1 + i)) =
         σv (.n ((vtBoffData.getD k default).2.2.2 + i)) *
@@ -461,41 +455,41 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
       simp [vtBoffT]; omega
     rw [hlen] at e
     exact (hbo k hk).1 s (by rw [e]; exact hs)
-  have hbP : ∀ s ∈ (vtPre.drop 270).take 72, VSH (coreProgram.Rel rd) rd σv s := by
+  have hbP : ∀ s ∈ (vtPre.drop 267).take 72, VSH (coreProgram.Rel rd) rd σv s := by
     have := forall_slices (fun k ↦ (vtBoffData.getD k default).1) (fun k ↦ vtLen k + 2) 9
       (by decide +kernel) (fun k hk ↦ hboS k (by omega))
-    rwa [show (vtBoffData.getD 0 default).1 = 270 from rfl,
+    rwa [show (vtBoffData.getD 0 default).1 = 267 from rfl,
       show ∑ k ∈ range 9, (vtLen k + 2) = 72 by decide +kernel] at this
-  have hbC : ∀ s ∈ (vtPre.drop 509).take 57, VSH (coreProgram.Rel rd) rd σv s := by
+  have hbC : ∀ s ∈ (vtPre.drop 506).take 57, VSH (coreProgram.Rel rd) rd σv s := by
     have := forall_slices (fun k ↦ (vtBoffData.getD (9 + k) default).1) (fun k ↦ vtLen (9 + k) + 2) 6
       (by decide +kernel) (fun k hk ↦ hboS (9 + k) (by omega))
-    rwa [show (vtBoffData.getD (9 + 0) default).1 = 509 from rfl,
+    rwa [show (vtBoffData.getD (9 + 0) default).1 = 506 from rfl,
       show ∑ k ∈ range 6, (vtLen (9 + k) + 2) = 57 by decide +kernel] at this
   -- the offsets
-  have hG : ∀ k < 15, (∃ key, LoadHolds rd (σv (.n 36)) (vtGi k) key ∧
-      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 254)) ∧
-      LoadHolds rd (σv (.n 37)) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))) := fun k hk ↦
+  have hG : ∀ k < 15, (∃ key, LoadHolds rd (σv (.n 33)) (vtGi k) key ∧
+      key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 247)) ∧
+      LoadHolds rd (σv (.n 34)) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))) := fun k hk ↦
     ⟨⟨_, hkeyG k hk, by rw [mul_assoc, inv_mul_cancel₀ (gen_pow_ne_zero _), mul_one]⟩, hszG k hk⟩
-  have hB : ∀ k < 15, LoadHolds rd (σv (.n 38)) (vtGi k)
+  have hB : ∀ k < 15, LoadHolds rd (σv (.n 35)) (vtGi k)
         (σv (.n (vtBoffData.getD k default).2.2.2)) ∧
       σv (.n ((vtBoffData.getD k default).2.2.2 - 1)) = gen ^ 2 ^ vtKap lm τ (vtB0 k) ∧
       ∀ i < vtLen k - 1, σv (.n ((vtBoffData.getD k default).2.2.2 + 1 + i)) =
         σv (.n ((vtBoffData.getD k default).2.2.2 + i)) *
           σv (.n ((vtBoffData.getD k default).2.2.2 - 1)) := fun k hk ↦ (hbo k hk).2
-  have hP := vtc_side_offsets hκ34 hG hB hsideT 0 0 0 9 54 114 0 (by norm_num) (by norm_num)
+  have hP := vtc_side_offsets hκ34 hG hB hsideT 0 0 0 9 54 111 0 (by norm_num) (by norm_num)
     (fun r hr ↦ (fP r hr).1) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
-  have hC := vtc_side_offsets hκ34 hG hB hsideT 108 18 9 6 45 411 2 (by norm_num) (by norm_num)
+  have hC := vtc_side_offsets hκ34 hG hB hsideT 108 18 9 6 45 408 2 (by norm_num) (by norm_num)
     (fun r hr ↦ (fC r hr).1) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
   simp only [Nat.zero_add] at hP
-  refine ⟨?_, hcp, hcc, hkb, hal, hP, hC⟩
-  have j1 := forall_slice_join (a := 0) (l1 := 21) (l2 := 92) hpro hgP
-  have j2 := forall_slice_join (a := 0) (l1 := 113) (l2 := 157) j1 rP
-  have j3 := forall_slice_join (a := 0) (l1 := 270) (l2 := 72) j2 hbP
-  have j4 := forall_slice_join (a := 0) (l1 := 342) (l2 := 64) j3 hgC
-  have j5 := forall_slice_join (a := 0) (l1 := 406) (l2 := 103) j4 rC
-  exact forall_slice_join (a := 0) (l1 := 509) (l2 := 57) j5 hbC
+  refine ⟨?_, hcp, hkb, hal, hP, hC⟩
+  have j1 := forall_slice_join (a := 0) (l1 := 18) (l2 := 92) hpro hgP
+  have j2 := forall_slice_join (a := 0) (l1 := 110) (l2 := 157) j1 rP
+  have j3 := forall_slice_join (a := 0) (l1 := 267) (l2 := 72) j2 hbP
+  have j4 := forall_slice_join (a := 0) (l1 := 339) (l2 := 64) j3 hgC
+  have j5 := forall_slice_join (a := 0) (l1 := 403) (l2 := 103) j4 rC
+  exact forall_slice_join (a := 0) (l1 := 506) (l2 := 57) j5 hbC
 
 end
 

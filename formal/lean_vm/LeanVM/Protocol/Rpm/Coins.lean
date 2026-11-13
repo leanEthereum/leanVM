@@ -6,10 +6,14 @@
   experiments of `Statement/LeanVm.lean`.
 -/
 
-import LeanVM.Protocol.LeanVMSound
-import Statement.LeanVm
-import Common.Prob
-import LeanVM.Protocol.WithHash
+module
+
+public import LeanVM.Protocol.LeanVMSound
+public import Statement.LeanVm
+public import Common.Prob
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # Adversaries with coins
@@ -144,7 +148,8 @@ noncomputable def experimentCoins (B : OracleComp (unifSpec + KeccakCalls) (Prog
 /-- **Knowledge soundness against adversaries with coins**: private coins do not help, so the
 bound of `knowledgeSoundnessRom_holds` holds for every adversary with coins of at most `Q` oracle
 calls. -/
-theorem knowledgeSoundness_coins {B : OracleComp (unifSpec + KeccakCalls) (ProgramAndInput × Proof)} {Q : ℕ}
+theorem knowledgeSoundness_coins
+    {B : OracleComp (unifSpec + KeccakCalls) (ProgramAndInput × Proof)} {Q : ℕ}
     (hB : Common.QueryCostAtMost B hashCalls Q) :
     Pr{let z ← experimentCoins B}[Breaks extractor z] ≤ soundnessError Q := by
   obtain ⟨A, hA, hle⟩ := exists_det (fun p ↦ do
@@ -258,3 +263,5 @@ theorem rpmRun_le_det {α β : Type} {B : OracleComp (unifSpec + Common.permutat
   rw [h, prEvent_map]
 
 end LeanVM.Rpm
+
+end

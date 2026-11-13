@@ -473,16 +473,6 @@ theorem novelFwd_novelInv {κ : ℕ} (y : Array K) (hy : y.size = 2 ^ κ) :
             size_novelInvStage]
   exact key κ le_rfl
 
-/-- **The forward transform is the statement's encoding**: `encode q u v` is entry `v` of the
-forward transform of lane `u`, for every column `v < 2^(κ+R)`, `κ = μ − 6 ≤ 64`. -/
-theorem encode_eq_novelFwd {μ R : ℕ} (hμ : μ - LeanVM.Parameters.Whir.initialFold ≤ 64)
-    (q : Vector K (2 ^ μ)) (u : ℕ) {v : ℕ}
-    (hv : v < 2 ^ (μ - LeanVM.Parameters.Whir.initialFold + R)) :
-    encode q u v = (novelFwd (μ - LeanVM.Parameters.Whir.initialFold) R (laneCoeffs q u)).getD v 0 := by
-  rw [novelFwd_getD hμ _ hv, encode]
-  refine Finset.sum_congr rfl fun j hj ↦ ?_
-  rw [laneCoeffs, getD_ofFn _ (Finset.mem_range.mp hj)]
-
 /-! ## Monomial to novel basis -/
 
 /-- **`toNovel` returns the novel-basis coefficients** of a polynomial whose values on `U_κ`

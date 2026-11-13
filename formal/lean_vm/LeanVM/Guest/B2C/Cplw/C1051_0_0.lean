@@ -16,29 +16,23 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop153`, window 0, part 0. -/
+/-- `__loop120`, window 0, part 0. -/
 theorem cw1051_0_0 : cplWin 1051 0 0 = true := by decide +kernel
 
-/-- `__loop154`, window 0, part 0. -/
+/-- `__loop121`, window 0, part 0. -/
 theorem cw1052_0_0 : cplWin 1052 0 0 = true := by decide +kernel
 
-/-- `__loop155`, window 0, part 0. -/
+/-- `__loop122`, window 0, part 0. -/
 theorem cw1053_0_0 : cplWin 1053 0 0 = true := by decide +kernel
 
-/-- `__loop156`, window 0, part 0. -/
+/-- `__loop123`, window 0, part 0. -/
 theorem cw1054_0_0 : cplWin 1054 0 0 = true := by decide +kernel
 
-/-- `__loop157`, window 0, part 0. -/
+/-- `__loop124`, window 0, part 0. -/
 theorem cw1055_0_0 : cplWin 1055 0 0 = true := by decide +kernel
 
-/-- `__loop158`, window 0, part 0. -/
+/-- `__loop125`, window 0, part 0. -/
 theorem cw1056_0_0 : cplWin 1056 0 0 = true := by decide +kernel
-
-/-- `__loop159`, window 0, part 0. -/
-theorem cw1057_0_0 : cplWin 1057 0 0 = true := by decide +kernel
-
-/-- `__loop160`, window 0, part 0. -/
-theorem cw1058_0_0 : cplWin 1058 0 0 = true := by decide +kernel
 
 theorem ok1051 : CplOk 1051 := by
   intro i hi k hk
@@ -99,26 +93,6 @@ theorem ok1056 : CplOk 1056 := by
     rw [hn] at hk
     interval_cases k
     · exact cw1056_0_0
-
-theorem ok1057 : CplOk 1057 := by
-  intro i hi k hk
-  have hc : (certOf 1057).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1057 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1057_0_0
-
-theorem ok1058 : CplOk 1058 := by
-  intro i hi k hk
-  have hc : (certOf 1058).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1058 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1058_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

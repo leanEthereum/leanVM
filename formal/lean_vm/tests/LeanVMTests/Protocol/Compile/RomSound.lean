@@ -17,10 +17,10 @@ the digest into the sponge's first state; the compiled verifier makes three quer
 proof (`toy_queryBound`): the hash, the seed's permutation and the squeeze, the scalar waiting in
 the sponge. Every accepted proof has a doomed boundary prefix (the empty history), so `romSound`
 bounds the acceptance probability of every adversary with `Q_A` queries by
-`(Q_A + 3) · (2^-192 + 5 (Q_A + 3) / 2^256)` (`toy_accept_le`), instantiated also at a concrete
+`(Q_A + 3) · (2^-128 + 5 (Q_A + 3) / 2^256)` (`toy_accept_le`), instantiated also at a concrete
 adversary. Negative checks: the trivial doom predicate is not a certificate (the verdict refutes
-doom: `Cert.final` is load-bearing); a 70-bit proof of work passes on the zero challenge, which
-is why the discount is `2^-min(b, 64)` and not `2^-b`; extraction from no answers gives zero
+doom: `Cert.final` is load-bearing); a 70-bit proof of work passes on a zero lane, which is
+why the discount is `2^-min(b, 64)` and not `2^-b`; extraction from no answers gives zero
 rows.
 -/
 
@@ -38,7 +38,7 @@ example (f : E → ℝ≥0∞) :
   sum_challengeOf_div f
 
 example (b : ℕ) :
-    (∑ u : KeccakState, ind (powOk b (challengeOf u) = true)) / Fintype.card KeccakState ≤
+    (∑ u : KeccakState, ind (powOk b (Keccak.lane u 2) = true)) / Fintype.card KeccakState ≤
       2⁻¹ ^ min b 64 :=
   sum_powOk_div_le b
 
@@ -215,11 +215,11 @@ theorem toy_doomed (z : Unit × Proof) (c : KeccakCalls.QueryCache) : Doomed toy
 
 /-- **The random-oracle theorem on the toy program.** Every adversary with at most `QA` queries
 makes the compiled toy verifier accept with probability at most
-`(QA + 3) · (2^-192 + 5 (QA + 3) / 2^256)`. -/
+`(QA + 3) · (2^-128 + 5 (QA + 3) / 2^256)`. -/
 theorem toy_accept_le (A : OracleComp KeccakCalls (Unit × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam toySeeds toyProg)}[z.1.2 = true] ≤
-      (QA + 3 : ℕ) * ((2 ^ 192 : ℝ≥0∞)⁻¹ + failBound toySeeds (QA + 3)) := by
+      (QA + 3 : ℕ) * ((2 ^ 128 : ℝ≥0∞)⁻¹ + failBound toySeeds (QA + 3)) := by
   have h := romSound toyProg toyCert toySeeds (fun _ ↦ toy_rootOk) _ toy_eps A QA hA 3
     toy_queryBound
   simp only [toy_doomed, and_true, card_E, Nat.cast_pow, Nat.cast_ofNat] at h
@@ -230,15 +230,14 @@ def toyAdv : OracleComp KeccakCalls (Unit × Proof) := pure ((), ⟨[0], []⟩)
 
 /-- The theorem at the concrete adversary. -/
 example : Pr{let z ← romExperiment toyAdv (verifierFam toySeeds toyProg)}[z.1.2 = true] ≤
-    (0 + 3 : ℕ) * ((2 ^ 192 : ℝ≥0∞)⁻¹ + failBound toySeeds (0 + 3)) :=
+    (0 + 3 : ℕ) * ((2 ^ 128 : ℝ≥0∞)⁻¹ + failBound toySeeds (0 + 3)) :=
   toy_accept_le _ 0 trivial
 
 /-! ## Negative checks -/
 
-/-- A 70-bit proof of work passes on the zero challenge: the predicate tests one 64-bit lane, so
-for `b > 64` its success fraction is `2^-64`, and the discount is `2^-min(b, 64)`. -/
-example : powOk 70 (E.ofLimbs 0 0 0) = true := by
-  simp [powOk, limb_ofLimbs, K.lane]
+/-- A 70-bit proof of work passes on a zero lane: the predicate tests one 64-bit lane, so for
+`b > 64` its success fraction is `2^-64`, and the discount is `2^-min(b, 64)`. -/
+example : powOk 70 0 = true := by decide
 
 /-- Extraction from no answers gives the zero row of the width. -/
 example (r : Digest) (ht w p : ℕ) : extract (lookH []) r ht w p = List.replicate w 0 := by

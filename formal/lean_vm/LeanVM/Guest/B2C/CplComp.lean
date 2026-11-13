@@ -384,7 +384,7 @@ theorem reach_zero (F : FnH L j fp σ es vs kfps hdr ck) : PartReach L j fp σ e
   obtain ⟨s0, hs0, -, hsub0⟩ := (checkWin_cpl (F.chk 0 (Nat.zero_le _))).2.2.2.1
   have hw0 := winOkC_of hc0
   simp only [winOkC, Bool.and_eq_true, Nat.beq_refl, Bool.cond_true] at hw0
-  have henv := hw0.2.2
+  have henv := hw0.2.1.2
   have hX := cxOk F.frame F.pows (index (segsW j 0)) (clocW (certOf j) 0) (nvOf (partStmts j 0 0) 0) none
   have hE : EnvHolds L (addressOfIndex fp) (envOf (certOf j).facts.env) := by
     refine envOf_holds fun p hp ↦ ?_

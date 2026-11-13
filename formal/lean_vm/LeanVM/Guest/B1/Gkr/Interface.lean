@@ -10,18 +10,21 @@ module
 public import LeanVM.Guest.B1.Gkr.Fs
 
 /-!
-# `verify_bus_gkr` (TRIAGE G #43): the interface
+# `verify_bus_gkr`: the interface
 
-`verify_bus_gkr(fs0, …, fs4, cursor, g_bus_mu, zeta)` (G:1763-1935) runs the bus's one GKR
-grand product over push, pull and count (`verifyGkrGrandProducts`, V:1379-1414): it reads the
-shared root and the count root (asserted nonzero, V:1490), runs one binary layer when the depth
-is odd and then layers of two levels (`gkrLayers`), writes the final point to `zeta`
-(`zeta[g^k]`, `k < depth`) and returns the carried capacity, the cursor past the words it read
-and the three trees' values at the point.
+`verify_bus_gkr(fs0, …, fs4, cursor, g_bus_mu, zeta, tabs)` (`lean_ethereum.py` at leanVM
+`010cfb18`, G below, G:1892-2073) runs the bus's one GKR grand product over the push, pull and
+count trees (`verifyGkrGrandProducts`): it reads the shared root and the count root (asserted
+nonzero), runs the root-most layer on its own (binary at an odd depth, else radix four, with
+`gkr_children`, `gkr_product_check`), then the radix-four layers of `verify_bus_gkr_loop0`
+(`gkrLayers`), writes the final point to `zeta` (`zeta[g^k]`, `k < depth`) and returns the carried
+capacity, the cursor past the words it read and a heap buffer of the three trees' values at the
+point.
 
-At depth `0` the guest drops the two roots waiting in the sponge (G:1785-1788) where the
-specification keeps them waiting; `verify_sub` only calls it at `depth = μ ≥ 16`, so the
-statement asks `g_bus_mu ≠ 1`.
+Every grind of the walk is of `0` bits at the deployed parameters (`grindingBits` of `2`, `3`, `4`
+and `5`), so `fs_grind_squeeze` is a plain permutation there and `tabs` goes unread. At depth `0`
+the guest still runs a radix-four root layer where the specification runs none; `verify_sub`
+only calls it at `depth = μ ≥ 16`, so the statement asks `g_bus_mu ≠ 1`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -37,17 +40,18 @@ def gkrPhase (depth : ℕ) : VerifierProgram (E × List E × List E) := do
   VerifierProgram.require (r.1 ≠ 0)
   return r
 
-/-- **`verify_bus_gkr`'s outcome** on its arguments `[fs0, …, fs4, cursor, g_bus_mu, zeta]`:
+/-- **`verify_bus_gkr`'s outcome** on its arguments `[fs0, …, fs4, cursor, g_bus_mu, zeta, tabs]`:
 `g_bus_mu = g^depth` with `depth < 33`; from the carried capacity, the words `xs` at the cursor
 run `gkrPhase depth` to `(count, point, values)`; the point, of `depth` coordinates, is at
-`zeta`; and the function returns the new capacity, the cursor past `xs` and the three values. -/
+`zeta`; and the function returns the new capacity, the cursor past `xs` and a pointer to the
+three values. -/
 def GkrOut (rd : Reader) : List E → List E → Prop
-  | [f0, f1, f2, f3, f4, cur, gmu, zeta], rets =>
-      ∃ (depth : ℕ) (xs : List E) (r : E × List E × List E) (cap' : List E),
+  | [f0, f1, f2, f3, f4, cur, gmu, zeta, _tabs], rets =>
+      ∃ (depth : ℕ) (xs : List E) (r : E × List E × List E) (cap' : List E) (leaves : E),
         gmu = gen ^ depth ∧ depth < 33 ∧ TbReadsAt rd cur xs ∧
         RunsTo (gkrPhase depth) ⟨[f0, f1, f2, f3, f4], []⟩ xs r ⟨cap', []⟩ ∧
         r.2.1.length = depth ∧ r.2.2.length = 3 ∧ TbReadsAt rd zeta r.2.1 ∧
-        rets = cap' ++ [cur * gen ^ xs.length] ++ r.2.2
+        TbReadsAt rd leaves r.2.2 ∧ rets = cap' ++ [cur * gen ^ xs.length, leaves]
   | _, _ => False
 
 /-- **`verify_bus_gkr` is sound**: at a depth other than `0`, its relation implies `GkrOut`.

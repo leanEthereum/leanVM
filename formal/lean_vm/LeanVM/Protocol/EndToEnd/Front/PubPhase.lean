@@ -15,13 +15,11 @@ public import LeanVM.Protocol.Compile.SpecRules.Leaves
 public import LeanVM.Protocol.PublicInput
 public import LeanVM.Protocol.LeanIsa
 public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
-public import Statement.LeanVm
 
 /-!
 # The public-input phase as a specification
 
-Step 5 of `verify_execution` (`publicInputPhase`, `crates/verifier/src/lib.rs:268-281` at leanVM
-`40f877dc`): sample `r`, and claim for each memory column `ℓ`
+Step 5 of `verify_execution` (`publicInputPhase`, `crates/verifier/src/lib.rs:301-314`): sample `r`, and claim for each memory column `ℓ`
 the line through limb `ℓ` of the public-input digest's two halves `(h₀, h₁)` at `r`,
 `(1 + r)·h₀,ℓ + r·h₁,ℓ` (`pubLimb`), at `(r, 0, …, 0)`. The prover sends nothing. It is a sample
 followed by a return (`publicInputPhase_eq`).
@@ -30,7 +28,7 @@ followed by a return (`publicInputPhase_eq`).
 phase (`publicInputPhase`) reads an empty message and pools, for every line, the value it computes
 from the statement, the line through its two cells. When the instance's statement is the digest's
 (`digestHalves publicInput = (input.word0, input.word1)`, `PublicInput.ofDigest`), those values
-are the program's limbs (`lineValue_eq_pubLimb`): the program's three claims are the phase's three
+are the program's limbs (`lineValue_eq_pubLimb`): the program's two claims are the phase's two
 line claims (`lineClaim_eq`). No mismatch.
 
 **The specification** (`pubPhaseSpec`). Doom quantifies over the candidates `C h₀` bound by the
@@ -52,7 +50,7 @@ The phase makes no prover move, so its challenge joins the group of the challeng
 the specification's lead is `L₀/|E|` plus the follower's.
 
 **What the layout must give** (bridge A, `pubLayoutHyp`): a claim of the program on memory
-column `j < 3` at the public point `(r, 0, …, 0)` holds of a candidate only if the instance's claim
+column `j < 2` at the public point `(r, 0, …, 0)` holds of a candidate only if the instance's claim
 on `MEM_j` at `linePoint r` holds of its reading `toI`.
 
 **At every Keccak region.** The fidelity and the specification are stated at
@@ -73,22 +71,22 @@ open scoped ENNReal NNReal
 /-! ## The program -/
 
 /-- The point of the public claims, `(r, 0, …, 0)` on the memory's variables
-(`lib.rs:272-273`). -/
+(`lib.rs:310-311`). -/
 def pubPoint (layout : Verifier.Layout) (r : E) : List E :=
   r :: List.replicate ((layout.placement memory0).variableCount - 1) 0
 
 /-- The program's value of memory limb `ℓ` at the challenge: the line through limb `ℓ` of the
-digest's two halves, `multilinear_eval([first.c_ℓ, second.c_ℓ], [r])` (`lib.rs:274-279`). -/
-def pubLimb (publicInput : Digest) (r : E) (ℓ : Fin 3) : E :=
+digest's two halves, `multilinear_eval([first.c_ℓ, second.c_ℓ], [r])` (`lib.rs:307-309`). -/
+def pubLimb (publicInput : Digest) (r : E) (ℓ : Fin 2) : E :=
   multilinearEval [ofK ((digestHalves publicInput).1.limb ℓ),
     ofK ((digestHalves publicInput).2.limb ℓ)] [r]
 
-/-- The program's claims: the three limbs on the three memory columns at the public point
-(`lib.rs:275-281`). -/
+/-- The program's claims: the two limbs on the two memory columns at the public point
+(`lib.rs:312-314`). -/
 def pubClaims (layout : Verifier.Layout) (publicInput : Digest) (r : E) :
     List Verifier.ColumnClaim :=
   List.zipWith (fun column value ↦ ⟨column, pubPoint layout r, value⟩)
-    [memory0, memory1, memory2] (([0, 1, 2] : List (Fin 3)).map (pubLimb publicInput r))
+    [memory0, memory1] (([0, 1] : List (Fin 2)).map (pubLimb publicInput r))
 
 /-- The public-input phase is a challenge, then the claims. -/
 theorem publicInputPhase_eq (layout : Verifier.Layout) (publicInput : Digest) :
@@ -97,7 +95,7 @@ theorem publicInputPhase_eq (layout : Verifier.Layout) (publicInput : Digest) :
           r) := rfl
 
 /-- The limb, computed: `(1 + r)·h₀,ℓ + r·h₁,ℓ`. -/
-theorem pubLimb_eq (publicInput : Digest) (r : E) (ℓ : Fin 3) :
+theorem pubLimb_eq (publicInput : Digest) (r : E) (ℓ : Fin 2) :
     pubLimb publicInput r ℓ =
       (1 + r) * ofK ((digestHalves publicInput).1.limb ℓ) +
         r * ofK ((digestHalves publicInput).2.limb ℓ) := by
@@ -114,10 +112,10 @@ variable (prog : LeanIsaProgram) (s : LeanIsa.Sizes)
   {fl : Option (KeccakRegion (LeanIsa.shape prog s))}
 
 /-- **The phase's line values are the program's limbs.** When the statement is the digest's, the
-value the ArkLib phase computes for line `j` (`MEM_LO, MEM_HI, MEM_TOP`) is the program's limb
+value the ArkLib phase computes for line `j` (`MEMORY_0, MEMORY_1`) is the program's limb
 `j`. -/
 theorem lineValue_eq_pubLimb {publicInput : Digest} {input : PublicInput}
-    (hinput : digestHalves publicInput = (input.word0, input.word1)) (r : E) (j : Fin 3) :
+    (hinput : digestHalves publicInput = (input.word0, input.word1)) (r : E) (j : Fin 2) :
     PublicInput.lineValue (leanIsaWith prog s fl) r
       ((leanIsaWith prog s fl).publicLines input)[j] = pubLimb publicInput r j := by
   rw [pubLimb_eq, hinput]
@@ -127,7 +125,7 @@ theorem lineValue_eq_pubLimb {publicInput : Digest} {input : PublicInput}
 /-- The phase's claim on line `j` is the program's claim on memory column `j`, read on the
 instance: `MEM_j` at `linePoint r`, at the program's limb. -/
 theorem lineClaim_eq {publicInput : Digest} {input : PublicInput}
-    (hinput : digestHalves publicInput = (input.word0, input.word1)) (r : E) (j : Fin 3) :
+    (hinput : digestHalves publicInput = (input.word0, input.word1)) (r : E) (j : Fin 2) :
     PublicInput.lineClaim (leanIsaWith prog s fl) r
       ((leanIsaWith prog s fl).publicLines input)[j] =
       ⟨LeanIsa.memCol j.castSucc, PublicInput.linePoint s.logMem_pos r,
@@ -163,10 +161,10 @@ def PubPostWith (publicClaims : List Verifier.ColumnClaim) (h : List Ev) : Prop 
     (leanIsaWith prog s fl).auxAt pt.toList (toI q))
 
 /-- **What the public-input phase needs of the layout** (bridge A): the program's claim on memory
-column `j < 3` at the public point holds of a candidate only if the instance's claim on `MEM_j` at
+column `j < 2` at the public point holds of a candidate only if the instance's claim on `MEM_j` at
 `(r, 0, …, 0)` holds of its reading. -/
 def pubLayoutHypWith : Prop :=
-  ∀ (j : Fin 3) (r v : E) (q : Column layout.stackLog),
+  ∀ (j : Fin 2) (r v : E) (q : Column layout.stackLog),
     H ⟨j.val, pubPoint layout r, v⟩ q →
       Protocol.ColumnClaim.Holds (toI q)
         (⟨LeanIsa.memCol j.castSucc, PublicInput.linePoint s.logMem_pos r, v⟩ :
@@ -180,7 +178,7 @@ def PubGoodWith (publicInput : Digest) (h₀ : List Ev) (r : E) : Prop :=
 
 /-! ## The ArkLib statement of a candidate -/
 
-/-- A claim true of a stack: `MEM_LO` at the origin, at its value there. -/
+/-- A claim true of a stack: `MEMORY_0` at the origin, at its value there. -/
 def trueClaimWith (q : Column (leanIsaWith prog s fl).μ) :
     Protocol.ColumnClaim (leanIsaWith prog s fl) :=
   ⟨LeanIsa.memCol 0, Vector.replicate _ 0,
@@ -224,12 +222,12 @@ theorem good_imp_state (hlayout : pubLayoutHypWith prog s fl layout toI H)
     Vector.toList_replicate, List.mem_append, List.mem_replicate, List.mem_map] at hc
   rcases hc with ⟨-, rfl⟩ | ⟨l, hl, rfl⟩
   · rfl
-  · obtain ⟨j, rfl⟩ : ∃ j : Fin 3, ((leanIsaWith prog s fl).publicLines input)[j] = l := by
+  · obtain ⟨j, rfl⟩ : ∃ j : Fin 2, ((leanIsaWith prog s fl).publicLines input)[j] = l := by
       obtain ⟨j, hj, hjl⟩ := List.mem_iff_getElem.mp hl
       exact ⟨⟨j, by simpa using hj⟩, by simpa using hjl⟩
     rw [lineClaim_eq prog s (fl := fl) hinput r j]
     refine hlayout j r _ q (hcl _ ?_)
-    fin_cases j <;> simp [pubClaims, memory0, memory1, memory2]
+    fin_cases j <;> simp [pubClaims, memory0, memory1]
 
 /-! ## The escape -/
 

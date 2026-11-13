@@ -59,7 +59,6 @@ noncomputable def lvlCOk (fn : Fn) (offA offB : ℕ) : Bool :=
   let c0 := if offA = 0 then 10 else 12
   (chk 3 fn.body).isSome &&
   (loopPre fn).all (fun s => match s with | .atom _ => true | _ => false) &&
-  canonChk ((List.range 4).map (c0 + ·)) (lvlA' fn) &&
   A.all (fun a => !needsSide a || decide (a ∈ storesOf 3 fn.body) || isLoadVia (.n pa) c0 a) &&
   decide (storesOf 3 fn.body = [.load ((lvlSp fn c0).outV ((lvlSp fn c0).nb - 1) 0) (.n pb) 0,
     .load ((lvlSp fn c0).outV ((lvlSp fn c0).nb - 1) 1) (.n pb) 1]) &&
@@ -67,9 +66,9 @@ noncomputable def lvlCOk (fn : Fn) (offA offB : ℕ) : Bool :=
   ptrOk (A.filter pureB) (.n pb) (.n 2) (.n 0) offB 2 &&
   (lvlSp fn c0).check (lvlA' fn)
 
-/-- A level loop, found and evaluated. -/
-noncomputable def loopCOk (f : String) (offA offB : ℕ) : Bool :=
-  match coreProgram.indexOf? f with
+/-- A level loop, at core function `j0`, found and evaluated. -/
+noncomputable def loopCOk (f : String) (j0 offA offB : ℕ) : Bool :=
+  match coreIdx? f j0 with
   | some j => lvlCOk (coreProgram.getD j default) offA offB
   | none => false
 
@@ -84,7 +83,6 @@ noncomputable def dlCEntryOk (k : ℕ) : Bool :=
   (chk 1 fn.body).isSome && (storesOf 1 fn.body).isEmpty &&
   (match splitRet fn.body with
    | some (P, _) =>
-     canonChk [] (atomsIn P) &&
      (atomsIn P).all (fun a => !needsSide a ||
        isLoadAt (.n (5 * k + 1)) (.n 0) (4 * 2 ^ k - 4) a ||
        isLoadAt (.n (5 * k + 2)) (.n 0) (4 * 2 ^ k - 3) a) &&
@@ -93,7 +91,8 @@ noncomputable def dlCEntryOk (k : ℕ) : Bool :=
        | .callIf .. => (List.range k).any fun lvl => stmtEqb s (lvlCall lvl (e.2.2.2.getD lvl ""))
        | _ => false)
    | none => false) &&
-  (List.range k).all fun lvl => loopCOk (e.2.2.2.getD lvl "") (off k lvl) (off k (lvl + 1))
+  (List.range k).all fun lvl =>
+    loopCOk (e.2.2.2.getD lvl "") (dlLoopAt k lvl) (off k lvl) (off k (lvl + 1))
 
 end
 end LeanVM.Guest.B1.Da

@@ -35,7 +35,7 @@ the decoder program's price is within `guestDecoderPriceAt (2^κ)` (`Cost/Prices
   `guestDecoderFramePrice` (`frameAtAPrice_le`); the cursor's length (`cursorLength_cost`, value
   at most `8192` at each child's frame on a valid run, `valid_cursor`), the witness
   (`frameWit_cost`);
-* the tables: preconditions `17940` (`preTable_cost`), entries `16430885` (`pcTableT_cost`); the
+* the tables: preconditions `18756` (`preTable_cost`), entries `15305468` (`pcTableT_cost`); the
   address tables at the execution's `κ` and the guest's `ℓ`, `addressTablesPrice κ ℓ =
   (74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42` (`decoderTables_cost`),
   `guestDecoderAddressTablesPrice` (`addressTablesPrice_eq`), and the rest of the constant,
@@ -68,9 +68,10 @@ theorem topConst_eq_at (M F : ℕ) :
     xmssReaderPrice xmssPrice xPartPrice decWitPrice
     decWitAtPrice decWitTabPrice kidsTPrice decKidPrice kidStmtPrice kidStmtAtPrice kidSlotsInPrice
     xmssRawsTPrice sphincsRawsTPrice regionTablePrice vsPiPrice vsSPrice vsMPrice
-    vsAtPrice levelPrice levelQPrice levelAtPrice oqsPrice stepPrice iterPrice queryPrice posPrice
-    queryAtPrice openingPrice dvFramePrice dvWitNRowsPrice gLogPrice guestDecoderWitnessPriceAt
-    guestDecoderFrameLookupCountAt
+    vsAtPrice levelPrice levelFPrice levelQPrice oqCallArgsPrice levelAtPrice oqsPrice stepPrice
+    iterPrice queryPrice posPrice
+    queryAtPrice openingPrice dvFramePrice dvWitNRowsPrice gLogPrice shapePrice
+    guestDecoderWitnessPriceAt guestDecoderFrameLookupCountAt
   ring
 
 /-- The constant at a valid run's counts (`guestDecoderCountBound`). -/
@@ -242,9 +243,9 @@ theorem decoderPrice_le_at (M : ℕ) (hM : M ≤ 2 ^ 34) (input : PublicInput)
         [encodeValue (Decoder.entryArrayT Decoder.pcTableT
           (preTestAt discreteLogTables preTable genPows (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)))
           states (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory))),
-          encodeValue 37, encodeValue args, encodeValue rets] ≤ 4 * guestDecoderFramePrice e :=
+          encodeValue (fn_idx% main_loop2), encodeValue args, encodeValue rets] ≤ 4 * guestDecoderFramePrice e :=
     fun args rets hl ↦ (frameFpA_cost compiledGuestWitnessDecoder includes_budget_frameFpA e _
-      hok (by omega) 37 (by norm_num) args rets).trans (frameFpAPrice_le64 e _ hl)
+      hok (by omega) (fn_idx% main_loop2) (by norm_num) args rets).trans (frameFpAPrice_le64 e _ hl)
   have hσ : ∀ v : V, RunsApp compiledGuestWitnessDecoder
       (.closure Decoder.decTopStatesC.lam0.costIdx [readerV t.logMemorySize (Decoder.memoryVector t.memory)]) [encodeValue v]
       (encodeValue (Decoder.mainVal (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)) v)) := fun v ↦
@@ -262,7 +263,7 @@ theorem decoderPrice_le_at (M : ℕ) (hM : M ≤ 2 ^ 34) (input : PublicInput)
     (fun p q ↦ cursorLength_cost compiledGuestWitnessDecoder includes_budget_cursorLength discreteLogTables 122420 hLg
       discreteLogWith_lt p q)
     hc 8192 (by norm_num) (fun c hck ↦ valid_cursor hv c hck)
-  have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 17940 16430885 _ _
+  have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 18756 15305468 _ _
     (preTable_cost compiledGuestWitnessDecoder includes_budget_preTable).le (pcTableT_cost compiledGuestWitnessDecoder includes_budget_pcTableT)
     hE hW hc
   have hk := (topConst_eq_at M (guestDecoderFramePrice e)).le
@@ -315,7 +316,7 @@ theorem guestDecoderPrice_le_budget {κ steps : ℕ} (hκ : κ ≤ 30) (hs : ste
     unfold guestDecoderFramePrice
     generalize guestDecoderEntryTablePositionLimbs (lg + 2) = L at hL ⊢
     nlinarith [Nat.mul_le_mul_right (lg + 2 + 2) hL]
-  calc _ ≤ (2 ^ 21 + 2 ^ 13 * lg) * (steps + 1) + 17940 + 16430885 +
+  calc _ ≤ (2 ^ 21 + 2 ^ 13 * lg) * (steps + 1) + 18756 + 15305468 +
           guestDecoderAddressTablesPrice κ 19 + guestDecoderWitnessPriceAtValidCounts +
           guestDecoderFrameLookupCountAtValidCounts * (1129 * lg + 7803) + 39 := by gcongr
     _ ≤ _ := by
@@ -356,13 +357,13 @@ theorem guestDecoderPriceAt_le_budget_add {M κ steps : ℕ} (hκ : κ ≤ 30) (
     _ ≤ _ := by
       have hκ' : (74 * κ + 121) * 2 ^ κ ≤ (70 * κ + 374) * 2 ^ κ :=
         Nat.mul_le_mul_right _ (by omega)
-      have h0 : 41361328 * (1129 * lg + 7803) ≤ 2 ^ 37 * lg + 2 ^ 37 * 16 - 6489517118 - 17940 -
+      have h0 : 37659409 * (1129 * lg + 7803) ≤ 2 ^ 37 * lg + 2 ^ 37 * 16 - 5829593893 - 17940 -
           16430885 - (74 * 19 + 121) * 2 ^ 19 - 42 - 39 := by omega
       unfold guestDecoderAddressTablesPrice guestDecoderWitnessPriceAt
         guestDecoderFrameLookupCountAt
       rw [Nat.mul_comm _ (steps + 1)]
-      have e1 : (41361328 + 8 * M) * (1129 * lg + 7803) =
-          41361328 * (1129 * lg + 7803) + (9032 * lg + 62424) * M := by ring
+      have e1 : (37659409 + 8 * M) * (1129 * lg + 7803) =
+          37659409 * (1129 * lg + 7803) + (9032 * lg + 62424) * M := by ring
       have e2 : (6476658 + 9032 * lg) * M = 6414234 * M + (9032 * lg + 62424) * M := by ring
       rw [e1, e2]
       omega

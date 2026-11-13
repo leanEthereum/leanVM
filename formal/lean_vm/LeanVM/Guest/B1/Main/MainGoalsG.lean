@@ -24,8 +24,8 @@ honest words `hLmain`:
 * `rawXD`, `rawSD`: the raw signatures' data (`RawXData`, `RawSData`): raw signature `i` takes
   slot `(slotsOf p)[i]` of its region (`plan_raw`), whose coverage word is `g` to its mark
   (`hMarkX_raw`, `hMarkS_raw`) and whose table entry is its claim;
-* `mainGoalL3`, `mainGoalL4`: `__loop2`, `__loop3` from the counter `1 = g^0` (`rawX_completeAt`,
-  `rawS_completeAt`), the regions below `2^16` by `Limits.coverage`;
+* `mainGoalL3`, `mainGoalL4`: `main_loop2`, `main_loop3` from the counter `1 = g^0`
+  (`rawX_completeAt`, `rawS_completeAt`), the regions below `2^16` by `Limits.coverage`;
 * `checked_da`: the checked DA claim's witness opens it, `da_verify`'s returns its cells;
   `wLog_lt`: its padded count's log is below `34` (`da_verify` reads `exponent_tables`' second
   table there; its completeness is `MainGoalsDvTB.mainGoalDvTB`).
@@ -146,7 +146,7 @@ def rawXD (hn : NodeRelation bytecode seed s w) (d0 : LeanXmssClaim × LeanXmss.
   regCover _ hi := xs_regCover hi
   regClaim _ hi _ hk := xs_regClaim hi hk
 
-/-- **`__loop2` on an honest run.** -/
+/-- **`main_loop2` on an honest run.** -/
 theorem mainGoalL3 (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hc : Sig.verify_lean_xmss_complete_Spec) : MainGoalL3 fs cert fp seed s w := by
   intro h0
@@ -224,7 +224,7 @@ def rawSD (hn : NodeRelation bytecode seed s w) (d0 : LeanSphincsClaim × Sphinc
   regClaim _ hj _ hk := ss_regClaim hj hk
   regBytes _ hv := bytes_region hv
 
-/-- **`__loop3` on an honest run.** -/
+/-- **`main_loop3` on an honest run.** -/
 theorem mainGoalL4 (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hc : Sig.SphincsCompleteSpecs) : MainGoalL4 fs cert fp seed s w := by
   intro h0

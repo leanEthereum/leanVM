@@ -101,11 +101,6 @@ theorem flat_map_flatten {α : Type} {xs : List α} {f : α → List Stmt} (h : 
     Flat (xs.map f).flatten :=
   flat_flatten fun b hb ↦ by obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hb; exact h x hx
 
-theorem flat_match {x : V} {arms : List (List Stmt)} (h : ∀ arm ∈ arms, AllAtoms arm) :
-    Flat [.match_ x arms] := fun s hs ↦ by
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
-  exact Or.inr ⟨x, arms, hs, h⟩
-
 /-- The meaning of a flat loop body at the arguments `args`. -/
 def FlatBody (rd : Reader) (params : List V) (A : List Stmt) (args : List E) : Prop :=
   ∃ σ : Val, params.map σ = args ∧ BlockOk rd σ A

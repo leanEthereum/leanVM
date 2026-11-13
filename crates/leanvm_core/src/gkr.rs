@@ -12,8 +12,9 @@
 use std::ops::Range;
 
 use crate::PAR_THRESHOLD;
+use crate::leaf::N_BUS_TREES as TREES;
 use crate::transcript::ProverState;
-use primitives::field::{F192, F192Unreduced, mul_unreduced4, mul2, mul4};
+use primitives::field::{F128, F128Unreduced, mul_unreduced4, mul2, mul4};
 use primitives::multilinear::{eq_table, interp};
 use primitives::stream::Stream;
 
@@ -24,21 +25,21 @@ fn window_rows(total: usize) -> usize {
     total.div_ceil(tasks).clamp(64, 1 << 10)
 }
 
-fn add4(a: [F192; 4], b: [F192; 4]) -> [F192; 4] {
+fn add4(a: [F128; 4], b: [F128; 4]) -> [F128; 4] {
     std::array::from_fn(|i| a[i] + b[i])
 }
 
 /// `Σ_t f(t)` over `0..tasks`, in parallel when asked.
-fn sum_tasks(tasks: usize, parallel: bool, f: impl Fn(usize) -> [F192; 4] + Sync) -> [F192; 4] {
+fn sum_tasks(tasks: usize, parallel: bool, f: impl Fn(usize) -> [F128; 4] + Sync) -> [F128; 4] {
     if parallel {
-        parallel::map_reduce(tasks, || [F192::ZERO; 4], f, add4)
+        parallel::map_reduce(tasks, || [F128::ZERO; 4], f, add4)
     } else {
-        (0..tasks).map(f).fold([F192::ZERO; 4], add4)
+        (0..tasks).map(f).fold([F128::ZERO; 4], add4)
     }
 }
 
 /// `out[i] = ∏ current[4i..4i+4]`, for `out.len() == current.len() / 4`.
-pub(crate) fn products_into(current: &[F192], out: &mut [F192]) {
+pub(crate) fn products_into(current: &[F128], out: &mut [F128]) {
     debug_assert_eq!(out.len(), current.len() / 4);
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
     let done = vertical::products_into(current, out);
@@ -59,7 +60,7 @@ pub(crate) fn products_into(current: &[F192], out: &mut [F192]) {
 /// # Safety
 ///
 /// The caller writes every value of `0..n` before anything reads it.
-pub(crate) unsafe fn level(n: usize) -> Vec<F192> {
+pub(crate) unsafe fn level(n: usize) -> Vec<F128> {
     // SAFETY: forwarded to the caller.
     let mut values = unsafe { primitives::uninit_vec(n.next_multiple_of(4)) };
     values.truncate(n);
@@ -68,7 +69,7 @@ pub(crate) unsafe fn level(n: usize) -> Vec<F192> {
 
 /// The level above `current`: the product of each four-tuple, an incomplete last one
 /// padded with the identity.
-fn next_level(current: &[F192]) -> Vec<F192> {
+fn next_level(current: &[F128]) -> Vec<F128> {
     /// Rows per task, staged before they are published.
     const ROWS: usize = 1 << 9;
     let full_rows = current.len() / 4;
@@ -77,7 +78,7 @@ fn next_level(current: &[F192]) -> Vec<F192> {
     if full_rows >= PAR_THRESHOLD {
         // The next level and the GKR read the output long after this pass evicts it.
         parallel::chunks_mut(&mut next[..full_rows], ROWS, |task, destination| {
-            let mut stage = [F192::ZERO; ROWS];
+            let mut stage = [F128::ZERO; ROWS];
             let stage = &mut stage[..destination.len()];
             let start = 4 * ROWS * task;
             products_into(&current[start..start + 4 * stage.len()], stage);
@@ -88,7 +89,7 @@ fn next_level(current: &[F192]) -> Vec<F192> {
     }
     let tail = &current[4 * full_rows..];
     if !tail.is_empty() {
-        let child = |index| tail.get(index).copied().unwrap_or(F192::ONE);
+        let child = |index| tail.get(index).copied().unwrap_or(F128::ONE);
         let [left, right] = mul2([child(0), child(2)], [child(1), child(3)]);
         next[full_rows] = left * right;
     }
@@ -99,18 +100,18 @@ fn next_level(current: &[F192]) -> Vec<F192> {
 /// the leaves are in cache, and its runs of identity leaves.
 #[derive(Clone)]
 pub struct Leaves {
-    pub values: Vec<F192>,
+    pub values: Vec<F128>,
     /// `fours[i] = ∏ values[4i..4i+4]`, and `sixteens` likewise over `fours`, an
     /// incomplete last four-tuple padded with the identity.
-    pub(crate) fours: Vec<F192>,
-    pub(crate) sixteens: Vec<F192>,
+    pub(crate) fours: Vec<F128>,
+    pub(crate) sixteens: Vec<F128>,
     /// Runs of identity leaves among `values`, sorted, which the GKR rounds above them
     /// need neither read nor write.
     pub ones: Vec<Range<usize>>,
 }
 
 impl Leaves {
-    pub fn new(values: Vec<F192>) -> Self {
+    pub fn new(values: Vec<F128>) -> Self {
         let fours = next_level(&values);
         let sixteens = next_level(&fours);
         Self {
@@ -124,10 +125,10 @@ impl Leaves {
 
 /// Build only the levels consumed by radix four: `0,2,4,…`, plus a final
 /// binary root when the logical depth is odd.
-fn build_layers(leaves: Leaves, mu: usize) -> Vec<Vec<F192>> {
+fn build_layers(leaves: Leaves, mu: usize) -> Vec<Vec<F128>> {
     // The leaf level alone is large at production sizes, and every level dies
     // with the proof.
-    let mut layers: Vec<Vec<F192>> = (0..=mu).map(|_| Vec::new()).collect();
+    let mut layers: Vec<Vec<F128>> = (0..=mu).map(|_| Vec::new()).collect();
     layers[0] = leaves.values;
     let mut level = 0;
     for (given, below) in [(2, leaves.fours), (4, leaves.sixteens)] {
@@ -156,16 +157,16 @@ fn build_layers(leaves: Leaves, mu: usize) -> Vec<Vec<F192>> {
 /// each block of `2^lo_bits` terms by the high one, so the full table is never built,
 /// nor marginalized round after round.
 struct SplitEq {
-    lo: Vec<F192>,
-    hi: Vec<F192>,
+    lo: Vec<F128>,
+    hi: Vec<F128>,
     lo_bits: usize,
     /// `lo` eight entries at a time, for the vertical kernels.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
-    lo8: Vec<primitives::field::x8::F192x8>,
+    lo8: Vec<primitives::field::x8::F128x8>,
 }
 
 impl SplitEq {
-    fn new(vars: &[F192]) -> Self {
+    fn new(vars: &[F128]) -> Self {
         let lo_bits = vars.len().div_ceil(2).max(vars.len().min(3));
         let (low, high) = vars.split_at(lo_bits);
         let lo = eq_table(low);
@@ -175,7 +176,7 @@ impl SplitEq {
                 .as_chunks::<8>()
                 .0
                 .iter()
-                .map(primitives::field::x8::F192x8::load)
+                .map(primitives::field::x8::F128x8::load)
                 .collect(),
             lo,
             hi: eq_table(high),
@@ -186,21 +187,21 @@ impl SplitEq {
     /// `Σ_{p ∈ range} eq(p)·f(p)`, where `term(p, w)` is `f(p)` already weighted by `w`,
     /// the low factor of `eq(p)`.
     #[inline]
-    fn sum(&self, range: Range<usize>, term: impl Fn(usize, F192) -> [F192Unreduced; 4]) -> [F192; 4] {
+    fn sum(&self, range: Range<usize>, term: impl Fn(usize, F128) -> [F128Unreduced; 4]) -> [F128; 4] {
         let mask = (1usize << self.lo_bits) - 1;
-        let mut total = [F192::ZERO; 4];
+        let mut total = [F128::ZERO; 4];
         let mut start = range.start;
         while start < range.end {
             let block = start >> self.lo_bits;
             let end = range.end.min((block + 1) << self.lo_bits);
-            let block_sum = (start..end).fold([F192Unreduced::ZERO; 4], |mut acc, p| {
+            let block_sum = (start..end).fold([F128Unreduced::ZERO; 4], |mut acc, p| {
                 let t = term(p, self.lo[p & mask]);
                 for i in 0..4 {
                     acc[i] ^= t[i];
                 }
                 acc
             });
-            total = add4(total, mul4([self.hi[block]; 4], block_sum.map(F192Unreduced::reduce)));
+            total = add4(total, mul4([self.hi[block]; 4], block_sum.map(F128Unreduced::reduce)));
             start = end;
         }
         total
@@ -210,7 +211,7 @@ impl SplitEq {
 /// The `eq`-weighted message terms of one pair, from each child's line `[value at 0, slope]`.
 /// The weight scales child 0's line, and with it every product: two products rather than four.
 #[inline(always)]
-fn quartic_summand(lines: [[F192; 2]; 4], equality: F192) -> [F192Unreduced; 4] {
+fn quartic_summand(lines: [[F128; 2]; 4], equality: F128) -> [F128Unreduced; 4] {
     let [[g0, s0], [g1, s1], [g2, s2], [g3, s3]] = lines;
     let [a0, d0, right0, right2] = mul4([equality, equality, g2, s2], [g0, s0, g3, s3]);
     let [left0, left2, left_at_one, right_at_one] = mul4([a0, d0, a0 + d0, g2 + s2], [g1, s1, g1 + s1, g3 + s3]);
@@ -270,7 +271,7 @@ const VERTICAL_ROWS: usize = 1 << 10;
 struct QuaternaryLayerState {
     /// Four child tables interleaved in their original order. This lets the
     /// prover consume a product-tree level without first transposing it.
-    values: Vec<F192>,
+    values: Vec<F128>,
     /// Logical row count after identity padding. `values` stores an arbitrary
     /// prefix; every omitted row is the constant four-tuple one.
     logical_rows: usize,
@@ -285,10 +286,10 @@ struct QuaternaryLayerState {
 }
 
 impl QuaternaryLayerState {
-    fn new(mut values: Vec<F192>, width: usize) -> Self {
+    fn new(mut values: Vec<F128>, width: usize) -> Self {
         // Materialize only the incomplete final four-tuple. Every complete
         // all-one row after the arbitrary explicit prefix remains implicit.
-        values.resize(4 * values.len().max(1).div_ceil(4), F192::ONE);
+        values.resize(4 * values.len().max(1).div_ceil(4), F128::ONE);
         debug_assert_eq!(values.len() % 4, 0);
         debug_assert!(values.len() <= 4 * width);
         Self {
@@ -303,7 +304,7 @@ impl QuaternaryLayerState {
     }
 
     /// `(q(0)+q(1), [X²]q, [X³]q, [X⁴]q)`.
-    fn round_message(&self, eq: &SplitEq) -> [F192; 4] {
+    fn round_message(&self, eq: &SplitEq) -> [F128; 4] {
         #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
         if self.logical_rows >= VERTICAL_ROWS {
             return vertical::message(&self.values, &self.ones, eq);
@@ -311,7 +312,7 @@ impl QuaternaryLayerState {
         self.round_message_scalar(eq)
     }
 
-    fn fold(&mut self, challenge: F192) {
+    fn fold(&mut self, challenge: F128) {
         #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
         self.leave_groups();
         self.fold_scalar(challenge);
@@ -338,10 +339,10 @@ impl QuaternaryLayerState {
         }
     }
 
-    fn round_message_scalar(&self, eq: &SplitEq) -> [F192; 4] {
+    fn round_message_scalar(&self, eq: &SplitEq) -> [F128; 4] {
         let stored_rows = self.values.len() / 4;
         let full_pairs = stored_rows / 2;
-        let summand = |pair: usize, weight: F192| -> [F192Unreduced; 4] {
+        let summand = |pair: usize, weight: F128| -> [F128Unreduced; 4] {
             let (lo, hi) = (8 * pair, 8 * pair + 4);
             let lines = [0, 1, 2, 3].map(|child| {
                 let at_zero = self.values[lo + child];
@@ -355,7 +356,7 @@ impl QuaternaryLayerState {
             let base = index * rows;
             runs(base..(base + rows).min(full_pairs), &identity)
                 .filter(|(_, ones)| !ones)
-                .fold([F192::ZERO; 4], |acc, (run, _)| add4(acc, eq.sum(run, summand)))
+                .fold([F128::ZERO; 4], |acc, (run, _)| add4(acc, eq.sum(run, summand)))
         };
         let mut message = sum_tasks(full_pairs.div_ceil(rows), full_pairs >= PAR_THRESHOLD, window);
         if !stored_rows.is_multiple_of(2) {
@@ -363,7 +364,7 @@ impl QuaternaryLayerState {
                 let lo = 8 * pair;
                 let lines = [0, 1, 2, 3].map(|child| {
                     let at_zero = self.values[lo + child];
-                    [at_zero, at_zero + F192::ONE]
+                    [at_zero, at_zero + F128::ONE]
                 });
                 quartic_summand(lines, weight)
             });
@@ -372,21 +373,21 @@ impl QuaternaryLayerState {
         message
     }
 
-    fn fold_scalar(&mut self, challenge: F192) {
+    fn fold_scalar(&mut self, challenge: F128) {
         let stored_rows = self.values.len() / 4;
         let full_rows = stored_rows / 2;
         let rows = stored_rows.div_ceil(2);
         // SAFETY: the windows below write every slot of `next[..4 * full_rows]` and the
         // tail block the odd row, before anything reads it.
-        let mut next: Vec<F192> = unsafe { primitives::uninit_vec(4 * rows) };
+        let mut next: Vec<F128> = unsafe { primitives::uninit_vec(4 * rows) };
         let values = &self.values;
         let identity = coarsen(&self.ones, 1);
-        let fold_row = |row: usize, one: bool| -> [F192; 4] {
+        let fold_row = |row: usize, one: bool| -> [F128; 4] {
             if one {
-                return [F192::ONE; 4];
+                return [F128::ONE; 4];
             }
             // One slice, not eight indexes: the bounds checks and the
-            // index-by-24 multiplies fall out.
+            // index-by-16 multiplies fall out.
             let v = &values[8 * row..8 * row + 8];
             let folds = mul4(std::array::from_fn(|child| v[child] + v[4 + child]), [challenge; 4]);
             std::array::from_fn(|child| v[child] + folds[child])
@@ -401,11 +402,11 @@ impl QuaternaryLayerState {
         // Where it does not, the stage buys nothing and costs a real call, the
         // `slot.len()` being one the compiler cannot fold away.
         #[cfg(target_arch = "x86_64")]
-        let window = |base: usize, destination: &mut [F192]| {
+        let window = |base: usize, destination: &mut [F128]| {
             let stream = Stream::new();
             let mut rows = folded(base, destination.len() / 4);
             for slot in destination.chunks_mut(8) {
-                let mut both = [F192::ZERO; 8];
+                let mut both = [F128::ZERO; 8];
                 for (half, row) in both[..slot.len()].chunks_mut(4).zip(&mut rows) {
                     half.copy_from_slice(&row);
                 }
@@ -413,7 +414,7 @@ impl QuaternaryLayerState {
             }
         };
         #[cfg(not(target_arch = "x86_64"))]
-        let window = |base: usize, destination: &mut [F192]| {
+        let window = |base: usize, destination: &mut [F128]| {
             let rows = folded(base, destination.len() / 4);
             for (slot, row) in destination.chunks_mut(4).zip(rows) {
                 slot.copy_from_slice(&row);
@@ -430,7 +431,7 @@ impl QuaternaryLayerState {
         if !stored_rows.is_multiple_of(2) {
             let lo = 8 * full_rows;
             let folds = mul4(
-                [0, 1, 2, 3].map(|child| self.values[lo + child] + F192::ONE),
+                [0, 1, 2, 3].map(|child| self.values[lo + child] + F128::ONE),
                 [challenge; 4],
             );
             for child in 0..4 {
@@ -442,11 +443,11 @@ impl QuaternaryLayerState {
         self.ones = identity;
     }
 
-    fn fold_and_message_scalar(&mut self, challenge: F192, eq: &SplitEq) -> [F192; 4] {
+    fn fold_and_message_scalar(&mut self, challenge: F128, eq: &SplitEq) -> [F128; 4] {
         let stored_rows = self.values.len() / 4;
         let rows = stored_rows.div_ceil(2);
         // SAFETY: the tasks below write every slot of `next[..4 * rows]` before anything reads it.
-        let mut next: Vec<F192> = unsafe { primitives::uninit_vec(4 * rows) };
+        let mut next: Vec<F128> = unsafe { primitives::uninit_vec(4 * rows) };
         let values = &self.values;
         // Rows of the folded layer, and pairs of them, known to be the identity.
         let identity = coarsen(&self.ones, 1);
@@ -457,36 +458,36 @@ impl QuaternaryLayerState {
         let task = |index: usize| {
             let first = index * PAIRS;
             let end = (first + PAIRS).min(pairs);
-            let mut stage = [F192::ZERO; 8 * PAIRS];
+            let mut stage = [F128::ZERO; 8 * PAIRS];
             let end_row = (2 * end).min(rows);
             for (run, one) in runs(2 * first..end_row, &identity) {
                 let staged = &mut stage[4 * (run.start - 2 * first)..4 * (run.end - 2 * first)];
                 if one {
-                    staged.fill(F192::ONE);
+                    staged.fill(F128::ONE);
                     continue;
                 }
                 for (row, out) in run.zip(staged.as_chunks_mut::<4>().0) {
                     let lo = 8 * row;
                     let left = &values[lo..lo + 4];
-                    let right = values.get(lo + 4..lo + 8).unwrap_or(&[F192::ONE; 4]);
+                    let right = values.get(lo + 4..lo + 8).unwrap_or(&[F128::ONE; 4]);
                     let product = mul4(std::array::from_fn(|i| left[i] + right[i]), [challenge; 4]);
                     *out = std::array::from_fn(|i| left[i] + product[i]);
                 }
             }
-            let summand = |pair: usize, weight: F192| {
+            let summand = |pair: usize, weight: F128| {
                 let lo = 8 * (pair - first);
                 let left = &stage[lo..lo + 4];
                 let right = if 2 * pair + 1 < rows {
                     &stage[lo + 4..lo + 8]
                 } else {
-                    &[F192::ONE; 4]
+                    &[F128::ONE; 4]
                 };
                 let lines = std::array::from_fn(|i| [left[i], left[i] + right[i]]);
                 quartic_summand(lines, weight)
             };
             let message = runs(first..end, &identity_pairs)
                 .filter(|(_, ones)| !ones)
-                .fold([F192::ZERO; 4], |acc, (run, _)| add4(acc, eq.sum(run, summand)));
+                .fold([F128::ZERO; 4], |acc, (run, _)| add4(acc, eq.sum(run, summand)));
             // The next round reads the destination; this round reads only the local stage.
             let stream = Stream::new();
             let len = 4 * (end_row - 2 * first);
@@ -501,7 +502,7 @@ impl QuaternaryLayerState {
         message
     }
 
-    fn children(&self) -> [F192; 4] {
+    fn children(&self) -> [F128; 4] {
         debug_assert_eq!(self.values.len(), 4);
         debug_assert_eq!(self.logical_rows, 1);
         self.values[..4].try_into().unwrap()
@@ -509,7 +510,7 @@ impl QuaternaryLayerState {
 }
 
 /// Fold every tree by `challenge`, returning the next round's messages.
-fn fold_and_message(trees: &mut [QuaternaryLayerState; 3], challenge: F192, eq: &SplitEq) -> [[F192; 4]; 3] {
+fn fold_and_message(trees: &mut [QuaternaryLayerState; TREES], challenge: F128, eq: &SplitEq) -> [[F128; 4]; TREES] {
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
     {
         if trees[0].logical_rows >= VERTICAL_ROWS {
@@ -536,9 +537,9 @@ fn fold_and_message(trees: &mut [QuaternaryLayerState; 3], challenge: F192, eq: 
 /// kernels.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
 mod vertical {
-    use super::{SplitEq, add4, coarsen, sum_tasks};
-    use primitives::field::F192;
-    use primitives::field::x8::{F192x8, Sum8};
+    use super::{SplitEq, TREES, add4, coarsen, sum_tasks};
+    use primitives::field::F128;
+    use primitives::field::x8::{F128x8, Sum8};
     use primitives::stream::Stream;
     use std::ops::Range;
 
@@ -549,21 +550,21 @@ mod vertical {
     }
 
     /// Eight pairs of rows: `g[4h + c]` lane `p` is child `c` of row `2p + h`.
-    pub(super) type Group = [F192x8; 8];
+    pub(super) type Group = [F128x8; 8];
 
     /// Groups per parallel task.
     const TASK: usize = 32;
 
     /// Group `g` of a row table, the identity past its end.
     #[inline(always)]
-    fn load(values: &[F192], g: usize) -> Group {
+    fn load(values: &[F128], g: usize) -> Group {
         match values.get(64 * g..64 * g + 64) {
-            Some(run) => F192x8::load_runs(run.try_into().unwrap()),
+            Some(run) => F128x8::load_runs(run.try_into().unwrap()),
             None => {
-                let mut padded = [F192::ONE; 64];
+                let mut padded = [F128::ONE; 64];
                 let tail = &values[(64 * g).min(values.len())..];
                 padded[..tail.len()].copy_from_slice(tail);
-                F192x8::load_runs(&padded)
+                F128x8::load_runs(&padded)
             }
         }
     }
@@ -571,7 +572,7 @@ mod vertical {
     /// Add eight pairs' `eq`-weighted summands. The weight scales child 0's line, and
     /// with it every product, so it costs two products rather than one per coefficient.
     #[inline(always)]
-    fn add_message(g: &Group, eq: F192x8, acc: &mut [Sum8; 4]) {
+    fn add_message(g: &Group, eq: F128x8, acc: &mut [Sum8; 4]) {
         let a0 = eq * g[0];
         let d0 = eq * (g[0] + g[4]);
         let left0 = a0 * g[1];
@@ -597,7 +598,7 @@ mod vertical {
         eq: &'a SplitEq,
         block: usize,
         sums: [Sum8; 4],
-        total: [F192; 4],
+        total: [F128; 4],
     }
 
     impl<'a> Message<'a> {
@@ -606,7 +607,7 @@ mod vertical {
                 eq,
                 block: first >> (eq.lo_bits - 3),
                 sums: [Sum8::ZERO; 4],
-                total: [F192::ZERO; 4],
+                total: [F128::ZERO; 4],
             }
         }
 
@@ -626,14 +627,14 @@ mod vertical {
             self.total = add4(self.total, scaled);
         }
 
-        fn finish(mut self) -> [F192; 4] {
+        fn finish(mut self) -> [F128; 4] {
             self.flush();
             self.total
         }
     }
 
     /// The round message of a row table; identity pairs add nothing.
-    pub(super) fn message(values: &[F192], ones: &[Range<usize>], eq: &SplitEq) -> [F192; 4] {
+    pub(super) fn message(values: &[F128], ones: &[Range<usize>], eq: &SplitEq) -> [F128; 4] {
         let groups = values.len().div_ceil(64);
         sum_tasks(groups.div_ceil(TASK), groups > TASK, |task| {
             let range = task * TASK..((task + 1) * TASK).min(groups);
@@ -649,17 +650,17 @@ mod vertical {
 
     /// Fold sixteen pairs, `a`'s then `b`'s, into the eight pairs their sixteen rows make.
     #[inline(always)]
-    fn fold_pairs(a: &Group, b: &Group, r: F192x8) -> Group {
+    fn fold_pairs(a: &Group, b: &Group, r: F128x8) -> Group {
         let fold = |g: &Group, c: usize| g[c] + r * (g[c] + g[4 + c]);
-        let mut out = [F192x8::splat(F192::ZERO); 8];
+        let mut out = [F128x8::splat(F128::ZERO); 8];
         for c in 0..4 {
-            (out[c], out[4 + c]) = F192x8::deinterleave(fold(a, c), fold(b, c));
+            (out[c], out[4 + c]) = F128x8::deinterleave(fold(a, c), fold(b, c));
         }
         out
     }
 
     pub(super) enum Data<'a> {
-        Rows(&'a [F192]),
+        Rows(&'a [F128]),
         Groups(&'a [Group]),
     }
 
@@ -680,7 +681,7 @@ mod vertical {
         /// Group `g`, the identity past the end or where `ones` says so.
         #[inline(always)]
         fn get(&self, g: usize) -> Group {
-            let ones = [F192x8::splat(F192::ONE); 8];
+            let ones = [F128x8::splat(F128::ONE); 8];
             if covered(self.ones, 16 * g..16 * g + 16) {
                 return ones;
             }
@@ -694,16 +695,16 @@ mod vertical {
     /// Fold every tree's rows by `challenge` into its `out`, in one dispatch for the
     /// three, returning the next round's messages.
     pub(super) fn fold(
-        inputs: [Input; 3],
-        challenge: F192,
+        inputs: [Input; TREES],
+        challenge: F128,
         eq: &SplitEq,
-        outs: [&mut Vec<Group>; 3],
-    ) -> [[F192; 4]; 3] {
+        outs: [&mut Vec<Group>; TREES],
+    ) -> [[F128; 4]; TREES] {
         /// Groups below which a dispatch costs more than it saves.
         const PARALLEL: usize = 8 * TASK;
         let n_out = inputs.each_ref().map(|input| input.len().div_ceil(2));
         let mut outs = outs;
-        let dst: [parallel::SendPtr<Group>; 3] = std::array::from_fn(|t| {
+        let dst: [parallel::SendPtr<Group>; TREES] = std::array::from_fn(|t| {
             let out = &mut *outs[t];
             if out.capacity() < n_out[t] {
                 *out = Vec::new();
@@ -715,10 +716,10 @@ mod vertical {
             }
             parallel::SendPtr(out.as_mut_ptr())
         });
-        let tasks: Vec<(usize, usize)> = (0..3)
+        let tasks: Vec<(usize, usize)> = (0..TREES)
             .flat_map(|t| (0..n_out[t]).step_by(TASK).map(move |g| (t, g)))
             .collect();
-        let r = F192x8::splat(challenge);
+        let r = F128x8::splat(challenge);
         let ones = inputs.each_ref().map(|input| coarsen(input.ones, 1));
         let task = |i: usize| {
             let (t, first) = tasks[i];
@@ -736,23 +737,23 @@ mod vertical {
                 // SAFETY: tasks own disjoint groups of the outputs.
                 unsafe { stream.copy(dst[t].slice(g, 1), std::slice::from_ref(&pairs)) };
             }
-            let mut messages = [[F192::ZERO; 4]; 3];
+            let mut messages = [[F128::ZERO; 4]; TREES];
             messages[t] = message.finish();
             messages
         };
-        let add = |a: [[F192; 4]; 3], b: [[F192; 4]; 3]| std::array::from_fn(|t| add4(a[t], b[t]));
+        let add = |a: [[F128; 4]; TREES], b: [[F128; 4]; TREES]| std::array::from_fn(|t| add4(a[t], b[t]));
         if n_out.iter().sum::<usize>() > PARALLEL {
-            parallel::map_reduce(tasks.len(), || [[F192::ZERO; 4]; 3], task, add)
+            parallel::map_reduce(tasks.len(), || [[F128::ZERO; 4]; TREES], task, add)
         } else {
-            (0..tasks.len()).map(task).fold([[F192::ZERO; 4]; 3], add)
+            (0..tasks.len()).map(task).fold([[F128::ZERO; 4]; TREES], add)
         }
     }
 
-    pub(super) fn to_rows(groups: &[Group], ones: &[Range<usize>]) -> Vec<F192> {
-        let mut values = vec![F192::ZERO; 64 * groups.len()];
+    pub(super) fn to_rows(groups: &[Group], ones: &[Range<usize>]) -> Vec<F128> {
+        let mut values = vec![F128::ZERO; 64 * groups.len()];
         for (g, group) in groups.iter().enumerate() {
             if covered(ones, 16 * g..16 * g + 16) {
-                values[64 * g..64 * g + 64].fill(F192::ONE);
+                values[64 * g..64 * g + 64].fill(F128::ONE);
                 continue;
             }
             for (j, lanes) in group.iter().enumerate() {
@@ -765,12 +766,12 @@ mod vertical {
     }
 
     /// `out[i] = ∏ current[4i..4i+4]` for the leading multiple of sixteen rows; returns how many.
-    pub(super) fn products_into(current: &[F192], out: &mut [F192]) -> usize {
-        let product = |a: F192x8, b: F192x8, c: F192x8, d: F192x8| (a * b) * (c * d);
+    pub(super) fn products_into(current: &[F128], out: &mut [F128]) -> usize {
+        let product = |a: F128x8, b: F128x8, c: F128x8, d: F128x8| (a * b) * (c * d);
         let (chunks, _) = out.as_chunks_mut::<16>();
         for (slot, run) in chunks.iter_mut().zip(current.as_chunks::<64>().0) {
-            let g = F192x8::load_runs(run);
-            let (lo, hi) = F192x8::interleave(product(g[0], g[1], g[2], g[3]), product(g[4], g[5], g[6], g[7]));
+            let g = F128x8::load_runs(run);
+            let (lo, hi) = F128x8::interleave(product(g[0], g[1], g[2], g[3]), product(g[4], g[5], g[6], g[7]));
             let (first, second) = slot.split_at_mut(8);
             lo.store(first.try_into().unwrap());
             hi.store(second.try_into().unwrap());
@@ -779,16 +780,31 @@ mod vertical {
     }
 }
 
-/// The result of a batched grand-product proof: the three leaf evaluations, all reduced to one shared point.
-pub struct ProductTriple {
-    pub point: Vec<F192>,
-    pub values: [F192; 3],
+/// The result of a batched grand-product proof: the leaf evaluations, all reduced to one shared point.
+pub struct Products {
+    pub point: Vec<F128>,
+    pub values: [F128; TREES],
 }
 
-/// Prove three identity-padded grand products as one RLC-batched radix-four GKR.
-/// The first two trees share a product by construction, as the bus's two sides do.
-/// One root is sent for both, then the third, so no verifier can be handed an unbalanced pair.
-pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) -> ProductTriple {
+/// A sumcheck round's grind: its polynomial is `eq` times a product of four lines, degree five. In the bus's last
+/// layer the challenge is also a coordinate of `ζ`, which the table sumcheck's zerocheck reads, one more: six, as
+/// many bits.
+pub const ROUND_GRIND: u32 = fiat_shamir::grinding_bits(4 + 1);
+const _: () = assert!(fiat_shamir::grinding_bits(4 + 1 + 1) == ROUND_GRIND);
+
+/// The grind before a layer's `y`, its `step` coordinates: the children's multilinear has degree `step` in them.
+/// The last layer's are `ζ`'s first coordinates, which the bus's zerocheck also reads, `step` more (every table
+/// sumcheck spans at least two variables, the KECCAK table's floor).
+pub fn y_grind(step: usize, last: bool) -> u32 {
+    fiat_shamir::grinding_bits((step << usize::from(last)) as u128)
+}
+
+/// Prove the bus's identity-padded grand products as one RLC-batched radix-four GKR: push, pull, then count. Push
+/// and pull have one product by construction, so one root is sent for both, then the count's.
+///
+/// Per layer: a grind and the combiner `λ` (degree two in it), the sumcheck rounds (each its coefficients `c1..c4`,
+/// then its grind and challenge), the trees' children, then a grind and `y`.
+pub(crate) fn prove_products(leaves: [Leaves; TREES], ps: &mut ProverState) -> Products {
     let mu = crate::log2_ceil_usize(leaves[0].values.len());
     assert!(
         leaves
@@ -799,8 +815,8 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
     // In leaves; a layer's rows over level `l` are runs of `2^(l + 2)` leaves.
     let identities = leaves.each_ref().map(|lane| lane.ones.clone());
     let mut layers = leaves.map(|lane| build_layers(lane, mu));
-    let roots = [layers[0][mu][0], layers[1][mu][0], layers[2][mu][0]];
-    assert_eq!(roots[0], roots[1], "the first two products must agree");
+    let roots: [F128; TREES] = std::array::from_fn(|tree| layers[tree][mu][0]);
+    assert_eq!(roots[0], roots[1], "push and pull products must agree");
     ps.add_scalar(roots[0]);
     ps.add_scalar(roots[2]);
     let mut point = Vec::new();
@@ -808,21 +824,23 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
 
     let mut layer = mu;
     while layer > 0 {
+        ps.grind(fiat_shamir::grinding_bits(TREES as u128 - 1));
         let lambda = ps.sample();
         let round_count = mu - layer;
         if layer % 2 == 1 {
             debug_assert_eq!(round_count, 0, "only the root-most layer may be binary");
-            let tails = [0, 1, 2].map(|tree| {
+            let tails: [[F128; 2]; TREES] = std::array::from_fn(|tree| {
                 let below = &layers[tree][layer - 1];
                 match below.as_slice() {
                     [left, right] => [*left, *right],
-                    [left] => [*left, F192::ONE],
+                    [left] => [*left, F128::ONE],
                     _ => unreachable!("the root's children have at most two explicit nodes"),
                 }
             });
             for tail in &tails {
                 ps.add_scalars(tail);
             }
+            ps.grind(y_grind(1, layer == 1));
             let challenge = ps.sample();
             for (value, [left, right]) in values.iter_mut().zip(tails) {
                 *value = interp(left, right, challenge);
@@ -833,8 +851,8 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
         }
 
         let width = 1usize << round_count;
-        let mut trees =
-            [0, 1, 2].map(|tree| QuaternaryLayerState::new(std::mem::take(&mut layers[tree][layer - 2]), width));
+        let mut trees: [QuaternaryLayerState; TREES] =
+            std::array::from_fn(|tree| QuaternaryLayerState::new(std::mem::take(&mut layers[tree][layer - 2]), width));
         if SKIP_IDENTITY {
             for (tree, ones) in trees.iter_mut().zip(&identities) {
                 tree.ones = coarsen(ones, layer);
@@ -846,17 +864,22 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
             let eq = SplitEq::new(&point[1..]);
             trees.each_ref().map(|tree| tree.round_message(&eq))
         } else {
-            [[F192::ZERO; 4]; 3]
+            [[F128::ZERO; 4]; TREES]
         };
         for round in 0..round_count {
+            // `Σ_t λ^t message_t`, by Horner.
             let mut coeffs = [0, 1, 2, 3].map(|coefficient| {
-                messages[0][coefficient] + lambda * (messages[1][coefficient] + lambda * messages[2][coefficient])
+                messages
+                    .iter()
+                    .rev()
+                    .fold(F128::ZERO, |acc, message| message[coefficient] + lambda * acc)
             });
             // The kernel accumulates `q(0) + q(1)`, the wire carries `c1`. This is
             // `ProverState::add_round_poly(_, true)` bar its dropped `c0`, which the
             // claim fixes and the prover therefore never forms.
             coeffs[0] = coeffs[0] + coeffs[1] + coeffs[2] + coeffs[3];
             ps.add_scalars(&coeffs);
+            ps.grind(ROUND_GRIND);
             let challenge = ps.sample();
             round_point.push(challenge);
             if round + 1 < round_count {
@@ -874,6 +897,7 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
         for tree in &trees {
             ps.add_scalars(&tree.children());
         }
+        ps.grind(y_grind(2, layer == 2));
         let low_challenge = ps.sample();
         let high_challenge = ps.sample();
         for (value, tree) in values.iter_mut().zip(&trees) {
@@ -889,14 +913,14 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
         layer -= 2;
     }
 
-    ProductTriple { point, values }
+    Products { point, values }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn mle_eval_e(table: &[F192], point: &[F192]) -> F192 {
+    fn mle_eval_e(table: &[F128], point: &[F128]) -> F128 {
         assert_eq!(table.len(), 1 << point.len());
         let mut folded = table.to_vec();
         for &challenge in point {
@@ -909,19 +933,19 @@ mod tests {
         folded[0]
     }
 
-    fn element(i: usize, salt: usize) -> F192 {
-        F192::new((17 * i + salt + 1) as u64, (i * i + 3) as u64, (5 * i + 7) as u64)
+    fn element(i: usize, salt: usize) -> F128 {
+        F128::new((17 * i + salt + 1) as u64, (i * i + 3) as u64)
     }
 
     #[test]
     fn quartic_round_message_matches_direct_evaluation() {
         for width in [2, 4, 8, 16, 1 << 11] {
-            let below: Vec<F192> = (0..4 * width).map(|i| element(i, width)).collect();
+            let below: Vec<F128> = (0..4 * width).map(|i| element(i, width)).collect();
             let state = QuaternaryLayerState::new(below, width);
-            let point: Vec<F192> = (0..width.ilog2() - 1).map(|i| element(31 * i as usize, 5)).collect();
+            let point: Vec<F128> = (0..width.ilog2() - 1).map(|i| element(31 * i as usize, 5)).collect();
             let equality = eq_table(&point);
             let [difference, c2, c3, c4] = state.round_message(&SplitEq::new(&point));
-            let direct = |point: F192| {
+            let direct = |point: F128| {
                 (0..width / 2)
                     .map(|row| {
                         let values = [0, 1, 2, 3].map(|child| {
@@ -929,11 +953,11 @@ mod tests {
                         });
                         equality[row] * values[0] * values[1] * values[2] * values[3]
                     })
-                    .sum::<F192>()
+                    .sum::<F128>()
             };
-            let c0 = direct(F192::ZERO);
+            let c0 = direct(F128::ZERO);
             let c1 = difference + c2 + c3 + c4;
-            for point in [F192::ZERO, F192::ONE, F192::Y, F192::Y.square()] {
+            for point in [F128::ZERO, F128::ONE, F128::Y, F128::Y.square()] {
                 assert_eq!(
                     c0 + point * (c1 + point * (c2 + point * (c3 + point * c4))),
                     direct(point)
@@ -951,8 +975,8 @@ mod tests {
                 let tree = |n: usize| QuaternaryLayerState::new((0..n).map(|i| element(i, n)).collect(), width);
                 let mut reference = [three[0], three[1], three[2]].map(tree);
                 let mut fused = [three[0], three[1], three[2]].map(tree);
-                let point: Vec<F192> = (0..width.ilog2() - 1)
-                    .map(|i| F192::new(31 + u64::from(i), 7, 11))
+                let point: Vec<F128> = (0..width.ilog2() - 1)
+                    .map(|i| F128::new(31 + u64::from(i), 7))
                     .collect();
                 let eq = SplitEq::new(&point);
                 for (f, r) in fused.iter().zip(&reference) {
@@ -961,7 +985,7 @@ mod tests {
                 let mut round = 0;
                 while reference[0].logical_rows > 2 {
                     round += 1;
-                    let challenge = F192::new(reference[0].logical_rows as u64, 13, 19);
+                    let challenge = F128::new(reference[0].logical_rows as u64, 13);
                     let eq = SplitEq::new(&point[round..]);
                     let messages = fold_and_message(&mut fused, challenge, &eq);
                     for (r, message) in reference.iter_mut().zip(messages) {
@@ -970,8 +994,8 @@ mod tests {
                     }
                 }
                 for (f, r) in fused.iter_mut().zip(&mut reference) {
-                    r.fold(F192::Y);
-                    f.fold(F192::Y);
+                    r.fold(F128::Y);
+                    f.fold(F128::Y);
                     assert_eq!(f.children(), r.children());
                 }
             }
@@ -981,34 +1005,34 @@ mod tests {
     #[test]
     fn level_products_match_scalar() {
         for len in [4, 5, 63, 64, 65, 4 << 12, (4 << 12) + 3, (4 << 13) - 1] {
-            let current: Vec<F192> = (0..len).map(|i| element(i, 3)).collect();
-            let want: Vec<F192> = current.chunks(4).map(|c| c.iter().product()).collect();
+            let current: Vec<F128> = (0..len).map(|i| element(i, 3)).collect();
+            let want: Vec<F128> = current.chunks(4).map(|c| c.iter().product()).collect();
             assert_eq!(next_level(&current), want, "len={len}");
         }
     }
 
-    fn product(lane: &[F192]) -> F192 {
+    fn product(lane: &[F128]) -> F128 {
         lane.iter().copied().product()
     }
 
     /// Rescale lane 1's last leaf so its product matches lane 0's, as the bus's two sides do.
-    fn balance(leaves: &mut [Vec<F192>; 3]) {
+    fn balance(leaves: &mut [Vec<F128>; 3]) {
         let last = leaves[1].len() - 1;
-        leaves[1][last] = F192::ONE;
+        leaves[1][last] = F128::ONE;
         leaves[1][last] = product(&leaves[0]) * product(&leaves[1]).inv();
     }
 
     #[test]
     fn radix_four_claims_are_true_at_even_and_odd_depths() {
         for mu in 0..=10 {
-            let mut leaves: [Vec<F192>; 3] = [0, 1, 2].map(|lane| {
+            let mut leaves: [Vec<F128>; 3] = [0, 1, 2].map(|lane| {
                 (0..1usize << mu)
-                    .map(|row| F192::new((1 + row + lane * 100_003) as u64, row as u64, lane as u64))
+                    .map(|row| F128::new((1 + row + lane * 100_003) as u64, (row + lane) as u64))
                     .collect()
             });
             balance(&mut leaves);
             let mut ps = ProverState::from_label(b"radix-four-gkr-test");
-            let proved = prove_product_triple(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut ps);
+            let proved = prove_products(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut ps);
             let stream = ps.into_proof().stream;
             assert_eq!(stream[..2], [product(&leaves[0]), product(&leaves[2])]);
             for lane in 0..3 {
@@ -1021,26 +1045,26 @@ mod tests {
     fn implicit_identity_suffix_matches_dense_padding() {
         for mu in 3..=10 {
             let lengths = [(1usize << mu) - 3, (1usize << (mu - 1)) + 1, (1usize << (mu - 2)) + 3];
-            let mut leaves: [Vec<F192>; 3] = std::array::from_fn(|lane| {
+            let mut leaves: [Vec<F128>; 3] = std::array::from_fn(|lane| {
                 (0..lengths[lane])
-                    .map(|row| F192::new((3 + row + lane * 10_007) as u64, row as u64, lane as u64))
+                    .map(|row| F128::new((3 + row + lane * 10_007) as u64, (row + lane) as u64))
                     .collect()
             });
             balance(&mut leaves);
             let dense = leaves.each_ref().map(|lane| {
                 let mut padded = lane.clone();
-                padded.resize(1 << mu, F192::ONE);
+                padded.resize(1 << mu, F128::ONE);
                 padded
             });
             let mut sparse_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            let proved = prove_product_triple(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut sparse_ps);
+            let proved = prove_products(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut sparse_ps);
             for lane in 0..3 {
                 assert_eq!(proved.values[lane], mle_eval_e(&dense[lane], &proved.point));
             }
             let proof = sparse_ps.into_proof();
             assert_eq!(proof.stream[..2], [product(&dense[0]), product(&dense[2])]);
             let mut dense_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            let dense_proved = prove_product_triple(dense.each_ref().map(|l| Leaves::new(l.to_vec())), &mut dense_ps);
+            let dense_proved = prove_products(dense.each_ref().map(|l| Leaves::new(l.to_vec())), &mut dense_ps);
             assert_eq!(dense_proved.point, proved.point);
             assert_eq!(dense_proved.values, proved.values);
             assert_eq!(dense_ps.into_proof().stream, proof.stream);

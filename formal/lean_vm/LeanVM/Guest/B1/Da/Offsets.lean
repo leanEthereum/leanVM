@@ -1,17 +1,18 @@
 /-
   LeanVM.Guest.B1.Da.Offsets
 
-  `da_column_offsets`' template, its loops' and its meaning (G:4467-4485).
+  `da_column_offsets`' template, its loops' and its meaning (G:4417-4435).
 -/
 
 module
 
 public import LeanVM.Guest.B1.Da.Help
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `da_column_offsets` (G:4467-4485)
+# `da_column_offsets` (G:4417-4435)
 
-`da_column_offsets(zs)` (`core32`): a heap run `offsets` (`.n 1`, `1024` words) whose first eight
+`da_column_offsets(zs)`: a heap run `offsets` (`.n 1`, `1024` words) whose first eight
 words are zero; then for each bit `b < 7` of the cell index a run `steps` (`.n (offB b)`, eight
 words), `steps[j] = zs[j] · Ŵ_j(e_(8 + b))` (`DA_VHAT_COLUMN[8b + j]`, here `offC b j`, read off
 `wK`), and the loop `__loop{22 + b}` (`core{379 + b}`) over `h < 2^b`, which writes
@@ -66,23 +67,26 @@ def offN (b : ℕ) : ℕ := [2, 4, 16, 256, 65536, 4294967296, 27].getD b 0
 
 /-- The name of bit `b`'s loop. -/
 def offLoopName (b : ℕ) : String :=
-  ["__loop26", "__loop27", "__loop28", "__loop29", "__loop30", "__loop31", "__loop32"].getD b ""
+  [name% «da_column_offsets_loop0», name% «da_column_offsets_loop1»,
+      name% «da_column_offsets_loop2», name% «da_column_offsets_loop3»,
+      name% «da_column_offsets_loop4», name% «da_column_offsets_loop5»,
+      name% «da_column_offsets_loop6»].getD b ""
 
 /-- The zero at `offsets[j]`. -/
-def offZeroA (j : ℕ) : List Atom := [.const (.n (2 + j)) (word 0 0 0), .load (.n (2 + j)) (.n 1) j]
+def offZeroA (j : ℕ) : List Atom := [.const (.n (2 + j)) (word 0 0), .load (.n (2 + j)) (.n 1) j]
 
 /-- `steps[j]` of bit `b`. -/
 def offStepA (b j : ℕ) : List Atom :=
   let v := offB b + 1 + 3 * j
-  [.load (.n v) (.n 0) j, .const (.n (v + 1)) (word (offC b j) 0 0), .mul (.n (v + 2)) (.n v) (.n (v + 1)),
+  [.load (.n v) (.n 0) j, .const (.n (v + 1)) (word (offC b j) 0), .mul (.n (v + 2)) (.n v) (.n (v + 1)),
     .load (.n (v + 2)) (.n (offB b)) j]
 
 /-- Bit `b`'s statements: its run `steps`, its loop's guard and call. -/
 def offBlockS (b : ℕ) : List Stmt :=
   (.atom (.hint (.alloc (.n (offB b)) 8)) :: ((List.range 8).flatMap (offStepA b)).map .atom) ++
-    [.atom (.const (.n (offB b + 25)) (word 1 0 0)), .atom (.const (.n (offB b + 26)) (word (offN b) 0 0)),
+    [.atom (.const (.n (offB b + 25)) (word 1 0)), .atom (.const (.n (offB b + 26)) (word (offN b) 0)),
       .atom (.add (.n (offB b + 27)) (.n (offB b + 25)) (.n (offB b + 26))),
-      .atom (.const (.n (offB b + 28)) (word 1 0 0)), .atom (.const (.n (offB b + 29)) (word (offN b) 0 0)),
+      .atom (.const (.n (offB b + 28)) (word 1 0)), .atom (.const (.n (offB b + 29)) (word (offN b) 0)),
       .callIf (.n (offB b + 27)) (offLoopName b) [.n (offB b + 28), .n (offB b + 29), .n 1, .n (offB b)]]
 
 /-- **`da_column_offsets`' block** (its body but the final `ret`). -/
@@ -102,8 +106,8 @@ def offLoopA (b : ℕ) : List Atom :=
   (List.range 8).flatMap (fun j ↦ [.load (.n (8 + 3 * j)) (.n 7) j, .load (.n (9 + 3 * j)) (.n 3) j,
     .add (.n (10 + 3 * j)) (.n (8 + 3 * j)) (.n (9 + 3 * j)),
     .load (.n (10 + 3 * j)) (.n 7) (8 * 2 ^ b + j)]) ++
-  [.const (.n 32) (word 2 0 0), .mul (.n 33) (.n 0) (.n 32), .add (.n 34) (.n 33) (.n 1),
-    .const (.n 35) (word 2 0 0), .mul (.n 36) (.n 0) (.n 35)]
+  [.const (.n 32) (word 2 0), .mul (.n 33) (.n 0) (.n 32), .add (.n 34) (.n 33) (.n 1),
+    .const (.n 35) (word 2 0), .mul (.n 36) (.n 0) (.n 35)]
 
 /-- **Bit `b`'s loop, checked.** -/
 def offLoopOk (fn : Fn) (b : ℕ) : Bool :=
@@ -118,8 +122,10 @@ theorem atom_mem_holds {C : CallRel} {P : List Stmt} {kret : List E → Prop}
 
 /-- **A run of bit `b`'s loop at `x`**: `offsets[8·2^b + j]` through `offsets·x^8` is its word
 `j`'s plus `steps[j]`. -/
-theorem off_loop_step {b : ℕ} (hb : b < 7) (hok : offLoopOk (coreProgram.getD (394 + b) default) b = true)
-    (hidx : coreProgram.indexOf? (offLoopName b) = some (394 + b)) {x : E} {ps : List E}
+theorem off_loop_step {b : ℕ} (hok : offLoopOk (coreProgram.getD (idx% «da_column_offsets_loop0» +
+    b) default) b = true)
+    (hidx : coreProgram.indexOf? (offLoopName b) = some (idx% «da_column_offsets_loop0» + b)) {x :
+        E} {ps : List E}
     (h : coreProgram.Rel rd (offLoopName b) (x :: ps) []) :
     (∀ N off st, ps = [N, off, st] → ∀ j < 8, ∃ a s, LoadHolds rd (off * x ^ 8) j a ∧
       LoadHolds rd st j s ∧ LoadHolds rd (off * x ^ 8) (8 * 2 ^ b + j) (a + s)) ∧
@@ -127,11 +133,12 @@ theorem off_loop_step {b : ℕ} (hb : b < 7) (hok : offLoopOk (coreProgram.getD 
   simp only [offLoopOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨hshape, hlen⟩, hat0⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ :=
-    loop_stepF (find_of_idx hidx (by rw [coreProgram_length]; omega)) hshape h
+    loop_stepF (find_of_idx hidx) hshape h
   refine ⟨fun N off st hN j hj ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
   rw [atomsEqb_sound hat0] at hat
-  have hpar : (coreProgram.getD (394 + b) default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD (idx% «da_column_offsets_loop0» + b) default).params = [V.n 0,
+      V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -171,15 +178,17 @@ theorem mem_offBlock_step {b j : ℕ} (hj : j < 8) {a : Atom} (ha : a ∈ offSte
   List.mem_append_left _ (List.mem_cons_of_mem _
     (List.mem_map.mpr ⟨a, List.mem_flatMap.mpr ⟨j, List.mem_range.mpr hj, ha⟩, rfl⟩))
 
-theorem offC_word (b j : ℕ) : word (offC b j) 0 0 = ofK (wK j (2 ^ (8 + b))) := by
+theorem offC_word (b j : ℕ) : word (offC b j) 0 = ofK (wK j (2 ^ (8 + b))) := by
   rw [word_eOfNat, eOfNat, offC]
   congr 1
   simp [K.ofBits]
 
 /-- **`da_column_offsets`' body gives its meaning**, from its loops'. -/
 theorem da_column_offsets_val {fn : Fn} (hok : offOk fn = true)
-    (hloop : ∀ b < 7, offLoopOk (coreProgram.getD (394 + b) default) b = true)
-    (hidx : ∀ b < 7, coreProgram.indexOf? (offLoopName b) = some (394 + b))
+    (hloop : ∀ b < 7, offLoopOk (coreProgram.getD (idx% «da_column_offsets_loop0» + b) default) b =
+        true)
+    (hidx : ∀ b < 7, coreProgram.indexOf? (offLoopName b) = some (idx% «da_column_offsets_loop0» +
+        b))
     {args rets : List E} (hpar : fn.params.map σ = args)
     (hb : Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun rs ↦ rs = rets)) :
     MeaningDaColumnOffsets rd args rets := by
@@ -198,7 +207,7 @@ theorem da_column_offsets_val {fn : Fn} (hok : offOk fn = true)
   -- the zeros
   have hz : ∀ j < 8, LoadHolds rd (σ (.n 1)) j 0 := by
     intro j hj
-    have c := atom_mem_holds hall (mem_offP_zero hj (a := .const (.n (2 + j)) (word 0 0 0)) (by simp [offZeroA]))
+    have c := atom_mem_holds hall (mem_offP_zero hj (a := .const (.n (2 + j)) (word 0 0)) (by simp [offZeroA]))
     have l := atom_mem_holds hall (mem_offP_zero hj (a := .load (.n (2 + j)) (.n 1) j) (by simp [offZeroA]))
     simp only [Atom.Holds] at c l
     rwa [c, word_zero] at l
@@ -208,7 +217,7 @@ theorem da_column_offsets_val {fn : Fn} (hok : offOk fn = true)
     intro b hb j hj
     have e := fun a (ha : a ∈ offStepA b j) ↦ atom_mem_holds hall (mem_offP_block hb (mem_offBlock_step hj ha))
     have l1 := e (.load (.n (offB b + 1 + 3 * j)) (.n 0) j) (by simp [offStepA])
-    have c := e (.const (.n (offB b + 1 + 3 * j + 1)) (word (offC b j) 0 0)) (by simp [offStepA])
+    have c := e (.const (.n (offB b + 1 + 3 * j + 1)) (word (offC b j) 0)) (by simp [offStepA])
     have m := e (.mul (.n (offB b + 1 + 3 * j + 2)) (.n (offB b + 1 + 3 * j))
       (.n (offB b + 1 + 3 * j + 1))) (by simp [offStepA])
     have l2 := e (.load (.n (offB b + 1 + 3 * j + 2)) (.n (offB b)) j) (by simp [offStepA])
@@ -227,15 +236,15 @@ theorem da_column_offsets_val {fn : Fn} (hok : offOk fn = true)
   have hloops : ∀ b < 7, ∀ h < 2 ^ b, ∀ j < 8, ∃ a s, LoadHolds rd (σ (.n 1)) (8 * h + j) a ∧
       LoadHolds rd (σ (.n (offB b))) j s ∧ LoadHolds rd (σ (.n 1)) (8 * h + 8 * 2 ^ b + j) (a + s) := by
     intro b hb
-    have hNb : word (offN b) 0 0 = gen ^ 2 ^ b := by
+    have hNb : word (offN b) 0 = gen ^ 2 ^ b := by
       rw [word_eOfNat, eOfNat, hN b hb, gen_pow_eq_ofK]
     have hblk := fun s (hs : s ∈ offBlockS b) ↦ hall s (mem_offP_block hb hs)
-    have c25 := (hblk (.atom (.const (.n (offB b + 25)) (word 1 0 0))) (by simp [offBlockS])).1
-    have c26 := (hblk (.atom (.const (.n (offB b + 26)) (word (offN b) 0 0))) (by simp [offBlockS])).1
+    have c25 := (hblk (.atom (.const (.n (offB b + 25)) (word 1 0))) (by simp [offBlockS])).1
+    have c26 := (hblk (.atom (.const (.n (offB b + 26)) (word (offN b) 0))) (by simp [offBlockS])).1
     have a27 := (hblk (.atom (.add (.n (offB b + 27)) (.n (offB b + 25)) (.n (offB b + 26))))
       (by simp [offBlockS])).1
-    have c28 := (hblk (.atom (.const (.n (offB b + 28)) (word 1 0 0))) (by simp [offBlockS])).1
-    have c29 := (hblk (.atom (.const (.n (offB b + 29)) (word (offN b) 0 0))) (by simp [offBlockS])).1
+    have c28 := (hblk (.atom (.const (.n (offB b + 28)) (word 1 0))) (by simp [offBlockS])).1
+    have c29 := (hblk (.atom (.const (.n (offB b + 29)) (word (offN b) 0))) (by simp [offBlockS])).1
     have ci := (hblk (.callIf (.n (offB b + 27)) (offLoopName b)
       [.n (offB b + 28), .n (offB b + 29), .n 1, .n (offB b)]) (by simp [offBlockS])).2.1
     simp only [Atom.Holds] at c25 c26 a27 c28 c29
@@ -250,7 +259,7 @@ theorem da_column_offsets_val {fn : Fn} (hok : offOk fn = true)
         LoadHolds rd (σ (.n (offB b))) j s ∧
         LoadHolds rd (σ (.n 1) * x ^ 8) (8 * 2 ^ b + j) (a + s)) hm rfl
       (fun x hx ↦ by
-        obtain ⟨k1, k2⟩ := off_loop_step hb (hloop b hb) (hidx b hb) hx
+        obtain ⟨k1, k2⟩ := off_loop_step (hloop b hb) (hidx b hb) hx
         exact ⟨k1 _ _ _ rfl, k2⟩) ci
     intro h hh j hj
     obtain ⟨a, s, l1, l2, l3⟩ := L h hh j hj
