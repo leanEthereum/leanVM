@@ -218,8 +218,7 @@ impl LeanXmssSecretKey {
 
     /// Builds the bottom tree `leaf_index` is in, and signs its root, ahead of
     /// [`sign`]: the first signature in a bottom tree pays for both. The key keeps
-    /// the [`MAX_CACHED_BOTTOM_TREES`] it used last, and threads may prepare different
-    /// trees at once.
+    /// the [`MAX_CACHED_BOTTOM_TREES`] it used last.
     pub fn prepare(&self, leaf_index: LeafIndex) -> Result<(), LeanXmssSignError> {
         self.bottom_tree(leaf_index).map(drop)
     }
