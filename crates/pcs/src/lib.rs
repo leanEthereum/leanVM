@@ -4,6 +4,7 @@
 //! Boolean witnesses are packed into `K = GF(2^64)` and WHIR opens them
 //! over its quadratic extension `E = GF(2^128)`.
 
+mod memory;
 pub mod merkle;
 pub mod ntt;
 pub mod ood;
