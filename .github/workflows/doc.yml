@@ -37,7 +37,7 @@ jobs:
           root_file: main.tex
       - name: Fail on an undefined reference or citation
         run: |
-          ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/leanvm/.build/main.log
+          test -s doc/leanvm/.build/main.log && ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/leanvm/.build/main.log
       - name: Compile leanXMSS specification
         uses: xu-cheng/latex-action@v3
         with:
@@ -45,7 +45,7 @@ jobs:
           root_file: main.tex
       - name: Fail on an undefined leanXMSS reference or citation
         run: |
-          ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/lean_xmss/.build/main.log
+          test -s doc/lean_xmss/.build/main.log && ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/lean_xmss/.build/main.log
       - name: Compile leanSPHINCS specification
         uses: xu-cheng/latex-action@v3
         with:
@@ -53,7 +53,7 @@ jobs:
           root_file: main.tex
       - name: Fail on an undefined leanSPHINCS reference or citation
         run: |
-          ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/lean_sphincs/.build/main.log
+          test -s doc/lean_sphincs/.build/main.log && ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/lean_sphincs/.build/main.log
 
   build-pdf:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

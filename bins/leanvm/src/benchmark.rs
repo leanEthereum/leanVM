@@ -341,9 +341,10 @@ fn leaves_from_subprocess(n: usize) -> Vec<EthereumProof> {
         .env(LEAVES_OUT, &out)
         .status()
         .expect("the leaves' process starts");
-    assert!(status.success(), "the leaves' process failed");
-    let bytes = std::fs::read(&out).expect("the leaves are read");
+    let bytes = std::fs::read(&out);
     std::fs::remove_file(&out).expect("the leaves' file is removed");
+    assert!(status.success(), "the leaves' process failed");
+    let bytes = bytes.expect("the leaves are read");
 
     let mut file = LeavesFile(&bytes);
     let mut leaves = Vec::with_capacity(n);

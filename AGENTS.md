@@ -63,7 +63,7 @@ RUSTFLAGS="-C target-cpu=znver4" \
 
 To confirm an arm is reached rather than silently skipped, put a `compile_error!` in it and watch the check fail.
 
-Heavy benches are `benches/` targets, run with `cargo bench -p <crate> --bench <name>`: keccak_gkr's `hash_batch`, pcs's `throughput`, primitives' `hash_throughput`. Slow checks are `#[ignore]`d tests, run by name with `-- --ignored --nocapture`: `aggregate_three_levels`, `aggregate_round_trips_through_the_wire`, `print_whir_query_counts`, `encoding_grinding_bits`. `aggregate_two_to_one` is the fast end-to-end check.
+Heavy benches are `benches/` targets, run with `cargo bench -p <crate> --bench <name>`: keccak_gkr's `hash_batch`, pcs's `throughput`, primitives' `hash_throughput`. Slow checks are `#[ignore]`d tests, run by name with `-- --ignored --nocapture`: `print_whir_query_counts`, `print_whir_query_table`, `encoding_grinding_bits`. `aggregate_two_to_one` is the fast end-to-end check.
 
 Where a proof's time goes is the `tracing` span tree, and only that: `--tracing` on the CLI, `BENCH_TRACING=1` on the benches, `RUST_LOG` for the level. A new stage worth timing gets an `info_span!` (`stage!` in `leanvm_core`), never an `Instant` behind an env var.
 

@@ -878,7 +878,6 @@ def main():
 /// directly. The root also adds a raw signature of each scheme alongside its
 /// children.
 #[test]
-#[ignore]
 fn aggregate_three_levels() {
     leanvm_core::init_prover();
     let signers = get_signers(4 * SMALL_LEAF_SIZE);
@@ -923,7 +922,6 @@ fn aggregate_three_levels() {
 }
 
 #[test]
-#[ignore]
 fn aggregate_round_trips_through_the_wire() {
     leanvm_core::init_prover();
     let signers = get_signers(2 * SMALL_LEAF_SIZE);
