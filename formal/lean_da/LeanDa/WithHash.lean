@@ -92,6 +92,14 @@ def nonceInput (y : KeccakState) (nonce : ℕ) : KeccakState :=
 /-- The challenge an answer draws: its lanes `0, 1` (`E::new(state[0], state[1])`). -/
 def chalOfState (y : KeccakState) : E := ofLimbs (K.ofLane y[0]) (K.ofLane y[1])
 
+/-- An allowed row count's padded log is at most `logMaxRows`. -/
+theorem logPaddedRowCount_le_logMaxRows {r : ℕ} (hr : r ≤ maxRows) : logPaddedRowCount r ≤ logMaxRows :=
+  Nat.clog_le_of_le_pow hr
+
+/-- **An allowed row count pads to at most `maxRows`**, a power of two. -/
+theorem paddedRowCount_le_maxRows {r : ℕ} (hr : r ≤ maxRows) : paddedRowCount r ≤ maxRows :=
+  Nat.pow_le_pow_right (by norm_num) (logPaddedRowCount_le_logMaxRows hr)
+
 section Duplex
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
@@ -368,8 +376,8 @@ abbrev PositionBindingRpmWithHash : Prop :=
 
 /-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
 it** (Benedikt Wagner's framework and games, moved to the random-permutation model, with a
-straight-line argument in place of his forking lemma). For `1 ≤ r ≤ 1024` rows (`maxRows`, the
-crate's bound), every argument `ps` (its prover and verifier querying the model's oracles) and
+straight-line argument in place of his forking lemma). For `1 ≤ r ≤ maxRows` rows (the crate's
+bound), every argument `ps` (its prover and verifier querying the model's oracles) and
 straight-line extractor `ext` (reading the adversary's transcript): if every adversary whose
 knowledge-soundness game (`knowledgeSoundnessGame`, the argument's verifier and the relation's check
 included) makes at most `q ≤ 2^128` permutation calls (`permutationCallCost`) wins it with

@@ -182,8 +182,8 @@ abbrev PositionBindingRpmH : Prop :=
 
 /-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
 it** (Benedikt Wagner's framework and games, moved to the random-permutation model, with a
-straight-line argument in place of his forking lemma). For `1 ≤ r ≤ 1024` rows (`maxRows`, the
-crate's bound), every argument `ps` (its prover and verifier querying the model's oracles) and
+straight-line argument in place of his forking lemma). For `1 ≤ r ≤ maxRows` rows (the crate's
+bound), every argument `ps` (its prover and verifier querying the model's oracles) and
 straight-line extractor `ext` (reading the adversary's transcript): if every adversary whose
 knowledge-soundness game (`ksGameH`, the argument's verifier and the relation's check included)
 makes at most `q ≤ 2^128` permutation calls (`permCallsH`) wins it with probability at most

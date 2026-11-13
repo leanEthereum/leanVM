@@ -17,6 +17,9 @@ public import LeanVM.Guest.B1.Da.AtTB
 public import LeanVM.Guest.B1.Da.DvBound
 public import LeanVM.Guest.Value.KeccakDuplex
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # `da_verify`, placed
@@ -43,16 +46,11 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 
 @[expose] public section
 
-/-- The DA levels' names, as `da_verify`'s dispatch lists them. -/
-def dlList : List String :=
-  ["da_levels__L1_L0", "da_levels__L2_L1", "da_levels__L4_L2", "da_levels__L8_L3",
-    "da_levels__L16_L4", "da_levels__L32_L5", "da_levels__L64_L6", "da_levels__L128_L7",
-    "da_levels__L256_L8", "da_levels__L512_L9", "da_levels__L1024_L10"]
-
-theorem dlList_getD {L : ℕ} (hL : L ≤ 10) : dlList.getD L "" = daLevelsName L := by
+theorem dlNames_getD {L : ℕ} (hL : L ≤ guest_const% DA_LOG_MAX_ROWS) :
+    dlNames.getD L "" = daLevelsName L := by
   interval_cases L <;> rfl
 
-theorem dlNames_bang {L : ℕ} (hL : L ≤ 10) : dlNames[L]! = daLevelsName L := by
+theorem dlNames_bang {L : ℕ} (hL : L ≤ guest_const% DA_LOG_MAX_ROWS) : dlNames[L]! = daLevelsName L := by
   interval_cases L <;> rfl
 
 /-- `da_verify`'s calls, the dispatch at `j`. -/
@@ -63,7 +61,7 @@ def dvCallsS (j : ℕ) : List (Option V × String × List V × List V) :=
     (none, name% «da_verify_loop1», [.n 26, .n 1, .n 22, .n 6, .n 7, .n 8, .n 9], []),
     (some (.n 31), name% «da_verify_loop2», [.n 32, .n 1, .n 22, .n 29], []),
     (some (.n 34), name% «da_verify_loop3», [.n 35, .n 4, .n 29, .n 1], []),
-    (none, dlList.getD j "", [.n 29], [.n 36, .n 37])]
+    (none, dlNames.getD j "", [.n 29], [.n 36, .n 37])]
 
 theorem dv_callsSF (σ : Val) : dvP.filterMap (Stmt.callSF σ) = dvCallsS (logG (σ (.n 2))) := rfl
 
@@ -162,7 +160,7 @@ def dvNH (r L : ℕ) : Tree → Prop :=
 
 set_option maxRecDepth 20000 in
 /-- **`da_verify`'s statements hold** on its valuation. -/
-theorem dv_sholds {rd : Reader} (r L s : ℕ) (hL : L ≤ 10) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bb : ℕ)
+theorem dv_sholds {rd : Reader} (r L s : ℕ) (hL : L ≤ guest_const% DA_LOG_MAX_ROWS) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bb : ℕ)
     (c0 c1 : E) :
     ∀ st ∈ dvP, SHolds (fun _ _ _ => True) rd (Val.ofArgs (dvVals r L s z q bb c0 c1)) st := by
   intro st hs
@@ -182,8 +180,8 @@ theorem one_add_gen_ne_iff {m : ℕ} (hm : m < ordG) : (1 + gen ^ m ≠ 0) ↔ m
     fun h => one_add_gen_pow_ne_zero (by omega) hm⟩
 
 set_option maxRecDepth 20000 in
-/-- `da_verify`'s dispatch is at `g^L`, `L ≤ 10`. -/
-theorem dv_dispOk (r L s : ℕ) (hL : L ≤ 10) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bb : ℕ) (c0 c1 : E) :
+/-- `da_verify`'s dispatch is at `g^L`, `L ≤ DA_LOG_MAX_ROWS`. -/
+theorem dv_dispOk (r L s : ℕ) (hL : L ≤ guest_const% DA_LOG_MAX_ROWS) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bb : ℕ) (c0 c1 : E) :
     ∀ st ∈ dvP, B1.DispOk (Val.ofArgs (dvVals r L s z q bb c0 c1)) st := by
   intro st hs
   simp only [dvP, core_eq% «da_verify», core_eq% «da_verify» body, List.dropLast_cons_cons,
@@ -265,16 +263,18 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
       (Returns (digestCells (daRoot r L syms) ++ [z])) (dvNH r L)
       (fs "da_verify" + (dvSizes r L).sum + (dvBs fs SB SK r L).sum) := by
   -- the shape
-  have hr' : r ≤ 1024 := hr
+  -- `LeanDa.maxRows` is the guest's `DA_MAX_ROWS`, by definition.
+  have hr' : r ≤ guest_const% DA_MAX_ROWS := hr
   obtain ⟨hlo, hhi⟩ := nPad_bounds hr1
   have hrL : r ≤ 2 ^ L := hL ▸ hlo
-  have hlt : 2 ^ L < 2 ^ 11 := by
+  have hlt : 2 ^ L < 2 ^ (guest_const% DA_LOG_MAX_ROWS + 1) := by
     calc 2 ^ L < 2 * r := hL ▸ hhi
-      _ ≤ 2 ^ 11 := by norm_num; omega
-  have hL10 : L ≤ 10 := by
+      _ ≤ 2 ^ (guest_const% DA_LOG_MAX_ROWS + 1) := by norm_num; omega
+  have hLm : L ≤ guest_const% DA_LOG_MAX_ROWS := by
     have := (Nat.pow_lt_pow_iff_right (by norm_num : 1 < 2)).mp hlt
     omega
-  have hN : 2 ^ L ≤ 1024 := le_trans (Nat.pow_le_pow_right (by norm_num) hL10) (by norm_num)
+  have hN : 2 ^ L ≤ guest_const% DA_MAX_ROWS :=
+    le_trans (Nat.pow_le_pow_right (by norm_num) hLm) (by norm_num)
   have hcok := dv_cok
   unfold dvCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
@@ -330,8 +330,8 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     · have h0 : 2 ^ L - r = 0 := by simpa [dvKids] using ht
       simp [h0]
     · exact pureB_static daPure (List.mem_append_left _ (List.mem_append_right _
-        (List.mem_map.mpr ⟨L, List.mem_range.mpr (by omega), rfl⟩)))
-        (fun rd hm => dl_rel hL10 (reads_of_memL hm List.mem_cons_self)) hdl
+        (by interval_cases L <;> decide)))
+        (fun rd hm => dl_rel hLm (reads_of_memL hm List.mem_cons_self)) hdl
   · -- the callees' regions
     set bb := fp + fs "da_verify"
     have hown : ∀ {xs : List E} {b : ℕ}, (b, xs) ∈ bufL bb (dvSizes r L)
@@ -450,9 +450,9 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     simp only [List.getD_cons_succ, List.getD_cons_zero] at hv
     obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = Val.ofArgs (dvVals r L s z (dvVb z [o1, o2]) bb
         (digestHalves (daRoot r L syms)).1 (digestHalves (daRoot r L syms)).2) := ⟨_, rfl⟩
-    have hall := dv_sholds (rd := rd) r L s hL10 z (dvVb z [o1, o2]) bb
+    have hall := dv_sholds (rd := rd) r L s hLm z (dvVb z [o1, o2]) bb
       (digestHalves (daRoot r L syms)).1 (digestHalves (daRoot r L syms)).2
-    have hdisp := dv_dispOk r L s hL10 z (dvVb z [o1, o2]) bb
+    have hdisp := dv_dispOk r L s hLm z (dvVb z [o1, o2]) bb
       (digestHalves (daRoot r L syms)).1 (digestHalves (daRoot r L syms)).2
     rw [← hσ] at hall hdisp
     have s2 : σ (.n 2) = gen ^ L := by rw [hσ]; rfl
@@ -475,7 +475,7 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
       rw [logG_gen_pow (by omega), logG_gen_pow (by omega), logG_gen_pow (by omega)]
     · rw [halloc]
       simp [hσ, ofArgs_n, dvVals, bases, dvSizes, gen_pow_eq_ofK]
-    · simp only [flatCalls, dv_callsSF, hlogL, dvCallsS, dlList_getD hL10, List.map_cons,
+    · simp only [flatCalls, dv_callsSF, hlogL, dvCallsS, dlNames_getD hLm, List.map_cons,
         List.map_nil, Main.mkCall, kidsAt, dvKids, List.nil_append, List.cons_append, he3]
       refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, ?_, fun _ => ⟨?_, ?_⟩,
         rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, ?_, fun _ => ⟨?_, ?_⟩, rfl, ?_, fun ht6 => ⟨?_, ?_⟩,

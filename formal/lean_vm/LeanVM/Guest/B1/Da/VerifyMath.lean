@@ -15,7 +15,7 @@ public import LeanVM.Guest.Value.KeccakConst
 /-!
 # The claim `da_verify` returns is opened
 
-Given `r` rows (`1 ≤ r ≤ 1024`, padded to `2^L = LeanDa.paddedRowCount r`) and the symbols of
+Given `r` rows (`1 ≤ r ≤ LeanDa.maxRows`, padded to `2^L = LeanDa.paddedRowCount r`) and the symbols of
 cell `(i, h)` (`syms i h`, `256`), with every row orthogonal to the dual codeword of `z`
 (`Σ_h Σ_e dualAt z (256 h + e) · sym i h e = 0`), `opens_of` builds the witness: the rows the
 cells concatenate (`daRows`). It opens the root `daRoot`, the tree over the blob roots

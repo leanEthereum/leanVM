@@ -13,6 +13,9 @@ public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Count.Words
 public import LeanVM.Guest.Budget.MainCount
 public import LeanVM.Guest.B1.Main.MainHonestBudgetB
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The budget's static hypotheses
@@ -46,8 +49,8 @@ theorem mainStaticsMain : B1.Main.MainStaticsMain B2C.fs wSB wSK where
   l4 := iterK_totalLeOn (j := idx% main_loop3) (by decide +kernel)
   st := wSB_totalLe (j := wIdx "statement_digest") (by decide +kernel)
 
-/-- `da_levels__L{2^k}_L{k}`, `k ≤ 10`, checked. -/
-theorem dlNames_ok : (List.range 11).all (fun k => wOkB (wIdx B1.Da.dlNames[k]!) B1.Da.dlNames[k]!) = true := by
+/-- `da_levels__L{2^k}_L{k}`, one per arm of `da_verify`'s dispatch, checked. -/
+theorem dlNames_ok : (List.range guest_const% DA_TREE_ARMS).all (fun k => wOkB (wIdx B1.Da.dlNames[k]!) B1.Da.dlNames[k]!) = true := by
   decide +kernel
 
 /-- The column offsets' doubling loops `da_column_offsets_loop{b}`, checked. -/

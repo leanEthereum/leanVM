@@ -7,7 +7,7 @@ public import LeanVM.Cost.Decoder.PreTable
 
 `preTableC` (`Cost/Decoder/PreTable.lean`): the literal table of the functions' preconditions
 (`Guest.Fast.preTable`), a body of the table's constructors the decoder's top runs once.
-**`preTable_cost`**: exactly `18756` (`Kpre`).
+**`preTable_cost`**: exactly `17977` (`Kpre`).
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -16,9 +16,9 @@ open LeanVM.Cost LeanVM.Cost.Decoder
 
 public section
 
-/-- **The preconditions' table** (`preTableC`), built once: `18756`. -/
+/-- **The preconditions' table** (`preTableC`), built once: `17977`. -/
 theorem preTable_cost (P : MachineProgram) (hP : Includes P preTableC.costDeps) :
-    machineCost P preTableC.costIdx [] = 18756 :=
+    machineCost P preTableC.costIdx [] = 17977 :=
   preTableC.costEq P hP
 
 end

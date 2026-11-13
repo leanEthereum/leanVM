@@ -135,7 +135,7 @@ regions together); each
 child's cursor, the words of the child proof's stream before its opening, is at most `8192` on every
 valid execution (`valid_cursor`: the decoded witness explains the input, so the deferring verifier
 accepts the child's proof, whose stream has at most `8192` scalars, `stream_le_of_verifyDeferred`);
-and the decoder clamps `da_verify`'s row count at `1024` (`LeanDa.maxRows`; `da_verify` asserts it,
+and the decoder clamps `da_verify`'s row count at `DA_MAX_ROWS` (`LeanDa.maxRows`; `da_verify` asserts it,
 so the clamp changes nothing on a valid execution) on every input.
 `guestDecoderWitnessPriceAtValidCounts ≈ 2^38.63` is mostly the raw signatures (`65535` of each
 scheme, about `2^38.35`, the leanSPHINCS ones `2^38.14`: each reads about `1500` words of its four
@@ -171,13 +171,13 @@ stated exactly (`entryArrayStatePrice_eq`; `frameAtAPrice_le`, equal at `16` wor
 only (a memory read at `1271`, its price at `κ = 32`, above the deployed `κ ≤ 30`; two functions entered at a pc;
 `16` words a frame). The constant prices the witness at the bounds above, not at the run's: `16`
 children, each with `65535` claims of each scheme (the two regions together hold at most `65535`)
-and a cursor of `8192` words, `65535` declared claims and raw signatures of each scheme, `1024` rows of the DA matrix,
+and a cursor of `8192` words, `65535` declared claims and raw signatures of each scheme, `DA_MAX_ROWS` rows of the DA matrix,
 and the frame lookups these take. So on an execution with fewer children and claims, at `κ ≤ 28` and
 well below `2^22` steps, the budget is several times what the compiled decoder spends (at `κ = 30`
 the address tables, priced at the run's `κ`, are most of it); that looseness is an accepted
 trade-off.
 
-The literals (`7093`, `41252`, `18756`, `15305468`, `4343`, `4373`, `1584`, the `+ 39`, `+ 36`,
+The literals (`7093`, `41252`, `17977`, `15305468`, `4343`, `4373`, `1584`, the `+ 39`, `+ 36`,
 and the other constants below) are the bounds `lean_vm` proves of the compiled decoder's parts
 (`topConst_le`, `addressTablesPrice_eq`, `entryArrayStatePrice_eq`, `frameAtAPrice_le`,
 `Cost/Bounds/`); a reviewer checks only their size. They are the deployed guest program's (its
@@ -222,13 +222,13 @@ def guestDecoderAddressTablesPrice (κ ℓ : ℕ) : ℕ :=
 
 /-- The witness's and the decoding's price, its counts at most `M` (the declared claims and the raw
 signatures of each scheme, the coverage slots of the two regions), the frame lookups and the address
-tables apart: `16` children, each child's cursor at most `8192` words, the DA matrix of up to `1024`
-rows, the children's proofs, the tables built once (the discrete logarithm's, the generator's
+tables apart: `16` children, each child's cursor at most `8192` words, the DA matrix of up to
+`DA_MAX_ROWS` rows, the children's proofs, the tables built once (the discrete logarithm's, the generator's
 powers', the readers'). Affine in `M`. -/
-def guestDecoderWitnessPriceAt (M : ℕ) : ℕ := 5829593893 + 6414234 * M
+def guestDecoderWitnessPriceAt (M : ℕ) : ℕ := 2990573925 + 6414234 * M
 
 /-- How many frame lookups the witness pays for, its counts at most `M`. -/
-def guestDecoderFrameLookupCountAt (M : ℕ) : ℕ := 37659409 + 8 * M
+def guestDecoderFrameLookupCountAt (M : ℕ) : ℕ := 3629841 + 8 * M
 
 /-- The bound on the counts the decoder reads that a valid execution's asserts give
 (`valid_counts`). -/
@@ -254,13 +254,13 @@ def guestDecoderPriceAt (M κ ℓ steps : ℕ) : ℕ :=
 
 /-- **An upper bound on the guest decoder's price** on a memory of `2^κ` words, the deployed guest
 program (`2^ℓ` instructions, `ℓ = 19`) and a run of `steps` steps: per step the replay and the
-filing of the state, then the guest's tables of preconditions (`18756`) and of entries
+filing of the state, then the guest's tables of preconditions (`17977`) and of entries
 (`15305468`), the address tables, the witness at a valid execution's counts and cursors, and its
 frame lookups. -/
 def guestDecoderPrice (κ ℓ steps : ℕ) : ℕ :=
   (LeanVM.Cost.runnerStepPrice κ ℓ + 46 +
       guestDecoderStateFilingPrice (guestDecoderEntryTableKeyExponent steps)) * (steps + 1) +
-    18756 + 15305468 + guestDecoderAddressTablesPrice κ ℓ + guestDecoderWitnessPriceAtValidCounts +
+    17977 + 15305468 + guestDecoderAddressTablesPrice κ ℓ + guestDecoderWitnessPriceAtValidCounts +
     guestDecoderFrameLookupCountAtValidCounts *
       guestDecoderFramePrice (guestDecoderEntryTableKeyExponent steps) + 39
 

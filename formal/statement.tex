@@ -329,7 +329,7 @@ Benedikt Wagner's framework, theorems and proofs, ported and instantiated with L
 (\lean{Statement/LeanDa.lean}). Everyone in the games (the adversary, the argument, the verifier)
 queries $\pi$ and $\pi^{-1}$ alone and hashes with Keccak-256 over $\pi$.
 
-\paragraph{The matrix.} The matrix has $r$ rows, $1 \le r \le 1024$, one blob each. A blob is a
+\paragraph{The matrix.} The matrix has $r$ rows, $1 \le r \le$ \lean{maxRows}, one blob each. A blob is a
 payload of $2^{14}$ field elements, Reed-Solomon encoded to $2^{15}$
 (\texttt{leanDaErasureCode r}). Each encoded row is cut into $128$ \emph{cells}, so the matrix has
 $128\,r$ positions.
@@ -641,9 +641,9 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 30$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
-\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $574499$)
-limits any program; it is the compiled decoder's size, $574069$ (proved
-at most that, measured exactly; the guest's frame-cell table is $521235$ of it), and a slack of
+\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $572751$)
+limits any program; it is the compiled decoder's size, $572321$ (proved
+at most that, measured exactly; the guest's frame-cell table is $520072$ of it), and a slack of
 $430$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: the frame-cell table
@@ -706,7 +706,7 @@ $\mathrm{NodeRel}(B, iv_G, s, w)$, under the deployed seed:
 \begin{enumerate}
 \item \lean{DeployedLimits}, the node's limits: each declared list
 is a sub-multiset of the raw signatures' claims and the children's lists (a claim declared $n$ times
-is held $n$ times, each raw signature or child's entry used once); and the node's fixed capacities: at most $16$ children holding at most $2^{17}$ claims in their lists in all, at most $2048$ leanXMSS and $512$ leanSPHINCS signatures held directly, and a blob matrix held directly of at most $32$ rows. Every node of a tree aggregating $2^{17}$ signatures of one scheme is within them: $64$ leaves of $2048$ leanXMSS signatures (or $256$ of $512$ leanSPHINCS), nodes of $16$ leaves each, and a root over those. The guest program enforces the sub-multisets and the $16$ children, not the other capacities: a node past one of them is still accepted, and the prover may still prove it, but the theorems below do not cover it.
+is held $n$ times, each raw signature or child's entry used once); and the node's fixed capacities: at most $16$ children holding at most $2^{17}$ claims in their lists in all, at most $2048$ leanXMSS and $512$ leanSPHINCS signatures held directly, and a blob matrix held directly of at most \lean{LeanDa.maxRows} rows. Every node of a tree aggregating $2^{17}$ signatures of one scheme is within them: $64$ leaves of $2048$ leanXMSS signatures (or $256$ of $512$ leanSPHINCS), nodes of $16$ leaves each, and a root over those. The guest program enforces the sub-multisets, the $16$ children and the blob matrix's rows, not the other capacities: a node past one of them is still accepted, and the prover may still prove it, but the theorems below do not cover it.
 \item Every child carries an honest proof (\lean{HonestChild}): its fresh claim is true of the
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak

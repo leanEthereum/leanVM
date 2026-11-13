@@ -464,13 +464,9 @@ theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Cr
         calc (2 : ℝ≥0∞) ^ 127 ≤ (Q : ℝ≥0∞) := by exact_mod_cast hQcap.le
           _ ≤ (Q : ℝ≥0∞) + 2 ^ 22 := le_self_add
   have hQ0 := isWeightBound_codeBindingGame2_advV0 r ps A Q hQ
-  have hL : logPaddedRowCount r ≤ 10 := by
-    unfold logPaddedRowCount
-    exact (Nat.clog_le_iff_le_pow (by norm_num)).mpr (by simpa [maxRows] using hrM)
-  have hN : paddedRowCount r ≤ 1024 := by
-    unfold paddedRowCount
-    calc 2 ^ logPaddedRowCount r ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
-      _ = 1024 := by norm_num
+  have hL := logPaddedRowCount_le_logMaxRows hrM
+  have hN := paddedRowCount_le_maxRows hrM
+  norm_num [maxRows, logMaxRows] at hL hN
   have hK : ksCalls r Q ≤ Q + 2 ^ 65 := by
     unfold ksCalls relCalls nLabels nonceCount; omega
   -- the argument's knowledge soundness, against the code-binding adversary itself

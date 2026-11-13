@@ -12,6 +12,10 @@ module
 public import LeanVM.Guest.B1.Da.DvAt
 public import LeanVM.Guest.B1.Da.Witness
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.B1.Da.RowShapeComplete
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # `da_verify` on a witness, within its bound
@@ -40,7 +44,7 @@ theorem clB_mono {f : String} {Bc Bc' t : ℕ} (h : Bc ≤ Bc') : clB fs f Bc t 
   omega
 
 /-- **`da_verify`'s callees' bounds within `dvKB`**, on the static bounds. -/
-theorem dvBs_le (hS : DvStaticB fs SB SK) {r L : ℕ} (hL : L ≤ 10) :
+theorem dvBs_le (hS : DvStaticB fs SB SK) {r L : ℕ} (hL : L ≤ guest_const% DA_LOG_MAX_ROWS) :
     (dvBs fs SB SK r L).sum ≤ dvKB fs SB SK r L := by
   have hv : vecB fs SK ≤ SB "da_vector" := hS.vec
   have hc : clB fs name% «da_verify_loop1» (colBf fs SK r) 128 ≤ clB fs name% «da_verify_loop1»
@@ -61,19 +65,12 @@ theorem da_verify_completeAtTB (hrf : Lift.RunsFit fs cert) {w : LeanVM.Da.Matri
   have hr1 := hw.1
   have hr := hw.2.1
   have hL : 2 ^ wLog w = LeanDa.paddedRowCount w.rows.length := rfl
-  have hL10 : wLog w ≤ 10 := by
-    obtain ⟨hlo, hhi⟩ := nPad_bounds hr1
-    have hr' : w.rows.length ≤ 1024 := hr
-    have hlt : 2 ^ wLog w < 2 ^ 11 := by
-      calc 2 ^ wLog w < 2 * w.rows.length := hL ▸ hhi
-        _ ≤ 2 ^ 11 := by norm_num; omega
-    have := (Nat.pow_lt_pow_iff_right (by norm_num : 1 < 2)).mp hlt
-    omega
+  have hLm := log_le_of_rows hr1 hr hL
   rw [opens_eq hw]
   refine (dv_completeAtB fs cert hrf hS.off hS.l17 hS.l19 hS.l20 hS.l21
-    (by rw [← dlNames_bang hL10]; exact hS.dl _ hL10) hr1 hr hL (wSyms_len hw) (wDot hw) s).mono
+    (by rw [← dlNames_bang hLm]; exact hS.dl _ hLm) hr1 hr hL (wSyms_len hw) (wDot hw) s).mono
     ?_ fun _ h => h
-  have := dvBs_le hS (r := w.rows.length) hL10
+  have := dvBs_le hS (r := w.rows.length) hLm
   unfold dvB
   omega
 

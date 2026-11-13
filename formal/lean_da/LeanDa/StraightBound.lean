@@ -304,7 +304,7 @@ theorem finRange_getElem_val (n : ℕ) : ∀ i (hi : i < (List.finRange n).lengt
     ((List.finRange n)[i]).val = i := fun i hi ↦ by simp
 
 /-- **The straight-line verdict's probability**, for an adversary of `Q` permutation calls and
-`r ≤ 1024` rows: at most `N · 65 N / 2^256 + Q · 2^-11 · (2^14 - 1) / 2^128 + (2^14 - 1) / 2^128`
+`r ≤ maxRows` rows: at most `N · 65 N / 2^256 + Q · 2^-11 · (2^14 - 1) / 2^128 + (2^14 - 1) / 2^128`
 for `N = 2 Q + 2^20`: the hash's bad events, a fresh draw the adversary's call makes selected and
 accepting, and the one fresh try of the verifier's nonce search. -/
 theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r ≤ maxRows)
@@ -313,13 +313,9 @@ theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r 
     prT (idealT r A crs (tailH r ps ext crs)) ≤
       ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
         (Q * ((2 ^ 14 - 1) / 2 ^ 139) + (2 ^ 14 - 1) / 2 ^ 128) := by
-  have hL : logPaddedRowCount r ≤ 10 := by
-    unfold logPaddedRowCount
-    exact (Nat.clog_le_iff_le_pow (by norm_num)).mpr (by simpa [maxRows] using hr)
-  have hN : paddedRowCount r ≤ 1024 := by
-    unfold paddedRowCount
-    calc 2 ^ logPaddedRowCount r ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
-      _ = 1024 := by norm_num
+  have hL := logPaddedRowCount_le_logMaxRows hr
+  have hN := paddedRowCount_le_maxRows hr
+  norm_num [maxRows, logMaxRows] at hL hN
   have hread : ∀ d c, Good r c →
       Pr{let z ← (simulateQ GW.romImpl (readL (List.finRange nLabels) d)).run c}[¬ Good r z.2] ≤
         (2 ^ 14 - 1) / 2 ^ 128 := fun d c hc ↦ by

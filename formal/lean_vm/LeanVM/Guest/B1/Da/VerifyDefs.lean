@@ -9,6 +9,9 @@ module
 public import LeanVM.Guest.B1.Da.ColumnDefs
 public import LeanVM.Guest.B1.Main.Body
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # `da_verify` (G:4509-4547), checked
@@ -39,8 +42,9 @@ theorem hasAtom_sound {rd : Reader} {σ : Val} {A : List Atom} {a : Atom} (h : h
   rw [← atomEqb_sound he]
   exact hat b hb
 
-/-- `da_levels`' specializations, by `k`. -/
-def dlNames : List String := (List.range 11).map daLevelsName
+/-- `da_levels`' specializations `da_verify`'s dispatch reaches, by `k`: one per arm
+(`DA_TREE_ARMS`). -/
+def dlNames : List String := (List.range (guest_const% DA_TREE_ARMS)).map daLevelsName
 
 /-! ## The loops -/
 

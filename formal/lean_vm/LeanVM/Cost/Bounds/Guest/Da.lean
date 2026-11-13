@@ -2,6 +2,9 @@ module
 
 public import LeanVM.Cost.Bounds.Guest.Readers
 public import LeanVM.Cost.Decoder.Da
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # Bounds on the guest decoder's prices: the DA matrix
@@ -20,8 +23,9 @@ the matrix's rows `r ≤ 2^k`, `k ≤ 34` (`r < 2^34`, `gLogD_lt`):
 * the witness, its columns' words given (`dvWitNCols_cost`: `dvWitNColsPrice`), and built
   (`dvWitNAt_cost`: at most `dvWitNRowsPrice k F S = (33152·F + 1152·S + 28032·k +
   2257970)·2^k + 256·F + 2048·S + 1131200`);
-* **`dvWitN_cost_1024`**: one logarithm (`GLogBound P D G`), the count clamped to `1024`
-  (`daRowCount`, `daRowCount_cost`: `7`), the rows: at most `S + G + dvWitNRowsPrice 10 F S + 22`
+* **`dvWitN_cost_maxRows`**: one logarithm (`GLogBound P D G`), the count clamped to `DA_MAX_ROWS`
+  (`daRowCount`, `daRowCount_cost`: `7`), the rows: at most
+  `S + G + dvWitNRowsPrice DA_LOG_MAX_ROWS F S + 22`
   on every input; `dvWitN_cost`: below `S + G + dvWitNAtPrice F S + 14`, `dvWitNAtPrice F S =
   dvWitNRowsPrice 34 F S`; `dvWitN_cost_of_le`: at a clamped count `≤ 2^k`,
   `S + G + dvWitNRowsPrice k F S + 22`.
@@ -36,7 +40,7 @@ public section
 
 variable (P : MachineProgram) {G : ℕ}
 
-/-- The rows' count clamped to `1024` (`daRowCountC`): `7`. -/
+/-- The rows' count clamped to `DA_MAX_ROWS` (`daRowCountC`): `7`. -/
 theorem daRowCount_cost (hP : Includes P Decoder.daRowCountC.costDeps) (r : ℕ) (hr : r < 2 ^ 64) :
     machineCost P Decoder.daRowCountC.costIdx [encodeValue r] ≤ 7 := by
   rw [Decoder.daRowCountC.costEq P hP, limbs_of_lt hr]; split_ifs <;> omega
@@ -292,7 +296,7 @@ theorem dvWitNAt_cost (hP : Includes P Decoder.dvWitNAtC.costDeps) (k r : ℕ) (
   omega
 
 /-- **`da_verify`'s witness at `r ≤ 2^k` rows** (`dvWitNC`), the logarithm's tables `D` given:
-one logarithm, the count clamped to `1024` (`daRowCount`), then the rows: at most
+one logarithm, the count clamped to `DA_MAX_ROWS` (`daRowCount`), then the rows: at most
 `S + G + dvWitNRowsPrice k F S + 22`. -/
 theorem dvWitN_cost_of_le (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     (hP : Includes P Decoder.dvWitNC.costDeps) (hG : GLogBound P D G) (k : ℕ) (hk0 : 0 < k)
@@ -308,23 +312,23 @@ theorem dvWitN_cost_of_le (D : LeanVM.Extraction.Fast.DiscreteLogTables)
   omega
 
 /-- **`da_verify`'s witness** (`dvWitNC`), the logarithm's tables `D` given: one logarithm, the
-rows at most `1024` (`daRowCount_le`, on every input): at most
-`S + G + dvWitNRowsPrice 10 F S + 22`. -/
-theorem dvWitN_cost_1024 (D : LeanVM.Extraction.Fast.DiscreteLogTables)
+rows at most `DA_MAX_ROWS = 2^DA_LOG_MAX_ROWS` (`daRowCount_le`, on every input): at most
+`S + G + dvWitNRowsPrice DA_LOG_MAX_ROWS F S + 22`. -/
+theorem dvWitN_cost_maxRows (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     (hP : Includes P Decoder.dvWitNC.costDeps) (hG : GLogBound P D G) :
     machineCost P Decoder.dvWitNC.costIdx [encodeValue D, σV, VnV] ≤
-      S + G + dvWitNRowsPrice 10 F S + 22 :=
-  dvWitN_cost_of_le P hVn hF hσ hS D hP hG 10 (by norm_num) (by norm_num)
+      S + G + dvWitNRowsPrice (guest_const% DA_LOG_MAX_ROWS) F S + 22 :=
+  dvWitN_cost_of_le P hVn hF hσ hS D hP hG (guest_const% DA_LOG_MAX_ROWS) (by norm_num) (by norm_num)
     ((Decoder.daRowCount_le _).trans (by norm_num))
 
 /-- **`da_verify`'s witness** (`dvWitNC`), the logarithm's tables `D` given: at most
-`S + G + dvWitNAtPrice F S + 14` (`dvWitN_cost_1024`, below the price at `2^34` rows). -/
+`S + G + dvWitNAtPrice F S + 14` (`dvWitN_cost_maxRows`, below the price at `2^34` rows). -/
 theorem dvWitN_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     (hP : Includes P Decoder.dvWitNC.costDeps) (hG : GLogBound P D G) :
     machineCost P Decoder.dvWitNC.costIdx [encodeValue D, σV, VnV] ≤
       S + G + dvWitNAtPrice F S + 14 := by
-  have := dvWitN_cost_1024 P hVn hF hσ hS D hP hG
-  have e : dvWitNRowsPrice 10 F S + 8 ≤ dvWitNAtPrice F S := by
+  have := dvWitN_cost_maxRows P hVn hF hσ hS D hP hG
+  have e : dvWitNRowsPrice (guest_const% DA_LOG_MAX_ROWS) F S + 8 ≤ dvWitNAtPrice F S := by
     unfold dvWitNAtPrice dvWitNRowsPrice
     norm_num
     nlinarith

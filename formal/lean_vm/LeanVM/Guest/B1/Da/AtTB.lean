@@ -18,6 +18,9 @@ public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.B1.Da.Offsets
 public import LeanVM.Guest.B1.Main.IterK
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # Bounded helpers
@@ -58,7 +61,7 @@ structure DvStaticB (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
         name% «da_verify_column_loop0»)
   off : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
     (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b))
-  dl : ∀ j ≤ 10, TotalLe coreProgram fs dlNames[j]! (fun _ => SB dlNames[j]!)
+  dl : ∀ j ≤ guest_const% DA_LOG_MAX_ROWS, TotalLe coreProgram fs dlNames[j]! (fun _ => SB dlNames[j]!)
   vec : fs "da_vector" + 30 + (fs "da_factors__L14_L7_L0" + 256 + (fs "da_expand__L14_L7" +
     (fs "da_factors__L7_L8_L128" + 256 + (fs "da_column_offsets" + 1080 +
       ((List.range 7).map fun b => 2 ^ b * iterK fs SK (offLoopName b) + fs (offLoopName b)).sum +

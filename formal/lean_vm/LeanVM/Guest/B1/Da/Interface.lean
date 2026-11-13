@@ -8,6 +8,9 @@
 module
 
 public import LeanVM.Guest.B1.Digest.Interface
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # LeanDA: meanings (TRIAGE G #90-93)
@@ -20,8 +23,8 @@ proof is the theorem `…_holds` of the family's modules. The functions building
 
 | function | G | meaning |
 | --- | --- | --- |
-| `da_verify` | 4509-4547 | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the returned challenge |
-| `da_row_shape` | 4550-4559 | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
+| `da_verify` | 4509-4547 | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..LeanDa.maxRows` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the returned challenge |
+| `da_row_shape` | 4550-4559 | `n_blob = g^r`, `1 ≤ r ≤ LeanDa.maxRows`, the padded count `2^L = LeanDa.nPad r` |
 | `da_verify_cell` | 4579-4591 | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
 | `da_levels__L{n}_L{k}` | 4594-4602 | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
 
@@ -80,11 +83,11 @@ def da_verify_sound_Spec : Prop :=
 /-! ## `da_row_shape` (G:4550-4559, TRIAGE #91) -/
 
 /-- **`da_row_shape(n_blob_g, g_log_pad, g_squares)`**: with the exponent table at `g_squares`,
-`n_blob = g^r` for `1 ≤ r ≤ 1024`, `g_log_pad = g^L` with `2^L` the padded count
+`n_blob = g^r` for `1 ≤ r ≤ LeanDa.maxRows`, `g_log_pad = g^L` with `2^L` the padded count
 `LeanDa.nPad r`, and the function returns `g^(2^L)` and `g^(2^L - r)`. -/
 def MeaningDaRowShape (rd : Reader) : List E → List E → Prop
   | [nb, glp, gsq], rets => SquaresAt rd gsq →
-      ∃ r L, 1 ≤ r ∧ r ≤ LeanDa.maxRows ∧ L ≤ 10 ∧ nb = gen ^ r ∧ glp = gen ^ L ∧
+      ∃ r L, 1 ≤ r ∧ r ≤ LeanDa.maxRows ∧ L ≤ guest_const% DA_LOG_MAX_ROWS ∧ nb = gen ^ r ∧ glp = gen ^ L ∧
         2 ^ L = LeanDa.paddedRowCount r ∧ rets = [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]
   | _, _ => False
 
@@ -112,11 +115,23 @@ def da_verify_cell_sound_Spec : Prop :=
 
 /-! ## `da_levels` (G:4594-4602, TRIAGE #92) -/
 
-/-- The name of `da_levels`' specialization at `2^k` leaves, `da_levels__L{2^k}_L{k}`. -/
+/-- The name of `da_levels`' specialization at `2^k` leaves, `da_levels__L{2^k}_L{k}`, for `k` up to
+a row's own tree (`DlDepth`). -/
 def daLevelsName (k : ℕ) : String :=
   ["da_levels__L1_L0", "da_levels__L2_L1", "da_levels__L4_L2", "da_levels__L8_L3",
-    "da_levels__L16_L4", "da_levels__L32_L5", "da_levels__L64_L6", "da_levels__L128_L7",
-    "da_levels__L256_L8", "da_levels__L512_L9", "da_levels__L1024_L10"].getD k ""
+    "da_levels__L16_L4", "da_levels__L32_L5", "da_levels__L64_L6", "da_levels__L128_L7"].getD k ""
+
+/-- **The depths `da_levels` is specialized at**: the matrix's trees, `k ≤ DA_LOG_MAX_ROWS`
+(`da_verify`'s dispatch), and a row's own tree over its cells, `k = DA_BLOCK_BITS`. -/
+def DlDepth (k : ℕ) : Prop := k ≤ guest_const% DA_LOG_MAX_ROWS ∨ k = guest_const% DA_BLOCK_BITS
+
+instance (k : ℕ) : Decidable (DlDepth k) := inferInstanceAs (Decidable (_ ∨ _))
+
+/-- **The Statement's row cap is the guest's**: `LeanDa.maxRows` is `DA_MAX_ROWS`. -/
+theorem maxRows_eq : LeanDa.maxRows = guest_const% DA_MAX_ROWS := by decide
+
+/-- Its log is `DA_LOG_MAX_ROWS`. -/
+theorem logMaxRows_eq : LeanDa.logMaxRows = guest_const% DA_LOG_MAX_ROWS := rfl
 
 /-- **`da_levels(tree, 2^k, k)`**: the `2^k` leaves at `tree` (two cells each), and the function
 returns the root's cells (`cellRoot`). -/
@@ -126,9 +141,9 @@ def MeaningDaLevels (k : ℕ) (rd : Reader) : List E → List E → Prop
       rets = [(cellRoot k leaves).1, (cellRoot k leaves).2]
   | _, _ => False
 
-/-- `da_levels`' specializations, `k ≤ 10`, compute their meanings. -/
+/-- `da_levels`' specializations (`DlDepth`) compute their meanings. -/
 def da_levels_sound_Spec : Prop :=
-  ∀ k ≤ 10, ∀ (rd : Reader) (args rets : List E),
+  ∀ k, DlDepth k → ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd (daLevelsName k) args rets → MeaningDaLevels k rd args rets
 
 /-! ## The functions, found -/

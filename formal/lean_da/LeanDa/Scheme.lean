@@ -49,7 +49,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   (`subspaceAbove`, `subspace_above`), from which the guest builds `L` (`dualCodeword`, the
   crate's test `dual_codeword`), which `LeanDa.Subspace` proves are `Ŵ_j` and `dualCodewordAt`.
 
-The row count `r` is a parameter. The crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:59-63`),
+The row count `r` is a parameter. The crate takes `1 ≤ r ≤ maxRows` (`row_count`, `lib.rs:59-63`),
 and `commit` rejects any other payload with a `BlobSizeError` (`commit.rs:42-50`, `lib.rs:40-57`);
 the statements hold for every `r ≥ 1`. So are the hash `H` and the sponge's permutation `P`: the
 crate's are Keccak-256 (Ethereum's: rate `136` bytes, padding `0x01 ‖ 0^* ‖ 0x80`,

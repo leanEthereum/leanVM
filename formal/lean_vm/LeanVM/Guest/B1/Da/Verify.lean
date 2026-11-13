@@ -13,6 +13,9 @@ public import LeanVM.Guest.B1.Da.VerifyMath
 public import LeanVM.Guest.B1.Main.LoopsC
 public import LeanVM.Guest.B1.Main.Facts
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # `da_verify`, sound
@@ -147,16 +150,16 @@ def dvColArgs (σ : Val) (h : ℕ) : List E :=
 /-- Cell `(i, h)`'s symbols: its cell check's. -/
 def dvSyms (σ : Val) (Vm : FrameMap) (i h : ℕ) : List K := colSyms Vm (dvColArgs σ h) i
 
-/-- The number of rows: the shape's count, at most `LeanDa.maxRows = 1024` (`da_verify` asserts
-it, so on its runs the clamp is the count; it bounds the witness on every memory). -/
-noncomputable def dvRows (σ : Val) : ℕ := min (gLog (σ (.n 1))) 1024
+/-- The number of rows: the shape's count, at most `DA_MAX_ROWS` (`da_verify` asserts it, so on
+its runs the clamp is the count; it bounds the witness on every memory). -/
+noncomputable def dvRows (σ : Val) : ℕ := min (gLog (σ (.n 1))) (guest_const% DA_MAX_ROWS)
 
 /-- The symbols, padded outside the matrix. -/
 noncomputable def dvSymsP (σ : Val) (Vm : FrameMap) (i h : ℕ) : List K :=
   if i < dvRows σ ∧ h < 128 then dvSyms σ Vm i h else List.replicate 256 0
 
 /-- **`da_verify`'s witness**: the rows of the cells' symbols, as many as the shape's count (at
-most `1024`, `dvRows`). -/
+most `DA_MAX_ROWS`, `dvRows`). -/
 noncomputable def dvWit (σ : Val) (Vm : FrameMap) : LeanVM.Da.MatrixWitness :=
   ⟨daRows (dvRows σ) (dvSymsP σ Vm)⟩
 
@@ -251,10 +254,10 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
   obtain ⟨r, L, hr1, hr, hL, h1, h2, hnp, h34⟩ := hrs hsq
   simp only [List.cons.injEq, and_true] at h34
   obtain ⟨h3, h4⟩ := h34
-  unfold LeanDa.maxRows at hr
-  have hL2 : 2 ^ L ≤ 1024 := by
-    calc 2 ^ L ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
-      _ = 1024 := by norm_num
+  rw [maxRows_eq] at hr
+  have hL2 : 2 ^ L ≤ guest_const% DA_MAX_ROWS := by
+    calc 2 ^ L ≤ 2 ^ guest_const% DA_LOG_MAX_ROWS := Nat.pow_le_pow_right (by norm_num) hL
+      _ = guest_const% DA_MAX_ROWS := by norm_num
   have hrL : r ≤ 2 ^ L := by
     rw [hnp, LeanDa.paddedRowCount, LeanDa.logPaddedRowCount]; exact Nat.le_pow_clog (by norm_num) r
   have hr' : r < ordG := ordG_of (by omega)
@@ -348,7 +351,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
     intro i hi
     obtain ⟨base, c0, c1, hb0, -, hlv, k0, k1⟩ := L19 i hi
     rw [loadHolds_unique hb0 (L17 i hi).1] at hlv
-    have hroot := levels_root_of (k := 7) (L := 7) (g := cellD symsP i) (by norm_num) (by norm_num)
+    have hroot := levels_root_of (k := 7) (L := 7) (g := cellD symsP i) (Or.inr rfl) (by norm_num)
       (gen_pow_eq_ofK 7).symm hlv fun h hh => by
         obtain ⟨-, k0, k1, -, -⟩ := hcell h i (by simpa using hh) hi
         simp only [cellD, hsP i h hi (by simpa using hh)]
@@ -372,7 +375,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
     obtain ⟨k, hk, hk2, hrel⟩ := dispatch_of_flat hall hdisp
     simp only [dlNames, List.length_map, List.length_range] at hk
     simp only [dlNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil] at hrel
-    refine levels_root_of hk hL (by rw [← hk2, h2]) hrel fun i hi => ?_
+    refine levels_root_of (Or.inl (by omega)) (by omega) (by rw [← hk2, h2]) hrel fun i hi => ?_
     by_cases hir : i < r
     · exact hblob i hir
     · obtain ⟨g0, g1⟩ := L20 (i - r) (by omega)
@@ -381,7 +384,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
       exact ⟨by simpa using g0, g1⟩
   refine ⟨daRoot r L symsP, z, ?_, ?_⟩
   · rw [dvWit, hrows]
-    exact opens_of hr1 (by unfold LeanDa.maxRows; exact hr) hnp.symm hrL hsL hdot
+    exact opens_of hr1 (by rw [maxRows_eq]; exact hr) hnp.symm hrL hsL hdot
   rw [← hret, copy_sound hcp48 hat, copy_sound hcp49 hat, copy_sound hcp50 hat]
   simp only [Prod.ext_iff] at hrt
   simp [digestCells, ← hrt.1, ← hrt.2, z]

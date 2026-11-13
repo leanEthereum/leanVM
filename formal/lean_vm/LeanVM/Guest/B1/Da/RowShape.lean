@@ -7,14 +7,18 @@
 module
 
 public import LeanVM.Guest.B1.Main.Loops
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # `da_row_shape` (G:4550-4559)
 
 `da_row_shape(n_blob_g, g_log_pad, g_squares)`: `n_blob_g ≠ 1` (an inverse),
-`n_blob_g = g^r` with `r ≤ 1024`, `g_log_pad = g^L` with `L ≤ 10` (range checks against
-`g^1024`, `g^10`), `n_pad_g = g_squares[L] = g^(2^L)`, `gap_g = n_pad_g / n_blob_g = g^d`
-(`d ≤ 1024`), and `n_blob_g² = f · n_pad_g · g` with `f = g^e`, `e ≤ 1023`. So
+`n_blob_g = g^r` with `r ≤ M`, `g_log_pad = g^L` with `L ≤ log M` (range checks against `g^M`,
+`g^(log M)`, for `M = DA_MAX_ROWS` and `log M = DA_LOG_MAX_ROWS`), `n_pad_g = g_squares[L] = g^(2^L)`,
+`gap_g = n_pad_g / n_blob_g = g^d` (`d ≤ M`), and `n_blob_g² = f · n_pad_g · g` with `f = g^e`,
+`e ≤ M - 1`. So
 `r + d = 2^L` and `2r = e + 2^L + 1`: `2^(L-1) < r ≤ 2^L`, the padded count `LeanDa.nPad r`.
 -/
 
@@ -54,17 +58,12 @@ theorem ne_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x : V}
   rw [h1, h0, zero_mul] at h2
   exact zero_ne_one h2
 
-set_option maxRecDepth 100000 in
-theorem word_g1024 : word 281474976776218 0 = gen ^ 1024 := by
-  rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
-  congr 1
+/-- The range checks' bounds: `g^M`, `g^(M - 1)` and `g^(log M)`, words of one limb below `g^64`. -/
+theorem word_gMax : word (2 ^ guest_const% DA_MAX_ROWS) 0 = gen ^ guest_const% DA_MAX_ROWS := word_two_pow (by decide)
 
-set_option maxRecDepth 100000 in
-theorem word_g1023 : word 140737488388109 0 = gen ^ 1023 := by
-  rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
-  congr 1
+theorem word_gMaxPred : word (2 ^ (guest_const% DA_MAX_ROWS - 1)) 0 = gen ^ (guest_const% DA_MAX_ROWS - 1) := word_two_pow (by decide)
 
-theorem word_g10 : word 1024 0 = gen ^ 10 := word_two_pow (a := 10) (by decide)
+theorem word_gLog : word (2 ^ guest_const% DA_LOG_MAX_ROWS) 0 = gen ^ guest_const% DA_LOG_MAX_ROWS := word_two_pow (by decide)
 
 /-- **`da_row_shape`'s body, checked.** -/
 def rsOk (fn : Fn) : Bool :=
@@ -73,12 +72,12 @@ def rsOk (fn : Fn) : Bool :=
   | some (A, vs) =>
     decide (vs = [.n 30, .n 31]) &&
     A.any (isConstAt (.n 3) 1 0) && A.any (isAddAt (.n 4) (.n 0) (.n 3)) && A.any (isNeAt (.n 4)) &&
-    rcConstOk A (.n 0) 281474976776218 && rcConstOk A (.n 1) 1024 &&
+    rcConstOk A (.n 0) (2 ^ guest_const% DA_MAX_ROWS) && rcConstOk A (.n 1) (2 ^ guest_const% DA_LOG_MAX_ROWS) &&
     A.any (isMulAt (.n 15) (.n 2) (.n 1)) && A.any (isLoadAt (.n 16) (.n 15) 0) &&
-    A.any (isMulAt (.n 16) (.n 17) (.n 0)) && rcConstOk A (.n 17) 281474976776218 &&
+    A.any (isMulAt (.n 16) (.n 17) (.n 0)) && rcConstOk A (.n 17) (2 ^ guest_const% DA_MAX_ROWS) &&
     A.any (isMulAt (.n 23) (.n 0) (.n 0)) && A.any (isConstAt (.n 24) 2 0) &&
     A.any (isMulAt (.n 25) (.n 16) (.n 24)) && A.any (isMulAt (.n 23) (.n 26) (.n 25)) &&
-    rcConstOk A (.n 26) 140737488388109 &&
+    rcConstOk A (.n 26) (2 ^ (guest_const% DA_MAX_ROWS - 1)) &&
     A.any (isCopyAt (.n 30) (.n 16)) && A.any (isCopyAt (.n 31) (.n 17))
   | none => false
 
@@ -117,18 +116,18 @@ theorem da_row_shape_holds : da_row_shape_sound_Spec := by
     subst hpar
     simp only [List.map_cons, List.map_nil, MeaningDaRowShape]
     intro hsq
-    obtain ⟨r, hr, h0⟩ := rcConst_sound hm (by norm_num) word_g1024 hr0 hat
-    obtain ⟨L, hL, h1⟩ := rcConst_sound hm (by norm_num) word_g10 hr1 hat
-    obtain ⟨d, hd, h17⟩ := rcConst_sound hm (by norm_num) word_g1024 hr17 hat
-    obtain ⟨e, he, h26⟩ := rcConst_sound hm (by norm_num) word_g1023 hr26 hat
+    obtain ⟨r, hr, h0⟩ := rcConst_sound hm (by norm_num) word_gMax hr0 hat
+    obtain ⟨L, hL, h1⟩ := rcConst_sound hm (by norm_num) word_gLog hr1 hat
+    obtain ⟨d, hd, h17⟩ := rcConst_sound hm (by norm_num) word_gMax hr17 hat
+    obtain ⟨e, he, h26⟩ := rcConst_sound hm (by norm_num) word_gMaxPred hr26 hat
     -- n_pad = g^(2^L)
     have h16 : σ (.n 16) = gen ^ 2 ^ L := by
       have hl := load_sound hl16 hat
       rw [mulAt_sound hm15 hat, h1] at hl
       exact loadHolds_unique ((loadHolds_mul_gen_pow rd _ L 0 _).mp hl) (hsq L (by omega))
-    have hL2 : 2 ^ L ≤ 1024 := by
-      calc 2 ^ L ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
-        _ = 1024 := by norm_num
+    have hL2 : 2 ^ L ≤ guest_const% DA_MAX_ROWS := by
+      calc 2 ^ L ≤ 2 ^ guest_const% DA_LOG_MAX_ROWS := Nat.pow_le_pow_right (by norm_num) hL
+        _ = guest_const% DA_MAX_ROWS := by norm_num
     -- r + d = 2^L
     have hrd : d + r = 2 ^ L := by
       have := mulAt_sound hm16 hat
@@ -148,7 +147,7 @@ theorem da_row_shape_holds : da_row_shape_sound_Spec := by
       have := ne_sound hne hat
       rw [add_sound ha4 hat, h0, hr0', pow_zero, const_sound hc3 hat, word_one] at this
       exact this (e_add_eq_zero_iff.mpr rfl)
-    refine ⟨r, L, by omega, by unfold LeanDa.maxRows; omega, hL, h0, h1,
+    refine ⟨r, L, by omega, by rw [maxRows_eq]; omega, hL, h0, h1,
       (nPad_of (by omega) (by omega)).symm, ?_⟩
     have hret' : [σ (.n 30), σ (.n 31)] = rets := hret
     rw [← hret', copy_sound hcp30 hat, copy_sound hcp31 hat, h16, h17, show d = 2 ^ L - r by omega]

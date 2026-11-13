@@ -10,17 +10,14 @@ public import LeanVM.Guest.B1.Da.LevelsChk0
 public import LeanVM.Guest.B1.Da.LevelsChk1
 public import LeanVM.Guest.B1.Da.LevelsChk2
 public import LeanVM.Guest.B1.Da.LevelsChk3
-public import LeanVM.Guest.B1.Da.LevelsChk4
-public import LeanVM.Guest.B1.Da.LevelsChk5
-public import LeanVM.Guest.B1.Da.LevelsChk6
 
 /-!
 # `da_levels`, sound
 
 `dl_sound`: a checked entry of `dlTab` computes `MeaningDaLevels k`: its level loops (`lvl_step`,
 `loop_sound`) make every node the digest of the previous level's pair (`levels_root`), the leaves
-read by level `0` (or the root's loads at `k = 0`). `da_levels_holds`: the eleven entries are
-checked (`LevelsChk*`).
+read by level `0` (or the root's loads at `k = 0`). `da_levels_holds`: the entries, one per
+depth of `DlDepth`, are checked (`LevelsChk*`).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -162,18 +159,16 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
 /-- **`da_levels`' specializations compute their meanings.** -/
 theorem da_levels_holds : da_levels_sound_Spec := by
   intro k hk
-  interval_cases k
-  · exact dl_sound (by norm_num) dl_ok0
-  · exact dl_sound (by norm_num) dl_ok1
-  · exact dl_sound (by norm_num) dl_ok2
-  · exact dl_sound (by norm_num) dl_ok3
-  · exact dl_sound (by norm_num) dl_ok4
-  · exact dl_sound (by norm_num) dl_ok5
-  · exact dl_sound (by norm_num) dl_ok6
+  unfold DlDepth at hk
+  rcases hk with hk | rfl
+  · interval_cases k
+    · exact dl_sound (by norm_num) dl_ok0
+    · exact dl_sound (by norm_num) dl_ok1
+    · exact dl_sound (by norm_num) dl_ok2
+    · exact dl_sound (by norm_num) dl_ok3
+    · exact dl_sound (by norm_num) dl_ok4
+    · exact dl_sound (by norm_num) dl_ok5
   · exact dl_sound (by norm_num) dl_ok7
-  · exact dl_sound (by norm_num) dl_ok8
-  · exact dl_sound (by norm_num) dl_ok9
-  · exact dl_sound (by norm_num) dl_ok10
 
 end
 end LeanVM.Guest.B1.Da

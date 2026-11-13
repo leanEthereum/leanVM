@@ -53,11 +53,11 @@ theorem regions_lt (hl : GuestLimits s w) : rX s w + rY s w < 2 ^ 23 := by
   simp only [rX, rY]
   omega
 
-/-- The padded count's log is below `34`: at most `1024` rows. -/
+/-- The padded count's log is below `34`: at most `LeanDa.maxRows` rows. -/
 theorem wLog_lt {x : LeanVM.Da.MatrixWitness} {r : Digest} {v : E} (hw : x.Opens r v) : wLog x < 34 := by
   obtain ⟨h1, h2, -⟩ := hw
   have hb := (Da.nPad_bounds h1).2
-  unfold LeanDa.maxRows at h2
+  rw [Da.maxRows_eq] at h2
   by_contra hc
   have : 2 ^ 34 ≤ LeanDa.paddedRowCount x.rows.length := by
     unfold LeanDa.paddedRowCount

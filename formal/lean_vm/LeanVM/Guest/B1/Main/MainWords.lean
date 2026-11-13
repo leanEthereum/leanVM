@@ -12,6 +12,9 @@ public import LeanVM.Guest.B1.Main.MainHonestBudgetB
 public import LeanVM.Guest.Complete
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # `main`'s words, linear in the work
@@ -42,9 +45,9 @@ variable (fs SB SK : String → ℕ)
 
 /-! ## `da_verify` -/
 
-/-- The selected DA level's words per padded row, at most: the largest over the `11` levels of
-`⌈SB (da_levels at j) / 2^j⌉`. -/
-def dlK : ℕ := (Finset.range 11).sup fun j => (SB Da.dlNames[j]! + 2 ^ j - 1) / 2 ^ j
+/-- The selected DA level's words per padded row, at most: the largest over the dispatch's levels
+(`DA_TREE_ARMS`) of `⌈SB (da_levels at j) / 2^j⌉`. -/
+def dlK : ℕ := (Finset.range (guest_const% DA_TREE_ARMS)).sup fun j => (SB Da.dlNames[j]! + 2 ^ j - 1) / 2 ^ j
 
 theorem le_cdiv_mul (a d : ℕ) (hd : 0 < d) : a ≤ (a + d - 1) / d * d := by
   have h1 := Nat.div_add_mod (a + d - 1) d
@@ -53,7 +56,7 @@ theorem le_cdiv_mul (a d : ℕ) (hd : 0 < d) : a ≤ (a + d - 1) / d * d := by
   omega
 
 /-- **The selected DA level within `dlK` words per padded row.** -/
-theorem dl_le {L : ℕ} (hL : L < 11) : SB Da.dlNames[L]! ≤ dlK SB * 2 ^ L := by
+theorem dl_le {L : ℕ} (hL : L < guest_const% DA_TREE_ARMS) : SB Da.dlNames[L]! ≤ dlK SB * 2 ^ L := by
   have h1 := le_cdiv_mul (SB Da.dlNames[L]!) (2 ^ L) (Nat.two_pow_pos L)
   have h2 : (SB Da.dlNames[L]! + 2 ^ L - 1) / 2 ^ L ≤ dlK SB :=
     Finset.le_sup (f := fun j => (SB Da.dlNames[j]! + 2 ^ j - 1) / 2 ^ j)
@@ -95,7 +98,7 @@ def dvS : ℕ :=
 levels. -/
 def dvP : ℕ := 4 + iterK fs SK name% «da_verify_loop3» + dlK SB
 
-theorem dvB_le {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < 11) :
+theorem dvB_le {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < guest_const% DA_TREE_ARMS) :
     Da.dvB fs SB SK r L ≤ dvC fs SB + r * dvS fs SK + 2 ^ L * dvP fs SB SK := by
   unfold Da.dvB Da.dvKB Da.clB Da.colB dvC dvS dvP Da.dvSizes
   generalize iterK fs SK name% «da_verify_loop0» = k21
@@ -328,11 +331,11 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
     have hw' : p.2.Opens p.1.daRoot p.1.membershipChallenge := hda.2
     have hb := Da.nPad_bounds hw'.1
     have hm := hw'.2.1
-    unfold LeanDa.maxRows at hm
+    rw [Da.maxRows_eq] at hm
     unfold LeanDa.paddedRowCount at hb
-    have hL : Da.wLog p.2 < 11 := by
+    have hL : Da.wLog p.2 < guest_const% DA_TREE_ARMS := by
       unfold Da.wLog
-      have : 2 ^ LeanDa.logPaddedRowCount p.2.rows.length < 2 ^ 11 := by omega
+      have : 2 ^ LeanDa.logPaddedRowCount p.2.rows.length < 2 ^ guest_const% DA_TREE_ARMS := by omega
       exact (Nat.pow_lt_pow_iff_right (by norm_num)).mp this
     simp only [Option.map_some, Option.getD_some, Nat.one_mul]
     refine (dvB_le fs SB SK (r := p.2.rows.length) (by unfold Da.wLog; omega) hL).trans

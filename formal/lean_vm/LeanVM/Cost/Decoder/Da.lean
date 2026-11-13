@@ -3,6 +3,9 @@ module
 public import LeanVM.Cost.Decoder.Hints
 public import LeanVM.Guest.Fast.Da
 import LeanVM.Guest.Value.Bits
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The guest decoder's compiled chain: the DA matrix
@@ -12,7 +15,7 @@ import LeanVM.Guest.Value.Bits
 `Guest.Fast.dvWitN_eq`): the rows of the cells' symbols, compiled part by part. Staged, each frame
 looked up once:
 
-* the number of rows (a logarithm, `gLogD D`, the logarithm's tables `D` given, at most `1024`,
+* the number of rows (a logarithm, `gLogD D`, the logarithm's tables `D` given, at most `DA_MAX_ROWS`,
   `daRowCount`, as `Da.dvRows`) computed once by `dvWitND` and passed to `dvWitNAt`;
 * each column's frame (`dvColVN`) looked up once, its two words the rows read (`dvColWords`)
   kept in an array of the `128` columns (`dvCols`), built once by `dvWitNAt` and passed to
@@ -95,19 +98,19 @@ theorem dvWitNAt_eq (r : ℕ) (σ : Val) (Vn : NFrames) :
     funext fun i ↦ funext fun h ↦ dvSymsCols_eq r σ Vn i h
   rw [h1]
 
-/-- A count of rows, at most `1024` (`dvRows`'s clamp). -/
-def daRowCount (r : ℕ) : ℕ := if r ≤ 1024 then r else 1024
+/-- A count of rows, at most `DA_MAX_ROWS` (`dvRows`'s clamp). -/
+def daRowCount (r : ℕ) : ℕ := if r ≤ guest_const% DA_MAX_ROWS then r else guest_const% DA_MAX_ROWS
 
-theorem daRowCount_eq (r : ℕ) : daRowCount r = min r 1024 := by
+theorem daRowCount_eq (r : ℕ) : daRowCount r = min r (guest_const% DA_MAX_ROWS) := by
   unfold daRowCount
   split <;> omega
 
-theorem daRowCount_le (r : ℕ) : daRowCount r ≤ 1024 := by
+theorem daRowCount_le (r : ℕ) : daRowCount r ≤ guest_const% DA_MAX_ROWS := by
   unfold daRowCount
   split <;> omega
 
 /-- **`da_verify`'s witness** (`dvWitN`), the logarithm's tables `D` given: its rows counted
-once, at most `1024` (`daRowCount`). -/
+once, at most `DA_MAX_ROWS` (`daRowCount`). -/
 def dvWitND (D : DiscreteLogTables) (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=
   dvWitNAt (daRowCount (gLogD D (σ (.n 1)))) σ Vn
 

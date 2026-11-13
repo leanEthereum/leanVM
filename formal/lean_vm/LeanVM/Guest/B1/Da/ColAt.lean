@@ -16,6 +16,9 @@ public import LeanVM.Guest.B1.Da.VecAt
 public import LeanVM.Guest.B1.Da.DvLoops
 public import LeanVM.Guest.B1.Da.VectorMath
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The column, placed
@@ -180,7 +183,7 @@ theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
     (h21 : TotalLeOn coreProgram fs name% «da_verify_column_loop0» LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs
           name% «da_verify_column_loop0»))
-    {r : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ 1024) {syms : ℕ → ℕ → List K} (hsl : ∀ i j, (syms i j).length = 256)
+    {r : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ guest_const% DA_MAX_ROWS) {syms : ℕ → ℕ → List K} (hsl : ∀ i j, (syms i j).length = 256)
     {z : E} {bz bt bc bo bb bR h : ℕ} (hh : h < 128) :
     CompleteAtDTB fs cert 16 "da_verify_column" (colLin r syms z bz bt bc bo bb bR)
       [gen ^ h, gen ^ r, gen ^ bR, gen ^ bz, gen ^ (bt + 2 ^ 7), gen ^ bc, gen ^ bo] (Returns [])

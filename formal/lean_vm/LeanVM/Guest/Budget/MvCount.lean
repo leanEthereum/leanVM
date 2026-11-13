@@ -20,6 +20,9 @@ public import LeanVM.Guest.Budget.MainCount
 public import LeanVM.Guest.Count.Static
 public import LeanVM.Guest.B1.Da.DvAt
 public import LeanVM.Guest.B1.Main.MainGoalsClT
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # `da_verify`'s and the claim lists' instructions
@@ -60,7 +63,7 @@ theorem mvTab_parts (op : Opcode) :
       kvSBJ op (dvStJ.getD i 0) == (kcDvStT op).getD i 0) = true) ∧
     (∀ i < 4, (kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
       kvSKJ op (dvLpJ.getD i 0) == (kcDvLpT op).getD i 0) = true) ∧
-    (∀ L < 11, (kvOkB op (dlJ.getD L 0) (B1.Da.dlNames.getD L "") &&
+    (∀ L < guest_const% DA_TREE_ARMS, (kvOkB op (dlJ.getD L 0) (B1.Da.dlNames.getD L "") &&
       kvSBJ op (dlJ.getD L 0) == (kcDlT op).getD L 0) = true) ∧
     (∀ k < 17, (kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
       kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) = true) ∧
@@ -93,7 +96,7 @@ theorem dvLp_loop {i : ℕ} (hi : i < 4) :
   loopWeightLe_tab ((mvTab_parts op).2.1 i hi)
 
 /-- **The DA levels at `L`.** -/
-theorem dl_weightLe {L : ℕ} (hL : L < 11) :
+theorem dl_weightLe {L : ℕ} (hL : L < guest_const% DA_TREE_ARMS) :
     WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) (B1.Da.dlNames.getD L "")
       fun _ => (kcDlT op).getD L 0 :=
   weightLe_tab ((mvTab_parts op).2.2.1 L hL)
@@ -125,7 +128,7 @@ theorem mvOm_eq {i : ℕ} (hi : i < 4) :
   obtain ⟨hn, hv⟩ := (mvTab_parts op).2.2.2.2.2 i hi
   rw [ωArm_idx (decide_eq_true_eq.mp hn) (by interval_cases i <;> decide), hv]
 
-theorem dlNames_bang {L : ℕ} (hL : L < 11) : B1.Da.dlNames[L]! = B1.Da.dlNames.getD L "" := by
+theorem dlNames_bang {L : ℕ} (hL : L < guest_const% DA_TREE_ARMS) : B1.Da.dlNames[L]! = B1.Da.dlNames.getD L "" := by
   interval_cases L <;> decide
 
 theorem clNames_bang {k : ℕ} (hk : k < 17) :
@@ -154,7 +157,7 @@ def colW (r : ℕ) : ℕ :=
   (mvOmT op).getD 2 0 + (kcDvStT op).getD 2 0 + r * (kcDvLpT op).getD 3 0
 
 /-- **A column's instructions** on a tree of its honest shape. -/
-theorem col_weight_le {r : ℕ} (hr : 0 < r) (hr' : r ≤ 1024) {rd : Reader} {t : Tree}
+theorem col_weight_le {r : ℕ} (hr : 0 < r) (hr' : r ≤ guest_const% DA_MAX_ROWS) {rd : Reader} {t : Tree}
     {args rets : List E} (h : B1.Da.colNH r t) (hv : t.Valid coreProgram rd args rets)
     (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ colW op r := by
   obtain ⟨σ, ks, rfl, ⟨h1, h17⟩, hc, hl, hT⟩ := h
@@ -214,12 +217,12 @@ def dvW (r L : ℕ) : ℕ :=
     (2 ^ L - r) * (kcDvLpT op).getD 2 0 + (kcDlT op).getD L 0
 
 /-- **`da_verify`'s instructions of `op`** on a tree of its honest shape `Da.dvNH r L`. -/
-theorem dv_weight_le {r L : ℕ} (hr : 0 < r) (hr' : r ≤ 1024) (hrL : r ≤ 2 ^ L) (hL : L < 11)
+theorem dv_weight_le {r L : ℕ} (hr : 0 < r) (hr' : r ≤ guest_const% DA_MAX_ROWS) (hrL : r ≤ 2 ^ L) (hL : L < guest_const% DA_TREE_ARMS)
     {rd : Reader} {t : Tree} {args rets : List E} (h : B1.Da.dvNH r L t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
     t.weight (B2C.ωArm B2C.xmssArmC op) ≤ dvW op r L := by
   obtain ⟨σ, ks, rfl, ⟨h1, h2, h4, h35, h42, h44, h45⟩, hc, hl, hT⟩ := h
-  have h2L : 2 ^ L < 2 ^ 11 := Nat.pow_lt_pow_right (by norm_num) hL
+  have h2L : 2 ^ L < 2 ^ guest_const% DA_TREE_ARMS := Nat.pow_lt_pow_right (by norm_num) hL
   have hlog : logG (σ (.n 2)) = L := by rw [h2]; exact logG_gen_pow (by omega)
   rw [B1.Da.dv_flatCalls, hlog] at hc hl hT
   obtain ⟨hk, hbk⟩ := node_kids hv hb hc
@@ -247,7 +250,7 @@ theorem dv_weight_le {r L : ℕ} (hr : 0 < r) (hr' : r ≤ 1024) (hrL : r ≤ 2 
           exact (B1.Da.one_add_gen_ne_iff (by unfold B1.ordG; omega)).mp this
         exact loop_at (dvLp_loop op (i := 2) (by norm_num)) hn hv' hb' (by simp [h45])
           (by simp [h4]) (by omega) (by omega)
-      · rw [B1.Da.dlList_getD (by omega), ← B1.Da.dlNames_bang (by omega), dlNames_bang hL] at hn
+      · rw [B1.Da.dlNames_getD (by omega), ← B1.Da.dlNames_bang (by omega), dlNames_bang hL] at hn
         exact dl_weightLe op hL rd t' _ rets' hn hv' hb')
   have hom := mvOm_eq op (i := 0) (by norm_num)
   have hom1 := mvOm_eq op (i := 1) (by norm_num)
@@ -260,7 +263,7 @@ theorem dv_weight_le {r L : ℕ} (hr : 0 < r) (hr' : r ≤ 1024) (hrL : r ≤ 2 
 
 /-- **`da_verify`'s instructions on `r` rows padded to `2^L`** within
 `kcDvA op + kcDvR op · r + kcDvP op · 2^L`. -/
-theorem dvW_le {r L : ℕ} (hlo : r ≤ 2 ^ L) (hL : L < 11) :
+theorem dvW_le {r L : ℕ} (hlo : r ≤ 2 ^ L) (hL : L < guest_const% DA_TREE_ARMS) :
     dvW op r L ≤ kcDvA op + kcDvR op * r + kcDvP op * 2 ^ L := by
   unfold dvW colW
   cases op <;> interval_cases L <;>
@@ -393,9 +396,9 @@ noncomputable def mainCounts (op : Opcode) :
   dv := fun _ _ _ _ r L _ hv hb hT h1 hr hL => by
     obtain ⟨hlo, hhi⟩ := B1.Da.nPad_bounds h1
     rw [← hL] at hlo hhi
-    have hm : r ≤ 1024 := hr
-    have hL11 : L < 11 :=
-      (Nat.pow_lt_pow_iff_right (by norm_num : 1 < 2)).mp (by omega : 2 ^ L < 2 ^ 11)
+    have hm : r ≤ guest_const% DA_MAX_ROWS := hr
+    have hL11 : L < guest_const% DA_TREE_ARMS :=
+      (Nat.pow_lt_pow_iff_right (by norm_num : 1 < 2)).mp (by omega : 2 ^ L < 2 ^ guest_const% DA_TREE_ARMS)
     exact (Budget.dv_weight_le op (by omega) hm hlo hL11 hT hv hb).trans
       (Budget.dvW_le op hlo hL11)
 

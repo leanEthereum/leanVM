@@ -35,11 +35,11 @@ example : coreProgram.find? "sp_wots" = some Data.core19 :=
 example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
   Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
 
-example : coreProgram.find? "squeeze_point_from__L18" = some Data.core640 :=
-  Program.find?_of_indexOf? (j := 640) (by decide +kernel) rfl
+example : coreProgram.find? "squeeze_point_from__L18" = some Data.core635 :=
+  Program.find?_of_indexOf? (j := 635) (by decide +kernel) rfl
 
-example : coreProgram.find? "walk_path__L18_L4" = some Data.core1549 :=
-  Program.find?_of_indexOf? (j := 1549) (by decide +kernel) rfl
+example : coreProgram.find? "walk_path__L18_L4" = some Data.core1512 :=
+  Program.find?_of_indexOf? (j := 1512) (by decide +kernel) rfl
 
 example : Data.core19.name = Data.f20.name := name_eq_compiled (j := 19) rfl rfl
 
@@ -47,11 +47,11 @@ example : Data.core20.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
 
 example : Data.core36.name = Data.f37.name := name_eq_compiled (j := 36) rfl rfl
 
-example : coreProgram.find? "walk_path__L12_L8" = some Data.core1600 :=
-  Program.find?_of_indexOf? (j := 1600) (by decide +kernel) rfl
+example : coreProgram.find? "walk_path__L12_L8" = some Data.core1563 :=
+  Program.find?_of_indexOf? (j := 1563) (by decide +kernel) rfl
 
-example : Data.core1549.name = Data.f1550.name := name_eq_compiled (j := 1549) rfl rfl
+example : Data.core1512.name = Data.f1513.name := name_eq_compiled (j := 1512) rfl rfl
 
-example : Data.core1600.name = Data.f1601.name := name_eq_compiled (j := 1600) rfl rfl
+example : Data.core1563.name = Data.f1564.name := name_eq_compiled (j := 1563) rfl rfl
 
 end LeanVMTests.Guest.CoreData
