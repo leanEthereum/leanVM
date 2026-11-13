@@ -25,9 +25,10 @@ matching each core atom with the first instruction that fits the cells known so 
 compiler emits them in order; a constant takes the cell of the instruction that uses it, and a
 frame run (`addr`) its consecutive cells.
 
-A `match` of many straight-line arms (`verify_sig_lean_sphincs`'s dispatches on a codeword, `256`
-inlined arms) is a window of its own, too large for one kernel evaluation: its three checks are
-split into groups of `armGroup` arms (`splitOf`; `Check.checkWinS`, `B2C.shareWinS`,
+A `match` of many straight-line arms (`__loop2`'s dispatches on a codeword, `256` inlined arms)
+naming more values than one kernel evaluation should hold (`groupVals`) is a window of its own:
+its three checks are split into groups of `armGroup` arms, sized by the values they name
+(`splitOf`; `Check.checkWinS`, `B2C.shareWinS`,
 `B2C.cplWinS`), each group a module (`Checked/G*`, `B2C/Shared/H*`, `B2C/Cplw/D*`), the window's
 check from them in another (`Checked/F*`, `B2C/Shared/T*`, `B2C/Cplw/E*`), what the groups share
 computed once (`Checked/X*`, `B2C.winPre`), chained `match`es (`__loop2`'s, whose arms jump to
@@ -824,8 +825,9 @@ def knownOf (body : List Core.Stmt) (memOf : String → List (ℕ × ℕ × ℕ)
         (args[o - 2]?).map fun v => (i, v.idx, c, n)
     | _ => []
 
-/-- `verify_sub`'s compiled index: its windows take a memory bound from an obligation. -/
-def vsIdx : ℕ := 19
+/-- The function whose windows take a memory bound from an obligation (`Sound`'s, by name), as
+`main` does: both are cut in the coarse windows. -/
+def vsName : String := "verify_sub"
 
 /-- `opening_queries__L{odd}_L{base}_L{folds}_L{leaf_cells}_L{depth}_L{cap_depth}_L{mu}_L{vanish}_L{n_hs}_L{hs_bits}_L{final}`'s
 `(odd, base, depth, cap_depth)` (`opening_queries`, `crates/rec_aggregation/guests/lean_ethereum.py`). -/
@@ -1112,14 +1114,27 @@ structure CutG where
   sel : ℕ := 0
   succ : List ℕ := []
 
-/-- The arms per group of a window split by arms (`Check.checkWinS`): `8` in
-`verify_sig_lean_sphincs`, whose groups' arms hash most, `32` in `__loop2`, whose groups' fixed
-part (arm `0`, the start, the cells) outweighs their arms, `16` elsewhere. -/
-def armGroup (name : String) : ℕ :=
-  if name == "verify_sig_lean_sphincs" then 8 else if name == "__loop2" then 32 else 16
+/-- The values of its own a group of arms of a split window names at most: a window of one
+`match` naming more is split by arms. A group's kernel check grows with its values, and its fixed
+part (arm `0`, the start, the cells) with the groups' number. -/
+def groupVals : ℕ := 3072
 
-/-- The instructions a window that is one `match` runs over at least to be split by arms. -/
-def splitSize (name : String) : ℕ := if name == "verify_sig_lean_sphincs" then 500 else 1500
+/-- The most arms per group. -/
+def maxGroup : ℕ := 32
+
+/-- A `match` of more arms is a window of its own (and split if it names more than `groupVals`
+values). -/
+def bigArms : ℕ := 64
+
+/-- The arms per group of a split `match` whose arms name `vals` values of their own, `n` arms:
+the largest power of two, at most `maxGroup`, whose arms name at most `groupVals` values on
+average. -/
+def armGroup (vals n : ℕ) : ℕ :=
+  let per := max 1 (vals / max 1 n)
+  let rec grow (g : ℕ) : ℕ → ℕ
+    | 0 => g
+    | fuel + 1 => if 2 * g ≤ maxGroup && 2 * g * per ≤ groupVals then grow (2 * g) fuel else g
+  grow 1 maxGroup
 
 /-- The instructions a window runs over at most, when a function is cut for its size; `coarse`,
 the larger windows for a function whose sharing check needs them. -/
@@ -1242,7 +1257,7 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
     let nextJ := if k + 1 < cands.size then cands[k + 1]!.2.1 else f.instructionCount
     -- a `match` of many arms is a window of its own, which `Check.checkWinS` splits by arms
     let isBig (i : ℕ) : Bool := match cf.body[i]? with
-      | some (.match_ _ arms) => arms.length > 4 * armGroup f.name
+      | some (.match_ _ arms) => arms.length > bigArms
       | _ => false
     let bigCut := isBig idx || (idx > 0 && isBig (idx - 1))
     unless force.isSome || bigCut || (big && nextJ - a > mw && J ≥ a + mw / 4 && f.instructionCount - J > mw / 4) do continue
@@ -2713,13 +2728,17 @@ def gtabText : String := Id.run do
   return "[" ++ ",\n  ".intercalate rows.toList ++ "]"
 
 /-- The frame sizes, by compiled function index. -/
-def framesFile (fsz : List ℕ) : String :=
+def framesFile (fsz : List ℕ) (jtSlots : ℕ) : String :=
   header "FrameSizes" "The frame size of each compiled function, by index." ++
   "public import LeanVM.Guest.ExecCore\n" ++ preamble ++
   "/-- Frame sizes by compiled function index (`__jump_tables` shares `main`'s frame): a loop\n" ++
   "helper's is where its tail call puts the next frame, any other's past every frame cell its\n" ++
   "code and certificate name. -/\n" ++
-  s!"def frameSizes : List ℕ := {listText (fsz.map toString)}\n" ++ tail
+  s!"def frameSizes : List ℕ := {listText (fsz.map toString)}\n\n" ++
+  "/-- `main`'s cells, below the jump table's slots (`B2C.mainFrame`). -/\n" ++
+  s!"abbrev mainCells : ℕ := {fsz.getD 1 0}\n\n" ++
+  "/-- The jump table's slots, one `SET` of `__jump_tables` each (`B2C.jtSets`). -/\n" ++
+  s!"abbrev jtSlots : ℕ := {jtSlots}\n" ++ tail
 
 /-- The tables: the powers of `g` the guest names, the digit table and the jump table. -/
 def powsFile (T : Tables) : String :=
@@ -2744,18 +2763,19 @@ noncomputable def jtTrie : Trie ℕ := {jt}
 
 def checkedDir : System.FilePath := "LeanVM/Guest/Checked"
 
-/-- The groups of a window that is one `match` of at least `4 · armGroup` straight-line arms over
-more than `splitSize` instructions: `(lo, hi, ranges)`, arms `lo ≤ k < hi` and arm `0`, the value
+/-- The groups of a window that is one `match` of more than `bigArms` straight-line arms naming
+more than `groupVals` values of the window: `(lo, hi, ranges)`, arms `lo ≤ k < hi` and arm `0`, the value
 ranges of the window's cells they name (offsets in the window), each value the group names in a
 range or below the window (`ins`). `[]` for any other window. -/
-def splitOf (cf : Core.Fn) (start stop size lo : ℕ) (ins : List ℕ) : List (ℕ × ℕ × List (ℕ × ℕ)) :=
+def splitOf (cf : Core.Fn) (start stop lo : ℕ) (ins : List ℕ) : List (ℕ × ℕ × List (ℕ × ℕ)) :=
   let isAtom : Core.Stmt → Bool := fun | .atom _ => true | _ => false
   match (cf.body.drop start).take (stop - start) with
   | [.match_ _ (a0 :: as)] =>
-    let armGroup := armGroup cf.name
-    if as.length < 4 * armGroup || size ≤ splitSize cf.name || !(a0 :: as).all (·.all isAtom) then []
+    let own (a : List Core.Stmt) : List ℕ := ((Check.stmtsVals a).map (·.idx)).filter (lo ≤ ·)
+    let vals := (as.map fun a => (own a).length).foldl (· + ·) 0
+    let armGroup := armGroup vals as.length
+    if as.length ≤ bigArms || vals ≤ groupVals || !(a0 :: as).all (·.all isAtom) then []
     else
-      let own (a : List Core.Stmt) : List ℕ := ((Check.stmtsVals a).map (·.idx)).filter (lo ≤ ·)
       let span (vs : List ℕ) : Option (ℕ × ℕ) := match vs with
         | [] => none
         | v :: _ => some (vs.foldl min v, vs.foldl max v)
@@ -3401,9 +3421,20 @@ def cplwDir : System.FilePath := "LeanVM/Guest/B2C/Cplw"
 
 def partText (p : List ℕ) : String := listText (p.map toString)
 
-/-- `Data/CplArms.lean`: by compiled function, its separately counted `match`es, the counts of
-each arm. -/
-def armsFile (rows : List (Array (ℕ × List (List ℕ)))) : String :=
+/-- The most a path through `ss` passes of the separately counted arms `acs`, at opcode `k`
+(`B2C.costMaxW`). -/
+partial def armMaxW (acs : Array (ℕ × List (List ℕ))) (k : ℕ) : List Core.Stmt → ℕ
+  | [] => 0
+  | .ite _ z n :: ss => max (armMaxW acs k z) (armMaxW acs k n) + armMaxW acs k ss
+  | .match_ x arms :: ss =>
+    let key := match acs.find? (·.1 == x.idx) with
+      | some (_, cs) => cs.foldr (fun l m => max (l.getD k 0) m) 0
+      | none => 0
+    key + arms.foldr (fun a m => max (armMaxW acs k a) m) 0 + armMaxW acs k ss
+  | _ :: ss => armMaxW acs k ss
+
+/-- The text of `Data/CplArms.lean`. -/
+def armsText (rows : List (Array (ℕ × List (List ℕ)))) (armFn : ℕ) (armMax : List ℕ) : String :=
   let n := (rows.zipIdx.filter (!·.1.isEmpty)).foldl (fun m (_, j) => max m (j + 1)) 0
   -- each counted `match`'s arms a definition of its own, a list of `::`s (no `[…]` notation's
   -- nesting)
@@ -3419,9 +3450,25 @@ def armsFile (rows : List (Array (ℕ × List (List ℕ)))) : String :=
     "order) from its segment to the join, the callees' apart. Every other `match` counts its arms by\n" ++
     "their maximum. Checked by `B2C.cplWin`.\n-/\n\nnamespace LeanVM.Guest.Data\n\nset_option maxRecDepth 100000\n\n@[expose] public section\n\n" ++
     defs ++
+    "/-- The function whose `match`es count their arms separately (`0`: none). -/\n" ++
+    s!"def armFn : ℕ := {armFn}\n\n" ++
+    "/-- The most a path through its body passes of those arms, per opcode, in the order of `Opcode`. -/\n" ++
+    s!"def armMax : List ℕ := {listText (armMax.map toString)}\n\n" ++
     "/-- The per-arm counts, by function. -/\ndef cplArms : List (List (ℕ × List (List ℕ))) := " ++
     (if n == 0 then "[]" else "[\n  " ++ ",\n  ".intercalate ((rows.take n).zipIdx.map fun (r, j) => rowText r j) ++ "]") ++
     "\n\nend\nend LeanVM.Guest.Data\n"
+
+/-- `Data/CplArms.lean`: by compiled function, its separately counted `match`es, the counts of
+each arm; the one function with such `match`es (`armFn`, `0` if none) and the most a path through
+its body passes of their arms, per opcode (`armMax`, `B2C.costMaxCW_arm`). -/
+def armsFile (P : List Core.Fn) (rows : List (Array (ℕ × List (List ℕ)))) : Except String String := do
+  let armed := (rows.zipIdx.filter (!·.1.isEmpty)).map (·.2)
+  if armed.length > 1 then throw s!"more than one function counts arms separately: {armed}"
+  let armFn := armed.headD 0
+  let armMax := match armed with
+    | [j] => (List.range 6).map fun k => armMaxW (rows.getD j #[]) k ((P.getD (j - 1) default).body)
+    | _ => List.replicate 6 0
+  return armsText rows armFn armMax
 
 /-- `Data/CplParts.lean`, the decide modules `B2C/Cplw/C*.lean` and their index `B2C/Cplw.lean`. -/
 def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ)))) :
@@ -3629,7 +3676,7 @@ def files (P : Core.Program) (kOnly : Bool := false) : Except String (List (Syst
       let sp := (List.range nw).filterMap fun w =>
         let a := starts[w]!
         let b := if w + 1 < nw then starts[w + 1]! else cf.body.length
-        match splitOf cf a b (sizes.getD w 0) los[w]! ((insW[w]!).map (·.1)) with
+        match splitOf cf a b los[w]! ((insW[w]!).map (·.1)) with
         | [] => none
         | gs => some (w, gs)
       -- the sharing windows of one `match` split by arms, chained or not (`B2C.shareWinS` reads no
@@ -3639,7 +3686,7 @@ def files (P : Core.Program) (kOnly : Bool := false) : Except String (List (Syst
           | some (b, _) => b
           | none => cf.body.length
         if k == 0 || k + 1 ≥ wpos.length || starts[w]! != a || b != a + 1 then none
-        else match splitOf cf a b (sizes.getD w 0) los[w]! ((insW[w]!).map (·.1)) with
+        else match splitOf cf a b los[w]! ((insW[w]!).map (·.1)) with
           | [] => none
           | gs => some (k, gs)
       -- the bit sets of the values' cells, window by window
@@ -3647,7 +3694,7 @@ def files (P : Core.Program) (kOnly : Bool := false) : Except String (List (Syst
         acc.push (((locs.drop los[w]!).take (his[w]! - los[w]!)).foldl (fun s c => s ||| (1 <<< c)) acc.back!)) #[0]
       let counts := (List.range nw).map fun w => his[w]! - los[w]!
       pure (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs, sp, ssp, chain, counts, entW, ent)
-    let r ← if i + 1 == 1 || i + 1 == vsIdx then attempt true
+    let r ← if i + 1 == 1 || cf.name == vsName then attempt true
       else match attempt false with
         | .ok r => pure r
         | .error _ => attempt true
@@ -3754,19 +3801,20 @@ noncomputable def certs : List Check.Cert :=
 " ++ "\n".intercalate rows ++ " []
 " ++ tail
   let nPow := (powTop (T.pows.toArray.qsort (·.1 < ·.1)) powCut 0).2.length
-  let kFiles := (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList)] ++ certFiles ++
+  let kFiles := (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList fns[0]!.instructionCount)] ++ certFiles ++
       [("Cert", index)]).map fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++
     (checkedFiles (oblFnsOf semMap P) wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow splits).map (fun (n, t) =>
       (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
         else checkedDir / (n ++ ".lean"), t))
   if kOnly then return kFiles
-  return (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList)] ++ certFiles ++
+  let armsText ← CplK.armsFile P armRows.toList
+  return (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList fns[0]!.instructionCount)] ++ certFiles ++
       [("Cert", index)] ++ plumbFiles ++ [("Plumb", plumbIndex)]).map fun (n, t) =>
     (dataDir / (n ++ ".lean"), t)) ++
     (checkedFiles (oblFnsOf semMap P) wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow splits).map (fun (n, t) =>
       (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
         else checkedDir / (n ++ ".lean"), t)) ++ sharedFiles shareStatics shareWins P.length shareSplits bigStatics ++
-    (snapsFiles snapTexts.toList).map (fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++ CplK.cplFiles cplFns.toList splits ++ [(dataDir / "CplArms.lean", CplK.armsFile armRows.toList)] ++
+    (snapsFiles snapTexts.toList).map (fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++ CplK.cplFiles cplFns.toList splits ++ [(dataDir / "CplArms.lean", armsText)] ++
     CplK.chainedFiles chainedFns.toList
 
 /-- The generated files on disk. -/

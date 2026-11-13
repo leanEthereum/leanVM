@@ -37,11 +37,11 @@ end LeanVM.Guest.Count
 
 
 def jt_sets(lv):
-    """`B2C.jtSets .setConstant`: `main`'s jump table's `SET`s (`B2C/Defs.lean`)."""
+    """`B2C.jtSets .setConstant`: `main`'s jump table's `SET`s (`Data.jtSlots`, `Data/FrameSizes.lean`)."""
     import re
-    t = open(os.path.join(lv, 'LeanVM', 'Guest', 'B2C', 'Defs.lean'), encoding='utf-8').read()
-    m = re.search(r'def jtSets \(op : Opcode\) : ℕ := if op = \.setConstant then (\d+) else 0', t)
-    assert m, 'B2C.jtSets not found'
+    t = open(os.path.join(lv, 'LeanVM', 'Guest', 'Data', 'FrameSizes.lean'), encoding='utf-8').read()
+    m = re.search(r'abbrev jtSlots : ℕ := (\d+)', t)
+    assert m, 'Data.jtSlots not found'
     return int(m.group(1))
 
 

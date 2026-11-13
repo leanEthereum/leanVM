@@ -15,7 +15,7 @@ public import LeanVM.Guest.Memory.GuestFresh
 The compiled functions with table jumps (`armsCheck`, by the kernel over `Data.plumbs`: at leanVM
 `1a379148`, `verify_lean_xmss`, `sp_wots`, the `opening_queries` variants and their window loops)
 (and the chained `match`es) have their selectors outside their temporaries: a function's temporaries are the memory
-check's list for the large functions (`temps19`, …, by `tmps19`, …; `bigTemps`), and computed
+check's list for the large functions (`Data.bigTemps`, by `bigTemps_spec`; `bigTemps`), and computed
 from its body for the others (`armTemps`). So `ArmsFresh` holds (`armsFresh`), and with it `keep`
 (`kfacts_keep_all`).
 -/
@@ -45,7 +45,7 @@ theorem armsCheck_spec {q : ℕ → ℕ × ℕ × ℕ → Bool} : ∀ {l : List 
 /-- The large functions' temporaries, from the memory check's data (`Memory/GuestMem/Data.lean`), by
 compiled function index (core index `+ 1`). -/
 def bigTemps : List (ℕ × List ℕ) :=
-  [(20, temps19), (37, temps36)]
+  Data.bigTemps.map fun p ↦ (p.1 + 1, p.2)
 
 /-- The entry of index `j`, if any. -/
 def tempsFind : List (ℕ × List ℕ) → ℕ → Option (List ℕ)
@@ -61,12 +61,18 @@ theorem tempsFind_ok {P : ℕ → List ℕ → Prop} : ∀ {l : List (ℕ × Lis
     · subst hj; cases h; exact hl _ List.mem_cons_self
     · exact tempsFind_ok (fun p hp ↦ hl p (List.mem_cons_of_mem _ hp)) h
 
-set_option maxRecDepth 100000 in
+private theorem listElementOrDefault_eq : ∀ (l : List Fn) (n : ℕ),
+    listElementOrDefault l n default = l.getD n default
+  | [], _ => rfl
+  | _ :: _, 0 => rfl
+  | _ :: l, n + 1 => by simp [listElementOrDefault, listElementOrDefault_eq l n]
+
 theorem bigTemps_ok :
     ∀ p ∈ bigTemps, (Stmt.tmpsList (coreOf p.1).body).map V.idx = p.2 := by
-  rw [← List.forall_iff_forall_mem]
-  simp only [bigTemps, List.Forall]
-  exact ⟨tmps19, tmps36⟩
+  intro p hp
+  obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hp
+  rw [coreOf, Nat.add_sub_cancel, listElementOrDefault_eq]
+  exact bigTemps_spec q hq
 
 /-- Compiled function `j`'s temporaries, by index. -/
 noncomputable def armTemps (j : ℕ) : List ℕ :=

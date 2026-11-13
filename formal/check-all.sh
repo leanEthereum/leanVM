@@ -166,6 +166,9 @@ lean_vm() {
   fi
   axioms lean_vm LeanVM LeanVM.theorems_hold LeanVM.corollaries_hold \
     LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding LeanVM.Wire.proveWithHash_wireDecodable
+  # A private import stops a rebuild, as `tools/deps.py` assumes (`notes/per-function-cone.md`).
+  step "lean_vm: the private-import firewall holds (firewall-canary)"
+  python3 -I tools/firewall-canary.py
   executables
   # The compiled checks are independent: run together, each one's output printed when all are done.
   step "lean_vm: the Rust vectors' costly checks, and the guest's core IR, certificates, memory-layer checks and decoder tables current, the tests' runs"

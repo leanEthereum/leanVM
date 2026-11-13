@@ -5,9 +5,13 @@
   lanes `16..24` of the zero state or of an earlier answer.
 -/
 
-import LeanVM.Protocol.Verifier.Cost
-import LeanVM.Protocol.Compile.Rom.Complete
-import LeanVM.Protocol.WithHash
+module
+
+public import LeanVM.Protocol.Verifier.Cost
+public import LeanVM.Protocol.Compile.Rom.Complete
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # The duplex discipline
@@ -455,3 +459,5 @@ theorem duplexVm_romHonestComp (prog : LeanIsaProgram) (input : PublicInput) (S 
     (duplexP_proveFromM _ _ _ _ _ _ _ hs).bind fun _ _ _ ↦ trivial
 
 end LeanVM.Rpm
+
+end

@@ -16,8 +16,9 @@ public import LeanVM.Guest.B2C.CntWeight
 `costW acs σ ss op` adds, along the path `σ` takes through `ss`, the count of each separately
 counted arm it passes. Whatever the path, it is at most `costMaxW acs op ss`: an `ite` its larger
 side, a `match` its table's largest arm and its larger arm's own (`costMaxArms`). On
-`__loop2`'s body this is `xmssArmC op` (by `decide +kernel`, every opcode in one walk), so
-`cnt_le_weight_arm` holds at `C := xmssArmC` (`cnt_le_weight_xmss`).
+`__loop2`'s body (`Data.armFn`) this is `xmssArmC op`, the values `guest-cert` computes
+(`Data.armMax`; by `decide +kernel`, every opcode in one walk), so `cnt_le_weight_arm` holds at
+`C := xmssArmC`.
 -/
 
 namespace LeanVM.Guest.B2C
@@ -207,25 +208,26 @@ end
 end At
 
 /-- **`__loop2`'s separately counted arms, per opcode** (leanXMSS's check, inline in it): the sum
-of its counted `match`es' largest arms. -/
-def xmssArmC (op : Opcode) : ℕ := [57, 84, 66, 28, 34, 380].getD (opIdx op) 0
+of its counted `match`es' largest arms, as `guest-cert` computes them (`Data.armMax`). -/
+def xmssArmC (op : Opcode) : ℕ := Data.armMax.getD (opIdx op) 0
 
--- a kernel evaluation over `__loop2`'s whole body (34 counted `match`es of 256 arms)
+-- a kernel evaluation over the body of the function with counted arms (`Data.armFn`)
 set_option maxRecDepth 100000 in
-theorem costMaxCW_xmss :
-    costMaxCW (listElementOrDefault Data.cplArms 37 []) (coreOf 37).body = ⟨57, 84, 66, 28, 34, 380⟩ := by
+theorem costMaxCW_arm :
+    costMaxCW (listElementOrDefault Data.cplArms Data.armFn []) (coreOf Data.armFn).body =
+      C6.ofList Data.armMax := by
   decide +kernel
 
 theorem costMaxW_xmss (op : Opcode) :
-    costMaxW (listElementOrDefault Data.cplArms 37 []) op (coreOf 37).body = xmssArmC op := by
-  rw [← costMaxCW_at, costMaxCW_xmss]
-  cases op <;> rfl
+    costMaxW (listElementOrDefault Data.cplArms Data.armFn []) op (coreOf Data.armFn).body = xmssArmC op := by
+  rw [← costMaxCW_at, costMaxCW_arm, C6.at_ofList]
+  rfl
 
 /-- **`cnt_le_weight_arm`'s `hC` at `xmssArmC`**: `__loop2`'s arms within `xmssArmC`, on
 every valuation. -/
 theorem xmssArmC_spec : ∀ op σ bufs kids rd args rets,
     (Memory.Tree.node "__loop2" σ bufs kids).Valid coreProgram rd args rets →
-      costW (listElementOrDefault Data.cplArms 37 []) σ (coreOf 37).body op ≤ xmssArmC op :=
+      costW (listElementOrDefault Data.cplArms Data.armFn []) σ (coreOf Data.armFn).body op ≤ xmssArmC op :=
   fun op σ _ _ _ _ _ _ => (costW_le_max _ σ op _).trans (costMaxW_xmss op).le
 
 end

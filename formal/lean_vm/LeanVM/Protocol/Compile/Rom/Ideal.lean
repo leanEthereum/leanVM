@@ -10,7 +10,8 @@
 module
 
 public import LeanVM.Protocol.Compile.Prover
-public import LeanVM.Guest.LimitsNZ
+public import Statement.LeanDa
+public import LeanVM.Guest.Refines
 
 /-!
 # The ideal failure probability and the honest transcript

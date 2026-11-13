@@ -6,16 +6,20 @@
   specification's, and the completeness theorems apply to it.
 -/
 
-import Statement.Prover.Prove
-import LeanVM.Prover.Refine
-import LeanVM.Prover.Witness
-import LeanVM.Prover.Bus
-import LeanVM.Prover.Table
-import LeanVM.Prover.Keccak
-import LeanVM.Prover.Ring
-import LeanVM.Prover.Whir
-import LeanVM.Prover.Ntt
-import LeanVM.Protocol.WithHash
+module
+
+public import Statement.Prover.Prove
+public import LeanVM.Prover.Refine
+public import LeanVM.Prover.Witness
+public import LeanVM.Prover.Bus
+public import LeanVM.Prover.Table
+public import LeanVM.Prover.Keccak
+public import LeanVM.Prover.Ring
+public import LeanVM.Prover.Whir
+public import LeanVM.Prover.Ntt
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # The honest prover is the specification at the execution's witness
@@ -471,3 +475,5 @@ theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committed
 end Honest
 
 end LeanVM.Prover
+
+end

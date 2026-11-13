@@ -7,10 +7,14 @@
   query count of the transfer's random-oracle adversary.
 -/
 
-import LeanVM.Protocol.Rpm.Game
-import Common.Lemmas
-import Common.RomComm
-import LeanVM.Protocol.WithHash
+module
+
+public import LeanVM.Protocol.Rpm.Game
+public import Common.Lemmas
+public import Common.RomComm
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # Relabelling the random oracles
@@ -262,3 +266,5 @@ theorem isWeightBound_romAdv {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBo
     isWeightBound_advImpl2 (isWeightBound_advR hA) _)
 
 end LeanVM.Rpm
+
+end

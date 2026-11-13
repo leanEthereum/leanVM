@@ -6,10 +6,14 @@
   experiments of `Statement/LeanVm.lean`.
 -/
 
-import LeanVM.Protocol.LeanVMSound
-import Statement.LeanVm
-import Common.Prob
-import LeanVM.Protocol.WithHash
+module
+
+public import LeanVM.Protocol.LeanVMSound
+public import Statement.LeanVm
+public import Common.Prob
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # Adversaries with coins
@@ -259,3 +263,5 @@ theorem rpmRun_le_det {α β : Type} {B : OracleComp (unifSpec + Common.permutat
   rw [h, prEvent_map]
 
 end LeanVM.Rpm
+
+end

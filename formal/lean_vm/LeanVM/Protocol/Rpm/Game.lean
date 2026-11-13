@@ -7,15 +7,19 @@
   the random-oracle adversary the transfer gives back, on lane states.
 -/
 
-import LeanVM.Protocol.Rpm.Paths
-import LeanVM.Facts.Verifier
-import LeanVM.Protocol.Verifier.Load
-import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
-import LeanVM.Protocol.Rpm.Coins
-import Common.Keccak
-import LeanVM.Protocol.WithHash
+module
+
+public import LeanVM.Protocol.Rpm.Paths
+public import LeanVM.Facts.Verifier
+public import LeanVM.Protocol.Verifier.Load
+public import Statement.Fast.Keccak
+public import Statement.Fast.QuadExt
+public import Statement.Fast.FieldWords
+public import LeanVM.Protocol.Rpm.Coins
+public import Common.Keccak
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # The experiment as a transfer game
@@ -108,3 +112,5 @@ def cmap (c : HFS.QueryCache) :
     | .inr s => (c (.inr (KState.toRpm s))).map KState.ofRpm
 
 end LeanVM.Rpm
+
+end

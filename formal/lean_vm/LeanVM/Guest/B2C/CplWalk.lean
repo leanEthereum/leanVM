@@ -473,7 +473,8 @@ theorem tbl_jt_mem {s t : ℕ} (h : glob.jt.get s = some t) : ∃ w, (s, w) ∈ 
 theorem tbl_slot {κ : ℕ} {L : MemoryImage κ} (hjt : JTHolds glob L)
     (htab : ∀ q ∈ tableCells, L.read (addressOfIndex q.1) = some q.2) {s e : ℕ} (h : glob.jt.get s =
         some e) :
-    (tableCells.find? fun q ↦ q.1 == s) = some (s, ofK (addressOfIndex e)) ∧ s < 430 + 13937 := by
+    (tableCells.find? fun q ↦ q.1 == s) = some (s, ofK (addressOfIndex e)) ∧
+      s < Data.mainCells + Data.jtSlots := by
   obtain ⟨w, hw⟩ := tbl_jt_mem h
   have hs := tableCells_off hw
   obtain ⟨q, hq⟩ := Option.isSome_iff_exists.mp
@@ -489,7 +490,8 @@ theorem tbl_slot {κ : ℕ} {L : MemoryImage κ} (hjt : JTHolds glob L)
 /-- The table word `armWord` at the selector `g^k` is slot `base + k`'s. -/
 theorem tbl_armWord {σ : Val} {x base k e : ℕ} (hk : σ (V.n x) = ofK (addressOfIndex k))
     (hf : (tableCells.find? fun q ↦ q.1 == base + k) = some (base + k, ofK (addressOfIndex e)))
-    (hlt : base + k < 430 + 13937) : armWord σ x base = ofK (addressOfIndex e) := by
+    (hlt : base + k < Data.mainCells + Data.jtSlots) : armWord σ x base = ofK (addressOfIndex e) := by
+  simp only [Data.mainCells, Data.jtSlots] at hlt
   unfold armWord
   split
   case isFalse hn => exact absurd ⟨k, by omega, hk⟩ hn

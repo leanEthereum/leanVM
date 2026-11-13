@@ -101,10 +101,10 @@ class G:
         for j, a in enumerate(self.arms):
             assert not a or j == self.xj + 1, 'only __loop2 counts arms separately'
         self.C = [self.arm_max(k) for k in range(6)]
-        lean = open(os.path.join(lv, 'LeanVM', 'Guest', 'B2C', 'ArmBound.lean'), encoding='utf-8').read()
-        m = re.search(r'def xmssArmC \(op : Opcode\) : ℕ := \[([\d, ]*)\]', lean)
+        lean = open(os.path.join(self.D, 'CplArms.lean'), encoding='utf-8').read()
+        m = re.search(r'def armMax : List ℕ := \[([\d, ]*)\]', lean)
         assert m and [int(x) for x in m.group(1).split(',')] == self.C, \
-            'B2C.xmssArmC is not %s: update B2C/ArmBound.lean' % self.C
+            'Data.armMax (B2C.xmssArmC) is not %s: rerun guest-cert' % self.C
         # `main`'s frame: its cells, then the jump table `__jump_tables` writes (one `SET` per slot).
         bc = open(os.path.join(lv, '..', 'Statement', 'Data', 'Bytecode.lean'), encoding='utf-8').read()
         self.jt_sets = int(re.search(r'⟨"__jump_tables", 0, (\d+),', bc).group(1))
@@ -113,11 +113,11 @@ class G:
                           open(os.path.join(lv, '..', 'Statement', 'Data', 'Bytecode00.lean'), encoding='utf-8').read())
         assert first and int(first.group(1)) == self.jt_base, 'the jump table does not start at main\'s frame size'
         self.main_frame = self.jt_base + self.jt_sets
-        defs = open(os.path.join(lv, 'LeanVM', 'Guest', 'B2C', 'Defs.lean'), encoding='utf-8').read()
-        assert 'def mainFrame : ℕ := %d + %d\n' % (self.jt_base, self.jt_sets) in defs, \
-            'B2C.mainFrame is not %d + %d: update B2C/Defs.lean' % (self.jt_base, self.jt_sets)
-        assert 'if op = .setConstant then %d else 0' % self.jt_sets in defs, \
-            'B2C.jtSets is not %d: update B2C/Defs.lean' % self.jt_sets
+        frames = open(os.path.join(self.D, 'FrameSizes.lean'), encoding='utf-8').read()
+        assert 'abbrev mainCells : ℕ := %d\n' % self.jt_base in frames and \
+            'abbrev jtSlots : ℕ := %d\n' % self.jt_sets in frames, \
+            'Data.mainCells, Data.jtSlots (B2C.mainFrame, B2C.jtSets) are not %d, %d: rerun guest-cert' % (
+                self.jt_base, self.jt_sets)
 
     def family(self, prefix):
         """The specializations `prefix{k}...` of a function, by name."""

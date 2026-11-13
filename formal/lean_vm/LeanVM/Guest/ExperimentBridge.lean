@@ -1,6 +1,10 @@
-import LeanVM.Protocol.ExperimentBridge
-import LeanVM.Guest.WithHash
-import LeanVM.Guest.AcceptableChild
+module
+
+public import LeanVM.Protocol.ExperimentBridge
+public import LeanVM.Guest.WithHash
+public import LeanVM.Guest.AcceptableChild
+
+@[expose] public section
 
 /-!
 # The guest's statements over `π` are the statements with the two calls
@@ -148,3 +152,5 @@ end Budget
 end Guest
 
 end LeanVM
+
+end

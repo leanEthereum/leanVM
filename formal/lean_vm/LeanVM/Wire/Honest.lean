@@ -5,8 +5,12 @@
   proved with, so the round trip (`LeanVM.Wire.roundTrip`) applies to them.
 -/
 
-import LeanVM.Prover.Assemble
-import LeanVM.Wire.HonestRun
+module
+
+public import LeanVM.Prover.Assemble
+public import LeanVM.Wire.HonestRun
+
+@[expose] public section
 
 /-!
 # The honest prover's proofs are decodable
@@ -163,3 +167,5 @@ theorem proveWithHash_wireDecodable {h : Bytes → Digest} {F : KeccakState → 
     cases hp
 
 end LeanVM.Wire
+
+end
