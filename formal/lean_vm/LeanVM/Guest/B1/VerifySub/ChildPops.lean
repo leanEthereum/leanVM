@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.NodePops
 public import LeanVM.Guest.B1.VerifySub.C.Own
+public import LeanVM.Guest.B1.VerifySub.GroupOrderCol
 -- Private: `guest_const%` inserts literals.
 import LeanVM.Guest.Data.Source
 
@@ -83,9 +84,6 @@ theorem childPops_sameStreams {bytecode : List K} {seed : Digest} {c : Child} {l
 
 /-! ## The honest entries -/
 
-theorem count_eq_gen {n : ℕ} (h : n < 2 ^ 64) : Hints.count n = gen ^ n := by
-  rw [Hints.count, gpowE, gpowK_eq (by unfold u128Bound; omega), gen_pow_eq_ofK]
-
 variable {rd : Reader} {σ : Val}
 
 /-- **A heap hint's words** where the memory holds a buffer. -/
@@ -144,7 +142,7 @@ theorem vs_child_pops {bytecode : List K} {seed : Digest} {c : Child} {layout : 
         (((List.range 10).map fun k => V.n (573 + k)).map σ) ∧
       tos.name = vsOpen[i] ∧
       tos.Valid coreProgram rd (([66, 1370, 1371, 1372, 1373, 1374, 1917, 268, 271, 1919, 1921].map V.n).map σ)
-        (((List.range 5).map fun k => V.n (1922 + k)).map σ) ∧
+        (((List.range 5).map fun k => V.n (1922 + k)).map σ) ∧ tcp ∈ kids ∧ tvt ∈ kids ∧ tos ∈ kids ∧
       (tcp.pops coreProgram rd = [("col_group_order", Hints.colGroupOrder layout)] →
         tvt.pops coreProgram rd = [("block_group_order", Hints.blockGroupOrder layout),
           ("zc_tau_max", [Hints.count (layout.tableLogHeights.foldl max 0)])] →
@@ -152,8 +150,8 @@ theorem vs_child_pops {bytecode : List K} {seed : Digest} {c : Child} {layout : 
           (Hints.merkleHints true (Hints.childQueries bytecode seed c) c.proof.openings) →
         SameStreams ((Memory.Tree.node "verify_sub" σ bufs kids).pops coreProgram rd)
           ((Hints.childHints bytecode seed c).drop 4)) := by
-  obtain ⟨tcp, tvt, tos, i, hi, hx, ncp, vcp, nvt, vvt, nos, vos, e⟩ := vs_pops hv
-  refine ⟨tcp, tvt, tos, i, hi, hx, ncp, vcp, nvt, vvt, nos, vos, fun ecp evt eos => ?_⟩
+  obtain ⟨tcp, tvt, tos, i, hi, hx, ncp, vcp, nvt, vvt, nos, vos, icp, ivt, ios, e⟩ := vs_pops hv
+  refine ⟨tcp, tvt, tos, i, hi, hx, ncp, vcp, nvt, vvt, nos, vos, icp, ivt, ios, fun ecp evt eos => ?_⟩
   rw [e, vsPops_honest h1 h3 hm1 hm3 hst hl, ecp, evt, List.append_assoc]
   exact childPops_sameStreams hann eos
 

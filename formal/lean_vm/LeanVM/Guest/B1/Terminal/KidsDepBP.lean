@@ -19,6 +19,8 @@ public import LeanVM.Guest.B1.Terminal.KidsDepBT
 satisfying `Ps[j]`. `kidsFromInT_of_depBP`, `completeAt_flatDepRBP`: `kidsFromInT_of_depB`,
 `completeAt_flatDepRBT` with them. `KidsDepB.toBP`: callees within their bounds, by trees of
 `True` (`CompleteAtB.toDTB`).
+
+The same with predicates of the memory (`CompleteAtDTBR`, `KidsDepBPR`, `kidsFromInT_of_depBPR`), a tree's pops being read through it: `completeAt_flatDepRBPR` also gives the node's valuation a property `Qn` the obligations prove of it on each memory (the honest valuation, its own buffers held).
 -/
 
 namespace LeanVM.Guest.B1
@@ -40,6 +42,58 @@ def KidsDepBP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
       ((k pv).taken = false → fs (k pv).f ≤ b)) ∧ KidsDepBP fs cert κ ks Bs Ps
   | [], [], [] => True
   | _, _, _ => False
+
+/-- **`CompleteAtDTB` by a tree satisfying a predicate of the memory.** -/
+def CompleteAtDTBR (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String) (Lin : Layout)
+    (args : List E) (Out : List E → Layout → Prop) (T : Reader → Tree → Prop) (B : ℕ) : Prop :=
+  ∀ fp, ∃ (n : ℕ) (Lown : Layout) (rets : List E) (Lout : Layout), n ≤ B ∧ Out rets Lout ∧
+    Within (Lout ++ Lown) fp n ∧ DisjL (Lout ++ Lown) ∧ ∀ rd, LowDef k rd →
+      MemL rd (Lout ++ Lown ++ Lin) →
+      RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets (T rd)
+
+theorem CompleteAtDTBR.mono {k : ℕ} {f : String} {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
+    {T T' : Reader → Tree → Prop} {B B' : ℕ} (h : CompleteAtDTBR fs cert k f Lin args Out T B) (hB : B ≤ B')
+    (hT : ∀ rd t, T rd t → T' rd t) : CompleteAtDTBR fs cert k f Lin args Out T' B' := fun fp =>
+  let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, hn.trans hB, ho, hw, hd, fun rd hl hm =>
+    let ⟨t, ht, hT'⟩ := hr rd hl hm
+    ⟨t, ht, hT rd t hT'⟩⟩
+
+/-- **Forgetting the memory**: a predicate holding on every memory. -/
+theorem CompleteAtDTBR.toDTB {k : ℕ} {f : String} {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
+    {T : Reader → Tree → Prop} {T' : Tree → Prop} {B : ℕ} (h : CompleteAtDTBR fs cert k f Lin args Out T B)
+    (hT : ∀ rd t, T rd t → T' t) : CompleteAtDTB fs cert k f Lin args Out T' B := fun fp =>
+  let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, hn, ho, hw, hd, fun rd hl hm =>
+    let ⟨t, ht, hT'⟩ := hr rd hl hm
+    ⟨t, ht, hT rd t hT'⟩⟩
+
+/-- **The dependent callees within their bounds by trees of their predicates of the memory.** -/
+def KidsDepBPR (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
+    List KidD → List ℕ → List (Reader → Tree → Prop) → Prop
+  | k :: ks, b :: Bs, P :: Ps => (∀ pv, ((k pv).taken = true →
+        CompleteAtDTBR fs cert κ (k pv).f (k pv).Lin (k pv).args (k pv).Out P b) ∧
+      ((k pv).taken = false → fs (k pv).f ≤ b)) ∧ KidsDepBPR fs cert κ ks Bs Ps
+  | [], [], [] => True
+  | _, _, _ => False
+
+theorem KidsDepBPR.length {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ} {Ps : List (Reader → Tree → Prop)},
+    KidsDepBPR fs cert κ ks Bs Ps → ks.length = Bs.length ∧ ks.length = Ps.length
+  | [], [], [], _ => ⟨rfl, rfl⟩
+  | _ :: _, _ :: _, _ :: _, ⟨_, hs⟩ => ⟨by simp [hs.length.1], by simp [hs.length.2]⟩
+  | [], _ :: _, _, h | [], [], _ :: _, h | _ :: _, [], _, h | _ :: _, _ :: _, [], h => by
+    simp [KidsDepBPR] at h
+
+theorem KidsDepBP.toR {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ} {Ps : List (Tree → Prop)},
+    KidsDepBP fs cert κ ks Bs Ps → KidsDepBPR fs cert κ ks Bs (Ps.map fun P _ => P)
+  | [], [], [], _ => trivial
+  | _ :: _, _ :: _, _ :: _, ⟨h, hs⟩ => ⟨h, hs.toR⟩
+  | [], _ :: _, _, h | [], [], _ :: _, h | _ :: _, [], _, h | _ :: _, _ :: _, [], h => by
+    simp [KidsDepBP] at h
+
+theorem map_const_eval (Ps : List (Tree → Prop)) (rd : Reader) :
+    (Ps.map fun P (_ : Reader) => P).map (· rd) = Ps := by
+  simp [Function.comp_def]
 
 /-- **Callee `j` a call of `names[j]` within `Bs[j]` words satisfying `Ps[j]`.** -/
 def namedP (fs : String → ℕ) : List String → List ℕ → List (Tree → Prop) → List (Tree → Prop)
@@ -79,10 +133,10 @@ theorem relAtInT_named {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : Stri
   let ⟨t, ht, hP⟩ := h
   ⟨t, ht, ⟨ht.1, by rw [ht.2.2.2.2.1]; exact hB⟩, hP⟩
 
-theorem kidsFromInT_of_depBP (κ : ℕ) : ∀ (ks : List KidD) (names : List String) (Bs : List ℕ)
-    (Ps : List (Tree → Prop))
+theorem kidsFromInT_of_depBPR (κ : ℕ) : ∀ (ks : List KidD) (names : List String) (Bs : List ℕ)
+    (Ps : List (Reader → Tree → Prop))
     (prev : List (List E × Layout)), List.Forall₂ (fun k n ↦ ∀ pv, (k pv).f = n) ks names →
-    KidsDepBP fs cert κ ks Bs Ps → ∀ b : ℕ,
+    KidsDepBPR fs cert κ ks Bs Ps → ∀ b : ℕ,
     ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), N ≤ Bs.sum ∧
       outs.length = ks.length ∧
       OutsOk (kidsAt ks prev outs) outs ∧ Within L b N ∧ DisjL L ∧
@@ -90,16 +144,16 @@ theorem kidsFromInT_of_depBP (κ : ℕ) : ∀ (ks : List KidD) (names : List Str
       ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop),
         CallsMatch σ cs (kidsAt ks prev outs) outs → LowDef κ rd → MemL rd L →
         MemL rd (Kid.lins (kidsAt ks prev outs)) → RegionsOk R Dacc (kidsAt ks prev outs) outs →
-        KidsFromInT coreProgram fs cert rd σ R Dacc cs (namedP fs names Bs Ps)
+        KidsFromInT coreProgram fs cert rd σ R Dacc cs (namedP fs names Bs (Ps.map (· rd)))
           b N (fun i => Dacc i ∨ outRegion (kidsAt ks prev outs) outs i)
   | [], [], [], [], _, _, _, b => ⟨0, [], [], le_rfl, rfl, trivial, fun _ h => by simp at h, disj_nil,
       trivial, fun rd σ cs R Dacc hc _ _ _ _ => by
       match cs, hc with
       | [], _ => exact ⟨rfl, fun i hi => hi.elim id fun h => h.elim⟩⟩
-  | [], [], _ :: _, _, _, _, h, _ => by simp [KidsDepBP] at h
-  | [], [], [], _ :: _, _, _, h, _ => by simp [KidsDepBP] at h
-  | _ :: _, _ :: _, [], _, _, _, h, _ => by simp [KidsDepBP] at h
-  | _ :: _, _ :: _, _ :: _, [], _, _, h, _ => by simp [KidsDepBP] at h
+  | [], [], _ :: _, _, _, _, h, _ => by simp [KidsDepBPR] at h
+  | [], [], [], _ :: _, _, _, h, _ => by simp [KidsDepBPR] at h
+  | _ :: _, _ :: _, [], _, _, _, h, _ => by simp [KidsDepBPR] at h
+  | _ :: _, _ :: _, _ :: _, [], _, _, h, _ => by simp [KidsDepBPR] at h
   | [], _ :: _, _, _, _, hn, _, _ => by simp at hn
   | _ :: _, [], _, _, _, hn, _, _ => by simp at hn
   | kf :: ks, nm :: names, bk :: Bs, P :: Ps, prev, hn, ⟨hok, hoks⟩, b => by
@@ -107,7 +161,7 @@ theorem kidsFromInT_of_depBP (κ : ℕ) : ∀ (ks : List KidD) (names : List Str
     by_cases ht : (kf prev).taken = true
     · obtain ⟨n, Lown, rets, Lout, hnb, hout, hw, hd, hrel⟩ := (hok prev).1 ht b
       obtain ⟨N, L, outs, hNb, hlen, ho, hW, hD, hI, hK⟩ :=
-        kidsFromInT_of_depBP κ ks names Bs Ps (prev ++ [(rets, Lout)]) hns hoks (b + n)
+        kidsFromInT_of_depBPR κ ks names Bs Ps (prev ++ [(rets, Lout)]) hns hoks (b + n)
       refine ⟨n + N, Lout ++ Lown ++ L, (rets, Lout) :: outs, by simp only [List.sum_cons]; omega,
         by simp [hlen], ⟨fun _ => hout, ho⟩, ?_, disj_append hd hD hw hW le_rfl,
         ⟨fun _ q hq => by simp [hq], hI.mono fun q hq => by simp [hq]⟩, ?_⟩
@@ -138,7 +192,7 @@ theorem kidsFromInT_of_depBP (κ : ℕ) : ∀ (ks : List KidD) (names : List Str
     · have ht' : (kf prev).taken = false := by simpa using ht
       have hfb := (hok prev).2 ht'
       obtain ⟨N, L, outs, hNb, hlen, ho, hW, hD, hI, hK⟩ :=
-        kidsFromInT_of_depBP κ ks names Bs Ps (prev ++ [([], [])]) hns hoks (b + fs (kf prev).f)
+        kidsFromInT_of_depBPR κ ks names Bs Ps (prev ++ [([], [])]) hns hoks (b + fs (kf prev).f)
       refine ⟨fs (kf prev).f + N, L, ([], []) :: outs, by simp only [List.sum_cons]; omega,
         by simp [hlen], ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
@@ -160,6 +214,119 @@ theorem kidsFromInT_of_depBP (κ : ℕ) : ∀ (ks : List KidD) (names : List Str
           · have := hRg.2
             simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
             exact this
+
+theorem kidsFromInT_of_depBP (κ : ℕ) (ks : List KidD) (names : List String) (Bs : List ℕ)
+    (Ps : List (Tree → Prop))
+    (prev : List (List E × Layout)) (hn : List.Forall₂ (fun k n ↦ ∀ pv, (k pv).f = n) ks names)
+    (hk : KidsDepBP fs cert κ ks Bs Ps) (b : ℕ) :
+    ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), N ≤ Bs.sum ∧
+      outs.length = ks.length ∧
+      OutsOk (kidsAt ks prev outs) outs ∧ Within L b N ∧ DisjL L ∧
+      OutsIn (kidsAt ks prev outs) outs L ∧
+      ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop),
+        CallsMatch σ cs (kidsAt ks prev outs) outs → LowDef κ rd → MemL rd L →
+        MemL rd (Kid.lins (kidsAt ks prev outs)) → RegionsOk R Dacc (kidsAt ks prev outs) outs →
+        KidsFromInT coreProgram fs cert rd σ R Dacc cs (namedP fs names Bs Ps)
+          b N (fun i => Dacc i ∨ outRegion (kidsAt ks prev outs) outs i) := by
+  obtain ⟨N, L, outs, h1, h2, h3, h4, h5, h6, hK⟩ := kidsFromInT_of_depBPR κ ks names Bs _ prev hn hk.toR b
+  refine ⟨N, L, outs, h1, h2, h3, h4, h5, h6, fun rd σ cs R Dacc hc hl hL hLin hR => ?_⟩
+  have := hK rd σ cs R Dacc hc hl hL hLin hR
+  rwa [map_const_eval] at this
+
+/-- **`completeAt_flatDepRBT` with the callees' own predicates of the memory**: within
+`fs f + sizes.sum + Bs.sum`, by a node of `f` whose `j`-th entered callee is a call of `names[j]` within `Bs[j]`
+words satisfying `Ps[j]` on the memory, its valuation satisfying `Qn` there. -/
+theorem completeAt_flatDepRBPR {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+    (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
+    (hni : pre.all notIteB = true)
+    (sizes : List ℕ) (own : ℕ → List (List E))
+    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List KidD)
+    (names : List String) (Bs : List ℕ) (Ps : List (Reader → Tree → Prop)) (Qn : Reader → Val → Prop)
+    (hn : ∀ fp, List.Forall₂ (fun k n ↦ ∀ pv, (k pv).f = n) (kids fp) names)
+    (hkc : ∀ fp, KidsDepBPR fs cert κ (kids fp) Bs Ps)
+    (hkr : ∀ fp outs, OutsOk (kidsAt (kids fp) [] outs) outs →
+      RegionsOk (fun i => RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i) (fun _ => False)
+        (kidsAt (kids fp) [] outs) outs)
+    (hkm : ∀ fp outs, OutsOk (kidsAt (kids fp) [] outs) outs → ∀ rd, LowDef κ rd →
+      MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
+      MemL rd (outsL (kidsAt (kids fp) [] outs) outs) → MemL rd (Kid.lins (kidsAt (kids fp) [] outs)))
+    (hσ : ∀ fp (outs : List (List E × Layout)), outs.length = (kids fp).length →
+      OutsOk (kidsAt (kids fp) [] outs) outs → ∀ rd,
+      LowDef κ rd → MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
+      MemL rd (outsL (kidsAt (kids fp) [] outs) outs) →
+      ∃ σ : Val, Qn rd σ ∧ fn.params.map σ = args ∧ (∀ s ∈ pre, DispOk σ s) ∧
+        Stmt.HoldsList (fun _ _ _ => True) rd σ fn.body False (fun r => r = rets) ∧
+        (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
+        ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
+          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b)) ∧
+        CallsMatch σ ((pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
+          (kidsAt (kids fp) [] outs) outs ∧
+        ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
+            addressOfIndex i ∧
+          (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i ∨
+            outRegion (kidsAt (kids fp) [] outs) outs i)) :
+    CompleteAtDTBR fs cert κ f Lin args (Returns rets)
+      (fun rd t => Budget.FlatShape coreProgram f (namedP fs names Bs (Ps.map (· rd))) t ∧
+        ∃ σ bufs ks, t = .node f σ bufs ks ∧ Qn rd σ)
+      (fs f + sizes.sum + Bs.sum) := by
+  intro fp
+  obtain ⟨N, L, outs, hNb, hlen, ho, hW, hD, hI, hK⟩ := kidsFromInT_of_depBPR (fs := fs) (cert := cert) κ
+    (kids fp) names Bs Ps [] (hn fp) (hkc fp) (fp + fs f + sizes.sum)
+  refine ⟨fs f + sizes.sum + N, bufL (fp + fs f) sizes (own fp) ++ L, rets, [], by omega, ⟨rfl, rfl⟩,
+    ?_, by simpa using disj_append (bufL_disj _ _ _ (hown fp)) hD (bufL_within _ _ _ (hown fp)) hW le_rfl,
+    fun rd hlow hL => ?_⟩
+  · simp only [List.nil_append, within_append]
+    exact ⟨(bufL_within _ _ _ (hown fp)).mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
+  simp only [List.nil_append] at hL
+  obtain ⟨hLm, hLin⟩ := Main.memL_append.mp hL
+  obtain ⟨hB, hLk⟩ := Main.memL_append.mp hLm
+  have hLo := memL_outsL hI hLk
+  obtain ⟨σ, hQ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ := hσ fp outs hlen ho rd hlow hB hLin hLo
+  have hw := walk_flat σ vs pre hst hdo
+  rw [← hb] at hw
+  obtain ⟨i1, i2, i3, i4, i5⟩ := flat_parts σ pre hst
+  have hsat := walk_sat (P := coreProgram) fn.body (coreProgram_wf fn (List.mem_of_find?_eq_some hf)) hh
+  rw [hw] at hsat
+  have hes : ∀ e ∈ pre.flatMap (flEvs σ), e.Holds rd σ := fun e he => (hsat.1 e he).1
+  have hr : vs.map σ = rets := hsat.2
+  have hal : allocs σ (pre.flatMap (flEvs σ)) = sizes := by rw [i2, hsz]
+  have hown' : ∀ i, RegionL (bufL (fp + fs f) sizes (own fp)) i →
+      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i :=
+    fun i hi => Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp) i hi)
+  have hk := hK rd σ (calls (pre.flatMap (flEvs σ))) (fun i => RegionL Lin i ∨
+      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i)
+    (fun _ => False) (by rw [i4]; exact hcm) hlow hLk (hkm fp outs ho rd hlow hB hLin hLo)
+    ((hkr fp outs ho).mono_R fun i hi => hi.imp_right (hown' i))
+  have hb' : fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (flEvs σ))).sum := by
+    rw [hal]
+  rw [hb'] at hk
+  -- the number of calls
+  have hcl : (calls (pre.flatMap (flEvs σ))).length ≤
+      (namedP fs names Bs (Ps.map (· rd))).length := by
+    rw [i4, kdbt_callsMatch_length hcm, kidsAt_length _ _ _ hlen,
+      namedP_length (hn fp).length_eq (hkc fp).length.1 (by rw [List.length_map]; exact (hkc fp).length.2)]
+  obtain ⟨t, ⟨htn, htv, htb, htp, htt, htl, htd⟩, ks, rfl, hkT⟩ :=
+    relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
+    (D := RegionL []) (Dk := fun i => False ∨ outRegion (kidsAt (kids fp) [] outs) outs i) (N := N)
+    (fp := fp) coreProgram_wf hf (Or.inl hl) hp hw hr hes (by rw [hal, i1]; exact hbuf)
+    (by rw [i3, haddrs]; simp) _ hk (fun A hA => by
+      rw [i5] at hA
+      obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
+      obtain ⟨i, hi, h | h | h⟩ := hld q (filterMap_of_loadsEv hni hq)
+      · exact ⟨i, hi, Or.inr (Or.inl h)⟩
+      · exact ⟨i, hi, Or.inl (hown' i h)⟩
+      · exact ⟨i, hi, Or.inr (Or.inr (Or.inr h))⟩)
+    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
+  refine ⟨_, ⟨htn, htv, htb, htp, by rw [htt, hal], htl, htd⟩, ⟨σ, _, ks, rfl,
+    fun fn' es' vs' hf' hw' ↦ ?_⟩, σ, _, ks, rfl, hQ⟩
+  rw [hf] at hf'
+  cases hf'
+  rw [hw] at hw'
+  cases hw'
+  exact ⟨hcl, hkT⟩
+
 
 /-- **`completeAt_flatDepRBT` with the callees' own predicates**: within `fs f + sizes.sum + Bs.sum`, by
 a node of `f` whose `j`-th entered callee is a call of `names[j]` within `Bs[j]` words satisfying
@@ -197,63 +364,14 @@ theorem completeAt_flatDepRBP {f : String} {fn : Fn} (hf : coreProgram.find? f =
             outRegion (kidsAt (kids fp) [] outs) outs i)) :
     CompleteAtDTB fs cert κ f Lin args (Returns rets)
       (Budget.FlatShape coreProgram f (namedP fs names Bs Ps))
-      (fs f + sizes.sum + Bs.sum) := by
-  intro fp
-  obtain ⟨N, L, outs, hNb, hlen, ho, hW, hD, hI, hK⟩ := kidsFromInT_of_depBP (fs := fs) (cert := cert) κ
-    (kids fp) names Bs Ps [] (hn fp) (hkc fp) (fp + fs f + sizes.sum)
-  refine ⟨fs f + sizes.sum + N, bufL (fp + fs f) sizes (own fp) ++ L, rets, [], by omega, ⟨rfl, rfl⟩,
-    ?_, by simpa using disj_append (bufL_disj _ _ _ (hown fp)) hD (bufL_within _ _ _ (hown fp)) hW le_rfl,
-    fun rd hlow hL => ?_⟩
-  · simp only [List.nil_append, within_append]
-    exact ⟨(bufL_within _ _ _ (hown fp)).mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
-  simp only [List.nil_append] at hL
-  obtain ⟨hLm, hLin⟩ := Main.memL_append.mp hL
-  obtain ⟨hB, hLk⟩ := Main.memL_append.mp hLm
-  have hLo := memL_outsL hI hLk
-  obtain ⟨σ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ := hσ fp outs hlen ho rd hlow hB hLin hLo
-  have hw := walk_flat σ vs pre hst hdo
-  rw [← hb] at hw
-  obtain ⟨i1, i2, i3, i4, i5⟩ := flat_parts σ pre hst
-  have hsat := walk_sat (P := coreProgram) fn.body (coreProgram_wf fn (List.mem_of_find?_eq_some hf)) hh
-  rw [hw] at hsat
-  have hes : ∀ e ∈ pre.flatMap (flEvs σ), e.Holds rd σ := fun e he => (hsat.1 e he).1
-  have hr : vs.map σ = rets := hsat.2
-  have hal : allocs σ (pre.flatMap (flEvs σ)) = sizes := by rw [i2, hsz]
-  have hown' : ∀ i, RegionL (bufL (fp + fs f) sizes (own fp)) i →
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i :=
-    fun i hi => Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp) i hi)
-  have hk := hK rd σ (calls (pre.flatMap (flEvs σ))) (fun i => RegionL Lin i ∨
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i)
-    (fun _ => False) (by rw [i4]; exact hcm) hlow hLk (hkm fp outs ho rd hlow hB hLin hLo)
-    ((hkr fp outs ho).mono_R fun i hi => hi.imp_right (hown' i))
-  have hb' : fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (flEvs σ))).sum := by
-    rw [hal]
-  rw [hb'] at hk
-  -- the number of calls
-  have hcl : (calls (pre.flatMap (flEvs σ))).length ≤
-      (namedP fs names Bs Ps).length := by
-    rw [i4, kdbt_callsMatch_length hcm, kidsAt_length _ _ _ hlen,
-      namedP_length (hn fp).length_eq (hkc fp).length.1 (hkc fp).length.2]
-  obtain ⟨t, ⟨htn, htv, htb, htp, htt, htl, htd⟩, ks, rfl, hkT⟩ :=
-    relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
-    (D := RegionL []) (Dk := fun i => False ∨ outRegion (kidsAt (kids fp) [] outs) outs i) (N := N)
-    (fp := fp) coreProgram_wf hf (Or.inl hl) hp hw hr hes (by rw [hal, i1]; exact hbuf)
-    (by rw [i3, haddrs]; simp) _ hk (fun A hA => by
-      rw [i5] at hA
-      obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
-      obtain ⟨i, hi, h | h | h⟩ := hld q (filterMap_of_loadsEv hni hq)
-      · exact ⟨i, hi, Or.inr (Or.inl h)⟩
-      · exact ⟨i, hi, Or.inl (hown' i h)⟩
-      · exact ⟨i, hi, Or.inr (Or.inr (Or.inr h))⟩)
-    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
-  refine ⟨_, ⟨htn, htv, htb, htp, by rw [htt, hal], htl, htd⟩, σ, _, ks, rfl,
-    fun fn' es' vs' hf' hw' ↦ ?_⟩
-  rw [hf] at hf'
-  cases hf'
-  rw [hw] at hw'
-  cases hw'
-  exact ⟨hcl, hkT⟩
-
+      (fs f + sizes.sum + Bs.sum) :=
+  (completeAt_flatDepRBPR hf hl κ Lin args rets hb hst haddrs hni sizes own hown kids names Bs
+    (Ps.map fun P _ => P) (fun _ _ => True) hn (fun fp => (hkc fp).toR) hkr hkm
+    fun fp outs hlen ho rd hlow hB hLin hLo =>
+      let ⟨σ, h⟩ := hσ fp outs hlen ho rd hlow hB hLin hLo
+      ⟨σ, trivial, h⟩).toDTB fun rd t ht => by
+    rw [map_const_eval] at ht
+    exact ht.1
 
 end
 end LeanVM.Guest.B1

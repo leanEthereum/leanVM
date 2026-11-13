@@ -76,7 +76,9 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
     (vsNames S.μs S.rate (S.d - 20)) (vsBsAt W Bvk S.μs S.rate) (vsPs W)
     (fun _ ↦ vs_names S _ sqE)
     (fun _ ↦ vs_kidsDepBP hbl S hκ hrf hcons W hvk open_stacked_completeAtB _ sqE)
-    hkr hkm hσ
+    hkr hkm fun fp outs hlen ho rd hlow hB hL hLo =>
+      let ⟨σ, _, h⟩ := hσ fp outs hlen ho rd hlow hB hL hLo
+      ⟨σ, h⟩
   refine h.mono ?_ fun t ht ↦ ⟨S.d - 20, by omega, ht⟩
   simp only [vsSizes, List.sum_cons, List.sum_nil, vsBoundAt, ChildSegs.μs]
   omega

@@ -1,19 +1,19 @@
 /-
   LeanVM.Guest.B1.VerifySub.NodeShapes
 
-  Where `verify_sub`, `certify_placement` and `verify_tables` pop: their bodies' witness hints and noisy calls by position, every block between them mute in `vsMuteSet` (kernel evaluation).
+  Where `verify_sub`, `certify_placement` and `verify_tables` pop: their bodies' witness hints and noisy calls by position, every block between them free of witness hints, its callees passing `noWitness` (kernel evaluation).
 -/
 
 module
 
 public import LeanVM.Guest.B1.Common.PopsSeg
-public import LeanVM.Guest.B1.VerifySub.MuteChk
+public import LeanVM.Guest.B1.Common.NoWitMute
 public import LeanVM.Guest.B1.Common.Basic
 
 /-!
 # The bodies' shapes
 
-`segOk l a n`: the block of `n` statements from position `a` of `l` cannot return and is mute in `vsMuteSet`. `stmtAt l a s`: statement `a` of `l` is `s`.
+`segOk j l a n`: the block of `n` statements from position `a` of `l`, a body of function `j`, cannot return and passes `noWitBlock j`. `stmtAt l a s`: statement `a` of `l` is `s`.
 
 * `verify_sub` (`vsShape_ok`): the stream's hint at `8`, the table logs' at `55`, `certify_placement` at `243`, `verify_tables` at `333`, the `open_stacked` dispatch at `1544`;
 * `certify_placement` (`cpShape_ok`): the group order's hint at `135`;
@@ -26,9 +26,9 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1
 
 @[expose] public section
 
-/-- The block of `n` statements from `a` cannot return and is mute. -/
-def segOk (l : List Stmt) (a n : ℕ) : Bool :=
-  Stmt.noRetList ((l.drop a).take n) && Stmt.muteList vsMuteSet.contains ((l.drop a).take n)
+/-- The block of `n` statements from `a` of function `j`'s body `l` cannot return and has no witness hint in its subtree. -/
+noncomputable def segOk (j : ℕ) (l : List Stmt) (a n : ℕ) : Bool :=
+  Stmt.noRetList ((l.drop a).take n) && noWitBlock j ((l.drop a).take n)
 
 /-- Statement `a` of `l` is `s`. -/
 def stmtAt (l : List Stmt) (a : ℕ) (s : Stmt) : Bool := stmtsEqb ((l.drop a).take 1) [s]
@@ -65,9 +65,10 @@ def vsOsS : Stmt :=
 /-- `verify_sub`'s shape. -/
 noncomputable def vsShapeOk : Bool :=
   let l := (fn% «verify_sub»).body
-  segOk l 0 8 && stmtAt l 8 (.atom vsStreamA) && segOk l 9 46 && stmtAt l 55 (.atom vsLogsA) &&
-    segOk l 56 187 && stmtAt l 243 vsCpS && segOk l 244 89 && stmtAt l 333 vsVtS && segOk l 334 1210 &&
-    stmtAt l 1544 vsOsS && Stmt.muteList vsMuteSet.contains (l.drop 1545)
+  let j := idx% «verify_sub»
+  segOk j l 0 8 && stmtAt l 8 (.atom vsStreamA) && segOk j l 9 46 && stmtAt l 55 (.atom vsLogsA) &&
+    segOk j l 56 187 && stmtAt l 243 vsCpS && segOk j l 244 89 && stmtAt l 333 vsVtS && segOk j l 334 1210 &&
+    stmtAt l 1544 vsOsS && noWitBlock j (l.drop 1545)
 
 theorem vsShape_ok : vsShapeOk = true := by decide +kernel
 
@@ -77,7 +78,8 @@ def cpOrdA : Atom := .hint (.witness "col_group_order" (.heap (.n 136) 0 9))
 /-- `certify_placement`'s shape. -/
 noncomputable def cpShapeOk : Bool :=
   let l := (fn% «certify_placement»).body
-  segOk l 0 135 && stmtAt l 135 (.atom cpOrdA) && Stmt.muteList vsMuteSet.contains (l.drop 136)
+  let j := idx% «certify_placement»
+  segOk j l 0 135 && stmtAt l 135 (.atom cpOrdA) && noWitBlock j (l.drop 136)
 
 theorem cpShape_ok : cpShapeOk = true := by decide +kernel
 
@@ -90,8 +92,9 @@ def vtZcA : Atom := .hint (.witness "zc_tau_max" (.stack [.n 2544]))
 /-- `verify_tables`' shape. -/
 noncomputable def vtShapeOk : Bool :=
   let l := (fn% «verify_tables»).body
-  segOk l 0 17 && stmtAt l 17 (.atom vtOrdA) && segOk l 18 2573 && stmtAt l 2591 (.atom vtZcA) &&
-    Stmt.muteList vsMuteSet.contains (l.drop 2592)
+  let j := idx% «verify_tables»
+  segOk j l 0 17 && stmtAt l 17 (.atom vtOrdA) && segOk j l 18 2573 && stmtAt l 2591 (.atom vtZcA) &&
+    noWitBlock j (l.drop 2592)
 
 theorem vtShape_ok : vtShapeOk = true := by decide +kernel
 

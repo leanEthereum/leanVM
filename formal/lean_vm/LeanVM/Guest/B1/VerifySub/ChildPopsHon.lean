@@ -49,7 +49,7 @@ theorem vs_hon_child_pops {bytecode : List K} {seed : Digest} {c : Child} (S : C
     (hv : (Memory.Tree.node "verify_sub" (vsσ rd (vsW (bases b (vsSizes S.d)) outs) args) bufs kids).Valid
       coreProgram rd args' rets) :
     ∃ (tcp tvt tos : Memory.Tree), tcp.name = "certify_placement" ∧ tvt.name = "verify_tables" ∧
-      tos.name ∈ vsOpen ∧
+      tos.name ∈ vsOpen ∧ (∀ t ∈ [tcp, tvt, tos], t ∈ kids ∧ ∃ a r, t.Valid coreProgram rd a r) ∧
       (tcp.pops coreProgram rd = [("col_group_order", Hints.colGroupOrder S.layout)] →
         tvt.pops coreProgram rd = [("block_group_order", Hints.blockGroupOrder S.layout),
           ("zc_tau_max", [Hints.count (S.layout.tableLogHeights.foldl max 0)])] →
@@ -65,9 +65,14 @@ theorem vs_hon_child_pops {bytecode : List K} {seed : Digest} {c : Child} (S : C
   have hl6 : S.layout.tableLogHeights.length = 6 := by
     rw [hh, ChildSegs.hs]
     simp [Tables.tableHeightsOf, S.hrowsL, tableLogFloors]
-  obtain ⟨tcp, tvt, tos, i, hi, -, ncp, -, nvt, -, nos, -, h⟩ := vs_child_pops S.hann hv p1 p3 hm1
-    (by rw [hh]; exact hm3) hst hl6
-  exact ⟨tcp, tvt, tos, ncp, nvt, by rw [nos]; exact List.getElem_mem hi, h⟩
+  obtain ⟨tcp, tvt, tos, i, hi, -, ncp, vcp, nvt, vvt, nos, vos, icp, ivt, ios, h⟩ := vs_child_pops S.hann hv p1 p3
+    hm1 (by rw [hh]; exact hm3) hst hl6
+  refine ⟨tcp, tvt, tos, ncp, nvt, by rw [nos]; exact List.getElem_mem hi, fun t ht => ?_, h⟩
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
+  rcases ht with rfl | rfl | rfl
+  · exact ⟨icp, _, _, vcp⟩
+  · exact ⟨ivt, _, _, vvt⟩
+  · exact ⟨ios, _, _, vos⟩
 
 end
 end LeanVM.Guest.B1.VerifySub

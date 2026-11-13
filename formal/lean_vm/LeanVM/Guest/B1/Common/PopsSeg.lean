@@ -226,12 +226,12 @@ theorem BlockKids.atom {a : Atom} {ks : List Tree} {ps : List Pop} (h : BlockKid
 /-- **A call pops its callee's entries.** -/
 theorem BlockKids.call {f : String} {args rets : List V} {ks : List Tree} {ps : List Pop}
     (h : BlockKids P rd σ [.call f args rets] ks ps) :
-    ∃ t : Tree, t.name = f ∧ t.Valid P rd (args.map σ) (rets.map σ) ∧ ps = t.pops P rd := by
+    ∃ t : Tree, t.name = f ∧ t.Valid P rd (args.map σ) (rets.map σ) ∧ ps = t.pops P rd ∧ ks = [t] := by
   obtain ⟨es, hw, hk, rfl⟩ := h
   simp only [walk, walk1, Out.seq, Out.pre, List.append_nil, Out.fall.injEq] at hw
   subst hw
   match ks, hk with
-  | [t], ⟨hn, hv, _⟩ => exact ⟨t, hn, hv, by simp [splice, Tree.popsKids]⟩
+  | [t], ⟨hn, hv, _⟩ => exact ⟨t, hn, hv, by simp [splice, Tree.popsKids], rfl⟩
 
 theorem pick_fall {x : V} {args rets : List V} : ∀ (fs : List String) (j : ℕ) {es : List Ev},
     pick σ x args rets j fs = .fall es →
@@ -249,7 +249,7 @@ theorem pick_fall {x : V} {args rets : List V} : ∀ (fs : List String) (j : ℕ
 theorem BlockKids.dispatch {x : V} {fs : List String} {args rets : List V} {ks : List Tree} {ps : List Pop}
     (h : BlockKids P rd σ [.dispatch x fs args rets] ks ps) :
     ∃ (t : Tree) (i : ℕ), ∃ hi : i < fs.length, σ x = ofK (addressOfIndex i) ∧ t.name = fs[i] ∧
-      t.Valid P rd (args.map σ) (rets.map σ) ∧ ps = t.pops P rd := by
+      t.Valid P rd (args.map σ) (rets.map σ) ∧ ps = t.pops P rd ∧ ks = [t] := by
   obtain ⟨es, hw, hk, rfl⟩ := h
   simp only [walk, walk1] at hw
   cases hp : pick σ x args rets 0 fs with
@@ -258,7 +258,7 @@ theorem BlockKids.dispatch {x : V} {fs : List String} {args rets : List V} {ks :
       cases hw
       obtain ⟨i, hi, hx, rfl⟩ := pick_fall fs 0 hp
       match ks, hk with
-      | [t], ⟨hn, hv, _⟩ => exact ⟨t, i, hi, by simpa using hx, hn, hv, by simp [splice, Tree.popsKids]⟩
+      | [t], ⟨hn, hv, _⟩ => exact ⟨t, i, hi, by simpa using hx, hn, hv, by simp [splice, Tree.popsKids], rfl⟩
   | ret _ _ => rw [hp, Out.seq] at hw; cases hw
   | stuck => rw [hp, Out.seq] at hw; cases hw
 
@@ -277,39 +277,40 @@ theorem drop_cons {l : List Stmt} {a : ℕ} {s : Stmt} (h : l[a]? = some s) : l.
 /-- **A mute block of the body pops nothing**: the walk moves past it. -/
 theorem RetKids.dropMute {S : String → Bool} (hS : MuteIn P S) {a n : ℕ} (h : RetKids P rd σ (l.drop a) ks ps)
     (hb : (Stmt.noRetList ((l.drop a).take n) && Stmt.muteList S ((l.drop a).take n)) = true) :
-    ∃ ks', RetKids P rd σ (l.drop (a + n)) ks' ps := by
+    ∃ ks', RetKids P rd σ (l.drop (a + n)) ks' ps ∧ ∀ x ∈ ks', x ∈ ks := by
   simp only [Bool.and_eq_true] at hb
   rw [drop_split l a n] at h
-  obtain ⟨k1, k2, p1, p2, -, rfl, h1, h2⟩ := h.split hb.1
+  obtain ⟨k1, k2, p1, p2, rfl, rfl, h1, h2⟩ := h.split hb.1
   rw [h1.mute hS hb.2, List.nil_append]
-  exact ⟨k2, h2⟩
+  exact ⟨k2, h2, fun _ hx => List.mem_append_right _ hx⟩
 
 /-- **An atom of the body pops its entry.** -/
 theorem RetKids.dropAtom {a : ℕ} {w : Atom} (h : RetKids P rd σ (l.drop a) ks ps) (hs : l[a]? = some (.atom w)) :
-    ∃ ks' ps', RetKids P rd σ (l.drop (a + 1)) ks' ps' ∧ ps = w.pops rd σ ++ ps' := by
+    ∃ ks' ps', RetKids P rd σ (l.drop (a + 1)) ks' ps' ∧ ps = w.pops rd σ ++ ps' ∧ ∀ x ∈ ks', x ∈ ks := by
   rw [drop_cons hs] at h
-  obtain ⟨k1, k2, p1, p2, -, rfl, h1, h2⟩ := h.split rfl
-  exact ⟨k2, p2, h2, by rw [h1.atom]⟩
+  obtain ⟨k1, k2, p1, p2, rfl, rfl, h1, h2⟩ := h.split rfl
+  exact ⟨k2, p2, h2, by rw [h1.atom], fun _ hx => List.mem_append_right _ hx⟩
 
 /-- **A call of the body pops its callee's entries.** -/
 theorem RetKids.dropCall {a : ℕ} {f : String} {args rets : List V} (h : RetKids P rd σ (l.drop a) ks ps)
     (hs : l[a]? = some (.call f args rets)) :
     ∃ (t : Tree) (ks' : List Tree) (ps' : List Pop), t.name = f ∧ t.Valid P rd (args.map σ) (rets.map σ) ∧ RetKids P rd σ (l.drop (a + 1)) ks' ps' ∧
-      ps = t.pops P rd ++ ps' := by
+      ps = t.pops P rd ++ ps' ∧ t ∈ ks ∧ ∀ x ∈ ks', x ∈ ks := by
   rw [drop_cons hs] at h
-  obtain ⟨k1, k2, p1, p2, -, rfl, h1, h2⟩ := h.split rfl
-  obtain ⟨t, hn, hv, rfl⟩ := h1.call
-  exact ⟨t, k2, p2, hn, hv, h2, rfl⟩
+  obtain ⟨k1, k2, p1, p2, rfl, rfl, h1, h2⟩ := h.split rfl
+  obtain ⟨t, hn, hv, rfl, rfl⟩ := h1.call
+  exact ⟨t, k2, p2, hn, hv, h2, rfl, List.mem_cons_self, fun _ hx => List.mem_append_right _ hx⟩
 
 /-- **A dispatch of the body pops its selected callee's entries.** -/
 theorem RetKids.dropDispatch {a : ℕ} {x : V} {fs : List String} {args rets : List V}
     (h : RetKids P rd σ (l.drop a) ks ps) (hs : l[a]? = some (.dispatch x fs args rets)) :
     ∃ (t : Tree) (i : ℕ) (ks' : List Tree) (ps' : List Pop), ∃ hi : i < fs.length, σ x = ofK (addressOfIndex i) ∧ t.name = fs[i] ∧
-      t.Valid P rd (args.map σ) (rets.map σ) ∧ RetKids P rd σ (l.drop (a + 1)) ks' ps' ∧ ps = t.pops P rd ++ ps' := by
+      t.Valid P rd (args.map σ) (rets.map σ) ∧ RetKids P rd σ (l.drop (a + 1)) ks' ps' ∧ ps = t.pops P rd ++ ps' ∧
+      t ∈ ks ∧ ∀ x ∈ ks', x ∈ ks := by
   rw [drop_cons hs] at h
-  obtain ⟨k1, k2, p1, p2, -, rfl, h1, h2⟩ := h.split rfl
-  obtain ⟨t, i, hi, hx, hn, hv, rfl⟩ := h1.dispatch
-  exact ⟨t, i, k2, p2, hi, hx, hn, hv, h2, rfl⟩
+  obtain ⟨k1, k2, p1, p2, rfl, rfl, h1, h2⟩ := h.split rfl
+  obtain ⟨t, i, hi, hx, hn, hv, rfl, rfl⟩ := h1.dispatch
+  exact ⟨t, i, k2, p2, hi, hx, hn, hv, h2, rfl, List.mem_cons_self, fun _ hx => List.mem_append_right _ hx⟩
 
 /-- **The body's mute end pops nothing.** -/
 theorem RetKids.endMute {S : String → Bool} (hS : MuteIn P S) {a : ℕ} (h : RetKids P rd σ (l.drop a) ks ps)
