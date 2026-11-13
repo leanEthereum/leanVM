@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Place.LqProof
 public import LeanVM.Guest.B1.Merkle.CapPops
 public import LeanVM.Guest.B1.Merkle.CapAll
 public import LeanVM.Guest.B1.Opening.QueriesPlacedDPAll
+public import LeanVM.Guest.B1.Place.LqBound
+public import LeanVM.Guest.B1.Opening.CapPlacedE
 
 /-!
 # `level_queries`, placed with its pops
@@ -18,7 +20,8 @@ public import LeanVM.Guest.B1.Opening.QueriesPlacedDPAll
 
 * `lqCapE`: the cap's and the flags' entries, the honest words;
 * `LqAtDP`: `LqAtD` popping `lqCapE` then `oqPops` of its `q` queries;
-* `lq_placedP`, `level_queries_completeAtP`: every entry of `lqTable`.
+* `LqAtEP`: `LqAtDP` by a tree of exactly `lqN` words (`toDP`, `toE`);
+* `lq_placedEP`, `level_queries_completeAtEP`, `level_queries_completeAtP`: every entry of `lqTable`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -53,6 +56,43 @@ def LqAtDP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name 
       (Returns [r0, r1, lqSum s (lqOdd q base folds leaf d cd mu nhs hbits fin) (lqIters q base)
         lamInv rounds qs rows, lam ^ q])
       (fun _ => lqCapE capW flW ++ oqPops s (oqW qs rows sibs) q)
+
+/-- **`LqAtDP` by a tree of exactly `lqN` words.** -/
+def LqAtEP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
+    (q base folds leaf d cd mu nhs hbits fin : ℕ) : Prop :=
+  let s := lqOqS q base folds leaf d cd mu nhs hbits fin
+  ∀ (Lin : Layout) (lam lamInv : E) (ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
+    (hsv : List E) (eb qs : ℕ → ℕ) (rows : ℕ → List K) (sibs : ℕ → List Digest)
+    (capW flW : List E) (r0 r1 : E),
+    rounds.length = s.folds → (s.final = 1 → hsv.length = s.nHs) →
+    OqStatic s rounds hsv qs rows sibs q →
+    LqCaps s q capW flW r0 r1 qs rows sibs →
+    LqReg (RegionL Lin) s q ecoefs ehs epos eqp eb →
+    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s q ecoefs ehs epos eqp rounds hsv eb qs) →
+    CompleteAtEP fs cert κ name Lin
+      [lam, lamInv, ofK (addressOfIndex ecoefs), ofK (addressOfIndex ehs),
+        ofK (addressOfIndex epos), ofK (addressOfIndex eqp)]
+      (Returns [r0, r1, lqSum s (lqOdd q base folds leaf d cd mu nhs hbits fin) (lqIters q base)
+        lamInv rounds qs rows, lam ^ q]) (lqN fs name q base folds leaf d cd mu nhs hbits fin)
+      (fun _ => lqCapE capW flW ++ oqPops s (oqW qs rows sibs) q)
+
+section
+variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {name : String}
+  {q base folds leaf d cd mu nhs hbits fin : ℕ}
+
+theorem LqAtEP.toDP (h : LqAtEP fs cert κ name q base folds leaf d cd mu nhs hbits fin) :
+    LqAtDP fs cert κ name q base folds leaf d cd mu nhs hbits fin :=
+  fun Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 hrl hhs hst hcaps hreg hmem ↦
+    (h Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 hrl hhs hst hcaps hreg
+      hmem).toDP
+
+theorem LqAtEP.toE (h : LqAtEP fs cert κ name q base folds leaf d cd mu nhs hbits fin) :
+    LqAtE fs cert κ name q base folds leaf d cd mu nhs hbits fin :=
+  fun Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 hrl hhs hst hcaps hreg hmem ↦
+    (h Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 hrl hhs hst hcaps hreg
+      hmem).toE
+
+end
 
 /-- A named `verify_merkle_cap` has the body `mcBody`. -/
 theorem mc_body_of_kind {f : String} {d : ℕ} (hK : osKindOf f = some (.cap d)) :
@@ -103,8 +143,8 @@ theorem lq_splice {rd : Reader} {σ : Val} {q base folds leaf d cd mu nhs hbits 
     (by rw [hb, lqBody]; simp [List.append_assoc]) h' (by simp [walk, walk1, Out.seq]) rfl hw]
   exact List.append_nil _
 
-/-- **`level_queries` at one specialization, placed, with its pops.** -/
-theorem lq_placedP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 11 ≤ κ) {name : String}
+/-- **`level_queries` at one specialization, placed, with its pops, by exactly `lqN` words.** -/
+theorem lq_placedEP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} {name : String}
     {q base folds leaf d cd mu nhs hbits fin : ℕ}
     (hlq : FnIs name (osParams 6) (lqBody q base folds leaf d cd mu nhs hbits fin))
     (hoq : (lqOqN q base folds leaf d cd mu nhs hbits fin,
@@ -116,13 +156,15 @@ theorem lq_placedP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ
     (hcd : (lqOqS q base folds leaf d cd mu nhs hbits fin).cd = cd) (hcd1 : 1 ≤ cd) (hcd8 : cd ≤ 8)
     (hK : osKindOf ("verify_merkle_cap__L" ++ natStr cd) = some (.cap cd))
     (hpw : digitsVal (osPowDigits q) 1 = q) :
-    LqAtDP fs cert κ name q base folds leaf d cd mu nhs hbits fin := by
-  unfold LqAtDP
+    LqAtEP fs cert κ name q base folds leaf d cd mu nhs hbits fin := by
+  unfold LqAtEP
   simp only [lqOqS, lqOdd, lqOqN] at hoq hQ hcd ⊢
   generalize hsh : oqShapeOf (oqName q base folds leaf d cd mu nhs hbits fin) = sh at hoq hQ hcd ⊢
   generalize hlp : oqLoopOf (oqName q base folds leaf d cd mu nhs hbits fin) = loop at hoq
+  have hlp' := hlp
   intro Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 hrl hhs hst
-    hcaps hreg hmem fp
+    hcaps hreg hmem
+  refine CompleteAtEP.of_eq fun fp ↦ ?_
   obtain ⟨fn, hf, hps, hb⟩ := hlq
   have hnl : coreProgram.loop name = false := lq_notLoop hf hb
   obtain ⟨hcapL, hflL, hvmc, hcells⟩ := hcaps
@@ -151,11 +193,12 @@ theorem lq_placedP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ
   set kv : Kid := ⟨vmcN, true, [CAP, FL], capsL, Returns [r0, r1]⟩ with hkv
   set ko : Kid := ⟨oqn, true, [CAP, FL, lamInv, cP, hP, pP, qP, gen ^ N], Lin ++ capsL,
     Returns [sum]⟩ with hko
-  have hkvD : CompleteAtD fs cert κ vmcN capsL [CAP, FL] (Returns [r0, r1]) := by
-    have := kindD_holds (fs := fs) (cert := cert) hκ hK [CAP, FL] [r0, r1] capsL ?_ ?_
+  have hkvD : CompleteAtE fs cert κ vmcN capsL [CAP, FL] (Returns [r0, r1]) (fs vmcN) := by
+    have := verify_merkle_cap_completeAtE_of_kind (fs := fs) (cert := cert) hK κ [CAP, FL] [r0, r1]
+      capsL ?_ ?_
     · exact this
     · intro p hp t ht
-      simp only [OsKind.spec, merkleCapSpec, List.mem_cons, List.not_mem_nil, or_false] at hp
+      simp only [merkleCapSpec, List.mem_cons, List.not_mem_nil, or_false] at hp
       rcases hp with rfl | rfl
       · refine ⟨capE + t, Main.addr_ofK _ _, (capE, capW), List.mem_cons_self, by omega, ?_⟩
         simp only at ht ⊢; rw [hcapL]; rw [pow_add] at ht; omega
@@ -166,11 +209,11 @@ theorem lq_placedP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ
       have h2 : ReadsAt rd FL flW := hm (flE, flW) (List.mem_cons_of_mem _ List.mem_cons_self)
       have h3 := hvmc rd CAP FL h1 h2
       exact h3
-  have hkvDP : CompleteAtDP fs cert κ vmcN capsL [CAP, FL] (Returns [r0, r1]) (fun _ => []) :=
-    completeAtDP_of_node hkvD fun _ τ bufs kids => mc_node_pops hfmc hbmc τ bufs kids
-  have hkoDP : CompleteAtDP fs cert κ oqn (Lin ++ capsL) [CAP, FL, lamInv, cP, hP, pP, qP, gen ^ N]
-      (Returns [sum]) (fun _ => oqPops sh.oq (oqW qs rows sibs) q) := by
-    have hD := opening_queries_completeAtDP fs cert (oqn, loop, sh) hoq κ (Lin ++ capsL)
+  have hkvDP : CompleteAtEP fs cert κ vmcN capsL [CAP, FL] (Returns [r0, r1]) (fs vmcN) (fun _ => []) :=
+    completeAtEP_of_node hkvD fun _ τ bufs kids => mc_node_pops hfmc hbmc τ bufs kids
+  have hkoDP : CompleteAtEP fs cert κ oqn (Lin ++ capsL) [CAP, FL, lamInv, cP, hP, pP, qP, gen ^ N]
+      (Returns [sum]) (oqBound fs oqn loop N) (fun _ => oqPops sh.oq (oqW qs rows sibs) q) := by
+    have hD := opening_queries_completeAtEP fs cert (oqn, loop, sh) hoq κ (Lin ++ capsL)
       N capE flE
       ecoefs ehs epos eqp lamInv rounds hsv eb qs rows sibs hN hrl hhs (by rw [hQ]; exact hst)
       ?_ ?_
@@ -214,9 +257,22 @@ theorem lq_placedP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ
         rw [List.getElem_eq_getD 0, c3] at this
         exact this
   -- the kids placed
-  obtain ⟨NK, LK, outs, hOk, hWK, hDK, -, hKK⟩ := kidsFromInP_of_kidsD (fs := fs) (cert := cert) κ
+  obtain ⟨LK, outs, hOk, hWK, hDK, -, hKK⟩ := kidsFromInP_of_kidsEP (fs := fs) (cert := cert) κ
+    (fun k ↦ if k.args.length = 2 then fs vmcN else oqBound fs oqn loop N)
     [kv, ko] [fun _ => [], fun _ => oqPops sh.oq (oqW qs rows sibs) q]
     ⟨fun _ ↦ hkvDP, fun _ _ ↦ rfl, fun _ ↦ hkoDP, fun h ↦ by simp at h, trivial⟩ b
+  obtain ⟨NK, hNKd⟩ : ∃ n, n = kidsN fs
+      (fun k ↦ if k.args.length = 2 then fs vmcN else oqBound fs oqn loop N) [kv, ko] := ⟨_, rfl⟩
+  rw [← hNKd] at hWK hKK
+  have hNK : NK = fs vmcN + oqBound fs oqn loop N := by
+    rw [hNKd]; simp [kidsN, hkv, hko]
+  have hn : lqN fs name q base folds leaf d cd mu nhs hbits fin =
+      fs name + (4 * 2 ^ cd + 2 ^ cd) + NK := by
+    rw [hNK, hvmcN]
+    unfold lqN
+    simp only [lqOqN]
+    rw [← hoqn, hlp', ← hNdef]
+    ring
   obtain ⟨o1, o2, rfl⟩ : ∃ o1 o2, outs = [o1, o2] := by
     match outs, hOk with
     | [o1, o2], _ => exact ⟨o1, o2, rfl⟩
@@ -278,7 +334,7 @@ theorem lq_placedP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ
     rw [i4, lqPreB_calls]
     rfl
   refine ⟨fs name + (4 * 2 ^ cd + 2 ^ cd) + NK, capsL ++ LK, [r0, r1, sum, lam ^ q], [],
-    ⟨rfl, rfl⟩, ?_, ?_, fun rd hlow hLm ↦ ?_⟩
+    ⟨rfl, rfl⟩, ?_, ?_, hn.symm, fun rd hlow hLm ↦ ?_⟩
   · intro q' hq'
     simp only [List.nil_append, List.mem_append, hcapsL, List.mem_cons, List.not_mem_nil,
       or_false] at hq'
@@ -388,14 +444,21 @@ theorem lq_placedP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ
   rw [hal, List.sum_cons, List.sum_cons, List.sum_nil, Nat.add_zero] at hrel
   exact hrel
 
-/-- **`level_queries` is complete placed with its pops at every specialization.** -/
-theorem level_queries_completeAtP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (hκ : 11 ≤ κ) :
+/-- **`level_queries` is complete placed with its pops at every specialization, by exactly `lqN` words.** -/
+theorem level_queries_completeAtEP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
     ∀ e ∈ lqTable,
-      LqAtDP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2.1
+      LqAtEP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2.1
         e.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.2 := by
   intro e he
   obtain ⟨hoq, hQ, hN, hcd, hcd1, hcd8, hK, hpw⟩ := lqTable_facts e he
-  exact lq_placedP fs cert hκ (lqTable_ok e he) (oq_mem_of_entry hoq) hQ hN hcd hcd1 hcd8 hK hpw
+  exact lq_placedEP fs cert (lqTable_ok e he) (oq_mem_of_entry hoq) hQ hN hcd hcd1 hcd8 hK hpw
+
+/-- **`level_queries` is complete placed with its pops at every specialization.** -/
+theorem level_queries_completeAtP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
+    ∀ e ∈ lqTable,
+      LqAtDP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2.1
+        e.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.2 :=
+  fun e he ↦ (level_queries_completeAtEP fs cert κ e he).toDP
 
 end
 end LeanVM.Guest.B1
