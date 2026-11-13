@@ -149,7 +149,7 @@ theorem writeRun_sound {s : St} {A : Abs} (hH : Holds s A) (hfp : s.fp < maxCell
       have hX : Names (p * ofK (g ^ (pos + k))) (b + (pos + k)) := by
         refine ⟨?_, by omega⟩
         rw [hp, ← ofK_mul, ← pow_add]; simp
-      exact hB.addH ⟨_, hkv, fun x hx ↦ by rw [names_inj hx hX]; exact hwk⟩
+      exact hB.addH ⟨_, _, hkv, hX, hwk⟩
         fun d hd ↦ by rw [← own_names hfp hd hkv hX]; exact hwk
   · refine foldl_range_holds _ A n hH fun B k hk hB ↦ ?_
     obtain ⟨v, hv, hb⟩ := hst base rfl k hk

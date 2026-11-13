@@ -60,12 +60,12 @@ def HVF (s : St) (k : Mono) (x : Val) : Prop :=
 
 /-- The heap cell `k` names is written. -/
 def HW (s : St) (k : Mono) : Prop :=
-  ∃ v, MonoVal s k v ∧ ∀ x, Names v x → s.mem.written x = true
+  ∃ v x, MonoVal s k v ∧ Names v x ∧ s.mem.written x = true
 
 /-- Run `r`'s cells are written. -/
 def RW (s : St) (r : Rng) : Prop :=
   ∃ vq xlo xhi, MonoVal s r.q vq ∧ IdxVal s r.lo xlo ∧ IdxVal s r.hi xhi ∧
-    ∀ j, xlo ≤ j → j < xhi → ∀ x, Names (vq * ofK (g ^ (r.S * j + r.d))) x → s.mem.written x = true
+    ∀ j, xlo ≤ j → j < xhi → ∃ x, Names (vq * ofK (g ^ (r.S * j + r.d))) x ∧ s.mem.written x = true
 
 /-- Exponent `a` is below exponent `b`. -/
 def LTF (s : St) (a b : Idx) : Prop := ∃ xa xb, IdxVal s a xa ∧ IdxVal s b xb ∧ xa < xb
@@ -143,12 +143,12 @@ theorem Holds.mono {A : Abs} (h : Holds s A) : Holds s' A where
     obtain ⟨v, c, w, h1, h2, h3, h4⟩ := h.hv p hp
     exact ⟨v, c, w, h1.mono hle hfp, h2, hle.get _ _ h3, h4.mono hle hfp⟩
   h k hk := by
-    obtain ⟨v, h1, h2⟩ := h.h k hk
-    exact ⟨v, h1.mono hle hfp, fun x hx ↦ written_le hle (h2 x hx)⟩
+    obtain ⟨v, x, h1, h2, h3⟩ := h.h k hk
+    exact ⟨v, x, h1.mono hle hfp, h2, written_le hle h3⟩
   r r hr := by
     obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := h.r r hr
     exact ⟨vq, xlo, xhi, h1.mono hle hfp, h2.mono hle hfp, h3.mono hle hfp,
-      fun j a b x hx ↦ written_le hle (h4 j a b x hx)⟩
+      fun j a b ↦ (h4 j a b).elim fun x hx ↦ ⟨x, hx.1, written_le hle hx.2⟩⟩
   lt p hp := by
     obtain ⟨a, b, h1, h2, h3⟩ := h.lt p hp
     exact ⟨a, b, h1.mono hle hfp, h2.mono hle hfp, h3⟩
@@ -483,19 +483,20 @@ theorem Rng.idxOf_sound {s : St} {r : Rng} {k : Mono} {i : Idx} (h : r.idxOf k =
 theorem RW.down {s : St} {r : Rng} (h : RW s r) : RW s r.down := by
   obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := h
   refine ⟨vq, xlo + r.d / r.S, xhi + r.d / r.S, h1, Idx.shift_val h2 _, Idx.shift_val h3 _,
-    fun j hj1 hj2 x hx ↦ h4 (j - r.d / r.S) (by omega) (by omega) x ?_⟩
+    fun j hj1 hj2 ↦ ?_⟩
   have e1 : r.S * (j - r.d / r.S) = r.S * j - r.S * (r.d / r.S) := Nat.mul_sub _ _ _
   have e2 : r.S * (r.d / r.S) ≤ r.S * j := Nat.mul_le_mul_left _ (by omega)
   have e3 : r.S * (r.d / r.S) ≤ r.d := Nat.mul_div_le r.d r.S
   have : r.S * (j - r.d / r.S) + r.d = r.S * j + (r.d - r.S * (r.d / r.S)) := by omega
-  rw [this]
-  exact hx
+  have h5 := h4 (j - r.d / r.S) (by omega) (by omega)
+  rw [this] at h5
+  exact h5
 
 theorem inRng1_sound {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {r : Rng} (hr : RW s r)
     (h : (match r.idxOf k with
       | some i => A.le r.lo i && A.ltI i r.hi
-      | none => false) = true) {vk : E} (hk : MonoVal s k vk) {x : ℕ} (hx : Names vk x) :
-    s.mem.written x = true := by
+      | none => false) = true) {vk : E} (hk : MonoVal s k vk) :
+    ∃ x, Names vk x ∧ s.mem.written x = true := by
   split at h
   · rename_i i hi
     simp only [Bool.and_eq_true] at h
@@ -503,24 +504,23 @@ theorem inRng1_sound {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {r : Rng} (h
     obtain ⟨xi, hxi, hlt⟩ := Abs.ltI_sound hA h.2 h3
     obtain ⟨xlo', hlo', hle⟩ := Abs.le_sound hA h.1 hxi
     obtain rfl := h2.unique hlo'
-    rw [Rng.idxOf_sound hi hk h1 hxi] at hx
-    exact h4 xi hle hlt x hx
+    rw [Rng.idxOf_sound hi hk h1 hxi]
+    exact h4 xi hle hlt
   · simp at h
 
 theorem Abs.inRng_sound {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {r : Rng} (hr : RW s r)
-    (h : A.inRng k r = true) {vk : E} (hk : MonoVal s k vk) {x : ℕ} (hx : Names vk x) :
-    s.mem.written x = true := by
+    (h : A.inRng k r = true) {vk : E} (hk : MonoVal s k vk) :
+    ∃ x, Names vk x ∧ s.mem.written x = true := by
   unfold Abs.inRng at h
   rcases Bool.or_eq_true_iff.mp h with h | h
-  · exact inRng1_sound hA hr h hk hx
+  · exact inRng1_sound hA hr h hk
   · simp only [Bool.and_eq_true] at h
-    exact inRng1_sound hA hr.down h.2 hk hx
+    exact inRng1_sound hA hr.down h.2 hk
 
-/-- **What the walk knows written is**, whatever word names it. -/
-theorem Abs.covered_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
-    (hu : s.mem.used ≤ maxCells) {k : Mono}
-    (h : A.covered k = true) {vk : E} (hk : MonoVal s k vk) {x : ℕ} (hx : Names vk x) :
-    s.mem.written x = true := by
+/-- **What the walk knows written is**: the cell its word names exists and is written. -/
+theorem Abs.covered_ex {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
+    (hu : s.mem.used ≤ maxCells) {k : Mono} (h : A.covered k = true) {vk : E} (hk : MonoVal s k vk) :
+    ∃ x, Names vk x ∧ s.mem.written x = true := by
   unfold Abs.covered at h
   split at h
   · rename_i d hd
@@ -534,22 +534,27 @@ theorem Abs.covered_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
     obtain ⟨w, hw, rfl⟩ := hk
     have hv : ofK (g ^ s.fp) ^ 1 * ofK (g ^ kk) * w = ofK (g ^ (s.fp + kk)) := by
       rw [show w = 1 from hw, pow_one, mul_one, ← ofK_mul, ← pow_add]
-    rw [hv] at hx
-    have hx' : g ^ (s.fp + kk) = g ^ x := by have := hx.1; simpa using this
-    have := hx.2
+    rw [hv]
     have hw' := hA.w kk (Option.isSome_iff_exists.mp h |>.elim fun u hu ↦ by cases u; exact hu)
     obtain ⟨u, hu'⟩ := Mem.get_of_written hw'
     have hlt := hwf.get_lt hu'
-    rw [gpow_inj (by unfold maxCells at hu; omega) (by unfold maxCells at this; omega) hx'] at hw'
-    exact hw'
+    exact ⟨s.fp + kk, ⟨by simp, by omega⟩, hw'⟩
   · rcases Bool.or_eq_true_iff.mp h with h | h
     · obtain ⟨k', hm, hb⟩ := List.any_eq_true.mp h
       obtain rfl := Mono.beq_eq hb
-      obtain ⟨v, h1, h2⟩ := hA.h _ hm
+      obtain ⟨v, x, h1, h2, h3⟩ := hA.h _ hm
       obtain rfl := h1.unique hk
-      exact h2 x hx
+      exact ⟨x, h2, h3⟩
     · obtain ⟨r, hm, hb⟩ := List.any_eq_true.mp h
-      exact Abs.inRng_sound hA (hA.r r hm) hb hk hx
+      exact Abs.inRng_sound hA (hA.r r hm) hb hk
+
+/-- What the walk knows written is, whatever word names it. -/
+theorem Abs.covered_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
+    (hu : s.mem.used ≤ maxCells) {k : Mono}
+    (h : A.covered k = true) {vk : E} (hk : MonoVal s k vk) {x : ℕ} (hx : Names vk x) :
+    s.mem.written x = true := by
+  obtain ⟨y, hy, hw⟩ := Abs.covered_ex hA hwf hu h hk
+  rwa [names_inj hx hy]
 
 end
 

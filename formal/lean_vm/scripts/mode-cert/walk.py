@@ -117,6 +117,13 @@ class Abs:
             if t is not None and sle(ishift(q, t), b): return True
         return False
 
+    def knownB(s, b):
+        if b[0] == 'fr': return b[1] in s.w
+        return b[1] in s.w and s.covered((0, b[2], ((('fr', b[1]), 1),)))
+
+    def known(s, m):
+        return all(s.knownB(b) for b, e in m[2])
+
     def hasIdx(s, i):
         if i[0] == 'num': return True
         return any((p[0] == 'ex' and p[1] == i[1]) or (q[0] == 'ex' and q[1] == i[1]) for p, q in s.lt)
@@ -440,7 +447,7 @@ class Walk:
         acc = mul(npow(mq, m[0]), gp(m[1]))
         for b, e in m[2]:
             x = self.trBase(A, mq, b)
-            if x is None: return None
+            if x is None or e == 0: return None
             acc = mul(acc, npow(x, e))
         return acc
 
@@ -448,7 +455,7 @@ class Walk:
         if i[0] == 'num': return i
         x = self.trBase(A, mq, i[1])
         if x is None or x[0] != 0: return None
-        if not x[2]: return ('num', i[2] + x[1])
+        if not x[2]: return ('num', i[2] + x[1]) if x[1] < 2 ** 62 else None
         if len(x[2]) == 1 and x[2][0][1] == 1: return ('ex', x[2][0][0], i[2] + x[1])
         return None
 
@@ -464,7 +471,7 @@ class Walk:
             self.need(A.hvGet(shift(mq, G.self_)) == ('m', mq), 'self', i, name)
         for m in G.pre:
             k = self.trMono(A, mq, m)
-            self.need(k is not None and A.covered(k), 'pre', i, name, m, k, A)
+            self.need(k is not None and A.known(k) and A.covered(k), 'pre', i, name, m, k, A)
         for r in G.preR:
             r2 = self.trRng(A, mq, r)
             self.need(r2 is not None and A.coveredR(r2), 'preR', i, name, r, r2, A)

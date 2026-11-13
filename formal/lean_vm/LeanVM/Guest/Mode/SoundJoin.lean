@@ -147,18 +147,17 @@ theorem Abs.coveredR_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
     obtain ⟨z, hz, hzle⟩ := Abs.le_sound hA hhi h3
     have hz' := hz.unique hxhi
     rw [Mono.beq_eq hq] at h1
-    exact ⟨vq, xlo, xhi, h1, hxlo, hxhi, fun j hj1 hj2 x hx ↦
-      h4 j (by omega) (by omega) x (by rw [hS, hd]; exact hx)⟩
+    exact ⟨vq, xlo, xhi, h1, hxlo, hxhi, fun j hj1 hj2 ↦ by
+      rw [← hS, ← hd]; exact h4 j (by omega) (by omega)⟩
   · split at h
     · rename_i a b hlo hhi
       simp only [Bool.and_eq_true, decide_eq_true_eq] at h
       obtain ⟨⟨-, hbs⟩, hall⟩ := h
       obtain ⟨w, hw⟩ := BsVal.exists_fr hA hbs
-      refine ⟨_, a, b, ⟨w, hw, rfl⟩, by rw [hlo]; rfl, by rw [hhi]; rfl, fun j hj1 hj2 x hx ↦ ?_⟩
+      refine ⟨_, a, b, ⟨w, hw, rfl⟩, by rw [hlo]; rfl, by rw [hhi]; rfl, fun j hj1 hj2 ↦ ?_⟩
       have hc := List.all_eq_true.mp hall (j - a) (List.mem_range.mpr (by omega))
-      refine Abs.covered_sound hA hwf hu hc (MonoVal.shift ⟨w, hw, rfl⟩ _) ?_
-      rw [show r.S * (a + (j - a)) + r.d = r.S * j + r.d by congr 2; omega]
-      exact hx
+      have := Abs.covered_ex hA hwf hu hc (MonoVal.shift ⟨w, hw, rfl⟩ _)
+      rwa [show r.S * (a + (j - a)) + r.d = r.S * j + r.d by congr 2; omega] at this
     · simp at h
 
 /-- **One instruction the walk accepts**: its reads are written (`Reads`), and, unless it is a

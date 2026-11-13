@@ -177,11 +177,10 @@ theorem stepOp_sound_deref {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {a o c 
     cases h
     have hw := hpc' rfl
     refine Holds.setPr ?_ (fun _ h ↦ nomatch h)
-    refine (hA2.addH ⟨_, hkv', fun x hx ↦ ?_⟩ fun d hd ↦ ?_).addHv
+    refine (hA2.addH ⟨_, base + o, hkv', hX, written_of_get hw⟩ fun d hd ↦ ?_).addHv
       ⟨_, base + o, _, hkv', hX, hw, MonoVal.gp _⟩ fun d hd ↦ ⟨_, by rw [← hown d hd]; exact hw,
         MonoVal.gp _⟩
-    · rw [names_inj hx hX]; exact written_of_get hw
-    · rw [← hown d hd]; exact written_of_get hw
+    rw [← hown d hd]; exact written_of_get hw
   | fp =>
     cases h
     have hw := hfp' rfl
@@ -189,10 +188,9 @@ theorem stepOp_sound_deref {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {a o c 
       have := MonoVal.own (s := s') 0
       rw [g2, Nat.add_zero] at this; exact this
     refine Holds.setPr ?_ (fun _ h ↦ nomatch h)
-    refine (hA2.addH ⟨_, hkv', fun x hx ↦ ?_⟩ fun d hd ↦ ?_).addHv
+    refine (hA2.addH ⟨_, base + o, hkv', hX, written_of_get hw⟩ fun d hd ↦ ?_).addHv
       ⟨_, base + o, _, hkv', hX, hw, hval⟩ fun d hd ↦ ⟨_, by rw [← hown d hd]; exact hw, hval⟩
-    · rw [names_inj hx hX]; exact written_of_get hw
-    · rw [← hown d hd]; exact written_of_get hw
+    rw [← hown d hd]; exact written_of_get hw
   | cell =>
     obtain ⟨hld, hst⟩ := hcell rfl
     by_cases hc : A.hasW c = true
@@ -210,10 +208,9 @@ theorem stepOp_sound_deref {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {a o c 
           obtain ⟨u, h1, h2⟩ := hH.v c y hx
           rw [hvc] at h1; cases h1; exact h2.mono g3 g2
       refine Holds.setPr ?_ (fun q hq ↦ hm'.pr q hq)
-      refine (hA2.addH ⟨_, hkv', fun x hx ↦ ?_⟩ fun d hd ↦ ?_).addHv
+      refine (hA2.addH ⟨_, base + o, hkv', hX, written_of_get hw⟩ fun d hd ↦ ?_).addHv
         ⟨_, base + o, _, hkv', hX, hw, hval⟩ fun d hd ↦ ⟨_, by rw [← hown d hd]; exact hw, hval⟩
-      · rw [names_inj hx hX]; exact written_of_get hw
-      · rw [← hown d hd]; exact written_of_get hw
+      rw [← hown d hd]; exact written_of_get hw
     rw [ite_eq_right hc] at h
     by_cases hcov : A.covered (m.shift o) = true
     · rw [ite_eq_left hcov] at h

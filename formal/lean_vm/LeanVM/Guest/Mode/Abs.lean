@@ -630,7 +630,8 @@ def Mono.npow (x : Mono) : ℕ → Mono
 
 /-- A callee's product, in the caller's terms (its frame pointer is `mq`'s word). -/
 def trMono (A : Abs) (mq : Mono) (m : Mono) : Option Mono :=
-  m.bs.foldl (fun acc p ↦ acc.bind fun acc ↦ (trBase A mq p.1).map fun x ↦ acc.mul (x.npow p.2))
+  m.bs.foldl (fun acc p ↦ acc.bind fun acc ↦
+      if p.2 == 0 then none else (trBase A mq p.1).map fun x ↦ acc.mul (x.npow p.2))
     (some ((mq.npow m.fp).mul (.gp m.k)))
 
 /-- A callee's exponent, in the caller's terms. -/
@@ -638,7 +639,7 @@ def trIdx (A : Abs) (mq : Mono) : Idx → Option Idx
   | .num n => some (.num n)
   | .ex x c =>
     match trBase A mq x with
-    | some ⟨0, k, []⟩ => some (.num (c + k))
+    | some ⟨0, k, []⟩ => if k < 2 ^ 62 then some (.num (c + k)) else none
     | some ⟨0, k, [(y, 1)]⟩ => some (.ex y (c + k))
     | _ => none
 
@@ -647,6 +648,15 @@ def trRng (A : Abs) (mq : Mono) (r : Rng) : Option Rng :=
   match trMono A mq r.q, trIdx A mq r.lo, trIdx A mq r.hi with
   | some q, some lo, some hi => some ⟨q, lo, hi, r.S, r.d⟩
   | _, _, _ => none
+
+/-- A base whose word is known to exist: a written frame cell, or a cell past a written pointer
+cell that the walk knows written. -/
+def Abs.knownB (A : Abs) : Base → Bool
+  | .fr o => A.hasW o
+  | .hp q d => A.hasW q && A.covered ⟨0, d, [(.fr q, 1)]⟩
+
+/-- A product whose word is known to exist. -/
+def Abs.known (A : Abs) (m : Mono) : Bool := m.bs.all fun p ↦ A.knownB p.1
 
 /-- The caller holds what callee `G` needs at entry, its frame named by `mq`. -/
 def entryOk (A : Abs) (mq : Mono) (G : Sig) : Bool :=
@@ -657,7 +667,7 @@ def entryOk (A : Abs) (mq : Mono) (G : Sig) : Bool :=
       | none => false
     | none => true) &&
   G.pre.all (fun m ↦ match trMono A mq m with
-    | some k => A.covered k
+    | some k => A.known k && A.covered k
     | none => false) &&
   G.preR.all (fun r ↦ match trRng A mq r with
     | some r => A.coveredR r
