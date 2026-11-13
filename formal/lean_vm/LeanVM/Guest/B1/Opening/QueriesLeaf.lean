@@ -120,10 +120,6 @@ theorem cells13_block (f g : ℕ → V) (c : Fin 13) :
       if c.val < 9 then σ (f c.val) else σ (g (c.val - 9)) := by
   fin_cases c <;> simp [cells13, List.range_succ]
 
-theorem cells13_outs (f : ℕ → V) (c : Fin 13) :
-    cells13 (((List.range 13).map f).map σ) c = σ (f c.val) := by
-  fin_cases c <;> simp [cells13, List.range_succ]
-
 theorem mem_oqLeafT {s : Oq} {b pr kL k : ℕ} (hk : k < s.B) {a : Atom}
     (ha : Stmt.atom a ∈ oqBlockT s b pr kL k) : Stmt.atom a ∈ oqLeafT s b pr kL :=
   List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩, ha⟩

@@ -40,8 +40,6 @@ def vtSizesP (lm : ℕ) (τ : ℕ → ℕ) : List ℕ := [0, lm, 19] ++ vtPushPa
 /-- The count side's log-sizes. -/
 def vtSizesC (τ : ℕ → ℕ) : List ℕ := vtCountPadData.map fun x ↦ τ x.2.1
 
-theorem vt_src_lt : ∀ b < 153, blockKappaSrc.getD b 0 < 8 := by decide
-
 theorem vt_srcP : ∀ i < 51, blockKappaSrc.getD (3 + i) 0 = (vtPushPadData.getD i default).2.1 + 2 ∧
     blockKappaAdj (3 + i) = 0 ∧ (vtPushPadData.getD i default).2.1 < 6 := by decide
 

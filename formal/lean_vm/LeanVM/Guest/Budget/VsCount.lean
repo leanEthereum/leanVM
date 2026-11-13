@@ -139,22 +139,22 @@ theorem ls_weightLe (op : Opcode) :
     WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) "list_split" fun _ => kcLs op :=
   weightLe_tab (vsTab_parts op).2.2.2.1
 
-/-- `child_claim_list_any`'s loops' instructions per iteration: `__loop17` per `136` claims,
-`__loop18` per `17`. -/
+/-- `child_claim_list_any`'s loops' instructions per iteration: `child_claim_list_any_loop0` per `136` claims,
+`child_claim_list_any_loop1` per `17`. -/
 def kcL17 (op : Opcode) : ℕ := (kcCcLpT op).getD 0 0
 
 /-- See `kcL17`. -/
 def kcL18 (op : Opcode) : ℕ := (kcCcLpT op).getD 1 0
 
-/-- **`__loop17`, per iteration.** -/
+/-- **`child_claim_list_any_loop0`, per iteration.** -/
 theorem l17_loop (op : Opcode) : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% child_claim_list_any_loop0) (kcL17 op) :=
   loopWeightLe_tab (by simpa [ccLpNames, kcL17] using (vsTab_parts op).2.2.2.2.1 0 (by norm_num))
 
-/-- **`__loop18`, per iteration.** -/
+/-- **`child_claim_list_any_loop1`, per iteration.** -/
 theorem l18_loop (op : Opcode) : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% child_claim_list_any_loop1) (kcL18 op) :=
   loopWeightLe_tab (by simpa [ccLpNames, kcL18] using (vsTab_parts op).2.2.2.2.1 1 (by norm_num))
 
-/-- **The frame weights** of `verify_sub`, `child_claim_list_digest`, `__loop4`,
+/-- **The frame weights** of `verify_sub`, `child_claim_list_digest`, `main_loop4`,
 `child_claim_list_any`, `child_claim_list_mono`. -/
 theorem om_eq (op : Opcode) {i : ℕ} (hi : i < 5) :
     B2C.ωArm B2C.xmssArmC op (omNames.getD i "") = (omT op).getD i 0 := by

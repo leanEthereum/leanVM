@@ -618,12 +618,6 @@ theorem W0_le_Cq : w.W0 ≤ w.Cq := oqWk_mono (Nat.zero_le _)
 theorem win_le_Cq {i : ℕ} (hi : i < oqNpw w.s) : oqWk w.s wpCh i + winSz w.s i ≤ w.Cq := by
   rw [← oqWk_succ]; exact oqWk_mono hi
 
-theorem val_0 : w.val 0 = (digestHalves w.leaf).1 := rfl
-theorem val_1 : w.val 1 = (digestHalves w.leaf).2 := rfl
-theorem val_2 : w.val 2 = w.bpv := rfl
-theorem val_3 : w.val 3 = w.capv := rfl
-theorem val_4 : w.val 4 = w.flagsv := rfl
-
 theorem val_pc {o : ℕ} (ho : o < 4 * w.s.pd) : w.val (wpCh + o) = w.pc o := by
   unfold val
   have := W0_eq w

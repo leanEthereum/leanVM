@@ -39,12 +39,6 @@ theorem getD_mapRange {n e : ℕ} (f : ℕ → E) (he : e < n) : ((List.range n)
 theorem getD_cons2 {a c : E} {l : List E} {j : ℕ} : (a :: c :: l).getD (2 + j) 0 = l.getD j 0 := by
   rw [show 2 + j = j + 1 + 1 by omega]; rfl
 
-theorem capSq_succ (L : LvAt) (logN : ℕ) {j : ℕ} (hj : 1 ≤ j) :
-    ((⟨L.capSq logN j, []⟩ : Fs).squeeze.2.cap) = L.capSq logN (j + 1) := by
-  obtain ⟨m, rfl⟩ : ∃ m, j = m + 1 := ⟨j - 1, by omega⟩
-  simp only [LvAt.capSq, sqCapD, Nat.add_sub_cancel]
-  rw [← squeezeN_mk, squeezeN_snoc]
-
 namespace OsHD
 
 variable (h : OsHD) {rd : Reader} {b : ℕ}

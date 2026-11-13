@@ -48,9 +48,6 @@ theorem idx_two (i m : ℕ) : i / 2 ^ m * 2 ^ (m + 1) + 2 * (i % 2 ^ m) = 2 * i 
 theorem getD_of_size_le {a : Array E} {i : ℕ} (h : a.size ≤ i) : a.getD i 0 = 0 := by
   simp [Array.getD_eq_getD_getElem?, Array.getElem?_eq_none h]
 
-theorem getD_ofFn_ge {n : ℕ} (f : Fin n → E) {i : ℕ} (h : n ≤ i) : (Array.ofFn f).getD i 0 = 0 :=
-  getD_of_size_le (by simpa using h)
-
 /-! ## The tables -/
 
 theorem size_halfA (f : Array E) {m cols : ℕ} (hf : f.size = cols * 2 ^ (m + 1)) :

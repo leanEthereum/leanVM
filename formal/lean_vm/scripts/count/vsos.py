@@ -31,9 +31,13 @@ def _whir(f):
     return open(os.path.join(LV, 'LeanVM', 'Guest', 'B1', 'Whir', f), encoding='utf-8').read()
 def _abbrev(src, name):
     return int(re.search(r'abbrev %s : (?:Nat|ℕ) := (\d+)' % name, src).group(1))
-_cfg = _whir('Config.lean')
-POS_CAP, COLS_CAP, HS_STRIDE, YR_LOG_CAP, MAX_LEVELS = (_abbrev(_cfg, n) for n in (
-    'ligPosCap', 'ligColsCap', 'hsStride', 'yrLogCap', 'ligMaxLevels'))
+# `Whir/Config.lean`'s caps read the guest's constants (`guest_const%`), exported to `Data/Source.lean`.
+_src = src
+def _const(name):
+    return int(re.search(r'def const_%s : Nat := (\d+)' % name, _src).group(1))
+POS_CAP, COLS_CAP, YR_LOG_CAP, MAX_LEVELS = (_const(n) for n in (
+    'LIG_LEVEL_POSITIONS_CAP', 'LIG_LOG_MSG_COLS_CAP', 'YR_LOG_CAP', 'LIG_MAX_LEVELS'))
+HS_STRIDE = 2 ** _const('HIGH_BITS_CAP')
 POINT_CAP = _abbrev(_whir('Split.lean'), 'pointCap')
 
 

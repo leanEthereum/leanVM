@@ -95,7 +95,7 @@ theorem kr_ratio {J : List ℕ} {A : Opcode → ℕ} (h : J.all (krRatioAt A) = 
   simp only [hx]
   exact Nat.le_of_ble_eq_true hr
 
-/-- Core function `j` is `__loop2` exactly when `j` is its index `x`. -/
+/-- Core function `j` is `main_loop2` exactly when `j` is its index `x`. -/
 theorem kr_name_xmss {x j : ℕ} (hx : (coreProgram[x]?).map Fn.name = some (name% main_loop2))
     (hj : j < coreProgram.length) : coreProgram[j].name = (name% main_loop2) ↔ j = x := by
   constructor
@@ -107,7 +107,7 @@ theorem kr_name_xmss {x j : ℕ} (hx : (coreProgram[x]?).map Fn.name = some (nam
     rw [List.getElem?_eq_getElem hj] at hx
     simpa using hx
 
-/-- **Off `__loop2`, the frame weights are the path maxima.** -/
+/-- **Off `main_loop2`, the frame weights are the path maxima.** -/
 theorem kr_ratio_om {J : List ℕ} {A : Opcode → ℕ} (h : J.all (krRatioAt A) = true) {x : ℕ}
     (hxn : (coreProgram[x]?).map Fn.name = some (name% main_loop2)) (hx : x ∉ J)
     (op : Opcode) : ∀ g, krIn J g → 1000 * ωArm xmssArmC op g ≤ A op * fs g := by

@@ -160,8 +160,6 @@ def dvTs (r : ℕ) : List (Tree → Prop) :=
 def dvNH (r L : ℕ) : Tree → Prop :=
   NodeHonest coreProgram "da_verify" (dvQ r L) (flatCalls dvP) (fun _ => dvSizes r L) (dvTs r)
 
-theorem pow_mul_eq {a b : ℕ} : gen ^ (a + b) = gen ^ a * gen ^ b := pow_add gen a b
-
 set_option maxRecDepth 20000 in
 /-- **`da_verify`'s statements hold** on its valuation. -/
 theorem dv_sholds {rd : Reader} (r L s : ℕ) (hL : L ≤ 10) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bb : ℕ)

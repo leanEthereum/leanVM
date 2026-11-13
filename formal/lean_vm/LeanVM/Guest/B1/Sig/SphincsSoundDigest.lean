@@ -44,17 +44,6 @@ theorem padCells_six (a b c d e f : E) :
     padCells [a, b, c, d, e, f] 84 = [a, b, c, d, e, f + word (2 ^ 32) 0, 0, 0, word (2 ^ 63) 0] := by
   simp [padCells, xorByte, padRead, rate, byteCell]
 
-theorem cellBytes_word_getD {i j : Nat} (hi : i < 256) (hj : 1 ≤ j) :
-    (cellBytes (word i 0)).getD j 0 = 0 := by
-  rw [cellBytes_eq_leBytes, word_eq_eOfNat, cellNat_eOfNat (by omega)]
-  by_cases hj16 : j < 16
-  · rw [List.getD_eq_getElem _ _ (by simp [leBytes]; omega), getElem_leBytes]
-    rw [Nat.div_eq_of_lt (lt_of_lt_of_le hi (by
-      calc (256 : Nat) = 256 ^ 1 := by norm_num
-        _ ≤ 256 ^ j := Nat.pow_le_pow_right (by norm_num) hj))]
-    rfl
-  · rw [List.getD_eq_default _ _ (by simp [leBytes]; omega)]
-
 /-- A counter cell's bytes past its fourth: `i · 2^24` with `i < 256` spells `[0, 0, 0, i]` then
 zeros. -/
 theorem cellBytes_ctr_getD {i j : Nat} (hi : i < 256) (hj : 4 ≤ j) :
@@ -172,9 +161,6 @@ theorem word_eq128 {a b : Nat} (ha : a < 2 ^ 64) :
     show (a + 2 ^ 64 * b) / 2 ^ 64 = b by omega]
 
 theorem pw_64 : word 0 1 = pw 64 := by simp [pw]
-
-theorem mul_word_y {a : Nat} (ha : a < 2 ^ 64) : eOfNat a * word 0 1 = eOfNat128 (2 ^ 64 * a) := by
-  rw [pw_64, pw_mul (by norm_num) (by simpa using ha)]
 
 /-- **The message, sound**: the claim's keys and its message's two cells loaded. -/
 theorem sMsg_sound (h : AtomsHold rd σ sMsg) :
@@ -445,9 +431,6 @@ def hmsgNat (d0 d1 : E × E) : Nat := cellNat d0.1 + 2 ^ 128 * cellNat d0.2 + 2 
 
 /-- The message's number of its two cells. -/
 def msgNat (c d : E) : Nat := cellNat c + 2 ^ 128 * cellNat d
-
-theorem msgNat_lt (c d : E) : msgNat c d < 2 ^ 256 := by
-  have := cellNat_lt c; have := cellNat_lt d; unfold msgNat; omega
 
 theorem cells2_bytes (c d : E) : cellBytes c ++ cellBytes d = leBytes (msgNat c d) 32 := by
   rw [cellBytes_eq_leBytes, cellBytes_eq_leBytes, msgNat, show (32 : Nat) = 16 + 16 from rfl,

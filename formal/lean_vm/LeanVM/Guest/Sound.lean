@@ -21,7 +21,7 @@ on that run (`Check.EnteredAt`).
   shorter than `n` (`checkWins_run` on its checked windows, `Checked.all_ok`). Each window after
   the first takes its memory bounds and semantic tuples from the statements before it, the
   function's cut obligations (`CutsKnown`, `cutsKnown_of`): none for a `Plain` function; in
-  `verify_sub` (function `19`), whose second window starts at its call of `verify_tables`, the
+  `verify_sub`, whose second window starts at its call of `verify_tables`, the
   bound of entry `0` of `dims_g` from `VsDimsKnown`, and whose third starts at its call of
   `check_opening_terminal`, those and the bounds of the `8` entries of `kappa_base` from
   `VsKnown`, over the exponent table its precondition carries; in the windowed Merkle walks and
@@ -165,7 +165,7 @@ theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage
 /-! ## The walks' obligations -/
 
 /-- **The walks' obligations** (B1's: whir's `opening_queries*` and their loops, `walk_path`'s
-specializations, ostack's `open_stacked`, gkr's `verify_bus_gkr` and its layer loop `__loop6`;
+specializations, ostack's `open_stacked`, gkr's `verify_bus_gkr` and its layer loop `verify_bus_gkr_loop0`;
 REC-GUEST-IFACE 'tool: walk obligations — IMPLEMENTED', 'tool: gkr obligations', PR661-IFACE
 'walk-K'): the cut obligations (`CutsKnown`) of every function the certificates hand something on
 at its cuts (`Checked.oblFns`) but `main` and `verify_sub`. Checker K hands on there the window

@@ -47,13 +47,6 @@ theorem reads (hm : OsMemA rd h.c b h.own) {j : ℕ} (hj : j < (osSizesL h.c).le
   have := h.load hm hj hne (e := e) (by omega)
   rwa [List.getD_eq_getElem _ _ he] at this
 
-/-- A word of buffer `j` through its pointer shifted by `o`. -/
-theorem loadOff (hm : OsMemA rd h.c b h.own) {j o e : ℕ} (hj : j < (osSizesL h.c).length)
-    (hne : j ≠ osIxQbpA) (he : o + e < (osSizesL h.c).getD j 0) :
-    LoadHolds rd (osPtrA h.c b j * gen ^ o) e ((h.ownW j).getD (o + e) 0) := by
-  rw [loadHolds_mul_gen_pow]
-  exact h.load hm hj hne he
-
 /-! ## The buffers' words at their indices -/
 
 theorem ownW_fmsg : h.ownW 0 = h.fmsgC := by simp [ownW]

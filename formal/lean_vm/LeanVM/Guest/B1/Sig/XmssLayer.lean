@@ -53,36 +53,6 @@ structure XPre (σ : Val) : Prop where
 
 theorem xLeaf_lt (σ : Val) : xLeaf σ < 2 ^ 32 := bitsVal_lt _ _
 
-theorem xPrologue_atoms : atomsOnly xPrologue = true := by
-  decide
-
-theorem xPrologue_sound {rd : Reader} {σ : Val} (h : AtomsHold rd σ xPrologue) :
-    LoadHolds rd (σ (.n 0)) 1 (σ (.n 1)) ∧ XPre σ := by
-  have hb : ∀ j < 32, IsBit (σ (xBit j)) := by
-    intro j hj
-    have := h.atom (a := .mul (.n (2 + j)) (.n (2 + j)) (.n (2 + j))) (by
-      simp only [xPrologue, List.mem_append, booleans, List.mem_map, List.mem_range]
-      exact Or.inl (Or.inl (Or.inl (Or.inr ⟨j, hj, rfl⟩))))
-    exact this.symm
-  refine ⟨h.atom (a := .load (.n 1) (.n 0) 1) (by simp [xPrologue, loadS]), hb, fun l hl => ?_,
-    fun s hs => ?_, fun i hi => ?_⟩
-  · have hs := shifts_sound (σ := σ) (rd := rd) (bitBase := 2) (n := 32) (outBase := 34) (by norm_num)
-      (by norm_num) hb (h.sub fun x hx => by
-        simp only [xPrologue, List.mem_append]; exact Or.inl (Or.inl (Or.inr hx))) (31 - l) (by omega)
-    rw [xNode, hs]
-    congr 2
-    omega
-  · have e := h.atom (a := .const (.n (128 + s)) (word (2 ^ s) 0)) (by
-      simp only [xPrologue, List.mem_append, List.mem_map, List.mem_range]
-      exact Or.inl (Or.inr ⟨s, hs, rfl⟩))
-    simp only [Atom.Holds] at e
-    rw [xPower, e, word_eq_eOfNat, Value.gen_pow_eq_eOfNat (by omega)]
-  · have e := h.atom (a := .const (.n (138 + i)) (word i 0)) (by
-      simp only [xPrologue, List.mem_append, List.mem_map, List.mem_range]
-      exact Or.inr ⟨i, hi, rfl⟩)
-    simp only [Atom.Holds] at e
-    rw [xTag, e, word_eq_eOfNat]
-
 /-! ## Addresses -/
 
 theorem two_pow_mul_xor_mul (s a b : Nat) : 2 ^ s * a ^^^ 2 ^ s * b = 2 ^ s * (a ^^^ b) := by

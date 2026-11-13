@@ -308,12 +308,6 @@ theorem kXorByte_seq {cs : List KC} {pos v b : Nat} (hc : ∀ k ∈ cs, KCb b k)
 theorem blockOf_mem {cs : List KC} {k : Nat} {c : KC} (h : c ∈ (cs.drop (17 * k / 2)).take 9) : c ∈ cs :=
   List.mem_of_mem_drop (List.mem_of_mem_take h)
 
-theorem cells13_getD (l : List V) (σ : Val) (hl : l.length = 13) (c : Fin 13) :
-    cells13 (l.map σ) c = σ (l.getD c.val default) := by
-  simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map]
-  rw [List.getElem?_eq_getElem (by omega)]
-  rfl
-
 theorem kBlocks_none_eq (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) (n m k : Nat)
     (st : Option (List V)) (b : Nat) :
     kBlocks pad cs B tailRun none n (m + 1) k st b =
@@ -334,12 +328,6 @@ theorem kBlocks_none_eq (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) (n
   simp only [kBlocks, Option.getD_none, Option.isSome_none, Bool.and_false, Bool.false_eq_true,
     ↓reduceIte, List.append_assoc]
   split <;> rfl
-
-theorem kOutN_pos {B n k : Nat} (hn : 1 ≤ n) : 1 ≤ kOutN B n k := by
-  unfold kOutN; split <;> omega
-
-theorem kOutN_le {B n k : Nat} (hn : n ≤ 13) : kOutN B n k ≤ 13 := by
-  unfold kOutN; split <;> omega
 
 theorem kOutN_mid {B n k : Nat} (hk : k + 1 ≠ B) : kOutN B n k = 13 := by
   simp [kOutN, hk]

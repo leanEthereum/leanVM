@@ -48,8 +48,6 @@ structure ResIn (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (bd lvl : ℕ
 def resAll (lv : OsLv) (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (mu : E) : E × E :=
   resFold (resP lv D) (resH lv hsv) mu (0, 0) ((List.range lv.queries).map Pos)
 
-theorem gw_zero : gw 0 = 1 := by rw [gw_eq (by decide), pow_zero]
-
 /-- **A level's residual**: the dispatch on the rate into `level_residual` (the chains over the
 level's positions), the inner chain's two sums advanced by them. -/
 theorem osResidual_sound {c : OsCfg} {ich bd ls la lvl : ℕ} {lv : OsLv} {D : ℕ → E}

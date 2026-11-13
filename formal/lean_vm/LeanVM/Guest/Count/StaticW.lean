@@ -2,7 +2,7 @@
   LeanVM.Guest.Count.StaticW
 
   The instruction counts of `verify_tables`' and `check_opening_terminal`'s statically bounded
-  callees, `__loop9`, `__loop8` and `__loop14`, by name, read off the `W` count certificates
+  callees, `verify_tables_loop0`, `shared_selector_tables_loop0` and `check_opening_terminal_loop0`, by name, read off the `W` count certificates
   (`Memory/GuestCnt`), per opcode at `B2C.ωArm B2C.xmssArmC op`.
 -/
 

@@ -57,27 +57,6 @@ def spArmB (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k : Nat) 
 theorem spArmB_eq (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k : Nat) :
     spArmB first n fold B prodIn encIn k = spArmBase first n fold B prodIn encIn 0 k (spL fold B + 6) := rfl
 
-theorem spGroupT_eq (first n : Nat) (fold : Bool) (prodIn encIn : V) (B : Nat) :
-    spGroupT first n fold prodIn encIn B = groupD spW first n fold prodIn encIn B (spPre fold B) (spL fold B) :=
-  rfl
-
-theorem spGroupArmsT_eq (first n : Nat) (fold : Bool) (prodIn encIn : V) (B : Nat) :
-    groupArmsT spW first n fold prodIn encIn (spL fold B) =
-      spArmsT first n fold B prodIn encIn (4 ^ n) 0 (spL fold B + 6) := rfl
-
-theorem spArmsT_length (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (m k b : Nat) :
-    (spArmsT first n fold B prodIn encIn m k b).1.length = m :=
-  armsT_length _ _ _ _ _ _ _ _ _ m k b
-
-/-- **The arm the dispatch of a group takes**, its `k`-th. -/
-theorem spGroupArm (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k : Nat)
-    (hk : k < (spArmsT first n fold B prodIn encIn (4 ^ n) 0 (spL fold B + 6)).1.length) :
-    (spArmsT first n fold B prodIn encIn (4 ^ n) 0 (spL fold B + 6)).1[k] =
-      (spArmK first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k)).1 := by
-  simp only [spArmsT]
-  rw [armsT_getElem, Nat.zero_add]
-  rfl
-
 theorem spGroupT_end (first n : Nat) (fold : Bool) (prodIn encIn : V) (B : Nat) :
     (spGroupT first n fold prodIn encIn B).2 = spArmB first n fold B prodIn encIn (4 ^ n) := by
   simp only [spGroupT, groupD, groupArmsT]

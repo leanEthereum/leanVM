@@ -2,14 +2,14 @@
 
 Goal: an edit of one function of `crates/rec_aggregation/guests/lean_ethereum.py` rebuilds that function's generated data, certificates and proofs plus a small glue layer, not the whole guest. This is the plan the migration follows; the steps are at the end.
 
-## Today
+## Before the migration
 
-An edit of one function's core IR (`Guest/Data/Core05`) rebuilds 2,847 modules, 8.8 CPU-h, at least 10 min on unlimited cores (about 25 min on h3). By family: B2C 3.8 CPU-h, Checked 2.6, B1 1.8, Memory 0.2, Count 0.1, the rest 0.6. `__loop2` (114,219 instructions) is about half of Checked and B2C. The causes:
+An edit of one function's core IR (`Guest/Data/Core05`) rebuilt 2,847 modules, 8.8 CPU-h, at least 10 min on unlimited cores (about 25 min on h3). By family: B2C 3.8 CPU-h, Checked 2.6, B1 1.8, Memory 0.2, Count 0.1, the rest 0.6. `main_loop2` (114,219 instructions) is about half of Checked and B2C. The causes:
 
 1. **Data at the root.** Every check is stated over a global index (`WinOk j i` unfolds `glob`, `fnOf j`, `coreOf j`, `certOf j`; `cplWin` also `plumbOf`, `fsN`, `sigT`, a trie of every signature; the Memory families walk ranges of `coreProgram`), so every check module imports the aggregated data through `Glob`, and B1 through `CoreData`.
 2. **Generic modules carry data.** `Exec` imports `Guest.Bytecode`; `ExecC` imports `Glob`; `Statement/LeanVmGuest.lean` holds both the generic node statement and `guestProgram := assemble Data.functions 19`, so whatever needs a claim or a child imports the bytecode.
 3. **Absolute positions.** Branch and call targets are `SET`s of `g^pc` (decoded through `Data.powTree`, which lists every pc), return addresses `DEREF .pc`, the jump table holds pcs, `Sig.entry` is compared with call targets. A length change moves every later function, so import isolation alone leaves most of the cone of a typical edit.
-4. **Unstable keys.** Functions are named by global index (`Data.core18`, `coreProgram_find?_at (j := 2)`, `Cert.callees`), loops by a global counter (`__loop{id}`, `lower.rs`), `Data.Source` by line numbers.
+4. **Unstable keys.** Functions were named by global index (`Data.core18`, `coreProgram_find?_at (j := 2)`, `Cert.callees`), loops by a global counter (`__loop{id}`, `lower.rs`), `Data.Source` by line numbers. Done for the hand-written proofs: they name functions by stable name (`Data/Names.lean`, `Guest/CoreRef.lean`; a loop is `{caller}_loop{k}`), so a renumbering changes no proof; the generated data still indexes.
 5. **Totals in certificates.** Count and Memory certificates hold call-tree totals, so a cheaper function changes its ancestors'.
 
 ## (a) What stays global
@@ -32,10 +32,10 @@ Lake (v4.35, `ModuleImportInfo.addImport`) puts into a module's trace each impor
 
 Not a relocation lemma about today's checker, which treats a pc as an ordinary `Sym.gp e` with arithmetic on exponents. Instead the checker never sees an absolute pc:
 
-- **Relative code.** A code-pointer `SET` in a bundle is tagged in its high limb, which real code never uses: `.set o t TSELF` (offset `t`), `.set o k TCALL` (callee slot `k`). `link ρ` (entry, callee entries, `g^pc` table) maps them to the real `SET`s; the glue proves `fnOf j = link ρ_j code`, linear (comparing `__loop2`'s code with a copy takes 1.3 s) and checks the `g^pc` table once.
+- **Relative code.** A code-pointer `SET` in a bundle is tagged in its high limb, which real code never uses: `.set o t TSELF` (offset `t`), `.set o k TCALL` (callee slot `k`). `link ρ` (entry, callee entries, `g^pc` table) maps them to the real `SET`s; the glue proves `fnOf j = link ρ_j code`, linear (comparing `main_loop2`'s code with a copy takes 1.3 s) and checks the `g^pc` table once.
 - **Symbolic pointers.** `Sym` gains `.code t` and `.ent k`, `Sym.val` takes `ρ`: `symOf` reads the tags, `jumpKind` compares offsets, `DEREF .pc` gives `.code (i + 2)`, `calleeAt` reads the slot, a tail call to the own entry is `.code 0`, table jumps read the bundle's jump-table view (checked against `Data.jtTrie` in the glue). Untagged code reads as before, so families move one at a time.
 - **Soundness once for every layout.** `Exec`, `CheckSound`, `Cpl*` read `ρ.entry`, `ρ.callee k` where they read `entry` and `Sig.entry` today.
-- Positions inside a function are already offsets, but an early edit moves the later windows, so `__loop2` stays costly to edit until its windows are relative or it is split.
+- Positions inside a function are already offsets, but an early edit moves the later windows, so `main_loop2` stays costly to edit until its windows are relative or it is split.
 
 ## (c) The families
 
@@ -46,7 +46,7 @@ Not a relocation lemma about today's checker, which treats a pc as an ordinary `
 
 ## Expected result
 
-A body edit of a small function: `Statement/Data/` 0.18 CPU-h, its bundle (seconds; minutes for `sp_wots`; 3 to 4 CPU-h for `__loop2`), aggregates, links and assemblies 0.1 to 0.15, the `g^pc` table 0.1, what follows the assemblies 0.16 (critical path 4.6 min). About 0.6 CPU-h and 6 min wall, 0.4 CPU-h and 4 min once `SoundFacts` is split, against 8.2 CPU-h and 25 min. The prototype (three functions on h4, absolute pcs kept) measured an interface edit of a bundle's data rebuilding that bundle's data, check, B1 and link only, 7.5 CPU-s; a callee's `Sig` edit its caller's check and link only; plus 20 s of Lake checking traces per build.
+A body edit of a small function: `Statement/Data/` 0.18 CPU-h, its bundle (seconds; minutes for `sp_wots`; 3 to 4 CPU-h for `main_loop2`), aggregates, links and assemblies 0.1 to 0.15, the `g^pc` table 0.1, what follows the assemblies 0.16 (critical path 4.6 min). About 0.6 CPU-h and 6 min wall, 0.4 CPU-h and 4 min once `SoundFacts` is split, against 8.2 CPU-h and 25 min. The prototype (three functions on h4, absolute pcs kept) measured an interface edit of a bundle's data rebuilding that bundle's data, check, B1 and link only, 7.5 CPU-s; a callee's `Sig` edit its caller's check and link only; plus 20 s of Lake checking traces per build.
 
 ## Risks
 
@@ -70,10 +70,10 @@ Cones are for a length-changing body edit of a small function.
 6. **B2C local.** `cplWinD`, `shareWinD`, callee tables, the B2C data in the bundles. 2.4 CPU-h.
 7. **Memory and Count local.** 2.1 CPU-h, nearly all B1.
 8. **B1 parametric**, directory by directory, old names kept as glue instantiations; can run beside 4 to 7 after 3. 0.6 CPU-h, 6 min.
-9. **Glue diet.** `SoundFacts` split, generators recomputing only changed functions, relative windows for `__loop2`. 0.4 CPU-h, 4 min.
+9. **Glue diet.** `SoundFacts` split, generators recomputing only changed functions, relative windows for `main_loop2`. 0.4 CPU-h, 4 min.
 
 ## For the user
 
 - Moving `guestProgram` in the statement (step 2).
-- Loop names in the compiler (`<fn>__loop<k>`) or stable keys in the generators.
-- Splitting `__loop2` in the compiler instead of relativizing its windows.
+- Loop names in the compiler (`<fn>__loop<k>`): the generators' stable keys (`{caller}_loop{k}`) serve the proofs meanwhile.
+- Splitting `main_loop2` in the compiler instead of relativizing its windows.

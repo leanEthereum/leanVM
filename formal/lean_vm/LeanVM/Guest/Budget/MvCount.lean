@@ -32,7 +32,7 @@ expansion's (`da_expand__L7_L8`), its row loop's `r` iterations (`col_weight_le`
 padding's `2^L - r` and the levels at `L` (`dv_weight_le`, on a tree of `Da.dvNH r L`);
 `dvW_le`: within `kcDvA op + kcDvR op · r + kcDvP op · 2^L`.
 `clW op n`: `claim_list_digest`'s on `n` claims, its frame's, `list_split`'s, `n / 136` iterations
-of `__loop15`, `n % 136 / 17` of `__loop16` and the last group's `claim_list_last__L{n % 17}`
+of `claim_list_digest_loop0`, `n % 136 / 17` of `claim_list_digest_loop1` and the last group's `claim_list_last__L{n % 17}`
 (`cl_weight_le`, on a tree of
 `Main.clHonest n`); `clW_le`: within `kcClA op + kcClS op · n`. `Count.mainCounts op`: `main`'s callees' weights at
 `op`'s instructions, the static ones' certificates and these two by their shapes.
@@ -104,18 +104,18 @@ theorem cl_weightLe {k : ℕ} (hk : k < 17) :
       fun _ => (kcClT op).getD k 0 :=
   weightLe_tab ((mvTab_parts op).2.2.2.1 k hk)
 
-/-- The claim lists' loops' instructions per iteration: `__loop15` per `136` claims, `__loop16`
+/-- The claim lists' loops' instructions per iteration: `claim_list_digest_loop0` per `136` claims, `claim_list_digest_loop1`
 per `17`. -/
 def kcL15 : ℕ := (kcClLpT op).getD 0 0
 
 /-- See `kcL15`. -/
 def kcL16 : ℕ := (kcClLpT op).getD 1 0
 
-/-- **`__loop15`, per iteration.** -/
+/-- **`claim_list_digest_loop0`, per iteration.** -/
 theorem l15_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% claim_list_digest_loop0) (kcL15 op) :=
   loopWeightLe_tab (by simpa [clLpNames, kcL15] using (mvTab_parts op).2.2.2.2.1 0 (by norm_num))
 
-/-- **`__loop16`, per iteration.** -/
+/-- **`claim_list_digest_loop1`, per iteration.** -/
 theorem l16_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% claim_list_digest_loop1) (kcL16 op) :=
   loopWeightLe_tab (by simpa [clLpNames, kcL16] using (mvTab_parts op).2.2.2.2.1 1 (by norm_num))
 
@@ -270,7 +270,7 @@ theorem dvW_le {r L : ℕ} (hlo : r ≤ 2 ^ L) (hL : L < 11) :
 /-! ## The claim lists -/
 
 /-- **`claim_list_digest`'s instructions of `op` on `n = 136a + 17b + c` claims**: its frame's,
-`list_split`'s, `a` iterations of `__loop15`, `b` of `__loop16` and `claim_list_last__L{c}`. -/
+`list_split`'s, `a` iterations of `claim_list_digest_loop0`, `b` of `claim_list_digest_loop1` and `claim_list_last__L{c}`. -/
 def clW (n : ℕ) : ℕ :=
   (mvOmT op).getD 3 0 + (if n = 0 then 0 else
     kcLs op + n / 136 * kcL15 op + n % 136 / 17 * kcL16 op + (kcClT op).getD (n % 17) 0)
@@ -336,7 +336,7 @@ theorem kcClS_eq : kcClS op = (kcL15 op + 135) / 136 := by
   cases op <;> decide
 
 /-- **`claim_list_digest`'s instructions** within `kcClA op + kcClS op · n`: at most `7`
-iterations of `__loop16` (`n % 136 / 17 ≤ 7`) and the largest last group in the constant. -/
+iterations of `claim_list_digest_loop1` (`n % 136 / 17 ≤ 7`) and the largest last group in the constant. -/
 theorem clW_le (n : ℕ) : clW op n ≤ kcClA op + kcClS op * n := by
   rw [kcClA_eq, kcClS_eq]
   unfold clW

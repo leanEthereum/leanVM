@@ -902,17 +902,6 @@ theorem relAtIn_uniform_pure (hF : P.Fresh) (hS : P.PureIn S) {g : String} (hg :
     (loadsIn_of_loadsR t R fp hl) (fun _ h => h.elim) rd
     (fun i hi => hi.elim (hag i) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) fp i hd).elim) hdef
 
-/-- **A function of a quiet set, on every reader**: `Program.Rel` on `rd0` gives the placed
-relation on any reader defined wherever `rd0` is, at any frame pointer and region. -/
-theorem relAtIn_uniform_quiet (hP : P.Wf) (hF : P.Fresh) (hS : P.QuietIn S) {g : String}
-    (hg : g ∈ S) {args rets : List E} (h : P.Rel rd0 g args rets) :
-    ∃ n, ∀ (fp : ℕ) (R : ℕ → Prop) (rd : Reader), (∀ A, (rd0 A).isSome → (rd A).isSome) →
-      RelAtIn P fs cert rd R (fun _ => False) fp n g args rets := by
-  obtain ⟨t, hn, hv, hb⟩ := Program.Rel.tree hP h
-  obtain ⟨n, hn'⟩ := relAtIn_uniform_pure (fs := fs) (cert := cert) hF hS.pureIn hg
-    ⟨t, hn, hv, hb, loadsR_of_quiet hS (fun _ => False) t hv (hn ▸ hg)⟩
-  exact ⟨n, fun fp R rd hdef => (hn' fp rd (fun _ h => h.elim) hdef).mono fun _ h => h.elim⟩
-
 end Pure
 
 end Transfer

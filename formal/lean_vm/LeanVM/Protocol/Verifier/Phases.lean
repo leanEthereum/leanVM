@@ -143,11 +143,6 @@ def oodStackClaim (z : List E) (value : E) : StackClaim := (fun x ↦ eqEval z x
 /-- What `readOod` makes of its point and value. -/
 def oodOf (z : List E) (value : E) : Option StackClaim := some (oodStackClaim z value)
 
-theorem oodOf_spec {z : List E} {value : E} {cl : StackClaim} (h : oodOf z value = some cl) :
-    cl = oodStackClaim z value := by
-  simp only [oodOf, Option.some.injEq] at h
-  exact h.symm
-
 /-- **`readOod`, normal form**: the grind, the point, the value, then `oodOf`. -/
 theorem readOod_eq (stackLog : ℕ) :
     readOod stackLog = VerifierProgram.grindProofOfWork Whir.oodGrindingBits >>= fun _ ↦
@@ -196,11 +191,6 @@ def ringResult (point s challenges : List E) : E × (List E → E) :=
 /-- What `ringSwitch` makes of its challenges. -/
 def ringOf (point s challenges : List E) : Option (E × (List E → E)) :=
   some (ringResult point s challenges)
-
-theorem ringOf_spec {point s challenges : List E} {r : E × (List E → E)}
-    (h : ringOf point s challenges = some r) : r = ringResult point s challenges := by
-  simp only [ringOf, Option.some.injEq] at h
-  exact h.symm
 
 /-- **`ringSwitch`, normal form**: the grind, the challenges, then `ringOf`. -/
 theorem ringSwitch_eq (point s : List E) :

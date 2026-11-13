@@ -153,14 +153,6 @@ theorem atKeccak_of_eq {A : HonestProverWithHash} {prog : LeanIsaProgram} {input
   rw [← proveM_id]
   rfl
 
-/-- The verifier refusing a zero challenge, at Keccak, is the run of `execWith`. -/
-theorem verifierNZ_eq (prog : LeanIsaProgram) (input : PublicInput) (π : Proof) :
-    Budget.verifierNZ (m := Id) keccak256 keccakF1600 prog input π =
-      Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
-        ((execWith computedBytecodeValue Limits.verifyStackedOpeningNZ (bytecodeWords prog)
-          (publicInputDigest input)).bind fun _ ↦ VerifierProgram.ret true)
-        (seed (bytecodeWords prog) (publicInputDigest input)) π) := rfl
-
 /-- The statement's refusing verifier, at Keccak, is the run of `execWith` refusing zero
 challenges. -/
 theorem verifierRZ_eq (prog : LeanIsaProgram) (input : PublicInput) (π : Proof) :

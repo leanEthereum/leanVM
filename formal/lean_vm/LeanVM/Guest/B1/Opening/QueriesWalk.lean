@@ -67,12 +67,6 @@ theorem winsAt_known {d cd : ℕ} {w : E} (h : WinsAt rd d cd w) {i : ℕ} (hi :
   obtain ⟨e, he, rfl⟩ := h i hi v hv
   exact ⟨e, he, hv⟩
 
-/-- A path window's bound is its levels' count. -/
-theorem winsAt_path {s : Oq} {w : E} (h : WinsAt rd (s.pd + s.cd) s.cd w) {i : ℕ} (hi : i < oqNpw s)
-    {v : E} (hv : LoadHolds rd w i v) : ∃ e < 2 ^ oqWw s i, v = ofK (addressOfIndex e) := by
-  have := h i (by rw [qwN_eq]; omega) v hv
-  rwa [qwWin_path hi] at this
-
 /-- **The windows of a position** (a run `decode_query_windows` writes) are such windows. -/
 theorem winsAt_of_run {d cd q : ℕ} {w : E}
     (h : FrameRun rd w (qwN d cd) fun i ↦ gen ^ qwVal d cd q i) : WinsAt rd d cd w := by
@@ -164,15 +158,6 @@ theorem oqMainWins_of_queryWinsOk {t : E} {n d cd odd base : ℕ} (hodd : odd = 
 theorem winWalk_iff_bounded {d cd B : ℕ} {t x N : E} (hB : ∃ c < B, x * gen ^ c = N) :
     WinWalk rd d cd t x N ↔ ∀ c < B, (∀ c' ≤ c, x * gen ^ c' ≠ N) →
       ∀ w, LoadHolds rd (t * (x * gen ^ c)) 0 w → WinsAt rd d cd w := by
-  obtain ⟨c0, hc0, he⟩ := hB
-  refine ⟨fun h c _ ↦ h c, fun h c hc ↦ h c ?_ hc⟩
-  by_contra hcb
-  exact hc c0 (by omega) he
-
-/-- **The bounded walk** (level 0). -/
-theorem winWalk2_iff_bounded {d cd odd B : ℕ} {t x N : E} (hB : ∃ c < B, x * gen ^ c = N) :
-    WinWalk2 rd d cd odd t x N ↔ ∀ c < B, (∀ c' ≤ c, x * gen ^ c' ≠ N) → ∀ o, odd ≤ o →
-      o ≤ odd + 1 → ∀ w, LoadHolds rd (t * (x * gen ^ c) * (x * gen ^ c)) o w → WinsAt rd d cd w := by
   obtain ⟨c0, hc0, he⟩ := hB
   refine ⟨fun h c _ ↦ h c, fun h c hc ↦ h c ?_ hc⟩
   by_contra hcb

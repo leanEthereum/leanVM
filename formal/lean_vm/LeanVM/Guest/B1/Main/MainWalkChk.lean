@@ -107,11 +107,6 @@ theorem mBlocks_loads : mPre.filterMap B1.Stmt.loadS = (List.range 256).map (fun
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mAgg_atoms : atomsIn mAgg =
-    [.const (.n 443) (word 133823759239872512 0), .mul (.n 444) (.n 28) (.n 443)] := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
 theorem main_loop : coreProgram.loop "main" = false := by
   rw [Program.loop_of_find? find_main]; decide +kernel
 

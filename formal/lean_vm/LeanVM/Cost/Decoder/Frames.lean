@@ -8,7 +8,7 @@ public import LeanVM.Guest.Fast.Main
 
 The frame map keyed by the functions' indices (`Guest.Fast.NFrames`, `FunctionNames.lean`), and
 each callee's witness a function of its call's words, the compiled readers (`Signatures.lean`,
-`Da.lean`, `Hints.lean`) at the frame map's value: `xmssAtFrame` (`__loop2`, `fn_idx% main_loop2`,
+`Da.lean`, `Hints.lean`) at the frame map's value: `xmssAtFrame` (`main_loop2`, `fn_idx% main_loop2`,
 the leanXMSS check inline there), `sphincsAtFrame` (`verify_sig_lean_sphincs`, and its three
 `sp_wots` frames); neither is compiled here: the decoder's top looks their frames up once,
 `xmssAtFrameT`, `sphincsAtFrameT`, `Top.lean`), `daAtFrame` (`da_verify`),
@@ -28,7 +28,7 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 /-! ## Each callee's witness off its frame, keyed by index -/
 
 open LeanVM.Guest.Fast in
-/-- The leanXMSS signature `__loop2`'s iteration on `args` checks (`fn_idx% main_loop2`: the check is
+/-- The leanXMSS signature `main_loop2`'s iteration on `args` checks (index `37`: the check is
 inline there), the readers' tables `R` given. -/
 noncomputable def xmssAtFrame (R : ReaderTabs) (Vn : NFrames) (args : List E) :
     LeanXmss.Signature :=

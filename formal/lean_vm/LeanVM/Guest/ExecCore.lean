@@ -770,9 +770,6 @@ def execWinS (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sy
   pass F f.entryPc f.instructionCount ((f.code.drop a).take (b - a)) a (some (Cur.init a (envOf
       env))) (seeds.map fun t ↦ (t, envOf env)) [] 0
 
-theorem execWinS_nil (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
-    execWinS F f a env [] b = execWin F f a env b := rfl
-
 /-! ## Linking -/
 
 /-- The segments by start. -/

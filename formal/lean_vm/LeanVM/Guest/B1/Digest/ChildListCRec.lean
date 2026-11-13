@@ -117,8 +117,6 @@ theorem cellLd_val {stp j c e : ℕ} {v : E} (hS : ∀ a ∈ S, storesOk o0 stp 
   · exact absurd h' hnS
   · rw [h', cells_ptr hperm hF ho, rdAt_of_load ((loadHolds_mul_gen_pow rd _ _ _ _).mpr hv)]
 
-theorem gen_mul_ginvW : gen * ginvW = 1 := by rw [mul_comm]; exact ginvW_mul_gen
-
 /-- **A record's side atom holds**: the range check of its slot, its mark's store, a cell's
 read. -/
 theorem sideW_holds {stp j : ℕ} {os : ℕ → ℕ} {cells : List E} {L : ℕ}

@@ -42,10 +42,6 @@ theorem word17 : word 17 0 = gen ^ 2 ^ 2 + 1 := by
   rw [word_eOfNat, show (17 : ℕ) = 2 ^ 4 ^^^ 1 from rfl, eOfNat_xor, eOfNat_one,
     ← word_eOfNat, word_two_pow (by decide)]; norm_num
 
-theorem word257 : word 257 0 = gen ^ 2 ^ 3 + 1 := by
-  rw [word_eOfNat, show (257 : ℕ) = 2 ^ 8 ^^^ 1 from rfl, eOfNat_xor, eOfNat_one,
-    ← word_eOfNat, word_two_pow (by decide)]; norm_num
-
 theorem mulG {d x y : ℕ} (hx : x < d) (hy : y < d)
     (h : Good rd S w σ (.mul (.n d) (.n x) (.n y))) : σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [Good] at h

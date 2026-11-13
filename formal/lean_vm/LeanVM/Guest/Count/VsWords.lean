@@ -5,7 +5,7 @@
   certificates (`wSB`, `wSK`), B1-d's terminal words (`TermWordsFs`) and B1-c's
   `shared_selector_tables` bound (`ss_totalLeOn`); `verify_tables`' and the terminal's callees'
   weights from the `W` count certificates (`kuSB`, `kuSK`), `ss_weightLeOn` and the ratios of
-  `__loop14` and `ring_switch_weight` (`Count/RatioV`).
+  `check_opening_terminal_loop0` and `ring_switch_weight` (`Count/RatioV`).
 -/
 
 module

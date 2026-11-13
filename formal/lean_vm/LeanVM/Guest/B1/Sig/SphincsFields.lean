@@ -343,20 +343,6 @@ theorem mdIn_mask_sound {T c z b : Nat} (hc : c < 24) (hz : z + 8 < 10) (hv : FV
       rw [add_add_add_comm, e_add_self, zero_add],
     eOfNat_low]
 
-/-- **A byte placed at bit `s`**. -/
-theorem mdScale_sound {s v : Nat} {m : List Stmt × Nat × V} (hs : s < 128) (hs56 : s % 64 ≤ 56)
-    (hv : v < 2 ^ 8) (hm : AtomsHold rd σ m.1 → σ m.2.2 = eOfNat v)
-    (h : AtomsHold rd σ (mdScale s m).1) : σ (mdScale s m).2.2 = eOfNat128 (2 ^ s * v) := by
-  unfold mdScale at h ⊢
-  by_cases hs0 : s = 0
-  · simp only [hs0, ↓reduceIte] at h ⊢
-    rw [hm h, pow_zero, one_mul, eOfNat_eq128 (lt_trans hv (by norm_num))]
-  · simp only [hs0, ↓reduceIte] at h ⊢
-    have k := h.atom (a := .const (.n m.2.1) (pw s)) (by simp [cst])
-    have mu := h.atom (a := .mul (.n (m.2.1 + 1)) m.2.2 (.n m.2.1)) (by simp [mulS])
-    simp only [Atom.Holds] at k mu
-    rw [mu, k, hm h.left, pw_mul hs (two_pow_mod_mul_lt (k := 8) (by omega) hv)]
-
 /-- **A byte and a place placed at bit `s`**: the byte's word, the place's product. -/
 theorem mdScale_place_sound {s v p : Nat} {m : List Stmt × Nat × V} (hs : s < 128)
     (hs56 : s % 64 ≤ 56) (hv : v < 2 ^ 8) (hm : AtomsHold rd σ m.1 → σ m.2.2 = eOfNat v + eOfNat p)

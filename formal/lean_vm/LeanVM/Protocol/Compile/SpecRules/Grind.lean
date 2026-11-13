@@ -120,59 +120,6 @@ theorem grindsThen_of_noGrind {p : VerifierProgram α} {R : α → Prop}
 theorem grindsThen_ret (a : α) (R : α → Prop) : (ret a).GrindsThen R :=
   grindsThen_of_noGrind fun l b k ↦ by cases l <;> simp [after]
 
-theorem grindsThen_fail (R : α → Prop) : (fail : VerifierProgram α).GrindsThen R :=
-  grindsThen_of_noGrind fun l b k ↦ by cases l <;> simp [after]
-
-/-- A proof of work, whose challenge the follower draws. -/
-theorem grindsThen_grindProofOfWork (b : ℕ) : (grindProofOfWork b).GrindsThen fun _ ↦ True := by
-  unfold grindProofOfWork
-  split_ifs
-  · exact grindsThen_ret _ _
-  · rintro (_ | ⟨e, es⟩) b' k h
-    · simp only [after, Option.some.injEq, grind.injEq] at h
-      obtain ⟨-, rfl⟩ := h
-      trivial
-    · cases e <;> simp only [after, reduceCtorEq] at h
-      split at h
-      · cases es <;> simp [after] at h
-      · simp at h
-
-theorem grindsThen_read {k : E → VerifierProgram α} {R : α → Prop}
-    (hk : ∀ x, (k x).GrindsThen R) : (read k).GrindsThen R := by
-  rintro (_ | ⟨e, es⟩) b k' h
-  · simp [after] at h
-  · cases e <;> simp only [after, reduceCtorEq] at h
-    exact hk _ es b k' h
-
-theorem grindsThen_sample {k : E → VerifierProgram α} {R : α → Prop}
-    (hk : ∀ x, (k x).GrindsThen R) : (sample k).GrindsThen R := by
-  rintro (_ | ⟨e, es⟩) b k' h
-  · simp [after] at h
-  · cases e <;> simp only [after, reduceCtorEq] at h
-    exact hk _ es b k' h
-
-theorem grindsThen_query {i : ℕ} {ps : List ℕ} {k : List (List K) → VerifierProgram α}
-    {R : α → Prop} (hk : ∀ rows, (k rows).GrindsThen R) : (query i ps k).GrindsThen R := by
-  rintro (_ | ⟨e, es⟩) b k' h
-  · simp [after] at h
-  · cases e <;> simp only [after, reduceCtorEq] at h
-    exact hk _ es b k' h
-
-theorem grindsThen_commit {ht w : ℕ} {k : VerifierProgram α} {R : α → Prop}
-    (hk : k.GrindsThen R) : (commit ht w k).GrindsThen R := by
-  rintro (_ | ⟨e, es⟩) b k' h
-  · simp [after] at h
-  · cases e <;> simp only [after, reduceCtorEq] at h
-    split at h
-    · exact hk es b k' h
-    · simp at h
-
-theorem grindsThen_ite {c : Prop} [Decidable c] {p q : VerifierProgram α} {R : α → Prop}
-    (hp : c → p.GrindsThen R) (hq : ¬ c → q.GrindsThen R) : (if c then p else q).GrindsThen R := by
-  split_ifs with h
-  · exact hp h
-  · exact hq h
-
 /-- A whole program whose grinds are each followed by a challenge inside it. -/
 theorem GrindsThen.grindThenSample {P : VerifierProgram α} (hP : P.GrindsThen fun _ ↦ False) :
     GrindThenSample P := by

@@ -192,15 +192,6 @@ def eqtreeSig (σ : Val) (rs : List E) (b : ℕ) : ℕ → Val
   | m + 1 => setv (eqtreeSig σ rs b m) (eqtreeS b (m + 1)) (3 + 3 * 2 ^ (m + 1))
       (eqtreeLvlVal rs (m + 1))
 
-theorem eqtreeS_succ (b t : ℕ) (ht : 1 ≤ t) :
-    eqtreeS b (t + 1) = eqtreeS b t + 3 + 3 * 2 ^ t := by
-  unfold eqtreeS
-  have : 3 * 2 ^ (t + 1) = 3 * 2 ^ t + 3 * 2 ^ t := by rw [pow_succ]; ring
-  have h2 : 2 ≤ 2 ^ t := by
-    calc 2 = 2 ^ 1 := rfl
-      _ ≤ 2 ^ t := Nat.pow_le_pow_right (by decide) ht
-  omega
-
 /-- **The honest values satisfy `eqtree`**: with the point's words at `p`, the run `o` holding
 every level's `eqKernel` entries, and the template's values those of `eqtreeSig`. -/
 theorem eqtreeT_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n) {rs : List E} (hrs : rs.length = n)

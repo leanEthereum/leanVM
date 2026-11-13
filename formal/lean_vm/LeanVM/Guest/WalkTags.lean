@@ -14,7 +14,7 @@ public import LeanVM.Guest.WalkWindows
 
 A function's precondition names tuples of its frame cells in relations by tag (`Check.Sig.sem`):
 
-* `0`: the exponent table (`B1.ExpTables`) at the tuple's one word (`verify_sub`, `__loop4`);
+* `0`: the exponent table (`B1.ExpTables`) at the tuple's one word (`verify_sub`, `main_loop4`);
 * `1` (`Check.tagNe`): the two words differ, the checker's own (a loop's `x ≠ N`);
 * `walkTag kind odd d cd`: the windows `opening_queries`' walk dispatches on, specialization
   `(odd, base, depth d, cap_depth cd)` (`lean_ethereum.py:1431-1460`): `kind` `0`
@@ -27,7 +27,7 @@ A function's precondition names tuples of its frame cells in relations by tag (`
   argument (`lean_ethereum.py:1572`), which its decodes and grinds read.
 
 * `tagGkr = 2^20`: `GkrPar` on `[layers, x, start_g, k_mod_next]`, `verify_bus_gkr`'s
-  radix-four layer loop `__loop6` (`lean_ethereum.py:1970-2053`): the parity word
+  radix-four layer loop `verify_bus_gkr_loop0` (`lean_ethereum.py:1970-2053`): the parity word
   `layer[g^LAYER_PARITY]` of layer `x` it dispatches on, and the table `k_mod_next` that steps it.
 * `lqTag n odd base d cd`, from `2^21`: `OqMainWins` on `[win_ptrs]` at `n_iters_g = g^n`, the
   windows `level_queries` hands `opening_queries` (`lean_ethereum.py`, `level_queries`), which
@@ -94,7 +94,7 @@ def lqSem (t : ℕ) (rd : Reader) (ws : List E) : Prop :=
 `open_stacked`'s window table `tabs`, which `verify_sub` hands it. -/
 def tagTabs : ℕ := 2 ^ 21
 
-/-- **`__loop6`'s parity obligation** on `layers`, the iteration `x`, `start_g` and `k_mod_next`:
+/-- **`verify_bus_gkr_loop0`'s parity obligation** on `layers`, the iteration `x`, `start_g` and `k_mod_next`:
 `k_mod_next[g^r]`, `r < 4`, if read, is `g^e`, `e < 4`; and the parity word `layer[g^12]` of
 layer `x`, `layer = layers·(x²·start_g)^13` (`LAYER_SLOTS = 13`, `LAYER_PARITY = 12`), if read,
 is `g^e`, `e < 4`. -/

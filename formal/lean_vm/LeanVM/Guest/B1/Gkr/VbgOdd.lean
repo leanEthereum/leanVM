@@ -227,10 +227,6 @@ theorem tb_list2_eq {l : List E} (h : l.length = 2) : ∃ a b, l = [a, b] := by
   match l, h with
   | [a, b], _ => exact ⟨a, b, rfl⟩
 
-theorem tb_list4_eq {l : List E} (h : l.length = 4) : ∃ a b c d, l = [a, b, c, d] := by
-  match l, h with
-  | [a, b, c, d], _ => exact ⟨a, b, c, d, rfl⟩
-
 section Arms
 
 variable {C : CallRel} {rd : Reader} {w : ℕ → E} {σ : Val} {kret : List E → Prop}

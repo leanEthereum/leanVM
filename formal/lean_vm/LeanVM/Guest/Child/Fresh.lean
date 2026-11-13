@@ -215,11 +215,5 @@ theorem prefix_bytecode {bytecode : List K} {y : Pre} (h : VerifierProgram.Retur
 
 /-! ## The deferring verifiers -/
 
-/-- The deferring program refusing a zero challenge, as a sequence. -/
-theorem deferredProgramNZ_eq (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    Limits.deferredProgramNZ c bytecode publicInput =
-      (execWith (claimedBytecodeValue c) Limits.verifyStackedOpeningNZ bytecode publicInput).bind
-        fun _ ↦ VerifierProgram.ret true := rfl
-
 end
 end LeanVM.Guest.Child

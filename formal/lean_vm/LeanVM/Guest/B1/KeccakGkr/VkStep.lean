@@ -51,14 +51,6 @@ def vkGw : ℕ → ℕ
   | 11 => 8564720591351840768
   | _ => 0
 
-/-- The words of `g^(22 s)`. -/
-theorem vkGw_eq : ∀ s, 1 ≤ s → s < 12 → word (vkGw s) 0 = gen ^ (22 * s) := by
-  intro s h1 h2
-  rw [word_eOfNat, gen_pow_eq_ofK, ← gpowK_eq (by unfold u128Bound; omega)]
-  show ofK (K.ofBits (vkGw s)) = ofK (gpowK (22 * s))
-  congr 1
-  interval_cases s <;> decide +kernel
-
 /-! ## Chains of additions -/
 
 theorem addChainT_holds {vs : List ℕ} (hne : vs ≠ []) {b : ℕ} {next : Prop}

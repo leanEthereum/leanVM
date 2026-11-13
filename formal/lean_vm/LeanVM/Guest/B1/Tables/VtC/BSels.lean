@@ -34,8 +34,6 @@ open Finset (range)
 /-- Framework block `b`'s first value. -/
 def vtFwW (b : ℕ) : ℕ := [778, 794, 822].getD b 0
 
-theorem vtIdxcW_eq : vtIdxcW = vtIdxcList := rfl
-
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
 

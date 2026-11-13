@@ -123,9 +123,6 @@ theorem mem_pruneStep {A : ℕ} {sym : ℕ → K} {L : List (Array K × Array K)
   · rintro ⟨s, hs, ce, hce, hA, rfl⟩
     exact ⟨s, hs, ce, hce, by rw [ite_eq_left hA]⟩
 
-theorem pruneStep_nil (A : ℕ) (sym : ℕ → K) (L : List (Array K × Array K)) :
-    pruneStep A sym L [] = [] := rfl
-
 theorem pruneUpTo_zero (κ R A : ℕ) (W : ℕ → List K) :
     pruneUpTo κ R A W 0 = [([], List.range (2 ^ (κ + R)))] := rfl
 
@@ -275,13 +272,6 @@ theorem candidates_subset_decodeStacks {μ R : ℕ} (hμ : 16 ≤ μ ∧ μ ≤ 
   obtain ⟨hA, hcap⟩ := johnsonThreshold_bounds hμ hR
   change q ∈ decodeStacksAt μ R (johnsonThreshold μ R) W
   exact mem_decodeStacksAt (by omega) hR.1 (by simp only [initialFold]; omega) hA hcap W hq
-
-/-- The same, at the statement's real-valued threshold (`johnsonThreshold_eq_real`). -/
-theorem candidates_real_subset_decodeStacks {μ R : ℕ} (hμ : 16 ≤ μ ∧ μ ≤ 30)
-    (hR : 1 ≤ R ∧ R ≤ 4) (W : ℕ → List K) :
-    Candidates μ R (johnsonThresholdReal μ R) W ⊆ {q | q ∈ decodeStacks μ R W} := by
-  rw [johnsonThreshold_eq_real]
-  exact candidates_subset_decodeStacks hμ hR W
 
 /-! ## Distinct survivors -/
 

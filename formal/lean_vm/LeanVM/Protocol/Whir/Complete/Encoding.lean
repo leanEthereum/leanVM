@@ -83,13 +83,6 @@ theorem sum_cube (κ : ℕ) (F : (Fin κ → Bool) → E) :
 /-- A message read from a table: `u ↦ t[⟨u⟩]`. -/
 def msgOf (κ : ℕ) (t : List E) : (Fin κ → Bool) → E := fun u ↦ t.getD (bitsToNat u) 0
 
-/-- `Enc(t)` at a position as a sum over the table. -/
-theorem encAt_msgOf (κ : ℕ) (t : List E) (p : ℕ) :
-    encAt κ (msgOf κ t) p = ∑ i ∈ range (2 ^ κ), t.getD i 0 * ofK (novelAt i (K.ofBits p)) := by
-  rw [encAt, sum_cube]
-  refine sum_congr rfl fun i hi ↦ ?_
-  rw [msgOf, bitsToNat_testBit (mem_range.mp hi)]
-
 /-! ## Lanes -/
 
 /-- Lane `j` of a table cut along its first `k` variables: `x ↦ t[j + 2^k·⟨x⟩]`. -/
@@ -99,22 +92,6 @@ def laneMsg (κ k : ℕ) (t : List E) (j : ℕ) : (Fin κ → Bool) → E :=
 /-- The `2^k` lanes' codeword entries at the position `p`. -/
 def laneCodes (κ k : ℕ) (t : List E) (p : ℕ) : List E :=
   (List.range (2 ^ k)).map fun j ↦ encAt κ (laneMsg κ k t j) p
-
-/-- **Folding commutes with the encoder.** Folding the lanes' entries at a position with the
-equality kernel of `r` gives the entry of the encoding of the table folded at `r`. -/
-theorem dot_laneCodes_eqKernel (κ : ℕ) (t r : List E) (p : ℕ)
-    (ht : t.length = 2 ^ (r.length + κ)) :
-    dot (laneCodes κ r.length t p) (eqKernel r) = encAt κ (msgOf κ (foldAll t r)) p := by
-  rw [dot_eqKernel _ _ (by simp [laneCodes])]
-  have hl : ∀ j ∈ range (2 ^ r.length), (laneCodes κ r.length t p).getD j 0 =
-      encAt κ (laneMsg κ r.length t j) p := fun j hj ↦ by
-    simp [laneCodes, mem_range.mp hj]
-  rw [sum_congr rfl fun j hj ↦ by rw [hl j hj]]
-  simp only [encAt, laneMsg, msgOf, sum_mul]
-  rw [sum_comm]
-  refine sum_congr rfl fun u _ ↦ ?_
-  rw [getD_foldAll r t κ _ ht (bitsToNat_lt u), sum_mul]
-  exact sum_congr rfl fun j _ ↦ by ring
 
 /-! ## The level words -/
 

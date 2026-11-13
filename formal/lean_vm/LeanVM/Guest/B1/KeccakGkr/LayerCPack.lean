@@ -118,11 +118,6 @@ theorem roundRec_pred {rec : E} {j : ℕ} {cap : List E} {cur cl sc : E}
   · rw [show 1 + 6 * krCap = 1 + (0 + 6 * krCap) by omega, loadHolds_rec_succ]; exact h2
   · rw [show 1 + 7 * krCap = 1 + (0 + 7 * krCap) by omega, loadHolds_rec_succ]; exact h3
 
-theorem getD_append_two {l : List E} {a b : E} {n : ℕ} (hl : l.length = n) :
-    (l ++ [a, b]).getD n 0 = a ∧ (l ++ [a, b]).getD (n + 1) 0 = b := by
-  subst hl
-  simp
-
 /-- The challenges of rounds `k .. k + n`, as the continuation's. -/
 theorem chs_cont (hpm : D.packMsgs.length = D.y) {k n : ℕ} (hk : k + n ≤ D.y) {q : ℕ}
     (hq : q < n) :

@@ -60,7 +60,7 @@ theorem keyCmp_cost (hP : Includes P keyCmpC.costDeps) (a b : CallKey) {L L' : �
   generalize compareOn (fun x ↦ x.1) a.2 b.2 = o3
   cases o1 <;> cases o3 <;> dsimp only <;> split_ifs <;> omega
 
-/-- A state's key as filed (`entryKeyT_ok`): word-sized, at most `56` argument codes (`__loop2`'s)
+/-- A state's key as filed (`entryKeyT_ok`): word-sized, at most `56` argument codes (`main_loop2`'s)
 and `10` return codes. -/
 @[expose, reducible] def EntryKeyOK (k : CallKey) : Prop := KeyOK 56 k ∧ k.2.2.length ≤ 10
 

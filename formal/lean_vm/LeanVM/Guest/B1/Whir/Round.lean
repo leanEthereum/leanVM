@@ -106,11 +106,6 @@ theorem absorbAll_four (cap : List E) (a b c d : E) (t : ℕ) :
     (⟨cap, []⟩ : Fs).absorbAll [a, b, c, d] t = ⟨cap, [(a, t), (b, t), (c, t), (d, t)]⟩ := by
   simp [Fs.absorbAll, Fs.absorb, rateScalars]
 
-/-- One scalar absorbed below a full queue. -/
-theorem absorb_short (s : Fs) (x : E) (t : ℕ) (h : s.pend.length ≠ 4) :
-    s.absorb x t = ⟨s.cap, s.pend ++ [(x, t)]⟩ := by
-  simp [Fs.absorb, rateScalars, h]
-
 /-- An output cell of a permutation. -/
 theorem outCell {σ : Val} {k : ℕ} {f : Fin 13 → E} (h : cells13 ((osRun k 13).map σ) = f)
     (i : Fin 13) : σ (.n (k + i.val)) = f i := by

@@ -277,8 +277,6 @@ theorem rsNames_get (j : ℕ) (hj : j < 8) :
       "rs_eq_rows__L5", "rs_eq_rows__L6", "rs_eq_rows__L7"][j] = rsEqRowsNames.getD j "" := by
   interval_cases j <;> rfl
 
-theorem pow_sq3 (x : E) : (x * x * (x * x)) * (x * x * (x * x)) = x ^ 8 := by ring
-
 /-- A chunk of `n > 0` coordinates from `rs_eq_rows__L{n}`'s meaning. -/
 theorem chunk_of_meaning {rd : Reader} {chain z p ret : E} {n t : ℕ} (hn : 0 < n)
     (h : MeaningRsEqRows n rd [chain * gen ^ (64 * t), z * gen ^ (8 * t), p * gen ^ (8 * t)] [ret]) :

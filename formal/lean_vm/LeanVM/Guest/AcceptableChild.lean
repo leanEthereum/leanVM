@@ -11,6 +11,9 @@ module
 public import Statement.LeanVmGuestCompleteness
 public import LeanVM.Protocol.Compile.RunPure
 public import LeanVM.Guest.Coverage
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # A child the guest program accepts
@@ -36,7 +39,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 namespace Coverage
 
 /-- `STREAM_CAP` (`aggregation/child.rs:268`): a child's proof stream is zero-padded to it. -/
-def childStreamCap : ℕ := 8192
+def childStreamCap : ℕ := guest_const% STREAM_CAP
 
 /-- The least stack log the guest program has an opening arm for (`min_execution_stacked_log` of
 its `2^19` instructions, `crates/verifier`'s `layout.rs`). -/

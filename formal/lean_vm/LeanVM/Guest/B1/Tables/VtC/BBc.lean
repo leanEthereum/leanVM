@@ -79,9 +79,6 @@ theorem vt_list10 (w : List E) (hw : w.length = 10) :
   match w, hw with
   | [_, _, _, _, _, _, _, _, _, _], _ => rfl
 
-theorem bcRound_cap_length {cap : List E} {claim a b : E} : (bcRound cap claim a b).1.length = 5 :=
-  rfl
-
 /-- **The bytecode share runs** on `w` from `F0` when its last claim is accepted. -/
 theorem vtBc_run (F0 : Fs) (w : List E) (hwl : w.length = 10) (weights low : List E)
     (hacc : (vtBcR3 F0 w).2.1 = dot (eqKernel (vtBcPoint F0 w)) weights * w.getD 9 0) :

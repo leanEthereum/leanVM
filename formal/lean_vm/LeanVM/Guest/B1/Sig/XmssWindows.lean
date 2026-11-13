@@ -242,14 +242,8 @@ def lxTagLog (i : Nat) : Nat := Nat.log2 i
 /-- The number of carried tags (`LX_N_TAGS`). -/
 def lxNTags : Nat := ((List.range 58).filter lxTagCarried).length
 
-theorem lxNTags_eq : lxNTags = 51 := by decide
-
 /-- The carried tags' slots are below `LX_N_TAGS` and distinct. -/
 theorem lxTagSlot_spec : ∀ i < 58, lxTagCarried i = true → 1 ≤ lxTagSlot i ∧ lxTagSlot i ≤ 51 := by
-  decide
-
-theorem lxTagSlot_inj : ∀ i < 58, ∀ j < 58, lxTagCarried i = true → lxTagCarried j = true →
-    lxTagSlot i = lxTagSlot j → i = j := by
   decide
 
 /-- An index neither `0` nor carried is a power of two below `2^6`. -/

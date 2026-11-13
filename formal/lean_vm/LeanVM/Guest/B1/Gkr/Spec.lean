@@ -40,10 +40,6 @@ theorem grindingBits_le_eight {n : ℕ} (h : n ≤ 8) : grindingBits n = 0 := by
   unfold grindingBits securityBits
   interval_cases n <;> decide
 
-theorem grindProofOfWork_le_eight {n : ℕ} (h : n ≤ 8) :
-    VerifierProgram.grindProofOfWork (grindingBits n) = pure () := by
-  rw [grindingBits_le_eight h]; rfl
-
 /-- An equality-mode round of five coefficients grinds nothing. -/
 theorem sumcheckRoundPoly_five (claim e : E) :
     sumcheckRoundPoly 5 claim (some e) = VerifierProgram.readScalars 4 >>= fun tail =>

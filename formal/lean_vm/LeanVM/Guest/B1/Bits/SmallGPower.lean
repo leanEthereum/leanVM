@@ -178,10 +178,6 @@ def asgVals (x q : E) (e : ℕ) (y t1 t2 : ℕ → E) (k : ℕ) : E :=
     [word 32768 0, y j, t1 j, t2 j, q * gen ^ n j, gen ^ (n j * 16 ^ j),
       gen ^ (e % 16 ^ (j + 1))].getD ((k - 17) % 7) 0
 
-theorem asgVals_x (x q : E) (e : ℕ) (y t1 t2 : ℕ → E) : asgVals x q e y t1 t2 0 = x := rfl
-
-theorem asgVals_q (x q : E) (e : ℕ) (y t1 t2 : ℕ → E) : asgVals x q e y t1 t2 1 = q := rfl
-
 theorem asgVals_d (x q : E) (e : ℕ) (y t1 t2 : ℕ → E) (j : ℕ) (hj : j < 9) :
     asgVals x q e y t1 t2 (j + 2) = gen ^ (e / 16 ^ j % 16) := by
   simp only [asgVals]

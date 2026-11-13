@@ -73,8 +73,6 @@ theorem sDigestBlock_ptrs : ∀ q ∈ loadPtrs sDigestBlock, q < 1372 := by deci
 
 theorem sForsAddrs_seq : SeqOK 1372 sForsAddrs 1382 := seqB_ok (by decide +kernel)
 
-theorem sForsB_nb : NumBelow 5249 (Stmt.valsList sForsB.1) := numBelow_of_all (by decide +kernel)
-
 /-- `BottomPost` reads values below `n5249` only. -/
 theorem BottomPost.congr {bb : E} {pk : Sphincs.PublicKey} {m : HashSig.Message}
     {sig : Sphincs.Signature} {σ σ' : Val} (h : BottomPost bb pk m sig σ)

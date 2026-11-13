@@ -285,8 +285,6 @@ theorem lrBody_ne0 {q : ℕ} (h : q % resBatch ≠ 0) (l1 l2 : String) :
       [.ret [.n 26, .n 27]] := by
   simp [lrBody, h, List.append_assoc]
 
-theorem resFold_zero (P H : E → E) (mu : E) : resFold P H mu (0, 0) [] = (0, 0) := rfl
-
 /-- The loop entry `osLoopCall name 0 n args k` holds: the loop's relation at `[1, g^n] ++ args`,
 behind its guard. -/
 theorem osLoopCall0_val {C : CallRel} {σ : Val} {name : String} {n : ℕ} {args : List ℕ} {k : ℕ}

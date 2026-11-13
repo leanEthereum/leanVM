@@ -343,10 +343,6 @@ def openingQueriesLoops : List (String × String × OqShape) :=
         name% «opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0»,
       ⟨0, 0, 4, 16, 23, 5, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩)]
 
-/-- The table's specializations are the deployed ones. -/
-theorem openingQueriesLoops_shapes :
-    openingQueriesLoops.map (fun p ↦ (p.1, p.2.2)) = openingQueriesShapes := rfl
-
 /-- **`opening_queries` is sound with its queries named** at the specialization `name` (loop
 helper `loop`, shape `sh`): under a call relation `C ≤ Rel` unfolding at `V`, a valuation `σ`
 holding its body on `args` returning `rets`, `N` iterations (`args[7] = g^N`) and the positions

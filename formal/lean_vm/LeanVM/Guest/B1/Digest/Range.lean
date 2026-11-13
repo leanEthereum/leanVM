@@ -82,11 +82,6 @@ theorem belowLog_lt {b : E} {e M : ℕ} (hM : M < 2 ^ 33) (hb : b = gen ^ M) (h 
 
 /-! ## Compile-time powers of `g` -/
 
-set_option maxRecDepth 100000 in
-theorem word_gmax : word 9272771591053052074 0 = gen ^ 65535 := by
-  rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
-  congr 1
-
 theorem word_g16 : word 65536 0 = gen ^ 16 := word_two_pow (a := 16) (by decide)
 
 /-! ## `list_split` (G:4291-4306, TRIAGE #87) -/

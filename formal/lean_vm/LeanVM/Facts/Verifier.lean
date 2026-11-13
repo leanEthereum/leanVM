@@ -23,11 +23,6 @@ open LeanVM.Parameters LeanVM.Semantics
 
 @[expose] public section
 
-/-- The guard of `crates/verifier/src/layout.rs:400-411` (a `const` assertion, checked when the
-crate compiles): every spare slot of `q_keccak` has a committed `KECCAK` column to carry. -/
-theorem qkeccakSpare_le_length_keccakCommitted : qkeccakSpare ≤ keccakCommitted.length := by
-  decide +kernel
-
 /-- The two cases of `qkeccak_slot` (`layout.rs:413-423`) are disjoint: no spare-carrying committed
 column is an input lane. -/
 theorem keccakSlotOf_disjoint :
@@ -59,8 +54,6 @@ def packBits : ℕ := 4
 
 /-- The steps of a pack, `2 ^ PACK_BITS = 16`. -/
 def pack : ℕ := 16
-
-theorem pack_eq : pack = 2 ^ packBits := rfl
 
 /-- The deployed seed, with Keccak. -/
 def seed (bytecode : List K) (publicInput : Digest) : KeccakState :=

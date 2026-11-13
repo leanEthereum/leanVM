@@ -8,6 +8,9 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.Round
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # Rounds between records
@@ -32,7 +35,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- `GKR_ROUNDS_CAP`. -/
-abbrev gkCap : ℕ := 862
+abbrev gkCap : ℕ := guest_const% GKR_ROUNDS_CAP
 
 /-- A record's five capacity cells, its fields `stride` words apart from offset `off`
 (B1-a's `CapAt`). -/

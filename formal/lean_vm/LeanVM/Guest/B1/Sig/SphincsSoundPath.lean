@@ -86,9 +86,6 @@ theorem pow_mul_xor_pow_mul (s a b : Nat) : 2 ^ s * a ^^^ 2 ^ s * b = 2 ^ s * (a
   rw [Nat.mul_comm (2 ^ s) a, Nat.mul_comm (2 ^ s) b, Nat.mul_comm (2 ^ s), ← Nat.shiftLeft_eq,
     ← Nat.shiftLeft_eq, ← Nat.shiftLeft_eq, Nat.shiftLeft_xor_distrib]
 
-theorem xor_two_pow_mul {s q r : Nat} (hr : r < 2 ^ s) : r ^^^ 2 ^ s * q = 2 ^ s * q + r := by
-  rw [Nat.xor_comm, two_pow_mul_xor hr]
-
 /-- **Indices of disjoint bits**: the `A1` limb of height `z` and index `P`, XOR the index `v`. -/
 theorem a1Hi_xor {z P v : Nat} (hz : z < 2 ^ 24) (hP : P < 2 ^ 16) (hv : v < 2 ^ 16) :
     a1Hi z P ^^^ a1Hi 0 v = a1Hi z (P ^^^ v) := by

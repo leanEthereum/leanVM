@@ -48,10 +48,6 @@ theorem spW_atoms : StepAtoms spW := by
   simp only [spW, spWp]
   split <;> rfl
 
-theorem spArmK_atoms (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k b : Nat) :
-    atomsOnly (spArmK first n fold B prodIn encIn k b).1 = true :=
-  armT_atoms spW_atoms _ _ _ _ _ _ _ _ _ _
-
 theorem spPre_atoms (fold : Bool) (B : Nat) : atomsOnly (spPre fold B) = true := by
   cases fold <;> rfl
 
@@ -73,8 +69,6 @@ def SpGroupOK (rd : Reader) (σ : Val) (p : Nat) : Prop :=
       (spArmB (3 * p) (spN p) (p == 0) (spState p).2.2 (spState p).1 (spState p).2.1 k)).1
 
 theorem spN_of_lt {p : Nat} (hp : p < 21) : spN p = 3 := by simp [spN, hp]
-
-theorem spN_pos (p : Nat) : 0 < spN p := by unfold spN; split <;> omega
 
 theorem spN_le (p : Nat) : spN p ≤ 3 := by unfold spN; split <;> omega
 

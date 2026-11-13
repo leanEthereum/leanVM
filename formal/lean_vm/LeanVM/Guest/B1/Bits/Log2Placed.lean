@@ -68,13 +68,6 @@ theorem regionL_log2Lin {sqE i : ℕ} (h1 : sqE ≤ i) (h2 : i < sqE + 236) :
     RegionL (log2Lin sqE) i :=
   ⟨_, List.mem_singleton_self _, h1, by rw [length_expTableWords]; exact h2⟩
 
-theorem regionL_app {L L' : Main.Layout} {i : ℕ} (h : RegionL (L ++ L') i) :
-    RegionL L i ∨ RegionL L' i := by
-  obtain ⟨q, hq, h1, h2⟩ := h
-  rcases List.mem_append.mp hq with hq | hq
-  · exact Or.inl ⟨q, hq, h1, h2⟩
-  · exact Or.inr ⟨q, hq, h1, h2⟩
-
 theorem allocDsts_inK (c : V) (es : List Ev) : allocDsts (.inK c :: es) = allocDsts es := rfl
 theorem allocs_inK (σ : Val) (c : V) (es : List Ev) : allocs σ (.inK c :: es) = allocs σ es := rfl
 theorem addrs_inK (c : V) (es : List Ev) : addrs (.inK c :: es) = addrs es := rfl

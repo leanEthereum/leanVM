@@ -34,9 +34,6 @@ def sSignedOf (l : Nat) : V := if l = 0 then sForsPk else if l = 1 then sLayerB.
 /-- Layer `l` of the body. -/
 def sLayerBlk (l : Nat) : List Stmt × Nat × V := sLayerAt l (sA0Of l) (sA1Of l) (sSignedOf l)
 
-theorem sLayerBlk_eq : sLayerBlk 0 = sLayerB ∧ sLayerBlk 1 = sLayerM ∧ sLayerBlk 2 = sLayerT :=
-  ⟨rfl, rfl, rfl⟩
-
 /-- Layer `l`'s counter. -/
 def sCtrBlock (l : Nat) : List Stmt × Nat × V := sFromMarks (sLayerBase l) 4 (sLayerBase l + 4)
 

@@ -27,11 +27,6 @@ open LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 
-theorem mem_sd_load {a : Atom} (ha : a ∈ sdLoads) : a ∈ sdAtoms := by
-  unfold sdAtoms
-  exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
-    (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ ha)))))
-
 /-- The meaning's words are the memory's: its returns are determined. -/
 theorem statement_digest_unique {rd : Reader} {args r r' : List E}
     (h : MeaningStatementDigest rd args r) (h' : MeaningStatementDigest rd args r') : r = r' := by

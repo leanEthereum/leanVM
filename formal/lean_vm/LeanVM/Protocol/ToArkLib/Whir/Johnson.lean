@@ -315,13 +315,6 @@ theorem card_iList_johnsonAgreement_le {n : ℕ} (domain : Fin n ↪ F) {D : ℕ
     O
   simpa [johnsonRhoMinus] using h
 
-/-- **Johnson bound as a natural number.** The list size is at most `⌊1 / (2 η √ρ₋)⌋₊`. -/
-theorem card_iList_johnsonAgreement_le_floor {n : ℕ} (domain : Fin n ↪ F) {D : ℕ} {η : ℝ}
-    (hD : 0 < D) (hn : 0 < n) (hη : 0 < η) (O : ρ → Fin n → F) :
-    (iList (ReedSolomon.code domain (D + 1)) ⌈johnsonAgreement n D η * n⌉₊ O).card ≤
-      ⌊1 / (2 * η * √(johnsonRhoMinus n D))⌋₊ :=
-  Nat.le_floor (card_iList_johnsonAgreement_le domain hD hn hη O)
-
 end List
 
 end

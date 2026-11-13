@@ -17,7 +17,7 @@ looked up once:
 * each column's frame (`dvColVN`) looked up once, its two words the rows read (`dvColWords`)
   kept in an array of the `128` columns (`dvCols`), built once by `dvWitNAt` and passed to
   `dvWitNCols`;
-* each cell's blob-loop frame (`dvRowVW`, `__loop21`) looked up once, passed as a value to
+* each cell's blob-loop frame (`dvRowVW`, `da_verify_loop0`) looked up once, passed as a value to
   `cellSymsAt`;
 * the powers of `g` taken in `K` (`ofK (g^i)`, `mulK`), not in `E`.
 

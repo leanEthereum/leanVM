@@ -122,7 +122,7 @@ theorem kvSK_loop {op : Opcode} {j : ℕ} {f : String} (h : kvOkK op j f = true)
       (fun _ h => (List.not_mem_nil h).elim)
     simpa [Aff.eval] using this
 
-/-- **A frame's weight by its core index**: `B2C.pathMax`'s entry, but at `__loop2`. -/
+/-- **A frame's weight by its core index**: `B2C.pathMax`'s entry, but at `main_loop2`. -/
 theorem ωArm_idx {C : Opcode → ℕ} {op : Opcode} {j : ℕ} {f : String}
     (h : (coreProgram[j]?).map Fn.name = some f) (hx : f ≠ (name% main_loop2)) :
     B2C.ωArm C op f = (B2C.plumbOf (j + 1)).pmax.getD (B2C.opIdx op) 0 := by

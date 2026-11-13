@@ -90,11 +90,6 @@ theorem word_y : word 0 1 = y := by rw [y_eq]; rfl
 /-- `Y_INV = x + y`, the data's `word 2 1`. -/
 theorem word_y_inv : word 2 1 = y⁻¹ := by rw [y_inv]; rfl
 
-/-- `y · E(t)`, the data's `word 0 t` (`Y_TOWER * tag`). -/
-theorem word_y_mul (t : ℕ) : word 0 t = y * eOfNat t := by
-  rw [eOfNat, y_mul_ofK]
-  rfl
-
 /-! ## Words in `K` -/
 
 theorem isInK_add {a b : E} (ha : IsInK a) (hb : IsInK b) : IsInK (a + b) := by
@@ -148,16 +143,6 @@ theorem loadHolds_mul_gen_pow (rd : Reader) (p : E) (j k : ℕ) (w : E) :
 theorem loadHolds_unique {rd : Reader} {p : E} {k : ℕ} {w w' : E} (h : LoadHolds rd p k w)
     (h' : LoadHolds rd p k w') : w = w' :=
   Option.some.inj (h.2.symm.trans h'.2)
-
-/-- Choices below `m` as a list. -/
-theorem exists_list_of_forall {P : ℕ → E → Prop} {m : ℕ} (h : ∀ j < m, ∃ v, P j v) :
-    ∃ l : List E, l.length = m ∧ ∀ j (hj : j < l.length), P j l[j] := by
-  classical
-  refine ⟨(List.range m).map fun j => if hj : j < m then Classical.choose (h j hj) else 0,
-    by simp, fun j hj => ?_⟩
-  simp only [List.length_map, List.length_range] at hj
-  simp only [List.getElem_map, List.getElem_range, hj, ↓reduceDIte]
-  exact Classical.choose_spec (h j hj)
 
 /-- Blocks without a return, one per index below `n`, hold exactly when each does. -/
 theorem holdsList_range_flatten {C : CallRel} {rd : Reader} {σ : Val} (n : ℕ)
@@ -505,9 +490,6 @@ theorem holds_ite_noRet {C : CallRel} {rd : Reader} {σ : Val} (c : V) (z n : Li
         (σ c ≠ 0 → Stmt.HoldsList C rd σ n True kret)) ∧ next := by
   rw [holds_noRet (.ite c z n) (by simp [Stmt.noRet, hz, hn]) next kret]
   rfl
-
-set_option maxRecDepth 8000 in
-theorem e_mul_inv_cancel {z : E} (h : z ≠ 0) : z * z⁻¹ = 1 := mul_inv_cancel₀ h
 
 end
 end LeanVM.Guest.B1

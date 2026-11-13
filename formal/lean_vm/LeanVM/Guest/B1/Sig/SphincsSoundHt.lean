@@ -131,11 +131,6 @@ theorem beWordAt_zero_beWordAt_zero {N : Nat} (h : N < 2 ^ 32) : beWordAt 0 (beW
       by omega⟩
   rw [beWordAt_zero_digits ha hb hc hd, beWordAt_zero_digits hd hc hb ha]
 
-/-- The layer's counter, as the signature reads it off its cell. -/
-theorem counter_of_cell {N : Nat} (h : N < 2 ^ 32) :
-    (BitVec.ofNat 32 (beWordAt 0 (cellNat (eOfNat N))) : EncodingCounter).toNat = beWordAt 0 N := by
-  rw [cellNat_eOfNat (by omega), BitVec.toNat_ofNat, Nat.mod_eq_of_lt (beWordAt_zero_lt N)]
-
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## The layer's counter and encoding -/

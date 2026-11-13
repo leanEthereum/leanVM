@@ -235,9 +235,6 @@ theorem cs_addr_mul (b c k : ℕ) : (ofK (addressOfIndex b) * gen ^ c).limb 0 * 
     rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
   rw [e, Main.addr_ofK]
 
-theorem colSelNames_mem {κ : ℕ} (hκ : κ < 31) : Tables.lName "column_selector" κ ∈ colSelNames :=
-  List.mem_map.mpr ⟨κ, List.mem_range.mpr hκ, rfl⟩
-
 /-! ## The nibble shares -/
 
 /-- **The nibble shares' words** (`exponent_tables`): `g^(u·16^j)` at `16j + u`, `j < 8`. -/

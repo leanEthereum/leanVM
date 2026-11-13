@@ -56,15 +56,6 @@ noncomputable def msgT {m : ℕ} (κ : ℕ) (U : (Fin m → Bool) → E[X]) :
     (Fin m → Bool) → (Fin κ → Bool) → E :=
   fun u ↦ lowMsg κ (U u)
 
-/-- A polynomial of degree below `2^κ` is the message polynomial of its low part. -/
-theorem msgPoly_lowMsg_of_deg {κ : ℕ} (hκ : κ ≤ 64) {P : E[X]} (hP : P.natDegree ≤ 2 ^ κ - 1) :
-    msgPoly κ (lowMsg κ P) = P := by
-  rw [msgPoly_lowMsg hκ, (modByMonic_eq_self_iff (vanE_monic κ)).mpr]
-  rw [degree_eq_natDegree (vanE_monic κ).ne_zero, natDegree_vanE]
-  refine degree_le_natDegree.trans_lt ?_
-  have := Nat.one_le_two_pow (n := κ)
-  exact_mod_cast (show P.natDegree < 2 ^ κ by omega)
-
 /-! ## Out-of-domain separation -/
 
 /-- The out-of-domain value of a message: its claim against `eq_eval(z, ·)`. -/

@@ -9,6 +9,9 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The selectors (TRIAGE G #44-50, #68, #69): the interface
@@ -225,7 +228,7 @@ def block_selector_complete_Spec : Prop :=
 /-! ## The committed columns' selectors -/
 
 /-- `SEL_NIBBLES`: the opening point's `32 = MAX_STACKED_LOG` coordinates, four to a nibble. -/
-abbrev selNibbles : ℕ := 8
+abbrev selNibbles : ℕ := guest_const% SEL_NIBBLES
 
 /-- Entry `u` of nibble `j`'s level-`w` eq table (`selector_tables`): the eq weight of `u`'s bits
 `t ≥ 3 - w` against the point's coordinates `4j + t` (complements `p1`). -/

@@ -3,7 +3,7 @@
 is its template, `OsData m`, `Whir/DataSpec.lean`), and `HelperData{k}.lean` and `HelperAll.lean`
 (every specialization of `level_positions`, `level_queries`, `level_residual` and of their loops
 is its template, `Whir/HelperT.lean`, and the helpers' tables), by kernel evaluation. The sizes
-are `ligNSizes` (`Whir/Config.lean`); the functions' indices are read from the core IR
+are `ligNSizes` (`LIG_N_LOG_SIZES`, `Data/Source.lean`); the functions' indices are read from the core IR
 (`Guest/Data/Core*.lean`), the loops a helper calls and the body lengths from `guest-core --show`;
 the kernel checks them. Run from `lean_vm` after `lake build guest-core`:
 
@@ -240,7 +240,8 @@ def lrLoopsOf (name : String) : String × String :=
 
 
 def main():
-    arms = int(re.search(r"abbrev ligNSizes : Nat := (\d+)", (WHIR / "Config.lean").read_text()).group(1))
+    arms = int(re.search(r"def const_LIG_N_LOG_SIZES : Nat := (\d+)",
+                         Path("LeanVM/Guest/Data/Source.lean").read_text()).group(1))
     global IDX
     idx = core_indices()
     IDX = idx

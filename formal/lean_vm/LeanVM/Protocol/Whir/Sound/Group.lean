@@ -150,10 +150,6 @@ def queryFrag (depth t i : ℕ) : VerifierProgram (List ℕ × E × List (List K
   sampleQueries depth t >>= fun qs ↦ sampleChallenge >>= fun lam ↦ queryOpenings i qs >>= fun words ↦
     VerifierProgram.ret (qs, lam, words)
 
-theorem noMoves_queryFrag (depth t i : ℕ) : NoMoves (queryFrag depth t i) :=
-  (noMoves_sampleQueriesAux depth t t).bind fun _ ↦ noMoves_sampleE.bind fun _ ↦
-    (noMoves_queryP i _).bind fun _ ↦ NoMoves.ret _
-
 /-- **The query group's expectation.** For a function `F` of the group's values, if every
 in-range position list has `avg_λ F(qs, λ, W(qs)) ≤ allIn S qs + ε` (the rows read from the
 word `W` of commitment `i`), the expectation over the group is at most

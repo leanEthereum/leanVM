@@ -94,14 +94,6 @@ theorem match_complete {x : V} {arms : List (List Stmt)} {k lo hi : Nat} (hk : k
 theorem word_two_pow_eq {j : Nat} (hj : j < 64) : word (2 ^ j) 0 = ofK (addressOfIndex j) := by
   rw [word_eq_eOfNat, ← Value.gen_pow_eq_eOfNat hj, Value.gen_pow_eq_ofK]
 
-theorem start_ge {W : WotsT} {fold : Bool} {b k t lo : Nat} {base : Nat}
-    (h1 : lo ≤ base) (h2 : lo ≤ slotsT W fold b t 2) :
-    ∃ j, walkStartV (slotsT W fold b t) (dig k t) base = .n j ∧ lo ≤ j := by
-  unfold walkStartV
-  split
-  · exact ⟨_, rfl, h2⟩
-  · exact ⟨_, rfl, h1⟩
-
 /-- **A group completes**, its digits `k` hinted at `d`, its statements `pre` a sequential block on
 `d + 5 ..< b + 5` after which `good` holds, its arms laid out from `b`. -/
 theorem groupD_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)

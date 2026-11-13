@@ -19,6 +19,9 @@ public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Guest.B1.Common.Find
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The digests: meanings (TRIAGE G #86-89, #94, #95)
@@ -99,10 +102,10 @@ def statement_digest_complete_Spec : Prop :=
 /-! ## `list_split` (G:4291-4306, TRIAGE #87) -/
 
 /-- `CLAIM_GROUP`: claims hashed a loop frame of a list's rest. -/
-abbrev claimGroup : ℕ := 17
+abbrev claimGroup : ℕ := guest_const% CLAIM_GROUP
 
 /-- `BIG_GROUPS`: groups of a big frame. -/
-abbrev bigGroups : ℕ := 8
+abbrev bigGroups : ℕ := guest_const% BIG_GROUPS
 
 /-- `CLAIM_BIG = CLAIM_GROUP · BIG_GROUPS`: claims hashed a loop frame of a list's bulk. -/
 abbrev claimBig : ℕ := 136

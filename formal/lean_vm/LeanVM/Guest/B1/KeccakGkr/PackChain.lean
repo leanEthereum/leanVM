@@ -112,9 +112,6 @@ theorem roundRec_succ {rec : E} {j : ℕ} {cap : List E} {cur cl sc : E}
   · rw [show 0 + 6 * krCap = 6 * krCap by omega, ← loadHolds_rec_succ]; exact h2
   · rw [show 0 + 7 * krCap = 7 * krCap by omega, ← loadHolds_rec_succ]; exact h3
 
-theorem eqRound_pend (s : Fs) (g1 g2 r v sc : E) : (eqRound s g1 g2 r v sc).2.2.2 =
-    ⟨(eqRound s g1 g2 r v sc).2.2.2.cap, []⟩ := rfl
-
 theorem gen_pow_ne_one {h : ℕ} (h0 : 0 < h) (hlt : h < ordG) : 1 + gen ^ h ≠ 0 := by
   intro e
   have : gen ^ h = gen ^ 0 := by rw [pow_zero]; exact (e_add_eq_zero_iff.mp e).symm

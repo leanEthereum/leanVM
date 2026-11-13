@@ -120,24 +120,6 @@ theorem refines_refuseZero_of_nz {Q P : VerifierProgram α} (h : NZ Q P) : Limit
   | commit _ ih => exact .commit ih
   | query _ ih => exact .query ih
 
-/-- **Refusing zero challenges keeps a refinement.** -/
-theorem refines_refuseZero_mono {P' P : VerifierProgram α} (h : Limits.Refines P' P) :
-    Limits.Refines P'.refusingZeroChallenge P.refusingZeroChallenge := by
-  induction h with
-  | fail P => exact .fail _
-  | ret a => exact .ret a
-  | read _ ih => exact .read ih
-  | sample _ ih =>
-    refine .sample fun c ↦ ?_
-    show Limits.Refines (if c = 0 then VerifierProgram.fail else _)
-      (if c = 0 then VerifierProgram.fail else _)
-    split
-    · exact .fail _
-    · exact ih c
-  | grind _ ih => exact .grind ih
-  | commit _ ih => exact .commit ih
-  | query _ ih => exact .query ih
-
 /-! ## The deferring verifier and the verifier -/
 
 /-- **The deferring verifier refusing a zero challenge accepts only what the guest's accepts.** -/

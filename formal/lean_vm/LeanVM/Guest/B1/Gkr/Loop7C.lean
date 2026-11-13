@@ -449,9 +449,6 @@ theorem lyc_last (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {L : ℕ
   · exact (rc k h5).2
   · rw [show k = 5 by omega]; exact l75
 
-theorem lyEvT_noRet (i : ℕ) : Stmt.noRetList (lyEvT i) = true := by
-  simp [lyEvT, chT, fsNextT, fsPackT, Stmt.noRetList, Stmt.noRet]
-
 /-- **The children**: the twelve words at the last record's cursor, read, and absorbed four at a
 time over the last record's capacity. -/
 theorem lyc_children (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {cap : List E}

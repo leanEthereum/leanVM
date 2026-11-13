@@ -10,6 +10,9 @@ module
 
 public import LeanVM.Guest.B1.Sumcheck.Meaning
 public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The Keccak GKR reduction (TRIAGE G #53-63): the interface
@@ -202,7 +205,7 @@ def layerName : ℕ → String
   | _ => "keccak_layer__L0"
 
 /-- `KR_STEP`: the pack rounds' first loop runs eight rounds an iteration. -/
-abbrev krStep : ℕ := 8
+abbrev krStep : ℕ := guest_const% KR_STEP
 
 /-- **`keccak_layer(fs0..fs4, p0, p1, cursor, y_g, step_g, rem_g, claim, out, iota, tabs, first)`**
 (G:2875-3058): on the window table `tabs` (`WinTabs`, which `s`'s grind reads), for every reading of its arguments as the claim `c` on points of

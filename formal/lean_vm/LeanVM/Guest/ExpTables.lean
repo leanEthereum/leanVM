@@ -9,6 +9,9 @@ module
 
 public import LeanVM.Guest.Core
 public import Statement.Field
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The exponent table
@@ -35,7 +38,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Protocol LeanVM
 @[expose] public section
 
 /-- `SIZE_BITS`: the squares' section's length. -/
-abbrev sizeBits : ℕ := 34
+abbrev sizeBits : ℕ := guest_const% SIZE_BITS
 
 /-- `SEL_TAB_NIBBLES = (SIZE_BITS + 3) // 4` (`lean_ethereum.py:314`). -/
 abbrev selTabNibbles : ℕ := 9
@@ -53,10 +56,10 @@ abbrev sideTabAt : ℕ := 212
 def sideGroupStart : List ℕ := [0, 9, 18, 24]
 
 /-- `N_GKR_SIDES`. -/
-abbrev nGkrSides : ℕ := 3
+abbrev nGkrSides : ℕ := guest_const% N_GKR_SIDES
 
 /-- `N_BLOCK_GROUPS`. -/
-abbrev nBlockGroups : ℕ := 24
+abbrev nBlockGroups : ℕ := guest_const% N_BLOCK_GROUPS
 
 /-- **The exponent table at `q`** (`exponent_tables`, `lean_ethereum.py:698-723`): the squares
 `q[g^j] = g^(2^j)`, `j < 34`; the nibble shares `q[g^(34 + 16j + u)] = g^(u·16^j)`, `j < 9`,
@@ -70,7 +73,7 @@ def ExpTables (rd : Reader) (q : E) : Prop :=
       LoadHolds rd q (sideTabAt + gi) (eOfNat s))
 
 /-- `WIN_TAB_BITS`: the width of a bit window the table covers. -/
-abbrev winTabBits : ℕ := 11
+abbrev winTabBits : ℕ := guest_const% WIN_TAB_BITS
 
 /-- `WIN_TAB_AT = SIDE_TAB_AT + N_BLOCK_GROUPS`: where the bit-window table starts. -/
 abbrev winTabAt : ℕ := 236

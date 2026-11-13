@@ -21,6 +21,9 @@ public import LeanVM.Protocol.Verifier
 public import LeanVM.Guest.Word
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Protocol.KeccakHash
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The honest hint generator
@@ -99,7 +102,7 @@ dispatches on at a time. -/
 def lxDigitGroup : ℕ := 4
 
 /-- `LX_WINDOW` (`aggregation/hints.rs:19`): the leaf index bits a leanXMSS path dispatch covers. -/
-def lxWindow : ℕ := 8
+def lxWindow : ℕ := guest_const% LX_WINDOW
 
 /-! ## Encodings -/
 

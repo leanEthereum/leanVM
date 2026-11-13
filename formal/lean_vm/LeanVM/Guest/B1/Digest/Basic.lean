@@ -60,10 +60,6 @@ theorem forall_mem_flatMap_range {α : Type} {n : ℕ} {f : ℕ → List α} {P 
 abbrev wY : E := word 0 1
 abbrev wYi : E := word 2 1
 
-theorem wY_eq : wY = y := word_y
-
-theorem wYi_eq : wYi = y⁻¹ := word_y_inv
-
 /-! ## The padding of a whole-cell message -/
 
 /-- The padding cell of a message of whole cells, `len = 16 m` with `16 m ≡ 8 (mod 136)`, … in

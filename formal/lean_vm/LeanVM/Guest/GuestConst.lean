@@ -26,7 +26,9 @@ open Lean Elab Term
 /-- `guest_const% C`: the value of the guest's global constant `C`. -/
 elab:max "guest_const% " c:ident : term => do
   let n := `LeanVM.Guest.Data ++ Name.mkSimple ("const_" ++ c.getId.toString)
-  let some (.defnInfo d) := (← getEnv).find? n | throwErrorAt c "no guest constant {c.getId} ({n})"
+  -- The source is imported privately: look it up outside the exported view, and insert only its literal.
+  let some (.defnInfo d) := ((← getEnv).setExporting false).find? n
+    | throwErrorAt c "no guest constant {c.getId} ({n})"
   return d.value
 
 end LeanVM.Guest.GuestConst

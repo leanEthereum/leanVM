@@ -299,12 +299,6 @@ def childReads : ℕ :=
 
 section Phases
 
-theorem reads_liftOption {α : Type} (o : Option α) (n : ℕ) :
-    Reads (liftOption o) n fun a ↦ o = some a := by
-  cases o
-  · trivial
-  · rfl
-
 /-- A round polynomial of `count` coefficients reads `count - 1` of them (at least one), then
 grinds. -/
 theorem reads_sumcheckRoundPoly (count : ℕ) (claim : E) (eq : Option E) :
@@ -836,11 +830,6 @@ theorem reads_verifyExecution (ev : List K → List E → E → VerifierProgram 
         ladder_reads _ _ levels h
     · omega
   all_goals omega
-
-/-- The deployed check of the fixed polynomial's value reads nothing. -/
-theorem reads_computedBytecodeValue (w : List K) (p : List E) (v : E) :
-    Reads (computedBytecodeValue w p v) 0 fun _ ↦ True :=
-  (Reads.require (n := 0) _).mono le_rfl fun _ _ ↦ trivial
 
 /-- The deferring check of the fixed polynomial's value reads nothing. -/
 theorem reads_claimedBytecodeValue (claim : BytecodeClaim) (w : List K) (p : List E) (v : E) :

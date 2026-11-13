@@ -279,17 +279,6 @@ theorem holds_of_good {rd : Reader} {S : List Atom} {w : Nat → E} {σ : Val} {
   | hint h => trivial
   | touch t p => exact load_of_rdAt hg hs.1 hs.2
 
-/-- **A thirteen-cell `KECCAK`'s equations** in the form of the written cells' `cells13`. -/
-theorem good_keccak13 {rd : Reader} {S : List Atom} {w : Nat → E} {σ : Val} {ins outs : List V}
-    {i o : Bool} (hg : Good rd S w σ (.keccak ins outs i o))
-    (ho : outs.length = 13 := by first | rfl | simp) :
-    ins.length = 13 ∧ outs.length = 13 ∧ ∀ c : Fin 13, cells13 (outs.map σ) c =
-      cellsOfState (keccakF1600 (stateOfCells (cells13 (ins.map σ)) i)) o c := by
-  obtain ⟨h1, -, h3⟩ := hg
-  refine ⟨h1, ho, fun c => ?_⟩
-  rw [cells13, List.getD_eq_getElem _ _ (by simp [ho]), List.getElem_map]
-  exact h3 c (by omega)
-
 /-! ## The checker's facts -/
 
 theorem oldB_spec {c : Nat} {v : V} (h : oldB c v = true) : v = .n v.idx ∧ v.idx < c := by

@@ -96,16 +96,6 @@ theorem lowMsg_msgPoly_add {κ : ℕ} (hκ : κ ≤ 64) (g : (Fin κ → Bool) �
   rw [← modByMonicHom_apply, map_add, modByMonicHom_apply, modByMonicHom_apply, h0, add_zero,
     (modByMonic_eq_self_iff (vanE_monic κ)).mpr hlt]
 
-/-- The low part of a message polynomial is its message. -/
-theorem lowMsg_msgPoly {κ : ℕ} (hκ : κ ≤ 64) (g : (Fin κ → Bool) → E) :
-    lowMsg κ (msgPoly κ g) = g := by
-  simpa using lowMsg_msgPoly_add hκ g 0
-
-/-- Evaluation splits over the low part: `P(x) = P_low(x) + W_κ(x)·(P div W_κ)(x)`. -/
-theorem eval_eq_low_add {κ : ℕ} (hκ : κ ≤ 64) (P : E[X]) (x : E) :
-    P.eval x = (msgPoly κ (lowMsg κ P)).eval x + (vanE κ).eval x * (P /ₘ vanE κ).eval x := by
-  rw [msgPoly_lowMsg hκ, ← eval_mul, ← eval_add, modByMonic_add_div P (vanE κ)]
-
 /-! ## Tuples, agreement and claims -/
 
 variable {n : ℕ} {ρ : Type} [Fintype ρ]

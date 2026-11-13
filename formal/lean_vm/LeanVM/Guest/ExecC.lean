@@ -83,9 +83,6 @@ theorem execWinC_eq (j : ℕ) (F : Facts) (a : ℕ) (env : List (ℕ × Sym)) (b
   unfold execWinC execWin codeFrom CompiledFunction.code
   rw [← drop_flatten_chunked (by decide) (fnOf_wellChunked j)]
 
-theorem execWinCS_nil (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
-    execWinCS F f a env [] b = execWinC F f a env b := rfl
-
 theorem execWinCS_eq (j : ℕ) (F : Facts) (a : ℕ) (env : List (ℕ × Sym)) (seeds : List ℕ) (b : ℕ) :
     execWinCS F (fnOf j) a env seeds b = execWinS F (fnOf j) a env seeds b := by
   unfold execWinCS execWinS codeFrom CompiledFunction.code

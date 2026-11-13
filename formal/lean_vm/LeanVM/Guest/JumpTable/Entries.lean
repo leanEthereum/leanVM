@@ -106,14 +106,5 @@ theorem allEntries_of_get {p : ℕ → ℕ → Bool} :
     show (v.all (p b) && allEntries p l (2 * a) (a + b) && allEntries p r (2 * a) (2 * a + b)) = true
     rw [h0, hl, hr]; rfl
 
-theorem allEntries_split {p : ℕ → ℕ → Bool} {t : Trie ℕ} {a b : ℕ} (hv : t.val.all (p b) = true)
-    (hl : allEntries p t.left (2 * a) (a + b) = true) (hr : allEntries p t.right (2 * a) (2 * a + b) = true) :
-    allEntries p t a b = true := by
-  cases t with
-  | nil => rfl
-  | node v l r =>
-    simp only [allEntries, Trie.val, Trie.left, Trie.right, Bool.and_eq_true] at hv hl hr ⊢
-    exact ⟨⟨hv, hl⟩, hr⟩
-
 end
 end LeanVM.Guest.JumpTable

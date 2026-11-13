@@ -51,19 +51,5 @@ theorem log2_L16_completeAtB (κ : ℕ) (hκ6 : 6 ≤ κ) (N sqE : ℕ) (hN : N 
   lce_completeAtB 16 (by norm_num) find_lce_L16 rfl log2_ceil_in_the_exponent_L16_L34_body
       loop_lce_L16 κ hκ6 N sqE hN hL
 
-/-- **`log2_ceil_in_the_exponent__L0_L34`, placed.** -/
-theorem log2_L0_completeAt (κ : ℕ) (hκ6 : 6 ≤ κ) : ∀ (N sqE : ℕ), N < 2 ^ 34 →
-    max 0 (log2Ceil N) < 34 →
-    CompleteAtD fs cert κ "log2_ceil_in_the_exponent__L0_L34" (log2Lin sqE)
-      [gen ^ N, ofK (Parameters.addressOfIndex sqE)] (Returns [gen ^ max 0 (log2Ceil N)]) :=
-  fun N sqE hN hL => (log2_L0_completeAtB κ hκ6 N sqE hN hL).toCompleteAtD
-
-/-- **`log2_ceil_in_the_exponent__L16_L34`, placed.** -/
-theorem log2_L16_completeAt (κ : ℕ) (hκ6 : 6 ≤ κ) : ∀ (N sqE : ℕ), N < 2 ^ 34 →
-    max 16 (log2Ceil N) < 34 →
-    CompleteAtD fs cert κ "log2_ceil_in_the_exponent__L16_L34" (log2Lin sqE)
-      [gen ^ N, ofK (Parameters.addressOfIndex sqE)] (Returns [gen ^ max 16 (log2Ceil N)]) :=
-  fun N sqE hN hL => (log2_L16_completeAtB κ hκ6 N sqE hN hL).toCompleteAtD
-
 end
 end LeanVM.Guest.B1

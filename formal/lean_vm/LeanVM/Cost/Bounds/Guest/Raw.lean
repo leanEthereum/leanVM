@@ -43,7 +43,7 @@ variable {wX : List E → LeanXmss.Signature} {wXV : MachineValue}
 include hwX hWX
 
 /-- **The raw leanXMSS signature of mark `j` at the address `p53 · a`** (`xmssRawAtC`), `j < 2^35`,
-`__loop2`'s other arguments `args` at most `55` words: its slot's claim, `g^j` in `K` and the
+`main_loop2`'s other arguments `args` at most `55` words: its slot's claim, `g^j` in `K` and the
 signature at the iteration's arguments, at most `4·R + WX + 15100`. -/
 theorem xmssRawAt_cost (hP : Includes P xmssRawAtC.costDeps) (p53 : E) (args : List E)
     (hargs : args.length ≤ 55) (a : K) (j : ℕ) (hj : j < 2 ^ 35) :
@@ -74,7 +74,7 @@ theorem xmssRaw_cost (hP : Includes P xmssRawC.costDeps) (p53 : E) (args : List 
 /-- The raw leanXMSS signatures' price, at most `X` of them. -/
 @[expose] def xmssRawsTPrice (R WX X : ℕ) : ℕ := (4 * R + WX + 18850) * X + 30
 
-/-- **The raw leanXMSS signatures** (`xmssRawsTC`), off a good table, `n ≤ X ≤ 2^34`, `__loop2`'s
+/-- **The raw leanXMSS signatures** (`xmssRawsTC`), off a good table, `n ≤ X ≤ 2^34`, `main_loop2`'s
 other arguments at most `55` words: at most `xmssRawsTPrice R WX X`. -/
 theorem xmssRawsT_cost (hP : Includes P xmssRawsTC.costDeps) (p53 : E) (args : List E)
     (hargs : args.length ≤ 55) (t : Array ℕ × Array ℕ) (ht : TableGood t) (n X : ℕ)

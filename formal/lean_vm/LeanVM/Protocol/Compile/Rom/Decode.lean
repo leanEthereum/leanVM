@@ -104,8 +104,6 @@ theorem not_boundary_append_query (h : List Ev) (rows : List (List K)) :
   · simp_all
   · rw [getLast?_append_single]; simp
 
-theorem grindBits_nil : grindBits [] = 0 := rfl
-
 theorem grindBits_append_read (h : List Ev) (x : E) : grindBits (h ++ [Ev.read x]) = 0 := by
   simp [grindBits]
 

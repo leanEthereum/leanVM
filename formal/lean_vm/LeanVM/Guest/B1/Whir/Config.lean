@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Data.Source
 public import LeanVM.Guest.B1.Whir.MatPlan
+public import LeanVM.Guest.GuestConst
 
 /-!
 # The `LIG_*` tables and a size's configuration (TRIAGE G #42)
@@ -39,26 +40,26 @@ namespace LeanVM.Guest.B1.Whir
 def lig (a : List (Nat × Nat)) (i : Nat) : Nat := (a.getD i (0, 0)).1
 
 /-- `LIG_MAX_LEVELS`: the rows of a size in the per-level tables. -/
-abbrev ligMaxLevels : Nat := 6
+abbrev ligMaxLevels : Nat := guest_const% LIG_MAX_LEVELS
 
 /-- `LIG_N_LOG_SIZES`: the sizes a rate's rows cover. -/
-abbrev ligNSizes : Nat := 11
+abbrev ligNSizes : Nat := guest_const% LIG_N_LOG_SIZES
 
 /-- `LIG_N_RATES`. -/
-abbrev ligNRates : Nat := 4
+abbrev ligNRates : Nat := guest_const% LIG_N_RATES
 
 /-- `LIG_LEVEL_POSITIONS_CAP`: a level's slots in `query_positions` and `query_win_ptrs`. -/
-abbrev ligPosCap : Nat := 224
+abbrev ligPosCap : Nat := guest_const% LIG_LEVEL_POSITIONS_CAP
 
 /-- `LIG_LOG_MSG_COLS_CAP`: the stride of a sample's row in `ood_z` and of a level's in
 `basis_d`. -/
-abbrev ligColsCap : Nat := 24
+abbrev ligColsCap : Nat := guest_const% LIG_LOG_MSG_COLS_CAP
 
 /-- `YR_LOG_CAP`: the length of `tail_challenges`. -/
-abbrev yrLogCap : Nat := 5
+abbrev yrLogCap : Nat := guest_const% YR_LOG_CAP
 
 /-- `2 ^ HIGH_BITS_CAP`: the stride of a level's high part in `level_hs`. -/
-abbrev hsStride : Nat := 8
+abbrev hsStride : Nat := 2 ^ guest_const% HIGH_BITS_CAP
 
 /-- One level's row of the tables. -/
 structure OsLv where

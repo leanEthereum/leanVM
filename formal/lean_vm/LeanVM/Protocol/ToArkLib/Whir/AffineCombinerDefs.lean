@@ -53,11 +53,6 @@ noncomputable def lin (α β : F) : F[X] := C α + C β * X
 
 @[simp] theorem eval_lin (α β x : F) : (lin α β).eval x = α + β * x := by simp [lin]
 
-theorem natDegree_lin_le (α β : F) : (lin α β).natDegree ≤ 1 := by
-  unfold lin
-  refine (natDegree_add_le _ _).trans (max_le (by simp) ?_)
-  exact (natDegree_C_mul_le _ _).trans (by simp)
-
 /-- The affine combination `f + (α + β x) g` of two words, lane by lane. -/
 def comb (dom : ι ↪ F) (f g : ρ → ι → F) (α β : F) : ρ → ι → F :=
   fun r x ↦ f r x + (α + β * dom x) * g r x
@@ -178,13 +173,6 @@ omit [DecidableEq ι] in
 @[simp] theorem mem_tupleList (w : ρ → ι → F) (A d : ℕ) (P : ρ → F[X]) :
     P ∈ tupleList dom w A d ↔ DegLE d P ∧ A ≤ (agree dom P w).card := by
   simp [tupleList]
-
-/-- A lower degree bound and a higher threshold give a smaller list. -/
-theorem pairList_mono (f g : ρ → ι → F) {A A' d d' : ℕ} (hA : A' ≤ A) (hd : d ≤ d') :
-    pairList dom f g A d ⊆ pairList dom f g A' d' := by
-  intro p hp
-  rw [mem_pairList] at hp ⊢
-  exact ⟨fun r ↦ (hp.1 r).trans hd, fun r ↦ (hp.2.1 r).trans hd, hA.trans hp.2.2⟩
 
 /-- **Johnson bound for pairs of tuples** (Annex B, `thm:johnson-interleaved`): with `A² > n d`,
 at most `jl n A d` pairs of tuples of degree at most `d` agree with `(f, g)` on a common set of

@@ -49,17 +49,6 @@ theorem squeezeN_succ' (s : Fs) (n : ℕ) :
     s.squeezeN (n + 1) = (s.squeeze.1 :: (s.squeeze.2.squeezeN n).1, (s.squeeze.2.squeezeN n).2) :=
   rfl
 
-/-- The sponge after squeezes is its capacity with nothing waiting. -/
-theorem squeezeN_eq_cap (s : Fs) (n : ℕ) (h : 0 < n) :
-    (s.squeezeN n).2 = ⟨(s.squeezeN n).2.cap, []⟩ := by
-  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
-  have := squeezeN_pend (s := s.squeeze.2) rfl m
-  rw [squeezeN_succ']
-  cases e : (s.squeeze.2.squeezeN m).2
-  rw [e] at this
-  simp only at this
-  rw [this]
-
 /-- A sponge is its capacity and what waits. -/
 theorem fs_mk_eq {s : Fs} {c : List E} {p : List (E × ℕ)} (h1 : s.cap = c) (h2 : s.pend = p) :
     s = ⟨c, p⟩ := by

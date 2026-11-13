@@ -234,13 +234,6 @@ theorem eToNat_eOfNat128 (n : ℕ) : eToNat (eOfNat128 n) = n % 2 ^ 128 := by
     rw [show (2 : ℕ) ^ 128 = 2 ^ 64 * 2 ^ 64 by norm_num, Nat.mod_mul]
   omega
 
-/-- The integer of a word is below `2^128`. -/
-theorem eToNat_lt (x : E) : eToNat x < 2 ^ 128 := by
-  have h0 := kToNat_lt (x.limb 0)
-  have h1 := kToNat_lt (x.limb 1)
-  unfold eToNat
-  omega
-
 /-- `eOfNat128` of the integer of a word is the word. -/
 theorem eOfNat128_eToNat (x : E) : eOfNat128 (eToNat x) = x := by
   have h0 := kToNat_lt (x.limb 0)

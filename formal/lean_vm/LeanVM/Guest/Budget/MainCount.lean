@@ -20,13 +20,13 @@ public import LeanVM.Guest.B1.Da.DvAt
 `MainCounts ω fs`: per callee of `main`, a bound on every valid tree's weight at `ω` (an opcode's
 instructions per frame, `B2C.ωArm`):
 * `exponent_tables`, `statement_digest`: constants (`WeightLe`);
-* the loops `__loop0` .. `__loop3`: per iteration (`LoopW`), run from `1` to `g^n` at `main`'s
+* the loops `main_loop0` .. `main_loop3`: per iteration (`LoopW`), run from `1` to `g^n` at `main`'s
   counts;
 * `aggregate_claims`: affine in its children's count;
 * `claim_list_digest`: affine in its claims' count on a tree of its honest shape (`clHonest n`);
 * `da_verify`: affine in its rows and its padded rows `2^L` on a tree of its honest shape
   (`Da.dvNH r L`);
-* the claim lists, `da_verify` and `__loop4`, the children's loop, in `main`: bounds `Kx`, `Ks`,
+* the claim lists, `da_verify` and `main_loop4`, the children's loop, in `main`: bounds `Kx`, `Ks`,
   `Kd`, `K5` on every valid tree of their predicates (`Final` gives the first three from the
   above, `L5Count` the last per child, at the child's announced shape).
 `main_weight_count`: on `main`'s node with `main`'s calls, honest values and callee predicates,

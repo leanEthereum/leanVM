@@ -175,11 +175,6 @@ theorem dot_eqKernel (row s : List E) (h : row.length = 2 ^ s.length) :
   refine Finset.sum_congr rfl fun j hj ↦ ?_
   rw [getD_eqKernel s (Finset.mem_range.mp hj), zero_mul, zero_add, mul_comm]
 
-/-- The fold is computed column by column. -/
-theorem foldsN_apply {ι : Type*} (s : List E) (O : ℕ → ι → E) (j : ℕ) (x : ι) :
-    foldsN s O j x = foldsN s (fun j' (_ : Unit) ↦ O j' x) j () := by
-  rw [foldsN_eq_sum, foldsN_eq_sum]
-
 /-! ## `multilinear_eval` -/
 
 /-- One `foldPairs` step is one `foldN` on an even-length table. -/

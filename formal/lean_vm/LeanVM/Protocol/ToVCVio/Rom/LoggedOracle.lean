@@ -163,43 +163,6 @@ theorem pairLookup_append (ℓ ℓ' : List (D × R)) (t : D) :
     · rfl
     · exact ih
 
-/-- Appending a pair at a point the list does not answer adds that one answer. -/
-theorem pairLookup_append_singleton (ℓ : List (D × R)) (t t' : D) (u : R)
-    (h : pairLookup ℓ t = none) :
-    pairLookup (ℓ ++ [(t, u)]) t' = if t' = t then some u else pairLookup ℓ t' := by
-  rw [pairLookup_append]
-  by_cases ht : t' = t
-  · subst ht; simp [h, pairLookup_cons]
-  · simp [ht, pairLookup_cons, Ne.symm ht]
-
-/-- A lookup is the first pair with the input. -/
-theorem pairLookup_eq_some_iff (ℓ : List (D × R)) (x : D) (v : R) :
-    pairLookup ℓ x = some v ↔
-      ∃ (i : ℕ) (hi : i < ℓ.length), ℓ[i] = (x, v) ∧ pairLookup (ℓ.take i) x = none := by
-  induction ℓ with
-  | nil => simp
-  | cons e ℓ ih =>
-    rw [pairLookup_cons]
-    by_cases he : e.1 = x
-    · simp only [he, ↓reduceIte, Option.some.injEq]
-      constructor
-      · rintro rfl
-        exact ⟨0, by simp, by simp [← he], by simp⟩
-      · rintro ⟨i, hi, hei, hn⟩
-        cases i with
-        | zero => simp at hei; subst hei; rfl
-        | succ i => simp [pairLookup_cons, he] at hn
-    · rw [ite_eq_right_iff.mpr (fun h ↦ absurd h he), ih]
-      constructor
-      · rintro ⟨i, hi, hei, hn⟩
-        exact ⟨i + 1, by simpa using hi, by simpa using hei, by simp [pairLookup_cons, he, hn]⟩
-      · rintro ⟨i, hi, hei, hn⟩
-        cases i with
-        | zero => simp at hei; exact absurd (by rw [hei]) he
-        | succ i =>
-          refine ⟨i, by simpa using hi, by simpa using hei, ?_⟩
-          simpa [pairLookup_cons, he] using hn
-
 end Pairs
 
 omit [DecidableEq D₂] in
@@ -426,13 +389,6 @@ noncomputable def logExperiment {α : Type} (A : OracleComp (Spec₂ D₁ R₁ D
   (simulateQ loggedRO (A >>= fun a ↦ (a, ·) <$> V a)).run []
 
 omit [Fintype R₁] [Fintype R₂] in
-/-- The experiment over `randomOracle` is the logged experiment read through `cacheOf`. -/
-theorem map_logExperiment {α : Type} (A : OracleComp (Spec₂ D₁ R₁ D₂ R₂) α)
-    (V : α → OracleComp (Spec₂ D₁ R₁ D₂ R₂) Bool) :
-    (fun z ↦ (z.1, cacheOf z.2)) <$> logExperiment A V = romExperiment A V :=
-  map_run_simulateQ_loggedRO_nil _
-
-omit [Fintype R₁] [Fintype R₂] in
 /-- Events of the `randomOracle` experiment are events of the logged experiment read through
 `cacheOf`. -/
 theorem prEvent_romExperiment_eq_logExperiment {α : Type}
@@ -441,20 +397,6 @@ theorem prEvent_romExperiment_eq_logExperiment {α : Type}
     Pr{let z ← romExperiment A V}[ev z.1 z.2] =
       Pr{let z ← logExperiment A V}[ev z.1 (cacheOf z.2)] :=
   prEvent_run_randomOracle_eq_loggedRO _ ev
-
-/-- **The logged experiment bound.** -/
-theorem prEvent_logExperiment_le {α : Type}
-    {Φ : List (LogEntry D₁ R₁ D₂ R₂) → ℝ≥0∞} {δ : ℝ≥0∞} (hΦ : LogFreshStepBound Φ δ)
-    (hΦ₀ : Φ [] = 0) (A : OracleComp (Spec₂ D₁ R₁ D₂ R₂) α)
-    (V : α → OracleComp (Spec₂ D₁ R₁ D₂ R₂) Bool) (Q_A Q_V : ℕ)
-    (hA : IsTotalQueryBound A Q_A) (hV : ∀ a, IsTotalQueryBound (V a) Q_V)
-    (bad : α → List (LogEntry D₁ R₁ D₂ R₂) → Prop)
-    (hbad : ∀ z ∈ support (logExperiment A V), z.1.2 = true → bad z.1.1 z.2 → 1 ≤ Φ z.2) :
-    Pr{let z ← logExperiment A V}[z.1.2 = true ∧ bad z.1.1 z.2] ≤ (Q_A + Q_V : ℕ) * δ := by
-  have h := prEvent_run_loggedRO_le_of_freshStepBound hΦ _ (Q_A + Q_V)
-    (isTotalQueryBound_bind hA fun a ↦ (isQueryBound_map_iff (V a) _ Q_V _ _).mpr (hV a)) []
-    (fun r ℓ ↦ r.2 = true ∧ bad r.1 ℓ) (fun z hz h ↦ hbad z hz h.1 h.2)
-  rwa [hΦ₀, zero_add] at h
 
 /-- **The logged experiment bound, length-capped form.** -/
 theorem prEvent_logExperiment_le_of_freshStepBelow {α : Type}

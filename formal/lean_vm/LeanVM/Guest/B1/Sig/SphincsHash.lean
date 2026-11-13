@@ -205,27 +205,12 @@ theorem flatMap_bytes_cellVal (l : List E) :
   | nil => rfl
   | cons x l ih => simp only [List.map_cons, List.flatMap_cons, bytesLE_cellVal, ih]
 
-/-- The bytes of digests that are cells' values, mapped. -/
-theorem flatMap_bytes_map (f : Nat → E) (l : List Nat) :
-    (l.map fun i => cellVal (f i)).flatMap (littleEndianBytes 16) = (l.map f).flatMap cellBytes := by
-  induction l with
-  | nil => rfl
-  | cons x l ih => simp only [List.map_cons, List.flatMap_cons, bytesLE_cellVal, ih]
-
 /-- A vector of digests that are cells' values. -/
 theorem digestsPayload_cells {n : Nat} (c : Fin n → E) :
     digestsPayload (fun i => cellVal (c i)) = (List.ofFn c).flatMap cellBytes := by
   have e : (List.ofFn fun i => (cellVal (c i) : HashSig.Digest)) = (List.ofFn c).map cellVal :=
     (List.map_ofFn (f := c) (g := cellVal)).symm
   exact (congrArg (fun l => List.flatMap (littleEndianBytes 16) l) e).trans (flatMap_bytes_cellVal _)
-
-/-- The 256-bit hash of a byte string, as the two cells of its digest. -/
-theorem keccakBits_cells (I : List UInt8) :
-    Node.keccakBits I = cellPairVal (digestHalves (keccak256 I)).1 (digestHalves (keccak256 I)).2 := by
-  apply BitVec.eq_of_toNat_eq
-  rw [keccakBits_toNat, cellPairVal, BitVec.toNat_append, toNat_cellVal, toNat_cellVal,
-    Nat.shiftLeft_eq, Nat.mul_comm _ (2 ^ 128), two_pow_mul_or (cellNat_lt _)]
-  omega
 
 theorem addressedHash_digest (pp x : E) (layer tree : Nat) (ty : Sphincs.AddressType)
     (kp w2 w3 : Nat) :

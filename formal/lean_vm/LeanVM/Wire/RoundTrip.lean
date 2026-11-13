@@ -80,13 +80,6 @@ theorem fromBytesWithHash_of_readProof {m : Type → Type} [Monad m] (H : Bytes 
   unfold fromBytesWithHash
   rw [hread]
 
-/-- Decoding bytes that read back as nothing gives nothing. -/
-theorem fromBytesWithHash_of_readProof_none {m : Type → Type} [Monad m] (H : Bytes → m Digest)
-    {bytes : Bytes} (hread : readProof bytes = none) :
-    fromBytesWithHash H bytes = pure none := by
-  unfold fromBytesWithHash
-  rw [hread]
-
 /-- In `Id`, unpruning each phase of a proof pruned by `prunePhase` gives its phases back, where
 each phase is one a tree over `h` opens. -/
 theorem mapM_unprunePhase_prunePhase (h : Bytes → Digest)
@@ -126,24 +119,6 @@ theorem roundTrip : RoundTripStatement :=
   roundTrip_of (fun _ _ hw ↦ readProof_toBytes hw) fun _ _ _ _ hp ↦ unprunePhase_prunePhase hp
 
 /-! ## The round trip in the deployed forms -/
-
-/-- Decoding an encoding that reads back as the proof's phases pruned, with any hash in any monad:
-each pruned phase unpruned with that hash, in order. The reading needs no hash; `h` only names
-the tree the phases are opened from. -/
-theorem fromBytesWithHash_toBytes {h : Bytes → Digest} {proof : Proof}
-    (hw : WireDecodable h proof) {m : Type → Type} [Monad m] (H : Bytes → m Digest) :
-    fromBytesWithHash H proof.toBytes = (do
-      let openings ← (proof.openings.map prunePhase).mapM (unprunePhaseWithHash H)
-      pure (some ⟨proof.stream, openings⟩)) :=
-  fromBytesWithHash_of_readProof H (readProof_toBytes hw)
-
-/-- **The round trip of the transcribed decoding**, Keccak-256 over a permutation `π` in `Id`: a
-proof that survives its encoding with that hash decodes from it. -/
-theorem fromBytes_toBytes (π : KeccakState → Id KeccakState) {proof : Proof}
-    (hw : WireDecodable (keccak256With π) proof) :
-    Proof.fromBytes π proof.toBytes = some proof := by
-  rw [fromBytes_eq_withHash]
-  exact roundTrip _ proof hw
 
 end LeanVM.Wire
 

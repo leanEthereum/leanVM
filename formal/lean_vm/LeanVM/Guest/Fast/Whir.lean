@@ -204,9 +204,6 @@ theorem wordsFrom_eq (rd : Reader) (a : K) (n : ℕ) :
       by show a * Parameters.g ^ 0 = a; rw [pow_zero, mul_one]] at h
   rw [h, List.range_eq_range']
 
-theorem readN_eq_wordsFrom (rd : Reader) (p : E) (n : ℕ) : readN rd p n = wordsFrom rd (p.limb 0) n := by
-  rw [wordsFrom_eq]; rfl
-
 theorem readN_eq_wordsAt (rd : Reader) (p : E) (n : ℕ) : readN rd p n = wordsAt rd p n := rfl
 
 theorem wordsAt_eq_wordsFrom (rd : Reader) (p : E) (n : ℕ) :

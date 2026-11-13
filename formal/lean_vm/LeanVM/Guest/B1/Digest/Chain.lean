@@ -507,11 +507,6 @@ theorem prevV_val (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd 
       (by rw [outs_13 h (by omega)]; exact hc)
     rwa [Nat.sub_add_cancel (by omega)] at this
 
-theorem shape_init (h : s.shapeOk = true) : ∀ st, s.init = some st → st.length = 13 := by
-  intro st hst
-  simp only [shapeOk, hst, Bool.and_eq_true, beq_iff_eq] at h
-  exact h.1
-
 /-- The rate relation, for any padded cells `P` that hold the message cells plus `pad`. -/
 theorem rate_of_check (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd σ)
     {k : ℕ} (hk : k < s.nb) (c : Fin 13) (hc : c.val < 9) :

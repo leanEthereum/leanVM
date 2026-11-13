@@ -91,7 +91,7 @@ theorem aggArgs_cost (hP : Includes P Decoder.aggArgsC.costDeps) :
   cost_facts [hS]
   omega
 
-/-- **`__loop2`'s arguments after the counter** (`l2ArgsDC`): `55` reads, `55·S + 675`. -/
+/-- **`main_loop2`'s arguments after the counter** (`l2ArgsDC`): `55` reads, `55·S + 675`. -/
 theorem l2ArgsD_cost (hP : Includes P Decoder.l2ArgsDC.costDeps) :
     machineCost P Decoder.l2ArgsDC.costIdx [σV] ≤ 55 * S + 675 := by
   rw [Decoder.l2ArgsDC.costEq P hP σ σV hσ]

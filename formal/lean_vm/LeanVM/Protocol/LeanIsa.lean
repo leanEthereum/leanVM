@@ -535,9 +535,6 @@ theorem padding_eq_map_ofK (t : Verifier.Table) : t.padding = (padRowK t).map of
 
 /-! ### The `KECCAK` padding row, by column -/
 
-/-- The `KECCAK` table has ninety-two column names. -/
-theorem keccakColumns_length : Verifier.keccakColumns.length = 92 := by decide +kernel
-
 /-- `KECCAK_OUT` is column `40`. -/
 theorem keccakOut_eq : Verifier.keccakOut = 40 := by decide +kernel
 

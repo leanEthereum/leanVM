@@ -3,7 +3,7 @@
 
   The guest's completeness within the explicit budget `mainBudget` at the deployed frame sizes,
   certificates and counts (`B2C`), from what is still supplied by hypothesis: the static callees'
-  words (`MainStatics`), `main`'s callees' weights (`MainCounts`), `__loop2`'s arms (leanXMSS's check, inline) within
+  words (`MainStatics`), `main`'s callees' weights (`MainCounts`), `main_loop2`'s arms (leanXMSS's check, inline) within
   `C`, each child's `verify_sub` within `Bvf` at its announced stack log and rate, and the
   children's loop's instructions within `l5Lin`.
 -/

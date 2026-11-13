@@ -89,9 +89,6 @@ theorem noQuery_sendList : ∀ xs : List E, Script.NoQuery (Script.sendList xs)
 theorem noQuery_sampleE_bind {β : Type} {f : E → Script β} (h : ∀ c, Script.NoQuery (f c)) :
     Script.NoQuery (Script.sampleE.bind f) := h
 
-theorem noQuery_sendE_bind {β : Type} (x : E) {f : Unit → Script β}
-    (h : Script.NoQuery (f ())) : Script.NoQuery ((Script.sendE x).bind f) := h
-
 theorem noQuery_sampleN : ∀ n : ℕ, Script.NoQuery (Script.sampleN n)
   | 0 => trivial
   | n + 1 => by

@@ -90,9 +90,6 @@ theorem bytesLE_eq (k : Nat) (v : BitVec (8 * k)) : HashSig.littleEndianBytes k 
     pow_mul]
   norm_num
 
-theorem sphincs_bytesLE_eq (k : Nat) (v : BitVec (8 * k)) : HashSig.littleEndianBytes k v = leBytes v.toNat k :=
-  bytesLE_eq k v
-
 /-- A 64-bit word's bytes. -/
 theorem wordBytes_eq (w : UInt64) : wordBytes w = leBytes w.toNat 8 := by
   apply List.ext_getElem (by simp [wordBytes])
@@ -137,9 +134,6 @@ theorem toNat_cellVal (x : E) : (cellVal x).toNat = cellNat x := by
 /-- **A cell's bytes are its value's.** -/
 theorem bytesLE_cellVal (x : E) : HashSig.littleEndianBytes 16 (cellVal x) = cellBytes x := by
   rw [bytesLE_eq, toNat_cellVal, cellBytes_eq_leBytes]
-
-theorem sphincs_bytesLE_cellVal (x : E) : HashSig.littleEndianBytes 16 (cellVal x) = cellBytes x :=
-  bytesLE_cellVal x
 
 theorem cellNat_cellOf128 (v : BitVec 128) : cellNat (cellOf128 v) = v.toNat := by
   have hv := v.isLt
@@ -251,10 +245,6 @@ theorem truncateHash_keccakBits (I : List UInt8) :
   rw [h, keccakBits_toNat, Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt h0]
   exact (toNat_cellVal _).symm
 
-theorem sphincs_truncateHash_keccakBits (I : List UInt8) :
-    HashSig.truncateHash (Node.keccakBits I) = cellVal (digestHalves (keccak256 I)).1 :=
-  truncateHash_keccakBits I
-
 /-! ## Addresses -/
 
 /-- A cell's bytes from its 128-bit number. -/
@@ -297,11 +287,6 @@ theorem addressBytes_eq (f : LeanXmss.TweakFields) :
     leBytes_add_mul _ _ _ _ (by omega), leBytes_add_mul _ _ _ _ (by omega),
     leBytes_add_mul _ _ _ _ (by omega)]
   simp only [List.append_assoc]
-
-/-- **An address is the cell of its packed number.** -/
-theorem addressBytes_eq_cell (f : LeanXmss.TweakFields) :
-    LeanXmss.addressBytes f = cellBytes (eOfNat128 (tweakNat f)) := by
-  rw [addressBytes_eq, cellBytes_eOfNat128 (lt_trans (tweakNat_lt f) (by norm_num))]
 
 /-- The number an address's four fields pack into: `lo`, `hi` from bit 32, the type and step byte
 from bit 56. -/

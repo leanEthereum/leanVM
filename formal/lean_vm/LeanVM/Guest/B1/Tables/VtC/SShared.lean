@@ -33,8 +33,6 @@ theorem vtIdxc_word {t : ℕ} (ht : t < 34) :
     word (tbGSquaresBits.getD t 0 ^^^ 1) 0 = 1 + gen ^ 2 ^ t := by
   rw [tb_word_eOfNat, eOfNat_xor, eOfNat_one, gen_pow_two_pow_eq ht, add_comm]
 
-theorem vtIdxcT_length : vtIdxcT.length = 68 := by decide +kernel
-
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **`idxc_tab`'s stores.** -/

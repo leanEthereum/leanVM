@@ -144,37 +144,6 @@ theorem openAllWithHash_length (root : Digest) (height width : ℕ) :
       · simp [h2]
     · simp at h
 
-/-- **A phase is opened** exactly when every opening has the commitment's shape, the positions are
-the queried ones, in order, and every path climbs to the root; the rows are the leaves. -/
-theorem openPhaseWithHash_eq_some_iff (root : Digest) (height width : ℕ) (ps : List ℕ)
-    (phase : List Opening) (rows : List (List K)) :
-    openPhaseWithHash (m := Id) H root height width ps phase = some rows ↔
-      (∀ opening ∈ phase, opening.leaf.length = width ∧ opening.path.length = height) ∧
-        phase.map Opening.leafIndex = ps ∧
-          openAllWithHash (m := Id) H root height width ps phase = some (rows, []) := by
-  unfold openPhaseWithHash
-  by_cases hc : (∀ opening ∈ phase, opening.leaf.length = width ∧ opening.path.length = height) ∧
-      phase.map Opening.leafIndex = ps
-  · rw [ite_eq_left hc]
-    simp only [bind]
-    refine ⟨fun h ↦ ⟨hc.1, hc.2, ?_⟩, fun h ↦ ?_⟩
-    · split at h
-      · next rows' rest ho =>
-        simp only [pure] at h
-        cases h
-        have hl := (openAllWithHash_length H root height width ps phase ho).1
-        have hlen : (phase.map Opening.leafIndex).length = ps.length := by rw [hc.2]
-        rw [List.length_map] at hlen
-        rw [hlen.symm, List.take_length] at hl
-        have : rest = [] := by simpa using hl
-        rw [ho, this]
-      · simp [pure] at h
-    · rw [h.2.2]
-      rfl
-  · rw [ite_eq_right hc]
-    simp only [pure, reduceCtorEq, false_iff]
-    exact fun h ↦ hc ⟨h.1, h.2.1⟩
-
 /-- **A `query` runs** exactly when its commitment is read, a phase of openings is left, the phase
 is opened, and the continuation runs on the rest. -/
 theorem runWithHash_query_eq_some_iff {α : Type} (i : ℕ) (ps : List ℕ)

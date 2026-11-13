@@ -39,12 +39,6 @@ def lrRow (q cols nhs hbits : ℕ) : OsLv :=
     highBits := hbits
     vanish := cols * (cols + 1) / 2 }
 
-theorem resP_lrRow (q cols nhs hbits : ℕ) (D : ℕ → E) :
-    resP (lrRow q cols nhs hbits) D = lrP cols D := rfl
-
-theorem resH_lrRow (q cols nhs hbits : ℕ) (hsv : List E) :
-    resH (lrRow q cols nhs hbits) hsv = lrH cols nhs hbits hsv := rfl
-
 /-! ## The batches' loop -/
 
 set_option maxHeartbeats 800000 in
@@ -272,9 +266,6 @@ theorem rsAt_succ (lv : OsLv) (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (
   unfold rsAt
   rw [← resFold_append, ← Nat.add_assoc, List.range_succ, List.map_append]
   rfl
-
-theorem rsAt_zero (lv : OsLv) (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (mu : E) (nb : ℕ) :
-    rsAt lv D hsv Pos mu nb 0 = rcAt lv D hsv Pos mu nb := rfl
 
 set_option maxHeartbeats 800000 in
 /-- **One iteration of the rest's loop, honestly**, at `x = g^j`. -/

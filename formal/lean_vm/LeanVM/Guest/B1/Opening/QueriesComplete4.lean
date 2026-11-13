@@ -104,24 +104,6 @@ theorem finEq_of (hs : d.s.RowShape) (hrow : d.row.length = rowLen d.s.base d.s.
     d.finEq := by
   rw [finEq, d.foldVal_eq hs hrow hrl, h]; rfl
 
-/-- **An opening with its windows is an honest query**, wherever it is placed. -/
-theorem exists_of_holds {sh : OqShape} {rd : Reader} {cap flags coefs hs positions qptrs : E}
-    {rounds : List FoldRound} {hsv : List E} {k : ℕ} {w : QW} (hcd : sh.cd ≤ sh.depth)
-    (h : QueryHolds sh rd cap flags coefs hs positions qptrs rounds hsv k w) (hrl : rounds.length = sh.folds)
-    (hhl : sh.final = 1 → hsv.length = sh.nHs) :
-    ∃ bpv : E, LoadHolds rd qptrs k bpv ∧ ∀ b emit pr,
-      (QD.mk sh.oq b emit pr w.2.1 w.1 w.2.2 cap flags rounds hsv).Ok rd coefs hs bpv := by
-  obtain ⟨hR, hW, hpos, hq, ⟨bp, hbp, hwin⟩, ⟨hrl', hsl, hc0, hc1, hfl⟩, hfeq⟩ := h
-  have hd : sh.depth - sh.cd + sh.cd = sh.depth := by omega
-  refine ⟨bp, hbp, fun b emit pr ↦ ⟨hsl, hrl', ⟨fun i hi ↦ ?_, hc0, hc1, hfl⟩, ?_, hR, hrl,
-    fun hf ↦ ⟨hW hf, hhl hf, hfeq hf⟩⟩⟩
-  · change i < qwN (sh.depth - sh.cd + sh.cd) sh.cd at hi
-    show LoadHolds rd bp i (gen ^ qwVal (sh.depth - sh.cd + sh.cd) sh.cd w.1 i)
-    rw [hd] at hi ⊢
-    exact hwin i hi
-  · show w.1 < 2 ^ (sh.depth - sh.cd + sh.cd)
-    rw [hd]; exact hq
-
 /-- The padding run a query emits. -/
 theorem pad_of_emit (he : d.emit = true) (hv : d.Hv σ) :
     σ (.n d.prV) = word 1 0 ∧ ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 := by

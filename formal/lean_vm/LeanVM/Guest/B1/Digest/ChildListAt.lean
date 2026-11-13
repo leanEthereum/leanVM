@@ -374,18 +374,5 @@ theorem child_claim_list_any_completeAtT (fs : String → ℕ) (cert : String �
       (Returns (digestCells (keccak256 (cellsBytes cells)))) (anyHonest n) :=
   (child_claim_list_any_completeAtTB fs cert hn hl hL33 hLκ hrec hR2 hR3).toDT
 
-/-- **`child_claim_list_any` is complete, placed.** -/
-theorem child_claim_list_any_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
-    {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n)
-    (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
-    (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
-    (hR2 : ∀ j < n, RegionL Lin (rg + o j))
-    (hR3 : ∀ j < n, ∀ c < 4, RegionL Lin (eP + 4 * o j + c)) :
-    CompleteAtD fs cert κ "child_claim_list_any" Lin
-      [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)]
-      (Returns (digestCells (keccak256 (cellsBytes cells)))) :=
-  (child_claim_list_any_completeAtT fs cert hn hl hL33 hLκ hrec hR2 hR3).toD
-
 end
 end LeanVM.Guest.B1.Digest

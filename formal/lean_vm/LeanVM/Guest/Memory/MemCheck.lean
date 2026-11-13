@@ -98,10 +98,8 @@ noncomputable def memA (as : List (List Stmt)) : Bool :=
     (fun vs => vsAll p vs)
     true (fun _ _ b bs => b && bs) true (fun _ _ b bs => b && bs) as
 
-theorem memB_nil : memB p tk nm [] = true := rfl
 theorem memB_cons (s : Stmt) (ss : List Stmt) :
     memB p tk nm (s :: ss) = (memS p tk nm s && memB p tk nm ss) := rfl
-theorem memA_nil : memA p tk nm [] = true := rfl
 theorem memA_cons (a : List Stmt) (as : List (List Stmt)) :
     memA p tk nm (a :: as) = (memB p tk nm a && memA p tk nm as) := rfl
 

@@ -52,9 +52,6 @@ theorem osPad_flat (pad : Option ℕ) (k : ℕ) : Flat (osPad pad k).1 := by
 
 theorem osHeap_flat (e k : ℕ) : Flat (osHeap e k) := rfl
 
-theorem osLoopCall_flat (name : String) (e0 n : ℕ) (args : List ℕ) (k : ℕ) :
-    Flat (osLoopCall name e0 n args k) := rfl
-
 theorem osRounds_flat (P : List (ℕ × ℕ × ℕ)) : ∀ i n s, Flat (osRounds P i n s).1
   | _, 0, _ => rfl
   | i, n + 1, _ => flat_append

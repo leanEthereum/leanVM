@@ -108,8 +108,6 @@ theorem length_rsRun (rounds : List (E × E)) (claim : E) (sp : Sponge) :
 
 /-! ## `batch`, unfolded -/
 
-theorem observe_run (x : E) (sp : Sponge) : (observe x).run sp = ((), obs sp x) := rfl
-
 theorem sample_run (sp : Sponge) : sample.run sp = sq sp := rfl
 
 theorem grind_run (bits : ℕ) (n : E) (sp : Sponge) :
@@ -129,8 +127,6 @@ theorem batchRounds_run (rounds : List (E × E)) (claim : E) {sp : Sponge} (hg :
     rfl
 
 theorem id_bind {α β : Type} (x : Id α) (f : α → Id β) : x >>= f = f x := rfl
-
-theorem id_pure {α : Type} (a : α) : (pure a : Id α) = a := rfl
 
 theorem id_map {α β : Type} (x : Id α) (f : α → β) : f <$> x = f x := rfl
 

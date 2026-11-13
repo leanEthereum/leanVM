@@ -117,23 +117,7 @@ where
       else return none
     else return none
 
-/-- `keccakBits` is `digestBits` of Keccak-256. -/
-theorem keccakBits_eq (input : List UInt8) : keccakBits input = digestBits (keccak256 input) :=
-  rfl
-
 end With
-
-/-- leanXMSS verification with Keccak-256 is `LeanXmss.verifyWithKeccak`. -/
-theorem xmssVerifyWith_id (pk : HashSig.PublicKey) (message : HashSig.Message)
-    (σ : LeanXmss.Signature) :
-    Id.run (xmssVerifyWith (m := Id) keccak256 pk message σ) = LeanXmss.verifyWithKeccak pk message σ := by
-  rw [xmssVerify_eq_withHash]
-  rfl
-
-/-- The statement's digest with Keccak-256 is `statementDigest`. -/
-theorem statementDigestWith_id (seed : Digest) (s : NodeStatement) :
-    Id.run (statementDigestWith (m := Id) keccak256 seed s) = statementDigest seed s :=
-  rfl
 
 /-- Absorbing with Keccak-f is `observe`. -/
 theorem observeWith_id (x : E) : observeWith (m := Id) keccakF1600 x = observe x := rfl
@@ -151,16 +135,6 @@ theorem batchRoundsWith_id : ∀ (claim : E) (rounds : List (E × E)),
   | _, [] => rfl
   | claim, (g1, gInf) :: rest => by
     simp only [batchRoundsWith, batchRounds, observeWith_id, sampleWith_id, batchRoundsWith_id]
-
-/-- The batching's initial state with Keccak is `batchSeed`. -/
-theorem batchSeedWith_id : Id.run (batchSeedWith (m := Id) keccak256 keccakF1600) = batchSeed := rfl
-
-/-- The batching with Keccak-f, from `batchSeed`, is `batch`. -/
-theorem batchWith_id (children : List ChildClaims) (h : BatchingHints) :
-    Id.run (batchWith (m := Id) keccakF1600 batchSeed children h) = batch children h := by
-  simp only [batchWith, batch, batchWith.go, batch.go, observeWith_id, sampleWith_id,
-    grindWith_id, batchRoundsWith_id]
-  rfl
 
 end
 end LeanVM.Node

@@ -31,12 +31,5 @@ verifier accepts it. -/
 def membershipChallengeOf (root : Digest) : E :=
   (Id.run (LeanDa.membershipChallengeWith (m := Id) keccakF1600 root.toBytes)).getD 0
 
-/-- **The challenge with the proofs' hash and duplex** (`lean_da`'s
-`membershipChallengeM_eq_withHash`). -/
-theorem membershipChallengeOf_eq_withHash (root : Digest) :
-    membershipChallengeOf root = (Id.run (LeanDa.membershipChallengeMWithHash
-      (LeanDa.keccakDigestBytes (m := Id) keccakF1600) keccakF1600 root.toBytes)).getD 0 := by
-  rw [membershipChallengeOf, LeanDa.membershipChallengeM_eq_withHash]
-
 end
 end LeanVM.Da

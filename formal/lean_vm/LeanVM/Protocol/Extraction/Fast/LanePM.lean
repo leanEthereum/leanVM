@@ -220,11 +220,6 @@ theorem decodeStacksDistinctPM_eq_fast {μ R : ℕ} (h : Whir.Admissible μ R) (
     decodeStacksDistinctPM μ R W = decodeStacksFast μ R W := by
   rw [decodeStacksDistinctPM_eq h, decodeStacksDistinct_eq h]
 
-/-- `decodeStacksDistinctPM` is the statement's `decodeStacks` at admissible shapes. -/
-theorem decodeStacksDistinctPM_eq_decodeStacks {μ R : ℕ} (h : Whir.Admissible μ R)
-    (W : ℕ → List K) : decodeStacksDistinctPM μ R W = decodeStacks μ R W := by
-  rw [decodeStacksDistinctPM_eq_fast h, decodeStacksFast_eq]
-
 end
 
 end LeanVM.Extraction.Fast

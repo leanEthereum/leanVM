@@ -34,10 +34,6 @@ theorem getD_five2 {cap : List E} (hc : cap.length = 5) (x y : E) :
   obtain ⟨f0, f1, f2, f3, f4, rfl⟩ := five_of hc
   exact ⟨rfl, rfl⟩
 
-theorem getD_five1 {cap : List E} (hc : cap.length = 5) (x : E) : (cap ++ [x]).getD 5 0 = x := by
-  obtain ⟨f0, f1, f2, f3, f4, rfl⟩ := five_of hc
-  rfl
-
 theorem capOf_length (S : KeccakState) : (capOf S).length = 5 := rfl
 
 theorem seg_eq {A B C : List E} {k : ℕ} (hk : k = A.length) : ((A ++ (B ++ C)).drop k).take B.length = B := by

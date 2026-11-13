@@ -188,8 +188,6 @@ theorem tb_load_of {rd : Reader} {p : E} {l : List E} (h : TbReadsAt rd p l) {k 
     (hk : k < l.length) : LoadHolds rd p k (l.getD k 0) := by
   rw [List.getD_eq_getElem _ _ hk]; exact h k hk
 
-theorem vtAllocVars_head : vtAllocVars.take 9 = [33, 34, 35, 36, 664, 699, 701, 702, 777] := by
-  decide
 theorem vtAllocVars_F : ∀ b < 3, vtAllocVars.getD (9 + b) 0 = vtFwW b + 6 := by decide
 theorem vtAllocVars_P : ∀ i < 51, vtAllocVars.getD (12 + i) 0 = (vtPushSel.getD i default).2.2.1 := by
   decide
@@ -250,9 +248,6 @@ theorem loadsInBuf_mono {σ : Val} {b1 b2 : List (E × ℕ)} {blk : List Stmt}
   obtain ⟨q, hq, j, hp, hj⟩ := h d p off hm
   obtain ⟨q', hq', e1, e2⟩ := hsub q hq
   exact ⟨q', hq', j, by rw [e1]; exact hp, by omega⟩
-
-theorem multilinearEval_zero2 (x : E) : multilinearEval [0, 0] [x] = 0 := by
-  simp [multilinearEval, foldPairs]
 
 theorem vt_alloc_vals {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20) :
     ∀ x ∈ vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz, vtσ rd w args x.1 = w x.1.idx := by
@@ -388,11 +383,6 @@ theorem list4_eq {xs : List E} (h : xs.length = 4) :
     xs = [xs.getD 0 0, xs.getD 1 0, xs.getD 2 0, xs.getD 3 0] := by
   match xs, h with
   | [a, b, c, d], _ => rfl
-
-theorem ofK_addr_add (a b : ℕ) :
-    ofK (addressOfIndex (a + b)) = ofK (addressOfIndex a) * gen ^ b := by
-  rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.addressOfIndex, Parameters.addressOfIndex,
-    Parameters.addressOfIndex, pow_add]
 
 set_option maxRecDepth 20000 in
 /-- **`verify_tables` is complete at the `Rel` level**, with `kappa_base` and the shared

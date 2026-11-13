@@ -44,8 +44,6 @@ def osStAt (c : OsCfg) (l : ℕ) : OsSt := osStFrom c 0 c.levels (osHead c).2 l
 /-- The state after the levels. -/
 def osLvsEnd (c : OsCfg) : OsSt := (osLevels c 0 c.levels (osHead c).2).2
 
-theorem osStAt_eq (c : OsCfg) (l : ℕ) : osStAt c l = osLvSt c l := rfl
-
 /-! ## Buffers in order -/
 
 /-- Buffers `j ..< j + m`: their pointers from `b` and sizes. -/

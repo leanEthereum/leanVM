@@ -100,20 +100,6 @@ def candsL (ρ : ℕ) (A : ℕ → ℕ → ℕ) (h : List Ev) : Set (Column (ver
   {q | ∃ W, firstWord h = some W ∧
     toI prog s q ∈ EndToEnd.Candidates (leanIsaμ prog s) ρ (A (leanIsaμ prog s) ρ) W}
 
-theorem candsL_mem (ρ : ℕ) (A : ℕ → ℕ → ℕ) :
-    ∀ h q, q ∈ candsL prog s ρ A h → ∀ W, firstWord h = some W →
-      (fun _ ↦ toI prog s q) ∈ candsOf prog s ρ A W := by
-  rintro h q ⟨W', hW', hq⟩ W hW
-  rw [hW] at hW'
-  cases hW'
-  exact ⟨_, hq, rfl⟩
-
-/-- The candidates as oracles are as many as the candidates. -/
-theorem candsOf_ncard (ρ : ℕ) (A : ℕ → ℕ → ℕ) (W : Word) :
-    (candsOf prog s ρ A W).ncard =
-      (EndToEnd.Candidates (leanIsaμ prog s) ρ (A (leanIsaμ prog s) ρ) W).ncard :=
-  Set.ncard_image_of_injective _ fun _ _ h ↦ congrFun h 0
-
 /-- Every opcode table has a push block, at its row count. -/
 theorem exists_pushBlock (s : Sizes) (t : Fin 6) :
     ∃ b ∈ Complete.pushBlocks s, b.owner = t.val ∧ b.rows = s.rows t := by

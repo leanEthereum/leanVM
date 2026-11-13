@@ -3,7 +3,7 @@ module
 /-!
 # leanXMSS's chain starts, as literal tables
 
-The cells `__loop2`'s leanXMSS check (`B1/Sig/XmssSegT.lean`, `xSeg`) hints each chain's start
+The cells `main_loop2`'s leanXMSS check (`B1/Sig/XmssSegT.lean`, `xSeg`) hints each chain's start
 at, precomputed from the template: the codeword's `15` dispatches over `256` arms
 (`walk_group`, lean_ethereum.py:3765-3779) lay chain `4p + r`'s start in arm `k` of
 group `p` at a fixed offset from the group's base, the same in both layers and in groups `1` to

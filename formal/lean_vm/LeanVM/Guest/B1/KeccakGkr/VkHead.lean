@@ -33,12 +33,6 @@ theorem word_ginv4_mul : word 8070450532247928836 0 * gen ^ 4 = 1 := by
     show word 8070450532247928836 0 = ofK (K.ofBits 8070450532247928836) from word_eOfNat _,
     ← ofK_mul, show K.ofBits 8070450532247928836 * K.ofBits 16 = 1 by decide +kernel, ofK_one]
 
-theorem bool_of_mul_self {b : E} (h : b * b = b) : b = 0 ∨ b = 1 := by
-  have h' : b * (b - 1) = 0 := by rw [mul_sub, h, mul_one, sub_self]
-  rcases mul_eq_zero.mp h' with h0 | h1
-  · exact Or.inl h0
-  · exact Or.inr (sub_eq_zero.mp h1)
-
 theorem word_3 : word 3 0 = gen ^ 2 ^ 0 + 1 := by
   rw [word_eOfNat, show (3 : ℕ) = 2 ^ 1 ^^^ 1 from rfl, eOfNat_xor, eOfNat_one, ← word_eOfNat,
     word_two_pow (by decide)]; simp

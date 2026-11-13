@@ -467,17 +467,5 @@ theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String
     cc_nonempty fs cert (by omega) hn fp (kidsAt_of_kidsDT hok _)
   exact ⟨_, Lown, _, [], ⟨rfl, rfl⟩, hW, hD, hr⟩
 
-/-- **`child_claim_list_digest` is complete, placed.** -/
-theorem child_claim_list_digest_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
-    (hκ : 20 ≤ κ) {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n)
-    (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
-    (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
-    (hR2 : ∀ j < n, RegionL Lin (rg + o j))
-    (hR3 : ∀ j < n, ∀ c < 4, RegionL Lin (eP + 4 * o j + c)) :
-    CompleteAtD fs cert κ "child_claim_list_digest" Lin [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ n]
-      (Returns (digestCells (keccak256 (cellsBytes cells)))) :=
-  (child_claim_list_digest_completeAtT fs cert hκ hn hl hL33 hLκ hrec hR2 hR3).toD
-
 end
 end LeanVM.Guest.B1.Digest

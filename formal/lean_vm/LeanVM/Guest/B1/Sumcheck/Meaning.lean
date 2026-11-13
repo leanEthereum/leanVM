@@ -8,6 +8,9 @@
 module
 
 public import LeanVM.Guest.B1.Common.Sponge
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # Sumcheck rounds: meanings (TRIAGE G #30-32)
@@ -67,7 +70,7 @@ def sumcheck_round4_Spec : Prop :=
 /-! ## `gkr_rounds` (G:1109-1133, TRIAGE #31) -/
 
 /-- `GKR_ROUNDS_CAP`: the stride of a GKR round record's fields. -/
-abbrev gkrRoundsCap : ℕ := 862
+abbrev gkrRoundsCap : ℕ := guest_const% GKR_ROUNDS_CAP
 
 /-- `MU_CAP + 2`: where the rounds' challenges go in the point buffer. -/
 abbrev gkrChallengeAt : ℕ := 42

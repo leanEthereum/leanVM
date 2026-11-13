@@ -93,17 +93,5 @@ theorem le_osCallB {fs Bk : String → ℕ} {names : List String} {f : String} (
     max (fs f) (Bk f) ≤ osCallB fs Bk names :=
   le_foldl_max (List.mem_map.mpr ⟨f, h, rfl⟩ : max (fs f) (Bk f) ∈ names.map fun f ↦ max (fs f) (Bk f)) 0
 
-/-- `CompleteAtB` on fewer words read. -/
-theorem completeAtB_lin_mono {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String}
-    {Lin Lin' : Main.Layout} {args : List E} {Out : List E → Main.Layout → Prop} {B : ℕ}
-    (h : CompleteAtB fs cert κ f Lin args Out B) (hsub : ∀ q ∈ Lin, q ∈ Lin') :
-    CompleteAtB fs cert κ f Lin' args Out B := fun fp ↦ by
-  obtain ⟨n, Lown, rets, Lout, ho, hw, hd, hn, hr⟩ := h fp
-  refine ⟨n, Lown, rets, Lout, ho, hw, hd, hn, fun rd hl hm ↦ ?_⟩
-  obtain ⟨h1, h2⟩ := Main.memL_append.mp hm
-  have h3 : Main.MemL rd Lin := fun q hq ↦ h2 q (hsub q hq)
-  exact (hr rd hl (Main.memL_append.mpr ⟨h1, h3⟩)).mono fun i ⟨q, hq, hq1, hq2⟩ ↦
-    ⟨q, hsub q hq, hq1, hq2⟩
-
 end
 end LeanVM.Guest.B1

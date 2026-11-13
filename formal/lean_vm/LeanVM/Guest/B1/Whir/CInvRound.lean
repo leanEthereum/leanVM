@@ -160,10 +160,6 @@ def RoundsOk : ℕ → List E → List E → Prop
   | n + 1, fs, xs => RoundGrinds fs (xs.take 5) ∧ RoundNZ fs (xs.take 5) ∧
       RoundsOk n (roundSponge fs (xs.take 5)).cap (xs.drop 5)
 
-theorem roundSponge_pend (fs w : List E) : (roundSponge fs w).pend = [] := rfl
-
-theorem roundSponge_eq (fs w : List E) : roundSponge fs w = ⟨(roundSponge fs w).cap, []⟩ := rfl
-
 /-- The guest's rounds' capacity is the Spec's. -/
 theorem roundRets_take5 (fs : List E) (cur cl : E) (w : List E) :
     (roundRets fs cur cl w).take 5 = (roundSponge fs w).cap := by

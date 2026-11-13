@@ -797,29 +797,9 @@ theorem moves_leanVmProgram_le (hB : grindCap ≤ B) (bytecode : List K) (public
 
 /-! ## At `64` bits -/
 
-theorem moves_sumcheckRoundPoly {count : ℕ} (hc : count ≤ 2 ^ 67) (claim : E) (eq : Option E) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ True) (sumcheckRoundPoly count claim eq) :=
-  moves_sumcheckRoundPoly_le hc claim eq
-
 theorem moves_sumcheck {count : ℕ} (hc : count ≤ 2 ^ 67) (claim : E) (eqs : List (Option E)) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (sumcheck claim count eqs) :=
   moves_sumcheck_le hc claim eqs
-
-theorem moves_gkrStep {step : ℕ} (h1 : 1 ≤ step) (h2 : step ≤ 2) (last : Bool) (s : GkrState) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (gkrStep step last s) :=
-  moves_gkrStep_le (by decide) h1 h2 last s
-
-theorem moves_gkrLayers (n : ℕ) (s : GkrState) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (gkrLayers n s) :=
-  moves_gkrLayers_le (by decide) n s
-
-theorem moves_verifyGkrGrandProducts (depth : ℕ) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (verifyGkrGrandProducts depth) :=
-  moves_verifyGkrGrandProducts_le (by decide) depth
-
-theorem moves_bytecodeShare (weights bytecodeLow : List E) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (bytecodeShare weights bytecodeLow) :=
-  moves_bytecodeShare_le (by decide) weights bytecodeLow
 
 /-- **The bus**, for a check of the fixed polynomial's value that makes no prover move. -/
 theorem moves_verifyBusBalance {bytecodeValue : List K → List E → E → VerifierProgram Unit}
@@ -834,19 +814,6 @@ theorem moves_readSizes (bytecode : List K) :
       (readAnnouncedSizes bytecode) :=
   (moves_readSizes_le bytecode).mono (fun _ h ↦ h) id (fun _ h ↦ h.1) (fun _ h ↦ h)
 
-theorem moves_tableTerms (constraintPowers formPowers point : List E)
-    (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False)
-      (tableTerms constraintPowers formPowers point rows cursor final) :=
-  moves_tableTerms_le constraintPowers formPowers point rows cursor final
-
-theorem moves_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
-    (constraintPowers formPowers equalityPoint : List E) (target : E) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False)
-      (tableSumcheck heights busForms constraintPowers formPowers equalityPoint target) :=
-  moves_tableSumcheck_le (by decide) heights busForms constraintPowers formPowers equalityPoint
-    target
-
 /-- **The table phase**: its grind followed by `ξ`. -/
 theorem moves_tablePhase (layout : Layout) (bus : BusResult) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (tablePhase layout bus) :=
@@ -855,23 +822,6 @@ theorem moves_tablePhase (layout : Layout) (bus : BusResult) :
 theorem moves_publicInputPhase (layout : Layout) (publicInput : Digest) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (publicInputPhase layout publicInput) :=
   moves_publicInputPhase_le layout publicInput
-
-theorem moves_keccakPackRounds (rs : List E) (value scale : E) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (keccakPackRounds rs value scale) :=
-  moves_keccakPackRounds_le (by decide) rs value scale
-
-theorem moves_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (verifyKeccakLayer logSteps step claim) :=
-  moves_verifyKeccakLayer_le (by decide) logSteps step claim
-
-theorem moves_keccakLayers (logSteps : ℕ) (steps : List ℕ) (claim : KeccakClaim) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (keccakLayers logSteps steps claim) :=
-  moves_keccakLayers_le (by decide) logSteps steps claim
-
-theorem moves_keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False)
-      (keccakOpen logSteps claim first count value) :=
-  moves_keccakOpen_le (by decide) logSteps claim first count value
 
 /-- **The Keccak reduction**: its first grind followed by the segment. -/
 theorem moves_verifyKeccak (logSteps : ℕ) (inst output : List E) :
@@ -892,10 +842,6 @@ theorem Moves.lift {p : VerifierProgram α} {Q : α → Prop}
     (h : Moves G64 False Q (fun _ ↦ False) p) : Moves G64 True Q (fun _ ↦ False) p :=
   h.liftTrue
 
-theorem moves_foldRound (s : WhirState) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (foldRound s) :=
-  moves_foldRound_le (by decide) s
-
 theorem moves_foldRounds (n : ℕ) (s : WhirState) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (foldRounds n s) :=
   moves_foldRounds_le (by decide) n s
@@ -903,34 +849,6 @@ theorem moves_foldRounds (n : ℕ) (s : WhirState) :
 theorem moves_sampleQueriesAux (depth fuel remaining : ℕ) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (sampleQueriesAux depth fuel remaining) :=
   moves_sampleQueriesAux_le depth fuel remaining
-
-/-- **The WHIR levels**, every one of which queries. -/
-theorem moves_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) (index : ℕ)
-    (levels : List Whir.Level) (hq : ∀ l ∈ levels, l.queries ≠ 0) (μ : ℕ)
-    (hpos : oodVarsPos μ levels = true) (s : WhirState) (hμ : logN - s.alphas.length = μ) :
-    Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
-      (whirLevels logN laneFolds evaluateBasis index levels s) :=
-  moves_whirLevels_le (by decide) logN laneFolds evaluateBasis index levels hq μ hpos s hμ
-
-theorem moves_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) :
-    Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
-      (verifyWhir logN logInvRate target evaluateBasis) :=
-  moves_verifyWhir_le (by decide) logN logInvRate target evaluateBasis
-
-/-- The stack's root: one commitment, no proof of work. -/
-theorem moves_commitStack (logN logInvRate : ℕ) :
-    Moves G64 True (fun _ ↦ True) (fun _ ↦ False) (commitStack logN logInvRate) :=
-  moves_commitStack_le logN logInvRate
-
-/-- **The commitment's OOD sample**: its grind followed by the point. -/
-theorem moves_readOod {stackLog : ℕ} (h : stackLog ≠ 0) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (readOod stackLog) :=
-  moves_readOod_le (by decide) h
-
-theorem moves_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) :
-    Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
-      (verifyStackedOpening stackLog logInvRate claims) :=
-  moves_verifyStackedOpening_le (by decide) stackLog logInvRate claims
 
 /-- **`verify_execution`**, for a check of the fixed polynomial's value that makes no prover
 move. -/
@@ -969,11 +887,6 @@ theorem moves_deferringProgram (claim : BytecodeClaim) (bytecode : List K) (publ
 theorem grindThenSample_leanVmProgram (bytecode : List K) (publicInput : Digest) :
     GrindThenSample (leanVmVerifierProgram bytecode publicInput) :=
   (moves_leanVmProgram bytecode publicInput).grindThenSample
-
-/-- **A challenge follows every proof of work of the deferring verifier.** -/
-theorem grindThenSample_deferringProgram (claim : BytecodeClaim) (bytecode : List K)
-    (publicInput : Digest) : GrindThenSample (deferringVerifierProgram claim bytecode publicInput) :=
-  (moves_deferringProgram claim bytecode publicInput).grindThenSample
 
 /-- **Every reachable history of the leanVM verifier ends with a proof of work of at most 64
 bits.** -/

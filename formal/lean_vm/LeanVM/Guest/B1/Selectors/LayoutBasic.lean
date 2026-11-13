@@ -117,13 +117,5 @@ theorem memLay_layRd {L : TLay} (hd : DisjLay L) (hl : LowLay L) : MemLay (layRd
   obtain ⟨hj', he⟩ := Classical.choose_spec hex
   rw [lay_same hd hl hq hqL hj hj' he, List.getD_eq_getElem _ _ hj]
 
-/-- **A word of a run read on one memory holding it is the word on any other.** -/
-theorem lay_transfer {rd rd' : Reader} {L : TLay} (hm : MemLay rd L) (hm' : MemLay rd' L)
-    {q : ℕ × List E} (hq : q ∈ L) {i : ℕ} (hi : i < q.2.length) {v : E}
-    (h : LoadHolds rd (ofK (addressOfIndex q.1)) i v) : LoadHolds rd' (ofK (addressOfIndex q.1)) i
-        v := by
-  have e1 := tb_loadHolds_unique h (hm q hq i hi)
-  rw [e1]; exact hm' q hq i hi
-
 end
 end LeanVM.Guest.B1.Tables

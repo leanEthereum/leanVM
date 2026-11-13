@@ -124,10 +124,6 @@ theorem vtRho_pi {r : ℕ} (hr : r < vtGm s) : vtRho lm τ s (vtPi lm τ s r) = 
   rw [vtRho, vtPi, List.getD_eq_getElem _ _ (by omega)]
   exact (List.Nodup.getElem_inj_iff (vtOrd_nodup (lm := lm) (τ := τ) (s := s))).mp hg
 
-theorem vtGP_succ (r : ℕ) :
-    vtGP lm τ s (r + 1) = vtGP lm τ s r + vtGsz lm τ (vtG0 s + vtPi lm τ s r) := by
-  rw [vtGP, vtGP, Finset.sum_range_succ]
-
 end Order
 
 /-! ## The rank templates -/

@@ -41,21 +41,6 @@ theorem readsAt_shift {p : E} {ys : List E} (h : ReadsAt rd p ys) (o m : ℕ) (h
   rw [loadHolds_mul_gen_pow, List.getElem_take, List.getElem_drop]
   exact h _ (by omega)
 
-theorem readsAt_cons_iff {p x : E} {ys : List E} :
-    ReadsAt rd p (x :: ys) ↔ LoadHolds rd p 0 x ∧ ReadsAt rd (p * gen ^ 1) ys := by
-  constructor
-  · intro h
-    refine ⟨h 0 (by simp), fun k hk ↦ ?_⟩
-    rw [loadHolds_mul_gen_pow]
-    have := h (1 + k) (by simp; omega)
-    simpa [show 1 + k = k + 1 by omega] using this
-  · rintro ⟨h0, h1⟩ k hk
-    rcases k with _ | k
-    · exact h0
-    · have := h1 k (by simpa using hk)
-      rw [loadHolds_mul_gen_pow] at this
-      simpa [show 1 + k = k + 1 by omega] using this
-
 /-! ## Fixed loads -/
 
 /-- **`m` words at `p` fixed** on every memory holding the caller's words. -/
@@ -75,8 +60,6 @@ theorem fixedAt_buf0 {j m : ℕ} (hj : j < (osSizesL c).length) (hne : j ≠ osI
     (h : m ≤ (own.getD j []).length) : FixedAt c b own cur tabs xs (osPtrA c b j) m := by
   have := fixedAt_buf (own := own) (cur := cur) (tabs := tabs) (xs := xs) (b := b) (o := 0) (m := m) hj hne (by omega)
   simpa using this
-
-theorem fixedAt_nil (p : E) : FixedAt c b own cur tabs xs p 0 := ⟨[], rfl, fun _ _ _ _ ↦ readsAt_nil _ _⟩
 
 /-- **A named callee holds** on its meaning, its loads fixed. -/
 theorem osH_named (hH : OsHA C rd c b own cur tabs xs) {f : String} {K : OsKind}

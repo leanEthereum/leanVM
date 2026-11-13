@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.WalkGkr
 
-  The cut obligations (`CutsKnown`) of `verify_bus_gkr` (function `10`) and its radix-four layer
-  loop `__loop6` (function `91`): the parity words the loop dispatches on (`GkrPar`), from B1's
+  The cut obligations (`CutsKnown`) of `verify_bus_gkr` and its radix-four layer
+  loop `verify_bus_gkr_loop0`: the parity words the loop dispatches on (`GkrPar`), from B1's
   facts on their bodies (`B1.Gkr.Parity`), read through the certificates' cells.
 -/
 
@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Gkr.Parity
 /-!
 # The layer loop's parity obligations (REC-GUEST-IFACE 'tool: gkr obligations')
 
-`__loop6`'s certificate takes `GkrPar` (tag `tagGkr`) on its arguments' cells
+`verify_bus_gkr_loop0`'s certificate takes `GkrPar` (tag `tagGkr`) on its arguments' cells
 `[layers, x, start_g, k_mod_next] = [5, 2, 4, 11]` (values `3, 0, 2, 9`) and hands on, at its two
 cuts, the parity word's bound (`knownIf = [(20, 12, 4)]`, cell `20` the slot `σ 17`:
 `ly_par_parity`) and, before the tail call, `GkrPar` at `x·g` (cell `298`, value `238`:
@@ -73,15 +73,15 @@ theorem valG_of_loc {κ : ℕ} {L : MemoryImage κ} {fp : K} {C : Cert} {v c : �
     (h : C.locs.getD v 0 = c) : valG L fp C (.n v) = wd L fp c := by
   rw [← h]; rfl
 
-/-! ## `__loop6` (function `91`) -/
+/-! ## `verify_bus_gkr_loop0` -/
 
-theorem coreOf_91 : (coreOf (fn_idx% «verify_bus_gkr_loop0»)).body = lyBody := by
+theorem coreOf_layerLoop : (coreOf (fn_idx% «verify_bus_gkr_loop0»)).body = lyBody := by
   obtain ⟨fn, hf, -, hb⟩ := lyFound
   have hc := coreOf_find (j := fn_idx% «verify_bus_gkr_loop0») (by norm_num) (by unfold nFns; norm_num)
   rw [show (coreOf (fn_idx% «verify_bus_gkr_loop0»)).name = name% «verify_bus_gkr_loop0» from rfl, hf] at hc
   rw [← Option.some.inj hc, hb]
 
-/-- `__loop6`'s certificate: `GkrPar` on its arguments, two cuts (before the dispatch, before the
+/-- `verify_bus_gkr_loop0`'s certificate: `GkrPar` on its arguments, two cuts (before the dispatch, before the
 tail call). -/
 theorem gkr91_cert : (certOf (fn_idx% «verify_bus_gkr_loop0»)).sem = [(tagGkr, [5, 2, 4, 11])] ∧ (certOf (fn_idx% «verify_bus_gkr_loop0»)).cuts.length = 2 ∧
     ((certOf (fn_idx% «verify_bus_gkr_loop0»)).cutAt 1).start = 49 ∧ ((certOf (fn_idx% «verify_bus_gkr_loop0»)).cutAt 1).known = [] ∧
@@ -90,12 +90,12 @@ theorem gkr91_cert : (certOf (fn_idx% «verify_bus_gkr_loop0»)).sem = [(tagGkr,
     ((certOf (fn_idx% «verify_bus_gkr_loop0»)).cutAt 2).knownIf = [(20, 12, 4)] ∧
     ((certOf (fn_idx% «verify_bus_gkr_loop0»)).cutAt 2).sems = [(tagGkr, [5, 298, 4, 11])] := by decide +kernel
 
-/-- `__loop6`'s cells: values `0, 2, 3, 9, 17, 238` in cells `2, 4, 5, 11, 20, 298`. -/
+/-- `verify_bus_gkr_loop0`'s cells: values `0, 2, 3, 9, 17, 238` in cells `2, 4, 5, 11, 20, 298`. -/
 theorem gkr91_locs : (certOf (fn_idx% «verify_bus_gkr_loop0»)).locs.getD 0 0 = 2 ∧ (certOf (fn_idx% «verify_bus_gkr_loop0»)).locs.getD 2 0 = 4 ∧
     (certOf (fn_idx% «verify_bus_gkr_loop0»)).locs.getD 3 0 = 5 ∧ (certOf (fn_idx% «verify_bus_gkr_loop0»)).locs.getD 9 0 = 11 ∧
     (certOf (fn_idx% «verify_bus_gkr_loop0»)).locs.getD 17 0 = 20 ∧ (certOf (fn_idx% «verify_bus_gkr_loop0»)).locs.getD 238 0 = 298 := by decide +kernel
 
-/-- **`__loop6`'s cut obligations**: the parity word's bound at both cuts, `GkrPar` at `x·g`
+/-- **`verify_bus_gkr_loop0`'s cut obligations**: the parity word's bound at both cuts, `GkrPar` at `x·g`
 before the tail call. -/
 theorem gkrLoop_cutsKnown : CutsKnown (fn_idx% «verify_bus_gkr_loop0») := by
   intro κ L _ _ fp _ hsem i hi h0 hl
@@ -105,7 +105,7 @@ theorem gkrLoop_cutsKnown : CutsKnown (fn_idx% «verify_bus_gkr_loop0») := by
   have hp := (semRel_gkr _ _).mp (hsem _ (List.mem_singleton_self _))
   simp only [List.map_cons, List.map_nil, List.getD_cons_zero, List.getD_cons_succ] at hp
   rw [← valG_of_loc l3, ← valG_of_loc l0, ← valG_of_loc l2, ← valG_of_loc l9] at hp
-  rw [coreOf_91] at hl
+  rw [coreOf_layerLoop] at hl
   have hif : ∀ {n}, Stmt.noRetList (lyBody.take n) = true →
       tbStmtsEqb lySlotT (((lyBody.take n).drop 0).take lySlotT.length) = true →
       Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_bus_gkr_loop0»))) (lyBody.take n) True
@@ -131,7 +131,7 @@ theorem gkrLoop_cutsKnown : CutsKnown (fn_idx% «verify_bus_gkr_loop0») := by
     rw [← valG_of_loc l3, ← valG_of_loc l238, ← valG_of_loc l2, ← valG_of_loc l9]
     exact ly_par_tail hl hp
 
-/-! ## `verify_bus_gkr` (function `10`) -/
+/-! ## `verify_bus_gkr` -/
 
 theorem coreOf_10 : (coreOf (fn_idx% «verify_bus_gkr»)).body = vbgPre ++ [.ret vbgRets] := by
   obtain ⟨fn, hf, -, hb⟩ := vbgFound

@@ -30,8 +30,6 @@ open LeanVM.Guest.Value
 
 @[expose] public section
 
-theorem osCfgR_lvAt (m ri lvl : ℕ) : (osCfgR m ri).lvAt lvl = (osCfg m).lvAt lvl := rfl
-
 theorem osCfgR_lvAt_length (m ri lvl : ℕ) : ((osCfgR m ri).lvAt lvl).length = 4 := by
   simp [osCfgR, OsCfg.lvAt, osCfg]
 

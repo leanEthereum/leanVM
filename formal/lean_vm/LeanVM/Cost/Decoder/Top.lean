@@ -58,8 +58,8 @@ theorem sphincsAtFrameT_eq (R : ReaderTabs) (table : Array (CallKey × K)) (rd :
   funext p
   simp only [sphincsAtFrameT, sphincsAtFp, sphincsAtFrame, frameAtA_eq_frameValAt]
 
-/-- **The leanXMSS signature `__loop2`'s iteration on `args` checks, its frame looked up once**
-(`xmssAtFrame` at `frameAtA table rd`, `xmssAtFrameT_eq`): `__loop2`'s frame one binary
+/-- **The leanXMSS signature `main_loop2`'s iteration on `args` checks, its frame looked up once**
+(`xmssAtFrame` at `frameAtA table rd`, `xmssAtFrameT_eq`): `main_loop2`'s frame one binary
 search (`frameFpA`, its key the `56` arguments), then the reader off the frame pointer. -/
 noncomputable def xmssAtFrameT (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (args : List E) : LeanXmss.Signature :=

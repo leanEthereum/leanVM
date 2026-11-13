@@ -83,16 +83,6 @@ theorem littleEndianLane_eq_drop (bs : List UInt8) (i : ℕ) :
   simp only [toNat_littleEndianLane, List.getD_eq_getElem?_getD, List.getElem?_drop,
     Nat.mul_zero, Nat.zero_add]
 
-/-- Lane `0` reads only the first eight bytes. -/
-theorem littleEndianLane_take (bs : List UInt8) (n : ℕ) (hn : 8 ≤ n) :
-    littleEndianLane (bs.take n) 0 = littleEndianLane bs 0 := by
-  apply UInt64.toNat_inj.mp
-  simp only [toNat_littleEndianLane]
-  refine Finset.sum_congr rfl fun k hk ↦ ?_
-  have hk := Finset.mem_range.mp hk
-  simp only [List.getD_eq_getElem?_getD, List.getElem?_take, Nat.mul_zero, Nat.zero_add,
-    show k < n by omega, ite_true]
-
 /-- **The lane of a word's bytes is the word.** -/
 theorem littleEndianLane_wordBytes_append (w : UInt64) (rest : List UInt8) :
     littleEndianLane (wordBytes w ++ rest) 0 = w := by

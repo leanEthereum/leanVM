@@ -140,7 +140,7 @@ so the clamp changes nothing on a valid execution) on every input.
 `guestDecoderWitnessPriceAtValidCounts ≈ 2^38.63` is mostly the raw signatures (`65535` of each
 scheme, about `2^38.35`, the leanSPHINCS ones `2^38.14`: each reads about `1500` words of its four
 frames, `verify_sig_lean_sphincs`' and its three `sp_wots`', each frame looked up once; a leanXMSS
-one `184` words of its `__loop2` iteration's frame, looked up once on its `56` arguments), the
+one `184` words of its `main_loop2` iteration's frame, looked up once on its `56` arguments), the
 children's claims (each of the `16` children's priced at `65535` claims of each scheme, about
 `2^35.45`) and the two regions' tables (about `2^34.01`); the children's cursors are `16·8192`
 words at `1338` each, about `2^27.39`. The address tables of the memory and the program
@@ -148,7 +148,7 @@ are priced at the execution's `κ` and the program's `ℓ`
 (`guestDecoderAddressTablesPrice κ ℓ = (74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42`: at the guest's
 `ℓ = 19`, `2^31.21` at `κ = 20`, `2^41.19` at `κ = 30`). A frame lookup (`guestDecoderFramePrice`,
 one binary search, growing as `log(steps)`) is paid about `2^25.19` times
-(`guestDecoderFrameLookupCountAtValidCounts`; a search on `__loop2`'s `56` arguments counts as
+(`guestDecoderFrameLookupCountAtValidCounts`; a search on `main_loop2`'s `56` arguments counts as
 four), `2^40.06` in all at `2^20` steps and `2^41.16` at `2^51`.
 
 So the bound is `O(steps·log steps)` below `2^61` steps (`O(steps·log² steps)` as `steps` grows,
@@ -201,7 +201,7 @@ def guestDecoderPreconditionPrice : ℕ := 269 * 1271 + 99 * 706 + 24834 + 11
 
 /-- Filing one state of the run in the entry table, a sorted array: a lookup of its pc (`7093`),
 and for each of the at most two functions entered there the precondition test, the call's key
-(`66` reads: at most `56` arguments, `__loop2`'s, and `10` returns; and `41252` for the rest of the
+(`66` reads: at most `56` arguments, `main_loop2`'s, and `10` returns; and `41252` for the rest of the
 key and the pair), then its share of the one stable sort and the deduplication of the pairs
 (`(4343 + 5·limbs)·exponent + 7·limbs + 4373` a pair). -/
 def guestDecoderStateFilingPrice (exponent : ℕ) : ℕ :=

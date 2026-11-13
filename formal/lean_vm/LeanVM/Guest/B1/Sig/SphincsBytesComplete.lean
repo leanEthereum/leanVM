@@ -61,11 +61,6 @@ theorem nb_loadS {d : Nat} {p : V} (off : Nat) (hp : NBv d p) :
   simp only [loadS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil]
   exact .cons ⟨d, by omega, rfl⟩ (.cons (hp.mono' (by omega)) (.nil _))
 
-theorem nb_copyS {d : Nat} {x : V} (hx : NBv d x) :
-    NumBelow (d + 1) (Stmt.valsList [copyS (.n d) x]) := by
-  simp only [copyS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil]
-  exact .cons ⟨d, by omega, rfl⟩ (.cons (hx.mono' (by omega)) (.nil _))
-
 theorem rangeS_nb (x : V) (bound : E) (b : Nat) (hx : NBv b x) :
     NumBelow (b + 4) (Stmt.valsList (rangeS x bound b)) := by
   simp only [rangeS, cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,

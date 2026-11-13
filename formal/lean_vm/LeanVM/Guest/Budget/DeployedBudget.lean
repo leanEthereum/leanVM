@@ -4,7 +4,7 @@
   The deployed budget (`deployedBudget Bvf`): `mainBudget` at the deployed frame sizes, the static
   certificates' words (`Count.wSB`, `Count.wSK`) and counts (`Count.mainCounts`, `Budget/MvCount`), the children's
   loop's static counts (`l5C`, `ccS`, `vsCnt`, `Budget/L5Count`), the jump table's `SET`s and
-  `__loop2`'s arms (`B2C.xmssArmC`); and the guest's completeness within it, from each
+  `main_loop2`'s arms (`B2C.xmssArmC`); and the guest's completeness within it, from each
   child's `verify_sub` within `Bvf` words and `vsCnt` instructions at its announced stack log and
   rate.
 -/

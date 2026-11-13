@@ -261,10 +261,5 @@ theorem SSA.right : ∀ {xs ys : List Stmt}, SSA (xs ++ ys) → SSA ys
   | .ite .. :: _, _, h | .match_ .. :: _, _, h | .call .. :: _, _, h
   | .callIf .. :: _, _, h | .dispatch .. :: _, _, h | .ret _ :: _, _, h => h.elim
 
-/-- Evaluation keeps the values below every definition. -/
-theorem fwd_agree {ss : List Stmt} {B : Nat} (h : ∀ v ∈ outsList ss, ¬ NBvF B v) (σ : Val) :
-    AgreeBelow B σ (fwd ss σ) := fun k hk =>
-  (fwd_of_not_mem ss σ fun hm => h _ hm ⟨k, hk, rfl⟩).symm
-
 end
 end LeanVM.Guest.B1.Sig

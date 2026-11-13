@@ -265,7 +265,7 @@ variable {rd : Reader} {rdV : MachineValue}
       encodeValue rets] ≤ F4)
 include hrd hR hFp4
 
-/-- **The leanXMSS signature `__loop2`'s iteration on `args` checks** (`xmssAtFrameTC`), its
+/-- **The leanXMSS signature `main_loop2`'s iteration on `args` checks** (`xmssAtFrameTC`), its
 frame looked up once (a search on a key of at most `64` words, at most `F4`), the reader at the
 words off the frame pointer (`frameValAt`, `R + 1551` each): at most
 `F4 + xmssPrice (R + 1551) + 12`. -/

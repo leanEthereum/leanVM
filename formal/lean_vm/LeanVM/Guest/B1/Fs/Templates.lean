@@ -63,9 +63,6 @@ theorem holds_fsPackT (x : V) (b t : ℕ) (next : Prop) (kret : List E → Prop)
     Stmt.HoldsList C rd σ (fsPackT x b t) next kret ↔ FsPackOk σ x b t ∧ next := by
   simp only [fsPackT, FsPackOk, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_assoc]
 
-/-- The tag cell `word 0 t` is the scalar's second rate cell. -/
-theorem word_zero_tag (t : ℕ) : word 0 t = (Keccak.scalarCells 0 t).2 := rfl
-
 /-- **`fs_pack`'s cells** are the scalar's rate cells `Keccak.scalarCells x t`. -/
 theorem fsPackT_cells {x : V} {b t : ℕ} (h : FsPackOk σ x b t) :
     (σ (.n b), σ (.n (b + 1))) = Keccak.scalarCells (σ x) t := by

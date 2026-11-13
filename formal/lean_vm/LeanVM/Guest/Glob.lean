@@ -63,7 +63,7 @@ noncomputable def sigOf (j : ℕ) : Sig :=
 def good (j : ℕ) : Bool := Nat.ble 2 j && Nat.blt j nFns
 
 /-- The semantic relations by tag (`WalkTags.lean`): `0` the exponent table with its window
-section (`B1.ExpTables`, `B1.ExpWinTab`), which `verify_sub` and `__loop4` assume of an argument;
+section (`B1.ExpTables`, `B1.ExpWinTab`), which `verify_sub` and `main_loop4` assume of an argument;
 `1` the checker's own (`Check.tagNe`, here unused); `tagGkr` the GKR layer loop's parity
 (`GkrPar`); `tagTabs` `open_stacked`'s window table (`B1.WinTabs`); from `2^21` `level_queries`'
 windows (`lqSem`); the others the windowed Merkle walk's (`walkSem`). -/

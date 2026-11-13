@@ -8,6 +8,9 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # `certify_placement` (TRIAGE G #67): the interface
@@ -57,7 +60,7 @@ def stackTotal (kappas : List ℕ) : ℕ := ((committedKappas kappas).map (2 ^ �
 abbrev guestLogBytecode : ℕ := 19
 
 /-- `N_COMMITTED_COLS`. -/
-abbrev nCommittedCols : ℕ := 94
+abbrev nCommittedCols : ℕ := guest_const% N_COMMITTED_COLS
 
 /-- `COL_KAPPA_SRC[c]`: the `kappa_base` entry of committed column `c` (`0` the constant, `1` the
 memory, `2 + t` table `t`). -/

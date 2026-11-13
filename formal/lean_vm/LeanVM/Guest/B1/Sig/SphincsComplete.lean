@@ -44,8 +44,6 @@ def sPre : List Stmt :=
 theorem sBody_splitC : sBody = sPre ++ [.atom (.assertEq sLayerT.2.2 sRoot), .ret []] := by
   simp only [sBody, sAfterDigest, sPre, List.append_assoc]
 
-theorem sLayerB_end : sLayerB.2.1 = 5398 := rfl
-theorem sLayerM_end : sLayerM.2.1 = 5556 := rfl
 theorem sMidAddrs_seq : SeqOK 5398 sMidAddrs 5407 := seqB_ok (by decide +kernel)
 theorem sTopAddrs_seq : SeqOK 5556 sTopAddrs 5562 := seqB_ok (by decide +kernel)
 theorem sBottom_nb : NumBelow 5249 (Stmt.valsList (sDigestBlock ++ (sForsAddrs ++ sForsB.1))) :=

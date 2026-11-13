@@ -92,12 +92,6 @@ theorem IsPure.bind {α β : Type} {p : VerifierProgram α} {f : α → Verifier
   · exact hf a
   · exact .inr rfl
 
-/-- `require` has no event. -/
-theorem isPure_require (c : Prop) [Decidable c] : IsPure (VerifierProgram.require c) := by
-  unfold VerifierProgram.require; split_ifs
-  · exact .inl ⟨_, rfl⟩
-  · exact .inr rfl
-
 /-- `liftOption` has no event. -/
 theorem isPure_liftOption {α : Type} (o : Option α) : IsPure (Verifier.liftOption o) := by
   cases o

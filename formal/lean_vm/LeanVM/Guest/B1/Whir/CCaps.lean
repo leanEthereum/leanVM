@@ -93,15 +93,6 @@ theorem sibNode_eq {depth q l : ℕ} :
   rw [Nat.testBit_eq_decide_div_mod_eq]
   rcases Nat.mod_two_eq_zero_or_one (q / 2 ^ l) with h | h <;> simp [h]
 
-theorem heapNode_bounds {depth q l : ℕ} (hq : q < 2 ^ depth) (hl : l ≤ depth) :
-    2 ^ (depth - l) ≤ heapNode depth q l ∧ heapNode depth q l < 2 * 2 ^ (depth - l) := by
-  have : q / 2 ^ l < 2 ^ (depth - l) := by
-    rw [Nat.div_lt_iff_lt_mul (Nat.two_pow_pos l), ← pow_add, Nat.sub_add_cancel hl]
-    exact hq
-  unfold heapNode Guest.Limits.merkleHeapIndex
-  generalize q / 2 ^ l = t at this ⊢
-  omega
-
 theorem heapNode_top {depth q : ℕ} (hq : q < 2 ^ depth) : heapNode depth q depth = 1 := by
   unfold heapNode Guest.Limits.merkleHeapIndex; rw [Nat.sub_self, pow_zero, Nat.div_eq_of_lt hq]
 

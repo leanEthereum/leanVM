@@ -36,12 +36,6 @@ def HonestBatch (b : ℕ × List (ℕ × Opening)) : Prop :=
   ∃ (ht : ℕ) (word : Word) (ps : List ℕ),
     b = (ht, ps.zip (ps.map (openingAt keccak256 ht word))) ∧ ∀ q ∈ ps, q < 2 ^ ht
 
-theorem zip_map_append {β γ : Type} (ps : List β) (f : β → γ) (rest : List γ) :
-    ps.zip (ps.map f ++ rest) = ps.zip (ps.map f) := by
-  induction ps with
-  | nil => rfl
-  | cons p ps ih => simp [ih]
-
 /-- **The honest proof's query steps are honest batches.** -/
 theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
     ∀ (p : VerifierProgram Bool) (h : List Ev) (sp : Sponge) (xs : List E) (os : List (List Opening))

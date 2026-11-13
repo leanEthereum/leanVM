@@ -45,13 +45,5 @@ theorem ladder_isSome {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
   obtain ⟨h1, h2⟩ := admissible_bounded h
   exact key μ h1 logInvRate h2 h
 
-/-- Every ladder has at least two levels (`whir_config.rs:278-280`). -/
-theorem ladder_length {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
-    ∀ levels, ladder μ logInvRate = some levels → 2 ≤ levels.length := by
-  have key : ∀ μ < maxLogStack + 1, ∀ r < 5, Admissible μ r →
-      ∀ levels, ladder μ r = some levels → 2 ≤ levels.length := by decide +kernel
-  obtain ⟨h1, h2⟩ := admissible_bounded h
-  exact key μ h1 logInvRate h2 h
-
 end
 end LeanVM.Parameters.Whir

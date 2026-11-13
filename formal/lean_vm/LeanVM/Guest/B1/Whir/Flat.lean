@@ -194,20 +194,6 @@ theorem osMatP_eq {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {base of
   simp only [h0, ↓reduceIte]
   split <;> rename_i h <;> simp only [h]
 
-/-- The source times `g^dist` is the base times `g^off`. -/
-theorem osMatSD_ok {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} (hm : MatsOk σ mats)
-    {base off : ℕ} (h : off < u128Bound) :
-    (osMatSD plan mats base off).2 < u128Bound ∧ σ (.n (osMatSD plan mats base off).1) *
-      gen ^ (osMatSD plan mats base off).2 = σ (.n base) * gen ^ off := by
-  unfold osMatSD
-  split
-  · rename_i m hf
-    have he := List.find?_some hf
-    simp only [Bool.and_eq_true, beq_iff_eq] at he
-    obtain ⟨-, hd, -, hs⟩ := hm m (List.mem_of_find?_eq_some hf)
-    exact ⟨hd, by rw [hs, he.1, he.2]⟩
-  · exact osMatSrc_ok hm h
-
 /-- The materializations' values lie below `K`. -/
 def MatsBelow (K : ℕ) (mats : List OsMat) : Prop := ∀ m ∈ mats, m.out < K ∧ m.src < K ∧ m.base < K
 

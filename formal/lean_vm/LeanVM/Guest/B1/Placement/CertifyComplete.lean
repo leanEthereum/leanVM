@@ -116,8 +116,6 @@ def cpCOf (v : ℕ) : ℕ := ((List.range 8).filter fun g ↦ cpD (g + 1) ≤ v)
 /-- The group of column `c`. -/
 def cpCGrp (c : ℕ) : ℕ := ((List.range 8).filter fun g ↦ cpC0 (g + 1) ≤ c).length
 
-theorem cpBx_eq : ∀ gi < 9, cpBx gi = cpB gi := by decide +kernel
-
 theorem cpGOf_eq : ∀ gi < 9, ∀ v < 136, cpB gi ≤ v → v < cpBx (gi + 1) → cpGOf v = gi := by
   decide +kernel
 
@@ -303,11 +301,6 @@ theorem cpKs_length : (cpKs lm hs).length = 94 :=
 
 theorem cpKs_eq (hl : hs.length = 6) : cpKs lm hs = (List.range 94).map (cpKc lm hs) :=
   committedKappas_columnKappas lm hs hl
-
-theorem cpKs_getD (hl : hs.length = 6) {c : ℕ} (hc : c < 94) :
-    (cpKs lm hs).getD c 0 = cpKc lm hs c := by
-  rw [cpKs_eq hl, List.getD_eq_getElem _ _ (by simpa using hc)]
-  simp
 
 theorem cp_base_lt (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 33) {s : ℕ}
     (hs8 : s < 8) : cpEb lm hs s < 33 := by
@@ -526,8 +519,6 @@ theorem w33_eq : w33 = gen ^ 33 := by rw [w33, word_g33, gen_pow_eq_ofK]
 
 theorem wRankBound_eq : wRankBound = gen ^ 8397 := by
   rw [wRankBound, word_g8397, gen_pow_eq_ofK]
-
-theorem isInK_gen_pow (a : ℕ) : IsInK (gen ^ a) := by rw [gen_pow_eq_ofK]; exact tb_isInK_ofK _
 
 theorem tb_load_ofK_add {rd : Reader} {a b k : ℕ} {w : E} :
     LoadHolds rd (ofK (addressOfIndex (a + b))) k w ↔

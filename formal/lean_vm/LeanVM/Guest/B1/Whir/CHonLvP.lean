@@ -34,14 +34,6 @@ open LeanVM.Guest.Value
 
 @[expose] public section
 
-/-- Squeezes from a capacity, the first split off. -/
-theorem squeezeN_first (cap : List E) (n : ℕ) (hn : 1 ≤ n) :
-    ((⟨cap, []⟩ : Fs).squeezeN n) =
-      (challengeOf (⟨cap, []⟩ : Fs).perm :: ((⟨capOf (⟨cap, []⟩ : Fs).perm, []⟩ : Fs).squeezeN (n - 1)).1,
-        ((⟨capOf (⟨cap, []⟩ : Fs).perm, []⟩ : Fs).squeezeN (n - 1)).2) := by
-  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
-  rfl
-
 theorem rdCell_zero (S : KeccakState) : rdCell S 0 = challengeOf S := by
   rw [Keccak.challengeOf_cells]; rfl
 

@@ -23,7 +23,7 @@ names from earlier windows (`Cert.locAtR`), which the group's walk covers (`covO
 of a straight-line `match` walks its arm's segment to the join with nothing to check, so each
 group's walk is the window's with fewer arms.
 
-`__loop2`'s chained `match`es (one window each, entered by the previous one's table jump, its arms
+`main_loop2`'s chained `match`es (one window each, entered by the previous one's table jump, its arms
 ending in the next one's) are split alike: a group walks arm `0` to its end `r`, a join or the
 next table jump, and its arms to the same end (`armsThenS`), from the `match`'s table jump
 (`chkMatchS`, `chkL`'s) or, the window entered, from its arms (`chainMatchS`, `chainL`'s).

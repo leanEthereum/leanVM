@@ -13,6 +13,9 @@ public import LeanVM.Guest.ExpTables
 public import LeanVM.Guest.B1.Gkr.Fs
 public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.Selectors.Interface
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # `verify_tables` (TRIAGE G #51, #52): the interface
@@ -138,7 +141,7 @@ def tablesSeg (ev : List K → List E → E → VerifierProgram Unit) (layout : 
 /-! ## The claims -/
 
 /-- `N_CLAIMS`: the column claims the pool holds. -/
-abbrev nClaims : ℕ := 159
+abbrev nClaims : ℕ := guest_const% N_CLAIMS
 
 /-- The claims before the public input's: `N_CLAIMS - 2`. -/
 abbrev nPooled : ℕ := nClaims - 2
@@ -151,7 +154,7 @@ def claimColumns : List ℕ :=
     [memory0, memory1]
 
 /-- `N_BUS_CLAIMS`: the bus's pooled claims, slots `0 .. 3`. -/
-abbrev nBusClaims : ℕ := 4
+abbrev nBusClaims : ℕ := guest_const% N_BUS_CLAIMS
 
 /-- `N_COL_EVALS`: the tables' column evaluations, read where the stream holds them. -/
 abbrev nColEvals : ℕ := nPooled - nBusClaims
@@ -203,7 +206,7 @@ def blockKappaSrc : List ℕ :=
 def blockKappaAdj (b : ℕ) : ℕ := if b = 2 ∨ b = 56 then 19 else 0
 
 /-- `N_BLOCKS`. -/
-abbrev nBlocks : ℕ := 153
+abbrev nBlocks : ℕ := guest_const% N_BLOCKS
 
 /-- `BLOCK_GROUP_START`: each block group's first block, then `N_BLOCKS` (the groups' count
 `nBlockGroups`, each side's first group `sideGroupStart` and the tables' offsets `rankKeysAt`,

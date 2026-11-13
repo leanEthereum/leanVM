@@ -81,11 +81,6 @@ structure L5Vals (rd : Reader) (σ : Val) (args : List E) (c ex es : ℕ)
   v59 : σ (.n 53) = gen ^ (c + 1) + args.getD 1 0
   v61 : σ (.n 55) = gen ^ (c + 1)
 
-theorem gen_pow_mul_inv {K e : ℕ} (h : e ≤ K) : gen ^ K * (gen ^ e)⁻¹ = gen ^ (K - e) := by
-  have hg : gen ^ e ≠ 0 := pow_ne_zero _ gen_ne_zero
-  rw [show K = (K - e) + e by omega, pow_add, mul_assoc, mul_inv_cancel₀ hg, mul_one,
-    Nat.add_sub_cancel]
-
 theorem low_load {κ : ℕ} {rd : Reader} (hlow : LowDef κ rd) {e : ℕ} (he : e < 2 ^ κ) :
     LoadHolds rd (gen ^ e) 0 (rdAt rd (gen ^ e) 0) := by
   have := B1.loadHolds_low hlow he

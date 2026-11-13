@@ -54,23 +54,6 @@ theorem runsTo_det {α : Type} {p : VerifierProgram α} {s t1 t2 : Fs} {xs1 xs2 
   obtain ⟨ea, et, -, er⟩ := runsToX_det (g := none) h1 h2 hc he
   exact ⟨ea, et, er⟩
 
-/-- An accepting run checked its requirement. -/
-theorem runsTo_require_inv {c : Prop} [Decidable c] {s t : Fs} {xs : List E} {u : Unit}
-    (h : RunsTo (VerifierProgram.require c) s xs u t) (hc : ∃ sp, s.Carries sp) : c := by
-  by_contra hn
-  obtain ⟨sp, hsp⟩ := hc
-  obtain ⟨sp1, -, e⟩ := h sp hsp [] [] []
-  simp only [VerifierProgram.require, hn, ↓reduceIte] at e
-  exact absurd e (by simp [runId, Compile.runWithHash])
-
-/-- A run of a return returns its word, reading nothing. -/
-theorem runsTo_ret_inv {α : Type} {x a : α} {s t : Fs} {xs : List E}
-    (h : RunsTo (VerifierProgram.ret x) s xs a t) (hc : ∃ sp, s.Carries sp) : a = x ∧ t = s ∧ xs =
-        [] := by
-  obtain ⟨e1, e2, e3⟩ := runsTo_det h (runsTo_ret x s) hc (r1 := []) (r2 := xs) (by simp)
-  refine ⟨e1, e2, ?_⟩
-  simpa using e3.symm
-
 /-! ## Runs as equations of the carried run -/
 
 /-- A run is an equation of the carried run, on any rest of the stream. -/

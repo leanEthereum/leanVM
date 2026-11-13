@@ -54,11 +54,6 @@ theorem sHtLayer_split (pad : Nat) (pp a0 key signed ctr : V) (bit val : Nat →
         (sPath pad pp a0 bit val off height 0 (.n (b + 10)) (b + 11)).2.2) := by
   simp only [sHtLayer, layerPre, (kEnc_shape ..).1, (kEnc_shape ..).2, List.append_assoc]
 
-theorem layerPre_atoms (pad : Nat) (pp a0 key signed ctr : V) (b : Nat) :
-    atomsOnly (layerPre pad pp a0 key signed ctr b) = true := by
-  simp only [layerPre, atomsOnly_append, kMsg_atoms]
-  rfl
-
 variable {rd : Reader} {σ : Val}
 
 /-- The bytes of cells ending in a counter's word are zero past its four bytes. -/

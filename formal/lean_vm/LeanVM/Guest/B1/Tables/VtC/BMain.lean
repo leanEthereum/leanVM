@@ -99,11 +99,6 @@ theorem vtP_beta1 {rd : Reader} {σ : Val} (h : VtP rd σ) : σ (.n 1975) = σ (
   simp only [Atom.Holds] at a1 a2
   rw [a2, a1, tb_word_one]
 
-theorem vtB_list4 (l : List E) (h : l.length = 4) :
-    [l.getD 0 0, l.getD 1 0, l.getD 2 0, l.getD 3 0] = l := by
-  match l, h with
-  | [_, _, _, _], _ => rfl
-
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
 

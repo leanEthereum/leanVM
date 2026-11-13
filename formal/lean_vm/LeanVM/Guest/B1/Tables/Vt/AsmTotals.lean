@@ -35,9 +35,6 @@ theorem vt_length_eqKernel_foldl : ∀ (pt out : List E),
       List.length_map, List.length_cons, pow_succ]
     ring
 
-theorem vt_length_eqKernel (pt : List E) : (eqKernel pt).length = 2 ^ pt.length := by
-  rw [eqKernel, vt_length_eqKernel_foldl]; simp
-
 theorem vt_take3 (W : List E) (h : 3 ≤ W.length) :
     W.take 3 = [W.getD 0 0, W.getD 1 0, W.getD 2 0] := by
   match W, h with

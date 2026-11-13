@@ -44,13 +44,6 @@ theorem rounds_eq {coefs : E} {n : ℕ} {rs rs' : List FoldRound} (hl : rs.lengt
     rintro ⟨⟩ ⟨⟩ h1 h2; simp_all
   exact ext _ _ ea eb
 
-/-- Words read from the cursor, then past them. -/
-theorem readsAt_snoc {p : E} {xs : List E} {x : E} (h1 : ReadsAt rd p xs)
-    (h2 : LoadHolds rd (p * gen ^ xs.length) 0 x) : ReadsAt rd p (xs ++ [x]) :=
-  readsAt_append h1 fun k hk ↦ by
-    obtain rfl : k = 0 := by simpa using hk
-    exact h2
-
 /-- **A non-final level, soundly.** -/
 theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     (hle : CallRel.Le C (coreProgram.Rel rd)) (hwt : WinTabs rd (σ (.n osTabs)))

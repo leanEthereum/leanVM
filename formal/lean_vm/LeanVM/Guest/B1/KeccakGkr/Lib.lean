@@ -150,9 +150,6 @@ theorem squeeze_atom {ins outs : List V} {b : ℕ} {s : Fs}
 
 /-! ## Words -/
 
-theorem word_gen_sq : word 4 0 = gen ^ 2 := by
-  rw [show (4 : ℕ) = 2 ^ 2 from rfl]; exact word_two_pow (by decide)
-
 /-! ## Records and runs -/
 
 /-- Five capacity cells `16` words apart. -/
@@ -192,14 +189,6 @@ theorem readsAt_append {p : E} {xs ys : List E} :
     · rw [List.getElem_append_right (by omega)]
       have := hy (k - xs.length) (by simp at hk; omega)
       rwa [show xs.length + (k - xs.length) = k by omega] at this
-
-theorem readsAt_two {p a b : E} (ha : LoadHolds rd p 0 a) (hb : LoadHolds rd p 1 b) :
-    ReadsAt rd p [a, b] := by
-  intro k hk
-  simp only [List.length_cons, List.length_nil] at hk
-  interval_cases k
-  · exact ha
-  · exact hb
 
 /-! ## Statement lists without `ret` -/
 

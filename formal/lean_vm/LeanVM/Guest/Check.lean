@@ -1334,10 +1334,6 @@ noncomputable def walkFrom (X : Fx) (env : List (ℕ × Sym)) (sel : ℕ) (succ 
   bif succ.isEmpty then chkL X ss st []
   else bif startsOk X.idx env succ then chainL X sel succ st.book st.psi st.bnd ss [] else .fail
 
-theorem walkFrom_nil {X : Fx} {env : List (ℕ × Sym)} {sel : ℕ} {succ : List ℕ} (h : succ = [])
-    (ss : List Core.Stmt) (st : CS) : walkFrom X env sel succ ss st = chkL X ss st [] := by
-  simp [walkFrom, h]
-
 /-- **The check of window `i`** of `f` with core function `cf` and certificate `C`: its
 executor's segments are linked, its cells are the certificate's and cover its statements, its walk
 starts at its start offset in its environment with what the previous window handed on, and ends

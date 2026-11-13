@@ -88,18 +88,12 @@ theorem CommitDoom.append {prog : LeanIsaProgram} {input : PublicInput}
 /-- The first word of a list of commitments. -/
 def firstWordC (cs : List (ℕ × ℕ × Word)) : Option Word := cs.head?.map (·.2.2)
 
-theorem firstWord_eq (h : List Ev) : firstWord h = firstWordC (commits h) := rfl
-
 /-- **The commitment's doom on the commitments alone**: `CommitDoom` reads only them. -/
 def CommitDoomC (prog : LeanIsaProgram) (input : PublicInput) (A : ℕ → ℕ → ℕ)
     (a : Verifier.Layout × ℕ) (cs : List (ℕ × ℕ × Word)) : Prop :=
   ∃ s W₀, a.1 = verifierLayout prog s ∧ firstWordC cs = some W₀ ∧
     ∀ q ∈ Candidates (leanIsaμ prog s) a.2 (A (leanIsaμ prog s) a.2) W₀,
       ¬ M3Holds (leanIsaInstance prog s) input q
-
-theorem commitDoom_iff {prog : LeanIsaProgram} {input : PublicInput} {A : ℕ → ℕ → ℕ}
-    {a : Verifier.Layout × ℕ} {h : List Ev} :
-    CommitDoom prog input A a h ↔ CommitDoomC prog input A a (commits h) := Iff.rfl
 
 /-- The candidates of the first commitment of a list, on `μ` variables at threshold `A`. -/
 def firstCands (μ R A : ℕ) (cs : List (ℕ × ℕ × Word)) : Set (Column μ) :=

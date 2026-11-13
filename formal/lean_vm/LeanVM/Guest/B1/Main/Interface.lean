@@ -12,6 +12,9 @@ public import LeanVM.Guest.B1.Da.Interface
 public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Sig.Interface
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # `main` and `aggregate_claims`: meanings (TRIAGE G #96, #97)
@@ -87,7 +90,7 @@ noncomputable def cellAt (rd : Reader) (p : E) (k : ℕ) : E :=
 noncomputable def readCells (rd : Reader) (p : E) (n : ℕ) : List E := (List.range n).map (cellAt rd p)
 
 /-- `BYTECODE_VARS`. -/
-abbrev bytecodeVars : ℕ := 23
+abbrev bytecodeVars : ℕ := guest_const% BYTECODE_VARS
 
 /-- A deferred claim of its `24` cells: the point, then the value. -/
 def deferOfCells (cs : List E) : DeferredClaim := ⟨cs.take bytecodeVars, cs.getD bytecodeVars 0⟩

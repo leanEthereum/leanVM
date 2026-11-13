@@ -22,9 +22,9 @@ public import LeanVM.Guest.AcceptableChild
 
 `ccW op n`: `child_claim_list_digest`'s instructions of `op` on `n` claims: its frame's weight,
 `list_split`'s and `child_claim_list_any`'s (`anyW`: its frame's, `n / 136` iterations of
-`__loop17`, `n % 136 / 17` of `__loop18` and the last group's `child_claim_list_last__L{n % 17}`;
+`child_claim_list_any_loop0`, `n % 136 / 17` of `child_claim_list_any_loop1` and the last group's `child_claim_list_last__L{n % 17}`;
 `ccl_weight_le`, on a tree of honest shape `ccHonest n`, `any_weight_le` under it).
-`l5B op X S V c`: iteration `c` of `__loop4`: its frame's weight, the two claim lists' digests
+`l5B op X S V c`: iteration `c` of `main_loop4`: its frame's weight, the two claim lists' digests
 (`X c`, `S c` claims), `statement_digest`, and `verify_sub` within `V c`. `l5_weight_le`: the iterations from `c`
 (`L5From`) weigh at most the sum of their `l5B`. `l5B_le`: `l5B` is at most a constant `l5C op`,
 `ccS op` per claim, and `V c` (`ccW_le`: `n / 136` iterations within `⌈K / 136⌉` per claim).
@@ -44,7 +44,7 @@ open LeanVM.Guest.B1.Main (ccHonest L5From l5CallList l5Ts l5Ts4 l5Evs l5Pre l5T
 @[expose] public section
 
 /-- **`child_claim_list_any`'s instructions of `op` on `n = 136a + 17b + c` claims**: its frame's
-weight, `a` iterations of `__loop17`, `b` of `__loop18`, and `child_claim_list_last__L{c}`. -/
+weight, `a` iterations of `child_claim_list_any_loop0`, `b` of `child_claim_list_any_loop1`, and `child_claim_list_last__L{c}`. -/
 def anyW (op : Opcode) (n : ℕ) : ℕ :=
   (omT op).getD 3 0 + n / 136 * kcL17 op + n % 136 / 17 * kcL18 op + (kcCclT op).getD (n % 17) 0
 
@@ -142,7 +142,7 @@ theorem ccl_weight_le (op : Opcode) {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : R
     simp only [h0, ↓reduceIte]
     omega
 
-/-- **Iteration `c` of `__loop4`**: its frame, the claim lists' digests on `X c` and `S c` claims,
+/-- **Iteration `c` of `main_loop4`**: its frame, the claim lists' digests on `X c` and `S c` claims,
 the statement's digest, and `verify_sub` within `V c`. -/
 def l5B (op : Opcode) (X S V : ℕ → ℕ) (c : ℕ) : ℕ :=
   (omT op).getD 2 0 + ccW op (X c) + ccW op (S c) + kcSd op + V c
@@ -201,10 +201,10 @@ theorem l5_weight_le (op : Opcode) {ex es X S : ℕ → ℕ} {Pvs : ℕ → Tree
       rfl
     omega
 
-/-- The per-claim slope of `ccW`: `⌈K / 136⌉` of `__loop17`'s `K` per iteration. -/
+/-- The per-claim slope of `ccW`: `⌈K / 136⌉` of `child_claim_list_any_loop0`'s `K` per iteration. -/
 def ccS (op : Opcode) : ℕ := (kcL17 op + 135) / 136
 
-/-- The constant of `ccW`: the two frames, `list_split`, at most `7` iterations of `__loop18`
+/-- The constant of `ccW`: the two frames, `list_split`, at most `7` iterations of `child_claim_list_any_loop1`
 (`n % 136 / 17 ≤ 7`) and the largest last group. -/
 def ccA (op : Opcode) : ℕ :=
   (omT op).getD 1 0 + kcLs op + (omT op).getD 3 0 + 7 * kcL18 op + (kcCclT op).foldl max 0

@@ -106,10 +106,6 @@ theorem bitE_of_mul_self {b : E} (h : b * b = b) : b = bitE (decide (b = 1)) := 
 
 theorem bitE_mul_self (c : Bool) : bitE c * bitE c = bitE c := by cases c <;> simp [bitE]
 
-theorem bitE_injective : Function.Injective bitE := by
-  intro a b h
-  cases a <;> cases b <;> simp_all [bitE]
-
 /-- A bit times the coordinate basis vector `i` is the bit pattern `2^i` or zero. -/
 theorem bitE_mul_coordBasis (c : Bool) (i : ℕ) :
     bitE c * coordBasis i = eOfNat128 (2 ^ i * c.toNat) := by
@@ -145,17 +141,6 @@ theorem bits_of_reconstruct {s n : ℕ} {b : ℕ → E} (hb : ∀ i < n, b i * b
   · rw [← hx, hsum, sum_bitE_coordBasis]
   · rw [hbf i hi, testBit_bitsVal]
     simp [hi]
-
-/-- The same, read off the word (`s = 0`, `n ≤ 128`): `x`'s integer is below `2^n` and `b_i` is
-its bit `i`. -/
-theorem bits_of_reconstruct_zero {n : ℕ} (hn : n ≤ 128) {b : ℕ → E}
-    (hb : ∀ i < n, b i * b i = b i) {x : E}
-    (hx : ∑ i ∈ Finset.range n, b i * coordBasis i = x) :
-    eToNat x < 2 ^ n ∧ ∀ i < n, b i = bitE ((eToNat x).testBit i) := by
-  obtain ⟨N, hN, rfl, hbits⟩ := bits_of_reconstruct (s := 0) hb (by simpa using hx)
-  have hN' : N < 2 ^ 128 := lt_of_lt_of_le hN (Nat.pow_le_pow_right (by decide) hn)
-  rw [Nat.pow_zero, Nat.one_mul, eToNat_eOfNat128, Nat.mod_eq_of_lt hN']
-  exact ⟨hN, hbits⟩
 
 /-- **Completeness**: the bits of an integer below `2^n` are Boolean and reconstruct it. -/
 theorem reconstruct_bits (s : ℕ) {N n : ℕ} (hN : N < 2 ^ n) :
@@ -302,38 +287,6 @@ theorem verify_log2_ceil_sound {W L floor : ℕ} (hW : W < 2 ^ 64) (hL : L < 64)
     have hb : eOfNat W + eOfNat (2 ^ (L - 1)) ≠ 0 := right_ne_zero_of_mul h3
     rw [Ne, high_eq_zero_iff hW] at ha
     rw [Ne, eOfNat_add_eq_zero_iff hW (hpow (L - 1) (by omega))] at hb
-    omega
-
-/-- **`verify_log2_ceil` is complete**: the honest `L = max floor (log2Ceil W)` satisfies the
-products the guest asserts. -/
-theorem verify_log2_ceil_complete {W floor : ℕ} (hW : W < 2 ^ 64)
-    (hL : max floor (log2Ceil W) < 64) :
-    let L := max floor (log2Ceil W)
-    (eOfNat (W % 2 ^ L) + eOfNat W) * eOfNat (W % 2 ^ L) = 0 ∧
-      (eOfNat (W % 2 ^ L) + eOfNat W) * (eOfNat W + eOfNat (2 ^ L)) = 0 ∧
-      (L ≠ floor → L ≠ 0 →
-        (eOfNat (W % 2 ^ (L - 1)) + eOfNat W) * (eOfNat W + eOfNat (2 ^ (L - 1))) ≠ 0) := by
-  intro L
-  have hpow : ∀ j, j < 64 → 2 ^ j < 2 ^ 64 := fun j hj ↦ Nat.pow_lt_pow_right (by decide) hj
-  have hle : W ≤ 2 ^ L := log2Ceil_le_iff.mp (le_max_right _ _)
-  have hboth : (eOfNat (W % 2 ^ L) + eOfNat W) * eOfNat (W % 2 ^ L) = 0 ∧
-      (eOfNat (W % 2 ^ L) + eOfNat W) * (eOfNat W + eOfNat (2 ^ L)) = 0 := by
-    rcases lt_or_eq_of_le hle with h | h
-    · rw [(high_eq_zero_iff hW).mpr h, zero_mul, zero_mul]
-      exact ⟨rfl, rfl⟩
-    · rw [h, Nat.mod_self, eOfNat_zero, mul_zero, (eOfNat_add_eq_zero_iff (hpow L hL)
-        (hpow L hL)).mpr rfl, mul_zero]
-      exact ⟨rfl, rfl⟩
-  refine ⟨hboth.1, hboth.2, fun hne hne0 ↦ ?_⟩
-  have hlog : L = log2Ceil W := by
-    rcases le_total floor (log2Ceil W) with h | h
-    · exact max_eq_right h
-    · exact absurd (max_eq_left h) hne
-  have hgt : 2 ^ (L - 1) < W := lt_log2Ceil_iff.mp (by omega)
-  refine mul_ne_zero ?_ ?_
-  · rw [Ne, high_eq_zero_iff hW]
-    omega
-  · rw [Ne, eOfNat_add_eq_zero_iff hW (hpow (L - 1) (by omega))]
     omega
 
 end
