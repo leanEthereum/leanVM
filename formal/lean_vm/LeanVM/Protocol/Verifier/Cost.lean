@@ -429,15 +429,11 @@ def SizesOK (p : Layout × ℕ) : Prop :=
 /-- The announced sizes: eight reads, and sizes in the window the program checks. -/
 theorem costs_readSizes {height : ℕ} (bytecode : List K) :
     VerifierProgram.Costs height (readAnnouncedSizes bytecode) 8 SizesOK := by
-  refine VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun announced _ ↦
-      VerifierProgram.Costs.seq
-    (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦ VerifierProgram.Costs.seq
-        (VerifierProgram.Costs.require (n := 0) _)
-      (fun _ hr ↦ VerifierProgram.Costs.seq (costs_liftOption _ 0) (fun layout hl ↦
-          VerifierProgram.Costs.seq
-        (VerifierProgram.Costs.require (n := 0) _) (fun _ hs ↦ ?_) ?_) ?_) ?_) ?_) ?_
-  · exact ⟨layoutBounds_of_buildLayout hl, hr.1, hr.2, hs.1, hs.2⟩
-  all_goals simp [tables]
+  rw [readAnnouncedSizes_eq]
+  refine VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _)
+    (fun _ _ ↦ (costs_liftOption _ _).mono le_rfl fun x hx ↦ ?_) (by simp [tables])
+  have s := sizesOf_spec hx
+  exact ⟨layoutBounds_of_buildLayout s.layout, s.rate_ge, s.rate_le, s.stack_ge, s.stack_le⟩
 
 /-- The push side of a built layout has depth at most `36`. -/
 theorem pushDepth_le {layout : Layout} (h : LayoutBounds layout) :

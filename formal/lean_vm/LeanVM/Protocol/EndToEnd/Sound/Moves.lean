@@ -10,6 +10,7 @@
 module
 
 public import LeanVM.Protocol.Compile.SpecRules.Grind
+public import LeanVM.Protocol.Verifier.Phases
 
 /-!
 # The prover moves of the leanVM verifier
@@ -436,10 +437,11 @@ variables, and the layout is the one `buildLayout` gives at the sizes read. -/
 theorem moves_readSizes_le {g : ℕ → Prop} (bytecode : List K) :
     Moves g False (fun a ↦ Whir.minLogStack ≤ a.1.stackLog ∧ a.1.stackLog ≤ Whir.maxLogStack ∧
       ∃ logMemory tableRows, buildLayout bytecode logMemory tableRows = some a.1) (fun _ ↦ False)
-      (readAnnouncedSizes bytecode) :=
-  Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
-    Moves.seq' (Moves.require _) fun _ _ ↦ Moves.seq' (Moves.liftOption _) fun _ hl ↦
-      Moves.seq' (Moves.require _) fun _ h ↦ Moves.pure ⟨h.1, h.2, _, _, hl⟩
+      (readAnnouncedSizes bytecode) := by
+  rw [readAnnouncedSizes_eq]
+  exact Moves.seq' (Moves.readN _) fun _ _ ↦ (Moves.liftOption _).mono (fun _ h ↦ h) id
+    (fun _ hx ↦ ⟨(sizesOf_spec hx).stack_ge, (sizesOf_spec hx).stack_le, _, _, (sizesOf_spec hx).layout⟩)
+    (fun _ h ↦ h)
 
 theorem moves_tableTerms_le (constraintPowers formPowers point : List E) :
     ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E),

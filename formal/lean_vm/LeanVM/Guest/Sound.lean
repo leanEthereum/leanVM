@@ -51,35 +51,35 @@ open LeanVM.Guest.Exec
 /-! ## B1's obligations -/
 
 /-- **`verify_sub`'s obligation** (B1's): on every memory image, over the exponent table at
-`verify_sub`'s argument `4` (`g_squares`), its first `1545` statements, up to its call of
-`check_opening_terminal`, put entry `c < 8` of `kappa_base` (the value `83`) among the powers
+`verify_sub`'s argument `4` (`g_squares`), its first `vsKbAt` statements, up to its call of
+`check_opening_terminal`, put entry `c < 8` of `kappa_base` (the value `vsKb`) among the powers
 `g^e`, `e < vsKbBound c`, which `check_opening_terminal` dispatches on. -/
 def VsKbKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpTables L.read (σ (.n 4)) →
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take 1545) True (fun _ ↦ True) →
-      ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n 83)) c (ofK (addressOfIndex e))
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsKbAt) True (fun _ ↦ True) →
+      ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n vsKb)) c (ofK (addressOfIndex e))
 
 /-- **`verify_sub`'s obligation at its dispatch to `open_stacked`** (B1's): over the window section
-of the exponent table at its argument `4`, its first `1544` statements, up to the dispatch, put the
-window table at `tabs` (the value `1921`), which `open_stacked` assumes (`tagTabs`). -/
+of the exponent table at its argument `4`, its first `vsTabsAt` statements, up to the dispatch, put
+the window table at `tabs` (the value `vsTabs`), which `open_stacked` assumes (`tagTabs`). -/
 def VsTabsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpWinTab L.read (σ (.n 4)) →
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take 1544) True (fun _ ↦ True) →
-      B1.WinTabs L.read (σ (.n 1921))
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsTabsAt) True (fun _ ↦ True) →
+      B1.WinTabs L.read (σ (.n vsTabs))
 
 /-- **`verify_sub`'s obligations**: `kappa_base`'s bounds and the window table. -/
 def VsKnown : Prop := VsKbKnown ∧ VsTabsKnown
 
 /-- **`verify_sub`'s obligation at its call of `verify_tables`** (B1's; REC-GUEST-IFACE 'tool:
-dims_g known', 'verifysub#7'): on every memory image, its first `333` statements, up to its call
-of `verify_tables`, put entry `0` of `dims_g` (the value `71`, `g^logMem`) among the powers
+dims_g known', 'verifysub#7'): on every memory image, its first `vsDimsAt` statements, up to its call
+of `verify_tables`, put entry `0` of `dims_g` (the value `vsDims`, `g^logMem`) among the powers
 `g^e`, `e < 34`, which `verify_tables` dispatches on. -/
 def VsDimsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take 333) True (fun _ ↦ True) →
-      ∃ e < 34, LoadHolds L.read (σ (.n 71)) 0 (ofK (addressOfIndex e))
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsDimsAt) True (fun _ ↦ True) →
+      ∃ e < 34, LoadHolds L.read (σ (.n vsDims)) 0 (ofK (addressOfIndex e))
 
 /-- **`exponent_tables`' relation** (B1's): its returned pointer holds the exponent table and its
 window section. -/
@@ -126,18 +126,18 @@ theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage
     have := (semRel_exp _ _).mp (hsem (0, [6]) (by rw [vs_sem]; exact List.mem_singleton_self _))
     simp only [valG, vs_cells]
     exact this
-  have hdims (n : ℕ) (hn : 333 ≤ n)
+  have hdims (n : ℕ) (hn : vsDimsAt ≤ n)
       (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_sub»)))
         ((coreOf (fn_idx% «verify_sub»)).body.take n) True (fun _ ↦ True)) :
-      MemKnown L fp (vsDimsKnown ((certOf (fn_idx% «verify_sub»)).locs.getD 71 0)) := by
+      MemKnown L fp (vsDimsKnown ((certOf (fn_idx% «verify_sub»)).locs.getD vsDims 0)) := by
     intro m hm
     rw [vsDimsKnown, List.mem_singleton] at hm
     subst hm
     exact hvd L h16 h32 _ (vs_take hn hl)
-  have htabs (n : ℕ) (hn : 1544 ≤ n)
+  have htabs (n : ℕ) (hn : vsTabsAt ≤ n)
       (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_sub»)))
         ((coreOf (fn_idx% «verify_sub»)).body.take n) True (fun _ ↦ True)) :
-      SemHolds glob L fp [(tagTabs, [(certOf (fn_idx% «verify_sub»)).locs.getD 1921 0])] := by
+      SemHolds glob L fp [(tagTabs, [(certOf (fn_idx% «verify_sub»)).locs.getD vsTabs 0])] := by
     intro t ht'
     simp only [List.mem_singleton] at ht'
     subst ht'
@@ -148,17 +148,17 @@ theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage
   · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut1
     rw [hkn, hki, hsm]
     rw [hst] at hl
-    exact ⟨hdims 333 le_rfl hl, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
+    exact ⟨hdims vsDimsAt le_rfl hl, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
   · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cutT
     rw [hkn, hki, hsm]
     rw [hst] at hl
-    exact ⟨hdims 1544 (by omega) hl, fun _ h ↦ by simp at h, htabs 1544 le_rfl hl⟩
+    exact ⟨hdims vsTabsAt (by decide) hl, fun _ h ↦ by simp at h, htabs vsTabsAt le_rfl hl⟩
   · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut
     rw [hkn, hki, hsm]
     rw [hst] at hl
-    refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h, htabs 1545 (by omega) hl⟩
+    refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h, htabs vsKbAt (by decide) hl⟩
     rcases List.mem_append.mp hm with hm | hm
-    · exact hdims 1545 (by omega) hl m hm
+    · exact hdims vsKbAt (by decide) hl m hm
     obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hm
     exact hvs.1 L h16 h32 _ ht.1 hl c (List.mem_range.mp hc)
 

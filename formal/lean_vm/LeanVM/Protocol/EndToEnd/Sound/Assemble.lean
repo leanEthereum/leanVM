@@ -32,15 +32,15 @@ in doom, every group of challenges at most `εmsg = 2^-125` after the grind befo
    admissible sizes `s` with an admissible WHIR shape (`Good`), the rest is dead;
 2. the stack's root (`commitSpec`), creating `RootDoom`: the commitments have level 0's shape and no
    candidate of the root's word at level 0's threshold satisfies `M3Holds` of the leanISA instance;
-3. the commitment's OOD sample (`commitOodSpec`): after its `15`-bit grind, the point separates the
+3. the commitment's OOD sample (`commitOodSpec`): after its grind, the point separates the
    candidates except with probability `C(L₀, 2)·μ/|E|` (`OpeningIface.ood_row`), and then at most one
    candidate answers `y₀` (`oodCands`);
 4. the front phases, the bus, the table sumcheck, the public input and the Keccak reduction
    (`FrontIface.frontSpec`, W3's), on that one candidate (`L₀ = 1`), ending in "it does not meet the
    column claims with true slices";
 5. ring switching (`ringSpec`), its sixteen challenges and the opening's `λ` one group under the
-   `13`-bit grind: `2/|E|` for the candidate and `(J − 1)·L₀/|E|` for `λ`, at most
-   `513·L₀/|E| ≤ 2^-125·2^13` (`OpeningIface.lambda_row`);
+   batching grind: `2/|E|` for the candidate and `(J − 1)·L₀/|E|` for `λ`, at most
+   `(maxStackedClaims + 1)·L₀/|E|` (`OpeningIface.lambda_row`);
 6. the stacked opening (`OpeningIface.stackedSpec`, W2's), from `StackedPreOf`: every member of the
    level-0 list violates one of `ring :: claims ++ [ood]`, the one left by the OOD sample a front
    claim or the ring claim, every other the OOD claim (`exists_violated_of_ood`).
@@ -120,10 +120,13 @@ structure OpeningIface : Type where
     (Candidates μ R (thr₀ μ R) W).Finite
   card_candidates_le : ∀ {μ R : ℕ} (W : Word), Whir.Admissible μ R →
     (Candidates μ R (thr₀ μ R) W).ncard ≤ listMax₀ μ R
-  /-- The OOD row: `C(L₀, 2)·μ ≤ 2^18`. -/
-  ood_row : ∀ {μ R : ℕ}, Whir.Admissible μ R → (listMax₀ μ R).choose 2 * μ ≤ 2 ^ 18
-  /-- The batching row with the ring's `2/|E|`: `513·L₀ ≤ 2^17`. -/
-  lambda_row : ∀ {μ R : ℕ}, Whir.Admissible μ R → 513 * listMax₀ μ R ≤ 2 ^ 16
+  /-- The OOD row: `C(L₀, 2)·μ ≤ 2^(g + 3)`, `g = Whir.oodGrindingBits` (`discount_le`). -/
+  ood_row : ∀ {μ R : ℕ}, Whir.Admissible μ R →
+    (listMax₀ μ R).choose 2 * μ ≤ 2 ^ (Whir.oodGrindingBits + 3)
+  /-- The batching row with the ring's `2/|E|`: `(maxStackedClaims + 1)·L₀ ≤ 2^(g + 3)`,
+  `g = Whir.batchGrindingBits`. -/
+  lambda_row : ∀ {μ R : ℕ}, Whir.Admissible μ R →
+    (maxStackedClaims + 1) * listMax₀ μ R ≤ 2 ^ (Whir.batchGrindingBits + 3)
   multiaffine_eqEval : ∀ z : List E, IsMultiaffine z.length (eqEval z)
   multiaffine_of_multilinear : ∀ {μ : ℕ} {w : List E → E}, IsMultilinearFn μ w → IsMultiaffine μ w
   /-- **The stacked opening**. -/
@@ -419,13 +422,14 @@ theorem ring_eps (hadm : Whir.Admissible (μs prog s) ρ) {J : ℕ} (hJ : J ≤ 
       ((2 + (J - 1) * O.listMax₀ (μs prog s) ρ : ℕ) : ℝ≥0∞) / Fintype.card E := by
     rw [eBatchOf, Nat.cast_one, one_mul, ENNReal.div_add_div_same, Nat.cast_add, Nat.cast_ofNat]
   rw [hsum]
-  refine discount_le 13 _ ?_
-  simp only [maxStackedClaims] at hJ
-  have : (J - 1) * O.listMax₀ (μs prog s) ρ ≤ 511 * O.listMax₀ (μs prog s) ρ :=
+  refine discount_le Whir.batchGrindingBits _ ?_
+  have : (J - 1) * O.listMax₀ (μs prog s) ρ ≤ (maxStackedClaims - 1) * O.listMax₀ (μs prog s) ρ :=
     Nat.mul_le_mul_right _ (by omega)
   rcases Nat.eq_zero_or_pos (O.listMax₀ (μs prog s) ρ) with h0 | hpos
-  · rw [h0] at this ⊢; norm_num
-  · omega
+  · rw [h0, mul_zero, add_zero]
+    exact Nat.pow_le_pow_right (n := 2) (by norm_num) (by omega : 1 ≤ Whir.batchGrindingBits + 3)
+  · simp only [maxStackedClaims, Nat.reduceAdd, Nat.reduceSub] at hrow this
+    omega
 
 open Classical in
 /-- **Ring switching, then the stacked opening**, for the front phases' result `r`. -/
@@ -533,8 +537,9 @@ noncomputable def realSpec (hev : ∀ w p v, Moves G64 False (fun _ ↦ True) (f
     (commitOodSpec (A := O.thr₀) (μs_ne_zero hadm)
         (fun W ↦ ⟨O.candidates_finite W hadm, O.card_candidates_le W hadm⟩)
         (RootDoom O prog input s ρ)
-        (by unfold oodError; exact div_card_lt_one (by have := O.ood_row hadm; omega))
-        (by rw [add_zero]; unfold oodError; exact discount_le 15 _ (O.ood_row hadm))
+        (by unfold oodError
+            exact div_card_lt_one ((O.ood_row hadm).trans (Nat.pow_le_pow_right (by norm_num) (by decide))))
+        (by rw [add_zero]; unfold oodError; exact discount_le Whir.oodGrindingBits _ (O.ood_row hadm))
         (le_refl εmsg)).bind' fun ood ↦
       oodThen O F hev hs hadm ood
 

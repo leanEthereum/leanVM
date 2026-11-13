@@ -19,6 +19,32 @@ for f in sorted(glob.glob(D + 'Core*.lean')):
 stable = {c: s for s, c in re.findall(r'^abbrev «([^»]+)» : String := "([^"]+)"$',
                                      open(D + 'NameStrings.lean').read(), re.M)}
 
+def wrap(text, width=100):
+    """Break each line longer than `width` at spaces, greedily, continuing 4 deeper; `fn% «…»` and the like
+    stay whole."""
+    out = []
+    for line in text.split('\n'):
+        if len(line) <= width or '--' in line:
+            out.append(line)
+            continue
+        ind = len(line) - len(line.lstrip(' '))
+        toks = []
+        for t in line[ind:].split(' '):
+            if toks and toks[-1].endswith('%'):
+                toks[-1] += ' ' + t
+            else:
+                toks.append(t)
+        cur = ' ' * ind + toks[0]
+        for t in toks[1:]:
+            if len(cur) + 1 + len(t) > width:
+                out.append(cur)
+                cur = ' ' * (ind + 4) + t
+            else:
+                cur += ' ' + t
+        out.append(cur)
+    return '\n'.join(out)
+
+
 def oq_specs():
     out = []
     for name, i in fns.items():

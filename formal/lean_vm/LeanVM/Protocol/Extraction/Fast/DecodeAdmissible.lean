@@ -153,14 +153,10 @@ theorem admissible_of_afterRootDirect {bytecode : List K} {π : Proof} {layout :
   obtain ⟨rfl, rfl⟩ : l = layout ∧ R' = R := Prod.mk.inj hr1
   unfold readSizesPure at hr
   obtain ⟨r', -, hr'⟩ := Option.bind_eq_some_iff.1 hr
-  split_ifs at hr' with h1
-  dsimp only at hr'
-  split_ifs at hr' with h2
-  obtain ⟨layout', -, hl⟩ := Option.bind_eq_some_iff.1 hr'
-  split_ifs at hl with h3
-  simp only [Option.some.injEq, Prod.mk.injEq] at hl
-  obtain ⟨⟨rfl, rfl⟩, -⟩ := hl
-  exact ⟨h3.1, h3.2, h2.1, h2.2⟩
+  obtain ⟨x, hx, hx'⟩ := Option.map_eq_some_iff.1 hr'
+  obtain ⟨rfl, -⟩ := Prod.mk.inj hx'
+  have s := sizesOf_spec hx
+  exact ⟨s.stack_ge, s.stack_le, s.rate_ge, s.rate_le⟩
 
 /-- **The lighter layouts `afterRootLite` returns are admissible.** -/
 theorem admissible_of_afterRootLite {bytecode : List K} {π : Proof} {layout : LayoutLite} {R : ℕ}

@@ -54,6 +54,8 @@ if run core; then
   gen guest-core
   step "core: the names' modulus (CoreNames)"
   python3 -I scripts/core-names-modulus "${check[@]}"
+  step "core: where verify_sub's obligations sit (VsAt)"
+  python3 -I scripts/vs-at "${check[@]}"
 fi
 
 if run changes && [ ${#check[@]} -eq 0 ] && [ -d .lake/guest-before ]; then
@@ -84,7 +86,7 @@ if run whir; then
   if [ ${#check[@]} -eq 0 ]; then
     python3 -I scripts/whir-queries/all.py .
   else
-    echo "(whir-queries: checked by the build, a stale module fails its decide +kernel)"
+    python3 -I scripts/check-in-place whir-queries python3 -I scripts/whir-queries/all.py .
   fi
 fi
 
@@ -94,7 +96,8 @@ if run count; then
     python3 -I scripts/count/gen.py . all
     python3 -I scripts/count/vsos.py .
   else
-    echo "(checked by the build: a stale count module fails its decide +kernel)"
+    python3 -I scripts/check-in-place count/gen.py python3 -I scripts/count/gen.py . all
+    python3 -I scripts/check-in-place count/vsos.py python3 -I scripts/count/vsos.py .
   fi
 fi
 

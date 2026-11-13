@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Protocol.Extraction.Extractor
+public import LeanVM.Protocol.Verifier.Phases
 
 /-!
 # The stack's root, without the verifier's free monad
@@ -103,6 +104,10 @@ theorem runPure_require_bind {β : Type} (c : Prop) [Decidable c] (f : Unit → 
   · simp only [VerifierProgram.require, hc, ↓reduceIte]; rfl
   · simp only [VerifierProgram.require, hc, ↓reduceIte]; rfl
 
+theorem runPure_liftOption {α : Type} (o : Option α) (s : VerifierProgramState) :
+    runPure (liftOption o) s = o.map fun a ↦ (a, s) := by
+  cases o <;> rfl
+
 theorem runPure_liftOption_bind {α β : Type} (o : Option α) (f : α → VerifierProgram β) (s :
     VerifierProgramState) :
     runPure (liftOption o >>= f) s = o.bind fun a ↦ runPure (f a) s := by
@@ -183,26 +188,14 @@ theorem runPure_readCommitment (height width : ℕ) (s : VerifierProgramState) :
 /-! ## Steps 1 and 2 -/
 
 /-- `readAnnouncedSizes bytecode` (`Statement/LeanVmVerifier.lean`), run: the announced sizes, read and
-checked, and the layout they give. -/
+checked (`sizesOf`), and the layout they give. -/
 @[expose] def readSizesPure (bytecode : List K) (s : VerifierProgramState) :
     Option ((Layout × ℕ) × VerifierProgramState) :=
-  (readPure (2 + tables.length) s).bind fun r ↦
-    if (r.1.all fun value ↦ value.limb 1 = 0) then
-      let logMemory := kToNat ((r.1.headD 0).limb 0)
-      let tableRows := ((r.1.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)
-      let logInverseRate := kToNat ((r.1.getLastD 0).limb 0)
-      if 1 ≤ logInverseRate ∧ logInverseRate ≤ 4 then
-        (buildLayout bytecode logMemory tableRows).bind fun layout ↦
-          if Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack then
-            some ((layout, logInverseRate), r.2)
-          else none
-      else none
-    else none
+  (readPure (2 + tables.length) s).bind fun r ↦ (sizesOf bytecode r.1).map fun x ↦ (x, r.2)
 
 theorem runPure_readSizes (bytecode : List K) (s : VerifierProgramState) :
     runPure (readAnnouncedSizes bytecode) s = readSizesPure bytecode s := by
-  simp only [readAnnouncedSizes, readSizesPure, runPure_readScalars_bind, runPure_require_bind,
-    runPure_liftOption_bind, runPure_pure]
+  simp only [readAnnouncedSizes_eq, readSizesPure, runPure_readScalars_bind, runPure_liftOption]
 
 /-- `commitStack logN logInvRate`, run: the stack's root, at the shape of the ladder's first
 level. -/
@@ -286,14 +279,7 @@ theorem readSizesPure_carry (bytecode : List K) (sp : Compile.Sponge) (st : List
   | none => rfl
   | some r =>
     dsimp only [Option.map_some, Option.bind_some]
-    split_ifs
-    · cases buildLayout bytecode (kToNat ((r.1.headD 0).limb 0))
-          (((r.1.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)) with
-      | none => rfl
-      | some layout =>
-        dsimp only [Option.bind_some]
-        split_ifs <;> rfl
-    all_goals rfl
+    cases sizesOf bytecode r.1 <;> rfl
 
 /-- **The shape `afterRoot` reads is the one the stream announces** (`announced`, which the
 statement's budget reads). -/
@@ -380,22 +366,22 @@ theorem bind_map_layoutLite (o : Option Layout) (R : ℕ) (st : VerifierProgramS
         if Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack then
           some ((layout, R), st)
         else none) =
-      Option.map liteResult (o.bind fun layout ↦
+      Option.map liteResult ((o.bind fun layout ↦
         if Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack then
-          some ((layout, R), st)
-        else none) := by
+          some (layout, R)
+        else none).map fun x ↦ (x, st)) := by
   cases o with
   | none => rfl
   | some layout =>
     show (if Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack then
         some ((layoutLite layout, R), st) else none) =
-      Option.map liteResult (if Whir.minLogStack ≤ layout.stackLog ∧
-        layout.stackLog ≤ Whir.maxLogStack then some ((layout, R), st) else none)
+      Option.map liteResult ((if Whir.minLogStack ≤ layout.stackLog ∧
+        layout.stackLog ≤ Whir.maxLogStack then some (layout, R) else none).map fun x ↦ (x, st))
     split_ifs <;> rfl
 
 theorem readSizesLite_eq (bytecode : List K) (s : VerifierProgramState) :
     readSizesLite bytecode s = (readSizesPure bytecode s).map liteResult := by
-  unfold readSizesLite readSizesPure
+  unfold readSizesLite readSizesPure sizesOf
   cases readPure (2 + tables.length) s with
   | none => rfl
   | some r =>

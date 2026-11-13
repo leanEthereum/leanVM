@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Protocol.Compile.Prog
+public import LeanVM.Protocol.Verifier.Phases
 
 /-!
 # The claim-list form of `verify_execution`
@@ -239,14 +240,9 @@ theorem buildLayout_ok {bytecode : List K} {logMemory : ℕ} {tableRows : List �
 
 theorem allRet_readSizes (bytecode : List K) :
     AllRet (readAnnouncedSizes bytecode) fun x ↦ LayoutOk x.1 := by
-  unfold readAnnouncedSizes
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+  rw [readAnnouncedSizes_eq]
   refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  refine AllRet.bind (fun layout hlayout ↦ ?_) _ (allRet_liftOption _)
-  refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
-  exact .ret (buildLayout_ok hlayout)
+  exact AllRet.mono (fun _ hx ↦ buildLayout_ok (sizesOf_spec hx).layout) (allRet_liftOption _)
 
 /-! ## The bus -/
 

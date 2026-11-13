@@ -8,7 +8,7 @@ public meta import LeanVM.Guest.KernelLit
 # The functions' preconditions, a literal table
 
 `preTable`: entry `j` is function `j`'s precondition as its test reads it (`fnPreOf (glob.sig j)`,
-`Fast/PreSig.lean`), for the guest's `1602` functions (`nFns`), written out by the kernel (`kernel_lit`:
+`Fast/PreSig.lean`), for the guest's functions (`nFns`), written out by the kernel (`kernel_lit`:
 `preTable_eq`, the kernel's check that it is the table computed from the certificates, in one pass
 over them, `preOfCert`). The
 decoder's compiled precondition test reads this literal (`Cost/Decoder/PreTable.lean`), not the

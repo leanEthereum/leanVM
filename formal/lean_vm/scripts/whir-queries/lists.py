@@ -23,7 +23,7 @@ def replace_list(path, name, items):
     i = s.index('def %s ' % name)
     j = s.index(':=', i) + 2
     k = s.index(']\n', j) + 1
-    body = '\n  [' + ',\n    '.join(items) + ']'
+    body = gen.wrap('\n  [' + ',\n    '.join(items) + ']')
     s = s[:j] + body + s[k:]
     open(path, 'w', encoding='utf-8').write(s)
 

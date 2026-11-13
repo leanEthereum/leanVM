@@ -259,14 +259,9 @@ theorem busLayout_depth_ge (logMemory logBytecode : ℕ) (blocks : List BusBlock
 theorem readSizes_logBytecode {bytecode : List K} {x : Layout × ℕ}
     (h : VerifierProgram.Returns (readAnnouncedSizes bytecode) x) :
     x.1.logBytecode + busBits = Nat.log2 bytecode.length := by
-  unfold readAnnouncedSizes at h
+  rw [readAnnouncedSizes_eq] at h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨layout, hl, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  rw [VerifierProgram.returns_ret h]
-  have ho := returns_liftOption hl
+  have ho := (sizesOf_spec (returns_liftOption h)).layout
   unfold buildLayout at ho
   split at ho
   · simp at ho

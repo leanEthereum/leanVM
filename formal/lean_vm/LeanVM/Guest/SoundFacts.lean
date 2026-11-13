@@ -11,6 +11,7 @@ public import LeanVM.Guest.Checked
 public import LeanVM.Guest.CoreNames
 public import LeanVM.Guest.JumpTable
 public import LeanVM.Guest.CertName
+public import LeanVM.Guest.VsAt
 
 /-!
 # The checks' facts
@@ -18,7 +19,7 @@ public import LeanVM.Guest.CertName
 What `Sound.lean` reads off the certificates and the kernel's checks (`Checked.all_ok`), none of
 it about the semantics of `KECCAK`: every window of every function passes (`winOk_of`), the jump
 table the checks read is the one `__jump_tables` writes (`jtHolds_of`), the windows hand nothing
-on but in `main` (after `exponent_tables`, `main_cut`), `verify_sub` (function `19`, from its calls
+on but in `main` (after `exponent_tables`, `main_cut`), `verify_sub` (from its calls
 of `verify_tables`, `vs_cut1`, and `check_opening_terminal`, `vs_cut`) and the walks
 (`Checked.oblFns`), and `main`'s certificate (`main_facts`).
 -/
@@ -130,32 +131,32 @@ memory's log and the six tables' heights `kb[1..6]` below `g^31`, and `kb[7]`, k
 below `g^25` (`τ + 6` is a column's log, at most `30`). -/
 def vsKbBound (c : ℕ) : ℕ := [1, 31, 31, 31, 31, 31, 31, 25].getD c 0
 
-/-- `verify_sub`'s bound of the memory's log: entry `0` of `dims_g` (the value `71`) among `g^e`,
+/-- `verify_sub`'s bound of the memory's log: entry `0` of `dims_g` (the value `vsDims`) among `g^e`,
 `e < 34`, which `verify_tables` dispatches on (the tables' logs, entries `1` to `6`, are range
 checked in `verify_tables` itself, `lean_ethereum.py:2153`). -/
 def vsDimsKnown (c : ℕ) : List (ℕ × ℕ × ℕ) := [(c, 0, 34)]
 
-/-- `verify_sub`'s second window starts at its call of `verify_tables` (statement `333`) and takes
-the bound of entry `0` of `dims_g` (the value `71`). -/
-theorem vs_cut1 : ((certOf (fn_idx% «verify_sub»)).cutAt 1).start = 333 ∧
-    ((certOf (fn_idx% «verify_sub»)).cutAt 1).known = vsDimsKnown ((certOf (fn_idx% «verify_sub»)).locs.getD 71 0) ∧
+/-- `verify_sub`'s second window starts at its call of `verify_tables` (statement `vsDimsAt`) and
+takes the bound of entry `0` of `dims_g` (the value `vsDims`). -/
+theorem vs_cut1 : ((certOf (fn_idx% «verify_sub»)).cutAt 1).start = vsDimsAt ∧
+    ((certOf (fn_idx% «verify_sub»)).cutAt 1).known = vsDimsKnown ((certOf (fn_idx% «verify_sub»)).locs.getD vsDims 0) ∧
     ((certOf (fn_idx% «verify_sub»)).cutAt 1).knownIf = [] ∧ ((certOf (fn_idx% «verify_sub»)).cutAt 1).sems = [] := by decide +kernel
 
-/-- `verify_sub`'s third window starts at its dispatch to `open_stacked` (statement `1544`) and
-takes, beside `dims_g`'s bound, the window table at `tabs` (the value `1921`, `tagTabs`). -/
-theorem vs_cutT : ((certOf (fn_idx% «verify_sub»)).cutAt 2).start = 1544 ∧
-    ((certOf (fn_idx% «verify_sub»)).cutAt 2).known = vsDimsKnown ((certOf (fn_idx% «verify_sub»)).locs.getD 71 0) ∧
+/-- `verify_sub`'s third window starts at its dispatch to `open_stacked` (statement `vsTabsAt`) and
+takes, beside `dims_g`'s bound, the window table at `tabs` (the value `vsTabs`, `tagTabs`). -/
+theorem vs_cutT : ((certOf (fn_idx% «verify_sub»)).cutAt 2).start = vsTabsAt ∧
+    ((certOf (fn_idx% «verify_sub»)).cutAt 2).known = vsDimsKnown ((certOf (fn_idx% «verify_sub»)).locs.getD vsDims 0) ∧
     ((certOf (fn_idx% «verify_sub»)).cutAt 2).knownIf = [] ∧
-    ((certOf (fn_idx% «verify_sub»)).cutAt 2).sems = [(tagTabs, [(certOf (fn_idx% «verify_sub»)).locs.getD 1921 0])] := by decide +kernel
+    ((certOf (fn_idx% «verify_sub»)).cutAt 2).sems = [(tagTabs, [(certOf (fn_idx% «verify_sub»)).locs.getD vsTabs 0])] := by decide +kernel
 
 /-- `verify_sub`'s fourth window starts at its call of `check_opening_terminal` (statement
-`1545`) and takes, beside `dims_g`'s and the window table, the bound of each of the `8` entries of
-`kappa_base` (the value `83`). -/
-theorem vs_cut : ((certOf (fn_idx% «verify_sub»)).cutAt 3).start = 1545 ∧
-    ((certOf (fn_idx% «verify_sub»)).cutAt 3).known = vsDimsKnown ((certOf (fn_idx% «verify_sub»)).locs.getD 71 0) ++
-      (List.range 8).map (fun c ↦ ((certOf (fn_idx% «verify_sub»)).locs.getD 83 0, c, vsKbBound c)) ∧
+`vsKbAt`) and takes, beside `dims_g`'s and the window table, the bound of each of the `8` entries of
+`kappa_base` (the value `vsKb`). -/
+theorem vs_cut : ((certOf (fn_idx% «verify_sub»)).cutAt 3).start = vsKbAt ∧
+    ((certOf (fn_idx% «verify_sub»)).cutAt 3).known = vsDimsKnown ((certOf (fn_idx% «verify_sub»)).locs.getD vsDims 0) ++
+      (List.range 8).map (fun c ↦ ((certOf (fn_idx% «verify_sub»)).locs.getD vsKb 0, c, vsKbBound c)) ∧
     ((certOf (fn_idx% «verify_sub»)).cutAt 3).knownIf = [] ∧
-    ((certOf (fn_idx% «verify_sub»)).cutAt 3).sems = [(tagTabs, [(certOf (fn_idx% «verify_sub»)).locs.getD 1921 0])] := by decide +kernel
+    ((certOf (fn_idx% «verify_sub»)).cutAt 3).sems = [(tagTabs, [(certOf (fn_idx% «verify_sub»)).locs.getD vsTabs 0])] := by decide +kernel
 
 theorem vs_cells : (certOf (fn_idx% «verify_sub»)).locs.getD 4 0 = 6 := by decide +kernel
 

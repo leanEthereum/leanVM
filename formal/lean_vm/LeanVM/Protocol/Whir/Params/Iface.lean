@@ -75,8 +75,8 @@ noncomputable def openingIface : EndToEnd.Sound.OpeningIface where
   shape_commitStack h := shape_commitStack h
   candidates_finite W h := (candidates_facts h W).1
   card_candidates_le W h := (candidates_facts h W).2
-  ood_row h := ood_row h
-  lambda_row h := lambda_row h
+  ood_row h := countBits_eq Whir.oodGrindingBits ▸ ood_row h
+  lambda_row h := countBits_eq Whir.batchGrindingBits ▸ lambda_row h
   multiaffine_eqEval := isMultiaffine_eqEval
   multiaffine_of_multilinear hw := isMultiaffine_of_multilinear hw
   stackedSpec h claims _ hcl T := deployedStackedSpec h claims hcl T

@@ -130,21 +130,28 @@ theorem eOod_eq {P P' : LevelCode} (hκ : 1 ≤ P.κ) :
   calc q⁻¹ ^ (m + 1) * (C * (k * q ^ m)) = q⁻¹ * (C * k) * (q⁻¹ * q) ^ m := by ring
     _ = q⁻¹ * (C * k) := by rw [hq1, one_pow, mul_one]
 
-/-- The next level's out-of-domain point within `2^-125` after its `15`-bit grind, from
-`C(L', 2) κ ≤ 2^18`. -/
-theorem eOod_le {P P' : LevelCode} (h : P'.listMax.choose 2 * P.κ ≤ 2 ^ 18) (hκ : 1 ≤ P.κ) :
-    (2 : ENNReal)⁻¹ ^ Whir.oodGrindingBits * eOod P P' ≤ εmsg := by
-  rw [eOod_eq hκ, Whir.oodGrindingBits]
+/-- A count `N` with `N ≤ 2^(countBits g)`: `N/|E|` is within `2^-125` after a grind of `g` bits. -/
+theorem grind_count_le {g N : ℕ} (h : N ≤ 2 ^ countBits g) :
+    (2 : ENNReal)⁻¹ ^ g * ((N : ENNReal) / Fintype.card E) ≤ εmsg := by
+  rw [countBits_eq] at h
   exact grind_div_card_le (by
-    calc P'.listMax.choose 2 * P.κ * 2 ^ 125 ≤ 2 ^ 18 * 2 ^ 125 := Nat.mul_le_mul_right _ h
-      _ = 2 ^ (15 + 128) := by norm_num)
+    calc N * 2 ^ 125 ≤ 2 ^ (g + 3) * 2 ^ 125 := Nat.mul_le_mul_right _ h
+      _ = 2 ^ (g + 128) := by ring)
 
-theorem eOod_lt_one {P P' : LevelCode} (h : P'.listMax.choose 2 * P.κ ≤ 2 ^ 18) (hκ : 1 ≤ P.κ) :
-    eOod P P' < 1 := by
+/-- The next level's out-of-domain point within `2^-125` after its grind, from
+`C(L', 2) κ ≤ 2^(countBits oodGrindingBits)`. -/
+theorem eOod_le {P P' : LevelCode} (h : P'.listMax.choose 2 * P.κ ≤ 2 ^ countBits Whir.oodGrindingBits)
+    (hκ : 1 ≤ P.κ) : (2 : ENNReal)⁻¹ ^ Whir.oodGrindingBits * eOod P P' ≤ εmsg := by
+  rw [eOod_eq hκ]
+  exact grind_count_le h
+
+theorem eOod_lt_one {P P' : LevelCode} (h : P'.listMax.choose 2 * P.κ ≤ 2 ^ countBits Whir.oodGrindingBits)
+    (hκ : 1 ≤ P.κ) : eOod P P' < 1 := by
   rw [eOod_eq hκ, div_card]
   refine lt_of_le_of_lt (natMul_inv_pow_le (k := 1) ?_) (by rw [pow_one, ENNReal.inv_lt_one]; norm_num)
-  calc P'.listMax.choose 2 * P.κ * 2 ^ 1 ≤ 2 ^ 18 * 2 ^ 1 := Nat.mul_le_mul_right _ h
-    _ ≤ 2 ^ 128 := by norm_num
+  calc P'.listMax.choose 2 * P.κ * 2 ^ 1 ≤ 2 ^ countBits Whir.oodGrindingBits * 2 ^ 1 :=
+        Nat.mul_le_mul_right _ h
+    _ ≤ 2 ^ 128 := by rw [← pow_add]; exact Nat.pow_le_pow_right (by norm_num) (by decide)
 
 /-- A non-final level's query message, its positions and the next level's batching `λ`, within
 `2^-securityBits` after its grind of `q` bits, from `(A − 1)^t 2^128 + (t + 1) L' n^t ≤ n^t 2^(countBits q)`. -/
@@ -285,7 +292,7 @@ theorem midOK_of {κprev : ℕ} {lv lv' : Lv} {c c' : Whir.Level} (F : LevelFact
     (hl : (lv.2.2.2.1 - 1) ^ c.queries * 2 ^ 128 +
         (c.queries + 1) * jlStart lv' * (2 ^ (lv.1 + lv.2.1)) ^ c.queries ≤
       (2 ^ (lv.1 + lv.2.1)) ^ c.queries * 2 ^ countBits Whir.queryGrindingBits)
-    (ho : (jlStart lv').choose 2 * lv.1 ≤ 2 ^ 18) (h1 : 1 ≤ lv.1) :
+    (ho : (jlStart lv').choose 2 * lv.1 ≤ 2 ^ countBits Whir.oodGrindingBits) (h1 : 1 ≤ lv.1) :
     MidOK (mkCode lv) (mkCode lv') c.queries εmsg := by
   have hL := listMax_mkCode ⟨F'.h64, F'.hR⟩
   have eO : (2 : ENNReal)⁻¹ ^ Whir.oodGrindingBits * eOod (mkCode lv) (mkCode lv') ≤ εmsg :=
@@ -376,8 +383,9 @@ theorem chain_mem : ∀ (lvs : List Lv) (cfg : List Whir.Level) (κp : ℕ),
 theorem shapeOK_facts {μ R : ℕ} (hok : shapeOK μ R = true) :
     ∃ cfg lv rest, Whir.ladder μ R = some cfg ∧ levelsOf μ R = lv :: rest ∧
       chainChecks μ (lv :: rest) cfg = true ∧ lv.2.1 = R ∧ lv.2.2.1 = 6 ∧
-      degOf lv < lv.2.2.2.1 - lv.2.2.1 ∧ jlStart lv ≤ 166 ∧ 513 * jlStart lv ≤ 2 ^ 16 ∧
-      (jlStart lv).choose 2 * μ ≤ 2 ^ 18 := by
+      degOf lv < lv.2.2.2.1 - lv.2.2.1 ∧ jlStart lv ≤ 166 ∧
+      (maxStackedClaims + 1) * jlStart lv ≤ 2 ^ countBits Whir.batchGrindingBits ∧
+      (jlStart lv).choose 2 * μ ≤ 2 ^ countBits Whir.oodGrindingBits := by
   unfold shapeOK at hok
   rcases hc : Whir.ladder μ R with _ | cfg <;> rcases hl : levelsOf μ R with _ | ⟨lv, rest⟩ <;>
     rw [hc, hl] at hok <;> simp only [Bool.false_eq_true] at hok
@@ -452,14 +460,17 @@ theorem listMax₀_le {μ R : ℕ} (h : Whir.Admissible μ R) : listMax₀ μ R 
   rw [listMax₀, hl]
   exact h166
 
-/-- The commitment's out-of-domain row: `C(L₀, 2)·μ ≤ 2^18`. -/
-theorem ood_row {μ R : ℕ} (h : Whir.Admissible μ R) : (listMax₀ μ R).choose 2 * μ ≤ 2 ^ 18 := by
+/-- The commitment's out-of-domain row: `C(L₀, 2)·μ ≤ 2^(countBits oodGrindingBits)`. -/
+theorem ood_row {μ R : ℕ} (h : Whir.Admissible μ R) :
+    (listMax₀ μ R).choose 2 * μ ≤ 2 ^ countBits Whir.oodGrindingBits := by
   obtain ⟨cfg, lv, rest, -, hl, -, -, -, -, -, -, ho⟩ := shapeOK_facts (shapeOK_of_admissible h)
   rw [listMax₀, hl]
   exact ho
 
-/-- The stacked opening's batching row with the ring's map: `513·L₀ ≤ 2^16`. -/
-theorem lambda_row {μ R : ℕ} (h : Whir.Admissible μ R) : 513 * listMax₀ μ R ≤ 2 ^ 16 := by
+/-- The stacked opening's batching row with the ring's map:
+`(maxStackedClaims + 1)·L₀ ≤ 2^(countBits batchGrindingBits)`. -/
+theorem lambda_row {μ R : ℕ} (h : Whir.Admissible μ R) :
+    (maxStackedClaims + 1) * listMax₀ μ R ≤ 2 ^ countBits Whir.batchGrindingBits := by
   obtain ⟨cfg, lv, rest, -, hl, -, -, -, -, -, hlam, -⟩ := shapeOK_facts (shapeOK_of_admissible h)
   rw [listMax₀, hl]
   exact hlam

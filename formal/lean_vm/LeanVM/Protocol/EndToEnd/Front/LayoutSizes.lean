@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Protocol.Compile.SpecRules.Basic
 public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
+public import LeanVM.Protocol.Verifier.Phases
 
 /-!
 # The announced sizes
@@ -124,53 +125,21 @@ theorem readSizes_ret {bytecode : List K} {l : List Ev} {a : Verifier.Layout × 
       buildLayout bytecode (kToNat ((xs.headD 0).limb 0))
         (((xs.drop 1).take 6).map fun value ↦ kToNat (value.limb 0)) = some a.1 ∧
       Whir.minLogStack ≤ a.1.stackLog ∧ a.1.stackLog ≤ Whir.maxLogStack := by
-  unfold readAnnouncedSizes at h
+  rw [readAnnouncedSizes_eq] at h
   simp only [VerifierProgram.bind_eq] at h
   rcases VerifierProgram.after_bind_cases _ h with ⟨q, hq, hr⟩ | ⟨xs, l₁, l₂, rfl, h1, h2, h3⟩
   · obtain ⟨xs, rfl, hk⟩ := bind_eq_ret hr.symm
     obtain ⟨rfl, hlen⟩ := after_readN_ret _ hq
-    refine ⟨xs, rfl, by simpa [tables] using hlen, ?_⟩
-    have ht : tables.length = 6 := rfl
-    rw [ht] at hk
-    by_cases c1 : (xs.all fun value ↦ decide (value.limb 1 = 0)) = true
-    · by_cases c2 : 1 ≤ kToNat ((xs.getLastD 0).limb 0) ∧ kToNat ((xs.getLastD 0).limb 0) ≤ 4
-      · cases hb : buildLayout bytecode (kToNat ((xs.headD 0).limb 0))
-            (((xs.drop 1).take 6).map fun value ↦ kToNat (value.limb 0)) with
-        | none =>
-          simp only [VerifierProgram.require, c1, c2, hb, Verifier.liftOption, ↓reduceIte,
-              VerifierProgram.ret_bind,
-            fail_bind'] at hk
-          cases hk
-        | some layout =>
-          by_cases c3 : Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack
-          · simp only [VerifierProgram.require, c1, c2, hb, c3, Verifier.liftOption, ↓reduceIte,
-              and_self,
-              VerifierProgram.ret_bind, VerifierProgram.pure_eq, VerifierProgram.ret.injEq] at hk
-            subst hk
-            exact ⟨c1, c2.1, c2.2, rfl, rfl, c3⟩
-          · simp only [VerifierProgram.require, c1, c2, hb, c3, Verifier.liftOption, ↓reduceIte,
-              VerifierProgram.ret_bind,
-              fail_bind'] at hk
-            cases hk
-      · simp only [VerifierProgram.require, c1, c2, ↓reduceIte, VerifierProgram.ret_bind,
-          fail_bind'] at hk
-        cases hk
-    · simp only [VerifierProgram.require, c1, ↓reduceIte, fail_bind', Bool.false_eq_true] at hk
-      cases hk
+    have ho : sizesOf bytecode xs = some a := by
+      cases ho : sizesOf bytecode xs with
+      | none => rw [ho] at hk; cases hk
+      | some y => rw [ho] at hk; cases hk; rfl
+    have s := sizesOf_spec ho
+    exact ⟨xs, rfl, by simpa [tables] using hlen, s.limbs, s.rate_ge, s.rate_le, s.rate, s.layout,
+      s.stack_ge, s.stack_le⟩
   · exfalso
-    have hpure : IsPure ((fun announced : List E ↦
-        (VerifierProgram.require ((announced.all fun value ↦ decide (value.limb 1 = 0)) =
-          true)).bind fun _ ↦
-        (VerifierProgram.require (1 ≤ kToNat ((announced.getLastD 0).limb 0) ∧
-          kToNat ((announced.getLastD 0).limb 0) ≤ 4)).bind fun _ ↦
-        (Verifier.liftOption (buildLayout bytecode (kToNat ((announced.headD 0).limb 0))
-          (((announced.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)))).bind
-            fun layout ↦
-          (VerifierProgram.require (Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack)).bind
-            fun _ ↦ (pure (layout, kToNat ((announced.getLastD 0).limb 0)) : VerifierProgram
-                _)) xs) :=
-      (isPure_require _).bind fun _ ↦ (isPure_require _).bind fun _ ↦
-        (isPure_liftOption _).bind fun _ ↦ (isPure_require _).bind fun _ ↦ .inl ⟨_, rfl⟩
+    have hpure : IsPure ((fun announced : List E ↦ Verifier.liftOption (sizesOf bytecode announced)) xs) :=
+      isPure_liftOption _
     cases l₂ with
     | nil => exact h2 rfl
     | cons e l₂ => rw [hpure.after_cons] at h3; cases h3

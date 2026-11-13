@@ -28,12 +28,12 @@ fold rounds' own check (`AffineCombiner.levelOK`, which it includes):
 * each level with a next one: its query message, which also draws the next level's batching `λ`,
   `((Aend − 1)/n)^t + (t + 1) L'/|E| ≤ 2^-(125 − q)`, as
   `(Aend − 1)^t 2^128 + (t + 1) L' n^t ≤ n^t 2^(q + 3)` (`countBits q`), and the
-  next level's out-of-domain point, `C(L', 2) κ ≤ 2^18` (`2^-125` after its `15`-bit grind), with
-  `1 ≤ κ`;
+  next level's out-of-domain point, `C(L', 2) κ ≤ 2^(countBits o)` (`2^-125` after its grind of
+  `o = Whir.oodGrindingBits` bits), with `1 ≤ κ`;
 * level `0`: its rate is the shape's and it folds the `2^6` lanes (`k₀ = 6`), the threshold exceeds the degree (`d₀ < A₀`),
   its list bound is at most `166`, the stacked opening's batching with the ring's map,
-  `513 L₀ ≤ 2^16`, and the commitment's out-of-domain sample, `C(L₀, 2) μ ≤ 2^18` (`2^-125` after
-  its `15`-bit grind).
+  `(maxStackedClaims + 1) L₀ ≤ 2^(countBits b)`, `b = Whir.batchGrindingBits`, and the commitment's
+  out-of-domain sample, `C(L₀, 2) μ ≤ 2^(countBits o)`.
 
 `shapeOK_all`: every admissible shape passes, by kernel evaluation.
 -/
@@ -50,6 +50,10 @@ def afterGrind (g : ℕ) : ℕ := LeanVM.Protocol.Compile.securityBits - g
 
 /-- The bits a count over `|E| = 2^128` may take before a grind of `g` bits: `g + 128 - securityBits`. -/
 def countBits (g : ℕ) : ℕ := g + 128 - LeanVM.Protocol.Compile.securityBits
+
+theorem countBits_eq (g : ℕ) : countBits g = g + 3 := by
+  unfold countBits LeanVM.Protocol.Compile.securityBits
+  omega
 
 /-- A level of the fold certificate: `(κ, R, k, Aend, rounds)`. -/
 abbrev Lv : Type := ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ × ℕ)
@@ -90,7 +94,7 @@ def chainChecks : ℕ → List Lv → List Whir.Level → Bool
       decide ((lv.2.2.2.1 - 1) ^ cfg.queries * 2 ^ 128 +
           (cfg.queries + 1) * jlStart lv' * (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries ≤
         (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries * 2 ^ countBits Whir.queryGrindingBits) &&
-      decide ((jlStart lv').choose 2 * lv.1 ≤ 2 ^ 18) && decide (1 ≤ lv.1) &&
+      decide ((jlStart lv').choose 2 * lv.1 ≤ 2 ^ countBits Whir.oodGrindingBits) && decide (1 ≤ lv.1) &&
       chainChecks lv.1 (lv' :: rest) (cfg' :: crest)
   | _, _, _ => false
 
@@ -100,7 +104,9 @@ def shapeOK (μ R : ℕ) : Bool :=
   | some cfg, lv :: rest =>
     chainChecks μ (lv :: rest) cfg && decide (lv.2.1 = R) && decide (lv.2.2.1 = 6) &&
       decide (degOf lv < lv.2.2.2.1 - lv.2.2.1) && decide (jlStart lv ≤ 166) &&
-      decide (513 * jlStart lv ≤ 2 ^ 16) && decide ((jlStart lv).choose 2 * μ ≤ 2 ^ 18)
+      decide ((LeanVM.Protocol.Verifier.maxStackedClaims + 1) * jlStart lv ≤
+        2 ^ countBits Whir.batchGrindingBits) &&
+      decide ((jlStart lv).choose 2 * μ ≤ 2 ^ countBits Whir.oodGrindingBits)
   | _, _ => false
 
 /-- **Every admissible shape passes.** -/

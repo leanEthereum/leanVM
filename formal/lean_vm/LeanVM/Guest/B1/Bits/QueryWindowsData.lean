@@ -136,8 +136,11 @@ theorem qw_L28_L4 : QwIs "decode_query_windows__L28_L4" (qwBody 28 4) :=
 theorem queryWindows_data : ∀ p ∈ queryWindowsShapes, QwIs p.1 (qwBody p.2.1 p.2.2) := by
   intro p hp
   simp only [queryWindowsShapes, List.mem_cons, List.not_mem_nil, or_false] at hp
-  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  exacts [qw_L12_L6, qw_L13_L7, qw_L14_L2, qw_L15_L3, qw_L16_L4, qw_L17_L5, qw_L18_L6, qw_L19_L7, qw_L20_L2, qw_L20_L8, qw_L21_L3, qw_L22_L4, qw_L23_L5, qw_L24_L6, qw_L25_L7, qw_L26_L2, qw_L27_L3, qw_L28_L4]
+  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+      rfl | rfl | rfl | rfl
+  exacts [qw_L12_L6, qw_L13_L7, qw_L14_L2, qw_L15_L3, qw_L16_L4, qw_L17_L5, qw_L18_L6, qw_L19_L7,
+      qw_L20_L2, qw_L20_L8, qw_L21_L3, qw_L22_L4, qw_L23_L5, qw_L24_L6, qw_L25_L7, qw_L26_L2,
+      qw_L27_L3, qw_L28_L4]
 
 end
 end LeanVM.Guest.B1

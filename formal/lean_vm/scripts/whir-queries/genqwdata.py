@@ -50,4 +50,4 @@ theorem queryWindows_data : ∀ p ∈ queryWindowsShapes, QwIs p.1 (qwBody p.2.1
 end
 end LeanVM.Guest.B1
 ''' % (' | '.join(['rfl'] * N), ', '.join(names)))
-open(P, 'w').write('\n'.join(out))
+open(P, 'w').write(gen.wrap('\n'.join(out)))

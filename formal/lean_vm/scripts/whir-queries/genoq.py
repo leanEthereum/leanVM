@@ -48,7 +48,7 @@ theorem oqLoopBody_%d : (fn%% «%s»).body = %s :=
   stmtsEqb_sound (by decide +kernel)
 ''' % (d['name'], d['idx'], d['name'], sh, d['odd'], sh, loop, loop, d['idx'], loop, loopT))
     out.append('end\nend LeanVM.Guest.B1\n')
-    open(D + 'QueriesBody%d.lean' % k, 'w').write('\n'.join(out))
+    open(D + 'QueriesBody%d.lean' % k, 'w').write(gen.wrap('\n'.join(out)))
 # QueriesFns.lean: from `oqFns_` on, each entry of `openingQueriesLoops` (in `gen.oq_specs`' order)
 # found with its walk, functions and bodies, one theorem each, and `oqFns_all`.
 p = D + 'QueriesFns.lean'
@@ -78,4 +78,4 @@ end
 end LeanVM.Guest.B1
 ''' % (len(sp), ',\n    '.join(', '.join('oqFns_%d' % d['idx'] for d in sp[r:r + 7])
                                   for r in range(0, len(sp), 7))))
-open(p, 'w').write('\n'.join(out))
+open(p, 'w').write(gen.wrap('\n'.join(out)))

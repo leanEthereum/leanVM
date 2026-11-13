@@ -225,24 +225,20 @@ theorem claimed_le_computed {bytecode : List K} {c : BytecodeClaim} (hc : c.Hold
 /-- The layout `readAnnouncedSizes` returns carries the bytecode it read. -/
 theorem readSizes_bytecode {bytecode : List K} {x : Layout × ℕ}
     (h : VerifierProgram.Returns (readAnnouncedSizes bytecode) x) : x.1.bytecode = bytecode := by
-  unfold readAnnouncedSizes at h
+  rw [readAnnouncedSizes_eq] at h
   obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨layout, hl, h⟩ := VerifierProgram.returns_bind h
-  obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  rw [VerifierProgram.returns_ret h]
-  unfold liftOption at hl
-  split at hl
-  · cases hl
+  unfold liftOption at h
+  split at h
+  · cases h
   · next o ho =>
-    rw [VerifierProgram.returns_ret hl]
-    unfold buildLayout at ho
-    split at ho
-    · simp at ho
-    · split at ho
-      · simp only [Option.some.injEq] at ho; rw [← ho]
-      · simp at ho
+    rw [VerifierProgram.returns_ret h]
+    have hb := (sizesOf_spec ho).layout
+    unfold buildLayout at hb
+    split at hb
+    · simp at hb
+    · split at hb
+      · simp only [Option.some.injEq] at hb; rw [← hb]
+      · simp at hb
 
 theorem verifyBusBalance_le {ev ev' : List K → List E → E → VerifierProgram Unit}
     {layout : Layout} (hev : Evaluations.Le layout.bytecode ev ev') :
