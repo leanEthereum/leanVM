@@ -20,7 +20,7 @@ satisfying `Ps[j]`. `kidsFromInT_of_depBP`, `completeAt_flatDepRBP`: `kidsFromIn
 `completeAt_flatDepRBT` with them. `KidsDepB.toBP`: callees within their bounds, by trees of
 `True` (`CompleteAtB.toDTB`).
 
-The same with predicates of the memory (`CompleteAtDTBR`, `KidsDepBPR`, `kidsFromInT_of_depBPR`), a tree's pops being read through it: `completeAt_flatDepRBPR` also gives the node's valuation a property `Qn` the obligations prove of it on each memory (the honest valuation, its own buffers held).
+The same with predicates of the memory (`CompleteAtDTBR`, `Budget/Bounded`; `KidsDepBPR`, `kidsFromInT_of_depBPR`), a tree's pops being read through it: `completeAt_flatDepRBPR` also gives the node's valuation a property `Qn` the obligations prove of it on each memory (the honest valuation, its own buffers held).
 -/
 
 namespace LeanVM.Guest.B1
@@ -42,31 +42,6 @@ def KidsDepBP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
       ((k pv).taken = false → fs (k pv).f ≤ b)) ∧ KidsDepBP fs cert κ ks Bs Ps
   | [], [], [] => True
   | _, _, _ => False
-
-/-- **`CompleteAtDTB` by a tree satisfying a predicate of the memory.** -/
-def CompleteAtDTBR (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String) (Lin : Layout)
-    (args : List E) (Out : List E → Layout → Prop) (T : Reader → Tree → Prop) (B : ℕ) : Prop :=
-  ∀ fp, ∃ (n : ℕ) (Lown : Layout) (rets : List E) (Lout : Layout), n ≤ B ∧ Out rets Lout ∧
-    Within (Lout ++ Lown) fp n ∧ DisjL (Lout ++ Lown) ∧ ∀ rd, LowDef k rd →
-      MemL rd (Lout ++ Lown ++ Lin) →
-      RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets (T rd)
-
-theorem CompleteAtDTBR.mono {k : ℕ} {f : String} {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
-    {T T' : Reader → Tree → Prop} {B B' : ℕ} (h : CompleteAtDTBR fs cert k f Lin args Out T B) (hB : B ≤ B')
-    (hT : ∀ rd t, T rd t → T' rd t) : CompleteAtDTBR fs cert k f Lin args Out T' B' := fun fp =>
-  let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, hn.trans hB, ho, hw, hd, fun rd hl hm =>
-    let ⟨t, ht, hT'⟩ := hr rd hl hm
-    ⟨t, ht, hT rd t hT'⟩⟩
-
-/-- **Forgetting the memory**: a predicate holding on every memory. -/
-theorem CompleteAtDTBR.toDTB {k : ℕ} {f : String} {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
-    {T : Reader → Tree → Prop} {T' : Tree → Prop} {B : ℕ} (h : CompleteAtDTBR fs cert k f Lin args Out T B)
-    (hT : ∀ rd t, T rd t → T' t) : CompleteAtDTB fs cert k f Lin args Out T' B := fun fp =>
-  let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, hn, ho, hw, hd, fun rd hl hm =>
-    let ⟨t, ht, hT'⟩ := hr rd hl hm
-    ⟨t, ht, hT rd t hT'⟩⟩
 
 /-- **The dependent callees within their bounds by trees of their predicates of the memory.** -/
 def KidsDepBPR (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :

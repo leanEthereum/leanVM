@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Main.AggAt
 public import LeanVM.Guest.B1.Common.MutePops
+public import LeanVM.Guest.B1.Common.NoWitMute
 public import LeanVM.Guest.Hints
 
 /-!
@@ -15,7 +16,7 @@ public import LeanVM.Guest.Hints
 
 `aggregate_claims` allocates the sumcheck's messages' buffer, pops the messages into it (`bc_sumcheck_msgs`), then the bytecode's value (`bc_star_hint`); nothing else in its call tree pops.
 
-* `aggMute`: its callees pop nothing (kernel evaluation);
+* `agg_shape_ok`: past its head, its body has no witness hint, nor its callees' subtrees (`noWitBlock`, kernel evaluation);
 * `aggHead_pops`: its first three statements pop the buffer's words and the value;
 * `aggregate_claims_complete_pops`: on its completing valuation (`agg_core`), every valid call instance pops exactly `batchPushes h`.
 -/
@@ -27,32 +28,15 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Node
 
 @[expose] public section
 
-/-- `aggregate_claims`' callees, popping nothing. -/
-def aggMuteSet : List String := aggPureSet ++ ["grind_check__L2"]
-
-/-- Every member's body pops nothing and calls members only. -/
-noncomputable def aggMuteOk : Bool :=
-  aggMuteSet.all fun g => match coreProgram.find? g with
-    | some fn => Stmt.muteList aggMuteSet.contains fn.body
-    | none => true
-
-theorem aggMute_ok : aggMuteOk = true := by decide +kernel
-
-theorem aggMute : MuteIn coreProgram aggMuteSet.contains := by
-  intro g hg fn hf
-  have h := List.all_eq_true.mp aggMute_ok g (by simpa using hg)
-  rw [hf] at h
-  exact h
-
 /-- `aggregate_claims`' first statements: the messages' buffer, its hint, the bytecode's value's hint. -/
 def aggHead : List Stmt :=
   [.atom (.hint (.alloc (.n 6) 47)), .atom (.hint (.witness "bc_sumcheck_msgs" (.heap (.n 6) 0 47))),
     .atom (.hint (.witness "bc_star_hint" (.stack [.n 7])))]
 
-/-- `aggregate_claims` starts with `aggHead`, then pops nothing and calls the mute set only. -/
+/-- `aggregate_claims` starts with `aggHead`, then has no witness hint, nor its callees' subtrees. -/
 noncomputable def aggShapeOk : Bool :=
   stmtsEqb ((Fn.body fn% «aggregate_claims»).take 3) aggHead &&
-    Stmt.muteList aggMuteSet.contains ((Fn.body fn% «aggregate_claims»).drop 3)
+    noWitBlock idx% «aggregate_claims» ((Fn.body fn% «aggregate_claims»).drop 3)
 
 theorem agg_shape_ok : aggShapeOk = true := by decide +kernel
 
@@ -98,7 +82,8 @@ theorem aggregate_claims_complete_pops {rd : Reader} {m : ℕ} {cpi cfresh ccarr
   simp only [aggShapeOk, Bool.and_eq_true] at hs
   have hbody : Fn.body fn% «aggregate_claims» = aggHead ++ (Fn.body fn% «aggregate_claims»).drop 3 := by
     rw [← stmtsEqb_sound hs.1, List.take_append_drop]
-  rw [Tree.pops_of_prefix_mute aggMute hv find_aggregate_claims hbody (aggHead_pops rd _) hs.2, aggPops, hV.v6,
+  rw [Tree.pops_of_prefix_mute noWitS_mute hv find_aggregate_claims hbody (aggHead_pops rd _) (noWitBlock_mute hs.2),
+    aggPops, hV.v6,
     hV.v7, words_of_reads hmem.msgs (by rw [List.length_cons, length_msgs, hrl]), Hints.batchPushes]
 
 end

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Common.NoWitMute
 
-  The functions passing `noWitness` form a mute set (`noWitS_mute`), and a block of function `j` with no witness hint whose callees pass the check is mute in it (`noWitBlock_mute`, decided by the kernel).
+  The functions passing `noWitness` form a mute set (`noWitS_mute`); a callee of function `j` passing it is in the set (`noWitS_of_callee`, decided by the kernel); and a block of function `j` with no witness hint whose callees pass the check is mute in it (`noWitBlock_mute`, decided by the kernel).
 -/
 
 module
@@ -83,6 +83,9 @@ theorem noWitG_of_callee {j : ℕ} {g : String} (h : noWitCallee j g = true) : N
   split at h
   · next k hk => exact ⟨8, k, calleeIdx_spec hk, h⟩
   · exact absurd h Bool.false_ne_true
+
+theorem noWitS_of_callee {j : ℕ} {g : String} (h : noWitCallee j g = true) : noWitS g = true :=
+  noWitS_iff.mpr (noWitG_of_callee h)
 
 /-- **A block of function `j` with no witness hint, nor any in its callees' subtrees.** -/
 noncomputable def noWitBlock (j : ℕ) (l : List Stmt) : Bool :=

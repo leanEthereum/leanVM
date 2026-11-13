@@ -17,7 +17,7 @@ public import LeanVM.Guest.Hints
 
 `da_verify` pops its shape (`da_shape`) and its challenge (`da_challenge`), each cell check its `256` symbols (`da_symbols`); nothing else in its call tree pops.
 
-* `kid_pops_mute`: every other callee of the check pops nothing (`daMute`, `DaMuteChk`);
+* `kid_pops_mute`: every other callee of the check pops nothing, having no witness hint in its subtree (`noWitS`, `noWitS_of_callee`, `DaMuteChk`);
 * `cell_pops`, `da_verify_cell_complete_pops`: a cell check pops the symbols its valuation holds, the honest ones on the completing valuation;
 * `row_pops`, `col_pops`: an iteration of the row loop pops its cell's entries, then the next iteration's; a column pops its row loop's;
 * `l18_pops`: the column loop pops its columns' entries in order;
@@ -38,23 +38,17 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 
 @[expose] public section
 
-theorem mem_daMuteSet {f : String} (h : f ∈ ["da_row_shape", "da_vector", "da_column_offsets", "da_expand__L7_L8",
-    name% «da_verify_loop0», name% «da_verify_loop2», name% «da_verify_loop3»]) : f ∈ daMuteSet := by
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at h
-  refine List.mem_append_left _ (List.mem_append_left _ ?_)
-  rcases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> simp
-
 theorem mkCall_f (σ : Val) (o : Option V) (f : String) (args rets : List V) : (Main.mkCall σ (o, f, args, rets)).f = f := by
   cases o <;> rfl
 
-/-- A callee of the mute set pops nothing. -/
+/-- A callee with no witness hint in its subtree pops nothing. -/
 theorem kid_pops_mute {rd : Reader} {σ : Val} {c : Call} {k : Memory.Tree}
     (hk : if c.taken then k.Valid coreProgram rd (c.args.map σ) (c.rets.map σ)
       else (∃ f σ', k = .phantom f σ') ∧ Phantom coreProgram k (c.args.map σ))
-    (hn : k.name = c.f) (hs : c.f ∈ daMuteSet) : k.pops coreProgram rd = [] := by
+    (hn : k.name = c.f) (hs : noWitS c.f = true) : k.pops coreProgram rd = [] := by
   by_cases ht : c.taken = true
   · rw [ite_eq_left ht] at hk
-    exact Tree.pops_mute daMute k hk (by rw [hn]; simpa using hs)
+    exact Tree.pops_mute noWitS_mute k hk (by rw [hn]; exact hs)
   · rw [ite_eq_right ht] at hk
     obtain ⟨⟨f, σ', rfl⟩, -⟩ := hk
     rw [Tree.pops]
@@ -136,7 +130,7 @@ theorem col_pops {rd : Reader} {r : ℕ} {t : Memory.Tree} {args rets : List E} 
   obtain ⟨nx, vx, -, -, -⟩ := hkv
   refine ⟨σ, [], kx, kr, rfl, ?_⟩
   rw [Tree.pops_of_prefix hv find_da_verify_column (List.nil_append _).symm (splicePops_nil rd σ) col_body_mute rfl,
-    kid_pops_mute vx nx (by rw [mkCall_f]; exact mem_daMuteSet (by simp))]
+    kid_pops_mute vx nx (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify_column») (by decide +kernel))]
   simp [Memory.Tree.popsKids]
 
 /-- **The column loop pops its columns' entries in order**, from iteration `k` to the last, when a column `j` of shape `Tc` pops `K j`. -/
@@ -210,14 +204,12 @@ theorem dv_pops {rd : Reader} {r L : ℕ} {z : E} (hL : L ≤ 10) {t : Memory.Tr
     | [k0, k1, k2, k3, k4, k5, k6], _ => exact ⟨k0, k1, k2, k3, k4, k5, k6, rfl⟩
   obtain ⟨n0, v0, n1, v1, n2, v2, -, v3, n4, v4, n5, v5, n6, v6, -⟩ := hkv
   obtain ⟨-, -, -, t3, -⟩ := hT
-  have hdl : daLevelsName L ∈ daMuteSet :=
-    List.mem_append_left _ (List.mem_append_right _ (List.mem_map.mpr ⟨L, List.mem_range.mpr (by omega), rfl⟩))
-  have e0 := kid_pops_mute v0 n0 (by rw [mkCall_f]; exact mem_daMuteSet (by simp))
-  have e1 := kid_pops_mute v1 n1 (by rw [mkCall_f]; exact mem_daMuteSet (by simp))
-  have e2 := kid_pops_mute v2 n2 (by rw [mkCall_f]; exact mem_daMuteSet (by simp))
-  have e4 := kid_pops_mute v4 n4 (by rw [mkCall_f]; exact mem_daMuteSet (by simp))
-  have e5 := kid_pops_mute v5 n5 (by rw [mkCall_f]; exact mem_daMuteSet (by simp))
-  have e6 := kid_pops_mute v6 n6 (by rw [mkCall_f, dlList_getD hL]; exact hdl)
+  have e0 := kid_pops_mute v0 n0 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))
+  have e1 := kid_pops_mute v1 n1 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))
+  have e2 := kid_pops_mute v2 n2 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))
+  have e4 := kid_pops_mute v4 n4 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))
+  have e5 := kid_pops_mute v5 n5 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))
+  have e6 := kid_pops_mute v6 n6 (by rw [mkCall_f, dlList_getD hL]; exact daLevels_noWit hL)
   have h := dv_shape_ok
   simp only [dvShapeOk, Bool.and_eq_true] at h
   have hb : Fn.body fn% «da_verify» = dvHead ++ (Fn.body fn% «da_verify»).drop 3 := by
