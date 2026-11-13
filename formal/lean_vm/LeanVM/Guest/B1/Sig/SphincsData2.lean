@@ -20,12 +20,14 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 set_option maxRecDepth 100000 in
 theorem sAfterDigest_slice_3000 :
-    (((fn% «verify_sig_lean_sphincs»).body.drop 1358).drop 3000).take 500 = (sAfterDigest.drop 3000).take 500 :=
+    (((fn% «verify_sig_lean_sphincs»).body.drop 1358).drop 3000).take 500 = (sAfterDigest.drop
+        3000).take 500 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem sAfterDigest_slice_3500 :
-    (((fn% «verify_sig_lean_sphincs»).body.drop 1358).drop 3500).take 500 = (sAfterDigest.drop 3500).take 500 :=
+    (((fn% «verify_sig_lean_sphincs»).body.drop 1358).drop 3500).take 500 = (sAfterDigest.drop
+        3500).take 500 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in

@@ -10,7 +10,8 @@ public import LeanVM.Guest.B1.Eq.RsRows
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `rs_eq_run_loop0` (`rs_eq_run`'s `mul_range` loop, lean_ethereum.py:1071-1073 at leanVM `40f877dc`)
+# `rs_eq_run_loop0` (`rs_eq_run`'s `mul_range` loop, lean_ethereum.py:1071-1073 at leanVM
+`40f877dc`)
 
 At `xq = g^t` the body calls `rs_eq_rows__L8` on the row `chain·g^(64 t)` and the coordinates
 from `z·g^(8 t)`, `p·g^(8 t)` (`L5Body`), then continues at `xq·g` (`loop5_sound`,
@@ -130,10 +131,12 @@ def l5Body : List Stmt :=
     .call "rs_eq_rows__L8" [.n 14, .n 15, .n 16] [.n 17],
     .atom (.const (.n 18) (word 2 0)), .atom (.mul (.n 19) (.n 0) (.n 18)),
     .atom (.add (.n 20) (.n 19) (.n 1)), .atom (.const (.n 21) (word 2 0)),
-    .atom (.mul (.n 22) (.n 0) (.n 21)), .callIf (.n 20) name% «rs_eq_run_loop0» [.n 22, .n 1, .n 2, .n 3, .n 4],
+    .atom (.mul (.n 22) (.n 0) (.n 21)), .callIf (.n 20) name% «rs_eq_run_loop0» [.n 22, .n 1,
+        .n 2, .n 3, .n 4],
     .ret []]
 
-theorem core80_body : Fn.body fn% «rs_eq_run_loop0» = l5Body := stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_run_loop0_body : Fn.body fn% «rs_eq_run_loop0» = l5Body :=
+  stmtsEqb_sound (by decide +kernel)
 
 theorem find_loop5 : coreProgram.find? name% «rs_eq_run_loop0» = some fn% «rs_eq_run_loop0» :=
   coreProgram_find?_at (j := idx% «rs_eq_run_loop0») rfl
@@ -152,9 +155,11 @@ theorem pow64_eq (x : E) :
 theorem loop5_sound (rd : Reader) (N chain z p : E) (d : ℕ) (x : E)
     (h : coreProgram.relN rd (d + 1) name% «rs_eq_run_loop0» (x :: [N, chain, z, p]) []) :
     L5Body rd chain z p x ∧ IsInK (x * gen + N) ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «rs_eq_run_loop0» (x * gen :: [N, chain, z, p]) []) := by
-  rw [relN_succ_iff find_loop5, show Fn.params fn% «rs_eq_run_loop0» = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
-    core80_body, l5Body] at h
+      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «rs_eq_run_loop0» (x * gen :: [N, chain, z,
+          p]) []) := by
+  rw [relN_succ_iff find_loop5, show Fn.params fn% «rs_eq_run_loop0» = [.n 0, .n 1, .n 2, .n 3,
+      .n 4] from rfl,
+    rs_eq_run_loop0_body, l5Body] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, word_gen] at h
   obtain ⟨σ, hp, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, hc, h18, h19, h20, h21,
     h22, hK, hcall, -⟩ := h
@@ -172,11 +177,13 @@ theorem loop5_sound (rd : Reader) (N chain z p : E) (d : ℕ) (x : E)
 /-- **`rs_eq_run_loop0`, one step back**: the body and the next step give the loop at `x`. -/
 theorem loop5_complete (rd : Reader) (N chain z p : E) (x : E) (hB : L5Body rd chain z p x)
     (hK : IsInK (x * gen + N))
-    (hnext : x * gen + N ≠ 0 → coreProgram.Rel rd name% «rs_eq_run_loop0» (x * gen :: [N, chain, z, p]) []) :
+    (hnext : x * gen + N ≠ 0 → coreProgram.Rel rd name% «rs_eq_run_loop0» (x * gen :: [N, chain, z,
+        p]) []) :
     coreProgram.Rel rd name% «rs_eq_run_loop0» (x :: [N, chain, z, p]) [] := by
   obtain ⟨r, hr⟩ := hB
-  rw [rel_iff_sem find_loop5, show Fn.params fn% «rs_eq_run_loop0» = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
-    core80_body, l5Body]
+  rw [rel_iff_sem find_loop5, show Fn.params fn% «rs_eq_run_loop0» = [.n 0, .n 1, .n 2, .n 3,
+      .n 4] from rfl,
+    rs_eq_run_loop0_body, l5Body]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, word_gen]
   let w : List E := [x, N, chain, z, p, x * x, (x * x) * (x * x), (x * x) * (x * x) * ((x * x) * (x * x)),
     x * x, (x * x) * (x * x), ((x * x) * (x * x)) * ((x * x) * (x * x)),

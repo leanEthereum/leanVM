@@ -18,13 +18,13 @@ public import LeanVM.Guest.Data.NameStrings
 
 `claim_list_digest(entries, n_g)`: for `n_g = 1` the digest of the empty string; otherwise
 `list_split` writes `n = 136 a + 17 b + c`, a heap chain starts at the zero state (`zero_state`),
-the loop `claim_list_digest_loop0` absorbs big frame `q < a` (544 cells, 64 blocks, `final=0`) from the state at
-`chain · g^(13q)` into the state at `chain · g^(13(q + 1))`, the loop `claim_list_digest_loop1` then group
-`q < b` (68 cells, eight blocks) from `mid = chain · g^(13a)` over the cells from
-`entries · g^(544a)` (one generic frame loop: `grpOk`, `grp_step`, `frames_of_loop`), and
-`claim_list_last__L{c}` absorbs the last `4c` cells with the padding from the state at
-`mid · g^(13b)` (`claimLast_sound`). By induction over the frames (`groups_sound`), the digest is
-Keccak-256 of the `4n` cells' bytes.
+the loop `claim_list_digest_loop0` absorbs big frame `q < a` (544 cells, 64 blocks, `final=0`) from
+the state at `chain · g^(13q)` into the state at `chain · g^(13(q + 1))`, the loop
+`claim_list_digest_loop1` then group `q < b` (68 cells, eight blocks) from `mid = chain · g^(13a)`
+over the cells from `entries · g^(544a)` (one generic frame loop: `grpOk`, `grp_step`,
+`frames_of_loop`), and `claim_list_last__L{c}` absorbs the last `4c` cells with the padding from the
+state at `mid · g^(13b)` (`claimLast_sound`). By induction over the frames (`groups_sound`), the
+digest is Keccak-256 of the `4n` cells' bytes.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -37,11 +37,13 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## `claim_list_last__L{k}` -/
 
 set_option maxRecDepth 100000 in
-theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (idx% «claim_list_last__L0» + k) default) = true := by
+theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (idx% «claim_list_last__L0» + k) default) =
+    true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (idx% «claim_list_last__L0» + k) :=
+theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some
+    (idx% «claim_list_last__L0» + k) :=
   coreProgram_indexOf?_run (by decide +kernel)
 
 /-- **`claim_list_last__L{k}`**: from a state at its first argument after whole blocks `pre`, it
@@ -117,16 +119,20 @@ theorem grp_step {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
     by simp [ChainSpec.vals, grpSpec], by rwa [← hE], by rwa [← h9]⟩
 
 set_option maxRecDepth 100000 in
-theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD idx% «claim_list_digest_loop0» default))).nb = 64 := by
+theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD idx% «claim_list_digest_loop0»
+    default))).nb = 64 := by
   decide +kernel
 
--- The big frame loop `claim_list_digest_loop0` (136 claims, 64 blocks): its head here, its sixteen windows in
+-- The big frame loop `claim_list_digest_loop0` (136 claims, 64 blocks): its head here, its sixteen
+-- windows in
 -- `ClaimListBig{q}`.
 set_option maxRecDepth 100000 in
-theorem big_head : grpHead (coreProgram.getD idx% «claim_list_digest_loop0» default) name% «claim_list_digest_loop0» 136 21 565 20 = true := by
+theorem big_head : grpHead (coreProgram.getD idx% «claim_list_digest_loop0» default)
+    name% «claim_list_digest_loop0» 136 21 565 20 = true := by
   decide +kernel
 
-theorem big_ok : grpOk (coreProgram.getD idx% «claim_list_digest_loop0» default) name% «claim_list_digest_loop0» 136 21 565 20 = true := by
+theorem big_ok : grpOk (coreProgram.getD idx% «claim_list_digest_loop0» default)
+    name% «claim_list_digest_loop0» 136 21 565 20 = true := by
   have hw : ∀ i < 16, bigWin i = true := by
     intro i hi
     interval_cases i
@@ -138,21 +144,25 @@ theorem big_ok : grpOk (coreProgram.getD idx% «claim_list_digest_loop0» defaul
     (fun i hi => loadsWin_of_from (hw i hi).2)
 
 set_option maxRecDepth 100000 in
-theorem big_idx : coreProgram.indexOf? name% «claim_list_digest_loop0» = some idx% «claim_list_digest_loop0» :=
+theorem big_idx : coreProgram.indexOf? name% «claim_list_digest_loop0» = some
+    idx% «claim_list_digest_loop0» :=
   coreProgram_indexOf?_at (j := idx% «claim_list_digest_loop0») rfl
 
 
 -- The group frame loop `claim_list_digest_loop1` (17 claims, 8 blocks).
 set_option maxRecDepth 100000 in
-theorem grp_ok : grpOk (coreProgram.getD idx% «claim_list_digest_loop1» default) name% «claim_list_digest_loop1» 17 18 86 17 = true := by
+theorem grp_ok : grpOk (coreProgram.getD idx% «claim_list_digest_loop1» default)
+    name% «claim_list_digest_loop1» 17 18 86 17 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grp_idx : coreProgram.indexOf? name% «claim_list_digest_loop1» = some idx% «claim_list_digest_loop1» :=
+theorem grp_idx : coreProgram.indexOf? name% «claim_list_digest_loop1» = some
+    idx% «claim_list_digest_loop1» :=
   coreProgram_indexOf?_at (j := idx% «claim_list_digest_loop1») rfl
 
 set_option maxRecDepth 100000 in
-theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD idx% «claim_list_digest_loop1» default))).nb = 8 := by
+theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD idx% «claim_list_digest_loop1»
+    default))).nb = 8 := by
   decide +kernel
 
 theorem mono2Is_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x base y y' : V} {e e' : ℕ}
@@ -241,7 +251,7 @@ noncomputable def cl23Else : List Stmt := match Fn.body fn% «claim_list_digest�
   | _ => []
 
 set_option maxRecDepth 100000 in
-theorem core22_shape : Fn.body fn% «claim_list_digest» =
+theorem claim_list_digest_shape : Fn.body fn% «claim_list_digest» =
     [.atom (.const (.n 2) (word 1 0)), .atom (.add (.n 3) (.n 1) (.n 2)),
      .ite (.n 3) cl23Zero cl23Else, .atom (.copy (.n 76) (.n 10)), .atom (.copy (.n 77) (.n 11)),
      .ret [.n 76, .n 77]] :=
@@ -261,8 +271,10 @@ loop, `mid = chain · bigs^13`, `mid_entries = entries · bigs^544`, the groups'
 noncomputable def ceOk : Bool :=
   cl23Else.all Stmt.flat &&
   cl23Else.any (stmtEqb · (.call "list_split" [.n 1] [.n 12, .n 13, .n 14])) &&
-  cl23Else.any (stmtEqb · (.callIf (.n 38) name% «claim_list_digest_loop0» [.n 39, .n 12, .n 23, .n 0])) &&
-  cl23Else.any (stmtEqb · (.callIf (.n 58) name% «claim_list_digest_loop1» [.n 59, .n 13, .n 45, .n 56])) &&
+  cl23Else.any (stmtEqb · (.callIf (.n 38) name% «claim_list_digest_loop0» [.n 39, .n 12, .n 23,
+      .n 0])) &&
+  cl23Else.any (stmtEqb · (.callIf (.n 58) name% «claim_list_digest_loop1» [.n 59, .n 13, .n 45,
+      .n 56])) &&
   cl23Else.any (stmtEqb · (.dispatch (.n 14) clNames [.n 65, .n 73] [.n 74, .n 75])) &&
   (atomsIn cl23Else).any (isConstAt (.n 39) 1 0) &&
   (atomsIn cl23Else).any (isAddAt (.n 38) (.n 37) (.n 12)) &&
@@ -291,7 +303,7 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_claim_list_digest args rets).mp h
   have hp' : args = [σ (.n 0), σ (.n 1)] := by rw [← hp]; rfl
   subst hp'
-  rw [core22_shape] at hb
+  rw [claim_list_digest_shape] at hb
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
   obtain ⟨c2, a3, -, hz, hnz⟩ := hb
   have hz1 := cz_ok

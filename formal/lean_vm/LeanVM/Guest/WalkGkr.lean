@@ -22,7 +22,7 @@ cuts, the parity word's bound (`knownIf = [(20, 12, 4)]`, cell `20` the slot `σ
 on the cell of `x` holding `1` (`impTag tagGkr 1 1` on `[25, 38, 396, 87]`, values
 `16, 380, 375, 64`: `vbg_par`).
 
-`gkrLoop_cutsKnown : CutsKnown 91`, `gkrBus_cutsKnown : CutsKnown 10`, for `WalkKnown`
+`gkrLoop_cutsKnown : CutsKnown (fn_idx% «verify_bus_gkr_loop0»)`, `gkrBus_cutsKnown : CutsKnown (fn_idx% «verify_bus_gkr»)`, for `WalkKnown`
 (`walkKnown_of_gkr gkrBus_cutsKnown gkrLoop_cutsKnown`).
 -/
 
@@ -75,29 +75,29 @@ theorem valG_of_loc {κ : ℕ} {L : MemoryImage κ} {fp : K} {C : Cert} {v c : �
 
 /-! ## `__loop6` (function `91`) -/
 
-theorem coreOf_91 : (coreOf 91).body = lyBody := by
+theorem coreOf_91 : (coreOf (fn_idx% «verify_bus_gkr_loop0»)).body = lyBody := by
   obtain ⟨fn, hf, -, hb⟩ := lyFound
-  have hc := coreOf_find (j := 91) (by norm_num) (by unfold nFns; norm_num)
-  rw [show (coreOf 91).name = "__loop6" from rfl, hf] at hc
+  have hc := coreOf_find (j := fn_idx% «verify_bus_gkr_loop0») (by norm_num) (by unfold nFns; norm_num)
+  rw [show (coreOf (fn_idx% «verify_bus_gkr_loop0»)).name = name% «verify_bus_gkr_loop0» from rfl, hf] at hc
   rw [← Option.some.inj hc, hb]
 
 /-- `__loop6`'s certificate: `GkrPar` on its arguments, two cuts (before the dispatch, before the
 tail call). -/
-theorem gkr91_cert : (certOf 91).sem = [(tagGkr, [5, 2, 4, 11])] ∧ (certOf 91).cuts.length = 2 ∧
-    ((certOf 91).cutAt 1).start = 49 ∧ ((certOf 91).cutAt 1).known = [] ∧
-    ((certOf 91).cutAt 1).knownIf = [(20, 12, 4)] ∧ ((certOf 91).cutAt 1).sems = [] ∧
-    ((certOf 91).cutAt 2).start = 191 ∧ ((certOf 91).cutAt 2).known = [] ∧
-    ((certOf 91).cutAt 2).knownIf = [(20, 12, 4)] ∧
-    ((certOf 91).cutAt 2).sems = [(tagGkr, [5, 298, 4, 11])] := by decide +kernel
+theorem gkr91_cert : (certOf (fn_idx% «verify_bus_gkr_loop0»)).sem = [(tagGkr, [5, 2, 4, 11])] ∧ (certOf (fn_idx% «verify_bus_gkr_loop0»)).cuts.length = 2 ∧
+    ((certOf (fn_idx% «verify_bus_gkr_loop0»)).cutAt 1).start = 49 ∧ ((certOf (fn_idx% «verify_bus_gkr_loop0»)).cutAt 1).known = [] ∧
+    ((certOf (fn_idx% «verify_bus_gkr_loop0»)).cutAt 1).knownIf = [(20, 12, 4)] ∧ ((certOf (fn_idx% «verify_bus_gkr_loop0»)).cutAt 1).sems = [] ∧
+    ((certOf (fn_idx% «verify_bus_gkr_loop0»)).cutAt 2).start = 191 ∧ ((certOf (fn_idx% «verify_bus_gkr_loop0»)).cutAt 2).known = [] ∧
+    ((certOf (fn_idx% «verify_bus_gkr_loop0»)).cutAt 2).knownIf = [(20, 12, 4)] ∧
+    ((certOf (fn_idx% «verify_bus_gkr_loop0»)).cutAt 2).sems = [(tagGkr, [5, 298, 4, 11])] := by decide +kernel
 
 /-- `__loop6`'s cells: values `0, 2, 3, 9, 17, 238` in cells `2, 4, 5, 11, 20, 298`. -/
-theorem gkr91_locs : (certOf 91).locs.getD 0 0 = 2 ∧ (certOf 91).locs.getD 2 0 = 4 ∧
-    (certOf 91).locs.getD 3 0 = 5 ∧ (certOf 91).locs.getD 9 0 = 11 ∧
-    (certOf 91).locs.getD 17 0 = 20 ∧ (certOf 91).locs.getD 238 0 = 298 := by decide +kernel
+theorem gkr91_locs : (certOf (fn_idx% «verify_bus_gkr_loop0»)).locs.getD 0 0 = 2 ∧ (certOf (fn_idx% «verify_bus_gkr_loop0»)).locs.getD 2 0 = 4 ∧
+    (certOf (fn_idx% «verify_bus_gkr_loop0»)).locs.getD 3 0 = 5 ∧ (certOf (fn_idx% «verify_bus_gkr_loop0»)).locs.getD 9 0 = 11 ∧
+    (certOf (fn_idx% «verify_bus_gkr_loop0»)).locs.getD 17 0 = 20 ∧ (certOf (fn_idx% «verify_bus_gkr_loop0»)).locs.getD 238 0 = 298 := by decide +kernel
 
 /-- **`__loop6`'s cut obligations**: the parity word's bound at both cuts, `GkrPar` at `x·g`
 before the tail call. -/
-theorem gkrLoop_cutsKnown : CutsKnown 91 := by
+theorem gkrLoop_cutsKnown : CutsKnown (fn_idx% «verify_bus_gkr_loop0») := by
   intro κ L _ _ fp _ hsem i hi h0 hl
   obtain ⟨hs, hlen, s1, k1, i1, m1, s2, k2, i2, m2⟩ := gkr91_cert
   obtain ⟨l0, l2, l3, l9, l17, l238⟩ := gkr91_locs
@@ -108,7 +108,7 @@ theorem gkrLoop_cutsKnown : CutsKnown 91 := by
   rw [coreOf_91] at hl
   have hif : ∀ {n}, Stmt.noRetList (lyBody.take n) = true →
       tbStmtsEqb lySlotT (((lyBody.take n).drop 0).take lySlotT.length) = true →
-      Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 91)) (lyBody.take n) True
+      Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_bus_gkr_loop0»))) (lyBody.take n) True
         (fun _ ↦ True) → MemIf L fp [(20, 12, 4)] := by
     intro n hnr heq hl m hm v hv
     rw [List.mem_singleton] at hm
@@ -133,23 +133,23 @@ theorem gkrLoop_cutsKnown : CutsKnown 91 := by
 
 /-! ## `verify_bus_gkr` (function `10`) -/
 
-theorem coreOf_10 : (coreOf 10).body = vbgPre ++ [.ret vbgRets] := by
+theorem coreOf_10 : (coreOf (fn_idx% «verify_bus_gkr»)).body = vbgPre ++ [.ret vbgRets] := by
   obtain ⟨fn, hf, -, hb⟩ := vbgFound
-  have hc := coreOf_find (j := 10) (by norm_num) (by unfold nFns; norm_num)
-  rw [show (coreOf 10).name = "verify_bus_gkr" from rfl, hf] at hc
+  have hc := coreOf_find (j := fn_idx% «verify_bus_gkr») (by norm_num) (by unfold nFns; norm_num)
+  rw [show (coreOf (fn_idx% «verify_bus_gkr»)).name = name% «verify_bus_gkr» from rfl, hf] at hc
   rw [← Option.some.inj hc, hb]
 
 /-- `verify_bus_gkr`'s certificate: one cut, before its loop call, `GkrPar` at `x = 1`. -/
-theorem gkr10_cert : (certOf 10).cuts.length = 1 ∧ ((certOf 10).cutAt 1).start = 206 ∧
-    ((certOf 10).cutAt 1).known = [] ∧ ((certOf 10).cutAt 1).knownIf = [] ∧
-    ((certOf 10).cutAt 1).sems = [(impTag tagGkr 1 1, [25, 38, 396, 87])] := by decide +kernel
+theorem gkr10_cert : (certOf (fn_idx% «verify_bus_gkr»)).cuts.length = 1 ∧ ((certOf (fn_idx% «verify_bus_gkr»)).cutAt 1).start = 206 ∧
+    ((certOf (fn_idx% «verify_bus_gkr»)).cutAt 1).known = [] ∧ ((certOf (fn_idx% «verify_bus_gkr»)).cutAt 1).knownIf = [] ∧
+    ((certOf (fn_idx% «verify_bus_gkr»)).cutAt 1).sems = [(impTag tagGkr 1 1, [25, 38, 396, 87])] := by decide +kernel
 
 /-- `verify_bus_gkr`'s cells: values `16, 375, 64` in cells `25, 396, 87`. -/
-theorem gkr10_locs : (certOf 10).locs.getD 16 0 = 25 ∧ (certOf 10).locs.getD 375 0 = 396 ∧
-    (certOf 10).locs.getD 64 0 = 87 := by decide +kernel
+theorem gkr10_locs : (certOf (fn_idx% «verify_bus_gkr»)).locs.getD 16 0 = 25 ∧ (certOf (fn_idx% «verify_bus_gkr»)).locs.getD 375 0 = 396 ∧
+    (certOf (fn_idx% «verify_bus_gkr»)).locs.getD 64 0 = 87 := by decide +kernel
 
 /-- **`verify_bus_gkr`'s cut obligation**: `GkrPar` at `x = 1` before its loop call. -/
-theorem gkrBus_cutsKnown : CutsKnown 10 := by
+theorem gkrBus_cutsKnown : CutsKnown (fn_idx% «verify_bus_gkr») := by
   intro κ L _ hκ fp _ _ i hi h0 hl
   obtain ⟨hlen, s1, k1, i1, m1⟩ := gkr10_cert
   obtain ⟨l16, l375, l64⟩ := gkr10_locs

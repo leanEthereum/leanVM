@@ -3,6 +3,8 @@
 
   The soundness's algebra of the bus sides, replayed on `VtP` (generated:
   scripts/b1c-vt/genbtwin.py from Vt/{PushFw,PushPad,PullTotal,PullSels,CountTotal}.lean).
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

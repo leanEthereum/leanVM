@@ -3,6 +3,8 @@
 
   The templates of `verify_tables`' table evaluations: the 153 words read, each copied,
   and the 38 permutations between them.
+  `scripts/b1c-vt/all.py` writes the data `vtEvalData` and `vtPermData` (`regen-guest.sh`, step
+  `vt`).
 -/
 
 module

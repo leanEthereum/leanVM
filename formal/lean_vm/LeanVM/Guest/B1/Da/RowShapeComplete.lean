@@ -33,7 +33,7 @@ def da_row_shape_complete_Spec : Prop :=
     r ≤ LeanDa.maxRows → 2 ^ L = LeanDa.paddedRowCount r →
       coreProgram.Rel rd "da_row_shape" [gen ^ r, gen ^ L, gsq] [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]
 
-theorem core25_body : Fn.body fn% «da_row_shape» = [
+theorem da_row_shape_body : Fn.body fn% «da_row_shape» = [
     .atom (.const (.n 3) (word 1 0)), .atom (.add (.n 4) (.n 0) (.n 3)),
     .atom (.hint (.inverse (.n 4) (.n 5))), .atom (.assertNe (.n 4) (.n 5) (.n 6)),
     .atom (.const (.n 7) (word 281474976776218 0)),
@@ -102,7 +102,7 @@ theorem da_row_shape_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (gsq :
     gen ^ (1024 - (2 ^ L - r)), t20, t21, word 140737488388109 0, gen ^ r * gen ^ r, word 2 0,
     gen ^ 2 ^ L * word 2 0, gen ^ (2 * r - 2 ^ L - 1), gen ^ (1023 - (2 * r - 2 ^ L - 1)), t28, t29,
     gen ^ 2 ^ L, gen ^ (2 ^ L - r)], rfl, ?_⟩
-  rw [core25_body]
+  rw [da_row_shape_body]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, ofArgs_n,
     List.getD_cons_succ, List.getD_cons_zero]
   refine ⟨trivial, trivial, trivial, ⟨trivial, mul_inv_cancel₀ hne⟩, trivial,

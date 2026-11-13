@@ -17,10 +17,12 @@ public import LeanVM.Guest.Data.NameStrings
 # `claim_list_digest`, within bounds
 
 `clB fs SB SK n`: `claim_list_digest`'s words on `n = 136a + 17b + c` claims: its frame; when
-`n ≠ 0`, its chain buffer `13 (a + b + 1)`, `list_split`'s bound `SB "list_split"`, `claim_list_digest_loop0`'s
-`a · iterK fs SK "claim_list_digest_loop0"` and `claim_list_digest_loop1`'s `b · iterK fs SK "claim_list_digest_loop1"` and each loop's frame,
-its run's phantom or, when not entered, the untaken call's, `claim_list_last__L{c}`'s `SB`. The
-static bounds `SB`, `SK` are hypotheses (`TotalLe`, `TotalLeOn` on `LoopPre`). `list_split_completeAtDTB`: `list_split` within its bound.
+`n ≠ 0`, its chain buffer `13 (a + b + 1)`, `list_split`'s bound `SB "list_split"`,
+`claim_list_digest_loop0`'s `a · iterK fs SK "claim_list_digest_loop0"` and
+`claim_list_digest_loop1`'s `b · iterK fs SK "claim_list_digest_loop1"` and each loop's frame, its
+run's phantom or, when not entered, the untaken call's, `claim_list_last__L{c}`'s `SB`. The static
+bounds `SB`, `SK` are hypotheses (`TotalLe`, `TotalLeOn` on `LoopPre`). `list_split_completeAtDTB`:
+`list_split` within its bound.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -42,8 +44,10 @@ open LeanVM.Guest.Budget (NodeHonest)
 def clB (fs : String → ℕ) (SB SK : String → ℕ) (n : ℕ) : ℕ :=
   if n = 0 then fs "claim_list_digest" else
     fs "claim_list_digest" + 13 * (n / 136 + n % 136 / 17 + 1) + (SB "list_split" +
-      ((if n / 136 ≠ 0 then n / 136 * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0» else fs name% «claim_list_digest_loop0») +
-        ((if n % 136 / 17 ≠ 0 then n % 136 / 17 * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1»
+      ((if n / 136 ≠ 0 then n / 136 * iterK fs SK name% «claim_list_digest_loop0» + fs
+          name% «claim_list_digest_loop0» else fs name% «claim_list_digest_loop0») +
+        ((if n % 136 / 17 ≠ 0 then n % 136 / 17 * iterK fs SK name% «claim_list_digest_loop1» + fs
+            name% «claim_list_digest_loop1»
           else fs name% «claim_list_digest_loop1») +
           (SB clNames[n % 17]! + 0))))
 
@@ -74,9 +78,11 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
     (hLr : ∀ k < cells.length, RegionL Lin (eP + k)) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
     (hL15 : TotalLeOn coreProgram fs name% «claim_list_digest_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop0» + fs
+          name% «claim_list_digest_loop0»))
     (hL16 : TotalLeOn coreProgram fs name% «claim_list_digest_loop1» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs
+          name% «claim_list_digest_loop1»))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     CompleteAtDTB fs cert 20 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
       (Returns (digestCells (keccak256 (cellsBytes cells))))
@@ -190,13 +196,17 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
     -- the callees
     let ks : List Kid :=
       [⟨"list_split", true, [gen ^ n], [], Returns [gen ^ a, gen ^ b, gen ^ r]⟩,
-        ⟨name% «claim_list_digest_loop0», decide (a ≠ 0), [1, gen ^ a, chain, gen ^ eP], Lin ++ Own, Returns []⟩,
-        ⟨name% «claim_list_digest_loop1», decide (b ≠ 0), [1, gen ^ b, chain * gen ^ (13 * a), gen ^ eP * gen ^ (544 * a)],
+        ⟨name% «claim_list_digest_loop0», decide (a ≠ 0), [1, gen ^ a, chain, gen ^ eP],
+            Lin ++ Own, Returns []⟩,
+        ⟨name% «claim_list_digest_loop1», decide (b ≠ 0), [1, gen ^ b, chain * gen ^ (13 * a),
+            gen ^ eP * gen ^ (544 * a)],
           Lin ++ Own, Returns []⟩,
         ⟨clNames[r]!, true, [chain * gen ^ (13 * (a + b)), gen ^ eP * gen ^ (544 * a + 68 * b)],
           Lin ++ Own, Returns (digestCells D)⟩]
-    set Bs : List ℕ := [SB "list_split", a * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0»,
-      b * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1», SB clNames[r]!] with hBs
+    set Bs : List ℕ := [SB "list_split", a * iterK fs SK name% «claim_list_digest_loop0» + fs
+        name% «claim_list_digest_loop0»,
+      b * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1»,
+          SB clNames[r]!] with hBs
     have hokB : KidsDTB fs cert 20 ks clTs Bs := by
       refine ⟨fun _ => ?_, fun ht => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
       · have := list_split_completeAtDTB fs cert (a := a) (b := b) (c := r) le_rfl
@@ -204,7 +214,8 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
         rwa [show claimBig * a + claimGroup * b + r = n by simp [claimBig, claimGroup]; omega] at this
       · simp only [decide_eq_true_eq] at ht
         refine (completeAt_of_rel_pureBat big_pure (List.mem_singleton_self _) (fun rd hm => ?_) 20
-          (B := a * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0») (fun rd t hn hv hb => ?_)).toDTB
+          (B := a * iterK fs SK name% «claim_list_digest_loop0» + fs
+              name% «claim_list_digest_loop0») (fun rd t hn hv hb => ?_)).toDTB
         · have hr := hLe rd (memL_append.mp hm).1
           have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
           exact (guard_complete (find_of_idx big_idx)
@@ -213,7 +224,8 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
           simpa [logG_gen_pow (show a < 2 ^ 64 - 1 by omega)] using this
       · simp only [decide_eq_true_eq] at ht
         refine (completeAt_of_rel_pureBat grp_pure (List.mem_singleton_self _) (fun rd hm => ?_) 20
-          (B := b * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1») (fun rd t hn hv hb => ?_)).toDTB
+          (B := b * iterK fs SK name% «claim_list_digest_loop1» + fs
+              name% «claim_list_digest_loop1») (fun rd t hn hv hb => ?_)).toDTB
         · have hr := hLe rd (memL_append.mp hm).1
           have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
           exact (guard_complete (find_of_idx grp_idx)

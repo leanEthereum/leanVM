@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Gkr.Walk
 
-  The layers of `verify_bus_gkr` in sequence: `n` iterations of `verify_bus_gkr_loop0` from the root-most
-  layer's slot are `gkrPairs n`.
+  The layers of `verify_bus_gkr` in sequence: `n` iterations of `verify_bus_gkr_loop0` from the
+  root-most layer's slot are `gkrPairs n`.
 -/
 
 module

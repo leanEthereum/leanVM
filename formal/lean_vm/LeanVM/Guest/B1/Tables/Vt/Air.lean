@@ -3,6 +3,8 @@
 
   `verify_tables`' air check: each table's weight and form value, and their sum the table
   sumcheck's final claim.
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

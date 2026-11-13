@@ -135,7 +135,8 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
     (hLe : CallRel.Le C (coreProgram.Rel L.read)) (σ : Val) (rets : List E)
     (hb : Stmt.HoldsList C L.read σ (Fn.body fn% «verify_sub») False (fun rs ↦ rs = rets))
     (hpre : VerifySubPre L.read ((fn% «verify_sub»).params.map σ)) :
-    rets = [] ∧ Main.VerifySubOut bytecode L.read ((fn% «verify_sub»).params.map σ) (vsPiOf L.read σ V) := by
+    rets = [] ∧ Main.VerifySubOut bytecode L.read ((fn% «verify_sub»).params.map σ) (vsPiOf L.read
+        σ V) := by
   obtain ⟨hexp, hwin⟩ : ExpTables L.read (σ (.n 4)) ∧ ExpWinTab L.read (σ (.n 4)) := by
     simpa [VerifySubPre, vs_params] using hpre
   have hκw := winTab_kappa hκ L hwin

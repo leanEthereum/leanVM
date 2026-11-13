@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Main.Loops
 /-!
 # `da_row_shape` (G:4550-4559)
 
-`da_row_shape(n_blob_g, g_log_pad, g_squares)` (`core28`): `n_blob_g ≠ 1` (an inverse),
+`da_row_shape(n_blob_g, g_log_pad, g_squares)`: `n_blob_g ≠ 1` (an inverse),
 `n_blob_g = g^r` with `r ≤ 1024`, `g_log_pad = g^L` with `L ≤ 10` (range checks against
 `g^1024`, `g^10`), `n_pad_g = g_squares[L] = g^(2^L)`, `gap_g = n_pad_g / n_blob_g = g^d`
 (`d ≤ 1024`), and `n_blob_g² = f · n_pad_g · g` with `f = g^e`, `e ≤ 1023`. So

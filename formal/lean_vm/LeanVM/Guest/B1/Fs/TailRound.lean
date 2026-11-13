@@ -67,13 +67,15 @@ theorem tailRound_run (cap : List E) (c0 c2 claim : E) :
   rw [tail_eval]
   rfl
 
-theorem find_opening_tail_round : coreProgram.find? "opening_tail_round" = some fn% «opening_tail_round» :=
+theorem find_opening_tail_round : coreProgram.find? "opening_tail_round" = some
+    fn% «opening_tail_round» :=
   coreProgram_find?_at (j := idx% «opening_tail_round») rfl
 
-theorem core8_params : Fn.params fn% «opening_tail_round» = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7] :=
+theorem opening_tail_round_params : Fn.params fn% «opening_tail_round» = [.n 0, .n 1, .n 2, .n 3,
+    .n 4, .n 5, .n 6, .n 7] :=
   rfl
 
-theorem core8_body : Fn.body fn% «opening_tail_round» =
+theorem opening_tail_round_body : Fn.body fn% «opening_tail_round» =
     [.atom (.copy (.n 8) (.n 0)), .atom (.copy (.n 9) (.n 1)), .atom (.copy (.n 10) (.n 2)),
       .atom (.copy (.n 11) (.n 3)), .atom (.copy (.n 12) (.n 4))] ++
     fsNextT (.n 5) 0 13 ++ fsNextT (.n 5) 1 16 ++ padRunT 19 ++
@@ -124,7 +126,7 @@ def tlVals (as : List E) (c0 c2 : E) (S : KeccakState) (k : ℕ) : E :=
 /-- **`opening_tail_round`'s core IR is its meaning.** -/
 theorem opening_tail_round_holds : opening_tail_round_Spec := by
   intro rd args rets
-  rw [rel_iff_sem find_opening_tail_round, core8_body, core8_params]
+  rw [rel_iff_sem find_opening_tail_round, opening_tail_round_body, opening_tail_round_params]
   simp only [holdsList_append, holds_fsNextT, holds_padRunT, holds_challengeT, keccakA,
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   constructor

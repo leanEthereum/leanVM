@@ -123,7 +123,8 @@ noncomputable def zRest : List Stmt := [
     .atom (.load (.n 2632) (.n 2627) 5),
     .atom (.load (.n 2620) (.n 2627) 6),
     .atom (.load (.n 2633) (.n 2630) 0),
-    .callIf (.n 2635) name% «verify_tables_loop0» [.n 2636, .n 2544, .n 2627, .n 18, .n 16, .n 2544, .n 2630],
+    .callIf (.n 2635) name% «verify_tables_loop0» [.n 2636, .n 2544, .n 2627, .n 18, .n 16,
+        .n 2544, .n 2630],
     .atom (.load (.n 2642) (.n 2641) 0),
     .atom (.load (.n 2643) (.n 2641) 1),
     .atom (.load (.n 2644) (.n 2641) 2),
@@ -136,8 +137,9 @@ noncomputable def zRest : List Stmt := [
 set_option maxRecDepth 100000 in
 /-- **Statements `2591 ..< 2685`, completely** (G:2546-2587): the hinted `g^n` with `n` the
 largest `τ_t` (at most `m = |point|`), the squeeze `ξ` (`XI_GRIND_BITS = 0`) of the sponge `S`
-with the bytecode's value waiting, the target, the first record, `verify_tables_loop0`'s rounds on the honest
-buffers (records, running products, `chi`) and words `xs` at the cursor one past the bytecode's
+with the bytecode's value waiting, the target, the first record, `verify_tables_loop0`'s rounds on
+the honest buffers (records, running products, `chi`) and words `xs` at the cursor one past the
+bytecode's
 value, the last record, `eq_prefix_chain` into the prefix weights of `chi` against `zeta1`. -/
 theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20)
     {m n : ℕ} {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t ≤ n) (hτn : ∃ t < 6, τ t = n) (hnm : n ≤ m)
@@ -271,7 +273,8 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   -- the rounds
   have v2597 : σ (.n 2635) = 1 + gen ^ n := by rw [g2665, g2664, tb_word_one, vn]
   have c2654 : VSH (coreProgram.Rel rd) rd σ
-      (.callIf (.n 2635) name% «verify_tables_loop0» [.n 2636, .n 2544, .n 2627, .n 18, .n 16, .n 2544, .n 2630]) := by
+      (.callIf (.n 2635) name% «verify_tables_loop0» [.n 2636, .n 2544, .n 2627, .n 18, .n 16,
+          .n 2544, .n 2630]) := by
     refine ⟨by rw [v2597]; exact isInK_add (by simpa using gen_pow_isInK 0) (gen_pow_isInK n),
       fun hne => ?_⟩
     have hn0 : 0 < n := by

@@ -44,8 +44,9 @@ a callee's postcondition).
 
 `exec` is structural recursion over the code, tries keyed by `ℕ` and no field arithmetic, written
 for the kernel, which evaluates it once per function (`decide +kernel`): the hot functions use
-the recursors directly (hence `noncomputable`), and the walk passes its state evaluated (`seq`),
-the kernel sharing no evaluation between the copies of a term.
+the recursors directly (hence `noncomputable`; compiled code runs their structural twins, linked by
+`@[csimp]`), and the walk passes its state evaluated (`seq`), the kernel sharing no evaluation
+between the copies of a term.
 
 **Soundness** (`exec_sound`): a halting run entering a segment, in a frame its environment holds
 of, satisfies the atoms of the path it takes and leaves by that path's exit with fewer steps left
@@ -144,7 +145,8 @@ def right : Trie α → Trie α
   | node _ _ r => r
 
 /-! Written with the recursors, which the kernel reduces much faster than the compiled form of
-structural recursion; hence `noncomputable`: these are evaluated by the kernel only. -/
+structural recursion; hence `noncomputable`: compiled code runs their structural twins instead
+(`getC`, …, `@[csimp]`), which the kernel never unfolds. -/
 
 /-- The value at key `n`. -/
 noncomputable def get (t : Trie α) : ℕ → Option α :=
@@ -182,6 +184,66 @@ noncomputable def sub (eq : α → α → Bool) (a : Trie α) : Trie α → Bool
         | none, _ => true
         | some x, some y => eq x y
         | some _, none => false) && sl b.left && sr b.right) a
+
+/-! ### The compiled twins -/
+
+/-- `get` by structural recursion. -/
+def getC : Trie α → ℕ → Option α
+  | nil, _ => none
+  | node v l r, n => bif n == 0 then v else bif n % 2 == 1 then getC l (n / 2) else getC r (n / 2 - 1)
+
+@[csimp] theorem get_eq_getC : @get = @getC := by
+  funext α t n
+  induction t generalizing n with
+  | nil => rfl
+  | node v l r ihl ihr => simp only [get, getC] at ihl ihr ⊢; rw [ihl, ihr]
+
+/-- `set` by structural recursion. -/
+def setC (a : α) : ℕ → Trie α → ℕ → Trie α
+  | 0, t, _ => t
+  | d + 1, nil, n => bif n == 0 then node (some a) nil nil
+      else bif n % 2 == 1 then (setC a d nil (n / 2)).seq fun l ↦ node none l nil
+      else (setC a d nil (n / 2 - 1)).seq fun r ↦ node none nil r
+  | d + 1, node v l r, n => bif n == 0 then node (some a) l r
+      else bif n % 2 == 1 then (setC a d l (n / 2)).seq fun l ↦ node v l r
+      else (setC a d r (n / 2 - 1)).seq fun r ↦ node v l r
+
+@[csimp] theorem set_eq_setC : @set = @setC := by
+  funext α a d t n
+  induction d generalizing t n with
+  | zero => rfl
+  | succ d ih => cases t <;> simp only [set, setC] at ih ⊢ <;> simp only [ih]
+
+/-- `inter` by structural recursion. -/
+def interC (eq : α → α → Bool) : Trie α → Trie α → Trie α
+  | nil, _ => nil
+  | node _ _ _, nil => nil
+  | node v l r, node v' l' r' => (interC eq l l').seq fun l ↦ (interC eq r r').seq fun r ↦
+      optSeq (meet eq v v') fun v ↦ node v l r
+
+@[csimp] theorem inter_eq_interC : @inter = @interC := by
+  funext α eq a b
+  induction a generalizing b with
+  | nil => rfl
+  | node v l r ihl ihr =>
+    cases b with
+    | nil => rfl
+    | node v' l' r' => simp only [inter, interC] at ihl ihr ⊢; simp only [ihl, ihr]
+
+/-- `sub` by structural recursion. -/
+def subC (eq : α → α → Bool) : Trie α → Trie α → Bool
+  | nil, _ => true
+  | node v l r, b =>
+    (match v, b.val with
+      | none, _ => true
+      | some x, some y => eq x y
+      | some _, none => false) && subC eq l b.left && subC eq r b.right
+
+@[csimp] theorem sub_eq_subC : @sub = @subC := by
+  funext α eq a b
+  induction a generalizing b with
+  | nil => rfl
+  | node v l r ihl ihr => simp only [sub, subC] at ihl ihr ⊢; simp only [ihl, ihr]
 
 end Trie
 
@@ -256,6 +318,17 @@ noncomputable def PowTree.find (t : PowTree) (k : ℕ) : Option ℕ :=
   PowTree.rec (motive := fun _ ↦ Option ℕ) none
     (fun k' e _ _ fl fr ↦ bif k == k' then some e else bif Nat.blt k k' then fl else fr) t
 
+/-- `PowTree.find` by structural recursion, for compiled code. -/
+def PowTree.findC : PowTree → ℕ → Option ℕ
+  | .leaf, _ => none
+  | .node k' e l r, k => bif k == k' then some e else bif Nat.blt k k' then findC l k else findC r k
+
+@[csimp] theorem PowTree.find_eq_findC : @PowTree.find = @PowTree.findC := by
+  funext t k
+  induction t with
+  | leaf => rfl
+  | node k' e l r ihl ihr => simp only [PowTree.find, PowTree.findC] at ihl ihr ⊢; rw [ihl, ihr]
+
 /-- Every pair of the tree is a power of `g` (decided by the kernel). -/
 def PowTree.Ok : PowTree → Prop
   | .leaf => True
@@ -285,7 +358,7 @@ structure Facts where
   scaled : List ℕ := []
 
 /-- What a `SET` immediate is known as. -/
-noncomputable def Facts.symOf (F : Facts) (k0 k1 : ℕ) : Option Sym :=
+def Facts.symOf (F : Facts) (k0 k1 : ℕ) : Option Sym :=
   bif k1 == 0 then
     (bif k0 == 0 then some .zero else bif k0 == 1 then some (.gp 0) else (F.pows.find k0).map .gp)
   else none
@@ -416,7 +489,7 @@ def memFind : List (ℕ × ℕ × Sym) → ℕ → ℕ → Option Sym
   | (q, off, v) :: m, q', off' => bif q == q' && off == off' then some v else memFind m q' off'
 
 /-- Learn `fp[o] = v` unless `fp[o]` is known. -/
-noncomputable def learn (env : Trie Sym) (o : ℕ) (v : Sym) : Trie Sym :=
+def learn (env : Trie Sym) (o : ℕ) (v : Sym) : Trie Sym :=
   match env.get o with
   | some _ => env
   | none => env.set v envDepth o
@@ -440,7 +513,7 @@ def mulFacts (a b c : ℕ) (va vb : Option Sym) : List Atom :=
 
 /-- The environment after `MUL a b c`: `fp · g^e` times `g^e'`, for `a` among the cells `F.scaled`
 (the self frame pointer cell of a loop, whose `MUL` computes the next frame). -/
-noncomputable def mulEnv (F : Facts) (env : Trie Sym) (a b c : ℕ) : Trie Sym :=
+def mulEnv (F : Facts) (env : Trie Sym) (a b c : ℕ) : Trie Sym :=
   bif F.scaled.contains a then
   match env.get a with
   | some (.fpg e) =>
@@ -452,7 +525,7 @@ noncomputable def mulEnv (F : Facts) (env : Trie Sym) (a b c : ℕ) : Trie Sym :
 
 /-- The range check ending at `DEREF *(fp[y]·g^0) = fp[t]`: `DEREF *(fp[x]·g^0)`,
 `MUL fp[z] = fp[x]·fp[y]` just before it. -/
-noncomputable def rangeFact (env : Trie Sym) (y : ℕ) : List (ℕ × OffsetInstruction) → List Atom
+def rangeFact (env : Trie Sym) (y : ℕ) : List (ℕ × OffsetInstruction) → List Atom
   | [(_, .mul x y' z), (_, .deref x' 0 _ .cell)] =>
     if y' = y ∧ x' = x then
       match Sym.expo (env.get z) with
@@ -474,7 +547,7 @@ def neFacts (p : ℕ) : List (ℕ × OffsetInstruction) → List Atom
 
 /-- The store a `DEREF` makes known (kept for the last four), and what a read through a known
 store teaches. -/
-noncomputable def derefMem (pc : ℕ) (st : St) (o1 o2 o3 : ℕ) :
+def derefMem (pc : ℕ) (st : St) (o1 o2 o3 : ℕ) :
     DerefMode → Trie Sym × List (ℕ × ℕ × Sym)
   | .fp => (st.env, ((o1, o2, .fpg 0) :: st.mem).take 4)
   | .pc => (st.env, ((o1, o2, .gp (pc + 2)) :: st.mem).take 4)
@@ -489,7 +562,7 @@ noncomputable def derefMem (pc : ℕ) (st : St) (o1 o2 o3 : ℕ) :
 
 /-- What a non-`JUMP` instruction at pc `pc` teaches: its facts, and the environment and stores
 after it. -/
-noncomputable def nonJump (F : Facts) (pc : ℕ) (st : St) :
+def nonJump (F : Facts) (pc : ℕ) (st : St) :
     OffsetInstruction → List Atom × Trie Sym × List (ℕ × ℕ × Sym)
   | .xor a b c => (if isZero (st.env.get c) then [.eq a b] else [], st.env, st.mem)
   | .mul a b c => (mulFacts a b c (st.env.get a) (st.env.get b), mulEnv F st.env a b c, st.mem)
@@ -505,7 +578,7 @@ noncomputable def nonJump (F : Facts) (pc : ℕ) (st : St) :
   | .jump .. => ([], st.env, st.mem)
 
 /-- Where `JUMP fp[oc], fp[od], fp[of]` at offset `i` leaves to, and its successors. -/
-noncomputable def jumpKind (F : Facts) (entry len i : ℕ) (st : St) (od of : ℕ) : Kind × List ℕ :=
+def jumpKind (F : Facts) (entry len i : ℕ) (st : St) (od of : ℕ) : Kind × List ℕ :=
   if od = 0 ∧ of = 1 then (.ret, [])
   else
     (tgtOf (st.env.get od) od).seq fun pt ↦ (tgtOf (st.env.get of) of).seq fun ft ↦
@@ -527,12 +600,12 @@ noncomputable def jumpKind (F : Facts) (entry len i : ℕ) (st : St) (od of : �
       | _ => (.jump pt ft, [])
 
 /-- The exit of a `JUMP`. -/
-noncomputable def jumpExit (F : Facts) (entry len i : ℕ) (st : St) (od of : ℕ) : Exit :=
+def jumpExit (F : Facts) (entry len i : ℕ) (st : St) (od of : ℕ) : Exit :=
   match jumpKind F entry len i st od of with
   | (k, succ) => ⟨k, st.env, succ⟩
 
 /-- **One instruction**, at offset `i` of a function at `entry` of `len` instructions. -/
-noncomputable def stepI (F : Facts) (entry len i : ℕ) (st : St) (ins : OffsetInstruction) : Res :=
+def stepI (F : Facts) (entry len i : ℕ) (st : St) (ins : OffsetInstruction) : Res :=
   match ins with
   | .jump oc od of =>
     optSeq (st.env.get oc) fun c ↦
@@ -578,7 +651,7 @@ theorem headSeq_eq {α β : Type} (p : List α) (k : List α → β) : headSeq p
 
 /-- Add an edge into `t` with environment `e`. The result's spine is evaluated as it is built,
 each cell once (`headSeq` on the rest, itself built so): a table jump adds an edge per arm. -/
-noncomputable def addEdge (t : ℕ) (e : Trie Sym) : Pend → Pend
+def addEdge (t : ℕ) (e : Trie Sym) : Pend → Pend
   | [] => [(t, e)]
   | (u, a) :: ps =>
     if t < u then (t, e) :: (u, a) :: ps
@@ -587,7 +660,7 @@ noncomputable def addEdge (t : ℕ) (e : Trie Sym) : Pend → Pend
 
 /-- Add edges into the targets `ts`, each with environment `e`, merged into `p` in one pass when
 `ts` is increasing (a table jump's arms): those below each pending target go in front of it. -/
-noncomputable def addEdges (e : Trie Sym) (ts : List ℕ) : Pend → Pend
+def addEdges (e : Trie Sym) (ts : List ℕ) : Pend → Pend
   | [] => ts.map fun t ↦ (t, e)
   | (u, a) :: ps =>
     (ts.takeWhile fun t ↦ decide (t < u)).map (fun t ↦ (t, e)) ++
@@ -599,20 +672,20 @@ noncomputable def addEdges (e : Trie Sym) (ts : List ℕ) : Pend → Pend
 
 /-- Add the edges of an exit: one by `addEdge`, a table jump's arms (increasing) merged at once
 (`addEdges`; an exit into each arm of the next chained `match` adds as many edges). -/
-noncomputable def addExit (x : Exit) (p : Pend) : Pend :=
+def addExit (x : Exit) (p : Pend) : Pend :=
   match x.succ with
   | [t] => addEdge t x.env p
   | ts => addEdges x.env ts p
 
 /-- Add the edges of the branches among `its`. -/
-noncomputable def addItems : List Item → Pend → Pend
+def addItems : List Item → Pend → Pend
   | [], p => p
   | .branch _ _ _ x :: its, p => addItems its (addExit x p)
   | _ :: its, p => addItems its p
 
 /-- Offset `i` is a join: the live segment, if any, ends by falling into it, and a new segment
 starts there with the intersection of the environments of its edges. -/
-noncomputable def atJoin (i : ℕ) (cur : Option Cur) (pend : Pend) (out : List Seg) :
+def atJoin (i : ℕ) (cur : Option Cur) (pend : Pend) (out : List Seg) :
     Option Cur × Pend × List Seg :=
   match pend with
   | (t, a) :: ps =>
@@ -628,7 +701,7 @@ noncomputable def atJoin (i : ℕ) (cur : Option Cur) (pend : Pend) (out : List 
   | [] => (cur, pend, out)
 
 /-- One offset of the walk, `w` walking the rest. -/
-noncomputable def passStep (F : Facts) (entry len : ℕ) (ins : OffsetInstruction)
+def passStep (F : Facts) (entry len : ℕ) (ins : OffsetInstruction)
     (w : ℕ → Option Cur → Pend → List Seg → ℕ → Result)
     (i : ℕ) (cur : Option Cur) (pend : Pend) (out : List Seg) (dead : ℕ) : Result :=
   match atJoin i cur pend out with
@@ -658,21 +731,33 @@ noncomputable def pass (F : Facts) (entry len : ℕ) (code : List OffsetInstruct
     (fun i cur _ out dead ↦ passEnd len i cur out dead)
     (fun ins _ w ↦ passStep F entry len ins w) code
 
+/-- `pass` by structural recursion, for compiled code. -/
+def passC (F : Facts) (entry len : ℕ) : List OffsetInstruction →
+    ℕ → Option Cur → Pend → List Seg → ℕ → Result
+  | [] => fun i cur _ out dead ↦ passEnd len i cur out dead
+  | ins :: code => passStep F entry len ins (passC F entry len code)
+
+@[csimp] theorem pass_eq_passC : @pass = @passC := by
+  funext F entry len code
+  induction code with
+  | nil => rfl
+  | cons ins code ih => show passStep F entry len ins (pass F entry len code) = _; rw [ih]; rfl
+
 /-- The entry environment. -/
-noncomputable def envOf (env : List (ℕ × Sym)) : Trie Sym :=
+def envOf (env : List (ℕ × Sym)) : Trie Sym :=
   env.foldl (fun t p ↦ t.set p.2 envDepth p.1) .nil
 
 /-- The entry environment. -/
-noncomputable def Facts.entryEnv (F : Facts) : Trie Sym := envOf F.env
+def Facts.entryEnv (F : Facts) : Trie Sym := envOf F.env
 
 /-- **The symbolic executor**: the segments of `f`'s code. -/
-noncomputable def exec (F : Facts) (f : CompiledFunction) : Result :=
+def exec (F : Facts) (f : CompiledFunction) : Result :=
   pass F f.entryPc f.instructionCount f.code 0 (some (Cur.init 0 F.entryEnv)) [] [] 0
 
 /-- **A window** of `f`'s code, offsets `a` to `b`, starting a segment at `a` with environment
 `env`: the executor on a large function in pieces, each evaluated by the kernel on its own. The
 segment live at `b` ends there with `b` its successor, to start the next window with. -/
-noncomputable def execWin (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
+def execWin (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
     (b : ℕ) :
     Result :=
   pass F f.entryPc f.instructionCount ((f.code.drop a).take (b - a)) a (some (Cur.init a (envOf
@@ -680,7 +765,7 @@ noncomputable def execWin (F : Facts) (f : CompiledFunction) (a : ℕ) (env : Li
 
 /-- **A window entered at several offsets**: `execWin` with pending edges into `seeds`, each in
 the environment `env` (an entered window's arms past the first). -/
-noncomputable def execWinS (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
+def execWinS (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
     (seeds : List ℕ) (b : ℕ) : Result :=
   pass F f.entryPc f.instructionCount ((f.code.drop a).take (b - a)) a (some (Cur.init a (envOf
       env))) (seeds.map fun t ↦ (t, envOf env)) [] 0
@@ -691,17 +776,17 @@ theorem execWinS_nil (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (�
 /-! ## Linking -/
 
 /-- The segments by start. -/
-noncomputable def index (segs : List Seg) : Trie Seg := segs.foldl (fun t s ↦ t.set s indexDepth s.start) .nil
+def index (segs : List Seg) : Trie Seg := segs.foldl (fun t s ↦ t.set s indexDepth s.start) .nil
 
 /-- Every successor of every exit starts a segment whose entry environment the exit's holds. -/
-noncomputable def linkedWith (idx : Trie Seg) (segs : List Seg) : Bool :=
+def linkedWith (idx : Trie Seg) (segs : List Seg) : Bool :=
   segs.all fun s ↦ s.exits.all fun x ↦ x.succ.all fun t ↦
     match idx.get t with
     | some s' => s'.start == t && s'.env.sub Sym.beq x.env
     | none => false
 
 /-- `linkedWith`, a successor that starts no segment starting one of `ext`, the next windows'. -/
-noncomputable def linkedExtWith (idx : Trie Seg) (ext : List (ℕ × Trie Sym)) (segs : List Seg) :
+def linkedExtWith (idx : Trie Seg) (ext : List (ℕ × Trie Sym)) (segs : List Seg) :
     Bool :=
   segs.all fun s ↦ s.exits.all fun x ↦ x.succ.all fun t ↦
     match idx.get t with
@@ -711,14 +796,14 @@ noncomputable def linkedExtWith (idx : Trie Seg) (ext : List (ℕ × Trie Sym)) 
       | none => false
 
 /-- A window is linked, into itself or the windows starting at `ext` with their environments. -/
-noncomputable def Result.linkedExt (ext : List (ℕ × List (ℕ × Sym))) (R : Result) : Bool :=
+def Result.linkedExt (ext : List (ℕ × List (ℕ × Sym))) (R : Result) : Bool :=
   match R with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦
       linkedExtWith idx (ext.map fun e ↦ (e.1, envOf e.2)) segs
 
 /-- The segments are linked: every successor of an exit starts a segment whose entry environment
 the exit's environment holds. -/
-noncomputable def Result.linked (R : Result) : Bool :=
+def Result.linked (R : Result) : Bool :=
   match R with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ linkedWith idx segs
 

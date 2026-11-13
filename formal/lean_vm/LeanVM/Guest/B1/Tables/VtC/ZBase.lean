@@ -23,8 +23,8 @@ sumcheck from the capacity `cap0` and the claim `cl0`, round `j` reading the wor
 (the challenges' running products), `zcChis` (the challenges, last first, as `chi` holds them).
 
 `zc_run`: the rounds are the specification's `sumcheck cl0 4 (replicate n none)`.
-`zc_l10B`: on a memory holding the buffers and the words, every iteration of `verify_tables_loop0` has
-its facts.
+`zc_l10B`: on a memory holding the buffers and the words, every iteration of `verify_tables_loop0`
+has its facts.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -115,7 +115,8 @@ noncomputable def zBlk : List Stmt := [
     .atom (.const (.n 2634) (word 1 0)),
     .atom (.add (.n 2635) (.n 2634) (.n 2544)),
     .atom (.const (.n 2636) (word 1 0)),
-    .callIf (.n 2635) name% «verify_tables_loop0» [.n 2636, .n 2544, .n 2627, .n 18, .n 16, .n 2544, .n 2630],
+    .callIf (.n 2635) name% «verify_tables_loop0» [.n 2636, .n 2544, .n 2627, .n 18, .n 16,
+        .n 2544, .n 2630],
     .atom (.mul (.n 2637) (.n 2544) (.n 2544)),
     .atom (.mul (.n 2638) (.n 2637) (.n 2544)),
     .atom (.mul (.n 2639) (.n 2638) (.n 2638)),

@@ -99,17 +99,21 @@ structure VsWords (fs : String → ℕ) : Type where
   h29 : TotalLeOn coreProgram fs name% «verify_bus_gkr_loop0_loop0» LoopPre
     (fun a ↦ logG (a.getD 1 0) * K29 + fs name% «verify_bus_gkr_loop0_loop0»)
   hR : ∀ n ∈ [0, 1, 2, 4, 6], TotalLe coreProgram fs (Tables.lName "gkr_rounds" n) (fun _ ↦ R)
-  h8 : TotalLeOn coreProgram fs name% «verify_bus_gkr_loop1» LoopPre (fun a ↦ logG (a.getD 1 0) * K8 + fs name% «verify_bus_gkr_loop1»)
+  h8 : TotalLeOn coreProgram fs name% «verify_bus_gkr_loop1» LoopPre (fun a ↦ logG (a.getD 1 0) *
+      K8 + fs name% «verify_bus_gkr_loop1»)
   Kf : String → ℕ
   Ksh : ℕ
   K10 : ℕ
-  hKf : ∀ g ∈ Tables.vtKidS, g ≠ name% «verify_tables_loop0» → g ≠ name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
+  hKf : ∀ g ∈ Tables.vtKidS, g ≠ name% «verify_tables_loop0» → g ≠
+      name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
     TotalLe coreProgram fs g (fun _ ↦ Kf g)
   hsh : TotalLeOn coreProgram fs "shared_selector_tables"
     (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh)
-  h10 : TotalLeOn coreProgram fs name% «verify_tables_loop0» LoopPre (fun a ↦ logG (a.getD 1 0) * K10 + fs name% «verify_tables_loop0»)
+  h10 : TotalLeOn coreProgram fs name% «verify_tables_loop0» LoopPre (fun a ↦ logG (a.getD 1 0) *
+      K10 + fs name% «verify_tables_loop0»)
   B14 : ℕ
-  hl14 : TotalLeOn coreProgram fs name% «ring_switch_target_loop0» (fun a ↦ a.getD 0 0 = 1) fun _ ↦ B14
+  hl14 : TotalLeOn coreProgram fs name% «ring_switch_target_loop0» (fun a ↦ a.getD 0 0 = 1) fun _ ↦
+      B14
   Beqc : ℕ
   K15 : ℕ
   Bcs : ℕ
@@ -124,7 +128,8 @@ structure VsWords (fs : String → ℕ) : Type where
   Kvw : Opcode → String → ℕ
   Wss : Opcode → ℕ
   Kw10 : Opcode → ℕ
-  hKvw : ∀ op, ∀ g ∈ Tables.vtKidS, g ≠ name% «verify_tables_loop0» → g ≠ name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
+  hKvw : ∀ op, ∀ g ∈ Tables.vtKidS, g ≠ name% «verify_tables_loop0» → g ≠
+      name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
     WeightLe coreProgram (ωv op) g (fun _ ↦ Kvw op g)
   hssw : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
     (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
@@ -139,7 +144,8 @@ structure VsWords (fs : String → ℕ) : Type where
   hStW : ∀ op, WeightLe coreProgram (ωv op) "selector_tables" fun _ ↦ Wst op
   hCsW : ∀ op, ∀ κ' < 31, WeightLe coreProgram (ωv op) (Tables.lName "column_selector" κ')
     fun _ ↦ Wcs op
-  h15W : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = name% «check_opening_terminal_loop0» →
+  h15W : ∀ op (rd : Reader) (t : Tree) (args rets : List E),
+      t.name = name% «check_opening_terminal_loop0» →
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
     t.total fs ≤ (32 * K15 + fs name% «check_opening_terminal_loop0») → t.weight (ωv op) ≤ W15 op
   hrswW : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →

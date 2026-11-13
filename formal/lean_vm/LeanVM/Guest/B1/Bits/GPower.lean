@@ -69,7 +69,8 @@ theorem g_power_of_word_holds : g_power_of_word_Spec := by
   have w4294967297 := word_gpow_one 5 (by norm_num) 4294967297 (by decide)
   rw [rel_iff_sem find_g_power_of_word, show Fn.params fn% «g_power_of_word» = [.n 0] from rfl,
     show Fn.body fn% «g_power_of_word» = (core% «g_power_of_word» body) from rfl]
-  simp only [core_eq% «g_power_of_word» body, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
+  simp only [core_eq% «g_power_of_word» body, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
+      List.map_cons, List.map_nil,
     true_and]
   constructor
   · rintro ⟨σ, hp, b0, e7, e8, e9, e10, b1, e11, e12, e13, e14, e15, e16, e17, e18, b2, e19, e20,

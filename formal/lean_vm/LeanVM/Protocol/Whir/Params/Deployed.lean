@@ -89,24 +89,31 @@ theorem eQuery_eq (P : LevelCode) (t : ℕ) :
   rw [eQuery, Nat.cast_pow (P.A - 1), pow_mul, ← mul_pow, ← ENNReal.inv_pow, ← div_eq_mul_inv]
   norm_cast
 
-/-- The query group within `2^-125` after its `17`-bit grind. -/
-theorem eQ_le {P : LevelCode} {t : ℕ} (h : (P.A - 1) ^ t * 2 ^ 108 ≤ (2 ^ (P.κ + P.R)) ^ t) :
+/-- The query group within `2^-securityBits` after its grind. -/
+theorem eQ_le {P : LevelCode} {t : ℕ}
+    (h : (P.A - 1) ^ t * 2 ^ afterGrind Whir.queryGrindingBits ≤ (2 ^ (P.κ + P.R)) ^ t) :
     (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * eQuery P t ≤ εmsg := by
-  rw [eQuery_eq, εmsg, securityBits, Whir.queryGrindingBits]
-  calc (2 : ENNReal)⁻¹ ^ 17 * ((((P.A - 1) ^ t : ℕ) : ENNReal) * 2⁻¹ ^ ((P.κ + P.R) * t)) =
-      (((P.A - 1) ^ t : ℕ) : ENNReal) * 2⁻¹ ^ (17 + (P.κ + P.R) * t) := by rw [pow_add]; ring
+  have hq : Whir.queryGrindingBits ≤ securityBits := by decide
+  rw [eQuery_eq, εmsg]
+  calc (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * ((((P.A - 1) ^ t : ℕ) : ENNReal) * 2⁻¹ ^ ((P.κ + P.R) * t)) =
+      (((P.A - 1) ^ t : ℕ) : ENNReal) * 2⁻¹ ^ (Whir.queryGrindingBits + (P.κ + P.R) * t) := by
+        rw [pow_add]; ring
     _ ≤ _ := natMul_inv_pow_le (by
       rw [pow_add, pow_mul]
-      calc (P.A - 1) ^ t * 2 ^ 125 = (P.A - 1) ^ t * 2 ^ 108 * 2 ^ 17 := by ring
-        _ ≤ (2 ^ (P.κ + P.R)) ^ t * 2 ^ 17 := Nat.mul_le_mul_right _ h
+      calc (P.A - 1) ^ t * 2 ^ securityBits =
+            (P.A - 1) ^ t * 2 ^ afterGrind Whir.queryGrindingBits * 2 ^ Whir.queryGrindingBits := by
+            rw [mul_assoc, ← pow_add, afterGrind, Nat.sub_add_cancel hq]
+        _ ≤ (2 ^ (P.κ + P.R)) ^ t * 2 ^ Whir.queryGrindingBits := Nat.mul_le_mul_right _ h
         _ = _ := by ring)
 
 theorem eQuery_lt_one {P : LevelCode} {t : ℕ}
-    (h : (P.A - 1) ^ t * 2 ^ 108 ≤ (2 ^ (P.κ + P.R)) ^ t) : eQuery P t < 1 := by
+    (h : (P.A - 1) ^ t * 2 ^ afterGrind Whir.queryGrindingBits ≤ (2 ^ (P.κ + P.R)) ^ t) :
+    eQuery P t < 1 := by
   rw [eQuery_eq]
   refine lt_of_le_of_lt (natMul_inv_pow_le (k := 1) ?_) (by rw [pow_one, ENNReal.inv_lt_one]; norm_num)
   rw [pow_mul]
-  calc (P.A - 1) ^ t * 2 ^ 1 ≤ (P.A - 1) ^ t * 2 ^ 108 := Nat.mul_le_mul_left _ (by norm_num)
+  calc (P.A - 1) ^ t * 2 ^ 1 ≤ (P.A - 1) ^ t * 2 ^ afterGrind Whir.queryGrindingBits :=
+        Nat.mul_le_mul_left _ (Nat.pow_le_pow_right (by norm_num) (by decide))
     _ ≤ _ := h
 
 /-- The out-of-domain point's escape is `C(L', 2) κ / |E|`. -/
@@ -140,10 +147,10 @@ theorem eOod_lt_one {P P' : LevelCode} (h : P'.listMax.choose 2 * P.κ ≤ 2 ^ 1
     _ ≤ 2 ^ 128 := by norm_num
 
 /-- A non-final level's query message, its positions and the next level's batching `λ`, within
-`2^-125` after its `17`-bit grind, from `(A − 1)^t 2^128 + (t + 1) L' n^t ≤ n^t 2^20`. -/
+`2^-securityBits` after its grind of `q` bits, from `(A − 1)^t 2^128 + (t + 1) L' n^t ≤ n^t 2^(countBits q)`. -/
 theorem eQL_le {P P' : LevelCode} {t : ℕ}
     (h : (P.A - 1) ^ t * 2 ^ 128 + (t + 1) * P'.listMax * (2 ^ (P.κ + P.R)) ^ t ≤
-      (2 ^ (P.κ + P.R)) ^ t * 2 ^ 20) :
+      (2 ^ (P.κ + P.R)) ^ t * 2 ^ countBits Whir.queryGrindingBits) :
     (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * (eQuery P t + eLam P' t) ≤ εmsg := by
   rw [eQuery_eq, eLam, div_card]
   rw [← pow_mul] at h
@@ -159,14 +166,15 @@ theorem eQL_le {P P' : LevelCode} {t : ℕ}
         (a : ENNReal) * 2⁻¹ ^ K * (2 ^ 128 * 2⁻¹ ^ 128) + (b : ENNReal) * 2⁻¹ ^ 128 *
           (2 ^ K * 2⁻¹ ^ K) := by rw [hinv, hinv, mul_one, mul_one]
       _ = _ := by ring
-  rw [hsum, εmsg, securityBits, Whir.queryGrindingBits]
-  calc (2 : ENNReal)⁻¹ ^ 17 * (((a * 2 ^ 128 + b * 2 ^ K : ℕ) : ENNReal) * 2⁻¹ ^ (K + 128)) =
-      ((a * 2 ^ 128 + b * 2 ^ K : ℕ) : ENNReal) * 2⁻¹ ^ (17 + (K + 128)) := by
-        rw [pow_add (2⁻¹ : ENNReal) 17]; ring
+  rw [hsum, εmsg]
+  calc (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * (((a * 2 ^ 128 + b * 2 ^ K : ℕ) : ENNReal) * 2⁻¹ ^ (K + 128)) =
+      ((a * 2 ^ 128 + b * 2 ^ K : ℕ) : ENNReal) * 2⁻¹ ^ (Whir.queryGrindingBits + (K + 128)) := by
+        rw [pow_add (2⁻¹ : ENNReal) Whir.queryGrindingBits]; ring
     _ ≤ _ := natMul_inv_pow_le (by
-      calc (a * 2 ^ 128 + b * 2 ^ K) * 2 ^ 125 ≤ 2 ^ K * 2 ^ 20 * 2 ^ 125 :=
-            Nat.mul_le_mul_right _ h
-        _ = 2 ^ (17 + (K + 128)) := by rw [← pow_add, ← pow_add]; congr 1; omega)
+      calc (a * 2 ^ 128 + b * 2 ^ K) * 2 ^ securityBits ≤
+            2 ^ K * 2 ^ countBits Whir.queryGrindingBits * 2 ^ securityBits := Nat.mul_le_mul_right _ h
+        _ = 2 ^ (Whir.queryGrindingBits + (K + 128)) := by
+          rw [← pow_add, ← pow_add]; congr 1; simp only [countBits, securityBits]; omega)
 
 /-! ## The codes -/
 
@@ -249,7 +257,8 @@ structure LevelFacts (κprev : ℕ) (lv : Lv) (cfg : Whir.Level) : Prop where
   hk2 : lv.2.2.1 ≤ 2 ^ lv.1
   hkA : lv.2.2.1 < lv.2.2.2.1
   hlv : AffineCombiner.levelOK AffineCombiner.foldBudget lv = true
-  hq : (lv.2.2.2.1 - 1) ^ cfg.queries * 2 ^ 108 ≤ (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries
+  hq : (lv.2.2.2.1 - 1) ^ cfg.queries * 2 ^ afterGrind Whir.queryGrindingBits ≤
+    (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries
   hgap : 2 ^ (lv.1 + lv.2.1) * (2 ^ lv.1 - 1 + lv.2.2.1) <
     (lv.2.2.2.1 - lv.2.2.1) * (lv.2.2.2.1 - lv.2.2.1)
 
@@ -275,7 +284,7 @@ theorem midOK_of {κprev : ℕ} {lv lv' : Lv} {c c' : Whir.Level} (F : LevelFact
     (F' : LevelFacts lv.1 lv' c')
     (hl : (lv.2.2.2.1 - 1) ^ c.queries * 2 ^ 128 +
         (c.queries + 1) * jlStart lv' * (2 ^ (lv.1 + lv.2.1)) ^ c.queries ≤
-      (2 ^ (lv.1 + lv.2.1)) ^ c.queries * 2 ^ 20)
+      (2 ^ (lv.1 + lv.2.1)) ^ c.queries * 2 ^ countBits Whir.queryGrindingBits)
     (ho : (jlStart lv').choose 2 * lv.1 ≤ 2 ^ 18) (h1 : 1 ≤ lv.1) :
     MidOK (mkCode lv) (mkCode lv') c.queries εmsg := by
   have hL := listMax_mkCode ⟨F'.h64, F'.hR⟩

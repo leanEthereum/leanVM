@@ -2,6 +2,8 @@
   LeanVM.Guest.B1.Tables.Vt.FormsT5
 
   Table 5's forms on the three sides: the blocks' selectors times their values.
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

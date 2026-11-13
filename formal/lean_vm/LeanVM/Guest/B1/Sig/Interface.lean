@@ -29,9 +29,9 @@ public import LeanVM.Guest.B1.Common.Find
 `verify_lean_xmss(signer, tags)` (`lean_ethereum.py:3847-3920`, inline in `main`'s raw-leanXMSS loop
 `main_loop2`, `fn% «main_loop2»`, as its statements `xSeg`) and
 `verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:4143-4244`,
-`fn% «verify_sig_lean_sphincs»`) check one signature of the claim at `signer`: four cells, the key (leanXMSS: its root
-and parameter; leanSPHINCS: `PK.seed` and `PK.root`), then the message's two halves, the low
-first. `verify_lean_xmss` calls nothing (every helper is `@inline`
+`fn% «verify_sig_lean_sphincs»`) check one signature of the claim at `signer`: four cells, the key
+(leanXMSS: its root and parameter; leanSPHINCS: `PK.seed` and `PK.root`), then the message's two
+halves, the low first. `verify_lean_xmss` calls nothing (every helper is `@inline`
 and every `match` arm runs in the frame), so its statements hold under any call relation; its chain
 indices other than `0` and the powers of two are `main_loop2`'s parameters `.n 5` to `.n 55`, which
 `main` sets (`LxTagsHold`);
@@ -167,7 +167,8 @@ def verify_lean_xmss_complete_Spec : Prop :=
 
 /-! ## The functions, found -/
 
-theorem core20_params : (fn% «verify_sig_lean_sphincs»).params = [.n 0, .n 1] := rfl
+theorem verify_sig_lean_sphincs_params : (fn% «verify_sig_lean_sphincs»).params = [.n 0, .n 1] :=
+  rfl
 
 theorem find_verify_sig_lean_sphincs :
     coreProgram.find? "verify_sig_lean_sphincs" = some fn% «verify_sig_lean_sphincs» :=
@@ -185,7 +186,8 @@ theorem rel_iff_body {name : String} {fn : Fn} (h : coreProgram.find? name = som
   rw [rel_iff]
   simp only [h, Option.some.injEq, exists_eq_left', Fn.Sem]
 
-/-- **The check in `main_loop2`**: `rest` holds, and with the carried chain indices held the claim at
+/-- **The check in `main_loop2`**: `rest` holds, and with the carried chain indices held the claim
+at
 the pointer is signed. -/
 theorem verify_lean_xmss_signed {sigOf : Val → LeanXmss.Signature}
     (hs : verify_lean_xmss_sound_Spec sigOf) {C : CallRel} {σ : Val} {rest : List Stmt}

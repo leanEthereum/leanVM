@@ -138,7 +138,7 @@ theorem round_complete {C : CallRel} {rd : Reader} {args rets : List E}
   rw [en2, foldGrindingBits_eq] at p2
   rw [← rdCell_eq _ 1] at p2
   replace p2 : ((rdCell (rdS3 as xs) 1).limb 0).lane.toNat % 2 ^ 7 = 0 := p2
-  refine ⟨xs, rfl, hrd, p2, by simp [core7_params, rdVals, List.range_succ, has], ?_⟩
+  refine ⟨xs, rfl, hrd, p2, by simp [opening_round_params, rdVals, List.range_succ, has], ?_⟩
   set σ : Val := fun v ↦ rdVals as xs v.idx with hσ
   have ev : ∀ k, σ (.n k) = rdVals as xs k := fun _ ↦ rfl
   rw [e2, Keccak.challengeOf_cells, ← rdCell_eq _ 0] at lg la

@@ -1,9 +1,9 @@
 /-
   LeanVM.Guest.B1.Gkr.LayerTail
 
-  The tail of a layer of `verify_bus_gkr` (`verify_bus_gkr_loop0`): the rounds between its first and last
-  records, the twelve children read and absorbed, their check, the two new coordinates squeezed,
-  and the next slot's stores.
+  The tail of a layer of `verify_bus_gkr` (`verify_bus_gkr_loop0`): the rounds between its first and
+  last records, the twelve children read and absorbed, their check, the two new coordinates
+  squeezed, and the next slot's stores.
 -/
 
 module
@@ -14,8 +14,9 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # A layer's rounds and children (`verify_bus_gkr_loop0`, G:1997-2041)
 
-* `ly_rounds`: `verify_bus_gkr_loop0_loop0`, then `gkr_rounds__L{2r}` at the layer index's `r = k % 4`, then
-  `gkr_rounds__L1` at an odd depth, run the `L = 2k + sh` rounds from the layer's first record;
+* `ly_rounds`: `verify_bus_gkr_loop0_loop0`, then `gkr_rounds__L{2r}` at the layer index's `r = k %
+  4`, then `gkr_rounds__L1` at an odd depth, run the `L = 2k + sh` rounds from the layer's first
+  record;
 * `ly_tail`: the twelve words at the last record's cursor are the three trees' children
   (`gkr_children`), their products check the last claim (`gkr_product_check`), and the sponge
   after them squeezes the two new coordinates (`y`'s grind of `0` bits, then a squeeze);
@@ -197,7 +198,8 @@ def lySponge (σ : Val) : Fs :=
   (((⟨(List.range 5).map fun k ↦ σ (.n (70 + k)), []⟩ : Fs).absorbAll (lyCh σ 0)
     dsObserve).absorbAll (lyCh σ 1) dsObserve).absorbAll (lyCh σ 2) dsObserve
 
-/-- **The rounds of a layer**: `verify_bus_gkr_loop0_loop0` (`8·(k/4)` rounds), `gkr_rounds__L{2r}` at `r = k % 4`,
+/-- **The rounds of a layer**: `verify_bus_gkr_loop0_loop0` (`8·(k/4)` rounds), `gkr_rounds__L{2r}`
+at `r = k % 4`,
 and `gkr_rounds__L1` at an odd depth are the `2k + sh` rounds from the first record. -/
 theorem ly_rounds (hC : CallRel.Le C (coreProgram.Rel rd)) (hGR : tb_gkr_rounds_Spec)
     (h : Stmt.HoldsList C rd σ lyPre True kret) {j k sh : ℕ} (hj : j < 2 ^ 30) (hsh : sh < 2)
@@ -218,7 +220,8 @@ theorem ly_rounds (hC : CallRel.Le C (coreProgram.Rel rd)) (hGR : tb_gkr_rounds_
   have c64 := a 50 (.const (.n 64) (word 1 0)) (by decide +kernel)
   have a65 := a 51 (.add (.n 65) (.n 7) (.n 64)) (by decide +kernel)
   simp only [Atom.Holds, tb_word_one] at c55 a56 c57 m58 m59 m60 m61 m62 c64 a65
-  obtain ⟨-, hc36⟩ := tb_holds_callIf hnr h 43 (.n 56) name% «verify_bus_gkr_loop0_loop0» [.n 57, .n 53, .n 48, .n 46, .n 4]
+  obtain ⟨-, hc36⟩ := tb_holds_callIf hnr h 43 (.n 56) name% «verify_bus_gkr_loop0_loop0» [.n 57,
+      .n 53, .n 48, .n 46, .n 4]
     (by decide +kernel)
   simp only [List.map_cons, List.map_nil, c57] at hc36
   have R8 := l29_loop (h := k / 4) e53 (by omega)

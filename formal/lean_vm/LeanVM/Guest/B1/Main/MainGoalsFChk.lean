@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.MainGoalsFChk
 
-  `main`'s first loops (`main_loop0`, `main_loop1`), checked by kernel evaluation: their places in the
-  program, their loop shape, and that they place nothing.
+  `main`'s first loops (`main_loop0`, `main_loop1`), checked by kernel evaluation: their places in
+  the program, their loop shape, and that they place nothing.
 -/
 
 module
@@ -14,8 +14,8 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `main`'s first loops, checked
 
-`main_loop0`, `main_loop1` (G:4506-4511) write the hinted duplicate signature claims: each block is atoms
-and one heap hint, no load. `mfLoop_pure`: the two place nothing and call only each other.
+`main_loop0`, `main_loop1` (G:4506-4511) write the hinted duplicate signature claims: each block is
+atoms and one heap hint, no load. `mfLoop_pure`: the two place nothing and call only each other.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -33,10 +33,12 @@ theorem mfL2_idx : coreProgram.indexOf? name% «main_loop1» = some idx% «main_
   coreProgram_indexOf?_at (j := idx% «main_loop1») rfl
 
 set_option maxRecDepth 100000 in
-theorem mfL1_shape : loopShapeF (coreProgram.getD idx% «main_loop0» default) name% «main_loop0» = true := by decide +kernel
+theorem mfL1_shape : loopShapeF (coreProgram.getD idx% «main_loop0» default) name% «main_loop0» =
+    true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mfL2_shape : loopShapeF (coreProgram.getD idx% «main_loop1» default) name% «main_loop1» = true := by decide +kernel
+theorem mfL2_shape : loopShapeF (coreProgram.getD idx% «main_loop1» default) name% «main_loop1» =
+    true := by decide +kernel
 
 /-- `main`'s first two loops. -/
 def mfLoopSet : List String := [name% «main_loop0», name% «main_loop1»]

@@ -2,6 +2,8 @@
   LeanVM.Guest.B1.Tables.VtC.FForms5b
 
   `Vt/FormsT5b.lean` on the window `VtF` (generated: scripts/b1c-vt/gentwins.py).
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

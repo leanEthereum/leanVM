@@ -57,7 +57,7 @@ open LeanVM.Guest.Exec
 def VsKbKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpTables L.read (σ (.n 4)) →
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1545) True (fun _ ↦ True) →
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take 1545) True (fun _ ↦ True) →
       ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n 83)) c (ofK (addressOfIndex e))
 
 /-- **`verify_sub`'s obligation at its dispatch to `open_stacked`** (B1's): over the window section
@@ -66,7 +66,7 @@ window table at `tabs` (the value `1921`), which `open_stacked` assumes (`tagTab
 def VsTabsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpWinTab L.read (σ (.n 4)) →
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1544) True (fun _ ↦ True) →
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take 1544) True (fun _ ↦ True) →
       B1.WinTabs L.read (σ (.n 1921))
 
 /-- **`verify_sub`'s obligations**: `kappa_base`'s bounds and the window table. -/
@@ -78,7 +78,7 @@ of `verify_tables`, put entry `0` of `dims_g` (the value `71`, `g^logMem`) among
 `g^e`, `e < 34`, which `verify_tables` dispatches on. -/
 def VsDimsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 333) True (fun _ ↦ True) →
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take 333) True (fun _ ↦ True) →
       ∃ e < 34, LoadHolds L.read (σ (.n 71)) 0 (ofK (addressOfIndex e))
 
 /-- **`exponent_tables`' relation** (B1's): its returned pointer holds the exponent table and its
@@ -105,9 +105,9 @@ def CutsKnown (j : ℕ) : Prop :=
 
 /-- `verify_sub`'s first `m` statements hold under any longer prefix of its body. -/
 theorem vs_take {κ : ℕ} {L : MemoryImage κ} {σ : Val} {m n : ℕ} (hn : m ≤ n)
-    (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take n) True
+    (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take n) True
       (fun _ ↦ True)) :
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take m) True
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take m) True
       (fun _ ↦ True) := by
   obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le hn
   rw [List.take_add, holdsList_append] at hl
@@ -115,29 +115,29 @@ theorem vs_take {κ : ℕ} {L : MemoryImage κ} {σ : Val} {m n : ℕ} (hn : m �
 
 theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage κ}
     (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem) {fp : K}
-    (hsem : SemHolds glob L fp (certOf 19).sem) {i : ℕ}
-    (hi : i ≤ (certOf 19).cuts.length) (h0 : 0 < i)
-    (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 19))
-      ((coreOf 19).body.take ((certOf 19).cutAt i).start) True (fun _ ↦ True)) :
-    MemKnown L fp ((certOf 19).cutAt i).known ∧ MemIf L fp ((certOf 19).cutAt i).knownIf ∧
-      SemHolds glob L fp ((certOf 19).cutAt i).sems := by
-  have ht : B1.ExpTables L.read (valG L fp (certOf 19) (.n 4)) ∧
-      B1.ExpWinTab L.read (valG L fp (certOf 19) (.n 4)) := by
+    (hsem : SemHolds glob L fp (certOf (fn_idx% «verify_sub»)).sem) {i : ℕ}
+    (hi : i ≤ (certOf (fn_idx% «verify_sub»)).cuts.length) (h0 : 0 < i)
+    (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_sub»)))
+      ((coreOf (fn_idx% «verify_sub»)).body.take ((certOf (fn_idx% «verify_sub»)).cutAt i).start) True (fun _ ↦ True)) :
+    MemKnown L fp ((certOf (fn_idx% «verify_sub»)).cutAt i).known ∧ MemIf L fp ((certOf (fn_idx% «verify_sub»)).cutAt i).knownIf ∧
+      SemHolds glob L fp ((certOf (fn_idx% «verify_sub»)).cutAt i).sems := by
+  have ht : B1.ExpTables L.read (valG L fp (certOf (fn_idx% «verify_sub»)) (.n 4)) ∧
+      B1.ExpWinTab L.read (valG L fp (certOf (fn_idx% «verify_sub»)) (.n 4)) := by
     have := (semRel_exp _ _).mp (hsem (0, [6]) (by rw [vs_sem]; exact List.mem_singleton_self _))
     simp only [valG, vs_cells]
     exact this
   have hdims (n : ℕ) (hn : 333 ≤ n)
-      (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 19))
-        ((coreOf 19).body.take n) True (fun _ ↦ True)) :
-      MemKnown L fp (vsDimsKnown ((certOf 19).locs.getD 71 0)) := by
+      (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_sub»)))
+        ((coreOf (fn_idx% «verify_sub»)).body.take n) True (fun _ ↦ True)) :
+      MemKnown L fp (vsDimsKnown ((certOf (fn_idx% «verify_sub»)).locs.getD 71 0)) := by
     intro m hm
     rw [vsDimsKnown, List.mem_singleton] at hm
     subst hm
     exact hvd L h16 h32 _ (vs_take hn hl)
   have htabs (n : ℕ) (hn : 1544 ≤ n)
-      (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 19))
-        ((coreOf 19).body.take n) True (fun _ ↦ True)) :
-      SemHolds glob L fp [(tagTabs, [(certOf 19).locs.getD 1921 0])] := by
+      (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_sub»)))
+        ((coreOf (fn_idx% «verify_sub»)).body.take n) True (fun _ ↦ True)) :
+      SemHolds glob L fp [(tagTabs, [(certOf (fn_idx% «verify_sub»)).locs.getD 1921 0])] := by
     intro t ht'
     simp only [List.mem_singleton] at ht'
     subst ht'
@@ -177,7 +177,7 @@ calls (`sems`: the walk along `opening_queries`' loop, `WinsAt` of the window po
 certificates' cells (`WalkKnown.lean`'s `loop0_cutsKnown`, `loop1_cutsKnown`, `main_cutsKnown`,
 `wp_cutsKnown`; `walkKnown_proved`). -/
 def WalkKnown : Prop :=
-  ∀ j ∈ Checked.oblFns, j ≠ 1 → j ≠ 19 → CutsKnown j
+  ∀ j ∈ Checked.oblFns, j ≠ 1 → j ≠ fn_idx% «verify_sub» → CutsKnown j
 
 /-- **Every callee's cut obligations**: `verify_sub`'s from `VsDimsKnown` and `VsKnown`, the
 walks' from `WalkKnown`, and nothing for the others (`Plain`, `Checked.all_plain`). -/

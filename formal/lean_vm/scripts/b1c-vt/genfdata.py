@@ -1,5 +1,5 @@
 # usage: python3 -I genfdata.py  (from this directory, after dump.py)
-# Prints the data of VtC/FData.lean for the forms window: `vtAirD` (each table's weight block:
+# Rewrites the data of VtC/FData.lean for the forms window: `vtAirD` (each table's weight block:
 # position, `x`) and `vtFTags` (the window's statements evaluation does not settle, besides the
 # reads of `fp_w`: evaluations (0, k), permutations (1, j), weight blocks (3, t)), from vt_ir.txt.
 import re, os, textwrap
@@ -44,6 +44,11 @@ while p < HI:
         p += 1; continue  # part of the evaluation's rest (vtEvRest)
     raise SystemExit(f'unexpected {p}: {s}')
 assert sorted(t[1] for t in tags if t[0] == 0) == list(range(153))
-print('vtAirD :=', '[' + ', '.join(f'({a[0]}, {a[1]})' for a in air) + ']')
-print('vtFTags :=')
-print(textwrap.fill(', '.join(f'({a}, {b})' for a, b in tags), 96, initial_indent='    [', subsequent_indent='    ') + ']')
+f = os.path.join(here, '..', '..', 'LeanVM', 'Guest', 'B1', 'Tables', 'VtC', 'FData.lean')
+s = open(f).read()
+for name, body in [('vtAirD', '  [' + ', '.join(f'({a[0]}, {a[1]})' for a in air) + ']'),
+                   ('vtFTags', textwrap.fill(', '.join(f'({a}, {b})' for a, b in tags), 96,
+                                             initial_indent='    [', subsequent_indent='    ') + ']')]:
+    a = s.index(f'def {name} : List (ℕ × ℕ) :=\n'); b = s.index('\n\n', a)
+    s = s[:a] + f'def {name} : List (ℕ × ℕ) :=\n' + body + s[b:]
+open(f, 'w').write(s)

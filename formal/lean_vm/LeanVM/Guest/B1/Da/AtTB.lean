@@ -54,7 +54,8 @@ structure DvStaticB (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
   l20 : TotalLeOn coreProgram fs name% «da_verify_loop3» LoopPre
     (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop3» + fs name% «da_verify_loop3»)
   l21 : TotalLeOn coreProgram fs name% «da_verify_column_loop0» LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs name% «da_verify_column_loop0»)
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs
+        name% «da_verify_column_loop0»)
   off : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
     (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b))
   dl : ∀ j ≤ 10, TotalLe coreProgram fs dlNames[j]! (fun _ => SB dlNames[j]!)

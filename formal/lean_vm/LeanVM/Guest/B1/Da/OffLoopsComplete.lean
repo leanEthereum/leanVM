@@ -30,12 +30,14 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 variable {rd : Reader}
 
 set_option maxRecDepth 100000 in
-theorem offLoops_body : ∀ b < 7, stmtsEqb (Fn.body (coreProgram.getD (idx% «da_column_offsets_loop0» + b) default))
+theorem offLoops_body : ∀ b < 7, stmtsEqb (Fn.body (coreProgram.getD
+    (idx% «da_column_offsets_loop0» + b) default))
     ((offLoopA b).map Stmt.atom ++ tailAt (offLoopName b) 32 3) = true := by
   decide +kernel
 
 theorem find_off {b : ℕ} (hb : b < 7) :
-    coreProgram.find? (offLoopName b) = some (coreProgram.getD (idx% «da_column_offsets_loop0» + b) default) :=
+    coreProgram.find? (offLoopName b) = some (coreProgram.getD (idx% «da_column_offsets_loop0» + b)
+        default) :=
   find_of_idx (offLoop_idx b hb)
 
 /-- The words of the block's run: the counter's powers and the region, then each `j`'s source,

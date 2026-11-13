@@ -84,7 +84,8 @@ def sdAtoms : List Atom :=
     sdBlk3 ++ [.copy (.n 115) (.n 113), .copy (.n 116) (.n 114)]
 
 set_option maxRecDepth 100000 in
-theorem sd_body : Fn.body fn% «statement_digest» = sdAtoms.map Stmt.atom ++ [.ret [.n 115, .n 116]] :=
+theorem sd_body : Fn.body fn% «statement_digest» = sdAtoms.map Stmt.atom ++ [.ret [.n 115,
+    .n 116]] :=
   stmtsEqb_sound (by decide +kernel)
 
 theorem sd_params : Fn.params fn% «statement_digest» =

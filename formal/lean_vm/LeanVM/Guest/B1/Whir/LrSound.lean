@@ -56,13 +56,16 @@ def MeaningLevelResidual (q cols nhs hbits : ℕ) (rd : Reader) (args rets : Lis
 
 /-- The batches' loop's steps. -/
 def lr1St (cols nhs hbits : ℕ) : List Stmt × ℕ × ℕ × ℕ :=
-  osResSteps 10 4 0 5 0 (lrVo cols) cols nhs hbits 6 (List.range resBatch) 13 14 15
+  osResSteps (7 + batchLen) 4 0 5 0 (lrVo cols) cols nhs hbits 6 (List.range resBatch)
+    (7 + batchLen + 3) (7 + batchLen + 4) (7 + batchLen + 5)
 
 /-- The batches' loop's body before its tail. -/
 def lr1A (cols nhs hbits : ℕ) : List Stmt :=
-  [osMul 7 0 0, osMul 8 7 7, osMul 9 8 8, osMul 10 2 9, osMul 11 3 0, osMul 12 11 0, osLd 13 12 0,
-    osLd 14 12 1] ++ (lr1St cols nhs hbits).1 ++
-    [osLd (lr1St cols nhs hbits).2.1 12 2, osLd (lr1St cols nhs hbits).2.2.1 12 3]
+  (osBatchPow 7).1 ++ [osMul (7 + batchLen) 2 (osBatchPow 7).2, osMul (7 + batchLen + 1) 3 0,
+    osMul (7 + batchLen + 2) (7 + batchLen + 1) 0, osLd (7 + batchLen + 3) (7 + batchLen + 2) 0,
+    osLd (7 + batchLen + 4) (7 + batchLen + 2) 1] ++ (lr1St cols nhs hbits).1 ++
+    [osLd (lr1St cols nhs hbits).2.1 (7 + batchLen + 2) 2,
+      osLd (lr1St cols nhs hbits).2.2.1 (7 + batchLen + 2) 3]
 
 theorem lrLoop1Body_split (cols nhs hbits : ℕ) (name : String) :
     lrLoop1Body cols nhs hbits name =
@@ -74,7 +77,7 @@ theorem lrLoop1Body_split (cols nhs hbits : ℕ) (name : String) :
 
 theorem lr1A_flat (cols nhs hbits : ℕ) :
     (lr1A cols nhs hbits ++ osLoopTailA (lr1St cols nhs hbits).2.2.2).all Stmt.flat = true := by
-  simp [lr1A, lr1St, osLoopTailA, osResSteps_flat, Stmt.flat]
+  simp [lr1A, lr1St, osLoopTailA, osResSteps_flat, osBatchPow, osPowSteps_flat, Stmt.flat]
 
 /-- What a call's reads are: the basis row `D` at `bd`, the high part `hsv` at `hs`. -/
 structure LrRead (rd : Reader) (cols nhs hbits : ℕ) (bd hs : E) (D : ℕ → E) (hsv : List E) :
@@ -105,20 +108,20 @@ theorem lrLoop1_step (cols nhs hbits : ℕ) {D : ℕ → E} {hsv : List E} (σ :
   · unfold lr1A at hA
     simp only [allOk_append, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_mul, holds_load,
       osMul, osLd] at hA
-    obtain ⟨⟨⟨m0, m1, m2, m3, m4, m5, l6, l7⟩, hst⟩, s1, s2⟩ := hA
+    obtain ⟨⟨⟨hpw, m3, m4, m5, l6, l7⟩, hst⟩, s1, s2⟩ := hA
     have hD' : ∀ s < cols, LoadHolds rd (σ (.n 4)) (0 + s) (D s) := by
       rw [h4]; intro s hs; rw [Nat.zero_add]; exact hR.rowD s hs
     have hH' : ∀ c < nhs, LoadHolds rd (σ (.n 5)) (0 + c) (hsv.getD c 0) := by
       rw [h5]; intro c hc; rw [Nat.zero_add]; exact hR.high c hc
-    have hP : σ (.n 10) = pos * gen ^ 0 * x ^ resBatch := by
-      rw [m3, m2, m1, m0, h0, h2, pow_zero, mul_one]; ring
-    have hC : σ (.n 12) = chain * x ^ 2 := by rw [m5, m4, h3, h0]; ring
+    have hP : σ (.n (7 + batchLen)) = pos * gen ^ 0 * x ^ resBatch := by
+      rw [m3, osBatchPow_val _ hpw, h0, h2, pow_zero, mul_one]
+    have hC : σ (.n (7 + batchLen + 2)) = chain * x ^ 2 := by rw [m5, m4, h3, h0]; ring
     obtain ⟨ps, hF, hv⟩ := osResSteps_val hR.c1 hR.n1 hR.b3 hR.bn hD' hR.len hH' _ _ _ _ hst
     obtain ⟨hl, hF⟩ := forall₂_range_to _ _ hF
     rw [hP] at hF
     rw [hC] at l6 l7 s1 s2
     rw [h6] at hv
-    refine ⟨(σ (.n 13), σ (.n 14)), ps, hl, hF, l6, l7, ?_, ?_⟩
+    refine ⟨(σ (.n (7 + batchLen + 3)), σ (.n (7 + batchLen + 4))), ps, hl, hF, l6, l7, ?_, ?_⟩
     · have := congrArg Prod.fst hv; simp only at this
       unfold lrP lrH; rw [← this]; exact s1
     · have := congrArg Prod.snd hv; simp only at this

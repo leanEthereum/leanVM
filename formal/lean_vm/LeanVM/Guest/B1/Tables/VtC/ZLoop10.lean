@@ -14,9 +14,9 @@ public import LeanVM.Guest.Data.NameStrings
 
 `l10_complete`: when every iteration `j < n` has its facts (`L10B`: the round on the record
 `rounds·g^(7j)` with the tables `tabs`, the next record's cursor and claim, the challenge in `chi`, the running product
-in `cprod`), `verify_tables_loop0` holds from `1` below `g^n`. An iteration's body holds on the evident
-valuation at any depth reaching its `sumcheck_round4` call and the next iteration (`l10_body`);
-one depth bounds every round's call (`l10_depth`).
+in `cprod`), `verify_tables_loop0` holds from `1` below `g^n`. An iteration's body holds on the
+evident valuation at any depth reaching its `sumcheck_round4` call and the next iteration
+(`l10_body`); one depth bounds every round's call (`l10_depth`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -38,8 +38,10 @@ theorem l10_body {rd : Reader} {N rounds tabs chi gn cprod x : E} (e : ℕ)
     (hy : gn * vtWInvGen = y * x) (lch : LoadHolds rd (chi * y) 0 rk)
     (lc0 : LoadHolds rd (cprod * x) 0 cp) (lc1 : LoadHolds rd (cprod * x) 1 (cp * rk))
     (hK : IsInK (x * gen + N)) (hnext : x * gen + N ≠ 0 →
-      coreProgram.relN rd e name% «verify_tables_loop0» (x * gen :: [N, rounds, tabs, chi, gn, cprod]) []) :
-    coreProgram.relN rd (e + 1) name% «verify_tables_loop0» (x :: [N, rounds, tabs, chi, gn, cprod]) [] := by
+      coreProgram.relN rd e name% «verify_tables_loop0» (x * gen :: [N, rounds, tabs, chi, gn,
+          cprod]) []) :
+    coreProgram.relN rd (e + 1) name% «verify_tables_loop0» (x :: [N, rounds, tabs, chi, gn,
+        cprod]) [] := by
   obtain ⟨fn, hf, hp, hb⟩ := l10Found
   have hx7 : rounds * x ^ 7 = rounds * (x * x * x * (x * x * x) * x) := by ring
   rw [hx7] at l5 l6 hc l12 l13
@@ -57,7 +59,8 @@ theorem l10_body {rd : Reader} {N rounds tabs chi gn cprod x : E} (e : ℕ)
     rw [tb_word_gen]; exact hK
   · intro h0
     change x * word 2 0 + N ≠ 0 at h0
-    change coreProgram.relN rd e name% «verify_tables_loop0» [x * word 2 0, N, rounds, tabs, chi, gn, cprod] []
+    change coreProgram.relN rd e name% «verify_tables_loop0» [x * word 2 0, N, rounds, tabs, chi,
+        gn, cprod] []
     rw [tb_word_gen] at h0 ⊢
     exact hnext h0
 
@@ -73,10 +76,12 @@ theorem l10_depth {P : ℕ → ℕ → Prop} (hmono : ∀ j a b, a ≤ b → P j
     · exact hmono j D _ (le_max_left _ _) (hD j hj')
     · rw [show j = n by omega]; exact hmono n d _ (le_max_right _ _) hd
 
-/-- **`verify_tables_loop0`, completely**: every iteration's facts give the loop from `1` below `g^n`. -/
+/-- **`verify_tables_loop0`, completely**: every iteration's facts give the loop from `1` below
+`g^n`. -/
 theorem l10_complete {rd : Reader} {rounds tabs chi cprod : E} {n : ℕ} (hn0 : 0 < n)
     (hB : ∀ j < n, L10B rd rounds tabs chi (gen ^ n) cprod (gen ^ j)) :
-    coreProgram.Rel rd name% «verify_tables_loop0» [1, gen ^ n, rounds, tabs, chi, gen ^ n, cprod] [] := by
+    coreProgram.Rel rd name% «verify_tables_loop0» [1, gen ^ n, rounds, tabs, chi, gen ^ n,
+        cprod] [] := by
   obtain ⟨D, hD⟩ := l10_depth (P := fun j d => ∃ cur claim ncur nclaim rk : E,
       coreProgram.relN rd d "sumcheck_round4" [rounds * (gen ^ j) ^ 7, cur, claim, tabs]
         [ncur, nclaim, rk] ∧ L10B rd rounds tabs chi (gen ^ n) cprod (gen ^ j) ∧

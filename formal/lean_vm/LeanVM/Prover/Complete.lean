@@ -5,8 +5,12 @@
   prover at some witness: `LeanVM.Completeness` with that prover.
 -/
 
-import LeanVM.Protocol.LeanVMRpm
-import LeanVM.Protocol.WithHash
+module
+
+public import LeanVM.Protocol.LeanVMRpm
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # Completeness for a prover that is the specification at a witness
@@ -115,3 +119,5 @@ theorem completeness_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A Hone
   exact (Rpm.completenessRpm_at hw (by norm_num)).trans Rpm.completenessRpm_le
 
 end LeanVM.Prover
+
+end

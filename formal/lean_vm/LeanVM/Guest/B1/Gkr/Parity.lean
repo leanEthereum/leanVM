@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Gkr.Parity
 
-  The parity words `verify_bus_gkr`'s layer loop `verify_bus_gkr_loop0` dispatches on are `g^e`, `e < 4`
-  (`GkrPar`, the checker's obligation at the loop's cuts and at the loop's call).
+  The parity words `verify_bus_gkr`'s layer loop `verify_bus_gkr_loop0` dispatches on are `g^e`, `e
+  < 4` (`GkrPar`, the checker's obligation at the loop's cuts and at the loop's call).
 -/
 
 module

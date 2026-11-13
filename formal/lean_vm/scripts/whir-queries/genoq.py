@@ -31,21 +31,22 @@ parts = [sp[k::4] for k in range(4)]
 for k, part in enumerate(parts):
     out = [HEAD % ('QueriesBody%d' % k,
                    "The bodies of a quarter of `opening_queries`' specializations and of their loop helpers are\n  the templates (kernel evaluation).",
-                   'public import LeanVM.Guest.B1.Opening.QueriesT')]
+                   'public import LeanVM.Guest.B1.Opening.QueriesT\npublic import LeanVM.Guest.Data.NameStrings')]
     for d in part:
         sh = shape(d)
-        loopT = ('oqLoop1T %s.oq %d (oqWalkOf %s.oq) "%s"' % (sh, d['odd'], sh, d['loop'])) if d['base'] == 1 else \
-                ('oqLoop0T %s.oq (oqWalkOf %s.oq) "%s"' % (sh, sh, d['loop']))
+        loop = gen.stable[d['loop']]
+        loopT = ('oqLoop1T %s.oq %d (oqWalkOf %s.oq) name%% «%s»' % (sh, d['odd'], sh, loop)) if d['base'] == 1 else \
+                ('oqLoop0T %s.oq (oqWalkOf %s.oq) name%% «%s»' % (sh, sh, loop))
         out.append('''set_option maxRecDepth 100000 in
 /-- `%s`. -/
-theorem oqBody_%d : Data.core%d.body = oqMainT %s.oq %d (oqWalkOf %s.oq) "%s" :=
+theorem oqBody_%d : (fn%% «%s»).body = oqMainT %s.oq %d (oqWalkOf %s.oq) name%% «%s» :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- `%s`. -/
-theorem oqLoopBody_%d : Data.core%d.body = %s :=
+theorem oqLoopBody_%d : (fn%% «%s»).body = %s :=
   stmtsEqb_sound (by decide +kernel)
-''' % (d['name'], d['idx'], d['idx'], sh, d['odd'], sh, d['loop'], d['loop'], d['idx'], d['loopidx'], loopT))
+''' % (d['name'], d['idx'], d['name'], sh, d['odd'], sh, loop, loop, d['idx'], loop, loopT))
     out.append('end\nend LeanVM.Guest.B1\n')
     open(D + 'QueriesBody%d.lean' % k, 'w').write('\n'.join(out))
 # QueriesFns.lean: from `oqFns_` on, each entry of `openingQueriesLoops` (in `gen.oq_specs`' order)
@@ -59,11 +60,11 @@ for k, d in enumerate(sp):
 /-- Entry %d, `%s`. -/
 theorem oqFns_%d : OqFns (openingQueriesLoops.getD %d oqNone) := by
   unfold OqFns
-  exact ⟨wpFn_L%d_L%d, Data.core%d, Data.core%d,
-    coreProgram_find?_at (j := %d) rfl, rfl, oqBody_%d,
-    coreProgram_find?_at (j := %d) rfl, rfl, oqLoopBody_%d⟩
-''' % (k, d['name'], d['idx'], k, d['depth'] - d['cd'], d['cd'], d['idx'], d['loopidx'], d['idx'], d['idx'],
-       d['loopidx'], d['idx']))
+  exact ⟨wpFn_L%d_L%d, fn%% «%s», fn%% «%s»,
+    coreProgram_find?_at (j := idx%% «%s») rfl, rfl, oqBody_%d,
+    coreProgram_find?_at (j := idx%% «%s») rfl, rfl, oqLoopBody_%d⟩
+''' % (k, d['name'], d['idx'], k, d['depth'] - d['cd'], d['cd'], d['name'], gen.stable[d['loop']], d['name'],
+       d['idx'], gen.stable[d['loop']], d['idx']))
 out.append('''/-- **Every entry's functions are found with the templates' bodies.** -/
 theorem oqFns_all : ∀ p ∈ openingQueriesLoops, OqFns p := by
   intro p hp

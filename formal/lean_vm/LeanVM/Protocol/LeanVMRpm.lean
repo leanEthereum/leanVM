@@ -6,17 +6,21 @@
   random-permutation model, from the two-oracle random-oracle model.
 -/
 
-import LeanVM.Protocol.LeanVM
-import LeanVM.Protocol.ErrorBounds
-import Common.Linear
-import LeanVM.Protocol.Rpm.Cost
-import LeanVM.Protocol.Rpm.Duplex
-import LeanVM.Protocol.Rpm.Extract
-import LeanVM.Protocol.Extraction.Extract
-import LeanVM.Protocol.Rpm.RomRelabel
-import LeanVM.Protocol.Rpm.RpmRelabel
-import LeanVM.Protocol.WithHash
-import LeanVM.Protocol.ExperimentBridge
+module
+
+public import LeanVM.Protocol.LeanVM
+public import LeanVM.Protocol.ErrorBounds
+public import Common.Linear
+public import LeanVM.Protocol.Rpm.Cost
+public import LeanVM.Protocol.Rpm.Duplex
+public import LeanVM.Protocol.Rpm.Extract
+public import LeanVM.Protocol.Extraction.Extract
+public import LeanVM.Protocol.Rpm.RomRelabel
+public import LeanVM.Protocol.Rpm.RpmRelabel
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.ExperimentBridge
+
+@[expose] public section
 
 /-!
 # leanVM in the random-permutation model
@@ -403,3 +407,5 @@ theorem keccak256_eq_rpm (data : Protocol.Compile.Bytes) :
   ⟨Rpm.keccak256With_keccakF data, Rpm.keccak256_eq_rpm data⟩
 
 end LeanVM
+
+end

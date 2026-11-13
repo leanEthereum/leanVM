@@ -24,8 +24,8 @@ honest words `hLmain`:
 * `rawXD`, `rawSD`: the raw signatures' data (`RawXData`, `RawSData`): raw signature `i` takes
   slot `(slotsOf p)[i]` of its region (`plan_raw`), whose coverage word is `g` to its mark
   (`hMarkX_raw`, `hMarkS_raw`) and whose table entry is its claim;
-* `mainGoalL3`, `mainGoalL4`: `main_loop2`, `main_loop3` from the counter `1 = g^0` (`rawX_completeAt`,
-  `rawS_completeAt`), the regions below `2^16` by `Limits.coverage`;
+* `mainGoalL3`, `mainGoalL4`: `main_loop2`, `main_loop3` from the counter `1 = g^0`
+  (`rawX_completeAt`, `rawS_completeAt`), the regions below `2^16` by `Limits.coverage`;
 * `checked_da`: the checked DA claim's witness opens it, `da_verify`'s returns its cells;
   `wLog_lt`: its padded count's log is below `34` (`da_verify` reads `exponent_tables`' second
   table there; its completeness is `MainGoalsDvTB.mainGoalDvTB`).

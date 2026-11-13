@@ -17,15 +17,15 @@ public import LeanVM.Guest.JumpTable.Code
 /-!
 # The jump table
 
-`__jump_tables` (function `0`, from pc `0`) is `13937` `SET`s of the slots `430 + i` of `main`'s
-frame, then `main` runs from its entry `mainEntry = 13937` at `fp = 1`. `JumpTables L` says each
+`__jump_tables` (function `0`, from pc `0`) is `Data.jtSlots` `SET`s of the slots
+`Data.mainCells + i` of `main`'s frame, then `main` runs from its entry `mainEntry` at `fp = 1`. `JumpTables L` says each
 `SET` holds in `L` (each slot of `Memory.tableCells` holds its word). `safe_jumpTables`: a halting
 run from `(g^0, 1)` writes the table and halts from `(g^mainEntry, 1)`; `reach_jumpTables` is the
 converse for completeness.
 
 `Data.jtTrie` maps a slot `s` to the exponent `t` of the target `g^t` the checker expects there.
-`jtOk` checks, at every entry `(s, t)` of the trie, that instruction `s - 430` of `__jump_tables`
-is `SET s, k0, 0, 0` with `Data.powTree` giving `k0 ↦ t`, so that `K.ofBits k0 = g^t`
+`jtOk` checks, at every entry `(s, t)` of the trie, that instruction `s - Data.mainCells` of
+`__jump_tables` is `SET s, k0, 0, 0` with `Data.powTree` giving `k0 ↦ t`, so that `K.ofBits k0 = g^t`
 (`PowTree.Ok`), from the kernel's walks of the trie's keys (`JumpTable.Keys`) and of the code
 (`JumpTable.Code`). So the table the checks read is the one `__jump_tables` writes
 (`jt_of_jumpTables`).
@@ -176,7 +176,7 @@ theorem jt_of_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : End.JumpTables L) 
   unfold entryOk at he
   rw [Bool.and_eq_true] at he
   obtain ⟨hlt, he⟩ := he
-  have hlen : s - 430 < Data.f0.instructionCount := by simpa using hlt
+  have hlen : s - Data.mainCells < Data.f0.instructionCount := by simpa using hlt
   obtain ⟨o, k0, k1, hins, hmem⟩ := End.f0_instr hlen
   rw [hins] at he
   simp only [Bool.and_eq_true, beq_iff_eq] at he

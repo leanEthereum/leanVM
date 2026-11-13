@@ -16,10 +16,11 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `aggregate_claims`, bounded
 
-`aggBs fs SB SK m`: its callees' bounds, `aggregate_claims_loop0`/`aggregate_claims_loop1`/`aggregate_claims_loop2` from `1` to `g^m` within
-`m` times their per-iteration words `iterK fs SK` and their runs' phantom frames,
-`grind_check__L2` and `batch_sumcheck__L23` within their static bounds `SB`.
-`aggB fs SB SK m`: its frame, its `HeapBuf`s (`aggSizes m`) and those. `aggregate_claims_completeAtTB`.
+`aggBs fs SB SK m`: its callees' bounds,
+`aggregate_claims_loop0`/`aggregate_claims_loop1`/`aggregate_claims_loop2` from `1` to `g^m` within
+`m` times their per-iteration words `iterK fs SK` and their runs' phantom frames, `grind_check__L2`
+and `batch_sumcheck__L23` within their static bounds `SB`. `aggB fs SB SK m`: its frame, its
+`HeapBuf`s (`aggSizes m`) and those. `aggregate_claims_completeAtTB`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -37,14 +38,18 @@ open LeanVM.Guest.Budget (NodeHonest)
 
 /-- `aggregate_claims`' callees' bounds, in call order. -/
 def aggBs (fs SB SK : String → ℕ) (m : ℕ) : List ℕ :=
-  [m * iterK fs SK name% «aggregate_claims_loop0» + fs name% «aggregate_claims_loop0», SB "grind_check__L2",
-    m * iterK fs SK name% «aggregate_claims_loop1» + fs name% «aggregate_claims_loop1», SB "batch_sumcheck__L23",
+  [m * iterK fs SK name% «aggregate_claims_loop0» + fs name% «aggregate_claims_loop0»,
+      SB "grind_check__L2",
+    m * iterK fs SK name% «aggregate_claims_loop1» + fs name% «aggregate_claims_loop1»,
+        SB "batch_sumcheck__L23",
     m * iterK fs SK name% «aggregate_claims_loop2» + fs name% «aggregate_claims_loop2»]
 
 /-- `aggregate_claims`' callees' words. -/
 def aggKB (fs SB SK : String → ℕ) (m : ℕ) : ℕ :=
-  (m * iterK fs SK name% «aggregate_claims_loop0» + fs name% «aggregate_claims_loop0») + SB "grind_check__L2" +
-    (m * iterK fs SK name% «aggregate_claims_loop1» + fs name% «aggregate_claims_loop1») + SB "batch_sumcheck__L23" +
+  (m * iterK fs SK name% «aggregate_claims_loop0» + fs name% «aggregate_claims_loop0») + SB
+      "grind_check__L2" +
+    (m * iterK fs SK name% «aggregate_claims_loop1» + fs name% «aggregate_claims_loop1») + SB
+        "batch_sumcheck__L23" +
     (m * iterK fs SK name% «aggregate_claims_loop2» + fs name% «aggregate_claims_loop2»)
 
 /-- **`aggregate_claims`' words bound** on `m` children: its frame, its `HeapBuf`s, its callees'. -/
@@ -59,11 +64,14 @@ batching's claim, which `Lin` holds at `g^ds`; given
 theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) (SB SK : String → ℕ)
     (hGr : TotalLe coreProgram fs "grind_check__L2" (fun _ => SB "grind_check__L2"))
     (h25 : TotalLeOn coreProgram fs name% «aggregate_claims_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs name% «aggregate_claims_loop0»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs
+          name% «aggregate_claims_loop0»))
     (h26 : TotalLeOn coreProgram fs name% «aggregate_claims_loop1» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop1» + fs name% «aggregate_claims_loop1»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop1» + fs
+          name% «aggregate_claims_loop1»))
     (h27 : TotalLeOn coreProgram fs name% «aggregate_claims_loop2» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop2» + fs name% «aggregate_claims_loop2»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop2» + fs
+          name% «aggregate_claims_loop2»))
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")) {m : ℕ}
     (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
     {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
@@ -92,16 +100,19 @@ theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V
   have hne : (1 : E) + gen ^ m ≠ 0 := (one_add_gen_ne (by omega)).mpr (by omega)
   -- the callees
   let ks : List Kid :=
-    [⟨name% «aggregate_claims_loop0», true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
+    [⟨name% «aggregate_claims_loop0», true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc,
+        cpi], Own ++ Lin,
         Returns []⟩,
       ⟨"grind_check__L2", true, [cellsOfState (aggN cs h.lambdaGrindNonce) false 1, tabs],
         Own ++ Lin, Returns []⟩,
-      ⟨name% «aggregate_claims_loop1», true, [1, gen ^ m, P.chain, P.lf, P.lc, lamA cs h * lamA cs h, lamA cs h],
+      ⟨name% «aggregate_claims_loop1», true, [1, gen ^ m, P.chain, P.lf, P.lc,
+          lamA cs h * lamA cs h, lamA cs h],
         Own ++ Lin, Returns []⟩,
       ⟨"batch_sumcheck__L23", true,
         capOf (aggN cs h.lambdaGrindNonce) ++ [P.msgs * gen, claimAt cs h m, P.pt, tabs],
         Own ++ Lin, Returns ((aggRun cs h).2.cap ++ [(aggRun cs h).1.2])⟩,
-      ⟨name% «aggregate_claims_loop2», true, [1, gen ^ m, P.lf, P.lc, P.pt1, P.chain, P.w, lamA cs h], Own ++ Lin,
+      ⟨name% «aggregate_claims_loop2», true, [1, gen ^ m, P.lf, P.lc, P.pt1, P.chain, P.w,
+          lamA cs h], Own ++ Lin,
         Returns []⟩]
   have hm' : m < 2 ^ 64 - 1 := by omega
   have hL : ∀ {g : String} (hT : TotalLeOn coreProgram fs g LoopPre

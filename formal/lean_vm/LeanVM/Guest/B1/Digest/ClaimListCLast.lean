@@ -31,7 +31,8 @@ open LeanVM.Guest.B1.Fwd
 
 variable {rd : Reader}
 
-theorem clc_all {k : ℕ} (hk : k < 17) : clcOk k (coreProgram.getD (idx% «claim_list_last__L0» + k) default) = true := by
+theorem clc_all {k : ℕ} (hk : k < 17) : clcOk k (coreProgram.getD (idx% «claim_list_last__L0» + k)
+    default) = true := by
   rcases Nat.lt_or_ge k 9 with h | h
   · exact clc_lo k h
   · have := clc_hi (k - 9) (by omega)

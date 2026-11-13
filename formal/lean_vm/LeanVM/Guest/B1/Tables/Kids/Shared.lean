@@ -41,7 +41,8 @@ theorem ss_noDisp : ssPre.dropLast.all noDispB = true := by decide +kernel
 theorem ss_noLoad : ssPre.filterMap Stmt.loadS = [] := by decide +kernel
 
 theorem ss_calls : ssPre.dropLast.filterMap Main.Stmt.callS =
-    [(some (.n 44), name% «shared_selector_tables_loop0», [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1, .n 4], [])] := by
+    [(some (.n 44), name% «shared_selector_tables_loop0», [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1,
+        .n 4], [])] := by
   decide +kernel
 
 theorem ceil4 {n q r : ℕ} (hn : n = 4 * q + r) (hr : r < 4) :

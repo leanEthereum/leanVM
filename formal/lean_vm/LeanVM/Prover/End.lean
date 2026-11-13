@@ -5,10 +5,14 @@
   (`LeanVM.Prover.prove`, `Statement/Prover/Prove.lean`).
 -/
 
-import LeanVM.Prover.Assemble
-import LeanVM.Prover.Complete
-import LeanVM.Protocol.WithHash
-import LeanVM.Protocol.ExperimentBridge
+module
+
+public import LeanVM.Prover.Assemble
+public import LeanVM.Prover.Complete
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.ExperimentBridge
+
+@[expose] public section
 
 /-!
 # The completeness end theorem
@@ -81,3 +85,5 @@ theorem completeness_holds : Completeness :=
   completeness_of_withHash completenessWithHash_holds
 
 end LeanVM
+
+end

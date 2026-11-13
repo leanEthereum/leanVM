@@ -363,22 +363,27 @@ theorem monoFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st
 
 /-! ## The loops, checked -/
 
--- `child_claim_list_mono_loop0`: 136 claims a frame, 64 blocks; its head here, its sixteen windows in `Mono{q}`.
+-- `child_claim_list_mono_loop0`: 136 claims a frame, 64 blocks; its head here, its sixteen windows
+-- in `Mono{q}`.
 set_option maxRecDepth 100000 in
-theorem mono136_idx : coreProgram.indexOf? name% «child_claim_list_mono_loop0» = some idx% «child_claim_list_mono_loop0» :=
+theorem mono136_idx : coreProgram.indexOf? name% «child_claim_list_mono_loop0» = some
+    idx% «child_claim_list_mono_loop0» :=
   coreProgram_indexOf?_at (j := idx% «child_claim_list_mono_loop0») rfl
 
 set_option maxRecDepth 100000 in
-theorem mono136_nb : (monoSpec 136 1377 (loopAtoms (coreProgram.getD idx% «child_claim_list_mono_loop0» default))).nb = 64 := by
+theorem mono136_nb : (monoSpec 136 1377 (loopAtoms (coreProgram.getD
+    idx% «child_claim_list_mono_loop0» default))).nb = 64 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mono136_head :
-    monoHead (coreProgram.getD idx% «child_claim_list_mono_loop0» default) name% «child_claim_list_mono_loop0» 136 1377 83200 72058697844523035 = true := by
+    monoHead (coreProgram.getD idx% «child_claim_list_mono_loop0» default)
+        name% «child_claim_list_mono_loop0» 136 1377 83200 72058697844523035 = true := by
   decide +kernel
 
 theorem mono136_ok :
-    monoOk (coreProgram.getD idx% «child_claim_list_mono_loop0» default) name% «child_claim_list_mono_loop0» 136 9 1377 83200 72058697844523035 = true := by
+    monoOk (coreProgram.getD idx% «child_claim_list_mono_loop0» default)
+        name% «child_claim_list_mono_loop0» 136 9 1377 83200 72058697844523035 = true := by
   have hw : ∀ i < 16, monoWinOk i = true := by
     intro i hi
     interval_cases i
@@ -391,15 +396,18 @@ theorem mono136_ok :
 
 -- `child_claim_list_mono_loop1`: 17 claims a frame, 8 blocks.
 set_option maxRecDepth 100000 in
-theorem mono17_idx : coreProgram.indexOf? name% «child_claim_list_mono_loop1» = some idx% «child_claim_list_mono_loop1» :=
+theorem mono17_idx : coreProgram.indexOf? name% «child_claim_list_mono_loop1» = some
+    idx% «child_claim_list_mono_loop1» :=
   coreProgram_indexOf?_at (j := idx% «child_claim_list_mono_loop1») rfl
 
 set_option maxRecDepth 100000 in
-theorem mono17_nb : (monoSpec 17 187 (loopAtoms (coreProgram.getD idx% «child_claim_list_mono_loop1» default))).nb = 8 := by
+theorem mono17_nb : (monoSpec 17 187 (loopAtoms (coreProgram.getD
+    idx% «child_claim_list_mono_loop1» default))).nb = 8 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mono17_ok : monoOk (coreProgram.getD idx% «child_claim_list_mono_loop1» default) name% «child_claim_list_mono_loop1» 17 9 187 131072 432 = true := by
+theorem mono17_ok : monoOk (coreProgram.getD idx% «child_claim_list_mono_loop1» default)
+    name% «child_claim_list_mono_loop1» 17 9 187 131072 432 = true := by
   decide +kernel
 
 theorem word_g17 : word 131072 0 = gen ^ 17 := word_two_pow (a := 17) (by decide)
@@ -515,7 +523,8 @@ theorem monoLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {ar
 noncomputable def monoFlat : List Stmt := (Fn.body fn% «child_claim_list_mono»).dropLast
 
 set_option maxRecDepth 100000 in
-theorem core26_shape : Fn.body fn% «child_claim_list_mono» = monoFlat ++ [.ret [.n 52, .n 53]] :=
+theorem child_claim_list_mono_shape : Fn.body fn% «child_claim_list_mono» = monoFlat ++ [.ret [.n
+    52, .n 53]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The body: the zero state at `chain = .n 16`, `region` and `entries` at `chain · g^13`,
@@ -523,8 +532,10 @@ theorem core26_shape : Fn.body fn% «child_claim_list_mono» = monoFlat ++ [.ret
 `last = mid · groups^15`, the dispatch on the rest. -/
 noncomputable def monoBodyOk : Bool :=
   monoFlat.all Stmt.flat &&
-  monoFlat.any (stmtEqb · (.callIf (.n 31) name% «child_claim_list_mono_loop0» [.n 32, .n 4, .n 16, .n 2])) &&
-  monoFlat.any (stmtEqb · (.callIf (.n 41) name% «child_claim_list_mono_loop1» [.n 42, .n 5, .n 39, .n 2])) &&
+  monoFlat.any (stmtEqb · (.callIf (.n 31) name% «child_claim_list_mono_loop0» [.n 32, .n 4, .n 16,
+      .n 2])) &&
+  monoFlat.any (stmtEqb · (.callIf (.n 41) name% «child_claim_list_mono_loop1» [.n 42, .n 5, .n 39,
+      .n 2])) &&
   monoFlat.any (stmtEqb · (.dispatch (.n 6) mlNames [.n 49, .n 1, .n 2, .n 3] [.n 50, .n 51])) &&
   (atomsIn monoFlat).any (isConstAt (.n 32) 1 0) &&
   (atomsIn monoFlat).any (isAddAt (.n 31) (.n 30) (.n 4)) &&
@@ -564,7 +575,7 @@ theorem child_claim_list_mono_sound {rd : Reader} (hm : MemOk rd) {args rets : L
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_child_claim_list_mono args rets).mp h
   refine ⟨σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
     by rw [← hp]; rfl, fun a b c ha hb' hc h4 h5 h6 => ?_⟩
-  rw [core26_shape, holdsList_append] at hb
+  rw [child_claim_list_mono_shape, holdsList_append] at hb
   have hok := monoBody_ok
   simp only [monoBodyOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hfl, hl19⟩, hl20⟩, hdis⟩, h32⟩, h31⟩, h30⟩, h42⟩, h41⟩, h40⟩, hzs⟩,

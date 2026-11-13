@@ -15,10 +15,10 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `da_verify_column` (G:4562-4576)
 
-`da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets)` (`core29`), at
+`da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets)`, at
 `xb = g^h`: the column's weights `lvals`, `da_expand__L7_L8` from the top leaf `h` with the cell
 factors and the column's shifts `offsets·g^(8h)`, are the dual codeword's entries `256 h + e`
-(`cellLeaf_eq`); then `da_verify_column_loop0` (`core403`) over the blobs `i < r`: a `da_verify_cell` run on
+(`cellLeaf_eq`); then `da_verify_column_loop0` over the blobs `i < r`: a `da_verify_cell` run on
 `lvals`, its sum added to the blob's running sum (word `512 + h` to `513 + h` of the region at
 `rowbase[i]`), its digest the blob tree's leaf `h` (words `2h`, `2h + 1`). `colOk` and `l21Ok`
 check the bodies (kernel evaluation in `ColumnChk`); `col_stepW` is a column's run under a call
@@ -40,8 +40,10 @@ variable {rd : Reader}
 
 variable {C : CallRel} {Vm : FrameMap}
 
-theorem l21_stepW (hVm : UnfoldsV rd C Vm) (hok : l21Ok (coreProgram.getD idx% «da_verify_column_loop0» default) = true)
-    (hidx : coreProgram.indexOf? name% «da_verify_column_loop0» = some idx% «da_verify_column_loop0») {x : E} {ps : List E}
+theorem l21_stepW (hVm : UnfoldsV rd C Vm) (hok : l21Ok (coreProgram.getD
+    idx% «da_verify_column_loop0» default) = true)
+    (hidx : coreProgram.indexOf? name% «da_verify_column_loop0» = some
+        idx% «da_verify_column_loop0») {x : E} {ps : List E}
     (h : C name% «da_verify_column_loop0» (x :: ps) []) :
     (∀ N lv rb xb xb2, ps = [N, lv, rb, xb, xb2] →
       CellStepW C rd (Vm name% «da_verify_column_loop0» (x :: ps) []) lv rb xb xb2 x) ∧
@@ -54,7 +56,8 @@ theorem l21_stepW (hVm : UnfoldsV rd C Vm) (hok : l21Ok (coreProgram.getD idx% �
   set σ := Vm name% «da_verify_column_loop0» (x :: ps) [] with hσ
   refine ⟨fun N lv rb xb xb2 hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD idx% «da_verify_column_loop0» default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5] := by
+  have hpar : (coreProgram.getD idx% «da_verify_column_loop0» default).params = [V.n 0, V.n 1,
+      V.n 2, V.n 3, V.n 4, V.n 5] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -88,8 +91,10 @@ check's frame (`colSyms`), whose digest is leaf `h` of the region at `rowbase[i]
 product with the dual codeword's entries `256 h + e` steps the region's running sum from word
 `512 + h` to `513 + h`. -/
 theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel rd))
-    (hcol : colOk = true) (h21 : l21Ok (coreProgram.getD idx% «da_verify_column_loop0» default) = true)
-    (hidx : coreProgram.indexOf? name% «da_verify_column_loop0» = some idx% «da_verify_column_loop0») {z zs tl cf off rb : E} {h r : ℕ}
+    (hcol : colOk = true) (h21 : l21Ok (coreProgram.getD idx% «da_verify_column_loop0» default) =
+        true)
+    (hidx : coreProgram.indexOf? name% «da_verify_column_loop0» = some
+        idx% «da_verify_column_loop0») {z zs tl cf off rb : E} {h r : ℕ}
     (hh : h < 128) (hr : r < ordG) (hvec : MeaningDaVector rd [z] [zs, tl, cf, off])
     (hrel : C "da_verify_column" [gen ^ h, gen ^ r, rb, zs, tl, cf, off] []) :
     ∀ i < r, (colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).length = 256 ∧
@@ -142,8 +147,10 @@ theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel 
   have hgs := guard_soundC hg hall
   simp only [List.map_cons, List.map_nil] at hgs
   rw [h1, h2, h0] at hgs
-  have L := loop_soundC (C := C) (f := name% «da_verify_column_loop0») (ps := [gen ^ r, σ (.n 13), rb, gen ^ h, σ (.n 14)])
-    (B := fun x ↦ CellStepW C rd (Vm name% «da_verify_column_loop0» (x :: [gen ^ r, σ (.n 13), rb, gen ^ h, σ (.n 14)]) [])
+  have L := loop_soundC (C := C) (f := name% «da_verify_column_loop0») (ps := [gen ^ r, σ (.n 13),
+      rb, gen ^ h, σ (.n 14)])
+    (B := fun x ↦ CellStepW C rd (Vm name% «da_verify_column_loop0» (x :: [gen ^ r, σ (.n 13), rb,
+        gen ^ h, σ (.n 14)]) [])
       (σ (.n 13)) rb (gen ^ h) (σ (.n 14)) x) hr rfl
     (fun x hx ↦ by
       obtain ⟨k1, k2⟩ := l21_stepW hVm h21 hidx hx
@@ -152,7 +159,8 @@ theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel 
   intro i hi
   obtain ⟨hc, base, a, hbase, ha, has, hd0, hd1⟩ := L i hi
   have hrv : colRowV Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i =
-      Vm name% «da_verify_column_loop0» [gen ^ i, gen ^ r, σ (.n 13), rb, gen ^ h, σ (.n 14)] [] := rfl
+      Vm name% «da_verify_column_loop0» [gen ^ i, gen ^ r, σ (.n 13), rb, gen ^ h,
+          σ (.n 14)] [] := rfl
   have hsy : colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i =
       cellSymsOf (Vm "da_verify_cell" [σ (.n 13)]
         [colRowV Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i (.n 6),

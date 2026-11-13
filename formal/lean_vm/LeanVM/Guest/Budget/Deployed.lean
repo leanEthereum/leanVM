@@ -33,8 +33,8 @@ open LeanVM.Guest.B1.Main (VerifySubGoalsTB MainStatics childBv mainPredsH hDvNH
 theorem guest_complete_budget {SB SK : String → ℕ} {Pvs : NodeWitness → ℕ → Tree → Prop} {Bvf : ℕ → ℕ → ℕ}
     (C : Opcode → ℕ)
     (hC : ∀ op σ bufs kids rd args rets,
-      (Memory.Tree.node "__loop2" σ bufs kids).Valid coreProgram rd args rets →
-        B2C.costW (listElementOrDefault Data.cplArms 37 []) σ (coreOf 37).body op ≤ C op)
+      (Memory.Tree.node name% «main_loop2» σ bufs kids).Valid coreProgram rd args rets →
+        B2C.costW (listElementOrDefault Data.cplArms (fn_idx% «main_loop2») []) σ (coreOf (fn_idx% «main_loop2»)).body op ≤ C op)
     (H : ∀ op, MainCounts (B2C.ωArm C op) B2C.fs) (hS : MainStatics B2C.fs SB SK)
     (hV : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
       ChildrenOk bytecode seed w →

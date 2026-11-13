@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B2C.SplitPre
-public meta import LeanVM.Guest.KernelLit
+public meta import LeanVM.Guest.B2C.WinLit
 
 namespace LeanVM.Guest.Checked
 
@@ -17,7 +17,7 @@ open LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `__loop2`, window 35: what its groups of arms compute alike. -/
-kernel_lit x37_35 : WinPre := winPre 37 35
+win_lit x37_35 37 35
 
 end
 end LeanVM.Guest.Checked

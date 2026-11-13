@@ -64,9 +64,11 @@ theorem MainGoalClSTB.toT {SB SK : String → ℕ} (h : MainGoalClSTB fs cert fp
 theorem mainGoalClXTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
     (hL15 : TotalLeOn coreProgram fs name% «claim_list_digest_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop0» + fs
+          name% «claim_list_digest_loop0»))
     (hL16 : TotalLeOn coreProgram fs name% «claim_list_digest_loop1» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs
+          name% «claim_list_digest_loop1»))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     MainGoalClXTB fs cert fp seed s w SB SK := by
   have hn : s.claims.xmss.length < claimBig * bigFramesCap := by
@@ -100,9 +102,11 @@ within `clB`.** -/
 theorem mainGoalClSTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
     (hL15 : TotalLeOn coreProgram fs name% «claim_list_digest_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop0»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop0» + fs
+          name% «claim_list_digest_loop0»))
     (hL16 : TotalLeOn coreProgram fs name% «claim_list_digest_loop1» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs name% «claim_list_digest_loop1»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs
+          name% «claim_list_digest_loop1»))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     MainGoalClSTB fs cert fp seed s w SB SK := by
   have hn : s.claims.sphincs.length < claimBig * bigFramesCap := by

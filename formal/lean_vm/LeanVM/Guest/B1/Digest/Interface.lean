@@ -30,12 +30,12 @@ meaning, and `…_complete_Spec`, the meaning (with what memory an honest run ho
 relation. A `…_Spec` is a definition (a `Prop`); its proof is the theorem `…_holds` of the
 family's modules.
 
-| function | G | core | meaning |
-| --- | --- | --- | --- |
-| `statement_digest` | 4250-4274 | `core21` | Keccak-256 of the eight header cells and the 24 deferred cells, two limbs each (`statementDigest`) |
-| `list_split` | 4291-4306 | `core22` | `n = 136 · bigs + 17 · groups + rest`, `bigs < 2^20`, `groups < 8`, `rest < 17` |
-| `claim_list_digest` | 4309-4340 | `core23` | Keccak-256 of the `4n` cells of the list (`claimListDigest`, N:172-180) |
-| `child_claim_list_digest` | 4371-4392 | `core24` | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table (by hinted indices, `child_claim_list_any`, or by hinted gaps, `child_claim_list_mono`) |
+| function | G | meaning |
+| --- | --- | --- |
+| `statement_digest` | 4250-4274 | Keccak-256 of the eight header cells and the 24 deferred cells, two limbs each (`statementDigest`) |
+| `list_split` | 4291-4306 | `n = 136 · bigs + 17 · groups + rest`, `bigs < 2^20`, `groups < 8`, `rest < 17` |
+| `claim_list_digest` | 4309-4340 | Keccak-256 of the `4n` cells of the list (`claimListDigest`, N:172-180) |
+| `child_claim_list_digest` | 4371-4392 | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table (by hinted indices, `child_claim_list_any`, or by hinted gaps, `child_claim_list_mono`) |
 
 **Cells and bytes.** A cell holds sixteen bytes, its two limbs (`Value.Keccak.cellsBytes`, the
 cell's `E.toBytes`). A digest's two cells are `digestHalves` (`digestCells`).
@@ -190,13 +190,15 @@ def child_claim_list_digest_sound_Spec : Prop :=
 
 /-! ## The functions, found -/
 
-theorem find_statement_digest : coreProgram.find? "statement_digest" = some fn% «statement_digest» :=
+theorem find_statement_digest : coreProgram.find? "statement_digest" = some fn% «statement_digest»
+    :=
   coreProgram_find?_at (j := idx% «statement_digest») rfl
 
 theorem find_list_split : coreProgram.find? "list_split" = some fn% «list_split» :=
   coreProgram_find?_at (j := idx% «list_split») rfl
 
-theorem find_claim_list_digest : coreProgram.find? "claim_list_digest" = some fn% «claim_list_digest» :=
+theorem find_claim_list_digest : coreProgram.find? "claim_list_digest" = some
+    fn% «claim_list_digest» :=
   coreProgram_find?_at (j := idx% «claim_list_digest») rfl
 
 theorem find_child_claim_list_digest :

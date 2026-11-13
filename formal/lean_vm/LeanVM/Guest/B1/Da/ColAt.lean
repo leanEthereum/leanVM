@@ -3,8 +3,8 @@
 
   `da_verify_column` placed (G:4562-4576): column `h` of every blob, its weights expanded from the
   top leaf `h` (`da_expand__L7_L8`, its run in its frame), then every blob's cell checked against
-  them and joined to its running sum and its tree (`da_verify_column_loop0`), within its frame and its callees'
-  bounds, by a tree of its honest shape (`colNH r`).
+  them and joined to its running sum and its tree (`da_verify_column_loop0`), within its frame and
+  its callees' bounds, by a tree of its honest shape (`colNH r`).
 
   `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
 -/
@@ -22,9 +22,10 @@ public import LeanVM.Guest.Data.NameStrings
 
 The column reads its top leaf `topRun z [128 + h] = topLeaf z h` (`topLeaf_eq`), expands the cell's
 weights from it (`exp8_completeAtB`: the cell factors, `zs`, the offsets of the cell `h`), whose
-leaves are the dual codeword on the cell (`cellLeaf_eq`), then runs `da_verify_column_loop0` over the blobs
-(`l21_rel`). `colLin`: what it reads; `colNH r`: its honest shape (its counter's bound `g^r` and its
-loop's start `1`); `col_completeAtB`: complete within `colB`, when the static bounds hold.
+leaves are the dual codeword on the cell (`cellLeaf_eq`), then runs `da_verify_column_loop0` over
+the blobs (`l21_rel`). `colLin`: what it reads; `colNH r`: its honest shape (its counter's bound
+`g^r` and its loop's start `1`); `col_completeAtB`: complete within `colB`, when the static bounds
+hold.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -77,7 +78,8 @@ noncomputable def colKids (r : ℕ) (syms : ℕ → ℕ → List K) (z : E) (bz 
   [fun _ => ⟨"da_expand__L7_L8", true, [topLeaf z h, gen ^ bc, gen ^ bz, gen ^ (bo + 8 * h)],
       [(bz, zsCells z), (bc, facCells (zsVal z) 7 8), (bo, offCells (zsVal z))],
       expOut (topLeaf z h) (factorAt (zsVal z) 7) (zsVal z) (colShift z h) 7 8⟩,
-    fun pv => ⟨name% «da_verify_column_loop0», true, [1, gen ^ r, gen ^ (colRb z h pv + 256), gen ^ bR, gen ^ h, gen ^ h * gen ^ h],
+    fun pv => ⟨name% «da_verify_column_loop0», true, [1, gen ^ r, gen ^ (colRb z h pv + 256),
+        gen ^ bR, gen ^ h, gen ^ h * gen ^ h],
       [(bb, blobsCells r syms z), (bR, rowbaseCells r bb), (colRb z h pv, colRun z h)], Returns []⟩]
 
 /-- A column's valuation. -/
@@ -160,7 +162,8 @@ theorem col_sholds {rd : Reader} (r : ℕ) (z : E) (bz bt bc bo bR h : ℕ) (r13
     (htop : LoadHolds rd (gen ^ (bt + 2 ^ 7) * gen ^ h) 0 (topLeaf z h)) :
     ∀ s ∈ colPre, SHolds (fun _ _ _ => True) rd (Val.ofArgs (colVals r z bz bt bc bo bR h r13)) s := by
   intro s hs
-  simp only [colPre, core_eq% «da_verify_column», core_eq% «da_verify_column» body, List.dropLast_cons_cons, List.dropLast_singleton,
+  simp only [colPre, core_eq% «da_verify_column», core_eq% «da_verify_column» body,
+      List.dropLast_cons_cons, List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals simp only [SHolds, Atom.Holds, ofArgs_n, colVals, List.getD_cons_succ,
@@ -175,13 +178,15 @@ callees' bounds**: the expansion's frame, the row loop's `r` iterations and its 
 frame. -/
 theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
     (h21 : TotalLeOn coreProgram fs name% «da_verify_column_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs name% «da_verify_column_loop0»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs
+          name% «da_verify_column_loop0»))
     {r : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ 1024) {syms : ℕ → ℕ → List K} (hsl : ∀ i j, (syms i j).length = 256)
     {z : E} {bz bt bc bo bb bR h : ℕ} (hh : h < 128) :
     CompleteAtDTB fs cert 16 "da_verify_column" (colLin r syms z bz bt bc bo bb bR)
       [gen ^ h, gen ^ r, gen ^ bR, gen ^ bz, gen ^ (bt + 2 ^ 7), gen ^ bc, gen ^ bo] (Returns [])
       (colNH r)
-      (fs "da_verify_column" + (fs "da_expand__L7_L8" + (r * iterK fs SK name% «da_verify_column_loop0» + fs name% «da_verify_column_loop0»))) := by
+      (fs "da_verify_column" + (fs "da_expand__L7_L8" + (r * iterK fs SK
+          name% «da_verify_column_loop0» + fs name% «da_verify_column_loop0»))) := by
   have hcok := col_cok
   unfold colCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
@@ -196,8 +201,10 @@ theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
     (colLin r syms z bz bt bc bo bb bR)
     [gen ^ h, gen ^ r, gen ^ bR, gen ^ bz, gen ^ (bt + 2 ^ 7), gen ^ bc, gen ^ bo]
     (fun _ _ => []) [] hb hflat haddr hni [] (fun _ => []) (fun _ => .nil)
-    (fun _ => colKids r syms z bz bc bo bb bR h) ["da_expand__L7_L8", name% «da_verify_column_loop0»]
-    [fs "da_expand__L7_L8", r * iterK fs SK name% «da_verify_column_loop0» + fs name% «da_verify_column_loop0»] [fun _ => True, fun _ => True]
+    (fun _ => colKids r syms z bz bc bo bb bR h) ["da_expand__L7_L8",
+        name% «da_verify_column_loop0»]
+    [fs "da_expand__L7_L8", r * iterK fs SK name% «da_verify_column_loop0» + fs
+        name% «da_verify_column_loop0»] [fun _ => True, fun _ => True]
     (colQ r)
     (fun _ => .cons (fun _ => rfl) (.cons (fun _ => rfl) .nil))
     (fun fp => ?_) (fun _ _ _ _ => rfl)

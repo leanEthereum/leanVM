@@ -43,7 +43,8 @@ theorem termT_split : termT = termPre ++ [.ret []] := by
   rw [termT, termClaims_end, termTail_split, termPre]
   simp only [List.append_assoc]
 
-theorem find_term : coreProgram.find? "check_opening_terminal" = some fn% «check_opening_terminal» :=
+theorem find_term : coreProgram.find? "check_opening_terminal" = some fn% «check_opening_terminal»
+    :=
   coreProgram_find?_at (j := idx% «check_opening_terminal») rfl
 
 theorem term_body' : (fn% «check_opening_terminal»).body = termPre ++ [.ret []] := by

@@ -7,13 +7,18 @@
   `batch_rom` plus `q² / 2^508` for `q` permutation calls.
 -/
 
-import LeanVM.Guest.Batch.Rom
-import LeanVM.Protocol.Rpm.Generic
-import Common.Linear
-import LeanVM.Protocol.WithHash
-import LeanVM.Guest.ExperimentBridge
-import LeanVM.Guest.WithHash
-import LeanVM.Guest.AcceptableChild
+module
+
+public import LeanVM.Guest.Batch.Rom
+public import LeanVM.Protocol.Rpm.Generic
+public import Common.Linear
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.ExperimentBridge
+public import LeanVM.Guest.WithHash
+public import LeanVM.Guest.AcceptableChild
+public import Common.ByteArray
+
+@[expose] public section
 
 /-!
 # The batching in the random-permutation model
@@ -94,7 +99,9 @@ theorem duplexVm_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
 
 /-! ## The permutation calls -/
 
-theorem batchLabel_length : batchingLabel.length ≤ 2 ^ 37 := by decide +kernel
+theorem batchLabel_length : batchingLabel.length ≤ 2 ^ 37 := by
+  rw [batchingLabel, String.length_toList_toUTF8]
+  decide
 
 theorem allQ_batchSeed : AllQueriesSatisfy (batchSeedOf.run callKeccak256 callKeccakF1600) Short := by
   refine allQueriesSatisfy_bind (allQ_hsRun _ _ fun f hf ds ↦ ?_) fun _ ↦ allQ_queryF _
@@ -264,3 +271,5 @@ theorem batch_sound_holds : BatchingSound :=
   batchingSound_of_withHash batchingSoundWithHash_holds
 
 end LeanVM.Guest.Batch
+
+end

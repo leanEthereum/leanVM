@@ -16,13 +16,14 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `ring_switch_target` (TRIAGE G #64, #65)
 
-`ring_switch_target(slices, map_challenges)` (`fn% «ring_switch_target»`) zeroes the eight Horner chains'
-first row of `rs_chain` and runs `ring_switch_target_loop0` (`fn% «ring_switch_target_loop0»`) for `x = g^j`, `j < 8`. The loop
-body reads `g_0 .. g_7` (`map_challenges[8 ..]`), computes `Ψ` (`ring_psi`, inline: `psRow`) of
-the eight slices at `slices·x^8`, and steps each chain `p` by eight Horner steps in
-`w_p = RING_W[p]` (`hzRow`), from row `x^8` of `rs_chain` to the next. Chain `p` ends at
-`wHorner w_p (Ψ(s_0), …, Ψ(s_63))`; the tail raises it to `2^(8p)` by `8p` squarings, scales it by
-`f_p = map_challenges[p]`, sums, and multiplies by `x^63`: `guest_target_eq`.
+`ring_switch_target(slices, map_challenges)` (`fn% «ring_switch_target»`) zeroes the eight Horner
+chains' first row of `rs_chain` and runs `ring_switch_target_loop0` (`fn%
+«ring_switch_target_loop0»`) for `x = g^j`, `j < 8`. The loop body reads `g_0 .. g_7`
+(`map_challenges[8 ..]`), computes `Ψ` (`ring_psi`, inline: `psRow`) of the eight slices at
+`slices·x^8`, and steps each chain `p` by eight Horner steps in `w_p = RING_W[p]` (`hzRow`), from
+row `x^8` of `rs_chain` to the next. Chain `p` ends at `wHorner w_p (Ψ(s_0), …, Ψ(s_63))`; the tail
+raises it to `2^(8p)` by `8p` squarings, scales it by `f_p = map_challenges[p]`, sums, and
+multiplies by `x^63`: `guest_target_eq`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -185,9 +186,11 @@ def loop13T : List Stmt :=
     .atom (.const (.n 408) (word 2 0)), .atom (.mul (.n 409) (.n 0) (.n 408)),
     .callIf (.n 407) name% «ring_switch_target_loop0» [.n 409, .n 1, .n 2, .n 3], .ret []]
 
-theorem loop13_body : (fn% «ring_switch_target_loop0»).body = loop13T := stmtsEqb_sound (by decide +kernel)
+theorem loop13_body : (fn% «ring_switch_target_loop0»).body = loop13T :=
+  stmtsEqb_sound (by decide +kernel)
 
-theorem find_loop13 : coreProgram.find? name% «ring_switch_target_loop0» = some fn% «ring_switch_target_loop0» :=
+theorem find_loop13 : coreProgram.find? name% «ring_switch_target_loop0» = some
+    fn% «ring_switch_target_loop0» :=
   coreProgram_find?_at (j := idx% «ring_switch_target_loop0») rfl
 
 /-- **The loop body's meaning at `x`**: `g_0 .. g_7` at `map_challenges[8 ..]`, the eight slices
@@ -200,17 +203,20 @@ def RowOk13 (rd : Reader) (mc sl ch x : E) : Prop :=
       LoadHolds rd (ch * x ^ 8) (8 + p)
         ((vs.map (ringPsi · gs)).foldl (hstep (ofK (ringWK.getD p 0))) acc)
 
-/-- **`ring_switch_target_loop0`'s step**: at depth `d + 1` and `x`, the body's meaning, and the call at `x·g`
+/-- **`ring_switch_target_loop0`'s step**: at depth `d + 1` and `x`, the body's meaning, and the
+call at `x·g`
 one level shallower unless `x·g = g^8`. -/
 theorem loop13_step (d : ℕ) (x mc sl ch : E)
     (h : coreProgram.relN rd (d + 1) name% «ring_switch_target_loop0» [x, mc, sl, ch] []) :
     RowOk13 rd mc sl ch x ∧
-      (x * gen + gen ^ 8 ≠ 0 → coreProgram.relN rd d name% «ring_switch_target_loop0» [x * gen, mc, sl, ch] []) := by
+      (x * gen + gen ^ 8 ≠ 0 → coreProgram.relN rd d name% «ring_switch_target_loop0» [x * gen, mc,
+          sl, ch] []) := by
   obtain ⟨fn, hf, σ, hpar, hb⟩ := h
   rw [find_loop13] at hf
   cases hf
   rw [loop13_body] at hb
-  simp only [core_eq% «ring_switch_target_loop0», List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
+  simp only [core_eq% «ring_switch_target_loop0», List.map_cons, List.map_nil, List.cons.injEq,
+      and_true] at hpar hb
   obtain ⟨rfl, rfl, rfl, rfl⟩ := hpar
   simp only [loop13T, holdsList_append] at hb
   obtain ⟨hg, hb⟩ := (holdsList_range_flatten 8
@@ -308,7 +314,8 @@ def rstT : List Stmt :=
   [.atom (.hint (.alloc (.n 2) 72))] ++
   ((List.range 8).map fun p ↦
     [Stmt.atom (.const (.n (3 + p)) (word 0 0)), .atom (.load (.n (3 + p)) (.n 2) p)]).flatten ++
-  [.atom (.const (.n 11) (word 1 0)), .call name% «ring_switch_target_loop0» [.n 11, .n 1, .n 0, .n 2] [],
+  [.atom (.const (.n 11) (word 1 0)), .call name% «ring_switch_target_loop0» [.n 11, .n 1, .n 0,
+      .n 2] [],
     .atom (.const (.n 12) (word 27 0)), .atom (.mul (.n 13) (.n 2) (.n 12)),
     .atom (.load (.n 14) (.n 1) 0), .atom (.load (.n 15) (.n 13) 0),
     .atom (.mul (.n 16) (.n 14) (.n 15))] ++
@@ -349,7 +356,8 @@ theorem ring_switch_target_holds : ring_switch_target_Spec := by
     (fun p ↦ tbBlock_noRet (p + 1)) _ _).mp hb
   -- the loop's rows
   have hrows : ∀ j, j < 8 → RowOk13 rd (σ (.n 1)) (σ (.n 0)) (σ (.n 2)) (gen ^ j) := by
-    have := loop_sound (P := coreProgram) (f := name% «ring_switch_target_loop0») (ps := [σ (.n 1), σ (.n 0), σ (.n 2)])
+    have := loop_sound (P := coreProgram) (f := name% «ring_switch_target_loop0») (ps := [σ (.n 1),
+        σ (.n 0), σ (.n 2)])
       (N := gen ^ 8) (m := 8) (B := RowOk13 rd (σ (.n 1)) (σ (.n 0)) (σ (.n 2)))
       (fun d x h => loop13_step d x _ _ _ h) rfl (by decide) 0
       (by rw [pow_zero, ← word_one, ← e11]; exact hloop)

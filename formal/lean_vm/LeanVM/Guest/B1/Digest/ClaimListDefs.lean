@@ -13,9 +13,10 @@ public import LeanVM.Guest.B1.Digest.Window
 # `claim_list_digest`: the checks
 
 What the kernel evaluates for `claim_list_digest` (`ClaimList`): `clOk` (`claim_list_last__L{k}`),
-`grpOk` (a frame loop of `m` claims), split for the big loop `claim_list_digest_loop0` into `grpHead` and the
-windows `bigWin i` (four blocks and 34 cells each, four to a module `ClaimListBig{q}`), which
-`grpOk_of_parts` puts back together. Only definitions and the gluing: the kernel checks sit in their own modules.
+`grpOk` (a frame loop of `m` claims), split for the big loop `claim_list_digest_loop0` into
+`grpHead` and the windows `bigWin i` (four blocks and 34 cells each, four to a module
+`ClaimListBig{q}`), which `grpOk_of_parts` puts back together. Only definitions and the gluing: the
+kernel checks sit in their own modules.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -110,12 +111,14 @@ theorem grpOk_of_parts {fn : Fn} {f : String} {m c0 st0 ep w W v U : ℕ}
 /-! ## The big frame loop `claim_list_digest_loop0` (136 claims, 64 blocks), in sixteen windows -/
 
 /-- `claim_list_digest_loop0`'s atoms. -/
-noncomputable def bigAtoms : List Atom := loopAtoms (coreProgram.getD idx% «claim_list_digest_loop0» default)
+noncomputable def bigAtoms : List Atom := loopAtoms (coreProgram.getD
+    idx% «claim_list_digest_loop0» default)
 
 /-- `claim_list_digest_loop0`'s chain. -/
 noncomputable def bigSpec : ChainSpec := grpSpec 136 21 565 bigAtoms
 
-/-- Window `i` of `claim_list_digest_loop0`: blocks `4i … 4i + 3` and cells `34i … 34i + 33`, each searched
+/-- Window `i` of `claim_list_digest_loop0`: blocks `4i … 4i + 3` and cells `34i … 34i + 33`, each
+searched
 from their atoms on. -/
 noncomputable def bigWin (i : ℕ) : Bool :=
   bigSpec.blocksFrom bigAtoms (4 * i) 4 && loadsFrom bigAtoms (V.n 20) bigSpec.msg (34 * i) 34

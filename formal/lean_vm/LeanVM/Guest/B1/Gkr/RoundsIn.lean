@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Gkr.RoundsIn
 
-  `verify_bus_gkr`'s rounds (`gkr_rounds__L{0,1,2,4,6}`, `verify_bus_gkr_loop0_loop0`) load from any region
-  holding their records, points and the round polynomials at the records' cursors.
+  `verify_bus_gkr`'s rounds (`gkr_rounds__L{0,1,2,4,6}`, `verify_bus_gkr_loop0_loop0`) load from any
+  region holding their records, points and the round polynomials at the records' cursors.
 -/
 
 module
@@ -20,8 +20,9 @@ A round record holds its fields `862` words apart (`gkCap`), its cursor at `5·8
   words), a point `pt` (`42 + n`) and the window table (unread), reads the `4n` words at the record's cursor; a kernel check
   (`grCheck`) of its body: no call, loads through `rec`, `pt` and the cursor only (at `n = 0`, no
   load at all).
-* `loop29_relIn`: iteration `k < K` of `verify_bus_gkr_loop0_loop0` (eight rounds) on the record `head·g^(8k)`
-  (`5181` words) and the point `ptrow·g^(8k)` (`50`), reading `32` words at the record's cursor.
+* `loop29_relIn`: iteration `k < K` of `verify_bus_gkr_loop0_loop0` (eight rounds) on the record
+  `head·g^(8k)` (`5181` words) and the point `ptrow·g^(8k)` (`50`), reading `32` words at the
+  record's cursor.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -111,7 +112,8 @@ theorem gkr_rounds_relIn {n : ℕ} (hn : n ∈ grCounts) {rd : Reader} {R : ℕ 
 /-! ## `verify_bus_gkr_loop0_loop0` -/
 
 /-- `verify_bus_gkr_loop0_loop0`'s statements before its `ret`. -/
-def l29PreK : List Stmt := l29A ++ [.callIf (.n 341) name% «verify_bus_gkr_loop0_loop0» [.n 343, .n 1, .n 2, .n 3, .n 4]]
+def l29PreK : List Stmt := l29A ++ [.callIf (.n 341) name% «verify_bus_gkr_loop0_loop0» [.n 343,
+    .n 1, .n 2, .n 3, .n 4]]
 
 theorem l29Body_pre_eq : l29Body = l29PreK ++ [.ret []] := by
   rw [l29Body_eq, l29PreK, List.append_assoc]; rfl
@@ -126,14 +128,17 @@ theorem l29_loads : l29PreK.all (loadsViaB [(8, 5181), (9, 50), (15, 32)]) = tru
   decide +kernel
 
 theorem l29_calls : l29PreK.filterMap Main.Stmt.callS =
-    [(some (.n 341), name% «verify_bus_gkr_loop0_loop0», [.n 343, .n 1, .n 2, .n 3, .n 4], [])] := by decide +kernel
+    [(some (.n 341), name% «verify_bus_gkr_loop0_loop0», [.n 343, .n 1, .n 2, .n 3, .n 4],
+        [])] := by decide +kernel
 
 /-- **`verify_bus_gkr_loop0_loop0` loads from `R`**, every iteration `k < K`. -/
 theorem loop29_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ}
     {head ptrow tabs : E} (hh : PtrIn R head (8 * K + 5173)) (hp : PtrIn R ptrow (8 * K + 42))
     (hcur : ∀ k < K, ∀ c, LoadHolds rd (head * gen ^ (8 * k)) 4310 c → PtrIn R c 32) :
-    ∀ d k, k < K → coreProgram.relN rd d name% «verify_bus_gkr_loop0_loop0» [gen ^ k, gen ^ K, head, ptrow, tabs] [] →
-      coreProgram.RelIn rd R name% «verify_bus_gkr_loop0_loop0» [gen ^ k, gen ^ K, head, ptrow, tabs] [] := by
+    ∀ d k, k < K → coreProgram.relN rd d name% «verify_bus_gkr_loop0_loop0» [gen ^ k, gen ^ K,
+        head, ptrow, tabs] [] →
+      coreProgram.RelIn rd R name% «verify_bus_gkr_loop0_loop0» [gen ^ k, gen ^ K, head, ptrow,
+          tabs] [] := by
   intro d
   induction d with
   | zero => intro k _ h; exact h.elim
@@ -167,7 +172,8 @@ theorem loop29_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ}
     have m343 := hS _ (mem_of_slice (i := 257) (s := .atom (.mul (.n 343) (.n 0) (.n 342)))
       (by decide +kernel))
     have hci := hS _ (mem_of_slice (i := 258)
-      (s := .callIf (.n 341) name% «verify_bus_gkr_loop0_loop0» [.n 343, .n 1, .n 2, .n 3, .n 4]) (by decide +kernel))
+      (s := .callIf (.n 341) name% «verify_bus_gkr_loop0_loop0» [.n 343, .n 1, .n 2, .n 3,
+          .n 4]) (by decide +kernel))
     simp only [Fwd.SHolds, Atom.Holds] at m5 m6 m7 m8 m9 l15 c339 m340 a341 c342 m343 hci
     rw [tb_word_gen] at c339 c342
     have e8 : σ (.n 8) = head * gen ^ (8 * k) := by rw [m8, m7, m6, m5, p0, p2]; ring

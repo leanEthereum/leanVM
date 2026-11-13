@@ -41,7 +41,7 @@ later level's OOD grind by its point (a non-final level leaves it a variable,
 checks it). Every grind has at most `64` bits (`grindingBits_le_sixtyFour`): the theorem
 `grindBits_le_of_reachable` is the cap at which the random-oracle theorem discounts a group.
 
-The instances hold at every bound `B ≥ 17` (`moves_*_le`), the bus's grind bounded at the layout
+The instances hold at every bound `B ≥ grindCap` (`moves_*_le`), the bus's grind bounded at the layout
 (`BusGrindLE`); the `G64` forms are those at `B = 64`. On a program's own bytecode the bus's grind
 has at most `27` bits, and so has every grind (`Complete.moves_leanVm_twentySeven`).
 -/
@@ -298,10 +298,18 @@ theorem grindingBits_le_of {N B : ℕ} (hN : N ≤ 2 ^ (B + 3)) : grindingBits N
     simp only [securityBits]
     omega
 
-theorem le_two_pow_of_le {n B : ℕ} (hB : 17 ≤ B) (hn : n ≤ 2 ^ 20) : n ≤ 2 ^ (B + 3) :=
-  hn.trans (Nat.pow_le_pow_right (by norm_num) (by omega))
+/-- The bound every grind of the protocol's own takes: the derived grinds' `17` (a count up to
+`2^20`) and the fixed grinds of WHIR and the batching (`Whir.queryGrindingBits`, …). -/
+def grindCap : ℕ :=
+  max 17 (max Whir.queryGrindingBits (max Whir.foldGrindingBits (max Whir.batchGrindingBits Whir.oodGrindingBits)))
 
-theorem le_of_le_seventeen {b B : ℕ} (hB : 17 ≤ B) (hb : b ≤ 17) : b ≤ B := hb.trans hB
+theorem seventeen_le_grindCap : 17 ≤ grindCap := le_max_left _ _
+
+theorem le_two_pow_of_le {n B : ℕ} (hB : grindCap ≤ B) (hn : n ≤ 2 ^ 20) : n ≤ 2 ^ (B + 3) :=
+  hn.trans (Nat.pow_le_pow_right (by norm_num) (by have := seventeen_le_grindCap; omega))
+
+/-- A fixed grind is within the bound (`hb` by `decide`, whatever the constants). -/
+theorem le_of_le_grindCap {b B : ℕ} (hB : grindCap ≤ B) (hb : b ≤ grindCap) : b ≤ B := hb.trans hB
 
 /-- The bus's grind has at most `B` bits at `layout`, once its depth is checked. -/
 def BusGrindLE (B : ℕ) (layout : Layout) : Prop :=
@@ -323,9 +331,9 @@ rule's conclusion does not unfold the program it is about. -/
 attribute [local irreducible] Moves
 
 /-!
-## Every grind at most `B` bits, `17 ≤ B`
+## Every grind at most `B` bits, `grindCap ≤ B`
 
-Every grind but the bus's has at most `17` bits; the bus's is bounded at the layout
+Every grind but the bus's has at most `grindCap` bits; the bus's is bounded at the layout
 (`BusGrindLE`). The forms at `G64` below are the instances at `B = 64`.
 -/
 
@@ -359,7 +367,7 @@ theorem moves_sumcheck_le {count : ℕ} (hc : count ≤ 2 ^ (B + 3)) :
           exact Moves.pure trivial)
       fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
 
-theorem moves_gkrStep_le (hB : 17 ≤ B) {step : ℕ} (h1 : 1 ≤ step) (h2 : step ≤ 2) (last : Bool)
+theorem moves_gkrStep_le (hB : grindCap ≤ B) {step : ℕ} (h1 : 1 ≤ step) (h2 : step ≤ 2) (last : Bool)
     (s : GkrState) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (gkrStep step last s) := by
   have hpow : 2 ^ step + 1 ≤ 2 ^ (B + 3) := by
@@ -377,7 +385,7 @@ theorem moves_gkrStep_le (hB : 17 ≤ B) {step : ℕ} (h1 : 1 ≤ step) (h2 : st
         fun _ _ _ ↦ Moves.startsSample_sampleChallenges (by omega) _
   split <;> omega
 
-theorem moves_gkrLayers_le (hB : 17 ≤ B) : ∀ (n : ℕ) (s : GkrState),
+theorem moves_gkrLayers_le (hB : grindCap ≤ B) : ∀ (n : ℕ) (s : GkrState),
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (gkrLayers n s)
   | 0, _ => Moves.pure trivial
   | 1, s => Moves.seq' (moves_gkrStep_le hB le_rfl (by norm_num) true s) fun t _ ↦
@@ -390,12 +398,12 @@ theorem moves_gkrLayers_le (hB : 17 ≤ B) : ∀ (n : ℕ) (s : GkrState),
     · exact Moves.seq' (moves_gkrStep_le hB (by norm_num) le_rfl (n = 0) s) fun t _ ↦
         moves_gkrLayers_le hB n t
 
-theorem moves_verifyGkrGrandProducts_le (hB : 17 ≤ B) (depth : ℕ) :
+theorem moves_verifyGkrGrandProducts_le (hB : grindCap ≤ B) (depth : ℕ) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (verifyGkrGrandProducts depth) :=
   Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
     Moves.seq' (moves_gkrLayers_le hB depth _) fun _ _ ↦ Moves.pure trivial
 
-theorem moves_bytecodeShare_le (hB : 17 ≤ B) (weights bytecodeLow : List E) :
+theorem moves_bytecodeShare_le (hB : grindCap ≤ B) (weights bytecodeLow : List E) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (bytecodeShare weights bytecodeLow) := by
   refine Moves.seq' Moves.readE fun _ _ ↦
     Moves.seq' (moves_sumcheck_le (le_two_pow_of_le hB (by norm_num)) _ _) fun r _ ↦ ?_
@@ -404,7 +412,7 @@ theorem moves_bytecodeShare_le (hB : 17 ≤ B) (weights bytecodeLow : List E) :
 
 /-- **The bus**, for a check of the fixed polynomial's value that makes no prover move, at a
 layout whose bus grind has at most `B` bits. -/
-theorem moves_verifyBusBalance_le (hB : 17 ≤ B)
+theorem moves_verifyBusBalance_le (hB : grindCap ≤ B)
     {bytecodeValue : List K → List E → E → VerifierProgram Unit}
     (hb : ∀ w p v, Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (bytecodeValue w p v))
     (layout : Layout) (hl : BusGrindLE B layout) :
@@ -444,7 +452,7 @@ theorem moves_tableTerms_le (constraintPowers formPowers point : List E) :
         obtain ⟨final, rows⟩ := r
         exact Moves.pure trivial
 
-theorem moves_tableSumcheck_le (hB : 17 ≤ B) (heights : List ℕ) (busForms : List (List Form))
+theorem moves_tableSumcheck_le (hB : grindCap ≤ B) (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False)
       (tableSumcheck heights busForms constraintPowers formPowers equalityPoint target) := by
@@ -454,7 +462,7 @@ theorem moves_tableSumcheck_le (hB : 17 ≤ B) (heights : List ℕ) (busForms : 
   obtain ⟨final, evaluations⟩ := r
   exact Moves.seq' (Moves.require _) fun _ _ ↦ Moves.pure trivial
 
-theorem moves_tablePhase_le (hB : 17 ≤ B) (layout : Layout) (bus : BusResult) :
+theorem moves_tablePhase_le (hB : grindCap ≤ B) (layout : Layout) (bus : BusResult) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (tablePhase layout bus) :=
   Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_of (le_two_pow_of_le hB (by decide)))
     (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦ moves_tableSumcheck_le hB _ _ _ _ _ _)
@@ -466,7 +474,7 @@ theorem moves_publicInputPhase_le (layout : Layout) (publicInput : Digest) :
 
 /-! ### The Keccak reduction and ring switching -/
 
-theorem moves_keccakPackRounds_le (hB : 17 ≤ B) : ∀ (rs : List E) (value scale : E),
+theorem moves_keccakPackRounds_le (hB : grindCap ≤ B) : ∀ (rs : List E) (value scale : E),
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (keccakPackRounds rs value scale)
   | [], _, _ => Moves.pure trivial
   | r :: rs, value, scale =>
@@ -477,7 +485,7 @@ theorem moves_keccakPackRounds_le (hB : 17 ≤ B) : ∀ (rs : List E) (value sca
           exact Moves.pure trivial)
       fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
 
-theorem moves_verifyKeccakLayer_le (hB : 17 ≤ B) (logSteps step : ℕ) (claim : KeccakClaim) :
+theorem moves_verifyKeccakLayer_le (hB : grindCap ≤ B) (logSteps step : ℕ) (claim : KeccakClaim) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (verifyKeccakLayer logSteps step claim) := by
   refine Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
     Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_of (le_two_pow_of_le hB (by decide)))
@@ -492,7 +500,7 @@ theorem moves_verifyKeccakLayer_le (hB : 17 ≤ B) (logSteps step : ℕ) (claim 
       (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦ Moves.pure trivial)
       fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
 
-theorem moves_keccakLayers_le (hB : 17 ≤ B) (logSteps : ℕ) :
+theorem moves_keccakLayers_le (hB : grindCap ≤ B) (logSteps : ℕ) :
     ∀ (steps : List ℕ) (claim : KeccakClaim),
       Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (keccakLayers logSteps steps claim)
   | [], _ => Moves.pure trivial
@@ -500,7 +508,7 @@ theorem moves_keccakLayers_le (hB : 17 ≤ B) (logSteps : ℕ) :
     Moves.seq' (moves_verifyKeccakLayer_le hB logSteps step claim) fun c _ ↦
       moves_keccakLayers_le hB logSteps steps c
 
-theorem moves_keccakOpen_le (hB : 17 ≤ B) (logSteps : ℕ) (claim : KeccakClaim)
+theorem moves_keccakOpen_le (hB : grindCap ≤ B) (logSteps : ℕ) (claim : KeccakClaim)
     (first count : ℕ) (value : E) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False)
       (keccakOpen logSteps claim first count value) := by
@@ -508,7 +516,7 @@ theorem moves_keccakOpen_le (hB : 17 ≤ B) (logSteps : ℕ) (claim : KeccakClai
   obtain ⟨slot, value⟩ := r
   exact Moves.pure trivial
 
-theorem moves_verifyKeccak_le (hB : 17 ≤ B) (logSteps : ℕ) (inst output : List E) :
+theorem moves_verifyKeccak_le (hB : grindCap ≤ B) (logSteps : ℕ) (inst output : List E) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (verifyKeccak logSteps inst output) := by
   have hopen : ∀ (claim : KeccakClaim) (first count : ℕ) (value : E) (f : List E × List E × E →
       VerifierProgram (List ColumnClaim × List E × List E)),
@@ -534,29 +542,29 @@ theorem moves_verifyKeccak_le (hB : 17 ≤ B) (logSteps : ℕ) (inst output : Li
   exact Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
     Moves.pure trivial
 
-theorem moves_keccakPhase_le (hB : 17 ≤ B) (layout : Layout)
+theorem moves_keccakPhase_le (hB : grindCap ≤ B) (layout : Layout)
     (evaluations : List (List E × List E)) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (keccakPhase layout evaluations) :=
   moves_verifyKeccak_le hB _ _ _
 
-theorem moves_ringSwitch_le (hB : 17 ≤ B) (point s : List E) :
+theorem moves_ringSwitch_le (hB : grindCap ≤ B) (point s : List E) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (ringSwitch point s) :=
-  Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
+  Moves.seq (Moves.grindP fun _ ↦ le_of_le_grindCap hB (by decide))
     (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.pure trivial)
     fun _ _ _ ↦ Moves.startsSample_sampleChallenges (by decide) _
 
 /-! ### The WHIR opening -/
 
-theorem moves_foldRound_le (hB : 17 ≤ B) (s : WhirState) :
+theorem moves_foldRound_le (hB : grindCap ≤ B) (s : WhirState) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (foldRound s) :=
   Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
     Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
-        Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
+        Moves.seq (Moves.grindP fun _ ↦ le_of_le_grindCap hB (by decide))
           (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
             Moves.pure trivial)
           fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
 
-theorem moves_foldRounds_le (hB : 17 ≤ B) : ∀ (n : ℕ) (s : WhirState),
+theorem moves_foldRounds_le (hB : grindCap ≤ B) : ∀ (n : ℕ) (s : WhirState),
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (foldRounds n s)
   | 0, _ => Moves.pure trivial
   | n + 1, s => Moves.seq' (moves_foldRound_le hB s) fun r _ ↦ by
@@ -566,18 +574,18 @@ theorem moves_foldRounds_le (hB : 17 ≤ B) : ∀ (n : ℕ) (s : WhirState),
         exact Moves.pure trivial
 
 /-- A fold round appends one challenge. -/
-theorem moves_foldRound_len_le (hB : 17 ≤ B) (s : WhirState) :
+theorem moves_foldRound_len_le (hB : grindCap ≤ B) (s : WhirState) :
     Moves (· ≤ B) False (fun r ↦ r.1.alphas.length = s.alphas.length + 1) (fun _ ↦ False)
       (foldRound s) :=
   Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
     Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
-        Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
+        Moves.seq (Moves.grindP fun _ ↦ le_of_le_grindCap hB (by decide))
           (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
             Moves.pure (by simp))
           fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
 
 /-- A level's fold rounds append one challenge each. -/
-theorem moves_foldRounds_len_le (hB : 17 ≤ B) : ∀ (n : ℕ) (s : WhirState),
+theorem moves_foldRounds_len_le (hB : grindCap ≤ B) : ∀ (n : ℕ) (s : WhirState),
     Moves (· ≤ B) False (fun r ↦ r.1.alphas.length = s.alphas.length + n) (fun _ ↦ False)
       (foldRounds n s)
   | 0, _ => Moves.pure (by simp)
@@ -627,7 +635,7 @@ theorem startsSample_sampleQueries {R : β → Prop} {depth count : ℕ} (hc : c
   simp only [Nat.add_one_ne_zero, ↓reduceIte]
   trivial
 
-theorem moves_whirLevels_le (hB : 17 ≤ B) (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
+theorem moves_whirLevels_le (hB : grindCap ≤ B) (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     ∀ (index : ℕ) (levels : List Whir.Level), (∀ l ∈ levels, l.queries ≠ 0) → ∀ (μ : ℕ),
       oodVarsPos μ levels = true → ∀ (s : WhirState), logN - s.alphas.length = μ →
       Moves (· ≤ B) True (fun _ ↦ True) (fun _ ↦ False)
@@ -641,7 +649,7 @@ theorem moves_whirLevels_le (hB : 17 ≤ B) (logN laneFolds : ℕ) (evaluateBasi
     cases rest with
     | nil =>
       exact Moves.seq' (Moves.readN _) fun _ _ ↦
-        Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
+        Moves.seq (Moves.grindP fun _ ↦ le_of_le_grindCap hB (by decide))
           (fun _ _ ↦ Moves.seq' (Moves.liftTrue (moves_sampleQueriesAux_le _ _ _)) fun _ _ ↦
             Moves.seq' (Moves.queryP _ _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
               Moves.seq' (Moves.liftTrue (moves_sumcheck_le (le_two_pow_of_le hB (by norm_num))
@@ -654,9 +662,9 @@ theorem moves_whirLevels_le (hB : 17 ≤ B) (logN laneFolds : ℕ) (evaluateBasi
       have hmu : logN - s'.alphas.length ≠ 0 := by omega
       exact Moves.seq' (Moves.commitP trivial _ _) fun _ _ ↦
         Moves.seq' (Moves.readN _) fun _ _ ↦
-          Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
+          Moves.seq (Moves.grindP fun _ ↦ le_of_le_grindCap hB (by decide))
             (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
-              Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
+              Moves.seq (Moves.grindP fun _ ↦ le_of_le_grindCap hB (by decide))
                 (fun _ _ ↦ Moves.seq' (Moves.liftTrue (moves_sampleQueriesAux_le _ _ _))
                   fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
                     Moves.seq' (Moves.queryP _ _) fun _ _ ↦
@@ -701,7 +709,7 @@ theorem ladder_queries_pos {μ R : ℕ} {config : List Whir.Level} (h : Whir.lad
   simp only [List.length_zipWith] at hi
   exact queryTable_getD_pos _ _ _ (List.getElem_mem (by omega))
 
-theorem moves_verifyWhir_le (hB : 17 ≤ B) (logN logInvRate : ℕ) (target : E)
+theorem moves_verifyWhir_le (hB : grindCap ≤ B) (logN logInvRate : ℕ) (target : E)
     (evaluateBasis : List E → E) :
     Moves (· ≤ B) True (fun _ ↦ True) (fun _ ↦ False)
       (verifyWhir logN logInvRate target evaluateBasis) :=
@@ -716,14 +724,14 @@ theorem moves_commitStack_le (logN logInvRate : ℕ) :
   | nil => exact Moves.fail
   | cons level rest => exact Moves.commitP trivial _ _
 
-theorem moves_readOod_le (hB : 17 ≤ B) {stackLog : ℕ} (h : stackLog ≠ 0) :
+theorem moves_readOod_le (hB : grindCap ≤ B) {stackLog : ℕ} (h : stackLog ≠ 0) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (readOod stackLog) :=
-  Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
+  Moves.seq (Moves.grindP fun _ ↦ le_of_le_grindCap hB (by decide))
     (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
       Moves.pure trivial)
     fun _ _ _ ↦ Moves.startsSample_sampleChallenges h _
 
-theorem moves_verifyStackedOpening_le (hB : 17 ≤ B) (stackLog logInvRate : ℕ)
+theorem moves_verifyStackedOpening_le (hB : grindCap ≤ B) (stackLog logInvRate : ℕ)
     (claims : List StackClaim) :
     Moves (· ≤ B) True (fun _ ↦ True) (fun _ ↦ False)
       (verifyStackedOpening stackLog logInvRate claims) :=
@@ -734,7 +742,7 @@ theorem moves_verifyStackedOpening_le (hB : 17 ≤ B) (stackLog logInvRate : ℕ
 
 /-- **`verify_execution`**, for a check of the fixed polynomial's value that makes no prover
 move, where every layout the sizes can build has its bus grind at most `B` bits. -/
-theorem moves_verifyExecution_le (hB : 17 ≤ B)
+theorem moves_verifyExecution_le (hB : grindCap ≤ B)
     {bytecodeValue : List K → List E → E → VerifierProgram Unit}
     (hb : ∀ w p v, Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (bytecodeValue w p v))
     (bytecode : List K) (publicInput : Digest)
@@ -772,7 +780,7 @@ theorem moves_claimedBytecodeValue_le {g : ℕ → Prop} (claim : BytecodeClaim)
 
 /-- **The leanVM verifier program's moves**, every grind at most `B` bits where every layout the
 sizes can build has its bus grind at most `B` bits. -/
-theorem moves_leanVmProgram_le (hB : 17 ≤ B) (bytecode : List K) (publicInput : Digest)
+theorem moves_leanVmProgram_le (hB : grindCap ≤ B) (bytecode : List K) (publicInput : Digest)
     (hl : ∀ logMemory tableRows layout, buildLayout bytecode logMemory tableRows = some layout →
       layout.stackLog ≤ Whir.maxLogStack → BusGrindLE B layout) :
     Moves (· ≤ B) True (fun _ ↦ True) (fun _ ↦ False)
@@ -792,26 +800,26 @@ theorem moves_sumcheck {count : ℕ} (hc : count ≤ 2 ^ 67) (claim : E) (eqs : 
 
 theorem moves_gkrStep {step : ℕ} (h1 : 1 ≤ step) (h2 : step ≤ 2) (last : Bool) (s : GkrState) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (gkrStep step last s) :=
-  moves_gkrStep_le (by norm_num) h1 h2 last s
+  moves_gkrStep_le (by decide) h1 h2 last s
 
 theorem moves_gkrLayers (n : ℕ) (s : GkrState) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (gkrLayers n s) :=
-  moves_gkrLayers_le (by norm_num) n s
+  moves_gkrLayers_le (by decide) n s
 
 theorem moves_verifyGkrGrandProducts (depth : ℕ) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (verifyGkrGrandProducts depth) :=
-  moves_verifyGkrGrandProducts_le (by norm_num) depth
+  moves_verifyGkrGrandProducts_le (by decide) depth
 
 theorem moves_bytecodeShare (weights bytecodeLow : List E) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (bytecodeShare weights bytecodeLow) :=
-  moves_bytecodeShare_le (by norm_num) weights bytecodeLow
+  moves_bytecodeShare_le (by decide) weights bytecodeLow
 
 /-- **The bus**, for a check of the fixed polynomial's value that makes no prover move. -/
 theorem moves_verifyBusBalance {bytecodeValue : List K → List E → E → VerifierProgram Unit}
     (hb : ∀ w p v, Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (bytecodeValue w p v))
     (layout : Layout) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (verifyBusBalance bytecodeValue layout) :=
-  moves_verifyBusBalance_le (by norm_num) hb layout (busGrindLE_sixtyFour layout)
+  moves_verifyBusBalance_le (by decide) hb layout (busGrindLE_sixtyFour layout)
 
 /-- **The announced sizes**: reads; the stack has at least `minLogStack` variables. -/
 theorem moves_readSizes (bytecode : List K) :
@@ -829,13 +837,13 @@ theorem moves_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False)
       (tableSumcheck heights busForms constraintPowers formPowers equalityPoint target) :=
-  moves_tableSumcheck_le (by norm_num) heights busForms constraintPowers formPowers equalityPoint
+  moves_tableSumcheck_le (by decide) heights busForms constraintPowers formPowers equalityPoint
     target
 
 /-- **The table phase**: its grind followed by `ξ`. -/
 theorem moves_tablePhase (layout : Layout) (bus : BusResult) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (tablePhase layout bus) :=
-  moves_tablePhase_le (by norm_num) layout bus
+  moves_tablePhase_le (by decide) layout bus
 
 theorem moves_publicInputPhase (layout : Layout) (publicInput : Digest) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (publicInputPhase layout publicInput) :=
@@ -843,34 +851,34 @@ theorem moves_publicInputPhase (layout : Layout) (publicInput : Digest) :
 
 theorem moves_keccakPackRounds (rs : List E) (value scale : E) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (keccakPackRounds rs value scale) :=
-  moves_keccakPackRounds_le (by norm_num) rs value scale
+  moves_keccakPackRounds_le (by decide) rs value scale
 
 theorem moves_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (verifyKeccakLayer logSteps step claim) :=
-  moves_verifyKeccakLayer_le (by norm_num) logSteps step claim
+  moves_verifyKeccakLayer_le (by decide) logSteps step claim
 
 theorem moves_keccakLayers (logSteps : ℕ) (steps : List ℕ) (claim : KeccakClaim) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (keccakLayers logSteps steps claim) :=
-  moves_keccakLayers_le (by norm_num) logSteps steps claim
+  moves_keccakLayers_le (by decide) logSteps steps claim
 
 theorem moves_keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False)
       (keccakOpen logSteps claim first count value) :=
-  moves_keccakOpen_le (by norm_num) logSteps claim first count value
+  moves_keccakOpen_le (by decide) logSteps claim first count value
 
 /-- **The Keccak reduction**: its first grind followed by the segment. -/
 theorem moves_verifyKeccak (logSteps : ℕ) (inst output : List E) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (verifyKeccak logSteps inst output) :=
-  moves_verifyKeccak_le (by norm_num) logSteps inst output
+  moves_verifyKeccak_le (by decide) logSteps inst output
 
 theorem moves_keccakPhase (layout : Layout) (evaluations : List (List E × List E)) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (keccakPhase layout evaluations) :=
-  moves_keccakPhase_le (by norm_num) layout evaluations
+  moves_keccakPhase_le (by decide) layout evaluations
 
 /-- **Ring switching**: its grind followed by the map's sixteen challenges. -/
 theorem moves_ringSwitch (point s : List E) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (ringSwitch point s) :=
-  moves_ringSwitch_le (by norm_num) point s
+  moves_ringSwitch_le (by decide) point s
 
 /-- The phases that commit nothing, as moves of the whole program. -/
 theorem Moves.lift {p : VerifierProgram α} {Q : α → Prop}
@@ -879,11 +887,11 @@ theorem Moves.lift {p : VerifierProgram α} {Q : α → Prop}
 
 theorem moves_foldRound (s : WhirState) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (foldRound s) :=
-  moves_foldRound_le (by norm_num) s
+  moves_foldRound_le (by decide) s
 
 theorem moves_foldRounds (n : ℕ) (s : WhirState) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (foldRounds n s) :=
-  moves_foldRounds_le (by norm_num) n s
+  moves_foldRounds_le (by decide) n s
 
 theorem moves_sampleQueriesAux (depth fuel remaining : ℕ) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (sampleQueriesAux depth fuel remaining) :=
@@ -895,12 +903,12 @@ theorem moves_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) (
     (hpos : oodVarsPos μ levels = true) (s : WhirState) (hμ : logN - s.alphas.length = μ) :
     Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
       (whirLevels logN laneFolds evaluateBasis index levels s) :=
-  moves_whirLevels_le (by norm_num) logN laneFolds evaluateBasis index levels hq μ hpos s hμ
+  moves_whirLevels_le (by decide) logN laneFolds evaluateBasis index levels hq μ hpos s hμ
 
 theorem moves_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) :
     Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
       (verifyWhir logN logInvRate target evaluateBasis) :=
-  moves_verifyWhir_le (by norm_num) logN logInvRate target evaluateBasis
+  moves_verifyWhir_le (by decide) logN logInvRate target evaluateBasis
 
 /-- The stack's root: one commitment, no proof of work. -/
 theorem moves_commitStack (logN logInvRate : ℕ) :
@@ -910,12 +918,12 @@ theorem moves_commitStack (logN logInvRate : ℕ) :
 /-- **The commitment's OOD sample**: its grind followed by the point. -/
 theorem moves_readOod {stackLog : ℕ} (h : stackLog ≠ 0) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (readOod stackLog) :=
-  moves_readOod_le (by norm_num) h
+  moves_readOod_le (by decide) h
 
 theorem moves_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) :
     Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
       (verifyStackedOpening stackLog logInvRate claims) :=
-  moves_verifyStackedOpening_le (by norm_num) stackLog logInvRate claims
+  moves_verifyStackedOpening_le (by decide) stackLog logInvRate claims
 
 /-- **`verify_execution`**, for a check of the fixed polynomial's value that makes no prover
 move. -/
@@ -924,7 +932,7 @@ theorem moves_verifyExecution {bytecodeValue : List K → List E → E → Verif
     (bytecode : List K) (publicInput : Digest) :
     Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
       (verifyExecution bytecodeValue bytecode publicInput) :=
-  moves_verifyExecution_le (by norm_num) hb bytecode publicInput
+  moves_verifyExecution_le (by decide) hb bytecode publicInput
     fun _ _ layout _ _ ↦ busGrindLE_sixtyFour layout
 
 theorem moves_computedBytecodeValue (w : List K) (p : List E) (v : E) :

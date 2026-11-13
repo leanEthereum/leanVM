@@ -46,7 +46,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 /-- `xSeg`, `main_loop2`'s statements `9` to `321`. -/
 theorem xSeg_length : B1.Sig.xSeg.length = 313 := by
   have h := congrArg List.length B1.Sig.loop2_split
-  rw [core36_length, List.length_append, List.length_append] at h
+  rw [main_loop2_length, List.length_append, List.length_append] at h
   have h9 : B1.Sig.l2Pre.length = 9 := rfl
   have h7 : B1.Sig.l2Post.length = 7 := rfl
   omega

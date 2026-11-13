@@ -74,7 +74,7 @@ def ccElse : List Stmt := ccE4 ++ [.ite (.n 20) ccMonoArm ccAnyArm]
 
 theorem ccd_body : Fn.body fn% «child_claim_list_digest» =
     ccdHead ++ .ite (.n 6) cc25Zero ccElse :: (ccdTail ++ [.ret [.n 25, .n 26]]) := by
-  rw [core24_shape]; rfl
+  rw [child_claim_list_digest_shape]; rfl
 
 set_option maxRecDepth 100000 in
 theorem cc25Zero_straight : cc25Zero.all Main.Stmt.straight = true := by decide +kernel

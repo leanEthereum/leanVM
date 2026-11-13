@@ -42,7 +42,8 @@ theorem vsT_front73 : vsT = (vsHeadT ++ vsReadsT ++ vsSizesT) ++ (vsPushT ++ vsR
 /-- **`VsKnown`**: `kappa_base`'s entries below `kbBound`. -/
 theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)))
-    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take 1545) True
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take 1545)
+        True
       (fun _ ↦ True)) :
     ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 83)) i (ofK (addressOfIndex e)) :=
   vsKnown_of L h16 h32 (Tables.certify_placement_holds (h32.trans (by decide)) L) σ hexp h
@@ -56,7 +57,8 @@ theorem vsDimsKnown0_holds {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem �
     ∃ e < 34, LoadHolds L.read (σ (.n 71)) 0 (ofK (addressOfIndex e)) := by
   have hκ : κ ≤ 32 := h32.trans (by decide)
   have hle : CallRel.Le (coreProgram.Rel L.read) (coreProgram.Rel L.read) := fun _ _ _ h ↦ h
-  rw [show Fn.body fn% «verify_sub» = vsT from vs_body, vsT_front73, List.take_append, List.take_of_length_le (by rw [vsFront73_length]; omega),
+  rw [show Fn.body fn% «verify_sub» = vsT from vs_body, vsT_front73, List.take_append,
+      List.take_of_length_le (by rw [vsFront73_length]; omega),
     holdsList_append, holdsList_append, holdsList_append] at h
   have h := ((holdsList_noRet _ vsHeadT_noRet _ _).1 h).2
   have h := ((holdsList_noRet _ vsReadsT_noRet _ _).1 h).2

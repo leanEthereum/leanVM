@@ -75,9 +75,11 @@ def asgBlk (j : ℕ) : List Stmt :=
 def asgBody : List Stmt :=
   asgHead ++ ((List.range 8).map asgBlk).flatten ++ [.atom (.assertEq (.n 72) (.n 0)), .ret []]
 
-theorem core3_body : Fn.body fn% «assert_small_g_power» = asgBody := stmtsEqb_sound (by decide +kernel)
+theorem assert_small_g_power_body : Fn.body fn% «assert_small_g_power» = asgBody :=
+  stmtsEqb_sound (by decide +kernel)
 
-theorem find_assert_small_g_power : coreProgram.find? "assert_small_g_power" = some fn% «assert_small_g_power» :=
+theorem find_assert_small_g_power : coreProgram.find? "assert_small_g_power" = some
+    fn% «assert_small_g_power» :=
   coreProgram_find?_at (j := idx% «assert_small_g_power») rfl
 
 /-- Digit `j + 1`'s conditions. -/
@@ -114,7 +116,7 @@ theorem asg_unfold (rd : Reader) (args rets : List E) :
         LoadHolds rd (σ (.n 12)) 0 (σ (.n 14))) ∧
       σ (.n 15) = σ (.n 1) * σ (.n 2) ∧ LoadHolds rd (σ (.n 15)) 34 (σ (.n 16)) ∧
       (∀ j < 8, AsgOk rd σ j) ∧ σ (.n 72) + σ (.n 0) = 0 ∧ [] = rets := by
-  rw [rel_iff_sem find_assert_small_g_power, core3_body,
+  rw [rel_iff_sem find_assert_small_g_power, assert_small_g_power_body,
     show Fn.params fn% «assert_small_g_power» = [.n 0, .n 1] from rfl]
   simp only [asg_holds_iff, List.map_cons, List.map_nil]
 

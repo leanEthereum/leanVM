@@ -20,7 +20,8 @@ constant `Data.core{j}`, the numeral `j`, the string literal. So a proof reads e
 spelled the index, and a renumbering changes no proof.
 
 * `fn% s`: `Data.core{j}`; `idx% s`: `j`; `name% s`: the function's name; `core_count%`: the
-  number of core functions;
+  number of core functions; `fn_idx% s`: `j + 1`, its index among the compiled functions
+  (`coreOf`, `certOf`); `fn_count%`: their number (`nFns`), the entry's included;
 * `core% s m`: the definition `Data.core{j}.m` of its generated layout (`body`, chunk `c3`, block
   `s40_e`);
 * `core_eq% s`, `core_eq% s m`: the defining equation of `Data.core{j}` or of `Data.core{j}.m`, a
@@ -57,8 +58,26 @@ elab:max "name% " s:ident : term => valueOf `N s
 
 /-- `core_count%`: the number of core functions. -/
 elab:max "core_count%" : term => do
-  let some (.defnInfo d) := (← getEnv).find? `LeanVM.Guest.Data.coreCount | throwError "no coreCount"
+  let some (.defnInfo d) := (← getEnv).find?
+      `LeanVM.Guest.Data.coreCount | throwError "no coreCount"
   return d.value
+
+/-- The numeral one past the numeral `v`. -/
+def succLit (v : Expr) : TermElabM Expr := do
+  let v ← instantiateMVars v
+  let n? := if v.isAppOfArity ``OfNat.ofNat 3 then v.appFn!.appArg!.rawNatLit? else v.rawNatLit?
+  let some n := n? | throwError "not a numeral: {v}"
+  return mkNatLit (n + 1)
+
+/-- `fn_count%`: the number of compiled functions, the core functions and the entry, a numeral
+(`nFns`). -/
+elab:max "fn_count%" : term => do
+  let some (.defnInfo d) := (← getEnv).find? `LeanVM.Guest.Data.coreCount | throwError "no coreCount"
+  succLit d.value
+
+/-- `fn_idx% s`: the compiled index of the function of stable name `s`, one past its index in
+`coreProgram` (`coreOf`, `certOf`, `CutsKnown`), a numeral. -/
+elab:max "fn_idx% " s:ident : term => do succLit (← valueOf `I s)
 
 /-- `core% s m`: the member `m` of the generated function of stable name `s`. -/
 elab:max "core% " s:ident m:ident : term => do

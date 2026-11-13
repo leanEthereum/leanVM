@@ -42,13 +42,15 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
     verify_keccak_Spec rd := by
   intro args rets hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_vk args rets).mp hrel
-  rw [show (fn% «verify_keccak»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
+  rw [show (fn% «verify_keccak»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8,
+      .n 9,
     .n 10, .n 11] from rfl] at hpar
   simp only [List.map_cons, List.map_nil] at hpar
   subst hpar
   simp only [MeaningVerifyKeccak]
   intro htabs τ chis outs hτ1 hτ2 htg hchiL hchi houtsL hol
-  rw [show Fn.body fn% «verify_keccak» = vkT from vk_body, vkT, holdsList_append, holdsList_append, holdsList_append, holdsList_append,
+  rw [show Fn.body fn% «verify_keccak» = vkT from vk_body, vkT, holdsList_append, holdsList_append,
+      holdsList_append, holdsList_append,
     holdsList_append] at hb
   -- the head
   replace hb := vkHeadT_holds hτ1 hτ2 htg hb

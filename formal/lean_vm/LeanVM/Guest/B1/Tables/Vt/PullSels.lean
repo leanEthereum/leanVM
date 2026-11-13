@@ -2,6 +2,8 @@
   LeanVM.Guest.B1.Tables.Vt.PullSels
 
   The pull side's table block selectors are the push side's, copied.
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

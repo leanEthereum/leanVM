@@ -19,12 +19,13 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # The loops, completely
 
-The blocks (`LoopBlock`) of `da_verify_loop0` (a blob's region at `rowbase[x]`, its running sum's first
-word zero), `da_verify_loop2` (the sum zero at word `640`, the region's tree's root at `roots·x²`),
-`da_verify_loop3` (a padding blob's root) and `da_verify_column_loop0` (a blob's cell in a column: its check, the
-running sum's step at words `512 + j`, `513 + j`, its digest at the tree's leaf `2j`), each from
-the memory words it reads and writes; `loopPre_of_body` reads a block off a body checked as a
-block and its closing tail call. `loopF_complete` (`B1.Digest`) runs each to its end.
+The blocks (`LoopBlock`) of `da_verify_loop0` (a blob's region at `rowbase[x]`, its running sum's
+first word zero), `da_verify_loop2` (the sum zero at word `640`, the region's tree's root at
+`roots·x²`), `da_verify_loop3` (a padding blob's root) and `da_verify_column_loop0` (a blob's cell
+in a column: its check, the running sum's step at words `512 + j`, `513 + j`, its digest at the
+tree's leaf `2j`), each from the memory words it reads and writes; `loopPre_of_body` reads a block
+off a body checked as a block and its closing tail call. `loopF_complete` (`B1.Digest`) runs each to
+its end.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -63,22 +64,27 @@ theorem loopPre_of_body {fn : Fn} {pre : List Stmt} {c : V} {f : String} {args :
     loopPre fn = pre := by
   simp [loopPre, h, splitLoopF_append pre hf]
 
-theorem find_l17 : coreProgram.find? name% «da_verify_loop0» = some (coreProgram.getD idx% «da_verify_loop0» default) :=
+theorem find_l17 : coreProgram.find? name% «da_verify_loop0» = some (coreProgram.getD
+    idx% «da_verify_loop0» default) :=
   find_of_idx dv_loops_idx.1
 
-theorem find_l19 : coreProgram.find? name% «da_verify_loop2» = some (coreProgram.getD idx% «da_verify_loop2» default) :=
+theorem find_l19 : coreProgram.find? name% «da_verify_loop2» = some (coreProgram.getD
+    idx% «da_verify_loop2» default) :=
   find_of_idx dv_loops_idx.2.2.1
 
-theorem find_l20 : coreProgram.find? name% «da_verify_loop3» = some (coreProgram.getD idx% «da_verify_loop3» default) :=
+theorem find_l20 : coreProgram.find? name% «da_verify_loop3» = some (coreProgram.getD
+    idx% «da_verify_loop3» default) :=
   find_of_idx dv_loops_idx.2.2.2
 
-theorem find_l21 : coreProgram.find? name% «da_verify_column_loop0» = some (coreProgram.getD idx% «da_verify_column_loop0» default) :=
+theorem find_l21 : coreProgram.find? name% «da_verify_column_loop0» = some (coreProgram.getD
+    idx% «da_verify_column_loop0» default) :=
   find_of_idx l21_idx
 
 /-! ## The blocks -/
 
 set_option maxRecDepth 20000 in
-/-- **A blob's region** (`da_verify_loop0`): `rowbase[x] = blobs·x^641`, its running sum's first word
+/-- **A blob's region** (`da_verify_loop0`): `rowbase[x] = blobs·x^641`, its running sum's first
+word
 zero. -/
 theorem l17_block {x N bl rb : E} (h1 : LoadHolds rd (rb * x) 0 (bl * x ^ 641))
     (h2 : LoadHolds rd (bl * x ^ 641) 512 0) :
@@ -146,14 +152,16 @@ theorem l20_block {x N roots nb : E}
   exacts [h0, h1]
 
 set_option maxRecDepth 20000 in
-/-- **A blob's cell in a column** (`da_verify_column_loop0`): the cell's check, the running sum's step from word
+/-- **A blob's cell in a column** (`da_verify_column_loop0`): the cell's check, the running sum's
+step from word
 `512` to `513` at `base·xb`, the cell's digest at the leaf `base·xb2`. -/
 theorem l21_block {x N lv rb xb xb2 d0 d1 s base prev : E}
     (hc : coreProgram.Rel rd "da_verify_cell" [lv] [d0, d1, s])
     (h1 : LoadHolds rd (rb * x) 0 base) (h2 : LoadHolds rd (base * xb) 512 prev)
     (h3 : LoadHolds rd (base * xb) 513 (prev + s)) (h4 : LoadHolds rd (base * xb2) 0 d0)
     (h5 : LoadHolds rd (base * xb2) 1 d1) :
-    LoopBlock rd (coreProgram.getD idx% «da_verify_column_loop0» default) x N [lv, rb, xb, xb2] := by
+    LoopBlock rd (coreProgram.getD idx% «da_verify_column_loop0» default) x N [lv, rb, xb,
+        xb2] := by
   obtain ⟨-, -, -, hs, hl⟩ := dv_loops_shape
   refine ⟨Val.ofArgs [x, N, lv, rb, xb, xb2, d0, d1, s, rb * x, base, base * xb, prev, prev + s,
     base * xb2, word 2 0, x * word 2 0, x * word 2 0 + N, word 2 0, x * word 2 0],

@@ -27,8 +27,8 @@ The sections, in order:
   (`slotLanesT`), their check; the pack coordinates copied (`verify_keccak_loop1`);
 * the inputs: `keccak_plain_rounds` over the pack, `μ(low)`, over the slot, the 64 slices
   (`slicesT`, the full queue permuted), the slot's lane weights, the shifts of the slices
-  (`foldT`), `keccak_form` (`formAll`), the check; the pack coordinates copied (`verify_keccak_loop2`); the
-  return.
+  (`foldT`), `keccak_form` (`formAll`), the check; the pack coordinates copied
+  (`verify_keccak_loop2`); the return.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

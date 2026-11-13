@@ -290,9 +290,11 @@ theorem rawX_of_out {rd : Reader} {C : CallRel} (hm : MemOk rd) {x : E} {ps : Li
 
 /-- `main_loop2`'s iteration at `x`: its run and, while `x·g ≠ N`, the run at `x·g`. -/
 theorem l3_stepC {rd : Reader} {C : CallRel}
-    (hX : ∀ args, C name% «main_loop2» args [] → ∃ sig, Loop2Out C rd args sig) {x : E} {ps : List E}
+    (hX : ∀ args, C name% «main_loop2» args [] → ∃ sig, Loop2Out C rd args sig) {x : E} {ps : List
+        E}
     (h : C name% «main_loop2» (x :: ps) []) :
-    C name% «main_loop2» (x :: ps) [] ∧ (x * gen + ps.headD 0 ≠ 0 → C name% «main_loop2» (x * gen :: ps) []) := by
+    C name% «main_loop2» (x :: ps) [] ∧ (x * gen + ps.headD 0 ≠ 0 → C name% «main_loop2» (x * gen
+        :: ps) []) := by
   have hok := l3_ok
   simp only [l3Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨σ, hp, hb, -⟩ := (hX _ h).choose_spec

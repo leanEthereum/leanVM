@@ -314,7 +314,8 @@ theorem rawX_step (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} 
     simp only [Bool.or_eq_true, decide_eq_true_eq] at this
     omega
   have hpar : (fn% «main_loop2»).params.map σ' = l2ArgsAt i nrx X cv tb := by
-    rw [← l2σ_params rd i nrx X cv tb (D.slot i), show (fn% «main_loop2»).params = l2Fn.params from rfl,
+    rw [← l2σ_params rd i nrx X cv tb (D.slot i), show (fn% «main_loop2»).params = l2Fn.params from
+        rfl,
       l2Fn_params]
     simp only [List.map_map]
     refine List.map_congr_left fun k hk => ?_
@@ -327,7 +328,8 @@ theorem rawX_step (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} 
     (l2Pre_holds (C := coreProgram.RelIn rd (RegionL Lin)) D hX hl hL hi
       (next := Stmt.HoldsList (coreProgram.RelIn rd (RegionL Lin)) rd σ' (Sig.xSeg ++ Sig.l2Post)
         False (fun rs => rs = [])) (by rw [holdsList_append]; exact hseg _ _ hpost))
-  have hbody : Stmt.HoldsList (coreProgram.RelIn rd (RegionL Lin)) rd σ' (fn% «main_loop2»).body False
+  have hbody : Stmt.HoldsList (coreProgram.RelIn rd (RegionL Lin)) rd σ' (fn% «main_loop2»).body
+      False
       (fun rs => rs = []) :=
     (congrArg (fun b => Stmt.HoldsList (coreProgram.RelIn rd (RegionL Lin)) rd σ' b False
       (fun rs => rs = [])) Sig.loop2_split).mpr ((holdsList_append _ _ _ _).mpr hpre)

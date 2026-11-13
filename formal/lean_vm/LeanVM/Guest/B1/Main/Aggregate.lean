@@ -24,16 +24,17 @@ public import LeanVM.Guest.Data.NameStrings
 the hint. For `m` children whose words the memory holds (`ChildWordsAt`), `batch_fs` reads
 `Node.batch` on the carried sponge:
 
-* the absorbing rows (`aggregate_claims_loop0`, `l25_step`) carry the sponge after the count and the first `c`
-  children's words (`absorb_rows`);
+* the absorbing rows (`aggregate_claims_loop0`, `l25_step`) carry the sponge after the count and the
+  first `c` children's words (`absorb_rows`);
 * the last absorbing row is permuted, the nonce absorbed with the tag `4` and permuted
   (`aggN`, `nonce_ins`), `grind_check__L2` on that permutation's cell `1` is its proof of work,
   `λ` its cell `0`, and its capacity the sponge `batch_sumcheck__L23` starts from (`aggLam`);
-* the records of `bc_chain` (`aggregate_claims_loop1`, `l26_step`) hold `λ^(2c)` and the lambdas' combination
-  of the first `c` children's values (`chain_rows`); the last one's feeds `batch_sumcheck__L23`;
-* the weights (`aggregate_claims_loop2`, `l27_step`) are the lambdas' combination of the claims' equality
-  weights at the sumcheck's point (`weight_rows`), and the body checks that the final claim is
-  the hint times the last.
+* the records of `bc_chain` (`aggregate_claims_loop1`, `l26_step`) hold `λ^(2c)` and the lambdas'
+  combination of the first `c` children's values (`chain_rows`); the last one's feeds
+  `batch_sumcheck__L23`;
+* the weights (`aggregate_claims_loop2`, `l27_step`) are the lambdas' combination of the claims'
+  equality weights at the sumcheck's point (`weight_rows`), and the body checks that the final claim
+  is the hint times the last.
 -/
 
 namespace LeanVM.Guest.B1.Main

@@ -20,9 +20,9 @@ At `fp`, `aggregate_claims` allocates from `b0 = fp + fs "aggregate_claims"` the
 rounds' words (`47`), the tables of the children's fresh and carried claims (`m` each), the absorbing rows
 (`13(m+1)`), the records of `bc_chain` (`2(m+1)`), the sumcheck's point (`23`) and
 the weights (`m+1`) (`aggSizes`), holding `aggConts` (`aggOwn`); its callees follow in call order:
-`aggregate_claims_loop0`, `grind_check__L2`, `aggregate_claims_loop1`, `batch_sumcheck__L23`, `aggregate_claims_loop2`, the loops and the
-sumcheck placing nothing (`aggPure`). Its valuation is `agg_core`'s at the allocator's buffers
-(`aggPtrsAt`).
+`aggregate_claims_loop0`, `grind_check__L2`, `aggregate_claims_loop1`, `batch_sumcheck__L23`,
+`aggregate_claims_loop2`, the loops and the sumcheck placing nothing (`aggPure`). Its valuation is
+`agg_core`'s at the allocator's buffers (`aggPtrsAt`).
 `aggregate_claims_completeAt`: `aggregate_claims` is `CompleteAtD`, reading the children's words,
 the window tables at `tabs` and the batching's claim at `g^ds` among the caller's words `Lin`;
 `grind_check__L2`'s completeness is `aggGrind_completeD` (`grind_check_completeD` at `aggGrindPre`).
@@ -159,7 +159,8 @@ theorem aggMem_of_memL {rd : Reader} {cfresh ccarried dst : E} {cs : List ChildC
 /-! ## The callees -/
 
 /-- `aggregate_claims`' callees, which place nothing. -/
-def aggPureSet : List String := [name% «aggregate_claims_loop0», name% «aggregate_claims_loop1», name% «aggregate_claims_loop2», "batch_sumcheck__L23"]
+def aggPureSet : List String := [name% «aggregate_claims_loop0», name% «aggregate_claims_loop1»,
+    name% «aggregate_claims_loop2», "batch_sumcheck__L23"]
 
 /-- Every member's body places nothing and calls members only. -/
 noncomputable def aggPureOk : Bool :=
@@ -201,12 +202,15 @@ theorem aggP_addrs : aggP.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem aggP_calls : aggP.filterMap Main.Stmt.callS =
-    [(some (.n 35), name% «aggregate_claims_loop0», [.n 36, .n 0, .n 33, .n 2, .n 8, .n 3, .n 9, .n 1], []),
+    [(some (.n 35), name% «aggregate_claims_loop0», [.n 36, .n 0, .n 33, .n 2, .n 8, .n 3, .n 9,
+        .n 1], []),
       (none, "grind_check__L2", [.n 82, .n 5], []),
-      (some (.n 102), name% «aggregate_claims_loop1», [.n 103, .n 0, .n 98, .n 8, .n 9, .n 94, .n 81], []),
+      (some (.n 102), name% «aggregate_claims_loop1», [.n 103, .n 0, .n 98, .n 8, .n 9, .n 94,
+          .n 81], []),
       (none, "batch_sumcheck__L23", [.n 89, .n 90, .n 91, .n 92, .n 93, .n 109, .n 106, .n 107, .n 5],
         [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115]),
-      (some (.n 191), name% «aggregate_claims_loop2», [.n 192, .n 0, .n 8, .n 9, .n 116, .n 98, .n 188, .n 81], [])] := by
+      (some (.n 191), name% «aggregate_claims_loop2», [.n 192, .n 0, .n 8, .n 9, .n 116, .n 98,
+          .n 188, .n 81], [])] := by
   decide +kernel
 
 /-- The loads `aggregate_claims` may make: its first row and record, first weight, the claim at
@@ -321,16 +325,19 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
   have hne : (1 : E) + gen ^ m ≠ 0 := (one_add_gen_ne (by omega)).mpr (by omega)
   -- the callees
   let ks : List Kid :=
-    [⟨name% «aggregate_claims_loop0», true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
+    [⟨name% «aggregate_claims_loop0», true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc,
+        cpi], Own ++ Lin,
         Returns []⟩,
       ⟨"grind_check__L2", true, [cellsOfState (aggN cs h.lambdaGrindNonce) false 1, tabs],
         Own ++ Lin, Returns []⟩,
-      ⟨name% «aggregate_claims_loop1», true, [1, gen ^ m, P.chain, P.lf, P.lc, lamA cs h * lamA cs h, lamA cs h],
+      ⟨name% «aggregate_claims_loop1», true, [1, gen ^ m, P.chain, P.lf, P.lc,
+          lamA cs h * lamA cs h, lamA cs h],
         Own ++ Lin, Returns []⟩,
       ⟨"batch_sumcheck__L23", true,
         capOf (aggN cs h.lambdaGrindNonce) ++ [P.msgs * gen, claimAt cs h m, P.pt, tabs],
         Own ++ Lin, Returns ((aggRun cs h).2.cap ++ [(aggRun cs h).1.2])⟩,
-      ⟨name% «aggregate_claims_loop2», true, [1, gen ^ m, P.lf, P.lc, P.pt1, P.chain, P.w, lamA cs h], Own ++ Lin,
+      ⟨name% «aggregate_claims_loop2», true, [1, gen ^ m, P.lf, P.lc, P.pt1, P.chain, P.w,
+          lamA cs h], Own ++ Lin,
         Returns []⟩]
   have hok : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
     intro k hk _
@@ -409,12 +416,14 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
   have hT : ∀ {c : V}, σ c = 1 + gen ^ m → decide (σ c ≠ 0) = true :=
     fun h => by rw [h]; exact decide_eq_true hne
   have hcalls : calls es =
-      [⟨name% «aggregate_claims_loop0», [.n 36, .n 0, .n 33, .n 2, .n 8, .n 3, .n 9, .n 1], [], true⟩,
+      [⟨name% «aggregate_claims_loop0», [.n 36, .n 0, .n 33, .n 2, .n 8, .n 3, .n 9, .n 1], [],
+          true⟩,
         ⟨"grind_check__L2", [.n 82, .n 5], [], true⟩,
         ⟨name% «aggregate_claims_loop1», [.n 103, .n 0, .n 98, .n 8, .n 9, .n 94, .n 81], [], true⟩,
         ⟨"batch_sumcheck__L23", [.n 89, .n 90, .n 91, .n 92, .n 93, .n 109, .n 106, .n 107, .n 5],
           [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115], true⟩,
-        ⟨name% «aggregate_claims_loop2», [.n 192, .n 0, .n 8, .n 9, .n 116, .n 98, .n 188, .n 81], [], true⟩] := by
+        ⟨name% «aggregate_claims_loop2», [.n 192, .n 0, .n 8, .n 9, .n 116, .n 98, .n 188, .n 81],
+            [], true⟩] := by
     rw [hes, hpc, aggP_calls]
     simp only [List.map_cons, List.map_nil, Main.mkCall, hT hV.g35, hT hV.g102, hT hV.g191]
   -- the walk

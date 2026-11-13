@@ -3,6 +3,8 @@
 
   `verify_tables`' pull side total: its framework blocks' fingerprints (with the final memory and
   bytecode counts), the push side's padding sum, the selector sum and the GKR pull value.
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

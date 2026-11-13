@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B2C.SplitPre
-public meta import LeanVM.Guest.KernelLit
+public meta import LeanVM.Guest.B2C.WinLit
 
 namespace LeanVM.Guest.Checked
 
@@ -16,9 +16,8 @@ open LeanVM.Guest.B2C
 
 @[expose] public section
 
-set_option maxHeartbeats 1000000 in
 /-- `__loop2`, window 21: what its groups of arms compute alike. -/
-kernel_lit x37_21 : WinPre := winPre 37 21
+win_lit x37_21 37 21
 
 end
 end LeanVM.Guest.Checked

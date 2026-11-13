@@ -3,6 +3,8 @@
 
   Table 4's forms on the three sides, from the guest's statements: each block's value from its
   baked terms, the table's form the blocks' selectors times their values.
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

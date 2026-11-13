@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.AggAbsorb
 
-  `aggregate_claims`' absorbing loop (`aggregate_claims_loop0`): one child's words absorbed into the batching's
-  sponge, row by row.
+  `aggregate_claims`' absorbing loop (`aggregate_claims_loop0`): one child's words absorbed into the
+  batching's sponge, row by row.
 -/
 
 module
@@ -161,7 +161,8 @@ noncomputable def l25Words (rd : Reader) (cpi cfresh ccarried x : E) : List E :=
 def l25Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
   let s : DupSpec := ⟨keccakBlocks A, packsOf A⟩
-  loopShapeF fn name% «aggregate_claims_loop0» && decide (fn.params.length = 8) && s.check A && decide (s.nb = 13) &&
+  loopShapeF fn name% «aggregate_claims_loop0» && decide (fn.params.length = 8) && s.check A &&
+      decide (s.nb = 13) &&
   rowInOk A (.n 13) (s.ins 0) &&
   storesOk A (.n 13) 13 5 (fun i => (s.outs 12).getD (8 + i) default) &&
   (List.range 4).all (fun j => A.any (isLoadAt (.n (s.wB (48 + j))) (.n 13) (13 + (5 + 2 * j))) &&
@@ -174,10 +175,12 @@ def l25Ok (fn : Fn) : Bool :=
   A.any (isLoadAt (.n 57) (.n 58) 0) && isMul A (.n 58) (.n 6) (.n 0)
 
 set_option maxRecDepth 100000 in
-theorem l25_ok : l25Ok (coreProgram.getD idx% «aggregate_claims_loop0» default) = true := by decide +kernel
+theorem l25_ok : l25Ok (coreProgram.getD idx% «aggregate_claims_loop0» default) = true :=
+  by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l25_idx : coreProgram.indexOf? name% «aggregate_claims_loop0» = some idx% «aggregate_claims_loop0» :=
+theorem l25_idx : coreProgram.indexOf? name% «aggregate_claims_loop0» = some
+    idx% «aggregate_claims_loop0» :=
   coreProgram_indexOf?_at (j := idx% «aggregate_claims_loop0») rfl
 
 /-! ## One child -/
@@ -205,10 +208,12 @@ theorem l25Src_pad {w : ℕ} (h1 : 50 ≤ w) : l25Src w = none := by
   unfold l25Src
   split_ifs <;> first | rfl | (exfalso; omega)
 
-theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate_claims_loop0» (x :: ps) []) :
+theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate_claims_loop0» (x ::
+    ps) []) :
     (∀ N absorb cfresh lfT ccarried lcT cpi, ps = [N, absorb, cfresh, lfT, ccarried, lcT, cpi] →
       L25Step rd absorb cfresh lfT ccarried lcT cpi x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd name% «aggregate_claims_loop0» (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd name% «aggregate_claims_loop0» (x * gen :: ps)
+          []) := by
   have hf := find_of_idx l25_idx
   have hok := l25_ok
   simp only [l25Ok, Bool.and_eq_true, decide_eq_true_eq] at hok

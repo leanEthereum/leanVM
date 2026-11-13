@@ -2,8 +2,8 @@
   LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 
   The completeness statements of leanSPHINCS's guest functions: `sp_wots`
-  (`fn% «sp_wots»`), a leaf, and `verify_sig_lean_sphincs` (`fn% «verify_sig_lean_sphincs»`), which calls it three
-  times, in the forms `main`'s completeness consumes.
+  (`fn% «sp_wots»`), a leaf, and `verify_sig_lean_sphincs` (`fn% «verify_sig_lean_sphincs»`), which
+  calls it three times, in the forms `main`'s completeness consumes.
 -/
 
 module
@@ -58,8 +58,6 @@ def wotsLeafOf (publicSeed : PublicParameter) (layer : Sphincs.Layer) (tree : Sp
 /-! ## The functions, found -/
 
 theorem sp_wots_params : (fn% «sp_wots»).params = [.n 0, .n 1, .n 2, .n 3] := rfl
-
-theorem verify_sig_lean_sphincs_params : (fn% «verify_sig_lean_sphincs»).params = [.n 0, .n 1] := rfl
 
 theorem find_sp_wots : coreProgram.find? "sp_wots" = some fn% «sp_wots» :=
   coreProgram_find?_at (j := idx% «sp_wots») rfl

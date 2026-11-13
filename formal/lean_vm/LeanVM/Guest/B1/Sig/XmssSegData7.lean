@@ -18,7 +18,8 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_76 : (((fn% «main_loop2»).body.drop 9).drop 76).take 1 = ((xSeg ++ l2Post).drop 76).take 1 :=
+theorem xSeg_slice_76 : (((fn% «main_loop2»).body.drop 9).drop 76).take 1 = ((xSeg ++ l2Post).drop
+    76).take 1 :=
   stmtsEqb_sound (by decide +kernel)
 
 end

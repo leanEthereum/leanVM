@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Da.DualMath
 /-!
 # The dual codeword's builders: meanings (G:4371-4435)
 
-`da_vector(z)` (G:4371-4390, `core31`) returns four pointers: the powers `z_j = z^(2^j)`, `j < 14`,
+`da_vector(z)` (G:4371-4390) returns four pointers: the powers `z_j = z^(2^j)`, `j < 14`,
 and `0` at `14` (`zs`, `ZsAt`); the leaves of the product tree over the cell index (`top_leaves`,
 `da_expand__L14_L7`: `topLeaf z h`, the factors `j = 8 … 13` of the dual codeword at the cell
 `h`'s first point); the factors of the tree inside a cell (`cell_factors`,

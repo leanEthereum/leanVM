@@ -218,7 +218,8 @@ theorem check_opening_terminal_holds_of (hep : eq_prefix_chain_Spec)
     have hc : coreProgram.Rel Lm.read name% «check_opening_terminal_loop0»
         (gen ^ 1 :: [σ (.n 6), σ (.n 26), σ (.n 14)]) [] := by
       rw [pow_one, ← word_gen, ← e32]; exact hloop hne
-    exact loop_sound (P := coreProgram) (f := name% «check_opening_terminal_loop0») (ps := [σ (.n 6), σ (.n 26), σ (.n 14)])
+    exact loop_sound (P := coreProgram) (f := name% «check_opening_terminal_loop0») (ps := [σ (.n
+        6), σ (.n 26), σ (.n 14)])
       (N := σ (.n 6)) (B := PiStep Lm.read (σ (.n 26)) (σ (.n 14))) (m := layout.logMemory)
       (fun d y h ↦ loop15_step d y _ _ _ h) hglm (by unfold ordG; omega) 1 hc k hk1 hk2
   have hx1_0 := loadHolds_unique l28 (readsAt_getD hpt1 (k := 0) (by rw [hpl40]; decide))

@@ -3,6 +3,8 @@
 
   `verify_tables`' push side's framework blocks: their fingerprints' accumulator and the
   bytecode share's public term.
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

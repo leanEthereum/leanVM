@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Tables.Kids.Loop10
 
-  `verify_tables_loop0` (the table sumcheck's rounds) loads from any region holding the rounds' records, the
-  challenges, the running products and the round polynomials at the records' cursors.
+  `verify_tables_loop0` (the table sumcheck's rounds) loads from any region holding the rounds'
+  records, the challenges, the running products and the round polynomials at the records' cursors.
 -/
 
 module
@@ -14,8 +14,8 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `verify_tables_loop0`, loading from a region
 
-Iteration `k < K` of `verify_tables_loop0` (`x = g^k`, the end and `g^n` both `g^K`) reads record `k` at
-`rounds·g^(7k)` (offsets `5`, `6`, `12`, `13`; `sumcheck_round4` its first `12` words and the
+Iteration `k < K` of `verify_tables_loop0` (`x = g^k`, the end and `g^n` both `g^K`) reads record
+`k` at `rounds·g^(7k)` (offsets `5`, `6`, `12`, `13`; `sumcheck_round4` its first `12` words and the
 `3` words at its cursor, not `tabs`), writes the challenge at `chi·g^(K-1-k)` and the running product at
 `cprod·g^k` (offsets `0`, `1`). `loop10_relIn`: by induction on the derivation's depth, every
 iteration loads from `R` when the runs `rounds` (`7(K+1)`), `chi` (`K`), `cprod` (`K+1`) lie in
@@ -45,7 +45,8 @@ theorem l10_loads : l10Pre.all (loadsViaB l10Tbl) = true := by decide +kernel
 
 theorem l10_calls : l10Pre.filterMap Main.Stmt.callS =
     [(none, "sumcheck_round4", [.n 11, .n 12, .n 13, .n 3], [.n 14, .n 15, .n 16]),
-      (some (.n 27), name% «verify_tables_loop0», [.n 29, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], [])] := by
+      (some (.n 27), name% «verify_tables_loop0», [.n 29, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6],
+          [])] := by
   decide +kernel
 
 theorem gen_pow_pred_inv {K : ℕ} (hK : 0 < K) : gen ^ K * vtWInvGen = gen ^ (K - 1) := by
@@ -58,8 +59,10 @@ theorem loop10_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} (hK : 0 < K)
     (hp : PtrIn R cprod (K + 1))
     (hcur : ∀ k < K, ∀ c, LoadHolds rd (rounds * gen ^ (7 * k)) 5 c → PtrIn R c 3) :
     ∀ d k, k < K →
-      coreProgram.relN rd d name% «verify_tables_loop0» [gen ^ k, gen ^ K, rounds, tabs, chi, gen ^ K, cprod] [] →
-      coreProgram.RelIn rd R name% «verify_tables_loop0» [gen ^ k, gen ^ K, rounds, tabs, chi, gen ^ K, cprod] [] := by
+      coreProgram.relN rd d name% «verify_tables_loop0» [gen ^ k, gen ^ K, rounds, tabs, chi,
+          gen ^ K, cprod] [] →
+      coreProgram.RelIn rd R name% «verify_tables_loop0» [gen ^ k, gen ^ K, rounds, tabs, chi,
+          gen ^ K, cprod] [] := by
   intro d
   induction d with
   | zero => intro k _ h; exact h.elim

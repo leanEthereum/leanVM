@@ -3,6 +3,8 @@
 
   `verify_tables`' count side total: the padding sum over its blocks (counts alone, at `β = 0`),
   the selector sum and the GKR count value.
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

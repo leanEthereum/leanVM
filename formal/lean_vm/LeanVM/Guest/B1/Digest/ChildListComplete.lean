@@ -1,8 +1,9 @@
 /-
   LeanVM.Guest.B1.Digest.ChildListComplete
 
-  `child_claim_list_any`'s frame loops `child_claim_list_any_loop0` and `child_claim_list_any_loop1`, completely and placed: from the
-  chain buffer's states and the honest records among the caller's words.
+  `child_claim_list_any`'s frame loops `child_claim_list_any_loop0` and
+  `child_claim_list_any_loop1`, completely and placed: from the chain buffer's states and the honest
+  records among the caller's words.
 -/
 
 module
@@ -19,8 +20,8 @@ public import LeanVM.Guest.B1.Digest.LoopAtB
 `M` frames from the counter `1`, is `CompleteAtD` (`anyLoop_completeAtB`: within `M + 1` frames)
 given, at every frame `q ≤ M`, the sponge state
 after whole blocks `pre0` and the first `4mq` cells at `chain · g^(13q)` (`any_core` at each
-counter `g^q`, `loopA_completeAt`). `any136_completeAt`, `any17_completeAt`: `child_claim_list_any_loop0`,
-`child_claim_list_any_loop1`.
+counter `g^q`, `loopA_completeAt`). `any136_completeAt`, `any17_completeAt`:
+`child_claim_list_any_loop0`, `child_claim_list_any_loop1`.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -56,11 +57,13 @@ theorem boundMem_of_low {κ : ℕ} (hl : LowDef κ rd) {L : ℕ} (hL : L ≤ 2 ^
 
 set_option maxRecDepth 100000 in
 theorem any136_unplaced :
-    (atomsIn (loopPre (coreProgram.getD idx% «child_claim_list_any_loop0» default))).all atomUnplaced = true := by decide +kernel
+    (atomsIn (loopPre (coreProgram.getD idx% «child_claim_list_any_loop0» default))).all
+        atomUnplaced = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem any17_unplaced :
-    (atomsIn (loopPre (coreProgram.getD idx% «child_claim_list_any_loop1» default))).all atomUnplaced = true := by decide +kernel
+    (atomsIn (loopPre (coreProgram.getD idx% «child_claim_list_any_loop1» default))).all
+        atomUnplaced = true := by decide +kernel
 
 set_option maxRecDepth 20000 in
 /-- **A frame loop of child claims, its frames**: at every frame `q < M`, the block's valuation

@@ -69,11 +69,24 @@ theorem osResSteps_pure (pp bd ro hp ho vo ncols nhs hbits mu : ℕ) :
 theorem osLoopTail_pure (name : String) (n k : ℕ) : (osLoopTail name n k).all (Stmt.pure [name]) = true := by
   simp [osLoopTail, Stmt.pure, atomUnplaced]
 
+theorem osPowSteps_pure (x : ℕ) : ∀ (ds : List Bool) (acc k : ℕ),
+    (osPowSteps x ds acc k).1.all (Stmt.pure S) = true
+  | [], _, _ => rfl
+  | true :: ds, acc, k => by
+    simp only [osPowSteps, ↓reduceIte, List.all_cons, osPowSteps_pure x ds (k + 1) (k + 2),
+      Bool.and_true]
+    simp [Stmt.pure, atomUnplaced]
+  | false :: ds, acc, k => by
+    simp only [osPowSteps, Bool.false_eq_true, ↓reduceIte, List.all_cons,
+      osPowSteps_pure x ds k (k + 1), Bool.and_true]
+    simp [Stmt.pure, atomUnplaced]
+
 /-- **The batches' loop is pure in itself.** -/
 theorem lrLoop1_pure (cols nhs hbits : ℕ) (name : String) :
     Stmt.pureList [name] (lrLoop1Body cols nhs hbits name) = true := by
   rw [pureList_eq_all]
-  simp [lrLoop1Body, Stmt.pure, atomUnplaced, osResSteps_pure, osLoopTail_pure]
+  simp only [lrLoop1Body, osBatchPow, List.all_append, osPowSteps_pure, Bool.true_and]
+  simp [Stmt.pure, atomUnplaced, osResSteps_pure, osLoopTail_pure]
 
 /-- **The rest's loop is pure in itself.** -/
 theorem lrLoop2_pure (cols nhs hbits : ℕ) (name : String) :

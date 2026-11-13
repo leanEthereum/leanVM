@@ -3,6 +3,8 @@
 
   `verify_tables`' bus sides outside the selectors, slice by slice (generated:
   scripts/b1c-vt/genbglue.py).
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

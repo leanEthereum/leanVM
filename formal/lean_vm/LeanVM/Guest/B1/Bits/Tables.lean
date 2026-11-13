@@ -317,7 +317,8 @@ def etBody : List Stmt :=
   [.atom (.hint (.alloc (.n 0) 2284))] ++ ((List.range 2284).map etBlk).flatten ++
   [.atom (.copy (.n 2285) (.n 0)), .ret [.n 2285]]
 
-theorem core1_body : Fn.body fn% «exponent_tables» = etBody := stmtsEqb_sound (by decide +kernel)
+theorem exponent_tables_body : Fn.body fn% «exponent_tables» = etBody :=
+  stmtsEqb_sound (by decide +kernel)
 
 theorem find_exponent_tables : coreProgram.find? "exponent_tables" = some fn% «exponent_tables» :=
   coreProgram_find?_at (j := idx% «exponent_tables») rfl
@@ -357,7 +358,8 @@ theorem etOff_iff (rd : Reader) (q : E) :
 /-- **`exponent_tables`' core IR is its meaning.** -/
 theorem exponent_tables_holds : exponent_tables_Spec := by
   intro rd args rets
-  rw [rel_iff_sem find_exponent_tables, core1_body, show Fn.params fn% «exponent_tables» = [] from rfl, etBody]
+  rw [rel_iff_sem find_exponent_tables, exponent_tables_body,
+      show Fn.params fn% «exponent_tables» = [] from rfl, etBody]
   simp only [holdsList_append, Stmt.HoldsList]
   simp only [holdsList_range_flatten 2284 etBlk (fun _ => rfl), etBlk]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and,

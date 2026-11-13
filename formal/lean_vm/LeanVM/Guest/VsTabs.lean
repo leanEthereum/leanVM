@@ -24,13 +24,13 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1
 
 @[expose] public section
 
-theorem vs_take1544 : (coreOf 19).body.take 1544 =
-    (coreOf 19).body.take 1542 ++ VerifySub.vsTabsT 1920 1921 := by
-  rw [show 1544 = 1542 + 2 from rfl, List.take_add, coreOf_19]
-  exact congrArg (Data.core18.body.take 1542 ++ ·) (stmtsEqb_sound (by decide +kernel))
+theorem vs_take1544 : (coreOf (fn_idx% «verify_sub»)).body.take 1544 =
+    (coreOf (fn_idx% «verify_sub»)).body.take 1542 ++ VerifySub.vsTabsT 1920 1921 := by
+  rw [show 1544 = 1542 + 2 from rfl, List.take_add, coreOf_verify_sub]
+  exact congrArg ((fn% «verify_sub»).body.take 1542 ++ ·) (stmtsEqb_sound (by decide +kernel))
 
-theorem vs_noRet1542 : Stmt.noRetList ((coreOf 19).body.take 1542) = true := by
-  rw [coreOf_19]; decide +kernel
+theorem vs_noRet1542 : Stmt.noRetList ((coreOf (fn_idx% «verify_sub»)).body.take 1542) = true := by
+  rw [coreOf_verify_sub]; decide +kernel
 
 /-- **`verify_sub`'s window table at its dispatch to `open_stacked`.** -/
 theorem vsTabsKnown_proved : VsTabsKnown := by

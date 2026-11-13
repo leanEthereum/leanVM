@@ -44,7 +44,7 @@ pub use ast::*;
 pub(crate) use ir::*;
 use lower::lower_func;
 pub(crate) use parser::subst_stmts;
-pub use parser::{f128_literal, parse, parse_const, parse_with_replacements};
+pub use parser::{f128_literal, parse, parse_const, parse_with_constants, parse_with_replacements};
 
 /// Compile an [`Ast`] to a provable [`Program`]. Panics on a malformed program
 /// (unbound variable, missing `main`, address overflow).

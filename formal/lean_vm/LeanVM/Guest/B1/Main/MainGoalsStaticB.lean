@@ -41,12 +41,16 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 def MainGoalL1B : Prop :=
   (hm fs fp seed s w).nxd ≠ 0 →
     CompleteAtDTB fs cert 20 name% «main_loop0» (hLmain fs fp seed s w)
-      [1, gen ^ (hm fs fp seed s w).nxd, (hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx] (Returns []) (fun _ => True) ((hm fs fp seed s w).nxd * iterK fs SK name% «main_loop0» + fs name% «main_loop0»)
+      [1, gen ^ (hm fs fp seed s w).nxd, (hm fs fp seed s w).a77,
+          gen ^ (hm fs fp seed s w).nlx] (Returns []) (fun _ => True) ((hm fs fp seed s w).nxd *
+          iterK fs SK name% «main_loop0» + fs name% «main_loop0»)
 
 def MainGoalL2B : Prop :=
   (hm fs fp seed s w).nsd ≠ 0 →
     CompleteAtDTB fs cert 20 name% «main_loop1» (hLmain fs fp seed s w)
-      [1, gen ^ (hm fs fp seed s w).nsd, (hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls] (Returns []) (fun _ => True) ((hm fs fp seed s w).nsd * iterK fs SK name% «main_loop1» + fs name% «main_loop1»)
+      [1, gen ^ (hm fs fp seed s w).nsd, (hm fs fp seed s w).a80,
+          gen ^ (hm fs fp seed s w).nls] (Returns []) (fun _ => True) ((hm fs fp seed s w).nsd *
+          iterK fs SK name% «main_loop1» + fs name% «main_loop1»)
 
 def MainGoalL3B : Prop :=
   (hm fs fp seed s w).nrx ≠ 0 →
@@ -60,7 +64,8 @@ def MainGoalL4B : Prop :=
       [1, gen ^ (hm fs fp seed s w).nrs, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
         (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         gen ^ (hm fs fp seed s w).nrx, (hm fs fp seed s w).a80, (hm fs fp seed s w).a119] (Returns [])
-      (fun _ => True) ((hm fs fp seed s w).nrs * iterK fs SK name% «main_loop3» + fs name% «main_loop3»)
+      (fun _ => True) ((hm fs fp seed s w).nrs * iterK fs SK name% «main_loop3» + fs
+          name% «main_loop3»)
 
 def MainGoalStB : Prop :=
   CompleteAtDTB fs cert 20 "statement_digest" (hLmain fs fp seed s w)

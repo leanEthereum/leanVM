@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Ring.Loop14Complete
 
-  `ring_switch_target_loop0`, completely: on the honest chain, every iteration's block holds on its evaluated
-  valuation, so the loop runs from `g^j` to its end `g^8`.
+  `ring_switch_target_loop0`, completely: on the honest chain, every iteration's block holds on its
+  evaluated valuation, so the loop runs from `g^j` to its end `g^8`.
 -/
 
 module
@@ -180,7 +180,8 @@ theorem l13_chk : chk 4 loop13T = some 410 := by decide +kernel
 
 theorem l13_stores : storesOf 4 loop13T = l13S := by decide +kernel
 
-/-- The loads `ring_switch_target_loop0` needs a word for: the challenges (`1`), the slices (`15`), the chain's
+/-- The loads `ring_switch_target_loop0` needs a word for: the challenges (`1`), the slices (`15`),
+the chain's
 row (`203`). -/
 def l13LoadOk : Atom → Bool
   | .load _ (.n 1) off => decide (8 ≤ off ∧ off < 16)
@@ -219,7 +220,8 @@ theorem holds_hzPre {C : CallRel} {rd : Reader} {σ : Val} {p : ℕ} (hp : p < 8
 noncomputable def l13σ (rd : Reader) (x mc sl cb : E) : Val :=
   B1.Val.ofArgs (ev rd (fun _ => 0) [x, mc, sl, cb] loop13T)
 
-/-- **`ring_switch_target_loop0`'s block holds** on its evaluated valuation, at `x` over the honest row: the
+/-- **`ring_switch_target_loop0`'s block holds** on its evaluated valuation, at `x` over the honest
+row: the
 challenges `gs`, the chunk `vs`, row `x^8`'s entries `acc p` and the next row's. -/
 theorem l13_block {rd : Reader} {x mc sl cb : E} {gs vs : List E} {acc : ℕ → E}
     (hgl : gs.length = 8) (hvl : vs.length = 8)
@@ -372,7 +374,8 @@ theorem l13_block {rd : Reader} {x mc sl cb : E} {gs vs : List E} {acc : ℕ →
 
 /-! ## The loop, loading the slices, the challenges and the chain -/
 
-/-- The loads of `ring_switch_target_loop0`'s block: the challenges (`1`), the slices (`15`), the chain's row and
+/-- The loads of `ring_switch_target_loop0`'s block: the challenges (`1`), the slices (`15`), the
+chain's row and
 the next (`203`). -/
 def l13LoadIn : Atom → Bool
   | .load _ (.n 1) off => decide (off < 16)
@@ -389,7 +392,8 @@ theorem l13LoadIn_load {d p : V} {off : ℕ} (h : l13LoadIn (.load d p off) = tr
 theorem l13_loadIn : (rtAtoms l13A).all l13LoadIn = true := by decide +kernel
 
 /-- `ring_switch_target_loop0`'s statements before its `ret`. -/
-def l13Pre : List Stmt := l13A ++ [Stmt.callIf (.n 407) name% «ring_switch_target_loop0» [.n 409, .n 1, .n 2, .n 3]]
+def l13Pre : List Stmt := l13A ++ [Stmt.callIf (.n 407) name% «ring_switch_target_loop0» [.n 409,
+    .n 1, .n 2, .n 3]]
 
 theorem l13_body_pre : (fn% «ring_switch_target_loop0»).body = l13Pre ++ [.ret []] := by
   rw [loop13_body, loop13T_split, l13Pre, List.append_assoc]
@@ -398,9 +402,11 @@ theorem l13_body_pre : (fn% «ring_switch_target_loop0»).body = l13Pre ++ [.ret
 theorem l13_straight : l13Pre.all Main.Stmt.straight = true := by decide +kernel
 
 theorem l13_callS : l13Pre.filterMap Main.Stmt.callS =
-    [(some (.n 407), name% «ring_switch_target_loop0», [.n 409, .n 1, .n 2, .n 3], [])] := by decide +kernel
+    [(some (.n 407), name% «ring_switch_target_loop0», [.n 409, .n 1, .n 2, .n 3],
+        [])] := by decide +kernel
 
-/-- **One iteration of `ring_switch_target_loop0`, loading its regions**: at `g^j`, `j < 8`, over the honest
+/-- **One iteration of `ring_switch_target_loop0`, loading its regions**: at `g^j`, `j < 8`, over
+the honest
 chain, the next iteration's relation (while `j < 7`) gives this one's. -/
 theorem l13_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length = 64)
     (hc : chs.length = 16) (hsl : ReadsAt rd (ofK (Parameters.addressOfIndex bs)) s)
@@ -412,7 +418,8 @@ theorem l13_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length 
     (hnext : j < 7 → coreProgram.RelIn rd R name% «ring_switch_target_loop0» [gen ^ (j + 1),
       ofK (Parameters.addressOfIndex bm), ofK (Parameters.addressOfIndex bs),
       ofK (Parameters.addressOfIndex bc)] []) :
-    coreProgram.RelIn rd R name% «ring_switch_target_loop0» [gen ^ j, ofK (Parameters.addressOfIndex bm),
+    coreProgram.RelIn rd R name% «ring_switch_target_loop0» [gen ^ j,
+        ofK (Parameters.addressOfIndex bm),
       ofK (Parameters.addressOfIndex bs), ofK (Parameters.addressOfIndex bc)] [] := by
   have hgl : (chs.drop 8).length = 8 := by simp [hc]
   have hg : ∀ b < 8, LoadHolds rd (ofK (Parameters.addressOfIndex bm)) (8 + b)
@@ -507,7 +514,8 @@ theorem l13_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length 
     simp only [List.map_cons, List.map_nil, e409, e1, e2, e3, gen_pow_mul_gen]
     exact hnext hj7
 
-/-- **`ring_switch_target_loop0`, completely, loading its regions**: over the honest chain, from `g^j`, `j ≤ 7`. -/
+/-- **`ring_switch_target_loop0`, completely, loading its regions**: over the honest chain, from
+`g^j`, `j ≤ 7`. -/
 theorem l13_relIn {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length = 64)
     (hc : chs.length = 16) (hsl : ReadsAt rd (ofK (Parameters.addressOfIndex bs)) s)
     (hmc : ReadsAt rd (ofK (Parameters.addressOfIndex bm)) chs)

@@ -106,7 +106,7 @@ bits.** -/
 theorem moves_leanVm_twentySeven (prog : LeanIsaProgram) (publicInput : Digest) :
     Sound.Moves (· ≤ 27) True (fun _ ↦ True) (fun _ ↦ False)
       (leanVmVerifierProgram (bytecodeWords prog) publicInput) :=
-  Sound.moves_leanVmProgram_le (by norm_num) _ _ fun _ _ _ ↦ busGrindLE_twentySeven
+  Sound.moves_leanVmProgram_le (by decide) _ _ fun _ _ _ ↦ busGrindLE_twentySeven
 
 /-- **The specification's honest prover, `none` where it makes no proof**: `Rom.honestComp`
 before it stands the empty proof in for `none` (`honestComp_eq_getD`). -/

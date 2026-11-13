@@ -20,7 +20,8 @@ open LeanVM.Guest LeanVM.Guest.Core
 theorem sDigestBlock_length : sDigestBlock.length = 1358 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem sDigestBlock_slice_0 : ((fn% «verify_sig_lean_sphincs»).body.drop 0).take 500 = (sDigestBlock.drop 0).take 500 :=
+theorem sDigestBlock_slice_0 : ((fn% «verify_sig_lean_sphincs»).body.drop 0).take 500 =
+    (sDigestBlock.drop 0).take 500 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in

@@ -13,13 +13,13 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `da_verify` (G:4509-4547), checked
 
-`da_verify(g_squares)` (`core27`): the shape (`da_row_shape`), the hinted challenge `z`, the dual
+`da_verify(g_squares)`: the shape (`da_row_shape`), the hinted challenge `z`, the dual
 codeword's builders (`da_vector`), the blobs' regions
 (`da_verify_loop0`: `rowbase[x] = blobs·x^641`, the running sum's first word `0`), the columns
 (`da_verify_loop1`: `da_verify_column` on columns `0 … 127`), each blob's sum checked and its tree's
 root (`da_verify_loop2`: word `640` of the region is `0`, `da_levels__L128_L7`, the root at
-`roots·x²`), the padding blobs (`da_verify_loop3`: `DA_PAD_BLOB` at `roots·n_blob²·x²`), and the tree
-over the blob roots (`da_levels` dispatched on `g_log_pad`).
+`roots·x²`), the padding blobs (`da_verify_loop3`: `DA_PAD_BLOB` at `roots·n_blob²·x²`), and the
+tree over the blob roots (`da_levels` dispatched on `g_log_pad`).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -58,7 +58,8 @@ def l18Body : List Stmt :=
     .atom (.const (.n 7) (word 2 0)), .atom (.mul (.n 8) (.n 0) (.n 7)),
     .atom (.const (.n 9) (word 325 0)), .atom (.add (.n 10) (.n 8) (.n 9)),
     .atom (.const (.n 11) (word 2 0)), .atom (.mul (.n 12) (.n 0) (.n 11)),
-    .callIf (.n 10) name% «da_verify_loop1» (.n 12 :: (List.range 6).map fun k => V.n (k + 1)), .ret []]
+    .callIf (.n 10) name% «da_verify_loop1» (.n 12 :: (List.range 6).map fun k => V.n (k + 1)),
+        .ret []]
 
 /-- `da_verify_loop1`, checked. -/
 def l18Ok (fn : Fn) : Bool :=

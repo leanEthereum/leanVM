@@ -32,7 +32,7 @@ specs = gen.oq_specs()
 replace_list(os.path.join(B1, 'Opening', 'Interface.lean'), 'openingQueriesShapes',
              ['("%s", %s)' % (d['name'], shape(d)) for d in specs])
 replace_list(os.path.join(B1, 'Opening', 'Witness.lean'), 'openingQueriesLoops',
-             ['("%s", "%s",\n      %s)' % (d['name'], d['loop'], shape(d)) for d in specs])
+             ['("%s", name%% «%s»,\n      %s)' % (d['name'], gen.stable[d['loop']], shape(d)) for d in specs])
 wps = sorted((i, n) for n, i in gen.fns.items() if n.startswith('walk_path__L'))
 replace_list(os.path.join(B1, 'Opening', 'QueriesT.lean'), 'walkPathNames',
              ['(%s, %s, "%s")' % (*n[len('walk_path__L'):].split('_L'), n) for _, n in wps])

@@ -1,8 +1,9 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop7T
 
-  `verify_bus_gkr_loop0`'s valid trees are chains of honest shape (`Budget.ChainHonest`): each iteration's node
-  pins the bounds of the `verify_bus_gkr_loop0_loop0` it calls and which rounds it calls.
+  `verify_bus_gkr_loop0`'s valid trees are chains of honest shape (`Budget.ChainHonest`): each
+  iteration's node pins the bounds of the `verify_bus_gkr_loop0_loop0` it calls and which rounds it
+  calls.
 -/
 
 module
@@ -16,11 +17,11 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `verify_bus_gkr_loop0`, of honest shape
 
-Iteration `c` of `verify_bus_gkr_loop0` (from `g^c` below `g^M`, layer `L = 2c + 2 - sh`, layer index
-`k = c + 1 - sh`) calls `verify_bus_gkr_loop0_loop0` from `1` (`σ 57`) below `g^(k/4)` (`σ 53`, the slot's `half`),
-then `gkr_rounds__L{2r}` at the slot's `parity = g^r`, `r = k % 4` (`σ 54`, a dispatch), and
-`gkr_rounds__L1` when `sh = 1` (`σ 65 = g^sh + 1`), then itself from `g^(c+1)`, entered iff
-`c + 1 < M`.
+Iteration `c` of `verify_bus_gkr_loop0` (from `g^c` below `g^M`, layer `L = 2c + 2 - sh`, layer
+index `k = c + 1 - sh`) calls `verify_bus_gkr_loop0_loop0` from `1` (`σ 57`) below `g^(k/4)` (`σ
+53`, the slot's `half`), then `gkr_rounds__L{2r}` at the slot's `parity = g^r`, `r = k % 4` (`σ 54`,
+a dispatch), and `gkr_rounds__L1` when `sh = 1` (`σ 65 = g^sh + 1`), then itself from `g^(c+1)`,
+entered iff `c + 1 < M`.
 
 * `ly7Q sh c σ`: those values; `ly7Csb σ`, `ly7Tl σ`: the body's calls and the tail call;
   `ly7Tsb sh c`: one `True` per body call.
@@ -50,14 +51,16 @@ theorem ly7Dr_eq {σ : Val} {r : ℕ} (hr : r < 4) (h : σ (.n 54) = gen ^ r) : 
     ne 2 1 (by omega) (by omega) (by omega), ne 3 1 (by omega) (by omega) (by omega),
     ne 3 2 (by omega) (by omega) (by omega), ↓reduceIte]
 
-/-- What iteration `c`'s node pins: `verify_bus_gkr_loop0_loop0`'s end `g^(k/4)`, start `1` and condition, the
+/-- What iteration `c`'s node pins: `verify_bus_gkr_loop0_loop0`'s end `g^(k/4)`, start `1` and
+condition, the
 parity `g^(k % 4)`, `k = c + 1 - sh`, and whether the odd-depth round is called. -/
 def ly7Q (sh c : ℕ) (σ : Val) : Prop :=
   σ (.n 53) = gen ^ ((c + 1 - sh) / 4) ∧ σ (.n 57) = 1 ∧
     σ (.n 56) = 1 + gen ^ ((c + 1 - sh) / 4) ∧ σ (.n 54) = gen ^ ((c + 1 - sh) % 4) ∧
     (σ (.n 65) = 0 ↔ sh = 0) ∧ c < 2 ^ 62
 
-/-- The body's calls: `verify_bus_gkr_loop0_loop0`, the dispatched rounds, then the odd round when taken. -/
+/-- The body's calls: `verify_bus_gkr_loop0_loop0`, the dispatched rounds, then the odd round when
+taken. -/
 noncomputable def ly7Csb (σ : Val) : List Call :=
   (lyA.filterMap Main.Stmt.callS).map (Main.mkCall σ) ++
     [⟨lyRn (ly7Dr σ), [.n 61, .n 62, .n 4], [.n 63], true⟩] ++
@@ -132,7 +135,8 @@ theorem tb_gen_pow_add_eq_zero {a b : ℕ} (ha : a < 2 ^ 62) (hb : b < 2 ^ 62) :
     exact gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp h)
   · rintro rfl; exact e_add_self _
 
-/-- **`verify_bus_gkr_loop0`'s valid trees are chains of honest shape**: iteration `c < M`, on a memory holding
+/-- **`verify_bus_gkr_loop0`'s valid trees are chains of honest shape**: iteration `c < M`, on a
+memory holding
 its bounds' words, runs `M - c` iterations, each pinning `ly7Q`. -/
 theorem ly7_chain {rd : Reader} {layers tabs rounds claim gmu kmn : E} {sh M : ℕ} (hsh2 : sh < 2)
     (hM : 2 * M + 2 < 2 ^ 62) (hmem : Ly7Mem rd layers sh M) :
@@ -140,7 +144,8 @@ theorem ly7_chain {rd : Reader} {layers tabs rounds claim gmu kmn : E} {sh M : �
       t.Valid coreProgram rd [gen ^ c, gen ^ M, gen ^ (2 - sh), layers, tabs, rounds, claim,
         gen ^ sh, gmu, kmn] rets →
       t.BufsOk coreProgram →
-      Budget.ChainHonest coreProgram name% «verify_bus_gkr_loop0» (ly7Q sh) ly7Csb ly7Tl (fun _ ↦ []) (ly7Tsb sh)
+      Budget.ChainHonest coreProgram name% «verify_bus_gkr_loop0» (ly7Q sh) ly7Csb ly7Tl (fun _ ↦
+          []) (ly7Tsb sh)
         n c t := by
   obtain ⟨fn, hf, hpar, hbody⟩ := lyFound
   intro n
@@ -274,7 +279,8 @@ theorem ly73_calls (σ : Val) : (ly73.filterMap Main.Stmt.callS).map (Main.mkCal
     [⟨"gkr_rounds__L1", [.n 66, .n 67, .n 4], [.n 68], true⟩] := rfl
 
 theorem ly7Csb_eq (σ : Val) : ly7Csb σ =
-    ⟨name% «verify_bus_gkr_loop0_loop0», [.n 57, .n 53, .n 48, .n 46, .n 4], [], decide (σ (.n 56) ≠ 0)⟩ ::
+    ⟨name% «verify_bus_gkr_loop0_loop0», [.n 57, .n 53, .n 48, .n 46, .n 4], [],
+        decide (σ (.n 56) ≠ 0)⟩ ::
       ly7Rounds σ := by
   simp only [ly7Csb, ly7Rounds, ly73_calls]
   rw [lyA_calls]
@@ -305,15 +311,19 @@ theorem ly7Rounds_length {sh c : ℕ} {σ : Val} (hQ : ly7Q sh c σ) (hsh2 : sh 
   · have : σ (.n 65) = 0 := e65.mpr (by omega)
     simp [this, hs]
 
-/-- **`verify_bus_gkr_loop0`'s chain's words**: within the iterations' bounds `ly7B` and the last tail's
-frame, given `verify_bus_gkr_loop0_loop0`'s run's words (linear in its end's exponent, its phantom frame once) and
+/-- **`verify_bus_gkr_loop0`'s chain's words**: within the iterations' bounds `ly7B` and the last
+tail's
+frame, given `verify_bus_gkr_loop0_loop0`'s run's words (linear in its end's exponent,
+    its phantom frame once) and
 the rounds' bound `R`. -/
 theorem ly7_total {P : Core.Program} {rd : Reader} (fs : String → ℕ) {sh K29 R : ℕ}
     (hsh2 : sh < 2)
-    (h29 : TotalLeOn P fs name% «verify_bus_gkr_loop0_loop0» LoopPre (fun a ↦ logG (a.getD 1 0) * K29 + fs name% «verify_bus_gkr_loop0_loop0»))
+    (h29 : TotalLeOn P fs name% «verify_bus_gkr_loop0_loop0» LoopPre (fun a ↦ logG (a.getD 1 0) *
+        K29 + fs name% «verify_bus_gkr_loop0_loop0»))
     (hR : ∀ n ∈ grCounts, TotalLe P fs (lName "gkr_rounds" n) (fun _ ↦ R)) :
     ∀ m c (t : Tree) args rets,
-      Budget.ChainHonest P name% «verify_bus_gkr_loop0» (ly7Q sh) ly7Csb ly7Tl (fun _ ↦ []) (ly7Tsb sh) m c t →
+      Budget.ChainHonest P name% «verify_bus_gkr_loop0» (ly7Q sh) ly7Csb ly7Tl (fun _ ↦ []) (ly7Tsb
+          sh) m c t →
       t.Valid P rd args rets → t.BufsOk P →
       t.total fs ≤ Budget.iterSum (ly7B fs K29 R sh) c m + fs name% «verify_bus_gkr_loop0» := by
   refine Budget.ChainHonest.total_le fs (ly7Wb fs K29 R sh) (ly7B fs K29 R sh)

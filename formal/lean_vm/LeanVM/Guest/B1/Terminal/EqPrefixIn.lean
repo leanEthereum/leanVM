@@ -106,7 +106,7 @@ theorem eqc_relIn {rd : Reader} {bc ba bb n : ℕ} (hn : n ≤ 40) {seed : E} {R
       [ofK (addressOfIndex bc), seed, ofK (addressOfIndex ba), ofK (addressOfIndex bb), gen ^ n]
           [] := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_eq_prefix_chain _ _).mp h
-  have hbody : Fn.body fn% «eq_prefix_chain» = eqcPre ++ [.ret []] := core4_body
+  have hbody : Fn.body fn% «eq_prefix_chain» = eqcPre ++ [.ret []] := eq_prefix_chain_body
   rw [hbody] at hb
   rw [show Fn.params fn% «eq_prefix_chain» = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp

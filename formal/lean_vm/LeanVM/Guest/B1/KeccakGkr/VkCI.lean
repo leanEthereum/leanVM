@@ -19,11 +19,12 @@ public import LeanVM.Guest.Data.NameStrings
 For a `VkData` `D` with `D.Ok`, the caller's words `D.lin …` (the stream, the instance and
 output coordinates, `z_vals`, the inputs' point, the slices) and the buffers' base `B`:
 
-* `D.kids …`: the eighteen calls in order (`verify_keccak_loop0`, the twelve layers, the committed outputs'
-  rounds, `verify_keccak_loop1`, the inputs' rounds, their opening's rounds, `verify_keccak_loop2`), each with its
-  arguments, the caller's words it reads and what it returns; a layer's next claim's record sits
-  in `verify_keccak`'s claim records, pointing into the layer's buffers, and the next layer reads
-  them; `verify_keccak_loop2` copies the last claim's point out of the last layer's buffers.
+* `D.kids …`: the eighteen calls in order (`verify_keccak_loop0`, the twelve layers, the committed
+  outputs' rounds, `verify_keccak_loop1`, the inputs' rounds, their opening's rounds,
+  `verify_keccak_loop2`), each with its arguments, the caller's words it reads and what it returns;
+  a layer's next claim's record sits in `verify_keccak`'s claim records, pointing into the layer's
+  buffers, and the next layer reads them; `verify_keccak_loop2` copies the last claim's point out of
+  the last layer's buffers.
 * `kids_complete`: each is complete there (`CompleteAtF`), as `completeAt_flatG` takes them.
 -/
 
@@ -38,7 +39,8 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 @[expose] public noncomputable section
 
 /-- `verify_keccak`'s loadless callees. -/
-def vkKidS : List String := [name% «verify_keccak_loop0», name% «verify_keccak_loop1», name% «verify_keccak_loop2», "keccak_plain_rounds__L6_L0",
+def vkKidS : List String := [name% «verify_keccak_loop0», name% «verify_keccak_loop1»,
+    name% «verify_keccak_loop2», "keccak_plain_rounds__L6_L0",
   "keccak_plain_rounds__L4_L1"]
 
 theorem vkKidS_pure : coreProgram.PureIn vkKidS := Tables.pureIn_of_pureInB (by decide +kernel)
@@ -111,7 +113,8 @@ def kids (fs : String → ℕ) (B curE chiE olE zvE slE tbE : ℕ) : List KidG :
       fun _ ↦ Returns (D.iRets curE)⟩,
     ⟨plainName 0, true, fun _ ↦ D.sArgs curE zvE tbE, fun _ ↦ D.lin curE chiE olE zvE slE tbE,
       fun _ ↦ Returns (D.sRets curE)⟩,
-    ⟨name% «verify_keccak_loop2», true, fun ps ↦ [1, gen ^ (D.τ - 4), ptr zvE * gen ^ 43, ptr (D.lsOf fs ps 11)],
+    ⟨name% «verify_keccak_loop2», true, fun ps ↦ [1, gen ^ (D.τ - 4), ptr zvE * gen ^ 43,
+        ptr (D.lsOf fs ps 11)],
       fun ps ↦ [(zvE + qkeccakVarsCap, D.point),
         (D.lsOf fs ps.dropLast 11, (D.layer 11).chs (firstOf 11))], fun _ ↦ Returns []⟩]
 

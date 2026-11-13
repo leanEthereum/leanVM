@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.AggSqueeze
 
-  `aggregate_claims`' squeezing loop (`aggregate_claims_loop1`: the lambdas and the batched claim) and its
-  weighing loop (`aggregate_claims_loop2`: the batched equality weight).
+  `aggregate_claims`' squeezing loop (`aggregate_claims_loop1`: the lambdas and the batched claim)
+  and its weighing loop (`aggregate_claims_loop2`: the batched equality weight).
 -/
 
 module
@@ -13,8 +13,8 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `aggregate_claims_loop1` and `aggregate_claims_loop2`
 
-* `l26_step` (`aggregate_claims_loop1`, core function `430`): iteration `x = g^c` reads record `c` of
-  `bc_chain` (`chain·x^2`, two words: `λ`'s power `λ^(2c)` and the running claim), writes the
+* `l26_step` (`aggregate_claims_loop1`, core function `430`): iteration `x = g^c` reads record `c`
+  of `bc_chain` (`chain·x^2`, two words: `λ`'s power `λ^(2c)` and the running claim), writes the
   power times `λ²` into word `2` (record `c + 1`'s power) and the running claim plus the power
   times `fresh[23] + λ · carried[23]` of the child's claims (through the pointer tables `lf`,
   `lc`) into word `3` (record `c + 1`'s claim) (`L26Step`).
@@ -74,10 +74,12 @@ def l26Ok (fn : Fn) : Bool :=
   A.any (isAddAt (.n 21) (.n 15) (.n 20)) && A.any (isLoadAt (.n 21) (.n 8) 3)
 
 set_option maxRecDepth 100000 in
-theorem l26_ok : l26Ok (coreProgram.getD idx% «aggregate_claims_loop1» default) = true := by decide +kernel
+theorem l26_ok : l26Ok (coreProgram.getD idx% «aggregate_claims_loop1» default) = true :=
+  by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l26_idx : coreProgram.indexOf? name% «aggregate_claims_loop1» = some idx% «aggregate_claims_loop1» :=
+theorem l26_idx : coreProgram.indexOf? name% «aggregate_claims_loop1» = some
+    idx% «aggregate_claims_loop1» :=
   coreProgram_indexOf?_at (j := idx% «aggregate_claims_loop1») rfl
 
 /-- **Child `x`'s record**: the record at `chain·x^2` holds `λ`'s power and the running claim;
@@ -89,10 +91,12 @@ def L26Step (rd : Reader) (chainT lfT lcT lamSq lam x : E) : Prop :=
     memAt rd (chainT * x ^ 2) 0 * (memAt rd (memAt rd (lfT * x) 0) 23 +
       lam * memAt rd (memAt rd (lcT * x) 0) 23))
 
-theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate_claims_loop1» (x :: ps) []) :
+theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate_claims_loop1» (x ::
+    ps) []) :
     (∀ N chainT lfT lcT lamSq lam, ps = [N, chainT, lfT, lcT, lamSq, lam] →
       L26Step rd chainT lfT lcT lamSq lam x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd name% «aggregate_claims_loop1» (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd name% «aggregate_claims_loop1» (x * gen :: ps)
+          []) := by
   have hf := find_of_idx l26_idx
   have hok := l26_ok
   simp only [l26Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -219,10 +223,12 @@ def l27Ok (fn : Fn) : Bool :=
   A.any (isLoadAt (.n 179) (.n 180) 1)
 
 set_option maxRecDepth 100000 in
-theorem l27_ok : l27Ok (coreProgram.getD idx% «aggregate_claims_loop2» default) = true := by decide +kernel
+theorem l27_ok : l27Ok (coreProgram.getD idx% «aggregate_claims_loop2» default) = true :=
+  by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l27_idx : coreProgram.indexOf? name% «aggregate_claims_loop2» = some idx% «aggregate_claims_loop2» :=
+theorem l27_idx : coreProgram.indexOf? name% «aggregate_claims_loop2» = some
+    idx% «aggregate_claims_loop2» :=
   coreProgram_indexOf?_at (j := idx% «aggregate_claims_loop2») rfl
 
 /-- **Child `x`'s weight**: `w[x·g] = w[x] + p · (eq(fresh, r) + λ · eq(carried, r))`, `p` the
@@ -233,10 +239,12 @@ def L27Step (rd : Reader) (lfT lcT pt1 chainT wT lam x : E) : Prop :=
     (eqEval (memRun rd (memAt rd (lfT * x) 0) 23) ((memRun rd pt1 23).map (1 + ·)) +
       lam * eqEval (memRun rd (memAt rd (lcT * x) 0) 23) ((memRun rd pt1 23).map (1 + ·))))
 
-theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate_claims_loop2» (x :: ps) []) :
+theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate_claims_loop2» (x ::
+    ps) []) :
     (∀ N lfT lcT pt1 chainT wT lam, ps = [N, lfT, lcT, pt1, chainT, wT, lam] →
       L27Step rd lfT lcT pt1 chainT wT lam x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd name% «aggregate_claims_loop2» (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd name% «aggregate_claims_loop2» (x * gen :: ps)
+          []) := by
   have hf := find_of_idx l27_idx
   have hok := l27_ok
   simp only [l27Ok, Bool.and_eq_true, decide_eq_true_eq] at hok

@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Tables.Vt.Loop10
 
-  `verify_tables`' table sumcheck loop `verify_tables_loop0`: one `sumcheck_round4` a record, its challenge
-  stored at its variable's place in `chi`, and the running product of the challenges.
+  `verify_tables`' table sumcheck loop `verify_tables_loop0`: one `sumcheck_round4` a record, its
+  challenge stored at its variable's place in `chi`, and the running product of the challenges.
 -/
 
 module
@@ -14,10 +14,10 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # The table sumcheck's rounds (`verify_tables_loop0`, G:2346-2356)
 
-`verify_tables_loop0(x, g^n, rounds, tabs, chi, g^n, cprod)` at `x = g^j`: the record `rounds·x^7` (capacity
-cells `0 .. 4`, cursor `5`, claim `6`) runs `sumcheck_round4`, whose cursor and claim go to the next
-record; its challenge `r_j` is stored at `chi[g^(n-1)/x]`, and `cprod[x·g] = cprod[x]·r_j`.
-`l10_step`: an iteration's facts (`L10B`) and the next iteration's call.
+`verify_tables_loop0(x, g^n, rounds, tabs, chi, g^n, cprod)` at `x = g^j`: the record `rounds·x^7`
+(capacity cells `0 .. 4`, cursor `5`, claim `6`) runs `sumcheck_round4`, whose cursor and claim go
+to the next record; its challenge `r_j` is stored at `chi[g^(n-1)/x]`, and `cprod[x·g] =
+cprod[x]·r_j`. `l10_step`: an iteration's facts (`L10B`) and the next iteration's call.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -47,7 +47,8 @@ def l10Body : List Stmt :=
     .atom (.const (.n 25) (word 2 0)), .atom (.mul (.n 26) (.n 0) (.n 25)),
     .atom (.add (.n 27) (.n 26) (.n 1)), .atom (.const (.n 28) (word 2 0)),
     .atom (.mul (.n 29) (.n 0) (.n 28)),
-    .callIf (.n 27) name% «verify_tables_loop0» [.n 29, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], .ret []]
+    .callIf (.n 27) name% «verify_tables_loop0» [.n 29, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6],
+        .ret []]
 
 noncomputable def l10Check : Bool :=
   match coreProgram.find? name% «verify_tables_loop0» with
@@ -78,10 +79,12 @@ def L10B (rd : Reader) (rounds tabs chi gn cprod x : E) : Prop :=
 
 /-- **An iteration of `verify_tables_loop0`.** -/
 theorem l10_step {rd : Reader} {N rounds tabs chi gn cprod : E} (d : ℕ) (x : E)
-    (h : coreProgram.relN rd (d + 1) name% «verify_tables_loop0» (x :: [N, rounds, tabs, chi, gn, cprod]) []) :
+    (h : coreProgram.relN rd (d + 1) name% «verify_tables_loop0» (x :: [N, rounds, tabs, chi, gn,
+        cprod]) []) :
     L10B rd rounds tabs chi gn cprod x ∧
       (x * gen + N ≠ 0 →
-        coreProgram.relN rd d name% «verify_tables_loop0» (x * gen :: [N, rounds, tabs, chi, gn, cprod]) []) := by
+        coreProgram.relN rd d name% «verify_tables_loop0» (x * gen :: [N, rounds, tabs, chi, gn,
+            cprod]) []) := by
   obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
   obtain ⟨fn', hf', hp, hb⟩ := l10Found
   rw [hf] at hf'

@@ -25,7 +25,8 @@ open LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 
-theorem plain41_chk : Fwd.chk 11 (fn% «keccak_plain_rounds__L4_L1»).body = some 134 := by decide +kernel
+theorem plain41_chk : Fwd.chk 11 (fn% «keccak_plain_rounds__L4_L1»).body = some 134 :=
+  by decide +kernel
 
 theorem plain41_stores : storesOf 11 (fn% «keccak_plain_rounds__L4_L1»).body =
     [.load (.n 39) (.n 9) 0, .load (.n 69) (.n 9) 1, .load (.n 94) (.n 9) 2,
@@ -54,7 +55,8 @@ theorem plain41_complete (rd : Reader) (args rets : List E) (hpc : PlainCellsOk 
   -- the honest valuation
   set l : List E := [f0, f1, f2, f3, f4, p0, p1, cur, value, point, tabs] with hl
   have g := (ev_spec rd (fun _ ↦ 0) (fn% «keccak_plain_rounds__L4_L1»).body l plain41_chk).2.2
-  have pp : ∀ i (hi : i < 11), Val.ofArgs (ev rd (fun _ ↦ 0) l (fn% «keccak_plain_rounds__L4_L1»).body) (.n i) =
+  have pp : ∀ i (hi : i < 11), Val.ofArgs (ev rd (fun _ ↦ 0) l
+      (fn% «keccak_plain_rounds__L4_L1»).body) (.n i) =
       l.getD i 0 := fun i hi ↦
     ev_params rd (fun _ ↦ 0) (l := l) plain41_chk (by simpa [hl] using hi)
   rw [show l.length = 11 from rfl, plain41_stores] at g

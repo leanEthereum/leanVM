@@ -66,14 +66,6 @@ theorem sqLoopBody_split (lv : OsLv) (name : String) :
         (.n (sqLoopE lv + 4) :: (List.range (6 - 1)).map fun i ↦ .n (i + 1)), .ret []] := by
   simp only [sqLoopBody, sqLoopA, sqLoopE, osLoopTail_split, List.append_assoc]
 
-theorem osPowSteps_flat (x : ℕ) : ∀ ds acc k, (osPowSteps x ds acc k).1.all Stmt.flat = true := by
-  intro ds
-  induction ds with
-  | nil => intro _ _; rfl
-  | cons d ds ih =>
-    intro acc k
-    cases d <;> simp [osPowSteps, ih, Stmt.flat]
-
 theorem osMat_flat (b o k : ℕ) : (osMat b o k).1.all Stmt.flat = true := by
   unfold osMat; split_ifs <;> rfl
 

@@ -81,7 +81,8 @@ def selKap (c : ℕ) : List Stmt × ℕ × ℕ :=
 def selV (c : ℕ) : ℕ := (selKap c).2.2 + 2
 
 /-- The head (G:3415-3433): the chains at `zeta` (`20`) and `chi` (`22`), the slot points (`24`,
-`25`), the public input's chain (`26`, its loop `check_opening_terminal_loop0`) and its value (`34`), the base
+`25`), the public input's chain (`26`, its loop `check_opening_terminal_loop0`) and its value
+(`34`), the base
 `kappa_base` (`35 .. 42`), the selector tables (`43`). -/
 def termHeadT : List Stmt :=
   [.atom (.hint (.alloc (.n 20) 35)), .atom (.const (.n 21) (word 1 0)),

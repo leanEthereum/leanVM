@@ -164,6 +164,14 @@ theorem osLoopTailA_val {C : CallRel} {σ : Val} {k : ℕ} (h : AllOk C rd σ (o
 
 /-! ## Square and multiply -/
 
+theorem osPowSteps_flat (x : ℕ) : ∀ ds acc k, (osPowSteps x ds acc k).1.all Stmt.flat = true := by
+  intro ds
+  induction ds with
+  | nil => intro _ _; rfl
+  | cons d ds ih =>
+    intro acc k
+    cases d <;> simp [osPowSteps, ih, Stmt.flat]
+
 /-- The value of digits `ds` read after a leading `acc`. -/
 def digitsVal : List Bool → ℕ → ℕ
   | [], acc => acc

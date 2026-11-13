@@ -18,12 +18,12 @@ IR relation (`coreProgram.Rel`) gives the meaning. A `…_Spec` is a definition 
 proof is the theorem `…_holds` of the family's modules. The functions building the dual codeword
 (`da_vector` and its callees) have their meanings in `VectorDefs`.
 
-| function | G | core | meaning |
-| --- | --- | --- | --- |
-| `da_verify` | 4509-4547 | `core27` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the returned challenge |
-| `da_row_shape` | 4550-4559 | `core28` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
-| `da_verify_cell` | 4579-4591 | `core30` | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
-| `da_levels__L{n}_L{k}` | 4594-4602 | `core420-430` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
+| function | G | meaning |
+| --- | --- | --- |
+| `da_verify` | 4509-4547 | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the returned challenge |
+| `da_row_shape` | 4550-4559 | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
+| `da_verify_cell` | 4579-4591 | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
+| `da_levels__L{n}_L{k}` | 4594-4602 | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
 
 `da_verify` reads the padded row count's power off the exponent table `g_squares`
 (`exponent_tables`, `SquaresAt`).
@@ -139,7 +139,8 @@ theorem find_da_verify : coreProgram.find? "da_verify" = some fn% «da_verify» 
 theorem find_da_row_shape : coreProgram.find? "da_row_shape" = some fn% «da_row_shape» :=
   coreProgram_find?_at (j := idx% «da_row_shape») rfl
 
-theorem find_da_verify_column : coreProgram.find? "da_verify_column" = some fn% «da_verify_column» :=
+theorem find_da_verify_column : coreProgram.find? "da_verify_column" = some fn% «da_verify_column»
+    :=
   coreProgram_find?_at (j := idx% «da_verify_column») rfl
 
 theorem find_da_verify_cell : coreProgram.find? "da_verify_cell" = some fn% «da_verify_cell» :=
@@ -148,7 +149,8 @@ theorem find_da_verify_cell : coreProgram.find? "da_verify_cell" = some fn% «da
 theorem find_da_vector : coreProgram.find? "da_vector" = some fn% «da_vector» :=
   coreProgram_find?_at (j := idx% «da_vector») rfl
 
-theorem find_da_column_offsets : coreProgram.find? "da_column_offsets" = some fn% «da_column_offsets» :=
+theorem find_da_column_offsets : coreProgram.find? "da_column_offsets" = some
+    fn% «da_column_offsets» :=
   coreProgram_find?_at (j := idx% «da_column_offsets») rfl
 
 set_option maxRecDepth 100000 in
@@ -161,7 +163,8 @@ theorem find_da_factors_L14_L7_L0 :
   coreProgram_find?_at (j := idx% «da_factors__L14_L7_L0») rfl
 
 set_option maxRecDepth 100000 in
-theorem find_da_expand_L14_L7 : coreProgram.find? "da_expand__L14_L7" = some fn% «da_expand__L14_L7» :=
+theorem find_da_expand_L14_L7 : coreProgram.find? "da_expand__L14_L7" = some
+    fn% «da_expand__L14_L7» :=
   coreProgram_find?_at (j := idx% «da_expand__L14_L7») rfl
 
 set_option maxRecDepth 100000 in

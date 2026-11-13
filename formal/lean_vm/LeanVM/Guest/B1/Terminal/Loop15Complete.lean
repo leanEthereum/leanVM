@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Terminal.Loop15Complete
 
-  `check_opening_terminal_loop0`, completely: over the public input's honest chain, the loop runs from `g^k` to its
-  end `g^m`, loading only the chain and the point.
+  `check_opening_terminal_loop0`, completely: over the public input's honest chain, the loop runs
+  from `g^k` to its end `g^m`, loading only the chain and the point.
 -/
 
 module
@@ -41,7 +41,8 @@ def l15Pre : List Stmt :=
     .atom (.const (.n 13) (word 2 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
     .callIf (.n 12) name% «check_opening_terminal_loop0» [.n 14, .n 1, .n 2, .n 3]]
 
-theorem find_loop15 : coreProgram.find? name% «check_opening_terminal_loop0» = some fn% «check_opening_terminal_loop0» :=
+theorem find_loop15 : coreProgram.find? name% «check_opening_terminal_loop0» = some
+    fn% «check_opening_terminal_loop0» :=
   coreProgram_find?_at (j := idx% «check_opening_terminal_loop0») rfl
 
 theorem l15_body : Fn.body fn% «check_opening_terminal_loop0» = l15Pre ++ [.ret []] := by
@@ -56,9 +57,11 @@ theorem l15_loads : l15Pre.filterMap Stmt.loadS = [(.n 4, 0), (.n 6, 0), (.n 9, 
   decide +kernel
 
 theorem l15_callS : l15Pre.filterMap Main.Stmt.callS =
-    [(some (.n 12), name% «check_opening_terminal_loop0», [.n 14, .n 1, .n 2, .n 3], [])] := by decide +kernel
+    [(some (.n 12), name% «check_opening_terminal_loop0», [.n 14, .n 1, .n 2, .n 3],
+        [])] := by decide +kernel
 
-/-- `check_opening_terminal_loop0`'s evident valuation at `x`, the chain's word `a` and the point's `b`. -/
+/-- `check_opening_terminal_loop0`'s evident valuation at `x`, the chain's word `a` and the point's
+`b`. -/
 noncomputable def l15σ (x N ch p a b : E) : Val :=
   B1.Val.ofArgs [x, N, ch, p, ch * x, a, p * x, b, a * b, ch * x, word 2 0, x * word 2 0,
     x * word 2 0 + N, word 2 0, x * word 2 0]
@@ -78,7 +81,8 @@ theorem l15_iter {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length
     (hkm : k < m)
     (hnext : k + 1 < m → coreProgram.RelIn rd R name% «check_opening_terminal_loop0»
       [gen ^ (k + 1), gen ^ m, ofK (addressOfIndex bc), ofK (addressOfIndex bp)] []) :
-    coreProgram.RelIn rd R name% «check_opening_terminal_loop0» [gen ^ k, gen ^ m, ofK (addressOfIndex bc), ofK
+    coreProgram.RelIn rd R name% «check_opening_terminal_loop0» [gen ^ k, gen ^ m,
+        ofK (addressOfIndex bc), ofK
         (addressOfIndex bp)] [] := by
   set σ := l15σ (gen ^ k) (gen ^ m) (ofK (addressOfIndex bc)) (ofK (addressOfIndex bp)) (cs.getD k
       0) (ps.getD k 0)
@@ -145,14 +149,16 @@ theorem l15_iter {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length
     rw [hw2, gen_pow_mul_gen]
     exact hnext hk'
 
-/-- **`check_opening_terminal_loop0`, completely, loading the chain and the point**: from every `g^k`, `1 ≤ k < m`. -/
+/-- **`check_opening_terminal_loop0`, completely, loading the chain and the point**: from every
+`g^k`, `1 ≤ k < m`. -/
 theorem l15_relIn {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length = m + 1)
     (hpl : ps.length = m) (hc : ReadsAt rd (ofK (addressOfIndex bc)) cs) (hp : ReadsAt rd (ofK
         (addressOfIndex bp)) ps)
     (hstep : ∀ k, 1 ≤ k → k < m → cs.getD (k + 1) 0 = cs.getD k 0 * ps.getD k 0) {R : ℕ → Prop}
     (hR : ∀ i, (bc ≤ i ∧ i ≤ bc + m) ∨ (bp ≤ i ∧ i < bp + m) → R i) :
     ∀ t k, k + 1 + t = m → 1 ≤ k →
-      coreProgram.RelIn rd R name% «check_opening_terminal_loop0» [gen ^ k, gen ^ m, ofK (addressOfIndex bc), ofK
+      coreProgram.RelIn rd R name% «check_opening_terminal_loop0» [gen ^ k, gen ^ m,
+          ofK (addressOfIndex bc), ofK
           (addressOfIndex bp)] [] := by
   intro t
   induction t with

@@ -13,6 +13,9 @@ public import LeanVM.Guest.B1.Whir.Config
 public import LeanVM.Guest.B1.Whir.Split
 public import LeanVM.Guest.Word
 public import LeanVM.Guest.Renumber
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The template of `open_stacked` (TRIAGE G #42)
@@ -372,7 +375,7 @@ def osFinalMsg (c : OsCfg) (lv : OsLv) (s : OsSt) : List Stmt × OsSt :=
                  word0 := r, pow0 := r + 1 })
 
 /-- `OOD_GRIND_BITS`, every later level's too. -/
-abbrev levelOodGrind : ℕ := 15
+abbrev levelOodGrind : ℕ := guest_const% OOD_GRIND_BITS
 
 /-- A non-final level's next commitment: `sent` (the next root and the high part)
 and the OOD nonce by `opening_message`, its grind, the root into `level_roots`, the OOD point
@@ -408,7 +411,7 @@ def osCommit (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt 
                  pad := some p, word0 := j, pow0 := j + 1, sent := sent, ys := [b] })
 
 /-- `QUERY_GRIND_BITS`. -/
-abbrev queryGrind : ℕ := 17
+abbrev queryGrind : ℕ := guest_const% QUERY_GRIND_BITS
 
 /-- The name of `level_positions`' specialization at a level's row. -/
 def osPositionsName (lv : OsLv) : String :=
@@ -629,7 +632,14 @@ def osBases (c : OsCfg) (tch bd ls la : ℕ) : ℕ → List OsLv → ℕ → Lis
     (osLd k osBetas lvl :: r.1 ++ [osLd r.2.1 ls lvl, osLd r.2.2.1 la lvl] ++ t.1, t.2)
 
 /-- `RES_BATCH`: the queries a residual loop iteration takes. -/
-abbrev resBatch : ℕ := 8
+abbrev resBatch : ℕ := guest_const% RES_BATCH
+
+/-- `xr ** RES_BATCH` (`xr` the value `0`), by square and multiply from `k`: the statements and the
+value holding the power. -/
+def osBatchPow (k : ℕ) : List Stmt × ℕ := osPowSteps 0 (osPowDigits resBatch) 0 k
+
+/-- The values `osBatchPow` takes. -/
+abbrev batchLen : ℕ := osPowLen resBatch
 
 /-- The name of `level_residual`'s specialization at a level's row: the queries, the message
 columns, the high part's length and index bits. -/
@@ -742,7 +752,7 @@ def osBody (c : OsCfg) : List Stmt :=
 
 `sqLoopBody` (one squeeze and its `decode_query_windows` an iteration, the positions at the
 level's offset) is `level_positions`' loop at offset `0` (`lpLoopBody`, `Whir/HelperT.lean`);
-`resLoopBody` (eight queries' induced products and high shares chained by `μ = 1/λ` an
+`resLoopBody` (`resBatch` queries' induced products and high shares chained by `μ = 1/λ` an
 iteration) is the shape of `level_residual`'s batches' loop. -/
 
 /-- The squeeze loop's body, at `x, N, sqz, qpos, qwp, tabs` (values `0 .. 5`):
@@ -764,16 +774,17 @@ def sqLoopBody (lv : OsLv) (name : String) : List Stmt :=
     osLoopTail name 6 e
 
 /-- The residual loop's body, at `xr, N, qpos, basis_d, level_hs, chain, μ` (values
-`0 .. 6`): the batch's positions at `qpos·g^posOff·xr^8`, `h, hh = chain[xr]`, eight steps,
-`chain[xr·g] = h, hh`, then the loop's tail. -/
+`0 .. 6`): `xr^resBatch` (`osBatchPow`), the batch's positions at `qpos·g^posOff·xr^resBatch`,
+`h, hh = chain[xr]`, `resBatch` steps, `chain[xr·g] = h, hh`, then the loop's tail. -/
 def resLoopBody (lvl : ℕ) (lv : OsLv) (name : String) : List Stmt :=
   let pp := osMat 2 lv.posOff 7
   let x := pp.2.2
-  let st := osResSteps (x + 3) 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols lv.folds
-    lv.highBits 6 (List.range resBatch) (x + 6) (x + 7) (x + 8)
-  pp.1 ++ [osMul x 0 0, osMul (x + 1) x x, osMul (x + 2) (x + 1) (x + 1), osMul (x + 3) pp.2.1 (x + 2),
-    osMul (x + 4) 5 0, osMul (x + 5) (x + 4) 0, osLd (x + 6) (x + 5) 0, osLd (x + 7) (x + 5) 1] ++ st.1 ++
-    [osLd st.2.1 (x + 5) 2, osLd st.2.2.1 (x + 5) 3] ++
+  let y := x + batchLen
+  let st := osResSteps y 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols lv.folds
+    lv.highBits 6 (List.range resBatch) (y + 3) (y + 4) (y + 5)
+  pp.1 ++ (osBatchPow x).1 ++ [osMul y pp.2.1 (osBatchPow x).2, osMul (y + 1) 5 0,
+    osMul (y + 2) (y + 1) 0, osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ++ st.1 ++
+    [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3] ++
     osLoopTail name 7 st.2.2.2
 
 end

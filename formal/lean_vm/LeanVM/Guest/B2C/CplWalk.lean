@@ -55,7 +55,7 @@ theorem ksum_succ (ck : List (Opcode → ℕ)) (n : ℕ) (op : Opcode) :
 theorem idxOf_coreOf {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : idxOf (coreOf j).name = some j := by
   have hl : j - 1 < coreProgram.length := by
     have := coreProgram_length
-    have : nFns = 1602 := rfl
+    have : nFns = fn_count% := rfl
     omega
   have hc : coreOf j = coreProgram[j - 1] := by unfold coreOf; exact nth_eq hl
   unfold idxOf Core.Program.indexOf?
@@ -462,7 +462,7 @@ theorem tbl_jt_mem {s t : ℕ} (h : glob.jt.get s = some t) : ∃ w, (s, w) ∈ 
   unfold JumpTable.entryOk at he
   rw [Bool.and_eq_true] at he
   obtain ⟨hlt, he⟩ := he
-  have hlen : s - 430 < Data.f0.instructionCount := by simpa using hlt
+  have hlen : s - Data.mainCells < Data.f0.instructionCount := by simpa using hlt
   obtain ⟨o, k0, k1, hins, hmem⟩ := End.f0_instr hlen
   rw [hins] at he
   simp only [Bool.and_eq_true, beq_iff_eq] at he

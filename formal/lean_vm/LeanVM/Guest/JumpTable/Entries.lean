@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Guest.Data.FrameSizes
 public import LeanVM.Guest.Bytecode
 public import LeanVM.Guest.Pow
 public import Statement.Data.Bytecode00
@@ -15,8 +16,8 @@ public import LeanVM.Guest.Memory.Walk
 /-!
 # The entries of the jump table
 
-`entryOk s t` says entry `(s, t)` of `Data.jtTrie` is the `SET` at instruction `s - 430` of
-`__jump_tables`, and `allEntries p t a b` that `p` holds at every entry of a subtree. The kernel
+`entryOk s t` says entry `(s, t)` of `Data.jtTrie` is the `SET` at instruction
+`s - Data.mainCells` of `__jump_tables`, and `allEntries p t a b` that `p` holds at every entry of a subtree. The kernel
 checks it in two walks, neither indexing the code: of the trie, that every key is a slot of an
 instruction (`keysOk`, `JumpTable.Keys`), and of the code, that each instruction sets its slot to
 the trie's target there (`codeOk`, `JumpTable.Code`).
@@ -28,22 +29,24 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- The entry `(s, t)` is the `SET` at instruction `s - 430` of `__jump_tables`. -/
+/-- The entry `(s, t)` is the `SET` at instruction `s - Data.mainCells` of `__jump_tables`. -/
 noncomputable def entryOk (s t : ℕ) : Bool :=
-  Nat.blt (s - 430) Data.f0.instructionCount &&
-    match Data.f0.instructionAt (s - 430) with
+  Nat.blt (s - Data.mainCells) Data.f0.instructionCount &&
+    match Data.f0.instructionAt (s - Data.mainCells) with
     | .set o k0 k1 => o == s && k1 == 0 && Data.powTree.find k0 == some t
     | _ => false
 
-/-- Key `s` is the slot of an instruction `s - 430` of `__jump_tables`. -/
-def keysOk (s _ : ℕ) : Bool := Nat.ble 430 s && Nat.blt (s - 430) Data.f0.instructionCount
+/-- Key `s` is the slot of an instruction `s - Data.mainCells` of `__jump_tables`. -/
+def keysOk (s _ : ℕ) : Bool :=
+  Nat.ble Data.mainCells s && Nat.blt (s - Data.mainCells) Data.f0.instructionCount
 
-/-- Instruction `i` of `__jump_tables` is the `SET` of slot `i + 430` to the trie's target there,
+/-- Instruction `i` of `__jump_tables` is the `SET` of slot `i + Data.mainCells` to the trie's target
+there,
 if any. -/
 noncomputable def codeOk (i : ℕ) (ins : OffsetInstruction) : Bool :=
-  match Data.jtTrie.get (i + 430) with
+  match Data.jtTrie.get (i + Data.mainCells) with
   | some t => match ins with
-    | .set o k0 k1 => o == i + 430 && k1 == 0 && Data.powTree.find k0 == some t
+    | .set o k0 k1 => o == i + Data.mainCells && k1 == 0 && Data.powTree.find k0 == some t
     | _ => false
   | none => true
 

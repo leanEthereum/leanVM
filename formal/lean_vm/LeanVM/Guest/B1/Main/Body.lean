@@ -19,7 +19,7 @@ direct DA check behind `n_direct_da == g` (`mDa`: `da_verify`, then its claim's 
 `own_da`) or the zero digest stored there (`mDaZ`), a flat block (`mMid`: the children's loop, the
 final count, `da_pick` and its two checks), the leaf's deferred claim or the batching behind
 `n_children == 1` (`mLeaf`, `mAgg`), and a flat block (`mPost`: the statement's digest against
-the public input) (`core0_shape`). `preOk`, `daOk`, `daZOk`, `midOk`, `leafOk`, `postOk` check
+the public input) (`main_shape`). `preOk`, `daOk`, `daZOk`, `midOk`, `leafOk`, `postOk` check
 every fact the proof reads, by evaluation.
 -/
 
@@ -50,7 +50,7 @@ noncomputable def mAgg : List Stmt := match (Fn.body fn% «main»).getD 655 defa
 noncomputable def mPost : List Stmt := ((Fn.body fn% «main»).drop 656).take 11
 
 set_option maxRecDepth 100000 in
-theorem core0_shape : Fn.body fn% «main» =
+theorem main_shape : Fn.body fn% «main» =
     mPre ++ [.ite (.n 368) mDa mDaZ] ++ mMid ++ [.ite (.n 418) mLeaf mAgg] ++ mPost ++ [.ret []] :=
   stmtsEqb_sound (by decide +kernel)
 

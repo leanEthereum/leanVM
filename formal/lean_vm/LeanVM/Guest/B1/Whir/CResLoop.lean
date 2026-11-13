@@ -46,6 +46,40 @@ theorem rcAt_succ (lv : OsLv) (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (
     List.map_append, List.map_map]
   rfl
 
+/-! ## `x^resBatch`, honestly -/
+
+/-- The square-and-multiply steps from `k` write `k, k + 1, …` in order, ending below. -/
+theorem osPowSteps_ssaP (x : ℕ) : ∀ (ds : List Bool) (acc k : ℕ), acc < k → x < k →
+    SsaP k (osPowSteps x ds acc k).1 (k + (ds.length + (ds.filter id).length)) ∧
+      (osPowSteps x ds acc k).2 < k + (ds.length + (ds.filter id).length)
+  | [], _, k, hak, _ => ⟨by simpa [osPowSteps] using (SsaP.nil (w := k)), by simpa [osPowSteps] using hak⟩
+  | true :: ds, acc, k, hak, hxk => by
+    obtain ⟨h1, h2⟩ := osPowSteps_ssaP x ds (k + 1) (k + 2) (by omega) (by omega)
+    have e : k + ((true :: ds).length + ((true :: ds).filter id).length) =
+        k + 2 + (ds.length + (ds.filter id).length) := by simp; omega
+    rw [e]
+    simp only [osPowSteps, ↓reduceIte]
+    exact ⟨.mul le_rfl hak hak (.mul le_rfl (by omega) (by omega) h1), h2⟩
+  | false :: ds, acc, k, hak, hxk => by
+    obtain ⟨h1, h2⟩ := osPowSteps_ssaP x ds k (k + 1) (by omega) (by omega)
+    have e : k + ((false :: ds).length + ((false :: ds).filter id).length) =
+        k + 1 + (ds.length + (ds.filter id).length) := by simp; omega
+    rw [e]
+    simp only [osPowSteps, Bool.false_eq_true, ↓reduceIte]
+    exact ⟨.mul le_rfl hak hak h1, h2⟩
+
+theorem osPowSteps_loads (x : ℕ) : ∀ (ds : List Bool) (acc k : ℕ),
+    loadsOf (osPowSteps x ds acc k).1 = []
+  | [], _, _ => rfl
+  | true :: ds, acc, k => by simpa [osPowSteps, osMul, loadsOf] using osPowSteps_loads x ds (k + 1) (k + 2)
+  | false :: ds, acc, k => by simpa [osPowSteps, osMul, loadsOf] using osPowSteps_loads x ds k (k + 1)
+
+theorem osBatchPow_ssaP (k : ℕ) (hk : 0 < k) :
+    SsaP k (osBatchPow k).1 (k + batchLen) ∧ (osBatchPow k).2 < k + batchLen :=
+  osPowSteps_ssaP 0 _ 0 k hk hk
+
+theorem osBatchPow_loads (k : ℕ) : loadsOf (osBatchPow k).1 = [] := osPowSteps_loads 0 _ 0 k
+
 /-- **One iteration of the residual loop, honestly**, at `x = g^j`. -/
 theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv hsv)
     (hpo : lv.posOff < u128Bound) {rd : Reader} {qpos bd hs chain mu N : E} {D Pos : ℕ → E} {j : ℕ}
@@ -73,27 +107,30 @@ theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv 
       σ (.n (osMat 2 lv.posOff 7).2.1) = σ (.n 2) * gen ^ lv.posOff := fun _ _ h ↦ osMat_val hpo h
   generalize hpp : osMat 2 lv.posOff 7 = pp at hx7 hp2 hS0 hL0 hmv ⊢
   generalize hx : pp.2.2 = x at hx7 hp2 hS0 hL0 hmv ⊢
-  obtain ⟨t1, t2, t3, t4⟩ := osResSteps_ssa (x + 3) 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish
+  obtain ⟨hB, hBl⟩ := osBatchPow_ssaP x (by omega)
+  generalize hy : x + batchLen = y at hB hBl ⊢
+  obtain ⟨t1, t2, t3, t4⟩ := osResSteps_ssa y 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish
     lv.logCols lv.folds lv.highBits 6 (by have := hst.nhs; omega) (by have := hst.cols; omega)
-    js (x + 6) (x + 7) (x + 8) (by omega) (by omega) (by omega) (by omega) (by omega) (by omega)
+    js (y + 3) (y + 4) (y + 5) (by omega) (by omega) (by omega) (by omega) (by omega) (by omega)
   have hval := fun (σ : Val) (C : CallRel)
       (hD' : ∀ s < lv.logCols, LoadHolds rd (σ (.n 3)) (lvl * ligColsCap + s) (D s))
       (hH' : ∀ c < lv.folds, LoadHolds rd (σ (.n 4)) (lvl * hsStride + c) (hsv.getD c 0)) ↦
-    osResSteps_val (C := C) (σ := σ) (pp := x + 3) (bd := 3) (ro := lvl * ligColsCap) (hp := 4)
+    osResSteps_val (C := C) (σ := σ) (pp := y) (bd := 3) (ro := lvl * ligColsCap) (hp := 4)
       (ho := lvl * hsStride) (vo := lv.vanish) (mu := 6) hst.cols hst.nhs hst.b3 hst.bn hD' hst.len hH'
-      js (x + 6) (x + 7) (x + 8)
-  generalize hstd : osResSteps (x + 3) 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols
-    lv.folds lv.highBits 6 js (x + 6) (x + 7) (x + 8) = st at t1 t2 t3 t4 hval ⊢
+      js (y + 3) (y + 4) (y + 5)
+  generalize hstd : osResSteps y 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols
+    lv.folds lv.highBits 6 js (y + 3) (y + 4) (y + 5) = st at t1 t2 t3 t4 hval ⊢
   generalize hr : st.2.2.2 = r at t1 t2 t3 ⊢
   -- the statements in order
-  have hS1 : SsaP 7 (pp.1 ++ [osMul x 0 0, osMul (x + 1) x x, osMul (x + 2) (x + 1) (x + 1),
-      osMul (x + 3) pp.2.1 (x + 2), osMul (x + 4) 5 0, osMul (x + 5) (x + 4) 0]) (x + 6) :=
-    hS0.append (.mul le_rfl (by omega) (by omega) (.mul (by omega) (by omega)
-    (by omega) (.mul (by omega) (by omega) (by omega) (.mul (by omega) (by omega) (by omega)
-      (.mul (by omega) (by omega) (by omega) (.mul (by omega) (by omega) (by omega) .nil))))))
-  have hS2 : SsaP (x + 6) [osLd (x + 6) (x + 5) 0, osLd (x + 7) (x + 5) 1] (x + 8) :=
+  have hxy : x ≤ y := by have := hB.le; omega
+  have hS1 : SsaP 7 (pp.1 ++ (osBatchPow x).1 ++ [osMul y pp.2.1 (osBatchPow x).2,
+      osMul (y + 1) 5 0,
+      osMul (y + 2) (y + 1) 0]) (y + 3) :=
+    (hS0.append hB).append (.mul le_rfl (by omega) hBl (.mul (by omega) (by omega) (by omega)
+      (.mul (by omega) (by omega) (by omega) .nil)))
+  have hS2 : SsaP (y + 3) [osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] (y + 5) :=
     .load le_rfl (by omega) (.load (by omega) (by omega) .nil)
-  have hS3 : Ssa r [osLd st.2.1 (x + 5) 2, osLd st.2.2.1 (x + 5) 3] r :=
+  have hS3 : Ssa r [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3] r :=
     .cons (.store t2 (by have := t1.le; omega)) (.cons (.store t3 (by have := t1.le; omega)) .nil)
   have hS4 : SsaP r (osLoopTailA r) (r + 5) :=
     .const le_rfl (.mul (by omega) (by omega) (by omega) (.add (by omega) (by omega) (by omega)
@@ -101,10 +138,10 @@ theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv 
   have hP := (hS1.append hS2).append t1
   have hPS := hP.toSsa.append hS3
   have hS := hPS.append hS4.toSsa
-  set A1 : List Stmt := pp.1 ++ [osMul x 0 0, osMul (x + 1) x x, osMul (x + 2) (x + 1) (x + 1),
-      osMul (x + 3) pp.2.1 (x + 2), osMul (x + 4) 5 0, osMul (x + 5) (x + 4) 0] with hA1
-  set P : List Stmt := A1 ++ [osLd (x + 6) (x + 5) 0, osLd (x + 7) (x + 5) 1] ++ st.1 with hPd
-  set S3 : List Stmt := [osLd st.2.1 (x + 5) 2, osLd st.2.2.1 (x + 5) 3] with hS3d
+  set A1 : List Stmt := pp.1 ++ (osBatchPow x).1 ++ [osMul y pp.2.1 (osBatchPow x).2,
+      osMul (y + 1) 5 0, osMul (y + 2) (y + 1) 0] with hA1
+  set P : List Stmt := A1 ++ [osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ++ st.1 with hPd
+  set S3 : List Stmt := [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3] with hS3d
   -- the valuation
   set v0 : ℕ → E := fun i ↦ [gen ^ j, N, qpos, bd, hs, chain, mu].getD i 0 with hv0
   set M := rdMem rd with hM
@@ -116,46 +153,48 @@ theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv 
     show evalV M (fun _ ↦ 0) 7 v0 ((P ++ S3) ++ osLoopTailA r) i = _
     rw [hS.keep _ i hi]
   -- the first block: the batch's pointer and the chains' row
-  have hA1s : SsaP 7 A1 (x + 6) := hS1
+  have hA1s : SsaP 7 A1 (y + 3) := hS1
   have okA1 : AllOk (coreProgram.Rel rd) rd σ A1 := by
     refine ssa_allOk (M := M) (Pt := fun _ ↦ 0) hA1s.toSsa v0 σ (fun i hi ↦ ?_)
       (hA1s.sidesOk fun p o hpo ↦ ?_)
     · rw [hσP i (by have := t1.le; omega), hPd, (hA1s.append hS2).toSsa.evalV_lt t1.toSsa _ (by omega),
         hA1s.toSsa.evalV_lt hS2.toSsa _ hi]
-    · simp only [hA1, loadsOf_append, hL0, List.nil_append, loadsOf, List.not_mem_nil] at hpo
+    · simp only [hA1, loadsOf_append, hL0, osBatchPow_loads, List.nil_append, loadsOf,
+        List.not_mem_nil] at hpo
   -- its values
   have okA1' := okA1
   simp only [hA1, allOk_append, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_mul, osMul]
     at okA1'
-  obtain ⟨hpp1, m0, m1, m2, m3, m4, m5⟩ := okA1'
+  obtain ⟨⟨hpp1, hpw⟩, m3, m4, m5⟩ := okA1'
   have e0 : σ (.n 0) = gen ^ j := hσ0 0 (by omega)
   have e2 : σ (.n 2) = qpos := hσ0 2 (by omega)
   have e3 : σ (.n 3) = bd := hσ0 3 (by omega)
   have e4 : σ (.n 4) = hs := hσ0 4 (by omega)
   have e5 : σ (.n 5) = chain := hσ0 5 (by omega)
   have e6 : σ (.n 6) = mu := hσ0 6 (by omega)
-  have hX3 : σ (.n (x + 3)) = qpos * gen ^ (lv.posOff + resBatch * j) := by
-    rw [m3, hmv σ _ hpp1, m2, m1, m0, e0, e2, pow_add]; ring
-  have hX5 : σ (.n (x + 5)) = chain * gen ^ (2 * j) := by
+  have hX3 : σ (.n y) = qpos * gen ^ (lv.posOff + resBatch * j) := by
+    rw [m3, hmv σ _ hpp1, osBatchPow_val _ hpw, e0, e2, ← pow_mul, pow_add, Nat.mul_comm j]; ring
+  have hX5 : σ (.n (y + 2)) = chain * gen ^ (2 * j) := by
     rw [m5, m4, e5, e0]; ring
   -- the memory
   have hnb := hj
   have hrcl : ∀ e < 2 * (lv.queries / resBatch + 1),
       LoadHolds rd chain e ((rcC lv D hsv Pos mu).getD e 0) := fun e he ↦
     readsAt_getDr hrc (by rw [rcC_length]; exact he)
-  have hch : ∀ o < 4, ∃ v, LoadHolds rd (σ (.n (x + 5))) o v := fun o ho ↦
+  have hch : ∀ o < 4, ∃ v, LoadHolds rd (σ (.n (y + 2))) o v := fun o ho ↦
     ⟨_, by rw [hX5, loadHolds_mul_gen_pow]; exact hrcl (2 * j + o) (by omega)⟩
   have hQ : resBatch * j + resBatch ≤ lv.queries := by
     have := Nat.div_mul_le_self lv.queries resBatch
     have : (j + 1) * resBatch ≤ lv.queries / resBatch * resBatch := Nat.mul_le_mul_right _ hj
     rw [Nat.add_mul, Nat.one_mul, Nat.mul_comm j] at this; omega
-  have hpq : ∀ i < resBatch, LoadHolds rd (σ (.n (x + 3))) i (Pos (resBatch * j + i)) := fun i hi ↦ by
+  have hpq : ∀ i < resBatch, LoadHolds rd (σ (.n y)) i (Pos (resBatch * j + i)) := fun i hi ↦ by
     rw [hX3, loadHolds_mul_gen_pow, Nat.add_assoc]; exact hpos _ (by omega)
   -- the pure part holds
   have okP : AllOk (coreProgram.Rel rd) rd σ P := by
     refine ssa_allOk (M := M) (Pt := fun _ ↦ 0) hP.toSsa v0 σ (fun i hi ↦ hσP i hi)
       (hP.sidesOk fun p o hpo ↦ ?_)
-    simp only [hPd, hA1, loadsOf_append, hL0, List.nil_append, loadsOf, List.mem_append,
+    simp only [hPd, hA1, loadsOf_append, hL0, osBatchPow_loads, List.nil_append, loadsOf,
+        List.mem_append,
       List.mem_cons, List.not_mem_nil, or_false, Prod.mk.injEq] at hpo
     rcases hpo with (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩) | hpo
     · obtain ⟨v, hv⟩ := hch 0 (by omega); exact (rdMem_of hv).2
@@ -172,11 +211,11 @@ theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv 
   obtain ⟨l6, l7⟩ := okL2
   obtain ⟨g0, g1⟩ := rcC_get lv D hsv Pos mu (j := j) (by omega)
   obtain ⟨g2, g3⟩ := rcC_get lv D hsv Pos mu (j := j + 1) (by omega)
-  have v6 : σ (.n (x + 6)) = (rcAt lv D hsv Pos mu j).1 := by
+  have v6 : σ (.n (y + 3)) = (rcAt lv D hsv Pos mu j).1 := by
     have h := hrcl (2 * j) (by omega)
     rw [g0, ← Nat.add_zero (2 * j), ← loadHolds_mul_gen_pow, ← hX5] at h
     exact loadHolds_unique l6 h
-  have v7 : σ (.n (x + 7)) = (rcAt lv D hsv Pos mu j).2 := by
+  have v7 : σ (.n (y + 4)) = (rcAt lv D hsv Pos mu j).2 := by
     have h := hrcl (2 * j + 1) (by omega)
     rw [g1, ← loadHolds_mul_gen_pow, ← hX5] at h
     exact loadHolds_unique l7 h
@@ -228,7 +267,8 @@ theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv 
     rfl
 
 /-- **The residual loop of a non-final level holds at its honest arguments**: entered at `1` with
-the bound `g^(Q/8)`, on memory holding the positions at `qpos·g^posOff`, the basis row at `bd`,
+the bound `g^(Q/resBatch)`, on memory holding the positions at `qpos·g^posOff`, the basis row at
+`bd`,
 the high part at `hs` and the chains' buffer (`rcC`) at `chain`. -/
 theorem resLoop_complete {name : String} {lvl : ℕ} {lv : OsLv} {hsv : List E}
     (hfn : FnIs name (osParams 7) (resLoopBody lvl lv name))

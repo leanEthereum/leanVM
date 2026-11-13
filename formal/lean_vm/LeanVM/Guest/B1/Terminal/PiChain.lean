@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Terminal.PiChain
 
-  The public input's chain of `check_opening_terminal` (G:3421-3426): `check_opening_terminal_loop0` and the products
-  it writes.
+  The public input's chain of `check_opening_terminal` (G:3421-3426): `check_opening_terminal_loop0`
+  and the products it writes.
 -/
 
 module
@@ -66,7 +66,8 @@ def PiStep (rd : Reader) (chain p1 x : E) : Prop :=
 theorem loop15_step (d : ℕ) (x N chain p1 : E)
     (h : coreProgram.relN rd (d + 1) name% «check_opening_terminal_loop0» [x, N, chain, p1] []) :
     PiStep rd chain p1 x ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «check_opening_terminal_loop0» [x * gen, N, chain, p1] []) := by
+      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «check_opening_terminal_loop0» [x * gen, N,
+          chain, p1] []) := by
   obtain ⟨fn, hf, σ, hpar, hb⟩ := h
   obtain ⟨fn', hf', hp', hb'⟩ := loop15Found
   rw [hf'] at hf

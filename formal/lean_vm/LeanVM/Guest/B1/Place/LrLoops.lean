@@ -17,7 +17,7 @@ The chains run over the positions as the old residual loop's (`Whir/CResLoop.lea
 (`rcC`), the rest's after `8·nb + j` (`rsC`).
 
 * `lrLoop1_iter`, `lrLoop1_complete`: the batches' loop (`lrLoop1Body`), entered at `1` with the
-  bound `g^(q/8)`, on memory holding the positions, the basis row, the high part and `rcC`.
+  bound `g^(q/resBatch)`, on memory holding the positions, the basis row, the high part and `rcC`.
 * `lrLoop2_iter`, `lrLoop2_complete`: the rest's loop (`lrLoop2Body`), entered at `1` with the
   bound `g^r`, on memory holding the rest's positions at `tail`, the basis row, the high part and
   `rsC`.
@@ -69,23 +69,28 @@ theorem lrLoop1_iter {q cols nhs hbits : ℕ} {hsv : List E}
   have hlen : hsv.length = nhs := hst.len
   unfold lr1A lr1St
   generalize hjs : List.range resBatch = js
-  obtain ⟨t1, t2, t3, t4⟩ := osResSteps_ssa 10 4 0 5 0 (lrVo cols) cols nhs hbits 6 (by omega) (by omega)
-    js 13 14 15 (by omega) (by omega) (by omega) (by omega) (by omega) (by omega)
+  obtain ⟨hB, hBl⟩ := osBatchPow_ssaP 7 (by omega)
+  generalize hy : 7 + batchLen = y at hB hBl ⊢
+  have hy7 : 7 ≤ y := hB.le
+  obtain ⟨t1, t2, t3, t4⟩ := osResSteps_ssa y 4 0 5 0 (lrVo cols) cols nhs hbits 6 (by omega)
+    (by omega) js (y + 3) (y + 4) (y + 5) (by omega) (by omega) (by omega) (by omega) (by omega)
+    (by omega)
   have hval := fun (σ : Val) (C : CallRel)
       (hD' : ∀ s < cols, LoadHolds rd (σ (.n 4)) (0 + s) (D s))
       (hH' : ∀ c < nhs, LoadHolds rd (σ (.n 5)) (0 + c) (hsv.getD c 0)) ↦
-    osResSteps_val (C := C) (σ := σ) (pp := 10) (bd := 4) (ro := 0) (hp := 5) (ho := 0)
-      (vo := lrVo cols) (mu := 6) hc1 hn1 hb3 hbn hD' hlen hH' js 13 14 15
-  generalize hstd : osResSteps 10 4 0 5 0 (lrVo cols) cols nhs hbits 6 js 13 14 15 = st
+    osResSteps_val (C := C) (σ := σ) (pp := y) (bd := 4) (ro := 0) (hp := 5) (ho := 0)
+      (vo := lrVo cols) (mu := 6) hc1 hn1 hb3 hbn hD' hlen hH' js (y + 3) (y + 4) (y + 5)
+  generalize hstd : osResSteps y 4 0 5 0 (lrVo cols) cols nhs hbits 6 js (y + 3) (y + 4) (y + 5) =
+      st
     at t1 t2 t3 t4 hval ⊢
   generalize hr : st.2.2.2 = r at t1 t2 t3 ⊢
-  have hS1 : SsaP 7 [osMul 7 0 0, osMul 8 7 7, osMul 9 8 8, osMul 10 2 9, osMul 11 3 0,
-      osMul 12 11 0] 13 :=
-    .mul le_rfl (by omega) (by omega) (.mul (by omega) (by omega) (by omega) (.mul (by omega)
-      (by omega) (by omega) (.mul (by omega) (by omega) (by omega) (.mul (by omega) (by omega)
-      (by omega) (.mul (by omega) (by omega) (by omega) .nil)))))
-  have hS2 : SsaP 13 [osLd 13 12 0, osLd 14 12 1] 15 := .load le_rfl (by omega) (.load (by omega) (by omega) .nil)
-  have hS3 : Ssa r [osLd st.2.1 12 2, osLd st.2.2.1 12 3] r :=
+  have hS1 : SsaP 7 ((osBatchPow 7).1 ++ [osMul y 2 (osBatchPow 7).2, osMul (y + 1) 3 0,
+      osMul (y + 2) (y + 1) 0]) (y + 3) :=
+    hB.append (.mul le_rfl (by omega) hBl (.mul (by omega) (by omega) (by omega)
+      (.mul (by omega) (by omega) (by omega) .nil)))
+  have hS2 : SsaP (y + 3) [osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] (y + 5) :=
+    .load le_rfl (by omega) (.load (by omega) (by omega) .nil)
+  have hS3 : Ssa r [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3] r :=
     .cons (.store t2 (by have := t1.le; omega)) (.cons (.store t3 (by have := t1.le; omega)) .nil)
   have hS4 : SsaP r (osLoopTailA r) (r + 5) :=
     .const le_rfl (.mul (by omega) (by omega) (by omega) (.add (by omega) (by omega) (by omega)
@@ -93,10 +98,10 @@ theorem lrLoop1_iter {q cols nhs hbits : ℕ} {hsv : List E}
   have hP := (hS1.append hS2).append t1
   have hPS := hP.toSsa.append hS3
   have hS := hPS.append hS4.toSsa
-  set A1 : List Stmt := [osMul 7 0 0, osMul 8 7 7, osMul 9 8 8, osMul 10 2 9, osMul 11 3 0,
-      osMul 12 11 0] with hA1
-  set P' : List Stmt := A1 ++ [osLd 13 12 0, osLd 14 12 1] ++ st.1 with hPd
-  set S3 : List Stmt := [osLd st.2.1 12 2, osLd st.2.2.1 12 3] with hS3d
+  set A1 : List Stmt := (osBatchPow 7).1 ++ [osMul y 2 (osBatchPow 7).2, osMul (y + 1) 3 0,
+      osMul (y + 2) (y + 1) 0] with hA1
+  set P' : List Stmt := A1 ++ [osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ++ st.1 with hPd
+  set S3 : List Stmt := [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3] with hS3d
   set v0 : ℕ → E := fun i ↦ [gen ^ j, N, P, CH, BD, HS, mu].getD i 0 with hv0
   set M := rdMem rd with hM
   set σ : Val := fun v ↦ evalV M (fun _ ↦ 0) 7 v0 ((P' ++ S3) ++ osLoopTailA r) v.idx with hσ
@@ -112,37 +117,39 @@ theorem lrLoop1_iter {q cols nhs hbits : ℕ} {hsv : List E}
       (hS1.sidesOk fun p o hpo ↦ ?_)
     · rw [hσP i (by have := t1.le; omega), hPd, (hS1.append hS2).toSsa.evalV_lt t1.toSsa _ (by omega),
         hS1.toSsa.evalV_lt hS2.toSsa _ hi]
-    · simp [hA1, loadsOf] at hpo
+    · simp [hA1, loadsOf_append, osBatchPow_loads, loadsOf] at hpo
   have okA1' := okA1
-  simp only [hA1, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_mul, osMul] at okA1'
-  obtain ⟨m0, m1, m2, m3, m4, m5⟩ := okA1'
+  simp only [hA1, allOk_append, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_mul, osMul]
+    at okA1'
+  obtain ⟨hpw, m3, m4, m5⟩ := okA1'
   have e0 : σ (.n 0) = gen ^ j := hσ0 0 (by omega)
   have e2 : σ (.n 2) = P := hσ0 2 (by omega)
   have e3 : σ (.n 3) = CH := hσ0 3 (by omega)
   have e4 : σ (.n 4) = BD := hσ0 4 (by omega)
   have e5 : σ (.n 5) = HS := hσ0 5 (by omega)
   have e6 : σ (.n 6) = mu := hσ0 6 (by omega)
-  have hX10 : σ (.n 10) = P * gen ^ (resBatch * j) := by
-    rw [m3, m2, m1, m0, e0, e2]; ring
-  have hX12 : σ (.n 12) = CH * gen ^ (2 * j) := by
+  have hX10 : σ (.n y) = P * gen ^ (resBatch * j) := by
+    rw [m3, osBatchPow_val _ hpw, e0, e2, ← pow_mul, Nat.mul_comm j]
+  have hX12 : σ (.n (y + 2)) = CH * gen ^ (2 * j) := by
     rw [m5, m4, e3, e0]; ring
   -- the memory
   have hrcl : ∀ e < 2 * (q / resBatch + 1),
       LoadHolds rd CH e ((rcC lv D hsv Pos mu).getD e 0) := fun e he ↦
     readsAt_getDr hrc (by rw [rcC_length]; exact he)
-  have hch : ∀ o < 4, ∃ v, LoadHolds rd (σ (.n 12)) o v := fun o ho ↦
+  have hch : ∀ o < 4, ∃ v, LoadHolds rd (σ (.n (y + 2))) o v := fun o ho ↦
     ⟨_, by rw [hX12, loadHolds_mul_gen_pow]; exact hrcl (2 * j + o) (by omega)⟩
   have hQ : resBatch * j + resBatch ≤ q := by
     have := Nat.div_mul_le_self q resBatch
     have : (j + 1) * resBatch ≤ q / resBatch * resBatch := Nat.mul_le_mul_right _ hj
     rw [Nat.add_mul, Nat.one_mul, Nat.mul_comm j] at this; omega
-  have hpq : ∀ i < resBatch, LoadHolds rd (σ (.n 10)) i (Pos (resBatch * j + i)) := fun i hi ↦ by
+  have hpq : ∀ i < resBatch, LoadHolds rd (σ (.n y)) i (Pos (resBatch * j + i)) := fun i hi ↦ by
     rw [hX10, loadHolds_mul_gen_pow]; exact hpos _ (by omega)
   -- the pure part holds
   have okP : AllOk (coreProgram.Rel rd) rd σ P' := by
     refine ssa_allOk (M := M) (Pt := fun _ ↦ 0) hP.toSsa v0 σ (fun i hi ↦ hσP i hi)
       (hP.sidesOk fun p o hpo ↦ ?_)
-    simp only [hPd, hA1, loadsOf_append, loadsOf, List.nil_append, List.mem_append,
+    simp only [hPd, hA1, loadsOf_append, osBatchPow_loads, loadsOf, List.nil_append,
+        List.mem_append,
       List.mem_cons, List.not_mem_nil, or_false, Prod.mk.injEq] at hpo
     rcases hpo with (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩) | hpo
     · obtain ⟨v, hv⟩ := hch 0 (by omega); exact (rdMem_of hv).2
@@ -159,11 +166,11 @@ theorem lrLoop1_iter {q cols nhs hbits : ℕ} {hsv : List E}
   obtain ⟨l13, l14⟩ := okL2
   obtain ⟨g0, g1⟩ := rcC_get lv D hsv Pos mu (j := j) (by show j ≤ q / resBatch; omega)
   obtain ⟨g2, g3⟩ := rcC_get lv D hsv Pos mu (j := j + 1) (by show j + 1 ≤ q / resBatch; omega)
-  have v13 : σ (.n 13) = (rcAt lv D hsv Pos mu j).1 := by
+  have v13 : σ (.n (y + 3)) = (rcAt lv D hsv Pos mu j).1 := by
     have h := hrcl (2 * j) (by omega)
     rw [g0, ← Nat.add_zero (2 * j), ← loadHolds_mul_gen_pow, ← hX12] at h
     exact loadHolds_unique l13 h
-  have v14 : σ (.n 14) = (rcAt lv D hsv Pos mu j).2 := by
+  have v14 : σ (.n (y + 4)) = (rcAt lv D hsv Pos mu j).2 := by
     have h := hrcl (2 * j + 1) (by omega)
     rw [g1, ← loadHolds_mul_gen_pow, ← hX12] at h
     exact loadHolds_unique l14 h
@@ -207,7 +214,7 @@ theorem lrLoop1_iter {q cols nhs hbits : ℕ} {hsv : List E}
     rfl
   · have h := allOk_append.mpr ⟨allOk_append.mpr ⟨okP, okS3⟩, okT⟩
     convert h using 2
-    simp only [hPd, hA1, hS3d, List.cons_append, List.nil_append]
+    simp only [hPd, hA1, hS3d, List.append_assoc, List.cons_append, List.nil_append]
   · rw [tr2, e0, hσ0 1 (by omega)]; rfl
   · simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil, List.nil_append,
       List.cons_append, Nat.zero_add, tr4, e0]
@@ -215,7 +222,8 @@ theorem lrLoop1_iter {q cols nhs hbits : ℕ} {hsv : List E}
       hσ0 6 (by omega)]
     rfl
 
-/-- **The batches' loop holds at its honest arguments**: entered at `1` with the bound `g^(q/8)`. -/
+/-- **The batches' loop holds at its honest arguments**: entered at `1` with the bound
+`g^(q/resBatch)`. -/
 theorem lrLoop1_complete {name : String} {q cols nhs hbits : ℕ}
     (hfn : FnIs name (osParams 7) (lrLoop1Body cols nhs hbits name)) {hsv : List E}
     (hst : ResStatic (lrRow q cols nhs hbits) hsv) (hn0 : 0 < q / resBatch)

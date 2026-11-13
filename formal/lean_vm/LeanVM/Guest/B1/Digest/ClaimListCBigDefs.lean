@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimListCBigDefs
 
-  `claim_list_digest`'s big frame loop `claim_list_digest_loop0` (136 claims, 64 blocks): the parts of `grpcOk`
-  that `ClaimListCBig1`-`5` evaluate, each a kernel check of its own.
+  `claim_list_digest`'s big frame loop `claim_list_digest_loop0` (136 claims, 64 blocks): the parts
+  of `grpcOk` that `ClaimListCBig1`-`5` evaluate, each a kernel check of its own.
 -/
 
 module

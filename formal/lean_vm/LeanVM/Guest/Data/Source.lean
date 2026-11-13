@@ -14,7 +14,8 @@ public import LeanVM.Guest.Source
 
 `crates/rec_aggregation/guests/lean_ethereum.py` as `lean_compiler::parse_with_replacements` returns it with
 the deployed placeholders (`placeholder_map`, at the bytecode's log size `bytecodeLog`): one definition
-per function, then the constant arrays and the program.
+per function, then the constant arrays and the program. The global constants come first, `const_NAME`, the
+literals the compiler substitutes for them.
 -/
 
 namespace LeanVM.Guest.Data
@@ -25,6 +26,783 @@ open LeanVM.Guest.Source
 
 /-- The log size of the bytecode the placeholders are computed for. -/
 def bytecodeLog : Nat := 19
+
+/-- The global constant `STREAM_CAP`. -/
+def const_STREAM_CAP : Nat := 8192
+
+/-- The global constant `MIN_LOG_MEM`. -/
+def const_MIN_LOG_MEM : Nat := 1
+
+/-- The global constant `MAX_LOG_MEM`. -/
+def const_MAX_LOG_MEM : Nat := 30
+
+/-- The global constant `INV_GEN`. -/
+def const_INV_GEN : Nat := 9223372036854775821
+
+/-- The global constant `FIELD_BITS`. -/
+def const_FIELD_BITS : Nat := 128
+
+/-- The global constant `QW`. -/
+def const_QW : Nat := 6
+
+/-- The global constant `QUERY_WINDOWS_CAP`. -/
+def const_QUERY_WINDOWS_CAP : Nat := 36
+
+/-- The global constant `BASE_FIELD_BITS`. -/
+def const_BASE_FIELD_BITS : Nat := 64
+
+/-- The global constant `Y_TOWER`. -/
+def const_Y_TOWER : Nat := 18446744073709551616
+
+/-- The global constant `Y_INV`. -/
+def const_Y_INV : Nat := 18446744073709551618
+
+/-- The global constant `RING_MAP_WIDTH`. -/
+def const_RING_MAP_WIDTH : Nat := 8
+
+/-- The global constant `RS_CHUNK`. -/
+def const_RS_CHUNK : Nat := 8
+
+/-- The global constant `RS_CHUNK_BITS`. -/
+def const_RS_CHUNK_BITS : Nat := 3
+
+/-- The global constant `RES_BATCH`. -/
+def const_RES_BATCH : Nat := 8
+
+/-- The global constant `RS_COUNT_BITS`. -/
+def const_RS_COUNT_BITS : Nat := 6
+
+/-- The global constant `COUNT_BITS`. -/
+def const_COUNT_BITS : Nat := 33
+
+/-- The global constant `SIZE_BITS`. -/
+def const_SIZE_BITS : Nat := 34
+
+/-- The global constant `LOG_WORD_BITS`. -/
+def const_LOG_WORD_BITS : Nat := 6
+
+/-- The global constant `DS_OBSERVE`. -/
+def const_DS_OBSERVE : Nat := 1
+
+/-- The global constant `DS_POW_NONCE`. -/
+def const_DS_POW_NONCE : Nat := 4
+
+/-- The global constant `FS_CELLS`. -/
+def const_FS_CELLS : Nat := 5
+
+/-- The global constant `PAIR_SLOTS`. -/
+def const_PAIR_SLOTS : Nat := 2
+
+/-- The global constant `PEND_SLOTS`. -/
+def const_PEND_SLOTS : Nat := 13
+
+/-- The global constant `ROUND_FS`. -/
+def const_ROUND_FS : Nat := 0
+
+/-- The global constant `ROUND_CURSOR`. -/
+def const_ROUND_CURSOR : Nat := 5
+
+/-- The global constant `ROUND_CLAIM`. -/
+def const_ROUND_CLAIM : Nat := 6
+
+/-- The global constant `ROUND_SLOTS`. -/
+def const_ROUND_SLOTS : Nat := 7
+
+/-- The global constant `LAYER_FS`. -/
+def const_LAYER_FS : Nat := 0
+
+/-- The global constant `LAYER_CURSOR`. -/
+def const_LAYER_CURSOR : Nat := 5
+
+/-- The global constant `LAYER_VALS`. -/
+def const_LAYER_VALS : Nat := 6
+
+/-- The global constant `LAYER_ROW`. -/
+def const_LAYER_ROW : Nat := 9
+
+/-- The global constant `LAYER_POS`. -/
+def const_LAYER_POS : Nat := 10
+
+/-- The global constant `LAYER_HALF`. -/
+def const_LAYER_HALF : Nat := 11
+
+/-- The global constant `LAYER_PARITY`. -/
+def const_LAYER_PARITY : Nat := 12
+
+/-- The global constant `LAYER_SLOTS`. -/
+def const_LAYER_SLOTS : Nat := 13
+
+/-- The global constant `PUSH_SIDE`. -/
+def const_PUSH_SIDE : Nat := 0
+
+/-- The global constant `PULL_SIDE`. -/
+def const_PULL_SIDE : Nat := 1
+
+/-- The global constant `COUNT_SIDE`. -/
+def const_COUNT_SIDE : Nat := 2
+
+/-- The global constant `N_GKR_SIDES`. -/
+def const_N_GKR_SIDES : Nat := 3
+
+/-- The global constant `N_GKR_TREES`. -/
+def const_N_GKR_TREES : Nat := 3
+
+/-- The global constant `GKR_ROUNDS_CAP`. -/
+def const_GKR_ROUNDS_CAP : Nat := 862
+
+/-- The global constant `MU_CAP`. -/
+def const_MU_CAP : Nat := 40
+
+/-- The global constant `GKR_POINTS_CAP`. -/
+def const_GKR_POINTS_CAP : Nat := 1640
+
+/-- The global constant `COORD_KIND_CONST`. -/
+def const_COORD_KIND_CONST : Nat := 0
+
+/-- The global constant `COORD_KIND_COL`. -/
+def const_COORD_KIND_COL : Nat := 1
+
+/-- The global constant `COORD_KIND_GCOL`. -/
+def const_COORD_KIND_GCOL : Nat := 2
+
+/-- The global constant `COORD_KIND_INDEX`. -/
+def const_COORD_KIND_INDEX : Nat := 3
+
+/-- The global constant `COORD_KIND_PUBLIC`. -/
+def const_COORD_KIND_PUBLIC : Nat := 4
+
+/-- The global constant `COORD_KIND_PROD`. -/
+def const_COORD_KIND_PROD : Nat := 5
+
+/-- The global constant `NO_TABLE`. -/
+def const_NO_TABLE : Nat := 6
+
+/-- The global constant `N_BLOCKS`. -/
+def const_N_BLOCKS : Nat := 153
+
+/-- The global constant `N_COORDS`. -/
+def const_N_COORDS : Nat := 641
+
+/-- The global constant `N_BLOCK_GROUPS`. -/
+def const_N_BLOCK_GROUPS : Nat := 24
+
+/-- The global constant `N_FRESH`. -/
+def const_N_FRESH : Nat := 4
+
+/-- The global constant `N_BUS_CLAIMS`. -/
+def const_N_BUS_CLAIMS : Nat := 4
+
+/-- The global constant `N_CLAIMS`. -/
+def const_N_CLAIMS : Nat := 159
+
+/-- The global constant `N_TUPLE_BITS`. -/
+def const_N_TUPLE_BITS : Nat := 4
+
+/-- The global constant `N_TUPLE_SLOTS`. -/
+def const_N_TUPLE_SLOTS : Nat := 16
+
+/-- The global constant `BYTECODE_COLS`. -/
+def const_BYTECODE_COLS : Nat := 13
+
+/-- The global constant `LOG2_BYTECODE_COLS`. -/
+def const_LOG2_BYTECODE_COLS : Nat := 4
+
+/-- The global constant `TABLE_JUMP`. -/
+def const_TABLE_JUMP : Nat := 4
+
+/-- The global constant `TABLE_KECCAK`. -/
+def const_TABLE_KECCAK : Nat := 5
+
+/-- The global constant `N_TABLES`. -/
+def const_N_TABLES : Nat := 6
+
+/-- The global constant `N_COL_EVALS`. -/
+def const_N_COL_EVALS : Nat := 153
+
+/-- The global constant `TABLE_COLS_CAP`. -/
+def const_TABLE_COLS_CAP : Nat := 93
+
+/-- The global constant `ETA_FORM_BASE`. -/
+def const_ETA_FORM_BASE : Nat := 2
+
+/-- The global constant `N_ETA_POWS`. -/
+def const_N_ETA_POWS : Nat := 5
+
+/-- The global constant `KECCAK_DEPTH`. -/
+def const_KECCAK_DEPTH : Nat := 12
+
+/-- The global constant `KECCAK_SEGMENTS`. -/
+def const_KECCAK_SEGMENTS : Nat := 2
+
+/-- The global constant `KECCAK_SEG_LOG`. -/
+def const_KECCAK_SEG_LOG : Nat := 1
+
+/-- The global constant `KECCAK_PACK`. -/
+def const_KECCAK_PACK : Nat := 16
+
+/-- The global constant `KECCAK_PACK_LOG`. -/
+def const_KECCAK_PACK_LOG : Nat := 4
+
+/-- The global constant `KECCAK_EMBED_BITS`. -/
+def const_KECCAK_EMBED_BITS : Nat := 24
+
+/-- The global constant `KECCAK_PROD_BITS`. -/
+def const_KECCAK_PROD_BITS : Nat := 47
+
+/-- The global constant `KECCAK_PROJ_CELLS`. -/
+def const_KECCAK_PROJ_CELLS : Nat := 127
+
+/-- The global constant `KECCAK_FAC_DEG`. -/
+def const_KECCAK_FAC_DEG : Nat := 6
+
+/-- The global constant `KECCAK_FAC_N`. -/
+def const_KECCAK_FAC_N : Nat := 8
+
+/-- The global constant `KECCAK_EMB_CELLS`. -/
+def const_KECCAK_EMB_CELLS : Nat := 45
+
+/-- The global constant `KECCAK_LANES`. -/
+def const_KECCAK_LANES : Nat := 25
+
+/-- The global constant `KECCAK_Z_BITS`. -/
+def const_KECCAK_Z_BITS : Nat := 6
+
+/-- The global constant `KECCAK_LANE_BITS`. -/
+def const_KECCAK_LANE_BITS : Nat := 5
+
+/-- The global constant `KECCAK_LOCAL_BITS`. -/
+def const_KECCAK_LOCAL_BITS : Nat := 11
+
+/-- The global constant `LANE_OFF`. -/
+def const_LANE_OFF : Nat := 30
+
+/-- The global constant `KECCAK_IOTA_BITS`. -/
+def const_KECCAK_IOTA_BITS : Nat := 7
+
+/-- The global constant `QKECCAK_SLOT_LOG`. -/
+def const_QKECCAK_SLOT_LOG : Nat := 6
+
+/-- The global constant `KC_VALUE`. -/
+def const_KC_VALUE : Nat := 0
+
+/-- The global constant `KC_KAPPA`. -/
+def const_KC_KAPPA : Nat := 1
+
+/-- The global constant `KC_POINT`. -/
+def const_KC_POINT : Nat := 2
+
+/-- The global constant `KC_LANES`. -/
+def const_KC_LANES : Nat := 3
+
+/-- The global constant `KC_LOCAL`. -/
+def const_KC_LOCAL : Nat := 4
+
+/-- The global constant `KC_FLIPS`. -/
+def const_KC_FLIPS : Nat := 5
+
+/-- The global constant `KC_MU`. -/
+def const_KC_MU : Nat := 6
+
+/-- The global constant `KC_SIZE`. -/
+def const_KC_SIZE : Nat := 22
+
+/-- The global constant `KR_FS`. -/
+def const_KR_FS : Nat := 0
+
+/-- The global constant `KR_CURSOR`. -/
+def const_KR_CURSOR : Nat := 5
+
+/-- The global constant `KR_CLAIM`. -/
+def const_KR_CLAIM : Nat := 6
+
+/-- The global constant `KR_SCALE`. -/
+def const_KR_SCALE : Nat := 7
+
+/-- The global constant `KR_SLOTS`. -/
+def const_KR_SLOTS : Nat := 8
+
+/-- The global constant `KR_STEP_LOG`. -/
+def const_KR_STEP_LOG : Nat := 3
+
+/-- The global constant `KR_STEP`. -/
+def const_KR_STEP : Nat := 8
+
+/-- The global constant `KR_CAP`. -/
+def const_KR_CAP : Nat := 16
+
+/-- The global constant `LIG_MIN_LOG_SIZE`. -/
+def const_LIG_MIN_LOG_SIZE : Nat := 20
+
+/-- The global constant `LIG_N_LOG_SIZES`. -/
+def const_LIG_N_LOG_SIZES : Nat := 11
+
+/-- The global constant `LIG_N_RATES`. -/
+def const_LIG_N_RATES : Nat := 4
+
+/-- The global constant `N_COMMITTED_COLS`. -/
+def const_N_COMMITTED_COLS : Nat := 94
+
+/-- The global constant `N_COLUMN_LOGS`. -/
+def const_N_COLUMN_LOGS : Nat := 31
+
+/-- The global constant `N_COL_GROUPS`. -/
+def const_N_COL_GROUPS : Nat := 9
+
+/-- The global constant `PCS_MIN_MU`. -/
+def const_PCS_MIN_MU : Nat := 16
+
+/-- The global constant `LIG_MAX_LEVELS`. -/
+def const_LIG_MAX_LEVELS : Nat := 6
+
+/-- The global constant `LIG_RATE_STRIDE`. -/
+def const_LIG_RATE_STRIDE : Nat := 66
+
+/-- The global constant `LIG_LOG_MSG_COLS_CAP`. -/
+def const_LIG_LOG_MSG_COLS_CAP : Nat := 24
+
+/-- The global constant `YR_LOG_CAP`. -/
+def const_YR_LOG_CAP : Nat := 5
+
+/-- The global constant `FOLD_GRIND_BITS`. -/
+def const_FOLD_GRIND_BITS : Nat := 7
+
+/-- The global constant `OOD_GRIND_BITS`. -/
+def const_OOD_GRIND_BITS : Nat := 15
+
+/-- The global constant `QUERY_GRIND_BITS`. -/
+def const_QUERY_GRIND_BITS : Nat := 17
+
+/-- The global constant `BATCH_GRIND_BITS`. -/
+def const_BATCH_GRIND_BITS : Nat := 13
+
+/-- The global constant `BUS_MIN_MU`. -/
+def const_BUS_MIN_MU : Nat := 20
+
+/-- The global constant `BUS_GRIND_ARMS`. -/
+def const_BUS_GRIND_ARMS : Nat := 14
+
+/-- The global constant `ROUND2_GRIND_BITS`. -/
+def const_ROUND2_GRIND_BITS : Nat := 0
+
+/-- The global constant `ROUND3_GRIND_BITS`. -/
+def const_ROUND3_GRIND_BITS : Nat := 0
+
+/-- The global constant `ROUND5_GRIND_BITS`. -/
+def const_ROUND5_GRIND_BITS : Nat := 0
+
+/-- The global constant `GKR_COMBINER_GRIND_BITS`. -/
+def const_GKR_COMBINER_GRIND_BITS : Nat := 0
+
+/-- The global constant `GKR_Y1_GRIND_BITS`. -/
+def const_GKR_Y1_GRIND_BITS : Nat := 0
+
+/-- The global constant `GKR_Y_GRIND_BITS`. -/
+def const_GKR_Y_GRIND_BITS : Nat := 0
+
+/-- The global constant `GKR_Y_LAST_GRIND_BITS`. -/
+def const_GKR_Y_LAST_GRIND_BITS : Nat := 0
+
+/-- The global constant `XI_GRIND_BITS`. -/
+def const_XI_GRIND_BITS : Nat := 0
+
+/-- The global constant `KECCAK_SEG_GRIND_BITS`. -/
+def const_KECCAK_SEG_GRIND_BITS : Nat := 0
+
+/-- The global constant `KECCAK_S_GRIND_BITS`. -/
+def const_KECCAK_S_GRIND_BITS : Nat := 3
+
+/-- The global constant `KECCAK_BETA_GRIND_BITS`. -/
+def const_KECCAK_BETA_GRIND_BITS : Nat := 0
+
+/-- The global constant `BATCH_LAM_GRIND_BITS`. -/
+def const_BATCH_LAM_GRIND_BITS : Nat := 2
+
+/-- The global constant `BC_LAM_WORDS`. -/
+def const_BC_LAM_WORDS : Nat := 1
+
+/-- The global constant `BC_ROUND_WORDS`. -/
+def const_BC_ROUND_WORDS : Nat := 2
+
+/-- The global constant `HIGH_BITS_CAP`. -/
+def const_HIGH_BITS_CAP : Nat := 3
+
+/-- The global constant `MAX_STACK_LOG`. -/
+def const_MAX_STACK_LOG : Nat := 30
+
+/-- The global constant `SEL_NIBBLES`. -/
+def const_SEL_NIBBLES : Nat := 8
+
+/-- The global constant `SEL_EQ_STRIDE`. -/
+def const_SEL_EQ_STRIDE : Nat := 64
+
+/-- The global constant `EQ_CHAIN_ARMS`. -/
+def const_EQ_CHAIN_ARMS : Nat := 41
+
+/-- The global constant `SEL_TAB_NIBBLES`. -/
+def const_SEL_TAB_NIBBLES : Nat := 9
+
+/-- The global constant `SEL_TAB_EQ_STRIDE`. -/
+def const_SEL_TAB_EQ_STRIDE : Nat := 32
+
+/-- The global constant `RANK_KEYS_AT`. -/
+def const_RANK_KEYS_AT : Nat := 178
+
+/-- The global constant `RANK_STRIDE`. -/
+def const_RANK_STRIDE : Nat := 247
+
+/-- The global constant `RANK_KEY_BOUND`. -/
+def const_RANK_KEY_BOUND : Nat := 8398
+
+/-- The global constant `SIDE_TAB_AT`. -/
+def const_SIDE_TAB_AT : Nat := 212
+
+/-- The global constant `WIN_TAB_AT`. -/
+def const_WIN_TAB_AT : Nat := 236
+
+/-- The global constant `WIN_TAB_BITS`. -/
+def const_WIN_TAB_BITS : Nat := 11
+
+/-- The global constant `WIN_TAB_LEN`. -/
+def const_WIN_TAB_LEN : Nat := 2048
+
+/-- The global constant `LIG_LEVEL_POSITIONS_CAP`. -/
+def const_LIG_LEVEL_POSITIONS_CAP : Nat := 224
+
+/-- The global constant `LIG_PACKED_ROW_CAP`. -/
+def const_LIG_PACKED_ROW_CAP : Nat := 32
+
+/-- The global constant `LIG_ROW_CAP`. -/
+def const_LIG_ROW_CAP : Nat := 64
+
+/-- The global constant `LIG_PATH_CAP`. -/
+def const_LIG_PATH_CAP : Nat := 96
+
+/-- The global constant `LIG_MIN_SHIFT_INV`. -/
+def const_LIG_MIN_SHIFT_INV : Nat := 14347465658197868555
+
+/-- The global constant `POINT_BUF_ZETA`. -/
+def const_POINT_BUF_ZETA : Nat := 0
+
+/-- The global constant `POINT_BUF_RHO`. -/
+def const_POINT_BUF_RHO : Nat := 1
+
+/-- The global constant `POINT_BUF_PI`. -/
+def const_POINT_BUF_PI : Nat := 2
+
+/-- The global constant `POINT_BUF_QKECCAK_RHO`. -/
+def const_POINT_BUF_QKECCAK_RHO : Nat := 3
+
+/-- The global constant `POINT_BUF_KECCAK_OUT`. -/
+def const_POINT_BUF_KECCAK_OUT : Nat := 4
+
+/-- The global constant `KECCAK_OUT_POOL`. -/
+def const_KECCAK_OUT_POOL : Nat := 105
+
+/-- The global constant `QKECCAK_COMMITTED_COL`. -/
+def const_QKECCAK_COMMITTED_COL : Nat := 4
+
+/-- The global constant `QKECCAK_VARS_CAP`. -/
+def const_QKECCAK_VARS_CAP : Nat := 39
+
+/-- The global constant `BYTECODE_LOG`. -/
+def const_BYTECODE_LOG : Nat := 19
+
+/-- The global constant `DEFER_SIZE`. -/
+def const_DEFER_SIZE : Nat := 24
+
+/-- The global constant `BYTECODE_VARS`. -/
+def const_BYTECODE_VARS : Nat := 23
+
+/-- The global constant `FRESH_BC_VALUE`. -/
+def const_FRESH_BC_VALUE : Nat := 23
+
+/-- The global constant `DEFER_STMT_CELLS`. -/
+def const_DEFER_STMT_CELLS : Nat := 24
+
+/-- The global constant `DEFER_STMT_BC_VALUE`. -/
+def const_DEFER_STMT_BC_VALUE : Nat := 23
+
+/-- The global constant `AGG_SEED_0`. -/
+def const_AGG_SEED_0 : Nat := 1562680967124014521
+
+/-- The global constant `AGG_SEED_1`. -/
+def const_AGG_SEED_1 : Nat := 219987477440241922375488438384259330662
+
+/-- The global constant `AGG_SEED_2`. -/
+def const_AGG_SEED_2 : Nat := 280280212661789141853795656654516100829
+
+/-- The global constant `AGG_SEED_3`. -/
+def const_AGG_SEED_3 : Nat := 200796963667835759483519841953162816397
+
+/-- The global constant `AGG_SEED_4`. -/
+def const_AGG_SEED_4 : Nat := 2936886303028784551432414362146044553
+
+/-- The global constant `AGG_CHILD_PAD`. -/
+def const_AGG_CHILD_PAD : Nat := 2
+
+/-- The global constant `AGG_CHILD_WORDS`. -/
+def const_AGG_CHILD_WORDS : Nat := 50
+
+/-- The global constant `STMT_HEADER`. -/
+def const_STMT_HEADER : Nat := 8
+
+/-- The global constant `STMT_DEFER_OFF`. -/
+def const_STMT_DEFER_OFF : Nat := 8
+
+/-- The global constant `STMT_CELLS`. -/
+def const_STMT_CELLS : Nat := 32
+
+/-- The global constant `KECCAK_STATE`. -/
+def const_KECCAK_STATE : Nat := 13
+
+/-- The global constant `CLAIM_GROUP`. -/
+def const_CLAIM_GROUP : Nat := 17
+
+/-- The global constant `BIG_GROUPS`. -/
+def const_BIG_GROUPS : Nat := 8
+
+/-- The global constant `CLAIM_BIG`. -/
+def const_CLAIM_BIG : Nat := 136
+
+/-- The global constant `MONO_REC`. -/
+def const_MONO_REC : Nat := 15
+
+/-- The global constant `W`. -/
+def const_W : Nat := 2
+
+/-- The global constant `CHAIN_LENGTH`. -/
+def const_CHAIN_LENGTH : Nat := 4
+
+/-- The global constant `CHAIN_STEPS`. -/
+def const_CHAIN_STEPS : Nat := 3
+
+/-- The global constant `DIGIT_GROUP`. -/
+def const_DIGIT_GROUP : Nat := 3
+
+/-- The global constant `DIGIT_GROUPS`. -/
+def const_DIGIT_GROUPS : Nat := 64
+
+/-- The global constant `TW_CHAIN`. -/
+def const_TW_CHAIN : Nat := 72057594037927936
+
+/-- The global constant `TW_LEAF`. -/
+def const_TW_LEAF : Nat := 144115188075855872
+
+/-- The global constant `TW_NODE`. -/
+def const_TW_NODE : Nat := 216172782113783808
+
+/-- The global constant `TW_MSG`. -/
+def const_TW_MSG : Nat := 864691128455135232
+
+/-- The global constant `HI_MUL`. -/
+def const_HI_MUL : Nat := 4294967296
+
+/-- The global constant `STEP_MUL`. -/
+def const_STEP_MUL : Nat := 2305843009213693952
+
+/-- The global constant `LX_V`. -/
+def const_LX_V : Nat := 58
+
+/-- The global constant `LX_TARGET_SUM`. -/
+def const_LX_TARGET_SUM : Nat := 106
+
+/-- The global constant `LX_HEIGHT`. -/
+def const_LX_HEIGHT : Nat := 16
+
+/-- The global constant `LX_TOP`. -/
+def const_LX_TOP : Nat := 36028797018963968
+
+/-- The global constant `LX_WINDOW`. -/
+def const_LX_WINDOW : Nat := 8
+
+/-- The global constant `LX_LAYER_WINDOWS`. -/
+def const_LX_LAYER_WINDOWS : Nat := 2
+
+/-- The global constant `LX_WINDOWS`. -/
+def const_LX_WINDOWS : Nat := 4
+
+/-- The global constant `LX_WINDOW_ARMS`. -/
+def const_LX_WINDOW_ARMS : Nat := 256
+
+/-- The global constant `LX_DIGIT_GROUP`. -/
+def const_LX_DIGIT_GROUP : Nat := 4
+
+/-- The global constant `LX_DIGIT_GROUPS`. -/
+def const_LX_DIGIT_GROUPS : Nat := 256
+
+/-- The global constant `LX_DIGIT_TAIL`. -/
+def const_LX_DIGIT_TAIL : Nat := 2
+
+/-- The global constant `LX_TAIL_GROUPS`. -/
+def const_LX_TAIL_GROUPS : Nat := 16
+
+/-- The global constant `LX_DIGIT_DISPATCHES`. -/
+def const_LX_DIGIT_DISPATCHES : Nat := 15
+
+/-- The global constant `LX_N_TAGS`. -/
+def const_LX_N_TAGS : Nat := 51
+
+/-- The global constant `SP_V`. -/
+def const_SP_V : Nat := 64
+
+/-- The global constant `SP_TARGET_SUM`. -/
+def const_SP_TARGET_SUM : Nat := 128
+
+/-- The global constant `SP_HEIGHT_0`. -/
+def const_SP_HEIGHT_0 : Nat := 8
+
+/-- The global constant `SP_HEIGHT_1`. -/
+def const_SP_HEIGHT_1 : Nat := 8
+
+/-- The global constant `SP_HEIGHT_2`. -/
+def const_SP_HEIGHT_2 : Nat := 10
+
+/-- The global constant `SP_H`. -/
+def const_SP_H : Nat := 26
+
+/-- The global constant `SP_FORS_TREES`. -/
+def const_SP_FORS_TREES : Nat := 24
+
+/-- The global constant `SP_FORS_HEIGHT`. -/
+def const_SP_FORS_HEIGHT : Nat := 10
+
+/-- The global constant `SP_CELL_BITS`. -/
+def const_SP_CELL_BITS : Nat := 128
+
+/-- The global constant `SP_MD_BYTES`. -/
+def const_SP_MD_BYTES : Nat := 30
+
+/-- The global constant `SP_DIGEST_BYTES`. -/
+def const_SP_DIGEST_BYTES : Nat := 34
+
+/-- The global constant `SP_TAIL_BYTES`. -/
+def const_SP_TAIL_BYTES : Nat := 2
+
+/-- The global constant `SP_MID`. -/
+def const_SP_MID : Nat := 8
+
+/-- The global constant `SP_TOP`. -/
+def const_SP_TOP : Nat := 16
+
+/-- The global constant `SP_TOP_HIGH_BITS`. -/
+def const_SP_TOP_HIGH_BITS : Nat := 2
+
+/-- The global constant `SP_PAD_BITS`. -/
+def const_SP_PAD_BITS : Nat := 6
+
+/-- The global constant `SP_TREE_HI_BIT`. -/
+def const_SP_TREE_HI_BIT : Nat := 112
+
+/-- The global constant `SP_TREE_MID_BIT`. -/
+def const_SP_TREE_MID_BIT : Nat := 120
+
+/-- The global constant `SP_DIGITS_PER_BYTE`. -/
+def const_SP_DIGITS_PER_BYTE : Nat := 4
+
+/-- The global constant `SP_HMSG_LEN`. -/
+def const_SP_HMSG_LEN : Nat := 84
+
+/-- The global constant `SP_COUNTER_ONE`. -/
+def const_SP_COUNTER_ONE : Nat := 16777216
+
+/-- The global constant `SP_LAYER_MUL`. -/
+def const_SP_LAYER_MUL : Nat := 16777216
+
+/-- The global constant `SP_TREE_MUL_0`. -/
+def const_SP_TREE_MUL_0 : Nat := 1329227995784915872903807060280344576
+
+/-- The global constant `SP_TREE_MUL_1`. -/
+def const_SP_TREE_MUL_1 : Nat := 5192296858534827628530496329220096
+
+/-- The global constant `SP_TREE_MUL_2`. -/
+def const_SP_TREE_MUL_2 : Nat := 20282409603651670423947251286016
+
+/-- The global constant `SP_KEY_MUL_0`. -/
+def const_SP_KEY_MUL_0 : Nat := 72057594037927936
+
+/-- The global constant `SP_KEY_MUL_1`. -/
+def const_SP_KEY_MUL_1 : Nat := 281474976710656
+
+/-- The global constant `SP_WORD2_MUL`. -/
+def const_SP_WORD2_MUL : Nat := 309485009821345068724781056
+
+/-- The global constant `SP_WORD3_MUL_0`. -/
+def const_SP_WORD3_MUL_0 : Nat := 1329227995784915872903807060280344576
+
+/-- The global constant `SP_WORD3_MUL_1`. -/
+def const_SP_WORD3_MUL_1 : Nat := 5192296858534827628530496329220096
+
+/-- The global constant `SP_WOTS_PK`. -/
+def const_SP_WOTS_PK : Nat := 16777216
+
+/-- The global constant `SP_TREE`. -/
+def const_SP_TREE : Nat := 33554432
+
+/-- The global constant `SP_FORS_TREE`. -/
+def const_SP_FORS_TREE : Nat := 50331648
+
+/-- The global constant `SP_FORS_ROOTS`. -/
+def const_SP_FORS_ROOTS : Nat := 67108864
+
+/-- The global constant `SP_WOTS_ENC`. -/
+def const_SP_WOTS_ENC : Nat := 117440512
+
+/-- The global constant `SP_BYTE_VALUES`. -/
+def const_SP_BYTE_VALUES : Nat := 256
+
+/-- The global constant `SP_COUNTER_BYTES`. -/
+def const_SP_COUNTER_BYTES : Nat := 4
+
+/-- The global constant `SP_ENCODING_BYTES`. -/
+def const_SP_ENCODING_BYTES : Nat := 68
+
+/-- The global constant `SP_UNUSED_BYTES`. -/
+def const_SP_UNUSED_BYTES : Nat := 6
+
+/-- The global constant `MAX_RECURSIONS`. -/
+def const_MAX_RECURSIONS : Nat := 16
+
+/-- The global constant `DA_LOG_K`. -/
+def const_DA_LOG_K : Nat := 14
+
+/-- The global constant `DA_LOG_CELL`. -/
+def const_DA_LOG_CELL : Nat := 8
+
+/-- The global constant `DA_MAX_ROWS`. -/
+def const_DA_MAX_ROWS : Nat := 1024
+
+/-- The global constant `DA_LOG_MAX_ROWS`. -/
+def const_DA_LOG_MAX_ROWS : Nat := 10
+
+/-- The global constant `DA_PAD_BLOB_0`. -/
+def const_DA_PAD_BLOB_0 : Nat := 75782346877761445325744852649459957603
+
+/-- The global constant `DA_PAD_BLOB_1`. -/
+def const_DA_PAD_BLOB_1 : Nat := 31763914487088020322649104629593420073
+
+/-- The global constant `DA_LOG_M`. -/
+def const_DA_LOG_M : Nat := 15
+
+/-- The global constant `DA_CELL`. -/
+def const_DA_CELL : Nat := 256
+
+/-- The global constant `DA_BLOCK_BITS`. -/
+def const_DA_BLOCK_BITS : Nat := 7
+
+/-- The global constant `DA_CELLS`. -/
+def const_DA_CELLS : Nat := 128
+
+/-- The global constant `DA_PACKED`. -/
+def const_DA_PACKED : Nat := 128
+
+/-- The global constant `DA_TREE_ARMS`. -/
+def const_DA_TREE_ARMS : Nat := 11
+
+/-- The global constant `DA_SUM`. -/
+def const_DA_SUM : Nat := 512
+
+/-- The global constant `DA_REGION`. -/
+def const_DA_REGION : Nat := 641
 
 /-- `pack64x2`. -/
 def fn_pack64x2 : Func :=

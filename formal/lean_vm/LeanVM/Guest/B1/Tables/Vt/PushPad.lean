@@ -3,6 +3,8 @@
 
   `verify_tables`' push side's padding sum and total: the tables' blocks' padding terms, the
   selector sum and the GKR leaf value.
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

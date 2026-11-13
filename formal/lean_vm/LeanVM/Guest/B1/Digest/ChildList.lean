@@ -24,8 +24,9 @@ As `claim_list_digest`, but claim `j` of a frame is read at a hinted slot `o` of
 coverage slot `region · g^o` holds the mark `marks · g^j` (the marks stepped by `g`), and the four
 cells are read at `entries · g^(4o)`. `claimOk` checks one such record in a list of atoms, by
 evaluation, and `claimOk_sound` gives it on a memory image. The records sit at fixed value offsets
-in the 17 specializations `child_claim_list_last__L{k}` and in the frame loops `child_claim_list_any_loop0` (136
-claims) and `child_claim_list_any_loop1` (17) (`ccOV`, `ccMark`, `ccCell`).
+in the 17 specializations `child_claim_list_last__L{k}` and in the frame loops
+`child_claim_list_any_loop0` (136 claims) and `child_claim_list_any_loop1` (17) (`ccOV`, `ccMark`,
+`ccCell`).
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -249,7 +250,8 @@ theorem getD_map_range {α : Type} (f : ℕ → α) {n c : ℕ} (h : c < n) (d :
 
 
 set_option maxRecDepth 100000 in
-theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (idx% «child_claim_list_last__L0» + k) :=
+theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some
+    (idx% «child_claim_list_last__L0» + k) :=
   coreProgram_indexOf?_run (by decide +kernel)
 
 /-- **`child_claim_list_last__L{k}`**: from a state at its first argument after whole blocks
@@ -295,15 +297,18 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
 
 -- `child_claim_list_any_loop0`: 136 claims a frame, 64 blocks.
 set_option maxRecDepth 100000 in
-theorem any136_nb : (anySpec 136 22 1924 (loopAtoms (coreProgram.getD idx% «child_claim_list_any_loop0» default))).nb = 64 := by
+theorem any136_nb : (anySpec 136 22 1924 (loopAtoms (coreProgram.getD
+    idx% «child_claim_list_any_loop0» default))).nb = 64 := by
   decide +kernel
 
 -- its head here, its sixteen windows in `ChildListAny{q}`.
 set_option maxRecDepth 100000 in
-theorem any136_head : anyHead (coreProgram.getD idx% «child_claim_list_any_loop0» default) name% «child_claim_list_any_loop0» 136 22 21 1924 = true := by
+theorem any136_head : anyHead (coreProgram.getD idx% «child_claim_list_any_loop0» default)
+    name% «child_claim_list_any_loop0» 136 22 21 1924 = true := by
   decide +kernel
 
-theorem any136_ok : anyOk (coreProgram.getD idx% «child_claim_list_any_loop0» default) name% «child_claim_list_any_loop0» 136 22 15 21 1924 = true := by
+theorem any136_ok : anyOk (coreProgram.getD idx% «child_claim_list_any_loop0» default)
+    name% «child_claim_list_any_loop0» 136 22 15 21 1924 = true := by
   have hw : ∀ i < 16, anyWin i = true := by
     intro i hi
     interval_cases i
@@ -314,21 +319,25 @@ theorem any136_ok : anyOk (coreProgram.getD idx% «child_claim_list_any_loop0» 
     (fun i hi => ChainSpec.blocksOk_of_from (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
-theorem any136_idx : coreProgram.indexOf? name% «child_claim_list_any_loop0» = some idx% «child_claim_list_any_loop0» :=
+theorem any136_idx : coreProgram.indexOf? name% «child_claim_list_any_loop0» = some
+    idx% «child_claim_list_any_loop0» :=
   coreProgram_indexOf?_at (j := idx% «child_claim_list_any_loop0») rfl
 
 
 -- `child_claim_list_any_loop1`: 17 claims a frame, 8 blocks.
 set_option maxRecDepth 100000 in
-theorem any17_ok : anyOk (coreProgram.getD idx% «child_claim_list_any_loop1» default) name% «child_claim_list_any_loop1» 17 19 12 18 255 = true := by
+theorem any17_ok : anyOk (coreProgram.getD idx% «child_claim_list_any_loop1» default)
+    name% «child_claim_list_any_loop1» 17 19 12 18 255 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any17_idx : coreProgram.indexOf? name% «child_claim_list_any_loop1» = some idx% «child_claim_list_any_loop1» :=
+theorem any17_idx : coreProgram.indexOf? name% «child_claim_list_any_loop1» = some
+    idx% «child_claim_list_any_loop1» :=
   coreProgram_indexOf?_at (j := idx% «child_claim_list_any_loop1») rfl
 
 set_option maxRecDepth 100000 in
-theorem any17_nb : (anySpec 17 19 255 (loopAtoms (coreProgram.getD idx% «child_claim_list_any_loop1» default))).nb = 8 := by
+theorem any17_nb : (anySpec 17 19 255 (loopAtoms (coreProgram.getD
+    idx% «child_claim_list_any_loop1» default))).nb = 8 := by
   decide +kernel
 
 /-- **One frame of `m` child claims, `nb` blocks**: from the state at `chain · x^13` after whole
@@ -453,7 +462,8 @@ theorem childFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p
 noncomputable def anyFlat : List Stmt := (Fn.body fn% «child_claim_list_any»).dropLast
 
 set_option maxRecDepth 100000 in
-theorem core25_shape : Fn.body fn% «child_claim_list_any» = anyFlat ++ [.ret [.n 66, .n 67]] :=
+theorem child_claim_list_any_shape : Fn.body fn% «child_claim_list_any» = anyFlat ++ [.ret [.n 66,
+    .n 67]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The body: `limit = last · g`, the zero state at `chain = .n 17`, the big frames' loop,
@@ -461,8 +471,10 @@ theorem core25_shape : Fn.body fn% «child_claim_list_any» = anyFlat ++ [.ret [
 the marks `mid_base · groups^17`, the dispatch on the rest. -/
 noncomputable def anyBodyOk : Bool :=
   anyFlat.all Stmt.flat &&
-  anyFlat.any (stmtEqb · (.callIf (.n 32) name% «child_claim_list_any_loop0» [.n 33, .n 4, .n 17, .n 0, .n 1, .n 2, .n 8])) &&
-  anyFlat.any (stmtEqb · (.callIf (.n 50) name% «child_claim_list_any_loop1» [.n 51, .n 5, .n 39, .n 0, .n 1, .n 48, .n 8])) &&
+  anyFlat.any (stmtEqb · (.callIf (.n 32) name% «child_claim_list_any_loop0» [.n 33, .n 4, .n 17,
+      .n 0, .n 1, .n 2, .n 8])) &&
+  anyFlat.any (stmtEqb · (.callIf (.n 50) name% «child_claim_list_any_loop1» [.n 51, .n 5, .n 39,
+      .n 0, .n 1, .n 48, .n 8])) &&
   anyFlat.any (stmtEqb · (.dispatch (.n 6) cclNames [.n 57, .n 0, .n 1, .n 63, .n 8] [.n 64, .n 65])) &&
   genMulOk (atomsIn anyFlat) (.n 3) (.n 8) &&
   (atomsIn anyFlat).any (isConstAt (.n 33) 1 0) &&
@@ -501,7 +513,7 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_child_claim_list_any args rets).mp h
   refine ⟨σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
     by rw [← hp]; rfl, fun a b c ha hb' hc h4 h5 h6 => ?_⟩
-  rw [core25_shape, holdsList_append] at hb
+  rw [child_claim_list_any_shape, holdsList_append] at hb
   have hok := anyBody_ok
   simp only [anyBodyOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hfl, hl17⟩, hl18⟩, hdis⟩, h3⟩, h33⟩, h32⟩, h31⟩, h51⟩, h50⟩, h49⟩,

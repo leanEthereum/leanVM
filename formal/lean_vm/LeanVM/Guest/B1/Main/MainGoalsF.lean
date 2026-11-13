@@ -43,7 +43,8 @@ open LeanVM.Guest.B1 (CompleteAtD Returns bufL completeAt_of_rel_pureD)
 
 /-! ## The loops -/
 
-/-- `main_loop0`'s and `main_loop1`'s valuation at the counter `x`, the end `N`, the table `a` and the
+/-- `main_loop0`'s and `main_loop1`'s valuation at the counter `x`, the end `N`, the table `a` and
+the
 declared count's `b`. -/
 def mfσ1 (x N a b : E) : Val :=
   B1.Val.ofArgs [x, N, a, b, b * x, b * x * (b * x), b * x * (b * x) * (b * x * (b * x)),
@@ -53,10 +54,12 @@ def mfσ1 (x N a b : E) : Val :=
 theorem mfL1_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
     coreProgram.Rel rd name% «main_loop0» [1, gen ^ m, a, b] [] := by
   have hf := find_of_idx mfL1_idx
-  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD idx% «main_loop0» default) (gen ^ j) (gen ^ m) [a, b] := by
+  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD idx% «main_loop0» default) (gen ^ j) (gen ^
+      m) [a, b] := by
     intro j _
     refine ⟨mfσ1 (gen ^ j) (gen ^ m) a b, rfl, ?_⟩
-    rw [show loopPre (coreProgram.getD idx% «main_loop0» default) = (core% «main_loop0» body).take 10 from rfl]
+    rw [show loopPre (coreProgram.getD idx% «main_loop0» default) = (core% «main_loop0» body).take
+        10 from rfl]
     intro t ht
     simp only [core_eq% «main_loop0» body, List.take_succ_cons, List.take_zero, List.mem_cons,
       List.not_mem_nil, or_false] at ht
@@ -68,10 +71,12 @@ theorem mfL1_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
 theorem mfL2_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
     coreProgram.Rel rd name% «main_loop1» [1, gen ^ m, a, b] [] := by
   have hf := find_of_idx mfL2_idx
-  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD idx% «main_loop1» default) (gen ^ j) (gen ^ m) [a, b] := by
+  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD idx% «main_loop1» default) (gen ^ j) (gen ^
+      m) [a, b] := by
     intro j _
     refine ⟨mfσ1 (gen ^ j) (gen ^ m) a b, rfl, ?_⟩
-    rw [show loopPre (coreProgram.getD idx% «main_loop1» default) = (core% «main_loop1» body).take 10 from rfl]
+    rw [show loopPre (coreProgram.getD idx% «main_loop1» default) = (core% «main_loop1» body).take
+        10 from rfl]
     intro t ht
     simp only [core_eq% «main_loop1» body, List.take_succ_cons, List.take_zero, List.mem_cons,
       List.not_mem_nil, or_false] at ht

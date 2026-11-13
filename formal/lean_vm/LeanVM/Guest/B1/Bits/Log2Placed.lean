@@ -140,11 +140,12 @@ theorem asg_completeAtB (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 ^
   obtain ⟨σ, e0, e1, ep, hh⟩ := asg_holds_of (C := fun _ _ _ ↦ True) (rd := rd)
     (by simpa using he) (fun _ ↦ asg_rc_low hκ4 hlow (Nat.mod_lt _ (by decide))) (asg_shares ht e)
   have hh' : Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (Fn.body fn% «assert_small_g_power») False
-      (fun rs ↦ rs = []) := by rw [core3_body]; exact hh
+      (fun rs ↦ rs = []) := by rw [assert_small_g_power_body]; exact hh
   have hsat := walk_sat (P := coreProgram) _
     (coreProgram_wf _ (List.mem_of_find?_eq_some find_assert_small_g_power)) hh'
-  have hw : walk σ (Fn.body fn% «assert_small_g_power») = .ret (asgPre.flatMap (Main.slEvs σ)) [] := by
-    rw [core3_body, asgBody_split, Main.walk_straight σ _ _ asgPre_straight]
+  have hw : walk σ (Fn.body fn% «assert_small_g_power») = .ret (asgPre.flatMap (Main.slEvs σ)) []
+      := by
+    rw [assert_small_g_power_body, asgBody_split, Main.walk_straight σ _ _ asgPre_straight]
   rw [hw] at hsat
   obtain ⟨i1, i2, i3, i4⟩ := Main.straight_parts σ asgPre asgPre_straight
   have ha : asgPre.filterMap Main.Stmt.allocSz = [] := by decide +kernel
@@ -154,7 +155,8 @@ theorem asg_completeAtB (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 ^
   rw [hd] at i3
   rw [hc] at i4
   refine ⟨σ, asgPre.flatMap (Main.slEvs σ), [], by
-      rw [show Fn.params fn% «assert_small_g_power» = [.n 0, .n 1] from rfl]; simp [e0, e1], hw, rfl,
+      rw [show Fn.params fn% «assert_small_g_power» = [.n 0, .n 1] from rfl]; simp [e0, e1], hw,
+          rfl,
     fun e he ↦ (hsat.1 e he).1, i4, i3, i2, by rw [i1]; rfl, fun A hA ↦ ?_⟩
   rw [loadAddrs_straight σ _ asgPre_straight, asgPre_loads] at hA
   simp only [List.map_map, List.mem_map, List.mem_range, Function.comp_apply] at hA

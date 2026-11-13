@@ -148,7 +148,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     (hX : ∀ args, C name% «main_loop2» args [] → ∃ sig, Loop2Out C rd args sig)
     {σ : Val} (h : Stmt.HoldsList C rd σ (Fn.body fn% «main») False (fun rs => rs = [])) :
     MainFacts C rd σ := by
-  rw [core0_shape] at h
+  rw [main_shape] at h
   simp only [List.append_assoc, holdsList_append] at h
   have hP := pre_ok
   have hD := da_ok

@@ -18,9 +18,9 @@ public import LeanVM.Guest.Data.NameStrings
 `shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)` (G:2103-2126) hints the
 six bits of `len_g`'s exponent, pins them Boolean, rebuilds `r_g = g^r` from the low two and
 `q_g = g^q` from the high four, asserts `q_g^4·r_g = len_g` (so `len_g = g^n`, `n = 4q + r < 64`),
-runs its loop over `x = g^j`, `j < q` (`shared_selector_tables_loop0`: nibble `j`'s eq levels and `g` table by the
-inline `sel_eq_nibble`, `sel_g_nibble`), then dispatches the partial nibble `q` of width `r` to
-`sel_partial_nibble__L{r}`.
+runs its loop over `x = g^j`, `j < q` (`shared_selector_tables_loop0`: nibble `j`'s eq levels and
+`g` table by the inline `sel_eq_nibble`, `sel_g_nibble`), then dispatches the partial nibble `q` of
+width `r` to `sel_partial_nibble__L{r}`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -47,7 +47,8 @@ def lpPre : List Stmt :=
 
 /-- `shared_selector_tables_loop0`'s body. -/
 def lpBody : List Stmt :=
-  lpPre ++ [.callIf (.n 74) name% «shared_selector_tables_loop0» [.n 76, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], .ret []]
+  lpPre ++ [.callIf (.n 74) name% «shared_selector_tables_loop0» [.n 76, .n 1, .n 2, .n 3, .n 4,
+      .n 5, .n 6], .ret []]
 
 noncomputable def lpCheck : Bool :=
   match coreProgram.find? name% «shared_selector_tables_loop0» with
@@ -85,7 +86,8 @@ def ssPre : List Stmt :=
     .atom (.mul (.n 42) (.n 41) (.n 20)), .atom (.assertEq (.n 42) (.n 5)),
     .atom (.const (.n 43) (word 1 0)), .atom (.add (.n 44) (.n 43) (.n 39)),
     .atom (.const (.n 45) (word 1 0)),
-    .callIf (.n 44) name% «shared_selector_tables_loop0» [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1, .n 4],
+    .callIf (.n 44) name% «shared_selector_tables_loop0» [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1,
+        .n 4],
     .atom (.mul (.n 46) (.n 41) (.n 41)), .atom (.mul (.n 47) (.n 46) (.n 46)),
     .atom (.mul (.n 48) (.n 0) (.n 47)), .atom (.mul (.n 49) (.n 48) (.n 47)),
     .atom (.mul (.n 50) (.n 1) (.n 47)), .atom (.mul (.n 51) (.n 2) (.n 41)),
@@ -127,8 +129,9 @@ theorem lpPre_noRet : Stmt.noRetList lpPre = true := by
 
 theorem ssPre_noRet : Stmt.noRetList ssPre = true := rfl
 
-/-- What one iteration of `shared_selector_tables_loop0` at `x` writes: for the four coordinates, complements and
-shares read at `z·x^4`, `z1·x^4`, `gsq·x^4`, their eq levels at `eqt·x^32` and their `g` table
+/-- What one iteration of `shared_selector_tables_loop0` at `x` writes: for the four coordinates,
+complements and shares read at `z·x^4`, `z1·x^4`, `gsq·x^4`, their eq levels at `eqt·x^32` and their
+`g` table
 at `gt·x^16`. -/
 def LpB (rd : Reader) (eqt z z1 gt gsq x : E) : Prop :=
   ∀ zs zs1 gs : List E, zs.length = 4 → zs1.length = 4 → gs.length = 4 →
@@ -136,9 +139,11 @@ def LpB (rd : Reader) (eqt z z1 gt gsq x : E) : Prop :=
     TbReadsAt rd (eqt * x ^ 32) (eqLevels zs zs1) ∧ TbReadsAt rd (gt * x ^ 16) (gTable gs)
 
 theorem lp_step {rd : Reader} {N eqt z z1 gt gsq : E} (d : ℕ) (x : E)
-    (h : coreProgram.relN rd (d + 1) name% «shared_selector_tables_loop0» (x :: [N, eqt, z, z1, gt, gsq]) []) :
+    (h : coreProgram.relN rd (d + 1) name% «shared_selector_tables_loop0» (x :: [N, eqt, z, z1, gt,
+        gsq]) []) :
     LpB rd eqt z z1 gt gsq x ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «shared_selector_tables_loop0» (x * gen :: [N, eqt, z, z1, gt, gsq]) []) := by
+      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «shared_selector_tables_loop0» (x * gen :: [N,
+          eqt, z, z1, gt, gsq]) []) := by
   obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
   obtain ⟨fn', hf', hp, hb⟩ := lpFound
   rw [hf] at hf'

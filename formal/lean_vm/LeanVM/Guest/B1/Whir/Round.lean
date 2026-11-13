@@ -19,7 +19,7 @@ One fold round of CYWZ26's affine combiner (`foldRound`, `Statement/LeanVmVerifi
 four scalars `u0, w, c0, c1`, a grind and `α`, then `β`; `α` stored for the point and, with
 `β`, for the queries' row folds, and the claim folded at `α`.
 
-* `roundBody`: its core IR (`core7_body`, by kernel evaluation);
+* `roundBody`: its core IR (`opening_round_body`, by kernel evaluation);
 * `MeaningOpeningRound`: what a call establishes, over the carried sponge (`rdS2`, `rdG2`,
   `Fs.squeeze`);
 * `opening_round_sound`: the core IR gives the meaning, under `grind_check_Spec 7`, on a memory
@@ -57,9 +57,10 @@ def roundBody : List Stmt :=
     .ret [.n 86, .n 87, .n 88, .n 89, .n 90, .n 93, .n 94]]
 
 set_option maxRecDepth 100000 in
-theorem core7_body : Fn.body fn% «opening_round» = roundBody := stmtsEqb_sound (by decide +kernel)
+theorem opening_round_body : Fn.body fn% «opening_round» = roundBody :=
+  stmtsEqb_sound (by decide +kernel)
 
-theorem core7_params : Fn.params fn% «opening_round» = (List.range 10).map V.n := rfl
+theorem opening_round_params : Fn.params fn% «opening_round» = (List.range 10).map V.n := rfl
 
 theorem find_opening_round : coreProgram.find? "opening_round" = some fn% «opening_round» :=
   coreProgram_find?_at (j := idx% «opening_round») rfl
@@ -121,7 +122,7 @@ theorem outCell {σ : Val} {k : ℕ} {f : Fin 13 → E} (h : cells13 ((osRun k 1
 theorem opening_round_sound (hg : grind_check_Spec 7) {κ : ℕ} (hκ : κ ≤ 32) (hw : winTabBits ≤ κ)
     (L : MemoryImage κ) (args rets : List E) (ht : WinTabs L.read (args.getD 7 0))
     (h : coreProgram.Rel L.read "opening_round" args rets) : MeaningOpeningRound L.read args rets := by
-  rw [rel_iff_sem find_opening_round, core7_body, core7_params] at h
+  rw [rel_iff_sem find_opening_round, opening_round_body, opening_round_params] at h
   obtain ⟨σ, hp, h⟩ := h
   simp only [roundBody, holdsList_append, holds_fsNonceT, holds_fsNextT, holds_padRunT,
     holds_challengeT, Stmt.HoldsList, Stmt.Holds, holds_const, holds_add, holds_mul,

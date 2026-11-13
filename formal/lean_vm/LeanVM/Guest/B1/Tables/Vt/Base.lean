@@ -13,9 +13,9 @@ public import LeanVM.Guest.B1.Tables.Basic
 # `verify_tables`' body (TRIAGE G #52)
 
 `verify_tables` (G:2217-2694) is one function of 5560 statements, stored as 15 chunks
-(`core% «verify_tables» c0 .. c14`, the last ending in its `ret`). Its soundness reads each fact it needs off
-a chunk, by position (`VtH.atom`, `VtH.slice`, …), the kernel checking each statement read against
-the chunk: a valuation satisfying every chunk is what `vt_unfold` gives.
+(`core% «verify_tables» c0 .. c14`, the last ending in its `ret`). Its soundness reads each fact it
+needs off a chunk, by position (`VtH.atom`, `VtH.slice`, …), the kernel checking each statement read
+against the chunk: a valuation satisfying every chunk is what `vt_unfold` gives.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -56,7 +56,7 @@ theorem vtChunk_noRet (i : ℕ) : Stmt.noRetList (vtChunk i) = true := by
       | n + 15, _ => rfl
     rw [this]; exact vtChunk_noRet' 14 (by omega)
 
-theorem core11_body :
+theorem verify_tables_body :
     (core% «verify_tables» body) = ((List.range 15).map vtChunk).flatten ++ [.ret vtRets] := by
   have h14 : (core% «verify_tables» c14) = (core% «verify_tables» c14).take 156 ++ [.ret vtRets] :=
     tbStmtsEqb_sound (by decide +kernel)
@@ -81,7 +81,7 @@ theorem vtFound : ∃ fn : Fn, coreProgram.find? "verify_tables" = some fn ∧
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, (tbStmtsEqb_sound h.2).trans core11_body⟩
+    exact ⟨fn, hf, h.1, (tbStmtsEqb_sound h.2).trans verify_tables_body⟩
   · exact absurd h (by simp)
 
 /-- `verify_tables`' statements before its `ret`. -/

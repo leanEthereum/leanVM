@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B2C.ArmBound
 
-  `__loop2`'s separately counted arms, bounded for every valuation: `costW` within the sum
+  `main_loop2`'s separately counted arms, bounded for every valuation: `costW` within the sum
   over its counted `match`es of their largest arm (`costMaxW`), `xmssArmC` per opcode, the
   hypothesis `hC` of `cnt_le_weight_arm` (`xmssArmC_spec`).
 -/
@@ -11,12 +11,12 @@ module
 public import LeanVM.Guest.B2C.CntWeight
 
 /-!
-# `__loop2`'s arms, bounded
+# `main_loop2`'s arms, bounded
 
 `costW acs σ ss op` adds, along the path `σ` takes through `ss`, the count of each separately
 counted arm it passes. Whatever the path, it is at most `costMaxW acs op ss`: an `ite` its larger
 side, a `match` its table's largest arm and its larger arm's own (`costMaxArms`). On
-`__loop2`'s body (`Data.armFn`) this is `xmssArmC op`, the values `guest-cert` computes
+`main_loop2`'s body (`Data.armFn`) this is `xmssArmC op`, the values `guest-cert` computes
 (`Data.armMax`; by `decide +kernel`, every opcode in one walk), so `cnt_le_weight_arm` holds at
 `C := xmssArmC`.
 -/
@@ -207,7 +207,7 @@ end
 
 end At
 
-/-- **`__loop2`'s separately counted arms, per opcode** (leanXMSS's check, inline in it): the sum
+/-- **`main_loop2`'s separately counted arms, per opcode** (leanXMSS's check, inline in it): the sum
 of its counted `match`es' largest arms, as `guest-cert` computes them (`Data.armMax`). -/
 def xmssArmC (op : Opcode) : ℕ := Data.armMax.getD (opIdx op) 0
 
@@ -223,10 +223,10 @@ theorem costMaxW_xmss (op : Opcode) :
   rw [← costMaxCW_at, costMaxCW_arm, C6.at_ofList]
   rfl
 
-/-- **`cnt_le_weight_arm`'s `hC` at `xmssArmC`**: `__loop2`'s arms within `xmssArmC`, on
+/-- **`cnt_le_weight_arm`'s `hC` at `xmssArmC`**: `main_loop2`'s arms within `xmssArmC`, on
 every valuation. -/
 theorem xmssArmC_spec : ∀ op σ bufs kids rd args rets,
-    (Memory.Tree.node "__loop2" σ bufs kids).Valid coreProgram rd args rets →
+    (Memory.Tree.node name% «main_loop2» σ bufs kids).Valid coreProgram rd args rets →
       costW (listElementOrDefault Data.cplArms Data.armFn []) σ (coreOf Data.armFn).body op ≤ xmssArmC op :=
   fun op σ _ _ _ _ _ _ => (costW_le_max _ σ op _).trans (costMaxW_xmss op).le
 

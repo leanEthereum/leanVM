@@ -32,7 +32,7 @@ def epcPre : List Stmt :=
     .dispatch (.n 4) eqPrefixRunNames [.n 0, .n 1, .n 2, .n 3] [.n 9]]
 
 theorem epc_body : Fn.body fn% «eq_prefix_chain» = epcPre ++ [.ret []] := by
-  rw [B1.core4_body]; rfl
+  rw [B1.eq_prefix_chain_body]; rfl
 
 theorem epc_flat : epcPre.all Stmt.flat = true := by decide +kernel
 

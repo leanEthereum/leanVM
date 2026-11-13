@@ -18,9 +18,9 @@ The body (`vbgPre`, the core IR's): the range check of `g_bus_mu = g^depth` (`de
 two roots read and the count asserted nonzero, the combiner drawn from the two roots waiting
 (a grind of `0` bits) and the batched claim (`gkr_combine`), the tables `k_mod_next`,
 `loop_bounds[d] = g^((d - 1) / 2)` and `depth_odd[d] = g^(d % 2)`, the root-most layer
-(`rt_two` at an odd depth, `rt_four` at an even one), the layer loop `verify_bus_gkr_loop0` (`ly_step`,
-`ly_chain`), the final slot, the point's copy to `zeta` (`verify_bus_gkr_loop1`), the trees' values into a
-buffer of three, and the return.
+(`rt_two` at an odd depth, `rt_four` at an even one), the layer loop `verify_bus_gkr_loop0`
+(`ly_step`, `ly_chain`), the final slot, the point's copy to `zeta` (`verify_bus_gkr_loop1`), the
+trees' values into a buffer of three, and the return.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -367,7 +367,8 @@ theorem verify_bus_gkr_holds_of (hGR : tb_gkr_rounds_Spec) {μ : ℕ} (hμ : μ 
   have e389 := tb_loadHolds_unique (ld _ _ l389) hcur
   have e390 := tb_loadHolds_unique (ld _ _ l390) hrow
   -- the point's copy
-  obtain ⟨-, h7⟩ := tb_holds_callIf hnr h 218 (.n 392) name% «verify_bus_gkr_loop1» [.n 393, .n 6, .n 7, .n 390]
+  obtain ⟨-, h7⟩ := tb_holds_callIf hnr h 218 (.n 392) name% «verify_bus_gkr_loop1» [.n 393, .n 6,
+      .n 7, .n 390]
     (by decide +kernel)
   have hne7 : σ (.n 392) ≠ 0 := by
     rw [a392, c391, hg]

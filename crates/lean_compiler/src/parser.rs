@@ -40,6 +40,15 @@ pub fn parse(src: &str) -> Result<Ast, String> {
 /// and substituted into the `def`s below. See the "Placeholders" and "Global
 /// constants" sections of `zkDSL.md`.
 pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String>) -> Result<Ast, String> {
+    parse_with_constants(src, replacements).map(|(ast, _)| ast)
+}
+
+/// Like [`parse_with_replacements`], with the global scalar constants too, in declaration order, each
+/// the decimal literal substituted for it. For tooling (the formalization's guest export).
+pub fn parse_with_constants(
+    src: &str,
+    replacements: &BTreeMap<String, String>,
+) -> Result<(Ast, Vec<(String, String)>), String> {
     // Substitution runs over the RAW source, before lines are split, so a
     // replacement carrying a newline would shift every line after it and make
     // every diagnostic below name the wrong one. It would also inject statements
@@ -91,6 +100,7 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
     // positions that demand a parse-time literal (`StackBuf`, `**`, `assert log
     // _ < _`).
     let mut consts: BTreeMap<String, String> = BTreeMap::new();
+    let mut const_order: Vec<String> = Vec::new();
     let mut const_arrays: Vec<(String, Vec<F128>)> = Vec::new();
     let mut start = 0;
     while start < lines.len() {
@@ -157,6 +167,7 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
             const_arrays.push((name, elems));
         } else {
             // A scalar constant: a compile-time integer, else a field-valued expression.
+            const_order.push(name.clone());
             if let Ok(value) = eval_const_int(rhs) {
                 consts.insert(name, value.to_string());
             } else if parse_expr(rhs).is_ok_and(|e| is_int_arith(&e)) {
@@ -224,7 +235,11 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
         }
     }
     infer_return_shapes(&mut funcs);
-    Ok(Ast { funcs, const_arrays })
+    let consts = const_order
+        .into_iter()
+        .map(|n| (n.clone(), consts[&n].clone()))
+        .collect();
+    Ok((Ast { funcs, const_arrays }, consts))
 }
 
 /// Every name the lowerer resolves before it looks for a user function. A `def`

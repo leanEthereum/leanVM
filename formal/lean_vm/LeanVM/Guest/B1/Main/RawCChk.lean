@@ -53,7 +53,8 @@ set_option maxRecDepth 100000 in
 theorem l4_idx' : coreProgram.indexOf? name% «main_loop3» = some idx% «main_loop3» :=
   coreProgram_indexOf?_at (j := idx% «main_loop3») rfl
 
-theorem l4_find : coreProgram.find? name% «main_loop3» = some (coreProgram.getD idx% «main_loop3» default) :=
+theorem l4_find : coreProgram.find? name% «main_loop3» = some (coreProgram.getD idx% «main_loop3»
+    default) :=
   find_of_idx l4_idx'
 
 /-- Every member's body places nothing and calls members only. -/

@@ -50,7 +50,7 @@ theorem expTablesSound : ExpTablesSound := fun rd q h ↦
   (exponent_tables_holds rd [] [q]).mp h
 
 /-- **`verify_sub`'s `kappa_base`** below `vsKbBound` (B1-d's `VerifySub.vsKnown_holds`;
-`coreOf 19` is `Data.core18`), and its window table at `tabs`. -/
+`coreOf (fn_idx% «verify_sub»)` is `fn% «verify_sub»`), and its window table at `tabs`. -/
 theorem vsKnown_proved : VsKnown :=
   ⟨fun L h16 h32 σ hexp h ↦ VerifySub.vsKnown_holds L h16 h32 σ hexp h, vsTabsKnown_proved⟩
 

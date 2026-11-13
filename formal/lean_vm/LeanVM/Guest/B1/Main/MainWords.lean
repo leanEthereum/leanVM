@@ -80,7 +80,8 @@ frames, the padding loop's (or its frame when it does not run): a static loop he
 charged its phantom frame once, here, and `iterK fs SK g` per iteration. -/
 def dvC : ℕ :=
   fs "da_verify" + fs "da_row_shape" + SB "da_vector" + fs name% «da_verify_loop0» +
-    128 * (fs name% «da_verify_loop1» + fs "da_verify_column" + SB "da_expand__L7_L8" + fs name% «da_verify_column_loop0») +
+    128 * (fs name% «da_verify_loop1» + fs "da_verify_column" + SB "da_expand__L7_L8" + fs
+        name% «da_verify_column_loop0») +
     fs name% «da_verify_loop1» + fs name% «da_verify_loop2» + fs name% «da_verify_loop3»
 
 /-- `da_verify`'s words per blob: its region (`641`) and base, the regions' loop, the column's
@@ -101,7 +102,8 @@ theorem dvB_le {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < 11) :
   generalize iterK fs SK name% «da_verify_loop2» = k23
   generalize iterK fs SK name% «da_verify_loop3» = k24
   generalize iterK fs SK name% «da_verify_column_loop0» = k25
-  have h20 : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * k24 + fs name% «da_verify_loop3» else fs name% «da_verify_loop3») ≤
+  have h20 : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * k24 + fs name% «da_verify_loop3» else fs
+      name% «da_verify_loop3») ≤
       (2 ^ L - r) * k24 + fs name% «da_verify_loop3» := by
     split <;> omega
   have hg := rows_gap_le (a := k23) (b := k24) hr
@@ -111,7 +113,8 @@ theorem dvB_le {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < 11) :
       642 * r + r * k21 + 128 * (r * k25) + r * (k23 - k24) := by ring
   have e' : 2 ^ L * (4 + k24 + dlK SB) = 4 * 2 ^ L + 2 ^ L * k24 + dlK SB * 2 ^ L := by ring
   have e'' : 128 * (fs name% «da_verify_loop1» + (fs "da_verify_column" + SB "da_expand__L7_L8" +
-      (r * k25 + fs name% «da_verify_column_loop0»))) = 128 * (fs name% «da_verify_loop1» + fs "da_verify_column" +
+      (r * k25 + fs name% «da_verify_column_loop0»))) = 128 * (fs name% «da_verify_loop1» + fs
+          "da_verify_column" +
       SB "da_expand__L7_L8" + fs name% «da_verify_column_loop0») + 128 * (r * k25) := by ring
   omega
 
@@ -137,13 +140,16 @@ theorem div136_mul_le (n K : ℕ) : n / 136 * K ≤ n * ((K + 135) / 136) := by
 
 /-- A claim list's digest's constant words. -/
 def clC : ℕ :=
-  fs "claim_list_digest" + 13 + SB "list_split" + fs name% «claim_list_digest_loop0» + fs name% «claim_list_digest_loop1» +
+  fs "claim_list_digest" + 13 + SB "list_split" + fs name% «claim_list_digest_loop0» + fs
+      name% «claim_list_digest_loop1» +
     nameSum SB B1.Digest.clNames 17
 
-/-- A claim list's digest's words per claim: `13` and a `claim_list_digest_loop0` iteration per `136` claims
-(`CLAIM_BIG`), `13` and a `claim_list_digest_loop1` iteration per `17` claims (`CLAIM_GROUP`), the loops' runs'
+/-- A claim list's digest's words per claim: `13` and a `claim_list_digest_loop0` iteration per
+`136` claims (`CLAIM_BIG`), `13` and a `claim_list_digest_loop1` iteration per `17` claims
+(`CLAIM_GROUP`), the loops' runs'
 phantom frames in the constant (`clC`). -/
-def clS : ℕ := 1 + (iterK fs SK name% «claim_list_digest_loop0» + 135) / 136 + (iterK fs SK name% «claim_list_digest_loop1» + 16) / 17
+def clS : ℕ := 1 + (iterK fs SK name% «claim_list_digest_loop0» + 135) / 136 + (iterK fs SK
+    name% «claim_list_digest_loop1» + 16) / 17
 
 theorem clB_le (n : ℕ) : B1.Digest.clB fs SB SK n ≤ clC fs SB + n * clS fs SK := by
   unfold B1.Digest.clB clC clS
@@ -153,12 +159,14 @@ theorem clB_le (n : ℕ) : B1.Digest.clB fs SB SK n ≤ clC fs SB + n * clS fs S
   · omega
   · have h1 := le_nameSum (g := SB) (names := B1.Digest.clNames) (j := n % 17) (Nat.mod_lt _ (by omega))
     have h2 := div136_mul_le n k15
-    have h3 : (if n / 136 ≠ 0 then n / 136 * k15 + fs name% «claim_list_digest_loop0» else fs name% «claim_list_digest_loop0») ≤
+    have h3 : (if n / 136 ≠ 0 then n / 136 * k15 + fs name% «claim_list_digest_loop0» else fs
+        name% «claim_list_digest_loop0») ≤
         n * ((k15 + 135) / 136) + fs name% «claim_list_digest_loop0» := by
       split <;> omega
     have h5 : n % 136 / 17 * k16 ≤ n * ((k16 + 16) / 17) :=
       le_trans (Nat.mul_le_mul_right _ (show n % 136 / 17 ≤ n / 17 by omega)) (div17_mul_le n k16)
-    have h6 : (if n % 136 / 17 ≠ 0 then n % 136 / 17 * k16 + fs name% «claim_list_digest_loop1» else fs name% «claim_list_digest_loop1») ≤
+    have h6 : (if n % 136 / 17 ≠ 0 then n % 136 / 17 * k16 + fs name% «claim_list_digest_loop1»
+        else fs name% «claim_list_digest_loop1») ≤
         n * ((k16 + 16) / 17) + fs name% «claim_list_digest_loop1» := by
       split <;> omega
     have h4 : 13 * (n / 136 + n % 136 / 17) ≤ n := by omega
@@ -171,11 +179,14 @@ theorem clB_le (n : ℕ) : B1.Digest.clB fs SB SK n ≤ clC fs SB + n * clS fs S
 two loops' frames twice and its last group's helper. -/
 def ccC : ℕ :=
   fs "child_claim_list_digest" + 13 + SB "list_split" + fs "child_claim_list_any" +
-    2 * fs name% «child_claim_list_any_loop0» + 2 * fs name% «child_claim_list_any_loop1» + nameSum (fun g => fs g) B1.Digest.cclNames 17
+    2 * fs name% «child_claim_list_any_loop0» + 2 * fs name% «child_claim_list_any_loop1» + nameSum
+        (fun g => fs g) B1.Digest.cclNames 17
 
-/-- A child's claim list's digest's words per claim: `13` and a `child_claim_list_any_loop0` frame per `136` claims,
+/-- A child's claim list's digest's words per claim: `13` and a `child_claim_list_any_loop0` frame
+per `136` claims,
 `13` and a `child_claim_list_any_loop1` frame per `17` claims. -/
-def ccS : ℕ := 1 + (fs name% «child_claim_list_any_loop0» + 135) / 136 + (fs name% «child_claim_list_any_loop1» + 16) / 17
+def ccS : ℕ := 1 + (fs name% «child_claim_list_any_loop0» + 135) / 136 + (fs
+    name% «child_claim_list_any_loop1» + 16) / 17
 
 theorem ccB_le (n : ℕ) : B1.Digest.ccB fs SB n ≤ ccC fs SB + n * ccS fs := by
   unfold B1.Digest.ccB B1.Digest.anyB ccC ccS
@@ -188,25 +199,34 @@ theorem ccB_le (n : ℕ) : B1.Digest.ccB fs SB n ≤ ccC fs SB + n * ccS fs := b
       cases B1.Digest.cclNames[n % 17]? <;> rfl
     rw [hg]
     have h2 := div136_mul_le n (fs name% «child_claim_list_any_loop0»)
-    have h3 : (if n / 136 ≠ 0 then (n / 136 + 1) * fs name% «child_claim_list_any_loop0» else fs name% «child_claim_list_any_loop0») ≤
-        n * ((fs name% «child_claim_list_any_loop0» + 135) / 136) + 2 * fs name% «child_claim_list_any_loop0» := by
+    have h3 : (if n / 136 ≠ 0 then (n / 136 + 1) * fs name% «child_claim_list_any_loop0» else fs
+        name% «child_claim_list_any_loop0») ≤
+        n * ((fs name% «child_claim_list_any_loop0» + 135) / 136) + 2 * fs
+            name% «child_claim_list_any_loop0» := by
       split
-      · have e : (n / 136 + 1) * fs name% «child_claim_list_any_loop0» = n / 136 * fs name% «child_claim_list_any_loop0» + fs name% «child_claim_list_any_loop0» := by ring
+      · have e : (n / 136 + 1) * fs name% «child_claim_list_any_loop0» = n / 136 * fs
+          name% «child_claim_list_any_loop0» + fs name% «child_claim_list_any_loop0» := by ring
         omega
       · omega
-    have h5 : n % 136 / 17 * fs name% «child_claim_list_any_loop1» ≤ n * ((fs name% «child_claim_list_any_loop1» + 16) / 17) :=
+    have h5 : n % 136 / 17 * fs name% «child_claim_list_any_loop1» ≤ n * ((fs
+        name% «child_claim_list_any_loop1» + 16) / 17) :=
       le_trans (Nat.mul_le_mul_right _ (show n % 136 / 17 ≤ n / 17 by omega))
         (div17_mul_le n (fs name% «child_claim_list_any_loop1»))
-    have h6 : (if n % 136 / 17 ≠ 0 then (n % 136 / 17 + 1) * fs name% «child_claim_list_any_loop1» else fs name% «child_claim_list_any_loop1») ≤
-        n * ((fs name% «child_claim_list_any_loop1» + 16) / 17) + 2 * fs name% «child_claim_list_any_loop1» := by
+    have h6 : (if n % 136 / 17 ≠ 0 then (n % 136 / 17 + 1) * fs name% «child_claim_list_any_loop1»
+        else fs name% «child_claim_list_any_loop1») ≤
+        n * ((fs name% «child_claim_list_any_loop1» + 16) / 17) + 2 * fs
+            name% «child_claim_list_any_loop1» := by
       split
-      · have e : (n % 136 / 17 + 1) * fs name% «child_claim_list_any_loop1» = n % 136 / 17 * fs name% «child_claim_list_any_loop1» + fs name% «child_claim_list_any_loop1» := by
+      · have e : (n % 136 / 17 + 1) * fs name% «child_claim_list_any_loop1» = n % 136 / 17 * fs
+          name% «child_claim_list_any_loop1» + fs name% «child_claim_list_any_loop1» := by
           ring
         omega
       · omega
     have h4 : 13 * (n / 136 + n % 136 / 17) ≤ n := by omega
-    have e : n * (1 + (fs name% «child_claim_list_any_loop0» + 135) / 136 + (fs name% «child_claim_list_any_loop1» + 16) / 17) =
-        n + n * ((fs name% «child_claim_list_any_loop0» + 135) / 136) + n * ((fs name% «child_claim_list_any_loop1» + 16) / 17) := by ring
+    have e : n * (1 + (fs name% «child_claim_list_any_loop0» + 135) / 136 + (fs
+        name% «child_claim_list_any_loop1» + 16) / 17) =
+        n + n * ((fs name% «child_claim_list_any_loop0» + 135) / 136) + n * ((fs
+            name% «child_claim_list_any_loop1» + 16) / 17) := by ring
     omega
 
 /-! ## The children's loop -/
@@ -230,7 +250,8 @@ theorem l5Chain_le (K : ℕ → ℕ) : ∀ t c, l5ChainB fs K t c ≤
     have e : ∑ i ∈ Finset.range (t + 1), K (c + 1 + i) = ∑ i ∈ Finset.range (t + 1), K (c + (i + 1)) :=
       Finset.sum_congr rfl fun i _ => by rw [Nat.add_right_comm, Nat.add_assoc]
     rw [e] at ih
-    have e2 : (t + 1 + 2) * fs name% «main_loop4» = fs name% «main_loop4» + (t + 2) * fs name% «main_loop4» := by ring
+    have e2 : (t + 1 + 2) * fs name% «main_loop4» = fs name% «main_loop4» + (t + 2) * fs
+        name% «main_loop4» := by ring
     simp only [Nat.add_zero]
     omega
 
@@ -281,9 +302,11 @@ theorem l5B_le (Bv : ℕ → ℕ) {s : NodeStatement} {w : NodeWitness}
   have hA : fs name% «main_loop4» ≤ l5A1 fs SB := by unfold l5A1; omega
   unfold l5A0
   have e : w.children.length * l5A1 fs SB =
-      w.children.length * (l5A1 fs SB - fs name% «main_loop4») + w.children.length * fs name% «main_loop4» := by
+      w.children.length * (l5A1 fs SB - fs name% «main_loop4») + w.children.length * fs
+          name% «main_loop4» := by
     rw [← Nat.mul_add, Nat.sub_add_cancel hA]
-  have e2 : (w.children.length + 1) * fs name% «main_loop4» = w.children.length * fs name% «main_loop4» + fs name% «main_loop4» := by
+  have e2 : (w.children.length + 1) * fs name% «main_loop4» = w.children.length * fs
+      name% «main_loop4» + fs name% «main_loop4» := by
     ring
   rw [show w.children.length - 1 + 2 = w.children.length + 1 by omega] at h
   beta_reduce at h hs ⊢
@@ -322,7 +345,9 @@ def agA0 : ℕ := fs "aggregate_claims" + 109 + SB "grind_check__L2" + SB "batch
 
 /-- `aggregate_claims`' words per child: its buffers' and its three loops' iterations, each with
 its run's phantom frame, which `agA0` would otherwise charge `main` when it has no child. -/
-def agA1 : ℕ := 18 + (iterK fs SK name% «aggregate_claims_loop0» + fs name% «aggregate_claims_loop0») + (iterK fs SK name% «aggregate_claims_loop1» + fs name% «aggregate_claims_loop1») +
+def agA1 : ℕ := 18 + (iterK fs SK name% «aggregate_claims_loop0» + fs
+    name% «aggregate_claims_loop0») + (iterK fs SK name% «aggregate_claims_loop1» + fs
+    name% «aggregate_claims_loop1») +
   (iterK fs SK name% «aggregate_claims_loop2» + fs name% «aggregate_claims_loop2»)
 
 theorem aggB_le {m : ℕ} (hm : 1 ≤ m) : aggB fs SB SK m ≤ agA0 fs SB + agA1 fs SK * m := by
@@ -331,10 +356,13 @@ theorem aggB_le {m : ℕ} (hm : 1 ≤ m) : aggB fs SB SK m ≤ agA0 fs SB + agA1
   generalize iterK fs SK name% «aggregate_claims_loop0» = k33
   generalize iterK fs SK name% «aggregate_claims_loop1» = k34
   generalize iterK fs SK name% «aggregate_claims_loop2» = k35
-  have e : (18 + (k33 + fs name% «aggregate_claims_loop0») + (k34 + fs name% «aggregate_claims_loop1») + (k35 + fs name% «aggregate_claims_loop2»)) * m =
+  have e : (18 + (k33 + fs name% «aggregate_claims_loop0») + (k34 + fs
+      name% «aggregate_claims_loop1») + (k35 + fs name% «aggregate_claims_loop2»)) * m =
       18 * m + m * k33 + m * k34 + m * k35 +
-        (fs name% «aggregate_claims_loop0» + fs name% «aggregate_claims_loop1» + fs name% «aggregate_claims_loop2») * m := by ring
-  have h := Nat.le_mul_of_pos_right (fs name% «aggregate_claims_loop0» + fs name% «aggregate_claims_loop1» + fs name% «aggregate_claims_loop2») hm
+        (fs name% «aggregate_claims_loop0» + fs name% «aggregate_claims_loop1» + fs
+            name% «aggregate_claims_loop2») * m := by ring
+  have h := Nat.le_mul_of_pos_right (fs name% «aggregate_claims_loop0» + fs
+      name% «aggregate_claims_loop1» + fs name% «aggregate_claims_loop2») hm
   omega
 
 /-! ## `main`'s callees' words -/
@@ -360,7 +388,8 @@ and rate. -/
 def mainWords (Bvf : ℕ → ℕ → ℕ) : End.Linear where
   base := fs "main" + 283 + fs "exponent_tables" + 2284 + 2 * (clC fs SB + fs "claim_list_digest") +
     fs name% «main_loop0» + fs name% «main_loop1» +
-    fs name% «main_loop2» + fs name% «main_loop3» + 2 * l5A0 fs + (agA0 fs SB + fs "aggregate_claims") + SB "statement_digest" +
+    fs name% «main_loop2» + fs name% «main_loop3» + 2 * l5A0 fs + (agA0 fs SB + fs
+        "aggregate_claims") + SB "statement_digest" +
     fs "statement_digest"
   declared := clS fs SK
   coverage := 5 + iterK fs SK name% «main_loop0» + iterK fs SK name% «main_loop1»
@@ -384,11 +413,14 @@ theorem mSizes_sum (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
 alone when there is no child. -/
 theorem kidsBoundL_mKids (m : MainIn) (L : Layout) (b : MainBs) :
     kidsBoundL fs (mKids m L) (mBs fs SB SK m b) ≤
-      b.Bx + b.Bs + 2 * fs "claim_list_digest" + m.nxd * iterK fs SK name% «main_loop0» + fs name% «main_loop0» +
-      m.nsd * iterK fs SK name% «main_loop1» + fs name% «main_loop1» + m.nrx * iterK fs SK name% «main_loop2» + fs name% «main_loop2» +
+      b.Bx + b.Bs + 2 * fs "claim_list_digest" + m.nxd * iterK fs SK name% «main_loop0» + fs
+          name% «main_loop0» +
+      m.nsd * iterK fs SK name% «main_loop1» + fs name% «main_loop1» + m.nrx * iterK fs SK
+          name% «main_loop2» + fs name% «main_loop2» +
       m.nrs * iterK fs SK name% «main_loop3» + fs name% «main_loop3» +
       (if m.nd = 1 then b.Bd + fs "da_verify" else 0) +
-      (if m.nc = 0 then fs name% «main_loop4» else b.B5 + fs name% «main_loop4» + b.Ba + fs "aggregate_claims") +
+      (if m.nc = 0 then fs name% «main_loop4» else b.B5 + fs name% «main_loop4» + b.Ba + fs
+          "aggregate_claims") +
       SB "statement_digest" + fs "statement_digest" := by
   unfold mKids mBs
   by_cases hnd : m.nd = 1 <;> by_cases hnc : m.nc = 0 <;>
@@ -408,9 +440,11 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
   have hD := hDvB_le fs SB SK hr
   have hcov := coverage_eq (s := s) (w := w)
   simp only [List.length_append] at hcov
-  have c1 : (xPlan s w).duplicates.length * iterK fs SK name% «main_loop0» ≤ Coverage.planSlots s w * iterK fs SK name% «main_loop0» :=
+  have c1 : (xPlan s w).duplicates.length * iterK fs SK name% «main_loop0» ≤ Coverage.planSlots s w
+      * iterK fs SK name% «main_loop0» :=
     Nat.mul_le_mul_right _ (by omega)
-  have c2 : (sPlan s w).duplicates.length * iterK fs SK name% «main_loop1» ≤ Coverage.planSlots s w * iterK fs SK name% «main_loop1» :=
+  have c2 : (sPlan s w).duplicates.length * iterK fs SK name% «main_loop1» ≤ Coverage.planSlots s w
+      * iterK fs SK name% «main_loop1» :=
     Nat.mul_le_mul_right _ (by omega)
   have hK := kidsBoundL_mKids fs SB SK (hm fs 0 seed s w) (hLmain fs 0 seed s w)
     (mainBsH fs SB SK (childBv Bvf w) s w)
@@ -445,12 +479,15 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
   have r1 : clS fs SK * (End.work s w).declared = (End.work s w).declared * clS fs SK := Nat.mul_comm _ _
   have r2 : (s.claims.xmss.length + s.claims.sphincs.length) * clS fs SK =
       s.claims.xmss.length * clS fs SK + s.claims.sphincs.length * clS fs SK := Nat.add_mul _ _ _
-  have r3 : (5 + iterK fs SK name% «main_loop0» + iterK fs SK name% «main_loop1») * (End.work s w).coverage =
+  have r3 : (5 + iterK fs SK name% «main_loop0» + iterK fs SK name% «main_loop1») * (End.work s
+      w).coverage =
       5 * (End.work s w).coverage + (End.work s w).coverage * iterK fs SK name% «main_loop0» +
         (End.work s w).coverage * iterK fs SK name% «main_loop1» := by ring
-  have r4 : iterK fs SK name% «main_loop2» * (End.work s w).rawXmss = (End.work s w).rawXmss * iterK fs SK name% «main_loop2» :=
+  have r4 : iterK fs SK name% «main_loop2» * (End.work s w).rawXmss = (End.work s w).rawXmss *
+      iterK fs SK name% «main_loop2» :=
     Nat.mul_comm _ _
-  have r5 : iterK fs SK name% «main_loop3» * (End.work s w).rawSphincs = (End.work s w).rawSphincs * iterK fs SK name% «main_loop3» :=
+  have r5 : iterK fs SK name% «main_loop3» * (End.work s w).rawSphincs = (End.work s w).rawSphincs
+      * iterK fs SK name% «main_loop3» :=
     Nat.mul_comm _ _
   have r6 : dvS fs SK * (End.work s w).rawDaRows = (End.work s w).rawDaRows * dvS fs SK :=
     Nat.mul_comm _ _

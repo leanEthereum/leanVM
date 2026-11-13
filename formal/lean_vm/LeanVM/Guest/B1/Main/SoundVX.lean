@@ -18,11 +18,11 @@ public import LeanVM.Guest.Data.NameStrings
 # `main`, its witness decoded from the frame map, the leanXMSS reader a parameter
 
 `decWitVX sigOf σ rd V piOf` is `SoundV`'s `decWitV` with the leanXMSS signature of raw iteration
-`j` read by `sigOf` off `main_loop2`'s frame at its arguments (`V "main_loop2" args []`: the leanXMSS
-check is inline in `main_loop2` at 40f877dc). `main_sound_VX`: given the segment's statement for
-`sigOf` (`Sig.verify_lean_xmss_sound_Spec sigOf`) and `verify_sub`'s (`SubSoundW`), a run of
-`main`'s body gives the statement of the public input's digest, held by `decWitVX sigOf σ rd V
-piOf`. `SoundV` instantiates it with the xmss family's reader and proof.
+`j` read by `sigOf` off `main_loop2`'s frame at its arguments (`V "main_loop2" args []`: the
+leanXMSS check is inline in `main_loop2` at 40f877dc). `main_sound_VX`: given the segment's
+statement for `sigOf` (`Sig.verify_lean_xmss_sound_Spec sigOf`) and `verify_sub`'s (`SubSoundW`), a
+run of `main`'s body gives the statement of the public input's digest, held by `decWitVX sigOf σ rd
+V piOf`. `SoundV` instantiates it with the xmss family's reader and proof.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -55,7 +55,8 @@ def SubSoundW (bytecode : List K) (piOf : Reader → Val → FrameMap → Proof)
       ∀ (σ : Val) (rets : List E),
         Stmt.HoldsList C L.read σ (Fn.body fn% «verify_sub») False (fun rs ↦ rs = rets) →
         VerifySub.VerifySubPre L.read ((fn% «verify_sub»).params.map σ) →
-          rets = [] ∧ VerifySubOut bytecode L.read ((fn% «verify_sub»).params.map σ) (piOf L.read σ V)
+          rets = [] ∧ VerifySubOut bytecode L.read ((fn% «verify_sub»).params.map σ) (piOf L.read σ
+              V)
 
 /-- **`main` is sound, its witness decoded from the frame map**, the leanXMSS reader `sigOf`,
 given the segment's statement and `verify_sub`'s with its proof named. -/
@@ -77,7 +78,7 @@ theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap �
   · intro p h hbb
     obtain ⟨hp, hbs⟩ := body_ofV hV Sig.find_verify_sig_lean_sphincs h
     obtain ⟨-, ho⟩ := Sig.verify_sig_lean_sphincs_sound_holds C V L hκ hV _ _ hbs
-    rw [Sig.core20_params] at hp
+    rw [Sig.verify_sig_lean_sphincs_params] at hp
     simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
     obtain ⟨e0, e1⟩ := hp
     rw [e0, e1] at ho

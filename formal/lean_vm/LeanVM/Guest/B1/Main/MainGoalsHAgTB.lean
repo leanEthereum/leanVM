@@ -30,11 +30,14 @@ bytecode of `2^bytecodeVars` words. -/
 theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
     (hGr : TotalLe coreProgram fs "grind_check__L2" (fun _ => SB "grind_check__L2"))
     (h25 : TotalLeOn coreProgram fs name% «aggregate_claims_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs name% «aggregate_claims_loop0»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs
+          name% «aggregate_claims_loop0»))
     (h26 : TotalLeOn coreProgram fs name% «aggregate_claims_loop1» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop1» + fs name% «aggregate_claims_loop1»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop1» + fs
+          name% «aggregate_claims_loop1»))
     (h27 : TotalLeOn coreProgram fs name% «aggregate_claims_loop2» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop2» + fs name% «aggregate_claims_loop2»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop2» + fs
+          name% «aggregate_claims_loop2»))
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23"))
     {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)

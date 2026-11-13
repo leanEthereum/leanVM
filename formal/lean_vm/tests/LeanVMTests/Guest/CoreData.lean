@@ -213,7 +213,7 @@ def check (env : Environment) : Except String Unit := do
   let some (.defnInfo d) := env.find? ``coreProgram | throw "no coreProgram"
   let P ← (list fn d.value).run env
   let Q ← Expand.expandProgram Data.guest
-  unless P.length == 1601 && P == Q.map Fn.renumber do
+  unless P.length == core_count% && P == Q.map Fn.renumber do
     throw "coreProgram is not the renumbered expansion"
   unless Q.head?.map (·.name) == some "main" && Q.getLast?.map (·.name) == some "walk_path__L12_L8" &&
       Q.map (·.name) == Data.functions.tail.map (·.name) &&
@@ -229,7 +229,7 @@ function 21). -/
 
 set_option maxRecDepth 100000
 
-example : coreProgram.length = 1601 := coreProgram_length
+example : coreProgram.length = core_count% := coreProgram_length
 
 example : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl

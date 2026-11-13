@@ -36,7 +36,8 @@ theorem sAfterDigest_eq : (fn% «verify_sig_lean_sphincs»).body.drop 1358 = sAf
 
 /-- **`verify_sig_lean_sphincs`'s body is the template.** -/
 theorem sBody_eq : (fn% «verify_sig_lean_sphincs»).body = sBody := by
-  rw [← List.take_append_drop 1358 (fn% «verify_sig_lean_sphincs»).body, sDigestBlock_prefix, sAfterDigest_eq]
+  rw [← List.take_append_drop 1358 (fn% «verify_sig_lean_sphincs»).body, sDigestBlock_prefix,
+      sAfterDigest_eq]
   rfl
 
 end

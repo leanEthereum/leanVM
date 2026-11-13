@@ -72,7 +72,8 @@ theorem loads_none {σ : Val} {es : List Ev} (h : ∀ e ∈ es, Lift.EvLeafOk no
   | _ => rfl
 
 set_option maxRecDepth 100000 in
-theorem list_split_leafOk : Lift.Stmt.leafOkList noLoad (fn% «list_split»).body = true := by decide +kernel
+theorem list_split_leafOk : Lift.Stmt.leafOkList noLoad (fn% «list_split»).body = true :=
+  by decide +kernel
 
 theorem list_split_pure : coreProgram.PureIn ["list_split"] :=
   Lift.pureIn_of_leafOk find_list_split list_split_leafOk

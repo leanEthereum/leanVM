@@ -3,6 +3,8 @@
 
   The indices `verify_tables`' range checks read the memory into, as a bit mask (generated:
   scripts/b1c-vt/genaux.py), and the kernel's checks that nothing else uses them.
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

@@ -1,4 +1,5 @@
 import LeanVM.Guest.Bytecode
+import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The guest bytecode
@@ -15,7 +16,7 @@ namespace LeanVMTests.Guest.Bytecode
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 
-example : Data.functions.length = 1602 := by decide +kernel
+example : Data.functions.length = fn_count% := by decide +kernel
 
 example : Data.codeLen = 460073 := rfl
 

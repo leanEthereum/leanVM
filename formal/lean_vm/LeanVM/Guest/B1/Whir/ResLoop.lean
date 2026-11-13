@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.ResLoop
 
-  The residual loop of `open_stacked` (eight queries' `residual_query` an iteration, two chains
+  The residual loop of `open_stacked` (`resBatch` queries' `residual_query` an iteration, two chains
   by `μ = 1/λ`), soundly.
 -/
 
@@ -16,10 +16,10 @@ public import LeanVM.Guest.B1.Whir.ResQuery
 A residual step (`osResStep`) reads a position `p` and runs `h ← (h + P(p))·μ`,
 `hh ← (hh + H(p))·μ`, `P` the level's `residual_query` product and `H` its high part's share:
 `osResSteps_val`, the chains `resFold` over the positions read. At `x = g^j` the loop's iteration
-reads the positions `8j .. 8j + 7` at `qpos·g^po·x^8`, `h, hh = chain[2j], chain[2j + 1]`, and
-stores `chain[2j + 2], chain[2j + 3]` (`ResIter`; `resLoop_sound`). `resChain`: from
-`chain[0] = chain[1] = 0`, `chain[2j], chain[2j + 1]` are the chains over the first `8j`
-positions. `resFold_mul_pow`: `λ^n` times a chain from `0` is `Σ_k λ^k d_k`.
+reads the positions `bj .. bj + b - 1` at `qpos·g^po·x^b` (`b = resBatch`), `h, hh = chain[2j],
+chain[2j + 1]`, and stores `chain[2j + 2], chain[2j + 3]` (`ResIter`; `resLoop_sound`). `resChain`:
+from `chain[0] = chain[1] = 0`, `chain[2j], chain[2j + 1]` are the chains over the first
+`bj` positions. `resFold_mul_pow`: `λ^n` times a chain from `0` is `Σ_k λ^k d_k`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -138,7 +138,8 @@ theorem osResSteps_flat (pp bd ro hp ho vo ncols nhs hbits mu : ℕ) :
 
 /-! ## The loop -/
 
-/-- **One iteration of the residual loop at `x`**: eight positions read at `qpos·g^po·x^8`, the
+/-- **One iteration of the residual loop at `x`**: `resBatch` positions read at
+`qpos·g^po·x^resBatch`, the
 chains at `chain·x^2` (cells `0, 1`) advanced over them into cells `2, 3`. -/
 def ResIter (rd : Reader) (P H : E → E) (po : ℕ) (qpos chain mu x : E) : Prop :=
   ∃ (a : E × E) (ps : List E), ps.length = resBatch ∧
@@ -151,17 +152,28 @@ def ResIter (rd : Reader) (P H : E → E) (po : ℕ) (qpos chain mu x : E) : Pro
 def resLoopA (lvl : ℕ) (lv : OsLv) : List Stmt :=
   let pp := osMat 2 lv.posOff 7
   let x := pp.2.2
-  let st := osResSteps (x + 3) 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols lv.folds
-    lv.highBits 6 (List.range resBatch) (x + 6) (x + 7) (x + 8)
-  pp.1 ++ [osMul x 0 0, osMul (x + 1) x x, osMul (x + 2) (x + 1) (x + 1), osMul (x + 3) pp.2.1 (x + 2),
-    osMul (x + 4) 5 0, osMul (x + 5) (x + 4) 0, osLd (x + 6) (x + 5) 0, osLd (x + 7) (x + 5) 1] ++ st.1 ++
-    [osLd st.2.1 (x + 5) 2, osLd st.2.2.1 (x + 5) 3]
+  let y := x + batchLen
+  let st := osResSteps y 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols lv.folds
+    lv.highBits 6 (List.range resBatch) (y + 3) (y + 4) (y + 5)
+  pp.1 ++ (osBatchPow x).1 ++ [osMul y pp.2.1 (osBatchPow x).2, osMul (y + 1) 5 0,
+    osMul (y + 2) (y + 1) 0, osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ++ st.1 ++
+    [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3]
 
 /-- The tail's first value. -/
 def resLoopR (lvl : ℕ) (lv : OsLv) : ℕ :=
-  (osResSteps ((osMat 2 lv.posOff 7).2.2 + 3) 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish
-    lv.logCols lv.folds lv.highBits 6 (List.range resBatch) ((osMat 2 lv.posOff 7).2.2 + 6)
-    ((osMat 2 lv.posOff 7).2.2 + 7) ((osMat 2 lv.posOff 7).2.2 + 8)).2.2.2
+  (osResSteps ((osMat 2 lv.posOff 7).2.2 + batchLen) 3 (lvl * ligColsCap) 4 (lvl * hsStride)
+    lv.vanish lv.logCols lv.folds lv.highBits 6 (List.range resBatch)
+    ((osMat 2 lv.posOff 7).2.2 + batchLen + 3) ((osMat 2 lv.posOff 7).2.2 + batchLen + 4)
+    ((osMat 2 lv.posOff 7).2.2 + batchLen + 5)).2.2.2
+
+/-- `osBatchPow`'s digits spell `resBatch`. -/
+theorem batch_digits : digitsVal (osPowDigits resBatch) 1 = resBatch := by decide +kernel
+
+/-- **`osBatchPow` computes `x^resBatch`**, `x` the value `0`. -/
+theorem osBatchPow_val {C : CallRel} {σ : Val} (k : ℕ) (h : AllOk C rd σ (osBatchPow k).1) :
+    σ (.n (osBatchPow k).2) = σ (.n 0) ^ resBatch := by
+  rw [← batch_digits]
+  exact osPowSteps_val 0 (osPowDigits resBatch) 0 k 1 (pow_one _).symm h
 
 theorem resLoopBody_split (lvl : ℕ) (lv : OsLv) (name : String) :
     resLoopBody lvl lv name = (resLoopA lvl lv ++ osLoopTailA (resLoopR lvl lv)) ++
@@ -173,7 +185,7 @@ theorem resLoopA_flat (lvl : ℕ) (lv : OsLv) :
     (resLoopA lvl lv ++ osLoopTailA (resLoopR lvl lv)).all Stmt.flat = true := by
   have hm : ∀ b o k, (osMat b o k).1.all Stmt.flat = true := by
     intro b o k; unfold osMat; split_ifs <;> rfl
-  simp [resLoopA, osLoopTailA, hm, osResSteps_flat, Stmt.flat]
+  simp [resLoopA, osLoopTailA, hm, osResSteps_flat, osBatchPow, osPowSteps_flat, Stmt.flat]
 
 theorem forall₂_range_to {P : ℕ → E → Prop} : ∀ (n : ℕ) (ps : List E),
     List.Forall₂ P (List.range n) ps → ps.length = n ∧ ∀ i < n, P i (ps.getD i 0) := by
@@ -225,25 +237,25 @@ theorem resLoop_step (lvl : ℕ) (lv : OsLv) (hpo : lv.posOff < u128Bound) {D : 
   · unfold resLoopA at hA
     simp only at hA
     set pp := osMat 2 lv.posOff 7
-    set y := pp.2.2
-    set st := osResSteps (y + 3) 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols lv.folds
-      lv.highBits 6 (List.range resBatch) (y + 6) (y + 7) (y + 8)
+    set y := pp.2.2 + batchLen
+    set st := osResSteps y 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols lv.folds
+      lv.highBits 6 (List.range resBatch) (y + 3) (y + 4) (y + 5)
     simp only [allOk_append, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_mul, holds_load,
       osMul, osLd] at hA
-    obtain ⟨⟨⟨hpp, m0, m1, m2, m3, m4, m5, l6, l7⟩, hst⟩, s1, s2⟩ := hA
+    obtain ⟨⟨⟨⟨hpp, hpw⟩, m3, m4, m5, l6, l7⟩, hst⟩, s1, s2⟩ := hA
     have hD' : ∀ s < lv.logCols, LoadHolds rd (σ (.n 3)) (lvl * ligColsCap + s) (D s) := by
       rw [h3]; exact hR.D
     have hH' : ∀ c < lv.folds, LoadHolds rd (σ (.n 4)) (lvl * hsStride + c) (hsv.getD c 0) := by
       rw [h4]; exact hR.hs
-    have hP : σ (.n (y + 3)) = qpos * gen ^ lv.posOff * x ^ resBatch := by
-      rw [m3, osMat_val hpo hpp, m2, m1, m0, h0, h2]; ring
-    have hC : σ (.n (y + 5)) = chain * x ^ 2 := by rw [m5, m4, h5, h0]; ring
+    have hP : σ (.n y) = qpos * gen ^ lv.posOff * x ^ resBatch := by
+      rw [m3, osMat_val hpo hpp, osBatchPow_val _ hpw, h0, h2]
+    have hC : σ (.n (y + 2)) = chain * x ^ 2 := by rw [m5, m4, h5, h0]; ring
     obtain ⟨ps, hF, hv⟩ := osResSteps_val hR.cols hR.nhs hR.b3 hR.bn hD' hR.len hH' _ _ _ _ hst
     obtain ⟨hl, hF⟩ := forall₂_range_to _ _ hF
     rw [hP] at hF
     rw [hC] at l6 l7 s1 s2
     rw [h6] at hv
-    refine ⟨(σ (.n (y + 6)), σ (.n (y + 7))), ps, hl, hF, l6, l7, ?_, ?_⟩
+    refine ⟨(σ (.n (y + 3)), σ (.n (y + 4))), ps, hl, hF, l6, l7, ?_, ?_⟩
     · have := congrArg Prod.fst hv; simp only at this
       show LoadHolds _ _ _ (resFold (fun x ↦ residualProd (osVals lv.vanish lv.logCols) x D lv.logCols)
         (fun x ↦ residualChain (osVals lv.vanish lv.logCols) x lv.logCols *
@@ -276,7 +288,7 @@ theorem resLoop_sound {name : String} {fn : Fn} (hf : coreProgram.find? name = s
   exact resLoop_step lvl lv hpo σ x (gen ^ n) qpos bd hs chain mu hp hR hA
 
 /-- **The chains**: from `chain[0] = chain[1] = 0`, after `j ≤ n` iterations `chain[2j]`,
-`chain[2j + 1]` are the chains over the first `8j` positions `Pos` in memory. -/
+`chain[2j + 1]` are the chains over the first `resBatch·j` positions `Pos` in memory. -/
 theorem resChain {P H : E → E} {po : ℕ} {qpos chain mu : E} {n : ℕ} {Pos : ℕ → E}
     (hP : ∀ i < resBatch * n, LoadHolds rd qpos (po + i) (Pos i))
     (h0 : LoadHolds rd chain 0 0) (h1 : LoadHolds rd chain 1 0)

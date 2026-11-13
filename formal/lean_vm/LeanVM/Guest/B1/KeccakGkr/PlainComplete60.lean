@@ -26,7 +26,8 @@ open LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 
-theorem plain60_chk : Fwd.chk 11 (fn% «keccak_plain_rounds__L6_L0»).body = some 180 := by decide +kernel
+theorem plain60_chk : Fwd.chk 11 (fn% «keccak_plain_rounds__L6_L0»).body = some 180 :=
+  by decide +kernel
 
 theorem plain60_stores : storesOf 11 (fn% «keccak_plain_rounds__L6_L0»).body =
     [.load (.n 40) (.n 9) 0, .load (.n 65) (.n 9) 1, .load (.n 90) (.n 9) 2,
@@ -53,7 +54,8 @@ theorem plain60_complete (rd : Reader) (args rets : List E)
   -- the honest valuation
   set l : List E := [f0, f1, f2, f3, f4, p0, p1, cur, value, point, tabs] with hl
   have g := (ev_spec rd (fun _ ↦ 0) (fn% «keccak_plain_rounds__L6_L0»).body l plain60_chk).2.2
-  have pp : ∀ i (hi : i < 11), Val.ofArgs (ev rd (fun _ ↦ 0) l (fn% «keccak_plain_rounds__L6_L0»).body) (.n i) =
+  have pp : ∀ i (hi : i < 11), Val.ofArgs (ev rd (fun _ ↦ 0) l
+      (fn% «keccak_plain_rounds__L6_L0»).body) (.n i) =
       l.getD i 0 := fun i hi ↦
     ev_params rd (fun _ ↦ 0) (l := l) plain60_chk (by simpa [hl] using hi)
   rw [show l.length = 11 from rfl, plain60_stores] at g

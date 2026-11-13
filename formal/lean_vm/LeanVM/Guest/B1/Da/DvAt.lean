@@ -99,13 +99,17 @@ theorem dvVb_spec {z : E} {pv : List (List E × Layout)} (h : vecOut z (pv.getD 
 /-- A column's words bound, its callees' frames and its row loop's `r` iterations and phantom
 frame. -/
 def colBf (fs : String → ℕ) (SK : String → ℕ) (r : ℕ) : ℕ :=
-  fs "da_verify_column" + (fs "da_expand__L7_L8" + (r * iterK fs SK name% «da_verify_column_loop0» + fs name% «da_verify_column_loop0»))
+  fs "da_verify_column" + (fs "da_expand__L7_L8" + (r * iterK fs SK name% «da_verify_column_loop0»
+      + fs name% «da_verify_column_loop0»))
 
 /-- `da_verify`'s callees' bounds, in call order, at the frame sizes. -/
 def dvBs (fs : String → ℕ) (SB SK : String → ℕ) (r L : ℕ) : List ℕ :=
-  [fs "da_row_shape", vecB fs SK, r * iterK fs SK name% «da_verify_loop0» + fs name% «da_verify_loop0»,
-    clB fs name% «da_verify_loop1» (colBf fs SK r) 128, r * iterK fs SK name% «da_verify_loop2» + fs name% «da_verify_loop2»,
-    if 2 ^ L - r ≠ 0 then (2 ^ L - r) * iterK fs SK name% «da_verify_loop3» + fs name% «da_verify_loop3» else fs name% «da_verify_loop3»,
+  [fs "da_row_shape", vecB fs SK, r * iterK fs SK name% «da_verify_loop0» + fs
+      name% «da_verify_loop0»,
+    clB fs name% «da_verify_loop1» (colBf fs SK r) 128, r * iterK fs SK name% «da_verify_loop2» +
+        fs name% «da_verify_loop2»,
+    if 2 ^ L - r ≠ 0 then (2 ^ L - r) * iterK fs SK name% «da_verify_loop3» + fs
+        name% «da_verify_loop3» else fs name% «da_verify_loop3»,
     SB (daLevelsName L)]
 
 /-- `da_verify`'s callees, on its buffers at `bb`. -/
@@ -115,14 +119,17 @@ noncomputable def dvKids (r L : ℕ) (syms : ℕ → ℕ → List K) (z : E) (s 
     fun _ => ⟨"da_vector", true, [z], [], vecOut z⟩,
     fun _ => ⟨name% «da_verify_loop0», true, [1, gen ^ r, gen ^ bb, gen ^ (bb + 641 * r)],
       [(bb, blobsCells r syms z), (bb + 641 * r, rowbaseCells r bb)], Returns []⟩,
-    fun pv => ⟨name% «da_verify_loop1», true, [1, gen ^ r, gen ^ (bb + 641 * r), gen ^ (dvVb z pv).1,
+    fun pv => ⟨name% «da_verify_loop1», true, [1, gen ^ r, gen ^ (bb + 641 * r),
+        gen ^ (dvVb z pv).1,
       gen ^ ((dvVb z pv).2.1 + 2 ^ 7), gen ^ (dvVb z pv).2.2.1, gen ^ (dvVb z pv).2.2.2],
       colLin r syms z (dvVb z pv).1 (dvVb z pv).2.1 (dvVb z pv).2.2.1 (dvVb z pv).2.2.2 bb (bb + 641 * r),
       Returns []⟩,
-    fun _ => ⟨name% «da_verify_loop2», true, [1, gen ^ r, gen ^ (bb + 641 * r), gen ^ (bb + 641 * r + r)],
+    fun _ => ⟨name% «da_verify_loop2», true, [1, gen ^ r, gen ^ (bb + 641 * r),
+        gen ^ (bb + 641 * r + r)],
       [(bb, blobsCells r syms z), (bb + 641 * r, rowbaseCells r bb),
         (bb + 641 * r + r, rootsCells r L syms)], Returns []⟩,
-    fun _ => ⟨name% «da_verify_loop3», decide (2 ^ L - r ≠ 0), [1, gen ^ (2 ^ L - r), gen ^ (bb + 641 * r + r), gen ^ r],
+    fun _ => ⟨name% «da_verify_loop3», decide (2 ^ L - r ≠ 0), [1, gen ^ (2 ^ L - r),
+        gen ^ (bb + 641 * r + r), gen ^ r],
       [(bb + 641 * r + r, rootsCells r L syms)], Returns []⟩,
     fun _ => ⟨daLevelsName L, true, [gen ^ (bb + 641 * r + r)], [(bb + 641 * r + r, rootsCells r L syms)],
       Returns (digestCells (daRoot r L syms))⟩]
@@ -161,7 +168,8 @@ theorem dv_sholds {rd : Reader} (r L s : ℕ) (hL : L ≤ 10) (z : E) (q : ℕ �
     (c0 c1 : E) :
     ∀ st ∈ dvP, SHolds (fun _ _ _ => True) rd (Val.ofArgs (dvVals r L s z q bb c0 c1)) st := by
   intro st hs
-  simp only [dvP, core_eq% «da_verify», core_eq% «da_verify» body, List.dropLast_cons_cons, List.dropLast_singleton,
+  simp only [dvP, core_eq% «da_verify», core_eq% «da_verify» body, List.dropLast_cons_cons,
+      List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals simp only [SHolds, Atom.Holds, ofArgs_n, dvVals, List.getD_cons_succ,
@@ -180,7 +188,8 @@ set_option maxRecDepth 20000 in
 theorem dv_dispOk (r L s : ℕ) (hL : L ≤ 10) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bb : ℕ) (c0 c1 : E) :
     ∀ st ∈ dvP, B1.DispOk (Val.ofArgs (dvVals r L s z q bb c0 c1)) st := by
   intro st hs
-  simp only [dvP, core_eq% «da_verify», core_eq% «da_verify» body, List.dropLast_cons_cons, List.dropLast_singleton,
+  simp only [dvP, core_eq% «da_verify», core_eq% «da_verify» body, List.dropLast_cons_cons,
+      List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals first
@@ -238,13 +247,17 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     (hT : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b)))
     (h17 : TotalLeOn coreProgram fs name% «da_verify_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop0» + fs name% «da_verify_loop0»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop0» + fs
+          name% «da_verify_loop0»))
     (h19 : TotalLeOn coreProgram fs name% «da_verify_loop2» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop2» + fs name% «da_verify_loop2»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop2» + fs
+          name% «da_verify_loop2»))
     (h20 : TotalLeOn coreProgram fs name% «da_verify_loop3» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop3» + fs name% «da_verify_loop3»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop3» + fs
+          name% «da_verify_loop3»))
     (h21 : TotalLeOn coreProgram fs name% «da_verify_column_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs name% «da_verify_column_loop0»))
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs
+          name% «da_verify_column_loop0»))
     {r L : ℕ} (hdl : TotalLe coreProgram fs (daLevelsName L) (fun _ => SB (daLevelsName L)))
     (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.paddedRowCount r)
     {syms : ℕ → ℕ → List K} (hsl : ∀ i j, (syms i j).length = 256)
@@ -278,7 +291,8 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     (fun fp => [blobsCells r syms z, rowbaseCells r (fp + fs "da_verify"), rootsCells r L syms])
     (fun _ => by simp [dvSizes, length_blobsCells, rowbaseCells, length_rootsCells])
     (fun fp => dvKids r L syms z s (fp + fs "da_verify"))
-    ["da_row_shape", "da_vector", name% «da_verify_loop0», name% «da_verify_loop1», name% «da_verify_loop2», name% «da_verify_loop3», daLevelsName L]
+    ["da_row_shape", "da_vector", name% «da_verify_loop0», name% «da_verify_loop1»,
+        name% «da_verify_loop2», name% «da_verify_loop3», daLevelsName L]
     (dvBs fs SB SK r L) (dvTs r) (dvQ r L)
     (fun _ => .cons (fun _ => rfl) (.cons (fun _ => rfl) (.cons (fun _ => rfl) (.cons (fun _ => rfl)
       (.cons (fun _ => rfl) (.cons (fun _ => rfl) (.cons (fun _ => rfl) .nil)))))))

@@ -27,9 +27,9 @@ open LeanVM.Protocol.Verifier
     for (pd, cd), n, i in part:
         out.append('''set_option maxRecDepth 100000 in
 /-- `%s`. -/
-theorem wpBody_L%d_L%d : Data.core%d.body = wpBodyT ⟨0, 0, %d, %d, 0, [], 0, 0⟩ :=
+theorem wpBody_L%d_L%d : (fn%% «%s»).body = wpBodyT ⟨0, 0, %d, %d, 0, [], 0, 0⟩ :=
   stmtsEqb_sound (by decide +kernel)
-''' % (n, pd, cd, i, pd, cd))
+''' % (n, pd, cd, n, pd, cd))
     out.append('end\nend LeanVM.Guest.B1\n')
     open(D + 'WalkBody%d.lean' % k, 'w').write('\n'.join(out))
 import re
@@ -45,8 +45,8 @@ for (pd, cd), n, i in ws:
     out.append('''set_option maxRecDepth 100000 in
 /-- `%s` is its template. -/
 theorem wpFn_L%d_L%d : WalkFn "%s" %d %d :=
-  ⟨_, coreProgram_find?_at (j := %d) rfl, rfl, wpBody_L%d_L%d⟩
-''' % (n, pd, cd, n, pd, cd, i, pd, cd))
+  ⟨_, coreProgram_find?_at (j := idx%% «%s») rfl, rfl, wpBody_L%d_L%d⟩
+''' % (n, pd, cd, n, pd, cd, n, pd, cd))
 out.append('''/-- **Every deployed `walk_path` is its template.** -/
 theorem walkFn_all : ∀ p ∈ walkPathNames, WalkFn p.2.2 p.1 p.2.1 := by
   intro p hp

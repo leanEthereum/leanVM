@@ -42,8 +42,11 @@ structure MainBs where
 
 /-- **Every callee's bound**, aligned with `mKids`. -/
 def mBs (fs SB SK : String → ℕ) (m : MainIn) (b : MainBs) : List ℕ :=
-  [b.Bx, b.Bs, m.nxd * iterK fs SK name% «main_loop0» + fs name% «main_loop0», m.nsd * iterK fs SK name% «main_loop1» + fs name% «main_loop1»,
-    m.nrx * iterK fs SK name% «main_loop2» + fs name% «main_loop2», m.nrs * iterK fs SK name% «main_loop3» + fs name% «main_loop3»] ++ (if m.nd = 1 then [b.Bd] else []) ++ [b.B5] ++
+  [b.Bx, b.Bs, m.nxd * iterK fs SK name% «main_loop0» + fs name% «main_loop0»,
+      m.nsd * iterK fs SK name% «main_loop1» + fs name% «main_loop1»,
+    m.nrx * iterK fs SK name% «main_loop2» + fs name% «main_loop2»,
+        m.nrs * iterK fs SK name% «main_loop3» + fs name% «main_loop3»] ++ (if m.nd = 1 then [b.Bd]
+        else []) ++ [b.B5] ++
     (if m.nc = 0 then [] else [b.Ba]) ++ [SB "statement_digest"]
 
 /-- **`main`'s words**, its callees within `mBs`. -/

@@ -18,10 +18,10 @@ public import LeanVM.Guest.Data.NameStrings
 
 The callees' words come as hypotheses in G7's forms: every statically bounded callee `g` of
 `vtKidS` within a constant `Kf g` (`TotalLe`), `shared_selector_tables` within `Ksh` on a run
-length `g^n`, `n < 64` (`TotalLeOn`), `verify_tables_loop0`'s run within `K10` words an iteration and its one
-phantom frame (`TotalLeOn … LoopPre`). Call by call (`vtCallBnd`): a call's callee's constant (`Ksh`
-for the shared tables), a dispatch's largest arm's, the rounds loop's run `vtRunB` at the honest
-round count `n`.
+length `g^n`, `n < 64` (`TotalLeOn`), `verify_tables_loop0`'s run within `K10` words an iteration
+and its one phantom frame (`TotalLeOn … LoopPre`). Call by call (`vtCallBnd`): a call's callee's
+constant (`Ksh` for the shared tables), a dispatch's largest arm's, the rounds loop's run `vtRunB`
+at the honest round count `n`.
 `verify_tables_completeAtTB`: within `fs "verify_tables" + Σ sizes + Σ vtBs + ifFrames`.
 -/
 
@@ -80,7 +80,8 @@ memories defined below `2^κ`, `κ ≥ 14`, its tree of at most `fs "verify_tabl
 buffers, its callees' bounds and its skipped frames. -/
 theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok)
     (hs : VtShape H) (B : VtBases) (Kf : String → ℕ) (Ksh K10 : ℕ)
-    (hKf : ∀ g ∈ vtKidS, g ≠ name% «verify_tables_loop0» → g ≠ name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
+    (hKf : ∀ g ∈ vtKidS, g ≠ name% «verify_tables_loop0» → g ≠ name% «shared_selector_tables_loop0»
+        → g ≠ "shared_selector_tables" →
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
     (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
       (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))

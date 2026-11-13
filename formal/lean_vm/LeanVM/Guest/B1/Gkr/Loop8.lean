@@ -1,7 +1,8 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop8
 
-  `verify_bus_gkr`'s last loop `verify_bus_gkr_loop1`: the final point copied from its row to `zeta`.
+  `verify_bus_gkr`'s last loop `verify_bus_gkr_loop1`: the final point copied from its row to
+  `zeta`.
 -/
 
 module
@@ -12,8 +13,8 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # The final point's copy (`verify_bus_gkr_loop1`, G:2042-2044)
 
-`verify_bus_gkr_loop1(x, g^depth, zeta, row)` asserts `zeta[x] = row[x]` and runs on to `x·g` below the bound:
-from `x = 1`, the point of `depth` coordinates at `row` is at `zeta` (`l8_loop`).
+`verify_bus_gkr_loop1(x, g^depth, zeta, row)` asserts `zeta[x] = row[x]` and runs on to `x·g` below
+the bound: from `x = 1`, the point of `depth` coordinates at `row` is at `zeta` (`l8_loop`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -53,7 +54,8 @@ theorem l8Found : ∃ fn : Fn, coreProgram.find? name% «verify_bus_gkr_loop1» 
 theorem l8_step {rd : Reader} {N zeta row : E} (d : ℕ) (x : E)
     (h : coreProgram.relN rd (d + 1) name% «verify_bus_gkr_loop1» (x :: [N, zeta, row]) []) :
     (∀ w, LoadHolds rd (row * x) 0 w → LoadHolds rd (zeta * x) 0 w) ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «verify_bus_gkr_loop1» (x * gen :: [N, zeta, row]) []) := by
+      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «verify_bus_gkr_loop1» (x * gen :: [N, zeta,
+          row]) []) := by
   obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
   obtain ⟨fn', hf', hp, hb⟩ := l8Found
   rw [hf] at hf'

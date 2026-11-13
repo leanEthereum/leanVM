@@ -150,7 +150,8 @@ theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE fp : ℕ) (fps
       (fun k hk j hkj x hx ↦ Or.inr (Or.inr ⟨k + 1, by omega, by omega, hkj,
         by rw [atAllG_getElem]; simp [kids_lay hk, layKid], by rw [hlay k hk]; exact hx⟩))
       i (by rw [hlenA] at hi; rw [hk]; exact hi) x hx
-  · rw [show (fn% «verify_keccak»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
+  · rw [show (fn% «verify_keccak»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8,
+      .n 9,
       .n 10, .n 11] from rfl]
     have hpar := (val_good (rd := rd) (B := B) (curE := curE) (chiE := chiE) (olE := olE)
       (zvE := zvE) (slE := slE) (tbE := tbE) h).2.2

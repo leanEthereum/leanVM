@@ -17,10 +17,10 @@ The root-most layer has no rounds: the combiner, drawn from the two roots waitin
 batches the three trees' roots into the claim the children's products check. `verify_bus_gkr`
 runs it in its body, in the two arms of an `ite` on `odd_g = g^(depth % 2)`:
 
-* `rt_two` (`core% «verify_bus_gkr» s196_e`, an odd depth): two children a tree, `y` one coordinate (its
-  grind of `0` bits a permutation of the two waiting), the slot of `L = 1`;
-* `rt_four` (`core% «verify_bus_gkr» s196_t`, an even depth): four children a tree, `y` two coordinates, the
-  slot of `L = 2`.
+* `rt_two` (`core% «verify_bus_gkr» s196_e`, an odd depth): two children a tree, `y` one coordinate
+  (its grind of `0` bits a permutation of the two waiting), the slot of `L = 1`;
+* `rt_four` (`core% «verify_bus_gkr» s196_t`, an even depth): four children a tree, `y` two
+  coordinates, the slot of `L = 2`.
 
 Both start from the body's combiner `σ 59`, the claim `σ 63`, the sponge's capacity after the
 combiner `σ 54 .. σ 58` and the zeros `σ 42 .. σ 45`, the cursor past the roots at `σ 5·g^2`.

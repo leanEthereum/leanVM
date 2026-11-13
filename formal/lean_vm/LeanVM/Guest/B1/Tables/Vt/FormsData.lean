@@ -3,6 +3,7 @@
 
   The guest's baked coordinate terms of every table block, per side and table: each coordinate a
   list of terms (monomial, coefficient's word), from `COORD_TERM_*` and `TERM_*`.
+  `scripts/b1c-vt/all.py` writes the data `vtBTerms*` (`regen-guest.sh`, step `vt`).
 -/
 
 module

@@ -2,8 +2,8 @@
   LeanVM.Guest.B1.Eq.RsWords
 
   `rs_eq_run`'s words, by hand (it has no words certificate: its dispatch): on `count < 64`
-  coordinates, its frame, `rs_eq_run_loop0`'s `count / 8` iterations (or `rs_eq_run_loop0`'s frame when it is
-  skipped) and the remainder's `rs_eq_rows__L{count % 8}`.
+  coordinates, its frame, `rs_eq_run_loop0`'s `count / 8` iterations (or `rs_eq_run_loop0`'s frame
+  when it is skipped) and the remainder's `rs_eq_rows__L{count % 8}`.
 -/
 
 module
@@ -20,13 +20,13 @@ public import LeanVM.Guest.Data.NameStrings
 On a valid tree of `rs_eq_run` at arguments whose count is `g^c`, `c < 64` (`TotalLeOn`): its
 body is flat (`rsBody = (rsA ++ rsT0) ++ rsD :: [copy, ret]`), so its walk's events are its
 statements' (the dispatch `rsD` names a callee: else the walk is stuck, `rs_walk_stuck`) and its
-frames are `rs_eq_run_loop0`'s and the remainder's `rs_eq_rows__L{r}` (`rs_calls`); it allocates nothing.
-Its first `43` atoms (`rsA`, events of the walk) hold, so `q_g = σ 37 = g^q`, `r_g = σ 23 = g^r`
-and `g^(8q + r) = count_g = g^c` (as in `rs_eq_run_sound`): `q = c / 8`, `r = c % 8`. With
-`rs_eq_run_loop0`'s run's words (`TotalLeOn … LoopPre`: `K6` per iteration and its one phantom frame, as
-`Count.wSKt_totalLeOn` gives it) and each `rs_eq_rows__L{r}`, `r < 8`, within `R`, `rs_totalLeOn`
-bounds the tree by `fs "rs_eq_run" + (fs "rs_eq_run_loop0" + c / 8 · K6) + R`; `rs_totalLeOn34`, for
-`c ≤ 34`, by `fs "rs_eq_run" + (fs "rs_eq_run_loop0" + 4 · K6) + R`.
+frames are `rs_eq_run_loop0`'s and the remainder's `rs_eq_rows__L{r}` (`rs_calls`); it allocates
+nothing. Its first `43` atoms (`rsA`, events of the walk) hold, so `q_g = σ 37 = g^q`, `r_g = σ 23 =
+g^r` and `g^(8q + r) = count_g = g^c` (as in `rs_eq_run_sound`): `q = c / 8`, `r = c % 8`. With
+`rs_eq_run_loop0`'s run's words (`TotalLeOn … LoopPre`: `K6` per iteration and its one phantom
+frame, as `Count.wSKt_totalLeOn` gives it) and each `rs_eq_rows__L{r}`, `r < 8`, within `R`,
+`rs_totalLeOn` bounds the tree by `fs "rs_eq_run" + (fs "rs_eq_run_loop0" + c / 8 · K6) + R`;
+`rs_totalLeOn34`, for `c ≤ 34`, by `fs "rs_eq_run" + (fs "rs_eq_run_loop0" + 4 · K6) + R`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -130,7 +130,7 @@ theorem walk_flat_stuck (σ : Val) : ∀ (pre rest : List Stmt), pre.all Stmt.fl
 /-- **The walk is stuck unless the remainder's selector names a callee.** -/
 theorem rs_walk_stuck (σ : Val) (h : ¬ ∃ j < 8, σ (.n 23) = ofK (addressOfIndex j)) :
     walk σ (Fn.body fn% «rs_eq_run») = .stuck := by
-  rw [core5_body, rsBody_split']
+  rw [rs_eq_run_body, rsBody_split']
   refine walk_flat_stuck σ _ _ (by decide +kernel) (rs_dispOk0 σ) ?_
   rw [walk, rsD, walk1, pick_stuck σ _ _ _ _ 0 fun i hi hx ↦ h ⟨i, by simpa using hi, by
     rwa [Nat.zero_add] at hx⟩]
@@ -146,7 +146,7 @@ theorem rs_allocSz : (rsA ++ rsT).filterMap Main.Stmt.allocSz = [] := rfl
 
 theorem rs_walk {σ : Val} (h : ∃ j < 8, σ (.n 23) = ofK (addressOfIndex j)) :
     walk σ (Fn.body fn% «rs_eq_run») = .ret ((rsA ++ rsT).flatMap (flEvs σ)) [.n 58] := by
-  rw [core5_body, rsBody_split]
+  rw [rs_eq_run_body, rsBody_split]
   exact walk_flat σ _ _ rs_flat (rs_dispOk h)
 
 /-- `rs_eq_run`'s frames: `rs_eq_run_loop0`'s (entered unless `q = 0`), the remainder's. -/
@@ -210,8 +210,9 @@ theorem rsA_vals {rd : Reader} {σ : Val}
 
 variable {fs : String → ℕ}
 
-/-- **`rs_eq_run` is within its words**: on a count `g^c`, `c < 64`, its frame, `rs_eq_run_loop0`'s run
-(`c / 8` iterations of at most `K6` words and its one phantom frame; its frame when skipped) and the
+/-- **`rs_eq_run` is within its words**: on a count `g^c`, `c < 64`, its frame, `rs_eq_run_loop0`'s
+run (`c / 8` iterations of at most `K6` words and its one phantom frame; its frame when skipped) and
+the
 remainder's `rs_eq_rows__L{c % 8}`, within `R`. -/
 theorem rs_totalLeOn {K6 R : ℕ}
     (h6 : TotalLeOn coreProgram fs name% «rs_eq_run_loop0» LoopPre
@@ -271,10 +272,12 @@ theorem rs_totalLeOn {K6 R : ℕ}
     have hne : rsEqRowsNames.getD r "" ≠ name% «rs_eq_run_loop0» := by interval_cases r <;> decide
     rw [ite_neg' hne]
     generalize c / 8 * K6 = X
-    have h1 : (if decide (σ (.n 43) ≠ 0) = true then fs name% «rs_eq_run_loop0» + X else fs name% «rs_eq_run_loop0») ≤
+    have h1 : (if decide (σ (.n 43) ≠ 0) = true then fs name% «rs_eq_run_loop0» + X else fs
+        name% «rs_eq_run_loop0») ≤
         fs name% «rs_eq_run_loop0» + X := by
       split <;> simp
-    generalize (if decide (σ (.n 43) ≠ 0) = true then fs name% «rs_eq_run_loop0» + X else fs name% «rs_eq_run_loop0») = Y at h1 ⊢
+    generalize (if decide (σ (.n 43) ≠ 0) = true then fs name% «rs_eq_run_loop0» + X else fs
+        name% «rs_eq_run_loop0») = Y at h1 ⊢
     generalize fs name% «rs_eq_run_loop0» + X = Z at h1 ⊢
     omega
   · simp only [rsCalls, List.zip_cons_cons, List.zip_nil_right, List.mem_cons, List.not_mem_nil, or_false,
@@ -301,7 +304,8 @@ theorem rs_totalLeOn {K6 R : ℕ}
       rw [ite_neg' hne]
       exact hR r hr rd t' _ rets' htn htv htb
 
-/-- **`rs_eq_run` on at most `34` coordinates is within `fs "rs_eq_run" + (fs "rs_eq_run_loop0" + 4 · K6) +
+/-- **`rs_eq_run` on at most `34` coordinates is within `fs "rs_eq_run" + (fs "rs_eq_run_loop0" + 4
+· K6) +
 R` words** (`rs_totalLeOn`, `c / 8 ≤ 4`). -/
 theorem rs_totalLeOn34 {K6 R : ℕ}
     (h6 : TotalLeOn coreProgram fs name% «rs_eq_run_loop0» LoopPre

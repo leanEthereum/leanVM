@@ -37,7 +37,8 @@ def l17Pre : List Stmt :=
     .atom (.load (.n 15) (.n 16) 0), .atom (.const (.n 17) (word 0 0)),
     .atom (.load (.n 17) (.n 15) 512)] ++ stepAtC 18
 
-/-- `da_verify_loop2`'s block: the region's sum zero at word `640`, its tree's root at `roots·x²`. -/
+/-- `da_verify_loop2`'s block: the region's sum zero at word `640`, its tree's root at `roots·x²`.
+-/
 def l19Pre : List Stmt :=
   [.atom (.mul (.n 4) (.n 2) (.n 0)), .atom (.load (.n 5) (.n 4) 0),
     .atom (.load (.n 6) (.n 5) 640), .atom (.const (.n 7) (word 0 0)),
@@ -54,7 +55,8 @@ def l20Pre : List Stmt :=
     .atom (.const (.n 9) (word 12830724869163462953 1721925254677230945)),
     .atom (.load (.n 9) (.n 7) 1)] ++ stepAtC 10
 
-/-- `da_verify_column_loop0`'s block: a blob's cell in column `xb`, its running sum's step and its digest at the
+/-- `da_verify_column_loop0`'s block: a blob's cell in column `xb`, its running sum's step and its
+digest at the
 blob tree's leaf. -/
 def l21Pre : List Stmt :=
   [.call "da_verify_cell" [.n 2] [.n 6, .n 7, .n 8], .atom (.mul (.n 9) (.n 3) (.n 0)),
@@ -68,10 +70,14 @@ def tailAt (f : String) (c n : ℕ) : List Stmt :=
   [.callIf (.n (c + 2)) f (.n (c + 4) :: (List.range n).map fun k => V.n (k + 1)), .ret []]
 
 set_option maxRecDepth 100000 in
-theorem dv_loops_body : Fn.body (coreProgram.getD idx% «da_verify_loop0» default) = l17Pre ++ tailAt name% «da_verify_loop0» 18 3 ∧
-    Fn.body (coreProgram.getD idx% «da_verify_loop2» default) = l19Pre ++ tailAt name% «da_verify_loop2» 12 3 ∧
-    Fn.body (coreProgram.getD idx% «da_verify_loop3» default) = l20Pre ++ tailAt name% «da_verify_loop3» 10 3 ∧
-    Fn.body (coreProgram.getD idx% «da_verify_column_loop0» default) = l21Pre ++ tailAt name% «da_verify_column_loop0» 15 5 := by
+theorem dv_loops_body : Fn.body (coreProgram.getD idx% «da_verify_loop0» default) = l17Pre ++
+    tailAt name% «da_verify_loop0» 18 3 ∧
+    Fn.body (coreProgram.getD idx% «da_verify_loop2» default) = l19Pre ++ tailAt
+        name% «da_verify_loop2» 12 3 ∧
+    Fn.body (coreProgram.getD idx% «da_verify_loop3» default) = l20Pre ++ tailAt
+        name% «da_verify_loop3» 10 3 ∧
+    Fn.body (coreProgram.getD idx% «da_verify_column_loop0» default) = l21Pre ++ tailAt
+        name% «da_verify_column_loop0» 15 5 := by
   refine ⟨stmtsEqb_sound ?_, stmtsEqb_sound ?_, stmtsEqb_sound ?_, stmtsEqb_sound ?_⟩ <;>
     decide +kernel
 
@@ -83,7 +89,8 @@ theorem dv_loops_shape :
       (coreProgram.getD idx% «da_verify_loop2» default).params.length = 4) ∧
     (loopShapeF (coreProgram.getD idx% «da_verify_loop3» default) name% «da_verify_loop3» = true ∧
       (coreProgram.getD idx% «da_verify_loop3» default).params.length = 4) ∧
-    (loopShapeF (coreProgram.getD idx% «da_verify_column_loop0» default) name% «da_verify_column_loop0» = true ∧
+    (loopShapeF (coreProgram.getD idx% «da_verify_column_loop0» default)
+        name% «da_verify_column_loop0» = true ∧
       (coreProgram.getD idx% «da_verify_column_loop0» default).params.length = 6) := by
   decide +kernel
 

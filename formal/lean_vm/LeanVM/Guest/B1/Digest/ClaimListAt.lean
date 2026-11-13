@@ -19,10 +19,10 @@ public import LeanVM.Guest.Data.NameStrings
 The body is a branch on `n = 0` between two straight runs (`cl_body`). The empty list's arm is
 atoms (`clz_core`: the evaluated valuation, its atoms holding). The nonempty list's arm
 (`cl23Else_split`) calls `list_split`, allocates the chain buffer (`13 (m + 1)` words for
-`n = 17 m + r`), stores the zero state, runs `claim_list_digest_loop0` over the groups when `m ≠ 0`, and
-dispatches on `r` to `claim_list_last__L{r}` (`cl_core`: the evaluated valuation, its atoms holding
-on a memory holding the zero state at the buffer). `chainCells`: the buffer's honest words, the
-state after each group (`claimChainMem_of_reads`).
+`n = 17 m + r`), stores the zero state, runs `claim_list_digest_loop0` over the groups when `m ≠ 0`,
+and dispatches on `r` to `claim_list_last__L{r}` (`cl_core`: the evaluated valuation, its atoms
+holding on a memory holding the zero state at the buffer). `chainCells`: the buffer's honest words,
+the state after each group (`claimChainMem_of_reads`).
 
 `claim_list_digest_completeAt`: for `n < 136 · 2^20` claims' cells at `g^eP` among the
 caller's words `Lin`, `claim_list_digest` is `CompleteAtD` returning their digest's cells.
@@ -62,7 +62,7 @@ theorem clPost_eq : clPost = [.atom (.copy (.n 10) (.n 74)), .atom (.copy (.n 11
 
 theorem cl_body : Fn.body fn% «claim_list_digest» =
     clHead ++ .ite (.n 3) cl23Zero cl23Else :: (clTail ++ [.ret [.n 76, .n 77]]) := by
-  rw [core22_shape]; rfl
+  rw [claim_list_digest_shape]; rfl
 
 set_option maxRecDepth 100000 in
 theorem clP1_straight : clP1.all Main.Stmt.straight = true := by decide +kernel
@@ -83,7 +83,8 @@ set_option maxRecDepth 100000 in
 theorem clP1_calls : clP1.filterMap Main.Stmt.callS =
     [(none, "list_split", [.n 1], [.n 12, .n 13, .n 14]),
       (some (.n 38), name% «claim_list_digest_loop0», [.n 39, .n 12, .n 23, .n 0], []),
-      (some (.n 58), name% «claim_list_digest_loop1», [.n 59, .n 13, .n 45, .n 56], [])] := by decide +kernel
+      (some (.n 58), name% «claim_list_digest_loop1», [.n 59, .n 13, .n 45, .n 56],
+          [])] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem clP1_loads : clP1.filterMap B1.Stmt.loadS = (List.range 13).map fun c => (.n 23, c) := by
@@ -404,7 +405,8 @@ theorem clNames_get {r : ℕ} (hr : r < 17) : clNames[r]! = clNames.getD r "" :=
 
 set_option maxRecDepth 100000 in
 theorem cl_pure_all : ∀ k < 17,
-    Stmt.pureList [clNames.getD k ""] (coreProgram.getD (idx% «claim_list_last__L0» + k) default).body = true := by
+    Stmt.pureList [clNames.getD k ""] (coreProgram.getD (idx% «claim_list_last__L0» + k)
+        default).body = true := by
   decide +kernel
 
 theorem cl_pure {r : ℕ} (hr : r < 17) : coreProgram.PureIn [clNames.getD r ""] :=
@@ -440,20 +442,23 @@ theorem slOk_atomS {rd : Reader} {σ : Val} {s : Stmt} (hs : isAtomS s = true)
 
 /-- `claim_list_digest`'s words that end its loops and size its buffer (`n = 136a + 17b + c`):
 the count at `v1`; when `n ≠ 0`, `list_split`'s returns at `v23`, `v24`, `v25` (the first two end
-`claim_list_digest_loop0`, `claim_list_digest_loop1`), the chain buffer's size `g^(13 (a + b + 1))` at `v33`, the loops' start
+`claim_list_digest_loop0`, `claim_list_digest_loop1`), the chain buffer's size `g^(13 (a + b + 1))`
+at `v33`, the loops' start
 `1` at `v50`, `v70`. -/
 def clQ (n : ℕ) (σ : Val) : Prop :=
   σ (.n 1) = gen ^ n ∧ (n ≠ 0 → σ (.n 12) = gen ^ (n / 136) ∧ σ (.n 13) = gen ^ (n % 136 / 17) ∧
     σ (.n 14) = gen ^ (n % 17) ∧ σ (.n 22) = gen ^ (13 * (n / 136 + n % 136 / 17 + 1)) ∧
     σ (.n 39) = 1 ∧ σ (.n 59) = 1)
 
-/-- `claim_list_digest`'s calls: none for the empty list; `list_split`, `claim_list_digest_loop0` when
+/-- `claim_list_digest`'s calls: none for the empty list; `list_split`, `claim_list_digest_loop0`
+when
 `n / 136 ≠ 0`, `claim_list_digest_loop1` when `n % 136 / 17 ≠ 0`, `claim_list_last__L{n % 17}`. -/
 def clCalls (n : ℕ) (_ : Val) : List Call :=
   if n = 0 then [] else
     [⟨"list_split", [.n 1], [.n 12, .n 13, .n 14], true⟩,
       ⟨name% «claim_list_digest_loop0», [.n 39, .n 12, .n 23, .n 0], [], decide (n / 136 ≠ 0)⟩,
-      ⟨name% «claim_list_digest_loop1», [.n 59, .n 13, .n 45, .n 56], [], decide (n % 136 / 17 ≠ 0)⟩,
+      ⟨name% «claim_list_digest_loop1», [.n 59, .n 13, .n 45, .n 56], [],
+          decide (n % 136 / 17 ≠ 0)⟩,
       ⟨clNames[n % 17]!, [.n 65, .n 73], [.n 74, .n 75], true⟩]
 
 /-- The claim list's `HeapBuf`: the chain buffer (none for the empty list). -/
@@ -581,8 +586,10 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
     -- the callees
     let ks : List Kid :=
       [⟨"list_split", true, [gen ^ n], [], Returns [gen ^ a, gen ^ b, gen ^ r]⟩,
-        ⟨name% «claim_list_digest_loop0», decide (a ≠ 0), [1, gen ^ a, chain, gen ^ eP], Lin ++ Own, Returns []⟩,
-        ⟨name% «claim_list_digest_loop1», decide (b ≠ 0), [1, gen ^ b, chain * gen ^ (13 * a), gen ^ eP * gen ^ (544 * a)],
+        ⟨name% «claim_list_digest_loop0», decide (a ≠ 0), [1, gen ^ a, chain, gen ^ eP],
+            Lin ++ Own, Returns []⟩,
+        ⟨name% «claim_list_digest_loop1», decide (b ≠ 0), [1, gen ^ b, chain * gen ^ (13 * a),
+            gen ^ eP * gen ^ (544 * a)],
           Lin ++ Own, Returns []⟩,
         ⟨clNames[r]!, true, [chain * gen ^ (13 * (a + b)), gen ^ eP * gen ^ (544 * a + 68 * b)],
           Lin ++ Own, Returns (digestCells D)⟩]

@@ -37,8 +37,10 @@ def vtCallBnd (Kf : String → ℕ) (Ksh K10n : ℕ) : Stmt → ℕ
   | .callIf _ _ _ => K10n
   | _ => 0
 
-/-- `verify_tables_loop0`'s run at `n` rounds: `n · K10` words and, when it runs, its one phantom frame. -/
-def vtRunB (fs : String → ℕ) (K10 n : ℕ) : ℕ := n * K10 + if n = 0 then 0 else fs name% «verify_tables_loop0»
+/-- `verify_tables_loop0`'s run at `n` rounds: `n · K10` words and, when it runs, its one phantom
+frame. -/
+def vtRunB (fs : String → ℕ) (K10 n : ℕ) : ℕ := n * K10 + if n = 0 then 0 else fs
+    name% «verify_tables_loop0»
 
 /-- The calls' bounds, in order. -/
 noncomputable def vtBs (Kf : String → ℕ) (Ksh K10n : ℕ) : List ℕ :=

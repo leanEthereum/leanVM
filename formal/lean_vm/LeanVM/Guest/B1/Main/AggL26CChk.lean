@@ -1,8 +1,9 @@
 /-
   LeanVM.Guest.B1.Main.AggL26CChk
 
-  `aggregate_claims_loop1` (a child's record: the power of `λ` and the running claim) and `aggregate_claims_loop2` (a child's
-  weight), evaluated (by kernel evaluation), for their completeness.
+  `aggregate_claims_loop1` (a child's record: the power of `λ` and the running claim) and
+  `aggregate_claims_loop2` (a child's weight), evaluated (by kernel evaluation), for their
+  completeness.
 -/
 
 module
@@ -23,13 +24,16 @@ def l26Stores : List Atom := [.load (.n 14) (.n 8) 2, .load (.n 21) (.n 8) 3]
 
 /-- `aggregate_claims_loop1`'s atoms but its stores. -/
 noncomputable def l26A : List Atom :=
-  (atomsIn (loopPre (coreProgram.getD idx% «aggregate_claims_loop1» default))).filter fun a => decide (a ∉ l26Stores)
+  (atomsIn (loopPre (coreProgram.getD idx% «aggregate_claims_loop1» default))).filter fun a =>
+      decide (a ∉ l26Stores)
 
 theorem mem_l26A {a : Atom} :
-    a ∈ l26A ↔ a ∈ atomsIn (loopPre (coreProgram.getD idx% «aggregate_claims_loop1» default)) ∧ a ∉ l26Stores := by
+    a ∈ l26A ↔ a ∈ atomsIn (loopPre (coreProgram.getD idx% «aggregate_claims_loop1» default)) ∧ a ∉
+        l26Stores := by
   simp [l26A]
 
-/-- A load of `aggregate_claims_loop1`: the record's two words, the pointers to the child's claims, their
+/-- A load of `aggregate_claims_loop1`: the record's two words, the pointers to the child's claims,
+their
 values. -/
 def isL26Load : Atom → Bool
   | .load _ p o => (decide (p = .n 8) && decide (o < 2)) ||
@@ -38,10 +42,12 @@ def isL26Load : Atom → Bool
   | _ => false
 
 set_option maxRecDepth 100000 in
-theorem l26_stores : storesOf 7 (coreProgram.getD idx% «aggregate_claims_loop1» default).body = l26Stores := by
+theorem l26_stores : storesOf 7 (coreProgram.getD idx% «aggregate_claims_loop1» default).body =
+    l26Stores := by
   decide +kernel
 
-/-- **`aggregate_claims_loop1`, evaluated**: its values defined in order, its atoms but its stores holding from
+/-- **`aggregate_claims_loop1`, evaluated**: its values defined in order, its atoms but its stores
+holding from
 its loads, and the facts of its block on them. -/
 noncomputable def l26COk : Bool :=
   let fn := coreProgram.getD idx% «aggregate_claims_loop1» default
@@ -59,7 +65,8 @@ noncomputable def l26COk : Bool :=
   isMul P (.n 20) (.n 9) (.n 19) && P.any (isAddAt (.n 21) (.n 15) (.n 20))
 
 set_option maxRecDepth 100000 in
-theorem l26_shape : loopShapeF (coreProgram.getD idx% «aggregate_claims_loop1» default) name% «aggregate_claims_loop1» = true ∧
+theorem l26_shape : loopShapeF (coreProgram.getD idx% «aggregate_claims_loop1» default)
+    name% «aggregate_claims_loop1» = true ∧
     (coreProgram.getD idx% «aggregate_claims_loop1» default).params.length = 7 := by decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -72,13 +79,16 @@ def l27Stores : List Atom := [.load (.n 179) (.n 180) 1]
 
 /-- `aggregate_claims_loop2`'s atoms but its store. -/
 noncomputable def l27A : List Atom :=
-  (atomsIn (loopPre (coreProgram.getD idx% «aggregate_claims_loop2» default))).filter fun a => decide (a ∉ l27Stores)
+  (atomsIn (loopPre (coreProgram.getD idx% «aggregate_claims_loop2» default))).filter fun a =>
+      decide (a ∉ l27Stores)
 
 theorem mem_l27A {a : Atom} :
-    a ∈ l27A ↔ a ∈ atomsIn (loopPre (coreProgram.getD idx% «aggregate_claims_loop2» default)) ∧ a ∉ l27Stores := by
+    a ∈ l27A ↔ a ∈ atomsIn (loopPre (coreProgram.getD idx% «aggregate_claims_loop2» default)) ∧ a ∉
+        l27Stores := by
   simp [l27A]
 
-/-- A load of `aggregate_claims_loop2`: the pointers to the child's claims, the record's power, the weight,
+/-- A load of `aggregate_claims_loop2`: the pointers to the child's claims, the record's power, the
+weight,
 and coordinate `o < 23` of the claims' points and of `bc_point1`. -/
 def isL27Load : Atom → Bool
   | .load _ p o => (decide (p = .n 8) && decide (o = 0)) || (decide (p = .n 10) && decide (o = 0)) ||
@@ -87,10 +97,12 @@ def isL27Load : Atom → Bool
   | _ => false
 
 set_option maxRecDepth 100000 in
-theorem l27_stores : storesOf 8 (coreProgram.getD idx% «aggregate_claims_loop2» default).body = l27Stores := by
+theorem l27_stores : storesOf 8 (coreProgram.getD idx% «aggregate_claims_loop2» default).body =
+    l27Stores := by
   decide +kernel
 
-/-- **`aggregate_claims_loop2`, evaluated**: its values defined in order, its atoms but its store holding from
+/-- **`aggregate_claims_loop2`, evaluated**: its values defined in order, its atoms but its store
+holding from
 its loads, and the facts of its block on them. -/
 noncomputable def l27COk : Bool :=
   let fn := coreProgram.getD idx% «aggregate_claims_loop2» default
@@ -108,7 +120,8 @@ noncomputable def l27COk : Bool :=
   P.any (isAddAt (.n 179) (.n 174) (.n 178)) && isMul P (.n 180) (.n 6) (.n 0)
 
 set_option maxRecDepth 100000 in
-theorem l27_shape : loopShapeF (coreProgram.getD idx% «aggregate_claims_loop2» default) name% «aggregate_claims_loop2» = true ∧
+theorem l27_shape : loopShapeF (coreProgram.getD idx% «aggregate_claims_loop2» default)
+    name% «aggregate_claims_loop2» = true ∧
     (coreProgram.getD idx% «aggregate_claims_loop2» default).params.length = 8 := by decide +kernel
 
 set_option maxRecDepth 100000 in

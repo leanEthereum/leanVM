@@ -1,7 +1,8 @@
 /-
   LeanVM.Guest.B1.Da.ColumnDefs
 
-  The checks of `da_verify_column`'s body and of its blob loop `da_verify_column_loop0` (G:4562-4576).
+  The checks of `da_verify_column`'s body and of its blob loop `da_verify_column_loop0`
+  (G:4562-4576).
 -/
 
 module
@@ -60,10 +61,12 @@ def CellStepW (C : CallRel) (rd : Reader) (σr : Val) (lv rowbase xb xb2 x : E) 
       LoadHolds rd (base * xb) 513 (a + σr (.n 8)) ∧ LoadHolds rd (base * xb2) 0 (σr (.n 6)) ∧
       LoadHolds rd (base * xb2) 1 (σr (.n 7))
 
-/-- The valuation of blob `i`'s iteration of `da_verify_column_loop0` in the column called with `cargs`
+/-- The valuation of blob `i`'s iteration of `da_verify_column_loop0` in the column called with
+`cargs`
 (`[g^h, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets]`), at the frame map `Vm`. -/
 def colRowV (Vm : FrameMap) (cargs : List E) (i : ℕ) : Val :=
-  Vm name% «da_verify_column_loop0» [gen ^ i, cargs.getD 1 0, Vm "da_verify_column" cargs [] (.n 13), cargs.getD 2 0,
+  Vm name% «da_verify_column_loop0» [gen ^ i, cargs.getD 1 0,
+      Vm "da_verify_column" cargs [] (.n 13), cargs.getD 2 0,
     cargs.getD 0 0, Vm "da_verify_column" cargs [] (.n 14)] []
 
 /-- The symbols of blob `i`'s cell in the column called with `cargs`: its cell check's. -/

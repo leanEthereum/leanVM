@@ -5,17 +5,22 @@
   has at most `2^37 + 9` bytes, so every query costs at most `2^30` permutation calls.
 -/
 
-import LeanVM.Protocol.Verifier.WhirTarget
-import LeanVM.Protocol.Verifier.Claims
-import LeanVM.Protocol.LeanVM
-import Statement.LeanVm
-import Common.Transfer
-import LeanVM.Facts.Verifier
-import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
-import Common.Prob
-import LeanVM.Protocol.WithHash
+module
+
+public import LeanVM.Protocol.Verifier.WhirTarget
+public import LeanVM.Protocol.Verifier.Claims
+public import LeanVM.Protocol.LeanVM
+public import Statement.LeanVm
+public import Common.Transfer
+public import LeanVM.Facts.Verifier
+public import Statement.Fast.Keccak
+public import Statement.Fast.QuadExt
+public import Statement.Fast.FieldWords
+public import Common.Prob
+public import LeanVM.Protocol.WithHash
+public import Common.ByteArray
+
+@[expose] public section
 
 /-!
 # The permutation calls of the verifier and the honest prover
@@ -92,7 +97,7 @@ theorem allQ_queryH₀ {x : Bytes} (hx : x.length ≤ 2 ^ 37) : AllQueriesSatisf
   allQ_queryH (hx.trans (Nat.le_add_right _ _))
 
 theorem allQ_pure {α : Type} (a : α) : AllQueriesSatisfy (pure a : OracleComp KeccakCalls α) Short :=
-  trivial
+  allQueriesSatisfy_pure _ _
 
 theorem flatMap_kBytes_length (l : List K) : (l.flatMap K.toBytes).length = 8 * l.length := by
   induction l with
@@ -325,7 +330,7 @@ theorem allQ_absorbNonce (sp : Sponge) (n : E) :
 
 theorem allQ_climb : ∀ (node : Digest) (q : ℕ) (ss : List Digest),
     AllQueriesSatisfy (climbWithHash callKeccak256 node q ss) Short
-  | _, _, [] => trivial
+  | _, _, [] => allQueriesSatisfy_pure _ _
   | node, q, s :: ss => by
     simp only [climbWithHash]
     split <;>
@@ -337,23 +342,23 @@ theorem allQ_openOne (root : Digest) (height width q : ℕ) (o : Opening)
   split
   · rename_i h
     refine allQueriesSatisfy_bind (allQ_queryH ?_) fun _ ↦
-      allQueriesSatisfy_bind (allQ_climb _ _ _) fun _ ↦ trivial
+      allQueriesSatisfy_bind (allQ_climb _ _ _) fun _ ↦ allQueriesSatisfy_pure _ _
     rw [flatMap_kBytes_length, h.1]
     unfold maxWidth at hw
     omega
-  · trivial
+  · exact allQueriesSatisfy_pure _ _
 
 theorem allQ_openAll (root : Digest) (height width : ℕ) (hw : width ≤ maxWidth) :
     ∀ (ps : List ℕ) (os : List Opening),
       AllQueriesSatisfy (openAllWithHash callKeccak256 root height width ps os) Short
-  | [], _ => trivial
-  | _ :: _, [] => trivial
+  | [], _ => allQueriesSatisfy_pure _ _
+  | _ :: _, [] => allQueriesSatisfy_pure _ _
   | q :: qs, o :: os => by
     simp only [openAllWithHash]
     refine allQueriesSatisfy_bind (allQ_openOne _ _ _ _ _ hw) fun b ↦ ?_
     split
-    · exact allQueriesSatisfy_bind (allQ_openAll root height width hw qs os) fun _ ↦ trivial
-    · trivial
+    · exact allQueriesSatisfy_bind (allQ_openAll root height width hw qs os) fun _ ↦ allQueriesSatisfy_pure _ _
+    · exact allQueriesSatisfy_pure _ _
 
 theorem allQ_openPhase (root : Digest) (height width : ℕ) (hw : width ≤ maxWidth) (ps : List ℕ)
     (phase : List Opening) :
@@ -361,19 +366,19 @@ theorem allQ_openPhase (root : Digest) (height width : ℕ) (hw : width ≤ maxW
   unfold openPhaseWithHash
   split
   · exact allQueriesSatisfy_bind (allQ_openAll root height width hw ps phase) fun _ ↦ by
-      split <;> trivial
-  · trivial
+      split <;> exact allQueriesSatisfy_pure _ _
+  · exact allQueriesSatisfy_pure _ _
 
 theorem allQ_run {α : Type} : ∀ (P : VerifierProgram α) (s : VerifierProgramState), WidthsLE
     maxWidth P →
     (∀ r ∈ s.roots, r.2.2 ≤ maxWidth) → AllQueriesSatisfy (Compile.runWithHash callKeccak256 callKeccakF1600 P s) Short
-  | .ret _, _, _, _ => trivial
-  | .fail, _, _, _ => trivial
+  | .ret _, _, _, _ => allQueriesSatisfy_pure _ _
+  | .fail, _, _, _ => allQueriesSatisfy_pure _ _
   | .read k, s, hP, hr => by
     simp only [Compile.runWithHash]
     split
     · exact allQueriesSatisfy_bind (allQ_absorb _ _ _) fun sp ↦ allQ_run _ _ (hP _) hr
-    · trivial
+    · exact allQueriesSatisfy_pure _ _
   | .sample k, s, hP, hr => by
     simp only [Compile.runWithHash]
     refine allQueriesSatisfy_bind (allQ_squeeze _) fun r ↦ ?_
@@ -386,8 +391,8 @@ theorem allQ_run {α : Type} : ∀ (P : VerifierProgram α) (s : VerifierProgram
       obtain ⟨c, sp'⟩ := r
       split
       · exact allQ_run _ _ hP hr
-      · trivial
-    · trivial
+      · exact allQueriesSatisfy_pure _ _
+    · exact allQueriesSatisfy_pure _ _
   | .commit height width k, s, hP, hr => by
     simp only [Compile.runWithHash]
     split
@@ -399,7 +404,7 @@ theorem allQ_run {α : Type} : ∀ (P : VerifierProgram α) (s : VerifierProgram
       · simp only [List.mem_singleton] at h
         subst h
         exact hP.1
-    · trivial
+    · exact allQueriesSatisfy_pure _ _
   | .query i ps k, s, hP, hr => by
     simp only [Compile.runWithHash]
     split
@@ -408,27 +413,29 @@ theorem allQ_run {α : Type} : ∀ (P : VerifierProgram α) (s : VerifierProgram
         (hr _ (List.mem_of_getElem? hi)) ps phase) fun o ↦ ?_
       split
       · exact allQ_run _ _ (hP _) hr
-      · trivial
-    · trivial
+      · exact allQueriesSatisfy_pure _ _
+    · exact allQueriesSatisfy_pure _ _
 
 theorem allQ_runProof (P : VerifierProgram Bool) (seed : KeccakState) (π : Proof) (hP : WidthsLE
     maxWidth P) :
     AllQueriesSatisfy (runProofWithHash callKeccak256 callKeccakF1600 P seed π) Short := by
   unfold runProofWithHash
   refine allQueriesSatisfy_bind (allQ_run P _ hP fun r hr ↦ by simp at hr) fun o ↦ ?_
-  split <;> trivial
+  split <;> exact allQueriesSatisfy_pure _ _
 
 theorem allQ_hsRun : ∀ (fs : List (List Digest → Bytes)) (ds : List Digest),
     (∀ f ∈ fs, ∀ ds, (f ds).length ≤ 2 ^ 37 + 9) →
       AllQueriesSatisfy (Seed.hsRun callKeccak256 fs ds) Short
-  | [], _, _ => trivial
+  | [], _, _ => allQueriesSatisfy_pure _ _
   | f :: fs, ds, h => by
     simp only [Seed.hsRun]
     exact allQueriesSatisfy_bind (allQ_queryH (h f (by simp) ds)) fun d ↦
       allQ_hsRun fs _ fun g hg ↦ h g (List.mem_cons_of_mem _ hg)
 
 /-- `TAG` is nine bytes. -/
-theorem versionTag_length : versionTag.length = 9 := by decide +kernel
+theorem versionTag_length : versionTag.length = 9 := by
+  rw [versionTag, String.length_toList_toUTF8]
+  decide
 
 theorem allQ_seedRun (prog : LeanIsaProgram) (input : PublicInput) :
     AllQueriesSatisfy ((leanVmSeed (bytecodeWords prog) (publicInputDigest input)).run callKeccak256 callKeccakF1600)
@@ -773,3 +780,5 @@ theorem isWeightBound_romHonest {prog : LeanIsaProgram} {input : PublicInput} {t
     (allQ_romHonestComp prog input _ fuel (shaped_of hw))
 
 end LeanVM.Rpm
+
+end

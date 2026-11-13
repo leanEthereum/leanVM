@@ -29,14 +29,14 @@ def codeFrom (f : CompiledFunction) (a : ℕ) : List OffsetInstruction :=
   (f.chunks.drop (a / chunkSize)).flatten.drop (a % chunkSize)
 
 /-- `execWin`, the window's code read by `codeFrom`. -/
-noncomputable def execWinC (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
+def execWinC (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
     (b : ℕ) :
     Result :=
   pass F f.entryPc f.instructionCount ((codeFrom f a).take (b - a)) a (some (Cur.init a (envOf
       env))) [] [] 0
 
 /-- `execWinS`, the window's code read by `codeFrom`. -/
-noncomputable def execWinCS (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
+def execWinCS (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
     (seeds : List ℕ) (b : ℕ) : Result :=
   pass F f.entryPc f.instructionCount ((codeFrom f a).take (b - a)) a (some (Cur.init a (envOf
       env))) (seeds.map fun t ↦ (t, envOf env)) [] 0

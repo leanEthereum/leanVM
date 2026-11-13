@@ -1,6 +1,6 @@
 """Build a Lake package's targets in one `lake build`, its modules admitted by memory.
 
-  python3 -I lake-build.py DIR [TARGET ...] [--jobs N] [--mem GB] [--cap GB] [--no-scope] [--seed] [--dev] [--keep-going]
+  python3 -I lake-build.py DIR [TARGET ...] [--jobs N] [--mem GB] [--cap GB] [--no-scope] [--seed] [--dev [--dev-kernel ties|all|none]] [--keep-going]
 
 Lake has no job limit, and a parallel build of lean_vm's generated kernel-checked families runs more of them at once than
 a machine holds. Lake still decides what is built, with which options, and writes every trace: it runs `lean` and
@@ -18,7 +18,7 @@ peak RSS and peak anonymous memory, over `DIR/lake-build.tsv` (the heavy modules
 rewrites); an unknown module is taken at 2 GB.
 
 The run is a systemd scope capped at `--cap` (default: the machine's memory less 1 GB, without `OOMPolicy=stop`): a
-module killed by the kernel there is run again, alone; one that crashes, or runs past a multiple of its recorded
+module killed by the kernel there, or whose allocation fails (`std::bad_alloc`), is run again, alone; one that crashes, or runs past a multiple of its recorded
 time (`HANG_FACTOR`), is run again (`RETRIES`). After the first module that fails nothing more is admitted
 and the run fails (with `--keep-going`, every module that does not import a failed one is still built, so one run
 lists every failure, as when adapting the proofs to a spec change); otherwise `lake build --no-build` must find the targets up to date, and a plain `lake build` of
@@ -27,8 +27,11 @@ them, which replays the warnings, ends the run.
 `--dev` is for development only, never for a gate or CI: it builds from `DIR/.lake/lakefile.dev.toml`, written from
 `DIR/lakefile.toml` with `buildDir = ".lake/build-dev"` and `debug.skipKernelTC` set on the package's libraries other
 than its test driver. Elaboration still runs (tactics, `simp`, `omega`, the elaborator's `decide`, warnings as
-errors), but the kernel checks nothing: a false `decide +kernel` is accepted, and `#print axioms` does not show it.
-The option is in Lake's traces and the build directory is separate, so a dev `.olean` never satisfies the real build.
+errors), and the kernel checks only the modules `--dev-kernel` names (`kernel_modules`): by default those that
+equate a guest function's body with its template (`stmtsEqb`), so a stale template fails here as in the real build;
+`all`, every module with a `decide +kernel` but the guest's certificates (budgets and tables too, slower);
+`none`, nothing, so that a false `decide +kernel` is accepted. `#print axioms` shows none of it. The option is
+in Lake's traces and the build directory is separate, so a dev `.olean` never satisfies the real build.
 """
 
 from __future__ import annotations
@@ -88,7 +91,16 @@ def wrap(tool: str, args: list[str]) -> None:
     if setup is None:  # `lean --githash` and the like
         os.execve(real, [real, *args], env)
     with open(setup, encoding="utf-8") as file:
-        name = json.load(file)["name"] + ("" if tool == "lean" else f":{tool}")
+        config = json.load(file)
+    name = config["name"] + ("" if tool == "lean" else f":{tool}")
+    kernel = os.environ.get("LAKE_BUILD_KERNEL")
+    if tool == "lean" and kernel and config.get("options", {}).get("debug.skipKernelTC") and \
+            config["name"] in Path(kernel).read_text(encoding="utf-8").split():
+        # `--dev`: a module `--dev-kernel` names (`kernel_modules`), checked by the kernel all the same.
+        del config["options"]["debug.skipKernelTC"]
+        checked = Path(kernel).parent / (config["name"] + ".setup.json")
+        checked.write_text(json.dumps(config), encoding="utf-8")
+        args = [str(checked) if a == setup else a for a in args]
     with socket.socket(socket.AF_UNIX) as conn:
         conn.connect(os.environ["LAKE_BUILD_SOCK"])
         stream = conn.makefile("rw", encoding="utf-8")
@@ -110,7 +122,7 @@ def wrap(tool: str, args: list[str]) -> None:
                 _, status, usage = os.wait4(child.pid, 0)
                 child.returncode = code = os.waitstatus_to_exitcode(status)
                 say(f"done {code} {time.monotonic() - start:.3f} {usage.ru_utime + usage.ru_stime:.3f} {usage.ru_maxrss}")
-                if code == -signal.SIGKILL and not alone:  # most likely the scope's memory cap: once more, alone
+                if not alone and (code == -signal.SIGKILL or out_of_memory(code, err)):  # once more, alone
                     alone = True
                     continue
                 if code in (-signal.SIGTERM, -signal.SIGSEGV) and attempt < RETRIES:  # the watchdog, or a crash
@@ -121,6 +133,14 @@ def wrap(tool: str, args: list[str]) -> None:
                     shutil.copyfileobj(source, sink)
                     sink.flush()
             sys.exit(code if code >= 0 else 128 - code)
+
+
+def out_of_memory(code: int, err) -> bool:
+    """Whether a module stopped because an allocation failed (the scope's memory cap, or `ulimit -v`)."""
+    if code != -signal.SIGABRT:
+        return False
+    err.seek(0)
+    return b"std::bad_alloc" in err.read()
 
 
 # The estimates and the priorities.
@@ -336,7 +356,7 @@ class Scheduler:
             if code == 0:
                 self.done += 1
                 self.table[run.name] = [wall, cpu, maxrss / 1024, max(run.peak, run.anon) / MB]
-            elif code == -signal.SIGKILL and not run.alone or code in (-signal.SIGTERM, -signal.SIGSEGV):
+            elif code in (-signal.SIGKILL, -signal.SIGABRT) and not run.alone or code in (-signal.SIGTERM, -signal.SIGSEGV):
                 self.killed.append(run.name)  # run again by its wrapper, which fails the build if it gives up
             else:
                 self.failed.append(run.name)
@@ -431,6 +451,28 @@ def fake_sysroot(real: Path, into: Path) -> None:
             target.symlink_to(entry)
 
 
+# The modules the kernel still checks under `--dev`. `ties` (the default): those that equate a guest function's body
+# with its template (`stmtsEqb`), which a guest change makes stale and elaboration alone does not check. `all`: every
+# module that decides something by the kernel (budgets, tables too), but the certificates `guest-cert`, `guest-core`
+# and `guest-memory` write, the generators' exact output, left to the gate.
+KERNEL_MARKS = {"ties": "stmtsEqb", "all": "decide +kernel"}
+CERT_HEADERS = ("Generated by `lake exe guest-cert`", "Generated by `lake exe guest-core`", "Generated by `lake exe guest-memory`")
+
+
+def kernel_modules(pkg: Path, which: str) -> list[str]:
+    """The modules of `pkg` the kernel checks under `--dev-kernel which`, by name."""
+    names = []
+    for path in sorted(pkg.rglob("*.lean")):
+        rel = path.relative_to(pkg)
+        if rel.parts[0] in (".lake", "scripts"):
+            continue
+        text = path.read_text(encoding="utf-8")
+        if KERNEL_MARKS[which] in text and not any(h in text[:600] for h in CERT_HEADERS):
+            parts = rel.with_suffix("").parts
+            names.append(".".join(parts[1:] if parts[0] in ("tests", "cli") else parts))
+    return names
+
+
 def dev_config(pkg: Path) -> Path:
     """`DIR/.lake/lakefile.dev.toml`: `DIR/lakefile.toml` with its own build directory and the kernel skipped on the
     libraries other than the test driver."""
@@ -470,7 +512,11 @@ def main() -> None:
     parser.add_argument("--cap", type=float, help="the scope's memory cap in GB (default: the machine's less 1)")
     parser.add_argument("--no-scope", action="store_true", help="no systemd scope")
     parser.add_argument("--seed", action="store_true", help=f"rewrite DIR/{TABLE} from the run's table")
-    parser.add_argument("--dev", action="store_true", help="development only: skip the kernel, in .lake/build-dev")
+    parser.add_argument("--dev", action="store_true",
+                        help="development only: skip the kernel, in .lake/build-dev, but on --dev-kernel's modules")
+    parser.add_argument("--dev-kernel", choices=("ties", "all", "none"), default="ties",
+                        help="with --dev, the modules the kernel still checks: the templates' (default), every "
+                             "`decide +kernel`, or none")
     parser.add_argument("--keep-going", action="store_true", help="after a failure, still build what does not import it")
     opts = parser.parse_args()
     if opts.dev and opts.seed:
@@ -505,6 +551,11 @@ def main() -> None:
             "LAKE_OVERRIDE_LEAN": "true",
             "LEAN_NUM_THREADS": str(4 * opts.jobs),  # Lake's pool: the modules waiting for admission, and Lake's own work
         }
+        if opts.dev and opts.dev_kernel != "none":
+            (work / "kernel").mkdir()
+            (work / "kernel" / "modules.txt").write_text("\n".join(kernel_modules(pkg, opts.dev_kernel)) + "\n",
+                                                         encoding="utf-8")
+            env["LAKE_BUILD_KERNEL"] = str(work / "kernel" / "modules.txt")
         log(f"{pkg.name}: {opts.jobs} at once within {budget / GB:.1f} GB, {len(table)} modules' records")
         start, ticks = time.monotonic(), cpu_ticks()
         code = subprocess.run([*lake, "build", "-q", *opts.targets], cwd=pkg, env=env, check=False).returncode

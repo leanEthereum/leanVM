@@ -31,10 +31,13 @@ theorem l20_ok : l20Ok (coreProgram.getD idx% «da_verify_loop3» default) = tru
 
 set_option maxRecDepth 100000 in
 theorem dv_loops_idx : coreProgram.indexOf? name% «da_verify_loop0» = some idx% «da_verify_loop0» ∧
-    coreProgram.indexOf? name% «da_verify_loop1» = some idx% «da_verify_loop1» ∧ coreProgram.indexOf? name% «da_verify_loop2» = some idx% «da_verify_loop2» ∧
+    coreProgram.indexOf? name% «da_verify_loop1» = some idx% «da_verify_loop1» ∧
+        coreProgram.indexOf? name% «da_verify_loop2» = some idx% «da_verify_loop2» ∧
     coreProgram.indexOf? name% «da_verify_loop3» = some idx% «da_verify_loop3» :=
-  ⟨coreProgram_indexOf?_at (j := idx% «da_verify_loop0») rfl, coreProgram_indexOf?_at (j := idx% «da_verify_loop1») rfl,
-    coreProgram_indexOf?_at (j := idx% «da_verify_loop2») rfl, coreProgram_indexOf?_at (j := idx% «da_verify_loop3») rfl⟩
+  ⟨coreProgram_indexOf?_at (j := idx% «da_verify_loop0») rfl,
+      coreProgram_indexOf?_at (j := idx% «da_verify_loop1») rfl,
+    coreProgram_indexOf?_at (j := idx% «da_verify_loop2») rfl,
+        coreProgram_indexOf?_at (j := idx% «da_verify_loop3») rfl⟩
 
 end
 end LeanVM.Guest.B1.Da

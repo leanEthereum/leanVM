@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop7Complete
 
-  `verify_bus_gkr_loop0` is complete: an iteration holds on its honest valuation when the memory holds its
-  slot, its step's words, its round records and the next slot; iterations at every `g^j`,
+  `verify_bus_gkr_loop0` is complete: an iteration holds on its honest valuation when the memory
+  holds its slot, its step's words, its round records and the next slot; iterations at every `g^j`,
   `j < m`, give the loop.
 -/
 
@@ -62,9 +62,11 @@ theorem ly_iter {rd : Reader} {N layers tabs rounds claim gmu kmn : E} {j sh : �
       (D.st' s st 2) (row * gen ^ 40) (pos * gen ^ (2 * j + 2 - sh + 1))
       (gen ^ ((j + 2 - sh) / 4)) (gen ^ ((j + 2 - sh) % 4)))
     (hnext : gen ^ j * gen + N ≠ 0 →
-      coreProgram.Rel rd name% «verify_bus_gkr_loop0» (lyArgs (gen ^ j * gen) N sh layers tabs rounds claim gmu kmn)
+      coreProgram.Rel rd name% «verify_bus_gkr_loop0» (lyArgs (gen ^ j * gen) N sh layers tabs
+          rounds claim gmu kmn)
         []) :
-    coreProgram.Rel rd name% «verify_bus_gkr_loop0» (lyArgs (gen ^ j) N sh layers tabs rounds claim gmu kmn) [] := by
+    coreProgram.Rel rd name% «verify_bus_gkr_loop0» (lyArgs (gen ^ j) N sh layers tabs rounds claim
+        gmu kmn) [] := by
   obtain ⟨fn, hf, hp, hb⟩ := lyFound
   obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp ly_chk
   set args : List E := lyArgs (gen ^ j) N sh layers tabs rounds claim gmu kmn with hargs
@@ -251,12 +253,14 @@ def LyIter (rd : Reader) (layers rounds : E) (sh j : ℕ) : Prop :=
       (row * gen ^ 40) (pos * gen ^ (2 * j + 2 - sh + 1)) (gen ^ ((j + 2 - sh) / 4))
       (gen ^ ((j + 2 - sh) % 4))
 
-/-- **`verify_bus_gkr_loop0`, completely**: an iteration's words at every `j < m` give the loop from `1` below
+/-- **`verify_bus_gkr_loop0`, completely**: an iteration's words at every `j < m` give the loop from
+`1` below
 `g^m`. -/
 theorem ly_complete {rd : Reader} {layers tabs rounds claim gmu kmn : E} {sh m : ℕ} (hm : 0 < m)
     (hmb : m < 2 ^ 30) (hsh2 : sh < 2) (hkmn : KModNext rd kmn)
     (hit : ∀ j < m, LyIter rd layers rounds sh j) :
-    coreProgram.Rel rd name% «verify_bus_gkr_loop0» (lyArgs 1 (gen ^ m) sh layers tabs rounds claim gmu kmn) [] := by
+    coreProgram.Rel rd name% «verify_bus_gkr_loop0» (lyArgs 1 (gen ^ m) sh layers tabs rounds claim
+        gmu kmn) [] := by
   have key : ∀ t, t < m → coreProgram.Rel rd name% «verify_bus_gkr_loop0»
       (lyArgs (gen ^ (m - 1 - t)) (gen ^ m) sh layers tabs rounds claim gmu kmn) [] := by
     intro t

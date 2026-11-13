@@ -15,6 +15,9 @@ for f in sorted(glob.glob(D + 'Core*.lean')):
         fns[m.group(2)] = int(m.group(1))
     for m in re.finditer(r'^namespace (core\d+)\n(.*?)^end \1$', t, re.M | re.S):
         bodies[m.group(1)] = m.group(2)
+# Each compiled name's stable name (`Data/NameStrings.lean`, `guest-core`): a loop's is its caller's and its rank.
+stable = {c: s for s, c in re.findall(r'^abbrev «([^»]+)» : String := "([^"]+)"$',
+                                     open(D + 'NameStrings.lean').read(), re.M)}
 
 def oq_specs():
     out = []

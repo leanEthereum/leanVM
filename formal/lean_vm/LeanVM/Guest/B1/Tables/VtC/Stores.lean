@@ -2,6 +2,8 @@
   LeanVM.Guest.B1.Tables.VtC.Stores
 
   The stores of `verify_tables`' evaluation list (generated: scripts/b1c-vt/genstores.py).
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

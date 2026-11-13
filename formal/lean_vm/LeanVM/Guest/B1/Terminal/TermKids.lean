@@ -205,7 +205,8 @@ theorem termKids_length (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
 theorem eqc_pure : coreProgram.PureIn ("eq_prefix_chain" :: eqPrefixRunNames) :=
   Tables.pureIn_of_pureInB (by decide +kernel)
 
-theorem l15_pure : coreProgram.PureIn [name% «check_opening_terminal_loop0»] := Tables.pureIn_of_pureInB (by decide +kernel)
+theorem l15_pure : coreProgram.PureIn [name% «check_opening_terminal_loop0»] :=
+  Tables.pureIn_of_pureInB (by decide +kernel)
 
 theorem low_rc {κ : ℕ} (hκ : 6 ≤ κ) {rd : Reader} (hl : LowDef κ rd) {n : ℕ} (hn : n ≤ 40) :
     RangeChecked rd (gen ^ n) (gen ^ 40) := by

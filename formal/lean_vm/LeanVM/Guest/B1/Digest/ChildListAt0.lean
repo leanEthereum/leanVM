@@ -17,8 +17,9 @@ public import LeanVM.Guest.Data.NameStrings
 # The walk by hinted indices, the parts
 
 * The path: `child_claim_list_any`'s body is flat (G:4395-4415): a straight run `anyP1` (the chain
-  buffer's `HeapBuf`, the zero state, `child_claim_list_any_loop0` over the big frames, `child_claim_list_any_loop1` over the groups),
-  the dispatch on the rest, two copies, the `ret` (`anyFlat_split`).
+  buffer's `HeapBuf`, the zero state, `child_claim_list_any_loop0` over the big frames,
+  `child_claim_list_any_loop1` over the groups), the dispatch on the rest, two copies, the `ret`
+  (`anyFlat_split`).
 * `anyCOk`: the body evaluated in order (`Fwd.ev`), its stores the zero state's thirteen words,
   its only side condition beyond them the division `last = limit / g`.
 * `anyBody_core`: on a memory holding the zero state at the chain buffer, the evaluated valuation
@@ -44,10 +45,12 @@ open LeanVM.Guest.B1.Da (relAtIn_atoms)
 /-! ## The path -/
 
 /-- `child_claim_list_any_loop0`'s call: the big frames. -/
-def any17S : Stmt := .callIf (.n 32) name% «child_claim_list_any_loop0» [.n 33, .n 4, .n 17, .n 0, .n 1, .n 2, .n 8]
+def any17S : Stmt := .callIf (.n 32) name% «child_claim_list_any_loop0» [.n 33, .n 4, .n 17, .n 0,
+    .n 1, .n 2, .n 8]
 
 /-- `child_claim_list_any_loop1`'s call: the groups. -/
-def any18S : Stmt := .callIf (.n 50) name% «child_claim_list_any_loop1» [.n 51, .n 5, .n 39, .n 0, .n 1, .n 48, .n 8]
+def any18S : Stmt := .callIf (.n 50) name% «child_claim_list_any_loop1» [.n 51, .n 5, .n 39, .n 0,
+    .n 1, .n 48, .n 8]
 
 /-- The dispatch on the rest. -/
 def anyDispS : Stmt := .dispatch (.n 6) cclNames [.n 57, .n 0, .n 1, .n 63, .n 8] [.n 64, .n 65]
@@ -80,8 +83,10 @@ theorem anyP1_addrs : anyP1.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem anyP1_calls : anyP1.filterMap Main.Stmt.callS =
-    [(some (.n 32), name% «child_claim_list_any_loop0», [.n 33, .n 4, .n 17, .n 0, .n 1, .n 2, .n 8], []),
-      (some (.n 50), name% «child_claim_list_any_loop1», [.n 51, .n 5, .n 39, .n 0, .n 1, .n 48, .n 8], [])] := by
+    [(some (.n 32), name% «child_claim_list_any_loop0», [.n 33, .n 4, .n 17, .n 0, .n 1, .n 2,
+        .n 8], []),
+      (some (.n 50), name% «child_claim_list_any_loop1», [.n 51, .n 5, .n 39, .n 0, .n 1, .n 48,
+          .n 8], [])] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -101,7 +106,7 @@ theorem any_param (σ : Val) : (Fn.params fn% «child_claim_list_any»).map σ =
 
 theorem any_body : Fn.body fn% «child_claim_list_any» =
     anyP1 ++ anyDispS :: (anyPost ++ [.ret [.n 66, .n 67]]) := by
-  rw [core25_shape, anyFlat_split]; simp
+  rw [child_claim_list_any_shape, anyFlat_split]; simp
 
 theorem cclNames_get {r : ℕ} (hr : r < 17) : cclNames[r]! = cclNames.getD r "" := by
   have h : r < cclNames.length := by simp [cclNames]; omega

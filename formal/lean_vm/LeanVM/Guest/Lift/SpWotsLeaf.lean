@@ -30,7 +30,8 @@ theorem spWotsLeaf_60 : Stmt.leafOkList noLoad (((fn% «sp_wots»).body.drop 60)
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem spWotsLeaf_110 : Stmt.leafOkList noLoad (((fn% «sp_wots»).body.drop 110).take 100) = true := by
+theorem spWotsLeaf_110 : Stmt.leafOkList noLoad (((fn% «sp_wots»).body.drop 110).take 100) = true
+    := by
   decide +kernel
 
 set_option maxRecDepth 100000 in

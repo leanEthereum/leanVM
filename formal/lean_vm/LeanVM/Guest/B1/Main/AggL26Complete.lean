@@ -1,7 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.AggL26Complete
 
-  `aggregate_claims_loop1` (a child's lambdas) and `aggregate_claims_loop2` (a child's weight), completely.
+  `aggregate_claims_loop1` (a child's lambdas) and `aggregate_claims_loop2` (a child's weight),
+  completely.
 -/
 
 module
@@ -11,14 +12,14 @@ public import LeanVM.Guest.B1.Main.AggL26CChk
 /-!
 # A child's record and weight, completely
 
-`l26_block`: `aggregate_claims_loop1`'s block at the child `x` holds on the evaluated valuation (`Fwd.ev`) when
-its record (`chain·x^2`) holds a power of `λ` and a running claim, the next record the power times
-`λ²` and the claim on, and the pointer tables the child's claims' values. Its atoms but its
-stores hold (their side conditions its loads), which its stores find.
+`l26_block`: `aggregate_claims_loop1`'s block at the child `x` holds on the evaluated valuation
+(`Fwd.ev`) when its record (`chain·x^2`) holds a power of `λ` and a running claim, the next record
+the power times `λ²` and the claim on, and the pointer tables the child's claims' values. Its atoms
+but its stores hold (their side conditions its loads), which its stores find.
 
-`l27_block`: `aggregate_claims_loop2`'s block at `x` holds when the pointer tables point to the claims' points,
-`pt1` holds `bc_point1` (`r1`, the point `1 + r1`), the record the power of `λ`, and the weights' table at `x` the
-weight and the weight on.
+`l27_block`: `aggregate_claims_loop2`'s block at `x` holds when the pointer tables point to the
+claims' points, `pt1` holds `bc_point1` (`r1`, the point `1 + r1`), the record the power of `λ`, and
+the weights' table at `x` the weight and the weight on.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -38,7 +39,8 @@ theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
     (hnext : ReadsAt rd (chainT * x ^ 2 * gen ^ 2) [pw * lamSq, acc + pw * (fv + lam * cv)])
     (hlf : LoadHolds rd (lfT * x) 0 pf) (hlc : LoadHolds rd (lcT * x) 0 pc)
     (hfv : LoadHolds rd pf 23 fv) (hcv : LoadHolds rd pc 23 cv) :
-    LoopBlock rd (coreProgram.getD idx% «aggregate_claims_loop1» default) x N [chainT, lfT, lcT, lamSq, lam] := by
+    LoopBlock rd (coreProgram.getD idx% «aggregate_claims_loop1» default) x N [chainT, lfT, lcT,
+        lamSq, lam] := by
   obtain ⟨hshape, hlen⟩ := l26_shape
   have hcok := l26c_ok
   simp only [l26COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
@@ -132,7 +134,8 @@ theorem l27_block {x N lfT lcT pt1 chainT wT lam pf pc pw wc : E} {pp pq r1 : Li
     (hpw : LoadHolds rd (chainT * x ^ 2) 0 pw) (hw : LoadHolds rd (wT * x) 0 wc)
     (hw1 : LoadHolds rd (wT * x) 1 (wc + pw * (eqEval pp (r1.map (1 + ·)) +
       lam * eqEval pq (r1.map (1 + ·))))) :
-    LoopBlock rd (coreProgram.getD idx% «aggregate_claims_loop2» default) x N [lfT, lcT, pt1, chainT, wT, lam] := by
+    LoopBlock rd (coreProgram.getD idx% «aggregate_claims_loop2» default) x N [lfT, lcT, pt1,
+        chainT, wT, lam] := by
   obtain ⟨hshape, hlen⟩ := l27_shape
   have hcok := l27c_ok
   simp only [l27COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok

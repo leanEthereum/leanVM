@@ -4,6 +4,7 @@
   The statements of the window `2685 ..< 5524` that evaluation alone does not settle, by kind:
   each evaluation's read and limb check, the permutations, and each table's weight division and
   two weight reads; the kernel checks that they and the reads of `fp_w` cover the window.
+  `scripts/b1c-vt/all.py` writes the data `vtAirD` and `vtFTags` (`regen-guest.sh`, step `vt`).
 -/
 
 module

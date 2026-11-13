@@ -766,16 +766,20 @@ theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n �
     rw [hr0, ev, gkVals_tail2]
 
 set_option maxRecDepth 100000 in
-theorem gkr_rounds_body1 : Fn.body fn% «gkr_rounds__L1» = gkBody 1 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body1 : Fn.body fn% «gkr_rounds__L1» = gkBody 1 :=
+  stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem gkr_rounds_body2 : Fn.body fn% «gkr_rounds__L2» = gkBody 2 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body2 : Fn.body fn% «gkr_rounds__L2» = gkBody 2 :=
+  stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem gkr_rounds_body4 : Fn.body fn% «gkr_rounds__L4» = gkBody 4 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body4 : Fn.body fn% «gkr_rounds__L4» = gkBody 4 :=
+  stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem gkr_rounds_body6 : Fn.body fn% «gkr_rounds__L6» = gkBody 6 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body6 : Fn.body fn% «gkr_rounds__L6» = gkBody 6 :=
+  stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- **`gkr_rounds`' core IR is its meaning**, at one, two, four and six rounds, and at none it
@@ -803,7 +807,8 @@ theorem gkr_rounds_holds : gkr_rounds_Spec := by
     · exact ⟨gk_sound 6 (by decide) (by decide) h6 rfl gkr_rounds_body6 rd args rets,
         gk_complete 6 (by decide) (by decide) h6 rfl gkr_rounds_body6 rd args rets⟩
   · rw [rel_iff_sem h0]
-    simp only [core_eq% «gkr_rounds__L0», core_eq% «gkr_rounds__L0» body, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
+    simp only [core_eq% «gkr_rounds__L0», core_eq% «gkr_rounds__L0» body, Stmt.HoldsList,
+        Stmt.Holds, Atom.Holds,
       List.map_cons, List.map_nil]
     constructor
     · rintro ⟨σ, rfl, hc, rfl⟩

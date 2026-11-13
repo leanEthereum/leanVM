@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegWinSpec
 
-  What the path windows' completeness of leanXMSS's check in `main_loop2` establishes, as a statement
-  (`LxWindowsC`): proved by `XmssSegPathC`, consumed by the layers' completeness.
+  What the path windows' completeness of leanXMSS's check in `main_loop2` establishes, as a
+  statement (`LxWindowsC`): proved by `XmssSegPathC`, consumed by the layers' completeness.
 -/
 
 module

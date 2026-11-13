@@ -7,22 +7,26 @@
   `decode`, and the guest's completeness composed with the protocol's.
 -/
 
-import LeanVM.Guest.EndFinal
-import LeanVM.Guest.Complete
-import LeanVM.Protocol.LeanVMRpm
-import Statement.LeanVmGuest
-import Statement.Corollaries
-import Common.Transfer
-import LeanXmss.Scheme
-import Statement.LeanSphincs
-import Statement.Fast.Schemes
-import LeanDa.Scheme
-import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
-import LeanVM.Facts.Verifier
-import LeanVM.Protocol.WithHash
-import LeanVM.Guest.AcceptableChild
+module
+
+public import LeanVM.Guest.EndFinal
+public import LeanVM.Guest.Complete
+public import LeanVM.Protocol.LeanVMRpm
+public import Statement.LeanVmGuest
+public import Statement.Corollaries
+public import Common.Transfer
+public import LeanXmss.Scheme
+public import Statement.LeanSphincs
+public import Statement.Fast.Schemes
+public import LeanDa.Scheme
+public import Statement.Fast.Keccak
+public import Statement.Fast.QuadExt
+public import Statement.Fast.FieldWords
+public import LeanVM.Facts.Verifier
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
+
+@[expose] public section
 
 /-!
 # The guest in the random-permutation model
@@ -190,3 +194,5 @@ theorem aggregate_complete_of {budget : NodeStatement → NodeWitness → ℕ}
   exact ⟨t, hv, fun _ _ hρ hfuel ↦ Rpm.completenessRpm hv (by omega) hρ hfuel⟩
 
 end LeanVM.Guest.End
+
+end

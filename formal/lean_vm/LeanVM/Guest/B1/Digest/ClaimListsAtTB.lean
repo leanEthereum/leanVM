@@ -16,10 +16,11 @@ public import LeanVM.Guest.B1.Digest.ClaimListAtTB
 
 `ccB fs SB n`: `child_claim_list_digest`'s words on `n = 136a + 17b + c` claims: its frame; when
 `n ≠ 0`, `list_split`'s static bound `SB "list_split"` (a hypothesis, `TotalLe`) and
-`child_claim_list_any`'s `anyB fs n` (its frame, its chain buffer `13 (a + b + 1)`, `child_claim_list_any_loop0`
-within `a + 1` frames, `child_claim_list_any_loop1` within `b + 1`, `child_claim_list_last__L{c}` a leaf within its
-frame; a loop's frame alone when not entered). `child_claim_list_digest_completeAtTB`: the placed
-completeness by a tree of honest shape within `ccB fs SB n`.
+`child_claim_list_any`'s `anyB fs n` (its frame, its chain buffer `13 (a + b + 1)`,
+`child_claim_list_any_loop0` within `a + 1` frames, `child_claim_list_any_loop1` within `b + 1`,
+`child_claim_list_last__L{c}` a leaf within its frame; a loop's frame alone when not entered).
+`child_claim_list_digest_completeAtTB`: the placed completeness by a tree of honest shape within
+`ccB fs SB n`.
 -/
 
 namespace LeanVM.Guest.B1.Digest

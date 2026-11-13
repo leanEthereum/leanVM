@@ -23,10 +23,11 @@ fold rounds' own check (`AffineCombiner.levelOK`, which it includes):
   κ_(i−1)` with `κ_(−1) = μ`; `κ + R ≤ 64`, `1 ≤ R`, `1 ≤ k ≤ 2^κ`, `k < Aend`;
 * the list each level starts on, at the level's degree `d = 2^κ − 1 + k` (every round is analysed
   at it), is defined (`n d < A₀²`) and its bound `jlStart` is `jl n A₀ d`;
-* each level's queries: `((Aend − 1)/n)^t ≤ 2^-108`, i.e. `2^-125` after the `17`-bit grind;
+* each level's queries: `((Aend − 1)/n)^t ≤ 2^-(125 − q)` (`afterGrind q`), i.e. `2^-125` after the
+  `q`-bit grind, `q = Whir.queryGrindingBits`;
 * each level with a next one: its query message, which also draws the next level's batching `λ`,
-  `((Aend − 1)/n)^t + (t + 1) L'/|E| ≤ 2^-108`, as
-  `(Aend − 1)^t 2^128 + (t + 1) L' n^t ≤ n^t 2^20` (`2^-125` after the `17`-bit grind), and the
+  `((Aend − 1)/n)^t + (t + 1) L'/|E| ≤ 2^-(125 − q)`, as
+  `(Aend − 1)^t 2^128 + (t + 1) L' n^t ≤ n^t 2^(q + 3)` (`countBits q`), and the
   next level's out-of-domain point, `C(L', 2) κ ≤ 2^18` (`2^-125` after its `15`-bit grind), with
   `1 ≤ κ`;
 * level `0`: its rate is the shape's and it folds the `2^6` lanes (`k₀ = 6`), the threshold exceeds the degree (`d₀ < A₀`),
@@ -42,6 +43,13 @@ namespace LeanVM.Protocol.Whir.Params
 open LeanVM.Parameters LeanVM.Protocol.Whir.AffineCombiner
 
 @[expose] public section
+
+/-- The error exponent a message may keep before its grind of `g` bits: `2^-securityBits` is `2^-g`
+times `2^-afterGrind g`. -/
+def afterGrind (g : ℕ) : ℕ := LeanVM.Protocol.Compile.securityBits - g
+
+/-- The bits a count over `|E| = 2^128` may take before a grind of `g` bits: `g + 128 - securityBits`. -/
+def countBits (g : ℕ) : ℕ := g + 128 - LeanVM.Protocol.Compile.securityBits
 
 /-- A level of the fold certificate: `(κ, R, k, Aend, rounds)`. -/
 abbrev Lv : Type := ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ × ℕ)
@@ -70,7 +78,7 @@ def levelChecks (κprev : ℕ) (lv : Lv) (cfg : Whir.Level) : Bool :=
   decide (κ + k = κprev) && decide (cfg.fold = k) && decide (cfg.logInvRate = R) &&
     decide (κ + R ≤ 64) && decide (1 ≤ R) && decide (1 ≤ k) && decide (k ≤ 2 ^ κ) &&
     decide (k < A) && levelOK foldBudget lv &&
-    decide ((A - 1) ^ cfg.queries * 2 ^ 108 ≤ (2 ^ (κ + R)) ^ cfg.queries) &&
+    decide ((A - 1) ^ cfg.queries * 2 ^ afterGrind Whir.queryGrindingBits ≤ (2 ^ (κ + R)) ^ cfg.queries) &&
     decide (2 ^ (κ + R) * (2 ^ κ - 1 + k) < (A - k) * (A - k))
 
 /-- The levels' checks, and between consecutive levels the query message with the next batching
@@ -81,7 +89,7 @@ def chainChecks : ℕ → List Lv → List Whir.Level → Bool
     levelChecks κprev lv cfg &&
       decide ((lv.2.2.2.1 - 1) ^ cfg.queries * 2 ^ 128 +
           (cfg.queries + 1) * jlStart lv' * (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries ≤
-        (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries * 2 ^ 20) &&
+        (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries * 2 ^ countBits Whir.queryGrindingBits) &&
       decide ((jlStart lv').choose 2 * lv.1 ≤ 2 ^ 18) && decide (1 ≤ lv.1) &&
       chainChecks lv.1 (lv' :: rest) (cfg' :: crest)
   | _, _, _ => false

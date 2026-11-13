@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Gkr.Layer
 
-  A layer of `verify_bus_gkr`'s walk past the root-most, its loop `verify_bus_gkr_loop0`: one step of two
-  levels of the specification's GKR walk, between two layer slots.
+  A layer of `verify_bus_gkr`'s walk past the root-most, its loop `verify_bus_gkr_loop0`: one step
+  of two levels of the specification's GKR walk, between two layer slots.
 -/
 
 module
@@ -13,18 +13,18 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # A layer of two levels (`verify_bus_gkr_loop0`, G:1997-2041)
 
-`verify_bus_gkr_loop0`'s body is the core IR's (`(fn% «verify_bus_gkr_loop0»).body`); its arguments are
-`[x, bound, start_g, layers, tabs, rounds, claim, odd_g, g_bus_mu, k_mod_next]`. From the layer
+`verify_bus_gkr_loop0`'s body is the core IR's (`(fn% «verify_bus_gkr_loop0»).body`); its arguments
+are `[x, bound, start_g, layers, tabs, rounds, claim, odd_g, g_bus_mu, k_mod_next]`. From the layer
 slot at `layers·x_layer^13`, `x_layer = x²·start_g`: the combiner's permutation over the slot's
 capacity, nothing waiting (a grind of `0` bits), the first round record, the rounds
-(`verify_bus_gkr_loop0_loop0`, then `gkr_rounds__L{2r}` at `r = k % 4`, then `gkr_rounds__L1` at an odd depth),
-the twelve children read, their check, the two new coordinates squeezed, and the next slot `26`
-words on.
+(`verify_bus_gkr_loop0_loop0`, then `gkr_rounds__L{2r}` at `r = k % 4`, then `gkr_rounds__L1` at an
+odd depth), the twelve children read, their check, the two new coordinates squeezed, and the next
+slot `26` words on.
 
 At `x = g^j` and `start_g = g^(2 - sh)`, `sh` the depth's parity, the slot is that of point length
 `L = 2j + 2 - sh = 2k + sh`, `k = j + 1 - sh` its radix-four index, whose `half = g^(k / 4)` and
-`parity = g^(k % 4)` count its `L` rounds: eight per `verify_bus_gkr_loop0_loop0` iteration, two per `parity` step,
-and one at an odd depth.
+`parity = g^(k % 4)` count its `L` rounds: eight per `verify_bus_gkr_loop0_loop0` iteration, two per
+`parity` step, and one at an odd depth.
 -/
 
 namespace LeanVM.Guest.B1.Tables

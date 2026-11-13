@@ -24,8 +24,8 @@ expansion numbers it (`lean_ethereum.py`):
   positions, win_ptrs)`: the cap hinted and checked to its root, the `opening_queries`
   specialization, `lam^q`;
 * `lrBody q cols nhs hbits loop1 loop2`: `level_residual(positions, row_d, hs, mu)` at `q` queries:
-  the batches' loop `loop1` (`lrLoop1Body`, eight inline `residual_query`s an iteration), then,
-  when `8 ∤ q`, the rest's loop `loop2` (`lrLoop2Body`, one an iteration).
+  the batches' loop `loop1` (`lrLoop1Body`, `resBatch` inline `residual_query`s an iteration), then,
+  when `resBatch ∤ q`, the rest's loop `loop2` (`lrLoop2Body`, one an iteration).
 
 `Whir/HelperData*.lean` check every specialization's body equal to these by kernel evaluation.
 -/
@@ -93,9 +93,9 @@ def lqBody (q base folds leaf d cd mu nhs hbits fin : ℕ) : List Stmt :=
 
 /-- `level_residual` at `q` queries over `cols` message columns, a high part of `nhs` coefficients
 and `hbits` index bits, at `positions, row_d, hs, mu` (values `0 .. 3`): the chains (`HeapBuf(g^(2
-(q/8 + 1)))` at `4, 5`) from `0, 0`, the batches' loop, then, when `8 ∤ q`, the rest's chains
-(`HeapBuf(g^(2(q%8 + 1)))`) from the batches' last values, the rest's positions
-`positions·g^(8·(q/8))`, the rest's loop; the last values returned. -/
+(q/b + 1)))` at `4, 5`, `b = resBatch`) from `0, 0`, the batches' loop, then, when `b ∤ q`, the
+rest's chains (`HeapBuf(g^(2(q%b + 1)))`) from the batches' last values, the rest's positions
+`positions·g^(b·(q/b))`, the rest's loop; the last values returned. -/
 def lrBody (q : ℕ) (loop1 loop2 : String) : List Stmt :=
   let nb := q / resBatch
   let r := q % resBatch
@@ -111,14 +111,16 @@ def lrBody (q : ℕ) (loop1 loop2 : String) : List Stmt :=
         [osLd 24 16 (2 * r), osLd 25 16 (2 * r + 1), osCp 26 24, osCp 27 25, .ret [.n 26, .n 27]]
 
 /-- `level_residual`'s batches' loop, at `x, N, positions, chain, row_d, hs, mu` (values
-`0 .. 6`), for `cols` columns and a high part of `nhs` coefficients and `hbits` bits: the batch's
-positions `positions·x^8`, `h, hh = chain[x]`, eight steps, `chain[x·g] = h, hh`, then the loop's
-tail. -/
+`0 .. 6`), for `cols` columns and a high part of `nhs` coefficients and `hbits` bits: `x^resBatch`
+(`osBatchPow`), the batch's positions `positions·x^resBatch`, `h, hh = chain[x]`, `resBatch` steps,
+`chain[x·g] = h, hh`, then the loop's tail. -/
 def lrLoop1Body (cols nhs hbits : ℕ) (name : String) : List Stmt :=
-  let st := osResSteps 10 4 0 5 0 (cols * (cols + 1) / 2) cols nhs hbits 6 (List.range resBatch) 13 14 15
-  [osMul 7 0 0, osMul 8 7 7, osMul 9 8 8, osMul 10 2 9, osMul 11 3 0, osMul 12 11 0, osLd 13 12 0,
-    osLd 14 12 1] ++ st.1 ++
-    [osLd st.2.1 12 2, osLd st.2.2.1 12 3] ++
+  let y := 7 + batchLen
+  let st := osResSteps y 4 0 5 0 (cols * (cols + 1) / 2) cols nhs hbits 6 (List.range resBatch)
+    (y + 3) (y + 4) (y + 5)
+  (osBatchPow 7).1 ++ [osMul y 2 (osBatchPow 7).2, osMul (y + 1) 3 0, osMul (y + 2) (y + 1) 0,
+    osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ++ st.1 ++
+    [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3] ++
     osLoopTail name 7 st.2.2.2
 
 /-- `level_residual`'s rest's loop, at `x, N, rest, tail, row_d, hs, mu` (values `0 .. 6`): the

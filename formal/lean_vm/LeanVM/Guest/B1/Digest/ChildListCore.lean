@@ -33,15 +33,18 @@ variable {rd : Reader}
 
 /-- `child_claim_list_last__L{k}`'s atoms. -/
 noncomputable def cclAtoms (k : ℕ) : List Atom :=
-  ((splitBody (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body).map (·.1)).getD []
+  ((splitBody (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body).map
+      (·.1)).getD []
 
 set_option maxRecDepth 100000 in
 theorem ccl_shape_all : ∀ k < 17, ((cclAtoms k).all (fun a => !Memory.atomAllocB a &&
-    (Memory.atomAddr? a).isNone) && ((coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).loop == false)) = true := by
+    (Memory.atomAddr? a).isNone) && ((coreProgram.getD (idx% «child_claim_list_last__L0» + k)
+        default).loop == false)) = true := by
   decide +kernel
 
 theorem ccl_name {k : ℕ} (hk : k < 17) :
-    coreProgram.find? (cclNames.getD k "") = some (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default) :=
+    coreProgram.find? (cclNames.getD k "") = some (coreProgram.getD
+        (idx% «child_claim_list_last__L0» + k) default) :=
   find_of_idx (ccl_idx k hk)
 
 theorem ccl_loop {k : ℕ} (hk : k < 17) : coreProgram.loop (cclNames.getD k "") = false := by
@@ -72,8 +75,10 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
     (hrec : RecMem rd region (gen ^ L) entries marks k os cells)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L) :
     ∃ (vs : List V) (σ : Val),
-      (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body = (cclAtoms k).map Stmt.atom ++ [.ret vs] ∧
-      (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).params.map σ = [sp, entries, region, marks, last] ∧
+      (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body = (cclAtoms k).map
+          Stmt.atom ++ [.ret vs] ∧
+      (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).params.map σ = [sp,
+          entries, region, marks, last] ∧
       (∀ a ∈ cclAtoms k, a.Holds rd σ) ∧
       vs.map σ = digestCells (keccak256 (pre ++ cellsBytes cells)) ∧
       ∀ q ∈ (cclAtoms k).filterMap Memory.atomLoad?,

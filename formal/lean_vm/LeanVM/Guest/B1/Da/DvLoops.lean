@@ -2,8 +2,9 @@
   LeanVM.Guest.B1.Da.DvLoops
 
   `da_verify`'s loops on its honest buffers (G:4290-4311): the regions' bases (`da_verify_loop0`), a
-  column's cells (`da_verify_column_loop0`), the blobs' trees (`da_verify_loop2`), the padding blobs' roots
-  (`da_verify_loop3`), and the tree over the blobs' roots (`da_levels` at the padded count).
+  column's cells (`da_verify_column_loop0`), the blobs' trees (`da_verify_loop2`), the padding
+  blobs' roots (`da_verify_loop3`), and the tree over the blobs' roots (`da_levels` at the padded
+  count).
 
   `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
 -/
@@ -64,13 +65,15 @@ theorem l17_rel (hr1 : 1 ≤ r) (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z
         rw [show (512 : ℕ) = 512 + 0 from rfl, regionCells_sum (by norm_num), runSum_zero]))) 0 hr1
   rwa [pow_zero] at this
 
-/-- **Column `h`'s cells** (`da_verify_column_loop0`): each blob's cell checked, its running sum's step, its
+/-- **Column `h`'s cells** (`da_verify_column_loop0`): each blob's cell checked, its running sum's
+step, its
 digest at its tree's leaf `h`, the weights read at `g^lv`. -/
 theorem l21_rel (hr1 : 1 ≤ r) {h : ℕ} (hh : h < 128) (hsl : ∀ i j, (syms i j).length = 256)
     (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z))
     (hR : ReadsAt rd (gen ^ bR) (rowbaseCells r bb)) {lv : ℕ}
     (hlv : ReadsAt rd (gen ^ lv) (colWs z h)) :
-    coreProgram.Rel rd name% «da_verify_column_loop0» [1, gen ^ r, gen ^ lv, gen ^ bR, gen ^ h, gen ^ h * gen ^ h] [] := by
+    coreProgram.Rel rd name% «da_verify_column_loop0» [1, gen ^ r, gen ^ lv, gen ^ bR, gen ^ h,
+        gen ^ h * gen ^ h] [] := by
   have := loopF_complete (rd := rd) find_l21 dv_loops_shape.2.2.2.1 (N := gen ^ r)
     (rest := [gen ^ lv, gen ^ bR, gen ^ h, gen ^ h * gen ^ h]) (m := r) rfl (fun i hi => ?_) 0 hr1
   · rwa [pow_zero] at this
@@ -109,7 +112,8 @@ theorem roots_leaf {i : ℕ} (hi : i < 2 ^ L) :
   rw [e _ (by omega), e _ (by omega), (pairCells_getD _ i).1, (pairCells_getD _ i).2]
   simp [rootLeaves, hi]
 
-/-- **The blobs' trees** (`da_verify_loop2`): each blob's sum zero after its columns, its tree's root
+/-- **The blobs' trees** (`da_verify_loop2`): each blob's sum zero after its columns, its tree's
+root
 written among the roots' leaves. -/
 theorem l19_rel (hr1 : 1 ≤ r) (hrL : r ≤ 2 ^ L) (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z))
     (hR : ReadsAt rd (gen ^ bR) (rowbaseCells r bb)) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L syms))

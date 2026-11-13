@@ -2,8 +2,8 @@
   LeanVM.Guest.B1.Sig.XmssSegT
 
   `verify_lean_xmss` (`lean_ethereum.py:3847-3919`), inline in `main`'s raw-leanXMSS loop
-  `main_loop2`, as a template: statements 9 to 321 of `main_loop2`'s body, with the values numbered as
-  the renumbered expansion numbers them.
+  `main_loop2`, as a template: statements 9 to 321 of `main_loop2`'s body, with the values numbered
+  as the renumbered expansion numbers them.
 -/
 
 module
@@ -246,7 +246,8 @@ def xSeg : List Stmt :=
   sPrologue ++ l0.1 ++ l1.1 ++
     [loadS (.n l1.2.1) sSigner 0, .atom (.assertEq l1.2.2 (.n l1.2.1))]
 
-/-- `main_loop2`'s statements before the check (`lean_ethereum.py:4546-4554`): the raw index, its range
+/-- `main_loop2`'s statements before the check (`lean_ethereum.py:4546-4554`): the raw index, its
+range
 check, the cover word, the claim's pointer `lx_table · idx^4`. -/
 def l2Pre : List Stmt :=
   [hintW "raw_index" [.n 56], cst 57 (word 9223372036854775821 0), mulS (.n 58) (.n 2) (.n 57),
@@ -260,7 +261,8 @@ def l2Post : List Stmt :=
   [cst 120764 (word 2 0), mulS (.n 120765) (.n 0) (.n 120764),
     addS (.n 120766) (.n 120765) (.n 1), cst 120767 (word 2 0),
     mulS (.n 120768) (.n 0) (.n 120767),
-    .callIf (.n 120766) name% «main_loop2» (.n 120768 :: (List.range 55).map fun j => V.n (j + 1)), .ret []]
+    .callIf (.n 120766) name% «main_loop2» (.n 120768 :: (List.range 55).map fun j => V.n (j + 1)),
+        .ret []]
 
 end
 end LeanVM.Guest.B1.Sig

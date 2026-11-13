@@ -14,9 +14,9 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # A child's block, evaluated
 
-`l5Pre`: `main_loop4`'s statements before its tail call (`l5_body`). `l5COk`: the evaluator's pattern
-(`chk`), the stores (`l5S`: the statement's digest's two cells into `child_pi_table`, the next
-running count), every side condition a load of `written[x]` or of the
+`l5Pre`: `main_loop4`'s statements before its tail call (`l5_body`). `l5COk`: the evaluator's
+pattern (`chk`), the stores (`l5S`: the statement's digest's two cells into `child_pi_table`, the
+next running count), every side condition a load of `written[x]` or of the
 child's DA digest's two hinted cells, a store, or a load through one of the child's two counts
 (`assert_gpow`).
 -/
@@ -75,15 +75,18 @@ def l5Pre : List Stmt := [
 
 /-- `main_loop4`'s tail call. -/
 def l5Tail : Stmt :=
-  .callIf (.n 53) name% «main_loop4» [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n
+  .callIf (.n 53) name% «main_loop4» [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
+      .n 10, .n
     11, .n 12, .n 13, .n 14, .n 15]
 
 set_option maxRecDepth 100000 in
-theorem l5_body : Fn.body (coreProgram.getD idx% «main_loop4» default) = l5Pre ++ [l5Tail, .ret []] :=
+theorem l5_body : Fn.body (coreProgram.getD idx% «main_loop4» default) = l5Pre ++ [l5Tail,
+    .ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem l5_params : (coreProgram.getD idx% «main_loop4» default).params = (List.range 16).map V.n := by
+theorem l5_params : (coreProgram.getD idx% «main_loop4» default).params = (List.range 16).map V.n
+    := by
   decide +kernel
 
 /-- `main_loop4`'s stores. -/

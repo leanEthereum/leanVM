@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Tables.Vt.Rounds
 
-  `verify_tables`' table sumcheck as a run: the `n` rounds of `verify_tables_loop0` from the first record are
-  the specification's plain sumcheck of `n` rounds.
+  `verify_tables`' table sumcheck as a run: the `n` rounds of `verify_tables_loop0` from the first
+  record are the specification's plain sumcheck of `n` rounds.
 -/
 
 module
@@ -29,7 +29,8 @@ open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-- **`verify_tables_loop0` from `1` below `g^n`.** -/
 theorem l10_loop {rd : Reader} {rounds tabs chi cprod : E} {n : ℕ} (hn0 : 0 < n) (hn : n < 2 ^ 62)
-    (h : coreProgram.Rel rd name% «verify_tables_loop0» [1, gen ^ n, rounds, tabs, chi, gen ^ n, cprod] []) :
+    (h : coreProgram.Rel rd name% «verify_tables_loop0» [1, gen ^ n, rounds, tabs, chi, gen ^ n,
+        cprod] []) :
     ∀ j < n, L10B rd rounds tabs chi (gen ^ n) cprod (gen ^ j) := by
   rw [← pow_zero gen] at h
   obtain ⟨m, -, hN, hall⟩ := tb_loop_sound (B := L10B rd rounds tabs chi (gen ^ n) cprod)

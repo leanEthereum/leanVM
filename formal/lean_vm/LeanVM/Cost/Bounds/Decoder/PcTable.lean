@@ -6,17 +6,17 @@ import all LeanVM.Protocol.Extraction.Fast.SortedMap
 /-!
 # Bound: the pc table, compiled
 
-`pcTableT` (`Cost/Decoder/EntryTable.lean`): the guest's `1602` functions filed at the code of
+`pcTableT` (`Cost/Decoder/EntryTable.lean`): the guest's `nFns` functions filed at the code of
 their entry pc, built once by the decoder's top. Its shape and prices:
 
-* `pcTableT_good`: a good map of word-sized keys, `1602` insertions (below `2^11`);
+* `pcTableT_good`: a good map of word-sized keys, `nFns` insertions (below `2^11`);
 * **`pcTableT_cost`**: built at most `15305468` (each insertion amortized: a power `g^e`, `e < 2^19`,
   a lookup and the carry);
 * **`pcTableT_get_cost`**: a lookup at most `7093` (`11` levels, a binary search each), the `Gpc` of
   `entryArrayT_cost` (`EntryArray.lean`);
 * **`pcTableT_getD_length`**: at most two functions at one pc (the entry pcs repeat at most twice,
   `GuestTablesBounds.lean`; `gpow` is injective below the order of `g`), the `M` of
-  `entryArrayT_cost`; **`pcTableT_getD_lt`**: every function filed is below `1602`.
+  `entryArrayT_cost`; **`pcTableT_getD_lt`**: every function filed is below `nFns`.
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -61,9 +61,9 @@ theorem pcFold_good : ∀ (l : List ℕ) (m : SortedMap ℕ (List ℕ)), smGood 
     simp only [List.length_cons]
     omega
 
-/-- **The pc table is good**: word-sized keys, `1602` insertions. -/
+/-- **The pc table is good**: word-sized keys, `nFns` insertions. -/
 theorem pcTableT_good :
-    smGood pcTableT ∧ KeysIn NatKey pcTableT.levels ∧ smWeightSum pcTableT = 1602 := by
+    smGood pcTableT ∧ KeysIn NatKey pcTableT.levels ∧ smWeightSum pcTableT = fn_count% := by
   have := pcFold_good (List.range nFns) SortedMap.empty smGood_empty
     (fun _ h ↦ by simp [SortedMap.empty] at h)
   rw [smWeightSum_empty, List.length_range] at this
@@ -95,18 +95,18 @@ theorem pcFold_getD : ∀ (l : List ℕ) (m : SortedMap ℕ (List ℕ)) (k : ℕ
       simp
     · simp [h]
 
-/-- The functions at pc code `k`: those whose entry has that code, below `1602`. -/
+/-- The functions at pc code `k`: those whose entry has that code, below `nFns`. -/
 theorem pcTableT_getD (k : ℕ) :
     pcTableT.getD k [] = ((List.range nFns).filter fun j ↦ decide (pcCode j = k)).reverse := by
   have := pcFold_getD (List.range nFns) SortedMap.empty k
   rw [SortedMap.getD_empty, List.append_nil] at this
   exact this
 
-/-- **Every function filed is below `1602`.** -/
+/-- **Every function filed is below `nFns`.** -/
 theorem pcTableT_getD_lt (k : ℕ) : ∀ j ∈ pcTableT.getD k [], j < 2 ^ 64 := by
   intro j hj
   rw [pcTableT_getD, List.mem_reverse, List.mem_filter, List.mem_range] at hj
-  have : nFns = 1602 := rfl
+  have : nFns = fn_count% := rfl
   omega
 
 theorem range_countP_getD (e : ℕ) : ∀ l : List ℕ,
@@ -199,7 +199,7 @@ set_option maxRecDepth 100000 in
 theorem pcTableT_cost (hP : Includes P pcTableTC.costDeps) :
     machineCost P pcTableTC.costIdx [] ≤ 15305468 := by
   rw [pcTableTC.costEq P hP]
-  have hn : nFns = 1602 := rfl
+  have hn : nFns = fn_count% := rfl
   have hr := rangeLoop_cost P (by includes) nFns [] (by rw [hn]; norm_num)
   obtain ⟨-, hF⟩ := listFoldl_amortized' P (by includes) _ (.closure pcTableTC.lam0.costIdx [])
     (fun m j ↦ RunsApp.of_spec (pcTableTC.lam0.costSpec P (by includes) m j))

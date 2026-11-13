@@ -14,10 +14,11 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `shared_selector_tables` is complete (TRIAGE G #48)
 
-* `shared_selector_tables_loop0`: the valuation `lpVal` gives each value of an iteration at `x = g^j` its role: the
-  powers of `x` and the pointers; the eq levels' entries of nibble `j` (`spLvV`) and the
-  coordinates and complements each level loads; the `g` table's entries (`spGV`) and the shares
-  each step loads; the next `x`. `lp_complete`: from `g^j`, `j < q`, the iterations run to `g^q`.
+* `shared_selector_tables_loop0`: the valuation `lpVal` gives each value of an iteration at `x =
+  g^j` its role: the powers of `x` and the pointers; the eq levels' entries of nibble `j` (`spLvV`)
+  and the coordinates and complements each level loads; the `g` table's entries (`spGV`) and the
+  shares each step loads; the next `x`. `lp_complete`: from `g^j`, `j < q`, the iterations run to
+  `g^q`.
 * `shared_selector_tables`: the valuation `ssVal` gives the hint's six bits of `n`, the factors,
   `g^r`, `g^q` (`n = 4q + r`), the pointers of the partial nibble; the loop runs the full nibbles
   and `sel_partial_nibble__L{r}` the partial one (`sel_partial_nibble_complete_holds`).
@@ -137,7 +138,8 @@ theorem lp_eqEntry {e : ℕ} (he : e < 30) : ∃ t i, t < 4 ∧ i < 2 ^ (t + 1) 
   · exact ⟨2, e - 6, by omega, by simp; omega, by simp; omega, by simp [nbEqV, e2, e6, e14]⟩
   exact ⟨3, e - 14, by omega, by simp; omega, by simp; omega, by simp [nbEqV, e2, e6, e14]⟩
 
-/-- **An iteration of `shared_selector_tables_loop0`** at `g^j`: its nibble's coordinates, complements and shares in
+/-- **An iteration of `shared_selector_tables_loop0`** at `g^j`: its nibble's coordinates,
+complements and shares in
 memory and their tables written, and the next iteration's relation unless `j + 1 = q`. -/
 theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
     {zs zs1 gs : List E} (hlz : 4 * q ≤ zs.length) (hlz1 : 4 * q ≤ zs1.length)
@@ -147,7 +149,8 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
       TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j)))
     (hnext : j + 1 < q → coreProgram.Rel rd name% «shared_selector_tables_loop0»
       [gen ^ (j + 1), gen ^ q, eqt, z, z1, gt, gsq] []) :
-    coreProgram.Rel rd name% «shared_selector_tables_loop0» [gen ^ j, gen ^ q, eqt, z, z1, gt, gsq] [] := by
+    coreProgram.Rel rd name% «shared_selector_tables_loop0» [gen ^ j, gen ^ q, eqt, z, z1, gt,
+        gsq] [] := by
   obtain ⟨fn, hf, hp, hb⟩ := lpFound
   set F := lpVal j (gen ^ q) eqt z z1 gt gsq zs zs1 gs with hF
   have hlen : ∀ l : List E, 4 * q ≤ l.length → (nib l j).length = 4 := fun l hl ↦ by
@@ -326,7 +329,8 @@ theorem lp_chain {rd : Reader} {eqt z z1 gt gsq : E} {q : ℕ} {zs zs1 gs : List
     (hz : TbReadsAt rd z zs) (hz1 : TbReadsAt rd z1 zs1) (hg : TbReadsAt rd gsq gs)
     (htab : ∀ j < q, TbReadsAt rd (eqt * gen ^ (32 * j)) (eqLevels (nib zs j) (nib zs1 j)) ∧
       TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j))) :
-    ∀ j < q, coreProgram.Rel rd name% «shared_selector_tables_loop0» [gen ^ j, gen ^ q, eqt, z, z1, gt, gsq] [] := by
+    ∀ j < q, coreProgram.Rel rd name% «shared_selector_tables_loop0» [gen ^ j, gen ^ q, eqt, z, z1,
+        gt, gsq] [] := by
   intro j hj
   obtain ⟨m, hm⟩ : ∃ m, q = j + 1 + m := ⟨q - j - 1, by omega⟩
   induction m generalizing j with

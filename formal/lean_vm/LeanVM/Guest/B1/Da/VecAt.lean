@@ -81,7 +81,8 @@ theorem vec_sholds {rd : Reader} (z bz r25 r27 r28 r29 : E)
     (hav : ∀ j v, j < 15 → v = 0 → LoadHolds rd (bz * gen ^ 15) j v) :
     ∀ s ∈ vecP, SHolds (fun _ _ _ => True) rd (Val.ofArgs (vecVals z bz r25 r27 r28 r29)) s := by
   intro s hs
-  simp only [vecP, core_eq% «da_vector», core_eq% «da_vector» body, List.dropLast_cons_cons, List.dropLast_singleton,
+  simp only [vecP, core_eq% «da_vector», core_eq% «da_vector» body, List.dropLast_cons_cons,
+      List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals simp only [SHolds, Atom.Holds, ofArgs_n, vecVals, List.getD_cons_succ,

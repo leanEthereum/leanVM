@@ -2,6 +2,8 @@
   LeanVM.Guest.B1.Tables.Vt.FormsT5a
 
   Table 5's blocks' values on the push side, from the guest's statements.
+
+  Do not edit: `scripts/b1c-vt/all.py` writes it (`regen-guest.sh`, step `vt`).
 -/
 
 module

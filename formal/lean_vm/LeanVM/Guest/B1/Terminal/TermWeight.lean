@@ -65,7 +65,8 @@ theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wc
     (hCsW : ∀ i, ∀ κ' < 31, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
       fun _ => Wcs i)
     {K15 Brs Beqc Bcs : ℕ}
-    (h15W : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = name% «check_opening_terminal_loop0» →
+    (h15W : ∀ i (rd : Reader) (t : Tree) (args rets : List E),
+        t.name = name% «check_opening_terminal_loop0» →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       t.total fs ≤ (32 * K15 + fs name% «check_opening_terminal_loop0») → t.weight (ω i) ≤ W15 i)
     (hrswW : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
@@ -115,8 +116,9 @@ theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wc
 
 /-- **`check_opening_terminal` is complete, placed, within a bound, by a tree within its weights**
 (`check_opening_terminal_completeAtB` by a node of `Budget.FlatShape`): at each `ω i`, its frame's
-weight, its four prefix chains' `Weqc i`, `check_opening_terminal_loop0`'s `W15 i`, `selector_tables`' `Wst i`, each
-column selector's `Wcs i` and `ring_switch_weight`'s `Wrsw i`, the last two by their trees'
+weight, its four prefix chains' `Weqc i`, `check_opening_terminal_loop0`'s `W15 i`,
+`selector_tables`' `Wst i`, each column selector's `Wcs i` and `ring_switch_weight`'s `Wrsw i`, the
+last two by their trees'
 words (`h15W`, `hrswW`). -/
 theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : TermBases)
     (Lin : Main.Layout)
@@ -141,7 +143,8 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
     (hStW : ∀ i, WeightLe coreProgram (ω i) "selector_tables" fun _ => Wst i)
     (hCsW : ∀ i, ∀ κ' < 31, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
       fun _ => Wcs i)
-    (h15W : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = name% «check_opening_terminal_loop0» →
+    (h15W : ∀ i (rd : Reader) (t : Tree) (args rets : List E),
+        t.name = name% «check_opening_terminal_loop0» →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       t.total fs ≤ (32 * K15 + fs name% «check_opening_terminal_loop0») → t.weight (ω i) ≤ W15 i)
     (hrswW : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
@@ -151,7 +154,8 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
       (termArgs B rm gmu gzcn glm gtau lamCl inner yr target gm) (Returns [])
       (fun t => ∀ i, Budget.WeighsLe coreProgram (ω i)
         (ω i "check_opening_terminal" + (termWs Weqc W15 Wst Wcs Wrsw i).sum) t)
-      (fs "check_opening_terminal" + 177 + 4 * Beqc + (32 * K15 + fs name% «check_opening_terminal_loop0») +
+      (fs "check_opening_terminal" + 177 + 4 * Beqc + (32 * K15 + fs
+          name% «check_opening_terminal_loop0») +
         (fs "selector_tables" + 512) + 94 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)) := by
   by_cases hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lin
   swap

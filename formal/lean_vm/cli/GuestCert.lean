@@ -7,6 +7,7 @@ import LeanVM.Guest.Check
 import LeanVM.Guest.Memory.Fresh
 import LeanVM.Guest.Interp
 import LeanVM.Guest.WalkTags
+import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `guest-cert`: the certificates of the guest's compiled functions
@@ -2520,7 +2521,7 @@ end GuestCert
 namespace GuestCert
 
 /-- The functions whose top-level `match`es have their arms counted separately (`Data.cplArms`). -/
-def armedFns : List String := ["__loop2"]
+def armedFns : List String := [LeanVM.Guest.Data.N.«main_loop2»]
 
 /-- The completeness data of function `j`: the fixed cells, call sites, table jumps, temporaries
 and runs, as a `B2C.Plumb` literal; fails if the completeness walk does. -/
@@ -2909,15 +2910,10 @@ def checkedFiles (obl : List ℕ) (wins : Array (ℕ × ℕ × ℕ)) (ps : Array
   let splitFiles (j w : ℕ) (gs : List (ℕ × ℕ × List (ℕ × ℕ))) : List (String × String) :=
     let xname := s!"X{j}_{w}"
     let xfile := (xname, checkedHeader xname "What the groups of arms of a window of one `match` compute alike, once." ++
-      "public import LeanVM.Guest.B2C.SplitPre\npublic meta import LeanVM.Guest.KernelLit\n\n" ++
+      "public import LeanVM.Guest.B2C.SplitPre\npublic meta import LeanVM.Guest.B2C.WinLit\n\n" ++
       "namespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.B2C\n\n@[expose] public section\n\n" ++
-      -- the executor over a window of many instructions (`__loop2`'s path windows and chained
-      -- `match`es) passes the default budget
-      (let l := ((wins.find? fun x => x.1 == j && x.2.1 == w).map (·.2.2)).getD 0
-        if l > 4000 then "set_option maxHeartbeats 2000000 in\n"
-        else if l > bigWin then "set_option maxHeartbeats 1000000 in\n" else "") ++
       s!"/-- `{fns[j]!.name}`, window {w}: what its groups of arms compute alike. -/\n" ++
-      s!"kernel_lit x{j}_{w} : WinPre := winPre {j} {w}\n\nend\nend LeanVM.Guest.Checked\n")
+      s!"win_lit x{j}_{w} {j} {w}\n\nend\nend LeanVM.Guest.Checked\n")
     let chunks := chunksOf groupsPerFile gs.zipIdx
     let cname (k : ℕ) : String := s!"G{j}_{w}_{k}"
     let gfiles := chunks.map fun (c, k) =>

@@ -15,8 +15,21 @@ from pathlib import Path
 RUN = 1100  # statements a kernel evaluation of the body compares
 PER_FILE = 60  # theorems per helper data module
 WHIR = Path("LeanVM/Guest/B1/Whir")
-# `RES_BATCH`, as the templates mirror it.
-RES_BATCH = int(re.search(r"^abbrev resBatch : ℕ := (\d+)$", (WHIR / "Template.lean").read_text(), re.M).group(1))
+
+
+def res_batch():
+    """`RES_BATCH`, as the templates read it: `resBatch` in `Whir/Template.lean`, a literal or the
+    guest's constant (`guest_const%`) exported to `Guest/Data/Source.lean`."""
+    t = (WHIR / "Template.lean").read_text()
+    m = re.search(r"^abbrev resBatch : ℕ := (\d+)$", t, re.M)
+    if m:
+        return int(m.group(1))
+    c = re.search(r"^abbrev resBatch : ℕ := guest_const% (\w+)$", t, re.M).group(1)
+    src = Path("LeanVM/Guest/Data/Source.lean").read_text()
+    return int(re.search(rf"^def const_{c} : Nat := (\d+)$", src, re.M).group(1))
+
+
+RES_BATCH = res_batch()
 
 
 def core_indices():

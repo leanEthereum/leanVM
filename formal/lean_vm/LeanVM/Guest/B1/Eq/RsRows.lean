@@ -115,16 +115,25 @@ def rrBody (n : ℕ) : List Stmt :=
     [.atom (.const (.n (rrT n)) (word 27 0)), .atom (.mul (.n (rrT n + 1)) (.n 0) (.n (rrT n))),
       .atom (.copy (.n (rrT n + 2)) (.n (rrT n + 1))), .ret [.n (rrT n + 2)]]
 
-theorem core81_body : Fn.body fn% «rs_eq_rows__L0» = [.atom (.copy (.n 3) (.n 0)), .ret [.n 3]] :=
+theorem rs_eq_rows_L0_body : Fn.body fn% «rs_eq_rows__L0» = [.atom (.copy (.n 3) (.n 0)),
+    .ret [.n 3]] :=
   stmtsEqb_sound (by decide +kernel)
-theorem core82_body : Fn.body fn% «rs_eq_rows__L1» = rrBody 1 := stmtsEqb_sound (by decide +kernel)
-theorem core83_body : Fn.body fn% «rs_eq_rows__L2» = rrBody 2 := stmtsEqb_sound (by decide +kernel)
-theorem core84_body : Fn.body fn% «rs_eq_rows__L3» = rrBody 3 := stmtsEqb_sound (by decide +kernel)
-theorem core85_body : Fn.body fn% «rs_eq_rows__L4» = rrBody 4 := stmtsEqb_sound (by decide +kernel)
-theorem core86_body : Fn.body fn% «rs_eq_rows__L5» = rrBody 5 := stmtsEqb_sound (by decide +kernel)
-theorem core87_body : Fn.body fn% «rs_eq_rows__L6» = rrBody 6 := stmtsEqb_sound (by decide +kernel)
-theorem core88_body : Fn.body fn% «rs_eq_rows__L7» = rrBody 7 := stmtsEqb_sound (by decide +kernel)
-theorem core448_body : Fn.body fn% «rs_eq_rows__L8» = rrBody 8 := stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L1_body : Fn.body fn% «rs_eq_rows__L1» = rrBody 1 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L2_body : Fn.body fn% «rs_eq_rows__L2» = rrBody 2 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L3_body : Fn.body fn% «rs_eq_rows__L3» = rrBody 3 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L4_body : Fn.body fn% «rs_eq_rows__L4» = rrBody 4 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L5_body : Fn.body fn% «rs_eq_rows__L5» = rrBody 5 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L6_body : Fn.body fn% «rs_eq_rows__L6» = rrBody 6 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L7_body : Fn.body fn% «rs_eq_rows__L7» = rrBody 7 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L8_body : Fn.body fn% «rs_eq_rows__L8» = rrBody 8 :=
+  stmtsEqb_sound (by decide +kernel)
 
 /-! ## The conditions -/
 
@@ -445,7 +454,7 @@ theorem rr_iff {name : String} {f : Fn} (n : ℕ) (hn : 0 < n)
 
 theorem rr0_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "rs_eq_rows__L0" args rets ↔ MeaningRsEqRows 0 rd args rets := by
-  rw [rel_iff_sem (coreProgram_find?_at (j := idx% «rs_eq_rows__L0») rfl), core81_body,
+  rw [rel_iff_sem (coreProgram_find?_at (j := idx% «rs_eq_rows__L0») rfl), rs_eq_rows_L0_body,
     show Fn.params fn% «rs_eq_rows__L0» = [.n 0, .n 1, .n 2] from rfl]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   constructor
@@ -466,21 +475,21 @@ theorem rs_eq_rows_holds : rs_eq_rows_Spec := by
   interval_cases n
   · exact rr0_iff rd args rets
   · exact rr_iff 1 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L1») rfl) rfl
-      core82_body rd args rets
+      rs_eq_rows_L1_body rd args rets
   · exact rr_iff 2 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L2») rfl) rfl
-      core83_body rd args rets
+      rs_eq_rows_L2_body rd args rets
   · exact rr_iff 3 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L3») rfl) rfl
-      core84_body rd args rets
+      rs_eq_rows_L3_body rd args rets
   · exact rr_iff 4 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L4») rfl) rfl
-      core85_body rd args rets
+      rs_eq_rows_L4_body rd args rets
   · exact rr_iff 5 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L5») rfl) rfl
-      core86_body rd args rets
+      rs_eq_rows_L5_body rd args rets
   · exact rr_iff 6 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L6») rfl) rfl
-      core87_body rd args rets
+      rs_eq_rows_L6_body rd args rets
   · exact rr_iff 7 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L7») rfl) rfl
-      core88_body rd args rets
+      rs_eq_rows_L7_body rd args rets
   · exact rr_iff 8 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L8») rfl) rfl
-      core448_body rd args rets
+      rs_eq_rows_L8_body rd args rets
 
 end
 end LeanVM.Guest.B1

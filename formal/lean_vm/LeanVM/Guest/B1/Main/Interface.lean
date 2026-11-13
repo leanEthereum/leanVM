@@ -16,7 +16,7 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `main` and `aggregate_claims`: meanings (TRIAGE G #96, #97)
 
-**`aggregate_claims`** (`core33`): from the batching seed (`AGG_SEED_*`), the duplex sponge
+**`aggregate_claims`**: from the batching seed (`AGG_SEED_*`), the duplex sponge
 absorbs the children's count and every child's words, checks the proof of work on the hinted
 nonce, squeezes the challenge `λ`, and one sumcheck (`batch_sumcheck`) reduces the children's
 claims on the bytecode to the claim written at `defer_stmt`: `Node.batch` of the children whose
@@ -24,7 +24,7 @@ words the memory holds (`ChildWordsAt`) returns that claim, for the hints `bc_su
 nonce first) and `bc_star_hint` (`MeaningAggregateClaims`), given the grind's window tables at
 its last argument (`WinTabs`).
 
-**`main`** (G:4675-4851, `core0`). Its callees with a witness, each through a witness function of
+**`main`** (G:4675-4851). Its callees with a witness, each through a witness function of
 the call's words (`CalleesW`): a leanXMSS signature `wX args` for the raw iteration of
 `main_loop2` at `args` (the leanXMSS check is inline there at 40f877dc: `Loop2Out`, its segment read
 as `Sig.XmssOut` at its signer), a leanSPHINCS signature `wS p` (`verify_sig_lean_sphincs`,
@@ -138,8 +138,8 @@ def VerifySubOut (bytecode : List K) (rd : Reader) (args : List E) (π : Proof) 
       (pi0, pi1) = digestHalves pi ∧ fresh.bytecodePoint.length = bytecodeVars ∧
       ReadsAt rd out (DeferredClaim.cells fresh) ∧ verifyDeferred bytecode seed pi fresh π = true
 
-/-- **A run of `main_loop2` at `args`, its leanXMSS segment read as its meaning**: a valuation of its
-parameters at which its body without the segment holds (`l2Pre ++ l2Post`, `Sig.loop2_split`),
+/-- **A run of `main_loop2` at `args`, its leanXMSS segment read as its meaning**: a valuation of
+its parameters at which its body without the segment holds (`l2Pre ++ l2Post`, `Sig.loop2_split`),
 and, when the tag parameters hold the chain indices, `sig` verifies the claim at the signer
 `.n 65`. -/
 def Loop2Out (C : CallRel) (rd : Reader) (args : List E) (sig : LeanXmss.Signature) : Prop :=
@@ -153,7 +153,8 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : List E → LeanXmss.S
     (wV : List E → Proof) (wA : List E → BatchingHints) : Prop where
   /-- A raw leanXMSS iteration (`main_loop2`, the leanXMSS check inline): its body around the
   segment, and the signature `wX args` verifying the claim at its signer (`Loop2Out`). -/
-  xmss : ∀ args, coreProgram.Rel rd name% «main_loop2» args [] → Loop2Out (coreProgram.Rel rd) rd args (wX args)
+  xmss : ∀ args, coreProgram.Rel rd name% «main_loop2» args [] → Loop2Out (coreProgram.Rel rd) rd
+      args (wX args)
   /-- A leanSPHINCS check with the byte table: the signature `wS p` verifies the claim at `p`. -/
   sphincs : ∀ p bb, coreProgram.Rel rd "verify_sig_lean_sphincs" [p, bb] [] →
     Sig.ByteBits rd bb → Sig.SphincsOut rd p (wS p)
@@ -178,7 +179,7 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : List E → LeanXmss.S
 
 /-! ## The decoders
 
-`main`'s values (`core0`): the counts `n_lx = .n 0`, `n_xdup = .n 1`, `n_raw_x = .n 2`,
+`main`'s values: the counts `n_lx = .n 0`, `n_xdup = .n 1`, `n_raw_x = .n 2`,
 `n_ls = .n 3`, `n_sdup = .n 4`, `n_raw_s = .n 5`, `n_children = .n 6`, `n_direct_da = .n 7`
 (each `g^count`); the region sizes `lx_slots = .n 22`, `ls_slots = .n 23`, `n_total = .n 24`;
 `fs_seed = .n 26, .n 27`; the exponent table `.n 28`; the pointers
@@ -336,7 +337,8 @@ def main_sound_Spec (bytecode : List K) : Prop :=
 theorem find_main : coreProgram.find? "main" = some fn% «main» :=
   coreProgram_find?_at (j := idx% «main») rfl
 
-theorem find_aggregate_claims : coreProgram.find? "aggregate_claims" = some fn% «aggregate_claims» :=
+theorem find_aggregate_claims : coreProgram.find? "aggregate_claims" = some fn% «aggregate_claims»
+    :=
   coreProgram_find?_at (j := idx% «aggregate_claims») rfl
 
 end

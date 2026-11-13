@@ -20,8 +20,8 @@ their eq factors at `pt[0 .. n]`, store their challenges at `pt[42 ..]`, and the
 
 * `tb_gkrRun_append`: rounds run in sequence;
 * `gkrRoundsOut_append`: two runs of rounds, the second from the first's last record, are one;
-* `l29_holds`: `da_column_offsets_loop1` holds at `g^0` exactly-below `half = g^h` gives the `4h` rounds from the
-  record at `head`.
+* `l29_holds`: `da_column_offsets_loop1` holds at `g^0` exactly-below `half = g^h` gives the `4h`
+  rounds from the record at `head`.
 -/
 
 namespace LeanVM.Guest.B1.Tables

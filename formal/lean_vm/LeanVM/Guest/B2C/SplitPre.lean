@@ -15,10 +15,11 @@ A window of one `match` is checked by groups of its arms, each in its own kernel
 `Check.checkWinS` for the soundness check, `cplWinS` for the completeness walk. Every group of a
 window starts alike: the window's executor run (`execWinCS`) and its index, the fixed cells, the
 renumbered values, the window's statements, and the links of its segments. `winPre j i` is that
-part. `kernel_lit` (`Guest/KernelLit.lean`) writes it once per window as a value the kernel checked
-(`Checked/X{j}_{i}`), and each group's check starts from the value (`checkWinSP`, `cplWinSP`):
-`checkWinS_of_pre` and `cplWinS_of_pre` give the group's `checkWinS` and `cplWinS` from it, so the
-window's theorems (`checkWinC_of_split`, `cplWin_of_split`) are unchanged.
+part. `win_lit` (`B2C/WinLit.lean`, the executor run in compiled code) writes it once per window
+as a value the kernel checked (`Checked/X{j}_{i}`), and each group's check starts from the value
+(`checkWinSP`, `cplWinSP`): `checkWinS_of_pre` and `cplWinS_of_pre` give the group's `checkWinS`
+and `cplWinS` from it, so the window's theorems (`checkWinC_of_split`, `cplWin_of_split`) are
+unchanged.
 -/
 
 namespace LeanVM.Guest.B2C

@@ -33,7 +33,7 @@ open LeanVM.Protocol.Verifier hiding Layout
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 theorem round_not_loop : coreProgram.loop "opening_round" = false := by
-  rw [Program.loop_of_find? Whir.find_opening_round, Fn.loop, Whir.core7_body]
+  rw [Program.loop_of_find? Whir.find_opening_round, Fn.loop, Whir.opening_round_body]
   rfl
 
 /-- The body before its `ret`. -/
@@ -134,7 +134,8 @@ theorem osRoundRegD_holds {κ : ℕ} (hκ : 11 ≤ κ) : OsRoundRegD fs cert κ 
     rwa [round_words hreg hL0 hL hxl hxl' hrd0 hrd']
   have hcom : CompleteAtD fs cert κ "opening_round" Lin args (Returns rets) := by
     refine completeAt_flatD Whir.find_opening_round round_not_loop κ Lin args rets
-      (pre := roundPre) (by rw [Whir.core7_body]; exact roundBody_eq) roundPre_flat roundPre_addrs []
+      (pre := roundPre) (by rw [Whir.opening_round_body]; exact roundBody_eq) roundPre_flat
+          roundPre_addrs []
       (fun _ ↦ []) (fun _ ↦ List.Forall₂.nil)
       (fun _ ↦ [⟨"grind_check__L7", true, [Whir.rdCell (Whir.rdS3 args xs) 1, args.getD 7 0], Lin,
         Returns []⟩]) ?_ ?_ ?_ ?_
@@ -152,11 +153,11 @@ theorem osRoundRegD_holds {κ : ℕ} (hκ : 11 ≤ κ) : OsRoundRegD fs cert κ 
     · intro fp outs ho rd hl _ hL
       refine ⟨fun v ↦ Whir.rdVals args xs v.idx, ?_, roundPre_disp _, ?_, by rw [roundPre_allocs]; rfl,
         by rw [roundPre_allocs]; rfl, ?_, ?_⟩
-      · rw [Whir.core7_params]
+      · rw [Whir.opening_round_params]
         obtain ⟨hm, -⟩ := hpre rd hl hL
         match args, hm with
         | [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9], _ => simp [Whir.rdVals, List.range_succ]
-      · rw [Whir.core7_body]; exact hall rd hl hL
+      · rw [Whir.opening_round_body]; exact hall rd hl hL
       · rw [roundPre_calls]
         match outs, ho with
         | [o1], ho =>

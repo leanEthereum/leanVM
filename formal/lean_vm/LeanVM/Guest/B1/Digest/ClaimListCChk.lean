@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimListCChk
 
-  `claim_list_digest`'s branches and its group loop `claim_list_digest_loop1`, evaluated (by kernel evaluation), for its
-  completeness.
+  `claim_list_digest`'s branches and its group loop `claim_list_digest_loop1`, evaluated (by kernel
+  evaluation), for its completeness.
 -/
 
 module
@@ -15,11 +15,11 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `claim_list_digest`, evaluated
 
-`grpcOk`: a frame loop's block (`claim_list_digest_loop1` here, the big `claim_list_digest_loop0` in `ClaimListCBig`) evaluates
-in order (`Fwd.chk`), its atoms are `loopAtoms`, its stores write the chain's last state at `.n 9`
-from offset `13`, its side conditions are its loads. `clBrOk`: each branch of
-`claim_list_digest`, its values padded by hints up to the final copies (`fillH`), evaluates in
-order; the nonempty branch's stores are the zero state's, its other atoms need nothing.
+`grpcOk`: a frame loop's block (`claim_list_digest_loop1` here, the big `claim_list_digest_loop0` in
+`ClaimListCBig`) evaluates in order (`Fwd.chk`), its atoms are `loopAtoms`, its stores write the
+chain's last state at `.n 9` from offset `13`, its side conditions are its loads. `clBrOk`: each
+branch of `claim_list_digest`, its values padded by hints up to the final copies (`fillH`),
+evaluates in order; the nonempty branch's stores are the zero state's, its other atoms need nothing.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -129,15 +129,18 @@ set_option maxRecDepth 100000 in
 theorem clbr_ok : clBrOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grpc_ok : grpcOk (coreProgram.getD idx% «claim_list_digest_loop1» default) name% «claim_list_digest_loop1» 17 18 86 17 = true := by
+theorem grpc_ok : grpcOk (coreProgram.getD idx% «claim_list_digest_loop1» default)
+    name% «claim_list_digest_loop1» 17 18 86 17 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem clc_lo : ∀ k < 9, clcOk k (coreProgram.getD (idx% «claim_list_last__L0» + k) default) = true := by
+theorem clc_lo : ∀ k < 9, clcOk k (coreProgram.getD (idx% «claim_list_last__L0» + k) default) =
+    true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem clc_hi : ∀ k < 8, clcOk (9 + k) (coreProgram.getD (idx% «claim_list_last__L9» + k) default) = true := by
+theorem clc_hi : ∀ k < 8, clcOk (9 + k) (coreProgram.getD (idx% «claim_list_last__L9» + k) default)
+    = true := by
   decide +kernel
 
 end

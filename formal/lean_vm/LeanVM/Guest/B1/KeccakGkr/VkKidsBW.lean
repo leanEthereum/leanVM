@@ -15,12 +15,12 @@ public import LeanVM.Guest.Data.NameStrings
 # `verify_keccak`'s callees within their words at `B2C.fs`
 
 The words certificates (`Count.Words`) give, at the deployed frame sizes: the copy loops
-`verify_keccak_loop0`, `verify_keccak_loop1`, `verify_keccak_loop2` (cores `262`, `266`, `268`, frames `17`) at most `17` words per
-iteration and their runs' one phantom frame; `keccak_plain_rounds__L6_L0` (core `265`,
-`plainName 0`) at most `250`, `keccak_plain_rounds__L4_L1` (core `267`, `plainName 1`) at most
-`178`; the layers' eight-round loops `374` per iteration and remainder loops `77`, and their frames
-(`LayerCPlacedBW`). So `verify_keccak`'s callees are complete within
-`D.kidsB B2C.fs 17 374 77 250 178` (`kids_completeB_fs`), whose sum is at most
+`verify_keccak_loop0`, `verify_keccak_loop1`, `verify_keccak_loop2` (cores `262`, `266`, `268`,
+frames `17`) at most `17` words per iteration and their runs' one phantom frame;
+`keccak_plain_rounds__L6_L0` (core `265`, `plainName 0`) at most `250`, `keccak_plain_rounds__L4_L1`
+(core `267`, `plainName 1`) at most `178`; the layers' eight-round loops `374` per iteration and
+remainder loops `77`, and their frames (`LayerCPlacedBW`). So `verify_keccak`'s callees are complete
+within `D.kidsB B2C.fs 17 374 77 250 178` (`kids_completeB_fs`), whose sum is at most
 `3 * ((τ - 4) * 17) + 51 + 678 + 12 * (2241 + (y + 171) + (374 + y / 8 * 374) + (77 + y % 8 * 77) + 60)`
 (`y = τ - 3`), at most `52647` words for `τ ≤ 28` (`kidsB_fs_le`).
 -/
@@ -34,28 +34,36 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakGkr
 @[expose] public section
 
 /-- **The copy loops' runs' words at `B2C.fs`**: at most `17` per iteration and their frame. -/
-theorem copyLoop_totalLeOn_fs : ∀ name ∈ [name% «verify_keccak_loop0», name% «verify_keccak_loop1», name% «verify_keccak_loop2»],
+theorem copyLoop_totalLeOn_fs : ∀ name ∈ [name% «verify_keccak_loop0», name% «verify_keccak_loop1»,
+    name% «verify_keccak_loop2»],
     TotalLeOn coreProgram LeanVM.Guest.B2C.fs name LoopPre
       fun a ↦ logG (a.getD 1 0) * 17 + LeanVM.Guest.B2C.fs name := by
   intro name hn
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hn
   rcases hn with rfl | rfl | rfl
-  · exact loop_totalLeOn_at (j := idx% «verify_keccak_loop0») (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact loop_totalLeOn_at (j := idx% «verify_keccak_loop1») (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact loop_totalLeOn_at (j := idx% «verify_keccak_loop2») (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := idx% «verify_keccak_loop0») (by decide +kernel)
+      (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := idx% «verify_keccak_loop1») (by decide +kernel)
+      (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := idx% «verify_keccak_loop2») (by decide +kernel)
+      (by decide +kernel) (by decide +kernel)
 
 /-- **`keccak_plain_rounds__L6_L0`'s words at `B2C.fs`**: `250`. -/
 theorem plain0_totalLe_fs :
     TotalLe coreProgram LeanVM.Guest.B2C.fs (plainName 0) fun _ ↦ 250 := by
-  have h1 := wSB_totalLe (j := idx% «keccak_plain_rounds__L6_L0») (f := "keccak_plain_rounds__L6_L0") (by decide +kernel)
-  rwa [wSB_idx (j := idx% «keccak_plain_rounds__L6_L0») (f := "keccak_plain_rounds__L6_L0") (by decide +kernel),
+  have h1 := wSB_totalLe (j := idx% «keccak_plain_rounds__L6_L0») (f :=
+      "keccak_plain_rounds__L6_L0") (by decide +kernel)
+  rwa [wSB_idx (j := idx% «keccak_plain_rounds__L6_L0») (f := "keccak_plain_rounds__L6_L0")
+      (by decide +kernel),
     show wSBJ 268 = 250 by decide +kernel] at h1
 
 /-- **`keccak_plain_rounds__L4_L1`'s words at `B2C.fs`**: `178`. -/
 theorem plain1_totalLe_fs :
     TotalLe coreProgram LeanVM.Guest.B2C.fs (plainName 1) fun _ ↦ 178 := by
-  have h1 := wSB_totalLe (j := idx% «keccak_plain_rounds__L4_L1») (f := "keccak_plain_rounds__L4_L1") (by decide +kernel)
-  rwa [wSB_idx (j := idx% «keccak_plain_rounds__L4_L1») (f := "keccak_plain_rounds__L4_L1") (by decide +kernel),
+  have h1 := wSB_totalLe (j := idx% «keccak_plain_rounds__L4_L1») (f :=
+      "keccak_plain_rounds__L4_L1") (by decide +kernel)
+  rwa [wSB_idx (j := idx% «keccak_plain_rounds__L4_L1») (f := "keccak_plain_rounds__L4_L1")
+      (by decide +kernel),
     show wSBJ 270 = 178 by decide +kernel] at h1
 
 namespace VkData
@@ -93,11 +101,15 @@ theorem kidsB_fs_le (h : D.Ok) :
     have hs' := List.mem_range.mp hs
     rw [D.layer_y h (by omega)]
     exact layerWords_fs_le_y (by unfold firstOf; split <;> omega) _
-  have hF : LeanVM.Guest.B2C.fs name% «verify_keccak_loop0» + LeanVM.Guest.B2C.fs name% «verify_keccak_loop1» +
+  have hF : LeanVM.Guest.B2C.fs name% «verify_keccak_loop0» + LeanVM.Guest.B2C.fs
+      name% «verify_keccak_loop1» +
       LeanVM.Guest.B2C.fs name% «verify_keccak_loop2» = 51 := by
-    rw [fs_idx (j := idx% «verify_keccak_loop0») (f := name% «verify_keccak_loop0») (by decide +kernel),
-      fs_idx (j := idx% «verify_keccak_loop1») (f := name% «verify_keccak_loop1») (by decide +kernel),
-      fs_idx (j := idx% «verify_keccak_loop2») (f := name% «verify_keccak_loop2») (by decide +kernel)]
+    rw [fs_idx (j := idx% «verify_keccak_loop0») (f := name% «verify_keccak_loop0»)
+        (by decide +kernel),
+      fs_idx (j := idx% «verify_keccak_loop1») (f := name% «verify_keccak_loop1»)
+          (by decide +kernel),
+      fs_idx (j := idx% «verify_keccak_loop2») (f := name% «verify_keccak_loop2»)
+          (by decide +kernel)]
     decide +kernel
   rw [kidsB_sum, hF]
   refine ⟨by omega, ?_⟩

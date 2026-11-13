@@ -43,7 +43,7 @@ def rsAs : List Atom := [
     .copy (.n 31) (.n 17)]
 
 theorem rs_split : Fn.body fn% «da_row_shape» = rsAs.map Stmt.atom ++ [.ret [.n 30, .n 31]] := by
-  rw [core25_body]; rfl
+  rw [da_row_shape_body]; rfl
 
 theorem rs_loop : coreProgram.loop "da_row_shape" = false := by
   rw [Program.loop_of_find? find_da_row_shape]; decide +kernel

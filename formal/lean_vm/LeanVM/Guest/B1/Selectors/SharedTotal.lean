@@ -19,10 +19,11 @@ public import LeanVM.Guest.Data.NameStrings
 On a valid tree at arguments whose length is `g^n`, `n < 64` (`TotalLeOn`): the body's atoms
 before its loop hold (they are events of its walk), so its loop runs to `g^(n / 4)` and its
 dispatch enters `sel_partial_nibble__L{n % 4}` (`ss_body_vals`); its walk's calls are those two
-(`ss_calls`). With `shared_selector_tables_loop0`'s run's bound (`TotalLeOn … LoopPre`: `K9` per iteration and its
-one phantom frame) and the partial nibbles' (`TotalLe`), as hypotheses over any frame sizes `fs`,
-`ss_totalLeOn` bounds the tree by `fs "shared_selector_tables" + (fs "shared_selector_tables_loop0" + 15·K9) + Ksp`
-(`n / 4 ≤ 15`; `shared_selector_tables_loop0`'s frame when skipped).
+(`ss_calls`). With `shared_selector_tables_loop0`'s run's bound (`TotalLeOn … LoopPre`: `K9` per
+iteration and its one phantom frame) and the partial nibbles' (`TotalLe`), as hypotheses over any
+frame sizes `fs`, `ss_totalLeOn` bounds the tree by `fs "shared_selector_tables" + (fs
+"shared_selector_tables_loop0" + 15·K9) + Ksp` (`n / 4 ≤ 15`; `shared_selector_tables_loop0`'s frame
+when skipped).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -35,7 +36,8 @@ open LeanVM.Protocol.Verifier (gen)
 theorem ssS_straight : ssS.all Main.Stmt.straight = true := by decide
 
 theorem ssS_callS : ssS.filterMap Main.Stmt.callS =
-    [(some (.n 44), name% «shared_selector_tables_loop0», [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1, .n 4], [])] := rfl
+    [(some (.n 44), name% «shared_selector_tables_loop0», [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1,
+        .n 4], [])] := rfl
 
 theorem ssS_allocSz : ssS.filterMap Main.Stmt.allocSz = [] := rfl
 
@@ -63,7 +65,8 @@ theorem kidsT_true2 : ∀ (cs : List Call) (ks : List Tree),
   | _ :: _ :: _, _ :: [] => by simp [KidsT]
   | _ :: _ :: _, _ :: _ :: _ => by simp [KidsT]
 
-theorem lName_sel_ne {j : ℕ} (hj : j < 4) : lName "sel_partial_nibble" j ≠ name% «shared_selector_tables_loop0» := by
+theorem lName_sel_ne {j : ℕ} (hj : j < 4) : lName "sel_partial_nibble" j ≠
+    name% «shared_selector_tables_loop0» := by
   interval_cases j <;> decide
 
 variable {fs : String → ℕ}
@@ -74,7 +77,8 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
       (fun a ↦ logG (a.getD 1 0) * K9 + fs name% «shared_selector_tables_loop0»))
     (hsp : ∀ j < 4, TotalLe coreProgram fs (lName "sel_partial_nibble" j) (fun _ ↦ Ksp)) :
     TotalLeOn coreProgram fs "shared_selector_tables" (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n)
-      (fun _ ↦ fs "shared_selector_tables" + (fs name% «shared_selector_tables_loop0» + 15 * K9) + Ksp) := by
+      (fun _ ↦ fs "shared_selector_tables" + (fs name% «shared_selector_tables_loop0» + 15 * K9) +
+          Ksp) := by
   intro rd t args rets hname ⟨n, hn, h5⟩ hv hb
   cases t with
   | phantom => exact hv.elim
@@ -126,7 +130,8 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
     exact hw.1.symm
   obtain ⟨-, i2, -, i4⟩ := Main.straight_parts σ ssS ssS_straight
   -- the calls
-  let cs : List Call := [⟨name% «shared_selector_tables_loop0», [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1, .n 4], [],
+  let cs : List Call := [⟨name% «shared_selector_tables_loop0», [.n 45, .n 39, .n 0, .n 2, .n 3,
+      .n 1, .n 4], [],
       decide (σ (.n 44) ≠ 0)⟩,
     ⟨lName "sel_partial_nibble" (n % 4), [.n 49, .n 50, .n 51, .n 52, .n 53], [.n 54], true⟩]
   have hcalls : calls es = cs := by
@@ -141,7 +146,8 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
   subst hbufs
   have hq15 : n / 4 ≤ 15 := by omega
   have htot := Budget.node_total_le fs
-    (fun c ↦ if c.f = name% «shared_selector_tables_loop0» then n / 4 * K9 + fs name% «shared_selector_tables_loop0» else Ksp) [fun _ ↦ True, fun _ ↦ True] hv hb
+    (fun c ↦ if c.f = name% «shared_selector_tables_loop0» then n / 4 * K9 + fs
+        name% «shared_selector_tables_loop0» else Ksp) [fun _ ↦ True, fun _ ↦ True] hv hb
     (fun fn' es' vs' hf'' hw' ↦ by
       rw [hf, Option.some.injEq] at hf''
       subst hf''
@@ -151,7 +157,8 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
   · refine htot.trans ?_
     simp only [Budget.callsT, cs, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil,
       lName_sel_ne (show n % 4 < 4 by omega), ↓reduceIte, add_zero]
-    have h1 : (if decide (σ (.n 44) ≠ 0) = true then n / 4 * K9 + fs name% «shared_selector_tables_loop0» else fs name% «shared_selector_tables_loop0») ≤
+    have h1 : (if decide (σ (.n 44) ≠ 0) = true then n / 4 * K9 + fs
+        name% «shared_selector_tables_loop0» else fs name% «shared_selector_tables_loop0») ≤
         fs name% «shared_selector_tables_loop0» + 15 * K9 := by
       split
       · have := Nat.mul_le_mul_right K9 hq15; omega

@@ -15,13 +15,13 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `verify_bus_gkr`'s callees, within their words
 
-* `vbg_ly7Mem`: on the honest buffers (`vbgLay`), `verify_bus_gkr_loop0`'s bounds' words (`Ly7Mem`): each
-  slot's `half` and `parity`.
-* `vbg_loop7_total`: there, a valid tree of `verify_bus_gkr_loop0` from `1` below `g^((depth - 1)/2)` has at
-  most `ly7Total` words.
+* `vbg_ly7Mem`: on the honest buffers (`vbgLay`), `verify_bus_gkr_loop0`'s bounds' words (`Ly7Mem`):
+  each slot's `half` and `parity`.
+* `vbg_loop7_total`: there, a valid tree of `verify_bus_gkr_loop0` from `1` below `g^((depth -
+  1)/2)` has at most `ly7Total` words.
 * `verify_bus_gkr_completeAtTB`: `verify_bus_gkr` placed within `vbgBound`: its frame, its
-  buffers, `verify_bus_gkr_loop0`'s chain and `verify_bus_gkr_loop1`'s words (`depth · K8` and its run's phantom frame), and
-  the frames of its two conditional calls (`flat_completeAtOutTB`).
+  buffers, `verify_bus_gkr_loop0`'s chain and `verify_bus_gkr_loop1`'s words (`depth · K8` and its
+  run's phantom frame), and the frames of its two conditional calls (`flat_completeAtOutTB`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -90,15 +90,19 @@ theorem vbg_loop7_total {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
 theorem vbg_noDisp : vbgPre.all noDispB = true := by decide +kernel
 
 theorem vbg_callS : vbgPre.filterMap Main.Stmt.callS =
-    [(some (.n 379), name% «verify_bus_gkr_loop0», [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17, .n 63, .n 142, .n 6,
+    [(some (.n 379), name% «verify_bus_gkr_loop0», [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17,
+        .n 63, .n 142, .n 6,
         .n 64], []),
-      (some (.n 392), name% «verify_bus_gkr_loop1», [.n 393, .n 6, .n 7, .n 390], [])] := by decide +kernel
+      (some (.n 392), name% «verify_bus_gkr_loop1», [.n 393, .n 6, .n 7, .n 390],
+          [])] := by decide +kernel
 
 /-- `verify_bus_gkr`'s frames: `verify_bus_gkr_loop0`'s, then `verify_bus_gkr_loop1`'s. -/
 theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
-    [⟨name% «verify_bus_gkr_loop0», [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17, .n 63, .n 142, .n 6, .n 64], [],
+    [⟨name% «verify_bus_gkr_loop0», [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17, .n 63, .n 142,
+        .n 6, .n 64], [],
         decide (σ (.n 379) ≠ 0)⟩,
-      ⟨name% «verify_bus_gkr_loop1», [.n 393, .n 6, .n 7, .n 390], [], decide (σ (.n 392) ≠ 0)⟩] := by
+      ⟨name% «verify_bus_gkr_loop1», [.n 393, .n 6, .n 7, .n 390], [],
+          decide (σ (.n 392) ≠ 0)⟩] := by
   have e : vbgPre.filterMap (Stmt.callSF σ) = vbgPre.filterMap Main.Stmt.callS := by
     refine List.filterMap_congr fun s hs ↦ ?_
     have := List.all_eq_true.mp vbg_noDisp s hs
@@ -110,8 +114,9 @@ theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
 variable {cert : String → V → ℕ}
 
 /-- **`verify_bus_gkr` is complete, placed, within `vbgBound` words** (TRIAGE G #43), given the
-words of `verify_bus_gkr_loop0_loop0`'s and `verify_bus_gkr_loop1`'s runs (linear in their ends' exponents, `K29`, `K8`, and
-their phantom frames once) and of the rounds `gkr_rounds__L{n}`, `n ∈ {0, 1, 2, 4, 6}` (`R`), on
+words of `verify_bus_gkr_loop0_loop0`'s and `verify_bus_gkr_loop1`'s runs (linear in their ends'
+exponents, `K29`, `K8`, and their phantom frames once) and of the rounds `gkr_rounds__L{n}`, `n ∈
+{0, 1, 2, 4, 6}` (`R`), on
 every reader. -/
 theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32)
     (hκ : 6 ≤ κ) {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}

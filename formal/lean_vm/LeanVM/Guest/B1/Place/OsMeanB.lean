@@ -143,10 +143,10 @@ theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
       rwa [hname] at this)
   set σ : Val := fun v ↦ Whir.rdVals args xs v.idx with hσ
   have hst : roundPre.all Main.Stmt.straight = true := by decide
-  have hbody := Whir.core7_body.trans roundBody_eq
+  have hbody := Whir.opening_round_body.trans roundBody_eq
   have hw := Main.walk_straight σ [.n 86, .n 87, .n 88, .n 89, .n 90, .n 93, .n 94] roundPre hst
   rw [← hbody] at hw
-  rw [← Whir.core7_body] at hh
+  rw [← Whir.opening_round_body] at hh
   have hsat := walk_sat (P := coreProgram) _
     (coreProgram_wf _ (List.mem_of_find?_eq_some Whir.find_opening_round)) hh
   rw [hw] at hsat
@@ -186,7 +186,7 @@ theorem round_pureIn : coreProgram.PureIn ["opening_round", "grind_check__L7"] :
   rcases hg with rfl | rfl
   · rw [Whir.find_opening_round] at hf
     cases hf
-    rw [Whir.core7_body]
+    rw [Whir.opening_round_body]
     exact round_pure_body
   · obtain ⟨fn', hf', -, hb'⟩ := grind_check_found 7 (by decide)
     rw [show grindCheckName 7 = "grind_check__L7" from rfl, hf] at hf'

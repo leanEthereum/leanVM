@@ -11,14 +11,14 @@ public import LeanVM.Guest.B1.Da.Factors
 /-!
 # `da_expand` (G:4638-4651)
 
-`da_expand(root, factors, zs, shifts, top, D)` (`da_expand__L7_L8`, `core402`; `da_expand__L14_L7`,
-`core405`): the tree's nodes are values, node `1` the root (`.n 4`); depth `d` loads its power and
-shift (`.n (expB d)`, `.n (expB d + 1)`), and node `2^d + y` its factor (`.n s`,
-`s = expB d + 2 + 5y`), adds the shift, and makes its children `node · (factor + shift)` (`s + 2`)
-and that plus `node · z` (`s + 4`) (`expDepthA`). The nodes are the frame run `nodes` (a fresh word,
-the nodes in heap order, fresh words up to `512`), and the function returns `nodes · g^(2^D)`, its
-leaves (`expT`, `expOk`, checked by kernel evaluation in `ExpandChk`). `exp_node`: node `2^d + y` is
-`expandLeaf … d y`; `da_expand_val`: the meaning.
+`da_expand(root, factors, zs, shifts, top, D)` (`da_expand__L7_L8`; `da_expand__L14_L7`): the tree's
+nodes are values, node `1` the root (`.n 4`); depth `d` loads its power and shift (`.n (expB d)`,
+`.n (expB d + 1)`), and node `2^d + y` its factor (`.n s`, `s = expB d + 2 + 5y`), adds the shift,
+and makes its children `node · (factor + shift)` (`s + 2`) and that plus `node · z` (`s + 4`)
+(`expDepthA`). The nodes are the frame run `nodes` (a fresh word, the nodes in heap order, fresh
+words up to `512`), and the function returns `nodes · g^(2^D)`, its leaves (`expT`, `expOk`, checked
+by kernel evaluation in `ExpandChk`). `exp_node`: node `2^d + y` is `expandLeaf … d y`;
+`da_expand_val`: the meaning.
 -/
 
 namespace LeanVM.Guest.B1.Da

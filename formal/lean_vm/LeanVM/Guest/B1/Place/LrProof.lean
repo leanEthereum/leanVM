@@ -16,7 +16,7 @@ public import LeanVM.Guest.Memory.Restrict
 /-!
 # `level_residual`, placed
 
-`level_residual` at `fp` allocates its batches' chains (`2(q/8 + 1)` words, `rcC`) at
+`level_residual` at `fp` allocates its batches' chains (`2(q/resBatch + 1)` words, `rcC`) at
 `fp + fs name` and, when `8 ∤ q`, the rest's chains (`2(q % 8 + 1)` words, `rsC`) right after
 them; its loops, which place nothing, are placed after its buffers by trees of one size on every
 memory holding its words (`relAtIn_pure_uniform`, `guarded_uniform`).

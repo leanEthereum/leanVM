@@ -17,9 +17,9 @@ public import LeanVM.Guest.Lift.RegD
 
 `level_residual__L{q}_L{cols}_L{nhs}_L{hbits}(positions, row_d, hs, mu)` (`lrBody q loop1 loop2`)
 runs the chains `h ← (h + P(p))·μ`, `hh ← (hh + H(p))·μ` over its `q` positions: the batches'
-loop (`lrLoop1Body`, eight positions an iteration, its chains a `HeapBuf` of `2(q/8 + 1)` cells),
-then, when `8 ∤ q`, the rest's loop (`lrLoop2Body`, its chains a second `HeapBuf`), and returns
-the chains' ends (`MeaningLevelResidual`'s values).
+loop (`lrLoop1Body`, `resBatch` positions an iteration, its chains a `HeapBuf` of `2(q/resBatch +
+1)` cells), then, when `8 ∤ q`, the rest's loop (`lrLoop2Body`, its chains a second `HeapBuf`), and
+returns the chains' ends (`MeaningLevelResidual`'s values).
 
 **The statement** (`LrAtD`): on every memory holding the caller's words `Lin` (the positions `p i`,
 `i < q`, at `positions`, row `D s`, `s < cols`, of `basis_d` at `row_d`, the high part's `nhs`

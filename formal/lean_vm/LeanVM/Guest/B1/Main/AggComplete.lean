@@ -94,14 +94,18 @@ theorem agg_pow {cs : List ChildClaims} {n : E}
     ((cellsOfState (aggN cs n) false 1).limb 0).lane.toNat % 2 ^ 2 = 0 :=
   (grindOk_iff (s := aggAbs cs) (bits := 2) (by omega) n).mp (Or.inr h)
 
-theorem find_l25 : coreProgram.find? name% «aggregate_claims_loop0» = some (coreProgram.getD idx% «aggregate_claims_loop0» default) :=
+theorem find_l25 : coreProgram.find? name% «aggregate_claims_loop0» = some (coreProgram.getD
+    idx% «aggregate_claims_loop0» default) :=
   find_of_idx l25_idx
-theorem find_l26 : coreProgram.find? name% «aggregate_claims_loop1» = some (coreProgram.getD idx% «aggregate_claims_loop1» default) :=
+theorem find_l26 : coreProgram.find? name% «aggregate_claims_loop1» = some (coreProgram.getD
+    idx% «aggregate_claims_loop1» default) :=
   find_of_idx l26_idx
-theorem find_l27 : coreProgram.find? name% «aggregate_claims_loop2» = some (coreProgram.getD idx% «aggregate_claims_loop2» default) :=
+theorem find_l27 : coreProgram.find? name% «aggregate_claims_loop2» = some (coreProgram.getD
+    idx% «aggregate_claims_loop2» default) :=
   find_of_idx l27_idx
 
-theorem l25_shape' : loopShapeF (coreProgram.getD idx% «aggregate_claims_loop0» default) name% «aggregate_claims_loop0» = true := by
+theorem l25_shape' : loopShapeF (coreProgram.getD idx% «aggregate_claims_loop0» default)
+    name% «aggregate_claims_loop0» = true := by
   have hok := l25_ok
   simp only [l25Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩,

@@ -4,17 +4,16 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail on the first stale file
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes cert memory whir count tables decoder
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert memory whir count tables decoder
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
 # wrote, so a step that fails names what to fix before the rest can run, and `--from` resumes there.
 # The `changes` step (`scripts/guest-changes`) lists the functions whose bodies changed, were added or
 # were removed since the last export, with the hand-written modules that read them: the proofs to
-# adapt. Not regenerated here:
-# `LeanVM/Guest/B1/Tables/Vt/*T.lean` (`scripts/b1c-vt`, by hand from its own dump), the
-# verifier fixtures (`scripts/export-verifier-fixtures-rust.sh`, after a protocol change) and the
-# fold rounds' table (`scripts/whir-fold-table`, after a change to WHIR's folding).
+# adapt. Not regenerated here: the verifier fixtures (`scripts/export-verifier-fixtures-rust.sh`,
+# after a protocol change) and the fold rounds' table (`scripts/whir-fold-table`, after a change to
+# WHIR's folding).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 check=() from=export jobs=()
@@ -27,7 +26,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export core changes cert memory whir count tables decoder)
+steps=(export core changes vt cert memory whir count tables decoder)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
@@ -62,6 +61,11 @@ if run changes && [ ${#check[@]} -eq 0 ] && [ -d .lake/guest-before ]; then
   python3 -I scripts/guest-changes .lake/guest-before
 fi
 
+if run vt; then
+  step "vt: verify_tables' templates and their twins (scripts/b1c-vt/all.py)"
+  python3 -I scripts/b1c-vt/all.py "${check[@]}"
+fi
+
 if run cert; then
   step "cert: the certificates (guest-cert)"
   gen guest-cert
@@ -73,9 +77,10 @@ if run memory; then
 fi
 
 if run whir; then
-  step "whir: the stacked opening's templates (whir-data, whir-mat-plan, whir-queries)"
+  step "whir: the stacked opening's templates and walks (whir-data, whir-mat-plan, walk-known-all, whir-queries)"
   python3 -I scripts/whir-data "${check[@]}"
   python3 -I scripts/whir-mat-plan "${check[@]}"
+  python3 -I scripts/walk-known-all "${check[@]}"
   if [ ${#check[@]} -eq 0 ]; then
     python3 -I scripts/whir-queries/all.py .
   else

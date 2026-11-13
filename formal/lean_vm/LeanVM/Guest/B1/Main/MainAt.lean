@@ -55,7 +55,7 @@ noncomputable def mEvs (σ : Val) : List Ev :=
 
 theorem walk_main (σ : Val) : walk σ (Fn.body fn% «main») = .ret (mEvs σ) [] := by
   obtain ⟨s1, s2, s2', s3, s4, s5, s6⟩ := mBlocks_straight
-  rw [core0_shape, show mPre ++ [.ite (.n 368) mDa mDaZ] ++ mMid ++ [.ite (.n 418) mLeaf mAgg] ++
+  rw [main_shape, show mPre ++ [.ite (.n 368) mDa mDaZ] ++ mMid ++ [.ite (.n 418) mLeaf mAgg] ++
       mPost ++ [.ret []] = mPre ++ (.ite (.n 368) mDa mDaZ :: (mMid ++ (.ite (.n 418) mLeaf mAgg ::
         (mPost ++ [.ret []])))) by simp,
     B1.walk_pre_straight σ _ mPre s1, walk_ite_straight σ _ _ _ _ s2 s2',
@@ -141,7 +141,8 @@ def mCalls (σ : Val) (m : MainIn) : List Call :=
       ⟨"claim_list_digest", [.n 34, .n 3], [.n 37, .n 38], true⟩,
       ⟨name% «main_loop0», [.n 41, .n 1, .n 31, .n 0], [], decide (σ (.n 40) ≠ 0)⟩,
       ⟨name% «main_loop1», [.n 44, .n 4, .n 34, .n 3], [], decide (σ (.n 43) ≠ 0)⟩,
-      ⟨name% «main_loop2», [.n 357, .n 2, .n 22, .n 45, .n 31] ++ lxTagsV, [], decide (σ (.n 356) ≠ 0)⟩,
+      ⟨name% «main_loop2», [.n 357, .n 2, .n 22, .n 45, .n 31] ++ lxTagsV, [],
+          decide (σ (.n 356) ≠ 0)⟩,
       ⟨name% «main_loop3», [.n 360, .n 5, .n 23, .n 46, .n 2, .n 34, .n 47], [],
         decide (σ (.n 359) ≠ 0)⟩] ++
     (if m.nd = 1 then [(⟨"da_verify", [.n 28], [.n 369, .n 370, .n 371], true⟩ : Call)]
@@ -388,12 +389,14 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
           ⟨"claim_list_digest", [.n 34, .n 3], [.n 37, .n 38], true⟩,
           ⟨name% «main_loop0», [.n 41, .n 1, .n 31, .n 0], [], decide (σ (.n 40) ≠ 0)⟩,
           ⟨name% «main_loop1», [.n 44, .n 4, .n 34, .n 3], [], decide (σ (.n 43) ≠ 0)⟩,
-          ⟨name% «main_loop2», [.n 357, .n 2, .n 22, .n 45, .n 31] ++ lxTagsV, [], decide (σ (.n 356) ≠ 0)⟩,
+          ⟨name% «main_loop2», [.n 357, .n 2, .n 22, .n 45, .n 31] ++ lxTagsV, [],
+              decide (σ (.n 356) ≠ 0)⟩,
           ⟨name% «main_loop3», [.n 360, .n 5, .n 23, .n 46, .n 2, .n 34, .n 47], [],
             decide (σ (.n 359) ≠ 0)⟩] ++
         (if m.nd = 1 then [(⟨"da_verify", [.n 28], [.n 369, .n 370, .n 371], true⟩ : Call)]
           else []) ++
-        [⟨name% «main_loop4», [.n 402, .n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23, .n 395,
+        [⟨name% «main_loop4», [.n 402, .n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23,
+            .n 395,
           .n 364, .n 26, .n 27, .n 383, .n 28, .n 389], [], decide (σ (.n 401) ≠ 0)⟩] ++
         (if m.nc = 0 then [] else [(⟨"aggregate_claims", [.n 6, .n 383, .n 389, .n 395, .n 416, .n 444], [],
           true⟩ : Call)]) ++

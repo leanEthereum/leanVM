@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop29
 
-  `verify_bus_gkr`'s inner loop `verify_bus_gkr_loop0_loop0`: eight GKR rounds an iteration, from one round record
-  to the record eight on.
+  `verify_bus_gkr`'s inner loop `verify_bus_gkr_loop0_loop0`: eight GKR rounds an iteration, from
+  one round record to the record eight on.
 -/
 
 module
@@ -93,9 +93,11 @@ theorem l29_round_cap (q : ℕ) (σ : Val) :
 
 /-- **An iteration of `verify_bus_gkr_loop0_loop0`**: eight rounds from the record at `head·x^8`. -/
 theorem l29_step {N head ptrow tabs : E} (d : ℕ) (x : E)
-    (h : coreProgram.relN rd (d + 1) name% «verify_bus_gkr_loop0_loop0» (x :: [N, head, ptrow, tabs]) []) :
+    (h : coreProgram.relN rd (d + 1) name% «verify_bus_gkr_loop0_loop0» (x :: [N, head, ptrow,
+        tabs]) []) :
     TbGkrRoundsOut 8 rd (head * x ^ 8) (ptrow * x ^ 8) ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «verify_bus_gkr_loop0_loop0» (x * gen :: [N, head, ptrow, tabs]) []) := by
+      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «verify_bus_gkr_loop0_loop0» (x * gen :: [N,
+          head, ptrow, tabs]) []) := by
   obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
   obtain ⟨fn', hf', hp, hb⟩ := l29Found
   rw [hf] at hf'
@@ -255,11 +257,13 @@ theorem gkrRoundsOut_zero {rd : Reader} {rec pt : E} {cap : List E} {cur claim :
     tbReadsAt_nil _ _, tbReadsAt_nil _ _, by simpa [gkrRun] using hc,
     by simpa using hcur, by simpa [gkrRun] using hcl⟩
 
-/-- **`verify_bus_gkr_loop0_loop0` behind its guard**: from the record at `head`, `half = g^h` iterations are the
+/-- **`verify_bus_gkr_loop0_loop0` behind its guard**: from the record at `head`, `half = g^h`
+iterations are the
 `8h` rounds to the record at `head·g^(8h)`. -/
 theorem l29_loop {rd : Reader} {half head ptrow tabs : E} {h : ℕ} (hh : half = gen ^ h)
     (hhb : h < 2 ^ 62)
-    (hcall : 1 + half ≠ 0 → coreProgram.Rel rd name% «verify_bus_gkr_loop0_loop0» [1, half, head, ptrow, tabs] [])
+    (hcall : 1 + half ≠ 0 → coreProgram.Rel rd name% «verify_bus_gkr_loop0_loop0» [1, half, head,
+        ptrow, tabs] [])
     (h0 : TbGkrRoundsOut 0 rd head ptrow) : TbGkrRoundsOut (8 * h) rd head ptrow := by
   rcases Nat.eq_zero_or_pos h with rfl | hpos
   · simpa using h0

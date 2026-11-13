@@ -4,6 +4,8 @@
   The guest's baked `COORD_PADDING` is the value of every table block's coordinate on its table's
   padding row, on the push and count sides, and the pull side's flushes take the push side's
   values there: kernel evaluation over `K`, `keccakF` of zeros replaced by its value.
+  `scripts/b1c-vt/all.py` writes the data `vtPads*` and `vtCountCols` (`regen-guest.sh`, step
+  `vt`).
 -/
 
 module

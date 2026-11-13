@@ -15,12 +15,12 @@ public import LeanVM.Guest.Data.NameStrings
 # `keccak_layer` within its words at `B2C.fs`
 
 At the deployed frame sizes the words certificates (`Count.Words`) give the callees' runs' words:
-the eight-round pack loops `keccak_layer__L1_loop0`, `keccak_layer__L0_loop0` (core `456`, `458`, frame `374`) at most `374`
-words per iteration and the run's one phantom frame (its last, skipped call's), the remainder loops
-`keccak_layer__L1_loop1`, `keccak_layer__L0_loop1` (core `457`, `459`, frame `77`) at most `77` and their frame, and
-`grind_check__L3` (core `455`) its frame of `60` words. So `keccak_layer__L{first}` (core `265` for
-`first = 0`, frame `2241`; core `264` for `first = 1`, frame `1889`) is complete within
-`layerWords B2C.fs first y 374 77`
+the eight-round pack loops `keccak_layer__L1_loop0`, `keccak_layer__L0_loop0` (core `456`, `458`,
+frame `374`) at most `374` words per iteration and the run's one phantom frame (its last, skipped
+call's), the remainder loops `keccak_layer__L1_loop1`, `keccak_layer__L0_loop1` (core `457`, `459`,
+frame `77`) at most `77` and their frame, and `grind_check__L3` (core `455`) its frame of `60`
+words. So `keccak_layer__L{first}` (core `265` for `first = 0`, frame `2241`; core `264` for `first
+= 1`, frame `1889`) is complete within `layerWords B2C.fs first y 374 77`
 `= fs (layerName first) + (y + 171) + (374 + ⌊y/8⌋ * 374) + (77 + (y % 8) * 77) + 60`
 (`layer_completeAtFB_fs`), at most `2241 + (y + 171) + (374 + ⌊y/8⌋ * 374) + (77 + (y % 8) * 77)
 + 60` (`layerWords_fs_le_y`): at most `4233` words for `y ≤ 25` (at `y = 23`), `4537` for
@@ -52,8 +52,10 @@ theorem packLoop_totalLeOn_fs {first : ℕ} (hf : first < 2) :
     TotalLeOn coreProgram LeanVM.Guest.B2C.fs (packLoopName first) LoopPre
       fun a ↦ logG (a.getD 1 0) * 374 + LeanVM.Guest.B2C.fs (packLoopName first) := by
   interval_cases first
-  · exact loop_totalLeOn_at (j := idx% «keccak_layer__L0_loop0») (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact loop_totalLeOn_at (j := idx% «keccak_layer__L1_loop0») (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := idx% «keccak_layer__L0_loop0») (by decide +kernel)
+      (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := idx% «keccak_layer__L1_loop0») (by decide +kernel)
+      (by decide +kernel) (by decide +kernel)
 
 /-- **The remainder loops' runs' words at `B2C.fs`**: at most `77` per iteration and their
 frame. -/
@@ -61,18 +63,22 @@ theorem remLoop_totalLeOn_fs {first : ℕ} (hf : first < 2) :
     TotalLeOn coreProgram LeanVM.Guest.B2C.fs (remLoopName first) LoopPre
       fun a ↦ logG (a.getD 1 0) * 77 + LeanVM.Guest.B2C.fs (remLoopName first) := by
   interval_cases first
-  · exact loop_totalLeOn_at (j := idx% «keccak_layer__L0_loop1») (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact loop_totalLeOn_at (j := idx% «keccak_layer__L1_loop1») (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := idx% «keccak_layer__L0_loop1») (by decide +kernel)
+      (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := idx% «keccak_layer__L1_loop1») (by decide +kernel)
+      (by decide +kernel) (by decide +kernel)
 
 /-- The pack loops' frame at `B2C.fs`: `374`. -/
 theorem packLoopName_fs {first : ℕ} (hf : first < 2) :
     LeanVM.Guest.B2C.fs (packLoopName first) = 374 := by
   interval_cases first
   · rw [show packLoopName 0 = name% «keccak_layer__L0_loop0» from rfl,
-      fs_idx (j := idx% «keccak_layer__L0_loop0») (f := name% «keccak_layer__L0_loop0») (by decide +kernel)]
+      fs_idx (j := idx% «keccak_layer__L0_loop0») (f := name% «keccak_layer__L0_loop0»)
+          (by decide +kernel)]
     decide +kernel
   · rw [show packLoopName 1 = name% «keccak_layer__L1_loop0» from rfl,
-      fs_idx (j := idx% «keccak_layer__L1_loop0») (f := name% «keccak_layer__L1_loop0») (by decide +kernel)]
+      fs_idx (j := idx% «keccak_layer__L1_loop0») (f := name% «keccak_layer__L1_loop0»)
+          (by decide +kernel)]
     decide +kernel
 
 /-- The remainder loops' frame at `B2C.fs`: `77`. -/
@@ -80,10 +86,12 @@ theorem remLoopName_fs {first : ℕ} (hf : first < 2) :
     LeanVM.Guest.B2C.fs (remLoopName first) = 77 := by
   interval_cases first
   · rw [show remLoopName 0 = name% «keccak_layer__L0_loop1» from rfl,
-      fs_idx (j := idx% «keccak_layer__L0_loop1») (f := name% «keccak_layer__L0_loop1») (by decide +kernel)]
+      fs_idx (j := idx% «keccak_layer__L0_loop1») (f := name% «keccak_layer__L0_loop1»)
+          (by decide +kernel)]
     decide +kernel
   · rw [show remLoopName 1 = name% «keccak_layer__L1_loop1» from rfl,
-      fs_idx (j := idx% «keccak_layer__L1_loop1») (f := name% «keccak_layer__L1_loop1») (by decide +kernel)]
+      fs_idx (j := idx% «keccak_layer__L1_loop1») (f := name% «keccak_layer__L1_loop1»)
+          (by decide +kernel)]
     decide +kernel
 
 /-- `grind_check__L3`'s frame at `B2C.fs`: `60`. -/
