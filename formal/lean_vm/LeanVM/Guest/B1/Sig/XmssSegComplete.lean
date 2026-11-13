@@ -57,9 +57,64 @@ theorem lxTagsHold_congr {σ σ' : Val} (h : LxTagsHold (fun j => σ (sTagParam 
   rw [hag.apply ⟨_, by omega, rfl⟩]
   exact h i hi hc
 
-/-- **`verify_lean_xmss` is complete**, given the path windows' completeness. -/
-theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_complete_Spec := by
-  intro C rd σ pk m sig hm htags hat hv
+/-- The root a layer's signature reaches from `M`: its tree over the leaf it recovers, `0` if its digest is no codeword. -/
+def xRootOf (P : HashSig.PublicParameter) (lay : LeanXmss.Layer) (key : LeanXmss.KeyIndex)
+    (M : HashSig.HashInput) (part : LeanXmss.LayerSignature) : HashSig.Digest :=
+  @LeanXmss.Verification.treeFoldWithHash Id _ ⟨Node.keccakBits⟩ P lay key part.authenticationPath
+    LeanXmss.layerHeight
+    ((@LeanXmss.Verification.otsLeafWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part.randomizer
+      part.chainValues).getD 0)
+
+theorem xRootOf_eq {P : HashSig.PublicParameter} {lay : LeanXmss.Layer} {key : LeanXmss.KeyIndex}
+    {M : HashSig.HashInput} {part : LeanXmss.LayerSignature} {r : HashSig.Digest}
+    (h : @LeanXmss.Verification.layerRootWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part = some r) :
+    xRootOf P lay key M part = r := by
+  rw [layerRoot_id] at h
+  unfold xRootOf
+  cases hl : @LeanXmss.Verification.otsLeafWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part.randomizer
+    part.chainValues with
+  | none => rw [hl] at h; cases h
+  | some leaf => rw [hl] at h; exact Option.some.inj h
+
+/-- The digest a layer's signature signs `M` under, as a number. -/
+def xDigestN (P : HashSig.PublicParameter) (lay : LeanXmss.Layer) (key : LeanXmss.KeyIndex)
+    (M : HashSig.HashInput) (part : LeanXmss.LayerSignature) : Nat :=
+  (@LeanXmss.Verification.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part.randomizer).toNat
+
+/-- **What a layer holds where it hints**: the randomizer, the digit words (the groups of the digest's number `N`), the chains' starts and the siblings of `part`. -/
+def SLayerVals (layer b : Nat) (part : LeanXmss.LayerSignature) (N : Nat) (σ : Val) : Prop :=
+  σ (sRho layer b) = cellOf128 part.randomizer ∧
+    (∀ q < 15, σ (.n (sA layer b + 6 + q)) = ofK (addressOfIndex (lxK N q))) ∧
+    (∀ i < 58, σ (sStart (sW layer b) σ (sA layer b + 6) (sA layer b + 6 + 70) i) = xVals part i) ∧
+    ∀ l < 16, sSibAt σ layer b l = xSibs part l
+
+/-- The bottom layer's digest of `m`, as a number. -/
+def xN0 (pk : HashSig.PublicKey) (m : HashSig.Message) (sig : LeanXmss.Signature) : Nat :=
+  xDigestN pk.parameter LeanXmss.bottomLayer (LeanXmss.keyIndexOnLayer sig.leafIndex LeanXmss.bottomLayer)
+    (HashSig.littleEndianBytes 32 m) (sig.layers LeanXmss.bottomLayer)
+
+/-- The top layer's digest of the bottom root, as a number. -/
+def xN1 (pk : HashSig.PublicKey) (m : HashSig.Message) (sig : LeanXmss.Signature) : Nat :=
+  xDigestN pk.parameter LeanXmss.topLayer (LeanXmss.keyIndexOnLayer sig.leafIndex LeanXmss.topLayer)
+    (HashSig.littleEndianBytes 16 (xRootOf pk.parameter LeanXmss.bottomLayer
+      (LeanXmss.keyIndexOnLayer sig.leafIndex LeanXmss.bottomLayer) (HashSig.littleEndianBytes 32 m)
+      (sig.layers LeanXmss.bottomLayer))) (sig.layers LeanXmss.topLayer)
+
+/-- **What the check holds where it hints**, for the signature `sig` of `m` under `pk`: the leaf index's shifts and windows, then each layer's values. -/
+def XSegVals (pk : HashSig.PublicKey) (m : HashSig.Message) (sig : LeanXmss.Signature) (σ : Val) : Prop :=
+  (∀ v < 4, σ (sHis v) = eOfNat (sig.leafIndex.val >>> (8 * v))) ∧
+    (∀ w < 4, σ (sWin w) = ofK (addressOfIndex (lxWin sig.leafIndex.val w))) ∧
+    SLayerVals 0 88 (sig.layers LeanXmss.bottomLayer) (xN0 pk m sig) σ ∧
+    SLayerVals 1 62605 (sig.layers LeanXmss.topLayer) (xN1 pk m sig) σ
+
+/-- **`verify_lean_xmss` is complete**, given the path windows' completeness: on every valuation agreeing below its end, the check holds the values it hints (`XSegVals`). -/
+theorem verify_lean_xmss_complete_vals_of (hW : LxWindowsC) (C : CallRel) (rd : Reader) (σ : Val)
+    (pk : HashSig.PublicKey) (m : HashSig.Message) (sig : LeanXmss.Signature) (hm : MemOK rd 256)
+    (htags : LxTagsHold (fun j => σ (sTagParam j)))
+    (hat : ClaimAt rd (σ sSigner) (cellOf128 pk.root) (cellOf128 pk.parameter)
+      (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)))
+    (hv : LeanXmss.verifyWithKeccak pk m sig = true) :
+    Completes C rd 66 120764 xSeg σ (fun σ' => ∀ σ'', AgreeBelow 120764 σ' σ'' → XSegVals pk m sig σ'') := by
   obtain ⟨r0, h0, h1⟩ := (xmssVerify_iff pk m sig).mp hv
   obtain ⟨hldR, hldP, hldLo, hldHi⟩ := hat
   set L := sig.leafIndex.val with hLdef
@@ -118,7 +173,7 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
   rw [← hD0] at hdec0'
   obtain ⟨hN0, hs0⟩ := digest_digits hdec0'
   -- the bottom layer
-  obtain ⟨hnb0, -, hc0⟩ := sCore_complete (C := C) (rd := rd) hW (layer := 0) (b := 88) (by norm_num)
+  obtain ⟨hnb0, -, hc0⟩ := sCore_complete_digits (C := C) (rd := rd) hW (layer := 0) (b := 88) (by norm_num)
     (by decide) hm σ2 hpad2 hpow2 hL hhis2 hwin2 ⟨67, by decide, rfl⟩ ⟨103, by decide, rfl⟩ hN0 hs0
     (xVals part0) (xSibs part0)
   have e0 : (sWin1 0 88).2.1 = 62605 := congrArg (·.1) sWin1_0
@@ -145,7 +200,7 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
   -- the bottom root is the scheme's
   have hpart0 : sPart 0 88 σ3 = part0 :=
     sPart_eq (by rw [show sRho 0 88 = V.n 88 from rfl, t3 88 (by norm_num)]; exact h88)
-      (hk3 σ3 (fun _ _ => rfl)).1 (hk3 σ3 (fun _ _ => rfl)).2
+      (hk3 σ3 (fun _ _ => rfl)).2.1 (hk3 σ3 (fun _ _ => rfl)).2.2
   have r0' := (sLayerCore_sound (layer := 0) (b := 88) (rest := []) hpad3 hpow3 (by norm_num)
     (by rw [List.append_nil]; exact hh3)).2.2.2 L hL
     (by show σ3 (sHis 0) = _; rw [hhis3 0 (by norm_num), xIdxNat_zero]; simp) hhis3 hkw3 htag3
@@ -202,7 +257,7 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
   rw [← hD1] at hdec1'
   obtain ⟨hN1, hs1'⟩ := digest_digits hdec1'
   -- the top layer
-  obtain ⟨hnb1, -, hc1⟩ := sCore_complete (C := C) (rd := rd) hW (layer := 1) (b := 62605) (by norm_num)
+  obtain ⟨hnb1, -, hc1⟩ := sCore_complete_digits (C := C) (rd := rd) hW (layer := 1) (b := 62605) (by norm_num)
     (by decide) hm σ4 hpad4 hpow4 hL hhis4 hwin4 ⟨62606, by decide, rfl⟩ ⟨62611, by decide, rfl⟩
     hN1 hs1' (xVals part1) (xSibs part1)
   have e1 : (sWin1 1 62605).2.1 = 120763 := congrArg (·.1) sWin1_1
@@ -228,7 +283,7 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
     logG_eq (lxWin_lt L w) (by norm_num) (hwin5 w hw)
   have hpart1 : sPart 1 62605 σ5 = part1 :=
     sPart_eq (by rw [show sRho 1 62605 = V.n (62605 + 2) from rfl, t5 _ (by norm_num)]; exact h4r)
-      (hk5 σ5 (fun _ _ => rfl)).1 (hk5 σ5 (fun _ _ => rfl)).2
+      (hk5 σ5 (fun _ _ => rfl)).2.1 (hk5 σ5 (fun _ _ => rfl)).2.2
   have r1' := (sLayerCore_sound (layer := 1) (b := 62605) (rest := []) hpad5 hpow5 (by norm_num)
     (by rw [List.append_nil]; exact hh5)).2.2.2 L hL
     (by show σ5 (.n (62605 + 1)) = _; rw [t5 _ (by norm_num)]; exact hidx1) hhis5 hkw5 htag5
@@ -248,12 +303,40 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
   refine Completes.load ⟨65, by norm_num, rfl⟩ (w := cellOf128 pk.root)
     (by rw [show sSigner = V.n 65 from rfl, t5 65 (by norm_num)]; rw [show V.n 65 = sSigner from rfl, hs4]
         exact hldR) le_rfl (fun σ6 he6 e6 => ?_)
-  refine completes_atoms rfl (Ext.refl _ _ _) trivial (fun a ha => ?_)
+  refine completes_atoms rfl (Ext.refl _ _ _) (fun σ'' hag => ?_) (fun a ha => ?_)
+  · have a5 : AgreeBelow 120763 σ5 σ'' := fun k hk => (he6.agree k hk).trans (hag k (by omega))
+    have a4 : AgreeBelow 62612 σ4 σ'' := fun k hk => (he5.agree k hk).trans (a5 k (by omega))
+    have a3 : AgreeBelow 62605 σ3 σ'' := fun k hk => (he4.agree k hk).trans (a4 k (by omega))
+    have a2 : AgreeBelow 104 σ2 σ'' := fun k hk => (he3.agree k hk).trans (a3 k (by omega))
+    have hx0 : xv (σ2 (.n 103)) = @LeanXmss.Verification.messageDigestWithHash Id _ ⟨Node.keccakBits⟩
+        pk.parameter LeanXmss.bottomLayer (LeanXmss.keyIndexOnLayer sig.leafIndex LeanXmss.bottomLayer)
+        (HashSig.littleEndianBytes 32 m) part0.randomizer := by
+      rw [hD0]; exact hmd0.symm
+    have hx1 : xv (σ4 (.n (62605 + 6))) = @LeanXmss.Verification.messageDigestWithHash Id _ ⟨Node.keccakBits⟩
+        pk.parameter LeanXmss.topLayer (LeanXmss.keyIndexOnLayer sig.leafIndex LeanXmss.topLayer)
+        (HashSig.littleEndianBytes 16 (xRootOf pk.parameter LeanXmss.bottomLayer
+          (LeanXmss.keyIndexOnLayer sig.leafIndex LeanXmss.bottomLayer) (HashSig.littleEndianBytes 32 m)
+          part0)) part1.randomizer := by
+      rw [hD1, xRootOf_eq h0]; exact hmd1.symm
+    obtain ⟨d0, s0, p0⟩ := hk3 σ'' a3
+    obtain ⟨d1, s1, p1⟩ := hk5 σ'' a5
+    refine ⟨fun v hv => ?_, fun w hw => ?_, ⟨?_, ?_, s0, p0⟩, ⟨?_, ?_, s1, p1⟩⟩
+    · rw [show sHis v = V.n (67 + v) from rfl, ← a5 (67 + v) (by omega)]; exact hhis5 v hv
+    · rw [show sWin w = V.n (71 + w) from rfl, ← a5 (71 + w) (by omega)]; exact hwin5 w hw
+    · rw [show sRho 0 88 = V.n 88 from rfl, ← a2 88 (by norm_num)]; exact h88
+    · unfold xN0 xDigestN; rw [← hx0]; exact d0
+    · rw [show sRho 1 62605 = V.n (62605 + 2) from rfl, ← a4 (62605 + 2) (by norm_num)]; exact h4r
+    · unfold xN1 xDigestN; rw [← hx1]; exact d1
   simp only [List.mem_singleton, Stmt.atom.injEq] at ha
   subst ha
   show σ6 (.n 112857) + σ6 (.n 120763) = 0
   rw [he6.apply (Or.inl (by norm_num)), hR5, e6]
   exact e_add_self _
+
+/-- **`verify_lean_xmss` is complete**, given the path windows' completeness. -/
+theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_complete_Spec :=
+  fun C rd σ pk m sig hm htags hat hv =>
+    (verify_lean_xmss_complete_vals_of hW C rd σ pk m sig hm htags hat hv).mono le_rfl le_rfl fun _ _ => trivial
 
 /-- **`verify_lean_xmss` is complete**, inline in `main_loop2`. -/
 theorem verify_lean_xmss_complete_holds : verify_lean_xmss_complete_Spec :=
