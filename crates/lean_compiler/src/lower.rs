@@ -1785,11 +1785,11 @@ pub(crate) fn lower_func(
         let last = f.body.last().map_or(0, |s| s.line);
         lowerer.stmt(&Stmt::new(last, StmtKind::Return(vec![])));
     }
-    let heap_buf_after_call = lowerer.hoist_heap_bufs();
+    let heap_size_advice = lowerer.hoist_heap_bufs();
     Lowered {
         name: f.name.clone(),
         code: lowerer.code,
         frame_size: lowerer.next,
-        heap_buf_after_call,
+        heap_size_advice,
     }
 }

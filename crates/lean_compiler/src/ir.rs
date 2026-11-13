@@ -123,8 +123,8 @@ pub(crate) struct Lowered {
     pub(crate) name: String,
     pub(crate) code: Vec<LInstr>,
     pub(crate) frame_size: u32,
-    /// A `HeapBuf` is still reserved after a call (`FnLower::hoist_heap_bufs`).
-    pub(crate) heap_buf_after_call: bool,
+    /// A `HeapBuf` is reserved from advice (`FnLower::hoist_heap_bufs`).
+    pub(crate) heap_size_advice: bool,
 }
 
 /// The jump tables every `match` dispatches through: one cell per arm, holding the

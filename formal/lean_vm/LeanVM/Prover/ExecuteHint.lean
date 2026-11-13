@@ -105,6 +105,18 @@ theorem pop_follows {C : Ctx} {s s' : St} {name : String} {len : ℕ} {v : List 
     · simp at h
   · simp at h
 
+theorem popEntry_follows {C : Ctx} {s s' : St} {name : String} {v : List E} (hs : s.Good)
+    (h : popEntry C s name = .ok (v, s')) : St.Follows s s' := by
+  unfold popEntry at h
+  split at h
+  · dsimp only at h
+    split at h
+    · simp only [pure_ok, Prod.mk.injEq] at h
+      obtain ⟨-, rfl⟩ := h
+      exact ⟨⟨hs.wf, hs.dl⟩, Mem.le_refl _, rfl, rfl, rfl⟩
+    · simp at h
+  · simp at h
+
 theorem heapBase_follows {s s' : St} {c b : ℕ} {what : String} (hs : s.Good)
     (h : heapBase s c what = .ok (b, s')) : St.Follows s s' := by
   unfold heapBase at h
@@ -166,6 +178,19 @@ theorem runHint_follows {C : Ctx} {s s' : St} {hint : Hint} (hs : s.Good)
     obtain ⟨sz, -, ⟨n, s1⟩, h1, h⟩ := h
     have f1 := (St.logOr_ok hs h1).1
     exact f1.trans (allocate_follows f1.good h)
+  | allocAdvice ptr stream =>
+    simp only [runHint, bind_ok] at h
+    obtain ⟨⟨v, s1⟩, h1, h⟩ := h
+    have f1 := popEntry_follows hs h1
+    rcases v with _ | ⟨w, _ | ⟨w', v⟩⟩ <;> dsimp only at h
+    · simp only [pure_ok] at h
+      subst h
+      exact f1
+    · simp only [bind_ok] at h
+      obtain ⟨sz, -, ⟨n, s2⟩, h2, h⟩ := h
+      have f2 := (St.logOr_ok f1.good h2).1
+      exact f1.trans (f2.trans (allocate_follows f2.good h))
+    · simp at h
   | allocArm ptr sel sizes =>
     simp only [runHint, bind_ok] at h
     obtain ⟨x, -, ⟨k, s1⟩, h1, h⟩ := h

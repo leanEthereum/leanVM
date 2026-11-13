@@ -53,13 +53,19 @@ pub fn compile(ast: &Ast) -> Program {
     assemble(lowered, tables)
 }
 
-/// The functions that reserve a `HeapBuf` after a call, which the proof's memory model
-/// (`formal/lean_vm/LeanVM/Guest/Memory/Alloc.lean`) places before the callee's subtree.
-pub fn heap_bufs_after_calls(ast: &Ast) -> Vec<String> {
+/// The witness stream of the `HeapBuf` sizes a function reserves before its first call although
+/// they are computed only after it, or a branch reaches them (`RHint::AllocAdvice`): one entry per
+/// such buffer of each call, the caller's before its callees', `[g^size]`, or `[]` where the run
+/// allocates none.
+pub const HEAP_SIZE_STREAM: &str = "heap_sizes";
+
+/// The functions that reserve a `HeapBuf` from [`HEAP_SIZE_STREAM`], so that the proof's memory
+/// model (`formal/lean_vm/LeanVM/Guest/Memory/Alloc.lean`) places it before the callees' subtrees.
+pub fn heap_size_advice(ast: &Ast) -> Vec<String> {
     let (lowered, _) = lower_all(ast);
     lowered
         .into_iter()
-        .filter(|l| l.heap_buf_after_call)
+        .filter(|l| l.heap_size_advice)
         .map(|l| l.name)
         .collect()
 }
@@ -139,7 +145,7 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> Program {
                 name: "__jump_tables".into(),
                 code,
                 frame_size,
-                heap_buf_after_call: false,
+                heap_size_advice: false,
             },
         );
     }

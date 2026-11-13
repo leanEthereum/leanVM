@@ -73,6 +73,7 @@ def hint : P Hint := do
   | "af" => return .allocFrames (← nat) (← nat) (← nat) (K.ofBits (← hex)) (← nat)
   | "al" => return .alloc (← nat) (← nat)
   | "ad" => return .allocDyn (← nat) (← nat)
+  | "av" => return .allocAdvice (← nat) (← tok)
   | "aa" => do
     let ptr ← nat
     let sel ← nat

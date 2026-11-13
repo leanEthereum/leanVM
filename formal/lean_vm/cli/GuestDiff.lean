@@ -28,7 +28,7 @@ case it checks
 * (iii) that the public input is `statementDigest seed s`;
 * (ii) that the interpreter accepts the guest's core IR (`coreProgram`: the renumbered expansion
   of the source, which `guest-core --check` keeps equal to the data) on `main`, with the honest
-  streams and that public input, and consumes every stream.
+  streams and that public input, and consumes every stream but the advised `HeapBuf` sizes.
 
 It prints the first divergence of each check and exits with `1` if any check fails.
 -/
@@ -161,7 +161,8 @@ def smallLogs : Std.HashMap Nat Nat := Id.run do
     x := x * g
   return m
 
-/-- (ii): run `main` of the core IR; the error, or the streams left unread. -/
+/-- (ii): run `main` of the core IR; the error, or the streams left unread. The core IR allocates
+its buffers itself, so the advised sizes (`heapSizeStream`) are not its. -/
 def runGuest (program : Core.Program) (c : Case) (streams : Streams) (pi : List E) :
     Option String :=
   let tables := DlogTables.build
@@ -171,7 +172,7 @@ def runGuest (program : Core.Program) (c : Case) (streams : Streams) (pi : List 
     initMem := fun a => if a == gpowK 0 then pi[0]? else if a == gpowK 1 then pi[1]? else none
     logMem := c.logMemory
     dlog := dlogOf tables small
-    streams }
+    streams := streams.filter (·.1 != heapSizeStream) }
   match run cfg "main" [] with
   | .error e => some e
   | .ok (_, st) =>

@@ -53,7 +53,7 @@ Choice: the hybrid.
   - A call reserves the callee's `HeapBuf`s with its frame. The sizes are constants, or computed from the parameters at entry; the later hint then finds its pointer written and does nothing.
   - A dispatch sizes its frame by the selected arm.
   - The untaken call gets its whole frame.
-- **Three guest functions change** (`zeta` in `verify_sub`, `chain` in `claim_list_digest`, `roots` in `da_verify`). Their sizes come from a callee's return, so the allocation moves into a small callee.
+- **The late sizes are advice.** A buffer of `main`, `verify_sub`, `verify_tables`, `da_verify` or `claim_list_digest` sized only after a call (or reached only in a branch) is reserved before the first call by `AllocAdvice`, its size popped from the `heap_sizes` stream (an empty entry where the run allocates none, leaving the pointer unwritten as the model does), which the aggregator and `Hints.honestPushes` compute from the statement and witness; its own later hint then does nothing. The guest's bytecode is unchanged and never checks the sizes: a wrong one only fails the run.
 - **The model follows the Rust for loops**: a loop's frames, then each iteration's callees in forward order. Done: a subtree is placed at a frame and a cursor (`Memory/Alloc.lean`), a loop's iterations from one on are `RelAtInC`, `CompleteAtL`.
 
 The executor follows the hints whatever they are, so it changes with the Rust and stays its byte-for-byte mirror.

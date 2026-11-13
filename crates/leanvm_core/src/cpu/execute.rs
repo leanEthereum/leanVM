@@ -228,7 +228,8 @@ struct Stream<'a> {
 }
 
 impl<'a> Stream<'a> {
-    fn pop(&mut self, len: u32) -> Result<&'a [F128], Fault> {
+    /// The next entry, whatever its length.
+    fn next(&mut self) -> Result<&'a [F128], Fault> {
         let name = self.name;
         let entries = self
             .entries
@@ -240,14 +241,21 @@ impl<'a> Stream<'a> {
                 entries.len()
             ))
         })?;
+        self.next += 1;
+        Ok(entry)
+    }
+
+    /// The next entry, of `len` values.
+    fn pop(&mut self, len: u32) -> Result<&'a [F128], Fault> {
+        let entry = self.next()?;
         if entry.len() != len as usize {
             return Err(Fault::Witness(format!(
-                "witness `{name}` entry {} holds {} values, the destination {len}",
-                self.next,
+                "witness `{}` entry {} holds {} values, the destination {len}",
+                self.name,
+                self.next - 1,
                 entry.len()
             )));
         }
-        self.next += 1;
         Ok(entry)
     }
 }
@@ -318,7 +326,10 @@ impl Program {
             hint_lists.push((hs.as_slice(), hint_streams.len()));
             hint_at[hpc as usize] = hint_lists.len() as u32;
             for h in hs {
-                let (RHint::WitnessStack { name, .. } | RHint::WitnessHeap { name, .. }) = h else {
+                let (RHint::WitnessStack { name, .. }
+                | RHint::WitnessHeap { name, .. }
+                | RHint::AllocAdvice { stream: name, .. }) = h
+                else {
                     hint_streams.push(u32::MAX);
                     continue;
                 };
@@ -553,6 +564,7 @@ impl Program {
                         RHint::AllocFrames { .. } => "AllocFrames",
                         RHint::Alloc { .. } => "Alloc",
                         RHint::AllocDyn { .. } => "AllocDyn",
+                        RHint::AllocAdvice { .. } => "AllocAdvice",
                         RHint::AllocArm { .. } => "AllocArm",
                         RHint::CellAddress { .. } => "CellAddress",
                         RHint::WitnessStack { .. } => "WitnessStack",
@@ -576,9 +588,11 @@ impl Program {
                         }
                         // A fresh region: write its base `g^{next_free}` into the
                         // pointer cell (once) and reserve `size` cells. `AllocDyn`
-                        // and `AllocArm` read the size from a cell at runtime.
+                        // and `AllocArm` read the size from a cell at runtime,
+                        // `AllocAdvice` pops it from a stream.
                         RHint::Alloc { .. }
                         | RHint::AllocDyn { .. }
+                        | RHint::AllocAdvice { .. }
                         | RHint::AllocFrames { .. }
                         | RHint::AllocArm { .. } => {
                             let (ptr, size) = match *h {
@@ -613,6 +627,26 @@ impl Program {
                                     let cells = g.log(sz).ok_or_else(|| {
                                         fail(Fault::NotAGPower {
                                             what: "HeapBuf size",
+                                            value: sz,
+                                        })
+                                    })?;
+                                    (ptr, cells)
+                                }
+                                // An empty entry: the run allocates no buffer here.
+                                RHint::AllocAdvice { ptr, .. } => {
+                                    let sz = match streams[stream as usize].next().map_err(fail)? {
+                                        [] => continue,
+                                        &[size] => in_k("HeapBuf size advice", size).map_err(fail)?,
+                                        entry => {
+                                            return Err(fail(Fault::Witness(format!(
+                                                "a HeapBuf size advice holds {} values, not 0 or 1",
+                                                entry.len()
+                                            ))));
+                                        }
+                                    };
+                                    let cells = g.log(sz).ok_or_else(|| {
+                                        fail(Fault::NotAGPower {
+                                            what: "HeapBuf size advice",
                                             value: sz,
                                         })
                                     })?;

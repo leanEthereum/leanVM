@@ -132,6 +132,9 @@ inductive Hint where
   | alloc (ptr size : ℕ)
   /-- Reserve the exponent of `[fp + size]` cells, its base written to `fp + ptr`. -/
   | allocDyn (ptr size : ℕ)
+  /-- Reserve the exponent of `stream`'s next entry, one word, cells, its base written to
+  `fp + ptr`; nothing for an empty entry. -/
+  | allocAdvice (ptr : ℕ) (stream : String)
   /-- Reserve `sizes[k]` cells, `k` the exponent of `[fp + sel]`, its base written to
   `fp + ptr`: a dispatched call's frame, sized by the arm it selects. -/
   | allocArm (ptr sel : ℕ) (sizes : List ℕ)
@@ -388,6 +391,15 @@ def allocate (s : St) (ptr size : ℕ) : Except Fault St := do
   let s := { s with dl := .empty }
   pure { s with nextFree := next, dl := (dl.grow next).note base }
 
+/-- Pop stream `name`'s next entry, whatever its length (`Stream::next`). -/
+def popEntry (C : Ctx) (s : St) (name : String) : Except Fault (List E × St) := do
+  let some entries := C.streams[name]? | throw (.witness s!"no witness stream `{name}`")
+  let i := s.cursor.getD name 0
+  let some e := entries[i]? | throw (.witness s!"witness stream `{name}` exhausted")
+  let cursor := s.cursor
+  let s := { s with cursor := ∅ }
+  pure (e, { s with cursor := cursor.insert name (i + 1) })
+
 /-- Pop stream `name`'s next entry, of `len` words (`Stream::pop`). -/
 def pop (C : Ctx) (s : St) (name : String) (len : ℕ) : Except Fault (List E × St) := do
   let some entries := C.streams[name]? | throw (.witness s!"no witness stream `{name}`")
@@ -411,6 +423,14 @@ def runHint (C : Ctx) (s : St) : Hint → Except Fault St
     let sz ← inK "HeapBuf size" (s.mem.peek (s.fp + size))
     let (n, s) ← s.logOr sz maxCells (.notAGPower "HeapBuf size" sz)
     allocate s ptr n
+  | .allocAdvice ptr stream => do
+    match ← popEntry C s stream with
+    | ([], s) => pure s
+    | ([w], s) =>
+      let sz ← inK "HeapBuf size advice" w
+      let (n, s) ← s.logOr sz maxCells (.notAGPower "HeapBuf size advice" sz)
+      allocate s ptr n
+    | (v, _) => throw (.witness s!"a HeapBuf size advice holds {v.length} values, not 0 or 1")
   | .allocArm ptr sel sizes => do
     let x ← inK "dispatch selector" (s.mem.peek (s.fp + sel))
     let (k, s) ← s.logOr x maxCells (.notAGPower "dispatch selector" x)

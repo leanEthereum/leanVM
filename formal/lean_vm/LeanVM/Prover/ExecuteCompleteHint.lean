@@ -119,6 +119,17 @@ theorem pop_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {name : 
   simp only [h1, h2, hl, ne_eq, not_true_eq_false, ↓reduceIte]
   rfl
 
+theorem popEntry_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {name : String}
+    {e : List E} (h : StreamNext C s name e) :
+    ∃ s', popEntry C s name = .ok (e, s') ∧ Moves M s s' ∧ s'.mem = s.mem ∧
+      s'.nextFree = s.nextFree := by
+  obtain ⟨entries, h1, h2⟩ := h
+  refine ⟨{ s with cursor := s.cursor.insert name (s.cursor.getD name 0 + 1) }, ?_,
+    ⟨⟨hs.agree, hs.dl, hs.small, hs.fp⟩, Mem.le_refl _, rfl, rfl, rfl⟩, rfl, rfl⟩
+  unfold popEntry
+  simp only [h1, h2]
+  rfl
+
 /-- The word at `c` is `g^n`, with `n < 2^nbits`. -/
 def ExpAt (s : St) (c n nbits : ℕ) : Prop := s.mem.peek c = ofK (g ^ n) ∧ n < 2 ^ nbits
 
@@ -178,6 +189,8 @@ def HintOk (C : Ctx) (M : ℕ → E) (s : St) : Hint → Prop
   | .frameAddress offset => s.fp + offset < maxCells
   | .alloc ptr size => AllocOk M s ptr size
   | .allocDyn ptr size => ∃ n, PtrAt s (s.fp + size) n ∧ AllocOk M s ptr n
+  | .allocAdvice ptr stream => StreamNext C s stream [] ∨
+    ∃ n, StreamNext C s stream [ofK (g ^ n)] ∧ n < maxCells ∧ AllocOk M s ptr n
   | .allocArm ptr sel sizes => ∃ k n, PtrAt s (s.fp + sel) k ∧ sizes[k]? = some n ∧ AllocOk M s ptr n
   | .cellAddress ptr cell => s.fp + cell < maxCells ∧ s.fp + ptr < maxCells ∧
     M (s.fp + ptr) = ofK (g ^ (s.fp + cell))
@@ -240,6 +253,28 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     refine ⟨s', ?_, (Moves.dl hs h1 h2).trans hm⟩
     simp only [runHint]
     rw [hp.1, inK_ofK, ok_bind, e, ok_bind]
+    exact e'
+  | allocAdvice ptr stream =>
+    rcases hh with hn | ⟨n, hn, hlt, ha⟩
+    · obtain ⟨s1, e1, m1, -⟩ := popEntry_complete hs hn
+      refine ⟨s1, ?_, m1⟩
+      simp only [runHint]
+      rw [e1, ok_bind]
+      rfl
+    obtain ⟨s1, e1, m1, hmem, hnf⟩ := popEntry_complete hs hn
+    obtain ⟨D', e, h1, h2⟩ := St.logOr_complete m1.fine.dl m1.fine.small
+      (f := .notAGPower "HeapBuf size advice" (g ^ n)) hlt (by unfold maxCells; norm_num)
+    obtain ⟨s', e', hm⟩ := allocate_complete (Moves.dl m1.fine h1 h2).fine
+      (s := { s1 with dl := D' }) (by
+        unfold AllocOk at ha ⊢
+        dsimp only
+        rw [hmem, hnf, m1.fp]
+        exact ha)
+    refine ⟨s', ?_, m1.trans ((Moves.dl m1.fine h1 h2).trans hm)⟩
+    simp only [runHint]
+    rw [e1, ok_bind]
+    dsimp only
+    rw [inK_ofK, ok_bind, e, ok_bind]
     exact e'
   | allocArm ptr sel sizes =>
     obtain ⟨k, n, hp, hk, ha⟩ := hh

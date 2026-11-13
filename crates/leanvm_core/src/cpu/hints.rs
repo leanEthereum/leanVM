@@ -281,6 +281,11 @@ pub enum RHint {
     /// `Alloc` with the cell count read at runtime as the g-power exponent of
     /// `m[fp+size]`.
     AllocDyn { ptr: Off, size: Off },
+    /// `Alloc` with the cell count advice: the exponent of stream `stream`'s next entry, one word
+    /// `g^size`, or nothing for an empty entry, the pointer left unwritten. A `HeapBuf` the
+    /// compiler reserves before its size is computed or a branch reaches it; a wrong size only
+    /// makes the run fail.
+    AllocAdvice { ptr: Off, stream: String },
     /// `Alloc` of `sizes[k]` cells, where `m[fp+sel] = g^k`: a dispatched call's frame, sized
     /// by the arm it selects.
     AllocArm { ptr: Off, sel: Off, sizes: Vec<u32> },
@@ -368,6 +373,7 @@ impl super::Program {
                         }
                         RHint::Alloc { ptr, size } => format!("al {ptr} {size}"),
                         RHint::AllocDyn { ptr, size } => format!("ad {ptr} {size}"),
+                        RHint::AllocAdvice { ptr, stream } => format!("av {ptr} {stream}"),
                         RHint::AllocArm { ptr, sel, sizes } => {
                             let sizes: Vec<String> = sizes.iter().map(u32::to_string).collect();
                             format!("aa {ptr} {sel} {} {}", sizes.len(), sizes.join(" "))
