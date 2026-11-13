@@ -45,7 +45,7 @@ theorem krVbg_ratio : (krVbgJ).all (krRatioAt krVbgA) = true :=
 theorem krVbg_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E),
     t.name = "verify_bus_gkr" → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       1000 * t.weight (ωArm xmssArmC op) ≤ krVbgA op * t.total fs :=
-  fun _ _ _ _ hn hv _ => kr_weight krVbg_closed krVbg_ratio (by decide +kernel)
+  fun _ _ _ _ hn hv _ => kr_weight krVbg_closed krVbg_ratio (x := 36) (by decide +kernel) (by decide +kernel)
     ⟨9, by decide +kernel, by decide +kernel⟩ op hn hv
 
 theorem krVk_closed : (krVkJ).all (krClosedAt krVkJ krVkC) = true :=
@@ -58,7 +58,7 @@ theorem krVk_ratio : (krVkJ).all (krRatioAt krVkA) = true :=
 theorem krVk_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E),
     t.name = "verify_keccak" → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       1000 * t.weight (ωArm xmssArmC op) ≤ krVkA op * t.total fs :=
-  fun _ _ _ _ hn hv _ => kr_weight krVk_closed krVk_ratio (by decide +kernel)
+  fun _ _ _ _ hn hv _ => kr_weight krVk_closed krVk_ratio (x := 36) (by decide +kernel) (by decide +kernel)
     ⟨12, by decide +kernel, by decide +kernel⟩ op hn hv
 
 theorem krVl15_closed : (krVl15J).all (krClosedAt krVl15J krVl15C) = true :=
@@ -71,8 +71,8 @@ theorem krVl15_ratio : (krVl15J).all (krRatioAt krVl15A) = true :=
 theorem krVl15_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E),
     t.name = "__loop14" → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       1000 * t.weight (ωArm xmssArmC op) ≤ krVl15A op * t.total fs :=
-  fun _ _ _ _ hn hv _ => kr_weight krVl15_closed krVl15_ratio (by decide +kernel)
-    ⟨272, by decide +kernel, by decide +kernel⟩ op hn hv
+  fun _ _ _ _ hn hv _ => kr_weight krVl15_closed krVl15_ratio (x := 36) (by decide +kernel) (by decide +kernel)
+    ⟨273, by decide +kernel, by decide +kernel⟩ op hn hv
 
 theorem krVrsw_closed : (krVrswJ).all (krClosedAt krVrswJ krVrswC) = true :=
   krVrsw_closed0
@@ -84,7 +84,7 @@ theorem krVrsw_ratio : (krVrswJ).all (krRatioAt krVrswA) = true :=
 theorem krVrsw_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E),
     t.name = "ring_switch_weight" → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       1000 * t.weight (ωArm xmssArmC op) ≤ krVrswA op * t.total fs :=
-  fun _ _ _ _ hn hv _ => kr_weight krVrsw_closed krVrsw_ratio (by decide +kernel)
+  fun _ _ _ _ hn hv _ => kr_weight krVrsw_closed krVrsw_ratio (x := 36) (by decide +kernel) (by decide +kernel)
     ⟨14, by decide +kernel, by decide +kernel⟩ op hn hv
 
 end

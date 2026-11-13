@@ -4,8 +4,8 @@
 %  A symbol means the same thing in the main matter and in the annexes.
 %  Where the source notes were merged, the annexes were adapted to the
 %  main matter, and where a letter was already taken the annex object was
-%  given a free symbol through the semantic macros below.  The map back to
-%  the notation of the cited papers is in Annex \ref{annex:pcs}, "Symbols".
+%  given a free symbol through the semantic macros below.  Where an Annex B
+%  letter differs from CWYZ26's, its comment below names the paper's letter.
 %
 %  Multilinear extensions are written \widetilde{\cdot} throughout
 %  (\mle below).  The hat is reserved for the normalized subspace
@@ -16,7 +16,7 @@
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\Ftwo}{\mathbb{F}_2}
 \newcommand{\K}{K}            % F_{2^64}:  addresses, counters, committed lanes
-\newcommand{\E}{E}            % F_{2^192} = K[y]/(y^3+y+1): words and challenges
+\newcommand{\E}{E}            % F_{2^128} = K[y]/(y^2+xy+1): words and challenges
 \newcommand{\gen}{\mathsf{g}} % generator of K^*, order 2^64 - 1
 \newcommand{\one}{\mathds{1}}       % the unit of K
 
@@ -39,9 +39,6 @@
 \newcommand{\along}[2]{#1^{\rightarrow #2}}   % the position #2 columns along from #1 [along]
 \newcommand{\klin}{\mathsf{lin}}              % a round's linear map: theta, rho, pi [linear]
 \newcommand{\krc}{\mathsf{RC}}                % a round constant, as 64 bits
-\newcommand{\koff}[1]{\mathsf{off}_{#1}}      % rho's rotation offset of lane #1
-\newcommand{\kto}[1]{\mathsf{to}(#1)}         % the lane pi moves lane #1 to
-\newcommand{\krot}{\mathsf{rot}}              % rotation sum of two slice tables [shifts]
 \newcommand{\kemb}{\mathsf{emb}}              % the embedding of sixteen bits [embed]
 \newcommand{\kproj}{\mathsf{proj}}            % its projection of a product [project]
 \newcommand{\kw}{\sigma}                      % instance weights of a claim [mu]
@@ -50,14 +47,13 @@
 \newcommand{\kpt}{\upsilon}                   % the point the embeddings are evaluated at [s]
 \newcommand{\kev}{\mathsf{v}}                 % the three evaluations closing a layer [t]
 \newcommand{\kbeta}{\vartheta}                % their batching challenge [beta]
-\newcommand{\kperm}{t}                        % a permutation, a row of the KECCAK table: one step [step]
+\newcommand{\kperm}{\mathsf{t}}                      % a permutation, a row of the KECCAK table: one step [step]
 \newcommand{\ain}{a_{\mathrm{in}}}             % the bits entering chi, in the one-layer example
 \newcommand{\aout}{a_{\mathrm{out}}}           % and those leaving it
 \newcommand{\kin}[1]{\mathsf{in}_{#1}}        % the KECCAK table's input lane #1, slot #1 of \qkeccak
 \newcommand{\kout}[1]{\mathsf{out}_{#1}}      % the KECCAK table's output lane #1, a virtual column
 \newcommand{\koutv}[1]{\mathsf{out}^{*}_{#1}} % the claimed value on it the reduction starts from [OutputClaim::lanes]
 \newcommand{\kmid}[1]{\mathsf{mid}_{#1}}   % segment 0's output lane #1, as a word (the VM's middle state)
-\newcommand{\kpair}{\Gamma}                  % a factored vector paired with a claim's position weights in the recursion
 
 % ---------- VM ----------
 \newcommand{\loc}[1]{\mem[\fp\cdot #1]}
@@ -113,26 +109,28 @@
 \newcommand{\nlev}{\Lambda}              % number of levels            (was r)
 \newcommand{\rate}{\rho}                 % code rate, the convention
 \newcommand{\rexp}{\nu}                  % rate exponent, rate = 2^-nu  (was R)
-\newcommand{\rad}{\gamma}                % proximity radius, the convention
-\newcommand{\slack}{\eta}                % Johnson slack, the convention
-\newcommand{\mcapar}{\theta}            % MCA parameter, the convention
-\newcommand{\dmin}{\delta_{\min}}        % relative minimum distance   (was delta)
 \newcommand{\rc}[1]{c^{(#1)}}            % round-#1 running claim      (was sigma_j)
 \newcommand{\nq}{\omega}                 % query count                 (was t_i)
-\newcommand{\qset}{\mathcal{Q}}          % sampled column indices      (was J_i)
 \newcommand{\blen}{n}                    % code block length, the convention
 \newcommand{\dom}{\mathcal{D}}           % evaluation domain           (was S)
 \newcommand{\orc}{Z}                     % oracle / interleaved word   (was C)
 \newcommand{\nrows}{N_{\mathrm{rows}}}    % committed rows of the level-0 oracle (R is the bus root)
 \newcommand{\nstack}{N_{\mathrm{stack}}}  % field elements placed in the stack, before the zero padding
-\newcommand{\lst}{\mathcal{L}}           % list of nearby codewords    (was Lambda)
-\newcommand{\ffinal}{f^{\ast}}           % final plaintext table       (was p)
-\newcommand{\cood}{c_{\mathrm{ood}}}     % out-of-domain answer        (was y)
-\newcommand{\mcanum}{A_{\mathrm{mca}}}   % MCA error numerator         (was a)
-\newcommand{\mcanumi}[1]{A_{\mathrm{mca},#1}}  % ... at level #1
-\newcommand{\polyset}{\mathcal{G}}       % polynomials bound by a commitment
-\newcommand{\relopen}{\mathsf{R}_{\mathrm{open}}}
-\newcommand{\aset}{\mathcal{A}}          % Johnson agreement set       (was A_j)
+\newcommand{\lst}{\mathcal{L}}           % list of nearby polynomial tuples
+\newcommand{\cood}[1]{c_{\mathrm{ood},#1}} % out-of-domain answer at point #1 (was y)
+\newcommand{\aset}{\mathcal{A}}          % an agreement set
+\newcommand{\agr}{t}                     % an agreement, a number of points (A in CWYZ26)
+\newcommand{\dgr}{\mathsf{d}}            % a degree bound of a fold round (d in CWYZ26)
+\newcommand{\jl}{\mathsf{L}}             % the Johnson count L(t, d) of Theorem thm:johnson-general
+\newcommand{\afa}{\mathsf{a}}            % the affine combiner's constant coefficient (alpha in CWYZ26)
+\newcommand{\afb}{\mathsf{b}}            % its coefficient of X (beta in CWYZ26)
+\newcommand{\tabx}[1]{v^{X}_{#1}}        % a table value on X times the lane F
+\newcommand{\phigh}{\mathbf{h}}          % the high coefficients of a folded lane, sent in the clear
+\newcommand{\epsaff}{\varepsilon_{\mathrm{aff}}}  % the affine MCA error
+\newcommand{\imul}{\mathsf{m}}           % interpolation multiplicity  (m in CWYZ26)
+\newcommand{\iyz}{\mathsf{D}}            % its (Y,Z)-degree bound      (D in CWYZ26)
+\newcommand{\iz}{\mathsf{M}}             % its Z-degree bound          (M in CWYZ26)
+\newcommand{\ithr}{\mathsf{T}}           % the persistence threshold   (B in CWYZ26)
 
 % ---------- novel basis and additive NTT (Annex D) ----------
 \newcommand{\subsp}{\mathcal{U}}         % F_2-subspace                (was U_i)
@@ -142,6 +140,7 @@
 \newcommand{\ntmap}{\psi}                % linearized NTT map          (was q_d)
 \newcommand{\bfarr}{\mathsf{B}}          % NTT butterfly array         (was B)
 \newcommand{\mpoly}{\mathcal{P}}         % message polynomial          (was P_u)
+\newcommand{\nbc}{\varpi}                % q_d = X(X+1)/varpi_d  (a_i in the code)
 
 % ---------- data availability (\S\ref{sec:leanda}) ----------
 % The code itself reuses the PCS letters: k = message dimension, n = block
@@ -158,4 +157,3 @@
 \newcommand{\pair}{\Omega}               % error pairing values        (was V_k)
 \newcommand{\supp}{\mathcal{S}}          % support of \Phimap          (was S)
 \newcommand{\nkeccak}{\kappa_{\keccak}}     % variables of the packed bit witness \qkeccak (was m, L)
-\newcommand{\fcoord}{\mathsf{a}}          % an F_2 coordinate function  (was A_w)

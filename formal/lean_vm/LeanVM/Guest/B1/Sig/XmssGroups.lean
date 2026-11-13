@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.XmssGroups
 
   leanXMSS's codeword digits, dispatched four at a time (`verify_lean_xmss`, `walk_group`,
-  `lean_ethereum.py:3574-3588, 3691-3711`): fourteen groups of four and a group of the last two,
+  `lean_ethereum.py:3538-3552, 3655-3675`): fourteen groups of four and a group of the last two,
   their digit sums and their encoding.
 -/
 
@@ -183,7 +183,7 @@ theorem lx_enc_step (K : Nat → Nat) {p : Nat} (hp : p < 15) :
   obtain ⟨c, hc⟩ := hd
   rw [lit_eq _ (by have := h120 p (by omega); omega), lit_eq _ ht,
     lit_eq _ (by have := h120 (p + 1) (by omega); omega), Finset.sum_range_succ, hc,
-    eOfNat192_add_shift hs]
+    eOfNat128_add_shift hs]
 
 end
 end LeanVM.Guest.B1.Sig

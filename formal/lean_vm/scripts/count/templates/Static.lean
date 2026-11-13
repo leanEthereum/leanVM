@@ -8,19 +8,14 @@
 
 module
 
-public import LeanVM.Guest.Memory.GuestCntX
-public import LeanVM.Guest.Memory.GuestCntM
-public import LeanVM.Guest.Memory.GuestCntS
-public import LeanVM.Guest.Memory.GuestCntD
-public import LeanVM.Guest.Memory.GuestCntJ
-public import LeanVM.Guest.Memory.GuestCntK
+public import LeanVM.Guest.Memory.GuestCnt
 public import LeanVM.Guest.Memory.GuestWords
 public import LeanVM.Guest.Memory.LoopPre
 
 /-!
 # `main`'s static callees' counts and words
 
-From the certificates counting each opcode's instructions (`Memory/GuestCnt*`): constants for
+From the certificates counting each opcode's instructions (`Memory/GuestCnt`): constants for
 `exponent_tables` and `statement_digest`, per iteration for the loops `__loop0`..`__loop3` from
 `g^a` to `g^e`
 (`e - a` iterations, `LoopWeightLe`), and affine in `n` for `aggregate_claims` on `g^n`
@@ -90,28 +85,16 @@ theorem LoopTotalLe.totalLeOn {fs : String → ℕ} {f : String} {K : ℕ} (h : 
 
 /-! ## Any certified function, by its certificate -/
 
-/-- The certificates counting `op`'s instructions (`Memory/GuestCnt*`). -/
-noncomputable def kcCert : Opcode → String → Cert
-  | .xor => kwxcertOf
-  | .mulNative => kwmcertOf
-  | .setConstant => kwscertOf
-  | .deref => kwdcertOf
-  | .jump => kwjcertOf
-  | .keccak => kwkcertOf
+/-- The certificates counting `op`'s instructions (`Memory/GuestCnt`). -/
+noncomputable def kcCert (op : Opcode) : String → Cert := cntCert op
 
 /-- **The certificates counting `op`'s instructions check** at `B2C.ωArm B2C.xmssArmC op`. -/
 theorem kc_checked (op : Opcode) :
-    Checked coreProgram false (kcCert op) (B2C.ωArm B2C.xmssArmC op) := by
-  cases op
-  · exact kwx_checked
-  · exact kwm_checked
-  · exact kws_checked
-  · exact kwd_checked
-  · exact kwj_checked
-  · exact kwk_checked
+    Checked coreProgram false (kcCert op) (B2C.ωArm B2C.xmssArmC op) :=
+  cnt_checked op
 
 /-- A function with a constant certificate counting `op`'s instructions (read it by
-`kw<p>certOf_of_idx` and `rfl`). -/
+`cntCert_idx` and `rfl`). -/
 theorem kc_weightLe_of {op : Opcode} {f : String} {B : ℕ} {ks : List (V × ℕ)}
     (hcf : kcCert op f = .stat [] ⟨B, []⟩ ks) :
     WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) f fun _ => B :=

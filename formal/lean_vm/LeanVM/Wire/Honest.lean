@@ -5,8 +5,12 @@
   proved with, so the round trip (`LeanVM.Wire.roundTrip`) applies to them.
 -/
 
-import LeanVM.Prover.Assemble
-import LeanVM.Wire.HonestRun
+module
+
+public import LeanVM.Prover.Assemble
+public import LeanVM.Wire.HonestRun
+
+@[expose] public section
 
 /-!
 # The honest prover's proofs are decodable
@@ -21,7 +25,7 @@ shaped (`Strategy.AcceptsFrom`), and the verifier program's openings are within 
 `proveFrom_stream_le`):
 
 * `proveWithHash_wireDecodable`: a proof of `Prover.proveWithHash (m := Id) h F` is
-  `WireDecodable h`: its stream is at most `leanVmCost = 50689` elements, at most
+  `WireDecodable h`: its stream is at most `leanVmCost = 54825` elements, at most
   `wireMaxPhases` phases, each the openings of one tree over `h` within the bounds.
 
 The pruning idea and its formalization on leanerVM's main branch are scaraven's
@@ -32,7 +36,7 @@ namespace LeanVM.Wire
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.LeanIsa
-open LeanVM.Protocol.EndToEnd.Complete LeanVM.Protocol.KeccakHash LeanVM.Guest.Child
+open LeanVM.Protocol.EndToEnd.Complete LeanVM.Protocol.KeccakHash
 open LeanVM.Prover (proveWithHash witness? witness?_spec isSome_witness?_iff corr_honestScript
   runScript_corr runScript_eq_proveM traceSizes traceWitness childFor_trace)
 
@@ -142,7 +146,7 @@ theorem prove_wireDecodable (h1 : ∀ chal, runI P S chal = some true)
   obtain ⟨hlen, hph⟩ := proveFrom_phases h F S fuel _ _ [] wireMaxPhases hacc
     (by simp [commits]) hw hpf
   have hxs := proveFrom_stream_le h F S fuel _ _ [] _ hc hpf
-  have hcost : leanVmCost = 50689 := by decide
+  have hcost : leanVmCost = 54825 := by decide
   refine ⟨lt_of_le_of_lt (hcost ▸ hxs) (by norm_num), hlen, fun phase hphase ↦ ?_⟩
   obtain ⟨ht, w, word, ps, rfl, hws, hne, hql, hht, hwl, hps⟩ := hph phase hphase
   exact ⟨ht, w, phaseDecodable_openingAt hws hne hql hht hwl hps⟩
@@ -163,3 +167,5 @@ theorem proveWithHash_wireDecodable {h : Bytes → Digest} {F : KeccakState → 
     cases hp
 
 end LeanVM.Wire
+
+end

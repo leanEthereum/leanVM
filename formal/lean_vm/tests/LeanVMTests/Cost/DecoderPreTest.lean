@@ -1,4 +1,5 @@
 import LeanVM.Cost.Decoder.PreTable
+import LeanVMTests.Runs
 
 /-!
 # Tests: the decoder's compiled precondition test on small inputs
@@ -6,7 +7,8 @@ import LeanVM.Cost.Decoder.PreTable
 `preTestAtC` run on a small memory (the word at `g^i` is `g^(i+1)`, `i < 64`), a small table of
 preconditions and the logarithm's tables (`discreteLogTables`, passed in as a value), its output
 the Lean function's value: an entry environment's check, a bound and a memory bound, each holding
-or not, and the functions without a precondition (`none`) or outside `2 … 1803`.
+or not, and the functions without a precondition (`none`) or outside `2 … 1803`. Runs, compiled
+(`lake exe test-runs`): each pays seconds in the interpreter.
 -/
 
 namespace LeanVMTests.Cost.DecoderPreTest
@@ -39,18 +41,19 @@ def check (j : ℕ) (fp : K) : Bool :=
       encodeValue j, encodeValue fp] ==
     some (encodeValue (preTestAt D smallTable genPows smallReader j fp))
 
-#guard preTestAt D smallTable genPows smallReader 2 1 && check 2 1
-#guard !preTestAt D smallTable genPows smallReader 3 1 && check 3 1
-#guard !preTestAt D smallTable genPows smallReader 4 1 && check 4 1
-#guard preTestAt D smallTable genPows smallReader 5 1 && check 5 1
-#guard !preTestAt D smallTable genPows smallReader 6 1 && check 6 1
-#guard preTestAt D smallTable genPows smallReader 7 1 && check 7 1
-#guard !preTestAt D smallTable genPows smallReader 1 1 && check 1 1
-#guard preTestAt D smallTable genPows smallReader 2 (addressOfIndex 0) && check 2 (addressOfIndex 0)
-#guard !preTestAt D smallTable genPows smallReader 2 (addressOfIndex 1) && check 2
-    (addressOfIndex 1)
-
--- The powers table, compiled: `gen^(2^j)`, `j < 34`, by squarings.
-#guard runOn genPowsC.costDeps genPowsC.costIdx [] == some (encodeValue genPows)
+test_runs runs := [
+  ("j = 2, fp = 1: holds", fun _ ↦ preTestAt D smallTable genPows smallReader 2 1 && check 2 1),
+  ("j = 3, fp = 1: fails", fun _ ↦ !preTestAt D smallTable genPows smallReader 3 1 && check 3 1),
+  ("j = 4, fp = 1: fails", fun _ ↦ !preTestAt D smallTable genPows smallReader 4 1 && check 4 1),
+  ("j = 5, fp = 1: holds", fun _ ↦ preTestAt D smallTable genPows smallReader 5 1 && check 5 1),
+  ("j = 6, fp = 1: fails", fun _ ↦ !preTestAt D smallTable genPows smallReader 6 1 && check 6 1),
+  ("j = 7, fp = 1: holds", fun _ ↦ preTestAt D smallTable genPows smallReader 7 1 && check 7 1),
+  ("j = 1, fp = 1: fails", fun _ ↦ !preTestAt D smallTable genPows smallReader 1 1 && check 1 1),
+  ("j = 2, fp = g^0: holds", fun _ ↦
+    preTestAt D smallTable genPows smallReader 2 (addressOfIndex 0) && check 2 (addressOfIndex 0)),
+  ("j = 2, fp = g^1: fails", fun _ ↦
+    !preTestAt D smallTable genPows smallReader 2 (addressOfIndex 1) && check 2 (addressOfIndex 1)),
+  -- The powers table, compiled: `gen^(2^j)`, `j < 34`, by squarings.
+  ("genPowsC", fun _ ↦ runOn genPowsC.costDeps genPowsC.costIdx [] == some (encodeValue genPows))]
 
 end LeanVMTests.Cost.DecoderPreTest

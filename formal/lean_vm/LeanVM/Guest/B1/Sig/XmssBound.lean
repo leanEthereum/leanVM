@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssBound
 
-  The range bound of `__loop2`'s 8-bit dispatches is `g^255`.
+  The range bound of `main_loop2`'s 8-bit dispatches is `g^255`.
 -/
 
 module

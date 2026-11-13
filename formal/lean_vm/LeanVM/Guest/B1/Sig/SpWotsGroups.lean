@@ -48,10 +48,6 @@ theorem spW_atoms : StepAtoms spW := by
   simp only [spW, spWp]
   split <;> rfl
 
-theorem spArmK_atoms (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k b : Nat) :
-    atomsOnly (spArmK first n fold B prodIn encIn k b).1 = true :=
-  armT_atoms spW_atoms _ _ _ _ _ _ _ _ _ _
-
 theorem spPre_atoms (fold : Bool) (B : Nat) : atomsOnly (spPre fold B) = true := by
   cases fold <;> rfl
 
@@ -73,8 +69,6 @@ def SpGroupOK (rd : Reader) (σ : Val) (p : Nat) : Prop :=
       (spArmB (3 * p) (spN p) (p == 0) (spState p).2.2 (spState p).1 (spState p).2.1 k)).1
 
 theorem spN_of_lt {p : Nat} (hp : p < 21) : spN p = 3 := by simp [spN, hp]
-
-theorem spN_pos (p : Nat) : 0 < spN p := by unfold spN; split <;> omega
 
 theorem spN_le (p : Nat) : spN p ≤ 3 := by unfold spN; split <;> omega
 
@@ -259,7 +253,7 @@ theorem spCodeword_enc (K : Nat → Nat) (encV : Nat → E)
     (henc0 : encV 0 = lit (spDigitsC 0 3 (K 0)))
     (henc : ∀ p < 21, encV (p + 1) =
       encV p + lit (spDigitsC (3 * (p + 1)) (spN (p + 1)) (K (p + 1)))) :
-    encV 21 = Value.eOfNat192 (spX (fun i => K (i / 3) / 4 ^ (i % 3) % 4) 64) := by
+    encV 21 = Value.eOfNat128 (spX (fun i => K (i / 3) / 4 ^ (i % 3) % 4) 64) := by
   set d : Nat → Nat := fun i => K (i / 3) / 4 ^ (i % 3) % 4 with hdd
   have hd : ∀ j, d j < 4 := fun j => Nat.mod_lt _ (by norm_num)
   have hdg : ∀ p, ∀ r < 3, d (3 * p + r) = K p / 4 ^ r % 4 := fun p r hr => by
@@ -274,7 +268,7 @@ theorem spCodeword_enc (K : Nat → Nat) (encV : Nat → E)
     exact foldr_xor_lt _ fun x hx => by
       obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hx
       exact spField_lt (hd _) (by simp at hr; omega)
-  have hrun : ∀ p ≤ 21, encV p = Value.eOfNat192 (spX d (3 * p + spN p)) := by
+  have hrun : ∀ p ≤ 21, encV p = Value.eOfNat128 (spX d (3 * p + spN p)) := by
     intro p hp
     induction p with
     | zero =>
@@ -284,7 +278,7 @@ theorem spCodeword_enc (K : Nat → Nat) (encV : Nat → E)
     | succ p ih =>
         have hn := spN_le (p + 1)
         rw [henc p (by omega), ih (by omega), spN_of_lt (show p < 21 by omega),
-          lit_eq _ (hlt (p + 1) _ hn (by unfold spN; split <;> omega)), ← Value.eOfNat192_xor,
+          lit_eq _ (hlt (p + 1) _ hn (by unfold spN; split <;> omega)), ← Value.eOfNat128_xor,
           hgrp (p + 1) _ hn, spX_add d (3 * (p + 1)) (spN (p + 1)),
           show 3 * p + 3 = 3 * (p + 1) by ring]
   rw [hrun 21 le_rfl]

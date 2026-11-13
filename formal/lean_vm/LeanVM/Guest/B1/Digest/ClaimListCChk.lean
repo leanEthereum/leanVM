@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimListCChk
 
-  `claim_list_digest`'s branches and its group loop `__loop16`, evaluated (by kernel evaluation), for its
-  completeness.
+  `claim_list_digest`'s branches and its group loop `claim_list_digest_loop1`, evaluated (by kernel
+  evaluation), for its completeness.
 -/
 
 module
@@ -10,16 +10,16 @@ module
 public import LeanVM.Guest.B1.Digest.ClaimList
 public import LeanVM.Guest.B1.Digest.LoopComplete
 public import LeanVM.Guest.B1.Fwd.Canon
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `claim_list_digest`, evaluated
 
-`grpcOk`: a frame loop's block (`__loop16` here, the big `__loop15` in `ClaimListCBig`) evaluates
-in order (`Fwd.chk`), its atoms are `loopAtoms`, its stores write the chain's last state at `.n 9`
-from offset `13`, the chain's inputs are canonical from the state and the cells it loads, its
-other side conditions are those loads. `clBrOk`: each branch of
-`claim_list_digest`, its values padded by hints up to the final copies (`fillH`), evaluates in
-order; the nonempty branch's stores are the zero state's, its other atoms need nothing.
+`grpcOk`: a frame loop's block (`claim_list_digest_loop1` here, the big `claim_list_digest_loop0` in
+`ClaimListCBig`) evaluates in order (`Fwd.chk`), its atoms are `loopAtoms`, its stores write the
+chain's last state at `.n 9` from offset `13`, its side conditions are its loads. `clBrOk`: each
+branch of `claim_list_digest`, its values padded by hints up to the final copies (`fillH`),
+evaluates in order; the nonempty branch's stores are the zero state's, its other atoms need nothing.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -55,20 +55,17 @@ theorem atomsEqbL_sound : ∀ {xs ys : List Atom}, atomsEqbL xs ys = true → xs
 /-- Hints defining the values `.n c`, …, `.n (m - 1)`. -/
 def fillH (c m : ℕ) : List Stmt := (List.range (m - c)).map fun i => .atom (.hint (.alloc (.n (c + i)) 0))
 
-/-- **`claim_list_last__L{k}`, evaluated**: in order, no store, the chain's inputs canonical from
-the state and the cells it loads, its side conditions those loads. -/
+/-- **`claim_list_last__L{k}`, evaluated**: in order, no store, its side conditions its loads. -/
 def clcOk (k : ℕ) (f : Fn) : Bool :=
   (chk 2 f.body).isSome && (storesOf 2 f.body).isEmpty &&
   match splitBody f.body with
   | some (atoms, _) =>
-    canonChk ((clSt k).map V.idx ++ (List.range (4 * k)).map (· + 2)) atoms &&
-      atoms.all (fun a => !needsSide a || isLoadBelow 0 13 a || isLoadBelow 1 (4 * k) a)
+    atoms.all (fun a => !needsSide a || isLoadBelow 0 13 a || isLoadBelow 1 (4 * k) a)
   | none => false
 
 /-- **A frame loop of `m` claims, evaluated** (`grpOk`'s loop): in order, its atoms `loopAtoms`, its
-stores the next state's cells at `.n 9` from offset `13`, the chain's inputs canonical from the
-state and the cells it loads (`.n c0 …` through `.n ep`), its offsets and pointers products of pure
-atoms. -/
+stores the next state's cells at `.n 9` from offset `13`, its other side conditions the loads of the
+state and the cells (`.n c0 …` through `.n ep`), its offsets and pointers products of pure atoms. -/
 def grpcOk (fn : Fn) (f : String) (m c0 st0 ep : ℕ) : Bool :=
   let A := loopAtoms fn
   let S := storesOf 4 fn.body
@@ -77,7 +74,6 @@ def grpcOk (fn : Fn) (f : String) (m c0 st0 ep : ℕ) : Bool :=
   atomsEqbL (atomsIn (loopPre fn)) A &&
   S.all (fun a => (List.range 13).any fun c =>
     atomEqb a (.load ((grpSpec m c0 st0 A).outV ((grpSpec m c0 st0 A).nb - 1) c) (.n 9) (13 + c))) &&
-  canonChk ((grpSt st0).map V.idx ++ (List.range (4 * m)).map (· + c0)) F &&
   A.all (fun a => !needsSide a || decide (a ∈ S) || isLoadBelow 9 13 a || isLoadBelow ep (4 * m) a) &&
   stLoadsOk F (.n 9) (grpSt st0) 0 &&
   monoIs (A.filter pureB) (.n 9) (.n 2) (.n 0) 13 && monoIs (A.filter pureB) (.n ep) (.n 3) (.n 0) (4 * m)
@@ -86,7 +82,7 @@ def grpcOk (fn : Fn) (f : String) (m c0 st0 ep : ℕ) : Bool :=
 noncomputable def clElsePre : List Stmt := cl23Else.dropLast.dropLast
 
 /-- The head of `claim_list_digest`'s body. -/
-def clHead : List Stmt := [.atom (.const (.n 2) (word 1 0 0)), .atom (.add (.n 3) (.n 1) (.n 2))]
+def clHead : List Stmt := [.atom (.const (.n 2) (word 1 0)), .atom (.add (.n 3) (.n 1) (.n 2))]
 
 /-- The final copies of `claim_list_digest`. -/
 def clTail : List Stmt := [.atom (.copy (.n 76) (.n 10)), .atom (.copy (.n 77) (.n 11))]
@@ -103,10 +99,10 @@ noncomputable def clEEval : List Stmt := clHead ++ fillH 4 12 ++ clElsePre ++ cl
 def clSplitS : Stmt := .call "list_split" [.n 1] [.n 12, .n 13, .n 14]
 
 /-- The big frames' loop call. -/
-def clBigS : Stmt := .callIf (.n 38) "__loop15" [.n 39, .n 12, .n 23, .n 0]
+def clBigS : Stmt := .callIf (.n 38) name% «claim_list_digest_loop0» [.n 39, .n 12, .n 23, .n 0]
 
 /-- The groups' loop call. -/
-def clGrpS : Stmt := .callIf (.n 58) "__loop16" [.n 59, .n 13, .n 45, .n 56]
+def clGrpS : Stmt := .callIf (.n 58) name% «claim_list_digest_loop1» [.n 59, .n 13, .n 45, .n 56]
 
 /-- The dispatch on the rest. -/
 def clDispS : Stmt := .dispatch (.n 14) clNames [.n 65, .n 73] [.n 74, .n 75]
@@ -118,7 +114,6 @@ noncomputable def clBrOk : Bool :=
   (chk 2 clEEval).isSome &&
   SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n (24 + c)) (.n 23) c)) &&
   (atomsIn clEEval).all (fun a => !needsSide a || decide (a ∈ SE)) &&
-  canonChk [] ((atomsIn clEEval).filter fun a => decide (a ∉ SE)) &&
   clElsePre.all (fun s => isAtomS s || stmtEqb s clSplitS || stmtEqb s clBigS || stmtEqb s clGrpS ||
     stmtEqb s clDispS) &&
   clElsePre.any (stmtEqb · clSplitS) && clElsePre.any (stmtEqb · clBigS) &&
@@ -127,22 +122,25 @@ noncomputable def clBrOk : Bool :=
   (atomsIn clElsePre).any (fun a => match a with
     | .hint (.allocDyn d _) => decide (d = .n 23)
     | _ => false) &&
-  (chk 2 clZEval).isSome && (storesOf 2 clZEval).isEmpty && canonChk [] (atomsIn clZEval) &&
+  (chk 2 clZEval).isSome && (storesOf 2 clZEval).isEmpty &&
   (atomsIn clZEval).all (fun a => !needsSide a) && cl23Zero.all isAtomS
 
 set_option maxRecDepth 100000 in
 theorem clbr_ok : clBrOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grpc_ok : grpcOk (coreProgram.getD 318 default) "__loop16" 17 18 86 17 = true := by
+theorem grpc_ok : grpcOk (coreProgram.getD idx% «claim_list_digest_loop1» default)
+    name% «claim_list_digest_loop1» 17 18 86 17 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem clc_lo : ∀ k < 9, clcOk k (coreProgram.getD (319 + k) default) = true := by
+theorem clc_lo : ∀ k < 9, clcOk k (coreProgram.getD (idx% «claim_list_last__L0» + k) default) =
+    true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem clc_hi : ∀ k < 8, clcOk (9 + k) (coreProgram.getD (328 + k) default) = true := by
+theorem clc_hi : ∀ k < 8, clcOk (9 + k) (coreProgram.getD (idx% «claim_list_last__L9» + k) default)
+    = true := by
   decide +kernel
 
 end

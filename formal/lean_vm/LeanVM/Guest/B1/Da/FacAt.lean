@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.FacAt
 
-  `da_factors` placed (G:4443-4451): its `HeapBuf` of node factors, returned, within its frame and
+  `da_factors` placed (G:4627-4635): its `HeapBuf` of node factors, returned, within its frame and
   its buffer, by its evaluated valuation.
 -/
 
@@ -93,7 +93,7 @@ theorem fac_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     have hb := splitBody_eq hsp
     unfold facCOk at hcok
     simp only [Bool.and_eq_true, decide_eq_true_eq, Option.isSome_iff_exists] at hcok
-    obtain ⟨⟨⟨⟨⟨c', hchk⟩, hst⟩, hcan⟩, haddr⟩, halloc⟩ := hcok
+    obtain ⟨⟨⟨⟨c', hchk⟩, hst⟩, haddr⟩, halloc⟩ := hcok
     have hS := atomsEqb_sound hst
     have hflat : ((facT top D).map Stmt.atom).all Core.Stmt.flat = true :=
       List.all_eq_true.mpr fun s hs => by obtain ⟨a, -, rfl⟩ := List.mem_map.mp hs; rfl
@@ -108,7 +108,6 @@ theorem fac_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     set b := fp + fs f with hbdef
     let w : ℕ → E := fun _ => ofK (addressOfIndex b)
     obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd w [gen ^ c] fn.body) := ⟨_, rfl⟩
-    have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
     obtain ⟨-, -, hgs⟩ := ev_spec rd w fn.body [gen ^ c] hchk
     rw [show [gen ^ c].length = 1 from rfl, hS, ← hσ] at hgs
     have hg : ∀ a ∈ facT top D, Good rd (facStores D) w σ a := fun a ha =>
@@ -135,7 +134,7 @@ theorem fac_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     have hmemb : (b, facCells Z top D) ∈ bufL b [256] [facCells Z top D] := List.mem_singleton_self _
     have hbuf : ReadsAt rd (gen ^ b) (facCells Z top D) := reads_of_memL hB hmemb
     have hat : ∀ a ∈ facT top D, a.Holds rd σ := by
-      refine atoms_holds (A := []) hidx hcan hg (by simp) fun a ha hns => ?_
+      refine atoms_holds hg fun a ha hns => ?_
       rcases mem_facT ha with rfl | rfl | ⟨d, hd, rfl⟩ | ⟨d, hd, y, hy, ha'⟩
       · simp [needsSide] at hns
       · simp [needsSide] at hns

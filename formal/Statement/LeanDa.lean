@@ -11,7 +11,7 @@ public import VCVio.OracleComp.ProbCompLift
 public import VCVio.OracleComp.Coercions.Add.Basic
 public import VCVio.OracleComp.EvalDist.Sum
 public import Statement.Fast.FieldWords
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.Keccak
 
 /-!
@@ -84,7 +84,7 @@ open LeanVM.Parameters (K.toBytes E.toBytes)
 open LeanVM.Semantics (KeccakState)
 open LeanVM.Protocol (Digest)
 open LeanVM.Protocol.KeccakHash (keccak256With digestHalves littleEndianLane)
-open LeanVM.Protocol.Compile (Sponge absorb squeeze seedInput dsObserve)
+open LeanVM.Protocol.Compile (Sponge absorb absorbNonce squeeze seedInput dsObserve)
 
 /-- An enumeration of `K` through its bits, for proofs only: compiled, it would list `2^64`
 elements when a program starts. -/
@@ -105,11 +105,11 @@ def basis (c : Fin 16) : K := K.ofBits (2 ^ (c : ℕ))
 /-!
 ## LeanDA
 
-The erasure code commitment of `crates/lean_da` at leanVM
-`40f877dc2c858f013c5974ab71ca594b31a7aec9`, specified in `doc/leanvm/body/10-ethereum.tex`
+The erasure code commitment of `crates/lean_da` at the leanVM commit `../leanvm-rev` names,
+specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 
-* **The code** (`encode.rs:13-37`). A row's payload is `2^14` symbols of `K`, the evaluations on
+* **The code** (`encode.rs:13-41`). A row's payload is `2^14` symbols of `K`, the evaluations on
   the domain points `0 … 2^14 - 1` of the polynomial of degree below `2^14` they determine. Its
   codeword is that polynomial's evaluations on all `2^15` points (`encodeRow`): the inverse
   additive NTT interpolates, the forward one evaluates, so the payload is the codeword's first
@@ -117,7 +117,7 @@ The erasure code commitment of `crates/lean_da` at leanVM
   transcribed here.
 * **Cells** (`lib.rs:23-38`). A codeword is `128` cells of `256` symbols; cell `j` of row `i` is
   at position `128 i + j`, the positions of the erasure code commitment.
-* **The commitment** (`commit.rs:1-130`). The rows are padded to `2^⌈log₂ r⌉` with zero
+* **The commitment** (`commit.rs:1-134`). The rows are padded to `2^⌈log₂ r⌉` with zero
   codewords. A cell's digest is the hash of its symbols' little-endian bytes (`blob_trees`). Each
   padded row, a blob, has the Merkle root of its `128` cell digests (`blobRootWith`), and the
   commitment is the Merkle root of the padded rows' blob roots (`commit_codewords`). A tree hashes
@@ -127,22 +127,26 @@ The erasure code commitment of `crates/lean_da` at leanVM
   root's in the tree over the blob roots: the path of leaf `128 i + j` in the one tree of depth
   `7 + ⌈log₂ r⌉` that the two make. The crate keeps the trees for this (`DaWitness::blob_tree`,
   `commit.rs:15-36`) but verifies no sample: `verifyCellWith` is the check these paths determine.
-* **Membership** (`membership.rs:1-15`, `verifier/src/da.rs:1-17`). One challenge `z ∈ E` gives
+* **Membership** (`membership.rs:1-16`, `verifier/src/da.rs:1-34`). One challenge `z ∈ E` gives
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
   at the challenges `z^(2^j)`), with `Ŵ_j` the normalized subspace polynomial of the span of
   `e_0 … e_(j-1)`. A matrix passes when every row is orthogonal to `L` (the guest program's
-  `da_verify`; the crate's test `check_membership`, `membership.rs:58-65`). The challenge is drawn
-  from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs:14-17`): its
+  `da_verify`; the crate's test `check_membership`, `membership.rs:59-66`). The challenge is drawn
+  from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs:20-34`): its
   sponge over Keccak-f[1600] seeded with the label's hash as its IV and the root as its public
-  input (`verifier/src/transcript.rs:32-46`, `Field.lean`'s `Sponge`), squeezed once; the end
-  statements draw it by this duplex over the permutation (`membershipChallengeWith`).
+  input (`verifier/src/transcript.rs:34-49`, `Field.lean`'s `Sponge`), then an `11`-bit grind
+  whose nonce is the smallest valid one, not sent, and the ground challenge it draws
+  (`absorbNonce`, `transcript.rs:82-89`); the end statements draw it by this duplex over the
+  permutation (`membershipChallengeWith`). A root none of whose `2^64` nonces is valid has no
+  challenge (the Rust search never ends); the relation then asks every row to be a codeword
+  (`membershipCheckOpt`), which keeps an honest matrix's relation true for every permutation.
 
 The row count `r` is a parameter: the crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:59-63`;
 `commit` rejects any other payload with a `BlobSizeError`, `commit.rs:42-50`, `lib.rs:40-57`);
 completeness and position binding hold for every `r`, code binding for `1 ≤ r ≤ 1024`
 (`maxRows`). The algorithms take a permutation `π` of the Keccak state as a parameter and hash with
 Keccak-256 over it (`keccakDigestBytes`, the hash `H` below): the crate's is Keccak-f[1600], the
-hash Keccak-256 (`verifier/src/hash.rs:77-97`); in the end statements `π` is the random
+hash Keccak-256 (`verifier/src/hash.rs:76-96`); in the end statements `π` is the random
 permutation. A digest is 32 bytes, `DigestBytes` (`fiat_shamir::merkle::Hash`).
 -/
 
@@ -316,19 +320,52 @@ def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * 128
   let root ← climbWith π position d opening.path
   pure (decide (opening.path.length = 7 + logPaddedRowCount r) && decide (root = commitment))
 
-/-! ### The membership challenge (`verifier/src/da.rs:14-17`)
+/-! ### The membership challenge (`verifier/src/da.rs:12-34`)
 
 Drawn from the root by the duplex sponge of the leanVM verifier (`Field.lean`: `Sponge`,
-`seedInput`, `squeeze`), over the permutation `π` (`verifier/src/transcript.rs:32-74`). -/
+`seedInput`, `absorbNonce`, `squeeze`), over the permutation `π`
+(`verifier/src/transcript.rs:34-90`), after a grind whose nonce is not sent: the smallest valid
+one, which anyone deriving the challenge finds. -/
 
-/-- **The challenge `z` of a root** (`membership_challenge`, `verifier/src/da.rs:14-17`): the
+/-- `MEMBERSHIP_GRINDING_BITS` (`verifier/src/da.rs:17-18`): `grinding_bits(2^14 - 1)`, the bits
+that bring the membership test's error `(2^14 - 1) / 2^128` to `2^-125`,
+`⌈log₂ (2^14 - 1)⌉ - (128 - 125) = 11` (`transcript.rs:92-104`). -/
+def membershipGrindingBits : ℕ := 11
+
+/-- A nonce's proof of work is valid when its low `membershipGrindingBits` bits are zero
+(`& mask == 0`, `verifier/src/da.rs:27-31`). -/
+def powValid (pow : UInt64) : Bool := pow.toNat % 2 ^ membershipGrindingBits = 0
+
+/-- The nonces the search tries: the `u64` values (`E::new(nonce, 0)`, `verifier/src/da.rs:28-31`). -/
+def nonceCount : ℕ := 2 ^ 64
+
+section Search
+
+variable (sponge : Sponge)
+
+/-- **The nonce search** from `nonce`, `fuel` nonces left (`verifier/src/da.rs:28-33`): absorb the
+nonce into a copy of the seeded sponge and permute (`absorbNonce`); a valid proof of work stops
+the search with the ground challenge (`squeeze`). Past the last nonce the Rust search never ends
+(`(0..)` over `u64`, wrapping): there is no challenge (`none`). -/
+def grindWith : ℕ → ℕ → m (Option E)
+  | _, 0 => pure none
+  | nonce, fuel + 1 => do
+    let (pow, ground) ← absorbNonce π sponge (LeanVM.Protocol.Verifier.eOfNat nonce)
+    if powValid pow then
+      let (z, _) ← squeeze π ground
+      pure (some z)
+    else grindWith (nonce + 1) fuel
+
+end Search
+
+/-- **The challenge `z` of a root** (`membership_challenge`, `verifier/src/da.rs:20-34`): the
 transcript's sponge seeded with the label's hash as its IV and the root as its public input
-(`Sponge::new`), then one sample. -/
-def membershipChallengeWith (root : DigestBytes) : m E := do
+(`Sponge::new`), then the challenge of the smallest nonce `0, 1, …` whose proof of work is valid
+(`grindWith`), or none if no `u64` nonce is valid. -/
+def membershipChallengeWith (root : DigestBytes) : m (Option E) := do
   let iv ← keccak256With π membershipLabel
   let state ← π (seedInput iv (digestOfBytes root))
-  let (z, _) ← squeeze π ⟨state, []⟩
-  pure z
+  grindWith π ⟨state, [], none⟩ 0 nonceCount
 
 end Monadic
 
@@ -361,6 +398,14 @@ noncomputable def innerProduct (L : Fin (2 ^ 15) → E) (row : Row) : E := ∑ b
 noncomputable def membershipCheck {r : ℕ} (z : E) (cells : Fin (r * 128) → Cell) : Bool :=
   decide (∀ i : Fin r, innerProduct (dualCodewordAt z) (matrixRow cells i) = 0)
 
+/-- **The membership check of a root's challenge**: the check on the challenge, or, for a root
+with no valid nonce (where the deployed verifier never returns), the check on every challenge,
+which only codewords pass. -/
+noncomputable def membershipCheckOpt {r : ℕ} (z : Option E) (cells : Fin (r * 128) → Cell) : Bool :=
+  match z with
+  | some z => membershipCheck z cells
+  | none => @decide (∀ z : E, membershipCheck z cells = true) (Classical.propDecidable _)
+
 /-! ## LeanDA's code and the argument's relation -/
 
 /-- **LeanDA's erasure code**: `r` payloads, encoded row by row and cut into cells. -/
@@ -374,7 +419,7 @@ noncomputable def relationWith {m : Type → Type} [Monad m] (π : KeccakState �
     (root : DigestBytes) (cells : Fin (r * 128) → Cell) : m Bool := do
   let z ← membershipChallengeWith π root
   let d ← commitCellsWith π cells
-  pure (decide (d = root) && membershipCheck z cells)
+  pure (decide (d = root) && membershipCheckOpt z cells)
 
 /-! ## Arguments in the random-permutation model -/
 
@@ -544,16 +589,21 @@ included) makes at most `q ≤ 2^128` permutation calls (`permutationCallCost`) 
 probability at most `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications
 included, makes at most `Q` calls breaks code binding with probability at most
 
-`(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-178 + (Q + 2^22)² · 2^-247`.
+`(Q + c + 2^65) · 2^-k + (Q + 2^11) · 2^-125 + (Q + 2^22)² · 2^-247`.
 
 The first term is the argument's knowledge soundness against the code-binding adversary itself,
-its transcript handed to the extractor (at most `Q + 2^22` calls with the relation's check). The
-second is the membership test's soundness, `(2^14 - 1) / 2^192` for each root whose challenge is
-drawn: the inner product of `L` with a row that is not a codeword is a nonzero polynomial in `z` of
-degree below `2^14` (`membership.rs:11-14`). The third gathers the transfer to the two-oracle model
-and the duplex lemma, of the two games, and the hash's bad events among at most `2 Q + 2^20` hash
-and challenge queries: a collision, or a fresh answer that is a digest an earlier input or a root
-with a drawn challenge already carries; it exceeds one before `Q = 2^124`.
+its transcript handed to the extractor: its game makes at most `Q + 2^65` calls with the
+relation's check, the commitment's hashes (fewer than `2^22`) and, on the worst path, the nonce
+search's `2^64 + 2` (the label's hash, the seeded sponge and every `u64` nonce). The second is the
+membership test with its grind: the inner product of `L` with a row that is not a codeword is a
+nonzero polynomial in `z` of degree below `2^14` (`membership.rs:11-15`), so a challenge accepts it
+with probability at most `(2^14 - 1) / 2^128`; a permutation call of the adversary draws a valid
+proof of work and an accepting challenge at once with probability at most `2^-11` of that,
+`2^-125`, and the verifier's own search for the root, however many nonces it tries, stops at its
+first valid draw, one fresh try: `(2^14 - 1) / 2^128 ≤ 2^11 · 2^-125`. The third gathers the
+transfer to the two-oracle model and the duplex lemma, of the two games, and the hash's bad events
+among at most `2 Q + 2^20` hash queries: a collision, or a fresh answer that is a digest an earlier
+input or a root with a drawn challenge already carries; it exceeds one before `Q = 2^124`.
 
 The argument queries the oracles the adversary does, so its knowledge soundness here is the
 usual one of an argument in the random-permutation model, with a straight-line extractor reading
@@ -578,8 +628,8 @@ abbrev LeanDaCodeBinding : Prop :=
     ∀ (adversary : CodeBindingAdversary r Crs Proof) (Q : ℕ),
       QueryCostAtMost (codeBindingGame r argument adversary) permutationCallCost Q →
         Pr{let b ← runWithRandomPermutation (codeBindingGame r argument adversary)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k +
-            ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 178 +
+          ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k +
+            ((Q : ℝ≥0∞) + 2 ^ 11) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 
 end LeanDa

@@ -16,51 +16,41 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `walk_path__L18_L2`, window 1, part 0. -/
+/-- `__loop474`, window 1, part 0. -/
 theorem cw1480_1_0 : cplWin 1480 1 0 = true := by decide +kernel
 
-/-- `walk_path__L18_L2`, window 2, part 0. -/
-theorem cw1480_2_0 : cplWin 1480 2 0 = true := by decide +kernel
-
-/-- `walk_path__L18_L2`, window 3, part 0. -/
-theorem cw1480_3_0 : cplWin 1480 3 0 = true := by decide +kernel
-
-/-- `__loop527`, window 0, part 0. -/
+/-- `__loop475`, window 0, part 0. -/
 theorem cw1481_0_0 : cplWin 1481 0 0 = true := by decide +kernel
 
-/-- `__loop527`, window 1, part 0. -/
-theorem cw1481_1_0 : cplWin 1481 1 0 = true := by decide +kernel
-
-/-- `__loop527`, window 2, part 0. -/
-theorem cw1481_2_0 : cplWin 1481 2 0 = true := by decide +kernel
-
-/-- `__loop527`, window 3, part 0. -/
-theorem cw1481_3_0 : cplWin 1481 3 0 = true := by decide +kernel
-
-/-- `__loop528`, window 0, part 0. -/
+/-- `__loop476`, window 0, part 0. -/
 theorem cw1482_0_0 : cplWin 1482 0 0 = true := by decide +kernel
+
+/-- `__loop476`, window 1, part 0. -/
+theorem cw1482_1_0 : cplWin 1482 1 0 = true := by decide +kernel
 
 theorem ok1481 : CplOk 1481 := by
   intro i hi k hk
-  have hc : (certOf 1481).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 1481).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 1481 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw1481_0_0
-  · have hn : nParts 1481 1 = 1 := by decide +kernel
+
+theorem ok1482 : CplOk 1482 := by
+  intro i hi k hk
+  have hc : (certOf 1482).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1482 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1481_1_0
-  · have hn : nParts 1481 2 = 1 := by decide +kernel
+    · exact cw1482_0_0
+  · have hn : nParts 1482 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1481_2_0
-  · have hn : nParts 1481 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1481_3_0
+    · exact cw1482_1_0
 
 end
 end LeanVM.Guest.B2C.Cplw

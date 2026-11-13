@@ -100,14 +100,14 @@ constant, keys `(op, inputs)` of atoms of which it is an output, values it equal
 structure PF where
   v : ℕ
   c : ℕ
-  kc : Option (ℕ × ℕ × ℕ)
+  kc : Option (ℕ × ℕ)
   keys : List (ℕ × List ℕ)
   eqs : List ℕ
 
 /-- What is known along a path. -/
 structure SSt where
   occ : ℕ
-  cst : Trie (ℕ × ℕ × ℕ)
+  cst : Trie (ℕ × ℕ)
   keys : Trie (List (ℕ × List ℕ))
   named : ℕ
   pend : List PF
@@ -124,10 +124,10 @@ theorem SSt.seq_eq {β : Type} (st : SSt) (k : SSt → β) : st.seq k = k st := 
 /-! ## Atoms -/
 
 /-- The constant an atom gives value `v`. -/
-noncomputable def constOf (a : Core.Atom) (v : ℕ) : Option (ℕ × ℕ × ℕ) :=
+noncomputable def constOf (a : Core.Atom) (v : ℕ) : Option (ℕ × ℕ) :=
   match a with
-  | .const d x => bif Nat.beq d.idx v then some (limbNat x 0, limbNat x 1, limbNat x 2) else none
-  | .assertNe _ _ p => bif Nat.beq p.idx v then some (1, 0, 0) else none
+  | .const d x => bif Nat.beq d.idx v then some (limbNat x 0, limbNat x 1) else none
+  | .assertNe _ _ p => bif Nat.beq p.idx v then some (1, 0) else none
   | _ => none
 
 /-- The key of written cell `k` of a `KECCAK` in the layouts `inOdd`, `outOdd`: `4` to `55` for
@@ -189,14 +189,14 @@ def isNamed (st : SSt) (v : ℕ) : Bool := bitN st.named v
 def isPend (st : SSt) (v : ℕ) : Bool := st.pend.any fun p ↦ Nat.beq p.v v
 
 /-- The constants of a shared cell, with `x` if given. -/
-noncomputable def cstAt (cst : Trie (ℕ × ℕ × ℕ)) (c : ℕ) : Option (ℕ × ℕ × ℕ) → Trie (ℕ × ℕ × ℕ)
+noncomputable def cstAt (cst : Trie (ℕ × ℕ)) (c : ℕ) : Option (ℕ × ℕ) → Trie (ℕ × ℕ)
   | some x => bif bitN sh c then setF x envDepth cst c else cst
   | none => cst
 
 /-- **Name a value**: at a cell no value occupies it holds the cell's word (with the constant
 `kc` its atom gives, if any, kept at a shared cell); at an occupied cell it is pending; at a
 header cell it is no frame cell's. -/
-noncomputable def nameV (kc : ℕ → Option (ℕ × ℕ × ℕ)) (st : SSt) (v : V) : SSt :=
+noncomputable def nameV (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) (v : V) : SSt :=
   bif isNamed st v.idx || isPend st v.idx then st
   else
     natSeq (loc.cell v) fun c ↦
@@ -205,7 +205,7 @@ noncomputable def nameV (kc : ℕ → Option (ℕ × ℕ × ℕ)) (st : SSt) (v 
     else ⟨setBit st.occ c, cstAt sh st.cst c (kc v.idx), st.keys, setBit st.named v.idx, st.pend⟩
 
 /-- Name values in order. -/
-noncomputable def nameAll (kc : ℕ → Option (ℕ × ℕ × ℕ)) : SSt → List V → SSt
+noncomputable def nameAll (kc : ℕ → Option (ℕ × ℕ)) : SSt → List V → SSt
   | st, [] => st
   | st, v :: vs => (nameV loc sh kc st v).seq fun st ↦ nameAll kc st vs
 
@@ -248,15 +248,15 @@ noncomputable def discharge : ℕ → SSt → SSt
         (⟨st.occ, st.cst, st.keys, nm, rest⟩ : SSt)).seq fun st ↦ discharge n st
 
 /-- The constant an atom gives its output's shared cell, if none is known there. -/
-noncomputable def recCst (a : Core.Atom) (cst : Trie (ℕ × ℕ × ℕ)) : Trie (ℕ × ℕ × ℕ) :=
+noncomputable def recCst (a : Core.Atom) (cst : Trie (ℕ × ℕ)) : Trie (ℕ × ℕ) :=
   match a with
   | .const d x => match getF cst (loc.cell d) with
     | none => bif Nat.ble 2 (loc.cell d) && bitN sh (loc.cell d) then
-        setF (limbNat x 0, limbNat x 1, limbNat x 2) envDepth cst (loc.cell d) else cst
+        setF (limbNat x 0, limbNat x 1) envDepth cst (loc.cell d) else cst
     | some _ => cst
   | .assertNe _ _ p => match getF cst (loc.cell p) with
     | none => bif Nat.ble 2 (loc.cell p) && bitN sh (loc.cell p) then
-        setF (1, 0, 0) envDepth cst (loc.cell p) else cst
+        setF (1, 0) envDepth cst (loc.cell p) else cst
     | some _ => cst
   | _ => cst
 
@@ -281,6 +281,70 @@ noncomputable def nameStep (st : SSt) (vs : List V) : SSt :=
   (nameAll loc sh (fun _ ↦ none) st vs).seq fun st ↦ discharge loc (st.pend.length + 1) st
 
 end Steps
+
+/-! ## A window's values -/
+
+section ValsAll
+
+variable (p : V → Bool)
+
+/-- An atom's values and temporaries pass `p`. -/
+noncomputable def vaAtom (a : Core.Atom) : Bool := (Memory.atomUses a).all p && (Memory.atomTmps a).all p
+
+/-- `(Memory.Stmt.usesList ss ++ Memory.Stmt.tmpsList ss).all p` (`valsAll_eq`), by the
+recursor, which the kernel reduces faster than it builds the lists. -/
+noncomputable def valsAll (ss : List Stmt) : Bool :=
+  Stmt.rec_1 (motive_1 := fun _ ↦ Bool) (motive_2 := fun _ ↦ Bool) (motive_3 := fun _ ↦ Bool)
+    (vaAtom p) (fun c _ _ bz bn ↦ p c && bz && bn) (fun x _ ba ↦ p x && ba)
+    (fun _ args rets ↦ args.all p && rets.all p) (fun c _ args ↦ p c && args.all p)
+    (fun x _ args rets ↦ p x && args.all p && rets.all p) (fun vs ↦ vs.all p)
+    true (fun _ _ b bs ↦ b && bs) true (fun _ _ b bs ↦ b && bs) ss
+
+theorem valsAll_eq (ss : List Stmt) :
+    valsAll p ss = (Memory.Stmt.usesList ss ++ Memory.Stmt.tmpsList ss).all p := by
+  rw [List.all_append]
+  exact Stmt.rec_1
+    (motive_1 := fun s ↦ Stmt.rec (motive_1 := fun _ ↦ Bool) (motive_2 := fun _ ↦ Bool)
+        (motive_3 := fun _ ↦ Bool)
+        (vaAtom p) (fun c _ _ bz bn ↦ p c && bz && bn) (fun x _ ba ↦ p x && ba)
+        (fun _ args rets ↦ args.all p && rets.all p) (fun c _ args ↦ p c && args.all p)
+        (fun x _ args rets ↦ p x && args.all p && rets.all p) (fun vs ↦ vs.all p)
+        true (fun _ _ b bs ↦ b && bs) true (fun _ _ b bs ↦ b && bs) s =
+      ((Memory.Stmt.uses s).all p && (Memory.Stmt.tmps s).all p))
+    (motive_2 := fun ss ↦ valsAll p ss = ((Memory.Stmt.usesList ss).all p && (Memory.Stmt.tmpsList ss).all p))
+    (motive_3 := fun as ↦ Stmt.rec_2 (motive_1 := fun _ ↦ Bool) (motive_2 := fun _ ↦ Bool)
+        (motive_3 := fun _ ↦ Bool)
+        (vaAtom p) (fun c _ _ bz bn ↦ p c && bz && bn) (fun x _ ba ↦ p x && ba)
+        (fun _ args rets ↦ args.all p && rets.all p) (fun c _ args ↦ p c && args.all p)
+        (fun x _ args rets ↦ p x && args.all p && rets.all p) (fun vs ↦ vs.all p)
+        true (fun _ _ b bs ↦ b && bs) true (fun _ _ b bs ↦ b && bs) as =
+      ((Memory.Stmt.usesArms as).all p && (Memory.Stmt.tmpsArms as).all p))
+    (fun a ↦ by simp only [Memory.Stmt.uses, Memory.Stmt.tmps]; rfl)
+    (fun c z n hz hn ↦ by
+      simp only [Memory.Stmt.uses, Memory.Stmt.tmps, List.all_cons, List.all_append]
+      refine (congrArg₂ (fun x y ↦ p c && x && y) hz hn).trans ?_
+      cases p c <;> simp [Bool.and_comm, Bool.and_left_comm, Bool.and_assoc])
+    (fun x as ha ↦ by
+      simp only [Memory.Stmt.uses, Memory.Stmt.tmps, List.all_cons]
+      refine (congrArg (fun y ↦ p x && y) ha).trans ?_
+      cases p x <;> simp)
+    (fun f args rets ↦ by simp [Memory.Stmt.uses, Memory.Stmt.tmps])
+    (fun c f args ↦ by simp [Memory.Stmt.uses, Memory.Stmt.tmps])
+    (fun x fs args rets ↦ by simp [Memory.Stmt.uses, Memory.Stmt.tmps, Bool.and_assoc])
+    (fun vs ↦ by simp [Memory.Stmt.uses, Memory.Stmt.tmps])
+    (by simp only [Memory.Stmt.usesList, Memory.Stmt.tmpsList, List.all_nil, Bool.and_self]; rfl)
+    (fun s ss hs hss ↦ by
+      simp only [Memory.Stmt.usesList, Memory.Stmt.tmpsList, List.all_append]
+      refine (congrArg₂ (· && ·) hs hss).trans ?_
+      cases (Memory.Stmt.uses s).all p <;> cases (Memory.Stmt.tmps s).all p <;> simp)
+    (by simp [Memory.Stmt.usesArms, Memory.Stmt.tmpsArms])
+    (fun a as ha has ↦ by
+      simp only [Memory.Stmt.usesArms, Memory.Stmt.tmpsArms, List.all_append]
+      refine (congrArg₂ (· && ·) ha has).trans ?_
+      cases (Memory.Stmt.usesList a).all p <;> cases (Memory.Stmt.tmpsList a).all p <;> simp)
+    ss
+
+end ValsAll
 
 /-! ## What the certificate lists -/
 
@@ -386,7 +450,7 @@ end Walk
 /-- The state a function starts with: its fixed cells occupied, their constants known. -/
 noncomputable def initSt (P : Plumb) : SSt :=
   ⟨bitsOf (P.stat.map Prod.fst), P.stat.foldl (fun t q ↦ match q.2 with
-    | .k a b c => setF (a, b, c) envDepth t q.1
+    | .k a b => setF (a, b) envDepth t q.1
     | .fpg _ => t) .nil, .nil, 0, []⟩
 
 /-- The temporaries' cells. -/
@@ -417,7 +481,7 @@ the frame; no table selector a temporary. -/
 noncomputable def listsOk (P : Plumb) (n : ℕ) : Bool :=
   (initSt P).cst.seq fun cst ↦ natSeq (tmpCells P) fun tc ↦
   P.stat.all (fun q ↦ Nat.ble 2 q.1 && Nat.blt q.1 n && match q.2 with
-    | .k a b c => getF cst q.1 == some (a, b, c)
+    | .k a b => getF cst q.1 == some (a, b)
     | .fpg _ => true) &&
   pairsOk P.tmps n && pairsOk P.runs n && P.runs.all (fun p ↦ !bitN tc p.2) &&
   P.sites.all (fun s ↦ Nat.ble 2 s.q && Nat.blt s.q n) &&
@@ -464,7 +528,7 @@ noncomputable def apartOk (j : ℕ) : Bool :=
     bitsNodup ((plumbOf j).stat.map Prod.fst) 0 && bitsNodup (siteCells (plumbOf j)) 0 &&
     bitsNodup ((plumbOf j).arms.map fun a ↦ a.2.1) 0 &&
     (certOf j).facts.env.all (fun p ↦ (plumbOf j).stat.any fun q ↦ Nat.beq q.1 p.1 && q.2 == .fpg 0) &&
-    (bif Nat.beq j 1 then Nat.blt (Nat.lor (Nat.lor trsv sc) ac) (2 ^ 429) else true)
+    (bif Nat.beq j 1 then Nat.blt (Nat.lor (Nat.lor trsv sc) ac) (2 ^ Data.mainCells) else true)
 
 /-- The snapshot window `k` starts from (`k ≥ 1`). -/
 def snapAt (snaps : List Snap) (k : ℕ) : Snap := listElementOrDefault snaps (k - 1) ⟨0, 0, 0, [],
@@ -503,8 +567,7 @@ noncomputable def shareWin (j : ℕ) (snaps : List Snap) (k : ℕ) : Bool :=
   natSeq (tmpCells (plumbOf j)) fun tc ↦ natSeq (fpgCells (plumbOf j)) fun fc ↦
   (byCell (plumbOf j).tmps).seq fun tt ↦
   (listElementOrDefault (certOf j).cells (winW snaps k) []).all (fun c ↦ Nat.blt c 65536) &&
-  (Memory.Stmt.usesList (stmtsW (coreOf j).body snaps k) ++
-    Memory.Stmt.tmpsList (stmtsW (coreOf j).body snaps k)).all (valOk loc tt tc fc (fsN j)) &&
+  valsAll (valOk loc tt tc fc (fsN j)) (stmtsW (coreOf j).body snaps k) &&
   (match swL loc sh tt (plumbOf j)
       (bif k == 0 then nameStep loc sh (initSt (plumbOf j)) (coreOf j).params else (snapAt snaps k).st)
       (stmtsW (coreOf j).body snaps k) with

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LocalRounds
 
-  The eleven rounds over the bit position in `keccak_layer` (G:2819-2830): a uniform template, and
+  The eleven rounds over the bit position in `keccak_layer` (G:2769-2780): a uniform template, and
   that it computes `localRunF` on the carried sponge.
 -/
 
@@ -13,11 +13,11 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
 /-!
 # The rounds over the bit position
 
-Round `i` from the value `a`: `c₀`, `c₂`, `c₃` read at `cur + 3i ..` (`fs_next` into `a`, `a + 10`,
-`a + 20`), two zero cells, one `KECCAK` atom on the three rate pairs and the capacity, the
-challenge `a + 51` stored at `local[i]`, and the claim
-`c₀ + c·(v + (1 + c)(c₂ + (1 + c)c₃))` at `a + 59`, which is `polyEval [c₀, v + c₂ + c₃, c₂, c₃] c`
-in characteristic two (`localRoundT`, `localRoundsT`: round `i` at `a₀ + 60i`).
+Round `i` from the value `a`: `c₀`, `c₂`, `c₃` read at `cur + 3i ..` (`fs_next` into `a`, `a + 3`,
+`a + 6`), two zero cells, one `KECCAK` atom on the three rate pairs and the capacity, the
+challenge `a + 24` stored at `local[i]`, and the claim
+`c₀ + c·(v + (1 + c)(c₂ + (1 + c)c₃))` at `a + 32`, which is `polyEval [c₀, v + c₂ + c₃, c₂, c₃] c`
+in characteristic two (`localRoundT`, `localRoundsT`: round `i` at `a₀ + 33i`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -31,26 +31,26 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- Round `i` of the bit-position sumcheck, from the value `a`. -/
 def localRoundT (cur loc vIn : V) (capV : List V) (i a : ℕ) : List Stmt :=
-  fsNextT cur (3 * i) a ++ fsNextT cur (3 * i + 1) (a + 10) ++ fsNextT cur (3 * i + 2) (a + 20) ++
-    [.atom (.const (.n (a + 30)) (word 0 0 0)), .atom (.const (.n (a + 31)) (word 0 0 0)),
-      keccakA ([.n (a + 7), .n (a + 9), .n (a + 17), .n (a + 19), .n (a + 27), .n (a + 29),
-        .n (a + 30), .n (a + 31)] ++ capV) ((List.range 13).map fun k ↦ .n (a + 32 + k))] ++
-    challengeT (.n (a + 32)) (.n (a + 33)) (a + 45) ++
-    [.atom (.load (.n (a + 51)) loc i), .atom (.const (.n (a + 52)) (word 1 0 0)),
-      .atom (.add (.n (a + 53)) (.n (a + 52)) (.n (a + 51))),
-      .atom (.mul (.n (a + 54)) (.n (a + 53)) (.n (a + 20))),
-      .atom (.add (.n (a + 55)) (.n (a + 10)) (.n (a + 54))),
-      .atom (.mul (.n (a + 56)) (.n (a + 53)) (.n (a + 55))),
-      .atom (.add (.n (a + 57)) vIn (.n (a + 56))),
-      .atom (.mul (.n (a + 58)) (.n (a + 51)) (.n (a + 57))),
-      .atom (.add (.n (a + 59)) (.n a) (.n (a + 58)))]
+  fsNextT cur (3 * i) a ++ fsNextT cur (3 * i + 1) (a + 3) ++ fsNextT cur (3 * i + 2) (a + 6) ++
+    [.atom (.const (.n (a + 9)) (word 0 0)), .atom (.const (.n (a + 10)) (word 0 0)),
+      keccakA ([.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5), .n (a + 7), .n (a + 8),
+        .n (a + 9), .n (a + 10)] ++ capV) ((List.range 13).map fun k ↦ .n (a + 11 + k))] ++
+    challengeT (.n (a + 11)) (a + 24) ++
+    [.atom (.load (.n (a + 24)) loc i), .atom (.const (.n (a + 25)) (word 1 0)),
+      .atom (.add (.n (a + 26)) (.n (a + 25)) (.n (a + 24))),
+      .atom (.mul (.n (a + 27)) (.n (a + 26)) (.n (a + 6))),
+      .atom (.add (.n (a + 28)) (.n (a + 3)) (.n (a + 27))),
+      .atom (.mul (.n (a + 29)) (.n (a + 26)) (.n (a + 28))),
+      .atom (.add (.n (a + 30)) vIn (.n (a + 29))),
+      .atom (.mul (.n (a + 31)) (.n (a + 24)) (.n (a + 30))),
+      .atom (.add (.n (a + 32)) (.n a) (.n (a + 31)))]
 
 /-- The `n` rounds from `a₀`: round `0` on the record's claim `vIn` and capacity `capV`, round
 `i + 1` on round `i`'s. -/
 def localRoundsT (cur loc vIn : V) (capV : List V) (a0 : ℕ) (n : ℕ) : List Stmt :=
   ((List.range n).map fun i ↦
-    localRoundT cur loc (if i = 0 then vIn else .n (a0 + 60 * (i - 1) + 59))
-      (if i = 0 then capV else capV' (a0 + 60 * (i - 1) + 40)) i (a0 + 60 * i)).flatten
+    localRoundT cur loc (if i = 0 then vIn else .n (a0 + 33 * (i - 1) + 32))
+      (if i = 0 then capV else capV' (a0 + 33 * (i - 1) + 19)) i (a0 + 33 * i)).flatten
 where
   /-- The capacity cells from `b`. -/
   capV' (b : ℕ) : List V := [.n b, .n (b + 1), .n (b + 2), .n (b + 3), .n (b + 4)]
@@ -60,19 +60,19 @@ structure LocalRoundOk (rd : Reader) (σ : Val) (cur loc vIn : V) (capV : List V
     Prop where
   ld0 : LoadHolds rd (σ cur) (3 * i) (σ (.n a))
   pk0 : FsPackOk σ (.n a) (a + 1) dsObserve
-  ld2 : LoadHolds rd (σ cur) (3 * i + 1) (σ (.n (a + 10)))
-  pk2 : FsPackOk σ (.n (a + 10)) (a + 10 + 1) dsObserve
-  ld3 : LoadHolds rd (σ cur) (3 * i + 2) (σ (.n (a + 20)))
-  pk3 : FsPackOk σ (.n (a + 20)) (a + 20 + 1) dsObserve
-  z0 : σ (.n (a + 30)) = 0
-  z1 : σ (.n (a + 31)) = 0
-  kc : (Atom.keccak ([.n (a + 7), .n (a + 9), .n (a + 17), .n (a + 19), .n (a + 27), .n (a + 29),
-    .n (a + 30), .n (a + 31)] ++ capV) ((List.range 13).map fun k ↦ .n (a + 32 + k)) false
+  ld2 : LoadHolds rd (σ cur) (3 * i + 1) (σ (.n (a + 3)))
+  pk2 : FsPackOk σ (.n (a + 3)) (a + 3 + 1) dsObserve
+  ld3 : LoadHolds rd (σ cur) (3 * i + 2) (σ (.n (a + 6)))
+  pk3 : FsPackOk σ (.n (a + 6)) (a + 6 + 1) dsObserve
+  z0 : σ (.n (a + 9)) = 0
+  z1 : σ (.n (a + 10)) = 0
+  kc : (Atom.keccak ([.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5), .n (a + 7), .n (a + 8),
+    .n (a + 9), .n (a + 10)] ++ capV) ((List.range 13).map fun k ↦ .n (a + 11 + k)) false
       false).Holds rd σ
-  ch : ChallengeOk σ (.n (a + 32)) (.n (a + 33)) (a + 45)
-  st : LoadHolds rd (σ loc) i (σ (.n (a + 51)))
-  v : σ (.n (a + 59)) = σ (.n a) + σ (.n (a + 51)) * (σ vIn + (1 + σ (.n (a + 51))) *
-    (σ (.n (a + 10)) + (1 + σ (.n (a + 51))) * σ (.n (a + 20))))
+  ch : ChallengeOk σ (.n (a + 11)) (a + 24)
+  st : LoadHolds rd (σ loc) i (σ (.n (a + 24)))
+  v : σ (.n (a + 32)) = σ (.n a) + σ (.n (a + 24)) * (σ vIn + (1 + σ (.n (a + 24))) *
+    (σ (.n (a + 3)) + (1 + σ (.n (a + 24))) * σ (.n (a + 6))))
 
 theorem holds_localRoundT {cur loc vIn : V} {capV : List V} {i a : ℕ} {next : Prop}
     {kret : List E → Prop}
@@ -81,9 +81,9 @@ theorem holds_localRoundT {cur loc vIn : V} {capV : List V} {i a : ℕ} {next : 
   simp only [localRoundT, holdsList_append, holds_fsNextT] at h
   obtain ⟨⟨l0, p0⟩, ⟨l2, p2⟩, ⟨l3, p3⟩, h⟩ := h
   simp only [holds_challengeT, keccakA, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
-  obtain ⟨z0, z1, kc, ch, st, e52, e53, e54, e55, e56, e57, e58, e59, hn⟩ := h
+  obtain ⟨z0, z1, kc, ch, st, e25, e26, e27, e28, e29, e30, e31, e32, hn⟩ := h
   refine ⟨⟨l0, p0, l2, p2, l3, p3, by rw [z0, word_zero], by rw [z1, word_zero], kc, ch, st, ?_⟩, hn⟩
-  rw [e59, e58, e57, e56, e55, e54, e53, e52, word_one]
+  rw [e32, e31, e30, e29, e28, e27, e26, e25, word_one]
 
 /-- The guest's claim update is the round polynomial's value (characteristic two). -/
 theorem local_value (c0 c2 c3 v c : E) :
@@ -94,34 +94,30 @@ theorem local_value (c0 c2 c3 v c : E) :
 
 /-- **A squeeze of three read words**, two zero cells and the capacity. -/
 theorem sq3_atoms {a o : ℕ} {z0 z1 : V} {capV : List V} {cap : List E}
-    (p1 : FsPackOk σ (.n a) (a + 1) dsObserve) (p2 : FsPackOk σ (.n (a + 10)) (a + 10 + 1) dsObserve)
-    (p3 : FsPackOk σ (.n (a + 20)) (a + 20 + 1) dsObserve)
-    (hk : (Atom.keccak ([V.n (a + 7), .n (a + 9), .n (a + 17), .n (a + 19), .n (a + 27), .n (a + 29),
+    (p1 : FsPackOk σ (.n a) (a + 1) dsObserve) (p2 : FsPackOk σ (.n (a + 3)) (a + 3 + 1) dsObserve)
+    (p3 : FsPackOk σ (.n (a + 6)) (a + 6 + 1) dsObserve)
+    (hk : (Atom.keccak ([V.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5), .n (a + 7), .n (a + 8),
       z0, z1] ++ capV) ((List.range 13).map fun k ↦ .n (o + k)) false false).Holds rd σ)
-    (hch : ChallengeOk σ (.n o) (.n (o + 1)) (o + 13)) (hz0 : σ z0 = 0) (hz1 : σ z1 = 0)
+    (hch : ChallengeOk σ (.n o) (o + 13)) (hz0 : σ z0 = 0) (hz1 : σ z1 = 0)
     (hc : capV.map σ = cap) :
-    σ (.n (o + 19)) = ((⟨cap, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 10)), σ (.n (a + 20))]
+    σ (.n (o + 13)) = ((⟨cap, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 3)), σ (.n (a + 6))]
         dsObserve).squeeze.1 ∧
       [σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)), σ (.n (o + 12))] =
-        ((⟨cap, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 10)), σ (.n (a + 20))]
+        ((⟨cap, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 3)), σ (.n (a + 6))]
           dsObserve).squeeze.2.cap := by
-  obtain ⟨-, -, hcan, -⟩ := keccak_outs hk
-  have c0 : IsCanonical128 (σ (.n (a + 7))) := hcan _ (by simp)
-  have c2 : IsCanonical128 (σ (.n (a + 10 + 7))) := hcan _ (by simp)
-  have c3 : IsCanonical128 (σ (.n (a + 20 + 7))) := hcan _ (by simp)
-  have s0 := fsNext_scalar p1 c0
-  have s2 := fsNext_scalar p2 c2
-  have s3 := fsNext_scalar p3 c3
-  have habs : (⟨cap, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 10)), σ (.n (a + 20))] dsObserve =
-      ⟨cap, [(σ (.n a), dsObserve), (σ (.n (a + 10)), dsObserve), (σ (.n (a + 20)), dsObserve)]⟩ :=
+  have s0 := fsNext_scalar p1
+  have s2 := fsNext_scalar p2
+  have s3 := fsNext_scalar p3
+  have habs : (⟨cap, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 3)), σ (.n (a + 6))] dsObserve =
+      ⟨cap, [(σ (.n a), dsObserve), (σ (.n (a + 3)), dsObserve), (σ (.n (a + 6)), dsObserve)]⟩ :=
     rfl
-  have hin : ([V.n (a + 7), .n (a + 9), .n (a + 17), .n (a + 19), .n (a + 27), .n (a + 29), z0, z1] ++
-      capV).map σ = rateOf [(σ (.n a), dsObserve), (σ (.n (a + 10)), dsObserve),
-        (σ (.n (a + 20)), dsObserve)] ++ cap := by
+  have hin : ([V.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5), .n (a + 7), .n (a + 8), z0, z1] ++
+      capV).map σ = rateOf [(σ (.n a), dsObserve), (σ (.n (a + 3)), dsObserve),
+        (σ (.n (a + 6)), dsObserve)] ++ cap := by
     rw [rateOf_three, ← s0, ← s2, ← s3, List.map_append, hc]
     simp only [List.map_cons, List.map_nil, hz0, hz1, List.cons_append, List.nil_append]
-  have := squeeze_atom (s := ⟨cap, [(σ (.n a), dsObserve), (σ (.n (a + 10)), dsObserve),
-    (σ (.n (a + 20)), dsObserve)]⟩) hk hin (by simpa [range13_map] using hch)
+  have := squeeze_atom (s := ⟨cap, [(σ (.n a), dsObserve), (σ (.n (a + 3)), dsObserve),
+    (σ (.n (a + 6)), dsObserve)]⟩) hk hin (by simpa [range13_map] using hch)
   simp only [range13_map, List.drop, List.map_cons, List.map_nil] at this
   rw [habs]
   exact ⟨this.1, this.2⟩
@@ -154,8 +150,8 @@ theorem localRunF_snoc : ∀ (ms : List (E × E × E)) (m : E × E × E) (v : E)
 
 theorem localRoundsT_succ (cur loc vIn : V) (capV : List V) (a0 n : ℕ) :
     localRoundsT cur loc vIn capV a0 (n + 1) = localRoundsT cur loc vIn capV a0 n ++
-      localRoundT cur loc (if n = 0 then vIn else .n (a0 + 60 * (n - 1) + 59))
-        (if n = 0 then capV else localRoundsT.capV' (a0 + 60 * (n - 1) + 40)) n (a0 + 60 * n) := by
+      localRoundT cur loc (if n = 0 then vIn else .n (a0 + 33 * (n - 1) + 32))
+        (if n = 0 then capV else localRoundsT.capV' (a0 + 33 * (n - 1) + 19)) n (a0 + 33 * n) := by
   simp [localRoundsT, List.range_succ, List.map_append, List.flatten_append]
 
 theorem localRunF_length : ∀ (ms : List (E × E × E)) (v : E) (s : Fs),
@@ -171,16 +167,16 @@ theorem flatMap_triples_length (ms : List (E × E × E)) :
   | cons m ms ih => simp [List.flatMap_cons, ih]; ring
 
 /-- **The rounds compute `localRunF`**: the messages read from the cursor, the challenges stored at
-`local`, the last claim (`a₀ + 60(n-1) + 59`) and capacity (`a₀ + 60(n-1) + 40 ..`). -/
+`local`, the last claim (`a₀ + 33(n-1) + 32`) and capacity (`a₀ + 33(n-1) + 19 ..`). -/
 theorem localRounds_run {cur loc vIn : V} {capV : List V} {a0 : ℕ} {cap : List E}
     (hc : capV.map σ = cap) : ∀ (n : ℕ) {next : Prop} {kret : List E → Prop}, 1 ≤ n →
     Stmt.HoldsList C rd σ (localRoundsT cur loc vIn capV a0 n) next kret →
     (∃ msgs : List (E × E × E), msgs.length = n ∧
       ReadsAt rd (σ cur) (msgs.flatMap fun m ↦ [m.1, m.2.1, m.2.2]) ∧
       ReadsAt rd (σ loc) (localRunF msgs (σ vIn) ⟨cap, []⟩).1.1 ∧
-      (localRunF msgs (σ vIn) ⟨cap, []⟩).1.2 = σ (.n (a0 + 60 * (n - 1) + 59)) ∧
+      (localRunF msgs (σ vIn) ⟨cap, []⟩).1.2 = σ (.n (a0 + 33 * (n - 1) + 32)) ∧
       (localRunF msgs (σ vIn) ⟨cap, []⟩).2 =
-        ⟨(localRoundsT.capV' (a0 + 60 * (n - 1) + 40)).map σ, []⟩) ∧ next
+        ⟨(localRoundsT.capV' (a0 + 33 * (n - 1) + 19)).map σ, []⟩) ∧ next
   | 0, _, _, h, _ => absurd h (by omega)
   | n + 1, next, kret, _, h => by
     rw [localRoundsT_succ, holdsList_append] at h
@@ -190,20 +186,20 @@ theorem localRounds_run {cur loc vIn : V} {capV : List V} {a0 : ℕ} {cap : List
         ReadsAt rd (σ loc) (localRunF msgs (σ vIn) ⟨cap, []⟩).1.1 →
         (localRunF msgs (σ vIn) ⟨cap, []⟩).1.2 = σ vI →
         (localRunF msgs (σ vIn) ⟨cap, []⟩).2 = ⟨cV.map σ, []⟩ →
-        LocalRoundOk rd σ cur loc vI cV n (a0 + 60 * n) →
+        LocalRoundOk rd σ cur loc vI cV n (a0 + 33 * n) →
         ∃ msgs' : List (E × E × E), msgs'.length = n + 1 ∧
           ReadsAt rd (σ cur) (msgs'.flatMap fun m ↦ [m.1, m.2.1, m.2.2]) ∧
           ReadsAt rd (σ loc) (localRunF msgs' (σ vIn) ⟨cap, []⟩).1.1 ∧
-          (localRunF msgs' (σ vIn) ⟨cap, []⟩).1.2 = σ (.n (a0 + 60 * (n + 1 - 1) + 59)) ∧
+          (localRunF msgs' (σ vIn) ⟨cap, []⟩).1.2 = σ (.n (a0 + 33 * (n + 1 - 1) + 32)) ∧
           (localRunF msgs' (σ vIn) ⟨cap, []⟩).2 =
-            ⟨(localRoundsT.capV' (a0 + 60 * (n + 1 - 1) + 40)).map σ, []⟩ := by
+            ⟨(localRoundsT.capV' (a0 + 33 * (n + 1 - 1) + 19)).map σ, []⟩ := by
       intro msgs vI cV hl hr hs hv hcs ok
-      set a := a0 + 60 * n with ha
-      have q := sq3_atoms (rd := rd) (a := a) (o := a + 32) (z0 := .n (a + 30)) (z1 := .n (a + 31))
+      set a := a0 + 33 * n with ha
+      have q := sq3_atoms (rd := rd) (a := a) (o := a + 11) (z0 := .n (a + 9)) (z1 := .n (a + 10))
         (capV := cV) (cap := cV.map σ) ok.pk0 ok.pk2 ok.pk3 ok.kc ok.ch ok.z0 ok.z1 rfl
-      have e51 : a + 32 + 19 = a + 51 := by omega
-      rw [e51] at q
-      refine ⟨msgs ++ [(σ (.n a), σ (.n (a + 10)), σ (.n (a + 20)))], by simp [hl], ?_, ?_, ?_, ?_⟩
+      have e24 : a + 11 + 13 = a + 24 := by omega
+      rw [e24] at q
+      refine ⟨msgs ++ [(σ (.n a), σ (.n (a + 3)), σ (.n (a + 6)))], by simp [hl], ?_, ?_, ?_, ?_⟩
       · rw [List.flatMap_append, readsAt_append, flatMap_triples_length, hl]
         refine ⟨hr, fun k hk => ?_⟩
         simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.length_cons,
@@ -222,9 +218,9 @@ theorem localRounds_run {cur loc vIn : V} {capV : List V} {a0 : ℕ} {cap : List
       · rw [localRunF_snoc, hcs, hv, ← q.1, ← local_value, ← ok.v]
         congr 3
       · rw [localRunF_snoc, hcs]
-        rw [show ((⟨cV.map σ, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 10)), σ (.n (a + 20))]
-          dsObserve).squeeze.2 = ⟨((⟨cV.map σ, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 10)),
-            σ (.n (a + 20))] dsObserve).squeeze.2.cap, []⟩ from rfl, ← q.2]
+        rw [show ((⟨cV.map σ, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 3)), σ (.n (a + 6))]
+          dsObserve).squeeze.2 = ⟨((⟨cV.map σ, []⟩ : Fs).absorbAll [σ (.n a), σ (.n (a + 3)),
+            σ (.n (a + 6))] dsObserve).squeeze.2.cap, []⟩ from rfl, ← q.2]
         simp only [localRoundsT.capV', List.map_cons, List.map_nil]
         congr 1
     rcases Nat.eq_zero_or_pos n with rfl | hn

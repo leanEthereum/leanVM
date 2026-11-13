@@ -66,6 +66,7 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
   unfold dlEntryOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at hok
   obtain ⟨⟨⟨⟨⟨-, hname⟩, hidx⟩, hlen⟩, hdl⟩, hloops⟩ := hok
+  replace hidx := coreIdx?_eq hidx
   intro rd args rets hrel
   rw [← hname] at hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem (find_of_idx hidx hlen) _ _).mp hrel
@@ -91,6 +92,7 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
       unfold loopOk at hlo
       split at hlo
       · rename_i j hj
+        replace hj := coreIdx?_eq hj
         simp only [Bool.and_eq_true, decide_eq_true_eq] at hlo
         have hm : 2 ^ (k - lvl - 1) ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) (by omega)
         exact loop_sound (ps := [gen ^ 2 ^ (k - lvl - 1), σ (.n 0)])
@@ -104,7 +106,7 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
     have hnode : ∀ j < k, ∀ p < 2 ^ (k - j - 1), node rd (σ (.n 0)) k (j + 1) p =
         nodeCells (node rd (σ (.n 0)) k j (2 * p)) (node rd (σ (.n 0)) k j (2 * p + 1)) := by
       intro j hj p hp
-      obtain ⟨hld, -, h0, h1⟩ := hlvl j hj p hp
+      obtain ⟨hld, h0, h1⟩ := hlvl j hj p hp
       rw [ptr_pow] at hld h0 h1
       rw [ptr_pow] at h0 h1
       have m : ∀ i < 4, memAt rd (σ (.n 0) * gen ^ (off k j + 4 * p)) i =
@@ -129,38 +131,28 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
         (List.range (2 ^ k)).map fun i =>
           (memAt rd (σ (.n 0)) (2 * i), memAt rd (σ (.n 0)) (2 * i + 1)) := by
       simp [node, off_zero]
-    have hread : ∀ c < 2 * 2 ^ k, LoadHolds rd (σ (.n 0)) c (memAt rd (σ (.n 0)) c) ∧
-        (0 < k → IsCanonical128 (memAt rd (σ (.n 0)) c)) := by
+    have hread : ∀ c < 2 * 2 ^ k, LoadHolds rd (σ (.n 0)) c (memAt rd (σ (.n 0)) c) := by
       intro c hc
       rcases Nat.eq_zero_or_pos k with rfl | hk0
       · have l0 := load_sound hr0 hat
         have l1 := load_sound hr1 hat
         simp only [pow_zero, mul_one] at l0 l1
-        refine ⟨?_, fun h => absurd h (by omega)⟩
         rcases (show c = 0 ∨ c = 1 by omega) with rfl | rfl
         · rw [memAt_of_load l0]; exact l0
         · rw [memAt_of_load l1]; exact l1
-      · obtain ⟨hld, hcan, -, -⟩ := hlvl 0 hk0 (c / 4) (by
+      · obtain ⟨hld, -, -⟩ := hlvl 0 hk0 (c / 4) (by
           have : 2 ^ k = 2 * 2 ^ (k - 0 - 1) := by rw [← pow_succ']; congr 1; omega
           omega)
         rw [ptr_pow, off_zero, zero_add] at hld
-        rw [ptr_pow, off_zero, zero_add] at hcan
         obtain ⟨hl, e1, e2⟩ := shift_load (hld (c % 4) (by omega))
         rw [show 4 * (c / 4) + c % 4 = c by omega] at hl e1
-        refine ⟨by rw [e1]; exact hl, fun _ => ?_⟩
-        have := hcan _ (List.mem_map.mpr ⟨c % 4, List.mem_range.mpr (by omega), rfl⟩)
-        rw [← e1] at this
-        exact this
-    refine ⟨(List.range (2 ^ k)).map (node rd (σ (.n 0)) k 0), by simp, ?_, ?_, ?_⟩
+        rw [e1]; exact hl
+    refine ⟨(List.range (2 ^ k)).map (node rd (σ (.n 0)) k 0), by simp, ?_, ?_⟩
     · rw [hleaves, pairCells_range (memAt rd (σ (.n 0)))]
       intro c hc
       simp only [List.length_map, List.length_range] at hc
       rw [List.getElem_map, List.getElem_range]
-      exact (hread c hc).1
-    · intro hk0 x hx
-      rw [hleaves, pairCells_range (memAt rd (σ (.n 0)))] at hx
-      obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hx
-      exact (hread c (List.mem_range.mp hc)).2 hk0
+      exact hread c hc
     · rw [← hret, hroot]
       simp only [node, off_self, mul_zero, add_zero]
       rw [show 4 * 2 ^ k - 4 + 1 = 4 * 2 ^ k - 3 by have := Nat.one_le_two_pow (n := k); omega,

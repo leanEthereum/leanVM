@@ -13,8 +13,8 @@ public import LeanVM.Guest.Lift.OqFits
 
 At 40f877dc a query places no frame run, nor does its `walk_path` (its path children are hinted
 into the walk's frame cells), so
-`OqFits` asks nothing (`True`, `QueriesPlacedD2`): every specialization fits, for any
-certificates.
+`OqFits` asks nothing (`True`, `QueriesPlacedD2`): every specialization and every candidate fits,
+for any certificates.
 -/
 
 namespace LeanVM.Guest.B1
@@ -27,7 +27,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 their frames and meet only at common values. -/
 theorem opening_queries_fits (fs : String → ℕ) (cert : String → V → ℕ)
     (_hfit : Lift.RunsFit fs cert) (_hap : Lift.RunsApart cert) :
-    ∀ p ∈ openingQueriesLoops, OqFits fs cert p.1 p.2.1 p.2.2.1 p.2.2.2 :=
+    ∀ p ∈ openingQueriesLoops, OqFits fs cert p.1 p.2.1 p.2.2.oq p.2.2.odd :=
   fun _ _ ↦ trivial
 
 end

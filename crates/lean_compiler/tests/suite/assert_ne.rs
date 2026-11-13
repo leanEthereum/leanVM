@@ -5,7 +5,7 @@
 
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{Op, prove, verify};
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F64, F128, g_pow};
 
 /// Honest inequality over runtime values: prove + verify pass.
 #[test]
@@ -23,7 +23,7 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    let want = [F192::from(g_pow(12)), F192::from(g_pow(5))];
+    let want = [F128::from(g_pow(12)), F128::from(g_pow(5))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("inequality program verifies");
 }
@@ -44,7 +44,7 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    let want = [F192::from(F64(5)), F192::from(F64(7))];
+    let want = [F128::from(F64(5)), F128::from(F64(7))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("loop inequality verifies");
 }

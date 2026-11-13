@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B2C.ArmBound
 
-  `__loop2`'s separately counted arms, bounded for every valuation: `costW` within the sum
+  `main_loop2`'s separately counted arms, bounded for every valuation: `costW` within the sum
   over its counted `match`es of their largest arm (`costMaxW`), `xmssArmC` per opcode, the
   hypothesis `hC` of `cnt_le_weight_arm` (`xmssArmC_spec`).
 -/
@@ -11,13 +11,14 @@ module
 public import LeanVM.Guest.B2C.CntWeight
 
 /-!
-# `__loop2`'s arms, bounded
+# `main_loop2`'s arms, bounded
 
 `costW acs σ ss op` adds, along the path `σ` takes through `ss`, the count of each separately
 counted arm it passes. Whatever the path, it is at most `costMaxW acs op ss`: an `ite` its larger
 side, a `match` its table's largest arm and its larger arm's own (`costMaxArms`). On
-`__loop2`'s body this is `xmssArmC op` (by `decide +kernel`), so `cnt_le_weight_arm`
-holds at `C := xmssArmC` (`cnt_le_weight_xmss`).
+`main_loop2`'s body (`Data.armFn`) this is `xmssArmC op`, the values `guest-cert` computes
+(`Data.armMax`; by `decide +kernel`, every opcode in one walk), so `cnt_le_weight_arm` holds at
+`C := xmssArmC`.
 -/
 
 namespace LeanVM.Guest.B2C
@@ -101,22 +102,132 @@ end
 
 end Le
 
-/-- **`__loop2`'s separately counted arms, per opcode** (leanXMSS's check, inline in it): the sum
-of its counted `match`es' largest arms. -/
-def xmssArmC (op : Opcode) : ℕ := [57, 84, 66, 28, 34, 380].getD (opIdx op) 0
+/-! ## Every opcode at once
 
--- a kernel evaluation over `__loop2`'s whole body (329 statements, 34 counted `match`es of 256 arms)
-set_option maxHeartbeats 4000000 in
+`costMaxW` at each opcode is one walk of the block; `costMaxCW` takes the six in one walk (`C6`),
+and agrees with it at each (`costMaxCW_at`). -/
+
+/-- A count per opcode, in `opIdx`'s order. -/
+structure C6 where
+  c0 : ℕ
+  c1 : ℕ
+  c2 : ℕ
+  c3 : ℕ
+  c4 : ℕ
+  c5 : ℕ
+  deriving DecidableEq
+
+/-- The count at an opcode. -/
+def C6.at (c : C6) : Opcode → ℕ
+  | .xor => c.c0
+  | .mulNative => c.c1
+  | .setConstant => c.c2
+  | .deref => c.c3
+  | .jump => c.c4
+  | .keccak => c.c5
+
+def C6.zero : C6 := ⟨0, 0, 0, 0, 0, 0⟩
+
+def C6.max (a b : C6) : C6 :=
+  ⟨Nat.max a.c0 b.c0, Nat.max a.c1 b.c1, Nat.max a.c2 b.c2, Nat.max a.c3 b.c3, Nat.max a.c4 b.c4,
+    Nat.max a.c5 b.c5⟩
+
+def C6.add (a b : C6) : C6 :=
+  ⟨a.c0 + b.c0, a.c1 + b.c1, a.c2 + b.c2, a.c3 + b.c3, a.c4 + b.c4, a.c5 + b.c5⟩
+
+/-- The counts of a list in `opIdx`'s order. -/
+def C6.ofList (l : List ℕ) : C6 := ⟨l.getD 0 0, l.getD 1 0, l.getD 2 0, l.getD 3 0, l.getD 4 0, l.getD 5 0⟩
+
+theorem C6.at_zero (op : Opcode) : C6.zero.at op = 0 := by cases op <;> rfl
+
+theorem C6.at_max (a b : C6) (op : Opcode) : (a.max b).at op = Max.max (a.at op) (b.at op) := by
+  cases op <;> rfl
+
+theorem C6.at_add (a b : C6) (op : Opcode) : (a.add b).at op = a.at op + b.at op := by
+  cases op <;> rfl
+
+theorem C6.at_ofList (l : List ℕ) (op : Opcode) : (C6.ofList l).at op = l.getD (opIdx op) 0 := by
+  cases op <;> rfl
+
+/-- `keyMax` at every opcode. -/
+def keyMaxC (key : Option (List (List ℕ))) : C6 :=
+  match key with
+  | some cs => cs.foldr (fun l acc ↦ (C6.ofList l).max acc) C6.zero
+  | none => C6.zero
+
+theorem keyMaxC_at (key : Option (List (List ℕ))) (op : Opcode) : (keyMaxC key).at op = keyMax key op := by
+  rcases key with _ | cs
+  · exact C6.at_zero op
+  · induction cs with
+    | nil => exact C6.at_zero op
+    | cons l cs ih =>
+      simp only [keyMaxC, keyMax, List.foldr_cons, List.map_cons] at ih ⊢
+      rw [C6.at_max, C6.at_ofList, ih]
+
+mutual
+/-- `costMax1` at every opcode. -/
+def costMaxC1 (acs : List (ℕ × List (List ℕ))) : Stmt → C6
+  | .ite _ z n => (costMaxCW acs z).max (costMaxCW acs n)
+  | .match_ x arms => (keyMaxC (armRaw acs x.idx)).add (costMaxCArms acs arms)
+  | _ => C6.zero
+
+/-- `costMaxW` at every opcode. -/
+def costMaxCW (acs : List (ℕ × List (List ℕ))) : List Stmt → C6
+  | [] => C6.zero
+  | s :: ss => (costMaxC1 acs s).add (costMaxCW acs ss)
+
+/-- `costMaxArms` at every opcode. -/
+def costMaxCArms (acs : List (ℕ × List (List ℕ))) : List (List Stmt) → C6
+  | [] => C6.zero
+  | a :: as => (costMaxCW acs a).max (costMaxCArms acs as)
+end
+
+section At
+
+variable (acs : List (ℕ × List (List ℕ))) (op : Opcode)
+
+mutual
+theorem costMaxC1_at : ∀ s : Stmt, (costMaxC1 acs s).at op = costMax1 acs op s
+  | .atom _ => C6.at_zero op
+  | .ite _ z n => by rw [costMaxC1, costMax1, C6.at_max, costMaxCW_at z, costMaxCW_at n]
+  | .match_ x arms => by rw [costMaxC1, costMax1, C6.at_add, keyMaxC_at, costMaxCArms_at arms]
+  | .call .. => C6.at_zero op
+  | .callIf .. => C6.at_zero op
+  | .dispatch .. => C6.at_zero op
+  | .ret _ => C6.at_zero op
+
+theorem costMaxCW_at : ∀ ss : List Stmt, (costMaxCW acs ss).at op = costMaxW acs op ss
+  | [] => C6.at_zero op
+  | s :: ss => by rw [costMaxCW, costMaxW, C6.at_add, costMaxC1_at s, costMaxCW_at ss]
+
+theorem costMaxCArms_at : ∀ arms : List (List Stmt), (costMaxCArms acs arms).at op = costMaxArms acs op arms
+  | [] => C6.at_zero op
+  | a :: as => by rw [costMaxCArms, costMaxArms, C6.at_max, costMaxCW_at a, costMaxCArms_at as]
+end
+
+end At
+
+/-- **`main_loop2`'s separately counted arms, per opcode** (leanXMSS's check, inline in it): the sum
+of its counted `match`es' largest arms, as `guest-cert` computes them (`Data.armMax`). -/
+def xmssArmC (op : Opcode) : ℕ := Data.armMax.getD (opIdx op) 0
+
+-- a kernel evaluation over the body of the function with counted arms (`Data.armFn`)
 set_option maxRecDepth 100000 in
-theorem costMaxW_xmss (op : Opcode) :
-    costMaxW (listElementOrDefault Data.cplArms 37 []) op (coreOf 37).body = xmssArmC op := by
-  cases op <;> decide +kernel
+theorem costMaxCW_arm :
+    costMaxCW (listElementOrDefault Data.cplArms Data.armFn []) (coreOf Data.armFn).body =
+      C6.ofList Data.armMax := by
+  decide +kernel
 
-/-- **`cnt_le_weight_arm`'s `hC` at `xmssArmC`**: `__loop2`'s arms within `xmssArmC`, on
+theorem costMaxW_xmss (op : Opcode) :
+    costMaxW (listElementOrDefault Data.cplArms Data.armFn []) op (coreOf Data.armFn).body = xmssArmC op := by
+  rw [← costMaxCW_at, costMaxCW_arm, C6.at_ofList]
+  rfl
+
+/-- **`cnt_le_weight_arm`'s `hC` at `xmssArmC`**: `main_loop2`'s arms within `xmssArmC`, on
 every valuation. -/
 theorem xmssArmC_spec : ∀ op σ bufs kids rd args rets,
-    (Memory.Tree.node "__loop2" σ bufs kids).Valid coreProgram rd args rets →
-      costW (listElementOrDefault Data.cplArms 37 []) σ (coreOf 37).body op ≤ xmssArmC op :=
+    (Memory.Tree.node name% «main_loop2» σ bufs kids).Valid coreProgram rd args rets →
+      costW (listElementOrDefault Data.cplArms Data.armFn []) σ (coreOf Data.armFn).body op ≤ xmssArmC op :=
   fun op σ _ _ _ _ _ _ => (costW_le_max _ σ op _).trans (costMaxW_xmss op).le
 
 end

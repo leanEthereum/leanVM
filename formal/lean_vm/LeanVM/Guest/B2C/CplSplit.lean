@@ -16,13 +16,15 @@ public import LeanVM.Guest.B2C.ShareSplit
 # Completeness windows split by arms
 
 The completeness walk of a window of one `match` of many straight-line arms (`Check.checkWinS`
-splits its soundness window) walks every arm from the table jump to the join and keeps the most
-instructions of each opcode any arm passes. A group (`cplWinS`) walks arm `0` and the arms
-`lo ≤ k < hi` over the cells of its own values (`clocG`) and checks that its most counts are
-within what the next window starts with; the groups together give the window's check
-(`cplWin_of_split`): an arm's walk files its atoms over the group's cells, which are the window's
-(`clocG_get`), and otherwise reads no cell (`cw_atoms_loc`), and the window's counts are the most
-of the groups'.
+splits its soundness window) walks every arm from the table jump to its end, the join or, the
+`match` chained, the next one's table jump, and keeps the most instructions of each opcode any arm
+passes. A group (`cplWinS`) walks arm `0` and the arms `lo ≤ k < hi` over the cells of its own
+values and the next selector (`clocG`), from the table jump (`cwMatchS`, `cw`'s) or, the window
+entered, from its arms (`cwES`, `cwE`'s), and checks that its most counts are within what the
+next window starts with; the groups together give the window's check (`cplWin_of_split`): an
+arm's walk files its atoms over the group's cells, which are the window's (`clocG_get`), and
+otherwise reads no cell (`cw_atoms_loc`), and the window's counts are the most of the groups'
+(`cwArms_of_groups`, which `cw_of_groups` and `cwE_of_groups` share).
 -/
 
 namespace LeanVM.Guest.B2C
@@ -256,29 +258,29 @@ section Arms
 
 variable (X : CX)
 
-/-- One arm of the `match` on `v` walked from its segment to the join `J`: its counts and set-up
-cells. -/
-noncomputable def armStep (J : ℕ) (se : CW) (key : Option (List Cnt)) (v : V) (a : List Core.Stmt)
-    (t k : ℕ) : Option (Cnt × ℕ) :=
+/-- One arm of the `match` on `v` walked from its segment, ending as `armEnd J succ` says: its
+counts and set-up cells. -/
+noncomputable def armStep (J : ℕ) (succ : List ℕ) (se : CW) (key : Option (List Cnt)) (v : V)
+    (a : List Core.Stmt) (t k : ℕ) : Option (Cnt × ℕ) :=
   match segAtC X t se with
-  | some s => match armEnd J []
+  | some s => match armEnd J succ
       (cw X a { s with book := fileB X.loc X.fs a se.book, tg := armTg X v k ++ s.tg }) with
     | some (c', u') => bif armChkK key k c' then some (c', u') else none
     | none => none
   | none => none
 
-theorem cwArms_cons (J : ℕ) (se : CW) (key : Option (List Cnt)) (v : V) (a : List Core.Stmt)
+theorem cwArms_cons (J : ℕ) (succ : List ℕ) (se : CW) (key : Option (List Cnt)) (v : V) (a : List Core.Stmt)
     (as : List (List Core.Stmt)) (t : ℕ) (ts : List ℕ) (c : Cnt) (u k : ℕ) :
-    cwArms X J [] v se key (a :: as) (t :: ts) c u k =
-      match armStep X J se key v a t k with
-      | some (c', u') => cwArms X J [] v se key as ts (Cnt.max c c') (Nat.lor u u') (k + 1)
+    cwArms X J succ v se key (a :: as) (t :: ts) c u k =
+      match armStep X J succ se key v a t k with
+      | some (c', u') => cwArms X J succ v se key as ts (Cnt.max c c') (Nat.lor u u') (k + 1)
       | none => none := by
   simp only [cwArms, armStep]
   cases hs : segAtC X t se with
   | none => rfl
   | some s =>
     simp only [Exec.Trie.seq_eq]
-    cases hc : armEnd J []
+    cases hc : armEnd J succ
       (cw X a { s with book := fileB X.loc X.fs a se.book, tg := armTg X v k ++ s.tg }) with
     | none => rfl
     | some r =>
@@ -289,15 +291,15 @@ theorem cwArms_cons (J : ℕ) (se : CW) (key : Option (List Cnt)) (v : V) (a : L
 
 /-- The arms `lo ≤ k < hi` of a `match` (from index `k`) walked, the others skipped: the most
 counts. -/
-noncomputable def cwArmsS (J : ℕ) (se : CW) (key : Option (List Cnt)) (v : V) (lo hi : ℕ) :
-    List (List Core.Stmt) → List ℕ → Cnt → ℕ → ℕ → Option (Cnt × ℕ)
+noncomputable def cwArmsS (J : ℕ) (succ : List ℕ) (se : CW) (key : Option (List Cnt)) (v : V)
+    (lo hi : ℕ) : List (List Core.Stmt) → List ℕ → Cnt → ℕ → ℕ → Option (Cnt × ℕ)
   | [], [], c, u, _ => some (c, u)
   | a :: as, t :: ts, c, u, k =>
     bif Nat.ble lo k && Nat.blt k hi then
-      (match armStep X J se key v a t k with
-        | some (c', u') => cwArmsS J se key v lo hi as ts (Cnt.max c c') (Nat.lor u u') (k + 1)
+      (match armStep X J succ se key v a t k with
+        | some (c', u') => cwArmsS J succ se key v lo hi as ts (Cnt.max c c') (Nat.lor u u') (k + 1)
         | none => none)
-    else cwArmsS J se key v lo hi as ts c u (k + 1)
+    else cwArmsS J succ se key v lo hi as ts c u (k + 1)
   | _, _, _, _, _ => none
 
 end Arms
@@ -333,29 +335,29 @@ theorem maxClosed_good (B : Cnt) (U : ℕ) : MaxClosed (Good B U) := fun _ _ _ _
 theorem maxClosed_subK (U : ℕ) : MaxClosed fun r ↦ subK r.2 U = true :=
   fun _ _ u u' ↦ subK_lor_iff u u' U
 
-theorem cwArms_good (X : CX) (J : ℕ) (se : CW) (key : Option (List Cnt)) (v : V)
+theorem cwArms_good (X : CX) (J : ℕ) (succ : List ℕ) (se : CW) (key : Option (List Cnt)) (v : V)
     {P : Cnt × ℕ → Prop} (hP : MaxClosed P) :
     ∀ (as : List (List Core.Stmt)) (ts : List ℕ) (c : Cnt) (u k : ℕ), ts.length = as.length →
       P (c, u) → (∀ e (he : e < as.length) (ht : e < ts.length), ∃ r,
-        armStep X J se key v as[e] ts[e] (k + e) = some r ∧ P r) →
-      ∃ r, cwArms X J [] v se key as ts c u k = some r ∧ P r
+        armStep X J succ se key v as[e] ts[e] (k + e) = some r ∧ P r) →
+      ∃ r, cwArms X J succ v se key as ts c u k = some r ∧ P r
   | [], [], c, u, _, _, hg, _ => ⟨(c, u), by simp [cwArms], hg⟩
   | [], _ :: _, _, _, _, h, _, _ => by simp at h
   | _ :: _, [], _, _, _, h, _, _ => by simp at h
   | a :: as, t :: ts, c, u, k, hl, hg, h => by
     obtain ⟨⟨c', u'⟩, hs, hg'⟩ := h 0 (by simp) (by simp)
-    rw [cwArms_cons, show armStep X J se key v a t k = some (c', u') by simpa using hs]
-    exact cwArms_good X J se key v hP as ts _ _ (k + 1) (by simpa using hl) ((hP _ _ _ _).mpr ⟨hg, hg'⟩)
+    rw [cwArms_cons, show armStep X J succ se key v a t k = some (c', u') by simpa using hs]
+    exact cwArms_good X J succ se key v hP as ts _ _ (k + 1) (by simpa using hl) ((hP _ _ _ _).mpr ⟨hg, hg'⟩)
       fun e he ht ↦ by
         have := h (e + 1) (by simp; omega) (by simp; omega)
         simpa [Nat.add_assoc, Nat.add_comm 1 e] using this
 
-theorem cwArmsS_good (X : CX) (J : ℕ) (se : CW) (key : Option (List Cnt)) (v : V) (lo hi : ℕ)
+theorem cwArmsS_good (X : CX) (J : ℕ) (succ : List ℕ) (se : CW) (key : Option (List Cnt)) (v : V) (lo hi : ℕ)
     {P : Cnt × ℕ → Prop} (hP : MaxClosed P) :
     ∀ (as : List (List Core.Stmt)) (ts : List ℕ) (c : Cnt) (u k : ℕ) {r : Cnt × ℕ},
-      cwArmsS X J se key v lo hi as ts c u k = some r → P r →
+      cwArmsS X J succ se key v lo hi as ts c u k = some r → P r →
       ts.length = as.length ∧ P (c, u) ∧ ∀ e (he : e < as.length) (ht : e < ts.length),
-        lo ≤ k + e → k + e < hi → ∃ r', armStep X J se key v as[e] ts[e] (k + e) = some r' ∧
+        lo ≤ k + e → k + e < hi → ∃ r', armStep X J succ se key v as[e] ts[e] (k + e) = some r' ∧
           P r'
   | [], [], c, u, _, r, h, hg => by
     simp only [cwArmsS, Option.some.injEq] at h
@@ -367,7 +369,7 @@ theorem cwArmsS_good (X : CX) (J : ℕ) (se : CW) (key : Option (List Cnt)) (v :
     simp only [cwArmsS] at h
     cases hsel : (Nat.ble lo k && Nat.blt k hi)
     · rw [hsel, Bool.cond_false] at h
-      obtain ⟨hl, hgc, ha⟩ := cwArmsS_good X J se key v lo hi hP as ts c u (k + 1) h hg
+      obtain ⟨hl, hgc, ha⟩ := cwArmsS_good X J succ se key v lo hi hP as ts c u (k + 1) h hg
       refine ⟨by simp [hl], hgc, fun e he ht hlo hhi ↦ ?_⟩
       cases e with
       | zero =>
@@ -381,7 +383,7 @@ theorem cwArmsS_good (X : CX) (J : ℕ) (se : CW) (key : Option (List Cnt)) (v :
     · rw [hsel, Bool.cond_true] at h
       split at h
       · rename_i c' u' hs
-        obtain ⟨hl, hgc, ha⟩ := cwArmsS_good X J se key v lo hi hP as ts _ _ (k + 1) h hg
+        obtain ⟨hl, hgc, ha⟩ := cwArmsS_good X J succ se key v lo hi hP as ts _ _ (k + 1) h hg
         obtain ⟨hg1, hg2⟩ := (hP _ _ _ _).mp hgc
         refine ⟨by simp [hl], hg1, fun e he ht hlo hhi ↦ ?_⟩
         cases e with
@@ -398,14 +400,39 @@ theorem chainPre_none {X : CX} {v : V} (h : chainOf X v.idx = none) (st : CW) (n
     chainPre X st v n = true := by
   simp only [chainPre, h]
 
+theorem armTg_congr (X : CX) {L : CLoc} {A : ℕ → Prop} (hA : ∀ n, A n → X.loc.get? n = L.get? n)
+    {v : V} (hy : ∀ ts y b, chainOf X v.idx = some (ts, y, b) → A y) (k : ℕ) :
+    armTg X v k = armTg { X with loc := L } v k := by
+  unfold armTg
+  rw [show chainOf { X with loc := L } v.idx = chainOf X v.idx from rfl]
+  cases h : chainOf X v.idx with
+  | none => rfl
+  | some p =>
+    obtain ⟨ts, y, b⟩ := p
+    simp only
+    rw [ccell_congr hA (v := V.n y) (hy ts y b h)]
+
+theorem chainPre_congr (X : CX) {L : CLoc} {A : ℕ → Prop} (hA : ∀ n, A n → X.loc.get? n = L.get? n)
+    {v : V} (hy : ∀ ts y b, chainOf X v.idx = some (ts, y, b) → A y) (st : CW) (n : ℕ) :
+    chainPre X st v n = chainPre { X with loc := L } st v n := by
+  unfold chainPre
+  rw [show chainOf { X with loc := L } v.idx = chainOf X v.idx from rfl]
+  cases h : chainOf X v.idx with
+  | none => rfl
+  | some p =>
+    obtain ⟨ts, y, b⟩ := p
+    simp only
+    rw [ccell_congr hA (v := V.n y) (hy ts y b h)]
+    rfl
+
 theorem armStep_congr (X : CX) {L : CLoc} {A : ℕ → Prop} (hA : ∀ n, A n → X.loc.get? n = L.get? n)
-    (J : ℕ) (se : CW) (key : Option (List Cnt)) {v : V} (hch : chainOf X v.idx = none)
+    (J : ℕ) (succ : List ℕ) (se : CW) (key : Option (List Cnt)) {v : V}
+    (hy : ∀ ts y b, chainOf X v.idx = some (ts, y, b) → A y)
     {a : List Core.Stmt} (t k : ℕ) (ha : a.all isAtomS = true)
     (hv : ∀ v ∈ stmtsVals a, A v.idx) :
-    armStep X J se key v a t k = armStep { X with loc := L } J se key v a t k := by
+    armStep X J succ se key v a t k = armStep { X with loc := L } J succ se key v a t k := by
   unfold armStep
-  rw [fileB_congr hA X.fs a se.book hv, armTg_none hch,
-    armTg_none (X := { X with loc := L }) hch]
+  rw [fileB_congr hA X.fs a se.book hv, armTg_congr X hA hy k]
   have hs : segAtC { X with loc := L } t se = segAtC X t se := rfl
   rw [hs]
   split
@@ -413,121 +440,7 @@ theorem armStep_congr (X : CX) {L : CLoc} {A : ℕ → Prop} (hA : ∀ n, A n �
     rw [cw_atoms_loc X L a _ ha]
   · rfl
 
-/-! ## A window of one `match` by groups -/
-
-/-- **A `match`'s completeness walk with the arms `lo ≤ k < hi` (and arm `0`)**: `cw`'s on a
-window of one `match`, its arms by `cwArmsS`. -/
-noncomputable def cwMatchS (X : CX) (lo hi : ℕ) (v : V) (arms : List (List Core.Stmt)) (st : CW) : RC :=
-  match arms with
-  | [] => .fail 28
-  | a0 :: as =>
-    match st.seg.exit.kind, st.seg.exit.succ with
-    | .jump (.cell t) ft, t0 :: ts =>
-      match tblRead t st.its with
-      | some (o1, base) =>
-        bif X.F.self ft && Nat.beq ts.length as.length && Nat.beq o1 (X.loc.cell v) &&
-            v.path.isEmpty && Nat.beq v.tag 0 && selOk X st v &&
-            inFrame X.fs [o1, t] &&
-            X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) &&
-            armsOk X.G X.entry base 0 (t0 :: ts) && chainPre X st v (as.length + 1) &&
-            (chainOf X v.idx).isNone then
-          match endAtC X { st with tg := (t, o1, base) :: st.tg } with
-          | .ok se =>
-            match segAtC X t0 (armSt (armKeyD X.acs v.idx) se) with
-            | some s0 =>
-              (fileB X.loc X.fs a0 se.book).seq fun B0 ↦
-              match cw X a0 { s0 with book := B0, tg := armTg X v 0 ++ s0.tg } with
-              | .join J c0 u0 =>
-                bif armChkK (armKeyD X.acs v.idx) 0 c0 then
-                  match cwArmsS X J (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v lo hi as ts
-                      c0 u0 1 with
-                  | some (c, u) => match segAtC X J se with
-                    | some sj => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeq u fun u ↦
-                        cw X [] { sj with cnt := c, uq := u }
-                    | none => .fail 20
-                  | none => .fail 21
-                else .fail 24
-              | .fail e => .fail e
-              | _ => .fail 22
-            | none => .fail 23
-          | .error e => .fail e
-        else .fail 25
-      | none => .fail 26
-    | _, _ => .fail 27
-
-/-- The parts of a `match`'s walk up to its arms: what `cw` and `cwMatchS` share. -/
-structure MatchParts (X : CX) (v : V) (a0 : List Core.Stmt) (as : List (List Core.Stmt)) (st : CW)
-    (t : ℕ) (ft : Tgt) (t0 : ℕ) (ts : List ℕ) (o1 base : ℕ) (se s0 : CW) (J : ℕ) (c0 : Cnt) (u0 : ℕ) :
-    Prop where
-  kind : st.seg.exit.kind = .jump (.cell t) ft
-  succ : st.seg.exit.succ = t0 :: ts
-  tbl : tblRead t st.its = some (o1, base)
-  cond : (X.F.self ft && Nat.beq ts.length as.length && Nat.beq o1 (X.loc.cell v) &&
-            v.path.isEmpty && Nat.beq v.tag 0 && selOk X st v &&
-            inFrame X.fs [o1, t] &&
-            X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) &&
-            armsOk X.G X.entry base 0 (t0 :: ts) && chainPre X st v (as.length + 1)) = true
-  nochain : chainOf X v.idx = none
-  endAt : endAtC X { st with tg := (t, o1, base) :: st.tg } = .ok se
-  seg0 : segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0
-  arm0 : cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } =
-    .join J c0 u0
-  chk0 : armChkK (armKeyD X.acs v.idx) 0 c0 = true
-
-theorem cwMatchS_dec {X : CX} {lo hi : ℕ} {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)}
-    {st : CW} {r : RC} (h : cwMatchS X lo hi v (a0 :: as) st = r) (hr : ∀ e, r ≠ .fail e) :
-    ∃ t ft t0 ts o1 base se s0 J c0 u0 c u sj, MatchParts X v a0 as st t ft t0 ts o1 base se s0 J c0 u0 ∧
-      cwArmsS X J (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v lo hi as ts c0 u0 1 =
-        some (c, u) ∧ segAtC X J se = some sj ∧ r = cw X [] { sj with cnt := armCnt (armKeyD X.acs v.idx) se c, uq := u } := by
-  subst h
-  revert hr
-  simp only [cwMatchS]
-  split
-  · rename_i t ft t0 ts hk hs
-    split
-    · rename_i o1 base hb
-      simp only [Bool.cond_eq_ite]
-      split_ifs with hc
-      · simp only [Bool.and_eq_true, Option.isNone_iff_eq_none] at hc
-        obtain ⟨hc, hch⟩ := hc
-        split
-        · rename_i se hse
-          split
-          · rename_i s0 hs0
-            simp only [Exec.Trie.seq_eq]
-            split
-            · rename_i J c0 u0 hJ
-              split_ifs with hk0
-              · split
-                · rename_i c u harms
-                  split
-                  · rename_i sj hsj
-                    intro _
-                    exact ⟨t, ft, t0, ts, o1, base, se, s0, J, c0, u0, c, u, sj,
-                      ⟨hk, hs, hb, by simp only [Bool.and_eq_true]; exact hc, hch, hse, hs0, hJ, hk0⟩,
-                      harms, hsj, by
-                        simp only [Cnt.seq_eq, natSeq_eq]⟩
-                  · intro h; exact absurd rfl (h 20)
-                · intro h; exact absurd rfl (h 21)
-              · intro h; exact absurd rfl (h 24)
-            · intro h; exact absurd rfl (h _)
-            · intro h; exact absurd rfl (h 22)
-          · intro h; exact absurd rfl (h 23)
-        · intro h; exact absurd rfl (h _)
-      · intro h; exact absurd rfl (h 25)
-    · intro h; exact absurd rfl (h 26)
-  · intro h; exact absurd rfl (h 27)
-
-theorem cw_match_of {X : CX} {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {st : CW}
-    {t : ℕ} {ft : Tgt} {t0 : ℕ} {ts : List ℕ} {o1 base : ℕ} {se s0 : CW} {J : ℕ} {c0 : Cnt} {u0 : ℕ}
-    {c : Cnt} {u : ℕ} {sj : CW} (hp : MatchParts X v a0 as st t ft t0 ts o1 base se s0 J c0 u0)
-    (ha : cwArms X J [] v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 =
-      some (c, u))
-    (hsj : segAtC X J se = some sj) :
-    cw X [.match_ v (a0 :: as)] st = cw X [] { sj with cnt := armCnt (armKeyD X.acs v.idx) se c, uq := u } := by
-  obtain ⟨hk, hs, hb, hc, -, hse, hs0, hJ, hk0⟩ := hp
-  simp only [cw, hk, hs, hb, hc, Bool.cond_true, hse, hs0, Exec.Trie.seq_eq, hJ, hk0, ha, hsj,
-    Cnt.seq_eq, natSeq_eq]
+/-! ## Groups of arms -/
 
 theorem cw_nil_fresh (X : CX) {J : ℕ} {st sj : CW} (h : segAtC X J st = some sj) (c : Cnt) (u : ℕ) :
     cw X [] { sj with cnt := c, uq := u } = .join J c u := by
@@ -541,37 +454,241 @@ theorem cw_nil_fresh (X : CX) {J : ℕ} {st sj : CW} (h : segAtC X J st = some s
       simp only [cw, endC]
   · cases h
 
-theorem cwMatchS_ne_chain {X : CX} {lo hi : ℕ} {v : V} {arms : List (List Core.Stmt)} {st : CW}
-    {o : ℕ} {succ : List ℕ} {c : Cnt} {u : ℕ} : cwMatchS X lo hi v arms st ≠ .chain o succ c u := by
-  intro h
-  cases arms with
-  | nil => simp [cwMatchS] at h
-  | cons a0 as =>
-    obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, sj, -, -, hsj, hr⟩ :=
-      cwMatchS_dec h (by intro e h'; cases h')
-    rw [cw_nil_fresh _ hsj] at hr
-    cases hr
+/-- A group's walk of arm `0` of a `match` on `v`, its values' cells and the next selector's the
+window's, is the window's. -/
+theorem armZero_congr (X : CX) (v : V) (a0 : List Core.Stmt) (ha0 : a0.all isAtomS = true)
+    (gs : List (ℕ × ℕ × CLoc))
+    (h0v : ∀ g ∈ gs, ∀ x ∈ stmtsVals a0, g.2.2.get? x.idx = X.loc.get? x.idx)
+    (hy : ∀ g ∈ gs, ∀ ts y b, chainOf X v.idx = some (ts, y, b) → g.2.2.get? y = X.loc.get? y) :
+    ∀ g ∈ gs, ∀ se s0 : CW, cw { X with loc := g.2.2 } a0 { s0 with
+      book := fileB g.2.2 X.fs a0 se.book, tg := armTg { X with loc := g.2.2 } v 0 ++ s0.tg } =
+      cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } := by
+  intro g hg se s0
+  rw [cw_atoms_loc X g.2.2 a0 _ ha0,
+    ← fileB_congr (A := fun n ↦ g.2.2.get? n = X.loc.get? n) (fun n hn ↦ hn.symm) X.fs a0 se.book
+      (fun x hx ↦ h0v g hg x hx),
+    ← armTg_congr X (A := fun n ↦ g.2.2.get? n = X.loc.get? n) (fun n hn ↦ hn.symm) (hy g hg)]
 
-theorem matchParts_congr {X : CX} {L : CLoc} {A : ℕ → Prop} (hA : ∀ n, A n → L.get? n = X.loc.get? n)
-    {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {st : CW} {t : ℕ} {ft : Tgt}
-    {t0 : ℕ} {ts : List ℕ} {o1 base : ℕ} {se s0 : CW} {J : ℕ} {c0 : Cnt} {u0 : ℕ}
-    (hv : A v.idx) (ha0 : a0.all isAtomS = true) (h0 : ∀ x ∈ stmtsVals a0, A x.idx)
-    (h : MatchParts { X with loc := L } v a0 as st t ft t0 ts o1 base se s0 J c0 u0) :
-    MatchParts X v a0 as st t ft t0 ts o1 base se s0 J c0 u0 := by
-  obtain ⟨hk, hs, hb, hc, hch, hse, hs0, hJ, hk0⟩ := h
-  have hch' : chainOf X v.idx = none := hch
-  refine ⟨hk, hs, hb, ?_, hch', by rw [← endAtC_loc X L]; exact hse, hs0, ?_, hk0⟩
-  · rw [chainPre_none (X := { X with loc := L }) hch] at hc
-    rw [chainPre_none hch', ← ccell_congr hA hv]; exact hc
-  · rw [armTg_none (X := { X with loc := L }) hch] at hJ
-    rw [armTg_none hch']
-    rw [← cw_atoms_loc X L a0 _ ha0, ← fileB_congr hA X.fs a0 se.book h0]; exact hJ
+/-- **A `match`'s arms from its groups'**: every arm's step from the group holding it (`cwArmsS`
+on the group's cells, which agree with the window's on the arm's values and the next selector),
+all within `P`, give the window's arms (`cwArms`) within `P`. -/
+theorem cwArms_of_groups (X : CX) (J : ℕ) (succ : List ℕ) (se : CW) (key : Option (List Cnt))
+    (v : V) (as : List (List Core.Stmt)) (ts : List ℕ) (c0 : Cnt) (u0 : ℕ)
+    (gs : List (ℕ × ℕ × CLoc)) (g0 : ℕ × ℕ × CLoc) (hg0 : g0 ∈ gs)
+    (hcov : ∀ e < as.length, ∃ g ∈ gs, g.1 ≤ e + 1 ∧ e + 1 < g.2.1)
+    (has : ∀ g ∈ gs, ∀ e (he : e < as.length), g.1 ≤ e + 1 → e + 1 < g.2.1 →
+      as[e].all isAtomS = true)
+    (hy : ∀ g ∈ gs, ∀ ts y b, chainOf X v.idx = some (ts, y, b) → g.2.2.get? y = X.loc.get? y)
+    (hav : ∀ g ∈ gs, ∀ e (he : e < as.length), g.1 ≤ e + 1 → e + 1 < g.2.1 →
+      ∀ x ∈ stmtsVals as[e], g.2.2.get? x.idx = X.loc.get? x.idx)
+    {P : Cnt × ℕ → Prop} (hP : MaxClosed P)
+    (h : ∀ g ∈ gs, ∃ r, cwArmsS { X with loc := g.2.2 } J succ se key v g.1 g.2.1 as ts c0 u0 1 =
+      some r ∧ P r) :
+    ∃ r, cwArms X J succ v se key as ts c0 u0 1 = some r ∧ P r := by
+  obtain ⟨r0, h0, hp0⟩ := h g0 hg0
+  obtain ⟨hl, hg0', -⟩ := cwArmsS_good _ _ _ _ _ _ _ _ hP as ts c0 u0 1 h0 hp0
+  refine cwArms_good X J succ se key v hP as ts c0 u0 1 hl hg0' fun e he ht ↦ ?_
+  obtain ⟨g, hg, hlo, hhi⟩ := hcov e he
+  obtain ⟨r, hr, hpr⟩ := h g hg
+  obtain ⟨-, -, harm⟩ := cwArmsS_good _ _ _ _ _ _ _ _ hP as ts c0 u0 1 hr hpr
+  obtain ⟨r', hr', hgr⟩ := harm e he ht (by omega) (by omega)
+  refine ⟨r', ?_, hgr⟩
+  rw [armStep_congr X (A := fun n ↦ g.2.2.get? n = X.loc.get? n) (fun n hn ↦ hn.symm) _ _ _ _
+    (hy g hg) _ _ (has g hg e he hlo hhi) (hav g hg e he hlo hhi)]
+  exact hr'
+
+/-- What the counts and set-up cells of a `match`'s arms must satisfy for the walk to end within
+`B`, `U`: within them, or, the arms counted separately (`armKeyD`), the set-up cells within `U`. -/
+theorem armsGood (key : Option (List Cnt)) (B : Cnt) (U : ℕ) : ∃ P : Cnt × ℕ → Prop, MaxClosed P ∧
+    (∀ (se : CW) (r : Cnt × ℕ), Good B U (armCnt key se r.1, r.2) → P r) ∧
+    (∀ (se : CW) (r r' : Cnt × ℕ), Good B U (armCnt key se r'.1, r'.2) → P r →
+      Good B U (armCnt key se r.1, r.2)) := by
+  rcases key with _ | cs
+  · exact ⟨Good B U, maxClosed_good B U, fun _ _ hr ↦ hr, fun _ _ _ _ hr ↦ hr⟩
+  · exact ⟨fun r ↦ subK r.2 U = true, maxClosed_subK U, fun _ _ hr ↦ hr.2,
+      fun _ _ _ h' hr ↦ ⟨h'.1, hr⟩⟩
+
+/-- How an arm's walk ends, for the arms after it: at the join `J` (`succ = []`), or in the next
+chained `match`'s table jump through `fp[J]` into `succ`; with its counts and set-up cells. -/
+def armTgt : RC → Option (ℕ × List ℕ × Cnt × ℕ)
+  | .join J c u => some (J, [], c, u)
+  | .chain o succ c u => bif succ.isEmpty then none else some (o, succ, c, u)
+  | _ => none
+
+/-- The end of a `match`'s walk, its arms ending as `armTgt` gives `(J, succ)`, with the counts `c`
+and set-up cells `u`. -/
+noncomputable def armsEnd (X : CX) (se : CW) (e J : ℕ) (succ : List ℕ) (c : Cnt) (u : ℕ) : RC :=
+  bif succ.isEmpty then
+    (match segAtC X J se with
+      | some _ => .join J c u
+      | none => .fail e)
+  else .chain J succ c u
+
+theorem armEnd_armsEnd {X : CX} {se : CW} {e J J' : ℕ} {sc sc' : List ℕ} {c : Cnt} {u : ℕ}
+    {p : Cnt × ℕ} (h : armEnd J sc (armsEnd X se e J' sc' c u) = some p) :
+    J' = J ∧ sc' = sc ∧ p = (c, u) ∧ (sc.isEmpty = true → (segAtC X J se).isSome = true) := by
+  unfold armsEnd at h
+  cases hs : sc'.isEmpty
+  · rw [hs, Bool.cond_false] at h
+    simp only [armEnd, Bool.cond_eq_ite, Bool.and_eq_true, Bool.not_eq_true', Nat.beq_eq,
+      beq_iff_eq] at h
+    split_ifs at h with hc
+    · obtain ⟨⟨hne, rfl⟩, rfl⟩ := hc
+      exact ⟨rfl, rfl, (Option.some.inj h).symm, fun he ↦ by rw [hne] at he; cases he⟩
+  · rw [hs, Bool.cond_true] at h
+    split at h
+    · rename_i sj hsj
+      simp only [armEnd, Bool.cond_eq_ite, Bool.and_eq_true, Nat.beq_eq] at h
+      split_ifs at h with hc
+      obtain ⟨he, rfl⟩ := hc
+      have h1 := List.isEmpty_iff.mp he
+      have h2 := List.isEmpty_iff.mp hs
+      exact ⟨rfl, by rw [h1, h2], (Option.some.inj h).symm, fun _ ↦ by rw [hsj]; rfl⟩
+    · simp [armEnd] at h
+
+theorem armEnd_armsEnd_self {X : CX} {se : CW} {e J : ℕ} {sc : List ℕ} {c : Cnt} {u : ℕ}
+    (hs : sc.isEmpty = true → (segAtC X J se).isSome = true) :
+    armEnd J sc (armsEnd X se e J sc c u) = some (c, u) := by
+  unfold armsEnd
+  cases he : sc.isEmpty
+  · simp [armEnd, he]
+  · obtain ⟨sj, hsj⟩ := Option.isSome_iff_exists.mp (hs he)
+    simp [armEnd, he, hsj]
+
+/-! ## A `match` not entered, by groups -/
+
+/-- The condition of a `match`'s walk at its table jump through `fp[t]`, read through `fp[o1]`
+from the table at `base` into the arms `t0 :: ts` (`cw`'s, `cwMatchS`'s). -/
+noncomputable def matchOk (X : CX) (st : CW) (v : V) (t : ℕ) (ft : Tgt) (t0 : ℕ) (ts : List ℕ)
+    (n o1 base : ℕ) : Bool :=
+  X.F.self ft && Nat.beq ts.length n && Nat.beq o1 (X.loc.cell v) &&
+    v.path.isEmpty && Nat.beq v.tag 0 && selOk X st v &&
+    inFrame X.fs [o1, t] &&
+    X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) &&
+    armsOk X.G X.entry base 0 (t0 :: ts) && chainPre X st v (n + 1)
+
+/-- **A `match`'s completeness walk with the arms `lo ≤ k < hi` (and arm `0`)**: `cw`'s on a
+window of one `match`, its arms by `cwArmsS`. -/
+noncomputable def cwMatchS (X : CX) (lo hi : ℕ) (v : V) (arms : List (List Core.Stmt)) (st : CW) : RC :=
+  match arms with
+  | [] => .fail 28
+  | a0 :: as =>
+    match st.seg.exit.kind, st.seg.exit.succ with
+    | .jump (.cell t) ft, t0 :: ts =>
+      match tblRead t st.its with
+      | some (o1, base) =>
+        bif matchOk X st v t ft t0 ts as.length o1 base then
+          match endAtC X { st with tg := (t, o1, base) :: st.tg } with
+          | .ok se =>
+            match segAtC X t0 (armSt (armKeyD X.acs v.idx) se) with
+            | some s0 =>
+              match armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) with
+              | some (J, sc, c0, u0) =>
+                bif armChkK (armKeyD X.acs v.idx) 0 c0 then
+                  match cwArmsS X J sc (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v lo hi as
+                      ts c0 u0 1 with
+                  | some (c, u) => armsEnd X se 20 J sc (armCnt (armKeyD X.acs v.idx) se c) u
+                  | none => .fail 21
+                else .fail 24
+              | none => .fail 22
+            | none => .fail 23
+          | .error e => .fail e
+        else .fail 25
+      | none => .fail 26
+    | _, _ => .fail 27
+
+theorem cwMatchS_dec {X : CX} {lo hi : ℕ} {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)}
+    {st : CW} {J : ℕ} {sc : List ℕ} {p : Cnt × ℕ}
+    (h : armEnd J sc (cwMatchS X lo hi v (a0 :: as) st) = some p) :
+    ∃ t ft t0 ts o1 base se s0 J' sc' c0 u0 c u, st.seg.exit.kind = .jump (.cell t) ft ∧
+      st.seg.exit.succ = t0 :: ts ∧ tblRead t st.its = some (o1, base) ∧
+      matchOk X st v t ft t0 ts as.length o1 base = true ∧
+      endAtC X { st with tg := (t, o1, base) :: st.tg } = .ok se ∧
+      segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0 ∧
+      armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+        some (J', sc', c0, u0) ∧ armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
+      cwArmsS X J' sc' (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v lo hi as ts c0 u0 1 =
+        some (c, u) ∧
+      cwMatchS X lo hi v (a0 :: as) st = armsEnd X se 20 J' sc' (armCnt (armKeyD X.acs v.idx) se c) u := by
+  generalize hr : cwMatchS X lo hi v (a0 :: as) st = r at h
+  unfold cwMatchS at hr
+  dsimp only at hr
+  split at hr
+  · rename_i t ft t0 ts hk hs
+    split at hr
+    · rename_i o1 base hb
+      simp only [Bool.cond_eq_ite] at hr
+      split_ifs at hr with hc
+      · split at hr
+        · rename_i se hse
+          split at hr
+          · rename_i s0 hs0
+            split at hr
+            · rename_i J' sc' c0 u0 ht
+              split_ifs at hr with hk0
+              · split at hr
+                · rename_i c u harms
+                  exact ⟨t, ft, t0, ts, o1, base, se, s0, J', sc', c0, u0, c, u, hk, hs, hb, hc, hse, hs0,
+                    ht, hk0, harms, hr.symm⟩
+                · subst hr; simp [armEnd] at h
+              · subst hr; simp [armEnd] at h
+            · subst hr; simp [armEnd] at h
+          · subst hr; simp [armEnd] at h
+        · subst hr; simp [armEnd] at h
+      · subst hr; simp [armEnd] at h
+    · subst hr; simp [armEnd] at h
+  · subst hr; simp [armEnd] at h
+
+/-- `cw` on a `match`, the window's one statement, from its parts. -/
+theorem cw_of_parts {X : CX} {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {st : CW}
+    {t : ℕ} {ft : Tgt} {t0 : ℕ} {ts : List ℕ} {o1 base : ℕ} {se s0 : CW} {J : ℕ} {sc : List ℕ}
+    {c0 : Cnt} {u0 : ℕ} {c : Cnt} {u : ℕ} (hk : st.seg.exit.kind = .jump (.cell t) ft)
+    (hs : st.seg.exit.succ = t0 :: ts) (hb : tblRead t st.its = some (o1, base))
+    (hc : matchOk X st v t ft t0 ts as.length o1 base = true)
+    (hse : endAtC X { st with tg := (t, o1, base) :: st.tg } = .ok se)
+    (hs0 : segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0)
+    (ht : armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+      some (J, sc, c0, u0))
+    (hk0 : armChkK (armKeyD X.acs v.idx) 0 c0 = true)
+    (ha : cwArms X J sc v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 =
+      some (c, u)) :
+    cw X [.match_ v (a0 :: as)] st = armsEnd X se 20 J sc (armCnt (armKeyD X.acs v.idx) se c) u := by
+  unfold matchOk at hc
+  simp only [cw, hk, hs, hb, hc, Bool.cond_true, hse, hs0, Exec.Trie.seq_eq]
+  generalize cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = r
+    at ht ⊢
+  cases r with
+  | join J' c' u' =>
+    simp only [armTgt, Option.some.injEq, Prod.mk.injEq] at ht
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := ht
+    simp only [hk0, Bool.cond_true, ha, armsEnd, List.isEmpty_nil]
+    cases hsj : segAtC X J' se with
+    | none => rfl
+    | some sj =>
+      simpa only [Cnt.seq_eq, natSeq_eq, cw] using cw_nil_fresh X hsj (armCnt (armKeyD X.acs v.idx) se c) u
+  | chain o' succ' c' u' =>
+    simp only [armTgt, Bool.cond_eq_ite] at ht
+    split_ifs at ht with he
+    simp only [Option.some.injEq, Prod.mk.injEq] at ht
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := ht
+    simp only [hk0, he, List.isEmpty_nil, Bool.not_false, Bool.and_self, Bool.cond_true, ha,
+      Cnt.seq_eq, natSeq_eq, armsEnd, Bool.cond_false]
+  | mid => simp [armTgt] at ht
+  | done => simp [armTgt] at ht
+  | fail => simp [armTgt] at ht
+
+theorem matchOk_congr {X : CX} {L : CLoc} {A : ℕ → Prop} (hA : ∀ n, A n → X.loc.get? n = L.get? n)
+    {st : CW} {v : V} {t : ℕ} {ft : Tgt} {t0 : ℕ} {ts : List ℕ} {n o1 base : ℕ} (hv : A v.idx)
+    (hy : ∀ ts y b, chainOf X v.idx = some (ts, y, b) → A y) :
+    matchOk X st v t ft t0 ts n o1 base = matchOk { X with loc := L } st v t ft t0 ts n o1 base := by
+  unfold matchOk
+  rw [ccell_congr hA hv, chainPre_congr X hA hy]
+  rfl
 
 /-- **A `match` window's completeness walk from its groups'**: groups `(lo, hi, cells)` covering
-every arm, each group's walk on its cells ending at the join `J` within `B`, `U`, the cells
-agreeing with the window's on the values each names, give the window's walk ending at `J` within
-`B`, `U`. If the arms are counted separately (`armKeyD`), every group ends at the counts at the
-jump, and so does the window. -/
+every arm, each group's walk on its cells ending as `armEnd J sc` says within `B`, `U`, the cells
+agreeing with the window's on the values each names and on the next selector, give the window's
+walk ending so within `B`, `U`. -/
 theorem cw_of_groups (X : CX) (v : V) (a0 : List Core.Stmt) (as : List (List Core.Stmt)) (st : CW)
     (gs : List (ℕ × ℕ × CLoc)) (g0 : ℕ × ℕ × CLoc) (hg0 : g0 ∈ gs)
     (hcov : ∀ e < as.length, ∃ g ∈ gs, g.1 ≤ e + 1 ∧ e + 1 < g.2.1)
@@ -582,119 +699,328 @@ theorem cw_of_groups (X : CX) (v : V) (a0 : List Core.Stmt) (as : List (List Cor
     (h0v : ∀ g ∈ gs, ∀ x ∈ stmtsVals a0, g.2.2.get? x.idx = X.loc.get? x.idx)
     (hav : ∀ g ∈ gs, ∀ e (he : e < as.length), g.1 ≤ e + 1 → e + 1 < g.2.1 →
       ∀ x ∈ stmtsVals as[e], g.2.2.get? x.idx = X.loc.get? x.idx)
-    {J : ℕ} {B : Cnt} {U : ℕ}
-    (h : ∀ g ∈ gs, ∃ c u, cwMatchS { X with loc := g.2.2 } g.1 g.2.1 v (a0 :: as) st = .join J c u ∧
-      Good B U (c, u)) :
-    ∃ c u, cw X [.match_ v (a0 :: as)] st = .join J c u ∧ Good B U (c, u) := by
-  -- what the arms' counts and set-up cells must satisfy: within `B`, `U`, or, if counted
-  -- separately, the set-up cells within `U`
-  obtain ⟨P, hP, hPg, hPf⟩ : ∃ P : Cnt × ℕ → Prop, MaxClosed P ∧
-      (∀ (se : CW) (r : Cnt × ℕ), Good B U (armCnt (armKeyD X.acs v.idx) se r.1, r.2) → P r) ∧
-      (∀ (se : CW) (r r' : Cnt × ℕ), Good B U (armCnt (armKeyD X.acs v.idx) se r'.1, r'.2) → P r →
-        Good B U (armCnt (armKeyD X.acs v.idx) se r.1, r.2)) := by
-    rcases armKeyD X.acs v.idx with _ | cs
-    · exact ⟨Good B U, maxClosed_good B U, fun _ _ hr ↦ hr, fun _ _ _ _ hr ↦ hr⟩
-    · exact ⟨fun r ↦ subK r.2 U = true, maxClosed_subK U, fun _ _ hr ↦ hr.2,
-        fun _ _ _ h' hr ↦ ⟨h'.1, hr⟩⟩
+    (hy : ∀ g ∈ gs, ∀ ts y b, chainOf X v.idx = some (ts, y, b) → g.2.2.get? y = X.loc.get? y)
+    {J : ℕ} {sc : List ℕ} {B : Cnt} {U : ℕ}
+    (h : ∀ g ∈ gs, ∃ p, armEnd J sc (cwMatchS { X with loc := g.2.2 } g.1 g.2.1 v (a0 :: as) st) =
+      some p ∧ Good B U p) :
+    ∃ p, armEnd J sc (cw X [.match_ v (a0 :: as)] st) = some p ∧ Good B U p := by
+  obtain ⟨P, hP, hPg, hPf⟩ := armsGood (armKeyD X.acs v.idx) B U
+  have hw0 := armZero_congr X v a0 ha0 gs h0v hy
   -- each group's parts are the window's
-  have hdec : ∀ g ∈ gs, ∃ t ft t0 ts o1 base se s0 J' c0 u0 c u sj,
-      MatchParts X v a0 as st t ft t0 ts o1 base se s0 J' c0 u0 ∧
-      cwArmsS { X with loc := g.2.2 } J' (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v
-        g.1 g.2.1 as ts c0 u0 1 = some (c, u) ∧
-      segAtC X J' se = some sj ∧ J' = J ∧ Good B U (armCnt (armKeyD X.acs v.idx) se c, u) := by
+  have hdec : ∀ g ∈ gs, ∃ t ft t0 ts o1 base se s0 c0 u0 c u, st.seg.exit.kind = .jump (.cell t) ft ∧
+      st.seg.exit.succ = t0 :: ts ∧ tblRead t st.its = some (o1, base) ∧
+      matchOk X st v t ft t0 ts as.length o1 base = true ∧
+      endAtC X { st with tg := (t, o1, base) :: st.tg } = .ok se ∧
+      segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0 ∧
+      armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+        some (J, sc, c0, u0) ∧ armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
+      cwArmsS { X with loc := g.2.2 } J sc (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v
+        g.1 g.2.1 as ts c0 u0 1 = some (c, u) ∧ Good B U (armCnt (armKeyD X.acs v.idx) se c, u) ∧
+      (sc.isEmpty = true → (segAtC X J se).isSome = true) := by
     intro g hg
-    obtain ⟨c', u', hr, hgood⟩ := h g hg
-    obtain ⟨t, ft, t0, ts, o1, base, se, s0, J', c0, u0, c, u, sj, hp, ha, hsj, heq⟩ :=
-      cwMatchS_dec hr (by intro e h'; cases h')
-    have hp' := matchParts_congr (A := fun n ↦ g.2.2.get? n = X.loc.get? n) (fun n hn ↦ hn)
-      (hv g hg) ha0 (h0v g hg) hp
-    have hsj' : segAtC X J' se = some sj := hsj
-    refine ⟨t, ft, t0, ts, o1, base, se, s0, J', c0, u0, c, u, sj, hp', ha, hsj', ?_⟩
-    rw [cw_nil_fresh _ hsj] at heq
-    simp only [RC.join.injEq] at heq
-    obtain ⟨rfl, hc, rfl⟩ := heq
-    refine ⟨rfl, ?_⟩
-    have hc' : armCnt (armKeyD X.acs v.idx) se c = c' := hc.symm
-    rw [hc']
-    exact hgood
-  obtain ⟨t, ft, t0, ts, o1, base, se, s0, J', c0, u0, c, u, sj, hp, ha, hsj, rfl, hgood⟩ := hdec g0 hg0
-  obtain ⟨hl, hg0', -⟩ := cwArmsS_good _ _ _ _ _ _ _ hP as ts c0 u0 1 ha (hPg se (c, u) hgood)
-  -- every arm's step, from the group holding it
-  have hstep : ∀ e (he : e < as.length) (ht : e < ts.length), ∃ r,
-      armStep X J' (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v as[e] ts[e] (1 + e) =
-        some r ∧ P r := by
-    intro e he ht
-    obtain ⟨g, hg, hlo, hhi⟩ := hcov e he
-    obtain ⟨t', ft', t0', ts', o1', base', se', s0', J'', c0', u0', c', u', sj', hp', ha', -, hJ, hgood'⟩ :=
-      hdec g hg
-    have e1 := hp'.kind.symm.trans hp.kind
-    simp only [Kind.jump.injEq, Tgt.cell.injEq] at e1
-    obtain ⟨rfl, rfl⟩ := e1
-    have e2 := hp'.tbl.symm.trans hp.tbl
-    simp only [Option.some.injEq, Prod.mk.injEq] at e2
-    obtain ⟨rfl, rfl⟩ := e2
-    have e3 := hp'.endAt.symm.trans hp.endAt
-    simp only [Except.ok.injEq] at e3
-    subst e3
-    have e4 := hp'.succ.symm.trans hp.succ
-    simp only [List.cons.injEq] at e4
-    obtain ⟨rfl, rfl⟩ := e4
-    subst hJ
-    obtain ⟨-, -, harm⟩ := cwArmsS_good _ _ _ _ _ _ _ hP as ts' c0' u0' 1 ha' (hPg se' (c', u') hgood')
-    obtain ⟨r, hr, hgr⟩ := harm e he ht (by omega) (by omega)
-    refine ⟨r, ?_, hgr⟩
-    rw [armStep_congr X (A := fun n ↦ g.2.2.get? n = X.loc.get? n) (fun n hn ↦ hn.symm) _ _ _
-      hp.nochain _ _ (has g hg e he hlo hhi) (hav g hg e he hlo hhi)]
-    exact hr
-  obtain ⟨⟨rc, ru⟩, hr, hgr⟩ := cwArms_good X J' _ _ v hP as ts c0 u0 1 hl hg0' hstep
-  refine ⟨armCnt (armKeyD X.acs v.idx) se rc, ru, ?_, ?_⟩
-  · rw [cw_match_of hp hr hsj]
-    exact cw_nil_fresh X hsj _ _
-  · exact hPf se (rc, ru) (c, u) hgood hgr
+    obtain ⟨p, hp, hgood⟩ := h g hg
+    obtain ⟨t, ft, t0, ts, o1, base, se, s0, J', sc', c0, u0, c, u, hk, hs, hb, hc, hse, hs0, ht, hk0,
+      harms, heq⟩ := cwMatchS_dec hp
+    rw [heq] at hp
+    obtain ⟨rfl, rfl, rfl, hsj⟩ := armEnd_armsEnd hp
+    refine ⟨t, ft, t0, ts, o1, base, se, s0, c0, u0, c, u, hk, hs, hb, ?_,
+      by rw [← endAtC_loc X g.2.2]; exact hse, hs0, by rw [← hw0 g hg]; exact ht, hk0, harms,
+      hgood, hsj⟩
+    rw [matchOk_congr (A := fun n ↦ g.2.2.get? n = X.loc.get? n) (fun n hn ↦ hn.symm) (hv g hg)
+      (hy g hg)]
+    exact hc
+  obtain ⟨t, ft, t0, ts, o1, base, se, s0, c0, u0, c1, u1, hk, hs, hb, hc, hse, hs0, ht, hk0, -, hg1,
+    hsj⟩ := hdec g0 hg0
+  obtain ⟨⟨rc, ru⟩, hr, hgr⟩ := cwArms_of_groups X J sc (armSt (armKeyD X.acs v.idx) se)
+    (armKeyD X.acs v.idx) v as ts c0 u0 gs g0 hg0 hcov has hy hav hP fun g hg ↦ by
+      obtain ⟨t', ft', t0', ts', o1', base', se', s0', c0', u0', c, u, hk', hs', hb', -, hse', hs0', ht',
+        -, harms, hpc, -⟩ := hdec g hg
+      obtain ⟨rfl, rfl⟩ := List.cons.inj (hs'.symm.trans hs)
+      obtain ⟨rfl, rfl⟩ : t' = t ∧ ft' = ft := by
+        have e := hk'.symm.trans hk
+        simp only [Kind.jump.injEq, Tgt.cell.injEq] at e
+        exact e
+      obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (hb'.symm.trans hb))
+      obtain rfl : se = se' := by
+        have e := hse'.symm.trans hse
+        simp only [Except.ok.injEq] at e
+        exact e.symm
+      obtain rfl := Option.some.inj (hs0'.symm.trans hs0)
+      simp only [ht, Option.some.injEq, Prod.mk.injEq] at ht'
+      obtain ⟨-, -, rfl, rfl⟩ := ht'
+      exact ⟨(c, u), harms, hPg se (c, u) hpc⟩
+  refine ⟨(armCnt (armKeyD X.acs v.idx) se rc, ru), ?_, hPf se (rc, ru) (c1, u1) hg1 hgr⟩
+  rw [cw_of_parts hk hs hb hc hse hs0 ht hk0 hr]
+  exact armEnd_armsEnd_self hsj
+
+/-! ## An entered `match`, by groups -/
+
+/-- The condition of an entered `match`'s walk (`cwE`'s, `cwES`'s). -/
+noncomputable def entOk (X : CX) (o : ℕ) (se : CW) (v : V) (ts : List ℕ) (n : ℕ) : Bool :=
+  Nat.beq o (X.loc.cell v) && v.path.isEmpty && Nat.beq v.tag 0 && selOk X se v &&
+    Nat.beq ts.length n && inFrame X.fs [o] && chainPre X se v (n + 1)
+
+/-- **An entered window's chained `match` with the arms `lo ≤ k < hi` (and arm `0`)**: `cwE`'s on
+it, its arms by `cwArmsS`. -/
+noncomputable def cwES (X : CX) (lo hi o : ℕ) (succ : List ℕ) (se : CW) (v : V)
+    (arms : List (List Core.Stmt)) : RC :=
+  match arms, succ with
+  | a0 :: as, t0 :: ts =>
+    bif entOk X o se v ts as.length then
+      match segAtC X t0 (armSt (armKeyD X.acs v.idx) se) with
+      | some s0 =>
+        match armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) with
+        | some (J, sc, c0, u0) =>
+          bif armChkK (armKeyD X.acs v.idx) 0 c0 then
+            match cwArmsS X J sc (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v lo hi as ts
+                c0 u0 1 with
+            | some (c, u) => armsEnd X se 80 J sc (armCnt (armKeyD X.acs v.idx) se c) u
+            | none => .fail 81
+          else .fail 84
+        | none => .fail 82
+      | none => .fail 83
+    else .fail 85
+  | _, _ => .fail 86
+
+theorem cwES_dec {X : CX} {lo hi o : ℕ} {succ : List ℕ} {se : CW} {v : V} {a0 : List Core.Stmt}
+    {as : List (List Core.Stmt)} {J : ℕ} {sc : List ℕ} {p : Cnt × ℕ}
+    (h : armEnd J sc (cwES X lo hi o succ se v (a0 :: as)) = some p) :
+    ∃ t0 ts s0 J' sc' c0 u0 c u, succ = t0 :: ts ∧ entOk X o se v ts as.length = true ∧
+      segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0 ∧
+      armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+        some (J', sc', c0, u0) ∧ armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
+      cwArmsS X J' sc' (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v lo hi as ts c0 u0 1 =
+        some (c, u) ∧
+      cwES X lo hi o succ se v (a0 :: as) = armsEnd X se 80 J' sc' (armCnt (armKeyD X.acs v.idx) se c) u := by
+  cases succ with
+  | nil => simp [cwES, armEnd] at h
+  | cons t0 ts =>
+    generalize hr : cwES X lo hi o (t0 :: ts) se v (a0 :: as) = r at h
+    unfold cwES at hr
+    simp only [Bool.cond_eq_ite] at hr
+    split_ifs at hr with hc
+    · split at hr
+      · rename_i s0 hs0
+        split at hr
+        · rename_i J' sc' c0 u0 ht
+          split_ifs at hr with hk
+          · split at hr
+            · rename_i c u harms
+              exact ⟨t0, ts, s0, J', sc', c0, u0, c, u, rfl, hc, hs0, ht, hk, harms, hr.symm⟩
+            · subst hr; simp [armEnd] at h
+          · subst hr; simp [armEnd] at h
+        · subst hr; simp [armEnd] at h
+      · subst hr; simp [armEnd] at h
+    · subst hr; simp [armEnd] at h
+
+/-- `cwE` on a chained `match`, the window's last statement, from its parts. -/
+theorem cwE_of_parts {X : CX} {o : ℕ} {se : CW} {v : V} {a0 : List Core.Stmt}
+    {as : List (List Core.Stmt)} {t0 : ℕ} {ts : List ℕ} {s0 : CW} {J : ℕ} {sc : List ℕ} {c0 : Cnt}
+    {u0 : ℕ} {c : Cnt} {u : ℕ} (hc : entOk X o se v ts as.length = true)
+    (hs0 : segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0)
+    (ht : armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+      some (J, sc, c0, u0))
+    (hk : armChkK (armKeyD X.acs v.idx) 0 c0 = true)
+    (ha : cwArms X J sc v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 =
+      some (c, u)) :
+    cwE X o (t0 :: ts) se [.match_ v (a0 :: as)] =
+      armsEnd X se 80 J sc (armCnt (armKeyD X.acs v.idx) se c) u := by
+  unfold entOk at hc
+  simp only [cwE, hc, Bool.cond_true, hs0, Exec.Trie.seq_eq]
+  generalize cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = r
+    at ht ⊢
+  cases r with
+  | join J' c' u' =>
+    simp only [armTgt, Option.some.injEq, Prod.mk.injEq] at ht
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := ht
+    simp only [hk, Bool.cond_true, ha, armsEnd, List.isEmpty_nil]
+    cases hsj : segAtC X J' se with
+    | none => rfl
+    | some sj => simp only [Cnt.seq_eq, natSeq_eq, cw_nil_fresh X hsj]
+  | chain o' succ' c' u' =>
+    simp only [armTgt, Bool.cond_eq_ite] at ht
+    split_ifs at ht with he
+    simp only [Option.some.injEq, Prod.mk.injEq] at ht
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := ht
+    simp only [hk, he, List.isEmpty_nil, Bool.not_false, Bool.and_self, Bool.cond_true, ha,
+      Cnt.seq_eq, natSeq_eq, armsEnd, Bool.cond_false]
+  | mid => simp [armTgt] at ht
+  | done => simp [armTgt] at ht
+  | fail => simp [armTgt] at ht
+
+theorem entOk_congr {X : CX} {L : CLoc} {A : ℕ → Prop} (hA : ∀ n, A n → X.loc.get? n = L.get? n)
+    {o : ℕ} {se : CW} {v : V} {ts : List ℕ} {n : ℕ} (hv : A v.idx)
+    (hy : ∀ ts y b, chainOf X v.idx = some (ts, y, b) → A y) :
+    entOk X o se v ts n = entOk { X with loc := L } o se v ts n := by
+  unfold entOk
+  rw [ccell_congr hA hv, chainPre_congr X hA hy]
+  rfl
+
+/-- **An entered window's chained `match` from its groups'**: groups `(lo, hi, cells)` covering
+every arm, each group's walk on its cells ending as `armEnd J sc` says within `B`, `U`, the cells
+agreeing with the window's on the values each names and on the next selector, give the window's
+walk ending so within `B`, `U`. -/
+theorem cwE_of_groups (X : CX) (o : ℕ) (succ : List ℕ) (se : CW) (v : V) (a0 : List Core.Stmt)
+    (as : List (List Core.Stmt)) (gs : List (ℕ × ℕ × CLoc)) (g0 : ℕ × ℕ × CLoc) (hg0 : g0 ∈ gs)
+    (hcov : ∀ e < as.length, ∃ g ∈ gs, g.1 ≤ e + 1 ∧ e + 1 < g.2.1)
+    (ha0 : a0.all isAtomS = true)
+    (has : ∀ g ∈ gs, ∀ e (he : e < as.length), g.1 ≤ e + 1 → e + 1 < g.2.1 →
+      as[e].all isAtomS = true)
+    (hv : ∀ g ∈ gs, g.2.2.get? v.idx = X.loc.get? v.idx)
+    (h0v : ∀ g ∈ gs, ∀ x ∈ stmtsVals a0, g.2.2.get? x.idx = X.loc.get? x.idx)
+    (hav : ∀ g ∈ gs, ∀ e (he : e < as.length), g.1 ≤ e + 1 → e + 1 < g.2.1 →
+      ∀ x ∈ stmtsVals as[e], g.2.2.get? x.idx = X.loc.get? x.idx)
+    (hy : ∀ g ∈ gs, ∀ ts y b, chainOf X v.idx = some (ts, y, b) → g.2.2.get? y = X.loc.get? y)
+    {J : ℕ} {sc : List ℕ} {B : Cnt} {U : ℕ}
+    (h : ∀ g ∈ gs, ∃ p, armEnd J sc (cwES { X with loc := g.2.2 } g.1 g.2.1 o succ se v (a0 :: as)) =
+      some p ∧ Good B U p) :
+    ∃ p, armEnd J sc (cwE X o succ se [.match_ v (a0 :: as)]) = some p ∧ Good B U p := by
+  obtain ⟨P, hP, hPg, hPf⟩ := armsGood (armKeyD X.acs v.idx) B U
+  have hw0 := armZero_congr X v a0 ha0 gs h0v hy
+  -- each group's parts are the window's
+  have hdec : ∀ g ∈ gs, ∃ t0 ts s0 c0 u0 c u, succ = t0 :: ts ∧ entOk X o se v ts as.length = true ∧
+      segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0 ∧
+      armTgt (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg }) =
+        some (J, sc, c0, u0) ∧ armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
+      cwArmsS { X with loc := g.2.2 } J sc (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v
+        g.1 g.2.1 as ts c0 u0 1 = some (c, u) ∧ P (c, u) ∧
+      (sc.isEmpty = true → (segAtC X J se).isSome = true) := by
+    intro g hg
+    obtain ⟨p, hp, hgood⟩ := h g hg
+    obtain ⟨t0, ts, s0, J', sc', c0, u0, c, u, rfl, hc, hs0, ht, hk, harms, heq⟩ := cwES_dec hp
+    rw [heq] at hp
+    obtain ⟨rfl, rfl, rfl, hsj⟩ := armEnd_armsEnd hp
+    refine ⟨t0, ts, s0, c0, u0, c, u, rfl, ?_, hs0, by rw [← hw0 g hg]; exact ht, hk, harms,
+      hPg se (c, u) hgood, hsj⟩
+    rw [entOk_congr (A := fun n ↦ g.2.2.get? n = X.loc.get? n) (fun n hn ↦ hn.symm) (hv g hg) (hy g hg)]
+    exact hc
+  obtain ⟨t0, ts, s0, c0, u0, -, -, rfl, hc, hs0, ht, hk, -, -, hsj⟩ := hdec g0 hg0
+  obtain ⟨⟨rc, ru⟩, hr, hgr⟩ := cwArms_of_groups X J sc (armSt (armKeyD X.acs v.idx) se)
+    (armKeyD X.acs v.idx) v as ts c0 u0 gs g0 hg0 hcov has hy hav hP fun g hg ↦ by
+      obtain ⟨t0', ts', s0', c0', u0', c, u, he, -, hs0', ht', -, harms, hpc, -⟩ := hdec g hg
+      obtain ⟨rfl, rfl⟩ := List.cons.inj he
+      obtain rfl := Option.some.inj (hs0'.symm.trans hs0)
+      simp only [ht, Option.some.injEq, Prod.mk.injEq] at ht'
+      obtain ⟨-, -, rfl, rfl⟩ := ht'
+      exact ⟨(c, u), harms, hpc⟩
+  refine ⟨(armCnt (armKeyD X.acs v.idx) se rc, ru), ?_, ?_⟩
+  · rw [cwE_of_parts hc hs0 ht hk hr]
+    exact armEnd_armsEnd_self hsj
+  · obtain ⟨-, -, -, c0', u0', c, u, -, -, -, -, -, -, -, -⟩ := hdec g0 hg0
+    obtain ⟨p, hp, hgood⟩ := h g0 hg0
+    obtain ⟨t0', ts', s0', J', sc', c0'', u0'', c', u', he, -, hs0', ht', -, harms, heq⟩ := cwES_dec hp
+    rw [heq] at hp
+    obtain ⟨rfl, rfl, rfl, -⟩ := armEnd_armsEnd hp
+    exact hPf se (rc, ru) (c', u') hgood hgr
 
 /-! ## A completeness window by groups -/
 
+/-- The next selector of a chained `match` on `v` has a cell. -/
+noncomputable def nextSelOk (X : CX) (v : V) : Bool :=
+  match chainOf X v.idx with
+  | some (_, y, _) => (X.loc.get? y).isSome
+  | none => true
+
+/-- The walk of a window of one `match` with the arms `lo ≤ k < hi` (and arm `0`): `cplRes`'s,
+entered (`cwES`) or not (`cwMatchS`). -/
+noncomputable def cwSplit (X : CX) (lo hi : ℕ) (ent : Option (ℕ × List ℕ)) (v : V)
+    (arms : List (List Core.Stmt)) (st : CW) : RC :=
+  match ent with
+  | some (o, succ) => cwES X lo hi o succ st v arms
+  | none => cwMatchS X lo hi v arms st
+
 /-- **The check of a group of a completeness window of one `match`**: the window one part, arm
-`0` and the arms `lo ≤ k < hi` atoms all, their values with cells
-among the group's (`clocG`), and the walk with those arms (`cwMatchS`) ending as the window's
-part must (`partEnd`). Not the last window. -/
+`0` and the arms `lo ≤ k < hi` atoms all, their values and the next selector with cells among the
+group's (`clocG`), and the walk with those arms (`cwSplit`) ending as the window's part must
+(`partEnd`). Not the last window. -/
 noncomputable def cplWinS (j i lo hi gm gn am an : ℕ) : Bool :=
   Nat.beq (nParts j i) 1 && Nat.beq (partM j i 0) 0 && Nat.blt i (certOf j).cuts.length &&
-  (partEnt j i 0).isNone &&
   match partStmts j i 0 with
   | [.match_ v (a0 :: as)] =>
     matchAtoms lo hi [.match_ v (a0 :: as)] &&
-    match execWinC (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
-        ((certOf j).endAt (fnOf j) i) with
+    match execWinCS (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
+        (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i) with
     | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦
       (clocG (certOf j) i gm gn am an).seq fun loc ↦
       (statT (fsN j) (plumbOf j).stat .nil).seq fun stat ↦
       (partC j i 0).seq fun c ↦ natSeq (partU j i 0) fun u ↦ natSeq (partJ j i 0) fun J ↦
-      natSeq (nvOf (coreOf j).body 0) fun nv ↦
+      natSeq (plumbOf j).nv fun nv ↦
       (stmtsVals (selStmts lo hi [.match_ v (a0 :: as)])).all (fun x ↦ (loc.get? x.idx).isSome) &&
+      nextSelOk (cxOf j idx loc stat nv (stopOf j i 0)) v &&
       match getF idx J with
       | some s => bif Nat.beq s.start J then
-          partEnd j i 0 (cwMatchS (cxOf j idx loc stat nv (stopOf j i 0)) lo hi v (a0 :: as)
-            ⟨s, s.items, .nil, [], [], [], c, u, some J, 0⟩)
+          partEnd j i 0 (cwSplit (cxOf j idx loc stat nv (stopOf j i 0)) lo hi (partEnt j i 0) v
+            (a0 :: as) ⟨s, s.items, .nil, [], [], [], c, u, some J, 0⟩)
         else false
       | none => false
   | _ => false
 
-theorem partEnd_last {j i : ℕ} (h1 : nParts j i = 1) (hi : i < (certOf j).cuts.length) {r : RC}
-    (h : partEnd j i 0 r = true) (hr : ∀ o succ c u, r ≠ .chain o succ c u) :
-    ∃ c u, r = .join ((certOf j).cutAt (i + 1)).J c u ∧ (partEnt j (i + 1) 0).isNone = true ∧
-      Good (partC j (i + 1) 0) (partU j (i + 1) 0) (c, u) := by
+/-- Where a window of one part hands on: into the next window's chained `match`'s table jump if it
+is entered, else at its start. -/
+noncomputable def nextTgt (j i : ℕ) : ℕ × List ℕ :=
+  match partEnt j (i + 1) 0 with
+  | some (o, succ) => (o, succ)
+  | none => (((certOf j).cutAt (i + 1)).J, [])
+
+/-- What `partEnd` checks of a window of one part beyond its walk's end: an entered next window
+starts at its first arm. -/
+noncomputable def nextOk (j i : ℕ) : Bool :=
+  match partEnt j (i + 1) 0 with
+  | some (_, succ) => !succ.isEmpty && Nat.beq (partJ j (i + 1) 0) (succ.headD 0)
+  | none => true
+
+theorem partEnd_one {j i : ℕ} (h1 : nParts j i = 1) (hi : i < (certOf j).cuts.length) {r : RC}
+    (h : partEnd j i 0 r = true) :
+    nextOk j i = true ∧ ∃ p, armEnd (nextTgt j i).1 (nextTgt j i).2 r = some p ∧
+      Good (partC j (i + 1) 0) (partU j (i + 1) 0) p := by
   have hn : Nat.blt (0 + 1) (nParts j i) = false := by rw [h1]; rfl
+  unfold nextOk nextTgt
   cases r with
   | join J c u =>
-    simp only [partEnd, hn, Bool.cond_false, Bool.and_eq_true, Nat.beq_eq] at h
-    exact ⟨c, u, by rw [h.1.1.1.2], h.1.1.2, h.1.2, h.2⟩
+    simp only [partEnd, hn, Bool.cond_false, Bool.and_eq_true, Nat.beq_eq,
+      Option.isNone_iff_eq_none] at h
+    obtain ⟨⟨⟨⟨-, rfl⟩, hpe⟩, hc⟩, hu⟩ := h
+    simp only [hpe]
+    exact ⟨by simp, (c, u), by simp [armEnd], hc, hu⟩
+  | chain o succ c u =>
+    simp only [partEnd, hn, Bool.cond_false, Bool.and_eq_true, Bool.not_eq_true',
+      decide_eq_true_eq, Nat.beq_eq] at h
+    obtain ⟨hne, ⟨⟨⟨⟨-, hpe⟩, hj⟩, hc⟩, hu⟩⟩ := h
+    simp only [hpe, hne, Bool.not_false, Bool.true_and, hj, Nat.beq_refl]
+    refine ⟨by simp, (c, u), ?_, hc, hu⟩
+    simp [armEnd, hne]
   | mid J m c u => simp [partEnd, hn] at h
-  | chain o succ c u => exact absurd rfl (hr o succ c u)
   | done =>
     simp only [partEnd, hn, Bool.not_false, Bool.true_and, Bool.not_eq_true'] at h
     rw [Nat.blt_eq.mpr hi] at h; cases h
   | fail e => simp [partEnd] at h
+
+theorem partEnd_of_one {j i : ℕ} (h1 : nParts j i = 1) (hi : i < (certOf j).cuts.length)
+    (hn : nextOk j i = true) {r : RC} {p : Cnt × ℕ}
+    (ha : armEnd (nextTgt j i).1 (nextTgt j i).2 r = some p)
+    (hg : Good (partC j (i + 1) 0) (partU j (i + 1) 0) p) : partEnd j i 0 r = true := by
+  have hb : Nat.blt (0 + 1) (nParts j i) = false := by rw [h1]; rfl
+  have hi' : Nat.blt i (certOf j).cuts.length = true := Nat.blt_eq.mpr hi
+  unfold nextOk at hn
+  unfold nextTgt at ha
+  obtain ⟨hc, hu⟩ := hg
+  cases hpe : partEnt j (i + 1) 0 with
+  | none =>
+    rw [hpe] at ha
+    obtain ⟨c, u⟩ := p
+    obtain ⟨rfl, rfl⟩ := armEnd_join ha
+    simp only [partEnd, hb, hi', Bool.cond_false, hpe, Option.isNone_none, Nat.beq_refl, hc, hu,
+      Bool.and_self]
+  | some q =>
+    obtain ⟨o, succ⟩ := q
+    rw [hpe] at ha hn
+    simp only [Bool.and_eq_true, Bool.not_eq_true', Nat.beq_eq] at hn
+    obtain ⟨hne, hj⟩ := hn
+    have hne' : succ ≠ [] := fun h ↦ by rw [h] at hne; cases hne
+    obtain ⟨c, u⟩ := p
+    obtain rfl := armEnd_chain hne' ha
+    simp only [partEnd, hb, hi', Bool.cond_false, hpe, hne, Bool.not_false, hj,
+      Nat.beq_refl, hc, hu, Bool.and_self, decide_true]
 
 /-- **A completeness window of one `match` from its groups**: groups covering every arm, each
 passing `cplWinS`, give the window's `cplWin`. -/
@@ -725,52 +1051,47 @@ theorem cplWin_of_split {j i : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × ℕ 
   obtain ⟨⟨⟨hwin, hps⟩, hlast⟩, hfit⟩ := hpre
   unfold cplWin
   simp only [Nat.beq_refl, Bool.cond_true, hwin, hps, hlast, Bool.true_and]
-  rcases hR : execWinC (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
-    ((certOf j).endAt (fnOf j) i) with ⟨segs, dead⟩
+  rcases hR : execWinCS (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
+    (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i) with ⟨segs, dead⟩
+  -- the context on cells `L`
+  set cx := fun L ↦ cxOf j (index segs) L (statT (fsN j) (plumbOf j).stat .nil) (plumbOf j).nv
+    (stopOf j i 0) with hcx
+  set cg := fun (g : ℕ × ℕ × ℕ × ℕ × ℕ × ℕ) ↦
+    clocG (certOf j) i g.2.2.1 g.2.2.2.1 g.2.2.2.2.1 g.2.2.2.2.2 with hcg
   -- each group's facts
   have hG : ∀ g ∈ gs, nParts j i = 1 ∧ partM j i 0 = 0 ∧ i < (certOf j).cuts.length ∧
-      partEnt j i 0 = none ∧ matchAtoms g.1 g.2.1 [.match_ v (a0 :: as)] = true ∧
+      matchAtoms g.1 g.2.1 [.match_ v (a0 :: as)] = true ∧
       (∀ x ∈ stmtsVals (selStmts g.1 g.2.1 [.match_ v (a0 :: as)]),
-        ((clocG (certOf j) i g.2.2.1 g.2.2.2.1 g.2.2.2.2.1 g.2.2.2.2.2).get? x.idx).isSome = true) ∧
+        ((cg g).get? x.idx).isSome = true) ∧ nextSelOk (cx (cg g)) v = true ∧
       ∃ s, getF (index segs) (partJ j i 0) = some s ∧ s.start = partJ j i 0 ∧
-        partEnd j i 0 (cwMatchS (cxOf j (index segs) (clocG (certOf j) i g.2.2.1 g.2.2.2.1 g.2.2.2.2.1
-          g.2.2.2.2.2) (statT (fsN j) (plumbOf j).stat .nil) (nvOf (coreOf j).body 0) (stopOf j i 0))
-          g.1 g.2.1 v (a0 :: as) ⟨s, s.items, .nil, [], [], [], partC j i 0, partU j i 0,
-            some (partJ j i 0), 0⟩) = true := by
+        partEnd j i 0 (cwSplit (cx (cg g)) g.1 g.2.1 (partEnt j i 0) v (a0 :: as)
+          ⟨s, s.items, .nil, [], [], [], partC j i 0, partU j i 0, some (partJ j i 0), 0⟩) = true := by
     intro g hg
     have hc := h g hg
     unfold cplWinS at hc
     rw [hss, hR] at hc
     simp only [listSeq_eq, Exec.Trie.seq_eq, CLoc.seq_eq, Cnt.seq_eq, natSeq_eq, Bool.and_eq_true,
-      Nat.beq_eq, Nat.blt_eq, Option.isNone_iff_eq_none, List.all_eq_true] at hc
-    obtain ⟨⟨⟨⟨hn, hm⟩, hi⟩, hpe⟩, hma, hvals, hend⟩ := hc
-    refine ⟨hn, hm, hi, hpe, hma, hvals, ?_⟩
+      Nat.beq_eq, Nat.blt_eq, List.all_eq_true] at hc
+    obtain ⟨⟨⟨hn, hm⟩, hi⟩, hma, ⟨hvals, hnx⟩, hend⟩ := hc
+    refine ⟨hn, hm, hi, hma, hvals, hnx, ?_⟩
     split at hend
     · rename_i s hs
       simp only [Bool.cond_eq_ite, Nat.beq_eq] at hend
       split_ifs at hend with hst
       exact ⟨s, hs, hst, hend⟩
     · simp at hend
-  obtain ⟨hn, hm, hi, hpe, -, -, s, hs, hst, hend0⟩ := hG g0 hg0
-  obtain ⟨-, -, -, hnone, -⟩ := partEnd_last hn hi hend0 fun _ _ _ _ ↦ cwMatchS_ne_chain
-  have hsucc : (certOf j).succAt i = [] := by
-    have h := hwin
-    simp only [winOkC, hpe, Bool.and_eq_true, List.isEmpty_iff] at h
-    exact h.1.1.2
+  obtain ⟨hn, hm, hi, -, -, -, s, hs, hst, hend0⟩ := hG g0 hg0
   -- the window's walk
   unfold cplRes
-  rw [hsucc, List.drop_nil, execWinCS_nil, hR]
+  rw [hR]
   simp only [listSeq_eq, Exec.Trie.seq_eq, CLoc.seq_eq, Cnt.seq_eq, natSeq_eq, hm, hs, hst,
-    Nat.beq_refl, Bool.cond_true, List.drop_zero, hss, hpe]
+    Nat.beq_refl, Bool.cond_true, List.drop_zero, hss]
   have hfile : fileB (clocW (certOf j) i) (fsN j) [.match_ v (a0 :: as)] .nil = .nil := rfl
   rw [hfile]
   -- the groups' cells agree with the window's
-  have hag : ∀ g ∈ gs, ∀ x ∈ stmtsVals (selStmts g.1 g.2.1 [.match_ v (a0 :: as)]),
-      (clocG (certOf j) i g.2.2.1 g.2.2.2.1 g.2.2.2.2.1 g.2.2.2.2.2).get? x.idx =
-        (clocW (certOf j) i).get? x.idx := by
+  have hag : ∀ g ∈ gs, ∀ x, ((cg g).get? x).isSome = true → (cg g).get? x = (clocW (certOf j) i).get? x := by
     intro g hg x hx
-    obtain ⟨-, -, -, -, -, hvals, -⟩ := hG g hg
-    obtain ⟨c, hc⟩ := Option.isSome_iff_exists.mp (hvals x hx)
+    obtain ⟨c, hc⟩ := Option.isSome_iff_exists.mp hx
     rw [hc, clocG_get hfit hc]
   have hsel : ∀ g ∈ gs, ∀ e (he : e < as.length), g.1 ≤ e + 1 → e + 1 < g.2.1 →
       ∀ x ∈ stmtsVals as[e], x ∈ stmtsVals (selStmts g.1 g.2.1 [.match_ v (a0 :: as)]) := by
@@ -783,43 +1104,74 @@ theorem cplWin_of_split {j i : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × ℕ 
   have hatoms : ∀ g ∈ gs, a0.all isAtomS = true ∧ ∀ e (he : e < as.length), g.1 ≤ e + 1 →
       e + 1 < g.2.1 → as[e].all isAtomS = true := by
     intro g hg
-    obtain ⟨-, -, -, -, hma, -⟩ := hG g hg
+    obtain ⟨-, -, -, hma, -⟩ := hG g hg
     simp only [matchAtoms, Bool.and_eq_true, List.all_eq_true] at hma
     refine ⟨List.all_eq_true.mpr hma.1, fun e he hlo hhi ↦ ?_⟩
     have := hma.2 _ (List.getElem_mem (l := selArms g.1 g.2.1 1 as) (n := e)
       (by rw [length_selArms]; exact he))
     rw [getElem_selArms g.1 g.2.1 1 as e he (by omega) (by omega)] at this
     exact List.all_eq_true.mpr this
-  obtain ⟨c, u, hw, hgood⟩ := cw_of_groups
-    (cxOf j (index segs) (clocW (certOf j) i) (statT (fsN j) (plumbOf j).stat .nil)
-      (nvOf (coreOf j).body 0) (stopOf j i 0)) v a0 as _
-    (gs.map fun g ↦ (g.1, g.2.1, clocG (certOf j) i g.2.2.1 g.2.2.2.1 g.2.2.2.2.1 g.2.2.2.2.2))
-    _ (List.mem_map.mpr ⟨g0, hg0, rfl⟩)
-    (fun e he ↦ by
-      obtain ⟨g, hg, h1, h2⟩ := hcov' e he
-      exact ⟨_, List.mem_map.mpr ⟨g, hg, rfl⟩, h1, h2⟩)
-    (hatoms g0 hg0).1
-    (fun g' hg' ↦ by obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'; exact (hatoms g hg).2)
-    (fun g' hg' ↦ by
-      obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
-      exact hag g hg v (by simp [selStmts, stmtsVals, stmtVals]))
-    (fun g' hg' x hx ↦ by
-      obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
-      exact hag g hg x (by simp [selStmts, stmtsVals, stmtVals, armsVals, hx]))
-    (fun g' hg' e he hlo hhi x hx ↦ by
-      obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
-      exact hag g hg x (hsel g hg e he hlo hhi x hx))
-    (J := ((certOf j).cutAt (i + 1)).J) (B := partC j (i + 1) 0) (U := partU j (i + 1) 0)
-    (fun g' hg' ↦ by
-      obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
-      obtain ⟨-, -, -, -, -, -, s', hs', -, hend⟩ := hG g hg
-      obtain rfl := Option.some.inj (hs'.symm.trans hs)
-      obtain ⟨c, u, h1, -, h2⟩ := partEnd_last hn hi hend fun _ _ _ _ ↦ cwMatchS_ne_chain
-      exact ⟨c, u, h1, h2⟩)
-  rw [hw]
-  simp only [partEnd, hn, show Nat.blt (0 + 1) 1 = false from rfl, Bool.cond_false, Bool.and_eq_true,
-    Nat.blt_eq, Nat.beq_refl, and_true, hnone]
-  exact ⟨⟨hi, hgood.1⟩, hgood.2⟩
+  -- the groups as `cw_of_groups` and `cwE_of_groups` take them
+  have hval : ∀ g ∈ gs, ∀ x ∈ stmtsVals (selStmts g.1 g.2.1 [.match_ v (a0 :: as)]),
+      (cg g).get? x.idx = (clocW (certOf j) i).get? x.idx := fun g hg x hx ↦
+    hag g hg x.idx ((hG g hg).2.2.2.2.1 x hx)
+  have gs0 : (g0.1, g0.2.1, cg g0) ∈ gs.map (fun g ↦ (g.1, g.2.1, cg g)) := List.mem_map.mpr ⟨g0, hg0, rfl⟩
+  have hcov2 : ∀ e < as.length, ∃ g ∈ gs.map (fun g ↦ (g.1, g.2.1, cg g)), g.1 ≤ e + 1 ∧
+      e + 1 < g.2.1 := fun e he ↦ by
+    obtain ⟨g, hg, h1, h2⟩ := hcov' e he
+    exact ⟨_, List.mem_map.mpr ⟨g, hg, rfl⟩, h1, h2⟩
+  have has2 : ∀ g ∈ gs.map (fun g ↦ (g.1, g.2.1, cg g)), ∀ e (he : e < as.length),
+      g.1 ≤ e + 1 → e + 1 < g.2.1 → as[e].all isAtomS = true := fun g' hg' ↦ by
+    obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'; exact (hatoms g hg).2
+  have hv2 : ∀ g ∈ gs.map (fun g ↦ (g.1, g.2.1, cg g)), g.2.2.get? v.idx =
+      (clocW (certOf j) i).get? v.idx := fun g' hg' ↦ by
+    obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
+    exact hval g hg v (by simp [selStmts, stmtsVals, stmtVals])
+  have h0v2 : ∀ g ∈ gs.map (fun g ↦ (g.1, g.2.1, cg g)), ∀ x ∈ stmtsVals a0,
+      g.2.2.get? x.idx = (clocW (certOf j) i).get? x.idx := fun g' hg' x hx ↦ by
+    obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
+    exact hval g hg x (by simp [selStmts, stmtsVals, stmtVals, armsVals, hx])
+  have hav2 : ∀ g ∈ gs.map (fun g ↦ (g.1, g.2.1, cg g)), ∀ e (he : e < as.length),
+      g.1 ≤ e + 1 → e + 1 < g.2.1 → ∀ x ∈ stmtsVals as[e],
+        g.2.2.get? x.idx = (clocW (certOf j) i).get? x.idx := fun g' hg' e he hlo hhi x hx ↦ by
+    obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
+    exact hval g hg x (hsel g hg e he hlo hhi x hx)
+  have hy2 : ∀ g ∈ gs.map (fun g ↦ (g.1, g.2.1, cg g)), ∀ ts y b,
+      chainOf (cx (clocW (certOf j) i)) v.idx = some (ts, y, b) →
+        g.2.2.get? y = (clocW (certOf j) i).get? y := fun g' hg' ts y b hc ↦ by
+    obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
+    have hnx := (hG g hg).2.2.2.2.2.1
+    unfold nextSelOk at hnx
+    rw [show chainOf (cx (cg g)) v.idx = chainOf (cx (clocW (certOf j) i)) v.idx from rfl, hc] at hnx
+    exact hag g hg y hnx
+  cases hpe : partEnt j i 0 with
+  | none =>
+    rw [hpe] at hend0
+    obtain ⟨hnx, -⟩ := partEnd_one hn hi hend0
+    obtain ⟨p, hp, hgood⟩ := cw_of_groups (cx (clocW (certOf j) i)) v a0 as _
+      (gs.map fun g ↦ (g.1, g.2.1, cg g)) _ gs0 hcov2 (hatoms g0 hg0).1 has2 hv2 h0v2 hav2 hy2
+      (J := (nextTgt j i).1) (sc := (nextTgt j i).2) (B := partC j (i + 1) 0) (U := partU j (i + 1) 0)
+      (fun g' hg' ↦ by
+        obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
+        obtain ⟨-, -, -, -, -, -, s', hs', -, hend⟩ := hG g hg
+        obtain rfl := Option.some.inj (hs'.symm.trans hs)
+        rw [hpe] at hend
+        exact (partEnd_one hn hi hend).2)
+    exact partEnd_of_one hn hi hnx hp hgood
+  | some q =>
+    obtain ⟨o, succ⟩ := q
+    rw [hpe] at hend0
+    obtain ⟨hnx, -⟩ := partEnd_one hn hi hend0
+    obtain ⟨p, hp, hgood⟩ := cwE_of_groups (cx (clocW (certOf j) i)) o succ _ v a0 as
+      (gs.map fun g ↦ (g.1, g.2.1, cg g)) _ gs0 hcov2 (hatoms g0 hg0).1 has2 hv2 h0v2 hav2 hy2
+      (J := (nextTgt j i).1) (sc := (nextTgt j i).2) (B := partC j (i + 1) 0) (U := partU j (i + 1) 0)
+      (fun g' hg' ↦ by
+        obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
+        obtain ⟨-, -, -, -, -, -, s', hs', -, hend⟩ := hG g hg
+        obtain rfl := Option.some.inj (hs'.symm.trans hs)
+        rw [hpe] at hend
+        exact (partEnd_one hn hi hend).2)
+    exact partEnd_of_one hn hi hnx hp hgood
 
 end
 end LeanVM.Guest.B2C

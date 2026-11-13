@@ -19,10 +19,10 @@ Compiled checks (`#guard`) at `κ = 3`, `R = 1` (a 16-point domain):
 * `K`-valued messages give `K`-valued words;
 * `inducedWeight` against the naive `Σ_q w_q Σ_u W_{x_q}(u)·eq(p, u)`, its `none` branch, and the
   column weight's evaluator against CompPoly's `evalMle` and `Weight.pair`;
-* constants of the verifier at leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2` (both functions
-  are unchanged at the pin `40f877dc`, `crates/verifier/src/whir.rs:92-126`): `subspace_roots(3)`
-  and `subspace_roots(4)`, and `induced_weight(3, [0, 1, 5, 13], powers(E(2, 3, 4), 4), p)` at
-  `p = [E(5, 7, 1), E(0x1234, 0, 9), E(3, 1, 0)]`.
+* constants of the verifier (`crates/verifier/src/whir.rs`'s
+  `subspace_roots` and `induced_weight`, `field.rs`'s `powers`): `subspace_roots(3)`
+  and `subspace_roots(4)`, and `induced_weight(3, [0, 1, 5, 13], powers(E(2, 3), 4), p)` at
+  `p = [E(5, 7), E(0x1234, 0), E(3, 1)]`.
 -/
 
 namespace LeanVMTests.Protocol.Whir
@@ -88,13 +88,13 @@ def idxRev (j : ℕ) : ℕ := 4 * (j % 2) + 2 * (j / 2 % 2) + j / 4
 
 /-- Novel-basis coefficients, `c_j` for `j < 8`. -/
 def coeffsA : List E :=
-  [E.ofLimbs (K.ofBits 1) 0 0, E.ofLimbs (K.ofBits 2) (K.ofBits 3) 0,
-    E.ofLimbs (K.ofBits 5) 0 (K.ofBits 7), E.ofLimbs 0 (K.ofBits 11) 0,
-    E.ofLimbs (K.ofBits 13) (K.ofBits 17) (K.ofBits 19), E.ofLimbs (K.ofBits 23) 0 0,
-    E.ofLimbs 0 0 (K.ofBits 29), E.ofLimbs (K.ofBits 31) (K.ofBits 37) (K.ofBits 41)]
+  [E.ofLimbs (K.ofBits 1) 0, E.ofLimbs (K.ofBits 2) (K.ofBits 3),
+    E.ofLimbs (K.ofBits 5) 0, E.ofLimbs 0 (K.ofBits 11),
+    E.ofLimbs (K.ofBits 13) (K.ofBits 17), E.ofLimbs (K.ofBits 23) 0,
+    E.ofLimbs 0 0, E.ofLimbs (K.ofBits 31) (K.ofBits 37)]
 
 /-- A second message: one nonzero coefficient, on `X_6`. -/
-def coeffsB : List E := [0, 0, 0, 0, 0, 0, E.ofLimbs (K.ofBits 9) (K.ofBits 4) 0, 0]
+def coeffsB : List E := [0, 0, 0, 0, 0, 0, E.ofLimbs (K.ofBits 9) (K.ofBits 4), 0]
 
 /-- A `K`-valued message. -/
 def coeffsK : List K := [K.ofBits 3, 0, K.ofBits 8, K.ofBits 1, 0, K.ofBits 77, 0, K.ofBits 6]
@@ -152,13 +152,13 @@ def msgK (u : Fin 3 → Bool) : K := coeffsK.getD (idx u) 0
 
 /-! ## Column weights and the induced weight -/
 
-/-- The point `p = [E(5, 7, 1), E(0x1234, 0, 9), E(3, 1, 0)]`. -/
+/-- The point `p = [E(5, 7), E(0x1234, 0), E(3, 1)]`. -/
 def point : Vector E 3 :=
-  #v[E.ofLimbs (K.ofBits 5) (K.ofBits 7) (K.ofBits 1),
-    E.ofLimbs (K.ofBits 0x1234) 0 (K.ofBits 9), E.ofLimbs (K.ofBits 3) (K.ofBits 1) 0]
+  #v[E.ofLimbs (K.ofBits 5) (K.ofBits 7),
+    E.ofLimbs (K.ofBits 0x1234) 0, E.ofLimbs (K.ofBits 3) (K.ofBits 1)]
 
-/-- The batching challenge `λ = E(2, 3, 4)`. -/
-def lam : E := E.ofLimbs (K.ofBits 2) (K.ofBits 3) (K.ofBits 4)
+/-- The batching challenge `λ = E(2, 3)`. -/
+def lam : E := E.ofLimbs (K.ofBits 2) (K.ofBits 3)
 
 /-- The queries. -/
 def queries : List ℕ := [0, 1, 5, 13]
@@ -179,7 +179,7 @@ def naive (p : Vector E 3) : E :=
 -- With the factor `1 + p(1 + Ŵ)` read as `1 + p·Ŵ` the sum would differ.
 #guard (naive point) ≠ ((weights.zip queries).map fun wq ↦ wq.1 * ∏ i : Fin 3,
   (1 + point[i] * ofK (normVanishingAt i (K.ofBits wq.2)))).sum
--- The `require` on the point's length (`whir.rs:112`), and weights not one per query.
+-- The `require` on the point's length (`whir.rs:181`), and weights not one per query.
 #guard inducedWeight 2 queries weights point.toList = none
 #guard inducedWeight 3 queries weights.tail point.toList = none
 -- The evaluator of `colWeightE` is CompPoly's extension of its cube values.
@@ -204,15 +204,15 @@ def refRoots4 : List E :=
 -- `W_1(e_1) = x(x + 1) = x² + x`, the word `6`.
 #guard vanishingAt 1 (basisVec 1) = K.ofBits 6
 
-/-- `powers(E(2, 3, 4), 4)` of the verifier. -/
+/-- `powers(E(2, 3), 4)` of the verifier. -/
 def refWeights : List E :=
-  [E.ofLimbs (K.ofBits 0x1) 0 0, E.ofLimbs (K.ofBits 0x2) (K.ofBits 0x3) (K.ofBits 0x4),
-    E.ofLimbs (K.ofBits 0x4) (K.ofBits 0x10) (K.ofBits 0x15),
-    E.ofLimbs (K.ofBits 0x77) (K.ofBits 0x7) (K.ofBits 0x5e)]
+  [E.ofLimbs (K.ofBits 0x1) 0, E.ofLimbs (K.ofBits 0x2) (K.ofBits 0x3),
+    E.ofLimbs (K.ofBits 0x1) (K.ofBits 0xa),
+    E.ofLimbs (K.ofBits 0x1c) (K.ofBits 0x2b)]
 
-/-- `induced_weight(3, [0, 1, 5, 13], powers(E(2, 3, 4), 4), p)` of the verifier. -/
+/-- `induced_weight(3, [0, 1, 5, 13], powers(E(2, 3), 4), p)` of the verifier. -/
 def refInduced : E :=
-  E.ofLimbs (K.ofBits 0xb06534ea) (K.ofBits 0x4c3c056b) (K.ofBits 0x1f404c5bc)
+  E.ofLimbs (K.ofBits 0x52a00063) (K.ofBits 0xfa668151)
 
 #guard weights = refWeights
 #guard inducedWeight 3 queries weights point.toList = some refInduced

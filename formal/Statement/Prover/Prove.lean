@@ -29,15 +29,26 @@ namespace LeanVM.Prover
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier
 
+/-- **The honest prover of the commitment's out-of-domain sample** (`readOod`; `ood_sample`,
+`crates/pcs/src/ood.rs:20-31`): a grind, the point `z` of the stack's `μ` variables, then the
+stack's multilinear at `z`; the point and the value. -/
+def oodFast (μ : ℕ) (stack : Array K) : Script (List E × E) :=
+  (Script.grindBits Whir.oodGrindingBits).bind fun _ ↦
+  (Script.sampleN μ).bind fun z ↦
+  let value := mleK stack z
+  (Script.sendE value).bind fun _ ↦ .ret (z, value)
+
 /-- **The honest script** of an execution's witness `W` at the rate `ρ` and the public input
-`publicInput`: the eight moves of `verify_execution` (its `walk`,
-`crates/verifier/src/lib.rs:217-331`), each phase's executable prover beside the verifier's phase
-(`Script.alongside`), which hands the next phase its result. The public-input phase sends nothing;
-the output lanes' claims, on no committed column, do not reach the stack (`ColumnClaim.onStack`). -/
+`publicInput`: the moves of `verify_execution` (its `walk`, `crates/verifier/src/lib.rs:243-363`),
+each phase's executable prover beside the verifier's phase (`Script.alongside`), which hands the
+next phase its result. The public-input phase sends nothing; the output lanes' claims, on no
+committed column, do not reach the stack (`ColumnClaim.onStack`); the commitment's out-of-domain
+claim joins the stacked opening's claims last. -/
 def honestScript (W : Witness) (ρ : ℕ) (publicInput : Digest) : Script Unit :=
   let layout := W.layout
   (Script.sendList (W.announce ρ)).bind fun _ ↦
   (Script.commitS (stackWordFast layout.stackLog ρ W.stack)).bind fun _ ↦
+  (oodFast layout.stackLog W.stack).bind fun ood ↦
   (Script.alongside (verifyBusBalance computedBytecodeValue layout) (busFast layout W.cols)).bind
     fun bus ↦
   (Script.alongside (tablePhase layout bus) (tableFast W.cols layout.tableLogHeights bus)).bind
@@ -48,7 +59,8 @@ def honestScript (W : Witness) (ρ : ℕ) (publicInput : Digest) : Script Unit :
   (ringFast keccak.2.1 keccak.2.2).bind fun r ↦
   let claims := (bus.claims ++ tableColumnClaims evaluations ++ publicClaims).filter
     (fun c ↦ c.column ∉ keccakOutputColumns) ++ keccak.1
-  openingFast layout.stackLog ρ W.stack (r.claim layout :: claims.map (ClaimDesc.column layout))
+  openingFast layout.stackLog ρ W.stack
+    (r.claim layout :: claims.map (ClaimDesc.column layout) ++ [.ood ood.1 ood.2])
 
 /-- **leanVM's honest prover.** The proof of the execution `t` of `prog` on `input` at the rate
 `2^-ρ`, trying `fuel` nonces per proof of work; `none` for a trace that is no valid execution

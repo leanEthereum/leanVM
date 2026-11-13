@@ -8,21 +8,20 @@ import LeanVM.Protocol.WithHashBridge
 honest proofs are the fixtures `tests/fixtures/verifier/*` (accepted by the compiled verifier
 `leanvm-verify`, `scripts/fuzz-verifier.py`); this file checks the compiled reading where the
 pinned verifier can be run without a proof, on the scalar stream `stream rate n`: the eight announced
-sizes (memory `2^16`, the row counts `4, 2, 2, 4, 4, 8`, the rate exponent), two canonical root
-halves, then `n` scalars `fe(10 + k)`.
+sizes (memory `2^16`, the row counts `4, 2, 2, 4, 4, 8`, the rate exponent), two root halves, then
+`n` scalars `fe(10 + k)`.
 
 * The seed and the sponge: the first two steps of the program (`readAnnouncedSizes`, `commitStack`)
   and five challenges, in the compiled reading, give the challenges and the sponge state the
   verifier's `Transcript` gives on the same stream after `next_scalars(8)`, `Digest::from_halves`
-  of `next_scalars(2)` and `samples(5)` (the verifier at leanVM
-  `990b935263dc7f793f280914f262ca7955ddc3e0`, a driver of the port's scratch). This binds the IV's
-  preimage (the version tag, then the bytecode), the seed permutation of the IV and the public
-  input, the duplex absorbs with their domain tags, the squeezes, the order of the reads, and the
-  stack root's shape.
-* A root half with a nonzero top limb is rejected, as `Digest::from_halves` rejects it.
+  of `next_scalars(2)` and `samples(5)` (the verifier at `leanvm-rev`; a
+  driver of the port's scratch ran it at `afe891a73`, and nothing these steps read changed since). This binds the IV's preimage (the version tag, then the
+  bytecode), the seed permutation of the IV and the public input, the duplex absorbs with their
+  domain tags, the squeezes, the order of the reads, and the stack root's shape.
 * Garbage proofs run to a rejection: the empty proof and the stream cut after the root (the
-  verifier: `proof stream exhausted`), a hundred scalars after it (the verifier: `GKR layer 17:
-  children do not match the sumcheck`), and a rate exponent of `5` (`invalid PCS inverse rate`).
+  verifier: `proof stream exhausted`), a hundred scalars after it (the verifier: `invalid grinding
+  nonce`, the stack's out-of-domain grind), and a rate exponent of `5` (`invalid PCS inverse
+  rate`).
 -/
 
 namespace LeanVMTests.Protocol.Verifier.Compiled
@@ -34,11 +33,11 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
 def fw (k lane : ℕ) : ℕ :=
   ((k + 1) * 0x9E3779B97F4A7C15 + lane * 0xD1B54A32D192ED03 + 0x632BE59BD9B4E019) % 2 ^ 64
 
-/-- An `E` element from its three limbs. -/
-def e (c0 c1 c2 : ℕ) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1) (K.ofBits c2)
+/-- An `E` element from its two limbs. -/
+def e (c0 c1 : ℕ) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1)
 
 /-- The driver's `fe(k)`. -/
-def fe (i : ℕ) : E := e (fw i 0) (fw i 1) (fw i 2)
+def fe (i : ℕ) : E := e (fw i 0) (fw i 1)
 
 /-- The bytecode: 32 words. -/
 def sampleBytecode : List K := (List.range 32).map fun i ↦ K.ofBits (fw i 9)
@@ -50,10 +49,10 @@ def samplePublicInput : Digest :=
 /-- The sample row counts: `xor, mul, set, deref, jump, keccak`. -/
 def sampleRows : List ℕ := [4, 2, 2, 4, 4, 8]
 
-/-- The sizes, the root halves (`top` the root's second half's top limb), then `n` scalars. -/
-def stream (rate n : ℕ) (top : ℕ := 0) : List E :=
+/-- The sizes, the root halves, then `n` scalars. -/
+def stream (rate n : ℕ) : List E :=
   [eOfNat 16] ++ sampleRows.map eOfNat ++ [eOfNat rate] ++
-    [e (fw 8 0) (fw 8 1) 0, e (fw 9 0) (fw 9 1) top] ++ (List.range n).map fun k ↦ fe (10 + k)
+    [e (fw 8 0) (fw 8 1), e (fw 9 0) (fw 9 1)] ++ (List.range n).map fun k ↦ fe (10 + k)
 
 /-- The first two steps of the program, then five challenges. -/
 def prefixProgram : VerifierProgram (List E) := do
@@ -64,16 +63,14 @@ def prefixProgram : VerifierProgram (List E) := do
 /-- The compiled reading of `prefixProgram` on a stream, from the deployed seed. -/
 def prefixRun (s : List E) : Option (List E × VerifierProgramState) :=
   Id.run (Compile.run (m := Id) keccakF1600 prefixProgram
-    ⟨⟨seed sampleBytecode samplePublicInput, []⟩, s, [], []⟩)
+    ⟨⟨seed sampleBytecode samplePublicInput, [], none⟩, s, [], []⟩)
 
 /-! ## The sponge agrees with the pinned verifier's -/
 
 #guard ((prefixRun (stream 4 0)).map (·.1)) =
-    some [(e 0x76cab5c46908a6e3 0x9f181ecbe76275b1 0xa299f132fa7fe5e1),
-     (e 0xf9194a2a1e2d0d6c 0x7bbc1deff5f4dc6d 0xad36a57c0987b12a),
-     (e 0xfb6dc5c12b3900be 0xb2092b8150b236f5 0x92e08d928c2e528b),
-     (e 0x73259fba69ae5358 0x11bfca90fb00349b 0x11a90a9b4f271b5),
-     (e 0x9b3200d078d47019 0x62b965389bbb4e49 0xf57085b9e4651c61)]
+    some [(e 0x76cab5c46908a6e3 0x9f181ecbe76275b1), (e 0xf9194a2a1e2d0d6c 0x7bbc1deff5f4dc6d),
+     (e 0xfb6dc5c12b3900be 0xb2092b8150b236f5), (e 0x73259fba69ae5358 0x11bfca90fb00349b),
+     (e 0x9b3200d078d47019 0x62b965389bbb4e49)]
 
 #guard ((prefixRun (stream 4 0)).map fun r ↦ (r.2.sponge.state.toList, r.2.sponge.pending.length)) =
     some ([0x9b3200d078d47019, 0x62b965389bbb4e49, 0xf57085b9e4651c61, 0xb1484e8bde27e39d,
@@ -84,12 +81,9 @@ def prefixRun (s : List E) : Option (List E × VerifierProgramState) :=
       0xb7008d591670d327, 0x6130e0da364e4521, 0x31b93326d2b0ddcc, 0x8d2b0d0b07870a40,
       0xbfc73c4740cd253e], 0)
 
-/- The stack root is commitment `0`, of `2^(19 - 6 + 4)` leaves of `2^6` words. -/
+/- The stack root is commitment `0`, of `2^(18 - 6 + 4)` leaves of `2^6` words. -/
 #guard ((prefixRun (stream 4 0)).map fun r ↦ r.2.roots.map fun c ↦ (c.2.1, c.2.2)) =
-    some [(17, 64)]
-
-/- A root half with a nonzero top limb. -/
-#guard (prefixRun (stream 4 0 1)).isNone
+    some [(16, 64)]
 
 /-! ## Garbage is rejected -/
 

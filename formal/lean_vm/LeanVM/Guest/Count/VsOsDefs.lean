@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Count.Fast
-public import LeanVM.Guest.B1.Place.OsBos
+public import LeanVM.Guest.B1.Place.OsSpec
 
 namespace LeanVM.Guest.Count
 

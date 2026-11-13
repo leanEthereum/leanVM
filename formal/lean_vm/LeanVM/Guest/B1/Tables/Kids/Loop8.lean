@@ -1,20 +1,22 @@
 /-
   LeanVM.Guest.B1.Tables.Kids.Loop8
 
-  `__loop7` (`verify_bus_gkr`'s copy of the point) loads from any region holding its two runs.
+  `verify_bus_gkr_loop1` (`verify_bus_gkr`'s copy of the point) loads from any region holding its
+  two runs.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Tables.Kids.Loop9
 public import LeanVM.Guest.B1.Gkr.Loop8
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `__loop7`, loading from a region
+# `verify_bus_gkr_loop1`, loading from a region
 
-Iteration `k < K` of `__loop7` (`x = g^k`, the end `g^K`) reads `row·x` and writes `zeta·x`.
-`loop8_relIn`: by induction on the derivation's depth, every iteration loads from `R` when the
-runs `zeta` and `row` (`K` words each) lie in `R`.
+Iteration `k < K` of `verify_bus_gkr_loop1` (`x = g^k`, the end `g^K`) reads `row·x` and writes
+`zeta·x`. `loop8_relIn`: by induction on the derivation's depth, every iteration loads from `R` when
+the runs `zeta` and `row` (`K` words each) lie in `R`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -24,7 +26,7 @@ open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
 
-/-- `__loop7`'s statements before its `ret`. -/
+/-- `verify_bus_gkr_loop1`'s statements before its `ret`. -/
 def l8Pre : List Stmt := l8Body.dropLast
 
 theorem l8Body_pre_eq : l8Body = l8Pre ++ [.ret []] := by simp [l8Pre, l8Body]
@@ -36,13 +38,15 @@ theorem l8_noDisp : l8Pre.all noDispB = true := by decide +kernel
 theorem l8_loads : l8Pre.all (loadsViaB [(4, 1), (6, 1)]) = true := by decide +kernel
 
 theorem l8_calls : l8Pre.filterMap Main.Stmt.callS =
-    [(some (.n 9), "__loop7", [.n 11, .n 1, .n 2, .n 3], [])] := by decide +kernel
+    [(some (.n 9), name% «verify_bus_gkr_loop1», [.n 11, .n 1, .n 2, .n 3],
+        [])] := by decide +kernel
 
-/-- **`__loop7` loads from `R`**, every iteration `k < K`. -/
+/-- **`verify_bus_gkr_loop1` loads from `R`**, every iteration `k < K`. -/
 theorem loop8_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} {zeta row : E}
     (hz : PtrIn R zeta K) (hr : PtrIn R row K) :
-    ∀ d k, k < K → coreProgram.relN rd d "__loop7" [gen ^ k, gen ^ K, zeta, row] [] →
-      coreProgram.RelIn rd R "__loop7" [gen ^ k, gen ^ K, zeta, row] [] := by
+    ∀ d k, k < K → coreProgram.relN rd d name% «verify_bus_gkr_loop1» [gen ^ k, gen ^ K, zeta,
+        row] [] →
+      coreProgram.RelIn rd R name% «verify_bus_gkr_loop1» [gen ^ k, gen ^ K, zeta, row] [] := by
   intro d
   induction d with
   | zero => intro k _ h; exact h.elim

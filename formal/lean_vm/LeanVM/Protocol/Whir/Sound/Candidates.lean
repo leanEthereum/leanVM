@@ -1,9 +1,8 @@
 /-
   LeanVM.Protocol.Whir.Sound.Candidates
 
-  The level-0 Johnson list of a committed word and the candidates the commitment binds: every
-  list member is the lane-wise encoding of a candidate stack, and every candidate's encoding is a
-  list member.
+  The level-0 word of a commitment, `K`-valuedness of close messages and polynomials, and stacks
+  from lane messages: what the starting relation reads candidates off list members with.
 -/
 
 module
@@ -17,19 +16,14 @@ public import LeanVM.Protocol.ToArkLib.Whir.Interleaved
 The level-0 oracle of the deployed WHIR opening (`verify_whir` level `0`,
 `crates/verifier/src/whir.rs:141-232` at leanVM `40f877dc`)
 is the committed word read lane by lane: lane `u` of column `v` is `laneOf W u v`, word `63 − u`
-of leaf `v` (the program's `row.reverse.map ofK`). Its code is the novel-basis Reed-Solomon code
-`C₀ = RS[E, D_{μ−6,R}, 2^(μ−6)]` (`range_enc`), and its list at agreement threshold `A` is
-`iList C₀ A (laneWord μ R W)`.
+of leaf `v` (the program's `row.reverse.map ofK`), `laneWord μ R W`.
 
 * `isInK_of_agree`: a codeword of the `E`-code whose entries lie in `K` on at least `2^κ`
-  coordinates has a `K`-valued message. The message's limbs `1` and `2` encode `K`-codewords
-  vanishing on those coordinates (Annex B's remark: "limbs 1, 2 are codewords agreeing with `0` on
-  more than `2^κ − 1` points"), hence vanish.
-* `exists_candidate_of_mem_iList`: **every list member is the encoding of a candidate**, for a
-  threshold `A ≥ 2^(μ−6)` (every Johnson threshold is: `LevelCode.two_pow_le_thr`).
-* `mem_iList_of_candidate`: conversely, the encoding of a candidate is a list member.
-* `encStack_injective`: the encoding determines the stack, so list members and candidates are in
-  bijection.
+  coordinates has a `K`-valued message. The message's limb `1` encodes a `K`-codeword vanishing
+  on those coordinates, hence vanishes.
+* `exists_map_of_isInK`: a polynomial over `E` of degree at most `d` with values in `K` at more
+  than `d` points of `K` is over `K`, so a level-0 list member at a threshold above its degree is
+  (`LeanVM.Protocol.Whir.Sound.Start` reads a candidate off it).
 
 The candidates are `LeanVM.Protocol.EndToEnd.Candidates`: the stack's block `u` (cells
 `x + 2^(μ−6)·u`) is the message of lane `u`, `f(u, x) = q(x, u)` of Annex B "Optimizations".
@@ -48,16 +42,6 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Whir
 def laneWord (μ R : ℕ) (W : Word) : Fin (2 ^ laneBits) → Fin (2 ^ (μ - laneBits + R)) → E :=
   fun u v ↦ laneOf W u v
 
-/-- The lane-wise encoding of a stack: lane `u` encodes block `u`. -/
-def encStack (μ R : ℕ) (q : Column μ) : Fin (2 ^ laneBits) → Fin (2 ^ (μ - laneBits + R)) → E :=
-  fun u ↦ enc (μ - laneBits) R (blockOf q u)
-
-/-- `Agrees` is agreement of the lane word with the stack's encoding. -/
-theorem agrees_iff_agreeOn (μ R : ℕ) (W : Word) (q : Column μ)
-    (S : Finset (Fin (2 ^ (μ - laneBits + R)))) :
-    Agrees μ R W q S ↔ AgreeOn (laneWord μ R W) (encStack μ R q) S :=
-  ⟨fun h u v hv ↦ h v hv u, fun h v hv u ↦ h u v hv⟩
-
 /-! ## `K`-valuedness -/
 
 section Limbs
@@ -65,12 +49,11 @@ section Limbs
 variable {κ R : ℕ}
 
 /-- The limb `i` of a message, as a `K`-valued message. -/
-def msgLimb (g : (Fin κ → Bool) → E) (i : Fin 3) : (Fin κ → Bool) → K := fun u ↦ (g u).limb i
+def msgLimb (g : (Fin κ → Bool) → E) (i : Fin 2) : (Fin κ → Bool) → K := fun u ↦ (g u).limb i
 
-/-- A message is the sum of its limbs in the basis `1, y, y²`. -/
+/-- A message is the sum of its limbs in the basis `1, y`. -/
 theorem msg_eq_limbs (g : (Fin κ → Bool) → E) :
-    g = (fun u ↦ ofK (msgLimb g 0 u)) + y • (fun u ↦ ofK (msgLimb g 1 u)) +
-      (y ^ 2) • (fun u ↦ ofK (msgLimb g 2 u)) := by
+    g = (fun u ↦ ofK (msgLimb g 0 u)) + y • (fun u ↦ ofK (msgLimb g 1 u)) := by
   funext u
   simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, msgLimb]
   conv_lhs => rw [E.eq_sum_limbs (g u)]
@@ -79,15 +62,14 @@ theorem msg_eq_limbs (g : (Fin κ → Bool) → E) :
 /-- The encoding of a message, limb by limb: limb `i` of a codeword entry is the `K`-encoding of
 limb `i` of the message. -/
 theorem enc_eq_ofLimbs (g : (Fin κ → Bool) → E) (v : Fin (2 ^ (κ + R))) :
-    enc κ R g v = E.ofLimbs (encK κ R (msgLimb g 0) v) (encK κ R (msgLimb g 1) v)
-      (encK κ R (msgLimb g 2) v) := by
+    enc κ R g v = E.ofLimbs (encK κ R (msgLimb g 0) v) (encK κ R (msgLimb g 1) v) := by
   conv_lhs => rw [msg_eq_limbs g]
-  rw [map_add, map_add, map_smul, map_smul, enc_ofK, enc_ofK, enc_ofK, ofLimbs_eq]
+  rw [map_add, map_smul, enc_ofK, enc_ofK, ofLimbs_eq]
   simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
   ring
 
 /-- Limb `i` of a codeword entry is the `K`-encoding of limb `i` of the message. -/
-theorem limb_enc (g : (Fin κ → Bool) → E) (v : Fin (2 ^ (κ + R))) (i : Fin 3) :
+theorem limb_enc (g : (Fin κ → Bool) → E) (v : Fin (2 ^ (κ + R))) (i : Fin 2) :
     (enc κ R g v).limb i = encK κ R (msgLimb g i) v := by
   rw [enc_eq_ofLimbs, limb_ofLimbs]
   fin_cases i <;> rfl
@@ -111,10 +93,8 @@ theorem isInK_of_agree (h : κ + R ≤ 64) (g : (Fin κ → Bool) → E)
     (S : Finset (Fin (2 ^ (κ + R)))) (hS : 2 ^ κ ≤ S.card) (hK : ∀ v ∈ S, IsInK (enc κ R g v)) :
     ∀ u, IsInK (g u) := by
   have h1 := eq_zero_of_encK_vanish h (msgLimb g 1) S hS fun v hv ↦ by
-    rw [← limb_enc]; exact (hK v hv).1
-  have h2 := eq_zero_of_encK_vanish h (msgLimb g 2) S hS fun v hv ↦ by
-    rw [← limb_enc]; exact (hK v hv).2
-  exact fun u ↦ ⟨congrFun h1 u, congrFun h2 u⟩
+    rw [← limb_enc]; exact hK v hv
+  exact fun u ↦ congrFun h1 u
 
 end Limbs
 
@@ -180,61 +160,48 @@ theorem eq_of_blockOf_eq (hμ : laneBits ≤ μ) {q q' : Column μ}
 
 end Stack
 
-/-! ## The bridge -/
+/-! ## Polynomials over `K` -/
 
-variable {μ R A : ℕ}
-
-/-- The encoding of a stack determines the stack. -/
-theorem encStack_injective (hμ : laneBits ≤ μ) (h : μ - laneBits + R ≤ 64) :
-    Function.Injective (encStack μ R) := fun _ _ hqq ↦
-  eq_of_blockOf_eq hμ fun u ↦ enc_injective h (congrFun hqq u)
-
-/-- The encoding of a stack is an interleaved codeword of the level-0 code. -/
-theorem isInterleavedCodeword_encStack (h : μ - laneBits + R ≤ 64) (q : Column μ) :
-    IsInterleavedCodeword (ReedSolomon.code (domain (μ - laneBits) R h) (2 ^ (μ - laneBits)))
-      (encStack μ R q) := fun u ↦ by
-  rw [← range_enc h]; exact LinearMap.mem_range_self _ _
-
-/-- **Every level-0 list member is the encoding of a candidate.** An interleaved codeword of the
-level-0 code agreeing with the lane word of `W` on at least `A ≥ 2^(μ−6)` columns is
-`encStack q` for a candidate `q` of `W`. -/
-theorem exists_candidate_of_mem_iList (hμ : laneBits ≤ μ) (h : μ - laneBits + R ≤ 64)
-    (hA : 2 ^ (μ - laneBits) ≤ A) {W : Word}
-    {U : Fin (2 ^ laneBits) → Fin (2 ^ (μ - laneBits + R)) → E}
-    (hU : U ∈ iList (ReedSolomon.code (domain (μ - laneBits) R h) (2 ^ (μ - laneBits))) A
-      (laneWord μ R W)) :
-    ∃ q ∈ Candidates μ R A W, U = encStack μ R q := by
-  rw [mem_iList] at hU
-  obtain ⟨hcw, S, hS, hagree⟩ := hU
-  -- Every row is the encoding of a message.
-  have hmsg : ∀ u, ∃ g, enc (μ - laneBits) R g = U u := fun u ↦ by
-    have := hcw u
-    rw [← range_enc h] at this
-    exact this
-  choose g hg using hmsg
-  -- The messages are `K`-valued.
-  have hK : ∀ u x, IsInK (g u x) := fun u ↦
-    isInK_of_agree h (g u) S (hA.trans hS) fun v hv ↦ by
-      rw [hg u, ← hagree u v hv, isInK_iff]
-      exact ⟨_, rfl⟩
-  let a : Fin (2 ^ laneBits) → (Fin (μ - laneBits) → Bool) → K := fun u x ↦ (g u x).limb 0
-  have hga : ∀ u, g u = fun x ↦ ofK (a u x) := fun u ↦ funext fun x ↦ by
-    obtain ⟨c, hc⟩ := (isInK_iff _).mp (hK u x)
-    simp [a, hc]
-  refine ⟨stackOf hμ a, ⟨S, hS, (agrees_iff_agreeOn _ _ _ _ _).mpr ?_⟩, ?_⟩
-  · intro u v hv
-    rw [hagree u v hv, encStack, blockOf_stackOf, ← hga, hg]
-  · funext u
-    rw [encStack, blockOf_stackOf, ← hga, hg]
-
-/-- **The encoding of a candidate is a level-0 list member.** -/
-theorem mem_iList_of_candidate (h : μ - laneBits + R ≤ 64) {W : Word} {q : Column μ}
-    (hq : q ∈ Candidates μ R A W) :
-    encStack μ R q ∈ iList (ReedSolomon.code (domain (μ - laneBits) R h) (2 ^ (μ - laneBits))) A
-      (laneWord μ R W) := by
-  obtain ⟨S, hS, hagree⟩ := hq
-  rw [mem_iList]
-  exact ⟨isInterleavedCodeword_encStack h q, S, hS, (agrees_iff_agreeOn _ _ _ _ _).mp hagree⟩
+open Polynomial in
+/-- **`K`-valuedness of a polynomial.** A polynomial over `E` of degree at most `d` whose values at
+more than `d` points of `K` lie in `K` is over `K`: its limb `1` polynomial vanishes there. -/
+theorem exists_map_of_isInK {P : E[X]} {d : ℕ} (hP : P.natDegree ≤ d) (S : Finset K)
+    (hS : d < S.card) (hK : ∀ x ∈ S, IsInK (P.eval (ofK x))) :
+    ∃ P₀ : K[X], P = P₀.map (algebraMap K E) := by
+  classical
+  have hφ : ∀ a : K, algebraMap K E a = ofK a := fun _ ↦ rfl
+  let L : Fin 2 → K[X] := fun i ↦ ∑ n ∈ Finset.range (d + 1), monomial n ((P.coeff n).limb i)
+  have hcoeff : ∀ i n, (L i).coeff n = (P.coeff n).limb i := by
+    intro i n
+    simp only [L, finsetSum_coeff, coeff_monomial]
+    by_cases hn : n < d + 1
+    · rw [Finset.sum_eq_single n (fun b _ hb ↦ by simp [hb])
+        (fun h ↦ absurd (Finset.mem_range.mpr hn) h)]
+      simp
+    · have h0 : ∀ b ∈ Finset.range (d + 1),
+          (if b = n then (P.coeff b).limb i else 0) = 0 := fun b hb ↦ by
+        have : b ≠ n := by rintro rfl; exact hn (Finset.mem_range.mp hb)
+        simp [this]
+      rw [Finset.sum_eq_zero h0, coeff_eq_zero_of_natDegree_lt (by omega), limb_zero]
+  have hdeg : ∀ i, (L i).natDegree ≤ d := fun i ↦ natDegree_le_iff_coeff_eq_zero.mpr fun n hn ↦ by
+    rw [hcoeff, coeff_eq_zero_of_natDegree_lt (hP.trans_lt (by exact_mod_cast hn)), limb_zero]
+  have hsplit : P = (L 0).map (algebraMap K E) + C y * (L 1).map (algebraMap K E) := by
+    ext n
+    rw [coeff_add, coeff_C_mul, coeff_map, coeff_map, hcoeff, hcoeff, hφ, hφ]
+    conv_lhs => rw [E.eq_sum_limbs (P.coeff n)]
+    rw [mul_comm y]
+  have heval : ∀ x : K, P.eval (ofK x) = E.ofLimbs ((L 0).eval x) ((L 1).eval x) := by
+    intro x
+    conv_lhs => rw [hsplit]
+    rw [ofLimbs_eq, eval_add, eval_mul, eval_C, eval_map, eval_map, ← hφ x, eval₂_hom, eval₂_hom,
+      hφ, hφ]
+    ring
+  have h1 : L 1 = 0 := by
+    refine eq_zero_of_natDegree_lt_card_of_eval_eq_zero' _ S (fun x hx ↦ ?_) ((hdeg 1).trans_lt hS)
+    have := hK x hx
+    rw [heval] at this
+    simpa [IsInK] using this
+  exact ⟨L 0, by rw [hsplit, h1, Polynomial.map_zero, mul_zero, add_zero]⟩
 
 end
 end LeanVM.Protocol.Whir.Sound

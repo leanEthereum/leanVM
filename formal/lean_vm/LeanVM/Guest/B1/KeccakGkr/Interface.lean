@@ -10,33 +10,41 @@ module
 
 public import LeanVM.Guest.B1.Sumcheck.Meaning
 public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The Keccak GKR reduction (TRIAGE G #53-63): the interface
 
-`verify_keccak` (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `40f877dc`, G
-below, G:2923-3089) runs the specification's `verifyKeccak` (V:2061), then draws the first
-challenge of `ringSwitch` (V:2124), which the last slices wait for. Its callees:
+`verify_keccak` (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `010cfb18`, G
+below, G:3106-3277) runs the specification's `verifyKeccak`, then permutes the last four slices
+waiting, the full queue the next grind's nonce finds (`absorb`). Its callees:
 
 | function | G | meaning |
 | --- | --- | --- |
-| `keccak_plain_rounds__L{n}_L{k0}` | 2865-2890 | `n` plain rounds of degree two (`sumcheck _ 3 (replicate n none)`, V:1342), `k0` scalars waiting |
-| `keccak_layer__L{first}` | 2681-2862 | `verifyKeccakLayer` (V:1983) on a claim record |
-| `verify_keccak` | 2910-3076 | `verifyKeccak`, then one sample |
+| `keccak_plain_rounds__L{n}_L{k0}` | 3086-3112 | `n` plain rounds of degree two (`sumcheck _ 3 (replicate n none)`), `k0` scalars waiting |
+| `keccak_layer__L{first}` | 2900-3083 | `verifyKeccakLayer` on a claim record |
+| `verify_keccak` | 3131-3302 | `verifyKeccak`, then the full queue permuted |
 
-The pack rounds of a layer run in two loops (`__loop37` .. `__loop40`, `PackLoop`): eight
-equality-mode rounds an iteration, then one an iteration. The inline helpers (`carry_step`,
-`carry_wrap`, `keccak_shifts_eq`, `fold_node`, `fold_shifts`, `keccak_form`, `slice_weight`,
-`keccak_slot_lanes`, G:2538-2691, 2906-2920, TRIAGE #53-58, #62) have no core function of their
+Its grinds are of `0` bits at the deployed parameters (`grindingBits` of `2`, `3` and of the
+segment and lane's `keccakSegmentBits + keccakLaneBits`), plain permutations, but for the one before
+a layer's `s`, of `grindingBits (productBits - 1) = 3` bits: its nonce is the stream word at the
+cursor and `grind_check` reads the window table `tabs`.
+
+The pack rounds of a layer run in two loops (`keccak_layer__L1_loop0` .. `keccak_layer__L0_loop1`,
+`PackLoop`): eight equality-mode rounds an iteration, then one an iteration. The inline helpers
+(`carry_step`, `carry_wrap`, `keccak_shifts_eq`, `fold_node`, `fold_shifts`, `keccak_form`,
+`slice_weight`, `keccak_slot_lanes`, G:2720-2874, 3090-3103) have no core function of their
 own: they are lemmas of `B1/KeccakGkr/`.
 
-**Records.** A round record (`KR_*`, G:246-256) holds a sponge's capacity, a cursor, a claim
+**Records.** A round record (`KR_*`, G:241-251) holds a sponge's capacity, a cursor, a claim
 and a scale, its fields `KR_CAP = 16` words apart (`RoundRec`). A claim record (`KC_*`,
-G:237-244) holds a `KeccakClaim` (V:1926) in the guest's factored form (`ClaimRec`): its value,
+G:232-239) holds a `KeccakClaim` in the guest's factored form (`ClaimRec`): its value,
 `κ = Σ μ`, a pointer to its point, its sixteen instance weights `μ`, and its position weights as
 a lane table times a slice table, `firstWeights lanes` for the first claim (a word's bits, `x^z`)
 and `laterWeights lanes slices` after a layer (through the transpose of θ, ρ, π,
-`keccakLinearTranspose`, V:1946), the slices `eqKernel` of the claim's local point's six slice
+`keccakLinearTranspose`), the slices `eqKernel` of the claim's local point's six slice
 coordinates; after a layer also its weights at the positions `ι` can flip, `2^i - 1` of lane `0`
 (`flipsOf`, `KC_FLIPS`).
 
@@ -47,8 +55,8 @@ is stated):
 * `keccak_layer_Spec`: from a claim record of the claim `c`, the two specializations run
   `verifyKeccakLayer (y + 3) step c` (`y` the point's length) on the carried sponge, the guest's
   `iota` being the specification's (`keccakIota`), and write the next claim's record;
-* `verify_keccak_Spec`: `verifyKeccak τ (chis.take τ) outs` and one sample, on the carried
-  capacity, `τ` the `KECCAK` table's log-height (`9 ≤ τ ≤ 28`), `chis` the table sumcheck's point
+* `verify_keccak_Spec`: `verifyKeccak τ (chis.take τ) outs`, then the full queue permuted, on the
+  carried capacity, `τ` the `KECCAK` table's log-height (`9 ≤ τ ≤ 28`), `chis` the table sumcheck's point
   at `chi`, `outs` the table's output lane values; the committed outputs' claim's point at `z_vals`,
   the input opening's point at `z_vals·g^39` (`QKECCAK_VARS_CAP`), the slices at `slices`.
 -/
@@ -80,11 +88,11 @@ def RoundRec (rd : Reader) (rec : E) (k : ℕ) (cap : List E) (cur claim scale :
   CapAt rd rec k krCap cap ∧ LoadHolds rd rec (k + 5 * krCap) cur ∧
     LoadHolds rd rec (k + 6 * krCap) claim ∧ LoadHolds rd rec (k + 7 * krCap) scale
 
-/-- **One equality-mode round of degree two** (a pack round of `keccak_layer`, G:2765-2781): `g₁`,
+/-- **One equality-mode round of degree two** (a pack round of `keccak_layer`, G:2953-2969): `g₁`,
 `g₂` absorbed,
 the challenge `c` squeezed; with `r` the round's coordinate, the claim becomes
 `(1 + r + c)·(claim + (r + c)·g₁ + (r + c²)·g₂)` (`(1 + r + c)·polyEval message c` of
-`sumcheckRoundPoly 3 claim (some r)`, V:1330, 1971) and the scale is multiplied by
+`sumcheckRoundPoly 3 claim (some r)`) and the scale is multiplied by
 `1 + r + c`. The challenge, the claim, the scale and the sponge after it. -/
 def eqRound (s : Fs) (g1 g2 r claim scale : E) : E × E × E × Fs :=
   let q := (s.absorbAll [g1, g2] dsObserve).squeeze
@@ -93,9 +101,9 @@ def eqRound (s : Fs) (g1 g2 r claim scale : E) : E × E × E × Fs :=
 
 /-! ## Plain rounds -/
 
-/-- **Plain rounds of degree two** (`sumcheck claim 3 (replicate n none)`, V:1342): per round
+/-- **Plain rounds of degree two** (`sumcheck claim 3 (replicate n none)`): per round
 `c₀`, `c₂` absorbed, the challenge `c` squeezed, the claim `c₀ + c·((claim + c₂) + c·c₂)`
-(`polyEval [c₀, claim + c₂, c₂] c`, V:1330). The challenges, the final claim and the final
+(`polyEval [c₀, claim + c₂, c₂] c`). The challenges, the final claim and the final
 sponge. -/
 def plainRun : List (E × E) → E → Fs → List E × E × Fs
   | [], v, s => ([], v, s)
@@ -109,17 +117,16 @@ scalar `w` waiting, its rate cells `p0`, `p1`. -/
 def plainStart (k0 : ℕ) (cap : List E) (w : E) : Fs :=
   ⟨cap, if k0 = 1 then [(w, dsObserve)] else []⟩
 
-/-- **`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, n, k0)`** (G:2878-2903;
-TRIAGE #61): the capacity is canonical; the `2n` stream words at the cursor are the rounds' `c₀`,
-`c₂`; and for every scalar `w` whose rate cells are `p0`, `p1` with `k0 = 1`
+/-- **`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, tabs, n, k0)`** (G:3061-3087): the
+`2n` stream words at the cursor are the rounds' `c₀`, `c₂`; and for every scalar `w` whose rate cells are `p0`, `p1` with `k0 = 1`
 (`Keccak.scalarCells w dsObserve`, the scalar waiting), the rounds (`plainRun`) store their
 challenges at `point`, and the function returns the final capacity, the cursor `2n` words on and
 the final claim. -/
 def MeaningPlainRounds (n k0 : ℕ) (rd : Reader) : List E → List E → Prop
-  | [f0, f1, f2, f3, f4, p0, p1, cur, value, point], rets =>
-      AllCanonical [f0, f1, f2, f3, f4] ∧ ∃ rounds : List (E × E), rounds.length = n ∧
+  | [f0, f1, f2, f3, f4, p0, p1, cur, value, point, _tabs], rets =>
+      ∃ rounds : List (E × E), rounds.length = n ∧
         ReadsAt rd cur (rounds.flatMap fun c ↦ [c.1, c.2]) ∧
-        ∀ w : E, (k0 = 1 → IsCanonical128 p0 → (p0, p1) = Keccak.scalarCells w dsObserve) →
+        ∀ w : E, (k0 = 1 → (p0, p1) = Keccak.scalarCells w dsObserve) →
           let r := plainRun rounds value (plainStart k0 [f0, f1, f2, f3, f4] w)
           ReadsAt rd point r.1 ∧ rets = r.2.2.cap ++ [cur * gen ^ (2 * n), r.2.1]
   | _, _ => False
@@ -149,11 +156,11 @@ def keccak_plain_rounds_complete_Spec : Prop :=
 
 /-! ## Claim records -/
 
-/-- The first claim's position weights (V:2069): bit `z` of lane `l` weighs `lanes[l]·x^z`. -/
+/-- The first claim's position weights: bit `z` of lane `l` weighs `lanes[l]·x^z`. -/
 def firstWeights (lanes : List E) : List E :=
   (List.range keccakBits).map fun j ↦ lanes.getD (j / 64) 0 * eOfNat (2 ^ (j % 64))
 
-/-- A later claim's position weights (V:2016-2019, factored): the transpose of θ, ρ, π applied to
+/-- A later claim's position weights (factored): the transpose of θ, ρ, π applied to
 the lane table times the slice table. -/
 def laterWeights (lanes slices : List E) : List E :=
   keccakLinearTranspose
@@ -163,7 +170,7 @@ def laterWeights (lanes slices : List E) : List E :=
 (`KC_FLIPS`). -/
 def flipsOf (ws : List E) : List E := (List.range 7).map fun i ↦ ws.getD (2 ^ i - 1) 0
 
-/-- **The claim record at `rec`** (`KC_*`, G:237-245) of the claim `c` on `y`-coordinate points:
+/-- **The claim record at `rec`** (`KC_*`, G:232-239) of the claim `c` on `y`-coordinate points:
 `KC_VALUE = 0` the value, `KC_KAPPA = 1` the sum of the instance weights, `KC_POINT = 2` a pointer
 to the point, `KC_MU = 6..21` the sixteen instance weights, `KC_LANES = 3` a pointer to the
 twenty-five lane weights; the first claim's position weights are `firstWeights`; a later claim's
@@ -181,7 +188,7 @@ def ClaimRec (rd : Reader) (first : Bool) (rec : E) (c : KeccakClaim) (y : ℕ) 
       ReadsAt rd lc loc ∧ LoadHolds rd rec 5 fl ∧ ReadsAt rd fl (flipsOf c.weights) ∧
       c.weights = laterWeights lanes (eqKernel (loc.take 6))
 
-/-- The `ι` term of `verifyKeccakLayer logSteps step c` (V:1990-1994): per segment, the claim's
+/-- The `ι` term of `verifyKeccakLayer logSteps step c`: per segment, the claim's
 weights where the segment's round constant has a bit, scaled by the segment's equality weight. -/
 def keccakIota (logSteps step : ℕ) (c : KeccakClaim) : E :=
   let segments := eqKernel (c.point.drop (logSteps - 4))
@@ -198,10 +205,10 @@ def layerName : ℕ → String
   | _ => "keccak_layer__L0"
 
 /-- `KR_STEP`: the pack rounds' first loop runs eight rounds an iteration. -/
-abbrev krStep : ℕ := 8
+abbrev krStep : ℕ := guest_const% KR_STEP
 
-/-- **`keccak_layer(fs0..fs4, p0, p1, cursor, y_g, step_g, rem_g, claim, out, iota, first)`**
-(G:2694-2875; TRIAGE #60): for every reading of its arguments as the claim `c` on points of
+/-- **`keccak_layer(fs0..fs4, p0, p1, cursor, y_g, step_g, rem_g, claim, out, iota, tabs, first)`**
+(G:2875-3058): on the window table `tabs` (`WinTabs`, which `s`'s grind reads), for every reading of its arguments as the claim `c` on points of
 `y = 8·⌊y/8⌋ + y % 8` coordinates (`y_g = g^y`, `step_g = g^⌊y/8⌋`, `rem_g = g^(y % 8)`) whose
 record is at `claim`, the step `step`'s `ι` term (`keccakIota`), and with `first = 1` the
 committed outputs' word `w` waiting in the sponge (rate cells `p0`, `p1`): from the carried
@@ -209,10 +216,10 @@ capacity, the stream words `xs` at the cursor run `verifyKeccakLayer (y + 3) ste
 `c'`, whose record the function writes at `out`; it returns the capacity after the run and the
 cursor past `xs`. -/
 def MeaningKeccakLayer (first : ℕ) (rd : Reader) : List E → List E → Prop
-  | [f0, f1, f2, f3, f4, p0, p1, cur, yg, sg, rg, claim, out, iota], rets =>
-      ∀ (y step : ℕ) (c : KeccakClaim) (w : E), 1 ≤ y → y < 32 → yg = gen ^ y →
+  | [f0, f1, f2, f3, f4, p0, p1, cur, yg, sg, rg, claim, out, iota, tabs], rets =>
+      WinTabs rd tabs → ∀ (y step : ℕ) (c : KeccakClaim) (w : E), 1 ≤ y → y < 32 → yg = gen ^ y →
         sg = gen ^ (y / krStep) → rg = gen ^ (y % krStep) → ClaimRec rd (first = 1) claim c y →
-        (first = 1 → IsCanonical128 p0 → (p0, p1) = Keccak.scalarCells w dsObserve) →
+        (first = 1 → (p0, p1) = Keccak.scalarCells w dsObserve) →
         iota = keccakIota (y + 3) step c →
         ∃ (xs : List E) (c' : KeccakClaim) (cap' : List E), ReadsAt rd cur xs ∧
           RunsTo (verifyKeccakLayer (y + 3) step c) (plainStart first [f0, f1, f2, f3, f4] w) xs c'
@@ -220,45 +227,39 @@ def MeaningKeccakLayer (first : ℕ) (rd : Reader) : List E → List E → Prop
           ClaimRec rd false out c' y ∧ rets = cap' ++ [cur * gen ^ xs.length]
   | _, _ => False
 
-/-- `keccak_layer`'s two specializations compute their meanings. -/
-def keccak_layer_Spec : Prop :=
-  ∀ first < 2, ∀ (rd : Reader) (args rets : List E),
+/-- `keccak_layer`'s two specializations compute their meanings on the reader `rd` (proved on a
+memory image, where `grind_check` has its meaning). -/
+def keccak_layer_Spec (rd : Reader) : Prop :=
+  ∀ first < 2, ∀ (args rets : List E),
     coreProgram.Rel rd (layerName first) args rets → MeaningKeccakLayer first rd args rets
 
 /-! ## `verify_keccak` -/
 
-/-- What `verify_keccak` runs: `verifyKeccak` (V:2061), then the first challenge of the ring
-switch (`ringSwitch`, V:2124), which the guest draws before it returns. -/
-def keccakSeg (logSteps : ℕ) (inst output : List E) :
-    VerifierProgram ((List ColumnClaim × List E × List E) × E) := do
-  let r ← verifyKeccak logSteps inst output
-  let m ← VerifierProgram.sampleChallenge
-  return (r, m)
-
-/-- **`verify_keccak(fs0..fs4, cursor, tau_g, chi, output_lanes, z_vals, slices)`**
-(G:2923-3089; TRIAGE #63): for the `KECCAK` table's log-height `τ` (`tau_g = g^τ`, `9 ≤ τ ≤ 28`,
-which `verify_tables` certifies), the table sumcheck's point `chis` at `chi` (at least `τ`
+/-- **`verify_keccak(fs0..fs4, cursor, tau_g, chi, output_lanes, z_vals, slices, tabs)`**
+(G:3106-3277): on the window table `tabs` (`WinTabs`, which the layers' grinds read), for the
+`KECCAK` table's log-height `τ` (`tau_g = g^τ`, `9 ≤ τ ≤ 28`, which
+`verify_tables` certifies), the table sumcheck's point `chis` at `chi` (at least `τ`
 coordinates) and the table's twenty-five output lane values `outs` at `output_lanes`: from the
-carried capacity, the stream words `xs` at the cursor run `keccakSeg τ (chis.take τ) outs` to the
-committed outputs' claim `⟨qkeccak, op, word⟩`, the input opening's point and slices, and the ring
-map's first challenge `m0`; `op` is at `z_vals`, the point at `z_vals·g^39`, the slices at
-`slices`; the function returns the capacity after the run, the cursor past `xs`, `word` and
-`m0`. -/
+carried capacity, the stream words `xs` at the cursor run `verifyKeccak τ (chis.take τ) outs` to
+the committed outputs' claim `⟨qkeccak, op, word⟩`, the input opening's point and slices, leaving
+the sponge `s'` with a full queue, the last four slices; `op` is at `z_vals`, the point at
+`z_vals·g^39`, the slices at `slices`; the function returns the capacity after that queue's
+permutation (which the next grind's `absorb` makes), the cursor past `xs` and `word`. -/
 def MeaningVerifyKeccak (rd : Reader) : List E → List E → Prop
-  | [f0, f1, f2, f3, f4, cur, tg, chi, ol, zv, sl], rets =>
-      ∀ (τ : ℕ) (chis outs : List E), 9 ≤ τ → τ ≤ 28 → tg = gen ^ τ → τ ≤ chis.length →
+  | [f0, f1, f2, f3, f4, cur, tg, chi, ol, zv, sl, tabs], rets =>
+      WinTabs rd tabs → ∀ (τ : ℕ) (chis outs : List E), 9 ≤ τ → τ ≤ 28 → tg = gen ^ τ → τ ≤ chis.length →
         ReadsAt rd chi chis → outs.length = 25 → ReadsAt rd ol outs →
-        ∃ (xs op point slices cap' : List E) (word m0 : E), ReadsAt rd cur xs ∧
-          RunsTo (keccakSeg τ (chis.take τ) outs) ⟨[f0, f1, f2, f3, f4], []⟩ xs
-            (([⟨qkeccak, op, word⟩], point, slices), m0) ⟨cap', []⟩ ∧
+        ∃ (xs op point slices : List E) (word : E) (s' : Fs), ReadsAt rd cur xs ∧
+          RunsTo (verifyKeccak τ (chis.take τ) outs) ⟨[f0, f1, f2, f3, f4], []⟩ xs
+            ([⟨qkeccak, op, word⟩], point, slices) s' ∧ s'.pend.length = rateScalars ∧
           ReadsAt rd zv op ∧ ReadsAt rd (zv * gen ^ qkeccakVarsCap) point ∧ ReadsAt rd sl slices ∧
           op.length = τ + qkeccakSlotBits ∧ point.length = τ + qkeccakSlotBits ∧
-          slices.length = 64 ∧ rets = cap' ++ [cur * gen ^ xs.length, word, m0]
+          slices.length = 64 ∧ rets = capOf s'.perm ++ [cur * gen ^ xs.length, word]
   | _, _ => False
 
-/-- `verify_keccak`'s core IR computes its meaning. -/
-def verify_keccak_Spec : Prop :=
-  ∀ (rd : Reader) (args rets : List E),
+/-- `verify_keccak`'s core IR computes its meaning on the reader `rd` (proved on a memory image). -/
+def verify_keccak_Spec (rd : Reader) : Prop :=
+  ∀ (args rets : List E),
     coreProgram.Rel rd "verify_keccak" args rets → MeaningVerifyKeccak rd args rets
 
 end

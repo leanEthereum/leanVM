@@ -38,7 +38,7 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
   unfold mainCOk at hok
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, List.all_eq_true, Bool.or_eq_true,
     Bool.not_eq_true'] at hok
-  obtain ⟨⟨⟨⟨⟨⟨c', hchk⟩, hcan1⟩, hcan2⟩, hcan3⟩, hcan4⟩, hside⟩ := hok
+  obtain ⟨⟨c', hchk⟩, hside⟩ := hok
   obtain ⟨σ, hσ⟩ : ∃ σ, σ = mσ rd m := ⟨_, rfl⟩
   rw [← hσ]
   have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
@@ -65,11 +65,11 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
       σ (.n d) = σ (.n x) + σ (.n y) := fun d x y h => hD _ h
   have gC : ∀ (d : ℕ) (c : E), Atom.const (.n d) c ∈ mDefAtoms → σ (.n d) = c :=
     fun d c h => hD _ h
-  have one : ∀ d, Atom.const (.n d) (word 1 0 0) ∈ mDefAtoms → σ (.n d) = 1 := fun d h => by
+  have one : ∀ d, Atom.const (.n d) (word 1 0) ∈ mDefAtoms → σ (.n d) = 1 := fun d h => by
     rw [gC d _ h, word_one]
-  have two : ∀ d, Atom.const (.n d) (word 2 0 0) ∈ mDefAtoms → σ (.n d) = gen := fun d h => by
+  have two : ∀ d, Atom.const (.n d) (word 2 0) ∈ mDefAtoms → σ (.n d) = gen := fun d h => by
     rw [gC d _ h, word_gen]
-  have gd : ∀ d x y e, Atom.const (.n x) (word 1 0 0) ∈ mDefAtoms →
+  have gd : ∀ d x y e, Atom.const (.n x) (word 1 0) ∈ mDefAtoms →
       Atom.add (.n d) (.n x) (.n y) ∈ mDefAtoms → σ (.n y) = gen ^ e → σ (.n d) = 1 + gen ^ e :=
     fun d x y e hx hd hy => by rw [gA d x y hd, one x hx, hy]
   -- the counts
@@ -99,8 +99,8 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
     rw [gM 46 45 22 (by norm_num) (by norm_num) (by decide +kernel), v40, hO (by decide)]
     simp [mOrc]
   have vDa : σ (.n 364) = m.aDa := by rw [hO (by decide)]; simp [mOrc]
-  have v409 : σ (.n 399) = m.a409 := by rw [hO (by decide)]; simp [mOrc]
-  have vpick : σ (.n 406) = gen ^ m.pick := by rw [hO (by decide)]; simp [mOrc]
+  have v409 : σ (.n 398) = m.a409 := by rw [hO (by decide)]; simp [mOrc]
+  have vpick : σ (.n 405) = gen ^ m.pick := by rw [hO (by decide)]; simp [mOrc]
   have v384 : σ (.n 363) = gen ^ (2 * (m.nc + 1)) := by
     rw [gM 363 362 362 (by norm_num) (by norm_num) (by decide +kernel),
       gM 362 6 361 (by norm_num) (by norm_num) (by decide +kernel), v6,
@@ -111,45 +111,45 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
       gM 365 6 6 (by norm_num) (by norm_num) (by decide +kernel), vDa, v6, ← pow_add, two_mul]
   have v389 : σ (.n 368) = gen ^ m.nd + gen := by
     rw [gA 368 7 367 (by decide +kernel), v7, two 367 (by decide +kernel)]
-  have v415 : σ (.n 383) = gen ^ (2 * m.nc) := by
-    rw [gM 383 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, two_mul]
-  have v421 : σ (.n 389) = gen ^ (24 * m.nc) := by
-    rw [gM 389 388 388 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 388 387 387 (by norm_num) (by norm_num) (by decide +kernel),
+  have v415 : σ (.n 382) = gen ^ (2 * m.nc) := by
+    rw [gM 382 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, two_mul]
+  have v421 : σ (.n 388) = gen ^ (24 * m.nc) := by
+    rw [gM 388 387 387 (by norm_num) (by norm_num) (by decide +kernel),
       gM 387 386 386 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 386 385 6 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 385 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, ← pow_add,
+      gM 386 385 385 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 385 384 6 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 384 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, ← pow_add,
       ← pow_add, ← pow_add, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
-  have v427 : σ (.n 395) = gen ^ (24 * m.nc) := by
-    rw [gM 395 394 394 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 394 393 393 (by norm_num) (by norm_num) (by decide +kernel),
+  have v427 : σ (.n 394) = gen ^ (24 * m.nc) := by
+    rw [gM 394 393 393 (by norm_num) (by norm_num) (by decide +kernel),
       gM 393 392 392 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 392 391 6 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 391 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, ← pow_add,
+      gM 392 391 391 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 391 390 6 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 390 6 6 (by norm_num) (by norm_num) (by decide +kernel), v6, ← pow_add, ← pow_add,
       ← pow_add, ← pow_add, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
-  have v430 : σ (.n 398) = gen ^ (m.nc + 1) := by
-    rw [gM 398 6 397 (by norm_num) (by norm_num) (by decide +kernel), v6,
-      two 397 (by decide +kernel), pow_succ]
-  have v432 : σ (.n 400) = gen ^ (m.nrx + m.nrs) := by
-    rw [gM 400 2 5 (by norm_num) (by norm_num) (by decide +kernel), v2, v5, pow_add]
-  have v436 : σ (.n 404) = m.a409 * gen ^ m.nc := by
-    rw [gM 404 399 6 (by norm_num) (by norm_num) (by decide +kernel), v409, v6]
-  have v445 : σ (.n 413) = (gen ^ m.pick + gen ^ m.nc) * (gen ^ m.nd + 1) := by
-    rw [gM 413 410 412 (by norm_num) (by norm_num) (by decide +kernel),
-      gA 410 406 6 (by decide +kernel), gA 412 7 411 (by decide +kernel), vpick, v6, v7,
-      one 411 (by decide +kernel)]
-  have v448 : σ (.n 416) = m.aDa * gen ^ (2 * m.pick) := by
-    rw [gM 416 364 415 (by norm_num) (by norm_num) (by decide +kernel),
-      gM 415 406 406 (by norm_num) (by norm_num) (by decide +kernel), vDa, vpick, ← pow_add,
+  have v430 : σ (.n 397) = gen ^ (m.nc + 1) := by
+    rw [gM 397 6 396 (by norm_num) (by norm_num) (by decide +kernel), v6,
+      two 396 (by decide +kernel), pow_succ]
+  have v432 : σ (.n 399) = gen ^ (m.nrx + m.nrs) := by
+    rw [gM 399 2 5 (by norm_num) (by norm_num) (by decide +kernel), v2, v5, pow_add]
+  have v436 : σ (.n 403) = m.a409 * gen ^ m.nc := by
+    rw [gM 403 398 6 (by norm_num) (by norm_num) (by decide +kernel), v409, v6]
+  have v445 : σ (.n 412) = (gen ^ m.pick + gen ^ m.nc) * (gen ^ m.nd + 1) := by
+    rw [gM 412 409 411 (by norm_num) (by norm_num) (by decide +kernel),
+      gA 409 405 6 (by decide +kernel), gA 411 7 410 (by decide +kernel), vpick, v6, v7,
+      one 410 (by decide +kernel)]
+  have v448 : σ (.n 415) = m.aDa * gen ^ (2 * m.pick) := by
+    rw [gM 415 364 414 (by norm_num) (by norm_num) (by decide +kernel),
+      gM 414 405 405 (by norm_num) (by norm_num) (by decide +kernel), vDa, vpick, ← pow_add,
       two_mul]
-  have v451 : σ (.n 419) = gen ^ m.nc + 1 := by
-    rw [gA 419 6 418 (by decide +kernel), v6, one 418 (by decide +kernel)]
-  have v480 : σ (.n 448) = 1 := one 448 (by decide +kernel)
-  have v484 : σ (.n 452) = gen := by
-    rw [gM 452 450 451 (by norm_num) (by norm_num) (by decide +kernel),
-      one 450 (by decide +kernel), two 451 (by decide +kernel), one_mul]
+  have v451 : σ (.n 418) = gen ^ m.nc + 1 := by
+    rw [gA 418 6 417 (by decide +kernel), v6, one 417 (by decide +kernel)]
+  have v480 : σ (.n 449) = 1 := one 449 (by decide +kernel)
+  have v484 : σ (.n 453) = gen := by
+    rw [gM 453 451 452 (by norm_num) (by norm_num) (by decide +kernel),
+      one 451 (by decide +kernel), two 452 (by decide +kernel), one_mul]
   -- the reads
   have rdL : ∀ d p o v, Atom.load (.n d) (.n p) o ∈ mDefAtoms →
       Atom.load (.n d) (.n p) o ∉ mStoresL → LoadHolds rd (σ (.n p)) o v → σ (.n d) = v := by
@@ -157,18 +157,18 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
     rcases (hD _ h : Good rd mStores (mOrc m) σ (.load _ _ _)) with h | h
     · exact absurd (by rw [mStores_eq] at h; exact h) hn
     · rw [h, rdAt_of_load hv]
-  have r437 : σ (.n 405) = gen ^ m.total :=
-    rdL 405 404 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v436]; exact hm.wN)
-  have r476 : σ (.n 444) = (digestHalves m.dap).1 :=
-    rdL 444 416 0 _ (by decide +kernel) (by simp [mStoresL]) (by
+  have r437 : σ (.n 404) = gen ^ m.total :=
+    rdL 404 403 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v436]; exact hm.wN)
+  have r476 : σ (.n 445) = (digestHalves m.dap).1 :=
+    rdL 445 415 0 _ (by decide +kernel) (by simp [mStoresL]) (by
       rw [v448]; exact hm.dap 0 (by simp [digestCells]))
-  have r477 : σ (.n 445) = (digestHalves m.dap).2 :=
-    rdL 445 416 1 _ (by decide +kernel) (by simp [mStoresL]) (by
+  have r477 : σ (.n 446) = (digestHalves m.dap).2 :=
+    rdL 446 415 1 _ (by decide +kernel) (by simp [mStoresL]) (by
       rw [v448]; exact hm.dap 1 (by simp [digestCells]))
-  have r481 : σ (.n 449) = (digestHalves m.sdg).1 :=
-    rdL 449 448 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v480]; exact hm.h0)
-  have r485 : σ (.n 453) = (digestHalves m.sdg).2 :=
-    rdL 453 452 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v484]; exact hm.h1)
+  have r481 : σ (.n 450) = (digestHalves m.sdg).1 :=
+    rdL 450 449 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v480]; exact hm.h0)
+  have r485 : σ (.n 454) = (digestHalves m.sdg).2 :=
+    rdL 454 453 0 _ (by decide +kernel) (by simp [mStoresL]) (by rw [v484]; exact hm.h1)
   -- the carried tags
   have htags : lxTagsV.map σ = lxTagWords := by
     apply List.ext_getElem (by simp [lxTagsV, lxTagWords, lxTagVals]; decide)
@@ -195,9 +195,9 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
       rw [hk] at hlt
       simp only [rcPairs, List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hp
       rcases hp with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ <;> rw [h1, h2] at hg ⊢ <;> rw [h2] at hlt
-      · exact rc_side hl v6 (by rw [gC 14 (word 65536 0 0) (by decide +kernel), word_g16]) hb.nc
+      · exact rc_side hl v6 (by rw [gC 14 (word 65536 0) (by decide +kernel), word_g16]) hb.nc
           (by omega) hlt hg
-      · exact rc_side hl v7 (by rw [gC 18 (word 2 0 0) (by decide +kernel), word_g1]) hb.nd
+      · exact rc_side hl v7 (by rw [gC 18 (word 2 0) (by decide +kernel), word_g1]) hb.nd
           (by omega) hlt hg
       · exact rc_side hl vpick v6 hb.pick (by have := hb.nc; omega) hlt hg
     | load d p o =>
@@ -252,7 +252,7 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
       rw [e_add_eq_zero_iff]
       rcases hok with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
       · rw [r437, v42]
-      · rw [v445, gC 414 (word 0 0 0) (by decide +kernel), word_zero]
+      · rw [v445, gC 413 (word 0 0) (by decide +kernel), word_zero]
         rcases Nat.le_one_iff_eq_zero_or_eq_one.mp hb.nd with h | h
         · rw [h, pow_zero, show (1 : E) + 1 = 0 from e_add_eq_zero_iff.mpr rfl, mul_zero]
         · rw [hb.pickD h, show gen ^ m.nc + gen ^ m.nc = 0 from e_add_eq_zero_iff.mpr rfl,
@@ -261,42 +261,40 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
       · rw [r485, hO (by decide)]; simp [mOrc]
     | _ => simp [mSideOk] at hok
   -- the stores' words
-  have hbyte : ∀ v < 256, σ (.n (48 + v)) = word v 0 0 := by
+  have hbyte : ∀ v < 256, σ (.n (48 + v)) = word v 0 := by
     intro v hv
     obtain ⟨b, hb', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp mByte_ok v (List.mem_range.mpr hv))
     have := hG _ (atom_mem_of_atomsIn' hb')
     rw [← atomEqb_sound he] at this
     exact this
-  have hleafc : ∀ k < 23, σ (.n (421 + k)) = 0 := by
+  have hleafc : ∀ k < 23, σ (.n (420 + k)) = 0 := by
     intro k hk
     obtain ⟨b, hb', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp mLeafC_ok k (List.mem_range.mpr hk))
     have := hG _ (atom_mem_of_atomsIn' hb')
     rw [← atomEqb_sound he] at this
-    rw [show σ (.n (421 + k)) = word 0 0 0 from this, word_zero]
-  have hzc : ∀ d, Atom.const (.n d) (word 0 0 0) ∈ atomsIn mDaZ → σ (.n d) = 0 := by
+    rw [show σ (.n (420 + k)) = word 0 0 from this, word_zero]
+  have hzc : ∀ d, Atom.const (.n d) (word 0 0) ∈ atomsIn mDaZ → σ (.n d) = 0 := by
     intro d h
     have h' := atom_mem_of_atomsIn' h
-    have hs : Stmt.atom (.const (.n d) (word 0 0 0)) ∈ mFlat := by
+    have hs : Stmt.atom (.const (.n d) (word 0 0)) ∈ mFlat := by
       clear * - h'; simp only [mFlat, List.mem_append]; tauto
     have := hgA _ (mem_atomsIn' hs)
-    exact (show σ (.n d) = word 0 0 0 from this).trans word_zero
+    exact (show σ (.n d) = word 0 0 from this).trans word_zero
   -- the blocks
   have hsubF : ∀ {P : List Stmt}, (∀ s ∈ P, s ∈ mFlat) → ∀ a ∈ atomsIn P, a ∈ atomsIn mFlat :=
     fun hP a ha => mem_atomsIn' (hP _ (atom_mem_of_atomsIn' ha))
-  obtain ⟨sB, sDa, sDaZ, sLf⟩ := mStoresIn
-  have blk : ∀ {P : List Stmt} {A : List ℕ}, (∀ s ∈ P, s ∈ mFlat) →
-      canonChk A (noStores P) = true → (∀ i ∈ A, IsCanonical128 (σ (.n i))) →
+  obtain ⟨sB, sDa, sDaZ, sLf, sAg⟩ := mStoresIn
+  have blk : ∀ {P : List Stmt}, (∀ s ∈ P, s ∈ mFlat) →
       ((∀ a ∈ atomsIn P, a ∉ mStores → a.Holds rd σ) → ∀ a ∈ atomsIn P, a ∈ mStores →
         a.Holds rd σ) → ∀ a ∈ atomsIn P, a.Holds rd σ := by
-    intro P A hP hc hA hst
+    intro P hP hst
     have hsub := hsubF hP
-    exact atoms_holds_stores (S := mStores) hidx hc (fun a ha => hgA a (hsub a ha)) hA
+    exact atoms_holds_stores (S := mStores) (fun a ha => hgA a (hsub a ha))
       (fun a ha hnS hns => hS a (hsub a ha) hnS hns) hst
   have hB1 : ∀ a ∈ atomsIn (mPre ++ mMid ++ mPost), a.Holds rd σ := by
-    refine blk (A := []) (fun s hs => by
+    refine blk (fun s hs => by
       clear * - hs; simp only [List.mem_append] at hs; simp only [mFlat, List.mem_append]; tauto)
-      hcan1
-      (by simp) (fun _ a ha haS => ?_)
+      (fun _ a ha haS => ?_)
     have := mem_storesIn sB ha haS
     simp only [List.mem_append, List.mem_map, List.mem_range, List.mem_singleton] at this
     rcases this with ⟨v, hv, rfl⟩ | rfl
@@ -304,36 +302,31 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
       rw [hO (by decide), hbyte v hv]
       have := hm.bytes v (by simpa using hv)
       simpa [mOrc] using this
-    · show LoadHolds rd (σ (.n 399)) 0 (σ (.n 400))
+    · show LoadHolds rd (σ (.n 398)) 0 (σ (.n 399))
       rw [v409, v432]; exact hm.w0
   have mB1 : ∀ {P : List Stmt}, (∀ s ∈ P, s ∈ mPre ++ mMid ++ mPost) →
       ∀ a ∈ atomsIn P, a.Holds rd σ := fun hP a ha => hB1 a (mem_atomsIn' (hP _ (atom_mem_of_atomsIn' ha)))
   have hDa : m.nd = 1 → ∀ a ∈ atomsIn mDa, a.Holds rd σ := by
     intro h1
-    obtain ⟨hl4, hcanR⟩ := hb.daR h1
-    have hR : ∀ i ∈ [369, 370, 371, 372], σ (.n i) = m.daR.getD (i - 369) 0 := by
+    have hl4 := hb.daR h1
+    have hR : ∀ i ∈ [369, 370, 371], σ (.n i) = m.daR.getD (i - 369) 0 := by
       intro i hi
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
-      rcases hi with rfl | rfl | rfl | rfl <;> rw [hO (by decide)] <;> simp [mOrc]
-    have hRl : [σ (.n 369), σ (.n 370), σ (.n 371), σ (.n 372)] = m.daR := by
-      rw [hR 369 (by simp), hR 370 (by simp), hR 371 (by simp), hR 372 (by simp)]
+      rcases hi with rfl | rfl | rfl <;> rw [hO (by decide)] <;> simp [mOrc]
+    have hRl : [σ (.n 369), σ (.n 370), σ (.n 371), σ (.n 373)] = m.daR ++ [0] := by
+      rw [hR 369 (by simp), hR 370 (by simp), hR 371 (by simp),
+        gC 373 (word 0 0) (by decide +kernel), word_zero]
       match hd : m.daR, hl4 with
-      | [a, b, c, d], _ => rfl
-    refine blk (fun s hs => by clear * - hs; simp only [mFlat, List.mem_append]; tauto) hcan2
-      (fun i hi => ?_)
+      | [a, b, c], _ => rfl
+    refine blk (fun s hs => by clear * - hs; simp only [mFlat, List.mem_append]; tauto)
       (fun h1' a ha haS => ?_)
-    · rw [hR i hi]
-      apply hcanR
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
-      rcases hi with rfl | rfl | rfl | rfl <;>
-        (rw [List.getD_eq_getElem _ _ (by omega)]; exact List.getElem_mem _)
     · have hA' : ∀ b ∈ noStores mDa, b.Holds rd σ := fun b hb' =>
         h1' b (List.mem_filter.mp hb').1 (by simpa using (List.mem_filter.mp hb').2)
       obtain ⟨hsp, ho0, ho1⟩ := daSpec_ok
-      obtain ⟨hd, -⟩ := chain_final hsp rfl hA' (pre := []) (n := 0) rfl
+      have hd := chain_final hsp rfl hA' (pre := []) (n := 0) rfl
         (fun c => (cellsOfState_zero false c).symm)
       have hv : (daSpec.vals σ).take (daSpec.len / 16) =
-          [σ (.n 369), σ (.n 370), σ (.n 371), σ (.n 372)] := by
+          [σ (.n 369), σ (.n 370), σ (.n 371), σ (.n 373)] := by
         simp [daSpec, pairSpec, ChainSpec.vals, srcVal]
       rw [hv, List.nil_append, hRl, ho0, ho1] at hd
       have hown := hm.own
@@ -341,62 +334,67 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
       have := mem_storesIn sDa ha haS
       simp only [List.mem_cons, List.not_mem_nil, or_false] at this
       rcases this with rfl | rfl
-      · show LoadHolds rd (σ (.n 366)) 0 (σ (.n 379))
+      · show LoadHolds rd (σ (.n 366)) 0 (σ (.n 378))
         have e := congrArg Prod.fst hd
         simp only at e
         rw [v387, e]; exact hown 0 (by simp [digestCells])
-      · show LoadHolds rd (σ (.n 366)) 1 (σ (.n 380))
+      · show LoadHolds rd (σ (.n 366)) 1 (σ (.n 379))
         have e := congrArg Prod.snd hd
         simp only at e
         rw [v387, e]; exact hown 1 (by simp [digestCells])
   have hDaZ : m.nd ≠ 1 → ∀ a ∈ atomsIn mDaZ, a.Holds rd σ := by
     intro h1
-    refine blk (A := []) (fun s hs => by clear * - hs; simp only [mFlat, List.mem_append]; tauto)
-      hcan3
-      (by simp) (fun _ a ha haS => ?_)
+    refine blk (fun s hs => by clear * - hs; simp only [mFlat, List.mem_append]; tauto)
+      (fun _ a ha haS => ?_)
     have hown := hm.own
     simp only [MainIn.ownDa, h1, ↓reduceIte] at hown
     obtain ⟨c0, c1⟩ := mDaZC_ok
-    have z0 := hzc 381 (atomEqb_sound (List.any_eq_true.mp c0).choose_spec.2 ▸
+    have z0 := hzc 380 (atomEqb_sound (List.any_eq_true.mp c0).choose_spec.2 ▸
       (List.any_eq_true.mp c0).choose_spec.1)
-    have z1 := hzc 382 (atomEqb_sound (List.any_eq_true.mp c1).choose_spec.2 ▸
+    have z1 := hzc 381 (atomEqb_sound (List.any_eq_true.mp c1).choose_spec.2 ▸
       (List.any_eq_true.mp c1).choose_spec.1)
     have := mem_storesIn sDaZ ha haS
     simp only [List.mem_cons, List.not_mem_nil, or_false] at this
     rcases this with rfl | rfl
-    · show LoadHolds rd (σ (.n 366)) 0 (σ (.n 381))
+    · show LoadHolds rd (σ (.n 366)) 0 (σ (.n 380))
       rw [v387, z0]; exact hown 0 (by simp)
-    · show LoadHolds rd (σ (.n 366)) 1 (σ (.n 382))
+    · show LoadHolds rd (σ (.n 366)) 1 (σ (.n 381))
       rw [v387, z1]; exact hown 1 (by simp)
   have hLeaf : m.nc = 0 → ∀ a ∈ atomsIn mLeaf, a.Holds rd σ := by
     intro h0
-    refine blk (A := []) (fun s hs => by clear * - hs; simp only [mFlat, List.mem_append]; tauto)
-      hcan4
-      (by simp) (fun _ a ha haS => ?_)
+    refine blk (fun s hs => by clear * - hs; simp only [mFlat, List.mem_append]; tauto)
+      (fun _ a ha haS => ?_)
     have := mem_storesIn sLf ha haS
     simp only [List.mem_append, List.mem_map, List.mem_range, List.mem_singleton] at this
     rcases this with ⟨k, hk, rfl⟩ | rfl
-    · show LoadHolds rd (σ (.n 417)) k (σ (.n (421 + k)))
+    · show LoadHolds rd (σ (.n 416)) k (σ (.n (420 + k)))
       rw [hO (by decide), hleafc k hk]
       have := hm.leaf h0 k (by simp; omega)
       rw [List.getElem_append_left (by simp; omega), List.getElem_replicate] at this
       simpa [mOrc] using this
-    · show LoadHolds rd (σ (.n 417)) 23 (σ (.n 420))
+    · show LoadHolds rd (σ (.n 416)) 23 (σ (.n 419))
       rw [hO (by decide), hO (by decide)]
       have := hm.leaf h0 23 (by simp)
       simpa [mOrc] using this
+  have hAgg : ∀ a ∈ atomsIn mAgg, a.Holds rd σ :=
+    blk (fun s hs => by clear * - hs; simp only [mFlat, List.mem_append]; tauto)
+      (fun _ a ha haS => by have := mem_storesIn sAg ha haS; simp at this)
+  have v465 : σ (.n 444) = m.et * word 133823759239872512 0 := by
+    rw [gM 444 28 443 (by norm_num) (by norm_num) (by decide +kernel),
+      gC 443 (word 133823759239872512 0) (by decide +kernel), hO (by decide)]
+    simp [mOrc]
   exact ⟨mB1 (by intro s hs; clear * - hs; simp only [List.mem_append]; tauto),
     mB1 (by intro s hs; clear * - hs; simp only [List.mem_append]; tauto),
     mB1 (by intro s hs; clear * - hs; simp only [List.mem_append]; tauto),
-    hDa, hDaZ, hLeaf, horc, v40, v41, v42, v51, v54,
+    hDa, hDaZ, hLeaf, hAgg, horc, v40, v41, v42, v51, v54,
     gd 40 39 1 _ (by decide +kernel) (by decide +kernel) v1, one 41 (by decide +kernel),
     gd 43 42 4 _ (by decide +kernel) (by decide +kernel) v4, one 44 (by decide +kernel),
     v67,
     gd 356 355 2 _ (by decide +kernel) (by decide +kernel) v2, one 357 (by decide +kernel),
     gd 359 358 5 _ (by decide +kernel) (by decide +kernel) v5, one 360 (by decide +kernel),
     v384, v387, v389, v415, v421, v427, v430, v432,
-    gd 402 401 6 _ (by decide +kernel) (by decide +kernel) v6, one 403 (by decide +kernel),
-    v436, v448, v451, r476, r477, v480, v484, htags⟩
+    gd 401 400 6 _ (by decide +kernel) (by decide +kernel) v6, one 402 (by decide +kernel),
+    v436, v448, v451, v465, r476, r477, v480, v484, htags⟩
 
 end
 end LeanVM.Guest.B1.Main

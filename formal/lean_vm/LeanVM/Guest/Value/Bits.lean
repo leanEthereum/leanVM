@@ -22,10 +22,10 @@ booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruct
 
 * `sum_bitE_coordBasis` and `bits_of_reconstruct`: booleanity and `Σ b_i · COORD_BASIS[s + i] = x`
   make the `b_i` the bits of `x` from bit `s` on, and `x` zero elsewhere (`grind_check`,
-  G:912-938, whose reconstruction starts at bit `nbits`, G:930-937);
+  G:923-948, whose reconstruction starts at bit `nbits`, G:911-918);
 * `prod_bitE_gen_pow`: `Π (1 + b_j·(g^(2^j) + 1))` is `g` to the bits' integer
-  (`g_power_of_word`, G:745-758; `log2_ceil_in_the_exponent`, G:779-794; `column_selector`,
-  G:3181-3208, a nibble at a time),
+  (`g_power_of_word`, G:748-761; `log2_ceil_in_the_exponent`, G:782-797; `column_selector`,
+  G:3131-3158, a nibble at a time),
   and `gen_pow_inj` (the order of `g`, `Parameters.Generator`) makes that integer the exponent
   (`bits_of_exponent`, for `hint_decompose_bits_exponent`); together, `g_power_of_word_spec`,
   and `bits_of_exponent_shift` for bits pinned in the exponent and weighed over the coordinate
@@ -34,7 +34,7 @@ booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruct
   `x = g^e` with `e < k` (`LogLt`), and `gen_pow_div_eq` reads a range-checked quotient
   `log(a / b) < k` as `a = b + c`;
 * `log2Ceil_certified` and `verify_log2_ceil_sound`: `verify_log2_ceil`'s two bounds
-  (G:709-744) pin its hinted log to `max floor (log2Ceil W)` (`Statement/LeanVmVerifier.lean`, `log2Ceil`).
+  (G:690-725) pin its hinted log to `max floor (log2Ceil W)` (`Statement/LeanVmVerifier.lean`, `log2Ceil`).
 -/
 
 namespace LeanVM.Guest.Value
@@ -106,36 +106,32 @@ theorem bitE_of_mul_self {b : E} (h : b * b = b) : b = bitE (decide (b = 1)) := 
 
 theorem bitE_mul_self (c : Bool) : bitE c * bitE c = bitE c := by cases c <;> simp [bitE]
 
-theorem bitE_injective : Function.Injective bitE := by
-  intro a b h
-  cases a <;> cases b <;> simp_all [bitE]
-
 /-- A bit times the coordinate basis vector `i` is the bit pattern `2^i` or zero. -/
 theorem bitE_mul_coordBasis (c : Bool) (i : ℕ) :
-    bitE c * coordBasis i = eOfNat192 (2 ^ i * c.toNat) := by
+    bitE c * coordBasis i = eOfNat128 (2 ^ i * c.toNat) := by
   cases c
-  · simp [bitE, eOfNat192_zero]
+  · simp [bitE, eOfNat128_zero]
   · simp [bitE, coordBasis]
 
 /-- **A bit run reconstructed** over the coordinate basis from position `s`: the bit pattern of
 `2^s` times the bits' integer. -/
 theorem sum_bitE_coordBasis (f : ℕ → Bool) (s n : ℕ) :
-    ∑ i ∈ Finset.range n, bitE (f i) * coordBasis (s + i) = eOfNat192 (2 ^ s * bitsVal f n) := by
+    ∑ i ∈ Finset.range n, bitE (f i) * coordBasis (s + i) = eOfNat128 (2 ^ s * bitsVal f n) := by
   induction n with
-  | zero => simp [bitsVal, eOfNat192_zero]
+  | zero => simp [bitsVal, eOfNat128_zero]
   | succ n ih =>
-    rw [Finset.sum_range_succ, ih, bitE_mul_coordBasis, ← eOfNat192_xor, bitsVal, Nat.mul_add,
+    rw [Finset.sum_range_succ, ih, bitE_mul_coordBasis, ← eOfNat128_xor, bitsVal, Nat.mul_add,
       ← Nat.mul_assoc, ← Nat.pow_add, Nat.xor_comm, two_pow_mul_xor, Nat.add_comm]
     rw [Nat.pow_add]
     exact Nat.mul_lt_mul_of_pos_left (bitsVal_lt f n) (Nat.two_pow_pos s)
 
 /-- **Booleanity and reconstruction give the bits of a word** (`hint_decompose_bits(bits, x, n,
 s)` and the checks after it): if every `b_i` satisfies `b_i · b_i = b_i` and
-`Σ_{i < n} b_i · COORD_BASIS[s + i] = x` with `s + n ≤ 192`, then `x` is `2^s` times an integer
+`Σ_{i < n} b_i · COORD_BASIS[s + i] = x` with `s + n ≤ 128`, then `x` is `2^s` times an integer
 `N < 2^n` and `b_i` is bit `i` of `N`. -/
 theorem bits_of_reconstruct {s n : ℕ} {b : ℕ → E} (hb : ∀ i < n, b i * b i = b i) {x : E}
     (hx : ∑ i ∈ Finset.range n, b i * coordBasis (s + i) = x) :
-    ∃ N < 2 ^ n, x = eOfNat192 (2 ^ s * N) ∧ ∀ i < n, b i = bitE (N.testBit i) := by
+    ∃ N < 2 ^ n, x = eOfNat128 (2 ^ s * N) ∧ ∀ i < n, b i = bitE (N.testBit i) := by
   let f : ℕ → Bool := fun i ↦ decide (b i = 1)
   have hbf : ∀ i < n, b i = bitE (f i) := fun i hi ↦ bitE_of_mul_self (hb i hi)
   have hsum : ∑ i ∈ Finset.range n, b i * coordBasis (s + i) =
@@ -146,20 +142,9 @@ theorem bits_of_reconstruct {s n : ℕ} {b : ℕ → E} (hb : ∀ i < n, b i * b
   · rw [hbf i hi, testBit_bitsVal]
     simp [hi]
 
-/-- The same, read off the word (`s = 0`, `n ≤ 192`): `x`'s integer is below `2^n` and `b_i` is
-its bit `i`. -/
-theorem bits_of_reconstruct_zero {n : ℕ} (hn : n ≤ 192) {b : ℕ → E}
-    (hb : ∀ i < n, b i * b i = b i) {x : E}
-    (hx : ∑ i ∈ Finset.range n, b i * coordBasis i = x) :
-    eToNat x < 2 ^ n ∧ ∀ i < n, b i = bitE ((eToNat x).testBit i) := by
-  obtain ⟨N, hN, rfl, hbits⟩ := bits_of_reconstruct (s := 0) hb (by simpa using hx)
-  have hN' : N < 2 ^ 192 := lt_of_lt_of_le hN (Nat.pow_le_pow_right (by decide) hn)
-  rw [Nat.pow_zero, Nat.one_mul, eToNat_eOfNat192, Nat.mod_eq_of_lt hN']
-  exact ⟨hN, hbits⟩
-
 /-- **Completeness**: the bits of an integer below `2^n` are Boolean and reconstruct it. -/
 theorem reconstruct_bits (s : ℕ) {N n : ℕ} (hN : N < 2 ^ n) :
-    ∑ i ∈ Finset.range n, bitE (N.testBit i) * coordBasis (s + i) = eOfNat192 (2 ^ s * N) := by
+    ∑ i ∈ Finset.range n, bitE (N.testBit i) * coordBasis (s + i) = eOfNat128 (2 ^ s * N) := by
   rw [sum_bitE_coordBasis, bitsVal_testBit hN]
 
 /-! ## Products of g-powers -/
@@ -214,7 +199,7 @@ theorem gen_pow_eq_one_iff {a : ℕ} (ha : a < 2 ^ 64 - 1) : gen ^ a = 1 ↔ a =
   · rintro rfl
     exact pow_zero gen
 
-/-- **`g_power_of_word(value)`** (G:726-753, `n = LOG_WORD_BITS`): Boolean bits with
+/-- **`g_power_of_word(value)`** (G:707-734, `n = LOG_WORD_BITS`): Boolean bits with
 `Σ_{j < n} b_j · E(2^j) = value`, `n ≤ 63`, make `value` a word in `K` below `2^n`, and the
 product `Π (1 + b_j·(1 + g^(2^j)))` its g-power, `gpow (kToNat value.limb0)`. -/
 theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀ j < n, b j * b j = b j)
@@ -227,7 +212,7 @@ theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀
       rw [Nat.zero_add, coordBasis_of_lt (by have := Finset.mem_range.mp hj; omega)]
   obtain ⟨N, hN, hv, hbits⟩ := bits_of_reconstruct hb hsum
   have hN64 : N < 2 ^ 64 := lt_of_lt_of_le hN (Nat.pow_le_pow_right (by decide) (by omega))
-  rw [Nat.pow_zero, Nat.one_mul, eOfNat192_of_lt hN64] at hv
+  rw [Nat.pow_zero, Nat.one_mul, eOfNat128_of_lt hN64] at hv
   subst hv
   have hk : kToNat ((eOfNat N).limb 0) = N := by
     rw [eOfNat_eq_ofLimbs, ofLimbs_limb0, kToNat_ofBits, Nat.mod_eq_of_lt hN64]
@@ -242,7 +227,7 @@ theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀
 /-- `assert log(x) < k` (`zkDSL.md` §Range checks): `x` is `g^e` with `e < k`. -/
 def LogLt (x : E) (k : ℕ) : Prop := ∃ e < k, x = gen ^ e
 
-/-! ## `log2Ceil`, certified by its two bounds (`verify_log2_ceil`, G:709-743) -/
+/-! ## `log2Ceil`, certified by its two bounds (`verify_log2_ceil`, G:690-724) -/
 
 theorem log2Ceil_le_iff {W L : ℕ} : log2Ceil W ≤ L ↔ W ≤ 2 ^ L := by
   unfold log2Ceil bitLength
@@ -259,7 +244,7 @@ theorem lt_log2Ceil_iff {W L : ℕ} : L < log2Ceil W ↔ 2 ^ L < W := by
 
 /-- **`log2Ceil` certified**: `L ≥ floor` with `W ≤ 2^L`, and `2^(L-1) < W` unless `L` is the
 floor, is `max floor (log2Ceil W)` (`log2_ceil(rows).max(floor)`,
-`crates/verifier/src/layout.rs:510`). -/
+`crates/verifier/src/layout.rs:565`). -/
 theorem log2Ceil_certified {W L floor : ℕ} (hfl : floor ≤ L) (hW : W ≤ 2 ^ L)
     (hmin : L ≠ floor → 2 ^ (L - 1) < W) : L = max floor (log2Ceil W) := by
   have hle := log2Ceil_le_iff.mpr hW
@@ -279,10 +264,10 @@ theorem high_eq_zero_iff {W L : ℕ} (hW : W < 2 ^ 64) :
     exact Nat.mod_lt _ (Nat.two_pow_pos L)
   · exact Nat.mod_eq_of_lt
 
-/-- **`verify_log2_ceil` is sound** (G:709-743): with `W = Σ b_j 2^j` below `2^64` and the hinted
-log `L < 64` range-checked above `floor` (G:730-731), the guest's two products
-`high · low = 0` and `high · (W + 2^L) = 0` (G:734-735), and, unless `L` is the floor (or zero),
-`(low' + W)·(W + 2^(L-1)) ≠ 0` (G:736-742), pin `L` to `max floor (log2Ceil W)`. Here
+/-- **`verify_log2_ceil` is sound** (G:690-724): with `W = Σ b_j 2^j` below `2^64` and the hinted
+log `L < 64` range-checked above `floor` (G:711-712), the guest's two products
+`high · low = 0` and `high · (W + 2^L) = 0` (G:715-716), and, unless `L` is the floor (or zero),
+`(low' + W)·(W + 2^(L-1)) ≠ 0` (G:717-723), pin `L` to `max floor (log2Ceil W)`. Here
 `low = E(W mod 2^L)` and `low' = E(W mod 2^(L-1))` are the guest's prefix sums `psum_buf[g^L]`,
 `psum_buf[g^(L-1)]` (`bitsVal_mod`), and `high = low + E(W)`. -/
 theorem verify_log2_ceil_sound {W L floor : ℕ} (hW : W < 2 ^ 64) (hL : L < 64) (hfl : floor ≤ L)
@@ -302,38 +287,6 @@ theorem verify_log2_ceil_sound {W L floor : ℕ} (hW : W < 2 ^ 64) (hL : L < 64)
     have hb : eOfNat W + eOfNat (2 ^ (L - 1)) ≠ 0 := right_ne_zero_of_mul h3
     rw [Ne, high_eq_zero_iff hW] at ha
     rw [Ne, eOfNat_add_eq_zero_iff hW (hpow (L - 1) (by omega))] at hb
-    omega
-
-/-- **`verify_log2_ceil` is complete**: the honest `L = max floor (log2Ceil W)` satisfies the
-products the guest asserts. -/
-theorem verify_log2_ceil_complete {W floor : ℕ} (hW : W < 2 ^ 64)
-    (hL : max floor (log2Ceil W) < 64) :
-    let L := max floor (log2Ceil W)
-    (eOfNat (W % 2 ^ L) + eOfNat W) * eOfNat (W % 2 ^ L) = 0 ∧
-      (eOfNat (W % 2 ^ L) + eOfNat W) * (eOfNat W + eOfNat (2 ^ L)) = 0 ∧
-      (L ≠ floor → L ≠ 0 →
-        (eOfNat (W % 2 ^ (L - 1)) + eOfNat W) * (eOfNat W + eOfNat (2 ^ (L - 1))) ≠ 0) := by
-  intro L
-  have hpow : ∀ j, j < 64 → 2 ^ j < 2 ^ 64 := fun j hj ↦ Nat.pow_lt_pow_right (by decide) hj
-  have hle : W ≤ 2 ^ L := log2Ceil_le_iff.mp (le_max_right _ _)
-  have hboth : (eOfNat (W % 2 ^ L) + eOfNat W) * eOfNat (W % 2 ^ L) = 0 ∧
-      (eOfNat (W % 2 ^ L) + eOfNat W) * (eOfNat W + eOfNat (2 ^ L)) = 0 := by
-    rcases lt_or_eq_of_le hle with h | h
-    · rw [(high_eq_zero_iff hW).mpr h, zero_mul, zero_mul]
-      exact ⟨rfl, rfl⟩
-    · rw [h, Nat.mod_self, eOfNat_zero, mul_zero, (eOfNat_add_eq_zero_iff (hpow L hL)
-        (hpow L hL)).mpr rfl, mul_zero]
-      exact ⟨rfl, rfl⟩
-  refine ⟨hboth.1, hboth.2, fun hne hne0 ↦ ?_⟩
-  have hlog : L = log2Ceil W := by
-    rcases le_total floor (log2Ceil W) with h | h
-    · exact max_eq_right h
-    · exact absurd (max_eq_left h) hne
-  have hgt : 2 ^ (L - 1) < W := lt_log2Ceil_iff.mp (by omega)
-  refine mul_ne_zero ?_ ?_
-  · rw [Ne, high_eq_zero_iff hW]
-    omega
-  · rw [Ne, eOfNat_add_eq_zero_iff hW (hpow (L - 1) (by omega))]
     omega
 
 end

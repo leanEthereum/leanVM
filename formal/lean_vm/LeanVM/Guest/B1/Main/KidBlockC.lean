@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.KidBlockC
 
-  `__loop4`'s block (a child) on its honest valuation: the block evaluated (`Fwd.ev`) on the
+  `main_loop4`'s block (a child) on its honest valuation: the block evaluated (`Fwd.ev`) on the
   loop's words, the hints and the calls' returns the honest ones; its atoms hold and its words.
 -/
 
@@ -39,17 +39,17 @@ open LeanVM.Guest.B1 (LowDef)
 
 @[expose] public section
 
-/-- The oracle of `__loop4`'s block. -/
+/-- The oracle of `main_loop4`'s block. -/
 def l5W (ex es : ℕ) (cx0 cx1 cs0 cs1 p0 p1 : E) (j : ℕ) : E :=
   if j = 18 then gen ^ ex else if j = 19 then gen ^ es else if j = 23 then cx0
   else if j = 24 then cx1 else if j = 26 then cs0 else if j = 27 then cs1
   else if j = 38 then p0 else if j = 39 then p1
   else 0
 
-/-- `__loop4`'s body. -/
+/-- `main_loop4`'s body. -/
 def l5Body : List Stmt := l5Pre ++ [l5Tail, .ret []]
 
-/-- `__loop4`'s honest valuation. -/
+/-- `main_loop4`'s honest valuation. -/
 noncomputable def l5σ (rd : Reader) (args : List E) (w : ℕ → E) : Val :=
   B1.Val.ofArgs (ev rd w args l5Body)
 
@@ -81,11 +81,6 @@ structure L5Vals (rd : Reader) (σ : Val) (args : List E) (c ex es : ℕ)
   v59 : σ (.n 53) = gen ^ (c + 1) + args.getD 1 0
   v61 : σ (.n 55) = gen ^ (c + 1)
 
-theorem gen_pow_mul_inv {K e : ℕ} (h : e ≤ K) : gen ^ K * (gen ^ e)⁻¹ = gen ^ (K - e) := by
-  have hg : gen ^ e ≠ 0 := pow_ne_zero _ gen_ne_zero
-  rw [show K = (K - e) + e by omega, pow_add, mul_assoc, mul_inv_cancel₀ hg, mul_one,
-    Nat.add_sub_cancel]
-
 theorem low_load {κ : ℕ} {rd : Reader} (hlow : LowDef κ rd) {e : ℕ} (he : e < 2 ^ κ) :
     LoadHolds rd (gen ^ e) 0 (rdAt rd (gen ^ e) 0) := by
   have := B1.loadHolds_low hlow he
@@ -114,12 +109,11 @@ theorem l5_core {κ : ℕ} {rd : Reader} (hlow : LowDef κ rd) {c : ℕ}
   unfold l5COk at hok
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, decide_eq_true_eq, List.all_eq_true,
     Bool.or_eq_true, Bool.not_eq_true'] at hok
-  obtain ⟨⟨⟨⟨⟨c', hchk⟩, hst⟩, hcanA⟩, hneeds⟩, hcalls⟩ := hok
+  obtain ⟨⟨⟨⟨c', hchk⟩, hst⟩, hneeds⟩, hcalls⟩ := hok
   set args : List E := [gen ^ c, N, written, lxt, cover, lxs, lst, spc, lss, carried, dadig,
     s0, s1, cpi, gsq, cfresh] with hargs
   set w := l5W ex es cx0 cx1 cs0 cs1 p0 p1 with hw
   set σ := l5σ rd args w with hσ
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd w l5Body args hchk
   rw [show args.length = 16 from rfl, show l5Body = l5Pre ++ [l5Tail, .ret []] from rfl, hst] at hgs
   have hg : ∀ a ∈ atomsIn l5Pre, Good rd l5S w σ a := fun a ha =>
@@ -184,8 +178,8 @@ theorem l5_core {κ : ℕ} {rd : Reader} (hlow : LowDef κ rd) {c : ℕ}
   have v56' := mul' (d := 50) (x := 2) (y := 0) (by omega) (by omega) (by decide +kernel)
   have v58 := mul' (d := 52) (x := 0) (y := 51) (by omega) (by omega) (by decide +kernel)
   have v61' := mul' (d := 55) (x := 0) (y := 54) (by omega) (by omega) (by decide +kernel)
-  have v57 : σ (.n 51) = word 2 0 0 := gconst (k := 37) (by decide)
-  have v60 : σ (.n 54) = word 2 0 0 := gconst (k := 40) (by decide)
+  have v57 : σ (.n 51) = word 2 0 := gconst (k := 37) (by decide)
+  have v60 : σ (.n 54) = word 2 0 := gconst (k := 40) (by decide)
   have v59 : σ (.n 53) = σ (.n 52) + σ (.n 1) := hmem (.add (.n 53) (.n 52) (.n 1)) (by decide +kernel)
   have h24 : σ (.n 32) = gen ^ (24 * c) := by
     rw [v38, v37, v36, v35, v34, e0, mul_comm 24 c, pow_mul]; ring
@@ -199,9 +193,8 @@ theorem l5_core {κ : ℕ} {rd : Reader} (hlow : LowDef κ rd) {c : ℕ}
   have v43 : σ (.n 37) = d1 := by
     rw [good_load hS43 (hmem _ (by decide +kernel)), v41, rdAt_of_load hda1]
   -- the atoms but the stores, then the stores
-  have hA : ∀ i ∈ ([] : List ℕ), IsCanonical128 (σ (.n i)) := by simp
   have hat : ∀ a ∈ atomsIn l5Pre, a.Holds rd σ := by
-    refine atoms_holds_stores (S := l5S) (w := w) hidx hcanA hg hA
+    refine atoms_holds_stores (S := l5S) (w := w) hg
       (fun a ha hnS hns => Or.inl ?_) (fun _ a ha haS => ?_)
     · have := hneeds a ha
       simp only [hns, Bool.true_eq_false, false_or] at this

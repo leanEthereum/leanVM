@@ -3,7 +3,7 @@
 
   The core IR of the helpers `open_stacked`'s dispatches call, generated from their
   specializations' constants as the expansion numbers it: `level_positions`, `level_queries`,
-  `level_residual`, `residual_batch`, and their loops.
+  `level_residual`, and their loops.
 -/
 
 module
@@ -16,16 +16,16 @@ public import LeanVM.Guest.B1.Whir.Template
 Each is the body of a specialization at its compile-time constants, value by value as the
 expansion numbers it (`lean_ethereum.py`):
 
-* `lpBody sq loop`: `level_positions(fs0..fs4, positions, win_ptrs, win_tabs)` at `sq` squeezes,
-  its loop `loop`; `lpLoopBody d cd loop`: the loop's iteration (one squeeze, decoded by
+* `lpBody sq d cd loop`: `level_positions(word0, fs0..fs4, positions, win_ptrs, tabs)` at `sq`
+  squeezes of a level of tree depth `d` and cap depth `cd`: the first word decoded, then the loop
+  `loop`; `lpLoopBody d cd loop`: the loop's iteration (one squeeze, decoded by
   `decode_query_windows__L{d}_L{cd}`), the pointers already shifted to the level's slots;
-* `lqBody q base il leaf d cd`: `level_queries(lam, win_ptrs, row_eq_weights)`: the cap hinted and
-  checked to its root, `lam^q`, the `opening_queries` specialization;
-* `lrBody q loop1 loop2`: `level_residual(positions, row_d, mu)` at `q` queries: the batches' loop
-  `loop1` (`lrLoop1Body`, a `residual_batch` call an iteration), then, when `8 ∤ q`, the rest's loop
-  `loop2` (`lrLoop2Body`, an inline `residual_query` an iteration);
-* `rbBody cols`: `residual_batch(batch, row_d, mu, h)`: eight inline `residual_query`s over `cols`
-  columns.
+* `lqBody q base folds leaf d cd mu nhs hbits fin`: `level_queries(lam, lam_inv, coefs, hs,
+  positions, win_ptrs)`: the cap hinted and checked to its root, the `opening_queries`
+  specialization, `lam^q`;
+* `lrBody q cols nhs hbits loop1 loop2`: `level_residual(positions, row_d, hs, mu)` at `q` queries:
+  the batches' loop `loop1` (`lrLoop1Body`, `resBatch` inline `residual_query`s an iteration), then,
+  when `resBatch ∤ q`, the rest's loop `loop2` (`lrLoop2Body`, one an iteration).
 
 `Whir/HelperData*.lean` check every specialization's body equal to these by kernel evaluation.
 -/
@@ -36,109 +36,103 @@ open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1
 
 @[expose] public section
 
-/-- `level_positions` at `sq` squeezes: the squeeze run `sqz` (`HeapBuf((g^(sq+1))^5)` at `8, 9`),
-the capacity stored in its first row, the loop over the squeezes, the last row's capacity loaded and
-returned. -/
-def lpBody (sq : ℕ) (loop : String) : List Stmt :=
-  osHeap ((sq + 1) * 5) 8 ++
-    ((List.range 5).map fun i ↦ .atom (.load (.n i) (.n 9) i)) ++
-    osLoopCall loop sq [9, 5, 6, 7] 10 ++
-    [.atom (.const (.n 15) (gw (sq * 5))), .atom (.mul (.n 16) (.n 9) (.n 15))] ++
-    ((List.range 5).map fun i ↦ .atom (.load (.n (17 + i)) (.n 16) i)) ++
-    ((List.range 5).map fun i ↦ .atom (.copy (.n (22 + i)) (.n (17 + i)))) ++
-    [.ret ((List.range 5).map fun i ↦ .n (22 + i))]
+/-- The name of `decode_query_windows`' specialization at tree depth `d` and cap depth `cd`. -/
+def dqwName (d cd : ℕ) : String := "decode_query_windows__L" ++ natStr d ++ "_L" ++ natStr cd
+
+/-- `level_positions` at `sq` squeezes, at `word0, fs0 .. fs4, positions, win_ptrs, tabs` (values
+`0 .. 8`): the squeeze run `sqz` (`HeapBuf((g^(sq+1))^5)` at `9, 10`), the capacity stored in its
+row `1`, the first word decoded, the loop over the other squeezes, the last row's capacity loaded
+and returned. -/
+def lpBody (sq d cd : ℕ) (loop : String) : List Stmt :=
+  osHeap ((sq + 1) * 5) 9 ++
+    ((List.range 5).map fun i ↦ osLd (1 + i) 10 (5 + i)) ++
+    [.call (dqwName d cd) [.n 0, .n 6, .n 7, .n 8] []] ++
+    osLoopCall loop 1 sq [10, 6, 7, 8] 11 ++
+    [osCst 16 (gw (sq * 5)), osMul 17 10 16] ++
+    ((List.range 5).map fun i ↦ osLd (18 + i) 17 i) ++
+    ((List.range 5).map fun i ↦ osCp (23 + i) (18 + i)) ++
+    [.ret ((List.range 5).map fun i ↦ .n (23 + i))]
+
+/-- A row of tree depth `d` and cap depth `cd`, its positions at offset `0`: the row
+`level_positions`' loop reads. -/
+def lpLv (d cd : ℕ) : OsLv := { (default : OsLv) with depth := d, capDepth := cd }
 
 /-- `level_positions`' loop, at `x, N, sqz, positions, win_ptrs, tabs` (values `0 .. 5`), for a
-level of tree depth `d` and cap depth `cd`: the row `sqz·x^5`, its capacity loaded, one squeeze,
-the next capacity stored, the decoded positions and windows at `positions·x^(192/d)` and
-`win_ptrs·x^(192/d)`, then the loop's tail. -/
-def lpLoopBody (d cd : ℕ) (name : String) : List Stmt :=
-  let pw := osPowSteps 0 (osPowDigits (192 / d)) 0 40
-  let e := 40 + osPowLen (192 / d)
-  [.atom (.mul (.n 6) (.n 0) (.n 0)), .atom (.mul (.n 7) (.n 6) (.n 6)), .atom (.mul (.n 8) (.n 7) (.n 0)),
-    .atom (.mul (.n 9) (.n 2) (.n 8))] ++
-    ((List.range 5).map fun i ↦ .atom (.load (.n (10 + i)) (.n 9) i)) ++
-    [.atom (.const (.n 15) (word 1 0 0)), .atom (.const (.n 16) (word 0 0 0)),
-      .atom (.const (.n 17) (word 0 0 0)), .atom (.const (.n 18) (word 0 0 0)),
-      .atom (.const (.n 19) (word 0 0 0))] ++
-    osSqueeze0 15 [10, 11, 12, 13, 14] 20 ++
-    ((List.range 5).map fun i ↦ .atom (.load (.n (28 + i)) (.n 9) (5 + i))) ++
-    pw.1 ++ [.atom (.mul (.n e) (.n 3) (.n pw.2)), .atom (.mul (.n (e + 1)) (.n 4) (.n pw.2))] ++
-    [.call ("decode_query_windows__L" ++ natStr d ++ "_L" ++ natStr cd)
-      [.n 39, .n e, .n (e + 1), .n 5] []] ++
-    osLoopTail name 6 (e + 2)
+level of tree depth `d` and cap depth `cd`: the squeeze loop's template (`sqLoopBody`) at offset
+`0`: the row `sqz·x^5`, its capacity loaded, one squeeze, the next capacity stored, the decoded
+positions and windows at `positions·x^(128/d)` and `win_ptrs·x^(128/d)`, then the loop's tail. -/
+def lpLoopBody (d cd : ℕ) (name : String) : List Stmt := sqLoopBody (lpLv d cd) name
 
-/-- The name of `opening_queries`' specialization a level calls. -/
-def oqName (q base il leaf d cd : ℕ) : String :=
-  "opening_queries__L" ++ natStr (q % 2 * base) ++ "_L" ++ natStr base ++ "_L" ++ natStr il ++
-    "_L" ++ natStr leaf ++ "_L" ++ natStr d ++ "_L" ++ natStr cd
+/-- The name of `opening_queries`' specialization a level calls: its odd query, base, folds,
+leaf's cells, tree and cap depths, and at the final level (`fin = 1`) the message log `mu`, the
+vanishing tables' offset `mu(mu+1)/2`, the lane's length and index bits (else zeros). -/
+def oqName (q base folds leaf d cd mu nhs hbits fin : ℕ) : String :=
+  "opening_queries__L" ++ natStr (q % 2 * base) ++ "_L" ++ natStr base ++ "_L" ++ natStr folds ++
+    "_L" ++ natStr leaf ++ "_L" ++ natStr d ++ "_L" ++ natStr cd ++ "_L" ++ natStr mu ++ "_L" ++
+    natStr (mu * (mu + 1) / 2) ++ "_L" ++ natStr nhs ++ "_L" ++ natStr hbits ++ "_L" ++ natStr fin
 
-/-- `level_queries` at `q` queries of a level of base `base` (`1` at level 0), `il` words a row,
-`leaf` cells a leaf, tree depth `d` and cap depth `cd`, at `lam, win_ptrs, row_eq_weights`
-(values `0 .. 2`): the cap (`4·2^cd` cells) and its flags hinted, the cap checked to its root,
-`lam^q`, the queries, the root, the sum and `lam^q` returned. -/
-def lqBody (q base il leaf d cd : ℕ) : List Stmt :=
-  let pw := osPowSteps 0 (osPowDigits q) 0 9
-  let k := 9 + osPowLen q
+/-- `level_queries` at `q` queries of a level of base `base` (`1` at level 0), `folds` folds,
+`leaf` cells a leaf, tree depth `d` and cap depth `cd` (and the final level's `mu`, `nhs`, `hbits`,
+`fin`), at `lam, lam_inv, coefs, hs, positions, win_ptrs` (values `0 .. 5`): the cap (`4·2^cd`
+cells) and its flags hinted, the cap checked to its root, the queries, the root, the sum and
+`lam^q` returned. -/
+def lqBody (q base folds leaf d cd mu nhs hbits fin : ℕ) : List Stmt :=
   let iters := if base = 1 then q / 2 else q
-  osHeap (4 * 2 ^ cd) 3 ++
-    [.atom (.hint (.witness "merkle_caps" (.heap (.n 4) 0 (4 * 2 ^ cd))))] ++
-    osHeap (2 ^ cd) 5 ++
-    [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 6) 0 (2 ^ cd)))),
-      .call ("verify_merkle_cap__L" ++ natStr cd) [.n 4, .n 6] [.n 7, .n 8]] ++
-    pw.1 ++
-    [.atom (.const (.n k) (gw iters)),
-      .call (oqName q base il leaf d cd) [.n 4, .n 6, .n 0, .n pw.2, .n 1, .n 2, .n k] [.n (k + 1)],
-      .atom (.copy (.n (k + 2)) (.n 7)), .atom (.copy (.n (k + 3)) (.n 8)),
-      .atom (.copy (.n (k + 4)) (.n (k + 1))), .atom (.copy (.n (k + 5)) (.n pw.2)),
-      .ret [.n (k + 2), .n (k + 3), .n (k + 4), .n (k + 5)]]
+  let pw := osPowSteps 0 (osPowDigits q) 0 17
+  let k := 17 + osPowLen q
+  osHeap (4 * 2 ^ cd) 6 ++
+    [.atom (.hint (.witness "merkle_caps" (.heap (.n 7) 0 (4 * 2 ^ cd))))] ++
+    osHeap (2 ^ cd) 8 ++
+    [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd)))),
+      .call ("verify_merkle_cap__L" ++ natStr cd) [.n 7, .n 9] [.n 10, .n 11],
+      osCst 12 (gw iters),
+      .call (oqName q base folds leaf d cd mu nhs hbits fin) [.n 7, .n 9, .n 1, .n 2, .n 3, .n 4, .n 5, .n 12]
+        [.n 13],
+      osCp 14 10, osCp 15 11, osCp 16 13] ++
+    pw.1 ++ [osCp k pw.2, .ret [.n 14, .n 15, .n 16, .n k]]
 
-/-- `level_residual` at `q` queries, at `positions, row_d, mu` (values `0 .. 2`): the chain
-(`HeapBuf(g^(q/8 + 1))` at `3, 4`) from `0`, the batches' loop, then, when `8 ∤ q`, the rest's
-chain (`HeapBuf(g^(q%8 + 1))`) from the batches' last value, the rest's positions
-`positions·g^(8·(q/8))`, the rest's loop; the last value returned. -/
+/-- `level_residual` at `q` queries over `cols` message columns, a high part of `nhs` coefficients
+and `hbits` index bits, at `positions, row_d, hs, mu` (values `0 .. 3`): the chains (`HeapBuf(g^(2
+(q/b + 1)))` at `4, 5`, `b = resBatch`) from `0, 0`, the batches' loop, then, when `b ∤ q`, the
+rest's chains (`HeapBuf(g^(2(q%b + 1)))`) from the batches' last values, the rest's positions
+`positions·g^(b·(q/b))`, the rest's loop; the last values returned. -/
 def lrBody (q : ℕ) (loop1 loop2 : String) : List Stmt :=
-  osHeap (q / resBatch + 1) 3 ++
-    [.atom (.const (.n 5) (word 0 0 0)), .atom (.load (.n 5) (.n 4) 0)] ++
-    osLoopCall loop1 (q / resBatch) [4, 0, 1, 2] 6 ++
-    [.atom (.load (.n 11) (.n 4) (q / resBatch))] ++
-    if q % resBatch = 0 then [.atom (.copy (.n 12) (.n 11)), .ret [.n 12]]
+  let nb := q / resBatch
+  let r := q % resBatch
+  osHeap (2 * (nb + 1)) 4 ++
+    [osCst 6 (word 0 0), osLd 6 5 0, osCst 7 (word 0 0), osLd 7 5 1] ++
+    osLoopCall loop1 0 nb [0, 5, 1, 2, 3] 8 ++
+    [osLd 13 5 (2 * nb), osLd 14 5 (2 * nb + 1)] ++
+    if r = 0 then [osCp 15 13, osCp 16 14, .ret [.n 15, .n 16]]
     else
-      osHeap (q % resBatch + 1) 12 ++
-        [.atom (.load (.n 11) (.n 13) 0), .atom (.const (.n 14) (gw (resBatch * (q / resBatch)))),
-          .atom (.mul (.n 15) (.n 0) (.n 14))] ++
-        osLoopCall loop2 (q % resBatch) [13, 15, 1, 2] 16 ++
-        [.atom (.load (.n 21) (.n 13) (q % resBatch)), .atom (.copy (.n 22) (.n 21)), .ret [.n 22]]
+      osHeap (2 * (r + 1)) 15 ++
+        [osLd 13 16 0, osLd 14 16 1, osCst 17 (gw (resBatch * nb)), osMul 18 0 17] ++
+        osLoopCall loop2 0 r [16, 18, 1, 2, 3] 19 ++
+        [osLd 24 16 (2 * r), osLd 25 16 (2 * r + 1), osCp 26 24, osCp 27 25, .ret [.n 26, .n 27]]
 
-/-- The name of `residual_batch`' specialization at `cols` columns. -/
-def rbName (cols : ℕ) : String := "residual_batch__L" ++ natStr cols
+/-- `level_residual`'s batches' loop, at `x, N, positions, chain, row_d, hs, mu` (values
+`0 .. 6`), for `cols` columns and a high part of `nhs` coefficients and `hbits` bits: `x^resBatch`
+(`osBatchPow`), the batch's positions `positions·x^resBatch`, `h, hh = chain[x]`, `resBatch` steps,
+`chain[x·g] = h, hh`, then the loop's tail. -/
+def lrLoop1Body (cols nhs hbits : ℕ) (name : String) : List Stmt :=
+  let y := 7 + batchLen
+  let st := osResSteps y 4 0 5 0 (cols * (cols + 1) / 2) cols nhs hbits 6 (List.range resBatch)
+    (y + 3) (y + 4) (y + 5)
+  (osBatchPow 7).1 ++ [osMul y 2 (osBatchPow 7).2, osMul (y + 1) 3 0, osMul (y + 2) (y + 1) 0,
+    osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ++ st.1 ++
+    [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3] ++
+    osLoopTail name 7 st.2.2.2
 
-/-- `level_residual`'s batches' loop, at `x, N, chain, positions, row_d, mu` (values `0 .. 5`),
-for `cols` columns: the batch's positions `positions·x^8`, `h = chain[x]`, the batch's
-`residual_batch`, `chain[x·g] = h`, then the loop's tail. -/
-def lrLoop1Body (cols : ℕ) (name : String) : List Stmt :=
-  [.atom (.mul (.n 6) (.n 0) (.n 0)), .atom (.mul (.n 7) (.n 6) (.n 6)), .atom (.mul (.n 8) (.n 7) (.n 7)),
-    .atom (.mul (.n 9) (.n 3) (.n 8)), .atom (.mul (.n 10) (.n 2) (.n 0)), .atom (.load (.n 11) (.n 10) 0),
-    .call (rbName cols) [.n 9, .n 4, .n 5, .n 11] [.n 12],
-    .atom (.mul (.n 13) (.n 2) (.n 0)), .atom (.load (.n 12) (.n 13) 1)] ++
-    osLoopTail name 6 14
-
-/-- `level_residual`'s rest's loop, at `x, N, rest, tail, row_d, mu` (values `0 .. 5`), for
-`cols` columns: `h = rest[x]`, the position `tail[x]`, its inline `residual_query` over the
-vanishing values of `cols` columns, `rest[x·g] = (h + eq)·mu`, then the loop's tail. -/
-def lrLoop2Body (cols : ℕ) (name : String) : List Stmt :=
-  let e := osResQuery 9 4 0 (cols * (cols + 1) / 2) cols 10
-  [.atom (.mul (.n 6) (.n 2) (.n 0)), .atom (.load (.n 7) (.n 6) 0), .atom (.mul (.n 8) (.n 3) (.n 0)),
-    .atom (.load (.n 9) (.n 8) 0)] ++ e.1 ++
-    [.atom (.add (.n e.2.2) (.n 7) (.n e.2.1)), .atom (.mul (.n (e.2.2 + 1)) (.n e.2.2) (.n 5)),
-      .atom (.mul (.n (e.2.2 + 2)) (.n 2) (.n 0)), .atom (.load (.n (e.2.2 + 1)) (.n (e.2.2 + 2)) 1)] ++
-    osLoopTail name 6 (e.2.2 + 3)
-
-/-- `residual_batch` at `cols` columns, at `batch, row_d, mu, h` (values `0 .. 3`): eight steps
-`h ← (h + eq_k)·mu`, the position `batch[g^k]`, `h` returned. -/
-def rbBody (cols : ℕ) : List Stmt :=
-  let r := osResSteps 0 1 0 (cols * (cols + 1) / 2) cols 2 (List.range resBatch) 3 4
-  r.1 ++ [.atom (.copy (.n r.2.2) (.n r.2.1)), .ret [.n r.2.2]]
+/-- `level_residual`'s rest's loop, at `x, N, rest, tail, row_d, hs, mu` (values `0 .. 6`): the
+position `tail[x]`, its inline `residual_query`, `h, hh = rest[x]`, `rest[x·g] = (h + eq)·mu,
+(hh + high)·mu`, then the loop's tail. -/
+def lrLoop2Body (cols nhs hbits : ℕ) (name : String) : List Stmt :=
+  let q := osResQuery 10 4 0 5 0 (cols * (cols + 1) / 2) cols nhs hbits 11
+  let e := q.2.2.2
+  [osMul 7 2 0, osMul 8 7 0, osMul 9 3 0, osLd 10 9 0] ++ q.1 ++
+    [osLd e 8 0, osAdd (e + 1) e q.2.1, osMul (e + 2) (e + 1) 6, osLd (e + 2) 8 2,
+      osLd (e + 3) 8 1, osAdd (e + 4) (e + 3) q.2.2.1, osMul (e + 5) (e + 4) 6, osLd (e + 5) 8 3] ++
+    osLoopTail name 7 (e + 6)
 
 end
 end LeanVM.Guest.B1.Whir

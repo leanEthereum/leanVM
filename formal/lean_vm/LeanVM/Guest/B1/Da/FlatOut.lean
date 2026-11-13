@@ -45,10 +45,6 @@ theorem within_perm {L L' : Layout} {b n : ℕ} (hp : L.Perm L') (h : Within L b
 theorem memL_perm {rd : Reader} {L L' : Layout} (hp : L.Perm L') (h : MemL rd L) : MemL rd L' :=
   fun q hq => h q (hp.mem_iff.mpr hq)
 
-theorem regionL_perm {L L' : Layout} (hp : L.Perm L') {i : ℕ} (h : RegionL L i) : RegionL L' i :=
-  let ⟨q, hq, h1, h2⟩ := h
-  ⟨q, hp.mem_iff.mp hq, h1, h2⟩
-
 theorem outRegion_of_outsL : ∀ {ks : List Kid} {outs : List (List E × Layout)} {i : ℕ},
     RegionL (outsL ks outs) i → outRegion ks outs i
   | k :: ks, o :: os, i, ⟨q, hq, h1, h2⟩ => by

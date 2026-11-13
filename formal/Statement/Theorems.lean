@@ -40,10 +40,10 @@ of the same type: every use names them). -/
 structure Theorems
     (leanVmKnowledgeExtractor guestWitnessDecoder : LeanVM.Cost.MachineProgram) : Prop where
   /-- leanVM is knowledge sound for the straight-line extractor the program computes,
-  `extractorComputedBy leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-128 +
+  `extractorComputedBy leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-125 +
   5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). The program extracts nothing if
   its size or its run's price exceeds its bound or budget (`leanVmKnowledgeExtractorBudget μ N`, for
-  `N` permutation queries at a stack of `2^μ`: about `2^max(81, 2μ + 22)` up to `2^50` queries,
+  `N` permutation queries at a stack of `2^μ`: about `2^max(80, 2μ + 25)` up to `2^50` queries,
   `O(N·log³N)`), and extracting nothing from an accepted proof is a break; so, but with that
   probability, the program extracts a valid execution within its budget. That a price unit is a constant number of instructions of a 64-bit
   CPU is trusted (`CostMachine.lean`). -/
@@ -51,7 +51,7 @@ structure Theorems
       (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
   /-- leanVM is complete: the honest prover's (`LeanVM.leanVmHonestProver`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at
-  most `2^30`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is
+  most `2^30`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^35` nonces per proof of work, is
   rejected with probability at most `2^-256` (`LeanVm.lean`). -/
   leanVmCompleteness : LeanVM.Completeness
 
@@ -78,13 +78,14 @@ structure Theorems
   (`LeanVmGuestCompleteness.lean`). -/
   guestCompleteOnHonestChildren : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren
   /-- The same honest prover's proof of an execution of the guest program is rarely refused: it
-  makes none, or the verifier refusing a zero challenge rejects it, with probability at most
-  `2^-126` in the random-permutation model (`LeanVmGuestCompleteness.lean`). Read for the deployed
+  makes none, or the verifier refusing every zero challenge rejects it, with
+  probability at most `2^-100` in the random-permutation model (`LeanVmGuestCompleteness.lean`). Read for the deployed
   Keccak, it is what makes a child carrying the honest proof a `HonestChild`. -/
   honestProofRarelyRefused : LeanVM.Guest.Completeness.HonestProofRarelyRefused
-  /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · M · 2^-191 +
-  5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`; it does not
-  compose with the in-circuit statements (`LeanVmGuestCompleteness.lean`). -/
+  /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · max(2M - 3, 8) ·
+  2^-130 + 5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`, so
+  `31 · 2^-130 ≈ 2^-125.05` per query at `M = 17`; it does not compose with the in-circuit
+  statements (`LeanVmGuestCompleteness.lean`). -/
   batchingSound : LeanVM.Guest.Batch.BatchingSound
   
   /-- leanXMSS is strongly unforgeable, for one key: at most `(q + 2^10) · 2^-127` for an

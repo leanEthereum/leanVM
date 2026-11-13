@@ -26,7 +26,7 @@ namespace LeanVM.Guest.B2C
 
 /-- A cell's word, fixed for the function: a `SET` immediate's limbs, or `fp · g^e`. -/
 inductive PC where
-  | k (k0 k1 k2 : ℕ)
+  | k (k0 k1 : ℕ)
   | fpg (e : ℕ)
   deriving DecidableEq, Repr
 
@@ -47,7 +47,8 @@ the frame runs' values with their cells `(value, cell)`, the most instructions o
 (in `Opcode`'s order) a path through the function's code runs (`pmax`), the cells holding
 several values (`sh`), and the chained `match`es `(p, x, ts, y, b)`: top-level statement `p` of the
 body is a `match` on `V.n x` whose arm `k` ends in the table jump through cell `ts[k]`, from the
-table at base `b`, into the arms of the next `match`, on `V.n y` (`chains`). -/
+table at base `b`, into the arms of the next `match`, on `V.n y` (`chains`); and the bit set of the
+values the body's top-level atoms name (`nv`, `B2C.nvOf` of the body, checked once in `cplWin`). -/
 structure Plumb where
   stat : List (ℕ × PC) := []
   sites : List Site := []
@@ -57,6 +58,7 @@ structure Plumb where
   pmax : List ℕ := []
   sh : List ℕ := []
   chains : List (ℕ × ℕ × List ℕ × ℕ × ℕ) := []
+  nv : ℕ := 0
   deriving Repr
 
 /-- What the sharing check's window `k + 1` starts from: its first statement, the soundness window
@@ -67,7 +69,7 @@ structure Snap where
   win : ℕ
   occ : ℕ
   named : List ℕ
-  cst : List (ℕ × ℕ × ℕ × ℕ)
+  cst : List (ℕ × ℕ × ℕ)
   keys : List (ℕ × ℕ × List ℕ)
   deriving Repr
 

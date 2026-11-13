@@ -5,7 +5,7 @@ Ethereum's consensus layer currently uses BLS signatures, its execution layer EC
 \begin{itemize}[itemsep=1pt,topsep=3pt]
 \item BLS $\to$ XMSS~\cite{rfc8391} (using each Ethereum epoch as the nonce, statefulness is no longer an issue when attesting: double signing is already a slashable offense). But XMSS has no native aggregation, unlike BLS, so we need a STARK to handle it.
 \item ECDSA $\to$ SPHINCS+~\cite{sphincs}. Drawback: dozens of times bigger. Again, STARK-based aggregation is a natural solution to mitigate signature size increase.
-\item KZG $\to$ Reed--Solomon encode each blob, and provide the Merkle root of the codeword. A STARK guarantees that the root commits to a correct encoding.
+\item KZG $\to$ Reed-Solomon encode each blob, and provide the Merkle root of the codeword. A STARK guarantees that the root commits to a correct encoding.
 \end{itemize}
 
 \vspace{4mm}

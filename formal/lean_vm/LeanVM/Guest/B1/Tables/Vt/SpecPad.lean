@@ -79,7 +79,7 @@ theorem vt_pad_coords (W : List E) (row : List K) :
       (((s.map FormC.toForm).zipIdx n).map fun cs ↦
           W.getD cs.2 0 * cs.1.evaluate ((row.map ofK).getD · 0)).sum =
         ((((pads.zipIdx n).filter fun x ↦ x.1 ≠ 0).map fun x ↦ (x.2, x.1)).map
-          fun ic ↦ W.getD ic.1 0 * word ic.2 0 0).sum
+          fun ic ↦ W.getD ic.1 0 * word ic.2 0).sum
   | [], [], _, _, _ => rfl
   | f :: s, v :: pads, hl, hq, n => by
     have hv := hq (f, v) (by simp)
@@ -114,7 +114,7 @@ theorem vt_pad_table (h n o : ℕ) (β pw : E) (W : List E) (row : List K) (S : 
           (⟨h, n, s.map FormC.toForm, o⟩ : BusBlock))).map fun x ↦
           x.1 * pw * (blockVal β W x.2 ((row.map ofK).getD · 0) + 1)).sum =
         pw * (dataT.map fun x ↦ S x.2.2.1 * ((β + 1) +
-          (x.2.2.2.map fun ic ↦ W.getD ic.1 0 * word ic.2 0 0).sum)).sum
+          (x.2.2.2.map fun ic ↦ W.getD ic.1 0 * word ic.2 0).sum)).sum
   | [], _, _, _, _ => by simp
   | _ :: _, [], pads, ht, hd => by
     have := vtPadTieCheck_length ht
@@ -235,7 +235,7 @@ theorem vt_count_pad_table (h n o : ℕ) (pw : E) (row : List K) (S W : ℕ → 
           (⟨h, n, [Form.col l], o⟩ : BusBlock))).map fun x ↦
           x.1 * pw * (blockVal 0 [1] x.2 ((row.map ofK).getD · 0) + 1)).sum =
         pw * (dataT.map fun x ↦ S x.2.2.1 * (1 +
-          (x.2.2.2.map fun ic ↦ W ic.1 * word ic.2 0 0).sum)).sum
+          (x.2.2.2.map fun ic ↦ W ic.1 * word ic.2 0).sum)).sum
   | [], _, _, _ => by simp
   | _ :: _, [], hd, _ => by simp at hd
   | x :: dataT, l :: cols, hd, hz => by

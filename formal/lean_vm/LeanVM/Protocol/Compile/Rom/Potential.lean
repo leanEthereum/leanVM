@@ -28,8 +28,10 @@ starts, *conditioned on the challenges already drawn*:
   words), to the first squeeze the log does not answer, where it is `esc C.D` of the history and
   node there; at a prover move or verdict it is `esc` there (`0` or `1`).
 * `gv1 ℓ u h p` is the same with the first squeeze answered by `u`.
-* A record `st h p pw` of the state `u` has term `[D h] · [pow] · gv ℓ u h p`, where `[pow]` is
-  `1` after the seed and whether the proof of work passed on `u`'s challenge after a nonce.
+* A record `st h p pw` of the state `u` has term `[D h] · [pow] · gv ℓ u h p` after the seed, where
+  `[pow] = 1`, and `[D h] · [pow] · gv1 ℓ u h p` after a nonce, where `[pow]` is whether the proof
+  of work passed on `u`'s third lane: the proof of work's permutation also draws the group's first
+  challenge, `u`'s first two lanes.
 * A record `sq h p` of the squeeze `u` has term `[D h] · gv1 ℓ u h p`.
 
 A hash entry changes no term (`term_append_inl`). Every term is a supermartingale at a fresh
@@ -321,6 +323,71 @@ theorem gv1_new {ℓ : Log} {t : KeccakState} :
   | h, .grind b k => by simp only [gv1]; exact avg_ind_mul_const_le _ _
   | h, .commit ht' w k => by simp only [gv1]; exact avg_ind_mul_const_le _ _
 
+/-- The escape probability of a group whose first challenge is `c`: follow the openings to the
+first squeeze, take the challenge `c`, then `esc`. -/
+noncomputable def escAt (c : E) : List Ev → VerifierProgram Bool → ℝ≥0∞
+  | h, .sample k => esc D (h ++ [Ev.sample c]) (k c)
+  | h, .query i ps k => match answer h i ps with
+    | some rows => escAt c (h ++ [Ev.query rows]) (k rows)
+    | none => 0
+  | h, .ret a => esc D h (.ret a)
+  | h, .fail => esc D h .fail
+  | h, .read k => esc D h (.read k)
+  | h, .grind b k => esc D h (.grind b k)
+  | h, .commit ht w k => esc D h (.commit ht w k)
+
+/-- From a fresh state, `gv1` is the escape probability after the state's challenge. -/
+theorem gv1_fresh {ℓ : Log} {u : KeccakState} (hu : Fresh ℓ u) :
+    ∀ (h : List Ev) (p : VerifierProgram Bool), gv1 D ℓ u h p = escAt D (challengeOf u) h p
+  | h, .sample k => gv_fresh D hu _ _
+  | h, .query i ps k => by
+    simp only [gv1, escAt]
+    split
+    · exact gv1_fresh hu _ _
+    · rfl
+  | _, .ret _ => rfl
+  | _, .fail => rfl
+  | _, .read _ => rfl
+  | _, .grind _ _ => rfl
+  | _, .commit _ _ _ => rfl
+
+/-- Averaging the first challenge gives the escape probability. -/
+theorem avg_escAt : ∀ (h : List Ev) (p : VerifierProgram Bool),
+    (∑ c : E, escAt D c h p) / Fintype.card E = esc D h p
+  | h, .sample k => by
+    simp only [escAt, esc_sample]
+    rw [div_eq_mul_inv, mul_comm]
+  | h, .query i ps k => by
+    simp only [escAt, esc_query]
+    split
+    · exact avg_escAt _ _
+    · simp
+  | h, .ret a => by
+    simp only [escAt, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+    rw [mul_comm]
+    exact ENNReal.mul_div_cancel_right (by exact_mod_cast Fintype.card_ne_zero)
+      (ENNReal.natCast_ne_top _)
+  | h, .fail => by
+    simp only [escAt, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+    rw [mul_comm]
+    exact ENNReal.mul_div_cancel_right (by exact_mod_cast Fintype.card_ne_zero)
+      (ENNReal.natCast_ne_top _)
+  | h, .read k => by
+    simp only [escAt, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+    rw [mul_comm]
+    exact ENNReal.mul_div_cancel_right (by exact_mod_cast Fintype.card_ne_zero)
+      (ENNReal.natCast_ne_top _)
+  | h, .grind b k => by
+    simp only [escAt, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+    rw [mul_comm]
+    exact ENNReal.mul_div_cancel_right (by exact_mod_cast Fintype.card_ne_zero)
+      (ENNReal.natCast_ne_top _)
+  | h, .commit ht w k => by
+    simp only [escAt, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+    rw [mul_comm]
+    exact ENNReal.mul_div_cancel_right (by exact_mod_cast Fintype.card_ne_zero)
+      (ENNReal.natCast_ne_top _)
+
 end Gv
 
 /-! ## Terms and the potential -/
@@ -330,15 +397,22 @@ section Terms
 variable (D : List Ev → Prop)
 
 /-- The proof-of-work factor of a state record: `1` after the seed, whether the proof of work
-of `b` bits passed on the state's challenge after the nonce `n`. -/
+of `b` bits passed on the permutation's third lane after a nonce. -/
 noncomputable def powF : Option (ℕ × E) → KeccakState → ℝ≥0∞
   | none, _ => 1
-  | some (b, _), u => ind (powOk b (challengeOf u) = true)
+  | some (b, _), u => ind (powOk b (Keccak.lane u 2) = true)
+
+/-- The group value of a state record: after the seed the group's first squeeze is a later
+permutation (`gv`); after a proof of work it is the state's own challenge (`gv1`). -/
+noncomputable def stGv (ℓ : Log) : Option (ℕ × E) → KeccakState → List Ev →
+    VerifierProgram Bool → ℝ≥0∞
+  | none, u, h, p => gv D ℓ u h p
+  | some _, u, h, p => gv1 D ℓ u h p
 
 /-- The term of a record. -/
 noncomputable def term (ℓ : Log) : Shape × KeccakState → ℝ≥0∞
   | (.none, _) => 0
-  | (.st h p pw, u) => ind (D h) * (powF pw u * gv D ℓ u h p)
+  | (.st h p pw, u) => ind (D h) * (powF pw u * stGv D ℓ pw u h p)
   | (.sq h p, u) => ind (D h) * gv1 D ℓ u h p
 
 theorem term_append_inl (ℓ : Log) (e : Bytes × Digest) (κ : Shape × KeccakState) :
@@ -346,7 +420,7 @@ theorem term_append_inl (ℓ : Log) (e : Bytes × Digest) (κ : Shape × KeccakS
   obtain ⟨s, u⟩ := κ
   cases s with
   | none => rfl
-  | st h p pw => simp only [term, gv_append_inl]
+  | st h p pw => cases pw <;> simp only [term, stGv, gv_append_inl, gv1_append_inl]
   | sq h p => simp only [term, gv1_append_inl]
 
 variable {X : Type} (σ : Seeds X) (P : VerifierProgram Bool)
@@ -398,7 +472,9 @@ theorem term_step_old (D : List Ev → Prop) {ℓ : Log} {t : KeccakState} (ht :
     simp only [term]
     rw [hpull, hpull]
     gcongr
-    exact gv_step D ht d h p
+    cases pw
+    · exact gv_step D ht d h p
+    · exact gv1_step D ht d h p
   | sq h p =>
     simp only [term]
     rw [hpull]

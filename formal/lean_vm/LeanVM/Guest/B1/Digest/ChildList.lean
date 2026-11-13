@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildList
 
-  B1 for `child_claim_list_any` (G:4169-4231, 4305-4320; TRIAGE #89): a child's claim list
+  B1 for `child_claim_list_any` (G:4119-4181, 4255-4270; TRIAGE #89): a child's claim list
   rebuilt from this node's table through hinted slots, each marked in the coverage table, and its
   digest.
 -/
@@ -14,17 +14,19 @@ public import LeanVM.Guest.B1.Digest.ChildListAny1
 public import LeanVM.Guest.B1.Digest.ChildListAny2
 public import LeanVM.Guest.B1.Digest.ChildListAny3
 public import LeanVM.Guest.B1.Digest.ChildListLasts
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `child_claim_list_any`
 
 As `claim_list_digest`, but claim `j` of a frame is read at a hinted slot `o` of the table
-(`child_claims`, G:4169-4183): `o` passes a range check against `last = limit · g⁻¹`, the region's
+(`child_claims`, G:4354-4368): `o` passes a range check against `last = limit · g⁻¹`, the region's
 coverage slot `region · g^o` holds the mark `marks · g^j` (the marks stepped by `g`), and the four
 cells are read at `entries · g^(4o)`. `claimOk` checks one such record in a list of atoms, by
 evaluation, and `claimOk_sound` gives it on a memory image. The records sit at fixed value offsets
-in the 17 specializations `child_claim_list_last__L{k}` and in the frame loops `__loop17` (136
-claims) and `__loop18` (17) (`ccOV`, `ccMark`, `ccCell`).
+in the 17 specializations `child_claim_list_last__L{k}` and in the frame loops
+`child_claim_list_any_loop0` (136 claims) and `child_claim_list_any_loop1` (17) (`ccOV`, `ccMark`,
+`ccCell`).
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -248,8 +250,9 @@ theorem getD_map_range {α : Type} (f : ℕ → α) {n c : ℕ} (h : c < n) (d :
 
 
 set_option maxRecDepth 100000 in
-theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (338 + k) := by
-  decide +kernel
+theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some
+    (idx% «child_claim_list_last__L0» + k) :=
+  coreProgram_indexOf?_run (by decide +kernel)
 
 /-- **`child_claim_list_last__L{k}`**: from a state at its first argument after whole blocks
 `pre`, `k` claims read at hinted slots and marked, and the digest of `pre ++` their cells. -/
@@ -259,11 +262,11 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
       ∀ (n : ℕ) (pre : List UInt8), pre.length = rate * n →
       StateAt rd sp 0 (absorbChunks n zeroState pre) →
       ∃ (os : List ℕ) (cells : List E), ClaimsAt rd region (last * gen) entries marks k os cells ∧
-        AllCanonical cells ∧ rets = digestCells (keccak256 (pre ++ cellsBytes cells)) := by
-  have hf := find_of_idx (ccl_idx k hk) (by rw [coreProgram_length]; omega)
+        rets = digestCells (keccak256 (pre ++ cellsBytes cells)) := by
+  have hf := find_of_idx (ccl_idx k hk)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := ccl_all k hk
-  set f := coreProgram.getD (338 + k) default
+  set f := coreProgram.getD (idx% «child_claim_list_last__L0» + k) default
   simp only [cclOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
@@ -275,7 +278,7 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
     obtain ⟨⟨⟨hc, hr⟩, hrec⟩, hst⟩ := hok
     rw [splitBody_eq hsb, holdsList_atoms_ret] at hb
     obtain ⟨hat, hret⟩ := hb
-    obtain ⟨hd, hcan⟩ := chain_final hc rfl hat hpre (initCell_of_loads rfl hst hat hS)
+    have hd := chain_final hc rfl hat hpre (initCell_of_loads rfl hst hat hS)
     obtain ⟨os, hos, hcl⟩ := records_sound hm hrec hat
     have hlen : ((cclSpec k atoms).vals σ).length = 4 * k := by
       simp [ChainSpec.vals, cclSpec, length_ccMsg]
@@ -283,26 +286,29 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
         (cclSpec k atoms).vals σ := by
       rw [List.take_of_length_le]
       rw [hlen]; simp only [cclSpec]; omega
-    rw [htake] at hd hcan
+    rw [htake] at hd
     simp only [retOk, Bool.and_eq_true] at hr
-    refine ⟨os, (cclSpec k atoms).vals σ, ⟨hos, hlen, hcl⟩, hcan, ?_⟩
+    refine ⟨os, (cclSpec k atoms).vals σ, ⟨hos, hlen, hcl⟩, ?_⟩
     rw [← hret, List.map_cons, List.map_cons, List.map_nil, copy_sound hr.1 hat,
       copy_sound hr.2 hat, digestCells, ← hd]
   · exact absurd hok (by simp)
 
 /-! ## The frame loops of child claims: `m` claims a frame -/
 
--- `__loop17`: 136 claims a frame, 64 blocks.
+-- `child_claim_list_any_loop0`: 136 claims a frame, 64 blocks.
 set_option maxRecDepth 100000 in
-theorem any136_nb : (anySpec 136 22 1924 (loopAtoms (coreProgram.getD 336 default))).nb = 64 := by
+theorem any136_nb : (anySpec 136 22 1924 (loopAtoms (coreProgram.getD
+    idx% «child_claim_list_any_loop0» default))).nb = 64 := by
   decide +kernel
 
 -- its head here, its sixteen windows in `ChildListAny{q}`.
 set_option maxRecDepth 100000 in
-theorem any136_head : anyHead (coreProgram.getD 336 default) "__loop17" 136 22 21 1924 = true := by
+theorem any136_head : anyHead (coreProgram.getD idx% «child_claim_list_any_loop0» default)
+    name% «child_claim_list_any_loop0» 136 22 21 1924 = true := by
   decide +kernel
 
-theorem any136_ok : anyOk (coreProgram.getD 336 default) "__loop17" 136 22 15 21 1924 = true := by
+theorem any136_ok : anyOk (coreProgram.getD idx% «child_claim_list_any_loop0» default)
+    name% «child_claim_list_any_loop0» 136 22 15 21 1924 = true := by
   have hw : ∀ i < 16, anyWin i = true := by
     intro i hi
     interval_cases i
@@ -310,22 +316,28 @@ theorem any136_ok : anyOk (coreProgram.getD 336 default) "__loop17" 136 22 15 21
       anyWin_8, anyWin_9, anyWin_10, anyWin_11, anyWin_12, anyWin_13, anyWin_14, anyWin_15]
   simp only [anyWin, any136Spec, any136Atoms, Bool.and_eq_true] at hw
   exact anyOk_of_parts (w := 4) (W := 16) (v := 9) (U := 16) any136_head (by rw [any136_nb])
-    (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
+    (fun i hi => ChainSpec.blocksOk_of_from (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
-theorem any136_idx : coreProgram.indexOf? "__loop17" = some 336 := by decide +kernel
+theorem any136_idx : coreProgram.indexOf? name% «child_claim_list_any_loop0» = some
+    idx% «child_claim_list_any_loop0» :=
+  coreProgram_indexOf?_at (j := idx% «child_claim_list_any_loop0») rfl
 
 
--- `__loop18`: 17 claims a frame, 8 blocks.
+-- `child_claim_list_any_loop1`: 17 claims a frame, 8 blocks.
 set_option maxRecDepth 100000 in
-theorem any17_ok : anyOk (coreProgram.getD 337 default) "__loop18" 17 19 12 18 255 = true := by
+theorem any17_ok : anyOk (coreProgram.getD idx% «child_claim_list_any_loop1» default)
+    name% «child_claim_list_any_loop1» 17 19 12 18 255 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any17_idx : coreProgram.indexOf? "__loop18" = some 337 := by decide +kernel
+theorem any17_idx : coreProgram.indexOf? name% «child_claim_list_any_loop1» = some
+    idx% «child_claim_list_any_loop1» :=
+  coreProgram_indexOf?_at (j := idx% «child_claim_list_any_loop1») rfl
 
 set_option maxRecDepth 100000 in
-theorem any17_nb : (anySpec 17 19 255 (loopAtoms (coreProgram.getD 337 default))).nb = 8 := by
+theorem any17_nb : (anySpec 17 19 255 (loopAtoms (coreProgram.getD
+    idx% «child_claim_list_any_loop1» default))).nb = 8 := by
   decide +kernel
 
 /-- **One frame of `m` child claims, `nb` blocks**: from the state at `chain · x^13` after whole
@@ -335,18 +347,18 @@ def ChildGroupStep (rd : Reader) (m nb : ℕ) (chain entries region base limit x
   ∀ (n : ℕ) (pre : List UInt8), pre.length = rate * n →
     StateAt rd (chain * x ^ 13) 0 (absorbChunks n zeroState pre) →
     ∃ (os : List ℕ) (cells : List E),
-      ClaimsAt rd region limit entries (base * x ^ m) m os cells ∧ AllCanonical cells ∧
+      ClaimsAt rd region limit entries (base * x ^ m) m os cells ∧
       StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))
 
 theorem any_step {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p0 mk st0 nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1535)
+    (hidx : coreProgram.indexOf? f = some j)
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hnb : (anySpec m o0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {x : E} {ps : List E} (h : coreProgram.Rel rd f (x :: ps) []) :
     (∀ N chain entries region base last, ps = [N, chain, entries, region, base, last] →
       ChildGroupStep rd m nb chain entries region base (last * gen) x) ∧
       (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd f (x * gen :: ps) []) := by
-  have hf := find_of_idx hidx (by rw [coreProgram_length]; omega)
+  have hf := find_of_idx hidx
   simp only [anyOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨hshape, hlen7⟩, hc⟩, hst⟩, hrec⟩, hout⟩, hm12⟩, hmk⟩ := hok
   obtain ⟨σ, hx, hps, hat, hnext⟩ := loop_step hf hshape h
@@ -362,12 +374,12 @@ theorem any_step {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p0 mk st0 nb
   have h12 : σ (V.n 12) = chain * x ^ 13 := by rw [monoIs_sound hm12 hat, hchain, hx]
   have hmkv : σ (V.n mk) = base * x ^ m := by rw [monoIs_sound hmk hat, hbase, hx]
   rw [← h12] at hS
-  obtain ⟨hw, -, hcan⟩ := chain_whole hc rfl hat hpre (initCell_of_loads rfl hst hat hS)
+  obtain ⟨hw, -⟩ := chain_whole hc rfl hat hpre (initCell_of_loads rfl hst hat hS)
   obtain ⟨os, hos, hcl⟩ := records_sound hm hrec hat
   have hlen : ((anySpec m o0 st0 (loopAtoms (coreProgram.getD j default))).vals σ).length =
       4 * m := by
     simp [ChainSpec.vals, anySpec, length_ccMsg]
-  refine ⟨os, _, ⟨hos, hlen, ?_⟩, hcan, fun c => ?_⟩
+  refine ⟨os, _, ⟨hos, hlen, ?_⟩, fun c => ?_⟩
   · intro i hi
     have := hcl i hi
     simp only [anyP] at this
@@ -397,33 +409,29 @@ theorem childGroups_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb)
     (hpre0 : pre.length = rate * n0) (h0 : StateAt rd chain 0 (absorbChunks n0 zeroState pre))
     (hstep : ∀ q < a, ChildGroupStep rd m nb chain entries region base limit (gen ^ q)) :
     ∀ q ≤ a, ∃ (os : List ℕ) (cells : List E),
-      ClaimsAt rd region limit entries base (m * q) os cells ∧ AllCanonical cells ∧
+      ClaimsAt rd region limit entries base (m * q) os cells ∧
       StateAt rd (chain * gen ^ (13 * q)) 0
         (absorbChunks (n0 + nb * q) zeroState (pre ++ cellsBytes cells)) := by
   intro q
   induction q with
   | zero =>
     intro _
-    refine ⟨[], [], ⟨rfl, rfl, fun j hj => absurd hj (by omega)⟩, fun _ h => absurd h (by simp), ?_⟩
+    refine ⟨[], [], ⟨rfl, rfl, fun j hj => absurd hj (by omega)⟩, ?_⟩
     simpa using h0
   | succ q ih =>
     intro hq
-    obtain ⟨os, cells, hcl, hcan, hS⟩ := ih (by omega)
+    obtain ⟨os, cells, hcl, hS⟩ := ih (by omega)
     have hpre : (pre ++ cellsBytes cells).length = rate * (n0 + nb * q) := by
       rw [List.length_append, length_cellsBytes, hcl.2.1, hpre0]
       show 136 * n0 + 16 * (4 * (m * q)) = 136 * (n0 + nb * q)
       have : 16 * (4 * (m * q)) = (64 * m) * q := by ring
       rw [this, hmn]; ring
     rw [show chain * gen ^ (13 * q) = chain * (gen ^ q) ^ 13 by rw [gen_pow_pow]] at hS
-    obtain ⟨os2, c2, hcl2, hcan2, hS2⟩ := hstep q (by omega) _ _ hpre hS
+    obtain ⟨os2, c2, hcl2, hS2⟩ := hstep q (by omega) _ _ hpre hS
     rw [gen_pow_pow] at hcl2
-    refine ⟨os ++ os2, cells ++ c2, ?_, ?_, ?_⟩
+    refine ⟨os ++ os2, cells ++ c2, ?_, ?_⟩
     · rw [show m * (q + 1) = m * q + m by ring]
       exact claimsAt_append hcl (by rwa [show m * q = m * q from rfl])
-    · intro c hc
-      rcases List.mem_append.mp hc with hc | hc
-      · exact hcan c hc
-      · exact hcan2 c hc
     · intro c
       have := hS2 c
       rw [gen_pow_pow, loadHolds_mul_gen_pow] at this
@@ -435,7 +443,7 @@ theorem childGroups_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb)
 /-- **A loop of frames of `m` child claims**, called as
 `callIf (1 + N) f [1, N, chain, entries, region, base, last]` with `N = g^a`, `a < 2^34`. -/
 theorem childFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p0 mk st0 nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1535)
+    (hidx : coreProgram.indexOf? f = some j)
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hnb : (anySpec m o0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {N chain entries region base last : E} {a : ℕ} (ha : a < 2 ^ 34) (hN : N = gen ^ a)
@@ -444,17 +452,18 @@ theorem childFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p
   loop_sound (f := f) (ps := [N, chain, entries, region, base, last]) (N := N)
     (B := ChildGroupStep rd m nb chain entries region base (last * gen)) (by unfold ordG; omega) hN
     (fun x hx => by
-      obtain ⟨h1, h2⟩ := any_step hm hidx hj hok hnb hx
+      obtain ⟨h1, h2⟩ := any_step hm hidx hok hnb hx
       exact ⟨h1 _ _ _ _ _ _ rfl, h2⟩)
     hloop
 
 /-! ## `child_claim_list_any` -/
 
 /-- `child_claim_list_any`'s body before its `ret`. -/
-noncomputable def anyFlat : List Stmt := (Fn.body Data.core25).dropLast
+noncomputable def anyFlat : List Stmt := (Fn.body fn% «child_claim_list_any»).dropLast
 
 set_option maxRecDepth 100000 in
-theorem core25_shape : Fn.body Data.core25 = anyFlat ++ [.ret [.n 66, .n 67]] :=
+theorem child_claim_list_any_shape : Fn.body fn% «child_claim_list_any» = anyFlat ++ [.ret [.n 66,
+    .n 67]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The body: `limit = last · g`, the zero state at `chain = .n 17`, the big frames' loop,
@@ -462,8 +471,10 @@ theorem core25_shape : Fn.body Data.core25 = anyFlat ++ [.ret [.n 66, .n 67]] :=
 the marks `mid_base · groups^17`, the dispatch on the rest. -/
 noncomputable def anyBodyOk : Bool :=
   anyFlat.all Stmt.flat &&
-  anyFlat.any (stmtEqb · (.callIf (.n 32) "__loop17" [.n 33, .n 4, .n 17, .n 0, .n 1, .n 2, .n 8])) &&
-  anyFlat.any (stmtEqb · (.callIf (.n 50) "__loop18" [.n 51, .n 5, .n 39, .n 0, .n 1, .n 48, .n 8])) &&
+  anyFlat.any (stmtEqb · (.callIf (.n 32) name% «child_claim_list_any_loop0» [.n 33, .n 4, .n 17,
+      .n 0, .n 1, .n 2, .n 8])) &&
+  anyFlat.any (stmtEqb · (.callIf (.n 50) name% «child_claim_list_any_loop1» [.n 51, .n 5, .n 39,
+      .n 0, .n 1, .n 48, .n 8])) &&
   anyFlat.any (stmtEqb · (.dispatch (.n 6) cclNames [.n 57, .n 0, .n 1, .n 63, .n 8] [.n 64, .n 65])) &&
   genMulOk (atomsIn anyFlat) (.n 3) (.n 8) &&
   (atomsIn anyFlat).any (isConstAt (.n 33) 1 0) &&
@@ -485,10 +496,10 @@ set_option maxRecDepth 100000 in
 theorem anyBody_ok : anyBodyOk = true := by decide +kernel
 
 theorem find_child_claim_list_any :
-    coreProgram.find? "child_claim_list_any" = some Data.core25 :=
-  Program.find?_of_indexOf? (j := 25) (by decide +kernel) rfl
+    coreProgram.find? "child_claim_list_any" = some fn% «child_claim_list_any» :=
+  coreProgram_find?_at (j := idx% «child_claim_list_any») rfl
 
-/-- **`child_claim_list_any`** (G:4210-4230): on `bigs = g^a`, `groups = g^b`, `rest = g^c`, the
+/-- **`child_claim_list_any`** (G:4395-4415): on `bigs = g^a`, `groups = g^b`, `rest = g^c`, the
 `136a + 17b + c` claims read at hinted slots of the region below the log of `limit`, marked
 `base · g^j`, and their digest. -/
 theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : List E}
@@ -498,11 +509,11 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
       ∀ a b c, a < 2 ^ 32 → b < 8 → c < 17 → bigs = gen ^ a → groups = gen ^ b → rest = gen ^ c →
         ∃ (os : List ℕ) (cells : List E),
           ClaimsAt rd region limit entries base (136 * a + 17 * b + c) os cells ∧
-          AllCanonical cells ∧ rets = digestCells (keccak256 (cellsBytes cells)) := by
+          rets = digestCells (keccak256 (cellsBytes cells)) := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_child_claim_list_any args rets).mp h
   refine ⟨σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
     by rw [← hp]; rfl, fun a b c ha hb' hc h4 h5 h6 => ?_⟩
-  rw [core25_shape, holdsList_append] at hb
+  rw [child_claim_list_any_shape, holdsList_append] at hb
   have hok := anyBody_ok
   simp only [anyBodyOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hfl, hl17⟩, hl18⟩, hdis⟩, h3⟩, h33⟩, h32⟩, h31⟩, h51⟩, h50⟩, h49⟩,
@@ -519,20 +530,20 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
     rw [Nat.zero_add, absorbChunks, cellsOfState_zero]
     exact hl
   -- the big frames
-  have hbig := childFrames_of_loop hm any136_idx (by norm_num) any136_ok any136_nb
+  have hbig := childFrames_of_loop hm any136_idx any136_ok any136_nb
     (chain := σ (.n 17)) (entries := σ (.n 0)) (region := σ (.n 1)) (base := σ (.n 2))
     (last := σ (.n 8)) (by omega) h4 (fun hne => by
       have := (callIf_of_flat hall hl17).2
         (by rw [add_sound h32 hat, const_sound h31 hat, word_one]; exact hne)
       simpa [const_sound h33 hat, word_one] using this)
-  obtain ⟨osa, ca, hcla, hcana, hSa⟩ := childGroups_sound (by norm_num) (n0 := 0) (pre := []) rfl h0
+  obtain ⟨osa, ca, hcla, hSa⟩ := childGroups_sound (by norm_num) (n0 := 0) (pre := []) rfl h0
     hbig a le_rfl
   -- the groups
   have h39 : σ (.n 39) = σ (.n 17) * gen ^ (13 * a) := by
     rw [monoIs_sound hm39 hat, h4, gen_pow_pow]
   have h48 : σ (.n 48) = σ (.n 2) * gen ^ (136 * a) := by
     rw [monoIs_sound hm48 hat, h4, gen_pow_pow]
-  have hgrp := childFrames_of_loop hm any17_idx (by norm_num) any17_ok any17_nb
+  have hgrp := childFrames_of_loop hm any17_idx any17_ok any17_nb
     (chain := σ (.n 39)) (entries := σ (.n 0)) (region := σ (.n 1)) (base := σ (.n 48))
     (last := σ (.n 8)) (by omega) h5 (fun hne => by
       have := (callIf_of_flat hall hl18).2
@@ -541,7 +552,7 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
   have hpa : ([] ++ cellsBytes ca).length = rate * (0 + 64 * a) := by
     rw [List.nil_append, length_cellsBytes, hcla.2.1]; show 16 * (4 * (136 * a)) = 136 * (0 + 64 * a)
     ring
-  obtain ⟨osb, cb, hclb, hcanb, hSb⟩ := childGroups_sound (by norm_num) hpa
+  obtain ⟨osb, cb, hclb, hSb⟩ := childGroups_sound (by norm_num) hpa
     (by rw [h39]; exact hSa) hgrp b le_rfl
   -- the rest
   obtain ⟨j, hj, hsel, hcall⟩ := dispatch_of_flat hall hdis
@@ -565,18 +576,12 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
       hclb.2.1]
     show 16 * (4 * (136 * a)) + 16 * (4 * (17 * b)) = 136 * (0 + 64 * a + 8 * b)
     ring
-  obtain ⟨osc, cc, hclc, hcanc, hd⟩ := hlast _ _ hpre (by rw [← hsp, h57]; exact hSb)
+  obtain ⟨osc, cc, hclc, hd⟩ := hlast _ _ hpre (by rw [← hsp, h57]; exact hSb)
   rw [← hent, ← hreg, ← hmk, ← hlst, h63, h48, mul_assoc, ← pow_add] at hclc
   rw [h48] at hclb
   rw [← hlim] at hcla hclb hclc
-  refine ⟨osa ++ osb ++ osc, ca ++ cb ++ cc, ?_, ?_, ?_⟩
+  refine ⟨osa ++ osb ++ osc, ca ++ cb ++ cc, ?_, ?_⟩
   · exact claimsAt_append (claimsAt_append hcla hclb) hclc
-  · intro x hx
-    rcases List.mem_append.mp hx with hx | hx
-    · rcases List.mem_append.mp hx with hx | hx
-      · exact hcana x hx
-      · exact hcanb x hx
-    · exact hcanc x hx
   · simp only [List.map_cons, List.map_nil] at hd
     rw [← hret, copy_sound hc66 hat, copy_sound hc67 hat, hd, cellsBytes_append,
       cellsBytes_append]

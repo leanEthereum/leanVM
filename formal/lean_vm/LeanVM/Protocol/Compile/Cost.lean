@@ -20,8 +20,8 @@ on the number of oracle queries the compiled verifier makes on *every* proof
 makes, per node of the program,
 
 * `read`: one absorption, which permutes the sponge (one query) when four scalars wait;
-* `sample`: one permutation;
-* `grind`: one absorption, then one permutation;
+* `sample`: one permutation, none when a proof of work drew its challenge;
+* `grind`: one absorption, then one permutation (`absorbNonce`);
 * `commit`: two absorptions;
 * `query i ps`: per position, one hash query for the leaf and one per level of its path, when the
   opening has the committed shape, and none otherwise; the run stops at the first failure;
@@ -326,7 +326,8 @@ scalar appended, after one permutation when four scalars wait. -/
 theorem absorb_bind {β : Type} (sp : Sponge) (x : E) (tag : ℕ)
     (f : Sponge → OracleComp KeccakCalls β) :
     (Compile.absorb callKeccakF1600 sp x tag >>= f) =
-      if sp.pending.length = 4 then callKeccakF1600 (duplexInput sp) >>= fun st ↦ f ⟨st, [(x, tag)]⟩
+      if sp.pending.length = 4 then
+        callKeccakF1600 (duplexInput sp) >>= fun st ↦ f ⟨st, [(x, tag)], sp.ground⟩
       else f { sp with pending := sp.pending ++ [(x, tag)] } := by
   unfold Compile.absorb duplex
   split
@@ -337,10 +338,29 @@ theorem absorb_bind {β : Type} (sp : Sponge) (x : E) (tag : ℕ)
     simp only [rateScalars] at h4
     simp [h4]
 
-/-- A squeeze followed by a continuation: one permutation. -/
-theorem squeeze_bind {β : Type} (sp : Sponge) (f : E × Sponge → OracleComp KeccakCalls β) :
-    (squeeze callKeccakF1600 sp >>= f) = callKeccakF1600 (duplexInput sp) >>= fun st ↦ f (challengeOf st, ⟨st, []⟩) := by
+/-- A squeeze with no challenge waiting, followed by a continuation: one permutation. -/
+theorem squeeze_bind {β : Type} {sp : Sponge} (hg : sp.ground = none)
+    (f : E × Sponge → OracleComp KeccakCalls β) :
+    (squeeze callKeccakF1600 sp >>= f) =
+      callKeccakF1600 (duplexInput sp) >>= fun st ↦ f (challengeOf st, ⟨st, [], none⟩) := by
   unfold squeeze duplex
+  simp [hg]
+
+/-- A squeeze with a challenge waiting, followed by a continuation: no query. -/
+theorem squeeze_bind_ground {β : Type} {sp : Sponge} {c : E} (hg : sp.ground = some c)
+    (f : E × Sponge → OracleComp KeccakCalls β) :
+    (squeeze callKeccakF1600 sp >>= f) = f (c, { sp with ground := none }) := by
+  unfold squeeze
+  simp [hg]
+
+/-- A proof of work's nonce, followed by a continuation: an absorption, then one permutation. -/
+theorem absorbNonce_bind {β : Type} (sp : Sponge) (n : E)
+    (f : UInt64 × Sponge → OracleComp KeccakCalls β) :
+    (absorbNonce callKeccakF1600 sp n >>= f) =
+      Compile.absorb callKeccakF1600 sp n dsPowNonce >>= fun sp1 ↦
+        callKeccakF1600 (duplexInput sp1) >>= fun st ↦
+          f (Keccak.lane st 2, ⟨st, [], some (challengeOf st)⟩) := by
+  unfold absorbNonce duplex
   simp
 
 /-- **An absorption's queries.** An absorption costs a quarter: a continuation of cost `n - 1`
@@ -355,7 +375,7 @@ theorem isTotalQueryBound_absorb {β : Type} (sp : Sponge) (hk : sp.pending.leng
   split
   · rename_i h4
     refine (isTotalQueryBound_queryF_bind (n := (n - 1 + 1) / 4) _ fun st ↦ ?_).mono ?_
-    · simpa using hg ⟨st, [(x, tag)]⟩ (by simp)
+    · simpa using hg ⟨st, [(x, tag)], sp.ground⟩ (by simp)
     · omega
   · rename_i h4
     refine (hg _ (by simp; omega)).mono ?_
@@ -375,49 +395,51 @@ theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
   | .read k, s, n, Q, hp, hs, hk => by
     simp only [runWithHash]
     split
-    · trivial
-    · rename_i x xs _
+    · rename_i x xs _ _
       exact isTotalQueryBound_absorb _ hk _ _ _ n hp.1 fun sp' hsp' ↦
         isTotalQueryBound_run height (k x) _ (n - 1) Q (hp.2 x) hs hsp'
+    · trivial
   | .sample k, s, n, Q, hp, hs, hk => by
     simp only [runWithHash]
-    rw [squeeze_bind]
-    refine (isTotalQueryBound_queryF_bind (n := (n - 4) / 4) _ fun st ↦ ?_).mono ?_
-    · simpa using isTotalQueryBound_run height (k (challengeOf st))
-        { s with sponge := ⟨st, []⟩ } (n - 4) Q (hp.2 _) hs (by simp)
-    · have := hp.1
-      omega
+    rcases hg : s.sponge.ground with _ | c
+    · rw [squeeze_bind hg]
+      refine (isTotalQueryBound_queryF_bind (n := (n - 4) / 4) _ fun st ↦ ?_).mono ?_
+      · simpa using isTotalQueryBound_run height (k (challengeOf st))
+          { s with sponge := ⟨st, [], none⟩ } (n - 4) Q (hp.2 _) hs (by simp)
+      · have := hp.1
+        omega
+    · rw [squeeze_bind_ground hg]
+      exact (isTotalQueryBound_run height (k c) { s with sponge := { s.sponge with ground := none } }
+        (n - 4) Q (hp.2 _) hs hk).mono (by dsimp only; omega)
   | .grind bits k, s, n, Q, hp, hs, hk => by
     simp only [runWithHash]
     split
-    · trivial
-    · rename_i nn xs _
+    · rename_i nn xs _ _
       have h5 := hp.1
+      rw [absorbNonce_bind]
       refine isTotalQueryBound_absorb _ hk _ _ _ n (by omega) fun sp' hsp' ↦ ?_
-      rw [squeeze_bind]
       refine (isTotalQueryBound_queryF_bind (n := (n - 5) / 4) _ fun st ↦ ?_).mono ?_
       · dsimp only
         split
-        · simpa using isTotalQueryBound_run height k { s with sponge := ⟨st, []⟩, stream := xs }
+        · simpa using isTotalQueryBound_run height k
+            { s with sponge := ⟨st, [], some (challengeOf st)⟩, stream := xs }
             (n - 5) Q hp.2 hs (by simp)
         · trivial
       · omega
+    · trivial
   | .commit ht w k, s, n, Q, hp, hs, hk => by
     simp only [runWithHash]
     split
-    · rename_i x0 x1 xs _
+    · rename_i x0 x1 xs _ _
       have h2 := hp.2.1
       refine isTotalQueryBound_absorb _ hk _ _ _ n (by omega) fun sp0 hsp0 ↦ ?_
       refine isTotalQueryBound_absorb _ hsp0 _ _ _ (n - 1) (by omega) fun sp1 hsp1 ↦ ?_
-      split
-      · rename_i root _
-        refine (isTotalQueryBound_run height k _ (n - 2) Q hp.2.2 ?_ hsp1).mono
-          (by dsimp only; omega)
-        intro r hr
-        rcases List.mem_append.mp hr with hr | hr
-        · exact hs r hr
-        · rw [List.mem_singleton.mp hr]; exact hp.1
-      · trivial
+      refine (isTotalQueryBound_run height k _ (n - 2) Q hp.2.2 ?_ hsp1).mono
+        (by dsimp only; omega)
+      intro r hr
+      rcases List.mem_append.mp hr with hr | hr
+      · exact hs r hr
+      · rw [List.mem_singleton.mp hr]; exact hp.1
     · trivial
   | .query i ps k, s, n, Q, hp, hs, hk => by
     simp only [runWithHash]

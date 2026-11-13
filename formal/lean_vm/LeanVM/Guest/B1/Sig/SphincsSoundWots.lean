@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundWots
 
-  `sp_wots` (`lean_ethereum.py:3880-3911` at leanVM main 40f877dc) against the statement: whenever its
+  `sp_wots` (`lean_ethereum.py:4072-4102`) against the statement: whenever its
   body holds, at a one-time key's address cells, the encoding digest's `base_2b` digits reach the
   target sum and its leaf is the statement's leaf of the chain values its frame hints.
 -/
@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Sig.SphincsSig
 `sp_wots_sound_cells` (over cells) gives the leaf as `spLeafCell` of the digits `spDigitR σ` and
 the starts `spStartR σ`, the encoding digest the `XOR` of the digits' fields (`spX`). Here:
 
-* `cellVal_eOfNat192`, `base2bDigits_spX`: the statement's `base_2b` digits of that cell are the
+* `cellVal_eOfNat128`, `base2bDigits_spX`: the statement's `base_2b` digits of that cell are the
   digits (`spX_digit`), so they reach the target sum (`valid_spX`);
 * `spChainStep_cells`, `chainWalk_cells`: a chain step of the statement at a key's address is
   `spStepCell` (`adrsCell1_add_step`), a walk `chainT`;
@@ -40,17 +40,17 @@ open HashSig HashSig.OverPermutation
 
 /-! ## The digits -/
 
-/-- A canonical cell's value. -/
-theorem cellVal_eOfNat192 {X : Nat} (hX : X < 2 ^ 128) : cellVal (eOfNat192 X) = BitVec.ofNat 128 X :=
-  BitVec.eq_of_toNat_eq (by rw [toNat_cellVal, cellNat_eOfNat192 hX, BitVec.toNat_ofNat,
+/-- A cell's value. -/
+theorem cellVal_eOfNat128 {X : Nat} (hX : X < 2 ^ 128) : cellVal (eOfNat128 X) = BitVec.ofNat 128 X :=
+  BitVec.eq_of_toNat_eq (by rw [toNat_cellVal, cellNat_eOfNat128 hX, BitVec.toNat_ofNat,
     Nat.mod_eq_of_lt hX])
 
 /-- **The statement's `base_2b` digits of the encoding cell are the digits.** -/
 theorem base2bDigits_spX {d : Nat → Nat} (hd : ∀ j, d j < 4) (i : Sphincs.ChainIndex) :
-    (Sphincs.TargetSum.base2bDigits (cellVal (eOfNat192 (spX d 64))) i).val = d i.val := by
+    (Sphincs.TargetSum.base2bDigits (cellVal (eOfNat128 (spX d 64))) i).val = d i.val := by
   have hi := i.isLt
   have hX := spX_lt hd (m := 64) le_rfl
-  rw [cellVal_eOfNat192 hX, ← spX_digit hd (i := i.val) hi]
+  rw [cellVal_eOfNat128 hX, ← spX_digit hd (i := i.val) hi]
   unfold Sphincs.TargetSum.base2bDigits
   rw [BitVec.val_toFin]
   show (BitVec.extractLsb' (8 * (i.val / 4) + 6 - 2 * (i.val % 4)) 2
@@ -64,7 +64,7 @@ theorem base2bDigits_spX {d : Nat → Nat} (hd : ∀ j, d j < 4) (i : Sphincs.Ch
 
 /-- **Digits of sum `128` are a codeword.** -/
 theorem valid_spX {d : Nat → Nat} (hd : ∀ j, d j < 4) (hs : ∑ i ∈ Finset.range 64, d i = 128) :
-    Sphincs.TargetSum.Valid (Sphincs.TargetSum.base2bDigits (cellVal (eOfNat192 (spX d 64)))) := by
+    Sphincs.TargetSum.Valid (Sphincs.TargetSum.base2bDigits (cellVal (eOfNat128 (spX d 64)))) := by
   unfold Sphincs.TargetSum.Valid Sphincs.TargetSum.sum
   simp only [base2bDigits_spX hd]
   exact (Fin.sum_univ_eq_sum_range d 64).trans hs
@@ -133,7 +133,7 @@ theorem wotsLeafOf_cells (pp : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIn
         (starts i.val))) = _
   rw [e, tweakableHash_sphincsCells, spLeafCell]
   have hpk : adrsCell1 0 lf.val 0 0 + spPkC = adrsCell1 1 lf.val 0 0 := by
-    rw [show spPkC = word (1 * 2 ^ 24) 0 0 by rw [one_mul]; rfl]
+    rw [show spPkC = word (1 * 2 ^ 24) 0 by rw [one_mul]; rfl]
     exact adrsCell1_add_type (by norm_num)
   rw [hpk, List.ofFn_eq_map, ← List.map_coe_finRange_eq_range, List.map_map]
   rfl
@@ -150,13 +150,13 @@ variable {C : CallRel} {rd : Reader}
 address cells the digest's digits reach the target sum and the word is the leaf the chain values
 `sChainValuesOf σ` recover. -/
 theorem sp_wots_sound_stmt {σ : Val} {rets : List E}
-    (h : Stmt.HoldsList C rd σ Data.core19.body False (fun rs => rs = rets)) :
+    (h : Stmt.HoldsList C rd σ (fn% «sp_wots»).body False (fun rs => rs = rets)) :
     ∃ leaf, rets = [leaf] ∧ ∀ (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
       (lf : Sphincs.TreeLeafIndex), (σ (.n 1), σ (.n 2)) = keyAdrsCells layer.val tree.val lf.val →
         Sphincs.TargetSum.Valid (Sphincs.TargetSum.base2bDigits (cellVal (σ (.n 3)))) ∧
         cellVal leaf = wotsLeafOf (cellVal (σ (.n 0))) layer tree lf (cellVal (σ (.n 3)))
           (sChainValuesOf σ) := by
-  obtain ⟨leaf, hr, -, hd, hs, h3, hl⟩ := sp_wots_sound_cells h
+  obtain ⟨leaf, hr, hd, hs, h3, hl⟩ := sp_wots_sound_cells h
   refine ⟨leaf, hr, fun layer tree lf hk => ⟨?_, ?_⟩⟩
   · rw [h3]; exact valid_spX hd hs
   · simp only [keyAdrsCells, adrsWotsHash, Prod.mk.injEq] at hk

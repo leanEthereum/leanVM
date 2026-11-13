@@ -8,18 +8,20 @@
 module
 
 public import LeanVM.Guest.B1.Tables.VtC.AComplete
+public import LeanVM.Guest.B1.Tables.VtC.Calls
 public import LeanVM.Guest.B1.Tables.FlatLiftT
 public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `verify_tables`, placed, within its bound
 
 The callees' words come as hypotheses in G7's forms: every statically bounded callee `g` of
 `vtKidS` within a constant `Kf g` (`TotalLe`), `shared_selector_tables` within `Ksh` on a run
-length `g^n`, `n < 64` (`TotalLeOn`), `__loop9`'s run within `K10` words an iteration and its one
-phantom frame (`TotalLeOn … LoopPre`). Call by call (`vtCallBnd`): a call's callee's constant (`Ksh`
-for the shared tables), a dispatch's largest arm's, the rounds loop's run `vtRunB` at the honest
-round count `n`.
+length `g^n`, `n < 64` (`TotalLeOn`), `verify_tables_loop0`'s run within `K10` words an iteration
+and its one phantom frame (`TotalLeOn … LoopPre`). Call by call (`vtCallBnd`): a call's callee's
+constant (`Ksh` for the shared tables), a dispatch's largest arm's, the rounds loop's run `vtRunB`
+at the honest round count `n`.
 `verify_tables_completeAtTB`: within `fs "verify_tables" + Σ sizes + Σ vtBs + ifFrames`.
 -/
 
@@ -56,34 +58,6 @@ theorem flatCalls_getElem {σ : Val} : ∀ (pre : List Stmt) (i : ℕ) (c : Call
         obtain ⟨s', h1, h2⟩ := flatCalls_getElem ss i c h'
         exact ⟨s', by simpa [List.filter_cons, hs] using h1, h2⟩
 
-/-- What a call statement's callee is bounded by. -/
-def vtCallBnd (Kf : String → ℕ) (Ksh K10n : ℕ) : Stmt → ℕ
-  | .call f _ _ => if f = "shared_selector_tables" then Ksh else Kf f
-  | .dispatch _ fs' _ _ => (fs'.map Kf).foldr max 0
-  | .callIf _ _ _ => K10n
-  | _ => 0
-
-/-- `__loop9`'s run at `n` rounds: `n · K10` words and, when it runs, its one phantom frame. -/
-def vtRunB (fs : String → ℕ) (K10 n : ℕ) : ℕ := n * K10 + if n = 0 then 0 else fs "__loop9"
-
-/-- The calls' bounds, in order. -/
-noncomputable def vtBs (Kf : String → ℕ) (Ksh K10n : ℕ) : List ℕ := (vtPre.filter callB).map (vtCallBnd Kf Ksh K10n)
-
-/-- The calls' kinds: a call is not the rounds loop, the shared tables' are of six arguments and
-no return, a dispatch's arms neither, the only conditional call the rounds loop's. -/
-def vtCallKindB : Stmt → Bool
-  | .call f a r => f != "__loop9" && f != "__loop8" &&
-      (f != "shared_selector_tables" || (a.length == 6 && r.isEmpty))
-  | .dispatch _ fs' _ _ => fs'.all fun g ↦ g != "__loop9" && g != "__loop8" &&
-      g != "shared_selector_tables"
-  | .callIf c f a => f == "__loop9" && c == .n 2613 &&
-      a == [.n 2614, .n 2516, .n 2605, .n 16, .n 2516, .n 2608]
-  | _ => true
-
-theorem vt_callKinds : vtPre.all vtCallKindB = true := by decide +kernel
-
-theorem vt_ncalls : (vtPre.filter callB).length = 116 := by decide +kernel
-
 theorem le_foldr_max {l : List ℕ} {a : ℕ} (h : a ∈ l) : a ≤ l.foldr max 0 := by
   induction l with
   | nil => simp at h
@@ -106,12 +80,13 @@ memories defined below `2^κ`, `κ ≥ 14`, its tree of at most `fs "verify_tabl
 buffers, its callees' bounds and its skipped frames. -/
 theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok)
     (hs : VtShape H) (B : VtBases) (Kf : String → ℕ) (Ksh K10 : ℕ)
-    (hKf : ∀ g ∈ vtKidS, g ≠ "__loop9" → g ≠ "__loop8" → g ≠ "shared_selector_tables" →
+    (hKf : ∀ g ∈ vtKidS, g ≠ name% «verify_tables_loop0» → g ≠ name% «shared_selector_tables_loop0»
+        → g ≠ "shared_selector_tables" →
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
     (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
       (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
-    (h10 : TotalLeOn coreProgram fs "__loop9" LoopPre
-      (fun a ↦ logG (a.getD 1 0) * K10 + fs "__loop9")) :
+    (h10 : TotalLeOn coreProgram fs name% «verify_tables_loop0» LoopPre
+      (fun a ↦ logG (a.getD 1 0) * K10 + fs name% «verify_tables_loop0»)) :
     CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))
       (fun _ ↦ True)
       (fs "verify_tables" + H.sizes.sum + ((vtBs Kf Ksh (vtRunB fs K10 H.n)).sum + ifFrames fs vtPre)) := by
@@ -138,20 +113,20 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (
   have hvals : ∀ fp rd, LowDef κ rd →
       MemL rd (vtL (H.linL B) H.sizes (fun _ ↦ H.ownW B) fs fp) →
       let σ := vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B)
-      σ (.n 2516) = gen ^ H.n ∧ σ (.n 2613) = 1 + gen ^ H.n ∧ σ (.n 2614) = 1 := by
+      σ (.n 2544) = gen ^ H.n ∧ σ (.n 2635) = 1 + gen ^ H.n ∧ σ (.n 2636) = 1 := by
     intro fp rd _ _
     have hl : (H.args B).length = 20 := rfl
-    have g1 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2587
-      [.atom (.hint (.witness "zc_tau_max" (.stack [.n 2516])))] (by decide +kernel)
-    have g2 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2667
-      [.atom (.const (.n 2612) (word 1 0 0)), .atom (.add (.n 2613) (.n 2612) (.n 2516)),
-        .atom (.const (.n 2614) (word 1 0 0))] (by decide +kernel)
+    have g1 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2591
+      [.atom (.hint (.witness "zc_tau_max" (.stack [.n 2544])))] (by decide +kernel)
+    have g2 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2664
+      [.atom (.const (.n 2634) (word 1 0)), .atom (.add (.n 2635) (.n 2634) (.n 2544)),
+        .atom (.const (.n 2636) (word 1 0))] (by decide +kernel)
     generalize vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B) = σ at g1 g2 ⊢
     simp only [GoodL, GoodS, fixNe, Good, List.mem_cons, List.not_mem_nil, or_false,
       forall_eq, and_true] at g1 g2
     obtain ⟨c19, a20, c21⟩ := g2
-    have w17 : σ (.n 2516) = gen ^ H.n := by
-      rw [g1]; exact (vtW_ok H (B.at (fp + fs "verify_tables"))).w2500
+    have w17 : σ (.n 2544) = gen ^ H.n := by
+      rw [g1]; exact (vtW_ok H (B.at (fp + fs "verify_tables"))).w2544
     refine ⟨w17, ?_, ?_⟩
     · rw [a20, c19, w17, tb_word_one]
     · rw [c21, tb_word_one]
@@ -184,7 +159,7 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (
     (fun _ ↦ H.ownW B) (fun _ ↦ by rw [← ownW_lengths H B]; exact forall₂_length_le _)
     (fun fp ↦ vtW H (B.at (fp + fs "verify_tables")))
     (fun fp ↦ H.bufs (B.at (fp + fs "verify_tables"))) ?hbufs ?hrun (fun _ ↦ True)
-    (List.replicate 116 fun _ ↦ True) (fun _ _ _ _ ↦ trivial) (by change (vtPre.filter callB).length ≤ _; rw [vt_ncalls]; simp)
+    (List.replicate 119 fun _ ↦ True) (fun _ _ _ _ ↦ trivial) (by change (vtPre.filter callB).length ≤ _; rw [vt_ncalls]; simp)
     (fun _ _ _ _ i _ _ _ t _ _ _ _ ↦ by
       simp only [List.getD_eq_getElem?_getD, List.getElem?_replicate]; split <;> trivial)
     (vtBs Kf Ksh (vtRunB fs K10 H.n)) _ ?hB
@@ -253,7 +228,7 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (
         rcases Nat.eq_zero_or_pos H.n with h0 | h0
         · exfalso; apply ht; rw [v20, h0, pow_zero]; exact e_add_eq_zero_iff.mpr rfl
         · exact h0
-      have hpre : LoopPre ([V.n 2614, V.n 2516, V.n 2605, V.n 16, V.n 2516, V.n 2608].map σ) := by
+      have hpre : LoopPre ([V.n 2636, V.n 2544, V.n 2627, V.n 18, V.n 16, V.n 2544, V.n 2630].map σ) := by
         simp only [List.map_cons, List.map_nil, v21, v17]
         exact loopPre_gen hn0 (by omega) _
       have := h10 rd' t _ r hn hpre hv hbo

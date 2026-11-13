@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.EqFrame
 
-  `eqtree_frame` (G:984-1002), inline: the equality weights of a point built level by level in
+  `eqtree_frame` (G:972-990), inline: the equality weights of a point built level by level in
   frame cells; a generic template and its meaning, `eqAt`.
 -/
 
@@ -34,7 +34,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- Level `0` from `b`. -/
 def eqfLevel0T (pt : V) (off b : ℕ) : List Stmt :=
-  [.atom (.load (.n b) pt off), .atom (.const (.n (b + 1)) (word 1 0 0)),
+  [.atom (.load (.n b) pt off), .atom (.const (.n (b + 1)) (word 1 0)),
     .atom (.add (.n (b + 2)) (.n (b + 1)) (.n b)), .atom (.copy (.n (b + 3)) (.n b))]
 
 /-- The value of entry `j` of a level `t ≥ 1` from its base `B`, `k` products with `r_t`. -/
@@ -43,7 +43,7 @@ def eqfEnt (t B k j : ℕ) : ℕ :=
 
 /-- Level `t ≥ 1` from `B`, its parents' values `pw`, `k` products with `r_t`. -/
 def eqfLevelT (pt : V) (off t B k : ℕ) (pw : ℕ → ℕ) : List Stmt :=
-  [.atom (.load (.n B) pt (off + t)), .atom (.const (.n (B + 1)) (word 1 0 0)),
+  [.atom (.load (.n B) pt (off + t)), .atom (.const (.n (B + 1)) (word 1 0)),
     .atom (.add (.n (B + 2)) (.n (B + 1)) (.n B))] ++
   ((List.range (2 ^ t)).map fun i ↦ [.atom (.mul (.n (eqfEnt t B k i)) (.n (pw i)) (.n (B + 2)))] ++
     if i < k then [.atom (.mul (.n (B + 4 + 2 * i)) (.n (pw i)) (.n B))] else []).flatten

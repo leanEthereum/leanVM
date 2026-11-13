@@ -76,14 +76,14 @@ structure DaClaim where
   /-- The matrix's Merkle root: the commitment to its codewords. -/
   daRoot : Digest
   /-- The membership challenge `z`, which the guest program reads as a hint (`da_challenge`,
-  `lean_ethereum.py:4342`); the deployed outer verifier derives it from the root
-  (`membership_challenge`, `crates/verifier/src/da.rs:14-17`). -/
+  `lean_ethereum.py:4520`); the deployed outer verifier derives it from the root
+  (`membership_challenge`, `crates/verifier/src/da.rs:20-34`). -/
   membershipChallenge : E
   deriving DecidableEq, Inhabited
 
 /-- A node's claims: leanXMSS claims, leanSPHINCS claims, and its DA digest: a DA claim's
 `daClaimDigest`, or `zeroDigest` without one (`verifier::da::digest`,
-`crates/verifier/src/da.rs:19-26`). -/
+`crates/verifier/src/da.rs:36-43`). -/
 structure NodeClaims where
   /-- The leanXMSS claims. -/
   xmss : List LeanXmssClaim
@@ -124,36 +124,32 @@ def claimListPreimage {PublicKey : Type} (publicKeyBytes : PublicKey → List UI
 
 /-- The digest of a list of leanXMSS claims (`publicKeyBytes = xmssPublicKeyBytes`) or of
 leanSPHINCS claims (`Sphincs.PublicKey.toBytes`) (`claim_list_digest`,
-`aggregation/statement.rs:32-37`, `lean_ethereum.py:4131-4162`). -/
+`aggregation/statement.rs:32-37`, `lean_ethereum.py:4309-4340`). -/
 def claimListDigest {PublicKey : Type} (publicKeyBytes : PublicKey → List UInt8)
     (claims : List (PublicKey × HashSig.Message)) : Digest :=
   keccak256 (claimListPreimage publicKeyBytes claims)
 
 /-- A DA claim's digest, which a statement carries: Keccak-256 of the root, then the challenge as
-its three limbs and a zero word, little-endian (`digest`, `crates/verifier/src/da.rs:19-26`; the
-guest program's `keccak([root_0, root_1], [z_0, z_1])`, `lean_ethereum.py:4613`). -/
+its two limbs and two zero words, little-endian (`digest`, `crates/verifier/src/da.rs:36-43`; the
+guest program's `keccak([root_0, root_1], [z, 0])`, `lean_ethereum.py:4789`). -/
 def daClaimDigest (claim : DaClaim) : Digest :=
-  keccak256 (digestBytes claim.daRoot ++ E.toBytes claim.membershipChallenge ++ List.replicate 8 0)
+  keccak256 (digestBytes claim.daRoot ++ E.toBytes claim.membershipChallenge ++ List.replicate 16 0)
 
 /-- The DA digest of a statement without a DA claim: zeros (`digest(None)`,
-`crates/verifier/src/da.rs:19-26`; `own_da`'s zero cells, `lean_ethereum.py:4615-4616`). -/
+`crates/verifier/src/da.rs:36-43`; `own_da`'s zero cells, `lean_ethereum.py:4791-4792`). -/
 def zeroDigest : Digest := Vector.replicate 4 0
 
-/-- The deferred claim's cells, an odd count paired with a zero cell. -/
-def paddedDeferredClaimCells (claim : DeferredClaim) : List E :=
-  claim.cells ++ if claim.cells.length % 2 = 1 then [0] else []
-
 /-- The bytes `statementDigest seed statement` hashes: the seed, the leanXMSS and leanSPHINCS
-claims' digests, the DA digest, then the padded deferred cells. Each list's digest binds its length
-through Keccak's padding. -/
+claims' digests, the DA digest, then the deferred claim's cells, each as its two lanes. Each list's
+digest binds its length through Keccak's padding. -/
 def statementPreimage (seed : Digest) (statement : NodeStatement) : List UInt8 :=
   digestBytes seed ++ digestBytes (claimListDigest xmssPublicKeyBytes statement.claims.xmss) ++
     digestBytes (claimListDigest Sphincs.PublicKey.toBytes statement.claims.sphincs) ++
     digestBytes statement.claims.daDigest ++
-    (paddedDeferredClaimCells statement.deferredClaim).flatMap E.toBytes
+    statement.deferredClaim.cells.flatMap E.toBytes
 
 /-- **The statement's digest under `seed`**, a node's public input (`statement_digest`,
-`aggregation/statement.rs:85-114`, `lean_ethereum.py:4065-4096`). The cells carry no lengths: the
+`aggregation/statement.rs:81-102`, `lean_ethereum.py:4250-4274`). The cells carry no lengths: the
 digest tells two deferred claims apart only at one shape. -/
 def statementDigest (seed : Digest) (statement : NodeStatement) : Digest :=
   keccak256 (statementPreimage seed statement)
@@ -203,12 +199,12 @@ structure NodeWitness where
   batchingHints : BatchingHints
 
 /-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
-(`bytecode_vars`, `aggregation/deferred.rs:196-198`; `BYTECODE_VARS`, `lean_ethereum.py:347`). -/
+(`bytecode_vars`, `aggregation/deferred.rs:196-198`; `BYTECODE_VARS`, `lean_ethereum.py:375`). -/
 def DeferredClaim.HasBytecodeShape (bytecode : List K) (claim : DeferredClaim) : Prop :=
   claim.bytecodePoint.length = Nat.log2 bytecode.length
 
 /-- What a leaf defers: the bytecode at the all-zero point (`DeferredClaim::leaf`,
-`aggregation/deferred.rs:37-39`; `main`'s leaf branch, `lean_ethereum.py:4659-4667`). The value is
+`aggregation/deferred.rs:37-39`; `main`'s leaf branch, `lean_ethereum.py:4835-4843`). The value is
 the outer verifier's to check. -/
 def DeferredClaim.HasZeroPoint (bytecode : List K) (claim : DeferredClaim) : Prop :=
   claim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
@@ -252,7 +248,7 @@ def SignatureClaimsHeld (statement : NodeStatement) (witness : NodeWitness) : Pr
 
 /-- **The DA digest is held**: it is the digest of the DA claim that the matrix checked here
 opens; without such a matrix, zero or some child's DA digest (`da_pick`,
-`lean_ethereum.py:4652-4655`). -/
+`lean_ethereum.py:4827-4831`). -/
 def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
   match witness.daMatrix with
   | some (claim, matrix) =>
@@ -262,11 +258,11 @@ def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
     statement.claims.daDigest = zeroDigest ∨
       ∃ child ∈ witness.children, child.statement.claims.daDigest = statement.claims.daDigest
 
-/-- **The matrix opens the DA claim `⟨root, z⟩`** (`da_verify`, `lean_ethereum.py:4331-4371`):
+/-- **The matrix opens the DA claim `⟨root, z⟩`** (`da_verify`, `lean_ethereum.py:4509-4547`):
 `1` to `1024` codewords of `2^15` symbols commit to `root` (the root of the matrix they form,
 `LeanDa.commitCells`, over Keccak-f[1600] with LeanDA's digests as 32 bytes), and each is
 orthogonal to the dual codeword of `z`, `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` (`LeanDa.dualCodewordAt`,
-which the guest program builds from `z`: `da_vector`, `lean_ethereum.py:4429-4493`). Only where
+which the guest program builds from `z`: `da_vector`, `lean_ethereum.py:4605-4669`). Only where
 `z` is the root's membership challenge, as the deployed outer verifier derives it (no end statement
 here assumes it), are the rows codewords, except with the membership test's error (`lean_da`'s
 `checker_sound`); the link to `lean_da`'s code binding is not proved. -/
@@ -431,7 +427,8 @@ instance : MachineEncoding Child :=
   ⟨fun c ↦ .constructor 0 [encodeValue c.statement, encodeValue c.freshClaim, encodeValue c.proof]⟩
 
 instance : MachineEncoding BatchingHints :=
-  ⟨fun h ↦ .constructor 0 [encodeValue h.sumcheckMessages, encodeValue h.finalBytecodeValue]⟩
+  ⟨fun h ↦ .constructor 0 [encodeValue h.lambdaGrindNonce, encodeValue h.sumcheckMessages,
+    encodeValue h.finalBytecodeValue]⟩
 
 instance : MachineEncoding NodeWitness :=
   ⟨fun w ↦ .constructor 0 [encodeValue w.children, encodeValue w.xmssSignatures,
@@ -458,14 +455,14 @@ open LeanVM.Parameters LeanVM.Semantics
 `statement.tex` (*Soundness*, the decoder's budget and size bound) has their measurements and
 limits. -/
 
-/-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `463560`, a bound
-`lean_vm`'s `Cost/DecoderSize.lean` proves on the compiled decoder's size at the pin (`../leanvm-rev`)
-plus a slack of `430`, room for one leanXMSS signature's encoding (`309`) but not
-two, so no useful table of witnesses (hard-coded signatures, matrices or proofs that would mask a
-bug of the guest program on finitely many statements) fits beside the compiled decoder's code. The
-size counts in full the guest program's per-function tables, literals of the compiled decoder; a
-program written differently could hold more. -/
-def guestWitnessDecoderSizeBound : ℕ := 463560
+/-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `574499`, the
+compiled decoder's size (`574069`: `lean_vm`'s `Cost/DecoderSize.lean` proves it at most that) and a
+slack of `430`, room for one leanXMSS signature's encoding (`309`) but not two, so no useful table
+of witnesses (hard-coded signatures, matrices or proofs that would mask a bug of the guest program
+on finitely many statements) fits beside the compiled decoder's code. The size counts in full the
+guest program's per-function tables, literals of the compiled decoder; a program written differently
+could hold more. -/
+def guestWitnessDecoderSizeBound : ℕ := 574499
 
 /-- **The guest decoder's budget** on an execution of `program` of `steps` steps on a memory of
 `2^κ` words: the most the decoder's run may cost, in the machine's price (so also the most steps it

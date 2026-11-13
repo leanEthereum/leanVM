@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Lib
 /-!
 # Polynomials in `s` over the bits
 
-The instance weights of a layer (G:2729-2748) are sums of powers of the challenge `s`, combined at
+The instance weights of a layer (G:2679-2698) are sums of powers of the challenge `s`, combined at
 compile time by `x·` (a product with `s`), `+` and products of such polynomials. A polynomial over `GF(2)` is a bit mask `m`;
 its value at `s` is `pe m s = Σ_b [bit b of m] s^b`, and `+` is `xor` (characteristic two) and `s·`
 a shift (`pe_xor`, `pe_shl`), a product of two a carry-less product (`clmul`, `pe_clmul`).
@@ -107,7 +107,7 @@ theorem pe_clmul (a b : ℕ) (ha : a < 2 ^ 32) (hb : b < 2 ^ 32) (x : E) :
 
 /-- One atom of the pass. -/
 def maskStep (sv : V) (st : List (V × ℕ)) : Stmt → Option (List (V × ℕ))
-  | .atom (.const d c) => if eEqb c (word 1 0 0) then some ((d, 1) :: st) else none
+  | .atom (.const d c) => if eEqb c (word 1 0) then some ((d, 1) :: st) else none
   | .atom (.add d a b) =>
       match st.lookup a, st.lookup b with
       | some ma, some mb => some ((d, ma ^^^ mb) :: st)

@@ -10,7 +10,6 @@
 module
 
 public import LeanVM.Guest.EndSound
-public import LeanVM.Guest.B1.VerifySub.Sound
 public import LeanVM.Guest.Located.ReplayFast
 
 /-!
@@ -53,7 +52,8 @@ choice (`Cost/Decoder/TopEq.lean`, `decTop_eq`). That it runs no verifier, only 
 
 They rest on B2 (`b2SoundL`: the kernel-checked certificates, `VsDimsKnown`, `VsKnown` and
 the walks' obligations) and B1 (`B1.Main.main_sound_V_of_sub` with
-`VerifySub.verify_sub_sound_w`).
+`VerifySub.verify_sub_sound_w`), with the walks' obligations proved (`endPending_proved`,
+`EndSound.lean`).
 -/
 
 namespace LeanVM.Guest.End
@@ -94,10 +94,6 @@ theorem decode_eq {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
   simp only [decode, Located.readTable_powTable hκ, Located.statesTable_eq hκ, hV]
   rfl
 
-/-- `verify_sub`'s statement, its proof `VerifySub.vsPiOf`, for the guest's bytecode. -/
-theorem subSoundW : B1.Main.SubSoundW bytecode VerifySub.vsPiOf :=
-  VerifySub.verify_sub_sound_w bytecode
-
 /-- **Soundness of the deployed guest, its witness named**: every valid execution of the guest on
 a public input decodes, from its memory, to a statement of the input's digest under the decoded
 seed and a witness holding it. -/
@@ -109,18 +105,21 @@ theorem guest_knowledge : MemoryGuestKnowledge guestProgram decode := by
     omega
   show ExplainsPublicInput guestProgram input (decode t.memory)
   rw [decode_eq hκ]
-  obtain ⟨hb, h0, h1⟩ := mainBodyL_of b2SoundL hv
+  obtain ⟨hb, h0, h1⟩ := mainBodyL_of (b2SoundL endPending_proved) hv
   have hm : MemOk t.memory.read :=
     ⟨t.logMemorySize, hv.1.1, hv.1.2.1.trans (by decide), t.memory, rfl⟩
-  exact B1.Main.main_sound_V_of_sub subSoundW bytecode_length t.memory.read hm _ _
-    (Located.unfoldsV_replay b2SoundL hv) (Located.rlg_le_rel t.memory) _ _ h0 h1 hb
+  exact B1.Main.main_sound_V_of_sub (B1.VerifySub.verify_sub_sound_w bytecode) bytecode_length
+    t.memory.read hm _ _
+    (Located.unfoldsV_replay (b2SoundL endPending_proved) hv) (Located.rlg_le_rel t.memory) _ _
+    h0 h1 hb
 
 /-- **What a consumer learns**: a valid execution of the guest on the digest of its statement
 `s₀` under the seed `iv` (`s₀`'s deferred claim of the bytecode's shape: `bytecode`'s `23`
 coordinates, which the outer verifier's check that it holds implies) decodes to
 `iv` and `s₀`, or its memory and `s₀` give a Keccak-256 collision among the explicit
 candidates. -/
-theorem decode_binds {input : PublicInput} {t : Execution guestProgram} (hv : ValidExecution guestProgram input t)
+theorem decode_binds {input : PublicInput} {t : Execution guestProgram}
+    (hv : ValidExecution guestProgram input t)
     {iv : Digest} {s₀ : NodeStatement} (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode)
     (hpub : publicInputDigest input = statementDigest iv s₀) :
     ((decode t.memory).seed = iv ∧ (decode t.memory).statement = s₀) ∨
@@ -131,10 +130,13 @@ theorem decode_binds {input : PublicInput} {t : Execution guestProgram} (hv : Va
 
 /-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed and
 a statement of the input's digest, of the guest's shape, that a witness holds (`NodeRelation`). -/
-theorem guest_sound (input : PublicInput) (t : Execution guestProgram) (hv : ValidExecution guestProgram input t) :
+theorem guest_sound (input : PublicInput) (t : Execution guestProgram)
+    (hv : ValidExecution guestProgram input t) :
     ∃ seed s, statementDigest seed s = publicInputDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
       ∃ w, NodeRelation bytecode seed s w :=
-  guest_sound_of (soundHyps_of_sub b2SoundL subSoundW) input t hv
+  guest_sound_of (soundHyps_of_sub (b2SoundL endPending_proved)
+    (B1.VerifySub.verify_sub_sound_w bytecode)) input t
+    hv
 
 end
 end LeanVM.Guest.End

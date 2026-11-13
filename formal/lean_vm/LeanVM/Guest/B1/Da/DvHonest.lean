@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.DvHonest
 
-  The words an honest run of `da_verify` (G:4323-4363) leaves in its buffers, as functions of the
+  The words an honest run of `da_verify` (G:4509-4547) leaves in its buffers, as functions of the
   cells' symbols and the challenge: each blob's region (its tree over its cells' digests, its
   running sum), the regions' bases, the tree over the blobs' roots.
 
@@ -174,12 +174,6 @@ theorem regionCells_sum {i h : ℕ} (hh : h ≤ 128) :
   have hl := length_treeCells (k := 7) (length_blobLeaves syms i)
   rw [regionCells, List.getD_append_right _ _ _ _ (by simp [hl])]
   simp [hl, List.getD_eq_getElem?_getD, show h < 129 by omega]
-
-theorem regionCells_tree {i : ℕ} :
-    ∀ k < 510, (regionCells syms z i).getD k 0 = (treeCells (blobLeaves syms i) 7).getD k 0 := by
-  intro k hk
-  have hl := length_treeCells (k := 7) (length_blobLeaves syms i)
-  rw [regionCells, List.append_assoc, List.getD_append _ _ _ _ (by rw [hl]; omega)]
 
 end
 

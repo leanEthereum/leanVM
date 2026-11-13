@@ -9,7 +9,9 @@ module
 
 public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.B2C.Cplw.C1_0_0
-public import LeanVM.Guest.B2C.Cplw.C8_0_0
+public import LeanVM.Guest.B2C.Cplw.C2_2_0
+public import LeanVM.Guest.B2C.Cplw.C2_6_0
+public import LeanVM.Guest.B2C.Cplw.C9_0_0
 public import LeanVM.Guest.B2C.Cplw.C12_0_0
 public import LeanVM.Guest.B2C.Cplw.C12_1_0
 public import LeanVM.Guest.B2C.Cplw.C12_2_0
@@ -23,52 +25,23 @@ public import LeanVM.Guest.B2C.Cplw.C13_0_0
 public import LeanVM.Guest.B2C.Cplw.C13_3_0
 public import LeanVM.Guest.B2C.Cplw.C15_0_0
 public import LeanVM.Guest.B2C.Cplw.C18_2_0
-public import LeanVM.Guest.B2C.Cplw.C19_1_1
-public import LeanVM.Guest.B2C.Cplw.C20_4_0
-public import LeanVM.Guest.B2C.Cplw.C20_10_0
-public import LeanVM.Guest.B2C.Cplw.C20_16_0
-public import LeanVM.Guest.B2C.Cplw.C21_3_0
-public import LeanVM.Guest.B2C.Cplw.C21_11_0
-public import LeanVM.Guest.B2C.Cplw.C21_19_0
-public import LeanVM.Guest.B2C.Cplw.C22_0_0
-public import LeanVM.Guest.B2C.Cplw.C30_0_0
-public import LeanVM.Guest.B2C.Cplw.C37_0_0
-public import LeanVM.Guest.B2C.Cplw.C37_1_0
-public import LeanVM.Guest.B2C.Cplw.C37_2_0
-public import LeanVM.Guest.B2C.Cplw.C37_3_0
-public import LeanVM.Guest.B2C.Cplw.C37_4_0
-public import LeanVM.Guest.B2C.Cplw.C37_5_0
-public import LeanVM.Guest.B2C.Cplw.C37_6_0
-public import LeanVM.Guest.B2C.Cplw.C37_7_0
-public import LeanVM.Guest.B2C.Cplw.C37_8_0
-public import LeanVM.Guest.B2C.Cplw.C37_9_0
-public import LeanVM.Guest.B2C.Cplw.C37_10_0
-public import LeanVM.Guest.B2C.Cplw.C37_11_0
-public import LeanVM.Guest.B2C.Cplw.C37_12_0
-public import LeanVM.Guest.B2C.Cplw.C37_13_0
-public import LeanVM.Guest.B2C.Cplw.C37_14_0
-public import LeanVM.Guest.B2C.Cplw.C37_15_0
-public import LeanVM.Guest.B2C.Cplw.C37_21_0
-public import LeanVM.Guest.B2C.Cplw.C37_22_0
-public import LeanVM.Guest.B2C.Cplw.C37_23_0
-public import LeanVM.Guest.B2C.Cplw.C37_24_0
-public import LeanVM.Guest.B2C.Cplw.C37_25_0
-public import LeanVM.Guest.B2C.Cplw.C37_26_0
-public import LeanVM.Guest.B2C.Cplw.C37_27_0
-public import LeanVM.Guest.B2C.Cplw.C37_28_0
-public import LeanVM.Guest.B2C.Cplw.C37_29_0
-public import LeanVM.Guest.B2C.Cplw.C37_30_0
-public import LeanVM.Guest.B2C.Cplw.C37_31_0
-public import LeanVM.Guest.B2C.Cplw.C37_32_0
-public import LeanVM.Guest.B2C.Cplw.C37_33_0
-public import LeanVM.Guest.B2C.Cplw.C37_34_0
-public import LeanVM.Guest.B2C.Cplw.C37_35_0
-public import LeanVM.Guest.B2C.Cplw.C42_0_0
-public import LeanVM.Guest.B2C.Cplw.C50_0_0
-public import LeanVM.Guest.B2C.Cplw.C58_0_0
-public import LeanVM.Guest.B2C.Cplw.C66_0_0
-public import LeanVM.Guest.B2C.Cplw.C74_0_0
-public import LeanVM.Guest.B2C.Cplw.C82_0_0
+public import LeanVM.Guest.B2C.Cplw.C19_1_0
+public import LeanVM.Guest.B2C.Cplw.C19_2_0
+public import LeanVM.Guest.B2C.Cplw.C20_6_0
+public import LeanVM.Guest.B2C.Cplw.C20_12_0
+public import LeanVM.Guest.B2C.Cplw.C20_18_0
+public import LeanVM.Guest.B2C.Cplw.C21_5_0
+public import LeanVM.Guest.B2C.Cplw.C21_13_0
+public import LeanVM.Guest.B2C.Cplw.C21_21_0
+public import LeanVM.Guest.B2C.Cplw.C24_0_0
+public import LeanVM.Guest.B2C.Cplw.C31_1_0
+public import LeanVM.Guest.B2C.Cplw.C37_18_0
+public import LeanVM.Guest.B2C.Cplw.C41_0_0
+public import LeanVM.Guest.B2C.Cplw.C49_0_0
+public import LeanVM.Guest.B2C.Cplw.C57_0_0
+public import LeanVM.Guest.B2C.Cplw.C65_0_0
+public import LeanVM.Guest.B2C.Cplw.C73_0_0
+public import LeanVM.Guest.B2C.Cplw.C81_0_0
 public import LeanVM.Guest.B2C.Cplw.C87_0_0
 public import LeanVM.Guest.B2C.Cplw.C89_0_0
 public import LeanVM.Guest.B2C.Cplw.C93_0_0
@@ -93,248 +66,397 @@ public import LeanVM.Guest.B2C.Cplw.C237_0_0
 public import LeanVM.Guest.B2C.Cplw.C245_0_0
 public import LeanVM.Guest.B2C.Cplw.C253_0_0
 public import LeanVM.Guest.B2C.Cplw.C261_0_0
-public import LeanVM.Guest.B2C.Cplw.C267_0_0
-public import LeanVM.Guest.B2C.Cplw.C268_0_0
-public import LeanVM.Guest.B2C.Cplw.C276_0_0
-public import LeanVM.Guest.B2C.Cplw.C284_0_0
-public import LeanVM.Guest.B2C.Cplw.C292_0_0
-public import LeanVM.Guest.B2C.Cplw.C300_0_0
-public import LeanVM.Guest.B2C.Cplw.C307_1_0
-public import LeanVM.Guest.B2C.Cplw.C308_2_0
-public import LeanVM.Guest.B2C.Cplw.C309_3_0
-public import LeanVM.Guest.B2C.Cplw.C310_4_0
-public import LeanVM.Guest.B2C.Cplw.C311_4_0
-public import LeanVM.Guest.B2C.Cplw.C312_3_0
-public import LeanVM.Guest.B2C.Cplw.C313_2_0
-public import LeanVM.Guest.B2C.Cplw.C314_0_0
-public import LeanVM.Guest.B2C.Cplw.C314_5_0
-public import LeanVM.Guest.B2C.Cplw.C315_3_0
-public import LeanVM.Guest.B2C.Cplw.C316_0_0
-public import LeanVM.Guest.B2C.Cplw.C316_6_1
-public import LeanVM.Guest.B2C.Cplw.C317_4_0
-public import LeanVM.Guest.B2C.Cplw.C318_0_0
-public import LeanVM.Guest.B2C.Cplw.C324_0_0
-public import LeanVM.Guest.B2C.Cplw.C332_0_0
-public import LeanVM.Guest.B2C.Cplw.C337_3_0
-public import LeanVM.Guest.B2C.Cplw.C344_0_0
-public import LeanVM.Guest.B2C.Cplw.C352_0_0
-public import LeanVM.Guest.B2C.Cplw.C356_2_0
-public import LeanVM.Guest.B2C.Cplw.C363_0_0
-public import LeanVM.Guest.B2C.Cplw.C371_0_0
-public import LeanVM.Guest.B2C.Cplw.C379_0_0
-public import LeanVM.Guest.B2C.Cplw.C387_0_0
-public import LeanVM.Guest.B2C.Cplw.C393_0_0
+public import LeanVM.Guest.B2C.Cplw.C267_2_0
+public import LeanVM.Guest.B2C.Cplw.C273_0_0
+public import LeanVM.Guest.B2C.Cplw.C281_0_0
+public import LeanVM.Guest.B2C.Cplw.C289_0_0
+public import LeanVM.Guest.B2C.Cplw.C297_0_0
+public import LeanVM.Guest.B2C.Cplw.C305_0_0
+public import LeanVM.Guest.B2C.Cplw.C313_0_0
+public import LeanVM.Guest.B2C.Cplw.C321_0_0
+public import LeanVM.Guest.B2C.Cplw.C329_0_0
+public import LeanVM.Guest.B2C.Cplw.C336_1_0
+public import LeanVM.Guest.B2C.Cplw.C337_0_0
+public import LeanVM.Guest.B2C.Cplw.C337_8_0
+public import LeanVM.Guest.B2C.Cplw.C338_7_0
+public import LeanVM.Guest.B2C.Cplw.C339_5_0
+public import LeanVM.Guest.B2C.Cplw.C340_3_0
+public import LeanVM.Guest.B2C.Cplw.C340_10_1
+public import LeanVM.Guest.B2C.Cplw.C341_7_0
+public import LeanVM.Guest.B2C.Cplw.C342_3_0
+public import LeanVM.Guest.B2C.Cplw.C342_11_0
+public import LeanVM.Guest.B2C.Cplw.C343_7_0
+public import LeanVM.Guest.B2C.Cplw.C344_3_0
+public import LeanVM.Guest.B2C.Cplw.C344_11_0
+public import LeanVM.Guest.B2C.Cplw.C345_5_0
+public import LeanVM.Guest.B2C.Cplw.C345_13_0
+public import LeanVM.Guest.B2C.Cplw.C346_7_0
+public import LeanVM.Guest.B2C.Cplw.C347_0_0
+public import LeanVM.Guest.B2C.Cplw.C353_0_0
+public import LeanVM.Guest.B2C.Cplw.C361_0_0
+public import LeanVM.Guest.B2C.Cplw.C366_3_0
+public import LeanVM.Guest.B2C.Cplw.C373_0_0
+public import LeanVM.Guest.B2C.Cplw.C381_0_0
+public import LeanVM.Guest.B2C.Cplw.C385_2_0
+public import LeanVM.Guest.B2C.Cplw.C392_0_0
 public import LeanVM.Guest.B2C.Cplw.C400_0_0
-public import LeanVM.Guest.B2C.Cplw.C406_1_0
-public import LeanVM.Guest.B2C.Cplw.C413_0_0
-public import LeanVM.Guest.B2C.Cplw.C421_0_0
-public import LeanVM.Guest.B2C.Cplw.C426_1_0
-public import LeanVM.Guest.B2C.Cplw.C433_0_0
-public import LeanVM.Guest.B2C.Cplw.C437_1_0
-public import LeanVM.Guest.B2C.Cplw.C444_0_0
-public import LeanVM.Guest.B2C.Cplw.C449_0_0
-public import LeanVM.Guest.B2C.Cplw.C454_1_0
-public import LeanVM.Guest.B2C.Cplw.C461_0_0
-public import LeanVM.Guest.B2C.Cplw.C469_0_0
-public import LeanVM.Guest.B2C.Cplw.C477_0_0
-public import LeanVM.Guest.B2C.Cplw.C481_1_0
-public import LeanVM.Guest.B2C.Cplw.C487_1_0
-public import LeanVM.Guest.B2C.Cplw.C492_1_0
-public import LeanVM.Guest.B2C.Cplw.C497_0_0
-public import LeanVM.Guest.B2C.Cplw.C501_0_0
-public import LeanVM.Guest.B2C.Cplw.C509_0_0
-public import LeanVM.Guest.B2C.Cplw.C517_0_0
-public import LeanVM.Guest.B2C.Cplw.C524_0_0
-public import LeanVM.Guest.B2C.Cplw.C529_0_0
-public import LeanVM.Guest.B2C.Cplw.C534_0_0
-public import LeanVM.Guest.B2C.Cplw.C539_0_0
-public import LeanVM.Guest.B2C.Cplw.C544_0_0
-public import LeanVM.Guest.B2C.Cplw.C549_0_0
-public import LeanVM.Guest.B2C.Cplw.C557_0_0
-public import LeanVM.Guest.B2C.Cplw.C565_0_0
-public import LeanVM.Guest.B2C.Cplw.C571_0_0
+public import LeanVM.Guest.B2C.Cplw.C408_0_0
+public import LeanVM.Guest.B2C.Cplw.C416_0_0
+public import LeanVM.Guest.B2C.Cplw.C422_0_0
+public import LeanVM.Guest.B2C.Cplw.C429_0_0
+public import LeanVM.Guest.B2C.Cplw.C436_1_0
+public import LeanVM.Guest.B2C.Cplw.C443_0_0
+public import LeanVM.Guest.B2C.Cplw.C451_0_0
+public import LeanVM.Guest.B2C.Cplw.C459_0_0
+public import LeanVM.Guest.B2C.Cplw.C467_0_0
+public import LeanVM.Guest.B2C.Cplw.C471_1_0
+public import LeanVM.Guest.B2C.Cplw.C478_1_0
+public import LeanVM.Guest.B2C.Cplw.C483_0_0
+public import LeanVM.Guest.B2C.Cplw.C489_0_0
+public import LeanVM.Guest.B2C.Cplw.C495_0_0
+public import LeanVM.Guest.B2C.Cplw.C499_0_0
+public import LeanVM.Guest.B2C.Cplw.C507_0_0
+public import LeanVM.Guest.B2C.Cplw.C515_0_0
+public import LeanVM.Guest.B2C.Cplw.C520_0_0
+public import LeanVM.Guest.B2C.Cplw.C526_1_0
+public import LeanVM.Guest.B2C.Cplw.C531_0_0
+public import LeanVM.Guest.B2C.Cplw.C536_0_0
+public import LeanVM.Guest.B2C.Cplw.C540_1_0
+public import LeanVM.Guest.B2C.Cplw.C547_0_0
+public import LeanVM.Guest.B2C.Cplw.C555_0_0
+public import LeanVM.Guest.B2C.Cplw.C561_1_0
+public import LeanVM.Guest.B2C.Cplw.C567_0_0
+public import LeanVM.Guest.B2C.Cplw.C572_0_0
 public import LeanVM.Guest.B2C.Cplw.C577_0_0
-public import LeanVM.Guest.B2C.Cplw.C581_0_0
-public import LeanVM.Guest.B2C.Cplw.C586_0_0
-public import LeanVM.Guest.B2C.Cplw.C591_0_0
-public import LeanVM.Guest.B2C.Cplw.C597_0_0
-public import LeanVM.Guest.B2C.Cplw.C605_0_0
-public import LeanVM.Guest.B2C.Cplw.C613_0_0
-public import LeanVM.Guest.B2C.Cplw.C618_0_0
-public import LeanVM.Guest.B2C.Cplw.C623_1_0
-public import LeanVM.Guest.B2C.Cplw.C628_0_0
-public import LeanVM.Guest.B2C.Cplw.C632_1_0
-public import LeanVM.Guest.B2C.Cplw.C636_1_0
-public import LeanVM.Guest.B2C.Cplw.C644_0_0
-public import LeanVM.Guest.B2C.Cplw.C652_0_0
+public import LeanVM.Guest.B2C.Cplw.C582_0_0
+public import LeanVM.Guest.B2C.Cplw.C587_0_0
+public import LeanVM.Guest.B2C.Cplw.C595_0_0
+public import LeanVM.Guest.B2C.Cplw.C603_0_0
+public import LeanVM.Guest.B2C.Cplw.C607_0_0
+public import LeanVM.Guest.B2C.Cplw.C613_1_0
+public import LeanVM.Guest.B2C.Cplw.C618_1_0
+public import LeanVM.Guest.B2C.Cplw.C623_0_0
+public import LeanVM.Guest.B2C.Cplw.C627_1_0
+public import LeanVM.Guest.B2C.Cplw.C635_0_0
+public import LeanVM.Guest.B2C.Cplw.C643_0_0
+public import LeanVM.Guest.B2C.Cplw.C648_1_0
+public import LeanVM.Guest.B2C.Cplw.C654_0_0
 public import LeanVM.Guest.B2C.Cplw.C659_0_0
-public import LeanVM.Guest.B2C.Cplw.C664_0_0
-public import LeanVM.Guest.B2C.Cplw.C668_0_0
-public import LeanVM.Guest.B2C.Cplw.C673_0_0
-public import LeanVM.Guest.B2C.Cplw.C677_0_0
-public import LeanVM.Guest.B2C.Cplw.C683_0_0
-public import LeanVM.Guest.B2C.Cplw.C691_0_0
-public import LeanVM.Guest.B2C.Cplw.C699_0_0
+public import LeanVM.Guest.B2C.Cplw.C663_1_0
+public import LeanVM.Guest.B2C.Cplw.C667_1_0
+public import LeanVM.Guest.B2C.Cplw.C674_0_0
+public import LeanVM.Guest.B2C.Cplw.C682_0_0
+public import LeanVM.Guest.B2C.Cplw.C689_0_0
+public import LeanVM.Guest.B2C.Cplw.C694_0_0
+public import LeanVM.Guest.B2C.Cplw.C698_1_0
 public import LeanVM.Guest.B2C.Cplw.C703_1_0
-public import LeanVM.Guest.B2C.Cplw.C708_1_0
+public import LeanVM.Guest.B2C.Cplw.C708_0_0
 public import LeanVM.Guest.B2C.Cplw.C713_0_0
-public import LeanVM.Guest.B2C.Cplw.C717_1_0
-public import LeanVM.Guest.B2C.Cplw.C722_0_0
-public import LeanVM.Guest.B2C.Cplw.C730_0_0
-public import LeanVM.Guest.B2C.Cplw.C738_0_0
-public import LeanVM.Guest.B2C.Cplw.C744_0_0
-public import LeanVM.Guest.B2C.Cplw.C749_1_0
-public import LeanVM.Guest.B2C.Cplw.C754_0_0
-public import LeanVM.Guest.B2C.Cplw.C758_0_0
-public import LeanVM.Guest.B2C.Cplw.C762_0_0
-public import LeanVM.Guest.B2C.Cplw.C769_0_0
-public import LeanVM.Guest.B2C.Cplw.C777_0_0
-public import LeanVM.Guest.B2C.Cplw.C784_0_0
-public import LeanVM.Guest.B2C.Cplw.C789_0_0
-public import LeanVM.Guest.B2C.Cplw.C793_1_0
-public import LeanVM.Guest.B2C.Cplw.C798_0_0
-public import LeanVM.Guest.B2C.Cplw.C802_1_0
-public import LeanVM.Guest.B2C.Cplw.C806_1_0
-public import LeanVM.Guest.B2C.Cplw.C814_0_0
-public import LeanVM.Guest.B2C.Cplw.C822_0_0
-public import LeanVM.Guest.B2C.Cplw.C829_1_0
-public import LeanVM.Guest.B2C.Cplw.C834_0_0
-public import LeanVM.Guest.B2C.Cplw.C839_0_0
-public import LeanVM.Guest.B2C.Cplw.C843_1_0
-public import LeanVM.Guest.B2C.Cplw.C848_0_0
-public import LeanVM.Guest.B2C.Cplw.C852_0_0
-public import LeanVM.Guest.B2C.Cplw.C860_0_0
+public import LeanVM.Guest.B2C.Cplw.C721_0_0
+public import LeanVM.Guest.B2C.Cplw.C729_0_0
+public import LeanVM.Guest.B2C.Cplw.C733_0_0
+public import LeanVM.Guest.B2C.Cplw.C738_1_0
+public import LeanVM.Guest.B2C.Cplw.C743_1_0
+public import LeanVM.Guest.B2C.Cplw.C748_0_0
+public import LeanVM.Guest.B2C.Cplw.C752_0_0
+public import LeanVM.Guest.B2C.Cplw.C760_0_0
+public import LeanVM.Guest.B2C.Cplw.C768_0_0
+public import LeanVM.Guest.B2C.Cplw.C773_0_0
+public import LeanVM.Guest.B2C.Cplw.C778_1_0
+public import LeanVM.Guest.B2C.Cplw.C783_0_0
+public import LeanVM.Guest.B2C.Cplw.C787_1_0
+public import LeanVM.Guest.B2C.Cplw.C791_1_0
+public import LeanVM.Guest.B2C.Cplw.C799_0_0
+public import LeanVM.Guest.B2C.Cplw.C807_0_0
+public import LeanVM.Guest.B2C.Cplw.C812_1_0
+public import LeanVM.Guest.B2C.Cplw.C818_0_0
+public import LeanVM.Guest.B2C.Cplw.C823_0_0
+public import LeanVM.Guest.B2C.Cplw.C827_1_0
+public import LeanVM.Guest.B2C.Cplw.C832_0_0
+public import LeanVM.Guest.B2C.Cplw.C836_0_0
+public import LeanVM.Guest.B2C.Cplw.C843_0_0
+public import LeanVM.Guest.B2C.Cplw.C851_0_0
+public import LeanVM.Guest.B2C.Cplw.C858_1_0
+public import LeanVM.Guest.B2C.Cplw.C863_0_0
 public import LeanVM.Guest.B2C.Cplw.C868_0_0
-public import LeanVM.Guest.B2C.Cplw.C875_0_0
-public import LeanVM.Guest.B2C.Cplw.C880_0_0
-public import LeanVM.Guest.B2C.Cplw.C884_1_0
-public import LeanVM.Guest.B2C.Cplw.C889_0_0
-public import LeanVM.Guest.B2C.Cplw.C894_0_0
-public import LeanVM.Guest.B2C.Cplw.C898_0_0
-public import LeanVM.Guest.B2C.Cplw.C904_0_0
-public import LeanVM.Guest.B2C.Cplw.C912_0_0
-public import LeanVM.Guest.B2C.Cplw.C920_0_0
-public import LeanVM.Guest.B2C.Cplw.C928_0_0
-public import LeanVM.Guest.B2C.Cplw.C936_0_0
-public import LeanVM.Guest.B2C.Cplw.C944_0_0
-public import LeanVM.Guest.B2C.Cplw.C952_0_0
-public import LeanVM.Guest.B2C.Cplw.C960_0_0
-public import LeanVM.Guest.B2C.Cplw.C968_0_0
-public import LeanVM.Guest.B2C.Cplw.C976_0_0
-public import LeanVM.Guest.B2C.Cplw.C981_0_0
-public import LeanVM.Guest.B2C.Cplw.C986_0_0
-public import LeanVM.Guest.B2C.Cplw.C992_0_0
-public import LeanVM.Guest.B2C.Cplw.C998_0_0
-public import LeanVM.Guest.B2C.Cplw.C1003_0_0
-public import LeanVM.Guest.B2C.Cplw.C1010_0_0
-public import LeanVM.Guest.B2C.Cplw.C1018_0_0
-public import LeanVM.Guest.B2C.Cplw.C1026_0_0
-public import LeanVM.Guest.B2C.Cplw.C1034_0_0
-public import LeanVM.Guest.B2C.Cplw.C1038_1_0
-public import LeanVM.Guest.B2C.Cplw.C1043_1_0
+public import LeanVM.Guest.B2C.Cplw.C873_0_0
+public import LeanVM.Guest.B2C.Cplw.C877_1_0
+public import LeanVM.Guest.B2C.Cplw.C881_1_0
+public import LeanVM.Guest.B2C.Cplw.C887_0_0
+public import LeanVM.Guest.B2C.Cplw.C895_0_0
+public import LeanVM.Guest.B2C.Cplw.C903_0_0
+public import LeanVM.Guest.B2C.Cplw.C907_1_0
+public import LeanVM.Guest.B2C.Cplw.C913_0_0
+public import LeanVM.Guest.B2C.Cplw.C918_0_0
+public import LeanVM.Guest.B2C.Cplw.C922_1_0
+public import LeanVM.Guest.B2C.Cplw.C927_0_0
+public import LeanVM.Guest.B2C.Cplw.C932_0_0
+public import LeanVM.Guest.B2C.Cplw.C940_0_0
+public import LeanVM.Guest.B2C.Cplw.C948_0_0
+public import LeanVM.Guest.B2C.Cplw.C956_0_0
+public import LeanVM.Guest.B2C.Cplw.C964_0_0
+public import LeanVM.Guest.B2C.Cplw.C972_0_0
+public import LeanVM.Guest.B2C.Cplw.C980_0_0
+public import LeanVM.Guest.B2C.Cplw.C988_0_0
+public import LeanVM.Guest.B2C.Cplw.C996_0_0
+public import LeanVM.Guest.B2C.Cplw.C1004_0_0
+public import LeanVM.Guest.B2C.Cplw.C1010_2_0
+public import LeanVM.Guest.B2C.Cplw.C1014_2_0
+public import LeanVM.Guest.B2C.Cplw.C1020_0_0
+public import LeanVM.Guest.B2C.Cplw.C1025_1_0
+public import LeanVM.Guest.B2C.Cplw.C1032_0_0
+public import LeanVM.Guest.B2C.Cplw.C1037_0_0
+public import LeanVM.Guest.B2C.Cplw.C1042_0_0
+public import LeanVM.Guest.B2C.Cplw.C1047_0_0
 public import LeanVM.Guest.B2C.Cplw.C1051_0_0
-public import LeanVM.Guest.B2C.Cplw.C1059_0_0
-public import LeanVM.Guest.B2C.Cplw.C1067_0_0
-public import LeanVM.Guest.B2C.Cplw.C1075_0_0
-public import LeanVM.Guest.B2C.Cplw.C1080_0_0
-public import LeanVM.Guest.B2C.Cplw.C1087_0_0
-public import LeanVM.Guest.B2C.Cplw.C1095_0_0
-public import LeanVM.Guest.B2C.Cplw.C1103_0_0
-public import LeanVM.Guest.B2C.Cplw.C1111_0_0
-public import LeanVM.Guest.B2C.Cplw.C1116_0_0
-public import LeanVM.Guest.B2C.Cplw.C1123_0_0
-public import LeanVM.Guest.B2C.Cplw.C1131_0_0
-public import LeanVM.Guest.B2C.Cplw.C1139_0_0
-public import LeanVM.Guest.B2C.Cplw.C1147_0_0
+public import LeanVM.Guest.B2C.Cplw.C1057_0_0
+public import LeanVM.Guest.B2C.Cplw.C1064_0_0
+public import LeanVM.Guest.B2C.Cplw.C1071_1_0
+public import LeanVM.Guest.B2C.Cplw.C1077_0_0
+public import LeanVM.Guest.B2C.Cplw.C1082_0_0
+public import LeanVM.Guest.B2C.Cplw.C1086_0_1
+public import LeanVM.Guest.B2C.Cplw.C1090_0_1
+public import LeanVM.Guest.B2C.Cplw.C1096_0_0
+public import LeanVM.Guest.B2C.Cplw.C1100_0_0
+public import LeanVM.Guest.B2C.Cplw.C1108_0_0
+public import LeanVM.Guest.B2C.Cplw.C1113_0_0
+public import LeanVM.Guest.B2C.Cplw.C1120_0_0
+public import LeanVM.Guest.B2C.Cplw.C1124_0_0
+public import LeanVM.Guest.B2C.Cplw.C1128_0_0
+public import LeanVM.Guest.B2C.Cplw.C1132_0_0
+public import LeanVM.Guest.B2C.Cplw.C1136_0_0
+public import LeanVM.Guest.B2C.Cplw.C1140_0_0
+public import LeanVM.Guest.B2C.Cplw.C1148_0_0
 public import LeanVM.Guest.B2C.Cplw.C1153_0_0
-public import LeanVM.Guest.B2C.Cplw.C1159_0_0
+public import LeanVM.Guest.B2C.Cplw.C1160_0_0
+public import LeanVM.Guest.B2C.Cplw.C1164_0_0
 public import LeanVM.Guest.B2C.Cplw.C1167_0_0
-public import LeanVM.Guest.B2C.Cplw.C1175_0_0
-public import LeanVM.Guest.B2C.Cplw.C1183_0_0
-public import LeanVM.Guest.B2C.Cplw.C1191_0_0
-public import LeanVM.Guest.B2C.Cplw.C1191_8_0
-public import LeanVM.Guest.B2C.Cplw.C1193_0_0
-public import LeanVM.Guest.B2C.Cplw.C1197_1_0
-public import LeanVM.Guest.B2C.Cplw.C1205_0_0
+public import LeanVM.Guest.B2C.Cplw.C1170_0_1
+public import LeanVM.Guest.B2C.Cplw.C1174_0_0
+public import LeanVM.Guest.B2C.Cplw.C1178_0_0
+public import LeanVM.Guest.B2C.Cplw.C1182_0_0
+public import LeanVM.Guest.B2C.Cplw.C1190_0_0
+public import LeanVM.Guest.B2C.Cplw.C1195_0_0
+public import LeanVM.Guest.B2C.Cplw.C1201_0_0
+public import LeanVM.Guest.B2C.Cplw.C1205_0_1
+public import LeanVM.Guest.B2C.Cplw.C1209_0_0
 public import LeanVM.Guest.B2C.Cplw.C1213_0_0
-public import LeanVM.Guest.B2C.Cplw.C1221_0_0
+public import LeanVM.Guest.B2C.Cplw.C1217_0_0
+public import LeanVM.Guest.B2C.Cplw.C1222_0_0
 public import LeanVM.Guest.B2C.Cplw.C1229_0_0
-public import LeanVM.Guest.B2C.Cplw.C1234_0_0
-public import LeanVM.Guest.B2C.Cplw.C1241_0_0
+public import LeanVM.Guest.B2C.Cplw.C1236_1_0
+public import LeanVM.Guest.B2C.Cplw.C1236_9_0
+public import LeanVM.Guest.B2C.Cplw.C1238_1_0
+public import LeanVM.Guest.B2C.Cplw.C1244_0_0
 public import LeanVM.Guest.B2C.Cplw.C1249_0_0
-public import LeanVM.Guest.B2C.Cplw.C1257_0_0
-public import LeanVM.Guest.B2C.Cplw.C1265_0_0
-public import LeanVM.Guest.B2C.Cplw.C1270_1_0
-public import LeanVM.Guest.B2C.Cplw.C1277_0_0
+public import LeanVM.Guest.B2C.Cplw.C1251_0_1
+public import LeanVM.Guest.B2C.Cplw.C1255_0_0
+public import LeanVM.Guest.B2C.Cplw.C1259_0_0
+public import LeanVM.Guest.B2C.Cplw.C1263_0_0
+public import LeanVM.Guest.B2C.Cplw.C1266_0_0
+public import LeanVM.Guest.B2C.Cplw.C1272_0_0
+public import LeanVM.Guest.B2C.Cplw.C1280_0_0
 public import LeanVM.Guest.B2C.Cplw.C1285_0_0
-public import LeanVM.Guest.B2C.Cplw.C1293_0_0
-public import LeanVM.Guest.B2C.Cplw.C1301_0_0
+public import LeanVM.Guest.B2C.Cplw.C1291_0_0
+public import LeanVM.Guest.B2C.Cplw.C1295_0_1
+public import LeanVM.Guest.B2C.Cplw.C1299_0_0
+public import LeanVM.Guest.B2C.Cplw.C1302_0_0
 public import LeanVM.Guest.B2C.Cplw.C1307_0_0
-public import LeanVM.Guest.B2C.Cplw.C1313_0_0
-public import LeanVM.Guest.B2C.Cplw.C1321_0_0
-public import LeanVM.Guest.B2C.Cplw.C1329_0_0
-public import LeanVM.Guest.B2C.Cplw.C1337_0_0
-public import LeanVM.Guest.B2C.Cplw.C1345_0_0
-public import LeanVM.Guest.B2C.Cplw.C1349_2_0
-public import LeanVM.Guest.B2C.Cplw.C1356_0_0
-public import LeanVM.Guest.B2C.Cplw.C1364_0_0
-public import LeanVM.Guest.B2C.Cplw.C1372_0_0
-public import LeanVM.Guest.B2C.Cplw.C1380_0_0
-public import LeanVM.Guest.B2C.Cplw.C1388_0_0
-public import LeanVM.Guest.B2C.Cplw.C1394_0_0
-public import LeanVM.Guest.B2C.Cplw.C1401_0_0
-public import LeanVM.Guest.B2C.Cplw.C1409_0_0
-public import LeanVM.Guest.B2C.Cplw.C1417_0_0
-public import LeanVM.Guest.B2C.Cplw.C1425_0_0
-public import LeanVM.Guest.B2C.Cplw.C1433_0_0
-public import LeanVM.Guest.B2C.Cplw.C1439_2_0
-public import LeanVM.Guest.B2C.Cplw.C1441_3_0
-public import LeanVM.Guest.B2C.Cplw.C1444_0_0
-public import LeanVM.Guest.B2C.Cplw.C1447_0_0
-public import LeanVM.Guest.B2C.Cplw.C1449_2_0
-public import LeanVM.Guest.B2C.Cplw.C1453_2_0
-public import LeanVM.Guest.B2C.Cplw.C1459_2_0
-public import LeanVM.Guest.B2C.Cplw.C1461_3_0
-public import LeanVM.Guest.B2C.Cplw.C1464_0_0
-public import LeanVM.Guest.B2C.Cplw.C1467_0_0
-public import LeanVM.Guest.B2C.Cplw.C1472_1_0
-public import LeanVM.Guest.B2C.Cplw.C1474_1_0
+public import LeanVM.Guest.B2C.Cplw.C1310_0_0
+public import LeanVM.Guest.B2C.Cplw.C1315_0_0
+public import LeanVM.Guest.B2C.Cplw.C1323_0_0
+public import LeanVM.Guest.B2C.Cplw.C1328_0_0
+public import LeanVM.Guest.B2C.Cplw.C1334_0_0
+public import LeanVM.Guest.B2C.Cplw.C1338_0_1
+public import LeanVM.Guest.B2C.Cplw.C1342_0_0
+public import LeanVM.Guest.B2C.Cplw.C1344_0_1
+public import LeanVM.Guest.B2C.Cplw.C1348_0_1
+public import LeanVM.Guest.B2C.Cplw.C1351_0_0
+public import LeanVM.Guest.B2C.Cplw.C1355_0_0
+public import LeanVM.Guest.B2C.Cplw.C1361_0_0
+public import LeanVM.Guest.B2C.Cplw.C1368_1_0
+public import LeanVM.Guest.B2C.Cplw.C1373_1_0
+public import LeanVM.Guest.B2C.Cplw.C1379_1_0
+public import LeanVM.Guest.B2C.Cplw.C1383_1_0
+public import LeanVM.Guest.B2C.Cplw.C1387_0_0
+public import LeanVM.Guest.B2C.Cplw.C1389_0_1
+public import LeanVM.Guest.B2C.Cplw.C1393_0_0
+public import LeanVM.Guest.B2C.Cplw.C1396_0_0
+public import LeanVM.Guest.B2C.Cplw.C1400_0_0
+public import LeanVM.Guest.B2C.Cplw.C1404_0_0
+public import LeanVM.Guest.B2C.Cplw.C1410_0_0
+public import LeanVM.Guest.B2C.Cplw.C1418_0_0
+public import LeanVM.Guest.B2C.Cplw.C1423_0_0
+public import LeanVM.Guest.B2C.Cplw.C1428_1_0
+public import LeanVM.Guest.B2C.Cplw.C1432_1_0
+public import LeanVM.Guest.B2C.Cplw.C1435_0_0
+public import LeanVM.Guest.B2C.Cplw.C1438_0_1
+public import LeanVM.Guest.B2C.Cplw.C1442_0_0
+public import LeanVM.Guest.B2C.Cplw.C1445_0_0
+public import LeanVM.Guest.B2C.Cplw.C1449_0_0
+public import LeanVM.Guest.B2C.Cplw.C1453_0_0
+public import LeanVM.Guest.B2C.Cplw.C1459_0_0
+public import LeanVM.Guest.B2C.Cplw.C1466_0_0
+public import LeanVM.Guest.B2C.Cplw.C1471_0_0
+public import LeanVM.Guest.B2C.Cplw.C1477_0_0
 public import LeanVM.Guest.B2C.Cplw.C1480_1_0
-public import LeanVM.Guest.B2C.Cplw.C1482_1_0
+public import LeanVM.Guest.B2C.Cplw.C1483_0_0
 public import LeanVM.Guest.B2C.Cplw.C1486_0_0
-public import LeanVM.Guest.B2C.Cplw.C1490_1_0
-public import LeanVM.Guest.B2C.Cplw.C1492_1_0
-public import LeanVM.Guest.B2C.Cplw.C1496_3_0
-public import LeanVM.Guest.B2C.Cplw.C1498_3_0
-public import LeanVM.Guest.B2C.Cplw.C1501_0_0
-public import LeanVM.Guest.B2C.Cplw.C1504_2_0
-public import LeanVM.Guest.B2C.Cplw.C1506_2_0
-public import LeanVM.Guest.B2C.Cplw.C1510_1_0
-public import LeanVM.Guest.B2C.Cplw.C1512_1_0
-public import LeanVM.Guest.B2C.Cplw.C1516_0_0
+public import LeanVM.Guest.B2C.Cplw.C1488_0_1
+public import LeanVM.Guest.B2C.Cplw.C1492_0_0
+public import LeanVM.Guest.B2C.Cplw.C1495_0_0
+public import LeanVM.Guest.B2C.Cplw.C1499_0_0
+public import LeanVM.Guest.B2C.Cplw.C1503_0_0
+public import LeanVM.Guest.B2C.Cplw.C1508_2_0
+public import LeanVM.Guest.B2C.Cplw.C1511_0_0
+public import LeanVM.Guest.B2C.Cplw.C1513_1_0
+public import LeanVM.Guest.B2C.Cplw.C1515_2_0
 public import LeanVM.Guest.B2C.Cplw.C1518_0_0
-public import LeanVM.Guest.B2C.Cplw.C1521_3_0
-public import LeanVM.Guest.B2C.Cplw.C1523_2_0
-public import LeanVM.Guest.B2C.Cplw.C1525_1_0
-public import LeanVM.Guest.B2C.Cplw.C1528_4_0
-public import LeanVM.Guest.B2C.Cplw.C1531_0_0
-public import LeanVM.Guest.B2C.Cplw.C1534_1_0
+public import LeanVM.Guest.B2C.Cplw.C1520_2_0
+public import LeanVM.Guest.B2C.Cplw.C1523_1_0
+public import LeanVM.Guest.B2C.Cplw.C1525_3_0
+public import LeanVM.Guest.B2C.Cplw.C1528_0_0
+public import LeanVM.Guest.B2C.Cplw.C1530_2_0
+public import LeanVM.Guest.B2C.Cplw.C1533_1_0
+public import LeanVM.Guest.B2C.Cplw.C1535_1_0
+public import LeanVM.Guest.B2C.Cplw.C1537_2_0
+public import LeanVM.Guest.B2C.Cplw.C1540_1_0
+public import LeanVM.Guest.B2C.Cplw.C1542_2_0
+public import LeanVM.Guest.B2C.Cplw.C1544_2_0
+public import LeanVM.Guest.B2C.Cplw.C1547_1_0
+public import LeanVM.Guest.B2C.Cplw.C1549_3_0
+public import LeanVM.Guest.B2C.Cplw.C1551_3_0
+public import LeanVM.Guest.B2C.Cplw.C1554_1_0
+public import LeanVM.Guest.B2C.Cplw.C1556_3_0
+public import LeanVM.Guest.B2C.Cplw.C1558_3_0
+public import LeanVM.Guest.B2C.Cplw.C1561_1_0
+public import LeanVM.Guest.B2C.Cplw.C1563_3_0
+public import LeanVM.Guest.B2C.Cplw.C1565_3_0
+public import LeanVM.Guest.B2C.Cplw.C1568_1_0
+public import LeanVM.Guest.B2C.Cplw.C1570_3_0
+public import LeanVM.Guest.B2C.Cplw.C1572_3_0
+public import LeanVM.Guest.B2C.Cplw.C1575_1_0
+public import LeanVM.Guest.B2C.Cplw.C1577_3_0
+public import LeanVM.Guest.B2C.Cplw.C1579_2_0
+public import LeanVM.Guest.B2C.Cplw.C1582_0_0
+public import LeanVM.Guest.B2C.Cplw.C1584_2_0
+public import LeanVM.Guest.B2C.Cplw.C1586_1_0
+public import LeanVM.Guest.B2C.Cplw.C1588_2_0
+public import LeanVM.Guest.B2C.Cplw.C1591_1_0
+public import LeanVM.Guest.B2C.Cplw.C1593_0_0
+public import LeanVM.Guest.B2C.Cplw.C1595_1_0
+public import LeanVM.Guest.B2C.Cplw.C1598_0_0
+public import LeanVM.Guest.B2C.Cplw.C1601_1_0
+public import LeanVM.Guest.B2C.Cplw.D37_1_0
+public import LeanVM.Guest.B2C.Cplw.E37_1
+public import LeanVM.Guest.B2C.Cplw.D37_2_0
+public import LeanVM.Guest.B2C.Cplw.E37_2
+public import LeanVM.Guest.B2C.Cplw.D37_3_0
+public import LeanVM.Guest.B2C.Cplw.E37_3
+public import LeanVM.Guest.B2C.Cplw.D37_4_0
+public import LeanVM.Guest.B2C.Cplw.E37_4
+public import LeanVM.Guest.B2C.Cplw.D37_5_0
+public import LeanVM.Guest.B2C.Cplw.E37_5
+public import LeanVM.Guest.B2C.Cplw.D37_6_0
+public import LeanVM.Guest.B2C.Cplw.E37_6
+public import LeanVM.Guest.B2C.Cplw.D37_7_0
+public import LeanVM.Guest.B2C.Cplw.E37_7
+public import LeanVM.Guest.B2C.Cplw.D37_8_0
+public import LeanVM.Guest.B2C.Cplw.E37_8
+public import LeanVM.Guest.B2C.Cplw.D37_9_0
+public import LeanVM.Guest.B2C.Cplw.E37_9
+public import LeanVM.Guest.B2C.Cplw.D37_10_0
+public import LeanVM.Guest.B2C.Cplw.E37_10
+public import LeanVM.Guest.B2C.Cplw.D37_11_0
+public import LeanVM.Guest.B2C.Cplw.E37_11
+public import LeanVM.Guest.B2C.Cplw.D37_12_0
+public import LeanVM.Guest.B2C.Cplw.E37_12
+public import LeanVM.Guest.B2C.Cplw.D37_13_0
+public import LeanVM.Guest.B2C.Cplw.E37_13
+public import LeanVM.Guest.B2C.Cplw.D37_14_0
+public import LeanVM.Guest.B2C.Cplw.E37_14
+public import LeanVM.Guest.B2C.Cplw.D37_15_0
+public import LeanVM.Guest.B2C.Cplw.E37_15
 public import LeanVM.Guest.B2C.Cplw.D37_17_0
-public import LeanVM.Guest.B2C.Cplw.D37_17_8
 public import LeanVM.Guest.B2C.Cplw.E37_17
 public import LeanVM.Guest.B2C.Cplw.D37_19_0
-public import LeanVM.Guest.B2C.Cplw.D37_19_8
 public import LeanVM.Guest.B2C.Cplw.E37_19
+public import LeanVM.Guest.B2C.Cplw.D37_21_0
+public import LeanVM.Guest.B2C.Cplw.E37_21
+public import LeanVM.Guest.B2C.Cplw.D37_22_0
+public import LeanVM.Guest.B2C.Cplw.E37_22
+public import LeanVM.Guest.B2C.Cplw.D37_23_0
+public import LeanVM.Guest.B2C.Cplw.E37_23
+public import LeanVM.Guest.B2C.Cplw.D37_24_0
+public import LeanVM.Guest.B2C.Cplw.E37_24
+public import LeanVM.Guest.B2C.Cplw.D37_25_0
+public import LeanVM.Guest.B2C.Cplw.E37_25
+public import LeanVM.Guest.B2C.Cplw.D37_26_0
+public import LeanVM.Guest.B2C.Cplw.E37_26
+public import LeanVM.Guest.B2C.Cplw.D37_27_0
+public import LeanVM.Guest.B2C.Cplw.E37_27
+public import LeanVM.Guest.B2C.Cplw.D37_28_0
+public import LeanVM.Guest.B2C.Cplw.E37_28
+public import LeanVM.Guest.B2C.Cplw.D37_29_0
+public import LeanVM.Guest.B2C.Cplw.E37_29
+public import LeanVM.Guest.B2C.Cplw.D37_30_0
+public import LeanVM.Guest.B2C.Cplw.E37_30
+public import LeanVM.Guest.B2C.Cplw.D37_31_0
+public import LeanVM.Guest.B2C.Cplw.E37_31
+public import LeanVM.Guest.B2C.Cplw.D37_32_0
+public import LeanVM.Guest.B2C.Cplw.E37_32
+public import LeanVM.Guest.B2C.Cplw.D37_33_0
+public import LeanVM.Guest.B2C.Cplw.E37_33
+public import LeanVM.Guest.B2C.Cplw.D37_34_0
+public import LeanVM.Guest.B2C.Cplw.E37_34
+public import LeanVM.Guest.B2C.Cplw.D37_35_0
+public import LeanVM.Guest.B2C.Cplw.E37_35
 public import LeanVM.Guest.B2C.Cplw.D37_37_0
-public import LeanVM.Guest.B2C.Cplw.D37_37_8
 public import LeanVM.Guest.B2C.Cplw.E37_37
 public import LeanVM.Guest.B2C.Cplw.D37_39_0
-public import LeanVM.Guest.B2C.Cplw.D37_39_8
 public import LeanVM.Guest.B2C.Cplw.E37_39
 
 namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
+
+theorem ok2 : CplOk 2 := by
+  intro i hi k hk
+  have hc : (certOf 2).cuts.length = 7 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 2 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw2_0_0
+  · have hn : nParts 2 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw2_1_0
+  · have hn : nParts 2 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw2_2_0
+  · have hn : nParts 2 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw2_3_0
+  · have hn : nParts 2 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw2_4_0
+  · have hn : nParts 2 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw2_5_0
+  · have hn : nParts 2 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw2_6_0
+  · have hn : nParts 2 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw2_7_0
 
 theorem ok12 : CplOk 12 := by
   intro i hi k hk
@@ -403,11 +525,10 @@ theorem ok13 : CplOk 13 := by
     rw [hn] at hk
     interval_cases k
     · exact cw13_4_0
-  · have hn : nParts 13 5 = 2 := by decide +kernel
+  · have hn : nParts 13 5 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw13_5_0
-    · exact cw13_5_1
 
 theorem ok18 : CplOk 18 := by
   intro i hi k hk
@@ -422,31 +543,33 @@ theorem ok18 : CplOk 18 := by
     rw [hn] at hk
     interval_cases k
     · exact cw18_1_0
-  · have hn : nParts 18 2 = 3 := by decide +kernel
+  · have hn : nParts 18 2 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw18_2_0
     · exact cw18_2_1
-    · exact cw18_2_2
 
 theorem ok19 : CplOk 19 := by
   intro i hi k hk
-  have hc : (certOf 19).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 19).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 19 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw19_0_0
-  · have hn : nParts 19 1 = 2 := by decide +kernel
+  · have hn : nParts 19 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw19_1_0
-    · exact cw19_1_1
   · have hn : nParts 19 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw19_2_0
+  · have hn : nParts 19 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw19_3_0
 
 theorem ok20 : CplOk 20 := by
   intro i hi k hk
@@ -649,6 +772,20 @@ theorem ok21 : CplOk 21 := by
     interval_cases k
     · exact cw21_25_0
 
+theorem ok31 : CplOk 31 := by
+  intro i hi k hk
+  have hc : (certOf 31).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 31 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw31_0_0
+  · have hn : nParts 31 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw31_1_0
+
 theorem ok37 : CplOk 37 := by
   intro i hi k hk
   have hc : (certOf 37).cuts.length = 40 := by decide +kernel
@@ -819,360 +956,69 @@ theorem ok37 : CplOk 37 := by
     interval_cases k
     · exact cw37_40_0
 
-theorem ok307 : CplOk 307 := by
+theorem ok267 : CplOk 267 := by
   intro i hi k hk
-  have hc : (certOf 307).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 267).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 307 0 = 1 := by decide +kernel
+  · have hn : nParts 267 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw307_0_0
-  · have hn : nParts 307 1 = 1 := by decide +kernel
+    · exact cw267_0_0
+  · have hn : nParts 267 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw307_1_0
-  · have hn : nParts 307 2 = 1 := by decide +kernel
+    · exact cw267_1_0
+  · have hn : nParts 267 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw307_2_0
-  · have hn : nParts 307 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw307_3_0
-  · have hn : nParts 307 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw307_4_0
+    · exact cw267_2_0
 
-theorem ok308 : CplOk 308 := by
+theorem ok336 : CplOk 336 := by
   intro i hi k hk
-  have hc : (certOf 308).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 336).cuts.length = 8 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 308 0 = 1 := by decide +kernel
+  · have hn : nParts 336 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw308_0_0
-  · have hn : nParts 308 1 = 1 := by decide +kernel
+    · exact cw336_0_0
+  · have hn : nParts 336 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw308_1_0
-  · have hn : nParts 308 2 = 1 := by decide +kernel
+    · exact cw336_1_0
+  · have hn : nParts 336 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw308_2_0
-  · have hn : nParts 308 3 = 1 := by decide +kernel
+    · exact cw336_2_0
+  · have hn : nParts 336 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw308_3_0
-  · have hn : nParts 308 4 = 1 := by decide +kernel
+    · exact cw336_3_0
+  · have hn : nParts 336 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw308_4_0
-
-theorem ok309 : CplOk 309 := by
-  intro i hi k hk
-  have hc : (certOf 309).cuts.length = 4 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 309 0 = 1 := by decide +kernel
+    · exact cw336_4_0
+  · have hn : nParts 336 5 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw309_0_0
-  · have hn : nParts 309 1 = 1 := by decide +kernel
+    · exact cw336_5_0
+  · have hn : nParts 336 6 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw309_1_0
-  · have hn : nParts 309 2 = 1 := by decide +kernel
+    · exact cw336_6_0
+  · have hn : nParts 336 7 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw309_2_0
-  · have hn : nParts 309 3 = 1 := by decide +kernel
+    · exact cw336_7_0
+  · have hn : nParts 336 8 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw309_3_0
-  · have hn : nParts 309 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw309_4_0
-
-theorem ok310 : CplOk 310 := by
-  intro i hi k hk
-  have hc : (certOf 310).cuts.length = 4 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 310 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw310_0_0
-  · have hn : nParts 310 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw310_1_0
-  · have hn : nParts 310 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw310_2_0
-  · have hn : nParts 310 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw310_3_0
-  · have hn : nParts 310 4 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw310_4_0
-    · exact cw310_4_1
-
-theorem ok311 : CplOk 311 := by
-  intro i hi k hk
-  have hc : (certOf 311).cuts.length = 5 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 311 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw311_0_0
-  · have hn : nParts 311 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw311_1_0
-  · have hn : nParts 311 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw311_2_0
-  · have hn : nParts 311 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw311_3_0
-  · have hn : nParts 311 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw311_4_0
-  · have hn : nParts 311 5 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw311_5_0
-    · exact cw311_5_1
-
-theorem ok312 : CplOk 312 := by
-  intro i hi k hk
-  have hc : (certOf 312).cuts.length = 5 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 312 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw312_0_0
-  · have hn : nParts 312 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw312_1_0
-  · have hn : nParts 312 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw312_2_0
-  · have hn : nParts 312 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw312_3_0
-  · have hn : nParts 312 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw312_4_0
-  · have hn : nParts 312 5 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw312_5_0
-    · exact cw312_5_1
-
-theorem ok313 : CplOk 313 := by
-  intro i hi k hk
-  have hc : (certOf 313).cuts.length = 6 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 313 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw313_0_0
-  · have hn : nParts 313 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw313_1_0
-  · have hn : nParts 313 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw313_2_0
-  · have hn : nParts 313 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw313_3_0
-  · have hn : nParts 313 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw313_4_0
-  · have hn : nParts 313 5 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw313_5_0
-  · have hn : nParts 313 6 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw313_6_0
-
-theorem ok314 : CplOk 314 := by
-  intro i hi k hk
-  have hc : (certOf 314).cuts.length = 6 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 314 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw314_0_0
-  · have hn : nParts 314 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw314_1_0
-  · have hn : nParts 314 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw314_2_0
-  · have hn : nParts 314 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw314_3_0
-  · have hn : nParts 314 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw314_4_0
-  · have hn : nParts 314 5 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw314_5_0
-  · have hn : nParts 314 6 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw314_6_0
-
-theorem ok315 : CplOk 315 := by
-  intro i hi k hk
-  have hc : (certOf 315).cuts.length = 7 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 315 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw315_0_0
-  · have hn : nParts 315 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw315_1_0
-  · have hn : nParts 315 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw315_2_0
-  · have hn : nParts 315 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw315_3_0
-  · have hn : nParts 315 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw315_4_0
-  · have hn : nParts 315 5 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw315_5_0
-  · have hn : nParts 315 6 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw315_6_0
-    · exact cw315_6_1
-  · have hn : nParts 315 7 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw315_7_0
-
-theorem ok316 : CplOk 316 := by
-  intro i hi k hk
-  have hc : (certOf 316).cuts.length = 7 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 316 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw316_0_0
-  · have hn : nParts 316 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw316_1_0
-  · have hn : nParts 316 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw316_2_0
-  · have hn : nParts 316 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw316_3_0
-  · have hn : nParts 316 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw316_4_0
-  · have hn : nParts 316 5 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw316_5_0
-  · have hn : nParts 316 6 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw316_6_0
-    · exact cw316_6_1
-  · have hn : nParts 316 7 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw316_7_0
-
-theorem ok317 : CplOk 317 := by
-  intro i hi k hk
-  have hc : (certOf 317).cuts.length = 7 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 317 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw317_0_0
-  · have hn : nParts 317 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw317_1_0
-  · have hn : nParts 317 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw317_2_0
-  · have hn : nParts 317 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw317_3_0
-  · have hn : nParts 317 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw317_4_0
-  · have hn : nParts 317 5 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw317_5_0
-  · have hn : nParts 317 6 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw317_6_0
-  · have hn : nParts 317 7 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw317_7_0
+    · exact cw336_8_0
 
 theorem ok337 : CplOk 337 := by
   intro i hi k hk
-  have hc : (certOf 337).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 337).cuts.length = 8 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 337 0 = 1 := by decide +kernel
@@ -1187,177 +1033,749 @@ theorem ok337 : CplOk 337 := by
     rw [hn] at hk
     interval_cases k
     · exact cw337_2_0
-  · have hn : nParts 337 3 = 2 := by decide +kernel
+  · have hn : nParts 337 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw337_3_0
-    · exact cw337_3_1
+  · have hn : nParts 337 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw337_4_0
+  · have hn : nParts 337 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw337_5_0
+  · have hn : nParts 337 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw337_6_0
+  · have hn : nParts 337 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw337_7_0
+  · have hn : nParts 337 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw337_8_0
 
-theorem ok356 : CplOk 356 := by
+theorem ok338 : CplOk 338 := by
   intro i hi k hk
-  have hc : (certOf 356).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 338).cuts.length = 8 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 356 0 = 1 := by decide +kernel
+  · have hn : nParts 338 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw356_0_0
-  · have hn : nParts 356 1 = 1 := by decide +kernel
+    · exact cw338_0_0
+  · have hn : nParts 338 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw356_1_0
-  · have hn : nParts 356 2 = 1 := by decide +kernel
+    · exact cw338_1_0
+  · have hn : nParts 338 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw356_2_0
-  · have hn : nParts 356 3 = 1 := by decide +kernel
+    · exact cw338_2_0
+  · have hn : nParts 338 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw356_3_0
+    · exact cw338_3_0
+  · have hn : nParts 338 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw338_4_0
+  · have hn : nParts 338 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw338_5_0
+  · have hn : nParts 338 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw338_6_0
+  · have hn : nParts 338 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw338_7_0
+  · have hn : nParts 338 8 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw338_8_0
+    · exact cw338_8_1
 
-theorem ok406 : CplOk 406 := by
+theorem ok339 : CplOk 339 := by
   intro i hi k hk
-  have hc : (certOf 406).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 339).cuts.length = 9 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 406 0 = 1 := by decide +kernel
+  · have hn : nParts 339 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw406_0_0
-  · have hn : nParts 406 1 = 1 := by decide +kernel
+    · exact cw339_0_0
+  · have hn : nParts 339 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw406_1_0
-  · have hn : nParts 406 2 = 1 := by decide +kernel
+    · exact cw339_1_0
+  · have hn : nParts 339 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw406_2_0
+    · exact cw339_2_0
+  · have hn : nParts 339 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw339_3_0
+  · have hn : nParts 339 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw339_4_0
+  · have hn : nParts 339 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw339_5_0
+  · have hn : nParts 339 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw339_6_0
+  · have hn : nParts 339 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw339_7_0
+  · have hn : nParts 339 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw339_8_0
+  · have hn : nParts 339 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw339_9_0
 
-theorem ok426 : CplOk 426 := by
+theorem ok340 : CplOk 340 := by
   intro i hi k hk
-  have hc : (certOf 426).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 340).cuts.length = 10 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 426 0 = 1 := by decide +kernel
+  · have hn : nParts 340 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw426_0_0
-  · have hn : nParts 426 1 = 1 := by decide +kernel
+    · exact cw340_0_0
+  · have hn : nParts 340 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw426_1_0
+    · exact cw340_1_0
+  · have hn : nParts 340 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw340_2_0
+  · have hn : nParts 340 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw340_3_0
+  · have hn : nParts 340 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw340_4_0
+  · have hn : nParts 340 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw340_5_0
+  · have hn : nParts 340 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw340_6_0
+  · have hn : nParts 340 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw340_7_0
+  · have hn : nParts 340 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw340_8_0
+  · have hn : nParts 340 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw340_9_0
+  · have hn : nParts 340 10 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw340_10_0
+    · exact cw340_10_1
 
-theorem ok437 : CplOk 437 := by
+theorem ok341 : CplOk 341 := by
   intro i hi k hk
-  have hc : (certOf 437).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 341).cuts.length = 11 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 437 0 = 1 := by decide +kernel
+  · have hn : nParts 341 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw437_0_0
-  · have hn : nParts 437 1 = 1 := by decide +kernel
+    · exact cw341_0_0
+  · have hn : nParts 341 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw437_1_0
+    · exact cw341_1_0
+  · have hn : nParts 341 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_2_0
+  · have hn : nParts 341 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_3_0
+  · have hn : nParts 341 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_4_0
+  · have hn : nParts 341 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_5_0
+  · have hn : nParts 341 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_6_0
+  · have hn : nParts 341 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_7_0
+  · have hn : nParts 341 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_8_0
+  · have hn : nParts 341 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_9_0
+  · have hn : nParts 341 10 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_10_0
+  · have hn : nParts 341 11 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw341_11_0
 
-theorem ok454 : CplOk 454 := by
+theorem ok342 : CplOk 342 := by
   intro i hi k hk
-  have hc : (certOf 454).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 342).cuts.length = 11 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 454 0 = 1 := by decide +kernel
+  · have hn : nParts 342 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw454_0_0
-  · have hn : nParts 454 1 = 1 := by decide +kernel
+    · exact cw342_0_0
+  · have hn : nParts 342 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw454_1_0
+    · exact cw342_1_0
+  · have hn : nParts 342 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_2_0
+  · have hn : nParts 342 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_3_0
+  · have hn : nParts 342 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_4_0
+  · have hn : nParts 342 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_5_0
+  · have hn : nParts 342 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_6_0
+  · have hn : nParts 342 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_7_0
+  · have hn : nParts 342 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_8_0
+  · have hn : nParts 342 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_9_0
+  · have hn : nParts 342 10 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_10_0
+  · have hn : nParts 342 11 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw342_11_0
 
-theorem ok481 : CplOk 481 := by
+theorem ok343 : CplOk 343 := by
   intro i hi k hk
-  have hc : (certOf 481).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 343).cuts.length = 11 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 481 0 = 1 := by decide +kernel
+  · have hn : nParts 343 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw481_0_0
-  · have hn : nParts 481 1 = 1 := by decide +kernel
+    · exact cw343_0_0
+  · have hn : nParts 343 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw481_1_0
+    · exact cw343_1_0
+  · have hn : nParts 343 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_2_0
+  · have hn : nParts 343 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_3_0
+  · have hn : nParts 343 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_4_0
+  · have hn : nParts 343 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_5_0
+  · have hn : nParts 343 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_6_0
+  · have hn : nParts 343 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_7_0
+  · have hn : nParts 343 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_8_0
+  · have hn : nParts 343 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_9_0
+  · have hn : nParts 343 10 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_10_0
+  · have hn : nParts 343 11 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw343_11_0
 
-theorem ok487 : CplOk 487 := by
+theorem ok344 : CplOk 344 := by
   intro i hi k hk
-  have hc : (certOf 487).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 344).cuts.length = 13 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 487 0 = 1 := by decide +kernel
+  · have hn : nParts 344 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw487_0_0
-  · have hn : nParts 487 1 = 1 := by decide +kernel
+    · exact cw344_0_0
+  · have hn : nParts 344 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw487_1_0
+    · exact cw344_1_0
+  · have hn : nParts 344 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_2_0
+  · have hn : nParts 344 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_3_0
+  · have hn : nParts 344 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_4_0
+  · have hn : nParts 344 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_5_0
+  · have hn : nParts 344 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_6_0
+  · have hn : nParts 344 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_7_0
+  · have hn : nParts 344 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_8_0
+  · have hn : nParts 344 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_9_0
+  · have hn : nParts 344 10 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_10_0
+  · have hn : nParts 344 11 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_11_0
+  · have hn : nParts 344 12 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_12_0
+  · have hn : nParts 344 13 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw344_13_0
 
-theorem ok492 : CplOk 492 := by
+theorem ok345 : CplOk 345 := by
   intro i hi k hk
-  have hc : (certOf 492).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 345).cuts.length = 13 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 492 0 = 1 := by decide +kernel
+  · have hn : nParts 345 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw492_0_0
-  · have hn : nParts 492 1 = 1 := by decide +kernel
+    · exact cw345_0_0
+  · have hn : nParts 345 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw492_1_0
+    · exact cw345_1_0
+  · have hn : nParts 345 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_2_0
+  · have hn : nParts 345 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_3_0
+  · have hn : nParts 345 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_4_0
+  · have hn : nParts 345 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_5_0
+  · have hn : nParts 345 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_6_0
+  · have hn : nParts 345 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_7_0
+  · have hn : nParts 345 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_8_0
+  · have hn : nParts 345 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_9_0
+  · have hn : nParts 345 10 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_10_0
+  · have hn : nParts 345 11 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_11_0
+  · have hn : nParts 345 12 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_12_0
+  · have hn : nParts 345 13 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw345_13_0
 
-theorem ok623 : CplOk 623 := by
+theorem ok346 : CplOk 346 := by
   intro i hi k hk
-  have hc : (certOf 623).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 346).cuts.length = 13 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 623 0 = 1 := by decide +kernel
+  · have hn : nParts 346 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw623_0_0
-  · have hn : nParts 623 1 = 1 := by decide +kernel
+    · exact cw346_0_0
+  · have hn : nParts 346 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw623_1_0
+    · exact cw346_1_0
+  · have hn : nParts 346 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_2_0
+  · have hn : nParts 346 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_3_0
+  · have hn : nParts 346 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_4_0
+  · have hn : nParts 346 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_5_0
+  · have hn : nParts 346 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_6_0
+  · have hn : nParts 346 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_7_0
+  · have hn : nParts 346 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_8_0
+  · have hn : nParts 346 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_9_0
+  · have hn : nParts 346 10 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_10_0
+  · have hn : nParts 346 11 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_11_0
+  · have hn : nParts 346 12 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_12_0
+  · have hn : nParts 346 13 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw346_13_0
 
-theorem ok632 : CplOk 632 := by
+theorem ok366 : CplOk 366 := by
   intro i hi k hk
-  have hc : (certOf 632).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 366).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 632 0 = 1 := by decide +kernel
+  · have hn : nParts 366 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw632_0_0
-  · have hn : nParts 632 1 = 1 := by decide +kernel
+    · exact cw366_0_0
+  · have hn : nParts 366 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw632_1_0
+    · exact cw366_1_0
+  · have hn : nParts 366 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw366_2_0
+  · have hn : nParts 366 3 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw366_3_0
+    · exact cw366_3_1
 
-theorem ok636 : CplOk 636 := by
+theorem ok385 : CplOk 385 := by
   intro i hi k hk
-  have hc : (certOf 636).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 385).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 636 0 = 1 := by decide +kernel
+  · have hn : nParts 385 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw636_0_0
-  · have hn : nParts 636 1 = 1 := by decide +kernel
+    · exact cw385_0_0
+  · have hn : nParts 385 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw636_1_0
+    · exact cw385_1_0
+  · have hn : nParts 385 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw385_2_0
+  · have hn : nParts 385 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw385_3_0
+
+theorem ok436 : CplOk 436 := by
+  intro i hi k hk
+  have hc : (certOf 436).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 436 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw436_0_0
+  · have hn : nParts 436 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw436_1_0
+  · have hn : nParts 436 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw436_2_0
+
+theorem ok471 : CplOk 471 := by
+  intro i hi k hk
+  have hc : (certOf 471).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 471 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw471_0_0
+  · have hn : nParts 471 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw471_1_0
+
+theorem ok478 : CplOk 478 := by
+  intro i hi k hk
+  have hc : (certOf 478).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 478 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw478_0_0
+  · have hn : nParts 478 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw478_1_0
+
+theorem ok526 : CplOk 526 := by
+  intro i hi k hk
+  have hc : (certOf 526).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 526 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw526_0_0
+  · have hn : nParts 526 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw526_1_0
+
+theorem ok540 : CplOk 540 := by
+  intro i hi k hk
+  have hc : (certOf 540).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 540 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw540_0_0
+  · have hn : nParts 540 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw540_1_0
+
+theorem ok561 : CplOk 561 := by
+  intro i hi k hk
+  have hc : (certOf 561).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 561 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw561_0_0
+  · have hn : nParts 561 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw561_1_0
+
+theorem ok613 : CplOk 613 := by
+  intro i hi k hk
+  have hc : (certOf 613).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 613 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw613_0_0
+  · have hn : nParts 613 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw613_1_0
+
+theorem ok618 : CplOk 618 := by
+  intro i hi k hk
+  have hc : (certOf 618).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 618 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw618_0_0
+  · have hn : nParts 618 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw618_1_0
+
+theorem ok627 : CplOk 627 := by
+  intro i hi k hk
+  have hc : (certOf 627).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 627 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw627_0_0
+  · have hn : nParts 627 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw627_1_0
+
+theorem ok648 : CplOk 648 := by
+  intro i hi k hk
+  have hc : (certOf 648).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 648 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw648_0_0
+  · have hn : nParts 648 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw648_1_0
+
+theorem ok663 : CplOk 663 := by
+  intro i hi k hk
+  have hc : (certOf 663).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 663 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw663_0_0
+  · have hn : nParts 663 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw663_1_0
+
+theorem ok667 : CplOk 667 := by
+  intro i hi k hk
+  have hc : (certOf 667).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 667 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw667_0_0
+  · have hn : nParts 667 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw667_1_0
+
+theorem ok698 : CplOk 698 := by
+  intro i hi k hk
+  have hc : (certOf 698).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 698 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw698_0_0
+  · have hn : nParts 698 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw698_1_0
 
 theorem ok703 : CplOk 703 := by
   intro i hi k hk
@@ -1373,431 +1791,526 @@ theorem ok703 : CplOk 703 := by
     interval_cases k
     · exact cw703_1_0
 
-theorem ok708 : CplOk 708 := by
+theorem ok738 : CplOk 738 := by
   intro i hi k hk
-  have hc : (certOf 708).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 738).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 708 0 = 1 := by decide +kernel
+  · have hn : nParts 738 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw708_0_0
-  · have hn : nParts 708 1 = 1 := by decide +kernel
+    · exact cw738_0_0
+  · have hn : nParts 738 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw708_1_0
+    · exact cw738_1_0
 
-theorem ok717 : CplOk 717 := by
+theorem ok743 : CplOk 743 := by
   intro i hi k hk
-  have hc : (certOf 717).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 743).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 717 0 = 1 := by decide +kernel
+  · have hn : nParts 743 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw717_0_0
-  · have hn : nParts 717 1 = 1 := by decide +kernel
+    · exact cw743_0_0
+  · have hn : nParts 743 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw717_1_0
+    · exact cw743_1_0
 
-theorem ok749 : CplOk 749 := by
+theorem ok778 : CplOk 778 := by
   intro i hi k hk
-  have hc : (certOf 749).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 778).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 749 0 = 1 := by decide +kernel
+  · have hn : nParts 778 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw749_0_0
-  · have hn : nParts 749 1 = 1 := by decide +kernel
+    · exact cw778_0_0
+  · have hn : nParts 778 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw749_1_0
+    · exact cw778_1_0
 
-theorem ok793 : CplOk 793 := by
+theorem ok787 : CplOk 787 := by
   intro i hi k hk
-  have hc : (certOf 793).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 787).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 793 0 = 1 := by decide +kernel
+  · have hn : nParts 787 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw793_0_0
-  · have hn : nParts 793 1 = 1 := by decide +kernel
+    · exact cw787_0_0
+  · have hn : nParts 787 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw793_1_0
+    · exact cw787_1_0
 
-theorem ok802 : CplOk 802 := by
+theorem ok791 : CplOk 791 := by
   intro i hi k hk
-  have hc : (certOf 802).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 791).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 802 0 = 1 := by decide +kernel
+  · have hn : nParts 791 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw802_0_0
-  · have hn : nParts 802 1 = 1 := by decide +kernel
+    · exact cw791_0_0
+  · have hn : nParts 791 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw802_1_0
+    · exact cw791_1_0
 
-theorem ok806 : CplOk 806 := by
+theorem ok812 : CplOk 812 := by
   intro i hi k hk
-  have hc : (certOf 806).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 812).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 806 0 = 1 := by decide +kernel
+  · have hn : nParts 812 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw806_0_0
-  · have hn : nParts 806 1 = 1 := by decide +kernel
+    · exact cw812_0_0
+  · have hn : nParts 812 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw806_1_0
+    · exact cw812_1_0
 
-theorem ok829 : CplOk 829 := by
+theorem ok827 : CplOk 827 := by
   intro i hi k hk
-  have hc : (certOf 829).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 827).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 829 0 = 1 := by decide +kernel
+  · have hn : nParts 827 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw829_0_0
-  · have hn : nParts 829 1 = 1 := by decide +kernel
+    · exact cw827_0_0
+  · have hn : nParts 827 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw829_1_0
+    · exact cw827_1_0
 
-theorem ok843 : CplOk 843 := by
+theorem ok858 : CplOk 858 := by
   intro i hi k hk
-  have hc : (certOf 843).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 858).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 843 0 = 1 := by decide +kernel
+  · have hn : nParts 858 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw843_0_0
-  · have hn : nParts 843 1 = 1 := by decide +kernel
+    · exact cw858_0_0
+  · have hn : nParts 858 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw843_1_0
+    · exact cw858_1_0
 
-theorem ok884 : CplOk 884 := by
+theorem ok877 : CplOk 877 := by
   intro i hi k hk
-  have hc : (certOf 884).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 877).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 884 0 = 1 := by decide +kernel
+  · have hn : nParts 877 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw884_0_0
-  · have hn : nParts 884 1 = 1 := by decide +kernel
+    · exact cw877_0_0
+  · have hn : nParts 877 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw884_1_0
+    · exact cw877_1_0
 
-theorem ok1038 : CplOk 1038 := by
+theorem ok881 : CplOk 881 := by
   intro i hi k hk
-  have hc : (certOf 1038).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 881).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1038 0 = 1 := by decide +kernel
+  · have hn : nParts 881 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1038_0_0
-  · have hn : nParts 1038 1 = 1 := by decide +kernel
+    · exact cw881_0_0
+  · have hn : nParts 881 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1038_1_0
-  · have hn : nParts 1038 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1038_2_0
+    · exact cw881_1_0
 
-theorem ok1043 : CplOk 1043 := by
+theorem ok907 : CplOk 907 := by
   intro i hi k hk
-  have hc : (certOf 1043).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 907).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1043 0 = 1 := by decide +kernel
+  · have hn : nParts 907 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1043_0_0
-  · have hn : nParts 1043 1 = 1 := by decide +kernel
+    · exact cw907_0_0
+  · have hn : nParts 907 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1043_1_0
+    · exact cw907_1_0
 
-theorem ok1191 : CplOk 1191 := by
+theorem ok922 : CplOk 922 := by
   intro i hi k hk
-  have hc : (certOf 1191).cuts.length = 13 := by decide +kernel
+  have hc : (certOf 922).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1191 0 = 1 := by decide +kernel
+  · have hn : nParts 922 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1191_0_0
-  · have hn : nParts 1191 1 = 1 := by decide +kernel
+    · exact cw922_0_0
+  · have hn : nParts 922 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1191_1_0
-  · have hn : nParts 1191 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_2_0
-  · have hn : nParts 1191 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_3_0
-  · have hn : nParts 1191 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_4_0
-  · have hn : nParts 1191 5 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_5_0
-  · have hn : nParts 1191 6 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_6_0
-  · have hn : nParts 1191 7 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_7_0
-  · have hn : nParts 1191 8 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_8_0
-  · have hn : nParts 1191 9 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_9_0
-  · have hn : nParts 1191 10 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_10_0
-  · have hn : nParts 1191 11 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_11_0
-  · have hn : nParts 1191 12 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_12_0
-  · have hn : nParts 1191 13 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_13_0
+    · exact cw922_1_0
 
-theorem ok1197 : CplOk 1197 := by
+theorem ok1010 : CplOk 1010 := by
   intro i hi k hk
-  have hc : (certOf 1197).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1010).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1197 0 = 1 := by decide +kernel
+  · have hn : nParts 1010 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1197_0_0
-  · have hn : nParts 1197 1 = 1 := by decide +kernel
+    · exact cw1010_0_0
+  · have hn : nParts 1010 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1197_1_0
+    · exact cw1010_1_0
+  · have hn : nParts 1010 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1010_2_0
 
-theorem ok1270 : CplOk 1270 := by
+theorem ok1014 : CplOk 1014 := by
   intro i hi k hk
-  have hc : (certOf 1270).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1014).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1270 0 = 1 := by decide +kernel
+  · have hn : nParts 1014 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1270_0_0
-  · have hn : nParts 1270 1 = 1 := by decide +kernel
+    · exact cw1014_0_0
+  · have hn : nParts 1014 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1270_1_0
+    · exact cw1014_1_0
+  · have hn : nParts 1014 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1014_2_0
 
-theorem ok1349 : CplOk 1349 := by
+theorem ok1025 : CplOk 1025 := by
   intro i hi k hk
-  have hc : (certOf 1349).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 1025).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1349 0 = 1 := by decide +kernel
+  · have hn : nParts 1025 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1349_0_0
-  · have hn : nParts 1349 1 = 1 := by decide +kernel
+    · exact cw1025_0_0
+  · have hn : nParts 1025 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1349_1_0
-  · have hn : nParts 1349 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1349_2_0
+    · exact cw1025_1_0
 
-theorem ok1439 : CplOk 1439 := by
+theorem ok1071 : CplOk 1071 := by
   intro i hi k hk
-  have hc : (certOf 1439).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 1071).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1439 0 = 1 := by decide +kernel
+  · have hn : nParts 1071 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1439_0_0
-  · have hn : nParts 1439 1 = 1 := by decide +kernel
+    · exact cw1071_0_0
+  · have hn : nParts 1071 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1439_1_0
-  · have hn : nParts 1439 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1439_2_0
+    · exact cw1071_1_0
 
-theorem ok1441 : CplOk 1441 := by
+theorem ok1086 : CplOk 1086 := by
   intro i hi k hk
-  have hc : (certOf 1441).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 1086).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1441 0 = 1 := by decide +kernel
+  · have hn : nParts 1086 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1441_0_0
-  · have hn : nParts 1441 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1441_1_0
-  · have hn : nParts 1441 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1441_2_0
-  · have hn : nParts 1441 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1441_3_0
+    · exact cw1086_0_0
+    · exact cw1086_0_1
 
-theorem ok1449 : CplOk 1449 := by
+theorem ok1090 : CplOk 1090 := by
   intro i hi k hk
-  have hc : (certOf 1449).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 1090).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1449 0 = 1 := by decide +kernel
+  · have hn : nParts 1090 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1449_0_0
-  · have hn : nParts 1449 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1449_1_0
-  · have hn : nParts 1449 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1449_2_0
+    · exact cw1090_0_0
+    · exact cw1090_0_1
 
-theorem ok1453 : CplOk 1453 := by
+theorem ok1170 : CplOk 1170 := by
   intro i hi k hk
-  have hc : (certOf 1453).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 1170).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1453 0 = 1 := by decide +kernel
+  · have hn : nParts 1170 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1453_0_0
-  · have hn : nParts 1453 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1453_1_0
-  · have hn : nParts 1453 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1453_2_0
+    · exact cw1170_0_0
+    · exact cw1170_0_1
 
-theorem ok1459 : CplOk 1459 := by
+theorem ok1205 : CplOk 1205 := by
   intro i hi k hk
-  have hc : (certOf 1459).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 1205).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1459 0 = 1 := by decide +kernel
+  · have hn : nParts 1205 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1459_0_0
-  · have hn : nParts 1459 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1459_1_0
-  · have hn : nParts 1459 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1459_2_0
+    · exact cw1205_0_0
+    · exact cw1205_0_1
 
-theorem ok1461 : CplOk 1461 := by
+theorem ok1236 : CplOk 1236 := by
   intro i hi k hk
-  have hc : (certOf 1461).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 1236).cuts.length = 13 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1461 0 = 1 := by decide +kernel
+  · have hn : nParts 1236 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1461_0_0
-  · have hn : nParts 1461 1 = 1 := by decide +kernel
+    · exact cw1236_0_0
+  · have hn : nParts 1236 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1461_1_0
-  · have hn : nParts 1461 2 = 1 := by decide +kernel
+    · exact cw1236_1_0
+  · have hn : nParts 1236 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1461_2_0
-  · have hn : nParts 1461 3 = 1 := by decide +kernel
+    · exact cw1236_2_0
+  · have hn : nParts 1236 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1461_3_0
+    · exact cw1236_3_0
+  · have hn : nParts 1236 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1236_4_0
+  · have hn : nParts 1236 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1236_5_0
+  · have hn : nParts 1236 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1236_6_0
+  · have hn : nParts 1236 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1236_7_0
+  · have hn : nParts 1236 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1236_8_0
+  · have hn : nParts 1236 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1236_9_0
+  · have hn : nParts 1236 10 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1236_10_0
+  · have hn : nParts 1236 11 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1236_11_0
+  · have hn : nParts 1236 12 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1236_12_0
+  · have hn : nParts 1236 13 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1236_13_0
 
-theorem ok1472 : CplOk 1472 := by
+theorem ok1238 : CplOk 1238 := by
   intro i hi k hk
-  have hc : (certOf 1472).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 1238).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1472 0 = 1 := by decide +kernel
+  · have hn : nParts 1238 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1472_0_0
-  · have hn : nParts 1472 1 = 1 := by decide +kernel
+    · exact cw1238_0_0
+  · have hn : nParts 1238 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1472_1_0
-  · have hn : nParts 1472 2 = 1 := by decide +kernel
+    · exact cw1238_1_0
+  · have hn : nParts 1238 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1472_2_0
-  · have hn : nParts 1472 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1472_3_0
+    · exact cw1238_2_0
 
-theorem ok1474 : CplOk 1474 := by
+theorem ok1251 : CplOk 1251 := by
   intro i hi k hk
-  have hc : (certOf 1474).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 1251).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1474 0 = 1 := by decide +kernel
+  · have hn : nParts 1251 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1474_0_0
-  · have hn : nParts 1474 1 = 1 := by decide +kernel
+    · exact cw1251_0_0
+    · exact cw1251_0_1
+
+theorem ok1295 : CplOk 1295 := by
+  intro i hi k hk
+  have hc : (certOf 1295).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1295 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1474_1_0
-  · have hn : nParts 1474 2 = 1 := by decide +kernel
+    · exact cw1295_0_0
+    · exact cw1295_0_1
+
+theorem ok1338 : CplOk 1338 := by
+  intro i hi k hk
+  have hc : (certOf 1338).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1338 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1474_2_0
+    · exact cw1338_0_0
+    · exact cw1338_0_1
+
+theorem ok1344 : CplOk 1344 := by
+  intro i hi k hk
+  have hc : (certOf 1344).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1344 0 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1344_0_0
+    · exact cw1344_0_1
+
+theorem ok1348 : CplOk 1348 := by
+  intro i hi k hk
+  have hc : (certOf 1348).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1348 0 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1348_0_0
+    · exact cw1348_0_1
+
+theorem ok1368 : CplOk 1368 := by
+  intro i hi k hk
+  have hc : (certOf 1368).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1368 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1368_0_0
+  · have hn : nParts 1368 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1368_1_0
+
+theorem ok1373 : CplOk 1373 := by
+  intro i hi k hk
+  have hc : (certOf 1373).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1373 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1373_0_0
+  · have hn : nParts 1373 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1373_1_0
+
+theorem ok1379 : CplOk 1379 := by
+  intro i hi k hk
+  have hc : (certOf 1379).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1379 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1379_0_0
+  · have hn : nParts 1379 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1379_1_0
+
+theorem ok1383 : CplOk 1383 := by
+  intro i hi k hk
+  have hc : (certOf 1383).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1383 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1383_0_0
+  · have hn : nParts 1383 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1383_1_0
+
+theorem ok1389 : CplOk 1389 := by
+  intro i hi k hk
+  have hc : (certOf 1389).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1389 0 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1389_0_0
+    · exact cw1389_0_1
+
+theorem ok1428 : CplOk 1428 := by
+  intro i hi k hk
+  have hc : (certOf 1428).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1428 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1428_0_0
+  · have hn : nParts 1428 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1428_1_0
+
+theorem ok1432 : CplOk 1432 := by
+  intro i hi k hk
+  have hc : (certOf 1432).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1432 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1432_0_0
+  · have hn : nParts 1432 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1432_1_0
+
+theorem ok1438 : CplOk 1438 := by
+  intro i hi k hk
+  have hc : (certOf 1438).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1438 0 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1438_0_0
+    · exact cw1438_0_1
 
 theorem ok1480 : CplOk 1480 := by
   intro i hi k hk
-  have hc : (certOf 1480).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 1480).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 1480 0 = 1 := by decide +kernel
@@ -1808,230 +2321,101 @@ theorem ok1480 : CplOk 1480 := by
     rw [hn] at hk
     interval_cases k
     · exact cw1480_1_0
-  · have hn : nParts 1480 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1480_2_0
-  · have hn : nParts 1480 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1480_3_0
 
-theorem ok1482 : CplOk 1482 := by
+theorem ok1488 : CplOk 1488 := by
   intro i hi k hk
-  have hc : (certOf 1482).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 1488).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1482 0 = 1 := by decide +kernel
+  · have hn : nParts 1488 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1482_0_0
-  · have hn : nParts 1482 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1482_1_0
-  · have hn : nParts 1482 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1482_2_0
-  · have hn : nParts 1482 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1482_3_0
+    · exact cw1488_0_0
+    · exact cw1488_0_1
 
-theorem ok1490 : CplOk 1490 := by
+theorem ok1508 : CplOk 1508 := by
   intro i hi k hk
-  have hc : (certOf 1490).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 1508).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1490 0 = 1 := by decide +kernel
+  · have hn : nParts 1508 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1490_0_0
-  · have hn : nParts 1490 1 = 1 := by decide +kernel
+    · exact cw1508_0_0
+  · have hn : nParts 1508 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1490_1_0
-  · have hn : nParts 1490 2 = 1 := by decide +kernel
+    · exact cw1508_1_0
+  · have hn : nParts 1508 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1490_2_0
-  · have hn : nParts 1490 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1490_3_0
+    · exact cw1508_2_0
 
-theorem ok1492 : CplOk 1492 := by
+theorem ok1513 : CplOk 1513 := by
   intro i hi k hk
-  have hc : (certOf 1492).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 1513).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1492 0 = 1 := by decide +kernel
+  · have hn : nParts 1513 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1492_0_0
-  · have hn : nParts 1492 1 = 1 := by decide +kernel
+    · exact cw1513_0_0
+  · have hn : nParts 1513 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1492_1_0
-  · have hn : nParts 1492 2 = 1 := by decide +kernel
+    · exact cw1513_1_0
+  · have hn : nParts 1513 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1492_2_0
+    · exact cw1513_2_0
+  · have hn : nParts 1513 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1513_3_0
 
-theorem ok1496 : CplOk 1496 := by
+theorem ok1515 : CplOk 1515 := by
   intro i hi k hk
-  have hc : (certOf 1496).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 1515).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1496 0 = 1 := by decide +kernel
+  · have hn : nParts 1515 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1496_0_0
-  · have hn : nParts 1496 1 = 1 := by decide +kernel
+    · exact cw1515_0_0
+  · have hn : nParts 1515 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1496_1_0
-  · have hn : nParts 1496 2 = 1 := by decide +kernel
+    · exact cw1515_1_0
+  · have hn : nParts 1515 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1496_2_0
-  · have hn : nParts 1496 3 = 1 := by decide +kernel
+    · exact cw1515_2_0
+  · have hn : nParts 1515 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1496_3_0
+    · exact cw1515_3_0
 
-theorem ok1498 : CplOk 1498 := by
+theorem ok1520 : CplOk 1520 := by
   intro i hi k hk
-  have hc : (certOf 1498).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 1520).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1498 0 = 1 := by decide +kernel
+  · have hn : nParts 1520 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1498_0_0
-  · have hn : nParts 1498 1 = 1 := by decide +kernel
+    · exact cw1520_0_0
+  · have hn : nParts 1520 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1498_1_0
-  · have hn : nParts 1498 2 = 1 := by decide +kernel
+    · exact cw1520_1_0
+  · have hn : nParts 1520 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1498_2_0
-  · have hn : nParts 1498 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1498_3_0
-
-theorem ok1504 : CplOk 1504 := by
-  intro i hi k hk
-  have hc : (certOf 1504).cuts.length = 3 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1504 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1504_0_0
-  · have hn : nParts 1504 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1504_1_0
-  · have hn : nParts 1504 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1504_2_0
-  · have hn : nParts 1504 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1504_3_0
-
-theorem ok1506 : CplOk 1506 := by
-  intro i hi k hk
-  have hc : (certOf 1506).cuts.length = 2 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1506 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1506_0_0
-  · have hn : nParts 1506 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1506_1_0
-  · have hn : nParts 1506 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1506_2_0
-
-theorem ok1510 : CplOk 1510 := by
-  intro i hi k hk
-  have hc : (certOf 1510).cuts.length = 3 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1510 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1510_0_0
-  · have hn : nParts 1510 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1510_1_0
-  · have hn : nParts 1510 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1510_2_0
-  · have hn : nParts 1510 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1510_3_0
-
-theorem ok1512 : CplOk 1512 := by
-  intro i hi k hk
-  have hc : (certOf 1512).cuts.length = 2 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1512 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1512_0_0
-  · have hn : nParts 1512 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1512_1_0
-  · have hn : nParts 1512 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1512_2_0
-
-theorem ok1521 : CplOk 1521 := by
-  intro i hi k hk
-  have hc : (certOf 1521).cuts.length = 4 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1521 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1521_0_0
-  · have hn : nParts 1521 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1521_1_0
-  · have hn : nParts 1521 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1521_2_0
-  · have hn : nParts 1521 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1521_3_0
-  · have hn : nParts 1521 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1521_4_0
+    · exact cw1520_2_0
 
 theorem ok1523 : CplOk 1523 := by
   intro i hi k hk
-  have hc : (certOf 1523).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 1523).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 1523 0 = 1 := by decide +kernel
@@ -2046,18 +2430,10 @@ theorem ok1523 : CplOk 1523 := by
     rw [hn] at hk
     interval_cases k
     · exact cw1523_2_0
-  · have hn : nParts 1523 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1523_3_0
-  · have hn : nParts 1523 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1523_4_0
 
 theorem ok1525 : CplOk 1525 := by
   intro i hi k hk
-  have hc : (certOf 1525).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 1525).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 1525 0 = 1 := by decide +kernel
@@ -2072,69 +2448,604 @@ theorem ok1525 : CplOk 1525 := by
     rw [hn] at hk
     interval_cases k
     · exact cw1525_2_0
+  · have hn : nParts 1525 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1525_3_0
 
-theorem ok1528 : CplOk 1528 := by
+theorem ok1530 : CplOk 1530 := by
   intro i hi k hk
-  have hc : (certOf 1528).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 1530).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1528 0 = 1 := by decide +kernel
+  · have hn : nParts 1530 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1528_0_0
-  · have hn : nParts 1528 1 = 1 := by decide +kernel
+    · exact cw1530_0_0
+  · have hn : nParts 1530 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1528_1_0
-  · have hn : nParts 1528 2 = 1 := by decide +kernel
+    · exact cw1530_1_0
+  · have hn : nParts 1530 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1528_2_0
-  · have hn : nParts 1528 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1528_3_0
-  · have hn : nParts 1528 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1528_4_0
+    · exact cw1530_2_0
 
-theorem ok1534 : CplOk 1534 := by
+theorem ok1533 : CplOk 1533 := by
   intro i hi k hk
-  have hc : (certOf 1534).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1533).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1534 0 = 1 := by decide +kernel
+  · have hn : nParts 1533 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1534_0_0
-  · have hn : nParts 1534 1 = 1 := by decide +kernel
+    · exact cw1533_0_0
+  · have hn : nParts 1533 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1534_1_0
+    · exact cw1533_1_0
+  · have hn : nParts 1533 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1533_2_0
+  · have hn : nParts 1533 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1533_3_0
+
+theorem ok1535 : CplOk 1535 := by
+  intro i hi k hk
+  have hc : (certOf 1535).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1535 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1535_0_0
+  · have hn : nParts 1535 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1535_1_0
+  · have hn : nParts 1535 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1535_2_0
+  · have hn : nParts 1535 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1535_3_0
+
+theorem ok1537 : CplOk 1537 := by
+  intro i hi k hk
+  have hc : (certOf 1537).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1537 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1537_0_0
+  · have hn : nParts 1537 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1537_1_0
+  · have hn : nParts 1537 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1537_2_0
+
+theorem ok1540 : CplOk 1540 := by
+  intro i hi k hk
+  have hc : (certOf 1540).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1540 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1540_0_0
+  · have hn : nParts 1540 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1540_1_0
+  · have hn : nParts 1540 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1540_2_0
+
+theorem ok1542 : CplOk 1542 := by
+  intro i hi k hk
+  have hc : (certOf 1542).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1542 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1542_0_0
+  · have hn : nParts 1542 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1542_1_0
+  · have hn : nParts 1542 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1542_2_0
+  · have hn : nParts 1542 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1542_3_0
+
+theorem ok1544 : CplOk 1544 := by
+  intro i hi k hk
+  have hc : (certOf 1544).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1544 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1544_0_0
+  · have hn : nParts 1544 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1544_1_0
+  · have hn : nParts 1544 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1544_2_0
+
+theorem ok1547 : CplOk 1547 := by
+  intro i hi k hk
+  have hc : (certOf 1547).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1547 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1547_0_0
+  · have hn : nParts 1547 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1547_1_0
+  · have hn : nParts 1547 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1547_2_0
+
+theorem ok1549 : CplOk 1549 := by
+  intro i hi k hk
+  have hc : (certOf 1549).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1549 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1549_0_0
+  · have hn : nParts 1549 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1549_1_0
+  · have hn : nParts 1549 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1549_2_0
+  · have hn : nParts 1549 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1549_3_0
+
+theorem ok1551 : CplOk 1551 := by
+  intro i hi k hk
+  have hc : (certOf 1551).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1551 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1551_0_0
+  · have hn : nParts 1551 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1551_1_0
+  · have hn : nParts 1551 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1551_2_0
+  · have hn : nParts 1551 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1551_3_0
+
+theorem ok1554 : CplOk 1554 := by
+  intro i hi k hk
+  have hc : (certOf 1554).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1554 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1554_0_0
+  · have hn : nParts 1554 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1554_1_0
+  · have hn : nParts 1554 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1554_2_0
+
+theorem ok1556 : CplOk 1556 := by
+  intro i hi k hk
+  have hc : (certOf 1556).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1556 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1556_0_0
+  · have hn : nParts 1556 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1556_1_0
+  · have hn : nParts 1556 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1556_2_0
+  · have hn : nParts 1556 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1556_3_0
+
+theorem ok1558 : CplOk 1558 := by
+  intro i hi k hk
+  have hc : (certOf 1558).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1558 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1558_0_0
+  · have hn : nParts 1558 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1558_1_0
+  · have hn : nParts 1558 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1558_2_0
+  · have hn : nParts 1558 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1558_3_0
+
+theorem ok1561 : CplOk 1561 := by
+  intro i hi k hk
+  have hc : (certOf 1561).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1561 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1561_0_0
+  · have hn : nParts 1561 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1561_1_0
+  · have hn : nParts 1561 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1561_2_0
+
+theorem ok1563 : CplOk 1563 := by
+  intro i hi k hk
+  have hc : (certOf 1563).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1563 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1563_0_0
+  · have hn : nParts 1563 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1563_1_0
+  · have hn : nParts 1563 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1563_2_0
+  · have hn : nParts 1563 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1563_3_0
+
+theorem ok1565 : CplOk 1565 := by
+  intro i hi k hk
+  have hc : (certOf 1565).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1565 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1565_0_0
+  · have hn : nParts 1565 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1565_1_0
+  · have hn : nParts 1565 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1565_2_0
+  · have hn : nParts 1565 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1565_3_0
+
+theorem ok1568 : CplOk 1568 := by
+  intro i hi k hk
+  have hc : (certOf 1568).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1568 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1568_0_0
+  · have hn : nParts 1568 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1568_1_0
+  · have hn : nParts 1568 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1568_2_0
+
+theorem ok1570 : CplOk 1570 := by
+  intro i hi k hk
+  have hc : (certOf 1570).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1570 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1570_0_0
+  · have hn : nParts 1570 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1570_1_0
+  · have hn : nParts 1570 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1570_2_0
+  · have hn : nParts 1570 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1570_3_0
+
+theorem ok1572 : CplOk 1572 := by
+  intro i hi k hk
+  have hc : (certOf 1572).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1572 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1572_0_0
+  · have hn : nParts 1572 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1572_1_0
+  · have hn : nParts 1572 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1572_2_0
+  · have hn : nParts 1572 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1572_3_0
+
+theorem ok1575 : CplOk 1575 := by
+  intro i hi k hk
+  have hc : (certOf 1575).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1575 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1575_0_0
+  · have hn : nParts 1575 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1575_1_0
+  · have hn : nParts 1575 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1575_2_0
+
+theorem ok1577 : CplOk 1577 := by
+  intro i hi k hk
+  have hc : (certOf 1577).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1577 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1577_0_0
+  · have hn : nParts 1577 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1577_1_0
+  · have hn : nParts 1577 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1577_2_0
+  · have hn : nParts 1577 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1577_3_0
+
+theorem ok1579 : CplOk 1579 := by
+  intro i hi k hk
+  have hc : (certOf 1579).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1579 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1579_0_0
+  · have hn : nParts 1579 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1579_1_0
+  · have hn : nParts 1579 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1579_2_0
+  · have hn : nParts 1579 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1579_3_0
+
+theorem ok1584 : CplOk 1584 := by
+  intro i hi k hk
+  have hc : (certOf 1584).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1584 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1584_0_0
+  · have hn : nParts 1584 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1584_1_0
+  · have hn : nParts 1584 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1584_2_0
+  · have hn : nParts 1584 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1584_3_0
+
+theorem ok1586 : CplOk 1586 := by
+  intro i hi k hk
+  have hc : (certOf 1586).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1586 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1586_0_0
+  · have hn : nParts 1586 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1586_1_0
+  · have hn : nParts 1586 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1586_2_0
+  · have hn : nParts 1586 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1586_3_0
+
+theorem ok1588 : CplOk 1588 := by
+  intro i hi k hk
+  have hc : (certOf 1588).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1588 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1588_0_0
+  · have hn : nParts 1588 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1588_1_0
+  · have hn : nParts 1588 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1588_2_0
+
+theorem ok1591 : CplOk 1591 := by
+  intro i hi k hk
+  have hc : (certOf 1591).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1591 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1591_0_0
+  · have hn : nParts 1591 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1591_1_0
+  · have hn : nParts 1591 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1591_2_0
+  · have hn : nParts 1591 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1591_3_0
+
+theorem ok1595 : CplOk 1595 := by
+  intro i hi k hk
+  have hc : (certOf 1595).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1595 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1595_0_0
+  · have hn : nParts 1595 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1595_1_0
+  · have hn : nParts 1595 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1595_2_0
+
+theorem ok1601 : CplOk 1601 := by
+  intro i hi k hk
+  have hc : (certOf 1601).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 1601 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1601_0_0
+  · have hn : nParts 1601 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1601_1_0
+  · have hn : nParts 1601 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1601_2_0
 
 theorem cplOk_all_0 : ∀ j, 1 ≤ j → j < 257 → CplOk j := fun j h1 h2 ↦
-  (if h : j < 129 then (if h : j < 65 then (if h : j < 33 then (if h : j < 17 then (if h : j < 9 then (if h : j < 5 then (if h : j < 3 then (if h : j < 2 then (by obtain rfl : j = 1 := (by omega); exact ok1) else (by obtain rfl : j = 2 := (by omega); exact ok2)) else (if h : j < 4 then (by obtain rfl : j = 3 := (by omega); exact ok3) else (by obtain rfl : j = 4 := (by omega); exact ok4))) else (if h : j < 7 then (if h : j < 6 then (by obtain rfl : j = 5 := (by omega); exact ok5) else (by obtain rfl : j = 6 := (by omega); exact ok6)) else (if h : j < 8 then (by obtain rfl : j = 7 := (by omega); exact ok7) else (by obtain rfl : j = 8 := (by omega); exact ok8)))) else (if h : j < 13 then (if h : j < 11 then (if h : j < 10 then (by obtain rfl : j = 9 := (by omega); exact ok9) else (by obtain rfl : j = 10 := (by omega); exact ok10)) else (if h : j < 12 then (by obtain rfl : j = 11 := (by omega); exact ok11) else (by obtain rfl : j = 12 := (by omega); exact ok12))) else (if h : j < 15 then (if h : j < 14 then (by obtain rfl : j = 13 := (by omega); exact ok13) else (by obtain rfl : j = 14 := (by omega); exact ok14)) else (if h : j < 16 then (by obtain rfl : j = 15 := (by omega); exact ok15) else (by obtain rfl : j = 16 := (by omega); exact ok16))))) else (if h : j < 25 then (if h : j < 21 then (if h : j < 19 then (if h : j < 18 then (by obtain rfl : j = 17 := (by omega); exact ok17) else (by obtain rfl : j = 18 := (by omega); exact ok18)) else (if h : j < 20 then (by obtain rfl : j = 19 := (by omega); exact ok19) else (by obtain rfl : j = 20 := (by omega); exact ok20))) else (if h : j < 23 then (if h : j < 22 then (by obtain rfl : j = 21 := (by omega); exact ok21) else (by obtain rfl : j = 22 := (by omega); exact ok22)) else (if h : j < 24 then (by obtain rfl : j = 23 := (by omega); exact ok23) else (by obtain rfl : j = 24 := (by omega); exact ok24)))) else (if h : j < 29 then (if h : j < 27 then (if h : j < 26 then (by obtain rfl : j = 25 := (by omega); exact ok25) else (by obtain rfl : j = 26 := (by omega); exact ok26)) else (if h : j < 28 then (by obtain rfl : j = 27 := (by omega); exact ok27) else (by obtain rfl : j = 28 := (by omega); exact ok28))) else (if h : j < 31 then (if h : j < 30 then (by obtain rfl : j = 29 := (by omega); exact ok29) else (by obtain rfl : j = 30 := (by omega); exact ok30)) else (if h : j < 32 then (by obtain rfl : j = 31 := (by omega); exact ok31) else (by obtain rfl : j = 32 := (by omega); exact ok32)))))) else (if h : j < 49 then (if h : j < 41 then (if h : j < 37 then (if h : j < 35 then (if h : j < 34 then (by obtain rfl : j = 33 := (by omega); exact ok33) else (by obtain rfl : j = 34 := (by omega); exact ok34)) else (if h : j < 36 then (by obtain rfl : j = 35 := (by omega); exact ok35) else (by obtain rfl : j = 36 := (by omega); exact ok36))) else (if h : j < 39 then (if h : j < 38 then (by obtain rfl : j = 37 := (by omega); exact ok37) else (by obtain rfl : j = 38 := (by omega); exact ok38)) else (if h : j < 40 then (by obtain rfl : j = 39 := (by omega); exact ok39) else (by obtain rfl : j = 40 := (by omega); exact ok40)))) else (if h : j < 45 then (if h : j < 43 then (if h : j < 42 then (by obtain rfl : j = 41 := (by omega); exact ok41) else (by obtain rfl : j = 42 := (by omega); exact ok42)) else (if h : j < 44 then (by obtain rfl : j = 43 := (by omega); exact ok43) else (by obtain rfl : j = 44 := (by omega); exact ok44))) else (if h : j < 47 then (if h : j < 46 then (by obtain rfl : j = 45 := (by omega); exact ok45) else (by obtain rfl : j = 46 := (by omega); exact ok46)) else (if h : j < 48 then (by obtain rfl : j = 47 := (by omega); exact ok47) else (by obtain rfl : j = 48 := (by omega); exact ok48))))) else (if h : j < 57 then (if h : j < 53 then (if h : j < 51 then (if h : j < 50 then (by obtain rfl : j = 49 := (by omega); exact ok49) else (by obtain rfl : j = 50 := (by omega); exact ok50)) else (if h : j < 52 then (by obtain rfl : j = 51 := (by omega); exact ok51) else (by obtain rfl : j = 52 := (by omega); exact ok52))) else (if h : j < 55 then (if h : j < 54 then (by obtain rfl : j = 53 := (by omega); exact ok53) else (by obtain rfl : j = 54 := (by omega); exact ok54)) else (if h : j < 56 then (by obtain rfl : j = 55 := (by omega); exact ok55) else (by obtain rfl : j = 56 := (by omega); exact ok56)))) else (if h : j < 61 then (if h : j < 59 then (if h : j < 58 then (by obtain rfl : j = 57 := (by omega); exact ok57) else (by obtain rfl : j = 58 := (by omega); exact ok58)) else (if h : j < 60 then (by obtain rfl : j = 59 := (by omega); exact ok59) else (by obtain rfl : j = 60 := (by omega); exact ok60))) else (if h : j < 63 then (if h : j < 62 then (by obtain rfl : j = 61 := (by omega); exact ok61) else (by obtain rfl : j = 62 := (by omega); exact ok62)) else (if h : j < 64 then (by obtain rfl : j = 63 := (by omega); exact ok63) else (by obtain rfl : j = 64 := (by omega); exact ok64))))))) else (if h : j < 97 then (if h : j < 81 then (if h : j < 73 then (if h : j < 69 then (if h : j < 67 then (if h : j < 66 then (by obtain rfl : j = 65 := (by omega); exact ok65) else (by obtain rfl : j = 66 := (by omega); exact ok66)) else (if h : j < 68 then (by obtain rfl : j = 67 := (by omega); exact ok67) else (by obtain rfl : j = 68 := (by omega); exact ok68))) else (if h : j < 71 then (if h : j < 70 then (by obtain rfl : j = 69 := (by omega); exact ok69) else (by obtain rfl : j = 70 := (by omega); exact ok70)) else (if h : j < 72 then (by obtain rfl : j = 71 := (by omega); exact ok71) else (by obtain rfl : j = 72 := (by omega); exact ok72)))) else (if h : j < 77 then (if h : j < 75 then (if h : j < 74 then (by obtain rfl : j = 73 := (by omega); exact ok73) else (by obtain rfl : j = 74 := (by omega); exact ok74)) else (if h : j < 76 then (by obtain rfl : j = 75 := (by omega); exact ok75) else (by obtain rfl : j = 76 := (by omega); exact ok76))) else (if h : j < 79 then (if h : j < 78 then (by obtain rfl : j = 77 := (by omega); exact ok77) else (by obtain rfl : j = 78 := (by omega); exact ok78)) else (if h : j < 80 then (by obtain rfl : j = 79 := (by omega); exact ok79) else (by obtain rfl : j = 80 := (by omega); exact ok80))))) else (if h : j < 89 then (if h : j < 85 then (if h : j < 83 then (if h : j < 82 then (by obtain rfl : j = 81 := (by omega); exact ok81) else (by obtain rfl : j = 82 := (by omega); exact ok82)) else (if h : j < 84 then (by obtain rfl : j = 83 := (by omega); exact ok83) else (by obtain rfl : j = 84 := (by omega); exact ok84))) else (if h : j < 87 then (if h : j < 86 then (by obtain rfl : j = 85 := (by omega); exact ok85) else (by obtain rfl : j = 86 := (by omega); exact ok86)) else (if h : j < 88 then (by obtain rfl : j = 87 := (by omega); exact ok87) else (by obtain rfl : j = 88 := (by omega); exact ok88)))) else (if h : j < 93 then (if h : j < 91 then (if h : j < 90 then (by obtain rfl : j = 89 := (by omega); exact ok89) else (by obtain rfl : j = 90 := (by omega); exact ok90)) else (if h : j < 92 then (by obtain rfl : j = 91 := (by omega); exact ok91) else (by obtain rfl : j = 92 := (by omega); exact ok92))) else (if h : j < 95 then (if h : j < 94 then (by obtain rfl : j = 93 := (by omega); exact ok93) else (by obtain rfl : j = 94 := (by omega); exact ok94)) else (if h : j < 96 then (by obtain rfl : j = 95 := (by omega); exact ok95) else (by obtain rfl : j = 96 := (by omega); exact ok96)))))) else (if h : j < 113 then (if h : j < 105 then (if h : j < 101 then (if h : j < 99 then (if h : j < 98 then (by obtain rfl : j = 97 := (by omega); exact ok97) else (by obtain rfl : j = 98 := (by omega); exact ok98)) else (if h : j < 100 then (by obtain rfl : j = 99 := (by omega); exact ok99) else (by obtain rfl : j = 100 := (by omega); exact ok100))) else (if h : j < 103 then (if h : j < 102 then (by obtain rfl : j = 101 := (by omega); exact ok101) else (by obtain rfl : j = 102 := (by omega); exact ok102)) else (if h : j < 104 then (by obtain rfl : j = 103 := (by omega); exact ok103) else (by obtain rfl : j = 104 := (by omega); exact ok104)))) else (if h : j < 109 then (if h : j < 107 then (if h : j < 106 then (by obtain rfl : j = 105 := (by omega); exact ok105) else (by obtain rfl : j = 106 := (by omega); exact ok106)) else (if h : j < 108 then (by obtain rfl : j = 107 := (by omega); exact ok107) else (by obtain rfl : j = 108 := (by omega); exact ok108))) else (if h : j < 111 then (if h : j < 110 then (by obtain rfl : j = 109 := (by omega); exact ok109) else (by obtain rfl : j = 110 := (by omega); exact ok110)) else (if h : j < 112 then (by obtain rfl : j = 111 := (by omega); exact ok111) else (by obtain rfl : j = 112 := (by omega); exact ok112))))) else (if h : j < 121 then (if h : j < 117 then (if h : j < 115 then (if h : j < 114 then (by obtain rfl : j = 113 := (by omega); exact ok113) else (by obtain rfl : j = 114 := (by omega); exact ok114)) else (if h : j < 116 then (by obtain rfl : j = 115 := (by omega); exact ok115) else (by obtain rfl : j = 116 := (by omega); exact ok116))) else (if h : j < 119 then (if h : j < 118 then (by obtain rfl : j = 117 := (by omega); exact ok117) else (by obtain rfl : j = 118 := (by omega); exact ok118)) else (if h : j < 120 then (by obtain rfl : j = 119 := (by omega); exact ok119) else (by obtain rfl : j = 120 := (by omega); exact ok120)))) else (if h : j < 125 then (if h : j < 123 then (if h : j < 122 then (by obtain rfl : j = 121 := (by omega); exact ok121) else (by obtain rfl : j = 122 := (by omega); exact ok122)) else (if h : j < 124 then (by obtain rfl : j = 123 := (by omega); exact ok123) else (by obtain rfl : j = 124 := (by omega); exact ok124))) else (if h : j < 127 then (if h : j < 126 then (by obtain rfl : j = 125 := (by omega); exact ok125) else (by obtain rfl : j = 126 := (by omega); exact ok126)) else (if h : j < 128 then (by obtain rfl : j = 127 := (by omega); exact ok127) else (by obtain rfl : j = 128 := (by omega); exact ok128)))))))) else (if h : j < 193 then (if h : j < 161 then (if h : j < 145 then (if h : j < 137 then (if h : j < 133 then (if h : j < 131 then (if h : j < 130 then (by obtain rfl : j = 129 := (by omega); exact ok129) else (by obtain rfl : j = 130 := (by omega); exact ok130)) else (if h : j < 132 then (by obtain rfl : j = 131 := (by omega); exact ok131) else (by obtain rfl : j = 132 := (by omega); exact ok132))) else (if h : j < 135 then (if h : j < 134 then (by obtain rfl : j = 133 := (by omega); exact ok133) else (by obtain rfl : j = 134 := (by omega); exact ok134)) else (if h : j < 136 then (by obtain rfl : j = 135 := (by omega); exact ok135) else (by obtain rfl : j = 136 := (by omega); exact ok136)))) else (if h : j < 141 then (if h : j < 139 then (if h : j < 138 then (by obtain rfl : j = 137 := (by omega); exact ok137) else (by obtain rfl : j = 138 := (by omega); exact ok138)) else (if h : j < 140 then (by obtain rfl : j = 139 := (by omega); exact ok139) else (by obtain rfl : j = 140 := (by omega); exact ok140))) else (if h : j < 143 then (if h : j < 142 then (by obtain rfl : j = 141 := (by omega); exact ok141) else (by obtain rfl : j = 142 := (by omega); exact ok142)) else (if h : j < 144 then (by obtain rfl : j = 143 := (by omega); exact ok143) else (by obtain rfl : j = 144 := (by omega); exact ok144))))) else (if h : j < 153 then (if h : j < 149 then (if h : j < 147 then (if h : j < 146 then (by obtain rfl : j = 145 := (by omega); exact ok145) else (by obtain rfl : j = 146 := (by omega); exact ok146)) else (if h : j < 148 then (by obtain rfl : j = 147 := (by omega); exact ok147) else (by obtain rfl : j = 148 := (by omega); exact ok148))) else (if h : j < 151 then (if h : j < 150 then (by obtain rfl : j = 149 := (by omega); exact ok149) else (by obtain rfl : j = 150 := (by omega); exact ok150)) else (if h : j < 152 then (by obtain rfl : j = 151 := (by omega); exact ok151) else (by obtain rfl : j = 152 := (by omega); exact ok152)))) else (if h : j < 157 then (if h : j < 155 then (if h : j < 154 then (by obtain rfl : j = 153 := (by omega); exact ok153) else (by obtain rfl : j = 154 := (by omega); exact ok154)) else (if h : j < 156 then (by obtain rfl : j = 155 := (by omega); exact ok155) else (by obtain rfl : j = 156 := (by omega); exact ok156))) else (if h : j < 159 then (if h : j < 158 then (by obtain rfl : j = 157 := (by omega); exact ok157) else (by obtain rfl : j = 158 := (by omega); exact ok158)) else (if h : j < 160 then (by obtain rfl : j = 159 := (by omega); exact ok159) else (by obtain rfl : j = 160 := (by omega); exact ok160)))))) else (if h : j < 177 then (if h : j < 169 then (if h : j < 165 then (if h : j < 163 then (if h : j < 162 then (by obtain rfl : j = 161 := (by omega); exact ok161) else (by obtain rfl : j = 162 := (by omega); exact ok162)) else (if h : j < 164 then (by obtain rfl : j = 163 := (by omega); exact ok163) else (by obtain rfl : j = 164 := (by omega); exact ok164))) else (if h : j < 167 then (if h : j < 166 then (by obtain rfl : j = 165 := (by omega); exact ok165) else (by obtain rfl : j = 166 := (by omega); exact ok166)) else (if h : j < 168 then (by obtain rfl : j = 167 := (by omega); exact ok167) else (by obtain rfl : j = 168 := (by omega); exact ok168)))) else (if h : j < 173 then (if h : j < 171 then (if h : j < 170 then (by obtain rfl : j = 169 := (by omega); exact ok169) else (by obtain rfl : j = 170 := (by omega); exact ok170)) else (if h : j < 172 then (by obtain rfl : j = 171 := (by omega); exact ok171) else (by obtain rfl : j = 172 := (by omega); exact ok172))) else (if h : j < 175 then (if h : j < 174 then (by obtain rfl : j = 173 := (by omega); exact ok173) else (by obtain rfl : j = 174 := (by omega); exact ok174)) else (if h : j < 176 then (by obtain rfl : j = 175 := (by omega); exact ok175) else (by obtain rfl : j = 176 := (by omega); exact ok176))))) else (if h : j < 185 then (if h : j < 181 then (if h : j < 179 then (if h : j < 178 then (by obtain rfl : j = 177 := (by omega); exact ok177) else (by obtain rfl : j = 178 := (by omega); exact ok178)) else (if h : j < 180 then (by obtain rfl : j = 179 := (by omega); exact ok179) else (by obtain rfl : j = 180 := (by omega); exact ok180))) else (if h : j < 183 then (if h : j < 182 then (by obtain rfl : j = 181 := (by omega); exact ok181) else (by obtain rfl : j = 182 := (by omega); exact ok182)) else (if h : j < 184 then (by obtain rfl : j = 183 := (by omega); exact ok183) else (by obtain rfl : j = 184 := (by omega); exact ok184)))) else (if h : j < 189 then (if h : j < 187 then (if h : j < 186 then (by obtain rfl : j = 185 := (by omega); exact ok185) else (by obtain rfl : j = 186 := (by omega); exact ok186)) else (if h : j < 188 then (by obtain rfl : j = 187 := (by omega); exact ok187) else (by obtain rfl : j = 188 := (by omega); exact ok188))) else (if h : j < 191 then (if h : j < 190 then (by obtain rfl : j = 189 := (by omega); exact ok189) else (by obtain rfl : j = 190 := (by omega); exact ok190)) else (if h : j < 192 then (by obtain rfl : j = 191 := (by omega); exact ok191) else (by obtain rfl : j = 192 := (by omega); exact ok192))))))) else (if h : j < 225 then (if h : j < 209 then (if h : j < 201 then (if h : j < 197 then (if h : j < 195 then (if h : j < 194 then (by obtain rfl : j = 193 := (by omega); exact ok193) else (by obtain rfl : j = 194 := (by omega); exact ok194)) else (if h : j < 196 then (by obtain rfl : j = 195 := (by omega); exact ok195) else (by obtain rfl : j = 196 := (by omega); exact ok196))) else (if h : j < 199 then (if h : j < 198 then (by obtain rfl : j = 197 := (by omega); exact ok197) else (by obtain rfl : j = 198 := (by omega); exact ok198)) else (if h : j < 200 then (by obtain rfl : j = 199 := (by omega); exact ok199) else (by obtain rfl : j = 200 := (by omega); exact ok200)))) else (if h : j < 205 then (if h : j < 203 then (if h : j < 202 then (by obtain rfl : j = 201 := (by omega); exact ok201) else (by obtain rfl : j = 202 := (by omega); exact ok202)) else (if h : j < 204 then (by obtain rfl : j = 203 := (by omega); exact ok203) else (by obtain rfl : j = 204 := (by omega); exact ok204))) else (if h : j < 207 then (if h : j < 206 then (by obtain rfl : j = 205 := (by omega); exact ok205) else (by obtain rfl : j = 206 := (by omega); exact ok206)) else (if h : j < 208 then (by obtain rfl : j = 207 := (by omega); exact ok207) else (by obtain rfl : j = 208 := (by omega); exact ok208))))) else (if h : j < 217 then (if h : j < 213 then (if h : j < 211 then (if h : j < 210 then (by obtain rfl : j = 209 := (by omega); exact ok209) else (by obtain rfl : j = 210 := (by omega); exact ok210)) else (if h : j < 212 then (by obtain rfl : j = 211 := (by omega); exact ok211) else (by obtain rfl : j = 212 := (by omega); exact ok212))) else (if h : j < 215 then (if h : j < 214 then (by obtain rfl : j = 213 := (by omega); exact ok213) else (by obtain rfl : j = 214 := (by omega); exact ok214)) else (if h : j < 216 then (by obtain rfl : j = 215 := (by omega); exact ok215) else (by obtain rfl : j = 216 := (by omega); exact ok216)))) else (if h : j < 221 then (if h : j < 219 then (if h : j < 218 then (by obtain rfl : j = 217 := (by omega); exact ok217) else (by obtain rfl : j = 218 := (by omega); exact ok218)) else (if h : j < 220 then (by obtain rfl : j = 219 := (by omega); exact ok219) else (by obtain rfl : j = 220 := (by omega); exact ok220))) else (if h : j < 223 then (if h : j < 222 then (by obtain rfl : j = 221 := (by omega); exact ok221) else (by obtain rfl : j = 222 := (by omega); exact ok222)) else (if h : j < 224 then (by obtain rfl : j = 223 := (by omega); exact ok223) else (by obtain rfl : j = 224 := (by omega); exact ok224)))))) else (if h : j < 241 then (if h : j < 233 then (if h : j < 229 then (if h : j < 227 then (if h : j < 226 then (by obtain rfl : j = 225 := (by omega); exact ok225) else (by obtain rfl : j = 226 := (by omega); exact ok226)) else (if h : j < 228 then (by obtain rfl : j = 227 := (by omega); exact ok227) else (by obtain rfl : j = 228 := (by omega); exact ok228))) else (if h : j < 231 then (if h : j < 230 then (by obtain rfl : j = 229 := (by omega); exact ok229) else (by obtain rfl : j = 230 := (by omega); exact ok230)) else (if h : j < 232 then (by obtain rfl : j = 231 := (by omega); exact ok231) else (by obtain rfl : j = 232 := (by omega); exact ok232)))) else (if h : j < 237 then (if h : j < 235 then (if h : j < 234 then (by obtain rfl : j = 233 := (by omega); exact ok233) else (by obtain rfl : j = 234 := (by omega); exact ok234)) else (if h : j < 236 then (by obtain rfl : j = 235 := (by omega); exact ok235) else (by obtain rfl : j = 236 := (by omega); exact ok236))) else (if h : j < 239 then (if h : j < 238 then (by obtain rfl : j = 237 := (by omega); exact ok237) else (by obtain rfl : j = 238 := (by omega); exact ok238)) else (if h : j < 240 then (by obtain rfl : j = 239 := (by omega); exact ok239) else (by obtain rfl : j = 240 := (by omega); exact ok240))))) else (if h : j < 249 then (if h : j < 245 then (if h : j < 243 then (if h : j < 242 then (by obtain rfl : j = 241 := (by omega); exact ok241) else (by obtain rfl : j = 242 := (by omega); exact ok242)) else (if h : j < 244 then (by obtain rfl : j = 243 := (by omega); exact ok243) else (by obtain rfl : j = 244 := (by omega); exact ok244))) else (if h : j < 247 then (if h : j < 246 then (by obtain rfl : j = 245 := (by omega); exact ok245) else (by obtain rfl : j = 246 := (by omega); exact ok246)) else (if h : j < 248 then (by obtain rfl : j = 247 := (by omega); exact ok247) else (by obtain rfl : j = 248 := (by omega); exact ok248)))) else (if h : j < 253 then (if h : j < 251 then (if h : j < 250 then (by obtain rfl : j = 249 := (by omega); exact ok249) else (by obtain rfl : j = 250 := (by omega); exact ok250)) else (if h : j < 252 then (by obtain rfl : j = 251 := (by omega); exact ok251) else (by obtain rfl : j = 252 := (by omega); exact ok252))) else (if h : j < 255 then (if h : j < 254 then (by obtain rfl : j = 253 := (by omega); exact ok253) else (by obtain rfl : j = 254 := (by omega); exact ok254)) else (if h : j < 256 then (by obtain rfl : j = 255 := (by omega); exact ok255) else (by obtain rfl : j = 256 := (by omega); exact ok256)))))))))
+  (if hb129 : j < 129 then (if hb65 : j < 65 then (if hb33 : j < 33 then (if hb17 : j < 17 then (if hb9 : j < 9 then (if hb5 : j < 5 then (if hb3 : j < 3 then (if hb2 : j < 2 then (at_of_bounds (P := fun j ↦ CplOk j) h1 hb2 ok1) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb2) hb3 ok2)) else (if hb4 : j < 4 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb3) hb4 ok3) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb4) hb5 ok4))) else (if hb7 : j < 7 then (if hb6 : j < 6 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb5) hb6 ok5) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb6) hb7 ok6)) else (if hb8 : j < 8 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb7) hb8 ok7) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb8) hb9 ok8)))) else (if hb13 : j < 13 then (if hb11 : j < 11 then (if hb10 : j < 10 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb9) hb10 ok9) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb10) hb11 ok10)) else (if hb12 : j < 12 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb11) hb12 ok11) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb12) hb13 ok12))) else (if hb15 : j < 15 then (if hb14 : j < 14 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb13) hb14 ok13) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb14) hb15 ok14)) else (if hb16 : j < 16 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb15) hb16 ok15) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb16) hb17 ok16))))) else (if hb25 : j < 25 then (if hb21 : j < 21 then (if hb19 : j < 19 then (if hb18 : j < 18 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb17) hb18 ok17) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb18) hb19 ok18)) else (if hb20 : j < 20 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb19) hb20 ok19) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb20) hb21 ok20))) else (if hb23 : j < 23 then (if hb22 : j < 22 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb21) hb22 ok21) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb22) hb23 ok22)) else (if hb24 : j < 24 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb23) hb24 ok23) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb24) hb25 ok24)))) else (if hb29 : j < 29 then (if hb27 : j < 27 then (if hb26 : j < 26 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb25) hb26 ok25) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb26) hb27 ok26)) else (if hb28 : j < 28 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb27) hb28 ok27) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb28) hb29 ok28))) else (if hb31 : j < 31 then (if hb30 : j < 30 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb29) hb30 ok29) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb30) hb31 ok30)) else (if hb32 : j < 32 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb31) hb32 ok31) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb32) hb33 ok32)))))) else (if hb49 : j < 49 then (if hb41 : j < 41 then (if hb37 : j < 37 then (if hb35 : j < 35 then (if hb34 : j < 34 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb33) hb34 ok33) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb34) hb35 ok34)) else (if hb36 : j < 36 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb35) hb36 ok35) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb36) hb37 ok36))) else (if hb39 : j < 39 then (if hb38 : j < 38 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb37) hb38 ok37) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb38) hb39 ok38)) else (if hb40 : j < 40 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb39) hb40 ok39) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb40) hb41 ok40)))) else (if hb45 : j < 45 then (if hb43 : j < 43 then (if hb42 : j < 42 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb41) hb42 ok41) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb42) hb43 ok42)) else (if hb44 : j < 44 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb43) hb44 ok43) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb44) hb45 ok44))) else (if hb47 : j < 47 then (if hb46 : j < 46 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb45) hb46 ok45) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb46) hb47 ok46)) else (if hb48 : j < 48 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb47) hb48 ok47) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb48) hb49 ok48))))) else (if hb57 : j < 57 then (if hb53 : j < 53 then (if hb51 : j < 51 then (if hb50 : j < 50 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb49) hb50 ok49) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb50) hb51 ok50)) else (if hb52 : j < 52 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb51) hb52 ok51) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb52) hb53 ok52))) else (if hb55 : j < 55 then (if hb54 : j < 54 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb53) hb54 ok53) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb54) hb55 ok54)) else (if hb56 : j < 56 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb55) hb56 ok55) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb56) hb57 ok56)))) else (if hb61 : j < 61 then (if hb59 : j < 59 then (if hb58 : j < 58 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb57) hb58 ok57) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb58) hb59 ok58)) else (if hb60 : j < 60 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb59) hb60 ok59) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb60) hb61 ok60))) else (if hb63 : j < 63 then (if hb62 : j < 62 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb61) hb62 ok61) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb62) hb63 ok62)) else (if hb64 : j < 64 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb63) hb64 ok63) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb64) hb65 ok64))))))) else (if hb97 : j < 97 then (if hb81 : j < 81 then (if hb73 : j < 73 then (if hb69 : j < 69 then (if hb67 : j < 67 then (if hb66 : j < 66 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb65) hb66 ok65) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb66) hb67 ok66)) else (if hb68 : j < 68 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb67) hb68 ok67) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb68) hb69 ok68))) else (if hb71 : j < 71 then (if hb70 : j < 70 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb69) hb70 ok69) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb70) hb71 ok70)) else (if hb72 : j < 72 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb71) hb72 ok71) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb72) hb73 ok72)))) else (if hb77 : j < 77 then (if hb75 : j < 75 then (if hb74 : j < 74 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb73) hb74 ok73) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb74) hb75 ok74)) else (if hb76 : j < 76 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb75) hb76 ok75) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb76) hb77 ok76))) else (if hb79 : j < 79 then (if hb78 : j < 78 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb77) hb78 ok77) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb78) hb79 ok78)) else (if hb80 : j < 80 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb79) hb80 ok79) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb80) hb81 ok80))))) else (if hb89 : j < 89 then (if hb85 : j < 85 then (if hb83 : j < 83 then (if hb82 : j < 82 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb81) hb82 ok81) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb82) hb83 ok82)) else (if hb84 : j < 84 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb83) hb84 ok83) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb84) hb85 ok84))) else (if hb87 : j < 87 then (if hb86 : j < 86 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb85) hb86 ok85) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb86) hb87 ok86)) else (if hb88 : j < 88 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb87) hb88 ok87) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb88) hb89 ok88)))) else (if hb93 : j < 93 then (if hb91 : j < 91 then (if hb90 : j < 90 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb89) hb90 ok89) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb90) hb91 ok90)) else (if hb92 : j < 92 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb91) hb92 ok91) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb92) hb93 ok92))) else (if hb95 : j < 95 then (if hb94 : j < 94 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb93) hb94 ok93) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb94) hb95 ok94)) else (if hb96 : j < 96 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb95) hb96 ok95) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb96) hb97 ok96)))))) else (if hb113 : j < 113 then (if hb105 : j < 105 then (if hb101 : j < 101 then (if hb99 : j < 99 then (if hb98 : j < 98 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb97) hb98 ok97) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb98) hb99 ok98)) else (if hb100 : j < 100 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb99) hb100 ok99) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb100) hb101 ok100))) else (if hb103 : j < 103 then (if hb102 : j < 102 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb101) hb102 ok101) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb102) hb103 ok102)) else (if hb104 : j < 104 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb103) hb104 ok103) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb104) hb105 ok104)))) else (if hb109 : j < 109 then (if hb107 : j < 107 then (if hb106 : j < 106 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb105) hb106 ok105) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb106) hb107 ok106)) else (if hb108 : j < 108 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb107) hb108 ok107) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb108) hb109 ok108))) else (if hb111 : j < 111 then (if hb110 : j < 110 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb109) hb110 ok109) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb110) hb111 ok110)) else (if hb112 : j < 112 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb111) hb112 ok111) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb112) hb113 ok112))))) else (if hb121 : j < 121 then (if hb117 : j < 117 then (if hb115 : j < 115 then (if hb114 : j < 114 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb113) hb114 ok113) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb114) hb115 ok114)) else (if hb116 : j < 116 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb115) hb116 ok115) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb116) hb117 ok116))) else (if hb119 : j < 119 then (if hb118 : j < 118 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb117) hb118 ok117) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb118) hb119 ok118)) else (if hb120 : j < 120 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb119) hb120 ok119) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb120) hb121 ok120)))) else (if hb125 : j < 125 then (if hb123 : j < 123 then (if hb122 : j < 122 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb121) hb122 ok121) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb122) hb123 ok122)) else (if hb124 : j < 124 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb123) hb124 ok123) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb124) hb125 ok124))) else (if hb127 : j < 127 then (if hb126 : j < 126 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb125) hb126 ok125) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb126) hb127 ok126)) else (if hb128 : j < 128 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb127) hb128 ok127) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb128) hb129 ok128)))))))) else (if hb193 : j < 193 then (if hb161 : j < 161 then (if hb145 : j < 145 then (if hb137 : j < 137 then (if hb133 : j < 133 then (if hb131 : j < 131 then (if hb130 : j < 130 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb129) hb130 ok129) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb130) hb131 ok130)) else (if hb132 : j < 132 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb131) hb132 ok131) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb132) hb133 ok132))) else (if hb135 : j < 135 then (if hb134 : j < 134 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb133) hb134 ok133) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb134) hb135 ok134)) else (if hb136 : j < 136 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb135) hb136 ok135) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb136) hb137 ok136)))) else (if hb141 : j < 141 then (if hb139 : j < 139 then (if hb138 : j < 138 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb137) hb138 ok137) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb138) hb139 ok138)) else (if hb140 : j < 140 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb139) hb140 ok139) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb140) hb141 ok140))) else (if hb143 : j < 143 then (if hb142 : j < 142 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb141) hb142 ok141) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb142) hb143 ok142)) else (if hb144 : j < 144 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb143) hb144 ok143) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb144) hb145 ok144))))) else (if hb153 : j < 153 then (if hb149 : j < 149 then (if hb147 : j < 147 then (if hb146 : j < 146 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb145) hb146 ok145) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb146) hb147 ok146)) else (if hb148 : j < 148 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb147) hb148 ok147) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb148) hb149 ok148))) else (if hb151 : j < 151 then (if hb150 : j < 150 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb149) hb150 ok149) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb150) hb151 ok150)) else (if hb152 : j < 152 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb151) hb152 ok151) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb152) hb153 ok152)))) else (if hb157 : j < 157 then (if hb155 : j < 155 then (if hb154 : j < 154 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb153) hb154 ok153) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb154) hb155 ok154)) else (if hb156 : j < 156 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb155) hb156 ok155) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb156) hb157 ok156))) else (if hb159 : j < 159 then (if hb158 : j < 158 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb157) hb158 ok157) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb158) hb159 ok158)) else (if hb160 : j < 160 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb159) hb160 ok159) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb160) hb161 ok160)))))) else (if hb177 : j < 177 then (if hb169 : j < 169 then (if hb165 : j < 165 then (if hb163 : j < 163 then (if hb162 : j < 162 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb161) hb162 ok161) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb162) hb163 ok162)) else (if hb164 : j < 164 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb163) hb164 ok163) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb164) hb165 ok164))) else (if hb167 : j < 167 then (if hb166 : j < 166 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb165) hb166 ok165) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb166) hb167 ok166)) else (if hb168 : j < 168 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb167) hb168 ok167) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb168) hb169 ok168)))) else (if hb173 : j < 173 then (if hb171 : j < 171 then (if hb170 : j < 170 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb169) hb170 ok169) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb170) hb171 ok170)) else (if hb172 : j < 172 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb171) hb172 ok171) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb172) hb173 ok172))) else (if hb175 : j < 175 then (if hb174 : j < 174 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb173) hb174 ok173) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb174) hb175 ok174)) else (if hb176 : j < 176 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb175) hb176 ok175) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb176) hb177 ok176))))) else (if hb185 : j < 185 then (if hb181 : j < 181 then (if hb179 : j < 179 then (if hb178 : j < 178 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb177) hb178 ok177) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb178) hb179 ok178)) else (if hb180 : j < 180 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb179) hb180 ok179) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb180) hb181 ok180))) else (if hb183 : j < 183 then (if hb182 : j < 182 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb181) hb182 ok181) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb182) hb183 ok182)) else (if hb184 : j < 184 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb183) hb184 ok183) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb184) hb185 ok184)))) else (if hb189 : j < 189 then (if hb187 : j < 187 then (if hb186 : j < 186 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb185) hb186 ok185) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb186) hb187 ok186)) else (if hb188 : j < 188 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb187) hb188 ok187) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb188) hb189 ok188))) else (if hb191 : j < 191 then (if hb190 : j < 190 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb189) hb190 ok189) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb190) hb191 ok190)) else (if hb192 : j < 192 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb191) hb192 ok191) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb192) hb193 ok192))))))) else (if hb225 : j < 225 then (if hb209 : j < 209 then (if hb201 : j < 201 then (if hb197 : j < 197 then (if hb195 : j < 195 then (if hb194 : j < 194 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb193) hb194 ok193) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb194) hb195 ok194)) else (if hb196 : j < 196 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb195) hb196 ok195) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb196) hb197 ok196))) else (if hb199 : j < 199 then (if hb198 : j < 198 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb197) hb198 ok197) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb198) hb199 ok198)) else (if hb200 : j < 200 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb199) hb200 ok199) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb200) hb201 ok200)))) else (if hb205 : j < 205 then (if hb203 : j < 203 then (if hb202 : j < 202 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb201) hb202 ok201) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb202) hb203 ok202)) else (if hb204 : j < 204 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb203) hb204 ok203) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb204) hb205 ok204))) else (if hb207 : j < 207 then (if hb206 : j < 206 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb205) hb206 ok205) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb206) hb207 ok206)) else (if hb208 : j < 208 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb207) hb208 ok207) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb208) hb209 ok208))))) else (if hb217 : j < 217 then (if hb213 : j < 213 then (if hb211 : j < 211 then (if hb210 : j < 210 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb209) hb210 ok209) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb210) hb211 ok210)) else (if hb212 : j < 212 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb211) hb212 ok211) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb212) hb213 ok212))) else (if hb215 : j < 215 then (if hb214 : j < 214 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb213) hb214 ok213) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb214) hb215 ok214)) else (if hb216 : j < 216 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb215) hb216 ok215) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb216) hb217 ok216)))) else (if hb221 : j < 221 then (if hb219 : j < 219 then (if hb218 : j < 218 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb217) hb218 ok217) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb218) hb219 ok218)) else (if hb220 : j < 220 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb219) hb220 ok219) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb220) hb221 ok220))) else (if hb223 : j < 223 then (if hb222 : j < 222 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb221) hb222 ok221) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb222) hb223 ok222)) else (if hb224 : j < 224 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb223) hb224 ok223) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb224) hb225 ok224)))))) else (if hb241 : j < 241 then (if hb233 : j < 233 then (if hb229 : j < 229 then (if hb227 : j < 227 then (if hb226 : j < 226 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb225) hb226 ok225) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb226) hb227 ok226)) else (if hb228 : j < 228 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb227) hb228 ok227) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb228) hb229 ok228))) else (if hb231 : j < 231 then (if hb230 : j < 230 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb229) hb230 ok229) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb230) hb231 ok230)) else (if hb232 : j < 232 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb231) hb232 ok231) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb232) hb233 ok232)))) else (if hb237 : j < 237 then (if hb235 : j < 235 then (if hb234 : j < 234 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb233) hb234 ok233) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb234) hb235 ok234)) else (if hb236 : j < 236 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb235) hb236 ok235) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb236) hb237 ok236))) else (if hb239 : j < 239 then (if hb238 : j < 238 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb237) hb238 ok237) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb238) hb239 ok238)) else (if hb240 : j < 240 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb239) hb240 ok239) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb240) hb241 ok240))))) else (if hb249 : j < 249 then (if hb245 : j < 245 then (if hb243 : j < 243 then (if hb242 : j < 242 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb241) hb242 ok241) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb242) hb243 ok242)) else (if hb244 : j < 244 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb243) hb244 ok243) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb244) hb245 ok244))) else (if hb247 : j < 247 then (if hb246 : j < 246 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb245) hb246 ok245) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb246) hb247 ok246)) else (if hb248 : j < 248 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb247) hb248 ok247) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb248) hb249 ok248)))) else (if hb253 : j < 253 then (if hb251 : j < 251 then (if hb250 : j < 250 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb249) hb250 ok249) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb250) hb251 ok250)) else (if hb252 : j < 252 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb251) hb252 ok251) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb252) hb253 ok252))) else (if hb255 : j < 255 then (if hb254 : j < 254 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb253) hb254 ok253) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb254) hb255 ok254)) else (if hb256 : j < 256 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb255) hb256 ok255) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb256) h2 ok256)))))))))
 
 theorem cplOk_all_1 : ∀ j, 257 ≤ j → j < 513 → CplOk j := fun j h1 h2 ↦
-  (if h : j < 385 then (if h : j < 321 then (if h : j < 289 then (if h : j < 273 then (if h : j < 265 then (if h : j < 261 then (if h : j < 259 then (if h : j < 258 then (by obtain rfl : j = 257 := (by omega); exact ok257) else (by obtain rfl : j = 258 := (by omega); exact ok258)) else (if h : j < 260 then (by obtain rfl : j = 259 := (by omega); exact ok259) else (by obtain rfl : j = 260 := (by omega); exact ok260))) else (if h : j < 263 then (if h : j < 262 then (by obtain rfl : j = 261 := (by omega); exact ok261) else (by obtain rfl : j = 262 := (by omega); exact ok262)) else (if h : j < 264 then (by obtain rfl : j = 263 := (by omega); exact ok263) else (by obtain rfl : j = 264 := (by omega); exact ok264)))) else (if h : j < 269 then (if h : j < 267 then (if h : j < 266 then (by obtain rfl : j = 265 := (by omega); exact ok265) else (by obtain rfl : j = 266 := (by omega); exact ok266)) else (if h : j < 268 then (by obtain rfl : j = 267 := (by omega); exact ok267) else (by obtain rfl : j = 268 := (by omega); exact ok268))) else (if h : j < 271 then (if h : j < 270 then (by obtain rfl : j = 269 := (by omega); exact ok269) else (by obtain rfl : j = 270 := (by omega); exact ok270)) else (if h : j < 272 then (by obtain rfl : j = 271 := (by omega); exact ok271) else (by obtain rfl : j = 272 := (by omega); exact ok272))))) else (if h : j < 281 then (if h : j < 277 then (if h : j < 275 then (if h : j < 274 then (by obtain rfl : j = 273 := (by omega); exact ok273) else (by obtain rfl : j = 274 := (by omega); exact ok274)) else (if h : j < 276 then (by obtain rfl : j = 275 := (by omega); exact ok275) else (by obtain rfl : j = 276 := (by omega); exact ok276))) else (if h : j < 279 then (if h : j < 278 then (by obtain rfl : j = 277 := (by omega); exact ok277) else (by obtain rfl : j = 278 := (by omega); exact ok278)) else (if h : j < 280 then (by obtain rfl : j = 279 := (by omega); exact ok279) else (by obtain rfl : j = 280 := (by omega); exact ok280)))) else (if h : j < 285 then (if h : j < 283 then (if h : j < 282 then (by obtain rfl : j = 281 := (by omega); exact ok281) else (by obtain rfl : j = 282 := (by omega); exact ok282)) else (if h : j < 284 then (by obtain rfl : j = 283 := (by omega); exact ok283) else (by obtain rfl : j = 284 := (by omega); exact ok284))) else (if h : j < 287 then (if h : j < 286 then (by obtain rfl : j = 285 := (by omega); exact ok285) else (by obtain rfl : j = 286 := (by omega); exact ok286)) else (if h : j < 288 then (by obtain rfl : j = 287 := (by omega); exact ok287) else (by obtain rfl : j = 288 := (by omega); exact ok288)))))) else (if h : j < 305 then (if h : j < 297 then (if h : j < 293 then (if h : j < 291 then (if h : j < 290 then (by obtain rfl : j = 289 := (by omega); exact ok289) else (by obtain rfl : j = 290 := (by omega); exact ok290)) else (if h : j < 292 then (by obtain rfl : j = 291 := (by omega); exact ok291) else (by obtain rfl : j = 292 := (by omega); exact ok292))) else (if h : j < 295 then (if h : j < 294 then (by obtain rfl : j = 293 := (by omega); exact ok293) else (by obtain rfl : j = 294 := (by omega); exact ok294)) else (if h : j < 296 then (by obtain rfl : j = 295 := (by omega); exact ok295) else (by obtain rfl : j = 296 := (by omega); exact ok296)))) else (if h : j < 301 then (if h : j < 299 then (if h : j < 298 then (by obtain rfl : j = 297 := (by omega); exact ok297) else (by obtain rfl : j = 298 := (by omega); exact ok298)) else (if h : j < 300 then (by obtain rfl : j = 299 := (by omega); exact ok299) else (by obtain rfl : j = 300 := (by omega); exact ok300))) else (if h : j < 303 then (if h : j < 302 then (by obtain rfl : j = 301 := (by omega); exact ok301) else (by obtain rfl : j = 302 := (by omega); exact ok302)) else (if h : j < 304 then (by obtain rfl : j = 303 := (by omega); exact ok303) else (by obtain rfl : j = 304 := (by omega); exact ok304))))) else (if h : j < 313 then (if h : j < 309 then (if h : j < 307 then (if h : j < 306 then (by obtain rfl : j = 305 := (by omega); exact ok305) else (by obtain rfl : j = 306 := (by omega); exact ok306)) else (if h : j < 308 then (by obtain rfl : j = 307 := (by omega); exact ok307) else (by obtain rfl : j = 308 := (by omega); exact ok308))) else (if h : j < 311 then (if h : j < 310 then (by obtain rfl : j = 309 := (by omega); exact ok309) else (by obtain rfl : j = 310 := (by omega); exact ok310)) else (if h : j < 312 then (by obtain rfl : j = 311 := (by omega); exact ok311) else (by obtain rfl : j = 312 := (by omega); exact ok312)))) else (if h : j < 317 then (if h : j < 315 then (if h : j < 314 then (by obtain rfl : j = 313 := (by omega); exact ok313) else (by obtain rfl : j = 314 := (by omega); exact ok314)) else (if h : j < 316 then (by obtain rfl : j = 315 := (by omega); exact ok315) else (by obtain rfl : j = 316 := (by omega); exact ok316))) else (if h : j < 319 then (if h : j < 318 then (by obtain rfl : j = 317 := (by omega); exact ok317) else (by obtain rfl : j = 318 := (by omega); exact ok318)) else (if h : j < 320 then (by obtain rfl : j = 319 := (by omega); exact ok319) else (by obtain rfl : j = 320 := (by omega); exact ok320))))))) else (if h : j < 353 then (if h : j < 337 then (if h : j < 329 then (if h : j < 325 then (if h : j < 323 then (if h : j < 322 then (by obtain rfl : j = 321 := (by omega); exact ok321) else (by obtain rfl : j = 322 := (by omega); exact ok322)) else (if h : j < 324 then (by obtain rfl : j = 323 := (by omega); exact ok323) else (by obtain rfl : j = 324 := (by omega); exact ok324))) else (if h : j < 327 then (if h : j < 326 then (by obtain rfl : j = 325 := (by omega); exact ok325) else (by obtain rfl : j = 326 := (by omega); exact ok326)) else (if h : j < 328 then (by obtain rfl : j = 327 := (by omega); exact ok327) else (by obtain rfl : j = 328 := (by omega); exact ok328)))) else (if h : j < 333 then (if h : j < 331 then (if h : j < 330 then (by obtain rfl : j = 329 := (by omega); exact ok329) else (by obtain rfl : j = 330 := (by omega); exact ok330)) else (if h : j < 332 then (by obtain rfl : j = 331 := (by omega); exact ok331) else (by obtain rfl : j = 332 := (by omega); exact ok332))) else (if h : j < 335 then (if h : j < 334 then (by obtain rfl : j = 333 := (by omega); exact ok333) else (by obtain rfl : j = 334 := (by omega); exact ok334)) else (if h : j < 336 then (by obtain rfl : j = 335 := (by omega); exact ok335) else (by obtain rfl : j = 336 := (by omega); exact ok336))))) else (if h : j < 345 then (if h : j < 341 then (if h : j < 339 then (if h : j < 338 then (by obtain rfl : j = 337 := (by omega); exact ok337) else (by obtain rfl : j = 338 := (by omega); exact ok338)) else (if h : j < 340 then (by obtain rfl : j = 339 := (by omega); exact ok339) else (by obtain rfl : j = 340 := (by omega); exact ok340))) else (if h : j < 343 then (if h : j < 342 then (by obtain rfl : j = 341 := (by omega); exact ok341) else (by obtain rfl : j = 342 := (by omega); exact ok342)) else (if h : j < 344 then (by obtain rfl : j = 343 := (by omega); exact ok343) else (by obtain rfl : j = 344 := (by omega); exact ok344)))) else (if h : j < 349 then (if h : j < 347 then (if h : j < 346 then (by obtain rfl : j = 345 := (by omega); exact ok345) else (by obtain rfl : j = 346 := (by omega); exact ok346)) else (if h : j < 348 then (by obtain rfl : j = 347 := (by omega); exact ok347) else (by obtain rfl : j = 348 := (by omega); exact ok348))) else (if h : j < 351 then (if h : j < 350 then (by obtain rfl : j = 349 := (by omega); exact ok349) else (by obtain rfl : j = 350 := (by omega); exact ok350)) else (if h : j < 352 then (by obtain rfl : j = 351 := (by omega); exact ok351) else (by obtain rfl : j = 352 := (by omega); exact ok352)))))) else (if h : j < 369 then (if h : j < 361 then (if h : j < 357 then (if h : j < 355 then (if h : j < 354 then (by obtain rfl : j = 353 := (by omega); exact ok353) else (by obtain rfl : j = 354 := (by omega); exact ok354)) else (if h : j < 356 then (by obtain rfl : j = 355 := (by omega); exact ok355) else (by obtain rfl : j = 356 := (by omega); exact ok356))) else (if h : j < 359 then (if h : j < 358 then (by obtain rfl : j = 357 := (by omega); exact ok357) else (by obtain rfl : j = 358 := (by omega); exact ok358)) else (if h : j < 360 then (by obtain rfl : j = 359 := (by omega); exact ok359) else (by obtain rfl : j = 360 := (by omega); exact ok360)))) else (if h : j < 365 then (if h : j < 363 then (if h : j < 362 then (by obtain rfl : j = 361 := (by omega); exact ok361) else (by obtain rfl : j = 362 := (by omega); exact ok362)) else (if h : j < 364 then (by obtain rfl : j = 363 := (by omega); exact ok363) else (by obtain rfl : j = 364 := (by omega); exact ok364))) else (if h : j < 367 then (if h : j < 366 then (by obtain rfl : j = 365 := (by omega); exact ok365) else (by obtain rfl : j = 366 := (by omega); exact ok366)) else (if h : j < 368 then (by obtain rfl : j = 367 := (by omega); exact ok367) else (by obtain rfl : j = 368 := (by omega); exact ok368))))) else (if h : j < 377 then (if h : j < 373 then (if h : j < 371 then (if h : j < 370 then (by obtain rfl : j = 369 := (by omega); exact ok369) else (by obtain rfl : j = 370 := (by omega); exact ok370)) else (if h : j < 372 then (by obtain rfl : j = 371 := (by omega); exact ok371) else (by obtain rfl : j = 372 := (by omega); exact ok372))) else (if h : j < 375 then (if h : j < 374 then (by obtain rfl : j = 373 := (by omega); exact ok373) else (by obtain rfl : j = 374 := (by omega); exact ok374)) else (if h : j < 376 then (by obtain rfl : j = 375 := (by omega); exact ok375) else (by obtain rfl : j = 376 := (by omega); exact ok376)))) else (if h : j < 381 then (if h : j < 379 then (if h : j < 378 then (by obtain rfl : j = 377 := (by omega); exact ok377) else (by obtain rfl : j = 378 := (by omega); exact ok378)) else (if h : j < 380 then (by obtain rfl : j = 379 := (by omega); exact ok379) else (by obtain rfl : j = 380 := (by omega); exact ok380))) else (if h : j < 383 then (if h : j < 382 then (by obtain rfl : j = 381 := (by omega); exact ok381) else (by obtain rfl : j = 382 := (by omega); exact ok382)) else (if h : j < 384 then (by obtain rfl : j = 383 := (by omega); exact ok383) else (by obtain rfl : j = 384 := (by omega); exact ok384)))))))) else (if h : j < 449 then (if h : j < 417 then (if h : j < 401 then (if h : j < 393 then (if h : j < 389 then (if h : j < 387 then (if h : j < 386 then (by obtain rfl : j = 385 := (by omega); exact ok385) else (by obtain rfl : j = 386 := (by omega); exact ok386)) else (if h : j < 388 then (by obtain rfl : j = 387 := (by omega); exact ok387) else (by obtain rfl : j = 388 := (by omega); exact ok388))) else (if h : j < 391 then (if h : j < 390 then (by obtain rfl : j = 389 := (by omega); exact ok389) else (by obtain rfl : j = 390 := (by omega); exact ok390)) else (if h : j < 392 then (by obtain rfl : j = 391 := (by omega); exact ok391) else (by obtain rfl : j = 392 := (by omega); exact ok392)))) else (if h : j < 397 then (if h : j < 395 then (if h : j < 394 then (by obtain rfl : j = 393 := (by omega); exact ok393) else (by obtain rfl : j = 394 := (by omega); exact ok394)) else (if h : j < 396 then (by obtain rfl : j = 395 := (by omega); exact ok395) else (by obtain rfl : j = 396 := (by omega); exact ok396))) else (if h : j < 399 then (if h : j < 398 then (by obtain rfl : j = 397 := (by omega); exact ok397) else (by obtain rfl : j = 398 := (by omega); exact ok398)) else (if h : j < 400 then (by obtain rfl : j = 399 := (by omega); exact ok399) else (by obtain rfl : j = 400 := (by omega); exact ok400))))) else (if h : j < 409 then (if h : j < 405 then (if h : j < 403 then (if h : j < 402 then (by obtain rfl : j = 401 := (by omega); exact ok401) else (by obtain rfl : j = 402 := (by omega); exact ok402)) else (if h : j < 404 then (by obtain rfl : j = 403 := (by omega); exact ok403) else (by obtain rfl : j = 404 := (by omega); exact ok404))) else (if h : j < 407 then (if h : j < 406 then (by obtain rfl : j = 405 := (by omega); exact ok405) else (by obtain rfl : j = 406 := (by omega); exact ok406)) else (if h : j < 408 then (by obtain rfl : j = 407 := (by omega); exact ok407) else (by obtain rfl : j = 408 := (by omega); exact ok408)))) else (if h : j < 413 then (if h : j < 411 then (if h : j < 410 then (by obtain rfl : j = 409 := (by omega); exact ok409) else (by obtain rfl : j = 410 := (by omega); exact ok410)) else (if h : j < 412 then (by obtain rfl : j = 411 := (by omega); exact ok411) else (by obtain rfl : j = 412 := (by omega); exact ok412))) else (if h : j < 415 then (if h : j < 414 then (by obtain rfl : j = 413 := (by omega); exact ok413) else (by obtain rfl : j = 414 := (by omega); exact ok414)) else (if h : j < 416 then (by obtain rfl : j = 415 := (by omega); exact ok415) else (by obtain rfl : j = 416 := (by omega); exact ok416)))))) else (if h : j < 433 then (if h : j < 425 then (if h : j < 421 then (if h : j < 419 then (if h : j < 418 then (by obtain rfl : j = 417 := (by omega); exact ok417) else (by obtain rfl : j = 418 := (by omega); exact ok418)) else (if h : j < 420 then (by obtain rfl : j = 419 := (by omega); exact ok419) else (by obtain rfl : j = 420 := (by omega); exact ok420))) else (if h : j < 423 then (if h : j < 422 then (by obtain rfl : j = 421 := (by omega); exact ok421) else (by obtain rfl : j = 422 := (by omega); exact ok422)) else (if h : j < 424 then (by obtain rfl : j = 423 := (by omega); exact ok423) else (by obtain rfl : j = 424 := (by omega); exact ok424)))) else (if h : j < 429 then (if h : j < 427 then (if h : j < 426 then (by obtain rfl : j = 425 := (by omega); exact ok425) else (by obtain rfl : j = 426 := (by omega); exact ok426)) else (if h : j < 428 then (by obtain rfl : j = 427 := (by omega); exact ok427) else (by obtain rfl : j = 428 := (by omega); exact ok428))) else (if h : j < 431 then (if h : j < 430 then (by obtain rfl : j = 429 := (by omega); exact ok429) else (by obtain rfl : j = 430 := (by omega); exact ok430)) else (if h : j < 432 then (by obtain rfl : j = 431 := (by omega); exact ok431) else (by obtain rfl : j = 432 := (by omega); exact ok432))))) else (if h : j < 441 then (if h : j < 437 then (if h : j < 435 then (if h : j < 434 then (by obtain rfl : j = 433 := (by omega); exact ok433) else (by obtain rfl : j = 434 := (by omega); exact ok434)) else (if h : j < 436 then (by obtain rfl : j = 435 := (by omega); exact ok435) else (by obtain rfl : j = 436 := (by omega); exact ok436))) else (if h : j < 439 then (if h : j < 438 then (by obtain rfl : j = 437 := (by omega); exact ok437) else (by obtain rfl : j = 438 := (by omega); exact ok438)) else (if h : j < 440 then (by obtain rfl : j = 439 := (by omega); exact ok439) else (by obtain rfl : j = 440 := (by omega); exact ok440)))) else (if h : j < 445 then (if h : j < 443 then (if h : j < 442 then (by obtain rfl : j = 441 := (by omega); exact ok441) else (by obtain rfl : j = 442 := (by omega); exact ok442)) else (if h : j < 444 then (by obtain rfl : j = 443 := (by omega); exact ok443) else (by obtain rfl : j = 444 := (by omega); exact ok444))) else (if h : j < 447 then (if h : j < 446 then (by obtain rfl : j = 445 := (by omega); exact ok445) else (by obtain rfl : j = 446 := (by omega); exact ok446)) else (if h : j < 448 then (by obtain rfl : j = 447 := (by omega); exact ok447) else (by obtain rfl : j = 448 := (by omega); exact ok448))))))) else (if h : j < 481 then (if h : j < 465 then (if h : j < 457 then (if h : j < 453 then (if h : j < 451 then (if h : j < 450 then (by obtain rfl : j = 449 := (by omega); exact ok449) else (by obtain rfl : j = 450 := (by omega); exact ok450)) else (if h : j < 452 then (by obtain rfl : j = 451 := (by omega); exact ok451) else (by obtain rfl : j = 452 := (by omega); exact ok452))) else (if h : j < 455 then (if h : j < 454 then (by obtain rfl : j = 453 := (by omega); exact ok453) else (by obtain rfl : j = 454 := (by omega); exact ok454)) else (if h : j < 456 then (by obtain rfl : j = 455 := (by omega); exact ok455) else (by obtain rfl : j = 456 := (by omega); exact ok456)))) else (if h : j < 461 then (if h : j < 459 then (if h : j < 458 then (by obtain rfl : j = 457 := (by omega); exact ok457) else (by obtain rfl : j = 458 := (by omega); exact ok458)) else (if h : j < 460 then (by obtain rfl : j = 459 := (by omega); exact ok459) else (by obtain rfl : j = 460 := (by omega); exact ok460))) else (if h : j < 463 then (if h : j < 462 then (by obtain rfl : j = 461 := (by omega); exact ok461) else (by obtain rfl : j = 462 := (by omega); exact ok462)) else (if h : j < 464 then (by obtain rfl : j = 463 := (by omega); exact ok463) else (by obtain rfl : j = 464 := (by omega); exact ok464))))) else (if h : j < 473 then (if h : j < 469 then (if h : j < 467 then (if h : j < 466 then (by obtain rfl : j = 465 := (by omega); exact ok465) else (by obtain rfl : j = 466 := (by omega); exact ok466)) else (if h : j < 468 then (by obtain rfl : j = 467 := (by omega); exact ok467) else (by obtain rfl : j = 468 := (by omega); exact ok468))) else (if h : j < 471 then (if h : j < 470 then (by obtain rfl : j = 469 := (by omega); exact ok469) else (by obtain rfl : j = 470 := (by omega); exact ok470)) else (if h : j < 472 then (by obtain rfl : j = 471 := (by omega); exact ok471) else (by obtain rfl : j = 472 := (by omega); exact ok472)))) else (if h : j < 477 then (if h : j < 475 then (if h : j < 474 then (by obtain rfl : j = 473 := (by omega); exact ok473) else (by obtain rfl : j = 474 := (by omega); exact ok474)) else (if h : j < 476 then (by obtain rfl : j = 475 := (by omega); exact ok475) else (by obtain rfl : j = 476 := (by omega); exact ok476))) else (if h : j < 479 then (if h : j < 478 then (by obtain rfl : j = 477 := (by omega); exact ok477) else (by obtain rfl : j = 478 := (by omega); exact ok478)) else (if h : j < 480 then (by obtain rfl : j = 479 := (by omega); exact ok479) else (by obtain rfl : j = 480 := (by omega); exact ok480)))))) else (if h : j < 497 then (if h : j < 489 then (if h : j < 485 then (if h : j < 483 then (if h : j < 482 then (by obtain rfl : j = 481 := (by omega); exact ok481) else (by obtain rfl : j = 482 := (by omega); exact ok482)) else (if h : j < 484 then (by obtain rfl : j = 483 := (by omega); exact ok483) else (by obtain rfl : j = 484 := (by omega); exact ok484))) else (if h : j < 487 then (if h : j < 486 then (by obtain rfl : j = 485 := (by omega); exact ok485) else (by obtain rfl : j = 486 := (by omega); exact ok486)) else (if h : j < 488 then (by obtain rfl : j = 487 := (by omega); exact ok487) else (by obtain rfl : j = 488 := (by omega); exact ok488)))) else (if h : j < 493 then (if h : j < 491 then (if h : j < 490 then (by obtain rfl : j = 489 := (by omega); exact ok489) else (by obtain rfl : j = 490 := (by omega); exact ok490)) else (if h : j < 492 then (by obtain rfl : j = 491 := (by omega); exact ok491) else (by obtain rfl : j = 492 := (by omega); exact ok492))) else (if h : j < 495 then (if h : j < 494 then (by obtain rfl : j = 493 := (by omega); exact ok493) else (by obtain rfl : j = 494 := (by omega); exact ok494)) else (if h : j < 496 then (by obtain rfl : j = 495 := (by omega); exact ok495) else (by obtain rfl : j = 496 := (by omega); exact ok496))))) else (if h : j < 505 then (if h : j < 501 then (if h : j < 499 then (if h : j < 498 then (by obtain rfl : j = 497 := (by omega); exact ok497) else (by obtain rfl : j = 498 := (by omega); exact ok498)) else (if h : j < 500 then (by obtain rfl : j = 499 := (by omega); exact ok499) else (by obtain rfl : j = 500 := (by omega); exact ok500))) else (if h : j < 503 then (if h : j < 502 then (by obtain rfl : j = 501 := (by omega); exact ok501) else (by obtain rfl : j = 502 := (by omega); exact ok502)) else (if h : j < 504 then (by obtain rfl : j = 503 := (by omega); exact ok503) else (by obtain rfl : j = 504 := (by omega); exact ok504)))) else (if h : j < 509 then (if h : j < 507 then (if h : j < 506 then (by obtain rfl : j = 505 := (by omega); exact ok505) else (by obtain rfl : j = 506 := (by omega); exact ok506)) else (if h : j < 508 then (by obtain rfl : j = 507 := (by omega); exact ok507) else (by obtain rfl : j = 508 := (by omega); exact ok508))) else (if h : j < 511 then (if h : j < 510 then (by obtain rfl : j = 509 := (by omega); exact ok509) else (by obtain rfl : j = 510 := (by omega); exact ok510)) else (if h : j < 512 then (by obtain rfl : j = 511 := (by omega); exact ok511) else (by obtain rfl : j = 512 := (by omega); exact ok512)))))))))
+  (if hb385 : j < 385 then (if hb321 : j < 321 then (if hb289 : j < 289 then (if hb273 : j < 273 then (if hb265 : j < 265 then (if hb261 : j < 261 then (if hb259 : j < 259 then (if hb258 : j < 258 then (at_of_bounds (P := fun j ↦ CplOk j) h1 hb258 ok257) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb258) hb259 ok258)) else (if hb260 : j < 260 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb259) hb260 ok259) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb260) hb261 ok260))) else (if hb263 : j < 263 then (if hb262 : j < 262 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb261) hb262 ok261) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb262) hb263 ok262)) else (if hb264 : j < 264 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb263) hb264 ok263) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb264) hb265 ok264)))) else (if hb269 : j < 269 then (if hb267 : j < 267 then (if hb266 : j < 266 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb265) hb266 ok265) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb266) hb267 ok266)) else (if hb268 : j < 268 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb267) hb268 ok267) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb268) hb269 ok268))) else (if hb271 : j < 271 then (if hb270 : j < 270 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb269) hb270 ok269) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb270) hb271 ok270)) else (if hb272 : j < 272 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb271) hb272 ok271) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb272) hb273 ok272))))) else (if hb281 : j < 281 then (if hb277 : j < 277 then (if hb275 : j < 275 then (if hb274 : j < 274 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb273) hb274 ok273) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb274) hb275 ok274)) else (if hb276 : j < 276 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb275) hb276 ok275) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb276) hb277 ok276))) else (if hb279 : j < 279 then (if hb278 : j < 278 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb277) hb278 ok277) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb278) hb279 ok278)) else (if hb280 : j < 280 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb279) hb280 ok279) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb280) hb281 ok280)))) else (if hb285 : j < 285 then (if hb283 : j < 283 then (if hb282 : j < 282 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb281) hb282 ok281) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb282) hb283 ok282)) else (if hb284 : j < 284 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb283) hb284 ok283) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb284) hb285 ok284))) else (if hb287 : j < 287 then (if hb286 : j < 286 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb285) hb286 ok285) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb286) hb287 ok286)) else (if hb288 : j < 288 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb287) hb288 ok287) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb288) hb289 ok288)))))) else (if hb305 : j < 305 then (if hb297 : j < 297 then (if hb293 : j < 293 then (if hb291 : j < 291 then (if hb290 : j < 290 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb289) hb290 ok289) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb290) hb291 ok290)) else (if hb292 : j < 292 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb291) hb292 ok291) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb292) hb293 ok292))) else (if hb295 : j < 295 then (if hb294 : j < 294 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb293) hb294 ok293) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb294) hb295 ok294)) else (if hb296 : j < 296 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb295) hb296 ok295) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb296) hb297 ok296)))) else (if hb301 : j < 301 then (if hb299 : j < 299 then (if hb298 : j < 298 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb297) hb298 ok297) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb298) hb299 ok298)) else (if hb300 : j < 300 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb299) hb300 ok299) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb300) hb301 ok300))) else (if hb303 : j < 303 then (if hb302 : j < 302 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb301) hb302 ok301) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb302) hb303 ok302)) else (if hb304 : j < 304 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb303) hb304 ok303) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb304) hb305 ok304))))) else (if hb313 : j < 313 then (if hb309 : j < 309 then (if hb307 : j < 307 then (if hb306 : j < 306 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb305) hb306 ok305) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb306) hb307 ok306)) else (if hb308 : j < 308 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb307) hb308 ok307) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb308) hb309 ok308))) else (if hb311 : j < 311 then (if hb310 : j < 310 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb309) hb310 ok309) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb310) hb311 ok310)) else (if hb312 : j < 312 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb311) hb312 ok311) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb312) hb313 ok312)))) else (if hb317 : j < 317 then (if hb315 : j < 315 then (if hb314 : j < 314 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb313) hb314 ok313) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb314) hb315 ok314)) else (if hb316 : j < 316 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb315) hb316 ok315) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb316) hb317 ok316))) else (if hb319 : j < 319 then (if hb318 : j < 318 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb317) hb318 ok317) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb318) hb319 ok318)) else (if hb320 : j < 320 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb319) hb320 ok319) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb320) hb321 ok320))))))) else (if hb353 : j < 353 then (if hb337 : j < 337 then (if hb329 : j < 329 then (if hb325 : j < 325 then (if hb323 : j < 323 then (if hb322 : j < 322 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb321) hb322 ok321) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb322) hb323 ok322)) else (if hb324 : j < 324 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb323) hb324 ok323) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb324) hb325 ok324))) else (if hb327 : j < 327 then (if hb326 : j < 326 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb325) hb326 ok325) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb326) hb327 ok326)) else (if hb328 : j < 328 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb327) hb328 ok327) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb328) hb329 ok328)))) else (if hb333 : j < 333 then (if hb331 : j < 331 then (if hb330 : j < 330 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb329) hb330 ok329) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb330) hb331 ok330)) else (if hb332 : j < 332 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb331) hb332 ok331) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb332) hb333 ok332))) else (if hb335 : j < 335 then (if hb334 : j < 334 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb333) hb334 ok333) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb334) hb335 ok334)) else (if hb336 : j < 336 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb335) hb336 ok335) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb336) hb337 ok336))))) else (if hb345 : j < 345 then (if hb341 : j < 341 then (if hb339 : j < 339 then (if hb338 : j < 338 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb337) hb338 ok337) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb338) hb339 ok338)) else (if hb340 : j < 340 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb339) hb340 ok339) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb340) hb341 ok340))) else (if hb343 : j < 343 then (if hb342 : j < 342 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb341) hb342 ok341) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb342) hb343 ok342)) else (if hb344 : j < 344 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb343) hb344 ok343) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb344) hb345 ok344)))) else (if hb349 : j < 349 then (if hb347 : j < 347 then (if hb346 : j < 346 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb345) hb346 ok345) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb346) hb347 ok346)) else (if hb348 : j < 348 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb347) hb348 ok347) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb348) hb349 ok348))) else (if hb351 : j < 351 then (if hb350 : j < 350 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb349) hb350 ok349) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb350) hb351 ok350)) else (if hb352 : j < 352 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb351) hb352 ok351) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb352) hb353 ok352)))))) else (if hb369 : j < 369 then (if hb361 : j < 361 then (if hb357 : j < 357 then (if hb355 : j < 355 then (if hb354 : j < 354 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb353) hb354 ok353) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb354) hb355 ok354)) else (if hb356 : j < 356 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb355) hb356 ok355) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb356) hb357 ok356))) else (if hb359 : j < 359 then (if hb358 : j < 358 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb357) hb358 ok357) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb358) hb359 ok358)) else (if hb360 : j < 360 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb359) hb360 ok359) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb360) hb361 ok360)))) else (if hb365 : j < 365 then (if hb363 : j < 363 then (if hb362 : j < 362 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb361) hb362 ok361) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb362) hb363 ok362)) else (if hb364 : j < 364 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb363) hb364 ok363) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb364) hb365 ok364))) else (if hb367 : j < 367 then (if hb366 : j < 366 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb365) hb366 ok365) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb366) hb367 ok366)) else (if hb368 : j < 368 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb367) hb368 ok367) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb368) hb369 ok368))))) else (if hb377 : j < 377 then (if hb373 : j < 373 then (if hb371 : j < 371 then (if hb370 : j < 370 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb369) hb370 ok369) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb370) hb371 ok370)) else (if hb372 : j < 372 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb371) hb372 ok371) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb372) hb373 ok372))) else (if hb375 : j < 375 then (if hb374 : j < 374 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb373) hb374 ok373) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb374) hb375 ok374)) else (if hb376 : j < 376 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb375) hb376 ok375) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb376) hb377 ok376)))) else (if hb381 : j < 381 then (if hb379 : j < 379 then (if hb378 : j < 378 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb377) hb378 ok377) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb378) hb379 ok378)) else (if hb380 : j < 380 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb379) hb380 ok379) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb380) hb381 ok380))) else (if hb383 : j < 383 then (if hb382 : j < 382 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb381) hb382 ok381) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb382) hb383 ok382)) else (if hb384 : j < 384 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb383) hb384 ok383) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb384) hb385 ok384)))))))) else (if hb449 : j < 449 then (if hb417 : j < 417 then (if hb401 : j < 401 then (if hb393 : j < 393 then (if hb389 : j < 389 then (if hb387 : j < 387 then (if hb386 : j < 386 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb385) hb386 ok385) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb386) hb387 ok386)) else (if hb388 : j < 388 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb387) hb388 ok387) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb388) hb389 ok388))) else (if hb391 : j < 391 then (if hb390 : j < 390 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb389) hb390 ok389) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb390) hb391 ok390)) else (if hb392 : j < 392 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb391) hb392 ok391) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb392) hb393 ok392)))) else (if hb397 : j < 397 then (if hb395 : j < 395 then (if hb394 : j < 394 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb393) hb394 ok393) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb394) hb395 ok394)) else (if hb396 : j < 396 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb395) hb396 ok395) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb396) hb397 ok396))) else (if hb399 : j < 399 then (if hb398 : j < 398 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb397) hb398 ok397) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb398) hb399 ok398)) else (if hb400 : j < 400 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb399) hb400 ok399) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb400) hb401 ok400))))) else (if hb409 : j < 409 then (if hb405 : j < 405 then (if hb403 : j < 403 then (if hb402 : j < 402 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb401) hb402 ok401) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb402) hb403 ok402)) else (if hb404 : j < 404 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb403) hb404 ok403) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb404) hb405 ok404))) else (if hb407 : j < 407 then (if hb406 : j < 406 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb405) hb406 ok405) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb406) hb407 ok406)) else (if hb408 : j < 408 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb407) hb408 ok407) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb408) hb409 ok408)))) else (if hb413 : j < 413 then (if hb411 : j < 411 then (if hb410 : j < 410 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb409) hb410 ok409) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb410) hb411 ok410)) else (if hb412 : j < 412 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb411) hb412 ok411) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb412) hb413 ok412))) else (if hb415 : j < 415 then (if hb414 : j < 414 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb413) hb414 ok413) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb414) hb415 ok414)) else (if hb416 : j < 416 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb415) hb416 ok415) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb416) hb417 ok416)))))) else (if hb433 : j < 433 then (if hb425 : j < 425 then (if hb421 : j < 421 then (if hb419 : j < 419 then (if hb418 : j < 418 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb417) hb418 ok417) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb418) hb419 ok418)) else (if hb420 : j < 420 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb419) hb420 ok419) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb420) hb421 ok420))) else (if hb423 : j < 423 then (if hb422 : j < 422 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb421) hb422 ok421) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb422) hb423 ok422)) else (if hb424 : j < 424 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb423) hb424 ok423) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb424) hb425 ok424)))) else (if hb429 : j < 429 then (if hb427 : j < 427 then (if hb426 : j < 426 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb425) hb426 ok425) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb426) hb427 ok426)) else (if hb428 : j < 428 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb427) hb428 ok427) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb428) hb429 ok428))) else (if hb431 : j < 431 then (if hb430 : j < 430 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb429) hb430 ok429) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb430) hb431 ok430)) else (if hb432 : j < 432 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb431) hb432 ok431) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb432) hb433 ok432))))) else (if hb441 : j < 441 then (if hb437 : j < 437 then (if hb435 : j < 435 then (if hb434 : j < 434 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb433) hb434 ok433) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb434) hb435 ok434)) else (if hb436 : j < 436 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb435) hb436 ok435) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb436) hb437 ok436))) else (if hb439 : j < 439 then (if hb438 : j < 438 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb437) hb438 ok437) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb438) hb439 ok438)) else (if hb440 : j < 440 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb439) hb440 ok439) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb440) hb441 ok440)))) else (if hb445 : j < 445 then (if hb443 : j < 443 then (if hb442 : j < 442 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb441) hb442 ok441) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb442) hb443 ok442)) else (if hb444 : j < 444 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb443) hb444 ok443) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb444) hb445 ok444))) else (if hb447 : j < 447 then (if hb446 : j < 446 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb445) hb446 ok445) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb446) hb447 ok446)) else (if hb448 : j < 448 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb447) hb448 ok447) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb448) hb449 ok448))))))) else (if hb481 : j < 481 then (if hb465 : j < 465 then (if hb457 : j < 457 then (if hb453 : j < 453 then (if hb451 : j < 451 then (if hb450 : j < 450 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb449) hb450 ok449) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb450) hb451 ok450)) else (if hb452 : j < 452 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb451) hb452 ok451) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb452) hb453 ok452))) else (if hb455 : j < 455 then (if hb454 : j < 454 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb453) hb454 ok453) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb454) hb455 ok454)) else (if hb456 : j < 456 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb455) hb456 ok455) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb456) hb457 ok456)))) else (if hb461 : j < 461 then (if hb459 : j < 459 then (if hb458 : j < 458 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb457) hb458 ok457) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb458) hb459 ok458)) else (if hb460 : j < 460 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb459) hb460 ok459) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb460) hb461 ok460))) else (if hb463 : j < 463 then (if hb462 : j < 462 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb461) hb462 ok461) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb462) hb463 ok462)) else (if hb464 : j < 464 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb463) hb464 ok463) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb464) hb465 ok464))))) else (if hb473 : j < 473 then (if hb469 : j < 469 then (if hb467 : j < 467 then (if hb466 : j < 466 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb465) hb466 ok465) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb466) hb467 ok466)) else (if hb468 : j < 468 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb467) hb468 ok467) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb468) hb469 ok468))) else (if hb471 : j < 471 then (if hb470 : j < 470 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb469) hb470 ok469) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb470) hb471 ok470)) else (if hb472 : j < 472 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb471) hb472 ok471) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb472) hb473 ok472)))) else (if hb477 : j < 477 then (if hb475 : j < 475 then (if hb474 : j < 474 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb473) hb474 ok473) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb474) hb475 ok474)) else (if hb476 : j < 476 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb475) hb476 ok475) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb476) hb477 ok476))) else (if hb479 : j < 479 then (if hb478 : j < 478 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb477) hb478 ok477) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb478) hb479 ok478)) else (if hb480 : j < 480 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb479) hb480 ok479) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb480) hb481 ok480)))))) else (if hb497 : j < 497 then (if hb489 : j < 489 then (if hb485 : j < 485 then (if hb483 : j < 483 then (if hb482 : j < 482 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb481) hb482 ok481) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb482) hb483 ok482)) else (if hb484 : j < 484 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb483) hb484 ok483) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb484) hb485 ok484))) else (if hb487 : j < 487 then (if hb486 : j < 486 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb485) hb486 ok485) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb486) hb487 ok486)) else (if hb488 : j < 488 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb487) hb488 ok487) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb488) hb489 ok488)))) else (if hb493 : j < 493 then (if hb491 : j < 491 then (if hb490 : j < 490 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb489) hb490 ok489) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb490) hb491 ok490)) else (if hb492 : j < 492 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb491) hb492 ok491) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb492) hb493 ok492))) else (if hb495 : j < 495 then (if hb494 : j < 494 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb493) hb494 ok493) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb494) hb495 ok494)) else (if hb496 : j < 496 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb495) hb496 ok495) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb496) hb497 ok496))))) else (if hb505 : j < 505 then (if hb501 : j < 501 then (if hb499 : j < 499 then (if hb498 : j < 498 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb497) hb498 ok497) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb498) hb499 ok498)) else (if hb500 : j < 500 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb499) hb500 ok499) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb500) hb501 ok500))) else (if hb503 : j < 503 then (if hb502 : j < 502 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb501) hb502 ok501) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb502) hb503 ok502)) else (if hb504 : j < 504 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb503) hb504 ok503) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb504) hb505 ok504)))) else (if hb509 : j < 509 then (if hb507 : j < 507 then (if hb506 : j < 506 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb505) hb506 ok505) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb506) hb507 ok506)) else (if hb508 : j < 508 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb507) hb508 ok507) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb508) hb509 ok508))) else (if hb511 : j < 511 then (if hb510 : j < 510 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb509) hb510 ok509) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb510) hb511 ok510)) else (if hb512 : j < 512 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb511) hb512 ok511) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb512) h2 ok512)))))))))
 
 theorem cplOk_all_2 : ∀ j, 513 ≤ j → j < 769 → CplOk j := fun j h1 h2 ↦
-  (if h : j < 641 then (if h : j < 577 then (if h : j < 545 then (if h : j < 529 then (if h : j < 521 then (if h : j < 517 then (if h : j < 515 then (if h : j < 514 then (by obtain rfl : j = 513 := (by omega); exact ok513) else (by obtain rfl : j = 514 := (by omega); exact ok514)) else (if h : j < 516 then (by obtain rfl : j = 515 := (by omega); exact ok515) else (by obtain rfl : j = 516 := (by omega); exact ok516))) else (if h : j < 519 then (if h : j < 518 then (by obtain rfl : j = 517 := (by omega); exact ok517) else (by obtain rfl : j = 518 := (by omega); exact ok518)) else (if h : j < 520 then (by obtain rfl : j = 519 := (by omega); exact ok519) else (by obtain rfl : j = 520 := (by omega); exact ok520)))) else (if h : j < 525 then (if h : j < 523 then (if h : j < 522 then (by obtain rfl : j = 521 := (by omega); exact ok521) else (by obtain rfl : j = 522 := (by omega); exact ok522)) else (if h : j < 524 then (by obtain rfl : j = 523 := (by omega); exact ok523) else (by obtain rfl : j = 524 := (by omega); exact ok524))) else (if h : j < 527 then (if h : j < 526 then (by obtain rfl : j = 525 := (by omega); exact ok525) else (by obtain rfl : j = 526 := (by omega); exact ok526)) else (if h : j < 528 then (by obtain rfl : j = 527 := (by omega); exact ok527) else (by obtain rfl : j = 528 := (by omega); exact ok528))))) else (if h : j < 537 then (if h : j < 533 then (if h : j < 531 then (if h : j < 530 then (by obtain rfl : j = 529 := (by omega); exact ok529) else (by obtain rfl : j = 530 := (by omega); exact ok530)) else (if h : j < 532 then (by obtain rfl : j = 531 := (by omega); exact ok531) else (by obtain rfl : j = 532 := (by omega); exact ok532))) else (if h : j < 535 then (if h : j < 534 then (by obtain rfl : j = 533 := (by omega); exact ok533) else (by obtain rfl : j = 534 := (by omega); exact ok534)) else (if h : j < 536 then (by obtain rfl : j = 535 := (by omega); exact ok535) else (by obtain rfl : j = 536 := (by omega); exact ok536)))) else (if h : j < 541 then (if h : j < 539 then (if h : j < 538 then (by obtain rfl : j = 537 := (by omega); exact ok537) else (by obtain rfl : j = 538 := (by omega); exact ok538)) else (if h : j < 540 then (by obtain rfl : j = 539 := (by omega); exact ok539) else (by obtain rfl : j = 540 := (by omega); exact ok540))) else (if h : j < 543 then (if h : j < 542 then (by obtain rfl : j = 541 := (by omega); exact ok541) else (by obtain rfl : j = 542 := (by omega); exact ok542)) else (if h : j < 544 then (by obtain rfl : j = 543 := (by omega); exact ok543) else (by obtain rfl : j = 544 := (by omega); exact ok544)))))) else (if h : j < 561 then (if h : j < 553 then (if h : j < 549 then (if h : j < 547 then (if h : j < 546 then (by obtain rfl : j = 545 := (by omega); exact ok545) else (by obtain rfl : j = 546 := (by omega); exact ok546)) else (if h : j < 548 then (by obtain rfl : j = 547 := (by omega); exact ok547) else (by obtain rfl : j = 548 := (by omega); exact ok548))) else (if h : j < 551 then (if h : j < 550 then (by obtain rfl : j = 549 := (by omega); exact ok549) else (by obtain rfl : j = 550 := (by omega); exact ok550)) else (if h : j < 552 then (by obtain rfl : j = 551 := (by omega); exact ok551) else (by obtain rfl : j = 552 := (by omega); exact ok552)))) else (if h : j < 557 then (if h : j < 555 then (if h : j < 554 then (by obtain rfl : j = 553 := (by omega); exact ok553) else (by obtain rfl : j = 554 := (by omega); exact ok554)) else (if h : j < 556 then (by obtain rfl : j = 555 := (by omega); exact ok555) else (by obtain rfl : j = 556 := (by omega); exact ok556))) else (if h : j < 559 then (if h : j < 558 then (by obtain rfl : j = 557 := (by omega); exact ok557) else (by obtain rfl : j = 558 := (by omega); exact ok558)) else (if h : j < 560 then (by obtain rfl : j = 559 := (by omega); exact ok559) else (by obtain rfl : j = 560 := (by omega); exact ok560))))) else (if h : j < 569 then (if h : j < 565 then (if h : j < 563 then (if h : j < 562 then (by obtain rfl : j = 561 := (by omega); exact ok561) else (by obtain rfl : j = 562 := (by omega); exact ok562)) else (if h : j < 564 then (by obtain rfl : j = 563 := (by omega); exact ok563) else (by obtain rfl : j = 564 := (by omega); exact ok564))) else (if h : j < 567 then (if h : j < 566 then (by obtain rfl : j = 565 := (by omega); exact ok565) else (by obtain rfl : j = 566 := (by omega); exact ok566)) else (if h : j < 568 then (by obtain rfl : j = 567 := (by omega); exact ok567) else (by obtain rfl : j = 568 := (by omega); exact ok568)))) else (if h : j < 573 then (if h : j < 571 then (if h : j < 570 then (by obtain rfl : j = 569 := (by omega); exact ok569) else (by obtain rfl : j = 570 := (by omega); exact ok570)) else (if h : j < 572 then (by obtain rfl : j = 571 := (by omega); exact ok571) else (by obtain rfl : j = 572 := (by omega); exact ok572))) else (if h : j < 575 then (if h : j < 574 then (by obtain rfl : j = 573 := (by omega); exact ok573) else (by obtain rfl : j = 574 := (by omega); exact ok574)) else (if h : j < 576 then (by obtain rfl : j = 575 := (by omega); exact ok575) else (by obtain rfl : j = 576 := (by omega); exact ok576))))))) else (if h : j < 609 then (if h : j < 593 then (if h : j < 585 then (if h : j < 581 then (if h : j < 579 then (if h : j < 578 then (by obtain rfl : j = 577 := (by omega); exact ok577) else (by obtain rfl : j = 578 := (by omega); exact ok578)) else (if h : j < 580 then (by obtain rfl : j = 579 := (by omega); exact ok579) else (by obtain rfl : j = 580 := (by omega); exact ok580))) else (if h : j < 583 then (if h : j < 582 then (by obtain rfl : j = 581 := (by omega); exact ok581) else (by obtain rfl : j = 582 := (by omega); exact ok582)) else (if h : j < 584 then (by obtain rfl : j = 583 := (by omega); exact ok583) else (by obtain rfl : j = 584 := (by omega); exact ok584)))) else (if h : j < 589 then (if h : j < 587 then (if h : j < 586 then (by obtain rfl : j = 585 := (by omega); exact ok585) else (by obtain rfl : j = 586 := (by omega); exact ok586)) else (if h : j < 588 then (by obtain rfl : j = 587 := (by omega); exact ok587) else (by obtain rfl : j = 588 := (by omega); exact ok588))) else (if h : j < 591 then (if h : j < 590 then (by obtain rfl : j = 589 := (by omega); exact ok589) else (by obtain rfl : j = 590 := (by omega); exact ok590)) else (if h : j < 592 then (by obtain rfl : j = 591 := (by omega); exact ok591) else (by obtain rfl : j = 592 := (by omega); exact ok592))))) else (if h : j < 601 then (if h : j < 597 then (if h : j < 595 then (if h : j < 594 then (by obtain rfl : j = 593 := (by omega); exact ok593) else (by obtain rfl : j = 594 := (by omega); exact ok594)) else (if h : j < 596 then (by obtain rfl : j = 595 := (by omega); exact ok595) else (by obtain rfl : j = 596 := (by omega); exact ok596))) else (if h : j < 599 then (if h : j < 598 then (by obtain rfl : j = 597 := (by omega); exact ok597) else (by obtain rfl : j = 598 := (by omega); exact ok598)) else (if h : j < 600 then (by obtain rfl : j = 599 := (by omega); exact ok599) else (by obtain rfl : j = 600 := (by omega); exact ok600)))) else (if h : j < 605 then (if h : j < 603 then (if h : j < 602 then (by obtain rfl : j = 601 := (by omega); exact ok601) else (by obtain rfl : j = 602 := (by omega); exact ok602)) else (if h : j < 604 then (by obtain rfl : j = 603 := (by omega); exact ok603) else (by obtain rfl : j = 604 := (by omega); exact ok604))) else (if h : j < 607 then (if h : j < 606 then (by obtain rfl : j = 605 := (by omega); exact ok605) else (by obtain rfl : j = 606 := (by omega); exact ok606)) else (if h : j < 608 then (by obtain rfl : j = 607 := (by omega); exact ok607) else (by obtain rfl : j = 608 := (by omega); exact ok608)))))) else (if h : j < 625 then (if h : j < 617 then (if h : j < 613 then (if h : j < 611 then (if h : j < 610 then (by obtain rfl : j = 609 := (by omega); exact ok609) else (by obtain rfl : j = 610 := (by omega); exact ok610)) else (if h : j < 612 then (by obtain rfl : j = 611 := (by omega); exact ok611) else (by obtain rfl : j = 612 := (by omega); exact ok612))) else (if h : j < 615 then (if h : j < 614 then (by obtain rfl : j = 613 := (by omega); exact ok613) else (by obtain rfl : j = 614 := (by omega); exact ok614)) else (if h : j < 616 then (by obtain rfl : j = 615 := (by omega); exact ok615) else (by obtain rfl : j = 616 := (by omega); exact ok616)))) else (if h : j < 621 then (if h : j < 619 then (if h : j < 618 then (by obtain rfl : j = 617 := (by omega); exact ok617) else (by obtain rfl : j = 618 := (by omega); exact ok618)) else (if h : j < 620 then (by obtain rfl : j = 619 := (by omega); exact ok619) else (by obtain rfl : j = 620 := (by omega); exact ok620))) else (if h : j < 623 then (if h : j < 622 then (by obtain rfl : j = 621 := (by omega); exact ok621) else (by obtain rfl : j = 622 := (by omega); exact ok622)) else (if h : j < 624 then (by obtain rfl : j = 623 := (by omega); exact ok623) else (by obtain rfl : j = 624 := (by omega); exact ok624))))) else (if h : j < 633 then (if h : j < 629 then (if h : j < 627 then (if h : j < 626 then (by obtain rfl : j = 625 := (by omega); exact ok625) else (by obtain rfl : j = 626 := (by omega); exact ok626)) else (if h : j < 628 then (by obtain rfl : j = 627 := (by omega); exact ok627) else (by obtain rfl : j = 628 := (by omega); exact ok628))) else (if h : j < 631 then (if h : j < 630 then (by obtain rfl : j = 629 := (by omega); exact ok629) else (by obtain rfl : j = 630 := (by omega); exact ok630)) else (if h : j < 632 then (by obtain rfl : j = 631 := (by omega); exact ok631) else (by obtain rfl : j = 632 := (by omega); exact ok632)))) else (if h : j < 637 then (if h : j < 635 then (if h : j < 634 then (by obtain rfl : j = 633 := (by omega); exact ok633) else (by obtain rfl : j = 634 := (by omega); exact ok634)) else (if h : j < 636 then (by obtain rfl : j = 635 := (by omega); exact ok635) else (by obtain rfl : j = 636 := (by omega); exact ok636))) else (if h : j < 639 then (if h : j < 638 then (by obtain rfl : j = 637 := (by omega); exact ok637) else (by obtain rfl : j = 638 := (by omega); exact ok638)) else (if h : j < 640 then (by obtain rfl : j = 639 := (by omega); exact ok639) else (by obtain rfl : j = 640 := (by omega); exact ok640)))))))) else (if h : j < 705 then (if h : j < 673 then (if h : j < 657 then (if h : j < 649 then (if h : j < 645 then (if h : j < 643 then (if h : j < 642 then (by obtain rfl : j = 641 := (by omega); exact ok641) else (by obtain rfl : j = 642 := (by omega); exact ok642)) else (if h : j < 644 then (by obtain rfl : j = 643 := (by omega); exact ok643) else (by obtain rfl : j = 644 := (by omega); exact ok644))) else (if h : j < 647 then (if h : j < 646 then (by obtain rfl : j = 645 := (by omega); exact ok645) else (by obtain rfl : j = 646 := (by omega); exact ok646)) else (if h : j < 648 then (by obtain rfl : j = 647 := (by omega); exact ok647) else (by obtain rfl : j = 648 := (by omega); exact ok648)))) else (if h : j < 653 then (if h : j < 651 then (if h : j < 650 then (by obtain rfl : j = 649 := (by omega); exact ok649) else (by obtain rfl : j = 650 := (by omega); exact ok650)) else (if h : j < 652 then (by obtain rfl : j = 651 := (by omega); exact ok651) else (by obtain rfl : j = 652 := (by omega); exact ok652))) else (if h : j < 655 then (if h : j < 654 then (by obtain rfl : j = 653 := (by omega); exact ok653) else (by obtain rfl : j = 654 := (by omega); exact ok654)) else (if h : j < 656 then (by obtain rfl : j = 655 := (by omega); exact ok655) else (by obtain rfl : j = 656 := (by omega); exact ok656))))) else (if h : j < 665 then (if h : j < 661 then (if h : j < 659 then (if h : j < 658 then (by obtain rfl : j = 657 := (by omega); exact ok657) else (by obtain rfl : j = 658 := (by omega); exact ok658)) else (if h : j < 660 then (by obtain rfl : j = 659 := (by omega); exact ok659) else (by obtain rfl : j = 660 := (by omega); exact ok660))) else (if h : j < 663 then (if h : j < 662 then (by obtain rfl : j = 661 := (by omega); exact ok661) else (by obtain rfl : j = 662 := (by omega); exact ok662)) else (if h : j < 664 then (by obtain rfl : j = 663 := (by omega); exact ok663) else (by obtain rfl : j = 664 := (by omega); exact ok664)))) else (if h : j < 669 then (if h : j < 667 then (if h : j < 666 then (by obtain rfl : j = 665 := (by omega); exact ok665) else (by obtain rfl : j = 666 := (by omega); exact ok666)) else (if h : j < 668 then (by obtain rfl : j = 667 := (by omega); exact ok667) else (by obtain rfl : j = 668 := (by omega); exact ok668))) else (if h : j < 671 then (if h : j < 670 then (by obtain rfl : j = 669 := (by omega); exact ok669) else (by obtain rfl : j = 670 := (by omega); exact ok670)) else (if h : j < 672 then (by obtain rfl : j = 671 := (by omega); exact ok671) else (by obtain rfl : j = 672 := (by omega); exact ok672)))))) else (if h : j < 689 then (if h : j < 681 then (if h : j < 677 then (if h : j < 675 then (if h : j < 674 then (by obtain rfl : j = 673 := (by omega); exact ok673) else (by obtain rfl : j = 674 := (by omega); exact ok674)) else (if h : j < 676 then (by obtain rfl : j = 675 := (by omega); exact ok675) else (by obtain rfl : j = 676 := (by omega); exact ok676))) else (if h : j < 679 then (if h : j < 678 then (by obtain rfl : j = 677 := (by omega); exact ok677) else (by obtain rfl : j = 678 := (by omega); exact ok678)) else (if h : j < 680 then (by obtain rfl : j = 679 := (by omega); exact ok679) else (by obtain rfl : j = 680 := (by omega); exact ok680)))) else (if h : j < 685 then (if h : j < 683 then (if h : j < 682 then (by obtain rfl : j = 681 := (by omega); exact ok681) else (by obtain rfl : j = 682 := (by omega); exact ok682)) else (if h : j < 684 then (by obtain rfl : j = 683 := (by omega); exact ok683) else (by obtain rfl : j = 684 := (by omega); exact ok684))) else (if h : j < 687 then (if h : j < 686 then (by obtain rfl : j = 685 := (by omega); exact ok685) else (by obtain rfl : j = 686 := (by omega); exact ok686)) else (if h : j < 688 then (by obtain rfl : j = 687 := (by omega); exact ok687) else (by obtain rfl : j = 688 := (by omega); exact ok688))))) else (if h : j < 697 then (if h : j < 693 then (if h : j < 691 then (if h : j < 690 then (by obtain rfl : j = 689 := (by omega); exact ok689) else (by obtain rfl : j = 690 := (by omega); exact ok690)) else (if h : j < 692 then (by obtain rfl : j = 691 := (by omega); exact ok691) else (by obtain rfl : j = 692 := (by omega); exact ok692))) else (if h : j < 695 then (if h : j < 694 then (by obtain rfl : j = 693 := (by omega); exact ok693) else (by obtain rfl : j = 694 := (by omega); exact ok694)) else (if h : j < 696 then (by obtain rfl : j = 695 := (by omega); exact ok695) else (by obtain rfl : j = 696 := (by omega); exact ok696)))) else (if h : j < 701 then (if h : j < 699 then (if h : j < 698 then (by obtain rfl : j = 697 := (by omega); exact ok697) else (by obtain rfl : j = 698 := (by omega); exact ok698)) else (if h : j < 700 then (by obtain rfl : j = 699 := (by omega); exact ok699) else (by obtain rfl : j = 700 := (by omega); exact ok700))) else (if h : j < 703 then (if h : j < 702 then (by obtain rfl : j = 701 := (by omega); exact ok701) else (by obtain rfl : j = 702 := (by omega); exact ok702)) else (if h : j < 704 then (by obtain rfl : j = 703 := (by omega); exact ok703) else (by obtain rfl : j = 704 := (by omega); exact ok704))))))) else (if h : j < 737 then (if h : j < 721 then (if h : j < 713 then (if h : j < 709 then (if h : j < 707 then (if h : j < 706 then (by obtain rfl : j = 705 := (by omega); exact ok705) else (by obtain rfl : j = 706 := (by omega); exact ok706)) else (if h : j < 708 then (by obtain rfl : j = 707 := (by omega); exact ok707) else (by obtain rfl : j = 708 := (by omega); exact ok708))) else (if h : j < 711 then (if h : j < 710 then (by obtain rfl : j = 709 := (by omega); exact ok709) else (by obtain rfl : j = 710 := (by omega); exact ok710)) else (if h : j < 712 then (by obtain rfl : j = 711 := (by omega); exact ok711) else (by obtain rfl : j = 712 := (by omega); exact ok712)))) else (if h : j < 717 then (if h : j < 715 then (if h : j < 714 then (by obtain rfl : j = 713 := (by omega); exact ok713) else (by obtain rfl : j = 714 := (by omega); exact ok714)) else (if h : j < 716 then (by obtain rfl : j = 715 := (by omega); exact ok715) else (by obtain rfl : j = 716 := (by omega); exact ok716))) else (if h : j < 719 then (if h : j < 718 then (by obtain rfl : j = 717 := (by omega); exact ok717) else (by obtain rfl : j = 718 := (by omega); exact ok718)) else (if h : j < 720 then (by obtain rfl : j = 719 := (by omega); exact ok719) else (by obtain rfl : j = 720 := (by omega); exact ok720))))) else (if h : j < 729 then (if h : j < 725 then (if h : j < 723 then (if h : j < 722 then (by obtain rfl : j = 721 := (by omega); exact ok721) else (by obtain rfl : j = 722 := (by omega); exact ok722)) else (if h : j < 724 then (by obtain rfl : j = 723 := (by omega); exact ok723) else (by obtain rfl : j = 724 := (by omega); exact ok724))) else (if h : j < 727 then (if h : j < 726 then (by obtain rfl : j = 725 := (by omega); exact ok725) else (by obtain rfl : j = 726 := (by omega); exact ok726)) else (if h : j < 728 then (by obtain rfl : j = 727 := (by omega); exact ok727) else (by obtain rfl : j = 728 := (by omega); exact ok728)))) else (if h : j < 733 then (if h : j < 731 then (if h : j < 730 then (by obtain rfl : j = 729 := (by omega); exact ok729) else (by obtain rfl : j = 730 := (by omega); exact ok730)) else (if h : j < 732 then (by obtain rfl : j = 731 := (by omega); exact ok731) else (by obtain rfl : j = 732 := (by omega); exact ok732))) else (if h : j < 735 then (if h : j < 734 then (by obtain rfl : j = 733 := (by omega); exact ok733) else (by obtain rfl : j = 734 := (by omega); exact ok734)) else (if h : j < 736 then (by obtain rfl : j = 735 := (by omega); exact ok735) else (by obtain rfl : j = 736 := (by omega); exact ok736)))))) else (if h : j < 753 then (if h : j < 745 then (if h : j < 741 then (if h : j < 739 then (if h : j < 738 then (by obtain rfl : j = 737 := (by omega); exact ok737) else (by obtain rfl : j = 738 := (by omega); exact ok738)) else (if h : j < 740 then (by obtain rfl : j = 739 := (by omega); exact ok739) else (by obtain rfl : j = 740 := (by omega); exact ok740))) else (if h : j < 743 then (if h : j < 742 then (by obtain rfl : j = 741 := (by omega); exact ok741) else (by obtain rfl : j = 742 := (by omega); exact ok742)) else (if h : j < 744 then (by obtain rfl : j = 743 := (by omega); exact ok743) else (by obtain rfl : j = 744 := (by omega); exact ok744)))) else (if h : j < 749 then (if h : j < 747 then (if h : j < 746 then (by obtain rfl : j = 745 := (by omega); exact ok745) else (by obtain rfl : j = 746 := (by omega); exact ok746)) else (if h : j < 748 then (by obtain rfl : j = 747 := (by omega); exact ok747) else (by obtain rfl : j = 748 := (by omega); exact ok748))) else (if h : j < 751 then (if h : j < 750 then (by obtain rfl : j = 749 := (by omega); exact ok749) else (by obtain rfl : j = 750 := (by omega); exact ok750)) else (if h : j < 752 then (by obtain rfl : j = 751 := (by omega); exact ok751) else (by obtain rfl : j = 752 := (by omega); exact ok752))))) else (if h : j < 761 then (if h : j < 757 then (if h : j < 755 then (if h : j < 754 then (by obtain rfl : j = 753 := (by omega); exact ok753) else (by obtain rfl : j = 754 := (by omega); exact ok754)) else (if h : j < 756 then (by obtain rfl : j = 755 := (by omega); exact ok755) else (by obtain rfl : j = 756 := (by omega); exact ok756))) else (if h : j < 759 then (if h : j < 758 then (by obtain rfl : j = 757 := (by omega); exact ok757) else (by obtain rfl : j = 758 := (by omega); exact ok758)) else (if h : j < 760 then (by obtain rfl : j = 759 := (by omega); exact ok759) else (by obtain rfl : j = 760 := (by omega); exact ok760)))) else (if h : j < 765 then (if h : j < 763 then (if h : j < 762 then (by obtain rfl : j = 761 := (by omega); exact ok761) else (by obtain rfl : j = 762 := (by omega); exact ok762)) else (if h : j < 764 then (by obtain rfl : j = 763 := (by omega); exact ok763) else (by obtain rfl : j = 764 := (by omega); exact ok764))) else (if h : j < 767 then (if h : j < 766 then (by obtain rfl : j = 765 := (by omega); exact ok765) else (by obtain rfl : j = 766 := (by omega); exact ok766)) else (if h : j < 768 then (by obtain rfl : j = 767 := (by omega); exact ok767) else (by obtain rfl : j = 768 := (by omega); exact ok768)))))))))
+  (if hb641 : j < 641 then (if hb577 : j < 577 then (if hb545 : j < 545 then (if hb529 : j < 529 then (if hb521 : j < 521 then (if hb517 : j < 517 then (if hb515 : j < 515 then (if hb514 : j < 514 then (at_of_bounds (P := fun j ↦ CplOk j) h1 hb514 ok513) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb514) hb515 ok514)) else (if hb516 : j < 516 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb515) hb516 ok515) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb516) hb517 ok516))) else (if hb519 : j < 519 then (if hb518 : j < 518 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb517) hb518 ok517) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb518) hb519 ok518)) else (if hb520 : j < 520 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb519) hb520 ok519) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb520) hb521 ok520)))) else (if hb525 : j < 525 then (if hb523 : j < 523 then (if hb522 : j < 522 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb521) hb522 ok521) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb522) hb523 ok522)) else (if hb524 : j < 524 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb523) hb524 ok523) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb524) hb525 ok524))) else (if hb527 : j < 527 then (if hb526 : j < 526 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb525) hb526 ok525) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb526) hb527 ok526)) else (if hb528 : j < 528 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb527) hb528 ok527) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb528) hb529 ok528))))) else (if hb537 : j < 537 then (if hb533 : j < 533 then (if hb531 : j < 531 then (if hb530 : j < 530 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb529) hb530 ok529) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb530) hb531 ok530)) else (if hb532 : j < 532 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb531) hb532 ok531) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb532) hb533 ok532))) else (if hb535 : j < 535 then (if hb534 : j < 534 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb533) hb534 ok533) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb534) hb535 ok534)) else (if hb536 : j < 536 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb535) hb536 ok535) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb536) hb537 ok536)))) else (if hb541 : j < 541 then (if hb539 : j < 539 then (if hb538 : j < 538 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb537) hb538 ok537) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb538) hb539 ok538)) else (if hb540 : j < 540 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb539) hb540 ok539) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb540) hb541 ok540))) else (if hb543 : j < 543 then (if hb542 : j < 542 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb541) hb542 ok541) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb542) hb543 ok542)) else (if hb544 : j < 544 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb543) hb544 ok543) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb544) hb545 ok544)))))) else (if hb561 : j < 561 then (if hb553 : j < 553 then (if hb549 : j < 549 then (if hb547 : j < 547 then (if hb546 : j < 546 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb545) hb546 ok545) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb546) hb547 ok546)) else (if hb548 : j < 548 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb547) hb548 ok547) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb548) hb549 ok548))) else (if hb551 : j < 551 then (if hb550 : j < 550 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb549) hb550 ok549) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb550) hb551 ok550)) else (if hb552 : j < 552 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb551) hb552 ok551) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb552) hb553 ok552)))) else (if hb557 : j < 557 then (if hb555 : j < 555 then (if hb554 : j < 554 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb553) hb554 ok553) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb554) hb555 ok554)) else (if hb556 : j < 556 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb555) hb556 ok555) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb556) hb557 ok556))) else (if hb559 : j < 559 then (if hb558 : j < 558 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb557) hb558 ok557) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb558) hb559 ok558)) else (if hb560 : j < 560 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb559) hb560 ok559) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb560) hb561 ok560))))) else (if hb569 : j < 569 then (if hb565 : j < 565 then (if hb563 : j < 563 then (if hb562 : j < 562 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb561) hb562 ok561) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb562) hb563 ok562)) else (if hb564 : j < 564 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb563) hb564 ok563) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb564) hb565 ok564))) else (if hb567 : j < 567 then (if hb566 : j < 566 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb565) hb566 ok565) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb566) hb567 ok566)) else (if hb568 : j < 568 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb567) hb568 ok567) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb568) hb569 ok568)))) else (if hb573 : j < 573 then (if hb571 : j < 571 then (if hb570 : j < 570 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb569) hb570 ok569) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb570) hb571 ok570)) else (if hb572 : j < 572 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb571) hb572 ok571) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb572) hb573 ok572))) else (if hb575 : j < 575 then (if hb574 : j < 574 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb573) hb574 ok573) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb574) hb575 ok574)) else (if hb576 : j < 576 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb575) hb576 ok575) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb576) hb577 ok576))))))) else (if hb609 : j < 609 then (if hb593 : j < 593 then (if hb585 : j < 585 then (if hb581 : j < 581 then (if hb579 : j < 579 then (if hb578 : j < 578 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb577) hb578 ok577) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb578) hb579 ok578)) else (if hb580 : j < 580 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb579) hb580 ok579) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb580) hb581 ok580))) else (if hb583 : j < 583 then (if hb582 : j < 582 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb581) hb582 ok581) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb582) hb583 ok582)) else (if hb584 : j < 584 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb583) hb584 ok583) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb584) hb585 ok584)))) else (if hb589 : j < 589 then (if hb587 : j < 587 then (if hb586 : j < 586 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb585) hb586 ok585) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb586) hb587 ok586)) else (if hb588 : j < 588 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb587) hb588 ok587) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb588) hb589 ok588))) else (if hb591 : j < 591 then (if hb590 : j < 590 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb589) hb590 ok589) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb590) hb591 ok590)) else (if hb592 : j < 592 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb591) hb592 ok591) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb592) hb593 ok592))))) else (if hb601 : j < 601 then (if hb597 : j < 597 then (if hb595 : j < 595 then (if hb594 : j < 594 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb593) hb594 ok593) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb594) hb595 ok594)) else (if hb596 : j < 596 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb595) hb596 ok595) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb596) hb597 ok596))) else (if hb599 : j < 599 then (if hb598 : j < 598 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb597) hb598 ok597) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb598) hb599 ok598)) else (if hb600 : j < 600 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb599) hb600 ok599) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb600) hb601 ok600)))) else (if hb605 : j < 605 then (if hb603 : j < 603 then (if hb602 : j < 602 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb601) hb602 ok601) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb602) hb603 ok602)) else (if hb604 : j < 604 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb603) hb604 ok603) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb604) hb605 ok604))) else (if hb607 : j < 607 then (if hb606 : j < 606 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb605) hb606 ok605) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb606) hb607 ok606)) else (if hb608 : j < 608 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb607) hb608 ok607) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb608) hb609 ok608)))))) else (if hb625 : j < 625 then (if hb617 : j < 617 then (if hb613 : j < 613 then (if hb611 : j < 611 then (if hb610 : j < 610 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb609) hb610 ok609) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb610) hb611 ok610)) else (if hb612 : j < 612 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb611) hb612 ok611) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb612) hb613 ok612))) else (if hb615 : j < 615 then (if hb614 : j < 614 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb613) hb614 ok613) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb614) hb615 ok614)) else (if hb616 : j < 616 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb615) hb616 ok615) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb616) hb617 ok616)))) else (if hb621 : j < 621 then (if hb619 : j < 619 then (if hb618 : j < 618 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb617) hb618 ok617) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb618) hb619 ok618)) else (if hb620 : j < 620 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb619) hb620 ok619) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb620) hb621 ok620))) else (if hb623 : j < 623 then (if hb622 : j < 622 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb621) hb622 ok621) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb622) hb623 ok622)) else (if hb624 : j < 624 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb623) hb624 ok623) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb624) hb625 ok624))))) else (if hb633 : j < 633 then (if hb629 : j < 629 then (if hb627 : j < 627 then (if hb626 : j < 626 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb625) hb626 ok625) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb626) hb627 ok626)) else (if hb628 : j < 628 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb627) hb628 ok627) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb628) hb629 ok628))) else (if hb631 : j < 631 then (if hb630 : j < 630 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb629) hb630 ok629) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb630) hb631 ok630)) else (if hb632 : j < 632 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb631) hb632 ok631) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb632) hb633 ok632)))) else (if hb637 : j < 637 then (if hb635 : j < 635 then (if hb634 : j < 634 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb633) hb634 ok633) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb634) hb635 ok634)) else (if hb636 : j < 636 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb635) hb636 ok635) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb636) hb637 ok636))) else (if hb639 : j < 639 then (if hb638 : j < 638 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb637) hb638 ok637) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb638) hb639 ok638)) else (if hb640 : j < 640 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb639) hb640 ok639) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb640) hb641 ok640)))))))) else (if hb705 : j < 705 then (if hb673 : j < 673 then (if hb657 : j < 657 then (if hb649 : j < 649 then (if hb645 : j < 645 then (if hb643 : j < 643 then (if hb642 : j < 642 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb641) hb642 ok641) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb642) hb643 ok642)) else (if hb644 : j < 644 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb643) hb644 ok643) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb644) hb645 ok644))) else (if hb647 : j < 647 then (if hb646 : j < 646 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb645) hb646 ok645) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb646) hb647 ok646)) else (if hb648 : j < 648 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb647) hb648 ok647) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb648) hb649 ok648)))) else (if hb653 : j < 653 then (if hb651 : j < 651 then (if hb650 : j < 650 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb649) hb650 ok649) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb650) hb651 ok650)) else (if hb652 : j < 652 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb651) hb652 ok651) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb652) hb653 ok652))) else (if hb655 : j < 655 then (if hb654 : j < 654 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb653) hb654 ok653) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb654) hb655 ok654)) else (if hb656 : j < 656 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb655) hb656 ok655) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb656) hb657 ok656))))) else (if hb665 : j < 665 then (if hb661 : j < 661 then (if hb659 : j < 659 then (if hb658 : j < 658 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb657) hb658 ok657) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb658) hb659 ok658)) else (if hb660 : j < 660 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb659) hb660 ok659) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb660) hb661 ok660))) else (if hb663 : j < 663 then (if hb662 : j < 662 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb661) hb662 ok661) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb662) hb663 ok662)) else (if hb664 : j < 664 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb663) hb664 ok663) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb664) hb665 ok664)))) else (if hb669 : j < 669 then (if hb667 : j < 667 then (if hb666 : j < 666 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb665) hb666 ok665) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb666) hb667 ok666)) else (if hb668 : j < 668 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb667) hb668 ok667) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb668) hb669 ok668))) else (if hb671 : j < 671 then (if hb670 : j < 670 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb669) hb670 ok669) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb670) hb671 ok670)) else (if hb672 : j < 672 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb671) hb672 ok671) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb672) hb673 ok672)))))) else (if hb689 : j < 689 then (if hb681 : j < 681 then (if hb677 : j < 677 then (if hb675 : j < 675 then (if hb674 : j < 674 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb673) hb674 ok673) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb674) hb675 ok674)) else (if hb676 : j < 676 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb675) hb676 ok675) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb676) hb677 ok676))) else (if hb679 : j < 679 then (if hb678 : j < 678 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb677) hb678 ok677) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb678) hb679 ok678)) else (if hb680 : j < 680 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb679) hb680 ok679) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb680) hb681 ok680)))) else (if hb685 : j < 685 then (if hb683 : j < 683 then (if hb682 : j < 682 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb681) hb682 ok681) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb682) hb683 ok682)) else (if hb684 : j < 684 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb683) hb684 ok683) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb684) hb685 ok684))) else (if hb687 : j < 687 then (if hb686 : j < 686 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb685) hb686 ok685) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb686) hb687 ok686)) else (if hb688 : j < 688 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb687) hb688 ok687) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb688) hb689 ok688))))) else (if hb697 : j < 697 then (if hb693 : j < 693 then (if hb691 : j < 691 then (if hb690 : j < 690 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb689) hb690 ok689) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb690) hb691 ok690)) else (if hb692 : j < 692 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb691) hb692 ok691) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb692) hb693 ok692))) else (if hb695 : j < 695 then (if hb694 : j < 694 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb693) hb694 ok693) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb694) hb695 ok694)) else (if hb696 : j < 696 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb695) hb696 ok695) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb696) hb697 ok696)))) else (if hb701 : j < 701 then (if hb699 : j < 699 then (if hb698 : j < 698 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb697) hb698 ok697) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb698) hb699 ok698)) else (if hb700 : j < 700 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb699) hb700 ok699) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb700) hb701 ok700))) else (if hb703 : j < 703 then (if hb702 : j < 702 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb701) hb702 ok701) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb702) hb703 ok702)) else (if hb704 : j < 704 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb703) hb704 ok703) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb704) hb705 ok704))))))) else (if hb737 : j < 737 then (if hb721 : j < 721 then (if hb713 : j < 713 then (if hb709 : j < 709 then (if hb707 : j < 707 then (if hb706 : j < 706 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb705) hb706 ok705) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb706) hb707 ok706)) else (if hb708 : j < 708 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb707) hb708 ok707) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb708) hb709 ok708))) else (if hb711 : j < 711 then (if hb710 : j < 710 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb709) hb710 ok709) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb710) hb711 ok710)) else (if hb712 : j < 712 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb711) hb712 ok711) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb712) hb713 ok712)))) else (if hb717 : j < 717 then (if hb715 : j < 715 then (if hb714 : j < 714 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb713) hb714 ok713) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb714) hb715 ok714)) else (if hb716 : j < 716 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb715) hb716 ok715) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb716) hb717 ok716))) else (if hb719 : j < 719 then (if hb718 : j < 718 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb717) hb718 ok717) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb718) hb719 ok718)) else (if hb720 : j < 720 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb719) hb720 ok719) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb720) hb721 ok720))))) else (if hb729 : j < 729 then (if hb725 : j < 725 then (if hb723 : j < 723 then (if hb722 : j < 722 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb721) hb722 ok721) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb722) hb723 ok722)) else (if hb724 : j < 724 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb723) hb724 ok723) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb724) hb725 ok724))) else (if hb727 : j < 727 then (if hb726 : j < 726 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb725) hb726 ok725) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb726) hb727 ok726)) else (if hb728 : j < 728 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb727) hb728 ok727) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb728) hb729 ok728)))) else (if hb733 : j < 733 then (if hb731 : j < 731 then (if hb730 : j < 730 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb729) hb730 ok729) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb730) hb731 ok730)) else (if hb732 : j < 732 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb731) hb732 ok731) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb732) hb733 ok732))) else (if hb735 : j < 735 then (if hb734 : j < 734 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb733) hb734 ok733) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb734) hb735 ok734)) else (if hb736 : j < 736 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb735) hb736 ok735) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb736) hb737 ok736)))))) else (if hb753 : j < 753 then (if hb745 : j < 745 then (if hb741 : j < 741 then (if hb739 : j < 739 then (if hb738 : j < 738 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb737) hb738 ok737) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb738) hb739 ok738)) else (if hb740 : j < 740 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb739) hb740 ok739) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb740) hb741 ok740))) else (if hb743 : j < 743 then (if hb742 : j < 742 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb741) hb742 ok741) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb742) hb743 ok742)) else (if hb744 : j < 744 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb743) hb744 ok743) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb744) hb745 ok744)))) else (if hb749 : j < 749 then (if hb747 : j < 747 then (if hb746 : j < 746 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb745) hb746 ok745) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb746) hb747 ok746)) else (if hb748 : j < 748 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb747) hb748 ok747) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb748) hb749 ok748))) else (if hb751 : j < 751 then (if hb750 : j < 750 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb749) hb750 ok749) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb750) hb751 ok750)) else (if hb752 : j < 752 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb751) hb752 ok751) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb752) hb753 ok752))))) else (if hb761 : j < 761 then (if hb757 : j < 757 then (if hb755 : j < 755 then (if hb754 : j < 754 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb753) hb754 ok753) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb754) hb755 ok754)) else (if hb756 : j < 756 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb755) hb756 ok755) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb756) hb757 ok756))) else (if hb759 : j < 759 then (if hb758 : j < 758 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb757) hb758 ok757) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb758) hb759 ok758)) else (if hb760 : j < 760 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb759) hb760 ok759) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb760) hb761 ok760)))) else (if hb765 : j < 765 then (if hb763 : j < 763 then (if hb762 : j < 762 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb761) hb762 ok761) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb762) hb763 ok762)) else (if hb764 : j < 764 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb763) hb764 ok763) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb764) hb765 ok764))) else (if hb767 : j < 767 then (if hb766 : j < 766 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb765) hb766 ok765) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb766) hb767 ok766)) else (if hb768 : j < 768 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb767) hb768 ok767) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb768) h2 ok768)))))))))
 
 theorem cplOk_all_3 : ∀ j, 769 ≤ j → j < 1025 → CplOk j := fun j h1 h2 ↦
-  (if h : j < 897 then (if h : j < 833 then (if h : j < 801 then (if h : j < 785 then (if h : j < 777 then (if h : j < 773 then (if h : j < 771 then (if h : j < 770 then (by obtain rfl : j = 769 := (by omega); exact ok769) else (by obtain rfl : j = 770 := (by omega); exact ok770)) else (if h : j < 772 then (by obtain rfl : j = 771 := (by omega); exact ok771) else (by obtain rfl : j = 772 := (by omega); exact ok772))) else (if h : j < 775 then (if h : j < 774 then (by obtain rfl : j = 773 := (by omega); exact ok773) else (by obtain rfl : j = 774 := (by omega); exact ok774)) else (if h : j < 776 then (by obtain rfl : j = 775 := (by omega); exact ok775) else (by obtain rfl : j = 776 := (by omega); exact ok776)))) else (if h : j < 781 then (if h : j < 779 then (if h : j < 778 then (by obtain rfl : j = 777 := (by omega); exact ok777) else (by obtain rfl : j = 778 := (by omega); exact ok778)) else (if h : j < 780 then (by obtain rfl : j = 779 := (by omega); exact ok779) else (by obtain rfl : j = 780 := (by omega); exact ok780))) else (if h : j < 783 then (if h : j < 782 then (by obtain rfl : j = 781 := (by omega); exact ok781) else (by obtain rfl : j = 782 := (by omega); exact ok782)) else (if h : j < 784 then (by obtain rfl : j = 783 := (by omega); exact ok783) else (by obtain rfl : j = 784 := (by omega); exact ok784))))) else (if h : j < 793 then (if h : j < 789 then (if h : j < 787 then (if h : j < 786 then (by obtain rfl : j = 785 := (by omega); exact ok785) else (by obtain rfl : j = 786 := (by omega); exact ok786)) else (if h : j < 788 then (by obtain rfl : j = 787 := (by omega); exact ok787) else (by obtain rfl : j = 788 := (by omega); exact ok788))) else (if h : j < 791 then (if h : j < 790 then (by obtain rfl : j = 789 := (by omega); exact ok789) else (by obtain rfl : j = 790 := (by omega); exact ok790)) else (if h : j < 792 then (by obtain rfl : j = 791 := (by omega); exact ok791) else (by obtain rfl : j = 792 := (by omega); exact ok792)))) else (if h : j < 797 then (if h : j < 795 then (if h : j < 794 then (by obtain rfl : j = 793 := (by omega); exact ok793) else (by obtain rfl : j = 794 := (by omega); exact ok794)) else (if h : j < 796 then (by obtain rfl : j = 795 := (by omega); exact ok795) else (by obtain rfl : j = 796 := (by omega); exact ok796))) else (if h : j < 799 then (if h : j < 798 then (by obtain rfl : j = 797 := (by omega); exact ok797) else (by obtain rfl : j = 798 := (by omega); exact ok798)) else (if h : j < 800 then (by obtain rfl : j = 799 := (by omega); exact ok799) else (by obtain rfl : j = 800 := (by omega); exact ok800)))))) else (if h : j < 817 then (if h : j < 809 then (if h : j < 805 then (if h : j < 803 then (if h : j < 802 then (by obtain rfl : j = 801 := (by omega); exact ok801) else (by obtain rfl : j = 802 := (by omega); exact ok802)) else (if h : j < 804 then (by obtain rfl : j = 803 := (by omega); exact ok803) else (by obtain rfl : j = 804 := (by omega); exact ok804))) else (if h : j < 807 then (if h : j < 806 then (by obtain rfl : j = 805 := (by omega); exact ok805) else (by obtain rfl : j = 806 := (by omega); exact ok806)) else (if h : j < 808 then (by obtain rfl : j = 807 := (by omega); exact ok807) else (by obtain rfl : j = 808 := (by omega); exact ok808)))) else (if h : j < 813 then (if h : j < 811 then (if h : j < 810 then (by obtain rfl : j = 809 := (by omega); exact ok809) else (by obtain rfl : j = 810 := (by omega); exact ok810)) else (if h : j < 812 then (by obtain rfl : j = 811 := (by omega); exact ok811) else (by obtain rfl : j = 812 := (by omega); exact ok812))) else (if h : j < 815 then (if h : j < 814 then (by obtain rfl : j = 813 := (by omega); exact ok813) else (by obtain rfl : j = 814 := (by omega); exact ok814)) else (if h : j < 816 then (by obtain rfl : j = 815 := (by omega); exact ok815) else (by obtain rfl : j = 816 := (by omega); exact ok816))))) else (if h : j < 825 then (if h : j < 821 then (if h : j < 819 then (if h : j < 818 then (by obtain rfl : j = 817 := (by omega); exact ok817) else (by obtain rfl : j = 818 := (by omega); exact ok818)) else (if h : j < 820 then (by obtain rfl : j = 819 := (by omega); exact ok819) else (by obtain rfl : j = 820 := (by omega); exact ok820))) else (if h : j < 823 then (if h : j < 822 then (by obtain rfl : j = 821 := (by omega); exact ok821) else (by obtain rfl : j = 822 := (by omega); exact ok822)) else (if h : j < 824 then (by obtain rfl : j = 823 := (by omega); exact ok823) else (by obtain rfl : j = 824 := (by omega); exact ok824)))) else (if h : j < 829 then (if h : j < 827 then (if h : j < 826 then (by obtain rfl : j = 825 := (by omega); exact ok825) else (by obtain rfl : j = 826 := (by omega); exact ok826)) else (if h : j < 828 then (by obtain rfl : j = 827 := (by omega); exact ok827) else (by obtain rfl : j = 828 := (by omega); exact ok828))) else (if h : j < 831 then (if h : j < 830 then (by obtain rfl : j = 829 := (by omega); exact ok829) else (by obtain rfl : j = 830 := (by omega); exact ok830)) else (if h : j < 832 then (by obtain rfl : j = 831 := (by omega); exact ok831) else (by obtain rfl : j = 832 := (by omega); exact ok832))))))) else (if h : j < 865 then (if h : j < 849 then (if h : j < 841 then (if h : j < 837 then (if h : j < 835 then (if h : j < 834 then (by obtain rfl : j = 833 := (by omega); exact ok833) else (by obtain rfl : j = 834 := (by omega); exact ok834)) else (if h : j < 836 then (by obtain rfl : j = 835 := (by omega); exact ok835) else (by obtain rfl : j = 836 := (by omega); exact ok836))) else (if h : j < 839 then (if h : j < 838 then (by obtain rfl : j = 837 := (by omega); exact ok837) else (by obtain rfl : j = 838 := (by omega); exact ok838)) else (if h : j < 840 then (by obtain rfl : j = 839 := (by omega); exact ok839) else (by obtain rfl : j = 840 := (by omega); exact ok840)))) else (if h : j < 845 then (if h : j < 843 then (if h : j < 842 then (by obtain rfl : j = 841 := (by omega); exact ok841) else (by obtain rfl : j = 842 := (by omega); exact ok842)) else (if h : j < 844 then (by obtain rfl : j = 843 := (by omega); exact ok843) else (by obtain rfl : j = 844 := (by omega); exact ok844))) else (if h : j < 847 then (if h : j < 846 then (by obtain rfl : j = 845 := (by omega); exact ok845) else (by obtain rfl : j = 846 := (by omega); exact ok846)) else (if h : j < 848 then (by obtain rfl : j = 847 := (by omega); exact ok847) else (by obtain rfl : j = 848 := (by omega); exact ok848))))) else (if h : j < 857 then (if h : j < 853 then (if h : j < 851 then (if h : j < 850 then (by obtain rfl : j = 849 := (by omega); exact ok849) else (by obtain rfl : j = 850 := (by omega); exact ok850)) else (if h : j < 852 then (by obtain rfl : j = 851 := (by omega); exact ok851) else (by obtain rfl : j = 852 := (by omega); exact ok852))) else (if h : j < 855 then (if h : j < 854 then (by obtain rfl : j = 853 := (by omega); exact ok853) else (by obtain rfl : j = 854 := (by omega); exact ok854)) else (if h : j < 856 then (by obtain rfl : j = 855 := (by omega); exact ok855) else (by obtain rfl : j = 856 := (by omega); exact ok856)))) else (if h : j < 861 then (if h : j < 859 then (if h : j < 858 then (by obtain rfl : j = 857 := (by omega); exact ok857) else (by obtain rfl : j = 858 := (by omega); exact ok858)) else (if h : j < 860 then (by obtain rfl : j = 859 := (by omega); exact ok859) else (by obtain rfl : j = 860 := (by omega); exact ok860))) else (if h : j < 863 then (if h : j < 862 then (by obtain rfl : j = 861 := (by omega); exact ok861) else (by obtain rfl : j = 862 := (by omega); exact ok862)) else (if h : j < 864 then (by obtain rfl : j = 863 := (by omega); exact ok863) else (by obtain rfl : j = 864 := (by omega); exact ok864)))))) else (if h : j < 881 then (if h : j < 873 then (if h : j < 869 then (if h : j < 867 then (if h : j < 866 then (by obtain rfl : j = 865 := (by omega); exact ok865) else (by obtain rfl : j = 866 := (by omega); exact ok866)) else (if h : j < 868 then (by obtain rfl : j = 867 := (by omega); exact ok867) else (by obtain rfl : j = 868 := (by omega); exact ok868))) else (if h : j < 871 then (if h : j < 870 then (by obtain rfl : j = 869 := (by omega); exact ok869) else (by obtain rfl : j = 870 := (by omega); exact ok870)) else (if h : j < 872 then (by obtain rfl : j = 871 := (by omega); exact ok871) else (by obtain rfl : j = 872 := (by omega); exact ok872)))) else (if h : j < 877 then (if h : j < 875 then (if h : j < 874 then (by obtain rfl : j = 873 := (by omega); exact ok873) else (by obtain rfl : j = 874 := (by omega); exact ok874)) else (if h : j < 876 then (by obtain rfl : j = 875 := (by omega); exact ok875) else (by obtain rfl : j = 876 := (by omega); exact ok876))) else (if h : j < 879 then (if h : j < 878 then (by obtain rfl : j = 877 := (by omega); exact ok877) else (by obtain rfl : j = 878 := (by omega); exact ok878)) else (if h : j < 880 then (by obtain rfl : j = 879 := (by omega); exact ok879) else (by obtain rfl : j = 880 := (by omega); exact ok880))))) else (if h : j < 889 then (if h : j < 885 then (if h : j < 883 then (if h : j < 882 then (by obtain rfl : j = 881 := (by omega); exact ok881) else (by obtain rfl : j = 882 := (by omega); exact ok882)) else (if h : j < 884 then (by obtain rfl : j = 883 := (by omega); exact ok883) else (by obtain rfl : j = 884 := (by omega); exact ok884))) else (if h : j < 887 then (if h : j < 886 then (by obtain rfl : j = 885 := (by omega); exact ok885) else (by obtain rfl : j = 886 := (by omega); exact ok886)) else (if h : j < 888 then (by obtain rfl : j = 887 := (by omega); exact ok887) else (by obtain rfl : j = 888 := (by omega); exact ok888)))) else (if h : j < 893 then (if h : j < 891 then (if h : j < 890 then (by obtain rfl : j = 889 := (by omega); exact ok889) else (by obtain rfl : j = 890 := (by omega); exact ok890)) else (if h : j < 892 then (by obtain rfl : j = 891 := (by omega); exact ok891) else (by obtain rfl : j = 892 := (by omega); exact ok892))) else (if h : j < 895 then (if h : j < 894 then (by obtain rfl : j = 893 := (by omega); exact ok893) else (by obtain rfl : j = 894 := (by omega); exact ok894)) else (if h : j < 896 then (by obtain rfl : j = 895 := (by omega); exact ok895) else (by obtain rfl : j = 896 := (by omega); exact ok896)))))))) else (if h : j < 961 then (if h : j < 929 then (if h : j < 913 then (if h : j < 905 then (if h : j < 901 then (if h : j < 899 then (if h : j < 898 then (by obtain rfl : j = 897 := (by omega); exact ok897) else (by obtain rfl : j = 898 := (by omega); exact ok898)) else (if h : j < 900 then (by obtain rfl : j = 899 := (by omega); exact ok899) else (by obtain rfl : j = 900 := (by omega); exact ok900))) else (if h : j < 903 then (if h : j < 902 then (by obtain rfl : j = 901 := (by omega); exact ok901) else (by obtain rfl : j = 902 := (by omega); exact ok902)) else (if h : j < 904 then (by obtain rfl : j = 903 := (by omega); exact ok903) else (by obtain rfl : j = 904 := (by omega); exact ok904)))) else (if h : j < 909 then (if h : j < 907 then (if h : j < 906 then (by obtain rfl : j = 905 := (by omega); exact ok905) else (by obtain rfl : j = 906 := (by omega); exact ok906)) else (if h : j < 908 then (by obtain rfl : j = 907 := (by omega); exact ok907) else (by obtain rfl : j = 908 := (by omega); exact ok908))) else (if h : j < 911 then (if h : j < 910 then (by obtain rfl : j = 909 := (by omega); exact ok909) else (by obtain rfl : j = 910 := (by omega); exact ok910)) else (if h : j < 912 then (by obtain rfl : j = 911 := (by omega); exact ok911) else (by obtain rfl : j = 912 := (by omega); exact ok912))))) else (if h : j < 921 then (if h : j < 917 then (if h : j < 915 then (if h : j < 914 then (by obtain rfl : j = 913 := (by omega); exact ok913) else (by obtain rfl : j = 914 := (by omega); exact ok914)) else (if h : j < 916 then (by obtain rfl : j = 915 := (by omega); exact ok915) else (by obtain rfl : j = 916 := (by omega); exact ok916))) else (if h : j < 919 then (if h : j < 918 then (by obtain rfl : j = 917 := (by omega); exact ok917) else (by obtain rfl : j = 918 := (by omega); exact ok918)) else (if h : j < 920 then (by obtain rfl : j = 919 := (by omega); exact ok919) else (by obtain rfl : j = 920 := (by omega); exact ok920)))) else (if h : j < 925 then (if h : j < 923 then (if h : j < 922 then (by obtain rfl : j = 921 := (by omega); exact ok921) else (by obtain rfl : j = 922 := (by omega); exact ok922)) else (if h : j < 924 then (by obtain rfl : j = 923 := (by omega); exact ok923) else (by obtain rfl : j = 924 := (by omega); exact ok924))) else (if h : j < 927 then (if h : j < 926 then (by obtain rfl : j = 925 := (by omega); exact ok925) else (by obtain rfl : j = 926 := (by omega); exact ok926)) else (if h : j < 928 then (by obtain rfl : j = 927 := (by omega); exact ok927) else (by obtain rfl : j = 928 := (by omega); exact ok928)))))) else (if h : j < 945 then (if h : j < 937 then (if h : j < 933 then (if h : j < 931 then (if h : j < 930 then (by obtain rfl : j = 929 := (by omega); exact ok929) else (by obtain rfl : j = 930 := (by omega); exact ok930)) else (if h : j < 932 then (by obtain rfl : j = 931 := (by omega); exact ok931) else (by obtain rfl : j = 932 := (by omega); exact ok932))) else (if h : j < 935 then (if h : j < 934 then (by obtain rfl : j = 933 := (by omega); exact ok933) else (by obtain rfl : j = 934 := (by omega); exact ok934)) else (if h : j < 936 then (by obtain rfl : j = 935 := (by omega); exact ok935) else (by obtain rfl : j = 936 := (by omega); exact ok936)))) else (if h : j < 941 then (if h : j < 939 then (if h : j < 938 then (by obtain rfl : j = 937 := (by omega); exact ok937) else (by obtain rfl : j = 938 := (by omega); exact ok938)) else (if h : j < 940 then (by obtain rfl : j = 939 := (by omega); exact ok939) else (by obtain rfl : j = 940 := (by omega); exact ok940))) else (if h : j < 943 then (if h : j < 942 then (by obtain rfl : j = 941 := (by omega); exact ok941) else (by obtain rfl : j = 942 := (by omega); exact ok942)) else (if h : j < 944 then (by obtain rfl : j = 943 := (by omega); exact ok943) else (by obtain rfl : j = 944 := (by omega); exact ok944))))) else (if h : j < 953 then (if h : j < 949 then (if h : j < 947 then (if h : j < 946 then (by obtain rfl : j = 945 := (by omega); exact ok945) else (by obtain rfl : j = 946 := (by omega); exact ok946)) else (if h : j < 948 then (by obtain rfl : j = 947 := (by omega); exact ok947) else (by obtain rfl : j = 948 := (by omega); exact ok948))) else (if h : j < 951 then (if h : j < 950 then (by obtain rfl : j = 949 := (by omega); exact ok949) else (by obtain rfl : j = 950 := (by omega); exact ok950)) else (if h : j < 952 then (by obtain rfl : j = 951 := (by omega); exact ok951) else (by obtain rfl : j = 952 := (by omega); exact ok952)))) else (if h : j < 957 then (if h : j < 955 then (if h : j < 954 then (by obtain rfl : j = 953 := (by omega); exact ok953) else (by obtain rfl : j = 954 := (by omega); exact ok954)) else (if h : j < 956 then (by obtain rfl : j = 955 := (by omega); exact ok955) else (by obtain rfl : j = 956 := (by omega); exact ok956))) else (if h : j < 959 then (if h : j < 958 then (by obtain rfl : j = 957 := (by omega); exact ok957) else (by obtain rfl : j = 958 := (by omega); exact ok958)) else (if h : j < 960 then (by obtain rfl : j = 959 := (by omega); exact ok959) else (by obtain rfl : j = 960 := (by omega); exact ok960))))))) else (if h : j < 993 then (if h : j < 977 then (if h : j < 969 then (if h : j < 965 then (if h : j < 963 then (if h : j < 962 then (by obtain rfl : j = 961 := (by omega); exact ok961) else (by obtain rfl : j = 962 := (by omega); exact ok962)) else (if h : j < 964 then (by obtain rfl : j = 963 := (by omega); exact ok963) else (by obtain rfl : j = 964 := (by omega); exact ok964))) else (if h : j < 967 then (if h : j < 966 then (by obtain rfl : j = 965 := (by omega); exact ok965) else (by obtain rfl : j = 966 := (by omega); exact ok966)) else (if h : j < 968 then (by obtain rfl : j = 967 := (by omega); exact ok967) else (by obtain rfl : j = 968 := (by omega); exact ok968)))) else (if h : j < 973 then (if h : j < 971 then (if h : j < 970 then (by obtain rfl : j = 969 := (by omega); exact ok969) else (by obtain rfl : j = 970 := (by omega); exact ok970)) else (if h : j < 972 then (by obtain rfl : j = 971 := (by omega); exact ok971) else (by obtain rfl : j = 972 := (by omega); exact ok972))) else (if h : j < 975 then (if h : j < 974 then (by obtain rfl : j = 973 := (by omega); exact ok973) else (by obtain rfl : j = 974 := (by omega); exact ok974)) else (if h : j < 976 then (by obtain rfl : j = 975 := (by omega); exact ok975) else (by obtain rfl : j = 976 := (by omega); exact ok976))))) else (if h : j < 985 then (if h : j < 981 then (if h : j < 979 then (if h : j < 978 then (by obtain rfl : j = 977 := (by omega); exact ok977) else (by obtain rfl : j = 978 := (by omega); exact ok978)) else (if h : j < 980 then (by obtain rfl : j = 979 := (by omega); exact ok979) else (by obtain rfl : j = 980 := (by omega); exact ok980))) else (if h : j < 983 then (if h : j < 982 then (by obtain rfl : j = 981 := (by omega); exact ok981) else (by obtain rfl : j = 982 := (by omega); exact ok982)) else (if h : j < 984 then (by obtain rfl : j = 983 := (by omega); exact ok983) else (by obtain rfl : j = 984 := (by omega); exact ok984)))) else (if h : j < 989 then (if h : j < 987 then (if h : j < 986 then (by obtain rfl : j = 985 := (by omega); exact ok985) else (by obtain rfl : j = 986 := (by omega); exact ok986)) else (if h : j < 988 then (by obtain rfl : j = 987 := (by omega); exact ok987) else (by obtain rfl : j = 988 := (by omega); exact ok988))) else (if h : j < 991 then (if h : j < 990 then (by obtain rfl : j = 989 := (by omega); exact ok989) else (by obtain rfl : j = 990 := (by omega); exact ok990)) else (if h : j < 992 then (by obtain rfl : j = 991 := (by omega); exact ok991) else (by obtain rfl : j = 992 := (by omega); exact ok992)))))) else (if h : j < 1009 then (if h : j < 1001 then (if h : j < 997 then (if h : j < 995 then (if h : j < 994 then (by obtain rfl : j = 993 := (by omega); exact ok993) else (by obtain rfl : j = 994 := (by omega); exact ok994)) else (if h : j < 996 then (by obtain rfl : j = 995 := (by omega); exact ok995) else (by obtain rfl : j = 996 := (by omega); exact ok996))) else (if h : j < 999 then (if h : j < 998 then (by obtain rfl : j = 997 := (by omega); exact ok997) else (by obtain rfl : j = 998 := (by omega); exact ok998)) else (if h : j < 1000 then (by obtain rfl : j = 999 := (by omega); exact ok999) else (by obtain rfl : j = 1000 := (by omega); exact ok1000)))) else (if h : j < 1005 then (if h : j < 1003 then (if h : j < 1002 then (by obtain rfl : j = 1001 := (by omega); exact ok1001) else (by obtain rfl : j = 1002 := (by omega); exact ok1002)) else (if h : j < 1004 then (by obtain rfl : j = 1003 := (by omega); exact ok1003) else (by obtain rfl : j = 1004 := (by omega); exact ok1004))) else (if h : j < 1007 then (if h : j < 1006 then (by obtain rfl : j = 1005 := (by omega); exact ok1005) else (by obtain rfl : j = 1006 := (by omega); exact ok1006)) else (if h : j < 1008 then (by obtain rfl : j = 1007 := (by omega); exact ok1007) else (by obtain rfl : j = 1008 := (by omega); exact ok1008))))) else (if h : j < 1017 then (if h : j < 1013 then (if h : j < 1011 then (if h : j < 1010 then (by obtain rfl : j = 1009 := (by omega); exact ok1009) else (by obtain rfl : j = 1010 := (by omega); exact ok1010)) else (if h : j < 1012 then (by obtain rfl : j = 1011 := (by omega); exact ok1011) else (by obtain rfl : j = 1012 := (by omega); exact ok1012))) else (if h : j < 1015 then (if h : j < 1014 then (by obtain rfl : j = 1013 := (by omega); exact ok1013) else (by obtain rfl : j = 1014 := (by omega); exact ok1014)) else (if h : j < 1016 then (by obtain rfl : j = 1015 := (by omega); exact ok1015) else (by obtain rfl : j = 1016 := (by omega); exact ok1016)))) else (if h : j < 1021 then (if h : j < 1019 then (if h : j < 1018 then (by obtain rfl : j = 1017 := (by omega); exact ok1017) else (by obtain rfl : j = 1018 := (by omega); exact ok1018)) else (if h : j < 1020 then (by obtain rfl : j = 1019 := (by omega); exact ok1019) else (by obtain rfl : j = 1020 := (by omega); exact ok1020))) else (if h : j < 1023 then (if h : j < 1022 then (by obtain rfl : j = 1021 := (by omega); exact ok1021) else (by obtain rfl : j = 1022 := (by omega); exact ok1022)) else (if h : j < 1024 then (by obtain rfl : j = 1023 := (by omega); exact ok1023) else (by obtain rfl : j = 1024 := (by omega); exact ok1024)))))))))
+  (if hb897 : j < 897 then (if hb833 : j < 833 then (if hb801 : j < 801 then (if hb785 : j < 785 then (if hb777 : j < 777 then (if hb773 : j < 773 then (if hb771 : j < 771 then (if hb770 : j < 770 then (at_of_bounds (P := fun j ↦ CplOk j) h1 hb770 ok769) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb770) hb771 ok770)) else (if hb772 : j < 772 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb771) hb772 ok771) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb772) hb773 ok772))) else (if hb775 : j < 775 then (if hb774 : j < 774 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb773) hb774 ok773) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb774) hb775 ok774)) else (if hb776 : j < 776 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb775) hb776 ok775) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb776) hb777 ok776)))) else (if hb781 : j < 781 then (if hb779 : j < 779 then (if hb778 : j < 778 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb777) hb778 ok777) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb778) hb779 ok778)) else (if hb780 : j < 780 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb779) hb780 ok779) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb780) hb781 ok780))) else (if hb783 : j < 783 then (if hb782 : j < 782 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb781) hb782 ok781) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb782) hb783 ok782)) else (if hb784 : j < 784 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb783) hb784 ok783) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb784) hb785 ok784))))) else (if hb793 : j < 793 then (if hb789 : j < 789 then (if hb787 : j < 787 then (if hb786 : j < 786 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb785) hb786 ok785) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb786) hb787 ok786)) else (if hb788 : j < 788 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb787) hb788 ok787) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb788) hb789 ok788))) else (if hb791 : j < 791 then (if hb790 : j < 790 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb789) hb790 ok789) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb790) hb791 ok790)) else (if hb792 : j < 792 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb791) hb792 ok791) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb792) hb793 ok792)))) else (if hb797 : j < 797 then (if hb795 : j < 795 then (if hb794 : j < 794 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb793) hb794 ok793) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb794) hb795 ok794)) else (if hb796 : j < 796 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb795) hb796 ok795) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb796) hb797 ok796))) else (if hb799 : j < 799 then (if hb798 : j < 798 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb797) hb798 ok797) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb798) hb799 ok798)) else (if hb800 : j < 800 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb799) hb800 ok799) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb800) hb801 ok800)))))) else (if hb817 : j < 817 then (if hb809 : j < 809 then (if hb805 : j < 805 then (if hb803 : j < 803 then (if hb802 : j < 802 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb801) hb802 ok801) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb802) hb803 ok802)) else (if hb804 : j < 804 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb803) hb804 ok803) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb804) hb805 ok804))) else (if hb807 : j < 807 then (if hb806 : j < 806 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb805) hb806 ok805) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb806) hb807 ok806)) else (if hb808 : j < 808 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb807) hb808 ok807) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb808) hb809 ok808)))) else (if hb813 : j < 813 then (if hb811 : j < 811 then (if hb810 : j < 810 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb809) hb810 ok809) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb810) hb811 ok810)) else (if hb812 : j < 812 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb811) hb812 ok811) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb812) hb813 ok812))) else (if hb815 : j < 815 then (if hb814 : j < 814 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb813) hb814 ok813) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb814) hb815 ok814)) else (if hb816 : j < 816 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb815) hb816 ok815) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb816) hb817 ok816))))) else (if hb825 : j < 825 then (if hb821 : j < 821 then (if hb819 : j < 819 then (if hb818 : j < 818 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb817) hb818 ok817) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb818) hb819 ok818)) else (if hb820 : j < 820 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb819) hb820 ok819) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb820) hb821 ok820))) else (if hb823 : j < 823 then (if hb822 : j < 822 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb821) hb822 ok821) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb822) hb823 ok822)) else (if hb824 : j < 824 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb823) hb824 ok823) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb824) hb825 ok824)))) else (if hb829 : j < 829 then (if hb827 : j < 827 then (if hb826 : j < 826 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb825) hb826 ok825) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb826) hb827 ok826)) else (if hb828 : j < 828 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb827) hb828 ok827) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb828) hb829 ok828))) else (if hb831 : j < 831 then (if hb830 : j < 830 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb829) hb830 ok829) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb830) hb831 ok830)) else (if hb832 : j < 832 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb831) hb832 ok831) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb832) hb833 ok832))))))) else (if hb865 : j < 865 then (if hb849 : j < 849 then (if hb841 : j < 841 then (if hb837 : j < 837 then (if hb835 : j < 835 then (if hb834 : j < 834 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb833) hb834 ok833) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb834) hb835 ok834)) else (if hb836 : j < 836 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb835) hb836 ok835) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb836) hb837 ok836))) else (if hb839 : j < 839 then (if hb838 : j < 838 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb837) hb838 ok837) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb838) hb839 ok838)) else (if hb840 : j < 840 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb839) hb840 ok839) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb840) hb841 ok840)))) else (if hb845 : j < 845 then (if hb843 : j < 843 then (if hb842 : j < 842 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb841) hb842 ok841) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb842) hb843 ok842)) else (if hb844 : j < 844 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb843) hb844 ok843) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb844) hb845 ok844))) else (if hb847 : j < 847 then (if hb846 : j < 846 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb845) hb846 ok845) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb846) hb847 ok846)) else (if hb848 : j < 848 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb847) hb848 ok847) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb848) hb849 ok848))))) else (if hb857 : j < 857 then (if hb853 : j < 853 then (if hb851 : j < 851 then (if hb850 : j < 850 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb849) hb850 ok849) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb850) hb851 ok850)) else (if hb852 : j < 852 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb851) hb852 ok851) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb852) hb853 ok852))) else (if hb855 : j < 855 then (if hb854 : j < 854 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb853) hb854 ok853) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb854) hb855 ok854)) else (if hb856 : j < 856 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb855) hb856 ok855) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb856) hb857 ok856)))) else (if hb861 : j < 861 then (if hb859 : j < 859 then (if hb858 : j < 858 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb857) hb858 ok857) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb858) hb859 ok858)) else (if hb860 : j < 860 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb859) hb860 ok859) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb860) hb861 ok860))) else (if hb863 : j < 863 then (if hb862 : j < 862 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb861) hb862 ok861) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb862) hb863 ok862)) else (if hb864 : j < 864 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb863) hb864 ok863) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb864) hb865 ok864)))))) else (if hb881 : j < 881 then (if hb873 : j < 873 then (if hb869 : j < 869 then (if hb867 : j < 867 then (if hb866 : j < 866 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb865) hb866 ok865) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb866) hb867 ok866)) else (if hb868 : j < 868 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb867) hb868 ok867) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb868) hb869 ok868))) else (if hb871 : j < 871 then (if hb870 : j < 870 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb869) hb870 ok869) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb870) hb871 ok870)) else (if hb872 : j < 872 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb871) hb872 ok871) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb872) hb873 ok872)))) else (if hb877 : j < 877 then (if hb875 : j < 875 then (if hb874 : j < 874 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb873) hb874 ok873) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb874) hb875 ok874)) else (if hb876 : j < 876 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb875) hb876 ok875) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb876) hb877 ok876))) else (if hb879 : j < 879 then (if hb878 : j < 878 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb877) hb878 ok877) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb878) hb879 ok878)) else (if hb880 : j < 880 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb879) hb880 ok879) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb880) hb881 ok880))))) else (if hb889 : j < 889 then (if hb885 : j < 885 then (if hb883 : j < 883 then (if hb882 : j < 882 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb881) hb882 ok881) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb882) hb883 ok882)) else (if hb884 : j < 884 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb883) hb884 ok883) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb884) hb885 ok884))) else (if hb887 : j < 887 then (if hb886 : j < 886 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb885) hb886 ok885) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb886) hb887 ok886)) else (if hb888 : j < 888 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb887) hb888 ok887) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb888) hb889 ok888)))) else (if hb893 : j < 893 then (if hb891 : j < 891 then (if hb890 : j < 890 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb889) hb890 ok889) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb890) hb891 ok890)) else (if hb892 : j < 892 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb891) hb892 ok891) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb892) hb893 ok892))) else (if hb895 : j < 895 then (if hb894 : j < 894 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb893) hb894 ok893) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb894) hb895 ok894)) else (if hb896 : j < 896 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb895) hb896 ok895) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb896) hb897 ok896)))))))) else (if hb961 : j < 961 then (if hb929 : j < 929 then (if hb913 : j < 913 then (if hb905 : j < 905 then (if hb901 : j < 901 then (if hb899 : j < 899 then (if hb898 : j < 898 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb897) hb898 ok897) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb898) hb899 ok898)) else (if hb900 : j < 900 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb899) hb900 ok899) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb900) hb901 ok900))) else (if hb903 : j < 903 then (if hb902 : j < 902 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb901) hb902 ok901) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb902) hb903 ok902)) else (if hb904 : j < 904 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb903) hb904 ok903) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb904) hb905 ok904)))) else (if hb909 : j < 909 then (if hb907 : j < 907 then (if hb906 : j < 906 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb905) hb906 ok905) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb906) hb907 ok906)) else (if hb908 : j < 908 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb907) hb908 ok907) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb908) hb909 ok908))) else (if hb911 : j < 911 then (if hb910 : j < 910 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb909) hb910 ok909) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb910) hb911 ok910)) else (if hb912 : j < 912 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb911) hb912 ok911) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb912) hb913 ok912))))) else (if hb921 : j < 921 then (if hb917 : j < 917 then (if hb915 : j < 915 then (if hb914 : j < 914 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb913) hb914 ok913) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb914) hb915 ok914)) else (if hb916 : j < 916 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb915) hb916 ok915) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb916) hb917 ok916))) else (if hb919 : j < 919 then (if hb918 : j < 918 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb917) hb918 ok917) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb918) hb919 ok918)) else (if hb920 : j < 920 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb919) hb920 ok919) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb920) hb921 ok920)))) else (if hb925 : j < 925 then (if hb923 : j < 923 then (if hb922 : j < 922 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb921) hb922 ok921) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb922) hb923 ok922)) else (if hb924 : j < 924 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb923) hb924 ok923) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb924) hb925 ok924))) else (if hb927 : j < 927 then (if hb926 : j < 926 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb925) hb926 ok925) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb926) hb927 ok926)) else (if hb928 : j < 928 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb927) hb928 ok927) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb928) hb929 ok928)))))) else (if hb945 : j < 945 then (if hb937 : j < 937 then (if hb933 : j < 933 then (if hb931 : j < 931 then (if hb930 : j < 930 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb929) hb930 ok929) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb930) hb931 ok930)) else (if hb932 : j < 932 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb931) hb932 ok931) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb932) hb933 ok932))) else (if hb935 : j < 935 then (if hb934 : j < 934 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb933) hb934 ok933) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb934) hb935 ok934)) else (if hb936 : j < 936 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb935) hb936 ok935) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb936) hb937 ok936)))) else (if hb941 : j < 941 then (if hb939 : j < 939 then (if hb938 : j < 938 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb937) hb938 ok937) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb938) hb939 ok938)) else (if hb940 : j < 940 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb939) hb940 ok939) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb940) hb941 ok940))) else (if hb943 : j < 943 then (if hb942 : j < 942 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb941) hb942 ok941) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb942) hb943 ok942)) else (if hb944 : j < 944 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb943) hb944 ok943) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb944) hb945 ok944))))) else (if hb953 : j < 953 then (if hb949 : j < 949 then (if hb947 : j < 947 then (if hb946 : j < 946 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb945) hb946 ok945) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb946) hb947 ok946)) else (if hb948 : j < 948 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb947) hb948 ok947) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb948) hb949 ok948))) else (if hb951 : j < 951 then (if hb950 : j < 950 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb949) hb950 ok949) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb950) hb951 ok950)) else (if hb952 : j < 952 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb951) hb952 ok951) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb952) hb953 ok952)))) else (if hb957 : j < 957 then (if hb955 : j < 955 then (if hb954 : j < 954 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb953) hb954 ok953) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb954) hb955 ok954)) else (if hb956 : j < 956 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb955) hb956 ok955) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb956) hb957 ok956))) else (if hb959 : j < 959 then (if hb958 : j < 958 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb957) hb958 ok957) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb958) hb959 ok958)) else (if hb960 : j < 960 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb959) hb960 ok959) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb960) hb961 ok960))))))) else (if hb993 : j < 993 then (if hb977 : j < 977 then (if hb969 : j < 969 then (if hb965 : j < 965 then (if hb963 : j < 963 then (if hb962 : j < 962 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb961) hb962 ok961) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb962) hb963 ok962)) else (if hb964 : j < 964 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb963) hb964 ok963) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb964) hb965 ok964))) else (if hb967 : j < 967 then (if hb966 : j < 966 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb965) hb966 ok965) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb966) hb967 ok966)) else (if hb968 : j < 968 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb967) hb968 ok967) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb968) hb969 ok968)))) else (if hb973 : j < 973 then (if hb971 : j < 971 then (if hb970 : j < 970 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb969) hb970 ok969) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb970) hb971 ok970)) else (if hb972 : j < 972 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb971) hb972 ok971) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb972) hb973 ok972))) else (if hb975 : j < 975 then (if hb974 : j < 974 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb973) hb974 ok973) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb974) hb975 ok974)) else (if hb976 : j < 976 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb975) hb976 ok975) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb976) hb977 ok976))))) else (if hb985 : j < 985 then (if hb981 : j < 981 then (if hb979 : j < 979 then (if hb978 : j < 978 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb977) hb978 ok977) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb978) hb979 ok978)) else (if hb980 : j < 980 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb979) hb980 ok979) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb980) hb981 ok980))) else (if hb983 : j < 983 then (if hb982 : j < 982 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb981) hb982 ok981) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb982) hb983 ok982)) else (if hb984 : j < 984 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb983) hb984 ok983) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb984) hb985 ok984)))) else (if hb989 : j < 989 then (if hb987 : j < 987 then (if hb986 : j < 986 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb985) hb986 ok985) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb986) hb987 ok986)) else (if hb988 : j < 988 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb987) hb988 ok987) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb988) hb989 ok988))) else (if hb991 : j < 991 then (if hb990 : j < 990 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb989) hb990 ok989) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb990) hb991 ok990)) else (if hb992 : j < 992 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb991) hb992 ok991) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb992) hb993 ok992)))))) else (if hb1009 : j < 1009 then (if hb1001 : j < 1001 then (if hb997 : j < 997 then (if hb995 : j < 995 then (if hb994 : j < 994 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb993) hb994 ok993) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb994) hb995 ok994)) else (if hb996 : j < 996 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb995) hb996 ok995) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb996) hb997 ok996))) else (if hb999 : j < 999 then (if hb998 : j < 998 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb997) hb998 ok997) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb998) hb999 ok998)) else (if hb1000 : j < 1000 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb999) hb1000 ok999) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1000) hb1001 ok1000)))) else (if hb1005 : j < 1005 then (if hb1003 : j < 1003 then (if hb1002 : j < 1002 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1001) hb1002 ok1001) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1002) hb1003 ok1002)) else (if hb1004 : j < 1004 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1003) hb1004 ok1003) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1004) hb1005 ok1004))) else (if hb1007 : j < 1007 then (if hb1006 : j < 1006 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1005) hb1006 ok1005) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1006) hb1007 ok1006)) else (if hb1008 : j < 1008 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1007) hb1008 ok1007) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1008) hb1009 ok1008))))) else (if hb1017 : j < 1017 then (if hb1013 : j < 1013 then (if hb1011 : j < 1011 then (if hb1010 : j < 1010 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1009) hb1010 ok1009) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1010) hb1011 ok1010)) else (if hb1012 : j < 1012 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1011) hb1012 ok1011) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1012) hb1013 ok1012))) else (if hb1015 : j < 1015 then (if hb1014 : j < 1014 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1013) hb1014 ok1013) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1014) hb1015 ok1014)) else (if hb1016 : j < 1016 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1015) hb1016 ok1015) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1016) hb1017 ok1016)))) else (if hb1021 : j < 1021 then (if hb1019 : j < 1019 then (if hb1018 : j < 1018 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1017) hb1018 ok1017) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1018) hb1019 ok1018)) else (if hb1020 : j < 1020 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1019) hb1020 ok1019) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1020) hb1021 ok1020))) else (if hb1023 : j < 1023 then (if hb1022 : j < 1022 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1021) hb1022 ok1021) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1022) hb1023 ok1022)) else (if hb1024 : j < 1024 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1023) hb1024 ok1023) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1024) h2 ok1024)))))))))
 
 theorem cplOk_all_4 : ∀ j, 1025 ≤ j → j < 1281 → CplOk j := fun j h1 h2 ↦
-  (if h : j < 1153 then (if h : j < 1089 then (if h : j < 1057 then (if h : j < 1041 then (if h : j < 1033 then (if h : j < 1029 then (if h : j < 1027 then (if h : j < 1026 then (by obtain rfl : j = 1025 := (by omega); exact ok1025) else (by obtain rfl : j = 1026 := (by omega); exact ok1026)) else (if h : j < 1028 then (by obtain rfl : j = 1027 := (by omega); exact ok1027) else (by obtain rfl : j = 1028 := (by omega); exact ok1028))) else (if h : j < 1031 then (if h : j < 1030 then (by obtain rfl : j = 1029 := (by omega); exact ok1029) else (by obtain rfl : j = 1030 := (by omega); exact ok1030)) else (if h : j < 1032 then (by obtain rfl : j = 1031 := (by omega); exact ok1031) else (by obtain rfl : j = 1032 := (by omega); exact ok1032)))) else (if h : j < 1037 then (if h : j < 1035 then (if h : j < 1034 then (by obtain rfl : j = 1033 := (by omega); exact ok1033) else (by obtain rfl : j = 1034 := (by omega); exact ok1034)) else (if h : j < 1036 then (by obtain rfl : j = 1035 := (by omega); exact ok1035) else (by obtain rfl : j = 1036 := (by omega); exact ok1036))) else (if h : j < 1039 then (if h : j < 1038 then (by obtain rfl : j = 1037 := (by omega); exact ok1037) else (by obtain rfl : j = 1038 := (by omega); exact ok1038)) else (if h : j < 1040 then (by obtain rfl : j = 1039 := (by omega); exact ok1039) else (by obtain rfl : j = 1040 := (by omega); exact ok1040))))) else (if h : j < 1049 then (if h : j < 1045 then (if h : j < 1043 then (if h : j < 1042 then (by obtain rfl : j = 1041 := (by omega); exact ok1041) else (by obtain rfl : j = 1042 := (by omega); exact ok1042)) else (if h : j < 1044 then (by obtain rfl : j = 1043 := (by omega); exact ok1043) else (by obtain rfl : j = 1044 := (by omega); exact ok1044))) else (if h : j < 1047 then (if h : j < 1046 then (by obtain rfl : j = 1045 := (by omega); exact ok1045) else (by obtain rfl : j = 1046 := (by omega); exact ok1046)) else (if h : j < 1048 then (by obtain rfl : j = 1047 := (by omega); exact ok1047) else (by obtain rfl : j = 1048 := (by omega); exact ok1048)))) else (if h : j < 1053 then (if h : j < 1051 then (if h : j < 1050 then (by obtain rfl : j = 1049 := (by omega); exact ok1049) else (by obtain rfl : j = 1050 := (by omega); exact ok1050)) else (if h : j < 1052 then (by obtain rfl : j = 1051 := (by omega); exact ok1051) else (by obtain rfl : j = 1052 := (by omega); exact ok1052))) else (if h : j < 1055 then (if h : j < 1054 then (by obtain rfl : j = 1053 := (by omega); exact ok1053) else (by obtain rfl : j = 1054 := (by omega); exact ok1054)) else (if h : j < 1056 then (by obtain rfl : j = 1055 := (by omega); exact ok1055) else (by obtain rfl : j = 1056 := (by omega); exact ok1056)))))) else (if h : j < 1073 then (if h : j < 1065 then (if h : j < 1061 then (if h : j < 1059 then (if h : j < 1058 then (by obtain rfl : j = 1057 := (by omega); exact ok1057) else (by obtain rfl : j = 1058 := (by omega); exact ok1058)) else (if h : j < 1060 then (by obtain rfl : j = 1059 := (by omega); exact ok1059) else (by obtain rfl : j = 1060 := (by omega); exact ok1060))) else (if h : j < 1063 then (if h : j < 1062 then (by obtain rfl : j = 1061 := (by omega); exact ok1061) else (by obtain rfl : j = 1062 := (by omega); exact ok1062)) else (if h : j < 1064 then (by obtain rfl : j = 1063 := (by omega); exact ok1063) else (by obtain rfl : j = 1064 := (by omega); exact ok1064)))) else (if h : j < 1069 then (if h : j < 1067 then (if h : j < 1066 then (by obtain rfl : j = 1065 := (by omega); exact ok1065) else (by obtain rfl : j = 1066 := (by omega); exact ok1066)) else (if h : j < 1068 then (by obtain rfl : j = 1067 := (by omega); exact ok1067) else (by obtain rfl : j = 1068 := (by omega); exact ok1068))) else (if h : j < 1071 then (if h : j < 1070 then (by obtain rfl : j = 1069 := (by omega); exact ok1069) else (by obtain rfl : j = 1070 := (by omega); exact ok1070)) else (if h : j < 1072 then (by obtain rfl : j = 1071 := (by omega); exact ok1071) else (by obtain rfl : j = 1072 := (by omega); exact ok1072))))) else (if h : j < 1081 then (if h : j < 1077 then (if h : j < 1075 then (if h : j < 1074 then (by obtain rfl : j = 1073 := (by omega); exact ok1073) else (by obtain rfl : j = 1074 := (by omega); exact ok1074)) else (if h : j < 1076 then (by obtain rfl : j = 1075 := (by omega); exact ok1075) else (by obtain rfl : j = 1076 := (by omega); exact ok1076))) else (if h : j < 1079 then (if h : j < 1078 then (by obtain rfl : j = 1077 := (by omega); exact ok1077) else (by obtain rfl : j = 1078 := (by omega); exact ok1078)) else (if h : j < 1080 then (by obtain rfl : j = 1079 := (by omega); exact ok1079) else (by obtain rfl : j = 1080 := (by omega); exact ok1080)))) else (if h : j < 1085 then (if h : j < 1083 then (if h : j < 1082 then (by obtain rfl : j = 1081 := (by omega); exact ok1081) else (by obtain rfl : j = 1082 := (by omega); exact ok1082)) else (if h : j < 1084 then (by obtain rfl : j = 1083 := (by omega); exact ok1083) else (by obtain rfl : j = 1084 := (by omega); exact ok1084))) else (if h : j < 1087 then (if h : j < 1086 then (by obtain rfl : j = 1085 := (by omega); exact ok1085) else (by obtain rfl : j = 1086 := (by omega); exact ok1086)) else (if h : j < 1088 then (by obtain rfl : j = 1087 := (by omega); exact ok1087) else (by obtain rfl : j = 1088 := (by omega); exact ok1088))))))) else (if h : j < 1121 then (if h : j < 1105 then (if h : j < 1097 then (if h : j < 1093 then (if h : j < 1091 then (if h : j < 1090 then (by obtain rfl : j = 1089 := (by omega); exact ok1089) else (by obtain rfl : j = 1090 := (by omega); exact ok1090)) else (if h : j < 1092 then (by obtain rfl : j = 1091 := (by omega); exact ok1091) else (by obtain rfl : j = 1092 := (by omega); exact ok1092))) else (if h : j < 1095 then (if h : j < 1094 then (by obtain rfl : j = 1093 := (by omega); exact ok1093) else (by obtain rfl : j = 1094 := (by omega); exact ok1094)) else (if h : j < 1096 then (by obtain rfl : j = 1095 := (by omega); exact ok1095) else (by obtain rfl : j = 1096 := (by omega); exact ok1096)))) else (if h : j < 1101 then (if h : j < 1099 then (if h : j < 1098 then (by obtain rfl : j = 1097 := (by omega); exact ok1097) else (by obtain rfl : j = 1098 := (by omega); exact ok1098)) else (if h : j < 1100 then (by obtain rfl : j = 1099 := (by omega); exact ok1099) else (by obtain rfl : j = 1100 := (by omega); exact ok1100))) else (if h : j < 1103 then (if h : j < 1102 then (by obtain rfl : j = 1101 := (by omega); exact ok1101) else (by obtain rfl : j = 1102 := (by omega); exact ok1102)) else (if h : j < 1104 then (by obtain rfl : j = 1103 := (by omega); exact ok1103) else (by obtain rfl : j = 1104 := (by omega); exact ok1104))))) else (if h : j < 1113 then (if h : j < 1109 then (if h : j < 1107 then (if h : j < 1106 then (by obtain rfl : j = 1105 := (by omega); exact ok1105) else (by obtain rfl : j = 1106 := (by omega); exact ok1106)) else (if h : j < 1108 then (by obtain rfl : j = 1107 := (by omega); exact ok1107) else (by obtain rfl : j = 1108 := (by omega); exact ok1108))) else (if h : j < 1111 then (if h : j < 1110 then (by obtain rfl : j = 1109 := (by omega); exact ok1109) else (by obtain rfl : j = 1110 := (by omega); exact ok1110)) else (if h : j < 1112 then (by obtain rfl : j = 1111 := (by omega); exact ok1111) else (by obtain rfl : j = 1112 := (by omega); exact ok1112)))) else (if h : j < 1117 then (if h : j < 1115 then (if h : j < 1114 then (by obtain rfl : j = 1113 := (by omega); exact ok1113) else (by obtain rfl : j = 1114 := (by omega); exact ok1114)) else (if h : j < 1116 then (by obtain rfl : j = 1115 := (by omega); exact ok1115) else (by obtain rfl : j = 1116 := (by omega); exact ok1116))) else (if h : j < 1119 then (if h : j < 1118 then (by obtain rfl : j = 1117 := (by omega); exact ok1117) else (by obtain rfl : j = 1118 := (by omega); exact ok1118)) else (if h : j < 1120 then (by obtain rfl : j = 1119 := (by omega); exact ok1119) else (by obtain rfl : j = 1120 := (by omega); exact ok1120)))))) else (if h : j < 1137 then (if h : j < 1129 then (if h : j < 1125 then (if h : j < 1123 then (if h : j < 1122 then (by obtain rfl : j = 1121 := (by omega); exact ok1121) else (by obtain rfl : j = 1122 := (by omega); exact ok1122)) else (if h : j < 1124 then (by obtain rfl : j = 1123 := (by omega); exact ok1123) else (by obtain rfl : j = 1124 := (by omega); exact ok1124))) else (if h : j < 1127 then (if h : j < 1126 then (by obtain rfl : j = 1125 := (by omega); exact ok1125) else (by obtain rfl : j = 1126 := (by omega); exact ok1126)) else (if h : j < 1128 then (by obtain rfl : j = 1127 := (by omega); exact ok1127) else (by obtain rfl : j = 1128 := (by omega); exact ok1128)))) else (if h : j < 1133 then (if h : j < 1131 then (if h : j < 1130 then (by obtain rfl : j = 1129 := (by omega); exact ok1129) else (by obtain rfl : j = 1130 := (by omega); exact ok1130)) else (if h : j < 1132 then (by obtain rfl : j = 1131 := (by omega); exact ok1131) else (by obtain rfl : j = 1132 := (by omega); exact ok1132))) else (if h : j < 1135 then (if h : j < 1134 then (by obtain rfl : j = 1133 := (by omega); exact ok1133) else (by obtain rfl : j = 1134 := (by omega); exact ok1134)) else (if h : j < 1136 then (by obtain rfl : j = 1135 := (by omega); exact ok1135) else (by obtain rfl : j = 1136 := (by omega); exact ok1136))))) else (if h : j < 1145 then (if h : j < 1141 then (if h : j < 1139 then (if h : j < 1138 then (by obtain rfl : j = 1137 := (by omega); exact ok1137) else (by obtain rfl : j = 1138 := (by omega); exact ok1138)) else (if h : j < 1140 then (by obtain rfl : j = 1139 := (by omega); exact ok1139) else (by obtain rfl : j = 1140 := (by omega); exact ok1140))) else (if h : j < 1143 then (if h : j < 1142 then (by obtain rfl : j = 1141 := (by omega); exact ok1141) else (by obtain rfl : j = 1142 := (by omega); exact ok1142)) else (if h : j < 1144 then (by obtain rfl : j = 1143 := (by omega); exact ok1143) else (by obtain rfl : j = 1144 := (by omega); exact ok1144)))) else (if h : j < 1149 then (if h : j < 1147 then (if h : j < 1146 then (by obtain rfl : j = 1145 := (by omega); exact ok1145) else (by obtain rfl : j = 1146 := (by omega); exact ok1146)) else (if h : j < 1148 then (by obtain rfl : j = 1147 := (by omega); exact ok1147) else (by obtain rfl : j = 1148 := (by omega); exact ok1148))) else (if h : j < 1151 then (if h : j < 1150 then (by obtain rfl : j = 1149 := (by omega); exact ok1149) else (by obtain rfl : j = 1150 := (by omega); exact ok1150)) else (if h : j < 1152 then (by obtain rfl : j = 1151 := (by omega); exact ok1151) else (by obtain rfl : j = 1152 := (by omega); exact ok1152)))))))) else (if h : j < 1217 then (if h : j < 1185 then (if h : j < 1169 then (if h : j < 1161 then (if h : j < 1157 then (if h : j < 1155 then (if h : j < 1154 then (by obtain rfl : j = 1153 := (by omega); exact ok1153) else (by obtain rfl : j = 1154 := (by omega); exact ok1154)) else (if h : j < 1156 then (by obtain rfl : j = 1155 := (by omega); exact ok1155) else (by obtain rfl : j = 1156 := (by omega); exact ok1156))) else (if h : j < 1159 then (if h : j < 1158 then (by obtain rfl : j = 1157 := (by omega); exact ok1157) else (by obtain rfl : j = 1158 := (by omega); exact ok1158)) else (if h : j < 1160 then (by obtain rfl : j = 1159 := (by omega); exact ok1159) else (by obtain rfl : j = 1160 := (by omega); exact ok1160)))) else (if h : j < 1165 then (if h : j < 1163 then (if h : j < 1162 then (by obtain rfl : j = 1161 := (by omega); exact ok1161) else (by obtain rfl : j = 1162 := (by omega); exact ok1162)) else (if h : j < 1164 then (by obtain rfl : j = 1163 := (by omega); exact ok1163) else (by obtain rfl : j = 1164 := (by omega); exact ok1164))) else (if h : j < 1167 then (if h : j < 1166 then (by obtain rfl : j = 1165 := (by omega); exact ok1165) else (by obtain rfl : j = 1166 := (by omega); exact ok1166)) else (if h : j < 1168 then (by obtain rfl : j = 1167 := (by omega); exact ok1167) else (by obtain rfl : j = 1168 := (by omega); exact ok1168))))) else (if h : j < 1177 then (if h : j < 1173 then (if h : j < 1171 then (if h : j < 1170 then (by obtain rfl : j = 1169 := (by omega); exact ok1169) else (by obtain rfl : j = 1170 := (by omega); exact ok1170)) else (if h : j < 1172 then (by obtain rfl : j = 1171 := (by omega); exact ok1171) else (by obtain rfl : j = 1172 := (by omega); exact ok1172))) else (if h : j < 1175 then (if h : j < 1174 then (by obtain rfl : j = 1173 := (by omega); exact ok1173) else (by obtain rfl : j = 1174 := (by omega); exact ok1174)) else (if h : j < 1176 then (by obtain rfl : j = 1175 := (by omega); exact ok1175) else (by obtain rfl : j = 1176 := (by omega); exact ok1176)))) else (if h : j < 1181 then (if h : j < 1179 then (if h : j < 1178 then (by obtain rfl : j = 1177 := (by omega); exact ok1177) else (by obtain rfl : j = 1178 := (by omega); exact ok1178)) else (if h : j < 1180 then (by obtain rfl : j = 1179 := (by omega); exact ok1179) else (by obtain rfl : j = 1180 := (by omega); exact ok1180))) else (if h : j < 1183 then (if h : j < 1182 then (by obtain rfl : j = 1181 := (by omega); exact ok1181) else (by obtain rfl : j = 1182 := (by omega); exact ok1182)) else (if h : j < 1184 then (by obtain rfl : j = 1183 := (by omega); exact ok1183) else (by obtain rfl : j = 1184 := (by omega); exact ok1184)))))) else (if h : j < 1201 then (if h : j < 1193 then (if h : j < 1189 then (if h : j < 1187 then (if h : j < 1186 then (by obtain rfl : j = 1185 := (by omega); exact ok1185) else (by obtain rfl : j = 1186 := (by omega); exact ok1186)) else (if h : j < 1188 then (by obtain rfl : j = 1187 := (by omega); exact ok1187) else (by obtain rfl : j = 1188 := (by omega); exact ok1188))) else (if h : j < 1191 then (if h : j < 1190 then (by obtain rfl : j = 1189 := (by omega); exact ok1189) else (by obtain rfl : j = 1190 := (by omega); exact ok1190)) else (if h : j < 1192 then (by obtain rfl : j = 1191 := (by omega); exact ok1191) else (by obtain rfl : j = 1192 := (by omega); exact ok1192)))) else (if h : j < 1197 then (if h : j < 1195 then (if h : j < 1194 then (by obtain rfl : j = 1193 := (by omega); exact ok1193) else (by obtain rfl : j = 1194 := (by omega); exact ok1194)) else (if h : j < 1196 then (by obtain rfl : j = 1195 := (by omega); exact ok1195) else (by obtain rfl : j = 1196 := (by omega); exact ok1196))) else (if h : j < 1199 then (if h : j < 1198 then (by obtain rfl : j = 1197 := (by omega); exact ok1197) else (by obtain rfl : j = 1198 := (by omega); exact ok1198)) else (if h : j < 1200 then (by obtain rfl : j = 1199 := (by omega); exact ok1199) else (by obtain rfl : j = 1200 := (by omega); exact ok1200))))) else (if h : j < 1209 then (if h : j < 1205 then (if h : j < 1203 then (if h : j < 1202 then (by obtain rfl : j = 1201 := (by omega); exact ok1201) else (by obtain rfl : j = 1202 := (by omega); exact ok1202)) else (if h : j < 1204 then (by obtain rfl : j = 1203 := (by omega); exact ok1203) else (by obtain rfl : j = 1204 := (by omega); exact ok1204))) else (if h : j < 1207 then (if h : j < 1206 then (by obtain rfl : j = 1205 := (by omega); exact ok1205) else (by obtain rfl : j = 1206 := (by omega); exact ok1206)) else (if h : j < 1208 then (by obtain rfl : j = 1207 := (by omega); exact ok1207) else (by obtain rfl : j = 1208 := (by omega); exact ok1208)))) else (if h : j < 1213 then (if h : j < 1211 then (if h : j < 1210 then (by obtain rfl : j = 1209 := (by omega); exact ok1209) else (by obtain rfl : j = 1210 := (by omega); exact ok1210)) else (if h : j < 1212 then (by obtain rfl : j = 1211 := (by omega); exact ok1211) else (by obtain rfl : j = 1212 := (by omega); exact ok1212))) else (if h : j < 1215 then (if h : j < 1214 then (by obtain rfl : j = 1213 := (by omega); exact ok1213) else (by obtain rfl : j = 1214 := (by omega); exact ok1214)) else (if h : j < 1216 then (by obtain rfl : j = 1215 := (by omega); exact ok1215) else (by obtain rfl : j = 1216 := (by omega); exact ok1216))))))) else (if h : j < 1249 then (if h : j < 1233 then (if h : j < 1225 then (if h : j < 1221 then (if h : j < 1219 then (if h : j < 1218 then (by obtain rfl : j = 1217 := (by omega); exact ok1217) else (by obtain rfl : j = 1218 := (by omega); exact ok1218)) else (if h : j < 1220 then (by obtain rfl : j = 1219 := (by omega); exact ok1219) else (by obtain rfl : j = 1220 := (by omega); exact ok1220))) else (if h : j < 1223 then (if h : j < 1222 then (by obtain rfl : j = 1221 := (by omega); exact ok1221) else (by obtain rfl : j = 1222 := (by omega); exact ok1222)) else (if h : j < 1224 then (by obtain rfl : j = 1223 := (by omega); exact ok1223) else (by obtain rfl : j = 1224 := (by omega); exact ok1224)))) else (if h : j < 1229 then (if h : j < 1227 then (if h : j < 1226 then (by obtain rfl : j = 1225 := (by omega); exact ok1225) else (by obtain rfl : j = 1226 := (by omega); exact ok1226)) else (if h : j < 1228 then (by obtain rfl : j = 1227 := (by omega); exact ok1227) else (by obtain rfl : j = 1228 := (by omega); exact ok1228))) else (if h : j < 1231 then (if h : j < 1230 then (by obtain rfl : j = 1229 := (by omega); exact ok1229) else (by obtain rfl : j = 1230 := (by omega); exact ok1230)) else (if h : j < 1232 then (by obtain rfl : j = 1231 := (by omega); exact ok1231) else (by obtain rfl : j = 1232 := (by omega); exact ok1232))))) else (if h : j < 1241 then (if h : j < 1237 then (if h : j < 1235 then (if h : j < 1234 then (by obtain rfl : j = 1233 := (by omega); exact ok1233) else (by obtain rfl : j = 1234 := (by omega); exact ok1234)) else (if h : j < 1236 then (by obtain rfl : j = 1235 := (by omega); exact ok1235) else (by obtain rfl : j = 1236 := (by omega); exact ok1236))) else (if h : j < 1239 then (if h : j < 1238 then (by obtain rfl : j = 1237 := (by omega); exact ok1237) else (by obtain rfl : j = 1238 := (by omega); exact ok1238)) else (if h : j < 1240 then (by obtain rfl : j = 1239 := (by omega); exact ok1239) else (by obtain rfl : j = 1240 := (by omega); exact ok1240)))) else (if h : j < 1245 then (if h : j < 1243 then (if h : j < 1242 then (by obtain rfl : j = 1241 := (by omega); exact ok1241) else (by obtain rfl : j = 1242 := (by omega); exact ok1242)) else (if h : j < 1244 then (by obtain rfl : j = 1243 := (by omega); exact ok1243) else (by obtain rfl : j = 1244 := (by omega); exact ok1244))) else (if h : j < 1247 then (if h : j < 1246 then (by obtain rfl : j = 1245 := (by omega); exact ok1245) else (by obtain rfl : j = 1246 := (by omega); exact ok1246)) else (if h : j < 1248 then (by obtain rfl : j = 1247 := (by omega); exact ok1247) else (by obtain rfl : j = 1248 := (by omega); exact ok1248)))))) else (if h : j < 1265 then (if h : j < 1257 then (if h : j < 1253 then (if h : j < 1251 then (if h : j < 1250 then (by obtain rfl : j = 1249 := (by omega); exact ok1249) else (by obtain rfl : j = 1250 := (by omega); exact ok1250)) else (if h : j < 1252 then (by obtain rfl : j = 1251 := (by omega); exact ok1251) else (by obtain rfl : j = 1252 := (by omega); exact ok1252))) else (if h : j < 1255 then (if h : j < 1254 then (by obtain rfl : j = 1253 := (by omega); exact ok1253) else (by obtain rfl : j = 1254 := (by omega); exact ok1254)) else (if h : j < 1256 then (by obtain rfl : j = 1255 := (by omega); exact ok1255) else (by obtain rfl : j = 1256 := (by omega); exact ok1256)))) else (if h : j < 1261 then (if h : j < 1259 then (if h : j < 1258 then (by obtain rfl : j = 1257 := (by omega); exact ok1257) else (by obtain rfl : j = 1258 := (by omega); exact ok1258)) else (if h : j < 1260 then (by obtain rfl : j = 1259 := (by omega); exact ok1259) else (by obtain rfl : j = 1260 := (by omega); exact ok1260))) else (if h : j < 1263 then (if h : j < 1262 then (by obtain rfl : j = 1261 := (by omega); exact ok1261) else (by obtain rfl : j = 1262 := (by omega); exact ok1262)) else (if h : j < 1264 then (by obtain rfl : j = 1263 := (by omega); exact ok1263) else (by obtain rfl : j = 1264 := (by omega); exact ok1264))))) else (if h : j < 1273 then (if h : j < 1269 then (if h : j < 1267 then (if h : j < 1266 then (by obtain rfl : j = 1265 := (by omega); exact ok1265) else (by obtain rfl : j = 1266 := (by omega); exact ok1266)) else (if h : j < 1268 then (by obtain rfl : j = 1267 := (by omega); exact ok1267) else (by obtain rfl : j = 1268 := (by omega); exact ok1268))) else (if h : j < 1271 then (if h : j < 1270 then (by obtain rfl : j = 1269 := (by omega); exact ok1269) else (by obtain rfl : j = 1270 := (by omega); exact ok1270)) else (if h : j < 1272 then (by obtain rfl : j = 1271 := (by omega); exact ok1271) else (by obtain rfl : j = 1272 := (by omega); exact ok1272)))) else (if h : j < 1277 then (if h : j < 1275 then (if h : j < 1274 then (by obtain rfl : j = 1273 := (by omega); exact ok1273) else (by obtain rfl : j = 1274 := (by omega); exact ok1274)) else (if h : j < 1276 then (by obtain rfl : j = 1275 := (by omega); exact ok1275) else (by obtain rfl : j = 1276 := (by omega); exact ok1276))) else (if h : j < 1279 then (if h : j < 1278 then (by obtain rfl : j = 1277 := (by omega); exact ok1277) else (by obtain rfl : j = 1278 := (by omega); exact ok1278)) else (if h : j < 1280 then (by obtain rfl : j = 1279 := (by omega); exact ok1279) else (by obtain rfl : j = 1280 := (by omega); exact ok1280)))))))))
+  (if hb1153 : j < 1153 then (if hb1089 : j < 1089 then (if hb1057 : j < 1057 then (if hb1041 : j < 1041 then (if hb1033 : j < 1033 then (if hb1029 : j < 1029 then (if hb1027 : j < 1027 then (if hb1026 : j < 1026 then (at_of_bounds (P := fun j ↦ CplOk j) h1 hb1026 ok1025) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1026) hb1027 ok1026)) else (if hb1028 : j < 1028 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1027) hb1028 ok1027) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1028) hb1029 ok1028))) else (if hb1031 : j < 1031 then (if hb1030 : j < 1030 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1029) hb1030 ok1029) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1030) hb1031 ok1030)) else (if hb1032 : j < 1032 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1031) hb1032 ok1031) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1032) hb1033 ok1032)))) else (if hb1037 : j < 1037 then (if hb1035 : j < 1035 then (if hb1034 : j < 1034 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1033) hb1034 ok1033) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1034) hb1035 ok1034)) else (if hb1036 : j < 1036 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1035) hb1036 ok1035) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1036) hb1037 ok1036))) else (if hb1039 : j < 1039 then (if hb1038 : j < 1038 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1037) hb1038 ok1037) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1038) hb1039 ok1038)) else (if hb1040 : j < 1040 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1039) hb1040 ok1039) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1040) hb1041 ok1040))))) else (if hb1049 : j < 1049 then (if hb1045 : j < 1045 then (if hb1043 : j < 1043 then (if hb1042 : j < 1042 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1041) hb1042 ok1041) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1042) hb1043 ok1042)) else (if hb1044 : j < 1044 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1043) hb1044 ok1043) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1044) hb1045 ok1044))) else (if hb1047 : j < 1047 then (if hb1046 : j < 1046 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1045) hb1046 ok1045) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1046) hb1047 ok1046)) else (if hb1048 : j < 1048 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1047) hb1048 ok1047) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1048) hb1049 ok1048)))) else (if hb1053 : j < 1053 then (if hb1051 : j < 1051 then (if hb1050 : j < 1050 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1049) hb1050 ok1049) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1050) hb1051 ok1050)) else (if hb1052 : j < 1052 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1051) hb1052 ok1051) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1052) hb1053 ok1052))) else (if hb1055 : j < 1055 then (if hb1054 : j < 1054 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1053) hb1054 ok1053) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1054) hb1055 ok1054)) else (if hb1056 : j < 1056 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1055) hb1056 ok1055) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1056) hb1057 ok1056)))))) else (if hb1073 : j < 1073 then (if hb1065 : j < 1065 then (if hb1061 : j < 1061 then (if hb1059 : j < 1059 then (if hb1058 : j < 1058 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1057) hb1058 ok1057) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1058) hb1059 ok1058)) else (if hb1060 : j < 1060 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1059) hb1060 ok1059) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1060) hb1061 ok1060))) else (if hb1063 : j < 1063 then (if hb1062 : j < 1062 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1061) hb1062 ok1061) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1062) hb1063 ok1062)) else (if hb1064 : j < 1064 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1063) hb1064 ok1063) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1064) hb1065 ok1064)))) else (if hb1069 : j < 1069 then (if hb1067 : j < 1067 then (if hb1066 : j < 1066 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1065) hb1066 ok1065) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1066) hb1067 ok1066)) else (if hb1068 : j < 1068 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1067) hb1068 ok1067) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1068) hb1069 ok1068))) else (if hb1071 : j < 1071 then (if hb1070 : j < 1070 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1069) hb1070 ok1069) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1070) hb1071 ok1070)) else (if hb1072 : j < 1072 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1071) hb1072 ok1071) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1072) hb1073 ok1072))))) else (if hb1081 : j < 1081 then (if hb1077 : j < 1077 then (if hb1075 : j < 1075 then (if hb1074 : j < 1074 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1073) hb1074 ok1073) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1074) hb1075 ok1074)) else (if hb1076 : j < 1076 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1075) hb1076 ok1075) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1076) hb1077 ok1076))) else (if hb1079 : j < 1079 then (if hb1078 : j < 1078 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1077) hb1078 ok1077) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1078) hb1079 ok1078)) else (if hb1080 : j < 1080 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1079) hb1080 ok1079) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1080) hb1081 ok1080)))) else (if hb1085 : j < 1085 then (if hb1083 : j < 1083 then (if hb1082 : j < 1082 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1081) hb1082 ok1081) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1082) hb1083 ok1082)) else (if hb1084 : j < 1084 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1083) hb1084 ok1083) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1084) hb1085 ok1084))) else (if hb1087 : j < 1087 then (if hb1086 : j < 1086 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1085) hb1086 ok1085) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1086) hb1087 ok1086)) else (if hb1088 : j < 1088 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1087) hb1088 ok1087) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1088) hb1089 ok1088))))))) else (if hb1121 : j < 1121 then (if hb1105 : j < 1105 then (if hb1097 : j < 1097 then (if hb1093 : j < 1093 then (if hb1091 : j < 1091 then (if hb1090 : j < 1090 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1089) hb1090 ok1089) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1090) hb1091 ok1090)) else (if hb1092 : j < 1092 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1091) hb1092 ok1091) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1092) hb1093 ok1092))) else (if hb1095 : j < 1095 then (if hb1094 : j < 1094 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1093) hb1094 ok1093) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1094) hb1095 ok1094)) else (if hb1096 : j < 1096 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1095) hb1096 ok1095) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1096) hb1097 ok1096)))) else (if hb1101 : j < 1101 then (if hb1099 : j < 1099 then (if hb1098 : j < 1098 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1097) hb1098 ok1097) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1098) hb1099 ok1098)) else (if hb1100 : j < 1100 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1099) hb1100 ok1099) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1100) hb1101 ok1100))) else (if hb1103 : j < 1103 then (if hb1102 : j < 1102 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1101) hb1102 ok1101) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1102) hb1103 ok1102)) else (if hb1104 : j < 1104 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1103) hb1104 ok1103) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1104) hb1105 ok1104))))) else (if hb1113 : j < 1113 then (if hb1109 : j < 1109 then (if hb1107 : j < 1107 then (if hb1106 : j < 1106 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1105) hb1106 ok1105) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1106) hb1107 ok1106)) else (if hb1108 : j < 1108 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1107) hb1108 ok1107) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1108) hb1109 ok1108))) else (if hb1111 : j < 1111 then (if hb1110 : j < 1110 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1109) hb1110 ok1109) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1110) hb1111 ok1110)) else (if hb1112 : j < 1112 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1111) hb1112 ok1111) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1112) hb1113 ok1112)))) else (if hb1117 : j < 1117 then (if hb1115 : j < 1115 then (if hb1114 : j < 1114 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1113) hb1114 ok1113) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1114) hb1115 ok1114)) else (if hb1116 : j < 1116 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1115) hb1116 ok1115) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1116) hb1117 ok1116))) else (if hb1119 : j < 1119 then (if hb1118 : j < 1118 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1117) hb1118 ok1117) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1118) hb1119 ok1118)) else (if hb1120 : j < 1120 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1119) hb1120 ok1119) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1120) hb1121 ok1120)))))) else (if hb1137 : j < 1137 then (if hb1129 : j < 1129 then (if hb1125 : j < 1125 then (if hb1123 : j < 1123 then (if hb1122 : j < 1122 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1121) hb1122 ok1121) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1122) hb1123 ok1122)) else (if hb1124 : j < 1124 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1123) hb1124 ok1123) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1124) hb1125 ok1124))) else (if hb1127 : j < 1127 then (if hb1126 : j < 1126 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1125) hb1126 ok1125) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1126) hb1127 ok1126)) else (if hb1128 : j < 1128 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1127) hb1128 ok1127) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1128) hb1129 ok1128)))) else (if hb1133 : j < 1133 then (if hb1131 : j < 1131 then (if hb1130 : j < 1130 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1129) hb1130 ok1129) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1130) hb1131 ok1130)) else (if hb1132 : j < 1132 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1131) hb1132 ok1131) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1132) hb1133 ok1132))) else (if hb1135 : j < 1135 then (if hb1134 : j < 1134 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1133) hb1134 ok1133) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1134) hb1135 ok1134)) else (if hb1136 : j < 1136 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1135) hb1136 ok1135) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1136) hb1137 ok1136))))) else (if hb1145 : j < 1145 then (if hb1141 : j < 1141 then (if hb1139 : j < 1139 then (if hb1138 : j < 1138 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1137) hb1138 ok1137) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1138) hb1139 ok1138)) else (if hb1140 : j < 1140 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1139) hb1140 ok1139) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1140) hb1141 ok1140))) else (if hb1143 : j < 1143 then (if hb1142 : j < 1142 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1141) hb1142 ok1141) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1142) hb1143 ok1142)) else (if hb1144 : j < 1144 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1143) hb1144 ok1143) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1144) hb1145 ok1144)))) else (if hb1149 : j < 1149 then (if hb1147 : j < 1147 then (if hb1146 : j < 1146 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1145) hb1146 ok1145) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1146) hb1147 ok1146)) else (if hb1148 : j < 1148 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1147) hb1148 ok1147) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1148) hb1149 ok1148))) else (if hb1151 : j < 1151 then (if hb1150 : j < 1150 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1149) hb1150 ok1149) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1150) hb1151 ok1150)) else (if hb1152 : j < 1152 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1151) hb1152 ok1151) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1152) hb1153 ok1152)))))))) else (if hb1217 : j < 1217 then (if hb1185 : j < 1185 then (if hb1169 : j < 1169 then (if hb1161 : j < 1161 then (if hb1157 : j < 1157 then (if hb1155 : j < 1155 then (if hb1154 : j < 1154 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1153) hb1154 ok1153) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1154) hb1155 ok1154)) else (if hb1156 : j < 1156 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1155) hb1156 ok1155) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1156) hb1157 ok1156))) else (if hb1159 : j < 1159 then (if hb1158 : j < 1158 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1157) hb1158 ok1157) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1158) hb1159 ok1158)) else (if hb1160 : j < 1160 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1159) hb1160 ok1159) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1160) hb1161 ok1160)))) else (if hb1165 : j < 1165 then (if hb1163 : j < 1163 then (if hb1162 : j < 1162 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1161) hb1162 ok1161) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1162) hb1163 ok1162)) else (if hb1164 : j < 1164 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1163) hb1164 ok1163) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1164) hb1165 ok1164))) else (if hb1167 : j < 1167 then (if hb1166 : j < 1166 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1165) hb1166 ok1165) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1166) hb1167 ok1166)) else (if hb1168 : j < 1168 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1167) hb1168 ok1167) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1168) hb1169 ok1168))))) else (if hb1177 : j < 1177 then (if hb1173 : j < 1173 then (if hb1171 : j < 1171 then (if hb1170 : j < 1170 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1169) hb1170 ok1169) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1170) hb1171 ok1170)) else (if hb1172 : j < 1172 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1171) hb1172 ok1171) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1172) hb1173 ok1172))) else (if hb1175 : j < 1175 then (if hb1174 : j < 1174 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1173) hb1174 ok1173) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1174) hb1175 ok1174)) else (if hb1176 : j < 1176 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1175) hb1176 ok1175) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1176) hb1177 ok1176)))) else (if hb1181 : j < 1181 then (if hb1179 : j < 1179 then (if hb1178 : j < 1178 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1177) hb1178 ok1177) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1178) hb1179 ok1178)) else (if hb1180 : j < 1180 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1179) hb1180 ok1179) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1180) hb1181 ok1180))) else (if hb1183 : j < 1183 then (if hb1182 : j < 1182 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1181) hb1182 ok1181) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1182) hb1183 ok1182)) else (if hb1184 : j < 1184 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1183) hb1184 ok1183) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1184) hb1185 ok1184)))))) else (if hb1201 : j < 1201 then (if hb1193 : j < 1193 then (if hb1189 : j < 1189 then (if hb1187 : j < 1187 then (if hb1186 : j < 1186 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1185) hb1186 ok1185) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1186) hb1187 ok1186)) else (if hb1188 : j < 1188 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1187) hb1188 ok1187) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1188) hb1189 ok1188))) else (if hb1191 : j < 1191 then (if hb1190 : j < 1190 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1189) hb1190 ok1189) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1190) hb1191 ok1190)) else (if hb1192 : j < 1192 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1191) hb1192 ok1191) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1192) hb1193 ok1192)))) else (if hb1197 : j < 1197 then (if hb1195 : j < 1195 then (if hb1194 : j < 1194 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1193) hb1194 ok1193) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1194) hb1195 ok1194)) else (if hb1196 : j < 1196 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1195) hb1196 ok1195) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1196) hb1197 ok1196))) else (if hb1199 : j < 1199 then (if hb1198 : j < 1198 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1197) hb1198 ok1197) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1198) hb1199 ok1198)) else (if hb1200 : j < 1200 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1199) hb1200 ok1199) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1200) hb1201 ok1200))))) else (if hb1209 : j < 1209 then (if hb1205 : j < 1205 then (if hb1203 : j < 1203 then (if hb1202 : j < 1202 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1201) hb1202 ok1201) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1202) hb1203 ok1202)) else (if hb1204 : j < 1204 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1203) hb1204 ok1203) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1204) hb1205 ok1204))) else (if hb1207 : j < 1207 then (if hb1206 : j < 1206 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1205) hb1206 ok1205) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1206) hb1207 ok1206)) else (if hb1208 : j < 1208 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1207) hb1208 ok1207) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1208) hb1209 ok1208)))) else (if hb1213 : j < 1213 then (if hb1211 : j < 1211 then (if hb1210 : j < 1210 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1209) hb1210 ok1209) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1210) hb1211 ok1210)) else (if hb1212 : j < 1212 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1211) hb1212 ok1211) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1212) hb1213 ok1212))) else (if hb1215 : j < 1215 then (if hb1214 : j < 1214 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1213) hb1214 ok1213) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1214) hb1215 ok1214)) else (if hb1216 : j < 1216 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1215) hb1216 ok1215) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1216) hb1217 ok1216))))))) else (if hb1249 : j < 1249 then (if hb1233 : j < 1233 then (if hb1225 : j < 1225 then (if hb1221 : j < 1221 then (if hb1219 : j < 1219 then (if hb1218 : j < 1218 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1217) hb1218 ok1217) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1218) hb1219 ok1218)) else (if hb1220 : j < 1220 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1219) hb1220 ok1219) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1220) hb1221 ok1220))) else (if hb1223 : j < 1223 then (if hb1222 : j < 1222 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1221) hb1222 ok1221) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1222) hb1223 ok1222)) else (if hb1224 : j < 1224 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1223) hb1224 ok1223) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1224) hb1225 ok1224)))) else (if hb1229 : j < 1229 then (if hb1227 : j < 1227 then (if hb1226 : j < 1226 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1225) hb1226 ok1225) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1226) hb1227 ok1226)) else (if hb1228 : j < 1228 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1227) hb1228 ok1227) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1228) hb1229 ok1228))) else (if hb1231 : j < 1231 then (if hb1230 : j < 1230 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1229) hb1230 ok1229) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1230) hb1231 ok1230)) else (if hb1232 : j < 1232 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1231) hb1232 ok1231) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1232) hb1233 ok1232))))) else (if hb1241 : j < 1241 then (if hb1237 : j < 1237 then (if hb1235 : j < 1235 then (if hb1234 : j < 1234 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1233) hb1234 ok1233) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1234) hb1235 ok1234)) else (if hb1236 : j < 1236 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1235) hb1236 ok1235) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1236) hb1237 ok1236))) else (if hb1239 : j < 1239 then (if hb1238 : j < 1238 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1237) hb1238 ok1237) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1238) hb1239 ok1238)) else (if hb1240 : j < 1240 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1239) hb1240 ok1239) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1240) hb1241 ok1240)))) else (if hb1245 : j < 1245 then (if hb1243 : j < 1243 then (if hb1242 : j < 1242 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1241) hb1242 ok1241) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1242) hb1243 ok1242)) else (if hb1244 : j < 1244 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1243) hb1244 ok1243) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1244) hb1245 ok1244))) else (if hb1247 : j < 1247 then (if hb1246 : j < 1246 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1245) hb1246 ok1245) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1246) hb1247 ok1246)) else (if hb1248 : j < 1248 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1247) hb1248 ok1247) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1248) hb1249 ok1248)))))) else (if hb1265 : j < 1265 then (if hb1257 : j < 1257 then (if hb1253 : j < 1253 then (if hb1251 : j < 1251 then (if hb1250 : j < 1250 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1249) hb1250 ok1249) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1250) hb1251 ok1250)) else (if hb1252 : j < 1252 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1251) hb1252 ok1251) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1252) hb1253 ok1252))) else (if hb1255 : j < 1255 then (if hb1254 : j < 1254 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1253) hb1254 ok1253) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1254) hb1255 ok1254)) else (if hb1256 : j < 1256 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1255) hb1256 ok1255) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1256) hb1257 ok1256)))) else (if hb1261 : j < 1261 then (if hb1259 : j < 1259 then (if hb1258 : j < 1258 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1257) hb1258 ok1257) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1258) hb1259 ok1258)) else (if hb1260 : j < 1260 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1259) hb1260 ok1259) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1260) hb1261 ok1260))) else (if hb1263 : j < 1263 then (if hb1262 : j < 1262 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1261) hb1262 ok1261) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1262) hb1263 ok1262)) else (if hb1264 : j < 1264 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1263) hb1264 ok1263) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1264) hb1265 ok1264))))) else (if hb1273 : j < 1273 then (if hb1269 : j < 1269 then (if hb1267 : j < 1267 then (if hb1266 : j < 1266 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1265) hb1266 ok1265) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1266) hb1267 ok1266)) else (if hb1268 : j < 1268 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1267) hb1268 ok1267) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1268) hb1269 ok1268))) else (if hb1271 : j < 1271 then (if hb1270 : j < 1270 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1269) hb1270 ok1269) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1270) hb1271 ok1270)) else (if hb1272 : j < 1272 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1271) hb1272 ok1271) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1272) hb1273 ok1272)))) else (if hb1277 : j < 1277 then (if hb1275 : j < 1275 then (if hb1274 : j < 1274 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1273) hb1274 ok1273) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1274) hb1275 ok1274)) else (if hb1276 : j < 1276 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1275) hb1276 ok1275) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1276) hb1277 ok1276))) else (if hb1279 : j < 1279 then (if hb1278 : j < 1278 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1277) hb1278 ok1277) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1278) hb1279 ok1278)) else (if hb1280 : j < 1280 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1279) hb1280 ok1279) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1280) h2 ok1280)))))))))
 
-theorem cplOk_all_5 : ∀ j, 1281 ≤ j → j < 1536 → CplOk j := fun j h1 h2 ↦
-  (if h : j < 1408 then (if h : j < 1344 then (if h : j < 1312 then (if h : j < 1296 then (if h : j < 1288 then (if h : j < 1284 then (if h : j < 1282 then (by obtain rfl : j = 1281 := (by omega); exact ok1281) else (if h : j < 1283 then (by obtain rfl : j = 1282 := (by omega); exact ok1282) else (by obtain rfl : j = 1283 := (by omega); exact ok1283))) else (if h : j < 1286 then (if h : j < 1285 then (by obtain rfl : j = 1284 := (by omega); exact ok1284) else (by obtain rfl : j = 1285 := (by omega); exact ok1285)) else (if h : j < 1287 then (by obtain rfl : j = 1286 := (by omega); exact ok1286) else (by obtain rfl : j = 1287 := (by omega); exact ok1287)))) else (if h : j < 1292 then (if h : j < 1290 then (if h : j < 1289 then (by obtain rfl : j = 1288 := (by omega); exact ok1288) else (by obtain rfl : j = 1289 := (by omega); exact ok1289)) else (if h : j < 1291 then (by obtain rfl : j = 1290 := (by omega); exact ok1290) else (by obtain rfl : j = 1291 := (by omega); exact ok1291))) else (if h : j < 1294 then (if h : j < 1293 then (by obtain rfl : j = 1292 := (by omega); exact ok1292) else (by obtain rfl : j = 1293 := (by omega); exact ok1293)) else (if h : j < 1295 then (by obtain rfl : j = 1294 := (by omega); exact ok1294) else (by obtain rfl : j = 1295 := (by omega); exact ok1295))))) else (if h : j < 1304 then (if h : j < 1300 then (if h : j < 1298 then (if h : j < 1297 then (by obtain rfl : j = 1296 := (by omega); exact ok1296) else (by obtain rfl : j = 1297 := (by omega); exact ok1297)) else (if h : j < 1299 then (by obtain rfl : j = 1298 := (by omega); exact ok1298) else (by obtain rfl : j = 1299 := (by omega); exact ok1299))) else (if h : j < 1302 then (if h : j < 1301 then (by obtain rfl : j = 1300 := (by omega); exact ok1300) else (by obtain rfl : j = 1301 := (by omega); exact ok1301)) else (if h : j < 1303 then (by obtain rfl : j = 1302 := (by omega); exact ok1302) else (by obtain rfl : j = 1303 := (by omega); exact ok1303)))) else (if h : j < 1308 then (if h : j < 1306 then (if h : j < 1305 then (by obtain rfl : j = 1304 := (by omega); exact ok1304) else (by obtain rfl : j = 1305 := (by omega); exact ok1305)) else (if h : j < 1307 then (by obtain rfl : j = 1306 := (by omega); exact ok1306) else (by obtain rfl : j = 1307 := (by omega); exact ok1307))) else (if h : j < 1310 then (if h : j < 1309 then (by obtain rfl : j = 1308 := (by omega); exact ok1308) else (by obtain rfl : j = 1309 := (by omega); exact ok1309)) else (if h : j < 1311 then (by obtain rfl : j = 1310 := (by omega); exact ok1310) else (by obtain rfl : j = 1311 := (by omega); exact ok1311)))))) else (if h : j < 1328 then (if h : j < 1320 then (if h : j < 1316 then (if h : j < 1314 then (if h : j < 1313 then (by obtain rfl : j = 1312 := (by omega); exact ok1312) else (by obtain rfl : j = 1313 := (by omega); exact ok1313)) else (if h : j < 1315 then (by obtain rfl : j = 1314 := (by omega); exact ok1314) else (by obtain rfl : j = 1315 := (by omega); exact ok1315))) else (if h : j < 1318 then (if h : j < 1317 then (by obtain rfl : j = 1316 := (by omega); exact ok1316) else (by obtain rfl : j = 1317 := (by omega); exact ok1317)) else (if h : j < 1319 then (by obtain rfl : j = 1318 := (by omega); exact ok1318) else (by obtain rfl : j = 1319 := (by omega); exact ok1319)))) else (if h : j < 1324 then (if h : j < 1322 then (if h : j < 1321 then (by obtain rfl : j = 1320 := (by omega); exact ok1320) else (by obtain rfl : j = 1321 := (by omega); exact ok1321)) else (if h : j < 1323 then (by obtain rfl : j = 1322 := (by omega); exact ok1322) else (by obtain rfl : j = 1323 := (by omega); exact ok1323))) else (if h : j < 1326 then (if h : j < 1325 then (by obtain rfl : j = 1324 := (by omega); exact ok1324) else (by obtain rfl : j = 1325 := (by omega); exact ok1325)) else (if h : j < 1327 then (by obtain rfl : j = 1326 := (by omega); exact ok1326) else (by obtain rfl : j = 1327 := (by omega); exact ok1327))))) else (if h : j < 1336 then (if h : j < 1332 then (if h : j < 1330 then (if h : j < 1329 then (by obtain rfl : j = 1328 := (by omega); exact ok1328) else (by obtain rfl : j = 1329 := (by omega); exact ok1329)) else (if h : j < 1331 then (by obtain rfl : j = 1330 := (by omega); exact ok1330) else (by obtain rfl : j = 1331 := (by omega); exact ok1331))) else (if h : j < 1334 then (if h : j < 1333 then (by obtain rfl : j = 1332 := (by omega); exact ok1332) else (by obtain rfl : j = 1333 := (by omega); exact ok1333)) else (if h : j < 1335 then (by obtain rfl : j = 1334 := (by omega); exact ok1334) else (by obtain rfl : j = 1335 := (by omega); exact ok1335)))) else (if h : j < 1340 then (if h : j < 1338 then (if h : j < 1337 then (by obtain rfl : j = 1336 := (by omega); exact ok1336) else (by obtain rfl : j = 1337 := (by omega); exact ok1337)) else (if h : j < 1339 then (by obtain rfl : j = 1338 := (by omega); exact ok1338) else (by obtain rfl : j = 1339 := (by omega); exact ok1339))) else (if h : j < 1342 then (if h : j < 1341 then (by obtain rfl : j = 1340 := (by omega); exact ok1340) else (by obtain rfl : j = 1341 := (by omega); exact ok1341)) else (if h : j < 1343 then (by obtain rfl : j = 1342 := (by omega); exact ok1342) else (by obtain rfl : j = 1343 := (by omega); exact ok1343))))))) else (if h : j < 1376 then (if h : j < 1360 then (if h : j < 1352 then (if h : j < 1348 then (if h : j < 1346 then (if h : j < 1345 then (by obtain rfl : j = 1344 := (by omega); exact ok1344) else (by obtain rfl : j = 1345 := (by omega); exact ok1345)) else (if h : j < 1347 then (by obtain rfl : j = 1346 := (by omega); exact ok1346) else (by obtain rfl : j = 1347 := (by omega); exact ok1347))) else (if h : j < 1350 then (if h : j < 1349 then (by obtain rfl : j = 1348 := (by omega); exact ok1348) else (by obtain rfl : j = 1349 := (by omega); exact ok1349)) else (if h : j < 1351 then (by obtain rfl : j = 1350 := (by omega); exact ok1350) else (by obtain rfl : j = 1351 := (by omega); exact ok1351)))) else (if h : j < 1356 then (if h : j < 1354 then (if h : j < 1353 then (by obtain rfl : j = 1352 := (by omega); exact ok1352) else (by obtain rfl : j = 1353 := (by omega); exact ok1353)) else (if h : j < 1355 then (by obtain rfl : j = 1354 := (by omega); exact ok1354) else (by obtain rfl : j = 1355 := (by omega); exact ok1355))) else (if h : j < 1358 then (if h : j < 1357 then (by obtain rfl : j = 1356 := (by omega); exact ok1356) else (by obtain rfl : j = 1357 := (by omega); exact ok1357)) else (if h : j < 1359 then (by obtain rfl : j = 1358 := (by omega); exact ok1358) else (by obtain rfl : j = 1359 := (by omega); exact ok1359))))) else (if h : j < 1368 then (if h : j < 1364 then (if h : j < 1362 then (if h : j < 1361 then (by obtain rfl : j = 1360 := (by omega); exact ok1360) else (by obtain rfl : j = 1361 := (by omega); exact ok1361)) else (if h : j < 1363 then (by obtain rfl : j = 1362 := (by omega); exact ok1362) else (by obtain rfl : j = 1363 := (by omega); exact ok1363))) else (if h : j < 1366 then (if h : j < 1365 then (by obtain rfl : j = 1364 := (by omega); exact ok1364) else (by obtain rfl : j = 1365 := (by omega); exact ok1365)) else (if h : j < 1367 then (by obtain rfl : j = 1366 := (by omega); exact ok1366) else (by obtain rfl : j = 1367 := (by omega); exact ok1367)))) else (if h : j < 1372 then (if h : j < 1370 then (if h : j < 1369 then (by obtain rfl : j = 1368 := (by omega); exact ok1368) else (by obtain rfl : j = 1369 := (by omega); exact ok1369)) else (if h : j < 1371 then (by obtain rfl : j = 1370 := (by omega); exact ok1370) else (by obtain rfl : j = 1371 := (by omega); exact ok1371))) else (if h : j < 1374 then (if h : j < 1373 then (by obtain rfl : j = 1372 := (by omega); exact ok1372) else (by obtain rfl : j = 1373 := (by omega); exact ok1373)) else (if h : j < 1375 then (by obtain rfl : j = 1374 := (by omega); exact ok1374) else (by obtain rfl : j = 1375 := (by omega); exact ok1375)))))) else (if h : j < 1392 then (if h : j < 1384 then (if h : j < 1380 then (if h : j < 1378 then (if h : j < 1377 then (by obtain rfl : j = 1376 := (by omega); exact ok1376) else (by obtain rfl : j = 1377 := (by omega); exact ok1377)) else (if h : j < 1379 then (by obtain rfl : j = 1378 := (by omega); exact ok1378) else (by obtain rfl : j = 1379 := (by omega); exact ok1379))) else (if h : j < 1382 then (if h : j < 1381 then (by obtain rfl : j = 1380 := (by omega); exact ok1380) else (by obtain rfl : j = 1381 := (by omega); exact ok1381)) else (if h : j < 1383 then (by obtain rfl : j = 1382 := (by omega); exact ok1382) else (by obtain rfl : j = 1383 := (by omega); exact ok1383)))) else (if h : j < 1388 then (if h : j < 1386 then (if h : j < 1385 then (by obtain rfl : j = 1384 := (by omega); exact ok1384) else (by obtain rfl : j = 1385 := (by omega); exact ok1385)) else (if h : j < 1387 then (by obtain rfl : j = 1386 := (by omega); exact ok1386) else (by obtain rfl : j = 1387 := (by omega); exact ok1387))) else (if h : j < 1390 then (if h : j < 1389 then (by obtain rfl : j = 1388 := (by omega); exact ok1388) else (by obtain rfl : j = 1389 := (by omega); exact ok1389)) else (if h : j < 1391 then (by obtain rfl : j = 1390 := (by omega); exact ok1390) else (by obtain rfl : j = 1391 := (by omega); exact ok1391))))) else (if h : j < 1400 then (if h : j < 1396 then (if h : j < 1394 then (if h : j < 1393 then (by obtain rfl : j = 1392 := (by omega); exact ok1392) else (by obtain rfl : j = 1393 := (by omega); exact ok1393)) else (if h : j < 1395 then (by obtain rfl : j = 1394 := (by omega); exact ok1394) else (by obtain rfl : j = 1395 := (by omega); exact ok1395))) else (if h : j < 1398 then (if h : j < 1397 then (by obtain rfl : j = 1396 := (by omega); exact ok1396) else (by obtain rfl : j = 1397 := (by omega); exact ok1397)) else (if h : j < 1399 then (by obtain rfl : j = 1398 := (by omega); exact ok1398) else (by obtain rfl : j = 1399 := (by omega); exact ok1399)))) else (if h : j < 1404 then (if h : j < 1402 then (if h : j < 1401 then (by obtain rfl : j = 1400 := (by omega); exact ok1400) else (by obtain rfl : j = 1401 := (by omega); exact ok1401)) else (if h : j < 1403 then (by obtain rfl : j = 1402 := (by omega); exact ok1402) else (by obtain rfl : j = 1403 := (by omega); exact ok1403))) else (if h : j < 1406 then (if h : j < 1405 then (by obtain rfl : j = 1404 := (by omega); exact ok1404) else (by obtain rfl : j = 1405 := (by omega); exact ok1405)) else (if h : j < 1407 then (by obtain rfl : j = 1406 := (by omega); exact ok1406) else (by obtain rfl : j = 1407 := (by omega); exact ok1407)))))))) else (if h : j < 1472 then (if h : j < 1440 then (if h : j < 1424 then (if h : j < 1416 then (if h : j < 1412 then (if h : j < 1410 then (if h : j < 1409 then (by obtain rfl : j = 1408 := (by omega); exact ok1408) else (by obtain rfl : j = 1409 := (by omega); exact ok1409)) else (if h : j < 1411 then (by obtain rfl : j = 1410 := (by omega); exact ok1410) else (by obtain rfl : j = 1411 := (by omega); exact ok1411))) else (if h : j < 1414 then (if h : j < 1413 then (by obtain rfl : j = 1412 := (by omega); exact ok1412) else (by obtain rfl : j = 1413 := (by omega); exact ok1413)) else (if h : j < 1415 then (by obtain rfl : j = 1414 := (by omega); exact ok1414) else (by obtain rfl : j = 1415 := (by omega); exact ok1415)))) else (if h : j < 1420 then (if h : j < 1418 then (if h : j < 1417 then (by obtain rfl : j = 1416 := (by omega); exact ok1416) else (by obtain rfl : j = 1417 := (by omega); exact ok1417)) else (if h : j < 1419 then (by obtain rfl : j = 1418 := (by omega); exact ok1418) else (by obtain rfl : j = 1419 := (by omega); exact ok1419))) else (if h : j < 1422 then (if h : j < 1421 then (by obtain rfl : j = 1420 := (by omega); exact ok1420) else (by obtain rfl : j = 1421 := (by omega); exact ok1421)) else (if h : j < 1423 then (by obtain rfl : j = 1422 := (by omega); exact ok1422) else (by obtain rfl : j = 1423 := (by omega); exact ok1423))))) else (if h : j < 1432 then (if h : j < 1428 then (if h : j < 1426 then (if h : j < 1425 then (by obtain rfl : j = 1424 := (by omega); exact ok1424) else (by obtain rfl : j = 1425 := (by omega); exact ok1425)) else (if h : j < 1427 then (by obtain rfl : j = 1426 := (by omega); exact ok1426) else (by obtain rfl : j = 1427 := (by omega); exact ok1427))) else (if h : j < 1430 then (if h : j < 1429 then (by obtain rfl : j = 1428 := (by omega); exact ok1428) else (by obtain rfl : j = 1429 := (by omega); exact ok1429)) else (if h : j < 1431 then (by obtain rfl : j = 1430 := (by omega); exact ok1430) else (by obtain rfl : j = 1431 := (by omega); exact ok1431)))) else (if h : j < 1436 then (if h : j < 1434 then (if h : j < 1433 then (by obtain rfl : j = 1432 := (by omega); exact ok1432) else (by obtain rfl : j = 1433 := (by omega); exact ok1433)) else (if h : j < 1435 then (by obtain rfl : j = 1434 := (by omega); exact ok1434) else (by obtain rfl : j = 1435 := (by omega); exact ok1435))) else (if h : j < 1438 then (if h : j < 1437 then (by obtain rfl : j = 1436 := (by omega); exact ok1436) else (by obtain rfl : j = 1437 := (by omega); exact ok1437)) else (if h : j < 1439 then (by obtain rfl : j = 1438 := (by omega); exact ok1438) else (by obtain rfl : j = 1439 := (by omega); exact ok1439)))))) else (if h : j < 1456 then (if h : j < 1448 then (if h : j < 1444 then (if h : j < 1442 then (if h : j < 1441 then (by obtain rfl : j = 1440 := (by omega); exact ok1440) else (by obtain rfl : j = 1441 := (by omega); exact ok1441)) else (if h : j < 1443 then (by obtain rfl : j = 1442 := (by omega); exact ok1442) else (by obtain rfl : j = 1443 := (by omega); exact ok1443))) else (if h : j < 1446 then (if h : j < 1445 then (by obtain rfl : j = 1444 := (by omega); exact ok1444) else (by obtain rfl : j = 1445 := (by omega); exact ok1445)) else (if h : j < 1447 then (by obtain rfl : j = 1446 := (by omega); exact ok1446) else (by obtain rfl : j = 1447 := (by omega); exact ok1447)))) else (if h : j < 1452 then (if h : j < 1450 then (if h : j < 1449 then (by obtain rfl : j = 1448 := (by omega); exact ok1448) else (by obtain rfl : j = 1449 := (by omega); exact ok1449)) else (if h : j < 1451 then (by obtain rfl : j = 1450 := (by omega); exact ok1450) else (by obtain rfl : j = 1451 := (by omega); exact ok1451))) else (if h : j < 1454 then (if h : j < 1453 then (by obtain rfl : j = 1452 := (by omega); exact ok1452) else (by obtain rfl : j = 1453 := (by omega); exact ok1453)) else (if h : j < 1455 then (by obtain rfl : j = 1454 := (by omega); exact ok1454) else (by obtain rfl : j = 1455 := (by omega); exact ok1455))))) else (if h : j < 1464 then (if h : j < 1460 then (if h : j < 1458 then (if h : j < 1457 then (by obtain rfl : j = 1456 := (by omega); exact ok1456) else (by obtain rfl : j = 1457 := (by omega); exact ok1457)) else (if h : j < 1459 then (by obtain rfl : j = 1458 := (by omega); exact ok1458) else (by obtain rfl : j = 1459 := (by omega); exact ok1459))) else (if h : j < 1462 then (if h : j < 1461 then (by obtain rfl : j = 1460 := (by omega); exact ok1460) else (by obtain rfl : j = 1461 := (by omega); exact ok1461)) else (if h : j < 1463 then (by obtain rfl : j = 1462 := (by omega); exact ok1462) else (by obtain rfl : j = 1463 := (by omega); exact ok1463)))) else (if h : j < 1468 then (if h : j < 1466 then (if h : j < 1465 then (by obtain rfl : j = 1464 := (by omega); exact ok1464) else (by obtain rfl : j = 1465 := (by omega); exact ok1465)) else (if h : j < 1467 then (by obtain rfl : j = 1466 := (by omega); exact ok1466) else (by obtain rfl : j = 1467 := (by omega); exact ok1467))) else (if h : j < 1470 then (if h : j < 1469 then (by obtain rfl : j = 1468 := (by omega); exact ok1468) else (by obtain rfl : j = 1469 := (by omega); exact ok1469)) else (if h : j < 1471 then (by obtain rfl : j = 1470 := (by omega); exact ok1470) else (by obtain rfl : j = 1471 := (by omega); exact ok1471))))))) else (if h : j < 1504 then (if h : j < 1488 then (if h : j < 1480 then (if h : j < 1476 then (if h : j < 1474 then (if h : j < 1473 then (by obtain rfl : j = 1472 := (by omega); exact ok1472) else (by obtain rfl : j = 1473 := (by omega); exact ok1473)) else (if h : j < 1475 then (by obtain rfl : j = 1474 := (by omega); exact ok1474) else (by obtain rfl : j = 1475 := (by omega); exact ok1475))) else (if h : j < 1478 then (if h : j < 1477 then (by obtain rfl : j = 1476 := (by omega); exact ok1476) else (by obtain rfl : j = 1477 := (by omega); exact ok1477)) else (if h : j < 1479 then (by obtain rfl : j = 1478 := (by omega); exact ok1478) else (by obtain rfl : j = 1479 := (by omega); exact ok1479)))) else (if h : j < 1484 then (if h : j < 1482 then (if h : j < 1481 then (by obtain rfl : j = 1480 := (by omega); exact ok1480) else (by obtain rfl : j = 1481 := (by omega); exact ok1481)) else (if h : j < 1483 then (by obtain rfl : j = 1482 := (by omega); exact ok1482) else (by obtain rfl : j = 1483 := (by omega); exact ok1483))) else (if h : j < 1486 then (if h : j < 1485 then (by obtain rfl : j = 1484 := (by omega); exact ok1484) else (by obtain rfl : j = 1485 := (by omega); exact ok1485)) else (if h : j < 1487 then (by obtain rfl : j = 1486 := (by omega); exact ok1486) else (by obtain rfl : j = 1487 := (by omega); exact ok1487))))) else (if h : j < 1496 then (if h : j < 1492 then (if h : j < 1490 then (if h : j < 1489 then (by obtain rfl : j = 1488 := (by omega); exact ok1488) else (by obtain rfl : j = 1489 := (by omega); exact ok1489)) else (if h : j < 1491 then (by obtain rfl : j = 1490 := (by omega); exact ok1490) else (by obtain rfl : j = 1491 := (by omega); exact ok1491))) else (if h : j < 1494 then (if h : j < 1493 then (by obtain rfl : j = 1492 := (by omega); exact ok1492) else (by obtain rfl : j = 1493 := (by omega); exact ok1493)) else (if h : j < 1495 then (by obtain rfl : j = 1494 := (by omega); exact ok1494) else (by obtain rfl : j = 1495 := (by omega); exact ok1495)))) else (if h : j < 1500 then (if h : j < 1498 then (if h : j < 1497 then (by obtain rfl : j = 1496 := (by omega); exact ok1496) else (by obtain rfl : j = 1497 := (by omega); exact ok1497)) else (if h : j < 1499 then (by obtain rfl : j = 1498 := (by omega); exact ok1498) else (by obtain rfl : j = 1499 := (by omega); exact ok1499))) else (if h : j < 1502 then (if h : j < 1501 then (by obtain rfl : j = 1500 := (by omega); exact ok1500) else (by obtain rfl : j = 1501 := (by omega); exact ok1501)) else (if h : j < 1503 then (by obtain rfl : j = 1502 := (by omega); exact ok1502) else (by obtain rfl : j = 1503 := (by omega); exact ok1503)))))) else (if h : j < 1520 then (if h : j < 1512 then (if h : j < 1508 then (if h : j < 1506 then (if h : j < 1505 then (by obtain rfl : j = 1504 := (by omega); exact ok1504) else (by obtain rfl : j = 1505 := (by omega); exact ok1505)) else (if h : j < 1507 then (by obtain rfl : j = 1506 := (by omega); exact ok1506) else (by obtain rfl : j = 1507 := (by omega); exact ok1507))) else (if h : j < 1510 then (if h : j < 1509 then (by obtain rfl : j = 1508 := (by omega); exact ok1508) else (by obtain rfl : j = 1509 := (by omega); exact ok1509)) else (if h : j < 1511 then (by obtain rfl : j = 1510 := (by omega); exact ok1510) else (by obtain rfl : j = 1511 := (by omega); exact ok1511)))) else (if h : j < 1516 then (if h : j < 1514 then (if h : j < 1513 then (by obtain rfl : j = 1512 := (by omega); exact ok1512) else (by obtain rfl : j = 1513 := (by omega); exact ok1513)) else (if h : j < 1515 then (by obtain rfl : j = 1514 := (by omega); exact ok1514) else (by obtain rfl : j = 1515 := (by omega); exact ok1515))) else (if h : j < 1518 then (if h : j < 1517 then (by obtain rfl : j = 1516 := (by omega); exact ok1516) else (by obtain rfl : j = 1517 := (by omega); exact ok1517)) else (if h : j < 1519 then (by obtain rfl : j = 1518 := (by omega); exact ok1518) else (by obtain rfl : j = 1519 := (by omega); exact ok1519))))) else (if h : j < 1528 then (if h : j < 1524 then (if h : j < 1522 then (if h : j < 1521 then (by obtain rfl : j = 1520 := (by omega); exact ok1520) else (by obtain rfl : j = 1521 := (by omega); exact ok1521)) else (if h : j < 1523 then (by obtain rfl : j = 1522 := (by omega); exact ok1522) else (by obtain rfl : j = 1523 := (by omega); exact ok1523))) else (if h : j < 1526 then (if h : j < 1525 then (by obtain rfl : j = 1524 := (by omega); exact ok1524) else (by obtain rfl : j = 1525 := (by omega); exact ok1525)) else (if h : j < 1527 then (by obtain rfl : j = 1526 := (by omega); exact ok1526) else (by obtain rfl : j = 1527 := (by omega); exact ok1527)))) else (if h : j < 1532 then (if h : j < 1530 then (if h : j < 1529 then (by obtain rfl : j = 1528 := (by omega); exact ok1528) else (by obtain rfl : j = 1529 := (by omega); exact ok1529)) else (if h : j < 1531 then (by obtain rfl : j = 1530 := (by omega); exact ok1530) else (by obtain rfl : j = 1531 := (by omega); exact ok1531))) else (if h : j < 1534 then (if h : j < 1533 then (by obtain rfl : j = 1532 := (by omega); exact ok1532) else (by obtain rfl : j = 1533 := (by omega); exact ok1533)) else (if h : j < 1535 then (by obtain rfl : j = 1534 := (by omega); exact ok1534) else (by obtain rfl : j = 1535 := (by omega); exact ok1535)))))))))
+theorem cplOk_all_5 : ∀ j, 1281 ≤ j → j < 1537 → CplOk j := fun j h1 h2 ↦
+  (if hb1409 : j < 1409 then (if hb1345 : j < 1345 then (if hb1313 : j < 1313 then (if hb1297 : j < 1297 then (if hb1289 : j < 1289 then (if hb1285 : j < 1285 then (if hb1283 : j < 1283 then (if hb1282 : j < 1282 then (at_of_bounds (P := fun j ↦ CplOk j) h1 hb1282 ok1281) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1282) hb1283 ok1282)) else (if hb1284 : j < 1284 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1283) hb1284 ok1283) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1284) hb1285 ok1284))) else (if hb1287 : j < 1287 then (if hb1286 : j < 1286 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1285) hb1286 ok1285) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1286) hb1287 ok1286)) else (if hb1288 : j < 1288 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1287) hb1288 ok1287) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1288) hb1289 ok1288)))) else (if hb1293 : j < 1293 then (if hb1291 : j < 1291 then (if hb1290 : j < 1290 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1289) hb1290 ok1289) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1290) hb1291 ok1290)) else (if hb1292 : j < 1292 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1291) hb1292 ok1291) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1292) hb1293 ok1292))) else (if hb1295 : j < 1295 then (if hb1294 : j < 1294 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1293) hb1294 ok1293) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1294) hb1295 ok1294)) else (if hb1296 : j < 1296 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1295) hb1296 ok1295) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1296) hb1297 ok1296))))) else (if hb1305 : j < 1305 then (if hb1301 : j < 1301 then (if hb1299 : j < 1299 then (if hb1298 : j < 1298 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1297) hb1298 ok1297) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1298) hb1299 ok1298)) else (if hb1300 : j < 1300 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1299) hb1300 ok1299) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1300) hb1301 ok1300))) else (if hb1303 : j < 1303 then (if hb1302 : j < 1302 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1301) hb1302 ok1301) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1302) hb1303 ok1302)) else (if hb1304 : j < 1304 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1303) hb1304 ok1303) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1304) hb1305 ok1304)))) else (if hb1309 : j < 1309 then (if hb1307 : j < 1307 then (if hb1306 : j < 1306 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1305) hb1306 ok1305) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1306) hb1307 ok1306)) else (if hb1308 : j < 1308 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1307) hb1308 ok1307) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1308) hb1309 ok1308))) else (if hb1311 : j < 1311 then (if hb1310 : j < 1310 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1309) hb1310 ok1309) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1310) hb1311 ok1310)) else (if hb1312 : j < 1312 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1311) hb1312 ok1311) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1312) hb1313 ok1312)))))) else (if hb1329 : j < 1329 then (if hb1321 : j < 1321 then (if hb1317 : j < 1317 then (if hb1315 : j < 1315 then (if hb1314 : j < 1314 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1313) hb1314 ok1313) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1314) hb1315 ok1314)) else (if hb1316 : j < 1316 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1315) hb1316 ok1315) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1316) hb1317 ok1316))) else (if hb1319 : j < 1319 then (if hb1318 : j < 1318 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1317) hb1318 ok1317) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1318) hb1319 ok1318)) else (if hb1320 : j < 1320 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1319) hb1320 ok1319) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1320) hb1321 ok1320)))) else (if hb1325 : j < 1325 then (if hb1323 : j < 1323 then (if hb1322 : j < 1322 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1321) hb1322 ok1321) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1322) hb1323 ok1322)) else (if hb1324 : j < 1324 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1323) hb1324 ok1323) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1324) hb1325 ok1324))) else (if hb1327 : j < 1327 then (if hb1326 : j < 1326 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1325) hb1326 ok1325) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1326) hb1327 ok1326)) else (if hb1328 : j < 1328 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1327) hb1328 ok1327) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1328) hb1329 ok1328))))) else (if hb1337 : j < 1337 then (if hb1333 : j < 1333 then (if hb1331 : j < 1331 then (if hb1330 : j < 1330 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1329) hb1330 ok1329) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1330) hb1331 ok1330)) else (if hb1332 : j < 1332 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1331) hb1332 ok1331) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1332) hb1333 ok1332))) else (if hb1335 : j < 1335 then (if hb1334 : j < 1334 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1333) hb1334 ok1333) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1334) hb1335 ok1334)) else (if hb1336 : j < 1336 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1335) hb1336 ok1335) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1336) hb1337 ok1336)))) else (if hb1341 : j < 1341 then (if hb1339 : j < 1339 then (if hb1338 : j < 1338 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1337) hb1338 ok1337) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1338) hb1339 ok1338)) else (if hb1340 : j < 1340 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1339) hb1340 ok1339) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1340) hb1341 ok1340))) else (if hb1343 : j < 1343 then (if hb1342 : j < 1342 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1341) hb1342 ok1341) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1342) hb1343 ok1342)) else (if hb1344 : j < 1344 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1343) hb1344 ok1343) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1344) hb1345 ok1344))))))) else (if hb1377 : j < 1377 then (if hb1361 : j < 1361 then (if hb1353 : j < 1353 then (if hb1349 : j < 1349 then (if hb1347 : j < 1347 then (if hb1346 : j < 1346 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1345) hb1346 ok1345) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1346) hb1347 ok1346)) else (if hb1348 : j < 1348 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1347) hb1348 ok1347) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1348) hb1349 ok1348))) else (if hb1351 : j < 1351 then (if hb1350 : j < 1350 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1349) hb1350 ok1349) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1350) hb1351 ok1350)) else (if hb1352 : j < 1352 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1351) hb1352 ok1351) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1352) hb1353 ok1352)))) else (if hb1357 : j < 1357 then (if hb1355 : j < 1355 then (if hb1354 : j < 1354 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1353) hb1354 ok1353) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1354) hb1355 ok1354)) else (if hb1356 : j < 1356 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1355) hb1356 ok1355) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1356) hb1357 ok1356))) else (if hb1359 : j < 1359 then (if hb1358 : j < 1358 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1357) hb1358 ok1357) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1358) hb1359 ok1358)) else (if hb1360 : j < 1360 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1359) hb1360 ok1359) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1360) hb1361 ok1360))))) else (if hb1369 : j < 1369 then (if hb1365 : j < 1365 then (if hb1363 : j < 1363 then (if hb1362 : j < 1362 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1361) hb1362 ok1361) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1362) hb1363 ok1362)) else (if hb1364 : j < 1364 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1363) hb1364 ok1363) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1364) hb1365 ok1364))) else (if hb1367 : j < 1367 then (if hb1366 : j < 1366 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1365) hb1366 ok1365) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1366) hb1367 ok1366)) else (if hb1368 : j < 1368 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1367) hb1368 ok1367) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1368) hb1369 ok1368)))) else (if hb1373 : j < 1373 then (if hb1371 : j < 1371 then (if hb1370 : j < 1370 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1369) hb1370 ok1369) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1370) hb1371 ok1370)) else (if hb1372 : j < 1372 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1371) hb1372 ok1371) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1372) hb1373 ok1372))) else (if hb1375 : j < 1375 then (if hb1374 : j < 1374 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1373) hb1374 ok1373) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1374) hb1375 ok1374)) else (if hb1376 : j < 1376 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1375) hb1376 ok1375) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1376) hb1377 ok1376)))))) else (if hb1393 : j < 1393 then (if hb1385 : j < 1385 then (if hb1381 : j < 1381 then (if hb1379 : j < 1379 then (if hb1378 : j < 1378 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1377) hb1378 ok1377) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1378) hb1379 ok1378)) else (if hb1380 : j < 1380 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1379) hb1380 ok1379) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1380) hb1381 ok1380))) else (if hb1383 : j < 1383 then (if hb1382 : j < 1382 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1381) hb1382 ok1381) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1382) hb1383 ok1382)) else (if hb1384 : j < 1384 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1383) hb1384 ok1383) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1384) hb1385 ok1384)))) else (if hb1389 : j < 1389 then (if hb1387 : j < 1387 then (if hb1386 : j < 1386 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1385) hb1386 ok1385) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1386) hb1387 ok1386)) else (if hb1388 : j < 1388 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1387) hb1388 ok1387) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1388) hb1389 ok1388))) else (if hb1391 : j < 1391 then (if hb1390 : j < 1390 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1389) hb1390 ok1389) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1390) hb1391 ok1390)) else (if hb1392 : j < 1392 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1391) hb1392 ok1391) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1392) hb1393 ok1392))))) else (if hb1401 : j < 1401 then (if hb1397 : j < 1397 then (if hb1395 : j < 1395 then (if hb1394 : j < 1394 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1393) hb1394 ok1393) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1394) hb1395 ok1394)) else (if hb1396 : j < 1396 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1395) hb1396 ok1395) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1396) hb1397 ok1396))) else (if hb1399 : j < 1399 then (if hb1398 : j < 1398 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1397) hb1398 ok1397) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1398) hb1399 ok1398)) else (if hb1400 : j < 1400 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1399) hb1400 ok1399) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1400) hb1401 ok1400)))) else (if hb1405 : j < 1405 then (if hb1403 : j < 1403 then (if hb1402 : j < 1402 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1401) hb1402 ok1401) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1402) hb1403 ok1402)) else (if hb1404 : j < 1404 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1403) hb1404 ok1403) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1404) hb1405 ok1404))) else (if hb1407 : j < 1407 then (if hb1406 : j < 1406 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1405) hb1406 ok1405) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1406) hb1407 ok1406)) else (if hb1408 : j < 1408 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1407) hb1408 ok1407) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1408) hb1409 ok1408)))))))) else (if hb1473 : j < 1473 then (if hb1441 : j < 1441 then (if hb1425 : j < 1425 then (if hb1417 : j < 1417 then (if hb1413 : j < 1413 then (if hb1411 : j < 1411 then (if hb1410 : j < 1410 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1409) hb1410 ok1409) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1410) hb1411 ok1410)) else (if hb1412 : j < 1412 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1411) hb1412 ok1411) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1412) hb1413 ok1412))) else (if hb1415 : j < 1415 then (if hb1414 : j < 1414 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1413) hb1414 ok1413) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1414) hb1415 ok1414)) else (if hb1416 : j < 1416 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1415) hb1416 ok1415) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1416) hb1417 ok1416)))) else (if hb1421 : j < 1421 then (if hb1419 : j < 1419 then (if hb1418 : j < 1418 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1417) hb1418 ok1417) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1418) hb1419 ok1418)) else (if hb1420 : j < 1420 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1419) hb1420 ok1419) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1420) hb1421 ok1420))) else (if hb1423 : j < 1423 then (if hb1422 : j < 1422 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1421) hb1422 ok1421) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1422) hb1423 ok1422)) else (if hb1424 : j < 1424 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1423) hb1424 ok1423) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1424) hb1425 ok1424))))) else (if hb1433 : j < 1433 then (if hb1429 : j < 1429 then (if hb1427 : j < 1427 then (if hb1426 : j < 1426 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1425) hb1426 ok1425) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1426) hb1427 ok1426)) else (if hb1428 : j < 1428 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1427) hb1428 ok1427) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1428) hb1429 ok1428))) else (if hb1431 : j < 1431 then (if hb1430 : j < 1430 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1429) hb1430 ok1429) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1430) hb1431 ok1430)) else (if hb1432 : j < 1432 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1431) hb1432 ok1431) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1432) hb1433 ok1432)))) else (if hb1437 : j < 1437 then (if hb1435 : j < 1435 then (if hb1434 : j < 1434 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1433) hb1434 ok1433) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1434) hb1435 ok1434)) else (if hb1436 : j < 1436 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1435) hb1436 ok1435) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1436) hb1437 ok1436))) else (if hb1439 : j < 1439 then (if hb1438 : j < 1438 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1437) hb1438 ok1437) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1438) hb1439 ok1438)) else (if hb1440 : j < 1440 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1439) hb1440 ok1439) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1440) hb1441 ok1440)))))) else (if hb1457 : j < 1457 then (if hb1449 : j < 1449 then (if hb1445 : j < 1445 then (if hb1443 : j < 1443 then (if hb1442 : j < 1442 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1441) hb1442 ok1441) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1442) hb1443 ok1442)) else (if hb1444 : j < 1444 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1443) hb1444 ok1443) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1444) hb1445 ok1444))) else (if hb1447 : j < 1447 then (if hb1446 : j < 1446 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1445) hb1446 ok1445) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1446) hb1447 ok1446)) else (if hb1448 : j < 1448 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1447) hb1448 ok1447) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1448) hb1449 ok1448)))) else (if hb1453 : j < 1453 then (if hb1451 : j < 1451 then (if hb1450 : j < 1450 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1449) hb1450 ok1449) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1450) hb1451 ok1450)) else (if hb1452 : j < 1452 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1451) hb1452 ok1451) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1452) hb1453 ok1452))) else (if hb1455 : j < 1455 then (if hb1454 : j < 1454 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1453) hb1454 ok1453) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1454) hb1455 ok1454)) else (if hb1456 : j < 1456 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1455) hb1456 ok1455) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1456) hb1457 ok1456))))) else (if hb1465 : j < 1465 then (if hb1461 : j < 1461 then (if hb1459 : j < 1459 then (if hb1458 : j < 1458 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1457) hb1458 ok1457) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1458) hb1459 ok1458)) else (if hb1460 : j < 1460 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1459) hb1460 ok1459) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1460) hb1461 ok1460))) else (if hb1463 : j < 1463 then (if hb1462 : j < 1462 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1461) hb1462 ok1461) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1462) hb1463 ok1462)) else (if hb1464 : j < 1464 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1463) hb1464 ok1463) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1464) hb1465 ok1464)))) else (if hb1469 : j < 1469 then (if hb1467 : j < 1467 then (if hb1466 : j < 1466 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1465) hb1466 ok1465) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1466) hb1467 ok1466)) else (if hb1468 : j < 1468 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1467) hb1468 ok1467) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1468) hb1469 ok1468))) else (if hb1471 : j < 1471 then (if hb1470 : j < 1470 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1469) hb1470 ok1469) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1470) hb1471 ok1470)) else (if hb1472 : j < 1472 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1471) hb1472 ok1471) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1472) hb1473 ok1472))))))) else (if hb1505 : j < 1505 then (if hb1489 : j < 1489 then (if hb1481 : j < 1481 then (if hb1477 : j < 1477 then (if hb1475 : j < 1475 then (if hb1474 : j < 1474 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1473) hb1474 ok1473) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1474) hb1475 ok1474)) else (if hb1476 : j < 1476 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1475) hb1476 ok1475) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1476) hb1477 ok1476))) else (if hb1479 : j < 1479 then (if hb1478 : j < 1478 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1477) hb1478 ok1477) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1478) hb1479 ok1478)) else (if hb1480 : j < 1480 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1479) hb1480 ok1479) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1480) hb1481 ok1480)))) else (if hb1485 : j < 1485 then (if hb1483 : j < 1483 then (if hb1482 : j < 1482 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1481) hb1482 ok1481) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1482) hb1483 ok1482)) else (if hb1484 : j < 1484 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1483) hb1484 ok1483) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1484) hb1485 ok1484))) else (if hb1487 : j < 1487 then (if hb1486 : j < 1486 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1485) hb1486 ok1485) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1486) hb1487 ok1486)) else (if hb1488 : j < 1488 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1487) hb1488 ok1487) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1488) hb1489 ok1488))))) else (if hb1497 : j < 1497 then (if hb1493 : j < 1493 then (if hb1491 : j < 1491 then (if hb1490 : j < 1490 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1489) hb1490 ok1489) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1490) hb1491 ok1490)) else (if hb1492 : j < 1492 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1491) hb1492 ok1491) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1492) hb1493 ok1492))) else (if hb1495 : j < 1495 then (if hb1494 : j < 1494 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1493) hb1494 ok1493) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1494) hb1495 ok1494)) else (if hb1496 : j < 1496 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1495) hb1496 ok1495) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1496) hb1497 ok1496)))) else (if hb1501 : j < 1501 then (if hb1499 : j < 1499 then (if hb1498 : j < 1498 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1497) hb1498 ok1497) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1498) hb1499 ok1498)) else (if hb1500 : j < 1500 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1499) hb1500 ok1499) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1500) hb1501 ok1500))) else (if hb1503 : j < 1503 then (if hb1502 : j < 1502 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1501) hb1502 ok1501) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1502) hb1503 ok1502)) else (if hb1504 : j < 1504 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1503) hb1504 ok1503) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1504) hb1505 ok1504)))))) else (if hb1521 : j < 1521 then (if hb1513 : j < 1513 then (if hb1509 : j < 1509 then (if hb1507 : j < 1507 then (if hb1506 : j < 1506 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1505) hb1506 ok1505) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1506) hb1507 ok1506)) else (if hb1508 : j < 1508 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1507) hb1508 ok1507) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1508) hb1509 ok1508))) else (if hb1511 : j < 1511 then (if hb1510 : j < 1510 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1509) hb1510 ok1509) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1510) hb1511 ok1510)) else (if hb1512 : j < 1512 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1511) hb1512 ok1511) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1512) hb1513 ok1512)))) else (if hb1517 : j < 1517 then (if hb1515 : j < 1515 then (if hb1514 : j < 1514 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1513) hb1514 ok1513) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1514) hb1515 ok1514)) else (if hb1516 : j < 1516 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1515) hb1516 ok1515) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1516) hb1517 ok1516))) else (if hb1519 : j < 1519 then (if hb1518 : j < 1518 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1517) hb1518 ok1517) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1518) hb1519 ok1518)) else (if hb1520 : j < 1520 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1519) hb1520 ok1519) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1520) hb1521 ok1520))))) else (if hb1529 : j < 1529 then (if hb1525 : j < 1525 then (if hb1523 : j < 1523 then (if hb1522 : j < 1522 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1521) hb1522 ok1521) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1522) hb1523 ok1522)) else (if hb1524 : j < 1524 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1523) hb1524 ok1523) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1524) hb1525 ok1524))) else (if hb1527 : j < 1527 then (if hb1526 : j < 1526 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1525) hb1526 ok1525) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1526) hb1527 ok1526)) else (if hb1528 : j < 1528 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1527) hb1528 ok1527) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1528) hb1529 ok1528)))) else (if hb1533 : j < 1533 then (if hb1531 : j < 1531 then (if hb1530 : j < 1530 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1529) hb1530 ok1529) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1530) hb1531 ok1530)) else (if hb1532 : j < 1532 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1531) hb1532 ok1531) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1532) hb1533 ok1532))) else (if hb1535 : j < 1535 then (if hb1534 : j < 1534 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1533) hb1534 ok1533) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1534) hb1535 ok1534)) else (if hb1536 : j < 1536 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1535) hb1536 ok1535) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1536) h2 ok1536)))))))))
+
+theorem cplOk_all_6 : ∀ j, 1537 ≤ j → j < 1602 → CplOk j := fun j h1 h2 ↦
+  (if hb1569 : j < 1569 then (if hb1553 : j < 1553 then (if hb1545 : j < 1545 then (if hb1541 : j < 1541 then (if hb1539 : j < 1539 then (if hb1538 : j < 1538 then (at_of_bounds (P := fun j ↦ CplOk j) h1 hb1538 ok1537) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1538) hb1539 ok1538)) else (if hb1540 : j < 1540 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1539) hb1540 ok1539) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1540) hb1541 ok1540))) else (if hb1543 : j < 1543 then (if hb1542 : j < 1542 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1541) hb1542 ok1541) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1542) hb1543 ok1542)) else (if hb1544 : j < 1544 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1543) hb1544 ok1543) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1544) hb1545 ok1544)))) else (if hb1549 : j < 1549 then (if hb1547 : j < 1547 then (if hb1546 : j < 1546 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1545) hb1546 ok1545) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1546) hb1547 ok1546)) else (if hb1548 : j < 1548 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1547) hb1548 ok1547) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1548) hb1549 ok1548))) else (if hb1551 : j < 1551 then (if hb1550 : j < 1550 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1549) hb1550 ok1549) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1550) hb1551 ok1550)) else (if hb1552 : j < 1552 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1551) hb1552 ok1551) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1552) hb1553 ok1552))))) else (if hb1561 : j < 1561 then (if hb1557 : j < 1557 then (if hb1555 : j < 1555 then (if hb1554 : j < 1554 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1553) hb1554 ok1553) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1554) hb1555 ok1554)) else (if hb1556 : j < 1556 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1555) hb1556 ok1555) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1556) hb1557 ok1556))) else (if hb1559 : j < 1559 then (if hb1558 : j < 1558 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1557) hb1558 ok1557) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1558) hb1559 ok1558)) else (if hb1560 : j < 1560 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1559) hb1560 ok1559) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1560) hb1561 ok1560)))) else (if hb1565 : j < 1565 then (if hb1563 : j < 1563 then (if hb1562 : j < 1562 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1561) hb1562 ok1561) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1562) hb1563 ok1562)) else (if hb1564 : j < 1564 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1563) hb1564 ok1563) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1564) hb1565 ok1564))) else (if hb1567 : j < 1567 then (if hb1566 : j < 1566 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1565) hb1566 ok1565) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1566) hb1567 ok1566)) else (if hb1568 : j < 1568 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1567) hb1568 ok1567) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1568) hb1569 ok1568)))))) else (if hb1585 : j < 1585 then (if hb1577 : j < 1577 then (if hb1573 : j < 1573 then (if hb1571 : j < 1571 then (if hb1570 : j < 1570 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1569) hb1570 ok1569) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1570) hb1571 ok1570)) else (if hb1572 : j < 1572 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1571) hb1572 ok1571) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1572) hb1573 ok1572))) else (if hb1575 : j < 1575 then (if hb1574 : j < 1574 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1573) hb1574 ok1573) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1574) hb1575 ok1574)) else (if hb1576 : j < 1576 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1575) hb1576 ok1575) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1576) hb1577 ok1576)))) else (if hb1581 : j < 1581 then (if hb1579 : j < 1579 then (if hb1578 : j < 1578 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1577) hb1578 ok1577) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1578) hb1579 ok1578)) else (if hb1580 : j < 1580 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1579) hb1580 ok1579) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1580) hb1581 ok1580))) else (if hb1583 : j < 1583 then (if hb1582 : j < 1582 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1581) hb1582 ok1581) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1582) hb1583 ok1582)) else (if hb1584 : j < 1584 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1583) hb1584 ok1583) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1584) hb1585 ok1584))))) else (if hb1593 : j < 1593 then (if hb1589 : j < 1589 then (if hb1587 : j < 1587 then (if hb1586 : j < 1586 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1585) hb1586 ok1585) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1586) hb1587 ok1586)) else (if hb1588 : j < 1588 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1587) hb1588 ok1587) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1588) hb1589 ok1588))) else (if hb1591 : j < 1591 then (if hb1590 : j < 1590 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1589) hb1590 ok1589) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1590) hb1591 ok1590)) else (if hb1592 : j < 1592 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1591) hb1592 ok1591) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1592) hb1593 ok1592)))) else (if hb1597 : j < 1597 then (if hb1595 : j < 1595 then (if hb1594 : j < 1594 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1593) hb1594 ok1593) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1594) hb1595 ok1594)) else (if hb1596 : j < 1596 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1595) hb1596 ok1595) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1596) hb1597 ok1596))) else (if hb1599 : j < 1599 then (if hb1598 : j < 1598 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1597) hb1598 ok1597) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1598) hb1599 ok1598)) else (if hb1600 : j < 1600 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1599) hb1600 ok1599) else (if hb1601 : j < 1601 then (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1600) hb1601 ok1600) else (at_of_bounds (P := fun j ↦ CplOk j) (Nat.le_of_not_lt hb1601) h2 ok1601))))))))
 
 /-- **Every compiled function passes the completeness check.** -/
 theorem cplOk_all : ∀ j, 1 ≤ j → j < nFns → CplOk j := fun j h1 h2 ↦
-  have h2 : j < 1536 := h2
-  (if h : j < 769 then (if h : j < 257 then (cplOk_all_0 j (by omega) (by omega)) else (if h : j < 513 then (cplOk_all_1 j (by omega) (by omega)) else (cplOk_all_2 j (by omega) (by omega)))) else (if h : j < 1025 then (cplOk_all_3 j (by omega) (by omega)) else (if h : j < 1281 then (cplOk_all_4 j (by omega) (by omega)) else (cplOk_all_5 j (by omega) (by omega)))))
+  have h2 : j < 1602 := h2
+  (if h : j < 769 then (if h : j < 257 then (cplOk_all_0 j (by omega) (by omega)) else (if h : j < 513 then (cplOk_all_1 j (by omega) (by omega)) else (cplOk_all_2 j (by omega) (by omega)))) else (if h : j < 1281 then (if h : j < 1025 then (cplOk_all_3 j (by omega) (by omega)) else (cplOk_all_4 j (by omega) (by omega))) else (if h : j < 1537 then (cplOk_all_5 j (by omega) (by omega)) else (cplOk_all_6 j (by omega) (by omega)))))
 
 end
 end LeanVM.Guest.B2C.Cplw

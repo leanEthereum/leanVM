@@ -6,18 +6,17 @@
 
 module
 
-public import LeanVM.Guest.B1.Opening.QueriesPlacedS0
-public import LeanVM.Guest.B1.Opening.QueriesPlacedS1
-public import LeanVM.Guest.B1.Opening.QueriesPlacedS2
-public import LeanVM.Guest.B1.Opening.QueriesPlacedS3
+public import LeanVM.Guest.B1.Opening.QueriesFns
+public import LeanVM.Guest.B1.Opening.QueriesPlacedD2
 
 /-!
 # `opening_queries`, `CompleteAtB`, every specialization
 
-`opening_queries_completeAtB`: each of the 42 deployed specializations (`openingQueriesLoops`:
-name, loop helper, shape, `odd`) is `CompleteAtB` (`OqCompleteDB`, by a tree of exactly
-`oqBound fs name loop N` words, `CompleteAtE`) at every frame size `fs` and frame certificate `cert` (`OqFits`
-trivial: no frame runs); `opening_queries_completeAtD`, its `CompleteAtD`.
+`opening_queries_completeAtB`: each deployed specialization (`openingQueriesLoops`: name, loop
+helper, shape) is `CompleteAtB` (`OqCompleteDB` at the shape's `Oq` and `odd`, by a tree of at most
+`oqBound fs name loop N` words) at every frame size `fs` and frame certificate `cert` (`OqFits`
+trivial: no frame runs): its base's theorem (`oqCompleteDB0`, `oqCompleteDB1`) at its functions
+(`oqFns_all`) and its shape's facts (`oqSide_all`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -28,52 +27,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 
 /-- **Every deployed `opening_queries` is `CompleteAtB`.** -/
 theorem opening_queries_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) :
-    ∀ p ∈ openingQueriesLoops, OqCompleteDB fs cert p.1 p.2.1 p.2.2.1 p.2.2.2 := by
+    ∀ p ∈ openingQueriesLoops, OqCompleteDB fs cert p.1 p.2.1 p.2.2.oq p.2.2.odd := by
   intro p hp
-  simp only [openingQueriesLoops, List.mem_cons, List.not_mem_nil, or_false] at hp
-  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact oqD_1084 fs cert
-  · exact oqD_1086 fs cert
-  · exact oqD_1088 fs cert
-  · exact oqD_1090 fs cert
-  · exact oqD_1096 fs cert
-  · exact oqD_1097 fs cert
-  · exact oqD_1098 fs cert
-  · exact oqD_1099 fs cert
-  · exact oqD_1105 fs cert
-  · exact oqD_1110 fs cert
-  · exact oqD_1142 fs cert
-  · exact oqD_1143 fs cert
-  · exact oqD_1144 fs cert
-  · exact oqD_1145 fs cert
-  · exact oqD_1149 fs cert
-  · exact oqD_1182 fs cert
-  · exact oqD_1183 fs cert
-  · exact oqD_1187 fs cert
-  · exact oqD_1220 fs cert
-  · exact oqD_1221 fs cert
-  · exact oqD_1225 fs cert
-  · exact oqD_1258 fs cert
-  · exact oqD_1259 fs cert
-  · exact oqD_1263 fs cert
-  · exact oqD_1298 fs cert
-  · exact oqD_1299 fs cert
-  · exact oqD_1300 fs cert
-  · exact oqD_1303 fs cert
-  · exact oqD_1337 fs cert
-  · exact oqD_1338 fs cert
-  · exact oqD_1341 fs cert
-  · exact oqD_1375 fs cert
-  · exact oqD_1376 fs cert
-  · exact oqD_1380 fs cert
-  · exact oqD_1412 fs cert
-  · exact oqD_1413 fs cert
-  · exact oqD_1417 fs cert
-  · exact oqD_1454 fs cert
-  · exact oqD_1455 fs cert
-  · exact oqD_1459 fs cert
-  · exact oqD_1498 fs cert
-  · exact oqD_1502 fs cert
+  obtain ⟨hW, fm, fl, hfm, hpm, hbm, hfl, hpl, hbl⟩ := oqFns_all p hp
+  obtain ⟨hs, hfin, hb, hpd, hcd, -, -, hE⟩ := oqSide_all p hp
+  rcases hb with ⟨hb0, hodd⟩ | ⟨hb1, -, hodd⟩
+  · rw [hodd] at hbm hE ⊢
+    exact oqCompleteDB0 fs cert hs hfin hb0 hpd hcd hE hW hfm hpm hbm hfl hpl
+      (hbl.trans (oqLoopT_zero hb0 _ _ _))
+  · exact oqCompleteDB1 fs cert hs hfin hb1 hpd hcd hodd hE hW hfm hpm hbm hfl hpl
+      (hbl.trans (oqLoopT_one hb1 _ _ _))
 
 end
 end LeanVM.Guest.B1

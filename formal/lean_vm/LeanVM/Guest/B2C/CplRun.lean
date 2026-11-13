@@ -129,7 +129,7 @@ theorem fnOf_memC {j : ℕ} (h : j < nFns) : fnOf j ∈ Data.functions := by
 /-- The context of part `k` of window `i` of function `j`. -/
 noncomputable def Xp (j i k : ℕ) : CX :=
   cxOf j (index (segsW j i)) (clocW (certOf j) i) (statT (fsN j) (plumbOf j).stat .nil)
-    (nvOf (coreOf j).body 0) (stopOf j i k)
+    (plumbOf j).nv (stopOf j i k)
 
 /-- The walk's start of part `k`. -/
 noncomputable def st0 (j i k : ℕ) (s : Exec.Seg) : CW :=
@@ -253,7 +253,12 @@ theorem wh_part (F : FnH L j fp σ es vs kfps hdr ck)
     rw [this] at h
     rw [hpe]
     exact List.mem_map.mpr ⟨n, List.mem_range.mpr h, rfl⟩
-  · rw [bitK_eq] at h
+  · have hnv : nvOf (coreOf j).body 0 = (plumbOf j).nv := by
+      have h00 := winOkC_of (F.ok 0 (Nat.zero_le _) 0 (one_le_nParts j 0))
+      simp only [winOkC, Bool.and_eq_true, Nat.beq_refl, Bool.cond_true] at h00
+      exact Nat.eq_of_beq_eq_true h00.2.2
+    have h : bitK (nvOf (coreOf j).body 0) n = true := by rw [hnv]; exact h
+    rw [bitK_eq] at h
     rcases nvOf_spec _ 0 n h with h' | ⟨a, ha, hm⟩
     · simp at h'
     · exact List.mem_append_left _ (List.mem_append_right _

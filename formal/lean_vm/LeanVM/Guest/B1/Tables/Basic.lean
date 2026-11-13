@@ -59,17 +59,17 @@ theorem tb_rel_pre {rd : Reader} {f : String} {fn : Fn} (hf : coreProgram.find? 
 
 /-! ## Words -/
 
-theorem tb_word_eOfNat (n : ℕ) : word n 0 0 = eOfNat n := by
+theorem tb_word_eOfNat (n : ℕ) : word n 0 = eOfNat n := by
   rw [word, eOfNat_eq_ofLimbs]; rfl
 
-theorem tb_word_zero : word 0 0 0 = 0 := by rw [tb_word_eOfNat, eOfNat_zero]
+theorem tb_word_zero : word 0 0 = 0 := by rw [tb_word_eOfNat, eOfNat_zero]
 
-theorem tb_word_one : word 1 0 0 = 1 := by rw [tb_word_eOfNat, eOfNat_one]
+theorem tb_word_one : word 1 0 = 1 := by rw [tb_word_eOfNat, eOfNat_one]
 
-theorem tb_word_gen : word 2 0 0 = gen := by rw [tb_word_eOfNat]; rfl
+theorem tb_word_gen : word 2 0 = gen := by rw [tb_word_eOfNat]; rfl
 
 /-- `E(2^a)` is `g^a` below the first reduction. -/
-theorem tb_word_two_pow {a : ℕ} (h : a < 64) : word (2 ^ a) 0 0 = gen ^ a := by
+theorem tb_word_two_pow {a : ℕ} (h : a < 64) : word (2 ^ a) 0 = gen ^ a := by
   rw [tb_word_eOfNat, gen_pow_eq_eOfNat h]
 
 theorem tb_isInK_add {a b : E} (ha : IsInK a) (hb : IsInK b) : IsInK (a + b) := by
@@ -89,8 +89,8 @@ theorem tb_isInK_mul_ofK {p : E} {c : K} (hc : c ≠ 0) : IsInK (p * ofK c) ↔ 
   rw [eq_ofLimbs p, ofLimbs_mul_ofK, isInK_ofLimbs_iff, isInK_ofLimbs_iff]
   simp [hc]
 
-theorem tb_limb0_mul_ofK {p : E} (hp : IsInK p) (c : K) : (p * ofK c).limb 0 = p.limb 0 * c := by
-  rw [eq_ofLimbs p, ofLimbs_mul_ofK, hp.1, hp.2]
+theorem tb_limb0_mul_ofK {p : E} (_hp : IsInK p) (c : K) : (p * ofK c).limb 0 = p.limb 0 * c := by
+  rw [eq_ofLimbs p, ofLimbs_mul_ofK]
   rfl
 
 /-! ## Memory -/
@@ -162,11 +162,11 @@ theorem tbReadsAt_cons {rd : Reader} {p w : E} {ws : List E} :
 
 /-- Words compared limb by limb. -/
 def tbEEqb (a b : E) : Bool :=
-  decide (a.limb 0 = b.limb 0) && decide (a.limb 1 = b.limb 1) && decide (a.limb 2 = b.limb 2)
+  decide (a.limb 0 = b.limb 0) && decide (a.limb 1 = b.limb 1)
 
 theorem tbEEqb_sound {a b : E} (h : tbEEqb a b = true) : a = b := by
   simp only [tbEEqb, Bool.and_eq_true, decide_eq_true_eq] at h
-  rw [← ofLimbs_limb a, ← ofLimbs_limb b, h.1.1, h.1.2, h.2]
+  rw [← ofLimbs_limb a, ← ofLimbs_limb b, h.1, h.2]
 
 /-- Atoms compared, words limb by limb. -/
 def tbAtomEqb : Atom → Atom → Bool

@@ -1,18 +1,20 @@
 /-
   LeanVM.Guest.B1.Tables.Vt.Rounds
 
-  `verify_tables`' table sumcheck as a run: the `n` rounds of `__loop9` from the first record are
-  the specification's plain sumcheck of `n` rounds.
+  `verify_tables`' table sumcheck as a run: the `n` rounds of `verify_tables_loop0` from the first
+  record are the specification's plain sumcheck of `n` rounds.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Tables.Vt.Loop10
+public import LeanVM.Guest.B1.Sumcheck.Run
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The table sumcheck's rounds as a run
 
-* `l10_loop`: `__loop9` from `1` below `g^n` gives every iteration's facts, `j < n`;
+* `l10_loop`: `verify_tables_loop0` from `1` below `g^n` gives every iteration's facts, `j < n`;
 * `l10_chain`: from record `j` (capacity `cap`, cursor `cur`, claim `claim`), the remaining `k`
   rounds run `sumcheck claim 4 (replicate k none)` on the words at the cursor, to the last record,
   their challenges stored in `chi` from its top.
@@ -25,12 +27,13 @@ open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- **`__loop9` from `1` below `g^n`.** -/
-theorem l10_loop {rd : Reader} {rounds chi cprod : E} {n : ℕ} (hn0 : 0 < n) (hn : n < 2 ^ 62)
-    (h : coreProgram.Rel rd "__loop9" [1, gen ^ n, rounds, chi, gen ^ n, cprod] []) :
-    ∀ j < n, L10B rd rounds chi (gen ^ n) cprod (gen ^ j) := by
+/-- **`verify_tables_loop0` from `1` below `g^n`.** -/
+theorem l10_loop {rd : Reader} {rounds tabs chi cprod : E} {n : ℕ} (hn0 : 0 < n) (hn : n < 2 ^ 62)
+    (h : coreProgram.Rel rd name% «verify_tables_loop0» [1, gen ^ n, rounds, tabs, chi, gen ^ n,
+        cprod] []) :
+    ∀ j < n, L10B rd rounds tabs chi (gen ^ n) cprod (gen ^ j) := by
   rw [← pow_zero gen] at h
-  obtain ⟨m, -, hN, hall⟩ := tb_loop_sound (B := L10B rd rounds chi (gen ^ n) cprod)
+  obtain ⟨m, -, hN, hall⟩ := tb_loop_sound (B := L10B rd rounds tabs chi (gen ^ n) cprod)
     (fun d x hx => l10_step d x hx) 0 h
   have hm : n ≤ m := by
     by_contra hc
@@ -45,8 +48,8 @@ theorem capAt_unique' {rd : Reader} {rec : E} {off stride : ℕ} {c1 c2 : List E
     tb_loadHolds_unique (h1.2 j hj1) (h2.2 j hj2)
 
 /-- **The rounds as a run.** -/
-theorem l10_chain {rd : Reader} {rounds chi cprod : E} {n : ℕ} (hn : n < 2 ^ 30)
-    (hB : ∀ j < n, L10B rd rounds chi (gen ^ n) cprod (gen ^ j)) :
+theorem l10_chain {rd : Reader} {rounds tabs chi cprod : E} {n : ℕ} (hn : n < 2 ^ 30)
+    (hB : ∀ j < n, L10B rd rounds tabs chi (gen ^ n) cprod (gen ^ j)) :
     ∀ k ≤ n, ∀ j, j + k = n → ∀ (cap : List E) (cur claim : E),
       CapAt rd (rounds * gen ^ (7 * j)) 0 1 cap →
       LoadHolds rd (rounds * gen ^ (7 * j)) 5 cur → LoadHolds rd (rounds * gen ^ (7 * j)) 6 claim →
@@ -74,7 +77,7 @@ theorem l10_chain {rd : Reader} {rounds chi cprod : E} {n : ℕ} (hn : n < 2 ^ 3
     obtain rfl := tb_loadHolds_unique lcl hcl
     have hm := (sumcheck_round4_holds rd _ _).mp hrel
     simp only [MeaningSumcheckRound4] at hm
-    obtain ⟨cap', c0, c2, c3, hc', -, hrd, hcap1, hrets⟩ := hm
+    obtain ⟨cap', c0, c2, c3, hc', hrd, hcap1, hrets⟩ := hm
     obtain rfl := capAt_unique' hc' hc
     simp only [List.cons.injEq, and_true] at hrets
     obtain ⟨rfl, rfl, rfl⟩ := hrets
@@ -93,7 +96,7 @@ theorem l10_chain {rd : Reader} {rounds chi cprod : E} {n : ℕ} (hn : n < 2 ^ 3
     refine ⟨[c0, c2, c3] ++ xs, ((⟨cap', []⟩ : Fs).absorbAll [c0, c2, c3] dsObserve).squeeze.1 :: pts,
       claimN, capN, ?_, ?_, by simp [hxl]; ring,
       by simp [hpl], hcN, ?_, hclN, fun i hi => ?_⟩
-    · have hr := runsTo_sumcheck_cons (runsTo_roundPolyNone ⟨cap', []⟩ claim' c0 [c2, c3] 4 rfl)
+    · have hr := runsTo_sumcheck_cons (runsTo_roundPolyNone ⟨cap', []⟩ claim' c0 [c2, c3] 4 rfl (by decide))
         (hrun.of_eq rfl rfl rfl rfl)
       rw [List.replicate_succ]
       exact hr.of_eq rfl rfl rfl rfl

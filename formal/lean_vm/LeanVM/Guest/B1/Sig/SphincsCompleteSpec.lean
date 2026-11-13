@@ -1,9 +1,9 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 
-  The completeness statements of leanSPHINCS's guest functions at leanVM main `40f877dc`: `sp_wots`
-  (`Data.core19`), a leaf, and `verify_sig_lean_sphincs` (`Data.core20`), which calls it three
-  times, in the forms `main`'s completeness consumes.
+  The completeness statements of leanSPHINCS's guest functions: `sp_wots`
+  (`fn% «sp_wots»`), a leaf, and `verify_sig_lean_sphincs` (`fn% «verify_sig_lean_sphincs»`), which
+  calls it three times, in the forms `main`'s completeness consumes.
 -/
 
 module
@@ -15,9 +15,9 @@ public import LeanVM.Guest.Memory.Regions
 /-!
 # leanSPHINCS's completeness statements
 
-`sp_wots(pp, a0, a1, encoding)` (`lean_ethereum.py:3880-3911`) recovers the leaf of the one-time
+`sp_wots(pp, a0, a1, encoding)` (`lean_ethereum.py:4072-4102`) recovers the leaf of the one-time
 key whose address is `(a0, a1)` and whose encoding digest is `encoding`;
-`verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:3951-4050`) calls it once per
+`verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:4143-4244`) calls it once per
 layer. So `verify_sig_lean_sphincs`'s body holds only under a call relation that holds of its three
 calls, and its completeness is stated under any call relation holding of every honest call of
 `sp_wots` (`SpWotsCalls`).
@@ -28,7 +28,7 @@ calls, and its completeness is stated under any call relation holding of every h
   least `64` words, the body holds of some valuation whose arguments are `PK.seed`'s cell, the
   key's address cells (`keyAdrsCells`) and the digest's cell, under any call relation, returning
   the leaf's cell, for any chain values (they are hinted);
-* `verify_sig_lean_sphincs_complete_loads_Spec`: for a claim held at `p` in its canonical cells, a
+* `verify_sig_lean_sphincs_complete_loads_Spec`: for a claim held at `p` in its cells, a
   signature that verifies it, the byte table at `bb` and a memory of at least `256` words, under
   any call relation holding of every honest `sp_wots` call, the body holds of some valuation whose
   arguments are `p` and `bb`, and its path loads only the claim's four words and the byte table;
@@ -57,12 +57,10 @@ def wotsLeafOf (publicSeed : PublicParameter) (layer : Sphincs.Layer) (tree : Sp
 
 /-! ## The functions, found -/
 
-theorem sp_wots_params : Data.core19.params = [.n 0, .n 1, .n 2, .n 3] := rfl
+theorem sp_wots_params : (fn% «sp_wots»).params = [.n 0, .n 1, .n 2, .n 3] := rfl
 
-theorem verify_sig_lean_sphincs_params : Data.core20.params = [.n 0, .n 1] := rfl
-
-theorem find_sp_wots : coreProgram.find? "sp_wots" = some Data.core19 :=
-  Program.find?_of_indexOf? (j := 19) (by decide +kernel) rfl
+theorem find_sp_wots : coreProgram.find? "sp_wots" = some fn% «sp_wots» :=
+  coreProgram_find?_at (j := idx% «sp_wots») rfl
 
 /-! ## The statements -/
 
@@ -78,7 +76,7 @@ def sp_wots_complete_Spec : Prop :=
       ∃ σ : Val, σ (.n 0) = cellOf128 publicSeed ∧
         (σ (.n 1), σ (.n 2)) = keyAdrsCells layer.val tree.val leaf.val ∧
         σ (.n 3) = cellOf128 digest ∧
-        Stmt.HoldsList C rd σ Data.core19.body False
+        Stmt.HoldsList C rd σ (fn% «sp_wots»).body False
           (fun rs => rs = [cellOf128 (wotsLeafOf publicSeed layer tree leaf digest values)])
 
 /-- **The call relation holds of every honest call of `sp_wots`**: on `PK.seed`'s cell, a key's
@@ -92,7 +90,7 @@ def SpWotsCalls (C : CallRel) : Prop :=
         [cellOf128 (wotsLeafOf publicSeed layer tree leaf digest values)]
 
 /-- **`verify_sig_lean_sphincs` is complete, loading the claim and the byte table**: for a claim held
-at `p` in its canonical cells and a signature that verifies it, on a memory of at least `256` words
+at `p` in its cells and a signature that verifies it, on a memory of at least `256` words
 with the byte table at `bb`, under any call relation holding of every honest `sp_wots` call, its
 body holds of some valuation whose arguments are `p` and `bb`, and whose path loads only from
 `p·g^k`, `k < 4` (the claim), or `bb·g^v`, `v < 256` (the byte table). -/
@@ -104,8 +102,8 @@ def verify_sig_lean_sphincs_complete_loads_Spec : Prop :=
       (cellOf128 (m.extractLsb' 128 128)) →
     Sphincs.verifyWithKeccak pk m sig = true →
       ∃ σ : Val, σ (.n 0) = p ∧ σ (.n 1) = bb ∧
-        Stmt.HoldsList C rd σ Data.core20.body False (fun rs => rs = []) ∧
-        ∀ es vs, walk σ Data.core20.body = .ret es vs → ∀ A ∈ loadAddrs σ es,
+        Stmt.HoldsList C rd σ (fn% «verify_sig_lean_sphincs»).body False (fun rs => rs = []) ∧
+        ∀ es vs, walk σ (fn% «verify_sig_lean_sphincs»).body = .ret es vs → ∀ A ∈ loadAddrs σ es,
           (∃ k < 4, A = p.limb 0 * addressOfIndex k) ∨ ∃ v < 256, A = bb.limb 0 * addressOfIndex v
 
 /-- **leanSPHINCS's guest functions are complete**: `sp_wots` and `verify_sig_lean_sphincs`, as

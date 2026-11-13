@@ -65,11 +65,12 @@ the bound. When `εmax ≥ 1` the bound exceeds one (the verifier queries at lea
 
 ## Decisions
 
-* The proof-of-work factor is `2^-min(b, 64)`: the predicate `powOk` tests the challenge's first
-  64-bit lane, so for `b > 64` it holds with probability `2^-64`, not `2^-b`. leanVM uses
-  `b = 17`. A proof of work squeezes the nonce's state; the next group's challenges come from
-  later permutations, whose inputs carry that state's capacity, so the proof of work's factor and
-  the group's escape probability multiply.
+* The proof-of-work factor is `2^-min(b, 64)`: the predicate `powOk` tests the third lane of the
+  permutation that absorbs the nonce, so for `b > 64` it holds with probability `2^-64`, not
+  `2^-b`. leanVM grinds at most `25` bits. That permutation's first two lanes are the group's
+  first challenge (`ground`), and its later challenges come from later permutations, whose inputs
+  carry the permutation's capacity: the lanes are disjoint, so the proof of work's factor and the
+  group's escape probability multiply.
 * Keccak-f[1600] is modelled as a random function on states, not a random permutation.
 * Each seeding is hash steps then one permutation (`Seed`): leanVM's
   `F(IV ‖ pi ‖ 0)` with `IV = H(tag ‖ bytecode)` is one hash step and the permutation.

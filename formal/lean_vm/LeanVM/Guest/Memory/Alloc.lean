@@ -26,7 +26,7 @@ A **loop helper** (`Program.loop`: its body ends with a `callIf` to itself and `
 exception: its tail call (its last callee, a phantom on the last iteration) is the frame its code
 addresses as `fp · g^S`, so that callee's region comes first, at `fp + fs f`, then the
 `HeapBuf`s, then the other callees in call order (`kidPos`, `Inst.Placed.kidFps_getLast?`). Of
-the guest's loop helpers only `__loop4` (the loop over the children in `main`) allocates, two
+the guest's loop helpers only `main_loop4` (the loop over the children in `main`) allocates, two
 `HeapBuf`s per iteration that its tail call's arguments do not depend on.
 
 The Rust runner allocates in execution order instead (`cpu/execute.rs`, `next_free` from the

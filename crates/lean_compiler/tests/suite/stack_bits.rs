@@ -4,7 +4,7 @@
 
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{Stats, prove, verify};
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 const V: u64 = 0b1011_0110;
 
@@ -36,7 +36,7 @@ def main():
 "
         )
     };
-    let want = [F192::from(F64(V)), F192::from(F64::ONE)];
+    let want = [F128::from(F64(V)), F128::from(F64::ONE)];
     let deref = |s: &str| crate::common::mix(s, want)[deref_index()];
     assert_eq!(
         deref(&src("HeapBuf(GEN ** 8)", "GEN ** i")) - deref(&src("StackBuf(8)", "i")),
@@ -71,9 +71,9 @@ def main():
     // store leaves its cell unwritten, and the advice then computed off the hole
     // collides with the published public input.
     let mut program = compile(&parse(src).expect("parse"));
-    let bits: Vec<F192> = [1u64, 1, 0, 1].iter().map(|&b| F192::from(F64(b))).collect();
+    let bits: Vec<F128> = [1u64, 1, 0, 1].iter().map(|&b| F128::from(F64(b))).collect();
     program.set_witness("bits", vec![bits]);
-    let want = [F192::from(primitives::field::g_pow(4)), F192::from(F64::ONE)];
+    let want = [F128::from(primitives::field::g_pow(4)), F128::from(F64::ONE)];
     let exec = program.execute(want).unwrap();
     assert!(
         exec.unconstrained_reads.is_empty(),
@@ -117,8 +117,8 @@ def probe(v):
     return total
 ";
     let mut program = compile(&parse(src).expect("parse"));
-    program.set_witness("v", vec![vec![F192::from(F64(V))]]);
-    let want = [F192::from(F64(V)), F192::from(F64::ONE)];
+    program.set_witness("v", vec![vec![F128::from(F64(V))]]);
+    let want = [F128::from(F64(V)), F128::from(F64::ONE)];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the pointer reads the frame run");
 }

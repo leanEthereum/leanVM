@@ -1,6 +1,6 @@
 import os, sys
 # usage: python3 -I mk.py <t>  (t = 0..4) writes Tables/Vt/FormsT<t>.lean; `import mk; mk.gen_t5()` writes FormsT5a/T5b/T5.
-# First run: python3 -I dump.py ../../LeanVM/Guest/Data/Core00.lean vt_ir.txt (from this directory).
+# First run: python3 -I dump.py ../../LeanVM/Guest/Data vt_ir.txt (from this directory).
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from genforms import *
 IMP='LeanVM.Guest.B1.Tables.Vt.FormsDiff\npublic import LeanVM.Guest.B1.Tables.Vt.PullSels\npublic import LeanVM.Guest.B1.Tables.Vt.Pi'

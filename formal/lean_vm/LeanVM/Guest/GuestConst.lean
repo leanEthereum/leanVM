@@ -1,0 +1,34 @@
+/-
+  LeanVM.Guest.GuestConst
+
+  `guest_const% C`: the value of the guest's global constant `C`, as a literal.
+-/
+
+module
+
+public meta import Lean.Elab.Term
+
+/-!
+# The guest's constants
+
+`guest-export` writes each top-level constant `C` of the guest to `Data/Source.lean` as
+`Data.const_C`, a literal. `guest_const% C` elaborates to that literal, so a definition that mirrors
+`C` (`abbrev levelOodGrind : ℕ := guest_const% OOD_GRIND_BITS`) reads exactly as a hand copy of
+it, and a change to `C` in the guest reaches it by the export alone.
+-/
+
+public meta section
+
+namespace LeanVM.Guest.GuestConst
+
+open Lean Elab Term
+
+/-- `guest_const% C`: the value of the guest's global constant `C`. -/
+elab:max "guest_const% " c:ident : term => do
+  let n := `LeanVM.Guest.Data ++ Name.mkSimple ("const_" ++ c.getId.toString)
+  -- The source is imported privately: look it up outside the exported view, and insert only its literal.
+  let some (.defnInfo d) := ((← getEnv).setExporting false).find? n
+    | throwErrorAt c "no guest constant {c.getId} ({n})"
+  return d.value
+
+end LeanVM.Guest.GuestConst

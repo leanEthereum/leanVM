@@ -52,15 +52,15 @@ Split on the top bit $x_{\kappa-1}$. If $n_{\kappa-1}=0$, every $x$ with $x_{\ka
 \end{proof}
 
 
-\begin{lemma}[Every element outside $\K$ is a cubic generator]\label{lem:kbasis}
-For $\alpha\in\E\setminus\K$, the set $\{1,\alpha,\alpha^{2}\}$ is a $\K$-basis of $\E$.
+\begin{lemma}[Every element outside $\K$ generates $\E$]\label{lem:kbasis}
+For $a\in\E\setminus\K$, the set $\{1,a\}$ is a $\K$-basis of $\E$.
 \end{lemma}
 
 \begin{proof}
-Degrees multiply in the tower $\K\subseteq\K(\alpha)\subseteq\E$, so $[\E:\K(\alpha)]\,[\K(\alpha):\K]=[\E:\K]=3$. That degree is prime and $[\K(\alpha):\K]>1$ because $\alpha\notin\K$, hence $[\K(\alpha):\K]=3$ and $\K(\alpha)=\E$. The minimal polynomial of $\alpha$ over $\K$ then has degree $3$, so $1,\alpha,\alpha^{2}$ are $\K$-independent, and three independent elements of a space of $\K$-dimension $3$ are a basis.
+A $\K$-relation $c_0+c_1a=0$ with $c_1\neq0$ would put $a=-c_0/c_1$ in $\K$, so $c_1=0$ and then $c_0=0$: the two are $\K$-independent, and two independent elements of a space of $\K$-dimension $[\E:\K]=2$ are a basis.
 \end{proof}
 
-\begin{lemma}[Schwartz--Zippel]\label{lem:sz}
+\begin{lemma}[Schwartz-Zippel]\label{lem:sz}
 A nonzero $P\in\E[X_1,\dots,X_{\kappa}]$ of total degree at most $d$ satisfies
 \[
   \Pr_{r\leftarrow\E^{\kappa}}\bigl[P(r)=0\bigr]\;\le\;\frac{d}{|\E|}.
@@ -104,14 +104,26 @@ To prove that a polynomial $P$ vanishes on $\cube{\kappa}$, the verifier samples
 By Fact~\ref{fact:eq} that sum is $\mle{g}(r)$, for $g$ the restriction of $P$ to the boolean hypercube: the zero polynomial if $P$ vanishes there, and otherwise a nonzero multilinear, which a random $r$ sends to $0$ with probability at most $\kappa/|\E|$ (Lemma~\ref{lem:sz}).
 \end{definition}
 
-\paragraph{Two savings on a round message~\cite{Gru24}.} A round polynomial of degree $D$ travels as its coefficients, and would take $D+1$ of them, but the round check $h_j(0)+h_j(1)\qeq s_{j-1}$ already pins one to the incoming claim, so $D$ are enough. The same idea applies to the known factor: a zerocheck's summand carries $\eq(r,\cdot)$, which the verifier can form itself, so only the cofactor travels and it is one degree lower. A zerocheck round on a degree-$d$ cofactor therefore costs $d$ field elements.
+\paragraph{Two savings on a round message~\cite{Gru24}.} A round polynomial of degree $D$ travels as its coefficients, and would take $D+1$ of them, but the round check $h_j(0)+h_j(1)\qeq\rc{j-1}$ already pins one to the incoming claim, so $D$ are enough. The same idea applies to the known factor: a zerocheck's summand carries $\eq(r,\cdot)$, which the verifier can form itself, so only the cofactor travels and it is one degree lower. A zerocheck round on a degree-$d$ cofactor therefore costs $d$ field elements.
+
+\begin{definition}[RBR soundness, informal; cf.~\cite{CCHLRR19,ACFY25}]\label{def:rbr}
+A public-coin protocol is \emph{round-by-round (RBR) sound with errors} $(\varepsilon_1, \varepsilon_2, \dots)$, one per verifier message, if there is an \emph{invariant} on partial transcripts (not necessarily efficiently computable) marking the positions where a cheating prover has already lost:
+\begin{enumerate}[itemsep=1pt,label=(\roman*)]
+\item on a false statement, the invariant holds before any message is sent;
+\item the prover alone cannot escape it: it survives every prover message;
+\item the $i$-th verifier message lets it escape with probability at most $\varepsilon_i$;
+\item if it survives to the end of the interaction, the verifier rejects.
+\end{enumerate}
+\end{definition}
+
+Interactive soundness error is then at most $\sum_i \varepsilon_i$. After Fiat-Shamir, it is $\max_i \varepsilon_i$ per random-oracle query~\cite{CCHLRR19,BCS16}.
+
+\paragraph{Grinding.}\label{sec:grinding} Before a verifier message, the prover may have to find a proof of work of $b$ bits (\S\ref{sec:e2e-fiat-shamir}), which divides the message's round-by-round error (Definition~\ref{def:rbr}) by $2^b$. Every message is held to $2^{-125}$: one of error $N/|\E|$ grinds $\max(0,\lceil\log_2N\rceil-3)$ bits, hence none for $N\le8$, as for every sumcheck round. The PCS fixes its own grinds (\S\ref{sec:pcs-params}).
 
 \begin{definition}[Inner-product commitment scheme]\label{def:ipcs}
 A \emph{weighted claim} about a multilinear $g:\cube{M}\to\K$ is a pair $(W,c)$ asserting $\inner{W}{g}=c$, with $c\in\E$ and the weight $W:\cube{M}\to\E$ \emph{MLE-friendly}: the verifier can evaluate $\mle{W}$ anywhere in $\mathrm{poly}(M)$ operations. An \emph{inner-product commitment scheme} commits to $g$ and later proves any such claim,
 \[
   \inner{W}{g}=\sum_{w\in\cube{M}}W(w)\,g(w)=c .
 \]
-The commitment is over $\K$, the opening over $\E$. An evaluation claim $\mle{g}(r)=c$ is the case $W=\eq(r,\cdot)$, by Fact~\ref{fact:eq}.
+The commitment is over $\K$, the opening over $\E$ (see Annex~\ref{annex:pcs}). An evaluation claim $\mle{g}(r)=c$ is the case $W=\eq(r,\cdot)$, by Fact~\ref{fact:eq}.
 \end{definition}
-
-We use WHIR~\cite{ACFY25} / Ligerito~\cite{NA25} as inner-product commitment scheme (see annex \ref{annex:pcs}). The two are essentially the same scheme when WHIR is instantiated with an interleaved code and Ligerito with a Reed--Solomon code.

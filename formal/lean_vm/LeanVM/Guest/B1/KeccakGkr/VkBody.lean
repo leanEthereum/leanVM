@@ -14,7 +14,7 @@ open LeanVM.Guest.Core LeanVM.Guest.B1
 
 @[expose] public section
 
-theorem vk_body : Data.core12.body = vkT := stmtsEqb_sound (by decide +kernel)
+theorem vk_body : (fn% «verify_keccak»).body = vkT := stmtsEqb_sound (by decide +kernel)
 
 end
 end LeanVM.Guest.B1.VerifySub

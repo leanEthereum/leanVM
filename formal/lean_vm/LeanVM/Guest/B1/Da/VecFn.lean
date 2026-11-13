@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.VecFn
 
-  `da_vector`'s body, checked, and its meaning from its callees' (G:4421-4438).
+  `da_vector`'s body, checked, and its meaning from its callees' (G:4371-4388).
 -/
 
 module
@@ -10,9 +10,9 @@ public import LeanVM.Guest.B1.Da.Offsets
 public import LeanVM.Guest.B1.Da.Expand
 
 /-!
-# `da_vector` (G:4421-4438)
+# `da_vector` (G:4371-4388)
 
-`da_vector(z)` (`core31`): the powers `zs[j] = z^(2^j)` by squaring, `zs[14] = 0`; the shifts of
+`da_vector(z)`: the powers `zs[j] = z^(2^j)` by squaring, `zs[14] = 0`; the shifts of
 the tree over the cell index (`above_top`, zero at `8 … 14`); then `da_factors__L14_L7_L0(zs)`,
 `da_expand__L14_L7(1, ·, zs, above_top)`, `da_factors__L7_L8_L128(zs)` and
 `da_column_offsets(zs)`, whose results it returns with `zs`. `vecOk` checks the body (kernel
@@ -57,7 +57,7 @@ theorem expandLeaf_congr {root : E} {F F' Z Z' S S' : ℕ → E} {top D y : ℕ}
 /-! ## The check -/
 
 /-- `da_vector`'s block (its body but the final `ret`). -/
-noncomputable def vecP : List Stmt := (Fn.body Data.core31).dropLast
+noncomputable def vecP : List Stmt := (Fn.body fn% «da_vector»).dropLast
 
 /-- The value of `z^(2^j)`: `.n 0`, then `.n (j + 1)`. -/
 def vecPw (j : ℕ) : ℕ := if j = 0 then 0 else j + 1
@@ -66,8 +66,9 @@ def vecPw (j : ℕ) : ℕ := if j = 0 then 0 else j + 1
 noncomputable def vecOk : Bool :=
   let P := vecP
   let A := atomsIn P
-  decide (Data.core31.params = [.n 0]) &&
-  stmtsEqb (Fn.body Data.core31) (P ++ [.ret [.n 30, .n 31, .n 32, .n 33]]) && P.all Stmt.flat &&
+  decide ((fn% «da_vector»).params = [.n 0]) &&
+  stmtsEqb (Fn.body fn% «da_vector») (P ++ [.ret [.n 30, .n 31, .n 32,
+      .n 33]]) && P.all Stmt.flat &&
   (List.range 14).all (fun j ↦ A.any (isLoadAt (.n (vecPw j)) (.n 1) j)) &&
   (List.range 13).all (fun j ↦ isMul A (.n (j + 2)) (.n (vecPw j)) (.n (vecPw j))) &&
   A.any (isConstAt (.n 16) 0 0) && A.any (isLoadAt (.n 16) (.n 1) 14) &&

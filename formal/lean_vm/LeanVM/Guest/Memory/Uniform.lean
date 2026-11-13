@@ -15,6 +15,7 @@ public import LeanVM.Guest.Memory.Retemp
 public import LeanVM.Guest.Memory.GuestFresh
 public import LeanVM.Guest.Memory.GuestWf
 public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.CoreData
 
 /-!
 # Layouts and uniform placed completeness

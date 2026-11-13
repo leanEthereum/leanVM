@@ -287,28 +287,28 @@ variable (X : CX) (st : CW)
 /-- A fixed cell. -/
 noncomputable def statAt (o : ℕ) : Option PC := getF X.stat o
 
-/-- The exponent of the `SET` immediate `(k0, 0, 0)` as a power of `g`. -/
+/-- The exponent of the `SET` immediate `(k0, 0)` as a power of `g`. -/
 noncomputable def gpE (k0 : ℕ) : Option ℕ := bif Nat.beq k0 1 then some 0 else X.F.pows.find k0
 
 /-- The constant a cell holds: a fixed cell's, a constant's, an `assert !=`'s `1`. -/
-noncomputable def cplCstAt (o : ℕ) : Option (ℕ × ℕ × ℕ) :=
+noncomputable def cplCstAt (o : ℕ) : Option (ℕ × ℕ) :=
   match statAt X o with
-  | some (.k k0 k1 k2) => some (k0, k1, k2)
+  | some (.k k0 k1) => some (k0, k1)
   | _ => (lookC st.book o).findSome? fun a ↦ match a with
-    | .const d x => bif Nat.beq d o then some (limbNat x 0, limbNat x 1, limbNat x 2) else none
-    | .ne _ _ p => bif Nat.beq p o then some (1, 0, 0) else none
+    | .const d x => bif Nat.beq d o then some (limbNat x 0, limbNat x 1) else none
+    | .ne _ _ p => bif Nat.beq p o then some (1, 0) else none
     | _ => none
 
 /-- The cell holds `0`: a constant, or the segment's environment. -/
 noncomputable def isZ (o : ℕ) : Bool :=
   (match cplCstAt X st o with
-    | some (0, 0, 0) => true
+    | some (0, 0) => true
     | _ => false) || isZero (st.seg.env.get o)
 
 /-- The cell holds `1`: a constant, or the segment's environment. -/
 noncomputable def isO (o : ℕ) : Bool :=
   (match cplCstAt X st o with
-    | some (1, 0, 0) => true
+    | some (1, 0) => true
     | _ => false) || isOne (st.seg.env.get o)
 
 /-- The cell holds a word: the header, a fixed cell, a fact's. -/
@@ -341,11 +341,11 @@ frame pointer, a table read's target, a cell the segment's environment knows. -/
 noncomputable def cellK (o : ℕ) : Bool :=
   (Nat.ble o 1 && !X.main) ||
   (match statAt X o with
-    | some (.k _ k1 k2) => Nat.beq k1 0 && Nat.beq k2 0
+    | some (.k _ k1) => Nat.beq k1 0
     | some (.fpg _) => true
     | none => false) ||
   (lookC st.book o).any (fun x ↦ match x with
-    | .const d x => Nat.beq d o && Nat.beq (limbNat x 1) 0 && Nat.beq (limbNat x 2) 0
+    | .const d x => Nat.beq d o && Nat.beq (limbNat x 1) 0
     | .range x y _ _ _ => Nat.beq x o || Nat.beq y o
     | .inK a b => Nat.beq a o || Nat.beq b o
     | .addr p _ => Nat.beq p o
@@ -366,7 +366,7 @@ noncomputable def fpgAtC (a : ℕ) : Option ℕ :=
 /-- A `MUL` of a frame address: `fp[a] = fp·g^e₁`, `fp[b] = g^e₂`, the run at `e₁ + e₂`. -/
 noncomputable def addrMul (a b : ℕ) (run : List ℕ) : Bool :=
   match fpgAtC X st a, cplCstAt X st b, run with
-  | some e1, some (k0, 0, 0), r :: _ => match gpE X k0 with
+  | some e1, some (k0, 0), r :: _ => match gpE X k0 with
     | some e2 => Nat.beq (e1 + e2) r
     | none => false
   | _, _, _ => false
@@ -374,7 +374,7 @@ noncomputable def addrMul (a b : ℕ) (run : List ℕ) : Bool :=
 /-- A `MUL` of fixed cells: `fp·g^e = fp·g^e₁ · g^(e - e₁)`. -/
 noncomputable def fpgMul (a b d : ℕ) : Bool :=
   match statAt X d, statAt X a, cplCstAt X st b with
-  | some (.fpg e), some (.fpg e1), some (k0, 0, 0) => Nat.ble e1 e && (match gpE X k0 with
+  | some (.fpg e), some (.fpg e1), some (k0, 0) => Nat.ble e1 e && (match gpE X k0 with
     | some e2 => Nat.beq e2 (e - e1)
     | none => false)
   | _, _, _ => false
@@ -394,7 +394,7 @@ noncomputable def frameCell (o1 o2 o3 : ℕ) : Bool :=
     | .val cv => Nat.beq cv o3 || sameC X st cv o3
     | .self => Nat.beq o3 o1
     | .pc r => (match cplCstAt X st o3 with
-      | some (k0, 0, 0) => decide (gpE X k0 = some r)
+      | some (k0, 0) => decide (gpE X k0 = some r)
       | _ => false)
     | _ => false)
   | none => false
@@ -408,7 +408,7 @@ noncomputable def frameHas (o1 o2 : ℕ) (fc : FC) : Bool :=
 /-- **An instruction at pc `pc` holds** on the frame: by a fact on its cells, the fixed cells,
 a callee frame in flight, a table read, or the next frame. -/
 noncomputable def justI (pc : ℕ) : OffsetInstruction → Bool
-  | .set o k0 k1 k2 => decide (cplCstAt X st o = some (k0, k1, k2))
+  | .set o k0 k1 => decide (cplCstAt X st o = some (k0, k1))
   | .xor a b d =>
     addAt st a b d d || addAt st a b d a || addAt st a b d b ||
     (isZ X st d && sameC X st a b) || (Nat.beq a d && isZ X st b && known X st d) ||
@@ -1021,7 +1021,7 @@ noncomputable def cplRes (j i k : ℕ) : RC :=
     (statT (fsN j) (plumbOf j).stat .nil).seq fun stat ↦
     (fileB loc (fsN j) (partStmts j i k) .nil).seq fun B ↦
     (partC j i k).seq fun c ↦ natSeq (partU j i k) fun u ↦ natSeq (partJ j i k) fun J ↦
-    natSeq (nvOf (coreOf j).body 0) fun nv ↦ natSeq (partM j i k) fun m ↦
+    natSeq (plumbOf j).nv fun nv ↦ natSeq (partM j i k) fun m ↦
     match getF idx J with
     | some s => bif Nat.beq s.start J then
         match partEnt j i k with
@@ -1039,8 +1039,8 @@ def lastOkC : List Core.Stmt → Bool
   | s :: ss => Stmt.noRet s && lastOkC ss
 
 /-- What a window's first part also checks: its cells pack, and the function's first window
-starts with nothing handed on, its parameters `V.n 0, V.n 1, …` and its self frame pointer cells
-fixed. -/
+starts with nothing handed on, its parameters `V.n 0, V.n 1, …`, its self frame pointer cells
+fixed, and its values the top-level atoms name as `Plumb.nv` says, which every part reads. -/
 noncomputable def winOkC (j i : ℕ) : Bool :=
   (listElementOrDefault (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
   Nat.beq (partS j i 0) 0 && Nat.beq (partM j i 0) 0 &&
@@ -1050,7 +1050,8 @@ noncomputable def winOkC (j i : ℕ) : Bool :=
   (coreOf j).params == (List.range (coreOf j).params.length).map V.n &&
   (bif Nat.beq i 0 then (partC j 0 0).le Cnt.zero && Nat.beq (partU j 0 0) 0 &&
       (certOf j).facts.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) &&
-        decide (getF (statT (fsN j) (plumbOf j).stat .nil) p.1 = some (.fpg 0)))
+        decide (getF (statT (fsN j) (plumbOf j).stat .nil) p.1 = some (.fpg 0))) &&
+      Nat.beq (nvOf (coreOf j).body 0) (plumbOf j).nv
     else true)
 
 /-- The last part of the function's last window. -/

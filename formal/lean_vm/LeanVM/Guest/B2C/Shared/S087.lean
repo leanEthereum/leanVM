@@ -16,108 +16,99 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L11`, once. -/
-theorem st108 : shareStatic 108 = true := by decide +kernel
+/-- `bus_grind_check__L8`, once. -/
+theorem st329 : shareStatic 329 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L11`, window 0. -/
-theorem w108_0 : shareWin 108 (snapsOf 108) 0 = true := by decide +kernel
+/-- `bus_grind_check__L8`, window 0. -/
+theorem w329_0 : shareWin 329 (snapsOf 329) 0 = true := by decide +kernel
 
-theorem ok108 : ShareOk 108 := ⟨st108, fun i hi ↦ by
-  have h : (snapsOf 108).length = 0 := by decide +kernel
+theorem ok329 : ShareOk 329 := ⟨st329, fun i hi ↦ by
+  have h : (snapsOf 329).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w108_0⟩
+  exact w329_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L12`, once. -/
-theorem st109 : shareStatic 109 = true := by decide +kernel
+/-- `bus_grind_check__L9`, once. -/
+theorem st330 : shareStatic 330 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L12`, window 0. -/
-theorem w109_0 : shareWin 109 (snapsOf 109) 0 = true := by decide +kernel
+/-- `bus_grind_check__L9`, window 0. -/
+theorem w330_0 : shareWin 330 (snapsOf 330) 0 = true := by decide +kernel
 
-theorem ok109 : ShareOk 109 := ⟨st109, fun i hi ↦ by
-  have h : (snapsOf 109).length = 0 := by decide +kernel
+theorem ok330 : ShareOk 330 := ⟨st330, fun i hi ↦ by
+  have h : (snapsOf 330).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w109_0⟩
+  exact w330_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L13`, once. -/
-theorem st110 : shareStatic 110 = true := by decide +kernel
+/-- `bus_grind_check__L10`, once. -/
+theorem st331 : shareStatic 331 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L13`, window 0. -/
-theorem w110_0 : shareWin 110 (snapsOf 110) 0 = true := by decide +kernel
+/-- `bus_grind_check__L10`, window 0. -/
+theorem w331_0 : shareWin 331 (snapsOf 331) 0 = true := by decide +kernel
 
-theorem ok110 : ShareOk 110 := ⟨st110, fun i hi ↦ by
-  have h : (snapsOf 110).length = 0 := by decide +kernel
+theorem ok331 : ShareOk 331 := ⟨st331, fun i hi ↦ by
+  have h : (snapsOf 331).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w110_0⟩
+  exact w331_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L14`, once. -/
-theorem st111 : shareStatic 111 = true := by decide +kernel
+/-- `bus_grind_check__L11`, once. -/
+theorem st332 : shareStatic 332 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L14`, window 0. -/
-theorem w111_0 : shareWin 111 (snapsOf 111) 0 = true := by decide +kernel
+/-- `bus_grind_check__L11`, window 0. -/
+theorem w332_0 : shareWin 332 (snapsOf 332) 0 = true := by decide +kernel
 
-theorem ok111 : ShareOk 111 := ⟨st111, fun i hi ↦ by
-  have h : (snapsOf 111).length = 0 := by decide +kernel
+theorem ok332 : ShareOk 332 := ⟨st332, fun i hi ↦ by
+  have h : (snapsOf 332).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w111_0⟩
+  exact w332_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L15`, once. -/
-theorem st112 : shareStatic 112 = true := by decide +kernel
+/-- `bus_grind_check__L12`, once. -/
+theorem st333 : shareStatic 333 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L15`, window 0. -/
-theorem w112_0 : shareWin 112 (snapsOf 112) 0 = true := by decide +kernel
+/-- `bus_grind_check__L12`, window 0. -/
+theorem w333_0 : shareWin 333 (snapsOf 333) 0 = true := by decide +kernel
 
-theorem ok112 : ShareOk 112 := ⟨st112, fun i hi ↦ by
-  have h : (snapsOf 112).length = 0 := by decide +kernel
+theorem ok333 : ShareOk 333 := ⟨st333, fun i hi ↦ by
+  have h : (snapsOf 333).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w112_0⟩
+  exact w333_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L16`, once. -/
-theorem st113 : shareStatic 113 = true := by decide +kernel
+/-- `bus_grind_check__L13`, once. -/
+theorem st334 : shareStatic 334 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L16`, window 0. -/
-theorem w113_0 : shareWin 113 (snapsOf 113) 0 = true := by decide +kernel
+/-- `bus_grind_check__L13`, window 0. -/
+theorem w334_0 : shareWin 334 (snapsOf 334) 0 = true := by decide +kernel
 
-theorem ok113 : ShareOk 113 := ⟨st113, fun i hi ↦ by
-  have h : (snapsOf 113).length = 0 := by decide +kernel
+theorem ok334 : ShareOk 334 := ⟨st334, fun i hi ↦ by
+  have h : (snapsOf 334).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w113_0⟩
+  exact w334_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L17`, once. -/
-theorem st114 : shareStatic 114 = true := by decide +kernel
+/-- `grind_check__L13`, once. -/
+theorem st335 : shareStatic 335 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L17`, window 0. -/
-theorem w114_0 : shareWin 114 (snapsOf 114) 0 = true := by decide +kernel
+/-- `grind_check__L13`, window 0. -/
+theorem w335_0 : shareWin 335 (snapsOf 335) 0 = true := by decide +kernel
 
-theorem ok114 : ShareOk 114 := ⟨st114, fun i hi ↦ by
-  have h : (snapsOf 114).length = 0 := by decide +kernel
+theorem ok335 : ShareOk 335 := ⟨st335, fun i hi ↦ by
+  have h : (snapsOf 335).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w114_0⟩
+  exact w335_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L18`, once. -/
-theorem st115 : shareStatic 115 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `padding_weight__L18`, window 0. -/
-theorem w115_0 : shareWin 115 (snapsOf 115) 0 = true := by decide +kernel
-
-theorem ok115 : ShareOk 115 := ⟨st115, fun i hi ↦ by
-  have h : (snapsOf 115).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w115_0⟩
+/-- `open_stacked__L0`, once. -/
+theorem st336 : shareStatic 336 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

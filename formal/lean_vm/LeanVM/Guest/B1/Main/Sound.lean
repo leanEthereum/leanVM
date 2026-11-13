@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.Sound
 
-  B1 for `main` (G:4491-4667; TRIAGE #96): a run of `main`'s body establishes `NodeRelation` of the
+  B1 for `main` (G:4675-4851; TRIAGE #96): a run of `main`'s body establishes `NodeRelation` of the
   seed, the statement and the witness its decoders read.
 -/
 
@@ -49,8 +49,8 @@ theorem gLog_lg (σ : Val) (v : ℕ) : gLog (σ (.n v)) = lg σ v := (lg_eq_gLog
 
 /-- The DA digest at the slot `da_pick` holds the cells `statement_digest` reads. -/
 theorem pick_cells (MF : MainFacts C rd σ) :
-    LoadHolds rd (σ (.n 364)) (2 * lg σ 406) (σ (.n 444)) ∧
-      LoadHolds rd (σ (.n 364)) (2 * lg σ 406 + 1) (σ (.n 445)) := by
+    LoadHolds rd (σ (.n 364)) (2 * lg σ 405) (σ (.n 445)) ∧
+      LoadHolds rd (σ (.n 364)) (2 * lg σ 405 + 1) (σ (.n 446)) := by
   obtain ⟨h0, h1⟩ := MF.dacells
   rw [MF.picked, loadHolds_gen_pow_iff] at h0 h1
   rw [Nat.add_zero] at h0
@@ -58,10 +58,10 @@ theorem pick_cells (MF : MainFacts C rd σ) :
 
 /-- **The decoded statement's digest** is the one `statement_digest` computes. -/
 theorem own_digest (MF : MainFacts C rd σ) :
-    [σ (.n 446), σ (.n 447)] = digestCells (statementDigest (decSeed σ) (decStmt σ rd)) := by
-  obtain ⟨cells, hlen, hreads, -, hrets⟩ := statement_digest_sound rd _ _ MF.stmt
-  obtain ⟨cx, hlx, hrx, -, hdx⟩ := MF.xlist
-  obtain ⟨cs, hls, hrs, -, hds⟩ := MF.slist
+    [σ (.n 447), σ (.n 448)] = digestCells (statementDigest (decSeed σ) (decStmt σ rd)) := by
+  obtain ⟨cells, hlen, hreads, hrets⟩ := statement_digest_sound rd _ _ MF.stmt
+  obtain ⟨cx, hlx, hrx, hdx⟩ := MF.xlist
+  obtain ⟨cs, hls, hrs, hds⟩ := MF.slist
   have hx := xmss_digest_id (slotsHold_of_readsAt hrx hlx)
   have hs := sphincs_digest_id (slotsHold_of_readsAt hrs hls)
   obtain ⟨p0, p1⟩ := pick_cells MF
@@ -70,7 +70,7 @@ theorem own_digest (MF : MainFacts C rd σ) :
   have eS : (decStmt σ rd).claims.sphincs =
       (List.range (lg σ 3)).map (sphincsAt rd (σ (.n 34))) := by
     unfold decStmt; simp only [gLog_lg]
-  have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ 406) := by
+  have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ 405) := by
     unfold decStmt; simp only [gLog_lg]
   have hdef : (decStmt σ rd).deferredClaim.cells = cells := by
     unfold decStmt; simp only; rw [readCells_of_readsAt hreads hlen]; exact deferOfCells_cells hlen
@@ -80,9 +80,9 @@ theorem own_digest (MF : MainFacts C rd σ) :
   have hsd : digestBytes (claimListDigest Sphincs.PublicKey.toBytes (decStmt σ rd).claims.sphincs) =
       cellsBytes [σ (.n 37), σ (.n 38)] := by
     rw [eS, hs]; exact digestBytes_of_cells hds
-  have hda : digestBytes (decStmt σ rd).claims.daDigest = cellsBytes [σ (.n 444), σ (.n 445)] := by
+  have hda : digestBytes (decStmt σ rd).claims.daDigest = cellsBytes [σ (.n 445), σ (.n 446)] := by
     rw [eD]; exact (daDigestAt_of_loads p0 p1).2
-  rw [hrets, statementDigest_parts (digestBytes_decSeed σ) hxd hsd hda hdef hlen]
+  rw [hrets, statementDigest_parts (digestBytes_decSeed σ) hxd hsd hda hdef]
 
 end
 end LeanVM.Guest.B1.Main
@@ -123,14 +123,14 @@ theorem kid_digest (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
     rw [hs]; exact digestBytes_of_cells k.sdig
   have hda := (daDigestAt_of_loads k.da0 k.da1).2
   have hdef :
-      (deferOfCells (readCells rd (σ (.n 396) * gen ^ (24 * c)) 24)).cells = (K c).defer := by
+      (deferOfCells (readCells rd (σ (.n 395) * gen ^ (24 * c)) 24)).cells = (K c).defer := by
     rw [readCells_of_readsAt k.defreads k.deflen]; exact deferOfCells_cells k.deflen
   have hst := statementDigest_parts (seed := decSeed σ)
     (s := ⟨⟨(List.range (K c).ex).map fun j => xmssAt rd (σ (.n 31)) ((K c).ox j),
         (List.range (K c).es).map fun j => sphincsAt rd (σ (.n 34)) ((K c).os j),
         daDigestAt rd σ c⟩,
-       deferOfCells (readCells rd (σ (.n 396) * gen ^ (24 * c)) 24)⟩)
-    (digestBytes_decSeed σ) hxd hsd hda hdef k.deflen
+       deferOfCells (readCells rd (σ (.n 395) * gen ^ (24 * c)) 24)⟩)
+    (digestBytes_decSeed σ) hxd hsd hda hdef
   rw [k.pdig, hst]
 
 end

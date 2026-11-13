@@ -29,11 +29,11 @@ open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main Le
 
 /-- **`main`'s witness** (`decWitV`), its frames numbered. -/
 noncomputable def decWitN (σ : Val) (rd : Reader) (Vn : NFrames) (cl : E → E → ℕ) : NodeWitness :=
-  decWit σ rd (fun args ↦ xmssSigOfN (Vn 37 args []))
-    (fun p ↦ sphincsSigOfN (Vn 21 [p, σ (.n 47)] []) Vn)
-    (fun args rets ↦ dvWitN (Vn 28 args rets) Vn)
-    (fun args ↦ vsPiOfN rd (Vn 19 args []) Vn cl)
-    (fun args ↦ aggHints rd (Vn 34 args []))
+  decWit σ rd (fun args ↦ xmssSigOfN (Vn (fn_idx% main_loop2) args []))
+    (fun p ↦ sphincsSigOfN (Vn (fn_idx% verify_sig_lean_sphincs) [p, σ (.n 47)] []) Vn)
+    (fun args rets ↦ dvWitN (Vn (fn_idx% da_verify) args rets) Vn)
+    (fun args ↦ vsPiOfN rd (Vn (fn_idx% verify_sub) args []) Vn cl)
+    (fun args ↦ aggHints rd (Vn (fn_idx% aggregate_claims) args []))
 
 /-- **The readers' tables, as arrays**, built once per decoding and passed to the readers off
 arrays (`xmssSigOfA`, `sphincsSigOfA`, `vsPiOfA`). -/

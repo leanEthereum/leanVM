@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Terminal.TermCompleteB
 public import LeanVM.Guest.B1.Eq.RsWords
 public import LeanVM.Guest.Memory.GuestWords
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The terminal's words at `B2C.fs`
@@ -18,10 +19,12 @@ The hypotheses of `check_opening_terminal_completeAtB`, `rst_completeAtB` and `r
 `B2C.fs`:
 
 * `eqc_totalLe_fs`: `eq_prefix_chain` within `184` (its certificate);
-* `l15_totalLeOn_fs`, `l6_totalLeOn_fs`: `__loop14`, `__loop5` within `19`, `1644` words per
-  iteration and their runs' one phantom frame, `19`, `27` (their certificates);
+* `l15_totalLeOn_fs`, `l6_totalLeOn_fs`: `check_opening_terminal_loop0`, `rs_eq_run_loop0` within
+  `19`, `1644` words per iteration and their runs' one phantom frame, `19`, `27` (their
+  certificates);
 * `rsRows_totalLe_fs`: each `rs_eq_rows__L{r}`, `r < 8`, within `1489` words (their certificates);
-* `l14_totalLeOn_fs`: `__loop13` from `1` (to its constant end `g^8`) within `8 · 661 + 661`;
+* `l14_totalLeOn_fs`: `ring_switch_target_loop0` from `1` (to its constant end `g^8`) within `8 ·
+  356 + 356`;
 * `cs_totalLe_fs`, `cs_fs_le`: each `column_selector__L{κ}`, `κ < 31`, within `157` words, its frame
   at most `157` (its certificate is its frame);
 * `rs_totalLeOn_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `8142` (`rs_totalLeOn34`:
@@ -51,22 +54,22 @@ theorem fsB_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some
     exact wfs_eq hlt
 
 theorem fs_rs : B2C.fs "rs_eq_run" = 50 := by
-  rw [fsB_idx (j := 6) (by decide +kernel)]; decide +kernel
+  rw [fsB_idx (j := idx% «rs_eq_run») (by decide +kernel)]; decide +kernel
 
-theorem fs_l6 : B2C.fs "__loop5" = 27 := by
-  rw [fsB_idx (j := 80) (by decide +kernel)]; decide +kernel
+theorem fs_l6 : B2C.fs name% «rs_eq_run_loop0» = 27 := by
+  rw [fsB_idx (j := idx% «rs_eq_run_loop0») (by decide +kernel)]; decide +kernel
 
-theorem fs_l15 : B2C.fs "__loop14" = 19 := by
-  rw [fsB_idx (j := 272) (by decide +kernel)]; decide +kernel
+theorem fs_l15 : B2C.fs name% «check_opening_terminal_loop0» = 19 := by
+  rw [fsB_idx (j := idx% «check_opening_terminal_loop0») (by decide +kernel)]; decide +kernel
 
-theorem fs_l14 : B2C.fs "__loop13" = 661 := by
-  rw [fsB_idx (j := 271) (by decide +kernel)]; decide +kernel
+theorem fs_l14 : B2C.fs name% «ring_switch_target_loop0» = 356 := by
+  rw [fsB_idx (j := idx% «ring_switch_target_loop0») (by decide +kernel)]; decide +kernel
 
 /-! ## The callees' words -/
 
 /-- `eq_prefix_chain` within `184` words. -/
 theorem eqc_totalLe_fs : TotalLe coreProgram B2C.fs "eq_prefix_chain" fun _ => 184 :=
-  fs_totalLe (by rw [wcertOf_of_idx (j := 5) (by decide +kernel)]; rfl :
+  fs_totalLe (by rw [wcertOf_of_idx (j := idx% «eq_prefix_chain») (by decide +kernel)]; rfl :
     wcertOf "eq_prefix_chain" = .stat [] ⟨184, []⟩ [])
 
 /-- A loop helper ending at its argument `1`, `K` words per iteration by its certificate: its run
@@ -83,31 +86,37 @@ theorem loopTotalLeOn_fs {f : String} {K : ℕ} {ks : List (V × ℕ)}
   have h2 : (e - a) * K ≤ e * K := Nat.mul_le_mul_right _ (Nat.sub_le _ _)
   omega
 
-/-- `__loop14` within `19` words per iteration and its run's phantom frame, `19`. -/
+/-- `check_opening_terminal_loop0` within `19` words per iteration and its run's phantom frame,
+`19`. -/
 theorem l15_totalLeOn_fs :
-    TotalLeOn coreProgram B2C.fs "__loop14" LoopPre
-      fun a => logG (a.getD 1 0) * 19 + B2C.fs "__loop14" :=
-  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 272) (by decide +kernel)]; rfl :
-    wcertOf "__loop14" = .loop none [] ⟨19, []⟩ [])
+    TotalLeOn coreProgram B2C.fs name% «check_opening_terminal_loop0» LoopPre
+      fun a => logG (a.getD 1 0) * 19 + B2C.fs name% «check_opening_terminal_loop0» :=
+  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := idx% «check_opening_terminal_loop0»)
+                         (by decide +kernel)]; rfl :
+    wcertOf name% «check_opening_terminal_loop0» = .loop none [] ⟨19, []⟩ [])
 
-/-- `__loop5` within `1644` words per iteration and its run's phantom frame, `27`. -/
+/-- `rs_eq_run_loop0` within `1644` words per iteration and its run's phantom frame, `27`. -/
 theorem l6_totalLeOn_fs :
-    TotalLeOn coreProgram B2C.fs "__loop5" LoopPre
-      fun a => logG (a.getD 1 0) * 1644 + B2C.fs "__loop5" :=
-  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 80) (by decide +kernel)]; rfl :
-    wcertOf "__loop5" = .loop none [] ⟨1644, []⟩ [])
+    TotalLeOn coreProgram B2C.fs name% «rs_eq_run_loop0» LoopPre
+      fun a => logG (a.getD 1 0) * 1644 + B2C.fs name% «rs_eq_run_loop0» :=
+  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := idx% «rs_eq_run_loop0») (by decide +kernel)]; rfl :
+    wcertOf name% «rs_eq_run_loop0» = .loop none [] ⟨1644, []⟩ [])
 
-/-- `__loop13` from `1` (to its constant end `g^8`) within `8 · 661 + 661` words (`8 · 661` and its
-run's phantom frame, `661`). -/
+/-- `ring_switch_target_loop0` from `1` (to its constant end `g^8`) within `8 · 356 + 356` words (`8
+· 356` and its
+run's phantom frame, `356`). -/
 theorem l14_totalLeOn_fs :
-    TotalLeOn coreProgram B2C.fs "__loop13" (fun a => a.getD 0 0 = 1) fun _ => 5949 := by
+    TotalLeOn coreProgram B2C.fs name% «ring_switch_target_loop0» (fun a => a.getD 0 0 = 1) fun _
+        => 3204 := by
   intro rd t args rets hn ha hv hb
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 271) (by decide +kernel)]; rfl :
-      wcertOf "__loop13" = .loop (some 8) [] ⟨661, []⟩ []) hn hv hb (a := 0) (e := 8)
+  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := idx% «ring_switch_target_loop0»)
+                                    (by decide +kernel)]; rfl :
+      wcertOf name% «ring_switch_target_loop0» = .loop (some 8) [] ⟨356,
+          []⟩ []) hn hv hb (a := 0) (e := 8)
     (by rw [ha]; simp [Parameters.addressOfIndex]) rfl (by decide) (by decide)
     (fun _ h => (List.not_mem_nil h).elim)
   rw [fs_l14] at this
-  show t.total B2C.fs ≤ 5949
+  show t.total B2C.fs ≤ 3204
   simp only [Aff.eval, List.map_nil, List.sum_nil, add_zero] at this
   omega
 
@@ -123,16 +132,16 @@ theorem certLe_spec {B : ℕ} {c : Cert} (h : certLe B c = true) :
   · exact ⟨_, _, rfl, of_decide_eq_true h⟩
   · cases h
 
-/-- The column selectors: core functions `273 + κ`, constant words certificates within `157`, frames
+/-- The column selectors: core functions `274 + κ`, constant words certificates within `157`, frames
 within `157`. -/
 theorem cs_ok : (List.range 31).all (fun κ =>
-    decide ((coreProgram[273 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ)) &&
-      certLe 157 (Data.wcertJ (273 + κ)) && decide (wfsJ (273 + κ) ≤ 157)) = true := by
+    decide ((coreProgram[274 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ)) &&
+      certLe 157 (Data.wcertJ (274 + κ)) && decide (wfsJ (274 + κ) ≤ 157)) = true := by
   decide +kernel
 
 theorem cs_facts {κ : ℕ} (hκ : κ < 31) :
-    (coreProgram[273 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ) ∧
-      certLe 157 (Data.wcertJ (273 + κ)) = true ∧ wfsJ (273 + κ) ≤ 157 := by
+    (coreProgram[274 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ) ∧
+      certLe 157 (Data.wcertJ (274 + κ)) = true ∧ wfsJ (274 + κ) ≤ 157 := by
   have h := List.all_eq_true.mp cs_ok κ (List.mem_range.mpr hκ)
   simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   exact ⟨h.1.1, h.1.2, h.2⟩
@@ -174,7 +183,7 @@ theorem rs_totalLeOn_fs : ∀ c ≤ 34,
     TotalLeOn coreProgram B2C.fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c) fun _ => 8142 := by
   intro c hc rd t args rets hn hp hv hb
   refine (rs_totalLeOn34 l6_totalLeOn_fs rsRows_totalLe_fs c hc rd t args rets hn hp hv hb).trans ?_
-  show B2C.fs "rs_eq_run" + (B2C.fs "__loop5" + 4 * 1644) + 1489 ≤ 8142
+  show B2C.fs "rs_eq_run" + (B2C.fs name% «rs_eq_run_loop0» + 4 * 1644) + 1489 ≤ 8142
   rw [fs_rs, fs_l6]
 
 /-! ## At `B2C.fs` -/

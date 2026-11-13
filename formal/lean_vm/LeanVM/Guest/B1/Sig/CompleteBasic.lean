@@ -156,11 +156,10 @@ def kOut (ws : List E) (inOdd outOdd : Bool) (c : Nat) : E :=
   if h : c < 13 then cellsOfState (keccakF1600 (stateOfCells (cells13 ws) inOdd)) outOdd ⟨c, h⟩ else 0
 
 /-- **A `KECCAK` completes**: its `n` outputs (one, two or thirteen, its `out_cells`) are `kOut`
-of its canonical inputs. -/
+of its inputs. -/
 theorem kecS_complete (σ : Val) {ins : List V} (o : Nat) {n : Nat}
     (hn : n = 1 ∨ n = 2 ∨ n = 13) (hl : ins.length = 13)
-    (hin : ∀ v ∈ ins, ∃ j < o, v = .n j) (hc : ∀ c : Fin 13, IsCanonical128 (cells13 (ins.map σ) c))
-    (inOdd outOdd : Bool) :
+    (hin : ∀ v ∈ ins, ∃ j < o, v = .n j) (inOdd outOdd : Bool) :
     Completes C rd o (o + n) [kecS ins (runV o n) inOdd outOdd] σ
       (fun σ' => ∀ c < n, σ' (.n (o + c)) = kOut (ins.map σ) inOdd outOdd c) := by
   obtain ⟨oc, rfl⟩ := exists_cellCount hn
@@ -172,7 +171,7 @@ theorem kecS_complete (σ : Val) {ins : List V} (o : Nat) {n : Nat}
   subst ha
   refine ⟨hl, oc, by simp [runV], ?_⟩
   rw [hins]
-  refine ⟨hc, fun c hco => ?_⟩
+  intro c hco
   simp only [cells13, runV, List.map_map, List.getD_eq_getElem?_getD, List.getElem?_map,
     List.getElem?_range hco, Option.map_some, Option.getD_some, Function.comp]
   rw [updRun_at σ o _ _ hco, kOut]

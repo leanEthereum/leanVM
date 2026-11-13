@@ -12,8 +12,8 @@ public import LeanVM.Guest.B1.Common.Run
 /-!
 # The sumcheck rounds as Spec runs
 
-* `runsTo_roundPolyNone`, `runsTo_roundPolySome`: `sumcheckRoundPoly` (V:1386) reads its
-  coefficients, absorbing each.
+* `runsTo_roundPolyNone`, `runsTo_roundPolySome`: `sumcheckRoundPoly` reads its coefficients,
+  absorbing each, its grind zero bits (`runsTo_grind0`).
 * `sumcheck_round4_run`: `MeaningSumcheckRound4`'s values are `sumcheck claim 4 [none]` (V:1398).
 * `gkrRun_run`: `gkrRun` is `sumcheck claim 5 (es.map some)`, the rounds of `gkrStep 2` (V:1435).
 * `batchRounds_run`: `bsRun` is `Node.batchRounds` (N:226) on a sponge it carries.
@@ -26,19 +26,48 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- A plain round polynomial: the constant, then the coefficients from `c2`, each absorbed. -/
+/-- A grind of zero bits is no step. -/
+theorem runsTo_grind0 {bits : ℕ} (h : bits = 0) (s : Fs) :
+    RunsTo (VerifierProgram.grindProofOfWork bits) s [] () s := by
+  subst h
+  exact runsTo_ret () s
+
+/-- A plain round polynomial whose grind is zero bits (every deployed count, `count ≤ 9`): the
+constant, then the coefficients from `c2`, each absorbed. -/
 theorem runsTo_roundPolyNone (s : Fs) (claim c : E) (tail : List E) (count : ℕ)
-    (h : tail.length = count - 2) :
+    (h : tail.length = count - 2) (hg : grindingBits (count - 1) = 0) :
     RunsTo (sumcheckRoundPoly count claim none) s (c :: tail)
       (c :: (claim + sumE tail) :: tail) ((s.absorb c dsObserve).absorbAll tail dsObserve) := by
   have h1 := runsTo_readE s c
   have h2 := runsTo_readN (s.absorb c dsObserve) tail
   rw [h] at h2
-  exact (h1.bind (f := fun constant ↦ do
+  refine (h1.bind (f := fun constant ↦ do
       let tail ← VerifierProgram.readScalars (count - 2)
+      VerifierProgram.grindProofOfWork (grindingBits (count - 1))
       return constant :: (claim + sumE tail) :: tail)
-    (h2.bind (f := fun t ↦ (pure (c :: (claim + sumE t) :: t) : VerifierProgram (List E)))
-      (runsTo_ret _ _))).of_eq rfl (by simp) rfl rfl
+    (h2.bind (f := fun t ↦ (do
+        VerifierProgram.grindProofOfWork (grindingBits (count - 1))
+        pure (c :: (claim + sumE t) :: t) : VerifierProgram (List E)))
+      ((runsTo_grind0 hg _).bind (f := fun _ ↦
+        (pure (c :: (claim + sumE tail) :: tail) : VerifierProgram (List E)))
+        (runsTo_ret _ _)))).of_eq rfl ?_ rfl rfl
+  simp
+
+/-- An equality-mode round polynomial whose grind is zero bits: the `count - 1` coefficients from
+`c1`, each absorbed, the constant derived. -/
+theorem runsTo_roundPolySome (s : Fs) (claim e : E) (tail : List E) (count : ℕ)
+    (h : tail.length = count - 1) (hg : grindingBits (count - 1 + 1) = 0) :
+    RunsTo (sumcheckRoundPoly count claim (some e)) s tail
+      ((claim + e * sumE tail) :: tail) (s.absorbAll tail dsObserve) := by
+  have h2 := runsTo_readN s tail
+  rw [h] at h2
+  refine (h2.bind (f := fun t ↦ (do
+        VerifierProgram.grindProofOfWork (grindingBits (count - 1 + 1))
+        pure ((claim + e * sumE t) :: t) : VerifierProgram (List E)))
+      ((runsTo_grind0 hg _).bind (f := fun _ ↦
+        (pure ((claim + e * sumE tail) :: tail) : VerifierProgram (List E)))
+        (runsTo_ret _ _))).of_eq rfl ?_ rfl rfl
+  simp
 
 /-- One round of `sumcheck`: its polynomial, a sample, the rounds after it. -/
 theorem runsTo_sumcheck_cons {s s1 s2 : Fs} {claim : E} {count : ℕ} {eq : Option E}
@@ -55,7 +84,8 @@ theorem runsTo_sumcheck_cons {s s1 s2 : Fs} {claim : E} {count : ℕ} {eq : Opti
       return (challenge :: point, final))
       (h2.bind (f := fun p ↦ (pure (s1.squeeze.1 :: p.1, p.2) : VerifierProgram (List E × E)))
         (runsTo_ret _ _)))
-  exact h.of_eq rfl (by simp) rfl rfl
+  refine h.of_eq rfl ?_ rfl rfl
+  simp
 
 theorem runsTo_sumcheck_nil (s : Fs) (claim : E) (count : ℕ) :
     RunsTo (sumcheck claim count []) s [] ([], claim) s := runsTo_ret _ _
@@ -66,7 +96,8 @@ theorem sumcheck_round4_run (cap : List E) (c0 c2 c3 claim : E) :
     RunsTo (sumcheck claim 4 [none]) ⟨cap, []⟩ [c0, c2, c3]
       ([s.squeeze.1], polyEval [c0, claim + sumE [c2, c3], c2, c3] s.squeeze.1) s.squeeze.2 := by
   intro s
-  have h := runsTo_sumcheck_cons (runsTo_roundPolyNone ⟨cap, []⟩ claim c0 [c2, c3] 4 rfl)
+  have h := runsTo_sumcheck_cons
+    (runsTo_roundPolyNone ⟨cap, []⟩ claim c0 [c2, c3] 4 rfl (by decide))
     (runsTo_sumcheck_nil _ (polyEval [c0, claim + sumE [c2, c3], c2, c3]
       (((⟨cap, []⟩ : Fs).absorb c0 dsObserve).absorbAll [c2, c3] dsObserve).squeeze.1) 4)
   exact h.of_eq rfl rfl rfl rfl

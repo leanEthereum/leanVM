@@ -174,16 +174,16 @@ theorem column_at_placement (q : Column (leanIsaμ prog s)) (c : Col) (h : ¬ Is
 
 /-- The writes of the prover's stack: the placements of the instance's columns, with their
 arrays. -/
-theorem mem_zip_placements {cols : Array (Array K)} (hsize : cols.size = 165) :
+theorem mem_zip_placements {cols : Array (Array K)} (hsize : cols.size = 158) :
     ∀ a, a ∈ (verifierLayout prog s).placements.zip cols.toList ↔ ∃ c : Col,
       a = ((verifierLayout prog s).placements.getD (refCol c) none, cols.getD (refCol c) #[]) := by
-  have hlen : (verifierLayout prog s).placements.length = 165 := by
-    show (placementsOf (refKappas prog s)).1.length = 165
+  have hlen : (verifierLayout prog s).placements.length = 158 := by
+    show (placementsOf (refKappas prog s)).1.length = 158
     rw [placementsOf_pyKappas]
     simp [length_pyKappas]
-  have hz : ((verifierLayout prog s).placements.zip cols.toList).length = 165 := by
+  have hz : ((verifierLayout prog s).placements.zip cols.toList).length = 158 := by
     simp [hlen, hsize]
-  have hget : ∀ i (hi : i < 165),
+  have hget : ∀ i (hi : i < 158),
       ((verifierLayout prog s).placements.zip cols.toList)[i]'(hz ▸ hi) =
         ((verifierLayout prog s).placements.getD i none, cols.getD i #[]) := by
     intro i hi
@@ -204,7 +204,7 @@ theorem mem_zip_placements {cols : Array (Array K)} (hsize : cols.size = 165) :
 /-- **The stack the prover writes is the stack its columns are read off**: given each column's
 array is the instance's column of `q`, and `q` is zero past the blocks. -/
 theorem stackArray_eq (q : Column (leanIsaμ prog s)) (cols : Array (Array K))
-    (hsize : cols.size = 165)
+    (hsize : cols.size = 158)
     (hcols : ∀ c : Col, cols.getD (refCol c) #[] = ((inst prog s).column q c).values.toArray)
     (hzero : ∀ x (hx : x < 2 ^ leanIsaμ prog s), (blocks prog s).total ≤ x → q.values[x] = 0) :
     stackArray (verifierLayout prog s) cols = q.values.toArray := by

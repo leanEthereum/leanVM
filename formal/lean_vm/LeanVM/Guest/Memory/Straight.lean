@@ -218,10 +218,6 @@ theorem holds_atoms {rd : Reader} {σ : Val} {as : List Atom} (h : ∀ a ∈ as,
   obtain ⟨a, ha, rfl⟩ := List.mem_map.mp he
   exact h a ha
 
-/-- The word `g^e`'s first limb. -/
-theorem limb0_gen_pow (e : ℕ) : (gen ^ e).limb 0 = addressOfIndex e := by
-  rw [gen_pow_eq_ofK]; simp
-
 theorem gpow_add' (a b : ℕ) : addressOfIndex a * addressOfIndex b = addressOfIndex (a + b) := by
   simp [Parameters.addressOfIndex, pow_add]
 

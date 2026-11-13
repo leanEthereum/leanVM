@@ -17,29 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop315`, window 0. -/
+/-- `__loop265`, window 0. -/
 theorem w1227_0 : WinOk 1227 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop316`, window 0. -/
+/-- `__loop266`, window 0. -/
 theorem w1228_0 : WinOk 1228 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop317`, window 0. -/
+/-- `__loop267`, window 0. -/
 theorem w1229_0 : WinOk 1229 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop318`, window 0. -/
+/-- `decode_query_windows__L20_L8`, window 0. -/
 theorem w1230_0 : WinOk 1230 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L1_L1_L64_L32_L23_L5`, window 0. -/
+/-- `__loop268`, window 0. -/
 theorem w1231_0 : WinOk 1231 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L1_L1_L64_L32_L23_L5`, window 1. -/
-theorem w1231_1 : WinOk 1231 1 := winOk_of_C (by decide +kernel)
-
-/-- `opening_queries__L1_L1_L64_L32_L23_L5`, window 2. -/
-theorem w1231_2 : WinOk 1231 2 := winOk_of_C (by decide +kernel)
-
-/-- `opening_queries__L0_L1_L64_L32_L24_L6`, window 0. -/
+/-- `__loop269`, window 0. -/
 theorem w1232_0 : WinOk 1232 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop270`, window 0. -/
+theorem w1233_0 : WinOk 1233 0 := winOk_of_C (by decide +kernel)
+
+/-- `decode_query_windows__L23_L5`, window 0. -/
+theorem w1234_0 : WinOk 1234 0 := winOk_of_C (by decide +kernel)
 
 theorem ok1227 : CheckOk 1227 := checkOk_one (by decide +kernel) w1227_0
 
@@ -48,6 +48,14 @@ theorem ok1228 : CheckOk 1228 := checkOk_one (by decide +kernel) w1228_0
 theorem ok1229 : CheckOk 1229 := checkOk_one (by decide +kernel) w1229_0
 
 theorem ok1230 : CheckOk 1230 := checkOk_one (by decide +kernel) w1230_0
+
+theorem ok1231 : CheckOk 1231 := checkOk_one (by decide +kernel) w1231_0
+
+theorem ok1232 : CheckOk 1232 := checkOk_one (by decide +kernel) w1232_0
+
+theorem ok1233 : CheckOk 1233 := checkOk_one (by decide +kernel) w1233_0
+
+theorem ok1234 : CheckOk 1234 := checkOk_one (by decide +kernel) w1234_0
 
 end
 end LeanVM.Guest.Checked

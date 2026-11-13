@@ -17,29 +17,31 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `level_queries__L17_L0_L16_L24_L16_L4`, window 0. -/
+/-- `level_residual__L219_L14_L6_L3`, window 0. -/
 theorem w500_0 : WinOk 500 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L17_L0_L16_L24_L16_L4`, window 1. -/
-theorem w500_1 : WinOk 500 1 := winOk_of_C (by decide +kernel)
-
-/-- `fold_final_msg__L3`, window 0. -/
+/-- `level_residual__L109_L14_L6_L3`, window 0. -/
 theorem w501_0 : WinOk 501 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_residual__L223_L15`, window 0. -/
+/-- `level_residual__L73_L14_L6_L3`, window 0. -/
 theorem w502_0 : WinOk 502 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_residual__L112_L15`, window 0. -/
+/-- `level_residual__L55_L14_L6_L3`, window 0. -/
 theorem w503_0 : WinOk 503 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_residual__L75_L15`, window 0. -/
+/-- `level_residual__L55_L10_L4_L2`, window 0. -/
 theorem w504_0 : WinOk 504 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_residual__L56_L15`, window 0. -/
+/-- `level_residual__L44_L10_L4_L2`, window 0. -/
 theorem w505_0 : WinOk 505 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_residual__L56_L11`, window 0. -/
+/-- `level_residual__L37_L10_L4_L2`, window 0. -/
 theorem w506_0 : WinOk 506 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_residual__L32_L10_L4_L2`, window 0. -/
+theorem w507_0 : WinOk 507 0 := winOk_of_C (by decide +kernel)
+
+theorem ok500 : CheckOk 500 := checkOk_one (by decide +kernel) w500_0
 
 theorem ok501 : CheckOk 501 := checkOk_one (by decide +kernel) w501_0
 
@@ -52,6 +54,8 @@ theorem ok504 : CheckOk 504 := checkOk_one (by decide +kernel) w504_0
 theorem ok505 : CheckOk 505 := checkOk_one (by decide +kernel) w505_0
 
 theorem ok506 : CheckOk 506 := checkOk_one (by decide +kernel) w506_0
+
+theorem ok507 : CheckOk 507 := checkOk_one (by decide +kernel) w507_0
 
 end
 end LeanVM.Guest.Checked

@@ -111,7 +111,7 @@ theorem stream_prefix (H : Bytes → Digest) (F : KeccakState → KeccakState) {
   have hl : (announce s ρ).length = 8 := by simp [announce]
   obtain ⟨f, hf⟩ := honestProver_sendList prog s ρ q (leanVmPhases prog s q)
   obtain ⟨sp', e⟩ := proveFrom_readN H F (leanVmProver prog s ρ q) fuel (announce s ρ) k
-    ⟨sd, []⟩ [] (fun i hi ↦ by
+    ⟨sd, [], none⟩ [] (fun i hi ↦ by
       show (Strategy.ofScript _ 0).msg _ = _
       simp only [Strategy.ofScript, List.drop_zero, List.nil_append]
       rw [hf]
@@ -130,20 +130,23 @@ on a stream starting with `l` returns a value the relation admits, the rest of t
 theorem run_of_follows_sendList {β : Type} {R : Commits → Unit → β → Prop}
     (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) :
     ∀ (l : List E) (p : VerifierProgram β) (cs : Commits), Follows R (Script.sendList l) p cs →
-      ∀ (sp : Sponge) (rest : List E) (os : List (List Opening)) (roots : List (Digest × ℕ × ℕ)),
+      ∀ (sp : Sponge), sp.ground = none → ∀ (rest : List E) (os : List (List Opening)) (roots : List (Digest × ℕ × ℕ)),
         ∃ b sp', Compile.runWithHash H F p ⟨sp, l ++ rest, os, roots⟩ = some (b, ⟨sp', rest, os, roots⟩) ∧
           R cs () b
-  | [], p, cs, hf, sp, rest, os, roots => by
+  | [], p, cs, hf, sp, _, rest, os, roots => by
     cases p with
     | ret b => exact ⟨b, sp, rfl, hf⟩
     | _ => simp [Script.sendList, Follows] at hf
-  | x :: xs, p, cs, hf, sp, rest, os, roots => by
+  | x :: xs, p, cs, hf, sp, hg, rest, os, roots => by
     cases p with
     | read k =>
       simp only [Script.sendList, Follows] at hf
       obtain ⟨b, sp', e, hR⟩ := run_of_follows_sendList H F xs (k x) cs hf
-        (Id.run (Compile.absorb F sp x dsObserve)) rest os roots
-      exact ⟨b, sp', e, hR⟩
+        (Id.run (Compile.absorb F sp x dsObserve)) ((absorbI_ground F sp x dsObserve).trans hg) rest
+        os roots
+      refine ⟨b, sp', ?_, hR⟩
+      simp only [Compile.runWithHash, List.cons_append, hg]
+      exact e
     | _ => simp [Script.sendList, Follows] at hf
 
 /-- **The honest announcement is read as the verifier's layout.** -/
@@ -152,7 +155,7 @@ theorem announced_honest {prog : LeanIsaProgram} {s : Sizes} (hs : s.Admissible 
     announcedLayoutAndRate (bytecodeWords prog) (announce s ρ ++ rest) = some (verifierLayout prog
         s, ρ) := by
   obtain ⟨b, sp', e, -, hb⟩ := run_of_follows_sendList (fun _ ↦ default)
-    (fun _ ↦ default) (announce s ρ) _ [] (follows_readSizes prog hs hρ []) ⟨default, []⟩
+    (fun _ ↦ default) (announce s ρ) _ [] (follows_readSizes prog hs hρ []) ⟨default, [], none⟩ rfl
     rest [] []
   unfold announcedLayoutAndRate
   rw [Compile.runPure_eq_withHash, e, hb]

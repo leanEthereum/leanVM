@@ -9,6 +9,7 @@
 
 module
 
+public import LeanVM.Guest.Data.FrameSizes
 public import LeanVM.Guest.Memory.Alloc
 public import LeanVM.Guest.Memory.Tree
 public import LeanVM.Guest.Memory.Placed
@@ -358,18 +359,20 @@ theorem Honest.read_value (h : Honest P fs H C hdr T rd args rets) {cert : Strin
 and its word. -/
 def tableCells : List (ℕ × E) :=
   Data.f0.code.filterMap fun
-    | .set o k0 k1 k2 => some (o, OffsetInstruction.immediateWord k0 k1 k2)
+    | .set o k0 k1 => some (o, OffsetInstruction.immediateWord k0 k1)
     | _ => none
 
 set_option maxRecDepth 100000 in
-/-- The slots are `429, 430, …`, one per `SET`. -/
-theorem tableCells_offsets : tableCells.map Prod.fst = List.range' 429 13952 := by
+/-- The slots are `Data.mainCells, Data.mainCells + 1, …`, one per `SET`. -/
+theorem tableCells_offsets : tableCells.map Prod.fst = List.range' Data.mainCells Data.jtSlots := by
   decide +kernel
 
-/-- The slots lie in `main`'s frame past its header, below `429 + 13952`. -/
-theorem tableCells_off {q : ℕ × E} (hq : q ∈ tableCells) : 2 ≤ q.1 ∧ q.1 < 429 + 13952 := by
+/-- The slots lie in `main`'s frame past its header, below `Data.mainCells + Data.jtSlots`. -/
+theorem tableCells_off {q : ℕ × E} (hq : q ∈ tableCells) :
+    2 ≤ q.1 ∧ q.1 < Data.mainCells + Data.jtSlots := by
   have := tableCells_offsets ▸ List.mem_map_of_mem (f := Prod.fst) hq
   rw [List.mem_range'_1] at this
+  have : 2 ≤ Data.mainCells := by decide
   omega
 
 /-- Two slots at one offset are one slot. -/

@@ -13,7 +13,7 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # The batching is sound, challenge by challenge
 
-`Node.batch` absorbs the children's claims, squeezes one challenge `λ`, whose powers are the
+`Node.batch` absorbs the children's claims, checks a proof of work, squeezes one challenge `λ`, whose powers are the
 lambdas (`λ^(2i)`, `λ^(2i+1)` for child `i`), and runs one sumcheck on the bytecode, deferring one
 claim. `batch_sound`: if the batching accepts and its deferred claim holds, then every child's
 claims hold (its proof's, `BytecodeClaim.Holds`, and its
@@ -42,21 +42,24 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 /-! ## The transcript -/
 
 /-- The lambdas, a pair per child: the powers of the one challenge. -/
-def lambdasB (cs : List ChildClaims) : List (E × E) := (sqL cs.length (batchSponge cs)).1
+def lambdasB (cs : List ChildClaims) (h : BatchingHints) : List (E × E) := (sqL cs.length (powB cs h).2).1
 
 /-- The batched claim. -/
-def claimB (cs : List ChildClaims) : E := batchedClaim cs (lambdasB cs)
+def claimB (cs : List ChildClaims) (h : BatchingHints) : E := batchedClaim cs (lambdasB cs h)
 
 /-- The sponge at the sumcheck. -/
-def spB (cs : List ChildClaims) : Sponge := (sqL cs.length (batchSponge cs)).2
+def spB (cs : List ChildClaims) (h : BatchingHints) : Sponge := (sqL cs.length (powB cs h).2).2
 
 /-- **`Node.batch` in the transcript's names**: the deferred claim at the sumcheck's
-challenges, if the final check passes. -/
+challenges, if the proof of work and the final check pass. -/
 theorem batch_eq' (cs : List ChildClaims) (h : BatchingHints) :
     batch cs h =
-      if (rsRun h.sumcheckMessages (claimB cs) (spB cs)).1.2 = h.finalBytecodeValue *
-            batchedBytecodeWeight cs (lambdasB cs) (rsRun h.sumcheckMessages (claimB cs) (spB cs)).1.1 then
-        some ⟨(rsRun h.sumcheckMessages (claimB cs) (spB cs)).1.1, h.finalBytecodeValue⟩
+      if powOk batchLambdaGrindBits (powB cs h).1 then
+        if (rsRun h.sumcheckMessages (claimB cs h) (spB cs h)).1.2 = h.finalBytecodeValue *
+              batchedBytecodeWeight cs (lambdasB cs h)
+                (rsRun h.sumcheckMessages (claimB cs h) (spB cs h)).1.1 then
+          some ⟨(rsRun h.sumcheckMessages (claimB cs h) (spB cs h)).1.1, h.finalBytecodeValue⟩
+        else none
       else none :=
   batch_eq cs h
 
@@ -79,9 +82,9 @@ abbrev flat2 (l : List (E × E)) : List E := l.flatMap fun p ↦ [p.1, p.2]
 
 /-- **A challenge of the batching is bad**: its lambdas, or a round of its sumcheck. -/
 def BatchBad (bytecode : List K) (cs : List ChildClaims) (h : BatchingHints) : Prop :=
-  LambdaBad (gapsB bytecode cs) (flat2 (lambdasB cs)) ∨
+  LambdaBad (gapsB bytecode cs) (flat2 (lambdasB cs h)) ∨
     ∃ j < h.sumcheckMessages.length, BadRound h.sumcheckMessages.length
-      (bytecodePoly bytecode cs (lambdasB cs)) h.sumcheckMessages (claimB cs) (spB cs) j
+      (bytecodePoly bytecode cs (lambdasB cs h)) h.sumcheckMessages (claimB cs h) (spB cs h) j
 
 /-! ## Soundness -/
 
@@ -144,7 +147,7 @@ theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchingHin
     (hc : ∀ c ∈ cs, c.carriedClaim.HasBytecodeShape bytecode) :
     (∀ c ∈ cs, c.freshClaim.Holds bytecode ∧ c.carriedClaim.HoldsWithShape bytecode) ∨ BatchBad bytecode cs h := by
   rw [batch_eq'] at hb
-  split_ifs at hb with hfin
+  split_ifs at hb with hpow hfin
   injection hb with hd'
   subst hd'
   obtain ⟨hlog, hpow, hval⟩ := hd
@@ -154,7 +157,7 @@ theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchingHin
   have hlog' : Nat.log2 bytecode.length = n := by rw [← hpow, Nat.log2_two_pow]
   have hpB : ∀ c ∈ cs, c.freshClaim.bytecodePoint.length = n ∧ c.carriedClaim.bytecodePoint.length = n :=
     fun c hc' ↦ ⟨(hf c hc').trans hlog', (hc c hc').trans hlog'⟩
-  rcases gaps_cases (claimB_sub bytecode cs (lambdasB cs) (length_sqL _ _)) with hz | hbad | hne
+  rcases gaps_cases (claimB_sub bytecode cs (lambdasB cs h) (length_sqL _ _)) with hz | hbad | hne
   · exact Or.inl (holds_of_gaps hz (by rw [hlog', hpow]) hc)
   · exact Or.inr (Or.inl hbad)
   · refine Or.inr (Or.inr (rounds_sound rfl ?_ ?_))

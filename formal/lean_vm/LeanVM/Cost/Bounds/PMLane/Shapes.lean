@@ -8,8 +8,9 @@ public import LeanVM.Cost.Bounds.PMLane.ShapeDefs
 At each of the `60` admissible shapes (`16 ≤ μ ≤ 30`, `1 ≤ R ≤ 4`), one `decide +kernel` each
 (a single `decide` over all shapes at once outgrows the memory): the lanes are word-sized
 (`DecoderLaneSizes`) and the decoder's bound beyond the word's prices, at the model's prices
-with their margin, is within the stack size's budget less `2^75` (`pmDecoderBudget`; the worst,
-`(30, 3)`, about `2^81.81`): **`decoderShapePM_ok`**, which
+with their margin, is within the stack size's budget less `2^75` (`pmDecoderBudget`; at each
+stack size the worst rate is `4`, about `2^80.93` at `μ = 28`, `2^82.91` at `29`, `2^84.91` at
+`30`): **`decoderShapePM_ok`**, which
 `decodeStacksPMC_cost_worst` (`Bounds/PMLane/Decode.lean`) reads.
 
 The checks evaluate only the extractor's parameter search and the bounds' definitions, none of

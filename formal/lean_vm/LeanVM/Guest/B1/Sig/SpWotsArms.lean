@@ -32,7 +32,7 @@ open LeanVM.Guest.Value.Keccak
 variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
 theorem padRun_ok {P : Nat} (h : AtomsHold rd σ (padRun P)) : PadOK σ P := by
-  have e : ∀ k < 5, σ (.n (P + k)) = word (if k = 0 then 1 else 0) 0 0 := fun k hk =>
+  have e : ∀ k < 5, σ (.n (P + k)) = word (if k = 0 then 1 else 0) 0 := fun k hk =>
     h.atom (a := .const (.n (P + k)) _) (by
       simp only [padRun, cst, List.mem_map, List.mem_range]
       exact ⟨k, hk, rfl⟩)
@@ -43,7 +43,7 @@ theorem padRun_ok {P : Nat} (h : AtomsHold rd σ (padRun P)) : PadOK σ P := by
 /-! ## The chain step -/
 
 /-- **`sp_wots`'s chain step on cells**: step `s` of chain `i` on `x`, the first cell of the hash
-of `pp`, `a0`, `a1 + spStepC i s` and `x` (`walk`, `lean_ethereum.py:3568`). -/
+of `pp`, `a0`, `a1 + spStepC i s` and `x` (`walk`, `lean_ethereum.py:3532`). -/
 def spStepCell (pp a0 a1 : E) (i s : Nat) (x : E) : E :=
   (hcell [pp, a0, a1 + lit (spStepC i s), x]).1
 

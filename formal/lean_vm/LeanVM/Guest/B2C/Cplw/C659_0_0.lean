@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `level_queries__L112_L1_L64_L32_L21_L3`, window 0, part 0. -/
+/-- `level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw659_0_0 : cplWin 659 0 0 = true := by decide +kernel
 
-/-- `level_queries__L112_L1_L64_L32_L21_L3`, window 1, part 0. -/
+/-- `level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0`, window 1, part 0. -/
 theorem cw659_1_0 : cplWin 659 1 0 = true := by decide +kernel
 
-/-- `level_queries__L75_L1_L64_L32_L22_L4`, window 0, part 0. -/
+/-- `level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw660_0_0 : cplWin 660 0 0 = true := by decide +kernel
 
-/-- `level_queries__L75_L1_L64_L32_L22_L4`, window 1, part 0. -/
+/-- `level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0`, window 1, part 0. -/
 theorem cw660_1_0 : cplWin 660 1 0 = true := by decide +kernel
 
-/-- `level_queries__L56_L1_L64_L32_L23_L5`, window 0, part 0. -/
+/-- `level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw661_0_0 : cplWin 661 0 0 = true := by decide +kernel
 
-/-- `level_queries__L56_L1_L64_L32_L23_L5`, window 1, part 0. -/
+/-- `level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0`, window 1, part 0. -/
 theorem cw661_1_0 : cplWin 661 1 0 = true := by decide +kernel
 
-/-- `level_positions__L5_L21_L3`, window 0, part 0. -/
+/-- `level_positions__L3_L19_L7`, window 0, part 0. -/
 theorem cw662_0_0 : cplWin 662 0 0 = true := by decide +kernel
 
-/-- `level_positions__L4_L22_L4`, window 0, part 0. -/
+/-- `level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw663_0_0 : cplWin 663 0 0 = true := by decide +kernel
 
 theorem ok659 : CplOk 659 := by
@@ -91,16 +91,6 @@ theorem ok662 : CplOk 662 := by
     rw [hn] at hk
     interval_cases k
     · exact cw662_0_0
-
-theorem ok663 : CplOk 663 := by
-  intro i hi k hk
-  have hc : (certOf 663).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 663 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw663_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

@@ -12,9 +12,9 @@ public import LeanVM.Guest.B1.Selectors.SelectorTables
 /-!
 # `sel_partial_nibble` (TRIAGE G #45-47)
 
-`sel_partial_nibble(eq_out, g_out, z, z1, gs, w)` (G:1983-1987) runs, for `w > 0`, the inline
-`sel_eq_nibble` (G:1951-1965: the eq levels over `z[0 .. w]`, level `t` from level `t - 1`, entry
-`i` times `z1[t]`, then times `z[t]`, stored at `eq_out[0 ..]`) and `sel_g_nibble` (G:1974-1985:
+`sel_partial_nibble(eq_out, g_out, z, z1, gs, w)` (G:2096-2100) runs, for `w > 0`, the inline
+`sel_eq_nibble` (G:2064-2078: the eq levels over `z[0 .. w]`, level `t` from level `t - 1`, entry
+`i` times `z1[t]`, then times `z[t]`, stored at `eq_out[0 ..]`) and `sel_g_nibble` (G:1924-1935:
 `vals[2^t + i] = vals[i]·gs[t]`, stored at `g_out[0 ..]`), and returns `0`.
 
 The body of `sel_partial_nibble__L{w}` is `spBody w` (`spFound`, by kernel evaluation): the eq
@@ -69,14 +69,14 @@ def spPre (w : ℕ) : List Stmt :=
   [.atom (.load (.n 5) (.n 3) 0), .atom (.load (.n 6) (.n 2) 0)] ++
     ((List.range (w - 1)).map fun t ↦ spLevel (t + 1)).flatten ++
     (List.range (2 ^ (w + 1) - 2)).map (fun e ↦ .atom (.load (.n (spEq e)) (.n 0) e)) ++
-    [.atom (.const (.n (spC w)) (word 1 0 0)), .atom (.load (.n (spC w + 1)) (.n 4) 0)] ++
+    [.atom (.const (.n (spC w)) (word 1 0)), .atom (.load (.n (spC w + 1)) (.n 4) 0)] ++
     ((List.range (w - 1)).map fun t ↦ spGStep w (t + 1)).flatten ++
     (List.range (2 ^ w)).map (fun u ↦ .atom (.load (.n (spG w u)) (.n 1) u)) ++
-    [.atom (.const (.n (spC w + 2 ^ w + w - 1)) (word 0 0 0))]
+    [.atom (.const (.n (spC w + 2 ^ w + w - 1)) (word 0 0))]
 
 /-- The body of `sel_partial_nibble__L{w}`. -/
 def spBody (w : ℕ) : List Stmt :=
-  if w = 0 then [.atom (.const (.n 5) (word 0 0 0)), .ret [.n 5]]
+  if w = 0 then [.atom (.const (.n 5) (word 0 0)), .ret [.n 5]]
   else spPre w ++ [.ret [.n (spC w + 2 ^ w + w - 1)]]
 
 /-- The function found by name is the template. -/
@@ -118,17 +118,17 @@ theorem holds_spPre {w : ℕ} (h : Stmt.HoldsList C rd σ (spPre w) True kret) :
     (LoadHolds rd (σ (.n 3)) 0 (σ (.n 5)) ∧ LoadHolds rd (σ (.n 2)) 0 (σ (.n 6))) ∧
     (∀ t < w - 1, Stmt.HoldsList C rd σ (spLevel (t + 1)) True kret) ∧
     (∀ e < 2 ^ (w + 1) - 2, LoadHolds rd (σ (.n 0)) e (σ (.n (spEq e)))) ∧
-    (σ (.n (spC w)) = word 1 0 0 ∧ LoadHolds rd (σ (.n 4)) 0 (σ (.n (spC w + 1)))) ∧
+    (σ (.n (spC w)) = word 1 0 ∧ LoadHolds rd (σ (.n 4)) 0 (σ (.n (spC w + 1)))) ∧
     (∀ t < w - 1, Stmt.HoldsList C rd σ (spGStep w (t + 1)) True kret) ∧
     (∀ u < 2 ^ w, LoadHolds rd (σ (.n 1)) u (σ (.n (spG w u)))) ∧
-    σ (.n (spC w + 2 ^ w + w - 1)) = word 0 0 0 := by
+    σ (.n (spC w + 2 ^ w + w - 1)) = word 0 0 := by
   have nL := tb_noRetList_flatten_range (w - 1) _ (fun t => spLevel_noRet (t + 1))
   have nG := tb_noRetList_flatten_range (w - 1) _ (fun t => spGStep_noRet w (t + 1))
   have nA := tb_noRetList_mapAtoms (2 ^ (w + 1) - 2) (fun e ↦ .load (.n (spEq e)) (.n 0) e)
   have nB := tb_noRetList_mapAtoms (2 ^ w) (fun u ↦ .load (.n (spG w u)) (.n 1) u)
   have n0 : Stmt.noRetList [Stmt.atom (.load (.n 5) (.n 3) 0), Stmt.atom (.load (.n 6) (.n 2) 0)] =
     true := rfl
-  have n1 : Stmt.noRetList [Stmt.atom (.const (.n (spC w)) (word 1 0 0)),
+  have n1 : Stmt.noRetList [Stmt.atom (.const (.n (spC w)) (word 1 0)),
     Stmt.atom (.load (.n (spC w + 1)) (.n 4) 0)] = true := rfl
   rw [spPre] at h
   rw [tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nG, nA, nB, n0, n1,

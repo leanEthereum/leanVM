@@ -19,7 +19,7 @@ Each reader of `Proof.fromBytes` reads back its writer's bytes and the rest unto
 (`readU32_u32Bytes`, `readWords_toBytes`, `readDigest_digestBytes`, `readRows_toBytes`, …), and,
 conversely, what a reader accepts is its writer's bytes of what it returns
 (`readU32_eq_some_iff`, `readWords_eq_some_iff`, …: the one encoding of each field). The stream
-travels as its elements' limbs, regrouped in threes as `readProof` does (`streamOfWords`,
+travels as its elements' limbs, regrouped in twos as `readProof` does (`streamOfWords`,
 `readStream_toBytes`).
 
 The base facts are about one 64-bit lane: `littleEndianLane` of a word's bytes is the word
@@ -82,16 +82,6 @@ theorem littleEndianLane_eq_drop (bs : List UInt8) (i : ℕ) :
   apply UInt64.toNat_inj.mp
   simp only [toNat_littleEndianLane, List.getD_eq_getElem?_getD, List.getElem?_drop,
     Nat.mul_zero, Nat.zero_add]
-
-/-- Lane `0` reads only the first eight bytes. -/
-theorem littleEndianLane_take (bs : List UInt8) (n : ℕ) (hn : 8 ≤ n) :
-    littleEndianLane (bs.take n) 0 = littleEndianLane bs 0 := by
-  apply UInt64.toNat_inj.mp
-  simp only [toNat_littleEndianLane]
-  refine Finset.sum_congr rfl fun k hk ↦ ?_
-  have hk := Finset.mem_range.mp hk
-  simp only [List.getD_eq_getElem?_getD, List.getElem?_take, Nat.mul_zero, Nat.zero_add,
-    show k < n by omega, ite_true]
 
 /-- **The lane of a word's bytes is the word.** -/
 theorem littleEndianLane_wordBytes_append (w : UInt64) (rest : List UInt8) :
@@ -422,15 +412,14 @@ theorem readRows_toBytes {w : ℕ} {rows : List (List K)} (hrows : ∀ r ∈ row
 
 /-! ## The stream -/
 
-/-- The stream `readProof` regroups from its words: element `i` is the words `3 i, 3 i + 1,
-3 i + 2` as its limbs (`F192::new`). -/
+/-- The stream `readProof` regroups from its words: element `i` is the words `2 i, 2 i + 1` as
+its limbs (`F128::new`). -/
 def streamOfWords (length : ℕ) (words : List K) : List E :=
-  (List.range length).map fun i ↦
-    E.ofLimbs (words.getD (3 * i) 0) (words.getD (3 * i + 1) 0) (words.getD (3 * i + 2) 0)
+  (List.range length).map fun i ↦ E.ofLimbs (words.getD (2 * i) 0) (words.getD (2 * i + 1) 0)
 
-/-- The words a stream travels as: each element's three limbs. -/
+/-- The words a stream travels as: each element's two limbs. -/
 def streamWords (stream : List E) : List K :=
-  stream.flatMap fun x ↦ [x.limb 0, x.limb 1, x.limb 2]
+  stream.flatMap fun x ↦ [x.limb 0, x.limb 1]
 
 theorem flatMap_toBytes_streamWords (stream : List E) :
     (streamWords stream).flatMap K.toBytes = stream.flatMap E.toBytes := by
@@ -442,24 +431,24 @@ theorem flatMap_toBytes_streamWords (stream : List E) :
     simp [E.toBytes]
 
 @[simp] theorem length_streamWords (stream : List E) :
-    (streamWords stream).length = 3 * stream.length := by
+    (streamWords stream).length = 2 * stream.length := by
   induction stream with
   | nil => rfl
   | cons x stream ih =>
     simp only [streamWords, List.flatMap_cons, List.length_append] at ih ⊢
     rw [ih]; simp; ring
 
-private theorem ofLimbs_limbs (x : E) : E.ofLimbs (x.limb 0) (x.limb 1) (x.limb 2) = x :=
+private theorem ofLimbs_limbs (x : E) : E.ofLimbs (x.limb 0) (x.limb 1) = x :=
   CompPoly.Extension.Ext.ext fun i ↦ by fin_cases i <;> rfl
 
-/-- The first element of a regrouped stream is its first three words. -/
-theorem streamOfWords_succ (length : ℕ) (a b c : K) (words : List K) :
-    streamOfWords (length + 1) (a :: b :: c :: words) =
-      E.ofLimbs a b c :: streamOfWords length words := by
+/-- The first element of a regrouped stream is its first two words. -/
+theorem streamOfWords_succ (length : ℕ) (a b : K) (words : List K) :
+    streamOfWords (length + 1) (a :: b :: words) =
+      E.ofLimbs a b :: streamOfWords length words := by
   simp only [streamOfWords, List.range_succ_eq_map, List.map_cons, List.map_map]
   refine congrArg₂ _ rfl (List.map_congr_left fun i _ ↦ ?_)
-  simp only [Function.comp_apply, List.getD_eq_getElem?_getD, Nat.succ_eq_add_one,
-    show 3 * (i + 1) = 3 * i + 3 by ring, List.getElem?_cons_succ]
+  simp only [Function.comp_apply, List.getD_eq_getElem?_getD,
+    show 2 * (i + 1) = 2 * i + 2 by ring, List.getElem?_cons_succ]
 
 /-- Regrouping a stream's words gives the stream. -/
 theorem streamOfWords_streamWords :
@@ -467,21 +456,20 @@ theorem streamOfWords_streamWords :
   | [] => rfl
   | x :: stream => by
     rw [streamWords, List.flatMap_cons, ← streamWords, List.length_cons, List.cons_append,
-      List.cons_append, List.cons_append, List.nil_append, streamOfWords_succ,
+      List.cons_append, List.nil_append, streamOfWords_succ,
       streamOfWords_streamWords stream, ofLimbs_limbs]
 
-/-- The words of a stream regrouped from `3 * length` words are those words. -/
+/-- The words of a stream regrouped from `2 * length` words are those words. -/
 theorem streamWords_streamOfWords :
-    ∀ (length : ℕ) {words : List K}, words.length = 3 * length →
+    ∀ (length : ℕ) {words : List K}, words.length = 2 * length →
       streamWords (streamOfWords length words) = words
   | 0, words, h => by simp_all [streamOfWords, streamWords]
-  | length + 1, a :: b :: c :: words, h => by
+  | length + 1, a :: b :: words, h => by
     rw [streamOfWords_succ, streamWords, List.flatMap_cons, ← streamWords,
       streamWords_streamOfWords length (by simp at h; omega)]
     rfl
   | length + 1, [], h => by simp at h
   | length + 1, [_], h => by simp at h; omega
-  | length + 1, [_, _], h => by simp at h; omega
 
 @[simp] theorem length_streamOfWords (length : ℕ) (words : List K) :
     (streamOfWords length words).length = length := by
@@ -490,7 +478,7 @@ theorem streamWords_streamOfWords :
 /-- **The stream reads back:** `readProof` reads its elements' words and regroups them into the
 stream. -/
 theorem readStream_toBytes (stream : List E) (rest : List UInt8) :
-    readWords (3 * stream.length) (stream.flatMap E.toBytes ++ rest) =
+    readWords (2 * stream.length) (stream.flatMap E.toBytes ++ rest) =
         some (streamWords stream, rest) ∧
       streamOfWords stream.length (streamWords stream) = stream := by
   refine ⟨readWords_eq_some_iff.mpr ⟨by simp, by rw [flatMap_toBytes_streamWords]⟩,
@@ -498,7 +486,7 @@ theorem readStream_toBytes (stream : List E) (rest : List UInt8) :
 
 /-- **What the stream's read accepts:** the bytes of the stream it regroups, then the rest. -/
 theorem eq_of_readWords_stream {length : ℕ} {input rest : List UInt8} {words : List K}
-    (h : readWords (3 * length) input = some (words, rest)) :
+    (h : readWords (2 * length) input = some (words, rest)) :
     input = (streamOfWords length words).flatMap E.toBytes ++ rest := by
   obtain ⟨hlen, rfl⟩ := readWords_eq_some_iff.mp h
   rw [← flatMap_toBytes_streamWords, streamWords_streamOfWords length hlen]

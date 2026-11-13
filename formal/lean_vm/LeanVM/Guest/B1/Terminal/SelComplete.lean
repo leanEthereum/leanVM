@@ -60,8 +60,8 @@ theorem csk_holdsPre {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg :
     subst ho0
     simp only [csPre, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true,
       true_and]
-    have e3 : F 3 = word 1 0 0 := by simp [hF, cskVal]
-    have e4 : F 4 = word 1 0 0 := by simp [hF, cskVal]
+    have e3 : F 3 = word 1 0 := by simp [hF, cskVal]
+    have e4 : F 4 = word 1 0 := by simp [hF, cskVal]
     rw [e3, e4, f0, tb_word_one, pow_zero]
     exact ⟨rfl, e_add_self 1, rfl⟩
   have hκ' : κ < 32 := by omega
@@ -234,9 +234,6 @@ theorem cs_addr_mul (b c k : ℕ) : (ofK (addressOfIndex b) * gen ^ c).limb 0 * 
   have e : ofK (addressOfIndex b) * gen ^ c = ofK (addressOfIndex (b + c)) := by
     rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
   rw [e, Main.addr_ofK]
-
-theorem colSelNames_mem {κ : ℕ} (hκ : κ < 31) : Tables.lName "column_selector" κ ∈ colSelNames :=
-  List.mem_map.mpr ⟨κ, List.mem_range.mpr hκ, rfl⟩
 
 /-! ## The nibble shares -/
 

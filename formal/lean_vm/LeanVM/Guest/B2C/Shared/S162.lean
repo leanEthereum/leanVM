@@ -16,90 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `level_queries__L17_L0_L16_L24_L16_L4`, window 0. -/
-theorem w500_0 : shareWin 500 (snapsOf 500) 0 = true := by decide +kernel
+/-- `level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1`, once. -/
+theorem st624 : shareStatic 624 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `level_queries__L17_L0_L16_L24_L16_L4`, window 1. -/
-theorem w500_1 : shareWin 500 (snapsOf 500) 1 = true := by decide +kernel
+/-- `level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1`, window 0. -/
+theorem w624_0 : shareWin 624 (snapsOf 624) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `fold_final_msg__L3`, once. -/
-theorem st501 : shareStatic 501 = true := by decide +kernel
+/-- `level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1`, window 1. -/
+theorem w624_1 : shareWin 624 (snapsOf 624) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `fold_final_msg__L3`, window 0. -/
-theorem w501_0 : shareWin 501 (snapsOf 501) 0 = true := by decide +kernel
-
-theorem ok501 : ShareOk 501 := ⟨st501, fun i hi ↦ by
-  have h : (snapsOf 501).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w501_0⟩
+/-- `level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1`, once. -/
+theorem st625 : shareStatic 625 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `level_residual__L223_L15`, once. -/
-theorem st502 : shareStatic 502 = true := by decide +kernel
+/-- `level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1`, window 0. -/
+theorem w625_0 : shareWin 625 (snapsOf 625) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `level_residual__L223_L15`, window 0. -/
-theorem w502_0 : shareWin 502 (snapsOf 502) 0 = true := by decide +kernel
-
-theorem ok502 : ShareOk 502 := ⟨st502, fun i hi ↦ by
-  have h : (snapsOf 502).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w502_0⟩
+/-- `level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1`, window 1. -/
+theorem w625_1 : shareWin 625 (snapsOf 625) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `level_residual__L112_L15`, once. -/
-theorem st503 : shareStatic 503 = true := by decide +kernel
+/-- `level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1`, once. -/
+theorem st626 : shareStatic 626 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `level_residual__L112_L15`, window 0. -/
-theorem w503_0 : shareWin 503 (snapsOf 503) 0 = true := by decide +kernel
-
-theorem ok503 : ShareOk 503 := ⟨st503, fun i hi ↦ by
-  have h : (snapsOf 503).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w503_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `level_residual__L75_L15`, once. -/
-theorem st504 : shareStatic 504 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `level_residual__L75_L15`, window 0. -/
-theorem w504_0 : shareWin 504 (snapsOf 504) 0 = true := by decide +kernel
-
-theorem ok504 : ShareOk 504 := ⟨st504, fun i hi ↦ by
-  have h : (snapsOf 504).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w504_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `level_residual__L56_L15`, once. -/
-theorem st505 : shareStatic 505 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `level_residual__L56_L15`, window 0. -/
-theorem w505_0 : shareWin 505 (snapsOf 505) 0 = true := by decide +kernel
-
-theorem ok505 : ShareOk 505 := ⟨st505, fun i hi ↦ by
-  have h : (snapsOf 505).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w505_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `level_residual__L56_L11`, once. -/
-theorem st506 : shareStatic 506 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `level_residual__L56_L11`, window 0. -/
-theorem w506_0 : shareWin 506 (snapsOf 506) 0 = true := by decide +kernel
-
-theorem ok506 : ShareOk 506 := ⟨st506, fun i hi ↦ by
-  have h : (snapsOf 506).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w506_0⟩
+/-- `level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1`, window 0. -/
+theorem w626_0 : shareWin 626 (snapsOf 626) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

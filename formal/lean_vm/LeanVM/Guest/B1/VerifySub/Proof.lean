@@ -6,8 +6,8 @@
 
 module
 
-public import LeanVM.Guest.B1.VerifySub.Template
-public import LeanVM.Guest.B1.Whir.InterfaceW
+public import LeanVM.Guest.B1.VerifySub.Interface
+public import LeanVM.Guest.B1.Whir.Witness
 public import LeanVM.Guest.B1.Main.Frames
 
 /-!
@@ -15,10 +15,10 @@ public import LeanVM.Guest.B1.Main.Frames
 
 `vsPiOf rd σ V` reads the child proof off `verify_sub`'s valuation `σ`, the memory `rd` and the
 frame map `V`, choosing nothing and computing no hash: the stream is the memory's words at
-`stream` (`σ 25`) up to the cursor handed to `open_stacked` (`σ 656`, found by comparing
+`stream` (`σ 25`) up to the cursor handed to `open_stacked` (`σ 1919`, found by comparing
 `g`-powers, `cursorLen`), then `open_stacked`'s words, and the openings are `open_stacked`'s
-(`open_stacked_osW` at its frame, the specialization read off the dispatch's selector `σ 1686`,
-the rate off its selector `σ 122`).
+(`open_stacked_osW` at its frame, the specialization read off the dispatch's selector `σ 278`, the
+rate off its selector `σ 66`).
 
 `wordsAt_eq`, `cursorLen_eq`, `gIdx_eq`: the decoding gives what a run read.
 -/
@@ -42,7 +42,7 @@ def cursorLen (p q : E) : ℕ :=
 def gIdx (N : ℕ) (x : E) : ℕ :=
   ((List.range N).find? fun j ↦ decide (x = ofK (Parameters.addressOfIndex j))).getD 0
 
-/-- The size's index the dispatch selects: the `j < 13` with `x = g^j`. -/
+/-- The size's index the dispatch selects: the `j < 11` with `x = g^j`. -/
 def dispatchIdx (x : E) : ℕ := gIdx 11 x
 
 /-- The rate whose selector is `x`: one plus the `j < 4` with `x = g^j`. -/
@@ -50,18 +50,18 @@ def rateOf (x : E) : ℕ := gIdx 4 x + 1
 
 /-- `open_stacked`'s argument words in `verify_sub`. -/
 def vsOsArgs (σ : Val) : List E :=
-  [σ (.n 122), σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104), σ (.n 1681), σ (.n 324),
-    σ (.n 334), σ (.n 656)]
+  [σ (.n 66), σ (.n 1370), σ (.n 1371), σ (.n 1372), σ (.n 1373), σ (.n 1374), σ (.n 1917),
+    σ (.n 268), σ (.n 271), σ (.n 1919), σ (.n 1921)]
 
 /-- `open_stacked`'s return words in `verify_sub`. -/
-def vsOsRets (σ : Val) : List E := [σ (.n 1691), σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695)]
+def vsOsRets (σ : Val) : List E := [σ (.n 1922), σ (.n 1923), σ (.n 1924), σ (.n 1925), σ (.n 1926)]
 
 /-- The child proof, given `open_stacked`'s witness function `osW` (size's index, rate,
 arguments, returns ↦ stream words, openings). -/
 def piOfW (osW : ℕ → ℕ → List E → List E → List E × List (List Opening)) (rd : Reader) (σ : Val) :
     Proof :=
-  let w := osW (dispatchIdx (σ (.n 1686))) (rateOf (σ (.n 122))) (vsOsArgs σ) (vsOsRets σ)
-  ⟨wordsAt rd (σ (.n 25)) (cursorLen (σ (.n 25)) (σ (.n 656))) ++ w.1, w.2⟩
+  let w := osW (dispatchIdx (σ (.n 278))) (rateOf (σ (.n 66))) (vsOsArgs σ) (vsOsRets σ)
+  ⟨wordsAt rd (σ (.n 25)) (cursorLen (σ (.n 25)) (σ (.n 1919))) ++ w.1, w.2⟩
 
 /-- `open_stacked`'s witness function at the frame map `V`. -/
 def vsOsW (rd : Reader) (V : FrameMap) : ℕ → ℕ → List E → List E → List E × List (List Opening) :=

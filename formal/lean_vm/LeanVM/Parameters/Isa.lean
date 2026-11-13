@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Parameters.Generator
 public import Statement.LeanIsa
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 
 /-!

@@ -180,15 +180,6 @@ theorem segLen_take_add_le : ∀ (segs : List (ℕ × (ℕ → E))) (m : ℕ) (h
       List.getElem_cons_succ] at this ⊢
     omega
 
-/-- **A segment's values** in a valuation holding the segments from `k`. -/
-theorem seg_val {σ : Val} {k : ℕ} {segs : List (ℕ × (ℕ → E))}
-    (hv : ∀ j < segLen segs, σ (.n (k + j)) = segLookup segs j) (m : ℕ) (hm : m < segs.length)
-    (o : ℕ) (ho : segLen (segs.take m) = o) (i : ℕ) (hi : i < segs[m].1) :
-    σ (.n (k + o + i)) = segs[m].2 i := by
-  have := segLen_take_add_le segs m hm
-  rw [Nat.add_assoc, hv _ (by omega), ← ho]
-  exact segLookup_get segs m hm i hi
-
 /-- A block whose outcome holds of every later valuation agreeing below `k'`. -/
 def Stable (k' : ℕ) (Out : Val → Prop) : Prop := ∀ σ σ', Out σ → AgreeBelow k' σ σ' → Out σ'
 

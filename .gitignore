@@ -2,3 +2,6 @@
 target
 __pycache__/
 .vscode
+# Never committed: papers and previews kept beside the repo, LaTeX scratch.
+/*.pdf
+*.tex.tex

@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.XmssT
 
   The body of `verify_lean_xmss` as a template, written from the guest's structure
-  (`lean_ethereum.py:3516-3728`) with the values numbered as the renumbered expansion numbers them.
+  (`lean_ethereum.py:3480-3692`) with the values numbered as the renumbered expansion numbers them.
 -/
 
 module
@@ -35,16 +35,16 @@ def xPower (s : Nat) : V := .n (128 + s)
 def xTag (i : Nat) : V := .n (138 + i)
 
 /-- `g^106`, the leanXMSS target sum in the exponent. -/
-def xTarget : E := word 118747255799808 0 0
+def xTarget : E := word 118747255799808 0
 
-/-- The prologue (`lean_ethereum.py:3627-3679`). -/
+/-- The prologue (`lean_ethereum.py:3591-3643`). -/
 def xPrologue : List Stmt :=
   [loadS (.n 1) (.n 0) 1, hintW "leaf_index_bits" (runV 2 32)] ++ booleans 2 32 ++ shifts 2 32 34 ++
-    (List.range 10).map (fun s => cst (128 + s) (word (2 ^ s) 0 0)) ++
-    (List.range 58).map (fun i => cst (138 + i) (word i 0 0))
+    (List.range 10).map (fun s => cst (128 + s) (word (2 ^ s) 0)) ++
+    (List.range 58).map (fun i => cst (138 + i) (word i 0))
 
 /-- leanXMSS's chain step: `keccak([P, steps s], [v, i], walks[o:o + 1])` (`walk`,
-`lean_ethereum.py:3565`), its constant at `c`. -/
+`lean_ethereum.py:3529`), its constant at `c`. -/
 def xWots (steps : Nat → V) : WotsT where
   step i s v c o := k64 xPad (.n 1) (steps s) v (xTag i) c o
   size := 1
@@ -53,24 +53,24 @@ def xWots (steps : Nat → V) : WotsT where
 /-- The bottom layer's message digest from base `b`: `D = Th(P, A_msg, M | ρ)`, 80 bytes, one
 block; it sets the padding run at `b + 10`. -/
 def xDigest0 (b : Nat) : List Stmt :=
-  [hintW "randomizer" [.n b], cst (b + 1) (word (tw 12) 0 0), addS (.n (b + 2)) (xNode 0) (.n (b + 1)),
+  [hintW "randomizer" [.n b], cst (b + 1) (word (tw 12) 0), addS (.n (b + 2)) (xNode 0) (.n (b + 1)),
     loadS (.n (b + 3)) (.n 0) 2, loadS (.n (b + 4)) (.n 0) 3, copyS (.n (b + 5)) (.n b),
-    cst (b + 6) (word 1 0 0), cst (b + 7) (word 0 0 0), cst (b + 8) (word 0 0 0),
-    cst (b + 9) (word (2 ^ 63) 0 0)] ++
-  (List.range 5).map (fun k => cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0 0)) ++
+    cst (b + 6) (word 1 0), cst (b + 7) (word 0 0), cst (b + 8) (word 0 0),
+    cst (b + 9) (word (2 ^ 63) 0)] ++
+  (List.range 5).map (fun k => cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0)) ++
   [kecS [.n 1, .n (b + 2), .n (b + 3), .n (b + 4), .n (b + 5), .n (b + 6), .n (b + 7), .n (b + 8),
     .n (b + 9), .n (b + 11), .n (b + 12), .n (b + 13), .n (b + 14)] (runV (b + 15) 1) false false]
 
 /-- The top layer's index and message digest from base `b`, over the bottom root `root`. -/
 def xDigest1 (b : Nat) (root : V) : List Stmt :=
-  [cst b (word lxTop 0 0), addS (.n (b + 1)) (xNode 16) (.n b), hintW "randomizer" [.n (b + 2)],
-    cst (b + 3) (word (tw 12) 0 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))] ++
+  [cst b (word lxTop 0), addS (.n (b + 1)) (xNode 16) (.n b), hintW "randomizer" [.n (b + 2)],
+    cst (b + 3) (word (tw 12) 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))] ++
   k64 xPad (.n 1) (.n (b + 4)) root (.n (b + 2)) (b + 5) (b + 6)
 
 /-- The three step addresses from base `b`, at `n(b + 2s + 1)`. -/
 def xStepAddrs (idx : V) (b : Nat) : List Stmt :=
   (List.range 3).flatMap fun s =>
-    [cst (b + 2 * s) (word (tw 1 + s * stepMul) 0 0), addS (.n (b + 2 * s + 1)) idx (.n (b + 2 * s))]
+    [cst (b + 2 * s) (word (tw 1 + s * stepMul) 0), addS (.n (b + 2 * s + 1)) idx (.n (b + 2 * s))]
 
 /-! ## A layer -/
 
@@ -97,7 +97,7 @@ step addresses, its codeword, its one-time leaf and its path; the statements, th
 its root. -/
 def xLayer (layer b : Nat) (root : V) : List Stmt × Nat × V :=
   ((if layer = 0 then xDigest0 b else xDigest1 b root) ++ xStepAddrs (xIdx layer b) (xA layer b) ++
-    (xCw layer b).1 ++ [cst (xCw layer b).2.1 (word (tw 2) 0 0),
+    (xCw layer b).1 ++ [cst (xCw layer b).2.1 (word (tw 2) 0),
       addS (.n ((xCw layer b).2.1 + 1)) (xIdx layer b) (.n (xCw layer b).2.1)] ++
     (xLeafK layer b).1 ++ (xMk layer b).1, (xMk layer b).2.1, (xMk layer b).2.2)
 

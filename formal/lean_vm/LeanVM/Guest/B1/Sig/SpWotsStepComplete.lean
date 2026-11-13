@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SpWotsStepComplete
 
-  `sp_wots`'s chain step, for completeness: in single-assignment form, reading and writing
-  canonical cells.
+  `sp_wots`'s chain step, for completeness: in single-assignment form.
 -/
 
 module
@@ -18,8 +17,8 @@ The step is a 64-byte `keccak` (`k64`) of `pp`, `at[0]`, the step's `A1` and the
 two atoms that add the step's constant to `at[1]` (`spPre2`), none for chain `0`'s first step.
 
 * `spWp_step`: the step in those terms;
-* `SpGood b σ`: the values the step reads: `pp`, `at[0]`, `at[1]`, the run at `b`;
-  `spWp_shape`, `spWp_canon`, `spWp_atoms`.
+* `SpGood b σ`: the padding run at `b`, which the step reads; `spWp_shape`, `spWp_stable`,
+  `spWp_atoms`.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -119,72 +118,16 @@ theorem spWp_shape {b B : Nat} (hB : b + 5 ≤ B) (h6 : 6 ≤ B) : StepShape (sp
         · exact Or.inr (Or.inl ⟨b + k, by omega, rfl⟩)
         · exact Or.inr (Or.inr (Or.inr hx))
 
-/-- The values `sp_wots`'s step reads: `pp`, `at[0]`, `at[1]` and the padding run at `b`. -/
-def SpGood (b : Nat) (σ : Val) : Prop :=
-  IsCanonical128 (σ (.n 0)) ∧ IsCanonical128 (σ (.n 4)) ∧ IsCanonical128 (σ (.n 5)) ∧ PadOK σ b
+/-- The padding run at `b`, which `sp_wots`'s step reads. -/
+def SpGood (b : Nat) (σ : Val) : Prop := PadOK σ b
 
-theorem spGood_congr {b B : Nat} (hB : b + 5 ≤ B) (h6 : 6 ≤ B) {σ σ' : Val}
-    (hσ : AgreeBelow B σ σ') (h : SpGood b σ) : SpGood b σ' := by
-  obtain ⟨g0, g4, g5, gp⟩ := h
-  exact ⟨by rw [hσ.apply ⟨0, by omega, rfl⟩]; exact g0, by rw [hσ.apply ⟨4, by omega, rfl⟩]; exact g4,
-    by rw [hσ.apply ⟨5, by omega, rfl⟩]; exact g5, gp.congr (b := B) hB hσ⟩
+theorem spGood_congr {b B : Nat} (hB : b + 5 ≤ B) {σ σ' : Val}
+    (hσ : AgreeBelow B σ σ') (h : SpGood b σ) : SpGood b σ' :=
+  PadOK.congr (b := B) h hB hσ
 
-theorem canon_litC (c : Nat) : IsCanonical128 (lit c) := canon_word _ _
-
-/-- **The step reads and writes canonical cells.** -/
-theorem spWp_canon {b B : Nat} (hB : b + 5 ≤ B) (h6 : 6 ≤ B) :
-    StepCanon (spWp b) B (SpGood b) := by
-  refine ⟨fun σ σ' hσ h => spGood_congr hB h6 hσ h, fun i s v c o σ hc ho hco h1 h2 hg hv => ?_⟩
-  obtain ⟨g0, g4, g5, gp⟩ := hg
-  have hsz : (spWp b).size = 3 := rfl
-  rw [hsz] at hco h1
-  have hne : ∀ {x y : Nat}, x ≠ y → V.n x ≠ V.n y := fun h e => h (by simpa using e)
-  have hlow : ∀ j < 6, ¬ InR o 1 (.n j) := fun j hj ⟨k, hk, e⟩ => by
-    simp only [V.mk.injEq, true_and] at e; omega
-  have hvc : ∀ j < 3, v ≠ .n (c + j) := fun j hj e => h1 ⟨j, hj, e⟩
-  have hv0 : v ≠ .n c := by simpa using hvc 0 (by norm_num)
-  rw [spWp_step]
-  split
-  · refine k64_fwd_canon σ (by omega) (fun x hx => ?_) (by omega) (by omega) gp
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-    rcases hx with rfl | rfl | rfl | rfl
-    · exact ⟨hlow 0 (by norm_num), hne (by omega), g0⟩
-    · exact ⟨hlow 4 (by norm_num), hne (by omega), g4⟩
-    · exact ⟨hlow 5 (by norm_num), hne (by omega), g5⟩
-    · exact ⟨h2, hv0, hv⟩
-  · set σ1 := Function.update σ (.n c) (lit (spStepC i s)) with hσ1
-    set σ2 := Function.update σ1 (.n (c + 1)) (σ1 (.n 5) + σ1 (.n c)) with hσ2
-    have hf : fwd (spPre2 i s c) σ = σ2 := rfl
-    have keep : ∀ x, x ≠ .n c → x ≠ .n (c + 1) → σ2 x = σ x := fun x h1 h2 => by
-      rw [hσ2, Function.update_of_ne h2, hσ1, Function.update_of_ne h1]
-    have e1 : σ2 (.n (c + 1)) = σ (.n 5) + lit (spStepC i s) := by
-      rw [hσ2, Function.update_self, hσ1, Function.update_of_ne (hne (by omega)),
-        Function.update_self]
-    have hdisj : ∀ x ∈ outsList (k64 b (.n 0) (.n 4) (.n (c + 1)) v (c + 2) o),
-        x ∉ Stmt.valsList (spPre2 i s c) := by
-      intro x hx hm
-      rw [k64_outs] at hx
-      rcases spPre2_vals i s c hm with rfl | rfl | rfl <;> rcases List.mem_cons.mp hx with e | hx <;>
-        first | (simp only [V.mk.injEq, true_and] at e; omega) |
-          (obtain ⟨k, hk, e⟩ := mem_runV.mp hx; simp only [V.mk.injEq, true_and] at e; omega)
-    have hk := k64_fwd_canon (pad := b) (m0 := .n 0) (m1 := .n 4) (m2 := .n (c + 1)) (m3 := v)
-      (c := c + 2) (o := o) σ2 (by omega) (fun x hx => ?_) (by omega) (by omega)
-      (gp.congr (b := c) (by omega) fun k hk => (keep _ (hne (by omega)) (hne (by omega))).symm)
-    · refine ⟨KCanon.append (kcanon_noKec fun x hx ins outs i' o' e => ?_) (by rw [hf]; exact hk.1)
-        hdisj, fun j hj => ?_⟩
-      · simp only [spPre2, cst, addS, List.mem_cons, List.not_mem_nil, or_false] at hx
-        rcases hx with rfl | rfl <;> simp at e
-      · rw [fwd_append, hf]; exact hk.2 j hj
-    · simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-      rcases hx with rfl | rfl | rfl | rfl
-      · exact ⟨hlow 0 (by norm_num), hne (by omega),
-          by rw [keep _ (hne (by omega)) (hne (by omega))]; exact g0⟩
-      · exact ⟨hlow 4 (by norm_num), hne (by omega),
-          by rw [keep _ (hne (by omega)) (hne (by omega))]; exact g4⟩
-      · exact ⟨by rintro ⟨k, hk, e⟩; simp only [V.mk.injEq, true_and] at e; omega, hne (by omega),
-          by rw [e1]; exact canon_add g5 (canon_litC _)⟩
-      · exact ⟨h2, hvc 2 (by norm_num),
-          by rw [keep _ hv0 (hvc 1 (by norm_num))]; exact hv⟩
+/-- **The run the step reads survives** every change above `B`. -/
+theorem spWp_stable {b B : Nat} (hB : b + 5 ≤ B) : GoodStable B (SpGood b) :=
+  fun _ _ hσ h => spGood_congr hB hσ h
 
 end
 end LeanVM.Guest.B1.Sig

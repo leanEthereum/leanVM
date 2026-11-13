@@ -240,17 +240,16 @@ theorem laneCode_injective : Function.Injective laneCode :=
   fun _ _ h ↦ K.lane_injective (UInt64.toNat_inj.mp h)
 
 /-- The code of a word: its limbs' lanes. -/
-def wordCode (x : E) : ℕ × ℕ × ℕ := (laneCode (x.limb 0), laneCode (x.limb 1), laneCode (x.limb 2))
+def wordCode (x : E) : ℕ × ℕ := (laneCode (x.limb 0), laneCode (x.limb 1))
 
 theorem wordCode_injective : Function.Injective wordCode := by
   intro x y h
   simp only [wordCode, Prod.mk.injEq] at h
-  obtain ⟨h0, h1, h2⟩ := h
-  rw [← ofLimbs_limb x, ← ofLimbs_limb y, laneCode_injective h0, laneCode_injective h1,
-    laneCode_injective h2]
+  obtain ⟨h0, h1⟩ := h
+  rw [← ofLimbs_limb x, ← ofLimbs_limb y, laneCode_injective h0, laneCode_injective h1]
 
 /-- The key of a call: the callee's index and the codes of its words. -/
-abbrev CallKey : Type := ℕ × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ)
+abbrev CallKey : Type := ℕ × List (ℕ × ℕ) × List (ℕ × ℕ)
 
 /-- The key of a call of function `j` on `args`, `rets`. -/
 def callKey (j : ℕ) (args rets : List E) : CallKey := (j, args.map wordCode, rets.map wordCode)

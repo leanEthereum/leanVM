@@ -76,22 +76,22 @@ coordinates, its values the layers' extensions there. -/
 theorem corr_gkrStep {L₀ L₁ L₂ : List E} {D k h : ℕ} (h₀ : L₀.length = 2 ^ D)
     (h₁ : L₁.length = 2 ^ D) (h₂ : L₂.length = 2 ^ D) {T₀ T₁ T₂ : Array E}
     (hT₀ : T₀.toList = up k L₀) (hT₁ : T₁.toList = up k L₁) (hT₂ : T₂.toList = up k L₂)
-    (s : GkrState) (hs : s.point.length + k + h = D) (hh : h ≤ 2) :
+    (s : GkrState) (hs : s.point.length + k + h = D) (hh : h ≤ 2) (last : Bool) :
     Corr (fun a b ↦ a = b ∧ b.point.length + k = D ∧
         b.values = [multilinearEval (up k L₀) b.point, multilinearEval (up k L₁) b.point,
           multilinearEval (up k L₂) b.point])
-      (gkrStepA T₀ T₁ T₂ h s) (hStep L₀ L₁ L₂ k h s) := by
+      (gkrStepA T₀ T₁ T₂ h last s) (hStep L₀ L₁ L₂ k h last s) := by
   have hC : ∀ L : List E, L.length = 2 ^ D → (up k L).length = 2 ^ (h + s.point.length) :=
     fun L hL ↦ length_up k (h + s.point.length) L (by rw [hL]; congr 1; omega)
   have hC' : ∀ L : List E, L.length = 2 ^ D → ∀ pre : List E, pre.length < s.point.length →
       (up k L).length = 2 ^ (h + pre.length + 1 + (s.point.length - (pre.length + 1))) :=
     fun L hL pre hpre ↦ by rw [hC L hL]; congr 1; omega
-  have hcount : 2 ^ h + 1 ≤ 2 ^ 192 := by
+  have hcount : 2 ^ h + 1 ≤ 2 ^ 128 := by
     have : 2 ^ h ≤ 2 ^ 2 := Nat.pow_le_pow_right (by norm_num) hh
-    have : 2 ^ 2 + 1 ≤ 2 ^ 192 := by norm_num
+    have : 2 ^ 2 + 1 ≤ 2 ^ 128 := by norm_num
     omega
   unfold gkrStepA hStep
-  refine Corr.bind_same _ fun c ↦ ?_
+  refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun c ↦ ?_
   have hround : ∀ pre st, StepInv (up k L₀) (up k L₁) (up k L₂) h s.point pre st →
       pre.length < s.point.length → (gkrRound h c st).length = 2 ^ h + 1 ∧
         ∀ x, polyEval (gkrRound h c st) x =
@@ -126,7 +126,7 @@ theorem corr_gkrStep {L₀ L₁ L₂ : List E} {D k h : ℕ} (h₀ : L₀.length
   rw [hlen, Nat.sub_self] at hI₀ hI₁ hI₂
   rw [toList_eq_child hI₀, toList_eq_child hI₁, toList_eq_child hI₂, hab]
   refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦
-    Corr.bind_allRet (fun y hy ↦ ?_) _ (allRet_sampleN h)
+    Corr.bind_same _ fun _ ↦ Corr.bind_allRet (fun y hy ↦ ?_) _ (allRet_sampleN h)
   have hx : b.1.length = s.point.length := by rw [← hab, hlen]
   refine ⟨rfl, by simp only [List.length_append, hy, hx]; omega, ?_⟩
   simp only
@@ -156,7 +156,7 @@ theorem corr_gkrLayers {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.length =
     simp only [gkrLayersA, hLayers]
     refine Corr.bind (fun a b hab ↦ ?_) _ _
       (corr_gkrStep h₀ h₁ h₂ (hA₀ 0 (by omega)) (hA₁ 0 (by omega)) (hA₂ 0 (by omega)) s
-        (by omega) (by norm_num))
+        (by omega) (by norm_num) true)
     obtain ⟨rfl, hpl, hv⟩ := hab
     exact corr_gkrLayers h₀ h₁ h₂ hA₀ hA₁ hA₂ 0 a ⟨hpl, fun _ ↦ hv⟩
   | n + 2, s, hQ => by
@@ -165,12 +165,12 @@ theorem corr_gkrLayers {L₀ L₁ L₂ : List E} {D : ℕ} (h₀ : L₀.length =
     split_ifs
     · refine Corr.bind (fun a b hab ↦ ?_) _ _
         (corr_gkrStep h₀ h₁ h₂ (hA₀ (n + 1) (by omega)) (hA₁ (n + 1) (by omega))
-          (hA₂ (n + 1) (by omega)) s (by omega) (by norm_num))
+          (hA₂ (n + 1) (by omega)) s (by omega) (by norm_num) false)
       obtain ⟨rfl, hpl, hv⟩ := hab
       exact corr_gkrLayers h₀ h₁ h₂ hA₀ hA₁ hA₂ (n + 1) a ⟨hpl, fun _ ↦ hv⟩
     · refine Corr.bind (fun a b hab ↦ ?_) _ _
         (corr_gkrStep h₀ h₁ h₂ (hA₀ n (by omega)) (hA₁ n (by omega)) (hA₂ n (by omega)) s
-          (by omega) (by norm_num))
+          (by omega) (by norm_num) (n = 0))
       obtain ⟨rfl, hpl, hv⟩ := hab
       exact corr_gkrLayers h₀ h₁ h₂ hA₀ hA₁ hA₂ n a ⟨hpl, fun _ ↦ hv⟩
 

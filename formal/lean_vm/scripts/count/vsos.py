@@ -22,26 +22,35 @@ def SB(n):
     return c[2][0]
 src = open(os.path.join(LV, 'LeanVM', 'Guest', 'Data', 'Source.lean'), encoding='utf-8').read()
 def arr(name):
-    m = re.search(r'def arr_%s : List \(Nat × Nat × Nat\) :=\s*\[(.*?)\]\n' % name, src, re.S)
-    return [int(x) for x in re.findall(r'\((\d+), \d+, \d+\)', m.group(1))]
-A = {k: arr(k) for k in ['LIG_N_LEVELS', 'LIG_YR_LEN', 'LIG_TOTAL_FOLDS', 'LIG_MAX_INTERLEAVE']}
+    m = re.search(r'def arr_%s : List \(Nat × Nat\) :=\s*\[(.*?)\]\n' % name, src, re.S)
+    return [int(x) for x in re.findall(r'\((\d+), \d+\)', m.group(1))]
+A = {k: arr(k) for k in ['LIG_N_LEVELS', 'LIG_YR_LEN', 'LIG_TOTAL_FOLDS', 'LIG_YR_LEVEL', 'LIG_FOLDS']}
 lig = lambda a, i: A[a][i] if i < len(A[a]) else 0
 # `B1.Whir`'s buffer caps, read off its sources so a change there reaches the mirror.
 def _whir(f):
     return open(os.path.join(LV, 'LeanVM', 'Guest', 'B1', 'Whir', f), encoding='utf-8').read()
 def _abbrev(src, name):
     return int(re.search(r'abbrev %s : (?:Nat|ℕ) := (\d+)' % name, src).group(1))
-_cfg = _whir('Config.lean')
-POS_CAP, COLS_CAP, OOD_SLOTS, YR_LOG_CAP = (_abbrev(_cfg, n) for n in ('ligPosCap', 'ligColsCap', 'oodSlots', 'yrLogCap'))
-POINT_CAP = _abbrev(_whir('Interface.lean'), 'pointCap')
+# `Whir/Config.lean`'s caps read the guest's constants (`guest_const%`), exported to `Data/Source.lean`.
+_src = src
+def _const(name):
+    return int(re.search(r'def const_%s : Nat := (\d+)' % name, _src).group(1))
+POS_CAP, COLS_CAP, YR_LOG_CAP, MAX_LEVELS = (_const(n) for n in (
+    'LIG_LEVEL_POSITIONS_CAP', 'LIG_LOG_MSG_COLS_CAP', 'YR_LOG_CAP', 'LIG_MAX_LEVELS'))
+HS_STRIDE = 2 ** _const('HIGH_BITS_CAP')
+POINT_CAP = _abbrev(_whir('Split.lean'), 'pointCap')
 
 
 def sizes(m):
     """`B1.osSizesL (osCfg m)`."""
     n = lig('LIG_N_LEVELS', m)
-    return ([lig('LIG_YR_LEN', m), 2 * n, lig('LIG_TOTAL_FOLDS', m), n, n, n * POS_CAP, n * POS_CAP, 128,
-             n * COLS_CAP, n * OOD_SLOTS] + [lig('LIG_MAX_INTERLEAVE', m)] * n
-            + [YR_LOG_CAP, POINT_CAP, POINT_CAP, n * COLS_CAP, n, n + 1])
+    yr = lig('LIG_YR_LEVEL', m)
+    folds = lambda l: lig('LIG_FOLDS', m * MAX_LEVELS + l)
+    lane = lig('LIG_YR_LEN', m) + folds(yr)
+    nf = lig('LIG_TOTAL_FOLDS', m)
+    return ([lane, 2 * n, nf, 2 * nf, n, n, n * HS_STRIDE, n * COLS_CAP, n, n * POS_CAP, n * POS_CAP]
+            + [2 + folds(l) for l in range(min(yr, n))]
+            + [lane, YR_LOG_CAP, POINT_CAP, POINT_CAP, n * COLS_CAP, n, n, 2 * n])
 
 
 def callees(name):

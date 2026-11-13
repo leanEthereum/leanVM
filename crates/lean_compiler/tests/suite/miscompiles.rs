@@ -2,7 +2,7 @@
 //! compiler. Each is now rejected with a diagnostic, or compiled as written.
 
 use lean_compiler::{compile, parse};
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F64, F128, g_pow};
 
 #[test]
 fn ambiguous_programs_are_rejected_when_parsed() {
@@ -86,13 +86,13 @@ fn ill_formed_calls_are_rejected_when_lowered() {
 
 #[test]
 fn programs_compile_as_written() {
-    let runs = |src: &str, witness: &[(&str, F192)]| {
+    let runs = |src: &str, witness: &[(&str, F128)]| {
         let mut program = compile(&parse(src).unwrap());
         for &(name, v) in witness {
             program.set_witness(name, vec![vec![v]]);
         }
         program
-            .execute([F192::ZERO; 2])
+            .execute([F128::ZERO; 2])
             .unwrap_or_else(|e| panic!("{e:?}, for:\n{src}"));
     };
     // Integers past `u32` were compared as field elements, `2^33 XOR 2^33 = 0`.
@@ -103,11 +103,11 @@ fn programs_compile_as_written() {
     // The stream name was substituted too, so the run read stream `8`.
     runs(
         "SEED = 8\n\ndef main():\n    s = StackBuf(1)\n    hint_witness(s, \"SEED\")\n    assert s[0] == 8\n    return\n",
-        &[("SEED", F192::from(F64(8)))],
+        &[("SEED", F128::from(F64(8)))],
     );
-    // Identical builtin arms were taken for a fused dispatch to a function named `f192`.
+    // Identical builtin arms were taken for a fused dispatch to a function named after the builtin.
     runs(
-        "def main():\n    r = match(log(GEN), range(0, 2), lambda j: f192(1, 2, 3))\n    assert r == f192(1, 2, 3)\n    return\n",
+        "def main():\n    r = match(log(GEN), range(0, 2), lambda j: const(36893488147419103233))\n    assert r == 36893488147419103233\n    return\n",
         &[],
     );
     // A call in a runtime bound ran twice, popping the stream twice.
@@ -120,4 +120,12 @@ fn programs_compile_as_written() {
         &parse("def main():\n    bits = StackBuf(4)\n    out = StackBuf(1)\n    out[0] = hint_log2_ceil(bits, 4, 0)\n    return\n")
             .unwrap(),
     );
+}
+
+/// A `return` nested in `main` was ignored, the code after it running anyway.
+#[test]
+#[should_panic(expected = "`return` in `main` is allowed only as its last statement")]
+fn nested_return_in_main_is_rejected() {
+    let src = "def main():\n    x = 1\n    if x == 1:\n        return\n    assert x == 2\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
 }

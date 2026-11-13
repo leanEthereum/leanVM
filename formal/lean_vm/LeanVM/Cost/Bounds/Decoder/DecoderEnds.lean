@@ -59,7 +59,7 @@ theorem memReader_cost (hP : Includes P memReaderC.costDeps) (memT : Array (ℕ 
     (gLogTable memT κ a) (fun i _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [stepVec.c258.lam0.lam0.lam0.costEq P (by includes), limbs_shift hκ,
-        limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.c316.costEq P (by includes), max_self])
+        limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.c315.costEq P (by includes), max_self])
   omega
 
 /-- **One memory read at the deployed shape** (the table `powTable κ`, `κ ≤ 30`): at most

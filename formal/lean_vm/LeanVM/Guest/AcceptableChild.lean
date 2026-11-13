@@ -11,6 +11,9 @@ module
 public import Statement.LeanVmGuestCompleteness
 public import LeanVM.Protocol.Compile.RunPure
 public import LeanVM.Guest.Coverage
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # A child the guest program accepts
@@ -36,7 +39,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 namespace Coverage
 
 /-- `STREAM_CAP` (`aggregation/child.rs:268`): a child's proof stream is zero-padded to it. -/
-def childStreamCap : ℕ := 8192
+def childStreamCap : ℕ := guest_const% STREAM_CAP
 
 /-- The least stack log the guest program has an opening arm for (`min_execution_stacked_log` of
 its `2^19` instructions, `crates/verifier`'s `layout.rs`). -/
@@ -45,7 +48,8 @@ def minChildStackLog : ℕ := 20
 /-- The deferring verifier's initial state on a child's proof under the node's seed
 (`verifyDeferredWith`). -/
 def childVerifierStart (seed : Digest) (child : Child) : VerifierProgramState :=
-  ⟨⟨keccakF1600 (seedInput seed (statementDigest seed child.statement)), []⟩, child.proof.stream,
+  ⟨⟨keccakF1600 (seedInput seed (statementDigest seed child.statement)), [], none⟩,
+    child.proof.stream,
     child.proof.openings, []⟩
 
 end Coverage
@@ -68,32 +72,28 @@ def queryStepsOf {α : Type} : VerifierProgram α → VerifierProgramState → L
     Opening))
   | .ret _, _ => []
   | .fail, _ => []
-  | .read k, state => match state.stream with
-    | [] => []
-    | x :: xs =>
+  | .read k, state => match state.stream, state.sponge.ground with
+    | x :: xs, none =>
       queryStepsOf (k x) { state with
         sponge := Id.run (absorb keccakF1600 state.sponge x dsObserve), stream := xs }
+    | _, _ => []
   | .sample k, state =>
     let (c, sponge) := Id.run (squeeze keccakF1600 state.sponge)
     queryStepsOf (k c) { state with sponge := sponge }
-  | .grind bits k, state => match state.stream with
-    | [] => []
-    | n :: xs =>
-      let (c, sponge) :=
-        Id.run (squeeze keccakF1600 (Id.run (absorb keccakF1600 state.sponge n dsPowNonce)))
-      if powOk bits c then queryStepsOf k { state with sponge := sponge, stream := xs } else []
-  | .commit height width k, state => match state.stream with
-    | x0 :: x1 :: xs =>
-      match digestFromHalves (x0, x1) with
-      | some root =>
-        queryStepsOf k { state with
-          sponge :=
-            Id.run (absorb keccakF1600
-              (Id.run (absorb keccakF1600 state.sponge x0 dsObserve)) x1 dsObserve)
-          stream := xs
-          roots := state.roots ++ [(root, height, width)] }
-      | none => []
-    | _ => []
+  | .grind bits k, state => match state.stream, state.sponge.ground with
+    | n :: xs, none =>
+      let (pow, sponge) := Id.run (absorbNonce keccakF1600 state.sponge n)
+      if powOk bits pow then queryStepsOf k { state with sponge := sponge, stream := xs } else []
+    | _, _ => []
+  | .commit height width k, state => match state.stream, state.sponge.ground with
+    | x0 :: x1 :: xs, none =>
+      queryStepsOf k { state with
+        sponge :=
+          Id.run (absorb keccakF1600
+            (Id.run (absorb keccakF1600 state.sponge x0 dsObserve)) x1 dsObserve)
+        stream := xs
+        roots := state.roots ++ [(digestFromHalves (x0, x1), height, width)] }
+    | _, _ => []
   | .query i ps k, state => match state.roots[i]?, state.openings with
     | some (root, height, width), phase :: rest =>
       match Id.run (openPhase (m := Id) keccakF1600 root height width ps phase) with
@@ -140,14 +140,14 @@ end Limits
 /-- **A child the guest program accepts** under the seed `seed`: what the guest program asks of
 each child, `ChildrenProven`'s two conditions and the deployed ones:
 * its stack log is at least `20`: the guest program has one opening arm per stack log in
-  `[20, 32]` (G:3538-3544); the verifier admits stack logs from `Whir.minLogStack`;
-* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3338-3339);
+  `[20, 30]` (G:3688-3691); the verifier admits stack logs from `Whir.minLogStack`;
+* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3524-3525);
 * its openings agree in the guest program's Merkle caps: at every query step of its deferring
   verifier, run under the node's seed, the step's openings agree wherever they meet (one tree's
   openings, the honest prover's, agree);
 * no zero challenge: the deferring verifier refusing a zero challenge anywhere accepts its proof
   (`verifyDeferredRefusingZero`), as the guest program divides by some (the WHIR fold and tail
-  challenges and each level's batching challenge `λ`, G:1400, 1709, 1714). -/
+  challenges and each level's batching challenge `λ`, G:1651, 1766, 1772). -/
 structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : Prop where
   /-- Its deferred claim has the bytecode's shape. -/
   deferredClaimShaped : child.statement.deferredClaim.HasBytecodeShape bytecode
@@ -210,7 +210,7 @@ def GuestChildComplete : Prop :=
     statement.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
     ∀ proof, honestProofWithDeployedKeccak LeanVM.leanVmHonestProver guestProgram input execution ρ
-        (2 ^ 25) =
+        (2 ^ 35) =
       some proof →
     verifierRefusingZero (m := Id) keccakF1600 guestProgram input proof = true →
     ∃ fresh, fresh.Holds (bytecodeWords guestProgram) ∧

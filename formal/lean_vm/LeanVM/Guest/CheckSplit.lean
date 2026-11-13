@@ -23,11 +23,16 @@ names from earlier windows (`Cert.locAtR`), which the group's walk covers (`covO
 of a straight-line `match` walks its arm's segment to the join with nothing to check, so each
 group's walk is the window's with fewer arms.
 
+`main_loop2`'s chained `match`es (one window each, entered by the previous one's table jump, its arms
+ending in the next one's) are split alike: a group walks arm `0` to its end `r`, a join or the
+next table jump, and its arms to the same end (`armsThenS`), from the `match`'s table jump
+(`chkMatchS`, `chkL`'s) or, the window entered, from its arms (`chainMatchS`, `chainL`'s).
+
 `winOk_of_split`: groups covering the arms, each passing, give the window's check (`WinOk`). The
 group's cells are the window's on every value it covers (`locAtR_agree`: both tries are built from
 the certificate's cells, `get_set_eq` reading a trie exactly), so the walk is the window's walk on
-the group's arms (`chkL_simple_congr`); the arms' walks of the groups together are the window's
-`chkArms` (`chkArms_of_groups`).
+the group's arms (`chkL_atoms_congr`); the arms' walks of the groups together are the window's
+`chkArms` (`armsThen_of_groups`, which `chkL_of_groups` and `chainL_of_groups` share).
 -/
 
 namespace LeanVM.Guest.Check
@@ -314,21 +319,6 @@ theorem chkL_atoms_congr : ∀ (ss : List Core.Stmt) (st : CS) (P : List Core.At
   | .dispatch .. :: _, _, _, hs, _, _ => by simp [isAtomS] at hs
   | .ret .. :: _, _, _, hs, _, _ => by simp [isAtomS] at hs
 
-/-- A `match`'s walk from its parts. -/
-theorem chkL_match_of {X : Fx} {v : Core.V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)}
-    {ss : List Core.Stmt} {st : CS} {P : List Core.Atom} {se : CS} {t : ℕ} {ft : Tgt} {t0 : ℕ}
-    {ts : List ℕ} {base : ℕ} {s0 : CS} {J : ℕ} {sj : CS} (h1 : endAt st = some se)
-    (h2 : se.seg.exit.kind = .jump (.cell t) ft) (h3 : se.seg.exit.succ = t0 :: ts)
-    (h4 : X.F.self ft = true) (h5 : ts.length = as.length)
-    (h6 : boundOk X.F se.psi X.mem se.book se.bnd (cellOf X.loc v) (as.length + 1) = true)
-    (h7 : tableBase se.book t (cellOf X.loc v) = some base)
-    (h8 : armsOk X.G X.entry base 0 (t0 :: ts) = true) (h9 : segAt X t0 se.book se.bnd = some s0)
-    (h10 : chkL X a0 s0 [] = .join J) (h11 : chkArms X (.join J) as ts se.book se.bnd = true)
-    (h12 : segAt X J se.book se.bnd = some sj) :
-    chkL X (.match_ v (a0 :: as) :: ss) st P = chkL X ss sj P := by
-  simp only [chkL, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, beq_self_eq_true,
-    Bool.and_self, Bool.cond_true]
-
 end Walk
 
 /-! ## Groups of arms -/
@@ -392,22 +382,22 @@ theorem chkArms_of {X : Fx} {r : Res} {B : Book} {bnd : List (ℕ × ℕ)} :
       exact ⟨st, by simpa using hst, by simpa using hw⟩
 
 /-- The arms `lo ≤ k < hi` of a `match` (arm `k` the `k`-th of the list from index `k`), each
-from its offset to the join `J`; the others are not walked. -/
-noncomputable def chkArmsS (X : Fx) (J lo hi : ℕ) :
+from its offset ending as `r`; the others are not walked. -/
+noncomputable def chkArmsS (X : Fx) (r : Res) (lo hi : ℕ) :
     ℕ → List (List Core.Stmt) → List ℕ → Book → List (ℕ × ℕ) → Bool
   | _, [], [], _, _ => true
   | k, a :: as, t :: ts, B, bnd =>
       (bif Nat.ble lo k && Nat.blt k hi then
         (match segAt X t B bnd with
-          | some st => chkL X a st [] == Res.join J
+          | some st => chkL X a st [] == r
           | none => false)
-      else true) && chkArmsS X J lo hi (k + 1) as ts B bnd
+      else true) && chkArmsS X r lo hi (k + 1) as ts B bnd
   | _, _, _, _, _ => false
 
-theorem chkArmsS_get {X : Fx} {J lo hi : ℕ} {B : Book} {bnd : List (ℕ × ℕ)} :
-    ∀ {k : ℕ} {as : List (List Core.Stmt)} {ts : List ℕ}, chkArmsS X J lo hi k as ts B bnd = true →
+theorem chkArmsS_get {X : Fx} {r : Res} {lo hi : ℕ} {B : Book} {bnd : List (ℕ × ℕ)} :
+    ∀ {k : ℕ} {as : List (List Core.Stmt)} {ts : List ℕ}, chkArmsS X r lo hi k as ts B bnd = true →
       ts.length = as.length ∧ ∀ e (he : e < as.length) (ht : e < ts.length), lo ≤ k + e → k + e < hi →
-        ∃ st, segAt X ts[e] B bnd = some st ∧ chkL X as[e] st [] = .join J
+        ∃ st, segAt X ts[e] B bnd = some st ∧ chkL X as[e] st [] = r
   | _, [], [], _ => ⟨rfl, fun _ he ↦ absurd he (Nat.not_lt_zero _)⟩
   | k, a :: as, t :: ts, h => by
     simp only [chkArmsS, Bool.and_eq_true] at h
@@ -427,8 +417,81 @@ theorem chkArmsS_get {X : Fx} {J lo hi : ℕ} {B : Book} {bnd : List (ℕ × ℕ
   | _, [], _ :: _, h => by simp [chkArmsS] at h
   | _, _ :: _, [], h => by simp [chkArmsS] at h
 
+/-- After arm `0` of a `match` ended as `r`, the other arms `as` from the offsets `ts` with the
+book and bounds `(B, bnd)`, all ending alike (`chkArms`): the walk on at the join, or, the arms
+ending in the next chained `match`'s table jump, that jump (the `match` a window's last
+statement). -/
+noncomputable def armsThen (X : Fx) (r : Res) (as : List (List Core.Stmt)) (ts : List ℕ) (B : Book)
+    (bnd : List (ℕ × ℕ)) : Res :=
+  match r with
+  | .join J => bif chkArms X (.join J) as ts B bnd then
+      (match segAt X J B bnd with
+        | some sj => chkL X [] sj []
+        | none => .fail)
+    else .fail
+  | .chain x succ => bif chkArms X (.chain x succ) as ts B bnd then .chain x succ else .fail
+  | _ => .fail
+
+/-- `armsThen` with the arms `lo ≤ k < hi` only (`chkArmsS`). -/
+noncomputable def armsThenS (X : Fx) (lo hi : ℕ) (r : Res) (as : List (List Core.Stmt)) (ts : List ℕ)
+    (B : Book) (bnd : List (ℕ × ℕ)) : Res :=
+  match r with
+  | .join J => bif chkArmsS X (.join J) lo hi 1 as ts B bnd then
+      (match segAt X J B bnd with
+        | some sj => chkL X [] sj []
+        | none => .fail)
+    else .fail
+  | .chain x succ => bif chkArmsS X (.chain x succ) lo hi 1 as ts B bnd then .chain x succ else .fail
+  | _ => .fail
+
+/-- **A `match`'s arms from its groups'**: groups `(lo, hi, cells)` covering every arm, each
+walking its arms on its cells to the end `r` of arm `0`, the cells agreeing with the window's on
+the values each names, give the walk of all the arms: any group's. -/
+theorem armsThen_of_groups (X : Fx) (r : Res) (as : List (List Core.Stmt)) (ts : List ℕ) (B : Book)
+    (bnd : List (ℕ × ℕ)) (gs : List (ℕ × ℕ × Exec.Trie ℕ)) (g0 : ℕ × ℕ × Exec.Trie ℕ) (hg0 : g0 ∈ gs)
+    (hcov : ∀ e < as.length, ∃ g ∈ gs, g.1 ≤ e + 1 ∧ e + 1 < g.2.1)
+    (has : ∀ g ∈ gs, ∀ e (he : e < as.length), g.1 ≤ e + 1 → e + 1 < g.2.1 →
+      as[e].all isAtomS = true)
+    (hav : ∀ g ∈ gs, ∀ e (he : e < as.length), g.1 ≤ e + 1 → e + 1 < g.2.1 →
+      ∀ x ∈ stmtsVals as[e], Agree g.2.2 X.loc x)
+    (h : ∀ g ∈ gs, armsThenS { X with loc := g.2.2 } g.1 g.2.1 r as ts B bnd ≠ .fail) :
+    armsThen X r as ts B bnd = armsThenS { X with loc := g0.2.2 } g0.1 g0.2.1 r as ts B bnd := by
+  -- every group walks its arms to `r`
+  have hS : ∀ g ∈ gs, chkArmsS { X with loc := g.2.2 } r g.1 g.2.1 1 as ts B bnd = true := by
+    intro g hg
+    have hg' := h g hg
+    unfold armsThenS at hg'
+    cases r with
+    | join J => cases hc : chkArmsS { X with loc := g.2.2 } (.join J) g.1 g.2.1 1 as ts B bnd
+                <;> simp_all
+    | chain x succ => cases hc : chkArmsS { X with loc := g.2.2 } (.chain x succ) g.1 g.2.1 1 as ts B bnd
+                <;> simp_all
+    | done => simp at hg'
+    | fail => simp at hg'
+  have hl : ts.length = as.length := (chkArmsS_get (hS g0 hg0)).1
+  have hA : chkArms X r as ts B bnd = true := chkArms_of hl fun e he ht ↦ by
+    obtain ⟨g, hg, hlo, hhi⟩ := hcov e he
+    obtain ⟨st, hst, hw⟩ := (chkArmsS_get (hS g hg)).2 e he ht (by omega) (by omega)
+    refine ⟨st, hst, ?_⟩
+    rw [← hw]
+    exact (chkL_atoms_congr { X with loc := g.2.2 } X.loc as[e] st [] (has g hg e he hlo hhi)
+      (hav g hg e he hlo hhi) (by simp)).symm
+  have h0 := hS g0 hg0
+  unfold armsThen armsThenS
+  cases r with
+  | join J =>
+    simp only [hA, h0, Bool.cond_true]
+    rw [show segAt { X with loc := g0.2.2 } J B bnd = segAt X J B bnd from rfl]
+    split
+    · exact (chkL_atoms_congr { X with loc := g0.2.2 } X.loc [] _ [] rfl (by simp [stmtsVals])
+        (by simp)).symm
+    · rfl
+  | chain x succ => simp only [hA, h0, Bool.cond_true]
+  | done => rfl
+  | fail => rfl
+
 /-- **A `match`'s walk with the arms `lo ≤ k < hi` (and arm `0`)**: `chkL`'s on a window of one
-`match`, its arms by `chkArmsS`. -/
+`match`, its arms by `armsThenS`. -/
 noncomputable def chkMatchS (X : Fx) (lo hi : ℕ) (v : Core.V) (arms : List (List Core.Stmt))
     (st : CS) : Res :=
   match endAt st with
@@ -440,14 +503,7 @@ noncomputable def chkMatchS (X : Fx) (lo hi : ℕ) (v : Core.V) (arms : List (Li
           | some base =>
               bif armsOk X.G X.entry base 0 (t0 :: ts) then
                 match segAt X t0 se.book se.bnd with
-                | some s0 => match chkL X a0 s0 [] with
-                  | .join J =>
-                      bif chkArmsS X J lo hi 1 as ts se.book se.bnd then
-                        match segAt X J se.book se.bnd with
-                        | some sj => chkL X [] sj []
-                        | none => .fail
-                      else .fail
-                  | _ => .fail
+                | some s0 => armsThenS X lo hi (chkL X a0 s0 []) as ts se.book se.bnd
                 | none => .fail
               else .fail
           | none => .fail
@@ -457,14 +513,13 @@ noncomputable def chkMatchS (X : Fx) (lo hi : ℕ) (v : Core.V) (arms : List (Li
 
 theorem chkMatchS_dec {X : Fx} {lo hi : ℕ} {v : Core.V} {arms : List (List Core.Stmt)} {st : CS}
     (h : chkMatchS X lo hi v arms st ≠ .fail) :
-    ∃ se t ft t0 ts a0 as base s0 J sj, endAt st = some se ∧
+    ∃ se t ft t0 ts a0 as base s0, endAt st = some se ∧
       se.seg.exit.kind = .jump (.cell t) ft ∧ se.seg.exit.succ = t0 :: ts ∧ arms = a0 :: as ∧
       X.F.self ft = true ∧ ts.length = as.length ∧
       boundOk X.F se.psi X.mem se.book se.bnd (cellOf X.loc v) (as.length + 1) = true ∧
       tableBase se.book t (cellOf X.loc v) = some base ∧
       armsOk X.G X.entry base 0 (t0 :: ts) = true ∧ segAt X t0 se.book se.bnd = some s0 ∧
-      chkL X a0 s0 [] = .join J ∧ chkArmsS X J lo hi 1 as ts se.book se.bnd = true ∧
-      segAt X J se.book se.bnd = some sj ∧ chkMatchS X lo hi v arms st = chkL X [] sj [] := by
+      chkMatchS X lo hi v arms st = armsThenS X lo hi (chkL X a0 s0 []) as ts se.book se.bnd := by
   revert h
   simp only [chkMatchS]
   split
@@ -478,17 +533,9 @@ theorem chkMatchS_dec {X : Fx} {lo hi : ℕ} {v : Core.V} {arms : List (List Cor
           split_ifs with ha
           · split
             · rename_i s0 hs0
-              split
-              · rename_i J hJ
-                split_ifs with harms
-                · split
-                  · rename_i sj hsj
-                    intro _
-                    exact ⟨se, t, ft, t0, ts, a0, as, base, s0, J, sj, hse, hk, hs, rfl, hc.1.1,
-                      hc.1.2, hc.2, hb, ha, hs0, hJ, harms, hsj, rfl⟩
-                  · simp
-                · simp
-              · simp
+              intro _
+              exact ⟨se, t, ft, t0, ts, a0, as, base, s0, hse, hk, hs, rfl, hc.1.1, hc.1.2, hc.2, hb,
+                ha, hs0, rfl⟩
             · simp
           · simp
         · simp
@@ -510,45 +557,108 @@ theorem chkL_of_groups (X : Fx) (v : Core.V) (a0 : List Core.Stmt) (as : List (L
       ∀ x ∈ stmtsVals as[e], Agree g.2.2 X.loc x)
     (h : ∀ g ∈ gs, chkMatchS { X with loc := g.2.2 } g.1 g.2.1 v (a0 :: as) st ≠ .fail) :
     chkL X [.match_ v (a0 :: as)] st [] = chkMatchS { X with loc := g0.2.2 } g0.1 g0.2.1 v (a0 :: as) st := by
-  -- a group's walk of atoms is the window's
-  have hw : ∀ g ∈ gs, ∀ (a : List Core.Stmt) (s : CS), a.all isAtomS = true →
-      (∀ x ∈ stmtsVals a, Agree g.2.2 X.loc x) →
-      chkL { X with loc := g.2.2 } a s [] = chkL X a s [] := fun g _ a s ha hx ↦
-    chkL_atoms_congr { X with loc := g.2.2 } X.loc a s [] ha hx (by simp)
-  obtain ⟨se, t, ft, t0, ts, a0', as', base, s0, J, sj, h1, h2, h3, harms, h4, h5, h6, h7, h8, h9,
-    h10, -, h12, heq⟩ := chkMatchS_dec (h g0 hg0)
+  -- a group's walk of arm `0` is the window's
+  have hw0 : ∀ g ∈ gs, ∀ s : CS, chkL { X with loc := g.2.2 } a0 s [] = chkL X a0 s [] := fun g hg s ↦
+    chkL_atoms_congr { X with loc := g.2.2 } X.loc a0 s [] ha0 (h0v g hg) (by simp)
+  obtain ⟨se, t, ft, t0, ts, a0', as', base, s0, h1, h2, h3, harms, h4, h5, h6, h7, h8, h9, heq⟩ :=
+    chkMatchS_dec (h g0 hg0)
   obtain ⟨rfl, rfl⟩ := List.cons.inj harms
-  rw [heq, hw g0 hg0 [] sj rfl (by simp [stmtsVals])]
-  have h10' : chkL X a0 s0 [] = .join J := by rw [← hw g0 hg0 a0 s0 ha0 (h0v g0 hg0)]; exact h10
-  -- every arm's walk, from the group holding it
-  have harm : ∀ e (he : e < as.length) (ht : e < ts.length), ∃ st,
-      segAt X ts[e] se.book se.bnd = some st ∧ chkL X as[e] st [] = .join J := by
-    intro e he ht
-    obtain ⟨g, hg, hlo, hhi⟩ := hcov e he
-    obtain ⟨se', t', ft', t0', ts', a0'', as'', base', s0', J', sj', h1', h2', h3', harms', -, -, -,
-      -, -, h9', h10'', h11', -, -⟩ := chkMatchS_dec (h g hg)
+  -- every group's arms, from arm `0`'s end
+  have hG : ∀ g ∈ gs, armsThenS { X with loc := g.2.2 } g.1 g.2.1 (chkL X a0 s0 []) as ts se.book
+      se.bnd ≠ .fail := by
+    intro g hg
+    obtain ⟨se', t', ft', t0', ts', a0'', as'', base', s0', h1', -, h3', harms', -, -, -, -, -, h9',
+      heq'⟩ := chkMatchS_dec (h g hg)
     obtain ⟨rfl, rfl⟩ := List.cons.inj harms'
-    have hse : se' = se := Option.some.inj (h1'.symm.trans h1)
-    rw [hse, h3] at h3'
-    rw [hse] at h9' h11'
-    have hts : ts' = ts := (List.cons.inj h3').2.symm
-    have ht0 : t0' = t0 := (List.cons.inj h3').1.symm
-    rw [hts] at h11'
-    rw [ht0] at h9'
-    have h9g : segAt X t0 se.book se.bnd = some s0' := h9'
-    have hs0 : s0' = s0 := Option.some.inj (h9g.symm.trans h9)
-    rw [hs0] at h10''
-    have hJ : J' = J := by
-      have := (hw g hg a0 s0 ha0 (h0v g hg)).symm.trans h10''
-      rw [h10'] at this
-      injection this.symm
-    rw [hJ] at h11'
-    obtain ⟨-, hg'⟩ := chkArmsS_get h11'
-    obtain ⟨st', hst', hw'⟩ := hg' e he ht (by omega) (by omega)
-    exact ⟨st', hst', by rw [← hw g hg _ st' (has g hg e he hlo hhi) (hav g hg e he hlo hhi)]; exact hw'⟩
-  have hlen : ts.length = as.length := h5
-  exact chkL_match_of h1 h2 h3 h4 hlen (by rw [← cellOf_congr (hv g0 hg0)]; exact h6)
-    (by rw [← cellOf_congr (hv g0 hg0)]; exact h7) h8 h9 h10' (chkArms_of hlen harm) h12
+    obtain rfl : se' = se := Option.some.inj (h1'.symm.trans h1)
+    obtain ⟨rfl, rfl⟩ := List.cons.inj (h3'.symm.trans h3)
+    obtain rfl : s0' = s0 := Option.some.inj (h9'.symm.trans h9)
+    rw [← hw0 g hg, ← heq']
+    exact h g hg
+  have hb : (armsOk X.G X.entry base 0 (t0 :: ts) && X.F.self ft && ts.length == as.length &&
+      boundOk X.F se.psi X.mem se.book se.bnd (cellOf X.loc v) (as.length + 1)) = true := by
+    simp only [Bool.and_eq_true, beq_iff_eq]
+    exact ⟨⟨⟨h8, h4⟩, h5⟩, by rw [← cellOf_congr (hv g0 hg0)]; exact h6⟩
+  have hb' : tableBase se.book t (cellOf X.loc v) = some base := by
+    rw [← cellOf_congr (hv g0 hg0)]; exact h7
+  have h9' : segAt X t0 se.book se.bnd = some s0 := h9
+  rw [heq, hw0 g0 hg0, ← armsThen_of_groups X _ as ts se.book se.bnd gs g0 hg0 hcov has hav hG]
+  simp only [Bool.and_eq_true, beq_iff_eq] at hb
+  simp only [chkL, h1, h2, h3, h4, h5, hb.2, hb', h8, h9', beq_self_eq_true, Bool.and_self,
+    Bool.cond_true]
+  generalize chkL X a0 s0 [] = r
+  unfold armsThen
+  cases r <;> simp [chainTo, chkL_nil]
+  rfl
+
+/-- **An entered window's chained `match` with the arms `lo ≤ k < hi` (and arm `0`)**: `chainL`'s
+on it, its arms by `armsThenS`. -/
+noncomputable def chainMatchS (X : Fx) (lo hi x : ℕ) (succ : List ℕ) (B : Book) (bnd : List (ℕ × ℕ))
+    (v : Core.V) (arms : List (List Core.Stmt)) : Res :=
+  match succ, arms with
+  | t0 :: ts, a0 :: as =>
+      bif cellOf X.loc v == x && ts.length == as.length then
+        match segAt X t0 B bnd with
+        | some s0 => armsThenS X lo hi (chkL X a0 s0 []) as ts B bnd
+        | none => .fail
+      else .fail
+  | _, _ => .fail
+
+theorem chainMatchS_dec {X : Fx} {lo hi x : ℕ} {succ : List ℕ} {B : Book} {bnd : List (ℕ × ℕ)}
+    {v : Core.V} {arms : List (List Core.Stmt)} (h : chainMatchS X lo hi x succ B bnd v arms ≠ .fail) :
+    ∃ t0 ts a0 as s0, succ = t0 :: ts ∧ arms = a0 :: as ∧ cellOf X.loc v = x ∧
+      ts.length = as.length ∧ segAt X t0 B bnd = some s0 ∧
+      chainMatchS X lo hi x succ B bnd v arms = armsThenS X lo hi (chkL X a0 s0 []) as ts B bnd := by
+  revert h
+  unfold chainMatchS
+  split
+  · rename_i t0 ts a0 as
+    simp only [Bool.cond_eq_ite, Bool.and_eq_true, beq_iff_eq]
+    split_ifs with hc
+    · split
+      · rename_i s0 hs0
+        intro _
+        exact ⟨t0, ts, a0, as, s0, rfl, rfl, hc.1, hc.2, hs0, rfl⟩
+      · simp
+    · simp
+  · simp
+
+/-- **An entered window's chained `match` from its groups'**: as `chkL_of_groups`, for `chainL`. -/
+theorem chainL_of_groups (X : Fx) (x : ℕ) (succ : List ℕ) (B : Book) (ψ : Exec.Trie Sym)
+    (bnd : List (ℕ × ℕ)) (v : Core.V) (a0 : List Core.Stmt) (as : List (List Core.Stmt))
+    (gs : List (ℕ × ℕ × Exec.Trie ℕ)) (g0 : ℕ × ℕ × Exec.Trie ℕ) (hg0 : g0 ∈ gs)
+    (hcov : ∀ e < as.length, ∃ g ∈ gs, g.1 ≤ e + 1 ∧ e + 1 < g.2.1)
+    (ha0 : a0.all isAtomS = true)
+    (has : ∀ g ∈ gs, ∀ e (he : e < as.length), g.1 ≤ e + 1 → e + 1 < g.2.1 →
+      as[e].all isAtomS = true)
+    (hv : ∀ g ∈ gs, Agree g.2.2 X.loc v) (h0v : ∀ g ∈ gs, ∀ x ∈ stmtsVals a0, Agree g.2.2 X.loc x)
+    (hav : ∀ g ∈ gs, ∀ e (he : e < as.length), g.1 ≤ e + 1 → e + 1 < g.2.1 →
+      ∀ x ∈ stmtsVals as[e], Agree g.2.2 X.loc x)
+    (h : ∀ g ∈ gs, chainMatchS { X with loc := g.2.2 } g.1 g.2.1 x succ B bnd v (a0 :: as) ≠ .fail) :
+    chainL X x succ B ψ bnd [.match_ v (a0 :: as)] [] =
+      chainMatchS { X with loc := g0.2.2 } g0.1 g0.2.1 x succ B bnd v (a0 :: as) := by
+  have hw0 : ∀ g ∈ gs, ∀ s : CS, chkL { X with loc := g.2.2 } a0 s [] = chkL X a0 s [] := fun g hg s ↦
+    chkL_atoms_congr { X with loc := g.2.2 } X.loc a0 s [] ha0 (h0v g hg) (by simp)
+  obtain ⟨t0, ts, a0', as', s0, h1, harms, h2, h3, h4, heq⟩ := chainMatchS_dec (h g0 hg0)
+  obtain ⟨rfl, rfl⟩ := List.cons.inj harms
+  have hG : ∀ g ∈ gs, armsThenS { X with loc := g.2.2 } g.1 g.2.1 (chkL X a0 s0 []) as ts B bnd ≠
+      .fail := by
+    intro g hg
+    obtain ⟨t0', ts', a0'', as'', s0', h1', harms', -, -, h4', heq'⟩ := chainMatchS_dec (h g hg)
+    obtain ⟨rfl, rfl⟩ := List.cons.inj harms'
+    obtain ⟨rfl, rfl⟩ := List.cons.inj (h1'.symm.trans h1)
+    obtain rfl : s0' = s0 := Option.some.inj (h4'.symm.trans h4)
+    rw [← hw0 g hg, ← heq']
+    exact h g hg
+  have h2' : cellOf X.loc v = x := by rw [← cellOf_congr (hv g0 hg0)]; exact h2
+  have h4' : segAt X t0 B bnd = some s0 := h4
+  rw [heq, hw0 g0 hg0, ← armsThen_of_groups X _ as ts B bnd gs g0 hg0 hcov has hav hG]
+  subst h1
+  simp only [chainL, h2', h3, h4', beq_self_eq_true, Bool.and_self, Bool.cond_true]
+  generalize chkL X a0 s0 [] = r
+  unfold armsThen
+  cases r <;> simp [chainTo, chkL_nil]
+  rfl
 
 /-! ## A window by groups -/
 
@@ -557,9 +667,13 @@ tries' depth, those it names outside it the certificate's. -/
 def checkWinP (C : Cert) (i : ℕ) : Bool :=
   C.contOk i && C.insOk (listElementOrDefault C.ins i []) && C.winFits i
 
-/-- The walk of a window of one `match` with the arms `lo ≤ k < hi`. -/
-noncomputable def chkWinS (X : Fx) (lo hi : ℕ) : List Core.Stmt → CS → Res
-  | [.match_ v arms], st => chkMatchS X lo hi v arms st
+/-- The walk of a window of one `match` with the arms `lo ≤ k < hi` from `st`: `walkFrom`'s, the
+`match` entered through `fp[sel]` into the arms `succ` if `succ` is not empty. -/
+noncomputable def chkWinS (X : Fx) (lo hi : ℕ) (env : List (ℕ × Sym)) (sel : ℕ) (succ : List ℕ) :
+    List Core.Stmt → CS → Res
+  | [.match_ v arms], st => bif succ.isEmpty then chkMatchS X lo hi v arms st
+      else bif startsOk X.idx env succ then chainMatchS X lo hi sel succ st.book st.bnd v arms
+      else .fail
   | _, _ => .fail
 
 /-- **The check of a group of a window of one `match`**: arm `0` and the arms `lo ≤ k < hi` of the
@@ -568,8 +682,9 @@ window and of the values it names outside it (`Cert.locAtR`), which cover the gr
 the executor, the links and the window's start and end as `checkWinC`'s. Not the first window. -/
 noncomputable def checkWinS (G : Glob) (j : ℕ) (cf : Core.Fn) (C : Cert) (main : Bool) (i lo hi : ℕ)
     (rs : List (ℕ × ℕ)) : Bool :=
-  matchAtoms lo hi (C.stmtsAt cf i) && (C.succAt i).isEmpty &&
-  match execWinC C.facts (fnOf j) (C.cutAt i).J (C.cutAt i).env (C.endAt (fnOf j) i) with
+  matchAtoms lo hi (C.stmtsAt cf i) &&
+  match execWinCS C.facts (fnOf j) (C.cutAt i).J (C.cutAt i).env ((C.succAt i).drop 1)
+      (C.endAt (fnOf j) i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (C.locAtR i rs).seq fun loc ↦
       !(i == 0) && C.rsFit i rs &&
       covOk loc (selStmts lo hi (C.stmtsAt cf i)) &&
@@ -578,8 +693,8 @@ noncomputable def checkWinS (G : Glob) (j : ℕ) (cf : Core.Fn) (C : Cert) (main
       (match segAt (C.fxAt G (fnOf j) cf main i segs idx loc) (C.cutAt i).J
           (bookOf (C.cutAt i).facts .nil) (C.cutAt i).bnd with
         | some st => st.seg.env.sub Sym.beq (envOf (C.cutAt i).env) &&
-            winEnd C i idx (chkWinS (C.fxAt G (fnOf j) cf main i segs idx loc) lo hi
-              (C.stmtsAt cf i) st)
+            winEnd C i idx (chkWinS (C.fxAt G (fnOf j) cf main i segs idx loc) lo hi (C.cutAt i).env
+              (C.selAt i) (C.succAt i) (C.stmtsAt cf i) st)
         | none => false)
 
 theorem winEnd_fail (C : Cert) (i : ℕ) (idx : Exec.Trie Exec.Seg) : winEnd C i idx .fail = false := by
@@ -629,34 +744,29 @@ theorem checkWinC_of_split {G : Glob} {j : ℕ} {cf : Core.Fn} {C : Cert} {main 
     obtain ⟨g', hg', h1, h2⟩ := hcov e he
     obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
     exact ⟨g, hg, h1, h2⟩
-  have hsucc : C.succAt i = [] := by
-    have hc := h g0 hg0
-    unfold checkWinS at hc
-    simp only [Bool.and_eq_true, List.isEmpty_iff] at hc
-    exact hc.1.2
   unfold checkWinC
-  rw [hsucc, List.drop_nil, execWinCS_nil]
-  rcases hR : execWinC C.facts (fnOf j) (C.cutAt i).J (C.cutAt i).env (C.endAt (fnOf j) i) with
-    ⟨segs, dead⟩
+  rcases hR : execWinCS C.facts (fnOf j) (C.cutAt i).J (C.cutAt i).env ((C.succAt i).drop 1)
+    (C.endAt (fnOf j) i) with ⟨segs, dead⟩
   simp only [listSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true]
+  -- the walk's context on cells `l`
+  set fx := fun l ↦ C.fxAt G (fnOf j) cf main i segs (index segs) l with hfx
   -- each group's facts
   have hG : ∀ g ∈ gs, matchAtoms g.1 g.2.1 [.match_ v (a0 :: as)] = true ∧ i ≠ 0 ∧
       C.rsFit i g.2.2 = true ∧
       covOk (C.locAtR i g.2.2) [.match_ v (a0 :: selArms g.1 g.2.1 1 as)] = true ∧
-      linkedWeak (index segs) segs (C.fxAt G (fnOf j) cf main i segs (index segs) (C.locAt i)).wJ
-        (C.fxAt G (fnOf j) cf main i segs (index segs) (C.locAt i)).wenv = true ∧
-      ∃ st, segAt (C.fxAt G (fnOf j) cf main i segs (index segs) (C.locAt i)) (C.cutAt i).J
-          (bookOf (C.cutAt i).facts .nil) (C.cutAt i).bnd = some st ∧
+      linkedWeak (index segs) segs (fx (C.locAt i)).wJ (fx (C.locAt i)).wenv = true ∧
+      ∃ st, segAt (fx (C.locAt i)) (C.cutAt i).J (bookOf (C.cutAt i).facts .nil) (C.cutAt i).bnd =
+          some st ∧
         st.seg.env.sub Sym.beq (envOf (C.cutAt i).env) = true ∧
-        winEnd C i (index segs) (chkMatchS (C.fxAt G (fnOf j) cf main i segs (index segs)
-          (C.locAtR i g.2.2)) g.1 g.2.1 v (a0 :: as) st) = true := by
+        winEnd C i (index segs) (chkWinS (fx (C.locAtR i g.2.2)) g.1 g.2.1 (C.cutAt i).env (C.selAt i)
+          (C.succAt i) [.match_ v (a0 :: as)] st) = true := by
     intro g hg
     have hc := h g hg
     unfold checkWinS at hc
     rw [hR, hss] at hc
     simp only [listSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true, Bool.not_eq_true',
-      beq_eq_false_iff_ne, selStmts, chkWinS] at hc
-    obtain ⟨⟨hm, -⟩, ⟨⟨⟨⟨hi, hfit⟩, hcovg⟩, hlink⟩, hend⟩⟩ := hc
+      beq_eq_false_iff_ne, selStmts] at hc
+    obtain ⟨hm, ⟨⟨⟨⟨hi, hfit⟩, hcovg⟩, hlink⟩, hend⟩⟩ := hc
     refine ⟨hm, hi, hfit, hcovg, hlink, ?_⟩
     split at hend
     · rename_i st hst
@@ -702,9 +812,9 @@ theorem checkWinC_of_split {G : Glob} {j : ℕ} {cf : Core.Fn} {C : Cert} {main 
     exact hs
   · rw [hst]
     simp only [hsub, Bool.true_and]
-    rw [walkFrom_nil rfl]
-    have hne : ∀ g ∈ gs, chkMatchS (C.fxAt G (fnOf j) cf main i segs (index segs) (C.locAtR i g.2.2))
-        g.1 g.2.1 v (a0 :: as) st ≠ .fail := by
+    -- every group's walk ends, with the start the window's
+    have hne : ∀ g ∈ gs, chkWinS (fx (C.locAtR i g.2.2)) g.1 g.2.1 (C.cutAt i).env (C.selAt i)
+        (C.succAt i) [.match_ v (a0 :: as)] st ≠ .fail := by
       intro g hg hf
       obtain ⟨-, -, -, -, -, st', hst', -, hend⟩ := hG g hg
       obtain rfl := Option.some.inj (hst'.symm.trans hst)
@@ -720,30 +830,53 @@ theorem checkWinC_of_split {G : Glob} {j : ℕ} {cf : Core.Fn} {C : Cert} {main 
         (by rw [length_selArms]; exact he))
       rw [getElem_selArms g.1 g.2.1 1 as e he (by omega) (by omega)] at this
       exact List.all_eq_true.mpr this
-    rw [hss, chkL_of_groups _ v a0 as st (gs.map fun g ↦ (g.1, g.2.1, C.locAtR i g.2.2))
-      (g0.1, g0.2.1, C.locAtR i g0.2.2) (List.mem_map.mpr ⟨g0, hg0, rfl⟩) ?_ (hatoms g0 hg0).1 ?_ ?_ ?_
-      ?_ ?_]
-    · exact hend0
-    · intro e he
+    -- the groups as `chkL_of_groups` and `chainL_of_groups` take them
+    have gs0 : (g0.1, g0.2.1, C.locAtR i g0.2.2) ∈ gs.map (fun g ↦ (g.1, g.2.1, C.locAtR i g.2.2)) :=
+      List.mem_map.mpr ⟨g0, hg0, rfl⟩
+    have hcov2 : ∀ e < as.length, ∃ g ∈ gs.map (fun g ↦ (g.1, g.2.1, C.locAtR i g.2.2)),
+        g.1 ≤ e + 1 ∧ e + 1 < g.2.1 := fun e he ↦ by
       obtain ⟨g, hg, h1, h2⟩ := hcov' e he
       exact ⟨_, List.mem_map.mpr ⟨g, hg, rfl⟩, h1, h2⟩
-    · intro g' hg'
-      obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
-      exact (hatoms g hg).2
-    · intro g' hg'
-      obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
-      exact hagree g hg v (by simp [stmtsVals, stmtVals])
-    · intro g' hg' x hx
+    have has2 : ∀ g ∈ gs.map (fun g ↦ (g.1, g.2.1, C.locAtR i g.2.2)), ∀ e (he : e < as.length),
+        g.1 ≤ e + 1 → e + 1 < g.2.1 → as[e].all isAtomS = true := fun g' hg' ↦ by
+      obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'; exact (hatoms g hg).2
+    have hv2 : ∀ g ∈ gs.map (fun g ↦ (g.1, g.2.1, C.locAtR i g.2.2)), Agree g.2.2 (C.locAt i) v :=
+      fun g' hg' ↦ by
+        obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
+        exact hagree g hg v (by simp [stmtsVals, stmtVals])
+    have h0v2 : ∀ g ∈ gs.map (fun g ↦ (g.1, g.2.1, C.locAtR i g.2.2)), ∀ x ∈ stmtsVals a0,
+        Agree g.2.2 (C.locAt i) x := fun g' hg' x hx ↦ by
       obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
       exact hagree g hg x (by
         simp only [stmtsVals, stmtVals, armsVals, List.mem_cons, List.mem_append, List.append_nil]
         exact Or.inr (Or.inl hx))
-    · intro g' hg' e he hlo hhi x hx
-      obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
-      exact hagree g hg x (hsel g hg e he hlo hhi x hx)
-    · intro g' hg'
-      obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
-      exact hne g hg
+    have hav2 : ∀ g ∈ gs.map (fun g ↦ (g.1, g.2.1, C.locAtR i g.2.2)), ∀ e (he : e < as.length),
+        g.1 ≤ e + 1 → e + 1 < g.2.1 → ∀ x ∈ stmtsVals as[e], Agree g.2.2 (C.locAt i) x :=
+      fun g' hg' e he hlo hhi x hx ↦ by
+        obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
+        exact hagree g hg x (hsel g hg e he hlo hhi x hx)
+    rw [hss]
+    unfold walkFrom
+    unfold chkWinS at hend0 hne
+    have hidx : ∀ l, (fx l).idx = index segs := fun _ ↦ rfl
+    simp only [hidx] at hend0 hne ⊢
+    cases hse : (C.succAt i).isEmpty
+    · simp only [hse, Bool.cond_false] at hend0 hne ⊢
+      cases hso : startsOk (index segs) (C.cutAt i).env (C.succAt i)
+      · simp only [hso, Bool.cond_false] at hend0
+        rw [winEnd_fail] at hend0
+        exact absurd hend0 Bool.false_ne_true
+      · simp only [hso, Bool.cond_true] at hend0 hne ⊢
+        rw [chainL_of_groups (fx (C.locAt i)) (C.selAt i) (C.succAt i) st.book st.psi st.bnd v a0 as _
+          _ gs0 hcov2 (hatoms g0 hg0).1 has2 hv2 h0v2 hav2 (fun g' hg' ↦ by
+            obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'; exact hne g hg)]
+        simp only [show startsOk (C.fxAt G (fnOf j) cf main i segs (index segs) (C.locAt i)).idx
+          (C.cutAt i).env (C.succAt i) = true from hso, Bool.cond_true]
+        exact hend0
+    · simp only [hse, Bool.cond_true] at hend0 hne ⊢
+      rw [chkL_of_groups (fx (C.locAt i)) v a0 as st _ _ gs0 hcov2 (hatoms g0 hg0).1 has2 hv2 h0v2
+        hav2 (fun g' hg' ↦ by obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'; exact hne g hg)]
+      exact hend0
 
 /-- **A window of one `match`, checked by groups** (`checkWinS`) covering its arms. -/
 theorem winOk_of_split {j i : ℕ} (gs : List (ℕ × ℕ × List (ℕ × ℕ))) (g0 : ℕ × ℕ × List (ℕ × ℕ))

@@ -1,7 +1,7 @@
 //! The constants baked into the guest.
 
 use super::MAX_RECURSIONS;
-use super::cells::{dsl_u128, pack_16_bytes};
+use super::cells::pack_16_bytes;
 use super::child::{
     MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_shape,
 };
@@ -10,7 +10,7 @@ use super::deferred::RECURSION_AGG_LABEL;
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use fiat_shamir::merkle::hash_to_scalars;
-use lean_compiler::f192_literal;
+use lean_compiler::f128_literal;
 use lean_da::{CELLS_PER_ROW, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
 use leanvm_core::constraints::xi_offsets;
 use leanvm_core::cpu::{KeccakLane, keccak_value};
@@ -18,7 +18,8 @@ use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-use primitives::field::{F64, F192, g_pow};
+use pcs::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
+use primitives::field::{F64, F128, g_pow};
 use signatures::{lean_sphincs, lean_xmss};
 use std::collections::BTreeMap;
 use std::ops::Range;
@@ -58,10 +59,10 @@ fn literals(values: impl IntoIterator<Item = impl std::fmt::Display>) -> String 
     )
 }
 
-fn flds(v: &[F192]) -> String {
+fn flds(v: &[F128]) -> String {
     format!(
         "[{}]",
-        v.iter().map(|&x| f192_literal(x)).collect::<Vec<_>>().join(", ")
+        v.iter().map(|&x| f128_literal(x)).collect::<Vec<_>>().join(", ")
     )
 }
 
@@ -154,11 +155,9 @@ struct OpeningShape {
     positions_per_squeeze: Vec<usize>,
     squeezes: Vec<usize>,
     interleaving: Vec<usize>,
-    query_grinding_bits: Vec<usize>,
     cap_depths: Vec<usize>,
     fold_offsets: Vec<usize>,
     residual_fold_offsets: Vec<usize>,
-    ood_samples: Vec<usize>,
 }
 
 /// The recursion program's placeholder map depends on table structure and bytecode
@@ -167,7 +166,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     // Only block and coordinate structure is used here; dummy instructions and
     // table sizes let us derive it before the guest's bytecode exists.
     let stand_in = vec![leanvm_core::cpu::Op::Xor { a: 0, b: 0, c: 0 }; 1 << kbc];
-    let layout = leanvm_core::cpu::layout(&stand_in, 20, [1 << 10; N_TABLES], [F192::ZERO, F192::ZERO]);
+    let layout = leanvm_core::cpu::layout(&stand_in, 20, [1 << 10; N_TABLES], [F128::ZERO, F128::ZERO]);
 
     let mut rep = BTreeMap::new();
     let mut ps = |k: &str, v: String| {
@@ -178,7 +177,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("QUERY_WINDOWS_CAP", QUERY_WINDOWS_CAP.to_string());
     ps("MIN_LOG_MEM", verifier::MIN_LOG_MEMORY.to_string());
     ps("MAX_LOG_MEM", verifier::MAX_LOG_MEMORY.to_string());
-    ps("INV_GEN", dsl_u128(F192::from(F64::G.inv())).to_string());
+    ps("INV_GEN", f128_literal(F128::from(F64::G.inv())));
     ps("MU_CAP", MU_CAP.to_string());
     ps("NO_TABLE", N_TABLES.to_string());
     ps("GKR_ROUNDS_CAP", (MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2).to_string());
@@ -187,6 +186,14 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     claim_placeholders(&layout, kbc, nclaims, &mut ps);
     table_placeholders(&mut ps);
     keccak_placeholders(&mut ps);
+    // The bus's least push depth over every execution of this bytecode: the least memory, every table at its floor.
+    let least = leanvm_core::cpu::layout(
+        &stand_in,
+        verifier::MIN_LOG_MEMORY,
+        [0; N_TABLES],
+        [F128::ZERO, F128::ZERO],
+    );
+    grind_placeholders(leanvm_core::leaf::layout(&least.push).mu, &mut ps);
     field_placeholders(&mut ps);
     opening_placeholders(kbc, &mut ps);
     bytecode_placeholders(kbc, nbcv, &mut ps);
@@ -250,7 +257,7 @@ fn bus_placeholders(
                 nbcv += usize::from(matches!(c, Coord::Public(_)));
                 coordinates.push(CoordinateDescriptor {
                     kind: coord_kind(c),
-                    constant: dsl_u128(coord_scale(c)),
+                    constant: u128::from(coord_scale(c)),
                     padding: blk.padding.get(i).map_or(0, |v| v.0),
                     fresh,
                     claim_slot: slot,
@@ -262,6 +269,7 @@ fn bus_placeholders(
     }
     ps("SIDE_BLOCK_START", literals(&sblk));
     ps("N_BLOCKS", nblocks.to_string());
+    ps("N_COORDS", coordinates.len().to_string());
     let bks = leanvm_core::cpu::block_kappa_sources(kbc);
     // Push and pull emit bus blocks in matched pairs, so their baked kappa-source
     // segments are identical; the guest computes only push's side total and
@@ -348,16 +356,16 @@ fn bus_placeholders(
     ps("TERM_COL_A", literals(terms.iter().map(|t| t.column_a)));
     ps("TERM_COL_B", literals(terms.iter().map(|t| t.column_b)));
     ps("N_BUS_CLAIMS", nclaims.to_string());
-    let idxc: Vec<u128> = (0..34)
+    let idxc: Vec<F128> = (0..34)
         .map(|i| {
-            let mut g2k = F192::from(F64::G);
+            let mut g2k = F128::from(F64::G);
             for _ in 0..i {
                 g2k = g2k * g2k;
             }
-            dsl_u128(F192::ONE + g2k)
+            F128::ONE + g2k
         })
         .collect();
-    ps("INDEX_MLE_FACTORS", literals(&idxc));
+    ps("INDEX_MLE_FACTORS", flds(&idxc));
     (nclaims, nbcv)
 }
 
@@ -372,7 +380,7 @@ fn claim_placeholders(
         .iter()
         .map(|t| t.n_committed_columns())
         .sum();
-    let ncl = nclaims + evtot + 3; // bus + constraint + the three PI memory-limb claims
+    let ncl = nclaims + evtot + 2; // bus + constraint + the two PI memory-limb claims
 
     // ---- claim descriptor buffer ids (structural) ----
     let col_sources_pm = leanvm_core::cpu::col_kappa_sources(kbc);
@@ -451,6 +459,13 @@ fn claim_placeholders(
     assert!((0..claims.len()).all(|j| (claims[j].buffer == POINT_BUF_KECCAK_OUT)
         == (out_pool..out_pool + primitives::hash::STATE_LANES).contains(&j)));
     ps("KECCAK_OUT_POOL", out_pool.to_string());
+    // The stacked opening batches the ring-switched claim, the pool's on-stack claims and the
+    // Keccak reduction's claim on its output word and level 0's OOD claim; the batching is accounted for up to a cap.
+    let stacked = 2 + claims.iter().filter(|c| c.buffer != POINT_BUF_KECCAK_OUT).count() + 1;
+    assert!(
+        stacked <= pcs::whir_config::MAX_STACKED_CLAIMS,
+        "too many stacked claims"
+    );
     ps("CLAIM_QKECCAK_SLOT_BITS", literals(&cpqbits));
     ps("QKECCAK_COMMITTED_COL", qkeccak_compact.to_string());
     ps("QKECCAK_VARS_CAP", (33 + slot_log).to_string());
@@ -461,9 +476,10 @@ fn table_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("N_TABLES", N_TABLES.to_string());
     ps("FLOORS", literals(leanvm_core::tables::TABLE_LOG_FLOORS));
     // The table sumcheck's xi layout, from the native verifier's own numbers:
-    // a disjoint range of identities per table, then THREE powers shared by every
-    // table, one per bus side. Sharing is what lets the target be derived from the
-    // three leaf claims instead of trusted (leanvm_core::cpu::xi_form_base).
+    // a disjoint range of identities per table, then one power per bus tree
+    // (leanvm_core::leaf::N_BUS_TREES), shared by every table. Sharing is what lets the
+    // target be derived from the trees' leaf claims instead of trusted
+    // (leanvm_core::cpu::xi_form_base).
     let n_id: Vec<usize> = leanvm_core::tables::tables()
         .iter()
         .map(|t| t.n_constraints())
@@ -471,7 +487,7 @@ fn table_placeholders(ps: &mut impl FnMut(&str, String)) {
     let form_base = leanvm_core::cpu::xi_form_base();
     ps("ETA_OFFSET", literals(xi_offsets(n_id.iter().copied())));
     ps("ETA_FORM_BASE", form_base.to_string());
-    ps("N_ETA_POWS", (form_base + 3).to_string());
+    ps("N_ETA_POWS", leanvm_core::cpu::n_xi_powers().to_string());
     let committed: Vec<usize> = leanvm_core::tables::tables()
         .iter()
         .map(|t| t.n_committed_columns())
@@ -480,6 +496,59 @@ fn table_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("TABLE_COL_BASE", literals(xi_offsets(committed.iter().copied())));
     ps("N_COL_EVALS", committed.iter().sum::<usize>().to_string());
     ps("TABLE_COLS_CAP", (committed.iter().max().unwrap() + 1).to_string());
+}
+
+/// The outer protocol's grinds, each `grinding_bits` of its challenge's numerator as the prover takes it (zero bits
+/// is no nonce): a sumcheck round of degree `d`, eq factor included, then each other challenge the guest grinds for.
+fn grind_placeholders(bus_min_mu: usize, ps: &mut impl FnMut(&str, String)) {
+    use fiat_shamir::grinding_bits;
+    use leanvm_core::gkr::{ROUND_GRIND, y_grind};
+    use leanvm_core::leaf::{N_BUS_TREES, bus_grinding_bits};
+    // The bus grind's bits by the push depth mu, from `bus_min_mu` on. It sends a nonce at every depth the guest
+    // admits, which it absorbs with the OOD sample's value.
+    assert!(bus_grinding_bits(bus_min_mu) > 0);
+    // The root-most layer is binary and never the last.
+    assert!(bus_min_mu > 2);
+    ps("BUS_MIN_MU", bus_min_mu.to_string());
+    ps("BUS_GRIND_BITS", literals((0..64).map(bus_grinding_bits)));
+    for degree in [2, 3] {
+        ps(&format!("ROUND{degree}_GRIND_BITS"), grinding_bits(degree).to_string());
+    }
+    ps("ROUND5_GRIND_BITS", ROUND_GRIND.to_string());
+    ps(
+        "GKR_COMBINER_GRIND_BITS",
+        grinding_bits(N_BUS_TREES as u128 - 1).to_string(),
+    );
+    // y: a binary layer's (only ever the root-most, never the last), a radix-four one's, the last layer's doubled.
+    ps("GKR_Y1_GRIND_BITS", y_grind(1, false).to_string());
+    ps("GKR_Y_GRIND_BITS", y_grind(2, false).to_string());
+    ps("GKR_Y_LAST_GRIND_BITS", y_grind(2, true).to_string());
+    ps(
+        "XI_GRIND_BITS",
+        grinding_bits(leanvm_core::cpu::n_xi_powers() as u128 - 1).to_string(),
+    );
+    let shape = keccak_gkr::Shape::new(leanvm_core::keccak::MIN_STEPS, leanvm_core::keccak::DEPTH);
+    // The segment then the lane, 25 lanes in five coordinates.
+    ps(
+        "KECCAK_SEG_GRIND_BITS",
+        grinding_bits((shape.seg_log() + 5) as u128).to_string(),
+    );
+    ps(
+        "KECCAK_S_GRIND_BITS",
+        grinding_bits(keccak_gkr::rmfe::PROD_BITS as u128 - 1).to_string(),
+    );
+    ps("KECCAK_BETA_GRIND_BITS", grinding_bits(2).to_string());
+    ps(
+        "BATCH_LAM_GRIND_BITS",
+        super::deferred::BATCH_LAM_GRIND_BITS.to_string(),
+    );
+    // The batching hints: the challenge's nonce, if it grinds, then per round (g1, g_inf) and its nonce, if any.
+    let nonces = |bits: u32| usize::from(bits > 0);
+    ps(
+        "BC_LAM_WORDS",
+        nonces(super::deferred::BATCH_LAM_GRIND_BITS).to_string(),
+    );
+    ps("BC_ROUND_WORDS", (2 + nonces(grinding_bits(2))).to_string());
 }
 
 /// The Keccak reduction (`keccak_gkr`), as index lists the guest unrolls.
@@ -569,25 +638,28 @@ fn keccak_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("KECCAK_STATE", leanvm_core::keccak::STATE_CELLS.to_string());
 }
 
-/// The F192 tower and its coordinate basis.
+/// The F128 tower and its coordinate basis.
 fn field_placeholders(ps: &mut impl FnMut(&str, String)) {
-    // Tower F192 = F64[Y]/(Y^3+Y+1), Y = new(0,1,0). Y_TOWER embeds Y for
-    // AIR lane reassembly; Y_INV splits a canonical word into its two K limbs.
-    let y_tower = F192::new(0, 1, 0);
-    ps("Y_TOWER", dsl_u128(y_tower).to_string());
-    ps("Y_INV", f192_literal(y_tower.inv()));
-    // Coordinate basis e_i of F192 over F2 (spans the whole field): the 64
-    // binary basis vectors in each of the three tower limbs. The guest uses
-    // these vectors to reconstruct a word from its 192 coordinate bits.
-    let coord_basis: Vec<F192> = (0..192)
+    // Tower F128 = F64[Y]/(Y^2 + xY + 1). Y_TOWER embeds Y for AIR lane reassembly;
+    // Y_INV = Y + x splits a word into its two K limbs.
+    let y_tower = F128::new(0, 1);
+    ps("Y_TOWER", f128_literal(y_tower));
+    ps("Y_INV", f128_literal(y_tower.inv()));
+    // Coordinate basis e_i of F128 over F2 (spans the whole field): the 64 binary
+    // basis vectors in each of the two tower limbs. The guest uses these vectors to
+    // reconstruct a word from its 128 coordinate bits.
+    let coord_basis: Vec<F128> = (0..128)
         .map(|i| match i / 64 {
-            0 => F192::new(1u64 << i, 0, 0),
-            1 => F192::new(0, 1u64 << (i - 64), 0),
-            2 => F192::new(0, 0, 1u64 << (i - 128)),
-            _ => unreachable!(),
+            0 => F128::new(1u64 << i, 0),
+            _ => F128::new(0, 1u64 << (i - 64)),
         })
         .collect();
     ps("COORD_BASIS", flds(&coord_basis));
+    // The ring-switch target's Horner points, inverted: w_p = 1 / z_p, z_p = x^(2^(64 - 8p)) in K.
+    let ring_w: Vec<F128> = (0..8)
+        .map(|p| (0..(64 - 8 * p) % 64).fold(F128::new(2, 0), |z, _| z.square()).inv())
+        .collect();
+    ps("RING_W", flds(&ring_w));
     ps("QKECCAK_SLOT_LOG", leanvm_core::keccak::SLOT_LOG.to_string());
 }
 
@@ -607,7 +679,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         let cni: Vec<usize> = ck.iter().map(|&k| 1usize << k).collect();
         assert!(
             cni.iter().enumerate().all(|(lv, &n)| {
-                let bytes = if lv == 0 { 8 * n } else { 24 * n };
+                let bytes = if lv == 0 { 8 * n } else { 16 * n };
                 bytes <= 1024 && n % 4 == 0
             }),
             "recursive WHIR guest supports Merkle rows of at most 1024 bytes, packed four words to two cells"
@@ -635,20 +707,20 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             positions_per_squeeze: shape.per_squeeze,
             squeezes: cs,
             interleaving: cni,
-            query_grinding_bits: shape.config.grinding_bits,
             cap_depths,
             fold_offsets: c_foldbase,
             residual_fold_offsets: c_risstart,
-            ood_samples: shape.config.ood_samples,
         }
     };
+    ps("FOLD_GRIND_BITS", FOLD_GRINDING_BITS.to_string());
+    ps("OOD_GRIND_BITS", OOD_GRINDING_BITS.to_string());
+    ps("QUERY_GRIND_BITS", QUERY_GRINDING_BITS.to_string());
+    ps("BATCH_GRIND_BITS", BATCH_GRINDING_BITS.to_string());
     let (minm, maxm) = (verifier::min_execution_stacked_log(kbc), verifier::MAX_STACKED_LOG);
     let rates = pcs::whir::MIN_LOG_INV_RATE..=pcs::whir::MAX_LOG_INV_RATE;
     let cands: Vec<_> = rates.flat_map(|r| (minm..=maxm).map(move |m| oshape(m, r))).collect();
     let maxlev = cands.iter().map(|c| c.n_levels).max().unwrap();
-    let maxood = cands.iter().flat_map(|c| &c.ood_samples).copied().max().unwrap_or(0);
     ps("LIG_MAX_LEVELS", maxlev.to_string());
-    ps("LIG_MAX_OOD_SAMPLES", maxood.to_string());
     ps("LIG_MIN_LOG_SIZE", minm.to_string());
     let cks: Vec<(usize, usize)> = leanvm_core::cpu::col_kappa_sources(kbc).into_iter().flatten().collect();
     ps("N_COMMITTED_COLS", cks.len().to_string());
@@ -698,19 +770,11 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         ps("LIG_YR_LOG_LEN", scal(&|c| c.yr_log_len));
         ps("LIG_YR_LEN", scal(&|c| 1usize << c.yr_log_len));
         ps("LIG_TOTAL_FOLDS", scal(&|c| c.folds.iter().sum()));
-        ps("LIG_MAX_INTERLEAVE", scal(&|c| *c.interleaving.iter().max().unwrap()));
-        let row_cap = cands
-            .iter()
-            .flat_map(|c| {
-                c.interleaving
-                    .iter()
-                    .enumerate()
-                    .map(|(level, &n)| n * if level == 0 { 1 } else { 3 })
-            })
-            .max()
-            .unwrap();
+        // A row is its hinted words, one a lane: K at level 0, packed two to a cell, E deeper.
+        let row_cap = cands.iter().flat_map(|c| c.interleaving.iter().copied()).max().unwrap();
+        let packed_cap = cands.iter().map(|c| c.interleaving[0] / 2).max().unwrap();
         ps("LIG_ROW_CAP", row_cap.to_string());
-        ps("LIG_PACKED_ROW_CAP", (row_cap / 2).to_string());
+        ps("LIG_PACKED_ROW_CAP", packed_cap.to_string());
         // `decode_query_windows`: a squeezed word's positions, each its path bits QW at a time, then the cap
         // child bit and the cap index, read back through `win_tabs`' 128 bit patterns.
         let windows = cands.iter().flat_map(|c| {
@@ -738,26 +802,18 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
                 .unwrap()
                 .to_string(),
         );
-        // The guest reads every level's query nonce, which a grind of no bits would not send.
-        assert!(
-            cands.iter().all(|c| c.query_grinding_bits.iter().all(|&bits| bits > 0)),
-            "a query phase grinds no bits"
-        );
-        ps("LIG_QUERY_GRIND_BITS", flat(&|c| c.query_grinding_bits.clone()));
-        ps("LIG_OOD_SAMPLES", flat(&|c| c.ood_samples.clone()));
         ps("LIG_QUERIES", flat(&|c| c.queries.clone()));
         ps("LIG_FOLDS", flat(&|c| c.folds.clone()));
-        ps("LIG_INTERLEAVE", flat(&|c| c.interleaving.clone()));
         // 128-bit cells per leaf row: level 0's committed rows are base-field
-        // F64 (8 bytes/lane); deeper levels are native F192 (24 bytes/word,
-        // received as three embedded K limbs each).
+        // F64 (8 bytes/lane, two lanes a cell); deeper levels are native F128,
+        // one word a cell.
         ps(
             "LIG_LEAF_CELLS",
             flat(&|c| {
                 c.interleaving
                     .iter()
                     .enumerate()
-                    .map(|(level, &n)| if level == 0 { n / 2 } else { 3 * n / 2 })
+                    .map(|(level, &n)| if level == 0 { n / 2 } else { n })
                     .collect()
             }),
         );
@@ -775,20 +831,31 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
                     .collect()
             }),
         );
+        // A high part's index bits; the guest's HIGH_BITS_CAP is 3.
+        assert!(cands.iter().all(|c| c.folds.iter().all(|&k| k <= 8)));
+        ps(
+            "LIG_HIGH_BITS",
+            flat(&|c| {
+                c.folds
+                    .iter()
+                    .map(|&k| k.next_power_of_two().trailing_zeros() as usize)
+                    .collect()
+            }),
+        );
         ps("LIG_FOLDS_OFF", flat(&|c| c.fold_offsets.clone()));
     }
     let n_log_sizes = maxm - minm + 1;
     let n_rates = MAX_LOG_INV_RATE - MIN_LOG_INV_RATE + 1;
+    // The guest's rate selector is `g^rate / g`.
+    const _: () = assert!(MIN_LOG_INV_RATE == 1);
     // `open_stacked` has one arm per size and reads these at the size's first-rate row: a rate changes none of them.
-    fn size_only(c: &OpeningShape) -> (usize, usize, usize, [&Vec<usize>; 7]) {
+    fn size_only(c: &OpeningShape) -> (usize, usize, usize, [&Vec<usize>; 5]) {
         let lists = [
             &c.folds,
             &c.log_message_columns,
             &c.interleaving,
             &c.fold_offsets,
             &c.residual_fold_offsets,
-            &c.ood_samples,
-            &c.query_grinding_bits,
         ];
         (c.n_levels, c.yr_level, c.yr_log_len, lists)
     }
@@ -817,15 +884,15 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             values
         })
         .collect();
-    let inverses: Vec<F192> = by_cols.iter().map(|v| F192::from(v.inv())).collect();
+    let inverses: Vec<F128> = by_cols.iter().map(|v| F128::from(v.inv())).collect();
     ps(
         "VANISH_BY_COLS",
-        flds(&by_cols.into_iter().map(F192::from).collect::<Vec<_>>()),
+        flds(&by_cols.into_iter().map(F128::from).collect::<Vec<_>>()),
     );
     ps("VANISH_INVS_BY_COLS", flds(&inverses));
     ps("LIG_N_LOG_SIZES", n_log_sizes.to_string());
     ps("LIG_N_RATES", n_rates.to_string());
-    ps("LIG_MIN_SHIFT_INV", dsl_u128(F192::from(g_pow(minm).inv())).to_string());
+    ps("LIG_MIN_SHIFT_INV", f128_literal(F128::from(g_pow(minm).inv())));
 }
 
 /// The stacked bytecode's claim, the batch's seed, and the statement's layout.
@@ -842,7 +909,7 @@ fn bytecode_placeholders(kbc: usize, nbcv: usize, ps: &mut impl FnMut(&str, Stri
     ps("BYTECODE_VARS", (kbc + log2_bc_cols).to_string());
     let agg_seed = FiatShamirState::from_label(RECURSION_AGG_LABEL).capacity_cells();
     for (c, cell) in agg_seed.iter().enumerate() {
-        ps(&format!("AGG_SEED_{c}"), dsl_u128(*cell).to_string());
+        ps(&format!("AGG_SEED_{c}"), f128_literal(*cell));
     }
     // A child's words: its statement's two, its fresh claim, and its carried claim's cells.
     let child_words = 2 + (kbc + log2_bc_cols + 1) + (kbc + log2_bc_cols + 1);
@@ -850,10 +917,7 @@ fn bytecode_placeholders(kbc: usize, nbcv: usize, ps: &mut impl FnMut(&str, Stri
         "AGG_CHILD_PAD",
         (child_words.next_multiple_of(RATE_SCALARS) - child_words).to_string(),
     );
-    let defer_cells = kbc + log2_bc_cols + 1;
     ps("STMT_HEADER", STATEMENT_HEADER.to_string());
-    let pairs = defer_cells.div_ceil(2);
-    ps("STMT_PAIRS", pairs.to_string());
 }
 
 /// LeanDA (`doc/leanvm` §sec:leanda).
@@ -863,8 +927,8 @@ fn da_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("DA_LOG_CELL", DA_LOG_CELL.to_string());
     ps("DA_MAX_ROWS", DA_MAX_ROWS.to_string());
     ps("DA_LOG_MAX_ROWS", DA_MAX_ROWS.ilog2().to_string());
-    ps("DA_PAD_BLOB_0", f192_literal(pad_blob[0]));
-    ps("DA_PAD_BLOB_1", f192_literal(pad_blob[1]));
+    ps("DA_PAD_BLOB_0", f128_literal(pad_blob[0]));
+    ps("DA_PAD_BLOB_1", f128_literal(pad_blob[1]));
     // `Vhat_j` at each parent node `n` of a product tree over bits `top, top - 1, ...`, in heap
     // order: `j` the bit `n` splits, the point its path's bits make.
     let vhat = lean_da::subspace_above();
@@ -902,7 +966,7 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("DIGIT_SUMS", format!("[{}]", digit_sums.join(", ")));
     // leanXMSS: its hash types as its address lane holds them. Its addresses are
     // derived per signature from the leaf index the signature carries.
-    let address = |tw| dsl_u128(pack_16_bytes(&lean_xmss::address(&tw))).to_string();
+    let address = |tw| f128_literal(pack_16_bytes(&lean_xmss::address(&tw)));
     for (name, tag) in [
         ("TW_CHAIN", lean_xmss::TWEAK_CHAIN),
         ("TW_LEAF", lean_xmss::TWEAK_LEAF),
@@ -940,7 +1004,7 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     // second cell, holds it, and the cell bit each address field's low bytes start at.
     // The guest derives the rest of every address from the digest.
     use lean_sphincs::Adrs;
-    let cell = |adrs: Adrs, half: usize| dsl_u128(pack_16_bytes(&adrs.as_bytes()[16 * half..][..16]));
+    let cell = |adrs: Adrs, half: usize| f128_literal(pack_16_bytes(&adrs.as_bytes()[16 * half..][..16]));
     let at = Adrs::new(0, 0);
     for (name, adrs, half) in [
         ("SP_LAYER_MUL", Adrs::new(1, 0), 0),
@@ -953,7 +1017,7 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
         ("SP_WORD3_MUL_0", at.with_tree_index(1), 1),
         ("SP_WORD3_MUL_1", at.with_tree_index(1 << 8), 1),
     ] {
-        ps(name, cell(adrs, half).to_string());
+        ps(name, cell(adrs, half));
     }
     ps("SP_V", lean_sphincs::V.to_string());
     ps("SP_TARGET_SUM", lean_sphincs::TARGET_SUM.to_string());
@@ -970,6 +1034,6 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
         ("SP_FORS_ROOTS", lean_sphincs::FORS_ROOTS),
         ("SP_WOTS_ENC", lean_sphincs::WOTS_ENC),
     ] {
-        ps(name, cell(at.with_type(t), 1).to_string());
+        ps(name, cell(at.with_type(t), 1));
     }
 }

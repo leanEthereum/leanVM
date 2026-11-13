@@ -271,10 +271,10 @@ theorem long_run_valid (prog : LeanIsaProgram) (sh : Shape prog) :
   have hJ : 0 < J := by unfold J; omega
   refine ⟨⟨![g, 0, g, 0]⟩, ⟨30, img prog.pcFinal, 33 * J + 1⟩, ⟨?_, run_full prog sh⟩, ?_⟩
   · refine ⟨by show minLogMem ≤ 30; decide, by show 30 ≤ maxLogMem; decide, ?_, ?_⟩
-    · show (img prog.pcFinal).read (addressOfIndex 0) = some (E.ofLimbs g 0 0)
+    · show (img prog.pcFinal).read (addressOfIndex 0) = some (E.ofLimbs g 0)
       have hc : img prog.pcFinal ⟨0, by norm_num⟩ = ofK g := img_cell0 prog.pcFinal 0 hJ
       rw [read_img prog.pcFinal 0 (by norm_num), hc, ofK_eq_ofLimbs]
-    · show (img prog.pcFinal).read (addressOfIndex 1) = some (E.ofLimbs g 0 0)
+    · show (img prog.pcFinal).read (addressOfIndex 1) = some (E.ofLimbs g 0)
       have hc : img prog.pcFinal ⟨1, by norm_num⟩ = ofK g := img_cell1 prog.pcFinal 0 hJ
       rw [read_img prog.pcFinal 1 (by norm_num), hc, ofK_eq_ofLimbs]
   · show 2 ^ 33 < 33 * J + 1

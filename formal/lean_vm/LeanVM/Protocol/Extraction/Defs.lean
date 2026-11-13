@@ -65,11 +65,24 @@ def agreement {μ : ℕ} (R : ℕ) (W : ℕ → List K) (q : Vector K (2 ^ μ)) 
   (Finset.range (2 ^ (μ - initialFold + R))).filter fun v ↦
     ∀ u : Fin (2 ^ initialFold), (W v).reverse.getD u 0 = encode q u v
 
-/-- **The candidates** of a committed word: the stacks of `2^μ` words whose encoding at rate
-`2^-R` agrees with the word on at least `A` columns. The extractor lists every one of them at the
-Johnson threshold (`decodeStacks`). -/
+/-- The columns at which the word `W` agrees, on every lane `u`, with the level-0 polynomial of
+low part lane `u` of `q` and high part `W_κ·H_u`: `encode q u v + W_κ(x_v)·H_u(x_v)`. -/
+def agreementWith {μ : ℕ} (R : ℕ) (W : ℕ → List K) (q : Vector K (2 ^ μ))
+    (H : Fin (2 ^ initialFold) → Polynomial K) : Finset ℕ :=
+  (Finset.range (2 ^ (μ - initialFold + R))).filter fun v ↦
+    ∀ u : Fin (2 ^ initialFold), (W v).reverse.getD u 0 =
+      encode q u v + subspacePoly (μ - initialFold) (K.ofBits v) * (H u).eval (K.ofBits v)
+
+/-- **The candidates** of a committed word: the stacks of `2^μ` words such that, for some high
+parts `H_u` of degree below `6`, the lanes `encode q u + W_κ·H_u` (`κ = μ − 6`; polynomials of
+degree at most `2^κ + 5` whose low part, their novel coefficients below `2^κ`, is lane `u` of
+`q`) agree with the word on at least `A` columns: the low parts of level 0's list at its
+degree `2^κ − 1 + 6`, which WHIR's soundness quantifies over. The extractor must list every one of
+them at the Johnson threshold (`decodeStacks`). With `H = 0` a stack whose encoding agrees with
+the word is one (`agreement`). -/
 def Candidates (μ R A : ℕ) (W : ℕ → List K) : Set (Vector K (2 ^ μ)) :=
-  {q | A ≤ (agreement R W q).card}
+  {q | ∃ H : Fin (2 ^ initialFold) → Polynomial K, (∀ u, (H u).degree < initialFold) ∧
+    A ≤ (agreementWith R W q H).card}
 
 /-! ## The committed word -/
 
@@ -142,7 +155,7 @@ def laneCoeffs {μ : ℕ} (q : Vector K (2 ^ μ)) (u : ℕ) : Array K :=
 /-- **The per-lane decoder's parameters** for a stack of `2^μ` words at rate `2^-R`:
 message length `k = 2^κ`, `n = 2^(κ+R)` points, agreement `A = johnsonThreshold μ R`. -/
 def gsParams (μ R : ℕ) : CompPoly.GuruswamiSudan.GSExecParams :=
-  gsParamsFor (2 ^ (μ - initialFold)) (2 ^ (μ - initialFold + R)) (johnsonThreshold μ R)
+  gsParamsFor (2 ^ (μ - initialFold) + initialFold) (2 ^ (μ - initialFold + R)) (johnsonThreshold μ R)
 
 /-- The multiplicity of `gsParams μ R`. -/
 def gsMultiplicity (μ R : ℕ) : ℕ := (gsParams μ R).interp.multiplicity

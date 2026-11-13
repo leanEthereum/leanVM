@@ -138,13 +138,12 @@ impl Bytecode {
 
 /// `sum_k x^k * sums[k]`: each limb shifted into place, then one reduction.
 fn monomial_sum(sums: &[E; 64]) -> E {
-    let (mut c0, mut c1, mut c2) = (0u128, 0u128, 0u128);
+    let (mut c0, mut c1) = (0u128, 0u128);
     for (k, sum) in sums.iter().enumerate() {
         c0 ^= (sum.c0 as u128) << k;
         c1 ^= (sum.c1 as u128) << k;
-        c2 ^= (sum.c2 as u128) << k;
     }
-    E::new(reduce(c0), reduce(c1), reduce(c2))
+    E::new(reduce(c0), reduce(c1))
 }
 
 #[cfg(test)]
@@ -174,7 +173,7 @@ mod tests {
             for word in table.iter_mut().skip(2 << BLOCK_LOG).take(1 << BLOCK_LOG) {
                 *word = 0;
             }
-            let point: Vec<E> = (0..variables).map(|_| E::new(next(), next(), next())).collect();
+            let point: Vec<E> = (0..variables).map(|_| E::new(next(), next())).collect();
             let words: Vec<K> = table.iter().map(|&word| K(word)).collect();
             let bytecode = Bytecode::new(&table);
             assert_eq!(bytecode.evaluate(&point), multilinear_eval(&words, &point));

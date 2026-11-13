@@ -6,7 +6,7 @@ public import LeanVM.Guest.Fast.Xmss
 /-!
 # The guest decoder's compiled chain: a leanXMSS signature
 
-The reader of a leanXMSS signature off `__loop2`'s iteration frame, off arrays
+The reader of a leanXMSS signature off `main_loop2`'s iteration frame, off arrays
 (`Guest/Fast/Xmss.lean`: `xmssSigOfA`): the windows' and the dispatches' exponents off the lanes
 of `g^k` (`logGTWith`), each read once, the chain starts off the tables `XmssTabs` (`lxFold`,
 `lxRest`, `lxTail` as arrays), built once by the decoder's top level (`readerTabsC`,

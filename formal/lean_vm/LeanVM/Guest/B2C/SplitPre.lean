@@ -13,12 +13,13 @@ public import LeanVM.Guest.B2C.CplSplit
 
 A window of one `match` is checked by groups of its arms, each in its own kernel evaluation:
 `Check.checkWinS` for the soundness check, `cplWinS` for the completeness walk. Every group of a
-window starts alike: the window's executor run (`execWinC`) and its index, the fixed cells, the
+window starts alike: the window's executor run (`execWinCS`) and its index, the fixed cells, the
 renumbered values, the window's statements, and the links of its segments. `winPre j i` is that
-part. `kernel_lit` (`Guest/KernelLit.lean`) writes it once per window as a value the kernel checked
-(`Checked/X{j}_{i}`), and each group's check starts from the value (`checkWinSP`, `cplWinSP`):
-`checkWinS_of_pre` and `cplWinS_of_pre` give the group's `checkWinS` and `cplWinS` from it, so the
-window's theorems (`checkWinC_of_split`, `cplWin_of_split`) are unchanged.
+part. `win_lit` (`B2C/WinLit.lean`, the executor run in compiled code) writes it once per window
+as a value the kernel checked (`Checked/X{j}_{i}`), and each group's check starts from the value
+(`checkWinSP`, `cplWinSP`): `checkWinS_of_pre` and `cplWinS_of_pre` give the group's `checkWinS`
+and `cplWinS` from it, so the window's theorems (`checkWinC_of_split`, `cplWin_of_split`) are
+unchanged.
 -/
 
 namespace LeanVM.Guest.B2C
@@ -45,14 +46,15 @@ structure WinPre where
   /-- The links of the segments (`checkWinS`). -/
   lw : Bool
 
-/-- The executor's segments on window `i` of function `j`. -/
+/-- The executor's segments on window `i` of function `j`, from its start and, entered, its other
+arms. -/
 noncomputable def winSegs (j i : ℕ) : List Exec.Seg :=
-  (execWinC (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
-    ((certOf j).endAt (fnOf j) i)).segs
+  (execWinCS (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
+    (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i)).segs
 
 /-- **What every group of window `i` of function `j` computes alike.** -/
 noncomputable def winPre (j i : ℕ) : WinPre :=
-  ⟨winSegs j i, index (winSegs j i), statT (fsN j) (plumbOf j).stat .nil, nvOf (coreOf j).body 0,
+  ⟨winSegs j i, index (winSegs j i), statT (fsN j) (plumbOf j).stat .nil, (plumbOf j).nv,
     partStmts j i 0, (certOf j).stmtsAt (coreOf j) i,
     linkedWeak (index (winSegs j i)) (winSegs j i)
       (bif Nat.blt i (certOf j).cuts.length then ((certOf j).cutAt (i + 1)).J else 0)
@@ -63,17 +65,17 @@ noncomputable def winPre (j i : ℕ) : WinPre :=
 /-- `cplWinS` from the window's common part `p`. -/
 noncomputable def cplWinSP (p : WinPre) (j i lo hi gm gn am an : ℕ) : Bool :=
   Nat.beq (nParts j i) 1 && Nat.beq (partM j i 0) 0 && Nat.blt i (certOf j).cuts.length &&
-  (partEnt j i 0).isNone &&
   match p.pst with
   | [.match_ v (a0 :: as)] =>
     matchAtoms lo hi [.match_ v (a0 :: as)] &&
       (clocG (certOf j) i gm gn am an).seq fun loc ↦
       (partC j i 0).seq fun c ↦ natSeq (partU j i 0) fun u ↦ natSeq (partJ j i 0) fun J ↦
       (stmtsVals (selStmts lo hi [.match_ v (a0 :: as)])).all (fun x ↦ (loc.get? x.idx).isSome) &&
+      nextSelOk (cxOf j p.idx loc p.stat p.nv (stopOf j i 0)) v &&
       match getF p.idx J with
       | some s => bif Nat.beq s.start J then
-          partEnd j i 0 (cwMatchS (cxOf j p.idx loc p.stat p.nv (stopOf j i 0)) lo hi v (a0 :: as)
-            ⟨s, s.items, .nil, [], [], [], c, u, some J, 0⟩)
+          partEnd j i 0 (cwSplit (cxOf j p.idx loc p.stat p.nv (stopOf j i 0)) lo hi (partEnt j i 0) v
+            (a0 :: as) ⟨s, s.items, .nil, [], [], [], c, u, some J, 0⟩)
         else false
       | none => false
   | _ => false
@@ -81,8 +83,8 @@ noncomputable def cplWinSP (p : WinPre) (j i lo hi gm gn am an : ℕ) : Bool :=
 theorem cplWinS_eq_pre (j i lo hi gm gn am an : ℕ) :
     cplWinS j i lo hi gm gn am an = cplWinSP (winPre j i) j i lo hi gm gn am an := by
   unfold cplWinS cplWinSP winPre winSegs
-  generalize execWinC (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
-    ((certOf j).endAt (fnOf j) i) = R
+  generalize execWinCS (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
+    (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i) = R
   cases R
   simp only [listSeq_eq, Exec.Trie.seq_eq, CLoc.seq_eq, Cnt.seq_eq, natSeq_eq]
   rfl
@@ -108,7 +110,7 @@ open LeanVM.Guest.B2C
 /-- `checkWinS` of function `j`'s window `i` from the window's common part `p`. -/
 noncomputable def checkWinSP (p : WinPre) (j : ℕ) (main : Bool) (i lo hi : ℕ) (rs : List (ℕ × ℕ)) :
     Bool :=
-  matchAtoms lo hi p.wst && ((certOf j).succAt i).isEmpty &&
+  matchAtoms lo hi p.wst &&
   ((certOf j).locAtR i rs).seq fun loc ↦
     !(i == 0) && (certOf j).rsFit i rs &&
     covOk loc (selStmts lo hi p.wst) && p.lw &&
@@ -116,14 +118,15 @@ noncomputable def checkWinSP (p : WinPre) (j : ℕ) (main : Bool) (i lo hi : ℕ
         ((certOf j).cutAt i).J (bookOf ((certOf j).cutAt i).facts .nil) ((certOf j).cutAt i).bnd with
       | some st => st.seg.env.sub Sym.beq (envOf ((certOf j).cutAt i).env) &&
           winEnd (certOf j) i p.idx
-            (chkWinS ((certOf j).fxAt glob (fnOf j) (coreOf j) main i p.segs p.idx loc) lo hi p.wst st)
+            (chkWinS ((certOf j).fxAt glob (fnOf j) (coreOf j) main i p.segs p.idx loc) lo hi
+              ((certOf j).cutAt i).env ((certOf j).selAt i) ((certOf j).succAt i) p.wst st)
       | none => false)
 
 theorem checkWinS_eq_pre (j : ℕ) (main : Bool) (i lo hi : ℕ) (rs : List (ℕ × ℕ)) :
     checkWinS glob j (coreOf j) (certOf j) main i lo hi rs = checkWinSP (winPre j i) j main i lo hi rs := by
   unfold checkWinS checkWinSP winPre winSegs
-  generalize execWinC (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
-    ((certOf j).endAt (fnOf j) i) = R
+  generalize execWinCS (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
+    (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i) = R
   cases R
   simp only [listSeq_eq, Exec.Trie.seq_eq]
   rfl

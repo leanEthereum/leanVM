@@ -39,7 +39,7 @@ theorem xor_row_sends (cnt : ℕ → K) (rbc : K) (data : ProverData K) :
   rowOf_sends zeroImage_xor cnt rbc data
 
 /-- The state pull is `(pc, fp)` and the push the fall-through. -/
-example (rbc : K) (e : Vector K 13) (reads : List (K × K × Vector K 3)) :
+example (rbc : K) (e : Vector K 13) (reads : List (K × K × Vector K 2)) :
     (sendsOf (addressOfIndex 5) 1 (Registers.next ⟨addressOfIndex 5, 1⟩) rbc e reads).take 2 =
       [(StatePull.name, #[addressOfIndex 5, 1]), (StatePush.name, #[g * addressOfIndex 5, 1])] := by
   simp only [sendsOf, List.cons_append, List.take_succ_cons, List.take_zero, Registers.next]
@@ -77,7 +77,7 @@ theorem xor_row_not_sendsOf (next : Registers K) (rA rB rC rbc : K) (data : Prov
           (1 * addressOfIndex 0, rC, (badImage d₀).limbsAt (1 * addressOfIndex 0))] := by
   intro h
   rw [rowSends_mk, xor_sends_gen _ _ _ _ (eval_rowVar _ data)] at h
-  have hA : (badImage d₀).limbsAt (addressOfIndex 0) = #v[0, 1, 0] := by
+  have hA : (badImage d₀).limbsAt (addressOfIndex 0) = #v[0, 1] := by
     rw [MemImage.limbsAt_eq_of_read (read_lit (badImage d₀) 0)]
     rfl
   simp only [xorRowOf, sendsOf, memMsgOf, bcMsgOf, busEntry, one_mul, List.cons.injEq,

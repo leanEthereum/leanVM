@@ -59,7 +59,7 @@ theorem Aff.eval_le_of_leB {a b : Aff} (h : a.leB b = true) (args : List E) : a.
 theorem constOk_spec {w : E} {e : ℕ} (h : constOk w e = true) : w = ofK (addressOfIndex e) ∧ e < 2 ^
     20 := by
   simp only [constOk, Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨⟨⟨he, h1⟩, h2⟩, h0⟩ := h
+  obtain ⟨⟨he, h1⟩, h0⟩ := h
   have h0' : w.limb 0 = addressOfIndex e := by
     split at h0
     · rename_i h64
@@ -72,7 +72,6 @@ theorem constOk_spec {w : E} {e : ℕ} (h : constOk w e = true) : w = ofK (addre
   fin_cases i
   · simpa using h0'
   · simpa using h1
-  · simpa using h2
 
 theorem logG_ofK {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (ofK (addressOfIndex e)) = e := logG_spec he
 
@@ -1303,12 +1302,18 @@ theorem loopShape_spec {fn : Fn} {endc : Option ℕ} (h : loopShape fn endc = so
         ((isStep pre p0 x = true ∧ isEnd pre prest.head? endc y = true) ∨
           (isStep pre p0 y = true ∧ isEnd pre prest.head? endc x = true)) := by
   unfold loopShape at h
-  split at h
+  rcases ht : loopTail fn endc with _ | pre0
+  · rw [ht] at h; cases h
+  rw [ht, Option.filter_some] at h
+  split_ifs at h with hnr
+  cases h
+  unfold loopTail at ht
+  split at ht
   · rename_i c g i' rest rpre p0 prest hrev hps
-    simp only at h
-    split_ifs at h with hc
-    cases h
-    obtain ⟨hg, hrest, hnr, hst, hgd⟩ := hc
+    simp only at ht
+    split_ifs at ht with hc
+    cases ht
+    obtain ⟨hg, hrest, hst, hgd⟩ := hc
     subst hg hrest
     refine ⟨c, i', p0, _, hps, ?_, hnr, hst, ?_⟩
     · have := congrArg List.reverse hrev
@@ -1321,7 +1326,7 @@ theorem loopShape_spec {fn : Fn} {endc : Option ℕ} (h : loopShape fn endc = so
         simp only [Bool.or_eq_true, Bool.and_eq_true] at hgd
         exact ⟨x, y, hd, hgd⟩
       · cases hgd
-  · cases h
+  · cases ht
 
 end Loop
 

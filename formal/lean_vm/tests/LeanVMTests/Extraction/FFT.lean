@@ -1,6 +1,7 @@
 import LeanVM.Protocol.Extraction.Fast.FFT.Additive
 import LeanVM.Protocol.Extraction.Fast.FFT.PlannedEval
-import LeanVMTests.Extraction.Toy
+import LeanVMTests.Extraction.ToyWords
+import LeanVMTests.Runs
 
 /-!
 # Tests: the additive-FFT product over `K`
@@ -19,6 +20,8 @@ import LeanVMTests.Extraction.Toy
 * the evaluation-domain matrix products (`mulEvalP`, `mulTruncEvalP`) on the additive FFT agree
   with the naive ones;
 * the axiom footprints of the end theorems.
+
+The larger checks are runs, compiled (`lake exe test-runs`).
 -/
 
 namespace LeanVMTests.Extraction.FFT
@@ -35,14 +38,6 @@ def randomPoly (seed n : ℕ) : CPolynomial K := CPolynomial.ofArray (randomArra
 #guard (List.range 8).all fun J ↦
   let a := randomArray (J + 3) (2 ^ J)
   fromNovel J (toNovel J a) == a && toNovel J (fromNovel J a) == a
-
--- The plan.
-#guard (List.range 10).all fun j ↦
-  let P := mkPlan j
-  let c := randomArray (j + 60) (2 ^ j)
-  (List.range j).all (fun i ↦ P.twiddles.getD i #[] == novelTwiddles j i) &&
-    P.tableInv == tableInvUpTo j && planFwd P c == novelFwd j 0 c && planInv P c == novelInv j c &&
-    toNovelInPlace P c == toNovel j c && fromNovelInPlace P c == fromNovel j c
 
 -- The forward transform evaluates.
 #guard (List.range 7).all fun j ↦
@@ -64,37 +59,39 @@ def randomPoly (seed n : ℕ) : CPolynomial K := CPolynomial.ofArray (randomArra
 /-- The transform from three coefficients on (schoolbook below). -/
 def testSchedule : MulSchedule K := ⟨2, 2, CPolynomial.MulContext.naive⟩
 
--- The transform's product, against the schoolbook one.
-#guard [(40, 50), (33, 33), (100, 37), (64, 65), (3, 300), (129, 128), (250, 7), (3, 3)].all
-  fun (m, n) ↦
-  let p := randomPoly (m + 1) m
-  let q := randomPoly (n + 1000) n
-  mulVia novelTransform testSchedule p q == p * q
-
--- `mulFFT`'s schedule: schoolbook, Karatsuba, then the transform (`2^13` points).
-#guard [(1, 300), (40, 50), (1100, 1030), (4200, 40)].all fun (m, n) ↦
-  let p := randomPoly (m + 1) m
-  let q := randomPoly (n + 1000) n
-  mulFFT p q == karatsubaMulContext.mul p q
-
 -- Zero factors and constants.
 #guard mulFFT 0 (randomPoly 5 100) == 0
 #guard mulFFT (randomPoly 6 100) (CPolynomial.C (K.ofBits 3)) == randomPoly 6 100 * CPolynomial.C (K.ofBits 3)
 
--- A larger product, `2^10` points.
-#guard
-  let p := randomPoly 77 500
-  let q := randomPoly 78 400
-  mulVia novelTransform testSchedule p q == p * q
-
--- The truncated products.
-#guard [(10, 50, 60), (70, 50, 60), (200, 50, 60), (45, 45, 45)].all fun (o, m, n) ↦
-  let p := randomPoly (m + 7) m
-  let q := randomPoly (n + 9) n
-  mulLowVia novelTransform testSchedule o p q == PolynomialMatrix.truncateX o (p * q) &&
-    CPolynomial.ofArray (rawMulLowVia novelTransform testSchedule o p.val q.val) ==
-      PolynomialMatrix.truncateX o (p * q) &&
-    fftMulLowContext.mulLow o p q == PolynomialMatrix.truncateX o (p * q)
+test_runs runs := [
+  ("the plan", fun _ ↦ (List.range 10).all fun j ↦
+    let P := mkPlan j
+    let c := randomArray (j + 60) (2 ^ j)
+    (List.range j).all (fun i ↦ P.twiddles.getD i #[] == novelTwiddles j i) &&
+      P.tableInv == tableInvUpTo j && planFwd P c == novelFwd j 0 c && planInv P c == novelInv j c &&
+      toNovelInPlace P c == toNovel j c && fromNovelInPlace P c == fromNovel j c),
+  ("the transform's product, against the schoolbook one", fun _ ↦
+    [(40, 50), (33, 33), (100, 37), (64, 65), (3, 300), (129, 128), (250, 7), (3, 3)].all fun (m, n) ↦
+      let p := randomPoly (m + 1) m
+      let q := randomPoly (n + 1000) n
+      mulVia novelTransform testSchedule p q == p * q),
+  ("mulFFT's schedule: schoolbook, Karatsuba, then the transform (2^13 points)", fun _ ↦
+    [(1, 300), (40, 50), (1100, 1030), (4200, 40)].all fun (m, n) ↦
+      let p := randomPoly (m + 1) m
+      let q := randomPoly (n + 1000) n
+      mulFFT p q == karatsubaMulContext.mul p q),
+  ("a larger product, 2^10 points", fun _ ↦
+    let p := randomPoly 77 500
+    let q := randomPoly 78 400
+    mulVia novelTransform testSchedule p q == p * q),
+  ("the truncated products", fun _ ↦
+    [(10, 50, 60), (70, 50, 60), (200, 50, 60), (45, 45, 45)].all fun (o, m, n) ↦
+      let p := randomPoly (m + 7) m
+      let q := randomPoly (n + 9) n
+      mulLowVia novelTransform testSchedule o p q == PolynomialMatrix.truncateX o (p * q) &&
+        CPolynomial.ofArray (rawMulLowVia novelTransform testSchedule o p.val q.val) ==
+          PolynomialMatrix.truncateX o (p * q) &&
+        fftMulLowContext.mulLow o p q == PolynomialMatrix.truncateX o (p * q))]
 
 /-- A pseudo-random `r × c` polynomial matrix, entries of `n` coefficients. -/
 def randomMatrix (seed r c n : ℕ) : PolynomialMatrix K :=

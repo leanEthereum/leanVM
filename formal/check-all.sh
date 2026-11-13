@@ -4,7 +4,7 @@
 # this repository's Rust (`leanvm`, which needs cargo). `lake build` at the root runs it.
 #
 #   ./check-all.sh [lean] [vectors] [statement] [common] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]
-#   (default: all seven; `lean` is the first six, `vectors` is `leanvm`)
+#   (default: all seven; `lean` is the first six, built together first, `vectors` is `leanvm`)
 #
 # The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
 # `lake` itself cannot, as it reserves about 1 GB of address space per job: every build runs in
@@ -14,7 +14,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 log=$(mktemp -d)
 trap 'rm -rf "$log"' EXIT
 
-step() { printf '\n==> %s\n' "$*"; }
+step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 fail() { echo "error: $*" >&2; exit 1; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
 
@@ -22,17 +22,28 @@ capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
 # `+native`, `unsafe`, `implemented_by`, `#exit`, an `axiom` declaration, and the ways to skip the
 # kernel that `#print axioms` cannot see); `.lean` files only, so `lake-build.py`'s `--dev`, which
 # names `skipKernelTC`, is exempt. The CI runs the same script.
+done_once=" "  # what already ran: `together` runs every project's scan and cache first
+once() { case $done_once in *" $1 "*) return 1 ;; esac; done_once+="$1 "; }
+
 no_escapes() {
+  once "escapes:$1" || return 0
   step "$1: forbid proof escapes"
   if ! python3 -I tools/escape-scan.py "$1"; then
     fail "$1: proof escape"
   fi
 }
 
+# `lake exe cache get` in $1, once per run.
+cache_get() {
+  once "cache:$1" || return 0
+  (cd "$1" && lake exe cache get)
+}
+
 # `lake build` in $1, its modules admitted by memory (`lake-build.py`), then no deprecation warning
 # from the modules matching $2. Its last step, a plain `lake build`, replays a cached module's
 # warnings, so the log lists every one.
 build() {
+  once "build:$1" || return 0
   step "$1: build, its modules admitted by memory"
   python3 -I lake-build.py "$1" 2>&1 | tee "$log/build.txt"
   if grep -E "^warning: $2.*has been deprecated" "$log/build.txt"; then
@@ -54,25 +65,32 @@ axioms() {
 
 # The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly and itself.
 # Its generated guest data is heavy, so its modules are admitted by memory.
-statement() {
-  no_escapes Statement
+lakefiles() {
+  once lakefiles || return 0
   step "lakefiles: no option that skips the kernel"
   if grep -nE 'skipKernelTC|debug\.' $(ls lakefile.lean */lakefile.toml */lakefile.lean 2>/dev/null); then
     fail "a lakefile sets an option that skips the kernel"
   fi
+}
+
+statement() {
+  no_escapes Statement
+  lakefiles
   step "Statement: imports only Mathlib, VCVio, CompPoly and itself"
   if grep -rnE '^(public )?(meta )?import ' --include='*.lean' --exclude-dir=.lake Statement \
       | grep -vE ':[0-9]+:(public )?(meta )?import (Mathlib|VCVio|CompPoly|Statement)\.'; then
     fail "Statement imports more than Mathlib, VCVio, CompPoly and itself"
   fi
-  (cd Statement && lake exe cache get)
-  step "Statement: build, its modules admitted by memory"
-  python3 -I lake-build.py Statement
+  cache_get Statement
+  if once "build:Statement"; then
+    step "Statement: build, its modules admitted by memory"
+    python3 -I lake-build.py Statement
+  fi
 }
 
 common() {
   no_escapes common
-  (cd common && lake exe cache get)
+  cache_get common
   build common 'Common'
   axioms common Common Common.indifferentiability Common.transfer Common.transfer2 \
     Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 \
@@ -82,7 +100,7 @@ common() {
 
 lean_xmss() {
   no_escapes lean_xmss
-  (cd lean_xmss && lake exe cache get)
+  cache_get lean_xmss
   build lean_xmss '(LeanXmss|XmssSecurity)'
   axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_rom_adversary_bound \
     XmssSecurity.leanXmss_rpm_security
@@ -90,7 +108,7 @@ lean_xmss() {
 
 lean_sphincs() {
   no_escapes lean_sphincs
-  (cd lean_sphincs && lake exe cache get)
+  cache_get lean_sphincs
   # The kernel-checked tables (`decide +kernel`) are the heavy modules, each within about 3 GB.
   build lean_sphincs '(Sphincs|FORS)/'
   axioms lean_sphincs Sphincs Sphincs.leanSphincsStronglyUnforgeable FORS.Lifetimes.h26_layered_adversary FORS.h26_layered
@@ -100,7 +118,7 @@ lean_sphincs() {
 # and instantiated with LeanDA.
 lean_da() {
   no_escapes lean_da
-  (cd lean_da && lake exe cache get)
+  cache_get lean_da
   build lean_da '(LeanDa|PqDas)'
   axioms lean_da LeanDa LeanDa.leanDa_perfectlyComplete_rpm LeanDa.leanDa_positionBinding \
     LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells \
@@ -110,37 +128,64 @@ lean_da() {
 }
 
 # Every lean_vm executable, in one build.
+EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs)
+
+# The six projects' targets and lean_vm's executables in one build from lean_vm, whose workspace holds the other
+# five, so that their modules build beside lean_vm's instead of one project after another. The projects' own builds
+# below are then skipped.
+together() {
+  local p
+  lakefiles
+  for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do
+    no_escapes "$p"
+    cache_get "$p"
+  done
+  step "all six projects: one build, its modules admitted by memory"
+  python3 -I lake-build.py lean_vm LeanVM LeanVMTests "${EXES[@]}" @statement/Statement @common/Common \
+    @lean-xmss-security/LeanXmss @lean-xmss-security/XmssSecurity @lean-xmss-security/+XmssSecurity.Tests.QueryBudget \
+    @lean-sphincs-security/Sphincs @lean-sphincs-security/FORS @lean-da-security/LeanDa 2>&1 | tee "$log/build.txt"
+  # Its last step replays every module's warnings: the projects' own builds would only repeat them.
+  if grep -E "^warning: (Common|LeanXmss|XmssSecurity|Sphincs|FORS|LeanDa|PqDas).*has been deprecated" "$log/build.txt"; then
+    fail "deprecated API"
+  fi
+  for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do once "build:$p"; done
+}
+
 executables() {
   step "lean_vm: the executables"
-  (cd lean_vm && lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff \
-    leanvm-verify wire-diff leanvm-prove)
+  (cd lean_vm && lake build "${EXES[@]}")
 }
 
 lean_vm() {
   no_escapes lean_vm
-  (cd lean_vm && lake exe cache get)
+  cache_get lean_vm
   # Fails on any warning and on an axiom footprint beyond Lean's three (`LeanVM.lean`).
-  step "lean_vm: build, its modules admitted by memory"
-  python3 -I lake-build.py lean_vm LeanVM LeanVMTests
+  if once "build:lean_vm"; then
+    step "lean_vm: build, its modules admitted by memory"
+    python3 -I lake-build.py lean_vm LeanVM LeanVMTests
+  fi
   axioms lean_vm LeanVM LeanVM.theorems_hold LeanVM.corollaries_hold \
     LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding LeanVM.Wire.proveWithHash_wireDecodable
+  # A private import stops a rebuild, as `tools/deps.py` assumes (`notes/per-function-cone.md`).
+  step "lean_vm: the private-import firewall holds (firewall-canary)"
+  python3 -I tools/firewall-canary.py
   executables
-  step "lean_vm: the Rust vectors' costly checks, compiled"
-  (cd lean_vm && capped .lake/build/bin/node-vectors)
-  step "lean_vm: the guest's core IR data is current"
-  (cd lean_vm && capped .lake/build/bin/guest-core --check)
-  step "lean_vm: the guest's certificates are current"
-  (cd lean_vm && capped .lake/build/bin/guest-cert --check)
-  step "lean_vm: the guest's memory-layer checks are current"
-  (cd lean_vm && capped .lake/build/bin/guest-memory --check)
-  # Their inputs evaluated from the build just made (`decoder-tables-inputs.lean`: one line each).
-  step "lean_vm: the guest decoder's tables and their chunked checks are current"
-  (cd lean_vm && capped lake env lean scripts/decoder-tables-inputs.lean) > "$log/decoder.txt"
-  local k
-  for k in entries rows split; do sed -n "s/^$k: //p" "$log/decoder.txt" > "$log/$k.txt"; done
-  python3 -I lean_vm/scripts/decoder-tables --entries "$log/entries.txt" --check
-  python3 -I lean_vm/scripts/decoder-table-chunks --row-lengths "$log/rows.txt" \
-    --split-lengths "$log/split.txt" --check
+  # The compiled checks are independent: run together, each one's output printed when all are done.
+  step "lean_vm: the Rust vectors' costly checks, every file derived from the guest current but the export's, the tests' runs"
+  local pids=() names=(node-vectors regen-guest test-runs)
+  (cd lean_vm && capped .lake/build/bin/node-vectors) > "$log/node-vectors.out" 2>&1 & pids+=($!)
+  # Every generator after the export (`leanvm`, which needs cargo, checks the export's).
+  lean_vm/scripts/regen-guest.sh --check --from core > "$log/regen-guest.out" 2>&1 & pids+=($!)
+  # The tests' runs too slow for the interpreter (`tests/LeanVMTests/Runs.lean`), compiled; `lake env`
+  # for the `.olean` it reads.
+  (cd lean_vm && capped lake env .lake/build/bin/test-runs) > "$log/test-runs.out" 2>&1 & pids+=($!)
+  local i failed=()
+  for i in "${!pids[@]}"; do
+    wait "${pids[$i]}" || failed+=("${names[$i]}")
+    printf -- '--- %s\n' "${names[$i]}"
+    cat "$log/${names[$i]}.out"
+  done
+  [ ${#failed[@]} -eq 0 ] || fail "lean_vm: ${failed[*]} failed"
 }
 
 # Against this repository's Rust: the guest's data is the one leanVM's sources give, and the Lean and Rust verifiers, and
@@ -151,6 +196,9 @@ leanvm() {
   step "leanvm: the guest's data is leanVM's"
   cargo build --release --manifest-path lean_vm/scripts/guest-export/Cargo.toml
   capped lean_vm/scripts/guest-export/target/release/guest-export lean_vm --check
+  step "leanvm: the fold rounds' table is the prover's (whir-fold-table)"
+  cargo run --release --manifest-path lean_vm/scripts/whir-fold-table/Cargo.toml -- \
+    lean_vm/LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean --check
   step "leanvm: the honest hints are the Rust's, and the guest runs on them (guest-diff)"
   local gd
   gd=$(mktemp -d)
@@ -183,15 +231,15 @@ leanvm() {
 projects=()
 for p in "$@"; do
   case $p in
-    lean) projects+=(statement common lean_xmss lean_sphincs lean_da lean_vm) ;;
+    lean) projects+=(together statement common lean_xmss lean_sphincs lean_da lean_vm) ;;
     vectors) projects+=(leanvm) ;;
     *) projects+=("$p") ;;
   esac
 done
-[ ${#projects[@]} -gt 0 ] || projects=(statement common lean_xmss lean_sphincs lean_da lean_vm leanvm)
+[ ${#projects[@]} -gt 0 ] || projects=(together statement common lean_xmss lean_sphincs lean_da lean_vm leanvm)
 for p in "${projects[@]}"; do
   case $p in
-    statement | common | lean_xmss | lean_sphincs | lean_da | lean_vm | leanvm) "$p" ;;
+    together | statement | common | lean_xmss | lean_sphincs | lean_da | lean_vm | leanvm) "$p" ;;
     *) fail "unknown project $p" ;;
   esac
 done

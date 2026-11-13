@@ -8829,6 +8829,12 @@ def cplArms37_33 : List (List ℕ) :=
     [0, 0, 9, 0, 1, 8] ::
     [0, 0, 9, 0, 0, 8] :: [])
 
+/-- The function whose `match`es count their arms separately (`0`: none). -/
+def armFn : ℕ := 37
+
+/-- The most a path through its body passes of those arms, per opcode, in the order of `Opcode`. -/
+def armMax : List ℕ := [57, 84, 66, 28, 34, 380]
+
 /-- The per-arm counts, by function. -/
 def cplArms : List (List (ℕ × List (List ℕ))) := [
   [],

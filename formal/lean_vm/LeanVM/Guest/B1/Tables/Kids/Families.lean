@@ -23,7 +23,9 @@ Each family's specializations pass `dloadCheck` with its per-parameter bounds (t
   `b1`'s `n`;
 * `sel_partial_nibble__L{w}` (`w < 4`), `[eq_out, g_out, z, z1, gs]`: `2^(w+1) - 2`, `2^w` (none
   at `w = 0`), and `w` each;
-* `sumcheck_round4`, `[rec, cur, claim]`: the record's `12` words and the cursor's `3`.
+* `sumcheck_round4`, `[rec, cur, claim, tabs]`: the record's `12` words and the cursor's `3`
+  (`tabs` is not read: its grind is of `0` bits);
+* `opening_tail_round`, `[f0, f1, f2, f3, f4, cur, claim, tabs]`: the cursor's `2` words.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -53,7 +55,10 @@ def spnB (w : ℕ) : List ℕ := [2 ^ (w + 1) - 2, if w = 0 then 0 else 2 ^ w, w
 theorem spn_dload : ∀ w < 4, dloadCheck (lName "sel_partial_nibble" w) (spnB w) = true := by
   decide +kernel
 
-theorem sr4_dload : dloadCheck "sumcheck_round4" [12, 3, 0] = true := by decide +kernel
+theorem sr4_dload : dloadCheck "sumcheck_round4" [12, 3, 0, 0] = true := by decide +kernel
+
+theorem otr_dload : dloadCheck "opening_tail_round" [0, 0, 0, 0, 0, 2, 0, 0] = true := by
+  decide +kernel
 
 section
 variable {rd : Reader} {R : ℕ → Prop}
@@ -124,15 +129,27 @@ theorem sel_partial_nibble_relIn {w : ℕ} (hw : w < 4) {eqo go z z1 gs : E} {re
     · exact fun _ ↦ hz1
     · exact fun _ ↦ hgs) h
 
-theorem sumcheck_round4_relIn {rc cur claim : E} {rets : List E} (hr : PtrIn R rc 12)
-    (hc : PtrIn R cur 3) (h : coreProgram.Rel rd "sumcheck_round4" [rc, cur, claim] rets) :
-    coreProgram.RelIn rd R "sumcheck_round4" [rc, cur, claim] rets :=
+theorem sumcheck_round4_relIn {rc cur claim tabs : E} {rets : List E} (hr : PtrIn R rc 12)
+    (hc : PtrIn R cur 3) (h : coreProgram.Rel rd "sumcheck_round4" [rc, cur, claim, tabs] rets) :
+    coreProgram.RelIn rd R "sumcheck_round4" [rc, cur, claim, tabs] rets :=
   relIn_of_dload sr4_dload (fun p hp ↦ by
     simp only [List.length_cons, List.length_nil] at hp
     interval_cases p
     · exact fun _ ↦ hr
     · exact fun _ ↦ hc
+    · exact fun h ↦ absurd h (by simp)
     · exact fun h ↦ absurd h (by simp)) h
+
+theorem opening_tail_round_relIn {f0 f1 f2 f3 f4 cur claim tabs : E} {rets : List E}
+    (hc : PtrIn R cur 2)
+    (h : coreProgram.Rel rd "opening_tail_round" [f0, f1, f2, f3, f4, cur, claim, tabs] rets) :
+    coreProgram.RelIn rd R "opening_tail_round" [f0, f1, f2, f3, f4, cur, claim, tabs] rets :=
+  relIn_of_dload otr_dload (fun p hp ↦ by
+    simp only [List.length_cons, List.length_nil] at hp
+    interval_cases p
+    all_goals first
+      | exact fun _ ↦ hc
+      | exact fun h ↦ absurd h (by simp)) h
 
 end
 

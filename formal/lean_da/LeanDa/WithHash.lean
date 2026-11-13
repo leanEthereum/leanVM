@@ -34,12 +34,14 @@ open LeanVM.Protocol.KeccakHash (keccak256With littleEndianLane)
 
 /-! ## The challenge's sponge as the proofs read it
 
-`lean_da`'s proofs read the membership challenge's duplex (`verifier/src/transcript.rs:26-74` at
-leanVM main `40f877dc`) in this form, LeanDA's own transcription: the tags in `K`, the root's words as
-symbols of its bytes. The challenge needs only the sponge's seeding and one sample: the root is
-its public input, and no scalar is observed. The statement draws the challenge with the leanVM
-verifier's sponge (`Field.lean`'s `Sponge`, `seedInput`, `squeeze`);
-`membershipChallengeM_eq_withHash` (`LeanDa.WithHashBridge`) proves the two the same. -/
+`lean_da`'s proofs read the membership challenge's duplex (`verifier/src/transcript.rs:34-90` at
+`../../leanvm-rev`) in this form, LeanDA's own transcription: the tags in `K`, the root's words as
+symbols of its bytes. The challenge needs only the sponge's seeding and its grind: the root is its
+public input, no scalar is observed, and each nonce is absorbed into a copy of the seeded sponge
+and permuted (`nonceInput`), the answer's lane `2` its proof of work and lanes `0, 1` the
+challenge it draws. The statement draws the challenge with the leanVM verifier's sponge
+(`Field.lean`'s `Sponge`, `seedInput`, `absorbNonce`, `squeeze`); `membershipChallengeM_eq_withHash`
+(`LeanDa.WithHashBridge`) proves the two the same. -/
 
 /-- Lanes of the rate. -/
 def rateLanes : ℕ := 16
@@ -47,24 +49,24 @@ def rateLanes : ℕ := 16
 /-- Word `i` of a digest, its little-endian bytes `8 i … 8 i + 7` (`Digest::words`). -/
 def digestWord (d : DigestBytes) (i : ℕ) : K := K.ofLane (littleEndianLane d.toList i)
 
-/-- The element `c0 + c1·y + c2·y²` (`E::new`). -/
-def ofLimbs (c0 c1 c2 : K) : E := CompPoly.Extension.Ext.ofVector #v[c0, c1, c2]
+/-- The element `c0 + c1·y` (`E::new`). -/
+def ofLimbs (c0 c1 : K) : E := CompPoly.Extension.Ext.ofVector #v[c0, c1]
 
 /-- Limb `i` of an element, the coefficient of `y^i`. -/
-def limb (x : E) (i : Fin 3) : K := CompPoly.Extension.Ext.coeff x i
+def limb (x : E) (i : Fin 2) : K := CompPoly.Extension.Ext.coeff x i
 
 /-- **The sponge** (`Sponge`): the lanes the last permutation left, and the scalars absorbed
-since with their tags (`pending[..n_pending]`; the challenge absorbs none). -/
+since with their tags (`pending[..n_pending]`; the challenge absorbs one nonce at a time). -/
 structure Sponge where
   /-- The lanes the last permutation left (`state`). -/
   state : KeccakState
   /-- The waiting scalars and their tags, in order. -/
   pending : List (E × K)
 
-/-- The rate lanes the waiting scalars fill: scalar `i`'s three limbs and tag in lanes
-`4 i … 4 i + 3`. -/
+/-- The rate lanes the waiting scalars fill: scalar `i`'s two limbs, a zero lane and its tag in
+lanes `4 i … 4 i + 3`. -/
 def rateWords (pending : List (E × K)) : List K :=
-  pending.flatMap fun x ↦ [limb x.1 0, limb x.1 1, limb x.1 2, x.2]
+  pending.flatMap fun x ↦ [limb x.1 0, limb x.1 1, 0, x.2]
 
 /-- The lanes a duplexing permutes: the waiting scalars over the rate, the rest of the rate zero,
 the capacity kept (`duplex`). -/
@@ -79,6 +81,17 @@ def freshSpongeInput (iv publicInput : DigestBytes) : KeccakState :=
     else if (i : ℕ) < 8 then (digestWord publicInput (i - 4)).lane
     else 0
 
+/-- `DS_POW_NONCE`, the tag of a grinding nonce (`transcript.rs:18`). -/
+def powTag : K := K.ofBits 4
+
+/-- **The state a nonce is permuted from** (`absorb_nonce` on a copy of the seeded sponge whose
+last state is `y`): the nonce `E::new(nonce, 0)` with its tag over the rate, `y`'s capacity kept. -/
+def nonceInput (y : KeccakState) (nonce : ℕ) : KeccakState :=
+  duplexInput ⟨y, [(LeanVM.Protocol.Verifier.eOfNat nonce, powTag)]⟩
+
+/-- The challenge an answer draws: its lanes `0, 1` (`E::new(state[0], state[1])`). -/
+def chalOfState (y : KeccakState) : E := ofLimbs (K.ofLane y[0]) (K.ofLane y[1])
+
 section Duplex
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
@@ -88,15 +101,14 @@ def Sponge.newWith (iv publicInput : DigestBytes) : m Sponge := do
   let state ← π (freshSpongeInput iv publicInput)
   pure ⟨state, []⟩
 
-/-- Permute `duplexInput` (`duplex`). -/
-def Sponge.duplexWith (s : Sponge) : m Sponge := do
-  let state ← π (duplexInput s)
-  pure ⟨state, []⟩
-
-/-- Draw a challenge: a permutation of its own, whose lanes `0 … 2` are its limbs (`sample`). -/
-def Sponge.sampleWith (s : Sponge) : m (E × Sponge) := do
-  let s ← Sponge.duplexWith π s
-  pure (ofLimbs (K.ofLane s.state[0]) (K.ofLane s.state[1]) (K.ofLane s.state[2]), s)
+/-- **The nonce search** from the seeded state `y`, from `nonce` with `fuel` nonces left
+(`membership_challenge`, `verifier/src/da.rs:28-33`): the first nonce whose answer's lane `2` has
+a valid proof of work gives the challenge its answer draws; past the last nonce, none. -/
+def grindMWithHash (y : KeccakState) : ℕ → ℕ → m (Option E)
+  | _, 0 => pure none
+  | nonce, fuel + 1 => do
+    let o ← π (nonceInput y nonce)
+    if powValid o[2] then pure (some (chalOfState o)) else grindMWithHash y (nonce + 1) fuel
 
 end Duplex
 
@@ -198,14 +210,13 @@ section Monadic
 variable {m : Type → Type} [Monad m] (H : List UInt8 → m DigestBytes)
   (P : KeccakState → m KeccakState)
 
-/-- **The challenge `z` of a root** (`membership_challenge`, `verifier/src/da.rs:14-17`): the
+/-- **The challenge `z` of a root** (`membership_challenge`, `verifier/src/da.rs:20-34`): the
 transcript's sponge seeded with the hash of the label as its IV and the root as its public input
-(`Sponge::new`), then one sample. -/
-def membershipChallengeMWithHash (root : DigestBytes) : m E := do
+(`Sponge::new`), then the nonce search (`grindMWithHash`). -/
+def membershipChallengeMWithHash (root : DigestBytes) : m (Option E) := do
   let iv ← H membershipLabel
   let s ← Sponge.newWith P iv root
-  let (z, _) ← Sponge.sampleWith P s
-  pure z
+  grindMWithHash P s.state 0 nonceCount
 
 /-- Climb from `node` at index `idx` along the siblings `path`. -/
 def walkMWithHash : ℕ → DigestBytes → List DigestBytes → m DigestBytes
@@ -256,7 +267,7 @@ noncomputable def relationMWithHash {m : Type → Type} [Monad m] (H : List UInt
       m Bool := do
   let z ← membershipChallengeMWithHash H P root
   let d ← commitCellsMWithHash H c
-  pure (decide (d = root) && membershipCheck z c)
+  pure (decide (d = root) && membershipCheckOpt z c)
 
 /-- **Keccak-256 over a permutation `π`** (`keccak256With`), its digest's bytes: the hash `H` of
 the games when the permutation is `π` (`runWithRandomPermutation`). -/
@@ -365,15 +376,16 @@ included) makes at most `q ≤ 2^128` permutation calls (`permutationCallCost`) 
 probability at most `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications
 included, makes at most `Q` calls breaks code binding with probability at most
 
-`(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-178 + (Q + 2^22)² · 2^-247`.
+`(Q + c + 2^65) · 2^-k + (Q + 2^11) · 2^-125 + (Q + 2^22)² · 2^-247`.
 
 The first term is the argument's knowledge soundness against the code-binding adversary itself,
-its transcript handed to the extractor (at most `Q + 2^22` calls with the relation's check). The
-second is the membership test's soundness, `(2^14 - 1) / 2^192` for each root whose challenge is
-drawn. The third gathers the transfer to the two-oracle model and the duplex lemma, of the two
-games, and the hash's bad events among at most `2 Q + 2^20` hash and challenge queries: a
-collision, or a fresh answer that is a digest an earlier input or a root with a drawn challenge
-already carries; it exceeds one before `Q = 2^124`.
+its transcript handed to the extractor (at most `Q + 2^65` calls with the relation's check, the
+nonce search's `2^64 + 2` on the worst path among them). The second is the membership test with its
+grind: `2^-11 · (2^14 - 1) / 2^128 ≤ 2^-125` for each of the adversary's calls, and
+`(2^14 - 1) / 2^128` for the verifier's one search. The third gathers the transfer to the
+two-oracle model and the duplex lemma, of the two games, and the hash's bad events among at most
+`2 Q + 2^20` hash queries: a collision, or a fresh answer that is a digest an earlier input or a
+root with a drawn challenge already carries; it exceeds one before `Q = 2^124`.
 
 The argument queries the oracles the adversary does, so its knowledge soundness here is the
 usual one of an argument in the random-permutation model, with a straight-line extractor reading
@@ -392,8 +404,8 @@ abbrev CodeBindingRpmWithHash : Prop :=
     ∀ (A : CodeBindingAdversary r Crs Proof) (Q : ℕ),
       QueryCostAtMost (codeBindingGameWithHash r ps A) permutationCallCost Q →
         Pr{let b ← runWithRandomPermutation (codeBindingGameWithHash r ps A)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) *
-            (2 : ℝ≥0∞)⁻¹ ^ 178 +
+          ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 11) *
+            (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 
 end LeanDa

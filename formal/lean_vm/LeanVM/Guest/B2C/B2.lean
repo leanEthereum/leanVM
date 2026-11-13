@@ -174,17 +174,17 @@ theorem runC_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : JumpTables L) :
       exact RunC.refl _
     | succ i ih =>
       intro hi
-      obtain ⟨o, k0, k1, k2, hins, hq⟩ := End.f0_instr (show i < Data.f0.instructionCount by omega)
+      obtain ⟨o, k0, k1, hins, hq⟩ := End.f0_instr (show i < Data.f0.instructionCount by omega)
       have hf := End.f0_fetch (show i < Data.f0.instructionCount by omega)
       rw [hins] at hf
-      have hH : Holds L i 1 (.set o k0 k1 k2) := by
-        show L.read (1 * addressOfIndex o) = some (OffsetInstruction.immediateWord k0 k1 k2)
+      have hH : Holds L i 1 (.set o k0 k1) := by
+        show L.read (1 * addressOfIndex o) = some (OffsetInstruction.immediateWord k0 k1)
         rw [End.gpow_mul_one]
         exact h _ hq
       have := (ih (by omega)).trans (runC_fallThrough hf (End.f0_pc_lt (by omega)) rfl hH)
       have e : (fun op : Opcode => if op = .setConstant then i + 1 else 0) =
           (fun op : Opcode => if op = .setConstant then i else 0) +
-            (fun op ↦ if op = (OffsetInstruction.set o k0 k1 k2).toLeanIsaInstruction.opcode
+            (fun op ↦ if op = (OffsetInstruction.set o k0 k1).toLeanIsaInstruction.opcode
                 then 1 else 0) := by
         funext op
         by_cases hop : op = .setConstant <;> simp [hop, OffsetInstruction.toLeanIsaInstruction,

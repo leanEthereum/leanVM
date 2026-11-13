@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.MainGoalsHL5
 
-  `main`'s honest children loop `__loop4`: complete at `main`'s words (`MainGoalL5`).
+  `main`'s honest children loop `main_loop4`: complete at `main`'s words (`MainGoalL5`).
 -/
 
 module
@@ -182,7 +182,7 @@ theorem length_daDigests : ((w.children.map (·.statement.claims.daDigest) ++ [h
   rw [kid_length_flatMap_const (f := B1.Digest.digestCells) (k := 2) _ fun _ _ => rfl]
   simp
 
-/-- **Child `c` is as `__loop4` needs it**, at `main`'s honest words. -/
+/-- **Child `c` is as `main_loop4` needs it**, at `main`'s honest words. -/
 theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
     (hl : GuestLimits s w)
@@ -216,23 +216,13 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
   have hmem := List.getElem_mem hc
   have hdl : w.children[c].statement.deferredClaim.cells.length = 24 := by
     simp [DeferredClaim.cells, (hsh _ hmem).2, hb]
-  have hpi := hKid_pi seed (s := s) hc hdl
+  have hpi := hKid_pi seed (s := s) hc
   have hW1 : hW s w (c + 1) = hW s w c + (hEx w c + hEs w c) := by
     simp only [hW]
-  refine ⟨?_, ?_, ?_, by rw [hKid_defer hc]; exact hdl, fun rd hM => ?_, ?_, hX, hS,
+  refine ⟨?_, ?_, by rw [hKid_defer hc]; exact hdl, fun rd hM => ?_, ?_, hX, hS,
     by rw [hpi]; exact hV c hc⟩
   · rw [hKid_ex hc]; have := (hl.childClaimListsBelow2Pow23 _ hmem).1; omega
   · rw [hKid_es hc]; have := (hl.childClaimListsBelow2Pow23 _ hmem).2; omega
-  · rw [hKid_cx hc, hKid_cs hc, hKid_da hc]
-    intro x hx
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-    rcases hx with rfl | rfl | rfl | rfl | rfl | rfl
-    · exact (digestScalars_canonical _).1
-    · exact (digestScalars_canonical _).2
-    · exact (digestScalars_canonical _).1
-    · exact (digestScalars_canonical _).2
-    · exact (digestScalars_canonical _).1
-    · exact (digestScalars_canonical _).2
   · -- the memory
     obtain ⟨-, -, -, r4, r5, r7, r8⟩ := reads_buf fs fp seed s w hM
     have p4 := readsAt_flatMap_of (w := 2) _ (fun _ _ => rfl) r4 c (by simp; omega)

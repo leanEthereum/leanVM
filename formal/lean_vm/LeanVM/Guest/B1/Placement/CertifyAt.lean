@@ -14,8 +14,8 @@ public import LeanVM.Guest.B1.Tables.FlatAtT
 # `certify_placement`, placed (TRIAGE G #67)
 
 At frame pointer `fp` the buffers lie at `e10 = fp + fs "certify_placement"` (the groups' keys),
-`e11 = e10 + 9` (their sizes), `e138 = e11 + 9` (the group order), `e139 = e138 + 9` (the groups'
-bases) and `e295 = e139 + 9` (the columns' offsets, `101` words); the function returns the stack's
+`e11 = e10 + 9` (their sizes), `e136 = e11 + 9` (the group order), `e137 = e136 + 9` (the groups'
+bases) and `e293 = e137 + 9` (the columns' offsets, `94` words); the function returns the stack's
 total and the offsets' pointer, and its returned layout is `cpOwn` there (`cpOut`).
 `certify_placement_completeAt`: `CompleteAtD` on the base, squares and rank-key runs `cpLin`, for
 `κ ≥ 14`, by `completeAt_flatOutD` on the honest valuation `cpσ` (`cp_body_holds`), every load in
@@ -33,8 +33,8 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 /-- What `certify_placement` returns: the stack's total and the offsets' pointer, and its five
 buffers holding `cpOwn`. -/
 def cpOut (lm : ℕ) (hs : List ℕ) : List E → Layout → Prop := fun rets L =>
-  ∃ e10 e11 e138 e139 e295 : ℕ, rets = [gen ^ stackTotal (columnKappas lm guestLogBytecode hs),
-    ofK (addressOfIndex e295)] ∧ L = cpOwn lm hs e10 e11 e138 e139 e295
+  ∃ e10 e11 e136 e137 e293 : ℕ, rets = [gen ^ stackTotal (columnKappas lm guestLogBytecode hs),
+    ofK (addressOfIndex e293)] ∧ L = cpOwn lm hs e10 e11 e136 e137 e293
 
 /-- The buffers' words, in allocation order. -/
 noncomputable def cpOwnL (lm : ℕ) (hs : List ℕ) : List (List E) :=
@@ -43,7 +43,7 @@ noncomputable def cpOwnL (lm : ℕ) (hs : List ℕ) : List (List E) :=
     (stackOffsets (cpKs lm hs)).1.map (gen ^ ·)]
 
 /-- The buffers' sizes. -/
-abbrev cpSizes : List ℕ := [9, 9, 9, 9, 101]
+abbrev cpSizes : List ℕ := [9, 9, 9, 9, 94]
 
 theorem cp_bufL (lm : ℕ) (hs : List ℕ) (b : ℕ) :
     bufL b cpSizes (cpOwnL lm hs) = cpOwn lm hs b (b + 9) (b + 9 + 9) (b + 9 + 9 + 9)
@@ -58,7 +58,7 @@ theorem cp_flat : cpPre.all Stmt.flat = true := by decide +kernel
 theorem cp_addrs : cpPre.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
 theorem cp_allocs : cpPre.filterMap Main.Stmt.allocSz =
-    [(.n 10, .inl 9), (.n 11, .inl 9), (.n 138, .inl 9), (.n 139, .inl 9), (.n 295, .inl 101)] := by
+    [(.n 10, .inl 9), (.n 11, .inl 9), (.n 136, .inl 9), (.n 137, .inl 9), (.n 293, .inl 94)] := by
   decide +kernel
 
 theorem cp_not_loop : coreProgram.loop "certify_placement" = false := by decide +kernel
@@ -76,22 +76,22 @@ theorem cpGroup_loads : ∀ gi < 9, (cpGroup gi).filterMap Stmt.loadS =
     [(.n (cpQ gi + 4), 178), (.n 10, gi), (.n (cpZ gi), 0), (.n 11, gi)] := by decide +kernel
 
 theorem cpRank_loads : ∀ r < 8, (cpRank (r + 1)).filterMap Stmt.loadS =
-    [(.n 138, r + 1), (.n (133 + 18 * (r + 1) + 5), 0), (.n (133 + 18 * (r + 1) + 14), 0),
-      (.n (133 + 18 * (r + 1) + 15), 0)] := by decide +kernel
+    [(.n 136, r + 1), (.n (131 + 18 * (r + 1) + 5), 0), (.n (131 + 18 * (r + 1) + 14), 0),
+      (.n (131 + 18 * (r + 1) + 15), 0)] := by decide +kernel
 
 theorem cpCols_loads : ∀ gi < 9, (cpCols gi).filterMap Stmt.loadS =
-    (.n (cpD gi), cpAdj gi) :: (.n 139, gi) ::
-      (List.range (cpLen gi)).map fun j ↦ (.n 295, cpC0 gi + j) := by decide +kernel
+    (.n (cpD gi), cpAdj gi) :: (.n 137, gi) ::
+      (List.range (cpLen gi)).map fun j ↦ (.n 293, cpC0 gi + j) := by decide +kernel
 
 theorem cp_loads {q : V × ℕ} (hq : q ∈ cpPre.filterMap Stmt.loadS) :
     (∃ i < 8, q = (.n 0, i)) ∨
       (∃ gi < 9, q = (.n (cpQ gi + 4), 178) ∨ q = (.n 10, gi) ∨ q = (.n (cpZ gi), 0) ∨
         q = (.n 11, gi)) ∨
-      q = (.n 138, 0) ∨ q = (.n 145, 0) ∨ q = (.n 148, 0) ∨ q = (.n 149, 0) ∨
-      (∃ r < 8, q = (.n 138, r + 1) ∨ q = (.n (133 + 18 * (r + 1) + 5), 0) ∨
-        q = (.n (133 + 18 * (r + 1) + 14), 0) ∨ q = (.n (133 + 18 * (r + 1) + 15), 0)) ∨
-      (∃ gi < 9, q = (.n (cpD gi), cpAdj gi) ∨ q = (.n 139, gi) ∨
-        ∃ j < cpLen gi, q = (.n 295, cpC0 gi + j)) := by
+      q = (.n 136, 0) ∨ q = (.n 143, 0) ∨ q = (.n 146, 0) ∨ q = (.n 147, 0) ∨
+      (∃ r < 8, q = (.n 136, r + 1) ∨ q = (.n (131 + 18 * (r + 1) + 5), 0) ∨
+        q = (.n (131 + 18 * (r + 1) + 14), 0) ∨ q = (.n (131 + 18 * (r + 1) + 15), 0)) ∨
+      (∃ gi < 9, q = (.n (cpD gi), cpAdj gi) ∨ q = (.n 137, gi) ∨
+        ∃ j < cpLen gi, q = (.n 293, cpC0 gi + j)) := by
   simp only [cpPre, List.filterMap_append, List.filterMap_flatten, List.map_map,
     List.mem_append, List.mem_flatten, List.mem_map, List.mem_range] at hq
   rcases hq with ((((((((⟨_, ⟨i, hi, rfl⟩, hq⟩ | hq) | ⟨_, ⟨gi, hgi, rfl⟩, hq⟩) | hq) | hq) |
@@ -135,12 +135,12 @@ theorem cp_regionL {L : Layout} {q : ℕ × List E} (hq : q ∈ L) {k : ℕ} (hk
 
 /-- **Every load of the honest valuation lies in the inputs or the buffers.** -/
 theorem cp_loads_ok {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
-    (hhs : ∀ h ∈ hs, h < 33) (h5 : hs.getD 5 0 ≤ 27) (ekb esq e10 e11 e138 e139 e295 : ℕ)
+    (hhs : ∀ h ∈ hs, h < 33) (h5 : hs.getD 5 0 ≤ 27) (ekb esq e10 e11 e136 e137 e293 : ℕ)
     (rd : Reader) {q : V × ℕ} (hq : q ∈ cpPre.filterMap Stmt.loadS) :
-    ∃ i, (cpσ lm hs ekb esq e10 e11 e138 e139 e295 rd q.1).limb 0 * addressOfIndex q.2 =
+    ∃ i, (cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd q.1).limb 0 * addressOfIndex q.2 =
         addressOfIndex i ∧
-      (RegionL (cpLin lm hs ekb esq) i ∨ RegionL (cpOwn lm hs e10 e11 e138 e139 e295) i) := by
-  set σ := cpσ lm hs ekb esq e10 e11 e138 e139 e295 rd with hσ
+      (RegionL (cpLin lm hs ekb esq) i ∨ RegionL (cpOwn lm hs e10 e11 e136 e137 e293) i) := by
+  set σ := cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd with hσ
   have hKb : ∀ s < 8, RegionL (cpLin lm hs ekb esq) (ekb + s) := fun s h8 ↦
     cp_regionL (q := (ekb, 1 :: gen ^ lm :: hs.map (gen ^ ·))) (by simp [cpLin])
       (by simp [hl]; omega)
@@ -148,25 +148,25 @@ theorem cp_loads_ok {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm �
     cp_regionL (q := (esq, gSquaresList)) (by simp [cpLin]) (by simp [gSquaresList]; omega)
   have hRk : ∀ s < 34, RegionL (cpLin lm hs ekb esq) (esq + 178 + s) := fun s h8 ↦
     cp_regionL (q := (esq + 178, rankKeysList)) (by simp [cpLin]) (by simp [rankKeysList]; omega)
-  have h10 : ∀ g < 9, RegionL (cpOwn lm hs e10 e11 e138 e139 e295) (e10 + g) := fun g hg ↦
+  have h10 : ∀ g < 9, RegionL (cpOwn lm hs e10 e11 e136 e137 e293) (e10 + g) := fun g hg ↦
     cp_regionL (q := (e10, (List.range 9).map (cpKey lm hs))) (by simp [cpOwn]) (by simp; omega)
-  have h11 : ∀ g < 9, RegionL (cpOwn lm hs e10 e11 e138 e139 e295) (e11 + g) := fun g hg ↦
+  have h11 : ∀ g < 9, RegionL (cpOwn lm hs e10 e11 e136 e137 e293) (e11 + g) := fun g hg ↦
     cp_regionL (q := (e11, (List.range 9).map fun g ↦ gen ^ cpSize lm hs g)) (by simp [cpOwn])
       (by simp; omega)
-  have h138 : ∀ g < 9, RegionL (cpOwn lm hs e10 e11 e138 e139 e295) (e138 + g) := fun g hg ↦
-    cp_regionL (q := (e138, (cpGOrd lm hs).map (gen ^ ·))) (by simp [cpOwn])
+  have h136 : ∀ g < 9, RegionL (cpOwn lm hs e10 e11 e136 e137 e293) (e136 + g) := fun g hg ↦
+    cp_regionL (q := (e136, (cpGOrd lm hs).map (gen ^ ·))) (by simp [cpOwn])
       (by simp [cpGOrd_length]; omega)
-  have h139 : ∀ g < 9, RegionL (cpOwn lm hs e10 e11 e138 e139 e295) (e139 + g) := fun g hg ↦
-    cp_regionL (q := (e139, (List.range 9).map fun g ↦ gen ^ cpGP lm hs (cpRho lm hs g)))
+  have h137 : ∀ g < 9, RegionL (cpOwn lm hs e10 e11 e136 e137 e293) (e137 + g) := fun g hg ↦
+    cp_regionL (q := (e137, (List.range 9).map fun g ↦ gen ^ cpGP lm hs (cpRho lm hs g)))
       (by simp [cpOwn]) (by simp; omega)
-  have h295 : ∀ c < 101, RegionL (cpOwn lm hs e10 e11 e138 e139 e295) (e295 + c) := fun c hc ↦
-    cp_regionL (q := (e295, (stackOffsets (cpKs lm hs)).1.map (gen ^ ·))) (by simp [cpOwn])
+  have h293 : ∀ c < 94, RegionL (cpOwn lm hs e10 e11 e136 e137 e293) (e293 + c) := fun c hc ↦
+    cp_regionL (q := (e293, (stackOffsets (cpKs lm hs)).1.map (gen ^ ·))) (by simp [cpOwn])
       (by simp [tb_stackOffsets_length, cpKs_length]; omega)
   have hκ : ∀ gi, cpKg lm hs gi < 34 := fun gi ↦ cpKc_lt hl hlm hhs h5 _
   have hp0 := cpPi_lt (lm := lm) (hs := hs) (r := 0) (by norm_num)
   have hptr : ∀ gi < 9, σ (.n (cpQ gi + 4)) = ofK (addressOfIndex esq) * gen ^ cpKg lm hs gi ∧
       σ (.n (cpZ gi)) = ofK (addressOfIndex esq) * gen ^ cpKg lm hs gi := fun gi hgi ↦
-    cpσ_grp_ptrs lm hs ekb esq e10 e11 e138 e139 e295 rd hgi
+    cpσ_grp_ptrs lm hs ekb esq e10 e11 e136 e137 e293 rd hgi
   rcases cp_loads hq with ⟨i, hi, rfl⟩ | ⟨gi, hgi, rfl | rfl | rfl | rfl⟩ | rfl | rfl | rfl | rfl |
     ⟨r, hr, rfl | rfl | rfl | rfl⟩ | ⟨gi, hgi, rfl | rfl | ⟨j, hj, rfl⟩⟩
   · exact ⟨ekb + i, tb_addr_ofK _ _, Or.inl (hKb i hi)⟩
@@ -179,36 +179,36 @@ theorem cp_loads_ok {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm �
     show (σ (.n (cpZ gi))).limb 0 * addressOfIndex 0 = _
     rw [(hptr gi hgi).2, cp_limb_mul, Nat.add_zero]
   · exact ⟨e11 + gi, tb_addr_ofK _ _, Or.inr (h11 gi hgi)⟩
-  · exact ⟨e138 + 0, tb_addr_ofK _ _, Or.inr (h138 0 (by norm_num))⟩
+  · exact ⟨e136 + 0, tb_addr_ofK _ _, Or.inr (h136 0 (by norm_num))⟩
   · refine ⟨e10 + cpPi lm hs 0, ?_, Or.inr (h10 _ hp0)⟩
-    rw [show σ (.n 145) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs 0 from
+    rw [show σ (.n 143) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs 0 from
       cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 5) (by norm_num), cp_limb_mul]
     rfl
-  · refine ⟨e139 + cpPi lm hs 0, ?_, Or.inr (h139 _ hp0)⟩
-    rw [show σ (.n 148) = ofK (addressOfIndex e139) * gen ^ cpPi lm hs 0 from
+  · refine ⟨e137 + cpPi lm hs 0, ?_, Or.inr (h137 _ hp0)⟩
+    rw [show σ (.n 146) = ofK (addressOfIndex e137) * gen ^ cpPi lm hs 0 from
       cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 8) (by norm_num), cp_limb_mul]
     rfl
   · refine ⟨e11 + cpPi lm hs 0, ?_, Or.inr (h11 _ hp0)⟩
-    rw [show σ (.n 149) = ofK (addressOfIndex e11) * gen ^ cpPi lm hs 0 from
+    rw [show σ (.n 147) = ofK (addressOfIndex e11) * gen ^ cpPi lm hs 0 from
       cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 9) (by norm_num), cp_limb_mul]
     rfl
-  · exact ⟨e138 + (r + 1), tb_addr_ofK _ _, Or.inr (h138 _ (by omega))⟩
+  · exact ⟨e136 + (r + 1), tb_addr_ofK _ _, Or.inr (h136 _ (by omega))⟩
   · have hp := cpPi_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
     refine ⟨e10 + cpPi lm hs (r + 1), ?_, Or.inr (h10 _ hp)⟩
-    rw [show σ (.n (133 + 18 * (r + 1) + 5)) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs (r + 1)
+    rw [show σ (.n (131 + 18 * (r + 1) + 5)) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs (r + 1)
       from cpσ_rank lm hs ekb esq _ _ _ _ _ rd (r := r + 1) (j := 5) (by omega) (by omega)
         (by norm_num), cp_limb_mul]
     rfl
   · have hp := cpPi_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
-    refine ⟨e139 + cpPi lm hs (r + 1), ?_, Or.inr (h139 _ hp)⟩
-    rw [show σ (.n (133 + 18 * (r + 1) + 14)) =
-        ofK (addressOfIndex e139) * gen ^ cpPi lm hs (r + 1)
+    refine ⟨e137 + cpPi lm hs (r + 1), ?_, Or.inr (h137 _ hp)⟩
+    rw [show σ (.n (131 + 18 * (r + 1) + 14)) =
+        ofK (addressOfIndex e137) * gen ^ cpPi lm hs (r + 1)
       from cpσ_rank lm hs ekb esq _ _ _ _ _ rd (r := r + 1) (j := 14) (by omega) (by omega)
         (by norm_num), cp_limb_mul]
     rfl
   · have hp := cpPi_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
     refine ⟨e11 + cpPi lm hs (r + 1), ?_, Or.inr (h11 _ hp)⟩
-    rw [show σ (.n (133 + 18 * (r + 1) + 15)) =
+    rw [show σ (.n (131 + 18 * (r + 1) + 15)) =
         ofK (addressOfIndex e11) * gen ^ cpPi lm hs (r + 1)
       from cpσ_rank lm hs ekb esq _ _ _ _ _ rd (r := r + 1) (j := 15) (by omega) (by omega)
         (by norm_num), cp_limb_mul]
@@ -216,12 +216,12 @@ theorem cp_loads_ok {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm �
   · obtain ⟨g1, g2, -⟩ := cp_col_geom gi hgi
     refine ⟨esq + cpKg lm hs gi, ?_, Or.inl (hSq _ (hκ gi))⟩
     have hc : σ (.n (cpD gi)) = cpColV lm hs esq gi (cpD gi) :=
-      cpσ_col lm hs ekb esq e10 e11 e138 e139 e295 rd hgi le_rfl (by omega)
+      cpσ_col lm hs ekb esq e10 e11 e136 e137 e293 rd hgi le_rfl (by omega)
     show (σ (.n (cpD gi))).limb 0 * addressOfIndex (cpAdj gi) = _
     rw [hc, cpColV, tb_ite_pos rfl, cp_limb_mul, Nat.add_assoc]
     rfl
-  · exact ⟨e139 + gi, tb_addr_ofK _ _, Or.inr (h139 gi hgi)⟩
-  · refine ⟨e295 + (cpC0 gi + j), tb_addr_ofK _ _, Or.inr (h295 _ ?_)⟩
+  · exact ⟨e137 + gi, tb_addr_ofK _ _, Or.inr (h137 gi hgi)⟩
+  · refine ⟨e293 + (cpC0 gi + j), tb_addr_ofK _ _, Or.inr (h293 _ ?_)⟩
     have := cpC0_le gi hgi; unfold cpLen at hj; omega
 
 /-- **`certify_placement` is complete, placed**: on its base, squares and rank-key runs, at every
@@ -313,7 +313,7 @@ theorem certify_placement_completeAtB (fs : String → ℕ) (cert : String → V
 theorem cp_out_ctx {lm : ℕ} {hs : List ℕ} {rets : List E} {L : Layout} (h : cpOut lm hs rets L)
     {rd : Reader} (hm : MemL rd L) :
     PCtx rd (columnKappas lm guestLogBytecode hs) (rets.getD 1 0) := by
-  obtain ⟨e10, e11, e138, e139, e295, rfl, rfl⟩ := h
+  obtain ⟨e10, e11, e136, e137, e293, rfl, rfl⟩ := h
   exact cp_ctx hm
 
 end

@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Da.HonestDefs
 
   The words an honest run of `da_vector` and its callees leaves in their buffers and frame runs,
-  as functions of the challenge `z` (G:4421-4485), and reading a layout's word.
+  as functions of the challenge `z` (G:4371-4435), and reading a layout's word.
 -/
 
 module
@@ -52,15 +52,6 @@ theorem loadHolds_of_wordAt {rd : Reader} {L : Layout} (hm : MemL rd L) {b k : �
   rw [hv, ← Nat.add_zero (b + k - c), ← loadHolds_mul_gen_pow, ← pow_add,
     show c + (b + k - c) = b + k by omega, pow_add, loadHolds_mul_gen_pow, Nat.add_zero] at hr
   exact hr
-
-theorem wordAt_mono {L L' : Layout} (hL : ∀ q ∈ L, q ∈ L') {i : ℕ} {v : E} (h : WordAt L i v) :
-    WordAt L' i v :=
-  let ⟨q, hq, h1, h2, h3⟩ := h
-  ⟨q, hL q hq, h1, h2, h3⟩
-
-theorem wordAt_of_mem {L : Layout} {b : ℕ} {xs : List E} (hq : (b, xs) ∈ L) {k : ℕ}
-    (hk : k < xs.length) : WordAt L (b + k) (xs.getD k 0) :=
-  ⟨(b, xs), hq, by simp, by simp; omega, by simp⟩
 
 /-! ## The honest words -/
 

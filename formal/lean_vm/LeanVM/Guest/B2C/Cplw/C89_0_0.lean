@@ -25,19 +25,19 @@ theorem cw89_1_0 : cplWin 89 1 0 = true := by decide +kernel
 /-- `rs_eq_rows__L7`, window 2, part 0. -/
 theorem cw89_2_0 : cplWin 89 2 0 = true := by decide +kernel
 
-/-- `__loop6`, window 0, part 0. -/
+/-- `grind_check__L7`, window 0, part 0. -/
 theorem cw90_0_0 : cplWin 90 0 0 = true := by decide +kernel
 
-/-- `__loop6`, window 1, part 0. -/
-theorem cw90_1_0 : cplWin 90 1 0 = true := by decide +kernel
-
-/-- `__loop6`, window 2, part 0. -/
-theorem cw90_2_0 : cplWin 90 2 0 = true := by decide +kernel
-
-/-- `__loop7`, window 0, part 0. -/
+/-- `__loop6`, window 0, part 0. -/
 theorem cw91_0_0 : cplWin 91 0 0 = true := by decide +kernel
 
-/-- `__loop8`, window 0, part 0. -/
+/-- `__loop6`, window 1, part 0. -/
+theorem cw91_1_0 : cplWin 91 1 0 = true := by decide +kernel
+
+/-- `__loop6`, window 2, part 0. -/
+theorem cw91_2_0 : cplWin 91 2 0 = true := by decide +kernel
+
+/-- `__loop7`, window 0, part 0. -/
 theorem cw92_0_0 : cplWin 92 0 0 = true := by decide +kernel
 
 theorem ok89 : CplOk 89 := by
@@ -60,31 +60,31 @@ theorem ok89 : CplOk 89 := by
 
 theorem ok90 : CplOk 90 := by
   intro i hi k hk
-  have hc : (certOf 90).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 90).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 90 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw90_0_0
-  · have hn : nParts 90 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw90_1_0
-  · have hn : nParts 90 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw90_2_0
 
 theorem ok91 : CplOk 91 := by
   intro i hi k hk
-  have hc : (certOf 91).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 91).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 91 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw91_0_0
+  · have hn : nParts 91 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw91_1_0
+  · have hn : nParts 91 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw91_2_0
 
 theorem ok92 : CplOk 92 := by
   intro i hi k hk

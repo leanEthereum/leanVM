@@ -50,14 +50,14 @@ theorem rcBound_sound {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Ato
     · exact absurd h (by simp)
   · exact absurd h (by simp)
 
-/-- `x` is range-checked against the constant `word lo 0 0`. -/
+/-- `x` is range-checked against the constant `word lo 0`. -/
 def rcConstOk (atoms : List Atom) (x : V) (lo : ℕ) : Bool :=
   match rcOf atoms x with
   | some k => atoms.any (isConstAt k lo 0)
   | none => false
 
 theorem rcConst_sound {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Atom} {x : V}
-    {lo c : ℕ} (hc : c < 2 ^ 33) (hw : word lo 0 0 = gen ^ c) (h : rcConstOk atoms x lo = true)
+    {lo c : ℕ} (hc : c < 2 ^ 33) (hw : word lo 0 = gen ^ c) (h : rcConstOk atoms x lo = true)
     (hat : ∀ a ∈ atoms, a.Holds rd σ) : ∃ e ≤ c, σ x = gen ^ e := by
   unfold rcConstOk at h
   split at h
@@ -66,7 +66,7 @@ theorem rcConst_sound {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Ato
     exact rc_const hm hc (by rw [const_sound h hat, hw]) ⟨h1, h2, h3⟩
   · exact absurd h (by simp)
 
-theorem word_g1 : word 2 0 0 = gen ^ 1 := by rw [word_gen, pow_one]
+theorem word_g1 : word 2 0 = gen ^ 1 := by rw [word_gen, pow_one]
 
 /-! ## Loop helpers with calls -/
 

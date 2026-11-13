@@ -9,18 +9,17 @@ module
 
 public import LeanVM.Guest.B2C.CplSplit
 public import LeanVM.Guest.B2C.Cplw.D37_19_0
-public import LeanVM.Guest.B2C.Cplw.D37_19_8
 
 namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop2`, window 19: one `match`, by 16 groups of arms. -/
+/-- `__loop2`, window 19: one `match`, by 8 groups of arms. -/
 theorem cw37_19_0 : cplWin 37 19 0 = true :=
-  cplWin_of_split [(1, 17, 47, 768, 0, 47), (17, 33, 815, 768, 0, 47), (33, 49, 1583, 768, 0, 47), (49, 65, 2351, 768, 0, 47), (65, 81, 3119, 768, 0, 47), (81, 97, 3887, 768, 0, 47), (97, 113, 4655, 768, 0, 47), (113, 129, 5423, 768, 0, 47), (129, 145, 6191, 768, 0, 47), (145, 161, 6959, 768, 0, 47), (161, 177, 7727, 768, 0, 47), (177, 193, 8495, 768, 0, 47), (193, 209, 9263, 768, 0, 47), (209, 225, 10031, 768, 0, 47), (225, 241, 10799, 768, 0, 47), (241, 256, 11567, 720, 0, 47)]
-    (1, 17, 47, 768, 0, 47) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
+  cplWin_of_split [(1, 33, 47, 1536, 0, 47), (33, 65, 1583, 1536, 0, 47), (65, 97, 3119, 1536, 0, 47), (97, 129, 4655, 1536, 0, 47), (129, 161, 6191, 1536, 0, 47), (161, 193, 7727, 1536, 0, 47), (193, 225, 9263, 1536, 0, 47), (225, 256, 10799, 1488, 0, 47)]
+    (1, 33, 47, 1536, 0, 47) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hg
-      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
       · exact cg37_19_0
       · exact cg37_19_1
       · exact cg37_19_2
@@ -29,14 +28,6 @@ theorem cw37_19_0 : cplWin 37 19 0 = true :=
       · exact cg37_19_5
       · exact cg37_19_6
       · exact cg37_19_7
-      · exact cg37_19_8
-      · exact cg37_19_9
-      · exact cg37_19_10
-      · exact cg37_19_11
-      · exact cg37_19_12
-      · exact cg37_19_13
-      · exact cg37_19_14
-      · exact cg37_19_15
 
 end
 end LeanVM.Guest.B2C.Cplw

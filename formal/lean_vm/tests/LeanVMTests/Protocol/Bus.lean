@@ -178,7 +178,7 @@ def honest : Column 2 := ⟨#v[1, 1, K.ofBits 2, K.ofBits 3]⟩
 #guard busToy.PaddingHonest honest
 
 /-- Challenges off the cube. -/
-def α : Fin 4 → E := ![y, y + 1, y * y, y * y + y]
+def α : Fin 16 → E := fun i ↦ y ^ (i.val + 1) + 1
 def β : E := y * y * y + 1
 def ζ : Vector E busToy.μBus := Vector.ofFn fun i ↦ if i.val = 0 then y + 1 else y * y
 def e0 : E := 0
@@ -261,7 +261,7 @@ here. -/
 theorem roots_unchecked_no_security {I : M3Instance} (h : Conditions I) (s : I.Stmt)
     (q : Column I.μ) (hb : I.Balanced q) (hc : I.ConstraintsVanish q)
     (hl : I.PublicLinesHold s q) (ha : I.aux q) (hpad : I.PaddingHonest q)
-    (hz : ¬ I.CountsNonzero q) (α : Fin 4 → E)
+    (hz : ¬ I.CountsNonzero q) (α : Fin 16 → E)
     (β : E) {hp : (Data I × ∀ i, TheOracle I i) × Unit → E × E}
     {err : Typed.Errors (Typed.sayTree (E × E)) (Typed.sayRoles _)}
     (S : Typed.Security (Typed.sendChecked (TheOracle I) (E × E) hp (fun _ _ ↦ true)

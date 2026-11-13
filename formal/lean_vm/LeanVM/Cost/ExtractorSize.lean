@@ -11,10 +11,10 @@ rebuilds them.
 
 * `extractorProgram_indices_increasing`: the bodies' indices are distinct (they increase from the
   entry's `0`: the compiler allocates indices from `1`, and sorts each dependency list);
-* **`extractorProgram_size_le_measured`**: the program's size is at most `14365`, evaluated on the
-  program itself, its exact size: the bodies' sizes (`14341`: `700` compiled bodies and the entry,
-  each natural literal counted by its limbs) and `12` indices without a body, a literal `0` of size
-  `2` each, `713` indices in all.
+* **`extractorProgram_size_le_measured`**: the program's size is at most `14041`, evaluated on the
+  program itself; its exact size is `14039`: the bodies' sizes (`14015`: `699` compiled bodies and
+  the entry, each natural literal counted by its limbs) and `12` indices without a body, a literal
+  `0` of size `2` each, `712` indices in all.
 -/
 
 namespace LeanVM.Cost
@@ -29,14 +29,14 @@ theorem extractorProgram_indices_increasing :
   decide +kernel
 
 /-- **The program's size**, from its bodies (`size_ofList_add_length`: the bodies' sizes and two
-per index without a body), each count evaluated: exactly `14365`. -/
-theorem extractorProgram_size_le_measured : compiledKnowledgeExtractor.size ≤ 14365 := by
+per index without a body), each count evaluated: at most `14041` (exactly `14039`). -/
+theorem extractorProgram_size_le_measured : compiledKnowledgeExtractor.size ≤ 14041 := by
   have h := size_ofList_add_length extractorProgramBodies (by
     rw [extractorProgramBodies, List.map_cons]
     exact nodup_of_increasing extractorProgram_indices_increasing)
-  have h1 : (extractorProgramBodies.map fun p ↦ p.2.size).sum = 14341 := by decide +kernel
-  have h2 : (extractorProgramBodies.map (·.1)).foldr max 0 = 712 := by decide +kernel
-  have h3 : extractorProgramBodies.length = 701 := by decide +kernel
+  have h1 : (extractorProgramBodies.map fun p ↦ p.2.size).sum = 14015 := by decide +kernel
+  have h2 : (extractorProgramBodies.map (·.1)).foldr max 0 = 711 := by decide +kernel
+  have h3 : extractorProgramBodies.length = 700 := by decide +kernel
   unfold compiledKnowledgeExtractor
   omega
 

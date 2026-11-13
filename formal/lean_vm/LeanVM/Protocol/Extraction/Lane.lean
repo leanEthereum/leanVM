@@ -7,9 +7,10 @@ public import LeanVM.Protocol.Extraction.Novel
 /-!
 # The lane decoder is complete (proofs)
 
-For `κ ≥ 1`, `κ + R ≤ 64`, `n = 2^(κ+R)` and an agreement `A ≤ n` with `(2^κ − 1)·n < A²`:
+For `κ + R ≤ 64`, `n = 2^(κ+R)`, the message length `k = 2^κ + 6` (level 0's degree is
+`2^κ − 1 + 6`) and an agreement `A ≤ n` with `(k − 1)·n < A²`:
 
-* `mem_gsLaneAt`: every polynomial `p` of degree `< 2^κ` whose values at `x_v = K.ofBits v` agree
+* `mem_gsLaneAt`: every polynomial `p` of degree `< k` whose values at `x_v = K.ofBits v` agree
   with lane `u` of the word on at least `A` columns `v < n` is in the lane decoder's output (up to
   `toPoly`). This is ArkLib's `decodeWithParams_complete` for `gsContext`, with the certificate
   `gsParamCert_gsParamsFor`, the points `x_v` as an embedding `Fin n ↪ K` (`domainEmb`: `K.ofBits`
@@ -17,19 +18,24 @@ For `κ ≥ 1`, `κ + R ≤ 64`, `n = 2^(κ+R)` and an agreement `A ≤ n` with 
   `≥ A` as Hamming distance `≤ n − A` (`hammingDist_le_of_agree`).
 * `lanePoly q u = Σ_{j<2^κ} q[j + 2^κ·u]·X_j` is lane `u` of a stack as a polynomial: its values
   are the encoding (`eval_lanePoly`) and its degree is `< 2^κ` (`degree_lanePoly_lt`, from
-  `deg X_j ≤ j`, `natDegree_novelPoly_lt`).
-* **`laneCoeffs_mem_laneListAt`**: lane `u` of every stack whose encoding agrees with the word on
-  at least `A` columns (a candidate, `Candidates`) is in the lane's list: the decoder returns its
-  polynomial, and `toNovel` turns it back into the lane's coefficients (`toNovel_of_toPoly`).
-* `laneCoeffs_mem_laneList`: the same at the deployed shapes, `16 ≤ μ ≤ 30`, `1 ≤ R ≤ 4`, at the
-  Johnson threshold (`gsParamCert_gsParams`' bounds, `johnsonThreshold_bounds`).
+  `deg X_j ≤ j`, `natDegree_novelPoly_lt`); `fullLanePoly q H u = lanePoly q u + W_κ·H`, level 0's
+  polynomial with low part lane `u` and high part `H` (`eval_fullLanePoly`), of degree `< k` when
+  `deg H < 6` (`degree_fullLanePoly_lt`).
+* `toNovel_succ_getD`: the first `2^κ` of a polynomial's `2^(κ+1)` novel coefficients are its novel
+  coefficients over `U_κ` (`X_{2^κ + r} = Ŵ_κ·X_r` vanishes there), so its low part.
+* **`exists_mem_laneListAt`**: for a candidate (`Candidates`: some high parts `H_u`, `deg H_u < 6`,
+  with `fullLanePoly q H_u u` agreeing with the word on at least `A` columns), lane `u`'s list
+  holds an array whose low part is lane `u` of `q` and whose encoding (`novelFwd (κ+1) (R−1)`) is
+  the polynomial's values: the decoder returns the polynomial, and `toNovel (κ+1)` its
+  coefficients (`novelFwd_toNovel_succ`).
 
 For the running time only (the size of each lane's list): `gsLaneAt_sound` (ArkLib's
-`mem_decodeWithParams_iff_spec`: the output has degree `< 2^κ` and agreement `≥ A`),
-`novelFwd_toNovel` (for such a polynomial, the encoding of its `toNovel` coefficients is its
-values on all `n` columns, since two polynomials of degree `< 2^κ` that agree on `U_κ` are equal),
-and `laneListAt_sound`: every element of a lane's list has size `2^κ` and an encoding that agrees
-with the lane on at least `A` columns.
+`mem_decodeWithParams_iff_spec`: the output has degree `< k` and agreement `≥ A`),
+`novelFwd_toNovel` (for a polynomial of degree `< 2^κ`, the encoding of its `toNovel`
+coefficients is its values on all `n` columns, since two polynomials of degree `< 2^κ` that agree
+on `U_κ` are equal), and `laneListAt_sound`: every element of a lane's list has size `2^(κ+1)` and
+an encoding that is the values of a polynomial of degree `< k` agreeing with the lane on at least
+`A` columns.
 
 **The `DecidableEq K` instance.** `gsContext` elaborates at `instBEqBF64`, `BF64.instLawfulBEq`
 and the statement's `instDecidableEqK` (the instance declared last; `#check` with `pp.explicit`).
@@ -104,16 +110,17 @@ theorem agree_of_hammingDist_le {n A : ℕ} (hA : A ≤ n) (f g : ℕ → K)
 
 /-! ## Completeness of the lane decoder -/
 
-/-- **The lane decoder is complete**: a polynomial of degree `< 2^κ` that agrees with lane `u` on
-at least `A` of the `2^(κ+R)` columns is in the decoder's output. -/
-theorem mem_gsLaneAt {κ R A : ℕ} (hκ : 1 ≤ κ) (hn : κ + R ≤ 64) (hA : A ≤ 2 ^ (κ + R))
-    (hcap : (2 ^ κ - 1) * 2 ^ (κ + R) < A * A) (W : ℕ → List K) (u : ℕ) {p : K[X]}
-    (hp : p.degree < ((2 ^ κ : ℕ) : WithBot ℕ))
+/-- **The lane decoder is complete**: a polynomial of degree `< 2^κ + 6` that agrees with lane `u`
+on at least `A` of the `2^(κ+R)` columns is in the decoder's output. -/
+theorem mem_gsLaneAt {κ R A : ℕ} (hn : κ + R ≤ 64) (hA : A ≤ 2 ^ (κ + R))
+    (hcap : (2 ^ κ + initialFold - 1) * 2 ^ (κ + R) < A * A) (W : ℕ → List K) (u : ℕ) {p : K[X]}
+    (hp : p.degree < ((2 ^ κ + initialFold : ℕ) : WithBot ℕ))
     (hagree : A ≤ ((Finset.range (2 ^ (κ + R))).filter fun v ↦
       p.eval (K.ofBits v) = laneSymbol W u v).card) :
     ∃ cp ∈ (gsLaneAt κ R A W u).toList, cp.toPoly = p := by
   have hn' : 2 ^ (κ + R) ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hn
-  have hk : 1 < 2 ^ κ := Nat.one_lt_two_pow (by omega)
+  have hk : 1 < 2 ^ κ + initialFold := by
+    have := Nat.one_le_two_pow (n := κ); simp only [initialFold]; omega
   refine decodeWithParams_complete gsContext _ (gsParamCert_gsParamsFor hk hA hcap)
     (representsArkInput_lanePoints _ hn' W u) ⟨hp, ?_⟩
   exact hammingDist_le_of_agree (fun v ↦ laneSymbol W u v) (fun v ↦ p.eval (K.ofBits v)) hagree
@@ -187,54 +194,75 @@ theorem degree_lanePoly_lt {μ : ℕ} (hκ : μ - initialFold ≤ 64) (q : Vecto
     (lanePoly q u).degree < ((2 ^ (μ - initialFold) : ℕ) : WithBot ℕ) :=
   degree_novelSum_lt hκ _
 
-/-! ## Lanes of candidates -/
+/-! ## Level 0's polynomial of a candidate -/
 
-/-- **Lane `u` of a candidate is in the lane's list**: if the stack's encoding agrees with the
-word on at least `A` columns, `laneListAt` holds its `u`-th lane's coefficients. -/
-theorem laneCoeffs_mem_laneListAt {μ R A : ℕ} (hμ : 7 ≤ μ) (hn : μ - initialFold + R ≤ 64)
-    (hA : A ≤ 2 ^ (μ - initialFold + R))
-    (hcap : (2 ^ (μ - initialFold) - 1) * 2 ^ (μ - initialFold + R) < A * A)
-    (W : ℕ → List K) {q : Vector K (2 ^ μ)} (hq : q ∈ Candidates μ R A W) {u : ℕ}
-    (hu : u < 2 ^ initialFold) :
-    laneCoeffs q u ∈ laneListAt (μ - initialFold) R A W u := by
-  have hκ : 1 ≤ μ - initialFold := by simp only [initialFold]; omega
-  have hagree : A ≤ ((Finset.range (2 ^ (μ - initialFold + R))).filter fun v ↦
-      (lanePoly q u).eval (K.ofBits v) = laneSymbol W u v).card := by
-    refine le_trans hq (Finset.card_le_card fun v hv ↦ ?_)
-    simp only [agreement, Finset.mem_filter] at hv ⊢
-    refine ⟨hv.1, ?_⟩
-    rw [eval_lanePoly, laneSymbol]
-    exact (hv.2 ⟨u, hu⟩).symm
-  obtain ⟨cp, hcp, hcpq⟩ := mem_gsLaneAt hκ hn hA hcap W u
-    (degree_lanePoly_lt (by omega) q u) hagree
-  rw [laneListAt, List.mem_mergeSort, List.mem_dedup, List.mem_map]
-  exact ⟨cp, hcp, toNovel_of_toPoly (by omega) cp _ hcpq⟩
+/-- Lane `u` of level 0's polynomial with high part `H`: `lanePoly q u + W_κ·H`, `κ = μ − 6`. -/
+noncomputable def fullLanePoly {μ : ℕ} (q : Vector K (2 ^ μ)) (H : K[X]) (u : ℕ) : K[X] :=
+  lanePoly q u + vanishing (μ - initialFold) * H
 
-/-- **At the deployed shapes**: lane `u` of every candidate at the Johnson threshold is in the
-lane's list. -/
-theorem laneCoeffs_mem_laneList {μ R : ℕ} (hμ : 16 ≤ μ ∧ μ ≤ 30) (hR : 1 ≤ R ∧ R ≤ 4)
-    (W : ℕ → List K) {q : Vector K (2 ^ μ)} (hq : q ∈ Candidates μ R (johnsonThreshold μ R) W)
-    {u : ℕ} (hu : u < 2 ^ initialFold) :
-    laneCoeffs q u ∈ laneListAt (μ - initialFold) R (johnsonThreshold μ R) W u := by
-  obtain ⟨hA, hcap⟩ := johnsonThreshold_bounds hμ hR
-  exact laneCoeffs_mem_laneListAt (by omega) (by simp only [initialFold]; omega) hA hcap W hq hu
+theorem eval_fullLanePoly {μ : ℕ} (q : Vector K (2 ^ μ)) (H : K[X]) (u v : ℕ) :
+    (fullLanePoly q H u).eval (K.ofBits v) =
+      encode q u v + subspacePoly (μ - initialFold) (K.ofBits v) * H.eval (K.ofBits v) := by
+  rw [fullLanePoly, eval_add, eval_mul, eval_lanePoly, eval_vanishing]
 
-/-! ## The lane lists are sound (for the running time) -/
+/-- `W_i` vanishes on `U_i`. -/
+theorem subspacePoly_of_lt {i v : ℕ} (hv : v < 2 ^ i) : subspacePoly i (K.ofBits v) = 0 :=
+  Finset.prod_eq_zero (Finset.mem_range.mpr hv) (CharTwo.add_self_eq_zero (K.ofBits v))
 
-/-- **The lane decoder is sound**: everything it returns has degree `< 2^κ` and agrees with lane
-`u` on at least `A` columns. -/
-theorem gsLaneAt_sound {κ R A : ℕ} (hκ : 1 ≤ κ) (hn : κ + R ≤ 64) (hA : A ≤ 2 ^ (κ + R))
-    (hcap : (2 ^ κ - 1) * 2 ^ (κ + R) < A * A) (W : ℕ → List K) (u : ℕ) {cp : CPolynomial K}
-    (hcp : cp ∈ (gsLaneAt κ R A W u).toList) :
-    cp.toPoly.degree < ((2 ^ κ : ℕ) : WithBot ℕ) ∧
-      A ≤ ((Finset.range (2 ^ (κ + R))).filter fun v ↦
-        cp.toPoly.eval (K.ofBits v) = laneSymbol W u v).card := by
-  have hn' : 2 ^ (κ + R) ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hn
-  have hk : 1 < 2 ^ κ := Nat.one_lt_two_pow (by omega)
-  have hspec := (mem_decodeWithParams_iff_spec gsContext _ (gsParamCert_gsParamsFor hk hA hcap)
-    (representsArkInput_lanePoints _ hn' W u)).mp ⟨cp, hcp, rfl⟩
-  exact ⟨hspec.1, agree_of_hammingDist_le hA (fun v ↦ laneSymbol W u v)
-    (fun v ↦ cp.toPoly.eval (K.ofBits v)) hspec.2⟩
+/-- Level 0's polynomial has degree `< 2^κ + 6` when its high part's is `< 6`. -/
+theorem degree_fullLanePoly_lt {μ : ℕ} (hκ : μ - initialFold ≤ 64) (q : Vector K (2 ^ μ))
+    {H : K[X]} (hH : H.degree < initialFold) (u : ℕ) :
+    (fullLanePoly q H u).degree < ((2 ^ (μ - initialFold) + initialFold : ℕ) : WithBot ℕ) := by
+  have hl : (lanePoly q u).natDegree ≤ 2 ^ (μ - initialFold) - 1 := by
+    rcases eq_or_ne (lanePoly q u) 0 with h0 | h0
+    · rw [h0, natDegree_zero]; exact Nat.zero_le _
+    · have := (natDegree_lt_iff_degree_lt h0).mpr (degree_lanePoly_lt hκ q u); omega
+  have hHn : H.natDegree ≤ initialFold - 1 := by
+    rcases eq_or_ne H 0 with h0 | h0
+    · rw [h0, natDegree_zero]; exact Nat.zero_le _
+    · have := (natDegree_lt_iff_degree_lt h0).mpr hH; omega
+  have hm : (vanishing (μ - initialFold) * H).natDegree ≤
+      2 ^ (μ - initialFold) + (initialFold - 1) :=
+    natDegree_mul_le.trans (Nat.add_le_add (natDegree_vanishing_le _) hHn)
+  have hsum : (fullLanePoly q H u).natDegree < 2 ^ (μ - initialFold) + initialFold := by
+    have := (natDegree_add_le (lanePoly q u) (vanishing (μ - initialFold) * H)).trans
+      (max_le_max hl hm)
+    have h1 := Nat.one_le_two_pow (n := μ - initialFold)
+    rw [fullLanePoly]
+    simp only [initialFold] at this h1 ⊢
+    omega
+  exact degree_le_natDegree.trans_lt (by exact_mod_cast hsum)
+
+/-! ## The low part -/
+
+/-- **The low part**: the first `2^κ` novel coefficients over `U_{κ+1}` are the novel coefficients
+over `U_κ`, as the coefficients from `2^κ` on multiply `Ŵ_κ`, which vanishes on `U_κ`. -/
+theorem toNovel_succ_getD {κ : ℕ} (hκ : κ < 64) (cp : CPolynomial K) {j : ℕ} (hj : j < 2 ^ κ) :
+    (toNovel (κ + 1) cp).getD j 0 = (toNovel κ cp).getD j 0 := by
+  obtain ⟨c, hc⟩ : ∃ c, c = toNovel (κ + 1) cp := ⟨_, rfl⟩
+  rw [← hc]
+  have hev : ∀ v < 2 ^ (κ + 1), cp.eval (K.ofBits v) =
+      ∑ i ∈ Finset.range (2 ^ (κ + 1)), c.getD i 0 * novelBasis i (K.ofBits v) := by
+    intro v hv
+    have hround := novelFwd_novelInv (κ := κ + 1)
+      (Array.ofFn fun v : Fin (2 ^ (κ + 1)) ↦ cp.eval (K.ofBits v.val)) Array.size_ofFn
+    have h1 : (novelFwd (κ + 1) 0 c).getD v 0 =
+        (Array.ofFn fun v : Fin (2 ^ (κ + 1)) ↦ cp.eval (K.ofBits v.val)).getD v 0 := by
+      rw [hc]; exact congrArg (fun a : Array K ↦ a.getD v 0) hround
+    rw [novelFwd_getD (by omega) _ (by simpa using hv), getD_ofFn _ hv] at h1
+    exact h1.symm
+  have hlow : ∀ v < 2 ^ κ, cp.eval (K.ofBits v) =
+      ∑ i ∈ Finset.range (2 ^ κ), c.getD i 0 * novelBasis i (K.ofBits v) := by
+    intro v hv
+    have hle : 2 ^ κ ≤ 2 ^ (κ + 1) := Nat.pow_le_pow_right (by norm_num) (by omega)
+    have hz : ∑ r ∈ Finset.range (2 ^ κ),
+        c.getD (2 ^ κ + r) 0 * novelBasis (2 ^ κ + r) (K.ofBits v) = 0 := by
+      refine Finset.sum_eq_zero fun r hr ↦ ?_
+      have hr' := Finset.mem_range.mp hr
+      rw [show 2 ^ κ + r = 2 ^ κ * 1 + r by ring, novelBasis_mul_two_pow_add hr', mul_one,
+        novelBasis_two_pow hκ, normSubspacePoly_of_lt hv, zero_mul, mul_zero]
+    rw [hev v (by omega), pow_succ, mul_two, Finset.sum_range_add, hz, add_zero]
+  rw [toNovel_eq (by omega) cp (fun i ↦ c.getD i 0) hlow, getD_ofFn _ hj]
 
 /-- The novel-basis coefficients `toNovel` returns encode the polynomial on every column, for a
 polynomial of degree `< 2^κ`. -/
@@ -268,20 +296,91 @@ theorem novelFwd_toNovel {κ R : ℕ} (hκ : κ + R ≤ 64) {cp : CPolynomial K}
     · rw [Finset.card_range]; exact hdeg
   rw [← hevalP v hv, hPeq]
 
-/-- **The lane lists are sound**: every element has size `2^κ` and its encoding agrees with lane
-`u` on at least `A` columns. -/
-theorem laneListAt_sound {κ R A : ℕ} (hκ : 1 ≤ κ) (hn : κ + R ≤ 64) (hA : A ≤ 2 ^ (κ + R))
-    (hcap : (2 ^ κ - 1) * 2 ^ (κ + R) < A * A) (W : ℕ → List K) (u : ℕ) {c : Array K}
-    (hc : c ∈ laneListAt κ R A W u) :
-    c.size = 2 ^ κ ∧ A ≤ ((Finset.range (2 ^ (κ + R))).filter fun v ↦
-      (novelFwd κ R c).getD v 0 = laneSymbol W u v).card := by
+/-- At `κ + 1` and rate `2^-(R−1)`: the encoding of the `2^(κ+1)` coefficients of a polynomial of
+degree `< 2^(κ+1)` is its values on the `2^(κ+R)` columns. -/
+theorem novelFwd_toNovel_succ {κ R : ℕ} (hR : 1 ≤ R) (hn : κ + R ≤ 64) {cp : CPolynomial K}
+    (hdeg : cp.toPoly.degree < ((2 ^ (κ + 1) : ℕ) : WithBot ℕ)) {v : ℕ} (hv : v < 2 ^ (κ + R)) :
+    (novelFwd (κ + 1) (R - 1) (toNovel (κ + 1) cp)).getD v 0 = cp.toPoly.eval (K.ofBits v) :=
+  novelFwd_toNovel (by omega) hdeg (by rwa [show κ + 1 + (R - 1) = κ + R by omega])
+
+/-- `2^κ + 6 ≤ 2^(κ+1)` for `κ ≥ 3`. -/
+theorem two_pow_add_initialFold_le {κ : ℕ} (hκ : 3 ≤ κ) : 2 ^ κ + initialFold ≤ 2 ^ (κ + 1) := by
+  have h8 : 2 ^ 3 ≤ 2 ^ κ := Nat.pow_le_pow_right (by norm_num) hκ
+  rw [pow_succ]
+  simp only [initialFold]
+  omega
+
+/-! ## Lanes of candidates -/
+
+/-- **A lane of level 0's polynomial is in the lane's list**: if `fullLanePoly q H u` (degree
+`< 2^κ + 6`) agrees with lane `u` on at least `A` columns, the lane's list holds an array whose
+low part is lane `u` of `q` and whose encoding is the polynomial's values. -/
+theorem exists_mem_laneListAt {μ R A : ℕ} (hμ : 9 ≤ μ) (hR : 1 ≤ R)
+    (hn : μ - initialFold + R ≤ 64) (hA : A ≤ 2 ^ (μ - initialFold + R))
+    (hcap : (2 ^ (μ - initialFold) + initialFold - 1) * 2 ^ (μ - initialFold + R) < A * A)
+    (W : ℕ → List K) (q : Vector K (2 ^ μ)) {H : K[X]} (hH : H.degree < initialFold) (u : ℕ)
+    (hagree : A ≤ ((Finset.range (2 ^ (μ - initialFold + R))).filter fun v ↦
+      (fullLanePoly q H u).eval (K.ofBits v) = laneSymbol W u v).card) :
+    ∃ c ∈ laneListAt (μ - initialFold) R A W u,
+      (∀ j < 2 ^ (μ - initialFold), c.getD j 0 = (laneCoeffs q u).getD j 0) ∧
+      ∀ v < 2 ^ (μ - initialFold + R), (novelFwd (μ - initialFold + 1) (R - 1) c).getD v 0 =
+        (fullLanePoly q H u).eval (K.ofBits v) := by
+  have hκ : μ - initialFold < 64 := by omega
+  obtain ⟨cp, hcp, hcpq⟩ :=
+    mem_gsLaneAt hn hA hcap W u (degree_fullLanePoly_lt (by omega) q hH u) hagree
+  have hdeg : cp.toPoly.degree < ((2 ^ (μ - initialFold + 1) : ℕ) : WithBot ℕ) := by
+    rw [hcpq]
+    refine (degree_fullLanePoly_lt (by omega) q hH u).trans_le ?_
+    exact_mod_cast two_pow_add_initialFold_le (by simp only [initialFold]; omega)
+  refine ⟨toNovel (μ - initialFold + 1) cp, ?_, fun j hj ↦ ?_, fun v hv ↦ ?_⟩
+  · rw [laneListAt, List.mem_mergeSort, List.mem_dedup, List.mem_map]
+    exact ⟨cp, hcp, rfl⟩
+  · rw [toNovel_succ_getD hκ cp hj,
+      toNovel_eq (by omega) cp (fun j ↦ (laneCoeffs q u).getD j 0) ?_, getD_ofFn _ hj]
+    intro v hv
+    rw [CompPoly.CPolynomial.eval_toPoly, hcpq, eval_fullLanePoly, subspacePoly_of_lt hv,
+      zero_mul, add_zero, encode]
+    refine Finset.sum_congr rfl fun j hj ↦ ?_
+    rw [laneCoeffs, getD_ofFn _ (Finset.mem_range.mp hj)]
+  · rw [novelFwd_toNovel_succ hR hn hdeg hv, hcpq]
+
+/-! ## The lane lists are sound (for the running time) -/
+
+/-- **The lane decoder is sound**: everything it returns has degree `< 2^κ + 6` and agrees with
+lane `u` on at least `A` columns. -/
+theorem gsLaneAt_sound {κ R A : ℕ} (hn : κ + R ≤ 64) (hA : A ≤ 2 ^ (κ + R))
+    (hcap : (2 ^ κ + initialFold - 1) * 2 ^ (κ + R) < A * A) (W : ℕ → List K) (u : ℕ)
+    {cp : CPolynomial K} (hcp : cp ∈ (gsLaneAt κ R A W u).toList) :
+    cp.toPoly.degree < ((2 ^ κ + initialFold : ℕ) : WithBot ℕ) ∧
+      A ≤ ((Finset.range (2 ^ (κ + R))).filter fun v ↦
+        cp.toPoly.eval (K.ofBits v) = laneSymbol W u v).card := by
+  have hn' : 2 ^ (κ + R) ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hn
+  have hk : 1 < 2 ^ κ + initialFold := by
+    have := Nat.one_le_two_pow (n := κ); simp only [initialFold]; omega
+  have hspec := (mem_decodeWithParams_iff_spec gsContext _ (gsParamCert_gsParamsFor hk hA hcap)
+    (representsArkInput_lanePoints _ hn' W u)).mp ⟨cp, hcp, rfl⟩
+  exact ⟨hspec.1, agree_of_hammingDist_le hA (fun v ↦ laneSymbol W u v)
+    (fun v ↦ cp.toPoly.eval (K.ofBits v)) hspec.2⟩
+
+/-- **The lane lists are sound**: every element has size `2^(κ+1)`, and its encoding is the values
+of a polynomial of degree `< 2^κ + 6` that agree with lane `u` on at least `A` columns. -/
+theorem laneListAt_sound {κ R A : ℕ} (hκ : 3 ≤ κ) (hR : 1 ≤ R) (hn : κ + R ≤ 64)
+    (hA : A ≤ 2 ^ (κ + R)) (hcap : (2 ^ κ + initialFold - 1) * 2 ^ (κ + R) < A * A)
+    (W : ℕ → List K) (u : ℕ) {c : Array K} (hc : c ∈ laneListAt κ R A W u) :
+    c.size = 2 ^ (κ + 1) ∧ ∃ p : K[X], p.degree < ((2 ^ κ + initialFold : ℕ) : WithBot ℕ) ∧
+      (∀ v < 2 ^ (κ + R), (novelFwd (κ + 1) (R - 1) c).getD v 0 = p.eval (K.ofBits v)) ∧
+      A ≤ ((Finset.range (2 ^ (κ + R))).filter fun v ↦
+        (novelFwd (κ + 1) (R - 1) c).getD v 0 = laneSymbol W u v).card := by
   rw [laneListAt, List.mem_mergeSort, List.mem_dedup, List.mem_map] at hc
   obtain ⟨cp, hcp, rfl⟩ := hc
-  obtain ⟨hdeg, hagree⟩ := gsLaneAt_sound hκ hn hA hcap W u hcp
-  refine ⟨size_novelInv _ Array.size_ofFn, hagree.trans_eq ?_⟩
+  obtain ⟨hdeg, hagree⟩ := gsLaneAt_sound hn hA hcap W u hcp
+  have hdeg' : cp.toPoly.degree < ((2 ^ (κ + 1) : ℕ) : WithBot ℕ) :=
+    hdeg.trans_le (by exact_mod_cast two_pow_add_initialFold_le hκ)
+  refine ⟨size_novelInv _ Array.size_ofFn, cp.toPoly, hdeg,
+    fun v hv ↦ novelFwd_toNovel_succ hR hn hdeg' hv, hagree.trans_eq ?_⟩
   congr 1
   refine Finset.filter_congr fun v hv ↦ ?_
-  rw [novelFwd_toNovel hn hdeg (Finset.mem_range.mp hv)]
+  rw [novelFwd_toNovel_succ hR hn hdeg' (Finset.mem_range.mp hv)]
 
 end
 end LeanVM.Extraction.LaneProofs

@@ -1,9 +1,9 @@
 //! The guest's claim pool and its coordinate terms.
 
-use super::cells::{count, dsl_u128};
+use super::cells::count;
 use leanvm_core::cpu::keccak_value;
 use leanvm_core::leaf::{Block, Coord};
-use primitives::field::F192;
+use primitives::field::F128;
 use std::collections::BTreeMap;
 
 /// Why the guest reads every `q_keccak` slot claim's instance point off `chi`: a
@@ -17,7 +17,7 @@ pub(super) enum ClaimSite {
     Framework { column: usize, source: (usize, usize) },
     /// A table column, a KECCAK value lane's ([`keccak_value`]) included.
     TableColumn { column: usize, table: usize },
-    /// One of the three PI memory limbs (MEM_LO, MEM_HI, MEM_TOP).
+    /// One of the two PI memory limbs (MEM_LO, MEM_HI).
     MemoryLimb { column: usize },
 }
 
@@ -37,11 +37,11 @@ pub(super) fn coord_kind(c: &Coord) -> usize {
 
 /// The `K` scalar a coordinate carries beside its columns: the constant itself,
 /// or the `g^k` a `GCol`/`Prod` scales by. Zero for every other kind.
-pub(super) fn coord_scale(c: &Coord) -> F192 {
+pub(super) fn coord_scale(c: &Coord) -> F128 {
     match c {
-        Coord::Const(v) => F192::from(*v),
+        Coord::Const(v) => F128::from(*v),
         Coord::GCol(_, k) | Coord::Prod(_, _, k) => count(*k as usize),
-        _ => F192::ZERO,
+        _ => F128::ZERO,
     }
 }
 
@@ -63,7 +63,7 @@ pub(super) fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
     };
     terms.push(Term {
         kind: coord_kind(c),
-        constant: dsl_u128(coord_scale(c)),
+        constant: u128::from(coord_scale(c)),
         column_a,
         column_b,
     });
@@ -73,7 +73,7 @@ pub(super) fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
 /// one column or one column product summed, and whatever sums to zero dropped.
 pub(super) fn coord_difference(a: &[Term], b: &[Term]) -> Vec<Term> {
     let (konst, col, gcol) = (0, 1, 2); // coord_kind of Const, Col, GCol
-    let one = dsl_u128(F192::ONE);
+    let one = u128::from(F128::ONE);
     let mut constant = 0u128;
     let mut scaled: BTreeMap<(usize, usize, usize), u128> = BTreeMap::new();
     for t in a.iter().chain(b) {
@@ -148,11 +148,7 @@ pub(super) fn walk_claims(layout: &leanvm_core::cpu::Layout, kbc: usize, mut vis
             });
         }
     }
-    for &column in &[
-        leanvm_core::cpu::MEM_LO,
-        leanvm_core::cpu::MEM_HI,
-        leanvm_core::cpu::MEM_TOP,
-    ] {
+    for &column in &[leanvm_core::cpu::MEM_LO, leanvm_core::cpu::MEM_HI] {
         visit(ClaimSite::MemoryLimb { column });
     }
 }

@@ -17,6 +17,7 @@ public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.B1.Da.Offsets
 public import LeanVM.Guest.B1.Main.IterK
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # Bounded helpers
@@ -46,14 +47,15 @@ blobs' trees, the padding, a column's cells, the column offsets' doublings), the
 (`TotalLe`), and the statically bounded callees `da_vector` and `da_expand__L7_L8` within their
 static words (`vecB`, a frame). -/
 structure DvStaticB (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
-  l17 : TotalLeOn coreProgram fs "__loop21" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop21" + fs "__loop21")
-  l19 : TotalLeOn coreProgram fs "__loop23" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop23" + fs "__loop23")
-  l20 : TotalLeOn coreProgram fs "__loop24" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop24" + fs "__loop24")
-  l21 : TotalLeOn coreProgram fs "__loop25" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop25" + fs "__loop25")
+  l17 : TotalLeOn coreProgram fs name% «da_verify_loop0» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop0» + fs name% «da_verify_loop0»)
+  l19 : TotalLeOn coreProgram fs name% «da_verify_loop2» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop2» + fs name% «da_verify_loop2»)
+  l20 : TotalLeOn coreProgram fs name% «da_verify_loop3» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop3» + fs name% «da_verify_loop3»)
+  l21 : TotalLeOn coreProgram fs name% «da_verify_column_loop0» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs
+        name% «da_verify_column_loop0»)
   off : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
     (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b))
   dl : ∀ j ≤ 10, TotalLe coreProgram fs dlNames[j]! (fun _ => SB dlNames[j]!)
@@ -103,7 +105,7 @@ theorem row_shape_completeAtB (fs : String → ℕ) (cert : String → V → ℕ
   obtain ⟨σ, hp, hh⟩ := (rel_iff_sem find_da_row_shape _ _).mp hrel
   rw [rs_split, holdsList_atoms_ret] at hh
   obtain ⟨hat, hr⟩ := hh
-  have hpar : Data.core28.params = [.n 0, .n 1, .n 2] := rfl
+  have hpar : (fn% «da_row_shape»).params = [.n 0, .n 1, .n 2] := rfl
   rw [hpar] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
   have h15 : σ (.n 15) = gen ^ s * gen ^ L := by

@@ -8,7 +8,7 @@
 
 import LeanVM.Guest.Child.FreshUnique
 import LeanVM.Guest.Budget.Fits
-import LeanVM.Prover.End
+import LeanVM.Prover.EndChild
 
 /-!
 # Completeness on honest children

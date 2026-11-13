@@ -4,6 +4,7 @@ import LeanVM.Protocol.Field
 import LeanVM.Protocol.Spine.Errors
 import LeanVM.Protocol.Spine.Slots
 import LeanVM.Protocol.Spine.Toy
+import LeanVM.Protocol.RingFields
 
 /-!
 # Sumcheck tests
@@ -240,17 +241,9 @@ def tableShape : Typed.Def (TheOracle Toy.toy) (Toy.toy.Stmt × BusOut Toy.toy) 
 
 /-! ## Completeness -/
 
-theorem y_ne_zero : y ≠ 0 := by
-  intro h
-  have h3 := y_pow_three
-  rw [h] at h3
-  simp at h3
+theorem y_ne_zero : y ≠ 0 := by simpa using LeanVM.Protocol.Ring.y_ne_ofK 0
 
-theorem y_ne_one : y ≠ 1 := by
-  intro h
-  have h3 := y_pow_three
-  rw [h] at h3
-  simp at h3
+theorem y_ne_one : y ≠ 1 := by simpa using LeanVM.Protocol.Ring.y_ne_ofK 1
 
 theorem nodes_injective : Function.Injective nodes := by
   intro i j h
@@ -362,11 +355,8 @@ def securityNormalized :
     (Typed.Errors.Le.append _ _ (Typed.roundsErrors_le E 2
       (le_of_eq (natCast_div_card_eq_overE 2)) 2) (Typed.Errors.Le.refl _ _ _))
 
-theorem y_add_one_ne_zero : y + 1 ≠ 0 := by
-  intro h
-  have h3 := y_pow_three
-  rw [h] at h3
-  exact y_ne_zero (pow_eq_zero_iff (by norm_num) |>.mp h3)
+theorem y_add_one_ne_zero : y + 1 ≠ 0 := fun h ↦
+  y_ne_one ((add_eq_zero_iff_eq_neg.mp h).trans (CharTwo.neg_eq 1))
 
 theorem nodes4_injective : Function.Injective nodes4 := by
   have h1 : y + 1 ≠ 1 := fun h ↦ y_ne_zero (add_eq_right.mp h)

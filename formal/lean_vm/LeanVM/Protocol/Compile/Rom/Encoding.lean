@@ -3,7 +3,7 @@
 
   The encodings of the compiled verifier are injective, the sponge's permutation inputs are read
   back, and the functions of a Keccak state the verifier reads are uniform: the challenge, the
-  capacity, and the proof-of-work predicate.
+  capacity, and the proof-of-work lane, independent of the challenge.
 -/
 
 module
@@ -11,7 +11,7 @@ module
 public import Statement.LeanVmVerifier
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Protocol.Compile.Prog
 public import LeanVM.Protocol.KeccakHash
@@ -170,10 +170,9 @@ theorem duplexInput_eq (sp : Sponge) : duplexInput sp = duplexOf (capOf sp.state
     congr 1
     omega
 
-/-- The scalar in slot `i` of a permutation input: lanes `4i, 4i+1, 4i+2`. -/
+/-- The scalar in slot `i` of a permutation input: lanes `4i, 4i+1`. -/
 def slotE (t : KeccakState) (i : ℕ) : E :=
   E.ofLimbs (K.ofLane (Keccak.lane t (4 * i))) (K.ofLane (Keccak.lane t (4 * i + 1)))
-    (K.ofLane (Keccak.lane t (4 * i + 2)))
 
 /-- The tag in slot `i` of a permutation input: lane `4i + 3`. -/
 def slotTag (t : KeccakState) (i : ℕ) : UInt64 := Keccak.lane t (4 * i + 3)
@@ -185,9 +184,9 @@ def parsePending (t : KeccakState) : List (E × ℕ) :=
 /-- Waiting scalars as the verifier keeps them: at most four, each tagged `1` or `4`. -/
 def ValidPending (ps : List (E × ℕ)) : Prop := ps.length ≤ 4 ∧ ∀ e ∈ ps, e.2 = 1 ∨ e.2 = 4
 
-/-- The four lanes of a waiting scalar. -/
-def scalarLanes (e : E × ℕ) : List UInt64 :=
-  [(e.1.limb 0).lane, (e.1.limb 1).lane, (e.1.limb 2).lane, e.2.toUInt64]
+/-- The four lanes of a waiting scalar: its two limbs, a zero lane, its tag. -/
+def scalarLanes : E × ℕ → List UInt64 :=
+  fun (x, tag) ↦ [(x.limb 0).lane, (x.limb 1).lane, 0, tag.toUInt64]
 
 theorem pendingLanes_eq (ps : List (E × ℕ)) : pendingLanes ps = ps.flatMap scalarLanes := rfl
 
@@ -219,9 +218,8 @@ theorem slotE_duplexOf (c : Fin 9 → UInt64) (ps : List (E × ℕ)) {i : ℕ} (
     (h4 : i < 4) : slotE (duplexOf c ps) i = ps[i].1 := by
   have h0 := lane_duplexOf_slot c ps h4 (r := 0) (by norm_num)
   have h1 := lane_duplexOf_slot c ps h4 (r := 1) (by norm_num)
-  have h2 := lane_duplexOf_slot c ps h4 (r := 2) (by norm_num)
-  simp only [Nat.add_zero, hi, ↓reduceDIte] at h0 h1 h2
-  rw [slotE, h0, h1, h2]
+  simp only [Nat.add_zero, hi, ↓reduceDIte] at h0 h1
+  rw [slotE, h0, h1]
   simp [scalarLanes, ofLimbs_limb]
 
 theorem slotTag_duplexOf (c : Fin 9 → UInt64) (ps : List (E × ℕ)) {i : ℕ} (h4 : i < 4) :
@@ -292,13 +290,15 @@ theorem capOf_seedInput (iv pd : Digest) : capOf (seedInput iv pd) = 0 := by
 
 /-! ## Cardinalities -/
 
+/-- `UInt64` as `Fin (2^64)`. -/
+def uint64FinEquiv : UInt64 ≃ Fin (2 ^ 64) where
+  toFun w := w.toFin
+  invFun i := UInt64.ofFin i
+  left_inv _ := rfl
+  right_inv _ := rfl
+
 theorem card_uint64 : Fintype.card UInt64 = 2 ^ 64 := by
-  rw [Fintype.card_congr (UInt64.toFinEquiv' ), Fintype.card_fin]
-where
-  /-- `UInt64` as `Fin (2^64)`. -/
-  UInt64.toFinEquiv' : UInt64 ≃ Fin (2 ^ 64) :=
-    { toFun := fun w ↦ w.toFin, invFun := fun i ↦ UInt64.ofFin i,
-      left_inv := fun _ ↦ rfl, right_inv := fun _ ↦ rfl }
+  rw [Fintype.card_congr uint64FinEquiv, Fintype.card_fin]
 
 theorem card_K : Fintype.card K = 2 ^ 64 := by
   rw [← Fintype.card_congr LeanVM.Protocol.finEquivK, Fintype.card_fin]
@@ -363,23 +363,20 @@ theorem splitEquiv_snd (m : ℕ) (hm : m ≤ 25) (u : KeccakState) (i : Fin (25 
   simp [splitEquiv, vecEquiv, Equiv.sumArrowEquivProdArrow, Keccak.lane, Array.getD,
     show m + i.val < 25 by omega]
 
-/-- `E` as three lanes. -/
-def limbsEquiv : (Fin 3 → UInt64) ≃ E where
-  toFun f := E.ofLimbs (K.ofLane (f 0)) (K.ofLane (f 1)) (K.ofLane (f 2))
+/-- `E` as two lanes. -/
+def lanesEquiv : (Fin 2 → UInt64) ≃ E where
+  toFun f := E.ofLimbs (K.ofLane (f 0)) (K.ofLane (f 1))
   invFun x i := (x.limb i).lane
-  left_inv f := by funext i; fin_cases i <;> simp [limb_ofLimbs]
+  left_inv f := by funext i; fin_cases i <;> simp
   right_inv x := by simpa using ofLimbs_limb x
 
-/-- A state is its challenge and its other `22` lanes. -/
-def challengeEquiv : KeccakState ≃ E × (Fin 22 → UInt64) :=
-  (splitEquiv 3 (by norm_num)).trans (Equiv.prodCongr limbsEquiv (Equiv.refl _))
-
-theorem limbsEquiv_apply (f : Fin 3 → UInt64) :
-    limbsEquiv f = E.ofLimbs (K.ofLane (f 0)) (K.ofLane (f 1)) (K.ofLane (f 2)) := rfl
+/-- A state is its challenge and its other `23` lanes. -/
+def challengeEquiv : KeccakState ≃ E × (Fin 23 → UInt64) :=
+  (splitEquiv 2 (by norm_num)).trans (Equiv.prodCongr lanesEquiv (Equiv.refl _))
 
 theorem challengeEquiv_fst (u : KeccakState) : (challengeEquiv u).1 = challengeOf u := by
-  show limbsEquiv ((splitEquiv 3 (by norm_num)) u).1 = _
-  rw [limbsEquiv_apply, splitEquiv_fst, splitEquiv_fst, splitEquiv_fst]
+  show lanesEquiv ((splitEquiv 2 (by norm_num)) u).1 = _
+  simp only [lanesEquiv, Equiv.coe_fn_mk, splitEquiv_fst]
   rfl
 
 /-- **The challenge of a uniform state is uniform.** -/
@@ -388,6 +385,26 @@ theorem sum_challengeOf_div (f : E → ℝ≥0∞) :
   have := sum_fst_div challengeEquiv f
   simp only [challengeEquiv_fst] at this
   exact this
+
+/-- Three lanes as a challenge (lanes `0, 1`) and a proof of work (lane `2`). -/
+def powLanesEquiv : (Fin 3 → UInt64) ≃ E × UInt64 where
+  toFun f := (E.ofLimbs (K.ofLane (f 0)) (K.ofLane (f 1)), f 2)
+  invFun p := ![(p.1.limb 0).lane, (p.1.limb 1).lane, p.2]
+  left_inv f := by funext i; fin_cases i <;> simp
+  right_inv p := by
+    obtain ⟨x, w⟩ := p
+    simpa using ofLimbs_limb x
+
+/-- A state is its challenge, its proof-of-work lane and its other `22` lanes: the permutation
+that absorbs a nonce draws the next challenge and the proof of work from disjoint lanes. -/
+def powEquiv : KeccakState ≃ (E × UInt64) × (Fin 22 → UInt64) :=
+  (splitEquiv 3 (by norm_num)).trans (Equiv.prodCongr powLanesEquiv (Equiv.refl _))
+
+theorem powEquiv_fst (u : KeccakState) :
+    (powEquiv u).1 = (challengeOf u, Keccak.lane u 2) := by
+  show powLanesEquiv ((splitEquiv 3 (by norm_num)) u).1 = _
+  simp only [powLanesEquiv, Equiv.coe_fn_mk, splitEquiv_fst]
+  rfl
 
 /-- A state is its rate (`16` lanes) and its capacity. -/
 def capEquiv : KeccakState ≃ (Fin 16 → UInt64) × (Fin 9 → UInt64) := splitEquiv 16 (by norm_num)
@@ -457,43 +474,22 @@ theorem card_filter_mod_pow_eq_zero {b : ℕ} (hb : b ≤ 64) :
         obtain ⟨j, rfl⟩ := hx
         simp [f]
 
-/-- `E` as its three limbs. -/
-def limbEquiv : E ≃ K × (K × K) where
-  toFun c := (c.limb 0, (c.limb 1, c.limb 2))
-  invFun p := E.ofLimbs p.1 p.2.1 p.2.2
-  left_inv c := ofLimbs_limb c
-  right_inv p := by simp
-
-/-- The average over `E` of a function of the first limb's low bits, as a count over 64-bit
-numbers. -/
-theorem sum_limb0_div (b : ℕ) :
-    (∑ c : E, if (c.limb 0).lane.toNat % 2 ^ b = 0 then (1 : ℝ≥0∞) else 0) / Fintype.card E =
+/-- The average over a lane of the proof-of-work predicate, as a count over 64-bit numbers. -/
+theorem sum_powOk_lane_div (b : ℕ) :
+    (∑ w : UInt64, ind (powOk b w = true)) / Fintype.card UInt64 =
       ((Finset.univ.filter fun i : Fin (2 ^ 64) ↦ i.val % 2 ^ b = 0).card : ℝ≥0∞) /
         ((2 ^ 64 : ℕ) : ℝ≥0∞) := by
-  let g : K → ℝ≥0∞ := fun a ↦ if a.lane.toNat % 2 ^ b = 0 then 1 else 0
-  have h := sum_fst_div limbEquiv g
-  simp only [limbEquiv, Equiv.coe_fn_mk] at h
-  rw [h, card_K]
-  congr 1
-  rw [Fintype.sum_equiv LeanVM.Protocol.finEquivK.symm g
-    (fun i : Fin (2 ^ 64) ↦ if i.val % 2 ^ b = 0 then 1 else 0) (fun _ ↦ rfl)]
+  rw [card_uint64]
+  refine congrArg (fun z ↦ z / ((2 ^ 64 : ℕ) : ℝ≥0∞)) ?_
+  rw [Fintype.sum_equiv uint64FinEquiv (fun w ↦ ind (powOk b w = true))
+    (fun i : Fin (2 ^ 64) ↦ if i.val % 2 ^ b = 0 then 1 else 0)
+    (fun w ↦ by simp only [ind, powOk, decide_eq_true_eq]; rfl)]
   rw [Finset.sum_ite, Finset.sum_const_zero, add_zero, Finset.sum_const, nsmul_eq_mul, mul_one]
 
-/-- **The proof of work on the challenge of a uniform state succeeds with probability at most
-`2^-min(b, 64)`.** -/
-theorem sum_powOk_div_le (b : ℕ) :
-    (∑ u : KeccakState, ind (powOk b (challengeOf u) = true)) / Fintype.card KeccakState ≤
-      2⁻¹ ^ min b 64 := by
-  by_cases hb : b = 0
-  · subst hb
-    rw [min_eq_left (Nat.zero_le _), pow_zero]
-    exact avg_le_of_le fun _ ↦ ind_le_one _
-  rw [sum_challengeOf_div (fun c ↦ ind (powOk b c = true))]
-  have hs : (∑ c : E, ind (powOk b c = true)) =
-      ∑ c : E, if (c.limb 0).lane.toNat % 2 ^ b = 0 then (1 : ℝ≥0∞) else 0 := by
-    refine Finset.sum_congr rfl fun c _ ↦ ?_
-    simp only [ind, powOk, decide_eq_true_eq]
-  rw [hs, sum_limb0_div]
+/-- **The proof of work on a uniform lane succeeds with probability at most `2^-min(b, 64)`.** -/
+theorem sum_powOk_lane_div_le (b : ℕ) :
+    (∑ w : UInt64, ind (powOk b w = true)) / Fintype.card UInt64 ≤ 2⁻¹ ^ min b 64 := by
+  rw [sum_powOk_lane_div]
   set m := min b 64
   calc (((Finset.univ.filter fun i : Fin (2 ^ 64) ↦ i.val % 2 ^ b = 0).card : ℕ) : ℝ≥0∞)
         / ((2 ^ 64 : ℕ) : ℝ≥0∞)
@@ -507,21 +503,62 @@ theorem sum_powOk_div_le (b : ℕ) :
           ENNReal.mul_inv (by simp) (by simp), mul_comm (2 ^ (64 - m))⁻¹, mul_assoc,
           ENNReal.inv_mul_cancel (by simp) (by simp), mul_one, ENNReal.inv_pow]
 
-/-- **The proof of work on the challenge of a uniform state succeeds with probability exactly
-`2^-b`**, for `b ≤ 64`. -/
-theorem sum_powOk_div_eq {b : ℕ} (hb : b ≤ 64) :
-    (∑ u : KeccakState, ind (powOk b (challengeOf u) = true)) / Fintype.card KeccakState = 2⁻¹ ^ b := by
-  rw [sum_challengeOf_div (fun c ↦ ind (powOk b c = true))]
-  have hs : (∑ c : E, ind (powOk b c = true)) =
-      ∑ c : E, if (c.limb 0).lane.toNat % 2 ^ b = 0 then (1 : ℝ≥0∞) else 0 := by
-    refine Finset.sum_congr rfl fun c _ ↦ ?_
-    simp only [ind, powOk, decide_eq_true_eq]
-  rw [hs, sum_limb0_div, card_filter_mod_pow_eq_zero hb]
+/-- **The proof of work on a uniform lane succeeds with probability exactly `2^-b`**, for
+`b ≤ 64`. -/
+theorem sum_powOk_lane_div_eq {b : ℕ} (hb : b ≤ 64) :
+    (∑ w : UInt64, ind (powOk b w = true)) / Fintype.card UInt64 = 2⁻¹ ^ b := by
+  rw [sum_powOk_lane_div, card_filter_mod_pow_eq_zero hb]
   have h64 : (2 : ℝ≥0∞) ^ 64 = 2 ^ (64 - b) * 2 ^ b := by
     rw [← pow_add, Nat.sub_add_cancel hb]
   rw [Nat.cast_pow, Nat.cast_pow, Nat.cast_ofNat, h64, ENNReal.div_eq_inv_mul,
     ENNReal.mul_inv (by simp) (by simp), mul_comm (2 ^ (64 - b))⁻¹, mul_assoc,
     ENNReal.inv_mul_cancel (by simp) (by simp), mul_one, ENNReal.inv_pow]
+
+/-- **The proof of work and the challenge of a uniform state are independent**: the average of
+the proof of work's success on lane `2` times a function of the challenge (lanes `0, 1`) is the
+product of the averages. -/
+theorem sum_powOk_mul_challengeOf_div (b : ℕ) (f : E → ℝ≥0∞) :
+    (∑ u : KeccakState, ind (powOk b (Keccak.lane u 2) = true) * f (challengeOf u)) /
+        Fintype.card KeccakState =
+      ((∑ w : UInt64, ind (powOk b w = true)) / Fintype.card UInt64) *
+        ((∑ c : E, f c) / Fintype.card E) := by
+  have h := sum_fst_div powEquiv fun p : E × UInt64 ↦ ind (powOk b p.2 = true) * f p.1
+  simp only [powEquiv_fst] at h
+  rw [h, Fintype.sum_prod_type, Fintype.card_prod, Nat.cast_mul]
+  simp only [← Finset.mul_sum, ← Finset.sum_mul]
+  rw [div_eq_mul_inv, div_eq_mul_inv, div_eq_mul_inv,
+    ENNReal.mul_inv (Or.inl (by exact_mod_cast Fintype.card_ne_zero))
+      (Or.inl (ENNReal.natCast_ne_top _))]
+  ring
+
+/-- The proof of work on a uniform state's lane `2`, times a function of its challenge, averages
+to at most `2^-min(b, 64)` times the function's average. -/
+theorem sum_powOk_mul_challengeOf_div_le (b : ℕ) (f : E → ℝ≥0∞) :
+    (∑ u : KeccakState, ind (powOk b (Keccak.lane u 2) = true) * f (challengeOf u)) /
+        Fintype.card KeccakState ≤ 2⁻¹ ^ min b 64 * ((∑ c : E, f c) / Fintype.card E) := by
+  rw [sum_powOk_mul_challengeOf_div]
+  gcongr
+  exact sum_powOk_lane_div_le b
+
+/-- **The proof of work on a uniform state succeeds with probability at most
+`2^-min(b, 64)`.** -/
+theorem sum_powOk_div_le (b : ℕ) :
+    (∑ u : KeccakState, ind (powOk b (Keccak.lane u 2) = true)) / Fintype.card KeccakState ≤
+      2⁻¹ ^ min b 64 := by
+  have h := sum_powOk_mul_challengeOf_div_le b fun _ ↦ 1
+  simp only [mul_one, Finset.sum_const, Finset.card_univ, nsmul_eq_mul] at h
+  rwa [ENNReal.div_self (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _),
+    mul_one] at h
+
+/-- **The proof of work on a uniform state succeeds with probability exactly `2^-b`**, for
+`b ≤ 64`. -/
+theorem sum_powOk_div_eq {b : ℕ} (hb : b ≤ 64) :
+    (∑ u : KeccakState, ind (powOk b (Keccak.lane u 2) = true)) / Fintype.card KeccakState =
+      2⁻¹ ^ b := by
+  have h := sum_powOk_mul_challengeOf_div b fun _ ↦ 1
+  simp only [mul_one, Finset.sum_const, Finset.card_univ, nsmul_eq_mul] at h
+  rwa [ENNReal.div_self (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _),
+    mul_one, sum_powOk_lane_div_eq hb] at h
 
 end
 

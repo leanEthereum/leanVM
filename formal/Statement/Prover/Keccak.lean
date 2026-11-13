@@ -15,7 +15,7 @@ the remaining cube of products of two folded tables (`openRound`, `openFold`).
 
 namespace LeanVM.Prover.KeccakGkr
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 
 /-! ## Sums of products over the cube -/
 
@@ -97,8 +97,9 @@ def inputProve (col : ℕ → K) (P : ℕ) (claim : KeccakClaim) : Script Unit :
 lanes' claims `output` at `inst`. -/
 def keccakProve (col : ℕ → K) (P : ℕ) (inst output : List E) : Script Unit :=
   let V := slotWords col (P + 4) inst
-  (Script.sampleN 1).bind fun segment ↦
-  (Script.sampleN 5).bind fun lanesPt ↦
+  (Script.grindBits (grindingBits (keccakSegmentBits + keccakLaneBits))).bind fun _ ↦
+  (Script.sampleN keccakSegmentBits).bind fun segment ↦
+  (Script.sampleN keccakLaneBits).bind fun lanesPt ↦
   let eS := eqKernel segment
   let eL := eqKernel lanesPt
   let committed := eS.getD 0 0 * sumRange 25 fun l ↦ eL.getD l 0 * V.getD (25 + l) 0
@@ -111,7 +112,7 @@ def keccakProve (col : ℕ → K) (P : ℕ) (inst output : List E) : Script Unit
   let word := (x.2.pairs.headD (#[], #[])).2.getD 0 0
   (Script.sendE word).bind fun _ ↦ inputProve col P claim
 
-/-- **The honest prover of the Keccak phase** (`keccakPhase`, `crates/verifier/src/lib.rs:285-302`):
+/-- **The honest prover of the Keccak phase** (`keccakPhase`, `crates/verifier/src/lib.rs:316-333`):
 the reduction on `q_keccak`'s words (the column `qkeccak` of `cols`), the `KECCAK` table of
 log-height `τ`, at its point and output lanes (`evaluations`). -/
 def keccakPhaseProve (τ : ℕ) (cols : Array (Array K)) (evaluations : List (List E × List E)) :

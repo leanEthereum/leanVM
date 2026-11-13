@@ -11,29 +11,23 @@ public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Bytecode
 public import LeanVM.Guest.Logic
 public import LeanVM.Guest.Memory
-public import LeanVM.Guest.JumpTable.Ok0
-public import LeanVM.Guest.JumpTable.Ok1
-public import LeanVM.Guest.JumpTable.Ok2
-public import LeanVM.Guest.JumpTable.Ok3
-public import LeanVM.Guest.JumpTable.Ok4
-public import LeanVM.Guest.JumpTable.Ok5
-public import LeanVM.Guest.JumpTable.Ok6
-public import LeanVM.Guest.JumpTable.Ok7
+public import LeanVM.Guest.JumpTable.Keys
+public import LeanVM.Guest.JumpTable.Code
 
 /-!
 # The jump table
 
-`__jump_tables` (function `0`, from pc `0`) is `13952` `SET`s of the slots `429 + i` of `main`'s
-frame, then `main` runs from its entry `mainEntry = 13952` at `fp = 1`. `JumpTables L` says each
+`__jump_tables` (function `0`, from pc `0`) is `Data.jtSlots` `SET`s of the slots
+`Data.mainCells + i` of `main`'s frame, then `main` runs from its entry `mainEntry` at `fp = 1`. `JumpTables L` says each
 `SET` holds in `L` (each slot of `Memory.tableCells` holds its word). `safe_jumpTables`: a halting
 run from `(g^0, 1)` writes the table and halts from `(g^mainEntry, 1)`; `reach_jumpTables` is the
 converse for completeness.
 
 `Data.jtTrie` maps a slot `s` to the exponent `t` of the target `g^t` the checker expects there.
-`jtOk` checks, at every entry `(s, t)` of the trie, that instruction `s - 429` of `__jump_tables`
-is `SET s, k0, 0, 0` with `Data.powTree` giving `k0 ↦ t`, so that `K.ofBits k0 = g^t`
-(`PowTree.Ok`): sixteen subtrees, each checked in eight parts by the kernel in `JumpTable.Ok*`
-(`JumpTable.Entries` the check). So the table the checks read is the one `__jump_tables` writes
+`jtOk` checks, at every entry `(s, t)` of the trie, that instruction `s - Data.mainCells` of
+`__jump_tables` is `SET s, k0, 0, 0` with `Data.powTree` giving `k0 ↦ t`, so that `K.ofBits k0 = g^t`
+(`PowTree.Ok`), from the kernel's walks of the trie's keys (`JumpTable.Keys`) and of the code
+(`JumpTable.Code`). So the table the checks read is the one `__jump_tables` writes
 (`jt_of_jumpTables`).
 -/
 
@@ -51,7 +45,7 @@ def JumpTables {κ : ℕ} (L : MemoryImage κ) : Prop := ∀ q ∈ Memory.tableC
 
 /-- The slot a `SET` writes. -/
 def setCell? : OffsetInstruction → Option (ℕ × E)
-  | .set o k0 k1 k2 => some (o, OffsetInstruction.immediateWord k0 k1 k2)
+  | .set o k0 k1 => some (o, OffsetInstruction.immediateWord k0 k1)
   | _ => none
 
 theorem tableCells_eq : Memory.tableCells = Data.f0.code.filterMap setCell? := by
@@ -68,14 +62,14 @@ theorem f0_entry : Data.f0.entryPc = 0 := rfl
 
 /-- Instruction `i` of `__jump_tables` is a `SET` of a slot of the table. -/
 theorem f0_instr {i : ℕ} (hi : i < Data.f0.instructionCount) :
-    ∃ o k0 k1 k2, Data.f0.instructionAt i = .set o k0 k1 k2 ∧ (o, OffsetInstruction.immediateWord k0 k1 k2) ∈ Memory.tableCells := by
+    ∃ o k0 k1, Data.f0.instructionAt i = .set o k0 k1 ∧ (o, OffsetInstruction.immediateWord k0 k1) ∈ Memory.tableCells := by
   have hc := CompiledFunction.getElem?_code (CompiledFunction.wellChunked_of_mem f0_mem) hi
   have hmem : Data.f0.instructionAt i ∈ Data.f0.code := List.mem_of_getElem? hc
   have hs := List.all_eq_true.mp f0_all_set _ hmem
   rcases h : Data.f0.instructionAt i with
-      _ | _ | ⟨o, k0, k1, k2⟩ | _ | _ | _ <;> rw [h] at hs hmem <;>
+      _ | _ | ⟨o, k0, k1⟩ | _ | _ | _ <;> rw [h] at hs hmem <;>
     simp only [setCell?, Option.isSome_none, Bool.false_eq_true] at hs
-  exact ⟨o, k0, k1, k2, rfl, tableCells_eq ▸ List.mem_filterMap.mpr ⟨_, hmem, rfl⟩⟩
+  exact ⟨o, k0, k1, rfl, tableCells_eq ▸ List.mem_filterMap.mpr ⟨_, hmem, rfl⟩⟩
 
 theorem f0_fetch {i : ℕ} (hi : i < Data.f0.instructionCount) :
     guestProgram.fetch (addressOfIndex i) = some (Data.f0.instructionAt
@@ -102,7 +96,7 @@ theorem safe_jumpTables {κ : ℕ} {L : MemoryImage κ} {k : ℕ} (h : Safe gues
     | succ i ih =>
       intro hi
       obtain ⟨hh, k', hk'⟩ := ih (by omega)
-      obtain ⟨o, k0, k1, k2, hins, -⟩ := f0_instr (show i < Data.f0.instructionCount by omega)
+      obtain ⟨o, k0, k1, hins, -⟩ := f0_instr (show i < Data.f0.instructionCount by omega)
       have hf := f0_fetch (show i < Data.f0.instructionCount by omega)
       rw [hins] at hf
       obtain ⟨k'', -, hH, hs⟩ := hk'.fallThrough hf (f0_pc_lt (by omega)) rfl
@@ -118,7 +112,7 @@ theorem safe_jumpTables {κ : ℕ} {L : MemoryImage κ} {k : ℕ} (h : Safe gues
       (CompiledFunction.wellChunked_of_mem f0_mem) ▸ hi
   have hc := CompiledFunction.getElem?_code (CompiledFunction.wellChunked_of_mem f0_mem) hlen
   rw [List.getElem?_eq_getElem hi, Option.some.injEq] at hc
-  obtain ⟨o, k0, k1, k2, hins, -⟩ := f0_instr hlen
+  obtain ⟨o, k0, k1, hins, -⟩ := f0_instr hlen
   have hH := hh i hlen
   rw [hc, hins] at hq
   rw [hins] at hH
@@ -138,11 +132,11 @@ theorem reach_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : JumpTables L) :
     | zero => exact fun _ ↦ Reach.refl _
     | succ i ih =>
       intro hi
-      obtain ⟨o, k0, k1, k2, hins, hq⟩ := f0_instr (show i < Data.f0.instructionCount by omega)
+      obtain ⟨o, k0, k1, hins, hq⟩ := f0_instr (show i < Data.f0.instructionCount by omega)
       have hf := f0_fetch (show i < Data.f0.instructionCount by omega)
       rw [hins] at hf
-      have hH : Holds L i 1 (.set o k0 k1 k2) := by
-        show L.read (1 * addressOfIndex o) = some (OffsetInstruction.immediateWord k0 k1 k2)
+      have hH : Holds L i 1 (.set o k0 k1) := by
+        show L.read (1 * addressOfIndex o) = some (OffsetInstruction.immediateWord k0 k1)
         rw [gpow_mul_one]
         exact h _ hq
       exact (ih (by omega)).trans (reach_fallThrough hf (f0_pc_lt (by omega)) rfl hH)
@@ -153,27 +147,24 @@ end LeanVM.Guest.End
 
 namespace LeanVM.Guest.JumpTable
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Exec
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Exec LeanVM.Guest.Memory
 
 @[expose] public section
 
-set_option maxRecDepth 100000 in
-theorem jtOk : allEntries entryOk Data.jtTrie 1 0 = true :=
-  allEntries_split (by decide +kernel)
-    (allEntries_split (by decide +kernel)
-      (allEntries_split (by decide +kernel)
-        (allEntries_split (by decide +kernel) jtOk_0 jtOk_1)
-        (allEntries_split (by decide +kernel) jtOk_2 jtOk_3))
-      (allEntries_split (by decide +kernel)
-        (allEntries_split (by decide +kernel) jtOk_4 jtOk_5)
-        (allEntries_split (by decide +kernel) jtOk_6 jtOk_7)))
-    (allEntries_split (by decide +kernel)
-      (allEntries_split (by decide +kernel)
-        (allEntries_split (by decide +kernel) jtOk_8 jtOk_9)
-        (allEntries_split (by decide +kernel) jtOk_10 jtOk_11))
-      (allEntries_split (by decide +kernel)
-        (allEntries_split (by decide +kernel) jtOk_12 jtOk_13)
-        (allEntries_split (by decide +kernel) jtOk_14 jtOk_15)))
+/-- **Every entry of the jump table is checked.** -/
+theorem jtOk : allEntries entryOk Data.jtTrie 1 0 = true := by
+  refine allEntries_of_get _ _ _ fun s t hs => ?_
+  have hk := allEntries_get jtKeys hs
+  rw [Nat.one_mul, Nat.add_zero] at hk ⊢
+  simp only [keysOk, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hk
+  have hc := CompiledFunction.getElem?_code (CompiledFunction.wellChunked_of_mem End.f0_mem) hk.2
+  have hw := walkOk_get jtCode hc
+  rw [Nat.zero_add] at hw
+  unfold codeOk at hw
+  rw [Nat.sub_add_cancel hk.1, hs] at hw
+  unfold entryOk
+  rw [Nat.blt_eq.mpr hk.2, Bool.true_and]
+  exact hw
 
 /-- The jump table the checker reads is what `__jump_tables` wrote. -/
 theorem jt_of_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : End.JumpTables L) (hpows : Data.powTree.Ok) :
@@ -185,12 +176,12 @@ theorem jt_of_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : End.JumpTables L) 
   unfold entryOk at he
   rw [Bool.and_eq_true] at he
   obtain ⟨hlt, he⟩ := he
-  have hlen : s - 429 < Data.f0.instructionCount := by simpa using hlt
-  obtain ⟨o, k0, k1, k2, hins, hmem⟩ := End.f0_instr hlen
+  have hlen : s - Data.mainCells < Data.f0.instructionCount := by simpa using hlt
+  obtain ⟨o, k0, k1, hins, hmem⟩ := End.f0_instr hlen
   rw [hins] at he
   simp only [Bool.and_eq_true, beq_iff_eq] at he
-  obtain ⟨⟨⟨ho, hk1⟩, hk2⟩, hf⟩ := he
-  subst ho hk1 hk2
+  obtain ⟨⟨ho, hk1⟩, hf⟩ := he
+  subst ho hk1
   have := h _ hmem
   rwa [imm_of_ofBits (PowTree.find_ok hpows hf)] at this
 

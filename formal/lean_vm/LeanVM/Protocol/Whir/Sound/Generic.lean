@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Protocol.Whir.Sound.State
+public import LeanVM.Protocol.Compile.SpecRules.Leaves
 
 /-!
 # Moves under a commitment invariant
@@ -32,11 +33,6 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier Verifier
 @[expose] public section
 
 /-! ## Commitments of histories -/
-
-theorem commits_append (h l : List Ev) : commits (h ++ l) = commits h ++ commits l := by
-  induction h with
-  | nil => rfl
-  | cons e h ih => cases e <;> simp [commits, ih]
 
 @[simp] theorem commits_read (h : List Ev) (x : E) : commits (h ++ [Ev.read x]) = commits h := by
   simp [commits_append, commits]
@@ -75,12 +71,32 @@ noncomputable def readNInv (I : CInv) (hT : T ≤ εmax) :
         (Spec.ret (x :: xs)).mono (fun _ h ↦ ⟨by simp [h.1], h.2⟩) (fun _ _ h ↦ h) le_rfl
           le_rfl le_rfl).mono (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl zero_le le_rfl
 
-/-- **A round polynomial** keeps a commitment invariant and has `q(0) + q(1) = σ`. -/
+/-- The round polynomial has three coefficients and `q(0) + q(1) = σ`. -/
+def QuadOK (quad : List E) (σ : E) : Prop :=
+  ∃ c₀ c₁ c₂, quad = [c₀, c₁, c₂] ∧ polyEval quad 0 + polyEval quad 1 = σ
+
+/-- The quadratic `sumcheckRoundPoly 3 σ none` builds from `c₀` and `[c₂]` has `q(0)+q(1) = σ`. -/
+theorem quadOK_roundPoly (σ c₀ c₂ : E) :
+    QuadOK (c₀ :: (σ + sumE [c₂]) :: [c₂]) σ := by
+  refine ⟨_, _, _, rfl, ?_⟩
+  simp only [polyEval_three, sumE, List.foldl_cons, List.foldl_nil, zero_add]
+  ring_nf
+  rw [show (2 : E) = 0 from CharTwo.two_eq_zero]
+  ring
+
+/-- **A round polynomial** keeps a commitment invariant and has `q(0) + q(1) = σ`; its grind,
+for degree two, is of `0` bits. -/
 noncomputable def roundPolyInv (I : CInv) (σ : E) (hT : T ≤ εmax) :
     Spec (sumcheckRoundPoly 3 σ none) (fun h ↦ I (commits h))
       (fun q h ↦ QuadOK q σ ∧ I (commits h)) εmax 0 T :=
+  have hb0 : grindingBits (3 - 1) = 0 := by decide
   (readInv I (T := T) hT).bind' fun c₀ ↦
     (readNInv I hT 1).bind' fun tail ↦
+      ((Spec.grindP (Pre := fun h ↦ tail.length = 1 ∧ I (commits h))
+        (Post := fun _ h ↦ tail.length = 1 ∧ I (commits h)) (grindingBits (3 - 1))
+        (fun h₀ hp ↦ by simpa [Spec.grindEvs, hb0] using hp)
+        (T := T) (by simpa [hb0] using hT)).mono (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl
+          (by simp [hb0]) le_rfl).bind' fun _ ↦
       (Spec.ret (c₀ :: (σ + sumE tail) :: tail)).mono
         (fun h hI ↦ ⟨by
           obtain ⟨hl, -⟩ := hI
@@ -88,10 +104,10 @@ noncomputable def roundPolyInv (I : CInv) (σ : E) (hT : T ≤ εmax) :
           | [c₂], _ => exact quadOK_roundPoly σ c₀ c₂, hI.2⟩)
         (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
 
-/-- A proof of work of some bits keeps a commitment invariant. -/
+/-- A proof of work of `b ≥ 1` bits keeps a commitment invariant. -/
 noncomputable def grindInv (I : CInv) {b : ℕ} (hb : b ≠ 0) (hT : (2 : ENNReal)⁻¹ ^ b * T ≤ εmax) :
     Spec (grindProofOfWork b) (fun h ↦ I (commits h)) (fun _ h ↦ I (commits h)) εmax 0 T :=
-  Spec.grindP hb (fun h₀ hI ↦ by simpa using hI) hT
+  Spec.grindPos hb (fun h₀ hI ↦ by simpa using hI) hT
 
 /-- A commitment appends its word. -/
 noncomputable def commitInv (I I' : CInv) (ht wd : ℕ)

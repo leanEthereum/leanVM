@@ -1,167 +1,98 @@
 /-
   LeanVM.Guest.B1.Place.LrPure
 
-  `level_residual`'s loops place nothing; a pure callee's size before the memory; a free window
-  of addresses.
+  `level_residual`'s loops place nothing and call only themselves, at every row.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Place.Lr
+public import LeanVM.Guest.B1.Whir.HelperT
+public import LeanVM.Guest.Memory.Placed
 
 /-!
-# `level_residual`'s loops, pure
+# `level_residual`'s loops are pure
 
-* `lrLoop1_pureIn`, `lrLoop2_pureIn`: the batches' loop with `residual_batch`, and the rest's
-  loop, place nothing and call only each other.
-* `relAtIn_pure_uniform`: a pure callee whose relation holds on the memory kept on its words
-  `Lk`, on every memory defined below `2^κ` holding them, is placed there by trees of one size.
-* `exists_free_window`: `L` consecutive addresses missing a list of `m` addresses, when
-  `(m + 1)·L` addresses exist.
+The residual chains' blocks (`osResChain`, `novel_eval`'s levels, `residual_query`, the steps)
+are atoms that place nothing; a loop adds its tail, a conditional call of itself. So both loops are
+pure in themselves (`lrLoop1_pure`, `lrLoop2_pure`) at every row, by structure.
 -/
 
-namespace LeanVM.Guest.B1
+namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
-open LeanVM.Guest.B1.Main (Layout MemL RegionL)
-open LeanVM.Guest.B1.Whir
+open LeanVM.Guest.Core LeanVM.Guest.Memory
 
 @[expose] public section
 
-/-! ## Purity -/
+variable (S : List String)
 
-theorem lrPureList_eq_all (S : List String) :
-    ∀ l : List Stmt, Stmt.pureList S l = l.all (Stmt.pure S)
+theorem pureList_eq_all : ∀ ss : List Stmt, Stmt.pureList S ss = ss.all (Stmt.pure S)
   | [] => rfl
-  | s :: l => by simp [Stmt.pureList, lrPureList_eq_all S l]
+  | s :: ss => by rw [Stmt.pureList, pureList_eq_all ss, List.all_cons]
 
-theorem lrResQ_mem (pos bd row vo : ℕ) : ∀ (n t pe k : ℕ), ∀ s ∈ (osResQ pos bd row vo n t pe k).1,
-    ∃ a, s = .atom a ∧ atomUnplaced a = true
-  | 0, _, _, _, s, hs => by simp [osResQ] at hs
-  | n + 1, t, pe, k, s, hs => by
-    simp only [osResQ, List.cons_append, List.mem_cons, List.nil_append] at hs
-    rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | hs
-    all_goals first
-      | exact ⟨_, rfl, rfl⟩
-      | exact lrResQ_mem pos bd row vo n (t + 1) (k + 5) (k + 6) s hs
+theorem osResChain_pure (bd ro vo ncols : ℕ) : ∀ (f t ch pe : ℕ) (ws : List ℕ) (k : ℕ),
+    (osResChain bd ro vo ncols f t ch pe ws k).1.all (Stmt.pure S) = true
+  | 0, _, _, _, _, _ => rfl
+  | f + 1, t, ch, pe, ws, k => by
+    unfold osResChain
+    split_ifs <;> simp [Stmt.pure, atomUnplaced, osResChain_pure bd ro vo ncols f]
 
-theorem lrResQuery_pure (S : List String) (pos bd row vo n k : ℕ) :
-    ∀ s ∈ (osResQuery pos bd row vo n k).1, Stmt.pure S s = true := by
-  intro s hs
-  simp only [osResQuery, List.cons_append, List.nil_append, List.mem_cons] at hs
-  rcases hs with rfl | rfl | hs
-  · rfl
-  · rfl
-  · obtain ⟨a, rfl, ha⟩ := lrResQ_mem pos bd row vo _ _ _ _ s hs; exact ha
+theorem osNovelLevel_pure (hp ho : ℕ) (ins : Option (List ℕ)) (nIn w : ℕ) :
+    ∀ (f k : ℕ), (osNovelLevel hp ho ins nIn w f k).1.all (Stmt.pure S) = true
+  | 0, _ => rfl
+  | f + 1, k => by
+    unfold osNovelLevel
+    simp only [List.all_append, osNovelLevel_pure hp ho ins nIn w f, Bool.and_true]
+    rcases ins with _ | vs <;> split_ifs <;> simp [Stmt.pure, atomUnplaced]
 
-theorem lrResSteps_pure (S : List String) (pp bd row vo ncols mu : ℕ) :
-    ∀ (js : List ℕ) (h k : ℕ), ∀ s ∈ (osResSteps pp bd row vo ncols mu js h k).1,
-      Stmt.pure S s = true
-  | [], _, _, s, hs => by simp [osResSteps] at hs
-  | j :: js, h, k, s, hs => by
-    simp only [osResSteps, osResStep, List.mem_append, List.mem_cons, List.not_mem_nil,
-      or_false] at hs
-    rcases hs with ((rfl | hs) | rfl | rfl) | hs
-    · rfl
-    · exact lrResQuery_pure S _ _ _ _ _ _ s hs
-    · rfl
-    · rfl
-    · exact lrResSteps_pure S pp bd row vo ncols mu js _ _ s hs
+theorem osNovelLevels_pure (hp ho n nbits : ℕ) (ws : List ℕ) :
+    ∀ (f i : ℕ) (ins : Option (List ℕ)) (k : ℕ),
+      (osNovelLevels hp ho n nbits ws f i ins k).1.all (Stmt.pure S) = true
+  | 0, _, _, _ => rfl
+  | f + 1, i, ins, k => by
+    unfold osNovelLevels
+    simp only [List.all_append, osNovelLevel_pure, osNovelLevels_pure hp ho n nbits ws f,
+      Bool.and_self]
 
-theorem rbBody_pure (S : List String) (cols : ℕ) : Stmt.pureList S (rbBody cols) = true := by
-  rw [lrPureList_eq_all, rbBody_chain]
-  simp only [List.all_append, List.all_eq_true.mpr (lrResSteps_pure S _ _ _ _ _ _ _ _ _)]
-  rfl
+theorem osResQuery_pure (pos bd ro hp ho vo ncols nhs hbits k : ℕ) :
+    (osResQuery pos bd ro hp ho vo ncols nhs hbits k).1.all (Stmt.pure S) = true := by
+  unfold osResQuery osNovelEval
+  split_ifs <;> simp [Stmt.pure, atomUnplaced, osResChain_pure, osNovelLevels_pure]
 
-theorem lrLoop1Body_pure (cols : ℕ) (name : String) :
-    Stmt.pureList [name, rbName cols] (lrLoop1Body cols name) = true := by
-  rw [lrPureList_eq_all]
-  simp [lrLoop1Body, osLoopTail, Stmt.pure, atomUnplaced]
+theorem osResSteps_pure (pp bd ro hp ho vo ncols nhs hbits mu : ℕ) :
+    ∀ (js : List ℕ) (h hh k : ℕ),
+      (osResSteps pp bd ro hp ho vo ncols nhs hbits mu js h hh k).1.all (Stmt.pure S) = true
+  | [], _, _, _ => rfl
+  | j :: js, h, hh, k => by
+    simp [osResSteps, osResStep, Stmt.pure, atomUnplaced, osResQuery_pure,
+      osResSteps_pure pp bd ro hp ho vo ncols nhs hbits mu js]
 
-theorem lrLoop2Body_pure (cols : ℕ) (name : String) :
-    Stmt.pureList [name] (lrLoop2Body cols name) = true := by
-  rw [lrPureList_eq_all, lrIter2Body_eq, osLoopTail_split]
-  simp only [lrIter2A, List.all_append, List.all_eq_true.mpr (lrResQuery_pure [name] _ _ _ _ _ _)]
-  simp [osLoopTailA, Stmt.pure, atomUnplaced]
+theorem osLoopTail_pure (name : String) (n k : ℕ) : (osLoopTail name n k).all (Stmt.pure [name]) = true := by
+  simp [osLoopTail, Stmt.pure, atomUnplaced]
 
-/-- **The batches' loop and `residual_batch` place nothing.** -/
-theorem lrLoop1_pureIn {cols : ℕ} {loop : String} (hl : FnIs loop (osParams 6) (lrLoop1Body cols loop))
-    (hrb : FnIs (rbName cols) (osParams 4) (rbBody cols)) :
-    coreProgram.PureIn [loop, rbName cols] := by
-  intro g hg fn hf
-  obtain ⟨fl, hfl, -, hbl⟩ := hl
-  obtain ⟨fr, hfr, -, hbr⟩ := hrb
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hg
-  rcases hg with rfl | rfl
-  · rw [hfl] at hf; cases hf; rw [hbl]; exact lrLoop1Body_pure _ _
-  · rw [hfr] at hf; cases hf; rw [hbr]; exact rbBody_pure _ _
+theorem osPowSteps_pure (x : ℕ) : ∀ (ds : List Bool) (acc k : ℕ),
+    (osPowSteps x ds acc k).1.all (Stmt.pure S) = true
+  | [], _, _ => rfl
+  | true :: ds, acc, k => by
+    simp only [osPowSteps, ↓reduceIte, List.all_cons, osPowSteps_pure x ds (k + 1) (k + 2),
+      Bool.and_true]
+    simp [Stmt.pure, atomUnplaced]
+  | false :: ds, acc, k => by
+    simp only [osPowSteps, Bool.false_eq_true, ↓reduceIte, List.all_cons,
+      osPowSteps_pure x ds k (k + 1), Bool.and_true]
+    simp [Stmt.pure, atomUnplaced]
 
-/-- **The rest's loop places nothing.** -/
-theorem lrLoop2_pureIn {cols : ℕ} {loop : String} (hl : FnIs loop (osParams 6) (lrLoop2Body cols loop)) :
-    coreProgram.PureIn [loop] := by
-  intro g hg fn hf
-  obtain ⟨fl, hfl, -, hbl⟩ := hl
-  rw [List.mem_singleton] at hg
-  subst hg
-  rw [hfl] at hf; cases hf; rw [hbl]; exact lrLoop2Body_pure _ _
+/-- **The batches' loop is pure in itself.** -/
+theorem lrLoop1_pure (cols nhs hbits : ℕ) (name : String) :
+    Stmt.pureList [name] (lrLoop1Body cols nhs hbits name) = true := by
+  rw [pureList_eq_all]
+  simp only [lrLoop1Body, osBatchPow, List.all_append, osPowSteps_pure, Bool.true_and]
+  simp [Stmt.pure, atomUnplaced, osResSteps_pure, osLoopTail_pure]
 
-/-! ## A pure callee, one size on every memory -/
-
-/-- **A pure callee on the words `Lk`, one size**: its relation on every memory defined below
-`2^κ` holding `Lk`, kept on `Lk`, places it on all of them by trees of one size. -/
-theorem relAtIn_pure_uniform {S : List String} (hS : coreProgram.PureIn S) {g : String} (hg : g ∈ S)
-    (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} {Lk : Layout} {args rets : List E}
-    (h : ∀ rd, LowDef κ rd → MemL rd Lk →
-      coreProgram.Rel (Main.restrict rd (RegionL Lk)) g args rets) :
-    ∃ n, ∀ fp rd, LowDef κ rd → MemL rd Lk →
-      RelAtIn coreProgram fs cert rd (RegionL Lk) (fun _ ↦ False) fp n g args rets := by
-  classical
-  by_cases hex : ∃ rd1, LowDef κ rd1 ∧ MemL rd1 Lk
-  swap
-  · exact ⟨0, fun fp rd hl hL ↦ absurd ⟨rd, hl, hL⟩ hex⟩
-  obtain ⟨rd1, hl1, h1⟩ := hex
-  have hsupp := Main.restrict_supp' rd1 (RegionL Lk)
-  obtain ⟨n, hn⟩ := relAtIn_uniform_pure (fs := fs) (cert := cert) coreProgram_fresh hS hg
-    (Main.relIn_of_rel_supp coreProgram_wf hsupp (h rd1 hl1 h1))
-  refine ⟨n, fun fp rd _ hL ↦ hn fp rd (fun i hi ↦ ?_) (fun A hA ↦ ?_)⟩
-  · rw [Main.memL_agree hL h1 i hi, Main.restrict_of ⟨i, rfl, hi⟩]
-  · obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp hA
-    obtain ⟨i, rfl, hi⟩ := hsupp _ _ hv
-    rw [Main.memL_agree hL h1 i hi, ← Main.restrict_of (rd := rd1) (S := RegionL Lk) ⟨i, rfl, hi⟩, hv]
-    rfl
-
-/-! ## A free window -/
-
-/-- **`L` consecutive addresses missing `As`**, below the group's order. -/
-theorem exists_free_window (As : List K) {L : ℕ} (hL0 : 0 < L)
-    (hL : (As.length + 1) * L ≤ 2 ^ 64 - 1) :
-    ∃ c, c + L ≤ 2 ^ 64 - 1 ∧ ∀ t < L, addressOfIndex (c + t) ∉ As := by
-  classical
-  by_contra hne
-  push Not at hne
-  have hf : ∀ k ∈ Finset.range (As.length + 1), ∃ t < L, addressOfIndex (k * L + t) ∈ As := by
-    intro k hk
-    have hk' := Finset.mem_range.mp hk
-    exact hne (k * L) (le_trans (by nlinarith) hL)
-  choose! τ hτ hτm using hf
-  have hlt : ∀ k ∈ Finset.range (As.length + 1), k * L + τ k < 2 ^ 64 - 1 := by
-    intro k hk
-    have hk' := Finset.mem_range.mp hk
-    have := hτ k hk
-    nlinarith
-  have hinj : Set.InjOn (fun k ↦ addressOfIndex (k * L + τ k))
-      (↑(Finset.range (As.length + 1)) : Set ℕ) := by
-    intro a ha b hb hab
-    have e := gpow_injOn (Set.mem_Iio.mpr (hlt a ha)) (Set.mem_Iio.mpr (hlt b hb)) hab
-    have da : (a * L + τ a) / L = a := by
-      rw [Nat.add_comm, Nat.add_mul_div_right _ _ hL0, Nat.div_eq_of_lt (hτ a ha), Nat.zero_add]
-    have db : (b * L + τ b) / L = b := by
-      rw [Nat.add_comm, Nat.add_mul_div_right _ _ hL0, Nat.div_eq_of_lt (hτ b hb), Nat.zero_add]
-    rw [← da, ← db, e]
-  have hc := Finset.card_le_card_of_injOn _ (fun k hk ↦ List.mem_toFinset.mpr (hτm k hk)) hinj
-  rw [Finset.card_range] at hc
-  have := List.toFinset_card_le As
-  omega
+/-- **The rest's loop is pure in itself.** -/
+theorem lrLoop2_pure (cols nhs hbits : ℕ) (name : String) :
+    Stmt.pureList [name] (lrLoop2Body cols nhs hbits name) = true := by
+  rw [pureList_eq_all]
+  simp [lrLoop2Body, Stmt.pure, atomUnplaced, osResQuery_pure, osLoopTail_pure]
 
 end
-end LeanVM.Guest.B1
+end LeanVM.Guest.B1.Whir

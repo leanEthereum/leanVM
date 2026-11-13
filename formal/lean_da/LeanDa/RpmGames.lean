@@ -23,7 +23,7 @@ game through it (`posBindingGameB_eq`, `codeBindingGameB_eq`, `ksGameB_eq`): the
 one of the same cost).
 
 The verifier's oracle programs are written for any monad, so they commute with a monad morphism
-such as a simulation (`membershipChallengeM_map`, `membershipChallengePairM_map`, `verifyCellM_map`, `commitCellsM_map`,
+such as a simulation (`membershipChallengeM_map`, `membershipChallengeVecM_map`, `verifyCellM_map`, `commitCellsM_map`,
 `verifyRpm_map`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
@@ -47,23 +47,37 @@ variable {m n : Type → Type} [Monad m] [LawfulMonad m] [Monad n] [LawfulMonad 
 
 include hpure hbind
 
-theorem duplexM_map (s : Sponge) : φ (Sponge.duplexWith P s) = Sponge.duplexWith (fun L ↦ φ (P L))
-    s := by
-  simp only [Sponge.duplexWith, hbind, hpure]
+/-- **The nonce search through a monad morphism.** -/
+theorem grindM_map (y : Lanes) : ∀ (fuel nonce : ℕ),
+    φ (grindMWithHash P y nonce fuel) = grindMWithHash (fun L ↦ φ (P L)) y nonce fuel
+  | 0, _ => hpure _
+  | fuel + 1, nonce => by
+    simp only [grindMWithHash, hbind]
+    refine bind_congr fun o ↦ ?_
+    split
+    · exact hpure _
+    · exact grindM_map y fuel (nonce + 1)
+
+/-- **The nonces' draws through a monad morphism.** -/
+theorem branchDrawsM_map (y : Lanes) : ∀ js : List (Fin nLabels),
+    φ (branchDrawsM P y js) = branchDrawsM (fun L ↦ φ (P L)) y js
+  | [] => hpure _
+  | j :: js => by
+    simp only [branchDrawsM, hbind, hpure, branchDrawsM_map y js]
 
 /-- **The challenge's sponge through a monad morphism.** -/
 theorem membershipChallengeM_map (root : Common.DigestBytes) :
     φ (membershipChallengeMWithHash H P root) =
       membershipChallengeMWithHash (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
-  simp only [membershipChallengeMWithHash, Sponge.newWith, Sponge.sampleWith, Sponge.duplexWith,
-    hbind, hpure]
+  simp only [membershipChallengeMWithHash, Sponge.newWith, hbind, hpure, grindM_map φ hpure hbind P]
 
-/-- **The pair of samples through a monad morphism.** -/
-theorem membershipChallengePairM_map (root : Common.DigestBytes) :
-    φ (membershipChallengePairM H P root) =
-      membershipChallengePairM (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
-  simp only [membershipChallengePairM, Sponge.newWith, Sponge.sampleWith, Sponge.duplexWith,
-    hbind, hpure]
+/-- **The draws through a monad morphism.** -/
+theorem membershipChallengeVecM_map (root : Common.DigestBytes) :
+    φ (membershipChallengeVecM H P root) =
+      membershipChallengeVecM (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
+  unfold membershipChallengeVecM
+  generalize Common.SeedDuplex.branchIdx nLabels = js
+  simp only [Sponge.newWith, hbind, hpure, branchDrawsM_map φ hpure hbind P]
 
 theorem walkM_map (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
     φ (walkMWithHash H idx node path) = walkMWithHash (fun a ↦ φ (H a)) idx node path := by
@@ -109,7 +123,7 @@ theorem verifyRpm_map (r : ℕ) {Crs Proof : Type}
     (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     φ (verifyRpm H P r ps crs com p x τ) =
       verifyRpm (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) r ps crs com p x τ := by
-  simp only [verifyRpm, hbind, hpure, membershipChallengePairM_map φ hpure hbind,
+  simp only [verifyRpm, hbind, hpure, membershipChallengeVecM_map φ hpure hbind,
     verifyCellM_map φ hpure hbind]
 
 end Map
@@ -135,6 +149,13 @@ theorem toK_verifyRpm (r : ℕ) {Crs Proof : Type}
     (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     simulateQ toK (verifyRpm hR pR r ps crs com p x τ) = verifyRpm hKB pKB r ps crs com p x τ := by
   rw [verifyRpm_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)
+    (fun _ _ ↦ simulateQ_bind _ _ _)]
+  simp only [toK_hR, toK_pR]
+
+theorem toK_membershipChallengeM (root : Common.DigestBytes) :
+    simulateQ toK (membershipChallengeMWithHash hR pR root) =
+      membershipChallengeMWithHash hKB pKB root := by
+  rw [membershipChallengeM_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [toK_hR, toK_pR]
 

@@ -33,11 +33,11 @@ The proof (see `LeanVM.Protocol.Compile.Rom.Potential` for the terms):
   capped sum of the terms;
 * each old record's term is a supermartingale on fresh answers (`term_step_old`);
 * the new record's term averages to at most `εmax` (`term_step_new`): on fresh answers it is
-  `[D h] · esc D h p` at the start of its group, times the proof of work's success on the new
-  state's challenge after a nonce, whose average is at most `2^-min(b, 64)`, and
-  `esc D h p ≤ C.ε h` at a doomed boundary (`esc_le_eps`). The proof-of-work factor reads the
-  answer's first lane; the escape after it reads only later permutation answers, whose inputs
-  carry the answer's capacity, so the two multiply.
+  `[D h] · esc D h p` at the start of its group, and `esc D h p ≤ C.ε h` at a doomed boundary
+  (`esc_le_eps`). After a nonce it is `[D h]` times the proof of work's success on the answer's
+  third lane times the escape probability after the answer's challenge, its first two lanes, and
+  later permutation answers, whose inputs carry the answer's capacity: the lanes are disjoint
+  (`sum_powOk_mul_challengeOf_div_le`), so the average is at most `2^-min(b, 64) · esc D h p`.
 -/
 
 namespace LeanVM.Protocol.Compile.Rom
@@ -62,14 +62,6 @@ theorem ind_mul_esc_le (C : Cert P) {εmax : ℝ≥0∞}
     exact (mul_le_mul_right (esc_le_eps C hr hb ha hD) _).trans (hε h)
   · rw [ind_of_not hD, zero_mul]; exact bot_le
 
-/-- The average proof-of-work factor of a record. -/
-theorem powF_avg (pw : Option (ℕ × E)) :
-    (∑ u : KeccakState, powF pw u) / Fintype.card KeccakState ≤ 2⁻¹ ^ min ((pw.map Prod.fst).getD 0) 64 := by
-  rcases pw with _ | ⟨b, n⟩
-  · simp only [Option.map_none, Option.getD_none, Nat.zero_min, pow_zero]
-    exact avg_le_of_le fun _ ↦ le_rfl
-  · exact sum_powOk_div_le b
-
 /-- **The new record averages to at most `εmax`.** -/
 theorem term_step_new (C : Cert P) {εmax : ℝ≥0∞}
     (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (ℓ : Log) (t : KeccakState) :
@@ -86,22 +78,30 @@ theorem term_step_new (C : Cert P) {εmax : ℝ≥0∞}
     obtain ⟨hr, hb, ha, hg⟩ := hok
     have hcert := ind_mul_esc_le C hε hr hb ha
     rw [hg] at hcert
-    have h1 : (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) *
-        term C.D (ℓ ++ [.inr (t, u)]) (Shape.st h p pw, u)) / Fintype.card KeccakState ≤
-          (∑ u, powF pw u * (ind (C.D h) * esc C.D h p)) / Fintype.card KeccakState := by
-      refine ENNReal.div_le_div_right (Finset.sum_le_sum fun u _ ↦ ?_) _
-      simp only [term]
+    rcases pw with _ | ⟨b, n⟩
+    · -- after the seed: the group's squeezes are later permutations
+      simp only [Option.map_none, Option.getD_none, Nat.zero_min, pow_zero, one_mul] at hcert
+      refine le_trans (avg_le_of_le fun u ↦ ?_) hcert
+      simp only [term, powF, stGv, one_mul]
       by_cases hf : Fresh (ℓ ++ [.inr (t, u)]) u
       · rw [ind_of hf, one_mul, gv_fresh C.D hf]
-        exact le_of_eq (by ring)
       · rw [ind_of_not hf, zero_mul]; exact bot_le
-    have h2 : (∑ u, powF pw u * (ind (C.D h) * esc C.D h p)) / Fintype.card KeccakState =
-        ((∑ u, powF pw u) / Fintype.card KeccakState) * (ind (C.D h) * esc C.D h p) := by
-      rw [← Finset.sum_mul, ENNReal.mul_div_right_comm]
-    rw [h2] at h1
-    refine h1.trans ((mul_le_mul_left (powF_avg pw) _).trans ?_)
-    rw [mul_left_comm]
-    exact hcert
+    · -- after a nonce: the permutation draws the proof of work and the first challenge
+      simp only [Option.map_some, Option.getD_some] at hcert
+      have h1 : (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) *
+          term C.D (ℓ ++ [.inr (t, u)]) (Shape.st h p (some (b, n)), u)) /
+            Fintype.card KeccakState ≤
+          ind (C.D h) * ((∑ u, ind (powOk b (Keccak.lane u 2) = true) *
+            escAt C.D (challengeOf u) h p) / Fintype.card KeccakState) := by
+        rw [← mul_div_assoc, Finset.mul_sum]
+        refine ENNReal.div_le_div_right (Finset.sum_le_sum fun u _ ↦ ?_) _
+        simp only [term, powF, stGv]
+        by_cases hf : Fresh (ℓ ++ [.inr (t, u)]) u
+        · rw [ind_of hf, one_mul, gv1_fresh C.D hf]
+        · rw [ind_of_not hf, zero_mul]; exact bot_le
+      have h2 := sum_powOk_mul_challengeOf_div_le b fun c ↦ escAt C.D c h p
+      rw [avg_escAt] at h2
+      exact h1.trans ((mul_le_mul_right h2 _).trans hcert)
   | sq h p =>
     obtain ⟨hr, hb, ha, hg⟩ := hok
     have hcert := ind_mul_esc_le C hε hr hb ha

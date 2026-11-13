@@ -6,6 +6,7 @@ import LeanVM.Guest.EndRpm
 import LeanVM.Guest.Budget.ClosedN
 import LeanVM.Guest.Budget.Fits
 import LeanVM.Prover.End
+import LeanVM.Prover.EndChild
 import LeanVM.Guest.HonestChildren
 import XmssSecurity.Rpm
 import Sphincs.Security
@@ -84,7 +85,7 @@ random-permutation model where an adversary is involved, except the memory-decod
   is such a child) and `LeanVM.Guest.Child.freshClaim_unique`;
 * `LeanVM.Guest.Completeness.honest_proof_rarely_refused : HonestProofRarelyRefused`
   (`Statement/LeanVmGuestCompleteness.lean`): the honest proof of a guest execution is rejected
-  with probability at most `2^-126` in the random-permutation model;
+  with probability at most `2^-100` in the random-permutation model;
 * `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuestCompleteness.lean`): the
   recursion step, the batching of the children's deferred claims run outside the circuit, sound in
   the random-permutation model (from `batch_rpm`).
@@ -143,9 +144,9 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #guard_msgs in
 #print axioms LeanVM.soundnessError_le
 
-/-- info: 'LeanVM.soundnessError_le_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.soundnessRpm_le_statement' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.soundnessError_le_bits
+#print axioms LeanVM.soundnessRpm_le_statement
 
 /-- info: 'LeanVM.completenessError_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -155,13 +156,13 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #guard_msgs in
 #print axioms LeanVM.completeness_holds
 
-/-- info: 'LeanVM.Rpm.soundnessRpm_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.soundnessRpm_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Rpm.soundnessRpm_le
+#print axioms LeanVM.soundnessRpm_le
 
-/-- info: 'LeanVM.Rpm.soundnessRpm_le_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.soundnessRpm_le_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Rpm.soundnessRpm_le_bits
+#print axioms LeanVM.soundnessRpm_le_bits
 
 /-- info: 'LeanVM.Rpm.completenessRpm_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

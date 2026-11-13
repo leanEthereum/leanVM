@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegPath
 
-  The path of the leanXMSS check in `__loop2` (`lx_window`, `lx_top_window`, `lx_levels`,
-  `lean_ethereum.py:3613-3653, 3716-3725`), sound a window at a time: the dispatch takes an arm
+  The path of the leanXMSS check in `main_loop2` (`lx_window`, `lx_top_window`, `lx_levels`,
+  `lean_ethereum.py:3577-3617, 3680-3689`), sound a window at a time: the dispatch takes an arm
   `k < 256`, whose eight levels fold the node with the hinted siblings in the order of `k`'s bits,
   and whose pin ties the hinted shifts.
 -/
@@ -80,7 +80,7 @@ theorem lxLevelT_sound (hpad : PadOK σ sLxPad) {w k r : Nat} {cur : V} {outO : 
   by_cases hw : w + 1 = 4
   · simp only [hw, ↓reduceIte] at h ⊢
     have hk := k64_sound hpad h.right
-    have hc : σ (.n (b + 1)) = word (lxNodeConst w r + k / 2 ^ (r + 1)) 0 0 :=
+    have hc : σ (.n (b + 1)) = word (lxNodeConst w r + k / 2 ^ (r + 1)) 0 :=
       h.left.atom (a := .const (.n (b + 1)) _) (by simp [cst])
     rw [show σ _ = _ from hk, hc]
     simp only [lxAtF, lxAt, hw, ↓reduceIte, lxSibCell]
@@ -89,7 +89,7 @@ theorem lxLevelT_sound (hpad : PadOK σ sLxPad) {w k r : Nat} {cur : V} {outO : 
     · obtain rfl : r = 7 := by omega
       simp only [hw, ↓reduceIte, show 7 + 1 = 8 from rfl] at h ⊢
       have hk := k64_sound hpad h.right
-      have hc : σ (.n b) = word (lxNodeConst w 7 + k / 2 ^ 8) 0 0 :=
+      have hc : σ (.n b) = word (lxNodeConst w 7 + k / 2 ^ 8) 0 :=
         h.left.atom (a := .const (.n b) _) (by simp [cst])
       have ha : σ (.n (b + 1)) = σ (sHis (w + 1)) + σ (.n b) :=
         h.left.atom (a := .add (.n (b + 1)) (sHis (w + 1)) (.n b)) (by simp [addS])
@@ -100,7 +100,7 @@ theorem lxLevelT_sound (hpad : PadOK σ sLxPad) {w k r : Nat} {cur : V} {outO : 
       have hk := k64_sound hpad h.right
       have hm : σ (.n b) = σ (sHis (w + 1)) * σ (sPower (7 - r)) :=
         h.left.atom (a := .mul (.n b) (sHis (w + 1)) (sPower (7 - r))) (by simp [mulS])
-      have hc : σ (.n (b + 1)) = word (lxNodeConst w r + k / 2 ^ (r + 1)) 0 0 :=
+      have hc : σ (.n (b + 1)) = word (lxNodeConst w r + k / 2 ^ (r + 1)) 0 :=
         h.left.atom (a := .const (.n (b + 1)) _) (by simp [cst])
       have ha : σ (.n (b + 2)) = σ (.n b) + σ (.n (b + 1)) :=
         h.left.atom (a := .add (.n (b + 2)) (.n b) (.n (b + 1))) (by simp [addS])
@@ -186,7 +186,7 @@ theorem lxArmT_pin {w k : Nat} {cur : V} {outO : Option Nat} {b : Nat}
   unfold LxPin
   by_cases hw : w + 1 = 4
   · simp only [hw, ↓reduceIte] at h ⊢
-    have e : σ (.n (67 + w)) = word k 0 0 := h.right.atom (a := .const (.n (67 + w)) _) (by simp [cst])
+    have e : σ (.n (67 + w)) = word k 0 := h.right.atom (a := .const (.n (67 + w)) _) (by simp [cst])
     rw [sHis, e, word_eq_eOfNat]
   · by_cases hk : k = 0
     · subst hk
@@ -197,7 +197,7 @@ theorem lxArmT_pin {w k : Nat} {cur : V} {outO : Option Nat} {b : Nat}
     · simp only [hw, hk, ↓reduceIte] at h ⊢
       have e1 := h.right.atom (a := .mul (.n (lxLevelsT w k outO 8 0 cur b).2.1) (sHis (w + 1)) (sPower 8))
         (by simp [mulS])
-      have e2 := h.right.atom (a := .const (.n ((lxLevelsT w k outO 8 0 cur b).2.1 + 1)) (word k 0 0))
+      have e2 := h.right.atom (a := .const (.n ((lxLevelsT w k outO 8 0 cur b).2.1 + 1)) (word k 0))
         (by simp [cst])
       have e3 := h.right.atom (a := .add (sHis w) (.n (lxLevelsT w k outO 8 0 cur b).2.1)
         (.n ((lxLevelsT w k outO 8 0 cur b).2.1 + 1))) (by simp [addS])

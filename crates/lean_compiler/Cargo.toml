@@ -13,4 +13,3 @@ leanvm_core.workspace = true
 
 [dev-dependencies]
 parallel.workspace = true
-rand.workspace = true

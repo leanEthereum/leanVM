@@ -8,18 +8,18 @@
 module
 
 public import Statement.LeanIsa
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Parameters.Generator
 
 /-!
 # Compile-time words
 
-What the compiler computes in `F192` while folding (`crates/lean_compiler/src/lib.rs`,
+What the compiler computes in `F128` while folding (`crates/lean_compiler/src/lib.rs`,
 `lower/eval.rs`), on the Spec's fields:
 
-* `word c0 c1 c2`, the element `c0 + c1·y + c2·y²` from three 64-bit limbs; `litField n`, the
-  embedding of a 128-bit source literal (`lit_field`);
+* `word c0 c1`, the element `c0 + c1·y` from two 64-bit limbs; `litField n`, the word whose
+  limbs a 128-bit source literal's bits spell (`lit_field`);
 * `powBin`, square-and-multiply over the bits of the exponent, and `gpowK e = g^e` by it
   (`g_pow_u128`, proved equal to `gpow e` by `gpowK_eq`); `fieldPow` (`field_pow`);
 * `limbsOf` and `wordBit`, a word's limbs and bits as the hints read them;
@@ -45,11 +45,11 @@ def u64Bound : Nat := 2 ^ 64
 /-- `2^32`, the bound of a compile-time index (`u32`). -/
 def u32Bound : Nat := 2 ^ 32
 
-/-- The word with these three 64-bit limbs (`F192::new`). -/
-def word (c0 c1 c2 : Nat) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1) (K.ofBits c2)
+/-- The word with these two 64-bit limbs (`F128::new`). -/
+def word (c0 c1 : Nat) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1)
 
-/-- A source literal, its 128 bits in the low two limbs (`lit_field`). -/
-def litField (n : Nat) : E := word (n % u64Bound) (n / u64Bound % u64Bound) 0
+/-- A source literal, the word whose two limbs its 128 bits spell (`lit_field`). -/
+def litField (n : Nat) : E := word (n % u64Bound) (n / u64Bound % u64Bound)
 
 /-- `acc · b^e`, by square-and-multiply over at most `fuel` bits of `e`. -/
 def powBin {M : Type} [Monoid M] : Nat → M → M → Nat → M
@@ -95,14 +95,14 @@ def fieldPow (b : E) (k : Nat) : E := powBin 32 b 1 k
 /-- `g⁻¹`, as `g^(2^64 - 2)` (`G.inv()`): the range check's runtime bound multiplies by it. -/
 def gInv : K := gpowK (2 ^ 64 - 2)
 
-/-- The three limbs of a word as natural numbers. -/
-def limbsOf (x : E) : Nat × Nat × Nat :=
-  ((x.limb 0).toBitVec.toNat, (x.limb 1).toBitVec.toNat, (x.limb 2).toBitVec.toNat)
+/-- The two limbs of a word as natural numbers. -/
+def limbsOf (x : E) : Nat × Nat :=
+  ((x.limb 0).toBitVec.toNat, (x.limb 1).toBitVec.toNat)
 
-/-- Bit `i < 192` of a word, limb `i / 64` first. -/
+/-- Bit `i < 128` of a word, limb `i / 64` first; `false` past it. -/
 def wordBit (x : E) (i : Nat) : Bool :=
-  let (c0, c1, c2) := limbsOf x
-  let l := if i / 64 = 0 then c0 else if i / 64 = 1 then c1 else c2
+  let (c0, c1) := limbsOf x
+  let l := if i / 64 = 0 then c0 else if i / 64 = 1 then c1 else 0
   (l / 2 ^ (i % 64)) % 2 = 1
 
 /-- The cells of a Keccak state (`STATE_CELLS`, `crates/leanvm_core/src/keccak.rs:54`). -/
@@ -117,10 +117,10 @@ def blockCells : Nat := 9
 def byteWord (pos v : Nat) : E :=
   let byte := pos % 16
   let w := v * 2 ^ (8 * (byte % 8))
-  if byte < 8 then word w 0 0 else word 0 w 0
+  if byte < 8 then word w 0 else word 0 w
 
 /-- A cell holding the padding's first byte at its start (`keccak_pad_value`). -/
-def keccakPadValue : E := word Protocol.KeccakHash.padFirst.toNat 0 0
+def keccakPadValue : E := word Protocol.KeccakHash.padFirst.toNat 0
 
 end
 end LeanVM.Guest

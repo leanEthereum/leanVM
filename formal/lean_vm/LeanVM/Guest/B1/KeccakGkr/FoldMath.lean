@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.FoldMath
 
-  `fold_shifts` (G:2637-2651) as math: `Σ_w eq(a, w) V[w - r]` for every `r` at once, a bit of
+  `fold_shifts` (G:2793-2807) as math: `Σ_w eq(a, w) V[w - r]` for every `r` at once, a bit of
   `w` at a time.
 -/
 

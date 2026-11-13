@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.Squares
 /-!
 # `index_mle` (TRIAGE G #44)
 
-`index_mle(zeta, n)` (G:1938-1947) multiplies `1 + zeta[g^t]·INDEX_MLE_FACTORS[t]` over `t < n`,
+`index_mle(zeta, n)` (G:2051-2060) multiplies `1 + zeta[g^t]·INDEX_MLE_FACTORS[t]` over `t < n`,
 `INDEX_MLE_FACTORS[t] = 1 + g^(2^t)` (`imFactor_eq`). Its specialization `index_mle__L{n}` is
 `imBody n`: block `t` from value `6t` (`imBlk`), the first without the product, then a copy of
 the last product (`imFound`, by kernel evaluation for all `n < 34`). The products are
@@ -61,7 +61,7 @@ theorem indexMle_eq_prod (zs : List E) :
 /-- `INDEX_MLE_FACTORS[t]`: the word of `1 + g^(2^t)`. -/
 def imFactor (t : ℕ) : ℕ := tbGSquaresBits.getD t 0 ^^^ 1
 
-theorem imFactor_eq {t : ℕ} (ht : t < 34) : word (imFactor t) 0 0 = 1 + gen ^ 2 ^ t := by
+theorem imFactor_eq {t : ℕ} (ht : t < 34) : word (imFactor t) 0 = 1 + gen ^ 2 ^ t := by
   rw [tb_word_eOfNat, imFactor, eOfNat_xor, eOfNat_one, gen_pow_two_pow_eq ht, add_comm]
 
 /-- The value loaded at block `t`. -/
@@ -73,19 +73,19 @@ def imAcc (t : ℕ) : ℕ := 6 * t + 5
 /-- Block `t` of `index_mle`. -/
 def imBlk (t : ℕ) : List Stmt :=
   if t = 0 then
-    [.atom (.const (.n 1) (word 1 0 0)), .atom (.load (.n 2) (.n 0) 0),
-      .atom (.const (.n 3) (word (imFactor 0) 0 0)), .atom (.mul (.n 4) (.n 2) (.n 3)),
+    [.atom (.const (.n 1) (word 1 0)), .atom (.load (.n 2) (.n 0) 0),
+      .atom (.const (.n 3) (word (imFactor 0) 0)), .atom (.mul (.n 4) (.n 2) (.n 3)),
       .atom (.add (.n 5) (.n 1) (.n 4))]
   else
-    [.atom (.const (.n (6 * t)) (word 1 0 0)), .atom (.load (.n (6 * t + 1)) (.n 0) t),
-      .atom (.const (.n (6 * t + 2)) (word (imFactor t) 0 0)),
+    [.atom (.const (.n (6 * t)) (word 1 0)), .atom (.load (.n (6 * t + 1)) (.n 0) t),
+      .atom (.const (.n (6 * t + 2)) (word (imFactor t) 0)),
       .atom (.mul (.n (6 * t + 3)) (.n (6 * t + 1)) (.n (6 * t + 2))),
       .atom (.add (.n (6 * t + 4)) (.n (6 * t)) (.n (6 * t + 3))),
       .atom (.mul (.n (6 * t + 5)) (.n (6 * t - 1)) (.n (6 * t + 4)))]
 
 /-- `index_mle__L{n}`'s statements before its `ret`. -/
 def imPre (n : ℕ) : List Stmt :=
-  if n = 0 then [.atom (.const (.n 1) (word 1 0 0))]
+  if n = 0 then [.atom (.const (.n 1) (word 1 0))]
   else ((List.range n).map imBlk).flatten ++ [.atom (.copy (.n (6 * n)) (.n (6 * n - 1)))]
 
 /-- The value `index_mle__L{n}` returns. -/

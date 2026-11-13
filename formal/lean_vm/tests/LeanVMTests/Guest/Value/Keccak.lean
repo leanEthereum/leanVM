@@ -15,7 +15,7 @@ import LeanVM.Guest.Batch.Def
   blocks) and `2000`; its digest cells are `digestHalves (keccak256 message)`. A nonzero byte
   past `len` in the last cell breaks it (the hypothesis `hz` is needed).
 * `padCells_bytes` on the same shapes; the `state=` continuation after a whole-block prefix.
-* The duplex step against the Spec's `duplex`, and `fs_pack`'s cells.
+* The duplex step against the Spec's `duplex`, and a scalar's cells.
 * **Templates for B1**: `keccak_one` on a lowered `keccak(a, b, out)` and `keccak_duplex` on a
   lowered `fs_pack` + `fs_perm`, the atoms' cells given as `cells13` lists, discharged by `simp`.
 * The axioms of the main theorems.
@@ -64,13 +64,13 @@ def zeroCells : List E := List.replicate 13 0
 /-- Canonical message cells whose bytes reach `len` and are zero past it. -/
 def msgCells (len : ℕ) : List E :=
   (List.range ((len + 15) / 16)).map fun i ↦
-    let full := E.ofLimbs (K.ofBits (i * 0x0123456789abcdef + 1)) (K.ofBits (i * 77 + 5)) 0
+    let full := E.ofLimbs (K.ofBits (i * 0x0123456789abcdef + 1)) (K.ofBits (i * 77 + 5))
     if 16 * (i + 1) ≤ len then full
     else
       -- the last cell: its first `len % 16` bytes only
       let r := len % 16
-      if r ≤ 8 then E.ofLimbs (K.ofBits ((i + 0xdeadbeef) % 2 ^ (8 * r))) 0 0
-      else E.ofLimbs (K.ofBits (i + 0xdeadbeef)) (K.ofBits ((i + 3) % 2 ^ (8 * (r - 8)))) 0
+      if r ≤ 8 then E.ofLimbs (K.ofBits ((i + 0xdeadbeef) % 2 ^ (8 * r))) 0
+      else E.ofLimbs (K.ofBits (i + 0xdeadbeef)) (K.ofBits ((i + 3) % 2 ^ (8 * (r - 8))))
 
 /-- The message's bytes. -/
 def msg (len : ℕ) : List UInt8 := (cellsBytes (msgCells len)).take len
@@ -94,7 +94,7 @@ def lens : List ℕ := [0, 48, 64, 80, 128, 136, 272, 292, 1088, 2000]
 -- A nonzero byte past `len` in the last cell changes the digest.
 #guard
   let cells := msgCells 292 ++ []
-  let bad := cells.set 18 (cells.getD 18 0 + E.ofLimbs (K.ofBits (2 ^ 40)) 0 0)
+  let bad := cells.set 18 (cells.getD 18 0 + E.ofLimbs (K.ofBits (2 ^ 40)) 0)
   let O := chain (padCells bad 292) zeroCells 3
   (O.getD 0 0, O.getD 1 0) ≠ digestHalves (keccak256 (msg 292))
 
@@ -125,20 +125,18 @@ def d2 : Digest := keccak256 (bytes 9)
 
 /-- Two waiting scalars, an observed one and a nonce. -/
 def pending : List (E × ℕ) :=
-  [(E.ofLimbs (K.ofBits 5) (K.ofBits 6) (K.ofBits 7), 1),
-    (E.ofLimbs (K.ofBits 8) 0 (K.ofBits 9), 4)]
+  [(E.ofLimbs (K.ofBits 5) (K.ofBits 6), 1),
+    (E.ofLimbs (K.ofBits 8) 0, 4)]
 
 -- `keccak_duplex`: the rate cells, then the capacity of `s1`'s cells.
 #guard perm (List.ofFn fun c : Fin 13 ↦
     if c.val < 8 then rateCell pending c else cellsOfState s1 false c) false false =
-  List.ofFn (cellsOfState (keccakF1600 (Compile.duplexInput ⟨s1, pending⟩)) false)
--- `rateCell_scalar` and `fs_pack`.
+  List.ofFn (cellsOfState (keccakF1600 (Compile.duplexInput ⟨s1, pending, none⟩)) false)
+-- `rateCell_scalar`: a scalar's cells are the scalar and its tag in the `y` limb.
 #guard (rateCell pending 2, rateCell pending 3) = scalarCells (pending.getD 1 (0, 0)).1 4
-#guard let x := (pending.getD 0 (0, 0)).1
-  (x + y * y * ofK (x.limb 2), ofK (x.limb 2) + y * Verifier.eOfNat 1) = scalarCells x 1
--- `challengeOf_cells`.
-#guard Compile.challengeOf s1 =
-  cellsOfState s1 false 0 + y * y * ofK ((cellsOfState s1 false 1).limb 0)
+#guard scalarCells (pending.getD 0 (0, 0)).1 1 = (E.ofLimbs (K.ofBits 5) (K.ofBits 6), y)
+-- `challengeOf`: the state's first cell.
+#guard Compile.challengeOf s1 = cellsOfState s1 false 0
 
 /-! ## The baked constants -/
 
@@ -152,8 +150,8 @@ def pending : List (E × ℕ) :=
 -- `keccak([a0, a1], [b0, b1], out)`: 64 bytes, the tail the padding run (`0x01`, then zeros),
 -- `b8` the constant `0x80 << 56`, the capacity the zero run.
 example (a0 a1 b0 b1 : E) (I O : Fin 13 → E)
-    (hI : I = LeanVM.Guest.Core.cells13 [a0, a1, b0, b1, LeanVM.Guest.word 1 0 0, 0, 0, 0,
-      LeanVM.Guest.word 9223372036854775808 0 0, 0, 0, 0, 0])
+    (hI : I = LeanVM.Guest.Core.cells13 [a0, a1, b0, b1, LeanVM.Guest.word 1 0, 0, 0, 0,
+      LeanVM.Guest.word 9223372036854775808 0, 0, 0, 0, 0])
     (hK : KeccakCellsRelation I false O false .all) :
     (O 0, O 1) = digestHalves (keccak256 (cellsBytes [a0, a1, b0, b1])) := by
   have := (keccak_one (cells := [a0, a1, b0, b1]) (len := 64) (by simp) (by decide)
@@ -166,23 +164,19 @@ example (a0 a1 b0 b1 : E) (I O : Fin 13 → E)
   rwa [List.take_of_length_le (by simp)] at this
 
 -- `fs_pack(rate, 0, x, DS_OBSERVE)` then `keccak(rate[0:2], [0, 0], nxt, cap=sp)`.
-example (S : KeccakState) (x c2 : E) (I O : Fin 13 → E) (hc2 : IsInK c2)
-    (hI : I = LeanVM.Guest.Core.cells13 [x + y * y * c2, c2 + y * Verifier.eOfNat 1, 0, 0, 0, 0,
+example (S : KeccakState) (x : E) (I O : Fin 13 → E)
+    (hI : I = LeanVM.Guest.Core.cells13 [x, E.ofLimbs 0 (K.ofBits 1), 0, 0, 0, 0,
       0, 0, cellsOfState S false 8, cellsOfState S false 9, cellsOfState S false 10,
       cellsOfState S false 11, cellsOfState S false 12])
     (hK : KeccakCellsRelation I false O false .all) :
-    O = cellsOfState (keccakF1600 (Compile.duplexInput ⟨S, [(x, 1)]⟩)) false := by
-  have hcan : IsCanonical128 (x + y * y * c2) := by
-    have := hK.1 0; rwa [hI] at this
-  obtain ⟨-, hpack⟩ := fsPack_cells x c2 1 hc2 hcan
+    O = cellsOfState (keccakF1600 (Compile.duplexInput ⟨S, [(x, 1)], none⟩)) false := by
   have h01 := rateCell_scalar [(x, 1)] 0 (by simp)
-  simp only [Nat.mul_zero, Nat.zero_add, List.getElem_cons_zero] at h01
-  rw [← h01, Prod.mk.injEq] at hpack
+  simp only [Nat.mul_zero, Nat.zero_add, List.getElem_cons_zero, scalarCells, Prod.mk.injEq] at h01
   refine keccak_duplex (fun c hc ↦ ?_) (fun c hc ↦ ?_) hK
   · subst hI
     fin_cases c <;> simp at hc
-    · exact hpack.1
-    · exact hpack.2
+    · exact h01.1.symm
+    · exact h01.2.symm
     all_goals exact (rateCell_past _ (by simp)).symm
   · subst hI
     fin_cases c <;> simp at hc <;> rfl

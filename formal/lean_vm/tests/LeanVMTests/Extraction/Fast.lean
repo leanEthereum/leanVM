@@ -1,12 +1,13 @@
 import LeanVM.Protocol.Extraction.Fast.Transcript
-import LeanVMTests.Extraction.Toy
+import LeanVMTests.Extraction.ToyWords
+import LeanVMTests.Runs
 
 /-!
 # Tests: the fast extractor's decoder
 
 * Roth–Ruckenstein's substitution `Y := a + X·Y`: `substituteFast` (proved equal to CompPoly's
   `substituteYRootPlusXY`) agrees with it on pseudo-random polynomials over `K`;
-* `decodeStacksAtFast` (proved equal to `decodeStacksAt`) decodes a toy word of `Toy.lean`;
+* `decodeStacksAtFast` (proved equal to `decodeStacksAt`) decodes a toy word of `ToyWords.lean`;
 * the indexed replay (`keccakEvaluationsFast`, proved equal to the statement's evaluations of at
   most `L` bytes) on a transcript holding the sponge paths of three messages, and inverse queries;
 * the address table (`powTable`, `gLogTable`): the index of `g^i` by binary search, `none` off
@@ -17,17 +18,13 @@ import LeanVMTests.Extraction.Toy
   `Fast/LeeRows.lean`, `Fast/DecoderFast.lean`), each proved equal to the statement's or
   CompPoly's, run against them on small inputs;
 * the axiom footprint of `transcriptExtractorFast_eq`.
+
+The decoding and the field's roots are runs, compiled (`lake exe test-runs`).
 -/
 
 namespace LeanVMTests.Extraction
 
 open CompPoly CompPoly.GuruswamiSudan LeanVM.Parameters LeanVM.Extraction LeanVM.Extraction.Fast
-
-/-- A pseudo-random bivariate polynomial over `K` of `Y`-degree `< ny` and `X`-degree `< nx`. -/
-def randomBivariate (seed nx ny : ℕ) : CBivariate K :=
-  let r := randoms seed (nx * ny)
-  CPolynomial.ofArray (Array.ofFn fun y : Fin ny ↦
-    CPolynomial.ofArray (Array.ofFn fun x : Fin nx ↦ K.ofBits (r.getD (y.val * nx + x.val) 0)))
 
 #guard (List.range 4).all fun s ↦
   let Q := randomBivariate s 12 9
@@ -42,18 +39,15 @@ def decodesFast {μ : ℕ} (R A : ℕ) (q : Vector K (2 ^ μ)) (w : Array (List 
   let l := decodeStacksAtFast μ R A fun v ↦ w.getD v []
   (l.any fun d ↦ d.toList == q.toList, l.length)
 
-#guard decodesFast 1 3 (randomStack 1 7) (corrupt 1 [2] (wordOf 1 (randomStack 1 7))) = (true, 1)
-
 /-! ## The restated decoder steps, run -/
 
-/-- `(X − 3)(X − 5)(X − 7)(X² + X + 1)`: five roots in `K` (`X² + X + 1` splits: `GF(4) ⊆ K`). -/
-def rootPoly : CPolynomial K :=
-  CPolynomial.linearFactor (K.ofBits 3) * CPolynomial.linearFactor (K.ofBits 5) *
-    CPolynomial.linearFactor (K.ofBits 7) *
-    (CPolynomial.X * CPolynomial.X + CPolynomial.X + CPolynomial.C 1)
+test_runs Fast.runs := [
+  ("decodeStacksAtFast decodes a toy word", fun _ ↦
+    decide (decodesFast 1 15 (randomStack 1 9) (corrupt 1 [2] (wordOf 1 (randomStack 1 9))) = (true, 1))),
+  ("rootsInFieldFast: the five roots, CompPoly's", fun _ ↦
+    decide ((rootsInFieldFast rootPoly).size = 5) &&
+      rootsInFieldFast rootPoly == fieldRootCtx.rootsInField rootPoly)]
 
-#guard (rootsInFieldFast rootPoly).size = 5
-#guard rootsInFieldFast rootPoly == fieldRootCtx.rootsInField rootPoly
 #guard (List.range 4).all fun s ↦
   let Q := randomBivariate (s + 11) 6 5
   initialCoeffFast Q == initialCoefficientPolynomial Q &&

@@ -49,11 +49,11 @@ theorem cell_congr {v : V} (h : A v.idx) : L.cell v = L'.cell v := by
 
 theorem cellN_congr {n : ℕ} (h : A n) : cellN L n = cellN L' n := cell_congr hA (v := V.n n) h
 
-theorem nameV_congr (sh : ℕ) (kc : ℕ → Option (ℕ × ℕ × ℕ)) (st : SSt) {v : V} (h : A v.idx) :
+theorem nameV_congr (sh : ℕ) (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) {v : V} (h : A v.idx) :
     nameV L sh kc st v = nameV L' sh kc st v := by
   unfold nameV; rw [cell_congr hA h]
 
-theorem nameAll_congr (sh : ℕ) (kc : ℕ → Option (ℕ × ℕ × ℕ)) :
+theorem nameAll_congr (sh : ℕ) (kc : ℕ → Option (ℕ × ℕ)) :
     ∀ (st : SSt) (vs : List V), (∀ v ∈ vs, A v.idx) → nameAll L sh kc st vs = nameAll L' sh kc st vs
   | _, [], _ => rfl
   | st, v :: vs, h => by
@@ -113,7 +113,7 @@ end Congr
 
 /-! ### Pending values stay among the walked values -/
 
-theorem nameV_pend {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V} :
+theorem nameV_pend {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ)} {st : SSt} {v : V} :
     ∀ p ∈ (nameV L sh kc st v).pend, p ∈ st.pend ∨ p = ⟨v.idx, L.cell v, none, [], []⟩ := by
   intro p hp
   unfold nameV at hp
@@ -126,14 +126,14 @@ theorem nameV_pend {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ × ℕ)
     · exact Or.inl hp
   · exact Or.inl hp
 
-theorem nameV_pendIn {A : ℕ → Prop} {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt}
+theorem nameV_pendIn {A : ℕ → Prop} {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ)} {st : SSt}
     {v : V} (h : PendIn A st) (hv : A v.idx) : PendIn A (nameV L sh kc st v) := by
   intro p hp
   rcases nameV_pend p hp with hp | rfl
   · exact h p hp
   · exact ⟨hv, by simp, by simp⟩
 
-theorem nameAll_pendIn {A : ℕ → Prop} {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ × ℕ)} :
+theorem nameAll_pendIn {A : ℕ → Prop} {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ)} :
     ∀ {st : SSt} {vs : List V}, PendIn A st → (∀ v ∈ vs, A v.idx) → PendIn A (nameAll L sh kc st vs)
   | _, [], h, _ => h
   | _, v :: vs, h, hv => by
@@ -185,7 +185,7 @@ variable {L L' : Loc} {A : ℕ → Prop} (hA : ∀ n, A n → L.get? n = L'.get?
 include hA
 
 theorem recCst_congr (sh : ℕ) {a : Core.Atom} (ha : ∀ w ∈ Memory.atomUses a, A w.idx)
-    (cst : Exec.Trie (ℕ × ℕ × ℕ)) : recCst L sh a cst = recCst L' sh a cst := by
+    (cst : Exec.Trie (ℕ × ℕ)) : recCst L sh a cst = recCst L' sh a cst := by
   cases a <;> simp only [recCst]
   · rw [cell_congr hA (ha _ (by simp [Memory.atomUses]))]
   · rw [cell_congr hA (ha _ (by simp [Memory.atomUses]))]
@@ -594,8 +594,7 @@ noncomputable def shareWinS (j : ℕ) (snaps : List Snap) (k lo hi gm gn am an :
   match stmtsW (coreOf j).body snaps k with
   | [.match_ x (a0 :: as)] =>
       matchAtoms lo hi [.match_ x (a0 :: as)] &&
-      (Memory.Stmt.usesList (selStmts lo hi [.match_ x (a0 :: as)]) ++
-        Memory.Stmt.tmpsList (selStmts lo hi [.match_ x (a0 :: as)])).all (valOk loc tt tc fc (fsN j)) &&
+      valsAll (valOk loc tt tc fc (fsN j)) (selStmts lo hi [.match_ x (a0 :: as)]) &&
       (nameStep loc sh (snapAt snaps k).st [x]).seq fun st1 ↦
         st1.pend.isEmpty && refinesPre st1 (snapAt snaps (k + 1)) &&
         armsRef loc sh tt (plumbOf j) st1 (snapAt snaps (k + 1)) lo hi 0 (a0 :: as)
@@ -645,7 +644,7 @@ theorem shareWin_of_split {j k : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × �
     have hc := h g hg
     unfold shareWinS at hc
     rw [hss] at hc
-    simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, SSt.seq_eq, Bool.and_eq_true,
+    simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, SSt.seq_eq, valsAll_eq, Bool.and_eq_true,
       Bool.not_eq_true', beq_eq_false_iff_ne, Nat.blt_eq, List.all_eq_true] at hc
     exact hc
   obtain ⟨⟨⟨hk0, hkl⟩, -⟩, -⟩ := hG g0 hg0
@@ -741,7 +740,7 @@ theorem shareWin_of_split {j k : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × �
     rwa [hn g0 hg0] at this
   -- the window's check
   unfold shareWin
-  simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true, List.all_eq_true]
+  simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, valsAll_eq, Bool.and_eq_true, List.all_eq_true]
   rw [hss]
   refine ⟨⟨?_, ?_⟩, ?_⟩
   · simp only [shareFits, Bool.and_eq_true, List.all_eq_true] at hf

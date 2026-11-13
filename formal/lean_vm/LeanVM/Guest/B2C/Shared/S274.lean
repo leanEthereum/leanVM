@@ -16,81 +16,54 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop145`, once. -/
-theorem st1042 : shareStatic 1042 = true := by decide +kernel
+/-- `__loop188`, once. -/
+theorem st1135 : shareStatic 1135 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop145`, window 0. -/
-theorem w1042_0 : shareWin 1042 (snapsOf 1042) 0 = true := by decide +kernel
+/-- `__loop188`, window 0. -/
+theorem w1135_0 : shareWin 1135 (snapsOf 1135) 0 = true := by decide +kernel
 
-theorem ok1042 : ShareOk 1042 := ⟨st1042, fun i hi ↦ by
-  have h : (snapsOf 1042).length = 0 := by decide +kernel
+theorem ok1135 : ShareOk 1135 := ⟨st1135, fun i hi ↦ by
+  have h : (snapsOf 1135).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1042_0⟩
+  exact w1135_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L18_L6`, once. -/
-theorem st1043 : shareStatic 1043 = true := by decide +kernel
+/-- `__loop189`, once. -/
+theorem st1136 : shareStatic 1136 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L18_L6`, window 0. -/
-theorem w1043_0 : shareWin 1043 (snapsOf 1043) 0 = true := by decide +kernel
+/-- `__loop189`, window 0. -/
+theorem w1136_0 : shareWin 1136 (snapsOf 1136) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L18_L6`, window 1. -/
-theorem w1043_1 : shareWin 1043 (snapsOf 1043) 1 = true := by decide +kernel
+/-- `__loop189`, window 1. -/
+theorem w1136_1 : shareWin 1136 (snapsOf 1136) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop146`, once. -/
-theorem st1044 : shareStatic 1044 = true := by decide +kernel
+/-- `__loop190`, once. -/
+theorem st1137 : shareStatic 1137 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop146`, window 0. -/
-theorem w1044_0 : shareWin 1044 (snapsOf 1044) 0 = true := by decide +kernel
+/-- `__loop190`, window 0. -/
+theorem w1137_0 : shareWin 1137 (snapsOf 1137) 0 = true := by decide +kernel
 
-theorem ok1044 : ShareOk 1044 := ⟨st1044, fun i hi ↦ by
-  have h : (snapsOf 1044).length = 0 := by decide +kernel
+theorem ok1137 : ShareOk 1137 := ⟨st1137, fun i hi ↦ by
+  have h : (snapsOf 1137).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1044_0⟩
+  exact w1137_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop147`, once. -/
-theorem st1045 : shareStatic 1045 = true := by decide +kernel
+/-- `__loop191`, once. -/
+theorem st1138 : shareStatic 1138 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop147`, window 0. -/
-theorem w1045_0 : shareWin 1045 (snapsOf 1045) 0 = true := by decide +kernel
-
-theorem ok1045 : ShareOk 1045 := ⟨st1045, fun i hi ↦ by
-  have h : (snapsOf 1045).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w1045_0⟩
+/-- `__loop191`, window 0. -/
+theorem w1138_0 : shareWin 1138 (snapsOf 1138) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop148`, once. -/
-theorem st1046 : shareStatic 1046 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop148`, window 0. -/
-theorem w1046_0 : shareWin 1046 (snapsOf 1046) 0 = true := by decide +kernel
-
-theorem ok1046 : ShareOk 1046 := ⟨st1046, fun i hi ↦ by
-  have h : (snapsOf 1046).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w1046_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop149`, once. -/
-theorem st1047 : shareStatic 1047 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop149`, window 0. -/
-theorem w1047_0 : shareWin 1047 (snapsOf 1047) 0 = true := by decide +kernel
-
-theorem ok1047 : ShareOk 1047 := ⟨st1047, fun i hi ↦ by
-  have h : (snapsOf 1047).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w1047_0⟩
+/-- `__loop191`, window 1. -/
+theorem w1138_1 : shareWin 1138 (snapsOf 1138) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

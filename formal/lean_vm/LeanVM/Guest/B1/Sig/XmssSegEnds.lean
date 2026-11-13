@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegEnds
 
-  The ends and roots of the two layers of leanXMSS's check in `__loop2`, evaluated.
+  The ends and roots of the two layers of leanXMSS's check in `main_loop2`, evaluated.
 -/
 
 module

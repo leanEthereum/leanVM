@@ -9,12 +9,13 @@ module
 
 public import LeanVM.Guest.B1.Main.SoundVX
 public import LeanVM.Guest.B1.Sig.XmssLoop2
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main`, its witness decoded from the frame map
 
 `decWitV σ rd V piOf` is `decWit` with the callees' witness functions read off the frame map `V`:
-a raw leanXMSS signature off its `__loop2` iteration's valuation (`Sig.xmssSigOf`: the check is
+a raw leanXMSS signature off its `main_loop2` iteration's valuation (`Sig.xmssSigOf`: the check is
 inline there), a leanSPHINCS one off its check's with `main`'s byte table (`Sig.sphincsSigOf`), the DA matrix off `da_verify`'s and its
 callees' (`Da.dvWit`), a child proof by `piOf` off `verify_sub`'s (B1-d), the batching's hints off
 `aggregate_claims`' valuation and the memory (`aggHints`). It mentions no hash and no verifier.
@@ -38,7 +39,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 /-- **`main`'s witness, decoded from the frame map `V`.** -/
 noncomputable def decWitV (σ : Val) (rd : Reader) (V : FrameMap)
     (piOf : Reader → Val → FrameMap → Proof) : NodeWitness :=
-  decWit σ rd (fun args => Sig.xmssSigOf (V "__loop2" args []))
+  decWit σ rd (fun args => Sig.xmssSigOf (V name% «main_loop2» args []))
     (fun p => Sig.sphincsSigOf (V "verify_sig_lean_sphincs" [p, σ (.n 47)] []) V)
     (fun args rets => Da.dvWit (V "da_verify" args rets) V)
     (fun args => piOf rd (V "verify_sub" args []) V)
@@ -49,7 +50,7 @@ def main_sound_V (bytecode : List K) (piOf : Reader → Val → FrameMap → Pro
   bytecode.length = 2 ^ bytecodeVars → ∀ (rd : Reader), MemOk rd → ∀ (C : CallRel) (V : FrameMap),
     UnfoldsV rd C V → CallRel.Le C (coreProgram.Rel rd) → ∀ (D : Digest) (σ : Val),
       LoadHolds rd 1 0 (digestHalves D).1 → LoadHolds rd 1 1 (digestHalves D).2 →
-      Stmt.HoldsList C rd σ Data.core0.body False (fun rs ↦ rs = []) →
+      Stmt.HoldsList C rd σ (fn% «main»).body False (fun rs ↦ rs = []) →
         statementDigest (decSeed σ) (decStmt σ rd) = D ∧
           NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWitV σ rd V piOf)
 

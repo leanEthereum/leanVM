@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Prover.WhirTables
 public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
+public import LeanVM.Protocol.RingVerifier
 
 /-!
 # The weight table of the stack claims
@@ -19,7 +20,8 @@ public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
 `eq(stackPoint, ·)` is the equality kernel of its point on its block of the stack and zero
 elsewhere (`onStack_boolPoint`); the ring claim's weight `eqAbove · ringWeight` is
 `Φ(eq(point, ·))` on the block of `q_keccak` and zero elsewhere (`ringSwitchClaim_boolPoint`,
-from `ringWeight_eq_sum`, `eqAt_frob` and `phiMap_eq_sum`). The scatter adds them in place
+from `ringWeight_eq_sum`, `eqAt_frob` and `ringPhi_eq_sum`); the out-of-domain claim's is the
+equality kernel of its point on the whole stack. The scatter adds them in place
 (`addSlice_spec`); a claim of another shape adds its weight's formula everywhere (`addFull`).
 -/
 
@@ -142,35 +144,74 @@ theorem onStack_boolPoint {layout : Layout} {c : ColumnClaim} {μ y : ℕ}
     ← Front.eqEval_boolPoint_eqAt, hlen]
   split <;> simp
 
+/-- `v ↦ v·v` repeated `n` times is `v^(2^n)`. -/
+theorem repeat_sq (n : ℕ) (w : E) : Nat.repeat (fun v ↦ v * v) n w = w ^ 2 ^ n := by
+  induction n with
+  | zero => simp [Nat.repeat]
+  | succ n ih => rw [Nat.repeat, ih, ← sq, ← pow_mul, pow_succ]
+
+theorem foldl_phi (f : List E) (a w : E) :
+    (f.foldl (fun (acc : E × E) fP ↦
+      (acc.1 + fP * acc.2, Nat.repeat (fun v ↦ v * v) ringMapWidth acc.2)) (a, w)).1 =
+      a + ∑ p ∈ range f.length, f.getD p 0 * w ^ 2 ^ (8 * p) := by
+  induction f generalizing a w with
+  | nil => simp
+  | cons c f ih =>
+    rw [List.foldl_cons, ih, List.length_cons, sum_range_succ', repeat_sq]
+    simp only [ringMapWidth, List.getD_cons_succ, List.getD_cons_zero, mul_zero, pow_zero,
+      pow_one]
+    have h : ∀ p : ℕ, (w ^ 2 ^ 8) ^ 2 ^ (8 * p) = w ^ 2 ^ (8 * (p + 1)) := fun p ↦ by
+      rw [← pow_mul, ← pow_add]; ring_nf
+    simp only [h]
+    ring
+
+/-- **The prover's map is `Φ`**: `ringPhi f g v = Σ_k c_k v^(2^k)` with the verifier's
+coefficients. -/
+theorem ringPhi_eq_sum {f g : List E} (hf : f.length = 8) (hg : g.length = 8) (v : E) :
+    ringPhi f g v = ∑ k ∈ range (ringCoefficients f g).length,
+      (ringCoefficients f g).getD k 0 * v ^ 2 ^ k := by
+  set F : Fin 8 → E := fun p ↦ f.getD p 0
+  set G : Fin 8 → E := fun b ↦ g.getD b 0
+  have hF : f = List.ofFn F := List.ext_getElem (by simp [hf]) fun i h1 _ ↦ by
+    rw [List.getElem_ofFn]; exact (List.getD_eq_getElem _ _ h1).symm
+  have hG : g = List.ofFn G := List.ext_getElem (by simp [hg]) fun i h1 _ ↦ by
+    rw [List.getElem_ofFn]; exact (List.getD_eq_getElem _ _ h1).symm
+  have hPhi : ringPhi f g v = Ring.frobPhi 8 F G v := by
+    rw [ringPhi, foldl_phi, zero_add, Ring.frobPhi, hf, ← Fin.sum_univ_eq_sum_range]
+    refine sum_congr rfl fun p _ ↦ ?_
+    rw [show (ringPsi v g : E) = Ring.ringPsi v g from rfl, hG, Ring.ringPsi_ofFn]
+  rw [hPhi, Ring.frobPhi_eq_idxSum, Ring.idxSum_eq_sum_range, ← hF, ← hG,
+    ← Ring.verifier_ringCoefficients]
+
 /-- The ring's weight on a cube point of its own coordinates is `Φ(eq(point, ·))`. -/
-theorem ringWeight_boolPoint {point ch : List E} {v : ℕ} (hlen : point.length = v)
-    (h6 : ch.length = 6) {j : ℕ} (hj : j < 2 ^ v) :
-    ringWeight point (boolPoint v j) (ringCoefficients ch) =
-      phiMap ((eqKernel point).getD j 0) ch := by
-  rw [Front.ringWeight_eq_sum, Front.length_ringCoefficients, Front.phiMap_eq_sum h6,
-    eqKernel_getD_eqAt _ (by rw [hlen]; exact hj)]
+theorem ringWeight_boolPoint {point f g : List E} {v : ℕ} (hlen : point.length = v)
+    (hf : f.length = 8) (hg : g.length = 8) {j : ℕ} (hj : j < 2 ^ v) :
+    ringWeight point (boolPoint v j) (ringCoefficients f g) =
+      ringPhi f g ((eqKernel point).getD j 0) := by
+  rw [Front.ringWeight_eq_sum, ringPhi_eq_sum hf hg, eqKernel_getD_eqAt _ (by rw [hlen]; exact hj)]
   refine sum_congr rfl fun k _ ↦ ?_
   rw [Front.eqAt_frob, ← Front.eqEval_boolPoint_eqAt, List.length_map, hlen]
 
 /-- **The ring claim's weight on the cube**: `Φ(eq(point, ·))` on the block of `q_keccak`. -/
-theorem ringSwitchClaim_boolPoint {layout : Layout} {target : E} {point ch : List E} {μ y : ℕ}
+theorem ringSwitchClaim_boolPoint {layout : Layout} {target : E} {point f g : List E} {μ y : ℕ}
     (hlen : point.length = (layout.placement qkeccak).variableCount)
-    (hv : (layout.placement qkeccak).variableCount ≤ μ) (h6 : ch.length = 6) (hy : y < 2 ^ μ) :
-    (ringSwitchClaim layout target fun rPrime ↦ ringWeight point rPrime (ringCoefficients ch)).1
+    (hv : (layout.placement qkeccak).variableCount ≤ μ) (hf : f.length = 8) (hg : g.length = 8)
+    (hy : y < 2 ^ μ) :
+    (ringSwitchClaim layout target fun rPrime ↦ ringWeight point rPrime (ringCoefficients f g)).1
         (boolPoint μ y) =
       if blockOff μ (layout.placement qkeccak).variableCount (layout.placement qkeccak).index ≤ y ∧
           y < blockOff μ (layout.placement qkeccak).variableCount (layout.placement qkeccak).index +
             2 ^ (layout.placement qkeccak).variableCount then
-        phiMap ((eqKernel point).getD
+        ringPhi f g ((eqKernel point).getD
           (y - blockOff μ (layout.placement qkeccak).variableCount (layout.placement
-              qkeccak).index) 0) ch
+              qkeccak).index) 0)
       else 0 := by
   set pl := layout.placement qkeccak with hpl
-  rw [← block_ite pl.index (fun j ↦ phiMap ((eqKernel point).getD j 0) ch)]
+  rw [← block_ite pl.index (fun j ↦ ringPhi f g ((eqKernel point).getD j 0))]
   simp only [ringSwitchClaim, Placement.eqAbove, ← hpl, length_boolPoint,
     Front.selectorPoint_eq_boolPoint, Nat.shiftRight_eq_div_pow, Front.drop_boolPoint]
   rw [eqEval_selector hv hy, Front.take_boolPoint μ _ y hv, ← Front.boolPoint_mod,
-    ringWeight_boolPoint hlen h6 (Nat.mod_lt _ (by positivity))]
+    ringWeight_boolPoint hlen hf hg (Nat.mod_lt _ (by positivity))]
   split <;> simp
 
 /-! ## The scatter -/
@@ -194,22 +235,35 @@ theorem addClaim_spec {μ : ℕ} (s : E) (d : ClaimDesc) (acc : Array E) (hs : a
         size_eqTable, hlen, mul_ite, mul_zero, getD_eqTable_eqKernel]
     · obtain ⟨h1, h2⟩ := addFull_spec μ (ClaimDesc.column layout c).denote.1 s acc
       exact ⟨by rw [h1, hs], fun y hy ↦ h2 y (by rw [hs]; exact hy)⟩
-  | ring layout target point ch =>
+  | ring layout target point f g =>
     simp only [addClaim]
     split
     · rename_i h
-      obtain ⟨hlen, hv, h6⟩ := h
+      obtain ⟨hlen, hv, hf, hg⟩ := h
       obtain ⟨h1, h2⟩ := addSlice_spec (blockOff μ (layout.placement qkeccak).variableCount
-        (layout.placement qkeccak).index) ((eqTable point).map (phiMap · ch)) s
-        ((eqTable point).map (phiMap · ch)).size acc
+        (layout.placement qkeccak).index) ((eqTable point).map (ringPhi f g)) s
+        ((eqTable point).map (ringPhi f g)).size acc
       refine ⟨by rw [h1, hs], fun y hy ↦ ?_⟩
       rw [h2 y (by rw [hs]; exact hy), ClaimDesc.denote,
-        ringSwitchClaim_boolPoint hlen hv h6 hy, Array.size_map, size_eqTable, hlen,
+        ringSwitchClaim_boolPoint hlen hv hf hg hy, Array.size_map, size_eqTable, hlen,
         mul_ite, mul_zero]
       split_ifs with hb
       · rw [getD_map_of_lt _ _ _ 0 _ (by rw [size_eqTable, hlen]; omega), getD_eqTable_eqKernel]
       · rfl
-    · obtain ⟨h1, h2⟩ := addFull_spec μ (ClaimDesc.ring layout target point ch).denote.1 s acc
+    · obtain ⟨h1, h2⟩ := addFull_spec μ (ClaimDesc.ring layout target point f g).denote.1 s acc
+      exact ⟨by rw [h1, hs], fun y hy ↦ h2 y (by rw [hs]; exact hy)⟩
+  | ood z value =>
+    simp only [addClaim]
+    split
+    · rename_i hz
+      obtain ⟨h1, h2⟩ := addSlice_spec 0 (eqTable z) s (eqTable z).size acc
+      refine ⟨by rw [h1, hs], fun y hy ↦ ?_⟩
+      have hy' : y < (eqTable z).size := by rw [size_eqTable, hz]; exact hy
+      rw [h2 y (by rw [hs]; exact hy), ite_T ⟨Nat.zero_le _, by omega⟩, Nat.sub_zero,
+        getD_eqTable_eqKernel, Complete.getD_eqKernel _ _ (by rw [hz]; exact hy), hz]
+      simp only [ClaimDesc.denote]
+      rw [eqEval_comm]
+    · obtain ⟨h1, h2⟩ := addFull_spec μ (ClaimDesc.ood z value).denote.1 s acc
       exact ⟨by rw [h1, hs], fun y hy ↦ h2 y (by rw [hs]; exact hy)⟩
 
 theorem basisNat_aux (μ : ℕ) : ∀ (L : List (E × ClaimDesc)) (acc : Array E), acc.size = 2 ^ μ →

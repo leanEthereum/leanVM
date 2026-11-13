@@ -1,38 +1,33 @@
 /-
   LeanVM.Prover.Complete
 
-  The completeness end statements for any honest prover that is the specification's honest
-  prover at some witness: `LeanVM.Completeness` and `LeanVM.Guest.Completeness.GuestChildComplete` with
-  that prover.
+  The completeness end statement for any honest prover that is the specification's honest
+  prover at some witness: `LeanVM.Completeness` with that prover.
 -/
 
-import LeanVM.Protocol.LeanVMRpm
-import LeanVM.Guest.Child.NZRpm
-import LeanVM.Guest.Child.Deployed
-import LeanVM.Protocol.WithHash
-import LeanVM.Guest.WithHash
+module
+
+public import LeanVM.Protocol.LeanVMRpm
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # Completeness for a prover that is the specification at a witness
 
-The completeness theorems (`LeanVM.completeness_holds`, `LeanVM.Guest.Budget.guest_child_complete`)
-are proved for provers that choose a witness classically (`honestComp`, `childComp`). Their
-proofs need of the prover only that, on the executions they speak of, it is the specification's
-honest prover (`Rom.honestComp?` at leanVM's seed and program, with the strategy
-`leanVmProver prog s ρ (stackOf prog s w)`) at some witness `w` at sizes `s` that is honest
-(`HonestFor`), or a child's (`ChildFor`). Here they are restated for any such prover `A`:
+The completeness theorem (`LeanVM.completeness_holds`) is proved for a prover that chooses a
+witness classically (`honestComp`). Its proof needs of the prover only that, on the executions it
+speaks of, it is the specification's honest prover (`Rom.honestComp?` at leanVM's seed and
+program, with the strategy `leanVmProver prog s ρ (stackOf prog s w)`) at some witness `w` at
+sizes `s` that is honest (`HonestFor`). Here it is restated for any such prover `A`
+(`guestChildComplete_of_spec`, the guest's, is in `CompleteChild.lean`):
 
 * `completeness_of_spec`: if on every valid execution within the cap, at a valid rate, `A` is the
   specification at an honest witness, then the body of `LeanVM.Completeness` holds for `A`, with
   the same bound `2^-256` (`completenessRpm_at`, `completenessRpm_le`);
-* `guestChildComplete_of_spec`: if moreover the witness is a child's, and everywhere `A` is the
-  specification at a child's witness or makes no proof (`ChildSpec`), then both parts of
-  `LeanVM.Guest.Completeness.GuestChildComplete` hold for `A`, with the same bound `2^-126`
-  (`rpmChild_at`, `rpmChild_le`, `childOk_of_verifierRZ_of`).
 
 The prover may make no proof (`none`); the experiments count that a rejection. The verifier
-rejects the empty proof too, once it has its seed (`verifierWithHash_empty`,
-`verifierRefusingZeroWithHash_empty`), so in distribution an experiment is the one with the empty
+rejects the empty proof too, once it has its seed (`verifierWithHash_empty`), so in distribution an experiment is the one with the empty
 proof in place of `none` (`noProof_evalDistEq`), and with it `Rom.honestComp?` is
 `Rom.honestComp` (`honestComp_eq_getD`), where the theorems of the random-permutation model
 apply.
@@ -42,7 +37,7 @@ namespace LeanVM.Prover
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.LeanIsa
-open LeanVM.Protocol.EndToEnd.Complete LeanVM.Protocol.KeccakHash LeanVM.Guest.Child LeanVM.Node
+open LeanVM.Protocol.EndToEnd.Complete LeanVM.Protocol.KeccakHash
 open OracleComp OracleSpec
 open Air.Flat (EnsembleWitness)
 open scoped ENNReal
@@ -70,14 +65,6 @@ theorem verifierWithHash_empty (prog : LeanIsaProgram) (input : PublicInput) :
       seedWithHash H F (bytecodeWords prog) (publicInputDigest input) >>= fun _ ↦ pure false := by
   obtain ⟨k, hk⟩ := leanVmProgram_read (bytecodeWords prog) (publicInputDigest input)
   simp only [verifierWithHash, verifyWithHash, hk, runProof_read_empty]
-
-/-- **The verifier refusing a zero challenge rejects the empty proof**, once it has its seed. -/
-theorem verifierRefusingZeroWithHash_empty (prog : LeanIsaProgram) (input : PublicInput) :
-    Guest.Budget.verifierRefusingZeroWithHash H F prog input ⟨[], []⟩ =
-      seedWithHash H F (bytecodeWords prog) (publicInputDigest input) >>= fun _ ↦ pure false := by
-  obtain ⟨k, hk⟩ := leanVmProgram_read (bytecodeWords prog) (publicInputDigest input)
-  simp only [Guest.Budget.verifierRefusingZeroWithHash, hk, VerifierProgram.refusingZeroChallenge,
-    runProof_read_empty]
 
 end Empty
 
@@ -122,46 +109,15 @@ def SpecOnValid (A : HonestProverWithHash)
 theorem completeness_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A HonestFor) :
     ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
       ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
-      Pr{let v ← verifierCompletenessExperimentWithHash A prog input t ρ (2 ^ 25)}[v = false] ≤
+      Pr{let v ← verifierCompletenessExperimentWithHash A prog input t ρ (2 ^ 35)}[v = false] ≤
         (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   intro prog input t ρ hv hbudget hρ
-  obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 25) hv hbudget hρ
+  obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 35) hv hbudget hρ
   refine le_of_eq_of_le ((noProof_evalDistEq keccakCallsOverRandomPermutation _ _ _
     (verifierWithHash_empty _ _ prog input) []).prEvent_eq (· = false)) ?_
   rw [hAw, ← honestComp_eq_getD]
   exact (Rpm.completenessRpm_at hw (by norm_num)).trans Rpm.completenessRpm_le
 
-/-- **Both parts of `GuestChildComplete`, for a prover that is the specification at a child's
-witness**: on valid executions within the cap at a valid rate (`SpecOnValid A ChildFor`), and
-everywhere the specification at a child's witness or no proof (`ChildSpec`). -/
-theorem guestChildComplete_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A ChildFor)
-    (hA' : ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
-      ChildSpec A prog input t ρ fuel) :
-    (∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
-      ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
-      Pr{let v ← (simulateQ LeanVM.keccakCallsOverRandomPermutation (do
-          match ← A prog input t ρ (2 ^ 25) with
-          | none => pure false
-          | some proof =>
-            Guest.Budget.verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input
-              proof)).run' []}[v = false] ≤
-        (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
-    ∀ (s : NodeStatement) (t : Execution Guest.guestProgram) (ρ : ℕ),
-      s.deferredClaim.HasBytecodeShape (bytecodeWords Guest.guestProgram) →
-      let input := PublicInput.ofDigest (statementDigest (deployedSeed Guest.guestProgram) s)
-      ∀ proof, Guest.Budget.honestProofWithDeployedKeccakWithHash A Guest.guestProgram input t ρ
-          (2 ^ 25) = some proof →
-      Guest.Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 Guest.guestProgram input
-          proof = true →
-      ∃ fresh, fresh.Holds (bytecodeWords Guest.guestProgram) ∧
-        LeanVM.Guest.AcceptableChild (bytecodeWords Guest.guestProgram)
-          (deployedSeed Guest.guestProgram) ⟨s, fresh, proof⟩ := by
-  refine ⟨fun prog input t ρ hv hbudget hρ ↦ ?_, fun s t ρ hsh _ hsome hacc ↦
-    childOk_of_verifierRZ_of (hA' _ _ _ _ _) hsh hsome hacc⟩
-  obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 25) hv hbudget hρ
-  refine le_of_eq_of_le ((noProof_evalDistEq LeanVM.keccakCallsOverRandomPermutation _ _ _
-    (verifierRefusingZeroWithHash_empty _ _ prog input) []).prEvent_eq (· = false)) ?_
-  rw [hAw, ← honestComp_eq_getD]
-  exact (rpmChild_at hw.1 (by norm_num)).trans rpmChild_le
-
 end LeanVM.Prover
+
+end

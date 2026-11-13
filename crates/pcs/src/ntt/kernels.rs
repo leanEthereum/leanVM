@@ -487,7 +487,7 @@ fn butterfly_ymm(
     twiddle: u64,
 ) -> (core::arch::x86_64::__m256i, core::arch::x86_64::__m256i) {
     use core::arch::x86_64::*;
-    use primitives::field::gf2_64x3::x86_64::reduce_halves256;
+    use primitives::field::gf2_64x2::x86_64::reduce_halves256;
 
     #[cfg(target_feature = "vpclmulqdq")]
     let (even, odd) = {
@@ -573,7 +573,7 @@ fn mul_xor_avx512(
     tw: core::arch::x86_64::__m512i,
 ) -> core::arch::x86_64::__m512i {
     use core::arch::x86_64::*;
-    use primitives::field::gf2_64x3::x86_64::reduce_halves512;
+    use primitives::field::gf2_64x2::x86_64::reduce_halves512;
 
     let even = _mm512_clmulepi64_epi128::<0x00>(v, tw);
     let odd = _mm512_clmulepi64_epi128::<0x11>(v, tw);
@@ -748,7 +748,7 @@ mod avx2 {
     use core::arch::x86_64::*;
 
     use primitives::field::F64;
-    use primitives::field::gf2_64x3::x86_64::reduce_halves256;
+    use primitives::field::gf2_64x2::x86_64::reduce_halves256;
     use primitives::{load_at, store_at};
 
     use super::fused_rows;

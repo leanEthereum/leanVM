@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Selectors.BlockSelectorTabComplete
 public import LeanVM.Guest.B1.Selectors.BlockSelectorComplete
 
 /-!
-# The block selectors, complete (G:2229-2275)
+# The block selectors, complete (G:2179-2225)
 
 `offBits off`: the `34` bits of an offset, as the `bitsExp` hint writes them; `selBitsOf off τ d`:
 its bits `τ ..< τ + d`, whose value shifted by `τ` is the offset when it is aligned to `2^τ` and
@@ -127,11 +127,11 @@ theorem vtc_selblock (hl : args.length = 20) {w b t pos : ℕ} {prev : Option �
     (hcheck : tbStmtsEqb (vtSelT w b t prev es gs gw)
       ((vtAt pos).take (vtSelT w b t prev es gs gw).length) = true) (ht : t < 6)
     (hes : es < w + 2) (hgs : gs < w + 4)
-    (hptr : 0 < t → σv (.n es) * vtW288 = σv (.n 705) * gen ^ (288 * t) ∧
-      σv (.n gs) * word gw 0 0 = σv (.n 706) * gen ^ (144 * t))
+    (hptr : 0 < t → σv (.n es) * vtW288 = σv (.n 701) * gen ^ (288 * t) ∧
+      σv (.n gs) * word gw 0 = σv (.n 702) * gen ^ (144 * t))
     {point : List E} {d τ : ℕ} (hpl : point.length = d + τ) (hml : point.length < 33)
     (hdv : σv (.n (vtShLen t)) = gen ^ d)
-    (hrun : RunTables rd (σv (.n 705) * gen ^ (288 * t)) (σv (.n 706) * gen ^ (144 * t)) d
+    (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * t)) (σv (.n 702) * gen ^ (144 * t)) d
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d))
     {off : ℕ} (hoff : σv (.n (vtBoffV b)) = gen ^ off) (hal : 2 ^ τ ∣ off)
     (hob : off < 2 ^ point.length)
@@ -153,18 +153,18 @@ theorem vtc_selblock (hl : args.length = 20) {w b t pos : ℕ} {prev : Option �
   have g0 := hG (.atom (.hint (.alloc (.n w) 9))) (by simp [vtSelT])
   simp only [fixNe, GoodS, Good] at g0
   -- the table pointers
-  set eqt : V := .n (if t = 0 then 705 else w + 2) with heqt_def
-  set gt : V := .n (if t = 0 then 706 else w + 4) with hgt_def
+  set eqt : V := .n (if t = 0 then 701 else w + 2) with heqt_def
+  set gt : V := .n (if t = 0 then 702 else w + 4) with hgt_def
   have hdm : Stmt.dispatch (.n (vtShLen t)) vtBstNames [.n w, eqt, gt]
       [.n (vtSelE w t), .n (vtSelE w t + 1)] ∈ vtSelT w b t prev es gs gw := by
     simp [vtSelT, eqt, gt]
-  have heqt : σv eqt = σv (.n 705) * gen ^ (288 * t) ∧ σv gt = σv (.n 706) * gen ^ (144 * t) := by
+  have heqt : σv eqt = σv (.n 701) * gen ^ (288 * t) ∧ σv gt = σv (.n 702) * gen ^ (144 * t) := by
     rcases Nat.eq_zero_or_pos t with rfl | ht0
     · simp [eqt, gt]
     · have ht' : t ≠ 0 := by omega
       have c1 := hG (.atom (.const (.n (w + 1)) vtW288)) (by simp [vtSelT, ht'])
       have m2 := hG (.atom (.mul (.n (w + 2)) (.n es) (.n (w + 1)))) (by simp [vtSelT, ht'])
-      have c3 := hG (.atom (.const (.n (w + 3)) (word gw 0 0))) (by simp [vtSelT, ht'])
+      have c3 := hG (.atom (.const (.n (w + 3)) (word gw 0))) (by simp [vtSelT, ht'])
       have m4 := hG (.atom (.mul (.n (w + 4)) (.n gs) (.n (w + 3)))) (by simp [vtSelT, ht'])
       simp only [fixNe, GoodS, Good, show es < w + 2 ∧ w + 1 < w + 2 from ⟨hes, by omega⟩,
         show gs < w + 4 ∧ w + 3 < w + 4 from ⟨hgs, by omega⟩] at c1 m2 c3 m4
@@ -248,10 +248,10 @@ theorem vtc_selblock (hl : args.length = 20) {w b t pos : ℕ} {prev : Option �
 /-- **A framework block's selector, complete.** -/
 theorem vtc_fwblock (hl : args.length = 20) {w b kv pos : ℕ} {prev : Option ℕ}
     (hcheck : tbStmtsEqb (vtFwSelT w b kv prev) ((vtAt pos).take (vtFwSelT w b kv prev).length) =
-      true) (hw : 703 < w) (hkv : kv < w)
+      true) (hw : 699 < w) (hkv : kv < w)
     {point : List E} (hmu : σv (.n 9) = gen ^ point.length) (hml : point.length < 33)
-    (hz1 : TbReadsAt rd (σv (.n 703)) (point.map (1 + ·)))
-    (hidxc : TbReadsAt rd (σv (.n 668)) vtIdxcList)
+    (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
+    (hidxc : TbReadsAt rd (σv (.n 664)) vtIdxcList)
     {κ : ℕ} (hκ : σv (.n kv) = gen ^ κ) (hκμ : κ ≤ point.length)
     {off : ℕ} (hoff : σv (.n (vtBoffV b)) = gen ^ off) (hal : 2 ^ κ ∣ off)
     (hob : off < 2 ^ point.length)
@@ -274,12 +274,12 @@ theorem vtc_fwblock (hl : args.length = 20) {w b kv pos : ℕ} {prev : Option �
     (by simp [vtFwSelT])
   have g6 := hG (.atom (.hint (.allocDyn (.n (w + 6)) (.n (w + 5))))) (by simp [vtFwSelT])
   have g7 := hG (.atom (.mul (.n (w + 7)) (.n (w + 6)) (.n kv))) (by simp [vtFwSelT])
-  have g8 := hG (.atom (.mul (.n (w + 8)) (.n 703) (.n kv))) (by simp [vtFwSelT])
-  have g9 := hG (.atom (.mul (.n (w + 9)) (.n 668) (.n kv))) (by simp [vtFwSelT])
+  have g8 := hG (.atom (.mul (.n (w + 8)) (.n 699) (.n kv))) (by simp [vtFwSelT])
+  have g9 := hG (.atom (.mul (.n (w + 9)) (.n 664) (.n kv))) (by simp [vtFwSelT])
   simp only [fixNe, GoodS, Good, show ¬ (w < 9 ∧ kv < 9) from fun h ↦ by omega,
     show w + 6 < w + 7 ∧ kv < w + 7 from ⟨by omega, by omega⟩,
-    show (703 : ℕ) < w + 8 ∧ kv < w + 8 from ⟨by omega, by omega⟩,
-    show (668 : ℕ) < w + 9 ∧ kv < w + 9 from ⟨by omega, by omega⟩,
+    show (699 : ℕ) < w + 8 ∧ kv < w + 8 from ⟨by omega, by omega⟩,
+    show (664 : ℕ) < w + 9 ∧ kv < w + 9 from ⟨by omega, by omega⟩,
     show w + 1 < w + 2 by omega, ↓reduceIte] at g0 g1 g2 g6 g7 g8 g9
   have ew : σv (.n w) = gen ^ d := by
     rw [g0, hmu, hκ, hpl, ← pow_sub₀ _ gen_ne_zero (by omega : κ ≤ κ + d), Nat.add_sub_cancel_left]

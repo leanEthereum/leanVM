@@ -99,7 +99,7 @@ theorem noMoves_sampleQueriesAux (depth : ℕ) : ∀ fuel rem, NoMoves (sampleQu
 
 /-- An expectation over `sample_queries` only sees position lists of the requested length below
 `2^depth`. -/
-theorem retExp_sampleQueriesAux_restrict_len (depth : ℕ) (h1 : 1 ≤ depth) (h192 : depth ≤ 192)
+theorem retExp_sampleQueriesAux_restrict_len (depth : ℕ) (h1 : 1 ≤ depth) (h128 : depth ≤ 128)
     (g : List ℕ → List Ev → ENNReal) :
     ∀ fuel rem, rem ≤ fuel → ∀ h₀ l, retExp g h₀ l (sampleQueriesAux depth fuel rem) =
       retExp (fun qs h ↦ if (∀ q ∈ qs, q < 2 ^ depth) ∧ qs.length = rem then g qs h else 0) h₀ l
@@ -114,24 +114,24 @@ theorem retExp_sampleQueriesAux_restrict_len (depth : ℕ) (h1 : 1 ≤ depth) (h
       subst h0
       simp [retExp]
     · rename_i h0
-      have hn1 : 1 ≤ min (192 / depth) rem :=
-        le_min ((Nat.one_le_div_iff (by omega)).mpr h192) (by omega)
-      have hnr : min (192 / depth) rem ≤ rem := min_le_right _ _
+      have hn1 : 1 ≤ min (128 / depth) rem :=
+        le_min ((Nat.one_le_div_iff (by omega)).mpr h128) (by omega)
+      have hnr : min (128 / depth) rem ≤ rem := min_le_right _ _
       simp only [bind_eq, pure_eq]
       rw [show sampleChallenge = (sample ret : VerifierProgram E) from rfl, VerifierProgram.bind]
       simp only [retExp, ret_bind]
       congr 1
       refine Finset.sum_congr rfl fun c _ ↦ ?_
       rw [retExp_bind, retExp_bind]
-      rw [retExp_sampleQueriesAux_restrict_len depth h1 h192 _ fuel _ (by omega) h₀ _]
-      conv_rhs => rw [retExp_sampleQueriesAux_restrict_len depth h1 h192 _ fuel _ (by omega) h₀ _]
+      rw [retExp_sampleQueriesAux_restrict_len depth h1 h128 _ fuel _ (by omega) h₀ _]
+      conv_rhs => rw [retExp_sampleQueriesAux_restrict_len depth h1 h128 _ fuel _ (by omega) h₀ _]
       congr 1
       funext rest h
       simp only [retExp]
-      by_cases hr : (∀ q ∈ rest, q < 2 ^ depth) ∧ rest.length = rem - min (192 / depth) rem
-      · have hall : (∀ q ∈ (List.range (min (192 / depth) rem)).map
+      by_cases hr : (∀ q ∈ rest, q < 2 ^ depth) ∧ rest.length = rem - min (128 / depth) rem
+      · have hall : (∀ q ∈ (List.range (min (128 / depth) rem)).map
             (fun k ↦ (eToNat c >>> (k * depth)) % 2 ^ depth) ++ rest, q < 2 ^ depth) ∧
-            ((List.range (min (192 / depth) rem)).map
+            ((List.range (min (128 / depth) rem)).map
             (fun k ↦ (eToNat c >>> (k * depth)) % 2 ^ depth) ++ rest).length = rem := by
           refine ⟨fun q hq ↦ ?_, by
             simp only [List.length_append, List.length_map, List.length_range, hr.2]; omega⟩
@@ -150,15 +150,11 @@ def queryFrag (depth t i : ℕ) : VerifierProgram (List ℕ × E × List (List K
   sampleQueries depth t >>= fun qs ↦ sampleChallenge >>= fun lam ↦ queryOpenings i qs >>= fun words ↦
     VerifierProgram.ret (qs, lam, words)
 
-theorem noMoves_queryFrag (depth t i : ℕ) : NoMoves (queryFrag depth t i) :=
-  (noMoves_sampleQueriesAux depth t t).bind fun _ ↦ noMoves_sampleE.bind fun _ ↦
-    (noMoves_queryP i _).bind fun _ ↦ NoMoves.ret _
-
 /-- **The query group's expectation.** For a function `F` of the group's values, if every
 in-range position list has `avg_λ F(qs, λ, W(qs)) ≤ allIn S qs + ε` (the rows read from the
 word `W` of commitment `i`), the expectation over the group is at most
 `(|S ∩ [0, 2^depth)| / 2^depth)^t + ε`. -/
-theorem retExp_queryFrag_le (depth t i : ℕ) (h1 : 1 ≤ depth) (h192 : depth ≤ 192)
+theorem retExp_queryFrag_le (depth t i : ℕ) (h1 : 1 ≤ depth) (h128 : depth ≤ 128)
     (h₀ : List Ev) {wd : ℕ} {W : Word} (hc : (commits h₀)[i]? = some (depth, wd, W))
     (F : List ℕ × E × List (List K) → ENNReal) (S : ℕ → Prop) [DecidablePred S] (ε : ENNReal)
     (hF : ∀ qs : List ℕ, (∀ q ∈ qs, q < 2 ^ depth) → qs.length = t →
@@ -189,7 +185,7 @@ theorem retExp_queryFrag_le (depth t i : ℕ) (h1 : 1 ≤ depth) (h192 : depth �
         | none => 0)) (sampleQueries depth t) h₀ []
   simp only [answer] at hcom ⊢
   rw [hcom, List.append_nil, sampleQueries,
-    retExp_sampleQueriesAux_restrict_len depth h1 h192 _ t t le_rfl]
+    retExp_sampleQueriesAux_restrict_len depth h1 h128 _ t t le_rfl]
   calc _ ≤ retExp (fun qs _ ↦ allIn S qs + ε) h₀ [] (sampleQueriesAux depth t t) := by
         refine retExp_mono (fun qs _ ↦ ?_) _ _ _
         split_ifs with hr
@@ -203,7 +199,7 @@ theorem retExp_queryFrag_le (depth t i : ℕ) (h1 : 1 ≤ depth) (h192 : depth �
         retExp_le_add (fun _ _ ↦ le_rfl) _ _ _
     _ ≤ _ := by
         gcongr
-        exact retExp_sampleQueries_le depth t h1 h192 S h₀ []
+        exact retExp_sampleQueries_le depth t h1 h128 S h₀ []
 
 end
 end LeanVM.Protocol.Whir.Sound

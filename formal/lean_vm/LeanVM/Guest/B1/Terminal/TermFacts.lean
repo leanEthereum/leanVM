@@ -10,16 +10,17 @@ module
 public import LeanVM.Guest.B1.Terminal.Holds
 public import LeanVM.Guest.B1.Fwd.Canon
 public import LeanVM.Guest.B1.Tables.FlatAt
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `check_opening_terminal`'s body, for completeness
 
 `termPre`, the body before its `ret` (`term_body'`): the head, the selectors, the claims' blocks
 (`termClaims.1`) and the tail before its `ret`. By kernel evaluation: it defines its values in
-order (`term_chk`, `1782` values), its only stores are the public input's chain's first two words
-(`term_stores`), it is flat, takes no address, allocates its four buffers (`term_allocs`: the
-prefix chains at `zeta` and `chi`, the public input's chain, the outputs' chain) and makes its 107
-calls in order (`term_callSF`).
+order (`term_chk`, `1715` values), its only stores are the public input's chain's first two words
+(`term_stores`), it is flat, takes no address, allocates its five buffers (`term_allocs`: the
+prefix chains at `zeta` and `chi`, the public input's chain, the outputs' chain, the out-of-domain
+claim's chain) and makes its 101 calls in order (`term_callSF`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -30,44 +31,46 @@ open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 /-- The tail before its `ret`. -/
-def termTailPre : List Stmt := (termTailT 1766 1764 1765).dropLast
+def termTailPre : List Stmt := (termTailT 1694 1692 1693).dropLast
 
 /-- **`check_opening_terminal`'s statements before its `ret`.** -/
 def termPre : List Stmt := termHeadT ++ selsT ++ termClaims.1 ++ termTailPre
 
-theorem termTail_split : termTailT 1766 1764 1765 = termTailPre ++ [.ret []] := by
+theorem termTail_split : termTailT 1694 1692 1693 = termTailPre ++ [.ret []] := by
   simp only [termTailPre, termTailT]; rfl
 
 theorem termT_split : termT = termPre ++ [.ret []] := by
   rw [termT, termClaims_end, termTail_split, termPre]
   simp only [List.append_assoc]
 
-theorem find_term : coreProgram.find? "check_opening_terminal" = some Data.core17 :=
-  Program.find?_of_indexOf? (j := 17) (by decide +kernel) rfl
+theorem find_term : coreProgram.find? "check_opening_terminal" = some fn% «check_opening_terminal»
+    :=
+  coreProgram_find?_at (j := idx% «check_opening_terminal») rfl
 
-theorem term_body' : Data.core17.body = termPre ++ [.ret []] := by
+theorem term_body' : (fn% «check_opening_terminal»).body = termPre ++ [.ret []] := by
   obtain ⟨fn, hf, -, hb⟩ := termFound
   rw [find_term, Option.some.injEq] at hf
   subst hf
   exact hb.trans termT_split
 
-theorem term_params : Data.core17.params = (List.range 18).map Core.V.n := by
+theorem term_params : (fn% «check_opening_terminal»).params = (List.range 20).map Core.V.n := by
   obtain ⟨fn, hf, hp, -⟩ := termFound
   rw [find_term, Option.some.injEq] at hf
   subst hf
-  exact hp
+  rw [hp]; rfl
 
-theorem term_chk : chk 18 termT = some 1782 := by decide +kernel
+theorem term_chk : chk 20 termT = some 1715 := by decide +kernel
 
-theorem term_stores : storesOf 18 termT =
-    [.load (.n 25) (.n 24) 0, .load (.n 27) (.n 24) 1] := by decide +kernel
+theorem term_stores : storesOf 20 termT =
+    [.load (.n 27) (.n 26) 0, .load (.n 29) (.n 26) 1] := by decide +kernel
 
 theorem term_flat : termPre.all Stmt.flat = true := by decide +kernel
 
 theorem term_addrs : termPre.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
 theorem term_allocs : termPre.filterMap Main.Stmt.allocSz =
-    [(.n 18, .inl 35), (.n 20, .inl 35), (.n 24, .inl 35), (.n 1766, .inl 41)] := by decide +kernel
+    [(.n 20, .inl 35), (.n 22, .inl 35), (.n 26, .inl 35), (.n 1694, .inl 41), (.n 1709, .inl 31)] := by
+  decide +kernel
 
 theorem term_not_loop : coreProgram.loop "check_opening_terminal" = false := by decide +kernel
 
@@ -91,22 +94,23 @@ theorem claims_noDisp : termClaims.1.all noDispB = true := by decide +kernel
 theorem tail_noDisp : termTailPre.all noDispB = true := by decide +kernel
 
 theorem head_callS : termHeadT.filterMap Main.Stmt.callS =
-    [(none, "eq_prefix_chain", [.n 18, .n 19, .n 1, .n 14, .n 4], []),
-      (none, "eq_prefix_chain", [.n 20, .n 21, .n 2, .n 14, .n 5], []),
-      (some (.n 29), "__loop14", [.n 30, .n 6, .n 24, .n 14], []),
-      (none, "selector_tables", [.n 13, .n 14], [.n 41])] := by decide +kernel
+    [(none, "eq_prefix_chain", [.n 20, .n 21, .n 1, .n 14, .n 4], []),
+      (none, "eq_prefix_chain", [.n 22, .n 23, .n 2, .n 14, .n 5], []),
+      (some (.n 31), name% «check_opening_terminal_loop0», [.n 32, .n 6, .n 26, .n 14], []),
+      (none, "selector_tables", [.n 13, .n 14], [.n 43])] := by decide +kernel
 
 theorem claims_callS : termClaims.1.filterMap Main.Stmt.callS = [] := by decide +kernel
 
 theorem tail_callS : termTailPre.filterMap Main.Stmt.callS =
-    [(none, "eq_prefix_chain", [.n 1766, .n 1767, .n 11, .n 14, .n 1769], []),
-      (none, "ring_switch_weight", [.n 1771, .n 14, .n 12, .n 1773], [.n 1774])] := by
+    [(none, "eq_prefix_chain", [.n 1694, .n 1695, .n 11, .n 14, .n 1697], []),
+      (none, "ring_switch_weight", [.n 1699, .n 14, .n 12, .n 1701], [.n 1702]),
+      (none, "eq_prefix_chain", [.n 1709, .n 1710, .n 18, .n 14, .n 19], [])] := by
   decide +kernel
 
 /-- Committed column `c`'s selector's call. -/
 noncomputable def selCall (σ : Val) (c : ℕ) : Option V × String × List V × List V :=
   (none, colSelNames.getD (logG (σ (.n (selKap c).2.1))) "",
-    [.n (selStart c), .n 41, .n ((selKap c).2.2 + 1)], [.n (selV c)])
+    [.n (selStart c), .n 43, .n ((selKap c).2.2 + 1)], [.n (selV c)])
 
 theorem kapT_callSF (σ : Val) (src adj r : ℕ) : (kapT src adj r).1.filterMap (Stmt.callSF σ) = [] := by
   unfold kapT; split <;> rfl
@@ -127,13 +131,14 @@ theorem sels_callSF (σ : Val) :
 
 /-- **The calls, in order.** -/
 theorem term_callSF (σ : Val) : termPre.filterMap (Stmt.callSF σ) =
-    [(none, "eq_prefix_chain", [.n 18, .n 19, .n 1, .n 14, .n 4], []),
-      (none, "eq_prefix_chain", [.n 20, .n 21, .n 2, .n 14, .n 5], []),
-      (some (.n 29), "__loop14", [.n 30, .n 6, .n 24, .n 14], []),
-      (none, "selector_tables", [.n 13, .n 14], [.n 41])] ++
+    [(none, "eq_prefix_chain", [.n 20, .n 21, .n 1, .n 14, .n 4], []),
+      (none, "eq_prefix_chain", [.n 22, .n 23, .n 2, .n 14, .n 5], []),
+      (some (.n 31), name% «check_opening_terminal_loop0», [.n 32, .n 6, .n 26, .n 14], []),
+      (none, "selector_tables", [.n 13, .n 14], [.n 43])] ++
     (List.range Tables.nCommittedCols).map (selCall σ) ++
-    [(none, "eq_prefix_chain", [.n 1766, .n 1767, .n 11, .n 14, .n 1769], []),
-      (none, "ring_switch_weight", [.n 1771, .n 14, .n 12, .n 1773], [.n 1774])] := by
+    [(none, "eq_prefix_chain", [.n 1694, .n 1695, .n 11, .n 14, .n 1697], []),
+      (none, "ring_switch_weight", [.n 1699, .n 14, .n 12, .n 1701], [.n 1702]),
+      (none, "eq_prefix_chain", [.n 1709, .n 1710, .n 18, .n 14, .n 19], [])] := by
   rw [termPre, List.filterMap_append, List.filterMap_append, List.filterMap_append,
     callSF_of_noDisp σ head_noDisp, head_callS, sels_callSF, callSF_of_noDisp σ claims_noDisp,
     claims_callS, callSF_of_noDisp σ tail_noDisp, tail_callS, List.append_nil]

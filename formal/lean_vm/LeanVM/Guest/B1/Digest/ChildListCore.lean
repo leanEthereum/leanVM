@@ -33,16 +33,19 @@ variable {rd : Reader}
 
 /-- `child_claim_list_last__L{k}`'s atoms. -/
 noncomputable def cclAtoms (k : ℕ) : List Atom :=
-  ((splitBody (coreProgram.getD (338 + k) default).body).map (·.1)).getD []
+  ((splitBody (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body).map
+      (·.1)).getD []
 
 set_option maxRecDepth 100000 in
 theorem ccl_shape_all : ∀ k < 17, ((cclAtoms k).all (fun a => !Memory.atomAllocB a &&
-    (Memory.atomAddr? a).isNone) && ((coreProgram.getD (338 + k) default).loop == false)) = true := by
+    (Memory.atomAddr? a).isNone) && ((coreProgram.getD (idx% «child_claim_list_last__L0» + k)
+        default).loop == false)) = true := by
   decide +kernel
 
 theorem ccl_name {k : ℕ} (hk : k < 17) :
-    coreProgram.find? (cclNames.getD k "") = some (coreProgram.getD (338 + k) default) :=
-  find_of_idx (ccl_idx k hk) (by rw [coreProgram_length]; omega)
+    coreProgram.find? (cclNames.getD k "") = some (coreProgram.getD
+        (idx% «child_claim_list_last__L0» + k) default) :=
+  find_of_idx (ccl_idx k hk)
 
 theorem ccl_loop {k : ℕ} (hk : k < 17) : coreProgram.loop (cclNames.getD k "") = false := by
   rw [Program.loop_of_find? (ccl_name hk)]
@@ -68,12 +71,14 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
     (hsp : sp = gen ^ sP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
     {n : ℕ} {pre : List UInt8} (hpre : pre.length = rate * n)
     (hS : StateAt rd sp 0 (absorbChunks n zeroState pre)) {os : ℕ → ℕ} {cells : List E}
-    (hl : cells.length = 4 * k) (hc : AllCanonical cells)
+    (hl : cells.length = 4 * k)
     (hrec : RecMem rd region (gen ^ L) entries marks k os cells)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L) :
     ∃ (vs : List V) (σ : Val),
-      (coreProgram.getD (338 + k) default).body = (cclAtoms k).map Stmt.atom ++ [.ret vs] ∧
-      (coreProgram.getD (338 + k) default).params.map σ = [sp, entries, region, marks, last] ∧
+      (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body = (cclAtoms k).map
+          Stmt.atom ++ [.ret vs] ∧
+      (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).params.map σ = [sp,
+          entries, region, marks, last] ∧
       (∀ a ∈ cclAtoms k, a.Holds rd σ) ∧
       vs.map σ = digestCells (keccak256 (pre ++ cellsBytes cells)) ∧
       ∀ q ∈ (cclAtoms k).filterMap Memory.atomLoad?,
@@ -83,7 +88,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
           (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * os j + c)) := by
   have hok := ccl_all k hk
   have hcok := ccc_all hk
-  set fn := coreProgram.getD (338 + k) default
+  set fn := coreProgram.getD (idx% «child_claim_list_last__L0» + k) default
   simp only [cclOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   simp only [cccOk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
@@ -97,7 +102,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
     rw [hatoms]
     simp only [Bool.and_eq_true, List.all_eq_true, List.mem_range] at hok hcok
     obtain ⟨⟨⟨hck, hret⟩, -⟩, hst⟩ := hok
-    obtain ⟨⟨⟨hcan, hedge⟩, hrecs⟩, -⟩ := hcok
+    obtain ⟨⟨hedge, hrecs⟩, -⟩ := hcok
     obtain ⟨hSt, hst0, -, htl⟩ := edge_parts hedge
     set S := storesOf 5 fn.body with hSdef
     let args : List E := [sp, entries, region, marks, last]
@@ -129,10 +134,9 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
       simp only [stLoadsOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hst
       rw [load_val (hst.2 c c.isLt) hg (hnSl rfl (by have := c.isLt; omega)), e0,
         rdAt_of_load (hS c)]
-    have hA := ccA_canon (o0 := 5) hidx hl hc (by simp [cclSt]) vst vc
     have hat : ∀ a ∈ atoms, a.Holds rd σ := by
       refine blockW_holds (c := 5) (ss := fn.body) (p0 := 0) (stp := 0) (outs := [])
-        hidx (canonChk_of_canonGoB hcan) hg hA hedge hside ?_
+        hg hedge hside ?_
         (fun a _ h => (isStSt_nil h).elim) (fun _ a _ h => (isStSt_nil h).elim)
       intro a ha h haS
       cases a <;> simp only [isStLd, Bool.false_eq_true, Bool.and_eq_true, beq_iff_eq,
@@ -141,7 +145,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
       have hv := hS ⟨off, h.2⟩
       rw [Nat.zero_add, ← hpv h.1] at hv
       exact load_holds_of haS (hg _ ha) hv
-    obtain ⟨hd, -⟩ := chain_final hck rfl hat hpre
+    have hd := chain_final hck rfl hat hpre
       (initCell_of_loads rfl hst hat (by rw [e0]; exact hS))
     have hv : ((cclSpec k atoms).vals σ).take ((cclSpec k atoms).len / 16) = cells := by
       have : (cclSpec k atoms).vals σ = cells := ccMsg_vals hl vc

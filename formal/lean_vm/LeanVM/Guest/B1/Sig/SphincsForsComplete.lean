@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsForsComplete
 
-  The FORS block of `verify_sig_lean_sphincs` (`sp_fors_tree`, `lean_ethereum.py:3842-3863`, and
-  `T_k`, `lean_ethereum.py:4031-4036`, at leanVM main 40f877dc) is complete: each tree's secret and the
+  The FORS block of `verify_sig_lean_sphincs` (`sp_fors_tree`, `lean_ethereum.py:4034-4055`, and
+  `T_k`, `lean_ethereum.py:4226-4228`) is complete: each tree's secret and the
   ordered children of its levels hinted, the FORS key is `T_k` of the roots.
 -/
 
@@ -44,11 +44,7 @@ theorem fRootE_congr {pp a0 A1 : E} {c s : Nat} {secret : E} {sib sib' : Nat →
   unfold fNodeE
   rw [h j hj]
 
-theorem canon_fAdrE {A1 : E} (h : IsCanonical128 A1) (c z s : Nat) : IsCanonical128 (fAdrE A1 c z s) :=
-  canon_add h (canon_word _ _)
-
 /-! ## Shapes -/
-
 
 /-- `a + const(w)` is a sequential block whose value is below its next base. -/
 theorem sAddK_seq {a : V} {k : Nat} {w : E} {x : Nat} (ha : NBv x a) :
@@ -122,26 +118,20 @@ theorem sForsLevels_le (pad : Nat) (pp a0 a1 : V) (bit val : Nat → V) (c : Nat
 /-! ## The levels -/
 
 /-- **A FORS tree's levels complete** from level `z` (base `x`), `m` levels up to `10`: each level's
-children hinted in the order of the leaf `s`'s bit, the siblings `sib` read back, the node reached
-canonical. -/
+children hinted in the order of the leaf `s`'s bit, the siblings `sib` read back. -/
 theorem sForsLevels_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c s : Nat}
-    (hc : c < 24) (hs : s < 2 ^ 10) {sib : Nat → E} (hsib : ∀ j, IsCanonical128 (sib j)) :
+    (hc : c < 24) (hs : s < 2 ^ 10) {sib : Nat → E} :
     ∀ (m z : Nat) (cur : V) (x : Nat) (σ : Val), z + m ≤ 10 → pad + 5 ≤ x → NBv x pp →
       NBv x a0 → NBv x a1 → (∀ j < 10, NBv x (bit (10 * c + j))) →
       (∀ j < 10, NBv x (val (10 * c + j))) → NBv x cur → PadOK σ pad →
-      IsCanonical128 (σ pp) → IsCanonical128 (σ a0) → IsCanonical128 (σ a1) →
-      IsCanonical128 (σ cur) →
       (∀ j < 10, σ (bit (10 * c + j)) = if s.testBit j then 1 else 0) →
       (∀ j < 10, σ (val (10 * c + j)) = eOfNat (fIdx c j s)) →
       Completes C rd x (sForsLevels pad pp a0 a1 bit val c m z cur x).2.1
         (sForsLevels pad pp a0 a1 bit val c m z cur x).1 σ
-        (fun σ' => AgreeBelow x σ σ' ∧
-          IsCanonical128 (σ' (sForsLevels pad pp a0 a1 bit val c m z cur x).2.2) ∧
-          ∀ j, z ≤ j → j < z + m → sForsSib σ' bit c m z x j = sib j)
-  | 0, z, cur, x, σ, _, _, _, _, _, _, _, hcur, _, _, _, _, hcc, _, _ =>
-      ⟨σ, Ext.refl _ _ _, ⟨fun _ _ => rfl, hcc, fun j h1 h2 => by omega⟩, fun _ _ hn => hn⟩
-  | m + 1, z, cur, x, σ, hm, hpx, hpp, ha0, ha1, hbn, hvn, hcur, hp, hppc, ha0c, ha1c, hcc, hbit,
-      hval => by
+        (fun σ' => AgreeBelow x σ σ' ∧ ∀ j, z ≤ j → j < z + m → sForsSib σ' bit c m z x j = sib j)
+  | 0, _, _, _, σ, _, _, _, _, _, _, _, _, _, _, _ =>
+      ⟨σ, Ext.refl _ _ _, ⟨fun _ _ => rfl, fun j h1 h2 => by omega⟩, fun _ _ hn => hn⟩
+  | m + 1, z, cur, x, σ, hm, hpx, hpp, ha0, ha1, hbn, hvn, hcur, hp, hbit, hval => by
       rw [sForsLevels_succ, sForsLevel_eq]
       set A := sForsAt a1 val c (z + 1) (x + 4) with hA
       obtain ⟨hseqA, hadrA⟩ := sForsAt_seq (a1 := a1) (val := val) (c := c) (z := z + 1) (x := x + 4)
@@ -149,12 +139,8 @@ theorem sForsLevels_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c
         (fun h1 => (hvn (z + 1 + 8) (by omega)).mono' (by omega))
       have hnext := sForsAt_next a1 val c z x (by omega)
       rw [← hA] at hseqA hadrA hnext
-      have hlev := pairNode_complete (C := C) (rd := rd) "sp_fors_nodes" σ hp hpx hpp ha0
-        (hbn z (by omega)) hcur hseqA hadrA (bt := s.testBit z) (hbit z (by omega)) (hsib z) hcc
-        hppc ha0c (fun σ' hag hAt => by
-          rw [hA, sForsAt_sound hc (by omega) hs
-            (fun j hj => by rw [hag.apply (hvn j hj)]; exact hval j hj) hAt, hag.apply ha1]
-          exact canon_fAdrE ha1c _ _ _)
+      have hlev := pairNode_complete (C := C) (rd := rd) "sp_fors_nodes" σ hpx hpp ha0
+        (hbn z (by omega)) hcur hseqA hadrA (bt := s.testBit z) (sib := sib z) (hbit z (by omega))
       have hle := hseqA.le
       have hx18 : x + forsLevelWidth c z = A.2.1 + 5 := by
         have : 9 ≤ forsLevelWidth c z := by unfold forsLevelWidth forsLevelW; omega
@@ -193,14 +179,12 @@ theorem sForsLevels_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c
       have hp1 : PadOK σ1 pad := hp.congr hpx hag1
       have hlv := level_sound hp1 hib1
         (hA1.left.left.sub fun t ht => List.mem_append_right _ ht) hA1.right
-      have hcan1 : IsCanonical128 (σ1 (.n (A.2.1 + 4))) := by rw [hlv]; exact canon_hcellFst _
-      have ih := sForsLevels_complete hc hs hsib m (z + 1) (.n (A.2.1 + 4)) (A.2.1 + 5) σ1
+      have ih := sForsLevels_complete (sib := sib) hc hs m (z + 1) (.n (A.2.1 + 4)) (A.2.1 + 5) σ1
         (by omega) (by omega) (hpp.mono' (by omega)) (ha0.mono' (by omega)) (ha1.mono' (by omega))
         (fun j hj => (hbn j hj).mono' (by omega)) (fun j hj => (hvn j hj).mono' (by omega))
-        ⟨A.2.1 + 4, by omega, rfl⟩ hp1 (by rw [t1 _ hpp]; exact hppc) (by rw [t1 _ ha0]; exact ha0c)
-        (by rw [t1 _ ha1]; exact ha1c) hcan1 (fun j hj => by rw [t1 _ (hbn j hj)]; exact hbit j hj)
+        ⟨A.2.1 + 4, by omega, rfl⟩ hp1 (fun j hj => by rw [t1 _ (hbn j hj)]; exact hbit j hj)
         (fun j hj => by rw [t1 _ (hvn j hj)]; exact hval j hj)
-      refine ih.mono le_rfl le_rfl (fun σ' ⟨hag', hc', hs'⟩ => ⟨?_, hc', ?_⟩)
+      refine ih.mono le_rfl le_rfl (fun σ' ⟨hag', hs'⟩ => ⟨?_, ?_⟩)
       · exact fun j hj => (hag1 j hj).trans (hag' j (by omega))
       · intro j hj1 hj2
         by_cases hjz : j = z
@@ -246,11 +230,9 @@ theorem sForsTree_atoms (pad : Nat) (pp a0 a1 : V) (bit val : Nat → V) (c b : 
 /-- **FORS tree `c` completes** from base `b`: its secret hinted at `b`, its levels' children in the
 order of the leaf `s`'s bits; the secret and the siblings `sib` read back. -/
 theorem sForsTree_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c s b : Nat}
-    (hc : c < 24) (hs : s < 2 ^ 10) {secret : E} (hsec : IsCanonical128 secret) {sib : Nat → E}
-    (hsib : ∀ j, IsCanonical128 (sib j)) (σ : Val) (hpb : pad + 5 ≤ b) (hpp : NBv b pp)
-    (ha0 : NBv b a0) (ha1 : NBv b a1) (hbn : ∀ j < 10, NBv b (bit (10 * c + j)))
-    (hvn : ∀ j < 10, NBv b (val (10 * c + j))) (hp : PadOK σ pad) (hppc : IsCanonical128 (σ pp))
-    (ha0c : IsCanonical128 (σ a0)) (ha1c : IsCanonical128 (σ a1))
+    (hc : c < 24) (hs : s < 2 ^ 10) {secret : E} {sib : Nat → E} (σ : Val) (hpb : pad + 5 ≤ b)
+    (hpp : NBv b pp) (ha0 : NBv b a0) (ha1 : NBv b a1) (hbn : ∀ j < 10, NBv b (bit (10 * c + j)))
+    (hvn : ∀ j < 10, NBv b (val (10 * c + j))) (hp : PadOK σ pad)
     (hbit : ∀ j < 10, σ (bit (10 * c + j)) = if s.testBit j then 1 else 0)
     (hval : ∀ j < 10, σ (val (10 * c + j)) = eOfNat (fIdx c j s)) :
     Completes C rd b (sForsTree pad pp a0 a1 bit val c b).2.1 (sForsTree pad pp a0 a1 bit val c b).1 σ
@@ -282,18 +264,15 @@ theorem sForsTree_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c s
   have t2 : ∀ v, NBv b v → σ2 v = σ v := fun v hv =>
     (hag2.apply (hv.mono' (by omega))).trans (tk v hv)
   have hs2 : σ2 (.n b) = secret := (hag2.apply ⟨b, by omega, rfl⟩).trans hsr
-  have hadrv : σ2 A.2.2 = fAdrE (σ a1) c 0 s := by
-    rw [hA, sForsAt_sound hc (by norm_num) hs
-      (fun j hj => by rw [t2 _ (hvn j hj)]; exact hval j hj) hA2, t2 _ ha1]
   have hk := k64_complete (C := C) (rd := rd) (pad := pad) (m0 := pp) (m1 := a0) (m2 := A.2.2)
     (m3 := .n b) (c := A.2.1) σ2 (hp.congr hpb fun j hj => (t2 (.n j) ⟨j, hj, rfl⟩).symm)
     (by omega) (by
       simp only [List.mem_cons, List.not_mem_nil, or_false]
       rintro v (rfl | rfl | rfl | rfl)
-      · exact ⟨hpp.mono' (by omega), by rw [t2 _ hpp]; exact hppc⟩
-      · exact ⟨ha0.mono' (by omega), by rw [t2 _ ha0]; exact ha0c⟩
-      · exact ⟨hadrA, by rw [hadrv]; exact canon_fAdrE ha1c _ _ _⟩
-      · exact ⟨⟨b, by omega, rfl⟩, by rw [hs2]; exact hsec⟩)
+      · exact hpp.mono' (by omega)
+      · exact ha0.mono' (by omega)
+      · exact hadrA
+      · exact ⟨b, by omega, rfl⟩)
   have hnbk := k64_numBelow (pad := pad) (m0 := pp) (m1 := a0) (m2 := A.2.2) (m3 := .n b)
     (c := A.2.1) (by omega) (by
       simp only [List.mem_cons, List.not_mem_nil, or_false]
@@ -304,19 +283,18 @@ theorem sForsTree_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c s
       · exact ⟨b, by omega, rfl⟩)
   refine Completes.append (m := A.2.1 + 2) (by omega) hlv_le hnbk hk.withExt
     (fun σ3 he3 h3 => ?_)
-  obtain ⟨⟨-, hc3⟩, he3'⟩ := h3
+  obtain ⟨-, he3'⟩ := h3
   have hag3 : AgreeBelow A.2.1 σ2 σ3 := he3'.agree
   have t3 : ∀ v, NBv b v → σ3 v = σ v := fun v hv =>
     (hag3.apply (hv.mono' (by omega))).trans (t2 v hv)
   have hlvc := sForsLevels_complete (C := C) (rd := rd) (pad := pad) (pp := pp) (a0 := a0) (a1 := a1)
-    (bit := bit) (val := val) hc hs hsib 10 0 (.n (A.2.1 + 1)) (A.2.1 + 2) σ3 (by norm_num)
+    (bit := bit) (val := val) (sib := sib) hc hs 10 0 (.n (A.2.1 + 1)) (A.2.1 + 2) σ3 (by norm_num)
     (by omega) (hpp.mono' (by omega)) (ha0.mono' (by omega)) (ha1.mono' (by omega))
     (fun j hj => (hbn j hj).mono' (by omega)) (fun j hj => (hvn j hj).mono' (by omega))
     ⟨A.2.1 + 1, by omega, rfl⟩ (hp.congr hpb fun j hj => (t3 (.n j) ⟨j, hj, rfl⟩).symm)
-    (by rw [t3 _ hpp]; exact hppc) (by rw [t3 _ ha0]; exact ha0c) (by rw [t3 _ ha1]; exact ha1c)
-    hc3 (fun j hj => by rw [t3 _ (hbn j hj)]; exact hbit j hj)
+    (fun j hj => by rw [t3 _ (hbn j hj)]; exact hbit j hj)
     (fun j hj => by rw [t3 _ (hvn j hj)]; exact hval j hj)
-  refine hlvc.mono le_rfl le_rfl (fun σ' ⟨hag', _, hs'⟩ => ⟨?_, ?_, ?_⟩)
+  refine hlvc.mono le_rfl le_rfl (fun σ' ⟨hag', hs'⟩ => ⟨?_, ?_, ?_⟩)
   · intro j hj
     rw [← t3 (.n j) ⟨j, hj, rfl⟩]
     exact hag' j (by omega)
@@ -327,17 +305,15 @@ theorem sForsTree_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c s
 
 /-- **FORS tree `c`'s root**, completed: `fRootE` of the secret and siblings. -/
 theorem sForsTree_complete_val {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c s b : Nat}
-    (hc : c < 24) (hs : s < 2 ^ 10) {secret : E} (hsec : IsCanonical128 secret) {sib : Nat → E}
-    (hsib : ∀ j, IsCanonical128 (sib j)) (σ : Val) (hpb : pad + 5 ≤ b) (hpp : NBv b pp)
-    (ha0 : NBv b a0) (ha1 : NBv b a1) (hbn : ∀ j < 10, NBv b (bit (10 * c + j)))
-    (hvn : ∀ j < 10, NBv b (val (10 * c + j))) (hp : PadOK σ pad) (hppc : IsCanonical128 (σ pp))
-    (ha0c : IsCanonical128 (σ a0)) (ha1c : IsCanonical128 (σ a1))
+    (hc : c < 24) (hs : s < 2 ^ 10) {secret : E} {sib : Nat → E} (σ : Val) (hpb : pad + 5 ≤ b)
+    (hpp : NBv b pp) (ha0 : NBv b a0) (ha1 : NBv b a1) (hbn : ∀ j < 10, NBv b (bit (10 * c + j)))
+    (hvn : ∀ j < 10, NBv b (val (10 * c + j))) (hp : PadOK σ pad)
     (hbit : ∀ j < 10, σ (bit (10 * c + j)) = if s.testBit j then 1 else 0)
     (hval : ∀ j < 10, σ (val (10 * c + j)) = eOfNat (fIdx c j s)) :
     Completes C rd b (sForsTree pad pp a0 a1 bit val c b).2.1 (sForsTree pad pp a0 a1 bit val c b).1 σ
       (fun σ' => AgreeBelow b σ σ' ∧
         σ' (sForsTree pad pp a0 a1 bit val c b).2.2 = fRootE (σ pp) (σ a0) (σ a1) c s secret sib) := by
-  refine ((sForsTree_complete hc hs hsec hsib σ hpb hpp ha0 ha1 hbn hvn hp hppc ha0c ha1c hbit
+  refine ((sForsTree_complete (secret := secret) (sib := sib) hc hs σ hpb hpp ha0 ha1 hbn hvn hp hbit
     hval).withAtoms (sForsTree_atoms ..)).mono le_rfl le_rfl
     (fun σ' ⟨⟨hag, hsec', hsib'⟩, hA⟩ => ⟨hag, ?_⟩)
   have t : ∀ v, NBv b v → σ' v = σ v := fun v hv => hag.apply hv
@@ -460,13 +436,10 @@ theorem sForsTrees_nb {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {b0 : Nat
 /-- **The FORS trees complete** from tree `c`, `m` of them: tree `c + k`'s root is `fRootE` of its
 secret and siblings. -/
 theorem sForsTrees_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {b0 : Nat}
-    {s : Nat → Nat} (hs : ∀ c < 24, s c < 2 ^ 10) {secret : Nat → E}
-    (hsec : ∀ c, IsCanonical128 (secret c)) {sib : Nat → Nat → E}
-    (hsib : ∀ c j, IsCanonical128 (sib c j))
+    {s : Nat → Nat} (hs : ∀ c < 24, s c < 2 ^ 10) {secret : Nat → E} {sib : Nat → Nat → E}
     (hpb : pad + 5 ≤ b0 + 2) (hpp : NBv (b0 + 2) pp) (ha0 : NBv (b0 + 2) a0) (ha1 : NBv (b0 + 2) a1)
     (hbn : ∀ k < 240, NBv (b0 + 2) (bit k)) (hvn : ∀ k < 240, NBv (b0 + 2) (val k)) :
-    ∀ (m c : Nat) (σ : Val), c + m ≤ 24 → PadOK σ pad → IsCanonical128 (σ pp) →
-      IsCanonical128 (σ a0) → IsCanonical128 (σ a1) →
+    ∀ (m c : Nat) (σ : Val), c + m ≤ 24 → PadOK σ pad →
       (∀ c < 24, ∀ j < 10, σ (bit (10 * c + j)) = if (s c).testBit j then 1 else 0) →
       (∀ c < 24, ∀ j < 10, σ (val (10 * c + j)) = eOfNat (fIdx c j (s c))) →
       Completes C rd (forsTreeBase b0 c) (forsTreeBase b0 (c + m))
@@ -474,16 +447,16 @@ theorem sForsTrees_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {b0
         (fun σ' => AgreeBelow (forsTreeBase b0 c) σ σ' ∧ ∀ k < m,
           σ' (.n (forsRootPos b0 (c + k))) =
             fRootE (σ pp) (σ a0) (σ a1) (c + k) (s (c + k)) (secret (c + k)) (sib (c + k)))
-  | 0, c, σ, _, _, _, _, _, _, _ =>
+  | 0, c, σ, _, _, _, _ =>
       ⟨σ, Ext.refl _ _ _, ⟨fun _ _ => rfl, fun k hk => absurd hk (by omega)⟩, fun _ _ hn => hn⟩
-  | m + 1, c, σ, hcm, hp, hppc, ha0c, ha1c, hbit, hval => by
+  | m + 1, c, σ, hcm, hp, hbit, hval => by
       have h2 : b0 + 2 ≤ forsTreeBase b0 c := forsTreeBase_ge b0 c
       rw [sForsTrees_succ]
       have ht := sForsTree_complete_val (C := C) (rd := rd) (pad := pad) (pp := pp) (a0 := a0)
         (a1 := a1) (bit := bit) (val := val) (c := c) (s := s c) (b := forsTreeBase b0 c)
-        (by omega) (hs c (by omega)) (hsec c) (hsib c) σ (by omega) (hpp.mono' h2) (ha0.mono' h2)
-        (ha1.mono' h2) (fun j hj => (hbn _ (by omega)).mono' h2)
-        (fun j hj => (hvn _ (by omega)).mono' h2) hp hppc ha0c ha1c (hbit c (by omega))
+        (secret := secret c) (sib := sib c) (by omega) (hs c (by omega)) σ (by omega) (hpp.mono' h2)
+        (ha0.mono' h2) (ha1.mono' h2) (fun j hj => (hbn _ (by omega)).mono' h2)
+        (fun j hj => (hvn _ (by omega)).mono' h2) hp (hbit c (by omega))
         (hval c (by omega))
       have hnb := sForsTree_nb (pad := pad) (pp := pp) (a0 := a0) (a1 := a1) (bit := bit) (val := val)
         (c := c) (b := forsTreeBase b0 c) (by omega) (hpp.mono' h2) (ha0.mono' h2) (ha1.mono' h2)
@@ -496,9 +469,8 @@ theorem sForsTrees_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {b0
         (forsTreeBase_mono b0 (by omega)) (forsTreeBase_mono b0 (by omega)) hnb ht
         (fun σ1 he1 ⟨hag1, hr1⟩ => ?_)
       have t1 : ∀ v, NBv (b0 + 2) v → σ1 v = σ v := fun v hv => hag1.apply (hv.mono' h2)
-      have ih := sForsTrees_complete hs hsec hsib hpb hpp ha0 ha1 hbn hvn m (c + 1) σ1 (by omega)
-        (hp.congr hpb fun j hj => (t1 (.n j) ⟨j, hj, rfl⟩).symm) (by rw [t1 _ hpp]; exact hppc)
-        (by rw [t1 _ ha0]; exact ha0c) (by rw [t1 _ ha1]; exact ha1c)
+      have ih := sForsTrees_complete (secret := secret) (sib := sib) hs hpb hpp ha0 ha1 hbn hvn m (c + 1)
+        σ1 (by omega) (hp.congr hpb fun j hj => (t1 (.n j) ⟨j, hj, rfl⟩).symm)
         (fun c hc j hj => by rw [t1 _ (hbn _ (by omega))]; exact hbit c hc j hj)
         (fun c hc j hj => by rw [t1 _ (hvn _ (by omega))]; exact hval c hc j hj)
       rw [show c + 1 + m = c + (m + 1) by omega] at ih
@@ -514,19 +486,12 @@ theorem sForsTrees_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {b0
 
 /-! ## The FORS key -/
 
-theorem canon_fRootE (pp a0 A1 : E) (c s : Nat) (secret : E) (sib : Nat → E) :
-    IsCanonical128 (fRootE pp a0 A1 c s secret sib) := by
-  unfold fRootE pFold fNodeE
-  exact canon_hcellFst _
-
 /-- The FORS block after its trees, over any trees' statements `tr` ending at `b0 + 3802` with
 their roots at `forsRootPos`: `roots_at`, then `T_k`. -/
 theorem forsKey_complete_gen {pad : Nat} {pp a0 key : V} {b0 : Nat} (tr : List Stmt × Nat × List V)
     (ht1 : tr.2.1 = b0 + 3802) (ht2 : tr.2.2 = (List.range 24).map fun k => V.n (forsRootPos b0 (0 + k)))
     (hnb : NumBelow (b0 + 3802) (Stmt.valsList tr.1)) (σ : Val) (hp : PadOK σ pad)
-    (hpb : pad + 5 ≤ b0) (hpp : NBv b0 pp) (ha0 : NBv b0 a0) (hkey : NBv b0 key)
-    (hppc : IsCanonical128 (σ pp)) (ha0c : IsCanonical128 (σ a0)) (hkc : IsCanonical128 (σ key))
-    {roots : Nat → E} (hrc : ∀ k, IsCanonical128 (roots k))
+    (hpb : pad + 5 ≤ b0) (hpp : NBv b0 pp) (ha0 : NBv b0 a0) (hkey : NBv b0 key) {roots : Nat → E}
     (htr : ∀ σ1, AgreeBelow b0 σ σ1 → σ1 (.n (b0 + 1)) = σ key + lit (3 * 2 ^ 24) →
       Completes C rd (b0 + 2) (b0 + 3802) tr.1 σ1
         (fun σ' => AgreeBelow (b0 + 2) σ1 σ' ∧ ∀ k < 24, σ' (.n (forsRootPos b0 (0 + k))) = roots k)) :
@@ -604,18 +569,7 @@ theorem forsKey_complete_gen {pad : Nat} {pp a0 key : V} {b0 : Nat} (tr : List S
     rw [← hag3 j (by omega), t2 (.n j) ⟨j, hj, rfl⟩]
   obtain ⟨hk, -, -⟩ := kMsg_complete (C := C) (rd := rd) σ3 hp3 (b := b0 + 3802 + 2)
     (cells := vs.map KC.cell) (len := 432) (tailRun := true) (by omega)
-    (fun c hc => ⟨hvsb c hc, by
-      obtain ⟨v, hv, rfl⟩ := List.mem_map.mp hc
-      show IsCanonical128 (σ3 v)
-      have : σ3 v ∈ vs.map σ3 := List.mem_map_of_mem hv
-      rw [hval3] at this
-      simp only [List.cons_append, List.nil_append, List.mem_cons, List.mem_map,
-        List.mem_range] at this
-      rcases this with h | h | h | ⟨k, -, h⟩
-      · rw [h]; exact hppc
-      · rw [h]; exact ha0c
-      · rw [h]; exact canon_add hkc (canon_word _ _)
-      · rw [← h]; exact hrc k⟩)
+    hvsb
     (fun _ => tailCells_of_cells (by simp [hvs]) (by norm_num))
   refine (hk.withAtoms (kMsg_atoms ..)).withExt.mono le_rfl le_rfl
     (fun σ4 ⟨⟨_, hA4⟩, he4⟩ => ⟨?_, ?_⟩)
@@ -633,12 +587,10 @@ theorem forsKey_complete_gen {pad : Nat} {pp a0 key : V} {b0 : Nat} (tr : List S
 /-- **The FORS block completes** (its statements as `sForsBlock_eq` gives them) from `b0` (`fors_at`, the 24 trees at the leaves `s c` with their
 secrets and siblings hinted, `T_k`): the FORS key is `T_k` of the roots `fRootE`. -/
 theorem sForsBlock_complete {pad : Nat} {pp a0 key : V} {bit val : Nat → V} {b0 : Nat}
-    {s : Nat → Nat} (hs : ∀ c < 24, s c < 2 ^ 10) {secret : Nat → E}
-    (hsec : ∀ c, IsCanonical128 (secret c)) {sib : Nat → Nat → E}
-    (hsib : ∀ c j, IsCanonical128 (sib c j)) (σ : Val) (hp : PadOK σ pad) (hpb : pad + 5 ≤ b0)
+    {s : Nat → Nat} (hs : ∀ c < 24, s c < 2 ^ 10) {secret : Nat → E} {sib : Nat → Nat → E}
+    (σ : Val) (hp : PadOK σ pad) (hpb : pad + 5 ≤ b0)
     (hpp : NBv b0 pp) (ha0 : NBv b0 a0) (hkey : NBv b0 key) (hbn : ∀ k < 240, NBv b0 (bit k))
-    (hvn : ∀ k < 240, NBv b0 (val k)) (hppc : IsCanonical128 (σ pp)) (ha0c : IsCanonical128 (σ a0))
-    (hkc : IsCanonical128 (σ key))
+    (hvn : ∀ k < 240, NBv b0 (val k))
     (hbit : ∀ c < 24, ∀ j < 10, σ (bit (10 * c + j)) = if (s c).testBit j then 1 else 0)
     (hval : ∀ c < 24, ∀ j < 10, σ (val (10 * c + j)) = eOfNat (fIdx c j (s c))) :
     Completes C rd b0 (kMsg pad (([pp, a0, .n ((sForsTrees pad pp a0 (.n (b0 + 1)) bit val 24 0 (b0 + 2)).2.1 + 1)] ++
@@ -670,11 +622,10 @@ theorem sForsBlock_complete {pad : Nat} {pp a0 key : V} {bit val : Nat → V} {b
     intro σ1 hag1 e1
     have t1' : ∀ v, NBv b0 v → σ1 v = σ v := fun v hv => hag1.apply hv
     have htr := sForsTrees_complete (C := C) (rd := rd) (pad := pad) (pp := pp) (a0 := a0)
-      (a1 := .n (b0 + 1)) (bit := bit) (val := val) (b0 := b0) hs hsec hsib (by omega)
+      (a1 := .n (b0 + 1)) (bit := bit) (val := val) (b0 := b0) (secret := secret) (sib := sib) hs (by omega)
       (hpp.mono' (by omega)) (ha0.mono' (by omega)) ⟨b0 + 1, by omega, rfl⟩
       (fun k hk => (hbn k hk).mono' (by omega)) (fun k hk => (hvn k hk).mono' (by omega)) 24 0 σ1
-      (by norm_num) (hp.congr hpb hag1) (by rw [t1' _ hpp]; exact hppc)
-      (by rw [t1' _ ha0]; exact ha0c) (by rw [e1]; exact canon_add hkc (canon_word _ _))
+      (by norm_num) (hp.congr hpb hag1)
       (fun c hc j hj => by rw [t1' _ (hbn _ (by omega))]; exact hbit c hc j hj)
       (fun c hc j hj => by rw [t1' _ (hvn _ (by omega))]; exact hval c hc j hj)
     rw [e0, e24] at htr
@@ -683,7 +634,7 @@ theorem sForsBlock_complete {pad : Nat} {pp a0 key : V} {bit val : Nat → V} {b
     simp only [Nat.zero_add]
   exact forsKey_complete_gen (roots := fun c =>
       fRootE (σ pp) (σ a0) (σ key + lit (3 * 2 ^ 24)) c (s c) (secret c) (sib c))
-    _ t1 t2 hnb σ hp hpb hpp ha0 hkey hppc ha0c hkc (fun c => canon_fRootE ..) htrees
+    _ t1 t2 hnb σ hp hpb hpp ha0 hkey htrees
 
 end
 end LeanVM.Guest.B1.Sig

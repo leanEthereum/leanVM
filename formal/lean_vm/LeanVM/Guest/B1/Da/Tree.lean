@@ -41,11 +41,6 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 theorem toList_toBytes (d : Digest) : (LeanVM.Protocol.Digest.toBytes d).toList = digestBytes d := by
   simp [LeanVM.Protocol.Digest.toBytes, Vector.toList]
 
-theorem keccak_pair (a b : Digest) :
-    LeanVM.Da.keccak256Bytes (LeanDa.pairBytes (LeanVM.Protocol.Digest.toBytes a) (LeanVM.Protocol.Digest.toBytes b)) =
-      LeanVM.Protocol.Digest.toBytes (keccak256 (digestBytes a ++ digestBytes b)) := by
-  rw [LeanVM.Da.keccak256Bytes, LeanDa.pairBytes, toList_toBytes, toList_toBytes]
-
 /-! ## Trees of digests -/
 
 /-- One level up a tree of digests. -/

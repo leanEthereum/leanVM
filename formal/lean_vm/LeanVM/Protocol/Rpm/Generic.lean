@@ -6,8 +6,12 @@
   follows the duplex discipline: the step of `LeanVMRpm.lean`'s proof, for other verifiers.
 -/
 
-import LeanVM.Protocol.LeanVMRpm
-import LeanVM.Protocol.WithHash
+module
+
+public import LeanVM.Protocol.LeanVMRpm
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # The transfer, for any verifier
@@ -188,3 +192,5 @@ theorem romStep_eq (A : OracleComp KeccakCalls α) (V : α → OracleComp Keccak
   simp only [romStep, Functor.map_map]
 
 end LeanVM.Rpm
+
+end

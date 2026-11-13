@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsTopComplete
 
-  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3937-3948, 4041-4050` at
-  leanVM main 40f877dc) is complete for an honest signature: the root it reaches is the statement's.
+  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:4129-4140, 4233-4242`)
+  is complete for an honest signature: the root it reaches is the statement's.
 -/
 
 module
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Sig.SphincsHtComplete
 /-!
 # A layer of an honest signature, complete
 
-`layer_stage`: when the statement's layer `l` reaches `r` from the value of a canonical cell `S`
+`layer_stage`: when the statement's layer `l` reaches `r` from the value of a cell `S`
 (`LayerReaches`), and the valuation holds what the stages before leave (`BottomPost`), layer `l`'s
 key's address cells and `S` where the layer reads them, the layer completes with its root cell
 `layerRootCell` (whose value is `r`), its counter hinted as `BE_32` of the signature's, the call of
@@ -37,7 +37,7 @@ theorem layer_stage (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : MemO
     (hbb : ByteBits rd bb) {pk : Sphincs.PublicKey} {m : HashSig.Message} {sig : Sphincs.Signature}
     {l : Nat} (hl : l < 3) {S : E} {r : HashSig.Digest}
     (hr : LayerReaches pk.publicSeed (digestIdx pk m sig) sig ⟨l, hl⟩ (cellVal S) r)
-    (hS : IsCanonical128 S) (σ : Val) (h1 : σ (.n 1) = bb) (hbot : BottomPost bb pk m sig σ)
+    (σ : Val) (h1 : σ (.n 1) = bb) (hbot : BottomPost bb pk m sig σ)
     (ha0 : σ (sA0Of l) = adrsCell0 l (layerTreeN (digestT pk m sig) l))
     (ha1 : σ (sA1Of l) = adrsCell1 0 (layerLeafN (digestT pk m sig) l) 0 0)
     (hsg : σ (sSignedOf l) = S) :
@@ -63,15 +63,13 @@ theorem layer_stage (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : MemO
     rw [et, el] at hc
     exact hc
   have hL := sLayerBlk_complete (C := C) hB hm hbb hl (sig.layers ⟨l, hl⟩).counter.isLt
-    (e := layerLeafN (digestT pk m sig) l) (sib := layerSibCell sig ⟨l, hl⟩) σ h1 hp
-    (by rw [hpp]; exact isCanonical128_cellOf128 _) (by rw [ha0]; exact isCanonical128_cellOf128 _)
-    (by rw [ha1]; exact isCanonical128_cellOf128 _) (by rw [hsg]; exact hS)
-    (isCanonical128_cellOf128 _) hcall (layerLeafN_lt _ l)
+    (e := layerLeafN (digestT pk m sig) l) (sib := layerSibCell sig ⟨l, hl⟩) σ h1 hp hcall
+    (layerLeafN_lt _ l)
     (fun z hz => by
       rw [hd.leafBit (sOff_lt hl hz), testBit_layerLeafN, show sOffOf l = sLeafOff l from rfl]
       have hz' : z < sLeafLen l := hz
       simp only [hz', decide_true, Bool.true_and, bitE])
-    (fun z hz => hd.2.2.2.1 l hl z hz) (fun _ => isCanonical128_cellOf128 _)
+    (fun z hz => hd.2.2.2.1 l hl z hz)
   refine hL.mono le_rfl le_rfl fun σ' ⟨h3, h4⟩ => ⟨?_, h4⟩
   rw [h3, layerRootCell, hpp, ha0, et, el, sHeightOf_eq hl]
 

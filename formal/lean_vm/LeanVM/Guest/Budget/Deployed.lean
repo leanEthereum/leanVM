@@ -3,13 +3,14 @@
 
   The guest's completeness within the explicit budget `mainBudget` at the deployed frame sizes,
   certificates and counts (`B2C`), from what is still supplied by hypothesis: the static callees'
-  words (`MainStatics`), `main`'s callees' weights (`MainCounts`), `__loop2`'s arms (leanXMSS's check, inline) within
+  words (`MainStatics`), `main`'s callees' weights (`MainCounts`), `main_loop2`'s arms (leanXMSS's check, inline) within
   `C`, each child's `verify_sub` within `Bvf` at its announced stack log and rate, and the
   children's loop's instructions within `l5Lin`.
 -/
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Budget.Final
 public import LeanVM.Guest.B2C.B2Final
 public import LeanVM.Guest.B2C.RunsFit
@@ -33,15 +34,15 @@ open LeanVM.Guest.B1.Main (VerifySubGoalsTB MainStatics childBv mainPredsH hDvNH
 theorem guest_complete_budget {SB SK : String → ℕ} {Pvs : NodeWitness → ℕ → Tree → Prop} {Bvf : ℕ → ℕ → ℕ}
     (C : Opcode → ℕ)
     (hC : ∀ op σ bufs kids rd args rets,
-      (Memory.Tree.node "__loop2" σ bufs kids).Valid coreProgram rd args rets →
-        B2C.costW (listElementOrDefault Data.cplArms 37 []) σ (coreOf 37).body op ≤ C op)
+      (Memory.Tree.node name% «main_loop2» σ bufs kids).Valid coreProgram rd args rets →
+        B2C.costW (listElementOrDefault Data.cplArms (fn_idx% «main_loop2») []) σ (coreOf (fn_idx% «main_loop2»)).body op ≤ C op)
     (H : ∀ op, MainCounts (B2C.ωArm C op) B2C.fs) (hS : MainStatics B2C.fs SB SK)
     (hV : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
       ChildrenOk bytecode seed w →
       VerifySubGoalsTB B2C.fs B2C.cert 0 seed s w (Pvs w) (childBv Bvf w))
     (c5 s5 : Opcode → ℕ) (v5 : Opcode → ℕ → ℕ → ℕ)
     (h5 : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ∀ op (rd : Reader)
-      (t : Tree) (args rets : List E), t.name = "__loop4" → t.Valid coreProgram rd args rets →
+      (t : Tree) (args rets : List E), t.name = name% main_loop4 → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
         t.weight (B2C.ωArm C op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (End.work s w)) :
     GuestCompleteWithin (mainBudget B2C.fs SB SK Bvf (B2C.ωArm C) H c5 s5 v5 B2C.jtSets) :=

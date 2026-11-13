@@ -167,10 +167,6 @@ theorem cwState_weq (h : WEq W W' I) (b : Nat) : ∀ p, 3 * p ≤ I → cwState 
       simp only [cwState]
       rw [cwState_weq h b p (by omega), prodT_weq h, encT_weq h, groupT_snd_weq h _ _ _ _ (by omega)]
 
-theorem cwTip_weq (h : WEq W W' I) (b i : Nat) (hi : 3 * (i / 3) ≤ I) : cwTip W b i = cwTip W' b i := by
-  unfold cwTip
-  rw [cwState_weq h b _ hi, slotsT_weq h]
-
 theorem cwPos_weq (h : WEq W W' I) (G b : Nat) (K : Nat → Nat) (i : Nat) (hi : i < 3 * G + 1)
     (hG : 3 * G + 1 ≤ I) : cwPos W G b K i = cwPos W' G b K i := by
   have hn : cwN G (i / 3) ≤ 3 := by unfold cwN; split <;> norm_num

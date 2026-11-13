@@ -140,23 +140,6 @@ to the message the path sends. -/
 def commitVerdict (s : S) (path : (commitSlot M σ).tree.ExecutionPath) : Option U :=
   Q.verdict path.1 (D.verdict s (restPath path).toBranchPath)
 
-/-- The leaf, run against the handler after an execution path, returns the verdict. -/
-theorem simulateQ_commitLeaf (initial : PFunctor)
-    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : S)
-    (path : (commitSlot M σ).tree.ExecutionPath) :
-    simulateQ (Verifier.liftAccessImpl unifSpec _
-        (implAfter (commitSlot M σ).tree (commitSlot M σ).oracles initial impl path))
-      (commitLeaf D Q initial s (restPath path).toBranchPath) = pure (commitVerdict D Q s path) := by
-  change simulateQ (Verifier.liftAccessImpl unifSpec _ (implAfter σ.tree σ.oracles
-    (Access.extend initial _) (Access.extendImpl initial _ impl path.1) (restPath path))) _ = _
-  unfold commitLeaf commitVerdict
-  cases D.verdict s (restPath path).toBranchPath with
-  | none => simp [Question.verdict]
-  | some t =>
-    dsimp only
-    rw [simulateQ_map, simulateQ_priorQuery, map_pure]
-    rfl
-
 /-! ## Completeness -/
 
 variable {D Q} {relIn : S → M → Prop} {relOut : Set ((U × ∀ i, OneOracle M i) × Unit)}

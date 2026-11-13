@@ -16,7 +16,7 @@ public import LeanVM.Guest.ChildShape
 public import LeanVM.Semantics.KeccakCells
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import Statement.LeanVmGuest
 public import LeanVM.Guest.AcceptableChild
@@ -108,8 +108,8 @@ structure Budget where
 def sizeOf (words : ℕ) (instrs : Opcode → ℕ) : ℕ :=
   let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (instrs op)
   let keccakHeight : ℕ := 2 ^ max (Nat.clog 2 (instrs .keccak)) 9
-  4 * 2 ^ Memory.logMem words + 2 ^ guestProgram.logSize +
-    15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
+  3 * 2 ^ Memory.logMem words + 2 ^ guestProgram.logSize +
+    13 * height .xor + 13 * height .mulNative + 7 * height .setConstant + 14 * height .deref +
     14 * height .jump + 28 * keccakHeight + 2 ^ 6 * keccakHeight
 
 /-- The committed size of a run within the budget at the work `u`. -/
@@ -131,12 +131,15 @@ theorem sizeOf_mono {w w' : ℕ} {i i' : Opcode → ℕ} (hw : w ≤ w') (hi : �
   have := hh .jump
   omega
 
-/-- **A budget's words within its size**: the memory alone commits `4` words per word. -/
+/-- **A budget's words within its size**: the memory alone commits `3` words per word. -/
 theorem words_le_of_size {b : Budget} {u : Work} (h : b.size u ≤ 2 ^ 30) :
     b.words.eval u ≤ 2 ^ 28 := by
   have hm := Memory.le_two_pow_logMem (b.words.eval u)
-  have : 4 * 2 ^ Memory.logMem (b.words.eval u) ≤ b.size u := by
+  have : 3 * 2 ^ Memory.logMem (b.words.eval u) ≤ b.size u := by
     unfold Budget.size; dsimp only [sizeOf]; simp only [Nat.add_assoc]; exact Nat.le_add_right _ _
+  have hlt : 2 ^ Memory.logMem (b.words.eval u) < 2 ^ 29 := by omega
+  have hle : 2 ^ Memory.logMem (b.words.eval u) ≤ 2 ^ 28 :=
+    Nat.pow_le_pow_right (by norm_num) (Nat.lt_succ_iff.mp ((Nat.pow_lt_pow_iff_right (by norm_num)).mp hlt))
   omega
 
 /-- The committed size of a run on `2^logMem n` words is `sizeOf n` at its counts. -/

@@ -19,9 +19,8 @@ the compiler itself finds it: so a proof about an on-demand function survives it
 
 `includes_sub` closes `Includes P l'` from an `Includes P l` of the context by a sublist proof
 (`Includes.ofSublist`: the compiler sorts the bodies by index, so a callee's list is a sublist of
-its caller's), one constructor per body of `l`, where `includes` builds a membership proof per
-body of `l'` (quadratic: too slow on the decoder's lists of about a thousand bodies); it falls
-back to `includes`.
+its caller's), one constructor per body of `l`; it falls back to `includes`, which tries the same
+first.
 -/
 
 namespace LeanVM.Cost.Bounds.CostConst
