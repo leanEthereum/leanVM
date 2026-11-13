@@ -135,11 +135,9 @@ a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries t
 outputs a proof; the probability that the batching's verifier, Keccak-256 the sponge over `π` and
 Keccak-f[1600] `π`, accepts it while its stream begins with fewer than `M` children of the
 bytecode's shapes one of whose claims is false is at most
-`(QA + QV + 1) · M · 2^-127 + 5 (QA + QV)² · 2^-256`, for `QA ≤ 2^128` and the program's query
-bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the adversary's private coins are free. The
-factor `M` is the batching's one challenge `λ`: the children's `2n` claims, `n < M`, are combined
-with its powers, and a nonzero combination of degree below `2M` vanishes at fewer than `2M`
-values of `λ` (a sumcheck round's challenge at at most `2`).
+`(QA + QV + 1) · max(2M - 3, 8) · 2^-130 + 5 (QA + QV)² · 2^-256`, for `QA ≤ 2^128` and the
+program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the adversary's private coins
+are free (`BatchingSound`'s bound, which says where the factor comes from).
 
 This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
 the guest program's in-circuit statements, whose `KECCAK` instruction computes the deployed
@@ -152,7 +150,8 @@ def BatchingSoundWithHash : Prop :=
     Pr{let z ← runAdversaryThen A fun z ↦
          runBatchingWithHash callKeccak256 callKeccakF1600 (boundedBatchingProgram M bytecode) z.2}[
       z.1.2 = true ∧ SomeChildClaimFalse bytecode M z.1.1.2] ≤
-      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 127 +
+      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) *
+          (2 : ℝ≥0∞)⁻¹ ^ 130 +
         5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end Batch

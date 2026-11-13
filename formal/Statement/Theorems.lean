@@ -82,9 +82,10 @@ structure Theorems
   probability at most `2^-100` in the random-permutation model (`LeanVmGuestCompleteness.lean`). Read for the deployed
   Keccak, it is what makes a child carrying the honest proof a `HonestChild`. -/
   honestProofRarelyRefused : LeanVM.Guest.Completeness.HonestProofRarelyRefused
-  /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · M · 2^-127 +
-  5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`; it does not
-  compose with the in-circuit statements (`LeanVmGuestCompleteness.lean`). -/
+  /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · max(2M - 3, 8) ·
+  2^-130 + 5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`, so
+  `31 · 2^-130 ≈ 2^-125.05` per query at `M = 17`; it does not compose with the in-circuit
+  statements (`LeanVmGuestCompleteness.lean`). -/
   batchingSound : LeanVM.Guest.Batch.BatchingSound
   
   /-- leanXMSS is strongly unforgeable, for one key: at most `(q + 2^10) · 2^-127` for an

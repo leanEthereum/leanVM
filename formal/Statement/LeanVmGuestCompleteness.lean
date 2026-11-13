@@ -248,11 +248,13 @@ open OracleComp OracleSpec in
 a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries to `π` and `π⁻¹`
 outputs a proof; the probability that the batching's verifier over `π` (Keccak-256 the sponge over
 `π`) accepts it while its stream begins with fewer than `M` children of the bytecode's shapes one
-of whose claims is false is at most `(QA + QV + 1) · M · 2^-127 + 5 (QA + QV)² · 2^-256`, for
-`QA ≤ 2^128` and the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the
-adversary's private coins are free. The factor `M` is the batching's one challenge `λ`: the
-children's `2n` claims, `n < M`, are combined with its powers, and a nonzero combination of degree
-below `2M` vanishes at fewer than `2M` values of `λ` (a sumcheck round's challenge at no more than `2`).
+of whose claims is false is at most `(QA + QV + 1) · max(2M - 3, 8) · 2^-130 + 5 (QA + QV)² · 2^-256`,
+for `QA ≤ 2^128` and the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the
+adversary's private coins are free. The factor `max(2M - 3, 8) · 2^-130` bounds each query's chance at
+a challenge: a sumcheck round's is bad at no more than `2` values, `2/|E| = 8 · 2^-130`; the
+batching's one challenge `λ` combines the children's `2n` claims, `n < M`, with its powers, a
+nonzero combination of degree at most `2M - 3` vanishes at no more than `2M - 3` values of `λ`, and
+a query reaches `λ` only by passing the proof of work of `batchLambdaGrindBits = 2` bits before it.
 
 This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
 the guest program's in-circuit statements, whose `KECCAK` instruction computes the deployed
@@ -269,7 +271,8 @@ def BatchingSound : Prop :=
            runBatching Common.queryPermutation (boundedBatchingProgram M bytecode) output.2
          return (output, accepted))}[
       outcome.2 = true ∧ SomeChildClaimFalse bytecode M outcome.1.2] ≤
-      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 127 +
+      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) *
+          (2 : ℝ≥0∞)⁻¹ ^ 130 +
         5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end Batch

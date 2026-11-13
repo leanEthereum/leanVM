@@ -680,15 +680,11 @@ proof. The probability that the batching accepts it while its proof stream begin
 $M$ children of the bytecode's shape, one of whose claims (fresh or carried) is false
 (\lean{SomeChildClaimFalse}), is at most
 \[
-\boxed{\ (Q_A + Q_V + 1)\cdot M\cdot 2^{-127} + 5\,(Q_A+Q_V)^2\cdot 2^{-256}\ }
+\boxed{\ (Q_A + Q_V + 1)\cdot \max(2M-3,\,8)\cdot 2^{-130} + 5\,(Q_A+Q_V)^2\cdot 2^{-256}\ }
 \quad\text{for } Q_A \le 2^{128},\ Q_V \le 2^{96},
 \]
 where $Q_V$ (\lean{batchingQueryBound}) is the batching's own query bound for $M$ children (about
-$2^{68}$ for $G$'s bytecode at $M = 2^{64}-1$; \lean{batch_sound_holds}, \lean{lean_vm}). The factor $M$ comes from
-the single challenge $\lambda$. Weighted by the powers of $\lambda$, the gaps of the fewer than $2M$
-claims (claimed minus true value) form a polynomial in $\lambda$ of degree below $2M$, nonzero when
-a claim is false. It vanishes at fewer than $2M$ values of $\lambda$, against at most $2$ values for
-a sumcheck round's challenge. For $G$'s $16$ children, $M = 17$.
+$2^{68}$ for $G$'s bytecode at $M = 2^{64}-1$; \lean{batch_sound_holds}, \lean{lean_vm}). The factor $\max(2M-3, 8)\cdot 2^{-130}$ bounds each query's chance at a challenge. A sumcheck round's challenge is bad at at most $2$ values, $2/|E| = 8\cdot 2^{-130}$. The single challenge $\lambda$ weighs the gaps (claimed minus true value) of the $2n$ claims of $n < M$ children by its powers: they form a polynomial in $\lambda$ of degree at most $2n-1 \le 2M-3$, nonzero when a claim is false, which vanishes at at most $2M-3$ values; and a query reaches $\lambda$ only by passing the proof of work of $2$ bits before it (\lean{batchLambdaGrindBits}), with probability $2^{-2}$. For $G$'s $16$ children, $M = 17$: $31\cdot 2^{-130} \approx 2^{-125.05}$ per query.
 
 \subsection{What the soundness theorems do not give}\label{sec:notgive}
 
