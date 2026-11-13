@@ -159,7 +159,7 @@ struct FoldRound {
 }
 
 /// One opened row, its lanes in eq_kernel order, folded at its domain point `x` round by round as the prover folds
-/// the lanes, `F` and `G` the lanes `2m` and `2m + 1` (the pairing of [CWYZ26], Theorem 5.2).
+/// the lanes, `F` and `G` the lanes `2m` and `2m + 1` (the pairing of \[CWYZ26\], Theorem 5.2).
 fn fold_row(mut values: Vec<E>, x: K, rounds: &[FoldRound]) -> E {
     for round in rounds {
         let (affine, half) = (round.alpha + round.beta * x, values.len() / 2);
@@ -207,7 +207,7 @@ struct GluedClaim {
 
 /// Verify the base-field multilevel opening with a one-point terminal check.
 ///
-/// A level's rounds fold its lanes by the affine combiner `G + (alpha + beta X) F` of [CWYZ26],
+/// A level's rounds fold its lanes by the affine combiner `G + (alpha + beta X) F` of \[CWYZ26\],
 /// the claim carried by four scalars a round and the weight folded at `alpha`, so the alphas are the weight's
 /// point. A non-final level then commits the folded lane's low part, sends its high part, and glues its OOD claim
 /// and its queries, each opened row folded as the lanes were and corrected by the high part. The final level sends

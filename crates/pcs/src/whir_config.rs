@@ -9,7 +9,7 @@
 
 //! Configuration and round-by-round soundness analysis of the affine-combiner WHIR opening.
 //!
-//! The fold is the affine combiner `G + (alpha + beta X) F` of [CWYZ26], and its mutual correlated agreement is
+//! The fold is the affine combiner `G + (alpha + beta X) F` of \[CWYZ26\], and its mutual correlated agreement is
 //! the finite bound of their Theorem 4.10 (`affine_mca`). Every round of a level is analysed at the level's final
 //! degree `d = d_0 + k`, so a fold's two halves both stay within it. Per verifier message, with `q = |E|` and `ell` a
 //! Johnson list at degree `d` and the agreement the message is analysed at:

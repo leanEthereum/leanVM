@@ -1,4 +1,4 @@
-//! Finite form of the affine-combiner mutual correlated agreement bound [CWYZ26], Theorem 4.10 with the interpolation
+//! Finite form of the affine-combiner mutual correlated agreement bound \[CWYZ26\], Theorem 4.10 with the interpolation
 //! inequality (4.5) of Lemma 4.2, for `RS[n, d]` (degree at most `d`) at agreement threshold `A` (out of `n`).
 //!
 //! Every hypothesis and the round's error against its budget are checked in exact integer arithmetic; the float error

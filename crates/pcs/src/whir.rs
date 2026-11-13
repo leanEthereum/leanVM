@@ -9,7 +9,7 @@
 //! The committed message is a
 //! vector of [`F64`] values; every verifier challenge, fold-round message, weight,
 //! and post-fold witness is [`F128`]-valued. A level folds its lanes with the affine
-//! combiner of [CWYZ26] rather than multilinearly.
+//! combiner of \[CWYZ26\] rather than multilinearly.
 //!
 //! Representations:
 //! - committed message / L0 codeword / L0 opened rows: `F64` (8 bytes)
