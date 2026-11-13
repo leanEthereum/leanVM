@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.Front
-public import LeanVM.Guest.B1.Tables.Interface
+public import LeanVM.Guest.B1.Tables.InterfaceP
 
 /-!
 # The output lanes among the pooled claims

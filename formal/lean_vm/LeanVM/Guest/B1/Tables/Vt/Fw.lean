@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Tables.Vt.Fresh
 public import LeanVM.Guest.B1.Tables.Vt.SelFw
-public import LeanVM.Guest.B1.Selectors.IndexMle
+public import LeanVM.Guest.B1.Selectors.Glue
 
 /-!
 # The framework's claims (G:2384-2425)

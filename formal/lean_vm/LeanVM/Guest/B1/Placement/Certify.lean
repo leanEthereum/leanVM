@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.Placement.Common
 public import LeanVM.Guest.CoreData
 

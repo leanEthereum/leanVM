@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Whir.InnerAlg
 public import LeanVM.Guest.B1.Whir.FinishSplit
 public import LeanVM.Guest.B1.Whir.Point
-public import LeanVM.Guest.B1.Eq.Meaning
+public import LeanVM.Guest.B1.Eq.MeaningP
 public import LeanVM.Guest.B1.Whir.HsScale
 
 /-!

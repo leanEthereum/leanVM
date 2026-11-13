@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Guest.B1.Gkr.Interface
 public import LeanVM.Guest.B1.Gkr.Walk
 public import LeanVM.Guest.B1.Gkr.Loop8
 public import LeanVM.Guest.B1.Placement.Common

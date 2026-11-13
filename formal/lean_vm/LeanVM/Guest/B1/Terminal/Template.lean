@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Terminal.Interface
+public import LeanVM.Guest.B1.Terminal.InterfaceP
 public import LeanVM.Guest.Data.Source
 public import LeanVM.Guest.Data.NameStrings
 

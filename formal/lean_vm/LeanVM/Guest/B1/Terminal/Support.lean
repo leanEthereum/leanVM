@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.B1.Selectors.Interface
 public import LeanVM.Guest.B1.Terminal.Claims
 public import LeanVM.Guest.B1.Terminal.PiChain
 public import LeanVM.Guest.B1.Terminal.Body

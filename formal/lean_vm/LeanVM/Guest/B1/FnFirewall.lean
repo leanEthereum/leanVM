@@ -265,6 +265,83 @@ import LeanVM.Guest.B1.Whir.Vanish
 import LeanVM.Guest.B1.Whir.VanishCert
 import LeanVM.Guest.B1.Whir.Witness
 
+import LeanVM.Guest.B1.Opening.WalkBody0
+import LeanVM.Guest.B1.Opening.WalkBody1
+import LeanVM.Guest.B1.Opening.WalkBody2
+import LeanVM.Guest.B1.Opening.QueriesBody0
+import LeanVM.Guest.B1.Opening.QueriesBody1
+import LeanVM.Guest.B1.Opening.QueriesBody2
+import LeanVM.Guest.B1.Opening.QueriesBody3
+import LeanVM.Guest.B1.Bits.QueryWindowsBody0
+import LeanVM.Guest.B1.Bits.QueryWindowsBody1
+
+import LeanVM.Guest.B1.Eq.EqTree
+import LeanVM.Guest.B1.Eq.MeaningP
+import LeanVM.Guest.B1.Tables.Base
+import LeanVM.Guest.B1.Tables.Basic
+import LeanVM.Guest.B1.Tables.CoordPadding
+import LeanVM.Guest.B1.Tables.GroupCert
+import LeanVM.Guest.B1.Tables.InterfaceP
+import LeanVM.Guest.B1.Tables.RunF
+import LeanVM.Guest.B1.Tables.Squares
+import LeanVM.Guest.B1.Tables.VtC.Agree
+import LeanVM.Guest.B1.Tables.VtC.BStack
+import LeanVM.Guest.B1.Selectors.IndexMle
+import LeanVM.Guest.B1.Selectors.InterfaceP
+import LeanVM.Guest.B1.Selectors.LayoutBasic
+import LeanVM.Guest.B1.Gkr.EvalC
+import LeanVM.Guest.B1.Gkr.Fs
+import LeanVM.Guest.B1.Gkr.InterfaceP
+import LeanVM.Guest.B1.Gkr.Round
+import LeanVM.Guest.B1.Gkr.Spec
+import LeanVM.Guest.B1.Gkr.SpecInv
+import LeanVM.Guest.B1.KeccakGkr.Algebra
+import LeanVM.Guest.B1.KeccakGkr.EqFrame
+import LeanVM.Guest.B1.KeccakGkr.EqTreeC
+import LeanVM.Guest.B1.KeccakGkr.FoldMath
+import LeanVM.Guest.B1.KeccakGkr.FsComplete
+import LeanVM.Guest.B1.KeccakGkr.InterfaceP
+import LeanVM.Guest.B1.KeccakGkr.KFormMath
+import LeanVM.Guest.B1.KeccakGkr.LayerCBlock
+import LeanVM.Guest.B1.KeccakGkr.LayerRmfe
+import LeanVM.Guest.B1.KeccakGkr.LayerSpec
+import LeanVM.Guest.B1.KeccakGkr.Lib
+import LeanVM.Guest.B1.KeccakGkr.Mask
+import LeanVM.Guest.B1.KeccakGkr.ShiftMath
+import LeanVM.Guest.B1.KeccakGkr.VkSpec
+import LeanVM.Guest.B1.Da.DualMath
+import LeanVM.Guest.B1.Main.FramesP
+import LeanVM.Guest.B1.Main.IterK
+import LeanVM.Guest.B1.Main.Plan
+import LeanVM.Guest.B1.Main.RelAtW
+import LeanVM.Guest.B1.Terminal.Blocks
+import LeanVM.Guest.B1.Terminal.Claims
+import LeanVM.Guest.B1.Terminal.EqMath
+import LeanVM.Guest.B1.Terminal.InterfaceP
+import LeanVM.Guest.B1.Terminal.Layout
+import LeanVM.Guest.B1.Terminal.Sum
+import LeanVM.Guest.B1.Terminal.Template
+import LeanVM.Guest.B1.Terminal.Weights
+import LeanVM.Guest.B1.Placement.Common
+import LeanVM.Guest.B1.Placement.CompleteBase
+import LeanVM.Guest.B1.Placement.InterfaceP
+import LeanVM.Guest.B1.Placement.Kappas
+import LeanVM.Guest.B1.Ring.TargetMath
+import LeanVM.Guest.B1.Fwd.Canon
+import LeanVM.Guest.B1.Fwd.Eval
+import LeanVM.Guest.B1.Fwd.FlatIte
+import LeanVM.Guest.B1.Fwd.NotStored
+import LeanVM.Guest.B1.VerifySub.NZRun
+import LeanVM.Guest.B1.VerifySub.Sizes
+import LeanVM.Guest.B1.Common.Atoms
+import LeanVM.Guest.B1.Common.Basic
+import LeanVM.Guest.B1.Common.Loops
+import LeanVM.Guest.B1.Common.MemSize
+import LeanVM.Guest.B1.Common.Phase
+import LeanVM.Guest.B1.Common.Run
+import LeanVM.Guest.B1.Common.Sponge
+import LeanVM.Guest.B1.Bits.Templates
+
 /-! **B1's per-function proofs read their own function's core module alone.** A proof stated for
 every program that finds its function (`Finds`, `CoreFind.lean`), or a check of one function's
 body, imports the core module holding that function (its pack, `Guest/Pack/P<k>/Core.lean`, or its
@@ -291,7 +368,7 @@ open Lean Elab Command in
           todo := i.module :: todo
     return seen
   -- each family's modules (by prefix, or numbered: `pre` followed by digits), the functions whose
-  -- core modules they may read (`none`: generated data, one module per core pack, any),
+  -- core modules they may read (`none`: generated data over core packs, any),
   -- and the family's glue modules, which state its proofs at `coreProgram`
   let W := `LeanVM.Guest.B1.Whir
   let Q := `LeanVM.Guest.B1.Bits
@@ -399,7 +476,73 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Whir.Template, []),
     (`LeanVM.Guest.B1.Whir.Vanish, []),
     (`LeanVM.Guest.B1.Whir.VanishCert, []),
-    (`LeanVM.Guest.B1.Whir.Witness, [])]
+    (`LeanVM.Guest.B1.Whir.Witness, []),
+    (`LeanVM.Guest.B1.Eq.EqTree, []),
+    (`LeanVM.Guest.B1.Eq.MeaningP, []),
+    (`LeanVM.Guest.B1.Tables.Base, []),
+    (`LeanVM.Guest.B1.Tables.Basic, []),
+    (`LeanVM.Guest.B1.Tables.CoordPadding, []),
+    (`LeanVM.Guest.B1.Tables.GroupCert, []),
+    (`LeanVM.Guest.B1.Tables.InterfaceP, []),
+    (`LeanVM.Guest.B1.Tables.RunF, []),
+    (`LeanVM.Guest.B1.Tables.Squares, []),
+    (`LeanVM.Guest.B1.Tables.VtC.Agree, []),
+    (`LeanVM.Guest.B1.Tables.VtC.BStack, []),
+    (`LeanVM.Guest.B1.Selectors.IndexMle, []),
+    (`LeanVM.Guest.B1.Selectors.InterfaceP, []),
+    (`LeanVM.Guest.B1.Selectors.LayoutBasic, []),
+    (`LeanVM.Guest.B1.Gkr.EvalC, []),
+    (`LeanVM.Guest.B1.Gkr.Fs, []),
+    (`LeanVM.Guest.B1.Gkr.InterfaceP, []),
+    (`LeanVM.Guest.B1.Gkr.Round, []),
+    (`LeanVM.Guest.B1.Gkr.Spec, []),
+    (`LeanVM.Guest.B1.Gkr.SpecInv, []),
+    (`LeanVM.Guest.B1.KeccakGkr.Algebra, []),
+    (`LeanVM.Guest.B1.KeccakGkr.EqFrame, []),
+    (`LeanVM.Guest.B1.KeccakGkr.EqTreeC, []),
+    (`LeanVM.Guest.B1.KeccakGkr.FoldMath, []),
+    (`LeanVM.Guest.B1.KeccakGkr.FsComplete, []),
+    (`LeanVM.Guest.B1.KeccakGkr.InterfaceP, []),
+    (`LeanVM.Guest.B1.KeccakGkr.KFormMath, []),
+    (`LeanVM.Guest.B1.KeccakGkr.LayerCBlock, []),
+    (`LeanVM.Guest.B1.KeccakGkr.LayerRmfe, []),
+    (`LeanVM.Guest.B1.KeccakGkr.LayerSpec, []),
+    (`LeanVM.Guest.B1.KeccakGkr.Lib, []),
+    (`LeanVM.Guest.B1.KeccakGkr.Mask, []),
+    (`LeanVM.Guest.B1.KeccakGkr.ShiftMath, []),
+    (`LeanVM.Guest.B1.KeccakGkr.VkSpec, []),
+    (`LeanVM.Guest.B1.Da.DualMath, []),
+    (`LeanVM.Guest.B1.Main.FramesP, []),
+    (`LeanVM.Guest.B1.Main.IterK, []),
+    (`LeanVM.Guest.B1.Main.Plan, []),
+    (`LeanVM.Guest.B1.Main.RelAtW, []),
+    (`LeanVM.Guest.B1.Terminal.Blocks, []),
+    (`LeanVM.Guest.B1.Terminal.Claims, []),
+    (`LeanVM.Guest.B1.Terminal.EqMath, []),
+    (`LeanVM.Guest.B1.Terminal.InterfaceP, []),
+    (`LeanVM.Guest.B1.Terminal.Layout, []),
+    (`LeanVM.Guest.B1.Terminal.Sum, []),
+    (`LeanVM.Guest.B1.Terminal.Template, []),
+    (`LeanVM.Guest.B1.Terminal.Weights, []),
+    (`LeanVM.Guest.B1.Placement.Common, []),
+    (`LeanVM.Guest.B1.Placement.CompleteBase, []),
+    (`LeanVM.Guest.B1.Placement.InterfaceP, []),
+    (`LeanVM.Guest.B1.Placement.Kappas, []),
+    (`LeanVM.Guest.B1.Ring.TargetMath, []),
+    (`LeanVM.Guest.B1.Fwd.Canon, []),
+    (`LeanVM.Guest.B1.Fwd.Eval, []),
+    (`LeanVM.Guest.B1.Fwd.FlatIte, []),
+    (`LeanVM.Guest.B1.Fwd.NotStored, []),
+    (`LeanVM.Guest.B1.VerifySub.NZRun, []),
+    (`LeanVM.Guest.B1.VerifySub.Sizes, []),
+    (`LeanVM.Guest.B1.Common.Atoms, []),
+    (`LeanVM.Guest.B1.Common.Basic, []),
+    (`LeanVM.Guest.B1.Common.Loops, []),
+    (`LeanVM.Guest.B1.Common.MemSize, []),
+    (`LeanVM.Guest.B1.Common.Phase, []),
+    (`LeanVM.Guest.B1.Common.Run, []),
+    (`LeanVM.Guest.B1.Common.Sponge, []),
+    (`LeanVM.Guest.B1.Bits.Templates, [])]
   let families : List (Name × Option (List Name) × List Name) := [
     (Q ++ `GPowerP, some [`g_power_of_word], []),
     (Q ++ `MeaningP, some [], []),
@@ -410,6 +553,8 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Sig, some [`main_loop2, `sp_wots, `verify_sig_lean_sphincs],
       [`LeanVM.Guest.B1.Sig.Interface]),
     (W ++ `DataSpecP, some [], []), (W ++ `Data, none, []), (W ++ `HelperData, none, []),
+    (`LeanVM.Guest.B1.Opening.WalkBody, none, []), (`LeanVM.Guest.B1.Opening.QueriesBody, none, []),
+    (Q ++ `QueryWindowsBody, none, []),
     (W ++ `HelperTables, some [], []),
     (W ++ `Round, some [], []), (W ++ `RoundSound, some [`opening_round], []),
     (W ++ `RoundComplete, some [`opening_round], []),

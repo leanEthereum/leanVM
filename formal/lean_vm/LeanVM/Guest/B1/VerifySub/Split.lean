@@ -11,7 +11,7 @@ public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.Interface
 public import LeanVM.Guest.B1.Whir.Interface
-public import LeanVM.Guest.B1.Gkr.Interface
+public import LeanVM.Guest.B1.Gkr.InterfaceP
 
 /-!
 # The deferring verifier, regrouped

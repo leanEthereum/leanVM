@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Main.Loops
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.Batch.Run
 public import LeanVM.Guest.B1.Common.Atoms
-public import LeanVM.Guest.B1.Sumcheck.Meaning
+public import LeanVM.Guest.B1.Sumcheck.MeaningP
 
 /-!
 # The batching's sponge

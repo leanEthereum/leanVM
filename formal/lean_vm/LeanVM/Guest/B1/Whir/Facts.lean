@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.Levels
 public import LeanVM.Guest.B1.Whir.LrSound
 public import LeanVM.Guest.B1.Fs.Message
-public import LeanVM.Guest.B1.Eq.Meaning
+public import LeanVM.Guest.B1.Eq.MeaningP
 public import LeanVM.Guest.B1.Merkle.Meaning
 public import LeanVM.Guest.B1.Whir.TableMem
 public import LeanVM.Guest.B1.Whir.OqKey
