@@ -33,18 +33,23 @@ impl DaWitness {
     pub fn blob_roots(&self) -> &[Hash] {
         &self.root_tree[..self.root_tree.len().div_ceil(2)]
     }
+
+    /// The commitment the builder publishes: the root of the tree over the blob roots.
+    pub fn root(&self) -> Hash {
+        *self.root_tree.last().expect("a matrix has at least one blob")
+    }
 }
 
-/// Commit to payload rows of little-endian 64-bit symbols and their systematic encoding.
+/// Encode the blobs and commit to them; [`DaWitness::root`] is the commitment.
 ///
-/// Returns the root, which the builder publishes: the root of the tree over the blob roots,
-/// binding the matrix including its zero padding.
+/// `rows` is 1 to [`DA_MAX_ROWS`](crate::DA_MAX_ROWS) blobs of [`BLOB_SYMBOLS`](crate::BLOB_SYMBOLS)
+/// symbols each, concatenated.
 ///
 /// # Errors
 ///
-/// If `rows` is not 1 to [`DA_MAX_ROWS`](crate::DA_MAX_ROWS) full blobs.
+/// If `rows` has any other length.
 #[tracing::instrument(name = "Commit", skip_all)]
-pub fn commit(rows: &[u64]) -> Result<(Hash, DaWitness), BlobSizeError> {
+pub fn commit(rows: &[u64]) -> Result<DaWitness, BlobSizeError> {
     row_count(rows.len(), BLOB_SYMBOLS).ok_or(BlobSizeError { symbols: rows.len() })?;
     Ok(commit_codewords(encode_rows(rows)))
 }
@@ -54,7 +59,7 @@ pub fn commit(rows: &[u64]) -> Result<(Hash, DaWitness), BlobSizeError> {
 /// # Panics
 ///
 /// If `codewords` is not 1 to [`DA_MAX_ROWS`](crate::DA_MAX_ROWS) whole codewords.
-pub fn commit_codewords(codewords: Vec<u64>) -> (Hash, DaWitness) {
+pub fn commit_codewords(codewords: Vec<u64>) -> DaWitness {
     let blob_trees = blob_trees(&codewords);
     let blob_roots = blob_trees
         .as_chunks::<BLOB_TREE>()
@@ -62,13 +67,11 @@ pub fn commit_codewords(codewords: Vec<u64>) -> (Hash, DaWitness) {
         .iter()
         .map(|tree| tree[BLOB_TREE - 1]);
     let root_tree = tree_from_leaves(blob_roots.collect());
-    let root = *root_tree.last().unwrap();
-    let witness = DaWitness {
+    DaWitness {
         codewords,
         blob_trees,
         root_tree,
-    };
-    (root, witness)
+    }
 }
 
 /// The root of a padding blob, the zero codeword.
@@ -157,7 +160,7 @@ mod tests {
         }
         let n_rows = 5usize;
         let codewords = encode_rows(&payload(n_rows, 1));
-        let (commitment, witness) = commit_codewords(codewords.clone());
+        let witness = commit_codewords(codewords.clone());
         let zero = vec![0; CODEWORD_SYMBOLS];
 
         let mut blob_roots = Vec::new();
@@ -169,7 +172,7 @@ mod tests {
             assert_eq!(witness.blob_tree(i)[BLOB_TREE - 1], blob_roots[i], "blob {i}'s root");
         }
         assert_eq!(witness.blob_roots(), blob_roots);
-        assert_eq!(commitment, root(blob_roots));
+        assert_eq!(witness.root(), root(blob_roots));
     }
 
     /// Padding rows are zero codewords sharing one root. A payload whose
@@ -182,8 +185,6 @@ mod tests {
         let mut extended = rows.clone();
         extended.extend(std::iter::repeat_n(0, BLOB_SYMBOLS));
 
-        let (short, _) = commit(&rows).unwrap();
-        let (long, _) = commit(&extended).unwrap();
-        assert_eq!(short, long);
+        assert_eq!(commit(&rows).unwrap().root(), commit(&extended).unwrap().root());
     }
 }

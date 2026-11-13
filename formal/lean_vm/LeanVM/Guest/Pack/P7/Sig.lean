@@ -32,7 +32,7 @@ namespace LeanVM.Guest.Fn.«da_row_shape»
 semantic relations it assumes. -/
 def sig : Check.Sig :=
   ⟨"da_row_shape", 61620, 3, 2, [], [],
-    [(3, 11)], [], []⟩
+    [(3, 6)], [], []⟩
 end
 end LeanVM.Guest.Fn.«da_row_shape»
 

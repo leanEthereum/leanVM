@@ -356,7 +356,7 @@ fn aggregate_with_a_da_payload() {
     node.verify().expect("node verifies");
     assert_eq!(node.claims.num_signature_claims(), 0);
 
-    let (commitment, _) = lean_da::commit(&rows).unwrap();
+    let commitment = lean_da::commit(&rows).unwrap().root();
     assert_eq!(
         node.claims.da_commitment,
         Some(commitment),
@@ -445,7 +445,7 @@ fn a_node_passes_on_one_childs_da_root() {
     assert_eq!(pass_on(Some(Some(second)), &[]), Some(second));
     assert_eq!(pass_on(Some(None), &[]), None);
     let rows = da_rows(1, 511);
-    assert_eq!(pass_on(None, &rows), Some(lean_da::commit(&rows).unwrap().0));
+    assert_eq!(pass_on(None, &rows), Some(lean_da::commit(&rows).unwrap().root()));
 
     // Passed on again, one level up.
     let middle = aggregate(&children[1..], vec![], vec![], &[], None, LOG_INV_RATE).unwrap();
@@ -597,7 +597,7 @@ fn da_guest_checks_codeword_membership() {
     let n_rows = 3usize;
     let codewords = lean_da::encode_rows(&da_rows(3, 101));
     let run = |words: &[u64]| {
-        let (commitment, _) = lean_da::commit_codewords(words.to_vec());
+        let commitment = lean_da::commit_codewords(words.to_vec()).root();
         let mut hints = Hints::default();
         hints.push(
             "da_shape",
@@ -654,7 +654,7 @@ fn da_row_count_is_a_run_time_parameter() {
         let rows = da_rows(n_rows, 200 + n_rows as u64);
         let node = aggregate(&[], signers.clone(), vec![], &rows, None, LOG_INV_RATE).expect("node aggregates");
         node.verify().expect("node verifies");
-        let (commitment, _) = lean_da::commit(&rows).unwrap();
+        let commitment = lean_da::commit(&rows).unwrap().root();
         assert_eq!(node.claims.da_commitment, Some(commitment), "{n_rows} rows");
     }
 }

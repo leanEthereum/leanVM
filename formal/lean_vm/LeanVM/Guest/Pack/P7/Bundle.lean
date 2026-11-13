@@ -186,7 +186,7 @@ noncomputable def cert : Check.Cert where
   nret := 2
   callees := []
   pre := []
-  post := [(3, 11)]
+  post := [(3, 6)]
   mem := []
   sem := []
   cuts := []

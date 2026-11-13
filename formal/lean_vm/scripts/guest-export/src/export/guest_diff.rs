@@ -240,7 +240,8 @@ fn export(
     let direct = (!blobs.is_empty()).then(|| lean_da::commit(blobs).expect("a whole number of blob rows"));
     out.tag("da_witness");
     match &direct {
-        Some((root, witness)) => {
+        Some(witness) => {
+            let root = &witness.root();
             out.0.push_str("direct ");
             out.bytes(root);
             out.e(from_scalar(verifier::da::membership_challenge(root)));

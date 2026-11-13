@@ -35,7 +35,7 @@ fn public_api_end_to_end() {
 
     // 3. Two leaves, then a root over both. Both leaves hold claims on the second message; the root's claims are the union.
     let blobs: Vec<_> = (0..lean_da::BLOB_SYMBOLS).map(|i| i as u64).collect();
-    let (commitment, _) = lean_da::commit(&blobs).unwrap();
+    let commitment = lean_da::commit(&blobs).unwrap().root();
     let left = aggregate(
         &[],
         lean_xmss_input[..4].to_vec(),
@@ -49,7 +49,7 @@ fn public_api_end_to_end() {
     left.verify().unwrap();
     assert_eq!(left.claims().da_commitment, Some(commitment));
     let other_blobs: Vec<_> = blobs.iter().map(|x| x ^ 42).collect();
-    let (other_commitment, _) = lean_da::commit(&other_blobs).unwrap();
+    let other_commitment = lean_da::commit(&other_blobs).unwrap().root();
     let right = aggregate(
         &[],
         lean_xmss_input[4..7].to_vec(),
