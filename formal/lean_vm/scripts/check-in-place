@@ -1,33 +1,45 @@
 #!/usr/bin/env python3
-"""Run a generator that has no check mode of its own as one: run it in place, list every module under
-`LeanVM/` and `tests/` it changed, created or deleted, put them back, and fail if there were any. Run from
-`lean_vm` (`scripts/regen-guest.sh --check` does):
+"""Run a generator that has no check mode of its own as one: run it on a private copy of `LeanVM/` and
+`tests/`, list every module there it changed, created or deleted, and fail if there were any. The tree
+is never written, so the check runs beside anything that reads it. The copy sits where `lean_vm` sits
+two levels up, every other entry there linked, so the generator reads `../Statement` or `../../crates`
+as in the tree. Run from `lean_vm` (`scripts/regen-guest.sh --check` does):
 
     python3 -I scripts/check-in-place NAME CMD...
 """
+import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 name, cmd = sys.argv[1], sys.argv[2:]
+COPIED = ("LeanVM", "tests")
 
 
-def snapshot():
-    return {p: p.read_bytes() for d in ("LeanVM", "tests") for p in Path(d).rglob("*.lean")}
+def snapshot(root):
+    return {p.relative_to(root): p.read_bytes() for d in COPIED for p in (root / d).rglob("*.lean")}
 
 
-before = snapshot()
-stale = []
-try:
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
-finally:
-    after = snapshot()
-    for p, b in before.items():
-        if after.get(p) != b:
-            stale.append(p)
-            p.write_bytes(b)
-    for p in after.keys() - before.keys():
-        stale.append(p)
-        p.unlink()
+here = Path.cwd()
+with tempfile.TemporaryDirectory(prefix="check-in-place-") as tmp:
+    # `tmp/formal/lean_vm` mirrors `here`, its ancestors' other entries linked.
+    root = Path(tmp) / here.parent.name / here.name
+    root.mkdir(parents=True)
+    for real, copy, own in ((here.parent.parent, Path(tmp), here.parent.name),
+                            (here.parent, root.parent, here.name)):
+        for entry in os.listdir(real):
+            if entry != own:
+                os.symlink(real / entry, copy / entry)
+    for entry in os.listdir(here):
+        if entry in COPIED:
+            shutil.copytree(here / entry, root / entry, symlinks=True)
+        else:
+            os.symlink(here / entry, root / entry)
+    before = snapshot(root)
+    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, cwd=root)
+    after = snapshot(root)
+stale = sorted(str(p) for p in before.keys() | after.keys() if before.get(p) != after.get(p))
 if stale:
-    sys.exit(f"{name}: stale, rerun it: " + " ".join(sorted(map(str, stale))))
+    sys.exit(f"{name}: stale, rerun it: " + " ".join(stale))

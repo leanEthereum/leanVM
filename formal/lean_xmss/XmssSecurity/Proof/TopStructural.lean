@@ -237,7 +237,6 @@ variable (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
 
 include hkeygen hle
 
-set_option maxRecDepth 10000 in
 /-- A cached top chain step that collides with the honest one at its address. -/
 theorem topChainCollision_afterKeygen
     (key : TopIndex) (chain : ChainIndex) (step : ChainStep) (forgedValue : Digest)
@@ -269,7 +268,6 @@ theorem topChainCollision_afterKeygen
     rwa [Concrete.CacheView.topChainStep_eq _ _ _ _ _ _ step.isLt,
       Concrete.CacheView.topChainStep_eq _ _ _ _ _ _ step.isLt] at hstepCollision
 
-set_option maxRecDepth 10000 in
 /-- A cached top leaf that collides with the honest one of its key. -/
 theorem topLeafCollision_afterKeygen
     (key : TopIndex) (forgedEndpoints : ChainIndex → Digest) (forgedOutput : HashOutput)
@@ -360,7 +358,6 @@ theorem topOrdered_honestNodePair_eq_children (cache : QueryCache HashSpec)
     rcases hchildren with ⟨hleft, hright⟩
     simp [topOrderedNodePair, hbitFalse, hleft, hright]
 
-set_option maxRecDepth 10000 in
 /-- A cached top node on a path that collides with the honest one at its address. -/
 theorem topMerkleCollision_afterKeygen
     (key : TopIndex) (level : MerkleLevel)
@@ -416,7 +413,6 @@ theorem topMerkleCollision_afterKeygen
       hhonestInitial] at heq
     exact heq
 
-set_option maxRecDepth 10000 in
 /-- A cached top message digest input, other than the honest selected trial, with its digest. -/
 theorem topEncodingCollision_afterKeygen
     (key : TopIndex) (randomness : Randomness) (encoding : Encoding)
