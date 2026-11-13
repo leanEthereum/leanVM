@@ -24,8 +24,9 @@ pub use membership::subspace_above;
 pub const DA_LOG_K: usize = 14;
 /// Symbols per sampling cell, as a logarithm (2 KiB).
 pub const DA_LOG_CELL: usize = 8;
-/// Maximum blobs in one commitment.
+/// Maximum blobs in one commitment, a power of two: the matrix pads its rows to one.
 pub const DA_MAX_ROWS: usize = 32;
+const _: () = assert!(DA_MAX_ROWS.is_power_of_two());
 
 /// 64-bit symbols in one payload blob.
 pub const BLOB_SYMBOLS: usize = 1 << DA_LOG_K;
