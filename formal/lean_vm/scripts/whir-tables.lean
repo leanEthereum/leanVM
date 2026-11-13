@@ -27,9 +27,9 @@ def text : String := Id.run do
   let idx : Std.HashMap String Nat :=
     (entries Data.nameT).foldl (fun m (k, n) => m.insert n (k + 1)) {}
   let ix := fun (n : String) => idx.getD n 0
-  let words := (List.range 44).map fun j => osWordsLen (osCfgAt j)
-  let wl := (List.range 4).map fun ri =>
-    ", ".intercalate (((words.drop (11 * ri)).take 11).map toString)
+  let words := (List.range (ligNSizes * ligNRates)).map fun j => osWordsLen (osCfgAt j)
+  let wl := (List.range ligNRates).map fun ri =>
+    ", ".intercalate (((words.drop (ligNSizes * ri)).take ligNSizes).map toString)
   let ns := fun (l : List V) => s!"[{", ".intercalate (l.map fun v => toString v.idx)}]"
   let call := fun (c : OsCfg) (q : ℕ × OsLv × List V × List V) =>
     let (lvl, lv, args, rets) := q
@@ -38,9 +38,9 @@ def text : String := Id.run do
     let e := openingQueriesLoops.getD sh ("", "", oqShapeZero)
     s!"⟨{sh}, {ix (osQueriesName c lvl lv)}, {ix nm}, {ix e.2.1}, {ix (oqWalkOf e.2.2.oq)}, " ++
       s!"{lv.queries / (1 + lvBase lvl)}, {lv.depth}, {lv.capDepth}, {ns args}, {ns rets}⟩"
-  let cfgs := (List.range 44).map fun j =>
+  let cfgs := (List.range (ligNSizes * ligNRates)).map fun j =>
     let c := osCfgAt j
-    s!"  -- size {j % 11}, rate index {j / 11}\n  [{",\n    ".intercalate ((osQCalls c).map (call c))}]"
+    s!"  -- size {j % ligNSizes}, rate index {j / ligNSizes}\n  [{",\n    ".intercalate ((osQCalls c).map (call c))}]"
   return "/-
   LeanVM.Guest.Fast.WhirTables
 
@@ -57,7 +57,7 @@ What `verify_sub`'s child proof reader takes from `open_stacked`'s template (`B1
 at the configurations `osCfgR m ri` of the `LIG_*` tables), precomputed and checked equal to it by
 kernel evaluation (`Fast/WhirTablesCheck.lean`): each size and rate's stream words, and its
 levels' `level_queries` dispatches (`osQCalls`), each as an `OsCall` of numbers. Entry
-`j = ri · 11 + m` is the size `m` at the rate index `ri`.
+`j = ri · ligNSizes + m` is the size `m` at the rate index `ri`.
 -/
 
 namespace LeanVM.Guest.Fast
@@ -82,11 +82,12 @@ structure OsCall where
   rets : List Nat
   deriving DecidableEq
 
-/-- The stream words each size and rate reads (`osWordsLen (osCfgR m ri)`, entry `ri · 11 + m`). -/
+/-- The stream words each size and rate reads (`osWordsLen (osCfgR m ri)`, entry
+`ri · ligNSizes + m`). -/
 def osWordsTab : List Nat := [
     " ++ ",\n    ".intercalate wl ++ "]
 
-/-- Each size and rate's `level_queries` dispatches (`osQCalls`, entry `ri · 11 + m`). -/
+/-- Each size and rate's `level_queries` dispatches (`osQCalls`, entry `ri · ligNSizes + m`). -/
 def osCallsTab : List (List OsCall) := [
 " ++ ",\n".intercalate cfgs ++ "]
 

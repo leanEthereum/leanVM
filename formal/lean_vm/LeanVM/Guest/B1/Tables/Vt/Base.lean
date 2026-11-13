@@ -66,14 +66,14 @@ theorem verify_tables_body :
     List.append_nil, vtChunk, List.append_assoc]
 
 noncomputable def vtCheck : Bool :=
-  match coreProgram.find? "verify_tables" with
+  match coreProgram.find? name% «verify_tables» with
   | some fn => decide (fn.params = (List.range 20).map V.n) &&
       tbStmtsEqb fn.body (core% «verify_tables» body)
   | none => false
 
 theorem vtCheck_eq : vtCheck = true := by decide +kernel
 
-theorem vtFound : ∃ fn : Fn, coreProgram.find? "verify_tables" = some fn ∧
+theorem vtFound : ∃ fn : Fn, coreProgram.find? name% «verify_tables» = some fn ∧
     fn.params = (List.range 20).map V.n ∧
     fn.body = ((List.range 15).map vtChunk).flatten ++ [.ret vtRets] := by
   have h := vtCheck_eq

@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """Which proofs a guest change reaches: the core IR's functions whose bodies changed, were added or were
-removed, each with the hand-written modules that state its body or name it.
+removed, by stable name, each with the hand-written modules that state its body or name it.
 
     python3 -I scripts/guest-changes BEFORE
 
 `BEFORE` holds the core IR before the change: `scripts/regen-guest.sh` copies `LeanVM/Guest/Data/Core*.lean`
 to `.lake/guest-before/Data` and `LeanVM/Guest/Pack` to `.lake/guest-before/Pack` before it exports, and runs
-this after `guest-core` (a snapshot of the packed `Data/Core{k}.lean`, directly in `BEFORE`, is read too). Functions are matched by name, a loop helper (`__loop{k}`, named by the compiler's counter)
-by its first caller and its rank among that caller's loops, so a renumbering or a loop renamed is no
-change. A changed body is what `--dev` cannot show: its template's `decide +kernel` passes there, so
-build the modules listed under `states its body` with the kernel first (formal/AGENTS.md, Changing
-the spec). Run from `lean_vm`.
+this after `guest-core` (a snapshot of the packed `Data/Core{k}.lean`, directly in `BEFORE`, is read too).
+Functions are matched by stable name (`Data/Names.lean`: a function's name, a loop helper's
+`{caller}_loop{k}`), so a renumbering, or a loop the compiler renamed, is no change.
+
+A module states a function's body when it reads it (`(fn% «s»).body`, `core% «s» m`, `core_eq% «s»`,
+`Fn.«s».core.body`, `(coreOf (fn_idx% «s»)).body`, or the index forms `Data.core{j}.body`, `(coreOf N).body`)
+or uses a definition that does (`lyBody := (fn% «s»).body`, and the definitions built on it). Its template
+fails under `--dev` too (`lake-build.py`'s `ties`), but build the modules listed under `states its body`
+first (formal/AGENTS.md, Changing the spec). Run from `lean_vm`.
 """
 import hashlib
 import re
@@ -23,7 +27,7 @@ ROOTS = [Path("LeanVM"), Path("tests")]
 
 
 def read_core(data):
-    """The core IR's functions, in order: (name, body text)."""
+    """The core IR's functions, in order: (stable name, name, body text)."""
     fns, parts = {}, {}
     # A long body's parts (`namespace core{j}`) may sit in modules before its definition's.
     if (Path(data) / "Data").is_dir():
@@ -38,17 +42,21 @@ def read_core(data):
         sys.exit(f"guest-changes: no core IR in {data} (regen-guest.sh's export step writes .lake/guest-before)")
     if sorted(fns) != list(range(len(fns))):
         sys.exit(f"guest-changes: {data}'s functions are not numbered 0 .. n - 1")
-    return [(fns[j][0], parts.get(j, "") + fns[j][1]) for j in range(len(fns))]
+    names = [fns[j][0] for j in range(len(fns))]
+    keys = coredata.keys(data) or stable_keys(names, [fns[j][1] for j in range(len(fns))])
+    if len(keys) != len(names):
+        sys.exit(f"guest-changes: {data} lists {len(keys)} stable names for {len(names)} functions")
+    return [(keys[j], names[j], parts.get(j, "") + fns[j][1]) for j in range(len(fns))]
 
 
-def table(fns):
-    """Each function by its key (its name; a loop's first caller's key and rank): its index, name and hash."""
-    keys = [None if n.startswith("__loop") else n for n, _ in fns]
-    by_name = {n: j for j, (n, _) in enumerate(fns)}
+def stable_keys(names, bodies):
+    """An old snapshot's stable names: a loop helper (`__loop{id}`) is the `k`-th loop its first caller names."""
+    keys = [None if n.startswith("__loop") else n for n in names]
+    by_name = {n: j for j, n in enumerate(names)}
     changed = True
     while changed:
         changed = False
-        for j, (_, body) in enumerate(fns):
+        for j, body in enumerate(bodies):
             if keys[j] is None:
                 continue
             seen = []
@@ -57,56 +65,104 @@ def table(fns):
                     seen.append(l)
             for k, l in enumerate(seen):
                 if keys[by_name[l]] is None:
-                    keys[by_name[l]] = f"{keys[j]}/{k}"
+                    keys[by_name[l]] = f"{keys[j]}_loop{k}"
                     changed = True
-    key_of = {n: keys[j] or n for j, (n, _) in enumerate(fns)}
+    return [k or n for k, n in zip(keys, names)]
+
+
+def table(fns):
+    """Each function by its stable name: its index, name and hash, the callees named by stable name."""
+    key_of = {n: k for k, n, _ in fns}
     out = {}
-    for j, (n, body) in enumerate(fns):
+    for j, (k, n, body) in enumerate(fns):
         norm = re.sub(rf"\bcore{j}\b", "core@", body)
-        norm = re.sub(r'"(__loop\d+)"', lambda m: f'"{key_of[m.group(1)]}"', norm)
-        out[key_of[n]] = (j, n, hashlib.sha256(norm.encode()).hexdigest())
+        norm = re.sub(r'"([^"]+)"', lambda m: f'"{key_of.get(m.group(1), m.group(1))}"', norm)
+        out[k] = (j, n, hashlib.sha256(norm.encode()).hexdigest())
     return out
 
 
 def hand_written():
     for root in ROOTS:
         for p in sorted(root.rglob("*.lean")):
-            if "Guest/Data/" in str(p) or "/Checked/" in str(p):
+            if "Guest/Data/" in str(p) or "Guest/Pack/" in str(p) or "/Checked/" in str(p):
                 continue
             text = p.read_text(encoding="utf-8")
-            if "do not edit" not in text[:600] and "Generated by" not in text[:600]:
+            head = text[:text.find("-/") + 2]  # a generated module says so in its header
+            if "do not edit" not in head and "Generated by" not in head:
                 yield p, text
+
+
+# A body read by stable name, or by index (`Data.core{j}` is function `j`, `coreOf N` function `N - 1`).
+BODY_KEY = re.compile(r"\(fn% «([^»]+)»\)\.body\b|\bFn\.body \(fn% «([^»]+)»\)|\bcore% «([^»]+)» (?!name\b|params\b)\w"
+                      r"|\bcore_eq% «([^»]+)»|\bFn\.«([^»]+)»\.core\.(?!name\b|params\b)\w"
+                      r"|\(coreOf \(fn_idx% «([^»]+)»\)\)\.body\b")
+BODY_IDX = re.compile(r"\bData\.core(\d+)\.body\b|\bFn\.body Data\.core(\d+)\b|\(coreOf (\d+)\)\.body\b")
+# A definition and its text, up to the next declaration.
+DEF = re.compile(r"^(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|public|noncomputable)\s+)*(?:def|abbrev)\s+([\w.']+)"
+                 r"(.*?)(?=^\S|\Z)", re.M | re.S)
+
+
+def body_reads(text, key_at):
+    """The stable names whose bodies `text` reads directly."""
+    keys = {next(g for g in m.groups() if g) for m in BODY_KEY.finditer(text)}
+    for m in BODY_IDX.finditer(text):
+        j = int(m.group(1) or m.group(2)) if not m.group(3) else int(m.group(3)) - 1
+        if j in key_at:
+            keys.add(key_at[j])
+    return keys
 
 
 def main():
     if len(sys.argv) != 2:
         sys.exit("usage: python3 -I scripts/guest-changes BEFORE")
     old, new = table(read_core(sys.argv[1])), table(read_core("LeanVM/Guest/Data"))
-    rows = ([("changed", k, {old[k][0], new[k][0]}) for k in new if k in old and old[k][2] != new[k][2]] +
-            [("added", k, {new[k][0]}) for k in new if k not in old] +
-            [("removed", k, {old[k][0]}) for k in old if k not in new])
+    rows = ([("changed", k) for k in new if k in old and old[k][2] != new[k][2]] +
+            [("added", k) for k in new if k not in old] +
+            [("removed", k) for k in old if k not in new])
     count = {t: sum(1 for r in rows if r[0] == t) for t in ("changed", "added", "removed")}
     print(f"guest-changes: {len(new)} functions, {count['changed']} changed, {count['added']} added, "
           f"{count['removed']} removed")
-    # Each module read once: the core indices whose bodies it states, those it names, the words it holds.
-    bodies, cores, words = {}, {}, {}
-    for p, text in hand_written():
-        for m in re.finditer(r"\bData\.core(\d+)\.body\b|\bFn\.body Data\.core(\d+)\b|\(coreOf (\d+)\)\.body\b", text):
-            j = int(m.group(1) or m.group(2)) if not m.group(3) else int(m.group(3)) - 1
-            bodies.setdefault(j, set()).add(p)
-        for j in re.findall(r"\bData\.core(\d+)\b", text):
-            cores.setdefault(int(j), set()).add(p)
-        for w in set(re.findall(r"(?<![\w.])[A-Za-z_][\w]*", text)):
-            words.setdefault(w, set()).add(p)
-    for title, key, idxs in rows:
-        print(f"{title}: {(new.get(key) or old[key])[1]}")
-        # The modules may still use the old index, or the old loop name, until they follow the new IR.
-        names = {x[1] for x in (old.get(key), new.get(key)) if x}
-        body = set().union(*(bodies.get(j, set()) for j in idxs))
-        named = set().union(*(cores.get(j, set()) for j in idxs), *(words.get(n, set()) for n in names)) - body
+    if not rows:
+        return
+    # The modules may still use an old index until they follow the new IR: either index names the function.
+    key_at = {j: k for k, (j, _, _) in old.items()} | {j: k for k, (j, _, _) in new.items()}
+    texts = dict(hand_written())
+    # The definitions that read a body, directly or through another such definition, to a fixed point.
+    aliases = {}  # definition's last name component -> stable names
+    defs = [(m.group(1).rsplit(".", 1)[-1], m.group(2)) for t in texts.values() for m in DEF.finditer(t)]
+    changed = True
+    while changed:
+        changed = False
+        pattern = re.compile(r"(?<![\w.'])(" + "|".join(map(re.escape, aliases)) + r")(?![\w'])") if aliases else None
+        for name, rhs in defs:
+            keys = body_reads(rhs, key_at)
+            if pattern:
+                keys |= set().union(*(aliases[w] for w in pattern.findall(rhs)))
+            if not keys <= aliases.get(name, set()):
+                aliases[name] = aliases.get(name, set()) | keys
+                changed = True
+    pattern = re.compile(r"(?<![\w.'])(" + "|".join(map(re.escape, aliases)) + r")(?![\w'])") if aliases else None
+    # Each module read once: the stable names whose bodies it states, and the words it holds.
+    bodies, words = {}, {}
+    for p, text in texts.items():
+        keys = body_reads(text, key_at)
+        if pattern:
+            keys |= set().union(*(aliases[w] for w in pattern.findall(text)))
+        for k in keys:
+            bodies.setdefault(k, set()).add(p)
+        for w in set(re.findall(r"«([^»]+)»|\"([^\"\s]+)\"|(?<![\w.])([A-Za-z_][\w]*)", text)):
+            words.setdefault(next(g for g in w if g), set()).add(p)
+    for title, key in rows:
+        names = {x[1] for x in (old.get(key), new.get(key)) if x} - {key}
+        idxs = {x[0] for x in (old.get(key), new.get(key)) if x}
+        print(f"{title}: {key}" + (f" ({', '.join(sorted(names))})" if names else ""))
+        body = bodies.get(key, set())
+        index_words = {f"core{j}" for j in idxs}
+        named = set().union(*(words.get(w, set()) for w in {key} | names)) | {
+            p for p, t in texts.items() if any(re.search(rf"\bData\.{w}\b", t) for w in index_words)}
         for p in sorted(body):
             print(f"    states its body: {p}")
-        for p in sorted(named):
+        for p in sorted(named - body):
             print(f"    names it: {p}")
 
 

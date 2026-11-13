@@ -132,7 +132,7 @@ EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff 
 
 # The six projects' targets and lean_vm's executables in one build from lean_vm, whose workspace holds the other
 # five, so that their modules build beside lean_vm's instead of one project after another. The projects' own builds
-# below then find everything built and replay its warnings.
+# below are then skipped.
 together() {
   local p
   lakefiles
@@ -171,19 +171,11 @@ lean_vm() {
   python3 -I tools/firewall-canary.py
   executables
   # The compiled checks are independent: run together, each one's output printed when all are done.
-  step "lean_vm: the Rust vectors' costly checks, and the guest's core IR, certificates, memory-layer checks and decoder tables current, the tests' runs"
-  local k pids=() names=(node-vectors guest-core guest-cert guest-memory decoder-tables test-runs)
+  step "lean_vm: the Rust vectors' costly checks, every file derived from the guest current but the export's, the tests' runs"
+  local pids=() names=(node-vectors regen-guest test-runs)
   (cd lean_vm && capped .lake/build/bin/node-vectors) > "$log/node-vectors.out" 2>&1 & pids+=($!)
-  for k in guest-core guest-cert guest-memory; do
-    (cd lean_vm && capped ".lake/build/bin/$k" --check) > "$log/$k.out" 2>&1 & pids+=($!)
-  done
-  # The decoder tables' inputs evaluated from the build just made (`decoder-tables-inputs.lean`: one line each).
-  (
-    (cd lean_vm && capped lake env lean scripts/decoder-tables-inputs.lean) > "$log/decoder.txt"
-    for k in entries rows split; do sed -n "s/^$k: //p" "$log/decoder.txt" > "$log/$k.txt"; done
-    python3 -I lean_vm/scripts/decoder-tables --entries "$log/entries.txt" --check
-    python3 -I lean_vm/scripts/decoder-table-chunks --row-lengths "$log/rows.txt" --split-lengths "$log/split.txt" --check
-  ) > "$log/decoder-tables.out" 2>&1 & pids+=($!)
+  # Every generator after the export (`leanvm`, which needs cargo, checks the export's).
+  lean_vm/scripts/regen-guest.sh --check --from core > "$log/regen-guest.out" 2>&1 & pids+=($!)
   # The tests' runs too slow for the interpreter (`tests/LeanVMTests/Runs.lean`), compiled; `lake env`
   # for the `.olean` it reads.
   (cd lean_vm && capped lake env .lake/build/bin/test-runs) > "$log/test-runs.out" 2>&1 & pids+=($!)

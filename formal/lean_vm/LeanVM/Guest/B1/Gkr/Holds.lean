@@ -43,13 +43,13 @@ noncomputable def vbgPre : List Stmt := vbgBody.take 233
 def vbgRets : List V := (List.range 7).map fun k ↦ .n (398 + k)
 
 noncomputable def vbgCheck : Bool :=
-  match coreProgram.find? "verify_bus_gkr" with
+  match coreProgram.find? name% «verify_bus_gkr» with
   | some fn => decide (fn.params = vbgParams) && tbStmtsEqb fn.body (vbgPre ++ [.ret vbgRets])
   | none => false
 
 theorem vbgCheck_eq : vbgCheck = true := by decide +kernel
 
-theorem vbgFound : ∃ fn : Fn, coreProgram.find? "verify_bus_gkr" = some fn ∧
+theorem vbgFound : ∃ fn : Fn, coreProgram.find? name% «verify_bus_gkr» = some fn ∧
     fn.params = vbgParams ∧ fn.body = vbgPre ++ [.ret vbgRets] := by
   have h := vbgCheck_eq
   unfold vbgCheck at h

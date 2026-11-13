@@ -2,7 +2,7 @@
   LeanVM.Guest.CoreRef
 
   `fn% s`, `idx% s`, `name% s`, `core% s m` and `core_eq% s m`: a core function by its stable name
-  `s`, elaborated to what its index names.
+  `s`, elaborated to the generated constant or literal it names.
 -/
 
 module
@@ -15,16 +15,17 @@ public meta import Lean.Meta.Eqns
 
 The generated `Data/Names.lean` and `Data/NameStrings.lean` give each core function a stable name
 `s` (`Data.F.«s»`, `Data.I.«s»`, `Data.N.«s»`), which no added or removed function changes. A proof
-names a function through them, and the terms it elaborates to are those its index gives: the
-constant `Data.core{j}`, the numeral `j`, the string literal. So a proof reads exactly as one that
-spelled the index, and a renumbering changes no proof.
+names a function through them, and the terms it elaborates to are the generated ones: the
+constant `Fn.«s».core` (which `Data.core{j}` abbreviates, `j` its index), the numeral `j`, the
+string literal. So a proof reads exactly as one that spelled them, and a renumbering changes no
+proof.
 
-* `fn% s`: `Data.core{j}`; `idx% s`: `j`; `name% s`: the function's name; `core_count%`: the
+* `fn% s`: `Fn.«s».core`; `idx% s`: `j`; `name% s`: the function's name; `core_count%`: the
   number of core functions; `fn_idx% s`: `j + 1`, its index among the compiled functions
   (`coreOf`, `certOf`); `fn_count%`: their number (`nFns`), the entry's included;
-* `core% s m`: the definition `Data.core{j}.m` of its generated layout (`body`, chunk `c3`, block
+* `core% s m`: the definition `Fn.«s».core.m` of its generated layout (`body`, chunk `c3`, block
   `s40_e`);
-* `core_eq% s`, `core_eq% s m`: the defining equation of `Data.core{j}` or of `Data.core{j}.m`, a
+* `core_eq% s`, `core_eq% s m`: the defining equation of `Fn.«s».core` or of `Fn.«s».core.m`, a
   rule for `simp` and `rw`.
 -/
 

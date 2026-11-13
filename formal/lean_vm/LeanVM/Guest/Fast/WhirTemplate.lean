@@ -34,8 +34,9 @@ def osQCallsFrom (c : OsCfg) : ℕ → List OsLv → OsSt → List (ℕ × OsLv 
 /-- **The levels' `level_queries` dispatches** of the template at the configuration `c`. -/
 def osQCalls (c : OsCfg) : List (ℕ × OsLv × List V × List V) := osQCallsFrom c 0 c.levels (osHead c).2
 
-/-- The configuration at the table's index `j`: the size `j % 11` at the rate index `j / 11`. -/
-def osCfgAt (j : ℕ) : OsCfg := osCfgR (j % 11) (j / 11)
+/-- The configuration at the table's index `j`: the size `j % ligNSizes` at the rate index
+`j / ligNSizes`. -/
+def osCfgAt (j : ℕ) : OsCfg := osCfgR (j % ligNSizes) (j / ligNSizes)
 
 end
 end LeanVM.Guest.Fast

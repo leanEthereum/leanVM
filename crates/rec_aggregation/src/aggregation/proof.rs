@@ -136,11 +136,11 @@ impl EthereumProof {
     /// transmitted point, and the VM proof satisfies the statement built from
     /// all of it.
     ///
-    /// This says "every `(pubkey, message)` in the claims' `xmss` is a valid leanXMSS signature,
-    /// and every one in their `lean_sphincs` a valid leanSPHINCS signature", and that the
-    /// `da_commitment`, if any, commits to a well-formed blob matrix: exactly the claims held,
-    /// which are the receiver's own after [`Self::from_proof_bytes`]. Which leaf index each
-    /// leanXMSS signature used is not part of the claim.
+    /// What `formal/` proves of it, in the random-permutation model, is one node: the guest ran on these claims, each
+    /// a signature it verified itself or a claim of a child proof it verified. That the children's claims are valid
+    /// signatures in turn, and that the `da_commitment`, if any, commits to a well-formed blob matrix, are not proved
+    /// (`formal/statement.tex`, "What is not proved"). The claims are the receiver's own after
+    /// [`Self::from_proof_bytes`]; which leaf index each leanXMSS signature used is not part of the claim.
     ///
     /// Every field operation, the proof check and its Merkle hashing run in the `verifier` crate: one thread, no explicit SIMD.
     pub fn verify(&self) -> Result<(), AggregateVerifyError> {

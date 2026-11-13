@@ -86,7 +86,7 @@ def vsPiOfN (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Pro
 
 /-- `open_stacked`'s specializations are the functions `openStackedIdx m`. -/
 theorem openNames_eq :
-    openNames = (List.range 11).map fun m ↦ decoderFunctionName (openStackedIdx m) := by
+    openNames = (List.range ligNSizes).map fun m ↦ decoderFunctionName (openStackedIdx m) := by
   simp only [openNames, ← natStr_eq]
   decide +kernel
 
@@ -162,9 +162,9 @@ theorem vsPiOfN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) :
   rw [dispatchIdx_eq_logGT, rateOf_sub_one]
   generalize logGT (σ (.n 278)) 11 = m at hm ⊢
   generalize logGT (σ (.n 66)) 4 = ri at hr ⊢
-  have hj : ri * 11 + m < 44 := by omega
-  have hjm : (ri * 11 + m) % 11 = m := by omega
-  have hjr : (ri * 11 + m) / 11 = ri := by omega
+  have hj : ri * 11 + m < ligNSizes * ligNRates := by unfold ligNSizes ligNRates; omega
+  have hjm : (ri * 11 + m) % ligNSizes = m := by unfold ligNSizes; omega
+  have hjr : (ri * 11 + m) / ligNSizes = ri := by unfold ligNSizes; omega
   have hname : decoderFunctionName (openStackedIdx m) = openNames.getD m "" := by
     rw [openNames_eq, getD_map_range hm]
   obtain ⟨hlen, hok⟩ := callsOK _ hj

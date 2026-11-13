@@ -102,8 +102,9 @@ jobs:
           python3 -I formal/tools/escape-scan.py formal/lean_xmss
       # Installs the toolchain from `lean_xmss/lean-toolchain`, fetches the
       # mathlib cache, and runs `lake build` on the default targets, which
-      # elaborate the root module and with it the `#guard_msgs` check. The
-      # checked-in manifest is used as is: no `lake update`.
+      # elaborate the root module and with it the `#guard_msgs` check, and
+      # `XmssSecurity.Tests.QueryBudget`. The checked-in manifest is used as
+      # is: no `lake update`.
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/lean_xmss
@@ -340,6 +341,9 @@ jobs:
           for t in $theorems; do
             grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
           done
+      # A private import stops a rebuild, as `tools/deps.py` assumes (`notes/per-function-cone.md`).
+      - name: The private-import firewall holds (firewall-canary)
+        run: python3 -I ../tools/firewall-canary.py
       # Every executable in one build, before the cache is saved, so a cache hit holds them all.
       - name: Build the executables
         run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs
@@ -351,20 +355,6 @@ jobs:
       # `.olean` they read.
       - name: The tests' compiled runs
         run: lake env .lake/build/bin/test-runs
-      - name: The guest's core IR data is current
-        run: .lake/build/bin/guest-core --check
-      - name: The guest's certificates are current
-        run: .lake/build/bin/guest-cert --check
-      - name: The guest's memory-layer checks are current
-        run: .lake/build/bin/guest-memory --check
-      # Their inputs evaluated from the build (`decoder-tables-inputs.lean`: one line each).
-      - name: The guest decoder's tables and their chunked checks are current
-        run: |
-          lake env lean scripts/decoder-tables-inputs.lean > "$RUNNER_TEMP/decoder.txt"
-          for k in entries rows split; do sed -n "s/^$k: //p" "$RUNNER_TEMP/decoder.txt" > "$RUNNER_TEMP/$k.txt"; done
-          python3 -I scripts/decoder-tables --entries "$RUNNER_TEMP/entries.txt" --check
-          python3 -I scripts/decoder-table-chunks --row-lengths "$RUNNER_TEMP/rows.txt" \
-            --split-lengths "$RUNNER_TEMP/split.txt" --check
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -384,12 +374,12 @@ jobs:
       # hand: `scheme-vectors --xmss-sign`, lean_sphincs' `lake exe signature-kat`).
       - name: The statement's verifiers are the crate's (scheme-vectors)
         run: .lake/build/bin/scheme-vectors
-      # The guest's bytecode, source, manifest, test programs and node vectors are what
-      # `scripts/guest-export` writes from this repository's sources.
-      - name: The guest's data is leanVM's
-        run: |
-          cargo build --release --manifest-path scripts/guest-export/Cargo.toml
-          scripts/guest-export/target/release/guest-export . --check
+      # Every file derived from the guest is what its generator writes, byte for byte: the guest's
+      # bytecode, source, manifest, test programs and node vectors (`scripts/guest-export`, from this
+      # repository's sources), the core IR, the certificates, the memory layer's checks, the
+      # templates, the walks, the count families, the call tables and the decoder tables.
+      - name: Every file derived from the guest is current (regen-guest.sh --check)
+        run: scripts/regen-guest.sh --check
       # The fold rounds' table is what `scripts/whir-fold-table` exports from `whir_config.rs`.
       - name: The fold rounds' table is the prover's
         run: |

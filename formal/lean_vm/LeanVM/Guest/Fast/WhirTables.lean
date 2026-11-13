@@ -14,7 +14,7 @@ What `verify_sub`'s child proof reader takes from `open_stacked`'s template (`B1
 at the configurations `osCfgR m ri` of the `LIG_*` tables), precomputed and checked equal to it by
 kernel evaluation (`Fast/WhirTablesCheck.lean`): each size and rate's stream words, and its
 levels' `level_queries` dispatches (`osQCalls`), each as an `OsCall` of numbers. Entry
-`j = ri · 11 + m` is the size `m` at the rate index `ri`.
+`j = ri · ligNSizes + m` is the size `m` at the rate index `ri`.
 -/
 
 namespace LeanVM.Guest.Fast
@@ -39,14 +39,15 @@ structure OsCall where
   rets : List Nat
   deriving DecidableEq
 
-/-- The stream words each size and rate reads (`osWordsLen (osCfgR m ri)`, entry `ri · 11 + m`). -/
+/-- The stream words each size and rate reads (`osWordsLen (osCfgR m ri)`, entry
+`ri · ligNSizes + m`). -/
 def osWordsTab : List Nat := [
     132, 138, 148, 166, 161, 167, 177, 195, 190, 196, 206,
     132, 138, 148, 166, 161, 167, 177, 195, 190, 196, 206,
     132, 138, 148, 166, 161, 167, 177, 195, 190, 196, 206,
     132, 138, 148, 166, 161, 167, 177, 195, 190, 196, 206]
 
-/-- Each size and rate's `level_queries` dispatches (`osQCalls`, entry `ri · 11 + m`). -/
+/-- Each size and rate's `level_queries` dispatches (`osQCalls`, entry `ri · ligNSizes + m`). -/
 def osCallsTab : List (List OsCall) := [
   -- size 0, rate index 0
   [⟨0, 468, 1010, 1509, 1508, 109, 15, 3, [166, 168, 18, 24, 30, 32], [187, 188, 189, 190]⟩,

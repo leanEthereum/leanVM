@@ -18,11 +18,11 @@ public import LeanVM.Guest.CoreNames
   `Fast/FunctionNames.lean`), the loop's iterations, the level's depth and cap depth, the
   dispatch's arguments' and returns' cells (cells all);
 * `osWordsTab_eq`, `CallsOKN`: the literal tables of `Fast/WhirTables.lean` are the template's at
-  every size and rate (`osCfgAt j`: size `j % 11`, rate index `j / 11`), by kernel evaluation, a
-  configuration at a time (`callsOK_j`, `Fast/WhirCalls/R*.lean`, a module per rate, joined in
-  `Fast/WhirTablesCheck.lean`), the names read off `Data.nameT` (`nameIs`, `callMatchN`) and the
-  `opening_queries` specialization found by its entry in the table (`oqAt`), not by its name, the
-  table's names being distinct (`oqNames_nodup`).
+  every size and rate (`osCfgAt j`: size `j % ligNSizes`, rate index `j / ligNSizes`), by kernel
+  evaluation, a configuration at a time (`callsOK_j`, `Fast/WhirCalls/R*.lean`, a module per rate,
+  joined in `Fast/WhirTablesCheck.lean`), the names read off `Data.nameT` (`nameIs`, `callMatchN`)
+  and the `opening_queries` specialization found by its entry in the table (`oqAt`), not by its
+  name, the table's names being distinct (`oqNames_nodup`).
 -/
 
 namespace LeanVM.Guest.Fast
@@ -139,7 +139,8 @@ theorem callMatch_of_N {c : OsCfg} {r : OsCall} {q : ℕ × OsLv × List V × Li
     nameIs_spec h5, hl, hs]
   simp_all [shapeBEq]
 
-theorem osWordsTab_eq : osWordsTab = (List.range 44).map fun j ↦ osWordsLen (osCfgAt j) := by
+theorem osWordsTab_eq :
+    osWordsTab = (List.range (ligNSizes * ligNRates)).map fun j ↦ osWordsLen (osCfgAt j) := by
   decide +kernel
 
 /-- Configuration `j`'s dispatches are the table's. -/

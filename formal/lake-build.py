@@ -28,8 +28,9 @@ them, which replays the warnings, ends the run.
 `DIR/lakefile.toml` with `buildDir = ".lake/build-dev"` and `debug.skipKernelTC` set on the package's libraries other
 than its test driver. Elaboration still runs (tactics, `simp`, `omega`, the elaborator's `decide`, warnings as
 errors), and the kernel checks only the modules `--dev-kernel` names (`kernel_modules`): by default those that
-equate a guest function's body with its template (`stmtsEqb`), so a stale template fails here as in the real build;
-`all`, every module with a `decide +kernel` but the guest's certificates (budgets and tables too, slower);
+tie a guest function's body or the core data to a template (`stmtsEqb`, or a `decide +kernel` that reads the core IR),
+so a stale template fails here as in the real build; `all`, every module the kernel decides something in, and the
+`kernel_lit` and `win_lit` values, but the guest's other certificates (budgets and tables too, slower);
 `none`, nothing, so that a false `decide +kernel` is accepted. `#print axioms` shows none of it. The option is
 in Lake's traces and the build directory is separate, so a dev `.olean` never satisfies the real build.
 """
@@ -121,11 +122,15 @@ def wrap(tool: str, args: list[str]) -> None:
                 say(f"pid {child.pid}")
                 _, status, usage = os.wait4(child.pid, 0)
                 child.returncode = code = os.waitstatus_to_exitcode(status)
-                say(f"done {code} {time.monotonic() - start:.3f} {usage.ru_utime + usage.ru_stime:.3f} {usage.ru_maxrss}")
-                if not alone and (code == -signal.SIGKILL or out_of_memory(code, err)):  # once more, alone
+                # once more, alone; or again, after the watchdog or a crash
+                again_alone = not alone and (code == -signal.SIGKILL or out_of_memory(code, err))
+                again = not again_alone and code in (-signal.SIGTERM, -signal.SIGSEGV) and attempt < RETRIES
+                say(f"done {code} {time.monotonic() - start:.3f} {usage.ru_utime + usage.ru_stime:.3f} {usage.ru_maxrss} "
+                    f"{int(again_alone or again)}")
+                if again_alone:
                     alone = True
                     continue
-                if code in (-signal.SIGTERM, -signal.SIGSEGV) and attempt < RETRIES:  # the watchdog, or a crash
+                if again:
                     attempt += 1
                     continue
                 for source, sink in ((out, sys.stdout.buffer), (err, sys.stderr.buffer)):
@@ -161,9 +166,12 @@ def write_table(path: Path, table: dict[str, list[float]]) -> None:
     path.write_text(HEADER + "".join(rows), encoding="utf-8")
 
 
-def seed_rows(table: dict[str, list[float]]) -> dict[str, list[float]]:
-    """The heavy modules, rounded so that a rewrite changes few lines: 3 GB of anonymous memory or a minute."""
-    return {m: [round(w, -1), round(c, -1), round(r, -2), round(a, -2)] for m, (w, c, r, a) in table.items() if a >= 3000 or w >= 60}
+def seed_rows(pkg: Path, table: dict[str, list[float]]) -> dict[str, list[float]]:
+    """The heavy modules that still exist, rounded so that a rewrite changes few lines: 3 GB of anonymous memory or a
+    minute."""
+    exist = {".".join(parts[i:]) for parts in source_files(pkg) for i in range(len(parts))}
+    return {m: [round(w, -1), round(c, -1), round(r, -2), round(a, -2)] for m, (w, c, r, a) in table.items()
+            if m in exist and (a >= 3000 or w >= 60)}
 
 
 def header_imports(path: Path) -> list[str]:
@@ -187,9 +195,9 @@ def header_imports(path: Path) -> list[str]:
     return found
 
 
-def priorities(pkg: Path, table: dict[str, list[float]]) -> dict[str, float]:
-    """Each module's longest path to the end of the build, its own time included, over the import graph of the package
-    and its path dependencies (named from their parent, so `Statement/X.lean` is `Statement.X`)."""
+def source_files(pkg: Path) -> dict[tuple[str, ...], list[str]]:
+    """The imports of each file of the package and of its path dependencies, by its path's parts (a dependency's
+    from its parent, so `Statement/X.lean` is `Statement.X`)."""
     files = {}
     deps = [Path(r["path"]) for r in tomllib.loads((pkg / "lakefile.toml").read_text(encoding="utf-8")).get("require", [])
             if "path" in r] if (pkg / "lakefile.toml").exists() else []
@@ -200,6 +208,13 @@ def priorities(pkg: Path, table: dict[str, list[float]]) -> dict[str, float]:
                 if name.endswith(".lean"):
                     path = Path(root) / name
                     files[path.relative_to(base).with_suffix("").parts] = header_imports(path)
+    return files
+
+
+def priorities(pkg: Path, table: dict[str, list[float]]) -> dict[str, float]:
+    """Each module's longest path to the end of the build, its own time included, over the import graph of the package
+    and its path dependencies."""
+    files = source_files(pkg)
     known = {m for imports in files.values() for m in imports} | set(table)
     importers: dict[str, list[str]] = {}
     for parts, imports in files.items():
@@ -350,14 +365,14 @@ class Scheduler:
             self.cv.notify_all()
             if reply is None:
                 return
-            code, wall, cpu, maxrss = int(reply[1]), float(reply[2]), float(reply[3]), int(reply[4])
+            code, wall, cpu, maxrss, again = int(reply[1]), float(reply[2]), float(reply[3]), int(reply[4]), reply[5] == "1"
             self.busy += wall
             self.cpu += cpu
             if code == 0:
                 self.done += 1
                 self.table[run.name] = [wall, cpu, maxrss / 1024, max(run.peak, run.anon) / MB]
-            elif code in (-signal.SIGKILL, -signal.SIGABRT) and not run.alone or code in (-signal.SIGTERM, -signal.SIGSEGV):
-                self.killed.append(run.name)  # run again by its wrapper, which fails the build if it gives up
+            elif again:
+                self.killed.append(run.name)  # its wrapper runs it again
             else:
                 self.failed.append(run.name)
 
@@ -451,12 +466,28 @@ def fake_sysroot(real: Path, into: Path) -> None:
             target.symlink_to(entry)
 
 
-# The modules the kernel still checks under `--dev`. `ties` (the default): those that equate a guest function's body
-# with its template (`stmtsEqb`), which a guest change makes stale and elaboration alone does not check. `all`: every
-# module that decides something by the kernel (budgets, tables too), but the certificates `guest-cert`, `guest-core`
-# and `guest-memory` write, the generators' exact output, left to the gate.
-KERNEL_MARKS = {"ties": "stmtsEqb", "all": "decide +kernel"}
+# The modules the kernel still checks under `--dev`. `ties` (the default): those that equate a guest function's body,
+# or the core data, with a template, which a guest change makes stale and elaboration alone does not check: a
+# `stmtsEqb` tie (`tbStmtsEqb` too), or a `decide +kernel` in a module that reads a body or the core program
+# (`fn% «s»`, `core% «s» m`, `coreOf`, `certOf`, …) or imports the core IR. `all`: every module the kernel decides
+# something in (budgets, tables), and every `kernel_lit` and `win_lit` value, but the other certificates `guest-cert`,
+# `guest-core` and `guest-memory` write, the generators' exact output, left to the gate.
+TIE = re.compile(r"stmtsEqb", re.I)
+CORE_READ = re.compile(r"\bfn% «|\bcore(?:_eq)?% «|\bFn\.«[^»]+»\.core\b|\bData\.core\d|\bcoreOf\b|\bcertOf\b|\bcoreProgram\b"
+                       r"|^(?:(?:public|private)\s+)?(?:meta\s+)?import\s+(?:all\s+)?LeanVM\.Guest\.(?:Data|Pack)\.", re.M)
+LIT = re.compile(r"^\s*(?:kernel_lit|win_lit)\b", re.M)
 CERT_HEADERS = ("Generated by `lake exe guest-cert`", "Generated by `lake exe guest-core`", "Generated by `lake exe guest-memory`")
+
+
+def kernel_checked(text: str, which: str) -> bool:
+    """Whether the kernel checks a module of text `text` under `--dev-kernel which`."""
+    if which == "all" and LIT.search(text):
+        return True
+    if any(h in text[:600] for h in CERT_HEADERS):
+        return False
+    if which == "all":
+        return "decide +kernel" in text
+    return bool(TIE.search(text)) or "decide +kernel" in text and bool(CORE_READ.search(text))
 
 
 def kernel_modules(pkg: Path, which: str) -> list[str]:
@@ -466,8 +497,7 @@ def kernel_modules(pkg: Path, which: str) -> list[str]:
         rel = path.relative_to(pkg)
         if rel.parts[0] in (".lake", "scripts"):
             continue
-        text = path.read_text(encoding="utf-8")
-        if KERNEL_MARKS[which] in text and not any(h in text[:600] for h in CERT_HEADERS):
+        if kernel_checked(path.read_text(encoding="utf-8"), which):
             parts = rel.with_suffix("").parts
             names.append(".".join(parts[1:] if parts[0] in ("tests", "cli") else parts))
     return names
@@ -567,7 +597,7 @@ def main() -> None:
     local.parent.mkdir(exist_ok=True)
     write_table(local, scheduler.table)
     if opts.seed:
-        write_table(seed, seed_rows(scheduler.table))
+        write_table(seed, seed_rows(pkg, scheduler.table))
     peak = cgroup_file("memory.peak")
     log(f"{scheduler.done} modules in {hms(elapsed)}, {scheduler.cpu / 3600:.2f} CPU-h; "
         f"{scheduler.busy / max(elapsed, 1):.1f} of {opts.jobs} running on average, the machine's CPU "

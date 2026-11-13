@@ -13,8 +13,8 @@ public meta import Lean.Elab.Term
 
 `guest-export` writes each top-level constant `C` of the guest to `Data/Source.lean` as
 `Data.const_C`, a literal. `guest_const% C` elaborates to that literal, so a definition that mirrors
-`C` (`abbrev resBatch : ℕ := guest_const% RES_BATCH`) reads exactly as a hand copy of it, and a
-change to `C` in the guest reaches it by the export alone.
+`C` (`abbrev levelOodGrind : ℕ := guest_const% OOD_GRIND_BITS`) reads exactly as a hand copy of
+it, and a change to `C` in the guest reaches it by the export alone.
 -/
 
 public meta section
