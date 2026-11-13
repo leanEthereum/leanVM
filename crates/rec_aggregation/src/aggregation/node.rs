@@ -13,7 +13,7 @@ use super::proof::{EthereumClaims, EthereumProof, check_signer_set};
 use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
-use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS};
+use lean_da::{BLOB_SYMBOLS, CELLS_PER_ROW};
 use leanvm_core::cpu::{from_scalar, prove, public_input_bytes, scalar_proof};
 use primitives::field::{F64, F128};
 use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
@@ -301,16 +301,9 @@ pub fn aggregate_with_stats(
         );
         // Padding rows are constants the guest bakes, so only the real rows'
         // symbols ride the stream.
-        let (c, m) = (CELL_SYMBOLS, CODEWORD_SYMBOLS);
         for j in 0..CELLS_PER_ROW {
-            for i in 0..n_rows {
-                hints.push(
-                    "da_symbols",
-                    witness.codewords[i * m + j * c..i * m + (j + 1) * c]
-                        .iter()
-                        .map(|&w| F128::from(F64(w)))
-                        .collect(),
-                );
+            for cell in witness.column(j).expect("a column below CELLS_PER_ROW") {
+                hints.push("da_symbols", cell.iter().map(|&w| F128::from(F64(w))).collect());
             }
         }
     }

@@ -245,7 +245,7 @@ fn export(
             out.0.push_str("direct ");
             out.bytes(root);
             out.e(from_scalar(verifier::da::membership_challenge(root)));
-            let rows: Vec<&[u64]> = witness.codewords.chunks(CODEWORD_SYMBOLS).collect();
+            let rows: Vec<&[u64]> = (0..).map_while(|i| witness.row(i)).collect();
             out.n(rows.len());
             for row in rows {
                 out.n(row.len());

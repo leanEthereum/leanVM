@@ -12,21 +12,47 @@ use crate::{BLOB_SYMBOLS, BlobSizeError, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_S
 /// Digests in one blob's flat tree.
 const BLOB_TREE: usize = 2 * CELLS_PER_ROW - 1;
 
-/// What the builder keeps, to answer samples and to feed the proof.
+/// The encoded pq-blobs. Stoe this to be able to answer sample requests, or
+/// to aggregate the pq-blobs in a STARK with leanVM.
 pub struct DaWitness {
-    /// `n_rows · m` symbols, row-major. Padding rows are zero and not stored.
-    pub codewords: Vec<u64>,
-    /// One flat tree per blob of the padded matrix, `2ℓ - 1` digests each: its `ℓ` cell
-    /// digests, then each level in turn, its root last.
-    pub blob_trees: Vec<Hash>,
+    /// `n_rows · CODEWORD_SYMBOLS` symbols, row-major. Padding rows are zero and not stored.
+    codewords: Vec<u64>,
+    /// One flat tree per blob of the padded matrix, `2 · CELLS_PER_ROW - 1` digests each: its
+    /// `CELLS_PER_ROW` cell digests, then each level in turn, its root last.
+    blob_trees: Vec<Hash>,
     /// The flat tree over the `n_padded` blob roots, laid out likewise.
-    pub root_tree: Vec<Hash>,
+    root_tree: Vec<Hash>,
 }
 
 impl DaWitness {
-    /// Blob `i`'s flat tree, its cell digests first, for any `i` below `n_padded`.
-    pub fn blob_tree(&self, i: usize) -> &[Hash] {
-        &self.blob_trees[i * BLOB_TREE..(i + 1) * BLOB_TREE]
+    /// Blob `i`, encoded: `CODEWORD_SYMBOLS` symbols, or `None` if `i` is not below the number of
+    /// blobs. The encoding is systematic: the first `BLOB_SYMBOLS` symbols are the blob itself, the
+    /// rest its redundancy, and any `BLOB_SYMBOLS` of them recover it.
+    pub fn row(&self, i: usize) -> Option<&[u64]> {
+        self.rows().get(i).map(|row| row.as_slice())
+    }
+
+    /// Column `j`, what a sample reads: cell `j` of each blob, `CELL_SYMBOLS` symbols each, or
+    /// `None` if `j` is not below `CELLS_PER_ROW`.
+    pub fn column(&self, j: usize) -> Option<impl Iterator<Item = &[u64]>> {
+        (j < CELLS_PER_ROW).then(|| {
+            self.rows()
+                .iter()
+                .map(move |row| &row[j * CELL_SYMBOLS..(j + 1) * CELL_SYMBOLS])
+        })
+    }
+
+    fn rows(&self) -> &[[u64; CODEWORD_SYMBOLS]] {
+        self.codewords.as_chunks().0
+    }
+
+    /// Blob `i`'s flat tree, its cell digests first, or `None` if `i` is not below `n_padded`.
+    pub fn blob_tree(&self, i: usize) -> Option<&[Hash]> {
+        self.blob_trees
+            .as_chunks::<BLOB_TREE>()
+            .0
+            .get(i)
+            .map(|tree| tree.as_slice())
     }
 
     /// The `n_padded` blob roots, the padding blobs' included.
@@ -167,11 +193,33 @@ mod tests {
         for i in 0..n_rows.next_power_of_two() {
             let blob = codewords.chunks(CODEWORD_SYMBOLS).nth(i).unwrap_or(&zero);
             let cells: Vec<Hash> = blob.chunks(CELL_SYMBOLS).map(|cell| hash(as_bytes(cell))).collect();
-            assert_eq!(witness.blob_tree(i)[..CELLS_PER_ROW], cells, "blob {i}'s leaves");
+            assert_eq!(
+                witness.blob_tree(i).unwrap()[..CELLS_PER_ROW],
+                cells,
+                "blob {i}'s leaves"
+            );
             blob_roots.push(root(cells));
-            assert_eq!(witness.blob_tree(i)[BLOB_TREE - 1], blob_roots[i], "blob {i}'s root");
+            assert_eq!(
+                witness.blob_tree(i).unwrap()[BLOB_TREE - 1],
+                blob_roots[i],
+                "blob {i}'s root"
+            );
         }
         assert_eq!(witness.blob_roots(), blob_roots);
+        assert!(witness.blob_tree(blob_roots.len()).is_none());
+        for (i, row) in codewords.chunks(CODEWORD_SYMBOLS).enumerate() {
+            assert_eq!(witness.row(i), Some(row));
+        }
+        assert!(witness.row(n_rows).is_none());
+        for j in [0, CELLS_PER_ROW - 1] {
+            let column: Vec<&[u64]> = witness.column(j).unwrap().collect();
+            let cells: Vec<&[u64]> = codewords
+                .chunks(CODEWORD_SYMBOLS)
+                .map(|row| &row[j * CELL_SYMBOLS..(j + 1) * CELL_SYMBOLS])
+                .collect();
+            assert_eq!(column, cells);
+        }
+        assert!(witness.column(CELLS_PER_ROW).is_none());
         assert_eq!(witness.root(), root(blob_roots));
     }
 
