@@ -28,7 +28,7 @@ use std::collections::BTreeSet;
 /// every writer as an offset into one region, bounded by that region's size, one
 /// range check per write, so no signature can reach a claim of the other scheme.
 pub(super) struct Coverage {
-    pub(super) xmss: Region<LeanXmssClaim>,
+    pub(super) lean_xmss: Region<LeanXmssClaim>,
     pub(super) lean_sphincs: Region<LeanSphincsClaim>,
 }
 
@@ -112,10 +112,10 @@ pub(super) fn plan_coverage(
     declare: Option<&EthereumClaims>,
 ) -> Result<Coverage, AggregationError> {
     let cover = Coverage {
-        xmss: Region::plan(
+        lean_xmss: Region::plan(
             raw_lean_xmss,
-            children.iter().map(|child| child.claims.xmss.as_slice()),
-            declare.map(|claims| claims.xmss.as_slice()),
+            children.iter().map(|child| child.claims.lean_xmss.as_slice()),
+            declare.map(|claims| claims.lean_xmss.as_slice()),
         )?,
         lean_sphincs: Region::plan(
             raw_lean_sphincs,

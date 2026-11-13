@@ -17,8 +17,6 @@ mod tree;
 use tree::*;
 mod scheme;
 pub use scheme::*;
-#[cfg(feature = "mock")]
-pub mod mock;
 
 /// The key's seed, the whole secret key.
 pub const SEED_LEN: usize = 32;

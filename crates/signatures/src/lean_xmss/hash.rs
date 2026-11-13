@@ -33,8 +33,6 @@ pub const TWEAK_NODE: u8 = 3;
 pub(crate) const TWEAK_PARAMETER: u8 = 5;
 pub(crate) const TWEAK_RANDOMIZER: u8 = 7;
 pub const TWEAK_MSG: u8 = 12;
-/// A node outside a mock key's range.
-pub(crate) const TWEAK_FILLER: u8 = 13;
 
 /// The top layer's flag in `hi`.
 pub const TOP: u32 = 1 << 23;

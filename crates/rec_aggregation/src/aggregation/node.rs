@@ -157,8 +157,8 @@ pub fn aggregate_with_stats(
     hints.push(
         "meta",
         vec![
-            count(cover.xmss.signers.len()),
-            count(cover.xmss.dups.len()),
+            count(cover.lean_xmss.signers.len()),
+            count(cover.lean_xmss.dups.len()),
             count(raw_lean_xmss.len()),
             count(cover.lean_sphincs.signers.len()),
             count(cover.lean_sphincs.dups.len()),
@@ -171,7 +171,7 @@ pub fn aggregate_with_stats(
     hints.push("fs_seed", vec![fs_seed[0], fs_seed[1]]);
     // Both lists in the guest's order, leanXMSS first: each one's split, its declared
     // claims, then its duplicates.
-    let lean_xmss_cells: Vec<[F128; 4]> = cover.xmss.signers.iter().map(lean_xmss_claim_cells).collect();
+    let lean_xmss_cells: Vec<[F128; 4]> = cover.lean_xmss.signers.iter().map(lean_xmss_claim_cells).collect();
     let lean_sphincs_cells: Vec<[F128; 4]> = cover
         .lean_sphincs
         .signers
@@ -186,7 +186,7 @@ pub fn aggregate_with_stats(
             hints.push("claims", claim.to_vec());
         }
     }
-    let dups = cover.xmss.dups.iter().map(lean_xmss_claim_cells);
+    let dups = cover.lean_xmss.dups.iter().map(lean_xmss_claim_cells);
     for claim in dups.chain(cover.lean_sphincs.dups.iter().map(lean_sphincs_claim_cells)) {
         hints.push("dup_claims", claim.to_vec());
     }
@@ -196,7 +196,7 @@ pub fn aggregate_with_stats(
         let (pk, message, sig) = &raw_lean_xmss[i];
         lean_xmss_hints(pk, sig, message)
     });
-    for (&offset, sub) in cover.xmss.raw.iter().zip(lean_xmss_hints) {
+    for (&offset, sub) in cover.lean_xmss.raw.iter().zip(lean_xmss_hints) {
         hints.push("raw_index", vec![count(offset)]);
         for (name, entry) in sub? {
             hints.push(name, entry);
@@ -235,9 +235,12 @@ pub fn aggregate_with_stats(
     for (i, (child, verified)) in children.iter().zip(verified).enumerate() {
         hints.push(
             "child_meta",
-            vec![count(child.claims.xmss.len()), count(child.claims.lean_sphincs.len())],
+            vec![
+                count(child.claims.lean_xmss.len()),
+                count(child.claims.lean_sphincs.len()),
+            ],
         );
-        for offsets in [&cover.xmss.children[i], &cover.lean_sphincs.children[i]] {
+        for offsets in [&cover.lean_xmss.children[i], &cover.lean_sphincs.children[i]] {
             if offsets.is_empty() {
                 continue;
             }
@@ -311,11 +314,11 @@ pub fn aggregate_with_stats(
         }
     }
     hints.push("da_pick", vec![count(da_pick)]);
-    if cover.xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
+    if cover.lean_xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
         return Err(AggregationError::Empty);
     }
 
-    let public_input = statement_digest(&cover.xmss.signers, &cover.lean_sphincs.signers, da, &defer);
+    let public_input = statement_digest(&cover.lean_xmss.signers, &cover.lean_sphincs.signers, da, &defer);
     let mut program = guest.clone();
     #[cfg(test)]
     if let Some(forge) = FORGE.with(|forge| forge.borrow_mut().take()) {
@@ -327,7 +330,7 @@ pub fn aggregate_with_stats(
     Ok((
         EthereumProof {
             claims: EthereumClaims {
-                xmss: cover.xmss.signers,
+                lean_xmss: cover.lean_xmss.signers,
                 lean_sphincs: cover.lean_sphincs.signers,
                 da_commitment: da_root,
             },

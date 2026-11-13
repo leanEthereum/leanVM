@@ -31,17 +31,6 @@ pub mod transcript;
 pub mod vmhash;
 pub mod witness;
 
-/// Prepare the process for proving: spawn the worker pool up front, so no kernel
-/// pays the spawn cost inside a timed region. Idempotent.
-///
-/// Thread placement is the pool's own business: performance-core workers run at
-/// `USER_INTERACTIVE` and (on Apple silicon) efficiency-core workers at `UTILITY`,
-/// all drawing from one claim counter. `LEANVM_NUM_THREADS` sets the
-/// performance-worker count. See the `parallel` crate.
-pub fn init_prover() {
-    parallel::init();
-}
-
 /// Target soundness in bits: every verifier message's round-by-round error, after its grind, is at
 /// most `2^-SECURITY_BITS`. Challenges are sampled in F128, so a message whose error is `N/|E|`
 /// grinds `fiat_shamir::grinding_bits(N)` bits.

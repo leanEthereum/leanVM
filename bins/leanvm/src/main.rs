@@ -110,7 +110,7 @@ enum Command {
 
 fn main() {
     let cli = Cli::parse();
-    leanvm_core::init_prover();
+    parallel::init();
     let plan = bench::Plan::new(cli.repeat, cli.cooldown);
     if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
         bench::init_tracing();

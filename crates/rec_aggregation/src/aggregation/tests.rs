@@ -21,25 +21,15 @@ use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use signatures::{lean_sphincs, lean_xmss};
 
-use crate::signers_cache::{get_lean_sphincs_signers, get_signers, get_signers_for, message, message_for};
+use crate::signers_cache::{
+    LeanXmssSigner, get_lean_sphincs_signers, get_signers, get_signers_for, message, message_for,
+};
 
 /// A second cached message, sorting after [`message`]; signer `i` holds the same
 /// pubkey under both, at another leaf index.
 const MESSAGE_B: u32 = 2;
 const SMALL_LEAF_SIZE: usize = 6;
 const LOG_INV_RATE: usize = leanvm_core::pcs::TEST_LOG_INV_RATE;
-
-/// Cached `(pubkey, signature)` pairs as the API takes them, with the message of
-/// cache `message_id` they signed.
-fn signing(
-    signers: &[(LeanXmssPublicKey, LeanXmssSignature)],
-    message_id: u32,
-) -> Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)> {
-    signers
-        .iter()
-        .map(|(pk, sig)| (*pk, message_for(message_id), sig.clone()))
-        .collect()
-}
 
 // The native verifier derives the DA challenge's grind from its own copy of the blob size.
 const _: () = assert!(verifier::da::DA_LOG_K == DA_LOG_K);
@@ -76,8 +66,8 @@ fn guest_compiles_reproducibly() {
     );
 }
 
-fn prove_leaf(signers: &[(LeanXmssPublicKey, LeanXmssSignature)]) -> EthereumProof {
-    aggregate(&[], signing(signers, 0), vec![], &[], None, LOG_INV_RATE).expect("leaf aggregates")
+fn prove_leaf(signers: &[LeanXmssSigner]) -> EthereumProof {
+    aggregate(&[], signers.to_vec(), vec![], &[], None, LOG_INV_RATE).expect("leaf aggregates")
 }
 
 /// The guest builds a leanXMSS address as its type's cell plus `lo`,
@@ -112,10 +102,10 @@ fn prove_lean_sphincs_leaf(signers: &[RawSphincs]) -> EthereumProof {
 
 #[test]
 fn aggregate_one_lean_sphincs_signer() {
-    leanvm_core::init_prover();
+    parallel::init();
     let aggregate = prove_lean_sphincs_leaf(&get_lean_sphincs_signers(1));
     aggregate.verify().expect("verifies");
-    assert!(aggregate.claims.xmss.is_empty());
+    assert!(aggregate.claims.lean_xmss.is_empty());
     assert_eq!(aggregate.claims.lean_sphincs.len(), 1);
 }
 
@@ -124,7 +114,7 @@ fn aggregate_one_lean_sphincs_signer() {
 /// the other way, or give a layer another counter fails the guest's run.
 #[test]
 fn forged_lean_sphincs_hints_are_rejected() {
-    leanvm_core::init_prover();
+    parallel::init();
     let signers = get_lean_sphincs_signers(1);
     let forgeries: [Forgery; 3] = [
         Box::new(|hints: &mut Hints| {
@@ -150,8 +140,8 @@ fn forged_lean_sphincs_hints_are_rejected() {
 /// dispatch a digit group other than the digest's fails the guest's run.
 #[test]
 fn forged_lean_xmss_hints_are_rejected() {
-    leanvm_core::init_prover();
-    let signers = signing(&get_signers(1), 0);
+    parallel::init();
+    let signers = get_signers(1);
     let forgeries: [Forgery; 3] = [
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += F128::ONE),
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_windows", 0)[0] *= count(1)),
@@ -171,19 +161,19 @@ fn forged_lean_xmss_hints_are_rejected() {
 
 #[test]
 fn aggregate_one_signer() {
-    leanvm_core::init_prover();
+    parallel::init();
     let aggregate = prove_leaf(&get_signers(1));
     aggregate.verify().expect("verifies");
-    assert_eq!(aggregate.claims.xmss[0].1, message());
+    assert_eq!(aggregate.claims.lean_xmss[0].1, message());
 }
 
 /// A leaf holding claims of both schemes, each list in its own region.
 #[test]
 fn aggregate_mixed_leaf() {
-    leanvm_core::init_prover();
+    parallel::init();
     let aggregate = aggregate(
         &[],
-        signing(&get_signers(3), 0),
+        get_signers(3),
         get_lean_sphincs_signers(3),
         &[],
         None,
@@ -192,7 +182,7 @@ fn aggregate_mixed_leaf() {
     .expect("leaf aggregates");
     aggregate.verify().expect("verifies");
     assert_eq!(
-        (aggregate.claims.xmss.len(), aggregate.claims.lean_sphincs.len()),
+        (aggregate.claims.lean_xmss.len(), aggregate.claims.lean_sphincs.len()),
         (3, 3)
     );
 }
@@ -202,18 +192,18 @@ fn aggregate_mixed_leaf() {
 /// child's two claim lists have to land in their own.
 #[test]
 fn aggregate_mixed_two_to_one() {
-    leanvm_core::init_prover();
+    parallel::init();
     let xmss = get_signers(6);
     let lean_sphincs = get_lean_sphincs_signers(4);
-    let leaf = |x: &[(LeanXmssPublicKey, LeanXmssSignature)], s: &[RawSphincs]| {
-        aggregate(&[], signing(x, 0), s.to_vec(), &[], None, LOG_INV_RATE).expect("leaf aggregates")
+    let leaf = |x: &[LeanXmssSigner], s: &[RawSphincs]| {
+        aggregate(&[], x.to_vec(), s.to_vec(), &[], None, LOG_INV_RATE).expect("leaf aggregates")
     };
     let left = leaf(&xmss[..4], &lean_sphincs[..3]);
     let right = leaf(&xmss[3..], &lean_sphincs[2..]);
     let node = aggregate(&[left, right], vec![], vec![], &[], None, LOG_INV_RATE).expect("node aggregates");
     node.verify().expect("node verifies");
-    assert_eq!((node.claims.xmss.len(), node.claims.lean_sphincs.len()), (6, 4));
-    assert!(node.claims.xmss.windows(2).all(|w| w[0] < w[1]));
+    assert_eq!((node.claims.lean_xmss.len(), node.claims.lean_sphincs.len()), (6, 4));
+    assert!(node.claims.lean_xmss.windows(2).all(|w| w[0] < w[1]));
     assert!(node.claims.lean_sphincs.windows(2).all(|w| w[0] < w[1]));
 }
 
@@ -223,7 +213,7 @@ fn aggregate_mixed_two_to_one() {
 /// log(g^0)` (unsatisfiable, so nothing may be written there) is reached.
 #[test]
 fn aggregate_one_scheme_per_child() {
-    leanvm_core::init_prover();
+    parallel::init();
     let lean_xmss_child = prove_leaf(&get_signers(3));
     let lean_sphincs_child = prove_lean_sphincs_leaf(&get_lean_sphincs_signers(2));
     let node = aggregate(
@@ -236,7 +226,7 @@ fn aggregate_one_scheme_per_child() {
     )
     .expect("node aggregates");
     node.verify().expect("node verifies");
-    assert_eq!((node.claims.xmss.len(), node.claims.lean_sphincs.len()), (3, 2));
+    assert_eq!((node.claims.lean_xmss.len(), node.claims.lean_sphincs.len()), (3, 2));
 }
 
 /// The repeat the statement allows: one pubkey signing two messages is two
@@ -244,7 +234,7 @@ fn aggregate_one_scheme_per_child() {
 /// here rather than cached, the cache holding one message per pubkey.
 #[test]
 fn aggregate_one_key_two_messages() {
-    leanvm_core::init_prover();
+    parallel::init();
     let (secret_key, public_key) = lean_sphincs::key_gen_from_seed([77; lean_sphincs::SEED_LEN]);
     let raw: Vec<RawSphincs> = [3u8, 9]
         .into_iter()
@@ -264,7 +254,7 @@ fn aggregate_one_key_two_messages() {
 
 #[test]
 fn guest_column_selectors_match_native_eq() {
-    leanvm_core::init_prover();
+    parallel::init();
     let (helpers, _) = include_str!("../../guests/lean_ethereum.py")
         .split_once("\ndef main():")
         .unwrap();
@@ -334,7 +324,7 @@ def main():
 /// a partial group alone.
 #[test]
 fn aggregate_two_to_one() {
-    leanvm_core::init_prover();
+    parallel::init();
     let big = 2 * CLAIM_GROUP + 3;
     let signers = get_signers(SMALL_LEAF_SIZE + big);
     let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
@@ -344,7 +334,7 @@ fn aggregate_two_to_one() {
     node.verify().expect("node verifies");
     // `cpu::verify` accepts the same proof of the same statement.
     verify(unified_guest(), &node.vm_public_input(), &node.proof).expect("node verifies natively");
-    assert_eq!(node.claims.xmss.len(), SMALL_LEAF_SIZE + big);
+    assert_eq!(node.claims.lean_xmss.len(), SMALL_LEAF_SIZE + big);
 }
 
 fn da_rows(n_rows: usize, seed: u64) -> Vec<u64> {
@@ -359,7 +349,7 @@ fn da_rows(n_rows: usize, seed: u64) -> Vec<u64> {
 /// aggregate has to verify against a statement that carries it.
 #[test]
 fn aggregate_with_a_da_payload() {
-    leanvm_core::init_prover();
+    parallel::init();
     let rows = da_rows(3, 97);
 
     let node = aggregate(&[], vec![], vec![], &rows, None, LOG_INV_RATE).expect("node aggregates");
@@ -393,7 +383,7 @@ fn aggregate_with_a_da_payload() {
         [0; lean_xmss::MESSAGE_LEN],
     );
     let unsorted = EthereumClaims {
-        xmss: vec![claim, claim],
+        lean_xmss: vec![claim, claim],
         ..expected.clone()
     };
     let malformed = EthereumProof::from_proof_bytes(&bytes, unsorted);
@@ -429,12 +419,12 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
 /// publishes their matrix's, whatever its children hold.
 #[test]
 fn a_node_passes_on_one_childs_da_root() {
-    leanvm_core::init_prover();
+    parallel::init();
     let signers = get_signers(SMALL_LEAF_SIZE);
     let mut children = vec![prove_leaf(&signers)];
     for (n_rows, seed) in [(1, 509), (2, 510)] {
         let rows = da_rows(n_rows, seed);
-        children.push(aggregate(&[], signing(&signers, 0), vec![], &rows, None, LOG_INV_RATE).unwrap());
+        children.push(aggregate(&[], signers.clone(), vec![], &rows, None, LOG_INV_RATE).unwrap());
     }
     let (first, second) = (
         children[1].claims.da_commitment.unwrap(),
@@ -443,7 +433,7 @@ fn a_node_passes_on_one_childs_da_root() {
     assert_ne!(first, second);
     let pass_on = |selected: Option<Option<[u8; 32]>>, blobs: &[u64]| {
         let declare = selected.map(|da_commitment| EthereumClaims {
-            xmss: children[0].claims.xmss.clone(),
+            lean_xmss: children[0].claims.lean_xmss.clone(),
             lean_sphincs: vec![],
             da_commitment,
         });
@@ -470,9 +460,9 @@ fn a_node_passes_on_one_childs_da_root() {
 /// node's blobs, or a membership challenge other than the root's fails the guest's run.
 #[test]
 fn forged_da_hints_are_rejected() {
-    leanvm_core::init_prover();
+    parallel::init();
     let signers = get_signers(SMALL_LEAF_SIZE);
-    let child = aggregate(&[], signing(&signers, 0), vec![], &da_rows(1, 7), None, LOG_INV_RATE).unwrap();
+    let child = aggregate(&[], signers.clone(), vec![], &da_rows(1, 7), None, LOG_INV_RATE).unwrap();
     let forgeries: [(Forgery, bool); 4] = [
         (
             Box::new(|hints: &mut Hints| hints.entry_mut("child_da", 0)[0] += F128::ONE),
@@ -505,9 +495,9 @@ fn forged_da_hints_are_rejected() {
 /// The child's opening rides in as hints: a forged opened row or cap node fails the guest's Merkle check.
 #[test]
 fn forged_opening_hints_are_rejected() {
-    leanvm_core::init_prover();
+    parallel::init();
     let signers = get_signers(SMALL_LEAF_SIZE);
-    let child = aggregate(&[], signing(&signers, 0), vec![], &[], None, LOG_INV_RATE).unwrap();
+    let child = aggregate(&[], signers.clone(), vec![], &[], None, LOG_INV_RATE).unwrap();
     let forgeries: [Forgery; 2] = [
         Box::new(|hints: &mut Hints| hints.entry_mut("merkle_leaf_rows", 0)[0] += F128::ONE),
         Box::new(|hints: &mut Hints| hints.entry_mut("merkle_caps", 0)[4] += F128::ONE),
@@ -597,7 +587,7 @@ def main():
 /// one row flipped, though its root and vector are that matrix's: the row is no codeword.
 #[test]
 fn da_guest_checks_codeword_membership() {
-    leanvm_core::init_prover();
+    parallel::init();
     let source = include_str!("../../guests/lean_ethereum.py");
     let (helpers, _) = source.split_once("\ndef main():").unwrap();
     let source = format!(
@@ -658,11 +648,11 @@ fn invalid_blob_sizes_are_rejected() {
 /// 8, exercising two different arms of the tree dispatch and a non-empty gap.
 #[test]
 fn da_row_count_is_a_run_time_parameter() {
-    leanvm_core::init_prover();
+    parallel::init();
     let signers = get_signers(SMALL_LEAF_SIZE);
     for n_rows in [1usize, 3, 4, 5] {
         let rows = da_rows(n_rows, 200 + n_rows as u64);
-        let node = aggregate(&[], signing(&signers, 0), vec![], &rows, None, LOG_INV_RATE).expect("node aggregates");
+        let node = aggregate(&[], signers.clone(), vec![], &rows, None, LOG_INV_RATE).expect("node aggregates");
         node.verify().expect("node verifies");
         let (commitment, _) = lean_da::commit(&rows).unwrap();
         assert_eq!(node.claims.da_commitment, Some(commitment), "{n_rows} rows");
@@ -672,7 +662,7 @@ fn da_row_count_is_a_run_time_parameter() {
 /// A leaf carrying no payload publishes zeros for its root.
 #[test]
 fn no_payload_publishes_no_root() {
-    leanvm_core::init_prover();
+    parallel::init();
     let signers = get_signers(SMALL_LEAF_SIZE);
     let node = prove_leaf(&signers);
     assert_eq!(node.claims.da_commitment, None);
@@ -682,14 +672,14 @@ fn no_payload_publishes_no_root() {
 /// claim on one message, the second all but one claim.
 #[test]
 fn a_node_may_publish_less_than_it_covers() {
-    leanvm_core::init_prover();
+    parallel::init();
     let at_a = get_signers(3);
     let at_b = get_signers_for(2, MESSAGE_B);
-    let mut raw = signing(&at_a, 0);
-    raw.extend(signing(&at_b, MESSAGE_B));
+    let mut raw = at_a.clone();
+    raw.extend_from_slice(&at_b);
     let wide = aggregate(&[], raw, vec![], &[], None, LOG_INV_RATE).expect("the wide leaf aggregates");
     wide.verify().expect("the wide leaf verifies");
-    assert_eq!(wide.claims.xmss.len(), 5);
+    assert_eq!(wide.claims.lean_xmss.len(), 5);
 
     let narrowed = |wide: &EthereumProof, declare: &EthereumClaims| {
         aggregate(
@@ -701,13 +691,13 @@ fn a_node_may_publish_less_than_it_covers() {
             LOG_INV_RATE,
         )
     };
-    let only = |xmss: Vec<LeanXmssClaim>| EthereumClaims {
-        xmss,
+    let only = |lean_xmss: Vec<LeanXmssClaim>| EthereumClaims {
+        lean_xmss,
         ..EthereumClaims::default()
     };
     let on_b: Vec<LeanXmssClaim> = wide
         .claims
-        .xmss
+        .lean_xmss
         .iter()
         .filter(|(_, message)| *message == message_for(MESSAGE_B))
         .cloned()
@@ -716,12 +706,12 @@ fn a_node_may_publish_less_than_it_covers() {
 
     let narrow = narrowed(&wide, &only(on_b.clone())).expect("narrows to one message");
     narrow.verify().expect("the one-message narrowing verifies");
-    assert_eq!(narrow.claims.xmss, on_b);
+    assert_eq!(narrow.claims.lean_xmss, on_b);
 
     let one = vec![(at_a[0].0, message())];
     let part = narrowed(&wide, &only(one.clone())).expect("narrows to one claim");
     part.verify().expect("the one-claim narrowing verifies");
-    assert_eq!(part.claims.xmss, one);
+    assert_eq!(part.claims.lean_xmss, one);
 
     assert_eq!(
         narrowed(&wide, &EthereumClaims::default()).err(),
@@ -743,11 +733,11 @@ fn a_node_may_publish_less_than_it_covers() {
 /// A raw signature whose claim goes undeclared covers a duplicate slot.
 #[test]
 fn raw_signatures_may_go_undeclared() {
-    leanvm_core::init_prover();
+    parallel::init();
     let a = get_signers(1);
     let b = get_signers_for(1, MESSAGE_B);
-    let mut raw = signing(&a, 0);
-    raw.extend(signing(&b, MESSAGE_B));
+    let mut raw = a.clone();
+    raw.extend_from_slice(&b);
     let claim_b = vec![(b[0].0, message_for(MESSAGE_B))];
     let sig = aggregate(
         &[],
@@ -755,14 +745,14 @@ fn raw_signatures_may_go_undeclared() {
         vec![],
         &[],
         Some(&EthereumClaims {
-            xmss: claim_b.clone(),
+            lean_xmss: claim_b.clone(),
             ..EthereumClaims::default()
         }),
         LOG_INV_RATE,
     )
     .expect("the narrowing leaf aggregates");
     sig.verify().expect("it verifies");
-    assert_eq!(sig.claims.xmss, claim_b);
+    assert_eq!(sig.claims.lean_xmss, claim_b);
 }
 
 /// Two messages in one tree. Signer `i` holds the same pubkey under both, at
@@ -771,20 +761,20 @@ fn raw_signatures_may_go_undeclared() {
 /// slot for the claim both leaves cover.
 #[test]
 fn aggregate_two_messages() {
-    leanvm_core::init_prover();
+    parallel::init();
     let at_a = get_signers(4);
     let at_b = get_signers_for(2, MESSAGE_B);
     assert_eq!(at_a[0].0, at_b[0].0, "the cache reuses pubkeys across messages");
-    assert_ne!(at_a[0].1.leaf_index(), at_b[0].1.leaf_index());
-    let left = aggregate(&[], signing(&at_a[..3], 0), vec![], &[], None, LOG_INV_RATE).expect("left");
-    let mut right_raw = signing(&at_a[2..], 0);
-    right_raw.extend(signing(&at_b, MESSAGE_B));
+    assert_ne!(at_a[0].2.leaf_index(), at_b[0].2.leaf_index());
+    let left = aggregate(&[], at_a[..3].to_vec(), vec![], &[], None, LOG_INV_RATE).expect("left");
+    let mut right_raw = at_a[2..].to_vec();
+    right_raw.extend_from_slice(&at_b);
     let right = aggregate(&[], right_raw, vec![], &[], None, LOG_INV_RATE).expect("right");
     right.verify().expect("the two-message leaf verifies");
     // A pubkey of `left` signing a second message is a second claim of that pubkey.
     let crossed = aggregate(
         std::slice::from_ref(&left),
-        signing(&at_b[..1], MESSAGE_B),
+        at_b[..1].to_vec(),
         vec![],
         &[],
         None,
@@ -794,35 +784,35 @@ fn aggregate_two_messages() {
     crossed.verify().expect("the crossed node verifies");
     let of_first: Vec<lean_xmss::Message> = crossed
         .claims
-        .xmss
+        .lean_xmss
         .iter()
         .filter(|(pubkey, _)| *pubkey == at_a[0].0)
         .map(|(_, message)| *message)
         .collect();
     assert_eq!(of_first, vec![message(), message_for(MESSAGE_B)]);
-    assert_eq!(crossed.claims.xmss.len(), 4);
+    assert_eq!(crossed.claims.lean_xmss.len(), 4);
     let node = aggregate(&[left, right], vec![], vec![], &[], None, LOG_INV_RATE).expect("node");
     node.verify().expect("the two-message node verifies");
-    let mut expected = signing(&at_a, 0);
-    expected.extend(signing(&at_b, MESSAGE_B));
+    let mut expected = at_a.clone();
+    expected.extend_from_slice(&at_b);
     let mut expected: Vec<LeanXmssClaim> = expected
         .into_iter()
         .map(|(pubkey, message, _)| (pubkey, message))
         .collect();
     expected.sort();
-    assert_eq!(node.claims.xmss, expected);
+    assert_eq!(node.claims.lean_xmss, expected);
 }
 
 #[test]
 fn aggregate_overlapping_signers() {
-    leanvm_core::init_prover();
+    parallel::init();
     let signers = get_signers(40);
     let left = prove_leaf(&signers[..25]);
     let right = prove_leaf(&signers[15..]);
     let node = aggregate(&[left, right], vec![], vec![], &[], None, LOG_INV_RATE).expect("node aggregates");
     node.verify().expect("node verifies");
-    assert_eq!(node.claims.xmss.len(), 40);
-    assert!(node.claims.xmss.windows(2).all(|w| w[0] < w[1]));
+    assert_eq!(node.claims.lean_xmss.len(), 40);
+    assert!(node.claims.lean_xmss.windows(2).all(|w| w[0] < w[1]));
 }
 
 /// A child list walked by gaps (`child_claim_list_mono`) moves strictly forward. A
@@ -879,13 +869,13 @@ def main():
 /// children.
 #[test]
 fn aggregate_three_levels() {
-    leanvm_core::init_prover();
+    parallel::init();
     let signers = get_signers(4 * SMALL_LEAF_SIZE);
     let claims = get_lean_sphincs_signers(5);
     let leaf = |index: usize, lean_sphincs: &[RawSphincs]| {
         aggregate(
             &[],
-            signing(&signers[index * SMALL_LEAF_SIZE..(index + 1) * SMALL_LEAF_SIZE], 0),
+            signers[index * SMALL_LEAF_SIZE..(index + 1) * SMALL_LEAF_SIZE].to_vec(),
             lean_sphincs.to_vec(),
             &[],
             None,
@@ -903,7 +893,7 @@ fn aggregate_three_levels() {
     let right = node(&[leaf(2, &claims[1..3]), leaf(3, &[])]);
     let root = aggregate(
         &[left, right],
-        signing(&get_signers_for(2, MESSAGE_B), MESSAGE_B),
+        get_signers_for(2, MESSAGE_B),
         claims[4..].to_vec(),
         &[],
         None,
@@ -911,19 +901,19 @@ fn aggregate_three_levels() {
     )
     .expect("root aggregates");
     root.verify().expect("root verifies");
-    assert_eq!(root.claims.xmss.len(), 4 * SMALL_LEAF_SIZE + 2);
+    assert_eq!(root.claims.lean_xmss.len(), 4 * SMALL_LEAF_SIZE + 2);
     assert_eq!(
         root.claims.lean_sphincs.len(),
         4,
         "claims 0, 1, 2 and 4, the repeat merged"
     );
-    assert!(root.claims.xmss.windows(2).all(|w| w[0] < w[1]));
+    assert!(root.claims.lean_xmss.windows(2).all(|w| w[0] < w[1]));
     assert!(root.claims.lean_sphincs.windows(2).all(|w| w[0] < w[1]));
 }
 
 #[test]
 fn aggregate_round_trips_through_the_wire() {
-    leanvm_core::init_prover();
+    parallel::init();
     let signers = get_signers(2 * SMALL_LEAF_SIZE);
     let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
     let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
@@ -998,7 +988,7 @@ fn malformed_raw_signature_is_an_error() {
     let randomizer = (0..=u8::MAX)
         .map(|byte| [byte; lean_xmss::RANDOMIZER_LEN])
         .find(|r| {
-            let digest = lean_xmss::message_digest(pk.public_param(), 0, 0, r, &message);
+            let digest = lean_xmss::message_digest(pk.__public_param(), 0, 0, r, &message);
             lean_xmss::codeword(&digest).is_none()
         })
         .expect("some randomizer fails the codeword");

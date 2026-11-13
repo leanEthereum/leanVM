@@ -22,9 +22,8 @@ rand = { workspace = true, optional = true }
 tracing.workspace = true
 
 [features]
-# `signers_cache`: cached benchmark signers over leanXMSS mock keys, for tests and the CLI.
-signers-cache = ["signatures/mock", "dep:rand"]
+# `signers_cache`: cached benchmark signers, for tests and the CLI.
+signers-cache = ["dep:rand"]
 
 [dev-dependencies]
-signatures = { workspace = true, features = ["mock"] }
 rand.workspace = true

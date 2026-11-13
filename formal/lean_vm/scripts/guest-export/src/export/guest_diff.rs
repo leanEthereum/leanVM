@@ -11,7 +11,7 @@
 //! list its length then its items; a section starts with its name, which the reader checks.
 
 use super::*;
-use crate::signers_cache::{get_lean_sphincs_signers, get_signers, message};
+use crate::signers_cache::{get_lean_sphincs_signers, get_signers};
 use lean_da::{BLOB_SYMBOLS, CODEWORD_SYMBOLS};
 use leanvm_core::cpu::{public_input_bytes, scalar_proof};
 use signatures::lean_sphincs::LeanSphincsSignature;
@@ -79,8 +79,8 @@ impl Out {
     /// `NodeStatement`: the claims, the DA digest (`verifier::da::digest`), and the deferred claim.
     fn statement(&mut self, p: &EthereumProof) {
         self.tag("xmss");
-        self.n(p.claims.xmss.len());
-        for (pk, m) in &p.claims.xmss {
+        self.n(p.claims.lean_xmss.len());
+        for (pk, m) in &p.claims.lean_xmss {
             self.bytes(&pk.to_bytes());
             self.bytes(m);
         }
@@ -125,7 +125,7 @@ impl Out {
         }
         for (layer, height) in LAYER_HEIGHTS.into_iter().enumerate() {
             let counter = u32::from_be_bytes(at.take(COUNTER_LEN).try_into().unwrap());
-            assert_eq!(counter, sig.layers()[layer].counter());
+            assert_eq!(counter, sig.__layers()[layer].counter());
             self.n(counter as usize);
             self.digests(at.take(V * N).as_chunks::<N>().0);
             self.digests(at.take(height * N).as_chunks::<N>().0);
@@ -293,12 +293,9 @@ fn blob(seed: u64) -> Vec<u64> {
 #[test]
 #[ignore]
 fn guest_diff() {
-    leanvm_core::init_prover();
+    parallel::init();
     let wide = CLAIM_GROUP + 3;
-    let xmss: Vec<_> = get_signers(wide + 2)
-        .into_iter()
-        .map(|(pk, sig)| (pk, message(), sig))
-        .collect();
+    let xmss = get_signers(wide + 2);
     let sphincs = get_lean_sphincs_signers(3);
     let left = export("left", vec![], xmss[..2].to_vec(), sphincs[..2].to_vec(), &blob(1));
     let right = export("right", vec![], xmss[1..wide + 1].to_vec(), sphincs[1..].to_vec(), &[]);
@@ -311,10 +308,6 @@ fn guest_diff() {
 #[test]
 #[ignore]
 fn guest_diff_leaf() {
-    leanvm_core::init_prover();
-    let xmss: Vec<_> = get_signers(1)
-        .into_iter()
-        .map(|(pk, sig)| (pk, message(), sig))
-        .collect();
-    export("leaf", vec![], xmss, vec![], &[]);
+    parallel::init();
+    export("leaf", vec![], get_signers(1), vec![], &[]);
 }

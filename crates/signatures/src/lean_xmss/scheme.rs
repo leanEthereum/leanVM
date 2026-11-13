@@ -1,14 +1,12 @@
 //! Keys, signing and verification. The secret key holds the top tree and builds
 //! a bottom tree, with the top layer's signature of its root, the first time it
-//! signs in it, keeping the last one.
+//! signs in it or prepares it, keeping the [`MAX_CACHED_BOTTOM_TREES`] it used last.
 
-use std::ops::RangeInclusive;
+use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
 use crate::lean_xmss::*;
 
-/// Ordered lexicographically on `to_bytes()`, which is what an aggregate's claims are
-/// sorted by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct LeanXmssPublicKey {
     pub(crate) merkle_root: Digest,
@@ -16,11 +14,11 @@ pub struct LeanXmssPublicKey {
 }
 
 impl LeanXmssPublicKey {
-    pub fn public_param(&self) -> &PublicParam {
+    #[doc(hidden)]
+    pub fn __public_param(&self) -> &PublicParam {
         &self.public_param
     }
 
-    /// The specification's serialization, exactly [`PUB_KEY_SIZE`] bytes.
     pub fn to_bytes(&self) -> [u8; PUB_KEY_SIZE] {
         let mut out = [0u8; PUB_KEY_SIZE];
         out[..N].copy_from_slice(&self.merkle_root);
@@ -36,8 +34,6 @@ impl LeanXmssPublicKey {
     }
 }
 
-/// One layer's signature: the randomizer, the value each digit opens, and the
-/// authentication path.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LayerSignature {
     pub(crate) randomizer: Randomizer,
@@ -69,11 +65,13 @@ impl LeanXmssSignature {
         self.leaf_index
     }
 
-    pub fn bottom(&self) -> &LayerSignature {
+    #[doc(hidden)]
+    pub fn __bottom(&self) -> &LayerSignature {
         &self.bottom
     }
 
-    pub fn top(&self) -> &LayerSignature {
+    #[doc(hidden)]
+    pub fn __top(&self) -> &LayerSignature {
         &self.top
     }
 
@@ -123,9 +121,11 @@ pub struct LeanXmssSecretKey {
     key_seed: Seed,
     public_param: PublicParam,
     top: LayerTree,
-    /// The bottom tree the key last signed in.
-    bottom: Mutex<Option<Arc<BottomTree>>>,
+    /// The bottom trees the key used last, least recently used first.
+    bottoms: Mutex<VecDeque<Arc<BottomTree>>>,
 }
+
+pub const MAX_CACHED_BOTTOM_TREES: usize = 8;
 
 impl std::fmt::Debug for LeanXmssSecretKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -156,47 +156,46 @@ impl std::fmt::Display for LeanXmssSignError {
 
 impl std::error::Error for LeanXmssSignError {}
 
-/// Every leaf index: what a key signs at, but for a mock key.
-pub(crate) const ALL_LEAVES: RangeInclusive<LeafIndex> = 0..=LeafIndex::MAX;
-
-/// A fresh key pair, its seed from the operating system's randomness. Generates
-/// the whole top tree.
+/// A fresh key pair, its seed from the operating system's randomness.
 pub fn key_gen() -> (LeanXmssSecretKey, LeanXmssPublicKey) {
     key_gen_from_seed(rand::random())
 }
 
-/// Deterministic [`key_gen`]: the seed is the key's entire secret material. Never
-/// derive another key from it, a mock key included: the two would share one-time
-/// keys (see `mock`).
-pub fn key_gen_from_seed(seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
-    generate(seed, ALL_LEAVES)
-}
-
-/// The key over the leaf indices `leaves`; nodes over no leaf in it are fillers.
-pub(crate) fn generate(key_seed: Seed, leaves: RangeInclusive<LeafIndex>) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
+/// Deterministic [`key_gen`]: the seed is the key's entire secret material.
+pub fn key_gen_from_seed(key_seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
     let seed = scheme_seed(&key_seed);
     let public_param = public_param(&seed);
-    let (first, last) = (layer_index(*leaves.start(), 1), layer_index(*leaves.end(), 1));
-    let top = LayerTree::build(&public_param, &seed, 1, 0, first, last);
+    let top = LayerTree::build(&public_param, &seed, 1, 0);
     let sk = LeanXmssSecretKey {
         key_seed,
         public_param,
         top,
-        bottom: Mutex::new(None),
+        bottoms: Mutex::new(VecDeque::with_capacity(MAX_CACHED_BOTTOM_TREES + 1)),
     };
     let pk = sk.public_key();
     (sk, pk)
 }
 
 /// Never use the same key and leaf index to sign two different messages.
-/// Signing is deterministic. The first signature in a bottom tree builds it with
-/// `parallel`, so never sign from inside a `parallel` task.
+/// Signing is deterministic. The first signature in a bottom tree builds that tree.
 pub fn sign(
     sk: &LeanXmssSecretKey,
     message: &Message,
     leaf_index: LeafIndex,
 ) -> Result<LeanXmssSignature, LeanXmssSignError> {
-    sk.sign_over(message, leaf_index, ALL_LEAVES)
+    let bottom = sk.bottom_tree(leaf_index)?;
+    let seed = scheme_seed(&sk.key_seed);
+    let (randomizer, chain_values) =
+        wots_sign(&sk.public_param, &seed, 0, leaf_index, message).ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
+    Ok(LeanXmssSignature {
+        leaf_index,
+        bottom: LayerSignature {
+            randomizer,
+            chain_values,
+            path: bottom.tree.path(leaf_index),
+        },
+        top: bottom.top_signature.clone(),
+    })
 }
 
 impl LeanXmssSecretKey {
@@ -218,50 +217,22 @@ impl LeanXmssSecretKey {
     }
 
     /// Builds the bottom tree `leaf_index` is in, and signs its root, ahead of
-    /// [`sign`]: the first signature in a bottom tree pays for both.
+    /// [`sign`]: the first signature in a bottom tree pays for both. The key keeps
+    /// the [`MAX_CACHED_BOTTOM_TREES`] it used last.
     pub fn prepare(&self, leaf_index: LeafIndex) -> Result<(), LeanXmssSignError> {
-        self.bottom_tree(leaf_index, ALL_LEAVES).map(drop)
-    }
-
-    /// [`sign`], for a key whose trees hold only the leaf indices `leaves`.
-    pub(crate) fn sign_over(
-        &self,
-        message: &Message,
-        leaf_index: LeafIndex,
-        leaves: RangeInclusive<LeafIndex>,
-    ) -> Result<LeanXmssSignature, LeanXmssSignError> {
-        let bottom = self.bottom_tree(leaf_index, leaves)?;
-        let seed = scheme_seed(&self.key_seed);
-        let (randomizer, chain_values) = wots_sign(&self.public_param, &seed, 0, leaf_index, message)
-            .ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
-        Ok(LeanXmssSignature {
-            leaf_index,
-            bottom: LayerSignature {
-                randomizer,
-                chain_values,
-                path: bottom.tree.path(&self.public_param, &seed, tree_leaf(leaf_index)),
-            },
-            top: bottom.top_signature.clone(),
-        })
+        self.bottom_tree(leaf_index).map(drop)
     }
 
     /// The bottom tree `leaf_index` is in, with the top layer's signature of its root:
     /// the cached one, or built and cached. Built outside the lock, which is only ever
-    /// held to read or replace the cache.
-    fn bottom_tree(
-        &self,
-        leaf_index: LeafIndex,
-        leaves: RangeInclusive<LeafIndex>,
-    ) -> Result<Arc<BottomTree>, LeanXmssSignError> {
+    /// held to read or update the cache.
+    fn bottom_tree(&self, leaf_index: LeafIndex) -> Result<Arc<BottomTree>, LeanXmssSignError> {
         let index = layer_index(leaf_index, 1);
-        if let Some(bottom) = self.bottom.lock().unwrap().as_ref().filter(|b| b.index == index) {
-            return Ok(Arc::clone(bottom));
+        if let Some(bottom) = use_cached(&mut self.bottoms.lock().unwrap(), index) {
+            return Ok(bottom);
         }
         let (pp, seed) = (&self.public_param, &scheme_seed(&self.key_seed));
-        let base = index << LAYER_HEIGHT;
-        let first = (*leaves.start()).max(base) - base;
-        let last = (*leaves.end()).min(base | tree_leaf(LeafIndex::MAX)) - base;
-        let tree = LayerTree::build(pp, seed, 0, base, first, last);
+        let tree = LayerTree::build(pp, seed, 0, index);
         let (randomizer, chain_values) =
             wots_sign(pp, seed, 1, index, &tree.root()).ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
         let bottom = Arc::new(BottomTree {
@@ -269,13 +240,29 @@ impl LeanXmssSecretKey {
             top_signature: LayerSignature {
                 randomizer,
                 chain_values,
-                path: self.top.path(pp, seed, index),
+                path: self.top.path(index),
             },
             tree,
         });
-        *self.bottom.lock().unwrap() = Some(Arc::clone(&bottom));
+        let mut bottoms = self.bottoms.lock().unwrap();
+        // Another thread may have built it meanwhile.
+        if let Some(cached) = use_cached(&mut bottoms, index) {
+            return Ok(cached);
+        }
+        bottoms.push_back(Arc::clone(&bottom));
+        if bottoms.len() > MAX_CACHED_BOTTOM_TREES {
+            bottoms.pop_front();
+        }
         Ok(bottom)
     }
+}
+
+/// Bottom tree `index` if cached, moved to the most recently used end.
+fn use_cached(bottoms: &mut VecDeque<Arc<BottomTree>>, index: u32) -> Option<Arc<BottomTree>> {
+    let at = bottoms.iter().position(|b| b.index == index)?;
+    let bottom = bottoms.remove(at)?;
+    bottoms.push_back(Arc::clone(&bottom));
+    Some(bottom)
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]

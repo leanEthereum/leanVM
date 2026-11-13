@@ -102,7 +102,7 @@ pub(super) fn lean_xmss_hints(
     sig: &LeanXmssSignature,
     message: &lean_xmss::Message,
 ) -> Result<SubHints, AggregationError> {
-    let pp = pk.public_param();
+    let pp = pk.__public_param();
     let index = u64::from(sig.leaf_index());
     let windows = (0..lean_xmss::LOG_LIFETIME).step_by(LX_WINDOW).map(|s| index >> s);
     let mut hints: SubHints = vec![
@@ -114,7 +114,7 @@ pub(super) fn lean_xmss_hints(
     ];
     let mut root: Vec<u8> = message.to_vec();
     let mut level = 0;
-    for (layer, layer_sig) in [sig.bottom(), sig.top()].into_iter().enumerate() {
+    for (layer, layer_sig) in [sig.__bottom(), sig.__top()].into_iter().enumerate() {
         let e = lean_xmss::layer_index(sig.leaf_index(), layer);
         let (codeword, reached) = lean_xmss::layer_root(pp, layer, e, &root, layer_sig, |pair| {
             hints.push((
@@ -149,24 +149,24 @@ pub(super) fn lean_sphincs_hints(
     sig: &LeanSphincsSignature,
     message: &lean_sphincs::Message,
 ) -> Result<SubHints, AggregationError> {
-    let pk_seed = pk.pk_seed();
-    let mut hints: SubHints = vec![("sp_rand", vec![pack_16_bytes(sig.randomizer())])];
-    let digest = lean_sphincs::h_msg(sig.randomizer(), pk_seed, pk.root(), message);
+    let pk_seed = pk.__pk_seed();
+    let mut hints: SubHints = vec![("sp_rand", vec![pack_16_bytes(sig.__randomizer())])];
+    let digest = lean_sphincs::h_msg(sig.__randomizer(), pk_seed, pk.__root(), message);
     let (idx, leaves) = lean_sphincs::digest_fields(&digest);
     hints.push((
         "sp_unused",
         exponent_bytes(&digest[lean_sphincs::DIGEST_BYTES..SP_LANE_END]),
     ));
-    for tree in sig.fors() {
+    for tree in sig.__fors() {
         hints.push(("sp_fors_secrets", vec![pack_16_bytes(tree.secret())]));
     }
     // On every path the guest does not order a node and its sibling: it is handed the
     // two children in order and checks that the node it holds is the one its bit names.
     let ordered = |pair: &[lean_sphincs::Digest; 2]| vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])];
-    let mut signed = lean_sphincs::fors_recover(pk_seed, idx, &leaves, sig.fors(), |pair| {
+    let mut signed = lean_sphincs::fors_recover(pk_seed, idx, &leaves, sig.__fors(), |pair| {
         hints.push(("sp_fors_nodes", ordered(pair)));
     });
-    for (layer, layer_sig) in sig.layers().iter().enumerate() {
+    for (layer, layer_sig) in sig.__layers().iter().enumerate() {
         let key = lean_sphincs::OtsKey::of_index(layer, idx);
         let (codeword, leaf) = lean_sphincs::wots_leaf(pk_seed, &key, &signed, layer_sig.counter(), layer_sig.wots())
             .ok_or(AggregationError::MalformedRawSignature)?;
@@ -175,7 +175,7 @@ pub(super) fn lean_sphincs_hints(
         for value in layer_sig.wots() {
             hints.push(("chain_starts", vec![pack_16_bytes(value)]));
         }
-        signed = lean_sphincs::tree_fold(pk_seed, &key, leaf, sig.path(layer), |pair| {
+        signed = lean_sphincs::tree_fold(pk_seed, &key, leaf, sig.__path(layer), |pair| {
             hints.push(("siblings", ordered(pair)));
         });
     }

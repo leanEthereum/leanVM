@@ -7,7 +7,7 @@ use super::{LeanSphincsClaim, LeanXmssClaim};
 use leanvm_core::cpu::{public_input_bytes, scalar_proof};
 use primitives::field::F128;
 
-/// What an aggregate attests: every `(pubkey, message)` in [`Self::xmss`] is backed by a valid
+/// What an aggregate attests: every `(pubkey, message)` in [`Self::lean_xmss`] is backed by a valid
 /// leanXMSS signature, at a leaf index the statement does not record, every one in
 /// [`Self::lean_sphincs`] by a valid leanSPHINCS signature, and the [`Self::da_commitment`], if any,
 /// commits to blob rows that are valid Reed-Solomon codewords.
@@ -22,7 +22,7 @@ use primitives::field::F128;
 /// committee threshold has to count distinct pubkeys itself.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct EthereumClaims {
-    pub xmss: Vec<LeanXmssClaim>,
+    pub lean_xmss: Vec<LeanXmssClaim>,
     pub lean_sphincs: Vec<LeanSphincsClaim>,
     /// `None` makes no blob claim. The statement carries its [`verifier::da::digest`].
     pub da_commitment: Option<[u8; 32]>,
@@ -75,7 +75,7 @@ pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F128>, &[u8])> {
 /// empty; both may be empty for a blob proof. Their sizes are the guest's to bound, by its
 /// memory.
 pub(super) fn check_signer_set(claims: &EthereumClaims) -> Result<(), AggregateVerifyError> {
-    if !claims.xmss.windows(2).all(|w| w[0] < w[1]) || !claims.lean_sphincs.windows(2).all(|w| w[0] < w[1]) {
+    if !claims.lean_xmss.windows(2).all(|w| w[0] < w[1]) || !claims.lean_sphincs.windows(2).all(|w| w[0] < w[1]) {
         return Err(AggregateVerifyError::MalformedSignerSet);
     }
     Ok(())
@@ -88,7 +88,7 @@ impl EthereumClaims {
     /// claims, one per message it signed. A caller that wants signers has to
     /// deduplicate by pubkey itself.
     pub fn num_signature_claims(&self) -> usize {
-        self.xmss.len() + self.lean_sphincs.len()
+        self.lean_xmss.len() + self.lean_sphincs.len()
     }
 }
 
@@ -96,7 +96,7 @@ impl EthereumProof {
     /// The VM's public input for this aggregate: the digest of its claims and its deferred claim.
     pub(super) fn vm_public_input(&self) -> [F128; 2] {
         let da = verifier::da::digest(self.claims.da_commitment);
-        statement_digest(&self.claims.xmss, &self.claims.lean_sphincs, da, &self.defer)
+        statement_digest(&self.claims.lean_xmss, &self.claims.lean_sphincs, da, &self.defer)
     }
 
     /// What this aggregate claims, which [`Self::verify`] checks.

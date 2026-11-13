@@ -17,11 +17,13 @@ pub struct LeanSphincsPublicKey {
 }
 
 impl LeanSphincsPublicKey {
-    pub fn pk_seed(&self) -> &PkSeed {
+    #[doc(hidden)]
+    pub fn __pk_seed(&self) -> &PkSeed {
         &self.pk_seed
     }
 
-    pub fn root(&self) -> &Digest {
+    #[doc(hidden)]
+    pub fn __root(&self) -> &Digest {
         &self.root
     }
 
@@ -54,8 +56,7 @@ impl std::fmt::Debug for LeanSphincsSecretKey {
 }
 
 impl LeanSphincsSecretKey {
-    /// The public key, rebuilt as key generation builds it: the whole top tree, on
-    /// `parallel`, so never from inside a `parallel` task.
+    /// The public key, rebuilt as key generation builds it: the whole top tree.
     pub fn public_key(&self) -> LeanSphincsPublicKey {
         keygen(&expand_key(&self.sk_seed)).0
     }
@@ -71,7 +72,7 @@ impl LeanSphincsSecretKey {
 }
 
 /// What a signature carries for one layer: the one-time signature of what the
-/// layer below gives. Its key's path is [`LeanSphincsSignature::path`].
+/// layer below gives. Its key's path is [`LeanSphincsSignature::__path`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LayerSignature {
     pub(crate) counter: u32,
@@ -94,7 +95,7 @@ pub struct LeanSphincsSignature {
     pub(crate) fors: ForsOpening,
     /// Bottom first.
     pub(crate) layers: [LayerSignature; LAYERS],
-    /// The layers' paths one after the other, bottom first ([`Self::path`]).
+    /// The layers' paths one after the other, bottom first ([`Self::__path`]).
     pub(crate) paths: [Digest; H],
 }
 
@@ -106,21 +107,25 @@ fn path_range(layer: usize) -> std::ops::Range<usize> {
 
 impl LeanSphincsSignature {
     /// `R`.
-    pub fn randomizer(&self) -> &Digest {
+    #[doc(hidden)]
+    pub fn __randomizer(&self) -> &Digest {
         &self.randomizer
     }
 
-    pub fn fors(&self) -> &ForsOpening {
+    #[doc(hidden)]
+    pub fn __fors(&self) -> &ForsOpening {
         &self.fors
     }
 
     /// Bottom first.
-    pub fn layers(&self) -> &[LayerSignature; LAYERS] {
+    #[doc(hidden)]
+    pub fn __layers(&self) -> &[LayerSignature; LAYERS] {
         &self.layers
     }
 
     /// Layer `layer`'s path in its tree, from the leaf up.
-    pub fn path(&self, layer: usize) -> &[Digest] {
+    #[doc(hidden)]
+    pub fn __path(&self, layer: usize) -> &[Digest] {
         &self.paths[path_range(layer)]
     }
 
@@ -142,7 +147,7 @@ impl LeanSphincsSignature {
         for (layer, signed) in self.layers.iter().enumerate() {
             put(&signed.counter.to_be_bytes());
             put(signed.wots.as_flattened());
-            put(self.path(layer).as_flattened());
+            put(self.__path(layer).as_flattened());
         }
         debug_assert_eq!(at, SIG_SIZE);
         out
@@ -262,20 +267,13 @@ fn node(pk_seed: &PkSeed, key: &OtsKey, z: usize, j: usize, children: &[Digest; 
 /// The levels of the tree holding `key`, its leaves first and its root last.
 fn tree_levels(sk: &ExpandedKey, key: &OtsKey) -> Vec<Vec<Digest>> {
     let height = LAYER_HEIGHTS[key.layer];
-    let leaves = parallel::map_collect(1 << height, |leaf| {
-        wots_public_leaf(
-            sk,
-            &OtsKey {
-                leaf: leaf as u32,
-                ..*key
-            },
-        )
-    });
+    let leaves = (0..1 << height)
+        .map(|leaf| wots_public_leaf(sk, &OtsKey { leaf, ..*key }))
+        .collect();
     merkle_levels(leaves, height, |z, j, pair| node(&sk.pk_seed, key, z, j, pair))
 }
 
 /// `Gen`, deterministic: the seed is `SK.seed`, and the top tree gives `PK.root`.
-/// It builds the tree on `parallel`, so never call it from inside a `parallel` task.
 pub fn key_gen_from_seed(seed: Seed) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
     (LeanSphincsSecretKey { sk_seed: seed }, keygen(&expand_key(&seed)).0)
 }
@@ -298,8 +296,7 @@ pub fn key_gen() -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
 
 /// `Sign`. Deterministic and stateless: the digest picks the FORS instance,
 /// which opens the message, and each layer signs what the layer below gives. A
-/// key signs at most `2^30` messages (`doc/lean_sphincs`). It builds its trees on
-/// `parallel`, so never sign from inside a `parallel` task.
+/// key signs at most `2^30` messages (`doc/lean_sphincs`).
 pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
     sign_with(&expand_key(&sk.sk_seed), message)
 }
@@ -366,7 +363,7 @@ pub fn verify(
         let key = OtsKey::of_index(layer, idx);
         let (_, leaf) = wots_leaf(pk_seed, &key, &signed, layer_sig.counter, &layer_sig.wots)
             .ok_or(LeanSphincsVerifyError::InadmissibleEncoding)?;
-        signed = tree_fold(pk_seed, &key, leaf, signature.path(layer), |_| ());
+        signed = tree_fold(pk_seed, &key, leaf, signature.__path(layer), |_| ());
     }
     if signed == pk.root {
         Ok(())
