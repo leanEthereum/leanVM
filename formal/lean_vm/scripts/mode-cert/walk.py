@@ -71,6 +71,9 @@ def sle(a, b):
 
 # ---------------------------------------------------------------- the state
 
+# The kernel's work on the walk's lists, roughly: an estimate of a check's cost (`gen.py`).
+COST = [0]
+
 
 class Abs:
     __slots__ = ('w', 'v', 'nz', 'hv', 'h', 'r', 'lt', 'pr', 'xs', 'p')
@@ -95,17 +98,20 @@ class Abs:
 
 
     def hvGet(s, k):
+        COST[0] += len(s.hv)
         d = ownCell(k)
         if d is not None:
             return s.v.get(d, ('m', root(d))) if d in s.w else None
         return s.hv.get(k)
 
     def addHv(s, k, x):
+        COST[0] += len(s.hv)
         d = ownCell(k)
         if d is not None: s.addV(d, x); return
         if k not in s.hv: s.hv[k] = x
 
     def addH(s, k):
+        COST[0] += len(s.h)
         d = ownCell(k)
         if d is not None: s.w.add(d); return
         s.h.add(k)
@@ -150,6 +156,7 @@ class Abs:
         return False
 
     def covered(s, k):
+        COST[0] += len(s.h) + 40 * len(s.r)
         d = ownCell(k)
         if d is not None: return d in s.w
         return k in s.h or any(s.inRng(k, r) for r in s.r)
@@ -196,6 +203,9 @@ def idxOf(r, k):
 
 
 def inter(A, B):
+    # `interT`: the common tail at once, the rest against the other list
+    COST[0] += len(A.w) + len(A.v) + sum(len(x) + len(y) + len(x - y.keys() if isinstance(y, dict) else x - y) * len(y)
+                                         for x, y in ((A.h, B.h), (set(A.hv), B.hv), (A.r, B.r), (A.lt, B.lt), (A.p, B.p)))
     t = Abs()
     t.w = A.w & B.w
     t.v = {o: x for o, x in A.v.items() if B.v.get(o) == x}
@@ -231,10 +241,11 @@ def jtRng(E): return (ONE, ('num', E.jtLo), ('num', E.jtHi), 1, 0)
 
 class Sig:
     def __init__(self, pc, entry, self_=None, pre=(), preR=(), term=(), ret=(), post=(), postR=(), postL=(),
-                 preP=(), postP=(), postLP=()):
+                 preP=(), postP=(), postLP=(), retV=()):
         self.pc = pc; self.entry = list(entry); self.self_ = self_; self.pre = list(pre); self.preR = list(preR)
         self.term = list(term); self.ret = list(ret); self.post = list(post); self.postR = list(postR)
         self.postL = list(postL); self.preP = list(preP); self.postP = list(postP); self.postLP = list(postLP)
+        self.retV = list(retV)
 
 
 class Walk:
@@ -407,7 +418,7 @@ class Walk:
                     A.nz.add(o)
                     if bits <= 61: A.lt.add((('ex', ('fr', o), 0), ('num', 2 ** bits)))
         else:
-            for j in range(n): A.addH(shift(m, pos + j))
+            A.r.add((m, ('num', pos), ('num', pos + n), 1, 0))
 
     def stepHint(self, i, A, h):
         t = h[0]
@@ -538,6 +549,9 @@ class Walk:
     def afterCall(self, A, mq, G):
         A = A.copy()
         for o in G.ret: A.addH(shift(mq, o))
+        for o, m in G.retV:
+            x = self.trMono(A, mq, m)
+            if x is not None and o < 2 ** 30: A.addHv(shift(mq, o), ('m', x))
         for m in G.post:
             k = self.trMono(A, mq, m)
             if k is not None: A.addH(k)
@@ -566,6 +580,9 @@ class Walk:
     def retOk(self, A, i):
         self.loopOk(A, i)
         for o in self.sig.ret: self.need(o in A.w, 'retW', i, o, A)
+        for o, m in self.sig.retV:
+            x = A.mono(o)
+            self.need(o in A.w and x is not None and x == self.trMono(A, own(0), m), 'retV', i, o, A)
         for m in self.sig.post:
             k = self.trMono(A, own(0), m)
             self.need(k is not None and A.covered(k), 'post', i, m, A)
@@ -669,22 +686,28 @@ class Walk:
         if not x[1][2]: return True
         return None
 
-    def run(self, code, keep=False):
+    def run(self, code, keep=False, probe=None):
+        """The pass (`runCode`): pending edges in groups `[ts, Bs, m]` as `Grp`, a group of at least
+        three states met at once. `probe(i, cur, pend)` sees the paths and pending
+        edges at each offset, before the join."""
         cur = [entryAbs(self.E, self.sig)]
-        # pending edges hold shared snapshots, copied when taken; meets are memoized (order-free)
-        pend = {}
-        memo = {}
-        alive = []
+        pend = []
         if keep: self.states = []
         for i, (op, a) in enumerate(code):
-            edges = pend.pop(i, [])
-            if len(cur) + len(edges) > 2:
-                key = (tuple(id(x) for x in cur), frozenset(id(x) for x in edges))
-                if cur or key not in memo:
-                    memo[key] = cap(cur + edges)[0]
-                sts = [memo[key].copy()]
+            if probe is not None: probe(i, cur, pend)
+            As = []; n = 0; ps = []
+            for ts, Bs, m in pend:
+                if ts and ts[0] == i:
+                    As += Bs; n += 3 if m else len(Bs)
+                    if ts[1:]: ps.append([ts[1:], Bs, m])
+                else:
+                    ps.append([ts, Bs, m])
+            pend = ps
+            paths = cur + As
+            if len(cur) + n > 2:
+                sts = [meetAll(paths)] if len(paths) > 1 else [paths[0].copy()]
             else:
-                sts = cur + [x.copy() for x in edges]
+                sts = cur + [x.copy() for x in As]
             if keep: self.states.append(sts[0].copy() if sts else None)
             cur = []
             for A in sts:
@@ -699,12 +722,28 @@ class Walk:
                 if k is False: cur.append(learn0(A, c)); continue
                 go, A2 = self.jumpI(i, A, d, f)
                 if go != 'out':
-                    snap = A2.copy(); alive.append(snap)
-                    for t in go:
-                        if t <= i: raise Fail(('backjump', i, t))
-                        pend.setdefault(t, []).append(snap)
+                    if not all(t > i for t in go): raise Fail(('backjump', i))
+                    if any(x >= y for x, y in zip(go, go[1:])): raise Fail(('unsorted', i))
+                    if go:
+                        snap = A2.copy()
+                        for g in pend:
+                            if g[0] == list(go):
+                                Bs = g[1] + [snap]
+                                if g[2] or len(Bs) >= 3: g[1] = [meetAll(Bs)]; g[2] = True
+                                else: g[1] = Bs
+                                break
+                        else:
+                            pend.append([list(go), [snap], False])
                 if k is not True: cur.append(learn0(A, c))
-        if pend: raise Fail(('pend', sorted(pend)))
+        if pend: raise Fail(('pend', [g[0][:3] for g in pend]))
+
+
+def meetAll(sts):
+    """The meet of the states, in order (`meetAll`)."""
+    B = sts[0]
+    for X in sts[1:]: B = inter(B, X)
+    return B if len(sts) > 1 else B.copy()
+
 
 def cap(sts):
     """At most two paths: more are met into one."""

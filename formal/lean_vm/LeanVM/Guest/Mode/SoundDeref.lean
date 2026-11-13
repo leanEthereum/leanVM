@@ -36,6 +36,11 @@ theorem Holds.foldl {s : St} {α : Type} (f : Abs → α → Abs) :
   | a :: l, A, h, hf => Holds.foldl f l (hf A a (List.mem_cons_self ..) h)
       fun A' a' hm h' ↦ hf A' a' (List.mem_cons_of_mem _ hm) h'
 
+theorem Holds.foldlA {s : St} {α : Type} (f : Abs → α → Abs) (l : List α) {A : Abs} (h : Holds s A)
+    (hf : ∀ A a, a ∈ l → Holds s A → Holds s (f A a)) : Holds s (Mode.foldlA f A l) := by
+  rw [foldlA_eq]
+  exact Holds.foldl f l h hf
+
 theorem Holds.addH_cell {s : St} {A : Abs} (h : Holds s A) (hfp : s.fp < maxCells) {k : Mono} {v : E}
     {x : ℕ} (hk : MonoVal s k v) (hx : Names v x) (hw : s.mem.written x = true) : Holds s (A.addH k) :=
   h.addH ⟨v, x, hk, hx, hw⟩ fun _ hd ↦ by rw [← own_names hfp hd hk hx]; exact hw
@@ -44,8 +49,8 @@ theorem Holds.addH_cell {s : St} {A : Abs} (h : Holds s A) (hfp : s.fp < maxCell
 theorem Holds.addH_offs {s : St} {B : Abs} (hB : Holds s B) (hfp : s.fp < maxCells) {m : Mono}
     {p : E} (hm : MonoVal s m p) {os : List ℕ}
     (hos : ∀ o ∈ os, ∃ y, Names (p * ofK (g ^ o)) y ∧ s.mem.written y = true) :
-    Holds s (os.foldl (fun B o ↦ B.addH (m.shift o)) B) :=
-  Holds.foldl _ _ hB fun _ o ho hB' ↦ (hos o ho).elim fun _ hy ↦
+    Holds s (Mode.foldlA (fun B o ↦ B.addH (m.shift o)) B os) :=
+  Holds.foldlA _ _ hB fun _ o ho hB' ↦ (hos o ho).elim fun _ hy ↦
     hB'.addH_cell hfp (hm.shift o) hy.1 hy.2
 
 /-- **A load from a run of pointers**: the loaded word's cells the run promises are written. -/
@@ -55,7 +60,7 @@ theorem ptrLoad_sound {s s' : St} {A B : Abs} {k : Mono} {c : ℕ} (hA : Holds s
     (hc : s'.mem.get (s'.fp + c) = some vX) (hget : s.mem.get X = some vX) :
     Holds s' (ptrLoad A k c B) := by
   unfold ptrLoad
-  refine Holds.foldl _ _ hB fun B q hq hB ↦ ?_
+  refine Holds.foldlA _ _ hB fun B q hq hB ↦ ?_
   split
   · rename_i hin
     split

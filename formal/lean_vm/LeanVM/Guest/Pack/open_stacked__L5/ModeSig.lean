@@ -13,9 +13,11 @@ namespace LeanVM.Guest.Fn.«open_stacked__L5»
 
 @[expose] public section
 
-/-- `open_stacked__L5`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `open_stacked__L5`: its entry, the cells and heap facts it needs at entry and guarantees at
+    return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨220177, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], none, [], [], [], [13, 14, 15, 16, 17], [], [], [], [], [], []⟩
+  ⟨220177, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], none, [], [], [], [13, 14, 15, 16, 17], [],
+    [], [], [], [], [], []⟩
 
 end
 

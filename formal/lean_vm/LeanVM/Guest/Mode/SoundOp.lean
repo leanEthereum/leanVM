@@ -266,6 +266,7 @@ theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : Off
           intro B hB hn
           rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil]
           exact (ih B hB fun j hj ↦ hn j (by omega)).addW (by rw [g2]; exact hw n (hn n (by omega)))
+      rw [foldlA_eq]
       exact this _ A hm fun j hj ↦ hj
 
 end

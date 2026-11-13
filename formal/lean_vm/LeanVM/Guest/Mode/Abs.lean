@@ -24,11 +24,15 @@ its frame side is known written, loads when its heap side is, and otherwise link
 `Abs.inter` is what two paths into a join both know. Calls, tail calls and returns (`entryOk`,
 `afterCall`, `tailOk`, `retOk`) read the callee's `Sig`: the cells its walk needs written at entry,
 the heap facts it needs over its own bases (`pre`, `preR`, `preP`), and those it guarantees at return
-(`ret`, `post`, `postR`, `postP`, a loop's `postL`, `postLP`), translated through the caller's
-knowledge of the callee frame (`trBase`). `walk` runs a function's code once, forward, keeping at
-most two paths apart at each offset and meeting more into one; the fall-through of a `JUMP` on a
-sum learns its two terms equal (`Abs.learn0`). Their meaning is `Mode/Sem.lean`, their soundness
-`Mode/Sound*.lean`.
+(`ret`, its returned words `retV`, `post`, `postR`, `postP`, a loop's `postL`, `postLP`), translated
+through the caller's knowledge of the callee frame (`trBase`). `walk` runs a function's code once,
+forward (`runCode`), keeping at most two paths apart at each offset and meeting more into one; the
+pending edges of a jump go in groups by their targets (`Grp`), a group of three or more paths met at
+once, so a table jump's arms share one state; the fall-through of a `JUMP` on a sum learns its two
+terms equal (`Abs.learn0`). At a cut (`Fun.cuts`) the walk goes on from given weaker paths and
+pending edges (`cutAt`), so a long function is checked in windows (`Mode/Win.lean`). The states are
+evaluated as they are built (`Abs.force`, `foldlA`), for the kernel. Their meaning is
+`Mode/Sem.lean`, their soundness `Mode/Sound*.lean`.
 
 Everything here is structural recursion over `ℕ`, lists and tries, for the kernel.
 -/
@@ -218,6 +222,28 @@ structure Abs where
   written. -/
   p : List (Rng × List ℕ)
 
+/-- `k A`, `A` and its tries evaluated first. -/
+def Abs.force {β : Type} (A : Abs) (k : Abs → β) : β :=
+  match A with
+  | ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩ =>
+    w.seq fun w ↦ v.seq fun v ↦ nz.seq fun nz ↦ xs.seq fun xs ↦ k ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩
+
+/-- `l.foldl f A`, each state evaluated before the next step. -/
+noncomputable def foldlA {α : Type} (f : Abs → α → Abs) (A : Abs) (l : List α) : Abs :=
+  List.rec (motive := fun _ ↦ Abs → Abs) (fun A ↦ A) (fun x _ ih A ↦ (f A x).force ih) l A
+
+/-- `l.foldl (·.set () envDepth ·) t`, each trie evaluated before the next step. -/
+noncomputable def foldlT (t : Trie Unit) (l : List ℕ) : Trie Unit :=
+  List.rec (motive := fun _ ↦ Trie Unit → Trie Unit) (fun t ↦ t)
+    (fun o _ ih t ↦ (t.set () envDepth o).seq ih) l t
+
+/-- `l.mapM f`, its elements evaluated in order. -/
+noncomputable def mapOpt {α β : Type} (f : α → Option β) (l : List α) : Option (List β) :=
+  List.rec (motive := fun _ ↦ List β → Option (List β)) (fun acc ↦ some acc.reverse)
+    (fun x _ ih acc ↦ match f x with
+      | some y => ih (y :: acc)
+      | none => none) l []
+
 /-- Frame offset `o` is known written. -/
 def Abs.hasW (A : Abs) (o : ℕ) : Bool := (A.w.get o).isSome
 
@@ -361,14 +387,63 @@ def Abs.coveredP (A : Abs) (r : Rng) (os : List ℕ) : Bool :=
 /-- Pairs both lists hold. -/
 def interL {α : Type} (eq : α → α → Bool) (a b : List α) : List α := a.filter fun x ↦ b.any (eq x)
 
+/-- How many leading elements two lists agree on. -/
+def agree {α : Type} (eq : α → α → Bool) : List α → List α → ℕ
+  | x :: xs, y :: ys => if eq x y then agree eq xs ys + 1 else 0
+  | _, _ => 0
+
+/-- Pairs both lists hold, their longest common tail kept whole: two states from one path share most
+of their facts, as a tail. -/
+def interT {α : Type} (eq : α → α → Bool) (a b : List α) : List α :=
+  let t := agree eq a.reverse b.reverse
+  interL eq (a.take (a.length - t)) b ++ a.drop (a.length - t)
+
 /-- What two states both know. -/
 noncomputable def Abs.inter (A B : Abs) : Abs :=
   ⟨Trie.inter (fun _ _ ↦ true) A.w B.w, Trie.inter Val.beq A.v B.v,
     Trie.inter (fun _ _ ↦ true) A.nz B.nz,
-    interL (fun p q ↦ p.1.beq q.1 && p.2.beq q.2) A.hv B.hv, interL Mono.beq A.h B.h,
-    interL Rng.beq A.r B.r, interL (fun p q ↦ p.1.beq q.1 && p.2.beq q.2) A.lt B.lt, [],
+    interT (fun p q ↦ p.1.beq q.1 && p.2.beq q.2) A.hv B.hv, interT Mono.beq A.h B.h,
+    interT Rng.beq A.r B.r, interT (fun p q ↦ p.1.beq q.1 && p.2.beq q.2) A.lt B.lt, [],
     Trie.inter (fun p q ↦ p.1 == q.1 && p.2 == q.2) A.xs B.xs,
-    interL (fun p q ↦ p.1.beq q.1 && p.2 == q.2) A.p B.p⟩
+    interT (fun p q ↦ p.1.beq q.1 && p.2 == q.2) A.p B.p⟩
+
+/-- `A.inter B`, its lists' spines evaluated. -/
+noncomputable def Abs.interS (A B : Abs) : Abs :=
+  match A.inter B with
+  | ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩ =>
+    listSeq hv fun hv ↦ listSeq h fun h ↦ listSeq r fun r ↦ listSeq lt fun lt ↦ listSeq p fun p ↦
+      ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩
+
+/-- Every fact of `S` is one of `A`'s. -/
+noncomputable def Abs.sub (S A : Abs) : Bool :=
+  Trie.sub (fun _ _ ↦ true) S.w A.w && Trie.sub Val.beq S.v A.v && Trie.sub (fun _ _ ↦ true) S.nz A.nz &&
+  S.hv.all (fun p ↦ A.hv.any fun q ↦ p.1.beq q.1 && p.2.beq q.2) && S.h.all (fun k ↦ A.h.any (·.beq k)) &&
+  S.r.all (fun r ↦ A.r.any (·.beq r)) && S.lt.all (fun p ↦ A.lt.any fun q ↦ p.1.beq q.1 && p.2.beq q.2) &&
+  S.pr.all (fun p ↦ A.pr.any fun q ↦ p.1 == q.1 && p.2.1 == q.2.1 && p.2.2 == q.2.2) &&
+  Trie.sub (fun p q ↦ p.1 == q.1 && p.2 == q.2) S.xs A.xs &&
+  S.p.all (fun p ↦ A.p.any fun q ↦ p.1.beq q.1 && p.2 == q.2)
+
+/-- Pending edges into later offsets: each target of `ts` (increasing) is entered by every state of
+`Bs`; `m`: `Bs` is one state, the meet of at least three. -/
+structure Grp where
+  ts : List ℕ
+  Bs : List Abs
+  m : Bool
+
+/-- The pending edges, in groups. -/
+abbrev Pend := List Grp
+
+/-- Each state of `S` is weaker than the one in its place in `As`. -/
+noncomputable def subAll : List Abs → List Abs → Bool
+  | [], [] => true
+  | S :: Ss, A :: As => S.sub A && subAll Ss As
+  | _, _ => false
+
+/-- Each group of `S` has the targets and states of the one in its place in `P`, each state weaker. -/
+noncomputable def pendSub : Pend → Pend → Bool
+  | [], [] => true
+  | S :: Ss, G :: Gs => S.ts == G.ts && S.m == G.m && subAll S.Bs G.Bs && pendSub Ss Gs
+  | _, _ => false
 
 /-! ## What the walk is told -/
 
@@ -401,6 +476,8 @@ structure Sig where
   postP : List (Rng × List ℕ)
   /-- Runs of pointers a loop writes over its counter's range, as `postL`. -/
   postLP : List (Rng × List ℕ)
+  /-- Frame offsets holding at return the word of a product over its bases. -/
+  retV : List (ℕ × Mono)
 
 /-- A residual: a value fact the walk assumes at an instruction, proved apart. -/
 inductive Res where
@@ -438,6 +515,8 @@ structure Fun where
   tabs : Trie ℕ
   /-- It is `main` (its frame is `0`; it halts). -/
   main : Bool
+  /-- The cuts by offset: weaker paths and pending edges the walk goes on from. -/
+  cuts : Trie (List Abs × Pend)
 
 /-! ## One instruction -/
 
@@ -485,12 +564,12 @@ def loadVal (E : Env) (A : Abs) (k : Mono) : Option Val :=
 /-- A load into frame cell `c` from the heap cell `k`: for each run of pointers holding `k`, the cells
 past `c`'s word it names written. -/
 noncomputable def ptrLoad (A : Abs) (k : Mono) (c : ℕ) (B : Abs) : Abs :=
-  A.p.foldl (fun B q ↦
+  foldlA (fun B q ↦
     if A.inRng k q.1 then
       match B.mono c with
-      | some m => q.2.foldl (fun B o ↦ B.addH (m.shift o)) B
+      | some m => foldlA (fun B o ↦ B.addH (m.shift o)) B q.2
       | none => B
-    else B) B
+    else B) B A.p
 
 /-- The range check `DEREF *(x); MUL [z] = [x]·[y]; DEREF *(y)` with `[z] = g^k`, a base's word
 times `g^k`, or a base's word over `g`, ending at the `DEREF` through `y`: `x`'s exponent is at most
@@ -577,7 +656,7 @@ noncomputable def stepOp (E : Env) (pc : ℕ) (A : Abs) : OffsetInstruction → 
   | .jump c d f => if A.hasW c && A.hasW d && A.hasW f then some A else none
   | .keccak m0 m1 m2 m3 tail b8 cap out _ _ outCells =>
     if (keccakIns m0 m1 m2 m3 tail b8 cap).all A.hasW then
-      some { (List.range outCells.cellCount).foldl (fun A j ↦ A.addW (out + j)) A with pr := [] }
+      some { foldlA (fun A j ↦ A.addW (out + j)) A (List.range outCells.cellCount) with pr := [] }
     else none
 
 /-! ## One hint -/
@@ -588,19 +667,19 @@ def destOf (A : Abs) : BitsDest → Option (Option ℕ × Option Mono)
   | .heap ptr => if A.hasW ptr then (A.mono ptr).map fun m ↦ (none, some m) else none
 
 /-- Write `n` cells from `pos` at a run's start, each nonzero and below `2^bits` in exponent when
-`bits` is given (a stack run). -/
+`bits` is given (a stack run); on the heap, one run. -/
 noncomputable def writeRun (A : Abs) (dst : Option ℕ × Option Mono) (pos n : ℕ) (bits : Option ℕ) :
     Abs :=
   match dst with
   | (some base, _) =>
-    (List.range n).foldl (fun A j ↦
+    foldlA (fun A j ↦
       let A := A.addW (base + pos + j)
       match bits with
       | some b =>
         if b ≤ 61 then (A.addNz (base + pos + j)).addLt (.ex (.fr (base + pos + j)) 0) (.num (2 ^ b))
         else A.addNz (base + pos + j)
-      | none => A) A
-  | (none, some m) => (List.range n).foldl (fun A j ↦ A.addH (m.shift (pos + j))) A
+      | none => A) A (List.range n)
+  | (none, some m) => { A with r := ⟨m, .num pos, .num (pos + n), 1, 0⟩ :: A.r }
   | (none, none) => A
 
 /-- **One hint**: the cells it reads must be known written. -/
@@ -771,28 +850,31 @@ def entryOk (A : Abs) (mq : Mono) (G : Sig) : Bool :=
     | none => false)
 
 /-- The termination facts of callee `G` hold at the call. -/
-def atCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
-  G.term.foldl (fun A p ↦ match idxUp A mq p.1, idxUp A mq p.2 with
+noncomputable def atCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
+  foldlA (fun A p ↦ match idxUp A mq p.1, idxUp A mq p.2 with
     | some a, some b => A.addLt a b
-    | _, _ => A) A
+    | _, _ => A) A G.term
 
 /-- What the caller knows after callee `G` returns. -/
 noncomputable def afterCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
-  let A := G.ret.foldl (fun A o ↦ A.addH (mq.shift o)) A
-  let A := G.post.foldl (fun A m ↦ match trMono A mq m with
+  let A := foldlA (fun A o ↦ A.addH (mq.shift o)) A G.ret
+  let A := foldlA (fun A p ↦ match trMono A mq p.2 with
+    | some x => if p.1 < 2 ^ 30 then A.addHv (mq.shift p.1) (.m x) else A
+    | none => A) A G.retV
+  let A := foldlA (fun A m ↦ match trMono A mq m with
     | some k => A.addH k
-    | none => A) A
-  let A := (G.postR ++ G.postL).foldl (fun A r ↦ match trRngUp A mq r with
+    | none => A) A G.post
+  let A := foldlA (fun A r ↦ match trRngUp A mq r with
     | some r => { A with r := r :: A.r }
-    | none => A) A
-  let A := (G.postP ++ G.postLP).foldl (fun A q ↦ match trRngUp A mq q.1 with
+    | none => A) A (G.postR ++ G.postL)
+  let A := foldlA (fun A q ↦ match trRngUp A mq q.1 with
     | some r => { A with p := (r, q.2) :: A.p }
-    | none => A) A
+    | none => A) A (G.postP ++ G.postLP)
   atCall A mq G
 
 /-- The walk's state at a function's entry. -/
 noncomputable def entryAbs (E : Env) (G : Sig) : Abs :=
-  let A : Abs := ⟨G.entry.foldl (fun t o ↦ t.set () envDepth o) .nil, .nil, .nil, [], G.pre,
+  let A : Abs := ⟨foldlT .nil G.entry, .nil, .nil, [], G.pre,
     jtRng E :: G.preR, G.term, [], .nil, G.preP⟩
   match G.self with
   | some o => ((A.addW o).addV o (.m (.own 0))).addNz o
@@ -810,7 +892,11 @@ def loopOk (A : Abs) (G : Sig) : Bool :=
 /-- What the function guarantees holds at a return. -/
 def retOk (A : Abs) (G : Sig) : Bool :=
   loopOk A G &&
-  G.ret.all A.hasW && G.post.all (fun m ↦ match trMono A (.own 0) m with
+  G.ret.all A.hasW &&
+  G.retV.all (fun p ↦ A.hasW p.1 && match A.mono p.1, trMono A (.own 0) p.2 with
+    | some x, some y => x.beq y
+    | _, _ => false) &&
+  G.post.all (fun m ↦ match trMono A (.own 0) m with
     | some k => A.covered k
     | none => false) &&
   (G.postR.all fun r ↦ match trRngDown A (.own 0) r with
@@ -832,25 +918,25 @@ inductive Go where
 
 /-- The callees a target cell names: a power of `g` at a signature's pc, or a jump table entry
 `hp x d` with `x` below `n`, each arm's signature. -/
-def calleesOf (E : Env) (F : Fun) (A : Abs) (i t : ℕ) : Option (List Sig) :=
+noncomputable def calleesOf (E : Env) (F : Fun) (A : Abs) (i t : ℕ) : Option (List Sig) :=
   match A.v.get t with
   | some (.m ⟨0, e, []⟩) => (E.sigs.get e).map ([·])
   | some (.tab x d) =>
     match F.tabs.get i with
     | some n =>
       if A.ltI (.ex x 0) (.num n) && E.jtLo ≤ d && d + n ≤ E.jtHi then
-        (List.range n).mapM fun j ↦ (E.jt.get (d + j)).bind E.sigs.get
+        mapOpt (fun j ↦ (E.jt.get (d + j)).bind E.sigs.get) (List.range n)
       else none
     | none => none
   | _ => none
 
 /-- The arms of a table jump at offset `i` through target cell `t`, as offsets. -/
-def armsOf (E : Env) (F : Fun) (A : Abs) (i t : ℕ) : Option (List ℕ) :=
+noncomputable def armsOf (E : Env) (F : Fun) (A : Abs) (i t : ℕ) : Option (List ℕ) :=
   match A.v.get t, F.tabs.get i with
   | some (.tab x d), some n =>
     if A.ltI (.ex x 0) (.num n) && E.jtLo ≤ d && d + n ≤ E.jtHi then
-      (List.range n).mapM fun j ↦ (E.jt.get (d + j)).bind fun pc ↦
-        if F.entry + i < pc && pc < F.entry + F.len then some (pc - F.entry) else none
+      mapOpt (fun j ↦ (E.jt.get (d + j)).bind fun pc ↦
+        if F.entry + i < pc && pc < F.entry + F.len then some (pc - F.entry) else none) (List.range n)
     else none
   | _, _ => none
 
@@ -909,10 +995,10 @@ noncomputable def jumpI (E : Env) (F : Fun) (i : ℕ) (A : Abs) (d f : ℕ) :
       | some (.m ⟨1, 0, []⟩), some (.m ⟨0, r, []⟩) =>
         match calleesOf E F A i d with
         | some (G :: Gs) =>
-          let A := (G :: Gs).foldl (fun A G ↦ atCall A mq G) A
+          let A := foldlA (fun A G ↦ atCall A mq G) A (G :: Gs)
           if (G :: Gs).all (entryOk A mq) && F.entry + i < r && r < F.entry + F.len then
-            some (.to [r - F.entry], Gs.foldl (fun B G ↦ B.inter (afterCall A mq G))
-              (afterCall A mq G))
+            some (.to [r - F.entry], foldlA (fun B G ↦ B.interS (afterCall A mq G))
+              (afterCall A mq G) Gs)
           else none
         | _ => none
       | _, _ => none
@@ -937,21 +1023,57 @@ noncomputable def Abs.learn0 (A : Abs) (c : ℕ) : Abs :=
     else A.addV a ((A.v.get b).getD (.m (.root b)))
   | none => A
 
-/-- Pending edges into later offsets, by increasing target, with what each path into it knows. -/
-abbrev Pend := List (ℕ × List Abs)
-
-/-- Add an edge into `t` knowing `A`. -/
-def addEdge (t : ℕ) (A : Abs) : Pend → Pend
-  | [] => [(t, [A])]
-  | (u, Bs) :: ps =>
-    if t < u then (t, [A]) :: (u, Bs) :: ps
-    else if t = u then (u, Bs ++ [A]) :: ps
-    else (u, Bs) :: addEdge t A ps
-
 /-- At most two paths apart: more are met into one. -/
 noncomputable def cap : List Abs → List Abs
   | A :: B :: C :: Ds => [(B :: C :: Ds).foldl Abs.inter A]
   | As => As
+
+/-- The meet of the states, in order, evaluated as it goes. -/
+noncomputable def meetAll : List Abs → List Abs
+  | A :: Bs => [foldlA Abs.interS A Bs]
+  | [] => []
+
+/-- `k As`, each state evaluated first. -/
+noncomputable def forceAll {β : Type} : List Abs → (List Abs → β) → β
+  | [], k => k []
+  | A :: As, k => A.force fun A ↦ forceAll As fun As ↦ k (A :: As)
+
+/-- Strictly increasing. -/
+def incr : List ℕ → Bool
+  | a :: b :: l => a < b && incr (b :: l)
+  | _ => true
+
+/-- A jump's edges from `A` into the targets `ts`: joined to the first group of the same targets,
+else a new group last. A group of at least three states is met at once, as it would be at each of its
+targets. -/
+noncomputable def addGrp (ts : List ℕ) (A : Abs) : Pend → Pend
+  | [] => [⟨ts, [A], false⟩]
+  | g :: gs =>
+    if g.ts == ts then
+      listSeq (g.Bs ++ [A]) fun Bs ↦
+        if g.m || 3 ≤ Bs.length then forceAll (meetAll Bs) fun Ms ↦ ⟨g.ts, Ms, true⟩ :: gs
+        else ⟨g.ts, Bs, false⟩ :: gs
+    else g :: addGrp ts A gs
+
+/-- The states the groups give offset `i`, in order, the paths they count (a met group three), and
+the groups past `i`. -/
+noncomputable def popAt (i : ℕ) : Pend → List Abs × ℕ × Pend
+  | [] => ([], 0, [])
+  | g :: gs =>
+    match popAt i gs with
+    | (As, n, ps) =>
+      match g.ts with
+      | t :: ts =>
+        if t == i then
+          (g.Bs ++ As, n + (if g.m then 3 else g.Bs.length), if ts.isEmpty then ps else ⟨ts, g.Bs, g.m⟩ :: ps)
+        else (As, n, g :: ps)
+      | [] => (As, n, ps)
+
+/-- The paths at offset `i`: what falls through and what the groups give, met into one when more
+than two. -/
+noncomputable def joinAt (i : ℕ) (cur : List Abs) (pend : Pend) : List Abs × Pend :=
+  match popAt i pend with
+  | (As, n, ps) => (if 2 < cur.length + n then meetAll (cur ++ As) else cur ++ As, ps)
 
 /-- One path at one offset: the hints, the residuals, the instruction. `none` if anything fails;
 else what falls through, and the pending edges. -/
@@ -966,12 +1088,13 @@ noncomputable def offStep (E : Env) (F : Fun) (i : ℕ) (A : Abs) (ins : OffsetI
     | some false => some ([A.learn0 c], pend)
     | k =>
       let (go, A') ← jumpI E F i A d f
-      let pend := match go with
-        | .to ts => ts.foldl (fun p t ↦ if i < t then addEdge t A' p else p) pend
-        | .out => pend
-      if (match go with | .to ts => ts.all (i < ·) | .out => true) then
-        some (if k == some true then [] else [A.learn0 c], pend)
-      else none
+      let fall := if k == some true then [] else [A.learn0 c]
+      match go with
+      | .to ts =>
+        if ts.all (i < ·) && incr ts then
+          some (fall, if ts.isEmpty then pend else A'.force fun A' ↦ addGrp ts A' pend)
+        else none
+      | .out => some (fall, pend)
   | ins => (stepOp E (F.entry + i) A ins).map fun A ↦ ([A], pend)
 
 /-- Every path at one offset. -/
@@ -983,25 +1106,31 @@ noncomputable def stepAll (E : Env) (F : Fun) (i : ℕ) (ins : OffsetInstruction
     | some (cs, pend) => (stepAll E F i ins As pend).map fun p ↦ (cs ++ p.1, p.2)
     | none => none
 
-/-- The paths at offset `i`: what falls through and the pending edges into `i`, capped. -/
-noncomputable def atJoin (i : ℕ) (cur : List Abs) (pend : Pend) : List Abs × Pend :=
-  match pend with
-  | (t, Bs) :: ps => if t = i then (cap (cur ++ Bs), ps) else (cap cur, pend)
-  | [] => (cap cur, pend)
+/-- At a cut, the paths and pending edges must be at least its own, which the walk goes on from. -/
+noncomputable def cutAt (F : Fun) (i : ℕ) (cur : List Abs) (pend : Pend) : Option (List Abs × Pend) :=
+  match F.cuts.get i with
+  | some S => if subAll S.1 cur && pendSub S.2 pend then some S else none
+  | none => some (cur, pend)
 
-/-- The walk over the code from offset `i`. -/
-noncomputable def walkFrom (E : Env) (F : Fun) : List OffsetInstruction → ℕ → List Abs → Pend → Bool
-  | [], _, _, pend => pend.isEmpty
+/-- The walk over the code from offset `i`: the paths and pending edges after it. -/
+noncomputable def runCode (E : Env) (F : Fun) :
+    List OffsetInstruction → ℕ → List Abs → Pend → Option (List Abs × Pend)
+  | [], _, cur, pend => some (cur, pend)
   | ins :: code, i, cur, pend =>
-    match atJoin i cur pend with
+    match joinAt i cur pend with
     | (sts, pend) =>
       match stepAll E F i ins sts pend with
-      | some (cur, pend) => walkFrom E F code (i + 1) cur pend
-      | none => false
+      | some (cur, pend) => forceAll cur fun cur ↦
+        match cutAt F (i + 1) cur pend with
+        | some (cur, pend) => runCode E F code (i + 1) cur pend
+        | none => none
+      | none => none
 
-/-- **The walk accepts a function's code.** -/
+/-- **The walk accepts a function's code**: it goes through, no edge left pending. -/
 noncomputable def walk (E : Env) (F : Fun) (code : List OffsetInstruction) : Bool :=
-  walkFrom E F code 0 [entryAbs E F.sig] []
+  match runCode E F code 0 [entryAbs E F.sig] [] with
+  | some (_, pend) => pend.isEmpty
+  | none => false
 
 end
 

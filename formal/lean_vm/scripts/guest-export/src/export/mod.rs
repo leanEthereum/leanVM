@@ -45,6 +45,7 @@ pub fn all_files() -> Vec<File> {
     let mut files = bytecode::files(guest());
     files.extend(source::files());
     files.push(advice::file());
+    files.push(advice::data_file());
     files.push(manifest::file());
     files.push(node_vectors::file());
     files

@@ -35,3 +35,170 @@ end LeanVM.Guest.Data
     );
     File { path: "LeanVM/Guest/Data/Advice.lean".to_string(), text }
 }
+
+/// A function's entries per definition.
+const HINTS_PER_DEF: usize = 256;
+
+/// The next token.
+fn word<'a>(t: &mut dyn Iterator<Item = &'a str>) -> &'a str {
+    t.next().expect("a field")
+}
+
+/// The next token, a number.
+fn n<'a>(t: &mut dyn Iterator<Item = &'a str>) -> u64 {
+    word(t).parse().expect("a number")
+}
+
+/// The next two tokens, a run's start, as a Lean `BitsDest`.
+fn dest<'a>(t: &mut dyn Iterator<Item = &'a str>) -> String {
+    match (word(t), n(t)) {
+        ("s", v) => format!("(.stack {v})"),
+        ("h", v) => format!("(.heap {v})"),
+        (k, _) => panic!("not a destination: {k}"),
+    }
+}
+
+/// One hint of `advice_text`'s tokens as a Lean `Hint`, its tokens consumed (`parseAdvice`).
+fn hint_lean<'a>(t: &mut dyn Iterator<Item = &'a str>) -> String {
+    let tag = t.next().expect("a hint");
+    match tag {
+        "fa" => format!("(.frameAddress {})", n(t)),
+        "af" => {
+            let (p, s, st) = (n(t), n(t), n(t));
+            let k = word(t);
+            format!("(.allocFrames {p} {s} {st} (LeanVM.Parameters.K.ofBits 0x{k}) {})", n(t))
+        }
+        "al" => format!("(.alloc {} {})", n(t), n(t)),
+        "ad" => format!("(.allocDyn {} {})", n(t), n(t)),
+        "av" => {
+            let p = n(t);
+            format!("(.allocAdvice {p} \"{}\")", word(t))
+        }
+        "aa" => {
+            let (p, sel, k) = (n(t), n(t), n(t));
+            let sizes: Vec<String> = (0..k).map(|_| n(t).to_string()).collect();
+            format!("(.allocArm {p} {sel} [{}])", sizes.join(", "))
+        }
+        "ca" => format!("(.cellAddress {} {})", n(t), n(t)),
+        "ws" => {
+            let s = word(t);
+            format!("(.witnessStack \"{s}\" {} {})", n(t), n(t))
+        }
+        "wh" => {
+            let s = word(t);
+            format!("(.witnessHeap \"{s}\" {} {} {})", n(t), n(t), n(t))
+        }
+        "lc" => {
+            let d = dest(t);
+            format!("(.log2Ceil {d} {} {} {})", n(t), n(t), n(t))
+        }
+        "bd" | "be" => {
+            let v = n(t);
+            let d = dest(t);
+            let c = if tag == "bd" { "bitDecompose" } else { "bitDecomposeExp" };
+            format!("(.{c} {v} {d} {})", n(t))
+        }
+        "dd" => {
+            let v = n(t);
+            let d = dest(t);
+            let (a, b, c, e) = (n(t), n(t), n(t), n(t));
+            let sc = match word(t) {
+                "-" => "none".to_string(),
+                x => format!("(some {})", x.parse::<u64>().expect("a number")),
+            };
+            format!("(.digitDecomposeExp {v} {d} {a} {b} {c} {e} {sc})")
+        }
+        "we" => {
+            let v = n(t);
+            let d = dest(t);
+            format!("(.windowsExp {v} {d} {} {} {} {})", n(t), n(t), n(t), n(t))
+        }
+        "fl" => format!("(.fieldLimbs {} {} {})", n(t), n(t), n(t)),
+        "iv" => format!("(.inverse {} {})", n(t), n(t)),
+        _ => panic!("not a hint: {tag}"),
+    }
+}
+
+/// `LeanVM/Guest/Data/AdviceHints.lean`: the advice of `file` as Lean data, each function's hints
+/// with its entry and length, which the mode walk's certificates' hints are checked against.
+pub fn data_file() -> File {
+    let g = guest();
+    let advice = g.advice_text();
+    let mut t = advice.split_whitespace();
+    for w in ["leanvm-advice", "1", "main_frame"] {
+        assert_eq!(word(&mut t), w);
+    }
+    let main_frame = n(&mut t);
+    assert_eq!(word(&mut t), "hints");
+    let count = n(&mut t);
+    let mut entries = Vec::new();
+    for _ in 0..count {
+        let pc = n(&mut t);
+        let k = n(&mut t);
+        let hs: Vec<String> = (0..k).map(|_| hint_lean(&mut t)).collect();
+        entries.push((pc, format!("({pc}, [{}])", hs.join(", "))));
+    }
+    assert_eq!(t.next(), Some("streams"));
+    let mut defs = String::new();
+    let mut names = Vec::new();
+    let mut rest = entries.as_slice();
+    for (j, (name, entry, len)) in g.fn_ranges.iter().enumerate() {
+        let (entry, len) = (*entry as u64, *len as u64);
+        let k = rest.iter().take_while(|e| e.0 < entry + len).count();
+        let (mine, more) = rest.split_at(k);
+        assert!(mine.iter().all(|e| entry <= e.0), "a hint before `{name}`");
+        rest = more;
+        let body: Vec<&str> = mine.iter().map(|e| e.1.as_str()).collect();
+        names.push(format!("adviceFn{j}"));
+        let list = if body.len() <= HINTS_PER_DEF {
+            format!("[{}]", body.join(",\n    "))
+        } else {
+            let mut parts = Vec::new();
+            for (k, part) in body.chunks(HINTS_PER_DEF).enumerate() {
+                parts.push(format!("adviceFn{j}p{k}"));
+                defs.push_str(&format!(
+                    "/-- `{name}`: its hints by pc, part {k}. -/\ndef adviceFn{j}p{k} : List (ℕ × List Hint) :=\n  [{}]\n\n",
+                    part.join(",\n    ")
+                ));
+            }
+            format!("List.flatten [{}]", parts.join(", "))
+        };
+        defs.push_str(&format!(
+            "/-- `{name}`: its entry, length and hints by pc. -/\ndef adviceFn{j} : ℕ × ℕ × List (ℕ × List Hint) :=\n  ({entry}, {len}, {list})\n\n"
+        ));
+    }
+    assert!(rest.is_empty(), "a hint past the code");
+    let text = format!(
+        "/-
+  LeanVM.Guest.Data.AdviceHints
+
+  Generated by `scripts/guest-export` from leanVM's sources; do not edit.
+  The guest's advice of `Data.Advice` as data: `main`'s frame size and the compiler's hints by pc,
+  each function's with its entry and length, in layout order.
+-/
+
+module
+
+public import Statement.Prover.Execute
+
+@[expose] public section
+
+namespace LeanVM.Guest.Data
+
+open LeanVM.Prover.Exec
+
+/-- `main`'s frame size. -/
+def adviceMainFrame : ℕ := {main_frame}
+
+{defs}/-- The functions' hints, in layout order. -/
+def adviceFns : List (ℕ × ℕ × List (ℕ × List Hint)) := [{}]
+
+/-- The hints by pc. -/
+def adviceHints : List (ℕ × List Hint) := (adviceFns.map (·.2.2)).flatten
+
+end LeanVM.Guest.Data
+",
+        names.join(", ")
+    );
+    File { path: "LeanVM/Guest/Data/AdviceHints.lean".to_string(), text }
+}

@@ -120,7 +120,8 @@ theorem allocate_written {s s' : St} {ptr size : ℕ} (hs : s.Good) (h : allocat
 /-! ## Runs -/
 
 theorem foldl_range_holds {s : St} (F : Abs → ℕ → Abs) (A : Abs) (n : ℕ) (hA : Holds s A)
-    (hF : ∀ B k, k < n → Holds s B → Holds s (F B k)) : Holds s ((List.range n).foldl F A) := by
+    (hF : ∀ B k, k < n → Holds s B → Holds s (F B k)) : Holds s (foldlA F A (List.range n)) := by
+  rw [foldlA_eq]
   induction n with
   | zero => exact hA
   | succ n ih =>
@@ -129,7 +130,7 @@ theorem foldl_range_holds {s : St} (F : Abs → ℕ → Abs) (A : Abs) (n : ℕ)
 
 /-- Writing a run: what the walk adds holds when the run's cells were written (and, for exponents
 below `2^b`, hold powers). -/
-theorem writeRun_sound {s : St} {A : Abs} (hH : Holds s A) (hfp : s.fp < maxCells)
+theorem writeRun_sound {s : St} {A : Abs} (hH : Holds s A) (_hfp : s.fp < maxCells)
     (hu : s.mem.used ≤ maxCells) (hwf : s.mem.WF) {dst : Option ℕ × Option Mono} {pos n : ℕ} {bits : Option ℕ}
     (hst : ∀ base, dst.1 = some base → ∀ j < n, ∃ v, s.mem.get (s.fp + (base + pos + j)) = some v ∧
       ∀ b, bits = some b → ∃ w < 2 ^ b, v = ofK (g ^ w))
@@ -141,16 +142,16 @@ theorem writeRun_sound {s : St} {A : Abs} (hH : Holds s A) (hfp : s.fp < maxCell
     | none => exact hH
     | some m =>
       obtain ⟨p, b, hm, hp, hw⟩ := hhp m rfl
-      refine foldl_range_holds _ A n hH fun B k hk hB ↦ ?_
-      have hwk := hw k hk
-      obtain ⟨u, hu'⟩ := Mem.get_of_written hwk
-      have hlt := hwf.get_lt hu'
-      have hkv := hm.shift (pos + k)
-      have hX : Names (p * ofK (g ^ (pos + k))) (b + (pos + k)) := by
-        refine ⟨?_, by omega⟩
+      have hrw : RW s ⟨m, .num pos, .num (pos + n), 1, 0⟩ := by
+        refine ⟨p, pos, pos + n, hm, rfl, rfl, fun j h1 h2 ↦ ?_⟩
+        have hwk := hw (j - pos) (by omega)
+        obtain ⟨u, hu'⟩ := Mem.get_of_written hwk
+        have hlt := hwf.get_lt hu'
+        refine ⟨b + j, ⟨?_, by omega⟩, by rw [show b + j = b + (pos + (j - pos)) by omega]; exact hwk⟩
         rw [hp, ← ofK_mul, ← pow_add]; simp
-      exact hB.addH ⟨_, _, hkv, hX, hwk⟩
-        fun d hd ↦ by rw [← own_names hfp hd hkv hX]; exact hwk
+      show Holds s { A with r := ⟨m, .num pos, .num (pos + n), 1, 0⟩ :: A.r }
+      exact ⟨hH.w, hH.v, hH.nz, hH.hv, hH.h,
+        fun r hr ↦ (List.mem_cons.mp hr).elim (fun e ↦ e ▸ hrw) (hH.r r), hH.lt, hH.pr, hH.xs, hH.p⟩
   · refine foldl_range_holds _ A n hH fun B k hk hB ↦ ?_
     obtain ⟨v, hv, hb⟩ := hst base rfl k hk
     have h1 := hB.addW (o := base + pos + k) (written_of_get hv)

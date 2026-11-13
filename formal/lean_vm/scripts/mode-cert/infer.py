@@ -203,12 +203,36 @@ class Infer:
         return False
 
 
-def mkSig(f, pre, preR, ret=(), post=(), postR=(), postL=(), preP=None, postP=(), postLP=()):
+# consecutive heap cells over one product, at least this many, are a run in a signature
+COMPACT = 8
+
+
+def compact(ms, rs):
+    """Points `ms` (products `q·g^k`), each `COMPACT` or more consecutive over one `q` made a run."""
+    by = collections.defaultdict(list)
+    for m in ms: by[(m[0], m[2])].append(m[1])
+    pts = set(); runs = set(rs)
+    for (fp, bs), ks in by.items():
+        ks = sorted(set(ks)); i = 0
+        while i < len(ks):
+            j = i
+            while j + 1 < len(ks) and ks[j + 1] == ks[j] + 1: j += 1
+            if fp == 0 and bs and j + 1 - i >= COMPACT:
+                runs.add(((0, 0, bs), ('num', ks[i]), ('num', ks[j] + 1), 1, 0))
+            else:
+                pts.update((fp, k, bs) for k in ks[i:j + 1])
+            i = j + 1
+    return pts, runs
+
+
+def mkSig(f, pre, preR, ret=(), post=(), postR=(), postL=(), preP=None, postP=(), postLP=(), retV=()):
+    if f['name'].startswith('verify_merkle_cap'): pre, preR = compact(pre, preR)
+    post, postR = compact(post, postR)
     loop = f['name'] in isloop
     term = [(('ex', ('fr', 2), 0), ('ex', ('fr', 3), 0))] if loop else []
     preP = sorted((r, tuple(sorted(os))) for r, os in (preP or {}).items())
     return Sig(f['entry'], list(range(2 + f.get('nargs', 0))), selfc.get(f['entry']), sorted(pre), sorted(preR), term,
-               ret, sorted(post), sorted(postR), sorted(postL), preP, sorted(postP), sorted(postLP))
+               ret, sorted(post), sorted(postR), sorted(postL), preP, sorted(postP), sorted(postLP), sorted(retV))
 
 
 def renameRet(f, A, m):
@@ -277,6 +301,14 @@ def infer(n):
             if okIface(f, q2) and ifaceIdx(f, lo) and ifaceIdx(f, hi): rs.add((q2, lo, hi, S, d))
         postR = rs if postR is None else postR & rs
     post = post or set(); postR = postR or set()
+    retV = set()
+    if w.rets and n not in isloop:
+        for o in ret:
+            ms = {A.mono(o) for A in w.rets}
+            if len(ms) == 1:
+                m = ms.pop()
+                if m is not None and m[0] == 0 and m[2] and all(b[0] == 'fr' and b[1] in params(f) for b, e in m[2]):
+                    retV.add((o, m))
     postP = None
     for A in w.rets:
         ps = set()
@@ -311,7 +343,7 @@ def infer(n):
             Q = tuple((b, x) for b, x in k[2] if b != ('fr', 2))
             if Q: postLP.add((((0, 0, Q), ('ex', ('fr', 2), 0), ('ex', ('fr', 3), 0), S, k[1]), tuple(sorted(os))))
         post = set(); postR = set(); postP = set()
-    sig = mkSig(f, I.pre, I.preR, ret, post, postR, postL, I.preP, postP, postLP)
+    sig = mkSig(f, I.pre, I.preR, ret, post, postR, postL, I.preP, postP, postLP, retV)
     E.sigs[f['entry']] = sig
     # the final check: no demand
     w = Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main)
@@ -319,7 +351,7 @@ def infer(n):
         w.run(f['ops'])
     except Fail as e:
         # drop what does not check
-        sig = mkSig(f, I.pre, I.preR, ret, set(), set(), set(), I.preP)
+        sig = mkSig(f, I.pre, I.preR, ret, set(), set(), set(), I.preP, retV=retV)
         E.sigs[f['entry']] = sig
         w = Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main)
         w.run(f['ops'])

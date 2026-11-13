@@ -1,9 +1,10 @@
 import LeanVM.Guest.Mode.Abs
+import LeanVM.Guest.Mode.Win
 import LeanVM.Guest.Data.Pows
 
 /-! **The mode walk's certificates read the walk, the guest's code and their view alone.** Each
-`Pack/*/Mode*` module imports the walk (`Mode.Abs`), the powers of `g` and the jump table
-(`Data.Pows`), its pack's code (`Bundle`) and its callees' signatures (`ModeSig`). This module fails
+`Pack/*/Mode*` module imports the walk (`Mode.Abs`, by windows `Mode.Win`), the powers of `g` and the
+jump table (`Data.Pows`), its pack's code (`Bundle`) and its callees' signatures (`ModeSig`). This module fails
 to build if the walk or `Data.Pows` reach the walk's soundness proofs, B1's, the protocol's, the
 schemes' or the honest prover beyond its executor (`Statement.Prover.Execute`, whose `Op` and `Hint`
 the walk reads), as `B2C/CertFirewall.lean` does for the other certificates, or if what an importer of
@@ -28,7 +29,7 @@ open Lean Elab Command in
   let guestData := [`LeanVM.Guest.Data, `Statement.Data, `LeanVM.Guest.Pack, `LeanVM.Guest.Glob,
     `LeanVM.Guest.CoreData, `LeanVM.Guest.FunctionTable]
   let mut seen : NameSet := {}
-  let mut todo := #[`LeanVM.Guest.Mode.Abs]
+  let mut todo := #[`LeanVM.Guest.Mode.Abs, `LeanVM.Guest.Mode.Win]
   while !todo.isEmpty do
     let m := todo.back!
     todo := todo.pop
@@ -39,5 +40,5 @@ open Lean Elab Command in
         if i.isExported || i.isMeta then todo := todo.push i.module
   let shown := seen.toList.filter fun m ↦ guestData.any (·.isPrefixOf m)
   unless shown.isEmpty do
-    throwError m!"`LeanVM.Guest.Mode.Abs` shows the guest's data {shown}: keep it out (see \
+    throwError m!"`LeanVM.Guest.Mode.Abs` or `Win` shows the guest's data {shown}: keep it out (see \
       `LeanVM/Guest/Mode/Firewall.lean`)"

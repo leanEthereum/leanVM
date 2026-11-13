@@ -24,6 +24,36 @@ open LeanVM.Prover.Exec (St Mem maxCells gpow_inj Mem.le_trans Mem.get_of_writte
 
 @[expose] public section
 
+/-! ## Evaluation order
+
+Each strict form is the plain one. -/
+
+theorem Abs.force_eq {β : Type} (A : Abs) (k : Abs → β) : A.force k = k A := by
+  obtain ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩ := A
+  simp only [Abs.force, Exec.Trie.seq_eq]
+
+theorem foldlA_eq {α : Type} (f : Abs → α → Abs) : ∀ (A : Abs) (l : List α), foldlA f A l = l.foldl f A
+  | _, [] => rfl
+  | A, x :: l => by
+    show (f A x).force (foldlA f · l) = _
+    rw [Abs.force_eq, foldlA_eq f _ l, List.foldl_cons]
+
+theorem foldlT_eq : ∀ (t : Exec.Trie Unit) (l : List ℕ),
+    foldlT t l = l.foldl (fun t o ↦ t.set () Exec.envDepth o) t
+  | _, [] => rfl
+  | t, o :: l => by
+    show (t.set () Exec.envDepth o).seq (foldlT · l) = _
+    rw [Exec.Trie.seq_eq, foldlT_eq _ l, List.foldl_cons]
+
+theorem listSeq_id {α β : Type} (l : List α) (k : List α → β) : Exec.listSeq l k = k l :=
+  Exec.listSeq_eq l k
+
+theorem Abs.interS_eq (A B : Abs) : A.interS B = A.inter B := by
+  unfold Abs.interS
+  generalize A.inter B = C
+  obtain ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩ := C
+  simp only [listSeq_id]
+
 /-! ## Words -/
 
 /-- Word `v` names cell `x`. -/

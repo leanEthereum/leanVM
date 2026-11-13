@@ -23,7 +23,8 @@ open LeanVM.Prover.Exec
 /-- What a function guarantees at a return, over its frame. -/
 def RetHolds (s : St) (G : Sig) : Prop :=
   (∀ o ∈ G.ret, s.mem.written (s.fp + o) = true) ∧ (∀ m ∈ G.post, HW s m) ∧
-    (∀ r ∈ G.postR, RW s r) ∧ ∀ q ∈ G.postP, PW s q.1 q.2
+    (∀ r ∈ G.postR, RW s r) ∧ (∀ q ∈ G.postP, PW s q.1 q.2) ∧
+    ∀ p ∈ G.retV, ∃ u, s.mem.get (s.fp + p.1) = some u ∧ MonoVal s p.2 u
 
 /-- The heap cell `k` names holds a pointer with the cells `os` past it written. -/
 def HP (s : St) (k : Mono) (os : List ℕ) : Prop :=
@@ -270,6 +271,7 @@ theorem entryOk_sound {En : Env} {sC sE : St} {A : Abs} {mq : Mono} {G : Sig} (F
         exact PW.trDown F hA hr' (Abs.coveredP_sound hA F.fpC F.wf F.used this)
       · cases this }
   unfold entryAbs
+  rw [foldlT_eq]
   dsimp only
   split
   · rename_i o ho
@@ -294,7 +296,7 @@ theorem entryOk_sound {En : Env} {sC sE : St} {A : Abs} {mq : Mono} {G : Sig} (F
 theorem atCall_sound {sC sE : St} {A : Abs} {mq : Mono} {G : Sig} (F : Frames sC sE mq)
     (hA : Holds sC A) (hT : ∀ p ∈ G.term, LTF sE p.1 p.2) : Holds sC (atCall A mq G) := by
   unfold atCall
-  refine Holds.foldl _ _ hA fun A p hp hA ↦ ?_
+  refine Holds.foldlA _ _ hA fun A p hp hA ↦ ?_
   split
   · rename_i a b ha hb
     obtain ⟨xa, xb, h1, h2, h3⟩ := hT p hp
@@ -309,14 +311,28 @@ theorem afterCall_sound {sC sR : St} {A : Abs} {mq : Mono} {G : Sig} (F : Frames
     Holds sC (afterCall A mq G) := by
   unfold afterCall
   dsimp only
-  refine atCall_sound F (Holds.foldl _ _ (Holds.foldl _ _ (Holds.foldl _ _ (Holds.foldl _ _ hA ?_)
-    ?_) ?_) ?_) hT
+  refine atCall_sound F (Holds.foldlA _ _ (Holds.foldlA _ _ (Holds.foldlA _ _ (Holds.foldlA _ _
+    (Holds.foldlA _ _ hA ?_) ?_) ?_) ?_) ?_) hT
   · intro A o ho hA
     have hw := hR.1 o ho
     obtain ⟨u, hu⟩ := Mem.get_of_written hw
     have hlt := F.get_lt hu
     rw [F.mem] at hw
     exact hA.addH_cell F.fpC (F.mq.shift o) (names_shift (by simp) hlt) hw
+  · intro A p hp hA
+    split
+    · rename_i x hx
+      split
+      · obtain ⟨u, hu, hmu⟩ := hR.2.2.2.2 p hp
+        have hlt := F.get_lt hu
+        rw [F.mem] at hu
+        have hX : Names (ofK (g ^ sR.fp) * ofK (g ^ p.1)) (sR.fp + p.1) := names_shift (by simp) hlt
+        have hv := (trMono_iff F hA hx u).mp hmu
+        refine hA.addHv ⟨_, _, _, F.mq.shift p.1, hX, hu, hv⟩ fun d hd ↦ ?_
+        rw [← own_names F.fpC hd (F.mq.shift p.1) hX]
+        exact ⟨u, hu, hv⟩
+      · exact hA
+    · exact hA
   · intro A m hm hA
     split
     · rename_i k hk
@@ -339,7 +355,7 @@ theorem afterCall_sound {sC sR : St} {A : Abs} {mq : Mono} {G : Sig} (F : Frames
     · rename_i r' hr'
       have hpw : PW sC r' q.2 := PW.trUp F hA hr' (by
         rcases List.mem_append.mp hq with h | h
-        exacts [hR.2.2.2 q h, hLP q h])
+        exacts [hR.2.2.2.1 q h, hLP q h])
       exact { hA with
         p := fun q' hm ↦ by
           rcases List.mem_cons.mp hm with rfl | hm
@@ -374,9 +390,9 @@ theorem retOk_sound {s : St} {A : Abs} {G : Sig} (hA : Holds s A) (hfp : s.fp < 
   have F := Frames.own hfp hwf hu rfl (Nat.add_zero _).symm hfp
   unfold retOk at h
   simp only [Bool.and_eq_true, List.all_eq_true] at h
-  obtain ⟨⟨⟨⟨hL, hret⟩, hpost⟩, hpostR⟩, hpostP⟩ := h
-  refine ⟨⟨fun o ho ↦ hA.written (hret o ho), fun m hm ↦ ?_, fun r hr ↦ ?_, fun q hq ↦ ?_⟩,
-    loopOk_sound hA hfp hwf hu hL⟩
+  obtain ⟨⟨⟨⟨⟨hL, hret⟩, hretV⟩, hpost⟩, hpostR⟩, hpostP⟩ := h
+  refine ⟨⟨fun o ho ↦ hA.written (hret o ho), fun m hm ↦ ?_, fun r hr ↦ ?_, fun q hq ↦ ?_,
+    fun p hp ↦ ?_⟩, loopOk_sound hA hfp hwf hu hL⟩
   · have := hpost m hm
     split at this
     · rename_i k hk
@@ -392,6 +408,13 @@ theorem retOk_sound {s : St} {A : Abs} {G : Sig} (hA : Holds s A) (hfp : s.fp < 
     split at this
     · rename_i r' hr'
       exact PW.trDown F hA hr' (Abs.coveredP_sound hA hfp hwf hu this)
+    · cases this
+  · obtain ⟨hw, this⟩ := hretV p hp
+    split at this
+    · rename_i x y hx hy
+      obtain rfl := Mono.beq_eq this
+      obtain ⟨u, hu, hmu⟩ := hA.mono_val hx (hA.written hw)
+      exact ⟨u, hu, (trMono_iff F hA hy u).mpr hmu⟩
     · cases this
 
 /-- **A loop's tail call** into the frame `fp·g^e`: the next iteration's entry state holds, its
