@@ -30,10 +30,10 @@ statement's digest (`StatementDigestBinds`), and the guest decoder a program com
 **`GuestKnowledgeSoundness`**. The batching program (`Batch.nodeBatchingProgram`), reference
 material, is `LeanVmGuestBatching.lean`'s; the completeness side is `LeanVmGuestCompleteness.lean`.
 
-Transcribed from leanVM at the pin (`../leanvm-rev`): the modules of
+Transcribed from leanVM: the modules of
 `crates/rec_aggregation/src/aggregation/` (the statement, its digest, the batching) and
 `crates/rec_aggregation/guests/lean_ethereum.py` (the guest program); `aggregation/<module>.rs:N`
-and `lean_ethereum.py:N` are lines of those files at the pin. The signature schemes are
+and `lean_ethereum.py:N` are lines of those files. The signature schemes are
 `LeanXmss.lean`'s and `LeanSphincs.lean`'s with Keccak-256 as their hash; LeanDA is
 `LeanDa.lean`'s.
 

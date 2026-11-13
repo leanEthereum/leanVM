@@ -22,7 +22,7 @@ g = x                                        a generator of K^× (order 2^64 - 1
 `K` wraps a `BitVec 64` whose bit `i` is the coefficient of `x^i`; `E` is a `Vector K 2` whose
 limb `i` is the coefficient of `y^i`. Natural-number casts follow characteristic two
 (`2 : K = 0`); wire words go through `K.ofBits`. Then the field encodings of Keccak
-(`crates/verifier/src/field.rs` and `hash.rs`, read at `../leanvm-rev`): a lane as a `K` word, a
+(`crates/verifier/src/field.rs` and `hash.rs`): a lane as a `K` word, a
 `K` word as bytes, and a digest as two `E` elements.
 
 `E`'s field instance needs its modulus irreducible, so this file proves it (`ePoly_irreducible`):

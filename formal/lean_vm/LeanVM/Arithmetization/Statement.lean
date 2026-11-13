@@ -83,7 +83,7 @@ the six tables carries a nonzero count, message index `1` (bus coordinate 2) of 
 bytecode tuple (§6.2 "The count product"; `layout.rs:136` and `:463-479`, the count channel
 stacks the read-count columns of the six tables and nothing else, so the finalize counts of
 the two blocks are outside it, as §6.2 "Nothing checks the finalize counts" says). `Caps w` is
-the M3 part of the announcement checks (`read_public` at `a386121f`; at `leanvm-rev`, `walk` and
+the M3 part of the announcement checks (`read_public` at `a386121f`; `walk` and
 `build_layout`, `verifier/src/lib.rs:243-261` and `verifier/src/layout.rs:483-494`, behind the
 wrapper `crates/leanvm_core/src/cpu/mod.rs:627-639`), which make eight checks: (1) the
 announced sizes have zero upper limbs (`verifier/src/lib.rs:248-252`, the transcript format) and
@@ -110,7 +110,7 @@ it, three hypotheses of `SatisfiedBy`). The memory block's index column is fixed
 `layout.rs:431` and `:442`, `Index`). The prover data is derived from the rows, and the memory
 block, named `"mem"`, holds the limbs in its first two cells, so the image the data names *is* the
 block (`memRows_data`) and `SeedRowsAreTheImage w` is a theorem (§6.2 "Seed" and "Finalize";
-`cpu/layout.rs:431-440` at `leanvm-rev`, `MEM_LO, MEM_HI` and `MFCNT`, the index and finalize
+`cpu/layout.rs:431-440`, `MEM_LO, MEM_HI` and `MFCNT`, the index and finalize
 columns free).
 The bytecode block's counter and entry columns are fixed to the program's, so
 `BytecodeRowsAreTheProgram prog w` is a theorem (§8.6 Bus 4: the verifier forms "the program's
@@ -316,7 +316,7 @@ def CountsNonzero (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
       ∀ h : 1 < i.msg.size, i.msg[1] ≠ 0
 
 /-- The M3 checks of the announced instance, two of the verifier's announcement checks
-(`crates/verifier/src/layout.rs:489-494` at `leanvm-rev`; §6.2 "Instance caps"): the window of the announced memory
+(`crates/verifier/src/layout.rs:489-494`; §6.2 "Instance caps"): the window of the announced memory
 log-size `κ` and the row cap. The bytecode length and the public words' two limbs are checked by
 type (`Program`, `PublicInput`); the WHIR rate and the stacked size are the protocol layer's (see
 the module docstring). -/
@@ -326,7 +326,7 @@ structure Caps (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop where
   /-- `log_mem ≤ MAX_LOG_MEM` (`:490`). -/
   logMem_le_maxLogMem : κ ≤ maxLogMem
   /-- Every table has at most `2^MAX_LOG_ROWS` rows (`rows <= 1 << MAX_TABLE_LOG`, `layout.rs:491`
-  at `leanvm-rev`; the rows are the executed ones, announced as counts). The verifier is not among
+ ; the rows are the executed ones, announced as counts). The verifier is not among
   `w.tables`. -/
   heights : ∀ t ∈ w.tables, t.table.length ≤ 2 ^ maxLogRows
 
@@ -343,7 +343,7 @@ def IndexColumnsAreRowIndices (w : EnsembleWitness (leanIsaEnsemble prog κ)) : 
 
 /-- The memory block's rows are the words of the image the prover data names, in order, for
 some index column `idx` and finalize-count column `cntFin`: the committed columns `MEM_LO,
-MEM_HI` are the image (§6.2 "Seed" and "Finalize"; `cpu/layout.rs:431-440` at `leanvm-rev`). -/
+MEM_HI` are the image (§6.2 "Seed" and "Finalize"; `cpu/layout.rs:431-440`). -/
 def SeedRowsAreTheImage (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
   ∃ idx cntFin : Fin (2 ^ (imageOf w.data).1) → K,
     memBlockRows w = List.ofFn fun i ↦

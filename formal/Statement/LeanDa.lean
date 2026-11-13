@@ -105,7 +105,7 @@ def basis (c : Fin 16) : K := K.ofBits (2 ^ (c : ℕ))
 /-!
 ## LeanDA
 
-The erasure code commitment of `crates/lean_da` at the leanVM commit `../leanvm-rev` names,
+The erasure code commitment of `crates/lean_da`,
 specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 

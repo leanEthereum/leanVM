@@ -1,5 +1,5 @@
 # usage: python3 -I gensel.py  — writes Tables/Vt/SelBlocks.lean (verify_tables' table blocks'
-# selectors, G:2353-2364 at the commit in leanvm-rev: hinted g-power digits of the block's offset, the
+# selectors, G:2353-2364: hinted g-power digits of the block's offset, the
 # `block_selector_tab` arm on its table's shared tables) from vt_ir.txt (dump.py).
 import os, sys, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

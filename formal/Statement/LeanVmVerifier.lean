@@ -7,8 +7,8 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 # The leanVM verifier
 
 The readable reference of the deployed Rust verifier (`crates/verifier`), which the differential
-tests compare it with. Every citation `<file>.rs:N` is a line of the Rust at the pin
-(`../leanvm-rev`), its file named with its path at its first citation. The Lean is the Rust's
+tests compare it with. Every citation `<file>.rs:N` is a line of the Rust in this tree,
+its file named with its path at its first citation. The Lean is the Rust's
 checked walk, `verify_execution`; `replay_unchecked`, the same walk with the checks left out, is
 not transcribed. Part 1 fixes the WHIR parameters. Part 2 is the transcript: a program
 `VerifierProgram` of a small language, which `runProof` reads on a proof over a permutation
@@ -1945,7 +1945,7 @@ def keccakSlotWeights (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ)
 
 /-- `open(transcript, shape, claim, first, count, value)` (`keccak.rs:202-227`): a sumcheck over
 the slot; the point it ends on, the weight the claim puts on each slice there, and what is left to
-match. The sumcheck draws nothing from the weights, so computing them after it, as the pin does,
+match. The sumcheck draws nothing from the weights, so computing them after it, as the Rust does,
 or before is the same. The Rust sums each slot's row scaled by `eq(slot, ·)` (`eq_kernel(&slot)`);
 here the table of rows is folded by the slot's challenges, the same values. -/
 def keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :

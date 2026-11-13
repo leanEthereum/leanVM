@@ -1,5 +1,5 @@
 # usage: python3 -I genshared.py  — writes Tables/Vt/SharedT.lean (verify_tables' shared selector
-# tables, G:2318-2325 at the commit in leanvm-rev: each table's `shared_len` and its `shared_selector_tables` call,
+# tables, G:2318-2325: each table's `shared_len` and its `shared_selector_tables` call,
 # the tables' pointers stepped one from another) from vt_ir.txt (dump.py).
 import os, sys, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

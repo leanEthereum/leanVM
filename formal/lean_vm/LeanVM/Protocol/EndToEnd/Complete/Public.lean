@@ -23,7 +23,7 @@ public import LeanVM.Semantics.Lemmas
 # The public input
 
 Step 5 of `verify_execution` (`publicInputPhase`, `crates/verifier/src/lib.rs:301-314` at
-leanVM at `leanvm-rev`): sample `r`, and claim of memory column `ℓ` at
+leanVM): sample `r`, and claim of memory column `ℓ` at
 `(r, 0, …, 0)` the line through limb `ℓ` of the halves `(h₀, h₁)` of the public-input digest,
 `(1 + r)·h₀,ℓ + r·h₁,ℓ`. The prover sends nothing.
 

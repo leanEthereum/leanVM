@@ -12,7 +12,7 @@ public import LeanVM.Semantics.Lemmas
 /-!
 # The bytecode encoding
 
-At `leanvm-rev`, transcribed from:
+Transcribed from:
 
 * specification §8.1 (`doc/leanvm/body/08-end-to-end-protocol.tex`): instruction `z` is sixteen
   `K` slots, the opcode in slot 3, the operands, immediate lanes and flags after it, zero

@@ -8,7 +8,7 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 /-!
 # leanXMSS
 
-The leanXMSS scheme at leanVM `leanvm-rev` (key generation, signing, verification, hashing with
+The leanXMSS scheme (key generation, signing, verification, hashing with
 Keccak-256 over a permutation `π`), on what it shares with leanSPHINCS
 (`Statement/HashSignatures.lean`, namespace `HashSig`), the SUF-CMA game of `Statement/SufCma.lean`
 instantiated with it, and the end statement

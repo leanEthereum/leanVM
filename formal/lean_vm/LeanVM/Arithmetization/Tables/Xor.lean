@@ -17,7 +17,7 @@ public import Clean.Utils.Tactics.CircuitProofStart
 /-!
 # The `XOR` table
 
-At `leanvm-rev` and Clean pin `b41c196b`. The columns
+At Clean pin `b41c196b`. The columns
 are `crates/leanvm_core/src/tables.rs:460-478` (`mod arith`, in that order), the flushes
 `tables.rs:504-516` (`Arith::flushes` with `is_xor`), the result coordinates `tables.rs:483-494`
 (`arith_result`, the lane-wise sum), all matching specification §7.1

@@ -6,7 +6,7 @@ public import Statement.Field
 # leanISA
 
 The leanVM instruction set, from §2 of the leanVM specification
-(`doc/leanvm/body/02-vm-specification.tex`) at the pin: memory, registers, instructions, programs,
+(`doc/leanvm/body/02-vm-specification.tex`): memory, registers, instructions, programs,
 one step, `run`, a valid execution (`ValidExecution`), the instruction counts, the encoding of an
 instruction as sixteen `K` slots (specification §8.1, how the verifier receives a program), and a
 program assembled from compiled functions (`CompiledFunction`, `assemble`), the form of the guest

@@ -3,7 +3,7 @@
 
   The verifier refusing what makes the guest divide by zero: a zero fold challenge `α`, a zero
   closing-round challenge and a zero batching challenge `λ` of a non-final level (G:1651, 1766,
-  1753; G = `lean_ethereum.py` at the pin), as copies of the verifier's programs with a `require`
+  1753; G = `lean_ethereum.py`), as copies of the verifier's programs with a `require`
   at each. The statement's honest child refuses a zero challenge anywhere (`verifierRefusingZero`,
   `Statement/LeanVmGuestCompleteness.lean`).
 -/

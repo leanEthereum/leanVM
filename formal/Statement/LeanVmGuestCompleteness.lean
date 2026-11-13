@@ -11,7 +11,7 @@ rarely refused (`HonestProofRarelyRefused`), and the recursion step, the batchin
 children's deferred claims, sound in the random-permutation model (`BatchingSound`). The
 soundness side, what a node proves, is `LeanVmGuest.lean`. `lean_ethereum.py:N` is line `N`
 of `crates/rec_aggregation/guests/lean_ethereum.py`, `aggregation/<module>.rs:N` of
-`crates/rec_aggregation/src/aggregation/<module>.rs`, at the pin (`../leanvm-rev`).
+`crates/rec_aggregation/src/aggregation/<module>.rs`.
 -/
 
 @[expose] public section

@@ -52,7 +52,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization
 
 /-! ## The fixture: one image -/
 
--- The executor test `mul_128bit_word` (`cpu/mod.rs:853-869` at `leanvm-rev`): the operands `x`, `y`
+-- The executor test `mul_128bit_word` (`cpu/mod.rs:853-869`): the operands `x`, `y`
 -- and the product `x · y`.
 def x0 : K := (K.ofBits 0x0123456789abcdef)
 def x1 : K := (K.ofBits 0xfeedfacedeadbeef)

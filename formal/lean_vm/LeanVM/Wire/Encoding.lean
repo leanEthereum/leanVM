@@ -1,8 +1,8 @@
 /-
   LeanVM.Wire.Encoding
 
-  The proof's wire encoding, transcribed from leanVM's `crates/fiat_shamir/src/wire.rs` at the pin
-  (`leanvm-rev`): the decoding `Proof.fromBytes` (`Proof::from_bytes`, `read_phase`) and the
+  The proof's wire encoding, transcribed from leanVM's `crates/fiat_shamir/src/wire.rs`:
+  the decoding `Proof.fromBytes` (`Proof::from_bytes`, `read_phase`) and the
   encoding `Proof.toBytes` (`Proof::to_bytes`, `write_phase`).
 -/
 

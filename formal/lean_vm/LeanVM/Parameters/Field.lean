@@ -16,7 +16,7 @@ import Mathlib.Tactic.LinearCombination
 # The fields `K` and `E`
 
 The moduli and the limb order are transcribed from specification §2,
-`doc/leanvm/body/02-vm-specification.tex:5-14` at `leanvm-rev`; `K` is CompPoly's `BF64`
+`doc/leanvm/body/02-vm-specification.tex:5-14`; `K` is CompPoly's `BF64`
 and `E` CompPoly's extension framework at `Statement.Field`'s parameters `eParams`:
 
 ```text

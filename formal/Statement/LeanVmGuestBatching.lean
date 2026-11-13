@@ -11,9 +11,9 @@ node defers on the guest program's bytecode (`DeferredClaim`), what a node knows
 language (`Batch.nodeBatchingProgram`). Reference material: a first reading takes the program as
 the batching of `aggregation/deferred.rs` and looks things up here.
 
-Transcribed from leanVM at the pin (`../leanvm-rev`): the modules of
+Transcribed from leanVM: the modules of
 `crates/rec_aggregation/src/aggregation/` and `crates/rec_aggregation/guests/lean_ethereum.py`;
-`aggregation/<module>.rs:N` and `lean_ethereum.py:N` are lines of those files at the pin.
+`aggregation/<module>.rs:N` and `lean_ethereum.py:N` are lines of those files.
 -/
 
 @[expose] public section

@@ -3,14 +3,14 @@ import LeanVM.Protocol.Verifier
 /-!
 # Verifier helper tests: differential against the verifier at its pin
 
-Every expected value below is the Rust verifier's (`crates/verifier`) at `leanvm-rev`, on inputs drawn from the word generator `fw`, which the driver mirrors exactly; the
+Every expected value below is the Rust verifier's (`crates/verifier`), on inputs drawn from the word generator `fw`, which the driver mirrors exactly; the
 driver is the verifier crate's sources with their items made crate-visible and a module printing
 each probe, kept in the port's scratch, not in the repository. Values that no change of the
 protocol touched (the RMFE, the carry-less arithmetic, Keccak-f, Keccak-256, the IV and the seed)
 are those of the earlier pins (`4af2cdddd`, `990b93526`), the others the driver's at `afe891a73`
-but `fold_row` (at `71205cca4`) and `derive_config`'s query counts (at the pin): nothing else they
+but `fold_row` (at `71205cca4`) and `derive_config`'s query counts: nothing else they
 read changed since. The line citations are to
-`crates/verifier/src/` at the pin. Compiled checks (`#guard`): `E` multiplication does not reduce
+`crates/verifier/src/`. Compiled checks (`#guard`): `E` multiplication does not reduce
 in the kernel from module files.
 
 Covered: `powers`, `eq_kernel`, `multilinear_eval` (on `E` and on lifted `K` tables), `eq_eval`,
@@ -62,7 +62,7 @@ def sampleRounds : List FoldRound :=
 /-- A domain point outside the small subspaces: the word `fw(3, 7)`. -/
 def samplePoint : K := K.ofBits (fw 3 7)
 
-/-- A sample placement (its two checks printed at the pin, `../leanvm-rev`). -/
+/-- A sample placement (its two checks printed). -/
 def samplePlacement : Placement := { variableCount := 3, index := 0b1011001 }
 
 /-- The sample bytecode: 32 words, so `log_bytecode = 1`. -/
@@ -124,7 +124,7 @@ def transposeProbe : ℕ × List E × E :=
 def sampleClaim : KeccakClaim := ⟨fe 609, fes 640 16, fes 610 6, fes 1000 1600⟩
 
 /-- The slot weights at `log_steps = 9` of `sampleClaim` on `count` segments from `first`: the
-number of rows, whether each is 64 wide, and all of them batched by powers of `fe 620`. At the pin
+number of rows, whether each is 64 wide, and all of them batched by powers of `fe 620`. In the Rust
 they are no function of their own: `open` (`keccak.rs:212-225`) sums them against the slot
 challenges' eq weights; the driver computes them by its loop with the slot weight left out. -/
 def slotProbe (first count : ℕ) : ℕ × Bool × E :=

@@ -10,8 +10,8 @@ to reduce there; they do from a plain file and not from a `module`.
 Nothing here evaluates `addressIndex?`: every fetch and read is `LeanIsaProgram.fetch_gpow` or
 `MemoryImage.read_gpow` at a literal index, or one of the failure lemmas.
 
-Fixtures, from leanVM's executor tests: `mul_128bit_word` (`crates/leanvm_core/src/cpu/mod.rs:853-869`
-at `leanvm-rev`, the operands the test's and the product as its executor's `F128` arithmetic
+Fixtures, from leanVM's executor tests: `mul_128bit_word` (`crates/leanvm_core/src/cpu/mod.rs:853-869`,
+the operands the test's and the product as its executor's `F128` arithmetic
 computes it, checked against `crates/primitives/src/field/gf2_64x2.rs`'s reference) as a
 `ValidExecution`; the first `KECCAK` row of
 `keccak_permutes_in_both_layouts` (`cpu/mod.rs:835-868`) on that test's cells, with a mutation;

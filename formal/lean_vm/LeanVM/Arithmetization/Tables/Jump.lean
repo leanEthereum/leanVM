@@ -18,7 +18,7 @@ public import Mathlib.Algebra.CharP.Two
 /-!
 # The `JUMP` table
 
-At `leanvm-rev` and Clean pin `b41c196b`. The columns are
+At Clean pin `b41c196b`. The columns are
 `crates/leanvm_core/src/tables.rs:694-718` (`mod jump`, in that order), the two identities
 `tables.rs:741-748` (`JumpTable::constraint`, weighted `pows[0]` and `pows[1]`), the flushes
 `tables.rs:749-769` (`JumpTable::flushes`), matching specification §7.5

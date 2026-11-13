@@ -70,7 +70,7 @@ agreements with the honest one or the zero test's one root.
 
 Written from the specification; the order of the powers, the shared side powers, the weights and
 the order of the final values are checked against `crates/leanvm_core/src/cpu/mod.rs:388-406`,
-`crates/verifier/src/lib.rs:229-247` and `crates/verifier/src/bus.rs:211-260` at the pin.
+`crates/verifier/src/lib.rs:229-247` and `crates/verifier/src/bus.rs:211-260`.
 -/
 
 namespace LeanVM.Protocol

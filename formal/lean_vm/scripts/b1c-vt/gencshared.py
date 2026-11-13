@@ -1,5 +1,5 @@
 # usage: python3 -I gencshared.py  — writes Tables/VtC/SShT.lean: each table's shared selector
-# tables' statements (G:2318-2325 at the commit in leanvm-rev) hold on the honest valuation (`vtc_sh{t}`), and the
+# tables' statements (G:2318-2325) hold on the honest valuation (`vtc_sh{t}`), and the
 # tables' pointers (`vtc_shptr`), from vt_ir.txt (dump.py). The completeness twin of genshared.py.
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

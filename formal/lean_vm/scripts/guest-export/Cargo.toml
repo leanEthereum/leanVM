@@ -7,8 +7,7 @@
 # the hint streams) exactly as the in-tree tests did.
 #
 # leanVM is this repository (`../../../..`), as for `rust-verifier-cli`; `Cargo.lock` is its. The
-# data is generated from this tree; its headers name `../../../leanvm-rev`, the commit the
-# formalization's citations were checked at, not the tree's HEAD (`build.rs`).
+# data is generated from this tree.
 [package]
 name = "leanvm-guest-export"
 version = "0.0.0"

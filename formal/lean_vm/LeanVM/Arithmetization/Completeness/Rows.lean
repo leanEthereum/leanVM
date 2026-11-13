@@ -114,7 +114,7 @@ theorem rowSends_bytecodeComponent (prog : LeanIsaProgram) (env : Environment K)
 
 /-- The cells an instruction reads, in the order its row's reads carry them (the circuits'
 order): the operand cells (for `KECCAK` the thirteen read, then the `outCells.cellCount` written,
-as the Rust's execution bumps the counts of exactly these, `execute.rs:962-972` at `leanvm-rev`), and for
+as the Rust's execution bumps the counts of exactly these, `execute.rs:962-972`), and for
 `DEREF` the pointer cell `fp·o₁`, the pointer's target `p·o₂`
 (`p` the low limb of the word at `fp·o₁`) and the local cell `fp·o₃`. -/
 noncomputable def readAddrs {κ : ℕ} (mem : MemoryImage κ) (fp : K) : LeanIsaInstruction → List K

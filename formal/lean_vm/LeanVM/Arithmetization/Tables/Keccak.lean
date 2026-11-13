@@ -19,7 +19,7 @@ public import Mathlib.Algebra.CharP.Two
 /-!
 # The `KECCAK` table
 
-At `leanvm-rev` and Clean pin `b41c196b`. The
+At Clean pin `b41c196b`. The
 columns are `keccak_columns` (`crates/verifier/src/layout.rs:383-388, 425-434`;
 `crates/leanvm_core/src/tables.rs:856-873`, `keccakt`) and the flushes `flushes_keccak`
 (`layout.rs:324-362`; `tables.rs:919-945`),

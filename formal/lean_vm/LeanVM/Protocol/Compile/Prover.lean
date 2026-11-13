@@ -23,7 +23,7 @@ public import LeanVM.Protocol.WithHash
 /-!
 # The honest prover and the completeness of the compilation
 
-The prover is transcribed from leanVM at `leanvm-rev`:
+The prover is transcribed from leanVM:
 
 * the Fiat-Shamir sponge is the one `run` checks (`crates/fiat_shamir/src/lib.rs`, `observe`,
   `sample`): a scalar sent is absorbed with tag `1`, a challenge squeezed by a permutation;

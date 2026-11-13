@@ -59,8 +59,7 @@ open Air.Flat (Component EnsembleWitness)
 
 /-! ## The fixture: `mul_128bit_word` with closed walks -/
 
--- The operands and product of the executor test `mul_128bit_word` (`cpu/mod.rs:853-869` at
--- `leanvm-rev`).
+-- The operands and product of the executor test `mul_128bit_word` (`cpu/mod.rs:853-869`).
 def mulX : E :=
   E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfeedfacedeadbeef)
 def mulY : E :=

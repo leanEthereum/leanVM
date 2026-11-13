@@ -6,7 +6,7 @@ public import Statement.Fast.Keccak
 /-!
 # Hash-based signatures: what leanXMSS and leanSPHINCS share
 
-Read before the two schemes, at leanVM `leanvm-rev`: the sizes and types both schemes use, the shape of
+Read before the two schemes,: the sizes and types both schemes use, the shape of
 their tweakable hash `Truncate_16(H(prefix ‖ address ‖ payload))` (`hasherInput`, `truncateHash`:
 `hasher` and `truncate` of `crates/signatures/src/lib.rs`), each scheme laying out its own address;
 the hash `H`, Keccak-256 over a permutation `π` of the Keccak state in any monad (`keccakHash`), and

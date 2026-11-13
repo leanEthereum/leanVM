@@ -18,7 +18,7 @@ public import Mathlib.Algebra.CharP.Two
 /-!
 # The `DEREF` table
 
-At `leanvm-rev` and Clean pin `b41c196b`. The columns
+At Clean pin `b41c196b`. The columns
 are `crates/leanvm_core/src/tables.rs:596-618` (`mod deref`, in that order), the store coordinates
 `tables.rs:625-632` (`deref_store`), the flushes `tables.rs:642-652` (`DerefTable::flushes`),
 matching specification §7.4 (`doc/leanvm/body/07-instruction-tables.tex`). There is no

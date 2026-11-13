@@ -17,7 +17,7 @@ public import Clean.Utils.Tactics.CircuitProofStart
 /-!
 # The `MUL_NATIVE` table
 
-At `leanvm-rev` and Clean pin `b41c196b`. The columns
+At Clean pin `b41c196b`. The columns
 are `crates/leanvm_core/src/tables.rs:460-478` (`mod arith`, shared with `XOR`, in that order), the
 flushes `tables.rs:504-516` (`Arith::flushes` with `is_xor = false`), the result coordinates
 `tables.rs:29-33` and `:483-494` (`TOWER_LANES`, `arith_result`; the verifier's

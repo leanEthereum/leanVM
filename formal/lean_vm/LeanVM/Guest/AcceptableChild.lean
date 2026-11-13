@@ -26,7 +26,7 @@ caps, and no zero challenge (`AcceptableChild`). `GuestCompleteOnAcceptableChild
 program's completeness on nodes within the deployed limits whose children are acceptable, for every seed, and
 `GuestChildComplete` says that an honest proof is an acceptable child (`G:N` is line `N` of
 `crates/rec_aggregation/guests/lean_ethereum.py`, `aggregation/<module>.rs:N` of
-`crates/rec_aggregation/src/aggregation/<module>.rs`, at the pin).
+`crates/rec_aggregation/src/aggregation/<module>.rs`).
 -/
 
 @[expose] public section

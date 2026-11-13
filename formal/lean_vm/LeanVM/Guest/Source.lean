@@ -13,7 +13,7 @@ public import Init
 /-!
 # The zkDSL source AST
 
-A transcription of `crates/lean_compiler/src/ast.rs` (leanVM at `leanvm-rev`): what
+A transcription of `crates/lean_compiler/src/ast.rs`: what
 `lean_compiler::parse_with_replacements` returns. Placeholders and scalar global constants are
 already substituted textually, `match` arms are already expanded per integer, and `x OP= e` is
 already `x = x OP (e)`; constant arrays stay named (`Program.constArrays`). A keyword argument

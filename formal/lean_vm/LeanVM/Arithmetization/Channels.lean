@@ -29,7 +29,7 @@ interaction's coordinates, then zeros (specification §5.1,
 * state, separator `g^0`: `(pc, fp)` (§6.1, `06-bus-interactions.tex:8`; `tables.rs:131-145`);
 * memory, separator `g^1`: `(addr, count, v₀, v₁)`, a read of the word `v` at `addr` with
   count `count` (§6.2 "Tuple and columns" and "Flush rules", `:40-47`, and §6.3, `:86`;
-  `tables.rs:124-148` at `leanvm-rev`, two limbs);
+  `tables.rs:124-148`, two limbs);
 * bytecode, separator `g^2`: `(pc, count, opcode, op₁, …, op₁₂)`, the bytecode `entry` after the
   address and the count, fifteen coordinates, the widest message, filling the sixteen slots (§6.4;
   `tables.rs:113-122` at leanVM main `40f877dc`).
@@ -242,15 +242,15 @@ def BytecodePush : Channel K BytecodeMsg where
 /-! ## The read gadgets -/
 
 /-- A memory read of the word `v` at `addr` with count `count`: pull `(addr, count, v)`, push
-`(addr, g·count, v)` (specification §6.2 "Flush rules"; `tables.rs:124-148` at `leanvm-rev`). The pull is a
+`(addr, g·count, v)` (specification §6.2 "Flush rules"; `tables.rs:124-148`). The pull is a
 `Channel.pull`, so that a soundness proof may assume `MemPull.Guarantees` of it. -/
 def memRead (addr count : Expression K) (v : Vector (Expression K) 2) : Circuit K Unit := do
   MemPull.pull ⟨addr, count, v⟩
   MemPush.push ⟨addr, Expression.const g * count, v⟩
 
 /-- A memory read of the word `v` at `addr` with count `count` when `flag` is `1`
-(`memory_coords_if`, `tables.rs:133-137`, and `memory_if`, `crates/verifier/src/layout.rs:171-176`,
-at `leanvm-rev`): pull `(addr, count, v)` and push `(addr, count + flag·count·g +
+(`memory_coords_if`, `tables.rs:133-137`, and `memory_if`, `crates/verifier/src/layout.rs:171-176`):
+pull `(addr, count, v)` and push `(addr, count + flag·count·g +
 flag·count, v)`, `g·count` at `flag = 1` and the pull's own tuple at `flag = 0`, where the pair
 cancels. The pull is a `Channel.pullIf flag`: its guarantee is assumed at `flag = 1` only. -/
 def memReadIf (flag addr count : Expression K) (v : Vector (Expression K) 2) : Circuit K Unit := do

@@ -82,7 +82,7 @@ are nonzero), every rider is zero (constraints vanish, lines and Keccak predicat
 the end the honest values make every claim true and the forms sum to the totals.
 
 Written from the specification; the layout and its tie order, the count blocks and the order of
-the messages are transcribed from `crates/leanvm_core/src/leaf.rs` at the pin (the layout
+the messages are transcribed from `crates/leanvm_core/src/leaf.rs` (the layout
 `:141-148`, the leaves `:179-255`, the decomposition `:381-451`), the verifier
 `crates/verifier/src/bus.rs:107-209` (`verify_bus_balance`), the prover's grand product
 `crates/leanvm_core/src/gkr.rs:299-418` and its verifier `crates/verifier/src/bus.rs:12-49`.

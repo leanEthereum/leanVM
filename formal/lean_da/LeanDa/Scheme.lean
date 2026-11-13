@@ -8,7 +8,7 @@ public import LeanDa.WithHash
 /-!
 # LeanDA
 
-The erasure code commitment of `crates/lean_da` at the leanVM commit `formal/leanvm-rev` names,
+The erasure code commitment of `crates/lean_da`,
 specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 

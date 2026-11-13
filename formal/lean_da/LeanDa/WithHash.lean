@@ -34,8 +34,8 @@ open LeanVM.Protocol.KeccakHash (keccak256With littleEndianLane)
 
 /-! ## The challenge's sponge as the proofs read it
 
-`lean_da`'s proofs read the membership challenge's duplex (`verifier/src/transcript.rs:34-90` at
-`../../leanvm-rev`) in this form, LeanDA's own transcription: the tags in `K`, the root's words as
+`lean_da`'s proofs read the membership challenge's duplex (`verifier/src/transcript.rs:34-90`)
+in this form, LeanDA's own transcription: the tags in `K`, the root's words as
 symbols of its bytes. The challenge needs only the sponge's seeding and its grind: the root is its
 public input, no scalar is observed, and each nonce is absorbed into a copy of the seeded sponge
 and permuted (`nonceInput`), the answer's lane `2` its proof of work and lanes `0, 1` the

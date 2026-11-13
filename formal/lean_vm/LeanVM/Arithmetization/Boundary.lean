@@ -26,7 +26,7 @@ matching specification §6.1 (`doc/leanvm/body/06-bus-interactions.tex:8`, the s
 §6.2 "Flush rules" (`:44-46`, seed and finalize), §6.4 (the bytecode array), §6.5 (`:98`, the
 index column), and §8.6 (`08-end-to-end-protocol.tex:105`: "three blocks per side belong to no
 table"). The committed
-columns are `MEM_LO, MEM_HI, MFCNT` and `BFCNT` (`layout.rs:14-17` at `leanvm-rev`); the bytecode entry
+columns are `MEM_LO, MEM_HI, MFCNT` and `BFCNT` (`layout.rs:14-17`); the bytecode entry
 rides eight *public* columns (`bytecode_columns`, `layout.rs:228-289`, `Bytecode`'s `entry`); the
 sentinel counter `g^(N_prog - 1)` is derived from the public program's length and written into the
 state block as a constant (`layout.rs:334`, `final_pc`; `:356`, `Const(g_pow(final_pc))`).
@@ -137,7 +137,7 @@ def PublicIO.ofInput (input : PublicInput) : PublicIO K :=
 /-! ## The memory block -/
 
 /-- A row of the memory block: the word's two limbs (`MEM_LO, MEM_HI`;
-`layout.rs:14-15` at `leanvm-rev`), the address `g^i` (the index column of §6.5, a fixed column), and the finalize
+`layout.rs:14-15`), the address `g^i` (the index column of §6.5, a fixed column), and the finalize
 count `g^(A[i])` (`MFCNT`). The limbs come first, as the committed columns do, so that the prover
 data Clean derives from the block, its rows cut at two cells (`memRows`), is the image. -/
 structure MemRow (F : Type) where
@@ -159,7 +159,7 @@ structure MemBindings {κ : ℕ} (mem : MemoryImage κ) (r : MemRow K) : Prop wh
 def MemSpec (r : MemRow K) (data : ProverData K) : Prop :=
   MemBindings (imageOf data).2 r
 
-/-- The memory block (specification §6.2, seed and finalize; `layout.rs:431-440` at `leanvm-rev`): push
+/-- The memory block (specification §6.2, seed and finalize; `layout.rs:431-440`): push
 `(idx, 1, m)`, pull `(idx, cntFin, m)`. -/
 def memTable : GeneralFormalCircuit K MemRow unit where
   -- Clean keys the prover data by component name: the block's rows are the `"mem"` table.
