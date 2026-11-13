@@ -1,6 +1,6 @@
 """Signatures and residuals for the mode walk (`LeanVM/Guest/Mode/Abs.lean`), inferred callee
 first, by `walk.py`, a mirror of the Lean walk with demand hooks. Prints how many functions pass,
-and the residuals and failures. Not yet a certificate generator."""
+and the residuals and failures; `gen.py` writes the certificates from them."""
 import sys, os, collections
 sys.setrecursionlimit(100000)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -106,7 +106,8 @@ def ifaceIdx(f, i):
 class Infer:
     def __init__(self, f):
         self.f = f; self.pre = set(); self.preR = set(); self.res = collections.defaultdict(list)
-        self.new = False; self.unres = []
+        self.preP = {}
+        self.new = False; self.unres = []; self.w = None
 
     def demand(self, kind, i, *rest):
         f = self.f
@@ -121,6 +122,12 @@ class Infer:
             if isinstance(name, tuple) and name[0] == 'tail':
                 return False
             if k is not None: return self.key(k, i, A)
+            return False
+        if kind == 'preP':
+            name, r, os, r2, A = rest
+            if isinstance(name, tuple) and name[0] == 'tail': return False
+            if r2 is not None and ifaceMono(f, r2[0]) and ifaceIdx(f, r2[1]) and ifaceIdx(f, r2[2]) and r2[0][2]:
+                self.addP(r2, os, A); return True
             return False
         if kind == 'preR':
             name, r, r2, A = rest
@@ -145,8 +152,36 @@ class Infer:
             self.res[i].append(r); self.new = True; A.lt.add((r[1], r[2])); return True
         return False
 
+    def addP(self, r, os, A):
+        old = self.preP.get(r, set())
+        if not set(os) <= old:
+            self.preP[r] = old | set(os); self.new = True
+        A.p.add((r, tuple(sorted(self.preP[r]))))
+
+    def pkey(self, k2, o, A):
+        """A cell `o` past a pointer loaded from the heap cell `k2`: a run of such pointers."""
+        f = self.f
+        if k2[0] != 0: return False
+        for (x, e) in k2[2]:
+            if x[0] != 'fr': continue
+            Q = tuple((b, ee) for b, ee in k2[2] if b != x)
+            if not (Q and ifaceMono(f, (0, 0, Q))): continue
+            if f['name'] in isloop and x == ('fr', 2):
+                r = ((0, 0, Q), ('ex', x, 0), ('ex', x, 1), e, k2[1])
+                for r0 in self.preP:
+                    if r0[0] == r[0] and r0[3] == e and r0[4] == k2[1]: r = r0
+                self.addP(r, (o,), A); return True
+            for (p, hi) in sorted(A.lt, key=lambda t: (t[1][0] != 'num', t[1][1] if t[1][0] == 'num' else 0)):
+                if p == ('ex', x, 0) and ifaceIdx(f, hi) and hi != ('num', MAXCELLS):
+                    self.addP(((0, 0, Q), ('num', 0), hi, e, k2[1]), (o,), A); return True
+        return False
+
     def key(self, k, i0, A):
         f = self.f
+        if k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and k[2][0][0][0] == 'fr' and self.w is not None:
+            c = k[2][0][0][1]
+            if c in self.w.ld and self.pkey(self.w.ld[c], k[1], A):
+                A.h.add(k); return True
         # a jump table load through an unbounded selector: residual bound
         if (i0 + 1) in f['tabs'] and k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and k[1] in REGION:
             x = k[2][0][0]
@@ -168,11 +203,12 @@ class Infer:
         return False
 
 
-def mkSig(f, pre, preR, ret=(), post=(), postR=(), postL=()):
+def mkSig(f, pre, preR, ret=(), post=(), postR=(), postL=(), preP=None, postP=(), postLP=()):
     loop = f['name'] in isloop
     term = [(('ex', ('fr', 2), 0), ('ex', ('fr', 3), 0))] if loop else []
+    preP = sorted((r, tuple(sorted(os))) for r, os in (preP or {}).items())
     return Sig(f['entry'], list(range(2 + f.get('nargs', 0))), selfc.get(f['entry']), sorted(pre), sorted(preR), term,
-               ret, sorted(post), sorted(postR), sorted(postL))
+               ret, sorted(post), sorted(postR), sorted(postL), preP, sorted(postP), sorted(postLP))
 
 
 def renameRet(f, A, m):
@@ -197,14 +233,21 @@ def infer(n):
     I = Infer(f)
     main = n == 'main'
     for it in range(40):
-        sig = mkSig(f, I.pre, I.preR)
+        sig = mkSig(f, I.pre, I.preR, preP=I.preP)
         E.sigs[f['entry']] = sig
         I.new = False
         w = Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main, demand=I.demand)
+        I.w = w
         try:
             w.run(f['ops'])
         except Fail as e:
             if not I.new:
+                # loop transport: a run of pointers at the counter's point, over the counter's range
+                if n in isloop and e.args[0][0] == 'preP' and isinstance(e.args[0][2], tuple):
+                    r = e.args[0][3]
+                    if r in I.preP and r[1] == ('ex', ('fr', 2), 0) and r[2] == ('ex', ('fr', 2), 1):
+                        I.preP[(r[0], r[1], ('ex', ('fr', 3), 0), r[3], r[4])] = I.preP.pop(r)
+                        continue
                 # loop transport: generalize uncovered pre points over the counter
                 if n in isloop and e.args[0][0] == 'pre' and isinstance(e.args[0][2], tuple):
                     m = e.args[0][3]
@@ -234,7 +277,15 @@ def infer(n):
             if okIface(f, q2) and ifaceIdx(f, lo) and ifaceIdx(f, hi): rs.add((q2, lo, hi, S, d))
         postR = rs if postR is None else postR & rs
     post = post or set(); postR = postR or set()
-    postL = set()
+    postP = None
+    for A in w.rets:
+        ps = set()
+        for (q, lo, hi, S, d), os in A.p:
+            q2 = renameRet(f, A, q)
+            if okIface(f, q2) and ifaceIdx(f, lo) and ifaceIdx(f, hi): ps.add(((q2, lo, hi, S, d), os))
+        postP = ps if postP is None else postP & ps
+    postP = postP or set()
+    postL = set(); postLP = set()
     if n in isloop:
         ends = w.rets + [t[0] for t in w.tails]
         cand = None
@@ -245,8 +296,22 @@ def infer(n):
             S = dict(k[2])[('fr', 2)]
             Q = tuple((b, x) for b, x in k[2] if b != ('fr', 2))
             if Q: postL.add(((0, 0, Q), ('ex', ('fr', 2), 0), ('ex', ('fr', 3), 0), S, k[1]))
-        post = set(); postR = set()
-    sig = mkSig(f, I.pre, I.preR, ret, post, postR, postL)
+        pcand = None
+        for A in ends:
+            ks = {}
+            for k, x in A.hv.items():
+                if k[0] == 0 and dict(k[2]).get(('fr', 2)) and ifaceMono(f, k) and x[0] == 'm':
+                    m = x[1]
+                    os = {h[1] - m[1] for h in A.h if h[0] == m[0] and h[2] == m[2] and h[1] >= m[1]}
+                    os = {o for o in os if o < 2 ** 30 and A.covered(shift(m, o))}
+                    if os: ks[k] = os
+            pcand = ks if pcand is None else {k: pcand[k] & ks[k] for k in pcand if k in ks and pcand[k] & ks[k]}
+        for k, os in (pcand or {}).items():
+            S = dict(k[2])[('fr', 2)]
+            Q = tuple((b, x) for b, x in k[2] if b != ('fr', 2))
+            if Q: postLP.add((((0, 0, Q), ('ex', ('fr', 2), 0), ('ex', ('fr', 3), 0), S, k[1]), tuple(sorted(os))))
+        post = set(); postR = set(); postP = set()
+    sig = mkSig(f, I.pre, I.preR, ret, post, postR, postL, I.preP, postP, postLP)
     E.sigs[f['entry']] = sig
     # the final check: no demand
     w = Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main)
@@ -254,7 +319,7 @@ def infer(n):
         w.run(f['ops'])
     except Fail as e:
         # drop what does not check
-        sig = mkSig(f, I.pre, I.preR, ret, set(), set(), set())
+        sig = mkSig(f, I.pre, I.preR, ret, set(), set(), set(), I.preP)
         E.sigs[f['entry']] = sig
         w = Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main)
         w.run(f['ops'])
@@ -282,6 +347,6 @@ if __name__ == '__main__':
     print('closed', len(closed), 'of', len(fns))
     rootf = [n for n in fails if not any(m in fails for m in calls[n] if m != n)]
     print('root failures', len(rootf), collections.Counter(fails[n][0] for n in rootf))
-    for n in sorted(rootf, key=lambda n: fns[n]['count'])[:40]:
+    for n in sorted(rootf, key=lambda n: fns[n]["count"]):
         e = fails[n]
         print(n, fns[n]['count'], str(e[:4] if isinstance(e, tuple) else e)[:200])

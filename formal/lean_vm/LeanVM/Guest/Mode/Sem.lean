@@ -10,8 +10,9 @@ public import LeanVM.Prover.ExecuteCompleteLog
 At an executor state `s`, relative to its frame `s.fp`: a base's word (`BaseVal`), a product's
 (`MonoVal`; `hp q d` is the word of the cell `[q]·g^d` names), an exponent's value (`IdxVal`: a base whose word is `g^e`, `e < 2^62`, plus a
 constant), and the facts of `Abs` (`Holds`): written frame cells, known words, nonzero cells,
-known heap words (`HVF`), written heap cells (`HW`) and runs (`RW`), exponents in order (`LTF`) and
-the last products (`PrF`). Every fact is existential in the words it reads, so it survives every
+known heap words (`HVF`), written heap cells (`HW`) and runs (`RW`), exponents in order (`LTF`),
+the last products (`PrF`), and runs of pointers (`PW`, each cell holding a word whose given cells
+past the cell it names are written, `PtrW`). Every fact is existential in the words it reads, so it survives every
 step that keeps the frame (`Holds.mono`). `covered_sound`: a heap cell the walk knows written is,
 whatever word names it.
 -/
@@ -67,6 +68,15 @@ def RW (s : St) (r : Rng) : Prop :=
   ∃ vq xlo xhi, MonoVal s r.q vq ∧ IdxVal s r.lo xlo ∧ IdxVal s r.hi xhi ∧
     ∀ j, xlo ≤ j → j < xhi → ∃ x, Names (vq * ofK (g ^ (r.S * j + r.d))) x ∧ s.mem.written x = true
 
+/-- Cell `x` holds a word naming a cell whose cells `os` past it are written. -/
+def PtrW (m : Mem) (x : ℕ) (os : List ℕ) : Prop :=
+  ∃ p, m.get x = some p ∧ ∀ o ∈ os, ∃ y, Names (p * ofK (g ^ o)) y ∧ m.written y = true
+
+/-- Run `r`'s cells hold pointers, each with the cells `os` past the cell it names written. -/
+def PW (s : St) (r : Rng) (os : List ℕ) : Prop :=
+  ∃ vq xlo xhi, MonoVal s r.q vq ∧ IdxVal s r.lo xlo ∧ IdxVal s r.hi xhi ∧
+    ∀ j, xlo ≤ j → j < xhi → ∃ x, Names (vq * ofK (g ^ (r.S * j + r.d))) x ∧ PtrW s.mem x os
+
 /-- Exponent `a` is below exponent `b`. -/
 def LTF (s : St) (a b : Idx) : Prop := ∃ xa xb, IdxVal s a xa ∧ IdxVal s b xb ∧ xa < xb
 
@@ -91,6 +101,7 @@ structure Holds (s : St) (A : Abs) : Prop where
   lt : ∀ p ∈ A.lt, LTF s p.1 p.2
   pr : ∀ p ∈ A.pr, PrF s p.1 p.2.1 p.2.2
   xs : ∀ c a b, A.xs.get c = some (a, b) → XorF s a b c
+  p : ∀ q ∈ A.p, PW s q.1 q.2
 
 /-- What the program's table holds: the jump table's cells, written with their targets' powers. -/
 def EnvOk (s : St) (E : Env) : Prop :=
@@ -137,6 +148,16 @@ omit hfp in
 theorem written_le {c : ℕ} (h : s.mem.written c = true) : s'.mem.written c = true :=
   written_mono hle h
 
+omit hfp in
+theorem PtrW.mono {x : ℕ} {os : List ℕ} (h : PtrW s.mem x os) : PtrW s'.mem x os := by
+  obtain ⟨p, h1, h2⟩ := h
+  exact ⟨p, hle.get _ _ h1, fun o ho ↦ (h2 o ho).elim fun y hy ↦ ⟨y, hy.1, written_le hle hy.2⟩⟩
+
+theorem PW.mono {r : Rng} {os : List ℕ} (h : PW s r os) : PW s' r os := by
+  obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := h
+  exact ⟨vq, xlo, xhi, h1.mono hle hfp, h2.mono hle hfp, h3.mono hle hfp,
+    fun j a b ↦ (h4 j a b).elim fun x hx ↦ ⟨x, hx.1, hx.2.mono hle⟩⟩
+
 theorem Holds.mono {A : Abs} (h : Holds s A) : Holds s' A where
   w o ho := by rw [hfp]; exact written_le hle (h.w o ho)
   v o x hx := by
@@ -166,6 +187,7 @@ theorem Holds.mono {A : Abs} (h : Holds s A) : Holds s' A where
     obtain ⟨va, vb, h1, h2, h3⟩ := h.xs c a b hc
     exact ⟨va, vb, by rw [hfp]; exact hle.get _ _ h1, by rw [hfp]; exact hle.get _ _ h2,
       by rw [hfp]; exact hle.get _ _ h3⟩
+  p q hq := (h.p q hq).mono hle hfp
 
 omit hfp in
 theorem EnvOk.mono {E : Env} (h : EnvOk s E) : EnvOk s' E :=
@@ -526,6 +548,44 @@ theorem Abs.inRng_sound {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {r : Rng}
   · exact inRng1_sound hA hr h hk
   · simp only [Bool.and_eq_true] at h
     exact inRng1_sound hA hr.down h.2 hk
+
+theorem PW.down {s : St} {r : Rng} {os : List ℕ} (h : PW s r os) : PW s r.down os := by
+  obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := h
+  refine ⟨vq, xlo + r.d / r.S, xhi + r.d / r.S, h1, Idx.shift_val h2 _, Idx.shift_val h3 _,
+    fun j hj1 hj2 ↦ ?_⟩
+  have e1 : r.S * (j - r.d / r.S) = r.S * j - r.S * (r.d / r.S) := Nat.mul_sub _ _ _
+  have e2 : r.S * (r.d / r.S) ≤ r.S * j := Nat.mul_le_mul_left _ (by omega)
+  have e3 : r.S * (r.d / r.S) ≤ r.d := Nat.mul_div_le r.d r.S
+  have : r.S * (j - r.d / r.S) + r.d = r.S * j + (r.d - r.S * (r.d / r.S)) := by omega
+  have h5 := h4 (j - r.d / r.S) (by omega) (by omega)
+  rw [this] at h5
+  exact h5
+
+theorem inRng1_ptr {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {r : Rng} {os : List ℕ}
+    (hr : PW s r os) (h : (match r.idxOf k with
+      | some i => A.le r.lo i && A.ltI i r.hi
+      | none => false) = true) {vk : E} (hk : MonoVal s k vk) :
+    ∃ x, Names vk x ∧ PtrW s.mem x os := by
+  split at h
+  · rename_i i hi
+    simp only [Bool.and_eq_true] at h
+    obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := hr
+    obtain ⟨xi, hxi, hlt⟩ := Abs.ltI_sound hA h.2 h3
+    obtain ⟨xlo', hlo', hle⟩ := Abs.le_sound hA h.1 hxi
+    obtain rfl := h2.unique hlo'
+    rw [Rng.idxOf_sound hi hk h1 hxi]
+    exact h4 xi hle hlt
+  · simp at h
+
+/-- **A heap cell a run of pointers holds holds a pointer.** -/
+theorem Abs.inRng_ptr {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {r : Rng} {os : List ℕ}
+    (hr : PW s r os) (h : A.inRng k r = true) {vk : E} (hk : MonoVal s k vk) :
+    ∃ x, Names vk x ∧ PtrW s.mem x os := by
+  unfold Abs.inRng at h
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  · exact inRng1_ptr hA hr h hk
+  · simp only [Bool.and_eq_true] at h
+    exact inRng1_ptr hA hr.down h.2 hk
 
 /-- **What the walk knows written is**: the cell its word names exists and is written. -/
 theorem Abs.covered_ex {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)

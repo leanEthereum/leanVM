@@ -56,6 +56,7 @@ theorem Holds.inter {s : St} {A B : Abs} (hA : Holds s A) : Holds s (A.inter B) 
   pr _ hp := nomatch hp
   xs c a b ho := hA.xs c a b (Exec.Trie.get_inter (fun p q h ↦ by
     simp only [Bool.and_eq_true, beq_iff_eq] at h; exact Prod.ext h.1 h.2) ho).1
+  p q hq := hA.p q (mem_interL hq)
 
 theorem mem_interL_right {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y)
     {a b : List α} {x : α} (h : x ∈ interL eq a b) : x ∈ b := by
@@ -82,6 +83,8 @@ theorem Holds.inter_right {s : St} {A B : Abs} (hB : Holds s B) : Holds s (A.int
   pr _ hp := nomatch hp
   xs c a b ho := hB.xs c a b (Exec.Trie.get_inter (fun p q h ↦ by
     simp only [Bool.and_eq_true, beq_iff_eq] at h; exact Prod.ext h.1 h.2) ho).2
+  p q hq := hB.p q (mem_interL_right
+    (pair_beq_eq (fun _ _ h ↦ Rng.beq_eq h) (fun _ _ h ↦ beq_iff_eq.mp h)) hq)
 
 /-- Paths met: what all know holds where any holds. -/
 theorem Holds.foldl_inter {s : St} : ∀ {A X : Abs} {l : List Abs}, X ∈ A :: l → Holds s X →

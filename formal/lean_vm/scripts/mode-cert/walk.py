@@ -73,15 +73,16 @@ def sle(a, b):
 
 
 class Abs:
-    __slots__ = ('w', 'v', 'nz', 'hv', 'h', 'r', 'lt', 'pr', 'xs')
+    __slots__ = ('w', 'v', 'nz', 'hv', 'h', 'r', 'lt', 'pr', 'xs', 'p')
 
     def __init__(s):
         s.w = set(); s.v = {}; s.nz = set(); s.hv = {}; s.h = set(); s.r = set(); s.lt = set(); s.pr = []
         s.xs = {}
+        s.p = set()
 
     def copy(s):
         t = Abs(); t.w = set(s.w); t.v = dict(s.v); t.nz = set(s.nz); t.hv = dict(s.hv); t.h = set(s.h)
-        t.r = set(s.r); t.lt = set(s.lt); t.pr = list(s.pr); t.xs = dict(s.xs)
+        t.r = set(s.r); t.lt = set(s.lt); t.pr = list(s.pr); t.xs = dict(s.xs); t.p = set(s.p)
         return t
 
     def addV(s, o, x):
@@ -163,6 +164,22 @@ class Abs:
             return n <= 4096 and all(b[0] == 'fr' and b[1] in s.w for b, e in q[2]) and all(s.covered(shift(q, S * (lo[1] + j) + d)) for j in range(n))
         return False
 
+    def ptrAt(s, k, os):
+        x = s.hvGet(k)
+        return x is not None and x[0] == 'm' and all(s.covered(shift(x[1], o)) for o in os)
+
+    def coveredP(s, r, os):
+        q, lo, hi, S, d = r
+        for ((q2, lo2, hi2, S2, d2), os2) in s.p:
+            if q2 == q and S2 == S and d2 == d and s.le(lo2, lo) and s.le(hi, hi2) and s.hasIdx(lo) and s.hasIdx(hi) and set(os) <= set(os2):
+                return True
+        if hi == isucc(lo) and s.hasIdx(lo) and s.ptrAt(first(r), os):
+            return True
+        if lo[0] == 'num' and hi[0] == 'num':
+            n = max(0, hi[1] - lo[1])
+            return n <= 4096 and all(b[0] == 'fr' and b[1] in s.w for b, e in q[2]) and all(s.ptrAt(shift(q, S * (lo[1] + j) + d), os) for j in range(n))
+        return False
+
 
 def idxOf(r, k):
     q, lo, hi, S, d = r
@@ -186,6 +203,7 @@ def inter(A, B):
     t.hv = {k: x for k, x in A.hv.items() if B.hv.get(k) == x}
     t.h = A.h & B.h; t.r = A.r & B.r; t.lt = A.lt & B.lt; t.pr = []
     t.xs = {c: p for c, p in A.xs.items() if B.xs.get(c) == p}
+    t.p = A.p & B.p
     return t
 
 # ---------------------------------------------------------------- the walk
@@ -212,10 +230,11 @@ def jtRng(E): return (ONE, ('num', E.jtLo), ('num', E.jtHi), 1, 0)
 
 
 class Sig:
-    def __init__(self, pc, entry, self_=None, pre=(), preR=(), term=(), ret=(), post=(), postR=(), postL=()):
+    def __init__(self, pc, entry, self_=None, pre=(), preR=(), term=(), ret=(), post=(), postR=(), postL=(),
+                 preP=(), postP=(), postLP=()):
         self.pc = pc; self.entry = list(entry); self.self_ = self_; self.pre = list(pre); self.preR = list(preR)
         self.term = list(term); self.ret = list(ret); self.post = list(post); self.postR = list(postR)
-        self.postL = list(postL)
+        self.postL = list(postL); self.preP = list(preP); self.postP = list(postP); self.postLP = list(postLP)
 
 
 class Walk:
@@ -229,6 +248,7 @@ class Walk:
         self.lnk = {}  # inference metadata: frame cell -> heap key it was linked to
         self.lnks = {}  # heap key -> frame cells linked to it
         self.rets = []; self.tails = []
+        self.ld = {}  # inference metadata: frame cell -> heap key it was loaded from
         self.states = None
 
     def need(self, ok, *why):
@@ -331,6 +351,7 @@ class Walk:
             if m is None: raise Fail(('ptrimm', i, p))
             k = shift(m, o)
             covered = A.covered(k)
+            ps = [os for (r, os) in A.p if A.inRng(k, r)]
             cW = c in A.w
             cv = A.v.get(c, ('m', root(c)))
             lv = self.loadVal(A, k)
@@ -344,8 +365,13 @@ class Walk:
             if cW:
                 A.addH(k); A.addHv(k, cv); A.pr = pr; return
             if covered:
+                self.ld.setdefault(c, k)
                 A.w.add(c)
                 if lv is not None: A.addV(c, lv)
+                m = A.mono(c)
+                if m is not None:
+                    for os in ps:
+                        for o in os: A.addH(shift(m, o))
                 A.pr = pr; return
             self.lnk.setdefault(c, (k, i))
             self.lnks.setdefault(k, []).append(c)
@@ -505,6 +531,9 @@ class Walk:
         for r in G.preR:
             r2 = self.trRngDown(A, mq, r)
             self.need(r2 is not None and A.coveredR(r2), 'preR', i, name, r, r2, A)
+        for r, os in G.preP:
+            r2 = self.trRngDown(A, mq, r)
+            self.need(r2 is not None and A.coveredP(r2, os), 'preP', i, name, r, os, r2, A)
 
     def afterCall(self, A, mq, G):
         A = A.copy()
@@ -515,6 +544,9 @@ class Walk:
         for r in G.postR + G.postL:
             r2 = self.trRngUp(A, mq, r)
             if r2 is not None: A.r.add(r2)
+        for r, os in G.postP + G.postLP:
+            r2 = self.trRngUp(A, mq, r)
+            if r2 is not None: A.p.add((r2, os))
         self.atCall(A, mq, G)
         return A
 
@@ -527,6 +559,9 @@ class Walk:
         for r in self.sig.postL:
             k = self.trMono(A, own(0), first(r))
             self.need(k is not None and A.covered(k), 'loop', i, r, A)
+        for r, os in self.sig.postLP:
+            k = self.trMono(A, own(0), first(r))
+            self.need(k is not None and A.ptrAt(k, os), 'loopP', i, r, os, A)
 
     def retOk(self, A, i):
         self.loopOk(A, i)
@@ -537,6 +572,9 @@ class Walk:
         for r in self.sig.postR:
             r2 = self.trRngDown(A, own(0), r)
             self.need(r2 is not None and A.coveredR(r2), 'postR', i, r, A)
+        for r, os in self.sig.postP:
+            r2 = self.trRngDown(A, own(0), r)
+            self.need(r2 is not None and A.coveredP(r2, os), 'postP', i, r, os, A)
 
     def calleesOf(self, A, i, t):
         v = A.v.get(t)
@@ -593,7 +631,7 @@ class Walk:
                 G = self.E.sigs[md[1]]
                 self.need(md[1] == self.entry, 'tailself', i)
                 self.entryOk(A, own(e), G, i, ('tail', md[1]))
-                for r in G.postL:
+                for r in G.postL + [r for r, os in G.postLP]:
                     self.need(self.trRngUp(A, own(e), r) == (r[0], isucc(r[1]), r[2], r[3], r[4]), 'stride', i, r, A)
                 for p, q in G.term:
                     ok = p[0] == 'ex' and p[2] == 0 and q[0] == 'ex' and q[2] == 0
@@ -633,10 +671,20 @@ class Walk:
 
     def run(self, code, keep=False):
         cur = [entryAbs(self.E, self.sig)]
+        # pending edges hold shared snapshots, copied when taken; meets are memoized (order-free)
         pend = {}
+        memo = {}
+        alive = []
         if keep: self.states = []
         for i, (op, a) in enumerate(code):
-            sts = cap(cur + pend.pop(i, []))
+            edges = pend.pop(i, [])
+            if len(cur) + len(edges) > 2:
+                key = (tuple(id(x) for x in cur), frozenset(id(x) for x in edges))
+                if cur or key not in memo:
+                    memo[key] = cap(cur + edges)[0]
+                sts = [memo[key].copy()]
+            else:
+                sts = cur + [x.copy() for x in edges]
             if keep: self.states.append(sts[0].copy() if sts else None)
             cur = []
             for A in sts:
@@ -651,9 +699,10 @@ class Walk:
                 if k is False: cur.append(learn0(A, c)); continue
                 go, A2 = self.jumpI(i, A, d, f)
                 if go != 'out':
+                    snap = A2.copy(); alive.append(snap)
                     for t in go:
                         if t <= i: raise Fail(('backjump', i, t))
-                        pend.setdefault(t, []).append(A2.copy())
+                        pend.setdefault(t, []).append(snap)
                 if k is not True: cur.append(learn0(A, c))
         if pend: raise Fail(('pend', sorted(pend)))
 
@@ -674,6 +723,7 @@ def first(r):
 def entryAbs(E, G):
     A = Abs()
     A.w = set(G.entry); A.h = set(G.pre); A.r = {jtRng(E)} | set(G.preR); A.lt = set(G.term)
+    A.p = set(G.preP)
     if G.self_ is not None:
         A.w.add(G.self_); A.addV(G.self_, ('m', own(0))); A.nz.add(G.self_)
     return A

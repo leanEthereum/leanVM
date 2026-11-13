@@ -29,7 +29,7 @@ def load():
                 c=c.strip()
                 if c: code+=chunks[c]
             assert len(code)==cnt,(nm,len(code),cnt)
-            fns[nm]=dict(name=nm,entry=entry,count=cnt,code=code,pack=pack)
+            fns[nm]=dict(name=nm,entry=entry,count=cnt,code=code,pack=pack,ns=name)
     for b in sorted(glob.glob(ROOT+'/Pack/*/Sig.lean')):
         s=open(b).read()
         for m in re.finditer(r'def sig : Check.Sig :=\s*⟨"([^"]*)", (\d+), (\d+), (\d+),',s):

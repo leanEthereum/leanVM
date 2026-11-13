@@ -7,7 +7,8 @@ public import LeanVM.Guest.Mode.SoundOp
 
 `stepOp_sound_deref`: through a pointer cell the walk knows written, whose word it knows as a
 product `m`, a `DEREF` stores (frame side known written), loads (heap side known written: its
-word from `loadVal`), or links; the pointer is nonzero and a power below `maxCells` after it, and
+word from `loadVal`, and, through a run of pointers, the cells past it the run promises,
+`ptrLoad_sound`), or links; the pointer is nonzero and a power below `maxCells` after it, and
 the range-check gadget's bound follows (`rangeFact_sound`).
 -/
 
@@ -27,6 +28,47 @@ theorem own_names {s : St} (hfp : s.fp < maxCells) {k : Mono} {d : ℕ} (hd : k.
   obtain ⟨rfl, hd'⟩ := Mono.ownCell_eq hd
   obtain rfl := hk.unique (MonoVal.own d)
   exact names_ofK (by unfold maxCells at hfp; omega) hX
+
+theorem Holds.foldl {s : St} {α : Type} (f : Abs → α → Abs) :
+    ∀ (l : List α) {A : Abs}, Holds s A → (∀ A a, a ∈ l → Holds s A → Holds s (f A a)) →
+      Holds s (l.foldl f A)
+  | [], _, h, _ => h
+  | a :: l, A, h, hf => Holds.foldl f l (hf A a (List.mem_cons_self ..) h)
+      fun A' a' hm h' ↦ hf A' a' (List.mem_cons_of_mem _ hm) h'
+
+theorem Holds.addH_cell {s : St} {A : Abs} (h : Holds s A) (hfp : s.fp < maxCells) {k : Mono} {v : E}
+    {x : ℕ} (hk : MonoVal s k v) (hx : Names v x) (hw : s.mem.written x = true) : Holds s (A.addH k) :=
+  h.addH ⟨v, x, hk, hx, hw⟩ fun _ hd ↦ by rw [← own_names hfp hd hk hx]; exact hw
+
+/-- The cells `os` past a product's word, each written. -/
+theorem Holds.addH_offs {s : St} {B : Abs} (hB : Holds s B) (hfp : s.fp < maxCells) {m : Mono}
+    {p : E} (hm : MonoVal s m p) {os : List ℕ}
+    (hos : ∀ o ∈ os, ∃ y, Names (p * ofK (g ^ o)) y ∧ s.mem.written y = true) :
+    Holds s (os.foldl (fun B o ↦ B.addH (m.shift o)) B) :=
+  Holds.foldl _ _ hB fun _ o ho hB' ↦ (hos o ho).elim fun _ hy ↦
+    hB'.addH_cell hfp (hm.shift o) hy.1 hy.2
+
+/-- **A load from a run of pointers**: the loaded word's cells the run promises are written. -/
+theorem ptrLoad_sound {s s' : St} {A B : Abs} {k : Mono} {c : ℕ} (hA : Holds s A)
+    (hB : Holds s' B) (hle : s.mem ≤ s'.mem) (hfp : s'.fp < maxCells) {vk : E}
+    (hk : MonoVal s k vk) {X : ℕ} (hX : Names vk X) {vX : E}
+    (hc : s'.mem.get (s'.fp + c) = some vX) (hget : s.mem.get X = some vX) :
+    Holds s' (ptrLoad A k c B) := by
+  unfold ptrLoad
+  refine Holds.foldl _ _ hB fun B q hq hB ↦ ?_
+  split
+  · rename_i hin
+    split
+    · rename_i m hm
+      obtain ⟨x, hx, p, hp, hos⟩ := Abs.inRng_ptr hA (hA.p q hq) hin hk
+      obtain rfl := names_inj hx hX
+      obtain rfl : p = vX := Option.some.inj (hp.symm.trans hget)
+      obtain ⟨u, hu, hmu⟩ := hB.mono_val hm (written_of_get hc)
+      rw [hc] at hu; cases hu
+      exact hB.addH_offs hfp hmu fun o ho ↦ (hos o ho).elim fun y hy ↦
+        ⟨y, hy.1, written_le hle hy.2⟩
+    · exact hB
+  · exact hB
 
 theorem loadVal_sound {En : Env} {s : St} {A : Abs} (hH : Holds s A) (hE : EnvOk s En)
     (hfp : s.fp < maxCells) {k : Mono} {x : Val} (hl : loadVal En A k = some x) {vk : E}
@@ -235,6 +277,7 @@ theorem stepOp_sound_deref {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {a o c 
       have hw := hld vX hvX
       refine Holds.setPr ?_ (fun q hq ↦ hm'.pr q hq)
       have hA3 := hA2.addW (o := c) (by rw [g2]; exact written_of_get hw)
+      refine ptrLoad_sound hH ?_ g3 (by rw [g2]; exact hfp) hkv hX (by rw [g2]; exact hw) hvX
       split
       · rename_i x hx
         exact hA3.addV ⟨vX, by rw [g2]; exact hw, (loadVal_sound hH hE hfp hx hkv hX hvX).mono g3 g2⟩

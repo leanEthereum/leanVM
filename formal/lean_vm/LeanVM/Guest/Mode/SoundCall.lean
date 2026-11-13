@@ -498,6 +498,22 @@ theorem RW.trDown {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA :
   exact ⟨vq, xlo, xhi, (trMono_iff F hA hq vq).mpr h1, idxDown_val F hA hlo h2,
     idxDown_val F hA hhi h3, fun j a b ↦ F.mem ▸ h4 j a b⟩
 
+/-- **A callee's run of pointers, moved out.** -/
+theorem PW.trUp {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
+    {r r' : Rng} {os : List ℕ} (h : trRngUp A mq r = some r') (hr : PW sE r os) : PW sC r' os := by
+  obtain ⟨q, lo, hi, hq, hlo, hhi, rfl⟩ := trRngBy_some h
+  obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := hr
+  exact ⟨vq, xlo, xhi, (trMono_iff F hA hq vq).mp h1, idxUp_val F hA hlo h2, idxUp_val F hA hhi h3,
+    fun j a b ↦ F.mem ▸ h4 j a b⟩
+
+/-- **A callee's run of pointers, moved in.** -/
+theorem PW.trDown {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
+    {r r' : Rng} {os : List ℕ} (h : trRngDown A mq r = some r') (hr : PW sC r' os) : PW sE r os := by
+  obtain ⟨q, lo, hi, hq, hlo, hhi, rfl⟩ := trRngBy_some h
+  obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := hr
+  exact ⟨vq, xlo, xhi, (trMono_iff F hA hq vq).mpr h1, idxDown_val F hA hlo h2,
+    idxDown_val F hA hhi h3, fun j a b ↦ F.mem ▸ h4 j a b⟩
+
 /-- The own frame, as a callee's. -/
 theorem Frames.own {s : St} (hfp : s.fp < maxCells) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells)
     {e : ℕ} {sE : St} (hm : sE.mem = s.mem) (hE : sE.fp = s.fp + e) (hEfp : sE.fp < maxCells) :

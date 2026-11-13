@@ -12,7 +12,9 @@ of `g` and of *bases*, or a constant), the frame cells known nonzero (`nz`), the
 written (`h`, each named by a product), runs of them (`r`, a `Rng`: the cells named by
 `q·g^(S·j + d)` for `j` between two exponents), the words known of heap cells (`hv`), inequalities
 between exponents (`lt`, over `Idx`: a constant, or a base's exponent plus a constant), the last
-products (`pr`, for the range-check and `!=` gadgets), and sums by their cell (`xs`). A base is a
+products (`pr`, for the range-check and `!=` gadgets), sums by their cell (`xs`), and runs of
+pointers (`p`: each cell of a run holds a word naming a cell whose given cells past it are written,
+which a load from the run teaches of the loaded cell). A base is a
 frame cell (`fr o`) or cell `d` past the cell a frame cell names (`hp q d`). A heap cell of the frame
 itself (`fp^1·g^d`) is frame cell `d`, kept in `w` and `v`.
 
@@ -21,12 +23,12 @@ itself (`fp^1·g^d`) is frame cell `d`, kept in `w` and `v`.
 its frame side is known written, loads when its heap side is, and otherwise links, learning nothing.
 `Abs.inter` is what two paths into a join both know. Calls, tail calls and returns (`entryOk`,
 `afterCall`, `tailOk`, `retOk`) read the callee's `Sig`: the cells its walk needs written at entry,
-the heap facts it needs over its own bases (`pre`, `preR`), and those it guarantees at return
-(`ret`, `post`, `postR`, a loop's `postL`), translated through the caller's knowledge of the callee
-frame (`trBase`). `walk` runs a function's code once, forward, keeping at most two paths apart at
-each offset and meeting more into one; the fall-through of a `JUMP` on a sum learns its two terms
-equal (`Abs.learn0`). Their meaning is `Mode/Sem.lean`,
-their soundness `Mode/Sound*.lean`.
+the heap facts it needs over its own bases (`pre`, `preR`, `preP`), and those it guarantees at return
+(`ret`, `post`, `postR`, `postP`, a loop's `postL`, `postLP`), translated through the caller's
+knowledge of the callee frame (`trBase`). `walk` runs a function's code once, forward, keeping at
+most two paths apart at each offset and meeting more into one; the fall-through of a `JUMP` on a
+sum learns its two terms equal (`Abs.learn0`). Their meaning is `Mode/Sem.lean`, their soundness
+`Mode/Sound*.lean`.
 
 Everything here is structural recursion over `ℕ`, lists and tries, for the kernel.
 -/
@@ -212,6 +214,9 @@ structure Abs where
   pr : List (ℕ × ℕ × ℕ)
   /-- Sums, by their cell: `c ↦ (a, b)`, `[c] = [a] + [b]`. -/
   xs : Trie (ℕ × ℕ)
+  /-- Runs of pointers: each cell of the run holds a word naming a cell whose cells `os` past it are
+  written. -/
+  p : List (Rng × List ℕ)
 
 /-- Frame offset `o` is known written. -/
 def Abs.hasW (A : Abs) (o : ℕ) : Bool := (A.w.get o).isSome
@@ -326,6 +331,31 @@ def Abs.coveredR (A : Abs) (r : Rng) : Bool :=
       (List.range (b - a)).all fun j ↦ A.covered (r.q.shift (r.S * (a + j) + r.d))
   | _, _ => false
 
+/-- A loop's run's point at its counter's start: the product `q·x^S·g^(S·c + d)` for `lo = x + c`. -/
+def Rng.first (r : Rng) : Mono :=
+  match r.lo with
+  | .num c => r.q.shift (r.S * c + r.d)
+  | .ex x c => (r.q.mul ⟨0, 0, [(x, r.S)]⟩).shift (r.S * c + r.d)
+
+/-- The heap cell `k` holds a known word whose cells `os` past it are known written. -/
+def Abs.ptrAt (A : Abs) (k : Mono) (os : List ℕ) : Bool :=
+  match A.hvGet k with
+  | some (.m m) => os.all fun o ↦ A.covered (m.shift o)
+  | _ => false
+
+/-- Every cell of run `r` is known to hold a pointer with the cells `os` past it written: a known run
+of pointers holds it, or it is one point, or each of its (at most `2^12`) points is known. -/
+def Abs.coveredP (A : Abs) (r : Rng) (os : List ℕ) : Bool :=
+  A.p.any (fun q ↦ q.1.q.beq r.q && q.1.S == r.S && q.1.d == r.d && A.le q.1.lo r.lo &&
+    A.le r.hi q.1.hi && A.hasIdx r.lo && A.hasIdx r.hi && os.all (q.2.contains ·)) ||
+  (r.hi.beq r.lo.succ && A.hasIdx r.lo && A.ptrAt r.first os) ||
+  match r.lo, r.hi with
+  | .num a, .num b => b - a ≤ 4096 && r.q.bs.all (fun p ↦ match p.1 with
+      | .fr o => A.hasW o
+      | .hp _ _ => false) &&
+      (List.range (b - a)).all fun j ↦ A.ptrAt (r.q.shift (r.S * (a + j) + r.d)) os
+  | _, _ => false
+
 /-! ## Intersection -/
 
 /-- Pairs both lists hold. -/
@@ -337,7 +367,8 @@ noncomputable def Abs.inter (A B : Abs) : Abs :=
     Trie.inter (fun _ _ ↦ true) A.nz B.nz,
     interL (fun p q ↦ p.1.beq q.1 && p.2.beq q.2) A.hv B.hv, interL Mono.beq A.h B.h,
     interL Rng.beq A.r B.r, interL (fun p q ↦ p.1.beq q.1 && p.2.beq q.2) A.lt B.lt, [],
-    Trie.inter (fun p q ↦ p.1 == q.1 && p.2 == q.2) A.xs B.xs⟩
+    Trie.inter (fun p q ↦ p.1 == q.1 && p.2 == q.2) A.xs B.xs,
+    interL (fun p q ↦ p.1.beq q.1 && p.2 == q.2) A.p B.p⟩
 
 /-! ## What the walk is told -/
 
@@ -364,6 +395,12 @@ structure Sig where
   /-- Runs a loop writes over its counter's range: each iteration's point written on every path
   to a return or a tail call, the whole run at the outermost return. -/
   postL : List Rng
+  /-- Runs of pointers at entry, each with the cells past it it names written. -/
+  preP : List (Rng × List ℕ)
+  /-- Runs of pointers at return. -/
+  postP : List (Rng × List ℕ)
+  /-- Runs of pointers a loop writes over its counter's range, as `postL`. -/
+  postLP : List (Rng × List ℕ)
 
 /-- A residual: a value fact the walk assumes at an instruction, proved apart. -/
 inductive Res where
@@ -445,6 +482,16 @@ def loadVal (E : Env) (A : Abs) (k : Mono) : Option Val :=
         | _ => none
     | _ => none
 
+/-- A load into frame cell `c` from the heap cell `k`: for each run of pointers holding `k`, the cells
+past `c`'s word it names written. -/
+noncomputable def ptrLoad (A : Abs) (k : Mono) (c : ℕ) (B : Abs) : Abs :=
+  A.p.foldl (fun B q ↦
+    if A.inRng k q.1 then
+      match B.mono c with
+      | some m => q.2.foldl (fun B o ↦ B.addH (m.shift o)) B
+      | none => B
+    else B) B
+
 /-- The range check `DEREF *(x); MUL [z] = [x]·[y]; DEREF *(y)` with `[z] = g^k`, a base's word
 times `g^k`, or a base's word over `g`, ending at the `DEREF` through `y`: `x`'s exponent is at most
 `z`'s. -/
@@ -522,7 +569,7 @@ noncomputable def stepOp (E : Env) (pc : ℕ) (A : Abs) : OffsetInstruction → 
             some { (A0.addH k).addHv k ((A.v.get c).getD (.m (.root c))) with pr := A.pr }
           else if A.covered k then
             let A1 := A0.addW c
-            some { (match loadVal E A k with
+            some { ptrLoad A k c (match loadVal E A k with
               | some x => A1.addV c x
               | none => A1) with pr := A.pr }
           else some A0
@@ -718,6 +765,9 @@ def entryOk (A : Abs) (mq : Mono) (G : Sig) : Bool :=
     | none => false) &&
   G.preR.all (fun r ↦ match trRngDown A mq r with
     | some r => A.coveredR r
+    | none => false) &&
+  G.preP.all (fun q ↦ match trRngDown A mq q.1 with
+    | some r => A.coveredP r q.2
     | none => false)
 
 /-- The termination facts of callee `G` hold at the call. -/
@@ -735,26 +785,26 @@ noncomputable def afterCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
   let A := (G.postR ++ G.postL).foldl (fun A r ↦ match trRngUp A mq r with
     | some r => { A with r := r :: A.r }
     | none => A) A
+  let A := (G.postP ++ G.postLP).foldl (fun A q ↦ match trRngUp A mq q.1 with
+    | some r => { A with p := (r, q.2) :: A.p }
+    | none => A) A
   atCall A mq G
 
 /-- The walk's state at a function's entry. -/
 noncomputable def entryAbs (E : Env) (G : Sig) : Abs :=
   let A : Abs := ⟨G.entry.foldl (fun t o ↦ t.set () envDepth o) .nil, .nil, .nil, [], G.pre,
-    jtRng E :: G.preR, G.term, [], .nil⟩
+    jtRng E :: G.preR, G.term, [], .nil, G.preP⟩
   match G.self with
   | some o => ((A.addW o).addV o (.m (.own 0))).addNz o
   | none => A
 
-/-- A loop's run's point at its counter's start: the product `q·x^S·g^(S·c + d)` for `lo = x + c`. -/
-def Rng.first (r : Rng) : Mono :=
-  match r.lo with
-  | .num c => r.q.shift (r.S * c + r.d)
-  | .ex x c => (r.q.mul ⟨0, 0, [(x, r.S)]⟩).shift (r.S * c + r.d)
-
 /-- A loop writes each run's point at its counter's start before a return or a tail call. -/
 def loopOk (A : Abs) (G : Sig) : Bool :=
-  G.postL.all fun r ↦ match trMono A (.own 0) r.first with
+  (G.postL.all fun r ↦ match trMono A (.own 0) r.first with
     | some k => A.covered k
+    | none => false) &&
+  G.postLP.all fun q ↦ match trMono A (.own 0) q.1.first with
+    | some k => A.ptrAt k q.2
     | none => false
 
 /-- What the function guarantees holds at a return. -/
@@ -763,8 +813,11 @@ def retOk (A : Abs) (G : Sig) : Bool :=
   G.ret.all A.hasW && G.post.all (fun m ↦ match trMono A (.own 0) m with
     | some k => A.covered k
     | none => false) &&
-  G.postR.all fun r ↦ match trRngDown A (.own 0) r with
+  (G.postR.all fun r ↦ match trRngDown A (.own 0) r with
     | some r => A.coveredR r
+    | none => false) &&
+  G.postP.all fun q ↦ match trRngDown A (.own 0) q.1 with
+    | some r => A.coveredP r q.2
     | none => false
 
 /-! ## Jumps -/
@@ -819,7 +872,8 @@ def termStep (A : Abs) (e : ℕ) (G : Sig) : Bool :=
 /-- A loop's tail call into frame `fp·g^e` of callee `G`: its entry from this state, its counters
 moved up, and each run it accumulates the next iteration's from one further. -/
 def tailOk (A : Abs) (e : ℕ) (G : Sig) : Bool :=
-  entryOk A (.own e) G && termStep A e G && G.postL.all fun r ↦ match trRngUp A (.own e) r with
+  entryOk A (.own e) G && termStep A e G && (G.postL ++ G.postLP.map (·.1)).all fun r ↦
+    match trRngUp A (.own e) r with
     | some r' => r'.beq ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩
     | none => false
 

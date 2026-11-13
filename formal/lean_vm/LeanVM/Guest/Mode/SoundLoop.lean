@@ -14,7 +14,8 @@ a positive power of `g`, its bound the same word. `term_holds`: the counters' ex
 the last one's naming the bound (the loop exits), every iteration's entry has its termination facts.
 
 `loop_step`: at a tail call the walk accepts, the next iteration's run and this iteration's point
-(written on every path, `loopOk`) give this iteration's run; `RW.last`, the exiting iteration's.
+(written on every path, `loopOk`) give this iteration's run; `RW.last`, the exiting iteration's;
+`loop_stepP`, `PW.last`, the same for runs of pointers.
 -/
 
 namespace LeanVM.Guest.Mode
@@ -99,35 +100,6 @@ theorem term_holds {s : ℕ → St} {a b : Base} {c : ℕ → ℕ} {J en : ℕ}
 
 /-! ## Accumulated runs -/
 
-/-- A run's point at its counter's start names its cell at the counter's exponent. -/
-theorem Rng.first_val {s : St} {r : Rng} {y : ℕ} (hy : IdxVal s r.lo y) {vq : E}
-    (hq : MonoVal s r.q vq) : MonoVal s r.first (vq * ofK (g ^ (r.S * y + r.d))) := by
-  unfold Rng.first
-  split
-  · rename_i c hc
-    rw [hc] at hy
-    rw [show y = c from hy]
-    exact hq.shift _
-  · rename_i x c hc
-    rw [hc] at hy
-    obtain ⟨u, e, hu, rfl, -, rfl⟩ := hy
-    have hx : MonoVal s ⟨0, 0, [(x, r.S)]⟩ (ofK (g ^ e) ^ r.S) :=
-      ⟨_, ⟨_, 1, hu, rfl, rfl⟩, by simp⟩
-    have := (hq.mul hx).shift (r.S * c + r.d)
-    rw [show r.S * (e + c) + r.d = e * r.S + (r.S * c + r.d) by ring, pow_add, ofK_mul, pow_mul,
-      ofK_pow]
-    rw [← mul_assoc]
-    exact this
-
-theorem Rng.first_q {s : St} {r : Rng} {v : E} (h : MonoVal s r.first v) : ∃ vq, MonoVal s r.q vq := by
-  unfold Rng.first at h
-  split at h
-  · obtain ⟨u, hu, -⟩ := h.unshift
-    exact ⟨u, hu⟩
-  · obtain ⟨u, hu, -⟩ := h.unshift
-    obtain ⟨va, -, ha, -, -⟩ := MonoVal.mul_inv hu
-    exact ⟨va, ha⟩
-
 /-- An empty run. -/
 theorem RW.nil {s : St} {r : Rng} {vq : E} {y z : ℕ} (hq : MonoVal s r.q vq) (hy : IdxVal s r.lo y)
     (hz : IdxVal s r.hi z) (hle : z ≤ y) : RW s r :=
@@ -151,6 +123,35 @@ theorem RW.last {s : St} {r : Rng} {y : ℕ} (hy : IdxVal s r.lo y) (hz : IdxVal
   obtain ⟨v, -, hv, -⟩ := id hp
   obtain ⟨vq, hq⟩ := Rng.first_q hv
   exact RW.cons (RW.nil hq (Idx.succ_val' hy) hz le_rfl) hp
+
+theorem PW.nil {s : St} {r : Rng} {os : List ℕ} {vq : E} {y z : ℕ} (hq : MonoVal s r.q vq)
+    (hy : IdxVal s r.lo y) (hz : IdxVal s r.hi z) (hle : z ≤ y) : PW s r os :=
+  ⟨vq, y, z, hq, hy, hz, fun _ h1 h2 ↦ absurd (lt_of_le_of_lt h1 h2) (by omega)⟩
+
+/-- A run of pointers from one further, and the pointer at its start. -/
+theorem PW.cons {s : St} {r : Rng} {os : List ℕ} (hn : PW s ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩ os)
+    (hp : HP s r.first os) : PW s r os := by
+  obtain ⟨vq, x1, xhi, h1, h2, h3, h4⟩ := hn
+  obtain ⟨y, hy, rfl⟩ := Idx.succ_val h2
+  refine ⟨vq, y, xhi, h1, hy, h3, fun j hj1 hj2 ↦ ?_⟩
+  rcases Nat.eq_or_lt_of_le hj1 with rfl | hj1
+  · obtain ⟨v, x, hv, hx, hw⟩ := hp
+    rw [hv.unique (Rng.first_val hy h1)] at hx
+    exact ⟨x, hx, hw⟩
+  · exact h4 j hj1 hj2
+
+/-- **The exiting iteration's run of pointers.** -/
+theorem PW.last {s : St} {r : Rng} {os : List ℕ} {y : ℕ} (hy : IdxVal s r.lo y)
+    (hz : IdxVal s r.hi (y + 1)) (hp : HP s r.first os) : PW s r os := by
+  obtain ⟨v, -, hv, -⟩ := id hp
+  obtain ⟨vq, hq⟩ := Rng.first_q hv
+  exact PW.cons (PW.nil hq (Idx.succ_val' hy) hz le_rfl) hp
+
+/-- **A loop's accumulated run of pointers, one iteration**, as `loop_step`. -/
+theorem loop_stepP {s sN : St} {A : Abs} {e : ℕ} (hA : Holds s A) (F : Frames s sN (.own e))
+    {r : Rng} {os : List ℕ} (hst : trRngUp A (.own e) r = some ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩)
+    (hn : PW sN r os) (hp : HP s r.first os) : PW s r os :=
+  PW.cons (PW.trUp F hA hst hn) hp
 
 /-- **A loop's accumulated run, one iteration**: at a tail call the walk accepts (`tailOk_sound`),
 the next iteration's run (its frame `fp·g^e`) and this iteration's point give this iteration's run. -/
