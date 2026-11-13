@@ -43,7 +43,7 @@
 
 leanVM is designed for security:
 
- * 128-bit ROM (64-bit QROM) soundness
+ * 125-bit ROM (62-bit QROM) soundness
  * no proximity gap conjecture
  * end-to-end formal verification
  * a traditional hash function (Keccak-256)
@@ -164,8 +164,8 @@ Fibonacci (in the exponent, i.e. modulo 2^64 - 1), N = 2,000,000
 
 ## SNARK machinery
 
-- 192-bit binary field (degree-3 tower over the 64-bit field)
-- [WHIR](https://eprint.iacr.org/2024/1586) PCS, aka [Ligerito](https://eprint.iacr.org/2025/1187)
+- 128-bit binary field (degree-2 tower over the 64-bit field)
+- [WHIR](https://eprint.iacr.org/2024/1586) PCS, aka [Ligerito](https://eprint.iacr.org/2025/1187), using [affine combiners](https://eprint.iacr.org/2026/2863)
 - [Hashcaster 2](https://github.com/levs57/hashcaster2) proving Keccak via GKR and RMFE
 - [Binius](https://github.com/IrreducibleOSS/binius)/[Binius64](https://github.com/binius-zk/binius64) ring switching, M3 arithmetisation, and more (see [DP23](https://eprint.iacr.org/2023/1784) and [DP24](https://eprint.iacr.org/2024/504))
 
