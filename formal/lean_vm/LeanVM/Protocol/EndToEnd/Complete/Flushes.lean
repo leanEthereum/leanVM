@@ -613,6 +613,11 @@ theorem instSide_eval (t : Fin 6) (side : Side) (row : Fin (width (opIdx t)) →
 
 /-! ## The flushes -/
 
+/-- The `KECCAK` table's two sides in one kernel evaluation, which computes its interactions once. -/
+private theorem refNF_eq_clNF_keccak :
+    refNF 5 .push = clNF 5 .push ∧ refNF 5 .pull = clNF 5 .pull := by
+  decide +kernel
+
 /-- The verifier's canonical flushes are Clean's, table by table and side by side (kernel
 evaluation over `K`). -/
 theorem refNF_eq_clNF : ∀ (t : Fin 6) (side : Side), refNF t side = clNF t side
@@ -626,8 +631,8 @@ theorem refNF_eq_clNF : ∀ (t : Fin 6) (side : Side), refNF t side = clNF t sid
   | 3, .pull => by decide +kernel
   | 4, .push => by decide +kernel
   | 4, .pull => by decide +kernel
-  | 5, .push => by decide +kernel
-  | 5, .pull => by decide +kernel
+  | 5, .push => refNF_eq_clNF_keccak.1
+  | 5, .pull => refNF_eq_clNF_keccak.2
 
 /-- **The verifier's flushes are the instance's.** On every row of opcode table `t`, the verifier
 table's flushes of a side, each coordinate evaluated on the row and padded to sixteen slots, are

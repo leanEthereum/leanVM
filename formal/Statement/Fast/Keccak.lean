@@ -124,15 +124,46 @@ def roundLanes (a : KeccakState) (rc : UInt64) : KeccakState :=
     b23 ^^^ (~~~ b24 &&& b20),
     b24 ^^^ (~~~ b20 &&& b21)]
 
-set_option maxHeartbeats 4000000 in
+/-- Position `p` after writes `g i` at `π i` for each `i` of `l` in turn: the last write there, or
+what was there. -/
+private theorem getElem_foldl_setIfInBounds {α : Type} {n : ℕ} (π : ℕ → ℕ) (g : ℕ → α) :
+    ∀ (l : List ℕ) (b : Vector α n) (p : ℕ) (hp : p < n),
+      (l.foldl (fun b i ↦ b.setIfInBounds (π i) (g i)) b)[p] =
+        ((l.reverse.find? (π · = p)).map g).getD b[p]
+  | [], b, p, hp => by simp
+  | i :: l, b, p, hp => by
+    rw [List.foldl_cons, getElem_foldl_setIfInBounds π g l _ p hp, List.reverse_cons,
+      List.find?_append]
+    cases h : l.reverse.find? (π · = p) with
+    | none => by_cases hi : π i = p <;> simp [hi]
+    | some k => simp
+
+/-- The lane ρ and π move to position `p`: `keccakPi (rhoPiSrc[p]) = p`. -/
+private def rhoPiSrc : List ℕ :=
+  [0, 6, 12, 18, 24, 3, 9, 10, 16, 22, 1, 7, 13, 19, 20, 4, 5, 11, 17, 23, 2, 8, 14, 15, 21]
+
+private theorem find_keccakPi : ∀ p < 25,
+    (List.range 25).reverse.find? (keccakPi · = p) = some (rhoPiSrc.getD p 0) := by decide
+
+-- Lane by lane, ρ and π's twenty-five writes read through `getElem_foldl_setIfInBounds` rather
+-- than unfolded.
 /-- **The round with its lanes written out is `Keccak.round`.** -/
 @[csimp] theorem round_eq_roundLanes : @Keccak.round = @roundLanes := by
   funext a rc
   apply Vector.ext
   intro j hj
-  interval_cases j
-  all_goals simp [Keccak.round, roundLanes, Keccak.lane, keccakRho, keccakPi, List.range,
-    List.range.loop, List.foldl, Vector.setIfInBounds, UInt64.xor_assoc]
+  simp only [Keccak.round]
+  interval_cases j <;> simp only [Keccak.lane, Array.getD_eq_getD_getElem?, Vector.size_toArray,
+    Fin.is_lt, getElem?_pos, Vector.getElem_toArray, Option.getD_some, Vector.getElem?_toArray,
+    UInt64.xor_assoc, Vector.toArray_ofFn, keccakRho, List.getD_eq_getElem?_getD,
+    getElem_foldl_setIfInBounds, find_keccakPi, rhoPiSrc, List.length_cons, List.length_nil,
+    zero_add, Nat.reduceAdd, Option.map_some, Vector.getElem_replicate, Array.size_ofFn,
+    Nat.ofNat_pos, Array.getElem_ofFn, List.getElem_cons_zero, Nat.mod_succ, Nat.lt_add_one,
+    Nat.reduceLT, Nat.one_mod, Nat.one_lt_ofNat, Nat.zero_mod, tsub_self, List.getElem_cons_succ,
+    Nat.reduceMod, Vector.getElem_setIfInBounds_self, roundLanes, Vector.getElem_mk,
+    List.getElem_toArray, ne_eq, zero_ne_one, not_false_eq_true, Vector.getElem_setIfInBounds_ne,
+    Vector.getElem_ofFn, OfNat.zero_ne_ofNat, Nat.mod_self, add_zero, tsub_zero,
+    Nat.add_one_sub_one, Nat.reduceSub]
 
 /-- `keccakF1600`, restated. -/
 def keccakFLanes (a : KeccakState) : KeccakState := keccakRC.foldl Keccak.round a

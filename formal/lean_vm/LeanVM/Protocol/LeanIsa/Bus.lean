@@ -395,8 +395,7 @@ private theorem tuplesOn_truncate (c : Component K)
     congrArg Array.ofFn (funext hr)
   rw [Air.Flat.Component.interactionsValues_eq, Air.Flat.Component.interactionsValues_eq]
   simp only [tuplesOn, Operations.interactionValues, List.map_map]
-  congr 2
-  refine List.map_congr_left fun ai hai ↦ ?_
+  refine congrArg (List.map _) (congrArg (List.filter _) (List.map_congr_left fun ai hai ↦ ?_))
   have hm : ai.msg.map (fun x ↦ Expression.eval (Environment.fromArray row data) x) =
       ai.msg.map (fun x ↦ Expression.eval (Environment.fromArray (Array.ofFn r) data) x) := by
     refine Vector.ext fun k hk ↦ ?_
