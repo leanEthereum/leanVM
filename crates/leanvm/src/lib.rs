@@ -1,7 +1,5 @@
 //! leanVM proves leanXMSS and leanSPHINCS signature claims and LeanDA blob well-formedness.
 //!
-//! Release only: the zkDSL compiler [`setup`] runs overflows the debug stack.
-//!
 //! End to end in [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
 
 pub use rec_aggregation::{

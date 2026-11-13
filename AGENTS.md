@@ -41,7 +41,7 @@ The root `Cargo.toml` is workspace-only: libraries in `crates/`, the CLI in `bin
 ## Building and testing
 
 - `.cargo/config.toml` pins `-C target-cpu=native`, and `-D warnings` for rustdoc.
-- Run anything touching the VM in `--release`: the zkDSL compiler stack-overflows in debug.
+- Run anything touching the VM in `--release`: a debug build proves far too slowly.
 - One test binary per crate: new `lean_compiler` integration tests are modules of `tests/suite/main.rs`.
 
 ```bash
