@@ -19,6 +19,7 @@ import LeanVM.Protocol.Verifier.Load
 * `forsPops_sameStreams`: FORS's entries are the secrets' then the climbs' pushes, stream by stream;
 * `layerPops_sameStreams`: a layer's entries, its `sp_wots` call's spliced in, are `sphincsLayer`'s pushes, stream by stream;
 * `spSegPops`, `spSegPops_sameStreams`: the body's entries are `sphincsHints`';
+* `verify_sig_lean_sphincs_complete_vals`: the body completes, its walk loading the claim and the byte table and popping `spSegPops` with `spKids` spliced in, its calls of `sp_wots` the honest ones (`SpCallsAt`);
 * `verify_lean_sphincs_complete_pops`: the statements before the root's check complete popping, on every valuation agreeing below their end, `spSegPops pk m sig` with the three `sp_wots` calls' entries `spKids pk m sig` spliced in, which are `sphincsHints pk m sig`, stream by stream.
 -/
 
@@ -568,6 +569,55 @@ theorem verify_lean_sphincs_complete_pops (C : CallRel) (rd : Reader) (hC : SpWo
         SameStreams (spSegPops pk m sig) (Hints.sphincsHints pk m sig)) :=
   (sPre_complete sphincsBlocksComplete hC hm hbb pk m sig hv σ h1 hat).mono le_rfl le_rfl
     fun _ h _ hag => ⟨(h.2.2.2 _ _ _).agree sPre_nb hag, spSegPops_sameStreams pk m sig hv⟩
+
+/-- **`verify_sig_lean_sphincs` is complete, popping its hints, with its loads and calls**: a valuation from which the body
+holds, every walk of it loading the claim and the byte table only and popping `spSegPops` with `spKids` spliced in,
+which are `sphincsHints pk m sig`, stream by stream, its three calls of `sp_wots` the honest ones. -/
+theorem verify_sig_lean_sphincs_complete_vals (C : CallRel) (rd : Reader) (p bb : E) (pk : Sphincs.PublicKey)
+    (m : HashSig.Message) (sig : Sphincs.Signature) (hC : SpWotsCalls C) (hm : MemOK rd 256)
+    (hbb : ByteBits rd bb)
+    (hat : ClaimAt rd p (cellOf128 pk.publicSeed) (cellOf128 pk.root) (cellOf128 (m.extractLsb' 0 128))
+      (cellOf128 (m.extractLsb' 128 128)))
+    (hv : Sphincs.verifyWithKeccak pk m sig = true) :
+    ∃ σ : Val, σ (.n 0) = p ∧ σ (.n 1) = bb ∧
+      Stmt.HoldsList C rd σ (Fn.«verify_sig_lean_sphincs».core).body False (fun rs => rs = []) ∧
+      (∀ es vs, walk σ (Fn.«verify_sig_lean_sphincs».core).body = .ret es vs →
+        (∀ A ∈ loadAddrs σ es, (∃ k < 4, A = p.limb 0 * addressOfIndex k) ∨
+          ∃ v < 256, A = bb.limb 0 * addressOfIndex v) ∧
+        splice rd σ es (spKids pk m sig) = spSegPops pk m sig) ∧
+      SameStreams (spSegPops pk m sig) (Hints.sphincsHints pk m sig) ∧ SpCallsAt pk m sig σ := by
+  let σ0 : Val := Function.update (Function.update (fun _ => (0 : E)) (.n 0) p) (.n 1) bb
+  have e0 : σ0 (.n 0) = p := by
+    simp only [σ0]
+    rw [Function.update_of_ne (by simp), Function.update_self]
+  have e1 : σ0 (.n 1) = bb := Function.update_self ..
+  obtain ⟨σf, hef, ⟨hroot, hrt, hptrs, hsp, hcs⟩, hhf⟩ :=
+    sPre_complete_vals sphincsBlocksComplete hC hm hbb pk m sig hv σ0 e1 (by rw [e0]; exact hat)
+  have f0 : σf (.n 0) = p := by rw [hef.apply (Or.inl (by norm_num))]; exact e0
+  have f1 : σf (.n 1) = bb := by rw [hef.apply (Or.inl (by norm_num))]; exact e1
+  refine ⟨σf, f0, f1, ?_, fun es vs hw => ⟨fun A hA => ?_, ?_⟩, spSegPops_sameStreams pk m sig hv, hcs⟩
+  · rw [sBody_eq, sBody_splitC, holdsList_append]
+    refine hhf _ _ ⟨?_, rfl⟩
+    show σf sLayerT.2.2 + σf sRoot = 0
+    rw [hroot, hrt]; exact e_add_self _
+  · rcases loadAddrs_of_loadOk (loads_of_walk sBody_loads hw) A hA with ⟨k, hk, e⟩ | ⟨q, hq, e⟩
+    · exact Or.inl ⟨k, hk, by rw [e, f0]⟩
+    · obtain ⟨v, hv256, ev⟩ := hptrs q hq
+      exact Or.inr ⟨v, hv256, by rw [e, ev, limb_mul_ofK (hbb 0 (by norm_num)).1]⟩
+  · have hb : (Fn.«verify_sig_lean_sphincs».core).body = sPre ++ [.atom (.assertEq sLayerT.2.2 sRoot), .ret []] := by
+      rw [sBody_eq, sBody_splitC]
+    have hx : SplicePops rd σf sPre (spKids pk m sig) (spSegPops pk m sig) :=
+      hsp (spKid pk m sig ⟨0, by decide⟩ (forsKeyCell pk m sig))
+        (spKid pk m sig ⟨1, by decide⟩ (sRoot0 pk m sig)) (spKid pk m sig ⟨2, by decide⟩ (sRoot1 pk m sig))
+    obtain ⟨es0, hw0, hc0, hs0⟩ := hx
+    have hy : walk σf [.atom (.assertEq sLayerT.2.2 sRoot), .ret []] =
+        .ret [.atom (.assertEq sLayerT.2.2 sRoot)] [] := by simp [walk, walk1, Out.seq, Out.pre]
+    rw [hb, walk_append_fall' _ hw0, hy, Out.pre] at hw
+    cases hw
+    have e := splice_append (rd := rd) (σ := σf) es0 [.atom (.assertEq sLayerT.2.2 sRoot)] (spKids pk m sig) [] hc0
+    rw [List.append_nil] at e
+    rw [e, splice_nil_of_calls _ rfl, hs0]
+    exact List.append_nil _
 
 /-- **`verify_sig_lean_sphincs` is complete, popping its hints**: `verify_sig_lean_sphincs_complete_loads_Spec`'s valuation, and a call instance of it on that valuation whose callees pop `spKids` pops `spSegPops`, which are `sphincsHints pk m sig`, stream by stream. -/
 theorem verify_sig_lean_sphincs_complete_pops (C : CallRel) (rd : Reader) (p bb : E) (pk : Sphincs.PublicKey)

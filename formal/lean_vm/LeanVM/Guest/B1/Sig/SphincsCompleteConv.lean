@@ -123,7 +123,7 @@ theorem htLayerCompletes : HtLayerCompletes := by
   intro C rd σ l a0 a1 signed ctr b lv e sib hl hb ha0 ha1 hsg hct hp hctr hcall he hbit hval
   obtain ⟨N, hN, hc⟩ := hctr
   have hN' : beWordAt 0 N < 2 ^ 32 := beWordAt_zero_lt N
-  have h := sHtLayer_complete (C := C) (rd := rd) (pad := sPad) (pp := sPP) (a0 := a0) (key := a1)
+  have h := sHtLayer_complete_vals (C := C) (rd := rd) (pad := sPad) (pp := sPP) (a0 := a0) (key := a1)
     (signed := signed) (ctr := ctr) (bit := sLeafBit) (val := sLVal) (off := sOffOf l)
     (height := sHeightOf l) (b := b) (N := beWordAt 0 N)
     (sib := sib) (by unfold sHeightOf sLeafLen; split <;> omega) he σ (by unfold sPad; omega)
@@ -133,7 +133,8 @@ theorem htLayerCompletes : HtLayerCompletes := by
     (fun j _ => by obtain ⟨k, hk, ek⟩ := sLVal_below (sOffOf l + j); exact ⟨k, by omega, ek⟩)
     hp hN' hc hbit hval
     (by rw [← encDigestCell_eq_encOf _ _ _ _ hN', ← hc]; exact hcall)
-  exact h.mono le_rfl le_rfl fun _ h => h.2
+  refine h.mono le_rfl le_rfl fun _ h => ⟨h.2.1, h.2.2.1, ?_, h.2.2.2.2⟩
+  rw [h.2.2.2.1, hc, encDigestCell_eq_encOf _ _ _ _ hN']
 
 /-- **`verify_sig_lean_sphincs`'s blocks complete.** -/
 theorem sphincsBlocksComplete : SphincsBlocksComplete := ⟨forsBlockCompletes, htLayerCompletes⟩

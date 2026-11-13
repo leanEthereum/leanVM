@@ -125,7 +125,7 @@ def ForsBlockCompletes : Prop :=
 and `A1`, the value it signs and the counter's cell (`N`'s bytes reversed), the call relation
 holding of `sp_wots` on the encoding's digest (`encDigestCell`) returning `lv`, the leaf `e` read
 off the digest's bits and shifts, and any siblings, the layer's root is `pFold` of `pNodeE` from
-`lv`. -/
+`lv`; the call reads the encoding at `b + 9` and returns `lv` at `b + 10`. -/
 def HtLayerCompletes : Prop :=
   ∀ (C : CallRel) (rd : Reader) (σ : Val) (l : Nat) (a0 a1 signed ctr : V) (b : Nat) (lv : E)
     (e : Nat) (sib : Nat → E),
@@ -140,8 +140,10 @@ def HtLayerCompletes : Prop :=
         (sHtLayer sPad sPP a0 a1 signed ctr sLeafBit sLVal (sOffOf l) (sHeightOf l) b).1 σ
         (fun σ' => σ' (sHtLayer sPad sPP a0 a1 signed ctr sLeafBit sLVal (sOffOf l) (sHeightOf l) b).2.2 =
           pFold (pNodeE (σ sPP) (σ a0) e sib) (sHeightOf l) lv ∧
-          ∀ k, SplicePops rd σ' (sHtLayer sPad sPP a0 a1 signed ctr sLeafBit sLVal (sOffOf l) (sHeightOf l) b).1
-            [k] (k ++ climbPops "siblings" (pNodeE (σ sPP) (σ a0) e sib) e.testBit sib (sHeightOf l) 0 lv))
+          (∀ k, SplicePops rd σ' (sHtLayer sPad sPP a0 a1 signed ctr sLeafBit sLVal (sOffOf l) (sHeightOf l) b).1
+            [k] (k ++ climbPops "siblings" (pNodeE (σ sPP) (σ a0) e sib) e.testBit sib (sHeightOf l) 0 lv)) ∧
+          σ' (.n (b + 9)) = encDigestCell (σ sPP) (σ a0) (σ a1 + lit (7 * 2 ^ 24)) (σ signed) (σ ctr) ∧
+          σ' (.n (b + 10)) = lv)
 
 /-- **The blocks of `verify_sig_lean_sphincs` complete.** -/
 structure SphincsBlocksComplete : Prop where
