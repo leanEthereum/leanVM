@@ -164,19 +164,14 @@ pub fn compile(ast: &Ast) -> Program {
                     .drain(..)
                     .map(|h| match h {
                         Hint::NextFrameAddress => RHint::FrameAddress { offset: l.frame_size },
-                        Hint::AllocLoopFrames {
-                            ptr,
-                            callee,
-                            count,
-                            tail,
-                        } => {
+                        Hint::AllocLoopFrames { ptr, callee, count } => {
                             let size = frame_size[&callee];
                             match count {
                                 LoopCount::Constant(n) => RHint::Alloc {
                                     ptr,
-                                    size: size
-                                        .checked_mul(u32::try_from(n - 1).expect("loop range too large"))
-                                        .and_then(|frames| frames.checked_add(tail))
+                                    size: u32::try_from(n)
+                                        .ok()
+                                        .and_then(|n| size.checked_mul(n))
                                         .expect("loop frames overflow"),
                                 },
                                 LoopCount::Bound { cell, start } => RHint::AllocFrames {
@@ -184,7 +179,7 @@ pub fn compile(ast: &Ast) -> Program {
                                     size,
                                     end: cell,
                                     start_inverse: F64::G.pow(u128::from(start)).inv(),
-                                    tail,
+                                    tail: size,
                                 },
                             }
                         }
@@ -192,9 +187,10 @@ pub fn compile(ast: &Ast) -> Program {
                             ptr,
                             size: frame_size[&callee],
                         },
-                        Hint::AllocFrameMax { ptr, callees } => RHint::Alloc {
+                        Hint::AllocArm { ptr, sel, callees } => RHint::AllocArm {
                             ptr,
-                            size: callees.iter().map(|c| frame_size[c]).max().unwrap(),
+                            sel,
+                            sizes: callees.iter().map(|c| frame_size[c]).collect(),
                         },
                         Hint::AllocBuffer { ptr, size } => RHint::Alloc { ptr, size },
                         Hint::AllocBufferDyn { ptr, size } => RHint::AllocDyn { ptr, size },

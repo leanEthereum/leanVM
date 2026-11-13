@@ -9,6 +9,7 @@ mod disassemble;
 mod field_div;
 mod hint_log2_ceil;
 mod inline_expr;
+mod layout;
 mod loop_frames;
 mod miscompiles;
 mod pack64x2;

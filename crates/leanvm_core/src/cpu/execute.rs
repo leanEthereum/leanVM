@@ -553,6 +553,8 @@ impl Program {
                         RHint::AllocFrames { .. } => "AllocFrames",
                         RHint::Alloc { .. } => "Alloc",
                         RHint::AllocDyn { .. } => "AllocDyn",
+                        RHint::AllocArm { .. } => "AllocArm",
+                        RHint::CellAddress { .. } => "CellAddress",
                         RHint::WitnessStack { .. } => "WitnessStack",
                         RHint::WitnessHeap { .. } => "WitnessHeap",
                         RHint::Log2Ceil { .. } => "Log2Ceil",
@@ -568,10 +570,17 @@ impl Program {
                         RHint::FrameAddress { offset } => {
                             g.note(at(fp, *offset)? as usize);
                         }
+                        RHint::CellAddress { ptr, cell } => {
+                            let address = g.pow(at(fp, *cell)? as usize);
+                            m.put(at(fp, *ptr)?, F128::from(address))?;
+                        }
                         // A fresh region: write its base `g^{next_free}` into the
                         // pointer cell (once) and reserve `size` cells. `AllocDyn`
-                        // reads the size from a cell at runtime.
-                        RHint::Alloc { .. } | RHint::AllocDyn { .. } | RHint::AllocFrames { .. } => {
+                        // and `AllocArm` read the size from a cell at runtime.
+                        RHint::Alloc { .. }
+                        | RHint::AllocDyn { .. }
+                        | RHint::AllocFrames { .. }
+                        | RHint::AllocArm { .. } => {
                             let (ptr, size) = match *h {
                                 RHint::Alloc { ptr, size } => (ptr, size),
                                 RHint::AllocFrames {
@@ -608,6 +617,17 @@ impl Program {
                                         })
                                     })?;
                                     (ptr, cells)
+                                }
+                                RHint::AllocArm { ptr, sel, ref sizes } => {
+                                    let x = in_k("dispatch selector", m.get(fp + sel)).map_err(fail)?;
+                                    let bad = || {
+                                        fail(Fault::NotAGPower {
+                                            what: "dispatch selector",
+                                            value: x,
+                                        })
+                                    };
+                                    let k = g.log(x).ok_or_else(bad)?;
+                                    (ptr, *sizes.get(k as usize).ok_or_else(bad)?)
                                 }
                                 _ => unreachable!(),
                             };

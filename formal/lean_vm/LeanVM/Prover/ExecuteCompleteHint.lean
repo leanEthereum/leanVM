@@ -178,6 +178,9 @@ def HintOk (C : Ctx) (M : ℕ → E) (s : St) : Hint → Prop
   | .frameAddress offset => s.fp + offset < maxCells
   | .alloc ptr size => AllocOk M s ptr size
   | .allocDyn ptr size => ∃ n, PtrAt s (s.fp + size) n ∧ AllocOk M s ptr n
+  | .allocArm ptr sel sizes => ∃ k n, PtrAt s (s.fp + sel) k ∧ sizes[k]? = some n ∧ AllocOk M s ptr n
+  | .cellAddress ptr cell => s.fp + cell < maxCells ∧ s.fp + ptr < maxCells ∧
+    M (s.fp + ptr) = ofK (g ^ (s.fp + cell))
   | .allocFrames ptr size stop startInverse tail => ∃ v n, s.mem.peek (s.fp + stop) = ofK v ∧
     v * startInverse = g ^ n ∧ n < maxCells ∧ AllocOk M s ptr (size * n + tail)
   | .witnessStack name base len => ∃ e, StreamNext C s name e ∧ e.length = len ∧
@@ -238,6 +241,24 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     simp only [runHint]
     rw [hp.1, inK_ofK, ok_bind, e, ok_bind]
     exact e'
+  | allocArm ptr sel sizes =>
+    obtain ⟨k, n, hp, hk, ha⟩ := hh
+    obtain ⟨D', e, h1, h2⟩ := St.logOr_complete hs.dl hs.small
+      (f := .notAGPower "dispatch selector" (g ^ k))
+      hp.2 (by unfold maxCells; norm_num)
+    obtain ⟨s', e', hm⟩ := allocate_complete (Moves.dl hs h1 h2).fine (s := { s with dl := D' }) ha
+    refine ⟨s', ?_, (Moves.dl hs h1 h2).trans hm⟩
+    simp only [runHint]
+    rw [hp.1, inK_ofK, ok_bind, e, ok_bind]
+    simp only [hk]
+    exact e'
+  | cellAddress ptr cell =>
+    obtain ⟨hc, hp, hM⟩ := hh
+    obtain ⟨s', e, hm⟩ := put_moves hs hM hp
+    refine ⟨s', ?_, hm⟩
+    simp only [runHint]
+    rw [cellAt_eq hc, ok_bind]
+    exact e
   | allocFrames ptr size stop startInverse tail =>
     obtain ⟨v, n, hv, hvn, hn, ha⟩ := hh
     obtain ⟨D', e, h1, h2⟩ := St.logOr_complete hs.dl hs.small

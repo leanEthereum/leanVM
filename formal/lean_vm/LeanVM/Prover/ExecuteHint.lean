@@ -166,6 +166,17 @@ theorem runHint_follows {C : Ctx} {s s' : St} {hint : Hint} (hs : s.Good)
     obtain ⟨sz, -, ⟨n, s1⟩, h1, h⟩ := h
     have f1 := (St.logOr_ok hs h1).1
     exact f1.trans (allocate_follows f1.good h)
+  | allocArm ptr sel sizes =>
+    simp only [runHint, bind_ok] at h
+    obtain ⟨x, -, ⟨k, s1⟩, h1, h⟩ := h
+    have f1 := (St.logOr_ok hs h1).1
+    split at h
+    · exact f1.trans (allocate_follows f1.good h)
+    · simp at h
+  | cellAddress ptr cell =>
+    simp only [runHint, bind_ok] at h
+    obtain ⟨c, -, h⟩ := h
+    exact put_follows hs h
   | allocFrames ptr size stop startInverse tail =>
     simp only [runHint, bind_ok] at h
     obtain ⟨sp, -, h⟩ := h

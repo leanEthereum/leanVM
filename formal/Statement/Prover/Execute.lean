@@ -132,6 +132,11 @@ inductive Hint where
   | alloc (ptr size : ℕ)
   /-- Reserve the exponent of `[fp + size]` cells, its base written to `fp + ptr`. -/
   | allocDyn (ptr size : ℕ)
+  /-- Reserve `sizes[k]` cells, `k` the exponent of `[fp + sel]`, its base written to
+  `fp + ptr`: a dispatched call's frame, sized by the arm it selects. -/
+  | allocArm (ptr sel : ℕ) (sizes : List ℕ)
+  /-- Write the address of `fp + cell` to `fp + ptr`. -/
+  | cellAddress (ptr cell : ℕ)
   /-- Pop `stream`'s next entry, of `len` words, into `fp + base + k`. -/
   | witnessStack (stream : String) (base len : ℕ)
   /-- Pop `stream`'s next entry, of `len` words, into the heap from the pointer at `fp + ptr`,
@@ -406,6 +411,14 @@ def runHint (C : Ctx) (s : St) : Hint → Except Fault St
     let sz ← inK "HeapBuf size" (s.mem.peek (s.fp + size))
     let (n, s) ← s.logOr sz maxCells (.notAGPower "HeapBuf size" sz)
     allocate s ptr n
+  | .allocArm ptr sel sizes => do
+    let x ← inK "dispatch selector" (s.mem.peek (s.fp + sel))
+    let (k, s) ← s.logOr x maxCells (.notAGPower "dispatch selector" x)
+    let some n := sizes[k]? | throw (.notAGPower "dispatch selector" x)
+    allocate s ptr n
+  | .cellAddress ptr cell => do
+    let c ← cellAt s.fp cell
+    s.withMem (·.put (s.fp + ptr) (ofK (g ^ c)))
   | .allocFrames ptr size stop startInverse tail => do
     let span := (← inK "loop bound" (s.mem.peek (s.fp + stop))) * startInverse
     if span = 0 then throw (.notAGPower "loop bound" span)

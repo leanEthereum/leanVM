@@ -65,12 +65,20 @@ def dest : P BitsDest := do
   | "h" => .heap <$> nat
   | t => throw s!"advice: not a destination: `{t}`"
 
+def many {α : Type} (n : ℕ) (p : P α) : P (List α) := (List.range n).mapM fun _ ↦ p
+
 def hint : P Hint := do
   match ← tok with
   | "fa" => .frameAddress <$> nat
   | "af" => return .allocFrames (← nat) (← nat) (← nat) (K.ofBits (← hex)) (← nat)
   | "al" => return .alloc (← nat) (← nat)
   | "ad" => return .allocDyn (← nat) (← nat)
+  | "aa" => do
+    let ptr ← nat
+    let sel ← nat
+    let n ← nat
+    return .allocArm ptr sel (← many n nat)
+  | "ca" => return .cellAddress (← nat) (← nat)
   | "ws" => return .witnessStack (← tok) (← nat) (← nat)
   | "wh" => return .witnessHeap (← tok) (← nat) (← nat) (← nat)
   | "lc" => return .log2Ceil (← dest) (← nat) (← nat) (← nat)
@@ -83,8 +91,6 @@ def hint : P Hint := do
   | "fl" => return .fieldLimbs (← nat) (← nat) (← nat)
   | "iv" => return .inverse (← nat) (← nat)
   | t => throw s!"advice: not a hint: `{t}`"
-
-def many {α : Type} (n : ℕ) (p : P α) : P (List α) := (List.range n).mapM fun _ ↦ p
 
 def advice : P Advice := do
   expect "leanvm-advice"; expect "1"; expect "main_frame"

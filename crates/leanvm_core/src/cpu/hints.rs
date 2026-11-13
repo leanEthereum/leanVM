@@ -268,7 +268,7 @@ pub enum RHint {
     /// Announce a pointer into a reserved run of frames.
     FrameAddress { offset: Off },
     /// Reserve `log_g(m[end] * start_inverse)` consecutive frames of `size` cells,
-    /// then the `tail` cells the final, untaken call writes of one more.
+    /// then `tail` cells more, the final, untaken call's frame.
     AllocFrames {
         ptr: Off,
         size: u32,
@@ -281,6 +281,11 @@ pub enum RHint {
     /// `Alloc` with the cell count read at runtime as the g-power exponent of
     /// `m[fp+size]`.
     AllocDyn { ptr: Off, size: Off },
+    /// `Alloc` of `sizes[k]` cells, where `m[fp+sel] = g^k`: a dispatched call's frame, sized
+    /// by the arm it selects.
+    AllocArm { ptr: Off, sel: Off, sizes: Vec<u32> },
+    /// Write the address of frame cell `cell`, `g^{fp+cell}`, to `fp+ptr`.
+    CellAddress { ptr: Off, cell: Off },
     /// Pop stream `name`'s next entry (`len` values) into frame cells `fp+base+k`.
     WitnessStack { name: String, base: Off, len: u32 },
     /// Pop stream `name`'s next entry (`len` values) into heap cells `m[fp+ptr]·g^{lo+k}`.
@@ -363,6 +368,11 @@ impl super::Program {
                         }
                         RHint::Alloc { ptr, size } => format!("al {ptr} {size}"),
                         RHint::AllocDyn { ptr, size } => format!("ad {ptr} {size}"),
+                        RHint::AllocArm { ptr, sel, sizes } => {
+                            let sizes: Vec<String> = sizes.iter().map(u32::to_string).collect();
+                            format!("aa {ptr} {sel} {} {}", sizes.len(), sizes.join(" "))
+                        }
+                        RHint::CellAddress { ptr, cell } => format!("ca {ptr} {cell}"),
                         RHint::WitnessStack { name, base, len } => format!("ws {name} {base} {len}"),
                         RHint::WitnessHeap { name, ptr, lo, len } => format!("wh {name} {ptr} {lo} {len}"),
                         RHint::Log2Ceil {
