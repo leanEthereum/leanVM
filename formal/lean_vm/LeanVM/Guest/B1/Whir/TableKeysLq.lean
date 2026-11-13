@@ -7,7 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Whir.NameNums
-public import LeanVM.Guest.B1.Whir.HelperAll
+public import LeanVM.Guest.B1.Whir.HelperTables
+public import LeanVM.Guest.B1.Whir.HelperT
 
 namespace LeanVM.Guest.B1.Whir
 

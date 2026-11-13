@@ -32,7 +32,7 @@ parts = [sp[k::4] for k in range(4)]
 for k, part in enumerate(parts):
     out = [HEAD % ('QueriesBody%d' % k,
                    "The bodies of a quarter of `opening_queries`' specializations and of their loop helpers are\n  the templates (kernel evaluation).",
-                   'public import LeanVM.Guest.B1.Opening.QueriesT\npublic import LeanVM.Guest.Data.NameStrings')]
+                   'public import LeanVM.Guest.B1.Opening.QueriesT\npublic import LeanVM.Guest.Data.NameStrings\npublic import LeanVM.Guest.CoreData')]
     for d in part:
         sh = shape(d)
         loop = gen.stable[d['loop']]

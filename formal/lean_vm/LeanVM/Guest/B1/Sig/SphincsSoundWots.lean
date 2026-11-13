@@ -150,7 +150,7 @@ variable {C : CallRel} {rd : Reader}
 address cells the digest's digits reach the target sum and the word is the leaf the chain values
 `sChainValuesOf σ` recover. -/
 theorem sp_wots_sound_stmt {σ : Val} {rets : List E}
-    (h : Stmt.HoldsList C rd σ (fn% «sp_wots»).body False (fun rs => rs = rets)) :
+    (h : Stmt.HoldsList C rd σ (Fn.«sp_wots».core).body False (fun rs => rs = rets)) :
     ∃ leaf, rets = [leaf] ∧ ∀ (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
       (lf : Sphincs.TreeLeafIndex), (σ (.n 1), σ (.n 2)) = keyAdrsCells layer.val tree.val lf.val →
         Sphincs.TargetSum.Valid (Sphincs.TargetSum.base2bDigits (cellVal (σ (.n 3)))) ∧
@@ -166,7 +166,8 @@ theorem sp_wots_sound_stmt {σ : Val} {rets : List E}
 /-- **A call of `sp_wots`** under a call relation that unfolds at `V`: at a one-time key's address
 cells, the encoding's digits reach the target sum and the leaf is the one the chain values of its
 frame recover. -/
-theorem wots_call_sound {V : FrameMap} (hV : UnfoldsV rd C V) {pp a0 a1 enc leaf : E}
+theorem wots_call_sound {P : Program} [Finds P "sp_wots" Fn.«sp_wots».core] {V : FrameMap}
+    (hV : UnfoldsVP P rd C V) {pp a0 a1 enc leaf : E}
     (hc : C "sp_wots" [pp, a0, a1, enc] [leaf]) :
     ∀ (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex) (lf : Sphincs.TreeLeafIndex),
       (a0, a1) = keyAdrsCells layer.val tree.val lf.val →
@@ -174,7 +175,7 @@ theorem wots_call_sound {V : FrameMap} (hV : UnfoldsV rd C V) {pp a0 a1 enc leaf
         cellVal leaf = wotsLeafOf (cellVal pp) layer tree lf (cellVal enc)
           (sChainValuesOf (V "sp_wots" [pp, a0, a1, enc] [leaf])) := by
   obtain ⟨fn, hf, hp, hb⟩ := hV _ _ _ hc
-  rw [find_sp_wots] at hf
+  rw [Finds.find (P := P) (name := "sp_wots") (fn := Fn.«sp_wots».core)] at hf
   cases hf
   rw [sp_wots_params] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp

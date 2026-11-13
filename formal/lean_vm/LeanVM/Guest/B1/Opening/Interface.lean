@@ -184,13 +184,13 @@ def MeaningOpeningQueriesW (sh : OqShape) (rd : Reader) (ws : List QW) : List E 
 def MeaningOpeningQueries (sh : OqShape) (rd : Reader) (args rets : List E) : Prop :=
   ∃ ws, MeaningOpeningQueriesW sh rd ws args rets
 
-/-- `opening_queries`' core IR (the function named `name`, of shape `sh`) is its meaning, when
-the positions and window pointers name positions. -/
-def opening_queries_Spec (name : String) (sh : OqShape) : Prop :=
+/-- `opening_queries`' function in the program `P` (named `name`, of shape `sh`) is its meaning,
+when the positions and window pointers name positions. -/
+def opening_queries_SpecP (P : Program) (name : String) (sh : OqShape) : Prop :=
   ∀ (rd : Reader) (cap flags lamInv coefs hs positions qptrs nG : E) (rets : List E),
     (∀ N, nG = gen ^ N → N < ordG → QueryPosOk rd positions qptrs (oqCount sh.odd sh.base N)
       sh.depth sh.cd) →
-    (coreProgram.Rel rd name [cap, flags, lamInv, coefs, hs, positions, qptrs, nG] rets ↔
+    (P.Rel rd name [cap, flags, lamInv, coefs, hs, positions, qptrs, nG] rets ↔
       MeaningOpeningQueries sh rd [cap, flags, lamInv, coefs, hs, positions, qptrs, nG] rets)
 
 /-- The 73 deployed specializations, by name (a name built by `++ toString` does not reduce in a
@@ -352,8 +352,8 @@ def openingQueriesShapes : List (String × OqShape) :=
         [1, 6, 360, 18245760]⟩)]
 
 /-- Every deployed specialization of `opening_queries` is its meaning. -/
-def opening_queries_all_Spec : Prop :=
-  ∀ p ∈ openingQueriesShapes, opening_queries_Spec p.1 p.2
+def opening_queries_all_SpecP (P : Program) : Prop :=
+  ∀ p ∈ openingQueriesShapes, opening_queries_SpecP P p.1 p.2
 
 /-! ## The Spec's novel basis -/
 

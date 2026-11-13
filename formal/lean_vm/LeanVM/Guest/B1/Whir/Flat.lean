@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.DataSpec
+public import LeanVM.Guest.B1.Whir.DataSpecP
 
 /-!
 # Flat bodies

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesComplete2
+public import LeanVM.Guest.CoreData
 
 /-!
 # `walk_path`, completeness (lean_ethereum.py:1303-1338)
@@ -479,7 +480,7 @@ theorem walk_block (hpd : 1 ≤ w.s.pd) (hcd : 1 ≤ w.s.cd) (hsl : w.sibs.lengt
 pointer, the cap and the flags of an honest walk returns nothing. -/
 theorem walk_rel (hpd : 1 ≤ w.s.pd) (hcd : 1 ≤ w.s.cd) (hsl : w.sibs.length = w.s.pd)
     (hq : w.q < 2 ^ (w.s.pd + w.s.cd)) (hm : w.MemOk rd) {walk : String}
-    (hW : WalkFn walk w.s.pd w.s.cd) :
+    (hW : WalkFn coreProgram walk w.s.pd w.s.cd) :
     coreProgram.Rel rd walk [(digestHalves w.leaf).1, (digestHalves w.leaf).2, w.bpv, w.capv,
       w.flagsv] [] := by
   obtain ⟨fn, hf, hp, hb⟩ := hW

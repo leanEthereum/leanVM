@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Sig.XmssSegData
 /-!
 # `main_loop2`'s body, sound for its leanXMSS check
 
-`loop2_xmss_sound`: from `(fn% «main_loop2»).body = l2Pre ++ (xSeg ++ l2Post)` (`loop2_split`) and
+`loop2_xmss_sound`: from `(Fn.«main_loop2».core).body = l2Pre ++ (xSeg ++ l2Post)` (`loop2_split`) and
 `verify_lean_xmss_sound_holds`. The form `main`'s soundness reads an iteration's claim off.
 -/
 
@@ -28,7 +28,7 @@ theorem l2Pre_atoms : atomsOnly l2Pre = true := rfl
 
 /-- **An iteration of `main_loop2`, sound for its check.** -/
 theorem loop2_xmss_sound {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ (fn% «main_loop2»).body next kret) :
+    (h : Stmt.HoldsList C rd σ (Fn.«main_loop2».core).body next kret) :
     AtomsHold rd σ l2Pre ∧ Stmt.HoldsList C rd σ l2Post next kret ∧
       (LxTagsHold (fun j => σ (sTagParam j)) → XmssOut rd (σ sSigner) (xmssSigOf σ)) := by
   rw [loop2_split] at h

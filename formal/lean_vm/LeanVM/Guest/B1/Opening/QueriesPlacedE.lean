@@ -41,7 +41,7 @@ theorem CompleteAtE.of_eq {fs : String → ℕ} {cert : String → V → ℕ} {k
 theorem oqMain1_completeAtE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb1 : s.base = 1) (hpd1 : 1 ≤ s.pd)
     (hcd : 2 ≤ s.cd) {odd : ℕ} (hodd : odd ≤ 1) {name wlk loop : String}
-    (hW : WalkFn wlk s.pd s.cd) {fm fl : Fn}
+    (hW : WalkFn coreProgram wlk s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
     (hbm : fm.body = oqMainT s odd wlk loop)
@@ -136,7 +136,7 @@ theorem oqMain1_completeAtE (fs : String → ℕ) (cert : String → V → ℕ) 
 /-- **`opening_queries` deeper is `CompleteAtE`, its tree exactly its bound.** -/
 theorem oqMain0_completeAtE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb0 : s.base = 0) (hpd1 : 1 ≤ s.pd)
-    (hcd : 2 ≤ s.cd) {name wlk loop : String} (hW : WalkFn wlk s.pd s.cd) {fm fl : Fn}
+    (hcd : 2 ≤ s.cd) {name wlk loop : String} (hW : WalkFn coreProgram wlk s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
     (hbm : fm.body = oqMainT s 0 wlk loop)
@@ -235,7 +235,7 @@ def OqCompleteDE (fs : String → ℕ) (cert : String → V → ℕ) (name loop 
 theorem oqCompleteDE1 (fs : String → ℕ) (cert : String → V → ℕ)
     {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb1 : s.base = 1) (hpd1 : 1 ≤ s.pd)
     (hcd : 2 ≤ s.cd) {odd : ℕ} (hodd : odd ≤ 1) {name loop : String}
-    (hE : oqEntryB name s odd = true) (hW : WalkFn (oqWalkOf s) s.pd s.cd) {fm fl : Fn}
+    (hE : oqEntryB name s odd = true) (hW : WalkFn coreProgram (oqWalkOf s) s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
     (hbm : fm.body = oqMainT s odd (oqWalkOf s) loop)
@@ -255,7 +255,7 @@ theorem oqCompleteDE1 (fs : String → ℕ) (cert : String → V → ℕ)
 theorem oqCompleteDE0 (fs : String → ℕ) (cert : String → V → ℕ)
     {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb0 : s.base = 0) (hpd1 : 1 ≤ s.pd)
     (hcd : 2 ≤ s.cd) {name loop : String} (hE : oqEntryB name s 0 = true)
-    (hW : WalkFn (oqWalkOf s) s.pd s.cd) {fm fl : Fn}
+    (hW : WalkFn coreProgram (oqWalkOf s) s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
     (hbm : fm.body = oqMainT s 0 (oqWalkOf s) loop)

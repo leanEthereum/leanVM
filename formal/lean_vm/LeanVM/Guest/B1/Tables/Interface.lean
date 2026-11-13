@@ -13,6 +13,7 @@ public import LeanVM.Guest.ExpTables
 public import LeanVM.Guest.B1.Gkr.Fs
 public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.Selectors.Interface
+public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source

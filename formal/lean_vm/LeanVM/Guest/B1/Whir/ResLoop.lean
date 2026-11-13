@@ -29,7 +29,7 @@ open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {rd : Reader}
+variable {P : Program} {rd : Reader}
 
 /-- The two chains `h ← (h + P(p))·μ`, `hh ← (hh + H(p))·μ` over the positions `ps`. -/
 def resFold (P H : E → E) (mu : E) (a : E × E) (ps : List E) : E × E :=
@@ -273,12 +273,12 @@ theorem resLoop_step (lvl : ℕ) (lv : OsLv) (hpo : lv.posOff < u128Bound) {D : 
 
 /-- **The residual loop, soundly**: entered from `1` with the bound `g^n`, `0 < n < ord g`, the
 iteration's meaning holds at every `g^j`, `j < n`. -/
-theorem resLoop_sound {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
+theorem resLoop_sound {name : String} {fn : Fn} (hf : P.find? name = some fn)
     (lvl : ℕ) (lv : OsLv) (hps : fn.params = osParams 7)
     (hb : fn.body = resLoopBody lvl lv name) (hpo : lv.posOff < u128Bound) {D : ℕ → E}
     {hsv : List E} {n : ℕ} (hn0 : 0 < n) (hn : n < ordG) (qpos bd hs chain mu : E)
     (hR : ResRead rd lvl lv bd hs D hsv)
-    (hg : 1 + gen ^ n ≠ 0 → coreProgram.Rel rd name [1, gen ^ n, qpos, bd, hs, chain, mu] []) :
+    (hg : 1 + gen ^ n ≠ 0 → P.Rel rd name [1, gen ^ n, qpos, bd, hs, chain, mu] []) :
     ∀ j < n, ResIter rd (resP lv D) (resH lv hsv) lv.posOff qpos chain mu (gen ^ j) := by
   rw [resLoopBody_split] at hb
   refine loop_guarded (rest := [qpos, bd, hs, chain, mu]) hn0 hn rfl

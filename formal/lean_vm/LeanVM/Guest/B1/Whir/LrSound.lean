@@ -8,7 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Whir.ResLoop
-public import LeanVM.Guest.B1.Whir.HelperAll
+public import LeanVM.Guest.B1.Whir.HelperTables
+public import LeanVM.Guest.B1.Whir.HelperT
 
 /-!
 # `level_residual`, soundly
@@ -27,7 +28,7 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-variable {rd : Reader}
+variable {P : Program} {rd : Reader}
 
 /-- The vanishing tables' offset of `cols` message columns. -/
 abbrev lrVo (cols : ℕ) : ℕ := cols * (cols + 1) / 2
@@ -130,10 +131,10 @@ theorem lrLoop1_step (cols nhs hbits : ℕ) {D : ℕ → E} {hsv : List E} (σ :
       List.cons_append, Nat.zero_add, t4, h0, h1, h2, h3, h4, h5, h6]
 
 /-- **The batches' loop, soundly**: entered from `1` with the bound `g^n`, `0 < n < ord g`. -/
-theorem lrLoop1_sound {cols nhs hbits : ℕ} {name : String} (hl : FnIs name (osParams 7) (lrLoop1Body cols nhs hbits name))
+theorem lrLoop1_sound {cols nhs hbits : ℕ} {name : String} (hl : FnIsP P name (osParams 7) (lrLoop1Body cols nhs hbits name))
     {D : ℕ → E} {hsv : List E} {n : ℕ} (hn0 : 0 < n) (hn : n < ordG) (pos chain bd hs mu : E)
     (hR : LrRead rd cols nhs hbits bd hs D hsv)
-    (hg : 1 + gen ^ n ≠ 0 → coreProgram.Rel rd name [1, gen ^ n, pos, chain, bd, hs, mu] []) :
+    (hg : 1 + gen ^ n ≠ 0 → P.Rel rd name [1, gen ^ n, pos, chain, bd, hs, mu] []) :
     ∀ j < n, ResIter rd (lrP cols D) (lrH cols nhs hbits hsv) 0 pos chain mu (gen ^ j) := by
   obtain ⟨fn, hf, hps, hb⟩ := hl
   rw [lrLoop1Body_split] at hb
@@ -221,10 +222,10 @@ theorem lrLoop2_step (cols nhs hbits : ℕ) {D : ℕ → E} {hsv : List E} (σ :
       List.cons_append, Nat.zero_add, t4, h0, h1, h2, h3, h4, h5, h6]
 
 /-- **The rest's loop, soundly**: entered from `1` with the bound `g^n`, `0 < n < ord g`. -/
-theorem lrLoop2_sound {cols nhs hbits : ℕ} {name : String} (hl : FnIs name (osParams 7) (lrLoop2Body cols nhs hbits name))
+theorem lrLoop2_sound {cols nhs hbits : ℕ} {name : String} (hl : FnIsP P name (osParams 7) (lrLoop2Body cols nhs hbits name))
     {D : ℕ → E} {hsv : List E} {n : ℕ} (hn0 : 0 < n) (hn : n < ordG) (rest tail bd hs mu : E)
     (hR : LrRead rd cols nhs hbits bd hs D hsv)
-    (hg : 1 + gen ^ n ≠ 0 → coreProgram.Rel rd name [1, gen ^ n, rest, tail, bd, hs, mu] []) :
+    (hg : 1 + gen ^ n ≠ 0 → P.Rel rd name [1, gen ^ n, rest, tail, bd, hs, mu] []) :
     ∀ j < n, RestIter rd (lrP cols D) (lrH cols nhs hbits hsv) tail rest mu (gen ^ j) := by
   obtain ⟨fn, hf, hps, hb⟩ := hl
   rw [lrLoop2Body_split] at hb
@@ -303,15 +304,15 @@ theorem osLoopCall0_val {C : CallRel} {σ : Val} {name : String} {n : ℕ} {args
 /-- **`level_residual`, soundly**: a call of a specialization whose body is `lrBody q l1 l2` and
 whose loops are the templates establishes `MeaningLevelResidual`. -/
 theorem lr_sound {name l1 l2 : String} {q cols nhs hbits : ℕ}
-    (hf : FnIs name (osParams 4) (lrBody q l1 l2))
-    (hl1 : FnIs l1 (osParams 7) (lrLoop1Body cols nhs hbits l1))
-    (hl2 : q % resBatch ≠ 0 → FnIs l2 (osParams 7) (lrLoop2Body cols nhs hbits l2))
+    (hf : FnIsP P name (osParams 4) (lrBody q l1 l2))
+    (hl1 : FnIsP P l1 (osParams 7) (lrLoop1Body cols nhs hbits l1))
+    (hl2 : q % resBatch ≠ 0 → FnIsP P l2 (osParams 7) (lrLoop2Body cols nhs hbits l2))
     (hq8 : resBatch ≤ q) (hqo : q < ordG) (hcols : 1 ≤ cols) (hnhs : 1 ≤ nhs) (hb3 : hbits ≤ 3)
-    (hbn : hbits ≤ cols + 1) {args rets : List E} (hrel : coreProgram.Rel rd name args rets) :
+    (hbn : hbits ≤ cols + 1) {args rets : List E} (hrel : P.Rel rd name args rets) :
     MeaningLevelResidual q cols nhs hbits rd args rets := by
   intro D hsv Pos hD hlen hH hPos
   obtain ⟨fn, hfind, hps, hb⟩ := hf
-  obtain ⟨fn', hf', σ, hp, hh⟩ := (rel_iff coreProgram _ _ _).mp hrel
+  obtain ⟨fn', hf', σ, hp, hh⟩ := (rel_iff P _ _ _).mp hrel
   rw [hfind] at hf'
   cases hf'
   rw [hps] at hp
@@ -333,7 +334,7 @@ theorem lr_sound {name l1 l2 : String} {q cols nhs hbits : ℕ}
   set Hf := lrH cols nhs hbits hsv
   have hmu : σ (.n 3) = args.getD 3 0 := ha 3 (by decide)
   -- the batches
-  have batches : AllOk (coreProgram.Rel rd) rd σ (osHeap (2 * (nb + 1)) 4 ++
+  have batches : AllOk (P.Rel rd) rd σ (osHeap (2 * (nb + 1)) 4 ++
       [osCst 6 (word 0 0), osLd 6 5 0, osCst 7 (word 0 0), osLd 7 5 1] ++
       osLoopCall l1 0 nb [0, 5, 1, 2, 3] 8 ++
       [osLd 13 5 (2 * nb), osLd 14 5 (2 * nb + 1)]) →

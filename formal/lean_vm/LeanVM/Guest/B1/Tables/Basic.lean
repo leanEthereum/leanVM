@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Guest.CoreData
 
 /-!
 # B1 of the bus and the tables: machinery

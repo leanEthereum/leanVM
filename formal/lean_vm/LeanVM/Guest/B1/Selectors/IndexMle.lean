@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Selectors.Interface
 public import LeanVM.Guest.B1.Tables.Squares
+public import LeanVM.Guest.CoreData
 
 /-!
 # `index_mle` (TRIAGE G #44)

@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Placement.Certify
 public import LeanVM.Guest.B1.Placement.CompleteBase
 public import LeanVM.Guest.B1.Placement.Kappas
 public import LeanVM.Guest.B1.Selectors.LayoutBasic
+public import LeanVM.Guest.CoreData
 
 /-!
 # `certify_placement`, completely (TRIAGE G #67)

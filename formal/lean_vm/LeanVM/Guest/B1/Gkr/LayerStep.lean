@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Gkr.LayerTail
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.CoreData
 
 /-!
 # An iteration of `verify_bus_gkr_loop0`

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Selectors.IndexMle
+public import LeanVM.Guest.CoreData
 
 /-!
 # `block_selector` (TRIAGE G #50)

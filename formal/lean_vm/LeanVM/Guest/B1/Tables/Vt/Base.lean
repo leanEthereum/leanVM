@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Tables.Basic
+public import LeanVM.Guest.CoreData
 
 /-!
 # `verify_tables`' body (TRIAGE G #52)

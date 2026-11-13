@@ -24,6 +24,9 @@ open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest
 
 @[expose] public section
 
+/-- A core function of the name with the parameters `0 .. 3` and the body. -/
+abbrev QwIs (name : String) (body : List Stmt) : Prop := QwIsP coreProgram name body
+
 set_option maxRecDepth 100000 in
 theorem qw_L12_L6 : QwIs "decode_query_windows__L12_L6" (qwBody 12 6) :=
   ⟨fn% «decode_query_windows__L12_L6», coreProgram_find?_at (j :=

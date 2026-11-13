@@ -17,6 +17,7 @@ for k, part in enumerate(parts):
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesT
+public import LeanVM.Guest.CoreData
 
 namespace LeanVM.Guest.B1
 
@@ -61,11 +62,11 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 for (pd, cd), n, i in ws:
     out.append('''set_option maxRecDepth 100000 in
 /-- `%s` is its template. -/
-theorem wpFn_L%d_L%d : WalkFn "%s" %d %d :=
+theorem wpFn_L%d_L%d : WalkFn coreProgram "%s" %d %d :=
   ⟨_, coreProgram_find?_at (j := idx%% «%s») rfl, rfl, wpBody_L%d_L%d⟩
 ''' % (n, pd, cd, n, pd, cd, n, pd, cd))
 out.append('''/-- **Every deployed `walk_path` is its template.** -/
-theorem walkFn_all : ∀ p ∈ walkPathNames, WalkFn p.2.2 p.1 p.2.1 := by
+theorem walkFn_all : ∀ p ∈ walkPathNames, WalkFn coreProgram p.2.2 p.1 p.2.1 := by
   intro p hp
   simp only [walkPathNames, List.mem_cons, List.not_mem_nil, or_false] at hp
   rcases hp with %s

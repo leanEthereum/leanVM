@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Gkr.Loop29
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.CoreData
 
 /-!
 # A layer of two levels (`verify_bus_gkr_loop0`, G:1997-2041)

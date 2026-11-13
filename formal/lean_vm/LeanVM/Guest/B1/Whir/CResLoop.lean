@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Whir.CFinRs
 public import LeanVM.Guest.B1.Whir.CLoop
+public import LeanVM.Guest.CoreData
+public import LeanVM.Guest.B1.Whir.DataSpec
 
 /-!
 # The residual loop, honestly (G:1737-1752)

@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Place.LpProof
 public import LeanVM.Guest.B1.Place.Fresh
 public import LeanVM.Guest.B1.Place.ArmKids
+public import LeanVM.Guest.B1.Whir.DataSpec
+public import LeanVM.Guest.B1.Whir.HelperAll
 
 /-!
 # `level_positions` within a words bound

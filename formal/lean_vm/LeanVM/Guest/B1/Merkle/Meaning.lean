@@ -67,10 +67,10 @@ def merkleCapNames : List (String × ℕ) :=
     ("verify_merkle_cap__L7", 7),
     ("verify_merkle_cap__L8", 8)]
 
-/-- `verify_merkle_cap__L{D}`'s core IR is its meaning, `2 ≤ D ≤ 8`. -/
-def verify_merkle_cap_Spec : Prop :=
+/-- `verify_merkle_cap__L{D}`'s function in the program `P` is its meaning, `2 ≤ D ≤ 8`. -/
+def verify_merkle_cap_SpecP (P : Program) : Prop :=
   ∀ p ∈ merkleCapNames, ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd p.1 args rets ↔ MeaningVerifyMerkleCap p.2 rd args rets
+    P.Rel rd p.1 args rets ↔ MeaningVerifyMerkleCap p.2 rd args rets
 
 end
 end LeanVM.Guest.B1

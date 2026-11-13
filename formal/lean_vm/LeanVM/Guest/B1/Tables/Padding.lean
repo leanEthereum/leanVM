@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Tables.Interface
 public import LeanVM.Guest.B1.Tables.Basic
+public import LeanVM.Guest.CoreData
 
 /-!
 # `padding_weight` (TRIAGE G #51)

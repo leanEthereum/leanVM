@@ -11,6 +11,7 @@ public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Tables.Interface
 public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.KeccakGkr.Interface
+public import LeanVM.Guest.CoreData
 
 /-!
 # `check_opening_terminal` (TRIAGE G #70): the interface

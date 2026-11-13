@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Placement.Common
+public import LeanVM.Guest.CoreData
 
 /-!
 # `certify_placement` (TRIAGE G #67)

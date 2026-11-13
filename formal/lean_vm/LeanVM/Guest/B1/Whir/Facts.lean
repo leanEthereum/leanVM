@@ -15,6 +15,8 @@ public import LeanVM.Guest.B1.Merkle.Meaning
 public import LeanVM.Guest.B1.Whir.TableMem
 public import LeanVM.Guest.B1.Whir.OqKey
 public import LeanVM.Guest.B1.Whir.TableKeys
+public import LeanVM.Guest.B1.Whir.DataSpec
+public import LeanVM.Guest.B1.Whir.HelperAll
 
 /-!
 # A candidate's facts, decided

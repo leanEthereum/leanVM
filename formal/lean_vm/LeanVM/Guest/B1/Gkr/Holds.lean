@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Gkr.Walk
 public import LeanVM.Guest.B1.Gkr.Loop8
 public import LeanVM.Guest.B1.Placement.Common
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.CoreData
 
 /-!
 # `verify_bus_gkr` is sound (G:1867-2048)

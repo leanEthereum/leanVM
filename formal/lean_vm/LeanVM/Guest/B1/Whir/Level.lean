@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Whir.LevelB
 public import LeanVM.Guest.B1.Opening.QueriesAllW
 public import LeanVM.Guest.B1.Whir.LpSound
 public import LeanVM.Guest.B1.Whir.LqSound
+public import LeanVM.Guest.B1.Whir.DataSpec
+public import LeanVM.Guest.B1.Main.Frames
 
 /-!
 # A non-final level (G:1531-1669)

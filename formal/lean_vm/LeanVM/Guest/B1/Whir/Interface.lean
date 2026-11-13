@@ -42,7 +42,7 @@ level's `match` on the rate dispatches into helpers specialized on the rate's sh
   returns `w`'s claim, two buffers holding `w`'s point (`μ` coordinates, witness order) and its
   coordinates plus one, zero-padded (one-padded) to `pointCap = 40`, `w`'s glued weight and its
   final lane's low part at the tail challenges.
-* `open_stacked_sound_Spec`: every specialization's call relation at `rateSel r` gives `OpenOut`, on a memory
+* `open_stacked_sound_SpecP P`: in the program `P` (`InterfaceAt.lean`: at `coreProgram`), every specialization's call relation at `rateSel r` gives `OpenOut`, on a memory
   image of `2^κ` words, `11 ≤ κ ≤ 32` (the query windows' range checks, `decode_query_windows`) whose
   window tables are at `tabs` (`WinTabs`: the grinds' and the query windows' lookups).
 
@@ -92,17 +92,17 @@ def OpenOut (rd : Reader) (μ r : ℕ) (root : Digest) (fs : List E) (target cur
       ReadsAt rd pt (w.point ++ List.replicate (pointCap - μ) 0) ∧
       ReadsAt rd pt1 (w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1)
 
-/-- **`open_stacked` is sound** at every stack log and rate: a call of the specialization of `μ`
+/-- **`open_stacked` is sound** in the program `P`, at every stack log and rate: a call of the specialization of `μ`
 on the rate's selector, the capacity cells `fs`, the claim `target`, the root's two cells, the
 cursor and the exponent
 table `tabs` establishes `OpenOut`, on a memory image of `2^κ` words, `11 ≤ κ ≤ 32`,
 (`decode_query_windows`' range checks) holding the window tables at `tabs` (`WinTabs`). -/
-def open_stacked_sound_Spec : Prop :=
+def open_stacked_sound_SpecP (P : Program) : Prop :=
   ∀ {κ : ℕ}, κ ≤ 32 → winTabBits ≤ κ → ∀ (L : MemoryImage κ) (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 →
     1 ≤ r → r ≤ 4 →
     ∀ (root : Digest) (fs : List E) (target root0 root1 cur tabs : E) (rets : List E),
       fs.length = 5 → (root0, root1) = digestHalves root → WinTabs L.read tabs →
-      coreProgram.Rel L.read (openName μ) (rateSel r :: fs ++ [target, root0, root1, cur, tabs]) rets →
+      P.Rel L.read (openName μ) (rateSel r :: fs ++ [target, root0, root1, cur, tabs]) rets →
         OpenOut L.read μ r root fs target cur rets
 
 end

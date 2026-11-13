@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Whir.LevelMid
 public import LeanVM.Guest.B1.Whir.LastRun
 public import LeanVM.Guest.B1.Fs.TailRound
 public import LeanVM.Guest.B1.Opening.NovelEval
+public import LeanVM.Guest.B1.Whir.DataSpec
 
 /-!
 # The final level and the closing rounds, soundly (G:1535-1705)

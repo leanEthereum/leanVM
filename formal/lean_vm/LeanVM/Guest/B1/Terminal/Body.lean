@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Terminal.Template
+public import LeanVM.Guest.CoreData
 
 namespace LeanVM.Guest.B1.VerifySub
 

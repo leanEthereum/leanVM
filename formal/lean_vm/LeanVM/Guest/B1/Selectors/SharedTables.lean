@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Selectors.Nibble
 public import LeanVM.Guest.B1.Selectors.SelPartial
 public import LeanVM.Guest.B1.Selectors.BlockSelectorTab
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.CoreData
 
 /-!
 # `shared_selector_tables` (TRIAGE G #48)

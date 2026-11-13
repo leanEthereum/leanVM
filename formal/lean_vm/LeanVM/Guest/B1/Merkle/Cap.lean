@@ -240,10 +240,10 @@ theorem meaningCapL_iff (D : ℕ) (rd : Reader) (args rets : List E) :
   split <;> simp only [h4L]
 
 /-- **`verify_merkle_cap` at `L` leaves**, for a compiled function whose body is `mcBody L`. -/
-theorem merkle_cap_iffL {name : String} {f : Fn} (L : ℕ) (hL : 4 ≤ L) (hL2 : L % 2 = 0)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
+theorem merkle_cap_iffL {P : Program} {name : String} {f : Fn} (L : ℕ) (hL : 4 ≤ L) (hL2 : L % 2 = 0)
+    (hfind : P.find? name = some f) (hparams : f.params = [.n 0, .n 1])
     (hbody : f.body = mcBody L) (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd name args rets ↔ MeaningCapL L rd args rets := by
+    P.Rel rd name args rets ↔ MeaningCapL L rd args rets := by
   rw [rel_iff_sem hfind, hbody, hparams]
   simp only [holds_mcBody, List.map_cons, List.map_nil]
   constructor

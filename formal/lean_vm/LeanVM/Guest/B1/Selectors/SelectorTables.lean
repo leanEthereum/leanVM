@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
+public import LeanVM.Guest.CoreData
 
 /-!
 # `selector_tables` (TRIAGE G #69)

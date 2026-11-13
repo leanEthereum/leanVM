@@ -580,6 +580,9 @@ theorem spf_found_30 : coreProgram.find? (spfName 30) = some fn% «squeeze_point
   ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L30») rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
+/-- `squeeze_point_from__L{n}`'s core IR is its meaning, for every deployed `n`. -/
+def squeeze_point_from_Spec : Prop := squeeze_point_from_SpecP coreProgram
+
 /-- **`squeeze_point_from`'s core IR is its meaning**, at every deployed `n`. -/
 theorem squeeze_point_from_holds : squeeze_point_from_Spec := by
   intro n hn rd args rets

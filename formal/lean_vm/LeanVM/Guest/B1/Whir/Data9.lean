@@ -6,7 +6,8 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.DataSpec
+public import LeanVM.Guest.B1.Whir.DataSpecP
+public import LeanVM.Guest.Pack.P58.Core
 
 namespace LeanVM.Guest.B1.Whir
 
@@ -17,26 +18,26 @@ open LeanVM.Guest.Core LeanVM.Guest
 /-!
 # Size 9
 
-`osData_9 : OsData 9`: the function found by its position (`coreProgram_find?_at`), its body
-equal to the template (`stmtsEqb_sound`), the body in runs of 1100 statements, each its own
-kernel evaluation (`run_step`), to bound the kernel's memory.
+`osData_9 P : OsDataP P 9` for every `P` that finds the function: its body equal to the
+template (`stmtsEqb_sound`), the body in runs of 1100 statements, each its own kernel evaluation
+(`run_step`), to bound the kernel's memory.
 -/
 
 set_option maxRecDepth 100000 in
-theorem os_run_9_0 : stmtsEqb ((Data.core344.body.drop 0).take 1100)
+theorem os_run_9_0 : stmtsEqb (((Fn.«open_stacked__L9».core).body.drop 0).take 1100)
     (((osBody (osCfg 9)).drop 0).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem os_run_9_1 : stmtsEqb (Data.core344.body.drop 1100)
+theorem os_run_9_1 : stmtsEqb ((Fn.«open_stacked__L9».core).body.drop 1100)
     ((osBody (osCfg 9)).drop 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem osData_9 : OsData 9 := by
-  have hb : Data.core344.body.drop 0 = (osBody (osCfg 9)).drop 0 :=
+theorem osData_9 (P : Program) [Finds P "open_stacked__L9" Fn.«open_stacked__L9».core] : OsDataP P 9 := by
+  have hb : (Fn.«open_stacked__L9».core).body.drop 0 = (osBody (osCfg 9)).drop 0 :=
     run_step 1100 0 os_run_9_0 <|
     stmtsEqb_sound os_run_9_1
   rw [List.drop_zero, List.drop_zero] at hb
-  exact ⟨Data.core344, coreProgram_find?_at (j := 344) rfl, by decide +kernel, hb⟩
+  exact fnIsP_of P "open_stacked__L9" Fn.«open_stacked__L9».core (by decide +kernel) hb
 
 end
 end LeanVM.Guest.B1.Whir

@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Selectors.TableLemmas
 public import LeanVM.Guest.B1.Placement.Common
+public import LeanVM.Guest.CoreData
 
 /-!
 # `column_selector` (TRIAGE G #68)

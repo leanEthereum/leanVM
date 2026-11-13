@@ -124,7 +124,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 /-- **`decode_query_windows__L{d}_L{cd}` placed**, from its template, the certificates' frame runs
 fitting their frames and their cells consecutive. -/
 theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert)
-    (hcons : RunsConsec cert) (hs : QwShape d cd) (hq : QwIs name (qwBody d cd)) {k : ℕ}
+    (hcons : RunsConsec cert) (hs : QwShape d cd) (hq : QwIsP coreProgram name (qwBody d cd)) {k : ℕ}
     (hk : 7 ≤ k) : QwDecodeAtD fs cert k d cd name := by
   obtain ⟨fn, hfind, hps, hbody⟩ := hq
   intro w pos ptrs tabs Lin fp hreg hpre

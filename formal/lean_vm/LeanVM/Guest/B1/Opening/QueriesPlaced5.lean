@@ -34,7 +34,7 @@ theorem oqLoop0A_callS (s : Oq) (wlk : String) :
 /-- **A deeper iteration, placed**, its tail's tree `m` words, its walk after it. -/
 theorem oqIter0_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String → V → ℕ)
     {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd)
-    {wlk loop : String} (hW : WalkFn wlk s.pd s.cd) {fl : Fn}
+    {wlk loop : String} (hW : WalkFn coreProgram wlk s.pd s.cd) {fl : Fn}
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop0T s wlk loop) (hlp : coreProgram.loop loop = true)
     {rd : Reader} {R : ℕ → Prop} {fp m j : ℕ} {N positions qptrs cap flags coefs hsp ch mu : E}

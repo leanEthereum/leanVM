@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Selectors.SelectorTables
 public import LeanVM.Guest.B1.Selectors.LayoutBasic
+public import LeanVM.Guest.CoreData
 
 /-!
 # `selector_tables`, completely (TRIAGE G #69)

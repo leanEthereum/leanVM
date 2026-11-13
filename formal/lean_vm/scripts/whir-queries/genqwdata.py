@@ -31,6 +31,9 @@ namespace LeanVM.Guest.B1
 open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest
 
 @[expose] public section
+
+/-- A core function of the name with the parameters `0 .. 3` and the body. -/
+abbrev QwIs (name : String) (body : List Stmt) : Prop := QwIsP coreProgram name body
 ''' % N]
 names = []
 for (d, cd), n, i in shapes:

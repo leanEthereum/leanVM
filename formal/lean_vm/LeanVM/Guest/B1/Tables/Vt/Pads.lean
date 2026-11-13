@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Guest.B1.Tables.Padding
+public import LeanVM.Guest.CoreData
 
 /-!
 # The tables' heights (G:2306-2319)

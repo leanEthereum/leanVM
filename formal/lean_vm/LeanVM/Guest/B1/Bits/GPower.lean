@@ -20,7 +20,7 @@ open LeanVM.Guest.Core
 theorem find_g_power_of_word : coreProgram.find? "g_power_of_word" = some fn% «g_power_of_word» :=
   coreProgram_find?_at (j := idx% «g_power_of_word») rfl
 
-instance : Finds coreProgram "g_power_of_word" Fn.«g_power_of_word».core := ⟨find_g_power_of_word⟩
+instance finds_g_power_of_word : Finds coreProgram "g_power_of_word" Fn.«g_power_of_word».core := ⟨find_g_power_of_word⟩
 
 /-- **`g_power_of_word`'s core IR is its meaning.** -/
 theorem g_power_of_word_holds : g_power_of_word_Spec := g_power_of_word_holdsP coreProgram

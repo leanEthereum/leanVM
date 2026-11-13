@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Whir.FactsSound
+public import LeanVM.Guest.B1.Whir.InterfaceAt
+public import LeanVM.Guest.B1.Whir.RoundFind
 public import LeanVM.Guest.B1.Whir.FactsAll
 public import LeanVM.Guest.B1.Whir.DataAll
 public import LeanVM.Guest.B1.Whir.Names

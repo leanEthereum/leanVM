@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Selectors.SelPartial
+public import LeanVM.Guest.CoreData
 
 /-!
 # `block_selector_tab` (TRIAGE G #49)

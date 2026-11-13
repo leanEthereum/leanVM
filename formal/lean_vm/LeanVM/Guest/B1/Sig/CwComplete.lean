@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Sig.WotsGroupComplete
 public import LeanVM.Guest.B1.Sig.CwKeep
-public import LeanVM.Guest.B1.Sig.Interface
+public import LeanVM.Guest.B1.Sig.InterfaceP
 public import LeanVM.Guest.B1.Sig.Shifts
 
 /-!

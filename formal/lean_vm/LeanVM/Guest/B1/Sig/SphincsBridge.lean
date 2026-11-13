@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Sig.Interface
+public import LeanVM.Guest.B1.Sig.InterfaceP
 
 /-!
 # leanSPHINCS's verification by stages

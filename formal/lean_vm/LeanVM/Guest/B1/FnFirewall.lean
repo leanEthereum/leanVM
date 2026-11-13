@@ -1,12 +1,118 @@
 import LeanVM.Guest.B1.Bits.GPowerP
+import LeanVM.Guest.B1.Bits.MeaningP
+import LeanVM.Guest.B1.Bits.QueryWindowsAll
+import LeanVM.Guest.B1.Bits.QueryWindowsCompleteAll
+import LeanVM.Guest.B1.Fs.Message
+import LeanVM.Guest.B1.Whir.DataAll
+import LeanVM.Guest.B1.Whir.HelperAll
+import LeanVM.Guest.B1.Whir.HelperTables
+import LeanVM.Guest.B1.Whir.Round
+import LeanVM.Guest.B1.Whir.RoundComplete
+import LeanVM.Guest.B1.Whir.Loops
+import LeanVM.Guest.B1.Whir.SqLoop
+import LeanVM.Guest.B1.Whir.ResLoop
+import LeanVM.Guest.B1.Whir.LpSound
+import LeanVM.Guest.B1.Whir.LqSound
+import LeanVM.Guest.B1.Whir.LrSound
+import LeanVM.Guest.B1.Sig.Bytes
+import LeanVM.Guest.B1.Sig.Codeword
+import LeanVM.Guest.B1.Sig.CodewordComplete
+import LeanVM.Guest.B1.Sig.CompleteBasic
+import LeanVM.Guest.B1.Sig.CompleteKit
+import LeanVM.Guest.B1.Sig.CwComplete
+import LeanVM.Guest.B1.Sig.CwKeep
+import LeanVM.Guest.B1.Sig.Decide
+import LeanVM.Guest.B1.Sig.Digest80
+import LeanVM.Guest.B1.Sig.Frame
+import LeanVM.Guest.B1.Sig.FwdComplete
+import LeanVM.Guest.B1.Sig.InterfaceP
+import LeanVM.Guest.B1.Sig.KMsgComplete
+import LeanVM.Guest.B1.Sig.KSeqComplete
+import LeanVM.Guest.B1.Sig.KeccakMsg
+import LeanVM.Guest.B1.Sig.Merkle
+import LeanVM.Guest.B1.Sig.MerkleComplete
+import LeanVM.Guest.B1.Sig.SeqComplete
+import LeanVM.Guest.B1.Sig.Shapes
+import LeanVM.Guest.B1.Sig.Shifts
+import LeanVM.Guest.B1.Sig.SpWotsArms
+import LeanVM.Guest.B1.Sig.SpWotsCheck
+import LeanVM.Guest.B1.Sig.SpWotsComplete
+import LeanVM.Guest.B1.Sig.SpWotsCompleteR
+import LeanVM.Guest.B1.Sig.SpWotsCompleteStmt
 import LeanVM.Guest.B1.Sig.SpWotsData
 import LeanVM.Guest.B1.Sig.SpWotsData0
 import LeanVM.Guest.B1.Sig.SpWotsData1
+import LeanVM.Guest.B1.Sig.SpWotsGroupComplete
+import LeanVM.Guest.B1.Sig.SpWotsGroups
+import LeanVM.Guest.B1.Sig.SpWotsLayout
+import LeanVM.Guest.B1.Sig.SpWotsRen0
+import LeanVM.Guest.B1.Sig.SpWotsRen1
+import LeanVM.Guest.B1.Sig.SpWotsRen2
+import LeanVM.Guest.B1.Sig.SpWotsRen3
+import LeanVM.Guest.B1.Sig.SpWotsRenDefs
+import LeanVM.Guest.B1.Sig.SpWotsSound
+import LeanVM.Guest.B1.Sig.SpWotsStepComplete
+import LeanVM.Guest.B1.Sig.SpWotsT
+import LeanVM.Guest.B1.Sig.SphincsAdrs
+import LeanVM.Guest.B1.Sig.SphincsBottomComplete
+import LeanVM.Guest.B1.Sig.SphincsBridge
+import LeanVM.Guest.B1.Sig.SphincsBridgeCells
+import LeanVM.Guest.B1.Sig.SphincsBytes
+import LeanVM.Guest.B1.Sig.SphincsBytesComplete
+import LeanVM.Guest.B1.Sig.SphincsComplete
+import LeanVM.Guest.B1.Sig.SphincsCompleteBlocks
+import LeanVM.Guest.B1.Sig.SphincsCompleteConv
+import LeanVM.Guest.B1.Sig.SphincsCompleteHolds
+import LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 import LeanVM.Guest.B1.Sig.SphincsData
 import LeanVM.Guest.B1.Sig.SphincsData0
 import LeanVM.Guest.B1.Sig.SphincsData1
 import LeanVM.Guest.B1.Sig.SphincsData2
+import LeanVM.Guest.B1.Sig.SphincsDigestComplete
 import LeanVM.Guest.B1.Sig.SphincsDigestData
+import LeanVM.Guest.B1.Sig.SphincsDigestT
+import LeanVM.Guest.B1.Sig.SphincsFields
+import LeanVM.Guest.B1.Sig.SphincsFieldsComplete
+import LeanVM.Guest.B1.Sig.SphincsForsComplete
+import LeanVM.Guest.B1.Sig.SphincsForsT
+import LeanVM.Guest.B1.Sig.SphincsGlue
+import LeanVM.Guest.B1.Sig.SphincsHash
+import LeanVM.Guest.B1.Sig.SphincsHtComplete
+import LeanVM.Guest.B1.Sig.SphincsLayersComplete
+import LeanVM.Guest.B1.Sig.SphincsLoads
+import LeanVM.Guest.B1.Sig.SphincsPathComplete
+import LeanVM.Guest.B1.Sig.SphincsSig
+import LeanVM.Guest.B1.Sig.SphincsSound
+import LeanVM.Guest.B1.Sig.SphincsSoundAddrs
+import LeanVM.Guest.B1.Sig.SphincsSoundBlocks
+import LeanVM.Guest.B1.Sig.SphincsSoundDigest
+import LeanVM.Guest.B1.Sig.SphincsSoundFors
+import LeanVM.Guest.B1.Sig.SphincsSoundHt
+import LeanVM.Guest.B1.Sig.SphincsSoundKey
+import LeanVM.Guest.B1.Sig.SphincsSoundLayer
+import LeanVM.Guest.B1.Sig.SphincsSoundPath
+import LeanVM.Guest.B1.Sig.SphincsSoundWots
+import LeanVM.Guest.B1.Sig.SphincsStagesComplete
+import LeanVM.Guest.B1.Sig.SphincsT
+import LeanVM.Guest.B1.Sig.SphincsTopComplete
+import LeanVM.Guest.B1.Sig.WotsArm
+import LeanVM.Guest.B1.Sig.WotsComplete
+import LeanVM.Guest.B1.Sig.WotsCongr
+import LeanVM.Guest.B1.Sig.WotsGroup
+import LeanVM.Guest.B1.Sig.WotsGroupComplete
+import LeanVM.Guest.B1.Sig.WotsSound
+import LeanVM.Guest.B1.Sig.WotsT
+import LeanVM.Guest.B1.Sig.XmssBound
+import LeanVM.Guest.B1.Sig.XmssCore
+import LeanVM.Guest.B1.Sig.XmssGroups
+import LeanVM.Guest.B1.Sig.XmssLayer
+import LeanVM.Guest.B1.Sig.XmssLoop2
+import LeanVM.Guest.B1.Sig.XmssScheme
+import LeanVM.Guest.B1.Sig.XmssSegArms
+import LeanVM.Guest.B1.Sig.XmssSegCodeC
+import LeanVM.Guest.B1.Sig.XmssSegComplete
+import LeanVM.Guest.B1.Sig.XmssSegCoreC
+import LeanVM.Guest.B1.Sig.XmssSegCwC
 import LeanVM.Guest.B1.Sig.XmssSegData
 import LeanVM.Guest.B1.Sig.XmssSegData1
 import LeanVM.Guest.B1.Sig.XmssSegData10
@@ -42,6 +148,122 @@ import LeanVM.Guest.B1.Sig.XmssSegData6
 import LeanVM.Guest.B1.Sig.XmssSegData7
 import LeanVM.Guest.B1.Sig.XmssSegData8
 import LeanVM.Guest.B1.Sig.XmssSegData9
+import LeanVM.Guest.B1.Sig.XmssSegDigestC
+import LeanVM.Guest.B1.Sig.XmssSegEnds
+import LeanVM.Guest.B1.Sig.XmssSegLayerC
+import LeanVM.Guest.B1.Sig.XmssSegPath
+import LeanVM.Guest.B1.Sig.XmssSegPathC
+import LeanVM.Guest.B1.Sig.XmssSegSound
+import LeanVM.Guest.B1.Sig.XmssSegStepC
+import LeanVM.Guest.B1.Sig.XmssSegT
+import LeanVM.Guest.B1.Sig.XmssSegWinSpec
+import LeanVM.Guest.B1.Sig.XmssStep
+import LeanVM.Guest.B1.Sig.XmssT
+import LeanVM.Guest.B1.Sig.XmssWindows
+
+import LeanVM.Guest.B1.Merkle.Cap
+import LeanVM.Guest.B1.Merkle.CapAllP
+import LeanVM.Guest.B1.Merkle.Climb
+import LeanVM.Guest.B1.Merkle.Meaning
+import LeanVM.Guest.B1.Opening.FoldAlg
+import LeanVM.Guest.B1.Opening.Interface
+import LeanVM.Guest.B1.Opening.Meaning
+import LeanVM.Guest.B1.Opening.NovelEval
+import LeanVM.Guest.B1.Opening.NovelSum
+import LeanVM.Guest.B1.Opening.QueriesCap
+import LeanVM.Guest.B1.Opening.QueriesComplete1
+import LeanVM.Guest.B1.Opening.QueriesComplete2
+import LeanVM.Guest.B1.Opening.QueriesFlat
+import LeanVM.Guest.B1.Opening.QueriesFlatC
+import LeanVM.Guest.B1.Opening.QueriesHonest
+import LeanVM.Guest.B1.Opening.QueriesLeaf
+import LeanVM.Guest.B1.Opening.QueriesMain
+import LeanVM.Guest.B1.Opening.QueriesMainW
+import LeanVM.Guest.B1.Opening.QueriesPath
+import LeanVM.Guest.B1.Opening.QueriesPlaced1
+import LeanVM.Guest.B1.Opening.QueriesRow
+import LeanVM.Guest.B1.Opening.QueriesSound
+import LeanVM.Guest.B1.Opening.QueriesT
+import LeanVM.Guest.B1.Opening.QueriesW
+import LeanVM.Guest.B1.Opening.QueriesWalk
+import LeanVM.Guest.B1.Opening.Residual
+import LeanVM.Guest.B1.Opening.WalkDefs
+import LeanVM.Guest.B1.Opening.WalkMatch
+import LeanVM.Guest.B1.Opening.WalkPath
+import LeanVM.Guest.B1.Opening.Witness
+import LeanVM.Guest.B1.Sumcheck.MeaningP
+import LeanVM.Guest.B1.Sumcheck.Run
+import LeanVM.Guest.B1.Fs.TailRoundP
+import LeanVM.Guest.B1.Fs.Templates
+import LeanVM.Guest.B1.Whir.Bases
+import LeanVM.Guest.B1.Whir.CAtoms
+import LeanVM.Guest.B1.Whir.CBlk
+import LeanVM.Guest.B1.Whir.CCaps
+import LeanVM.Guest.B1.Whir.CDisp
+import LeanVM.Guest.B1.Whir.CFinB
+import LeanVM.Guest.B1.Whir.CFinEval
+import LeanVM.Guest.B1.Whir.CFinO
+import LeanVM.Guest.B1.Whir.CFinPt
+import LeanVM.Guest.B1.Whir.CFinR
+import LeanVM.Guest.B1.Whir.CFinRs
+import LeanVM.Guest.B1.Whir.CHead
+import LeanVM.Guest.B1.Whir.CInv
+import LeanVM.Guest.B1.Whir.CInvLadder
+import LeanVM.Guest.B1.Whir.CInvLast
+import LeanVM.Guest.B1.Whir.CInvLevel
+import LeanVM.Guest.B1.Whir.CInvRound
+import LeanVM.Guest.B1.Whir.CLevel
+import LeanVM.Guest.B1.Whir.CLoop
+import LeanVM.Guest.B1.Whir.CLvB
+import LeanVM.Guest.B1.Whir.CLvCommit
+import LeanVM.Guest.B1.Whir.CLvLam
+import LeanVM.Guest.B1.Whir.CLvMsg
+import LeanVM.Guest.B1.Whir.CRounds
+import LeanVM.Guest.B1.Whir.CRoundsA
+import LeanVM.Guest.B1.Whir.CSqLoop
+import LeanVM.Guest.B1.Whir.CTail
+import LeanVM.Guest.B1.Whir.CVal
+import LeanVM.Guest.B1.Whir.Commit
+import LeanVM.Guest.B1.Whir.CompleteIface
+import LeanVM.Guest.B1.Whir.Config
+import LeanVM.Guest.B1.Whir.FinishSplit
+import LeanVM.Guest.B1.Whir.Flat
+import LeanVM.Guest.B1.Whir.Flatness
+import LeanVM.Guest.B1.Whir.Folds
+import LeanVM.Guest.B1.Whir.HelperT
+import LeanVM.Guest.B1.Whir.HsScale
+import LeanVM.Guest.B1.Whir.HsScaleCert
+import LeanVM.Guest.B1.Whir.Interface
+import LeanVM.Guest.B1.Whir.InterfaceW
+import LeanVM.Guest.B1.Whir.Lam
+import LeanVM.Guest.B1.Whir.LastRun
+import LeanVM.Guest.B1.Whir.LevelB
+import LeanVM.Guest.B1.Whir.LevelRun
+import LeanVM.Guest.B1.Whir.LevelSpec
+import LeanVM.Guest.B1.Whir.MatPlan
+import LeanVM.Guest.B1.Whir.NameNums
+import LeanVM.Guest.B1.Whir.Names
+import LeanVM.Guest.B1.Whir.OodW
+import LeanVM.Guest.B1.Whir.OqKey
+import LeanVM.Guest.B1.Whir.Point
+import LeanVM.Guest.B1.Whir.QOpen
+import LeanVM.Guest.B1.Whir.RateCfg
+import LeanVM.Guest.B1.Whir.RateFree
+import LeanVM.Guest.B1.Whir.ResQuery
+import LeanVM.Guest.B1.Whir.Residuals
+import LeanVM.Guest.B1.Whir.Run
+import LeanVM.Guest.B1.Whir.Split
+import LeanVM.Guest.B1.Whir.Squeezes
+import LeanVM.Guest.B1.Whir.TableKeys
+import LeanVM.Guest.B1.Whir.TableKeysLp
+import LeanVM.Guest.B1.Whir.TableKeysLq
+import LeanVM.Guest.B1.Whir.TableKeysLr
+import LeanVM.Guest.B1.Whir.TableMem
+import LeanVM.Guest.B1.Whir.TailRun
+import LeanVM.Guest.B1.Whir.Template
+import LeanVM.Guest.B1.Whir.Vanish
+import LeanVM.Guest.B1.Whir.VanishCert
+import LeanVM.Guest.B1.Whir.Witness
 
 /-! **B1's per-function proofs read their own function's core module alone.** A proof stated for
 every program that finds its function (`Finds`, `CoreFind.lean`), or a check of one function's
@@ -68,52 +290,136 @@ open Lean Elab Command in
           seen := seen.insert i.module
           todo := i.module :: todo
     return seen
-  -- each per-function proof, with the functions whose core modules it may read
-  let proofs : List (Name × List Name) := [
-    (`LeanVM.Guest.B1.Bits.GPowerP, [`g_power_of_word]),
-    (`LeanVM.Guest.B1.Sig.SpWotsData, [`sp_wots]),
-    (`LeanVM.Guest.B1.Sig.SpWotsData0, [`sp_wots]),
-    (`LeanVM.Guest.B1.Sig.SpWotsData1, [`sp_wots]),
-    (`LeanVM.Guest.B1.Sig.SphincsData, [`verify_sig_lean_sphincs]),
-    (`LeanVM.Guest.B1.Sig.SphincsData0, [`verify_sig_lean_sphincs]),
-    (`LeanVM.Guest.B1.Sig.SphincsData1, [`verify_sig_lean_sphincs]),
-    (`LeanVM.Guest.B1.Sig.SphincsData2, [`verify_sig_lean_sphincs]),
-    (`LeanVM.Guest.B1.Sig.SphincsDigestData, [`verify_sig_lean_sphincs]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData1, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData10, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData11, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData12, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData13, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData14, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData15, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData16, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData17, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData18, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData19, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData2, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData20, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData21, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData22, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData23, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData24, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData25, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData26, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData27, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData28, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData29, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData3, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData30, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData31, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData32, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData33, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData34, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData4, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData5, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData6, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData7, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData8, [`main_loop2]),
-    (`LeanVM.Guest.B1.Sig.XmssSegData9, [`main_loop2])]
+  -- each family's modules (by prefix, or numbered: `pre` followed by digits), the functions whose
+  -- core modules they may read (`none`: generated data, one module per core pack, any),
+  -- and the family's glue modules, which state its proofs at `coreProgram`
+  let W := `LeanVM.Guest.B1.Whir
+  let Q := `LeanVM.Guest.B1.Bits
+  -- single modules (not their numbered siblings), and the functions whose core modules each may read
+  let single : List (Name × List Name) := [
+    (`LeanVM.Guest.B1.Merkle.Cap, []),
+    (`LeanVM.Guest.B1.Merkle.CapAllP, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
+    (`LeanVM.Guest.B1.Merkle.Climb, []),
+    (`LeanVM.Guest.B1.Merkle.Meaning, []),
+    (`LeanVM.Guest.B1.Opening.FoldAlg, []),
+    (`LeanVM.Guest.B1.Opening.Interface, []),
+    (`LeanVM.Guest.B1.Opening.Meaning, []),
+    (`LeanVM.Guest.B1.Opening.NovelEval, []),
+    (`LeanVM.Guest.B1.Opening.NovelSum, []),
+    (`LeanVM.Guest.B1.Opening.QueriesCap, []),
+    (`LeanVM.Guest.B1.Opening.QueriesComplete1, []),
+    (`LeanVM.Guest.B1.Opening.QueriesComplete2, []),
+    (`LeanVM.Guest.B1.Opening.QueriesFlat, []),
+    (`LeanVM.Guest.B1.Opening.QueriesFlatC, []),
+    (`LeanVM.Guest.B1.Opening.QueriesHonest, []),
+    (`LeanVM.Guest.B1.Opening.QueriesLeaf, []),
+    (`LeanVM.Guest.B1.Opening.QueriesMain, []),
+    (`LeanVM.Guest.B1.Opening.QueriesMainW, []),
+    (`LeanVM.Guest.B1.Opening.QueriesPath, []),
+    (`LeanVM.Guest.B1.Opening.QueriesPlaced1, []),
+    (`LeanVM.Guest.B1.Opening.QueriesRow, []),
+    (`LeanVM.Guest.B1.Opening.QueriesSound, []),
+    (`LeanVM.Guest.B1.Opening.QueriesT, []),
+    (`LeanVM.Guest.B1.Opening.QueriesW, []),
+    (`LeanVM.Guest.B1.Opening.QueriesWalk, []),
+    (`LeanVM.Guest.B1.Opening.Residual, []),
+    (`LeanVM.Guest.B1.Opening.WalkDefs, []),
+    (`LeanVM.Guest.B1.Opening.WalkMatch, []),
+    (`LeanVM.Guest.B1.Opening.WalkPath, []),
+    (`LeanVM.Guest.B1.Opening.Witness, []),
+    (`LeanVM.Guest.B1.Sumcheck.MeaningP, []),
+    (`LeanVM.Guest.B1.Sumcheck.Run, []),
+    (`LeanVM.Guest.B1.Fs.TailRoundP, [`opening_tail_round]),
+    (`LeanVM.Guest.B1.Fs.Templates, []),
+    (`LeanVM.Guest.B1.Whir.Bases, []),
+    (`LeanVM.Guest.B1.Whir.CAtoms, [`opening_round]),
+    (`LeanVM.Guest.B1.Whir.CBlk, []),
+    (`LeanVM.Guest.B1.Whir.CCaps, []),
+    (`LeanVM.Guest.B1.Whir.CDisp, [`opening_round]),
+    (`LeanVM.Guest.B1.Whir.CFinB, []),
+    (`LeanVM.Guest.B1.Whir.CFinEval, []),
+    (`LeanVM.Guest.B1.Whir.CFinO, []),
+    (`LeanVM.Guest.B1.Whir.CFinPt, []),
+    (`LeanVM.Guest.B1.Whir.CFinR, []),
+    (`LeanVM.Guest.B1.Whir.CFinRs, []),
+    (`LeanVM.Guest.B1.Whir.CHead, []),
+    (`LeanVM.Guest.B1.Whir.CInv, []),
+    (`LeanVM.Guest.B1.Whir.CInvLadder, []),
+    (`LeanVM.Guest.B1.Whir.CInvLast, [`opening_tail_round]),
+    (`LeanVM.Guest.B1.Whir.CInvLevel, []),
+    (`LeanVM.Guest.B1.Whir.CInvRound, []),
+    (`LeanVM.Guest.B1.Whir.CLevel, [`opening_round]),
+    (`LeanVM.Guest.B1.Whir.CLoop, []),
+    (`LeanVM.Guest.B1.Whir.CLvB, [`opening_round]),
+    (`LeanVM.Guest.B1.Whir.CLvCommit, [`opening_round]),
+    (`LeanVM.Guest.B1.Whir.CLvLam, [`opening_round]),
+    (`LeanVM.Guest.B1.Whir.CLvMsg, []),
+    (`LeanVM.Guest.B1.Whir.CRounds, []),
+    (`LeanVM.Guest.B1.Whir.CRoundsA, [`opening_round]),
+    (`LeanVM.Guest.B1.Whir.CSqLoop, []),
+    (`LeanVM.Guest.B1.Whir.CTail, [`opening_round, `opening_tail_round]),
+    (`LeanVM.Guest.B1.Whir.CVal, []),
+    (`LeanVM.Guest.B1.Whir.Commit, []),
+    (`LeanVM.Guest.B1.Whir.CompleteIface, []),
+    (`LeanVM.Guest.B1.Whir.Config, []),
+    (`LeanVM.Guest.B1.Whir.FinishSplit, []),
+    (`LeanVM.Guest.B1.Whir.Flat, []),
+    (`LeanVM.Guest.B1.Whir.Flatness, []),
+    (`LeanVM.Guest.B1.Whir.Folds, []),
+    (`LeanVM.Guest.B1.Whir.HelperT, []),
+    (`LeanVM.Guest.B1.Whir.HsScale, []),
+    (`LeanVM.Guest.B1.Whir.HsScaleCert, []),
+    (`LeanVM.Guest.B1.Whir.Interface, []),
+    (`LeanVM.Guest.B1.Whir.InterfaceW, []),
+    (`LeanVM.Guest.B1.Whir.Lam, []),
+    (`LeanVM.Guest.B1.Whir.LastRun, [`opening_tail_round]),
+    (`LeanVM.Guest.B1.Whir.LevelB, []),
+    (`LeanVM.Guest.B1.Whir.LevelRun, []),
+    (`LeanVM.Guest.B1.Whir.LevelSpec, []),
+    (`LeanVM.Guest.B1.Whir.MatPlan, []),
+    (`LeanVM.Guest.B1.Whir.NameNums, []),
+    (`LeanVM.Guest.B1.Whir.Names, []),
+    (`LeanVM.Guest.B1.Whir.OodW, []),
+    (`LeanVM.Guest.B1.Whir.OqKey, []),
+    (`LeanVM.Guest.B1.Whir.Point, []),
+    (`LeanVM.Guest.B1.Whir.QOpen, []),
+    (`LeanVM.Guest.B1.Whir.RateCfg, []),
+    (`LeanVM.Guest.B1.Whir.RateFree, []),
+    (`LeanVM.Guest.B1.Whir.ResQuery, []),
+    (`LeanVM.Guest.B1.Whir.Residuals, []),
+    (`LeanVM.Guest.B1.Whir.Run, []),
+    (`LeanVM.Guest.B1.Whir.Split, []),
+    (`LeanVM.Guest.B1.Whir.Squeezes, []),
+    (`LeanVM.Guest.B1.Whir.TableKeys, []),
+    (`LeanVM.Guest.B1.Whir.TableKeysLp, []),
+    (`LeanVM.Guest.B1.Whir.TableKeysLq, []),
+    (`LeanVM.Guest.B1.Whir.TableKeysLr, []),
+    (`LeanVM.Guest.B1.Whir.TableMem, []),
+    (`LeanVM.Guest.B1.Whir.TailRun, [`opening_tail_round]),
+    (`LeanVM.Guest.B1.Whir.Template, []),
+    (`LeanVM.Guest.B1.Whir.Vanish, []),
+    (`LeanVM.Guest.B1.Whir.VanishCert, []),
+    (`LeanVM.Guest.B1.Whir.Witness, [])]
+  let families : List (Name × Option (List Name) × List Name) := [
+    (Q ++ `GPowerP, some [`g_power_of_word], []),
+    (Q ++ `MeaningP, some [], []),
+    (Q ++ `QueryWindowsT, some [], []), (Q ++ `QueryWindowsLib, some [], []),
+    (Q ++ `QueryWindows, some [], []), (Q ++ `QueryWindowsHonest, some [], []),
+    (Q ++ `QueryWindowsComplete, some [], []),
+    (`LeanVM.Guest.B1.Fs.Message, some [], []),
+    (`LeanVM.Guest.B1.Sig, some [`main_loop2, `sp_wots, `verify_sig_lean_sphincs],
+      [`LeanVM.Guest.B1.Sig.Interface]),
+    (W ++ `DataSpecP, some [], []), (W ++ `Data, none, []), (W ++ `HelperData, none, []),
+    (W ++ `HelperTables, some [], []),
+    (W ++ `Round, some [], []), (W ++ `RoundSound, some [`opening_round], []),
+    (W ++ `RoundComplete, some [`opening_round], []),
+    (W ++ `Loops, some [], []), (W ++ `SqLoop, some [], []), (W ++ `ResLoop, some [], []),
+    (W ++ `LpSound, some [], []), (W ++ `LqSound, some [], []), (W ++ `LrSound, some [], [])] ++
+    single.map fun (m, ks) ↦ (m, some ks, [])
+  let numbered (pre m : Name) : Bool := !single.any (·.1 == pre) && match pre, m with
+    | .str p s, .str q r => p == q && s.isPrefixOf r && r.length > s.length &&
+        (r.toList.drop s.length).all Char.isDigit
+    | _, _ => false
   let glue := [`LeanVM.Guest.Data.Core, `LeanVM.Guest.Data.Names, `LeanVM.Guest.CoreData,
     `LeanVM.Guest.CoreNames]
   -- a core module, and the one that holds function `k`
@@ -122,9 +428,12 @@ open Lean Elab Command in
     | _ => false
   let home (k : Name) : Option Name :=
     (env.getModuleIdxFor? (`LeanVM.Guest.Fn ++ k ++ `core)).map (names[·.toNat]!)
-  for (m, keys) in proofs do
-    let bad := (closure m).toList.filter fun d ↦ glue.any (·.isPrefixOf d) ||
-      (isCore d && !keys.any fun k ↦ (`LeanVM.Guest.Pack ++ k).isPrefixOf d || home k == some d)
-    unless bad.isEmpty do
-      throwError m!"{m} imports {bad}: a per-function proof reads its own function's core module \
-        only (see `LeanVM/Guest/B1/FnFirewall.lean`)"
+  for (pre, keys, exempt) in families do
+    for m in names do
+      unless (pre.isPrefixOf m || numbered pre m) && !exempt.contains m do continue
+      let bad := (closure m).toList.filter fun d ↦ glue.any (·.isPrefixOf d) ||
+        (isCore d && !(keys.map fun ks ↦ ks.any fun k ↦
+          (`LeanVM.Guest.Pack ++ k).isPrefixOf d || home k == some d).getD true)
+      unless bad.isEmpty do
+        throwError m!"{m} imports {bad}: a per-function proof reads its own functions' core modules \
+          only (see `LeanVM/Guest/B1/FnFirewall.lean`)"

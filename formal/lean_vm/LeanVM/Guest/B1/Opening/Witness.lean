@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesRow
-public import LeanVM.Guest.B1.Main.Frames
+public import LeanVM.Guest.B1.Main.FramesP
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.Data.NameStrings
 
@@ -344,23 +344,23 @@ def openingQueriesLoops : List (String × String × OqShape) :=
         name% «opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0»,
       ⟨0, 0, 4, 16, 23, 5, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩)]
 
-/-- **`opening_queries` is sound with its queries named** at the specialization `name` (loop
+/-- **`opening_queries` is sound with its queries named**, in the program `P`, at the specialization `name` (loop
 helper `loop`, shape `sh`): under a call relation `C ≤ Rel` unfolding at `V`, a valuation `σ`
 holding its body on `args` returning `rets`, `N` iterations (`args[7] = g^N`) and the positions
 and window pointers naming positions, its meaning holds with the queries
 `oqsOf sh.oq sh.odd loop N rd σ V`. -/
-def opening_queries_sound_w_Spec (name loop : String) (sh : OqShape) : Prop :=
-  ∀ (rd : Reader) (C : CallRel) (V : FrameMap), UnfoldsV rd C V →
-    CallRel.Le C (coreProgram.Rel rd) →
-    ∀ (fm : Fn) (σ : Val) (args rets : List E) (N : ℕ), coreProgram.find? name = some fm →
+def opening_queries_sound_w_SpecP (P : Program) (name loop : String) (sh : OqShape) : Prop :=
+  ∀ (rd : Reader) (C : CallRel) (V : FrameMap), UnfoldsVP P rd C V →
+    CallRel.Le C (P.Rel rd) →
+    ∀ (fm : Fn) (σ : Val) (args rets : List E) (N : ℕ), P.find? name = some fm →
       fm.params.map σ = args → Stmt.HoldsList C rd σ fm.body False (fun rs ↦ rs = rets) →
       args.getD 7 0 = gen ^ N → N < ordG →
       QueryPosOk rd (args.getD 5 0) (args.getD 6 0) (oqCount sh.odd sh.base N) sh.depth sh.cd →
       MeaningOpeningQueriesW sh rd (oqsOf sh.oq sh.odd loop N rd σ V) args rets
 
 /-- Every deployed specialization of `opening_queries` is sound with its queries named. -/
-def opening_queries_all_sound_w_Spec : Prop :=
-  ∀ p ∈ openingQueriesLoops, opening_queries_sound_w_Spec p.1 p.2.1 p.2.2
+def opening_queries_all_sound_w_SpecP (P : Program) : Prop :=
+  ∀ p ∈ openingQueriesLoops, opening_queries_sound_w_SpecP P p.1 p.2.1 p.2.2
 
 end
 end LeanVM.Guest.B1

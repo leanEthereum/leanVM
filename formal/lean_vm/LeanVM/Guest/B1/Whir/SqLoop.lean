@@ -30,7 +30,7 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-variable {rd : Reader}
+variable {P : Program} {rd : Reader}
 
 /-- **One iteration of the squeeze loop at `x`**: the capacity at the row `sqz·x^5`, its squeeze's
 next capacity stored after it, the challenge's positions and windows decoded at
@@ -77,11 +77,11 @@ meaning, the guard `x·g + N` and the next call's arguments. -/
 theorem sqLoop_step (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth)
     (hpo : lv.posOff < u128Bound)
     (hdec : ∀ args rets, WinTabs rd (args.getD 3 0) →
-      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
+      P.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
         args rets → MeaningDecodeQueryWindows lv.depth lv.capDepth rd args rets)
     (σ : Val) (x N sqz qpos qbp tabs : E) (hwt : WinTabs rd tabs)
     (hp : (osParams 6).map σ = [x, N, sqz, qpos, qbp, tabs])
-    (hA : AllOk (coreProgram.Rel rd) rd σ (sqLoopA lv ++ osLoopTailA (sqLoopE lv))) :
+    (hA : AllOk (P.Rel rd) rd σ (sqLoopA lv ++ osLoopTailA (sqLoopE lv))) :
     SqIter rd lv.depth lv.capDepth lv.posOff sqz qpos qbp tabs x ∧
       σ (.n (sqLoopE lv + 2)) = x * gen + N ∧
       (.n (sqLoopE lv + 4) :: (List.range (6 - 1)).map fun i ↦ V.n (i + 1)).map σ =
@@ -107,7 +107,7 @@ theorem sqLoop_step (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth)) 
     fun c ↦ by simpa [osRun] using outs_eq hout c (by simp [osRun])
   have hw : σ (.n 33) = (⟨cap, []⟩ : Fs).squeeze.1 := by
     rw [hch, Fs.squeeze, Keccak.challengeOf_cells]; exact e 0
-  have hpwv := osPowSteps_val (C := coreProgram.Rel rd) (σ := σ) 0 (osPowDigits (128 / lv.depth)) 0 34
+  have hpwv := osPowSteps_val (C := P.Rel rd) (σ := σ) 0 (osPowDigits (128 / lv.depth)) 0 34
     1 (by rw [pow_one]) hpw1
   rw [hpw, h0] at hpwv
   have hq1 := osMat_val hpo hp1
@@ -139,15 +139,15 @@ theorem sqLoop_step (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth)) 
 
 /-- **The squeeze loop, soundly**: entered at `g^e` with the bound `g^n`, `e < n < ord g`, the
 iteration's meaning holds at every `g^j`, `e ≤ j < n`. -/
-theorem sqLoop_sound {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
+theorem sqLoop_sound {name : String} {fn : Fn} (hf : P.find? name = some fn)
     (lv : OsLv) (hps : fn.params = osParams 6) (hb : fn.body = sqLoopBody lv name)
     (hpw : digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth)
     (hpo : lv.posOff < u128Bound)
     (hdec : ∀ args rets, WinTabs rd (args.getD 3 0) →
-      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
+      P.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
         args rets → MeaningDecodeQueryWindows lv.depth lv.capDepth rd args rets)
     {e n : ℕ} (hen : e < n) (hn : n < ordG) (sqz qpos qbp tabs : E) (hwt : WinTabs rd tabs)
-    (hg : gen ^ e + gen ^ n ≠ 0 → coreProgram.Rel rd name [gen ^ e, gen ^ n, sqz, qpos, qbp, tabs] []) :
+    (hg : gen ^ e + gen ^ n ≠ 0 → P.Rel rd name [gen ^ e, gen ^ n, sqz, qpos, qbp, tabs] []) :
     ∀ j, e ≤ j → j < n → SqIter rd lv.depth lv.capDepth lv.posOff sqz qpos qbp tabs (gen ^ j) := by
   rw [sqLoopBody_split] at hb
   refine loop_guarded_from (rest := [sqz, qpos, qbp, tabs]) hen hn rfl

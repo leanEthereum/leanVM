@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Sumcheck.Meaning
+public import LeanVM.Guest.B1.Sumcheck.MeaningP
 public import LeanVM.Guest.B1.Common.Run
 
 /-!

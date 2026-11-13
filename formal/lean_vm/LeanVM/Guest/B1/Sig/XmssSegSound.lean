@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Sig.XmssSegArms
 public import LeanVM.Guest.B1.Sig.XmssSegPath
 public import LeanVM.Guest.B1.Sig.XmssLayer
-public import LeanVM.Guest.B1.Sig.Interface
+public import LeanVM.Guest.B1.Sig.InterfaceP
 
 /-!
 # The leanXMSS check of `main_loop2`, sound

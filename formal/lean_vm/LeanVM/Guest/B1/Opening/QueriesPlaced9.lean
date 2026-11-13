@@ -71,7 +71,7 @@ theorem oqMainPost_addrS (s : Oq) (k : ℕ) : (oqMainPost s k).filterMap Stmt.ad
 after it, then its loop's tree (`m` words). -/
 theorem oqMain_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String → V → ℕ)
     {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) {odd : ℕ}
-    (hodd : odd ≤ 1) {name wlk loop : String} (hW : WalkFn wlk s.pd s.cd) {fm : Fn}
+    (hodd : odd ≤ 1) {name wlk loop : String} (hW : WalkFn coreProgram wlk s.pd s.cd) {fm : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
     (hbm : fm.body = oqMainT s odd wlk loop)

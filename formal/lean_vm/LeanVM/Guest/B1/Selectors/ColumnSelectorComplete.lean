@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
+public import LeanVM.Guest.CoreData
 
 /-!
 # `column_selector` is complete (TRIAGE G #68)

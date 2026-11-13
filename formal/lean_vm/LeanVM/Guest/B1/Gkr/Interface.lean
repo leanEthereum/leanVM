@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.Fs
+public import LeanVM.Guest.CoreData
 
 /-!
 # `verify_bus_gkr`: the interface

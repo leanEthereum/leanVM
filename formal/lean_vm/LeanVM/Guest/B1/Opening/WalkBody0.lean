@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesT
+public import LeanVM.Guest.CoreData
 
 namespace LeanVM.Guest.B1
 

@@ -73,13 +73,6 @@ theorem runId_readN : ∀ (n : ℕ) (st : VerifierProgramState) (xs : List E)
     obtain ⟨e2, l2⟩ := runId_readN n s1 ys s2 h2
     exact ⟨by rw [e1, e2, List.cons_append], by simp [l2]⟩
 
-theorem runId_liftOption_bind {α β : Type} {o : Option α} {k : α → VerifierProgram β}
-    {st : VerifierProgramState} {r : β × VerifierProgramState}
-    (h : runId ((liftOption o).bind k) st = some r) : ∃ a, o = some a ∧ runId (k a) st = some r := by
-  cases o with
-  | none => exact absurd h (by rintro ⟨⟩)
-  | some a => exact ⟨a, rfl, h⟩
-
 theorem runId_ret_inv {α : Type} {a b : α} {st st' : VerifierProgramState}
     (h : runId (VerifierProgram.ret a) st = some (b, st')) : b = a ∧ st' = st := by
   have e : runId (VerifierProgram.ret a) st = some (a, st) := rfl
@@ -104,17 +97,21 @@ theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
       L = Tables.layoutOf bytecode logMem rowsN ∧ 1 ≤ logMem ∧ logMem ≤ 30 ∧
       rowsN.length = 6 ∧ (∀ n ∈ rowsN, n ≤ 2 ^ 30) ∧ 1 ≤ r ∧ r ≤ 4 ∧
       Whir.minLogStack ≤ L.stackLog ∧ L.stackLog ≤ Whir.maxLogStack := by
-  unfold readAnnouncedSizes at h
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq] at h
+  rw [readAnnouncedSizes_eq] at h
+  simp only [VerifierProgram.bind_eq] at h
   obtain ⟨xs, s1, h1, h⟩ := runId_bind_some h
   obtain ⟨hs1, hl⟩ := runId_readN _ _ _ _ h1
-  obtain ⟨hall, h⟩ := runId_require_bind h
-  obtain ⟨hr, h⟩ := runId_require_bind h
-  obtain ⟨L', hL', h⟩ := runId_liftOption_bind h
-  obtain ⟨hst, h⟩ := runId_require_bind h
-  obtain ⟨he, rfl⟩ := runId_ret_inv h
-  simp only [Prod.mk.injEq] at he
-  obtain ⟨rfl, rfl⟩ := he
+  cases hx : sizesOf bytecode xs with
+  | none => rw [hx] at h; exact absurd h (by rintro ⟨⟩)
+  | some x =>
+  rw [hx] at h
+  obtain ⟨rfl, rfl⟩ := runId_ret_inv (a := x) h
+  obtain ⟨hall, hr1, hr4, hrate, hL', hst1, hst2⟩ := sizesOf_spec hx
+  dsimp only at hr1 hr4 hrate hL' hst1 hst2
+  subst hrate
+  have hr := And.intro hr1 hr4
+  have hst := And.intro hst1 hst2
+  clear hr1 hr4 hst1 hst2 hx h
   have hl8 : xs.length = 8 := by rw [hl]; rfl
   match xs, hl8, hall, hs1, hL', hr with
   | [v0, v1, v2, v3, v4, v5, v6, v7], _, hall, hs1, hL', hr =>
@@ -204,14 +201,8 @@ theorem readOnly_liftOption {α : Type} (o : Option α) : ReadOnly (Verifier.lif
   · exact readOnly_ret _
 
 theorem readOnly_readSizes (bytecode : List K) : ReadOnly (readAnnouncedSizes bytecode) := by
-  unfold readAnnouncedSizes
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  refine ReadOnly.bind (readOnly_readN _) fun _ ↦ ?_
-  refine ReadOnly.bind (readOnly_require _) fun _ ↦ ?_
-  refine ReadOnly.bind (readOnly_require _) fun _ ↦ ?_
-  refine ReadOnly.bind (readOnly_liftOption _) fun _ ↦ ?_
-  refine ReadOnly.bind (readOnly_require _) fun _ ↦ ?_
-  exact readOnly_ret _
+  rw [readAnnouncedSizes_eq]
+  exact ReadOnly.bind (readOnly_readN _) fun _ ↦ readOnly_liftOption _
 
 /-- A run that only reads returns what the stream gives, whatever the hashes and the sponge with
 nothing waiting. -/
@@ -525,14 +516,13 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
     refine List.mem_append_right _ ?_
     rw [queryStepsOf_bind _ _ _ _ _ hvs]
     refine List.mem_append_left _ ?_
-    have hreq : runId (VerifierProgram.require
-        ((stackClaims L kc.1 rs.1 rs.2 ood).length ≤ maxStackedClaims))
+    have hreq : runId (VerifierProgram.require (StackedOk (stackClaims L kc.1 rs.1 rs.2 ood)))
         ⟨sp8, stream8, c.proof.openings, [(digestFromHalves (x0, x1),
           Whir.stackShape L.stackLog r)]⟩ =
         some ((), ⟨sp8, stream8, c.proof.openings, [(digestFromHalves (x0, x1),
           Whir.stackShape L.stackLog r)]⟩) := by
       unfold VerifierProgram.require
-      simp only [hcl, ↓reduceIte]
+      simp only [stackedOk_of hcl, ↓reduceIte]
       rfl
     rw [verifyStackedOpening_split, queryStepsOf_bind _ _ _ _ _ hreq]
     refine List.mem_append_right _ ?_
