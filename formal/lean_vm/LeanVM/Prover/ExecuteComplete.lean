@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Prover.ExecuteCompleteKeccak
+public import LeanVM.Prover.ExecuteCount
 public import LeanVM.Prover.ExecuteSound
 
 /-!
@@ -114,15 +115,16 @@ theorem loop_complete {prog : LeanIsaProgram} {κ n : ℕ} {img : MemoryImage κ
     (hrule : InvRule prog img n C M Inv) :
     ∀ (j fuel : ℕ) (s : St), Fine M s → Inv s → s.pc < C.ops.size → s.steps + j = n → j ≤ fuel →
       run prog img j ⟨g ^ s.pc, g ^ s.fp⟩ = some (Registers.final prog) →
-      ∃ sf, loop C fuel s = .ok sf ∧ Fine M sf ∧ sf.steps = n := by
+      ∃ sf, loop C fuel s = .ok sf ∧ Fine M sf ∧ sf.steps = n ∧ Inv sf ∧ s.mem ≤ sf.mem ∧
+        ∀ rd, Final sf.mem rd → SameSteps prog img rd j ⟨g ^ s.pc, g ^ s.fp⟩ := by
   have hsz : C.ops.size ≤ 2 ^ 30 := hsize ▸ Nat.pow_le_pow_right (by norm_num) prog.logSize_le
   intro j
   induction j with
   | zero =>
-    intro fuel s hs _ hpc hn _ hrun
+    intro fuel s hs hinv hpc hn _ hrun
     rw [run_zero, Option.some.injEq] at hrun
     obtain ⟨h1, h2⟩ := final_eq hsize hpc hs.fp hrun
-    refine ⟨s, ?_, hs, by omega⟩
+    refine ⟨s, ?_, hs, by omega, hinv, Mem.le_refl _, fun _ _ ↦ trivial⟩
     rw [loop.eq_def]
     dsimp only
     rw [ite_eq_left ⟨h1, h2⟩]
@@ -155,16 +157,33 @@ theorem loop_complete {prog : LeanIsaProgram} {κ n : ℕ} {img : MemoryImage κ
       rw [mapError_eq e2, ok_bind]
       rfl
     obtain ⟨fuel, rfl⟩ : ∃ f, fuel = f + 1 := ⟨fuel - 1, by omega⟩
-    obtain ⟨sf, ef, hf, hsf⟩ := ih fuel { s2 with steps := s2.steps + 1 }
+    obtain ⟨sf, ef, hf, hsf, hinvf, hlef, hsame⟩ := ih fuel { s2 with steps := s2.steps + 1 }
       (let h := d2.fine; ⟨h.agree, h.dl, h.small, h.fp⟩) (hinv' s2 e2 d2.fine d2.le) d2.pc
       (by dsimp only; rw [d2.steps, m1.steps]; omega) (by omega)
       (by dsimp only; rw [d2.regs]; exact hrun1)
-    refine ⟨sf, ?_, hf, hsf⟩
-    rw [loop.eq_def]
-    dsimp only
-    rw [ite_eq_right (fun h ↦ hne (by rw [h.1, h.2, hsize]; rfl)), ite_eq_right (by omega), hstepC,
-      ok_bind]
-    exact ef
+    have sp := step_spec (ins := prog.instructions ⟨s.pc, hpc2⟩) ⟨hs.agree.wf, hs.dl⟩ hs.fp hpc
+      (fun op hop ↦ by
+        obtain ⟨h, rfl⟩ := Array.getElem?_eq_some_iff.mp hop
+        exact hdec s.pc hpc2 h) hstepC
+    have hstepR : LeanVM.Semantics.step prog img ⟨g ^ s.pc, g ^ s.fp⟩ = some r1 := by
+      rw [step_of_fetch_eq_some (prog.fetch_gpow ⟨s.pc, hpc2⟩), LeanVM.Semantics.execute]
+      exact hstep
+    refine ⟨sf, ?_, hf, hsf, hinvf, Mem.le_trans m1.le (Mem.le_trans d2.le hlef),
+      fun rd hF ↦ ⟨?_, fun r' hr' ↦ ?_⟩⟩
+    · rw [loop.eq_def]
+      dsimp only
+      rw [ite_eq_right (fun h ↦ hne (by rw [h.1, h.2, hsize]; rfl)), ite_eq_right (by omega), hstepC,
+        ok_bind]
+      exact ef
+    · rw [hstepR]
+      change prog.fetch (g ^ s.pc) >>= executeWith rd ⟨g ^ s.pc, g ^ s.fp⟩ = _
+      rw [show g ^ s.pc = addressOfIndex (⟨s.pc, hpc2⟩ : Fin (2 ^ prog.logSize)) from rfl,
+        prog.fetch_gpow ⟨s.pc, hpc2⟩]
+      exact (sp.exec sf.mem rd hlef hF).trans (congrArg some d2.regs)
+    · rw [hstepR, Option.some.injEq] at hr'
+      subst hr'
+      rw [← d2.regs]
+      exact hsame rd hF
 
 /-! ## The run -/
 
@@ -226,15 +245,18 @@ theorem forIn_yield {ε : Type} :
     exact forIn_yield l f fun y hy ↦ h y (List.mem_cons_of_mem _ hy)
 
 /-- **The executor is complete** against a valid execution, given an invariant satisfying the
-invariant rule. -/
-theorem execute_complete {prog : LeanIsaProgram} {input : PublicInput} {adv : Advice} {κ n : ℕ}
+invariant rule: it runs the reference's instructions, and its memory is the least power of two
+covering `used` at a state of the invariant. -/
+theorem execute_complete_inv {prog : LeanIsaProgram} {input : PublicInput} {adv : Advice} {κ n : ℕ}
     {img : MemoryImage κ} {Inv : St → Prop} (hκ : κ ≤ 28) (hn : n ≤ maxSteps)
     (hval : ValidExecution prog input ⟨κ, img, n⟩) (hdec : ∀ i, Decodable (prog.instructions i))
     (hmain : adv.mainFrame < maxCells)
     (hinit : ∀ C m, Ctx.of prog adv = .ok C → initMem adv input = .ok m → Inv (initSt C adv m))
     (hrule : ∀ C, Ctx.of prog adv = .ok C → InvRule prog img n C (refMem img) Inv) :
     ∃ t, execute prog input adv = .ok t ∧ t.stepCount = n ∧
-      ∀ i, t.memory i = 0 ∨ t.memory i = refMem img i.val := by
+      (∀ i, t.memory i = 0 ∨ t.memory i = refMem img i.val) ∧
+      (∀ op, t.opcodeCount op = (⟨κ, img, n⟩ : Execution prog).opcodeCount op) ∧
+      ∃ s, Inv s ∧ t.logMemorySize = Nat.log2 s.mem.used.nextPowerOfTwo := by
   obtain ⟨C, hC⟩ := ctx_of_complete (adv := adv) hdec
   obtain ⟨hsize, hdecC⟩ := ctx_of_spec hC
   have hsz : C.ops.size ≤ 2 ^ 30 := hsize ▸ Nat.pow_le_pow_right (by norm_num) prog.logSize_le
@@ -248,26 +270,27 @@ theorem execute_complete {prog : LeanIsaProgram} {input : PublicInput} {adv : Ad
       fun c k h ↦ by simp [Mem.cellOf] at h, rfl,
       show max adv.mainFrame 2 ≤ maxCells by unfold maxCells at hmain ⊢; omega⟩,
       fun p hp ↦ by simp at hp⟩
-  obtain ⟨m1, e1, a1, -, -⟩ := hA0.put hM0 (by unfold maxCells; norm_num)
-  obtain ⟨m2, e2, a2, -, -⟩ := a1.put hM1 (by unfold maxCells; norm_num)
+  obtain ⟨m1, e1, a1, le1, -⟩ := hA0.put hM0 (by unfold maxCells; norm_num)
+  obtain ⟨m2, e2, a2, le2, -⟩ := a1.put hM1 (by unfold maxCells; norm_num)
   have hinitm : initMem adv input = .ok m2 := by
     unfold initMem; rw [e1]; exact e2
   have hs0 : Fine (refMem img) (initSt C adv m2) :=
     ⟨a2, Dlog.ok_empty.grow _, Dlog.small_empty.grow (by unfold maxCells at hmain; omega),
       show 0 < maxCells by unfold maxCells; norm_num⟩
-  obtain ⟨sf, ef, hf, hsf⟩ := loop_complete hsize hdecC (ctx_small hC) hrd (hrule C hC) n maxSteps
+  obtain ⟨sf, ef, hf, hsf, hinvf, hlef, hsame⟩ := loop_complete hsize hdecC (ctx_small hC) hrd (hrule C hC) n maxSteps
     (initSt C adv m2) hs0 (hinit C m2 hC hinitm) (by rw [hsize]; exact Nat.one_le_two_pow)
     (Nat.zero_add n) hn
     (by
       show run prog img n ⟨g ^ 0, g ^ 0⟩ = _
       rw [show (⟨g ^ 0, g ^ 0⟩ : Registers K) = Registers.initial by rw [pow_zero]; rfl]
       exact hrun)
-  refine ⟨⟨sf.mem.image.1, sf.mem.image.2, sf.steps⟩, ?_, hsf, fun i ↦ ?_⟩
+  have hlinks : ∀ p ∈ sf.mem.links, sf.mem.peek p.1 = sf.mem.peek p.2 := fun p hp ↦ by
+    unfold Mem.peek
+    rw [((hf.agree.links p hp).2).get_eq]
+  refine ⟨⟨sf.mem.image.1, sf.mem.image.2, sf.steps⟩, ?_, hsf, fun i ↦ ?_, fun op ↦ ?_,
+    sf, hinvf, rfl⟩
   · have ef' : loop C maxSteps ⟨m2, Dlog.empty.grow (max (C.ops.size + 2) adv.mainFrame), 0, 0,
         adv.mainFrame, ∅, 0⟩ = .ok sf := ef
-    have hlinks : ∀ p ∈ sf.mem.links.toList, sf.mem.peek p.1 = sf.mem.peek p.2 := fun p hp ↦ by
-      unfold Mem.peek
-      rw [((hf.agree.links p (Array.mem_toList_iff.mp hp)).2).get_eq]
     unfold execute
     rw [hC, ok_bind]
     dsimp only
@@ -278,13 +301,33 @@ theorem execute_complete {prog : LeanIsaProgram} {input : PublicInput} {adv : Ad
     · rfl
     · rintro ⟨a, b⟩ hp
       dsimp only
-      rw [ite_eq_right (not_not.mpr (hlinks _ hp))]
+      rw [ite_eq_right (not_not.mpr (hlinks _ (Array.mem_toList_iff.mp hp)))]
       rfl
   · show sf.mem.peek i.val = 0 ∨ sf.mem.peek i.val = refMem img i.val
     unfold Mem.peek
     cases h : sf.mem.get i.val with
     | none => exact Or.inl rfl
     | some v => exact Or.inr (hf.agree.get _ _ h).symm
+  · have hu2 : 2 ≤ sf.mem.used :=
+      le_trans (le_max_right _ _) (le_trans le1.used (le_trans le2.used hlef.used))
+    have hF := final_image hf.agree.wf hu2 hf.agree.used hlinks
+    show opcodeCountInRun prog sf.mem.image.snd op sf.steps Registers.initial =
+      opcodeCountInRun prog img op n Registers.initial
+    rw [hsf, show (Registers.initial : Registers K) = ⟨g ^ 0, g ^ 0⟩ by rw [pow_zero]; rfl]
+    exact opcodeCountInRun_congr op n _ (hsame _ hF)
+
+/-- **The executor is complete** against a valid execution, given an invariant satisfying the
+invariant rule. -/
+theorem execute_complete {prog : LeanIsaProgram} {input : PublicInput} {adv : Advice} {κ n : ℕ}
+    {img : MemoryImage κ} {Inv : St → Prop} (hκ : κ ≤ 28) (hn : n ≤ maxSteps)
+    (hval : ValidExecution prog input ⟨κ, img, n⟩) (hdec : ∀ i, Decodable (prog.instructions i))
+    (hmain : adv.mainFrame < maxCells)
+    (hinit : ∀ C m, Ctx.of prog adv = .ok C → initMem adv input = .ok m → Inv (initSt C adv m))
+    (hrule : ∀ C, Ctx.of prog adv = .ok C → InvRule prog img n C (refMem img) Inv) :
+    ∃ t, execute prog input adv = .ok t ∧ t.stepCount = n ∧
+      ∀ i, t.memory i = 0 ∨ t.memory i = refMem img i.val :=
+  let ⟨t, he, hn, hm, _⟩ := execute_complete_inv hκ hn hval hdec hmain hinit hrule
+  ⟨t, he, hn, hm⟩
 
 end
 

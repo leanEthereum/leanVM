@@ -9,6 +9,7 @@ import LeanVM.Prover.End
 import LeanVM.Prover.EndChild
 import LeanVM.Prover.ExecuteSound
 import LeanVM.Prover.ExecuteComplete
+import LeanVM.Prover.ExecuteCompleteX
 import LeanVM.Guest.HonestChildren
 import XmssSecurity.Rpm
 import Sphincs.Security
@@ -296,6 +297,14 @@ that satisfies the invariant rule (`LeanVM/Prover/ExecuteComplete.lean`). -/
 /-- info: 'LeanVM.Prover.Exec.execute_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Prover.Exec.execute_complete
+
+/-! `LeanVM.Prover.Exec.execute_completeX`: moreover, given an invariant keeping the cells the
+executor touches below `2^κ`, that execution is valid, runs the reference's instructions, and
+commits no more cells than the reference (`LeanVM/Prover/ExecuteCompleteX.lean`). -/
+
+/-- info: 'LeanVM.Prover.Exec.execute_completeX' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.Exec.execute_completeX
 
 /-- **Every end theorem**, `Statement/Theorems.lean`, at the extractor
 `LeanVM.Cost.compiledKnowledgeExtractor` and any decoder program `decoderProgram` meeting its

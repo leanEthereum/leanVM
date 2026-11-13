@@ -178,6 +178,22 @@ theorem image_log {u : ℕ} (h2 : 2 ≤ u) (hu : u ≤ maxCells) :
   · simp at hle; omega
   · exact hk
 
+theorem log2_nextPowerOfTwo_le {u κ : ℕ} (h : u ≤ 2 ^ κ) : Nat.log2 u.nextPowerOfTwo ≤ κ := by
+  obtain ⟨k, hk⟩ := Nat.isPowerOfTwo_nextPowerOfTwo u
+  have hle := Nat.nextPowerOfTwo_le h ⟨κ, rfl⟩
+  rw [hk, Nat.log2_two_pow]
+  rw [hk] at hle
+  exact (Nat.pow_le_pow_iff_right (by norm_num)).mp hle
+
+/-- A well formed memory covering at least two cells and at most `maxCells`, its links agreeing, is
+final on its own image. -/
+theorem final_image {m : Mem} (hwf : m.WF) (h2 : 2 ≤ m.used) (hu : m.used ≤ maxCells)
+    (hlinks : ∀ p ∈ m.links, m.peek p.1 = m.peek p.2) : Final m (MemoryImage.read m.image.snd) := by
+  obtain ⟨-, hcov, -, hκ28⟩ := image_log h2 hu
+  exact ⟨hwf, fun c hc ↦ MemoryImage.read_gpow
+    (by change Nat.log2 m.used.nextPowerOfTwo < 64; omega) m.image.snd
+    ⟨c, lt_of_lt_of_le hc hcov⟩, hlinks⟩
+
 /-- **The executor is sound**: an execution it returns is a valid execution of the program on the
 public input, for every program, hint list and stream. -/
 theorem execute_sound {prog : LeanIsaProgram} {input : PublicInput} {adv : Advice}
@@ -204,7 +220,7 @@ theorem execute_sound {prog : LeanIsaProgram} {input : PublicInput} {adv : Advic
     (by unfold maxCells; norm_num) (Nat.zero_le _) hloop
   have hu2 : 2 ≤ s.mem.used :=
     le_trans (le_max_right _ _) (le_trans le1.used (le_trans le2.used les.used))
-  obtain ⟨hpow, hcov, hκ1, hκ28⟩ := image_log hu2 (not_lt.mp hused)
+  obtain ⟨-, -, hκ1, hκ28⟩ := image_log hu2 (not_lt.mp hused)
   have hlinks : ∀ p ∈ s.mem.links, s.mem.peek p.1 = s.mem.peek p.2 := by
     rw [← Array.forIn_toList] at hfor
     intro p hp
@@ -214,11 +230,7 @@ theorem execute_sound {prog : LeanIsaProgram} {input : PublicInput} {adv : Advic
     · cases hy
     · simp only [pure_ok] at hy
       exact ⟨not_not.mp hne, hy.symm⟩
-  have hF : Final s.mem (MemoryImage.read s.mem.image.snd) :=
-    ⟨gs.wf, fun c hc ↦ MemoryImage.read_gpow
-      (by change Nat.log2 s.mem.used.nextPowerOfTwo < 64; omega) s.mem.image.snd
-      ⟨c, lt_of_lt_of_le hc hcov⟩,
-      hlinks⟩
+  have hF := final_image gs.wf hu2 (not_lt.mp hused) hlinks
   refine ⟨⟨hκ1, le_trans hκ28 (by decide), ?_, ?_⟩, ?_⟩
   · exact hF.get (Mem.le_trans le2 les) g1
   · exact hF.get les g2
