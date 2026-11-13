@@ -91,14 +91,26 @@ Building blocks:
 | op | name | request payload | response body |
 | --- | --- | --- | --- |
 | 1 | `AGGREGATE` | `signatures` | `proof \| claims` |
-| 2 | `RECURSE` | `n u32 \| n x (claims \| proof)`, `n` in 1..=16 | `proof \| claims` |
+| 2 | `RECURSE` | `n u32 \| n x (claims \| proof)` | `proof \| claims` |
 | 3 | `VERIFY` | `claims \| proof` | empty |
 | 4 | `VERIFY_NARROW` | `claims \| proof \| claims` | `proof \| claims` |
+| 5 | `EXTEND` | `n u32 \| n x (claims \| proof) \| signatures` | `proof \| claims` |
 
 - `AGGREGATE` proves that every signature is valid. The signatures are assumed valid: an invalid one fails the whole request with `AGGREGATION_FAILED`, without saying which.
 - `RECURSE` proves the union of its children's claims. With flag `VERIFY_CHILDREN` (bit 0) the server verifies each child first and reports the first bad one as `INVALID_PROOF` with its index. Without it the client asserts the children are verified; a bad child then fails the request late as `AGGREGATION_FAILED`, usually without its index.
 - `VERIFY` checks a proof against the claims given. `OK` means exactly these public keys signed exactly these messages.
 - `VERIFY_NARROW` verifies the proof against the first claims, then makes a proof of the second claims, which must be a subset of the first.
+- `EXTEND` is `RECURSE` and `AGGREGATE` in one proof: it proves the union of its children's claims and the signatures' claims. `VERIFY_CHILDREN` and the rules for signatures apply as in those two.
+
+`RECURSE` and `EXTEND` take 1 to 16 children, the kept proof included.
+
+| flag | bit | ops | meaning |
+| --- | --- | --- | --- |
+| `VERIFY_CHILDREN` | 0 | `RECURSE`, `EXTEND` | verify each child in the payload before proving |
+| `KEEP_PROOF` | 1 | every op but `VERIFY` | the server keeps the proof it returns, in place of any it held |
+| `USE_KEPT` | 2 | `RECURSE`, `EXTEND` | the kept proof is one more child, after those in the payload, which may then be none |
+
+The server holds at most one kept proof, in memory. It lets a client grow a proof over several `EXTEND` requests without sending it back each time: `AGGREGATE` with `KEEP_PROOF`, then `EXTEND` with `USE_KEPT | KEEP_PROOF` and a payload of `0 u32 | signatures`, and the last `EXTEND` with `USE_KEPT` alone. A request with `USE_KEPT` that succeeds ends the keeping of that proof, so without `KEEP_PROOF` nothing is kept afterwards. A request that fails changes nothing, and `USE_KEPT` with nothing kept is `BAD_REQUEST`. A proof that did not fit its response region (`RESP_TOO_SMALL`) is kept all the same. The kept proof is never verified again, and a server restart loses it.
 
 The response body repeats the claims because the server sorts and deduplicates them.
 

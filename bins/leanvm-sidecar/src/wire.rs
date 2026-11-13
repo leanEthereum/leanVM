@@ -10,9 +10,14 @@ pub const OP_AGGREGATE: u32 = 1;
 pub const OP_RECURSE: u32 = 2;
 pub const OP_VERIFY: u32 = 3;
 pub const OP_VERIFY_NARROW: u32 = 4;
+pub const OP_EXTEND: u32 = 5;
 
-/// `OP_RECURSE`: verify every child natively before proving.
+/// `OP_RECURSE`, `OP_EXTEND`: verify every child natively before proving.
 pub const FLAG_VERIFY_CHILDREN: u32 = 1;
+/// A proving op: the server keeps the proof it returns, in place of any it held.
+pub const FLAG_KEEP_PROOF: u32 = 2;
+/// `OP_RECURSE`, `OP_EXTEND`: the kept proof is one more child, and is no longer kept.
+pub const FLAG_USE_KEPT: u32 = 4;
 
 pub const ST_OK: u32 = 0;
 /// A region outside the arena, an unknown op or a payload that does not decode.

@@ -1,7 +1,9 @@
-// The run e2e.sh drives: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate> <signatures-per-batch>
+// The run e2e.sh drives: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate> <signatures-per-batch> <sub-batch>
 //
 // Sixteen AGGREGATE requests of signatures-per-batch signatures each, one after the other, then one RECURSE over
-// the sixteen proofs and one VERIFY of the result. The file is records of pubkey | message | signature.
+// the sixteen proofs and one VERIFY of the result. With sub-batch below signatures-per-batch, each
+// batch is instead built up in parts of sub-batch signatures: an AGGREGATE, then one EXTEND per part
+// of the proof so far, which the server keeps. Parts run at rate 1, except the last at aggregate-rate. The file is records of pubkey | message | signature.
 package main
 
 import (
@@ -58,9 +60,39 @@ func split(response leanvmsidecar.Response) (proof, claims []byte) {
 	return response.Body[:8+proofLen], response.Body[8+proofLen:]
 }
 
+// step makes one proving request, prints it, with the time since a non-zero since, and returns the
+// response's proof and claims.
+func step(client *leanvmsidecar.Client, op, flags, rate uint32, payload []byte, label, what string, since time.Time) (proof, claims []byte) {
+	response, elapsed := call(client, op, flags, rate, payload)
+	batch := ""
+	if !since.IsZero() {
+		batch = fmt.Sprintf(", batch total %.3f s", time.Since(since).Seconds())
+	}
+	proof, claims = split(response)
+	fmt.Printf("%s: %s, %d bytes, rate %d -> proof %d bytes, %d claims, %.3f s%s\n",
+		label, what, len(payload), rate, len(proof)-8, binary.LittleEndian.Uint32(claims), elapsed.Seconds(), batch)
+	return proof, claims
+}
+
+// aggregate is an AGGREGATE over records, each record bytes; under FlagUseKept, an EXTEND of the proof
+// the server kept with them.
+func aggregate(client *leanvmsidecar.Client, flags uint32, records []byte, record int, rate uint32, label string, since time.Time) ([]byte, []byte) {
+	le := binary.LittleEndian
+	count := len(records) / record
+	op, what := leanvmsidecar.OpAggregate, fmt.Sprintf("%d signatures", count)
+	var payload []byte
+	if flags&leanvmsidecar.FlagUseKept != 0 {
+		op, what = leanvmsidecar.OpExtend, fmt.Sprintf("kept proof + %d signatures", count)
+		// No child in the payload.
+		payload = le.AppendUint32(payload, 0)
+	}
+	payload = append(le.AppendUint32(payload, uint32(count)), records...)
+	return step(client, op, flags, rate, payload, label, what, since)
+}
+
 func main() {
-	if len(os.Args) != 6 {
-		fmt.Fprintln(os.Stderr, "usage: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate> <signatures-per-batch>")
+	if len(os.Args) != 7 {
+		fmt.Fprintln(os.Stderr, "usage: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate> <signatures-per-batch> <sub-batch>")
 		os.Exit(2)
 	}
 	aggregateRate, err := strconv.ParseUint(os.Args[3], 10, 32)
@@ -68,6 +100,8 @@ func main() {
 	recurseRate, err := strconv.ParseUint(os.Args[4], 10, 32)
 	fatal(err)
 	perBatch, err := strconv.Atoi(os.Args[5])
+	fatal(err)
+	subBatch, err := strconv.Atoi(os.Args[6])
 	fatal(err)
 	client, err := leanvmsidecar.Open(os.Args[1])
 	fatal(err)
@@ -81,21 +115,37 @@ func main() {
 
 	total := time.Now()
 	le := binary.LittleEndian
+	parts := (perBatch + subBatch - 1) / subBatch
 	recurse := le.AppendUint32(nil, batches)
 	for batch := 0; batch < batches; batch++ {
-		payload := le.AppendUint32(nil, uint32(perBatch))
-		payload = append(payload, signatures[batch*perBatch*record:(batch+1)*perBatch*record]...)
-		response, elapsed := call(client, leanvmsidecar.OpAggregate, 0, uint32(aggregateRate), payload)
-		proof, claims := split(response)
-		fmt.Printf("aggregate %2d/%d: %d signatures, %d bytes, rate %d -> proof %d bytes, %d claims, %.3f s\n",
-			batch+1, batches, perBatch, len(payload), aggregateRate, len(proof)-8, le.Uint32(claims), elapsed.Seconds())
-		recurse = append(recurse, claims...)
-		recurse = append(recurse, proof...)
+		records := signatures[batch*perBatch*record : (batch+1)*perBatch*record]
+		var proof, claims []byte
+		started := time.Now()
+		for part := 0; part < parts; part++ {
+			sub := records[part*subBatch*record : min((part+1)*subBatch*record, len(records))]
+			// Every part but the first extends the proof the server kept; every part but the last
+			// has it keep the new one. The last part's proof is the batch's.
+			name, flags, rate := "aggregate", leanvmsidecar.FlagKeepProof, uint32(1)
+			if part > 0 {
+				name, flags = "extend   ", flags|leanvmsidecar.FlagUseKept
+			}
+			var since time.Time
+			if part+1 == parts {
+				flags, rate = flags&^leanvmsidecar.FlagKeepProof, uint32(aggregateRate)
+				if parts > 1 {
+					since = started
+				}
+			}
+			label := fmt.Sprintf("%s %2d/%d", name, batch+1, batches)
+			if parts > 1 {
+				label += fmt.Sprintf(" part %2d/%d", part+1, parts)
+			}
+			proof, claims = aggregate(client, flags, sub, record, rate, label, since)
+		}
+		recurse = append(append(recurse, claims...), proof...)
 	}
-	response, elapsed := call(client, leanvmsidecar.OpRecurse, 0, uint32(recurseRate), recurse)
-	proof, claims := split(response)
-	fmt.Printf("recurse %d -> 1: %d proofs, %d bytes, rate %d -> proof %d bytes, %d claims, %.3f s\n",
-		batches, batches, len(recurse), recurseRate, len(proof)-8, le.Uint32(claims), elapsed.Seconds())
+	proof, claims := step(client, leanvmsidecar.OpRecurse, 0, uint32(recurseRate), recurse,
+		fmt.Sprintf("recurse %d -> 1", batches), fmt.Sprintf("%d proofs", batches), time.Time{})
 	verify := append(append([]byte(nil), claims...), proof...)
 	verdict, elapsed := call(client, leanvmsidecar.OpVerify, 0, 0, verify)
 	check(verdict)

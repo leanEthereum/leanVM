@@ -2,7 +2,7 @@
 
 A long-lived leanVM prover and verifier for one client process on the same machine. The client and the sidecar share one file on tmpfs: payloads sit in an arena inside it, and two rings of 64-byte messages carry requests and responses. The client can be written in any language that can map a file and do an atomic 64-bit load and store.
 
-It serves four operations, on leanXMSS signatures only:
+It serves five operations, on leanXMSS signatures only:
 
 | op | what it does |
 | --- | --- |
@@ -10,6 +10,7 @@ It serves four operations, on leanXMSS signatures only:
 | `RECURSE` | prove the union of up to 16 proofs' claims |
 | `VERIFY` | check a proof against its claims |
 | `VERIFY_NARROW` | check a proof, then prove a subset of its claims |
+| `EXTEND` | prove the union of up to 16 proofs' claims and a batch of signatures |
 
 [`PROTOCOL.md`](PROTOCOL.md) is the byte-level specification: the file layout, the messages, the payload encodings and the status codes.
 
@@ -62,20 +63,22 @@ The clients build no payloads and parse no bodies. The end-to-end runners below 
 ## End-to-end test
 
 ```bash
-bins/leanvm-sidecar/e2e.sh <rust|go|java|ts|nim> <threads> [--signatures N] [--aggregate-rate R] [--recurse-rate R]
+bins/leanvm-sidecar/e2e.sh <rust|go|java|ts|nim> <threads> [--signatures N] [--batch-size N] [--aggregate-rate R] [--recurse-rate R]
 ```
 
 | option | default | meaning |
 | --- | --- | --- |
 | `--signatures` | 1440 | signatures per batch, 1 to 1500 |
-| `--aggregate-rate` | 2 | `log_inv_rate` of the aggregations |
+| `--batch-size` | `--signatures` | signatures per sub-batch |
+| `--aggregate-rate` | 2 | `log_inv_rate` of each batch's proof |
 | `--recurse-rate` | 1 | `log_inv_rate` of the recursion |
 
-The script builds the sidecar and the chosen language's runner, starts the sidecar with `<threads>` prover threads, and has the runner make sixteen `AGGREGATE` requests of `--signatures` signatures each, one after the other, then one `RECURSE` over the sixteen proofs and one `VERIFY` of the result. Each step prints its request, its response and the time from `send` to the response, as the client sees it. The script stops the sidecar and removes the channel file when the runner exits.
+The script builds the sidecar and the chosen language's runner, starts the sidecar with `<threads>` prover threads, and has the runner make sixteen `AGGREGATE` requests of `--signatures` signatures each, one after the other, then one `RECURSE` over the sixteen proofs and one `VERIFY` of the result. With `--batch-size`, each batch is instead built up in sub-batches of that size, the last one short: the first is an `AGGREGATE`, and each later one an `EXTEND` of the proof so far with the next signatures. The sidecar keeps that proof between the requests (flags `KEEP_PROOF` and `USE_KEPT`), so the runner sends only signatures. These run at `log_inv_rate` 1, except the last, which makes the batch's proof at `--aggregate-rate`. Each step prints its request, its response and the time from `send` to the response, as the client sees it. The script stops the sidecar and removes the channel file when the runner exits.
 
 ```bash
 bins/leanvm-sidecar/e2e.sh go 16                                        # Go client, 16 threads, defaults
 bins/leanvm-sidecar/e2e.sh java 32 --signatures 1500 --aggregate-rate 1  # Java client, full batches, aggregate at rate 1
+bins/leanvm-sidecar/e2e.sh nim 32 --signatures 1400 --batch-size 150      # Nim client, each batch as 9 x 150 + 1 x 50
 ```
 
 The signatures are `testdata/signatures-24000.bin`: 24000 records of `pubkey | message | signature`, every record a different signer, signer `i` on message `i mod 4`. The signers are mock keys, real only at the leaf index they sign at; their signatures verify like any other. If the file is missing the script regenerates it with `examples/gen_signatures.rs`, which takes a minute or two.

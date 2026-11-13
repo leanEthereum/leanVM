@@ -17,9 +17,14 @@ const
   OpRecurse* = 2'u32
   OpVerify* = 3'u32
   OpVerifyNarrow* = 4'u32
+  OpExtend* = 5'u32
 
-  ## Makes OpRecurse verify every child natively before proving.
+  ## Makes OpRecurse and OpExtend verify every child natively before proving.
   FlagVerifyChildren* = 1'u32
+  ## A proving op: the server keeps the proof it returns, in place of any it held.
+  FlagKeepProof* = 2'u32
+  ## OpRecurse, OpExtend: the kept proof is one more child, and is no longer kept.
+  FlagUseKept* = 4'u32
 
   StOk* = 0'u32
   StBadRequest* = 1'u32

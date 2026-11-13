@@ -24,9 +24,14 @@ const (
 	OpRecurse      uint32 = 2
 	OpVerify       uint32 = 3
 	OpVerifyNarrow uint32 = 4
+	OpExtend       uint32 = 5
 
-	// FlagVerifyChildren makes OpRecurse verify every child natively before proving.
+	// FlagVerifyChildren makes OpRecurse and OpExtend verify every child natively before proving.
 	FlagVerifyChildren uint32 = 1
+	// FlagKeepProof makes the server keep the proof it returns, in place of any it held.
+	FlagKeepProof uint32 = 2
+	// FlagUseKept makes the kept proof one more child of OpRecurse and OpExtend; it is then no longer kept.
+	FlagUseKept uint32 = 4
 
 	StOK                uint32 = 0
 	StBadRequest        uint32 = 1

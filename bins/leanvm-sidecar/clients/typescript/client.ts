@@ -18,9 +18,14 @@ export const OP_AGGREGATE = 1;
 export const OP_RECURSE = 2;
 export const OP_VERIFY = 3;
 export const OP_VERIFY_NARROW = 4;
+export const OP_EXTEND = 5;
 
-/** OP_RECURSE: verify every child natively before proving. */
+/** OP_RECURSE, OP_EXTEND: verify every child natively before proving. */
 export const FLAG_VERIFY_CHILDREN = 1;
+/** A proving op: the server keeps the proof it returns, in place of any it held. */
+export const FLAG_KEEP_PROOF = 2;
+/** OP_RECURSE, OP_EXTEND: the kept proof is one more child, and is no longer kept. */
+export const FLAG_USE_KEPT = 4;
 
 export const ST_OK = 0;
 export const ST_BAD_REQUEST = 1;

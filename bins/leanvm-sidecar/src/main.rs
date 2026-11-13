@@ -59,6 +59,7 @@ struct Args {
 
 /// Serve requests one at a time until `stop`: `aggregate` must not run twice at once in a process.
 fn run(chan: &Channel, stop: &AtomicBool) {
+    let mut kept = None;
     while !stop.load(Ordering::Relaxed) {
         let Some(msg) = chan.pop(Ring::Request) else {
             std::thread::sleep(IDLE_POLL);
@@ -70,7 +71,7 @@ fn run(chan: &Channel, stop: &AtomicBool) {
         // Without a response region there is nowhere to put even an error's text.
         let writable = chan.in_arena(request.resp_off, request.resp_cap);
         let result = match chan.read(request.req_off, request.req_len) {
-            Some(payload) if writable => serve::handle(&request, &payload),
+            Some(payload) if writable => serve::handle(&request, &payload, &mut kept),
             _ => Err(serve::Failure::bad_request("region outside the arena")),
         };
         let (status, detail, resp_len, body) = match result {
@@ -228,6 +229,24 @@ mod tests {
         swapped.extend(proof_with_claims(&right, &left_claims));
         let (status, detail, _) = call(&mut client, OP_RECURSE, FLAG_VERIFY_CHILDREN, &swapped);
         assert_eq!((status, detail), (ST_INVALID_PROOF, 1));
+
+        // A proof and a raw signature in one request.
+        let mut extend = 1u32.to_le_bytes().to_vec();
+        extend.extend(proof_with_claims(&left, &left_claims));
+        extend.extend(signatures(&triples[2..]));
+        let (status, _, body) = call(&mut client, OP_EXTEND, FLAG_VERIFY_CHILDREN, &extend);
+        assert_eq!(proved(status, &body).1, root_claims);
+
+        // The same through the proof the server keeps: no child in the payload.
+        let mut extend = 0u32.to_le_bytes().to_vec();
+        extend.extend(signatures(&triples[2..]));
+        assert_eq!(call(&mut client, OP_EXTEND, FLAG_USE_KEPT, &extend).0, ST_BAD_REQUEST);
+        let (status, _, body) = call(&mut client, OP_AGGREGATE, FLAG_KEEP_PROOF, &signatures(&triples[..2]));
+        proved(status, &body);
+        let (status, _, body) = call(&mut client, OP_EXTEND, FLAG_USE_KEPT, &extend);
+        assert_eq!(proved(status, &body).1, root_claims);
+        // Used without FLAG_KEEP_PROOF: no longer kept.
+        assert_eq!(call(&mut client, OP_EXTEND, FLAG_USE_KEPT, &extend).0, ST_BAD_REQUEST);
 
         let mut retained = root_claims.clone();
         retained.xmss.remove(1);

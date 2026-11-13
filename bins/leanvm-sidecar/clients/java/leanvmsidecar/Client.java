@@ -25,9 +25,14 @@ public final class Client {
     public static final int OP_RECURSE = 2;
     public static final int OP_VERIFY = 3;
     public static final int OP_VERIFY_NARROW = 4;
+    public static final int OP_EXTEND = 5;
 
-    /** {@link #OP_RECURSE}: verify every child natively before proving. */
+    /** {@link #OP_RECURSE}, {@link #OP_EXTEND}: verify every child natively before proving. */
     public static final int FLAG_VERIFY_CHILDREN = 1;
+    /** A proving op: the server keeps the proof it returns, in place of any it held. */
+    public static final int FLAG_KEEP_PROOF = 2;
+    /** {@link #OP_RECURSE}, {@link #OP_EXTEND}: the kept proof is one more child, and is no longer kept. */
+    public static final int FLAG_USE_KEPT = 4;
 
     public static final int ST_OK = 0;
     public static final int ST_BAD_REQUEST = 1;
