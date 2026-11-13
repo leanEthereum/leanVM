@@ -153,7 +153,7 @@ lean_da() {
 }
 
 # Every lean_vm executable, in one build.
-EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute test-runs)
+EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute guest-run test-runs)
 
 # The six projects' targets and lean_vm's executables in one build from lean_vm, whose workspace holds the other
 # five, so that their modules build beside lean_vm's instead of one project after another. The projects' own builds
@@ -243,6 +243,7 @@ guest_diff() {
     --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored)
   in_lean_vm .lake/build/bin/guest-diff "$gd"/diff/*.txt
   in_lean_vm .lake/build/bin/leanvm-execute "$gd"/exec/*/
+  in_lean_vm .lake/build/bin/guest-run --rust "$gd/exec" "$gd"/diff/*.txt
   rm -rf "$gd"
 }
 fuzz_verifier() {

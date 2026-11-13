@@ -69,6 +69,7 @@ lake test && lake exe node-vectors
 python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4     # after lake build leanvm-verify and cargo build of scripts/rust-verifier-cli
 python3 -I scripts/wire-diff.py tests/fixtures/verifier --jobs 8         # after lake build wire-diff and cargo build of scripts/wire-diff
 scripts/export-prover-traces-rust.sh /tmp/p && lake exe leanvm-execute /tmp/p/*/                 # the executor against the Rust interpreter
+LEANVM_GUEST_DIFF=/tmp/g LEANVM_GUEST_EXEC=/tmp/e cargo test --release --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored && lake exe guest-run --rust /tmp/e [--prove] /tmp/g/*.txt   # the guest from statement and witness, in Lean
 scripts/export-prover-traces-rust.sh /tmp/p && python3 -I scripts/prover-diff.py /tmp/p --mutations 40 --jobs 4 --identical --expected tests/fixtures/verifier
 scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier          # after a protocol change
 scripts/regen-guest.sh --jobs 24 [--check] [--from STEP]                 # every file derived from the guest, after a change to it

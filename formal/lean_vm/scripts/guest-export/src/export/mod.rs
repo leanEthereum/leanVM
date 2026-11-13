@@ -13,6 +13,7 @@ use primitives::field::F128;
 use primitives::multilinear::mle_eval_par;
 use std::collections::BTreeMap;
 
+pub mod advice;
 pub mod bytecode;
 #[cfg(test)]
 mod guest_diff;
@@ -43,6 +44,7 @@ pub const GUEST_SOURCE: &str = include_str!(concat!(env!("OUT_DIR"), "/rec_aggre
 pub fn all_files() -> Vec<File> {
     let mut files = bytecode::files(guest());
     files.extend(source::files());
+    files.push(advice::file());
     files.push(manifest::file());
     files.push(node_vectors::file());
     files

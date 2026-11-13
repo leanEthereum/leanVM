@@ -346,7 +346,7 @@ jobs:
         run: python3 -I ../tools/firewall-canary.py
       # Every executable in one build, before the cache is saved, so a cache hit holds them all.
       - name: Build the executables
-        run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute test-runs
+        run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute guest-run test-runs
       # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA
       # vector digests.
       - name: The Rust vectors' costly checks
@@ -406,6 +406,7 @@ jobs:
             cargo test --release --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored
           .lake/build/bin/guest-diff "$RUNNER_TEMP"/guest-diff/*.txt
           .lake/build/bin/leanvm-execute "$RUNNER_TEMP"/guest-exec/*/
+          .lake/build/bin/guest-run --rust "$RUNNER_TEMP/guest-exec" "$RUNNER_TEMP"/guest-diff/*.txt
       # The Lean verifier and the Rust verifier must agree on the committed proofs and on
       # mutations of them, so a bump to a protocol change fails here until the Lean one follows.
       - name: Rust-vs-Lean differential
