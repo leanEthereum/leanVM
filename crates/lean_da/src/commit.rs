@@ -7,97 +7,61 @@
 use fiat_shamir::merkle::Hash;
 use primitives::hash::{OUT_LEN, hash, hash_many};
 
-use crate::{BLOB_SYMBOLS, BlobSizeError, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, encode_rows, row_count};
+use crate::{Blob, BlobCountError, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, encode::encode_rows};
 
 /// Digests in one blob's flat tree.
 const BLOB_TREE: usize = 2 * CELLS_PER_ROW - 1;
 
-/// The encoded pq-blobs. Stoe this to be able to answer sample requests, or
+/// The encoded pq-blobs. Store this to be able to answer sample requests, or
 /// to aggregate the pq-blobs in a STARK with leanVM.
 pub struct DaWitness {
-    /// `n_rows · CODEWORD_SYMBOLS` symbols, row-major. Padding rows are zero and not stored.
-    codewords: Vec<u64>,
-    /// One flat tree per blob of the padded matrix, `2 · CELLS_PER_ROW - 1` digests each: its
-    /// `CELLS_PER_ROW` cell digests, then each level in turn, its root last.
-    blob_trees: Vec<Hash>,
-    /// The flat tree over the `n_padded` blob roots, laid out likewise.
-    root_tree: Vec<Hash>,
+    /// One codeword per blob. Padding rows are zero and not stored.
+    codewords: Vec<Codeword>,
+    /// The root of the tree over the blob roots.
+    root: Hash,
 }
 
 impl DaWitness {
     /// Blob `i`, encoded: `CODEWORD_SYMBOLS` symbols, or `None` if `i` is not below the number of
     /// blobs. The encoding is systematic: the first `BLOB_SYMBOLS` symbols are the blob itself, the
     /// rest its redundancy, and any `BLOB_SYMBOLS` of them recover it.
-    pub fn row(&self, i: usize) -> Option<&[u64]> {
-        self.rows().get(i).map(|row| row.as_slice())
+    pub fn row(&self, i: usize) -> Option<&Codeword> {
+        self.codewords.get(i)
     }
 
     /// Column `j`, what a sample reads: cell `j` of each blob, `CELL_SYMBOLS` symbols each, or
     /// `None` if `j` is not below `CELLS_PER_ROW`.
-    pub fn column(&self, j: usize) -> Option<impl Iterator<Item = &[u64]>> {
-        (j < CELLS_PER_ROW).then(|| {
-            self.rows()
-                .iter()
-                .map(move |row| &row[j * CELL_SYMBOLS..(j + 1) * CELL_SYMBOLS])
-        })
-    }
-
-    fn rows(&self) -> &[[u64; CODEWORD_SYMBOLS]] {
-        self.codewords.as_chunks().0
-    }
-
-    /// Blob `i`'s flat tree, its cell digests first, or `None` if `i` is not below `n_padded`.
-    pub fn blob_tree(&self, i: usize) -> Option<&[Hash]> {
-        self.blob_trees
-            .as_chunks::<BLOB_TREE>()
-            .0
-            .get(i)
-            .map(|tree| tree.as_slice())
-    }
-
-    /// The `n_padded` blob roots, the padding blobs' included.
-    pub fn blob_roots(&self) -> &[Hash] {
-        &self.root_tree[..self.root_tree.len().div_ceil(2)]
+    pub fn column(&self, j: usize) -> Option<impl Iterator<Item = &[u64; CELL_SYMBOLS]>> {
+        (j < CELLS_PER_ROW).then(|| self.codewords.iter().map(move |row| &row.as_chunks().0[j]))
     }
 
     /// The commitment the builder publishes: the root of the tree over the blob roots.
     pub fn root(&self) -> Hash {
-        *self.root_tree.last().expect("a matrix has at least one blob")
+        self.root
     }
 }
 
 /// Encode the blobs and commit to them; [`DaWitness::root`] is the commitment.
 ///
-/// `rows` is 1 to [`DA_MAX_ROWS`](crate::DA_MAX_ROWS) blobs of [`BLOB_SYMBOLS`](crate::BLOB_SYMBOLS)
-/// symbols each, concatenated.
-///
 /// # Errors
 ///
-/// If `rows` has any other length.
+/// If there are not 1 to [`DA_MAX_ROWS`] blobs.
 #[tracing::instrument(name = "Commit", skip_all)]
-pub fn commit(rows: &[u64]) -> Result<DaWitness, BlobSizeError> {
-    row_count(rows.len(), BLOB_SYMBOLS).ok_or(BlobSizeError { symbols: rows.len() })?;
-    Ok(commit_codewords(encode_rows(rows)))
-}
-
-/// [`commit`] over rows that are already encoded.
-///
-/// # Panics
-///
-/// If `codewords` is not 1 to [`DA_MAX_ROWS`](crate::DA_MAX_ROWS) whole codewords.
-pub fn commit_codewords(codewords: Vec<u64>) -> DaWitness {
-    let blob_trees = blob_trees(&codewords);
-    let blob_roots = blob_trees
+pub fn commit(blobs: &[Blob]) -> Result<DaWitness, BlobCountError> {
+    if !(1..=DA_MAX_ROWS).contains(&blobs.len()) {
+        return Err(BlobCountError { blobs: blobs.len() });
+    }
+    let codewords = encode_rows(blobs);
+    let blob_roots = blob_trees(&codewords)
         .as_chunks::<BLOB_TREE>()
         .0
         .iter()
-        .map(|tree| tree[BLOB_TREE - 1]);
-    let root_tree = tree_from_leaves(blob_roots.collect());
-    DaWitness {
-        codewords,
-        blob_trees,
-        root_tree,
-    }
+        .map(|tree| tree[BLOB_TREE - 1])
+        .collect();
+    let root = *tree_from_leaves(blob_roots)
+        .last()
+        .expect("a matrix has at least one blob");
+    Ok(DaWitness { codewords, root })
 }
 
 /// The root of a padding blob, the zero codeword.
@@ -112,15 +76,14 @@ fn padding_tree() -> Vec<Hash> {
 
 /// Every blob's tree, its leaves `e_{i,j} = H(W_{i,j})`, a padding blob's copied in.
 #[tracing::instrument(name = "Hashing blobs", skip_all)]
-fn blob_trees(codewords: &[u64]) -> Vec<Hash> {
-    let m = CODEWORD_SYMBOLS;
-    let n_rows = row_count(codewords.len(), m).expect("1..=DA_MAX_ROWS whole codewords");
+fn blob_trees(codewords: &[Codeword]) -> Vec<Hash> {
+    let n_rows = codewords.len();
     let padding = padding_tree();
     let mut trees = vec![Hash::default(); n_rows.next_power_of_two() * BLOB_TREE];
     parallel::chunks_mut(&mut trees, BLOB_TREE, |i, tree| {
         if i < n_rows {
             hash_many(
-                as_bytes(&codewords[i * m..(i + 1) * m]),
+                as_bytes(&codewords[i]),
                 CELL_SYMBOLS * size_of::<u64>(),
                 tree[..CELLS_PER_ROW].as_flattened_mut(),
             );
@@ -165,6 +128,7 @@ fn as_bytes(data: &[u64]) -> &[u8] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{BLOB_SYMBOLS, CODEWORD_SYMBOLS};
     use fiat_shamir::merkle::hash_pair;
     use rand::{Rng, SeedableRng, rngs::StdRng};
 
@@ -185,36 +149,36 @@ mod tests {
             level[0]
         }
         let n_rows = 5usize;
-        let codewords = encode_rows(&payload(n_rows, 1));
-        let witness = commit_codewords(codewords.clone());
+        let blobs = payload(n_rows, 1);
+        let codewords = encode_rows(blobs.as_chunks().0);
+        let witness = commit(blobs.as_chunks().0).unwrap();
+        let trees = blob_trees(&codewords);
         let zero = vec![0; CODEWORD_SYMBOLS];
 
         let mut blob_roots = Vec::new();
         for i in 0..n_rows.next_power_of_two() {
-            let blob = codewords.chunks(CODEWORD_SYMBOLS).nth(i).unwrap_or(&zero);
+            let blob = codewords.get(i).map_or(&zero[..], |codeword| &codeword[..]);
             let cells: Vec<Hash> = blob.chunks(CELL_SYMBOLS).map(|cell| hash(as_bytes(cell))).collect();
             assert_eq!(
-                witness.blob_tree(i).unwrap()[..CELLS_PER_ROW],
+                trees.as_chunks::<BLOB_TREE>().0[i][..CELLS_PER_ROW],
                 cells,
                 "blob {i}'s leaves"
             );
             blob_roots.push(root(cells));
             assert_eq!(
-                witness.blob_tree(i).unwrap()[BLOB_TREE - 1],
+                trees.as_chunks::<BLOB_TREE>().0[i][BLOB_TREE - 1],
                 blob_roots[i],
                 "blob {i}'s root"
             );
         }
-        assert_eq!(witness.blob_roots(), blob_roots);
-        assert!(witness.blob_tree(blob_roots.len()).is_none());
-        for (i, row) in codewords.chunks(CODEWORD_SYMBOLS).enumerate() {
+        for (i, row) in codewords.iter().enumerate() {
             assert_eq!(witness.row(i), Some(row));
         }
         assert!(witness.row(n_rows).is_none());
         for j in [0, CELLS_PER_ROW - 1] {
-            let column: Vec<&[u64]> = witness.column(j).unwrap().collect();
+            let column: Vec<&[u64]> = witness.column(j).unwrap().map(|cell| &cell[..]).collect();
             let cells: Vec<&[u64]> = codewords
-                .chunks(CODEWORD_SYMBOLS)
+                .iter()
                 .map(|row| &row[j * CELL_SYMBOLS..(j + 1) * CELL_SYMBOLS])
                 .collect();
             assert_eq!(column, cells);
@@ -233,6 +197,9 @@ mod tests {
         let mut extended = rows.clone();
         extended.extend(std::iter::repeat_n(0, BLOB_SYMBOLS));
 
-        assert_eq!(commit(&rows).unwrap().root(), commit(&extended).unwrap().root());
+        assert_eq!(
+            commit(rows.as_chunks().0).unwrap().root(),
+            commit(extended.as_chunks().0).unwrap().root()
+        );
     }
 }

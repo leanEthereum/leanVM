@@ -18,23 +18,26 @@
 use pcs::ntt::AdditiveNttF64;
 use primitives::field::F64;
 
-use crate::{DA_LOG_K, LOG_M};
+use crate::{LOG_BLOB_SYMBOLS, LOG_CODEWORD_SYMBOLS};
 
 /// `Vhat_j` at the domain point whose bits above `j` are `y`'s, `Σ_l bit_l(y) · β_(j+1+l)`:
 /// the NTT's twiddles. `Vhat_j(β_j) = 1` and the bits below `j` vanish, so `Vhat_j` at point
 /// `i` is `bit_j(i)` plus this at `i >> (j + 1)`: the factors the guest builds `L` from.
 pub fn subspace_above() -> impl Fn(usize, usize) -> F64 {
-    let ntt = AdditiveNttF64::standard(LOG_M);
+    let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
     move |j, y| {
-        assert!(j <= DA_LOG_K && y >> (DA_LOG_K - j) == 0, "bits above {j} only");
-        ntt.twiddle(DA_LOG_K - j, y)
+        assert!(
+            j <= LOG_BLOB_SYMBOLS && y >> (LOG_BLOB_SYMBOLS - j) == 0,
+            "bits above {j} only"
+        );
+        ntt.twiddle(LOG_BLOB_SYMBOLS - j, y)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{BLOB_SYMBOLS, CODEWORD_SYMBOLS, encode_rows};
+    use crate::{BLOB_SYMBOLS, CODEWORD_SYMBOLS, encode::encode_rows};
     use primitives::field::{F128, powers};
     use rand::{Rng, SeedableRng, rngs::StdRng};
 
@@ -42,11 +45,11 @@ mod tests {
     fn dual_codeword(z: F128) -> Vec<F128> {
         let vhat = subspace_above();
         let z_powers: Vec<F128> = std::iter::successors(Some(z), |&p| Some(p * p))
-            .take(DA_LOG_K)
+            .take(LOG_BLOB_SYMBOLS)
             .collect();
         (0..CODEWORD_SYMBOLS)
             .map(|i| {
-                (0..DA_LOG_K)
+                (0..LOG_BLOB_SYMBOLS)
                     .map(|j| {
                         let at = F64((i >> j) as u64 & 1) + vhat(j, i >> (j + 1));
                         F128::ONE + z_powers[j].mul_base(at)
@@ -69,6 +72,11 @@ mod tests {
         F128::new(rng.random(), rng.random())
     }
 
+    /// The codewords of flat payload rows, flat.
+    fn encode_flat(rows: &[u64]) -> Vec<u64> {
+        encode_rows(rows.as_chunks().0).into_flattened()
+    }
+
     fn random_rows(rng: &mut StdRng, n: usize) -> Vec<u64> {
         (0..n).map(|_| rng.random()).collect()
     }
@@ -80,8 +88,8 @@ mod tests {
     fn code_is_self_dual() {
         let mut rng = StdRng::seed_from_u64(3);
         for _ in 0..4 {
-            let a = encode_rows(&random_rows(&mut rng, BLOB_SYMBOLS));
-            let b = encode_rows(&random_rows(&mut rng, BLOB_SYMBOLS));
+            let a = encode_flat(&random_rows(&mut rng, BLOB_SYMBOLS));
+            let b = encode_flat(&random_rows(&mut rng, BLOB_SYMBOLS));
             let dot = a.iter().zip(&b).map(|(&x, &y)| F64(x) * F64(y)).sum::<F64>();
             assert_eq!(dot, F64::ZERO);
         }
@@ -94,7 +102,7 @@ mod tests {
         let z = random_challenge(&mut StdRng::seed_from_u64(5));
         let dual = dual_codeword(z);
         let want = powers(z, BLOB_SYMBOLS);
-        let ntt = AdditiveNttF64::standard(LOG_M);
+        let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
         for limb in 0..2 {
             let mut coefficients: Vec<F64> = dual.iter().map(|v| F64(v.to_limbs()[limb])).collect();
             ntt.inverse_transform(&mut coefficients);
@@ -113,7 +121,7 @@ mod tests {
         let n_rows = 5;
         let mut rng = StdRng::seed_from_u64(11);
         let rows = random_rows(&mut rng, n_rows * BLOB_SYMBOLS);
-        let codewords = encode_rows(&rows);
+        let codewords = encode_flat(&rows);
         let z = random_challenge(&mut rng);
 
         assert!(check_membership(z, &codewords));
@@ -136,8 +144,8 @@ mod tests {
         let n_rows = 2;
         let mut rng = StdRng::seed_from_u64(13);
         let rows = random_rows(&mut rng, n_rows * BLOB_SYMBOLS);
-        let mut codewords = encode_rows(&rows);
-        let ntt = AdditiveNttF64::standard(LOG_M);
+        let mut codewords = encode_flat(&rows);
+        let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
         let mut full = random_rows(&mut rng, CODEWORD_SYMBOLS);
         ntt.encode_interleaved_in_place(primitives::cast_slice_mut::<u64, F64>(&mut full), 1, 0);
         codewords[..CODEWORD_SYMBOLS].copy_from_slice(&full);

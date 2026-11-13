@@ -16,65 +16,42 @@ mod commit;
 mod encode;
 mod membership;
 
-pub use commit::{DaWitness, commit, commit_codewords, padding_root};
-pub use encode::encode_rows;
+pub use commit::{DaWitness, commit, padding_root};
 pub use membership::subspace_above;
 
 /// Payload symbols per blob, as a logarithm (128 KiB).
-pub const DA_LOG_K: usize = 14;
-/// Symbols per sampling cell, as a logarithm (2 KiB).
-pub const DA_LOG_CELL: usize = 8;
+pub const LOG_BLOB_SYMBOLS: usize = 14;
+pub const LOG_CELL_SYMBOLS: usize = 8;
 /// Maximum blobs in one commitment, a power of two: the matrix pads its rows to one.
 pub const DA_MAX_ROWS: usize = 32;
 const _: () = assert!(DA_MAX_ROWS.is_power_of_two());
 
 /// 64-bit symbols in one payload blob.
-pub const BLOB_SYMBOLS: usize = 1 << DA_LOG_K;
+pub const BLOB_SYMBOLS: usize = 1 << LOG_BLOB_SYMBOLS;
 /// 64-bit symbols in one encoded blob.
 pub const CODEWORD_SYMBOLS: usize = 2 * BLOB_SYMBOLS;
 /// 64-bit symbols in one sampling cell.
-pub const CELL_SYMBOLS: usize = 1 << DA_LOG_CELL;
+pub const CELL_SYMBOLS: usize = 1 << LOG_CELL_SYMBOLS;
 /// Sampling cells in one encoded blob.
 pub const CELLS_PER_ROW: usize = CODEWORD_SYMBOLS / CELL_SYMBOLS;
-const LOG_M: usize = DA_LOG_K + 1;
+const LOG_CODEWORD_SYMBOLS: usize = LOG_BLOB_SYMBOLS + 1;
 
-/// The payload is not 1 to [`DA_MAX_ROWS`] full blobs.
+/// A payload blob: [`BLOB_SYMBOLS`] symbols, little-endian 64-bit words.
+pub type Blob = [u64; BLOB_SYMBOLS];
+/// An encoded blob: [`CODEWORD_SYMBOLS`] symbols, the blob's own first.
+pub type Codeword = [u64; CODEWORD_SYMBOLS];
+
+/// The number of blobs is not 1 to [`DA_MAX_ROWS`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct BlobSizeError {
-    /// The payload's length in symbols.
-    pub symbols: usize,
+pub struct BlobCountError {
+    /// The number of blobs given.
+    pub blobs: usize,
 }
 
-impl std::fmt::Display for BlobSizeError {
+impl std::fmt::Display for BlobCountError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} symbols: expected 1 to {DA_MAX_ROWS} full blobs of {BLOB_SYMBOLS} symbols",
-            self.symbols
-        )
+        write!(f, "{} blobs: expected 1 to {DA_MAX_ROWS}", self.blobs)
     }
 }
 
-impl std::error::Error for BlobSizeError {}
-
-/// How many `width`-symbol rows `symbols` symbols fill, or `None` if that is not 1 to [`DA_MAX_ROWS`] full rows.
-fn row_count(symbols: usize, width: usize) -> Option<usize> {
-    let rows = symbols / width;
-    (symbols.is_multiple_of(width) && (1..=DA_MAX_ROWS).contains(&rows)).then_some(rows)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn row_counts_reject_empty_partial_and_oversized_inputs() {
-        for width in [BLOB_SYMBOLS, CODEWORD_SYMBOLS] {
-            assert_eq!(row_count(width, width), Some(1));
-            assert_eq!(row_count(DA_MAX_ROWS * width, width), Some(DA_MAX_ROWS));
-            for symbols in [0, width - 1, width + 1, (DA_MAX_ROWS + 1) * width, usize::MAX] {
-                assert_eq!(row_count(symbols, width), None);
-            }
-        }
-    }
-}
+impl std::error::Error for BlobCountError {}

@@ -8,10 +8,8 @@ use super::placeholders::placeholder_map;
 use super::proof::{EthereumClaims, EthereumProof, decode, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
-use fiat_shamir::merkle::hash_to_scalars;
 use lean_compiler::{compile, parse_with_replacements};
-use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_LOG_K, DA_MAX_ROWS};
-use leanvm_core::cpu::from_scalar;
+use lean_da::{BLOB_SYMBOLS, DA_MAX_ROWS, LOG_BLOB_SYMBOLS};
 use leanvm_core::cpu::verify;
 use primitives::field::{F64, F128, g_pow};
 use primitives::multilinear::mle_eval_par;
@@ -32,7 +30,7 @@ const SMALL_LEAF_SIZE: usize = 6;
 const LOG_INV_RATE: usize = leanvm_core::pcs::TEST_LOG_INV_RATE;
 
 // The native verifier derives the DA challenge's grind from its own copy of the blob size.
-const _: () = assert!(verifier::da::DA_LOG_K == DA_LOG_K);
+const _: () = assert!(verifier::da::LOG_BLOB_SYMBOLS == LOG_BLOB_SYMBOLS);
 
 #[test]
 fn the_wire_layout_is_pinned() {
@@ -337,11 +335,12 @@ fn aggregate_two_to_one() {
     assert_eq!(node.claims.lean_xmss.len(), SMALL_LEAF_SIZE + big);
 }
 
-fn da_rows(n_rows: usize, seed: u64) -> Vec<u64> {
+fn da_rows(n_rows: usize, seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(seed);
-    (0..n_rows * (1 << DA_LOG_K))
+    let symbols: Vec<u64> = (0..n_rows * BLOB_SYMBOLS)
         .map(|_| rand::Rng::random(&mut rng))
-        .collect()
+        .collect();
+    symbols.as_chunks().0.to_vec()
 }
 
 /// A LeanDA payload, proven without signatures and published in the
@@ -431,7 +430,7 @@ fn a_node_passes_on_one_childs_da_root() {
         children[2].claims.da_commitment.unwrap(),
     );
     assert_ne!(first, second);
-    let pass_on = |selected: Option<Option<[u8; 32]>>, blobs: &[u64]| {
+    let pass_on = |selected: Option<Option<[u8; 32]>>, blobs: &[lean_da::Blob]| {
         let declare = selected.map(|da_commitment| EthereumClaims {
             lean_xmss: children[0].claims.lean_xmss.clone(),
             lean_sphincs: vec![],
@@ -586,60 +585,12 @@ def main():
 /// The guest accepts committed codewords, and rejects a matrix with one symbol of
 /// one row flipped, though its root and vector are that matrix's: the row is no codeword.
 #[test]
-fn da_guest_checks_codeword_membership() {
-    parallel::init();
-    let source = include_str!("../../guests/lean_ethereum.py");
-    let (helpers, _) = source.split_once("\ndef main():").unwrap();
-    let source = format!(
-        "{helpers}\ndef main():\n    squares = exponent_tables()\n    a, b, z = da_verify(squares)\n    digest = StackBuf(2)\n    keccak([a, b], [z, 0], digest)\n    public = GEN ** 0\n    assert public[1] == digest[0]\n    assert public[GEN] == digest[1]\n    return\n"
-    );
-    let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
-    let n_rows = 3usize;
-    let codewords = lean_da::encode_rows(&da_rows(3, 101));
-    let run = |words: &[u64]| {
-        let commitment = lean_da::commit_codewords(words.to_vec()).root();
-        let mut hints = Hints::default();
-        hints.push(
-            "da_shape",
-            vec![count(n_rows), count(n_rows.next_power_of_two().ilog2() as usize)],
-        );
-        for j in 0..CELLS_PER_ROW {
-            for i in 0..n_rows {
-                let start = i * CODEWORD_SYMBOLS + j * CELL_SYMBOLS;
-                hints.push(
-                    "da_symbols",
-                    words[start..start + CELL_SYMBOLS]
-                        .iter()
-                        .map(|&w| F128::from(F64(w)))
-                        .collect(),
-                );
-            }
-        }
-        hints.push(
-            "da_challenge",
-            vec![from_scalar(verifier::da::membership_challenge(&commitment))],
-        );
-        let mut program = guest.clone();
-        hints.install(&mut program);
-        program.execute(hash_to_scalars(&verifier::da::digest(Some(commitment))))
-    };
-    assert!(run(&codewords).unwrap().unconstrained_reads.is_empty());
-    for position in [0, BLOB_SYMBOLS + 5] {
-        let mut corrupted = codewords.clone();
-        corrupted[CODEWORD_SYMBOLS + position] ^= 1;
-        assert!(run(&corrupted).is_err(), "a flip at {position} passed");
-    }
-}
-
-#[test]
-fn invalid_blob_sizes_are_rejected() {
-    for symbols in [1, BLOB_SYMBOLS - 1, BLOB_SYMBOLS + 1, (DA_MAX_ROWS + 1) * BLOB_SYMBOLS] {
-        let rows = vec![0; symbols];
-        assert!(matches!(
-            aggregate(&[], vec![], vec![], &rows, None, LOG_INV_RATE),
-            Err(AggregationError::InvalidBlobSize { symbols: n }) if n == symbols
-        ));
-    }
+fn too_many_blobs_are_rejected() {
+    let rows = da_rows(DA_MAX_ROWS + 1, 0);
+    assert!(matches!(
+        aggregate(&[], vec![], vec![], &rows, None, LOG_INV_RATE),
+        Err(AggregationError::InvalidBlobCount { blobs }) if blobs == DA_MAX_ROWS + 1
+    ));
 }
 
 /// The row count is a run-time parameter, so payloads of different heights

@@ -13,7 +13,7 @@ use super::proof::{EthereumClaims, EthereumProof, check_signer_set};
 use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
-use lean_da::{BLOB_SYMBOLS, CELLS_PER_ROW};
+use lean_da::CELLS_PER_ROW;
 use leanvm_core::cpu::{from_scalar, prove, public_input_bytes, scalar_proof};
 use primitives::field::{F64, F128};
 use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
@@ -49,7 +49,7 @@ pub fn aggregate(
     children: &[EthereumProof],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
-    blobs: &[u64],
+    blobs: &[lean_da::Blob],
     declare: Option<&EthereumClaims>,
     log_inv_rate: usize,
 ) -> Result<EthereumProof, AggregationError> {
@@ -61,7 +61,7 @@ pub fn aggregate_with_stats(
     children: &[EthereumProof],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
-    blobs: &[u64],
+    blobs: &[lean_da::Blob],
     declare: Option<&EthereumClaims>,
     log_inv_rate: usize,
 ) -> Result<(EthereumProof, leanvm_core::cpu::Stats), AggregationError> {
@@ -289,7 +289,7 @@ pub fn aggregate_with_stats(
     let mut da = child_da.get(da_pick).copied().unwrap_or_default();
     if let Some(witness) = direct {
         let commitment = witness.root();
-        let n_rows = blobs.len() / BLOB_SYMBOLS;
+        let n_rows = blobs.len();
         da = verifier::da::digest(Some(commitment));
         hints.push(
             "da_challenge",

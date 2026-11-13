@@ -9,9 +9,10 @@ use rec_aggregation::{EthereumClaims, EthereumProof, aggregate, aggregate_with_s
 use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use signatures::{lean_sphincs, lean_xmss};
 
-fn blobs(n: usize, seed: u64) -> Vec<u64> {
+fn blobs(n: usize, seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = StdRng::seed_from_u64(seed);
-    (0..n * lean_da::BLOB_SYMBOLS).map(|_| rng.random()).collect()
+    let symbols: Vec<u64> = (0..n * lean_da::BLOB_SYMBOLS).map(|_| rng.random()).collect();
+    symbols.as_chunks().0.to_vec()
 }
 
 /// Signatures as the aggregation API takes them, each with its key and message.

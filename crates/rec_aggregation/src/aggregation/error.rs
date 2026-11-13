@@ -1,6 +1,6 @@
 //! Errors of aggregation and verification.
 
-use lean_da::{DA_LOG_K, DA_MAX_ROWS};
+use lean_da::DA_MAX_ROWS;
 use leanvm_core::cpu::ProveError;
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 
@@ -54,8 +54,8 @@ pub enum AggregationError {
     MalformedRawSignature,
     /// More than [`MAX_RECURSIONS`](super::MAX_RECURSIONS) children.
     TooLarge,
-    /// The payload has a partial row or exceeds [`DA_MAX_ROWS`].
-    InvalidBlobSize { symbols: usize },
+    /// More than [`DA_MAX_ROWS`] blobs.
+    InvalidBlobCount { blobs: usize },
     /// The requested DA commitment is not a child's.
     BlobNotCovered,
     /// A node with blobs was asked to publish a DA commitment other than their matrix's.
@@ -83,9 +83,9 @@ impl std::fmt::Display for AggregateVerifyError {
 
 impl std::error::Error for AggregateVerifyError {}
 
-impl From<lean_da::BlobSizeError> for AggregationError {
-    fn from(error: lean_da::BlobSizeError) -> Self {
-        Self::InvalidBlobSize { symbols: error.symbols }
+impl From<lean_da::BlobCountError> for AggregationError {
+    fn from(error: lean_da::BlobCountError) -> Self {
+        Self::InvalidBlobCount { blobs: error.blobs }
     }
 }
 
@@ -99,13 +99,7 @@ impl std::fmt::Display for AggregationError {
             Self::TooLarge => {
                 write!(f, "too many children")
             }
-            Self::InvalidBlobSize { symbols } => {
-                write!(
-                    f,
-                    "{symbols} blob symbols do not form 1..={DA_MAX_ROWS} rows of {} symbols",
-                    1 << DA_LOG_K
-                )
-            }
+            Self::InvalidBlobCount { blobs } => write!(f, "{blobs} blobs: expected at most {DA_MAX_ROWS}"),
             Self::BlobNotCovered => write!(f, "the requested blob commitment is not carried by any child"),
             Self::BlobsUnpublished => write!(f, "a node with blobs publishes their matrix's root"),
             Self::InvalidRate { log_inv_rate } => {

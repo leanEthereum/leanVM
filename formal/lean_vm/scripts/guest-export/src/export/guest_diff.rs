@@ -12,7 +12,7 @@
 
 use super::*;
 use crate::signers_cache::{get_lean_sphincs_signers, get_signers};
-use lean_da::{BLOB_SYMBOLS, CODEWORD_SYMBOLS};
+use lean_da::BLOB_SYMBOLS;
 use leanvm_core::cpu::{public_input_bytes, scalar_proof};
 use signatures::lean_sphincs::LeanSphincsSignature;
 use signatures::lean_xmss::LeanXmssSignature;
@@ -151,7 +151,7 @@ fn export(
     children: Vec<EthereumProof>,
     raw_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
-    blobs: &[u64],
+    blobs: &[lean_da::Blob],
 ) -> EthereumProof {
     capture_next();
     let node = aggregate(
@@ -237,7 +237,7 @@ fn export(
         out.sphincs_signature(sig);
     }
     // The directly held matrix: its root, its membership challenge and its rows.
-    let direct = (!blobs.is_empty()).then(|| lean_da::commit(blobs).expect("a whole number of blob rows"));
+    let direct = (!blobs.is_empty()).then(|| lean_da::commit(blobs).expect("1 to DA_MAX_ROWS blobs"));
     out.tag("da_witness");
     match &direct {
         Some(witness) => {
@@ -245,7 +245,7 @@ fn export(
             out.0.push_str("direct ");
             out.bytes(root);
             out.e(from_scalar(verifier::da::membership_challenge(root)));
-            let rows: Vec<&[u64]> = (0..).map_while(|i| witness.row(i)).collect();
+            let rows: Vec<&lean_da::Codeword> = (0..).map_while(|i| witness.row(i)).collect();
             out.n(rows.len());
             for row in rows {
                 out.n(row.len());
@@ -281,9 +281,10 @@ fn export(
 
 const LOG_INV_RATE: usize = leanvm_core::pcs::TEST_LOG_INV_RATE;
 
-fn blob(seed: u64) -> Vec<u64> {
+fn blob(seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = StdRng::seed_from_u64(seed);
-    (0..BLOB_SYMBOLS).map(|_| rng.random()).collect()
+    let symbols: Vec<u64> = (0..BLOB_SYMBOLS).map(|_| rng.random()).collect();
+    symbols.as_chunks().0.to_vec()
 }
 
 /// Two leaves, one of both schemes with a blob, one whose leanXMSS list is longer than a group of its digest

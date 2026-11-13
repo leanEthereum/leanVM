@@ -152,10 +152,10 @@ permutation. A digest is 32 bytes, `DigestBytes` (`fiat_shamir::merkle::Hash`).
 
 /-! ### Shapes (`lib.rs:23-38`) -/
 
-/-- Payload symbols per row, as a logarithm (`DA_LOG_K`). -/
+/-- Payload symbols per row, as a logarithm (`LOG_BLOB_SYMBOLS`). -/
 def logK : ℕ := 14
 
-/-- Codeword symbols per row, as a logarithm: rate one half (`LOG_M`). -/
+/-- Codeword symbols per row, as a logarithm: rate one half (`LOG_CODEWORD_SYMBOLS`). -/
 def logM : ℕ := 15
 
 /-- Symbols per cell (`CELL_SYMBOLS`). -/

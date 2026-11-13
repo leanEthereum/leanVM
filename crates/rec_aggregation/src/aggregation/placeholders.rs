@@ -11,7 +11,7 @@ use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use fiat_shamir::merkle::hash_to_scalars;
 use lean_compiler::f128_literal;
-use lean_da::{CELLS_PER_ROW, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
+use lean_da::{CELLS_PER_ROW, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, LOG_CELL_SYMBOLS};
 use leanvm_core::constraints::xi_offsets;
 use leanvm_core::cpu::{KeccakLane, keccak_value};
 use leanvm_core::leaf::{Block, Coord};
@@ -923,8 +923,8 @@ fn bytecode_placeholders(kbc: usize, nbcv: usize, ps: &mut impl FnMut(&str, Stri
 /// LeanDA (`doc/leanvm` §sec:leanda).
 fn da_placeholders(ps: &mut impl FnMut(&str, String)) {
     let pad_blob = hash_to_scalars(&lean_da::padding_root());
-    ps("DA_LOG_K", DA_LOG_K.to_string());
-    ps("DA_LOG_CELL", DA_LOG_CELL.to_string());
+    ps("DA_LOG_K", LOG_BLOB_SYMBOLS.to_string());
+    ps("DA_LOG_CELL", LOG_CELL_SYMBOLS.to_string());
     ps("DA_MAX_ROWS", DA_MAX_ROWS.to_string());
     ps("DA_LOG_MAX_ROWS", DA_MAX_ROWS.ilog2().to_string());
     ps("DA_PAD_BLOB_0", f128_literal(pad_blob[0]));
@@ -938,13 +938,16 @@ fn da_placeholders(ps: &mut impl FnMut(&str, String)) {
             .collect()
     };
     let cell_bits = CELLS_PER_ROW.ilog2() as usize;
-    let (top_tree, cell_tree) = (tree(DA_LOG_K, cell_bits), tree(DA_LOG_CELL - 1, DA_LOG_CELL));
+    let (top_tree, cell_tree) = (
+        tree(LOG_BLOB_SYMBOLS, cell_bits),
+        tree(LOG_CELL_SYMBOLS - 1, LOG_CELL_SYMBOLS),
+    );
     ps("DA_VHAT", literals(top_tree.into_iter().chain(cell_tree)));
-    // `Vhat_j(beta_(DA_LOG_CELL + b))` for each factor `j` inside a cell and bit `b` of the cell index.
-    let column = (0..cell_bits).flat_map(|b| (0..DA_LOG_CELL).map(move |j| (j, b)));
+    // `Vhat_j(beta_(LOG_CELL_SYMBOLS + b))` for each factor `j` inside a cell and bit `b` of the cell index.
+    let column = (0..cell_bits).flat_map(|b| (0..LOG_CELL_SYMBOLS).map(move |j| (j, b)));
     ps(
         "DA_VHAT_COLUMN",
-        literals(column.map(|(j, b)| vhat(j, 1 << (DA_LOG_CELL - 1 - j + b)).0)),
+        literals(column.map(|(j, b)| vhat(j, 1 << (LOG_CELL_SYMBOLS - 1 - j + b)).0)),
     );
 }
 

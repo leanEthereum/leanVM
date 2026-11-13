@@ -13,10 +13,7 @@ pub use rec_aggregation::{
 pub use leanvm_core::pcs::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 
 pub mod lean_da {
-    pub use ::lean_da::{
-        BLOB_SYMBOLS, BlobSizeError, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS,
-        DaWitness, commit,
-    };
+    pub use ::lean_da::{Blob, BlobCountError, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, DaWitness, commit};
 }
 
 pub mod lean_xmss {
