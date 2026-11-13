@@ -75,6 +75,11 @@ def PrF (s : St) (a b c : ℕ) : Prop :=
   ∃ va vb, s.mem.get (s.fp + a) = some va ∧ s.mem.get (s.fp + b) = some vb ∧
     s.mem.get (s.fp + c) = some (va * vb)
 
+/-- Frame cell `c` holds the sum of frame cells `a` and `b`. -/
+def XorF (s : St) (a b c : ℕ) : Prop :=
+  ∃ va vb, s.mem.get (s.fp + a) = some va ∧ s.mem.get (s.fp + b) = some vb ∧
+    s.mem.get (s.fp + c) = some (va + vb)
+
 /-- **The state's memory has what the walk knows.** -/
 structure Holds (s : St) (A : Abs) : Prop where
   w : ∀ o, A.w.get o = some () → s.mem.written (s.fp + o) = true
@@ -85,6 +90,7 @@ structure Holds (s : St) (A : Abs) : Prop where
   r : ∀ r ∈ A.r, RW s r
   lt : ∀ p ∈ A.lt, LTF s p.1 p.2
   pr : ∀ p ∈ A.pr, PrF s p.1 p.2.1 p.2.2
+  xs : ∀ c a b, A.xs.get c = some (a, b) → XorF s a b c
 
 /-- What the program's table holds: the jump table's cells, written with their targets' powers. -/
 def EnvOk (s : St) (E : Env) : Prop :=
@@ -155,6 +161,10 @@ theorem Holds.mono {A : Abs} (h : Holds s A) : Holds s' A where
   pr p hp := by
     obtain ⟨a, b, h1, h2, h3⟩ := h.pr p hp
     exact ⟨a, b, by rw [hfp]; exact hle.get _ _ h1, by rw [hfp]; exact hle.get _ _ h2,
+      by rw [hfp]; exact hle.get _ _ h3⟩
+  xs c a b hc := by
+    obtain ⟨va, vb, h1, h2, h3⟩ := h.xs c a b hc
+    exact ⟨va, vb, by rw [hfp]; exact hle.get _ _ h1, by rw [hfp]; exact hle.get _ _ h2,
       by rw [hfp]; exact hle.get _ _ h3⟩
 
 omit hfp in

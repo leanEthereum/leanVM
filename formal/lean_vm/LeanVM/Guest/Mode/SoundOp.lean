@@ -38,6 +38,12 @@ theorem imm_of_ofBits' {k : ℕ} {a : K} (h : K.ofBits k = a) :
   rw [OffsetInstruction.immediateWord, h, ofK_eq_ofLimbs]
   rfl
 
+theorem gpow_ginv_mul : g ^ (2 ^ 64 - 2) * g = 1 := by
+  rw [← pow_succ, show 2 ^ 64 - 2 + 1 = 2 ^ 64 - 1 by norm_num, g_pow_card_sub_one]
+
+theorem ofBits_ginv : K.ofBits ginvBits = g ^ (2 ^ 64 - 2) :=
+  mul_right_cancel₀ g_ne_zero ((show K.ofBits ginvBits * g = 1 by decide +kernel).trans gpow_ginv_mul.symm)
+
 /-- A `SET` immediate's known word holds of it; a product among them is a power, nonzero. -/
 theorem valOfImm_ok {s : St} {En : Env} (hp : En.pows.Ok) (k0 k1 : ℕ) :
     ValOk s (valOfImm En k0 k1) (OffsetInstruction.immediateWord k0 k1) ∧
@@ -53,6 +59,13 @@ theorem valOfImm_ok {s : St} {En : Env} (hp : En.pows.Ok) (k0 k1 : ℕ) :
         rw [imm_of_ofBits' (a := 1) rfl]; exact map_one (algebraMap K E)
       refine ⟨by rw [hw]; exact MonoVal.one', fun _ ↦ by rw [hw]; exact one_ne_zero⟩
     · rw [ite_eq_right h0]
+      by_cases hg : (k0 == ginvBits) = true
+      · rw [ite_eq_left hg]
+        obtain rfl := beq_iff_eq.mp hg
+        have hw := imm_of_ofBits' ofBits_ginv
+        exact ⟨by rw [hw]; exact MonoVal.gp _, fun _ ↦ by
+          rw [hw]; exact (map_ne_zero (algebraMap K E)).mpr (pow_ne_zero _ g_ne_zero)⟩
+      rw [ite_eq_right hg]
       split
       · rename_i e he
         have hw := imm_of_ofBits' (PowTree.find_ok' hp he)
@@ -92,7 +105,18 @@ theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : Off
     obtain ⟨h1, h2, h3⟩ := runOp_next hs hfp hpc e (fun _ _ _ ↦ nofun) (fun _ _ _ _ _ ↦ nofun)
     have hm := hH.mono h3 h2
     have hW := hm.addW (o := c) (by rw [h2]; exact runOp_writes (k := 0) hs (Or.inl rfl) e)
-    refine Holds.setPr ?_ (fun _ h ↦ nomatch h)
+    have hX : ∀ c' a' b', (addSum A.xs c a b).get c' = some (a', b') → XorF s' a' b' c' := by
+      intro c' a' b' hc'
+      unfold addSum at hc'
+      split at hc'
+      · exact hm.xs c' a' b' hc'
+      · rcases Exec.Trie.get_set hc' with ⟨rfl, he⟩ | hc'
+        · obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
+          obtain ⟨va, vb, ha, hb, hc'⟩ := xor_vals hs e
+          exact ⟨va, vb, by rw [h2]; exact h3.get _ _ ha, by rw [h2]; exact h3.get _ _ hb,
+            by rw [h2]; exact hc'⟩
+        · exact hm.xs c' a' b' hc'
+    refine Holds.setPrXs (l := []) ?_ (fun _ h ↦ nomatch h) hX
     split
     · rename_i x y hx hy
       split_ifs with hxy

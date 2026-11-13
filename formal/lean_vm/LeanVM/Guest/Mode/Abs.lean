@@ -11,19 +11,21 @@ written (`w`), the words known of frame cells (`v`: a product `Mono` of powers o
 of `g` and of *bases*, or a constant), the frame cells known nonzero (`nz`), the heap cells known
 written (`h`, each named by a product), runs of them (`r`, a `Rng`: the cells named by
 `q·g^(S·j + d)` for `j` between two exponents), the words known of heap cells (`hv`), inequalities
-between exponents (`lt`, over `Idx`: a constant, or a base's exponent plus a constant), and the last
-products (`pr`, for the range-check and `!=` gadgets). A base is a frame cell (`fr o`) or cell `d`
-past the cell a frame cell names (`hp q d`). A heap cell of the frame itself (`fp^1·g^d`) is frame
-cell `d`, kept in `w` and `v`.
+between exponents (`lt`, over `Idx`: a constant, or a base's exponent plus a constant), the last
+products (`pr`, for the range-check and `!=` gadgets), and sums by their cell (`xs`). A base is a
+frame cell (`fr o`) or cell `d` past the cell a frame cell names (`hp q d`). A heap cell of the frame
+itself (`fp^1·g^d`) is frame cell `d`, kept in `w` and `v`.
 
 `stepOp` is one instruction, `stepHint` one hint: the cells either reads must be known written (else
 `none`), and what it surely writes, and what that teaches, joins. A `DEREF` of mode `cell` stores when
 its frame side is known written, loads when its heap side is, and otherwise links, learning nothing.
-`Abs.inter` is what two paths into a join both know. Calls, tail calls and returns (`call`,
-`tail`, `ret`) read the callee's `Sig`: the cells its walk needs written at entry, the heap facts it
-needs over its own bases (`pre`, `preR`), and those it guarantees at return (`ret`, `post`, `postR`),
-translated through the caller's knowledge of the callee frame (`trBase`). `walk` runs a function's
-code once, forward, joining at the targets of its forward jumps. Their meaning is `Mode/Sem.lean`,
+`Abs.inter` is what two paths into a join both know. Calls, tail calls and returns (`entryOk`,
+`afterCall`, `tailOk`, `retOk`) read the callee's `Sig`: the cells its walk needs written at entry,
+the heap facts it needs over its own bases (`pre`, `preR`), and those it guarantees at return
+(`ret`, `post`, `postR`, a loop's `postL`), translated through the caller's knowledge of the callee
+frame (`trBase`). `walk` runs a function's code once, forward, keeping at most two paths apart at
+each offset and meeting more into one; the fall-through of a `JUMP` on a sum learns its two terms
+equal (`Abs.learn0`). Their meaning is `Mode/Sem.lean`,
 their soundness `Mode/Sound*.lean`.
 
 Everything here is structural recursion over `ℕ`, lists and tries, for the kernel.
@@ -208,6 +210,8 @@ structure Abs where
   lt : List (Idx × Idx)
   /-- The last products `(a, b, c)`: `[c] = [a]·[b]`. -/
   pr : List (ℕ × ℕ × ℕ)
+  /-- Sums, by their cell: `c ↦ (a, b)`, `[c] = [a] + [b]`. -/
+  xs : Trie (ℕ × ℕ)
 
 /-- Frame offset `o` is known written. -/
 def Abs.hasW (A : Abs) (o : ℕ) : Bool := (A.w.get o).isSome
@@ -332,7 +336,8 @@ noncomputable def Abs.inter (A B : Abs) : Abs :=
   ⟨Trie.inter (fun _ _ ↦ true) A.w B.w, Trie.inter Val.beq A.v B.v,
     Trie.inter (fun _ _ ↦ true) A.nz B.nz,
     interL (fun p q ↦ p.1.beq q.1 && p.2.beq q.2) A.hv B.hv, interL Mono.beq A.h B.h,
-    interL Rng.beq A.r B.r, interL (fun p q ↦ p.1.beq q.1 && p.2.beq q.2) A.lt B.lt, []⟩
+    interL Rng.beq A.r B.r, interL (fun p q ↦ p.1.beq q.1 && p.2.beq q.2) A.lt B.lt, [],
+    Trie.inter (fun p q ↦ p.1 == q.1 && p.2 == q.2) A.xs B.xs⟩
 
 /-! ## What the walk is told -/
 
@@ -412,10 +417,14 @@ def opOfOff : OffsetInstruction → Op
 /-- The jump table's cells, written before `main` starts. -/
 def jtRng (E : Env) : Rng := ⟨.one, .num E.jtLo, .num E.jtHi, 1, 0⟩
 
+/-- `g⁻¹`'s bits, `x^63 + x^3 + x^2 + 1`: the word `g^(2^64 - 2)`. -/
+def ginvBits : ℕ := 2 ^ 63 + 13
+
 /-- The word a `SET` immediate is known as. -/
 def valOfImm (E : Env) (k0 k1 : ℕ) : Val :=
   if k1 == 0 then
     if k0 == 1 then .m .one
+    else if k0 == ginvBits then .m (.gp (2 ^ 64 - 2))
     else match E.pows.find k0 with
       | some e => .m (.gp e)
       | none => .imm k0 k1
@@ -436,20 +445,29 @@ def loadVal (E : Env) (A : Abs) (k : Mono) : Option Val :=
         | _ => none
     | _ => none
 
-/-- The range check `DEREF *(x); MUL [z] = [x]·[y]; DEREF *(y)` with `[z] = g^k` or a base's
-power, ending at the `DEREF` through `y`: `x`'s exponent is at most `z`'s. -/
+/-- The range check `DEREF *(x); MUL [z] = [x]·[y]; DEREF *(y)` with `[z] = g^k`, a base's word
+times `g^k`, or a base's word over `g`, ending at the `DEREF` through `y`: `x`'s exponent is at most
+`z`'s. -/
 def rangeFact (A : Abs) (y : ℕ) : Abs :=
   match A.pr with
   | (x, y', z) :: _ =>
     if y' == y && A.ltI (.ex (.fr x) 0) (.num maxCells) then
-      match A.v.get z with
-      | some (.m ⟨0, k, []⟩) => if k < 2 ^ 62 then A.addLt (.ex (.fr x) 0) (.num (k + 1)) else A
-      | some (.m ⟨0, k, [(b, 1)]⟩) =>
-        if k < 2 ^ 62 && A.ltI (.ex b 0) (.num maxCells) then A.addLt (.ex (.fr x) 0) (.ex b (k + 1))
+      match A.mono z with
+      | some ⟨0, k, []⟩ => if k < 2 ^ 62 then A.addLt (.ex (.fr x) 0) (.num (k + 1)) else A
+      | some ⟨0, k, [(b, 1)]⟩ =>
+        if k == 0 || (k < 2 ^ 62 && A.ltI (.ex b 0) (.num maxCells)) then
+          A.addLt (.ex (.fr x) 0) (.ex b (k + 1))
+        else if k == 2 ^ 64 - 2 then A.addLt (.ex (.fr x) 0) (.ex b 0)
         else A
       | _ => A
     else A
   | [] => A
+
+/-- The sum `[c] = [a] + [b]` recorded, unless one is for `c`. -/
+noncomputable def addSum (t : Trie (ℕ × ℕ)) (c a b : ℕ) : Trie (ℕ × ℕ) :=
+  match t.get c with
+  | some _ => t
+  | none => t.set (a, b) envDepth c
 
 /-- **One instruction** at pc `pc`, its operands as offsets. -/
 noncomputable def stepOp (E : Env) (pc : ℕ) (A : Abs) : OffsetInstruction → Option Abs
@@ -460,7 +478,7 @@ noncomputable def stepOp (E : Env) (pc : ℕ) (A : Abs) : OffsetInstruction → 
       let A' := match A.mono a, A.mono b with
         | some ⟨0, x, []⟩, some ⟨0, y, []⟩ => if x != y && x < 2 ^ 62 && y < 2 ^ 62 then A'.addNz c else A'
         | _, _ => A'
-      some { A' with pr := [] }
+      some { A' with pr := [], xs := addSum A.xs c a b }
     else none
   | .mul a b c =>
     if A.hasW a && A.hasW b then
@@ -634,20 +652,49 @@ def trMono (A : Abs) (mq : Mono) (m : Mono) : Option Mono :=
       if p.2 == 0 then none else (trBase A mq p.1).map fun x ↦ acc.mul (x.npow p.2))
     (some ((mq.npow m.fp).mul (.gp m.k)))
 
-/-- A callee's exponent, in the caller's terms. -/
-def trIdx (A : Abs) (mq : Mono) : Idx → Option Idx
-  | .num n => some (.num n)
+/-- A callee's exponent, in the caller's terms, with the power of `g` its base is a caller's base
+times (`0` unless it is a caller's base shifted). -/
+def trIdxK (A : Abs) (mq : Mono) : Idx → Option (Idx × ℕ)
+  | .num n => some (.num n, 0)
   | .ex x c =>
     match trBase A mq x with
-    | some ⟨0, k, []⟩ => if k < 2 ^ 62 then some (.num (c + k)) else none
-    | some ⟨0, k, [(y, 1)]⟩ => some (.ex y (c + k))
+    | some ⟨0, k, []⟩ => if k < 2 ^ 62 then some (.num (c + k), 0) else none
+    | some ⟨0, k, [(y, 1)]⟩ => if k < 2 ^ 62 then some (.ex y (c + k), k) else none
     | _ => none
 
-/-- A callee's run, in the caller's terms. -/
-def trRng (A : Abs) (mq : Mono) (r : Rng) : Option Rng :=
-  match trMono A mq r.q, trIdx A mq r.lo, trIdx A mq r.hi with
+/-- An exponent below `2^62`: a constant below it, a base's exponent, or one at most such. -/
+def Idx.small : Idx → Bool
+  | .num n => n < 2 ^ 62
+  | .ex _ c => c == 0
+
+/-- An exponent known below `2^62`. -/
+def Abs.small (A : Abs) (j : Idx) : Bool := j.small || A.lt.any fun p ↦ p.2.small && A.le j p.2
+
+/-- A callee's exponent, in the caller's terms, for a fact moving out to the caller: a shifted base's
+exponent must be known to exist there. -/
+def idxUp (A : Abs) (mq : Mono) (i : Idx) : Option Idx :=
+  match trIdxK A mq i with
+  | some (j, k) => if k == 0 || A.hasIdx j then some j else none
+  | none => none
+
+/-- A callee's exponent, in the caller's terms, for a fact moving in to the callee: a shifted base's
+exponent must be known below `2^62`. -/
+def idxDown (A : Abs) (mq : Mono) (i : Idx) : Option Idx :=
+  match trIdxK A mq i with
+  | some (j, k) => if k == 0 || A.small j then some j else none
+  | none => none
+
+/-- A callee's run, in the caller's terms, its exponents translated by `tr`. -/
+def trRngBy (A : Abs) (mq : Mono) (tr : Idx → Option Idx) (r : Rng) : Option Rng :=
+  match trMono A mq r.q, tr r.lo, tr r.hi with
   | some q, some lo, some hi => some ⟨q, lo, hi, r.S, r.d⟩
   | _, _, _ => none
+
+/-- A callee's run, moving out. -/
+def trRngUp (A : Abs) (mq : Mono) (r : Rng) : Option Rng := trRngBy A mq (idxUp A mq) r
+
+/-- A callee's run, moving in. -/
+def trRngDown (A : Abs) (mq : Mono) (r : Rng) : Option Rng := trRngBy A mq (idxDown A mq) r
 
 /-- A base whose word is known to exist: a written frame cell, or a cell past a written pointer
 cell that the walk knows written. -/
@@ -660,18 +707,24 @@ def Abs.known (A : Abs) (m : Mono) : Bool := m.bs.all fun p ↦ A.knownB p.1
 
 /-- The caller holds what callee `G` needs at entry, its frame named by `mq`. -/
 def entryOk (A : Abs) (mq : Mono) (G : Sig) : Bool :=
-  G.entry.all (fun o ↦ A.covered (mq.shift o)) &&
+  G.entry.all (fun o ↦ decide (o < 2 ^ 30) && A.covered (mq.shift o)) &&
   (match G.self with
-    | some o => match A.hvGet (mq.shift o) with
+    | some o => decide (o < 2 ^ 30) && match A.hvGet (mq.shift o) with
       | some x => x.beq (.m mq)
       | none => false
     | none => true) &&
   G.pre.all (fun m ↦ match trMono A mq m with
     | some k => A.known k && A.covered k
     | none => false) &&
-  G.preR.all (fun r ↦ match trRng A mq r with
+  G.preR.all (fun r ↦ match trRngDown A mq r with
     | some r => A.coveredR r
     | none => false)
+
+/-- The termination facts of callee `G` hold at the call. -/
+def atCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
+  G.term.foldl (fun A p ↦ match idxUp A mq p.1, idxUp A mq p.2 with
+    | some a, some b => A.addLt a b
+    | _, _ => A) A
 
 /-- What the caller knows after callee `G` returns. -/
 noncomputable def afterCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
@@ -679,39 +732,29 @@ noncomputable def afterCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
   let A := G.post.foldl (fun A m ↦ match trMono A mq m with
     | some k => A.addH k
     | none => A) A
-  let A := G.postR.foldl (fun A r ↦ match trRng A mq r with
+  let A := (G.postR ++ G.postL).foldl (fun A r ↦ match trRngUp A mq r with
     | some r => { A with r := r :: A.r }
     | none => A) A
-  G.term.foldl (fun A p ↦ match trIdx A mq p.1, trIdx A mq p.2 with
-    | some a, some b => A.addLt a b
-    | _, _ => A) A
-
-/-- The termination facts of callee `G` hold at the call. -/
-noncomputable def atCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
-  G.term.foldl (fun A p ↦ match trIdx A mq p.1, trIdx A mq p.2 with
-    | some a, some b => A.addLt a b
-    | _, _ => A) A
+  atCall A mq G
 
 /-- The walk's state at a function's entry. -/
 noncomputable def entryAbs (E : Env) (G : Sig) : Abs :=
   let A : Abs := ⟨G.entry.foldl (fun t o ↦ t.set () envDepth o) .nil, .nil, .nil, [], G.pre,
-    jtRng E :: G.preR, G.term, []⟩
+    jtRng E :: G.preR, G.term, [], .nil⟩
   match G.self with
   | some o => ((A.addW o).addV o (.m (.own 0))).addNz o
   | none => A
 
 /-- A loop's run's point at its counter's start: the product `q·x^S·g^(S·c + d)` for `lo = x + c`. -/
-def Rng.first (r : Rng) : Option Mono :=
+def Rng.first (r : Rng) : Mono :=
   match r.lo with
-  | .num c => some (r.q.shift (r.S * c + r.d))
-  | .ex x c => some ((r.q.mul ⟨0, 0, [(x, r.S)]⟩).shift (r.S * c + r.d))
+  | .num c => r.q.shift (r.S * c + r.d)
+  | .ex x c => (r.q.mul ⟨0, 0, [(x, r.S)]⟩).shift (r.S * c + r.d)
 
 /-- A loop writes each run's point at its counter's start before a return or a tail call. -/
 def loopOk (A : Abs) (G : Sig) : Bool :=
-  G.postL.all fun r ↦ match trRng A (.own 0) r with
-    | some r => match r.first with
-      | some k => A.covered k
-      | none => false
+  G.postL.all fun r ↦ match trMono A (.own 0) r.first with
+    | some k => A.covered k
     | none => false
 
 /-- What the function guarantees holds at a return. -/
@@ -720,7 +763,7 @@ def retOk (A : Abs) (G : Sig) : Bool :=
   G.ret.all A.hasW && G.post.all (fun m ↦ match trMono A (.own 0) m with
     | some k => A.covered k
     | none => false) &&
-  G.postR.all fun r ↦ match trRng A (.own 0) r with
+  G.postR.all fun r ↦ match trRngDown A (.own 0) r with
     | some r => A.coveredR r
     | none => false
 
@@ -758,8 +801,27 @@ def armsOf (E : Env) (F : Fun) (A : Abs) (i t : ℕ) : Option (List ℕ) :=
     else none
   | _, _ => none
 
-/-- A loop's tail call into frame `fp·g^e` of callee `G`: its entry from this state. -/
-def tailOk (A : Abs) (e : ℕ) (G : Sig) : Bool := entryOk A (.own e) G
+/-- A loop's tail call into frame `fp·g^e` moves each termination fact's counter up by a positive
+power of `g` and keeps its bound. -/
+def termStep (A : Abs) (e : ℕ) (G : Sig) : Bool :=
+  G.term.all fun p ↦ match p with
+    | (.ex _ 0, .ex _ 0) =>
+      (match idxUp A (.own e) p.1 with
+        | some a => match p.1.off a with
+          | some t => decide (0 < t)
+          | none => false
+        | none => false) &&
+      (match idxUp A (.own e) p.2 with
+        | some b => b.beq p.2
+        | none => false)
+    | _ => false
+
+/-- A loop's tail call into frame `fp·g^e` of callee `G`: its entry from this state, its counters
+moved up, and each run it accumulates the next iteration's from one further. -/
+def tailOk (A : Abs) (e : ℕ) (G : Sig) : Bool :=
+  entryOk A (.own e) G && termStep A e G && G.postL.all fun r ↦ match trRngUp A (.own e) r with
+    | some r' => r'.beq ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩
+    | none => false
 
 /-- **A `JUMP` at offset `i`** (`[c]`, `[d]`, `[f]`): what it needs, and where it goes. The state
 after it is the state at its successors (a call's return point gets `afterCall`'s). -/
@@ -785,7 +847,7 @@ noncomputable def jumpI (E : Env) (F : Fun) (i : ℕ) (A : Abs) (d f : ℕ) :
       match A.mono d with
       | some ⟨0, t, []⟩ =>
         match E.sigs.get t with
-        | some G => if tailOk A e G && loopOk A F.sig then some (.out, A) else none
+        | some G => if t == F.entry && tailOk A e G && loopOk A F.sig then some (.out, A) else none
         | none => none
       | _ => none
     | some mq =>
@@ -813,63 +875,79 @@ def condOf (A : Abs) (c : ℕ) : Option Bool :=
 
 /-! ## The pass -/
 
-/-- Pending edges into later offsets, by increasing target, with what each knows. -/
-abbrev Pend := List (ℕ × Abs)
+/-- The fall-through of a `JUMP` on `[c]`: `[c] = 0`, so a sum `[c] = [a] + [b]` gives `[a] = [b]`. -/
+noncomputable def Abs.learn0 (A : Abs) (c : ℕ) : Abs :=
+  match A.xs.get c with
+  | some (a, b) =>
+    if (A.v.get b).isNone then A.addV b ((A.v.get a).getD (.m (.root a)))
+    else A.addV a ((A.v.get b).getD (.m (.root b)))
+  | none => A
+
+/-- Pending edges into later offsets, by increasing target, with what each path into it knows. -/
+abbrev Pend := List (ℕ × List Abs)
 
 /-- Add an edge into `t` knowing `A`. -/
-noncomputable def addEdge (t : ℕ) (A : Abs) : Pend → Pend
-  | [] => [(t, A)]
-  | (u, B) :: ps =>
-    if t < u then (t, A) :: (u, B) :: ps
-    else if t = u then (u, B.inter A) :: ps
-    else (u, B) :: addEdge t A ps
+def addEdge (t : ℕ) (A : Abs) : Pend → Pend
+  | [] => [(t, [A])]
+  | (u, Bs) :: ps =>
+    if t < u then (t, [A]) :: (u, Bs) :: ps
+    else if t = u then (u, Bs ++ [A]) :: ps
+    else (u, Bs) :: addEdge t A ps
 
-/-- One offset: the hints, the residuals, the instruction. `none` if anything fails; else what
-falls through, and the pending edges. -/
+/-- At most two paths apart: more are met into one. -/
+noncomputable def cap : List Abs → List Abs
+  | A :: B :: C :: Ds => [(B :: C :: Ds).foldl Abs.inter A]
+  | As => As
+
+/-- One path at one offset: the hints, the residuals, the instruction. `none` if anything fails;
+else what falls through, and the pending edges. -/
 noncomputable def offStep (E : Env) (F : Fun) (i : ℕ) (A : Abs) (ins : OffsetInstruction)
-    (pend : Pend) : Option (Option Abs × Pend) := do
+    (pend : Pend) : Option (List Abs × Pend) := do
   let A ← stepHints A ((F.hints.get i).getD [])
   let A ← addRes A ((F.res.get i).getD [])
   match ins with
   | .jump c d f =>
     let A ← stepOp E (F.entry + i) A ins
     match condOf A c with
-    | some false => some (some A, pend)
+    | some false => some ([A.learn0 c], pend)
     | k =>
       let (go, A') ← jumpI E F i A d f
       let pend := match go with
         | .to ts => ts.foldl (fun p t ↦ if i < t then addEdge t A' p else p) pend
         | .out => pend
       if (match go with | .to ts => ts.all (i < ·) | .out => true) then
-        some (if k == some true then none else some A, pend)
+        some (if k == some true then [] else [A.learn0 c], pend)
       else none
-  | ins => (stepOp E (F.entry + i) A ins).map fun A ↦ (some A, pend)
+  | ins => (stepOp E (F.entry + i) A ins).map fun A ↦ ([A], pend)
 
-/-- The state at offset `i`: what falls through, met with the pending edges into `i`. -/
-noncomputable def atJoin (i : ℕ) (cur : Option Abs) (pend : Pend) : Option Abs × Pend :=
+/-- Every path at one offset. -/
+noncomputable def stepAll (E : Env) (F : Fun) (i : ℕ) (ins : OffsetInstruction) :
+    List Abs → Pend → Option (List Abs × Pend)
+  | [], pend => some ([], pend)
+  | A :: As, pend =>
+    match offStep E F i A ins pend with
+    | some (cs, pend) => (stepAll E F i ins As pend).map fun p ↦ (cs ++ p.1, p.2)
+    | none => none
+
+/-- The paths at offset `i`: what falls through and the pending edges into `i`, capped. -/
+noncomputable def atJoin (i : ℕ) (cur : List Abs) (pend : Pend) : List Abs × Pend :=
   match pend with
-  | (t, B) :: ps =>
-    if t = i then
-      (some (match cur with
-        | some A => { A.inter B with pr := [] }
-        | none => B), ps)
-    else (cur, pend)
-  | [] => (cur, pend)
+  | (t, Bs) :: ps => if t = i then (cap (cur ++ Bs), ps) else (cap cur, pend)
+  | [] => (cap cur, pend)
 
 /-- The walk over the code from offset `i`. -/
-noncomputable def walkFrom (E : Env) (F : Fun) : List OffsetInstruction → ℕ → Option Abs → Pend → Bool
+noncomputable def walkFrom (E : Env) (F : Fun) : List OffsetInstruction → ℕ → List Abs → Pend → Bool
   | [], _, _, pend => pend.isEmpty
   | ins :: code, i, cur, pend =>
     match atJoin i cur pend with
-    | (none, pend) => walkFrom E F code (i + 1) none pend
-    | (some A, pend) =>
-      match offStep E F i A ins pend with
+    | (sts, pend) =>
+      match stepAll E F i ins sts pend with
       | some (cur, pend) => walkFrom E F code (i + 1) cur pend
       | none => false
 
 /-- **The walk accepts a function's code.** -/
 noncomputable def walk (E : Env) (F : Fun) (code : List OffsetInstruction) : Bool :=
-  walkFrom E F code 0 (some (entryAbs E F.sig)) []
+  walkFrom E F code 0 [entryAbs E F.sig] []
 
 end
 

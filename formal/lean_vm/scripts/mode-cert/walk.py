@@ -2,6 +2,8 @@
 import collections
 
 MAXCELLS = 2 ** 28
+# `g^-1`, the immediate `x^63 + x^3 + x^2 + 1`, named as `g^(2^64 - 2)`
+GINV = 2 ** 63 + 13
 
 # ---------------------------------------------------------------- products
 # Base: ('fr', o) | ('hp', q, d); Mono: (fp, k, bs) bs sorted tuple of (base, e)
@@ -58,6 +60,9 @@ def ioff(a, b):
     return None
 
 
+def ismall(i): return i[1] < 2 ** 62 if i[0] == 'num' else i[2] == 0
+
+
 def sle(a, b):
     if a[0] == 'num' and b[0] == 'num': return a[1] <= b[1]
     if a[0] == 'num': return a[1] <= b[2]
@@ -68,14 +73,15 @@ def sle(a, b):
 
 
 class Abs:
-    __slots__ = ('w', 'v', 'nz', 'hv', 'h', 'r', 'lt', 'pr')
+    __slots__ = ('w', 'v', 'nz', 'hv', 'h', 'r', 'lt', 'pr', 'xs')
 
     def __init__(s):
         s.w = set(); s.v = {}; s.nz = set(); s.hv = {}; s.h = set(); s.r = set(); s.lt = set(); s.pr = []
+        s.xs = {}
 
     def copy(s):
         t = Abs(); t.w = set(s.w); t.v = dict(s.v); t.nz = set(s.nz); t.hv = dict(s.hv); t.h = set(s.h)
-        t.r = set(s.r); t.lt = set(s.lt); t.pr = list(s.pr)
+        t.r = set(s.r); t.lt = set(s.lt); t.pr = list(s.pr); t.xs = dict(s.xs)
         return t
 
     def addV(s, o, x):
@@ -123,6 +129,9 @@ class Abs:
 
     def known(s, m):
         return all(s.knownB(b) for b, e in m[2])
+
+    def small(s, j):
+        return ismall(j) or any(ismall(q) and s.le(j, q) for p, q in s.lt)
 
     def hasIdx(s, i):
         if i[0] == 'num': return True
@@ -176,6 +185,7 @@ def inter(A, B):
     t.nz = A.nz & B.nz
     t.hv = {k: x for k, x in A.hv.items() if B.hv.get(k) == x}
     t.h = A.h & B.h; t.r = A.r & B.r; t.lt = A.lt & B.lt; t.pr = []
+    t.xs = {c: p for c, p in A.xs.items() if B.xs.get(c) == p}
     return t
 
 # ---------------------------------------------------------------- the walk
@@ -238,6 +248,7 @@ class Walk:
     def valOfImm(self, k0, k1):
         if k1 == 0:
             if k0 == 1: return ('m', ONE)
+            if k0 == GINV: return ('m', gp(2 ** 64 - 2))
             e = self.E.pows.get(k0)
             if e is not None: return ('m', gp(e))
         return ('imm', k0, k1)
@@ -258,14 +269,15 @@ class Walk:
         if A.pr:
             x, y2, z = A.pr[0]
             if y2 == y and A.ltI(('ex', ('fr', x), 0), ('num', MAXCELLS)):
-                v = A.v.get(z)
-                if v is not None and v[0] == 'm':
-                    m = v[1]
+                m = A.mono(z)
+                if m is not None:
                     if m[0] == 0 and not m[2]:
                         if m[1] < 2 ** 62: A.lt.add((('ex', ('fr', x), 0), ('num', m[1] + 1)))
                     elif m[0] == 0 and len(m[2]) == 1 and m[2][0][1] == 1:
-                        if m[1] < 2 ** 62 and A.ltI(('ex', m[2][0][0], 0), ('num', MAXCELLS)):
+                        if m[1] == 0 or (m[1] < 2 ** 62 and A.ltI(('ex', m[2][0][0], 0), ('num', MAXCELLS))):
                             A.lt.add((('ex', ('fr', x), 0), ('ex', m[2][0][0], m[1] + 1)))
+                        elif m[1] == 2 ** 64 - 2:
+                            A.lt.add((('ex', ('fr', x), 0), ('ex', m[2][0][0], 0)))
 
     def stepOp(self, i, A, op, a):
         pc = self.entry + i
@@ -274,6 +286,7 @@ class Walk:
             self.needW(A, x, i); self.needW(A, y, i)
             mx, my = A.mono(x), A.mono(y)
             A.w.add(z); A.pr = []
+            if z not in A.xs: A.xs[z] = (x, y)
             if mx is not None and my is not None and mx[0] == 0 and my[0] == 0 and not mx[2] and not my[2]:
                 if mx[1] != my[1] and mx[1] < 2 ** 62 and my[1] < 2 ** 62: A.nz.add(z)
             return
@@ -451,29 +464,46 @@ class Walk:
             acc = mul(acc, npow(x, e))
         return acc
 
-    def trIdx(self, A, mq, i):
-        if i[0] == 'num': return i
+    def trIdxK(self, A, mq, i):
+        if i[0] == 'num': return (i, 0)
         x = self.trBase(A, mq, i[1])
-        if x is None or x[0] != 0: return None
-        if not x[2]: return ('num', i[2] + x[1]) if x[1] < 2 ** 62 else None
-        if len(x[2]) == 1 and x[2][0][1] == 1: return ('ex', x[2][0][0], i[2] + x[1])
+        if x is None or x[0] != 0 or x[1] >= 2 ** 62: return None
+        if not x[2]: return (('num', i[2] + x[1]), 0)
+        if len(x[2]) == 1 and x[2][0][1] == 1: return (('ex', x[2][0][0], i[2] + x[1]), x[1])
         return None
 
-    def trRng(self, A, mq, r):
-        q = self.trMono(A, mq, r[0]); lo = self.trIdx(A, mq, r[1]); hi = self.trIdx(A, mq, r[2])
+    def trIdx(self, A, mq, i):
+        t = self.trIdxK(A, mq, i)
+        return t[0] if t is not None else None
+
+    def idxUp(self, A, mq, i):
+        t = self.trIdxK(A, mq, i)
+        if t is None: return None
+        return t[0] if t[1] == 0 or A.hasIdx(t[0]) else None
+
+    def idxDown(self, A, mq, i):
+        t = self.trIdxK(A, mq, i)
+        if t is None: return None
+        return t[0] if t[1] == 0 or A.small(t[0]) else None
+
+    def trRngBy(self, A, mq, tr, r):
+        q = self.trMono(A, mq, r[0]); lo = tr(A, mq, r[1]); hi = tr(A, mq, r[2])
         if q is None or lo is None or hi is None: return None
         return (q, lo, hi, r[3], r[4])
 
+    def trRngUp(self, A, mq, r): return self.trRngBy(A, mq, self.idxUp, r)
+    def trRngDown(self, A, mq, r): return self.trRngBy(A, mq, self.idxDown, r)
+
     def entryOk(self, A, mq, G, i, name):
         for o in G.entry:
-            self.need(A.covered(shift(mq, o)), 'entry', i, name, o, A, self.lnks.get(shift(mq, o), []), self.lnk)
+            self.need(o < 2 ** 30 and A.covered(shift(mq, o)), 'entry', i, name, o, A, self.lnks.get(shift(mq, o), []), self.lnk)
         if G.self_ is not None:
-            self.need(A.hvGet(shift(mq, G.self_)) == ('m', mq), 'self', i, name)
+            self.need(G.self_ < 2 ** 30 and A.hvGet(shift(mq, G.self_)) == ('m', mq), 'self', i, name)
         for m in G.pre:
             k = self.trMono(A, mq, m)
             self.need(k is not None and A.known(k) and A.covered(k), 'pre', i, name, m, k, A)
         for r in G.preR:
-            r2 = self.trRng(A, mq, r)
+            r2 = self.trRngDown(A, mq, r)
             self.need(r2 is not None and A.coveredR(r2), 'preR', i, name, r, r2, A)
 
     def afterCall(self, A, mq, G):
@@ -483,20 +513,19 @@ class Walk:
             k = self.trMono(A, mq, m)
             if k is not None: A.addH(k)
         for r in G.postR + G.postL:
-            r2 = self.trRng(A, mq, r)
+            r2 = self.trRngUp(A, mq, r)
             if r2 is not None: A.r.add(r2)
         self.atCall(A, mq, G)
         return A
 
     def atCall(self, A, mq, G):
         for p, q in G.term:
-            a, b = self.trIdx(A, mq, p), self.trIdx(A, mq, q)
+            a, b = self.idxUp(A, mq, p), self.idxUp(A, mq, q)
             if a is not None and b is not None: A.lt.add((a, b))
 
     def loopOk(self, A, i):
         for r in self.sig.postL:
-            r2 = self.trRng(A, own(0), r)
-            k = first(r2) if r2 is not None else None
+            k = self.trMono(A, own(0), first(r))
             self.need(k is not None and A.covered(k), 'loop', i, r, A)
 
     def retOk(self, A, i):
@@ -506,7 +535,7 @@ class Walk:
             k = self.trMono(A, own(0), m)
             self.need(k is not None and A.covered(k), 'post', i, m, A)
         for r in self.sig.postR:
-            r2 = self.trRng(A, own(0), r)
+            r2 = self.trRngDown(A, own(0), r)
             self.need(r2 is not None and A.coveredR(r2), 'postR', i, r, A)
 
     def calleesOf(self, A, i, t):
@@ -562,7 +591,17 @@ class Walk:
             md = A.mono(d)
             if md is not None and md[0] == 0 and not md[2] and md[1] in self.E.sigs:
                 G = self.E.sigs[md[1]]
+                self.need(md[1] == self.entry, 'tailself', i)
                 self.entryOk(A, own(e), G, i, ('tail', md[1]))
+                for r in G.postL:
+                    self.need(self.trRngUp(A, own(e), r) == (r[0], isucc(r[1]), r[2], r[3], r[4]), 'stride', i, r, A)
+                for p, q in G.term:
+                    ok = p[0] == 'ex' and p[2] == 0 and q[0] == 'ex' and q[2] == 0
+                    if ok:
+                        a2, b2 = self.idxUp(A, own(e), p), self.idxUp(A, own(e), q)
+                        t = ioff(p, a2) if a2 is not None else None
+                        ok = t is not None and t > 0 and b2 == q
+                    self.need(ok, 'termstep', i, p, q, A)
                 self.loopOk(A, i)
                 self.tails.append((A.copy(), e, md[1], i))
                 return ('out', A)
@@ -593,36 +632,37 @@ class Walk:
         return None
 
     def run(self, code, keep=False):
-        cur = entryAbs(self.E, self.sig)
+        cur = [entryAbs(self.E, self.sig)]
         pend = {}
         if keep: self.states = []
         for i, (op, a) in enumerate(code):
-            if i in pend:
-                B = pend.pop(i)
-                if cur is not None:
-                    cur = inter(cur, B)
-                else:
-                    cur = B
-            if keep: self.states.append(cur.copy() if cur is not None else None)
-            if cur is None: continue
-            A = cur
-            for h in self.hints.get(i, []): self.stepHint(i, A, h)
-            self.addRes(A, i, self.res.get(i, []))
-            if op != 'jump':
+            sts = cap(cur + pend.pop(i, []))
+            if keep: self.states.append(sts[0].copy() if sts else None)
+            cur = []
+            for A in sts:
+                for h in self.hints.get(i, []): self.stepHint(i, A, h)
+                self.addRes(A, i, self.res.get(i, []))
                 self.stepOp(i, A, op, a)
-                cur = A
-                continue
-            self.stepOp(i, A, op, a)
-            c, d, f = a
-            k = self.condOf(A, c)
-            if k is False: cur = A; continue
-            go, A2 = self.jumpI(i, A, d, f)
-            if go != 'out':
-                for t in go:
-                    if t <= i: raise Fail(('backjump', i, t))
-                    pend[t] = inter(pend[t], A2) if t in pend else A2.copy()
-            cur = None if k is True else A
+                if op != 'jump':
+                    cur.append(A)
+                    continue
+                c, d, f = a
+                k = self.condOf(A, c)
+                if k is False: cur.append(learn0(A, c)); continue
+                go, A2 = self.jumpI(i, A, d, f)
+                if go != 'out':
+                    for t in go:
+                        if t <= i: raise Fail(('backjump', i, t))
+                        pend.setdefault(t, []).append(A2.copy())
+                if k is not True: cur.append(learn0(A, c))
         if pend: raise Fail(('pend', sorted(pend)))
+
+def cap(sts):
+    """At most two paths: more are met into one."""
+    if len(sts) <= 2: return sts
+    B = sts[0]
+    for X in sts[1:]: B = inter(B, X)
+    return [B]
 
 
 def first(r):
@@ -637,3 +677,14 @@ def entryAbs(E, G):
     if G.self_ is not None:
         A.w.add(G.self_); A.addV(G.self_, ('m', own(0))); A.nz.add(G.self_)
     return A
+
+
+def learn0(A, c):
+    """The fall-through of a jump on `[c]`: a sum `[c] = [a] + [b]` gives `[a] = [b]`."""
+    p = A.xs.get(c)
+    if p is None: return A
+    a, b = p
+    B = A.copy()
+    if b not in B.v: B.addV(b, B.v.get(a, ('m', root(a))))
+    else: B.addV(a, B.v.get(b, ('m', root(b))))
+    return B

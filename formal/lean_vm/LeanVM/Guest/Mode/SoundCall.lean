@@ -340,6 +340,170 @@ theorem trMono_iff {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA 
     rw [(hacc wa).mp h1]
     exact ⟨wb, h2, rfl⟩
 
+/-! ## Exponents and runs, translated -/
+
+theorem MonoVal.base1 {s : St} {k : ℕ} {b : Base} {u : E} :
+    MonoVal s ⟨0, k, [(b, 1)]⟩ u ↔ ∃ p, BaseVal s b p ∧ u = ofK (g ^ k) * p := by
+  constructor
+  · rintro ⟨w, ⟨p, w', hp, hw', rfl⟩, rfl⟩
+    exact ⟨p, hp, by rw [show w' = 1 from hw']; simp⟩
+  · rintro ⟨p, hp, rfl⟩
+    exact ⟨p, ⟨p, 1, hp, rfl, by simp⟩, by simp⟩
+
+theorem trIdxK_ex {A : Abs} {mq : Mono} {x : Base} {c : ℕ} {j : Idx} {k : ℕ}
+    (h : trIdxK A mq (.ex x c) = some (j, k)) :
+    (k = 0 ∧ ∃ k', k' < 2 ^ 62 ∧ trBase A mq x = some ⟨0, k', []⟩ ∧ j = .num (c + k')) ∨
+      (k < 2 ^ 62 ∧ ∃ y, trBase A mq x = some ⟨0, k, [(y, 1)]⟩ ∧ j = .ex y (c + k)) := by
+  simp only [trIdxK] at h
+  split at h
+  · rename_i k' hk
+    split_ifs at h with h1
+    cases h
+    exact Or.inl ⟨rfl, k', h1, hk, rfl⟩
+  · rename_i k' y hk
+    split_ifs at h with h1
+    cases h
+    exact Or.inr ⟨h1, y, hk, rfl⟩
+  · cases h
+
+theorem trIdxK_num {A : Abs} {mq : Mono} {n : ℕ} {j : Idx} {k : ℕ}
+    (h : trIdxK A mq (.num n) = some (j, k)) : j = .num n ∧ k = 0 := by
+  simp only [trIdxK, Option.some.injEq, Prod.mk.injEq] at h
+  exact ⟨h.1.symm, h.2.symm⟩
+
+/-- **A callee's exponent, moved in**: the caller's value is the callee's, when it is below `2^62`
+or the base is not shifted. -/
+theorem trIdx_down {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
+    {i j : Idx} {k : ℕ} (h : trIdxK A mq i = some (j, k)) {y : ℕ} (hy : IdxVal sC j y)
+    (hs : k = 0 ∨ y < 2 ^ 62) : IdxVal sE i y := by
+  cases i with
+  | num n =>
+    obtain ⟨rfl, -⟩ := trIdxK_num h
+    exact hy
+  | ex x c =>
+    rcases trIdxK_ex h with ⟨rfl, k', hk', hb, rfl⟩ | ⟨hk, y', hb, rfl⟩
+    · have hy' : y = c + k' := hy
+      exact ⟨_, k', (trBase_iff F hA hb _).mpr (MonoVal.gp k'), rfl, hk', by omega⟩
+    · obtain ⟨v, e, hv, rfl, he, rfl⟩ := hy
+      refine ⟨ofK (g ^ (k + e)), k + e,
+        (trBase_iff F hA hb _).mpr (MonoVal.base1.mpr ⟨_, hv, by rw [pow_add, ofK_mul]⟩), rfl, ?_,
+        by omega⟩
+      rcases hs with rfl | hs <;> omega
+
+/-- **A callee's exponent, moved out**: the callee's value is the caller's, when the caller's base has
+an exponent or the base is not shifted. -/
+theorem trIdx_up {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
+    {i j : Idx} {k : ℕ} (h : trIdxK A mq i = some (j, k)) {x : ℕ} (hx : IdxVal sE i x)
+    (hs : k = 0 ∨ ∃ y, IdxVal sC j y) : IdxVal sC j x := by
+  cases i with
+  | num n =>
+    obtain ⟨rfl, -⟩ := trIdxK_num h
+    exact hx
+  | ex x0 c =>
+    rcases trIdxK_ex h with ⟨rfl, k', hk', hb, rfl⟩ | ⟨hk, y', hb, rfl⟩
+    · obtain ⟨v, e, hv, rfl, he, rfl⟩ := hx
+      have := ofK_gpow_inj (by omega) (by omega) (pow_val ((trBase_iff F hA hb _).mp hv))
+      show e + c = c + k'
+      omega
+    · obtain ⟨v, e, hv, rfl, he, rfl⟩ := hx
+      obtain ⟨p, hp, hpe⟩ := MonoVal.base1.mp ((trBase_iff F hA hb _).mp hv)
+      have key : ∃ e', p = ofK (g ^ e') ∧ e' < 2 ^ 62 ∧ e = e' + k := by
+        rcases hs with rfl | ⟨y0, v', e', hv', rfl, he', -⟩
+        · rw [pow_zero, show ofK (1 : K) = 1 from map_one (algebraMap K E), one_mul] at hpe
+          exact ⟨e, hpe.symm, he, by omega⟩
+        · obtain rfl := hp.unique hv'
+          rw [← ofK_mul, ← pow_add] at hpe
+          exact ⟨e', rfl, he', by have := ofK_gpow_inj (by omega) (by omega) hpe; omega⟩
+      obtain ⟨e', rfl, he', rfl⟩ := key
+      exact ⟨_, e', hp, rfl, he', by omega⟩
+
+theorem Idx.small_sound {s : St} {i : Idx} (h : i.small = true) {y : ℕ} (hy : IdxVal s i y) :
+    y < 2 ^ 62 := by
+  cases i with
+  | num n =>
+    simp only [Idx.small, decide_eq_true_eq] at h
+    rw [show y = n from hy]; exact h
+  | ex b c =>
+    simp only [Idx.small, beq_iff_eq] at h
+    subst h
+    obtain ⟨v, e, -, -, he, rfl⟩ := hy
+    omega
+
+theorem Abs.small_sound {s : St} {A : Abs} (hA : Holds s A) {j : Idx} (h : A.small j = true) {y : ℕ}
+    (hy : IdxVal s j y) : y < 2 ^ 62 := by
+  unfold Abs.small at h
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  · exact Idx.small_sound h hy
+  · obtain ⟨p, hm, hh⟩ := List.any_eq_true.mp h
+    simp only [Bool.and_eq_true] at hh
+    obtain ⟨xa, xb, -, hb, -⟩ := hA.lt p hm
+    obtain ⟨xa', ha', hle⟩ := Abs.le_sound hA hh.2 hb
+    rw [hy.unique ha']
+    have := Idx.small_sound hh.1 hb
+    omega
+
+theorem idxUp_some {A : Abs} {mq : Mono} {i j : Idx} (h : idxUp A mq i = some j) :
+    ∃ k, trIdxK A mq i = some (j, k) ∧ (k = 0 ∨ A.hasIdx j = true) := by
+  unfold idxUp at h
+  split at h
+  · rename_i j' k hk
+    split_ifs at h with h1
+    cases h
+    exact ⟨k, hk, by simpa using h1⟩
+  · cases h
+
+theorem idxDown_some {A : Abs} {mq : Mono} {i j : Idx} (h : idxDown A mq i = some j) :
+    ∃ k, trIdxK A mq i = some (j, k) ∧ (k = 0 ∨ A.small j = true) := by
+  unfold idxDown at h
+  split at h
+  · rename_i j' k hk
+    split_ifs at h with h1
+    cases h
+    exact ⟨k, hk, by simpa using h1⟩
+  · cases h
+
+theorem idxUp_val {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
+    {i j : Idx} (h : idxUp A mq i = some j) {x : ℕ} (hx : IdxVal sE i x) : IdxVal sC j x := by
+  obtain ⟨k, hk, hs⟩ := idxUp_some h
+  exact trIdx_up F hA hk hx (hs.imp id (Abs.hasIdx_sound hA))
+
+theorem idxDown_val {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
+    {i j : Idx} (h : idxDown A mq i = some j) {y : ℕ} (hy : IdxVal sC j y) : IdxVal sE i y := by
+  obtain ⟨k, hk, hs⟩ := idxDown_some h
+  exact trIdx_down F hA hk hy (hs.imp id fun h ↦ Abs.small_sound hA h hy)
+
+theorem trRngBy_some {A : Abs} {mq : Mono} {tr : Idx → Option Idx} {r r' : Rng}
+    (h : trRngBy A mq tr r = some r') : ∃ q lo hi, trMono A mq r.q = some q ∧ tr r.lo = some lo ∧
+      tr r.hi = some hi ∧ r' = ⟨q, lo, hi, r.S, r.d⟩ := by
+  unfold trRngBy at h
+  split at h
+  · rename_i q lo hi h1 h2 h3
+    cases h
+    exact ⟨q, lo, hi, h1, h2, h3, rfl⟩
+  · cases h
+
+/-- **A callee's run, moved out.** -/
+theorem RW.trUp {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A) {r r' : Rng}
+    (h : trRngUp A mq r = some r') (hr : RW sE r) : RW sC r' := by
+  obtain ⟨q, lo, hi, hq, hlo, hhi, rfl⟩ := trRngBy_some h
+  obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := hr
+  exact ⟨vq, xlo, xhi, (trMono_iff F hA hq vq).mp h1, idxUp_val F hA hlo h2, idxUp_val F hA hhi h3,
+    fun j a b ↦ F.mem ▸ h4 j a b⟩
+
+/-- **A callee's run, moved in.** -/
+theorem RW.trDown {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
+    {r r' : Rng} (h : trRngDown A mq r = some r') (hr : RW sC r') : RW sE r := by
+  obtain ⟨q, lo, hi, hq, hlo, hhi, rfl⟩ := trRngBy_some h
+  obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := hr
+  exact ⟨vq, xlo, xhi, (trMono_iff F hA hq vq).mpr h1, idxDown_val F hA hlo h2,
+    idxDown_val F hA hhi h3, fun j a b ↦ F.mem ▸ h4 j a b⟩
+
+/-- The own frame, as a callee's. -/
+theorem Frames.own {s : St} (hfp : s.fp < maxCells) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells)
+    {e : ℕ} {sE : St} (hm : sE.mem = s.mem) (hE : sE.fp = s.fp + e) (hEfp : sE.fp < maxCells) :
+    Frames s sE (.own e) :=
+  ⟨hm, by rw [hE]; exact MonoVal.own e, hEfp, hfp, hwf, hu⟩
+
 end
 
 end LeanVM.Guest.Mode

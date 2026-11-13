@@ -62,6 +62,11 @@ theorem Holds.setPr (h : Holds s A) {l : List (ℕ × ℕ × ℕ)} (hl : ∀ p �
     Holds s { A with pr := l } :=
   { h with pr := hl }
 
+theorem Holds.setPrXs (h : Holds s A) {l : List (ℕ × ℕ × ℕ)} (hl : ∀ p ∈ l, PrF s p.1 p.2.1 p.2.2)
+    {t : Exec.Trie (ℕ × ℕ)} (ht : ∀ c a b, t.get c = some (a, b) → XorF s a b c) :
+    Holds s { A with pr := l, xs := t } :=
+  { h with pr := hl, xs := ht }
+
 theorem Mono.ownCell_eq {k : Mono} {d : ℕ} (h : k.ownCell = some d) : k = .own d ∧ d < 2 ^ 62 := by
   obtain ⟨fp, kk, bs⟩ := k
   unfold Mono.ownCell at h

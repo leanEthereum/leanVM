@@ -54,6 +54,77 @@ theorem Holds.inter {s : St} {A B : Abs} (hA : Holds s A) : Holds s (A.inter B) 
   r r hr := hA.r r (mem_interL hr)
   lt p hp := hA.lt p (mem_interL hp)
   pr _ hp := nomatch hp
+  xs c a b ho := hA.xs c a b (Exec.Trie.get_inter (fun p q h ↦ by
+    simp only [Bool.and_eq_true, beq_iff_eq] at h; exact Prod.ext h.1 h.2) ho).1
+
+theorem mem_interL_right {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y)
+    {a b : List α} {x : α} (h : x ∈ interL eq a b) : x ∈ b := by
+  obtain ⟨y, hy, he⟩ := List.any_eq_true.mp (List.mem_filter.mp h).2
+  rwa [heq x y he]
+
+theorem pair_beq_eq {α β : Type} {ea : α → α → Bool} {eb : β → β → Bool}
+    (ha : ∀ x y, ea x y = true → x = y) (hb : ∀ x y, eb x y = true → x = y) (p q : α × β)
+    (h : (ea p.1 q.1 && eb p.2 q.2) = true) : p = q := by
+  simp only [Bool.and_eq_true] at h
+  exact Prod.ext (ha _ _ h.1) (hb _ _ h.2)
+
+/-- **A join is sound**, from its second side. -/
+theorem Holds.inter_right {s : St} {A B : Abs} (hB : Holds s B) : Holds s (A.inter B) where
+  w o ho := hB.w o (Exec.Trie.get_inter (fun _ _ _ ↦ rfl) ho).2
+  v o x ho := hB.v o x (Exec.Trie.get_inter (fun _ _ h ↦ Val.beq_eq h) ho).2
+  nz o ho := hB.nz o (Exec.Trie.get_inter (fun _ _ _ ↦ rfl) ho).2
+  hv p hp := hB.hv p (mem_interL_right
+    (pair_beq_eq (fun _ _ h ↦ Mono.beq_eq h) (fun _ _ h ↦ Val.beq_eq h)) hp)
+  h k hk := hB.h k (mem_interL_right (fun _ _ h ↦ Mono.beq_eq h) hk)
+  r r hr := hB.r r (mem_interL_right (fun _ _ h ↦ Rng.beq_eq h) hr)
+  lt p hp := hB.lt p (mem_interL_right
+    (pair_beq_eq (fun _ _ h ↦ Idx.beq_eq h) (fun _ _ h ↦ Idx.beq_eq h)) hp)
+  pr _ hp := nomatch hp
+  xs c a b ho := hB.xs c a b (Exec.Trie.get_inter (fun p q h ↦ by
+    simp only [Bool.and_eq_true, beq_iff_eq] at h; exact Prod.ext h.1 h.2) ho).2
+
+/-- Paths met: what all know holds where any holds. -/
+theorem Holds.foldl_inter {s : St} : ∀ {A X : Abs} {l : List Abs}, X ∈ A :: l → Holds s X →
+    Holds s (l.foldl Abs.inter A)
+  | _, _, [], hm, hX => by rw [List.mem_singleton.mp hm] at hX; exact hX
+  | A, X, B :: l, hm, hX => by
+    rw [List.foldl_cons]
+    rcases List.mem_cons.mp hm with rfl | hm
+    · exact Holds.foldl_inter (List.mem_cons_self ..) hX.inter
+    rcases List.mem_cons.mp hm with rfl | hm
+    · exact Holds.foldl_inter (List.mem_cons_self ..) hX.inter_right
+    · exact Holds.foldl_inter (List.mem_cons_of_mem _ hm) hX
+
+/-- **Capping the paths is sound**: a path that holds leaves one that holds. -/
+theorem Holds.cap {s : St} {As : List Abs} (h : ∃ A ∈ As, Holds s A) : ∃ A ∈ cap As, Holds s A := by
+  obtain ⟨X, hm, hX⟩ := h
+  match As, hm with
+  | [_], hm => exact ⟨X, hm, hX⟩
+  | [_, _], hm => exact ⟨X, hm, hX⟩
+  | A :: B :: C :: Ds, hm => exact ⟨_, List.mem_singleton_self _, Holds.foldl_inter hm hX⟩
+
+/-- **The fall-through of a `JUMP` on `[c]`** is sound, `[c]` being `0`. -/
+theorem Holds.learn0 {s : St} {A : Abs} (hA : Holds s A) {c : ℕ}
+    (hc : s.mem.get (s.fp + c) = some 0) : Holds s (A.learn0 c) := by
+  unfold Abs.learn0
+  split
+  · rename_i a b hab
+    obtain ⟨va, vb, ha, hb, hc'⟩ := hA.xs c a b hab
+    rw [hc] at hc'
+    obtain rfl : va = vb := by
+      rw [← sub_eq_zero, CharTwo.sub_eq_add]; exact (Option.some.inj hc').symm
+    have key : ∀ o, s.mem.get (s.fp + o) = some va →
+        ValOk s ((A.v.get o).getD (.m (.root o))) va := by
+      intro o ho
+      cases hvo : A.v.get o with
+      | none => exact MonoVal.root ho
+      | some y =>
+        obtain ⟨u, hu, hok⟩ := hA.v o y hvo
+        rw [ho] at hu; cases hu; exact hok
+    split
+    · exact hA.addV ⟨va, hb, key a ha⟩
+    · exact hA.addV ⟨va, ha, key b hb⟩
+  · exact hA
 
 /-- The hints at a pc, in order: each reads written cells, and the state after them holds the
 walk's set. -/

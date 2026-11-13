@@ -147,6 +147,13 @@ class Infer:
 
     def key(self, k, i0, A):
         f = self.f
+        # a jump table load through an unbounded selector: residual bound
+        if (i0 + 1) in f['tabs'] and k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and k[1] in REGION:
+            x = k[2][0][0]
+            r = ('lt', ('ex', x, 0), ('num', REGION[k[1]]))
+            if r not in self.res[i0]:
+                self.res[i0].append(r); self.new = True
+            A.lt.add((r[1], r[2])); return True
         if k[0] == 0 and k[2] and ifaceMono(f, k):
             self.pre.add(k); self.new = True; A.h.add(k); return True
         if k[0] != 0 or not k[2]: return False
@@ -158,13 +165,6 @@ class Infer:
                 if p == ('ex', x, 0) and ifaceIdx(f, hi) and hi != ('num', MAXCELLS):
                     r = ((0, 0, Q), ('num', 0), hi, e, k[1])
                     self.preR.add(r); self.new = True; A.r.add(r); return True
-        # a jump table load through an unbounded selector: residual bound
-        if k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and k[1] in REGION:
-            x = k[2][0][0]
-            r = ('lt', ('ex', x, 0), ('num', REGION[k[1]]))
-            if r not in self.res[i0]:
-                self.res[i0].append(r); self.new = True
-            A.lt.add((r[1], r[2])); return True
         return False
 
 
@@ -275,6 +275,11 @@ if __name__ == '__main__':
     rk = collections.Counter(r[0] for n in res for rs in res[n].values() for r in rs)
     print('resid kinds', rk, 'fns with resid', sum(1 for n in res if any(res[n].values())))
     print('clean', sum(1 for n in sigs if n not in fails and not any(res.get(n, {}).values())))
+    # passing with every callee passing, transitively (a failing callee's signature is empty)
+    closed = set()
+    for n in order:
+        if n not in fails and all(m in closed for m in calls[n] if m != n): closed.add(n)
+    print('closed', len(closed), 'of', len(fns))
     rootf = [n for n in fails if not any(m in fails for m in calls[n] if m != n)]
     print('root failures', len(rootf), collections.Counter(fails[n][0] for n in rootf))
     for n in sorted(rootf, key=lambda n: fns[n]['count'])[:40]:

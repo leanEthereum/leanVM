@@ -100,34 +100,49 @@ theorem rangeFact_sound {s : St} {A : Abs} (hH : Holds s A) {y : ℕ} {base : �
       obtain ⟨u, e', hu, hu', he', hxe⟩ := hex
       have hu2 : s.mem.get (s.fp + x) = some u := hu
       have hvx : vx = ofK (g ^ e') := by rw [hx] at hu2; rw [← hu']; exact Option.some.inj hu2
+      have hzm : ∀ m, A.mono z = some m → MonoVal s m (vx * ofK (g ^ base)) := fun m hm ↦ by
+        obtain ⟨u2, hu2, hok⟩ := hH.mono_val hm (written_of_get hz)
+        rw [hz] at hu2; cases hu2; exact hok
+      have h1 : ofK (1 : K) = 1 := map_one (algebraMap K E)
       split
       · rename_i k hz'
         split_ifs with hk
         · refine hH.addLt ⟨e', k + 1, ⟨_, e', hx, hvx, he', rfl⟩, rfl, ?_⟩
-          obtain ⟨u2, hu2, hok⟩ := hH.v z _ hz'
-          rw [hz] at hu2; cases hu2
-          have := pow_val hok
+          have := pow_val (hzm _ hz')
           rw [hvx, ← ofK_mul, ← pow_add] at this
           have := ofK_gpow_inj (by unfold maxCells at hexlt hb; omega) (by omega) this
           omega
         · exact hH
       · rename_i k b hz'
-        split_ifs with hk
-        · simp only [Bool.and_eq_true, decide_eq_true_eq] at hk
-          obtain ⟨eb, ⟨ub, eb', hub, hub', heb', hbe⟩, heblt⟩ :=
-            Abs.ltI_sound hH hk.2 (show IdxVal s (.num maxCells) maxCells from rfl)
-          refine hH.addLt ⟨e', eb' + (k + 1), ⟨_, e', hx, hvx, he', rfl⟩,
-            ⟨ub, eb', hub, hub', heb', rfl⟩, ?_⟩
-          obtain ⟨u2, hu2, hok⟩ := hH.v z _ hz'
-          rw [hz] at hu2; cases hu2
-          obtain ⟨w, ⟨u3, w3, h3, hw3, rfl⟩, h4⟩ := hok
-          obtain rfl := h3.unique hub
-          rw [show w3 = 1 from hw3, hub'] at h4
-          simp only [pow_zero, one_mul, pow_one, mul_one] at h4
-          rw [hvx, ← ofK_mul, ← pow_add, ← ofK_mul, ← pow_add] at h4
-          have := ofK_gpow_inj (by unfold maxCells at hexlt hb; omega)
-            (by unfold maxCells at heblt; omega) h4
-          omega
+        have hok := hzm _ hz'
+        obtain ⟨w, ⟨u3, w3, h3, hw3, rfl⟩, h4⟩ := hok
+        rw [show w3 = 1 from hw3] at h4
+        simp only [pow_zero, one_mul, pow_one, mul_one] at h4
+        split_ifs with hk hg
+        · rcases Bool.or_eq_true_iff.mp hk with hk | hk
+          · obtain rfl := beq_iff_eq.mp hk
+            rw [pow_zero, h1, one_mul] at h4
+            have hu3 : u3 = ofK (g ^ (e' + base)) := by rw [← h4, hvx, ← ofK_mul, ← pow_add]
+            exact hH.addLt ⟨e', e' + base + (0 + 1), ⟨_, e', hx, hvx, he', rfl⟩,
+              ⟨u3, e' + base, h3, hu3, by unfold maxCells at hexlt hb; omega, rfl⟩, by omega⟩
+          · simp only [Bool.and_eq_true, decide_eq_true_eq] at hk
+            obtain ⟨eb, ⟨ub, eb', hub, hub', heb', hbe⟩, heblt⟩ :=
+              Abs.ltI_sound hH hk.2 (show IdxVal s (.num maxCells) maxCells from rfl)
+            refine hH.addLt ⟨e', eb' + (k + 1), ⟨_, e', hx, hvx, he', rfl⟩,
+              ⟨ub, eb', hub, hub', heb', rfl⟩, ?_⟩
+            obtain rfl := h3.unique hub
+            rw [hub'] at h4
+            rw [hvx, ← ofK_mul, ← pow_add, ← ofK_mul, ← pow_add] at h4
+            have := ofK_gpow_inj (by unfold maxCells at hexlt hb; omega)
+              (by unfold maxCells at heblt; omega) h4
+            omega
+        · obtain rfl := beq_iff_eq.mp hg
+          have hu3 : u3 = ofK (g ^ (e' + base + 1)) := by
+            have h5 : u3 = vx * ofK (g ^ base) * ofK g := by
+              rw [h4, mul_comm (ofK _) u3, mul_assoc, ← ofK_mul, gpow_ginv_mul, h1, mul_one]
+            rw [h5, hvx, ← ofK_mul, ← ofK_mul, ← pow_add, ← pow_succ]
+          refine hH.addLt ⟨e', e' + base + 1, ⟨_, e', hx, hvx, he', rfl⟩,
+            ⟨u3, e' + base + 1, h3, hu3, by unfold maxCells at hexlt hb; omega, rfl⟩, by omega⟩
         · exact hH
       · exact hH
     · exact hH
