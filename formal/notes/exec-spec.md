@@ -58,6 +58,16 @@ Choice: the hybrid.
 
 The executor follows the hints whatever they are, so it changes with the Rust and stays its byte-for-byte mirror.
 
+## Pops at tree level (M5)
+
+A family's block-level pops (`FallPops`, `SplicePops`) reach the honest call tree through the placed completeness forms with pops, which name the entries the chosen tree pops on the reader in scope:
+
+- `RelAtInP … ps`, `RelAtInCP … ps` (`B1/Main/RelAtInP.lean`) are `RelAtInT`, `RelAtInCT` with the predicate `t.pops coreProgram rd = ps`; `KidsFromInP … cs pss …` gives one entry list per call, `[]` for a skipped one.
+- `relAtInP_of_walk`, `relAtInP_of_walk_loop` take the hypotheses of `relAtIn_of_walk`, `relAtIn_of_walk_loop`, the callees with their entries, and `splice rd σ es pss = ps`. `splice_of_body` gives that equation from the body's `SplicePops` (the template lemmas a family already proved) and a return that calls nothing.
+- `CompleteAtP`, `CompleteAtDP`, `CompleteAtLP` (`B1/Main/CompleteP.lean`) take the entries as `Reader → List Pop`, since a heap hint's words are read through the memory; honest entries are usually constant. `kidsFromInP_of_kids'` composes the callees (`KidsP`), and `toCompleteAt`, `toD`, `toP`, `toL`, `toDP` drop the pops.
+- Leaves come free. `noWitness g j` (`Memory/NoWitness.lean`) checks that function `j`, named `g`, has no witness hint in its subtree. It is decided per function by `decide +kernel`, with cost proportional to the subtree. The functions passing it are call-closed (`coreProgram_noWitIn`), so every valid tree of one pops `[]` on every memory (`pops_nil_of_noWitness`). `relAtInP_nil`, `completeAtP_nil`, `completeAtDP_nil` and `completeAtLP_nil` turn an existing proof into one popping `[]`. `RelAtInT.and_pops_nil` adds `∀ rd, t.pops coreProgram rd = []` to a tree predicate, so the `T` forms (`CompleteAtDT`, `CompleteAtDTB`, `KidsT`) carry it unchanged. 1153 of the 1601 functions have no witness hint in their subtree.
+- To move a family over, rerun its placed proof with the `P` lemmas: swap `relAtIn_of_walk` for `relAtInP_of_walk`, build `KidsFromInP` where it built `KidsFromIn`, and discharge `hps` with `splice_of_body` and its pops lemmas. `B1/Opening/QueriesPlacedP.lean` does this for `walk_path` (`wp_relAtInP`, `WD.wpPops`), a level-0 iteration of `opening_queries` (`oqIter1_relAtInP`) and its loop (`oqLoop1_relAtInP`, its iterations' rows and children in order). `QD.rowPop_vals` states a row entry as the honest row's cells.
+
 ## Changes to `Statement/`
 
 - `Prover/Execute.lean` (the executor) and the guest's hint table join the honest prover the completeness statements name. A reviewer checks only that the executor is a genuine one: its outputs are proved valid.
