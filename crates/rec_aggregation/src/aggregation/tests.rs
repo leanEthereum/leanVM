@@ -66,6 +66,21 @@ fn guest_compiles_reproducibly() {
     );
 }
 
+/// The guest functions that reserve a `HeapBuf` after their first call, whose size is known only
+/// then (`lean_compiler::heap_bufs_after_calls`): the proof's memory model places every buffer
+/// before the callees, so a new one needs its size as advice.
+#[test]
+fn guest_allocates_late_only_where_known() {
+    let guest = include_str!("../../guests/lean_ethereum.py");
+    let ast = parse_with_replacements(guest, &placeholder_map(20)).unwrap();
+    let mut late = lean_compiler::heap_bufs_after_calls(&ast);
+    late.sort();
+    assert_eq!(
+        late,
+        ["claim_list_digest", "da_verify", "main", "verify_sub", "verify_tables"]
+    );
+}
+
 fn prove_leaf(signers: &[LeanXmssSigner]) -> EthereumProof {
     aggregate(&[], signers.to_vec(), vec![], &[], None, LOG_INV_RATE).expect("leaf aggregates")
 }

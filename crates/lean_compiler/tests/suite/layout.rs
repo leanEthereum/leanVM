@@ -1,4 +1,4 @@
-use lean_compiler::{compile, parse};
+use lean_compiler::{compile, heap_bufs_after_calls, parse};
 use primitives::field::{F64, F128};
 
 /// A `HeapBuf` allocated after a call is reserved before the callee's frame, right after the
@@ -24,4 +24,20 @@ def main():
         .find_map(|l| l.strip_prefix("main_frame ")?.parse().ok())
         .unwrap();
     assert_eq!(execution.mem.word(main_frame), x * x);
+}
+
+/// A `HeapBuf` sized by a call's result stays after it, and is reported.
+#[test]
+fn heap_buf_sized_by_a_call_is_reported() {
+    let source = r#"
+def square(x):
+    return x * x
+
+def main():
+    n = square(GEN)
+    buf = HeapBuf(n)
+    buf[1] = 1
+    return
+"#;
+    assert_eq!(heap_bufs_after_calls(&parse(source).unwrap()), ["main"]);
 }

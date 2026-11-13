@@ -29,10 +29,17 @@ impl FnLower<'_> {
         self.pending.push(hint);
     }
 
+    /// [`Self::hoist`], then whether a `HeapBuf` reservation still follows a callee's frame.
+    pub(super) fn hoist_heap_bufs(&mut self) -> bool {
+        self.hoist();
+        let mut frames = (self.code.iter().flat_map(|ins| &ins.hints)).filter_map(|h| Some(reservation(h)?.1));
+        frames.any(|frame| frame) && frames.any(|frame| !frame)
+    }
+
     /// Move the `HeapBuf` reservations that follow this function's first call to just before it,
     /// keeping their order, as far as that leaves the paths each runs on unchanged: until the
     /// first one in a branch, past a `return`, or whose size is not written before that point.
-    pub(super) fn hoist_heap_bufs(&mut self) {
+    fn hoist(&mut self) {
         // Each reservation in code order: where it is, whether a callee's frame, its site.
         let sites: Vec<(usize, usize, bool, Site)> = (self.code.iter().enumerate())
             .flat_map(|(i, ins)| ins.hints.iter().enumerate().map(move |(j, h)| (i, j, h)))
