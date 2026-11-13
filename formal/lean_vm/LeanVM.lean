@@ -8,6 +8,7 @@ import LeanVM.Guest.Budget.Fits
 import LeanVM.Prover.End
 import LeanVM.Prover.EndChild
 import LeanVM.Prover.ExecuteSound
+import LeanVM.Prover.ExecuteComplete
 import LeanVM.Guest.HonestChildren
 import XmssSecurity.Rpm
 import Sphincs.Security
@@ -287,6 +288,14 @@ whatever the hints and streams (`LeanVM/Prover/ExecuteSound.lean`). -/
 /-- info: 'LeanVM.Prover.Exec.execute_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Prover.Exec.execute_sound
+
+/-! `LeanVM.Prover.Exec.execute_complete`: the executor returns an execution of a program's valid
+execution's step count, its memory the reference's where written, given an invariant of its states
+that satisfies the invariant rule (`LeanVM/Prover/ExecuteComplete.lean`). -/
+
+/-- info: 'LeanVM.Prover.Exec.execute_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.Exec.execute_complete
 
 /-- **Every end theorem**, `Statement/Theorems.lean`, at the extractor
 `LeanVM.Cost.compiledKnowledgeExtractor` and any decoder program `decoderProgram` meeting its
