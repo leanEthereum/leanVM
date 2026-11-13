@@ -6,6 +6,7 @@
 
 module
 
+public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Whir.Data0
 public import LeanVM.Guest.B1.Whir.Data1
 public import LeanVM.Guest.B1.Whir.Data2
@@ -28,17 +29,17 @@ open LeanVM.Guest.Core LeanVM.Guest
 /-- **Every size's core IR is its template.** -/
 theorem osData_all (m : Nat) (h : m < ligNSizes) : OsData m := by
   interval_cases m
-  · exact osData_0
-  · exact osData_1
-  · exact osData_2
-  · exact osData_3
-  · exact osData_4
-  · exact osData_5
-  · exact osData_6
-  · exact osData_7
-  · exact osData_8
-  · exact osData_9
-  · exact osData_10
+  · exact @osData_0 coreProgram ⟨coreProgram_find?_at (j := 335) rfl⟩
+  · exact @osData_1 coreProgram ⟨coreProgram_find?_at (j := 336) rfl⟩
+  · exact @osData_2 coreProgram ⟨coreProgram_find?_at (j := 337) rfl⟩
+  · exact @osData_3 coreProgram ⟨coreProgram_find?_at (j := 338) rfl⟩
+  · exact @osData_4 coreProgram ⟨coreProgram_find?_at (j := 339) rfl⟩
+  · exact @osData_5 coreProgram ⟨coreProgram_find?_at (j := 340) rfl⟩
+  · exact @osData_6 coreProgram ⟨coreProgram_find?_at (j := 341) rfl⟩
+  · exact @osData_7 coreProgram ⟨coreProgram_find?_at (j := 342) rfl⟩
+  · exact @osData_8 coreProgram ⟨coreProgram_find?_at (j := 343) rfl⟩
+  · exact @osData_9 coreProgram ⟨coreProgram_find?_at (j := 344) rfl⟩
+  · exact @osData_10 coreProgram ⟨coreProgram_find?_at (j := 345) rfl⟩
 
 end
 end LeanVM.Guest.B1.Whir

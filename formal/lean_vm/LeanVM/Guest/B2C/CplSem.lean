@@ -409,7 +409,7 @@ theorem cxOk (hF : FrameHolds L j fp σ es vs kfps hdr) (hpows : (certOf j).fact
   · have hK : (cxOf j idx loc (statT (fsN j) (plumbOf j).stat .nil) nv stop).main = false →
         IsInK hdr.1 ∧ IsInK hdr.2 := fun hm ↦ hF.hdrK (by
       intro h1
-      simp [cxOf, h1] at hm)
+      simp [cxOf, cxOfD, h1] at hm)
     rcases Nat.le_one_iff_eq_zero_or_eq_one.mp ho with rfl | rfl
     · refine ⟨hdr.1, ?_, fun hm ↦ (hK hm).1⟩
       have := hF.hdr0

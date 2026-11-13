@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Selectors.SelectorTables
+public import LeanVM.Guest.CoreData
 
 /-!
 # `sel_partial_nibble` (TRIAGE G #45-47)

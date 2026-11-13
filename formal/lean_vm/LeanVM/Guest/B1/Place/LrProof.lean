@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Place.LpProof
 public import LeanVM.Guest.B1.Place.LrPure
 public import LeanVM.Guest.Memory.Retemp
 public import LeanVM.Guest.Memory.Restrict
+public import LeanVM.Guest.B1.Whir.DataSpec
+public import LeanVM.Guest.B1.Whir.HelperAll
 
 /-!
 # `level_residual`, placed

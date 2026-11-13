@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.Interface
+public import LeanVM.Guest.B1.Tables.InterfaceP
 public import LeanVM.Guest.B1.Common.Run
 
 /-!
@@ -151,12 +151,6 @@ theorem sz_runsTo_require_bind {β : Type} {c : Prop} [Decidable c] (h : c) {f :
     exact runsTo_ret () s
   exact (hr.bind hf).of_eq rfl (List.nil_append _) rfl rfl
 
-theorem sz_runsTo_liftOption_bind {α β : Type} {o : Option α} {a : α} (h : o = some a)
-    {f : α → VerifierProgram β} {s s' : Fs} {xs : List E} {b : β} (hf : RunsTo (f a) s xs b s') :
-    RunsTo (liftOption o >>= f) s xs b s' := by
-  subst h
-  exact ((runsTo_ret a s).bind hf).of_eq rfl (List.nil_append _) rfl rfl
-
 theorem le_pow_of_log2Ceil {r k : ℕ} (h : log2Ceil r ≤ k) : r ≤ 2 ^ k := by
   unfold log2Ceil bitLength at h
   split at h
@@ -230,14 +224,17 @@ theorem readSizes_runsTo {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {l
     exact kToNat_eOfNat (by omega)
   have hall : (xs.all fun value ↦ decide (value.limb 1 = 0)) = true := by
     simp [xs, eOfNat_limb1]
-  unfold readAnnouncedSizes
+  have hmin : Whir.minLogStack ≤ (Tables.layoutOf bytecode logMem rowsN).stackLog := by
+    rw [stackLog_eq hbl]; exact le_max_left _ _
+  have hmax : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ Whir.maxLogStack := hst
+  have hs : sizesOf bytecode xs = some (Tables.layoutOf bytecode logMem rowsN, lir) := by
+    simp only [sizesOf, hall, e1, e2, e3, hl1, hl4, and_self, ↓reduceIte,
+      buildLayout_eq hbl hlm1 h30 hlen hrows, Option.bind_some, hmin, hmax]
+  rw [readAnnouncedSizes_eq]
   refine (r.bind ?_).of_eq rfl (List.append_nil _) rfl rfl
-  simp only [e1, e2, e3]
-  refine sz_runsTo_require_bind hall (sz_runsTo_require_bind ⟨hl1, hl4⟩
-    (sz_runsTo_liftOption_bind (buildLayout_eq hbl hlm1 h30 hlen fun r hr ↦ ?_)
-      (sz_runsTo_require_bind ⟨?_, hst⟩ (runsTo_ret _ _))))
-  · exact hrows r hr
-  · rw [stackLog_eq hbl]; exact le_max_left _ _
+  show RunsTo (liftOption (sizesOf bytecode xs)) _ _ _ _
+  rw [hs]
+  exact runsTo_ret _ _
 
 end
 end LeanVM.Guest.B1.VerifySub

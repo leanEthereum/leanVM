@@ -28,8 +28,7 @@ statement.
 * step 5, `publicInputPhase`: the challenge, then `publicClaimsOf` (`publicInputPhase_eq`);
 * step 7, `ringSwitch`: the grind, the challenges, then `ringOf` (`ringSwitch_eq`);
   `verifyStackedOpening`: its checks as one `require (StackedOk claims)`, which the guest's copy
-  `verifyStackedOpeningNZ` shares, the challenge, then WHIR (`verifyStackedOpening_nf`; B1 reads
-  `WhirTarget.verifyStackedOpening_eq`, the steps as written).
+  `verifyStackedOpeningNZ` shares, the challenge, then WHIR (`verifyStackedOpening_nf`).
 
 The bus (`verifyBusBalance`), the table sumcheck (`tablePhase`) and the Keccak reduction
 (`keccakPhase`) call sub-protocols between their checks and are not in normal form yet.

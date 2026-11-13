@@ -2,7 +2,7 @@
   LeanVM.Guest.B2C.ChainDefs
 
   The chained `match`es' static check (`B2C/Chain.lean` proves it sound), apart from the proofs
-  so that its kernel family (`B2C/Chained/`) imports only what it evaluates.
+  on function `j`'s data: the checks of `ChainCheck.lean` (`chainFn_eq`, `chainWin_eq`, by `rfl`).
 -/
 
 module
@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B2C.Cpl
 public import LeanVM.Guest.B2C.Share
 public import LeanVM.Guest.Memory.Fresh
+public import LeanVM.Guest.B2C.ChainCheck
 
 namespace LeanVM.Guest.B2C
 
@@ -17,17 +18,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Check LeanVM.Guest.Exec
 
 @[expose] public section
-
-/-! ## The check -/
-
-/-- A chain `(p, x, ts, y, b)`. -/
-abbrev Chain := ℕ × ℕ × List ℕ × ℕ × ℕ
-
-/-- The chains in increasing statement order, each one's targets apart from the earlier ones'. -/
-def chainsPw : List Chain → Bool
-  | [] => true
-  | ch :: rest => rest.all (fun ch' ↦ Nat.blt ch.1 ch'.1 &&
-      ch'.2.2.1.all (fun t ↦ !(bitsOf ch.2.2.1).testBit t)) && chainsPw rest
 
 /-- The fixed, temporaries', runs', call sites' and `match` targets' cells of function `j`. -/
 noncomputable def fixedBits (j : ℕ) : ℕ :=
@@ -44,40 +34,6 @@ noncomputable def chainFn (j : ℕ) : Bool :=
       decide (x = V.n ch.2.1) && decide (y = V.n ch.2.2.2.1) && Nat.beq arms.length ch.2.2.1.length &&
         (List.range arms'.length).all fun e ↦ (glob.jt.get (ch.2.2.2.2 + e)).isSome
     | _, _ => false
-
-/-- The values `vs` have cells in `loc`, none in the bits `F`. -/
-def avoidL (loc : CLoc) (F : ℕ) (vs : List V) : Bool :=
-  vs.all fun v ↦ match loc.get? v.idx with
-    | some c => !F.testBit c
-    | none => false
-
-/-- The values `vs` of an arm of target `t` have cells in `loc`, none in the bits `F` but among
-the arm's own chain's targets `own`, and none at `t`. -/
-def avoidA (loc : CLoc) (F own t : ℕ) (vs : List V) : Bool :=
-  vs.all fun v ↦ match loc.get? v.idx with
-    | some c => !F.testBit c || (own.testBit c && decide (c ≠ t))
-    | none => false
-
-/-- Each arm's values apart from its target. -/
-def chainArms (loc : CLoc) (F own : ℕ) : List (List Stmt) → List ℕ → Bool
-  | [], [] => true
-  | a :: as, t :: ts => avoidA loc F own t (Stmt.usesList a) && chainArms loc F own as ts
-  | _, _ => false
-
-/-- Top-level statement `s`'s values: apart from every target (`F`), or, the chained `match` of a
-chain, its selector apart from every target and each arm's values apart from its target. -/
-def chainStmt (chs : List Chain) (loc : CLoc) (F s : ℕ) (st : Stmt) : Bool :=
-  match chs.find? (fun ch ↦ Nat.beq ch.1 s) with
-  | none => avoidL loc F (Stmt.uses st)
-  | some ch => match st with
-    | .match_ x arms => decide (x = V.n ch.2.1) && avoidL loc F [x] &&
-        chainArms loc F (bitsOf ch.2.2.1) arms ch.2.2.1
-    | _ => false
-
-/-- The statements from `s` on. -/
-def chainStmts (chs : List Chain) (loc : CLoc) (F : ℕ) : ℕ → List Stmt → Bool
-  | _, [] => true
-  | s, st :: ss => chainStmt chs loc F s st && chainStmts chs loc F (s + 1) ss
 
 /-- **The chains' check of window `i` of function `j`.** -/
 noncomputable def chainWin (j i : ℕ) : Bool :=
@@ -96,6 +52,10 @@ theorem chainOk_of_nil {j : ℕ} (h : (plumbOf j).chains.isEmpty = true) : Chain
   refine ⟨?_, fun i _ ↦ ?_⟩
   · simp [chainFn, h', chainsPw]
   · simp [chainWin, h']
+
+theorem chainFn_eq (j : ℕ) : chainFn j = chainFnD glob.jt (plumbOf j) (coreOf j) := rfl
+
+theorem chainWin_eq (j i : ℕ) : chainWin j i = chainWinD (plumbOf j) (coreOf j) (certOf j) i := rfl
 
 end
 end LeanVM.Guest.B2C

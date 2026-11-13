@@ -7,9 +7,9 @@
 
 module
 
-public import LeanVM.Guest.B1.Gkr.Interface
+public import LeanVM.Guest.B1.Gkr.InterfaceP
 public import LeanVM.Protocol.Compile.Prog
-public import LeanVM.Guest.B1.Sumcheck.Meaning
+public import LeanVM.Guest.B1.Sumcheck.MeaningP
 
 /-!
 # The GKR walk on the carried sponge

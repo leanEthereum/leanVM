@@ -45,70 +45,34 @@ theorem tail_getD {α : Type} (l : List α) (m : ℕ) (d : α) : l.tail.getD m d
 theorem headD_getD {α : Type} (l : List α) (d : α) : l.headD d = l.getD 0 d := by
   cases l <;> rfl
 
-theorem sigT_get : ∀ (fs : List CompiledFunction) (cs : List Core.Fn) (ks : List Cert) (i : ℕ)
-    (t : Trie (ℕ × Sig)) {k : ℕ} {v : ℕ × Sig}, getF (sigT fs cs ks i t) k = some v →
-      (∃ m f, fs[m]? = some f ∧ f.entryPc = k ∧
-        v = (i + m, mkSig f (cs.getD m default) (ks.getD m default))) ∨ getF t k = some v
-  | [], _, _, _, _, _, _, h => Or.inr h
-  | f :: fs, cs, ks, i, t, k, v, h => by
-    have e : sigT (f :: fs) cs ks i t = sigT fs cs.tail ks.tail (i + 1)
-        (setF (i, mkSig f (cs.headD default) (ks.headD default)) indexDepth t f.entryPc) := by
-      show (setF _ indexDepth t f.entryPc).seq (fun t ↦ sigT fs cs.tail ks.tail (i + 1) t) = _
-      rw [Trie.seq_eq]
-    rw [e] at h
-    rcases sigT_get fs cs.tail ks.tail (i + 1) _ h with ⟨m, g, hg, he, rfl⟩ | h'
-    · refine Or.inl ⟨m + 1, g, by simpa using hg, he, ?_⟩
-      rw [tail_getD, tail_getD, show i + 1 + m = i + (m + 1) by omega]
-    · rw [getF_eq, setF_eq] at h'
-      rcases Trie.get_set h' with ⟨rfl, rfl⟩ | h''
-      · exact Or.inl ⟨0, f, rfl, rfl, by rw [headD_getD, headD_getD, Nat.add_zero]⟩
-      · exact Or.inr (by rw [getF_eq]; exact h'')
-
-theorem certOf_sig (j : ℕ) : (certOf j).nret = (listElementOrDefault Data.certs j default).nret ∧
-    (certOf j).facts.env = (listElementOrDefault Data.certs j default).facts.env ∧
-    (certOf j).pre = (listElementOrDefault Data.certs j default).pre ∧ (certOf j).post = (listElementOrDefault Data.certs j default).post ∧
-    (certOf j).mem = (listElementOrDefault Data.certs j default).mem ∧ (certOf j).sem = (listElementOrDefault Data.certs j default).sem := by
-  unfold certOf
-  split
-  rename_i h
-  rw [h]
-  exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
-
-/-- **What `sigTrie` files**: the function entered there and what a caller knows of it. -/
-theorem sigTrie_get {k j : ℕ} {sg : Sig} (h : getF sigTrie k = some (j, sg)) :
-    1 ≤ j ∧ j < nFns ∧ (fnOf j).entryPc = k ∧ sg = sigOf j := by
-  unfold sigTrie at h
-  rcases sigT_get _ _ _ _ _ h with ⟨m, f, hf, he, hv⟩ | h0
-  · simp only [Prod.mk.injEq] at hv
-    obtain ⟨rfl, rfl⟩ := hv
-    have hf' : Data.functions[m + 1]? = some f := by simpa using hf
-    have hl : m + 1 < Data.functions.length := (List.getElem?_eq_some_iff.mp hf').1
-    have hfn : fnOf (1 + m) = f := by
-      unfold fnOf
-      rw [show 1 + m = m + 1 by omega, nth_eq hl]
-      exact (List.getElem?_eq_some_iff.mp hf').2
-    obtain ⟨c1, c2, c3, c4, c5, c6⟩ := certOf_sig (1 + m)
-    refine ⟨by omega, by rw [← functions_lengthC]; omega, by rw [hfn, he], ?_⟩
-    unfold sigOf mkSig
-    rw [hfn, c1, c2, c3, c4, c5, c6, coreOf, nth_getD, nth_getD, tail_getD,
-      show 1 + m - 1 = m by omega, show m + 1 = 1 + m by omega]
-  · simp [getF] at h0
-
-/-- **A callee the check finds**: a good function entered there, with its signature. -/
-theorem calleeS_spec {X : CX} (hG : X.G = glob) {pc j : ℕ} {sg : Sig} (h : calleeS X pc = some (j, sg)) :
+/-- **A callee the check finds**: a good function entered there, one of the function's callees,
+with its signature. -/
+theorem calleeS_spec {X : CX} (hG : X.G = glob.restrict X.callees) {pc j : ℕ} {sg : Sig}
+    (h : calleeS X pc = some (j, sg)) :
     2 ≤ j ∧ j < nFns ∧ (fnOf j).entryPc = pc ∧ sg = X.G.sig j ∧ calleeC X pc = some j := by
   have hc : calleeC X pc = some j := by unfold calleeC; rw [h]; rfl
   unfold calleeS at h
-  split at h
-  · rename_i p hp
-    cases hb : X.G.good p.1
-    · rw [hb] at h; cases h
-    · rw [hb] at h
-      obtain rfl := Option.some.inj h
-      simp only [hG, glob, good, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hb
-      obtain ⟨-, -, he, rfl⟩ := sigTrie_get hp
-      exact ⟨hb.1, hb.2, he, by rw [hG]; rfl, hc⟩
-  · cases h
+  obtain ⟨j', hf, he⟩ := Option.map_eq_some_iff.mp h
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
+  have hp := List.find?_some hf
+  have hm := List.mem_of_find?_eq_some hf
+  have hcs : X.callees.contains j' = true := List.contains_iff_mem.mpr hm
+  have hs : X.G.sig j' = glob.sig j' := by rw [hG]; simp only [Glob.restrict, hcs, Bool.cond_true]
+  have hg : X.G.good j' = glob.good j' := by rw [hG]; simp only [Glob.restrict, hcs, Bool.true_and]
+  rw [hg, hs, Bool.and_eq_true, Nat.beq_eq] at hp
+  obtain ⟨hp1, hp2⟩ := hp
+  simp only [glob, good, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hp1
+  exact ⟨hp1.1, hp1.2, hp2, rfl, hc⟩
+
+/-- A callee the check finds has its signature in `glob`. -/
+theorem calleeC_sig {X : CX} (hG : X.G = glob.restrict X.callees) {pc j : ℕ} (h : calleeC X pc = some j) :
+    X.G.sig j = glob.sig j := by
+  unfold calleeC calleeS at h
+  simp only [Option.map_map, Option.map_eq_some_iff, Function.comp_apply] at h
+  obtain ⟨j', hf, rfl⟩ := h
+  have hcs : X.callees.contains j' = true := List.contains_iff_mem.mpr (List.mem_of_find?_eq_some hf)
+  rw [hG]
+  simp only [Glob.restrict, hcs, Bool.cond_true]
 
 section Inv
 
@@ -255,7 +219,7 @@ theorem afterC_ok {st sr : CW} {q r u : ℕ} {fcs : List (ℕ × FC)} {args rets
     · cases h
   · cases h
 
-theorem cw_call (hG : X.G = glob) {f : String} {args rets : List V} {ss : List Core.Stmt} {st : CW}
+theorem cw_call (hG : X.G = glob.restrict X.callees) {f : String} {args rets : List V} {ss : List Core.Stmt} {st : CW}
     (h : (cw X (.call f args rets :: ss) st).ok = true) :
     ∃ e q r j sr, st.seg.exit.kind = .call (.gp e) q r ∧ calleeC X e = some j ∧
       f = (X.G.sig j).name ∧ args.length = (X.G.sig j).nargs ∧ rets.length = (X.G.sig j).nret ∧
@@ -352,7 +316,7 @@ theorem cw_ret {vs : List V} {ss : List Core.Stmt} {st : CW}
     · rw [hm] at h1; exact of_decide_eq_true h1
   · cases h
 
-theorem cw_callIf (hG : X.G = glob) {c : V} {f : String} {args : List V} {ss : List Core.Stmt}
+theorem cw_callIf (hG : X.G = glob.restrict X.callees) {c : V} {f : String} {args : List V} {ss : List Core.Stmt}
     {st : CW} (h : (cw X (.callIf c f args :: ss) st).ok = true) :
     ∃ x, peekBr st.its = some (X.loc.cell c, x) ∧
       inFrame X.fs (X.loc.cell c :: args.map X.loc.cell) = true ∧

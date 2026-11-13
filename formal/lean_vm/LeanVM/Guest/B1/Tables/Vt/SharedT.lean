@@ -10,6 +10,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Vt.Base
+public import LeanVM.Guest.CoreData
 
 /-!
 # The shared tables' statements (G:2318-2325)

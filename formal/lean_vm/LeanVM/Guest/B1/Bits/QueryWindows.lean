@@ -49,15 +49,15 @@ def MeaningDecodeQueryWindows (d cd : ℕ) (rd : Reader) : List E → List E →
       ∃ p : E, LoadHolds rd ptrs j p ∧ FrameRun rd p (qwN d cd) fun i ↦ gen ^ qwVal d cd (qwPosOf d w j) i
   | _, _ => False
 
-/-- `decode_query_windows__L{d}_L{cd}`'s core IR establishes its meaning, on a memory image of
-at most `2^32` words holding the window table at `tabs`. -/
-def decode_query_windows_Spec (name : String) (d cd : ℕ) : Prop :=
+/-- `P`'s relation at `decode_query_windows__L{d}_L{cd}` establishes its meaning, on a memory
+image of at most `2^32` words holding the window table at `tabs`. -/
+def decode_query_windows_SpecP (P : Program) (name : String) (d cd : ℕ) : Prop :=
   ∀ {κ : ℕ}, κ ≤ 32 → ∀ (L : MemoryImage κ) (args rets : List E), WinTabs L.read (args.getD 3 0) →
-    coreProgram.Rel L.read name args rets → MeaningDecodeQueryWindows d cd L.read args rets
+    P.Rel L.read name args rets → MeaningDecodeQueryWindows d cd L.read args rets
 
 /-- Every deployed specialization. -/
-def decode_query_windows_all_Spec : Prop :=
-  ∀ p ∈ queryWindowsShapes, decode_query_windows_Spec p.1 p.2.1 p.2.2
+def decode_query_windows_all_SpecP (P : Program) : Prop :=
+  ∀ p ∈ queryWindowsShapes, decode_query_windows_SpecP P p.1 p.2.1 p.2.2
 
 /-- The window table covers the 7-bit windows. -/
 theorem winTab_128 : (128 : ℕ) ≤ 2 ^ winTabBits := by decide
@@ -633,8 +633,8 @@ theorem qwBody_atoms (d cd : ℕ) :
     isAtomB, Bool.and_true]
 
 /-- **`decode_query_windows` is sound** at a shape of the template. -/
-theorem qw_sound {name : String} {d cd : ℕ} (hs : QwShape d cd) (hq : QwIs name (qwBody d cd)) :
-    decode_query_windows_Spec name d cd := by
+theorem qw_sound {P : Program} {name : String} {d cd : ℕ} (hs : QwShape d cd)
+    (hq : QwIsP P name (qwBody d cd)) : decode_query_windows_SpecP P name d cd := by
   intro κ hκ L args rets hT hrel
   obtain ⟨fn, hfind, hps, hbody⟩ := hq
   rw [rel_iff_sem hfind] at hrel

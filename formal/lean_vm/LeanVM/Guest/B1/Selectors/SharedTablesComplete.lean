@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Selectors.SharedTables
 public import LeanVM.Guest.B1.Selectors.SelPartialComplete
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.CoreData
 
 /-!
 # `shared_selector_tables` is complete (TRIAGE G #48)

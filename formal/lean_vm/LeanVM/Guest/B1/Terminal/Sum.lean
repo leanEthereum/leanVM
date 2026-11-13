@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Guest.B1.Terminal.Interface
+public import LeanVM.Guest.B1.Terminal.InterfaceP
 
 /-!
 # The batched weight, as a sum

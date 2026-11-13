@@ -77,7 +77,7 @@ theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap �
     exact loop2Out_of_body hx hp hbx
   · intro p h hbb
     obtain ⟨hp, hbs⟩ := body_ofV hV Sig.find_verify_sig_lean_sphincs h
-    obtain ⟨-, ho⟩ := Sig.verify_sig_lean_sphincs_sound_holds C V L hκ hV _ _ hbs
+    obtain ⟨-, ho⟩ := Sig.verify_sig_lean_sphincs_sound_holdsP coreProgram C V L hκ hV _ _ hbs
     rw [Sig.verify_sig_lean_sphincs_params] at hp
     simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
     obtain ⟨e0, e1⟩ := hp

@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.B1.KeccakGkr.Interface
 public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.B1.Common.Find

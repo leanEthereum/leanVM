@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Gkr.Layer
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.CoreData
 
 /-!
 # A layer's rounds and children (`verify_bus_gkr_loop0`, G:1997-2041)

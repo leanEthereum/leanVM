@@ -179,7 +179,7 @@ test_runs runs := [
   ("main's values, off the certificate's cells", fun _ ↦
     (List.range 430).all fun i ↦ mainVal smallReader (V.n i) ==
       LeanVM.Guest.Located.wordWith smallReader 1
-        ((LeanVM.Guest.Data.cert1_w0_0 ++ LeanVM.Guest.Data.cert1_w1_0).getD (V.n i).idx 0)),
+        ((LeanVM.Guest.Fn.«main».cert_w0_0 ++ LeanVM.Guest.Fn.«main».cert_w1_0).getD (V.n i).idx 0)),
   -- The statement off `main`'s frame: no declared claim (`gLog 1 = 0`), the DA digest at slot `0`
   -- of `da_digests = 1`, the deferred claim at `defer_stmt = 1`. (`decStmt` is `noncomputable` in
   -- Lean: its value is written out.)

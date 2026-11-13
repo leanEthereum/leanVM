@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Fs.TailRound
+public import LeanVM.Guest.B1.Fs.TailRoundP
 public import LeanVM.Guest.B1.Sumcheck.Run
 
 /-!

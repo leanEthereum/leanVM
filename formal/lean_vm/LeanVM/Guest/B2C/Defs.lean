@@ -193,10 +193,6 @@ noncomputable def pathMax (f : String) (op : Opcode) : ℕ :=
 A `match` whose arms are counted separately (`Data.cplArms`) adds the count of the arm its
 selector picks; the rest of a path is counted by the most any path runs (`pathMax`). -/
 
-/-- The arms' counts of the `match` on `x`, if counted separately. -/
-def armRaw (acs : List (ℕ × List (List ℕ))) (x : ℕ) : Option (List (List ℕ)) :=
-  (acs.find? fun p ↦ Nat.beq p.1 x).map (·.2)
-
 mutual
 /-- The separately counted arms a statement's path passes, under `σ`. -/
 noncomputable def cost1 (acs : List (ℕ × List (List ℕ))) (σ : Val) : Stmt → Opcode → ℕ

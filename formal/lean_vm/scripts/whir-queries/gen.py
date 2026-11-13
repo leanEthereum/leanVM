@@ -20,6 +20,28 @@ for t in coredata.legacy_texts(D):
 stable = {c: s for s, c in re.findall(r'^abbrev «([^»]+)» : String := "([^"]+)"$',
                                      open(D + 'NameStrings.lean').read(), re.M)}
 
+def key_of(name):
+    """A compiled name's stable name, the key of its namespace `Fn.«key»` and of its pack."""
+    return stable.get(name, name)
+
+
+def core_module(name):
+    """The core module holding function `name` (`Guest/Pack`)."""
+    return coredata.fn_module(D, key_of(name))
+
+
+def chunk_of(name, n):
+    """The chunk of `n` that function `name`'s pack falls in: `k % n` for pack `P{k}`, so a pack's
+    functions share a chunk and an edit of one pack rebuilds one chunk's checks."""
+    import packs
+    return packs.pack_of(key_of(name)) % n
+
+
+def pack_imports(names):
+    """The core modules of `names`, once each, as `public import` lines."""
+    return ''.join(dict.fromkeys(f'public import {core_module(n)}\n' for n in names))
+
+
 def wrap(text, width=100):
     """Break each line longer than `width` at spaces, greedily, continuing 4 deeper; `fn% «…»` and the like
     stay whole."""

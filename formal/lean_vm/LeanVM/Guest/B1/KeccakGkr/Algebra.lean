@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.B1.KeccakGkr.Interface
+public import LeanVM.Guest.B1.KeccakGkr.InterfaceP
 public import LeanVM.Protocol.Keccak.LayerSum
 
 /-!

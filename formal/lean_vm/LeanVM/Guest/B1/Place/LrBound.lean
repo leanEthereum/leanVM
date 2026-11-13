@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Place.LrProof
 public import LeanVM.Guest.B1.Place.LpBound
+public import LeanVM.Guest.B1.Whir.DataSpec
+public import LeanVM.Guest.B1.Whir.HelperAll
 
 /-!
 # `level_residual` within a words bound

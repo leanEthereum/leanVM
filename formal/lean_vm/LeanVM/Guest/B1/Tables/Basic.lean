@@ -45,12 +45,12 @@ theorem tb_rel_iff_sem {P : Core.Program} {rd : Reader} {f : String} {fn : Fn}
 
 /-- A function whose body is `pre ++ [ret vs]`, `pre` without `ret`: its relation is some
 valuation of its parameters satisfying `pre` and returning `vs`. -/
-theorem tb_rel_pre {rd : Reader} {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+theorem tb_rel_pre {P : Core.Program} {rd : Reader} {f : String} {fn : Fn} (hf : P.find? f = some fn)
     {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
     (hnr : Stmt.noRetList pre = true) (args rets : List E) :
-    coreProgram.Rel rd f args rets ↔
+    P.Rel rd f args rets ↔
     ∃ σ : Val, fn.params.map σ = args ∧
-      Stmt.HoldsList (coreProgram.Rel rd) rd σ pre True (fun rs => rs = rets) ∧
+      Stmt.HoldsList (P.Rel rd) rd σ pre True (fun rs => rs = rets) ∧
       vs.map σ = rets := by
   rw [tb_rel_iff_sem hf, hb]
   refine exists_congr fun σ => and_congr Iff.rfl ?_

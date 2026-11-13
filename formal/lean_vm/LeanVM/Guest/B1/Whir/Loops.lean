@@ -31,7 +31,7 @@ open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {rd : Reader}
+variable {P : Program} {rd : Reader}
 
 /-! ## Monotone in the call relation -/
 
@@ -50,14 +50,14 @@ theorem allOk_mono {C C' : CallRel} (hC : CallRel.Le C C') {σ : Val} {ss : List
 
 /-- **A flat loop, soundly**: from the loop's relation at `g^k`, the loop ends at `g^m`, `m > k`,
 first reached there, and the body's meaning `B` holds at every `g^j`, `k ≤ j < m`. -/
-theorem loop_sound_flat {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+theorem loop_sound_flat {f : String} {fn : Fn} (hf : P.find? f = some fn)
     {A : List Stmt} (hflat : A.all Stmt.flat = true) {c : ℕ} {args : List V}
     (hb : fn.body = A ++ [.callIf (.n c) f args, .ret []]) {N : E} {rest : List E}
     {B : E → Prop}
     (hstep : ∀ (σ : Val) (x : E), fn.params.map σ = x :: N :: rest →
-      AllOk (coreProgram.Rel rd) rd σ A →
+      AllOk (P.Rel rd) rd σ A →
         B x ∧ σ (.n c) = x * gen + N ∧ args.map σ = x * gen :: N :: rest) :
-    ∀ k, coreProgram.Rel rd f (gen ^ k :: N :: rest) [] →
+    ∀ k, P.Rel rd f (gen ^ k :: N :: rest) [] →
       ∃ m, k < m ∧ N = gen ^ m ∧ (∀ j, k < j → j < m → gen ^ j ≠ N) ∧
         ∀ j, k ≤ j → j < m → B (gen ^ j) := by
   intro k ⟨d, hd⟩
@@ -70,7 +70,7 @@ theorem loop_sound_flat {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     obtain ⟨hA, hrest⟩ := hd
     simp only [Stmt.HoldsList, Stmt.Holds] at hrest
     obtain ⟨-, hcall, -⟩ := hrest
-    obtain ⟨hB, hc, hargs⟩ := hstep σ _ hp (allOk_mono (relN_le_rel coreProgram d) hA)
+    obtain ⟨hB, hc, hargs⟩ := hstep σ _ hp (allOk_mono (relN_le_rel P d) hA)
     rw [hc] at hcall
     by_cases h0 : gen ^ k * gen + N = 0
     · refine ⟨k + 1, by omega, (gen_pow_add_eq_zero_iff k).mp h0, fun j h1 h2 ↦ by omega,
@@ -93,10 +93,10 @@ theorem loop_sound_flat {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
 every `g^j`, `j < n`. -/
 theorem loop_guarded {f : String} {N : E} {rest : List E} {B : E → Prop} {n : ℕ} (hn0 : 0 < n)
     (hn : n < ordG) (hN : N = gen ^ n)
-    (hloop : ∀ k, coreProgram.Rel rd f (gen ^ k :: N :: rest) [] →
+    (hloop : ∀ k, P.Rel rd f (gen ^ k :: N :: rest) [] →
       ∃ m, k < m ∧ N = gen ^ m ∧ (∀ j, k < j → j < m → gen ^ j ≠ N) ∧
         ∀ j, k ≤ j → j < m → B (gen ^ j))
-    (hg : 1 + N ≠ 0 → coreProgram.Rel rd f (1 :: N :: rest) []) :
+    (hg : 1 + N ≠ 0 → P.Rel rd f (1 :: N :: rest) []) :
     ∀ j < n, B (gen ^ j) := by
   have hne : 1 + N ≠ 0 := by
     intro h
@@ -120,10 +120,10 @@ theorem loop_guarded {f : String} {N : E} {rest : List E} {B : E → Prop} {n : 
 every `g^j`, `e ≤ j < n`. -/
 theorem loop_guarded_from {f : String} {N : E} {rest : List E} {B : E → Prop} {e n : ℕ}
     (hen : e < n) (hn : n < ordG) (hN : N = gen ^ n)
-    (hloop : ∀ k, coreProgram.Rel rd f (gen ^ k :: N :: rest) [] →
+    (hloop : ∀ k, P.Rel rd f (gen ^ k :: N :: rest) [] →
       ∃ m, k < m ∧ N = gen ^ m ∧ (∀ j, k < j → j < m → gen ^ j ≠ N) ∧
         ∀ j, k ≤ j → j < m → B (gen ^ j))
-    (hg : gen ^ e + N ≠ 0 → coreProgram.Rel rd f (gen ^ e :: N :: rest) []) :
+    (hg : gen ^ e + N ≠ 0 → P.Rel rd f (gen ^ e :: N :: rest) []) :
     ∀ j, e ≤ j → j < n → B (gen ^ j) := by
   have hne : gen ^ e + N ≠ 0 := by
     intro h

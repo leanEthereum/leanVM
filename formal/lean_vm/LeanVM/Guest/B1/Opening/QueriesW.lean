@@ -27,7 +27,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {P : Program} {rd : Reader} {σ : Val}
 
 /-! ## Reading words -/
 
@@ -120,9 +120,9 @@ instance (s : Oq) : Decidable s.FinOk := by unfold Oq.FinOk; infer_instance
 
 /-- **A query** at the point `x` whose window pointer names a run of the windows of the position
 `x` encodes is sound at its witness `oqQueryW`, under a call relation unfolding at `V`. -/
-theorem oqQuery_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s : Oq}
+theorem oqQuery_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsVP P rd C V) {s : Oq}
     (hs : s.RowShape) (hfin : s.FinOk) (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) (hcd8 : s.cd ≤ 8)
-    (hW : WalkFn (oqWalkOf s) s.pd s.cd)
+    (hW : WalkFn P (oqWalkOf s) s.pd s.cd)
     {x bp cap flags coefs hsV : Core.V} {b : ℕ} {emit : Bool} {pr : ℕ}
     (hA : BlockOkC C rd σ (oqQueryT s x bp cap flags coefs hsV b emit pr (oqWalkOf s)))
     (hpad : σ (.n (oqPr s b emit pr)) = word 1 0)
@@ -211,9 +211,9 @@ theorem oqLoop0A_mem_q {s : Oq} {walk : String} {a : Stmt}
 
 /-- **A level-0 iteration** at `x = g^i`, its two queries at their witnesses, and (non-final
 levels) the chain step. -/
-theorem oqIter1_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s : Oq}
+theorem oqIter1_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsVP P rd C V) {s : Oq}
     (hs : s.RowShape) (hfin : s.FinOk) (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) (hcd8 : s.cd ≤ 8)
-    (hW : WalkFn (oqWalkOf s) s.pd s.cd) {odd i : ℕ}
+    (hW : WalkFn P (oqWalkOf s) s.pd s.cd) {odd i : ℕ}
     (hA : BlockOkC C rd σ (oqLoop1A s odd (oqWalkOf s))) (hx : σ (.n 0) = gen ^ i)
     (hpos : ∀ k, k = 2 * i + odd ∨ k = 2 * i + odd + 1 → ∀ x bp, LoadHolds rd (σ (.n 2)) k x →
       LoadHolds rd (σ (.n 3)) k bp → PosRun rd s x bp) :
@@ -274,9 +274,9 @@ theorem oqIter1_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s :
 
 /-- **A deeper iteration** at `x = g^i`, its query at its witness, and (non-final levels) the
 chain step. -/
-theorem oqIter0_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s : Oq}
+theorem oqIter0_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsVP P rd C V) {s : Oq}
     (hs : s.RowShape) (hfin : s.FinOk) (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) (hcd8 : s.cd ≤ 8)
-    (hW : WalkFn (oqWalkOf s) s.pd s.cd) {i : ℕ}
+    (hW : WalkFn P (oqWalkOf s) s.pd s.cd) {i : ℕ}
     (hA : BlockOkC C rd σ (oqLoop0A s (oqWalkOf s))) (hx : σ (.n 0) = gen ^ i)
     (hpos : ∀ x bp, LoadHolds rd (σ (.n 2)) i x → LoadHolds rd (σ (.n 3)) i bp → PosRun rd s x bp) :
     LoadHolds rd (σ (.n 2)) i (σ (.n 11)) ∧ LoadHolds rd (σ (.n 3)) i (σ (.n 13)) ∧
@@ -318,8 +318,8 @@ theorem oqIter0_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s :
 /-- **A guarded loop's iterations hold at their frames**: under a call relation unfolding at `V`,
 when the loop is called at `1` with the bound `N_v = g^N`, its iterations `j < N` hold at the
 frames `V f (g^j :: N_v :: rest) []`. -/
-theorem loopV_frames {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {f : String} {fn : Fn}
-    (hf : coreProgram.find? f = some fn) {A : List Stmt} {c : ℕ} {args : List Core.V}
+theorem loopV_frames {C : CallRel} {V : FrameMap} (hU : UnfoldsVP P rd C V) {f : String} {fn : Fn}
+    (hf : P.find? f = some fn) {A : List Stmt} {c : ℕ} {args : List Core.V}
     (hb : fn.body = A ++ [.callIf (.n c) f args, .ret []]) (hA : FlatC A) {Nv : E}
     {rest : List E}
     (hc : ∀ (τ : Val) (x : E), fn.params.map τ = x :: Nv :: rest → BlockOkC C rd τ A →

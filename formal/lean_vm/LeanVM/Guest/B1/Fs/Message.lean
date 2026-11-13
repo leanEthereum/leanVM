@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Fs.Templates
-public import LeanVM.Guest.B1.Bits.Meaning
+public import LeanVM.Guest.B1.Bits.MeaningP
 
 /-!
 # Messages and challenge runs (TRIAGE G, `opening_message`, `squeeze_point_from`)
@@ -73,10 +73,11 @@ def omName : ℕ × ℕ → String
   | (36, 1) => "opening_message__L36_L1"
   | _ => "opening_message"
 
-/-- `opening_message__L{n}_L{nonce}`'s core IR is its meaning, for every deployed message. -/
-def opening_message_Spec : Prop :=
+/-- `P`'s relation at `opening_message__L{n}_L{nonce}` is its meaning, for every deployed
+message. -/
+def opening_message_SpecP (P : Program) : Prop :=
   ∀ p ∈ omDeployed, ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd (omName p) args rets ↔ MeaningOpeningMessage p.1 p.2 rd args rets
+    P.Rel rd (omName p) args rets ↔ MeaningOpeningMessage p.1 p.2 rd args rets
 
 /-! ## `squeeze_point_from` -/
 
@@ -96,10 +97,10 @@ def spfDeployed : List ℕ := (List.range 25).map (· + 6)
 def spfName (n : ℕ) : String :=
   ["squeeze_point_from__L6", "squeeze_point_from__L7", "squeeze_point_from__L8", "squeeze_point_from__L9", "squeeze_point_from__L10", "squeeze_point_from__L11", "squeeze_point_from__L12", "squeeze_point_from__L13", "squeeze_point_from__L14", "squeeze_point_from__L15", "squeeze_point_from__L16", "squeeze_point_from__L17", "squeeze_point_from__L18", "squeeze_point_from__L19", "squeeze_point_from__L20", "squeeze_point_from__L21", "squeeze_point_from__L22", "squeeze_point_from__L23", "squeeze_point_from__L24", "squeeze_point_from__L25", "squeeze_point_from__L26", "squeeze_point_from__L27", "squeeze_point_from__L28", "squeeze_point_from__L29", "squeeze_point_from__L30"].getD (n - 6) ""
 
-/-- `squeeze_point_from__L{n}`'s core IR is its meaning, for every deployed `n`. -/
-def squeeze_point_from_Spec : Prop :=
+/-- `P`'s relation at `squeeze_point_from__L{n}` is its meaning, for every deployed `n`. -/
+def squeeze_point_from_SpecP (P : Program) : Prop :=
   ∀ n ∈ spfDeployed, ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd (spfName n) args rets ↔ MeaningSqueezePointFrom n rd args rets
+    P.Rel rd (spfName n) args rets ↔ MeaningSqueezePointFrom n rd args rets
 
 /-! ## The Spec runs -/
 

@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Gkr.LayerStep
+public import LeanVM.Guest.CoreData
 
 /-!
 # The root-most layer (G:1935-1994)

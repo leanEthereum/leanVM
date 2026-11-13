@@ -28,11 +28,12 @@ open LeanVM.Protocol.Verifier
 
 @[expose] public section
 '''
-parts = [sp[k::4] for k in range(4)]
+parts = [[d for d in sp if gen.chunk_of(d['name'], 4) == k] for k in range(4)]
 for k, part in enumerate(parts):
     out = [HEAD % ('QueriesBody%d' % k,
-                   "The bodies of a quarter of `opening_queries`' specializations and of their loop helpers are\n  the templates (kernel evaluation).",
-                   'public import LeanVM.Guest.B1.Opening.QueriesT\npublic import LeanVM.Guest.Data.NameStrings')]
+                   "The bodies of the `opening_queries` specializations in the core packs `P{j}`, `j %% 4 = %d`, and of\n  their loop helpers are the templates (kernel evaluation)." % k,
+                   'public import LeanVM.Guest.B1.Opening.QueriesT\npublic import LeanVM.Guest.Data.NameStrings\n'
+                   + gen.pack_imports(x for d in part for x in (d['name'], d['loop'])).rstrip('\n'))]
     for d in part:
         sh = shape(d)
         loop = gen.stable[d['loop']]
@@ -40,14 +41,14 @@ for k, part in enumerate(parts):
                 ('oqLoop0T %s.oq (oqWalkOf %s.oq) name%% «%s»' % (sh, sh, loop))
         out.append('''set_option maxRecDepth 100000 in
 /-- `%s`. -/
-theorem oqBody_%d : (fn%% «%s»).body = oqMainT %s.oq %d (oqWalkOf %s.oq) name%% «%s» :=
+theorem oqBody_%d : (Fn.«%s».core).body = oqMainT %s.oq %d (oqWalkOf %s.oq) name%% «%s» :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- `%s`. -/
-theorem oqLoopBody_%d : (fn%% «%s»).body = %s :=
+theorem oqLoopBody_%d : (Fn.«%s».core).body = %s :=
   stmtsEqb_sound (by decide +kernel)
-''' % (d['name'], d['idx'], d['name'], sh, d['odd'], sh, loop, loop, d['idx'], loop, loopT))
+''' % (d['name'], d['idx'], gen.key_of(d['name']), sh, d['odd'], sh, loop, loop, d['idx'], loop, loopT))
     out.append('end\nend LeanVM.Guest.B1\n')
     open(D + 'QueriesBody%d.lean' % k, 'w').write(gen.wrap('\n'.join(out)))
 # QueriesFns.lean: from `MARK` on, each entry of `openingQueriesLoops` (in `gen.oq_specs`' order)

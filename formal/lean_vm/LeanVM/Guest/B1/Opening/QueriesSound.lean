@@ -106,9 +106,10 @@ padding run `1, 0, 0, 0, 0` and the window pointer's run holding the windows of
 `q < 2^(pd + cd)`, the query reads its windows, opens the row at `q`, reads the rounds, and its
 fold's value is `foldRow`; at the final level the fold is
 `novelSum` of the coefficients at `hs` over `wsChain` at the point. -/
-theorem oqQuery_sound {s : Oq} (hs : s.RowShape) {walk : String} (hW : WalkSound walk s.pd s.cd)
+theorem oqQuery_sound {P : Program} {s : Oq} (hs : s.RowShape) {walk : String}
+    (hW : WalkSound P walk s.pd s.cd)
     {x bp cap flags coefs hsV : V} {b : ℕ} {emit : Bool} {pr : ℕ}
-    (hA : BlockOkC (coreProgram.Rel rd) rd σ (oqQueryT s x bp cap flags coefs hsV b emit pr walk))
+    (hA : BlockOkC (P.Rel rd) rd σ (oqQueryT s x bp cap flags coefs hsV b emit pr walk))
     (hpad : σ (.n (oqPr s b emit pr)) = word 1 0)
     (hz : ∀ i < 4, σ (.n (oqPr s b emit pr + 1 + i)) = 0)
     {q : ℕ} (hq : q < 2 ^ (s.pd + s.cd)) (hx : σ x = eOfNat q)

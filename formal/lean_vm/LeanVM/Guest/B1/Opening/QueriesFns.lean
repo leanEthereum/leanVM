@@ -53,7 +53,7 @@ theorem oqLoopT_one {s : Oq} (h : s.base = 1) (odd : ℕ) (walk loop : String) :
 /-- **Entry `p`'s functions**: its walk, and the function and loop helper with the templates'
 bodies. -/
 def OqFns (p : String × String × OqShape) : Prop :=
-  WalkFn (oqWalkOf p.2.2.oq) p.2.2.oq.pd p.2.2.cd ∧
+  WalkFn coreProgram (oqWalkOf p.2.2.oq) p.2.2.oq.pd p.2.2.cd ∧
     ∃ fm fl : Fn, coreProgram.find? p.1 = some fm ∧
       fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7] ∧
       fm.body = oqMainT p.2.2.oq p.2.2.odd (oqWalkOf p.2.2.oq) p.2.1 ∧

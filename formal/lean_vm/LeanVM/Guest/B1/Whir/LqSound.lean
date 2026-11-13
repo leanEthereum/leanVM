@@ -7,9 +7,10 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.HelperAll
+public import LeanVM.Guest.B1.Whir.HelperTables
+public import LeanVM.Guest.B1.Whir.HelperT
 public import LeanVM.Guest.B1.Whir.SqLoop
-public import LeanVM.Guest.B1.Main.Frames
+public import LeanVM.Guest.B1.Main.FramesP
 
 /-!
 # `level_queries`, unfolded
@@ -29,7 +30,7 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-variable {rd : Reader}
+variable {P : Program} {rd : Reader}
 
 /-- The iterations of `opening_queries` at `q` queries of base `base`: pairs at level `0`. -/
 def lqIters (q base : ℕ) : ℕ := if base = 1 then q / 2 else q
@@ -65,9 +66,9 @@ theorem lqBodyA_flat (q base folds leaf d cd mu nhs hbits fin : ℕ) :
   simp [osHeap, Stmt.flat, osPowSteps_flat]
 
 /-- **`level_queries`, unfolded at `V`.** -/
-theorem lq_unfold {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {name : String}
+theorem lq_unfold {C : CallRel} {V : FrameMap} (hU : UnfoldsVP P rd C V) {name : String}
     {q base folds leaf d cd mu nhs hbits fin : ℕ}
-    (hf : FnIs name (osParams 6) (lqBody q base folds leaf d cd mu nhs hbits fin))
+    (hf : FnIsP P name (osParams 6) (lqBody q base folds leaf d cd mu nhs hbits fin))
     (hit : lqIters q base < u128Bound) (hq : digitsVal (osPowDigits q) 1 = q)
     {args rets : List E} (hc : C name args rets) :
     (∀ i < 6, V name args rets (.n i) = args.getD i 0) ∧

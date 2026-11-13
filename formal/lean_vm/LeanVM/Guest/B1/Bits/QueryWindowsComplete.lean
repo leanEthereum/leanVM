@@ -27,7 +27,7 @@ the sums as the soundness proof computes them (`qwLoT`, `qwHiT`), each position'
 checks), holding the window table at `tabs`, the honest windows at `run` (where it holds a word,
 `FrameRun`), the positions at `positions` and the pointers `run·g^(j·qwN)` at `win_ptrs`, some
 valuation takes the parameters to `[w, positions, win_ptrs, tabs]` and makes the body hold,
-returning `[]` (`decode_query_windows_complete_Spec`).
+returning `[]` (`decode_query_windows_complete_SpecP`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -871,21 +871,21 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
 range checks), holding the window table at `tabs`, the honest windows in the run at `run` (where it
 holds a word), the word's positions at `pos` and the pointers `run·g^(j·qwN)` at `ptrs`, the
 function relates `[w, pos, ptrs, tabs]` to `[]`. -/
-def decode_query_windows_complete_Spec (name : String) (d cd : ℕ) : Prop :=
+def decode_query_windows_complete_SpecP (P : Program) (name : String) (d cd : ℕ) : Prop :=
   ∀ (rd : Reader) (w pos ptrs tabs run : E),
     (∀ i < 128, (rd (Parameters.addressOfIndex i)).isSome) → WinTabs rd tabs →
     FrameRun rd run (128 / d * qwN d cd) (qwRunW d cd w) →
     (∀ j < 128 / d, LoadHolds rd pos j (eOfNat (qwPosOf d w j)) ∧
       LoadHolds rd ptrs j (run * gen ^ (j * qwN d cd))) →
-    coreProgram.Rel rd name [w, pos, ptrs, tabs] []
+    P.Rel rd name [w, pos, ptrs, tabs] []
 
 /-- Every deployed specialization. -/
-def decode_query_windows_complete_all_Spec : Prop :=
-  ∀ p ∈ queryWindowsShapes, decode_query_windows_complete_Spec p.1 p.2.1 p.2.2
+def decode_query_windows_complete_all_SpecP (P : Program) : Prop :=
+  ∀ p ∈ queryWindowsShapes, decode_query_windows_complete_SpecP P p.1 p.2.1 p.2.2
 
 /-- **`decode_query_windows` is complete** at a shape of the template. -/
-theorem qw_complete {name : String} {d cd : ℕ} (hs : QwShape d cd) (hq : QwIs name (qwBody d cd)) :
-    decode_query_windows_complete_Spec name d cd := by
+theorem qw_complete {P : Program} {name : String} {d cd : ℕ} (hs : QwShape d cd)
+    (hq : QwIsP P name (qwBody d cd)) : decode_query_windows_complete_SpecP P name d cd := by
   intro rd w pos ptrs tabs run hlow hT hrun hrd
   obtain ⟨fn, hfind, hps, hbody⟩ := hq
   obtain ⟨σ, hp, -, hh⟩ := qw_holds hs hlow hT hrun hrd

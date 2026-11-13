@@ -369,6 +369,17 @@ jobs:
             formal/lean_da/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: dtolnay/rust-toolchain@stable
+      # The cargo projects the checks below build, each its own workspace and target: their
+      # registry dependencies cached, as in rust.yml; only `main` saves.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            formal/lean_vm/scripts/guest-export
+            formal/lean_vm/scripts/whir-fold-table
+            formal/lean_vm/scripts/rust-verifier-cli
+            formal/lean_vm/scripts/wire-diff
+            . -> target
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       # EthLib's test vectors of leanSPHINCS and leanXMSS, as leanVM vendors them, on the
       # statement's schemes compiled: verification only (key generation and signing are checked by
       # hand: `scheme-vectors --xmss-sign`, lean_sphincs' `lake exe signature-kat`).

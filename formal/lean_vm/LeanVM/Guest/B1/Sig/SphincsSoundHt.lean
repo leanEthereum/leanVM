@@ -250,8 +250,8 @@ theorem sLayerPath_sound (hp : PadOK σ sPad) {T : Nat} (hD : DigestAt σ T) {l 
 call of `sp_wots` at the key `K_l(idx)`'s address cells (`a0 = sA0Of l`, `a1 = sA1Of l`) and its
 path reach, from the message `signed`, the root the path computes, with the layer's signature
 `sphincsSigOf σ Vm`'s, when the digest `T` gives the leaf. -/
-theorem layer_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} {Vm : FrameMap}
-    (hV : UnfoldsV L.read C Vm) (hbb : ByteBits L.read (σ (.n 1))) (hp : PadOK σ sPad) {T : Nat}
+theorem layer_sound {P : Program} [Finds P "sp_wots" Fn.«sp_wots».core] {κ : Nat} (hκ : κ ≤ 32)
+    {L : MemoryImage κ} {Vm : FrameMap} (hV : UnfoldsVP P L.read C Vm) (hbb : ByteBits L.read (σ (.n 1))) (hp : PadOK σ sPad) {T : Nat}
     (hD : DigestAt σ T) (l : Layer) {signed : V}
     (hpre : AtomsHold L.read σ (sLayerPre l.val (sA0Of l.val) (sA1Of l.val) signed))
     (hcall : C "sp_wots" ([sPP, sA0Of l.val, sA1Of l.val,

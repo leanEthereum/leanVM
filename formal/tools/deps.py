@@ -62,7 +62,8 @@ def read_graph(root=None):
                             is_module = True
                         m = IMPORT.match(s)
                         if m:
-                            found.append((m.group(4), bool(m.group(1)), bool(m.group(2)), bool(m.group(3))))
+                            found.append((m.group(4).replace("«", "").replace("»", ""), bool(m.group(1)),
+                                          bool(m.group(2)), bool(m.group(3))))
                         elif s and not s.startswith(("--", "/-", "module", "prelude")) and found:
                             break
                 edges[mod], files[mod] = found, os.path.relpath(path, root)

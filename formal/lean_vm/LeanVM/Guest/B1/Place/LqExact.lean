@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Place.LqBound
 public import LeanVM.Guest.B1.Place.KidsE
 public import LeanVM.Guest.B1.Opening.QueriesPlacedEAll
 public import LeanVM.Guest.B1.Opening.CapPlacedE
+public import LeanVM.Guest.B1.Whir.DataSpec
+public import LeanVM.Guest.B1.Whir.HelperAll
 
 /-!
 # `level_queries`, by exactly `lqN` words

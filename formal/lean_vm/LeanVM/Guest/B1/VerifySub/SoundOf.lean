@@ -64,12 +64,13 @@ theorem runsWith_stacked {m lir : ℕ} {claims : List StackClaim} (hlen : claims
     (hacc : w.Accepts fun x ↦ dot (powers lam claims.length) (claims.map fun c ↦ c.1 x)) :
     Whir.RunsWith (verifyStackedOpening m lir claims) s xs os roots () s2 roots' := by
   have e : verifyStackedOpening m lir claims =
-      (VerifierProgram.require (claims.length ≤ maxStackedClaims)).bind fun _ ↦
+      (VerifierProgram.require (StackedOk claims)).bind fun _ ↦
         VerifierProgram.sampleChallenge.bind fun lam ↦
           (Whir.whirOpen m lir (dot (powers lam claims.length) (claims.map (·.2)))).bind fun w ↦
             VerifierProgram.require (w.Accepts fun x ↦ dot (powers lam claims.length)
               (claims.map fun c ↦ c.1 x)) := by
-    simp only [verifyStackedOpening, Whir.verifyWhir_split, VerifierProgram.bind_eq]
+    rw [verifyStackedOpening_nf]
+    simp only [Whir.verifyWhir_split, VerifierProgram.bind_eq]
   rw [e]
   have hsam : RunsTo VerifierProgram.sampleChallenge s [] lam s1 := by
     have := runsTo_sampleE s
@@ -89,8 +90,8 @@ theorem runsWith_stacked {m lir : ℕ} {claims : List StackClaim} (hlen : claims
       (Whir.whirOpen m lir (dot (powers lam' claims.length) (claims.map (·.2)))).bind fun w ↦
         VerifierProgram.require (w.Accepts fun x ↦ dot (powers lam' claims.length)
           (claims.map fun c ↦ c.1 x)))
-    (Whir.RunsTo.withRoots (runsTo_require_true (c := claims.length ≤ maxStackedClaims)
-      (by unfold maxStackedClaims; omega) s) roots) h2
+    (Whir.RunsTo.withRoots (runsTo_require_true (c := StackedOk claims)
+      (stackedOk_of (by unfold maxStackedClaims; omega)) s) roots) h2
   exact Whir.RunsWith.of_eq h rfl (by simp) (by simp) rfl rfl rfl rfl
 
 /-- **`keccakPhaseClaims` runs**: the output lanes' check, then the Keccak reduction's run. -/

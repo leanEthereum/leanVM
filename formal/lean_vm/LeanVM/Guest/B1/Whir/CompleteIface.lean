@@ -31,7 +31,7 @@ them for the whole proof:
   The guest writes each level's Merkle cap once (write-once memory), so openings meeting in the
   cap must agree there; the Spec checks each opening alone against the root.
 
-**The statement** (`open_stacked_complete_Spec`): for every base `b`, the function's own memory is
+**The statement** (`open_stacked_complete_SpecP P`, in the program `P`): for every base `b`, the function's own memory is
 one layout `L` of `(exponent, words)` runs within `[b, b + n)` (`LayoutWithin`), its two point
 buffers among them; on every memory holding `L` (`HoldsLayout`), the words `xs` at the cursor and
 the window tables at `tabs`, the call of the size's arm on `rateSel r :: capOf S ++ [target,
@@ -87,7 +87,7 @@ memory is a layout `L` within `[b, b + n)` holding its two point buffers (the ru
 zero-padded, and one plus each of its coordinates, one-padded); on every memory holding `L`, the
 words `xs` at the cursor and the window tables at `tabs`, the call returns the run's claim, the
 point buffers' pointers, its glued weight and its residual's value. -/
-def open_stacked_complete_Spec : Prop :=
+def open_stacked_complete_SpecP (P : Program) : Prop :=
   ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
     ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
       (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
@@ -97,7 +97,7 @@ def open_stacked_complete_Spec : Prop :=
         (pt, w.point ++ List.replicate (pointCap - μ) 0) ∈ L ∧
         (pt1, w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1) ∈ L ∧
         ∀ rd : Reader, HoldsLayout rd L → ReadsAt rd cur xs → WinTabs rd tabs →
-          coreProgram.Rel rd (openName μ)
+          P.Rel rd (openName μ)
             (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs])
             [w.target, ofK (addressOfIndex pt), ofK (addressOfIndex pt1), w.inner, w.residual]
 

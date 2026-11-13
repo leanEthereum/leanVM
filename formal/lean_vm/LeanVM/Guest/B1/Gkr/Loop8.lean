@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Gkr.Fs
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.CoreData
 
 /-!
 # The final point's copy (`verify_bus_gkr_loop1`, G:2042-2044)

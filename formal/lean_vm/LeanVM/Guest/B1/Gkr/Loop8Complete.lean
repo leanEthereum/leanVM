@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Loop8
 public import LeanVM.Guest.B1.Common.Loops
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.CoreData
 
 /-!
 # `verify_bus_gkr_loop1`, completely (G:1888-1889)

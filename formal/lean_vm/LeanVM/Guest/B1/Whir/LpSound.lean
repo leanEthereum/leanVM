@@ -8,7 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Squeezes
-public import LeanVM.Guest.B1.Whir.HelperAll
+public import LeanVM.Guest.B1.Whir.HelperTables
+public import LeanVM.Guest.B1.Whir.HelperT
 public import LeanVM.Guest.B1.Whir.RateCfg
 
 /-!
@@ -27,7 +28,7 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-variable {rd : Reader}
+variable {P : Program} {rd : Reader}
 
 /-- **What `level_positions__L{S}_L{d}_L{cd}` establishes** on `[w0, f0..f4, qpos, qbp, tabs]`. -/
 def MeaningLevelPositions (S d cd : ℕ) (rd : Reader) (args rets : List E) : Prop :=
@@ -59,16 +60,16 @@ theorem lpBodyA_flat (S d cd : ℕ) (loop : String) :
 and whose loop is `lpLoopBody d cd loop`, on a memory image whose window tables are at the
 argument `tabs`, establishes `MeaningLevelPositions`. -/
 theorem lp_sound {name loop : String} {S d cd : ℕ}
-    (hf : FnIs name (osParams 9) (lpBody S d cd loop))
-    (hl : FnIs loop (osParams 6) (lpLoopBody d cd loop))
+    (hf : FnIsP P name (osParams 9) (lpBody S d cd loop))
+    (hl : FnIsP P loop (osParams 6) (lpLoopBody d cd loop))
     (hpw : digitsVal (osPowDigits (128 / d)) 1 = 128 / d)
     (hS : 1 ≤ S) (hSo : S < ordG) (hS5 : S * 5 < u128Bound)
-    (hdec : ∀ a r, WinTabs rd (a.getD 3 0) → coreProgram.Rel rd (dqwName d cd) a r →
+    (hdec : ∀ a r, WinTabs rd (a.getD 3 0) → P.Rel rd (dqwName d cd) a r →
       MeaningDecodeQueryWindows d cd rd a r)
     {args rets : List E} (hwt : WinTabs rd (args.getD 8 0))
-    (hrel : coreProgram.Rel rd name args rets) : MeaningLevelPositions S d cd rd args rets := by
+    (hrel : P.Rel rd name args rets) : MeaningLevelPositions S d cd rd args rets := by
   obtain ⟨fn, hfind, hps, hb⟩ := hf
-  obtain ⟨fn', hf', σ, hp, hh⟩ := (rel_iff coreProgram _ _ _).mp hrel
+  obtain ⟨fn', hf', σ, hp, hh⟩ := (rel_iff P _ _ _).mp hrel
   rw [hfind] at hf'
   cases hf'
   rw [hb, lpBody_split, holdsList_flat_ret _ (lpBodyA_flat S d cd loop)] at hh

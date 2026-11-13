@@ -8,7 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Place.HelperAt
 public import LeanVM.Guest.B1.Opening.QueriesPlacedD2
-public import LeanVM.Guest.B1.Whir.HelperAll
+public import LeanVM.Guest.B1.Whir.HelperTables
+public import LeanVM.Guest.B1.Whir.HelperT
 public import LeanVM.Guest.B1.Whir.Witness
 public import LeanVM.Guest.B1.Whir.LqSound
 public import LeanVM.Guest.B1.Bits.QueryWindowsAt

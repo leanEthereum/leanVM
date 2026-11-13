@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Tables.VtC.NotStored
 public import LeanVM.Guest.B1.Tables.VtC.Glue
+public import LeanVM.Guest.CoreData
 
 /-!
 # The honest valuation

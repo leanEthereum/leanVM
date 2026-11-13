@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Interface
-public import LeanVM.Guest.B1.Main.Frames
+public import LeanVM.Guest.B1.Main.FramesP
 
 /-!
 # `open_stacked`, its witness named
@@ -19,7 +19,8 @@ function's own valuation `σ` and the frame map `V`, reading words only. `open_s
 per level, read off the frames of its `level_queries` dispatches' `opening_queries` calls and the
 caps' cells; it is defined with the template of the body (`Whir/Witness.lean`).
 
-`OpenOutW` is `OpenOut` at given words and openings. `open_stacked_sound_w_Spec osW`: under a call
+`OpenOutW` is `OpenOut` at given words and openings. `open_stacked_sound_w_SpecP P osW`: in the
+program `P` (`InterfaceAt.lean`: at `coreProgram`), under a call
 relation `C ≤ Rel` unfolding at `V`, a valuation `σ` holding the size's body on the arguments
 `rateSel r :: fs ++ [target, root0, root1, cur, tabs]`, the window tables at `tabs`, gives
 `OpenOutW` at `osW rd (μ - minOpenLog) r σ V`.
@@ -53,21 +54,21 @@ theorem OpenOutW.openOut {rd : Reader} {μ r : ℕ} {root : Digest} {fs : List E
 
 /-! ## The statement -/
 
-/-- **`open_stacked` is sound with its witness `osW`**: under a call relation `C ≤ Rel` unfolding
+/-- **`open_stacked` is sound with its witness `osW`**, in the program `P`: under a call relation `C ≤ Rel` unfolding
 at the frame map `V`, a valuation `σ` holding the body of the size of `μ` on the rate's selector,
 the capacity cells `fs`, the claim `target`, the root's two cells, the cursor and the window tables
 `tabs`, returning `rets`, on a memory image of `2^κ` words, `11 ≤ κ ≤ 32`, (the query windows' range
 checks), gives `OpenOutW` at the words and openings `osW L.read (μ - minOpenLog) r σ V`. -/
-def open_stacked_sound_w_Spec
+def open_stacked_sound_w_SpecP (P : Program)
     (osW : Reader → ℕ → ℕ → Val → FrameMap → List E × List (List Opening)) :
     Prop :=
   ∀ {κ : ℕ}, κ ≤ 32 → winTabBits ≤ κ → ∀ (L : MemoryImage κ) (C : CallRel) (V : FrameMap),
-    UnfoldsV L.read C V →
-    CallRel.Le C (coreProgram.Rel L.read) →
+    UnfoldsVP P L.read C V →
+    CallRel.Le C (P.Rel L.read) →
     ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
       ∀ (root : Digest) (fs : List E) (target root0 root1 cur tabs : E) (rets : List E) (fn : Fn)
         (σ : Val), fs.length = 5 → (root0, root1) = digestHalves root →
-        WinTabs L.read tabs → coreProgram.find? (openName μ) = some fn →
+        WinTabs L.read tabs → P.find? (openName μ) = some fn →
         fn.params.map σ = rateSel r :: fs ++ [target, root0, root1, cur, tabs] →
         Stmt.HoldsList C L.read σ fn.body False (fun rs ↦ rs = rets) →
         OpenOutW L.read μ r root fs target cur rets (osW L.read (μ - minOpenLog) r σ V).1

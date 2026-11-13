@@ -2,7 +2,8 @@
   LeanVM.Guest.KernelLit
 
   `kernel_lit`: a value the kernel computes once, written into a definition, and the kernel's
-  check that it is the value of the term it was computed from.
+  check that it is the value of the term it was computed from; `kernel_rfl`: an equation by `rfl`
+  that only the kernel checks.
 -/
 
 module
@@ -113,5 +114,27 @@ syntax (name := kernelLit) (docComment)? "kernel_lit " ident " : " term " := " t
   liftCoreM <| addDecl
     (.thmDecl (mkTheoremValEx (name.appendAfter "_eq") [] (mkApp3 (mkConst ``Eq [u]) ty e c)
       (mkApp2 (mkConst ``Eq.refl [u]) ty c) []))
+
+/-- `kernel_rfl x : a = b` adds `theorem x : a = b` by `rfl` (`private kernel_rfl`, a private one),
+checked by the kernel alone: the elaborator's unifier walks a long list one recursive call per
+element (`coreOf j`, `certOf j` far into the guest's functions), where the kernel does not. -/
+syntax (name := kernelRfl) (docComment)? ("private ")? "kernel_rfl " ident " : " term : command
+
+@[command_elab kernelRfl] def elabKernelRfl : CommandElab := fun stx => do
+  let name := (← getCurrNamespace) ++ stx[3].getId
+  let env ← getEnv
+  let name := if stx[1].isNone then name else mkPrivateName env name
+  let (ty, u, a) ← liftTermElabM do
+    let ty ← Term.elabType stx[5]
+    Term.synthesizeSyntheticMVarsNoPostponing
+    let ty ← instantiateMVars ty
+    if ty.hasMVar then throwError "kernel_rfl: the statement is not known"
+    if ty.hasSorry then throwAbortCommand
+    let some (α, a, _) := ty.eq? | throwError "kernel_rfl: not an equality"
+    pure (ty, ← Meta.getLevel α, a)
+  liftCoreM <| addDecl
+    (.thmDecl (mkTheoremValEx name [] ty (mkApp2 (mkConst ``Eq.refl [u]) (ty.getArg! 0) a) []))
+  if let some doc := stx[0].getOptional? then
+    liftTermElabM <| addDocString name (mkNullNode #[]) ⟨doc⟩
 
 end LeanVM.Guest.KernelLit

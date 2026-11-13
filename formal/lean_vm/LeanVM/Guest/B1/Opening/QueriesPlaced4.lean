@@ -78,7 +78,7 @@ theorem oqWLoad_in {R : ℕ → Prop} {w : WD} {σ : Val} (hv : w.Hv σ)
 /-- **An honest `walk_path` frame, placed**, by its frame alone. -/
 theorem wp_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String → V → ℕ) {w : WD}
     (hpd : 1 ≤ w.pd) (hcd : 1 ≤ w.cd) (hsl : w.sibs.length = w.pd) (hq : w.q < 2 ^ (w.pd + w.cd))
-    {rd : Reader} (hm : w.MemOk rd) {wlk : String} (hW : WalkFn wlk w.pd w.cd) {R : ℕ → Prop}
+    {rd : Reader} (hm : w.MemOk rd) {wlk : String} (hW : WalkFn coreProgram wlk w.pd w.cd) {R : ℕ → Prop}
     (hreg : OqWReg R w.pd w.cd w.capv w.flagsv w.bpv w.q) (fp : ℕ) :
     RelAtIn coreProgram fs cert rd R (fun _ => False) fp (fs wlk) wlk
       [(digestHalves w.leaf).1, (digestHalves w.leaf).2, w.bpv, w.capv, w.flagsv] [] := by
@@ -148,7 +148,7 @@ theorem oqLoop1A_callS (s : Oq) (odd : ℕ) (wlk : String) :
 /-- **A level-0 iteration, placed**, its tail's tree `m` words, its walks after it. -/
 theorem oqIter1_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String → V → ℕ)
     {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) {odd : ℕ}
-    {wlk loop : String} (hW : WalkFn wlk s.pd s.cd) {fl : Fn}
+    {wlk loop : String} (hW : WalkFn coreProgram wlk s.pd s.cd) {fl : Fn}
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop1T s odd wlk loop) (hlp : coreProgram.loop loop = true)
     {rd : Reader} {R : ℕ → Prop} {fp m j : ℕ} {N positions qptrs cap flags coefs hsp ch mu : E}

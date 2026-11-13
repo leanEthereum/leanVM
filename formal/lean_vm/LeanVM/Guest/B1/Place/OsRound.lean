@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.RoundComplete
+public import LeanVM.Guest.B1.Whir.RoundFind
 public import LeanVM.Guest.Lift.OsCallees
 public import LeanVM.Guest.B1.Tables.FlatAt
 

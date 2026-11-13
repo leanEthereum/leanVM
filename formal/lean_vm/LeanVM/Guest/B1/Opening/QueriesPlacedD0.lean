@@ -26,7 +26,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 /-- **`opening_queries` deeper is `CompleteAtB`.** -/
 theorem oqMain0_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb0 : s.base = 0) (hpd1 : 1 ≤ s.pd)
-    (hcd : 2 ≤ s.cd) {name wlk loop : String} (hW : WalkFn wlk s.pd s.cd) {fm fl : Fn}
+    (hcd : 2 ≤ s.cd) {name wlk loop : String} (hW : WalkFn coreProgram wlk s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
     (hbm : fm.body = oqMainT s 0 wlk loop)

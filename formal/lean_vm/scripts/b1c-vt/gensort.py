@@ -89,7 +89,7 @@ HDR = '''/-
 module
 
 public import LeanVM.Guest.B1.Tables.Vt.Base
-public import LeanVM.Guest.B1.Tables.Interface
+public import LeanVM.Guest.B1.Tables.InterfaceP
 
 /-!
 # The block certification's statements (G:2240-2277)

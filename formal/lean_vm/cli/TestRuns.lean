@@ -63,13 +63,19 @@ def workers : Nat := 8
 def main (args : List String) : IO UInt32 := do
   let runs := modules.flatMap fun (m, rs) ↦ rs.map fun (n, f) ↦ (s!"{m}: {n}", IO.lazyPure f)
   let runs := runs ++ [("Guest.CoreData: the core data is the renumbered expansion", coreData)]
-  let runs := (runs.filter fun (n, _) ↦ args.isEmpty || args.any fun a ↦ (n.splitOn a).length > 1).zipIdx
-  let worker (w : Nat) : IO (List (Nat × String × Bool × Nat)) :=
-    (runs.filter (·.2 % workers == w)).mapM fun ((n, run), i) ↦ do
+  let runs := (runs.filter fun (n, _) ↦ args.isEmpty || args.any fun a ↦ (n.splitOn a).length > 1).toArray
+  -- Each worker takes the next run not yet taken, so a long run does not hold back the rest.
+  let next ← IO.mkRef 0
+  let worker : IO (List (Nat × String × Bool × Nat)) := do
+    let mut done := []
+    repeat
+      let i ← next.modifyGet fun i ↦ (i, i + 1)
+      let some (n, run) := runs[i]? | break
       let t0 ← IO.monoMsNow
       let ok ← run
-      return (i, n, ok, (← IO.monoMsNow) - t0)
-  let tasks ← (List.range workers).mapM fun w ↦ IO.asTask (prio := .dedicated) (worker w)
+      done := (i, n, ok, (← IO.monoMsNow) - t0) :: done
+    return done
+  let tasks ← (List.range workers).mapM fun _ ↦ IO.asTask (prio := .dedicated) worker
   let mut results : Array (Nat × String × Bool × Nat) := #[]
   for t in tasks do
     results := results ++ (← IO.ofExcept (← IO.wait t))
@@ -77,5 +83,5 @@ def main (args : List String) : IO UInt32 := do
   for (_, n, ok, ms) in results.qsort (·.1 < ·.1) do
     IO.println s!"{n}: {if ok then "ok" else "FAILED"} ({ms} ms)"
     if !ok then failed := failed + 1
-  IO.println s!"{runs.length - failed} of {runs.length} runs passed"
+  IO.println s!"{runs.size - failed} of {runs.size} runs passed"
   return if failed == 0 then 0 else 1

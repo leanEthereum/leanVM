@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Placement.Interface
+public import LeanVM.Guest.B1.Placement.InterfaceP
 public import LeanVM.Guest.B1.Tables.Basic
 
 /-!

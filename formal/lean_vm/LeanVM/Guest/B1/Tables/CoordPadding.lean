@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.Interface
+public import LeanVM.Guest.B1.Tables.InterfaceP
 public import LeanVM.Guest.Value.KeccakConst
 
 /-!

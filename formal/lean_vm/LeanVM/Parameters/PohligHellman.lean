@@ -21,9 +21,9 @@ by baby steps `phBase p ^ j`, `j < s`, and giant steps by the inverse of `phBase
 `6700417`, `s = 2^12` and `2^16`, and the strides `phStride p = phBase p ^ (p - s)` (so at most
 `17` and `103` giant steps).
 
-The nine words are literals, so a run computes none of them; each is checked here by a
-`decide +kernel` (an exponentiation by squaring of a 64-bit exponent). This module imports only
-the field: `PohligHellmanFirewall.lean` fails to build if that changes.
+The nine words are literals, so a run computes none of them; they are checked here by
+`decide +kernel` (exponentiations by squaring of 64-bit exponents, the seven bases in one). This
+module imports only the field: `PohligHellmanFirewall.lean` fails to build if that changes.
 -/
 
 namespace LeanVM.Parameters
@@ -50,13 +50,24 @@ def phStride65537 : K := K.ofBits 0x1e23a5d44e1a15ca
 /-- `phBase6700417 ^ (6700417 - 65536)`, the inverse of `phBase6700417 ^ 65536`. -/
 def phStride6700417 : K := K.ofBits 0x066164c97ee598f3
 
-theorem phBase3_eq : phBase3 = g ^ ((2 ^ 64 - 1) / 3) := by decide +kernel
-theorem phBase5_eq : phBase5 = g ^ ((2 ^ 64 - 1) / 5) := by decide +kernel
-theorem phBase17_eq : phBase17 = g ^ ((2 ^ 64 - 1) / 17) := by decide +kernel
-theorem phBase257_eq : phBase257 = g ^ ((2 ^ 64 - 1) / 257) := by decide +kernel
-theorem phBase641_eq : phBase641 = g ^ ((2 ^ 64 - 1) / 641) := by decide +kernel
-theorem phBase65537_eq : phBase65537 = g ^ ((2 ^ 64 - 1) / 65537) := by decide +kernel
-theorem phBase6700417_eq : phBase6700417 = g ^ ((2 ^ 64 - 1) / 6700417) := by decide +kernel
+/-- The seven bases in one kernel evaluation: the squarings of `g` are computed once. -/
+private theorem phBases_eq :
+    phBase3 = g ^ ((2 ^ 64 - 1) / 3) ∧
+    phBase5 = g ^ ((2 ^ 64 - 1) / 5) ∧
+    phBase17 = g ^ ((2 ^ 64 - 1) / 17) ∧
+    phBase257 = g ^ ((2 ^ 64 - 1) / 257) ∧
+    phBase641 = g ^ ((2 ^ 64 - 1) / 641) ∧
+    phBase65537 = g ^ ((2 ^ 64 - 1) / 65537) ∧
+    phBase6700417 = g ^ ((2 ^ 64 - 1) / 6700417) := by
+  decide +kernel
+
+theorem phBase3_eq : phBase3 = g ^ ((2 ^ 64 - 1) / 3) := phBases_eq.1
+theorem phBase5_eq : phBase5 = g ^ ((2 ^ 64 - 1) / 5) := phBases_eq.2.1
+theorem phBase17_eq : phBase17 = g ^ ((2 ^ 64 - 1) / 17) := phBases_eq.2.2.1
+theorem phBase257_eq : phBase257 = g ^ ((2 ^ 64 - 1) / 257) := phBases_eq.2.2.2.1
+theorem phBase641_eq : phBase641 = g ^ ((2 ^ 64 - 1) / 641) := phBases_eq.2.2.2.2.1
+theorem phBase65537_eq : phBase65537 = g ^ ((2 ^ 64 - 1) / 65537) := phBases_eq.2.2.2.2.2.1
+theorem phBase6700417_eq : phBase6700417 = g ^ ((2 ^ 64 - 1) / 6700417) := phBases_eq.2.2.2.2.2.2
 
 theorem phStride65537_eq : phStride65537 = phBase65537 ^ (65537 - 4096) := by decide +kernel
 theorem phStride6700417_eq : phStride6700417 = phBase6700417 ^ (6700417 - 65536) := by

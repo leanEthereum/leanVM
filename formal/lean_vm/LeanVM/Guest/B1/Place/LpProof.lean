@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Place.Lp
 public import LeanVM.Guest.B1.Bits.QueryWindowsAtAll
 public import LeanVM.Guest.B1.Whir.Commit
+public import LeanVM.Guest.B1.Whir.DataSpec
+public import LeanVM.Guest.B1.Whir.HelperAll
 
 /-!
 # `level_positions`, placed

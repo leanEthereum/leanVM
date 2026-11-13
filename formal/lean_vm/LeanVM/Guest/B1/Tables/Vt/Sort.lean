@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.SortT
 public import LeanVM.Guest.B1.Tables.GroupCert
 public import LeanVM.Guest.B1.Tables.Interface
+public import LeanVM.Guest.CoreData
 
 /-!
 # A side's block offsets (G:2233-2275)

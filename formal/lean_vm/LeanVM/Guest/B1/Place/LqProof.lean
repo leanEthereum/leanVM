@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Place.OsMean
 public import LeanVM.Guest.B1.Place.SqAt
 public import LeanVM.Guest.B1.Opening.QueriesPlacedAll
 public import LeanVM.Guest.B1.Whir.OqKey
+public import LeanVM.Guest.B1.Whir.DataSpec
+public import LeanVM.Guest.B1.Whir.HelperAll
 
 /-!
 # `level_queries`, placed

@@ -40,6 +40,7 @@ theorem wrongCnt_of_ge {i : ℕ} (h : 44 ≤ i) : wrongCnt i = 1 := by
 balance. -/
 example : ¬ BalancedPair (walkW kLout 1 g wrongCnt) MemPull.toRaw MemPush.toRaw := by
   rw [mem_balanced_iff kLout 1 g wrongCnt fun _ ↦ wrongCnt_of_ge]
+  keccak_sends_closed
   decide +kernel
 
 /-- The finalize counts of a read count `0` at cell `2`: the first `SET_CONSTANT` row's read
@@ -56,6 +57,7 @@ which is what the count product exists to reject (§6.2 "The count product", The
 theorem zero_mem_balanced :
     BalancedPair (walkW kLout 0 1 zeroCnt) MemPull.toRaw MemPush.toRaw := by
   rw [mem_balanced_iff kLout 0 1 zeroCnt fun _ ↦ zeroCnt_of_ge]
+  keccak_sends_closed
   decide +kernel
 
 theorem zero_state_balanced :
@@ -67,6 +69,7 @@ theorem zero_state_balanced :
     memT_filter _ _ _ StatePull.toRaw.name (by decide) (by decide),
     bcT_filter _ StatePush.toRaw.name (by decide) (by decide),
     bcT_filter _ StatePull.toRaw.name (by decide) (by decide)]
+  keccak_sends_closed
   decide +kernel
 
 theorem zero_bytecode_balanced :
@@ -76,6 +79,8 @@ theorem zero_bytecode_balanced :
     List.filter_append, List.map_append,
     memT_filter _ _ _ BytecodePush.toRaw.name (by decide) (by decide),
     memT_filter _ _ _ BytecodePull.toRaw.name (by decide) (by decide)]
+  keccak_sends_closed
+  bytecode_sends_closed
   decide +kernel
 
 /-- The count product is load-bearing: the zero-count witness satisfies every other conjunct
@@ -126,6 +131,7 @@ theorem wrong_lane_not_valid : ¬ KeccakRowsValid (walkW wrongLout 1 g memCnt) :
 theorem wrong_mem_balanced :
     BalancedPair (walkW wrongLout 1 g memCnt) MemPull.toRaw MemPush.toRaw := by
   rw [mem_balanced_iff wrongLout 1 g memCnt fun _ ↦ memCnt_of_ge]
+  keccak_sends_closed
   decide +kernel
 
 theorem wrong_state_balanced :
@@ -137,6 +143,7 @@ theorem wrong_state_balanced :
     memT_filter _ _ _ StatePull.toRaw.name (by decide) (by decide),
     bcT_filter _ StatePush.toRaw.name (by decide) (by decide),
     bcT_filter _ StatePull.toRaw.name (by decide) (by decide)]
+  keccak_sends_closed
   decide +kernel
 
 theorem wrong_bytecode_balanced :
@@ -146,6 +153,8 @@ theorem wrong_bytecode_balanced :
     List.filter_append, List.map_append,
     memT_filter _ _ _ BytecodePush.toRaw.name (by decide) (by decide),
     memT_filter _ _ _ BytecodePull.toRaw.name (by decide) (by decide)]
+  keccak_sends_closed
+  bytecode_sends_closed
   decide +kernel
 
 /-- The permutation is the Keccak reduction's alone (§8.6): the witness with the wrong output
@@ -166,7 +175,11 @@ theorem wrong_lane_witness :
     (imageOf (walkW wrongLout 1 g memCnt).data).2.read (addressOfIndex 1) = some mulInput.word1 ∧
     ¬ KeccakRowsValid (walkW wrongLout 1 g memCnt) :=
   ⟨rfl, walk_constraints wrongLout 1 g memCnt, wrong_state_balanced, wrong_mem_balanced,
-    wrong_bytecode_balanced, mkW_countsNonzero _ _ (by decide +kernel),
+    wrong_bytecode_balanced, mkW_countsNonzero _ _ (by
+      simp only [List.take_succ_cons, List.take_zero, List.forall_mem_cons, List.not_mem_nil,
+        IsEmpty.forall_iff, implies_true, and_true]
+      keccak_sends_closed
+      decide +kernel),
     walk_caps wrongLout 1 g memCnt, walk_indexColumns wrongLout 1 g memCnt,
     walk_seedRows wrongLout 1 g memCnt, walk_bytecodeRows wrongLout 1 g memCnt,
     walk_word0 wrongLout 1 g memCnt, walk_word1 wrongLout 1 g memCnt, wrong_lane_not_valid⟩

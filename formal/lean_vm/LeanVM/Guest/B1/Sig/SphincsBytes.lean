@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsDigestT
-public import LeanVM.Guest.B1.Sig.Interface
+public import LeanVM.Guest.B1.Sig.InterfaceP
 
 /-!
 # `sp_from_bytes`, sound

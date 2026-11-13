@@ -583,6 +583,9 @@ theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n n
       show (omTail n nonce).2.2 = (omTail n nonce).2.2 + 0 by ring, vF 0, ← word_two_pow h64]
     rfl
 
+/-- `opening_message__L{n}_L{nonce}`'s core IR is its meaning, for every deployed message. -/
+def opening_message_Spec : Prop := opening_message_SpecP coreProgram
+
 /-- **`opening_message`'s core IR is its meaning**, for every deployed message. -/
 theorem opening_message_holds : opening_message_Spec := by
   intro p hp rd args rets

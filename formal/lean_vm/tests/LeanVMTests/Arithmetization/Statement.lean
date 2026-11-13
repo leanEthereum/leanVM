@@ -38,8 +38,11 @@ forty-four cells the run touches, decided in the kernel with the tables' reads, 
 untouched suffix, whose seed and finalize messages coincide because its finalize counts are `1`
 (`memCnt_of_ge`). The kernel evaluates a table's interactions through Clean's
 `Component.rowOperations` (`table_interactions_eq`), since `Component.operations` reaches them
-through `instantiate` and `toSubcircuit`, which the kernel does not unfold. `KeccakRowsValid`
-is one kernel evaluation of Keccak-f[1600] (`keccak_lanes`).
+through `instantiate` and `toSubcircuit`, which the kernel does not unfold. The `KECCAK` table's
+and the bytecode block's sends, the costliest, are first put in the closed form of
+`keccak_sends_gen` and `bytecode_sends_gen` (`keccak_sends_closed`, `bytecode_sends_closed`), so
+that each decision reads them off the rows' fields instead of evaluating the row and the circuit
+again. `KeccakRowsValid` is one kernel evaluation of Keccak-f[1600] (`keccak_lanes`).
 
 **Rejections**, each the honest witness with one thing changed, are `StatementRejections.lean`.
 -/
@@ -544,6 +547,44 @@ sends, never the data. -/
 def sendsOver (t : Air.Flat.Table K) (d : ProverData K) : List (String × Array K) :=
   t.table.flatMap fun row ↦ rowSends t.component (Environment.fromArray row d)
 
+/-- The `KECCAK` table's sends, over any data, are its circuit's on the row. -/
+theorem kT_sendsOver (L : Vector K 25) (d : ProverData K) :
+    sendsOver (kT L) d =
+      rowSends (opcodeComponent keccakTable) (Environment.fromArray (rawRow (kRow L)) d) := by
+  simp only [sendsOver, kT, opT, ownTable, List.map_cons, List.map_nil, List.flatMap_cons,
+    List.flatMap_nil, List.append_nil]
+
+/-- A bytecode block row's sends, as `bytecode_sends_gen` gives them. -/
+def bcSendsOf (r : BytecodeRow K) : List (String × Array K) :=
+  [(BytecodePush.name,
+    #[r.idx, 1, r.opcode, r.op[0], r.op[1], r.op[2], r.op[3], r.op[4], r.op[5], r.op[6],
+      r.op[7], r.op[8], r.op[9], r.op[10], r.op[11]]),
+   (BytecodePull.name,
+    #[r.idx, r.cntFin, r.opcode, r.op[0], r.op[1], r.op[2], r.op[3], r.op[4], r.op[5],
+      r.op[6], r.op[7], r.op[8], r.op[9], r.op[10], r.op[11]])]
+
+/-- The bytecode block's sends, over any data, read off its typed rows: the kernel then never
+flattens a row into its cells nor evaluates the circuit. -/
+theorem bcT_sendsOver (d : ProverData K) :
+    sendsOver bcT d =
+      (List.ofFn fun i ↦ bytecodeRowOf walkProg i (bcCntFin i)).flatMap bcSendsOf := by
+  have h (r : BytecodeRow K) :
+      rowSends (bytecodeComponent walkProg) (Environment.fromArray (rawRow r) d) = bcSendsOf r := by
+    rw [rowSends_bytecodeComponent, bytecode_sends_gen _ _ _ _ (eval_rowVar _ d)]
+    rfl
+  simp only [sendsOver, bcT, ownTable, bcRows, List.ofFn_eq_map, List.flatMap_map, h]
+
+/-- Before a kernel decision: the `KECCAK` table's sends in the closed form of `keccak_sends_gen`,
+read off the row's fields, so that the kernel never flattens the row into its cells nor evaluates
+the circuit. -/
+macro "keccak_sends_closed" : tactic =>
+  `(tactic| rw [LeanVMTests.Arithmetization.Statement.kT_sendsOver, rowSends_mk,
+    keccak_sends_gen _ _ _ _ (eval_rowVar _ _)])
+
+/-- The same for the bytecode block. -/
+macro "bytecode_sends_closed" : tactic =>
+  `(tactic| rw [LeanVMTests.Arithmetization.Statement.bcT_sendsOver])
+
 /-- A witness's messages on a channel: the verifier's two sends, then the sends of the rows of
 `ts` over the witness's data. -/
 theorem messagesOn_mkW (ts : List (Air.Flat.Table K)) (hc) (c : RawChannel K) :
@@ -720,6 +761,7 @@ theorem walk_state_balanced :
     memT_filter _ _ _ StatePull.toRaw.name (by decide) (by decide),
     bcT_filter _ StatePush.toRaw.name (by decide) (by decide),
     bcT_filter _ StatePull.toRaw.name (by decide) (by decide)]
+  keccak_sends_closed
   decide +kernel
 
 /-- The bytecode pair balances: every executed slot read once, the seeds and finalizes of all
@@ -731,6 +773,8 @@ theorem walk_bytecode_balanced :
     List.filter_append, List.map_append,
     memT_filter _ _ _ BytecodePush.toRaw.name (by decide) (by decide),
     memT_filter _ _ _ BytecodePull.toRaw.name (by decide) (by decide)]
+  keccak_sends_closed
+  bytecode_sends_closed
   decide +kernel
 
 /-- The memory pair, reduced to the touched cells: with the block's seeds and finalizes split
@@ -764,6 +808,7 @@ theorem mem_balanced_iff (L : Vector K 25) (c rA : K) (cnt : ℕ → K)
 /-- The memory pair balances. -/
 theorem walk_mem_balanced : BalancedPair (walkW kLout 1 g memCnt) MemPull.toRaw MemPush.toRaw := by
   rw [mem_balanced_iff kLout 1 g memCnt fun _ ↦ memCnt_of_ge]
+  keccak_sends_closed
   decide +kernel
 
 /-- The count product over the first six tables, read off their rows' sends. -/
@@ -786,7 +831,11 @@ theorem mkW_countsNonzero (ts : List (Air.Flat.Table K)) (hc)
 
 /-- Every read count is nonzero. -/
 theorem walk_countsNonzero : CountsNonzero (walkW kLout 1 g memCnt) :=
-  mkW_countsNonzero _ _ (by decide +kernel)
+  mkW_countsNonzero _ _ (by
+    simp only [List.take_succ_cons, List.take_zero, List.forall_mem_cons, List.not_mem_nil,
+      IsEmpty.forall_iff, implies_true, and_true]
+    keccak_sends_closed
+    decide +kernel)
 
 /-- Tables within the row cap are within the caps: the memory log-size is `16`. -/
 theorem mkW_caps (ts : List (Air.Flat.Table K)) (hc)

@@ -14,8 +14,9 @@ public import LeanVM.Guest.Core
 
 A proof about one core function `fn` states it for every program that finds `fn` under its name
 (`Finds P name fn`), so it imports the core module holding that function (its pack,
-`Guest/Pack/P<k>/Core.lean`, or its own, `Guest/Pack/<key>/Core.lean`) and no other data; the glue (`CoreData.lean` and the instantiations beside the proofs) gives the
-instance for the guest's `coreProgram`.
+`Guest/Pack/P<k>/Core.lean`, or its own, `Guest/Pack/<key>/Core.lean`) and no other data; the
+glue (`CoreData.lean` and the instantiations beside the proofs) gives the instance for the guest's
+`coreProgram`.
 -/
 
 namespace LeanVM.Guest

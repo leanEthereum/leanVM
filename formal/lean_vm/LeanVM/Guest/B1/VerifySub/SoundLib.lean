@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.VerifySub.Front
 public import LeanVM.Guest.B1.VerifySub.Known
 public import LeanVM.Guest.B1.VerifySub.Split
-public import LeanVM.Guest.B1.Tables.Interface
+public import LeanVM.Guest.B1.Tables.InterfaceP
 
 /-!
 # The assembly's library

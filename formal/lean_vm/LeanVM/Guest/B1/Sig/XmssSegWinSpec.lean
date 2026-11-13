@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.XmssSegPath
-public import LeanVM.Guest.B1.Sig.Interface
+public import LeanVM.Guest.B1.Sig.InterfaceP
 public import LeanVM.Guest.B1.Sig.SeqComplete
 
 /-!

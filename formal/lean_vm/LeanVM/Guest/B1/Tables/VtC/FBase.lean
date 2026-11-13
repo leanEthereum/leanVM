@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.VtC.Hon
+public import LeanVM.Guest.CoreData
 
 /-!
 # The window `2685 ..< 5524`

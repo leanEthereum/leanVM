@@ -73,7 +73,7 @@ theorem gen_pow_guard {j N : ℕ} (hN : N < ordG) (hj : j + 1 ≤ N) :
 theorem oqLoop1_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String → V → ℕ)
     {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) {odd : ℕ}
     {wlk loop : String}
-    (hW : WalkFn wlk s.pd s.cd) {fl : Fn}
+    (hW : WalkFn coreProgram wlk s.pd s.cd) {fl : Fn}
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop1T s odd wlk loop) (hlp : coreProgram.loop loop = true)
     {rd : Reader} {R : ℕ → Prop} {fp N : ℕ} (hN : N < ordG)
@@ -124,7 +124,7 @@ theorem oqLoop1_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
 theorem oqLoop0_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String → V → ℕ)
     {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd)
     {wlk loop : String}
-    (hW : WalkFn wlk s.pd s.cd) {fl : Fn}
+    (hW : WalkFn coreProgram wlk s.pd s.cd) {fl : Fn}
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop0T s wlk loop) (hlp : coreProgram.loop loop = true)
     {rd : Reader} {R : ℕ → Prop} {fp N : ℕ} (hN : N < ordG)

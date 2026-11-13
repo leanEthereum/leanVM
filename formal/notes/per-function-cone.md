@@ -58,14 +58,14 @@ Done:
 1. **Tools.** `deps.py` follows Lake's rule and reports by family; the firewall canary is in the gate.
 2. **Stable names.** The hand-written proofs name functions by stable name (`fn% «s»`, `idx% «s»`, `name% «s»`, `Guest/CoreRef.lean`), so a renumbering changes no proof; `scripts/guest-changes` and the walk generators read the same keys.
 3. **Core IR in packs.** `guest-core` writes each function's core IR into its pack (`Pack/P{k}/Core.lean`, `Pack/<key>/Core*.lean`), and `Data/Core.lean` lists references to them.
+- **Steps 5, 6 and 8 for Checked and B2C.** The packs hold each function's code, certificate, signature, completeness and sharing data (`Bundle.lean`, `Sig.lean`) and its checks over its own data and view (`Checked*`, `Cplw*`, `Shared*`: `Check.checkWinCF`, `B2C.cplWinD`, `B2C.shareWinD`, defined in the data-free `CheckView`, `B2C/CplCheck`, `ShareCheck`, `ChainCheck`, guarded by `ViewFirewall.lean`); the completeness walk finds a callee among the function's callees (`calleeS`), the context restricted to them (`Glob.restrict`). The glue (`Checked/Link*`, `Checked/Fn*`, `B2C/Cplw/Fn*`, `B2C/Shared/Fn*`) links them to `WinOk`, `CplOk`, `ShareOk` (`Check.Link`, `cplOk_of_link`, `shareOk_of_link`). Still global: `main_loop2`'s split windows and chained `match`es (`Checked/X*`, `G*`, `B2C/Cplw/D*`, `B2C/Shared/H*`, `B2C/Chained/`).
 
 Remaining:
 
 4. **Untaint.** Data imports cut out of the generic modules (`Exec`, `ExecC`, `B1.Common.Basic`, `Pow`, `LimitsNZ`, ...); with the user's go, `guestProgram` moves in the statement.
-5. **The rest of the packs.** The generators write `Code`, `Sig` and `Cert` into the packs; the aggregates become references.
-6. **Checked local.** `WinOk` over views, the transfer lemma, per-function checks, links.
+5. **The rest of the packs.** The Memory and Count data in the packs (Checked's and B2C's are).
+6. **`main_loop2`'s split windows local**, the rest of Checked and B2C: the group checks over the pack's data (`win_lit` on terms), the assemblies as glue.
 7. **Relocation.** Tagged pointers, `Sym.code`/`.ent`, soundness for every `ρ`, `link` and the `g^pc` table in the glue.
-8. **B2C local.** `cplWinD`, `shareWinD`, callee tables, the B2C data in the packs.
 9. **Memory and Count local.**
 10. **B1 parametric**, directory by directory, old names kept as glue instantiations; can run beside 6 to 9 after 5.
 11. **Glue diet.** `SoundFacts` split, generators recomputing only changed functions, relative windows for `main_loop2`.

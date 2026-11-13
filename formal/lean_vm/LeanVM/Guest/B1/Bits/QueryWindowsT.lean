@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
-public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.WalkWindows
 
 /-!
@@ -198,9 +197,9 @@ def qwBody (d cd : ℕ) : List Stmt :=
   [.atom (.frameAddr (.n 4) qwRun)] ++ p.1 ++ r.1 ++
     [.atom (.assertEq (r.2.2.getD (.n 0)) (.n 0)), .ret []]
 
-/-- A core function of the name with the parameters `0 .. 3` and the body. -/
-def QwIs (name : String) (body : List Stmt) : Prop :=
-  ∃ fn, coreProgram.find? name = some fn ∧ fn.params = [.n 0, .n 1, .n 2, .n 3] ∧ fn.body = body
+/-- Program `P` holds a function of the name with the parameters `0 .. 3` and the body. -/
+def QwIsP (P : Program) (name : String) (body : List Stmt) : Prop :=
+  ∃ fn, P.find? name = some fn ∧ fn.params = [.n 0, .n 1, .n 2, .n 3] ∧ fn.body = body
 
 /-- The deployed specializations: `(name, depth, cap depth)`. -/
 def queryWindowsShapes : List (String × ℕ × ℕ) :=

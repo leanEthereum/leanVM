@@ -27,7 +27,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {P : Program} {rd : Reader} {σ : Val}
 
 /-! ## Lists of iterations -/
 
@@ -116,13 +116,13 @@ level among them). -/
 theorem oqMain0_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk)
     (hb0 : sh.base = 0) (hodd : sh.odd = 0) (hpd : 1 ≤ sh.oq.pd) (hcd : 1 ≤ sh.cd)
     (hcd8 : sh.cd ≤ 8) (hdep : sh.cd ≤ sh.depth) {name loop : String}
-    (hW : WalkFn (oqWalkOf sh.oq) sh.oq.pd sh.cd) {fm fl : Fn}
-    (hfm : coreProgram.find? name = some fm)
+    (hW : WalkFn P (oqWalkOf sh.oq) sh.oq.pd sh.cd) {fm fl : Fn}
+    (hfm : P.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
     (hbm : fm.body = oqMainT sh.oq 0 (oqWalkOf sh.oq) loop)
-    (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
+    (hfl : P.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop0T sh.oq (oqWalkOf sh.oq) loop) :
-    opening_queries_sound_w_Spec name loop sh := by
+    opening_queries_sound_w_SpecP P name loop sh := by
   intro rd C V hU _ fm' σ args rets N hfm' hp hh hN hNo hpos
   rw [hfm] at hfm'
   cases hfm'
@@ -281,9 +281,9 @@ theorem oqsOf_length_one {s : Oq} (hb1 : s.base = 1) {odd : ℕ} (hodd : odd ≤
 
 /-- The odd first query of the function's start, and the chain's first word, its result times
 `λ⁻¹`. -/
-theorem oqMainA_odd_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s : Oq}
+theorem oqMainA_odd_w {C : CallRel} {V : FrameMap} (hU : UnfoldsVP P rd C V) {s : Oq}
     (hs : s.RowShape) (hfin : s.FinOk) (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) (hcd8 : s.cd ≤ 8)
-    (hW : WalkFn (oqWalkOf s) s.pd s.cd) (hA : BlockOkC C rd σ (oqMainA s 1 (oqWalkOf s)))
+    (hW : WalkFn P (oqWalkOf s) s.pd s.cd) (hA : BlockOkC C rd σ (oqMainA s 1 (oqWalkOf s)))
     (hpos : ∀ x bp, LoadHolds rd (σ (.n 5)) 0 x → LoadHolds rd (σ (.n 6)) 0 bp → PosRun rd s x bp) :
     LoadHolds rd (σ (.n 5)) 0 (σ (.n 11)) ∧ LoadHolds rd (σ (.n 6)) 0 (σ (.n 12)) ∧
       QueryW rd s (σ (.n 0)) (σ (.n 1)) (σ (.n 3)) (σ (.n 4)) (σ (.n 11)) (σ (.n 12))
@@ -309,13 +309,13 @@ level). -/
 theorem oqMain1_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk)
     (hb1 : sh.base = 1) (hnf : sh.final = 0) (hodd : sh.odd ≤ 1) (hpd : 1 ≤ sh.oq.pd)
     (hcd : 1 ≤ sh.cd) (hcd8 : sh.cd ≤ 8) (hdep : sh.cd ≤ sh.depth) {name loop : String}
-    (hW : WalkFn (oqWalkOf sh.oq) sh.oq.pd sh.cd) {fm fl : Fn}
-    (hfm : coreProgram.find? name = some fm)
+    (hW : WalkFn P (oqWalkOf sh.oq) sh.oq.pd sh.cd) {fm fl : Fn}
+    (hfm : P.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
     (hbm : fm.body = oqMainT sh.oq sh.odd (oqWalkOf sh.oq) loop)
-    (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
+    (hfl : P.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop1T sh.oq sh.odd (oqWalkOf sh.oq) loop) :
-    opening_queries_sound_w_Spec name loop sh := by
+    opening_queries_sound_w_SpecP P name loop sh := by
   intro rd C V hU _ fm' σ args rets N hfm' hp hh hN hNo hpos
   rw [hfm] at hfm'
   cases hfm'

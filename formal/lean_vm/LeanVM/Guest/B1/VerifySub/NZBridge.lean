@@ -134,17 +134,17 @@ def batchBasis (cl : List StackClaim) (lam : E) : List E → E :=
 
 theorem verifyStackedOpening_split (μ r : ℕ) (cl : List StackClaim) :
     verifyStackedOpening μ r cl =
-      (VerifierProgram.require (cl.length ≤ maxStackedClaims)).bind fun _ ↦
+      (VerifierProgram.require (StackedOk cl)).bind fun _ ↦
       VerifierProgram.sampleChallenge.bind fun lam ↦
       (Whir.whirOpen μ r (batchTarget cl lam)).bind fun w ↦
         VerifierProgram.require (w.Accepts (batchBasis cl lam)) := by
-  rw [verifyStackedOpening_eq]
+  rw [verifyStackedOpening_nf]
   simp only [Whir.verifyWhir_split, VerifierProgram.bind_eq]
   rfl
 
 theorem verifyStackedOpeningNZ_split (μ r : ℕ) (cl : List StackClaim) :
     Limits.verifyStackedOpeningNZ μ r cl =
-      (VerifierProgram.require (cl.length ≤ maxStackedClaims)).bind fun _ ↦
+      (VerifierProgram.require (StackedOk cl)).bind fun _ ↦
       VerifierProgram.sampleChallenge.bind fun lam ↦
       (Limits.whirOpenNZ μ r (batchTarget cl lam)).bind fun w ↦
         VerifierProgram.require (w.Accepts (batchBasis cl lam)) := by
@@ -277,11 +277,11 @@ theorem opening_rz {μ r : ℕ} {cl : List StackClaim} {st t : VerifierProgramSt
       w.Accepts (batchBasis cl (Id.run (squeeze keccakF1600 st.sponge)).1) := by
   rw [verifyStackedOpening_split, refuseZero_bind] at h
   obtain ⟨u1, st1, h1, h2⟩ := runId_bind_some h
-  have e1 : (VerifierProgram.require (cl.length ≤ maxStackedClaims)).refusingZeroChallenge =
-      VerifierProgram.require (cl.length ≤ maxStackedClaims) := by
+  have e1 : (VerifierProgram.require (StackedOk cl)).refusingZeroChallenge =
+      VerifierProgram.require (StackedOk cl) := by
     unfold VerifierProgram.require; split <;> rfl
   rw [e1] at h1
-  have hreq : cl.length ≤ maxStackedClaims ∧ st1 = st := by
+  have hreq : StackedOk cl ∧ st1 = st := by
     unfold VerifierProgram.require at h1
     split at h1
     · rename_i hc
@@ -290,7 +290,7 @@ theorem opening_rz {μ r : ℕ} {cl : List StackClaim} {st t : VerifierProgramSt
       exact ⟨hc, h1.2.symm⟩
     · exact absurd h1 (by rintro ⟨⟩)
   obtain ⟨hlen, rfl⟩ := hreq
-  refine ⟨hlen, ?_⟩
+  refine ⟨hlen.length_le, ?_⟩
   have e2 : runId ((VerifierProgram.sampleChallenge.bind fun lam ↦
       (Whir.whirOpen μ r (batchTarget cl lam)).bind fun w ↦
         VerifierProgram.require (w.Accepts (batchBasis cl lam))).refusingZeroChallenge) st1 =

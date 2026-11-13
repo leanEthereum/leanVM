@@ -7,7 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Place.ArmCalls
-public import LeanVM.Guest.B1.Whir.HelperAll
+public import LeanVM.Guest.B1.Whir.HelperTables
+public import LeanVM.Guest.B1.Whir.HelperT
 public import LeanVM.Guest.B1.Whir.RateCfg
 public import LeanVM.Guest.B1.Whir.TableMem
 public import LeanVM.Guest.B1.Whir.OqKey

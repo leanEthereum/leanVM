@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.Proof
-public import LeanVM.Guest.B1.Whir.InterfaceW
+public import LeanVM.Guest.B1.Whir.InterfaceAt
 
 /-!
 # The call of `open_stacked`

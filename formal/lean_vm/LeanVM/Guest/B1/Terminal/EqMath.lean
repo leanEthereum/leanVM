@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.B1.Terminal.Interface
-public import LeanVM.Guest.B1.Eq.Meaning
+public import LeanVM.Guest.B1.Terminal.InterfaceP
+public import LeanVM.Guest.B1.Eq.MeaningP
 
 /-!
 # Equality weights, factored
