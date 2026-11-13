@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFactorCount
 
-  The count of non-persistent pairs on one factor of the interpolant, `[CYWZ26, preprint]`,
+  The count of non-persistent pairs on one factor of the interpolant, `[CWYZ26]`,
   Claims 4.8 and 4.9: at most `4 d² e² h³ (n / (A - B))²`. Candidate for ArkLib.
 -/
 
@@ -84,7 +84,7 @@ theorem eval_hatP_center (z : Fin 3 → k) :
 
 /-- **Persistence from a second point**: if two distinct points off the separant satisfy the same
 `B + 1` cuts, and one is the chart point of a counted triple, that triple is persistent
-([CYWZ26, Claim 4.8], case `c > B`). -/
+([CWYZ26, Claim 4.8], case `c > B`). -/
 theorem persistent_of_two_points [Fintype ι] [DecidableEq ι] {p κ : ℕ} [Fact p.Prime] [CharP k p]
     (he : e = p ^ κ) (hR : ∀ m ∈ R.support, m 1 + m 2 ≤ h) (hh : 1 ≤ h) {B : ℕ} (hdB : d + 1 < B)
     {α β : F} {α' β' : L} {P : L[X]} (hP : P.natDegree ≤ d)
@@ -254,7 +254,7 @@ noncomputable def factorPairs (A B : ℕ) : Finset (F × F) :=
     MvPolynomial.aeval ![X, C α' + C β' * X, P.comp (X ^ e)] R = 0 ∧
     MvPolynomial.aeval ![X, C α' + C β' * X, P.comp (X ^ e)] (MvPolynomial.pderiv 2 R) ≠ 0
 
-/-- **The non-persistent pairs of one factor** ([CYWZ26, Claims 4.8 and 4.9]): for a factor `R`
+/-- **The non-persistent pairs of one factor** ([CWYZ26, Claims 4.8 and 4.9]): for a factor `R`
 whose monomials `X^i Y^t Z^j` have `t + j ≤ h` and a Frobenius power `e = p^κ`, at most
 `h (n · 2edh / (A - B))² = 4 d² e² h³ (n / (A - B))²` pairs, if `d + 1 < B < A ≤ n`. -/
 theorem card_factorPairs_le {A B p κ : ℕ} [Fact p.Prime] [CharP L p] (he : e = p ^ κ)

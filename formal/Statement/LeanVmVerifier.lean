@@ -1430,7 +1430,7 @@ def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 /-!
 ## The WHIR opening (`whir.rs`, `lib.rs:126-163`)
 
-The opening of [CYWZ26, preprint]'s affine folds (Annex B, `fig:protocol`): a level's rounds fold its
+The opening of [CWYZ26]'s affine folds (Annex B, `fig:protocol`): a level's rounds fold its
 lanes by the affine combiner `G + (α + β·X)·F`, the claim carried by four scalars a round
 and the weight folded by the same `α`, so the `α`s are the weight's point. A non-final level then commits
 the folded lane's low part, sends its high part, and glues its out-of-domain claim and its queries,
@@ -1541,8 +1541,8 @@ def foldLanes (x : K) (round : FoldRound) : List E → List E
   | _ => []
 
 /-- `fold_row(values, x, rounds)`: an opened row, its lanes in `eq_kernel` order, folded at its
-domain point `x` round by round as the prover folds the lanes (`whir.rs:161-173`; [CYWZ26,
-preprint], Corollary 5.2). The Rust asserts one value is left, one round per lane variable, which
+domain point `x` round by round as the prover folds the lanes (`whir.rs:161-173`; the pairing of
+[CWYZ26], Theorem 5.2). The Rust asserts one value is left, one round per lane variable, which
 the level's shape always gives; `0` otherwise. -/
 def foldRow (values : List E) (x : K) (rounds : List FoldRound) : E :=
   (rounds.foldl (fun values round ↦ foldLanes x round values) values).headD 0

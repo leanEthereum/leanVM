@@ -25,7 +25,7 @@ Every round of a level is analysed at the level's one degree `d`.
   lane set with halves `f`, `g`, linear functionals `Λ₀`, `Λ₁` and value `c`: if every pair of
   `lst(f, g; A − 1, d)` violates `Λ₀ F + Λ₁ G = c`, every table leaves at most `N` challenges
   `(α, β)` after which a tuple of `lst(fold; A, d)` satisfies the new claim. It is the
-  conclusion of [CYWZ26, preprint]'s Theorem 1.1 as the Annex applies it, with
+  conclusion of [CWYZ26]'s Theorem 1.1 as the Annex applies it, with
   `N = N_aff + 2 jl n (A − 1) d |E|`, `N_aff` a bound on the combiner's exceptional pairs
   (`thm:mca-affine`, `ε_aff = N_aff / |E|²`). `LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFold`
   proves it, the count of exceptional pairs from `AffineCombinerMca`; this module takes the lemma

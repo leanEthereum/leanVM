@@ -21,9 +21,9 @@ finite number of lanes.
 
 * `card_excSet_le_persistent_add`: the exceptional pairs of the lanes number at most the
   persistent term `jl n B (d + 1) max(q, C(n, 2))` plus the non-persistent exceptional pairs of the
-  packed word over any packing field ([CYWZ26, preprint], Lemmas 4.4 and 4.5, and Section 5.1).
+  packed word over any packing field ([CWYZ26], Lemmas 4.4 and 4.5, and the proof of Theorem 5.2).
 * `NonpersistentCount L dom d A m D B`: every word pair over `L` has at most
-  `D² + 4 d² M² D³ (n/(A - B))²` non-persistent exceptional pairs ([CYWZ26, Lemmas 4.2, 4.3 and
+  `D² + 4 d² M² D³ (n/(A - B))²` non-persistent exceptional pairs ([CWYZ26, Lemmas 4.2, 4.3 and
   4.7]); `nonpersistentCount_of_interpolant` derives it, through Lemma 4.2
   (`exists_interpolant`), from `InterpolantCount`, the statement of Lemmas 4.3 and 4.7 for the
   interpolant, proved as `lemma43` (`AffineCombinerLemma43.lean`).
@@ -53,13 +53,13 @@ theorem card_excSet_le_persistent_add {L : Type*} [Field L] [Algebra F L] (dom :
     ((card_excSetL_le dom _ _ d A B).trans ?_)
   exact Nat.add_le_add_right (card_persSet_le dom _ _ hgap) _
 
-/-- **The non-persistent count** ([CYWZ26, Lemmas 4.2, 4.3 and 4.7]) over a field `L` of words:
+/-- **The non-persistent count** ([CWYZ26, Lemmas 4.2, 4.3 and 4.7]) over a field `L` of words:
 every pair of words `f g : ι → L` has at most `D² + 4 d² M² D³ (n / (A - B))²` pairs `(α, β)` with
 a non-persistent exceptional triple. -/
 def NonpersistentCount (L : Type*) [Field L] [Algebra F L] (dom : ι ↪ F) (d A m D B : ℕ) : Prop :=
   ∀ f g : ι → L, ((nonpersSet dom f g d A B).card : ℚ) ≤ nAffRest (Fintype.card ι) d A m D B
 
-/-- **The excluded and non-persistent counts** ([CYWZ26, Lemmas 4.3 and 4.7]) over a field `L` of
+/-- **The excluded and non-persistent counts** ([CWYZ26, Lemmas 4.3 and 4.7]) over a field `L` of
 words: for every pair of words `f g : ι → L` and every nonzero `Q ∈ L[X, Y, Z]` with
 `deg_{Y,Z} Q ≤ D` and `deg_Z Q ≤ M` that vanishes along every exceptional triple
 (`Q(X, α + β X, P(X)) = 0`), at most `D² + 4 d² M² D³ (n / (A - B))²` pairs `(α, β)` have a
@@ -82,8 +82,8 @@ theorem nonpersistentCount_of_interpolant {L : Type*} [Field L] [Algebra F L] (d
   exact hvan (linL α β) P (natDegree_linL_le α β) hP.1 _ hP.2.1 fun x hx ↦
     (mem_agreeL dom f g P α β x).mp hx
 
-/-- **Affine MCA, counting form** (Annex B, `thm:mca-affine`; [CYWZ26, Thm. 1.1, Lemma 4.1,
-Section 5.1]): at admissible `(m, D, B)`, and given Lemmas 4.3 and 4.7 (`InterpolantCount`) over the
+/-- **Affine MCA, counting form** (Annex B, `thm:mca-affine`; [CWYZ26, Thm. 4.10 and the proof of
+Thm. 5.2]): at admissible `(m, D, B)`, and given Lemmas 4.3 and 4.7 (`InterpolantCount`) over the
 algebraic closure of `F`, every pair of interleaved words has at most `nAff q n d A m D B` exceptional
 pairs. -/
 theorem card_excSet_le_nAff (dom : ι ↪ F) {d A m D B : ℕ}

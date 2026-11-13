@@ -15,7 +15,7 @@ public import Mathlib.Data.Set.Finite.Lattice
 /-!
 # Affine combiners: definitions
 
-The objects of [CYWZ26, preprint], Section 1.1 and Definition 3.1, for interleaved words, as Annex B
+The objects of [CWYZ26], Section 1.1 and Definition 3.1, for interleaved words, as Annex B
 of the leanVM specification (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
 uses them in `thm:mca-affine` and `lem:fold-list`. Fix a field `F`, a domain `dom : ι ↪ F` of
 `n = |ι|` points and a finite lane index `ρ`.
@@ -28,7 +28,7 @@ uses them in `thm:mca-affine` and `lem:fold-list`. Fix a field `F`, a domain `do
   one).
 * `IsExceptional dom f g d A α β`: some tuple of degree at most `d` agrees with the combination on
   at least `A` coordinates and has no witness. `excSet` is the set of these pairs, and
-  `[CYWZ26, Thm. 1.1]` bounds its size (`thm:mca-affine` in counting form).
+  `[CWYZ26, Thm. 4.10]` bounds its size (`thm:mca-affine` in counting form).
 * `pairList dom f g A d`: the pairs of tuples of degree at most `d` agreeing with `(f, g)` on a
   common set of at least `A` coordinates (the Annex's `lst(orc; A, d)` for the interleaved word
   with halves `f` and `g`), and `tupleList dom w A d` the tuples close to one word.
@@ -71,7 +71,7 @@ omit [DecidableEq ι] in
   simp [agree]
 
 open Classical in
-/-- **A witness with agreement loss one** ([CYWZ26, Section 1.1]): `deg U ≤ d`, `deg V ≤ d - 1`,
+/-- **A witness with agreement loss one** ([CWYZ26, Section 1.1]): `deg U ≤ d`, `deg V ≤ d - 1`,
 `P = U + (α + β X) V`, and at most one coordinate where `P` agrees with `f + (α + β x) g` has
 `U ≠ f` or `V ≠ g` in some lane. -/
 def IsWitness (dom : ι ↪ F) (f g : ρ → ι → F) (d : ℕ) (α β : F) (P U V : ρ → F[X]) : Prop :=
@@ -79,14 +79,14 @@ def IsWitness (dom : ι ↪ F) (f g : ρ → ι → F) (d : ℕ) (α β : F) (P 
     ((agree dom P (comb dom f g α β)).filter fun x ↦
       ∃ r, (U r).eval (dom x) ≠ f r x ∨ (V r).eval (dom x) ≠ g r x).card ≤ 1
 
-/-- **An exceptional pair** ([CYWZ26, Definition 3.1]): some tuple of degree at most `d` agrees
+/-- **An exceptional pair** ([CWYZ26, Definition 3.1]): some tuple of degree at most `d` agrees
 with `f + (α + β x) g` on at least `A` coordinates and has no witness with agreement loss one. -/
 def IsExceptional (dom : ι ↪ F) (f g : ρ → ι → F) (d A : ℕ) (α β : F) : Prop :=
   ∃ P : ρ → F[X], DegLE d P ∧ A ≤ (agree dom P (comb dom f g α β)).card ∧
     ¬ ∃ U V, IsWitness dom f g d α β P U V
 
 open Classical in
-/-- The exceptional pairs. `[CYWZ26, Lemma 4.1]` bounds their number; divided by `|F|²` it is the
+/-- The exceptional pairs. `[CWYZ26, Thm. 4.10]` bounds their number; divided by `|F|²` it is the
 affine MCA error `ε_aff` of Annex B, `def:epsaff`. -/
 noncomputable def excSet [Fintype F] (dom : ι ↪ F) (f g : ρ → ι → F) (d A : ℕ) :
     Finset (F × F) :=

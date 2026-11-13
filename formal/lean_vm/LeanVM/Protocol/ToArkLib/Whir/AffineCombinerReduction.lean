@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.ToArkLib.Whir.AffineCombinerReduction
 
-  [CYWZ26, preprint], Lemma 4.7 from Lemma 4.3: the non-persistent count of the interpolant from
+  [CWYZ26], Lemma 4.7 from Lemma 4.3: the non-persistent count of the interpolant from
   a factorization of it with bounded excluded pairs. Candidate for ArkLib.
 -/
 
@@ -13,13 +13,13 @@ public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerMca
 /-!
 # The non-persistent count from a factorization
 
-[CYWZ26, preprint], proof of Lemma 4.7, with Lemma 4.3 as its input. A
-`ExcludedFactorization Q p D M` records what the preprint's Lemma 4.3 and (4.6) extract from the
+[CWYZ26], proof of Lemma 4.7, with Lemma 4.3 as its input. A
+`ExcludedFactorization Q p D M` records what the paper's Lemma 4.3 and (4.6) extract from the
 interpolant `Q ∈ L[X, Y, Z]`, `L` of characteristic `p`:
 
 * a polynomial `C(X, Y)` (`cpoly`, the product of the factors without `Z`) and Frobenius-reduced
   factors `R_i` with exponents `e_i = p^κ_i` and `(Y, Z)`-degrees `h_i ≥ 1` (`R_i` is the
-  preprint's `R_i`, with `Q_i(X^e, Y^e, Z) = R_i^e`);
+  paper's `R_i`, with `Q_i(X^e, Y^e, Z) = R_i^e`);
 * `deg_Y C + Σ h_i ≤ D` and `e_i ≤ M` ((4.6));
 * every root `P` of `Q(X, α + β X, Z)` has `C(X, α + β X) = 0` or is a root `P(X^e_i)` of some
   `R_i(X, α' + β' X, Z)`, `α'^e_i = α`, `β'^e_i = β` ((4.7));
@@ -46,7 +46,7 @@ open Finset Polynomial
 variable {F L : Type*} [Field F] [Fintype F] [Field L] [Algebra F L]
 
 open Classical in
-/-- **A factorization of the interpolant with bounded excluded pairs** ([CYWZ26, Lemma 4.3 and
+/-- **A factorization of the interpolant with bounded excluded pairs** ([CWYZ26, Lemma 4.3 and
 (4.6), (4.7)]), over a field `L` of characteristic `p`, with the challenges in `F`. -/
 structure ExcludedFactorization (Q : MvPolynomial (Fin 3) L) (p D M : ℕ) where
   /-- The number of factors with positive `Z`-degree. -/
@@ -213,7 +213,7 @@ theorem interpolantCount_of_factorization {p : ℕ} [Fact p.Prime] [CharP L p] (
   obtain ⟨hd, hAn, -, -, -, hdB, hBA, -⟩ := hadm
   exact card_nonpersSet_le_of_factorization dom f g hd hdB hBA hAn Q hvan fac
 
-/-- **Lemma 4.3 for the interpolants over the algebraic closure** ([CYWZ26, Lemma 4.3] with (4.6)
+/-- **Lemma 4.3 for the interpolants over the algebraic closure** ([CWYZ26, Lemma 4.3] with (4.6)
 and (4.7)): every nonzero `Q ∈ F̄[X, Y, Z]` with `deg_{Y,Z} Q ≤ D` and `deg_Z Q ≤ M` has an
 excluded factorization. The affine MCA count below takes it as a hypothesis, which `lemma43`
 (`AffineCombinerLemma43.lean`) discharges. -/

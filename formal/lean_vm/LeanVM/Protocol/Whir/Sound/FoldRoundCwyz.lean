@@ -1,5 +1,5 @@
 /-
-  LeanVM.Protocol.Whir.Sound.FoldRoundCywz
+  LeanVM.Protocol.Whir.Sound.FoldRoundCwyz
 
   The fold-round lemma the WHIR soundness takes, from the affine-combiner formalization.
 -/
@@ -11,7 +11,7 @@ public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerLemma43
 public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDeployed
 
 /-!
-# The fold-round lemma from [CYWZ26, preprint]
+# The fold-round lemma from [CWYZ26]
 
 `FoldRoundBound dom d A N` (`LeanVM.Protocol.Whir.Sound.FoldRound`) is Annex B's `lem:fold-list` in
 counting form. `foldRoundBound_of_admissible` proves it from the affine-combiner formalization

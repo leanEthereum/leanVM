@@ -3,7 +3,7 @@
 
 A self-contained description of the WHIR\slash Ligerito polynomial commitment scheme (PCS) \cite{ACFY25,NA25} over binary fields, in the Johnson list-decoding regime.
 
-A fold round combines two halves with the \emph{affine combiner} of the brilliant~\cite{CYWZ26}: the coefficient is a random polynomial $\afa+\afb X$ of degree one, not a random scalar as in the original schemes. Its mutual correlated agreement error is of order $1/|\E|$ instead of $\blen/|\E|$ for block length $\blen$ (Theorem~\ref{thm:mca-affine}, \S\ref{sec:affine-intuition}), so $128$-bit security is now possible with a $128$-bit field. We target 125 bits of security for practical reasons (due to grand product GKR elsewhere in the protocol).
+A fold round combines two halves with the \emph{affine combiner} of the brilliant~\cite{CWYZ26}: the coefficient is a random polynomial $\afa+\afb X$ of degree one, not a random scalar as in the original schemes. Its mutual correlated agreement error is of order $1/|\E|$ instead of $\blen/|\E|$ for block length $\blen$ (Theorem~\ref{thm:mca-affine}, \S\ref{sec:affine-intuition}), so $128$-bit security is now possible with a $128$-bit field. We target 125 bits of security for practical reasons (due to grand product GKR elsewhere in the protocol).
 
 %=====================================================================
 \subsection{Preliminaries}\label{sec:prelims}
@@ -108,7 +108,7 @@ $\mathbf{V}$ evaluates $\mle{W}$ itself (MLE-friendly), at the point $(\afa,\fc)
 
 Let $\orc_0,\orc_1:\dom\to\E$ be two words and $F,G$ two codewords, with errors $e_0:=\orc_0-F$ and $e_1:=\orc_1-G$. A point $x$ is \emph{bad} if $e_0(x)\neq0$ or $e_1(x)\neq0$, and a fold challenge \emph{repairs} it if the folded error vanishes at $x$.
 
-\paragraph{Scalar fold.} The folded error of $\orc_1+\afa\,\orc_0$ is $e_1+\afa e_0$, so each bad point has at most one repairing challenge, $\afa=-e_1(x)/e_0(x)$, which the prover chooses through the words. If they agree with $F,G$ on $\agr-1$ common points and with no pair of codewords on $\agr$, the prover gives the other $\blen-\agr+1$ points distinct repairing challenges, and the fold agrees with $G+\afa F$ on $\agr$ points with probability $(\blen-\agr+1)/|\E|$; tolerating the loss of a few coordinates does not help \cite[Prop.~6.1]{CYWZ26}, after \cite[Remark~1.1]{BCIKS20}.
+\paragraph{Scalar fold.} The folded error of $\orc_1+\afa\,\orc_0$ is $e_1+\afa e_0$, so each bad point has at most one repairing challenge, $\afa=-e_1(x)/e_0(x)$, which the prover chooses through the words. If they agree with $F,G$ on $\agr-1$ common points and with no pair of codewords on $\agr$, the prover gives the other $\blen-\agr+1$ points distinct repairing challenges, and the fold agrees with $G+\afa F$ on $\agr$ points with probability $(\blen-\agr+1)/|\E|$; tolerating the loss of a few coordinates does not help \cite[Prop.~6.1]{CWYZ26}, after \cite[Remark~1.1]{BCIKS20}.
 
 \paragraph{Affine fold.} The folded error of $\orc_1+(\afa+\afb x)\orc_0$ is $e_1+(\afa+\afb x)e_0$, so $(\afa,\afb)$ repairs $x$ exactly when $e_0(x)\neq0$ and $\afa+x\afb=-e_1(x)/e_0(x)$. These challenges form a line in $\E^2$ whose position the prover sets but whose slope $x$ sets, so the lines of two different points cross at exactly one challenge. A random challenge thus repairs one bad point with probability up to $(\blen-\agr+1)/|\E|$, but two with probability at most $\binom{\blen}{2}/|\E|^2$: tolerating the loss of one coordinate (Theorem~\ref{thm:mca-affine}) leaves an error of order $1/|\E|$.
 
@@ -140,7 +140,7 @@ the second query term being absent at the last level, $i=\nlev-1$. In leanVM, th
 
 \subsubsection{Proximity tools}\label{sec:tools}
 
-The main tool is the \emph{mutual correlated agreement} (MCA)~\cite{ACFY25} of the affine combiner, with the error bound of~\cite[Lemma~4.1]{CYWZ26}.
+The main tool is the \emph{mutual correlated agreement} (MCA)~\cite{ACFY25} of the affine combiner, with the finite error bound of~\cite[Thm.~4.10]{CWYZ26}.
 
 \begin{definition}[Affine MCA error]\label{def:epsaff}
 Let $1\le\dgr<\agr\le\blen$ be integers. A triple $(\imul,\iyz,\ithr)$ of positive integers is \emph{admissible} if, with $\iz:=\min\bigl(\iyz,\lfloor(\imul\agr-\iyz-1)/\dgr\rfloor\bigr)$,
@@ -158,11 +158,11 @@ Then
 \]
 \end{definition}
 
-\begin{theorem}[Affine MCA; {\cite[Thm.~1.1, Lemma~4.1, \S5.1]{CYWZ26}}]\label{thm:mca-affine}
+\begin{theorem}[Affine MCA; {\cite[Thm.~1.1, Thm.~4.10, Thm.~5.2]{CWYZ26}}]\label{thm:mca-affine}
 Let $\dom\subseteq\K$ have size $\blen$, let $1\le\dgr<\agr\le\blen$, $h\ge1$, and let $\orc_0,\orc_1:\dom\to\E^h$ be words of $h$ lanes. For $\afa,\afb\in\E$ and an $h$-tuple $P$ of polynomials let $\aset_{\afa,\afb}(P):=\{x\in\dom:P(x)=\orc_1(x)+(\afa+\afb x)\orc_0(x)\}$. Then, for uniform $\afa,\afb\leftarrow\E$, except with probability at most $\epsaff(\blen,\dgr,\agr)$: every $h$-tuple $P$ of degree at most $\dgr$ with $|\aset_{\afa,\afb}(P)|\ge\agr$ has $h$-tuples $G$, $F$ with $\deg G\le\dgr$, $\deg F\le\dgr-1$ and $P=G+(\afa+\afb X)F$, such that $G=\orc_1$ and $F=\orc_0$ on all but at most one point of $\aset_{\afa,\afb}(P)$ (agreement loss one).
 \end{theorem}
 
-For $h=1$ this is \cite[Thm.~1.1, Lemma~4.1]{CYWZ26}, which holds for every admissible triple; \cite[\S5.1]{CYWZ26} extends it to $h$ lanes, packed into one word over an extension of $\E$, with the same error.
+For $h=1$ this is \cite[Thm.~4.10]{CWYZ26}, the finite form of its Theorem~1.1, at every admissible triple: its intermediate threshold is a function of $\agr$ there, but the proof allows any $\ithr$ of condition (iii), as its Remark~5.3 does. The proof of \cite[Thm.~5.2]{CWYZ26}, (5.7), extends it to $h$ lanes, packed into one word over an extension of $\E$, with the same error.
 
 \begin{lemma}[An affine fold round]\label{lem:fold-list}
 Let $\orc$ be an interleaved word with $\ell\ge1$ lane variables over a domain of size $\blen$, with halves $\orc_0,\orc_1$ of $h=2^{\ell-1}$ lanes each. Let $1\le\dgr<\agr\le\blen$ with $(\agr-1)^2>\blen\dgr$, and $L:=\jl(\agr-1,\dgr)$. Let $W:\cube{\ell}\times\cube{\kappa}\to\E$ be a weight, $W_\iota:=W(\iota,\cdot)$, $c\in\E$, and suppose every tuple of $\lst(\orc;\agr-1,\dgr)$, as a pair $(F,G)$ of halves, has $\inner{W_0}{F}+\inner{W_1}{G}\neq c$. Let $v_G,v_F,\tabx{0},\tabx{1}\in\E$ be arbitrary. Except with probability at most $\epsaff(\blen,\dgr,\agr)+2L/|\E|$ over uniform $(\afa,\afb)$, every $P\in\lst(\orc_{\afa,\afb};\agr,\dgr)$ has
@@ -171,7 +171,7 @@ Let $\orc$ be an interleaved word with $\ell\ge1$ lane variables over a domain o
 \]
 \end{lemma}
 
-This is \cite[Thm.~5.1]{CYWZ26} without its premix challenge, which a degree fixed for the whole level makes unnecessary.
+This follows the claim binding of \cite[Thm.~5.1]{CWYZ26} without its premix challenge, which a degree fixed for the whole level makes unnecessary; its claim residual is affine in the challenges, ours has degree two in $(\afa,\afb)$.
 
 \begin{proof}
 The list $\lst(\orc;\agr-1,\dgr)$ has at most $L$ members (Corollary~\ref{thm:johnson-interleaved}) and is fixed before the challenges. There are two bad events. $B_1$ is the event of Theorem~\ref{thm:mca-affine} for $\orc_0$ and $\orc_1$, of probability at most $\epsaff(\blen,\dgr,\agr)$. $B_2$ is that some pair $(F,G)$ of the list satisfies the new claim for $P_{F,G}:=G+(\afa+\afb X)F$. For a fixed pair, by the completeness argument, the true value $\inner{\mle{W}(\afa,\cdot)}{P_{F,G}}$ has the same form as the claimed one, with the pair's own values in place of $v_G,v_F,\tabx{0},\tabx{1}$ and $c^\ast:=\inner{W_0}{F}+\inner{W_1}{G}\neq c$ in place of $c$. The difference is a polynomial of degree at most $2$ in $(\afa,\afb)$. Its constant term and its coefficient of $\afa$ both vanish only if $c^\ast=c$, so it is nonzero and vanishes with probability at most $2/|\E|$ (Lemma~\ref{lem:sz}). A union bound over the list gives $\Pr[B_2]\le2L/|\E|$.

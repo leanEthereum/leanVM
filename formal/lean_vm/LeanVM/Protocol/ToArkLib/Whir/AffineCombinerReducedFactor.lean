@@ -1,8 +1,8 @@
 /-
   LeanVM.Protocol.ToArkLib.Whir.AffineCombinerReducedFactor
 
-  [CYWZ26, preprint], Lemma 4.3 for one irreducible factor: its Frobenius reduction `R` (the
-  preprint's `R_i`, `Q_i(X^e, Y^e, Z) = R_i^e`), and the bound `h (h - 1)` on the lines along which
+  [CWYZ26], Lemma 4.3 for one irreducible factor: its Frobenius reduction `R` (the
+  paper's `R_i`, `Q_i(X^e, Y^e, Z) = R_i^e`), and the bound `h (h - 1)` on the lines along which
   `R` and `∂_Z R` have a common root. Candidate for ArkLib.
 -/
 
@@ -80,7 +80,7 @@ theorem trivEval_expand (x y z : L[X]) (e : ℕ) (A : L[X][X][X]) :
 
 variable {p : ℕ} [Fact p.Prime] [CharP L p] [PerfectRing L p]
 
-/-- **The Frobenius reduction of an irreducible factor** ([CYWZ26, Lemma 4.3, (4.6), (4.7)]). -/
+/-- **The Frobenius reduction of an irreducible factor** ([CWYZ26, Lemma 4.3, (4.6), (4.7)]). -/
 theorem exists_reducedFactor (q : MvPolynomial (Fin 3) L) (hq : Irreducible q)
     (hZ : 0 < MvPolynomial.degreeOf 2 q) :
     ∃ (R : MvPolynomial (Fin 3) L) (κ : ℕ), Irreducible R ∧ MvPolynomial.pderiv 2 R ≠ 0 ∧

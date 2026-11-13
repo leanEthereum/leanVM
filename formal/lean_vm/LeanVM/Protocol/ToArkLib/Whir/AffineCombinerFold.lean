@@ -14,7 +14,7 @@ public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDefs
 # An affine fold round
 
 Annex B of the leanVM specification
-(`doc/leanvm/body/b-polynomial-commitment-scheme.tex`), `lem:fold-list`, after [CYWZ26, preprint],
+(`doc/leanvm/body/b-polynomial-commitment-scheme.tex`), `lem:fold-list`, after [CWYZ26],
 Thm. 1.1 (Lemma 4.1). Fix an interleaved word with halves `f g : ρ → ι → F` (the lanes whose
 folded bit is `0` and `1`), a degree `1 ≤ d`, a threshold `A` with `(A - 1)² > n d`, and
 `L := jl n (A - 1) d`. The round's claim is `Λ₀ F + Λ₁ G = c` on pairs `(F, G)` of tuples, for

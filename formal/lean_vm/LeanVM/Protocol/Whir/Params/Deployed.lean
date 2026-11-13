@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.Whir.Sound.Spec
-public import LeanVM.Protocol.Whir.Sound.FoldRoundCywz
+public import LeanVM.Protocol.Whir.Sound.FoldRoundCwyz
 public import LeanVM.Protocol.Whir.Params.Check
 public import LeanVM.Protocol.Compile.SpecRules.Grind
 

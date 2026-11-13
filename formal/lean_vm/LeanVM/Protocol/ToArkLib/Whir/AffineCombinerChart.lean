@@ -15,7 +15,7 @@ public import Mathlib.Algebra.MvPolynomial.PDeriv
 /-!
 # The chart of a factor
 
-[CYWZ26, preprint], Claim 4.9, in the coordinates of its proof: for `R ∈ L[X, Y, Z]`, the center
+[CWYZ26], Claim 4.9, in the coordinates of its proof: for `R ∈ L[X, Y, Z]`, the center
 is the indeterminate `T₀` of `K₀ = L(T₀)`, and the chart ring is `K₀[Y, V, Z]` (`ChartRing L`,
 variables `0, 1, 2`). The shifted polynomial `chartRs R = R(T₀ + W, Y + V W, Z + U)` lies in
 `ChartRing[W][U]`, with `U` outer; `chartA R a b` is its coefficient of `W^a U^b`.

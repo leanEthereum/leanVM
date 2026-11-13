@@ -14,7 +14,7 @@ public import Mathlib.Tactic
 # The Johnson count
 
 Annex B of the leanVM specification (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`),
-`thm:johnson-general`, and [CYWZ26, preprint], Lemma 3.11, in the integer form the Rust analysis
+`thm:johnson-general`, and [CWYZ26], Lemma 3.2, in the integer form the Rust analysis
 evaluates (`crates/pcs/src/whir_config/affine_mca.rs`, `johnson_list(n, a, r)`):
 
 * `jl n a r = ⌊n (a - r) / (a² - n r)⌋`;
@@ -96,7 +96,7 @@ theorem jl_count_of_le (L : Finset β) (T : β → Finset ι) (a r : ℕ)
   exact (Finset.card_le_card (Finset.inter_subset_inter (hS b hb).1 (hS b' hb').1)).trans
     (hr b hb b' hb' hne)
 
-/-- **Johnson bound, integer form** (Annex B, `thm:johnson-general`; [CYWZ26, Lemma 3.11]): a
+/-- **Johnson bound, integer form** (Annex B, `thm:johnson-general`; [CWYZ26, Lemma 3.2]): a
 family of sets of at least `a` points of an `n`-set, meeting pairwise in at most `r` points, has
 at most `jl n a r` members when `a² > n r`. -/
 theorem card_le_jl (L : Finset β) (T : β → Finset ι) (a r : ℕ)

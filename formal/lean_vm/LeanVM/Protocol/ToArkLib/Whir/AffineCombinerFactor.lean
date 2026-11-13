@@ -2,7 +2,7 @@
   LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFactor
 
   The non-persistent pairs whose candidate is a simple root of one factor `R` of the
-  interpolant: at most `4 d² e² h³ (n / (A - B))²` of them ([CYWZ26, preprint], Claims 4.8 and
+  interpolant: at most `4 d² e² h³ (n / (A - B))²` of them ([CWYZ26], Claims 4.8 and
   4.9). Candidate for ArkLib.
 -/
 
@@ -20,17 +20,17 @@ public import Mathlib.RingTheory.MvPolynomial.Tower
 /-!
 # One factor of the interpolant
 
-[CYWZ26, preprint], Claims 4.8 and 4.9, for one factor `R ∈ L[X, Y, Z]` whose monomials
+[CWYZ26], Claims 4.8 and 4.9, for one factor `R ∈ L[X, Y, Z]` whose monomials
 `X^i Y^t Z^j` have `t + j ≤ h`, and a Frobenius power `e = p^κ` (`p` the characteristic of `L`).
 A pair `(α, β) ∈ F²` is counted (`factorPairs`) when some `P` of degree at most `d` agrees with
 `f + (α + β x) g` on at least `A` points, is not persistent, and is a simple root of `R` along
 the line: `R(X, α' + β' X, P(X^e)) = 0 ≠ ∂_Z R(X, α' + β' X, P(X^e))` for `e`-th roots `α'`, `β'`
-of `α`, `β` in `L` (the preprint's (4.7)).
+of `α`, `β` in `L` ([CWYZ26], (4.7)).
 
 `card_factorPairs_le`: at most `h (2 e d h n / (A - B))² = 4 d² e² h³ (n / (A - B))²` such pairs,
 if `d + 1 < B < A ≤ n`.
 
-The proof is the preprint's, in the coordinates `(Y, V, Z)` of its Claim 4.9, over
+The proof is the paper's, in the coordinates `(Y, V, Z)` of its Claim 4.9, over
 `k = AlgebraicClosure L(T₀)`:
 
 * A counted triple gives the point `y = (α' + β' T₀, β', P(T₀^e))` of the surface
@@ -303,7 +303,7 @@ theorem sum_Icc_one_eq {M : Type*} [AddCommMonoid M] (f : ℕ → M) (d : ℕ) :
 variable {L : Type*} [Field L] (R : MvPolynomial (Fin 3) L) (e d h : ℕ)
   {k : Type*} [Field k] [Algebra (RatFunc L) k] [Algebra L k] [IsScalarTower L (RatFunc L) k]
 
-/-- **The chart reconstructs the candidate** ([CYWZ26, Claim 4.9]): at the chart point of a simple
+/-- **The chart reconstructs the candidate** ([CWYZ26, Claim 4.9]): at the chart point of a simple
 root `P(X^e)` of `R` along the line, `P̂ = P`. Hensel's numerators are the coefficients of
 `P((T₀ + W)^e) - P(T₀^e) = P(T₀^e + W^e) - P(T₀^e)`, whose coefficient of `W^(ej)` is the
 `j`-th Taylor coefficient of `P` at `T₀^e`. -/

@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.ToArkLib.Whir.AffineCombinerInterpolation
 
-  [CYWZ26, preprint], Lemma 4.2: an interpolating polynomial `Q(X, Y, Z)` that vanishes along
+  [CWYZ26], Lemma 4.2: an interpolating polynomial `Q(X, Y, Z)` that vanishes along
   every affine line and candidate of high agreement. Candidate for ArkLib.
 -/
 
@@ -14,7 +14,7 @@ public import Mathlib.Algebra.MvPolynomial.Basic
 /-!
 # Interpolation along affine lines
 
-[CYWZ26, preprint], Lemma 4.2, with the interpolation inequality of Annex B, `def:epsaff` (ii).
+[CWYZ26], Lemma 4.2, with the interpolation inequality of Annex B, `def:epsaff` (ii).
 Fix words `f g : ι → L` on the points `pt x`, integers `1 ≤ d`, `1 ≤ m`, `A`, `D`, and
 `M = bigM d A m D`. If `equations n d A m D < unknowns d A m D`, there is a nonzero
 `Q ∈ L[X, Y, Z]` (`MvPolynomial (Fin 3) L`, variables `0, 1, 2`) whose monomials `X^i Y^t Z^j`
@@ -346,7 +346,7 @@ theorem support_interpolant {d A m D : ℕ} (c : idxSet d A m D → L) :
   omega
 
 omit [DecidableEq ι] in
-/-- **[CYWZ26, Lemma 4.2]**: if `1 ≤ m` and the interpolation inequality holds, a nonzero
+/-- **[CWYZ26, Lemma 4.2]**: if `1 ≤ m` and the interpolation inequality holds, a nonzero
 `Q ∈ L[X, Y, Z]` with monomials `X^i Y^t Z^j`, `t + j ≤ D`, `j ≤ M`, `i + t + d j < m A`, vanishes
 at `(X, ℓ, P)` for every `ℓ` of degree at most `1` and every `P` of degree at most `d` agreeing with
 `f + ℓ g` on at least `A` points. -/

@@ -9,7 +9,7 @@
 //! The committed message is a
 //! vector of [`F64`] values; every verifier challenge, fold-round message, weight,
 //! and post-fold witness is [`F128`]-valued. A level folds its lanes with the affine
-//! combiner of [CYWZ26, preprint] rather than multilinearly.
+//! combiner of [CWYZ26] rather than multilinearly.
 //!
 //! Representations:
 //! - committed message / L0 codeword / L0 opened rows: `F64` (8 bytes)
@@ -492,7 +492,7 @@ fn add_scaled(acc: &mut [F128], v: &[F128], s: F128) {
 }
 
 // ===================================================================
-// Affine fold rounds [CYWZ26, preprint]
+// Affine fold rounds [CWYZ26]
 // ===================================================================
 //
 // A round pairs the lanes `F` (folded bit 0) and `G` (folded bit 1) of a level. It sends, with `W_i` the weight on

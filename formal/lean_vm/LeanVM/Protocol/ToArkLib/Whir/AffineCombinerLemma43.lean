@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.ToArkLib.Whir.AffineCombinerLemma43
 
-  [CYWZ26, preprint], Lemma 4.3 with (4.6) and (4.7): every interpolant over the algebraic closure
+  [CWYZ26], Lemma 4.3 with (4.6) and (4.7): every interpolant over the algebraic closure
   of a finite field has an excluded factorization, so the affine MCA and fold-round bounds hold
   unconditionally. Candidate for ArkLib.
 -/
@@ -57,7 +57,7 @@ theorem card_lines_le {F L : Type*} [Field F] [Fintype F] [Field L] [Algebra F L
 
 variable {F : Type*} [Field F] [Fintype F] {p : ℕ} [hp : Fact p.Prime] [CharP F p]
 
-/-- **[CYWZ26, Lemma 4.3]** over the algebraic closure of a finite field. -/
+/-- **[CWYZ26, Lemma 4.3]** over the algebraic closure of a finite field. -/
 theorem lemma43 (D M : ℕ) : Lemma43 F p D M := by
   classical
   intro Q hQ hsupp

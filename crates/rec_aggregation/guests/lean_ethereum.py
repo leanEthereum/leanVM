@@ -1201,7 +1201,7 @@ def verify_merkle_cap(cap, flags, depth: Const):
 
 # ============================== the stacked WHIR opening ============================
 # A level's rounds fold its lanes by the affine combiner G + (alpha + beta X) F of
-# [CYWZ26, preprint], the claim carried by four scalars a round and the weight folded
+# [CWYZ26], the claim carried by four scalars a round and the weight folded
 # at alpha, so the alphas are the weight's point (verifier::whir::verify_whir). A
 # non-final level then commits the folded lane's low part, sends its high part, and glues
 # its OOD claim and its queries, each opened row folded as the lanes were and corrected by

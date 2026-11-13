@@ -1,5 +1,5 @@
-//! Finite form of the affine-combiner mutual correlated agreement bound [CYWZ26, preprint], Lemma 4.1 with the
-//! interpolation inequality of Lemma 4.2, for `RS[n, d]` (degree at most `d`) at agreement threshold `A` (out of `n`).
+//! Finite form of the affine-combiner mutual correlated agreement bound [CWYZ26], Theorem 4.10 with the interpolation
+//! inequality (4.5) of Lemma 4.2, for `RS[n, d]` (degree at most `d`) at agreement threshold `A` (out of `n`).
 //!
 //! Every hypothesis and the round's error against its budget are checked in exact integer arithmetic; the float error
 //! only steers the search.
@@ -10,7 +10,7 @@ const LOG_Q: f64 = super::ANALYSIS_LOG_Q;
 /// Largest interpolation multiplicity `m` the search tries.
 const MAX_MULTIPLICITY: u128 = 1 << 16;
 
-/// The interpolation parameters `(m, D)` and the intermediate threshold `B` of Lemma 4.1's proof.
+/// The interpolation parameters `(m, D)` and the intermediate threshold `B` of Theorem 4.10.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct AffineWitness {
     pub m: u128,
@@ -18,7 +18,7 @@ pub(crate) struct AffineWitness {
     pub b: u128,
 }
 
-/// Johnson list bound (Lemma 3.11 with `a = agree/n`, `b = inter/n`): at most this many sets of size at least
+/// Johnson list bound (Lemma 3.2 with `a = agree/n`, `b = inter/n`): at most this many sets of size at least
 /// `agree` in `[n]` with pairwise intersections at most `inter`. `None` below the Johnson radius.
 pub(crate) fn johnson_list(n: u128, agree: u128, inter: u128) -> Option<u128> {
     let num = n.checked_mul(agree.checked_sub(inter)?)?;
@@ -40,7 +40,7 @@ fn power_sums(j: u128) -> Option<(u128, u128, u128)> {
     Some((j + 1, s1, s2))
 }
 
-/// Lemma 4.2's interpolation inequality, exactly:
+/// The interpolation inequality (4.5), exactly:
 /// `sum_{j=0}^{M} (mA - D - dj)(D - j + 1) > n * sum_{s=0}^{min(m-1, M)} (m - s)(D - s + 1)`.
 /// Every summand on the left is positive, since `j <= M <= floor((mA - D - 1)/d)` and `j <= M <= D`.
 /// Returns `M` when it holds; an overflow counts as failure.
@@ -143,7 +143,7 @@ pub(crate) fn affine_error_log2(n: u128, d: u128, a: u128, w: &AffineWitness) ->
     Some((bd * bd + ell_b as f64 * q.max(pairs) + interp).log2() - 2.0 * LOG_Q)
 }
 
-/// Lemma 4.1's hypotheses for a witness (Lemmas 4.2 and 3.11 need `A <= n`): `(M, ell_B)` when they hold.
+/// Theorem 4.10's hypotheses for a witness (Lemmas 4.2 and 3.2 need `A <= n`): `(M, ell_B)` when they hold.
 fn hypotheses(n: u128, d: u128, a: u128, w: &AffineWitness) -> Option<(u128, u128)> {
     if a > n || !(d + 1 < w.b && w.b < a) {
         return None;
@@ -219,7 +219,7 @@ mod tests {
     use super::*;
     use primitives::test_rng::Rng;
 
-    /// The paper's worked example: `n = 2^20`, `d = 2^18`, `A = 576717`, `m = 3`, `D = 49`, `B = 567980`.
+    /// The example of Remark 5.3: `n = 2^20`, `d = 2^18`, `A = 576717`, `m = 3`, `D = 49`, `B = 567980`.
     #[test]
     fn worked_example() {
         let (n, d, a) = (1u128 << 20, 1u128 << 18, 576_717u128);

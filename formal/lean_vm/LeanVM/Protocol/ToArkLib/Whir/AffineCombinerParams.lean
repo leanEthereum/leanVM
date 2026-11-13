@@ -20,7 +20,7 @@ deployed parameters (`crates/pcs/src/whir_config/affine_mca.rs`: `interpolation_
 * `bigM d A m D = min(D, ⌊(m A - D - 1) / d⌋)` (`M`);
 * `unknowns d A m D = Σ_{j ≤ M} (m A - D - d j)(D - j + 1)` and
   `equations n d A m D = n Σ_{s ≤ min(m - 1, M)} (m - s)(D - s + 1)`, the two sides of the
-  interpolation inequality ([CYWZ26, preprint], Lemma 4.2), in natural numbers (truncated
+  interpolation inequality ([CWYZ26], Lemma 4.2, (4.5)), in natural numbers (truncated
   subtraction is the Annex's `max(0, ·)`; every summand on the left is positive for `j ≤ M`);
 * `Admissible n d A m D B`: (i) `M ≥ 1`, (ii) `equations < unknowns`, (iii) `d + 1 < B < A` and
   `B² > n (d + 1)`, with `1 ≤ d` and `A ≤ n`; decidable, so a concrete instance is checked by
@@ -69,7 +69,7 @@ def nAffRest (n d A m D B : ℕ) : ℚ :=
 over admissible triples, divided by `q²`. -/
 def nAff (q n d A m D B : ℕ) : ℚ := nAffPersistent q n d B + nAffRest n d A m D B
 
-/-- The worked example of [CYWZ26, Section 5.1] and of the Rust's `worked_example` test:
+/-- The example of [CWYZ26, Remark 5.3] and of the Rust's `worked_example` test:
 `n = 2^20`, `d = 2^18`, `A = 576717`, `m = 3`, `D = 49`, `B = 567980`. -/
 example : bigM (2 ^ 18) 576717 3 49 = 6 ∧ jl (2 ^ 20) 567980 (2 ^ 18 + 1) = 6 ∧
     jl (2 ^ 20) (576717 - 1) (2 ^ 18) = 5 := by

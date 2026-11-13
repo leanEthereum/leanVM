@@ -14,7 +14,7 @@ public import Mathlib.LinearAlgebra.Dimension.Free
 /-!
 # Packing lanes
 
-[CYWZ26, preprint], Section 5.1, "Interleaving and shared agreement": fix an extension `L` of `F`
+[CWYZ26], proof of Theorem 5.2 ("Higher-arity interleavings"): fix an extension `L` of `F`
 and `F`-linearly independent `b : ρ → L`. A tuple of lanes `w : ρ → ι → F` packs into the word
 `Σ_r w r · b r` over `L`, a tuple of polynomials `P : ρ → F[X]` into `Σ_r P r · b r ∈ L[X]`, and
 agreement of the packed objects at a domain point is agreement of every lane. The challenges stay
@@ -115,7 +115,7 @@ theorem proj_packP (P : ρ → F[X]) (r : ρ) :
 
 omit [DecidableEq ι] in
 include hπ in
-/-- **Packing** ([CYWZ26, Section 5.1]): every exceptional pair of the lanes `(f, g)` is an
+/-- **Packing** ([CWYZ26], proof of Thm. 5.2): every exceptional pair of the lanes `(f, g)` is an
 exceptional pair of the packed word. -/
 theorem excSet_subset_excSetL [Fintype F] (f g : ρ → ι → F) (d A : ℕ) :
     excSet dom f g d A ⊆ excSetL dom (packW b f) (packW b g) d A := by

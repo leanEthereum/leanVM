@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.ToArkLib.Whir.AffineCombinerHensel
 
-  Hensel lifting with cleared denominators ([CYWZ26, preprint], Lemma 3.10): ArkLib's universal
+  Hensel lifting with cleared denominators ([CWYZ26], Lemma 3.11): ArkLib's universal
   numerators are the Taylor coefficients of every simple root, and have degree at most
   `1 + (2n - 1)(h - 1)`. Candidate for ArkLib.
 -/
@@ -19,7 +19,7 @@ Let `Rs : A[W][U]` be a polynomial in a root increment `U` (outer variable) with
 `A[W]`, `W` a parameter increment, and write `A_{a,b}` for the coefficient of `W^a U^b` and
 `s = A_{0,1}` for the separant. ArkLib's `Polynomial.UniversalHenselNumerator.numerators Rs s d`
 (`N_n`) is the recurrence `N_n = -Σ_{a ≤ n, b ≤ d} A_{a,b} s^(2a+b-2) [w^(n-a)] (Σ_{1 ≤ i < n} N_i w^i)^b`.
-It is [CYWZ26, preprint], Lemma 3.10, after the substitution `W = s² w`, `U = s ε(w)`, which
+It is [CWYZ26], Lemma 3.11, after the substitution `W = s² w`, `U = s ε(w)`, which
 clears every denominator: a root `E(W) = Σ e_i W^i` of `Rs(W, E(W)) = 0` gives
 `ε(w) = E(s² w)/s`, `ε_i = e_i s^(2i-1)`.
 
@@ -27,7 +27,7 @@ clears every denominator: a root `E(W) = Σ e_i W^i` of `Rs(W, E(W)) = 0` gives
   `ε(0) = 0` and `Rs(s² w, s ε(w)) = 0`, then `ε_n = N_n` for every `n ≥ 1`.
 * `totalDegree_numerators_le` (degrees, coefficients in `MvPolynomial σ K`): if
   `deg A_{a,b} + b ≤ h` for `b ≤ d`, `deg s ≤ h - 1`, `d ≤ h` and `1 ≤ h`, then
-  `deg N_n ≤ 1 + (2n - 1)(h - 1)`, the bound of Lemma 3.10.
+  `deg N_n ≤ 1 + (2n - 1)(h - 1)`, the bound of Lemma 3.11.
 -/
 
 namespace LeanVM.Protocol.Whir.AffineCombiner
@@ -87,7 +87,7 @@ theorem coeff_eval_scaled (Rs : Polynomial K[X]) (s : K) {d : ℕ} (hd : Rs.natD
   rw [coeff_comp_C_mul_X, mul_pow, ← C_pow, coeff_C_mul]
   ring
 
-/-- **Correctness of the Hensel numerators** ([CYWZ26, Lemma 3.10], uniqueness): if
+/-- **Correctness of the Hensel numerators** ([CWYZ26, Lemma 3.11], uniqueness): if
 `s = A_{0,1} ≠ 0` and `ε` without constant term satisfies `Rs(s² w, s ε(w)) = 0`, then
 `ε_n = N_n` for every `n ≥ 1`. -/
 theorem eq_numerators_of_root (Rs : Polynomial K[X]) (s : K) (hs : s ≠ 0)
@@ -200,7 +200,7 @@ theorem totalDegree_coeff_pow_le (π : Polynomial (MvPolynomial σ K)) (h : ℕ)
     · rw [hy0, MvPolynomial.totalDegree_zero]; exact Nat.zero_le _
     · exact (hterm y hy hy0).2
 
-/-- **Degree of the Hensel numerators** ([CYWZ26, Lemma 3.10]): if `deg A_{a,b} + b ≤ h` for
+/-- **Degree of the Hensel numerators** ([CWYZ26, Lemma 3.11]): if `deg A_{a,b} + b ≤ h` for
 `b ≤ d`,
 `deg s ≤ h - 1`, `d ≤ h` and `1 ≤ h`, then `deg N_n ≤ 1 + (2n - 1)(h - 1)` for `n ≥ 1`. -/
 theorem totalDegree_numerators_le (Rs : Polynomial (Polynomial (MvPolynomial σ K)))

@@ -15,7 +15,7 @@ public import LeanVM.Guest.CoreData
 /-!
 # `opening_round` (`lean_ethereum.py:1212-1229`, G below)
 
-One fold round of CYWZ26's affine combiner (`foldRound`, `Statement/LeanVmVerifier.lean`): the
+One fold round of CWYZ26's affine combiner (`foldRound`, `Statement/LeanVmVerifier.lean`): the
 four scalars `u0, w, c0, c1`, a grind and `α`, then `β`; `α` stored for the point and, with
 `β`, for the queries' row folds, and the claim folded at `α`.
 

@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.ToArkLib.Whir.AffineCombinerExcluded
 
-  [CYWZ26, preprint], Lemma 4.3, the excluded pairs of one factor: at most `h (h - 1)` lines carry a
+  [CWYZ26], Lemma 4.3, the excluded pairs of one factor: at most `h (h - 1)` lines carry a
   common root of `R` and `∂_Z R`. Candidate for ArkLib.
 -/
 
@@ -42,7 +42,7 @@ theorem add_natDegree_coeff_le (R : MvPolynomial (Fin 3) L) (i : ℕ)
   omega
 
 open Classical in
-/-- **The excluded pairs of one factor** ([CYWZ26, Lemma 4.3]). -/
+/-- **The excluded pairs of one factor** ([CWYZ26, Lemma 4.3]). -/
 theorem card_excludedLines_le {F : Type*} [Field F] [Fintype F] [Algebra F L]
     (R : MvPolynomial (Fin 3) L) (hR : Irreducible R) (hd : MvPolynomial.pderiv 2 R ≠ 0)
     (e : ℕ) :

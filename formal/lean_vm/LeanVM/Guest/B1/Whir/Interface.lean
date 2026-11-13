@@ -20,7 +20,7 @@ public import LeanVM.Protocol.Compile.Prog
 (`crates/rec_aggregation/guests/lean_ethereum.py`, `open_stacked`) runs
 the stacked WHIR opening of one child's proof, `verifyWhir` (`Statement/LeanVmVerifier.lean`;
 `crates/verifier/src/whir.rs:215-329`) from `verifyStackedOpening`, up to its terminal: the
-fold rounds of CYWZ26's affine combiner (`foldRound`), each non-final level's commitment, high
+fold rounds of CWYZ26's affine combiner (`foldRound`), each non-final level's commitment, high
 part, out-of-domain points and values, query grind, batching grind and `λ`, the final level's
 lane and its query checks, and the closing sumcheck. The terminal's check
 `(inner + evaluateBasis point) · residual = claim` is `check_opening_terminal`'s, which evaluates

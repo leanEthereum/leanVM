@@ -2,7 +2,7 @@
   LeanVM.Protocol.ToArkLib.Whir.AffineCombinerCore
 
   The affine combiner on one word over an extension field: exceptional triples, persistence, and
-  the bound on the persistent exceptional pairs ([CYWZ26, preprint], Lemmas 4.4 and 4.5).
+  the bound on the persistent exceptional pairs ([CWYZ26], Lemmas 4.4 and 4.5).
   Candidate for ArkLib.
 -/
 
@@ -16,27 +16,27 @@ public import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
 /-!
 # Affine combiners on one word: the persistent pairs
 
-The setting of [CYWZ26, preprint], Sections 3 and 4, for one received word over a field `L` with
-the domain and the challenges in a subfield `F` (Section 5.1, "Interleaving and shared
-agreement", packs the lanes of an interleaved word into one word over an extension of `F`;
+The setting of [CWYZ26], Sections 3 and 4, for one received word over a field `L` with
+the domain and the challenges in a subfield `F` (the proof of its Theorem 5.2
+packs the lanes of an interleaved word into one word over an extension of `F`;
 `AffineCombinerPacking` does so). Fix `dom : ι ↪ F`, `n = |ι|`, and words `f g : ι → L`; write
 `pt x` for the point `dom x ∈ L`.
 
 * `IsExcTriple dom f g d A α β P`: `deg P ≤ d`, `P` agrees with `f + (α + β x) g` on at least `A`
   coordinates (`agreeL`), and `P` has no witness `U`, `V` (`deg U ≤ d`, `deg V ≤ d - 1`,
-  `P = U + (α + β X) V`, agreement loss at most one): the exceptional triples of [CYWZ26,
+  `P = U + (α + β X) V`, agreement loss at most one): the exceptional triples of [CWYZ26,
   Definition 3.1].
 * `PersistentData dom f g d B α β P I H Lp`: `I` is a set of at least `B` agreement coordinates of
   `P`, and the rational function `G = H / Lp`, `deg H ≤ d`, `Lp ≠ 0`, `deg Lp ≤ 1`, is defined on
   `I` and equals `g` there; then `F = P - (α + β X) G` equals `f` on `I` as well. `IsPersistent`
-  is its existence: the persistent triples of [CYWZ26, Section 4.1], with `Lp` nonvanishing on
+  is its existence: the persistent triples of [CWYZ26, Section 4.1], with `Lp` nonvanishing on
   `I` (the form the proof of Claim 4.8 produces).
 * `persSet`, `nonpersSet`: the pairs `(α, β)` with an exceptional triple that is, resp. is not,
   persistent; `excSetL ⊆ persSet ∪ nonpersSet`.
 
 ## Main statement
 
-`card_persSet_le` ([CYWZ26, Lemma 4.5], with Lemma 4.4): if `B² > n (d + 1)`,
+`card_persSet_le` ([CWYZ26, Lemma 4.5], with Lemma 4.4): if `B² > n (d + 1)`,
 then `|persSet| ≤ jl n B (d + 1) · max(|F|, C(n, 2))`. The rational pairs `(F, G)` explaining the
 persistent triples (`key`) agree pairwise on at most `d + 1` coordinates (`card_inter_le_of_key_ne`),
 so the Johnson bound counts at most `jl n B (d + 1)` of them; one pair accounts for at most
@@ -97,7 +97,7 @@ def IsWitnessL (d : ℕ) (α β : F) (P U V : L[X]) : Prop :=
     ((agreeL dom f g P α β).filter fun x ↦ U.eval (pt dom x) ≠ f x ∨ V.eval (pt dom x) ≠ g x).card
       ≤ 1
 
-/-- **An exceptional triple** ([CYWZ26, Definition 3.1]). -/
+/-- **An exceptional triple** ([CWYZ26, Definition 3.1]). -/
 def IsExcTriple (d A : ℕ) (α β : F) (P : L[X]) : Prop :=
   P.natDegree ≤ d ∧ A ≤ (agreeL dom f g P α β).card ∧ ¬ ∃ U V, IsWitnessL dom f g d α β P U V
 
@@ -107,7 +107,7 @@ def PersistentData (d B : ℕ) (α β : F) (P : L[X]) (I : Finset ι) (H Lp : L[
   I ⊆ agreeL dom f g P α β ∧ B ≤ I.card ∧ H.natDegree ≤ d ∧ Lp ≠ 0 ∧ Lp.natDegree ≤ 1 ∧
     ∀ x ∈ I, Lp.eval (pt dom x) ≠ 0 ∧ H.eval (pt dom x) = g x * Lp.eval (pt dom x)
 
-/-- **A persistent triple** ([CYWZ26, Section 4.1]). -/
+/-- **A persistent triple** ([CWYZ26, Section 4.1]). -/
 def IsPersistent (d B : ℕ) (α β : F) (P : L[X]) : Prop :=
   ∃ I H Lp, PersistentData dom f g d B α β P I H Lp
 
@@ -168,7 +168,7 @@ noncomputable def key (α β : F) (P H Lp : L[X]) : RatFunc L × RatFunc L :=
       (algebraMap L[X] (RatFunc L) H / algebraMap L[X] (RatFunc L) Lp),
     algebraMap L[X] (RatFunc L) H / algebraMap L[X] (RatFunc L) Lp)
 
-/-- **Distinct rational pairs agree on at most `d + 1` coordinates** ([CYWZ26, Lemma 4.5]): if
+/-- **Distinct rational pairs agree on at most `d + 1` coordinates** ([CWYZ26, Lemma 4.5]): if
 `G ≠ G'`, then `H Lp' - H' Lp` vanishes on `I ∩ I'`; otherwise `F ≠ F'`, and
 `(P - P') Lp - ((α - α') + (β - β') X) H = (F - F') Lp` does. Both have degree at most `d + 1`. -/
 theorem card_inter_le_of_key_ne {d B : ℕ} {α β α' β' : F} {P P' I I' H H' Lp Lp'}
@@ -233,7 +233,7 @@ section OnePair
 
 variable (dom : ι ↪ F) (f g : ι → L) {d A : ℕ}
 
-/-- **A polynomial pair** ([CYWZ26, Lemma 4.4], first case): if `deg F₀ ≤ d` and `deg G₀ ≤ d - 1`,
+/-- **A polynomial pair** ([CWYZ26, Lemma 4.4], first case): if `deg F₀ ≤ d` and `deg G₀ ≤ d - 1`,
 at most `C(n, 2)` pairs `(α, β)` make `F₀ + (α + β X) G₀` exceptional. Such a pair has two
 agreement coordinates where `G₀ ≠ g`, and these two determine the line `α + β x`. -/
 theorem card_le_choose_of_polyPair (F₀ G₀ : L[X]) (hF : F₀.natDegree ≤ d)
@@ -313,7 +313,7 @@ noncomputable def linMul (H : L[X]) : (F × F) →ₗ[F] L[X] where
     simp only [linL, map_mul]
     ring
 
-/-- **A non-polynomial pair** ([CYWZ26, Lemma 4.4], second case), with the rational pair
+/-- **A non-polynomial pair** ([CWYZ26, Lemma 4.4], second case), with the rational pair
 `(P₀ - (α₀ + β₀ X) H₀ / Lp₀, H₀ / Lp₀)` written by its numerators. If it is not a pair of
 polynomials of degrees `d` and `d - 1`, at most `|F|` pairs `(α, β)` make
 `P₀ + (α - α₀ + (β - β₀) X) H₀ / Lp₀` a polynomial of degree at most `d`: they form a proper
@@ -370,7 +370,7 @@ end OnePair
 
 /-! ## The persistent pairs -/
 
-/-- **The persistent exceptional pairs** ([CYWZ26, Lemma 4.5]): if `B² > n (d + 1)`, at most `jl n B (d + 1) · max(|F|, C(n, 2))` pairs `(α, β)` have a persistent
+/-- **The persistent exceptional pairs** ([CWYZ26, Lemma 4.5]): if `B² > n (d + 1)`, at most `jl n B (d + 1) · max(|F|, C(n, 2))` pairs `(α, β)` have a persistent
 exceptional triple. -/
 theorem card_persSet_le [Fintype F] (dom : ι ↪ F) (f g : ι → L) {d A B : ℕ}
     (hgap : Fintype.card ι * (d + 1) < B * B) :

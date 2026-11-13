@@ -9,8 +9,8 @@
 
 //! Configuration and round-by-round soundness analysis of the affine-combiner WHIR opening.
 //!
-//! The fold is the affine combiner `G + (alpha + beta X) F` of [CYWZ26, preprint], and its mutual correlated agreement
-//! is the finite bound of their Lemma 4.1 (`affine_mca`). Every round of a level is analysed at the level's final
+//! The fold is the affine combiner `G + (alpha + beta X) F` of [CWYZ26], and its mutual correlated agreement is
+//! the finite bound of their Theorem 4.10 (`affine_mca`). Every round of a level is analysed at the level's final
 //! degree `d = d_0 + k`, so a fold's two halves both stay within it. Per verifier message, with `q = |E|` and `ell` a
 //! Johnson list at degree `d` and the agreement the message is analysed at:
 //!
@@ -305,7 +305,7 @@ fn derive_ladder_shape(log_n: usize, initial_k: usize, log_inv_rate: usize) -> R
 // `j = 1..=k` is analysed against the level's final degree `d = d_0 + k` at agreement `t_j = t_end - (k - j)` (one
 // coordinate of agreement lost per round), and the level starts at `t_0 = t_end - k`. `t_end` is the integer the
 // search picks per level, the smallest that clears every term below, which minimises the queries
-// `((t_end - 1) / n)^omega`. `ell(t, d)` is the Johnson list of Lemma 3.11 [CYWZ26, preprint]
+// `((t_end - 1) / n)^omega`. `ell(t, d)` is the Johnson list of Lemma 3.2 [CWYZ26]
 // (`affine_mca::johnson_list(n, t, d)`).
 
 /// `log2 |E|` for the soundness analysis.
@@ -350,7 +350,7 @@ pub struct WhirLevelConfig {
     pub k: usize,
     /// The agreement `t_end` at the level's last fold round.
     pub(crate) agreement: u128,
-    /// Lemma 4.1's witness for each fold round `j = 1..=k`.
+    /// Theorem 4.10's witness for each fold round `j = 1..=k`.
     pub(crate) rounds: Vec<affine_mca::AffineWitness>,
     /// Query count `omega`, the least that clears the query message: alone at the final level, with the next level's
     /// batching otherwise.
