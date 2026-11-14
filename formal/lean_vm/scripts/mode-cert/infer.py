@@ -157,7 +157,7 @@ class Infer:
             if isinstance(name, tuple) and name[0] == 'tail': return False
             if r2 is not None and ifaceMono(f, r2[0]) and ifaceIdx(f, r2[1]) and ifaceIdx(f, r2[2]) and r2[0][2]:
                 self.preR.add(r2); self.new = True; A.r.add(r2); return True
-            return False
+            return r2 is not None and self.linSub(r2, i, A)
         if kind == 'entry':
             name, o, A, cs, lnk = rest
             for c in cs:
@@ -173,6 +173,42 @@ class Infer:
             x, n, A = rest
             r = ('lt', ('ex', x, 0), ('num', n))
             self.res[i].append(r); self.new = True; A.lt.add((r[1], r[2])); return True
+        return False
+
+    def addRes(self, i, r):
+        if r not in self.res[i]:
+            self.res[i].append(r); self.new = True
+
+    def linSub(self, r2, i, A):
+        """A run over a bound not the interface's, inside a run over a parameter's bound by the code's
+        arithmetic: the parameter's word the bound's to the stride times more (`q^S r = n`), or the
+        bound's times `g^k` (`n / g`). A residual (`Res.sub`) and the parameter's run a precondition."""
+        f = self.f
+        q, lo, hi, S, d = r2
+        if not (q[2] and ifaceMono(f, q) and ifaceIdx(f, lo) and hi[0] == 'ex'): return False
+        hb, t = hi[1], hi[2]
+        if hb[0] == 'fr': mh = A.mono(hb[1])
+        else:
+            x = A.hvGet((0, hb[2], ((('fr', hb[1]), 1),)))
+            mh = x[1] if x is not None and x[0] == 'm' else None
+        cands = []
+        if mh is not None and mh[0] == 0 and t == 0 and lo == ('num', 0):
+            for p in sorted(params(f)):
+                mp = A.mono(p)
+                if mp is None or mp[0] != 0 or mp == root(p) or mp[1] < S * mh[1]: continue
+                dm = dict(mp[2])
+                if all(dm.get(b, 0) >= S * e for b, e in mh[2]):
+                    cands.append((q, ('num', 0), ('ex', ('fr', p), 0), 1, 0))
+        if hb[0] == 'fr':
+            for op, a in f['ops']:
+                if op == 'mul' and a[2] in params(f) and hb[1] in a[:2]:
+                    mo = A.mono(a[1] if a[0] == hb[1] else a[0])
+                    if mo is not None and mo[0] == 0 and not mo[2] and mo[1] >= t:
+                        cands.append((q, lo, ('ex', ('fr', a[2]), 0), S, d))
+        for b in cands:
+            self.preR.add(b); self.new = True; A.r.add(b)
+            self.addRes(i, ('sub', r2, [b])); A.r.add(r2)
+            return True
         return False
 
     def addP(self, r, os, A):
@@ -214,6 +250,24 @@ class Infer:
             A.lt.add((r[1], r[2])); return True
         if k[0] == 0 and k[2] and ifaceMono(f, k):
             self.pre.add(k); self.new = True; A.h.add(k); return True
+        # a table read at a loaded offset, inside a table the caller holds
+        tab = TABLES.get(tuple(sorted(m for m in calls if f['name'] in calls[m] and m != f['name'])))
+        if tab is not None and k[0] == 0 and k[2] and depth == 0:
+            T, hi, S = tab
+            bs = [((0, 0, ((T, 1),)), ('num', 0), hi, S, c) for c in range(S)]
+            for b in bs: self.preR.add(b); A.r.add(b)
+            # the entry's whole stride of cells, once
+            a = ((0, k[1] - k[1] % S, k[2]), ('num', 0), ('num', S), 1, 0)
+            if not any(('sub', a, bs) in rs for rs in self.res.values()): self.addRes(i0, ('sub', a, bs))
+            A.r.add(a); return True
+        # a table written at the loaded words of a permutation: every cell
+        if k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and depth == 0:
+            b = k[2][0][0]
+            P = sorted(m for m in A.h if m[0] == 0 and m[1] == 0 and len(m[2]) == 2 and (b, 1) in m[2]
+                       and all(e == 1 for _, e in m[2]))
+            if len(P) > max(1, k[1]):
+                a = ((0, 0, ((b, 1),)), ('num', 0), ('num', len(P)), 1, 0)
+                self.addRes(i0, ('sub', a, [(m, ('num', 0), ('num', 1), 1, 0) for m in P])); A.r.add(a); return True
         # a bounded table read: the loads its uncovered cells were linked to
         if self.w is not None and k[0] == 0 and depth < 4:
             got = False
@@ -238,6 +292,10 @@ class Infer:
                     self.preR.add(r); self.new = True; A.r.add(r); return True
         return False
 
+
+# tables a function reads at loaded offsets, by its callers: the table's base and length, a caller's
+# cells, as strided runs
+TABLES = {('child_claim_list_mono',): (('hp', 1, 2), ('ex', ('hp', 1, 5), 0), 4)}
 
 # consecutive heap cells over one product, at least this many, are a run in a signature
 COMPACT = 8

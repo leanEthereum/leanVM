@@ -165,6 +165,21 @@ end
 
 end LeanVM.Guest.Fn.«grind_check__L13»
 
+namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L15»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `child_claim_list_mono_last__L15`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 402) (d := Data.adviceFn402) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«child_claim_list_mono_last__L15»
+
 namespace LeanVM.Guest.Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

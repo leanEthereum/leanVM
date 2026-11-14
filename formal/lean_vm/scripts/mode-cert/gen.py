@@ -111,7 +111,10 @@ def hint(h):
     raise Exception(h)
 
 
-def res(r): return '(.lt %s %s)' % (idx(r[1]), idx(r[2])) if r[0] == 'lt' else '(.nz %d)' % r[1]
+def res(r):
+    if r[0] == 'lt': return '(.lt %s %s)' % (idx(r[1]), idx(r[2]))
+    if r[0] == 'sub': return '(.sub %s %s)' % (rng(r[1]), lst(r[2], rng))
+    return '(.nz %d)' % r[1]
 
 
 def trie(entries, val):

@@ -8,7 +8,7 @@ public import LeanVM.Guest.Mode.SoundHint
 `Holds.inter`: what two states both know holds where either holds. `stepHints_sound`: a pc's
 hints, in order. `addRes_sound`: the residuals the walk assumes, given that they hold (`ResHolds`:
 a value fact about the cells, which the reference's agreement with the memory gives from a fact
-about the reference).
+about the reference; `Res.sub`, a run inside known runs, `RW.of_sub`).
 -/
 
 namespace LeanVM.Guest.Mode
@@ -308,6 +308,10 @@ theorem Holds.learn0 {s : St} {A : Abs} (hA : Holds s A) {c : ℕ}
         obtain ⟨u, hu, hok⟩ := hA.v o y hvo
         rw [ho] at hu; cases hu; exact hok
     split
+    · rename_i k _ hx
+      have hxv : ValOk s (.m ⟨0, k, []⟩) va := by
+        obtain ⟨u, hu, hok⟩ := hA.v a _ hx; rw [ha] at hu; cases hu; exact hok
+      exact hA.pinEq hxv (MonoVal.root hb)
     · exact hA.addV ⟨va, hb, key a ha⟩
     · exact hA.addV ⟨va, ha, key b hb⟩
     · rename_i y x hy hx
@@ -338,25 +342,36 @@ theorem stepHints_sound {C : Ctx} :
     exact stepHints_sound f1.good (by rw [f1.fp]; exact hfp) hu1 hH1 h e
       fun s2 f2 ↦ hU s2 (f1.trans f2)
 
+/-- Every cell of run `a` is a cell of one of the runs `bs`, whatever their words: `a`'s exponents
+have values, and each cell's index in `a` has one in some run of `bs`. -/
+def SubF (s : St) (a : Rng) (bs : List Rng) : Prop :=
+  ∃ xlo xhi, IdxVal s a.lo xlo ∧ IdxVal s a.hi xhi ∧ ∀ vq, MonoVal s a.q vq → ∀ j, xlo ≤ j → j < xhi →
+    ∃ b ∈ bs, ∀ vb ylo yhi, MonoVal s b.q vb → IdxVal s b.lo ylo → IdxVal s b.hi yhi →
+      ∃ j', ylo ≤ j' ∧ j' < yhi ∧ vq * ofK (g ^ (a.S * j + a.d)) = vb * ofK (g ^ (b.S * j' + b.d))
+
 /-- What a residual states, of the memory. -/
 def ResHolds (s : St) : Res → Prop
   | .lt a b => LTF s a b
   | .nz o => NzAt s o
+  | .sub a bs => SubF s a bs
 
-/-- **The residuals**, holding, keep the walk's set. -/
-theorem addRes_sound {s : St} :
-    ∀ {A A' : Abs} {rs : List Res}, Holds s A → (∀ r ∈ rs, ResHolds s r) → addRes A rs = some A' →
-      Holds s A'
-  | _, _, [], hH, _, h => by cases h; exact hH
-  | A, A', .lt a b :: rs, hH, hr, h => by
-    simp only [addRes] at h
-    split_ifs at h
-    exact addRes_sound (hH.addLt (hr _ (List.mem_cons_self ..))) (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
-  | A, A', .nz o :: rs, hH, hr, h => by
-    simp only [addRes] at h
-    split_ifs at h
-    exact addRes_sound (hH.addNz (hr _ (List.mem_cons_self ..)))
-      (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
+/-- A run inside written runs is written. -/
+theorem RW.of_sub {s : St} {a : Rng} {bs : List Rng} (h : SubF s a bs) (hb : ∀ b ∈ bs, RW s b)
+    {vq : E} (hq : MonoVal s a.q vq) : RW s a := by
+  obtain ⟨xlo, xhi, hlo, hhi, hall⟩ := h
+  refine ⟨vq, xlo, xhi, hq, hlo, hhi, fun j h1 h2 ↦ ?_⟩
+  obtain ⟨b, hbm, hb'⟩ := hall vq hq j h1 h2
+  obtain ⟨vb, ylo, yhi, h3, h4, h5, h6⟩ := hb b hbm
+  obtain ⟨j', h7, h8, h9⟩ := hb' vb ylo yhi h3 h4 h5
+  rw [h9]; exact h6 j' h7 h8
+
+theorem Holds.addR {s : St} {A : Abs} (h : Holds s A) {r : Rng} (hr : RW s r) :
+    Holds s { A with r := r :: A.r } :=
+  { h with
+    r := fun r' hm ↦ by
+      rcases List.mem_cons.mp hm with rfl | hm
+      · exact hr
+      · exact h.r r' hm }
 
 theorem Abs.hasIdx_sound {s : St} {A : Abs} (hA : Holds s A) {i : Idx} (h : A.hasIdx i = true) :
     ∃ x, IdxVal s i x := by
@@ -427,6 +442,9 @@ theorem Abs.coveredR_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
     (hu : s.mem.used ≤ maxCells) {r : Rng} (h : A.coveredR r = true) : RW s r := by
   unfold Abs.coveredR at h
   rcases Bool.or_eq_true_iff.mp h with h | h
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  · obtain ⟨r', hm, hh⟩ := List.any_eq_true.mp h
+    rw [← Rng.beq_eq hh]; exact hA.r r' hm
   · obtain ⟨r', hm, hh⟩ := List.any_eq_true.mp h
     simp only [Bool.and_eq_true, beq_iff_eq] at hh
     obtain ⟨⟨⟨⟨⟨⟨hq, hS⟩, hd⟩, hlo⟩, hhi⟩, hklo⟩, hkhi⟩ := hh
@@ -451,6 +469,30 @@ theorem Abs.coveredR_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
       have := Abs.covered_ex hA hwf hu hc (hvq.shift _)
       rwa [show r.S * (a + (j - a)) + r.d = r.S * j + r.d by congr 2; omega] at this
     · simp at h
+
+/-- **The residuals**, holding, keep the walk's set. -/
+theorem addRes_sound {s : St} (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells) :
+    ∀ {A A' : Abs} {rs : List Res}, Holds s A → (∀ r ∈ rs, ResHolds s r) → addRes A rs = some A' →
+      Holds s A'
+  | _, _, [], hH, _, h => by cases h; exact hH
+  | A, A', .lt a b :: rs, hH, hr, h => by
+    simp only [addRes] at h
+    split_ifs at h
+    exact addRes_sound hwf hu (hH.addLt (hr _ (List.mem_cons_self ..)))
+      (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
+  | A, A', .nz o :: rs, hH, hr, h => by
+    simp only [addRes] at h
+    split_ifs at h
+    exact addRes_sound hwf hu (hH.addNz (hr _ (List.mem_cons_self ..)))
+      (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
+  | A, A', .sub a bs :: rs, hH, hr, h => by
+    simp only [addRes] at h
+    split_ifs at h with hc
+    simp only [Bool.and_eq_true, List.all_eq_true] at hc
+    obtain ⟨vq, hvq⟩ := Abs.known_val hH hwf hu hc.1.1.1
+    exact addRes_sound hwf hu (hH.addR (RW.of_sub (hr _ (List.mem_cons_self ..))
+      (fun b hb ↦ Abs.coveredR_sound hH hwf hu (hc.2 b hb)) hvq))
+      (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
 
 /-- **One instruction the walk accepts**: its reads are written (`Reads`), and, unless it is a
 `JUMP`, the walk's next set holds after it. -/

@@ -135,17 +135,16 @@ def IdxIn (s : St) : Idx → Prop
 def ResIn (s : St) : Res → Prop
   | .lt a b => IdxIn s a ∧ IdxIn s b
   | .nz o => s.mem.written (s.fp + o) = true
+  | .sub a _ => IdxIn s a.lo ∧ IdxIn s a.hi
 
 theorem addRes_idxIn {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells)
-    {i : Idx} (h : (match i with
-      | .ex (.fr o) _ => A.hasW o
-      | .ex (.hp q d) _ => A.covered ⟨0, d, [(.fr q, 1)]⟩
-      | .num _ => true) = true) : IdxIn s i := by
+    {i : Idx} (h : A.idxOk i = true) : IdxIn s i := by
   match i, h with
   | .num _, _ => trivial
   | .ex (.fr o) _, h => exact Mem.get_of_written (hA.written h)
   | .ex (.hp q d) _, h =>
-    obtain ⟨vk, x, hk, hx, hw⟩ := Abs.covered_cell hA hwf hu h
+    obtain ⟨vk, x, hk, hx, hw⟩ :=
+      Abs.covered_cell hA hwf hu (show A.covered ⟨0, d, [(.fr q, 1)]⟩ = true from h)
     obtain ⟨p, hp, rfl⟩ := MonoVal.ptr.mp hk
     obtain ⟨v, hv⟩ := Mem.get_of_written hw
     exact ⟨v, p, x, hp, by rw [mul_comm]; exact hx, hv⟩
@@ -166,6 +165,15 @@ theorem addRes_sound' {s : St} (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells) :
     simp only [addRes] at h
     split_ifs at h with ho
     exact addRes_sound' hwf hu (hH.addNz (hr _ (List.mem_cons_self ..) (hH.written ho)))
+      (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
+  | A, A', .sub a bs :: rs, hH, hr, h => by
+    simp only [addRes] at h
+    split_ifs at h with hc
+    simp only [Bool.and_eq_true, List.all_eq_true] at hc
+    obtain ⟨vq, hvq⟩ := Abs.known_val hH hwf hu hc.1.1.1
+    have hin : ResIn s (.sub a bs) := ⟨addRes_idxIn hH hwf hu hc.1.1.2, addRes_idxIn hH hwf hu hc.1.2⟩
+    exact addRes_sound' hwf hu (hH.addR (RW.of_sub (hr _ (List.mem_cons_self ..) hin)
+      (fun b hb ↦ Abs.coveredR_sound hH hwf hu (hc.2 b hb)) hvq))
       (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
 
 /-! ## One path's step, by cases -/

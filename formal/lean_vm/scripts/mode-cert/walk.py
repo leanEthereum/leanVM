@@ -215,6 +215,7 @@ class Abs:
         return (fp, kk, tuple(rest))
 
     def coveredR(s, r):
+        if r in s.r: return True
         q, lo, hi, S, d = r
         for (q2, lo2, hi2, S2, d2) in s.r:
             if q2 == q and S2 == S and d2 == d and s.le(lo2, lo) and s.le(hi, hi2) and s.hasIdx(lo) and s.hasIdx(hi):
@@ -583,14 +584,23 @@ class Walk:
         for r in rs:
             if r[0] == 'lt':
                 for x in (r[1], r[2]):
-                    if x[0] == 'ex':
-                        b = x[1]
-                        ok = (b[1] in A.w) if b[0] == 'fr' else A.covered((0, b[2], ((('fr', b[1]), 1),)))
-                        if not ok: raise Fail(('resW', i, r))
+                    if not self.idxOk(A, x): raise Fail(('resW', i, r))
                 A.lt.add((r[1], r[2]))
             elif r[0] == 'nz':
                 if r[1] not in A.w: raise Fail(('resW', i, r))
                 A.nz.add(r[1])
+            elif r[0] == 'sub':
+                # a run whose cells lie in known runs' (`Res.sub`)
+                a, bs = r[1], r[2]
+                if not (A.known(a[0]) and self.idxOk(A, a[1]) and self.idxOk(A, a[2]) and all(A.coveredR(b) for b in bs)):
+                    raise Fail(('resW', i, r))
+                A.r.add(a)
+
+    def idxOk(self, A, x):
+        """An exponent's base has a word (`Abs.idxOk`)."""
+        if x[0] != 'ex': return True
+        b = x[1]
+        return (b[1] in A.w) if b[0] == 'fr' else A.covered((0, b[2], ((('fr', b[1]), 1),)))
 
     # -------------------------------------------------------- calls
     def trFr(self, A, mq, o):
@@ -925,7 +935,13 @@ def learn0(A, c):
     if p is None: return A
     a, b = p
     B = A.copy()
-    if b not in B.v: B.addV(b, B.v.get(a, ('m', root(a))))
+    xa = B.v.get(a)
+    if b not in B.v and xa is not None and xa[0] == 'm' and xa[1][0] == 0 and not xa[1][2]:
+        # `b` equal to a constant `g^k`: its exponent, its word left a base (`Abs.learn0`)
+        k = xa[1][1]
+        if k < 2 ** 62:
+            B.lt.add((('ex', ('fr', b), 0), ('num', k + 1))); B.lt.add((('num', k), ('ex', ('fr', b), 1)))
+    elif b not in B.v: B.addV(b, B.v.get(a, ('m', root(a))))
     elif a not in B.v: B.addV(a, B.v.get(b, ('m', root(b))))
     else:
         # both known: a base's power equal to a constant gives its exponent

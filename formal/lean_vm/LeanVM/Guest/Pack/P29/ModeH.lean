@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P29».Mode0
 public import LeanVM.Guest.Pack.«P29».Mode1
+public import LeanVM.Guest.Pack.«P29».Mode2
 
 set_option Elab.async false
 
@@ -132,6 +133,21 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«bus_grind_check__L11»
+
+namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L12»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `child_claim_list_mono_last__L12`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 399) (d := Data.adviceFn399) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«child_claim_list_mono_last__L12»
 
 namespace LeanVM.Guest.Fn.«level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0»
 

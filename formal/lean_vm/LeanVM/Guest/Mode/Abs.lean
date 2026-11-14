@@ -429,10 +429,10 @@ def Abs.knownB (A : Abs) : Base → Bool
 /-- A product whose word is known to exist. -/
 def Abs.known (A : Abs) (m : Mono) : Bool := m.bs.all fun p ↦ A.knownB p.1
 
-/-- Every cell of run `r` is known written: a known run holds it, or each of its (at most `2^12`)
-points, from a constant to a known bound, is known written. -/
+/-- Every cell of run `r` is known written: it is a known run, a known run holds it, or each of its
+(at most `2^12`) points, from a constant to a known bound, is known written. -/
 def Abs.coveredR (A : Abs) (r : Rng) : Bool :=
-  A.r.any (fun r' ↦ r'.q.beq r.q && r'.S == r.S && r'.d == r.d && A.le r'.lo r.lo &&
+  A.r.any (·.beq r) || A.r.any (fun r' ↦ r'.q.beq r.q && r'.S == r.S && r'.d == r.d && A.le r'.lo r.lo &&
     A.le r.hi r'.hi && A.hasIdx r.lo && A.hasIdx r.hi) ||
   match r.lo, A.bound r.hi with
   | .num a, some b => decide (b - a ≤ 4096) && A.known r.q &&
@@ -604,6 +604,8 @@ inductive Res where
   | lt (a b : Idx)
   /-- A frame cell nonzero. -/
   | nz (o : ℕ)
+  /-- Every cell of run `a` is a cell of one of the runs `bs`. -/
+  | sub (a : Rng) (bs : List Rng)
   deriving DecidableEq, Repr
 
 /-- The program the walks share. -/
@@ -851,17 +853,22 @@ noncomputable def stepHints (A : Abs) : List Hint → Option Abs
   | [] => some A
   | h :: hs => (stepHint A h).bind (stepHints · hs)
 
-/-- The residuals: each one's cells known written, the fact added. -/
+/-- An exponent's base has a word: a frame cell known written, or the cell past one it names. -/
+def Abs.idxOk (A : Abs) : Idx → Bool
+  | .ex (.fr o) _ => A.hasW o
+  | .ex (.hp q d) _ => A.covered ⟨0, d, [(.fr q, 1)]⟩
+  | .num _ => true
+
+/-- The residuals: each one's cells known written, the fact added; a run inside known runs is known. -/
 def addRes (A : Abs) : List Res → Option Abs
   | [] => some A
-  | .lt a b :: rs =>
-    let ok := fun (i : Idx) ↦ match i with
-      | .ex (.fr o) _ => A.hasW o
-      | .ex (.hp q d) _ => A.covered ⟨0, d, [(.fr q, 1)]⟩
-      | .num _ => true
-    if ok a && ok b then addRes (A.addLt a b) rs else none
+  | .lt a b :: rs => if A.idxOk a && A.idxOk b then addRes (A.addLt a b) rs else none
   | .nz o :: rs =>
     if A.hasW o then addRes { A with nz := A.nz.set () envDepth o } rs else none
+  | .sub a bs :: rs =>
+    if A.known a.q && A.idxOk a.lo && A.idxOk a.hi && bs.all A.coveredR then
+      addRes { A with r := a :: A.r } rs
+    else none
 
 /-! ## Calls -/
 
@@ -1207,11 +1214,14 @@ def Abs.pinEq (A : Abs) : Val → Val → Abs
   | _, _ => A
 
 /-- The fall-through of a `JUMP` on `[c]`: `[c] = 0`, so a sum `[c] = [a] + [b]` gives `[a] = [b]`: the
-word of one known for the other, or, both known, the exponent of a base equal to a constant. -/
+word of one known for the other, or, both known, the exponent of a base equal to a constant; `b`
+equal to a constant `g^k`, its exponent, its word left its own base (a product over it then names
+the same cells on either side of the branch). -/
 noncomputable def Abs.learn0 (A : Abs) (c : ℕ) : Abs :=
   match A.xs.get c with
   | some (a, b) =>
     match A.v.get b, A.v.get a with
+    | none, some (.m ⟨0, k, []⟩) => A.pinEq (.m ⟨0, k, []⟩) (.m (.root b))
     | none, _ => A.addV b ((A.v.get a).getD (.m (.root a)))
     | some _, none => A.addV a ((A.v.get b).getD (.m (.root b)))
     | some y, some x => (A.pinEq x y).pinEq y x

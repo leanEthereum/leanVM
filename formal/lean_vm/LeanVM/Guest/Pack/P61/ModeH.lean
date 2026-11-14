@@ -13,6 +13,7 @@ public import LeanVM.Guest.Pack.«P61».Mode1
 public import LeanVM.Guest.Pack.«P61».Mode2
 public import LeanVM.Guest.Pack.«P61».Mode3
 public import LeanVM.Guest.Pack.«P61».Mode4
+public import LeanVM.Guest.Pack.«P61».Mode5
 
 set_option Elab.async false
 
@@ -60,6 +61,36 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«index_mle__L30»
+
+namespace LeanVM.Guest.Fn.«child_claim_list_mono_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `__loop20`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 386) (d := Data.adviceFn386) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«child_claim_list_mono_loop1»
+
+namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `child_claim_list_mono_last__L1`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 388) (d := Data.adviceFn388) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«child_claim_list_mono_last__L1»
 
 namespace LeanVM.Guest.Fn.«da_factors__L14_L7_L0»
 
