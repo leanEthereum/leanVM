@@ -22,6 +22,11 @@ public section
 theorem allocShapeOk : Bridge.allocShape Fn.«open_stacked__L4».core.body = true := by
   decide +kernel
 
+/-- `open_stacked__L4`'s body has its buffer hints' atoms and no `match` arm target pending. -/
+theorem curBodyOk :
+    Bridge.curBody alignCtx Fn.«open_stacked__L4».plumb Fn.«open_stacked__L4».core.body Fn.«open_stacked__L4».code.code Data.adviceFn340 = true := by
+  decide +kernel
+
 /-- `open_stacked__L4`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«open_stacked__L4».fs Fn.«open_stacked__L4».plumb Fn.«open_stacked__L4».core.body Fn.«open_stacked__L4».code.code

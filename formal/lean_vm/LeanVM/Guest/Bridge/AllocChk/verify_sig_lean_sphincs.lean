@@ -22,6 +22,11 @@ public section
 theorem allocShapeOk : Bridge.allocShape Fn.«verify_sig_lean_sphincs».core.body = true := by
   decide +kernel
 
+/-- `verify_sig_lean_sphincs`'s body has its buffer hints' atoms and no `match` arm target pending. -/
+theorem curBodyOk :
+    Bridge.curBody alignCtx Fn.«verify_sig_lean_sphincs».plumb Fn.«verify_sig_lean_sphincs».core.body Fn.«verify_sig_lean_sphincs».code.code Data.adviceFn21 = true := by
+  decide +kernel
+
 /-- `verify_sig_lean_sphincs`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«verify_sig_lean_sphincs».fs Fn.«verify_sig_lean_sphincs».plumb Fn.«verify_sig_lean_sphincs».core.body Fn.«verify_sig_lean_sphincs».code.code

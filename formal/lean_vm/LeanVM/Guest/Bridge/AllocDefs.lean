@@ -26,17 +26,19 @@ first, which finds its pointer written; `isBuf`: the rest).
   before the last of them returns (`allocShape`), so every path allocates them all, in order;
 * the buffer hints compile those atoms one for one, their values in the frame (`pairsA`): an `alloc`
   or `allocDyn` its own, an `allocDyn` whose size cell holds a power `g^n` an `alloc` of `n` cells,
-  an `allocDyn` an `allocAdvice` at its pointer; all at offsets up to the first jump, none after a
-  frame hint;
-* each late hint comes after its `allocAdvice`;
-* each frame hint is an `alloc`, `allocArm` or `allocFrames` before the next jump, whose frame cell
-  is the hint's pointer (`frameOk`), and every jump through a call site's frame cell is exactly one
-  frame hint's (`sitesOk`);
-* no jump target is pending: a constant target (`pcAt`), a call site's return pc.
+  an `allocDyn` an `allocAdvice` at its pointer;
+* `curChk`, what the bump pointer's moves rest on, which every function passes (`claim_list_digest`,
+  whose only buffer is in a branch, fails the rest): at most as many buffer hints as allocation atoms
+  anywhere in the body (`cntL`); every jump before a buffer hint on a constant `0` or a forward jump
+  in the frame to a constant pc, no buffer hint between (`bufsJumps`); no buffer hint after a frame
+  hint; each late hint after its `allocAdvice`; each frame hint an `alloc`, `allocArm` or
+  `allocFrames` before the next jump, which goes through the hint's pointer, a call site's frame cell
+  (`frameOk`), and every jump through a call site's frame cell exactly one frame hint's (`sitesOk`);
+  no jump target pending: a constant target (`targetsOk`), a `match`'s arm (`blockM`, `armTgtsOk`), a
+  call site's return pc.
 
-The body's shape is its own conjunct (`allocShape`, `allocRest` the rest), so that a long function
-checks it in a module of its own; the code is read only by a function with frame hints or call
-sites.
+The body's walks are their own conjuncts (`allocShape`, `curBody`; `allocRest` the rest), so that a
+long function checks them in modules of their own.
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -193,13 +195,15 @@ def lateOk : List ℕ → List (ℕ × Prover.Exec.Hint) → Bool
       lateOk (match q.2 with | .allocAdvice p _ => p :: seen | _ => seen) qs
 
 /-- A frame hint: an `alloc`, `allocArm` or `allocFrames` before the next jump, which goes through
-the hint's pointer as its frame cell. -/
-def frameOk (code : List OffsetInstruction) (a : ℕ) (h : Prover.Exec.Hint) : Bool :=
+the hint's pointer as its frame cell, its condition no constant `0`, its frame cell neither the own
+frame nor a next frame, and no return. -/
+noncomputable def frameOk (X : AlignCtx) (code : List OffsetInstruction) (a : ℕ) (h : Prover.Exec.Hint) : Bool :=
   (match h with
     | .alloc .. | .allocArm .. | .allocFrames .. => true
     | _ => false) &&
   match code[nextJump code a]?, allocPtr h with
-  | some (.jump _ _ q), some p => Nat.beq q p
+  | some (.jump oc od q), some p => Nat.beq q p && !X.zeroAt oc && !X.selfAt q && !X.nextAt q &&
+      !(Nat.beq od 0 && Nat.beq q 1)
   | _, _ => false
 
 /-- Every jump through a call site's frame cell is the next jump of a frame hint at that cell, and
@@ -223,23 +227,80 @@ noncomputable def targetsOk (X : AlignCtx) (code : List OffsetInstruction) (fr :
         | none => true
       | _ => true) && targetsOk X code fr rest
 
-/-- The allocation hints' check but the body's shape. -/
-noncomputable def allocRest (X : AlignCtx) (fs : ℕ) (P : B2C.Plumb) (body : List Stmt) (code : List OffsetInstruction)
+/-- A jump before a buffer hint of `bs`, at offset `i`: on a constant `0`, or a forward jump in the
+frame to a constant pc, through no call site or table, no return, no buffer hint strictly between. -/
+noncomputable def bufJumpOk (X : AlignCtx) (bs : List (ℕ × Prover.Exec.Hint)) (i oc od of : ℕ) : Bool :=
+  X.zeroAt oc || (X.selfAt of && (getF X.sites of).isNone && !(Nat.beq od 0 && Nat.beq of 1) &&
+    (getF X.arms od).isNone && match X.pcAt od with
+      | some t => bs.all fun q ↦ !(decide (i < q.1) && decide (X.entry + q.1 < t))
+      | none => false)
+
+/-- Every jump before a buffer hint of `bs` passes `bufJumpOk`, the code from offset `i`. -/
+noncomputable def bufsJumps (X : AlignCtx) (bs : List (ℕ × Prover.Exec.Hint)) : ℕ → List OffsetInstruction → Bool
+  | _, [] => true
+  | i, ins :: rest => (match ins with
+      | .jump oc od of => !(bs.any fun q ↦ decide (i < q.1)) || bufJumpOk X bs i oc od of
+      | _ => true) && bufsJumps X bs (i + 1) rest
+
+/-- The allocation atoms of a block, nested ones included: by the recursor, for the kernel. -/
+noncomputable def cntL : List Stmt → ℕ :=
+  Stmt.rec_1 (motive_1 := fun _ ↦ ℕ) (motive_2 := fun _ ↦ ℕ) (motive_3 := fun _ ↦ ℕ)
+    (fun a ↦ bif allocAtom a then 1 else 0) (fun _ _ _ hz hn ↦ hz + hn) (fun _ _ ha ↦ ha) (fun _ _ _ ↦ 0)
+    (fun _ _ _ ↦ 0) (fun _ _ _ _ ↦ 0) (fun _ ↦ 0) 0 (fun _ _ hs hss ↦ hs + hss) 0 (fun _ _ ha has ↦ ha + has)
+
+/-- Every `match` of a block, nested ones included, passes `ok` on its selector and arm count: by
+the recursor, for the kernel. -/
+noncomputable def blockM (ok : V → ℕ → Bool) : List Stmt → Bool :=
+  Stmt.rec_1 (motive_1 := fun _ ↦ Bool) (motive_2 := fun _ ↦ Bool) (motive_3 := fun _ ↦ Bool)
+    (fun _ ↦ true) (fun _ _ _ hz hn ↦ hz && hn) (fun x arms ha ↦ ok x arms.length && ha) (fun _ _ _ ↦ true)
+    (fun _ _ _ ↦ true) (fun _ _ _ _ ↦ true) (fun _ ↦ true) true (fun _ _ hs hss ↦ hs && hss) true
+    (fun _ _ ha has ↦ ha && has)
+
+/-- No arm target of a `match` of selector `x` and `n` arms pending, the frame hints `fr`: through
+each table jump of the selector, each of its `n` slots. -/
+noncomputable def armTgtsOk (X : AlignCtx) (P : B2C.Plumb) (code : List OffsetInstruction)
+    (fr : List (ℕ × Prover.Exec.Hint)) (x : V) (n : ℕ) : Bool :=
+  (armsOf P).all fun a ↦ !(Nat.beq a.2.1 x.idx) || (List.range n).all fun k ↦ match getF X.jt (a.2.2 + k) with
+    | some t => !pendIn code fr (t - X.entry)
+    | none => true
+
+/-- **The allocation hints' check behind the bump pointer's moves, on the code**: every jump before
+a buffer hint passing `bufJumpOk`, no buffer hint after a frame hint, each late hint after its
+`allocAdvice`, each frame hint passing `frameOk`, every jump through a call site's frame cell one
+frame hint's, no constant jump target or call site's return pc pending. -/
+noncomputable def curCode (X : AlignCtx) (P : B2C.Plumb) (code : List OffsetInstruction)
     (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
   Exec.listSeq (allocHints d) fun hs ↦
     Exec.listSeq (hs.filter fun q ↦ isFrame X q.2) fun fr ↦
     Exec.listSeq (hs.filter fun q ↦ isBuf X q.2) fun bs ↦
-  pairsA X fs (topAllocs body) (bs.map (·.2)) &&
-    (bs.isEmpty || Exec.natSeq (code.findIdx OffsetInstruction.isJump) fun fj ↦ bs.all fun q ↦ decide (q.1 ≤ fj)) &&
-    bufsFirst X false hs && lateOk [] hs && fr.all (fun q ↦ frameOk code q.1 q.2) &&
+  bufsJumps X bs 0 code && bufsFirst X false hs && lateOk [] hs && fr.all (fun q ↦ frameOk X code q.1 q.2) &&
     ((fr.isEmpty && P.sites.isEmpty) || (sitesOk X code fr 0 code && targetsOk X code fr code)) &&
     P.sites.all (fun s ↦ !pendIn code fr (s.r - X.entry))
 
+/-- **The allocation hints' check behind the bump pointer's moves, on the body**: at most as many
+buffer hints as the body has allocation atoms, no `match` arm target pending. -/
+noncomputable def curBody (X : AlignCtx) (P : B2C.Plumb) (body : List Stmt) (code : List OffsetInstruction)
+    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
+  Exec.listSeq (allocHints d) fun hs ↦
+    Exec.listSeq (hs.filter fun q ↦ isFrame X q.2) fun fr ↦
+  decide (cntL body ≤ (hs.filter fun q ↦ isBuf X q.2).length) && (fr.isEmpty || blockM (armTgtsOk X P code fr) body)
+
+/-- **The allocation hints' check behind the bump pointer's moves.** -/
+noncomputable def curChk (X : AlignCtx) (P : B2C.Plumb) (body : List Stmt) (code : List OffsetInstruction)
+    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
+  curCode X P code d && curBody X P body code d
+
+/-- The allocation hints' check on the code: the buffer hints compile the body's top-level allocation
+atoms, and `curCode`. -/
+noncomputable def allocRest (X : AlignCtx) (fs : ℕ) (P : B2C.Plumb) (body : List Stmt) (code : List OffsetInstruction)
+    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
+  pairsA X fs (topAllocs body) (((allocHints d).filter fun q ↦ isBuf X q.2).map (·.2)) && curCode X P code d
+
 /-- **The allocation hints' check** of a function: its context, frame size, plumbing, body, code and
-advice; the body's shape apart, so that a long function checks it separately. -/
+advice; the body's walks apart, so that a long function checks them in modules of their own. -/
 noncomputable def allocChk (X : AlignCtx) (fs : ℕ) (P : B2C.Plumb) (body : List Stmt) (code : List OffsetInstruction)
     (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
-  allocShape body && allocRest X fs P body code d
+  allocShape body && curBody X P body code d && allocRest X fs P body code d
 
 end
 

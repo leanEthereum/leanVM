@@ -22,6 +22,11 @@ public section
 theorem allocShapeOk : Bridge.allocShape Fn.«exponent_tables».core.body = true := by
   decide +kernel
 
+/-- `exponent_tables`'s body has its buffer hints' atoms and no `match` arm target pending. -/
+theorem curBodyOk :
+    Bridge.curBody alignCtx Fn.«exponent_tables».plumb Fn.«exponent_tables».core.body Fn.«exponent_tables».code.code Data.adviceFn2 = true := by
+  decide +kernel
+
 /-- `exponent_tables`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«exponent_tables».fs Fn.«exponent_tables».plumb Fn.«exponent_tables».core.body Fn.«exponent_tables».code.code

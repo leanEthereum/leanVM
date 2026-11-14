@@ -102,11 +102,6 @@ noncomputable def anyResB (L : Link) (j : ℕ) : Mode.Res → Bool
       | _, _, _ => false
   | _ => false
 
-/-- Residual `x` of function `j` is no `sub` residual, or a read inside the caller's table. -/
-noncomputable def subDone (L : Link) (j : ℕ) : Mode.Res → Bool
-  | .sub a bs => anyResB L j (.sub a bs)
-  | _ => true
-
 theorem walkOk_const {α : Type} (c : α → Bool) : ∀ (j : ℕ) (l : List α), walkOk (fun _ x => c x) j l = l.all c
   | _, [] => rfl
   | j, x :: xs => by simp only [walkOk, List.all_cons, walkOk_const c (j + 1) xs]

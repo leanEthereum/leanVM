@@ -19,7 +19,8 @@ public import LeanVM.Guest.Memory.Cursor
 buffers the function reserves before `off` (`Bridge.nbAt`) and the calls the frame has made, plus
 the next callee's block while its frame is reserved and not entered (`Bridge.pendAt`). `ChainA`:
 each frame below the top resumes, at the return pc the header of the frame above holds, at the
-cursor where that frame's subtree ends (`Inst.endCur`). `YAlloc A r s`: in the prologue the next
+cursor where that frame's subtree ends (`Inst.endCur`), and a loop iteration past all its calls has
+a phantom last callee (`TailA`). `YAlloc A r s`: in the prologue the next
 free cell is past `main`'s frame; past it, a state of the tree track at the state's pc and frame
 whose top frame's cursor is the next free cell, its frames chained.
 
@@ -47,12 +48,18 @@ noncomputable def cursorAt (A : String → FnAl) (e : Ent) (off : ℕ) : ℕ :=
       (((e.I.t.kidsC coreProgram.loop)[e.nc]?).map (Tree.block B2C.fs coreProgram.loop)).getD 0
     else 0
 
+/-- **A loop iteration past all its calls ended its loop**: its last callee, past which the frame's
+cursor would go, is a phantom (`total = block`). -/
+def TailA (e : Ent) : Prop :=
+  coreProgram.loop e.I.t.name = true → e.I.t.kids.length ≤ e.nc → ∀ hk : e.I.t.kids ≠ [],
+    (e.I.t.kids.getLast hk).total B2C.fs = (e.I.t.kids.getLast hk).block B2C.fs coreProgram.loop
+
 /-- **Each frame below resumes where the frame above ends**: at the return pc the header of the
-frame above holds in `M`, its cursor that frame's end. -/
+frame above holds in `M`, its cursor that frame's end; and each frame `TailA`. -/
 def ChainA (A : String → FnAl) (M : ℕ → E) : List Ent → Prop
   | [] => True
-  | [_] => True
-  | e :: e' :: st => (∃ r, M (e.I.fp + 0) = ofK (addressOfIndex r) ∧
+  | [e] => TailA e
+  | e :: e' :: st => TailA e ∧ (∃ r, M (e.I.fp + 0) = ofK (addressOfIndex r) ∧ r < 2 ^ 63 ∧
       e.I.endCur B2C.fs coreProgram.loop = cursorAt A e' (r - entOf A e'.I.t.name)) ∧ ChainA A M (e' :: st)
 
 /-- **The bump pointer's track**: in the prologue the next free cell is past `main`'s frame; past
@@ -102,8 +109,8 @@ theorem bufBase_ref {r : Ref} (hr : r.Ok) (hXR : ExtraRef alignA) {pc fp : ℕ} 
   have hE := hT.track.ents e List.mem_cons_self
   -- the check
   have hA' := hA
-  simp only [AllocJ, allocChk, allocRest, Exec.listSeq_eq, Exec.natSeq_eq, Bool.and_eq_true] at hA'
-  obtain ⟨hshape, ⟨⟨⟨⟨⟨⟨hpairs, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩⟩ := hA'
+  simp only [AllocJ, allocChk, allocRest, Bool.and_eq_true] at hA'
+  obtain ⟨⟨hshape, -⟩, hpairs, -⟩ := hA'
   obtain ⟨a, ha, hca⟩ := pairsA_get hpairs k h hk
   obtain ⟨hcell, hloc⟩ := compilesA_ptr hca hp
   -- the path allocates the atoms in order

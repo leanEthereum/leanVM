@@ -1,10 +1,10 @@
 """Writes `Guest/Res/AnyData.lean`, `AnyCallers{k}.lean` and `AnyOk.lean`: the callees of
 `child_claim_list_any` whose `sub` residuals read its entries table (`Res.anyLink`: each callee with
 the positions of the caller's entries parameter and bound quotient among its call's arguments), the
-callers' check over the whole program by ranges, the link's other checks (`EndExec.LinkOk`), that
-every `sub` residual of each callee is such a read (`Res.subDone`), and `ResTop guestCerts` with the
-`sub` residuals open less these. The callees are those of the caller's call sites with `sub`
-residuals (`sel.residuals`), the call sites read off its core IR (`Pack/*/Core.lean`).
+callers' check over the whole program by ranges, the link's other checks (`EndExec.LinkOk`), and
+`ResTop guestCerts` with the `sub` residuals open less these (that every `sub` residual is in a family,
+these reads among them, is `sub.py`'s check). The callees are those of the caller's call sites with
+`sub` residuals (`sel.residuals`), the call sites read off its core IR (`Pack/*/Core.lean`).
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/res-cert/link.py [--check]"""
 import sys, os, re, glob
@@ -92,10 +92,6 @@ def render():
                  'public section\n\ntheorem anyCallers_%d : RangeOk (fun _ fn => callersB anyLink fn) %d %d := by\n'
                  '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m))
         files[mod] = ''.join(t); mods.append(mod)
-    G = term.groups(); pack = {}
-    for g in G:
-        for p in g:
-            for nm in term.packCerts(p): pack[nm] = p
     mod = 'LeanVM.Guest.Res.AnyOk'
     t = [header(mod, '`anyLink`\'s checks, its callees\' `sub` residuals all reads, and `ResTop guestCerts`.')]
     t.append(''.join('public import %s\n' % m for m in mods))
@@ -121,17 +117,6 @@ def render():
              '      anyResB anyLink j x = false)\n'
              '    (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop guestCerts A :=\n'
              '  resTop_guest hexc (resOpen_any anyLink_ok hsub) hnz\n\nend\n\nend LeanVM.Guest.EndExec\n')
-    files[mod] = ''.join(t)
-    mod = 'LeanVM.Guest.Res.AnyDone'
-    t = [header(mod, 'Every `sub` residual of `anyLink`\'s callees is a read inside the caller\'s table.')]
-    t.append(''.join('public import LeanVM.Guest.Pack.«%s».ModeCert\n' % p for p in sorted({pack[F[0]] for F in fams})))
-    t.append('public import LeanVM.Guest.Res.AnyData\n\nnamespace LeanVM.Guest.EndExec\n\n'
-             'open LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Res\n\npublic section\n\n')
-    t.append('/-- **Each callee\'s `sub` residuals are reads inside the caller\'s table.** -/\n'
-             'theorem anyLink_done : ∀ K ∈ [%s],\n    ∃ j, (fnOf j).entryPc = K.F.entry ∧ allV (fun l ↦ l.all (subDone anyLink j)) K.F.res = true :=\n  %s\n\n' % (
-                 ', '.join('Fn.«%s».modeCert' % F[0] for F in fams),
-                 term.chain(['⟨fn_idx%% «%s», by decide +kernel⟩' % F[0] for F in fams])))
-    t.append('end\n\nend LeanVM.Guest.EndExec\n')
     files[mod] = ''.join(t)
     return {os.path.join(OUT, m.split('.')[-1] + '.lean'): v for m, v in files.items()}
 

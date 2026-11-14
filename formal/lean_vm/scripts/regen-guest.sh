@@ -149,6 +149,10 @@ part_res() {
   python3 -I scripts/res-cert/sel.py "${check[@]}"
   step "res: the claim lists' table reads linked to their callers (scripts/res-cert/link.py)"
   python3 -I scripts/res-cert/link.py "${check[@]}"
+  step "res: the monotone claim lists' table reads (scripts/res-cert/mono.py)"
+  python3 -I scripts/res-cert/mono.py "${check[@]}"
+  step "res: every sub residual in a proved family (scripts/res-cert/sub.py)"
+  python3 -I scripts/res-cert/sub.py "${check[@]}"
 }
 
 part_whir_data() {

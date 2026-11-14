@@ -22,6 +22,11 @@ public section
 theorem allocShapeOk : Bridge.allocShape Fn.«verify_tables».core.body = true := by
   decide +kernel
 
+/-- `verify_tables`'s body has its buffer hints' atoms and no `match` arm target pending. -/
+theorem curBodyOk :
+    Bridge.curBody alignCtx Fn.«verify_tables».plumb Fn.«verify_tables».core.body Fn.«verify_tables».code.code Data.adviceFn12 = true := by
+  decide +kernel
+
 /-- `verify_tables`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«verify_tables».fs Fn.«verify_tables».plumb Fn.«verify_tables».core.body Fn.«verify_tables».code.code

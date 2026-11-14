@@ -76,403 +76,403 @@ public section
 
 theorem aok301 : Bridge.AllocJ 301 :=
   Bridge.allocJ_of Checked.code301 Checked.core301 Checked.cert301 Checked.plumbEq301 Bridge.ProgAl.tab301 rfl Checked.fsEq301
-    Fn.«column_selector__L26».allocShapeOk Fn.«column_selector__L26».allocOk
+    Fn.«column_selector__L26».allocShapeOk Fn.«column_selector__L26».curBodyOk Fn.«column_selector__L26».allocOk
 
 theorem aok302 : Bridge.AllocJ 302 :=
   Bridge.allocJ_of Checked.code302 Checked.core302 Checked.cert302 Checked.plumbEq302 Bridge.ProgAl.tab302 rfl Checked.fsEq302
-    Fn.«column_selector__L27».allocShapeOk Fn.«column_selector__L27».allocOk
+    Fn.«column_selector__L27».allocShapeOk Fn.«column_selector__L27».curBodyOk Fn.«column_selector__L27».allocOk
 
 theorem aok303 : Bridge.AllocJ 303 :=
   Bridge.allocJ_of Checked.code303 Checked.core303 Checked.cert303 Checked.plumbEq303 Bridge.ProgAl.tab303 rfl Checked.fsEq303
-    Fn.«column_selector__L28».allocShapeOk Fn.«column_selector__L28».allocOk
+    Fn.«column_selector__L28».allocShapeOk Fn.«column_selector__L28».curBodyOk Fn.«column_selector__L28».allocOk
 
 theorem aok304 : Bridge.AllocJ 304 :=
   Bridge.allocJ_of Checked.code304 Checked.core304 Checked.cert304 Checked.plumbEq304 Bridge.ProgAl.tab304 rfl Checked.fsEq304
-    Fn.«column_selector__L29».allocShapeOk Fn.«column_selector__L29».allocOk
+    Fn.«column_selector__L29».allocShapeOk Fn.«column_selector__L29».curBodyOk Fn.«column_selector__L29».allocOk
 
 theorem aok305 : Bridge.AllocJ 305 :=
   Bridge.allocJ_of Checked.code305 Checked.core305 Checked.cert305 Checked.plumbEq305 Bridge.ProgAl.tab305 rfl Checked.fsEq305
-    Fn.«column_selector__L30».allocShapeOk Fn.«column_selector__L30».allocOk
+    Fn.«column_selector__L30».allocShapeOk Fn.«column_selector__L30».curBodyOk Fn.«column_selector__L30».allocOk
 
 theorem aok306 : Bridge.AllocJ 306 :=
   Bridge.allocJ_of Checked.code306 Checked.core306 Checked.cert306 Checked.plumbEq306 Bridge.ProgAl.tab306 rfl Checked.fsEq306
-    Fn.«log2_ceil_in_the_exponent__L0_L34».allocShapeOk Fn.«log2_ceil_in_the_exponent__L0_L34».allocOk
+    Fn.«log2_ceil_in_the_exponent__L0_L34».allocShapeOk Fn.«log2_ceil_in_the_exponent__L0_L34».curBodyOk Fn.«log2_ceil_in_the_exponent__L0_L34».allocOk
 
 theorem aok307 : Bridge.AllocJ 307 :=
   Bridge.allocJ_of Checked.code307 Checked.core307 Checked.cert307 Checked.plumbEq307 Bridge.ProgAl.tab307 rfl Checked.fsEq307
-    Fn.«log2_ceil_in_the_exponent__L16_L34».allocShapeOk Fn.«log2_ceil_in_the_exponent__L16_L34».allocOk
+    Fn.«log2_ceil_in_the_exponent__L16_L34».allocShapeOk Fn.«log2_ceil_in_the_exponent__L16_L34».curBodyOk Fn.«log2_ceil_in_the_exponent__L16_L34».allocOk
 
 theorem aok308 : Bridge.AllocJ 308 :=
   Bridge.allocJ_of Checked.code308 Checked.core308 Checked.cert308 Checked.plumbEq308 Bridge.ProgAl.tab308 rfl Checked.fsEq308
-    Fn.«grind_check__L15».allocShapeOk Fn.«grind_check__L15».allocOk
+    Fn.«grind_check__L15».allocShapeOk Fn.«grind_check__L15».curBodyOk Fn.«grind_check__L15».allocOk
 
 theorem aok309 : Bridge.AllocJ 309 :=
   Bridge.allocJ_of Checked.code309 Checked.core309 Checked.cert309 Checked.plumbEq309 Bridge.ProgAl.tab309 rfl Checked.fsEq309
-    Fn.«squeeze_point_from__L20».allocShapeOk Fn.«squeeze_point_from__L20».allocOk
+    Fn.«squeeze_point_from__L20».allocShapeOk Fn.«squeeze_point_from__L20».curBodyOk Fn.«squeeze_point_from__L20».allocOk
 
 theorem aok310 : Bridge.AllocJ 310 :=
   Bridge.allocJ_of Checked.code310 Checked.core310 Checked.cert310 Checked.plumbEq310 Bridge.ProgAl.tab310 rfl Checked.fsEq310
-    Fn.«squeeze_point_from__L21».allocShapeOk Fn.«squeeze_point_from__L21».allocOk
+    Fn.«squeeze_point_from__L21».allocShapeOk Fn.«squeeze_point_from__L21».curBodyOk Fn.«squeeze_point_from__L21».allocOk
 
 theorem aok311 : Bridge.AllocJ 311 :=
   Bridge.allocJ_of Checked.code311 Checked.core311 Checked.cert311 Checked.plumbEq311 Bridge.ProgAl.tab311 rfl Checked.fsEq311
-    Fn.«squeeze_point_from__L22».allocShapeOk Fn.«squeeze_point_from__L22».allocOk
+    Fn.«squeeze_point_from__L22».allocShapeOk Fn.«squeeze_point_from__L22».curBodyOk Fn.«squeeze_point_from__L22».allocOk
 
 theorem aok312 : Bridge.AllocJ 312 :=
   Bridge.allocJ_of Checked.code312 Checked.core312 Checked.cert312 Checked.plumbEq312 Bridge.ProgAl.tab312 rfl Checked.fsEq312
-    Fn.«squeeze_point_from__L23».allocShapeOk Fn.«squeeze_point_from__L23».allocOk
+    Fn.«squeeze_point_from__L23».allocShapeOk Fn.«squeeze_point_from__L23».curBodyOk Fn.«squeeze_point_from__L23».allocOk
 
 theorem aok313 : Bridge.AllocJ 313 :=
   Bridge.allocJ_of Checked.code313 Checked.core313 Checked.cert313 Checked.plumbEq313 Bridge.ProgAl.tab313 rfl Checked.fsEq313
-    Fn.«squeeze_point_from__L24».allocShapeOk Fn.«squeeze_point_from__L24».allocOk
+    Fn.«squeeze_point_from__L24».allocShapeOk Fn.«squeeze_point_from__L24».curBodyOk Fn.«squeeze_point_from__L24».allocOk
 
 theorem aok314 : Bridge.AllocJ 314 :=
   Bridge.allocJ_of Checked.code314 Checked.core314 Checked.cert314 Checked.plumbEq314 Bridge.ProgAl.tab314 rfl Checked.fsEq314
-    Fn.«squeeze_point_from__L25».allocShapeOk Fn.«squeeze_point_from__L25».allocOk
+    Fn.«squeeze_point_from__L25».allocShapeOk Fn.«squeeze_point_from__L25».curBodyOk Fn.«squeeze_point_from__L25».allocOk
 
 theorem aok315 : Bridge.AllocJ 315 :=
   Bridge.allocJ_of Checked.code315 Checked.core315 Checked.cert315 Checked.plumbEq315 Bridge.ProgAl.tab315 rfl Checked.fsEq315
-    Fn.«squeeze_point_from__L26».allocShapeOk Fn.«squeeze_point_from__L26».allocOk
+    Fn.«squeeze_point_from__L26».allocShapeOk Fn.«squeeze_point_from__L26».curBodyOk Fn.«squeeze_point_from__L26».allocOk
 
 theorem aok316 : Bridge.AllocJ 316 :=
   Bridge.allocJ_of Checked.code316 Checked.core316 Checked.cert316 Checked.plumbEq316 Bridge.ProgAl.tab316 rfl Checked.fsEq316
-    Fn.«squeeze_point_from__L27».allocShapeOk Fn.«squeeze_point_from__L27».allocOk
+    Fn.«squeeze_point_from__L27».allocShapeOk Fn.«squeeze_point_from__L27».curBodyOk Fn.«squeeze_point_from__L27».allocOk
 
 theorem aok317 : Bridge.AllocJ 317 :=
   Bridge.allocJ_of Checked.code317 Checked.core317 Checked.cert317 Checked.plumbEq317 Bridge.ProgAl.tab317 rfl Checked.fsEq317
-    Fn.«squeeze_point_from__L28».allocShapeOk Fn.«squeeze_point_from__L28».allocOk
+    Fn.«squeeze_point_from__L28».allocShapeOk Fn.«squeeze_point_from__L28».curBodyOk Fn.«squeeze_point_from__L28».allocOk
 
 theorem aok318 : Bridge.AllocJ 318 :=
   Bridge.allocJ_of Checked.code318 Checked.core318 Checked.cert318 Checked.plumbEq318 Bridge.ProgAl.tab318 rfl Checked.fsEq318
-    Fn.«squeeze_point_from__L29».allocShapeOk Fn.«squeeze_point_from__L29».allocOk
+    Fn.«squeeze_point_from__L29».allocShapeOk Fn.«squeeze_point_from__L29».curBodyOk Fn.«squeeze_point_from__L29».allocOk
 
 theorem aok319 : Bridge.AllocJ 319 :=
   Bridge.allocJ_of Checked.code319 Checked.core319 Checked.cert319 Checked.plumbEq319 Bridge.ProgAl.tab319 rfl Checked.fsEq319
-    Fn.«squeeze_point_from__L30».allocShapeOk Fn.«squeeze_point_from__L30».allocOk
+    Fn.«squeeze_point_from__L30».allocShapeOk Fn.«squeeze_point_from__L30».curBodyOk Fn.«squeeze_point_from__L30».allocOk
 
 theorem aok320 : Bridge.AllocJ 320 :=
   Bridge.allocJ_of Checked.code320 Checked.core320 Checked.cert320 Checked.plumbEq320 Bridge.ProgAl.tab320 rfl Checked.fsEq320
-    Fn.«opening_message__L1_L1».allocShapeOk Fn.«opening_message__L1_L1».allocOk
+    Fn.«opening_message__L1_L1».allocShapeOk Fn.«opening_message__L1_L1».curBodyOk Fn.«opening_message__L1_L1».allocOk
 
 theorem aok321 : Bridge.AllocJ 321 :=
   Bridge.allocJ_of Checked.code321 Checked.core321 Checked.cert321 Checked.plumbEq321 Bridge.ProgAl.tab321 rfl Checked.fsEq321
-    Fn.«bus_grind_check__L0».allocShapeOk Fn.«bus_grind_check__L0».allocOk
+    Fn.«bus_grind_check__L0».allocShapeOk Fn.«bus_grind_check__L0».curBodyOk Fn.«bus_grind_check__L0».allocOk
 
 theorem aok322 : Bridge.AllocJ 322 :=
   Bridge.allocJ_of Checked.code322 Checked.core322 Checked.cert322 Checked.plumbEq322 Bridge.ProgAl.tab322 rfl Checked.fsEq322
-    Fn.«bus_grind_check__L1».allocShapeOk Fn.«bus_grind_check__L1».allocOk
+    Fn.«bus_grind_check__L1».allocShapeOk Fn.«bus_grind_check__L1».curBodyOk Fn.«bus_grind_check__L1».allocOk
 
 theorem aok323 : Bridge.AllocJ 323 :=
   Bridge.allocJ_of Checked.code323 Checked.core323 Checked.cert323 Checked.plumbEq323 Bridge.ProgAl.tab323 rfl Checked.fsEq323
-    Fn.«bus_grind_check__L2».allocShapeOk Fn.«bus_grind_check__L2».allocOk
+    Fn.«bus_grind_check__L2».allocShapeOk Fn.«bus_grind_check__L2».curBodyOk Fn.«bus_grind_check__L2».allocOk
 
 theorem aok324 : Bridge.AllocJ 324 :=
   Bridge.allocJ_of Checked.code324 Checked.core324 Checked.cert324 Checked.plumbEq324 Bridge.ProgAl.tab324 rfl Checked.fsEq324
-    Fn.«bus_grind_check__L3».allocShapeOk Fn.«bus_grind_check__L3».allocOk
+    Fn.«bus_grind_check__L3».allocShapeOk Fn.«bus_grind_check__L3».curBodyOk Fn.«bus_grind_check__L3».allocOk
 
 theorem aok325 : Bridge.AllocJ 325 :=
   Bridge.allocJ_of Checked.code325 Checked.core325 Checked.cert325 Checked.plumbEq325 Bridge.ProgAl.tab325 rfl Checked.fsEq325
-    Fn.«bus_grind_check__L4».allocShapeOk Fn.«bus_grind_check__L4».allocOk
+    Fn.«bus_grind_check__L4».allocShapeOk Fn.«bus_grind_check__L4».curBodyOk Fn.«bus_grind_check__L4».allocOk
 
 theorem aok326 : Bridge.AllocJ 326 :=
   Bridge.allocJ_of Checked.code326 Checked.core326 Checked.cert326 Checked.plumbEq326 Bridge.ProgAl.tab326 rfl Checked.fsEq326
-    Fn.«bus_grind_check__L5».allocShapeOk Fn.«bus_grind_check__L5».allocOk
+    Fn.«bus_grind_check__L5».allocShapeOk Fn.«bus_grind_check__L5».curBodyOk Fn.«bus_grind_check__L5».allocOk
 
 theorem aok327 : Bridge.AllocJ 327 :=
   Bridge.allocJ_of Checked.code327 Checked.core327 Checked.cert327 Checked.plumbEq327 Bridge.ProgAl.tab327 rfl Checked.fsEq327
-    Fn.«bus_grind_check__L6».allocShapeOk Fn.«bus_grind_check__L6».allocOk
+    Fn.«bus_grind_check__L6».allocShapeOk Fn.«bus_grind_check__L6».curBodyOk Fn.«bus_grind_check__L6».allocOk
 
 theorem aok328 : Bridge.AllocJ 328 :=
   Bridge.allocJ_of Checked.code328 Checked.core328 Checked.cert328 Checked.plumbEq328 Bridge.ProgAl.tab328 rfl Checked.fsEq328
-    Fn.«bus_grind_check__L7».allocShapeOk Fn.«bus_grind_check__L7».allocOk
+    Fn.«bus_grind_check__L7».allocShapeOk Fn.«bus_grind_check__L7».curBodyOk Fn.«bus_grind_check__L7».allocOk
 
 theorem aok329 : Bridge.AllocJ 329 :=
   Bridge.allocJ_of Checked.code329 Checked.core329 Checked.cert329 Checked.plumbEq329 Bridge.ProgAl.tab329 rfl Checked.fsEq329
-    Fn.«bus_grind_check__L8».allocShapeOk Fn.«bus_grind_check__L8».allocOk
+    Fn.«bus_grind_check__L8».allocShapeOk Fn.«bus_grind_check__L8».curBodyOk Fn.«bus_grind_check__L8».allocOk
 
 theorem aok330 : Bridge.AllocJ 330 :=
   Bridge.allocJ_of Checked.code330 Checked.core330 Checked.cert330 Checked.plumbEq330 Bridge.ProgAl.tab330 rfl Checked.fsEq330
-    Fn.«bus_grind_check__L9».allocShapeOk Fn.«bus_grind_check__L9».allocOk
+    Fn.«bus_grind_check__L9».allocShapeOk Fn.«bus_grind_check__L9».curBodyOk Fn.«bus_grind_check__L9».allocOk
 
 theorem aok331 : Bridge.AllocJ 331 :=
   Bridge.allocJ_of Checked.code331 Checked.core331 Checked.cert331 Checked.plumbEq331 Bridge.ProgAl.tab331 rfl Checked.fsEq331
-    Fn.«bus_grind_check__L10».allocShapeOk Fn.«bus_grind_check__L10».allocOk
+    Fn.«bus_grind_check__L10».allocShapeOk Fn.«bus_grind_check__L10».curBodyOk Fn.«bus_grind_check__L10».allocOk
 
 theorem aok332 : Bridge.AllocJ 332 :=
   Bridge.allocJ_of Checked.code332 Checked.core332 Checked.cert332 Checked.plumbEq332 Bridge.ProgAl.tab332 rfl Checked.fsEq332
-    Fn.«bus_grind_check__L11».allocShapeOk Fn.«bus_grind_check__L11».allocOk
+    Fn.«bus_grind_check__L11».allocShapeOk Fn.«bus_grind_check__L11».curBodyOk Fn.«bus_grind_check__L11».allocOk
 
 theorem aok333 : Bridge.AllocJ 333 :=
   Bridge.allocJ_of Checked.code333 Checked.core333 Checked.cert333 Checked.plumbEq333 Bridge.ProgAl.tab333 rfl Checked.fsEq333
-    Fn.«bus_grind_check__L12».allocShapeOk Fn.«bus_grind_check__L12».allocOk
+    Fn.«bus_grind_check__L12».allocShapeOk Fn.«bus_grind_check__L12».curBodyOk Fn.«bus_grind_check__L12».allocOk
 
 theorem aok334 : Bridge.AllocJ 334 :=
   Bridge.allocJ_of Checked.code334 Checked.core334 Checked.cert334 Checked.plumbEq334 Bridge.ProgAl.tab334 rfl Checked.fsEq334
-    Fn.«bus_grind_check__L13».allocShapeOk Fn.«bus_grind_check__L13».allocOk
+    Fn.«bus_grind_check__L13».allocShapeOk Fn.«bus_grind_check__L13».curBodyOk Fn.«bus_grind_check__L13».allocOk
 
 theorem aok335 : Bridge.AllocJ 335 :=
   Bridge.allocJ_of Checked.code335 Checked.core335 Checked.cert335 Checked.plumbEq335 Bridge.ProgAl.tab335 rfl Checked.fsEq335
-    Fn.«grind_check__L13».allocShapeOk Fn.«grind_check__L13».allocOk
+    Fn.«grind_check__L13».allocShapeOk Fn.«grind_check__L13».curBodyOk Fn.«grind_check__L13».allocOk
 
 theorem aok336 : Bridge.AllocJ 336 :=
   Bridge.allocJ_of Checked.code336 Checked.core336 Checked.cert336 Checked.plumbEq336 Bridge.ProgAl.tab336 rfl Checked.fsEq336
-    Fn.«open_stacked__L0».allocShapeOk Fn.«open_stacked__L0».allocOk
+    Fn.«open_stacked__L0».allocShapeOk Fn.«open_stacked__L0».curBodyOk Fn.«open_stacked__L0».allocOk
 
 theorem aok337 : Bridge.AllocJ 337 :=
   Bridge.allocJ_of Checked.code337 Checked.core337 Checked.cert337 Checked.plumbEq337 Bridge.ProgAl.tab337 rfl Checked.fsEq337
-    Fn.«open_stacked__L1».allocShapeOk Fn.«open_stacked__L1».allocOk
+    Fn.«open_stacked__L1».allocShapeOk Fn.«open_stacked__L1».curBodyOk Fn.«open_stacked__L1».allocOk
 
 theorem aok338 : Bridge.AllocJ 338 :=
   Bridge.allocJ_of Checked.code338 Checked.core338 Checked.cert338 Checked.plumbEq338 Bridge.ProgAl.tab338 rfl Checked.fsEq338
-    Fn.«open_stacked__L2».allocShapeOk Fn.«open_stacked__L2».allocOk
+    Fn.«open_stacked__L2».allocShapeOk Fn.«open_stacked__L2».curBodyOk Fn.«open_stacked__L2».allocOk
 
 theorem aok339 : Bridge.AllocJ 339 :=
   Bridge.allocJ_of Checked.code339 Checked.core339 Checked.cert339 Checked.plumbEq339 Bridge.ProgAl.tab339 rfl Checked.fsEq339
-    Fn.«open_stacked__L3».allocShapeOk Fn.«open_stacked__L3».allocOk
+    Fn.«open_stacked__L3».allocShapeOk Fn.«open_stacked__L3».curBodyOk Fn.«open_stacked__L3».allocOk
 
 theorem aok340 : Bridge.AllocJ 340 :=
   Bridge.allocJ_of Checked.code340 Checked.core340 Checked.cert340 Checked.plumbEq340 Bridge.ProgAl.tab340 rfl Checked.fsEq340
-    Fn.«open_stacked__L4».allocShapeOk Fn.«open_stacked__L4».allocOk
+    Fn.«open_stacked__L4».allocShapeOk Fn.«open_stacked__L4».curBodyOk Fn.«open_stacked__L4».allocOk
 
 theorem aok341 : Bridge.AllocJ 341 :=
   Bridge.allocJ_of Checked.code341 Checked.core341 Checked.cert341 Checked.plumbEq341 Bridge.ProgAl.tab341 rfl Checked.fsEq341
-    Fn.«open_stacked__L5».allocShapeOk Fn.«open_stacked__L5».allocOk
+    Fn.«open_stacked__L5».allocShapeOk Fn.«open_stacked__L5».curBodyOk Fn.«open_stacked__L5».allocOk
 
 theorem aok342 : Bridge.AllocJ 342 :=
   Bridge.allocJ_of Checked.code342 Checked.core342 Checked.cert342 Checked.plumbEq342 Bridge.ProgAl.tab342 rfl Checked.fsEq342
-    Fn.«open_stacked__L6».allocShapeOk Fn.«open_stacked__L6».allocOk
+    Fn.«open_stacked__L6».allocShapeOk Fn.«open_stacked__L6».curBodyOk Fn.«open_stacked__L6».allocOk
 
 theorem aok343 : Bridge.AllocJ 343 :=
   Bridge.allocJ_of Checked.code343 Checked.core343 Checked.cert343 Checked.plumbEq343 Bridge.ProgAl.tab343 rfl Checked.fsEq343
-    Fn.«open_stacked__L7».allocShapeOk Fn.«open_stacked__L7».allocOk
+    Fn.«open_stacked__L7».allocShapeOk Fn.«open_stacked__L7».curBodyOk Fn.«open_stacked__L7».allocOk
 
 theorem aok344 : Bridge.AllocJ 344 :=
   Bridge.allocJ_of Checked.code344 Checked.core344 Checked.cert344 Checked.plumbEq344 Bridge.ProgAl.tab344 rfl Checked.fsEq344
-    Fn.«open_stacked__L8».allocShapeOk Fn.«open_stacked__L8».allocOk
+    Fn.«open_stacked__L8».allocShapeOk Fn.«open_stacked__L8».curBodyOk Fn.«open_stacked__L8».allocOk
 
 theorem aok345 : Bridge.AllocJ 345 :=
   Bridge.allocJ_of Checked.code345 Checked.core345 Checked.cert345 Checked.plumbEq345 Bridge.ProgAl.tab345 rfl Checked.fsEq345
-    Fn.«open_stacked__L9».allocShapeOk Fn.«open_stacked__L9».allocOk
+    Fn.«open_stacked__L9».allocShapeOk Fn.«open_stacked__L9».curBodyOk Fn.«open_stacked__L9».allocOk
 
 theorem aok346 : Bridge.AllocJ 346 :=
   Bridge.allocJ_of Checked.code346 Checked.core346 Checked.cert346 Checked.plumbEq346 Bridge.ProgAl.tab346 rfl Checked.fsEq346
-    Fn.«open_stacked__L10».allocShapeOk Fn.«open_stacked__L10».allocOk
+    Fn.«open_stacked__L10».allocShapeOk Fn.«open_stacked__L10».curBodyOk Fn.«open_stacked__L10».allocOk
 
 theorem aok347 : Bridge.AllocJ 347 :=
   Bridge.allocJ_of Checked.code347 Checked.core347 Checked.cert347 Checked.plumbEq347 Bridge.ProgAl.tab347 rfl Checked.fsEq347
-    Fn.«claim_list_digest_loop0».allocShapeOk Fn.«claim_list_digest_loop0».allocOk
+    Fn.«claim_list_digest_loop0».allocShapeOk Fn.«claim_list_digest_loop0».curBodyOk Fn.«claim_list_digest_loop0».allocOk
 
 theorem aok348 : Bridge.AllocJ 348 :=
   Bridge.allocJ_of Checked.code348 Checked.core348 Checked.cert348 Checked.plumbEq348 Bridge.ProgAl.tab348 rfl Checked.fsEq348
-    Fn.«claim_list_digest_loop1».allocShapeOk Fn.«claim_list_digest_loop1».allocOk
+    Fn.«claim_list_digest_loop1».allocShapeOk Fn.«claim_list_digest_loop1».curBodyOk Fn.«claim_list_digest_loop1».allocOk
 
 theorem aok349 : Bridge.AllocJ 349 :=
   Bridge.allocJ_of Checked.code349 Checked.core349 Checked.cert349 Checked.plumbEq349 Bridge.ProgAl.tab349 rfl Checked.fsEq349
-    Fn.«claim_list_last__L0».allocShapeOk Fn.«claim_list_last__L0».allocOk
+    Fn.«claim_list_last__L0».allocShapeOk Fn.«claim_list_last__L0».curBodyOk Fn.«claim_list_last__L0».allocOk
 
 theorem aok350 : Bridge.AllocJ 350 :=
   Bridge.allocJ_of Checked.code350 Checked.core350 Checked.cert350 Checked.plumbEq350 Bridge.ProgAl.tab350 rfl Checked.fsEq350
-    Fn.«claim_list_last__L1».allocShapeOk Fn.«claim_list_last__L1».allocOk
+    Fn.«claim_list_last__L1».allocShapeOk Fn.«claim_list_last__L1».curBodyOk Fn.«claim_list_last__L1».allocOk
 
 theorem aok351 : Bridge.AllocJ 351 :=
   Bridge.allocJ_of Checked.code351 Checked.core351 Checked.cert351 Checked.plumbEq351 Bridge.ProgAl.tab351 rfl Checked.fsEq351
-    Fn.«claim_list_last__L2».allocShapeOk Fn.«claim_list_last__L2».allocOk
+    Fn.«claim_list_last__L2».allocShapeOk Fn.«claim_list_last__L2».curBodyOk Fn.«claim_list_last__L2».allocOk
 
 theorem aok352 : Bridge.AllocJ 352 :=
   Bridge.allocJ_of Checked.code352 Checked.core352 Checked.cert352 Checked.plumbEq352 Bridge.ProgAl.tab352 rfl Checked.fsEq352
-    Fn.«claim_list_last__L3».allocShapeOk Fn.«claim_list_last__L3».allocOk
+    Fn.«claim_list_last__L3».allocShapeOk Fn.«claim_list_last__L3».curBodyOk Fn.«claim_list_last__L3».allocOk
 
 theorem aok353 : Bridge.AllocJ 353 :=
   Bridge.allocJ_of Checked.code353 Checked.core353 Checked.cert353 Checked.plumbEq353 Bridge.ProgAl.tab353 rfl Checked.fsEq353
-    Fn.«claim_list_last__L4».allocShapeOk Fn.«claim_list_last__L4».allocOk
+    Fn.«claim_list_last__L4».allocShapeOk Fn.«claim_list_last__L4».curBodyOk Fn.«claim_list_last__L4».allocOk
 
 theorem aok354 : Bridge.AllocJ 354 :=
   Bridge.allocJ_of Checked.code354 Checked.core354 Checked.cert354 Checked.plumbEq354 Bridge.ProgAl.tab354 rfl Checked.fsEq354
-    Fn.«claim_list_last__L5».allocShapeOk Fn.«claim_list_last__L5».allocOk
+    Fn.«claim_list_last__L5».allocShapeOk Fn.«claim_list_last__L5».curBodyOk Fn.«claim_list_last__L5».allocOk
 
 theorem aok355 : Bridge.AllocJ 355 :=
   Bridge.allocJ_of Checked.code355 Checked.core355 Checked.cert355 Checked.plumbEq355 Bridge.ProgAl.tab355 rfl Checked.fsEq355
-    Fn.«claim_list_last__L6».allocShapeOk Fn.«claim_list_last__L6».allocOk
+    Fn.«claim_list_last__L6».allocShapeOk Fn.«claim_list_last__L6».curBodyOk Fn.«claim_list_last__L6».allocOk
 
 theorem aok356 : Bridge.AllocJ 356 :=
   Bridge.allocJ_of Checked.code356 Checked.core356 Checked.cert356 Checked.plumbEq356 Bridge.ProgAl.tab356 rfl Checked.fsEq356
-    Fn.«claim_list_last__L7».allocShapeOk Fn.«claim_list_last__L7».allocOk
+    Fn.«claim_list_last__L7».allocShapeOk Fn.«claim_list_last__L7».curBodyOk Fn.«claim_list_last__L7».allocOk
 
 theorem aok357 : Bridge.AllocJ 357 :=
   Bridge.allocJ_of Checked.code357 Checked.core357 Checked.cert357 Checked.plumbEq357 Bridge.ProgAl.tab357 rfl Checked.fsEq357
-    Fn.«claim_list_last__L8».allocShapeOk Fn.«claim_list_last__L8».allocOk
+    Fn.«claim_list_last__L8».allocShapeOk Fn.«claim_list_last__L8».curBodyOk Fn.«claim_list_last__L8».allocOk
 
 theorem aok358 : Bridge.AllocJ 358 :=
   Bridge.allocJ_of Checked.code358 Checked.core358 Checked.cert358 Checked.plumbEq358 Bridge.ProgAl.tab358 rfl Checked.fsEq358
-    Fn.«claim_list_last__L9».allocShapeOk Fn.«claim_list_last__L9».allocOk
+    Fn.«claim_list_last__L9».allocShapeOk Fn.«claim_list_last__L9».curBodyOk Fn.«claim_list_last__L9».allocOk
 
 theorem aok359 : Bridge.AllocJ 359 :=
   Bridge.allocJ_of Checked.code359 Checked.core359 Checked.cert359 Checked.plumbEq359 Bridge.ProgAl.tab359 rfl Checked.fsEq359
-    Fn.«claim_list_last__L10».allocShapeOk Fn.«claim_list_last__L10».allocOk
+    Fn.«claim_list_last__L10».allocShapeOk Fn.«claim_list_last__L10».curBodyOk Fn.«claim_list_last__L10».allocOk
 
 theorem aok360 : Bridge.AllocJ 360 :=
   Bridge.allocJ_of Checked.code360 Checked.core360 Checked.cert360 Checked.plumbEq360 Bridge.ProgAl.tab360 rfl Checked.fsEq360
-    Fn.«claim_list_last__L11».allocShapeOk Fn.«claim_list_last__L11».allocOk
+    Fn.«claim_list_last__L11».allocShapeOk Fn.«claim_list_last__L11».curBodyOk Fn.«claim_list_last__L11».allocOk
 
 theorem aok361 : Bridge.AllocJ 361 :=
   Bridge.allocJ_of Checked.code361 Checked.core361 Checked.cert361 Checked.plumbEq361 Bridge.ProgAl.tab361 rfl Checked.fsEq361
-    Fn.«claim_list_last__L12».allocShapeOk Fn.«claim_list_last__L12».allocOk
+    Fn.«claim_list_last__L12».allocShapeOk Fn.«claim_list_last__L12».curBodyOk Fn.«claim_list_last__L12».allocOk
 
 theorem aok362 : Bridge.AllocJ 362 :=
   Bridge.allocJ_of Checked.code362 Checked.core362 Checked.cert362 Checked.plumbEq362 Bridge.ProgAl.tab362 rfl Checked.fsEq362
-    Fn.«claim_list_last__L13».allocShapeOk Fn.«claim_list_last__L13».allocOk
+    Fn.«claim_list_last__L13».allocShapeOk Fn.«claim_list_last__L13».curBodyOk Fn.«claim_list_last__L13».allocOk
 
 theorem aok363 : Bridge.AllocJ 363 :=
   Bridge.allocJ_of Checked.code363 Checked.core363 Checked.cert363 Checked.plumbEq363 Bridge.ProgAl.tab363 rfl Checked.fsEq363
-    Fn.«claim_list_last__L14».allocShapeOk Fn.«claim_list_last__L14».allocOk
+    Fn.«claim_list_last__L14».allocShapeOk Fn.«claim_list_last__L14».curBodyOk Fn.«claim_list_last__L14».allocOk
 
 theorem aok364 : Bridge.AllocJ 364 :=
   Bridge.allocJ_of Checked.code364 Checked.core364 Checked.cert364 Checked.plumbEq364 Bridge.ProgAl.tab364 rfl Checked.fsEq364
-    Fn.«claim_list_last__L15».allocShapeOk Fn.«claim_list_last__L15».allocOk
+    Fn.«claim_list_last__L15».allocShapeOk Fn.«claim_list_last__L15».curBodyOk Fn.«claim_list_last__L15».allocOk
 
 theorem aok365 : Bridge.AllocJ 365 :=
   Bridge.allocJ_of Checked.code365 Checked.core365 Checked.cert365 Checked.plumbEq365 Bridge.ProgAl.tab365 rfl Checked.fsEq365
-    Fn.«claim_list_last__L16».allocShapeOk Fn.«claim_list_last__L16».allocOk
+    Fn.«claim_list_last__L16».allocShapeOk Fn.«claim_list_last__L16».curBodyOk Fn.«claim_list_last__L16».allocOk
 
 theorem aok366 : Bridge.AllocJ 366 :=
   Bridge.allocJ_of Checked.code366 Checked.core366 Checked.cert366 Checked.plumbEq366 Bridge.ProgAl.tab366 rfl Checked.fsEq366
-    Fn.«child_claim_list_any_loop0».allocShapeOk Fn.«child_claim_list_any_loop0».allocOk
+    Fn.«child_claim_list_any_loop0».allocShapeOk Fn.«child_claim_list_any_loop0».curBodyOk Fn.«child_claim_list_any_loop0».allocOk
 
 theorem aok367 : Bridge.AllocJ 367 :=
   Bridge.allocJ_of Checked.code367 Checked.core367 Checked.cert367 Checked.plumbEq367 Bridge.ProgAl.tab367 rfl Checked.fsEq367
-    Fn.«child_claim_list_any_loop1».allocShapeOk Fn.«child_claim_list_any_loop1».allocOk
+    Fn.«child_claim_list_any_loop1».allocShapeOk Fn.«child_claim_list_any_loop1».curBodyOk Fn.«child_claim_list_any_loop1».allocOk
 
 theorem aok368 : Bridge.AllocJ 368 :=
   Bridge.allocJ_of Checked.code368 Checked.core368 Checked.cert368 Checked.plumbEq368 Bridge.ProgAl.tab368 rfl Checked.fsEq368
-    Fn.«child_claim_list_last__L0».allocShapeOk Fn.«child_claim_list_last__L0».allocOk
+    Fn.«child_claim_list_last__L0».allocShapeOk Fn.«child_claim_list_last__L0».curBodyOk Fn.«child_claim_list_last__L0».allocOk
 
 theorem aok369 : Bridge.AllocJ 369 :=
   Bridge.allocJ_of Checked.code369 Checked.core369 Checked.cert369 Checked.plumbEq369 Bridge.ProgAl.tab369 rfl Checked.fsEq369
-    Fn.«child_claim_list_last__L1».allocShapeOk Fn.«child_claim_list_last__L1».allocOk
+    Fn.«child_claim_list_last__L1».allocShapeOk Fn.«child_claim_list_last__L1».curBodyOk Fn.«child_claim_list_last__L1».allocOk
 
 theorem aok370 : Bridge.AllocJ 370 :=
   Bridge.allocJ_of Checked.code370 Checked.core370 Checked.cert370 Checked.plumbEq370 Bridge.ProgAl.tab370 rfl Checked.fsEq370
-    Fn.«child_claim_list_last__L2».allocShapeOk Fn.«child_claim_list_last__L2».allocOk
+    Fn.«child_claim_list_last__L2».allocShapeOk Fn.«child_claim_list_last__L2».curBodyOk Fn.«child_claim_list_last__L2».allocOk
 
 theorem aok371 : Bridge.AllocJ 371 :=
   Bridge.allocJ_of Checked.code371 Checked.core371 Checked.cert371 Checked.plumbEq371 Bridge.ProgAl.tab371 rfl Checked.fsEq371
-    Fn.«child_claim_list_last__L3».allocShapeOk Fn.«child_claim_list_last__L3».allocOk
+    Fn.«child_claim_list_last__L3».allocShapeOk Fn.«child_claim_list_last__L3».curBodyOk Fn.«child_claim_list_last__L3».allocOk
 
 theorem aok372 : Bridge.AllocJ 372 :=
   Bridge.allocJ_of Checked.code372 Checked.core372 Checked.cert372 Checked.plumbEq372 Bridge.ProgAl.tab372 rfl Checked.fsEq372
-    Fn.«child_claim_list_last__L4».allocShapeOk Fn.«child_claim_list_last__L4».allocOk
+    Fn.«child_claim_list_last__L4».allocShapeOk Fn.«child_claim_list_last__L4».curBodyOk Fn.«child_claim_list_last__L4».allocOk
 
 theorem aok373 : Bridge.AllocJ 373 :=
   Bridge.allocJ_of Checked.code373 Checked.core373 Checked.cert373 Checked.plumbEq373 Bridge.ProgAl.tab373 rfl Checked.fsEq373
-    Fn.«child_claim_list_last__L5».allocShapeOk Fn.«child_claim_list_last__L5».allocOk
+    Fn.«child_claim_list_last__L5».allocShapeOk Fn.«child_claim_list_last__L5».curBodyOk Fn.«child_claim_list_last__L5».allocOk
 
 theorem aok374 : Bridge.AllocJ 374 :=
   Bridge.allocJ_of Checked.code374 Checked.core374 Checked.cert374 Checked.plumbEq374 Bridge.ProgAl.tab374 rfl Checked.fsEq374
-    Fn.«child_claim_list_last__L6».allocShapeOk Fn.«child_claim_list_last__L6».allocOk
+    Fn.«child_claim_list_last__L6».allocShapeOk Fn.«child_claim_list_last__L6».curBodyOk Fn.«child_claim_list_last__L6».allocOk
 
 theorem aok375 : Bridge.AllocJ 375 :=
   Bridge.allocJ_of Checked.code375 Checked.core375 Checked.cert375 Checked.plumbEq375 Bridge.ProgAl.tab375 rfl Checked.fsEq375
-    Fn.«child_claim_list_last__L7».allocShapeOk Fn.«child_claim_list_last__L7».allocOk
+    Fn.«child_claim_list_last__L7».allocShapeOk Fn.«child_claim_list_last__L7».curBodyOk Fn.«child_claim_list_last__L7».allocOk
 
 theorem aok376 : Bridge.AllocJ 376 :=
   Bridge.allocJ_of Checked.code376 Checked.core376 Checked.cert376 Checked.plumbEq376 Bridge.ProgAl.tab376 rfl Checked.fsEq376
-    Fn.«child_claim_list_last__L8».allocShapeOk Fn.«child_claim_list_last__L8».allocOk
+    Fn.«child_claim_list_last__L8».allocShapeOk Fn.«child_claim_list_last__L8».curBodyOk Fn.«child_claim_list_last__L8».allocOk
 
 theorem aok377 : Bridge.AllocJ 377 :=
   Bridge.allocJ_of Checked.code377 Checked.core377 Checked.cert377 Checked.plumbEq377 Bridge.ProgAl.tab377 rfl Checked.fsEq377
-    Fn.«child_claim_list_last__L9».allocShapeOk Fn.«child_claim_list_last__L9».allocOk
+    Fn.«child_claim_list_last__L9».allocShapeOk Fn.«child_claim_list_last__L9».curBodyOk Fn.«child_claim_list_last__L9».allocOk
 
 theorem aok378 : Bridge.AllocJ 378 :=
   Bridge.allocJ_of Checked.code378 Checked.core378 Checked.cert378 Checked.plumbEq378 Bridge.ProgAl.tab378 rfl Checked.fsEq378
-    Fn.«child_claim_list_last__L10».allocShapeOk Fn.«child_claim_list_last__L10».allocOk
+    Fn.«child_claim_list_last__L10».allocShapeOk Fn.«child_claim_list_last__L10».curBodyOk Fn.«child_claim_list_last__L10».allocOk
 
 theorem aok379 : Bridge.AllocJ 379 :=
   Bridge.allocJ_of Checked.code379 Checked.core379 Checked.cert379 Checked.plumbEq379 Bridge.ProgAl.tab379 rfl Checked.fsEq379
-    Fn.«child_claim_list_last__L11».allocShapeOk Fn.«child_claim_list_last__L11».allocOk
+    Fn.«child_claim_list_last__L11».allocShapeOk Fn.«child_claim_list_last__L11».curBodyOk Fn.«child_claim_list_last__L11».allocOk
 
 theorem aok380 : Bridge.AllocJ 380 :=
   Bridge.allocJ_of Checked.code380 Checked.core380 Checked.cert380 Checked.plumbEq380 Bridge.ProgAl.tab380 rfl Checked.fsEq380
-    Fn.«child_claim_list_last__L12».allocShapeOk Fn.«child_claim_list_last__L12».allocOk
+    Fn.«child_claim_list_last__L12».allocShapeOk Fn.«child_claim_list_last__L12».curBodyOk Fn.«child_claim_list_last__L12».allocOk
 
 theorem aok381 : Bridge.AllocJ 381 :=
   Bridge.allocJ_of Checked.code381 Checked.core381 Checked.cert381 Checked.plumbEq381 Bridge.ProgAl.tab381 rfl Checked.fsEq381
-    Fn.«child_claim_list_last__L13».allocShapeOk Fn.«child_claim_list_last__L13».allocOk
+    Fn.«child_claim_list_last__L13».allocShapeOk Fn.«child_claim_list_last__L13».curBodyOk Fn.«child_claim_list_last__L13».allocOk
 
 theorem aok382 : Bridge.AllocJ 382 :=
   Bridge.allocJ_of Checked.code382 Checked.core382 Checked.cert382 Checked.plumbEq382 Bridge.ProgAl.tab382 rfl Checked.fsEq382
-    Fn.«child_claim_list_last__L14».allocShapeOk Fn.«child_claim_list_last__L14».allocOk
+    Fn.«child_claim_list_last__L14».allocShapeOk Fn.«child_claim_list_last__L14».curBodyOk Fn.«child_claim_list_last__L14».allocOk
 
 theorem aok383 : Bridge.AllocJ 383 :=
   Bridge.allocJ_of Checked.code383 Checked.core383 Checked.cert383 Checked.plumbEq383 Bridge.ProgAl.tab383 rfl Checked.fsEq383
-    Fn.«child_claim_list_last__L15».allocShapeOk Fn.«child_claim_list_last__L15».allocOk
+    Fn.«child_claim_list_last__L15».allocShapeOk Fn.«child_claim_list_last__L15».curBodyOk Fn.«child_claim_list_last__L15».allocOk
 
 theorem aok384 : Bridge.AllocJ 384 :=
   Bridge.allocJ_of Checked.code384 Checked.core384 Checked.cert384 Checked.plumbEq384 Bridge.ProgAl.tab384 rfl Checked.fsEq384
-    Fn.«child_claim_list_last__L16».allocShapeOk Fn.«child_claim_list_last__L16».allocOk
+    Fn.«child_claim_list_last__L16».allocShapeOk Fn.«child_claim_list_last__L16».curBodyOk Fn.«child_claim_list_last__L16».allocOk
 
 theorem aok385 : Bridge.AllocJ 385 :=
   Bridge.allocJ_of Checked.code385 Checked.core385 Checked.cert385 Checked.plumbEq385 Bridge.ProgAl.tab385 rfl Checked.fsEq385
-    Fn.«child_claim_list_mono_loop0».allocShapeOk Fn.«child_claim_list_mono_loop0».allocOk
+    Fn.«child_claim_list_mono_loop0».allocShapeOk Fn.«child_claim_list_mono_loop0».curBodyOk Fn.«child_claim_list_mono_loop0».allocOk
 
 theorem aok386 : Bridge.AllocJ 386 :=
   Bridge.allocJ_of Checked.code386 Checked.core386 Checked.cert386 Checked.plumbEq386 Bridge.ProgAl.tab386 rfl Checked.fsEq386
-    Fn.«child_claim_list_mono_loop1».allocShapeOk Fn.«child_claim_list_mono_loop1».allocOk
+    Fn.«child_claim_list_mono_loop1».allocShapeOk Fn.«child_claim_list_mono_loop1».curBodyOk Fn.«child_claim_list_mono_loop1».allocOk
 
 theorem aok387 : Bridge.AllocJ 387 :=
   Bridge.allocJ_of Checked.code387 Checked.core387 Checked.cert387 Checked.plumbEq387 Bridge.ProgAl.tab387 rfl Checked.fsEq387
-    Fn.«child_claim_list_mono_last__L0».allocShapeOk Fn.«child_claim_list_mono_last__L0».allocOk
+    Fn.«child_claim_list_mono_last__L0».allocShapeOk Fn.«child_claim_list_mono_last__L0».curBodyOk Fn.«child_claim_list_mono_last__L0».allocOk
 
 theorem aok388 : Bridge.AllocJ 388 :=
   Bridge.allocJ_of Checked.code388 Checked.core388 Checked.cert388 Checked.plumbEq388 Bridge.ProgAl.tab388 rfl Checked.fsEq388
-    Fn.«child_claim_list_mono_last__L1».allocShapeOk Fn.«child_claim_list_mono_last__L1».allocOk
+    Fn.«child_claim_list_mono_last__L1».allocShapeOk Fn.«child_claim_list_mono_last__L1».curBodyOk Fn.«child_claim_list_mono_last__L1».allocOk
 
 theorem aok389 : Bridge.AllocJ 389 :=
   Bridge.allocJ_of Checked.code389 Checked.core389 Checked.cert389 Checked.plumbEq389 Bridge.ProgAl.tab389 rfl Checked.fsEq389
-    Fn.«child_claim_list_mono_last__L2».allocShapeOk Fn.«child_claim_list_mono_last__L2».allocOk
+    Fn.«child_claim_list_mono_last__L2».allocShapeOk Fn.«child_claim_list_mono_last__L2».curBodyOk Fn.«child_claim_list_mono_last__L2».allocOk
 
 theorem aok390 : Bridge.AllocJ 390 :=
   Bridge.allocJ_of Checked.code390 Checked.core390 Checked.cert390 Checked.plumbEq390 Bridge.ProgAl.tab390 rfl Checked.fsEq390
-    Fn.«child_claim_list_mono_last__L3».allocShapeOk Fn.«child_claim_list_mono_last__L3».allocOk
+    Fn.«child_claim_list_mono_last__L3».allocShapeOk Fn.«child_claim_list_mono_last__L3».curBodyOk Fn.«child_claim_list_mono_last__L3».allocOk
 
 theorem aok391 : Bridge.AllocJ 391 :=
   Bridge.allocJ_of Checked.code391 Checked.core391 Checked.cert391 Checked.plumbEq391 Bridge.ProgAl.tab391 rfl Checked.fsEq391
-    Fn.«child_claim_list_mono_last__L4».allocShapeOk Fn.«child_claim_list_mono_last__L4».allocOk
+    Fn.«child_claim_list_mono_last__L4».allocShapeOk Fn.«child_claim_list_mono_last__L4».curBodyOk Fn.«child_claim_list_mono_last__L4».allocOk
 
 theorem aok392 : Bridge.AllocJ 392 :=
   Bridge.allocJ_of Checked.code392 Checked.core392 Checked.cert392 Checked.plumbEq392 Bridge.ProgAl.tab392 rfl Checked.fsEq392
-    Fn.«child_claim_list_mono_last__L5».allocShapeOk Fn.«child_claim_list_mono_last__L5».allocOk
+    Fn.«child_claim_list_mono_last__L5».allocShapeOk Fn.«child_claim_list_mono_last__L5».curBodyOk Fn.«child_claim_list_mono_last__L5».allocOk
 
 theorem aok393 : Bridge.AllocJ 393 :=
   Bridge.allocJ_of Checked.code393 Checked.core393 Checked.cert393 Checked.plumbEq393 Bridge.ProgAl.tab393 rfl Checked.fsEq393
-    Fn.«child_claim_list_mono_last__L6».allocShapeOk Fn.«child_claim_list_mono_last__L6».allocOk
+    Fn.«child_claim_list_mono_last__L6».allocShapeOk Fn.«child_claim_list_mono_last__L6».curBodyOk Fn.«child_claim_list_mono_last__L6».allocOk
 
 theorem aok394 : Bridge.AllocJ 394 :=
   Bridge.allocJ_of Checked.code394 Checked.core394 Checked.cert394 Checked.plumbEq394 Bridge.ProgAl.tab394 rfl Checked.fsEq394
-    Fn.«child_claim_list_mono_last__L7».allocShapeOk Fn.«child_claim_list_mono_last__L7».allocOk
+    Fn.«child_claim_list_mono_last__L7».allocShapeOk Fn.«child_claim_list_mono_last__L7».curBodyOk Fn.«child_claim_list_mono_last__L7».allocOk
 
 theorem aok395 : Bridge.AllocJ 395 :=
   Bridge.allocJ_of Checked.code395 Checked.core395 Checked.cert395 Checked.plumbEq395 Bridge.ProgAl.tab395 rfl Checked.fsEq395
-    Fn.«child_claim_list_mono_last__L8».allocShapeOk Fn.«child_claim_list_mono_last__L8».allocOk
+    Fn.«child_claim_list_mono_last__L8».allocShapeOk Fn.«child_claim_list_mono_last__L8».curBodyOk Fn.«child_claim_list_mono_last__L8».allocOk
 
 theorem aok396 : Bridge.AllocJ 396 :=
   Bridge.allocJ_of Checked.code396 Checked.core396 Checked.cert396 Checked.plumbEq396 Bridge.ProgAl.tab396 rfl Checked.fsEq396
-    Fn.«child_claim_list_mono_last__L9».allocShapeOk Fn.«child_claim_list_mono_last__L9».allocOk
+    Fn.«child_claim_list_mono_last__L9».allocShapeOk Fn.«child_claim_list_mono_last__L9».curBodyOk Fn.«child_claim_list_mono_last__L9».allocOk
 
 theorem aok397 : Bridge.AllocJ 397 :=
   Bridge.allocJ_of Checked.code397 Checked.core397 Checked.cert397 Checked.plumbEq397 Bridge.ProgAl.tab397 rfl Checked.fsEq397
-    Fn.«child_claim_list_mono_last__L10».allocShapeOk Fn.«child_claim_list_mono_last__L10».allocOk
+    Fn.«child_claim_list_mono_last__L10».allocShapeOk Fn.«child_claim_list_mono_last__L10».curBodyOk Fn.«child_claim_list_mono_last__L10».allocOk
 
 theorem aok398 : Bridge.AllocJ 398 :=
   Bridge.allocJ_of Checked.code398 Checked.core398 Checked.cert398 Checked.plumbEq398 Bridge.ProgAl.tab398 rfl Checked.fsEq398
-    Fn.«child_claim_list_mono_last__L11».allocShapeOk Fn.«child_claim_list_mono_last__L11».allocOk
+    Fn.«child_claim_list_mono_last__L11».allocShapeOk Fn.«child_claim_list_mono_last__L11».curBodyOk Fn.«child_claim_list_mono_last__L11».allocOk
 
 theorem aok399 : Bridge.AllocJ 399 :=
   Bridge.allocJ_of Checked.code399 Checked.core399 Checked.cert399 Checked.plumbEq399 Bridge.ProgAl.tab399 rfl Checked.fsEq399
-    Fn.«child_claim_list_mono_last__L12».allocShapeOk Fn.«child_claim_list_mono_last__L12».allocOk
+    Fn.«child_claim_list_mono_last__L12».allocShapeOk Fn.«child_claim_list_mono_last__L12».curBodyOk Fn.«child_claim_list_mono_last__L12».allocOk
 
 theorem aok400 : Bridge.AllocJ 400 :=
   Bridge.allocJ_of Checked.code400 Checked.core400 Checked.cert400 Checked.plumbEq400 Bridge.ProgAl.tab400 rfl Checked.fsEq400
-    Fn.«child_claim_list_mono_last__L13».allocShapeOk Fn.«child_claim_list_mono_last__L13».allocOk
+    Fn.«child_claim_list_mono_last__L13».allocShapeOk Fn.«child_claim_list_mono_last__L13».curBodyOk Fn.«child_claim_list_mono_last__L13».allocOk
 
 end
 

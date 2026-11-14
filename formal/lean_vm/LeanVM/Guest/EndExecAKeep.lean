@@ -33,7 +33,8 @@ enters `main`, whose frame's cursor is past its frame (`refTrack_mainA`).
 `hintAlloc_of`: `ExecGaps.hintAlloc` from `YAlloc`, `SizesAt` and `AllocReady` (each allocation hint has
 what it needs once the bump pointer is the frame's cursor moved by the words the hints before it
 reserve): the hints before it move the bump pointer by their `treeSizes` (`Memory.hints_nextFree`).
-`keepY_allocA`, `hintAlloc_alignA`: both on the deployed alignment.
+`keepY_allocA`, `hintAlloc_alignA`: both on the deployed alignment. `CurArith alignA` is proved in
+`EndExecACur.lean` (`curArith_alignA`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -202,7 +203,7 @@ theorem refTrack_mainA {A : String → FnAl} (hP : ProgAl guestProgram coreProgr
     rw [alignAt_zero (hP.ok _ _ hf), hP.body _ _ hf]
   have h0 := refOk_init (M := memOf r.img) (ent := entOf A) (al := alOf A) htr hfp (by rw [hname]; exact hal0)
   rw [hname, hmain] at h0
-  refine ⟨_, h0, ?_, trivial⟩
+  refine ⟨_, h0, ?_, fun _ hl hk ↦ absurd (List.eq_nil_of_length_eq_zero (Nat.le_zero.mp hl)) hk⟩
   have hen : entOf A (Ent.enter coreProgram I fn).I.t.name = mainEntry := by
     show entOf A I.t.name = mainEntry
     rw [hname, hmain]
