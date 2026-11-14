@@ -51,7 +51,7 @@ def daDigest : Digest := #v[0xfcb15fbfdc3d42fc, 0x8080f93be2d0aaf6, 0x5418ec0cfa
 def daNone : Digest := #v[0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000]
 
 /-- A deferred claim of the guest's shape. -/
-def defer : DeferredClaim :=
+def defer : DeferredBytecodeClaim :=
   ⟨[e 0x1e1689f1995df6be 0xe669cde2f079b62,
     e 0x11f1a7beeb6e0db9 0x56e2c0e1c6aff48,
     e 0x9b30ff98a90a3920 0x3a6ec6d4bcb4e56f,
@@ -211,7 +211,7 @@ def hints : BatchingHints where
   finalBytecodeValue := e 0xb10379338acf65ba 0x19c8f536ed9afdca
 
 /-- The claim the batching defers. -/
-def batched : DeferredClaim :=
+def batched : DeferredBytecodeClaim :=
   ⟨[e 0x38a4294a4426623e 0x5180c06a4b998c0a,
     e 0xeb242c45ddf5b0fc 0x7e27001c4699089f,
     e 0x49635e8fa1347dd4 0x55db88e522344aaa,

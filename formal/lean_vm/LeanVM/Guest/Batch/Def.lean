@@ -63,11 +63,11 @@ input and claims, each group padded to a whole rate; after a proof of work of
 `λ^(2i)`, `λ^(2i+1)` are child `i`'s coefficients (`lambdaPowers`), and one sumcheck reduces every
 child's two claims on the bytecode to one point. The claim deferred there, if the sumcheck
 closes. -/
-def batch (children : List ChildClaims) (h : BatchingHints) : Option DeferredClaim :=
+def batch (children : List ChildClaims) (h : BatchingHints) : Option DeferredBytecodeClaim :=
   go.run' ⟨batchSeed, [], none⟩
 where
   /-- The transcript. -/
-  go : Chain (Option DeferredClaim) := do
+  go : Chain (Option DeferredBytecodeClaim) := do
     for x in padToRate [gpow children.length] do observe x
     for c in children do
       for x in padToRate c.words do observe x

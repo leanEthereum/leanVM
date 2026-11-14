@@ -3,13 +3,15 @@
 use super::cells::count;
 use super::child::gen_verify;
 use super::coverage::plan_coverage;
-use super::deferred::{DeferredClaim, aggregate_deferred_claims, bytecode_sums, bytecode_value, scalar_bytecode};
+use super::deferred::{
+    DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums, bytecode_value, scalar_bytecode,
+};
 use super::error::{AggregateProveError, AggregateVerifyError, StarkProveError, StarkVerifyError};
 use super::guest::unified_guest;
 #[cfg(test)]
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
-use super::proof::{EthereumClaims, EthereumProof, check_signer_set};
+use super::proof::{EthereumClaims, EthereumProof, check_signer_set, public_input};
 use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
@@ -21,7 +23,7 @@ use primitives::field::F128;
 
 /// Prove existence of signatures and valid encoding of PQ-blobs, potentially using recursive children.
 ///
-/// - `children`: child proofs; at most [`MAX_RECURSIONS`].
+/// - `children`: child proofs with their claims; at most [`MAX_RECURSIONS`].
 /// - `raw_lean_xmss`: list of `(public_key, message, signature)`, any order, each signature at
 ///   the leaf index it carries.
 /// - `raw_lean_sphincs`: list of `(public_key, message, signature)`, any order.
@@ -44,25 +46,26 @@ use primitives::field::F128;
 ///   and any other invalid child fails the guest's run, [`AggregateProveError::ProofError`] (TODO
 ///   return the index of invalid proof).
 pub fn aggregate(
-    children: &[EthereumProof],
+    children: &[(EthereumClaims, EthereumProof)],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: &[lean_da::Blob],
     declare: Option<&EthereumClaims>,
     log_inv_rate: usize,
-) -> Result<EthereumProof, AggregateProveError> {
-    aggregate_with_stats(children, raw_lean_xmss, raw_lean_sphincs, blobs, declare, log_inv_rate).map(|(sig, _)| sig)
+) -> Result<(EthereumClaims, EthereumProof), AggregateProveError> {
+    aggregate_with_stats(children, raw_lean_xmss, raw_lean_sphincs, blobs, declare, log_inv_rate)
+        .map(|(claims, proof, _)| (claims, proof))
 }
 
 /// [`aggregate`], under the same contract, also returning the prover's statistics (what the CLI's benchmarks report).
 pub fn aggregate_with_stats(
-    children: &[EthereumProof],
+    children: &[(EthereumClaims, EthereumProof)],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: &[lean_da::Blob],
     declare: Option<&EthereumClaims>,
     log_inv_rate: usize,
-) -> Result<(EthereumProof, leanvm_core::cpu::Stats), AggregateProveError> {
+) -> Result<(EthereumClaims, EthereumProof, leanvm_core::cpu::Stats), AggregateProveError> {
     let declared_root = declare.map(|claims| claims.da_commitment);
     // `cpu::prove` checks the rate too, but only after the witness is built.
     if !(leanvm_core::pcs::MIN_LOG_INV_RATE..=leanvm_core::pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
@@ -87,13 +90,13 @@ pub fn aggregate_with_stats(
         _ if direct_root.is_some() => (children.len(), direct_root),
         None => children
             .iter()
-            .position(|child| child.claims.da_commitment.is_some())
-            .map_or((children.len(), None), |i| (i, children[i].claims.da_commitment)),
+            .position(|(claims, _)| claims.da_commitment.is_some())
+            .map_or((children.len(), None), |i| (i, children[i].0.da_commitment)),
         Some(None) => (children.len(), None),
         Some(Some(root)) => {
             let i = children
                 .iter()
-                .position(|child| child.claims.da_commitment == Some(root))
+                .position(|(claims, _)| claims.da_commitment == Some(root))
                 .ok_or(AggregateProveError::BlobNotCovered)?;
             (i, Some(root))
         }
@@ -122,17 +125,17 @@ pub fn aggregate_with_stats(
     let mut public_inputs = Vec::with_capacity(children.len());
     let child_da: Vec<[u8; 32]> = children
         .iter()
-        .map(|child| verifier::da::digest(child.claims.da_commitment))
+        .map(|(claims, _)| verifier::da::digest(claims.da_commitment))
         .collect();
-    for child in children {
-        check_signer_set(&child.claims).map_err(AggregateProveError::InvalidChild)?;
-        public_inputs.push(child.vm_public_input());
+    for (claims, proof) in children {
+        check_signer_set(claims).map_err(AggregateProveError::InvalidChild)?;
+        public_inputs.push(public_input(claims, &proof.defer));
     }
     // One single-threaded replay per worker: nothing inside dispatches.
     let bytecode = scalar_bytecode();
     let summaries = parallel::map_collect(children.len(), |i| {
-        let public_input = public_input_bytes(&public_inputs[i]);
-        verifier::replay_unchecked(bytecode, &public_input, &scalar_proof(&children[i].proof))
+        let pi = public_input_bytes(&public_inputs[i]);
+        verifier::replay_unchecked(bytecode, &pi, &scalar_proof(&children[i].1.proof))
     });
     let mut replayed = Vec::with_capacity(children.len());
     for (pi, summary) in public_inputs.into_iter().zip(summaries) {
@@ -216,7 +219,7 @@ pub fn aggregate_with_stats(
     let claim_points: Vec<Vec<F128>> = replayed
         .iter()
         .zip(children)
-        .flat_map(|((_, summary), child)| {
+        .flat_map(|((_, summary), (_, child))| {
             let fresh = summary.bytecode_point.iter().copied().map(from_scalar).collect();
             [fresh, child.defer.bytecode_point.clone()]
         })
@@ -226,17 +229,14 @@ pub fn aggregate_with_stats(
     let verified = parallel::map_collect(children.len(), |i| {
         let (pi, summary) = &replayed[i];
         let value = bytecode_value(&sums[2 * i], &claim_points[2 * i]);
-        gen_verify(guest, *pi, &children[i].proof, summary, value)
+        gen_verify(guest, *pi, &children[i].1.proof, summary, value)
     });
     let mut subs = Vec::with_capacity(children.len());
     let mut carried = Vec::with_capacity(children.len());
-    for (i, (child, verified)) in children.iter().zip(verified).enumerate() {
+    for (i, ((claims, child), verified)) in children.iter().zip(verified).enumerate() {
         hints.push(
             "child_meta",
-            vec![
-                count(child.claims.lean_xmss.len()),
-                count(child.claims.lean_sphincs.len()),
-            ],
+            vec![count(claims.lean_xmss.len()), count(claims.lean_sphincs.len())],
         );
         for offsets in [&cover.lean_xmss.children[i], &cover.lean_sphincs.children[i]] {
             if offsets.is_empty() {
@@ -271,7 +271,7 @@ pub fn aggregate_with_stats(
     drop(_span);
 
     let defer = if children.is_empty() {
-        let leaf = DeferredClaim::leaf();
+        let leaf = DeferredBytecodeClaim::leaf();
         hints.push("leaf_defer", vec![leaf.bytecode_value]);
         leaf
     } else {
@@ -319,16 +319,10 @@ pub fn aggregate_with_stats(
     hints.install(&mut program);
     let (proof, stats) =
         prove(&program, public_input, log_inv_rate).map_err(|e| AggregateProveError::ProofError(StarkProveError(e)))?;
-    Ok((
-        EthereumProof {
-            claims: EthereumClaims {
-                lean_xmss: cover.lean_xmss.signers,
-                lean_sphincs: cover.lean_sphincs.signers,
-                da_commitment: da_root,
-            },
-            defer,
-            proof,
-        },
-        stats,
-    ))
+    let claims = EthereumClaims {
+        lean_xmss: cover.lean_xmss.signers,
+        lean_sphincs: cover.lean_sphincs.signers,
+        da_commitment: da_root,
+    };
+    Ok((claims, EthereumProof { defer, proof }, stats))
 }

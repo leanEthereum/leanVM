@@ -26,12 +26,12 @@ const _: () = assert!(leanvm_core::leaf::N_TUPLE_BITS == leanvm_core::leaf::N_BY
 /// prover that lies about a value changes the statement its proof has to satisfy
 /// rather than the claim anyone checks.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct DeferredClaim {
+pub(crate) struct DeferredBytecodeClaim {
     pub(super) bytecode_point: Vec<F128>,
     pub(super) bytecode_value: F128,
 }
 
-impl DeferredClaim {
+impl DeferredBytecodeClaim {
     /// What a leaf defers: the all-zeros point, where the value is just the
     /// table's first entry.
     pub(super) fn leaf() -> Self {
@@ -250,9 +250,9 @@ fn absorb_round(
 /// [`AggregateVerifyError::MalformedClaim`] when a child carried a value that is not the bytecode's evaluation.
 pub(super) fn aggregate_deferred_claims(
     subproofs: &[DeferredSubproof],
-    carried_claims: &[&DeferredClaim],
+    carried_claims: &[&DeferredBytecodeClaim],
     mut sums: Vec<Vec<F128>>,
-) -> Result<(SubHints, DeferredClaim), AggregateVerifyError> {
+) -> Result<(SubHints, DeferredBytecodeClaim), AggregateVerifyError> {
     let child_count = subproofs.len();
     assert_eq!(child_count, carried_claims.len(), "one carried claim per child");
     let kbcv = bytecode_vars();
@@ -352,7 +352,7 @@ pub(super) fn aggregate_deferred_claims(
     let hints = vec![("bc_sumcheck_msgs", bscr), ("bc_star_hint", vec![v_bc])];
     Ok((
         hints,
-        DeferredClaim {
+        DeferredBytecodeClaim {
             bytecode_point: r_bc,
             bytecode_value: v_bc,
         },

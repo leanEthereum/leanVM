@@ -47,7 +47,7 @@ def mkSpKey (s r : BitVec 128) : Sphincs.PublicKey := ⟨s, r⟩
 cost_compile mkSpKey := mkSpKey
 
 def mkStatement (xs : List LeanXmssClaim) (ss : List LeanSphincsClaim) (d : LeanVM.Protocol.Digest)
-    (c : DeferredClaim) : NodeStatement := ⟨⟨xs, ss, d⟩, c⟩
+    (c : DeferredBytecodeClaim) : NodeStatement := ⟨⟨xs, ss, d⟩, c⟩
 cost_compile mkStatement := mkStatement
 
 def mkChild (s : NodeStatement) (f : LeanVM.Protocol.Verifier.BytecodeClaim)
@@ -120,7 +120,7 @@ def p : BitVec 128 := BitVec.ofNat 128 77
 #guard runOn mkSpKey.costDeps mkSpKey.costIdx [encodeValue p, encodeValue r] == some (encodeValue (mkSpKey p r))
 
 def digest : LeanVM.Protocol.Digest := #v[1, 2, 3, 4]
-def claim : DeferredClaim := ⟨[x, x], x⟩
+def claim : DeferredBytecodeClaim := ⟨[x, x], x⟩
 def stmt : NodeStatement := mkStatement [(mkKey r p, m)] [(mkSpKey p r, m)] digest claim
 #guard runOn mkStatement.costDeps mkStatement.costIdx
   [encodeValue [(mkKey r p, m)], encodeValue [(mkSpKey p r, m)], encodeValue digest, encodeValue claim] ==

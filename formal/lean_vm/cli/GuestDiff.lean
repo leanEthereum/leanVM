@@ -94,7 +94,7 @@ def claimR : R ((BitVec 128 × BitVec 128) × BitVec 256) := do
   let m := (← bytesR).map (·.toNat)
   return ((bitsLE 128 (pk.take 16), bitsLE 128 (pk.drop 16)), bitsLE 256 m)
 
-def deferR : R DeferredClaim := do
+def deferR : R DeferredBytecodeClaim := do
   expect "defer"
   return ⟨← many eR, ← eR⟩
 
@@ -235,7 +235,7 @@ def digestEq (a b : Digest) : Bool := a.toList == b.toList
 def nodeRel (c : Case) : List (String × Bool) :=
   let s := c.statement
   let w := c.witness
-  let shaped := fun (d : DeferredClaim) => d.bytecodePoint.length == Nat.log2 bytecode.length
+  let shaped := fun (d : DeferredBytecodeClaim) => d.bytecodePoint.length == Nat.log2 bytecode.length
   [("the statement's deferred claim is shaped", shaped s.deferredClaim)] ++
   w.children.zipIdx.flatMap (fun (ch, i) =>
     [(s!"child {i}'s deferred claim is shaped", shaped ch.statement.deferredClaim),
@@ -259,7 +259,7 @@ def nodeRel (c : Case) : List (String × Bool) :=
       ("the leaf defers the bytecode at zero", s.deferredClaim.bytecodePoint.all (· == 0))
     else ("the batching defers the statement's claim",
       (batch (w.children.map fun ch => ⟨statementDigest c.seed ch.statement, ch.freshClaim, ch.statement.deferredClaim⟩)
-        w.batchingHints).map DeferredClaim.cells == some s.deferredClaim.cells)]
+        w.batchingHints).map DeferredBytecodeClaim.cells == some s.deferredClaim.cells)]
 
 /-- `Limits`' parts and `NoZeroChallenge`, each by name. -/
 def limits (c : Case) : List (String × Bool) :=

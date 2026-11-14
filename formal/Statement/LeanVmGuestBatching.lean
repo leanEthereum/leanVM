@@ -6,7 +6,7 @@ public import Statement.LeanVm
 # The leanISA guest program: the batching of the children's claims
 
 The batching program `LeanVmGuest.lean`'s `DeferredClaimBatched` runs, transcribed: the claim a
-node defers on the guest program's bytecode (`DeferredClaim`), what a node knows of each child
+node defers on the guest program's bytecode (`DeferredBytecodeClaim`), what a node knows of each child
 (`ChildClaims`), and the batching of the children's deferred claims as a program of the verifier's
 language (`Batch.nodeBatchingProgram`). Reference material: a first reading takes the program as
 the batching of `aggregation/deferred.rs` and looks things up here.
@@ -25,14 +25,14 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-! ## The deferred claim -/
 
-/-- The claim a statement defers on the stacked bytecode: its value at a point (`DeferredClaim`,
+/-- The claim a statement defers on the stacked bytecode: its value at a point (`DeferredBytecodeClaim`,
 `aggregation/deferred.rs`), the shape of a proof's claim (`BytecodeClaim`). -/
-abbrev DeferredClaim : Type := BytecodeClaim
+abbrev DeferredBytecodeClaim : Type := BytecodeClaim
 
 /-- The cells a deferred claim is hashed and absorbed as, and a proof's claim on the bytecode
-exported as: the point, then the value (`DeferredClaim::cells`, `aggregation/deferred.rs`; the
+exported as: the point, then the value (`DeferredBytecodeClaim::cells`, `aggregation/deferred.rs`; the
 guest program's `defer_stmt`, and `verify_sub`'s `defer_out`, `lean_ethereum.py`). -/
-def DeferredClaim.cells (claim : DeferredClaim) : List E :=
+def DeferredBytecodeClaim.cells (claim : DeferredBytecodeClaim) : List E :=
   claim.bytecodePoint ++ [claim.bytecodeValue]
 
 /-! ## The batching program
@@ -54,13 +54,13 @@ structure ChildClaims where
   /-- The claim the child's proof makes. -/
   freshClaim : BytecodeClaim
   /-- The claim the child's statement defers. -/
-  carriedClaim : DeferredClaim
+  carriedClaim : DeferredBytecodeClaim
 
 /-- The words the batching absorbs of a child: its public input's two cells, its proof's claim,
 the claim its statement defers (`AGG_CHILD_WORDS`, `lean_ethereum.py`). -/
 def ChildClaims.words (child : ChildClaims) : List E :=
   [(digestHalves child.publicInput).1, (digestHalves child.publicInput).2] ++
-    DeferredClaim.cells child.freshClaim ++ child.carriedClaim.cells
+    DeferredBytecodeClaim.cells child.freshClaim ++ child.carriedClaim.cells
 
 /-- The prover's part of a batching: the nonce of the proof of work before the challenge, the
 sumcheck's rounds and the bytecode's value at its end (`bc_sumcheck_msgs`, `bc_star_hint`). -/
@@ -136,7 +136,7 @@ open Classical in
 sumcheck's `log₂ |bytecode|` rounds, the final value (`bc_star_hint`, read after the last
 challenge: no challenge follows), the final check, and `deferredClaimCheck` of the deferred
 claim. -/
-noncomputable def batchingAfterChildren (deferredClaimCheck : DeferredClaim → Prop)
+noncomputable def batchingAfterChildren (deferredClaimCheck : DeferredBytecodeClaim → Prop)
     (bytecode : List K) (children : List ChildClaims) : VerifierProgram Bool := do
   VerifierProgram.grindProofOfWork batchLambdaGrindBits
   let challenge ← VerifierProgram.sampleChallenge
@@ -160,7 +160,7 @@ def cellsBeforeChallenge (children : List ChildClaims) : List E :=
 /-- **The batching of a node's children** (`aggregate_claims`): what it absorbs before its first
 challenge (`cellsBeforeChallenge`, the count's cells and the children's), read as they are, then the
 batching after them, its deferred claim meeting `deferredClaimCheck`. -/
-noncomputable def nodeBatchingProgram (deferredClaimCheck : DeferredClaim → Prop)
+noncomputable def nodeBatchingProgram (deferredClaimCheck : DeferredBytecodeClaim → Prop)
     (bytecode : List K) (children : List ChildClaims) : VerifierProgram Bool := do
   let cells ← VerifierProgram.readScalars (cellsBeforeChallenge children).length
   VerifierProgram.require (cells = cellsBeforeChallenge children)

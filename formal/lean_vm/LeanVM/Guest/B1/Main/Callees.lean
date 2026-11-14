@@ -98,7 +98,7 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
       args = [ncg, cpi, cfresh, ccarried, dst, tabs] →
       coreProgram.Rel L.read "aggregate_claims" args [] → WinTabs L.read tabs →
       ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
-      ∃ out : DeferredClaim, out.bytecodePoint.length = bytecodeVars ∧
+      ∃ out : DeferredBytecodeClaim, out.bytecodePoint.length = bytecodeVars ∧
         ReadsAt L.read dst out.cells ∧ ∀ cs : List ChildClaims, cs.length = m →
           (∀ c (hc : c < cs.length), ChildWordsAt L.read cpi cfresh ccarried c cs[c]) →
           batch cs hints = some out := by

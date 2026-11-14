@@ -226,7 +226,7 @@ structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
   agg : ∀ ncg cpi cfresh ccarried dst tabs, C "aggregate_claims"
     [ncg, cpi, cfresh, ccarried, dst, tabs] [] → WinTabs rd tabs → ∀ m, 1 ≤ m → m ≤ 16 →
       ncg = gen ^ m →
-      ∃ out : DeferredClaim, out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
+      ∃ out : DeferredBytecodeClaim, out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
         ∀ cs : List ChildClaims, cs.length = m →
           (∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c]) →
           batch cs (wA [ncg, cpi, cfresh, ccarried, dst, tabs]) = some out

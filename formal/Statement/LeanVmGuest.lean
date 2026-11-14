@@ -96,7 +96,7 @@ structure NodeStatement where
   /-- Its signature and DA claims. -/
   claims : NodeClaims
   /-- The claim on the bytecode it defers to its parent. -/
-  deferredClaim : DeferredClaim
+  deferredClaim : DeferredBytecodeClaim
 
 /-! ## The statement's digest
 
@@ -200,22 +200,22 @@ structure NodeWitness where
 
 /-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
 (`bytecode_vars`, `aggregation/deferred.rs`; `BYTECODE_VARS`, `lean_ethereum.py`). -/
-def DeferredClaim.HasBytecodeShape (bytecode : List K) (claim : DeferredClaim) : Prop :=
+def DeferredBytecodeClaim.HasBytecodeShape (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
   claim.bytecodePoint.length = Nat.log2 bytecode.length
 
-/-- What a leaf defers: the bytecode at the all-zero point (`DeferredClaim::leaf`,
+/-- What a leaf defers: the bytecode at the all-zero point (`DeferredBytecodeClaim::leaf`,
 `aggregation/deferred.rs`; `main`'s leaf branch, `lean_ethereum.py`). The value is
 the outer verifier's to check. -/
-def DeferredClaim.HasZeroPoint (bytecode : List K) (claim : DeferredClaim) : Prop :=
+def DeferredBytecodeClaim.HasZeroPoint (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
   claim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
 /-- **The deferred claim is true** of the bytecode `bytecode`: it has the shape, and the value is
-the bytecode's multilinear extension at the point (`DeferredClaim::recompute_scalar`,
+the bytecode's multilinear extension at the point (`DeferredBytecodeClaim::recompute_scalar`,
 `aggregation/deferred.rs`). The length being `2 ^ len` is part of it: `HasBytecodeShape` reads
 `Nat.log2` of the length, which a bytecode of other length shares, and the extension is of
 `2 ^ len` values. Stronger than `BytecodeClaim.Holds` (the value only). The deployed outer verifier
 checks it of the root's deferred claim (`EthereumProof::verify`, `aggregation/proof.rs`). -/
-def DeferredClaim.HoldsWithShape (bytecode : List K) (claim : DeferredClaim) : Prop :=
+def DeferredBytecodeClaim.HoldsWithShape (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
   claim.HasBytecodeShape bytecode ∧ 2 ^ claim.bytecodePoint.length = bytecode.length ∧
     multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue
 

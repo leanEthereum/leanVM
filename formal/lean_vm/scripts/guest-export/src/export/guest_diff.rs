@@ -70,28 +70,28 @@ impl Out {
         }
     }
 
-    fn deferred(&mut self, c: &DeferredClaim) {
+    fn deferred(&mut self, c: &DeferredBytecodeClaim) {
         self.tag("defer");
         self.es(&c.bytecode_point);
         self.e(c.bytecode_value);
     }
 
     /// `NodeStatement`: the claims, the DA digest (`verifier::da::digest`), and the deferred claim.
-    fn statement(&mut self, p: &EthereumProof) {
+    fn statement(&mut self, claims: &EthereumClaims, p: &EthereumProof) {
         self.tag("xmss");
-        self.n(p.claims.lean_xmss.len());
-        for (pk, m) in &p.claims.lean_xmss {
+        self.n(claims.lean_xmss.len());
+        for (pk, m) in &claims.lean_xmss {
             self.bytes(&pk.to_bytes());
             self.bytes(m);
         }
         self.tag("sphincs");
-        self.n(p.claims.lean_sphincs.len());
-        for (pk, m) in &p.claims.lean_sphincs {
+        self.n(claims.lean_sphincs.len());
+        for (pk, m) in &claims.lean_sphincs {
             self.bytes(&pk.to_bytes());
             self.bytes(m);
         }
         self.tag("da");
-        self.bytes(&verifier::da::digest(p.claims.da_commitment));
+        self.bytes(&verifier::da::digest(claims.da_commitment));
         self.deferred(&p.defer);
     }
 
@@ -148,13 +148,13 @@ impl<'a> Cursor<'a> {
 /// Aggregate, and write the case: the statement, the witness, the installed streams.
 fn export(
     name: &str,
-    children: Vec<EthereumProof>,
+    children: Vec<(EthereumClaims, EthereumProof)>,
     raw_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: &[lean_da::Blob],
-) -> EthereumProof {
+) -> (EthereumClaims, EthereumProof) {
     capture_next();
-    let node = aggregate(
+    let (claims, node) = aggregate(
         &children,
         raw_xmss.clone(),
         raw_sphincs.clone(),
@@ -163,7 +163,7 @@ fn export(
         LOG_INV_RATE,
     )
     .expect("node aggregates");
-    node.verify().expect("node verifies");
+    node.verify(&claims).expect("node verifies");
     let streams = INSTALLED.with(|i| i.take());
     let stream = |name: &str| streams.iter().find(|(n, _)| n == name).map(|(_, e)| e.as_slice());
 
@@ -174,17 +174,17 @@ fn export(
     out.tag("log_memory");
     out.n(node.proof.stream[0].c0 as usize);
     out.tag("public_input");
-    out.es(&node.vm_public_input());
+    out.es(&public_input(&claims, &node.defer));
     out.tag("statement");
-    out.statement(&node);
+    out.statement(&claims, &node);
 
     out.tag("children");
     out.n(children.len());
     let bytecode = scalar_bytecode();
-    for child in &children {
+    for (child_claims, child) in &children {
         out.tag("child");
-        out.statement(child);
-        let pi = child.vm_public_input();
+        out.statement(child_claims, child);
+        let pi = public_input(child_claims, &child.defer);
         let scalar = scalar_proof(&child.proof);
         let summary =
             verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar).expect("the child replays");
@@ -275,7 +275,7 @@ fn export(
     let dir = std::path::Path::new(&dir);
     std::fs::create_dir_all(dir).unwrap();
     std::fs::write(dir.join(format!("{name}.txt")), out.0).unwrap();
-    node
+    (claims, node)
 }
 
 const LOG_INV_RATE: usize = leanvm_core::pcs::TEST_LOG_INV_RATE;

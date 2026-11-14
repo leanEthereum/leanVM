@@ -1,7 +1,7 @@
 //! Claim-list digests and a node's public statement.
 
 use super::cells::{cell_bytes, count, pack_16_bytes};
-use super::deferred::DeferredClaim;
+use super::deferred::DeferredBytecodeClaim;
 use super::guest::unified_guest;
 use super::{LeanSphincsClaim, LeanXmssClaim};
 use fiat_shamir::merkle::hash_to_scalars;
@@ -82,7 +82,7 @@ pub(super) fn statement_digest(
     xmss_signers: &[LeanXmssClaim],
     lean_sphincs_signers: &[LeanSphincsClaim],
     da_digest: [u8; 32],
-    defer: &DeferredClaim,
+    defer: &DeferredBytecodeClaim,
 ) -> [F128; 2] {
     let seed = leanvm_core::cpu::fs_seed(unified_guest());
     let xmss_digest = claim_list_digest(xmss_signers.iter().map(lean_xmss_claim_cells));

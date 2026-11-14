@@ -470,7 +470,7 @@ $\rho$, derives $z$ from $\rho$ (Section~\ref{sec:schemes}) and checks $\mathit{
 this derivation makes the rows codewords is not proved (Section~\ref{sec:notgive});
 \item a \emph{deferred claim} $c = (\zeta, v)$, $\zeta \in \mathbb{E}^{23}$, $v \in \mathbb{E}$, meaning
 that the multilinear extension $\widehat{B}$ of the bytecode, as a function on $\{0,1\}^{23}$,
-satisfies $\widehat{B}(\zeta) = v$ (\lean{DeferredClaim.HoldsWithShape}).
+satisfies $\widehat{B}(\zeta) = v$ (\lean{DeferredBytecodeClaim.HoldsWithShape}).
 \end{itemize}
 
 \paragraph{The statement's digest} under a seed $\sigma$ (\lean{statementDigest},
@@ -530,7 +530,7 @@ claims (\lean{lambdaPowers}); and runs one degree-$2$ sumcheck reducing
 $\sum_i (\lambda^{2i} v_i + \lambda^{2i+1} v'_i)$, with $v_i$
 the value of $f_i$ and $v'_i$ that of $c_i$, to one claim on $\widehat{B}$ at a new point.
 Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coordinates
-(\lean{DeferredClaim.HasBytecodeShape}), the zero point's or the sumcheck's challenges.
+(\lean{DeferredBytecodeClaim.HasBytecodeShape}), the zero point's or the sumcheck's challenges.
 \end{enumerate}
 \lean{NodeRelation} does \emph{not} say that a child's claims are true, only that the deferring verifier,
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
@@ -540,7 +540,7 @@ with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 additionally checks that the DA digest is that of its root with the root's membership
 challenge, that the deferred claim holds ($\widehat{B}(\zeta) = v$), and the lists' form
 (sorted, no repeats). Of these, \lean{AggregateSound} below
-assumes only that the deferred claim holds (\lean{DeferredClaim.HoldsWithShape}); no end statement
+assumes only that the deferred claim holds (\lean{DeferredBytecodeClaim.HoldsWithShape}); no end statement
 models the DA digest's derivation or the lists' form. Without the derivation, the DA condition says
 nothing of the blob: \lean{MatrixWitness.Opens} accepts any challenge the digest binds, $z = 0$
 included, whose dual codeword is all ones.
@@ -581,7 +581,7 @@ $\mathrm{NodeRel}(B, \sigma', s', w')$ (\lean{lean_vm} proves this for its
 with $(\sigma_0, s_0) = (iv_G, s)$ then gives \lean{AggregateSound} (from the fields alone,
 \lean{LeanVM.corollaries_of_theorems}, \lean{lean_vm}): except with probability $\varepsilon(Q)$, if
 the verifier accepts a proof of $G$ on $\mathrm{dig}_{iv_G}(s)$, for any $s$ whose deferred claim
-holds (\lean{DeferredClaim.HoldsWithShape}, as the outer verifier checks), the extracted execution $t$
+holds (\lean{DeferredBytecodeClaim.HoldsWithShape}, as the outer verifier checks), the extracted execution $t$
 \emph{explains} $s$
 (\lean{ExplainsStatement}):
 \begin{itemize}

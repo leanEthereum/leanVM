@@ -93,7 +93,7 @@ pub fn file() -> File {
     let da = verifier::da::digest(Some(root));
 
     // A deferred claim of the guest's shape, its value arbitrary (the digest does not care).
-    let defer = DeferredClaim {
+    let defer = DeferredBytecodeClaim {
         bytecode_point: elements(&mut rng, kbcv),
         bytecode_value: element(&mut rng),
     };
@@ -113,10 +113,10 @@ pub fn file() -> File {
             }
         })
         .collect();
-    let carried: Vec<DeferredClaim> = (0..2)
-        .map(|_| DeferredClaim::recompute(elements(&mut rng, kbcv)).unwrap())
+    let carried: Vec<DeferredBytecodeClaim> = (0..2)
+        .map(|_| DeferredBytecodeClaim::recompute(elements(&mut rng, kbcv)).unwrap())
         .collect();
-    let carried_refs: Vec<&DeferredClaim> = carried.iter().collect();
+    let carried_refs: Vec<&DeferredBytecodeClaim> = carried.iter().collect();
     // Each child's fresh claim, then its carried one: the batch's order, which its sums follow.
     let points: Vec<Vec<F128>> = subproofs
         .iter()
@@ -170,7 +170,7 @@ pub fn file() -> File {
     writeln!(out, "/-- The statement's DA field without a root. -/\ndef daNone : Digest := {}\n", digest(&verifier::da::digest(None))).unwrap();
     writeln!(
         out,
-        "/-- A deferred claim of the guest's shape. -/\ndef defer : DeferredClaim :=\n  ⟨{},\n   {}⟩\n",
+        "/-- A deferred claim of the guest's shape. -/\ndef defer : DeferredBytecodeClaim :=\n  ⟨{},\n   {}⟩\n",
         es(&defer.bytecode_point),
         e(defer.bytecode_value)
     )
@@ -213,7 +213,7 @@ pub fn file() -> File {
     .unwrap();
     writeln!(
         out,
-        "/-- The claim the batching defers. -/\ndef batched : DeferredClaim :=\n  ⟨{},\n   {}⟩\n",
+        "/-- The claim the batching defers. -/\ndef batched : DeferredBytecodeClaim :=\n  ⟨{},\n   {}⟩\n",
         es(&batched.bytecode_point),
         e(batched.bytecode_value)
     )

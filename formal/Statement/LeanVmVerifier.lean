@@ -2183,7 +2183,7 @@ def claimedBytecodeValue (claim : BytecodeClaim) (_ : List K) (point : List E) (
   VerifierProgram.require (point = claim.bytecodePoint ∧ value = claim.bytecodeValue)
 
 /-- The claim's value is the bytecode's multilinear extension at its point (the value only;
-`DeferredClaim.HoldsWithShape`, `LeanVmGuest.lean`, adds the shape and the
+`DeferredBytecodeClaim.HoldsWithShape`, `LeanVmGuest.lean`, adds the shape and the
 power-of-two length). -/
 def BytecodeClaim.Holds (bytecode : List K) (claim : BytecodeClaim) : Prop :=
   multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue

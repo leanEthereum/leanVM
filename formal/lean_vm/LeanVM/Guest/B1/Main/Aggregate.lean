@@ -92,7 +92,7 @@ theorem childCells_eq (cc : ChildClaims) (h1 : cc.freshClaim.bytecodePoint.lengt
     (h2 : cc.carriedClaim.bytecodePoint.length = 23) :
     Batch.childCells cc = cc.words ++ [0, 0] := by
   have hl : cc.words.length = 50 := by
-    simp [ChildClaims.words, DeferredClaim.cells, h1, h2]
+    simp [ChildClaims.words, DeferredBytecodeClaim.cells, h1, h2]
   rw [Batch.childCells, padToRate, hl]
   rfl
 
@@ -110,22 +110,22 @@ theorem kid_words {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
   have b23 : bytecodeVars = 23 := rfl
   rw [b23] at h1 h2
   rw [e24]
-  have hfl : (DeferredClaim.cells cc.freshClaim).length = 24 := by simp [DeferredClaim.cells, h1]
-  have hcl : cc.carriedClaim.cells.length = 24 := by simp [DeferredClaim.cells, h2]
+  have hfl : (DeferredBytecodeClaim.cells cc.freshClaim).length = 24 := by simp [DeferredBytecodeClaim.cells, h1]
+  have hcl : cc.carriedClaim.cells.length = 24 := by simp [DeferredBytecodeClaim.cells, h2]
   have pf := (readsAt_append.mp (show ReadsAt rd _ (cc.freshClaim.bytecodePoint ++
     [cc.freshClaim.bytecodeValue]) from hf)).1
   have pc := (readsAt_append.mp (show ReadsAt rd _ (cc.carriedClaim.bytecodePoint ++
     [cc.carriedClaim.bytecodeValue]) from hc)).1
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · rw [memAt_of_reads hf (by omega)]
-    simp [DeferredClaim.cells, List.getD_eq_getElem?_getD, h1]
+    simp [DeferredBytecodeClaim.cells, List.getD_eq_getElem?_getD, h1]
   · rw [memAt_of_reads hc (by omega)]
-    simp [DeferredClaim.cells, List.getD_eq_getElem?_getD, h2]
+    simp [DeferredBytecodeClaim.cells, List.getD_eq_getElem?_getD, h2]
   · rw [readsAt_memRun pf, h1]
   · rw [readsAt_memRun pc, h2]
   · rw [childCells_eq cc h1 h2]
     have hwl : (cc.words ++ [0, 0]).length = 52 := by
-      simp [ChildClaims.words, DeferredClaim.cells, h1, h2]
+      simp [ChildClaims.words, DeferredBytecodeClaim.cells, h1, h2]
     refine list_eq_of_getD (n := 52) (by simp [l25Words]) hwl fun w hw => ?_
     have lhs : (l25Words rd cpi cfresh ccarried (gen ^ c)).getD w 0 =
         l25Word rd cpi cfresh ccarried (gen ^ c) w := by
@@ -134,29 +134,29 @@ theorem kid_words {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
     generalize hA2 : ([(digestHalves cc.publicInput).1, (digestHalves cc.publicInput).2] :
       List E) = A2
     have hA : A2.length = 2 := by rw [← hA2]; rfl
-    have hAF : (A2 ++ DeferredClaim.cells cc.freshClaim).length = 26 := by simp [hA, hfl]
-    have hAFC : (A2 ++ DeferredClaim.cells cc.freshClaim ++ cc.carriedClaim.cells).length = 50 := by
+    have hAF : (A2 ++ DeferredBytecodeClaim.cells cc.freshClaim).length = 26 := by simp [hA, hfl]
+    have hAFC : (A2 ++ DeferredBytecodeClaim.cells cc.freshClaim ++ cc.carriedClaim.cells).length = 50 := by
       simp [hA, hfl, hcl]
     by_cases ha : w < 50
-    · rw [List.getD_append (A2 ++ DeferredClaim.cells cc.freshClaim ++ cc.carriedClaim.cells) [0, 0] 0 w
+    · rw [List.getD_append (A2 ++ DeferredBytecodeClaim.cells cc.freshClaim ++ cc.carriedClaim.cells) [0, 0] 0 w
         (by rw [hAFC]; exact ha)]
       by_cases hb : w < 26
-      · rw [List.getD_append (A2 ++ DeferredClaim.cells cc.freshClaim) cc.carriedClaim.cells 0 w
+      · rw [List.getD_append (A2 ++ DeferredBytecodeClaim.cells cc.freshClaim) cc.carriedClaim.cells 0 w
           (by rw [hAF]; exact hb)]
         by_cases hc2 : w < 2
-        · rw [ite_pos' hc2, List.getD_append A2 (DeferredClaim.cells cc.freshClaim) 0 w (by rw [hA]; exact hc2),
+        · rw [ite_pos' hc2, List.getD_append A2 (DeferredBytecodeClaim.cells cc.freshClaim) 0 w (by rw [hA]; exact hc2),
             ← hA2]
           rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl
           · exact memAt_of_load ((loadHolds_mul_gen_pow rd _ _ _ _).mpr hp0)
           · exact memAt_of_load ((loadHolds_mul_gen_pow rd _ _ _ _).mpr hp1)
         · rw [ite_neg' hc2, ite_pos' hb,
-            List.getD_append_right A2 (DeferredClaim.cells cc.freshClaim) 0 w (by rw [hA]; omega), hA,
+            List.getD_append_right A2 (DeferredBytecodeClaim.cells cc.freshClaim) 0 w (by rw [hA]; omega), hA,
             memAt_of_reads hf (by omega)]
       · rw [ite_neg' (show ¬ w < 2 by omega), ite_neg' hb, ite_pos' ha,
-          List.getD_append_right (A2 ++ DeferredClaim.cells cc.freshClaim) cc.carriedClaim.cells 0 w
+          List.getD_append_right (A2 ++ DeferredBytecodeClaim.cells cc.freshClaim) cc.carriedClaim.cells 0 w
             (by rw [hAF]; omega), hAF, memAt_of_reads hc (by omega)]
     · rw [ite_neg' (show ¬ w < 2 by omega), ite_neg' (show ¬ w < 26 by omega), ite_neg' ha,
-        List.getD_append_right (A2 ++ DeferredClaim.cells cc.freshClaim ++ cc.carriedClaim.cells) [0, 0] 0 w
+        List.getD_append_right (A2 ++ DeferredBytecodeClaim.cells cc.freshClaim ++ cc.carriedClaim.cells) [0, 0] 0 w
           (by rw [hAFC]; omega), hAFC]
       rcases (show w = 50 ∨ w = 51 by omega) with rfl | rfl <;> rfl
 
@@ -313,7 +313,7 @@ relation below `coreProgram.Rel`), the meaning holds with the hints `aggHints rd
 def MeaningAggregateClaimsW (rd : Reader) (h : BatchingHints) : List E → List E → Prop
   | [ncg, cpi, cfresh, ccarried, dst, tabs], rets => WinTabs rd tabs →
       ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
-      rets = [] ∧ ∃ out : DeferredClaim,
+      rets = [] ∧ ∃ out : DeferredBytecodeClaim,
         out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
         ∀ cs : List ChildClaims, cs.length = m →
           (∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c]) →
@@ -382,10 +382,10 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
     σ (.n 92), σ (.n 93)], []⟩).1.1, σ (.n 7)⟩, hptl, ?_, ?_⟩
   · -- the claim written
     intro k hk
-    simp only [DeferredClaim.cells, List.length_append, List.length_cons, List.length_nil,
+    simp only [DeferredBytecodeClaim.cells, List.length_append, List.length_cons, List.length_nil,
       hptl] at hk
     by_cases hk23 : k < 23
-    · rw [show (DeferredClaim.cells ⟨(bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90),
+    · rw [show (DeferredBytecodeClaim.cells ⟨(bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90),
         σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1, σ (.n 7)⟩)[k] = _ from
         List.getElem_append_left (by rw [hptl]; exact hk23)]
       obtain ⟨h1, h2⟩ := hout k hk23
@@ -394,9 +394,9 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
       exact load_sound h2 hat
     · have hk' : k = 23 := by omega
       subst hk'
-      rw [show (DeferredClaim.cells ⟨(bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90),
+      rw [show (DeferredBytecodeClaim.cells ⟨(bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90),
         σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1, σ (.n 7)⟩)[23] = σ (.n 7) by
-          simp [DeferredClaim.cells, List.getElem_append_right, hptl]]
+          simp [DeferredBytecodeClaim.cells, List.getElem_append_right, hptl]]
       exact load_sound hl7 hat
   -- the batching
   intro cs hcl hcw

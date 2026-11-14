@@ -32,7 +32,7 @@ hashes on the way was given two different inputs with the same output: the pairs
 
 The deferred claim's cells carry no lengths: `[x] ++ [y]` and `[x, y] ++ []` are the same cells.
 The binding needs the two deferred claims' points to have the same length, which
-`DeferredClaim.HasBytecodeShape` gives at one bytecode (`statementDigest_binds_of_length` takes the length
+`DeferredBytecodeClaim.HasBytecodeShape` gives at one bytecode (`statementDigest_binds_of_length` takes the length
 itself). Nothing else is assumed of the statements.
 
 A consumer compares the public input's digest with that of its own statement under the deployed
@@ -126,11 +126,11 @@ theorem sphincsPreimage_inj {l l' : List LeanSphincsClaim}
       rfl) h
 
 /-- Two deferred claims with the same cells and points of the same length are equal. -/
-theorem cells_inj {c c' : DeferredClaim}
+theorem cells_inj {c c' : DeferredBytecodeClaim}
     (hb : c.bytecodePoint.length = c'.bytecodePoint.length) (h : c.cells = c'.cells) : c = c' := by
   obtain ⟨b, v⟩ := c
   obtain ⟨b', v'⟩ := c'
-  simp only [DeferredClaim.cells] at h hb
+  simp only [DeferredBytecodeClaim.cells] at h hb
   obtain ⟨h1, h2⟩ := List.append_inj h hb
   simp only [List.cons.injEq, and_true] at h2
   subst h1 h2

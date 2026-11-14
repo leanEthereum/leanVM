@@ -108,18 +108,18 @@ fn take_slot<K: Ord + Clone>(claims: &[K], claimed: &mut [bool], duplicates: &mu
 pub(super) fn plan_coverage(
     raw_lean_xmss: &[LeanXmssClaim],
     raw_lean_sphincs: &[LeanSphincsClaim],
-    children: &[EthereumProof],
+    children: &[(EthereumClaims, EthereumProof)],
     declare: Option<&EthereumClaims>,
 ) -> Result<Coverage, AggregateProveError> {
     let cover = Coverage {
         lean_xmss: Region::plan(
             raw_lean_xmss,
-            children.iter().map(|child| child.claims.lean_xmss.as_slice()),
+            children.iter().map(|(claims, _)| claims.lean_xmss.as_slice()),
             declare.map(|claims| claims.lean_xmss.as_slice()),
         )?,
         lean_sphincs: Region::plan(
             raw_lean_sphincs,
-            children.iter().map(|child| child.claims.lean_sphincs.as_slice()),
+            children.iter().map(|(claims, _)| claims.lean_sphincs.as_slice()),
             declare.map(|claims| claims.lean_sphincs.as_slice()),
         )?,
     };
