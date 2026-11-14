@@ -13,11 +13,11 @@
 
 use crate::leaf::N_BUS_TREES as TREES;
 use crate::transcript::ProverState;
-use primitives::field::F128;
+use primitives::field::{Acc8, F128, F128x8};
 use primitives::multilinear::{eq_table, interp};
 
-/// Rows per parallel task.
-const CHUNK: usize = 1 << 10;
+/// Groups of eight pairs per parallel task.
+const CHUNK: usize = 1 << 7;
 
 /// The result of a batched grand-product proof: the leaf evaluations, all reduced to one shared point.
 pub struct Products {
@@ -38,61 +38,108 @@ pub fn y_grind(step: usize, last: bool) -> u32 {
     fiat_shamir::grinding_bits((step << usize::from(last)) as u128)
 }
 
-fn add5(a: [F128; 5], b: [F128; 5]) -> [F128; 5] {
+fn add4(a: [F128; 4], b: [F128; 4]) -> [F128; 4] {
     std::array::from_fn(|i| a[i] + b[i])
+}
+
+/// Eight lanes, lane `p` being `value(p)`.
+#[inline(always)]
+fn lanes(value: impl Fn(usize) -> F128) -> F128x8 {
+    F128x8::from_array(&std::array::from_fn(value))
+}
+
+/// `values[start..start + N]`, the identity past the end.
+#[inline(always)]
+fn padded<const N: usize>(values: &[F128], start: usize) -> [F128; N] {
+    match values.get(start..start + N) {
+        Some(run) => run.try_into().unwrap(),
+        None => std::array::from_fn(|i| values.get(start + i).copied().unwrap_or(F128::ONE)),
+    }
 }
 
 /// The level above `values`: `out[i] = ∏ values[4i..4i + 4]`, the values past the end being the identity.
 fn next_level(values: &[F128]) -> Vec<F128> {
-    parallel::map_collect(values.len().div_ceil(4), |i| {
-        values[4 * i..values.len().min(4 * i + 4)].iter().copied().product()
+    let n = values.len().div_ceil(4);
+    let mut next = parallel::map_collect(n.div_ceil(8), |k| {
+        let v: [F128; 32] = padded(values, 32 * k);
+        let child = |c: usize| lanes(|p| v[4 * p + c]);
+        ((child(0) * child(1)) * (child(2) * child(3))).to_array()
     })
+    .into_flattened();
+    next.truncate(n);
+    next
 }
 
-/// The coefficients of `∏_c (a_c + s_c·X)` for four lines `[a_c, s_c]`.
+/// Eight pairs of rows, `g[j]` lane `p` being value `j` of pair `p`: `g[c]` child `c` of its lower row and
+/// `g[4 + c]` of its upper.
+type Group = [F128x8; 8];
+
+/// Group `k` of a layer, the identity past its end.
+#[inline(always)]
+fn group(values: &[F128], k: usize) -> Group {
+    let v: [F128; 64] = padded(values, 64 * k);
+    std::array::from_fn(|j| lanes(|p| v[8 * p + j]))
+}
+
+/// Add eight pairs' terms of `q(X) = eq·∏_c (a_c + s_c·X)` to `acc`, as `[q(0) + q(1), c2, c3, c4]`. The weight
+/// scales child 0's line, and with it every product. An identity pair adds nothing: its `q` is a constant.
 ///
 /// Karatsuba throughout: in characteristic two, `x_i·y_j + x_j·y_i = (x_i + x_j)·(y_i + y_j) + x_i·y_i + x_j·y_j`.
-fn product_of_lines(lines: [[F128; 2]; 4]) -> [F128; 5] {
-    let quadratic = |[a, s]: [F128; 2], [b, t]: [F128; 2]| {
-        let (low, high) = (a * b, s * t);
-        [low, (a + s) * (b + t) + low + high, high]
-    };
-    let (p, q) = (quadratic(lines[0], lines[1]), quadratic(lines[2], lines[3]));
-    let m = [0, 1, 2].map(|i| p[i] * q[i]);
-    let cross = |i: usize, j: usize| (p[i] + p[j]) * (q[i] + q[j]) + m[i] + m[j];
-    [m[0], cross(0, 1), cross(0, 2) + m[1], cross(1, 2), m[2]]
+#[inline(always)]
+fn add_message(g: &Group, eq: F128x8, acc: &mut [Acc8; 4]) {
+    // Children 0 and 1 make the quadratic `left`, children 2 and 3 `right`, by coefficient.
+    let a0 = eq * g[0];
+    let d0 = eq * (g[0] + g[4]);
+    let left0 = a0 * g[1];
+    let left2 = d0 * (g[1] + g[5]);
+    let left1 = (a0 + d0) * g[5] + left0 + left2;
+    let right0 = g[2] * g[3];
+    let right2 = (g[2] + g[6]) * (g[3] + g[7]);
+    let right1 = g[6] * g[7] + right0 + right2;
+    let c0 = left0.mul_unreduced(right0);
+    let c4 = left2.mul_unreduced(right2);
+    let middle = left1.mul_unreduced(right1);
+    let at_one = (left0 + left1 + left2).mul_unreduced(right0 + right1 + right2);
+    let cross_even = (left0 + left2).mul_unreduced(right0 + right2);
+    let cross_high = (left1 + left2).mul_unreduced(right1 + right2);
+    acc[0] += c0 + at_one;
+    acc[1] += cross_even + c0 + c4 + middle;
+    acc[2] += cross_high + middle + c4;
+    acc[3] += c4;
 }
 
 /// The round polynomial `q(X) = Σ_p eq[p]·∏_c V(c, 2p + X)` of a layer whose row `r` holds its four children at
-/// `values[4r..4r + 4]`, as its five coefficients, constant first, but for the pairs past `values`, identity pairs,
-/// whose terms are the constants `eq[p]`.
-fn round_message(values: &[F128], eq: &[F128]) -> [F128; 5] {
-    let pairs = values.len() / 8;
-    debug_assert!(pairs <= eq.len());
-    let pair = |p: usize| {
-        let (lo, hi) = (&values[8 * p..8 * p + 4], &values[8 * p + 4..8 * p + 8]);
-        let mut lines: [[F128; 2]; 4] = std::array::from_fn(|c| [lo[c], lo[c] + hi[c]]);
-        lines[0] = lines[0].map(|v| eq[p] * v);
-        product_of_lines(lines)
-    };
+/// `values[4r..4r + 4]`, as `[q(0) + q(1), c2, c3, c4]`. The pairs past `values` are identity pairs, which add
+/// nothing.
+fn round_message(values: &[F128], eq: &[F128]) -> [F128; 4] {
+    let groups = values.len().div_ceil(64);
     parallel::map_reduce(
-        pairs.div_ceil(CHUNK),
-        || [F128::ZERO; 5],
+        groups.div_ceil(CHUNK),
+        || [F128::ZERO; 4],
         |task| {
-            (task * CHUNK..pairs.min((task + 1) * CHUNK))
-                .map(pair)
-                .fold([F128::ZERO; 5], add5)
+            let mut acc = [Acc8::ZERO; 4];
+            for k in task * CHUNK..groups.min((task + 1) * CHUNK) {
+                let eq = lanes(|p| eq.get(8 * k + p).copied().unwrap_or(F128::ZERO));
+                add_message(&group(values, k), eq, &mut acc);
+            }
+            acc.map(Acc8::sum)
         },
-        add5,
+        add4,
     )
 }
 
-/// Bind the lowest row variable to `r`: row `i` becomes `interp(row 2i, row 2i + 1, r)`, child by child.
+/// Bind the lowest row variable to `r`: row `i` becomes `interp(row 2i, row 2i + 1, r)`, child by child. The
+/// output is padded with identity rows to whole groups of eight values.
 fn fold(values: &[F128], r: F128) -> Vec<F128> {
-    parallel::map_collect(values.len() / 2, |i| {
-        let (row, c) = (i / 4, i % 4);
-        interp(values[8 * row + c], values[8 * row + 4 + c], r)
+    let r = F128x8::splat(r);
+    parallel::map_collect(values.len().div_ceil(16), |k| {
+        // Rows `2k` and `2k + 1` of the output, from pairs `2k` and `2k + 1`.
+        let v: [F128; 16] = padded(values, 16 * k);
+        let lo = lanes(|i| v[8 * (i / 4) + i % 4]);
+        let hi = lanes(|i| v[8 * (i / 4) + 4 + i % 4]);
+        (lo + r * (lo + hi)).to_array()
     })
+    .into_flattened()
 }
 
 /// Prove the bus's identity-padded grand products as one RLC-batched radix-four GKR: push, pull, then count. Push
@@ -150,21 +197,19 @@ pub(crate) fn prove_products(leaves: [Vec<F128>; TREES], ps: &mut ProverState) -
         let round_count = mu - layer;
         let mut round_point = Vec::with_capacity(round_count);
         for round in 0..round_count {
-            for tree in &mut trees {
-                tree.resize(tree.len().next_multiple_of(8), F128::ONE);
-            }
             // Round `j` weights its pairs by `eq(point[1 + j..], ·)`.
             let eq = eq_table(&point[1 + round..]);
             let messages = trees.each_ref().map(|tree| round_message(tree, &eq));
             // `Σ_t λ^t message_t`, by Horner.
-            let coeffs: [F128; 5] = std::array::from_fn(|k| {
+            let mut coeffs: [F128; 4] = std::array::from_fn(|k| {
                 messages
                     .iter()
                     .rev()
                     .fold(F128::ZERO, |acc, message| message[k] + lambda * acc)
             });
-            // The claim fixes `c0`, so only `c1..c4` travel.
-            ps.add_scalars(&coeffs[1..]);
+            // `q(0) + q(1) = c1 + c2 + c3 + c4`. The claim fixes `c0`, so only `c1..c4` travel.
+            coeffs[0] = coeffs.iter().copied().sum();
+            ps.add_scalars(&coeffs);
             ps.grind(ROUND_GRIND);
             let challenge = ps.sample();
             round_point.push(challenge);
@@ -230,8 +275,10 @@ mod tests {
                     })
                     .sum::<F128>()
             };
+            let [sum, c2, c3, c4] = message;
+            let coeffs = [direct(F128::ZERO), sum + c2 + c3 + c4, c2, c3, c4];
             for x in [F128::ZERO, F128::ONE, F128::Y, F128::Y.square(), F128::Y + F128::ONE] {
-                assert_eq!(primitives::multilinear::poly_eval(&message, x), direct(x));
+                assert_eq!(primitives::multilinear::poly_eval(&coeffs, x), direct(x));
             }
         }
     }
