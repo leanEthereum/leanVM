@@ -17,10 +17,7 @@
 //!   and opened rows, `b_initial`, betas, alphas: `F128` (16 bytes)
 //! - the RS-encoding evaluation domain and all LCH twiddles stay in K, so the
 //!   deeper-level (E-valued) encodes use K-twiddles via the mixed product
-//!   [`F128::mul_base`] (2 PMULL) instead of a full E multiplication.
-//!
-//! Soundness note: [`WhirSecurityConfig`] analyzes the challenge field
-//! `E`; the committed alphabet remains `K = GF(2^64)`.
+//!   [`F128::mul_base`] instead of a full E multiplication.
 
 use crate::merkle::{Hash, MerkleTree};
 use crate::ntt::{AdditiveNttF64, words};
@@ -33,10 +30,8 @@ use primitives::multilinear::{eq_table, interp};
 use super::whir_config::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS};
 pub use super::whir_config::{
     INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE, ProverConfig,
-    QUERY_GRINDING_BITS, SECURITY_BITS, WhirSecurityConfig, validate_log_inv_rate,
+    QUERY_GRINDING_BITS, SECURITY_BITS, config_for_rate, validate_log_inv_rate,
 };
-#[cfg(test)]
-pub use super::whir_config::{default_config, udr_queries};
 
 pub use crate::whir_induce::*;
 use crate::whir_lanes;
@@ -79,18 +74,6 @@ fn inner_product(a: &[F128], b: &[F128]) -> F128 {
         },
         |a, v| a + v,
     )
-}
-
-// ===================================================================
-// Config reuse
-// ===================================================================
-
-/// Derive the shared prover/verifier config for a K-witness of `2^log_n` F64
-/// elements at L0 inverse-rate logarithm `log_inv_rate`, using the production
-/// Johnson/OOD profile at `m = log_n + LOG_PACKING`.
-pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig, String> {
-    let sec = WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + crate::LOG_PACKING, log_inv_rate)?;
-    sec.to_config()
 }
 
 // ===================================================================
@@ -682,18 +665,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
 mod tests {
     use super::*;
     use crate::stack_open::{RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
-    use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
-
-    /// Pin the production Johnson/OOD profile rather than the small-
-    /// size test fallback.
-    #[test]
-    fn configs_johnson_profile_shape() {
-        config_for_rate(16, LOG_INV_RATE_0).expect("Johnson profile feasible at log_n = 16");
-        // And log_n = 12 is below the production ladder's feasibility floor, so
-        // the tests there use the default_config fallback.
-        assert!(config_for_rate(12, LOG_INV_RATE_0).is_err());
-    }
 
     /// Committing only the lanes that carry data must be indistinguishable from
     /// committing the whole `2^log_n` witness with an explicit zero tail: same
@@ -701,8 +673,8 @@ mod tests {
     /// query value is the folded lane's, and every level keeps the running claim.
     #[test]
     fn truncated_lanes_match_an_explicit_zero_tail() {
-        for (log_n, lanes) in [(13usize, &[1usize, 5, 64][..]), (18, &[5, 64][..])] {
-            let pc = test_config_for(log_n);
+        for (log_n, lanes) in [(16usize, &[1usize, 5, 64][..]), (18, &[5, 64][..])] {
+            let pc = config_for_rate(log_n, LOG_INV_RATE_0).unwrap();
             let lane_block = 1usize << (log_n - pc.initial_k);
             for &n_lanes in lanes.iter().filter(|&&n| n <= 1 << pc.initial_k) {
                 let mut rng = Rng::new(0x5AFE + n_lanes as u64);

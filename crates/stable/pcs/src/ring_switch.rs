@@ -74,10 +74,6 @@ use primitives::multilinear::eq_table_serial;
 /// The batching map's challenges: `f_0..f_7`, then `g_0..g_7`.
 pub(crate) const MAP_CHALLENGES: usize = 16;
 
-/// The map misses a nonzero error with probability at most this many over `|E|`, one per stage. The WHIR list-size
-/// soundness accounting adds it to the batching numerator.
-pub(crate) const RING_SWITCH_ERROR_NUMERATOR: usize = 2;
-
 /// The coordinate batching weights: `weights[w] = Phi(b_w)`, where `b_w = x^i·y^j` (`w = 64j + i`)
 /// is the `w`-th `F_2`-coordinate basis element of `E` (the order `transpose_s_hat` produces), and
 ///
@@ -114,7 +110,7 @@ pub(crate) const RING_SWITCH_ERROR_NUMERATOR: usize = 2;
 /// `M_p = sum_b g_b^(2^(8p))·V_{8p+b} = (sum_b g_b·V_{8p+b}^(2^(-8p)))^(2^(8p))`. The Frobenius is a bijection, so for
 /// a `p` with some `V_{8p+b} != 0` the inner form is a nonzero linear form in the `g_b`, zero with probability
 /// `1 / |E|`, and otherwise the outer one is nonzero in the `f_p`, zero with probability `1 / |E|`:
-/// [`RING_SWITCH_ERROR_NUMERATOR`] in all.
+/// `2 / |E|` in all.
 ///
 /// The 64 terms are also the floor: the weights must separate any nonzero
 /// error on the 128 transposed `K`-columns, which is `|S|` `E`-equations, i.e.
