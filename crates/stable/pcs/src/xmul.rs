@@ -76,6 +76,16 @@ pub(crate) fn mul_x<T: Coef>(h: &[T], stride: usize, step: usize, first: usize, 
     }
 }
 
+/// `(X h)[c]` for one column, reading zero past `h`.
+pub(crate) fn x_at<T: Coef>(h: &[T], c: usize) -> T {
+    let at = |c: usize| h.get(c).copied().unwrap_or(T::ZERO);
+    match c {
+        0 => T::ZERO,
+        _ if c & 1 == 1 => at(c - 1) + at(c),
+        _ => (at(c - 1) + at(c + (1 << c.trailing_zeros()) - 1)).scale(coeff(c)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

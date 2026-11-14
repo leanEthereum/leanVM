@@ -21,6 +21,7 @@
 
 use crate::merkle::{Hash, MerkleTree};
 use crate::ntt::{AdditiveNttF64, words};
+use crate::stack_open::Terms;
 use fiat_shamir::merkle::MerklePath;
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{F64, F128, powers};
@@ -33,6 +34,7 @@ pub use super::whir_config::{
 };
 
 pub use crate::whir_induce::*;
+use crate::whir_lanes;
 
 // ===================================================================
 // Multilinear helpers over E
@@ -400,16 +402,12 @@ impl Dense {
     }
 }
 
-/// `at(y)` over a stack of `lanes` lanes of `lane_block` words, coefficient by coefficient: coefficient `c` of lane
-/// `l`, at stack index `l * lane_block + c`, goes to `c * lanes + l`.
-fn interleave(lanes: usize, lane_block: usize, at: impl Fn(usize) -> F128 + Sync) -> Vec<F128> {
-    let mut out = vec![F128::ZERO; lanes * lane_block];
-    parallel::chunks_mut(&mut out, CHUNK, |i, out| {
-        for (d, o) in (i * CHUNK..).zip(out) {
-            *o = at(d % lanes * lane_block + d / lanes);
-        }
-    });
-    out
+/// The weight the opening starts from, as terms: the table `A`, one row of `n_terms` per lane, and the
+/// terms themselves, which project lanes onto them and lift a row of `A` over a lane.
+pub(crate) struct InitialBasis {
+    pub(crate) a: Vec<F128>,
+    pub(crate) n_terms: usize,
+    pub(crate) terms: Terms,
 }
 
 /// Sample `count` query positions in transcript order: no dedup, no sort.
@@ -463,7 +461,7 @@ fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>, mut c
     (claim, f[0], w[0])
 }
 
-/// Prove `Σ_x witness(x) · weight(x) = target` against the L0 commitment
+/// Prove `Σ_x witness(x) · b_initial(x) = target` against the L0 commitment
 /// produced by [`commit`] (with `log_batch_size = config.initial_k` and
 /// `log_inv_rate = config.log_inv_rates[0]`).
 ///
@@ -471,7 +469,7 @@ fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>, mut c
 /// committed stack is gone before the level-1 commit allocates.
 ///
 /// `witness` may be shorter than `2^log_n`: it is a whole number of lane blocks, zero past them. The level-0 rounds
-/// read only those, while `weight` covers every lane.
+/// project only those, while `b_initial` keeps the weight over every lane.
 ///
 /// Every level folds its lanes with [`FoldChallenges`], commits the low part of the folded lane (the next level's
 /// message) and sends its high part, binds the next level with one OOD point, then opens its own oracle at its
@@ -480,11 +478,11 @@ fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>, mut c
 ///
 /// Scalars enter the shared transcript as they are transmitted, and authenticated Merkle openings travel as one
 /// phase per level. The caller has already bound the initial commitment and target.
-pub(crate) fn recursive_prover(
+pub(crate) fn recursive_prover_with_prepared_basis(
     config: &ProverConfig,
     log_n: usize,
     witness: Vec<F64>,
-    weight: Vec<F128>,
+    b_initial: InitialBasis,
     target: F128,
     prover_data: ProverData,
     ps: &mut ProverState,
@@ -522,41 +520,40 @@ pub(crate) fn recursive_prover(
     // rounds keep it.
     let mut claim = target;
 
-    // Level 0's lanes are the stack's lane blocks, the high variables; a later level's are the low ones of the
-    // previous level's message.
-    assert_eq!(weight.len(), 1 << log_n);
-    let span = tracing::info_span!("Interleave").entered();
-    let mut p = interleave(num_interleaved_0, lane_block, |y| {
-        witness.get(y).map_or(F128::ZERO, |&k| F128::from(k))
-    });
-    drop(witness);
-    let mut w = interleave(num_interleaved_0, lane_block, |y| weight[y]);
-    drop((weight, span));
+    // Level 0: its rounds run on the weight's terms.
+    let mut lanes = whir_lanes::LaneRounds::new(witness, b_initial, lane_block);
+    let mut rounds = Vec::with_capacity(initial_k);
+    for j in 0..initial_k {
+        let _span = tracing::info_span!("Fold round", level = 0, round = j).entered();
+        let table = lanes.table();
+        let ch = fold_round(ps, &table);
+        claim = ch.next_claim(claim, &table);
+        lanes.fold(&ch);
+        rounds.push(ch);
+    }
+    let (mut p, mut w) = lanes.finish();
     let mut prover_data = Some(prover_data);
     let mut wtns_prev: Option<LigeroWitness> = None;
-    let mut rounds = Vec::new();
 
     for level in 0..=r {
-        let k = if level == 0 {
-            initial_k
-        } else {
-            config.level_ks[level - 1]
-        };
-        let mut dense = Dense {
-            f: p,
-            w,
-            stride: 1 << k,
-        };
-        rounds.clear();
-        for j in 0..k {
-            let _span = tracing::info_span!("Fold round", level, round = j).entered();
-            let table = dense.table();
-            let ch = fold_round(ps, &table);
-            claim = ch.next_claim(claim, &table);
-            dense.fold(&ch);
-            rounds.push(ch);
+        if level > 0 {
+            // The level's message is the previous one's low part, its lanes the low `level_ks[level - 1]` variables.
+            let mut dense = Dense {
+                f: p,
+                w,
+                stride: 1 << config.level_ks[level - 1],
+            };
+            rounds.clear();
+            for j in 0..config.level_ks[level - 1] {
+                let _span = tracing::info_span!("Fold round", level, round = j).entered();
+                let table = dense.table();
+                let ch = fold_round(ps, &table);
+                claim = ch.next_claim(claim, &table);
+                dense.fold(&ch);
+                rounds.push(ch);
+            }
+            (p, w) = (dense.f, dense.w);
         }
-        (p, w) = (dense.f, dense.w);
         let mu = w.len().ilog2() as usize;
         assert_eq!(p.len(), (1 << mu) + rounds.len());
         let block_len = wtns_prev.as_ref().map_or(block_len_0, |wt| wt.block_len);
