@@ -136,6 +136,7 @@ def ResIn (s : St) : Res → Prop
   | .lt a b => IdxIn s a ∧ IdxIn s b
   | .nz o => s.mem.written (s.fp + o) = true
   | .sub a _ => IdxIn s a.lo ∧ IdxIn s a.hi
+  | .name _ => True
 
 theorem addRes_idxIn {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells)
     {i : Idx} (h : A.idxOk i = true) : IdxIn s i := by
@@ -175,6 +176,10 @@ theorem addRes_sound' {s : St} (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells) :
     exact addRes_sound' hwf hu (hH.addR (RW.of_sub (hr _ (List.mem_cons_self ..) hin)
       (fun b hb ↦ Abs.coveredR_sound hH hwf hu (hc.2 b hb)) hvq))
       (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
+  | A, A', .name o :: rs, hH, hr, h => by
+    simp only [addRes] at h
+    split_ifs at h with ho
+    exact addRes_sound' hwf hu (hH.name ho) (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
 
 /-! ## One path's step, by cases -/
 

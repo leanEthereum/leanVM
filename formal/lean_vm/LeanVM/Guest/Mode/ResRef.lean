@@ -60,6 +60,7 @@ def RRes (M : ℕ → E) (fp : ℕ) : Res → Prop
   | .lt a b => ∃ xa xb, RIdx M fp a xa ∧ RIdx M fp b xb ∧ xa < xb
   | .nz o => M (fp + o) ≠ 0
   | .sub a bs => RSub M fp a bs
+  | .name _ => True
 
 section
 
@@ -105,6 +106,7 @@ theorem resHolds_of_ref (h : Agree s.mem M) : ∀ {r : Res}, ResIn s r → RRes 
     show SubF s _ _ from ⟨xlo, xhi, idx_of_ref h hlo h1, idx_of_ref h hhi h2, fun vq hq j hj1 hj2 ↦
       (hk vq (rmono_of h hq) j hj1 hj2).imp fun _ ⟨hb, hk'⟩ ↦
         ⟨hb, fun vb ylo yhi e1 e2 e3 ↦ hk' vb ylo yhi (rmono_of h e1) (ridx_of h e2) (ridx_of h e3)⟩⟩
+  | .name _, _, _ => trivial
 
 end
 
@@ -118,11 +120,13 @@ def RIn (M : ℕ → E) (fp : ℕ) : Res → Prop
   | .lt a b => RIdxIn M fp a ∧ RIdxIn M fp b
   | .nz _ => True
   | .sub a _ => RIdxIn M fp a.lo ∧ RIdxIn M fp a.hi
+  | .name _ => True
 
 theorem rin_of {M : ℕ → E} {s : St} (h : Agree s.mem M) : ∀ {r : Res}, ResIn s r → RIn M s.fp r
   | .lt _ _, ⟨ha, hb⟩ => ⟨ridxIn_of h ha, ridxIn_of h hb⟩
   | .nz _, _ => trivial
   | .sub _ _, ⟨ha, hb⟩ => ⟨ridxIn_of h ha, ridxIn_of h hb⟩
+  | .name _, _ => trivial
 where
   ridxIn_of {M : ℕ → E} {s : St} (h : Agree s.mem M) : ∀ {i : Idx}, IdxIn s i → RIdxIn M s.fp i
     | .num _, _ => trivial
@@ -288,6 +292,7 @@ theorem resRef_mul {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {img : Me
   | nz o => exact nz_mul hκ hC hK hm hs hon hi hpc hr (hnum s i hX hs hon hi hpc o hr)
   | lt a b => exact hother s i hX hs hon hi hpc _ hr (fun _ h ↦ by cases h) hin
   | sub a bs => exact hother s i hX hs hon hi hpc _ hr (fun _ h ↦ by cases h) hin
+  | name o => exact hother s i hX hs hon hi hpc _ hr (fun _ h ↦ by cases h) hin
 
 /-- **A function's residuals, its orders from its windows**: `ResRef` for one certificate whose
 order residuals are window bounds, given its windows on the reference at every state and the other
@@ -307,6 +312,7 @@ theorem resRef_win {prog : LeanIsaProgram} {κ n : ℕ} {img : MemoryImage κ} {
   | lt a b => exact lt_win hN (hw s i hX hs hon hi hpc) hc hi hr hin
   | nz o => exact hother s i hX hs hon hi hpc _ hr (fun _ _ h ↦ by cases h) hin
   | sub a bs => exact hother s i hX hs hon hi hpc _ hr (fun _ _ h ↦ by cases h) hin
+  | name o => exact hother s i hX hs hon hi hpc _ hr (fun _ _ h ↦ by cases h) hin
 
 end
 

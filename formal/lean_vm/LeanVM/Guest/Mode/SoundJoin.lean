@@ -127,6 +127,30 @@ theorem ptrBeq_eq (p q : Rng × List ℕ) (h : ptrBeq p q = true) : p = q := by
   simp only [ptrBeq, Bool.and_eq_true, beq_iff_eq] at h
   exact Prod.ext (Rng.beq_eq h.1) h.2
 
+theorem mem_interP {A B : Abs} {q : Rng × List ℕ} (h : q ∈ interP A B) : q ∈ A.p ∨ A.entP q.1 = true := by
+  unfold interP at h
+  simp only [List.mem_append, List.mem_filter, Bool.and_eq_true, Bool.not_eq_true'] at h
+  rcases h with (⟨h, -⟩ | h) | ⟨-, -, h⟩
+  · exact Or.inl (List.mem_of_mem_take h)
+  · exact Or.inl (List.mem_of_mem_drop h)
+  · exact Or.inr h
+
+theorem mem_interP_right {A B : Abs} {q : Rng × List ℕ} (h : q ∈ interP A B) :
+    q ∈ B.p ∨ B.entP q.1 = true := by
+  unfold interP at h
+  simp only [List.mem_append, List.mem_filter, Bool.and_eq_true, Bool.not_eq_true',
+    Bool.or_eq_true] at h
+  rcases h with (⟨-, h | h⟩ | h) | ⟨h, -⟩
+  · obtain ⟨y, hy, he⟩ := List.any_eq_true.mp h
+    rw [ptrBeq_eq _ _ he]; exact Or.inl hy
+  · exact Or.inr h
+  · have hx : q ∈ A.p.reverse.take (agree ptrBeq A.p.reverse B.p.reverse) := by
+      rw [List.take_reverse]; exact List.mem_reverse.mpr h
+    obtain ⟨y, hy, he⟩ := forall₂_mem agree_forall₂ hx
+    rw [ptrBeq_eq _ _ he]
+    exact Or.inl (List.mem_reverse.mp (List.mem_of_mem_take hy))
+  · exact Or.inl (List.mem_of_mem_take h)
+
 theorem ltBeq_eq (p q : Idx × Idx) (h : ltBeq p q = true) : p = q := by
   simp only [ltBeq, Bool.and_eq_true] at h
   exact Prod.ext (Idx.beq_eq h.1) (Idx.beq_eq h.2)
@@ -168,7 +192,7 @@ theorem Holds.inter {s : St} {A B : Abs} (hA : Holds s A) : Holds s (A.inter B) 
   pr _ hp := nomatch hp
   xs c a b ho := hA.xs c a b (Exec.Trie.get_inter (fun p q h ↦ by
     simp only [Bool.and_eq_true, beq_iff_eq] at h; exact Prod.ext h.1 h.2) ho).1
-  p q hq := hA.p q (mem_interT hq)
+  p q hq := (mem_interP hq).elim (hA.p q) (fun h ↦ Abs.entP_sound hA h q.2)
   c d hd := by
     obtain ⟨c, hc, hl⟩ := (mem_interC hd).1
     exact (hA.c c hc).le hl
@@ -187,8 +211,7 @@ theorem Holds.inter_right {s : St} {A B : Abs} (hB : Holds s B) : Holds s (A.int
   pr _ hp := nomatch hp
   xs c a b ho := hB.xs c a b (Exec.Trie.get_inter (fun p q h ↦ by
     simp only [Bool.and_eq_true, beq_iff_eq] at h; exact Prod.ext h.1 h.2) ho).2
-  p q hq := hB.p q (mem_interT_right
-    (pair_beq_eq (fun _ _ h ↦ Rng.beq_eq h) (fun _ _ h ↦ beq_iff_eq.mp h)) hq)
+  p q hq := (mem_interP_right hq).elim (hB.p q) (fun h ↦ Abs.entP_sound hB h q.2)
   c d hd := by
     obtain ⟨c, hc, hl⟩ := (mem_interC hd).2
     exact (hB.c c hc).le hl
@@ -354,6 +377,7 @@ def ResHolds (s : St) : Res → Prop
   | .lt a b => LTF s a b
   | .nz o => NzAt s o
   | .sub a bs => SubF s a bs
+  | .name _ => True
 
 /-- A run inside written runs is written. -/
 theorem RW.of_sub {s : St} {a : Rng} {bs : List Rng} (h : SubF s a bs) (hb : ∀ b ∈ bs, RW s b)
@@ -470,6 +494,17 @@ theorem Abs.coveredR_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
       rwa [show r.S * (a + (j - a)) + r.d = r.S * j + r.d by congr 2; omega] at this
     · simp at h
 
+/-- A frame cell named by its own word. -/
+theorem Holds.name {s : St} {A : Abs} (h : Holds s A) {o : ℕ} (hw : A.hasW o = true) :
+    Holds s { A with v := A.v.set (.m (.root o)) Exec.envDepth o } :=
+  { h with
+      v := fun o' x' ho ↦ by
+        rcases Exec.Trie.get_set (show (Exec.Trie.set (Val.m (.root o)) Exec.envDepth A.v o).get o' =
+            some x' from ho) with ⟨rfl, rfl⟩ | ho
+        · obtain ⟨u, hu⟩ := Mem.get_of_written (h.written hw)
+          exact ⟨u, hu, MonoVal.root hu⟩
+        · exact h.v o' x' ho }
+
 /-- **The residuals**, holding, keep the walk's set. -/
 theorem addRes_sound {s : St} (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells) :
     ∀ {A A' : Abs} {rs : List Res}, Holds s A → (∀ r ∈ rs, ResHolds s r) → addRes A rs = some A' →
@@ -493,6 +528,10 @@ theorem addRes_sound {s : St} (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells) :
     exact addRes_sound hwf hu (hH.addR (RW.of_sub (hr _ (List.mem_cons_self ..))
       (fun b hb ↦ Abs.coveredR_sound hH hwf hu (hc.2 b hb)) hvq))
       (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
+  | A, A', .name o :: rs, hH, hr, h => by
+    simp only [addRes] at h
+    split_ifs at h with ho
+    exact addRes_sound hwf hu (hH.name ho) (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
 
 /-- **One instruction the walk accepts**: its reads are written (`Reads`), and, unless it is a
 `JUMP`, the walk's next set holds after it. -/

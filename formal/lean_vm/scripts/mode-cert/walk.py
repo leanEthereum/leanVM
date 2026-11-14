@@ -130,6 +130,8 @@ class Abs:
         for p, q in s.lt:
             t = ioff(p, a)
             if t is not None and sle(ishift(q, t), b): return True
+            # `a + 1 ≤ p < q ≤ b + 1`
+            if sle(isucc(a), p) and sle(q, isucc(b)): return True
         return False
 
     def knownB(s, b):
@@ -187,6 +189,13 @@ class Abs:
         if b is None: return False
         n = max(0, b - lo[1])
         return n <= 64 and s.knownH(q) and all(s.coveredHR(shift(q, S * (lo[1] + j) + d)) for j in range(n))
+
+    def entP(s, r):
+        """Run `r` empty, from a constant to a known bound at most it (`Abs.entP`)."""
+        q, lo, hi, S, d = r
+        if lo[0] != 'num': return False
+        b = s.bound(hi)
+        return b is not None and b <= lo[1] and s.knownH(q)
 
     def tabCovered(s, k):
         """`k = q·x^e·g^c`, `x`'s exponent below a known bound, every cell `q·g^(e·j + c)` below it known
@@ -290,7 +299,7 @@ def inter(A, B):
     t.r = (A.r & B.r) | {r for r in A.r - B.r if B.entR(r)} | {r for r in B.r - A.r if A.entR(r)}
     t.lt = A.lt & B.lt; t.pr = []
     t.xs = {c: p for c, p in A.xs.items() if B.xs.get(c) == p}
-    t.p = A.p & B.p
+    t.p = (A.p & B.p) | {q for q in A.p - B.p if B.entP(q[0])} | {q for q in B.p - A.p if A.entP(q[0])}
     t.c = {}
     for key, F in A.c.items():
         G = B.c.get(key)
@@ -378,6 +387,7 @@ class Walk:
         self.lnks = {}  # heap key -> frame cells linked to it
         self.rets = []; self.tails = []
         self.ld = {}  # inference metadata: frame cell -> heap key it was loaded from
+        self.cursel = None  # inference metadata: the selector of the table call being checked
         self.states = None
 
     def need(self, ok, *why):
@@ -589,6 +599,10 @@ class Walk:
             elif r[0] == 'nz':
                 if r[1] not in A.w: raise Fail(('resW', i, r))
                 A.nz.add(r[1])
+            elif r[0] == 'name':
+                # a frame cell's word named by its cell, its product forgotten (`Res.name`)
+                if r[1] not in A.w: raise Fail(('resW', i, r))
+                A.v[r[1]] = ('m', root(r[1]))
             elif r[0] == 'sub':
                 # a run whose cells lie in known runs' (`Res.sub`)
                 a, bs = r[1], r[2]
@@ -811,6 +825,7 @@ class Walk:
                 Bs = []
                 for j, G in enumerate(Gs):
                     Aj = assume(A, x, j) if x is not None else A.copy()
+                    self.cursel = x
                     self.atCall(Aj, mq, G)
                     self.entryOk(Aj, mq, G, i, G.pc)
                     Bs.append(self.afterCall(Aj, mq, G))

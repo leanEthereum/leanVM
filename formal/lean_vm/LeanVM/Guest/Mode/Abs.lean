@@ -309,11 +309,12 @@ def Abs.le (A : Abs) (a b : Idx) : Bool :=
     | some t => a.sle (p.1.succ.shift t)
     | none => false
 
-/-- `a < b`, directly, or through a known `p < q` with `a = p + t` and `q + t ≤ b`. -/
+/-- `a < b`, directly, or through a known `p < q` with `a = p + t` and `q + t ≤ b`, or with
+`a + 1 ≤ p` and `q ≤ b + 1`. -/
 def Abs.ltI (A : Abs) (a b : Idx) : Bool :=
-  a.succ.sle b || A.lt.any fun p ↦ match p.1.off a with
+  a.succ.sle b || A.lt.any fun p ↦ (match p.1.off a with
     | some t => (p.2.shift t).sle b
-    | none => false
+    | none => false) || (a.succ.sle p.1 && p.2.sle b.succ)
 
 /-- The exponent `k` names in run `r`, when `k = r.q · x^S · g^(S·c + d)` (`x + c`) or
 `k = r.q · g^(S·c + d)` (`c`). -/
@@ -369,6 +370,13 @@ def Abs.entR (A : Abs) (r : Rng) : Bool :=
   match r.lo, A.bound r.hi with
   | .num a, some b => decide (b - a ≤ 64) && A.knownH r.q &&
       (List.range (b - a)).all fun j ↦ A.coveredHR (r.q.shift (r.S * (a + j) + r.d))
+  | _, _ => false
+
+/-- Run `r` is empty, from a constant to a known bound at most it: a run of pointers another state
+entails at a join (a loop that ran no iteration). -/
+def Abs.entP (A : Abs) (r : Rng) : Bool :=
+  match r.lo, A.bound r.hi with
+  | .num a, some b => decide (b ≤ a) && A.knownH r.q
   | _, _ => false
 
 /-- The exponent of base `b`, when known exactly (the least such, if several). -/
@@ -501,6 +509,14 @@ def hvBeq (p q : Mono × Val) : Bool := p.1.beq q.1 && p.2.beq q.2
 /-- Equality of runs of pointers, as a `Bool`. -/
 def ptrBeq (p q : Rng × List ℕ) : Bool := p.1.beq q.1 && p.2 == q.2
 
+/-- Runs of pointers both states know: those both hold, their common tail kept whole, and those one
+holds and the other entails (`entP`). -/
+def interP (A B : Abs) : List (Rng × List ℕ) :=
+  let t := agree ptrBeq A.p.reverse B.p.reverse
+  (A.p.take (A.p.length - t)).filter (fun q ↦ B.p.any (ptrBeq q) || B.entP q.1) ++
+    A.p.drop (A.p.length - t) ++
+    (B.p.take (B.p.length - t)).filter (fun q ↦ !(A.p.any (ptrBeq q)) && A.entP q.1)
+
 /-- The conditional facts both lists hold, under the same condition. -/
 def interC (a b : List Cnd) : List Cnd :=
   a.filterMap fun c ↦ match b.find? (fun c' ↦ c'.x.beq c.x && c'.j == c.j) with
@@ -517,7 +533,7 @@ noncomputable def Abs.inter (A B : Abs) : Abs :=
     interT hvBeq A.hv B.hv, interT Mono.beq A.h B.h,
     interR A B, interT ltBeq A.lt B.lt, [],
     Trie.inter (fun p q ↦ p.1 == q.1 && p.2 == q.2) A.xs B.xs,
-    interT ptrBeq A.p B.p, interC A.c B.c⟩
+    interP A B, interC A.c B.c⟩
 
 /-- `A.inter B`, its lists' spines evaluated. -/
 noncomputable def Abs.interS (A B : Abs) : Abs :=
@@ -606,6 +622,9 @@ inductive Res where
   | nz (o : ℕ)
   /-- Every cell of run `a` is a cell of one of the runs `bs`. -/
   | sub (a : Rng) (bs : List Rng)
+  /-- No fact: frame cell `o`'s word named by its cell, its product forgotten (a product of
+  several bases used as an exponent). -/
+  | name (o : ℕ)
   deriving DecidableEq, Repr
 
 /-- The program the walks share. -/
@@ -869,6 +888,8 @@ def addRes (A : Abs) : List Res → Option Abs
     if A.known a.q && A.idxOk a.lo && A.idxOk a.hi && bs.all A.coveredR then
       addRes { A with r := a :: A.r } rs
     else none
+  | .name o :: rs =>
+    if A.hasW o then addRes { A with v := A.v.set (.m (.root o)) envDepth o } rs else none
 
 /-! ## Calls -/
 

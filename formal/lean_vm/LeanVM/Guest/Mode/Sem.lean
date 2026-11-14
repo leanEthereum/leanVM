@@ -483,13 +483,21 @@ theorem Abs.ltI_sound {s : St} {A : Abs} (hA : Holds s A) {a b : Idx} (h : A.ltI
     exact ⟨xa, ha, by omega⟩
   · obtain ⟨⟨p, q⟩, hm, hh⟩ := List.any_eq_true.mp h
     dsimp only at hh
-    split at hh
-    · rename_i t ht
-      obtain ⟨xp, xq, hp, hq, hlt⟩ := hA.lt _ hm
-      obtain ⟨y, hy, hle⟩ := Idx.sle_sound hh hb
-      obtain rfl := hy.unique (Idx.shift_val hq t)
-      exact ⟨xp + t, Idx.off_val ht hp, by omega⟩
-    · simp at hh
+    obtain ⟨xp, xq, hp, hq, hlt⟩ := hA.lt _ hm
+    rcases Bool.or_eq_true_iff.mp hh with hh | hh
+    · split at hh
+      · rename_i t ht
+        obtain ⟨y, hy, hle⟩ := Idx.sle_sound hh hb
+        obtain rfl := hy.unique (Idx.shift_val hq t)
+        exact ⟨xp + t, Idx.off_val ht hp, by omega⟩
+      · simp at hh
+    · -- `a + 1 ≤ p < q ≤ b + 1`
+      simp only [Bool.and_eq_true] at hh
+      obtain ⟨y, hy, hle⟩ := Idx.sle_sound hh.2 (Idx.succ_val' hb)
+      obtain rfl := hy.unique hq
+      obtain ⟨z, hz, hle'⟩ := Idx.sle_sound hh.1 hp
+      obtain ⟨xa, ha, rfl⟩ := Idx.succ_val hz
+      exact ⟨xa, ha, by omega⟩
 
 /-! ## Runs -/
 
@@ -907,6 +915,18 @@ theorem Abs.entR_sound {s : St} {A : Abs} (hA : Holds s A) {r : Rng} (h : A.entR
     have hc := List.all_eq_true.mp hall (j - a) (List.mem_range.mpr (by omega))
     have := Abs.coveredHR_ex hA hc (hvq.shift _)
     rwa [show r.S * (a + (j - a)) + r.d = r.S * j + r.d by congr 2; omega] at this
+  · cases h
+
+/-- **An empty run of pointers another state entails** holds. -/
+theorem Abs.entP_sound {s : St} {A : Abs} (hA : Holds s A) {r : Rng} (h : A.entP r = true)
+    (os : List ℕ) : PW s r os := by
+  unfold Abs.entP at h
+  split at h
+  · rename_i a b hlo hb
+    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
+    obtain ⟨vq, hvq⟩ := Abs.knownH_val hA h.2
+    obtain ⟨xhi, hxhi, hle⟩ := Abs.bound_sound hA hb
+    exact ⟨vq, a, xhi, hvq, by rw [hlo]; rfl, hxhi, fun j hj1 hj2 ↦ absurd hj2 (by omega)⟩
   · cases h
 
 /-- A table read at a bounded index: the run it reads is written, and the cell is one of it. -/

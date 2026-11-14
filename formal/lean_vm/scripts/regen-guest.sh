@@ -113,6 +113,8 @@ part_cert() {
 part_mode() {
   step "mode: the mode walk's signatures and checks (scripts/mode-cert/gen.py)"
   python3 -I scripts/mode-cert/gen.py "${check[@]}"
+  step "mode: the residuals by family (scripts/mode-cert/res.py)"
+  python3 -I scripts/mode-cert/res.py "${check[@]}"
 }
 
 part_bridge() {

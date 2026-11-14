@@ -112,28 +112,10 @@ noncomputable def modeFun : Mode.Fun :=
     (.node (some [(.allocFrames 41 437 7 (LeanVM.Parameters.K.ofBits 0x1) 437)]) .nil .nil))
     .nil))) (.node none .nil (.node none (.node none .nil (.node (some [(.allocFrames 24 3219 6
     (LeanVM.Parameters.K.ofBits 0x1) 3219)]) .nil .nil)) .nil))), (.node none (.node none (.node
-    none (.node none (.node none (.node none (.node (some [(.sub ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0),
-    (.ex (.fr 12) 1), 4, 0⟩ [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 0⟩]), (.sub
-    ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 12) 1), 4, 1⟩ [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0),
-    (.ex (.fr 5) 0), 4, 1⟩]), (.sub ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 12) 1), 4, 2⟩
-    [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 2⟩]), (.sub ⟨⟨0, 0, [((.fr 2), 1)]⟩,
-    (.num 0), (.ex (.fr 12) 1), 4, 3⟩ [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4,
-    3⟩])]) .nil .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node none (.node (some [(.lt
-    (.ex (.fr 8) 0) (.num 17))]) .nil .nil) .nil)) .nil)) .nil) (.node none (.node none .nil (.node
-    none (.node none (.node (some [(.sub ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 12) 1), 4, 0⟩
-    [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 0⟩]), (.sub ⟨⟨0, 0, [((.fr 2), 1)]⟩,
-    (.num 0), (.ex (.fr 12) 1), 4, 1⟩ [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 1⟩]),
-    (.sub ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 12) 1), 4, 2⟩ [⟨⟨0, 0, [((.fr 2), 1)]⟩,
-    (.num 0), (.ex (.fr 5) 0), 4, 2⟩]), (.sub ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 12) 1),
-    4, 3⟩ [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 3⟩])]) .nil .nil) (.node none
-    (.node (some [(.sub ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 12) 1), 4, 0⟩ [⟨⟨0, 0, [((.fr
-    2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 0⟩]), (.sub ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex
-    (.fr 12) 1), 4, 1⟩ [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 1⟩]), (.sub ⟨⟨0, 0,
-    [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 12) 1), 4, 2⟩ [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex
-    (.fr 5) 0), 4, 2⟩]), (.sub ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 12) 1), 4, 3⟩ [⟨⟨0, 0,
-    [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 3⟩])]) .nil .nil) .nil)) .nil)) .nil)), (.node
-    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node (some
-    17) .nil .nil) .nil)) .nil)) .nil)), false, .nil⟩
+    none .nil (.node none (.node none .nil (.node none (.node (some [(.lt (.ex (.fr 8) 0) (.num
+    17))]) .nil .nil) .nil)) .nil)) .nil) .nil), (.node none .nil (.node none (.node none .nil
+    (.node none (.node none .nil (.node none (.node (some 17) .nil .nil) .nil)) .nil)) .nil)),
+    false, .nil⟩
 
 end
 

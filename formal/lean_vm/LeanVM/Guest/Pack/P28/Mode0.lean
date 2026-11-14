@@ -231,7 +231,16 @@ noncomputable def modeEnv : Mode.Env :=
 noncomputable def modeFun : Mode.Fun :=
   ⟨239428, 54, Fn.«child_claim_list_last__L2».modeSig, (.node (some [(.witnessStack
     "child_claim_index" 79 1)]) .nil (.node none (.node none .nil (.node (some [(.witnessStack
-    "child_claim_index" 87 1)]) .nil .nil)) .nil)), .nil, .nil, false, .nil⟩
+    "child_claim_index" 87 1)]) .nil .nil)) .nil)), (.node none .nil (.node none (.node none (.node
+    (some [(.sub ⟨⟨0, 0, [((.fr 3), 1), ((.fr 79), 4)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0, [((.hp
+    1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp
+    1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.hp 1
+    2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil) .nil) (.node none .nil (.node none
+    (.node (some [(.sub ⟨⟨0, 0, [((.fr 3), 1), ((.fr 87), 4)]⟩, (.num 0), (.num 4), 1, 0⟩ [⟨⟨0, 0,
+    [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0),
+    (.ex (.hp 1 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 2⟩, ⟨⟨0,
+    0, [((.hp 1 2), 1)]⟩, (.num 0), (.ex (.hp 1 5) 0), 4, 3⟩])]) .nil .nil) .nil)))), .nil, false,
+    .nil⟩
 
 /-- `child_claim_list_last__L2`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

@@ -36,8 +36,9 @@ XDENSE = 1500
 XCOST = 2000000
 
 
-# measured: its windows exceed 3.5 GB however short, the estimate missing its work
-MEASURED_HEAVY = {'__loop17'}
+# measured: `__loop17`'s windows exceed 3.5 GB however short, the estimate missing its work; `__loop19`'s
+# snapshots time out the elaborator
+MEASURED_HEAVY = {'__loop17', '__loop19'}
 
 
 def checkable(n, fails): return n not in fails and n not in HEAVY and n not in MEASURED_HEAVY
@@ -114,6 +115,7 @@ def hint(h):
 def res(r):
     if r[0] == 'lt': return '(.lt %s %s)' % (idx(r[1]), idx(r[2]))
     if r[0] == 'sub': return '(.sub %s %s)' % (rng(r[1]), lst(r[2], rng))
+    if r[0] == 'name': return '(.name %d)' % r[1]
     return '(.nz %d)' % r[1]
 
 
