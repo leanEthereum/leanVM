@@ -1,4 +1,4 @@
-use signatures::lean_sphincs::*;
+use lean_sphincs::*;
 
 fn seed(x: u8) -> Seed {
     std::array::from_fn(|i| x.wrapping_mul(31).wrapping_add(i as u8))

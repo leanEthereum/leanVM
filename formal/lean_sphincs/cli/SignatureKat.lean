@@ -8,11 +8,10 @@ public import Statement.Fast.Schemes
 # The crates' known answers against the statement's signature schemes
 
 `signature-kat DIR` runs the statement's key generation, signer and verifier, compiled over
-Keccak-f[1600], on the EthLib test vectors of `crates/signatures` (`DIR` is
-`crates/signatures/tests/signatures/ethlib` at the leanVM commit the statement cites: the `key_gen`,
-`sign` and `verify` cases of `sphincs` and of `xmss`, both vendored at leanVM main
-`40f877dc`) and on leanSPHINCS's known answer
-(`crates/signatures/src/lean_sphincs/known_answer.hex`, beside `DIR`'s crate, given as a second
+Keccak-f[1600], on the EthLib test vectors the crates vendor (`DIR` is this repository's `crates`,
+the vectors `lean_xmss/tests/lean_xmss/ethlib` and `lean_sphincs/tests/lean_sphincs/ethlib`: the
+`key_gen`, `sign` and `verify` cases of each scheme) and on leanSPHINCS's known answer
+(`crates/lean_sphincs/src/known_answer.hex`, given as a second
 argument): the bytes must match. An input of the wrong length is rejected (`null`). Each case
 prints `ok` or `MISMATCH`; the exit code is the number of mismatches. `--sphincs` and `--xmss` run
 one scheme's cases; `--skip-xmss-sign` leaves out leanXMSS's signing cases, four tree builds of
@@ -526,7 +525,7 @@ def main (args : List String) : IO UInt32 := do
   let onlyXmss := args.contains "--xmss"
   let args := args.filter fun arg => !arg.startsWith "--"
   let some (dir : String) := args.head? | do
-    IO.eprintln "usage: signature-kat ETHLIB_DIR [KNOWN_ANSWER_HEX] [--skip-xmss-sign]"
+    IO.eprintln "usage: signature-kat CRATES_DIR [KNOWN_ANSWER_HEX] [--skip-xmss-sign]"
     return 2
   let mut mismatches : UInt32 := 0
   for scheme in ["sphincs", "xmss"] do
@@ -534,7 +533,8 @@ def main (args : List String) : IO UInt32 := do
       if skipXmssSign && scheme == "xmss" && kind == "sign" then continue
       if onlySphincs && scheme != "sphincs" then continue
       if onlyXmss && scheme != "xmss" then continue
-      let kindDir : System.FilePath := System.FilePath.mk dir / scheme / kind
+      let kindDir : System.FilePath :=
+        System.FilePath.mk dir / s!"lean_{scheme}" / "tests" / s!"lean_{scheme}" / "ethlib" / kind
       unless ← kindDir.isDir do continue
       let cases := ((← kindDir.readDir).map (·.path)).qsort (·.toString < ·.toString)
       for case in cases do

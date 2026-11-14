@@ -9,10 +9,9 @@ import LeanVM.Cli.Common
 
 `lake exe scheme-vectors` runs the statement's leanSPHINCS and leanXMSS
 (`Statement/LeanSphincs.lean`, `Statement/LeanXmss.lean`, over Keccak-f[1600] in `Id`) on their
-EthLib test vectors as leanVM vendors them (`crates/signatures/tests/signatures/ethlib/{sphincs,xmss}` of
-this repository, `../..`; the first argument overrides the directory)
-and on leanSPHINCS's known answer (`crates/signatures/src/lean_sphincs/known_answer.hex`, three
-directories above it):
+EthLib test vectors as the crates vendor them (`lean_sphincs/tests/lean_sphincs/ethlib` and
+`lean_xmss/tests/lean_xmss/ethlib` under this repository's `crates`, `../../crates`; the first
+argument overrides it) and on leanSPHINCS's known answer (`lean_sphincs/src/known_answer.hex`):
 
 * by default, leanSPHINCS's and leanXMSS's verification (`verify`), leanXMSS's signature's leaf
   index (`signature_index`), and the verification of leanSPHINCS's known answer, which must accept,
@@ -145,14 +144,15 @@ end SchemeVectors
 open SchemeVectors in
 /-- The driver: every case of every kind, in order. -/
 def main (args : List String) : IO UInt32 := do
-  let root : System.FilePath := (args.filter (!·.startsWith "--")).headD
-    "../../crates/signatures/tests/signatures/ethlib"
+  let crates : System.FilePath := (args.filter (!·.startsWith "--")).headD "../../crates"
+  let vectors (scheme : String) : System.FilePath :=
+    crates / s!"lean_{scheme}" / "tests" / s!"lean_{scheme}" / "ethlib"
   let kinds := ["sphincs/verify", "xmss/verify", "xmss/signature_index"] ++
     (if args.contains "--xmss-sign" then ["xmss/key_gen", "xmss/sign"] else [])
   let mut failed := 0
   let mut passed := 0
   let mut skipped := 0
-  let knownAnswer := root / ".." / ".." / ".." / "src" / "lean_sphincs" / "known_answer.hex"
+  let knownAnswer := crates / "lean_sphincs" / "src" / "known_answer.hex"
   let lines := (← IO.FS.readFile knownAnswer).splitOn "\n" |>.filter (· ≠ "")
   for (name, verdict) in knownAnswerCases lines do
     match verdict with
@@ -161,7 +161,10 @@ def main (args : List String) : IO UInt32 := do
     | .fail => failed := failed + 1; IO.println s!"sphincs/known_answer {name}: FAILED"
     (← IO.getStdout).flush
   for kind in kinds do
-    let dir := root / kind
+    let (scheme, handler) := match kind.splitOn "/" with
+      | [scheme, handler] => (scheme, handler)
+      | _ => (kind, "")
+    let dir := vectors scheme / handler
     let entries ← dir.readDir
     let cases := (entries.map (·.fileName)).qsort (· < ·)
     for name in cases do

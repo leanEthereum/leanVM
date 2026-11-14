@@ -23,7 +23,7 @@ open OracleComp OracleSpec ENNReal
 /-!
 ## leanXMSS
 
-The scheme of `crates/signatures/src/lean_xmss`, specified in `doc/lean_xmss`: two layers of XMSS of
+The scheme of `crates/lean_xmss/src`, specified in `doc/lean_xmss`: two layers of XMSS of
 height 16 over WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`; a
 leaf index `idx < 2^32` signs with bottom key `idx`, in bottom tree `idx / 2^16`.
 
@@ -117,7 +117,7 @@ deriving DecidableEq
 /-- `hi` on layer `l`: the top layer sets bit 23 (`layer_hi`). -/
 def layerHi (layer : Layer) (field : Nat) : Nat := field + 2 ^ 23 * layer.val
 
-/-- The address of a hash call (`Tweak`, `crates/signatures/src/lean_xmss/hash.rs`): its
+/-- The address of a hash call (`Tweak`, `crates/lean_xmss/src/hash.rs`): its
 type `tag < 32`, a chain step `step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
 structure TweakFields where
   /-- The hash call's type. -/

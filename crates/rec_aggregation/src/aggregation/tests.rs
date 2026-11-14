@@ -11,15 +11,14 @@ use super::*;
 use fiat_shamir::merkle::{Hash, hash_pair, hash_to_scalars};
 use lean_compiler::{compile, parse_with_replacements};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, LOG_BLOB_SYMBOLS};
+use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
+use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use leanvm_core::cpu::{from_scalar, verify};
 use primitives::field::{F64, F128, g_pow};
 use primitives::hash::hash;
 use primitives::multilinear::mle_eval_par;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
-use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
-use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
-use signatures::{lean_sphincs, lean_xmss};
 
 use crate::signers_cache::{
     LeanXmssSigner, get_lean_sphincs_signers, get_signers, get_signers_for, message, message_for,

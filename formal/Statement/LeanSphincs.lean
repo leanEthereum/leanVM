@@ -8,8 +8,8 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 /-!
 # leanSPHINCS
 
-The scheme of `crates/signatures/src/lean_sphincs` (`mod.rs`, `hash.rs`, `wots.rs`, `fors.rs`,
-`scheme.rs`; the shared `hasher`, `path_fold` and `truncate` of `crates/signatures/src/lib.rs`),
+The scheme of `crates/lean_sphincs/src` (`lib.rs`, `hash.rs`, `wots.rs`, `fors.rs`,
+`scheme.rs`; `prefixed_hasher`, `path_fold` and `truncate` in `lib.rs`),
 specified in `doc/lean_sphincs`: SLH-DSA (FIPS 205) on Keccak-256, with
 WOTS+C as its one-time signature and a hypertree of layers of different heights.
 

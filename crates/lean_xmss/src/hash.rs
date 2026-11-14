@@ -14,10 +14,10 @@
 
 use primitives::hash::Hasher;
 
-use crate::lean_xmss::*;
+use crate::*;
 
 /// `n`: hash value and Merkle node length, in bytes.
-pub const N: usize = crate::N;
+pub const N: usize = 16;
 pub type Digest = [u8; N];
 
 pub const PUBLIC_PARAM_LEN: usize = 16;
@@ -86,7 +86,7 @@ pub const fn blocks(payload: usize) -> usize {
 
 /// A hasher that has absorbed `P | A`.
 pub fn hasher(pp: &PublicParam, tw: &Tweak) -> Hasher {
-    crate::hasher(pp, &address(tw))
+    crate::prefixed_hasher(pp, &address(tw))
 }
 
 /// `Th` over a byte payload.

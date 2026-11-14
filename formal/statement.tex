@@ -319,8 +319,8 @@ encoding counters on each of its three layers); none of it is charged to $q$, an
 grow with the number of signatures. Signed messages are 32 bytes: a longer payload needs an outer
 hash, whose collisions are outside the bounds. Both schemes are stated through one game,
 \lean{Common.SufCma.StronglyUnforgeable},
-and share the shape of one tweakable hash (\texttt{hasher}, \texttt{truncate} of
-\texttt{crates/signatures/src/lib.rs}), hash chain and path fold.
+and share the shape of one tweakable hash (\texttt{prefixed\_hasher}, \texttt{truncate} of each
+scheme crate's \texttt{lib.rs}), hash chain and path fold.
 
 \subsection*{LeanDA}
 

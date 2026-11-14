@@ -6,7 +6,7 @@
 
 use primitives::hash::Hasher;
 
-use crate::lean_sphincs::*;
+use crate::*;
 
 pub type PkSeed = [u8; N];
 
@@ -79,7 +79,7 @@ impl Adrs {
 
 /// A hasher that has absorbed `PK.seed | ADRS`.
 pub fn hasher(pk_seed: &PkSeed, adrs: &Adrs) -> Hasher {
-    crate::hasher(pk_seed, adrs.as_bytes())
+    crate::prefixed_hasher(pk_seed, adrs.as_bytes())
 }
 
 /// `F`, `H` and `T_l`: `Trunc_n(H(PK.seed | ADRS | M))`.

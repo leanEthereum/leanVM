@@ -11,4 +11,5 @@ rec_aggregation.workspace = true
 leanvm_core.workspace = true
 parallel.workspace = true
 lean_da.workspace = true
-signatures.workspace = true
+lean_xmss.workspace = true
+lean_sphincs.workspace = true

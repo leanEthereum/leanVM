@@ -104,7 +104,7 @@ Each digest is Keccak-256 of its preimage; the preimages are also the inputs of 
 collisions (`collisionCandidates`, below). -/
 
 /-- A leanXMSS key's `32` bytes, its root then its parameter (`LeanXmssPublicKey::to_bytes`,
-`crates/signatures/src/lean_xmss/scheme.rs`); a leanSPHINCS key's are `PK.seed ‖ PK.root`
+`crates/lean_xmss/src/scheme.rs`); a leanSPHINCS key's are `PK.seed ‖ PK.root`
 (`Sphincs.PublicKey.toBytes`). -/
 def xmssPublicKeyBytes (publicKey : HashSig.PublicKey) : List UInt8 :=
   HashSig.littleEndianBytes 16 publicKey.root ++ HashSig.littleEndianBytes 16 publicKey.parameter

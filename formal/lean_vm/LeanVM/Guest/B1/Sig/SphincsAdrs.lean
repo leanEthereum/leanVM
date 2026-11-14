@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsAdrs
 
   FIPS 205's 32-byte address as the guest's two cells
-  (`lean_ethereum.py`, `crates/signatures/src/lean_sphincs/hash.rs`).
+  (`lean_ethereum.py`, `crates/lean_sphincs/src/hash.rs`).
 -/
 
 module

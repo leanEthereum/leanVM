@@ -15,11 +15,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 
+use lean_xmss::*;
 use primitives::{pretty_f64, pretty_integer};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use signatures::lean_xmss::*;
-use signatures::{lean_sphincs, lean_xmss};
 
 /// A cached leanXMSS signer, as the aggregation API takes it: the key, the message
 /// it signed, the signature.

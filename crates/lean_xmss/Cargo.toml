@@ -1,5 +1,5 @@
 [package]
-name = "signatures"
+name = "lean_xmss"
 version.workspace = true
 edition.workspace = true
 publish = false

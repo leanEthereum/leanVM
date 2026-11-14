@@ -2,11 +2,10 @@
 
 use super::cells::{count, exponent_bytes, pack_16_bytes};
 use super::error::AggregationError;
+use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
+use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use leanvm_core::cpu::Program;
 use primitives::field::F128;
-use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
-use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
-use signatures::{lean_sphincs, lean_xmss};
 
 // Both schemes' one-time keys go through the guest's one WOTS+C walk: the same chain
 // length and digits dispatched a group at a time. leanSPHINCS groups DIGIT_GROUP

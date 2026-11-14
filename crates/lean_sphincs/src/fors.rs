@@ -6,7 +6,7 @@
 //! its path. The FORS public key is `T_k` over the trees' roots, which the bottom
 //! one-time key signs.
 
-use crate::lean_sphincs::*;
+use crate::*;
 
 /// One FORS tree's opening: the picked leaf's secret, and its path from the
 /// leaf up.

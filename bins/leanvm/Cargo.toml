@@ -20,7 +20,8 @@ parallel.workspace = true
 lean_compiler.workspace = true
 lean_da.workspace = true
 keccak_gkr = { workspace = true, features = ["bench"] }
-signatures.workspace = true
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
 primitives.workspace = true
 bench.workspace = true
 rand.workspace = true

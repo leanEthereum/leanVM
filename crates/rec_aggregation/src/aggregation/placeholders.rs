@@ -21,7 +21,6 @@ use pcs::ntt::AdditiveNttF64;
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 use pcs::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
 use primitives::field::{F64, F128, g_pow};
-use signatures::{lean_sphincs, lean_xmss};
 use std::collections::BTreeMap;
 use std::ops::Range;
 
@@ -967,7 +966,7 @@ fn da_placeholders(ps: &mut impl FnMut(&str, String)) {
 }
 
 // A leanSPHINCS chain step's address is WOTS_HASH's, the type the guest leaves zero.
-const _: () = assert!(signatures::lean_sphincs::WOTS_HASH == 0);
+const _: () = assert!(lean_sphincs::WOTS_HASH == 0);
 
 /// Both signature schemes and the coverage caps.
 fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {

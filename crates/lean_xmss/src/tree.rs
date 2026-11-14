@@ -1,7 +1,7 @@
 //! One layer's Merkle tree over `2^16` leaves. Nodes are indexed on the layer, as
 //! their addresses are: a bottom tree's leaves by their leaf indices.
 
-use crate::lean_xmss::*;
+use crate::*;
 
 /// The Merkle parent at `level` and index `j` of `layer`.
 pub fn node(pp: &PublicParam, layer: usize, level: usize, j: u32, children: &[Digest; 2]) -> Digest {

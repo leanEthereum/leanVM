@@ -286,7 +286,7 @@ def digestFieldsValue (bytes : List UInt8) : Nat :=
 def truncateMessageDigest (outputs : DigestCall → HashOutput) : MessageDigest :=
   BitVec.ofNat messageDigestBits (digestFieldsValue (digestOutputBytes outputs))
 
-/-- FIPS 205's address `ADRS` (`Adrs` in `crates/signatures`): the layer, counted from the bottom, the
+/-- FIPS 205's address `ADRS` (`Adrs` in `crates/lean_sphincs`): the layer, counted from the bottom, the
 tree, the type `tag`, the key pair, the chain or height, and the hash address or tree index. -/
 structure TweakFields where
   layer : BitVec 32

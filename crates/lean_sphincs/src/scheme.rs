@@ -6,7 +6,7 @@
 //! FORS public key, the middle key the bottom tree's root, the top key the middle
 //! tree's root, and the top tree's root is `PK.root`.
 
-use crate::lean_sphincs::*;
+use crate::*;
 
 /// Ordered lexicographically on [`Self::to_bytes`], which is what an aggregate's
 /// signer list is sorted and deduplicated by.

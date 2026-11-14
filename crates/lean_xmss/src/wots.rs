@@ -8,7 +8,7 @@
 
 use primitives::hash::RATE;
 
-use crate::lean_xmss::*;
+use crate::*;
 
 /// The index of `leaf_index`'s one-time key on `layer`: the leaf index itself at
 /// the bottom, the bottom tree's index at the top.

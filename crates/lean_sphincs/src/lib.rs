@@ -21,6 +21,8 @@
 //! generation builds the top tree, and signing builds it again for `PK.root`, then
 //! the FORS instance and the two trees below it.
 
+#![cfg_attr(not(test), warn(unused_crate_dependencies))]
+
 mod hash;
 pub use hash::*;
 mod wots;
@@ -40,7 +42,7 @@ pub type Seed = [u8; SEED_LEN];
 pub(crate) const SEED_TAG: &[u8] = b"leanSPHINCS";
 
 /// `n`: the security parameter, the length of every hash value, `PK.seed` and node.
-pub const N: usize = crate::N;
+pub const N: usize = 16;
 pub type Digest = [u8; N];
 
 /// The message to sign (a 256-bit message hash).
@@ -119,3 +121,40 @@ const _: () = assert!(H == 26 && DIGEST_BYTES == 34 && DIGEST_CALLS == 2);
 const _: () = assert!(PUB_KEY_SIZE == 32);
 const _: () = assert!(SIG_SIZE == 7740);
 const _: () = assert!(VERIFY_PERMUTATIONS == 515);
+
+use primitives::hash::Hasher;
+
+/// The tweakable hash is `Truncate_16(H(prefix | address | payload))`,
+/// the prefix being the public parameter and the address each scheme's own: a
+/// hasher that has absorbed `prefix | address`.
+fn prefixed_hasher(prefix: &[u8; N], address: &[u8]) -> Hasher {
+    let mut hasher = Hasher::new();
+    hasher.update(prefix).update(address);
+    hasher
+}
+
+/// The root that `leaf`, at index `e`, and its authentication `path` reach, showing `visit` the two
+/// children of every node on the way up, `node(z, j, children)` hashing node `j` at height `z`.
+fn path_fold(
+    leaf: [u8; N],
+    e: usize,
+    path: &[[u8; N]],
+    mut visit: impl FnMut(&[[u8; N]; 2]),
+    node: impl Fn(usize, usize, &[[u8; N]; 2]) -> [u8; N],
+) -> [u8; N] {
+    path.iter().enumerate().fold(leaf, |current, (z, &sibling)| {
+        // Bit `z` of `e` says whether the node is the right child.
+        let children = if (e >> z) & 1 == 0 {
+            [current, sibling]
+        } else {
+            [sibling, current]
+        };
+        visit(&children);
+        node(z + 1, e >> (z + 1), &children)
+    })
+}
+
+/// `Truncate_16`: a hash value from a Keccak-256 output.
+fn truncate(output: [u8; 32]) -> [u8; N] {
+    output[..N].try_into().unwrap()
+}

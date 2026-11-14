@@ -14,8 +14,8 @@ use super::*;
 use crate::signers_cache::{get_lean_sphincs_signers, get_signers};
 use lean_da::BLOB_SYMBOLS;
 use leanvm_core::cpu::{public_input_bytes, scalar_proof};
-use signatures::lean_sphincs::LeanSphincsSignature;
-use signatures::lean_xmss::LeanXmssSignature;
+use lean_sphincs::LeanSphincsSignature;
+use lean_xmss::LeanXmssSignature;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::fmt::Write as _;
@@ -241,7 +241,7 @@ fn export(
     out.tag("da_witness");
     match &direct {
         Some(witness) => {
-            let root = &witness.root();
+            let root = &witness.top_root();
             out.0.push_str("direct ");
             out.bytes(root);
             out.e(from_scalar(verifier::da::membership_challenge(root)));

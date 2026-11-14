@@ -9,7 +9,7 @@
 //! messages do not encode into the code at all, hence the counter the signer
 //! searches for and the signature carries.
 
-use crate::lean_sphincs::*;
+use crate::*;
 
 /// A one-time key of the hypertree: its layer, counted from the bottom, its tree
 /// on that layer, and its leaf in that tree.

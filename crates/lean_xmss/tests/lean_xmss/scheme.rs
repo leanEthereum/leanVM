@@ -1,5 +1,5 @@
+use lean_xmss::*;
 use rand::{Rng, SeedableRng, rngs::StdRng};
-use signatures::lean_xmss::*;
 
 fn test_message() -> Message {
     std::array::from_fn(|i| (i * 3 + 7) as u8)

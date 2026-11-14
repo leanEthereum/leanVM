@@ -14,11 +14,10 @@ use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_spl
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
 use lean_da::CELLS_PER_ROW;
+use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
+use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use leanvm_core::cpu::{from_scalar, prove, public_input_bytes, scalar_proof};
 use primitives::field::F128;
-use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
-use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
-use signatures::{lean_sphincs, lean_xmss};
 
 /// Prove existence of signatures and valid encoding of PQ-blobs, potentially using recursive children.
 ///
