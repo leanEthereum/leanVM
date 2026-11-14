@@ -12,7 +12,7 @@
 use crate::gkr;
 use crate::transcript::ProverState;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, g_pow32_by_lookup, index_mle, mul_by_g};
-use primitives::multilinear::{eq_eval, eq_table, interp, mle_eval_par};
+use primitives::multilinear::{eq_eval, eq_table, eq_table_serial, interp};
 use std::sync::Arc;
 
 /// One tuple coordinate as a function of the block's row `z`.
@@ -462,11 +462,30 @@ fn decompose(
         // Column `i` at ζ_lo: reuse the recorded claim, else take a fresh value and
         // record it. The push ORDER is the stream order, so every coordinate that
         // needs a column value must go through here.
+        // The block's columns not yet claimed at ζ_lo and its public columns, in one pass.
+        let mut fresh: Vec<usize> = blk
+            .coords
+            .iter()
+            .filter_map(|c| match c {
+                Coord::Col(i) | Coord::GCol(i, _) if known_claim(claims, *i, zeta_lo).is_none() => Some(*i),
+                _ => None,
+            })
+            .collect();
+        fresh.sort_unstable();
+        fresh.dedup();
+        let tables: Vec<(&[F64], Option<&[F64]>)> = (fresh.iter().map(|&i| (cols[i], None)))
+            .chain(blk.coords.iter().filter_map(|c| match c {
+                Coord::Public(vals) => Some((vals.as_slice(), None)),
+                _ => None,
+            }))
+            .collect();
+        let evals = eq_sums(zeta_lo, &tables);
+        let mut public = evals[fresh.len()..].iter().copied();
         let mut col_val = |i: usize| -> F128 {
             if let Some(v) = known_claim(claims, i, zeta_lo) {
                 return v;
             }
-            let v = mle_eval_par(cols[i], zeta_lo);
+            let v = evals[fresh.binary_search(&i).unwrap()];
             ps.add_scalar(v);
             claims.push(ColumnClaim {
                 col: i,
@@ -485,7 +504,7 @@ fn decompose(
                 Coord::Prod(..) | Coord::Sum(..) => {
                     unreachable!("only a table's bus block carries a degree-2 coordinate")
                 }
-                Coord::Public(vals) => mle_eval_par(vals, zeta_lo),
+                Coord::Public(_) => public.next().unwrap(),
             };
             inner += w[i] * coord_val;
         }
@@ -544,9 +563,18 @@ fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], ps: &mut Prov
         .find(|blk| blk.coords.iter().any(|c| matches!(c, Coord::Public(_))))
         .expect("the push side seeds the bytecode");
     let zeta_lo = &zeta[..block.kappa];
+    let public: Vec<(&[F64], Option<&[F64]>)> = block
+        .coords
+        .iter()
+        .filter_map(|c| match c {
+            Coord::Public(vals) => Some((vals.as_slice(), None)),
+            _ => None,
+        })
+        .collect();
+    let mut evals = eq_sums(zeta_lo, &public).into_iter();
     let mut slots: Vec<F128> = (0..1 << N_TUPLE_BITS)
         .map(|x| match block.coords.get(x) {
-            Some(Coord::Public(vals)) => mle_eval_par(vals, zeta_lo),
+            Some(Coord::Public(_)) => evals.next().unwrap(),
             _ => F128::ZERO,
         })
         .collect();
@@ -675,16 +703,41 @@ pub(crate) fn prove_balance(
     }
 }
 
-/// `Σ_z eq[z]·f(z)` over the vectors of eight rows `blocks`, `value(z, n)` being `f` at rows `z..z + 8`, the `n`
-/// left of them.
-#[inline(always)]
-fn eq_sum(eq: &[F128], blocks: std::ops::Range<usize>, value: impl Fn(usize, usize) -> F64x8) -> F128 {
-    blocks
-        .fold(Acc8::ZERO, |acc, b| {
-            let (z, n) = (8 * b, eq.len() - 8 * b);
-            acc + crate::load_e(eq, z, n).mul_base_unreduced(value(z, n))
-        })
-        .sum()
+/// `Σ_z eq(point, z)·a(z)·b(z)` for every term `(a, b)`, `b` the constant one where absent, in one pass over the
+/// rows. A column shorter than `2^point.len()` is zero past its end.
+pub(crate) fn eq_sums(point: &[F128], terms: &[(&[F64], Option<&[F64]>)]) -> Vec<F128> {
+    // `eq` as a low table over the first variables times a high one, so no table of the columns' size is built: a
+    // task is a row of the high table, its terms summed against the low one and scaled once.
+    let lo_bits = point.len().min(10);
+    let (lo, hi) = (eq_table_serial(&point[..lo_bits]), eq_table(&point[lo_bits..]));
+    let load = |column: &[F64], z: usize| crate::load_k(column, z, column.len().saturating_sub(z));
+    fn sum(lo: &[F128], z0: usize, value: impl Fn(usize) -> F64x8) -> F128 {
+        (0..lo.len().div_ceil(8))
+            .fold(Acc8::ZERO, |acc, v| {
+                let i = 8 * v;
+                acc + crate::load_e(lo, i, lo.len() - i).mul_base_unreduced(value(z0 + i))
+            })
+            .sum()
+    }
+    let row = |h: usize| -> Vec<F128> {
+        let z0 = h << lo_bits;
+        terms
+            .iter()
+            .map(|&(a, b)| {
+                hi[h]
+                    * match b {
+                        None => sum(&lo, z0, |z| load(a, z)),
+                        Some(b) => sum(&lo, z0, |z| load(a, z) * load(b, z)),
+                    }
+            })
+            .collect()
+    };
+    let add = |a: Vec<F128>, b: Vec<F128>| a.iter().zip(b).map(|(&a, b)| a + b).collect();
+    if hi.len() * lo.len() < 8 * crate::SERIAL_BELOW {
+        (0..hi.len()).map(row).fold(vec![F128::ZERO; terms.len()], add)
+    } else {
+        parallel::map_reduce(hi.len(), || vec![F128::ZERO; terms.len()], row, add)
+    }
 }
 
 /// Every table's committed columns at `ζ[..τ_t]`, as `Σ_z eq(ζ[..τ], z)·col(z)`, and, for every column pair its
@@ -698,43 +751,23 @@ fn tables_and_prods_at(
     forms: &[Vec<BusForm>],
     zeta: &[F128],
 ) -> (Vec<Vec<F128>>, Vec<Vec<(usize, usize, F128)>>) {
-    /// Vectors of eight rows per task: its slice of `eq` stays in cache while each sum runs over it.
-    const CHUNK: usize = 1 << 7;
     tables
         .iter()
         .enumerate()
         .map(|(t, &(base, n_cols))| {
             let columns = &cols[base..base + n_cols];
-            let rows = columns[0].len();
-            let eq = eq_table(&zeta[..crate::log2_strict_usize(rows)]);
             let mut pairs: Vec<(usize, usize)> = forms
                 .iter()
                 .flat_map(|side| side[t].prods.iter().map(|&(a, b, _)| (a, b)))
                 .collect();
             pairs.sort_unstable();
             pairs.dedup();
-            // The columns' sums, then the pairs', a chunk of rows a task.
-            let blocks = rows.div_ceil(8);
-            let terms: Vec<(usize, Option<usize>)> = (0..n_cols)
-                .map(|c| (c, None))
-                .chain(pairs.iter().map(|&(a, b)| (a, Some(b))))
+            let terms: Vec<(&[F64], Option<&[F64]>)> = columns
+                .iter()
+                .map(|&c| (c, None))
+                .chain(pairs.iter().map(|&(a, b)| (columns[a], Some(columns[b]))))
                 .collect();
-            let sums = parallel::map_reduce(
-                blocks.div_ceil(CHUNK),
-                || vec![F128::ZERO; terms.len()],
-                |task| {
-                    let chunk = task * CHUNK..blocks.min((task + 1) * CHUNK);
-                    let col = |c: usize, z: usize, n: usize| crate::load_k(columns[c], z, n);
-                    terms
-                        .iter()
-                        .map(|&(a, b)| match b {
-                            None => eq_sum(&eq, chunk.clone(), |z, n| col(a, z, n)),
-                            Some(b) => eq_sum(&eq, chunk.clone(), |z, n| col(a, z, n) * col(b, z, n)),
-                        })
-                        .collect()
-                },
-                |a, b| a.iter().zip(b).map(|(&a, b)| a + b).collect(),
-            );
+            let sums = eq_sums(&zeta[..crate::log2_strict_usize(columns[0].len())], &terms);
             let prods = pairs
                 .iter()
                 .zip(&sums[n_cols..])

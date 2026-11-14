@@ -550,9 +550,22 @@ impl Program {
             for c in [MEM_LO, MEM_HI, MFCNT] {
                 assert_eq!(windows[c].len(), cells, "a memory column spans the image");
             }
-            parallel::fill(windows[MEM_LO], |i| F64(exec.mem.cell(i).word.c0));
-            parallel::fill(windows[MEM_HI], |i| F64(exec.mem.cell(i).word.c1));
-            parallel::fill(windows[MFCNT], |i| gpow[exec.mem.cell(i).count as usize]);
+            // The three memory columns in one pass, a cell read once.
+            const CHUNK: usize = 1 << 12;
+            let [lo, hi, count] = windows.get_disjoint_mut([MEM_LO, MEM_HI, MFCNT]).unwrap();
+            parallel::map_reduce_chunks_mut(
+                [&mut **lo, &mut **hi, &mut **count],
+                [CHUNK; 3],
+                || (),
+                || (),
+                |_, _, task, [lo, hi, count]| {
+                    for (j, ((lo, hi), count)) in lo.iter_mut().zip(hi.iter_mut()).zip(count.iter_mut()).enumerate() {
+                        let cell = exec.mem.cell(task * CHUNK + j);
+                        (*lo, *hi, *count) = (F64(cell.word.c0), F64(cell.word.c1), gpow[cell.count as usize]);
+                    }
+                },
+                |_, _| (),
+            );
             parallel::fill(windows[BFCNT], |i| gpow[tr.bytecode_count[i] as usize]); // … at g^{A[pc]}
         });
         // The committed Keccak states q_keccak, ALWAYS in this same stack: built from

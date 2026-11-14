@@ -36,7 +36,7 @@ use crate::leaf::BusForm;
 use crate::transcript::ProverState;
 use crate::{load_e, load_k};
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
-use primitives::multilinear::{eq_table, mle_eval, poly_eval, shrink_eq_high};
+use primitives::multilinear::{eq_table, poly_eval, shrink_eq_high};
 
 /// One table's involved columns' evaluations at its table-sumcheck point.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -392,13 +392,14 @@ pub fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Vec<Claim
         }
     }
 
-    // Each column's evaluation at its table's point, one task per column: the columns were never folded.
+    // Each column's evaluation at its table's point, all of a table's in one pass: the columns were never folded.
     crate::stage!("Constraint evals", || {
         tables
             .iter()
             .map(|t| {
                 let chi = &chi[..t.tau];
-                let evals = parallel::map_collect(t.cols.len(), |c| mle_eval(t.cols[c], chi));
+                let columns: Vec<_> = t.cols.iter().map(|&c| (c, None)).collect();
+                let evals = crate::leaf::eq_sums(chi, &columns);
                 ps.add_scalars(&evals);
                 Claims {
                     chi: chi.to_vec(),
