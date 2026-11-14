@@ -278,6 +278,35 @@ def time : IO UInt32 := do
   IO.println s!"total: {t4 - t0} ms"
   return 0
 
+mutual
+/-- Whether a statement has a `match` or a `dispatch`, at any depth. -/
+def hasSel : Stmt → Bool
+  | .ite _ z n => hasSelList z || hasSelList n
+  | .match_ .. => true
+  | .dispatch .. => true
+  | _ => false
+
+def hasSelList : List Stmt → Bool
+  | [] => false
+  | s :: ss => hasSel s || hasSelList ss
+end
+
+/-- What the back end's correctness theorem covers of the guest: the functions whose trace has
+no `chain` event (`Backend.NoChain`, the hypothesis of `fn_sound`), and those with no `match`
+and no `dispatch`, which have no selector obligation. -/
+def coverage : IO UInt32 := do
+  let P ← guestCore
+  let chained := P.filter fun tf => tf.trace.any fun e => match e with
+    | .chain => true
+    | _ => false
+  let sel := P.filter fun tf => hasSelList tf.core.body
+  IO.println s!"functions: {P.length}"
+  IO.println s!"with a chain of matches (not covered by fn_sound): {chained.length}"
+  IO.println s!"  {chained.map (·.core.name)}"
+  IO.println s!"with a match or a dispatch (a selector obligation): {sel.length}"
+  IO.println s!"with neither (fn_sound_plain, no obligation but the callees'): {P.length - sel.length}"
+  return 0
+
 end GuestBackend
 
 def main (args : List String) : IO UInt32 := do
@@ -290,6 +319,7 @@ def main (args : List String) : IO UInt32 := do
   | ["export", "programs", dir] => GuestBackend.exportPrograms dir false
   | ["export", "programs", dir, "--check"] => GuestBackend.exportPrograms dir true
   | ["time"] => GuestBackend.time
+  | ["coverage"] => GuestBackend.coverage
   | _ =>
-      IO.eprintln "usage: guest-backend check | functions [N] | show NAME | core NAME | export guest FILE | export programs DIR [--check] | time"
+      IO.eprintln "usage: guest-backend check | functions [N] | show NAME | core NAME | export guest FILE | export programs DIR [--check] | time | coverage"
       return 2
