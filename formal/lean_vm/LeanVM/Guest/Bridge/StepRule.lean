@@ -15,6 +15,8 @@ public import LeanVM.Guest.Bridge.AlignJump
 
 `JumpCells img A e pc`: what the frame `e` at pc `pc` reads of the memory at its jumps, at the cells its function's check names: a constant `0` or nonzero constant, its own frame, a pc; a branch's or conditional call's condition `σ c` (any value its path tests); a `match`'s target word at the jump at `pc`, the arm the selector `g^k` picks (`k`-th slot of the table); a call's callee frame, its header (the site's return pc and the frame), a dispatch's target the callee's entry; a loop's tail call (its last, at `pc`) its next frame, whose header is the frame's own, not at frame `0`; the frame's own header; `main` at frame `0`, and only `main`.
 
+`StepKind`: which move a step made, read off the move itself (`Move.kind`): within the top frame (past the same calls or a phantom more), the callee at `kids[nc]` pushed, a loop's tail call, or a return. `stepRule_at`: the step rule at one state, with the entries the step pops and its kind.
+
 `stepRule_of`: under `ProgAl` and the honest instances closed under callees, if the top frame of each state of the track against the run has `JumpCells`, the track has a step rule (`StepRule`): a non-jump falls through, a jump on a constant `0` falls through, a forward jump in the frame lands at its target, and by the head of the frame's position, a branch takes the side `σ c` picks, a `match` the arm its selector picks, a call, a conditional call taken or a dispatch enters its callee (the caller at the site's return pc), a loop's tail call replaces the frame by its callee, a return pops the frame to the registers its header holds; `main`'s return reaches the final registers, where the rule asks nothing.
 -/
 
@@ -81,6 +83,19 @@ structure JumpCells {κ : ℕ} (img : MemoryImage κ) (A : String → FnAl) (e :
   hdr : (cellAt img e.I.fp 0).isSome ∧ (cellAt img e.I.fp 1).isSome
   main : (A e.I.t.name).X.main = true → e.I.fp = 0
   bot : e.I.fp = 0 → (A e.I.t.name).X.main = true
+
+/-- **Which move a step made** from the top frame, instance `I` past `nc` calls, over the stack
+`st`, to the stack `st'`: within the frame, past the same calls or one more (then a phantom); the
+callee at `kids[nc]` pushed above the frame past one more call; a loop's tail call to it; or a
+return. -/
+inductive StepKind (P : Core.Program) (I : Inst) (nc : ℕ) (st : List Ent) : List Ent → Prop
+  | within {e' : Ent} : e'.I = I → (e'.nc = nc ∨ e'.nc = nc + 1 ∧ ∃ f σ', I.t.kids[nc]? = some (.phantom f σ')) →
+      StepKind P I nc st (e' :: st)
+  | push {e' : Ent} {J : Inst} {fn : Fn} : e'.I = I → e'.nc = nc + 1 → I.t.kids[nc]? = some J.t →
+      I.kidFps[nc]? = some J.fp → P.find? J.t.name = some fn → StepKind P I nc st (Ent.enter P J fn :: e' :: st)
+  | tail {J : Inst} {fn : Fn} : I.t.kids[nc]? = some J.t → I.kidFps[nc]? = some J.fp →
+      P.find? J.t.name = some fn → StepKind P I nc st (Ent.enter P J fn :: st)
+  | ret : StepKind P I nc st st
 
 end
 
@@ -206,32 +221,114 @@ theorem atPc_enter {prog : LeanIsaProgram} {A : String → FnAl} (hP : ProgAl pr
 
 end Moves
 
+/-! ## Which move a step made -/
+
+theorem walk_atoms_pre' {σ : Val} : ∀ (bs : List Atom) (ps : List Stmt),
+    walk σ (bs.map Stmt.atom ++ ps) = (walk σ ps).pre (bs.map Ev.atom)
+  | [], ps => by simp only [List.map_nil, List.nil_append, out_pre_nil]
+  | b :: bs, ps => by
+    rw [List.map_cons, List.cons_append, walk_atom_cons, walk_atoms_pre' bs ps, out_pre_pre]
+    rfl
+
+theorem calls_map_atom : ∀ bs : List Atom, calls (bs.map Ev.atom) = []
+  | [] => rfl
+  | _ :: bs => by simp only [List.map_cons, calls, List.filterMap_cons, Ev.call?]; exact calls_map_atom bs
+
+/-- **Two frames of one instance**: the later past the events `δ` the earlier has left, past their
+calls too. -/
+theorem EntOk.nc_of_es {e e' : Ent} (hE : EntOk P Is e) (hE' : EntOk P Is e') (hI : e'.I = e.I)
+    (hfn : e'.fn = e.fn) {δ : List Ev} (hes : e.es = δ ++ e'.es) : e'.nc = e.nc + (calls δ).length := by
+  obtain ⟨vs, hw, -⟩ := hE.path
+  obtain ⟨vs', hw', -⟩ := hE'.path
+  have hσ : e'.σ = e.σ := by simp only [Ent.σ, hI]
+  rw [hσ, hfn, hw, hes] at hw'
+  have h := (Out.ret.inj hw').1
+  rw [← List.append_assoc] at h
+  have hpre : e'.pre = e.pre ++ δ := (List.append_cancel_right h).symm
+  rw [Ent.nc, Ent.nc, hpre, calls_append', List.length_append]
+
+theorem Ent.adv_nc (e : Ent) (ps : List Stmt) {δ rest : List Ev} (hes : e.es = δ ++ rest) :
+    (e.adv ps δ.length).nc = e.nc + (calls δ).length := by
+  simp only [Ent.nc, Ent.adv, hes, List.take_left, calls_append', List.length_append]
+
+/-- **A move's kind**, from a frame on the honest tree. -/
+theorem Move.kind {D D' : List Pop} {e : Ent} {st st' : List Ent} (hE : EntOk P Is e)
+    (h : Move P rd Is (D, e :: st) (D', st')) : StepKind P e.I e.nc st st' := by
+  obtain ⟨vs, -, hwp⟩ := hE.path
+  have es_of : ∀ {o : Out} {δ : List Ev}, o.pre δ = .ret e.es vs → ∃ rest, e.es = δ ++ rest := fun ho ↦ by
+    obtain ⟨es', -, h⟩ := pre_eq_ret ho
+    exact ⟨es', h⟩
+  have adv : ∀ {δ rest : List Ev} (ps : List Stmt) (k : ℕ), e.es = δ ++ rest → k = δ.length →
+      (e.adv ps k).nc = e.nc + (calls δ).length := fun ps k hes hk ↦ hk ▸ Ent.adv_nc e ps hes
+  cases h with
+  | atom hp =>
+    rw [hp, walk_atom_cons] at hwp
+    obtain ⟨rest, hes⟩ := es_of hwp
+    exact .within rfl (.inl (by rw [adv _ 1 hes rfl]; rfl))
+  | ite hp =>
+    rw [hp, walk_ite_cons] at hwp
+    obtain ⟨rest, hes⟩ := es_of hwp
+    exact .within rfl (.inl (by rw [adv _ 1 hes rfl]; rfl))
+  | arm hk hp hw =>
+    exact .within rfl (.inl (by simp [Ent.nc, Ent.adv]))
+  | skip hp h0 =>
+    rw [hp, walk_callIf_cons, ite_eq_left h0] at hwp
+    obtain ⟨rest, hes⟩ := es_of hwp
+    obtain ⟨k, -, hk, rv, hph⟩ := hE.head_kid (cs := calls rest) (by rw [hes]; rfl)
+    simp only [Bool.false_eq_true, ↓reduceIte] at hph
+    obtain ⟨⟨f', σ', rfl⟩, -⟩ := hph
+    exact .within rfl (.inr ⟨by rw [adv _ 2 hes rfl]; rfl, f', σ', hk⟩)
+  | call hp hJ hk hkf hf =>
+    rw [hp, walk_call_cons] at hwp
+    obtain ⟨rest, hes⟩ := es_of hwp
+    exact .push rfl (by rw [adv _ 1 hes rfl]; rfl) hk hkf hf
+  | callIf hp h0 hJ hk hkf hf =>
+    rw [hp, walk_callIf_cons, ite_eq_right h0] at hwp
+    obtain ⟨rest, hes⟩ := es_of hwp
+    exact .push rfl (by rw [adv _ 2 hes rfl]; rfl) hk hkf hf
+  | tail hp h0 has hJ hk hkf hf => exact .tail hk hkf hf
+  | dispatch hi hp hpk hJ hk hkf hf =>
+    rw [hp, walk_dispatch_cons, hpk, Out.seq] at hwp
+    obtain ⟨rest, hes⟩ := es_of hwp
+    exact .push rfl (by rw [adv _ 1 hes rfl]; rfl) hk hkf hf
+  | ret hp => exact .ret
+  | alloc => exact .within rfl (.inl rfl)
+
 /-! ## The step rule -/
 
 variable {prog : LeanIsaProgram} {κ : ℕ} {img : MemoryImage κ} {A : String → FnAl} {T : Tree}
 
-/-- The track moved inside the top frame, at a new pc of the frame. -/
-private theorem within' {pc fp pc' : ℕ} {done done' : List Pop} {e e' : Ent} {st : List Ent}
+/-- The track moved inside the top frame, at a new pc of the frame, its entries done kept. -/
+private theorem withinK {pc fp pc' : ℕ} {done done' : List Pop} {e e' : Ent} {st : List Ent} {I : Inst} {nc : ℕ}
     (h : RefOk P rd Is T (memOf img) (entOf A) (alOf A) pc fp (done, e :: st))
     (hm : Relation.ReflTransGen (Move P rd Is) (done, e :: st) (done', e' :: st)) (hI : e'.I = e.I)
-    (ha : AtPc (entOf A) (alOf A) e' pc') :
+    (ha : AtPc (entOf A) (alOf A) e' pc') (hk : StepKind P I nc st (e' :: st)) :
     ∃ pc'' fp'' s', regs pc' fp = regs pc'' fp'' ∧ Relation.ReflTransGen (Move P rd Is) (done, e :: st) s' ∧
-      RefOk P rd Is T (memOf img) (entOf A) (alOf A) pc'' fp'' s' :=
-  ⟨pc', fp, _, rfl, hm, h.within hm hI ha⟩
+      RefOk P rd Is T (memOf img) (entOf A) (alOf A) pc'' fp'' s' ∧ s'.1 = done' ∧ StepKind P I nc st s'.2 :=
+  ⟨pc', fp, _, rfl, hm, h.within hm hI ha, rfl, hk⟩
 
-/-- **The step rule at the register level.** -/
-theorem stepRule_of (hP : ProgAl prog P A)
+/-- **The step rule at one state, with what the step did**: from a state of the track at `(pc, fp)`,
+its top frame's jumps' cells read, a step to registers short of the final ones lands at registers of
+a state of the track, reached by moves, whose entries done are the old ones and those of the atoms
+the offset's hints consume (the flow ones compiling the flow hints at `pc` one for one), by the
+move `StepKind` names. -/
+theorem stepRule_at (hP : ProgAl prog P A)
     (hIs : ∀ I ∈ Is, ∀ (i : ℕ) (k : Tree), I.t.kids[i]? = some k → ∃ J ∈ Is, J.t = k ∧ I.kidFps[i]? = some J.fp)
-    (hC : ∀ pc fp done e st, RefOk P rd Is T (memOf img) (entOf A) (alOf A) pc fp (done, e :: st) →
-      JumpCells img A e pc) :
-    StepRule prog img (Move P rd Is) (RefOk P rd Is T (memOf img) (entOf A) (alOf A)) := by
-  rintro pc fp ⟨done, st⟩ r' h - hstep hne'
-  obtain ⟨e, st, rfl, hE, hfp, hat⟩ := h.top
-  have hc := hC _ _ _ _ _ h
+    {pc fp : ℕ} {done : List Pop} {e : Ent} {st : List Ent} {r' : Registers K}
+    (h : RefOk P rd Is T (memOf img) (entOf A) (alOf A) pc fp (done, e :: st)) (hc : JumpCells img A e pc)
+    (hstep : step prog img (regs pc fp) = some r') (hne' : r' ≠ Registers.final prog) :
+    ∃ as : List Atom, List.Forall₂ (Pairs (A e.I.t.name).X) (as.filter flowAtom)
+        ((((A e.I.t.name).d.2.2.lookup pc).getD []).filter isaFlowHint) ∧
+      ∃ pc' fp' s', r' = regs pc' fp' ∧ Relation.ReflTransGen (Move P rd Is) (done, e :: st) s' ∧
+        RefOk P rd Is T (memOf img) (entOf A) (alOf A) pc' fp' s' ∧
+        s'.1 = done ++ as.flatMap (fun a ↦ a.pops rd e.σ) ∧ StepKind P e.I e.nc st s'.2 := by
+  obtain ⟨e0, st0, hst, hE, hfp, hat⟩ := h.top
+  obtain ⟨rfl, rfl⟩ := List.cons.inj hst
   subst hfp
   have hok := hP.ok _ _ hE.find
-  obtain ⟨off, ins, z, tabs, r, as, hpc, hins, hz, ⟨bs, hbs⟩, -, hr, e', hm, hI, hfn, hp, -, hnext, h1, h2, h3⟩ :=
+  obtain ⟨off, ins, z, tabs, r, as, hpc, hins, hz, ⟨bs, hbs⟩, hpair, hr, e', hm, hI, hfn, hp, -, hnext, h1, h2, h3⟩ :=
     atPc_step (P := P) (rd := rd) (Is := Is) hok rfl (fun _ ↦ rfl) hat done st
+  refine ⟨as, hpair, ?_⟩
   have hfetch := hP.fetch _ _ hE.find off ins hins
   rw [← hpc] at hfetch
   rw [step_of_fetch_eq_some hfetch] at hstep
@@ -244,6 +341,12 @@ theorem stepRule_of (hP : ProgAl prog P A)
     exact (Out.ret.inj hw').1.symm
   obtain ⟨vs0, hw0, -⟩ := hE.path
   have hfull : e'.pre ++ e'.es = e.pre ++ e.es := hpath vs0 hw0
+  have hnc : e'.nc = e.nc := by
+    obtain ⟨vs1, -, hw1⟩ := hE.path
+    obtain ⟨vs2, -, hw2⟩ := hE'.path
+    rw [hbs, walk_atoms_pre', hσ.symm, ← hp, hw2] at hw1
+    exact (EntOk.nc_of_es hE hE' hI hfn (Out.ret.inj hw1).1.symm).trans (by rw [calls_map_atom]; rfl)
+  have hw : StepKind P e.I e.nc st (e' :: st) := .within hI (.inl hnc)
   have hent : entOf A e'.I.t.name = (A e.I.t.name).X.entry := by rw [hI]; rfl
   have hal : ∀ o, alOf A e'.I.t.name o = alignAt (A e.I.t.name).X (A e.I.t.name).body (A e.I.t.name).code
       (A e.I.t.name).d o := fun o ↦ by rw [hI]; rfl
@@ -254,16 +357,18 @@ theorem stepRule_of (hP : ProgAl prog P A)
       cases ins <;> first | rfl | exact absurd rfl (hnj _ _ _)
     have hr' := ((execute_iff_holds hjf).mp hstep).2
     rw [hr']
-    exact within' h hm hI (hnext hnj)
+    exact withinK h hm hI (hnext hnj) hw
   obtain ⟨oc, od, of, rfl⟩ := hj
   obtain ⟨cv, dv, fv, hcv, hdv, hfv, -, -, -, rfl⟩ := execute_jump_iff.mp hstep
   rw [read_cell] at hcv hdv hfv
   set X := (A e.I.t.name).X with hX
   set D := done ++ as.flatMap (fun a ↦ a.pops rd e.σ) with hD
+  have hK : ∀ s2 : List Pop × List Ent, Move P rd Is (D, e' :: st) s2 → StepKind P e.I e.nc st s2.2 :=
+    fun s2 hmv ↦ hI ▸ hnc ▸ Move.kind hE' hmv
   have fin : ∀ e'' pc', Move P rd Is (D, e' :: st) (D, e'' :: st) → e''.I = e'.I → AtPc (entOf A) (alOf A) e'' pc' →
       ∃ pc'' fp'' s', regs pc' e.I.fp = regs pc'' fp'' ∧ Relation.ReflTransGen (Move P rd Is) (done, e :: st) s' ∧
-        RefOk P rd Is T (memOf img) (entOf A) (alOf A) pc'' fp'' s' :=
-    fun e'' pc' hm' hI' ha' ↦ within' h (hm.trans (.single hm')) (hI'.trans hI) ha'
+        RefOk P rd Is T (memOf img) (entOf A) (alOf A) pc'' fp'' s' ∧ s'.1 = D ∧ StepKind P e.I e.nc st s'.2 :=
+    fun e'' pc' hm' hI' ha' ↦ withinK h (hm.trans (.single hm')) (hI'.trans hI) ha' (hK _ hm')
   have hinK : ∀ c, Ev.inK c ∈ e'.es → cellAt img e.I.fp (X.locAt c.idx) = some (e.σ c) := fun c hmem ↦
     hc.cond c _ vs0 hw0 (hfull ▸ List.mem_append_right _ hmem)
   have hnz0 : X.nzAt oc = true → cv ≠ 0 := fun hnz ↦ by
@@ -281,15 +386,15 @@ theorem stepRule_of (hP : ProgAl prog P A)
   · have hr0 : r = (some z, []) := by simpa [insStep, jumpStep, hz0] using hr.symm
     obtain rfl := hsome (hc.zero oc hz0) hcv
     rw [ite_eq_left rfl]
-    exact within' h hm hI ⟨off + 1, by rw [hent]; omega, z.pos, by rw [hal]; exact h1 z (by rw [hr0]; rfl), [],
-      by simp, by simp [hp]⟩
+    exact withinK h hm hI ⟨off + 1, by rw [hent]; omega, z.pos, by rw [hal]; exact h1 z (by rw [hr0]; rfl), [],
+      by simp, by simp [hp]⟩ hw
   cases hfw : fwdJ X off oc od of
   swap
   · obtain ⟨hnz, hself, t, o, ht, ho, rfl⟩ := fwd_step hr hz0 hfw
     obtain ⟨ho1, ho2⟩ := fwdOff_eq ho
     rw [hif t e.I.fp (hnz0 hnz) (hsome (hc.pcw od t ht) hdv) (hsome (hc.self of hself) hfv)]
-    exact within' h hm hI ⟨o, by rw [hent]; omega, z.pos, by rw [hal]; exact h2 (o, z) List.mem_cons_self, [],
-      by simp, by simp [hp]⟩
+    exact withinK h hm hI ⟨o, by rw [hent]; omega, z.pos, by rw [hal]; exact h2 (o, z) List.mem_cons_self, [],
+      by simp, by simp [hp]⟩ hw
   rcases hzc : z.cur with _ | ⟨s, ss⟩
   · simp [insStep, jumpStep, hz0, hfw, headStep, hzc] at hr
   obtain ⟨vs, hwp⟩ := hE'.walk_pos
@@ -343,8 +448,8 @@ theorem stepRule_of (hP : ProgAl prog P A)
     obtain ⟨ho1, ho2⟩ := fwdOff_eq ho
     have htJ : entOf A J.t.name = t := by rw [hname]; exact hP.ent _ _ t f hE.find hent'
     rw [hif t J.fp (hnz0 hnz) (hsome (hc.pcw od t ht) hdv) (hsome hq hfv)]
-    refine ⟨t, J.fp, _, rfl, hm.trans (.single hm''), (h.track.moves (hm.trans (.single hm''))),
-      Linked.push h.linked (hI''.trans hI) ha'' rfl (htJ ▸ atPc_enter hP hfJ) ?_ (memOf_of hk1)⟩
+    refine ⟨t, J.fp, _, rfl, hm.trans (.single hm''), ⟨h.track.moves (hm.trans (.single hm'')),
+      Linked.push h.linked (hI''.trans hI) ha'' rfl (htJ ▸ atPc_enter hP hfJ) ?_ (memOf_of hk1)⟩, rfl, hK _ hm''⟩
     rw [memOf_of hk0]
     congr 2
     omega
@@ -385,8 +490,8 @@ theorem stepRule_of (hP : ProgAl prog P A)
       rw [hif t J.fp h0 (hsome (hc.pcw od t ht) hdv) (hsome hq hfv)]
       rcases st with _ | ⟨e2, st2⟩
       · exact absurd h.linked.2.1 hfp0
-      refine ⟨t, J.fp, _, rfl, hm.trans (.single hmv), h.track.moves (hm.trans (.single hmv)),
-        Linked.tail h.linked rfl (htJ ▸ atPc_enter hP hfJ) ?_ ?_⟩
+      refine ⟨t, J.fp, _, rfl, hm.trans (.single hmv), ⟨h.track.moves (hm.trans (.single hmv)),
+        Linked.tail h.linked rfl (htJ ▸ atPc_enter hP hfJ) ?_ ?_⟩, rfl, hK _ hmv⟩
       · exact congrArg (·.getD 0) hk0
       · exact congrArg (·.getD 0) hk1
     · obtain ⟨kfp, hkfp, hq, hk0, hk1, -⟩ := hc.site _ vs0 hw0 e'.nc _ of s
@@ -396,8 +501,8 @@ theorem stepRule_of (hP : ProgAl prog P A)
       obtain ⟨e'', hm'', hI'', -, -, ha''⟩ := atPc_callIf (P := P) (rd := rd) (Is := Is) hent hal hp hzc h0' hca
         (h1 _ rfl) hJ hk hkf hfJ D st
       rw [hif t J.fp h0 (hsome (hc.pcw od t ht) hdv) (hsome hq hfv)]
-      refine ⟨t, J.fp, _, rfl, hm.trans (.single hm''), (h.track.moves (hm.trans (.single hm''))),
-        Linked.push h.linked (hI''.trans hI) ha'' rfl (htJ ▸ atPc_enter hP hfJ) ?_ (memOf_of hk1)⟩
+      refine ⟨t, J.fp, _, rfl, hm.trans (.single hm''), ⟨h.track.moves (hm.trans (.single hm'')),
+        Linked.push h.linked (hI''.trans hI) ha'' rfl (htJ ▸ atPc_enter hP hfJ) ?_ (memOf_of hk1)⟩, rfl, hK _ hm''⟩
       rw [memOf_of hk0, hsr]
       rfl
   | dispatch x fs args rets =>
@@ -418,8 +523,8 @@ theorem stepRule_of (hP : ProgAl prog P A)
     have hd := htg (by rw [hst]; exact hod)
     rw [hst] at hd
     rw [hif (entOf A J.t.name) J.fp (hnz0 hnz) (by rw [hname]; exact hsome hd hdv) (hsome hq hfv)]
-    refine ⟨_, J.fp, _, rfl, hm.trans (.single hm''), (h.track.moves (hm.trans (.single hm''))),
-      Linked.push h.linked (hI''.trans hI) ha'' rfl (atPc_enter hP hfJ) ?_ (memOf_of hk1)⟩
+    refine ⟨_, J.fp, _, rfl, hm.trans (.single hm''), ⟨h.track.moves (hm.trans (.single hm'')),
+      Linked.push h.linked (hI''.trans hI) ha'' rfl (atPc_enter hP hfJ) ?_ (memOf_of hk1)⟩, rfl, hK _ hm''⟩
     rw [memOf_of hk0]
     congr 2
     omega
@@ -435,7 +540,8 @@ theorem stepRule_of (hP : ProgAl prog P A)
       have hmv : Move P rd Is (D, e' :: e2 :: st2) (D, e2 :: st2) := move_ret hp hzc D (e2 :: st2)
       rw [hif r0 e2.I.fp (hnz0 hnz) (by rw [← hr0]; exact (memOf_of hdv).symm)
         (by rw [← hr1]; exact (memOf_of hfv).symm)]
-      exact ⟨r0, e2.I.fp, _, rfl, hm.trans (.single hmv), h.track.moves (hm.trans (.single hmv)), hl⟩
+      exact ⟨r0, e2.I.fp, _, rfl, hm.trans (.single hmv), ⟨h.track.moves (hm.trans (.single hmv)), hl⟩, rfl,
+        hK _ hmv⟩
     · rw [hmain] at hm0
       simp only [↓reduceIte] at hm0
       obtain ⟨hself, ht⟩ := hm0
@@ -444,6 +550,18 @@ theorem stepRule_of (hP : ProgAl prog P A)
       apply hne'
       rw [hif X.halt e.I.fp (hnz0 hnz) (hsome (hc.pcw od _ ht) hdv) (hsome (hc.self of hself) hfv), hfp0]
       exact hP.halt _ _ hE.find hmain
+
+
+/-- **The step rule at the register level.** -/
+theorem stepRule_of (hP : ProgAl prog P A)
+    (hIs : ∀ I ∈ Is, ∀ (i : ℕ) (k : Tree), I.t.kids[i]? = some k → ∃ J ∈ Is, J.t = k ∧ I.kidFps[i]? = some J.fp)
+    (hC : ∀ pc fp done e st, RefOk P rd Is T (memOf img) (entOf A) (alOf A) pc fp (done, e :: st) →
+      JumpCells img A e pc) :
+    StepRule prog img (Move P rd Is) (RefOk P rd Is T (memOf img) (entOf A) (alOf A)) := by
+  rintro pc fp ⟨done, st⟩ r' h - hstep hne'
+  obtain ⟨e, st, rfl, -, -, -⟩ := h.top
+  obtain ⟨-, -, pc', fp', s', hr, hm, hs', -⟩ := stepRule_at hP hIs h (hC _ _ _ _ _ h) hstep hne'
+  exact ⟨pc', fp', s', hr, hm, hs'⟩
 
 end
 

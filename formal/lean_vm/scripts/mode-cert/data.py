@@ -56,6 +56,7 @@ def load():
             elif tag=='aa':
                 p=int(tok()); sl=int(tok()); n2=int(tok()); h=(tag,p,sl,[int(tok()) for _ in range(n2)])
             elif tag=='av': h=(tag,int(tok()),tok())
+            elif tag=='lt': h=(tag,int(tok()),tok(),int(tok()))
             elif tag=='ws': h=(tag,tok(),int(tok()),int(tok()))
             elif tag=='wh': h=(tag,tok(),int(tok()),int(tok()),int(tok()))
             elif tag=='lc': h=(tag,dest(),int(tok()),int(tok()),int(tok()))

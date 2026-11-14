@@ -121,6 +121,11 @@ inductive BitsDest where
   /-- Heap cells from the pointer at `fp + ptr`. -/
   | heap (ptr : ℕ)
 
+/-- A `HeapBuf`'s size (`BufSize`): `n` cells, or the exponent of `[fp + cell]`. -/
+inductive BufSize where
+  | cells (n : ℕ)
+  | exp (cell : ℕ)
+
 /-- A hint (`RHint`, `cpu/hints.rs`), its offsets relative to `fp`. -/
 inductive Hint where
   /-- Announce `fp + offset`'s address (no effect on the run). -/
@@ -138,6 +143,9 @@ inductive Hint where
   /-- Reserve `sizes[k]` cells, `k` the exponent of `[fp + sel]`, its base written to
   `fp + ptr`: a dispatched call's frame, sized by the arm it selects. -/
   | allocArm (ptr sel : ℕ) (sizes : List ℕ)
+  /-- A `HeapBuf`'s own hint after the compiler reserved it from advice: as `alloc` or `allocDyn`,
+  but nothing if its pointer is written. -/
+  | allocLate (ptr : ℕ) (size : BufSize)
   /-- Write the address of `fp + cell` to `fp + ptr`. -/
   | cellAddress (ptr cell : ℕ)
   /-- Pop `stream`'s next entry, of `len` words, into `fp + base + k`. -/
@@ -389,16 +397,27 @@ def expOf (what : String) (v : E) (nbits : ℕ) : Except Fault ℕ := do
   | some n => pure n
   | none => throw (.notAGPower what x)
 
-/-- Reserve `size` cells, their base written to `fp + ptr`, unless written. -/
+/-- Reserve `size` cells, their base written to `fp + ptr` once; the last below `maxCells`. -/
 def allocate (s : St) (ptr size : ℕ) : Except Fault St := do
   let cell := s.fp + ptr
-  if s.mem.written cell then return s
   let base := s.nextFree
-  let next ← cellAt base size
+  let next := base + size
+  if maxCells < next then throw .outOfMemory
   let s ← s.withMem fun m ↦ (if base < next then m.ensure (next - 1) else m).put cell (ofK (g ^ base))
   let dl := s.dl
   let s := { s with dl := .empty }
   pure { s with nextFree := next, dl := (dl.grow next).note base }
+
+/-- `allocate`, but nothing if the pointer is written (a late hint). -/
+def allocateLate (s : St) (ptr size : ℕ) : Except Fault St :=
+  if s.mem.written (s.fp + ptr) then pure s else allocate s ptr size
+
+/-- A `HeapBuf`'s cell count. -/
+def bufSize (s : St) : BufSize → Except Fault (ℕ × St)
+  | .cells n => pure (n, s)
+  | .exp c => do
+    let sz ← inK "HeapBuf size" (s.mem.peek (s.fp + c))
+    s.logOr sz maxCells (.notAGPower "HeapBuf size" sz)
 
 /-- Pop stream `name`'s next entry, whatever its length (`Stream::next`). -/
 def popEntry (C : Ctx) (s : St) (name : String) : Except Fault (List E × St) := do
@@ -445,6 +464,9 @@ def runHint (C : Ctx) (s : St) : Hint → Except Fault St
     let (k, s) ← s.logOr x maxCells (.notAGPower "dispatch selector" x)
     let some n := sizes[k]? | throw (.notAGPower "dispatch selector" x)
     allocate s ptr n
+  | .allocLate ptr size => do
+    let (n, s) ← bufSize s size
+    allocateLate s ptr n
   | .cellAddress ptr cell => do
     let c ← cellAt s.fp cell
     s.withMem (·.put (s.fp + ptr) (ofK (g ^ c)))

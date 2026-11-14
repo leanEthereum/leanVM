@@ -262,6 +262,15 @@ pub enum BitsDest {
     Heap(Off),
 }
 
+/// A `HeapBuf`'s cell count: a constant, or the g-power exponent of a frame cell.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BufSize {
+    /// `n` cells.
+    Cells(u32),
+    /// The exponent `k` of `m[fp+cell] = g^k`.
+    Exp(Off),
+}
+
 /// A hint resolved to concrete offsets/sizes, keyed by global program counter.
 #[derive(Clone, Debug)]
 pub enum RHint {
@@ -289,6 +298,10 @@ pub enum RHint {
     /// `Alloc` of `sizes[k]` cells, where `m[fp+sel] = g^k`: a dispatched call's frame, sized
     /// by the arm it selects.
     AllocArm { ptr: Off, sel: Off, sizes: Vec<u32> },
+    /// A `HeapBuf`'s own hint after the compiler reserved it from advice ([`RHint::AllocAdvice`]):
+    /// `Alloc` or `AllocDyn`, but nothing if its pointer is written. Every other reservation
+    /// writes its pointer once, a second value being a conflict.
+    AllocLate { ptr: Off, size: BufSize },
     /// Write the address of frame cell `cell`, `g^{fp+cell}`, to `fp+ptr`.
     CellAddress { ptr: Off, cell: Off },
     /// Pop stream `name`'s next entry (`len` values) into frame cells `fp+base+k`.
@@ -378,6 +391,10 @@ impl super::Program {
                             let sizes: Vec<String> = sizes.iter().map(u32::to_string).collect();
                             format!("aa {ptr} {sel} {} {}", sizes.len(), sizes.join(" "))
                         }
+                        RHint::AllocLate { ptr, size } => match size {
+                            BufSize::Cells(n) => format!("lt {ptr} c {n}"),
+                            BufSize::Exp(c) => format!("lt {ptr} e {c}"),
+                        },
                         RHint::CellAddress { ptr, cell } => format!("ca {ptr} {cell}"),
                         RHint::WitnessStack { name, base, len } => format!("ws {name} {base} {len}"),
                         RHint::WitnessHeap { name, ptr, lo, len } => format!("wh {name} {ptr} {lo} {len}"),

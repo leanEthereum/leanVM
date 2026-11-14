@@ -565,6 +565,9 @@ class Walk:
         t = h[0]
         if t == 'fa': return
         if t == 'av': return
+        if t == 'lt':
+            if h[2] == 'e': self.needW(A, h[3], i)
+            A.w.add(h[1]); return
         if t in ('al', 'ad', 'aa', 'af'):
             if t == 'ad': self.needW(A, h[2], i)
             if t == 'aa': self.needW(A, h[2], i)

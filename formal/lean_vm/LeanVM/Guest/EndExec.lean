@@ -169,7 +169,7 @@ theorem progOk_of {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} (h : Mo
 
 /-- An allocation hint: a frame's or a buffer's base, or a cell's address. -/
 def isAllocHint : Prover.Exec.Hint → Bool
-  | .frameAddress .. | .allocFrames .. | .alloc .. | .allocDyn .. | .allocAdvice .. | .allocArm ..
+  | .frameAddress .. | .allocFrames .. | .alloc .. | .allocDyn .. | .allocAdvice .. | .allocArm .. | .allocLate ..
   | .cellAddress .. => true
   | _ => false
 

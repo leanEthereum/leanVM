@@ -220,13 +220,13 @@ noncomputable def modeFun : Mode.Fun :=
     .nil)) (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
     [(.allocArm 1994 224 [1013, 1059, 1114, 1188, 1347, 1401, 1464, 1547, 1713, 1774, 1846])]) .nil
     .nil)) .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node (some [(.alloc 221
-    36)]) .nil .nil) .nil)) (.node none (.node none (.node (some [(.allocDyn 187 184)]) .nil .nil)
-    .nil) .nil)))))), .nil, (.node none (.node none .nil (.node none .nil (.node none (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some 11) .nil
-    .nil)) .nil) .nil)) .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node none .nil (.node (some 11) .nil .nil)) .nil)) .nil)) (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some 14) .nil .nil)))))
-    .nil))), false, .nil⟩
+    36)]) .nil .nil) .nil)) (.node none (.node none (.node (some [(.allocLate 187 (.exp 184))])
+    .nil .nil) .nil) .nil)))))), .nil, (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    11) .nil .nil)) .nil) .nil)) .nil) .nil) .nil))) (.node none (.node none .nil (.node none
+    (.node none .nil (.node none (.node none .nil (.node (some 11) .nil .nil)) .nil)) .nil)) (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some 14) .nil
+    .nil))))) .nil))), false, .nil⟩
 
 end
 

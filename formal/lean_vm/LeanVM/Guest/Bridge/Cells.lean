@@ -312,10 +312,10 @@ allocation track's fact), the reservation in range. -/
 theorem hintOk_alloc {loc : ℕ → ℕ} {d : V} {n p n' : ℕ}
     (h : compiles loc (.alloc d n) (.alloc p n') = true) {C : Ctx} {M : ℕ → E} {st : St}
     (hc : st.fp + loc d.idx < maxCells) (hM : M (st.fp + loc d.idx) = ofK (g ^ st.nextFree))
-    (hn : st.nextFree + n < maxCells) : HintOk C M st (.alloc p n') := by
+    (hn : st.nextFree + n ≤ maxCells) : HintOk C M st (.alloc p n') := by
   simp only [compiles, Bool.and_eq_true, beq_iff_eq] at h
   obtain ⟨rfl, rfl⟩ := h
-  exact .inr ⟨hc, hn, hM⟩
+  exact ⟨hc, hn, hM⟩
 
 /-- **`HintOk` of `allocDyn`**: the size at its cell, `g^k`, and the reference holding the bump
 pointer at the pointer's cell, the reservation in range. -/
@@ -323,21 +323,21 @@ theorem hintOk_allocDyn {loc : ℕ → ℕ} {d n : V} {p n' : ℕ}
     (h : compiles loc (.allocDyn d n) (.allocDyn p n') = true) {C : Ctx} {M : ℕ → E} {st : St}
     {σ : Val} {k : ℕ} (hs : st.mem.peek (st.fp + loc n.idx) = σ n) (hk : σ n = ofK (g ^ k))
     (hkc : k < maxCells) (hc : st.fp + loc d.idx < maxCells)
-    (hM : M (st.fp + loc d.idx) = ofK (g ^ st.nextFree)) (hn : st.nextFree + k < maxCells) :
+    (hM : M (st.fp + loc d.idx) = ofK (g ^ st.nextFree)) (hn : st.nextFree + k ≤ maxCells) :
     HintOk C M st (.allocDyn p n') := by
   simp only [compiles, Bool.and_eq_true, beq_iff_eq] at h
   obtain ⟨rfl, rfl⟩ := h
-  exact ⟨k, ⟨by rw [hs, hk], hkc⟩, .inr ⟨hc, hn, hM⟩⟩
+  exact ⟨k, ⟨by rw [hs, hk], hkc⟩, ⟨hc, hn, hM⟩⟩
 
 /-- **`HintOk` of an `allocDyn` compiled to a static `alloc`**: the reference holding the bump
 pointer at the pointer's cell, the reservation in range. -/
 theorem hintOk_allocDyn_static {loc : ℕ → ℕ} {d n : V} {p sz : ℕ}
     (h : compiles loc (.allocDyn d n) (.alloc p sz) = true) {C : Ctx} {M : ℕ → E} {st : St}
     (hc : st.fp + loc d.idx < maxCells) (hM : M (st.fp + loc d.idx) = ofK (g ^ st.nextFree))
-    (hn : st.nextFree + sz < maxCells) : HintOk C M st (.alloc p sz) := by
+    (hn : st.nextFree + sz ≤ maxCells) : HintOk C M st (.alloc p sz) := by
   simp only [compiles, beq_iff_eq] at h
   subst h
-  exact .inr ⟨hc, hn, hM⟩
+  exact ⟨hc, hn, hM⟩
 
 /-! ## Hint-only cells -/
 

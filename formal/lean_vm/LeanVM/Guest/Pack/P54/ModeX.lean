@@ -102,9 +102,10 @@ noncomputable def modeFun : Mode.Fun :=
     (.allocAdvice 40 "heap_sizes"), (.alloc 10 33)]) (.node none (.node none (.node none (.node
     (some [(.allocFrames 34 28 6 (LeanVM.Parameters.K.ofBits 0x1) 28)]) .nil .nil) .nil) .nil)
     .nil) (.node none (.node (some [(.witnessStack "da_challenge" 13 1)]) .nil .nil) (.node none
-    (.node none .nil (.node (some [(.allocDyn 40 39)]) .nil .nil)) (.node (some [(.allocDyn 31
-    30)]) .nil .nil))))), .nil, (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none (.node (some 11) .nil .nil) .nil) .nil))))), false, .nil⟩
+    (.node none .nil (.node (some [(.allocLate 40 (.exp 39))]) .nil .nil)) (.node (some
+    [(.allocLate 31 (.exp 30))]) .nil .nil))))), .nil, (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none (.node (some 11) .nil .nil) .nil) .nil))))),
+    false, .nil⟩
 
 end
 

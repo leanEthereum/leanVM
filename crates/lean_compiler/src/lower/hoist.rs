@@ -6,7 +6,7 @@
 //! changes no instruction: every `HeapBuf` pointer is a fresh cell only its hint writes. A buffer
 //! whose size is not known there, or that not every run reaches, is reserved there from advice
 //! ([`RHint::AllocAdvice`] on [`HEAP_SIZE_STREAM`](crate::HEAP_SIZE_STREAM)), its own hint then
-//! finding its pointer written.
+//! marked late ([`RHint::AllocLate`]), finding its pointer written.
 
 use super::*;
 use std::collections::HashSet;
@@ -77,10 +77,24 @@ impl FnLower<'_> {
                     self.code[i].hints[j] = h;
                     hoisted.push(Ok((i, j)));
                 }
-                _ if !hoisted.contains(&Err(ptr)) => hoisted.push(Err(ptr)),
-                _ => {}
+                _ => {
+                    // Its own hint stays, marked late: it finds its pointer written.
+                    self.code[i].hints[j] = late(&self.code[i].hints[j]);
+                    if !hoisted.contains(&Err(ptr)) {
+                        hoisted.push(Err(ptr));
+                    }
+                }
             }
         }
+        let moved_ptrs: HashSet<Off> = (hoisted.iter().filter_map(|h| h.ok()))
+            .filter_map(|(i, j)| reservation(&self.code[i].hints[j]).map(|(ptr, _)| ptr))
+            .collect();
+        assert!(
+            hoisted
+                .iter()
+                .all(|h| h.err().is_none_or(|ptr| !moved_ptrs.contains(&ptr))),
+            "a `HeapBuf` pointer both moved and reserved from advice"
+        );
         // Removed last first, so that `pop` yields them in order.
         let moved = hoisted.iter().filter_map(|h| h.ok());
         let mut taken: Vec<Hint> = moved.rev().map(|(i, j)| self.code[i].hints.remove(j)).collect();
@@ -116,6 +130,16 @@ fn reservation(h: &Hint) -> Option<(Off, bool)> {
         Hint::AllocBuffer { ptr, .. } | Hint::AllocBufferDyn { ptr, .. } => Some((ptr, false)),
         _ => None,
     }
+}
+
+/// A `HeapBuf` reservation's late form ([`RHint::AllocLate`]).
+fn late(h: &Hint) -> Hint {
+    let (ptr, size) = match *h {
+        Hint::AllocBuffer { ptr, size } => (ptr, BufSize::Cells(size)),
+        Hint::AllocBufferDyn { ptr, size } => (ptr, BufSize::Exp(size)),
+        _ => unreachable!("a `HeapBuf` reservation"),
+    };
+    Hint::Resolved(RHint::AllocLate { ptr, size })
 }
 
 /// The frame cells a hint writes, of those a `HeapBuf` size may be.

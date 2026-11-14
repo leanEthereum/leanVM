@@ -79,6 +79,14 @@ fn hint_lean<'a>(t: &mut dyn Iterator<Item = &'a str>) -> String {
             let sizes: Vec<String> = (0..k).map(|_| n(t).to_string()).collect();
             format!("(.allocArm {p} {sel} [{}])", sizes.join(", "))
         }
+        "lt" => {
+            let p = n(t);
+            match (word(t), n(t)) {
+                ("c", v) => format!("(.allocLate {p} (.cells {v}))"),
+                ("e", v) => format!("(.allocLate {p} (.exp {v}))"),
+                (k, _) => panic!("not a size: {k}"),
+            }
+        }
         "ca" => format!("(.cellAddress {} {})", n(t), n(t)),
         "ws" => {
             let s = word(t);

@@ -97,6 +97,7 @@ def hint(h):
     if t == 'al': return '(.alloc %d %d)' % (h[1], h[2])
     if t == 'ad': return '(.allocDyn %d %d)' % (h[1], h[2])
     if t == 'av': return '(.allocAdvice %d %s)' % (h[1], strlit(h[2]))
+    if t == 'lt': return '(.allocLate %d (.%s %d))' % (h[1], 'cells' if h[2] == 'c' else 'exp', h[3])
     if t == 'aa': return '(.allocArm %d %d %s)' % (h[1], h[2], lst(h[3], nat))
     if t == 'ca': return '(.cellAddress %d %d)' % (h[1], h[2])
     if t == 'ws': return '(.witnessStack %s %d %d)' % (strlit(h[1]), h[2], h[3])

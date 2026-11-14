@@ -192,11 +192,9 @@ theorem allocate_follows {s s' : St} {ptr size : ℕ} (hs : s.Good)
     St.Follows s s' := by
   unfold allocate at h
   dsimp only at h
-  split_ifs at h
-  · simp only [pure_ok] at h; subst h; exact St.Follows.refl hs
+  split at h
+  · cases h
   · rw [bind_ok] at h
-    obtain ⟨next, -, h⟩ := h
-    rw [bind_ok] at h
     obtain ⟨s1, h1, h⟩ := h
     have f1 := St.withMem_follows hs (fun m' hm ↦ by
       split_ifs at hm
@@ -205,7 +203,26 @@ theorem allocate_follows {s s' : St} {ptr size : ℕ} (hs : s.Good)
       · exact put_le hs.wf hm) h1
     simp only [pure_ok] at h
     subst h
-    exact f1.trans ⟨⟨f1.good.wf, (f1.good.dl.grow next).note _⟩, Mem.le_refl _, rfl, rfl, rfl⟩
+    exact f1.trans ⟨⟨f1.good.wf, (f1.good.dl.grow _).note _⟩, Mem.le_refl _, rfl, rfl, rfl⟩
+
+theorem allocateLate_follows {s s' : St} {ptr size : ℕ} (hs : s.Good)
+    (h : allocateLate s ptr size = .ok s') : St.Follows s s' := by
+  unfold allocateLate at h
+  split_ifs at h
+  · simp only [pure_ok] at h; subst h; exact St.Follows.refl hs
+  · exact allocate_follows hs h
+
+theorem bufSize_follows {s s' : St} {b : BufSize} {n : ℕ} (hs : s.Good)
+    (h : bufSize s b = .ok (n, s')) : St.Follows s s' := by
+  cases b with
+  | cells k =>
+    simp only [bufSize, pure_ok, Prod.mk.injEq] at h
+    obtain ⟨-, rfl⟩ := h
+    exact St.Follows.refl hs
+  | exp c =>
+    simp only [bufSize, bind_ok] at h
+    obtain ⟨sz, -, h⟩ := h
+    exact (St.logOr_ok hs h).1
 
 theorem putRun_follows {s s' : St} {b : ℕ} {vs : List E} (hs : s.Good)
     (h : s.withMem (putRun b vs) = .ok s') : St.Follows s s' :=
@@ -249,6 +266,11 @@ theorem runHint_follows {C : Ctx} {s s' : St} {hint : Hint} (hs : s.Good)
     split at h
     · exact f1.trans (allocate_follows f1.good h)
     · simp at h
+  | allocLate ptr size =>
+    simp only [runHint, bind_ok] at h
+    obtain ⟨⟨n, s1⟩, h1, h⟩ := h
+    have f1 := bufSize_follows hs h1
+    exact f1.trans (allocateLate_follows f1.good h)
   | cellAddress ptr cell =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, h⟩ := h

@@ -90,7 +90,7 @@ whose function passes the allocation check, the `k`-th buffer hint's pointer cel
 theorem bufBase_ref {r : Ref} (hr : r.Ok) (hXR : ExtraRef alignA) {pc fp : ℕ} {done : List Pop} {e : Ent}
     {st : List Ent} (hT : RefTrack alignA r pc fp (done, e :: st)) {j : ℕ} (hj : B2C.idxOf e.I.t.name = some j)
     (hA : AllocJ j) {k : ℕ} {h : Prover.Exec.Hint}
-    (hk : (((allocHints (adviceOf j)).filter fun q ↦ isBuf (ctxOf j) (advPtrs (adviceOf j)) q.2).map (·.2))[k]? = some h)
+    (hk : (((allocHints (adviceOf j)).filter fun q ↦ isBuf (ctxOf j) q.2).map (·.2))[k]? = some h)
     {p : ℕ} (hp : allocPtr h = some p) :
     k < e.I.t.bufs.length ∧ e.I.fp + p < maxCells ∧
       refMem r.img (e.I.fp + p) = ofK (addressOfIndex (e.I.cur + (e.I.t.bufs.take k).sum)) := by

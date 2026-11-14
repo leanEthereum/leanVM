@@ -29,7 +29,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use std::sync::Arc;
 
-use leanvm_core::cpu::hints::{BitsDest, RHint};
+use leanvm_core::cpu::hints::{BitsDest, BufSize, RHint};
 use leanvm_core::cpu::{DerefMode, Op, OutCells, Program};
 use primitives::{
     field::{F64, F128, g_pow},

@@ -352,4 +352,7 @@ def isa_hint(e):
         return (h, a[0], a[1], as_list(a[2], None))
     if h == 'allocFrames':
         return (h, a[0], a[1], a[2], None, a[4])
+    if h == 'allocLate':
+        k, v = head(a[1])
+        return (h, a[0], (k[1:], v[0]))
     return (h,) + tuple(a)

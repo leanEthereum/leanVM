@@ -105,17 +105,17 @@ noncomputable def modeEnv : Mode.Env :=
 /-- `claim_list_digest`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨61206, 108, Fn.«claim_list_digest».modeSig, (.node (some [(.allocAdvice 33 "heap_sizes")])
-    (.node none (.node none (.node none (.node none (.node (some [(.allocDyn 33 32)]) .nil .nil)
-    (.node (some [(.allocFrames 36 1995 20 (LeanVM.Parameters.K.ofBits 0x1) 1995)]) .nil .nil))
-    .nil) .nil) (.node none (.node none .nil (.node none (.node none (.node (some [(.allocFrames 55
-    284 21 (LeanVM.Parameters.K.ofBits 0x1) 284)]) .nil .nil) .nil) .nil)) .nil)) (.node (some
-    [(.cellAddress 10 11)]) (.node none (.node none (.node (some [(.alloc 23 34)]) .nil .nil) .nil)
-    .nil) (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some [(.allocArm
-    72 22 (List.flatten [[29, 40, 40, 70, 70, 96, 104, 126, 134, 155, 164, 185, 194, 214, 224,
-    244], [254]]))]) .nil .nil) .nil)))))), (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node (some [(.lt (.ex (.hp 23 5) 0) (.num 17))]) .nil .nil))
-    .nil) .nil)) .nil) .nil), (.node none .nil (.node none (.node none .nil (.node none (.node none
-    (.node none .nil (.node (some 17) .nil .nil)) .nil) .nil)) .nil)), false, .nil⟩
+    (.node none (.node none (.node none (.node none (.node (some [(.allocLate 33 (.exp 32))]) .nil
+    .nil) (.node (some [(.allocFrames 36 1995 20 (LeanVM.Parameters.K.ofBits 0x1) 1995)]) .nil
+    .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node none (.node (some
+    [(.allocFrames 55 284 21 (LeanVM.Parameters.K.ofBits 0x1) 284)]) .nil .nil) .nil) .nil)) .nil))
+    (.node (some [(.cellAddress 10 11)]) (.node none (.node none (.node (some [(.alloc 23 34)])
+    .nil .nil) .nil) .nil) (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some [(.allocArm 72 22 (List.flatten [[29, 40, 40, 70, 70, 96, 104, 126, 134, 155, 164, 185,
+    194, 214, 224, 244], [254]]))]) .nil .nil) .nil)))))), (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none .nil (.node (some [(.lt (.ex (.hp 23 5) 0) (.num 17))])
+    .nil .nil)) .nil) .nil)) .nil) .nil), (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node (some 17) .nil .nil)) .nil) .nil)) .nil)), false, .nil⟩
 
 end
 

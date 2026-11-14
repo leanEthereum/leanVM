@@ -349,7 +349,8 @@ def tables():
         m = statMono(f)
         for hs in f['hints'].values():
             for h in hs:
-                sz = m.get(h[2], root(h[2])) if h[0] == 'ad' else None
+                c = h[2] if h[0] == 'ad' else h[3] if h[0] == 'lt' and h[2] == 'e' else None
+                sz = m.get(c, root(c)) if c is not None else None
                 if sz and sz[0] == 0 and sz[1] == 0 and len(sz[2]) == 1 and sz[2][0][0][0] == 'fr':
                     T[f['name']].add((h[1], sz[2][0][0][1], sz[2][0][1]))
     into = collections.defaultdict(list)

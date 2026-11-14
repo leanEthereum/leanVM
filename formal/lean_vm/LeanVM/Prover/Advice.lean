@@ -79,6 +79,12 @@ def hint : P Hint := do
     let sel ← nat
     let n ← nat
     return .allocArm ptr sel (← many n nat)
+  | "lt" => do
+    let ptr ← nat
+    match ← tok with
+    | "c" => return .allocLate ptr (.cells (← nat))
+    | "e" => return .allocLate ptr (.exp (← nat))
+    | t => throw s!"advice: not a size: `{t}`"
   | "ca" => return .cellAddress (← nat) (← nat)
   | "ws" => return .witnessStack (← tok) (← nat) (← nat)
   | "wh" => return .witnessHeap (← tok) (← nat) (← nat) (← nat)

@@ -27,6 +27,7 @@ def HintIn (s : St) : Hint → Prop
   | .allocDyn _ size => s.mem.written (s.fp + size) = true
   | .allocArm _ sel _ => s.mem.written (s.fp + sel) = true
   | .allocFrames _ _ stop _ _ => s.mem.written (s.fp + stop) = true
+  | .allocLate _ (.exp size) => s.mem.written (s.fp + size) = true
   | .witnessHeap _ ptr _ _ => s.mem.written (s.fp + ptr) = true
   | .log2Ceil bits _ nbits _ => match bits with
     | .stack base => ∀ j < nbits, s.mem.written (s.fp + base + j) = true
@@ -105,17 +106,22 @@ theorem allocate_written {s s' : St} {ptr size : ℕ} (hs : s.Good) (h : allocat
   refine ⟨allocate_follows hs h, ?_⟩
   unfold allocate at h
   dsimp only at h
-  split_ifs at h with hw
-  · simp only [pure_ok] at h; subst h; exact hw
+  split at h
+  · cases h
   · rw [bind_ok] at h
-    obtain ⟨next, -, h⟩ := h
-    rw [bind_ok] at h
     obtain ⟨s1, h1, h⟩ := h
     simp only [pure_ok] at h; subst h
     obtain ⟨m, hm, rfl⟩ := St.withMem_ok h1
     split_ifs at hm
     · exact put_written (hs.wf.ensure _) hm
     · exact put_written hs.wf hm
+
+theorem allocateLate_written {s s' : St} {ptr size : ℕ} (hs : s.Good) (h : allocateLate s ptr size = .ok s') :
+    St.Follows s s' ∧ s'.mem.written (s.fp + ptr) = true := by
+  unfold allocateLate at h
+  split_ifs at h with hw
+  · simp only [pure_ok] at h; subst h; exact ⟨St.Follows.refl hs, hw⟩
+  · exact allocate_written hs h
 
 /-! ## Runs -/
 
@@ -289,6 +295,26 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
       obtain ⟨f2, hw2⟩ := allocate_written f1.good e
       exact (hH.follows (f1.trans f2)).addW (show s'.mem.written (s'.fp + ptr) = true by
         rw [f2.fp]; exact hw2)
+  | allocLate ptr size =>
+    have key : ∀ s1 n, St.Follows s s1 → allocateLate s1 ptr n = .ok s' → Holds s' (A.addW ptr) :=
+      fun s1 n f1 e ↦ by
+        obtain ⟨f2, hw2⟩ := allocateLate_written f1.good e
+        exact (hH.follows (f1.trans f2)).addW (show s'.mem.written (s'.fp + ptr) = true by
+          rw [f2.fp]; exact hw2)
+    cases size with
+    | cells k =>
+      cases hstep
+      refine ⟨trivial, fun e _ ↦ ?_⟩
+      simp only [runHint, bufSize] at e
+      exact key s k (St.Follows.refl hs) e
+    | exp c =>
+      simp only [stepHint] at hstep
+      split_ifs at hstep with hw
+      cases hstep
+      refine ⟨hH.written hw, fun e _ ↦ ?_⟩
+      simp only [runHint, bind_ok] at e
+      obtain ⟨⟨n, s1⟩, h1, e⟩ := e
+      exact key s1 n (bufSize_follows hs h1) e
   | cellAddress ptr cell =>
     cases hstep
     refine ⟨trivial, fun e _ ↦ ?_⟩

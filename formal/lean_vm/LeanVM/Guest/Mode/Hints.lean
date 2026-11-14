@@ -21,6 +21,7 @@ open LeanVM.Prover.Exec (Hint BitsDest)
 @[expose] public section
 
 deriving instance DecidableEq for LeanVM.Prover.Exec.BitsDest
+deriving instance DecidableEq for LeanVM.Prover.Exec.BufSize
 deriving instance DecidableEq for LeanVM.Prover.Exec.Hint
 
 /-- The advice's hints at pc `pc`: its first entry there. -/

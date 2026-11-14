@@ -54,16 +54,33 @@ theorem cur_allocate {s s' : St} {ptr size : ℕ} (h : allocate s ptr size = .ok
     s'.cursor = s.cursor := by
   unfold allocate at h
   dsimp only at h
-  split_ifs at h
-  · simp only [pure_ok] at h; subst h; rfl
+  split at h
+  · cases h
   · rw [bind_ok] at h
-    obtain ⟨next, -, h⟩ := h
-    rw [bind_ok] at h
     obtain ⟨s1, h1, h⟩ := h
     simp only [pure_ok] at h
     subst h
     have := cur_withMem h1
     exact this
+
+theorem cur_allocateLate {s s' : St} {ptr size : ℕ} (h : allocateLate s ptr size = .ok s') :
+    s'.cursor = s.cursor := by
+  unfold allocateLate at h
+  split_ifs at h
+  · simp only [pure_ok] at h; subst h; rfl
+  · exact cur_allocate h
+
+theorem cur_bufSize {s s' : St} {b : BufSize} {n : ℕ} (h : bufSize s b = .ok (n, s')) :
+    s'.cursor = s.cursor := by
+  cases b with
+  | cells k =>
+    simp only [bufSize, pure_ok, Prod.mk.injEq] at h
+    obtain ⟨-, rfl⟩ := h
+    rfl
+  | exp c =>
+    simp only [bufSize, bind_ok] at h
+    obtain ⟨sz, -, h⟩ := h
+    exact cur_logOr h
 
 theorem cur_heapBase {s s' : St} {c b : ℕ} {what : String} (h : heapBase s c what = .ok (b, s')) :
     s'.cursor = s.cursor := by
@@ -153,6 +170,10 @@ theorem runHint_cursor {C : Ctx} {s s' : St} {hint : Hint} (h : runHint C s hint
     split at h
     · exact keep ((cur_allocate h).trans (cur_logOr h1))
     · simp at h
+  | allocLate ptr size =>
+    simp only [runHint, bind_ok] at h
+    obtain ⟨⟨n, s1⟩, h1, h⟩ := h
+    exact keep ((cur_allocateLate h).trans (cur_bufSize h1))
   | cellAddress ptr cell =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, h⟩ := h

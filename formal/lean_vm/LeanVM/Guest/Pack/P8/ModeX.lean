@@ -64,32 +64,33 @@ noncomputable def modeEnv : Mode.Env :=
 noncomputable def modeFun : Mode.Fun :=
   ⟨13937, 833, Fn.«main».modeSig, (.node (some [(.witnessStack "meta" 2 8)]) (.node none (.node
     none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
-    (some [(.allocDyn 370 369)]) .nil .nil) .nil))) .nil) .nil) .nil) (.node none (.node none
-    (.node none (.node none (.node none (.node none .nil (.node (some [(.witnessStack "leaf_defer"
-    414 1)]) .nil .nil)) .nil) .nil) .nil) .nil) .nil)) (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node (some [(.allocFrames 399 60 8
-    (LeanVM.Parameters.K.ofBits 0x1) 60)]) .nil .nil) .nil)))) .nil) (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none (.node (some [(.allocDyn 389 371)]) .nil .nil)
-    .nil))) .nil))) (.node none (.node none (.node (some [(.alloc 46 75)]) (.node none .nil (.node
-    none .nil (.node none (.node (some [(.alloc 378 51)]) .nil .nil) .nil))) .nil) .nil) (.node
-    (some [(.alloc 42 75)]) .nil (.node none (.node none .nil (.node none .nil (.node none (.node
-    (some [(.allocDyn 394 393), (.allocDyn 395 393), (.allocDyn 396 368)]) .nil .nil) .nil)))
-    .nil))))) (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none .nil (.node (some [(.alloc 418 172)]) .nil .nil)) .nil) .nil)) .nil) (.node
-    none .nil (.node (some [(.allocFrames 52 18 6 (LeanVM.Parameters.K.ofBits 0x1) 18)]) .nil
-    (.node none .nil (.node none .nil (.node none (.node (some [(.witnessStack "da_pick" 403 1)])
-    .nil .nil) .nil)))))) (.node none (.node (some [(.allocAdvice 36 "heap_sizes"), (.allocAdvice
-    39 "heap_sizes"), (.allocDyn 54 26), (.alloc 56 256), (.allocAdvice 370 "heap_sizes"),
-    (.allocAdvice 389 "heap_sizes"), (.allocAdvice 394 "heap_sizes"), (.allocAdvice 395
-    "heap_sizes"), (.allocAdvice 396 "heap_sizes"), (.alloc 412 24), (.alloc 31 2208)]) .nil (.node
-    none .nil (.node none .nil (.node none (.node none (.node (some [(.allocFrames 363 1551 4
-    (LeanVM.Parameters.K.ofBits 0x1) 1551)]) .nil .nil) .nil) .nil)))) (.node (some [(.allocDyn 39
-    38)]) (.node none .nil (.node none (.node none (.node none .nil (.node (some [(.alloc 424
-    120)]) .nil .nil)) .nil) .nil)) .nil))) (.node none (.node none (.node (some [(.witnessStack
-    "fs_seed" 28 2)]) .nil (.node none .nil (.node none (.node none .nil (.node none (.node (some
-    [(.allocFrames 366 30 7 (LeanVM.Parameters.K.ofBits 0x1) 30)]) .nil .nil) .nil)) .nil))) (.node
-    (some [(.allocDyn 36 35)]) .nil .nil)) (.node none .nil (.node none (.node (some [(.allocFrames
-    49 18 3 (LeanVM.Parameters.K.ofBits 0x1) 18)]) .nil .nil) .nil))))), .nil, .nil, true, .nil⟩
+    (some [(.allocLate 370 (.exp 369))]) .nil .nil) .nil))) .nil) .nil) .nil) (.node none (.node
+    none (.node none (.node none (.node none (.node none .nil (.node (some [(.witnessStack
+    "leaf_defer" 414 1)]) .nil .nil)) .nil) .nil) .nil) .nil) .nil)) (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some [(.allocFrames
+    399 60 8 (LeanVM.Parameters.K.ofBits 0x1) 60)]) .nil .nil) .nil)))) .nil) (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none (.node (some [(.allocLate 389 (.exp
+    371))]) .nil .nil) .nil))) .nil))) (.node none (.node none (.node (some [(.alloc 46 75)])
+    (.node none .nil (.node none .nil (.node none (.node (some [(.alloc 378 51)]) .nil .nil)
+    .nil))) .nil) .nil) (.node (some [(.alloc 42 75)]) .nil (.node none (.node none .nil (.node
+    none .nil (.node none (.node (some [(.allocLate 394 (.exp 393)), (.allocLate 395 (.exp 393)),
+    (.allocLate 396 (.exp 368))]) .nil .nil) .nil))) .nil))))) (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some [(.alloc 418
+    172)]) .nil .nil)) .nil) .nil)) .nil) (.node none .nil (.node (some [(.allocFrames 52 18 6
+    (LeanVM.Parameters.K.ofBits 0x1) 18)]) .nil (.node none .nil (.node none .nil (.node none
+    (.node (some [(.witnessStack "da_pick" 403 1)]) .nil .nil) .nil)))))) (.node none (.node (some
+    [(.allocAdvice 36 "heap_sizes"), (.allocAdvice 39 "heap_sizes"), (.allocDyn 54 26), (.alloc 56
+    256), (.allocAdvice 370 "heap_sizes"), (.allocAdvice 389 "heap_sizes"), (.allocAdvice 394
+    "heap_sizes"), (.allocAdvice 395 "heap_sizes"), (.allocAdvice 396 "heap_sizes"), (.alloc 412
+    24), (.alloc 31 2208)]) .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    (some [(.allocFrames 363 1551 4 (LeanVM.Parameters.K.ofBits 0x1) 1551)]) .nil .nil) .nil)
+    .nil)))) (.node (some [(.allocLate 39 (.exp 38))]) (.node none .nil (.node none (.node none
+    (.node none .nil (.node (some [(.alloc 424 120)]) .nil .nil)) .nil) .nil)) .nil))) (.node none
+    (.node none (.node (some [(.witnessStack "fs_seed" 28 2)]) .nil (.node none .nil (.node none
+    (.node none .nil (.node none (.node (some [(.allocFrames 366 30 7 (LeanVM.Parameters.K.ofBits
+    0x1) 30)]) .nil .nil) .nil)) .nil))) (.node (some [(.allocLate 36 (.exp 35))]) .nil .nil))
+    (.node none .nil (.node none (.node (some [(.allocFrames 49 18 3 (LeanVM.Parameters.K.ofBits
+    0x1) 18)]) .nil .nil) .nil))))), .nil, .nil, true, .nil⟩
 
 end
 

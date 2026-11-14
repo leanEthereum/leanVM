@@ -17,8 +17,8 @@ The bump pointer at an instruction of a frame (`EndExecA.lean`) is the instance'
 buffers its function has reserved so far (`nbAt`) and its calls made, plus the block of the next
 callee when its frame is reserved and not yet entered (`pendAt`). Both static parts are read off
 the function's allocation hints by offset (`allocHints`), each by its role (`isFrame`: its
-pointer a call site's callee frame cell; `isLate`: an `allocDyn` at a pointer an `allocAdvice` reserves
-first, which finds it written; `isBuf`: the rest).
+pointer a call site's callee frame cell; `isLate`: an `allocLate`, a buffer an `allocAdvice` reserved
+first, which finds its pointer written; `isBuf`: the rest).
 
 `allocChk X fs P body code d`, by `decide +kernel` per function (`scripts/bridge-cert/alloc.py`):
 
@@ -108,7 +108,8 @@ def allocShape : List Stmt → Bool
 
 /-- An allocation hint's pointer cell. -/
 def allocPtr : Prover.Exec.Hint → Option ℕ
-  | .alloc p _ | .allocDyn p _ | .allocAdvice p _ | .allocArm p _ _ | .allocFrames p _ _ _ _ => some p
+  | .alloc p _ | .allocDyn p _ | .allocAdvice p _ | .allocArm p _ _ | .allocFrames p _ _ _ _
+  | .allocLate p _ => some p
   | _ => none
 
 /-- The function's hints with their offsets, by pc then in the list at a pc. -/
@@ -119,36 +120,27 @@ def hintsOff (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : List (ℕ
 def allocHints (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : List (ℕ × Prover.Exec.Hint) :=
   (hintsOff d).filter fun q ↦ (allocPtr q.2).isSome
 
-/-- The pointers the `allocAdvice`s among hints reserve. -/
-def advOf (hs : List (ℕ × Prover.Exec.Hint)) : List ℕ :=
-  hs.filterMap fun q ↦ match q.2 with
-    | .allocAdvice p _ => some p
-    | _ => none
-
-/-- The pointers the function's `allocAdvice`s reserve. -/
-def advPtrs (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : List ℕ := advOf (allocHints d)
-
 /-- A callee frame's hint: its pointer a call site's callee frame cell. -/
 noncomputable def isFrame (X : AlignCtx) (h : Prover.Exec.Hint) : Bool :=
   match allocPtr h with
   | some p => (getF X.sites p).isSome
   | none => false
 
-/-- An advised buffer's second hint: an `allocDyn` at a pointer an `allocAdvice` reserves. -/
-def isLate (adv : List ℕ) : Prover.Exec.Hint → Bool
-  | .allocDyn p _ => adv.contains p
+/-- An advised buffer's own hint, after its `allocAdvice`. -/
+def isLate : Prover.Exec.Hint → Bool
+  | .allocLate .. => true
   | _ => false
 
 /-- A buffer's hint. -/
-noncomputable def isBuf (X : AlignCtx) (adv : List ℕ) (h : Prover.Exec.Hint) : Bool :=
-  (allocPtr h).isSome && !isFrame X h && !isLate adv h
+noncomputable def isBuf (X : AlignCtx) (h : Prover.Exec.Hint) : Bool :=
+  (allocPtr h).isSome && !isFrame X h && !isLate h
 
 /-- The offset of the first jump at or after offset `a`. -/
 def nextJump (code : List OffsetInstruction) (a : ℕ) : ℕ := a + (code.drop a).findIdx OffsetInstruction.isJump
 
 /-- **The buffers reserved before offset `off`.** -/
 noncomputable def nbAt (X : AlignCtx) (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) (off : ℕ) : ℕ :=
-  ((allocHints d).filter fun q ↦ decide (q.1 < off) && isBuf X (advPtrs d) q.2).length
+  ((allocHints d).filter fun q ↦ decide (q.1 < off) && isBuf X q.2).length
 
 /-- The function's frame hints with their offsets. -/
 noncomputable def frames (X : AlignCtx) (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : List (ℕ × Prover.Exec.Hint) :=
@@ -190,15 +182,15 @@ noncomputable def pairsA (X : AlignCtx) (fs : ℕ) : List Core.Hint → List Pro
   | _, _ => false
 
 /-- No buffer hint after a frame hint. -/
-noncomputable def bufsFirst (X : AlignCtx) (adv : List ℕ) : Bool → List (ℕ × Prover.Exec.Hint) → Bool
+noncomputable def bufsFirst (X : AlignCtx) : Bool → List (ℕ × Prover.Exec.Hint) → Bool
   | _, [] => true
-  | seen, q :: qs => (!seen || !isBuf X adv q.2) && bufsFirst X adv (seen || isFrame X q.2) qs
+  | seen, q :: qs => (!seen || !isBuf X q.2) && bufsFirst X (seen || isFrame X q.2) qs
 
-/-- Each late hint after its `allocAdvice`. -/
-def lateOk (adv : List ℕ) : List ℕ → List (ℕ × Prover.Exec.Hint) → Bool
+/-- Each late hint after an `allocAdvice` at its pointer. -/
+def lateOk : List ℕ → List (ℕ × Prover.Exec.Hint) → Bool
   | _, [] => true
-  | seen, q :: qs => (!isLate adv q.2 || seen.contains ((allocPtr q.2).getD 0)) &&
-      lateOk adv (match q.2 with | .allocAdvice p _ => p :: seen | _ => seen) qs
+  | seen, q :: qs => (!isLate q.2 || seen.contains ((allocPtr q.2).getD 0)) &&
+      lateOk (match q.2 with | .allocAdvice p _ => p :: seen | _ => seen) qs
 
 /-- A frame hint: an `alloc`, `allocArm` or `allocFrames` before the next jump, which goes through
 the hint's pointer as its frame cell. -/
@@ -234,12 +226,12 @@ noncomputable def targetsOk (X : AlignCtx) (code : List OffsetInstruction) (fr :
 /-- The allocation hints' check but the body's shape. -/
 noncomputable def allocRest (X : AlignCtx) (fs : ℕ) (P : B2C.Plumb) (body : List Stmt) (code : List OffsetInstruction)
     (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
-  Exec.listSeq (allocHints d) fun hs ↦ Exec.listSeq (advOf hs) fun adv ↦
+  Exec.listSeq (allocHints d) fun hs ↦
     Exec.listSeq (hs.filter fun q ↦ isFrame X q.2) fun fr ↦
-    Exec.listSeq (hs.filter fun q ↦ isBuf X adv q.2) fun bs ↦
+    Exec.listSeq (hs.filter fun q ↦ isBuf X q.2) fun bs ↦
   pairsA X fs (topAllocs body) (bs.map (·.2)) &&
     (bs.isEmpty || Exec.natSeq (code.findIdx OffsetInstruction.isJump) fun fj ↦ bs.all fun q ↦ decide (q.1 ≤ fj)) &&
-    bufsFirst X adv false hs && lateOk adv [] hs && fr.all (fun q ↦ frameOk code q.1 q.2) &&
+    bufsFirst X false hs && lateOk [] hs && fr.all (fun q ↦ frameOk code q.1 q.2) &&
     ((fr.isEmpty && P.sites.isEmpty) || (sitesOk X code fr 0 code && targetsOk X code fr code)) &&
     P.sites.all (fun s ↦ !pendIn code fr (s.r - X.entry))
 

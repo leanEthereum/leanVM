@@ -277,7 +277,7 @@ impl Program {
         public_input: [F128; 2],
         keccak_step: &mut dyn FnMut(&[u64; primitives::hash::STATE_LANES]),
     ) -> Result<Execution, ExecError> {
-        use super::hints::{BitsDest, GPow, RHint};
+        use super::hints::{BitsDest, BufSize, GPow, RHint};
 
         let ending_pc = (self.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
         if self.main_frame >= MAX_CELLS {
@@ -566,6 +566,7 @@ impl Program {
                         RHint::AllocDyn { .. } => "AllocDyn",
                         RHint::AllocAdvice { .. } => "AllocAdvice",
                         RHint::AllocArm { .. } => "AllocArm",
+                        RHint::AllocLate { .. } => "AllocLate",
                         RHint::CellAddress { .. } => "CellAddress",
                         RHint::WitnessStack { .. } => "WitnessStack",
                         RHint::WitnessHeap { .. } => "WitnessHeap",
@@ -587,14 +588,26 @@ impl Program {
                             m.put(at(fp, *ptr)?, F128::from(address))?;
                         }
                         // A fresh region: write its base `g^{next_free}` into the
-                        // pointer cell (once) and reserve `size` cells. `AllocDyn`
-                        // and `AllocArm` read the size from a cell at runtime,
-                        // `AllocAdvice` pops it from a stream.
+                        // pointer cell (once) and reserve `size` cells, the last below
+                        // `MAX_CELLS`. `AllocDyn` and `AllocArm` read the size from a cell
+                        // at runtime, `AllocAdvice` pops it from a stream. `AllocLate`
+                        // reserves nothing if its pointer is written.
                         RHint::Alloc { .. }
                         | RHint::AllocDyn { .. }
                         | RHint::AllocAdvice { .. }
                         | RHint::AllocFrames { .. }
-                        | RHint::AllocArm { .. } => {
+                        | RHint::AllocArm { .. }
+                        | RHint::AllocLate { .. } => {
+                            let dyn_size = |m: &Mem<'_>, g: &mut GPow, size: u32| {
+                                let sz = in_k("HeapBuf size", m.get(fp + size)).map_err(fail)?;
+                                g.log(sz).ok_or_else(|| {
+                                    fail(Fault::NotAGPower {
+                                        what: "HeapBuf size",
+                                        value: sz,
+                                    })
+                                })
+                            };
+                            let late = matches!(h, RHint::AllocLate { .. });
                             let (ptr, size) = match *h {
                                 RHint::Alloc { ptr, size } => (ptr, size),
                                 RHint::AllocFrames {
@@ -622,16 +635,11 @@ impl Program {
                                 }
                                 // A runtime size is carried in the exponent:
                                 // the cell holds g^k, allocate k cells.
-                                RHint::AllocDyn { ptr, size } => {
-                                    let sz = in_k("HeapBuf size", m.get(fp + size)).map_err(fail)?;
-                                    let cells = g.log(sz).ok_or_else(|| {
-                                        fail(Fault::NotAGPower {
-                                            what: "HeapBuf size",
-                                            value: sz,
-                                        })
-                                    })?;
-                                    (ptr, cells)
-                                }
+                                RHint::AllocDyn { ptr, size } => (ptr, dyn_size(&m, &mut g, size)?),
+                                RHint::AllocLate { ptr, size } => match size {
+                                    BufSize::Cells(n) => (ptr, n),
+                                    BufSize::Exp(size) => (ptr, dyn_size(&m, &mut g, size)?),
+                                },
                                 // An empty entry: the run allocates no buffer here.
                                 RHint::AllocAdvice { ptr, .. } => {
                                     let sz = match streams[stream as usize].next().map_err(fail)? {
@@ -666,9 +674,12 @@ impl Program {
                                 _ => unreachable!(),
                             };
                             let cell = at(fp, ptr)?;
-                            if !m.written(cell) {
+                            if !(late && m.written(cell)) {
                                 let base = next_free;
-                                next_free = at(base, size)?;
+                                next_free = base
+                                    .checked_add(size)
+                                    .filter(|&next| next <= MAX_CELLS)
+                                    .ok_or_else(|| fail(Fault::OutOfMemory))?;
                                 g.grow_to(next_free as usize);
                                 // The base is about to become a pointer in memory.
                                 g.note(base as usize);
