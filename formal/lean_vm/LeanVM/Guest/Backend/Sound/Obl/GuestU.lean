@@ -16,8 +16,9 @@ public import LeanVM.Guest.B1.Tables.Basic
 # The guest's precondition
 
 `guestU`: the table's bounds (`guestTab`), relation `0` the exponent table with its window
-section and relation `1` the window table (`guestRel`, B1's `ExpTables`, `ExpWinTab`, `WinTabs`),
-and the `ext` functions' relations (`guestX`).
+section, relation `1` the window table, a walk tag the path windows `walk_path` dispatches on and
+a `memRel` tag a word read through the argument and bounded (`guestRel`, B1's `ExpTables`,
+`ExpWinTab`, `WinTabs`, `WinsAt`), and the `ext` functions' relations (`guestX`).
 
 `OblFn g`: `g`'s obligations under `guestU`, on a memory of `2^κ` words, `minLogMem ≤ κ ≤
 maxLogMem`, for every call relation within the core program's whose calls meet their callees'
@@ -33,9 +34,38 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 /-- **The guest's relations**: tag `0` the exponent table and its window section, tag `1` the
-window table. -/
+window table, a tag `t` with `2 ≤ t < 2^32` the path windows of walk tag `t` (`WinsAt` of its
+depth and cap depth), and `memRel c n` the word at the argument times `g^c`, read, `g^e` with
+`e < n`. -/
 def guestRel (t : Nat) (rd : Reader) (v : E) : Prop :=
-  (t = 0 → B1.ExpTables rd v ∧ B1.ExpWinTab rd v) ∧ (t = 1 → B1.WinTabs rd v)
+  (t = 0 → B1.ExpTables rd v ∧ B1.ExpWinTab rd v) ∧ (t = 1 → B1.WinTabs rd v) ∧
+    (2 ≤ t → t < 2 ^ 32 → B1.WinsAt rd (walkD t) (walkCd t) v) ∧
+    (2 ^ 32 ≤ t → ∃ e < (t - 2 ^ 32) % 2 ^ 16,
+      LoadHolds rd v ((t - 2 ^ 32) / 2 ^ 16) (ofK (addressOfIndex e)))
+
+theorem memRel_decode {c n : Nat} (hn : n < 2 ^ 16) :
+    2 ^ 32 ≤ memRel c n ∧ (memRel c n - 2 ^ 32) % 2 ^ 16 = n ∧ (memRel c n - 2 ^ 32) / 2 ^ 16 = c := by
+  unfold memRel
+  refine ⟨by omega, by omega, by omega⟩
+
+/-- A word read through `v` at `g^c`, bounded, is relation `memRel c n` of `v`. -/
+theorem guestRel_memRel {rd : Reader} {v : E} {c n : Nat} (hn : n < 2 ^ 16)
+    (h : ∃ e < n, LoadHolds rd v c (ofK (addressOfIndex e))) : guestRel (memRel c n) rd v := by
+  obtain ⟨h0, h1, h2⟩ := memRel_decode (c := c) hn
+  refine ⟨fun h' => by omega, fun h' => by omega, fun _ h' => by omega, fun _ => ?_⟩
+  rw [h1, h2]
+  exact h
+
+/-- The path windows of walk tag `winsTag d cd`, `d, cd < 64`, are its relation. -/
+theorem guestRel_winsTag {rd : Reader} {v : E} {d cd : Nat} (hd : d < 64) (hc : cd < 64)
+    (h : B1.WinsAt rd d cd v) : guestRel (winsTag d cd) rd v := by
+  have hl := walkTag_lt (kind := 0) (odd := 1) (by omega) (by omega) hc hd
+  obtain ⟨-, -, hD, hC⟩ := walkTag_decode (kind := 0) (odd := 1) (d := d) (by omega) (by omega) hc
+  unfold winsTag at *
+  have h2 : 2 ≤ walkTag 0 1 d cd := by unfold walkTag; omega
+  refine ⟨fun h' => by omega, fun h' => by omega, fun _ _ => ?_, fun h' => by omega⟩
+  rw [hD, hC]
+  exact h
 
 /-- **The guest's precondition** (`World.U`). -/
 def guestU (rd : Reader) : String → List E → Prop := UOf guestTab guestRel guestX rd
