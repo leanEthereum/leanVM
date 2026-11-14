@@ -49,9 +49,25 @@ impl F64 {
         result
     }
 
-    /// Multiplicative inverse `x^(2^64 - 2)`, mapping zero to zero.
+    /// Multiplicative inverse `x^(2^64 - 2)`, mapping zero to zero, by Itoh-Tsujii: each `t_k = x^(2^k - 1)` comes
+    /// from two shorter ones, so the exponent costs 63 squarings and 8 products.
     pub fn inv(self) -> Self {
-        self.pow((1 << 64) - 2)
+        let sq = |mut v: Self, n: u32| {
+            for _ in 0..n {
+                v = v.square();
+            }
+            v
+        };
+        let t1 = self;
+        let t2 = sq(t1, 1) * t1;
+        let t3 = sq(t2, 1) * t1;
+        let t6 = sq(t3, 3) * t3;
+        let t12 = sq(t6, 6) * t6;
+        let t24 = sq(t12, 12) * t12;
+        let t48 = sq(t24, 24) * t24;
+        let t60 = sq(t48, 12) * t12;
+        let t63 = sq(t60, 3) * t3;
+        sq(t63, 1)
     }
 }
 
