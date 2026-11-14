@@ -76,9 +76,9 @@ pub fn aggregate_with_stats(
         None
     } else {
         let _span = tracing::info_span!("LeanDA commit").entered();
-        Some(lean_da::commit(blobs)?)
+        Some(lean_da::DaWitness::build(blobs)?)
     };
-    let direct_root = direct.as_ref().map(lean_da::DaWitness::root);
+    let direct_root = direct.as_ref().map(lean_da::DaWitness::top_root);
     if direct_root.is_some() && declared_root.is_some_and(|declared| declared != direct_root) {
         return Err(AggregationError::BlobsUnpublished);
     }
@@ -287,7 +287,7 @@ pub fn aggregate_with_stats(
 
     let mut da = child_da.get(da_pick).copied().unwrap_or_default();
     if let Some(witness) = direct {
-        let commitment = witness.root();
+        let commitment = witness.top_root();
         let n_rows = blobs.len();
         da = verifier::da::digest(Some(commitment));
         hints.push(

@@ -237,7 +237,7 @@ fn export(
         out.sphincs_signature(sig);
     }
     // The directly held matrix: its root, its membership challenge and its rows.
-    let direct = (!blobs.is_empty()).then(|| lean_da::commit(blobs).expect("1 to DA_MAX_ROWS blobs"));
+    let direct = (!blobs.is_empty()).then(|| lean_da::DaWitness::build(blobs).expect("1 to DA_MAX_ROWS blobs"));
     out.tag("da_witness");
     match &direct {
         Some(witness) => {
@@ -245,9 +245,8 @@ fn export(
             out.0.push_str("direct ");
             out.bytes(root);
             out.e(from_scalar(verifier::da::membership_challenge(root)));
-            let rows: Vec<&lean_da::Codeword> = (0..).map_while(|i| witness.row(i)).collect();
-            out.n(rows.len());
-            for row in rows {
+            out.n(witness.n_blobs());
+            for row in (0..witness.n_blobs()).filter_map(|i| witness.row(i)) {
                 out.n(row.len());
                 for &w in row {
                     out.e(F128::new(w as u64, (w >> 64) as u64));

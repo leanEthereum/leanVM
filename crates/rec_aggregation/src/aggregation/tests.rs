@@ -357,7 +357,7 @@ fn aggregate_with_a_da_payload() {
     node.verify().expect("node verifies");
     assert_eq!(node.claims.num_signature_claims(), 0);
 
-    let commitment = lean_da::commit(&rows).unwrap().root();
+    let commitment = lean_da::DaWitness::build(&rows).unwrap().top_root();
     assert_eq!(
         node.claims.da_commitment,
         Some(commitment),
@@ -446,7 +446,10 @@ fn a_node_passes_on_one_childs_da_root() {
     assert_eq!(pass_on(Some(Some(second)), &[]), Some(second));
     assert_eq!(pass_on(Some(None), &[]), None);
     let rows = da_rows(1, 511);
-    assert_eq!(pass_on(None, &rows), Some(lean_da::commit(&rows).unwrap().root()));
+    assert_eq!(
+        pass_on(None, &rows),
+        Some(lean_da::DaWitness::build(&rows).unwrap().top_root())
+    );
 
     // Passed on again, one level up.
     let middle = aggregate(&children[1..], vec![], vec![], &[], None, LOG_INV_RATE).unwrap();
@@ -606,9 +609,9 @@ def main():
     );
     let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
     let blobs = da_rows(3, 101);
-    let witness = lean_da::commit(&blobs).unwrap();
+    let witness = lean_da::DaWitness::build(&blobs).unwrap();
     let rows: Vec<Codeword> = (0..blobs.len()).map(|i| *witness.row(i).unwrap()).collect();
-    assert_eq!(da_root(&rows), witness.root());
+    assert_eq!(da_root(&rows), witness.top_root());
     let run = |rows: &[Codeword]| {
         let commitment = da_root(rows);
         let mut hints = Hints::default();
@@ -644,7 +647,7 @@ def main():
     }
 }
 
-/// The commitment to rows that need not be codewords, rebuilt pairwise as `lean_da::commit` builds it.
+/// The commitment to rows that need not be codewords, rebuilt pairwise as `DaWitness::build` doess it.
 fn da_root(rows: &[Codeword]) -> Hash {
     fn root(mut level: Vec<Hash>) -> Hash {
         while level.len() > 1 {
@@ -682,7 +685,7 @@ fn da_row_count_is_a_run_time_parameter() {
         let rows = da_rows(n_rows, 200 + n_rows as u64);
         let node = aggregate(&[], signers.clone(), vec![], &rows, None, LOG_INV_RATE).expect("node aggregates");
         node.verify().expect("node verifies");
-        let commitment = lean_da::commit(&rows).unwrap().root();
+        let commitment = lean_da::DaWitness::build(&rows).unwrap().top_root();
         assert_eq!(node.claims.da_commitment, Some(commitment), "{n_rows} rows");
     }
 }

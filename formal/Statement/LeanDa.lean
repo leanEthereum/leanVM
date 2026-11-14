@@ -120,11 +120,11 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   position `128 i + j`, the positions of the erasure code commitment.
 * **The commitment** (`commit.rs`). The rows are padded to `2^⌈log₂ r⌉` with zero codewords. A
   cell's digest is the hash of its symbols' bytes, each symbol its two limbs' little-endian bytes,
-  `y^0` first (`blob_trees`). Each
+  `y^0` first (`blob_merkle_nodes`). Each
   padded row, a blob, has the Merkle root of its `128` cell digests (`blobRootWith`), and the
-  commitment is the Merkle root of the padded rows' blob roots (`commit`). A tree hashes
+  commitment is the Merkle root of the padded rows' blob roots (`DaWitness::build`). A tree hashes
   neighbours in pairs, level by level (`fill_levels`). A padding row's blob root is that of the
-  zero codeword (`padding_root`), so the root is the commitment to the padded matrix.
+  zero codeword (`root_of_padding_blob`), so the root is the commitment to the padded matrix.
 * **Openings.** A cell is opened by its authentication path in its blob's tree, then its blob
   root's in the tree over the blob roots: the path of leaf `128 i + j` in the one tree of depth
   `7 + ⌈log₂ r⌉` that the two make. The crate keeps the codewords and the root (`DaWitness`,
@@ -144,7 +144,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   challenge (the Rust search never ends); the relation then asks every row to be a codeword
   (`membershipCheckOpt`), which keeps an honest matrix's relation true for every permutation.
 
-The row count `r` is a parameter: the crate takes `1 ≤ r ≤ maxRows` (`commit` rejects any
+The row count `r` is a parameter: the crate takes `1 ≤ r ≤ maxRows` (`DaWitness::build` rejects any
 other count with a `BlobCountError`, `commit.rs`, `lib.rs`);
 completeness and position binding hold for every `r`, code binding for
 `1 ≤ r ≤ maxRows`. The algorithms take a permutation `π` of the Keccak state as a parameter and hash with
@@ -277,7 +277,7 @@ def merkleLevelUpWith (nodeAt : ℕ → m DigestBytes) (i : ℕ) : m DigestBytes
   keccakDigestBytes π (pairBytes a b)
 
 /-- The root of the Merkle tree over the leaves `nodeAt 0 … nodeAt (2^d - 1)`
-(`tree_from_leaves`, `fill_levels`). -/
+(`merkle_nodes_from_leaves`, `fill_levels`). -/
 def merkleRootWith : ℕ → (ℕ → m DigestBytes) → m DigestBytes
   | 0, nodeAt => nodeAt 0
   | d + 1, nodeAt => merkleRootWith d (merkleLevelUpWith π nodeAt)
@@ -291,22 +291,22 @@ def merklePathWith : ℕ → (ℕ → m DigestBytes) → ℕ → m (List DigestB
     pure (s :: rest)
 
 /-- The leaves of padded row `i`'s tree: its `128` cell digests, `e_{i,j} = H(W_{i,j})`
-(`blob_trees`). -/
+(`blob_merkle_nodes`). -/
 def cellLeavesWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i j : ℕ) : m DigestBytes :=
   keccakDigestBytes π (cellBytes (paddedCell cells i j))
 
-/-- **The blob root of padded row `i`**: the Merkle root of its cell digests (`blob_trees`; a
-padding row's is `padding_root`). -/
+/-- **The blob root of padded row `i`**: the Merkle root of its cell digests (`blob_merkle_nodes`; a
+padding row's is `root_of_padding_blob`). -/
 def blobRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes :=
   merkleRootWith π 7 (cellLeavesWith π cells i)
 
-/-- **The root of a matrix** (`commit`): the Merkle root of the padded rows' blob
+/-- **The root of a matrix** (`DaWitness::build`): the Merkle root of the padded rows' blob
 roots. -/
 def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes :=
   merkleRootWith π (logPaddedRowCount r) (blobRootWith π cells)
 
-/-- The honest opening of a position: the cell's path in its blob's tree, then its blob root's in
-the tree over the blob roots. -/
+/-- The honest opening of a position (`DaWitness::merkle_path_for_cell`): the cell's path in its blob's tree, then
+its blob root's in the tree over the blob roots. -/
 def openCellWith {r : ℕ} (cells : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m CellOpening := do
   let low ← merklePathWith π 7 (cellLeavesWith π cells (positionRow p)) (positionCell p)
   let high ← merklePathWith π (logPaddedRowCount r) (blobRootWith π cells) (positionRow p)
@@ -319,7 +319,7 @@ def climbWith : ℕ → DigestBytes → List DigestBytes → m DigestBytes
     let d ← keccakDigestBytes π (if index % 2 = 0 then pairBytes node s else pairBytes s node)
     climbWith (index / 2) d rest
 
-/-- **Verification of a cell opening**: a path of `7 + ⌈log₂ r⌉` siblings that climbs from the
+/-- **Verification of a cell opening** (`verify_cell`): a path of `7 + ⌈log₂ r⌉` siblings that climbs from the
 cell's digest, at index `128 i + j` (the position: `j` in its blob's tree, then `i` in the tree
 over the blob roots), to the commitment. -/
 def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * 128)) (cell : Cell)

@@ -13,7 +13,7 @@
 mod commit;
 mod encode;
 
-pub use commit::{BlobCountError, DaWitness, commit, root_of_padding_blob};
+pub use commit::{BlobCountError, DaWitness, root_of_padding_blob, verify_cell};
 
 /// Each blob is 128 KiB = 2^LOG_BLOB_SYMBOLS symbols in GF(2^128).
 pub const LOG_BLOB_SYMBOLS: usize = 13;

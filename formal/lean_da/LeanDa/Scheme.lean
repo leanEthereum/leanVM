@@ -24,9 +24,9 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   opens.
 * **The commitment** (`commit.rs`). The rows are padded to `2^⌈log₂ r⌉` with zero
   codewords. A cell's digest is the hash of its symbols' little-endian bytes. Each padded row, a
-  blob, has the Merkle root of its `128` cell digests (`blob_trees`), and the commitment is the
-  Merkle root of the padded rows' blob roots (`commit`); a padding row's blob root is
-  the zero codeword's (`padding_root`). A tree hashes neighbours in pairs, level by level
+  blob, has the Merkle root of its `128` cell digests (`blob_merkle_nodes`), and the commitment is the
+  Merkle root of the padded rows' blob roots (`DaWitness::build`); a padding row's blob root is
+  the zero codeword's (`root_of_padding_blob`). A tree hashes neighbours in pairs, level by level
   (`fill_levels`).
 * **Openings.** A cell is opened by its path in its blob's tree, then its blob root's in the tree
   over the blob roots: the path of leaf `128 i + j` in the one tree of depth `7 + ⌈log₂ r⌉` the
@@ -50,7 +50,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   (`subspaceAbove`, `subspace_above`), from which the guest builds `L` (`dualCodeword`, the
   crate's test `dual_codeword`), which `LeanDa.Subspace` proves are `Ŵ_j` and `dualCodewordAt`.
 
-The row count `r` is a parameter. The crate takes `1 ≤ r ≤ maxRows` (`commit` rejects any other
+The row count `r` is a parameter. The crate takes `1 ≤ r ≤ maxRows` (`DaWitness::build` rejects any other
 count with a `BlobCountError`, `commit.rs`, `lib.rs`);
 the statements hold for every `r ≥ 1`. So are the hash `H` and the sponge's permutation `P`: the
 crate's are Keccak-256 (Ethereum's: rate `136` bytes, padding `0x01 ‖ 0^* ‖ 0x80`,

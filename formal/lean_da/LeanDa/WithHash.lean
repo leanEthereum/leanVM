@@ -141,7 +141,7 @@ def cellDigestWithHash (x : Cell) : DigestBytes := H (cellBytes x)
 def upWithHash (f : ℕ → DigestBytes) (i : ℕ) : DigestBytes :=
   H (pairBytes (f (2 * i)) (f (2 * i + 1)))
 
-/-- The root of the Merkle tree over the leaves `f 0 … f (2^d - 1)` (`tree_from_leaves`). -/
+/-- The root of the Merkle tree over the leaves `f 0 … f (2^d - 1)` (`merkle_nodes_from_leaves`). -/
 def merkleRootWithHash : ℕ → (ℕ → DigestBytes) → DigestBytes
   | 0, f => f 0
   | d + 1, f => merkleRootWithHash d (upWithHash H f)
@@ -151,15 +151,15 @@ def merklePathWithHash : ℕ → (ℕ → DigestBytes) → ℕ → List DigestBy
   | 0, _, _ => []
   | d + 1, f, idx => f (sibling idx) :: merklePathWithHash d (upWithHash H f) (idx / 2)
 
-/-- The leaves of padded row `i`'s tree: its `128` cell digests (`blob_trees`). -/
+/-- The leaves of padded row `i`'s tree: its `128` cell digests (`blob_merkle_nodes`). -/
 def cellLeavesWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i j : ℕ) : DigestBytes :=
   cellDigestWithHash H (paddedCell c i j)
 
-/-- The blob root of padded row `i`: the Merkle root of its cell digests (`blob_trees`). -/
+/-- The blob root of padded row `i`: the Merkle root of its cell digests (`blob_merkle_nodes`). -/
 def blobRootWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : DigestBytes :=
   merkleRootWithHash H 7 (cellLeavesWithHash H c i)
 
-/-- **The root of a matrix** (`commit`): the Merkle root of the padded rows' blob roots. -/
+/-- **The root of a matrix** (`DaWitness::build`): the Merkle root of the padded rows' blob roots. -/
 def commitCellsWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
   merkleRootWithHash H (logPaddedRowCount r) (blobRootWithHash H c)
 
@@ -169,11 +169,11 @@ def openCellWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) 
   ⟨merklePathWithHash H 7 (cellLeavesWithHash H c (positionRow p)) (positionCell p) ++
     merklePathWithHash H (logPaddedRowCount r) (blobRootWithHash H c) (positionRow p)⟩
 
-/-- One level of a Merkle tree: the digests of neighbouring pairs (`tree_from_leaves`). -/
+/-- One level of a Merkle tree: the digests of neighbouring pairs (`merkle_nodes_from_leaves`). -/
 def treeLevelWithHash (nodes : List DigestBytes) : List DigestBytes :=
   (List.range (nodes.length / 2)).map (upWithHash H fun i ↦ nodes.getD i default)
 
-/-- The root of the Merkle tree over a power-of-two number of digests (`tree_from_leaves`; on
+/-- The root of the Merkle tree over a power-of-two number of digests (`merkle_nodes_from_leaves`; on
 other lengths, which `commitCodewords` never passes, the crate panics). -/
 def treeRootWithHash (nodes : List DigestBytes) : DigestBytes :=
   if nodes.length ≤ 1 then nodes.headD default else treeRootWithHash (treeLevelWithHash H nodes)
@@ -185,19 +185,19 @@ def listCellDigestWithHash (row : List E) (j : ℕ) : DigestBytes :=
   H ((listCell row j).flatMap E.toBytes)
 
 /-- The blob root of a codeword: the Merkle root of its `128` cell digests, built level by level
-(`blob_trees`, `fill_levels`). -/
+(`blob_merkle_nodes`, `fill_levels`). -/
 def listBlobRootWithHash (row : List E) : DigestBytes :=
   treeRootWithHash H ((List.range cellsPerRow).map (listCellDigestWithHash H row))
 
-/-- The digest of the zero cell (`padding_tree`'s leaves). -/
+/-- The digest of the zero cell (`padding_merkle_nodes`'s leaves). -/
 def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap E.toBytes)
 
 /-- The blob root of the zero codeword, which pads the tree over the blob roots
-(`padding_root`, `commit.rs`). -/
+(`root_of_padding_blob`, `commit.rs`). -/
 def paddingBlobRootWithHash : DigestBytes :=
   treeRootWithHash H (List.replicate cellsPerRow (paddingCellWithHash H))
 
-/-- **The root of a matrix of codewords, as the crate computes it** (`commit`): the
+/-- **The root of a matrix of codewords, as the crate computes it** (`DaWitness::build`): the
 rows padded to a power of two with zero codewords, the tree over their blob roots. -/
 def commitCodewordsWithHash (rows : List (List E)) : DigestBytes :=
   treeRootWithHash H (rows.map (listBlobRootWithHash H) ++
@@ -205,7 +205,7 @@ def commitCodewordsWithHash (rows : List (List E)) : DigestBytes :=
 
 end Pure
 
-/-- **The root of a matrix of codewords, as the crate computes it** (`commit`,
+/-- **The root of a matrix of codewords, as the crate computes it** (`DaWitness::build`,
 `commit.rs`), over a permutation `π`: on codewords of `2^14` symbols it is the statement's
 `commitCells π (cellsOfRows rows)` (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). The
 blob roots in the crate's order, each tree built level by level, as compiled code computes it

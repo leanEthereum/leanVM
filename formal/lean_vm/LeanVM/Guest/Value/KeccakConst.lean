@@ -37,7 +37,7 @@ terms, checked here by `decide +kernel` through the evaluator of `KeccakEval` (`
   cells are `AGG_SEED_0 .. AGG_SEED_4` (`FiatShamirState::from_label(RECURSION_AGG_LABEL)
   .capacity_cells()`, `aggregation/placeholders.rs`);
 * `paddingCell_eq`, `paddingBlobRoot_eq`, `daPadBlob_cells`: LeanDA's padding blob root, the root
-  of the tree over `128` copies of the zero cell's digest (`padding_root`, `padding_tree`,
+  of the tree over `128` copies of the zero cell's digest (`root_of_padding_blob`, `padding_merkle_nodes`,
   `crates/lean_da/src/commit.rs`), whose two cells are `DA_PAD_BLOB_0/1` (`hash_to_scalars`,
   `aggregation/placeholders.rs`).
 
@@ -170,7 +170,7 @@ theorem daPadLevel_toBytes_succ {k : ℕ} (hk : k < 7) :
   rw [Da.keccak256Bytes, ← daPadLevel_succ k hk]
   rfl
 
-/-- **LeanDA's padding blob root** (`padding_root`, `commit.rs`): the zero codeword's blob
+/-- **LeanDA's padding blob root** (`root_of_padding_blob`, `commit.rs`): the zero codeword's blob
 root is `daPadBlobDigest`. -/
 theorem paddingBlobRoot_eq :
     LeanDa.paddingBlobRootWithHash Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadBlobDigest := by

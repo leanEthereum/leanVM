@@ -52,7 +52,6 @@ name = "lean_da"
 version = "0.1.0"
 dependencies = [
  "fiat_shamir",
- "parallel",
  "pcs",
  "primitives",
  "tracing",
