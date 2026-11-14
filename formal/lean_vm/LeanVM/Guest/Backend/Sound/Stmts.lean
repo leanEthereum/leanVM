@@ -27,7 +27,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-variable {κ : ℕ} {Γ : Site κ} {fp : K} {F : Std.HashMap V Loc} {ctx : Ctx} {C : CallRel}
+variable {κ : ℕ} {Γ : Site κ} {fp : K} {F : VMap Loc} {ctx : Ctx} {C : CallRel}
   {U : String → List E → Prop} {slots : Array KVal} {B : ℕ}
 
 /-- A statement's relation, the frame's return standing for a rest that is a bare return. -/

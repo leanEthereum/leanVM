@@ -33,7 +33,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-variable {κ : ℕ} {Γ : Site κ} {fp : K} {F : Std.HashMap V Loc} {ctx : Ctx}
+variable {κ : ℕ} {Γ : Site κ} {fp : K} {F : VMap Loc} {ctx : Ctx}
 
 theorem isLazy_spec (v : V) (kind : Kind) : Spec Γ fp F ctx (isLazy v kind) (fun _ => True) := by
   intro st

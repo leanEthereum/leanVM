@@ -115,8 +115,8 @@ def atReference (ref : Reference) (P : List TracedFn) : IO Assembled := do
   let (fns, slots) ← orThrow (lowerProgram P)
   let (fns, _) := withTables fns slots
   let size := 2 ^ ref.logSize
-  let entry : Std.HashMap String Nat := ref.fns.foldl (init := {}) fun m (name, e, _) => m.insert name e
-  let frame : Std.HashMap String Nat := fns.foldl (init := {}) fun m f => m.insert f.name f.frameSize
+  let entry : SMap Nat := ref.fns.foldl (init := {}) fun m (name, e, _) => m.insert name e
+  let frame : SMap Nat := fns.foldl (init := {}) fun m f => m.insert f.name f.frameSize
   let tablesBase := match (ref.code[0]? : Option OffsetInstruction) with
     | some (.set o _ _) => o
     | _ => 0

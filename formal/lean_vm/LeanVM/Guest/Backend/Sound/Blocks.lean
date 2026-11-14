@@ -19,7 +19,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-variable {κ : ℕ} {Γ : Site κ} {fp : K} {F : Std.HashMap V Loc} {ctx : Ctx} {C : CallRel}
+variable {κ : ℕ} {Γ : Site κ} {fp : K} {F : VMap Loc} {ctx : Ctx} {C : CallRel}
   {U : String → List E → Prop} {slots : Array KVal} {B : ℕ}
 
 /-- Two states that agree on everything a proof reads. -/
@@ -51,7 +51,7 @@ theorem wp_expect {st : St} {e : Event → Bool} {what : String} {Q : Unit → S
 back, and what was laid inside is returned. -/
 theorem inBlock_finish {st st1 s5 : St} {Gb : Prop → Prop} {Sb : Prop → (List E → Prop) → Prop}
     (hpl : Plain st) (hpl5 : Plain s5) (h1 : Eqv st st1)
-    (L : Lays Γ fp F ctx slots B True { st1 with out := #[] } s5 Gb Sb) :
+    (L : Lays Γ fp F ctx slots B True { st1 with out := {} } s5 Gb Sb) :
     Plain { s5 with out := st1.out, scope := st1.scope } ∧
       Quiet st { s5 with out := st1.out, scope := st1.scope } ∧
       Means Γ fp F ctx slots B True s5.locs st.scope st.scope s5.tables s5.out.toList Gb Sb := by
@@ -78,7 +78,7 @@ theorem inBlock_spec {m : P Unit} {Gb : Prop → Prop} {Sb : Prop → (List E �
   dsimp only
   refine wp_bind.mpr (wp_set.mpr ?_)
   refine wp_bind.mpr fun _ st2 he2 => ?_
-  obtain ⟨hp2, l2⟩ := hm { st1 with out := #[] }
+  obtain ⟨hp2, l2⟩ := hm { st1 with out := {} }
     ⟨h1.chainIn.trans hpl.chainIn⟩ _ st2 he2
   refine wp_bind.mpr fun _ st3 he3 => ?_
   have e3 := flush_spec (Γ := Γ) (fp := fp) (F := F) [] st2 _ st3 he3
@@ -117,7 +117,7 @@ variable (env : PlaceEnv Γ fp ctx C U slots B)
 
 include env in
 /-- A branch with an `else` block: the block the condition selects runs, then the code after. -/
-theorem ite_means_else {H : Prop} {locs : Std.HashMap V Loc} {sc : Scope} {t : Tables} {c : V}
+theorem ite_means_else {H : Prop} {locs : VMap Loc} {sc : Scope} {t : Tables} {c : V}
     {z nz rest : List Stmt} {hints : List LHint} {lc bdest sfp edest one : Cell}
     {zeroBlk nonzero : List PStmt}
     (hH : H → wd Γ.L fp lc = valP Γ.L fp F c ∧ wd Γ.L fp sfp = ofK fp ∧ wd Γ.L fp one = 1 ∧
@@ -153,7 +153,7 @@ theorem ite_means_else {H : Prop} {locs : Std.HashMap V Loc} {sc : Scope} {t : T
 
 include env in
 /-- A branch with no `else` block. -/
-theorem ite_means_noelse {H : Prop} {locs : Std.HashMap V Loc} {sc : Scope} {t : Tables} {c : V}
+theorem ite_means_noelse {H : Prop} {locs : VMap Loc} {sc : Scope} {t : Tables} {c : V}
     {z rest : List Stmt} {hints : List LHint} {lc bdest sfp : Cell} {zeroBlk : List PStmt}
     (hH : H → wd Γ.L fp lc = valP Γ.L fp F c ∧ wd Γ.L fp sfp = ofK fp ∧
       BlockSem Γ fp ctx slots B zeroBlk (OblList C U Γ.L.read (valP Γ.L fp F) z)
@@ -342,7 +342,7 @@ variable (env : PlaceEnv Γ fp ctx C U slots B)
 include env in
 /-- **A `match`**: at a selector in range the table jump enters the arm the selector names, the
 arm runs, and its jump, or for the last arm its end, is the join. -/
-theorem chain_means {H : Prop} {locs : Std.HashMap V Loc} {sc : Scope} {t : Tables} {x : V}
+theorem chain_means {H : Prop} {locs : VMap Loc} {sc : Scope} {t : Tables} {x : V}
     {arms : List (List Stmt)} {rest : List Stmt} {hints : List LHint}
     {join lx entry one sfp : Cell} {first : ℕ} {blocks : List (List PStmt)}
     (hH : H → wd Γ.L fp lx = valP Γ.L fp F x ∧ wd Γ.L fp sfp = ofK fp ∧ wd Γ.L fp one = 1 ∧

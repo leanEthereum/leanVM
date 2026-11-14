@@ -130,7 +130,7 @@ theorem wp_throw {msg : String} {Q : α → St → Prop} : wpP (throw msg : P α
 
 section
 
-variable {κ : ℕ} (Γ : Site κ) (fp : K) (F : Std.HashMap V Loc)
+variable {κ : ℕ} (Γ : Site κ) (fp : K) (F : VMap Loc)
 
 /-- Every statement is one instruction. -/
 def OpsOnly (ops : List PStmt) : Prop := ∀ s ∈ ops, ∃ h o, s = PStmt.op h o
@@ -349,7 +349,7 @@ theorem SpecAt.lastT {m : P α} {Q₁ : α → Prop} (hm : Spec Γ fp F ctx m Q�
 
 /-- The event the walk is at. -/
 theorem wp_peek {Q : Option Event → St → Prop} :
-    wpP peek ctx st Q ↔ Q ctx.trace[st.pos]? st := by
+    wpP peek ctx st Q ↔ Q st.rest.head? st := by
   constructor
   · intro h
     exact h _ st rfl
@@ -358,7 +358,7 @@ theorem wp_peek {Q : Option Event → St → Prop} :
     exact h
 
 theorem SpecAt.peek_bind {f : Option Event → P β} {Q : β → Prop}
-    (h : SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (f ctx.trace[st.pos]?) Q) :
+    (h : SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (f st.rest.head?) Q) :
     SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (peek >>= f) Q :=
   wp_bind.mpr (wp_peek.mpr h)
 

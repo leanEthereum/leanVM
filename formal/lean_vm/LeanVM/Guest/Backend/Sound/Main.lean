@@ -44,7 +44,7 @@ theorem FnAt.entry (hW : W.Compiled) {tf : TracedFn} {pf : Placed} {pre post : L
   have hnd := World.nodup hW
   refine ⟨?_, (assemble_fetch hnd hat.split W.hl hW.2).2, ?_⟩
   · have := layout_entry (withTables W.fns W.slots).2 hnd hat.split
-    rw [World.ent, World.layout, layoutOf, Std.HashMap.getD_eq_getD_getElem?, ← hat.name, this]
+    rw [World.ent, World.layout, layoutOf, KMap.getD_eq_getD_getElem?, ← hat.name, this]
     rfl
   · have := congrArg List.length hat.code
     simpa only [opsOf_length, blockOps_length] using this
@@ -236,7 +236,7 @@ theorem jt_of_run (hW : W.Compiled) {k : ℕ}
       simp [withTables, he]
     have hentry := layout_entry (withTables W.fns W.slots).2 hndw hsplit
     have hent : W.ent "main" = 0 := by
-      rw [World.ent, World.layout, layoutOf, Std.HashMap.getD_eq_getD_getElem?, ← hmname, hentry]
+      rw [World.ent, World.layout, layoutOf, KMap.getD_eq_getD_getElem?, ← hmname, hentry]
       rfl
     refine ⟨k, Nat.le_refl _, fun s kv w hsk _ => ?_, by rw [hent]; exact hs⟩
     have hsz : W.slots.size = 0 := by simpa using he
@@ -254,7 +254,7 @@ theorem jt_of_run (hW : W.Compiled) {k : ℕ}
     have hentry := layout_entry (withTables W.fns W.slots).2 hndw
       (pre := [_]) (f := { m with frameSize := m.frameSize + W.slots.size }) (post := rest) hsplit0
     have hent : W.ent "main" = W.slots.size := by
-      rw [World.ent, World.layout, layoutOf, Std.HashMap.getD_eq_getD_getElem?, ← hmname]
+      rw [World.ent, World.layout, layoutOf, KMap.getD_eq_getD_getElem?, ← hmname]
       rw [show m.name = ({ m with frameSize := m.frameSize + W.slots.size } : Lowered).name from rfl,
         hentry]
       simp [totalSize]
