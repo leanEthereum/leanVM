@@ -86,3 +86,14 @@ Each change is recorded in `statement.tex`.
 - **M5 onwards.** B1 families on concrete hints, leaves first, up to `main`. Then the headline.
 
 Each step is a green commit (`check-all.sh lean vectors`), and its cold-build cost goes in the commit message.
+
+## Plan after the strategy review
+
+An independent review (2026-11-14) kept the architecture: the executor, `execute_completeX`, the mode walk with `inv_rule`, the pops, `honestX` and the bridge's `compiles`/prefix checks all stay; a core-level evaluator would redo the heap analysis and lose the Rust mirror. The remaining work is regrouped:
+
+1. Residuals by family: the challenge divisions in `open_stacked` from the honest-child hypotheses, the `walk_path` bounds from `WalkKnown`, the `sub` residuals from `LoadsIn` and `BufsOk`.
+2. The walk closed: a rule or a small guest edit per remaining root failure; hand tables in the generators derived from the generated data.
+3. The tree track as a theorem about the reference run (`RefTrace`): frame-to-instance map, pops cursor, bump pointer; `alignOk` per function for the 33 functions outside the prefix class and for calls. `inv_rule` is unchanged.
+4. One tree-predicate pass (`Every Q`): computed-hint exactness, residuals, `HintsIn` and the `heap_sizes` slots together through the P forms, the locally pinned sites by kernel check, `level_positions` by its generator.
+5. The remaining premises: termination from loop exits, `RefOk` from the reference step, the prologue, `X` kept by each step.
+6. The final chain and the `Statement/` field, `guestAdvice` a parameter of `Theorems`.
