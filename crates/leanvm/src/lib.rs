@@ -14,7 +14,8 @@ pub use leanvm_core::pcs::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 
 pub mod lean_da {
     pub use ::lean_da::{
-        Blob, BlobCountError, BlobMatrix, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, MERKLE_PATH_LEN, Symbol, verify_cell,
+        BLOB_SYMBOLS, Blob, BlobCountError, BlobMatrix, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS,
+        MERKLE_PATH_LEN, Symbol, verify_cell,
     };
 }
 
