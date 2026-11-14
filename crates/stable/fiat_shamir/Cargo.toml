@@ -1,0 +1,12 @@
+[package]
+name = "stable_fiat_shamir"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+parallel = { package = "stable_parallel", path = "../parallel" }
+primitives = { package = "stable_primitives", path = "../primitives" }

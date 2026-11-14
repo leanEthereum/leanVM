@@ -89,7 +89,7 @@ fn main() {
     let leanvm = leanvm
         .canonicalize()
         .unwrap_or_else(|e| panic!("leanVM's tree {}: {e}", leanvm.display()));
-    let crate_dir = leanvm.join("crates/rec_aggregation");
+    let crate_dir = leanvm.join("crates/experimental/rec_aggregation");
     let out = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("rec_aggregation");
     // A fresh copy: a file leanVM moved or removed must not linger from an earlier pin.
     let _ = std::fs::remove_dir_all(&out);
@@ -146,7 +146,7 @@ fn main() {
     // copied, `lib.rs` as the module's `mod.rs`, and `crate::` paths pointed at the module.
     let compiler = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("compiler_overlay");
     let _ = std::fs::remove_dir_all(&compiler);
-    copy_dir(&leanvm.join("crates/lean_compiler/src"), &compiler);
+    copy_dir(&leanvm.join("crates/experimental/lean_compiler/src"), &compiler);
     std::fs::rename(compiler.join("lib.rs"), compiler.join("mod.rs")).unwrap();
     let mut files = Vec::new();
     rust_files(&compiler, &mut files);

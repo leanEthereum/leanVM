@@ -1,0 +1,14 @@
+[package]
+name = "stable_lean_xmss"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+primitives = { package = "stable_primitives", path = "../primitives" }
+
+[dev-dependencies]
+rand.workspace = true

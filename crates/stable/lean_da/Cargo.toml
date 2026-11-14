@@ -1,0 +1,17 @@
+[package]
+name = "stable_lean_da"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+primitives = { package = "stable_primitives", path = "../primitives" }
+pcs = { package = "stable_pcs", path = "../pcs" }
+fiat_shamir = { package = "stable_fiat_shamir", path = "../fiat_shamir" }
+tracing.workspace = true
+
+[dev-dependencies]
+rand.workspace = true

@@ -75,7 +75,6 @@ name = "bench"
 version = "0.1.0"
 dependencies = [
  "libc",
- "primitives",
  "tikv-jemallocator",
  "tracing-forest",
  "tracing-subscriber",
@@ -188,11 +187,135 @@ dependencies = [
 ]
 
 [[package]]
-name = "fiat_shamir"
+name = "experimental_fiat_shamir"
 version = "0.1.0"
 dependencies = [
- "parallel",
- "primitives",
+ "experimental_parallel",
+ "experimental_primitives",
+]
+
+[[package]]
+name = "experimental_keccak_gkr"
+version = "0.1.0"
+dependencies = [
+ "bench",
+ "experimental_fiat_shamir",
+ "experimental_keccak_gkr",
+ "experimental_parallel",
+ "experimental_pcs",
+ "experimental_primitives",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_lean_compiler"
+version = "0.1.0"
+dependencies = [
+ "experimental_leanvm_core",
+ "experimental_parallel",
+ "experimental_primitives",
+]
+
+[[package]]
+name = "experimental_lean_da"
+version = "0.1.0"
+dependencies = [
+ "experimental_fiat_shamir",
+ "experimental_pcs",
+ "experimental_primitives",
+ "rand",
+ "tracing",
+]
+
+[[package]]
+name = "experimental_lean_sphincs"
+version = "0.1.0"
+dependencies = [
+ "experimental_primitives",
+]
+
+[[package]]
+name = "experimental_lean_xmss"
+version = "0.1.0"
+dependencies = [
+ "experimental_primitives",
+ "rand",
+]
+
+[[package]]
+name = "experimental_leanvm"
+version = "0.1.0"
+dependencies = [
+ "experimental_lean_da",
+ "experimental_lean_sphincs",
+ "experimental_lean_xmss",
+ "experimental_leanvm_core",
+ "experimental_parallel",
+ "experimental_rec_aggregation",
+]
+
+[[package]]
+name = "experimental_leanvm_core"
+version = "0.1.0"
+dependencies = [
+ "experimental_fiat_shamir",
+ "experimental_keccak_gkr",
+ "experimental_lean_compiler",
+ "experimental_parallel",
+ "experimental_pcs",
+ "experimental_primitives",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_parallel"
+version = "0.1.0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "experimental_pcs"
+version = "0.1.0"
+dependencies = [
+ "bench",
+ "experimental_fiat_shamir",
+ "experimental_parallel",
+ "experimental_primitives",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_primitives"
+version = "0.1.0"
+dependencies = [
+ "bench",
+ "experimental_parallel",
+ "experimental_primitives",
+ "rand",
+ "sha3",
+]
+
+[[package]]
+name = "experimental_rec_aggregation"
+version = "0.1.0"
+dependencies = [
+ "experimental_fiat_shamir",
+ "experimental_keccak_gkr",
+ "experimental_lean_compiler",
+ "experimental_lean_da",
+ "experimental_lean_sphincs",
+ "experimental_lean_xmss",
+ "experimental_leanvm_core",
+ "experimental_parallel",
+ "experimental_pcs",
+ "experimental_primitives",
+ "rand",
+ "tracing",
+ "verifier",
 ]
 
 [[package]]
@@ -245,71 +368,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "keccak_gkr"
-version = "0.1.0"
-dependencies = [
- "bench",
- "fiat_shamir",
- "keccak_gkr",
- "parallel",
- "pcs",
- "primitives",
- "tracing",
- "verifier",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
-
-[[package]]
-name = "lean_compiler"
-version = "0.1.0"
-dependencies = [
- "leanvm_core",
- "parallel",
- "primitives",
-]
-
-[[package]]
-name = "lean_da"
-version = "0.1.0"
-dependencies = [
- "fiat_shamir",
- "pcs",
- "primitives",
- "rand",
- "tracing",
-]
-
-[[package]]
-name = "lean_sphincs"
-version = "0.1.0"
-dependencies = [
- "primitives",
-]
-
-[[package]]
-name = "lean_xmss"
-version = "0.1.0"
-dependencies = [
- "primitives",
- "rand",
-]
-
-[[package]]
-name = "leanvm"
-version = "0.1.0"
-dependencies = [
- "lean_da",
- "lean_sphincs",
- "lean_xmss",
- "leanvm_core",
- "parallel",
- "rec_aggregation",
-]
 
 [[package]]
 name = "leanvm-cli"
@@ -317,31 +379,26 @@ version = "0.1.0"
 dependencies = [
  "bench",
  "clap",
- "keccak_gkr",
- "lean_compiler",
- "lean_da",
- "lean_sphincs",
- "lean_xmss",
- "leanvm_core",
- "parallel",
- "primitives",
+ "experimental_keccak_gkr",
+ "experimental_lean_compiler",
+ "experimental_lean_da",
+ "experimental_lean_sphincs",
+ "experimental_lean_xmss",
+ "experimental_leanvm_core",
+ "experimental_parallel",
+ "experimental_primitives",
+ "experimental_rec_aggregation",
  "rand",
- "rec_aggregation",
+ "stable_keccak_gkr",
+ "stable_lean_compiler",
+ "stable_lean_da",
+ "stable_lean_sphincs",
+ "stable_lean_xmss",
+ "stable_leanvm_core",
+ "stable_parallel",
+ "stable_primitives",
+ "stable_rec_aggregation",
  "tracing",
-]
-
-[[package]]
-name = "leanvm_core"
-version = "0.1.0"
-dependencies = [
- "fiat_shamir",
- "keccak_gkr",
- "lean_compiler",
- "parallel",
- "pcs",
- "primitives",
- "tracing",
- "verifier",
 ]
 
 [[package]]
@@ -393,25 +450,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
-name = "parallel"
-version = "0.1.0"
-dependencies = [
- "libc",
-]
-
-[[package]]
-name = "pcs"
-version = "0.1.0"
-dependencies = [
- "bench",
- "fiat_shamir",
- "parallel",
- "primitives",
- "tracing",
- "verifier",
-]
-
-[[package]]
 name = "pin-project-lite"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -424,17 +462,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
 dependencies = [
  "zerocopy",
-]
-
-[[package]]
-name = "primitives"
-version = "0.1.0"
-dependencies = [
- "bench",
- "parallel",
- "primitives",
- "rand",
- "sha3",
 ]
 
 [[package]]
@@ -491,25 +518,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rec_aggregation"
-version = "0.1.0"
-dependencies = [
- "fiat_shamir",
- "keccak_gkr",
- "lean_compiler",
- "lean_da",
- "lean_sphincs",
- "lean_xmss",
- "leanvm_core",
- "parallel",
- "pcs",
- "primitives",
- "rand",
- "tracing",
- "verifier",
-]
-
-[[package]]
 name = "regex-automata"
 version = "0.4.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -556,6 +564,138 @@ name = "smallvec"
 version = "1.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
+
+[[package]]
+name = "stable_fiat_shamir"
+version = "0.1.0"
+dependencies = [
+ "stable_parallel",
+ "stable_primitives",
+]
+
+[[package]]
+name = "stable_keccak_gkr"
+version = "0.1.0"
+dependencies = [
+ "bench",
+ "stable_fiat_shamir",
+ "stable_keccak_gkr",
+ "stable_parallel",
+ "stable_pcs",
+ "stable_primitives",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "stable_lean_compiler"
+version = "0.1.0"
+dependencies = [
+ "stable_leanvm_core",
+ "stable_parallel",
+ "stable_primitives",
+]
+
+[[package]]
+name = "stable_lean_da"
+version = "0.1.0"
+dependencies = [
+ "rand",
+ "stable_fiat_shamir",
+ "stable_pcs",
+ "stable_primitives",
+ "tracing",
+]
+
+[[package]]
+name = "stable_lean_sphincs"
+version = "0.1.0"
+dependencies = [
+ "stable_primitives",
+]
+
+[[package]]
+name = "stable_lean_xmss"
+version = "0.1.0"
+dependencies = [
+ "rand",
+ "stable_primitives",
+]
+
+[[package]]
+name = "stable_leanvm"
+version = "0.1.0"
+dependencies = [
+ "stable_lean_da",
+ "stable_lean_sphincs",
+ "stable_lean_xmss",
+ "stable_leanvm_core",
+ "stable_parallel",
+ "stable_rec_aggregation",
+]
+
+[[package]]
+name = "stable_leanvm_core"
+version = "0.1.0"
+dependencies = [
+ "stable_fiat_shamir",
+ "stable_keccak_gkr",
+ "stable_lean_compiler",
+ "stable_parallel",
+ "stable_pcs",
+ "stable_primitives",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "stable_parallel"
+version = "0.1.0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "stable_pcs"
+version = "0.1.0"
+dependencies = [
+ "bench",
+ "stable_fiat_shamir",
+ "stable_parallel",
+ "stable_primitives",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "stable_primitives"
+version = "0.1.0"
+dependencies = [
+ "bench",
+ "rand",
+ "sha3",
+ "stable_parallel",
+ "stable_primitives",
+]
+
+[[package]]
+name = "stable_rec_aggregation"
+version = "0.1.0"
+dependencies = [
+ "rand",
+ "stable_fiat_shamir",
+ "stable_keccak_gkr",
+ "stable_lean_compiler",
+ "stable_lean_da",
+ "stable_lean_sphincs",
+ "stable_lean_xmss",
+ "stable_leanvm_core",
+ "stable_parallel",
+ "stable_pcs",
+ "stable_primitives",
+ "tracing",
+ "verifier",
+]
 
 [[package]]
 name = "strsim"

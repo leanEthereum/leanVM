@@ -1,0 +1,148 @@
+//! Dedicated PCS throughput benchmark.
+//!
+//! Commits a random witness of `2^PCS_LOG_N` GF(2^64) elements at
+//! inverse-rate `1/2^PCS_LOG_INV_RATE` and opens it through the stacked opener with one point
+//! claim, after the OOD sample, times each phase, and reports GiB/s over the committed data. The
+//! passes follow [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
+//!
+//! ```text
+//! PCS_LOG_N          number of variables = log2(witness length)   [default 22]
+//! PCS_LOG_INV_RATE   log2 of the inverse RS rate (rate = 1/2^r)    [default: profile]
+//! PCS_POINT_CLAIMS   point claims, each on its own quarter of the witness after the first [default 1]
+//! PCS_RING_CLAIMS    ring-switched claims on the witness's first half [default 0]
+//! BENCH_TRACING      print the final pass's trace tree (`RUST_LOG` adjusts it)
+//!
+//! PCS_LOG_N=24 PCS_LOG_INV_RATE=1 BENCH_REPEAT=5 cargo bench -p pcs --bench throughput
+//! ```
+//!
+//! Large `PCS_LOG_N` needs substantial memory: the RS codeword is `2^log_inv_rate`×
+//! the witness.
+
+extern crate experimental_pcs as pcs;
+use std::hint::black_box;
+use std::time::Instant;
+
+use bench::{Plan, Timing, env_usize};
+use pcs::ood::ood_sample;
+use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
+use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext};
+use primitives::{
+    field::{F64, F128},
+    multilinear::eq_table_serial,
+    pretty_integer,
+    test_rng::Rng,
+};
+
+#[global_allocator]
+static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
+
+fn main() {
+    bench::init_tracing_from_env();
+
+    let log_n = env_usize("PCS_LOG_N", 22);
+    let log_inv_rate = env_usize("PCS_LOG_INV_RATE", LOG_INV_RATE_0);
+    let pc = config_for_rate(log_n, log_inv_rate).expect("WHIR config feasible (try a larger PCS_LOG_N, e.g. >= 16)");
+    let plan = Plan::from_env();
+    let trace_span = tracing::info_span!("PCS throughput", log_n, log_inv_rate).entered();
+
+    // Random F64 witness (the committed polynomial) and a random E evaluation point.
+    let mut rng = Rng::new(0x0192_0000 ^ log_n as u64);
+    let n = 1usize << log_n;
+    let witness: Vec<F64> = (0..n).map(|_| F64(rng.next_u64())).collect();
+    let point: Vec<F128> = rng.ext_vec(log_n);
+    let target = inner_product_base_ext(&witness, &eq_table_serial(&point));
+    // One point claim over the whole witness, then smaller ones on its quarters, and ring claims on its first half.
+    let mut claims = vec![StackClaim::Point {
+        offset: 0,
+        low_point: point,
+        value: target,
+    }];
+    for c in 1..env_usize("PCS_POINT_CLAIMS", 1) {
+        let offset = (c % 4) << (log_n - 2);
+        let low_point = rng.ext_vec(log_n - 2);
+        let value = inner_product_base_ext(&witness[offset..offset + (n >> 2)], &eq_table_serial(&low_point));
+        claims.push(StackClaim::Point {
+            offset,
+            low_point,
+            value,
+        });
+    }
+    let ring = RingSwitchOpen {
+        offset: 0,
+        claims: (0..env_usize("PCS_RING_CLAIMS", 0))
+            .map(|_| RingSwitchClaim {
+                suffix_point: rng.ext_vec(log_n - 1),
+                s_hat_v: None,
+            })
+            .collect(),
+    };
+
+    let (mut commit_t, mut open_t) = (Timing::default(), Timing::default());
+    plan.warm_then_measure(|last| {
+        let _quiet = (!last).then(bench::suppress_tracing);
+
+        let t = Instant::now();
+        let (cm, pd) = tracing::info_span!("Commit").in_scope(|| commit(&witness, log_n, pc.initial_k, log_inv_rate));
+        commit_t.push(t.elapsed().as_secs_f64());
+
+        let mut ch = fiat_shamir::transcript::ProverState::from_label(b"pcs-throughput");
+        let stack = witness.clone();
+        let t = Instant::now();
+        tracing::info_span!("PCS open").in_scope(|| {
+            let ood = ood_sample(&mut ch, &stack, log_n);
+            let claims = [&claims[..], &[ood]].concat();
+            open_batch_mixed_whir_stacked(&mut ch, log_n, stack, pd, &pc, &claims, &ring);
+        });
+        open_t.push(t.elapsed().as_secs_f64());
+        black_box((cm, ch.into_proof()));
+    });
+    // The warmup pass also pushed a sample; drop it.
+    let [commit_t, open_t] = [commit_t, open_t].map(|t| {
+        let mut kept = Timing::default();
+        for &s in &t.samples()[1..] {
+            kept.push(s);
+        }
+        kept
+    });
+    let (commit_s, open_s) = (commit_t.mean(), open_t.mean());
+
+    // Throughput is over the committed data: 2^log_n F64 = 2^log_n * 8 bytes.
+    let data_bytes = (n as f64) * 8.0;
+    let mib = |bytes: f64| bytes / (1u64 << 20) as f64;
+    let gibps = |secs: f64| (data_bytes / (1u64 << 30) as f64) / secs;
+    let codeword_bytes = data_bytes * (1u64 << log_inv_rate) as f64;
+
+    // tracing-forest renders the tree when its root span closes. Close it
+    // before printing the throughput report so the complete trace appears first.
+    drop(trace_span);
+
+    println!(
+        "\nPCS throughput: 2^{log_n} variables, rate 1/2^{log_inv_rate}, mean of {}",
+        pretty_integer(plan.repeat)
+    );
+    println!(
+        "  committed data                  : {:>8.1} MiB  ({:>13} F64)",
+        mib(data_bytes),
+        pretty_integer(n)
+    );
+    println!("  RS codeword (encoded)           : {:>8.1} MiB", mib(codeword_bytes));
+    println!("  ------------------------------------------------------------");
+    println!(
+        "  commit                          : {:>8.1} ms   ({:>6.2} GiB/s){}",
+        commit_s * 1e3,
+        gibps(commit_s),
+        commit_t.spread()
+    );
+    println!(
+        "  open                            : {:>8.1} ms   ({:>6.2} GiB/s){}",
+        open_s * 1e3,
+        gibps(open_s),
+        open_t.spread()
+    );
+    println!("  ------------------------------------------------------------");
+    println!(
+        "  commit + open                   : {:>8.1} ms   ({:>6.2} GiB/s)",
+        (commit_s + open_s) * 1e3,
+        gibps(commit_s + open_s),
+    );
+}

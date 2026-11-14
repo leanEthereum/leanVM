@@ -1,0 +1,12 @@
+[package]
+name = "experimental_fiat_shamir"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+parallel = { package = "experimental_parallel", path = "../parallel" }
+primitives = { package = "experimental_primitives", path = "../primitives" }

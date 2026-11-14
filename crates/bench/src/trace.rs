@@ -1,7 +1,5 @@
 //! The hierarchical trace tree the benchmark binaries print with `--tracing`.
 
-use primitives::pretty_f64;
-
 fn format_trace_tree(tree: &tracing_forest::tree::Tree) -> Result<String, std::fmt::Error> {
     use tracing_forest::Formatter;
 
@@ -59,7 +57,7 @@ fn rewrite_trace_percentages(rendered: &str, percentages: &[f64]) -> String {
                 .next()
                 .expect("trace formatter found more spans than trace-tree timings");
             output.push_str(&line[..value_start]);
-            output.push_str(&pretty_f64(*percentage));
+            output.push_str(&percent(*percentage));
             output.push_str(&line[percent_end..]);
         } else {
             output.push_str(line);
@@ -136,6 +134,23 @@ pub fn init_tracing_from_env() {
     if std::env::var_os("BENCH_TRACING").is_some() {
         init_tracing();
     }
+}
+
+/// A percentage with at most three meaningful fractional digits, leading zeroes after the point not counted, so a tiny
+/// share stays visible; trailing zeroes are trimmed.
+fn percent(value: f64) -> String {
+    let precision = if value == 0.0 || value >= 1.0 {
+        3
+    } else {
+        ((-value.log10().floor()) as usize).saturating_add(2)
+    };
+    let raw = format!("{value:.precision$}");
+    let raw = if raw.contains('.') {
+        raw.trim_end_matches('0').trim_end_matches('.')
+    } else {
+        &raw
+    };
+    raw.to_string()
 }
 
 #[cfg(test)]

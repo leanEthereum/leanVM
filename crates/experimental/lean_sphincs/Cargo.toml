@@ -1,0 +1,12 @@
+[package]
+name = "experimental_lean_sphincs"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+primitives = { package = "experimental_primitives", path = "../primitives" }
+

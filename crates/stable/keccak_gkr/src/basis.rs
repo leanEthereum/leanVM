@@ -1,0 +1,162 @@
+//! A field element as a binary polynomial in a challenge `s`, and back.
+//!
+//! In the power basis of `s`, a sum of bits weighted by powers of `s` is the bits themselves, and
+//! multiplying it by a weight is a carry-less product. So the prover moves its weights into that
+//! basis once, accumulates unreduced polynomials in `s`, and evaluates each total at `s` at the end.
+
+use primitives::field::gf2_64::mul_wide;
+use primitives::field::{F128, powers};
+
+fn xor2(a: &mut [u64; 2], b: &[u64; 2]) {
+    for (x, y) in a.iter_mut().zip(b) {
+        *x ^= y;
+    }
+}
+
+/// The map from a field element to its coefficients on `1, s, ..., s^127`.
+pub struct PowerBasis {
+    tables: Vec<[[u64; 2]; 256]>,
+}
+
+impl PowerBasis {
+    /// `None` when `s` lies in a proper subfield, where its powers do not span the field.
+    pub fn new(s: F128) -> Option<Self> {
+        // Row `r` holds bit `r` of every power, beside the identity.
+        let mut rows = vec![([0u64; 2], [0u64; 2]); 128];
+        let mut power = F128::ONE;
+        for b in 0..128 {
+            let p = power.to_limbs();
+            for (r, row) in rows.iter_mut().enumerate() {
+                row.0[b / 64] |= (p[r / 64] >> (r % 64) & 1) << (b % 64);
+            }
+            power *= s;
+        }
+        for (r, row) in rows.iter_mut().enumerate() {
+            row.1[r / 64] = 1 << (r % 64);
+        }
+        for b in 0..128 {
+            let pivot = (b..128).find(|&r| rows[r].0[b / 64] >> (b % 64) & 1 == 1)?;
+            rows.swap(b, pivot);
+            let (pa, pi) = rows[b];
+            for (r, row) in rows.iter_mut().enumerate() {
+                if r != b && row.0[b / 64] >> (b % 64) & 1 == 1 {
+                    xor2(&mut row.0, &pa);
+                    xor2(&mut row.1, &pi);
+                }
+            }
+        }
+        // Row `b` of the inverse is coefficient `b` as a function of the element's bits.
+        let mut columns = [[0u64; 2]; 128];
+        for (b, row) in rows.iter().enumerate() {
+            for (r, column) in columns.iter_mut().enumerate() {
+                column[b / 64] |= (row.1[r / 64] >> (r % 64) & 1) << (b % 64);
+            }
+        }
+        let tables = (0..16)
+            .map(|k| {
+                let mut t = [[0u64; 2]; 256];
+                for byte in 1..256usize {
+                    let low = byte.trailing_zeros() as usize;
+                    t[byte] = t[byte & (byte - 1)];
+                    xor2(&mut t[byte], &columns[8 * k + low]);
+                }
+                t
+            })
+            .collect();
+        Some(Self { tables })
+    }
+
+    pub fn to_poly(&self, a: F128) -> [u64; 2] {
+        let a = a.to_limbs();
+        let mut p = [0u64; 2];
+        for (k, table) in self.tables.iter().enumerate() {
+            xor2(&mut p, &table[(a[k / 8] >> (8 * (k % 8))) as usize & 0xff]);
+        }
+        p
+    }
+}
+
+/// The sum of every subset of eight weights, indexed by the byte whose bits pick it.
+pub fn byte_sums(weights: &[F128; 8]) -> [F128; 256] {
+    let mut t = [F128::ZERO; 256];
+    for (bit, &w) in weights.iter().enumerate() {
+        for byte in 1usize << bit..2 << bit {
+            t[byte] = t[byte - (1 << bit)] + w;
+        }
+    }
+    t
+}
+
+/// Evaluation at `s` of binary polynomials of at most `8 * n_bytes` coefficients.
+pub struct PolyEval {
+    tables: Vec<[F128; 256]>,
+}
+
+impl PolyEval {
+    pub fn new(s: F128, n_bytes: usize) -> Self {
+        Self {
+            tables: powers(s, 8 * n_bytes)
+                .as_chunks::<8>()
+                .0
+                .iter()
+                .map(byte_sums)
+                .collect(),
+        }
+    }
+
+    #[inline]
+    pub fn eval(&self, words: &[u64]) -> F128 {
+        let mut acc = F128::ZERO;
+        for (k, table) in self.tables.iter().enumerate() {
+            acc += table[(words[k / 8] >> (8 * (k % 8))) as usize & 0xff];
+        }
+        acc
+    }
+}
+
+/// The polynomial whose word `i` starts `acc[i]`.
+#[inline(always)]
+pub fn carry<const N: usize, const M: usize>(acc: &[u128; N]) -> [u64; M] {
+    let mut out = [0u64; M];
+    for (i, &x) in acc.iter().enumerate() {
+        out[i] ^= x as u64;
+        out[i + 1] ^= (x >> 64) as u64;
+    }
+    out
+}
+
+/// `acc += a * b`, on binary polynomials.
+#[inline(always)]
+pub fn add_mul<const A: usize, const B: usize, const N: usize>(acc: &mut [u64; N], a: &[u64; A], b: &[u64; B]) {
+    for (i, &a) in a.iter().enumerate() {
+        for (k, &b) in b.iter().enumerate() {
+            let p = mul_wide(a, b);
+            acc[i + k] ^= p as u64;
+            acc[i + k + 1] ^= (p >> 64) as u64;
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use primitives::test_rng::Rng;
+
+    #[test]
+    fn power_basis_round_trips_and_products_are_carryless() {
+        let mut rng = Rng::new(11);
+        let s = rng.ext();
+        let basis = PowerBasis::new(s).expect("a generic element");
+        let eval = PolyEval::new(s, 40);
+        for _ in 0..50 {
+            let (a, b) = (rng.ext(), rng.next_u64());
+            let pa = basis.to_poly(a);
+            assert_eq!(eval.eval(&[pa[0], pa[1], 0, 0, 0]), a);
+            let acc: [u128; 2] = std::array::from_fn(|k| mul_wide(pa[k], b));
+            let product: [u64; 3] = carry(&acc);
+            let pb = eval.eval(&[b, 0, 0, 0, 0]);
+            assert_eq!(eval.eval(&[product[0], product[1], product[2], 0, 0]), a * pb);
+        }
+        assert!(PowerBasis::new(F128::ONE).is_none());
+    }
+}

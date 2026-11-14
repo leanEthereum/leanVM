@@ -8,7 +8,6 @@ publish = false
 workspace = true
 
 [dependencies]
-primitives.workspace = true
 libc.workspace = true
 tikv-jemallocator.workspace = true
 tracing-forest.workspace = true

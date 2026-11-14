@@ -1,0 +1,20 @@
+[package]
+name = "experimental_leanvm_core"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+parallel = { package = "experimental_parallel", path = "../parallel" }
+primitives = { package = "experimental_primitives", path = "../primitives" }
+fiat_shamir = { package = "experimental_fiat_shamir", path = "../fiat_shamir" }
+pcs = { package = "experimental_pcs", path = "../pcs" }
+keccak_gkr = { package = "experimental_keccak_gkr", path = "../keccak_gkr" }
+verifier.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+lean_compiler = { package = "experimental_lean_compiler", path = "../lean_compiler" }

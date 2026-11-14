@@ -1,5 +1,5 @@
 # The deployed WHIR fold rounds as Lean data: `lean_vm/LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean`,
-# from the prover's search (`crates/pcs/src/whir_config.rs`, `derive_config_with_log_inv_rate`) at every admissible
+# from the prover's search (`crates/experimental/pcs/src/whir_config.rs`, `derive_config_with_log_inv_rate`) at every admissible
 # shape. The crates are this repository's.
 [package]
 name = "leanvm-whir-fold-table"
@@ -11,7 +11,7 @@ publish = false
 [workspace]
 
 [dependencies]
-pcs = { path = "../../../../crates/pcs" }
+pcs = { package = "experimental_pcs", path = "../../../../crates/experimental/pcs" }
 
 [profile.release]
 codegen-units = 1

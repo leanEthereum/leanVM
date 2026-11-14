@@ -31,17 +31,17 @@ name = "guest-export"
 path = "src/main.rs"
 
 [dependencies]
-# rec_aggregation's own dependencies (crates/rec_aggregation/Cargo.toml), by path.
-primitives = { path = "../../../../crates/primitives" }
-fiat_shamir = { path = "../../../../crates/fiat_shamir" }
-parallel = { path = "../../../../crates/parallel" }
-pcs = { path = "../../../../crates/pcs" }
-keccak_gkr = { path = "../../../../crates/keccak_gkr" }
-leanvm_core = { path = "../../../../crates/leanvm_core" }
-lean_compiler = { path = "../../../../crates/lean_compiler" }
-lean_xmss = { path = "../../../../crates/lean_xmss" }
-lean_sphincs = { path = "../../../../crates/lean_sphincs" }
-lean_da = { path = "../../../../crates/lean_da" }
+# rec_aggregation's own dependencies (crates/experimental/rec_aggregation/Cargo.toml), by path.
+primitives = { package = "experimental_primitives", path = "../../../../crates/experimental/primitives" }
+fiat_shamir = { package = "experimental_fiat_shamir", path = "../../../../crates/experimental/fiat_shamir" }
+parallel = { package = "experimental_parallel", path = "../../../../crates/experimental/parallel" }
+pcs = { package = "experimental_pcs", path = "../../../../crates/experimental/pcs" }
+keccak_gkr = { package = "experimental_keccak_gkr", path = "../../../../crates/experimental/keccak_gkr" }
+leanvm_core = { package = "experimental_leanvm_core", path = "../../../../crates/experimental/leanvm_core" }
+lean_compiler = { package = "experimental_lean_compiler", path = "../../../../crates/experimental/lean_compiler" }
+lean_xmss = { package = "experimental_lean_xmss", path = "../../../../crates/experimental/lean_xmss" }
+lean_sphincs = { package = "experimental_lean_sphincs", path = "../../../../crates/experimental/lean_sphincs" }
+lean_da = { package = "experimental_lean_da", path = "../../../../crates/experimental/lean_da" }
 verifier = { path = "../../../../crates/verifier" }
 rand = "0.9"
 tracing = "0.1.26"

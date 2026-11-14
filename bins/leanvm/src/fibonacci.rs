@@ -1,13 +1,12 @@
 //! Fibonacci in the exponent: the demo benchmark (`buff[g^k] = g^{F(k)}`,
 //! recurrence `buff[i·g²] = buff[i·g] · buff[i]`).
 
+use super::primitives::field::{F64, F128, g_pow};
+use super::{lean_compiler, leanvm_core};
+use crate::report::{pretty_f64, pretty_integer};
 use bench::Plan;
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{prove, verify};
-use primitives::{
-    field::{F64, F128, g_pow},
-    pretty_f64, pretty_integer,
-};
 
 /// Prove and verify Fibonacci-in-the-exponent over a `HeapBuf` (an unrolled
 /// `mul_range` recurrence), binding `g^{F(n)}` as the public input. Prints the
@@ -107,6 +106,10 @@ fn fibonacci_program(fib_n: usize) -> (String, [F128; 2]) {
 mod tests {
     #[test]
     fn fibonacci() {
-        super::run_fibonacci(200_000, leanvm_core::pcs::TEST_LOG_INV_RATE, bench::Plan::default());
+        super::run_fibonacci(
+            200_000,
+            super::leanvm_core::pcs::TEST_LOG_INV_RATE,
+            bench::Plan::default(),
+        );
     }
 }

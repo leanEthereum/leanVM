@@ -1,4 +1,4 @@
-//! `leanvm-rust-wire`: leanVM's proof wire encoding (`crates/fiat_shamir/src/wire.rs`,
+//! `leanvm-rust-wire`: leanVM's proof wire encoding (`crates/experimental/fiat_shamir/src/wire.rs`,
 //! `Proof::from_bytes` and `Proof::to_bytes`) on byte files, so that `scripts/wire-diff.py` can set
 //! its results beside the Lean transcription's (`lake exe wire-diff`, cli/WireDiff.lean) on the
 //! same bytes.
