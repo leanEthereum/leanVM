@@ -44,7 +44,7 @@ abbrev RefTrack (A : String → FnAl) (r : Ref) : ℕ → ℕ → List Pop × Li
 registers after each of its `N` steps to the final registers but the last. -/
 theorem traceRef {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A)
     (hmain : entOf A "main" = mainEntry) {r : Ref} (hr : r.Ok)
-    (hJ : ∀ pc fp done e st, RefTrack A r pc fp (done, e :: st) → JumpCells r.img A e) {N : ℕ}
+    (hJ : ∀ pc fp done e st, RefTrack A r pc fp (done, e :: st) → JumpCells r.img A e pc) {N : ℕ}
     (hN : run guestProgram r.img N (regs mainEntry 0) = some (Registers.final guestProgram)) :
     ∃ tr : ℕ → ℕ × ℕ × (List Pop × List Ent), ∀ k < N,
       run guestProgram r.img k (regs mainEntry 0) = some (regs (tr k).1 (tr k).2.1) ∧

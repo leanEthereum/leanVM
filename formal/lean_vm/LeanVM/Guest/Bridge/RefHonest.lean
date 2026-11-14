@@ -117,7 +117,7 @@ theorem trace_deployed {b : Budget} (hm : MainCompleteP B2C.fs B2C.cert B2C.cnt 
         ((∀ pc fp done e st, RefOk coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T)
             T (memOf (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X)) (entOf A) (alOf A)
             pc fp (done, e :: st) →
-          JumpCells (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X) A e) →
+          JumpCells (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X) A e pc) →
         ∃ tr : ℕ → ℕ × ℕ × (List Pop × List Ent), tr 0 = (mainEntry, 0, ([], [Ent.enter coreProgram I fn])) ∧
           (∀ k < n - k0, run guestProgram
               (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X) k

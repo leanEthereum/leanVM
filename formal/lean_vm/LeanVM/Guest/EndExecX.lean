@@ -63,7 +63,7 @@ def XOf (Y : Ref → St → Prop) (r : Ref) (s : St) : Prop :=
 /-- **What each frame's jumps read**, on every node's reference run: `Bridge.trace_deployed`'s
 premise, at the reference run. -/
 def JumpCellsAt (A : String → FnAl) : Prop :=
-  ∀ r : Ref, r.Ok → ∀ pc fp done e st, RefTrack A r pc fp (done, e :: st) → JumpCells r.img A e
+  ∀ r : Ref, r.Ok → ∀ pc fp done e st, RefTrack A r pc fp (done, e :: st) → JumpCells r.img A e pc
 
 /-- **A `DEREF`'s pointer is a power** on the reference, at each state of the tracks. -/
 def DerefPow (Y : Ref → St → Prop) : Prop :=

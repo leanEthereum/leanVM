@@ -124,6 +124,8 @@ part_bridge() {
   python3 -I scripts/bridge-cert/align.py "${check[@]}"
   step "bridge: the program's alignment assembled (scripts/bridge-cert/progal.py)"
   python3 -I scripts/bridge-cert/progal.py "${check[@]}"
+  step "bridge: the jump cells checked (scripts/bridge-cert/jumpcells.py)"
+  python3 -I scripts/bridge-cert/jumpcells.py "${check[@]}"
 }
 
 part_memory() {
