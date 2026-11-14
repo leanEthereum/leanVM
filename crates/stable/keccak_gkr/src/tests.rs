@@ -10,7 +10,7 @@ use crate::open::state_words;
 use crate::protocol::{Claim, first_claim};
 use crate::prover::prove_layer;
 use crate::rmfe::PROD_BITS;
-use crate::witness::{BLOCK, BLOCK_LEN, BLOCK_WORDS, Extent, Shape, Witness, block};
+use crate::witness::{BLOCK, BLOCK_LEN, BLOCK_WORDS, Shape, Witness, run_block};
 
 /// The sliced state after `round` rounds.
 fn state_after(witness: &Witness, round: usize) -> Vec<u64> {
@@ -222,14 +222,17 @@ fn proof_verifies_against_the_commitment() {
 
 /// The witness of every block run, the padding ones included.
 fn dense(shape: Shape, inputs: &[[u64; LANES]]) -> Witness {
-    let mut extent = Extent::new(0, shape.n_blocks());
-    for g in 0..shape.n_blocks() {
-        let inputs = &inputs[(g * BLOCK).min(inputs.len())..((g + 1) * BLOCK).min(inputs.len())];
-        // SAFETY: each block's slot, written once.
-        unsafe { block(shape.depth(), inputs, Some(extent.slot(g)), |_, _, _| {}) };
+    let blocks = (0..shape.n_blocks())
+        .map(|g| {
+            let inputs = &inputs[(g * BLOCK).min(inputs.len())..((g + 1) * BLOCK).min(inputs.len())];
+            run_block(shape.depth(), inputs, true).1
+        })
+        .collect();
+    Witness {
+        shape,
+        blocks,
+        written: shape.n_blocks(),
     }
-    // SAFETY: every block was written just above.
-    unsafe { Witness::from_extents(shape, vec![extent], shape.n_blocks(), None) }
 }
 
 /// The padding block, run once for the blocks after the last input, proves what running each
@@ -275,11 +278,4 @@ fn a_broken_committed_state_is_rejected() {
         assert!(!accepts(&bad, F128::ZERO), "slot {slot}");
     }
     assert!(!accepts(&committed, F128::ONE), "the output");
-}
-
-/// An extent whose size would wrap is refused, not allocated short.
-#[test]
-#[should_panic(expected = "fit in memory")]
-fn an_extent_too_large_to_address_is_refused() {
-    Extent::new(0, 1 << 55);
 }
