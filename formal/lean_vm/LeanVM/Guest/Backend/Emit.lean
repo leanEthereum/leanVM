@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Backend.Ir
+public import LeanVM.Guest.Backend.Map
 
 /-!
 # Emission
@@ -116,7 +117,7 @@ def emitDispatch (pos : Nat) (hints : List LHint) (callees : List String)
 mutual
 /-- The code of a placed statement of the function `f`, onto the code so far, and the jump
 table slots it fills. -/
-def emitStmt (f : String) : PStmt → Array LInstr × Array Fill → Array LInstr × Array Fill
+def emitStmt (f : String) : PStmt → Rev LInstr × Rev Fill → Rev LInstr × Rev Fill
   | .op hints o, (code, fills) => (code.push ⟨o, hints⟩, fills)
   | .ite hints c bdest sfp zero hasElse edest one nonzero, (code, fills) =>
       let pos := code.size
@@ -134,42 +135,42 @@ def emitStmt (f : String) : PStmt → Array LInstr × Array Fill → Array LInst
       let code := ((code.push ⟨.set join (.local (pos + 3 + stagesSize stages)), hints⟩).push
         (bare (.slot x (firsts.headD 0) entry))).push (bare (.jump one entry sfp))
       emitStages f firsts stages (code, fills)
-  | .call hints c, (code, fills) => (code ++ (emitCall hints c).toArray, fills)
+  | .call hints c, (code, fills) => (code.appendList (emitCall hints c), fills)
   | .loopNext hints callee nfp entry oc one args, (code, fills) =>
-      (code ++ (emitLoopNext hints callee nfp entry oc one args).toArray, fills)
+      (code.appendList (emitLoopNext hints callee nfp entry oc one args), fills)
   | .dispatch hints callees nfp joinCell x entry one first args rets, (code, fills) =>
-      (code ++ (emitDispatch code.size hints callees nfp joinCell x entry one first args
-        rets).toArray, fills)
+      (code.appendList (emitDispatch code.size hints callees nfp joinCell x entry one first args
+        rets), fills)
   | .ret hints one, (code, fills) => (code.push ⟨.jump one 0 1, hints⟩, fills)
   | .halt hints one dest, (code, fills) =>
       ((code.push ⟨.set dest .endSentinel, hints⟩).push (bare (.jump one dest one)), fills)
 
-def emitBlock (f : String) : List PStmt → Array LInstr × Array Fill → Array LInstr × Array Fill
+def emitBlock (f : String) : List PStmt → Rev LInstr × Rev Fill → Rev LInstr × Rev Fill
   | [], acc => acc
   | s :: ss, acc => emitBlock f ss (emitStmt f s acc)
 
 /-- The arms of a `match` whose table is at `first`, from arm `j`: each fills its slot with its
 first instruction. -/
 def emitArms (f : String) (first : Nat) :
-    List (List PStmt) → Nat → Array LInstr × Array Fill → Array LInstr × Array Fill
+    List (List PStmt) → Nat → Rev LInstr × Rev Fill → Rev LInstr × Rev Fill
   | [], _, acc => acc
   | a :: as, j, (code, fills) =>
       emitArms f first as (j + 1) (emitBlock f a (code, fills.push (first + j, .at f code.size)))
 
 def emitStages (f : String) : List Nat → List (List (List PStmt)) →
-    Array LInstr × Array Fill → Array LInstr × Array Fill
+    Rev LInstr × Rev Fill → Rev LInstr × Rev Fill
   | _, [], acc => acc
   | firsts, s :: ss, acc => emitStages f firsts.tail ss (emitArms f (firsts.headD 0) s 0 acc)
 end
 
 /-- The labelled code of a placed function, and the jump table slots it fills. -/
 def emitFn (p : PFn) : Lowered × Array Fill :=
-  let (code, fills) := emitBlock p.name p.body (#[], #[])
-  ({ name := p.name, code, frameSize := p.frameSize }, fills)
+  let (code, fills) := emitBlock p.name p.body ({}, {})
+  ({ name := p.name, code := code.toList.toArray, frameSize := p.frameSize }, fills.toList.toArray)
 
 /-- Emission adds exactly a block's size to the code. -/
 def EmitBlockSize : Prop :=
-  ∀ (f : String) (b : List PStmt) (acc : Array LInstr × Array Fill),
+  ∀ (f : String) (b : List PStmt) (acc : Rev LInstr × Rev Fill),
     (emitBlock f b acc).1.size = acc.1.size + blockSize b
 
 end

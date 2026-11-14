@@ -162,15 +162,21 @@ end
 /-- The instructions of labelled code, without their hints. -/
 def opsOf (code : Array LInstr) : List LOp := code.toList.map (·.op)
 
-theorem opsOf_push (code : Array LInstr) (i : LInstr) : opsOf (code.push i) = opsOf code ++ [i.op] := by
-  simp [opsOf]
-
-theorem opsOf_append (code : Array LInstr) (is : List LInstr) :
-    opsOf (code ++ is.toArray) = opsOf code ++ is.map (·.op) := by
-  simp [opsOf]
-
 theorem opsOf_length (code : Array LInstr) : (opsOf code).length = code.size := by
   simp [opsOf]
+
+/-- The instructions of labelled code being emitted, without their hints. -/
+def opsR (code : Rev LInstr) : List LOp := code.toList.map (·.op)
+
+theorem opsR_push (code : Rev LInstr) (i : LInstr) : opsR (code.push i) = opsR code ++ [i.op] := by
+  simp [opsR]
+
+theorem opsR_appendList (code : Rev LInstr) (is : List LInstr) :
+    opsR (code.appendList is) = opsR code ++ is.map (·.op) := by
+  simp [opsR]
+
+theorem opsR_length (code : Rev LInstr) : (opsR code).length = code.size := by
+  simp [opsR, Rev.size_eq_length]
 
 theorem emitCall_ops (hints : List LHint) (c : CallSite) :
     (emitCall hints c).map (·.op) =
@@ -193,9 +199,9 @@ theorem emitDispatch_ops (pos : Nat) (hints : List LHint) (callees : List String
   split <;> rename_i h <;> rw [h] <;> simp [bare, Function.comp_def]
 
 mutual
-theorem emitStmt_ops (f : String) : ∀ (s : PStmt) (acc : Array LInstr × Array Fill),
-    opsOf (emitStmt f s acc).1 = opsOf acc.1 ++ stmtOps s acc.1.size
-  | .op _ _, (code, fills) => by simp [emitStmt, stmtOps, opsOf_push]
+theorem emitStmt_ops (f : String) : ∀ (s : PStmt) (acc : Rev LInstr × Rev Fill),
+    opsR (emitStmt f s acc).1 = opsR acc.1 ++ stmtOps s acc.1.size
+  | .op _ _, (code, fills) => by simp [emitStmt, stmtOps, opsR_push]
   | .ite hints c bdest sfp zero hasElse edest one nonzero, (code, fills) => by
       have hz := emitBlock_ops f zero
         (((code.push ⟨.set bdest (.local (elseAt code.size zero hasElse)), hints⟩).push
@@ -205,69 +211,69 @@ theorem emitStmt_ops (f : String) : ∀ (s : PStmt) (acc : Array LInstr × Array
           simp only [emitStmt, stmtOps, elseAt, Bool.false_eq_true, ↓reduceIte, Bool.not_false,
             Nat.add_zero] at hz ⊢
           rw [hz]
-          simp [opsOf_push, bare]
+          simp [opsR_push, bare]
       | true =>
           have hn := emitBlock_ops f nonzero
           simp only [emitStmt, stmtOps, elseAt, ↓reduceIte, Bool.not_true, Bool.false_eq_true]
             at hz ⊢
-          rw [hn, opsOf_push, opsOf_push, hz]
+          rw [hn, opsR_push, opsR_push, hz]
           have hlen := congrArg List.length hz
-          simp only [opsOf_length, List.length_append, blockOps_length, Array.size_push, bare]
+          simp only [opsR_length, List.length_append, blockOps_length, Rev.size_push, bare]
             at hlen
-          simp [opsOf_push, bare, Array.size_push]
+          simp [opsR_push, bare, Rev.size_push]
           rw [hlen]
   | .chain _ join x entry one sfp firsts stages, (code, fills) => by
       simp only [emitStmt, stmtOps]
       rw [emitStages_ops]
-      simp [opsOf_push, bare, Array.size_push]
-  | .call _ c, (code, fills) => by simp [emitStmt, stmtOps, opsOf_append, emitCall_ops]
+      simp [opsR_push, bare, Rev.size_push]
+  | .call _ c, (code, fills) => by simp [emitStmt, stmtOps, opsR_appendList, emitCall_ops]
   | .loopNext _ _ _ _ _ _ _, (code, fills) => by
-      simp [emitStmt, stmtOps, opsOf_append, emitLoopNext_ops]
+      simp [emitStmt, stmtOps, opsR_appendList, emitLoopNext_ops]
   | .dispatch _ _ _ _ _ _ _ _ _ _, (code, fills) => by
-      simp [emitStmt, stmtOps, opsOf_append, emitDispatch_ops]
-  | .ret _ _, (code, fills) => by simp [emitStmt, stmtOps, opsOf_push]
-  | .halt _ _ _, (code, fills) => by simp [emitStmt, stmtOps, opsOf_push, bare]
+      simp [emitStmt, stmtOps, opsR_appendList, emitDispatch_ops]
+  | .ret _ _, (code, fills) => by simp [emitStmt, stmtOps, opsR_push]
+  | .halt _ _ _, (code, fills) => by simp [emitStmt, stmtOps, opsR_push, bare]
 
-theorem emitBlock_ops (f : String) : ∀ (b : List PStmt) (acc : Array LInstr × Array Fill),
-    opsOf (emitBlock f b acc).1 = opsOf acc.1 ++ blockOps b acc.1.size
+theorem emitBlock_ops (f : String) : ∀ (b : List PStmt) (acc : Rev LInstr × Rev Fill),
+    opsR (emitBlock f b acc).1 = opsR acc.1 ++ blockOps b acc.1.size
   | [], _ => by simp [emitBlock, blockOps]
   | s :: ss, acc => by
       have hs := emitStmt_ops f s acc
       have hlen := congrArg List.length hs
-      simp only [opsOf_length, List.length_append, stmtOps_length] at hlen
+      simp only [opsR_length, List.length_append, stmtOps_length] at hlen
       rw [emitBlock, emitBlock_ops f ss, hs, hlen, blockOps, List.append_assoc]
 
 theorem emitArms_ops (f : String) (first : Nat) : ∀ (as : List (List PStmt)) (j : Nat)
-    (acc : Array LInstr × Array Fill),
-    opsOf (emitArms f first as j acc).1 = opsOf acc.1 ++ armsOps as acc.1.size
+    (acc : Rev LInstr × Rev Fill),
+    opsR (emitArms f first as j acc).1 = opsR acc.1 ++ armsOps as acc.1.size
   | [], _, _ => by simp [emitArms, armsOps]
   | a :: as, j, (code, fills) => by
       have ha := emitBlock_ops f a (code, fills.push (first + j, .at f code.size))
       have hlen := congrArg List.length ha
-      simp only [opsOf_length, List.length_append, blockOps_length] at hlen
+      simp only [opsR_length, List.length_append, blockOps_length] at hlen
       rw [emitArms, emitArms_ops f first as, ha, hlen, armsOps, List.append_assoc]
 
 theorem emitStages_ops (f : String) : ∀ (firsts : List Nat) (ss : List (List (List PStmt)))
-    (acc : Array LInstr × Array Fill),
-    opsOf (emitStages f firsts ss acc).1 = opsOf acc.1 ++ stagesOps ss acc.1.size
+    (acc : Rev LInstr × Rev Fill),
+    opsR (emitStages f firsts ss acc).1 = opsR acc.1 ++ stagesOps ss acc.1.size
   | _, [], _ => by simp [emitStages, stagesOps]
   | firsts, s :: ss, acc => by
       have hs := emitArms_ops f (firsts.headD 0) s 0 acc
       have hlen := congrArg List.length hs
-      simp only [opsOf_length, List.length_append, armsOps_length] at hlen
+      simp only [opsR_length, List.length_append, armsOps_length] at hlen
       rw [emitStages, emitStages_ops f firsts.tail ss, hs, hlen, stagesOps, List.append_assoc]
 end
 
 /-- **Emission appends a block's instructions.** -/
 theorem emitFn_ops (p : PFn) : opsOf (emitFn p).1.code = blockOps p.body 0 := by
-  have h := emitBlock_ops p.name p.body (#[], #[])
-  simpa [emitFn, opsOf] using h
+  have h := emitBlock_ops p.name p.body ({}, {})
+  simpa [emitFn, opsOf, opsR] using h
 
 /-- Emission adds exactly a block's size to the code (`EmitBlockSize`). -/
 theorem emitBlockSize : EmitBlockSize := by
   intro f b acc
   have h := congrArg List.length (emitBlock_ops f b acc)
-  simpa only [opsOf_length, List.length_append, blockOps_length] using h
+  simpa only [opsR_length, List.length_append, blockOps_length] using h
 
 theorem emitFn_size (p : PFn) : (emitFn p).1.code.size = blockSize p.body := by
   have h := congrArg List.length (emitFn_ops p)

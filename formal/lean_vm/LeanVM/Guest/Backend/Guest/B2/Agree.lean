@@ -128,7 +128,7 @@ def ResHolds (σ : Val) (v : V) : Res → Prop
 def KnownHolds (known : List (Nat × Nat × Nat)) : Prop :=
   ∀ p ∈ known, wd L fp p.1 = word p.2.1 p.2.2
 
-variable {A L fp} {locs : Std.HashMap V Loc}
+variable {A L fp} {locs : VMap Loc}
 
 section Sound
 

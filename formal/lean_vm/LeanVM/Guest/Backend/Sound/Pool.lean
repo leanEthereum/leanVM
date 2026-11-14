@@ -41,7 +41,7 @@ noncomputable def locVal : Loc → E
   | .shifted n exp => wd L fp n * ofK (addressOfIndex exp)
 
 /-- **The valuation by places**: every value is the word of its place. -/
-noncomputable def valP (locs : Std.HashMap V Loc) : Val := fun v =>
+noncomputable def valP (locs : VMap Loc) : Val := fun v =>
   match locs[v]? with
   | some l => locVal L fp l
   | none => 0
@@ -71,7 +71,7 @@ theorem word_limbsOf (c : E) : Guest.word (limbsOf c).1 (limbsOf c).2 = c := by
 
 theorem word_gpow {e : ℕ} (he : e < 2 ^ 128) :
     Guest.word (gpowLimbs e).1 (gpowLimbs e).2 = ofK (addressOfIndex e) := by
-  rw [Guest.word, gpowLimbs, ofBits_toNat, gpowK_eq he, ofK_eq_ofLimbs]
+  rw [Guest.word, gpowLimbs, gpowBits_eq, ofBits_toNat, gpowK_eq he, ofK_eq_ofLimbs]
   rfl
 
 theorem ofK_one : ofK (1 : K) = 1 := map_one (algebraMap K E)
@@ -140,46 +140,28 @@ structure PoolOK (L : MemoryImage κ) (fp : K) (sc : Scope) : Prop where
   mats : ∀ c l, sc.mats.get? c = some l → ∀ p ∈ l,
     wd L fp p.2 = wd L fp c * ofK (addressOfIndex p.1)
   selfFp : ∀ o, sc.selfFp = some o → wd L fp o = ofK fp
-section
-
-attribute [local instance] lexOrd
-
-/-- The pools' order is the lexicographic one. -/
-theorem cmp2_eq : cmp2 = (compare : ℕ × ℕ → ℕ × ℕ → Ordering) := by
-  funext a b
-  rfl
-
-instance : Std.TransCmp cmp2 := cmp2_eq ▸ (inferInstance : Std.TransOrd (ℕ × ℕ))
-
-instance : Std.LawfulEqCmp cmp2 := cmp2_eq ▸ (inferInstance : Std.LawfulEqOrd (ℕ × ℕ))
-
-end
-
-theorem cmp2_eq_iff {a b : ℕ × ℕ} : cmp2 a b = .eq ↔ a = b :=
-  Std.LawfulEqCmp.compare_eq_iff_eq
 
 /-- Places only grow, and a value's place never changes (P1). -/
-def Sub (m₁ m₂ : Std.HashMap V Loc) : Prop := ∀ (v : V) (l : Loc), m₁[v]? = some l → m₂[v]? = some l
+def Sub (m₁ m₂ : VMap Loc) : Prop := ∀ (v : V) (l : Loc), m₁[v]? = some l → m₂[v]? = some l
 
-theorem Sub.refl (m : Std.HashMap V Loc) : Sub m m := fun _ _ h => h
+theorem Sub.refl (m : VMap Loc) : Sub m m := fun _ _ h => h
 
-theorem Sub.trans {m₁ m₂ m₃ : Std.HashMap V Loc} (h₁ : Sub m₁ m₂) (h₂ : Sub m₂ m₃) : Sub m₁ m₃ :=
+theorem Sub.trans {m₁ m₂ m₃ : VMap Loc} (h₁ : Sub m₁ m₂) (h₂ : Sub m₂ m₃) : Sub m₁ m₃ :=
   fun v l h => h₂ v l (h₁ v l h)
 
-theorem Sub.insert {m : Std.HashMap V Loc} {v : V} (l : Loc) (h : m.contains v = false) :
+theorem Sub.insert {m : VMap Loc} {v : V} (l : Loc) (h : m.contains v = false) :
     Sub m (m.insert v l) := by
   intro a la ha
-  rw [Std.HashMap.getElem?_insert]
+  rw [KMap.getElem?_insert]
   split
   · next heq =>
-    have : a = v := (eq_of_beq heq).symm
-    subst this
-    rw [Std.HashMap.getElem?_eq_none_of_contains_eq_false h] at ha
+    subst heq
+    rw [KMap.getElem?_eq_none_of_contains_eq_false h] at ha
     cases ha
   · exact ha
 
 /-- Under the final places, a value placed during the walk has its place's word. -/
-theorem valP_of_sub {m F : Std.HashMap V Loc} (h : Sub m F) {v : V} {l : Loc}
+theorem valP_of_sub {m F : VMap Loc} (h : Sub m F) {v : V} {l : Loc}
     (hv : m[v]? = some l) : valP L fp F v = locVal L fp l := by
   rw [valP, h v l hv]
 

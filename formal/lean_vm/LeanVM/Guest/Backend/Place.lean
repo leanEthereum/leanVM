@@ -10,8 +10,8 @@ module
 public import LeanVM.Guest.Backend.Ir
 public import LeanVM.Guest.Backend.Trace
 public import LeanVM.Guest.Word
-public import Std.Data.TreeMap
-public import Std.Data.HashMap
+public import LeanVM.Guest.Backend.Map
+public import LeanVM.Guest.Backend.Pow
 
 /-!
 # Placement
@@ -68,11 +68,8 @@ inductive Loc where
   | shifted (n : Cell) (exp : Nat)
   deriving Inhabited
 
-/-- The order of pairs, for the pools. -/
-def cmp2 (a b : Nat × Nat) : Ordering := (compare a.1 b.1).then (compare a.2 b.2)
-
 /-- A pool keyed by a pair. -/
-abbrev Pool := Std.TreeMap (Nat × Nat) Cell cmp2
+abbrev Pool := PMap Cell
 
 /-- What a branch may not have run (`Scope`, without the name bindings). -/
 structure Scope where
@@ -85,7 +82,7 @@ structure Scope where
   /-- Loads by pointer cell and offset (`load_cells`). -/
   loads : Pool := {}
   /-- Shifted pointers by base cell: `(exp, cell)` (`mat_cells`). -/
-  mats : Std.TreeMap Nat (List (Nat × Cell)) := {}
+  mats : NMap (List (Nat × Cell)) := {}
   /-- The cell holding this frame's pointer (`self_fp_off`). -/
   selfFp : Option Cell := none
   deriving Inhabited
@@ -99,7 +96,7 @@ structure LoopInfo where
   deriving Inhabited
 
 /-- The program's loop helpers. -/
-abbrev Loops := Std.HashMap String LoopInfo
+abbrev Loops := SMap LoopInfo
 
 /-- Whether a function is a loop helper, by the compiler's name for it. -/
 def isLoopName (f : String) : Bool := f.startsWith "__loop"
@@ -122,29 +119,32 @@ structure Ctx where
   retCells : Nat
   loops : Loops
   /-- The argument and return cells of every function of the program. -/
-  sigs : Std.HashMap String (Nat × Nat)
-  trace : Array Event
+  sigs : SMap (Nat × Nat)
+  /-- The length of its trace: the most events one `flush` passes. -/
+  fuel : Nat
 
 /-- The jump tables' state, threaded through the program (`JumpTables`). -/
 structure Tables where
   /-- The slots given out so far. -/
   len : Nat := 0
-  /-- The table of each dispatched call's callees (`shared`). -/
+  /-- The table of each dispatched call's callees (`shared`), the last made first. -/
   shared : List (List String × Nat) := []
-  /-- The slots of the shared tables: `(slot, callee)`. -/
-  entries : Array (Nat × String) := #[]
   deriving Inhabited
+
+/-- The slots of the shared tables, `(slot, callee)`, in the order the tables were made. -/
+def Tables.entries (t : Tables) : Array (Nat × String) :=
+  (t.shared.reverse.flatMap fun (cs, first) => cs.zipIdx.map fun (c, j) => (first + j, c)).toArray
 
 /-- The placement state. -/
 structure St where
   next : Cell
-  locs : Std.HashMap V Loc := {}
+  locs : VMap Loc := {}
   scope : Scope := {}
   pending : Array LHint := #[]
-  out : Array PStmt := #[]
+  out : Rev PStmt := {}
   tables : Tables
-  /-- The next event of the trace. -/
-  pos : Nat := 0
+  /-- The trace from the event the walk is at. -/
+  rest : List Event := []
   /-- The value the next statement makes, a pool asked first or an `addr` pointer. -/
   lazy : Option (V × Kind) := none
   /-- The values wanted in a cell by the next statement (`Event.use`). -/
@@ -162,7 +162,7 @@ structure St where
   /-- The message run read in place, whose copies are dropped. -/
   aliasRun : Option (List V) := none
   /-- The constant of each value a `SET` made. -/
-  constOf : Std.HashMap V (Nat × Nat) := {}
+  constOf : VMap (Nat × Nat) := {}
 
 /-- The placement monad. -/
 abbrev P := ReaderT Ctx (StateT St (Except String))
@@ -280,7 +280,7 @@ def isSelfFp (n : Cell) : P Bool := do
   return (← get).scope.selfFp == some n
 
 /-- The limbs of `g^e`. -/
-def gpowLimbs (e : Nat) : Nat × Nat := ((gpowK e).toBitVec.toNat, 0)
+def gpowLimbs (e : Nat) : Nat × Nat := (gpowBits e, 0)
 
 /-- The β-immediate cap (`FOLD_MAX`). -/
 def foldMaxExp : Nat := 2 ^ 16
@@ -358,11 +358,11 @@ def pooled (d : V) (find : Scope → Option Cell) (learn : Cell → Scope → Sc
 
 /-- The event the walk is at. -/
 def peek : P (Option Event) := do
-  return (← read).trace[(← get).pos]?
+  return (← get).rest.head?
 
 /-- Pass the event the walk is at. -/
 def advance : P Unit :=
-  modify fun s => { s with pos := s.pos + 1 }
+  modify fun s => { s with rest := s.rest.tail }
 
 /-- Four message cells already in consecutive frame cells are read in place (`sponge_run`): the
 next statements copy them into the run `vs`, cell by cell. -/
@@ -431,7 +431,7 @@ def flushN (upcoming : List Stmt) : Nat → P Unit
 
 /-- `flushN`, to the next statement or block. -/
 def flush (upcoming : List Stmt) : P Unit := do
-  flushN upcoming ((← read).trace.size)
+  flushN upcoming (← read).fuel
 
 /-- Pass the event `e`, which the walk must be at. -/
 def expect (e : Event → Bool) (what : String) : P Unit := do
@@ -642,7 +642,7 @@ def inBlock (m : P Unit) : P (List PStmt) := do
   expect isEnter "a block"
   let st ← get
   let (out, scope) := (st.out, st.scope)
-  set { st with out := #[] }
+  set { st with out := {} }
   m
   flush []
   expect isLeave "the end of a block"
@@ -666,18 +666,19 @@ def sharedTable (callees : List String) : P Nat := do
       let first := st.tables.len
       set { st with tables := {
         len := first + callees.length,
-        shared := (callees, first) :: st.tables.shared,
-        entries := st.tables.entries ++
-          (callees.zipIdx.map fun ((c, j) : String × Nat) => (first + j, c)).toArray } }
+        shared := (callees, first) :: st.tables.shared } }
       pure first
 
 /-- The exponent `k < limit` with `g^k` the word of these limbs. -/
 def smallLog (limit : Nat) (limbs : Nat × Nat) : Option Nat :=
   if limbs.2 != 0 then none else go limit 0 1
 where
-  go : Nat → Nat → K → Option Nat
+  /-- `x` is the bits of `g^k`, its products on words in `ℕ` (`mulN`). -/
+  go : Nat → Nat → Nat → Option Nat
     | 0, _, _ => none
-    | fuel + 1, k, x => if x.toBitVec.toNat == limbs.1 then some k else go fuel (k + 1) (x * g)
+    | fuel + 1, k, x =>
+        if (K.ofBits x).toBitVec.toNat == limbs.1 then some k
+        else go fuel (k + 1) (mulN x g.toBitVec.toNat)
 
 /-- The largest loop start looked for. -/
 def loopLogLimit : Nat := 2 ^ 20
@@ -712,7 +713,7 @@ def placeCall (f : String) (argVs : List V) (args rets : List Cell) (cond : Opti
 
 /-- A callee is a function of the program other than `main`, of this many argument and return
 cells. -/
-def isCallee (sigs : Std.HashMap String (Nat × Nat)) (nargs nrets : Nat) (f : String) : Bool :=
+def isCallee (sigs : SMap (Nat × Nat)) (nargs nrets : Nat) (f : String) : Bool :=
   f != "main" && decide (sigs[f]? = some (nargs, nrets))
 
 /-- How an arm of a `match` leaves: to the join, or through the next `match`'s table. -/
@@ -898,14 +899,14 @@ reads the frame with, and what a certificate of the existing checker calls its c
 (`Check.Cert.locs`). -/
 structure Placed where
   fn : PFn
-  locs : Std.HashMap V Loc
+  locs : VMap Loc
 
 /-- A function's argument and return cells. -/
 def sigOf (tf : TracedFn) : Nat × Nat :=
   (tf.core.params.length, tf.rets)
 
 /-- The argument and return cells of the program's functions. -/
-def sigTable (fns : List TracedFn) : Std.HashMap String (Nat × Nat) :=
+def sigTable (fns : List TracedFn) : SMap (Nat × Nat) :=
   fns.foldl (init := {}) fun m tf => m.insert tf.core.name (sigOf tf)
 
 /-- The walk of a function: its parameters in the argument cells, then its body. -/
@@ -913,23 +914,23 @@ def placeBody (tf : TracedFn) : P Unit := do
   tf.core.params.zipIdx.forM fun (v, k) => bindTo v (.cell (2 + k))
   placeBlock tf.core.body
   flush []
-  if (← get).pos != tf.trace.size then failP "the trace goes on past the function"
+  if !(← get).rest.isEmpty then failP "the trace goes on past the function"
 
 /-- The context a function is walked in. -/
-def ctxOf (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tf : TracedFn) : Ctx :=
+def ctxOf (loops : Loops) (sigs : SMap (Nat × Nat)) (tf : TracedFn) : Ctx :=
   { name := tf.core.name, isMain := tf.core.name == "main", argCells := (sigOf tf).1,
-    retCells := (sigOf tf).2, loops, sigs, trace := tf.trace }
+    retCells := (sigOf tf).2, loops, sigs, fuel := tf.trace.size }
 
 /-- The state a function's walk starts from: cells `0` and `1` hold the return target, then the
 arguments, then the return cells, then a registered loop's own frame pointer, then the locals. -/
 def initSt (loops : Loops) (tables : Tables) (tf : TracedFn) : St :=
   let loopFrame := (loops[tf.core.name]?).any (·.registered)
   let abiEnd := 2 + (sigOf tf).1 + (sigOf tf).2
-  { next := abiEnd + (if loopFrame then 1 else 0), tables,
+  { next := abiEnd + (if loopFrame then 1 else 0), tables, rest := tf.trace.toList,
     scope := { selfFp := if loopFrame then some abiEnd else none } }
 
 /-- Place a function (`lower_func`). -/
-def placeFn (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : Tables)
+def placeFn (loops : Loops) (sigs : SMap (Nat × Nat)) (tables : Tables)
     (tf : TracedFn) : Except String (Placed × Tables) :=
   if (loops[tf.core.name]?).any (·.registered) && (sigOf tf).2 != 0 then
     .error s!"in {tf.core.name}: a loop helper that returns cells"
@@ -946,25 +947,31 @@ def placeFn (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : T
 
 /-- Place the functions in order: the jump tables grow as the lowering reaches each `match`,
 and a shared table once made stays. -/
-def placeFns (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) :
+def placeFns (loops : Loops) (sigs : SMap (Nat × Nat)) :
     List TracedFn → Tables → Except String (List Placed × Tables)
   | [], tables => .ok ([], tables)
   | tf :: rest, tables =>
       match placeFn loops sigs tables tf with
       | .error e => .error e
       | .ok (pf, tables') =>
-          if !tables.shared.isSuffixOf tables'.shared then .error "a shared jump table was dropped"
-          else
-            match placeFns loops sigs rest tables' with
-            | .error e => .error e
-            | .ok (pfs, tables'') => .ok (pf :: pfs, tables'')
+          match placeFns loops sigs rest tables' with
+          | .error e => .error e
+          | .ok (pfs, tables'') => .ok (pf :: pfs, tables'')
+
+/-- Whether the names are distinct, by a map of the names seen. -/
+def namesDistinct (l : List String) : Bool :=
+  go l {}
+where
+  go : List String → SMap Unit → Bool
+    | [], _ => true
+    | n :: ns, seen => !seen.contains n && go ns (seen.insert n ())
 
 /-- Place a program, `main` first, its functions of distinct names. -/
 def placeProgram (p : List TracedFn) : Except String (List Placed × Tables) :=
   if (p.map (·.core.name)).head? != some "main" then .error "the first function is not main"
   else if (p.map (·.core.name)).contains "__jump_tables" then
     .error "a function named __jump_tables"
-  else if !decide (p.map (·.core.name)).Nodup then .error "two functions of one name"
+  else if !namesDistinct (p.map (·.core.name)) then .error "two functions of one name"
   else if ((loopTable p)["main"]?).any (·.registered) then .error "main is a loop helper"
   else placeFns (loopTable p) (sigTable p) p {}
 
