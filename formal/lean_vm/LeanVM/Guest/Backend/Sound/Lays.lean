@@ -49,13 +49,12 @@ theorem TablesLe.trans {t t' t'' : Tables} (h₁ : TablesLe t t') (h₂ : Tables
 
 theorem TablesLe.of_eq {t t' : Tables} (h : t' = t) : TablesLe t t' := h ▸ TablesLe.refl t
 
-/-- No `match` is open or marked as chained. -/
+/-- No chain of `match`es is open. -/
 structure Plain (st : St) : Prop where
   chainIn : st.chainIn = none
-  chain : st.chain = false
 
 theorem Plain.of_same {st st' : St} (h : Plain st) (hs : Same st st') : Plain st' :=
-  ⟨hs.chainIn.trans h.chainIn, hs.chain.trans h.chain⟩
+  ⟨hs.chainIn.trans h.chainIn⟩
 
 section
 
@@ -199,7 +198,6 @@ structure Quiet (st st' : St) : Prop where
   scope : st'.scope = st.scope
   tables : TablesLe st.tables st'.tables
   chainIn : st'.chainIn = st.chainIn
-  chain : st'.chain = st.chain
 
 /-- A quiet step, what it found (`H'`) justified where the final places, the pools and the
 program's jump tables are known. -/
@@ -332,7 +330,7 @@ theorem LaysAt.step {m : P α} {f : α → P β} {R : α → Prop}
   intro hpl
   refine wp_bind.mpr fun a st₁ he b st₂ he' => ?_
   obtain ⟨hq, hR⟩ := hm a st₁ he
-  obtain ⟨hp, hl⟩ := hf a st₁ ⟨hq.chainIn.trans hpl.chainIn, hq.chain.trans hpl.chain⟩ b st₂ he'
+  obtain ⟨hp, hl⟩ := hf a st₁ ⟨hq.chainIn.trans hpl.chainIn⟩ b st₂ he'
   exact ⟨hp, Lays.ofQuiet hq hR hl⟩
 
 /-- More may be assumed. -/
@@ -351,7 +349,7 @@ theorem LaysAt.push {s : PStmt}
     (hm : Means Γ fp F ctx slots B H st.locs st.scope st.scope st.tables [s] G S) :
     LaysAt Γ fp F ctx slots B H st (push s) G S := by
   intro hpl
-  refine wp_modify.mpr ⟨⟨hpl.chainIn, hpl.chain⟩, [s], by simp, Sub.refl _, TablesLe.refl _, hm⟩
+  refine wp_modify.mpr ⟨⟨hpl.chainIn⟩, [s], by simp, Sub.refl _, TablesLe.refl _, hm⟩
 
 end
 

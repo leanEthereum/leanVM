@@ -135,16 +135,15 @@ variable {κ : ℕ} (Γ : Site κ) (fp : K) (F : Std.HashMap V Loc)
 /-- Every statement is one instruction. -/
 def OpsOnly (ops : List PStmt) : Prop := ∀ s ∈ ops, ∃ h o, s = PStmt.op h o
 
-/-- The jump tables and the chain a `match` may be part of are unchanged. -/
+/-- The jump tables and the chain a `match` may be a stage of are unchanged. -/
 structure Same (st st' : St) : Prop where
   tables : st'.tables = st.tables
   chainIn : st'.chainIn = st.chainIn
-  chain : st'.chain = st.chain
 
-theorem Same.refl (st : St) : Same st st := ⟨rfl, rfl, rfl⟩
+theorem Same.refl (st : St) : Same st st := ⟨rfl, rfl⟩
 
 theorem Same.trans {st st' st'' : St} (h₁ : Same st st') (h₂ : Same st' st'') : Same st st'' :=
-  ⟨h₂.tables.trans h₁.tables, h₂.chainIn.trans h₁.chainIn, h₂.chain.trans h₁.chain⟩
+  ⟨h₂.tables.trans h₁.tables, h₂.chainIn.trans h₁.chainIn⟩
 
 /-- **The walk went from `st` to `st'` emitting straight-line instructions that give `Q`**, the
 facts `H` of the instructions before them known. -/

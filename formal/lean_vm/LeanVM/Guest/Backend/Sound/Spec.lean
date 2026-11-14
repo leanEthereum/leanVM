@@ -158,14 +158,6 @@ def SharedIn (slots : Array KVal) (t : Tables) : Prop :=
 
 /-! ## Placement -/
 
-/-- A trace event announcing a chain of `match`es. -/
-def Event.isChain : Event → Bool
-  | .chain => true
-  | _ => false
-
-/-- No `match` of the function is chained into the next. -/
-def NoChain (tf : TracedFn) : Prop := ∀ e ∈ tf.trace.toList, e.isChain = false
-
 /-- What a function's code is given of the program around it: the layout's powers and its own
 entry, the jump tables, and the contracts of its callees in terms of the core call relation. -/
 structure PlaceEnv {κ : ℕ} (Γ : Site κ) (fp : K) (ctx : Ctx) (C : CallRel)
@@ -292,11 +284,6 @@ def Post (g : String) (fp : K) : Prop :=
     W.Entered g fp (frameWords W.L fp 2 (sigOf tf).1)
       (frameWords W.L fp (2 + (sigOf tf).1) (sigOf tf).2)
 
-/-- The placement of a function is sound, from whatever jump tables the functions before it
-left. -/
-def PlacedSoundly (tf : TracedFn) : Prop :=
-  ∀ tables, PlaceFnSound (loopTable W.p) (sigTable W.p) tables tf
-
 /-- **A function's obligations**: at every frame where its precondition's `U` holds, its
 selectors are in range and its callees' `U` hold, each given what precedes it on its path. -/
 def Obligations (tf : TracedFn) : Prop :=
@@ -316,8 +303,7 @@ def MainHolds : Prop := ∃ tf ∈ W.p, tf.core.name = "main" ∧ W.BodyHolds tf
 
 end World
 
-/-- **(a), placement, for every trace**: `placeFn` is sound whatever the trace. Proved for the
-traces with no `chain` event (`placeSound_noChain`); a chain of `match`es is what remains. -/
+/-- **(a), placement, for every trace**: `placeFn` is sound whatever the trace (`placeSound`). -/
 def PlaceSoundStmt : Prop :=
   ∀ (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : Tables) (tf : TracedFn),
     PlaceFnSound loops sigs tables tf

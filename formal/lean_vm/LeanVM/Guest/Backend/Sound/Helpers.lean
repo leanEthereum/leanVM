@@ -133,7 +133,7 @@ end Pool
 /-! ## Primitives -/
 
 /-- The state changes in nothing a proof reads. -/
-macro "quiet" : term => `(Emits.frame rfl rfl ⟨rfl, rfl, rfl⟩ fun _ _ h => h)
+macro "quiet" : term => `(Emits.frame rfl rfl ⟨rfl, rfl⟩ fun _ _ h => h)
 
 theorem fresh_spec : Spec Γ fp F ctx fresh (fun _ => True) :=
   fun _ => SpecAt.modifyGet quiet
@@ -153,7 +153,7 @@ theorem endStmt_spec : Spec Γ fp F ctx endStmt (fun _ => True) :=
 /-- One straight-line instruction: it holds. -/
 theorem emitOp_spec {o : LOp} (hj : o.isJump = false) :
     Spec Γ fp F ctx (emitOp o) (fun _ => ∃ pc, Holds Γ.L pc fp (Γ.R o)) :=
-  fun _ => wp_bind.mpr (wp_modifyGet.mpr (wp_modify.mpr (Emits.op hj rfl rfl ⟨rfl, rfl, rfl⟩ rfl)))
+  fun _ => wp_bind.mpr (wp_modifyGet.mpr (wp_modify.mpr (Emits.op hj rfl rfl ⟨rfl, rfl⟩ rfl)))
 
 /-- A value is placed once. -/
 theorem bindTo_spec (v : V) (l : Loc) :
@@ -161,7 +161,7 @@ theorem bindTo_spec (v : V) (l : Loc) :
   intro st
   unfold bindTo
   refine SpecAt.get_bind (SpecAt.guard fun hc => ?_)
-  exact SpecAt.modify (Emits.place (by simpa using hc) rfl rfl ⟨rfl, rfl, rfl⟩ rfl)
+  exact SpecAt.modify (Emits.place (by simpa using hc) rfl rfl ⟨rfl, rfl⟩ rfl)
 
 /-- The cell of a value held in one is its final place. -/
 theorem cellAt_spec (v : V) : Spec Γ fp F ctx (cellAt v) (fun n => F[v]? = some (.cell n)) := by
@@ -187,7 +187,7 @@ theorem constCell_spec (k : ℕ × ℕ) :
   · next o ho => exact SpecAt.pure fun _ _ hp => hp.consts k o ho
   · refine SpecAt.call fresh_spec fun o _ => ?_
     refine SpecAt.call (emitOp_spec rfl) fun _ st2 => ?_
-    refine SpecAt.modify_bind (Emits.frame rfl rfl ⟨rfl, rfl, rfl⟩ fun h _ hp =>
+    refine SpecAt.modify_bind (Emits.frame rfl rfl ⟨rfl, rfl⟩ fun h _ hp =>
       hp.insertConst (holds_set_const h.2.choose_spec)) ?_
     exact SpecAt.pure fun h _ _ => holds_set_const h.1.2.choose_spec
 
@@ -207,7 +207,7 @@ theorem mulCell_spec (a b : Cell) :
   · next o ho => exact SpecAt.pure fun _ _ hp => (hp.muls _ o ho).trans (wd_sorted_mul a b)
   · refine SpecAt.call fresh_spec fun o _ => ?_
     refine SpecAt.call (emitOp_spec rfl) fun _ _ => ?_
-    refine SpecAt.modify_bind (Emits.frame rfl rfl ⟨rfl, rfl, rfl⟩ fun h _ hp =>
+    refine SpecAt.modify_bind (Emits.frame rfl rfl ⟨rfl, rfl⟩ fun h _ hp =>
       hp.insertMul ((holds_mul h.2.choose_spec).trans (wd_sorted_mul a b).symm)) ?_
     exact SpecAt.pure fun h _ _ => holds_mul h.1.2.choose_spec
 
@@ -220,7 +220,7 @@ theorem emitDeref_spec (ptr off dst : ℕ) :
   refine SpecAt.call (emitOp_spec rfl) fun _ st' => SpecAt.modify ?_
   have e : Emits Γ fp F (True ∧ ∃ pc, Holds Γ.L pc fp (Γ.R (.deref ptr off dst .cell))) st'
       { st' with scope.loads := st'.scope.loads.insertIfNew (ptr, off) dst } True :=
-    Emits.frame rfl rfl ⟨rfl, rfl, rfl⟩ fun h _ hp =>
+    Emits.frame rfl rfl ⟨rfl, rfl⟩ fun h _ hp =>
       hp.insertLoad (k := (ptr, off)) (holds_deref h.2.choose_spec)
   exact e.imp fun h _ _ _ => holds_deref h.2.choose_spec
 
@@ -245,7 +245,7 @@ theorem selfFp_spec (hmain : ctx.isMain = true → fp = 1) :
       have key : ∀ {pc pc' : ℕ}, Holds Γ.L pc fp (Γ.R (.deref q 0 0 .fp)) →
           Holds Γ.L pc' fp (Γ.R (.deref q 0 o .cell)) → wd Γ.L fp o = ofK fp := fun h3 h5 =>
         Option.some.inj ((holds_deref h5).2.symm.trans (holds_deref_fp h3).2)
-      refine SpecAt.modify_bind (Emits.frame rfl rfl ⟨rfl, rfl, rfl⟩ fun h _ hp =>
+      refine SpecAt.modify_bind (Emits.frame rfl rfl ⟨rfl, rfl⟩ fun h _ hp =>
         hp.setSelfFp (key h.1.1.2.choose_spec h.2.choose_spec)) ?_
       exact SpecAt.pure fun h _ _ => key h.1.1.1.2.choose_spec h.1.2.choose_spec
 
@@ -328,7 +328,7 @@ theorem materialize_spec (c : Cell) (exp : ℕ) :
             rw [addressOfIndex, pow_zero, ofK_one, mul_one]
           · exact hmats hp (e, src) hm
         rw [ho, hk, word_gpow (by omega), hsrc', mul_assoc, ofK_gpow_add, he]
-      refine SpecAt.modify_bind (Emits.frame rfl rfl ⟨rfl, rfl, rfl⟩ fun h _ hp =>
+      refine SpecAt.modify_bind (Emits.frame rfl rfl ⟨rfl, rfl⟩ fun h _ hp =>
         hp.insertMats fun p hp' => ?_) ?_
       · rcases List.mem_append.mp hp' with hm | hm
         · exact hmats h.1.1.2 p hm
@@ -399,7 +399,7 @@ theorem pooledCell_spec {find : Scope → Option Cell} {learn : Cell → Scope �
   · next o ho => exact SpecAt.pure fun _ _ hp => hfind _ o hp ho
   · refine SpecAt.call fresh_spec fun o _ => ?_
     refine SpecAt.call (emitOp_spec (hj o)) fun _ _ => ?_
-    refine SpecAt.modify_bind (Emits.frame rfl rfl ⟨rfl, rfl, rfl⟩ fun h _ hp =>
+    refine SpecAt.modify_bind (Emits.frame rfl rfl ⟨rfl, rfl⟩ fun h _ hp =>
       hlearn _ o hp (hmk o _ h.2.choose_spec)) ?_
     exact SpecAt.pure fun h _ _ => hmk o _ h.1.2.choose_spec
 

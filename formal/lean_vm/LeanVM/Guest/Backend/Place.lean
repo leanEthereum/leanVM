@@ -719,6 +719,55 @@ inductive ArmExit where
   | join (join one sfp : Cell)
   | next (x : Cell) (first : Nat) (one sfp : Cell)
 
+/-- The cells a `match` jumps with: its selector's, the next `match`'s selector's and arm count
+if these arms dispatch into it (`chain_next`), the frame pointer's and the pooled `1`. -/
+def matchCells (x : V) (rest : List Stmt) (chained : Bool) :
+    P (Cell × Option (Cell × Nat) × Cell × Cell) := do
+  let lx ← cellOf x
+  let nextSel ← if chained then
+      match rest with
+      | .match_ x' arms' :: _ => pure (some (← cellOf x', arms'.length))
+      | _ => failP "a chained match followed by no match"
+    else pure none
+  let sfp ← selfFp
+  let one ← oneCell
+  pure (lx, nextSel, sfp, one)
+
+/-- A `match` of `n` arms after the values made before it: `entered` is the table and the join
+cell of the chain it is a stage of, if the `match` before it dispatches into it, `chained` says
+its own arms dispatch into the `match` after it, and `armsAt base exit` places its arms from the
+cell `base` on, each leaving by `exit`. -/
+def placeMatch (x : V) (n : Nat) (rest : List Stmt) (entered : Option (Nat × Cell))
+    (chained : Bool) (armsAt : Cell → ArmExit → P (List (List PStmt))) : P Unit := do
+  let (lx, nextSel, sfp, one) ← matchCells x rest chained
+  let (join, first, head) ← match entered with
+    | some (first, join) => pure (join, first, none)
+    | none => do
+        let join ← fresh
+        let hints ← takeHints
+        let first ← allocTable n
+        let entry ← fresh
+        pure (join, first, some (hints, entry))
+  let exit ← match nextSel with
+    | some (x', n') => do pure (ArmExit.next x' (← allocTable n') one sfp)
+    | none => pure (ArmExit.join join one sfp)
+  let base := (← get).next
+  let blocks ← armsAt base exit
+  expect isEmit "a match"
+  match head with
+  | some (hints, entry) => push (.chain hints join lx entry one sfp [first] [blocks])
+  | none =>
+      -- An entered `match` is one more stage of the chain before it.
+      let st ← get
+      match st.out.back? with
+      | some (.chain h j x e o s firsts stages) =>
+          let node := PStmt.chain h j x e o s (firsts ++ [first]) (stages ++ [blocks])
+          set { st with out := st.out.pop.push node }
+      | _ => failP "a chained match follows no match"
+  match exit with
+  | .next _ nf _ _ => modify fun s => { s with chainIn := some (nf, join) }
+  | .join .. => pure ()
+
 mutual
 /-- A block. -/
 def placeBlock : List Stmt → P Unit
@@ -755,44 +804,9 @@ def placeStmt : Stmt → List Stmt → P Unit
   | .match_ x arms, rest => do
       flush []
       let st ← get
-      let (entered, chained) := (st.chainIn, st.chain)
       set { st with chainIn := none, chain := false }
-      let lx ← cellOf x
-      -- The next `match` is entered from these arms (`chain_next`).
-      let nextSel ← if chained then
-          match rest with
-          | .match_ x' arms' :: _ => pure (some (← cellOf x', arms'.length))
-          | _ => failP "a chained match followed by no match"
-        else pure none
-      let sfp ← selfFp
-      let one ← oneCell
-      let (join, first, head) ← match entered with
-        | some (first, join) => pure (join, first, none)
-        | none => do
-            let join ← fresh
-            let hints ← takeHints
-            let first ← allocTable arms.length
-            let entry ← fresh
-            pure (join, first, some (hints, entry))
-      let exit ← match nextSel with
-        | some (x', n') => do pure (ArmExit.next x' (← allocTable n') one sfp)
-        | none => pure (ArmExit.join join one sfp)
-      let base := (← get).next
-      let blocks ← placeArms arms 0 arms.length base exit
-      expect isEmit "a match"
-      match head with
-      | some (hints, entry) => push (.chain hints join lx entry one sfp [first] [blocks])
-      | none =>
-          -- An entered `match` is one more stage of the chain before it.
-          let st ← get
-          match st.out.back? with
-          | some (.chain h j x e o s firsts stages) =>
-              let node := PStmt.chain h j x e o s (firsts ++ [first]) (stages ++ [blocks])
-              set { st with out := st.out.pop.push node }
-          | _ => failP "a chained match follows no match"
-      match exit with
-      | .next _ nf _ _ => modify fun s => { s with chainIn := some (nf, join) }
-      | .join .. => pure ()
+      placeMatch x arms.length rest st.chainIn st.chain fun base exit =>
+        placeArms arms 0 arms.length base exit
   | .call f args rets, rest => do
       beginStmt (.call f args rets :: rest)
       if !isCallee (← read).sigs args.length rets.length f then failP s!"a call of {f}, no such function"
