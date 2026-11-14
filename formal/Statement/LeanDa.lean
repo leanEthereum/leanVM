@@ -122,12 +122,12 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   cell's digest is the hash of its symbols' bytes, each symbol its two limbs' little-endian bytes,
   `y^0` first (`blob_merkle_nodes`). Each
   padded row, a blob, has the Merkle root of its `128` cell digests (`blobRootWith`), and the
-  commitment is the Merkle root of the padded rows' blob roots (`DaWitness::build`). A tree hashes
+  commitment is the Merkle root of the padded rows' blob roots (`BlobMatrix::build`). A tree hashes
   neighbours in pairs, level by level (`fill_levels`). A padding row's blob root is that of the
   zero codeword (`root_of_padding_blob`), so the root is the commitment to the padded matrix.
 * **Openings.** A cell is opened by its authentication path in its blob's tree, then its blob
   root's in the tree over the blob roots: the path of leaf `128 i + j` in the one tree of depth
-  `7 + logMaxRows` that the two make (`DaWitness::merkle_path_for_cell`, `openCellWith`), checked
+  `7 + logMaxRows` that the two make (`BlobMatrix::merkle_path_for_cell`, `openCellWith`), checked
   by `verify_cell` (`verifyCellWith`).
 * **Membership** (`verifier/src/da.rs`, the guest program's `da_vector`). One challenge `z ∈ E` gives
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
@@ -143,7 +143,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   challenge (the Rust search never ends); the relation then asks every row to be a codeword
   (`membershipCheckOpt`), which keeps an honest matrix's relation true for every permutation.
 
-The row count `r` is a parameter: the crate takes `1 ≤ r ≤ maxRows` (`DaWitness::build` rejects any
+The row count `r` is a parameter: the crate takes `1 ≤ r ≤ maxRows` (`BlobMatrix::build` rejects any
 other count with a `BlobCountError`, `commit.rs`, `lib.rs`);
 position binding holds for every `r`, completeness for `r ≤ maxRows`, code binding for
 `1 ≤ r ≤ maxRows`. The algorithms take a permutation `π` of the Keccak state as a parameter and hash with
@@ -293,12 +293,12 @@ padding row's is `root_of_padding_blob`). -/
 def blobRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes :=
   merkleRootWith π 7 (cellLeavesWith π cells i)
 
-/-- **The root of a matrix** (`DaWitness::build`): the Merkle root of the padded rows' blob
+/-- **The root of a matrix** (`BlobMatrix::build`): the Merkle root of the padded rows' blob
 roots. -/
 def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes :=
   merkleRootWith π logMaxRows (blobRootWith π cells)
 
-/-- The honest opening of a position (`DaWitness::merkle_path_for_cell`): the cell's path in its blob's tree, then
+/-- The honest opening of a position (`BlobMatrix::merkle_path_for_cell`): the cell's path in its blob's tree, then
 its blob root's in the tree over the blob roots. -/
 def openCellWith {r : ℕ} (cells : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m CellOpening := do
   let low ← merklePathWith π 7 (cellLeavesWith π cells (positionRow p)) (positionCell p)

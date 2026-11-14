@@ -24,7 +24,7 @@ pub struct EthereumClaims {
 /// Which covered claims [`aggregate`](super::aggregate) proves.
 #[derive(Clone, Copy, Debug)]
 pub enum OutputClaims<'a> {
-    /// Every covered signature claim. The DA root is `da`'s if any, otherwise the first
+    /// Every covered signature claim. The DA root is `blobs`' if any, otherwise the first
     /// child's that has one, otherwise none.
     All,
     /// Exactly these, each covered by the inputs.

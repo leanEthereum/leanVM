@@ -11,7 +11,7 @@ pub const MERKLE_PATH_LEN: usize = (CELLS_PER_ROW.ilog2() + DA_MAX_ROWS.ilog2())
 
 /// The encoded blobs and their Merkle trees: what a builder keeps to answer samples and to
 /// aggregate the blobs with leanVM.
-pub struct DaWitness {
+pub struct BlobMatrix {
     /// One codeword per blob; the zero padding rows are not stored.
     codewords: Vec<Codeword>,
     /// Each blob's flat Merkle tree: its cell digests, then each level, its root last.
@@ -20,7 +20,7 @@ pub struct DaWitness {
     root_merkle_nodes: Vec<Hash>,
 }
 
-impl DaWitness {
+impl BlobMatrix {
     /// Encode the blobs and commit to them.
     ///
     /// # Errors
@@ -210,7 +210,7 @@ mod tests {
         let n_rows = 5usize;
         let blobs = payload(n_rows, 1);
         let codewords = encode_rows(blobs.as_chunks().0);
-        let witness = DaWitness::build(blobs.as_chunks().0).unwrap();
+        let matrix = BlobMatrix::build(blobs.as_chunks().0).unwrap();
         let trees = blob_merkle_nodes(&codewords);
         let zero = vec![0; CODEWORD_SYMBOLS];
 
@@ -225,19 +225,19 @@ mod tests {
             }
         }
         for (i, row) in codewords.iter().enumerate() {
-            assert_eq!(witness.row(i), Some(row));
+            assert_eq!(matrix.row(i), Some(row));
         }
-        assert!(witness.row(n_rows).is_none());
+        assert!(matrix.row(n_rows).is_none());
         for j in [0, CELLS_PER_ROW - 1] {
-            let column: Vec<&[Symbol]> = witness.column(j).unwrap().map(|cell| &cell[..]).collect();
+            let column: Vec<&[Symbol]> = matrix.column(j).unwrap().map(|cell| &cell[..]).collect();
             let cells: Vec<&[Symbol]> = codewords
                 .iter()
                 .map(|row| &row[j * CELL_SYMBOLS..(j + 1) * CELL_SYMBOLS])
                 .collect();
             assert_eq!(column, cells);
         }
-        assert!(witness.column(CELLS_PER_ROW).is_none());
-        assert_eq!(witness.top_root(), root(blob_roots));
+        assert!(matrix.column(CELLS_PER_ROW).is_none());
+        assert_eq!(matrix.top_root(), root(blob_roots));
     }
 
     /// A trailing zero blob commits like padding.
@@ -249,25 +249,25 @@ mod tests {
         extended.extend(std::iter::repeat_n(0, BLOB_SYMBOLS));
 
         assert_eq!(
-            DaWitness::build(rows.as_chunks().0).unwrap().top_root(),
-            DaWitness::build(extended.as_chunks().0).unwrap().top_root()
+            BlobMatrix::build(rows.as_chunks().0).unwrap().top_root(),
+            BlobMatrix::build(extended.as_chunks().0).unwrap().top_root()
         );
     }
 
     /// A path proves its cell, and not another cell or position.
     #[test]
     fn openings_verify() {
-        let witness = DaWitness::build(payload(3, 5).as_chunks().0).unwrap();
-        let root = witness.top_root();
+        let matrix = BlobMatrix::build(payload(3, 5).as_chunks().0).unwrap();
+        let root = matrix.top_root();
         for (i, j) in [(0, 0), (1, 77), (2, CELLS_PER_ROW - 1)] {
-            let cell = *witness.cell(i, j).unwrap();
-            let path = witness.merkle_path_for_cell(i, j).unwrap();
+            let cell = *matrix.cell(i, j).unwrap();
+            let path = matrix.merkle_path_for_cell(i, j).unwrap();
             assert!(verify_cell(&root, i, j, &cell, &path));
             let mut other = cell;
             other[0] ^= 1;
             assert!(!verify_cell(&root, i, j, &other, &path));
             assert!(!verify_cell(&root, i, (j + 1) % CELLS_PER_ROW, &cell, &path));
         }
-        assert!(witness.merkle_path_for_cell(3, 0).is_none());
+        assert!(matrix.merkle_path_for_cell(3, 0).is_none());
     }
 }

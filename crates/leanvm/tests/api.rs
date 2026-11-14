@@ -38,13 +38,13 @@ fn public_api_end_to_end() {
 
     // 3. Two leaves, then a root over both. Both leaves hold claims on the second message; the root's claims are the union.
     let blobs: Vec<lean_da::Blob> = vec![std::array::from_fn(|i| i as u128)];
-    let da = lean_da::DaWitness::build(&blobs).unwrap();
-    let commitment = da.top_root();
+    let matrix = lean_da::BlobMatrix::build(&blobs).unwrap();
+    let commitment = matrix.top_root();
     let left = aggregate(
         &[],
         lean_xmss_input[..4].to_vec(),
         lean_sphincs_input[..1].to_vec(),
-        Some(&da),
+        Some(&matrix),
         OutputClaims::All,
         2,
     )
@@ -52,13 +52,13 @@ fn public_api_end_to_end() {
     left.1.verify(&left.0).unwrap();
     assert_eq!(left.0.da_commitment, Some(commitment));
     let other_blobs: Vec<lean_da::Blob> = blobs.iter().map(|blob| blob.map(|x| x ^ 42)).collect();
-    let other_da = lean_da::DaWitness::build(&other_blobs).unwrap();
-    let other_commitment = other_da.top_root();
+    let other_matrix = lean_da::BlobMatrix::build(&other_blobs).unwrap();
+    let other_commitment = other_matrix.top_root();
     let right = aggregate(
         &[],
         lean_xmss_input[4..7].to_vec(),
         lean_sphincs_input[1..].to_vec(),
-        Some(&other_da),
+        Some(&other_matrix),
         OutputClaims::All,
         2,
     )

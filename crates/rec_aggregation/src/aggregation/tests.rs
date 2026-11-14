@@ -30,9 +30,9 @@ const MESSAGE_B: u32 = 2;
 const SMALL_LEAF_SIZE: usize = 6;
 const LOG_INV_RATE: usize = leanvm_core::pcs::TEST_LOG_INV_RATE;
 
-/// The blobs' witness, `None` for no blobs.
-fn witness(blobs: &[lean_da::Blob]) -> Option<lean_da::DaWitness> {
-    (!blobs.is_empty()).then(|| lean_da::DaWitness::build(blobs).unwrap())
+/// The blobs' matrix, `None` for no blobs.
+fn matrix(blobs: &[lean_da::Blob]) -> Option<lean_da::BlobMatrix> {
+    (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build(blobs).unwrap())
 }
 
 /// An aggregate's claims and proof, as [`aggregate`] returns them.
@@ -374,7 +374,7 @@ fn aggregate_with_a_da_payload() {
         &[],
         vec![],
         vec![],
-        witness(&rows).as_ref(),
+        matrix(&rows).as_ref(),
         OutputClaims::All,
         LOG_INV_RATE,
     )
@@ -382,7 +382,7 @@ fn aggregate_with_a_da_payload() {
     node.verify().expect("node verifies");
     assert_eq!(node.0.num_signature_claims(), 0);
 
-    let commitment = lean_da::DaWitness::build(&rows).unwrap().top_root();
+    let commitment = lean_da::BlobMatrix::build(&rows).unwrap().top_root();
     assert_eq!(
         node.0.da_commitment,
         Some(commitment),
@@ -433,7 +433,7 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
             &[],
             vec![],
             vec![],
-            witness(&da_rows(1, 3)).as_ref(),
+            matrix(&da_rows(1, 3)).as_ref(),
             OutputClaims::Only(&select),
             LOG_INV_RATE
         )
@@ -446,7 +446,7 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
             &[],
             vec![],
             vec![],
-            witness(&da_rows(1, 3)).as_ref(),
+            matrix(&da_rows(1, 3)).as_ref(),
             OutputClaims::Only(&unpublished),
             LOG_INV_RATE
         )
@@ -470,7 +470,7 @@ fn a_node_passes_on_one_childs_da_root() {
                 &[],
                 signers.clone(),
                 vec![],
-                witness(&rows).as_ref(),
+                matrix(&rows).as_ref(),
                 OutputClaims::All,
                 LOG_INV_RATE,
             )
@@ -492,7 +492,7 @@ fn a_node_passes_on_one_childs_da_root() {
             &children,
             vec![],
             vec![],
-            witness(blobs).as_ref(),
+            matrix(blobs).as_ref(),
             declare.as_ref().map_or(OutputClaims::All, OutputClaims::Only),
             LOG_INV_RATE,
         )
@@ -506,7 +506,7 @@ fn a_node_passes_on_one_childs_da_root() {
     let rows = da_rows(1, 511);
     assert_eq!(
         pass_on(None, &rows),
-        Some(lean_da::DaWitness::build(&rows).unwrap().top_root())
+        Some(lean_da::BlobMatrix::build(&rows).unwrap().top_root())
     );
 
     // Passed on again, one level up.
@@ -536,7 +536,7 @@ fn forged_da_hints_are_rejected() {
         &[],
         signers.clone(),
         vec![],
-        witness(&da_rows(1, 7)).as_ref(),
+        matrix(&da_rows(1, 7)).as_ref(),
         OutputClaims::All,
         LOG_INV_RATE,
     )
@@ -566,7 +566,7 @@ fn forged_da_hints_are_rejected() {
             std::slice::from_ref(&child),
             vec![],
             vec![],
-            witness(&blobs).as_ref(),
+            matrix(&blobs).as_ref(),
             OutputClaims::All,
             LOG_INV_RATE,
         );
@@ -697,7 +697,7 @@ def main():
     );
     let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
     let blobs = da_rows(3, 101);
-    let witness = lean_da::DaWitness::build(&blobs).unwrap();
+    let witness = lean_da::BlobMatrix::build(&blobs).unwrap();
     let rows: Vec<Codeword> = (0..blobs.len()).map(|i| *witness.row(i).unwrap()).collect();
     assert_eq!(da_root(&rows), witness.top_root());
     let run = |rows: &[Codeword]| {
@@ -729,7 +729,7 @@ def main():
     }
 }
 
-/// The commitment to rows that need not be codewords, rebuilt pairwise as `DaWitness::build` doess it.
+/// The commitment to rows that need not be codewords, rebuilt pairwise as `BlobMatrix::build` doess it.
 fn da_root(rows: &[Codeword]) -> Hash {
     fn root(mut level: Vec<Hash>) -> Hash {
         while level.len() > 1 {
@@ -759,13 +759,13 @@ fn da_row_count_is_a_run_time_parameter() {
             &[],
             signers.clone(),
             vec![],
-            witness(&rows).as_ref(),
+            matrix(&rows).as_ref(),
             OutputClaims::All,
             LOG_INV_RATE,
         )
         .expect("node aggregates");
         node.verify().expect("node verifies");
-        let commitment = lean_da::DaWitness::build(&rows).unwrap().top_root();
+        let commitment = lean_da::BlobMatrix::build(&rows).unwrap().top_root();
         assert_eq!(node.0.da_commitment, Some(commitment), "{n_rows} rows");
     }
 }

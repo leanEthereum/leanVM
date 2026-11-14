@@ -59,9 +59,9 @@ fn report(label: &str, stats: &leanvm_core::cpu::Stats, sig: &EthereumProof, pro
     );
 }
 
-/// The blobs' witness, `None` for no blobs.
-fn witness(blobs: &[lean_da::Blob]) -> Option<lean_da::DaWitness> {
-    (!blobs.is_empty()).then(|| lean_da::DaWitness::build(blobs).expect("at most DA_MAX_ROWS blobs"))
+/// The blobs' matrix, `None` for no blobs.
+fn matrix(blobs: &[lean_da::Blob]) -> Option<lean_da::BlobMatrix> {
+    (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build(blobs).expect("at most DA_MAX_ROWS blobs"))
 }
 
 /// How a benchmark names a leaf of either scheme or of both.
@@ -96,7 +96,7 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
             &[],
             raw_lean_xmss.clone(),
             raw_lean_sphincs.clone(),
-            witness(&blobs).as_ref(),
+            matrix(&blobs).as_ref(),
             OutputClaims::All,
             log_inv_rate,
         )
@@ -249,7 +249,7 @@ fn write_leaves(
             &[],
             all[k * per_leaf..(k + 1) * per_leaf].to_vec(),
             all_lean_sphincs[k * lean_sphincs_per_leaf..(k + 1) * lean_sphincs_per_leaf].to_vec(),
-            witness(&blobs(blobs_per_leaf, k as u64)).as_ref(),
+            matrix(&blobs(blobs_per_leaf, k as u64)).as_ref(),
             OutputClaims::All,
             log_inv_rate,
         )
