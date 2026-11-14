@@ -155,5 +155,130 @@ theorem lowerProgram_ok {p : List TracedFn} {fns : List Lowered} {slots : Array 
       exact ⟨placed, tables, hp, rfl, (slotsHold_spec hs).1, (slotsHold_spec hs).2⟩
     · simp [hs] at h
 
+/-! ## Where a function's code lies -/
+
+/-- A function of the lowered program is a function of the laid out one, with its name and code,
+its frame grown by at most the jump tables' slots. -/
+theorem withTables_split {fns : List Lowered} (slots : Array KVal) {pre post : List Lowered}
+    {f : Lowered} (h : fns = pre ++ f :: post) :
+    ∃ pre' f', (withTables fns slots).1 = pre' ++ f' :: post ∧ f'.name = f.name ∧
+      f'.code = f.code ∧ f.frameSize ≤ f'.frameSize ∧ f'.frameSize ≤ f.frameSize + slots.size := by
+  subst h
+  cases pre with
+  | nil =>
+      simp only [List.nil_append, withTables]
+      split
+      · exact ⟨[], f, rfl, rfl, rfl, Nat.le_refl _, Nat.le_add_right _ _⟩
+      · exact ⟨[_], { f with frameSize := f.frameSize + slots.size }, rfl, rfl, rfl,
+          Nat.le_add_right _ _, Nat.le_refl _⟩
+  | cons m pre =>
+      simp only [List.cons_append, withTables]
+      split
+      · exact ⟨m :: pre, f, rfl, rfl, rfl, Nat.le_refl _, Nat.le_add_right _ _⟩
+      · exact ⟨_ :: _ :: pre, f, rfl, rfl, rfl, Nat.le_refl _, Nat.le_add_right _ _⟩
+
+/-- The laid out functions have distinct names. -/
+theorem withTables_nodup {fns : List Lowered} (slots : Array KVal)
+    (hnd : (fns.map (·.name)).Nodup) (hjt : "__jump_tables" ∉ fns.map (·.name)) :
+    ((withTables fns slots).1.map (·.name)).Nodup := by
+  cases fns with
+  | nil => simp [withTables]
+  | cons m rest =>
+      simp only [withTables]
+      split
+      · exact hnd
+      · simp only [List.map_cons] at hnd hjt ⊢
+        exact List.nodup_cons.mpr ⟨hjt, hnd⟩
+
+/-- The jump tables' slots are no more than the code. -/
+theorem slots_le_total {fns : List Lowered} (slots : Array KVal) (hne : fns ≠ []) :
+    slots.size ≤ totalSize (withTables fns slots).1 + (if slots.isEmpty then slots.size else 0) := by
+  cases fns with
+  | nil => exact absurd rfl hne
+  | cons m rest =>
+      simp only [withTables]
+      split <;> simp
+
+/-- In a list of distinct keys, a member is the one `find?` returns for its key. -/
+theorem find?_of_nodup {α : Type} (key : α → String) : ∀ (l : List α) (x : α),
+    (l.map key).Nodup → x ∈ l → l.find? (fun y => key y == key x) = some x
+  | [], _, _, h => nomatch h
+  | y :: l, x, hnd, h => by
+      rw [List.map_cons, List.nodup_cons] at hnd
+      rcases List.mem_cons.mp h with rfl | h
+      · simp
+      · have hne : key y ≠ key x := fun e => hnd.1 (e ▸ List.mem_map_of_mem h)
+        rw [List.find?_cons_of_neg (by simpa using hne)]
+        exact find?_of_nodup key l x hnd.2 h
+
+/-! ## A function of a compiled program -/
+
+/-- **A function of a compiled program**: its placement, its code in the laid out program, the
+slots its `match`es filled and its places. -/
+structure FnAt {κ : ℕ} (W : World κ) (tf : TracedFn) (pf : Placed) (pre post : List Lowered)
+    (f : Lowered) : Prop where
+  mem : tf ∈ W.p
+  placed : ∃ ti ti', placeFn (loopTable W.p) (sigTable W.p) ti tf = .ok (pf, ti') ∧
+    SharedIn W.slots ti'
+  split : (withTables W.fns W.slots).1 = pre ++ f :: post
+  name : f.name = tf.core.name
+  code : opsOf f.code = blockOps pf.fn.body 0
+  fills : FillsIn W.slots (blockFills tf.core.name pf.fn.body 0)
+  frame : f.frameSize < 2 ^ 64 + W.slots.size
+  locs : W.locs tf.core.name = pf.locs
+
+theorem placeFn_name {loops : Loops} {sigs : Std.HashMap String (ℕ × ℕ)} {t t' : Tables}
+    {tf : TracedFn} {pf : Placed} (h : placeFn loops sigs t tf = .ok (pf, t')) :
+    pf.fn.name = tf.core.name ∧ pf.fn.frameSize < 2 ^ 64 := by
+  obtain ⟨st', -, rfl, -, hlt, -⟩ := placeFn_ok h
+  exact ⟨rfl, hlt⟩
+
+/-- The names of the placed functions are the functions' names. -/
+theorem forall₂_names {loops : Loops} {sigs : Std.HashMap String (ℕ × ℕ)} {t' : Tables} :
+    ∀ {l : List TracedFn} {pls : List Placed},
+      List.Forall₂ (fun tf pf => ∃ ti ti', placeFn loops sigs ti tf = .ok (pf, ti') ∧
+        TablesLe ti' t') l pls → pls.map (·.fn.name) = l.map (·.core.name)
+  | _, _, .nil => rfl
+  | _, _, .cons ⟨_, _, h, _⟩ hrest => by
+      simp only [List.map_cons, (placeFn_name h).1, forall₂_names hrest]
+
+/-- Every function of a compiled program is one. -/
+theorem fnAt_of_mem {κ : ℕ} {W : World κ} (hW : W.Compiled) {tf : TracedFn} (htf : tf ∈ W.p) :
+    ∃ pf pre post f, FnAt W tf pf pre post f := by
+  obtain ⟨placed, tables, hpp, hfns, hfill, hshared⟩ := lowerProgram_ok hW.1
+  obtain ⟨-, -, hnd, hpf⟩ := placeProgram_ok hpp
+  obtain ⟨-, hall⟩ := placeFns_spec _ _ hpf
+  obtain ⟨hlen, hget⟩ := forall₂_getElem hall
+  obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp htf
+  have hi' : i < placed.length := hlen ▸ hi
+  obtain ⟨ti, ti', hplace, hle⟩ := hget i hi hi'
+  have hsplit : W.fns = (placed.take i).map (fun pf => (emitFn pf.fn).1) ++
+      (emitFn placed[i].fn).1 :: (placed.drop (i + 1)).map (fun pf => (emitFn pf.fn).1) := by
+    have e : placed = placed.take i ++ placed[i] :: placed.drop (i + 1) := by
+      rw [← List.drop_eq_getElem_cons hi', List.take_append_drop]
+    rw [hfns]
+    conv_lhs => rw [e]
+    rw [List.map_append, List.map_cons]
+  obtain ⟨pre', f', hs', hname, hcode, -, hframe⟩ := withTables_split W.slots hsplit
+  have hpn := placeFn_name hplace
+  refine ⟨placed[i], pre', _, f', htf, ⟨ti, ti', hplace, hshared.of_le hle⟩, hs', ?_, ?_, ?_, ?_, ?_⟩
+  · rw [hname]
+    exact hpn.1
+  · rw [hcode]
+    exact emitFn_ops _
+  · intro x hx
+    refine hfill x ?_
+    simp only [fillsOf, List.mem_flatMap]
+    refine ⟨placed[i], List.getElem_mem hi', ?_⟩
+    rw [emitFn_fills, hpn.1]
+    exact hx
+  · have : (emitFn placed[i].fn).1.frameSize = placed[i].fn.frameSize := rfl
+    omega
+  · have hplaced : W.placed = placed := by simp [World.placed, hpp]
+    have hnd' : (placed.map (·.fn.name)).Nodup := by rw [forall₂_names hall]; exact hnd
+    have := find?_of_nodup (fun pf : Placed => pf.fn.name) placed placed[i] hnd' (List.getElem_mem hi')
+    simp only [World.locs, hplaced]
+    rw [← hpn.1, this]
+
 end
 end LeanVM.Guest.Backend
