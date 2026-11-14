@@ -8,6 +8,7 @@ publish = false
 workspace = true
 
 [dependencies]
+keccak256.workspace = true
 parallel = { package = "stable_parallel", path = "../parallel" }
 rand = { workspace = true, optional = true }
 
@@ -19,7 +20,6 @@ test-util = ["dep:rand"]
 [dev-dependencies]
 primitives = { package = "stable_primitives", path = ".", features = ["test-util"] }
 bench.workspace = true
-sha3.workspace = true
 
 [[bench]]
 name = "hash_throughput"
