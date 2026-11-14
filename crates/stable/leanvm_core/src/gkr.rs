@@ -175,7 +175,11 @@ fn fold(
         // Every input group of 64 values folds to half an output group.
         let len = values.len().div_ceil(128) * 64;
         if spare.len() < len {
-            *spare = parallel::filled(len, F128::ONE);
+            *spare = if len < 8 * crate::SERIAL_BELOW {
+                vec![F128::ONE; len]
+            } else {
+                parallel::filled(len, F128::ONE)
+            };
         }
         spare.truncate(len);
     }
