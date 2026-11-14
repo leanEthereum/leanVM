@@ -70,8 +70,9 @@ inductive Kind where
 
 /-- One step of an expansion, as placement follows it. -/
 inductive Event where
-  /-- A value is made: the cells `⟨v.path, v.tag, k⟩`, `k < len`. -/
-  | alloc (v : V) (len : Nat) (kind : Kind)
+  /-- A value is made: its cells hold the values `vs`, in order (one value, or the run of a
+  buffer). -/
+  | alloc (vs : List V) (kind : Kind)
   /-- A core statement is emitted; a branch or a `match` after its blocks. -/
   | emit
   /-- A branch or an arm begins. -/
@@ -89,12 +90,16 @@ inductive Event where
   | note (n : Nat)
   deriving Repr, Inhabited
 
-/-- A lowered function: its source as the expansion queued it, its core function and its
-trace. -/
+/-- A lowered function: its core function and its trace, and what the back end takes from its
+source as the expansion queued it: the cells of its returned values and its `loopSource`. -/
 structure TracedFn where
-  src : Source.Func
   core : Core.Fn
   trace : Array Event
+  /-- The cells of its returned values (`returnShapes`). -/
+  rets : Nat
+  /-- `loopSource` of its source: whether a loop helper's frames are reserved in one run, and
+  its constant exit bound. -/
+  loop : Bool × Option Nat
   deriving Inhabited
 
 open LeanVM.Guest.Source in

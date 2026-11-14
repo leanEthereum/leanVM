@@ -168,3 +168,11 @@ srcDir = "cli"
 name = "guest-backend"
 root = "GuestBackend"
 srcDir = "cli"
+
+# The guest as the back end's input with `coreProgram`'s functions (cli/GuestTraced.lean): writes the
+# traces of `LeanVM/Guest/Backend/Guest/`, or checks them and the back end's output on them; not a
+# default target.
+[[lean_exe]]
+name = "guest-traced"
+root = "GuestTraced"
+srcDir = "cli"

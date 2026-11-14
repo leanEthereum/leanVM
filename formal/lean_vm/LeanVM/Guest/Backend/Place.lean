@@ -108,7 +108,7 @@ def isLoopName (f : String) : Bool := f.startsWith "__loop"
 def loopTable (fns : List TracedFn) : Loops :=
   fns.foldl (init := {}) fun table tf =>
     if isLoopName tf.core.name then
-      let (registered, hi) := loopSource tf.src
+      let (registered, hi) := tf.loop
       table.insert tf.core.name ⟨registered, hi⟩
     else table
 
@@ -158,9 +158,9 @@ structure St where
   /-- Set for a `match` the previous one's arms dispatch into: its table and the join cell. -/
   chainIn : Option (Nat × Cell) := none
   /-- The padding run being set. -/
-  padRun : Option (List Seg × Nat) := none
+  padRun : Option (List V) := none
   /-- The message run read in place, whose copies are dropped. -/
-  aliasRun : Option (List Seg × Nat) := none
+  aliasRun : Option (List V) := none
   /-- The constant of each value a `SET` made. -/
   constOf : Std.HashMap V (Nat × Nat) := {}
 
@@ -199,15 +199,15 @@ def bindTo (v : V) (l : Loc) : P Unit := do
   if (← get).locs.contains v then failP "a value placed twice"
   modify fun s => { s with locs := s.locs.insert v l }
 
-/-- Place the `len` values of a run in the cells from `base`. -/
-def bindRun (v : V) (len : Nat) (base : Cell) : P Unit :=
-  (List.range len).forM fun k => bindTo ⟨v.path, v.tag, k⟩ (.cell (base + k))
+/-- Place the values of a run in the cells from `base`. -/
+def bindRun (vs : List V) (base : Cell) : P Unit :=
+  vs.zipIdx.forM fun (v, k) => bindTo v (.cell (base + k))
 
 /-- Place a run in the next free cells (`alloc_stack`). -/
-def takeRun (v : V) (len : Nat) : P Unit := do
+def takeRun (vs : List V) : P Unit := do
   let base := (← get).next
-  bindRun v len base
-  modify fun s => { s with next := base + len }
+  bindRun vs base
+  modify fun s => { s with next := base + vs.length }
 
 /-- The cell of a value held in one. -/
 def cellAt (v : V) : P Cell := do
@@ -365,12 +365,12 @@ def advance : P Unit :=
   modify fun s => { s with pos := s.pos + 1 }
 
 /-- Four message cells already in consecutive frame cells are read in place (`sponge_run`): the
-next statements copy them into the run `v`, cell by cell. -/
-def spongeInPlace (v : V) (len : Nat) (upcoming : List Stmt) : P (Option Cell) := do
+next statements copy them into the run `vs`, cell by cell. -/
+def spongeInPlace (vs : List V) (upcoming : List Stmt) : P (Option Cell) := do
   let st ← get
-  let srcs := (upcoming.take len).zipIdx.filterMap fun
+  let srcs := (upcoming.take vs.length).zipIdx.filterMap fun
     | (.atom (.copy d s), k) =>
-        if d == ⟨v.path, v.tag, k⟩ then
+        if vs[k]? == some d then
           match st.locs[s]? with
           | some (.cell n) => some n
           | _ => none
@@ -379,25 +379,26 @@ def spongeInPlace (v : V) (len : Nat) (upcoming : List Stmt) : P (Option Cell) :
   match srcs with
   | [] => return none
   | base :: _ =>
-      return if len != 0 && srcs.length == len && srcs.zipIdx.all (fun (n, k) => n == base + k)
+      return if vs.length != 0 && srcs.length == vs.length &&
+          srcs.zipIdx.all (fun (n, k) => n == base + k)
         then some base else none
 
 /-- A value is made (`Event.alloc`). -/
-def onAlloc (v : V) (len : Nat) (kind : Kind) (upcoming : List Stmt) : P Unit := do
+def onAlloc (vs : List V) (kind : Kind) (upcoming : List Stmt) : P Unit := do
   match kind with
-  | .cell => takeRun v len
-  | .pooled | .addr => modify fun s => { s with lazy := some (v, kind) }
+  | .cell => takeRun vs
+  | .pooled | .addr => modify fun s => { s with lazy := vs.head?.map (·, kind) }
   | .site => pure ()
-  | .ret => bindRun v len (2 + (← read).argCells)
+  | .ret => bindRun vs (2 + (← read).argCells)
   | .padRun =>
-      takeRun v len
-      modify fun s => { s with padRun := some (v.path, v.tag) }
+      takeRun vs
+      modify fun s => { s with padRun := some vs }
   | .spongeRun =>
-      match ← spongeInPlace v len upcoming with
+      match ← spongeInPlace vs upcoming with
       | some base =>
-          bindRun v len base
-          modify fun s => { s with aliasRun := some (v.path, v.tag) }
-      | none => takeRun v len
+          bindRun vs base
+          modify fun s => { s with aliasRun := some vs }
+      | none => takeRun vs
 
 /-- Take the cells of the values made before the next statement or the end of the block; at most
 `fuel` events. `upcoming` are the statements from the next one on. -/
@@ -405,9 +406,9 @@ def flushN (upcoming : List Stmt) : Nat → P Unit
   | 0 => pure ()
   | fuel + 1 => do
       match ← peek with
-      | some (.alloc v len kind) =>
+      | some (.alloc vs kind) =>
           advance
-          onAlloc v len kind upcoming
+          onAlloc vs kind upcoming
           flushN upcoming fuel
       | some (.use v) =>
           advance
@@ -530,7 +531,7 @@ def placeAtom (a : Atom) : P Unit := do
         let o ← cellAt d
         emitOp (.set o (.const k.1 k.2))
         -- The padding run's cells are pooled constants too (`keccak_pad_run`).
-        if (← get).padRun == some (d.path, d.tag) then
+        if (← get).padRun.any (·.contains d) then
           modify fun s => { s with scope.consts := s.scope.consts.insertIfNew k o }
   | .add d a b =>
       let la ← cellOf a
@@ -556,7 +557,7 @@ def placeAtom (a : Atom) : P Unit := do
         emitOp (.mul la lb (← cellAt d))
   | .copy d s =>
       let ls ← cellOf s
-      if (← get).aliasRun == some (d.path, d.tag) then
+      if (← get).aliasRun.any (·.contains d) then
         -- The copy is dropped: both values are one cell.
         if (← cellAt d) != ls then failP "a dropped copy between two cells"
         return
@@ -901,7 +902,7 @@ structure Placed where
 
 /-- A function's argument and return cells. -/
 def sigOf (tf : TracedFn) : Nat × Nat :=
-  (tf.core.params.length, (tf.src.returnShapes.map Source.Shape.cells).sum)
+  (tf.core.params.length, tf.rets)
 
 /-- The argument and return cells of the program's functions. -/
 def sigTable (fns : List TracedFn) : Std.HashMap String (Nat × Nat) :=

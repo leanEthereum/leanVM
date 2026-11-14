@@ -56,10 +56,11 @@ EDITS = [
      "  queue : Array Func\n  loopCtr : Nat\n  /-- The allocation trace. -/\n  trace : Array Event := #[]\n  deriving Inhabited", 1),
     ("def fresh : M V := do\n  let st ← get\n  set { st with tag := st.tag + 1 }\n",
      "def fresh (kind : Kind := .cell) : M V := do\n  let st ← get\n"
-     "  set { st with tag := st.tag + 1, trace := st.trace.push (.alloc ⟨st.path, st.tag, 0⟩ 1 kind) }\n", 1),
+     "  set { st with tag := st.tag + 1, trace := st.trace.push (.alloc [⟨st.path, st.tag, 0⟩] kind) }\n", 1),
     ("def freshRun (n : Nat) : M (List V) := do\n  let st ← get\n  set { st with tag := st.tag + 1 }\n",
      "def freshRun (n : Nat) (kind : Kind := .cell) : M (List V) := do\n  let st ← get\n"
-     "  set { st with tag := st.tag + 1, trace := st.trace.push (.alloc ⟨st.path, st.tag, 0⟩ n kind) }\n", 1),
+     "  set { st with\n    tag := st.tag + 1\n"
+     "    trace := st.trace.push (.alloc ((List.range n).map fun k => ⟨st.path, st.tag, k⟩) kind) }\n", 1),
     # emissions
     ("  modify fun st => { st with out := st.out.push s, pending := false }",
      "  modify fun st => { st with out := st.out.push s, pending := false, trace := st.trace.push .emit }", 1),
@@ -121,11 +122,12 @@ EDITS = [
     ("            let (fn, queue, loopCtr) ← expandFn p f queue loopCtr\n"
      "            expandQueue p budget (i + 1) queue loopCtr (out.push fn)",
      "            let (fn, queue, loopCtr, trace) ← expandFn p f queue loopCtr\n"
-     "            expandQueue p budget (i + 1) queue loopCtr (out.push ⟨f, fn, trace⟩)", 1),
+     "            expandQueue p budget (i + 1) queue loopCtr (out.push\n"
+     "              ⟨fn, trace, (f.returnShapes.map Shape.cells).sum, Backend.loopSource f⟩)", 1),
     ("/-- Every function the compiler lowers, in its order: `main` first. -/\n"
      "def expandProgram (p : Program) : Except String Core.Program := do",
-     "/-- Every function the compiler lowers, in its order, `main` first: its source as queued, its\n"
-     "core function and its trace. -/\ndef expandProgram (p : Program) : Except String (List Backend.TracedFn) := do", 1),
+     "/-- Every function the compiler lowers, in its order, `main` first: its core function, its trace\n"
+     "and what the back end reads of its source as queued. -/\ndef expandProgram (p : Program) : Except String (List Backend.TracedFn) := do", 1),
     ("\nend\nend LeanVM.Guest.Expand\n", "\nend\nend LeanVM.Guest.Backend.ExpandTrace\n", 1),
 ]
 
