@@ -278,7 +278,7 @@ theorem sharedTable_wp (fs : List String) (st : St) :
     exact hcs ▸ hmem
   · extract_lets first
     exact wp_bind.mpr (wp_set.mpr (wp_pure.mpr ⟨⟨rfl, Sub.refl _, rfl,
-      ⟨fun _ hp => List.mem_cons_of_mem _ hp⟩, rfl⟩, List.mem_cons_self⟩))
+      ⟨List.suffix_cons _ _⟩, rfl⟩, List.mem_cons_self⟩))
 
 include env in
 /-- A fused `match` of calls. -/

@@ -472,7 +472,7 @@ theorem entered_open_wp (x x'' : V) (arms arms'' : List (List Stmt)) (rest'' : L
       exact hl.trans hq5.locs
     · show TablesLe st.tables s6.tables
       rw [h6.tables]
-      exact (TablesLe.of_eq hs.tables).trans ⟨fun p hp => hq5.tables.shared p hp⟩
+      exact (TablesLe.of_eq hs.tables).trans ⟨hq5.tables.shared⟩
     · have hF5 : Sub s5.locs F := h6.locs ▸ hF
       obtain ⟨hp4, ⟨⟨⟨-, h2q⟩, h3q⟩, h4q⟩, -⟩ := hf 0 True (fun _ _ => True) True
         (fun _ _ => True) trivial (hq5.locs.trans hF5) hp (by simp [PStmt.SemList])
@@ -682,10 +682,10 @@ theorem chain_head_lays {H : Prop} (x x' : V) (arms arms' : List (List Stmt)) (r
   refine LaysAt.callT fresh_spec fun join _ => ?_
   refine LaysAt.callT takeHints_spec fun hints _ => ?_
   refine LaysAt.step (R := fun _ => True) (wp_modifyGet.mpr
-    ⟨⟨rfl, Sub.refl _, rfl, ⟨fun _ h => h⟩, rfl⟩, fun _ _ _ => trivial⟩) fun first _ => ?_
+    ⟨⟨rfl, Sub.refl _, rfl, ⟨List.suffix_refl _⟩, rfl⟩, fun _ _ _ => trivial⟩) fun first _ => ?_
   refine LaysAt.callT fresh_spec fun entry _ => ?_
   refine LaysAt.step (R := fun _ => True) (wp_modifyGet.mpr
-    ⟨⟨rfl, Sub.refl _, rfl, ⟨fun _ h => h⟩, rfl⟩, fun _ _ _ => trivial⟩) fun nf _ => ?_
+    ⟨⟨rfl, Sub.refl _, rfl, ⟨List.suffix_refl _⟩, rfl⟩, fun _ _ _ => trivial⟩) fun nf _ => ?_
   refine LaysAt.get_bind ?_
   refine LaysAt.plain fun hpl => ?_
   refine LaysAt.step (R := fun blocks => ArmsSemN Γ fp F ctx C U slots B lx' nf one sfp arms blocks)

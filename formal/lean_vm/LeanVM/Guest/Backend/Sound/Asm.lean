@@ -81,7 +81,7 @@ theorem Layout.ofBits_pow {l : Layout} (hl : l.PowOk) {k : ℕ} (hk : k < u128Bo
       rw [Array.getElem?_eq_none_iff, gpowTable_size]
       omega
     rw [hn, hnone]
-    simp only [ofBits_toNat]
+    simp only [gpowBits_eq, ofBits_toNat]
     exact gpowK_eq hk
 
 /-- A `SET` of `g^k`'s limb writes the word `g^k`. -/
@@ -224,10 +224,6 @@ theorem layout_consecutive (fns : List Lowered) (tb : ℕ) (hnd : (fns.map (·.n
   simp
 
 /-! ## The assembled code -/
-
-/-- A function's resolved code. -/
-def resolvedFn (l : Layout) (pc0 : ℕ) (f : Lowered) : List OffsetInstruction :=
-  f.code.toList.map fun ins => resolveOp l pc0 f.frameSize ins.op
 
 /-- The resolved code of the functions laid out from `pc`. -/
 def resolvedFrom (l : Layout) : List Lowered → ℕ → List OffsetInstruction

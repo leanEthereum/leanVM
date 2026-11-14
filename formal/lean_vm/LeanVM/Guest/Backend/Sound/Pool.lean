@@ -71,7 +71,7 @@ theorem word_limbsOf (c : E) : Guest.word (limbsOf c).1 (limbsOf c).2 = c := by
 
 theorem word_gpow {e : ℕ} (he : e < 2 ^ 128) :
     Guest.word (gpowLimbs e).1 (gpowLimbs e).2 = ofK (addressOfIndex e) := by
-  rw [Guest.word, gpowLimbs, ofBits_toNat, gpowK_eq he, ofK_eq_ofLimbs]
+  rw [Guest.word, gpowLimbs, gpowBits_eq, ofBits_toNat, gpowK_eq he, ofK_eq_ofLimbs]
   rfl
 
 theorem ofK_one : ofK (1 : K) = 1 := map_one (algebraMap K E)

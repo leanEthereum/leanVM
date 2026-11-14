@@ -101,18 +101,33 @@ theorem placeFns_spec {loops : Loops} {sigs : SMap (ℕ × ℕ)} :
       · next pf t1 hpf =>
         split at h
         · cases h
-        · next hsuf =>
-          split at h
-          · cases h
-          · next pfs t2 hrest =>
-            cases h
-            obtain ⟨hle, hall⟩ := placeFns_spec rest t1 hrest
-            have h01 : TablesLe t t1 := by
-              have hs : t.shared <:+ t1.shared := by
-                rw [← List.isSuffixOf_iff_suffix]
-                simpa using hsuf
-              exact ⟨fun p hp => hs.subset hp⟩
-            exact ⟨h01.trans hle, .cons ⟨t, t1, hpf, hle⟩ hall⟩
+        · next pfs t2 hrest =>
+          cases h
+          obtain ⟨hle, hall⟩ := placeFns_spec rest t1 hrest
+          exact ⟨(placeFn_tables hpf).trans hle, .cons ⟨t, t1, hpf, hle⟩ hall⟩
+
+theorem namesDistinct_go : ∀ (l : List String) (seen : SMap Unit), namesDistinct.go l seen = true →
+    l.Nodup ∧ ∀ n ∈ l, seen.get? n = none
+  | [], _, _ => ⟨List.nodup_nil, fun _ h => nomatch h⟩
+  | n :: ns, seen, h => by
+      simp only [namesDistinct.go, Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true] at h
+      obtain ⟨hn, hrest⟩ := h
+      obtain ⟨hnd, hfresh⟩ := namesDistinct_go ns _ hrest
+      have hn' : seen.get? n = none := by simpa [KMap.contains] using hn
+      refine ⟨List.nodup_cons.mpr ⟨fun hm => ?_, hnd⟩, fun m hm => ?_⟩
+      · have := hfresh n hm
+        rw [KMap.get?_insert, ite_eq_left rfl] at this
+        cases this
+      · rcases List.mem_cons.mp hm with rfl | hm
+        · exact hn'
+        · have := hfresh m hm
+          rw [KMap.get?_insert] at this
+          split at this
+          · cases this
+          · exact this
+
+theorem namesDistinct_nodup {l : List String} (h : namesDistinct l = true) : l.Nodup :=
+  (namesDistinct_go l {} h).1
 
 theorem placeProgram_ok {p : List TracedFn} {placed : List Placed} {tables : Tables}
     (h : placeProgram p = .ok (placed, tables)) :
@@ -132,7 +147,8 @@ theorem placeProgram_ok {p : List TracedFn} {placed : List Placed} {tables : Tab
         split at h
         · cases h
         · next h4 =>
-          exact ⟨by simpa using h1, by simpa using h2, by simpa using h3, by simpa using h4, h⟩
+          exact ⟨by simpa using h1, by simpa using h2,
+            namesDistinct_nodup (by simpa using h3), by simpa using h4, h⟩
 
 theorem slotsHold_spec {slots : Array KVal} {fills : List Fill}
     {shared : List (List String × ℕ)} (h : slotsHold slots fills shared = true) :
