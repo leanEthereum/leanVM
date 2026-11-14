@@ -3,6 +3,7 @@
 
 use primitives::field::{F64, div_by_g, mul_by_g};
 use std::collections::HashMap;
+use std::hash::{BuildHasherDefault, Hasher};
 
 pub use isa::{BitsDest, Off, RHint};
 
@@ -27,9 +28,38 @@ pub(crate) const MAX_INDEX: usize = 1 << verifier::MAX_LOG_BYTECODE;
 pub struct GPow {
     pow: Vec<F64>,
     /// `g^k ↦ k` for the announced `k`.
-    index: HashMap<u64, u32>,
+    index: WordMap,
     /// The same for every multiple `k` of `STRIDE` that `pow` covers.
-    coarse: HashMap<u64, u32>,
+    coarse: WordMap,
+}
+
+/// A map for the interpreter's hot lookups, by field element, cell or stream name, which the default hasher would
+/// make cost more than the step that looks them up. The keys are not chosen by an adversary.
+pub(crate) type QuickMap<K, V> = HashMap<K, V, BuildHasherDefault<QuickHasher>>;
+type WordMap = QuickMap<u64, u32>;
+
+/// One multiply per word, FNV-1a over bytes.
+#[derive(Default)]
+pub(crate) struct QuickHasher(u64);
+
+impl Hasher for QuickHasher {
+    fn write(&mut self, bytes: &[u8]) {
+        for &b in bytes {
+            self.0 = (self.0 ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3);
+        }
+    }
+
+    fn write_u32(&mut self, x: u32) {
+        self.write_u64(x.into());
+    }
+
+    fn write_u64(&mut self, x: u64) {
+        self.0 = (self.0 ^ x ^ (x >> 32)).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+    }
+
+    fn finish(&self) -> u64 {
+        self.0
+    }
 }
 
 /// Spacing of the coarse index, and so the most divisions a missed lookup costs.
@@ -40,8 +70,8 @@ impl GPow {
     pub fn new(upto: usize) -> Self {
         let mut g = Self {
             pow: vec![F64::ONE],
-            index: HashMap::new(),
-            coarse: HashMap::from([(F64::ONE.0, 0)]),
+            index: WordMap::default(),
+            coarse: WordMap::from_iter([(F64::ONE.0, 0)]),
         };
         g.grow_to(upto);
         g
