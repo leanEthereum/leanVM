@@ -5,12 +5,24 @@ use primitives::test_rng::Rng;
 use verifier::VerifierError;
 
 use crate::batch_bench::{batch_instance, batch_transcript, commit_stack, open_commitment, scalar_proof};
-use crate::keccak::{BITS, LANE_VARS, LANES, LOCAL_VARS};
-use crate::open::state_words;
+use crate::keccak::{BITS, LANE_VARS, LANES, LOCAL_VARS, along, iota_bit};
 use crate::protocol::{Claim, first_claim};
 use crate::prover::prove_layer;
 use crate::rmfe::PROD_BITS;
 use crate::witness::{BLOCK, BLOCK_LEN, BLOCK_WORDS, Shape, Witness, run_block};
+
+/// The eight words of position `j` in block `g` of the state after `round` rounds.
+fn state_words(witness: &Witness, round: usize, g: usize, j: usize) -> [u64; BLOCK_WORDS] {
+    let block = witness.layer(round, g);
+    std::array::from_fn(|w| {
+        let word = |j: usize| block[j * BLOCK_WORDS + w];
+        if round == 0 {
+            return word(j);
+        }
+        let chi = word(j) ^ (!word(along(j, 1)) & word(along(j, 2)));
+        if j < 64 && iota_bit(round, j) { !chi } else { chi }
+    })
+}
 
 /// The sliced state after `round` rounds.
 fn state_after(witness: &Witness, round: usize) -> Vec<u64> {
