@@ -15,6 +15,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 
+use lean_xmss::internals::*;
 use lean_xmss::*;
 use primitives::{pretty_f64, pretty_integer};
 use rand::rngs::StdRng;

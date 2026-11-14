@@ -23,14 +23,18 @@
 
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
-mod hash;
-pub use hash::*;
-mod wots;
-pub use wots::*;
 mod fors;
-pub use fors::*;
+mod hash;
 mod scheme;
-pub use scheme::*;
+mod wots;
+
+use fors::*;
+use hash::*;
+use internals::*;
+use scheme::*;
+use wots::*;
+
+pub use scheme::{LeanSphincsPublicKey, LeanSphincsSignature, key_gen, sign, verify};
 
 use primitives::hash::permutations;
 
@@ -46,65 +50,16 @@ pub type SecretKey = [u8; SECRET_KEY_LEN];
 /// Hashed before `SK.seed`, so no other scheme derives from the same bytes.
 pub(crate) const SEED_TAG: &[u8] = b"leanSPHINCS";
 
-/// `n`: the security parameter, the length of every hash value, `PK.seed` and node.
-pub const N: usize = 16;
-pub type Digest = [u8; N];
-
 /// number of bytes in a message
 pub const MESSAGE_LEN: usize = 32;
 /// message = [`MESSAGE_LEN`] bytes
 pub type Message = [u8; MESSAGE_LEN];
 
-/// The serialized width of an encoding counter.
-pub const COUNTER_LEN: usize = 4;
-
-// The one-time signature (WOTS+C).
-/// `w`: chunk size in bits.
-pub const W: usize = 2;
-/// `2^w`: one more than the steps of a hash chain.
-pub const CHAIN_LEN: usize = 1 << W;
-/// `v`: code length, one hash chain per chunk.
-pub const V: usize = 64;
-/// `T`: the sum every codeword has. Above the mean `v(2^w-1)/2 = 96`, so
-/// verification walks fewer chain steps and the signer grinds a counter for it.
-pub const TARGET_SUM: usize = 128;
 /// `C_max`: encoding counters tried per one-time signature.
 pub(crate) const MAX_ENCODING_ATTEMPTS: u64 = 1 << 32;
 
-// The hypertree.
-/// `d`: the layers.
-pub const LAYERS: usize = 3;
-/// The height of each layer's trees, bottom first.
-pub const LAYER_HEIGHTS: [usize; LAYERS] = [8, 8, 10];
-/// `h`: the bits of an index, which names a bottom leaf and its FORS instance.
-pub const H: usize = LAYER_HEIGHTS[0] + LAYER_HEIGHTS[1] + LAYER_HEIGHTS[2];
-
-// The few-time signature (FORS).
-/// `k`: the trees of a FORS instance.
-pub const FORS_TREES: usize = 24;
-/// `a`: the height of a FORS tree.
-pub const FORS_HEIGHT: usize = 10;
-
-/// The digest's parts, in bytes (FIPS 205 Algorithm 19): the FORS message
-/// `md`, then the tree index, then the bottom leaf index.
-pub const MD_BYTES: usize = (FORS_TREES * FORS_HEIGHT).div_ceil(8);
-pub const TREE_INDEX_BYTES: usize = (H - LAYER_HEIGHTS[0]).div_ceil(8);
-pub const LEAF_INDEX_BYTES: usize = LAYER_HEIGHTS[0].div_ceil(8);
-/// `m`: the bytes `H_msg` outputs.
-pub const DIGEST_BYTES: usize = MD_BYTES + TREE_INDEX_BYTES + LEAF_INDEX_BYTES;
-/// The `H_msg` calls that give them.
-pub const DIGEST_CALLS: usize = DIGEST_BYTES.div_ceil(32);
-
 /// `PK.seed | PK.root`.
 pub const PUB_KEY_SIZE: usize = 2 * N;
-/// One FORS tree's opening: the secret, then the path.
-pub const FORS_OPENING_SIZE: usize = N + FORS_HEIGHT * N;
-
-/// One layer's signature on trees of height `height`: the counter, the chain
-/// values and the path.
-pub const fn layer_sig_size(height: usize) -> usize {
-    COUNTER_LEN + V * N + height * N
-}
 
 /// number of bytes in a signature
 pub const SIG_SIZE: usize = N
@@ -112,6 +67,96 @@ pub const SIG_SIZE: usize = N
     + layer_sig_size(LAYER_HEIGHTS[0])
     + layer_sig_size(LAYER_HEIGHTS[1])
     + layer_sig_size(LAYER_HEIGHTS[2]);
+
+/// The scheme's parameters and building blocks, for the aggregation guest and the test vectors. Not
+/// the API: that is the crate root.
+pub mod internals {
+    pub use crate::fors::*;
+    pub use crate::hash::*;
+    pub use crate::scheme::{LayerSignature, digest_fields, tree_fold};
+    pub use crate::wots::*;
+    use crate::{LeanSphincsPublicKey, LeanSphincsSignature};
+
+    /// `n`: the security parameter, the length of every hash value, `PK.seed` and node.
+    pub const N: usize = 16;
+    pub type Digest = [u8; N];
+
+    /// The serialized width of an encoding counter.
+    pub const COUNTER_LEN: usize = 4;
+
+    // The one-time signature (WOTS+C).
+    /// `w`: chunk size in bits.
+    pub const W: usize = 2;
+    /// `2^w`: one more than the steps of a hash chain.
+    pub const CHAIN_LEN: usize = 1 << W;
+    /// `v`: code length, one hash chain per chunk.
+    pub const V: usize = 64;
+    /// `T`: the sum every codeword has. Above the mean `v(2^w-1)/2 = 96`, so
+    /// verification walks fewer chain steps and the signer grinds a counter for it.
+    pub const TARGET_SUM: usize = 128;
+
+    // The hypertree.
+    /// `d`: the layers.
+    pub const LAYERS: usize = 3;
+    /// The height of each layer's trees, bottom first.
+    pub const LAYER_HEIGHTS: [usize; LAYERS] = [8, 8, 10];
+    /// `h`: the bits of an index, which names a bottom leaf and its FORS instance.
+    pub const H: usize = LAYER_HEIGHTS[0] + LAYER_HEIGHTS[1] + LAYER_HEIGHTS[2];
+
+    // The few-time signature (FORS).
+    /// `k`: the trees of a FORS instance.
+    pub const FORS_TREES: usize = 24;
+    /// `a`: the height of a FORS tree.
+    pub const FORS_HEIGHT: usize = 10;
+
+    /// The digest's parts, in bytes (FIPS 205 Algorithm 19): the FORS message
+    /// `md`, then the tree index, then the bottom leaf index.
+    pub const MD_BYTES: usize = (FORS_TREES * FORS_HEIGHT).div_ceil(8);
+    pub const TREE_INDEX_BYTES: usize = (H - LAYER_HEIGHTS[0]).div_ceil(8);
+    pub const LEAF_INDEX_BYTES: usize = LAYER_HEIGHTS[0].div_ceil(8);
+    /// `m`: the bytes `H_msg` outputs.
+    pub const DIGEST_BYTES: usize = MD_BYTES + TREE_INDEX_BYTES + LEAF_INDEX_BYTES;
+    /// The `H_msg` calls that give them.
+    pub const DIGEST_CALLS: usize = DIGEST_BYTES.div_ceil(32);
+
+    /// One FORS tree's opening: the secret, then the path.
+    pub const FORS_OPENING_SIZE: usize = N + FORS_HEIGHT * N;
+
+    /// One layer's signature on trees of height `height`: the counter, the chain
+    /// values and the path.
+    pub const fn layer_sig_size(height: usize) -> usize {
+        COUNTER_LEN + V * N + height * N
+    }
+
+    /// `PK.seed`.
+    pub fn pk_seed(pk: &LeanSphincsPublicKey) -> &PkSeed {
+        &pk.pk_seed
+    }
+
+    /// `PK.root`.
+    pub fn pk_root(pk: &LeanSphincsPublicKey) -> &Digest {
+        &pk.root
+    }
+
+    /// `R`.
+    pub fn sig_randomizer(sig: &LeanSphincsSignature) -> &Digest {
+        &sig.randomizer
+    }
+
+    pub fn sig_fors(sig: &LeanSphincsSignature) -> &ForsOpening {
+        &sig.fors
+    }
+
+    /// The layers' signatures, bottom first.
+    pub fn sig_layers(sig: &LeanSphincsSignature) -> &[LayerSignature; LAYERS] {
+        &sig.layers
+    }
+
+    /// Layer `layer`'s path in its tree, from the leaf up.
+    pub fn sig_path(sig: &LeanSphincsSignature, layer: usize) -> &[Digest] {
+        sig.path(layer)
+    }
+}
 
 /// Permutations of one verification: `H_msg`, the FORS leaves and nodes, the
 /// FORS key, the encodings, the chains, the one-time keys and the paths.

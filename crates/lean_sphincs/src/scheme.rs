@@ -15,16 +15,6 @@ pub struct LeanSphincsPublicKey {
 }
 
 impl LeanSphincsPublicKey {
-    #[doc(hidden)]
-    pub fn __pk_seed(&self) -> &PkSeed {
-        &self.pk_seed
-    }
-
-    #[doc(hidden)]
-    pub fn __root(&self) -> &Digest {
-        &self.root
-    }
-
     /// `PK.seed | PK.root`.
     pub fn to_bytes(&self) -> [u8; PUB_KEY_SIZE] {
         let mut out = [0; PUB_KEY_SIZE];
@@ -67,7 +57,7 @@ impl ExpandedKey {
 }
 
 /// What a signature carries for one layer: the one-time signature of what the
-/// layer below gives. Its key's path is [`LeanSphincsSignature::__path`].
+/// layer below gives. Its key's path is [`sig_path`](crate::internals::sig_path).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LayerSignature {
     pub(crate) counter: u32,
@@ -101,26 +91,8 @@ fn path_range(layer: usize) -> std::ops::Range<usize> {
 }
 
 impl LeanSphincsSignature {
-    /// `R`.
-    #[doc(hidden)]
-    pub fn __randomizer(&self) -> &Digest {
-        &self.randomizer
-    }
-
-    #[doc(hidden)]
-    pub fn __fors(&self) -> &ForsOpening {
-        &self.fors
-    }
-
-    /// Bottom first.
-    #[doc(hidden)]
-    pub fn __layers(&self) -> &[LayerSignature; LAYERS] {
-        &self.layers
-    }
-
     /// Layer `layer`'s path in its tree, from the leaf up.
-    #[doc(hidden)]
-    pub fn __path(&self, layer: usize) -> &[Digest] {
+    pub(crate) fn path(&self, layer: usize) -> &[Digest] {
         &self.paths[path_range(layer)]
     }
 
@@ -142,7 +114,7 @@ impl LeanSphincsSignature {
         for (layer, signed) in self.layers.iter().enumerate() {
             put(&signed.counter.to_be_bytes());
             put(signed.wots.as_flattened());
-            put(self.__path(layer).as_flattened());
+            put(self.path(layer).as_flattened());
         }
         debug_assert_eq!(at, SIG_SIZE);
         out
@@ -316,7 +288,7 @@ pub fn verify(pk: &LeanSphincsPublicKey, message: &Message, signature: &LeanSphi
         let Some((_, leaf)) = wots_leaf(pk_seed, &key, &signed, layer_sig.counter, &layer_sig.wots) else {
             return false;
         };
-        signed = tree_fold(pk_seed, &key, leaf, signature.__path(layer), |_| ());
+        signed = tree_fold(pk_seed, &key, leaf, signature.path(layer), |_| ());
     }
     signed == pk.root
 }

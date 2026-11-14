@@ -1,3 +1,4 @@
+use lean_sphincs::internals::*;
 use lean_sphincs::*;
 
 fn seed(x: u8) -> SecretKey {
@@ -10,7 +11,7 @@ fn signatures_verify_and_tampered_ones_do_not() {
     let pk = key_gen(&sk);
     // The seed is SK.seed, and PK.seed = H("leanSPHINCS" || SK.seed || 0) cut to N bytes.
     let derive = |domain: u8| primitives::hash::hash(&[b"leanSPHINCS".as_slice(), &seed(3), &[domain]].concat());
-    assert_eq!(pk.__pk_seed()[..], derive(0)[..N]);
+    assert_eq!(lean_sphincs::internals::pk_seed(&pk)[..], derive(0)[..N]);
     let message: Message = std::array::from_fn(|i| (3 + i) as u8);
     let signature = sign(&sk, &message);
     assert!(verify(&pk, &message, &signature));

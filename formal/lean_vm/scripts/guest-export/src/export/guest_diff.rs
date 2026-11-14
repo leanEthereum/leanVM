@@ -98,7 +98,8 @@ impl Out {
     /// The leaf index, then each layer, bottom first, its randomizer, chain values and path: read off the
     /// signature's bytes (`to_bytes`, in that order), the crate keeping its fields private.
     fn xmss_signature(&mut self, sig: &LeanXmssSignature) {
-        use lean_xmss::{LAYER_HEIGHT, LeafIndex, N, RANDOMIZER_LEN, V};
+        use lean_xmss::LeafIndex;
+        use lean_xmss::internals::{LAYER_HEIGHT, N, RANDOMIZER_LEN, V};
         const LEAF_INDEX_SIZE: usize = size_of::<LeafIndex>();
         let bytes = sig.to_bytes();
         let mut at = Cursor(&bytes[..]);
@@ -115,7 +116,7 @@ impl Out {
     /// The randomizer, each FORS tree's secret and path, then each layer, bottom first, its counter (big endian in
     /// the bytes), chain values and path: read off the signature's bytes (`to_bytes`, in that order).
     fn sphincs_signature(&mut self, sig: &LeanSphincsSignature) {
-        use lean_sphincs::{COUNTER_LEN, FORS_HEIGHT, FORS_TREES, LAYER_HEIGHTS, N, V};
+        use lean_sphincs::internals::{COUNTER_LEN, FORS_HEIGHT, FORS_TREES, LAYER_HEIGHTS, N, V};
         let bytes = sig.to_bytes();
         let mut at = Cursor(&bytes[..]);
         self.bytes(at.take(N));
@@ -125,7 +126,7 @@ impl Out {
         }
         for (layer, height) in LAYER_HEIGHTS.into_iter().enumerate() {
             let counter = u32::from_be_bytes(at.take(COUNTER_LEN).try_into().unwrap());
-            assert_eq!(counter, sig.__layers()[layer].counter());
+            assert_eq!(counter, lean_sphincs::internals::sig_layers(sig)[layer].counter());
             self.n(counter as usize);
             self.digests(at.take(V * N).as_chunks::<N>().0);
             self.digests(at.take(height * N).as_chunks::<N>().0);

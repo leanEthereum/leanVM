@@ -1,3 +1,4 @@
+use lean_xmss::internals::*;
 use lean_xmss::*;
 use rand::{Rng, SeedableRng, rngs::StdRng};
 
@@ -22,7 +23,10 @@ fn full_key_signs_and_verifies() {
     assert!(verify(&pk, &message, &first));
     let other_tree = sign(&sk, &message, other);
     assert!(verify(&pk, &message, &other_tree));
-    assert_ne!(first.__top(), other_tree.__top());
+    assert_ne!(
+        lean_xmss::internals::sig_top(&first),
+        lean_xmss::internals::sig_top(&other_tree)
+    );
     assert_eq!(sign(&sk, &message, 5), first, "signing is deterministic");
     let mut bytes = first.to_bytes();
     bytes[..4].copy_from_slice(&4u32.to_le_bytes());

@@ -92,19 +92,20 @@ fn prove_leaf(signers: &[LeanXmssSigner]) -> Node {
 /// must be the native address's bytes.
 #[test]
 fn guest_addresses_are_the_native_ones() {
-    let cell = |tw| pack_16_bytes(&lean_xmss::address(&tw));
-    let top = cell(lean_xmss::tweak(0, lean_xmss::TOP, 0));
+    let cell = |tw| pack_16_bytes(&lean_xmss::internals::address(&tw));
+    let top = cell(lean_xmss::internals::tweak(0, lean_xmss::internals::TOP, 0));
     for tag in [
-        lean_xmss::TWEAK_CHAIN,
-        lean_xmss::TWEAK_LEAF,
-        lean_xmss::TWEAK_NODE,
-        lean_xmss::TWEAK_MSG,
+        lean_xmss::internals::TWEAK_CHAIN,
+        lean_xmss::internals::TWEAK_LEAF,
+        lean_xmss::internals::TWEAK_NODE,
+        lean_xmss::internals::TWEAK_MSG,
     ] {
         for layer in 0..2 {
             for (hi, lo, step) in [(0u32, 0u32, 0usize), (5, 0x1234_5678, 2), (16, u32::MAX, 0)] {
-                let tw = lean_xmss::tweak(tag, lean_xmss::layer_hi(layer, hi), lo).step(step);
+                let tw = lean_xmss::internals::tweak(tag, lean_xmss::internals::layer_hi(layer, hi), lo).step(step);
                 let fields = F128::new(u64::from(lo) | u64::from(hi) << 32 | (step as u64) << 61, 0);
-                let guest = cell(lean_xmss::tweak(tag, 0, 0)) + fields + if layer == 1 { top } else { F128::ZERO };
+                let guest =
+                    cell(lean_xmss::internals::tweak(tag, 0, 0)) + fields + if layer == 1 { top } else { F128::ZERO };
                 assert_eq!(guest, cell(tw));
             }
         }
@@ -1094,17 +1095,18 @@ fn malformed_raw_signature_is_an_error() {
     let message = message();
     let pk = LeanXmssPublicKey::from_bytes(&[0; lean_xmss::PUB_KEY_SIZE]);
     let randomizer = (0..=u8::MAX)
-        .map(|byte| [byte; lean_xmss::RANDOMIZER_LEN])
+        .map(|byte| [byte; lean_xmss::internals::RANDOMIZER_LEN])
         .find(|r| {
-            let digest = lean_xmss::message_digest(pk.__public_param(), 0, 0, r, &message);
-            lean_xmss::codeword(&digest).is_none()
+            let digest =
+                lean_xmss::internals::message_digest(lean_xmss::internals::pk_public_param(&pk), 0, 0, r, &message);
+            lean_xmss::internals::codeword(&digest).is_none()
         })
         .expect("some randomizer fails the codeword");
     // Leaf index 0, then both layers: the randomizer, zero chain values, a zero path.
     let mut bytes = [0; lean_xmss::SIG_SIZE];
     let layer_size = (lean_xmss::SIG_SIZE - 4) / 2;
-    bytes[4..4 + lean_xmss::RANDOMIZER_LEN].copy_from_slice(&randomizer);
-    bytes[4 + layer_size..][..lean_xmss::RANDOMIZER_LEN].copy_from_slice(&randomizer);
+    bytes[4..4 + lean_xmss::internals::RANDOMIZER_LEN].copy_from_slice(&randomizer);
+    bytes[4 + layer_size..][..lean_xmss::internals::RANDOMIZER_LEN].copy_from_slice(&randomizer);
     let sig = LeanXmssSignature::from_bytes(&bytes);
 
     assert_eq!(
@@ -1133,7 +1135,8 @@ fn malformed_raw_lean_sphincs_signature_is_an_error() {
     let (public_key, signed, signature) = get_lean_sphincs_signers(1).pop().expect("one signer");
     // The bottom layer's counter follows the randomizer and the FORS openings.
     let mut bytes = signature.to_bytes();
-    bytes[lean_sphincs::N + lean_sphincs::FORS_TREES * lean_sphincs::FORS_OPENING_SIZE] ^= 1;
+    bytes[lean_sphincs::internals::N
+        + lean_sphincs::internals::FORS_TREES * lean_sphincs::internals::FORS_OPENING_SIZE] ^= 1;
     let signature = LeanSphincsSignature::from_bytes(&bytes);
     assert!(!lean_sphincs::verify(&public_key, &signed, &signature));
     let raw = vec![(public_key, signed, signature)];

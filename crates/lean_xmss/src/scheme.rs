@@ -14,11 +14,6 @@ pub struct LeanXmssPublicKey {
 }
 
 impl LeanXmssPublicKey {
-    #[doc(hidden)]
-    pub fn __public_param(&self) -> &PublicParam {
-        &self.public_param
-    }
-
     pub fn to_bytes(&self) -> [u8; PUB_KEY_SIZE] {
         let mut out = [0u8; PUB_KEY_SIZE];
         out[..N].copy_from_slice(&self.merkle_root);
@@ -61,16 +56,6 @@ pub struct LeanXmssSignature {
 impl LeanXmssSignature {
     pub fn leaf_index(&self) -> LeafIndex {
         self.leaf_index
-    }
-
-    #[doc(hidden)]
-    pub fn __bottom(&self) -> &LayerSignature {
-        &self.bottom
-    }
-
-    #[doc(hidden)]
-    pub fn __top(&self) -> &LayerSignature {
-        &self.top
     }
 
     pub fn to_bytes(&self) -> [u8; SIG_SIZE] {
