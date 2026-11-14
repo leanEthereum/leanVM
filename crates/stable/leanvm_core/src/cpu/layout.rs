@@ -508,7 +508,7 @@ impl Program {
         // column be allocated at its final length in one pass.
 
         // Every fill writes its column straight into its window of the stack.
-        let mut q = vec![F64::ZERO; l.shape.committed_len()];
+        let mut q = parallel::filled(l.shape.committed_len(), F64::ZERO);
         // An output lane is neither in the stack nor in `q_keccak`, so its values need
         // storage of their own: it carries data for the bus. Every other column `q_keccak`
         // carries ([`Witness::columns`]) is filled through the slot window handed out below.

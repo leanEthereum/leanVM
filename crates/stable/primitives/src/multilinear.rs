@@ -6,7 +6,7 @@
 //! `K`-valued (`F64`) while randomness is `E`-valued (`F128`), so the first
 //! fold of a committed table also lifts it into `E`.
 
-use crate::field::{F64, F128, F128Unreduced, Weights8};
+use crate::field::{F64, F128, F128Unreduced};
 
 /// Multilinear interpolation in one variable over `E`: `lo + t·(lo+hi)`, the
 /// char-2 form of `(1−t)·lo + t·hi`.
@@ -31,9 +31,18 @@ pub fn eq_eval(r: &[F128], x: &[F128]) -> F128 {
 
 /// The `eq(r, ·)` table over `n = r.len()` variables. See [`fill_eq_table`].
 pub fn eq_table(r: &[F128]) -> Vec<F128> {
-    let mut eq = vec![F128::ZERO; 1 << r.len()];
+    let mut eq = zeroed(1 << r.len());
     fill_eq_table(r, F128::ONE, &mut eq);
     eq
+}
+
+/// A zeroed table, allocated in parallel when [`fill_eq_table`] would fill it in parallel.
+fn zeroed(len: usize) -> Vec<F128> {
+    if len < EQ_PAR_LEN {
+        vec![F128::ZERO; len]
+    } else {
+        parallel::filled(len, F128::ZERO)
+    }
 }
 
 /// The `eq(r, ·)` table, built on the calling thread.
@@ -60,7 +69,7 @@ pub fn fill_eq_table(r: &[F128], seed: F128, out: &mut [F128]) {
     }
     let (r_low, r_high) = r.split_at(EQ_LOW_VARS);
     let low = eq_table_serial(r_low);
-    let mut high = vec![F128::ZERO; 1 << r_high.len()];
+    let mut high = zeroed(1 << r_high.len());
     fill_eq_table(r_high, seed, &mut high);
     parallel::chunks_mut(out, low.len(), |h, row| {
         for (o, &l) in row.iter_mut().zip(&low) {
@@ -153,11 +162,6 @@ pub fn mle_eval_par(table: &[F64], point: &[F128]) -> F128 {
     assert!(table.len().is_multiple_of(low.len()));
     let eval = |row: usize| high[row] * dot(&low, &table[row * low.len()..][..low.len()]);
     parallel::map_reduce(table.len() / low.len(), || F128::ZERO, eval, |a, b| a + b)
-}
-
-/// `eq(r, .)` packed eight weights at a time for [`crate::field::dot_base`]. Needs `r.len() >= 3`.
-pub fn packed_eq(r: &[F128]) -> Vec<Weights8> {
-    eq_table(r).as_chunks::<8>().0.iter().map(Weights8::new).collect()
 }
 
 #[cfg(test)]

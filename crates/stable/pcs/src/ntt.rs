@@ -246,7 +246,7 @@ impl AdditiveNttF64 {
 
     /// The codeword of a row-major message held apart, `num_ntts` lanes a row.
     pub(crate) fn encode_rows(&self, msg: &[F64], num_ntts: usize, log_inv_rate: usize) -> Vec<F64> {
-        let mut data = vec![F64::ZERO; msg.len() << log_inv_rate];
+        let mut data = parallel::filled(msg.len() << log_inv_rate, F64::ZERO);
         data[..msg.len()].copy_from_slice(msg);
         self.encode_interleaved_in_place(&mut data, num_ntts, log_inv_rate);
         data
@@ -258,7 +258,7 @@ impl AdditiveNttF64 {
         let msg_rows = msg.len() / n_lanes;
         assert_eq!(msg.len(), n_lanes * msg_rows, "the message is n_lanes lane blocks");
         let rows_per_task = (CHUNK / n_lanes).max(1);
-        let mut data = vec![F64::ZERO; msg.len() << log_inv_rate];
+        let mut data = parallel::filled(msg.len() << log_inv_rate, F64::ZERO);
         parallel::chunks_mut(&mut data, rows_per_task * n_lanes, |i, out| {
             for (k, row) in out.chunks_exact_mut(n_lanes).enumerate() {
                 let r = (i * rows_per_task + k) % msg_rows;

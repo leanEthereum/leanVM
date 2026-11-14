@@ -6,9 +6,6 @@ pub mod bits;
 pub mod field;
 pub mod hash;
 pub mod multilinear;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
-pub mod simd;
-pub mod stream;
 
 #[cfg(feature = "test-util")]
 pub mod test_rng;
@@ -96,12 +93,6 @@ pub fn pretty_f64(value: f64) -> String {
     out
 }
 
-/// Whether the prover rebuilds what a later step reads rather than storing it. On x86 the
-/// stores' memory traffic costs more than the products that rebuild their contents, and every
-/// other target but Apple silicon follows it; on Apple silicon a store-only pass is as cheap as a
-/// read, so the prover stores there.
-pub const REBUILD_OVER_STORE: bool = !cfg!(all(target_arch = "aarch64", target_os = "macos"));
-
 /// `log2` of a power of two (panics otherwise).
 pub fn log2_strict_usize(n: usize) -> usize {
     assert!(n.is_power_of_two(), "not a power of two: {n}");
@@ -131,23 +122,6 @@ unsafe impl<T: Plain, const N: usize> Plain for [T; N] {}
 unsafe impl Plain for field::F64 {}
 // SAFETY: `repr(C)` over two `u64`.
 unsafe impl Plain for field::F128 {}
-// SAFETY: vectors of 16, 32 and 64 bytes with no padding, and every bit pattern is a valid vector.
-#[cfg(target_arch = "x86_64")]
-unsafe impl Plain for core::arch::x86_64::__m128i {}
-#[cfg(target_arch = "x86_64")]
-unsafe impl Plain for core::arch::x86_64::__m256i {}
-#[cfg(target_arch = "x86_64")]
-unsafe impl Plain for core::arch::x86_64::__m512i {}
-// SAFETY: vectors of 8 and 16 bytes with no padding, and every bit pattern is a valid vector.
-#[cfg(target_arch = "aarch64")]
-unsafe impl Plain for core::arch::aarch64::uint32x2_t {}
-#[cfg(target_arch = "aarch64")]
-unsafe impl Plain for core::arch::aarch64::uint8x16_t {}
-#[cfg(target_arch = "aarch64")]
-unsafe impl Plain for core::arch::aarch64::uint32x4_t {}
-#[cfg(target_arch = "aarch64")]
-unsafe impl Plain for core::arch::aarch64::uint64x2_t {}
-
 /// The same bytes as a slice of another plain type.
 ///
 /// # Panics
@@ -173,69 +147,6 @@ pub fn cast_slice_mut<A: Plain, B: Plain>(a: &mut [A]) -> &mut [B] {
     );
     // SAFETY: as `cast_slice`, and the borrow is unique.
     unsafe { core::slice::from_raw_parts_mut(ptr, bytes / core::mem::size_of::<B>()) }
-}
-
-/// The `A` whose bytes start at element `i` of `src`, read unaligned.
-#[inline(always)]
-pub fn load_at<T: Plain, A: Plain>(src: &[T], i: usize) -> A {
-    let rest = &src[i..];
-    assert!(size_of::<A>() <= size_of_val(rest));
-    // SAFETY: the assert keeps the bytes inside `src`, and any bytes of a `Plain` type are
-    // readable and a valid `A`.
-    unsafe { rest.as_ptr().cast::<A>().read_unaligned() }
-}
-
-/// Write `v` over the bytes from element `i` of `dst` on, unaligned.
-#[inline(always)]
-pub fn store_at<T: Plain, A: Plain>(dst: &mut [T], i: usize, v: A) {
-    let rest = &mut dst[i..];
-    assert!(size_of::<A>() <= size_of_val(rest));
-    // SAFETY: the assert keeps the bytes inside `dst`, and any bytes are a valid `Plain` value.
-    unsafe { rest.as_mut_ptr().cast::<A>().write_unaligned(v) }
-}
-
-/// `N` zeroed vectors of the given lengths, filled in place by `fill`. Only plain data is allowed:
-///
-/// ```compile_fail
-/// unsafe { stable_primitives::filled_vecs([1], |_: [&mut [String]; 1]| {}) };
-/// ```
-///
-/// # Safety
-///
-/// None: the vectors start zeroed. The contract callers keep, that `fill` writes every element before it
-/// reads it, is what lets them skip the zeroing.
-#[must_use]
-pub unsafe fn filled_vecs<T: Plain, const N: usize>(lens: [usize; N], fill: impl FnOnce([&mut [T]; N])) -> [Vec<T>; N] {
-    let mut vs = lens.map(zeroed_vec);
-    fill(vs.each_mut().map(|v| &mut v[..]));
-    vs
-}
-
-/// One zeroed vector of `len` elements, filled in place by `fill`: [`filled_vecs`] with `N = 1`.
-///
-/// # Safety
-///
-/// None, as [`filled_vecs`].
-#[must_use]
-pub unsafe fn filled_vec<T: Plain>(len: usize, fill: impl FnOnce(&mut [T])) -> Vec<T> {
-    let mut v = zeroed_vec(len);
-    fill(&mut v);
-    v
-}
-
-/// A vector of `len` zeroed elements.
-///
-/// # Safety
-///
-/// None, as [`filled_vecs`].
-#[must_use]
-pub unsafe fn uninit_vec<T: Plain>(len: usize) -> Vec<T> {
-    zeroed_vec(len)
-}
-
-fn zeroed_vec<T: Plain>(len: usize) -> Vec<T> {
-    // SAFETY: every bit pattern of a `Plain` type is a valid value, all zeros included.
-    vec![unsafe { core::mem::zeroed() }; len]
 }
 
 #[cfg(test)]

@@ -383,7 +383,7 @@ impl Dense {
         let per = self.cols_per_task();
         let FoldChallenges { alpha, beta } = *ch;
         let f = &self.f;
-        let mut next = vec![F128::ZERO; (n_cols + 1) * pairs];
+        let mut next = parallel::filled((n_cols + 1) * pairs, F128::ZERO);
         parallel::chunks_mut(&mut next, per * pairs, |t, out| {
             let first = t * per;
             crate::xmul::mul_x(f, s, 2, first, out);

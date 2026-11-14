@@ -5,8 +5,8 @@ use super::guest::unified_guest;
 use super::hints::SubHints;
 use leanvm_core::cpu::{from_scalar, to_scalar};
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
-use primitives::field::{F64, F64x8, F128, F128x8, Prod8, dot_base};
-use primitives::multilinear::{eq_table, interp, mle_eval_par, packed_eq};
+use primitives::field::{F64, F128, F128Unreduced};
+use primitives::multilinear::{eq_table, interp, mle_eval_par};
 use std::ops::Range;
 
 pub(super) const RECURSION_AGG_LABEL: &[u8] = b"leanvm/recursion-aggregation/v1";
@@ -158,12 +158,11 @@ pub(super) fn bytecode_sums(points: &[Vec<F128>]) -> Vec<Vec<F128>> {
             );
             let partial = parallel::fold_reduce(
                 groups.len(),
-                || vec![Prod8::ZERO; BLOCK / 8],
-                |acc: &mut Vec<Prod8>, g| {
-                    let splats = weights[g].map(F128x8::splat);
-                    for (x, acc) in acc.iter_mut().enumerate() {
-                        for (splat, row) in splats.iter().zip(&groups[g]) {
-                            *acc ^= splat.mul_base_unreduced(F64x8::from_array(&row.as_chunks::<8>().0[x]));
+                || vec![F128Unreduced::ZERO; BLOCK],
+                |acc: &mut Vec<F128Unreduced>, g| {
+                    for (&weight, row) in weights[g].iter().zip(&groups[g]) {
+                        for (acc, &word) in acc.iter_mut().zip(row) {
+                            *acc ^= weight.mul_base_unreduced(word);
                         }
                     }
                 },
@@ -172,7 +171,7 @@ pub(super) fn bytecode_sums(points: &[Vec<F128>]) -> Vec<Vec<F128>> {
                     a
                 },
             );
-            partial.into_iter().flat_map(|p| p.reduce_lanes().to_array()).collect()
+            partial.into_iter().map(F128Unreduced::reduce).collect()
         })
         .collect()
 }
@@ -321,10 +320,14 @@ pub(super) fn aggregate_deferred_claims(
     // The rest: every row against the low challenges, zero outside the populated ones, and each claim's `eq` on
     // the rows, scaled by what its low rows left.
     let (rows, live) = (stacked_bytecode().as_chunks::<BLOCK>().0, bytecode_rows());
-    let low_eq = packed_eq(&r_bc);
+    let low_eq = eq_table(&r_bc);
     let mut bt = vec![F128::ZERO; rows.len()];
     parallel::fill(&mut bt[live.clone()], |i| {
-        dot_base(&low_eq, &rows[live.start + i]).reduce()
+        let row = rows[live.start + i].iter().zip(&low_eq);
+        row.fold(F128Unreduced::ZERO, |sum, (&word, &weight)| {
+            sum ^ weight.mul_base_unreduced(word)
+        })
+        .reduce()
     });
     let mut wt = vec![F128::ZERO; rows.len()];
     for (point, eq_lo) in points.iter().zip(&eq_lo) {

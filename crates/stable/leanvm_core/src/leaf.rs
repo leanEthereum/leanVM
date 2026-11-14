@@ -226,8 +226,8 @@ pub(crate) fn build_leaves(
         formulas.collect::<Vec<_>>()
     });
     // The blocks tile the leaves from zero ([`crate::witness::stack_offsets`]).
-    let mut leaves =
-        sides.map(|(blocks, ..)| vec![F128::ONE; blocks.iter().map(|b| 1 << b.kappa).sum::<usize>().max(1)]);
+    let mut leaves = sides
+        .map(|(blocks, ..)| parallel::filled(blocks.iter().map(|b| 1 << b.kappa).sum::<usize>().max(1), F128::ONE));
     // Every block's real rows, a chunk a task, all in one dispatch.
     let mut tasks = Vec::new();
     for ((side, &(blocks, lay, ..)), formulas) in leaves.iter_mut().zip(&sides).zip(&formulas) {

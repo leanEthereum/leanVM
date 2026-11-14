@@ -8,4 +8,3 @@
 extern crate stable_leanvm_core as leanvm_core;
 mod fixture;
 mod portable_verifier;
-mod whir_query_table;

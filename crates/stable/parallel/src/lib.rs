@@ -467,6 +467,11 @@ pub fn fill<T: Send, F: Fn(usize) -> T + Sync>(dst: &mut [T], build: F) {
 /// Parallel `(0..n_tasks).map(f).collect::<Vec<_>>()`: runs `f(i)` across the
 /// pool and writes each result straight into the output at its own index: one
 /// allocation, no `Option` slots, no per-worker intermediate vectors.
+/// `n` copies of `value`, written in parallel: a large buffer's first pass over memory is spread across the pool.
+pub fn filled<T: Copy + Send + Sync>(n: usize, value: T) -> Vec<T> {
+    map_collect(n, |_| value)
+}
+
 pub fn map_collect<T: Send, F: Fn(usize) -> T + Sync>(n_tasks: usize, f: F) -> Vec<T> {
     let mut out: Vec<T> = Vec::with_capacity(n_tasks);
     let base = SendPtr(out.as_mut_ptr());

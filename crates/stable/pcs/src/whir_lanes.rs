@@ -172,9 +172,8 @@ impl LaneRounds {
         let nt = self.n_terms;
         let (count, len) = (folded.count(), folded.len());
         let n_pairs = count.div_ceil(2);
-        let (mut f, mut g) = (vec![F128::ZERO; n_pairs * len], vec![F128::ZERO; n_pairs * len]);
-        parallel::fill(&mut f, |i| folded.at(2 * (i / len), i % len));
-        parallel::fill(&mut g, |i| folded.at(2 * (i / len) + 1, i % len));
+        let f = parallel::map_collect(n_pairs * len, |i| folded.at(2 * (i / len), i % len));
+        let g = parallel::map_collect(n_pairs * len, |i| folded.at(2 * (i / len) + 1, i % len));
         // `X F` goes in as its two limbs, each a `K` lane.
         let rows = tracing::info_span!("Project", lanes = n_pairs).in_scope(|| {
             self.terms.project_rows(n_pairs, 2, live, |m, blocks, feed| {
@@ -268,8 +267,7 @@ impl LaneRounds {
         );
         let (pairs, ch) = self.folded.as_ref().expect("a fold before the end");
         let folded = self.view(pairs, *ch);
-        let mut lane = vec![F128::ZERO; folded.len()];
-        tracing::info_span!("Lanes").in_scope(|| parallel::fill(&mut lane, |c| folded.at(0, c)));
+        let lane = tracing::info_span!("Lanes").in_scope(|| parallel::map_collect(folded.len(), |c| folded.at(0, c)));
         let w = tracing::info_span!("Lift").in_scope(|| self.terms.lift(&self.a));
         (lane, w)
     }

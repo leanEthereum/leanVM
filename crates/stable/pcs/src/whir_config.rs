@@ -135,19 +135,3 @@ pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig
         queries: queries.to_vec(),
     })
 }
-
-/// The configuration at `m = log_n + LOG_PACKING` bits, which `leanvm_core`'s query-table test asks for: the
-/// verifier's table, as [`config_for_rate`] reads it.
-#[doc(hidden)]
-pub struct WhirSecurityConfig(ProverConfig);
-
-impl WhirSecurityConfig {
-    pub fn derive_config_with_log_inv_rate(m: usize, log_inv_rate: usize) -> Result<Self, String> {
-        let log_n = m.checked_sub(crate::LOG_PACKING).ok_or("m < LOG_PACKING")?;
-        config_for_rate(log_n, log_inv_rate).map(Self)
-    }
-
-    pub fn to_config(&self) -> Result<ProverConfig, String> {
-        Ok(self.0.clone())
-    }
-}

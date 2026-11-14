@@ -1,5 +1,8 @@
 //! Benchmark CLI for signature and blob proofs, recursion, batched Keccak, and the Fibonacci demo.
-#![expect(clippy::duplicate_mod, reason = "each prover gets its own instance of the benchmarks")]
+#![expect(
+    clippy::duplicate_mod,
+    reason = "each prover gets its own instance of the benchmarks"
+)]
 
 #[global_allocator]
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;

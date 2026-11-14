@@ -184,7 +184,7 @@ impl Layer<'_> {
                 out
             })
             .collect();
-        let mut table = vec![F128::ZERO; (2 * BITS * nb) << shape.seg_log()];
+        let mut table = parallel::filled((2 * BITS * nb) << shape.seg_log(), F128::ZERO);
         parallel::chunks_mut(&mut table, 2 * BITS, |i, out| {
             let (segment, g) = (i / nb, i % nb);
             if segment >= self.rounds.len() {
@@ -288,7 +288,7 @@ fn table_round(summand: &Summand, table: &[F128], eq: &[F128]) -> (F128, F128) {
 
 /// Bind the leading variable of a table of rows of positions at `challenge`.
 fn fold_rows(table: &[F128], challenge: F128) -> Vec<F128> {
-    let mut out = vec![F128::ZERO; table.len() / 2];
+    let mut out = parallel::filled(table.len() / 2, F128::ZERO);
     parallel::chunks_mut(&mut out, BITS, |r, row| {
         let (low, high) = table[2 * BITS * r..][..2 * BITS].split_at(BITS);
         for (out, (&l, &h)) in row.iter_mut().zip(low.iter().zip(high)) {

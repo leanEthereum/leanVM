@@ -63,8 +63,7 @@
 
 use fiat_shamir::transcript::ProverState;
 use primitives::bit_fold::{BLOCK, BitFold};
-use primitives::field::xor_into8;
-use primitives::field::{F64, F128, mul4};
+use primitives::field::{F64, F128};
 
 use super::pack::PACKING_WIDTH;
 use super::tensor_algebra::{DEGREE_E, transpose_s_hat};
@@ -288,7 +287,7 @@ impl RingFold {
         }
     }
 
-    /// `out[j] += Phi(e_lo[j] * e_hi)`, 64 products at a time through the bit fold.
+    /// `out[j] += Phi(e_lo[j] * e_hi)`, a block of products at a time through the bit fold.
     #[inline]
     fn fold_products(&self, e_lo: &[F128], e_hi: F128, out: &mut [F128]) {
         debug_assert_eq!(e_lo.len(), out.len());
@@ -296,22 +295,12 @@ impl RingFold {
         let mut folded = [F128::ZERO; BLOCK];
         for (e_lo, out) in e_lo.chunks(BLOCK).zip(out.chunks_mut(BLOCK)) {
             let n = e_lo.len();
-            let (lo4, lo_r) = e_lo.as_chunks::<4>();
-            for (k, e_lo) in lo4.iter().enumerate() {
-                for (j, p) in mul4(*e_lo, [e_hi; 4]).into_iter().enumerate() {
-                    rows[4 * k + j] = p.to_limbs();
-                }
-            }
-            for (j, &e_lo) in lo_r.iter().enumerate() {
-                rows[4 * lo4.len() + j] = (e_lo * e_hi).to_limbs();
+            for (row, &e_lo) in rows.iter_mut().zip(e_lo) {
+                *row = (e_lo * e_hi).to_limbs();
             }
             let rows = primitives::cast_slice::<[u64; 2], [u8; 16]>(&rows);
             self.fold.fold_block(&rows[..n], &mut folded);
-            let (out8, out_r) = out.as_chunks_mut::<8>();
-            for (o, f) in out8.iter_mut().zip(folded.as_chunks::<8>().0) {
-                xor_into8(o, f);
-            }
-            for (o, f) in out_r.iter_mut().zip(&folded[8 * out8.len()..]) {
+            for (o, f) in out.iter_mut().zip(&folded) {
                 *o += *f;
             }
         }

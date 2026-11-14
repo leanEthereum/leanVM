@@ -9,29 +9,12 @@
 //! - [`F128`]: `K[y]/(y^2 + x*y + 1)`
 //! - [`F128Unreduced`]: its deferred-reduction accumulator, for full and mixed products alike
 
-#[cfg(target_arch = "aarch64")]
-pub mod neon;
-
-pub mod f128x8;
 pub mod gf2_64;
 pub mod gf2_64x2;
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx2",
-    target_feature = "vpclmulqdq",
-    not(target_feature = "avx512f")
-))]
-pub mod x4;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
-pub mod x8;
 
-pub use f128x8::{
-    Acc8, F64x8, F128x8, Prod8, fold_lones8_ext, fold_pairs8_ext, msg_lone8_ext, msg_terms8_ext, mul_base_splat8,
-    xor_into8,
-};
 pub use gf2_64::F64;
 use gf2_64::R64;
-pub use gf2_64x2::{F128, F128Unreduced, Weights8, dot_base, mul_unreduced4, mul2, mul4};
+pub use gf2_64x2::{F128, F128Unreduced};
 
 // ---------------------------------------------------------------------------
 // leanVM g-power helpers: domain separators / opcodes as x^k, and the g-power
@@ -75,18 +58,15 @@ pub fn powers(x: F128, n: usize) -> Vec<F128> {
 /// chain across cores.
 pub fn g_powers(n: usize) -> Vec<F64> {
     const CHUNK: usize = 1 << 12;
-    // SAFETY: the fill writes every element before it reads any.
-    unsafe {
-        crate::filled_vec(n, |v| {
-            parallel::chunks_mut(v, CHUNK, |ci, chunk| {
-                let mut acc = g_pow(ci * CHUNK);
-                for slot in chunk.iter_mut() {
-                    *slot = acc;
-                    acc = mul_by_g(acc);
-                }
-            });
-        })
-    }
+    let mut v = parallel::filled(n, F64::ZERO);
+    parallel::chunks_mut(&mut v, CHUNK, |ci, chunk| {
+        let mut acc = g_pow(ci * CHUNK);
+        for slot in chunk.iter_mut() {
+            *slot = acc;
+            acc = mul_by_g(acc);
+        }
+    });
+    v
 }
 
 /// `g^i = x^i` in the monomial basis of `K` by square-and-multiply (`O(log i)`):
