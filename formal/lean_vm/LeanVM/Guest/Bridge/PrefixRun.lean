@@ -224,14 +224,20 @@ theorem prefix_fall {loc : ℕ → ℕ} {body : List Stmt} {code : List OffsetIn
   rw [step_of_fetch_eq_some hfetch] at hstep
   have hr' := ((execute_iff_holds hjmp).mp hstep).2
   refine ⟨hr', ?_⟩
-  obtain ⟨-, off0, hpc0, hal0⟩ := h.linked.top
+  obtain ⟨-, off0, hpc0, p, hal0, as0, hpops, hpos0⟩ := h.linked.top
   rw [hname] at hpc0 hal0
   have h0 : off0 = off := by omega
   rw [h0, hal off hj.le] at hal0
-  obtain ⟨hcs, hlen, hcomp, e', hr, hpos', hI, -, -⟩ := h.track.prefix_hints hpre off (Option.some.inj hal0).symm
-  refine ⟨hcs, hlen, hcomp, e', hr, h.within hr hI ⟨off + 1, ?_, ?_⟩⟩
-  · rw [hI, hname, hpc]; rfl
-  · rw [hI, hname, hal (off + 1) hj, hpos']
+  obtain rfl := Option.some.inj hal0
+  obtain ⟨e1, hm1, hI1, -, hp1, -⟩ := moves_atoms (P := P) (rd := rd) (Is := Is) as0 (done := done) (st := st) hpos0
+  rw [List.flatMap_eq_nil_iff.mpr fun a ha ↦ hpops a ha rd e.σ, List.append_nil] at hm1
+  obtain ⟨hcs, hlen, hcomp, e', hr, hpos', hI, -, -⟩ := (h.track.moves hm1).prefix_hints hpre off hp1
+  have hσ : e1.σ = e.σ := by simp only [Ent.σ, hI1]
+  rw [hσ] at hr
+  refine ⟨hcs, hlen, hcomp, e', hm1.trans hr, h.within (hm1.trans hr) (hI.trans hI1)
+    ⟨off + 1, ?_, prefixPos body d (off + 1), ?_, [], by simp, by simp [hpos']⟩⟩
+  · rw [hI, hI1, hname, hpc]; rfl
+  · rw [hI, hI1, hname, hal (off + 1) hj]
 
 end
 

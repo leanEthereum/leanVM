@@ -229,11 +229,15 @@ def align(F, body, A, locs, plumb_cells, pows, jt, ents, cuts=()):
             else:
                 raise Fail(f'hint {h[0]} cells')
 
+    def fwd_j(i, oc, od, of):
+        t = pc_at(od)
+        return nz(oc) and self_(of) and t is not None and entry + i < t < entry + len(code)
+
     def jump(i, oc, od, of, z, tabs):
         if zero(oc):
             return z, []
         t = pc_at(od)
-        if nz(oc) and self_(of) and t is not None and entry + i < t < entry + len(code):
+        if fwd_j(i, oc, od, of):
             return None, [(t - entry, z)]
         s = zhead(z)
         if s is None:
@@ -314,7 +318,8 @@ def align(F, body, A, locs, plumb_cells, pows, jt, ents, cuts=()):
         if op == '.jump':
             cur, tg = jump(i, a[0], a[1], a[2], z, tabs)
             s = zhead(z)
-            if tg and s is not None and s[0] == 'match' and F['arms'].get(a[1]) is not None:
+            if tg and s is not None and s[0] == 'match' and not fwd_j(i, a[0], a[1], a[2]) and \
+                    F['arms'].get(a[1]) is not None:
                 tabs.insert(0, (F['arms'][a[1]][1], z, min(min(o for o, _ in tg), 1 << 64)))
         else:
             cur, tg = z, []

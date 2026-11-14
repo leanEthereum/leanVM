@@ -12,7 +12,7 @@ public import LeanVM.Guest.Logic
 /-!
 # The tree track along the reference run
 
-The registers `(g^pc, g^fp)` are `regs pc fp`. A frame is **at** pc `pc` (`AtPc`) when `pc` is its function's entry (`ent`, by name) plus an offset whose aligned body position (`al`, by name and offset: the position a function's alignment check computes there) is the frame's. `Linked M ent al pc fp st`: the top frame of the stack `st` is the instance at frame `fp`, at pc `pc`; each frame below is at the registers the header of the frame above holds in the reference memory `M` (`M (fp + 0) = g^r`, `M (fp + 1) = g^fp'`); the bottom one is at frame `0`. `RefOk`: `TrackOk` and `Linked`, the track's invariant against the run.
+The registers `(g^pc, g^fp)` are `regs pc fp`. A frame is **at** pc `pc` (`AtPc`) when `pc` is its function's entry (`ent`, by name) plus an offset whose aligned body position (`al`, by name and offset: the position a function's alignment check computes there) is the frame's past atoms that pop nothing (those the alignment's normalization skips). `Linked M ent al pc fp st`: the top frame of the stack `st` is the instance at frame `fp`, at pc `pc`; each frame below is at the registers the header of the frame above holds in the reference memory `M` (`M (fp + 0) = g^r`, `M (fp + 1) = g^fp'`); the bottom one is at frame `0`. `RefOk`: `TrackOk` and `Linked`, the track's invariant against the run.
 
 `StepRule`: from a state of an invariant `Q` at registers `(pc, fp)`, a step of the reference to registers short of the final ones lands at `regs pc' fp'` with a state of `Q` there, reached by moves. `refTrace`: given that rule and a run of `n` steps to the final registers from a state of `Q`, a trace `tr` of states, the `k`-th at the run's registers after `k` steps for every `k < n`, each reached from the one before by moves. `run_after`: the run past its first `m` steps, so a trace can start at `main`'s entry, after the prologue.
 
@@ -29,9 +29,10 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
 abbrev regs (pc fp : ℕ) : Registers K := ⟨addressOfIndex pc, addressOfIndex fp⟩
 
 /-- **Frame `e` at pc `pc`**: an offset of its function past its entry whose aligned position is
-the frame's. -/
+the frame's past atoms that pop nothing. -/
 def AtPc (ent : String → ℕ) (al : String → ℕ → Option (List Stmt)) (e : Ent) (pc : ℕ) : Prop :=
-  ∃ off, pc = ent e.I.t.name + off ∧ al e.I.t.name off = some e.pos
+  ∃ off, pc = ent e.I.t.name + off ∧ ∃ p, al e.I.t.name off = some p ∧ ∃ as : List Atom,
+    (∀ a ∈ as, ∀ rd σ, a.pops rd σ = []) ∧ e.pos = as.map Stmt.atom ++ p
 
 /-- **The stack at the registers**: the top frame at `(pc, fp)`, each frame below at the registers
 the header of the frame above holds in `M`, the bottom one at frame `0`. -/
@@ -219,24 +220,37 @@ section Ref
 variable {P : Core.Program} {rd : Reader} {Is : List Inst} {T : Tree} {M : ℕ → E} {ent : String → ℕ}
   {al : String → ℕ → Option (List Stmt)}
 
+/-- **A frame moves past the atoms its position starts with**, popping their entries. -/
+theorem moves_atoms : ∀ (as : List Atom) {done : List Pop} {e : Ent} {st : List Ent} {ps : List Stmt},
+    e.pos = as.map Stmt.atom ++ ps → ∃ e', Relation.ReflTransGen (Move P rd Is) (done, e :: st)
+      (done ++ as.flatMap (fun a ↦ a.pops rd e.σ), e' :: st) ∧ e'.I = e.I ∧ e'.fn = e.fn ∧ e'.pos = ps ∧ e'.nb = e.nb
+  | [], done, e, st, ps, h => ⟨e, by simpa using Relation.ReflTransGen.refl, rfl, rfl, by simpa using h, rfl⟩
+  | a :: as, done, e, st, ps, h => by
+    have hm : Move P rd Is (done, e :: st) (done ++ a.pops rd e.σ, e.adv (as.map Stmt.atom ++ ps) 1 :: st) :=
+      .atom (by rw [h]; rfl)
+    obtain ⟨e', h1, h2, h3, h4, h5⟩ := moves_atoms as (done := done ++ a.pops rd e.σ)
+      (e := e.adv (as.map Stmt.atom ++ ps) 1) (st := st) (ps := ps) rfl
+    refine ⟨e', ?_, h2, h3, h4, h5⟩
+    have := Relation.ReflTransGen.head hm h1
+    simpa [List.flatMap_cons, List.append_assoc, Ent.σ, Ent.adv] using this
+
 /-- **The frame-to-instance map**: the top frame is an honest instance, a node of its function, at
 frame `fp`, at an offset of its function aligned with its position. -/
 theorem RefOk.top {pc fp : ℕ} {done : List Pop} {st : List Ent}
     (h : RefOk P rd Is T M ent al pc fp (done, st)) :
-    ∃ e st', st = e :: st' ∧ EntOk P Is e ∧ e.I.fp = fp ∧ ∃ off, pc = ent e.I.t.name + off ∧
-      al e.I.t.name off = some e.pos := by
+    ∃ e st', st = e :: st' ∧ EntOk P Is e ∧ e.I.fp = fp ∧ AtPc ent al e pc := by
   cases st with
   | nil => exact h.linked.elim
   | cons e st' =>
-    obtain ⟨hfp, off, hpc, hal⟩ := h.linked.top
-    exact ⟨e, st', rfl, h.track.ents e List.mem_cons_self, hfp, off, hpc, hal⟩
+    obtain ⟨hfp, hat⟩ := h.linked.top
+    exact ⟨e, st', rfl, h.track.ents e List.mem_cons_self, hfp, hat⟩
 
 /-- **The track starts at the registers of its frame's entry**: a single frame at its body, at
 frame `0`, where the alignment puts its body at offset `0`. -/
 theorem refOk_init {I : Inst} {fn : Fn} (h : TrackOk P rd Is T [] [Ent.enter P I fn]) (hfp : I.fp = 0)
     (hal : al I.t.name 0 = some fn.body) :
     RefOk P rd Is T M ent al (ent I.t.name) 0 ([], [Ent.enter P I fn]) :=
-  ⟨h, hfp, rfl, 0, rfl, hal⟩
+  ⟨h, hfp, rfl, 0, rfl, fn.body, hal, [], by simp, rfl⟩
 
 /-- Moves inside the top frame keep the track against the run, at the new pc. -/
 theorem RefOk.within {pc fp pc' : ℕ} {done done' : List Pop} {e e' : Ent} {st : List Ent}

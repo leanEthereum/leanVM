@@ -122,7 +122,7 @@ theorem normZ_ok {body : List Stmt} : ∀ (f : ℕ) {z z' : Zip}, ZOk body z →
 /-! ## The steps -/
 
 /-- What a step hands on keeps the zippers their cursors'. -/
-def OutOk (body : List Stmt) (r : Option Zip × List (ℕ × Zip)) : Prop :=
+@[expose] def OutOk (body : List Stmt) (r : Option Zip × List (ℕ × Zip)) : Prop :=
   (∀ c ∈ r.1, ZOk body c) ∧ ∀ p ∈ r.2, ZOk body p.2
 
 theorem hintsStep_ok {body : List Stmt} (X : AlignCtx) :
@@ -258,12 +258,14 @@ theorem hintsAt_suffix (pc : ℕ) (hs : List (ℕ × List Prover.Exec.Hint)) {n 
       simp only [Bool.cond_true]
       rw [← List.drop_drop, hd]; rfl
 
-theorem tabReg_ok {body : List Stmt} (X : AlignCtx) (ins : OffsetInstruction) {z : Zip} (hz : ZOk body z)
+theorem tabReg_ok {body : List Stmt} (X : AlignCtx) (i : ℕ) (ins : OffsetInstruction) {z : Zip} (hz : ZOk body z)
     (tg : List (ℕ × Zip)) {tabs : List (ℕ × Zip × ℕ)} (ht : ∀ t ∈ tabs, ZOk body t.2.1) :
-    ∀ t ∈ tabReg X ins z tg tabs, ZOk body t.2.1 := by
-  simp only [tabReg]
+    ∀ t ∈ tabReg X i ins z tg tabs, ZOk body t.2.1 := by
+  simp only [tabReg, Bool.cond_eq_ite]
   split
   · split
+    · exact ht
+    split
     · intro t ht'
       rcases List.mem_cons.mp ht' with rfl | ht'
       · exact hz
@@ -282,7 +284,7 @@ theorem visit_ok {body : List Stmt} {hs0 : List (ℕ × List Prover.Exec.Hint)} 
   obtain ⟨q, hq, rfl⟩ := Option.map_eq_some_iff.mp h
   have hzok := hintsStep_ok X h1 (normZ_ok _ hc hz1) hz
   have hout := insStep_ok X i ins tabs hzok hq
-  refine ⟨⟨hhs, hout.1, fun p hp ↦ ?_, tabReg_ok X ins hzok _ htabs⟩, rfl⟩
+  refine ⟨⟨hhs, hout.1, fun p hp ↦ ?_, tabReg_ok X i ins hzok _ htabs⟩, rfl⟩
   rcases mergeP_mem _ _ hp with hp | hp
   · exact hout.2 p hp
   · exact hrest p hp

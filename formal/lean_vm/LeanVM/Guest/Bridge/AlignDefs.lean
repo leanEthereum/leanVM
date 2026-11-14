@@ -372,12 +372,13 @@ structure St where
 /-- The least offset of arrivals. -/
 def minOff (tg : List (ℕ × Zip)) : ℕ := tg.foldr (fun p m ↦ Nat.min p.1 m) (2 ^ 64)
 
-/-- A `match`'s table jump at the zipper `z`, through the table at `base`, to the arrivals `tg`,
-registered. -/
-noncomputable def tabReg (X : AlignCtx) (ins : OffsetInstruction) (z : Zip) (tg : List (ℕ × Zip))
+/-- A `match`'s table jump at offset `i`, the zipper `z`, through the table at `base`, to the
+arrivals `tg`, registered (not a forward jump in the frame). -/
+noncomputable def tabReg (X : AlignCtx) (i : ℕ) (ins : OffsetInstruction) (z : Zip) (tg : List (ℕ × Zip))
     (tabs : List (ℕ × Zip × ℕ)) : List (ℕ × Zip × ℕ) :=
   match ins, z.cur, tg with
-  | .jump _ od _, .match_ _ _ :: _, _ :: _ => match getF X.arms od with
+  | .jump oc od of, .match_ _ _ :: _, _ :: _ => bif fwdJ X i oc od of then tabs else
+    match getF X.arms od with
     | some a => (a.2, z, minOff tg) :: tabs
     | none => tabs
   | _, _, _ => tabs
@@ -391,7 +392,7 @@ noncomputable def visit (X : AlignCtx) (ins : OffsetInstruction) (i i' : ℕ) (h
     (hs' : List (ℕ × List Prover.Exec.Hint)) (rest : List (ℕ × Zip)) (tabs : List (ℕ × Zip × ℕ)) (c : Zip) :
     Option (St × Option (ℕ × Zip)) :=
   ((normZ X.fuel c).bind (hintsStep X h1)).bind fun z ↦ (insStep X i ins tabs z).map fun r ↦
-    (⟨i', hs', r.1, mergeP r.2 rest, tabReg X ins z r.2 tabs⟩, some (i, c))
+    (⟨i', hs', r.1, mergeP r.2 rest, tabReg X i ins z r.2 tabs⟩, some (i, c))
 
 /-- **One offset of the pass**: the zipper falling in, or else the first arrival pending, normalized
 before its hints; the offset with its zipper, where reached. -/
