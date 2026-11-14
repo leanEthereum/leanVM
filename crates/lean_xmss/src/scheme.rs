@@ -51,8 +51,6 @@ impl LayerSignature {
     }
 }
 
-/// Carries the leaf index it was made at, so a verifier needs only the key and the
-/// message. The top layer's signature is the same for every leaf of a bottom tree.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LeanXmssSignature {
     pub(crate) leaf_index: LeafIndex,
@@ -75,7 +73,6 @@ impl LeanXmssSignature {
         &self.top
     }
 
-    /// The specification's serialization, exactly [`SIG_SIZE`] bytes.
     pub fn to_bytes(&self) -> [u8; SIG_SIZE] {
         let mut out = [0; SIG_SIZE];
         let mut at = 0;
@@ -115,11 +112,8 @@ impl LeanXmssSignature {
     }
 }
 
-/// A [`SecretKey`] with what signing derives from it: the public parameter, the top tree and the
-/// bottom trees it used last.
+/// A [`SecretKey`] with some cached values to make signing faster.
 pub struct LeanXmssExpandedSecretKey {
-    /// The key's seed, which the key serializes and whose [`scheme_seed`] every
-    /// secret derives from.
     key_seed: SecretKey,
     public_param: PublicParam,
     top: LayerTree,
@@ -143,8 +137,7 @@ struct BottomTree {
     top_signature: LayerSignature,
 }
 
-/// The key pair of `key_seed`, the key's entire secret material: draw it from a secure source of
-/// randomness.
+/// computes the expanded secret key (for fast signing), and the public key, from a given secret key
 pub fn key_gen(key_seed: SecretKey) -> (LeanXmssExpandedSecretKey, LeanXmssPublicKey) {
     let seed = scheme_seed(&key_seed);
     let public_param = public_param(&seed);

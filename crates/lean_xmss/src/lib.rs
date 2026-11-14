@@ -36,9 +36,7 @@ pub(crate) type Randomizer = [u8; RANDOMIZER_LEN];
 pub const MESSAGE_LEN: usize = 32;
 pub type Message = [u8; MESSAGE_LEN];
 
-/// The leaf, and so the bottom one-time key, a signature uses: its top 16 bits name
-/// the bottom tree, its low 16 bits the leaf in it. Each leaf index may sign only
-/// one message.
+/// Our double layer XMSS contains 2^32 WOTS. LeafIndex is the type to index each WOTS.
 pub type LeafIndex = u32;
 
 // WOTS+C
@@ -60,10 +58,9 @@ pub(crate) const CHAIN_HASHES: usize = V * (CHAIN_LEN - 1) - TARGET_SUM;
 /// Randomizers tried per layer signature.
 pub(crate) const MAX_RANDOMIZER_TRIALS: u64 = 1 << 32;
 
-// The trees
 /// Height of each layer's tree.
 pub const LAYER_HEIGHT: usize = 16;
-/// Leaf indices of a key, as a logarithm: each signs one message.
+/// log2 of maximum number of signatures you can sign.
 pub const LOG_LIFETIME: usize = 2 * LAYER_HEIGHT;
 
 pub const PUB_KEY_SIZE: usize = N + PUBLIC_PARAM_LEN;
