@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "keccak"
+name = "keccak256"
 version = "0.1.0"
 
 [[package]]
@@ -36,22 +36,31 @@ name = "lean_compiler"
 version = "0.1.0"
 dependencies = [
  "isa",
- "keccak",
+ "keccak256",
  "verifier",
+]
+
+[[package]]
+name = "lean_da"
+version = "0.1.0"
+dependencies = [
+ "isa",
+ "keccak256",
+ "tracing",
 ]
 
 [[package]]
 name = "lean_sphincs"
 version = "0.1.0"
 dependencies = [
- "keccak",
+ "keccak256",
 ]
 
 [[package]]
 name = "lean_xmss"
 version = "0.1.0"
 dependencies = [
- "keccak",
+ "keccak256",
 ]
 
 [[package]]
@@ -59,18 +68,14 @@ name = "leanvm-guest-export"
 version = "0.0.0"
 dependencies = [
  "isa",
- "keccak",
+ "keccak256",
  "lean_compiler",
+ "lean_da",
  "lean_sphincs",
  "lean_xmss",
  "rand",
- "stable_fiat_shamir",
- "stable_keccak_gkr",
- "stable_lean_da",
  "stable_leanvm_core",
- "stable_parallel",
  "stable_pcs",
- "stable_primitives",
  "tracing",
  "verifier",
 ]
@@ -175,16 +180,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "stable_lean_da"
-version = "0.1.0"
-dependencies = [
- "stable_fiat_shamir",
- "stable_pcs",
- "stable_primitives",
- "tracing",
-]
-
-[[package]]
 name = "stable_leanvm_core"
 version = "0.1.0"
 dependencies = [
@@ -217,6 +212,7 @@ dependencies = [
 name = "stable_primitives"
 version = "0.1.0"
 dependencies = [
+ "keccak256",
  "stable_parallel",
 ]
 

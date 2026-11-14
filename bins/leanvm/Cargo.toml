@@ -13,39 +13,18 @@ doc = false
 [lints]
 workspace = true
 
-# The prover crates are reached through `prover!`'s arguments, which cargo-machete, reading sources, cannot see.
-[package.metadata.cargo-machete]
-ignored = [
-    "stable_rec_aggregation",
-    "experimental_rec_aggregation",
-    "stable_leanvm_core",
-    "experimental_leanvm_core",
-    "stable_parallel",
-    "experimental_parallel",
-    "stable_lean_da",
-    "experimental_lean_da",
-    "stable_keccak_gkr",
-    "experimental_keccak_gkr",
-    "stable_primitives",
-    "experimental_primitives",
-]
-
 [dependencies]
-stable_rec_aggregation = { path = "../../crates/stable/rec_aggregation", features = ["signers-cache"] }
-experimental_rec_aggregation = { path = "../../crates/experimental/rec_aggregation", features = ["signers-cache"] }
-stable_leanvm_core = { path = "../../crates/stable/leanvm_core" }
-experimental_leanvm_core = { path = "../../crates/experimental/leanvm_core" }
-stable_parallel = { path = "../../crates/stable/parallel" }
-experimental_parallel = { path = "../../crates/experimental/parallel" }
+isa.workspace = true
+verifier.workspace = true
+rec_aggregation = { workspace = true, features = ["signers-cache"] }
+lean_da.workspace = true
 lean_compiler.workspace = true
-stable_lean_da = { path = "../../crates/stable/lean_da" }
-experimental_lean_da = { path = "../../crates/experimental/lean_da" }
-stable_keccak_gkr = { path = "../../crates/stable/keccak_gkr", features = ["bench"] }
-experimental_keccak_gkr = { path = "../../crates/experimental/keccak_gkr", features = ["bench"] }
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
-stable_primitives = { path = "../../crates/stable/primitives" }
-experimental_primitives = { path = "../../crates/experimental/primitives" }
+stable_leanvm_core = { path = "../../crates/stable/leanvm_core" }
+experimental_leanvm_core = { path = "../../crates/experimental/leanvm_core" }
+stable_keccak_gkr = { path = "../../crates/stable/keccak_gkr", features = ["bench"] }
+experimental_keccak_gkr = { path = "../../crates/experimental/keccak_gkr", features = ["bench"] }
 bench.workspace = true
 rand.workspace = true
 tracing.workspace = true

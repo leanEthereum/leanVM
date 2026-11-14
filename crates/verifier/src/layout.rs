@@ -207,7 +207,7 @@ impl Table {
         self.columns.len()
     }
 
-    fn count_columns(&self) -> impl Iterator<Item = usize> {
+    pub fn count_columns(&self) -> impl Iterator<Item = usize> {
         (0..self.width()).filter(|&i| self.columns[i].starts_with("cnt"))
     }
 }
@@ -301,7 +301,7 @@ fn jump_constraints(columns: &[E]) -> Vec<E> {
 /// The lanes each of a sponge state's thirteen cells holds, `(lo, hi)`, in the even layout or the odd one, `None`
 /// marking a limb that holds no lane: nine rate cells, lanes 0..16 two to a cell then lane 16 in a low limb (even), or
 /// lane 0 in a high limb then lanes 1..17 two to a cell (odd), then the capacity lanes 17..25.
-fn keccak_cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); KECCAK_CELLS] {
+pub fn keccak_cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); KECCAK_CELLS] {
     std::array::from_fn(|cell| match (odd, cell) {
         (_, 9..) | (true, 1..) => (Some(2 * cell - 1), Some(2 * cell)),
         (true, _) => (None, Some(0)),
@@ -388,22 +388,22 @@ const JUMP_COLUMNS: &[&str] = &["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc
 // q_keccak's slots, and the output lanes' claims are the Keccak reduction's claim on the output.
 #[rustfmt::skip]
 const KECCAK_HEAD: &[&str] = &["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out", "out_two", "out_all", "free"];
-const KECCAK_CELLS: usize = 13; // a sponge state, read then written
+pub const KECCAK_CELLS: usize = 13; // a sponge state, read then written
 pub const KECCAK_IN: usize = KECCAK_HEAD.len();
 pub const KECCAK_OUT: usize = KECCAK_IN + STATE_LANES;
-const KECCAK_CNT: usize = KECCAK_OUT + STATE_LANES;
+pub const KECCAK_CNT: usize = KECCAK_OUT + STATE_LANES;
 const KECCAK_CNT_BC: usize = KECCAK_CNT + 2 * KECCAK_CELLS;
 
 /// The local KECCAK column riding spare slot `k` (`cpu::keccak_value` in the prover): its
 /// committed columns in local order, the ones before the value lanes then the read counts
 /// after them.
-const fn spare_local(k: usize) -> usize {
+pub const fn spare_local(k: usize) -> usize {
     if k < KECCAK_IN { k } else { KECCAK_CNT + (k - KECCAK_IN) }
 }
 
 /// Slots of the run the committed states occupy, and the ones they leave over.
-const QKECCAK_SLOTS: usize = STATE_LANES * (crate::hash::ROUNDS / KECCAK_DEPTH);
-const QKECCAK_SPARE: usize = (1 << log2_ceil(QKECCAK_SLOTS as u64)) - QKECCAK_SLOTS;
+pub const QKECCAK_SLOTS: usize = STATE_LANES * (crate::hash::ROUNDS / KECCAK_DEPTH);
+pub const QKECCAK_SPARE: usize = (1 << log2_ceil(QKECCAK_SLOTS as u64)) - QKECCAK_SLOTS;
 // The same guard the prover carries (`cpu::layout`): every spare slot needs a committed column
 // of the table to put in it, distinct from the others and not one of the value lanes. It holds
 // at this depth, not at every divisor of 24, and the two sides must refuse together.
@@ -421,7 +421,7 @@ const _: () = {
 /// lane), or one of the KECCAK table's own columns riding a slot past the committed states.
 /// The reduction weighs nothing on those spare slots, so the stack carries those columns
 /// there rather than a block of zeros and a block of its own.
-fn qkeccak_slot(column: usize) -> Option<usize> {
+pub fn qkeccak_slot(column: usize) -> Option<usize> {
     let local = column.checked_sub(GLOBAL_COLUMN_BASES[OP_KECCAK])?;
     if let Some(k) = (0..QKECCAK_SPARE).find(|&k| spare_local(k) == local) {
         return Some(QKECCAK_SLOTS + k);
@@ -466,7 +466,7 @@ pub fn tables() -> Vec<Table> {
     ]
 }
 
-const TABLE_WIDTHS: [usize; N_TABLES] = [
+pub const TABLE_WIDTHS: [usize; N_TABLES] = [
     ARITH_COLUMNS.len(),
     ARITH_COLUMNS.len(),
     SET_COLUMNS.len(),
@@ -485,7 +485,7 @@ pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
 };
 
 /// Each table's least log height: 0, but the Keccak reduction's block of steps for KECCAK.
-const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG];
+pub const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG];
 
 fn keccak_shape(table_log_heights: &[usize]) -> KeccakShape {
     KeccakShape {

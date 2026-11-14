@@ -7,23 +7,24 @@
 //! are hand-written in `tests/LeanVMTests/Spec/Node.lean`.
 
 use super::*;
+use stable_leanvm_core::Stable;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::fmt::Write as _;
 
-fn element(rng: &mut StdRng) -> F128 {
-    F128::new(rng.random(), rng.random())
+fn element(rng: &mut StdRng) -> E {
+    E::new(rng.random(), rng.random())
 }
 
-fn elements(rng: &mut StdRng, len: usize) -> Vec<F128> {
+fn elements(rng: &mut StdRng, len: usize) -> Vec<E> {
     (0..len).map(|_| element(rng)).collect()
 }
 
-fn e(x: F128) -> String {
+fn e(x: E) -> String {
     format!("e 0x{:x} 0x{:x}", x.c0, x.c1)
 }
 
-fn es(xs: &[F128]) -> String {
+fn es(xs: &[E]) -> String {
     format!("[{}]", xs.iter().map(|&x| e(x)).collect::<Vec<_>>().join(",\n    "))
 }
 
@@ -36,7 +37,7 @@ fn digest(d: &[u8; 32]) -> String {
 }
 
 /// Two cells as a digest (`digestHalves`' inverse).
-fn cells_digest(c: &[F128; 2]) -> String {
+fn cells_digest(c: &[E; 2]) -> String {
     format!("#v[0x{:016x}, 0x{:016x}, 0x{:016x}, 0x{:016x}]", c[0].c0, c[0].c1, c[1].c0, c[1].c1)
 }
 
@@ -97,15 +98,15 @@ pub fn file() -> File {
         bytecode_point: elements(&mut rng, kbcv),
         bytecode_value: element(&mut rng),
     };
-    let seed = leanvm_core::cpu::fs_seed(unified_guest());
+    let seed = fs_seed();
     let statement = statement_digest(&xmss_typed, &sphincs_typed, da, &defer);
 
     // Two children with true claims on the stacked bytecode.
     let subproofs: Vec<DeferredSubproof> = (0..2)
         .map(|_| {
             let point = elements(&mut rng, kbcv);
-            let value = mle_eval_par(stacked_bytecode(), &point);
-            let canonical = |rng: &mut StdRng| F128::new(rng.random(), rng.random());
+            let value = scalar_bytecode().evaluate(&point).unwrap();
+            let canonical = |rng: &mut StdRng| E::new(rng.random(), rng.random());
             DeferredSubproof {
                 public_input: [canonical(&mut rng), canonical(&mut rng)],
                 bytecode_point: point,
@@ -114,22 +115,24 @@ pub fn file() -> File {
         })
         .collect();
     let carried: Vec<DeferredBytecodeClaim> = (0..2)
-        .map(|_| DeferredBytecodeClaim::recompute(elements(&mut rng, kbcv)).unwrap())
+        .map(|_| DeferredBytecodeClaim::recompute_scalar(elements(&mut rng, kbcv)).unwrap())
         .collect();
     // Each child's fresh claim, then its carried one: the batch's order, which its sums follow.
-    let points: Vec<Vec<F128>> = subproofs
+    let points: Vec<Vec<E>> = subproofs
         .iter()
         .zip(&carried)
         .flat_map(|(subproof, carried)| [subproof.bytecode_point.clone(), carried.bytecode_point.clone()])
         .collect();
-    let (hints, batched) = aggregate_deferred_claims(&subproofs, &carried, bytecode_sums(&points))
+    <Stable as isa::Prover>::init();
+    let sums = bytecode_sums::<Stable>(&points);
+    let (hints, batched) = aggregate_deferred_claims::<Stable>(&subproofs, &carried, sums)
         .expect("the honest children's deferred values are the bytecode's evaluations");
     let hint = |name: &str| &hints.iter().find(|(n, _)| *n == name).unwrap().1;
     let msgs = hint("bc_sumcheck_msgs");
     let star = hint("bc_star_hint");
     assert_eq!(star.len(), 1);
     // The batching challenge's grind nonce, then each round's `(g1, g_inf)`: a degree-two round grinds nothing.
-    assert!(BATCH_LAM_GRIND_BITS > 0 && fiat_shamir::grinding_bits(2) == 0);
+    assert!(BATCH_LAM_GRIND_BITS > 0 && verifier::grinding_bits(2) == 0);
     assert_eq!(msgs.len(), 1 + 2 * kbcv);
     let (nonce, msgs) = (msgs[0], &msgs[1..]);
 
@@ -162,7 +165,7 @@ pub fn file() -> File {
         out,
         "/-- A DA claim: a root with the membership challenge the Rust derives from it. -/\ndef daClaim : DaClaim := ⟨{}, {}⟩\n",
         digest(&root),
-        e(from_scalar(challenge))
+        e(challenge)
     )
     .unwrap();
     writeln!(out, "/-- The statement's DA field for it (`verifier::da::digest`). -/\ndef daDigest : Digest := {}\n", digest(&da)).unwrap();
@@ -184,7 +187,7 @@ pub fn file() -> File {
         .iter()
         .zip(&carried)
         .map(|(s, c)| {
-            let fresh: Vec<F128> = s.bytecode_point.clone();
+            let fresh: Vec<E> = s.bytecode_point.clone();
             format!(
                 "⟨{},\n   ⟨{},\n    {}⟩,\n   ⟨{},\n    {}⟩⟩",
                 cells_digest(&s.public_input),

@@ -1,89 +1,87 @@
 //! Benchmark CLI for signature and blob proofs, recursion, batched Keccak, and the Fibonacci demo.
-#![expect(
-    clippy::duplicate_mod,
-    reason = "each prover gets its own instance of the benchmarks"
-)]
 
 #[global_allocator]
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
 
 use clap::{Parser, Subcommand};
+use experimental_leanvm_core::Experimental;
+use stable_leanvm_core::Stable;
 
+mod benchmark;
+mod fibonacci;
 mod report;
 
-/// The aliases one prover module gives the benchmarks, which name its crates as `rec_aggregation`, `leanvm_core`, ...,
-/// beside the crates both provers share.
-macro_rules! prover {
-    ($agg:ident, $core:ident, $par:ident, $da:ident, $gkr:ident, $prim:ident) => {
-        pub use ::lean_compiler;
-        pub use ::lean_sphincs;
-        pub use ::lean_xmss;
-        pub use ::$agg as rec_aggregation;
-        pub use ::$core as leanvm_core;
-        pub use ::$da as lean_da;
-        pub use ::$gkr as keccak_gkr;
-        pub use ::$par as parallel;
-        pub use ::$prim as primitives;
-
-        /// The `hash` subcommand: the Keccak GKR alone, on `2^log_n` permutations.
-        pub fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan) {
-            use leanvm_core::{keccak, pcs};
-            let least = (pcs::MIN_STACKED_LOG - keccak::SLOT_LOG).max(keccak::MIN_STEPS.ilog2() as usize);
-            let most = pcs::MAX_STACKED_LOG - keccak::SLOT_LOG;
-            if !(least..=most).contains(&log_n) {
-                crate::invalid(format!("--log-n must be in {least}..={most}"));
-            }
-            keccak_gkr::batch_bench::run(1 << log_n, keccak::DEPTH, log_inv_rate, plan).print();
-        }
-
-        /// Run the CLI's command on this prover, whose thread pool is the only one started.
-        pub fn run(cli: crate::Cli) {
-            use crate::Command;
-            if let Command::Aggregate { blobs, .. }
-            | Command::Recursion {
-                blobs_per_leaf: blobs,
-                ..
-            } = cli.command
-                && blobs > lean_da::DA_MAX_ROWS
-            {
-                crate::invalid(format!("at most {} blobs", lean_da::DA_MAX_ROWS));
-            }
-            parallel::init();
-            let plan = bench::Plan::new(cli.repeat, cli.cooldown);
-            if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
-                bench::init_tracing();
-            }
-            match cli.command {
-                Command::Aggregate { xmss, sphincs, blobs } => {
-                    benchmark::run_aggregation(xmss, sphincs, blobs, cli.log_inv_rate, plan);
-                }
-                Command::Recursion {
-                    n,
-                    xmss_per_leaf,
-                    sphincs_per_leaf,
-                    blobs_per_leaf,
-                    leaf_log_inv_rate,
-                } => {
-                    benchmark::run_recursion(
-                        n,
-                        xmss_per_leaf,
-                        sphincs_per_leaf,
-                        blobs_per_leaf,
-                        leaf_log_inv_rate.unwrap_or(cli.log_inv_rate),
-                        cli.log_inv_rate,
-                        cli.tracing,
-                        plan,
-                    );
-                }
-                Command::Hash { log_n } => hash(log_n, cli.log_inv_rate, plan),
-                Command::Fibonacci { n } => fibonacci::run_fibonacci(n, cli.log_inv_rate, plan),
-            }
-        }
-    };
+/// A prover as the CLI runs it: the shared crates' [`isa::Prover`], and the Keccak GKR alone, which only its tree has.
+trait CliProver: isa::Prover {
+    /// The `hash` subcommand: the Keccak GKR alone, on `2^log_n` permutations.
+    fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan);
 }
-pub(crate) use prover;
-mod experimental;
-mod stable;
+
+impl CliProver for Stable {
+    fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan) {
+        use stable_leanvm_core::{keccak, pcs};
+        let least = (pcs::MIN_STACKED_LOG - keccak::SLOT_LOG).max(keccak::MIN_STEPS.ilog2() as usize);
+        check_log_n(log_n, least, pcs::MAX_STACKED_LOG - keccak::SLOT_LOG);
+        stable_keccak_gkr::batch_bench::run(1 << log_n, keccak::DEPTH, log_inv_rate, plan).print();
+    }
+}
+
+impl CliProver for Experimental {
+    fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan) {
+        use experimental_leanvm_core::{keccak, pcs};
+        let least = (pcs::MIN_STACKED_LOG - keccak::SLOT_LOG).max(keccak::MIN_STEPS.ilog2() as usize);
+        check_log_n(log_n, least, pcs::MAX_STACKED_LOG - keccak::SLOT_LOG);
+        experimental_keccak_gkr::batch_bench::run(1 << log_n, keccak::DEPTH, log_inv_rate, plan).print();
+    }
+}
+
+fn check_log_n(log_n: usize, least: usize, most: usize) {
+    if !(least..=most).contains(&log_n) {
+        invalid(format!("--log-n must be in {least}..={most}"));
+    }
+}
+
+/// Run the CLI's command on prover `P`, whose thread pool is the only one started.
+fn run<P: CliProver>(cli: Cli) {
+    if let Command::Aggregate { blobs, .. }
+    | Command::Recursion {
+        blobs_per_leaf: blobs, ..
+    } = cli.command
+        && blobs > lean_da::DA_MAX_ROWS
+    {
+        invalid(format!("at most {} blobs", lean_da::DA_MAX_ROWS));
+    }
+    P::init();
+    let plan = bench::Plan::new(cli.repeat, cli.cooldown);
+    if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
+        bench::init_tracing();
+    }
+    match cli.command {
+        Command::Aggregate { xmss, sphincs, blobs } => {
+            benchmark::run_aggregation::<P>(xmss, sphincs, blobs, cli.log_inv_rate, plan);
+        }
+        Command::Recursion {
+            n,
+            xmss_per_leaf,
+            sphincs_per_leaf,
+            blobs_per_leaf,
+            leaf_log_inv_rate,
+        } => {
+            benchmark::run_recursion::<P>(
+                n,
+                xmss_per_leaf,
+                sphincs_per_leaf,
+                blobs_per_leaf,
+                leaf_log_inv_rate.unwrap_or(cli.log_inv_rate),
+                cli.log_inv_rate,
+                cli.tracing,
+                plan,
+            );
+        }
+        Command::Hash { log_n } => P::hash(log_n, cli.log_inv_rate, plan),
+        Command::Fibonacci { n } => fibonacci::run_fibonacci::<P>(n, cli.log_inv_rate, plan),
+    }
+}
 
 /// Which of the two provers runs.
 #[derive(Clone, Copy, clap::ValueEnum)]
@@ -192,7 +190,7 @@ fn invalid(message: String) -> ! {
 fn main() {
     let cli = Cli::parse();
     match cli.prover {
-        Prover::Stable => stable::run(cli),
-        Prover::Experimental => experimental::run(cli),
+        Prover::Stable => run::<Stable>(cli),
+        Prover::Experimental => run::<Experimental>(cli),
     }
 }
