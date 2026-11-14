@@ -36,7 +36,7 @@ use wots::*;
 
 pub use scheme::{LeanSphincsPublicKey, LeanSphincsSignature, key_gen, sign, verify};
 
-use keccak::permutations;
+use keccak256::permutations;
 
 /// You should never sign more than 2^[`LOG_LIFETIME`] different messages, in order to keep
 /// 127 bits of SUF security in the ROM.

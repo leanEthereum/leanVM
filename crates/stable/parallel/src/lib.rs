@@ -1,6 +1,6 @@
 //! Fixed-size thread pool for flat data-parallel kernels.
 //! Workers claim ranges from one shared counter, which also balances cores of different speeds.
-//! Dispatches cannot nest: a dispatch from a pool task panics, and one from a thread a task spawned deadlocks.
+//! Dispatches cannot nest: a dispatch from a pool task panics, and one from a thread a task spawned can deadlock.
 //! Task panics are resumed on the dispatcher after every worker has stopped.
 
 use std::any::Any;
@@ -464,14 +464,14 @@ pub fn fill<T: Send, F: Fn(usize) -> T + Sync>(dst: &mut [T], build: F) {
     for_each_mut(dst, |i, slot| *slot = build(i));
 }
 
-/// Parallel `(0..n_tasks).map(f).collect::<Vec<_>>()`: runs `f(i)` across the
-/// pool and writes each result straight into the output at its own index: one
-/// allocation, no `Option` slots, no per-worker intermediate vectors.
 /// `n` copies of `value`, written in parallel: a large buffer's first pass over memory is spread across the pool.
 pub fn filled<T: Copy + Send + Sync>(n: usize, value: T) -> Vec<T> {
     map_collect(n, |_| value)
 }
 
+/// Parallel `(0..n_tasks).map(f).collect::<Vec<_>>()`: runs `f(i)` across the
+/// pool and writes each result straight into the output at its own index: one
+/// allocation, no `Option` slots, no per-worker intermediate vectors.
 pub fn map_collect<T: Send, F: Fn(usize) -> T + Sync>(n_tasks: usize, f: F) -> Vec<T> {
     let mut out: Vec<T> = Vec::with_capacity(n_tasks);
     let base = SendPtr(out.as_mut_ptr());

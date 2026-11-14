@@ -241,7 +241,7 @@ pub fn layer_root(
     on_children: impl FnMut(&[Digest; 2]),
 ) -> Option<([u8; V], Digest)> {
     let (codeword, leaf) = wots_leaf(pp, layer, e, message, &signature.randomizer, &signature.chain_values)?;
-    let root = keccak::path_fold(leaf, e as usize, &signature.path, on_children, |level, j, children| {
+    let root = keccak256::path_fold(leaf, e as usize, &signature.path, on_children, |level, j, children| {
         node(pp, layer, level, j as u32, children)
     });
     Some((codeword, root))

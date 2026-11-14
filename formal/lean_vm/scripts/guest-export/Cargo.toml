@@ -19,7 +19,7 @@ build = "build.rs"
 # The overlay's sources (`build.rs` copies `rec_aggregation` into `OUT_DIR`) use these, which
 # cargo-machete, reading this crate's own sources, cannot see.
 [package.metadata.cargo-machete]
-ignored = ["fiat_shamir", "isa", "keccak", "keccak_gkr", "parallel", "pcs", "tracing"]
+ignored = ["fiat_shamir", "isa", "keccak256", "keccak_gkr", "parallel", "pcs", "tracing"]
 
 [workspace]
 
@@ -45,7 +45,7 @@ lean_da = { package = "stable_lean_da", path = "../../../../crates/stable/lean_d
 verifier = { path = "../../../../crates/verifier" }
 # The compiler overlay's own dependencies.
 isa = { path = "../../../../crates/isa" }
-keccak = { path = "../../../../crates/keccak" }
+keccak256 = { path = "../../../../crates/keccak256" }
 rand = "0.9"
 tracing = "0.1.26"
 

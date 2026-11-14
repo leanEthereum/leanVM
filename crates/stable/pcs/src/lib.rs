@@ -18,3 +18,6 @@ mod whir_lanes;
 mod xmul;
 
 pub use pack::LOG_PACKING;
+
+// Merkle leaves and the ring switch read words as their bytes, which are the little-endian ones the verifier hashes.
+const _: () = assert!(cfg!(target_endian = "little"));

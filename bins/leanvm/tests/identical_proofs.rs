@@ -1,7 +1,8 @@
-//! The stable and the experimental prover give the same proof of the same statement, byte for byte: a leaf over
-//! signatures of both schemes and blobs, then a recursion node over two leaves.
+//! The stable and the experimental prover give the same proof of the same statement, byte for byte: three leaves (leanXMSS
+//! signatures and blobs, leanSPHINCS signatures, both schemes and blobs) and a recursion node over them, at the four
+//! rates. Both trees' thread pools run in this one process, each idle while the other proves.
 
-/// The proofs one prover gives: the two leaves', then the node's.
+/// The proofs one prover gives: the three leaves', then the node's.
 macro_rules! proofs {
     ($agg:ident, $da:ident, $par:ident) => {{
         use $agg::{OutputClaims, aggregate, signers_cache};
@@ -10,20 +11,24 @@ macro_rules! proofs {
             .map(|i| i.wrapping_mul(0x9e37_79b9_7f4a_7c15))
             .collect();
         let blobs = $da::BlobMatrix::build(symbols.as_chunks().0).unwrap();
-        let xmss = signers_cache::get_signers(3);
-        let sphincs = signers_cache::get_lean_sphincs_signers(1);
-        let left = aggregate(&[], xmss, vec![], Some(&blobs), OutputClaims::All, 1).unwrap();
-        let right = aggregate(&[], vec![], sphincs, None, OutputClaims::All, 2).unwrap();
-        let node = aggregate(
-            &[left.clone(), right.clone()],
-            vec![],
-            vec![],
-            None,
+        let (xmss, sphincs) = (
+            signers_cache::get_signers(5),
+            signers_cache::get_lean_sphincs_signers(2),
+        );
+        let left = aggregate(&[], xmss[..3].to_vec(), vec![], Some(&blobs), OutputClaims::All, 1).unwrap();
+        let right = aggregate(&[], vec![], sphincs[..1].to_vec(), None, OutputClaims::All, 2).unwrap();
+        let mixed = aggregate(
+            &[],
+            xmss[3..].to_vec(),
+            sphincs[1..].to_vec(),
+            Some(&blobs),
             OutputClaims::All,
-            2,
+            3,
         )
         .unwrap();
-        [left, right, node].map(|(_, proof)| proof.to_bytes())
+        let children = [left.clone(), right.clone(), mixed.clone()];
+        let node = aggregate(&children, vec![], vec![], None, OutputClaims::All, 4).unwrap();
+        [left, right, mixed, node].map(|(_, proof)| proof.to_bytes())
     }};
 }
 
@@ -35,7 +40,7 @@ fn stable_and_experimental_proofs_are_identical() {
         experimental_parallel
     );
     let stable = proofs!(stable_rec_aggregation, stable_lean_da, stable_parallel);
-    for (name, (e, s)) in ["left leaf", "right leaf", "node"]
+    for (name, (e, s)) in ["left leaf", "right leaf", "mixed leaf", "node"]
         .iter()
         .zip(experimental.iter().zip(&stable))
     {

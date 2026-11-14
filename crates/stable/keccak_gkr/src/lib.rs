@@ -167,7 +167,8 @@ impl Witness {
     /// Reduce "the committed states follow Keccak-f, to an output satisfying `output`" to
     /// openings of the commitment. `committed` is the WHOLE committed block, spare slots and
     /// all, not just the states [`Witness::generate`] wrote: the openings it leaves are claims
-    /// on all of it, so they fold whatever rides those slots (§cpu).
+    /// on all of it, so they fold whatever rides those slots (§cpu). Its state slots must be the ones this witness
+    /// was built from or wrote: the input opening reads them off `committed`.
     pub fn prove(&self, ps: &mut ProverState, committed: &[F64], output: &OutputClaim) -> Openings {
         let shape = self.shape;
         assert_eq!(

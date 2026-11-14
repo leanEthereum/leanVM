@@ -12,7 +12,7 @@
 //! PCS_RING_CLAIMS    ring-switched claims on the witness's first half [default 0]
 //! BENCH_TRACING      print the final pass's trace tree (`RUST_LOG` adjusts it)
 //!
-//! PCS_LOG_N=24 PCS_LOG_INV_RATE=1 BENCH_REPEAT=5 cargo bench -p pcs --bench throughput
+//! PCS_LOG_N=24 PCS_LOG_INV_RATE=1 BENCH_REPEAT=5 cargo bench -p stable_pcs --bench throughput
 //! ```
 //!
 //! Large `PCS_LOG_N` needs substantial memory: the RS codeword is `2^log_inv_rate`×

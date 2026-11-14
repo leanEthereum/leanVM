@@ -3,7 +3,7 @@
 //! The passes follow [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
 //!
 //! ```text
-//! BENCH_REPEAT=5 cargo bench -p primitives --bench hash_throughput
+//! BENCH_REPEAT=5 cargo bench -p stable_primitives --bench hash_throughput
 //! ```
 
 extern crate stable_primitives as primitives;

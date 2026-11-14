@@ -281,7 +281,7 @@ impl FnLower<'_> {
         padded: bool,
     ) {
         let blocks = match final_len {
-            Some(len) => keccak::permutations(len as usize),
+            Some(len) => keccak256::permutations(len as usize),
             None => (16 * cells.len()).div_ceil(RATE),
         };
         // Block `k` reads the nine cells from `17k / 2`.
@@ -299,9 +299,9 @@ impl FnLower<'_> {
                         "keccak len= {len} ends before message cell {k}, which is not a literal 0"
                     ))
                 }
-                self.xor_byte(&mut cells, len as usize, keccak::PAD_FIRST);
+                self.xor_byte(&mut cells, len as usize, keccak256::PAD_FIRST);
             }
-            self.xor_byte(&mut cells, blocks * RATE - 1, keccak::PAD_LAST);
+            self.xor_byte(&mut cells, blocks * RATE - 1, keccak256::PAD_LAST);
         }
         // Block `k` is read in the layout of its parity, so each block's output is written in
         // the next one's, the last's in the even layout, where the digest is the first two cells.
@@ -692,7 +692,7 @@ const STATE_CELLS: u32 = isa::STATE_CELLS as u32;
 /// The rate cells of a state, the nine a block covers.
 const BLOCK_CELLS: u32 = isa::RATE_CELLS as u32;
 /// Bytes a block absorbs.
-const RATE: usize = keccak::RATE;
+const RATE: usize = keccak256::RATE;
 /// The largest `nbits` a `hint_decompose_*_exponent` accepts. The prover finds the exponent by a baby-step giant-step
 /// search, whose giant steps double with every bit past its table's, so this bounds the witness generation.
 const MAX_EXPONENT_BITS: u32 = 40;
@@ -704,7 +704,7 @@ pub(super) fn two_to_one_close() -> F128 {
 
 /// A cell holding the padding's first byte at its start: `0x01` in the low lane.
 fn keccak_pad_value() -> F128 {
-    F128::new(u64::from(keccak::PAD_FIRST), 0)
+    F128::new(u64::from(keccak256::PAD_FIRST), 0)
 }
 
 /// Where a `keccak` writes: the stack run its instruction targets, the output cells it writes there, and a heap

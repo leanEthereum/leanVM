@@ -2,7 +2,7 @@
 members = [
     "crates/verifier",
     "crates/bench",
-    "crates/keccak",
+    "crates/keccak256",
     "crates/isa",
     "crates/lean_compiler",
     "crates/lean_xmss",
@@ -25,7 +25,7 @@ too_many_arguments = "allow"
 [workspace.dependencies]
 bench = { path = "crates/bench" }
 verifier = { path = "crates/verifier" }
-keccak = { path = "crates/keccak" }
+keccak256 = { path = "crates/keccak256" }
 isa = { path = "crates/isa" }
 lean_compiler = { path = "crates/lean_compiler" }
 lean_xmss = { path = "crates/lean_xmss" }

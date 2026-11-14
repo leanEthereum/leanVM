@@ -13,6 +13,23 @@ doc = false
 [lints]
 workspace = true
 
+# The prover crates are reached through `prover!`'s arguments, which cargo-machete, reading sources, cannot see.
+[package.metadata.cargo-machete]
+ignored = [
+    "stable_rec_aggregation",
+    "experimental_rec_aggregation",
+    "stable_leanvm_core",
+    "experimental_leanvm_core",
+    "stable_parallel",
+    "experimental_parallel",
+    "stable_lean_da",
+    "experimental_lean_da",
+    "stable_keccak_gkr",
+    "experimental_keccak_gkr",
+    "stable_primitives",
+    "experimental_primitives",
+]
+
 [dependencies]
 stable_rec_aggregation = { path = "../../crates/stable/rec_aggregation", features = ["signers-cache"] }
 experimental_rec_aggregation = { path = "../../crates/experimental/rec_aggregation", features = ["signers-cache"] }

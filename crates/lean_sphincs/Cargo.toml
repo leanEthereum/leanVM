@@ -8,5 +8,4 @@ publish = false
 workspace = true
 
 [dependencies]
-keccak.workspace = true
-
+keccak256.workspace = true

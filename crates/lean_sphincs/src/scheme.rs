@@ -7,7 +7,7 @@
 //! tree's root, and the top tree's root is `PK.root`.
 
 use crate::*;
-use keccak::Hasher;
+use keccak256::Hasher;
 
 /// A leanSPHINCS public key: `PK.seed` and `PK.root`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -53,7 +53,7 @@ impl ExpandedKey {
         Self {
             sk_seed: *sk_seed,
             sk_prf: derive(1),
-            pk_seed: keccak::truncate(derive(0)),
+            pk_seed: keccak256::truncate(derive(0)),
         }
     }
 }
@@ -276,7 +276,7 @@ pub fn tree_fold(
     path: &[Digest],
     visit: impl FnMut(&[Digest; 2]),
 ) -> Digest {
-    keccak::path_fold(leaf, key.leaf as usize, path, visit, |z, j, pair| {
+    keccak256::path_fold(leaf, key.leaf as usize, path, visit, |z, j, pair| {
         node(pk_seed, key, z, j, pair)
     })
 }

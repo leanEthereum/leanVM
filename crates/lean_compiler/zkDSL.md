@@ -4,7 +4,7 @@ The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instr
 
 Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `keccak` and `keccak_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
 
-Entry points: `lean_compiler::parse` / `parse_with_replacements` → `lean_compiler::compile` → `leanvm_core::cpu::prove` / `verify`.
+Entry points: `lean_compiler::parse` / `parse_with_replacements` → `lean_compiler::compile`, a `CompiledProgram` (crate `isa`) → `leanvm_core::cpu::Program::from` in either prover tree → `cpu::prove` / `verify`.
 
 ## Dev experience
 
@@ -441,7 +441,7 @@ keccak_cells([18, 19], out, state=st)
 keccak(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=st)
 ```
 
-The hash is Keccak-256 (`primitives::hash::hash`), Ethereum's. A block is 136 bytes, 8.5 cells: block `k` of a message in consecutive cells is the nine cells from `17k / 2`, starting halfway into the first when `k` is odd. The compiler XORs a block's nine cells into the previous output and emits one `KECCAK`, which reads the state in the cell layout of the block's parity and writes it in the next block's, so every XOR is of whole cells. The compiler also places the padding `0x01 ‖ 0^* ‖ 0x80`.
+The hash is Keccak-256 (`keccak256::hash`), Ethereum's. A block is 136 bytes, 8.5 cells: block `k` of a message in consecutive cells is the nine cells from `17k / 2`, starting halfway into the first when `k` is odd. The compiler XORs a block's nine cells into the previous output and emits one `KECCAK`, which reads the state in the cell layout of the block's parity and writes it in the next block's, so every XOR is of whole cells. The compiler also places the padding `0x01 ‖ 0^* ‖ 0x80`.
 
 Both builtins are **statements**: they write into `out` the first cells of the 13-cell sponge state it holds: the whole state for a 13-cell `out`, the digest (its first two cells) for a 2-cell one, its first cell for a 1-cell one. A stack `out` is written in place; a heap one through a stack run of its own size, then copied.
 

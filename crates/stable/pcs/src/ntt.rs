@@ -236,10 +236,14 @@ impl AdditiveNttF64 {
     pub fn encode_interleaved_in_place(&self, data: &mut [F64], num_ntts: usize, log_inv_rate: usize) {
         let (msg, rest) = data.split_at_mut(data.len() >> log_inv_rate);
         let msg = &*msg;
-        let chunk = CHUNK.min(msg.len());
-        parallel::chunks_mut(rest, chunk, |i, out| {
-            let at = i * chunk % msg.len();
-            out.copy_from_slice(&msg[at..at + out.len()]);
+        // A chunk of the replicas may straddle two of them: its copy wraps at the message's end.
+        parallel::chunks_mut(rest, CHUNK, |i, mut out| {
+            let mut at = i * CHUNK % msg.len();
+            while !out.is_empty() {
+                let n = out.len().min(msg.len() - at);
+                out[..n].copy_from_slice(&msg[at..at + n]);
+                (out, at) = (&mut out[n..], 0);
+            }
         });
         self.transform(data, num_ntts, log_inv_rate);
     }
@@ -331,6 +335,9 @@ mod tests {
             (14, 5, 1),
             (16, 2, 4),
             (4, 2, 4),
+            (14, 5, 2),
+            (11, 37, 2),
+            (13, 40, 4),
         ] {
             let context = format!("log_d={log_d}, lanes={lanes}, rate={rate}");
             let msg = random(&mut rng, (lanes << log_d) >> rate);

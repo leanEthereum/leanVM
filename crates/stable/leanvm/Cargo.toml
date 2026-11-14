@@ -1,5 +1,5 @@
 [package]
-name = "stable_leanvm"
+name = "leanvm"
 version.workspace = true
 edition.workspace = true
 
@@ -13,4 +13,3 @@ parallel = { package = "stable_parallel", path = "../parallel" }
 lean_da = { package = "stable_lean_da", path = "../lean_da" }
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
-

@@ -7,7 +7,7 @@
 //! decomposed into evaluation claims on the committed columns. Tuple coordinates
 //! `σ_i` are `K`-valued (column entries, g-powers, separators); the fingerprint
 //! challenges `α, β` are `E`-valued, so a leaf accumulates via the mixed `mul_base`
-//! product (2 PMULL per coordinate).
+//! product.
 
 use crate::gkr;
 use crate::transcript::ProverState;

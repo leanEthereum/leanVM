@@ -6,8 +6,8 @@
 //! Leaves and every layer are `E`-valued (the bus fingerprints mix `K`-columns
 //! into `E` upstream, [`crate::leaf`]).
 //!
-//! A tree's leaves are a prefix of its `2^μ`, the rest the identity, and every level is held the same way: the
-//! values up to the last non-identity one, rounded up to whole pairs of rows. An identity pair of rows adds only
+//! A tree's leaves are a prefix of its `2^μ` (every block's rows, padding rows included), the rest the identity, and
+//! every level is held the same way: a prefix covering every non-identity value, rounded up to whole pairs of rows. An identity pair of rows adds only
 //! its eq weight to a round polynomial's constant, which never travels, and folds to an identity row, so no
 //! round reads or writes past the held prefix.
 

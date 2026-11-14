@@ -1,7 +1,7 @@
 //! Standalone batch Keccak proving with the GKR protocol, isolated from the VM.
 //!
 //! ```text
-//! BENCH_REPEAT=3 BENCH_COOLDOWN=2 KECCAK_N_LOG=18 cargo bench -p keccak_gkr --bench hash_batch
+//! BENCH_REPEAT=3 BENCH_COOLDOWN=2 KECCAK_N_LOG=18 cargo bench -p experimental_keccak_gkr --bench hash_batch
 //! ```
 //!
 //! With `-- --json` it prints, in place of the report, the proving time as Bencher Metric

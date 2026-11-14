@@ -1,5 +1,5 @@
 [package]
-name = "keccak"
+name = "keccak256"
 version.workspace = true
 edition.workspace = true
 publish = false

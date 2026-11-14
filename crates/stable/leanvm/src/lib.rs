@@ -3,7 +3,7 @@
 //! - leanSPHINCS (stateless, for the execution layer)
 //! - leanDA (PQ blobs)
 //!
-//! Example: [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
+//! Example: [`crates/stable/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/stable/leanvm/tests/api.rs).
 
 pub use rec_aggregation::{
     AggregateClaims, AggregateError, AggregateProof, LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS, OutputClaims,

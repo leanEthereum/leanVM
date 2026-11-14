@@ -7,4 +7,3 @@ description = "Fixed-size thread pool for flat data-parallel kernels"
 
 [lints]
 workspace = true
-

@@ -17,6 +17,7 @@
 //! the lanes the VM reads, and the output is the permutation's, written as it is.
 
 use crate::transcript::ProverState;
+use keccak_gkr::witness::{BLOCK, block_lanes};
 use keccak_gkr::{Openings, OutputClaim, Shape, Witness};
 use primitives::field::{F64, F128};
 use primitives::hash::STATE_LANES;
@@ -141,7 +142,11 @@ pub(crate) fn place(inputs: &[[u64; STATE_LANES]], q_keccak: &mut [F64]) -> Redu
         shape.slots() * shape.n(),
         "the committed states are the wrong size"
     );
-    Witness::generate(shape, inputs, q_keccak);
+    // Only the committed lanes of each block: the reduction rebuilds the rounds from the column.
+    let lanes = parallel::map_collect(inputs.len().div_ceil(BLOCK), |g| {
+        block_lanes(shape.depth(), &inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())])
+    });
+    Witness::write_committed(shape, &lanes, q_keccak);
     Reduction {
         shape,
         steps: inputs.len(),

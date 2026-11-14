@@ -270,7 +270,7 @@ jobs:
             echo changed=true >> "$GITHUB_OUTPUT"
           # `LeanVM.lean` proves `Statement.Theorems` with the other projects' end theorems, so it
           # builds all of them.
-          elif git diff --name-only "$BASE" HEAD -- formal crates Cargo.toml Cargo.lock \
+          elif git diff --name-only "$BASE" HEAD -- formal crates guests Cargo.toml Cargo.lock \
               .github/workflows/lean.yml | grep -q .; then
             echo changed=true >> "$GITHUB_OUTPUT"
           else

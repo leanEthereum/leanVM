@@ -1,4 +1,3 @@
-extern crate stable_leanvm as leanvm;
 use leanvm::*;
 
 const MSG_0: lean_xmss::Message = [0; lean_xmss::MESSAGE_LEN];

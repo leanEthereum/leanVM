@@ -59,7 +59,7 @@ pub enum Op {
     },
     /// `KECCAK`: the Keccak-f\[1600\] permutation of a 25-lane state held in thirteen cells,
     /// read in the layout `in_odd` names and written to consecutive cells from `out` in the layout
-    /// `out_odd` names ((each prover's `keccak::cell_lanes`)): the first `out_cells` of the thirteen output
+    /// `out_odd` names (each prover's `keccak::cell_lanes`): the first `out_cells` of the thirteen output
     /// cells, the others left untouched. The cells read are four
     /// independently addressed cells `m`, four consecutive cells from `tail`, the cell `b8`, and
     /// four consecutive cells from `cap` (the capacity lanes 17..25).
