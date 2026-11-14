@@ -104,12 +104,13 @@ pub mod reference {
         acc
     }
 
-    /// Schoolbook over `K[y]/(y² + xy + 1)`: three coefficients, then `y² = xy + 1`.
+    /// Schoolbook over `K[y]/(y² + xy + 1)`: three coefficients, then `y² = xy + 1`, so the
+    /// high-limb product lands on the constant and, times `x`, on the `y` coefficient.
     pub fn mul_e(a: F128, b: F128) -> F128 {
         let (a0, a1) = (a.c0, a.c1);
         let (b0, b1) = (b.c0, b.c1);
         let p = mul_k(a1, b1);
-        F128::new(mul_k(a0, b0) ^ mul_k(2, p), mul_k(a0, b1) ^ mul_k(a1, b0) ^ mul_k(2, p))
+        F128::new(mul_k(a0, b0) ^ p, mul_k(a0, b1) ^ mul_k(a1, b0) ^ mul_k(2, p))
     }
 
     pub fn pow_e(a: F128, mut e: u128) -> F128 {

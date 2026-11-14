@@ -41,7 +41,7 @@ pub fn stream_position(len: usize, src: &mut Source) -> usize {
 pub fn perturb(x: F128, src: &mut Source) -> F128 {
     match src.below(9) {
         0 => {
-            let limb = src.below(3);
+            let limb = src.below(2);
             let bit = 1u64 << src.below(64);
             let mut limbs = x.to_limbs();
             limbs[limb] ^= bit;

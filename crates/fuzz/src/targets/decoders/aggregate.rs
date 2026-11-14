@@ -99,13 +99,13 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     let expect = {
         let header = bytes.get(..8).map(|h| u64::from_le_bytes(h.try_into().unwrap()));
         let body = header
-            .and_then(|c| usize::try_from(c).ok()?.checked_mul(24))
+            .and_then(|c| usize::try_from(c).ok()?.checked_mul(16))
             .filter(|&l| l <= bytes.len() - 8);
         match body {
             None => Expect::Encoding,
             Some(_) if !valid_set => Expect::SignerSet,
             Some(l) if leanvm_core::cpu::Proof::from_bytes(&bytes[8 + l..]).is_none() => Expect::Encoding,
-            Some(l) if l / 24 != n => Expect::Claim,
+            Some(l) if l / 16 != n => Expect::Claim,
             Some(_) => Expect::Ok,
         }
     };

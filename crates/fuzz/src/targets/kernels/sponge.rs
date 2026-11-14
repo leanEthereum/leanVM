@@ -218,9 +218,9 @@ fn grinding(src: &mut Source, ctx: &Ctx) -> Outcome {
             format!("nonce {n} for {bits} bits, but {smaller} also clears them: grinding must pick the smallest"),
         ));
     }
-    // After the grind the state has absorbed the nonce and drawn one challenge.
+    // After the grind the state has absorbed the nonce; the permutation it forces is what
+    // `ground` hands to the next sample, so the ref duplexes once, on the check itself.
     want.absorb(F128::new(n, 0), NONCE);
-    want.duplex();
     let mut after = ProverState::new(iv.map(F64), [F64::ZERO; 4]);
     for &x in &proof.stream[..proof.stream.len() - 1] {
         after.add_scalar(x);
@@ -285,9 +285,9 @@ fn da_challenge(src: &mut Source, ctx: &Ctx) -> Outcome {
         digest_words(&root),
     );
     check!(
-        fs.sample() == z,
+        fs.grind(bits) == Some(n) && fs.sample() == z,
         "FiatShamirState",
-        "the DA challenge differs from the verifier's sponge"
+        "the prover's grind does not give the DA challenge of the verifier's sponge"
     );
     let tail: Vec<u8> = [z.c0, z.c1, 0, 0].iter().flat_map(|w| w.to_le_bytes()).collect();
     let digest = r::hash_pair(&root, &tail.try_into().unwrap());
