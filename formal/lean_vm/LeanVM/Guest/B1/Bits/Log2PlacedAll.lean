@@ -15,7 +15,8 @@ public import LeanVM.Guest.B1.Bits.Log2Placed
 For `6 ≤ κ`, `N < 2^34` and `L = max fl (log2Ceil N) < 34`: on `g^N` and the exponent table
 (`log2Lin sqE`), `log2_ceil_in_the_exponent__L{fl}_L34` returns `g^L` within
 `fs name + 34 + 2 · fs "assert_small_g_power"` words (`log2_L0_completeAtB`,
-`log2_L16_completeAtB`); without the bound (`…_completeAt`, `CompleteAtD`).
+`log2_L16_completeAtB`); without the bound (`…_completeAt`, `CompleteAtD`); by a tree exact on the memory
+(`log2_L0_completeAtBE`, `log2_L16_completeAtBE`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -49,6 +50,26 @@ theorem log2_L16_completeAtB (κ : ℕ) (hκ6 : 6 ≤ κ) (N sqE : ℕ) (hN : N 
       [gen ^ N, ofK (Parameters.addressOfIndex sqE)] (Returns [gen ^ max 16 (log2Ceil N)])
       (fs "log2_ceil_in_the_exponent__L16_L34" + 34 + 2 * fs "assert_small_g_power") :=
   lce_completeAtB 16 (by norm_num) find_lce_L16 rfl log2_ceil_in_the_exponent_L16_L34_body
+      loop_lce_L16 κ hκ6 N sqE hN hL
+
+/-- **`log2_ceil_in_the_exponent__L0_L34`, placed, bounded and exact.** -/
+theorem log2_L0_completeAtBE (κ : ℕ) (hκ6 : 6 ≤ κ) (N sqE : ℕ) (hN : N < 2 ^ 34)
+    (hL : max 0 (log2Ceil N) < 34) :
+    CompleteAtDTBR fs cert κ "log2_ceil_in_the_exponent__L0_L34" (log2Lin sqE)
+      [gen ^ N, ofK (Parameters.addressOfIndex sqE)] (Returns [gen ^ max 0 (log2Ceil N)])
+      (fun rd t => t.Every (ExactAt coreProgram rd))
+      (fs "log2_ceil_in_the_exponent__L0_L34" + 34 + 2 * fs "assert_small_g_power") :=
+  lce_completeAtBE 0 (by norm_num) find_lce_L0 rfl log2_ceil_in_the_exponent_L0_L34_body loop_lce_L0
+      κ hκ6 N sqE hN hL
+
+/-- **`log2_ceil_in_the_exponent__L16_L34`, placed, bounded and exact.** -/
+theorem log2_L16_completeAtBE (κ : ℕ) (hκ6 : 6 ≤ κ) (N sqE : ℕ) (hN : N < 2 ^ 34)
+    (hL : max 16 (log2Ceil N) < 34) :
+    CompleteAtDTBR fs cert κ "log2_ceil_in_the_exponent__L16_L34" (log2Lin sqE)
+      [gen ^ N, ofK (Parameters.addressOfIndex sqE)] (Returns [gen ^ max 16 (log2Ceil N)])
+      (fun rd t => t.Every (ExactAt coreProgram rd))
+      (fs "log2_ceil_in_the_exponent__L16_L34" + 34 + 2 * fs "assert_small_g_power") :=
+  lce_completeAtBE 16 (by norm_num) find_lce_L16 rfl log2_ceil_in_the_exponent_L16_L34_body
       loop_lce_L16 κ hκ6 N sqE hN hL
 
 end
