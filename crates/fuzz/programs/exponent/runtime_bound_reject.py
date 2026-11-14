@@ -1,4 +1,4 @@
-# expect: exec-fail not a small g-power
+# expect: exec-fail not a g-power below 2^28
 # witness n: GEN ** 100
 # witness x: GEN ** 100
 # A hinted x equal to its runtime bound: log x = k fails log x < k, so the complement is g^(-1) and its DEREF must

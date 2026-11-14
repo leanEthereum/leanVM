@@ -12,11 +12,11 @@ from snark_lib import *
 
 @inline
 def pack(x):
-    limbs = StackBuf(3)
-    hint_f192_limbs(limbs, x)
-    assert_in_k(limbs[2], limbs[2])
-    lo = x + f192(0, 0, 1) * limbs[2]
-    return lo, limbs[2]
+    limbs = StackBuf(2)
+    hint_f128_limbs(limbs, x)
+    assert_in_k(limbs[1], limbs[1])
+    lo = x + 18446744073709551616 * limbs[1]
+    return lo, limbs[1]
 
 
 def main():

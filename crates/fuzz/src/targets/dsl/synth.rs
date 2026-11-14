@@ -625,8 +625,11 @@ impl Gen<'_> {
                     return (Ex::Lit(n), self.lanes(|_| lit(n)));
                 }
                 2 => {
+                    // Every word's bits spell an integer literal below 2^128, so the
+                    // generated spelling is that integer (the parser folds it back).
                     let x = self.src.f128();
-                    return (Ex::Fe(x), self.lanes(|_| x));
+                    let n = x.c0 as u128 | (x.c1 as u128) << 64;
+                    return (Ex::Lit(n), self.lanes(|_| x));
                 }
                 3 => {
                     let k = match self.src.below(4) {

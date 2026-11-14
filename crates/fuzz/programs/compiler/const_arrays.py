@@ -12,7 +12,7 @@ def main():
     for i in unroll(0, len(S)):
         hb[GEN ** i] = S[i]
     assert hb[GEN ** 2] == GEN ** 5
-    assert hb[GEN ** 3] * hb[1] == f192(0, 3, 0)
+    assert hb[GEN ** 3] * hb[1] == 18446744073709551616 * 3
     out = HeapBuf(2)
     out[1] = const(S[0] * 3)
     out[GEN] = S[0] * 3

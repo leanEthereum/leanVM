@@ -1,4 +1,4 @@
-# expect: exec-fail not a small g-power
+# expect: exec-fail not a g-power below 2^28
 # witness x: GEN ** 4
 # The same out-of-range scrutinee, range-checked first as the doc requires: the check must fault before the dispatch
 # reads past the table.

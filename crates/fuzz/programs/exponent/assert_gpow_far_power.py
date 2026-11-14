@@ -1,4 +1,4 @@
-# expect: exec-fail not a small g-power
+# expect: exec-fail not a g-power below 2^28
 # witness z: 5
 # 5 = 1 + x^2 is a nonzero element of K, so a power of g, but its exponent is astronomically large: `assert_gpow`
 # must reject it as outside the memory, or a "g-power" check proves nothing.

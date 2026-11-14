@@ -1,4 +1,4 @@
-# expect: exec-fail not a small g-power
+# expect: exec-fail not a g-power below 2^28
 # The skipped-branch twin with x = g^8: if the bound cell were the branch's unwritten one, the check after the join
 # could be back-solved to accept anything. It must still reject.
 from snark_lib import *

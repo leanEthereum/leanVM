@@ -1,4 +1,4 @@
-# expect: exec-fail not a small g-power
+# expect: exec-fail not a g-power below 2^28
 # witness i: 0
 # A heap store at runtime index 0: the pointer buf * 0 is zero, which addresses nothing, so the DEREF must fault
 # rather than alias some cell.

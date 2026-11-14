@@ -6,5 +6,5 @@ from snark_lib import *
 def main():
     p = GEN ** 0
     p[1] = 18446744073709551616
-    p[GEN] = f192(3, 5, 0)
+    p[GEN] = 3 + 5 * 18446744073709551616
     return

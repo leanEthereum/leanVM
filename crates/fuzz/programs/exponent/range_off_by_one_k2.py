@@ -1,4 +1,4 @@
-# expect: exec-fail not a small g-power
+# expect: exec-fail not a g-power below 2^28
 # x = g^2 against the bound 2: one past the largest accepted exponent. The complement's DEREF must fail, or the
 # range check admits an element it exists to exclude.
 from snark_lib import *
