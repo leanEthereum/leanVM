@@ -11,7 +11,7 @@
 
 use crate::gkr;
 use crate::transcript::ProverState;
-use primitives::field::{F64, F128, g_pow, index_mle, mul_by_g};
+use primitives::field::{F64, F128, F128Unreduced, g_pow, index_mle, mul_by_g};
 use primitives::multilinear::{eq_eval, eq_table, interp, mle_eval_par};
 use std::sync::Arc;
 
@@ -192,14 +192,16 @@ fn push_terms<'a>(c: &'a Coord, w: F128, terms: &mut Vec<Term<'a>>, constant: &m
 
 /// The leaf of row `z` of a block whose formula is `constant + Σ terms(z)`, `index` being `g^z`.
 fn leaf(constant: F128, terms: &[Term], cols: &[&[F64]], z: usize, index: F64) -> F128 {
-    terms.iter().fold(constant, |acc, t| {
-        acc + match *t {
-            Term::Col(i, c) => c.mul_base(cols[i][z]),
-            Term::Prod(i, j, c) => c.mul_base(cols[i][z] * cols[j][z]),
-            Term::Index(c) => c.mul_base(index),
-            Term::Public(vals, c) => c.mul_base(vals[z]),
+    // One reduction per leaf: the products are summed unreduced.
+    let sum = terms.iter().fold(F128Unreduced::ZERO, |acc, t| {
+        acc ^ match *t {
+            Term::Col(i, c) => c.mul_base_unreduced(cols[i][z]),
+            Term::Prod(i, j, c) => c.mul_base_unreduced(cols[i][z] * cols[j][z]),
+            Term::Index(c) => c.mul_base_unreduced(index),
+            Term::Public(vals, c) => c.mul_base_unreduced(vals[z]),
         }
-    })
+    });
+    constant + sum.reduce()
 }
 
 /// Build every tree's leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the tree's fingerprint weights
@@ -211,27 +213,44 @@ pub(crate) fn build_leaves(
     cols: &[&[F64]],
 ) -> [Vec<F128>; N_BUS_TREES] {
     const CHUNK: usize = 1 << 12;
-    sides.map(|(blocks, lay, w, beta)| {
-        // The blocks tile the leaves from zero ([`crate::witness::stack_offsets`]).
-        let len = blocks.iter().map(|blk| 1 << blk.kappa).sum::<usize>().max(1);
-        let mut leaves = vec![F128::ONE; len];
-        for (blk, &offset) in blocks.iter().zip(&lay.offsets) {
+    // Each block's formula: its constant and its terms.
+    let formulas = sides.map(|(blocks, _, w, beta)| {
+        let formulas = blocks.iter().map(|blk| {
             let mut constant = beta;
             let mut terms = Vec::with_capacity(blk.coords.len());
             for (c, &wi) in blk.coords.iter().zip(w) {
                 push_terms(c, wi, &mut terms, &mut constant);
             }
-            parallel::chunks_mut(&mut leaves[offset..offset + blk.rows], CHUNK, |task, out| {
-                let z0 = task * CHUNK;
-                let mut index = g_pow(z0);
-                for (i, slot) in out.iter_mut().enumerate() {
-                    *slot = leaf(constant, &terms, cols, z0 + i, index);
-                    index = mul_by_g(index);
-                }
-            });
+            (constant, terms)
+        });
+        formulas.collect::<Vec<_>>()
+    });
+    // The blocks tile the leaves from zero ([`crate::witness::stack_offsets`]).
+    let mut leaves =
+        sides.map(|(blocks, ..)| vec![F128::ONE; blocks.iter().map(|b| 1 << b.kappa).sum::<usize>().max(1)]);
+    // Every block's real rows, a chunk a task, all in one dispatch.
+    let mut tasks = Vec::new();
+    for ((side, &(blocks, lay, ..)), formulas) in leaves.iter_mut().zip(&sides).zip(&formulas) {
+        let mut order: Vec<usize> = (0..blocks.len()).collect();
+        order.sort_unstable_by_key(|&b| lay.offsets[b]);
+        let (mut rest, mut at): (&mut [F128], usize) = (side, 0);
+        for b in order {
+            let (_, tail) = std::mem::take(&mut rest).split_at_mut(lay.offsets[b] - at);
+            let (window, tail) = tail.split_at_mut(1 << blocks[b].kappa);
+            (rest, at) = (tail, lay.offsets[b] + window.len());
+            for (k, chunk) in window[..blocks[b].rows].chunks_mut(CHUNK).enumerate() {
+                tasks.push((&formulas[b], k * CHUNK, chunk));
+            }
         }
-        leaves
-    })
+    }
+    parallel::for_each_mut(&mut tasks, |_, ((constant, terms), z0, out)| {
+        let mut index = g_pow(*z0);
+        for (i, slot) in out.iter_mut().enumerate() {
+            *slot = leaf(*constant, terms, cols, *z0 + i, index);
+            index = mul_by_g(index);
+        }
+    });
+    leaves
 }
 
 /// One table's bus contribution on one side, as a form over that table's committed
