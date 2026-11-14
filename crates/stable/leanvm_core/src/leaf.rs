@@ -11,8 +11,8 @@
 
 use crate::gkr;
 use crate::transcript::ProverState;
-use primitives::field::{F64, F128, F128Unreduced, g_pow, index_mle, mul_by_g};
-use primitives::multilinear::{eq_eval, eq_table, interp, mle_eval_par};
+use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, g_pow32_by_lookup, index_mle, mul_by_g};
+use primitives::multilinear::{eq_eval, eq_table, eq_table_serial, interp};
 use std::sync::Arc;
 
 /// One tuple coordinate as a function of the block's row `z`.
@@ -190,69 +190,115 @@ fn push_terms<'a>(c: &'a Coord, w: F128, terms: &mut Vec<Term<'a>>, constant: &m
     }
 }
 
-/// The leaf of row `z` of a block whose formula is `constant + Σ terms(z)`, `index` being `g^z`.
-fn leaf(constant: F128, terms: &[Term], cols: &[&[F64]], z: usize, index: F64) -> F128 {
-    // One reduction per leaf: the products are summed unreduced.
-    let sum = terms.iter().fold(F128Unreduced::ZERO, |acc, t| {
-        acc ^ match *t {
-            Term::Col(i, c) => c.mul_base_unreduced(cols[i][z]),
-            Term::Prod(i, j, c) => c.mul_base_unreduced(cols[i][z] * cols[j][z]),
-            Term::Index(c) => c.mul_base_unreduced(index),
-            Term::Public(vals, c) => c.mul_base_unreduced(vals[z]),
-        }
-    });
-    constant + sum.reduce()
+/// One block's leaf formula `constant + Σ terms(z)`, where its rows sit among the leaves, and how many of them flush.
+struct Formula<'a> {
+    offset: usize,
+    size: usize,
+    rows: usize,
+    constant: F128,
+    terms: Vec<Term<'a>>,
+    /// `terms`' coefficients, splat.
+    coeffs: Vec<F128x8>,
 }
+
+impl Formula<'_> {
+    /// The leaves of rows `z..z + 8`, the products of each summed unreduced, the identity from row `rows` on.
+    #[inline(always)]
+    fn leaves(&self, cols: &[&[F64]], z: usize) -> [F128; 8] {
+        if z >= self.rows {
+            return [F128::ONE; 8];
+        }
+        let n = self.rows - z;
+        let load = |values: &[F64]| crate::load_k(values, z, n);
+        let sum = self.terms.iter().zip(&self.coeffs).fold(Acc8::ZERO, |acc, (t, &c)| {
+            acc + c.mul_base_unreduced(match *t {
+                Term::Col(i, _) => load(cols[i]),
+                Term::Prod(i, j, _) => load(cols[i]) * load(cols[j]),
+                Term::Index(_) => F64x8::splat(g_pow32_by_lookup(z as u32)) * F64x8::from_array(&G_POWERS),
+                Term::Public(vals, _) => load(vals),
+            })
+        });
+        let mut leaves = (sum.reduce() + F128x8::splat(self.constant)).to_array();
+        leaves[n.min(8)..].fill(F128::ONE);
+        leaves
+    }
+}
+
+/// `g^0..g^8`, which step a row's index to the next seven's.
+const G_POWERS: [F64; 8] = {
+    let mut powers = [F64::ONE; 8];
+    let mut i = 1;
+    while i < 8 {
+        powers[i] = mul_by_g(powers[i - 1]);
+        i += 1;
+    }
+    powers
+};
 
 /// Build every tree's leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the tree's fingerprint weights
 /// `w`, and a padding row's leaf the identity `1`, as do the leaves past the blocks up to `2^μ`, which are left
 /// out. The row-invariant weights and constant coordinates are folded once per block into its
-/// constant.
+/// constant. Each leaf is written once, eight at a time.
 pub(crate) fn build_leaves(
     sides: [(&[Block], &Layout, &[F128], F128); N_BUS_TREES],
     cols: &[&[F64]],
 ) -> [Vec<F128>; N_BUS_TREES] {
-    const CHUNK: usize = 1 << 12;
-    // Each block's formula: its constant and its terms.
-    let formulas = sides.map(|(blocks, _, w, beta)| {
-        let formulas = blocks.iter().map(|blk| {
-            let mut constant = beta;
-            let mut terms = Vec::with_capacity(blk.coords.len());
-            for (c, &wi) in blk.coords.iter().zip(w) {
-                push_terms(c, wi, &mut terms, &mut constant);
-            }
-            (constant, terms)
-        });
-        formulas.collect::<Vec<_>>()
-    });
-    // The blocks tile the leaves from zero ([`crate::witness::stack_offsets`]).
-    let mut leaves = sides
-        .map(|(blocks, ..)| parallel::filled(blocks.iter().map(|b| 1 << b.kappa).sum::<usize>().max(1), F128::ONE));
-    // Every block's real rows, a chunk a task, all in one dispatch.
-    let mut tasks = Vec::new();
-    for ((side, &(blocks, lay, ..)), formulas) in leaves.iter_mut().zip(&sides).zip(&formulas) {
-        let mut order: Vec<usize> = (0..blocks.len()).collect();
-        order.sort_unstable_by_key(|&b| lay.offsets[b]);
-        let (mut rest, mut at): (&mut [F128], usize) = (side, 0);
-        for b in order {
-            let (_, tail) = std::mem::take(&mut rest).split_at_mut(lay.offsets[b] - at);
-            let (window, tail) = tail.split_at_mut(1 << blocks[b].kappa);
-            (rest, at) = (tail, lay.offsets[b] + window.len());
-            for (k, chunk) in window[..blocks[b].rows].chunks_mut(CHUNK).enumerate() {
-                tasks.push((&formulas[b], k * CHUNK, chunk));
-            }
+    sides.map(|(blocks, lay, w, beta)| {
+        // The blocks tile the leaves from zero, largest first ([`crate::witness::stack_offsets`]).
+        let mut formulas: Vec<Formula> = blocks
+            .iter()
+            .zip(&lay.offsets)
+            .map(|(blk, &offset)| {
+                let mut constant = beta;
+                let mut terms = Vec::with_capacity(blk.coords.len());
+                for (c, &wi) in blk.coords.iter().zip(w) {
+                    push_terms(c, wi, &mut terms, &mut constant);
+                }
+                let coeffs = terms
+                    .iter()
+                    .map(|t| match *t {
+                        Term::Col(_, c) | Term::Prod(_, _, c) | Term::Index(c) | Term::Public(_, c) => F128x8::splat(c),
+                    })
+                    .collect();
+                Formula {
+                    offset,
+                    size: 1 << blk.kappa,
+                    rows: blk.rows,
+                    constant,
+                    terms,
+                    coeffs,
+                }
+            })
+            .collect();
+        formulas.sort_unstable_by_key(|f| f.offset);
+        if formulas.is_empty() {
+            return vec![F128::ONE];
         }
-    }
-    parallel::for_each_mut(&mut tasks, |_, ((constant, terms), z0, out)| {
-        let mut index = g_pow(*z0);
-        for (i, slot) in out.iter_mut().enumerate() {
-            *slot = leaf(*constant, terms, cols, *z0 + i, index);
-            index = mul_by_g(index);
-        }
-    });
-    leaves
+        let len = formulas.iter().map(|f| f.size).sum::<usize>();
+        // The formula of leaf `i`.
+        let at = |i: usize| &formulas[formulas.partition_point(|f| f.offset <= i) - 1];
+        let mut leaves = parallel::map_collect(len.div_ceil(8), |k| {
+            let f = at(8 * k);
+            if f.size >= 8 {
+                // Aligned at its size, the block holds all eight.
+                return f.leaves(cols, 8 * k - f.offset);
+            }
+            // The smallest blocks, of fewer than eight rows, last: a leaf at a time.
+            std::array::from_fn(|i| {
+                let z = 8 * k + i;
+                if z < len {
+                    let f = at(z);
+                    f.leaves(cols, z - f.offset)[0]
+                } else {
+                    F128::ONE
+                }
+            })
+        })
+        .into_flattened();
+        leaves.truncate(len);
+        leaves
+    })
 }
-
 /// One table's bus contribution on one side, as a form over that table's committed
 /// columns: `Σ_c coeffs[c]·col_c(z) + Σ (a,b,c) c·col_a(z)·col_b(z) + constant`.
 /// Every coefficient is a public function of `α`, `β` and the block selectors at
@@ -416,11 +462,30 @@ fn decompose(
         // Column `i` at ζ_lo: reuse the recorded claim, else take a fresh value and
         // record it. The push ORDER is the stream order, so every coordinate that
         // needs a column value must go through here.
+        // The block's columns not yet claimed at ζ_lo and its public columns, in one pass.
+        let mut fresh: Vec<usize> = blk
+            .coords
+            .iter()
+            .filter_map(|c| match c {
+                Coord::Col(i) | Coord::GCol(i, _) if known_claim(claims, *i, zeta_lo).is_none() => Some(*i),
+                _ => None,
+            })
+            .collect();
+        fresh.sort_unstable();
+        fresh.dedup();
+        let tables: Vec<(&[F64], Option<&[F64]>)> = (fresh.iter().map(|&i| (cols[i], None)))
+            .chain(blk.coords.iter().filter_map(|c| match c {
+                Coord::Public(vals) => Some((vals.as_slice(), None)),
+                _ => None,
+            }))
+            .collect();
+        let evals = eq_sums(zeta_lo, &tables);
+        let mut public = evals[fresh.len()..].iter().copied();
         let mut col_val = |i: usize| -> F128 {
             if let Some(v) = known_claim(claims, i, zeta_lo) {
                 return v;
             }
-            let v = mle_eval_par(cols[i], zeta_lo);
+            let v = evals[fresh.binary_search(&i).unwrap()];
             ps.add_scalar(v);
             claims.push(ColumnClaim {
                 col: i,
@@ -439,7 +504,7 @@ fn decompose(
                 Coord::Prod(..) | Coord::Sum(..) => {
                     unreachable!("only a table's bus block carries a degree-2 coordinate")
                 }
-                Coord::Public(vals) => mle_eval_par(vals, zeta_lo),
+                Coord::Public(_) => public.next().unwrap(),
             };
             inner += w[i] * coord_val;
         }
@@ -498,9 +563,18 @@ fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], ps: &mut Prov
         .find(|blk| blk.coords.iter().any(|c| matches!(c, Coord::Public(_))))
         .expect("the push side seeds the bytecode");
     let zeta_lo = &zeta[..block.kappa];
+    let public: Vec<(&[F64], Option<&[F64]>)> = block
+        .coords
+        .iter()
+        .filter_map(|c| match c {
+            Coord::Public(vals) => Some((vals.as_slice(), None)),
+            _ => None,
+        })
+        .collect();
+    let mut evals = eq_sums(zeta_lo, &public).into_iter();
     let mut slots: Vec<F128> = (0..1 << N_TUPLE_BITS)
         .map(|x| match block.coords.get(x) {
-            Some(Coord::Public(vals)) => mle_eval_par(vals, zeta_lo),
+            Some(Coord::Public(_)) => evals.next().unwrap(),
             _ => F128::ZERO,
         })
         .collect();
@@ -629,19 +703,41 @@ pub(crate) fn prove_balance(
     }
 }
 
-/// `Σ_z eq[z]·f(z)`.
-fn eq_dot(eq: &[F128], f: impl Fn(usize) -> F64 + Sync) -> F128 {
-    const CHUNK: usize = 1 << 12;
-    parallel::map_reduce(
-        eq.len().div_ceil(CHUNK),
-        || F128::ZERO,
-        |task| {
-            (task * CHUNK..eq.len().min((task + 1) * CHUNK))
-                .map(|z| eq[z].mul_base(f(z)))
-                .sum()
-        },
-        |a, b| a + b,
-    )
+/// `Σ_z eq(point, z)·a(z)·b(z)` for every term `(a, b)`, `b` the constant one where absent, in one pass over the
+/// rows. A column shorter than `2^point.len()` is zero past its end.
+pub(crate) fn eq_sums(point: &[F128], terms: &[(&[F64], Option<&[F64]>)]) -> Vec<F128> {
+    // `eq` as a low table over the first variables times a high one, so no table of the columns' size is built: a
+    // task is a row of the high table, its terms summed against the low one and scaled once.
+    let lo_bits = point.len().min(10);
+    let (lo, hi) = (eq_table_serial(&point[..lo_bits]), eq_table(&point[lo_bits..]));
+    let load = |column: &[F64], z: usize| crate::load_k(column, z, column.len().saturating_sub(z));
+    fn sum(lo: &[F128], z0: usize, value: impl Fn(usize) -> F64x8) -> F128 {
+        (0..lo.len().div_ceil(8))
+            .fold(Acc8::ZERO, |acc, v| {
+                let i = 8 * v;
+                acc + crate::load_e(lo, i, lo.len() - i).mul_base_unreduced(value(z0 + i))
+            })
+            .sum()
+    }
+    let row = |h: usize| -> Vec<F128> {
+        let z0 = h << lo_bits;
+        terms
+            .iter()
+            .map(|&(a, b)| {
+                hi[h]
+                    * match b {
+                        None => sum(&lo, z0, |z| load(a, z)),
+                        Some(b) => sum(&lo, z0, |z| load(a, z) * load(b, z)),
+                    }
+            })
+            .collect()
+    };
+    let add = |a: Vec<F128>, b: Vec<F128>| a.iter().zip(b).map(|(&a, b)| a + b).collect();
+    if hi.len() * lo.len() < 8 * crate::SERIAL_BELOW {
+        (0..hi.len()).map(row).fold(vec![F128::ZERO; terms.len()], add)
+    } else {
+        parallel::map_reduce(hi.len(), || vec![F128::ZERO; terms.len()], row, add)
+    }
 }
 
 /// Every table's committed columns at `ζ[..τ_t]`, as `Σ_z eq(ζ[..τ], z)·col(z)`, and, for every column pair its
@@ -660,19 +756,24 @@ fn tables_and_prods_at(
         .enumerate()
         .map(|(t, &(base, n_cols))| {
             let columns = &cols[base..base + n_cols];
-            let eq = eq_table(&zeta[..crate::log2_strict_usize(columns[0].len())]);
             let mut pairs: Vec<(usize, usize)> = forms
                 .iter()
                 .flat_map(|side| side[t].prods.iter().map(|&(a, b, _)| (a, b)))
                 .collect();
             pairs.sort_unstable();
             pairs.dedup();
-            let evals = columns.iter().map(|c| eq_dot(&eq, |z| c[z])).collect();
-            let prods = pairs
-                .into_iter()
-                .map(|(a, b)| (a, b, eq_dot(&eq, |z| columns[a][z] * columns[b][z])))
+            let terms: Vec<(&[F64], Option<&[F64]>)> = columns
+                .iter()
+                .map(|&c| (c, None))
+                .chain(pairs.iter().map(|&(a, b)| (columns[a], Some(columns[b]))))
                 .collect();
-            (evals, prods)
+            let sums = eq_sums(&zeta[..crate::log2_strict_usize(columns[0].len())], &terms);
+            let prods = pairs
+                .iter()
+                .zip(&sums[n_cols..])
+                .map(|(&(a, b), &s)| (a, b, s))
+                .collect();
+            (sums[..n_cols].to_vec(), prods)
         })
         .unzip()
 }

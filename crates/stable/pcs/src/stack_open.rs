@@ -252,7 +252,11 @@ mod tests {
             (16, 3, 17),
         ] {
             let lane_block = 1usize << lane_vars;
-            let stack: Vec<F64> = (0..lanes_count * lane_block).map(|_| F64(rng.next_u64())).collect();
+            let mut stack: Vec<F64> = (0..lanes_count * lane_block).map(|_| F64(rng.next_u64())).collect();
+            // Runs of equal blocks, which share their projections.
+            for b in (1..stack.len() >> LOW_VARS).filter(|b| b % 4 != 0) {
+                stack.copy_within((b - 1) << LOW_VARS..b << LOW_VARS, b << LOW_VARS);
+            }
             let qkeccak_len = 1usize << qkeccak_vars;
             for offset in [0, qkeccak_len] {
                 if offset + qkeccak_len > stack.len() {

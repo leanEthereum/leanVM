@@ -4,41 +4,33 @@
 //! coefficients. Encoding these on the full domain preserves the payload in
 //! the first half of the codeword and adds redundancy in the second half.
 //! The domain and the basis lie in `K`, so each limb of the symbols is a
-//! `K`-codeword of its own: the transforms run on the two limbs as two lanes.
+//! `K`-codeword of its own: the transforms run on every limb of every blob as lanes.
 
 use pcs::ntt::AdditiveNttF64;
 use primitives::cast_slice_mut;
 use primitives::field::F64;
 
-use crate::{BLOB_SYMBOLS, Blob, CODEWORD_SYMBOLS, Codeword, LOG_BLOB_SYMBOLS, LOG_CODEWORD_SYMBOLS};
+use crate::{BLOB_SYMBOLS, Blob, CODEWORD_SYMBOLS, Codeword, LOG_BLOB_SYMBOLS, LOG_CODEWORD_SYMBOLS, Symbol};
 
 /// Encode each blob into its codeword, the blob unchanged in its first half.
 ///
 /// Padding rows are not materialized, being zero codewords.
 #[tracing::instrument(name = "Encoding", skip_all)]
 pub(crate) fn encode_rows(blobs: &[Blob]) -> Vec<Codeword> {
-    let interpolation = AdditiveNttF64::standard(LOG_BLOB_SYMBOLS);
-    let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
-    let mut limbs = vec![F64::ZERO; 2 * BLOB_SYMBOLS];
-    let mut codewords: Vec<Codeword> = vec![[0; CODEWORD_SYMBOLS]; blobs.len()];
-
-    // One row at a time: the transform dispatches internally at any row worth
-    // encoding, and the pool panics on a nested dispatch, so the row loop must stay
-    // sequential and let the NTT own the parallelism.
-    for (blob, codeword) in blobs.iter().zip(&mut codewords) {
-        let (c0, c1) = limbs.split_at_mut(BLOB_SYMBOLS);
-        for ((&symbol, l0), l1) in blob.iter().zip(&mut *c0).zip(&mut *c1) {
-            (*l0, *l1) = (F64(symbol as u64), F64((symbol >> 64) as u64));
+    let n = blobs.len();
+    // Row `i` holds symbol `i` of every blob: a symbol's words in memory are its limbs, low first (little-endian,
+    // `commit::as_bytes`), so each limb of each blob is one lane.
+    let mut rows: Vec<Symbol> =
+        parallel::map_collect(CODEWORD_SYMBOLS * n, |k| blobs[k % n].get(k / n).copied().unwrap_or(0));
+    let words = cast_slice_mut::<Symbol, F64>(&mut rows);
+    AdditiveNttF64::standard(LOG_BLOB_SYMBOLS).inverse_transform(&mut words[..2 * n * BLOB_SYMBOLS], 2 * n);
+    AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS).encode_interleaved_in_place(words, 2 * n, 1);
+    let mut codewords: Vec<Codeword> = vec![[0; CODEWORD_SYMBOLS]; n];
+    parallel::chunks_mut(&mut codewords, 1, |b, codeword| {
+        for (symbol, row) in codeword[0].iter_mut().zip(rows.chunks_exact(n)) {
+            *symbol = row[b];
         }
-        interpolation.inverse_transform(c0);
-        interpolation.inverse_transform(c1);
-        // A symbol's words in memory are its limbs, low first (little-endian, `commit::as_bytes`).
-        let words = cast_slice_mut::<u128, F64>(codeword);
-        for ((pair, &l0), &l1) in words.as_chunks_mut::<2>().0.iter_mut().zip(&*c0).zip(&*c1) {
-            *pair = [l0, l1];
-        }
-        ntt.encode_interleaved_in_place(words, 2, 1);
-    }
+    });
     codewords
 }
 
@@ -64,7 +56,7 @@ mod tests {
             assert_eq!(&codeword[..BLOB_SYMBOLS], row);
             for shift in [0, 64] {
                 let mut limb: Vec<F64> = codeword.iter().map(|&s| F64((s >> shift) as u64)).collect();
-                ntt.inverse_transform(&mut limb);
+                ntt.inverse_transform(&mut limb, 1);
                 assert!(limb[BLOB_SYMBOLS..].iter().all(|&x| x == F64::ZERO));
             }
         }

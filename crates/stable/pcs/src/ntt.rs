@@ -8,7 +8,9 @@
 //! - An `E` element is two `K` words and the twiddles lie in `K`, so an `E`-valued encode is the base transform over
 //!   twice the lanes (`words`).
 
-use primitives::field::{F64, F128};
+use core::ops::{Add, Mul};
+
+use primitives::field::{F64, F64x8, F128};
 use primitives::log2_strict_usize;
 
 /// Table of the normalized subspace polynomials at the basis, rows end to end.
@@ -47,44 +49,43 @@ fn span_get(basis: &[F64], idx: usize) -> F64 {
         .sum()
 }
 
-/// Two words as one `E` element, whose product by a `K` twiddle multiplies both: `F128::mul_base` takes the two
-/// products together.
-fn pair([a, b]: [F64; 2]) -> F128 {
-    F128::new(a.0, b.0)
+/// `step` on every word pair of two rows under twiddle `t`: eight words at a time, then the rest one by one.
+#[inline(always)]
+fn zip_rows(
+    top: &mut [F64],
+    bot: &mut [F64],
+    t: F64,
+    step8: impl Fn(F64x8, F64x8, F64x8) -> (F64x8, F64x8),
+    step: impl Fn(F64, F64, F64) -> (F64, F64),
+) {
+    let ((top8, top1), (bot8, bot1)) = (top.as_chunks_mut::<8>(), bot.as_chunks_mut::<8>());
+    let t8 = F64x8::splat(t);
+    for (u, v) in top8.iter_mut().zip(bot8) {
+        let (eu, ev) = step8(F64x8::from_array(u), F64x8::from_array(v), t8);
+        (*u, *v) = (eu.to_array(), ev.to_array());
+    }
+    for (u, v) in top1.iter_mut().zip(bot1) {
+        (*u, *v) = step(*u, *v, t);
+    }
 }
 
-fn unpair(e: F128) -> [F64; 2] {
-    e.to_limbs().map(F64)
+/// `u' = u + v t; v' = v + u'`.
+#[inline(always)]
+fn forward<T: Copy + Add<Output = T> + Mul<Output = T>>(u: T, v: T, t: T) -> (T, T) {
+    let u = u + v * t;
+    (u, v + u)
 }
 
-/// `u' = u + v t; v' = v + u'` over a pair of rows.
+/// The inverse of [`forward`]: `v' = v + u; u' = u + v' t`.
+#[inline(always)]
+fn inverse<T: Copy + Add<Output = T> + Mul<Output = T>>(u: T, v: T, t: T) -> (T, T) {
+    let v = v + u;
+    (u + v * t, v)
+}
+
+/// [`forward`] over a pair of rows.
 fn butterfly(top: &mut [F64], bot: &mut [F64], t: F64) {
-    let ((top2, top1), (bot2, bot1)) = (top.as_chunks_mut::<2>(), bot.as_chunks_mut::<2>());
-    for (u, v) in top2.iter_mut().zip(bot2) {
-        let (mut eu, mut ev) = (pair(*u), pair(*v));
-        eu += ev.mul_base(t);
-        ev += eu;
-        (*u, *v) = (unpair(eu), unpair(ev));
-    }
-    for (u, v) in top1.iter_mut().zip(bot1) {
-        *u += *v * t;
-        *v += *u;
-    }
-}
-
-/// The transpose of [`butterfly`]: `s = u + v; u' = s; v' = s t + v`.
-pub(crate) fn transpose_butterfly(top: &mut [F64], bot: &mut [F64], t: F64) {
-    let ((top2, top1), (bot2, bot1)) = (top.as_chunks_mut::<2>(), bot.as_chunks_mut::<2>());
-    for (u, v) in top2.iter_mut().zip(bot2) {
-        let (mut eu, mut ev) = (pair(*u), pair(*v));
-        eu += ev;
-        ev += eu.mul_base(t);
-        (*u, *v) = (unpair(eu), unpair(ev));
-    }
-    for (u, v) in top1.iter_mut().zip(bot1) {
-        *u += *v;
-        *v += *u * t;
-    }
+    zip_rows(top, bot, t, forward, forward);
 }
 
 /// A slice of `E` elements as its `K` words, low limb first.
@@ -92,13 +93,23 @@ pub(crate) fn words(v: &[F128]) -> &[F64] {
     primitives::cast_slice(v)
 }
 
-/// A slice of `E` elements as its `K` words, low limb first.
-pub(crate) fn words_mut(v: &mut [F128]) -> &mut [F64] {
-    primitives::cast_slice_mut(v)
-}
-
 /// Words a task copies or fills at a time.
 const CHUNK: usize = 1 << 14;
+
+/// Every coset of `data` past the first a copy of the first, which holds the message.
+fn replicate(data: &mut [F64], log_inv_rate: usize) {
+    let (msg, rest) = data.split_at_mut(data.len() >> log_inv_rate);
+    let msg = &*msg;
+    // A chunk of the replicas may straddle two of them: its copy wraps at the message's end.
+    parallel::chunks_mut(rest, CHUNK, |i, mut out| {
+        let mut at = i * CHUNK % msg.len();
+        while !out.is_empty() {
+            let n = out.len().min(msg.len() - at);
+            out[..n].copy_from_slice(&msg[at..at + n]);
+            (out, at) = (&mut out[n..], 0);
+        }
+    });
+}
 
 /// Additive NTT over F_{2^64} on the standard polynomial-basis subspace `{1, x, x^2, ...}`: the integers under
 /// their natural encoding.
@@ -140,20 +151,32 @@ impl AdditiveNttF64 {
     /// The layers whose blocks are fewer than the pool has tasks run together in one pass ([`Self::top_layers`]).
     /// Then every block of the next layer runs the rest on its own, depth first, so a block's last layers run in cache.
     pub(crate) fn transform(&self, data: &mut [F64], num_ntts: usize, start: usize) {
-        let (log_d, split) = self.split(data, num_ntts, start);
-        self.top_layers(data, num_ntts << (log_d - split), start, split, false);
-        parallel::chunks_mut(data, num_ntts << (log_d - split), |b, block| {
-            self.transform_block(block, num_ntts, split, b);
-        });
+        let rows = data.len() / num_ntts;
+        self.transform_then(data, num_ntts, start, &mut vec![(); rows], |_, _| {});
     }
 
-    /// The transpose of [`Self::transform`] from layer 0: the transposed layers, last to first.
-    pub(crate) fn transpose_transform(&self, data: &mut [F64], num_ntts: usize) {
-        let (log_d, split) = self.split(data, num_ntts, 0);
-        parallel::chunks_mut(data, num_ntts << (log_d - split), |b, block| {
-            self.transpose_block(block, num_ntts, split, b);
+    /// [`Self::transform`], handing `done` every run of finished rows while it is still in cache, with the run of
+    /// `out`, one element per row, at the same place.
+    pub(crate) fn transform_then<O: Send>(
+        &self,
+        data: &mut [F64],
+        num_ntts: usize,
+        start: usize,
+        out: &mut [O],
+        done: impl Fn(&[F64], &mut [O]) + Sync,
+    ) {
+        assert_eq!(data.len(), out.len() * num_ntts, "one output per row");
+        let (log_d, split) = self.split(data, num_ntts, start);
+        self.top_layers(data, num_ntts << (log_d - split), start, split);
+        let rows = 1 << (log_d - split);
+        let mut tasks: Vec<_> = data
+            .chunks_exact_mut(rows * num_ntts)
+            .zip(out.chunks_exact_mut(rows))
+            .collect();
+        parallel::chunks_mut(&mut tasks, 1, |b, task| {
+            let (block, out) = &mut task[0];
+            self.transform_block(block, out, num_ntts, split, b, Some(&done));
         });
-        self.top_layers(data, num_ntts << (log_d - split), 0, split, true);
     }
 
     /// `log_d`, and the first layer from `start` with as many blocks as the pool has tasks, `start` for a buffer too
@@ -171,12 +194,12 @@ impl AdditiveNttF64 {
         )
     }
 
-    /// Layers `start..split`, or their transposes last first, in one pass.
+    /// Layers `start..split` in one pass.
     ///
     /// Those layers pair rows that differ in their block of `split`, of `slab` words, so they act on each group of
     /// `2^(split - start)` rows at one place in every block of `split` inside a block of `start`. A task takes the
     /// same run of words of each block of such a group and runs all the layers on it.
-    fn top_layers(&self, data: &mut [F64], slab: usize, start: usize, split: usize, transposed: bool) {
+    fn top_layers(&self, data: &mut [F64], slab: usize, start: usize, split: usize) {
         let g = split - start;
         if g == 0 {
             return;
@@ -193,101 +216,115 @@ impl AdditiveNttF64 {
         parallel::chunks_mut(&mut tasks, 1, |_, task| {
             let (b, runs) = &mut task[0];
             for i in 0..g {
-                let i = if transposed { g - 1 - i } else { i };
                 // Layer `start + i` pairs the runs `2^(g - 1 - i)` apart, under one twiddle per `2^(g - i)` runs.
                 let half = 1 << (g - 1 - i);
                 for j in (0..1usize << g).filter(|j| j & half == 0) {
                     let t = self.twiddle(start + i, *b << i | j >> (g - i));
                     let (lo, hi) = runs.split_at_mut(j + half);
-                    if transposed {
-                        transpose_butterfly(lo[j], hi[0], t);
-                    } else {
-                        butterfly(lo[j], hi[0], t);
-                    }
+                    butterfly(lo[j], hi[0], t);
                 }
             }
         });
     }
 
-    /// Layers `layer..` over block `index` of `layer`, depth first.
-    fn transform_block(&self, block: &mut [F64], num_ntts: usize, layer: usize, index: usize) {
-        if block.len() == num_ntts {
-            return;
+    /// Layers `layer..` over block `index` of `layer`, depth first, `done` taking the first block on the way down that
+    /// fits in a task's [`CHUNK`] once its layers are done.
+    fn transform_block<O>(
+        &self,
+        block: &mut [F64],
+        out: &mut [O],
+        num_ntts: usize,
+        layer: usize,
+        index: usize,
+        done: Option<&impl Fn(&[F64], &mut [O])>,
+    ) {
+        let finish = done.filter(|_| block.len() <= CHUNK || block.len() == num_ntts);
+        if block.len() > num_ntts {
+            let (top, bot) = block.split_at_mut(block.len() / 2);
+            let (out_top, out_bot) = out.split_at_mut(out.len() / 2);
+            butterfly(top, bot, self.twiddle(layer, index));
+            let done = if finish.is_some() { None } else { done };
+            self.transform_block(top, out_top, num_ntts, layer + 1, 2 * index, done);
+            self.transform_block(bot, out_bot, num_ntts, layer + 1, 2 * index + 1, done);
         }
-        let (top, bot) = block.split_at_mut(block.len() / 2);
-        butterfly(top, bot, self.twiddle(layer, index));
-        self.transform_block(top, num_ntts, layer + 1, 2 * index);
-        self.transform_block(bot, num_ntts, layer + 1, 2 * index + 1);
-    }
-
-    /// The transpose of [`Self::transform_block`]: the halves first, then the block's own butterfly.
-    fn transpose_block(&self, block: &mut [F64], num_ntts: usize, layer: usize, index: usize) {
-        if block.len() == num_ntts {
-            return;
+        if let Some(done) = finish {
+            done(block, out);
         }
-        let (top, bot) = block.split_at_mut(block.len() / 2);
-        self.transpose_block(top, num_ntts, layer + 1, 2 * index);
-        self.transpose_block(bot, num_ntts, layer + 1, 2 * index + 1);
-        transpose_butterfly(top, bot, self.twiddle(layer, index));
     }
 
     /// RS-encode the row-major message in the first `2^-log_inv_rate` of `data`, `num_ntts` lanes a row: every coset
     /// becomes a copy of it, then the transform runs from layer `log_inv_rate`.
     pub fn encode_interleaved_in_place(&self, data: &mut [F64], num_ntts: usize, log_inv_rate: usize) {
-        let (msg, rest) = data.split_at_mut(data.len() >> log_inv_rate);
-        let msg = &*msg;
-        // A chunk of the replicas may straddle two of them: its copy wraps at the message's end.
-        parallel::chunks_mut(rest, CHUNK, |i, mut out| {
-            let mut at = i * CHUNK % msg.len();
-            while !out.is_empty() {
-                let n = out.len().min(msg.len() - at);
-                out[..n].copy_from_slice(&msg[at..at + n]);
-                (out, at) = (&mut out[n..], 0);
-            }
-        });
+        replicate(data, log_inv_rate);
         self.transform(data, num_ntts, log_inv_rate);
     }
 
-    /// The codeword of a row-major message held apart, `num_ntts` lanes a row.
-    pub(crate) fn encode_rows(&self, msg: &[F64], num_ntts: usize, log_inv_rate: usize) -> Vec<F64> {
-        let mut data = parallel::filled(msg.len() << log_inv_rate, F64::ZERO);
-        data[..msg.len()].copy_from_slice(msg);
-        self.encode_interleaved_in_place(&mut data, num_ntts, log_inv_rate);
+    /// The codeword of a row-major message held apart, `num_ntts` lanes a row, handing its finished rows to `done` as
+    /// [`Self::transform_then`] does.
+    pub(crate) fn encode_rows<O: Send>(
+        &self,
+        msg: &[F64],
+        num_ntts: usize,
+        log_inv_rate: usize,
+        out: &mut [O],
+        done: impl Fn(&[F64], &mut [O]) + Sync,
+    ) -> Vec<F64> {
+        // Every coset a copy of the message, eight words at a time, so the buffer is written once.
+        let mut data = parallel::map_collect((msg.len() << log_inv_rate).div_ceil(8), |i| {
+            let mut at = 8 * i % msg.len();
+            core::array::from_fn::<_, 8, _>(|_| {
+                let word = msg[at];
+                at += 1;
+                if at == msg.len() {
+                    at = 0;
+                }
+                word
+            })
+        })
+        .into_flattened();
+        data.truncate(msg.len() << log_inv_rate);
+        self.transform_then(&mut data, num_ntts, log_inv_rate, out, done);
         data
     }
 
     /// The codeword of a lane-major message, `n_lanes` blocks of `2^log_rows` words: a row of the codeword holds one
-    /// word of every block, block `n_lanes - 1 - t` in lane `t`.
-    pub(crate) fn encode_lane_major(&self, msg: &[F64], n_lanes: usize, log_inv_rate: usize) -> Vec<F64> {
+    /// word of every block, block `n_lanes - 1 - t` in lane `t`. Its finished rows go to `done` as
+    /// [`Self::transform_then`] hands them.
+    pub(crate) fn encode_lane_major<O: Send>(
+        &self,
+        msg: &[F64],
+        n_lanes: usize,
+        log_inv_rate: usize,
+        out: &mut [O],
+        done: impl Fn(&[F64], &mut [O]) + Sync,
+    ) -> Vec<F64> {
         let msg_rows = msg.len() / n_lanes;
         assert_eq!(msg.len(), n_lanes * msg_rows, "the message is n_lanes lane blocks");
+        // Row-major, a task's rows at a time: each lane block is read along its run of rows, as the blocks lie a
+        // power of two apart and reading them across would keep evicting each other from the cache.
         let rows_per_task = (CHUNK / n_lanes).max(1);
-        let mut data = parallel::filled(msg.len() << log_inv_rate, F64::ZERO);
-        parallel::chunks_mut(&mut data, rows_per_task * n_lanes, |i, out| {
-            for (k, row) in out.chunks_exact_mut(n_lanes).enumerate() {
-                let r = (i * rows_per_task + k) % msg_rows;
-                for (t, word) in row.iter_mut().enumerate() {
-                    *word = msg[(n_lanes - 1 - t) * msg_rows + r];
+        let mut rows = parallel::filled(msg.len(), F64::ZERO);
+        parallel::chunks_mut(&mut rows, rows_per_task * n_lanes, |i, out| {
+            let first = i * rows_per_task;
+            for (t, block) in msg.chunks_exact(msg_rows).rev().enumerate() {
+                for (row, &word) in out.chunks_exact_mut(n_lanes).zip(&block[first..]) {
+                    row[t] = word;
                 }
             }
         });
-        self.transform(&mut data, n_lanes, log_inv_rate);
-        data
+        self.encode_rows(&rows, n_lanes, log_inv_rate, out, done)
     }
 
-    /// Recover novel-basis coefficients from evaluations with a scalar inverse NTT.
-    pub fn inverse_transform(&self, data: &mut [F64]) {
-        let log_d = log2_strict_usize(data.len());
+    /// Recover novel-basis coefficients from evaluations, `num_ntts` lanes a row, on one thread.
+    pub fn inverse_transform(&self, data: &mut [F64], num_ntts: usize) {
+        let log_d = log2_strict_usize(data.len() / num_ntts);
         assert!(log_d <= self.dim);
         for layer in (0..log_d).rev() {
-            let half = 1usize << (log_d - layer - 1);
+            let half = num_ntts << (log_d - layer - 1);
             for (b, block) in data.chunks_exact_mut(2 * half).enumerate() {
                 let t = self.twiddle(layer, b);
                 let (top, bot) = block.split_at_mut(half);
-                for (u, v) in top.iter_mut().zip(bot.iter_mut()) {
-                    *v += *u;
-                    *u += *v * t;
-                }
+                zip_rows(top, bot, t, inverse, inverse);
             }
         }
     }
@@ -315,6 +352,22 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// The codeword `encode` returns, checked against the rows its sink was handed: each row once, finished.
+    fn sunk(
+        rows: usize,
+        num_ntts: usize,
+        encode: impl FnOnce(&mut [Vec<F64>], &(dyn Fn(&[F64], &mut [Vec<F64>]) + Sync)) -> Vec<F64>,
+    ) -> Vec<F64> {
+        let mut seen = vec![Vec::new(); rows];
+        let codeword = encode(&mut seen, &|rows, out| {
+            for (row, o) in rows.chunks_exact(num_ntts).zip(out) {
+                *o = row.to_vec();
+            }
+        });
+        assert_eq!(seen.concat(), codeword, "the sink sees every finished row");
+        codeword
     }
 
     fn random(rng: &mut Rng, n: usize) -> Vec<F64> {
@@ -348,27 +401,15 @@ mod tests {
             got[..msg.len()].copy_from_slice(&msg);
             ntt.encode_interleaved_in_place(&mut got, lanes, rate);
             assert_eq!(got, want, "in place, {context}");
-            assert_eq!(ntt.encode_rows(&msg, lanes, rate), want, "held apart, {context}");
+            let held = sunk(1 << log_d, lanes, |out, done| {
+                ntt.encode_rows(&msg, lanes, rate, out, done)
+            });
+            assert_eq!(held, want, "held apart, {context}");
 
             if lanes == 1 && rate == 0 {
-                ntt.inverse_transform(&mut got);
+                ntt.inverse_transform(&mut got, 1);
                 assert_eq!(got, msg, "inverse, {context}");
             }
-        }
-    }
-
-    /// The transposed transform is the transform's adjoint: `<F x, y> = <x, F^T y>`.
-    #[test]
-    fn transpose_transform_is_the_adjoint() {
-        let ntt = AdditiveNttF64::standard(15);
-        let mut rng = Rng::new(0x7A);
-        let dot = |a: &[F64], b: &[F64]| a.iter().zip(b).map(|(&a, &b)| a * b).sum::<F64>();
-        for (log_d, lanes) in [(1usize, 1usize), (5, 3), (13, 2), (15, 1)] {
-            let (x, y) = (random(&mut rng, lanes << log_d), random(&mut rng, lanes << log_d));
-            let (mut fx, mut fty) = (x.clone(), y.clone());
-            ntt.transform(&mut fx, lanes, 0);
-            ntt.transpose_transform(&mut fty, lanes);
-            assert_eq!(dot(&fx, &y), dot(&x, &fty), "log_d={log_d}, lanes={lanes}");
         }
     }
 
@@ -380,7 +421,9 @@ mod tests {
             let ntt = AdditiveNttF64::standard(log_rows + rate);
             let rows = 1usize << log_rows;
             let msg = random(&mut rng, rows * n_lanes);
-            let got = ntt.encode_lane_major(&msg, n_lanes, rate);
+            let got = sunk(rows << rate, n_lanes, |out, done| {
+                ntt.encode_lane_major(&msg, n_lanes, rate, out, done)
+            });
             for t in 0..n_lanes {
                 let block = &msg[(n_lanes - 1 - t) * rows..][..rows];
                 let mut want: Vec<F64> = block.iter().copied().cycle().take(rows << rate).collect();
@@ -413,7 +456,9 @@ mod tests {
                     }
                 }
             }
-            let got = ntt.encode_rows(words(&msg), 2 * lanes, rate);
+            let got = sunk(1 << log_d, 2 * lanes, |out, done| {
+                ntt.encode_rows(words(&msg), 2 * lanes, rate, out, done)
+            });
             assert_eq!(got, words(&want), "log_d={log_d}, lanes={lanes}, rate={rate}");
         }
     }

@@ -68,9 +68,12 @@ impl Cell {
 /// The write-once data memory: `len` cells, a power of two. Cells past those the run
 /// touched are unwritten and never accessed.
 pub struct Memory {
-    cells: Vec<Cell>,
+    pages: Vec<Vec<Cell>>,
     len: usize,
 }
+
+/// `log2` of the cells in a page: the memory grows a page at a time, so growing it never copies it.
+const PAGE_LOG: usize = 16;
 
 impl Memory {
     /// Cells in the image, its power-of-two pad included.
@@ -89,7 +92,9 @@ impl Memory {
 
     /// Cell `i`.
     pub(crate) fn cell(&self, i: usize) -> Cell {
-        self.cells.get(i).copied().unwrap_or(Cell::UNWRITTEN)
+        self.pages
+            .get(i >> PAGE_LOG)
+            .map_or(Cell::UNWRITTEN, |page| page[i & ((1 << PAGE_LOG) - 1)])
     }
 }
 
@@ -255,7 +260,7 @@ impl Program {
     /// Compilation yields the `Program`; executing it (here) and proving it are
     /// separate later phases.
     pub fn execute(&self, public_input: [F128; 2]) -> Result<Execution, ExecError> {
-        use super::hints::{BitsDest, GPow, RHint};
+        use super::hints::{BitsDest, GPow, QuickMap, RHint};
 
         let ending_pc = (self.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
         if self.main_frame >= MAX_CELLS {
@@ -269,9 +274,10 @@ impl Program {
         // The write-once data memory, each cell's access count and write state with its word.
         let n0 = self.main_frame.max(2) as usize;
         let mut m = Mem {
-            cells: Vec::new(),
+            pages: Vec::new(),
+            used: 0,
             counts: 0,
-            links: HashMap::new(),
+            links: QuickMap::default(),
             unwritten_reads: Vec::new(),
             program: self,
             dbg_pc: 0,
@@ -289,7 +295,7 @@ impl Program {
         let (mut pc, mut fp) = (0u32, 0u32);
         let mut steps = 0usize;
         // Witness streams by name, each with its next entry.
-        let mut streams: HashMap<&str, Stream> = HashMap::new();
+        let mut streams: QuickMap<&str, Stream> = QuickMap::default();
         // Each pc's hints, indexed by pc: a map lookup on every step costs more than most steps.
         let mut hints: Vec<&[RHint]> = vec![&[]; self.prog.len()];
         for (&hpc, hs) in &self.hints {
@@ -310,12 +316,14 @@ impl Program {
 
         // The memory, grown as the run reaches it.
         struct Mem<'a> {
-            /// Every cell up to the highest accessed or reserved.
-            cells: Vec<Cell>,
+            /// Whole pages covering every cell up to the highest accessed or reserved.
+            pages: Vec<Vec<Cell>>,
+            /// One past the highest cell accessed or reserved.
+            used: usize,
             /// The highest access count any cell reached.
             counts: u32,
             /// The cells a `DEREF` linked each cell to.
-            links: HashMap<u32, Vec<u32>>,
+            links: QuickMap<u32, Vec<u32>>,
             /// Cells an instruction read before anything wrote them.
             unwritten_reads: Vec<u32>,
             /// To name where a conflict happened.
@@ -329,21 +337,32 @@ impl Program {
         impl Mem<'_> {
             // Cover cell `idx`.
             fn ensure(&mut self, idx: usize) {
-                if idx >= self.cells.len() {
-                    self.cells.resize(idx + 1, Cell::UNWRITTEN);
+                if idx >= self.used {
+                    self.used = idx + 1;
+                    while self.pages.len() <= idx >> PAGE_LOG {
+                        self.pages.push(vec![Cell::UNWRITTEN; 1 << PAGE_LOG]);
+                    }
                 }
             }
             /// Cell `c`, which `ensure` has covered.
             fn at(&mut self, c: u32) -> &mut Cell {
-                &mut self.cells[c as usize]
+                let c = c as usize;
+                &mut self.pages[c >> PAGE_LOG][c & ((1 << PAGE_LOG) - 1)]
+            }
+            /// Cell `c`, if its page exists.
+            fn cell(&self, c: u32) -> Option<&Cell> {
+                let c = c as usize;
+                self.pages
+                    .get(c >> PAGE_LOG)
+                    .map(|page| &page[c & ((1 << PAGE_LOG) - 1)])
             }
             fn written(&self, cell: u32) -> bool {
-                self.cells.get(cell as usize).is_some_and(|c| c.state == State::Written)
+                self.cell(cell).is_some_and(|c| c.state == State::Written)
             }
             // A hint's read, which writes nothing: what a hint computes is advice the
             // instructions go on to check.
             fn get(&self, cell: u32) -> F128 {
-                self.cells.get(cell as usize).map_or(F128::ZERO, |c| c.word)
+                self.cell(cell).map_or(F128::ZERO, |c| c.word)
             }
             // An instruction's read. An unwritten cell reads as ZERO, which is then written
             // there: the row is filled from the final image, which has to agree.
@@ -916,10 +935,10 @@ impl Program {
         };
         // The memory announced: the least power of two covering every cell the run touched
         // (the boundary tables read a dense image).
-        let mem_used = m.cells.len();
+        let mem_used = m.used;
         Ok(Execution {
             mem: Memory {
-                cells: m.cells,
+                pages: m.pages,
                 len: mem_used.next_power_of_two(),
             },
             cycles: steps,

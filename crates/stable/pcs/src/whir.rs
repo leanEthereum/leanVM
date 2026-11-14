@@ -19,13 +19,14 @@
 //!   deeper-level (E-valued) encodes use K-twiddles via the mixed product
 //!   [`F128::mul_base`] instead of a full E multiplication.
 
-use crate::merkle::{Hash, MerkleTree};
+use crate::merkle::{Hash, LeafHasher, MerkleTree};
 use crate::ntt::{AdditiveNttF64, words};
 use crate::stack_open::Terms;
 use fiat_shamir::merkle::MerklePath;
 use fiat_shamir::transcript::ProverState;
-use primitives::field::{F64, F128, powers};
-use primitives::multilinear::{eq_table, interp};
+use primitives::field::{Acc8, F64, F128, F128x8, powers};
+use primitives::hash::OUT_LEN;
+use primitives::multilinear::eq_table;
 
 use super::whir_config::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS};
 pub use super::whir_config::{
@@ -42,6 +43,16 @@ use crate::whir_lanes;
 
 /// Elements a task of a parallel pass takes.
 const CHUNK: usize = 1 << 12;
+
+/// The eight values `v[at + step * j]`, zero past `v`.
+pub(crate) fn gather8<T: Copy + Default>(v: &[T], at: usize, step: usize) -> [T; 8] {
+    core::array::from_fn(|j| v.get(at + step * j).copied().unwrap_or_default())
+}
+
+/// The first `out.len()` lanes of `p` over `out`.
+pub(crate) fn store_prefix(p: F128x8, out: &mut [F128]) {
+    out.copy_from_slice(&p.to_array()[..out.len()]);
+}
 
 /// Mixed inner product `Σ_i b[i] · witness[i]` (E x K via `mul_base`). The
 /// evaluation-claim `target` for a K-witness against an E-basis.
@@ -132,10 +143,15 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     );
     let k_code = log_rows + log_inv_rate;
     let ntt = AdditiveNttF64::standard(k_code);
-    let words = tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = n_lanes)
-        .in_scope(|| ntt.encode_lane_major(message, n_lanes, log_inv_rate));
-    let merkle_tree =
-        tracing::info_span!("Merkle").in_scope(|| MerkleTree::build(&words, n_lanes, 1 << log_batch_size));
+    // Each block of rows is hashed into its leaves as soon as the encode has finished it.
+    let hasher = LeafHasher::new(n_lanes, 1 << log_batch_size);
+    let mut leaves = parallel::filled(1 << k_code, [0u8; OUT_LEN]);
+    let words = tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = n_lanes).in_scope(|| {
+        ntt.encode_lane_major(message, n_lanes, log_inv_rate, &mut leaves, |rows, out| {
+            hasher.hash(rows, out)
+        })
+    });
+    let merkle_tree = tracing::info_span!("Merkle").in_scope(|| MerkleTree::from_leaves(leaves));
     let root = merkle_tree.root();
     let codeword = Codeword {
         words,
@@ -192,14 +208,20 @@ pub(crate) fn ligero_commit_ext(
 
     // One leaf per row, its F128s as K words.
     let row_words = 2 * num_interleaved;
+    let hasher = LeafHasher::new(row_words, row_words);
+    let mut leaves = parallel::filled(block_len, [0u8; OUT_LEN]);
     let words = tracing::info_span!(
         "NTT",
         kind = "extension encode",
         log_domain = log_block_len,
         lanes = num_interleaved
     )
-    .in_scope(|| ntt.encode_rows(words(poly), row_words, log_inv_rate));
-    let tree = tracing::info_span!("Merkle").in_scope(|| MerkleTree::build(&words, row_words, row_words));
+    .in_scope(|| {
+        ntt.encode_rows(words(poly), row_words, log_inv_rate, &mut leaves, |rows, out| {
+            hasher.hash(rows, out)
+        })
+    });
+    let tree = tracing::info_span!("Merkle").in_scope(|| MerkleTree::from_leaves(leaves));
 
     LigeroWitness {
         codeword: Codeword { words, row_words },
@@ -267,7 +289,19 @@ fn round_msg(f: &[F128], b: &[F128]) -> SumcheckMessage {
 
 /// `interp(x[2j], x[2j + 1], r)` for every pair.
 fn fold_pairs(x: &[F128], r: F128) -> Vec<F128> {
-    x.as_chunks::<2>().0.iter().map(|&[a, b]| interp(a, b, r)).collect()
+    let r = F128x8::splat(r);
+    let mut out = parallel::filled(x.len() / 2, F128::ZERO);
+    parallel::chunks_mut(&mut out, CHUNK, |i, out| {
+        let x = &x[2 * i * CHUNK..][..2 * out.len()];
+        for (k, o) in out.chunks_mut(8).enumerate() {
+            let (lo, hi) = (
+                F128x8::from_array(&gather8(x, 16 * k, 2)),
+                F128x8::from_array(&gather8(x, 16 * k + 1, 2)),
+            );
+            store_prefix(lo + r * (lo + hi), o);
+        }
+    });
+    out
 }
 
 // ===================================================================
@@ -359,18 +393,20 @@ impl Dense {
                 let cols = t * per..((t + 1) * per).min(low);
                 let mut xf = vec![F128::ZERO; cols.len() * pairs];
                 crate::xmul::mul_x(f, s, 2, cols.start, &mut xf);
-                let mut acc = [F128::ZERO; 4];
-                for (c, xf) in cols.zip(xf.chunks_exact(pairs)) {
-                    let (lanes, w) = (&f[c * s..][..s], &w[c * s..][..s]);
-                    for m in 0..pairs {
-                        let (w0, w1, f, g) = (w[2 * m], w[2 * m + 1], lanes[2 * m], lanes[2 * m + 1]);
-                        acc[0] += w0 * g;
-                        acc[1] += (w0 + w1) * f;
-                        acc[2] += w0 * xf[m];
-                        acc[3] += w1 * xf[m];
-                    }
+                // Pair `q` of the run has `F = f[2q]`, `G = f[2q + 1]`, the weights `w[2q]` and `w[2q + 1]`, and
+                // `X F = xf[q]`.
+                let (f, w) = (&f[cols.start * s..cols.end * s], &w[cols.start * s..cols.end * s]);
+                let mut acc = [Acc8::ZERO; 4];
+                for (k, xf) in xf.chunks(8).enumerate() {
+                    let at = |v: &[F128], parity: usize| F128x8::from_array(&gather8(v, 16 * k + parity, 2));
+                    let (f, g, w0, w1) = (at(f, 0), at(f, 1), at(w, 0), at(w, 1));
+                    let xf = F128x8::from_array(&gather8(xf, 0, 1));
+                    acc[0] += w0.mul_unreduced(g);
+                    acc[1] += (w0 + w1).mul_unreduced(f);
+                    acc[2] += w0.mul_unreduced(xf);
+                    acc[3] += w1.mul_unreduced(xf);
                 }
-                acc
+                acc.map(Acc8::sum)
             },
             |a, b| std::array::from_fn(|i| a[i] + b[i]),
         )
@@ -384,21 +420,22 @@ impl Dense {
         let FoldChallenges { alpha, beta } = *ch;
         let f = &self.f;
         let mut next = parallel::filled((n_cols + 1) * pairs, F128::ZERO);
+        let (alpha, beta) = (F128x8::splat(alpha), F128x8::splat(beta));
         parallel::chunks_mut(&mut next, per * pairs, |t, out| {
             let first = t * per;
             crate::xmul::mul_x(f, s, 2, first, out);
-            for (c, out) in (first..).zip(out.chunks_exact_mut(pairs)) {
-                for (m, o) in out.iter_mut().enumerate() {
-                    let (f, g) = if c < n_cols {
-                        (f[c * s + 2 * m], f[c * s + 2 * m + 1])
-                    } else {
-                        (F128::ZERO, F128::ZERO)
-                    };
-                    *o = g + alpha * f + beta * *o;
-                }
+            // Pair `q` has `F = f[2q]` and `G = f[2q + 1]`, zero past the columns.
+            for (k, o) in out.chunks_mut(8).enumerate() {
+                let q = first * pairs + 8 * k;
+                let (f, g) = (
+                    F128x8::from_array(&gather8(f, 2 * q, 2)),
+                    F128x8::from_array(&gather8(f, 2 * q + 1, 2)),
+                );
+                let xf = F128x8::from_array(&gather8(o, 0, 1));
+                store_prefix((alpha.mul_unreduced(f) + beta.mul_unreduced(xf)).reduce() + g, o);
             }
         });
-        (self.f, self.w, self.stride) = (next, fold_pairs(&self.w, alpha), pairs);
+        (self.f, self.w, self.stride) = (next, fold_pairs(&self.w, ch.alpha), pairs);
     }
 }
 
@@ -644,7 +681,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             })
             .collect();
         let enforced = values.iter().zip(&weights).map(|(&v, &wt)| v * wt).sum();
-        let basis = induce_basis(mu, block_len.ilog2() as usize - mu, &queries, &weights);
+        let basis = induce_basis(mu, &queries, &weights);
         drop(span);
         let pending = [(eq, y), (basis, enforced)];
         tracing::info_span!("Glue", level).in_scope(|| glue(&mut w, &mut claim, pending, lambda));
@@ -665,6 +702,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
 mod tests {
     use super::*;
     use crate::stack_open::{RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
+    use primitives::multilinear::interp;
     use primitives::test_rng::Rng;
 
     /// Committing only the lanes that carry data must be indistinguishable from
