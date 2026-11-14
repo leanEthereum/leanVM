@@ -77,9 +77,10 @@
 //!
 //! The witness holds every round's `u` sliced by bit position, 64 instances to a word
 //! ([`witness`]). A layer walks it six times (`prover`): once for `U`, once for each of the first
-//! four rounds of step 3, over the sixteen packs of half a block, and once to fold those four
-//! rounds' challenges into field elements. At `s`, a pack's value is the sum of the instance
-//! weights of its set bits, so a folded one is a sum of byte lookups.
+//! four rounds of step 3, over the sixteen packs of half a block, and once for the table of
+//! field elements the remaining rounds fold. At `s`, a pack's value is the sum of the instance
+//! weights of its set bits, so a folded one is a sum of byte lookups. The blocks past the last
+//! input all equal the padding block, which every pass walks once, at their summed weight.
 //!
 //! `U`'s weighted bit sums go to buckets: each byte of a product picks one of 256, which its
 //! weight is added to, and a coefficient is a sum of buckets.

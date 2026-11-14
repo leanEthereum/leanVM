@@ -298,8 +298,8 @@ fn fold_rows(table: &[F128], challenge: F128) -> Vec<F128> {
     out
 }
 
-/// A round of the sumcheck over bit positions, on small tables: the
-/// coefficients of `sum_j w (kappa t0 + (kappa + t1) t2)` in the variable being bound.
+/// A round of the sumcheck over bit positions, on small tables: the coefficients of
+/// `sum_j w (kappa t0 + (kappa + t1) t2)` in the variable being bound.
 fn local_round(w: &[F128], t: &[Vec<F128>; 3], kappa: F128) -> [F128; 4] {
     let mut h = [F128::ZERO; 4];
     for i in 0..w.len() / 2 {
@@ -335,11 +335,11 @@ pub fn prove_layer(ps: &mut ProverState, witness: &Witness, step: usize, claim: 
     // `s`: the product polynomial has degree PROD_BITS - 1.
     ps.grind(fiat_shamir::grinding_bits(PROD_BITS as u128 - 1));
     let s = ps.sample();
-    let kappa = mu_at(s).iter().sum();
+    let mu = mu_at(s);
+    let kappa = mu.iter().sum();
     let mut value = poly_eval(&product, s);
 
     // The packs of a group, a pass over the witness per round.
-    let mu = mu_at(s);
     let summand = Summand::new(claim, kappa);
     let tasks = layer.task_weights(&eq_table(&claim.point[SKIP + 1..]));
     let mut scale = F128::ONE;
@@ -366,7 +366,7 @@ pub fn prove_layer(ps: &mut ProverState, witness: &Witness, step: usize, claim: 
 
     // The bit positions.
     let cube = 1usize << LOCAL_VARS;
-    let mut t0 = table.to_vec();
+    let mut t0 = table;
     t0.resize(cube, F128::ZERO);
     let shift = |k: usize| -> Vec<F128> {
         (0..cube)
@@ -393,7 +393,7 @@ pub fn prove_layer(ps: &mut ProverState, witness: &Witness, step: usize, claim: 
     let beta = ps.sample();
     Claim {
         value: t[0] + beta * (t[1] + beta * t[2]),
-        mu: mu_at(s),
+        mu,
         point,
         weights: linear_transpose(&chi_weights(&eq_table(&local), beta)),
     }

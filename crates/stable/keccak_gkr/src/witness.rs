@@ -182,7 +182,7 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; LANES]], keep: bool) -> (V
     (lanes, rounds)
 }
 
-/// One block's committed lanes alone, as [`run_block`] returns them.
+/// One block's committed lanes alone: slot `s` at `s * BLOCK ..`, a word per instance.
 ///
 /// Its rounds are not kept: the reduction rebuilds them from the committed column.
 pub fn block_lanes(depth: usize, inputs: &[[u64; LANES]]) -> Vec<u64> {
