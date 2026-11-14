@@ -109,7 +109,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     }
 
     for round in 0..src.range(1, 16) {
-        let proof_bytes = proof.stream.len() * 24
+        let proof_bytes = proof.stream.len() * 16
             + proof
                 .merkle_openings
                 .iter()

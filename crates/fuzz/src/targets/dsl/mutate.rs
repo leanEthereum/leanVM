@@ -26,7 +26,6 @@ const NAMES: &[&str] = &[
     "mul_range",
     "const",
     "len",
-    "f192",
     "return",
     "def",
     "if",

@@ -517,6 +517,10 @@ fn benign_cells(honest: &Streams, forged: &Streams, lens: &[usize]) -> Option<St
                     "merkle_cap_active" if hv != F128::ZERO && fv != F128::ZERO => "cap flag nonzero either way",
                     // A zero flag no walk sets and no hash depends on: node 0 of a cap level, which has no node.
                     "merkle_cap_active" if hv == F128::ZERO => "unread cap flag",
+                    // `verify_merkle_cap` reads `flags[g^node]` only for node >= 2: node 1 is the root, hashed
+                    // unconditionally, and node 0 has no node. No write touches either (`walk_path` flags the
+                    // reached cap leaf's parent, the propagation its children), so both cells are dead.
+                    "merkle_cap_active" if k < 2 => "the cap's root-or-none flag, never read",
                     // `walk_window` hashes the running node with the sibling half of the pair, never the other half.
                     "merkle_children" if own_half(honest, e, k) => "running node's copy in a Merkle pair",
                     "da_pick" if same_da(honest, forged) => "DA pick of an equal digest",
@@ -567,7 +571,11 @@ fn stream<'a>(streams: &'a Streams, name: &str) -> Option<&'a Vec<Vec<F128>>> {
 }
 
 /// Whether cell `k` of `merkle_children` entry `e` lies in the half of its level's pair that holds the running
-/// node: the leaf's hash at level 0, the hash of the pair below above it.
+/// node: the leaf's hash at path height 0, the hash of the pair below above it.
+///
+/// Stacked level 0 packs a row's lanes one to a cell, deeper levels two (`keccak_cells` hashes the row's cells
+/// whole), so the height-0 running node is the hash of the row under its OWN packing: both are tried, and only
+/// the packing the guest hashes can match.
 fn own_half(honest: &Streams, e: usize, k: usize) -> bool {
     let (Some(children), Some(rows)) = (stream(honest, "merkle_children"), stream(honest, "merkle_leaf_rows")) else {
         return false;
@@ -575,22 +583,23 @@ fn own_half(honest: &Streams, e: usize, k: usize) -> bool {
     let (Some(path), Some(row)) = (children.get(e), rows.get(e)) else {
         return false;
     };
-    let level = k / 4;
-    let node = if level == 0 {
-        let leaf: Vec<F64> = row.iter().map(|c| F64(c.c0)).collect();
-        hash_words(&leaf)
-    } else {
-        let (Some(l), Some(r)) = (
-            bytes_of(&path[4 * level - 4..4 * level - 2]),
-            bytes_of(&path[4 * level - 2..4 * level]),
-        ) else {
-            return false;
-        };
-        hash_pair(&l, &r)
+    let half = 4 * (k / 4) + 2 * ((k % 4) / 2);
+    let Some(h) = path.get(half..half + 2) else {
+        return false;
     };
-    let own = hash_to_scalars(&node);
-    let half = 4 * level + 2 * ((k % 4) / 2);
-    path.get(half..half + 2) == Some(&own[..])
+    if k / 4 == 0 {
+        let one: Vec<F64> = row.iter().map(|c| F64(c.c0)).collect();
+        let two: Vec<F64> = row.iter().flat_map(|c| [F64(c.c0), F64(c.c1)]).collect();
+        return *h == hash_to_scalars(&hash_words(&one)) || *h == hash_to_scalars(&hash_words(&two));
+    }
+    let level = k / 4;
+    let (Some(l), Some(r)) = (
+        bytes_of(&path[4 * level - 4..4 * level - 2]),
+        bytes_of(&path[4 * level - 2..4 * level]),
+    ) else {
+        return false;
+    };
+    *h == hash_to_scalars(&hash_pair(&l, &r))
 }
 
 /// Whether the forged `da_pick` names a digest equal to the honest pick's.

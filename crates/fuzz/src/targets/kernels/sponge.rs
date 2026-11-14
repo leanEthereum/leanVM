@@ -269,8 +269,8 @@ fn da_challenge(src: &mut Source, ctx: &Ctx) -> Outcome {
     };
     let mut want = RefSponge::new(words(&r::keccak256(b"leanDA/rs-membership/v1")), words(&root));
     // The challenge's derivation grinds: the smallest nonce whose permutation clears `bits` low bits of the
-    // proof-of-work lane, `bits = grinding_bits(2^14 - 1)` for a blob's `k - 1` bad values of `z`.
-    let bits = 11u32;
+    // proof-of-work lane, for a blob's `k - 1` bad values of `z`.
+    let bits = fiat_shamir::grinding_bits((1u128 << verifier::da::DA_LOG_K) - 1) as u32;
     let n = (0..).find(|&n| want.grind_ok(n, bits)).expect("a nonce exists");
     want.absorb(F128::new(n, 0), NONCE);
     let z = want.sample();

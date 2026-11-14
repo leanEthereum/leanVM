@@ -662,20 +662,19 @@ impl Printer<'_> {
         }
     }
 
-    /// An integer literal in a value position, where `+` is XOR: as itself, as `f192(...)`, as two literals
+    /// An integer literal in a value position, where `+` is XOR: as itself, as two literals
     /// XORed, as a power of `GEN`, or as an integer `const(...)` sum.
     fn lit(&mut self, n: u128, free: bool) -> String {
         if !free || !self.chance(self.style.litform) {
             return n.to_string();
         }
-        match self.pick(5) {
-            0 => format!("f192({}, {}, 0)", n as u64, (n >> 64) as u64),
-            1 => {
+        match self.pick(4) {
+            0 => {
                 let a = (self.rng.next_u64() as u128) << 64 | self.rng.next_u64() as u128;
                 format!("({} + {})", a, a ^ n)
             }
-            2 if n.is_power_of_two() && n < 1 << 64 => format!("(GEN ** {})", n.trailing_zeros()),
-            3 if n < 1 << 120 => {
+            1 if n.is_power_of_two() && n < 1 << 64 => format!("(GEN ** {})", n.trailing_zeros()),
+            2 if n < 1 << 120 => {
                 let a = (self.rng.next_u64() as u128) % (n + 1);
                 format!("const({} + {})", a, n - a)
             }

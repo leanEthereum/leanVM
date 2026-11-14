@@ -122,12 +122,9 @@ fn fields(bytes: &[u8]) -> Vec<(usize, usize, &'static str)> {
     out.push((0, 4, "stream length"));
     let mut at = 4;
     for i in 0..len.min(64) {
-        out.push((at + 24 * i, 8, "stream word"));
+        out.push((at + 16 * i, 8, "stream word"));
     }
-    if len > 64 {
-        out.push((at + 24 * (len - 1) + 16, 8, "stream word"));
-    }
-    at += 24 * len;
+    at += 16 * len;
     let Some(phases) = u32_at(at) else { return out };
     out.push((at, 4, "phase count"));
     at += 4;
