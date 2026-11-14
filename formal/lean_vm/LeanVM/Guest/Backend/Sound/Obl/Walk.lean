@@ -15,7 +15,8 @@ public import LeanVM.Guest.B1.Opening.QueriesWalk
 # The windowed Merkle walk
 
 `walk_path__L{pd}_L{cd}` dispatches on the words at its argument `2`, `wins`, which the table
-bounds (`Sig.mem`, if read, below `g^64`). Its callers load `wins` from a window pointer table:
+bounds (`Sig.mem`, if read, below `g^64`) and names the walk's windows (`WinsAt`, relation
+`winsTag (pd + cd) cd`). Its callers load `wins` from a window pointer table:
 
 * a loop helper of shape `s` (`oqLoop0T`, `oqLoop1T` at level `0`) on `[x, N, positions, qptrs,
   …]` runs the walk from `x` to `N` on `qptrs` (`XSpec.loop`, B1's `WinWalk`, `WinWalk2`, with
@@ -56,15 +57,25 @@ theorem winsAt_mem {rd : Reader} {pd cd : ℕ} {w : E} (h : WinsAt rd (pd + cd) 
   obtain ⟨e, he, rfl⟩ := h i h1 v hv
   exact ⟨e, lt_of_lt_of_le he (le_trans (Nat.pow_le_pow_right (by norm_num) h2) (by norm_num)), rfl⟩
 
-/-- The facts that the path windows at `w`, if read, are below `g^64`, at statement `i`. -/
+/-- The facts that `w` names the walk's path windows and that they, if read, are below `g^64`, at
+statement `i`. -/
 def winFacts (s : Oq) (i w : ℕ) : List (ℕ × Hyp) :=
-  (List.range (oqNpw s)).map fun c => (i, .mem (.n w) c 64)
+  (i, .rel (.n w) (winsTag (s.pd + s.cd) s.cd)) ::
+    (List.range (oqNpw s)).map fun c => (i, .mem (.n w) c 64)
 
-theorem mem_winFacts {s : Oq} {i w : ℕ} {p : ℕ × Hyp} (h : p ∈ winFacts s i w) :
-    ∃ c < (s.pd + 5) / 6, p = (i, .mem (.n w) c 64) := by
-  simp only [winFacts, List.mem_map, List.mem_range] at h
-  obtain ⟨c, hc, rfl⟩ := h
-  exact ⟨c, hc, rfl⟩
+theorem fst_of_mem_winFacts {s : Oq} {i w : ℕ} {p : ℕ × Hyp} (h : p ∈ winFacts s i w) :
+    p.1 = i := by
+  simp only [winFacts, List.mem_cons, List.mem_map, List.mem_range] at h
+  rcases h with rfl | ⟨c, -, rfl⟩ <;> rfl
+
+/-- The facts of `winFacts` hold where `w` names the walk's windows. -/
+theorem winFacts_holds {s : Oq} {i w : ℕ} {rd : Reader} {σ : Val} {p : ℕ × Hyp}
+    (hb : s.pd + s.cd < 64 ∧ s.cd < 64) (hw : WinsAt rd (s.pd + s.cd) s.cd (σ (.n w)))
+    (h : p ∈ winFacts s i w) : p.2.Holds guestRel rd σ := by
+  simp only [winFacts, List.mem_cons, List.mem_map, List.mem_range] at h
+  rcases h with rfl | ⟨c, hc, rfl⟩
+  · exact guestRel_winsTag hb.1 hb.2 hw
+  · exact winsAt_mem hw hc
 
 /-- A walk's shape from a template's. -/
 def wOf (s : Oq) (odd : ℕ) : WalkSpec := ⟨s.pd + s.cd, s.cd, odd, s.base⟩
@@ -105,11 +116,12 @@ def loopSite (s : Oq) (odd : ℕ) : ℕ :=
 def loopT (s : Oq) (odd : ℕ) (name : String) : List Stmt :=
   if s.base = 1 then oqLoop1T s odd (oqWalkOf s) name else oqLoop0T s (oqWalkOf s) name
 
-/-- **A loop helper's decided check**: function `j` is named `name`, has ten parameters, its body
-is the template, its table entry the walk, and the analysis accepts it with its facts and its
-tail call as a site. -/
+/-- **A loop helper's decided check**: function `j` is named `name`, its walk's depth and cap depth
+are below `64`, it has ten parameters, its body is the template, its table entry the walk, and the
+analysis accepts it with its facts and its tail call as a site. -/
 def loopOkF (g : Fn) (name : String) (sh : OqShape) (odd : ℕ) : Bool :=
-  decide (g.name = name) && decide (g.params = (List.range 10).map V.n) &&
+  decide (g.name = name) && decide (sh.oq.pd + sh.oq.cd < 64 ∧ sh.oq.cd < 64) &&
+    decide (g.params = (List.range 10).map V.n) &&
     decide (xSpecOf name = some (.loop (wOf sh.oq odd))) && (guestTab.sig name).ext &&
     stmtsEqb g.body (loopT sh.oq odd name) &&
     chkFnX guestTab (loopFacts sh.oq) [loopSite sh.oq odd] g
@@ -147,7 +159,7 @@ theorem oqNextT_eq (g : ℕ) (name : String) : oqNextT g name =
 theorem loop_obl {j : ℕ} {name : String} {sh : OqShape} {odd : ℕ}
     (hok : loopOk j name sh odd = true) : OblFn (coreProgram.getD j default) := by
   simp only [loopOk, loopOkF, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨hn, hp⟩, hx⟩, he⟩, hb⟩, hc⟩ := hok
+  obtain ⟨⟨⟨⟨⟨⟨hn, hbd⟩, hp⟩, hx⟩, he⟩, hb⟩, hc⟩ := hok
   have hb := stmtsEqb_sound hb
   set s := sh.oq
   have own : ∀ {rd : Reader} {σ : Val}, guestU rd (coreProgram.getD j default).name
@@ -168,14 +180,13 @@ theorem loop_obl {j : ℕ} {name : String} {sh : OqShape} {odd : ℕ}
     by_cases hbase : s.base = 1
     · simp only [hbase, ↓reduceIte] at hp hl hw
       rcases List.mem_append.mp hp with hp | hp
-      · obtain ⟨c, hc, rfl⟩ := mem_winFacts hp
-        exact winsAt_mem (oqLoop1T_wins1 le_rfl hl hw hne) hc
-      · obtain ⟨c, hc, rfl⟩ := mem_winFacts hp
-        rw [← oqQueryT_length_walk' (walk := oqWalkOf s)] at hl
-        exact winsAt_mem (oqLoop1T_wins2 le_rfl hl hw hne) hc
+      · rw [fst_of_mem_winFacts hp] at hl
+        exact winFacts_holds hbd (oqLoop1T_wins1 le_rfl hl hw hne) hp
+      · rw [fst_of_mem_winFacts hp, ← oqQueryT_length_walk' (walk := oqWalkOf s)] at hl
+        exact winFacts_holds hbd (oqLoop1T_wins2 le_rfl hl hw hne) hp
     · simp only [hbase, ↓reduceIte] at hp hl hw
-      obtain ⟨c, hc, rfl⟩ := mem_winFacts hp
-      exact winsAt_mem (oqLoop0T_wins le_rfl hl hw hne) hc
+      rw [fst_of_mem_winFacts hp] at hl
+      exact winFacts_holds hbd (oqLoop0T_wins le_rfl hl hw hne) hp
   · intro κ L _ _ C σ _ hpre i hi st ss hd hl
     simp only [List.mem_singleton] at hi
     subst hi
@@ -218,11 +229,13 @@ theorem loop_obl {j : ℕ} {name : String} {sh : OqShape} {odd : ℕ}
 /-- A specialization's facts: an odd count's first query's window pointer, after its load. -/
 def mainFacts (s : Oq) (odd : ℕ) : List (ℕ × Hyp) := if odd = 1 then winFacts s 5 12 else []
 
-/-- **A specialization's decided check**: function `j` is named `name`, has eight parameters, its
-body is the template calling the loop helper `loop`, its and its loop's table entries the walk,
-and the analysis accepts it with its facts and its loop call as a site. -/
+/-- **A specialization's decided check**: function `j` is named `name`, its walk's depth and cap
+depth are below `64`, it has eight parameters, its body is the template calling the loop helper
+`loop`, its and its loop's table entries the walk, and the analysis accepts it with its facts and
+its loop call as a site. -/
 def mainOkF (g : Fn) (name : String) (sh : OqShape) (loop : String) : Bool :=
-  decide (g.name = name) && decide (g.params = (List.range 8).map V.n) &&
+  decide (g.name = name) && decide (sh.oq.pd + sh.oq.cd < 64 ∧ sh.oq.cd < 64) &&
+    decide (g.params = (List.range 8).map V.n) &&
     decide (xSpecOf name = some (.main (wOf sh.oq sh.odd))) && (guestTab.sig name).ext &&
     decide (xSpecOf loop = some (.loop (wOf sh.oq sh.odd))) &&
     stmtsEqb g.body (oqMainT sh.oq sh.odd (oqWalkOf sh.oq) loop) &&
@@ -245,7 +258,7 @@ theorem main_call_args {σ : Val} (k : ℕ) :
 theorem main_obl {j : ℕ} {name : String} {sh : OqShape} {loop : String}
     (hok : mainOk j name sh loop = true) : OblFn (coreProgram.getD j default) := by
   simp only [mainOk, mainOkF, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨hn, hp⟩, hx⟩, he⟩, hxl⟩, hb⟩, hc⟩ := hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨hn, hbd⟩, hp⟩, hx⟩, he⟩, hxl⟩, hb⟩, hc⟩ := hok
   have hb := stmtsEqb_sound hb
   set s := sh.oq
   set odd := sh.odd
@@ -263,8 +276,8 @@ theorem main_obl {j : ℕ} {name : String} {sh : OqShape} {loop : String}
     unfold mainFacts at hp
     by_cases ho : odd = 1
     · simp only [ho, ↓reduceIte] at hp
-      obtain ⟨c, hc, rfl⟩ := mem_winFacts hp
-      exact winsAt_mem (oqMainT_wins le_rfl ho hl (own hpre)) hc
+      rw [fst_of_mem_winFacts hp] at hl
+      exact winFacts_holds hbd (oqMainT_wins le_rfl ho hl (own hpre)) hp
     · simp only [ho, ↓reduceIte] at hp
       exact absurd hp List.not_mem_nil
   · intro κ L _ _ C σ _ hpre i hi st ss hd hl

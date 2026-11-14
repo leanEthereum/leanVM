@@ -238,7 +238,7 @@ theorem os_obl {j : ℕ} {sites : List (ℕ × ℕ)} (hok : osOk j sites = true)
   have hwt : WinTabs L.read (σ (.n 10)) := by
     have := hpre.1.2.2 (10, 1) hx (by rw [hp]; simp)
     rw [hp, getD_range_map (by norm_num : 10 < 11)] at this
-    exact this.2 rfl
+    exact this.2.1 rfl
   have hdisp := holds_at hki hnr hdk hl
   simp only [Stmt.HoldsList, Stmt.Holds, and_true] at hdisp
   obtain ⟨r', hr', hxr', hCr⟩ := hdisp

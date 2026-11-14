@@ -61,20 +61,29 @@ theorem memB_of {rd : Reader} {p : E} {c n : ℕ}
   obtain ⟨e, he, hl⟩ := h
   exact ⟨e, he, B1.loadHolds_unique hv hl⟩
 
+theorem kbBound_lt (c : ℕ) : kbBound c < 2 ^ 16 := by
+  unfold kbBound
+  rcases c with _ | _ | _ | _ | _ | _ | _ | _ | c <;> simp
+
 /-- **`verify_sub`'s facts** (B1-d). -/
 theorem vsFacts_B1 : VsFacts := by
   intro κ L h1 h2 σ hex p hp hl
-  simp only [vsFacts, List.mem_cons, List.mem_map, List.mem_range] at hp
-  rcases hp with rfl | rfl | ⟨c, hc, rfl⟩
+  simp only [vsFacts, List.mem_cons, List.mem_append, List.mem_map, List.mem_range] at hp
+  rcases hp with (rfl | rfl | rfl | ⟨c, hc, rfl⟩) | ⟨c, hc, rfl⟩
   · rw [vs_body] at hl
     exact memB_of (B1.VerifySub.vsDimsKnown0_holds L h1 h2 σ hl)
+  · rw [vs_body] at hl
+    exact guestRel_memRel (by norm_num) (B1.VerifySub.vsDimsKnown0_holds L h1 h2 σ hl)
   · rw [vs_takeTabs, holdsList_append, holdsList_noRet _ vs_noRetTabs] at hl
     obtain ⟨he, -⟩ := B1.VerifySub.vsTabsT_holds hl.2
-    refine ⟨fun h => absurd h (by decide), fun _ n hn => ?_⟩
+    refine ⟨fun h => absurd h (by decide), fun _ n hn => ?_, fun h => absurd h (by decide),
+      fun h => absurd h (by decide)⟩
     rw [he]
     exact (B1.loadHolds_mul_gen_pow _ _ _ _ _).mpr (hex.2 n hn)
   · rw [vs_body] at hl
     exact memB_of (B1.VerifySub.vsKnown_holds L h1 h2 σ hex.1 hl c hc)
+  · rw [vs_body] at hl
+    exact guestRel_memRel (kbBound_lt c) (B1.VerifySub.vsKnown_holds L h1 h2 σ hex.1 hl c hc)
 
 variable {κ : ℕ} {W : World κ}
 

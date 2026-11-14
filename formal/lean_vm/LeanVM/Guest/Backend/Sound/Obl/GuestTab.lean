@@ -14,18 +14,20 @@ public import LeanVM.Guest.Renumber
 
 What each guest function asks of its callers and promises them, in the analysis' terms
 (`Obl.Sig`, indices into the arguments and, for `post`, into the arguments then the returns).
-Every entry is what a selector of the function, or of a function it is passed to, needs and no
-more; the existing certificates' `Sig.pre`, `Sig.mem`, `Sig.post` for the same functions are the
-same bounds at frame offsets (`2 + i`).
+Every entry is what a selector of the function, or of a function it is passed to, needs, and what
+the existing certificates' signatures ask of the same function (`Sig.pre`, `Sig.mem`, `Sig.sem`,
+at frame offsets `2 + i`), so that the guest's precondition `guestU` and the certificates' imply
+each other (`Guest/B2/Sig.lean`).
 
 * `verify_tables`: argument `9` below `g^34` (dispatched on), the word at argument `10` below
-  `g^34` (`dims_g[0]`, dispatched on);
-* `check_opening_terminal`: the eight words at argument `8` (`kappa_base`) below its arms;
+  `g^34` (`dims_g[0]`, dispatched on), read (`memRel`);
+* `check_opening_terminal`: the eight words at argument `8` (`kappa_base`) below its arms, read;
 * `child_claim_list_any`, `child_claim_list_mono`: argument `6` below `g^17`;
 * `open_stacked__L0` to `__L10`: argument `0` below `g^4`, argument `10` (`tabs`) in relation `1`,
-  the window table (B1's `WinTabs`), which its `level_positions` read;
-* `walk_path__*`: the words at argument `2` (the path's windows) its `match`es read, if read, below
-  `g^64`;
+  the window table (B1's `WinTabs`), which it hands its `level_positions` as their argument `8`;
+* `walk_path__L{pd}_L{cd}`: the words at argument `2` (the path's windows) its `match`es read, if
+  read, below `g^64`, and argument `2` the windows of the walk of depth `pd + cd`, cap depth `cd`
+  (B1's `WinsAt`, relation `winsTag (pd + cd) cd`);
 * `list_split`: return `2` below `g^17`; `log2_ceil_in_the_exponent__L0_L34`: return `0` below
   `g^34`; `da_row_shape`: its argument `1` below `g^11` (it range-checks it);
 * relation `0`, the exponent table and its window section (B1's `ExpTables`, `ExpWinTab`):
@@ -42,13 +44,19 @@ namespace LeanVM.Guest.Backend.Obl
 
 @[expose] public section
 
+/-- The tag of relation `guestRel (memRel c n)`: the word at the argument times `g^c` is read and
+is `g^e` with `e < n`, for `n < 2^16`. -/
+def memRel (c n : Nat) : Nat := 2 ^ 32 + c * 2 ^ 16 + n
+
 /-- **The guest's table.** Every key is a literal: comparing strings is the costly step of
 evaluating the analysis in the kernel. -/
 def guestTab : Tab where
   sigs := [
-    ("verify_tables", { pre := [(9, 34)], mem := [(10, 0, 34)] }),
+    ("verify_tables", { pre := [(9, 34)], mem := [(10, 0, 34)], xpre := [(10, memRel 0 34)] }),
     ("check_opening_terminal", { mem := [(8, 0, 1), (8, 1, 31), (8, 2, 31), (8, 3, 31),
-      (8, 4, 31), (8, 5, 31), (8, 6, 31), (8, 7, 25)] }),
+      (8, 4, 31), (8, 5, 31), (8, 6, 31), (8, 7, 25)], xpre := [(8, memRel 0 1), (8, memRel 1 31),
+      (8, memRel 2 31), (8, memRel 3 31), (8, memRel 4 31), (8, memRel 5 31), (8, memRel 6 31),
+      (8, memRel 7 25)] }),
     ("child_claim_list_any", { pre := [(6, 17)] }),
     ("child_claim_list_mono", { pre := [(6, 17)] }),
     ("list_split", { post := [(3, 17)] }),
@@ -57,6 +65,123 @@ def guestTab : Tab where
     ("exponent_tables", { xpost := [(0, 0)] }),
     ("__loop4", { xpre := [(14, 0)] }),
     ("verify_sub", { xpre := [(4, 0)] }),
+    ("level_positions__L10_L19_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L10_L20_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L10_L21_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L10_L26_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L11_L17_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L11_L18_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L11_L22_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L11_L23_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L11_L24_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L11_L25_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L13_L19_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L13_L20_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L13_L21_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L14_L16_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L14_L26_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L14_L27_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L14_L28_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L15_L22_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L15_L23_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L15_L24_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L15_L25_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L16_L17_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L16_L18_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L19_L19_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L19_L20_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L19_L21_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L19_L26_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L19_L27_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L22_L22_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L22_L23_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L22_L24_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L22_L25_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L28_L15_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L28_L16_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L28_L26_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L32_L17_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L32_L18_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L37_L19_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L37_L20_L8", { xpre := [(8, 1)] }),
+    ("level_positions__L37_L21_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L3_L12_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L3_L13_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L3_L14_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L3_L15_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L3_L16_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L3_L17_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L3_L18_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L3_L19_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L3_L20_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L3_L21_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L3_L22_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L3_L23_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L44_L22_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L44_L23_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L44_L24_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L44_L25_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L13_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L14_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L15_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L16_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L17_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L18_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L19_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L20_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L21_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L22_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L23_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L24_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L4_L25_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L5_L16_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L5_L17_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L5_L18_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L5_L19_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L5_L20_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L5_L21_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L5_L22_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L5_L23_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L5_L24_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L5_L25_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L6_L15_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L6_L16_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L6_L17_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L6_L18_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L6_L19_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L6_L20_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L6_L21_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L6_L22_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L6_L23_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L6_L24_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L6_L26_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L7_L14_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L7_L15_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L7_L16_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L7_L17_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L7_L18_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L7_L19_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L7_L20_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L7_L21_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L7_L22_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L7_L23_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L7_L24_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L7_L25_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L8_L17_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L8_L18_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L8_L19_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L8_L20_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L8_L21_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L8_L22_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L8_L23_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L8_L24_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L8_L25_L7", { xpre := [(8, 1)] }),
+    ("level_positions__L8_L26_L2", { xpre := [(8, 1)] }),
+    ("level_positions__L8_L27_L3", { xpre := [(8, 1)] }),
+    ("level_positions__L9_L22_L4", { xpre := [(8, 1)] }),
+    ("level_positions__L9_L23_L5", { xpre := [(8, 1)] }),
+    ("level_positions__L9_L24_L6", { xpre := [(8, 1)] }),
+    ("level_positions__L9_L25_L7", { xpre := [(8, 1)] }),
     ("open_stacked__L0", { pre := [(0, 4)], xpre := [(10, 1)] }),
     ("open_stacked__L1", { pre := [(0, 4)], xpre := [(10, 1)] }),
     ("open_stacked__L2", { pre := [(0, 4)], xpre := [(10, 1)] }),
@@ -68,24 +193,24 @@ def guestTab : Tab where
     ("open_stacked__L8", { pre := [(0, 4)], xpre := [(10, 1)] }),
     ("open_stacked__L9", { pre := [(0, 4)], xpre := [(10, 1)] }),
     ("open_stacked__L10", { pre := [(0, 4)], xpre := [(10, 1)] }),
-    ("walk_path__L6_L6", { mem := [(2, 0, 64)] }),
-    ("walk_path__L6_L7", { mem := [(2, 0, 64)] }),
-    ("walk_path__L12_L2", { mem := [(2, 0, 64), (2, 1, 64)] }),
-    ("walk_path__L12_L3", { mem := [(2, 0, 64), (2, 1, 64)] }),
-    ("walk_path__L12_L4", { mem := [(2, 0, 64), (2, 1, 64)] }),
-    ("walk_path__L12_L5", { mem := [(2, 0, 64), (2, 1, 64)] }),
-    ("walk_path__L12_L6", { mem := [(2, 0, 64), (2, 1, 64)] }),
-    ("walk_path__L12_L7", { mem := [(2, 0, 64), (2, 1, 64)] }),
-    ("walk_path__L12_L8", { mem := [(2, 0, 64), (2, 1, 64)] }),
-    ("walk_path__L18_L2", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64)] }),
-    ("walk_path__L18_L3", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64)] }),
-    ("walk_path__L18_L4", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64)] }),
-    ("walk_path__L18_L5", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64)] }),
-    ("walk_path__L18_L6", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64)] }),
-    ("walk_path__L18_L7", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64)] }),
-    ("walk_path__L24_L2", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64), (2, 3, 64)] }),
-    ("walk_path__L24_L3", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64), (2, 3, 64)] }),
-    ("walk_path__L24_L4", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64), (2, 3, 64)] })] ++
+    ("walk_path__L6_L6", { mem := [(2, 0, 64)], xpre := [(2, winsTag 12 6)] }),
+    ("walk_path__L6_L7", { mem := [(2, 0, 64)], xpre := [(2, winsTag 13 7)] }),
+    ("walk_path__L12_L2", { mem := [(2, 0, 64), (2, 1, 64)], xpre := [(2, winsTag 14 2)] }),
+    ("walk_path__L12_L3", { mem := [(2, 0, 64), (2, 1, 64)], xpre := [(2, winsTag 15 3)] }),
+    ("walk_path__L12_L4", { mem := [(2, 0, 64), (2, 1, 64)], xpre := [(2, winsTag 16 4)] }),
+    ("walk_path__L12_L5", { mem := [(2, 0, 64), (2, 1, 64)], xpre := [(2, winsTag 17 5)] }),
+    ("walk_path__L12_L6", { mem := [(2, 0, 64), (2, 1, 64)], xpre := [(2, winsTag 18 6)] }),
+    ("walk_path__L12_L7", { mem := [(2, 0, 64), (2, 1, 64)], xpre := [(2, winsTag 19 7)] }),
+    ("walk_path__L12_L8", { mem := [(2, 0, 64), (2, 1, 64)], xpre := [(2, winsTag 20 8)] }),
+    ("walk_path__L18_L2", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64)], xpre := [(2, winsTag 20 2)] }),
+    ("walk_path__L18_L3", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64)], xpre := [(2, winsTag 21 3)] }),
+    ("walk_path__L18_L4", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64)], xpre := [(2, winsTag 22 4)] }),
+    ("walk_path__L18_L5", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64)], xpre := [(2, winsTag 23 5)] }),
+    ("walk_path__L18_L6", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64)], xpre := [(2, winsTag 24 6)] }),
+    ("walk_path__L18_L7", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64)], xpre := [(2, winsTag 25 7)] }),
+    ("walk_path__L24_L2", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64), (2, 3, 64)], xpre := [(2, winsTag 26 2)] }),
+    ("walk_path__L24_L3", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64), (2, 3, 64)], xpre := [(2, winsTag 27 3)] }),
+    ("walk_path__L24_L4", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64), (2, 3, 64)], xpre := [(2, winsTag 28 4)] })] ++
     xTab.map fun p => (p.1, { ext := true })
   pows := [(9223372036854810629, 255)]
 
@@ -129,13 +254,15 @@ six tables' heights below `g^31`, keccak's `τ` below `g^25`. -/
 def kbBound (c : Nat) : Nat := [1, 31, 31, 31, 31, 31, 31, 25].getD c 0
 
 /-- **`verify_sub`'s facts from B1**: before its call of `verify_tables` (statement `333`) the word
-at `dims_g` (value `71`) is below `g^34` (`vsDimsKnown0_holds`); before its dispatch to
-`open_stacked` (statement `1544`) `tabs` (value `1921`) is in relation `1`, the window table
-(`vsTabsT_holds`); before its call of `check_opening_terminal` (statement `1545`) the eight words
-at `kappa_base` (value `83`) are below `kbBound` (`vsKnown_holds`). -/
+at `dims_g` (value `71`) is read and below `g^34` (`vsDimsKnown0_holds`, as `mem` and as
+`memRel`); before its dispatch to `open_stacked` (statement `1544`) `tabs` (value `1921`) is in
+relation `1`, the window table (`vsTabsT_holds`); before its call of `check_opening_terminal`
+(statement `1545`) the eight words at `kappa_base` (value `83`) are read and below `kbBound`
+(`vsKnown_holds`). -/
 def vsFacts : List (Nat × Hyp) :=
-  (333, .mem (.n 71) 0 34) :: (1544, .rel (.n 1921) 1) ::
-    (List.range 8).map fun c => (1545, .mem (.n 83) c (kbBound c))
+  (333, .mem (.n 71) 0 34) :: (333, .rel (.n 71) (memRel 0 34)) :: (1544, .rel (.n 1921) 1) ::
+    ((List.range 8).map fun c => (1545, .mem (.n 83) c (kbBound c))) ++
+    (List.range 8).map fun c => (1545, .rel (.n 83) (memRel c (kbBound c)))
 
 end
 end LeanVM.Guest.Backend.Obl

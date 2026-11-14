@@ -29,8 +29,8 @@ public import LeanVM.Guest.Backend.Sound.Obl.Eval.XOs1
 # The guest's obligations
 
 The guest's `World.U` is `guestU`: the table's bounds (`guestTab`), relation `0` the exponent
-table with its window section and relation `1` the window table (`guestRel`), and the `ext`
-functions' relations (`guestX`). With it:
+table with its window section, relation `1` the window table, the path windows and the bounded
+words read (`guestRel`), and the `ext` functions' relations (`guestX`). With it:
 
 * the analysis accepts every function but `verify_sub` and the `356` of `guestXIdx`, by kernel
   evaluation (`guest_chk`, from `Eval/E00` to `Eval/E07`);
@@ -301,7 +301,8 @@ theorem guest_obligations_of (hW : W.Compiled) (hcore : W.p.map (·.core) = core
     rw [he, List.mem_singleton] at hp
     subst hp
     rw [hW'] at h
-    exact ⟨fun _ => hexp _ a r h, fun h1 => absurd h1 (by decide)⟩
+    exact ⟨fun _ => hexp _ a r h, fun h1 => absurd h1 (by decide), fun h1 => absurd h1 (by decide),
+      fun h1 => absurd h1 (by decide)⟩
   have hP : ∀ fn ∈ W.core, (guestTab.sig fn.name).post ≠ [] → chkFn guestTab fn = true := by
     intro fn hfn hpost
     rw [hW'] at hfn
