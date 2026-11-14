@@ -20,6 +20,8 @@ noncomputable def modeSig : Mode.Sig :=
     20, 21]]), none, [], [], [], [22, 23, 24, 25, 26, 27, 28, 29, 30, 31], [], [], [], [], [], [],
     []⟩
 
+theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
+
 end
 
 end LeanVM.Guest.Fn.«verify_tables»

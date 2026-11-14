@@ -19,7 +19,7 @@ public section
 
 /-- `ring_switch_weight`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 339) (by decide +kernel) [84, 198]
+  Mode.walk_of_wins (n := 339) (by decide +kernel) [83, 195]
     ⟨by decide, by decide, by decide +kernel, modeW0,
     ⟨by decide, by decide, by decide +kernel, modeW1,
     modeW2⟩⟩

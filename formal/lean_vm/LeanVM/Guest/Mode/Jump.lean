@@ -35,6 +35,7 @@ inductive JumpK (E : Env) (F : Fun) (i : ℕ) (A : Abs) (d f : ℕ) : Go → Abs
   | call (mq : Mono) (r : ℕ) (G : Sig) (Gs : List Sig) : ¬SelfF F A f → A.mono f = some mq →
       A.hvGet (mq.shift 1) = some (.m ⟨1, 0, []⟩) → A.hvGet (mq.shift 0) = some (.m ⟨0, r, []⟩) →
       calleesOf E F A i d = some (G :: Gs) →
+      (∀ p ∈ (G :: Gs).zipIdx, entryW (A.assume (selOf A d) p.2) mq p.1 = true) →
       (∀ p ∈ (G :: Gs).zipIdx.map (fun p ↦ (p.1, atCall (A.assume (selOf A d) p.2) mq p.1)),
         entryOk p.2 mq p.1 = true) →
       F.entry + i < r → r < F.entry + F.len →
@@ -94,7 +95,7 @@ theorem jumpI_cases {E : Env} {F : Fun} {i : ℕ} {A : Abs} {d f : ℕ} {go : Go
           split_ifs at h with h2
           cases h
           simp only [Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at h2
-          refine .call mq r G Gs (fun hS ↦ hself ?_) hf h1 h0 hc h2.1.1 h2.1.2 h2.2
+          refine .call mq r G Gs (fun hS ↦ hself ?_) hf h1 h0 hc h2.1.1.1 h2.1.1.2 h2.1.2 h2.2
           rcases hS with hm | ⟨hm, hmain⟩
           · rw [hm]; rfl
           · rw [hm]; exact hmain

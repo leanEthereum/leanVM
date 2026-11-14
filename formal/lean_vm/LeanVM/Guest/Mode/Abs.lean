@@ -994,6 +994,19 @@ def entryOk (A : Abs) (mq : Mono) (G : Sig) : Bool :=
     | some r => A.coveredP r q.2
     | none => false)
 
+/-- The caller has written callee `G`'s entry cells, its frame named by `mq`. -/
+def entryW (A : Abs) (mq : Mono) (G : Sig) : Bool :=
+  G.entry.all fun o ↦ decide (o < 2 ^ 30) && A.covered (mq.shift o)
+
+/-- An exponent read off the entry cells `es`: a constant, or an entry cell's. -/
+def idxFr (es : List ℕ) : Idx → Bool
+  | .num _ => true
+  | .ex (.fr o) _ => decide (o ∈ es)
+  | .ex (.hp _ _) _ => false
+
+/-- Each termination fact read off the signature's entry cells. -/
+def termFr (G : Sig) : Bool := G.term.all fun p ↦ idxFr G.entry p.1 && idxFr G.entry p.2
+
 /-- The termination facts of callee `G` hold at the call. -/
 noncomputable def atCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
   foldlA (fun A p ↦ match idxUp A mq p.1, idxUp A mq p.2 with
@@ -1219,7 +1232,8 @@ noncomputable def jumpI (E : Env) (F : Fun) (i : ℕ) (A : Abs) (d f : ℕ) :
         match calleesOf E F A i d with
         | some (G :: Gs) =>
           let As := (G :: Gs).zipIdx.map fun p ↦ (p.1, atCall (A.assume (selOf A d) p.2) mq p.1)
-          if As.all (fun p ↦ entryOk p.2 mq p.1) && F.entry + i < r && r < F.entry + F.len then
+          if (G :: Gs).zipIdx.all (fun p ↦ entryW (A.assume (selOf A d) p.2) mq p.1) &&
+              As.all (fun p ↦ entryOk p.2 mq p.1) && F.entry + i < r && r < F.entry + F.len then
             some (.to [r - F.entry], armsMeet (selOf A d) (As.map fun p ↦ afterCall p.2 mq p.1))
           else none
         | _ => none

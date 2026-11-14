@@ -17,10 +17,10 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `aggregate_claims`: its walk from offset 84 goes through to its end. -/
+/-- `aggregate_claims`: its walk from offset 81 goes through to its cut at 98. -/
 theorem modeW2 :
-    Mode.runRest modeEnv modeFun (Mode.codeAt code.chunks 84) 84 (Mode.cutOf modeFun 84) = true :=
-    by
+    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 81 98) 81 (Mode.cutOf modeFun 81).1
+    (Mode.cutOf modeFun 81).2).isSome = true := by
   decide +kernel
 
 end

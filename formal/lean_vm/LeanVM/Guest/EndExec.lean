@@ -141,6 +141,7 @@ structure ModeCerts (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) : Pro
   tailRet : ∀ K ∈ Ks, ∀ G, K.E.sigs.get K.F.entry = some G → RetEmpty G
   loopRng : ∀ K ∈ Ks, ∀ r ∈ K.F.sig.postL ++ K.F.sig.postLP.map (·.1), (r.lo, r.hi) ∈ K.F.sig.term
   endOk : ∀ K ∈ Ks, ∀ cur pend, preAt K.E K.F K.code K.code.length = some (cur, pend) → cur = []
+  termFr : ∀ K ∈ Ks, Mode.termFr K.F.sig = true
 
 /-- **The certificates tied to the executor**, run on any advice with the guest's hints. -/
 theorem progOk_of {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} (h : ModeCerts Ks Km E0) {adv : Advice}
@@ -182,10 +183,38 @@ fine against the reference memory, the executor's tables `C` for the guest's adv
 abbrev OnRun (X : Ref → St → Prop) (r : Ref) (s : St) : Prop :=
   X r s ∧ Fine (refMem r.img) s ∧ OnRef guestProgram r.img r.n s
 
+/-- **The termination facts on the reference**: at each function's entry on the reference run, each
+termination fact holds of the reference memory at the frame. -/
+def TermRef (Ks : List Mode.Cert) (X : Ref → St → Prop) : Prop :=
+  ∀ r, r.Ok → ∀ K ∈ Ks, ∀ s, OnRun X r s → s.pc = K.F.entry → ∀ p ∈ K.F.sig.term,
+    RIn (refMem r.img) s.fp (.lt p.1 p.2) → RRes (refMem r.img) s.fp (.lt p.1 p.2)
+
+/-- **A termination fact from the reference**, its cells written. -/
+theorem term_of_ref {Ks : List Mode.Cert} {X : Ref → St → Prop} (h : TermRef Ks X) {r : Ref} (hr : r.Ok)
+    {K : Mode.Cert} (hK : K ∈ Ks) {s : St} (hon : OnRun X r s) (hpc : s.pc = K.F.entry)
+    {p : Mode.Idx × Mode.Idx} (hp : p ∈ K.F.sig.term) (hin : ResIn s (.lt p.1 p.2)) : LTF s p.1 p.2 :=
+  resHolds_of_ref hon.2.1.agree hin (h r hr K hK s hon hpc p hp (rin_of hon.2.1.agree hin))
+
+theorem idxIn_fr {es : List ℕ} {s : St} (hw : ∀ o ∈ es, s.mem.written (s.fp + o) = true) :
+    ∀ {i : Mode.Idx}, idxFr es i = true → IdxIn s i
+  | .num _, _ => trivial
+  | .ex (.fr o) _, h => Mem.get_of_written (hw o (of_decide_eq_true h))
+  | .ex (.hp _ _) _, h => absurd h (by simp [idxFr])
+
+/-- **The termination facts at an entry from the reference**, read off its written entry cells. -/
+theorem term_of_ref_entry {Ks : List Mode.Cert} {X : Ref → St → Prop} (h : TermRef Ks X) {r : Ref}
+    (hr : r.Ok) {K : Mode.Cert} (hK : K ∈ Ks) (hfr : termFr K.F.sig = true) {s : St} (hon : OnRun X r s)
+    (hpc : s.pc = K.F.entry) (hw : ∀ o ∈ K.F.sig.entry, s.mem.written (s.fp + o) = true) :
+    ∀ p ∈ K.F.sig.term, LTF s p.1 p.2 := fun p hp ↦ by
+  have := List.all_eq_true.mp hfr p hp
+  rw [Bool.and_eq_true] at this
+  exact term_of_ref h hr hK hon hpc hp ⟨idxIn_fr hw this.1, idxIn_fr hw this.2⟩
+
 /-- **What the executor's completeness on the guest rests on and is not yet proved**, for the mode
 walk's certificates `Ks` (`main`'s `Km`, their program `E0`), the other tracks' invariant `X` and the
 prologue's states `Pro`, each read at a node's reference run `r` (`Ref.Ok`) and the executor's
-tables `C` for its advice. -/
+tables `C` for its advice. `X` is read at the states where an instruction starts, before its hints;
+a hint's obligation is at the state its predecessors at that pc reach. -/
 structure ExecGaps (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) (X Pro : Ref → St → Prop) : Prop where
   /-- Every function the run enters passes the mode walk, its certificate kernel-checked and tied
   to the others (the mode walk track: `scripts/mode-cert/gen.py`, the walk closed on its remaining
@@ -194,40 +223,41 @@ structure ExecGaps (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) (X Pro
   /-- The children's loop, `main_loop2` and `main_loop3` complete by trees exact on the memory
   (the exactness track: `Budget.mainExactHyp_of_l5`, the children's loop's E form). -/
   mainExact : Budget.MainExactHyp
-  /-- Each allocation hint's needs once its inputs are written: a reservation at the bump
-  pointer, below `maxCells`, of the size the tree allocates there, an `allocAdvice`'s size the
-  next entry of `heap_sizes` (the allocation track: `AllocInv` in `X`, the compiler's reservation
-  order, `Tree.heapPops` against the `heap_sizes` pushes). -/
-  hintAlloc : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s h, OnRun X r s →
-    h ∈ (C.hints[s.pc]?).getD [] → isAllocHint h = true → HintIn s h → HintOk C (refMem r.img) s h
+  /-- Each allocation hint's needs once its inputs are written, after the pc's hints before it: a
+  reservation at the bump pointer, below `maxCells`, of the size the tree allocates there, an
+  `allocAdvice`'s size the next entry of `heap_sizes` (the allocation track: `AllocInv` in `X`, the
+  compiler's reservation order, `Tree.heapPops` against the `heap_sizes` pushes). -/
+  hintAlloc : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun X r s → ∀ pre h post,
+    (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
+    Moves (refMem r.img) s s1 → isAllocHint h = true → HintIn s1 h → HintOk C (refMem r.img) s1 h
   /-- Each witness hint pops the next entry of its stream, the reference's words at its
-  destination (the hint bridge: the alignment's soundness pairing each ISA hint with its core
-  atom on the instance's path, and the tree track's cursor, `TrackOk.witness_next`, in `X`). -/
-  hintWitness : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s h, OnRun X r s →
-    h ∈ (C.hints[s.pc]?).getD [] → isWitnessHint h = true → HintIn s h → HintOk C (refMem r.img) s h
-  /-- Each computed hint's destination holds, on the reference, its formula of its inputs (the
-  hint bridge with the tree's exactness, `Ref.Ok.tree`'s `ExactAt`). -/
+  destination, after the pc's hints before it (the hint bridge: the alignment's soundness pairing
+  each ISA hint with its core atom on the instance's path, and the tree track's cursor,
+  `TrackOk.witness_next`, in `X`). -/
+  hintWitness : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun X r s → ∀ pre h post,
+    (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
+    Moves (refMem r.img) s s1 → isWitnessHint h = true → HintIn s1 h → HintOk C (refMem r.img) s1 h
+  /-- Each computed hint's destination holds, on the reference, its formula of its inputs, at any
+  state the pc's hints reach (the hint bridge with the tree's exactness, `Ref.Ok.tree`'s `ExactAt`). -/
   hintComputed : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s h, OnRun X r s →
-    h ∈ (C.hints[s.pc]?).getD [] → isAllocHint h = false → isWitnessHint h = false → HintIn s h →
-    HintOk C (refMem r.img) s h
+    h ∈ (C.hints[s.pc]?).getD [] → isAllocHint h = false → isWitnessHint h = false → ∀ s1,
+    Moves (refMem r.img) s s1 → HintIn s1 h → HintOk C (refMem r.img) s1 h
   /-- Each certificate's residuals hold of the reference at the state's frame (the residuals by
   family: `ResFam`'s obligations from the honest-child hypotheses, `WalkKnown`, `LoadsIn` and
   `BufsOk`). -/
   res : ∀ r, r.Ok → ResRef guestProgram r.img r.n Ks (X r)
-  /-- Each function's termination facts at its entry (from the loops' exits and the table calls'
-  arms, through the frame-to-instance map in `X`). -/
-  term : ∀ r, r.Ok → ∀ K ∈ Ks, ∀ s, OnRun X r s → s.pc = K.F.entry → ∀ p ∈ K.F.sig.term,
-    LTF s p.1 p.2
+  /-- Each function's termination facts at its entry, on the reference (from the loops' instances
+  in the honest tree, through the frame-to-instance map in `X`). -/
+  term : TermRef Ks X
   /-- A `DEREF`'s pointer and a taken `JUMP`'s frame are powers below `maxCells` on the reference
   (`RefOk`, from the reference step, as `ref_mul` reads a `MUL`). -/
   ref : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s op, OnRun X r s →
     C.ops[s.pc]? = some op → RefOk (refMem r.img) s op
-  /-- Each hint keeps `X` (the tree track and the allocation track). -/
-  keepHint : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s h s', OnRun X r s →
-    h ∈ (C.hints[s.pc]?).getD [] → runHint C s h = .ok s' → X r s'
-  /-- Each instruction keeps `X` (the tree track along the reference run, `RefTrace`). -/
-  keepOp : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s op s', OnRun X r s →
-    C.ops[s.pc]? = some op → runOp C s op = .ok s' → X r { s' with steps := s'.steps + 1 }
+  /-- Each step, its hints and its instruction, keeps `X` (the tree track along the reference run,
+  `RefTrace`, and the allocation track). -/
+  keepOp : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s op s1 s', OnRun X r s →
+    C.ops[s.pc]? = some op → ((C.hints[s.pc]?).getD []).foldlM (runHint C) s = .ok s1 →
+    Moves (refMem r.img) s s1 → runOp C s1 op = .ok s' → X r { s' with steps := s'.steps + 1 }
   /-- `__jump_tables`' straight-line `SET`s write the jump table and fall into `main`'s entry
   (the prologue). -/
   pro : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s op, OnRun X r s → Pro r s →
@@ -259,17 +289,18 @@ theorem execute_ref (G : ExecGaps Ks Km E0 X Pro) {r : Ref} (hr : r.Ok) :
     (X := X r) (Pro := Pro r) hκ hn hr.valid guest_decodable hmain
     (fun C hC ↦ progOk_of G.certs hC rfl)
     (fun C hC ↦
-      { hint := fun s h hX hs hon hh hin ↦ by
+      { hint := fun s hX hs hon pre h post hp s1 e hm hin ↦ by
+          have hh : h ∈ (C.hints[s.pc]?).getD [] := by rw [hp]; simp
           cases ha : isAllocHint h
           · cases hw : isWitnessHint h
-            · exact G.hintComputed r hr C hC s h ⟨hX, hs, hon⟩ hh ha hw hin
-            · exact G.hintWitness r hr C hC s h ⟨hX, hs, hon⟩ hh hw hin
-          · exact G.hintAlloc r hr C hC s h ⟨hX, hs, hon⟩ hh ha hin
+            · exact G.hintComputed r hr C hC s h ⟨hX, hs, hon⟩ hh ha hw s1 hm hin
+            · exact G.hintWitness r hr C hC s ⟨hX, hs, hon⟩ pre h post hp s1 e hm hw hin
+          · exact G.hintAlloc r hr C hC s ⟨hX, hs, hon⟩ pre h post hp s1 e hm ha hin
         res := prem_res (G.res r hr)
-        term := fun K hK s hX hs hon hpc ↦ G.term r hr K hK s ⟨hX, hs, hon⟩ hpc
+        term := fun K hK s hX hs hon hpc hw ↦
+          term_of_ref_entry G.term hr hK (G.certs.termFr K hK) ⟨hX, hs, hon⟩ hpc hw
         ref := fun s op hX hs hon hop ↦ G.ref r hr C hC s op ⟨hX, hs, hon⟩ hop
-        xh := fun s h s' hX hs hon hh e ↦ G.keepHint r hr C hC s h s' ⟨hX, hs, hon⟩ hh e
-        xo := fun s op s' hX hs hon hop e ↦ G.keepOp r hr C hC s op s' ⟨hX, hs, hon⟩ hop e })
+        xo := fun s op s1 s' hX hs hon hop e1 hm e ↦ G.keepOp r hr C hC s op s1 s' ⟨hX, hs, hon⟩ hop e1 hm e })
     (fun C hC s op hX hP hs hon hop ↦ G.pro r hr C hC s op ⟨hX, hs, hon⟩ hP hop)
     (fun C m hC hm ↦ G.init r hr C m hC hm) (G.used r hr)
   exact ⟨t, he, hv, hsz.trans hr.size⟩

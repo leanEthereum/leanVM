@@ -144,9 +144,14 @@ def ResRef (prog : LeanIsaProgram) {κ : ℕ} (img : MemoryImage κ) (n : ℕ) (
 theorem prem_res {prog : LeanIsaProgram} {κ : ℕ} {img : MemoryImage κ} {n : ℕ} {Ks : List Cert}
     {X : St → Prop} (h : ResRef prog img n Ks X) :
     ∀ Kc ∈ Ks, ∀ s i, X s → Fine (refMem img) s → OnRef prog img n s → i < Kc.code.length →
-      s.pc = Kc.F.entry + i → ∀ r ∈ (Kc.F.res.get i).getD [], ResIn s r → ResHolds s r :=
-  fun Kc hK s i hX hs hon hi hpc r hr hin ↦
-    resHolds_of_ref hs.agree hin (h Kc hK s i hX hs hon hi hpc r hr (rin_of hs.agree hin))
+      s.pc = Kc.F.entry + i → ∀ s1, Moves (refMem img) s s1 → ∀ r ∈ (Kc.F.res.get i).getD [],
+        ResIn s1 r → ResHolds s1 r :=
+  fun Kc hK s i hX hs hon hi hpc s1 hm r hr hin ↦ by
+    have hin' := rin_of hm.fine.agree hin
+    rw [hm.fp] at hin'
+    have h' := h Kc hK s i hX hs hon hi hpc r hr hin'
+    rw [← hm.fp] at h'
+    exact resHolds_of_ref hm.fine.agree hin h'
 
 /-- `ResRef` from each certificate's own. -/
 theorem resRef_of {prog : LeanIsaProgram} {κ : ℕ} {img : MemoryImage κ} {n : ℕ} {Ks : List Cert}

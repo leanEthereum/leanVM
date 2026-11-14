@@ -66,6 +66,8 @@ noncomputable def modeSig : Mode.Sig :=
     (.num 0), (.num 9), 1, 0⟩, ⟨⟨0, 119, [((.fr 11), 1)]⟩, (.num 0), (.num 13), 1, 0⟩], [], [], [],
     [], []⟩
 
+theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
+
 end
 
 end LeanVM.Guest.Fn.«open_stacked__L1»

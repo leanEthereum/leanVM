@@ -122,7 +122,7 @@ theorem tail_stack {prog : LeanIsaProgram} {C : Ctx} {Ks : List Cert} {Km : Cert
     (hle' : s1.mem ≤ s'.mem) (hpcs : s'.pc < 2 ^ 30)
     (hvd : s1.mem.get (s1.fp + d) = some (ofK (g ^ s'.pc)))
     (hvf : s1.mem.get (s1.fp + f) = some (ofK (g ^ s'.fp)))
-    (hterm : ∀ K' ∈ Ks, s'.pc = K'.F.entry →
+    (hterm : ∀ K' ∈ Ks, s'.pc = K'.F.entry → (∀ o ∈ K'.F.sig.entry, s'.mem.written (s'.fp + o) = true) →
       ∀ p ∈ K'.F.sig.term, LTF { s' with steps := s'.steps + 1 } p.1 p.2) :
     StackAt Ks Km { s' with steps := s'.steps + 1 } := by
   obtain ⟨K', hK', hent', hsig', hmain'⟩ := P.sigs a.K ha.mem _ G hG
@@ -146,9 +146,10 @@ theorem tail_stack {prog : LeanIsaProgram} {C : Ctx} {Ks : List Cert} {Km : Cert
   obtain ⟨⟨⟨hent, hhd⟩, -⟩, hL⟩ := htail
   have hle : s.mem ≤ s'.mem := Mem.le_trans hle1 hle'
   obtain ⟨-, -, e3, e4, -⟩ := P.env a.K ha.mem
+  have hW := entryW_sound F hAC (entryW_of_entryOk hent)
   have hTE : TermAt s'.mem s'.fp a.K.F.sig := fun p hp ↦
     LTF.mono (s := { s' with steps := s'.steps + 1 }) (s' := stOf s'.mem s'.fp) (Mem.le_refl _) rfl
-      (hterm a.K ha.mem hpc' p hp)
+      (hterm a.K ha.mem hpc' hW p hp)
   have hEn := entryOk_sound F hAC hent (rw_jt e3 e4 (hjt.mono hle)) hTE
   have hhdr : ∀ o, o < 2 → ∃ u, s'.mem.get (s1.fp + o) = some u ∧ s'.mem.get (s'.fp + o) = some u := by
     intro o ho
@@ -212,6 +213,7 @@ theorem call_stack {prog : LeanIsaProgram} {C : Ctx} {Ks : List Cert} {Km : Cert
     (hjt : JtMem E0 s.mem) (hle1 : s.mem ≤ s1.mem) (hs1 : Fine M s1) (hA : Holds s1 A)
     (hfm : A.mono f = some mq) (h1 : A.hvGet (mq.shift 1) = some (.m ⟨1, 0, []⟩))
     (h0 : A.hvGet (mq.shift 0) = some (.m ⟨0, r, []⟩)) (hc : calleesOf a.K.E a.K.F A i d = some (G :: Gs))
+    (hw : ∀ p ∈ (G :: Gs).zipIdx, entryW (A.assume (selOf A d) p.2) mq p.1 = true)
     (hok : ∀ p ∈ (G :: Gs).zipIdx.map (fun p ↦ (p.1, atCall (A.assume (selOf A d) p.2) mq p.1)),
       entryOk p.2 mq p.1 = true)
     (hr1 : a.K.F.entry + i < r) (hr2 : r < a.K.F.entry + a.K.F.len)
@@ -221,19 +223,19 @@ theorem call_stack {prog : LeanIsaProgram} {C : Ctx} {Ks : List Cert} {Km : Cert
     (hf' : Fine M s') (hle' : s1.mem ≤ s'.mem) (hpcs : s'.pc < 2 ^ 30)
     (hvd : s1.mem.get (s1.fp + d) = some (ofK (g ^ s'.pc)))
     (hvf : s1.mem.get (s1.fp + f) = some (ofK (g ^ s'.fp)))
-    (hterm : ∀ K' ∈ Ks, s'.pc = K'.F.entry →
+    (hterm : ∀ K' ∈ Ks, s'.pc = K'.F.entry → (∀ o ∈ K'.F.sig.entry, s'.mem.written (s'.fp + o) = true) →
       ∀ p ∈ K'.F.sig.term, LTF { s' with steps := s'.steps + 1 } p.1 p.2) :
     StackAt Ks Km { s' with steps := s'.steps + 1 } := by
   have hle : s.mem ≤ s'.mem := Mem.le_trans hle1 hle'
   obtain ⟨-, -, e3, e4, -⟩ := P.env a.K ha.mem
-  have hT : ∀ G', a.K.E.sigs.get s'.pc = some G' →
+  have hT : ∀ G', a.K.E.sigs.get s'.pc = some G' → (∀ o ∈ G'.entry, s'.mem.written (s'.fp + o) = true) →
       ∀ p ∈ G'.term, LTF { s' with steps := s'.steps + 1 } p.1 p.2 := by
     intro G' hG'
     obtain ⟨K', hK', hent, rfl, -⟩ := P.sigs a.K ha.mem _ G' hG'
     exact hterm K' hK' hent.symm
-  obtain ⟨Fr, hd1, hd0, j, G', hj, hsig, hsel, hA1, hEn⟩ :=
+  obtain ⟨Fr, hd1, hd0, j, G', hj, hsig, hsel, hA1, hW, hEn⟩ :=
     call_enter (sE := { s' with steps := s'.steps + 1 }) hA (envOk_of P ha.mem (hjt.mono hle1))
-      (envSmall_of P hsz ha.mem) hfm h1 h0 hc hok hs1.fp hle' hf'.agree.wf hf'.agree.used hf'.fp
+      (envSmall_of P hsz ha.mem) hfm h1 h0 hc hw hok hs1.fp hle' hf'.agree.wf hf'.agree.used hf'.fp
       (show s'.pc < 2 ^ 62 by omega) hvd hvf hT (rw_jt e3 e4 (hjt.mono hle))
   obtain ⟨K', hK', hent, hsig', hmain'⟩ := P.sigs a.K ha.mem _ G' hsig
   subst hsig'
@@ -244,7 +246,7 @@ theorem call_stack {prog : LeanIsaProgram} {C : Ctx} {Ks : List Cert} {Km : Cert
     by simp [hent], ?_, hmain', r, hd0, by rw [hfpa]; exact hd1, ⟨r - a.K.F.entry, s'.mem, by omega,
       by omega, Mem.le_refl _, by rw [hfpa]; exact hres⟩, ha.mono hle, hbel.mono hle⟩
   · exact LTF.mono (s := { s' with steps := s'.steps + 1 }) (s' := stOf s'.mem s'.fp) (Mem.le_refl _) rfl
-      (hterm K' hK' hent.symm p hp)
+      (hterm K' hK' hent.symm hW p hp)
   · apply atOff_zero
     rw [← entryAbs_congr (e3.trans e3'.symm) (e4.trans e4'.symm)]
     exact hEn

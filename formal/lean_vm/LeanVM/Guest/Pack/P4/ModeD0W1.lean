@@ -17,9 +17,9 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `aggregate_claims`: its walk from offset 48 goes through to its cut at 84. -/
+/-- `aggregate_claims`: its walk from offset 48 goes through to its cut at 81. -/
 theorem modeW1 :
-    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 48 84) 48 (Mode.cutOf modeFun 48).1
+    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 48 81) 48 (Mode.cutOf modeFun 48).1
     (Mode.cutOf modeFun 48).2).isSome = true := by
   decide +kernel
 

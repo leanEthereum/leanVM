@@ -182,13 +182,21 @@ def packs():
     return {p: sorted(ns, key=lambda n: I.fns[n]['entry']) for p, ns in by.items()}
 
 
+def termFr(G):
+    """Each termination fact reads entry cells or constants (`Mode.termFr`)."""
+    ok = lambda i: i[0] == 'num' or (i[1][0] == 'fr' and i[1][1] in G.entry)
+    return all(ok(p) and ok(q) for p, q in G.term)
+
+
 def sigFile(p, ns, sigs):
     out = [header('LeanVM.Guest.Pack.«%s».ModeSig' % p, 'What a caller knows of compiled functions, for the mode walk.')]
     out.append('public import LeanVM.Guest.Mode.Abs\n')
     for n in ns:
         out.append('\nnamespace LeanVM.Guest.Fn.«%s»\n\n@[expose] public section\n\n' % I.fns[n]['ns'])
         out.append('/-- `%s`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/\n' % n)
-        out.append('noncomputable def modeSig : Mode.Sig :=\n  %s\n\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % (sig(sigs[n]), I.fns[n]['ns']))
+        assert termFr(sigs[n]), n
+        out.append('noncomputable def modeSig : Mode.Sig :=\n  %s\n\n' % sig(sigs[n]))
+        out.append('theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel\n\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % I.fns[n]['ns'])
     return ''.join(out)
 
 

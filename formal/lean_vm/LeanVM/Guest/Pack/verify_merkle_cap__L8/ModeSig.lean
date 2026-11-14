@@ -21,6 +21,8 @@ noncomputable def modeSig : Mode.Sig :=
     4), (.num 1024), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 2), (.num 256), 1, 0⟩], [], [], [], [],
     []⟩
 
+theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
+
 end
 
 end LeanVM.Guest.Fn.«verify_merkle_cap__L8»

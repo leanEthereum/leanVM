@@ -192,6 +192,25 @@ theorem entry_w {l : List ℕ} : ∀ {t : Exec.Trie Unit} {o : ℕ},
       · exact Or.inl (List.mem_cons_self ..)
       · exact Or.inr h
 
+/-- **The callee's entry cells written**, by the caller's `entryW`. -/
+theorem entryW_sound {sC sE : St} {A : Abs} {mq : Mono} {G : Sig} (F : Frames sC sE mq)
+    (hA : Holds sC A) (h : entryW A mq G = true) : ∀ o ∈ G.entry, sE.mem.written (sE.fp + o) = true := by
+  intro o ho
+  unfold entryW at h
+  simp only [Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at h
+  obtain ⟨ho1, ho2⟩ := h o ho
+  obtain ⟨x, hx, hw⟩ := Abs.covered_ex hA F.wf F.used ho2 (F.mq.shift o)
+  rw [← F.names ho1 (F.mq.shift o) hx, F.mem]
+  exact hw
+
+/-- `entryOk` checks `entryW`. -/
+theorem entryW_of_entryOk {A : Abs} {mq : Mono} {G : Sig} (h : entryOk A mq G = true) :
+    entryW A mq G = true := by
+  unfold entryOk at h
+  unfold entryW
+  simp only [Bool.and_eq_true] at h
+  exact h.1.1.1.1
+
 /-- **A call's entry**: what the caller knows, its callee's frame named by `mq`, gives the state the
 callee's walk starts from. -/
 theorem entryOk_sound {En : Env} {sC sE : St} {A : Abs} {mq : Mono} {G : Sig} (F : Frames sC sE mq)

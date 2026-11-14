@@ -17,6 +17,8 @@ namespace LeanVM.Guest.Fn.«sp_wots»
 noncomputable def modeSig : Mode.Sig :=
   ⟨33503, [0, 1, 2, 3, 4, 5], none, [], [], [], [6], [], [], [], [], [], [], []⟩
 
+theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
+
 end
 
 end LeanVM.Guest.Fn.«sp_wots»

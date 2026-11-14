@@ -672,6 +672,10 @@ class Walk:
     def trRngUp(self, A, mq, r): return self.trRngBy(A, mq, self.idxUp, r)
     def trRngDown(self, A, mq, r): return self.trRngBy(A, mq, self.idxDown, r)
 
+    def entryW(self, A, mq, G, i, name):
+        for o in G.entry:
+            self.need(o < 2 ** 30 and A.covered(shift(mq, o)), 'entry', i, name, o, A, self.lnks.get(shift(mq, o), []), self.lnk)
+
     def entryOk(self, A, mq, G, i, name):
         for o in G.entry:
             self.need(o < 2 ** 30 and A.covered(shift(mq, o)), 'entry', i, name, o, A, self.lnks.get(shift(mq, o), []), self.lnk)
@@ -826,6 +830,8 @@ class Walk:
                 for j, G in enumerate(Gs):
                     Aj = assume(A, x, j) if x is not None else A.copy()
                     self.cursel = x
+                    # the entry cells, before the callee's termination facts they are read for
+                    self.entryW(Aj, mq, G, i, G.pc)
                     self.atCall(Aj, mq, G)
                     self.entryOk(Aj, mq, G, i, G.pc)
                     Bs.append(self.afterCall(Aj, mq, G))

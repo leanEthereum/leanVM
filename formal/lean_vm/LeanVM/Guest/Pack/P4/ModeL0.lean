@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Pack.«P4».ModeD0W0
 public import LeanVM.Guest.Pack.«P4».ModeD0W1
 public import LeanVM.Guest.Pack.«P4».ModeD0W2
+public import LeanVM.Guest.Pack.«P4».ModeD0W3
 
 namespace LeanVM.Guest.Fn.«aggregate_claims»
 
@@ -19,10 +20,11 @@ public section
 
 /-- `aggregate_claims`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 233) (by decide +kernel) [48, 84]
+  Mode.walk_of_wins (n := 233) (by decide +kernel) [48, 81, 98]
     ⟨by decide, by decide, by decide +kernel, modeW0,
     ⟨by decide, by decide, by decide +kernel, modeW1,
-    modeW2⟩⟩
+    ⟨by decide, by decide, by decide +kernel, modeW2,
+    modeW3⟩⟩⟩
 
 end
 

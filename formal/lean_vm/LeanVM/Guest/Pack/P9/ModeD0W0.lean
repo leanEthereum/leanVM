@@ -17,9 +17,9 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `ring_switch_weight`: its walk from offset 0 goes through to its cut at 84. -/
+/-- `ring_switch_weight`: its walk from offset 0 goes through to its cut at 83. -/
 theorem modeW0 :
-    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 0 84) 0 [Mode.entryAbs modeEnv
+    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 0 83) 0 [Mode.entryAbs modeEnv
     modeFun.sig] []).isSome = true := by
   decide +kernel
 

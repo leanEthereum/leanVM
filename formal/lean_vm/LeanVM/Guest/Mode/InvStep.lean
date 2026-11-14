@@ -5,11 +5,12 @@ public import LeanVM.Guest.Mode.InvDefs
 /-!
 # One step, along the reference
 
-`step_atX`: `step_at` with the states the hints pass through kept in a predicate (`P`, which a hint
-preserves), so that a hint's agreement and the residuals are needed only of states the run reaches,
-the step's instruction moded and the run's state before it handed to what comes after. `onRef_next`:
-an instruction the executor runs along the reference leaves it on the reference, or in the final
-state. `stepOk_conj`: a predicate the hints and the instruction preserve joins a step's obligations.
+`step_atX`: `step_at` with the hints in order, so that a hint's agreement is needed only at the state
+its predecessors at the pc reach (`stepOk_hintsX`), the residuals at the states the hints reach, the
+step's instruction moded and the run's state before it handed to what comes after, with the hints'
+run. `onRef_next`: an instruction the executor runs along the reference leaves it on the reference,
+or in the final state. `stepOk_conj`: what the instruction gives past all its hints joins a step's
+obligations.
 -/
 
 namespace LeanVM.Guest.Mode
@@ -87,57 +88,57 @@ theorem RefOk.congr {M : ℕ → E} {s s1 : St} (hfp : s1.fp = s.fp) {op : Op} (
 
 /-! ## A predicate the step preserves -/
 
-/-- **A predicate the step keeps**: the hints' and the instruction's, joined to the step's
-obligations. -/
-theorem stepOk_conj {C : Ctx} {M : ℕ → E} {op : Op} {I J : St → Prop} (X : St → Prop) (s0 : St) :
-    ∀ (l : List Hint) (s : St), X s → Moves M s0 s →
-      (∀ s1 h s2, X s1 → Moves M s0 s1 → h ∈ l → runHint C s1 h = .ok s2 → X s2) →
-      (∀ s1 s', X s1 → Moves M s0 s1 → runOp C s1 op = .ok s' → Fine M s' →
+/-- **What the step's instruction gives, past its hints**, joined to the step's obligations. -/
+theorem stepOk_conj {C : Ctx} {M : ℕ → E} {op : Op} {I J : St → Prop} (s0 : St) :
+    ∀ (l : List Hint) (s : St), Moves M s0 s →
+      (∀ s1 s', l.foldlM (runHint C) s = .ok s1 → Moves M s0 s1 → runOp C s1 op = .ok s' → Fine M s' →
         I { s' with steps := s'.steps + 1 } → J { s' with steps := s'.steps + 1 }) →
       StepOk C M I op l s → StepOk C M J op l s
-  | [], s, hX, hm, _, hJ, ⟨h1, h2⟩ => ⟨h1, fun s' e hf hle ↦ hJ s s' hX hm e hf (h2 s' e hf hle)⟩
-  | x :: l, s, hX, hm, hh, hJ, ⟨h1, h2⟩ => ⟨h1, fun s' e m ↦
-      stepOk_conj X s0 l s' (hh s x s' hX hm (List.mem_cons_self ..) e) (hm.trans m)
-        (fun s1 h s2 a b c d ↦ hh s1 h s2 a b (List.mem_cons_of_mem _ c) d) hJ (h2 s' e m)⟩
+  | [], s, hm, hJ, ⟨h1, h2⟩ => ⟨h1, fun s' e hf hle ↦ hJ s s' rfl hm e hf (h2 s' e hf hle)⟩
+  | x :: l, s, hm, hJ, ⟨h1, h2⟩ => ⟨h1, fun s' e m ↦
+      stepOk_conj s0 l s' (hm.trans m)
+        (fun s1 s'' e1 m1 e2 hf hI ↦ hJ s1 s'' (by rw [List.foldlM_cons, e, ok_bind]; exact e1) m1 e2 hf hI)
+        (h2 s' e m)⟩
 
-/-! ## The step, the states the hints pass through kept -/
+/-! ## The step, its hints in order -/
 
-theorem stepOk_hintsX {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {op : Op} (P : St → Prop) (s0 : St) :
-    ∀ (hs : List Hint) (s : St) (A A' : Abs), Moves M s0 s → P s → Holds s A → stepHints A hs = some A' →
-      (∀ s1 h s2, P s1 → Moves M s0 s1 → h ∈ hs → runHint C s1 h = .ok s2 → P s2) →
-      (∀ s1 h, P s1 → Moves M s0 s1 → h ∈ hs → HintIn s1 h → HintOk C M s1 h) →
-      (∀ s1, P s1 → Moves M s0 s1 → Holds s1 A' → StepOk C M Inv op [] s1) → StepOk C M Inv op hs s
-  | [], s, A, A', hm, hP, hA, h, _, _, hk => by
+theorem stepOk_hintsX {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {op : Op} (s0 : St) :
+    ∀ (hs : List Hint) (s : St) (A A' : Abs), Moves M s0 s → Holds s A → stepHints A hs = some A' →
+      (∀ pre h post, hs = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 → Moves M s0 s1 →
+        HintIn s1 h → HintOk C M s1 h) →
+      (∀ s1, hs.foldlM (runHint C) s = .ok s1 → Moves M s0 s1 → Holds s1 A' → StepOk C M Inv op [] s1) →
+      StepOk C M Inv op hs s
+  | [], s, A, A', hm, hA, h, _, hk => by
     cases h
-    exact hk s hP hm hA
-  | x :: xs, s, A, A', hm, hP, hA, h, hPh, hh, hk => by
+    exact hk s rfl hm hA
+  | x :: xs, s, A, A', hm, hA, h, hh, hk => by
     simp only [stepHints, Option.bind_eq_some_iff] at h
     obtain ⟨B, hB, h⟩ := h
     have hs := hm.fine
     have hin := (stepHint_sound (C := C) (s' := s) ⟨hs.agree.wf, hs.dl⟩ hs.fp hs.agree.used hA hB).1
-    refine ⟨hh s x hP hm (List.mem_cons_self ..) hin, fun s1 e1 m1 ↦ ?_⟩
+    refine ⟨hh [] x xs rfl s rfl hm hin, fun s1 e1 m1 ↦ ?_⟩
     have hrun := (stepHint_sound (C := C) (s' := s1) ⟨hs.agree.wf, hs.dl⟩ hs.fp hs.agree.used hA hB).2
-    exact stepOk_hintsX P s0 xs s1 B A' (hm.trans m1) (hPh s x s1 hP hm (List.mem_cons_self ..) e1)
-      (hrun e1 m1.fine.agree.used) h
-      (fun s2 y s3 a b c d ↦ hPh s2 y s3 a b (List.mem_cons_of_mem _ c) d)
-      (fun s2 y a b c d ↦ hh s2 y a b (List.mem_cons_of_mem _ c) d) hk
+    exact stepOk_hintsX s0 xs s1 B A' (hm.trans m1) (hrun e1 m1.fine.agree.used) h
+      (fun pre y post hp s2 e2 m2 ↦ hh (x :: pre) y post (by rw [hp]; rfl) s2
+        (by rw [List.foldlM_cons, e1, ok_bind]; exact e2) m2)
+      (fun s2 e2 m2 ↦ hk s2 (by rw [List.foldlM_cons, e1, ok_bind]; exact e2) m2)
 
-/-- **A step at an offset the walk reaches**, as `step_at`, the states its hints pass through
-satisfying `P`: each hint's agreement and the residuals needed only there, and what comes after
-given the state before the instruction, its modedness and its run. -/
+/-- **A step at an offset the walk reaches**, as `step_at`, its hints in order: each hint's agreement
+needed at the state its predecessors reach, the residuals at the states the hints reach, and what
+comes after given the state before the instruction, its modedness and its run. -/
 theorem step_atX {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {K : Cert} (hK : CertOk C K)
     {s : St} {i : ℕ} (hi : i < K.code.length) (hpc : s.pc = K.F.entry + i)
-    (hat : AtOff K.E K.F K.code i s) (hs : Fine M s) (hE : EnvOk s K.E) (P : St → Prop) (hP : P s)
-    (hPh : ∀ s1 h s2, P s1 → Moves M s s1 → h ∈ (K.F.hints.get i).getD [] → runHint C s1 h = .ok s2 →
-      P s2)
-    (hhint : ∀ s1 h, P s1 → Moves M s s1 → h ∈ (K.F.hints.get i).getD [] → HintIn s1 h →
-      HintOk C M s1 h)
-    (hres : ∀ s1, P s1 → Moves M s s1 → ∀ r ∈ (K.F.res.get i).getD [], ResIn s1 r → ResHolds s1 r)
+    (hat : AtOff K.E K.F K.code i s) (hs : Fine M s) (hE : EnvOk s K.E)
+    (hhint : ∀ pre h post, (K.F.hints.get i).getD [] = pre ++ h :: post → ∀ s1,
+      pre.foldlM (runHint C) s = .ok s1 → Moves M s s1 → HintIn s1 h → HintOk C M s1 h)
+    (hres : ∀ s1, Moves M s s1 → ∀ r ∈ (K.F.res.get i).getD [], ResIn s1 r → ResHolds s1 r)
     (href : RefOk M s (opOfOff K.code[i]))
-    (hfall : ∀ s1 s', P s1 → Moves M s s1 → OpModed M s1 (opOfOff K.code[i]) →
+    (hfall : ∀ s1 s', ((K.F.hints.get i).getD []).foldlM (runHint C) s = .ok s1 → Moves M s s1 →
+      OpModed M s1 (opOfOff K.code[i]) →
       runOp C s1 (opOfOff K.code[i]) = .ok s' → s'.pc = s.pc + 1 → s'.fp = s.fp → Fine M s' →
       s.mem ≤ s'.mem → AtOff K.E K.F K.code (i + 1) s' → Inv { s' with steps := s'.steps + 1 })
-    (hjump : ∀ c d f A go A' s1 s', P s1 → K.code[i] = .jump c d f → Moves M s s1 →
+    (hjump : ∀ c d f A go A' s1 s', ((K.F.hints.get i).getD []).foldlM (runHint C) s = .ok s1 →
+      K.code[i] = .jump c d f → Moves M s s1 →
       OpModed M s1 (.jump c d f) → Holds s1 A →
       jumpI K.E K.F i A d f = some (go, A') →
       (∀ ts, go = .to ts → ∀ s'' j, j ∈ ts → Holds s'' A' → AtOff K.E K.F K.code j s'') →
@@ -150,9 +151,9 @@ theorem step_atX {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {K : Cert} (hK : 
   obtain ⟨A1, A2, h1, h2, hc⟩ := offStep_cases e
   have hsz : K.F.entry + i < C.ops.size := cert_pc hK hi
   rw [hpc, hK.hints i hi]
-  refine stepOk_hintsX P s _ s A A1 (Moves.refl' hs) hP hA h1 hPh hhint (fun s1 hP1 hm hA1 ↦ ?_)
+  refine stepOk_hintsX s _ s A A1 (Moves.refl' hs) hA h1 hhint (fun s1 hP1 hm hA1 ↦ ?_)
   have hA2 : Holds s1 A2 :=
-    addRes_sound' hm.fine.agree.wf hm.fine.agree.used hA1 (hres s1 hP1 hm) h2
+    addRes_sound' hm.fine.agree.wf hm.fine.agree.used hA1 (hres s1 hm) h2
   have hg1 : s1.Good := ⟨hm.fine.agree.wf, hm.fine.dl⟩
   have hpc1 : s1.pc = K.F.entry + i := hm.pc.trans hpc
   have hE1 : EnvOk s1 K.E := EnvOk.mono hm.le hE

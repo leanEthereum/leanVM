@@ -194,18 +194,21 @@ theorem call_enter {En : Env} {F : Fun} {i : ℕ} {A : Abs} {d f : ℕ} {mq : Mo
     {Gs : List Sig} {s sE : St} (hA : Holds s A) (hE : EnvOk s En) (hS : EnvSmall En)
     (hfm : A.mono f = some mq) (h1 : A.hvGet (mq.shift 1) = some (.m ⟨1, 0, []⟩))
     (h0 : A.hvGet (mq.shift 0) = some (.m ⟨0, r, []⟩)) (hc : calleesOf En F A i d = some (G :: Gs))
+    (hw : ∀ p ∈ (G :: Gs).zipIdx, entryW (A.assume (selOf A d) p.2) mq p.1 = true)
     (hok : ∀ p ∈ (G :: Gs).zipIdx.map (fun p ↦ (p.1, atCall (A.assume (selOf A d) p.2) mq p.1)),
       entryOk p.2 mq p.1 = true)
     (hfp : s.fp < maxCells) (hle : s.mem ≤ sE.mem) (hwf : sE.mem.WF) (hu : sE.mem.used ≤ maxCells)
     (hfpE : sE.fp < maxCells) (hpcE : sE.pc < 2 ^ 62)
     (hd : s.mem.get (s.fp + d) = some (ofK (g ^ sE.pc)))
     (hf : s.mem.get (s.fp + f) = some (ofK (g ^ sE.fp)))
-    (hT : ∀ G', En.sigs.get sE.pc = some G' → ∀ p ∈ G'.term, LTF sE p.1 p.2) (hjt : RW sE (jtRng En)) :
+    (hT : ∀ G', En.sigs.get sE.pc = some G' → (∀ o ∈ G'.entry, sE.mem.written (sE.fp + o) = true) →
+      ∀ p ∈ G'.term, LTF sE p.1 p.2) (hjt : RW sE (jtRng En)) :
     Frames (callerAt sE s.fp) sE mq ∧
       sE.mem.get (sE.fp + 1) = some (ofK (g ^ s.fp)) ∧ sE.mem.get (sE.fp + 0) = some (ofK (g ^ r)) ∧
       ∃ j G', (G :: Gs)[j]? = some G' ∧ En.sigs.get sE.pc = some G' ∧
         (∀ x, selOf A d = some x → IdxVal (callerAt sE s.fp) (.ex x 0) j) ∧
-        Holds (callerAt sE s.fp) (atCall (A.assume (selOf A d) j) mq G') ∧ Holds sE (entryAbs En G') := by
+        Holds (callerAt sE s.fp) (atCall (A.assume (selOf A d) j) mq G') ∧
+        (∀ o ∈ G'.entry, sE.mem.written (sE.fp + o) = true) ∧ Holds sE (entryAbs En G') := by
   have hAC : Holds (callerAt sE s.fp) A := Holds.mono (s' := callerAt sE s.fp) hle rfl hA
   obtain ⟨u, hu, hmu⟩ := hA.mono_val hfm (written_of_get hf)
   rw [hf] at hu
@@ -221,12 +224,15 @@ theorem call_enter {En : Env} {F : Fun} {i : ℕ} {A : Abs} {d f : ℕ} {mq : Mo
   obtain ⟨j, G', hj, hsig, hsel⟩ := callee_at hA hE hS hc hpcE hd
   have hsel' : ∀ x, selOf A d = some x → IdxVal (callerAt sE s.fp) (.ex x 0) j :=
     fun x hx ↦ (hsel x hx).mono (s' := callerAt sE s.fp) hle rfl
-  have hA1 := atCall_sound Fr (hAC.assume hsel') (hT G' hsig)
+  have hA0 := hAC.assume hsel'
+  have hW := entryW_sound Fr hA0 (hw (G', j) (List.mk_mem_zipIdx_iff_getElem?.mpr hj))
+  have hT' := hT G' hsig hW
+  have hA1 := atCall_sound Fr hA0 hT'
   have hmem : (G', atCall (A.assume (selOf A d) j) mq G') ∈
       (G :: Gs).zipIdx.map (fun p ↦ (p.1, atCall (A.assume (selOf A d) p.2) mq p.1)) :=
     List.mem_map.mpr ⟨(G', j), List.mk_mem_zipIdx_iff_getElem?.mpr hj, rfl⟩
-  exact ⟨Fr, e1 ▸ hw1, e0 ▸ hw0, j, G', hj, hsig, hsel', hA1,
-    entryOk_sound Fr hA1 (hok _ hmem) hjt (hT G' hsig)⟩
+  exact ⟨Fr, e1 ▸ hw1, e0 ▸ hw0, j, G', hj, hsig, hsel', hA1, hW,
+    entryOk_sound Fr hA1 (hok _ hmem) hjt hT'⟩
 
 theorem mem_filter_sub {α : Type} {p : α → Bool} {l : List α} {x : α} (h : x ∈ l.filter p) : x ∈ l :=
   (List.mem_filter.mp h).1
