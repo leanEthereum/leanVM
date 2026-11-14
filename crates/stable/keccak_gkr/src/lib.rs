@@ -76,11 +76,14 @@
 //! # Prover
 //!
 //! The witness holds every round's `u` sliced by bit position, 64 instances to a word
-//! ([`witness`]). A layer walks it six times (`prover`): once for `U`, once for each of the first
-//! four rounds of step 3, over the sixteen packs of half a block, and once for the table of
-//! field elements the remaining rounds fold. At `s`, a pack's value is the sum of the instance
-//! weights of its set bits, so a folded one is a sum of byte lookups. The blocks past the last
-//! input all equal the padding block, which every pass walks once, at their summed weight.
+//! ([`witness`]). A layer walks it three times (`prover`): once for `U`; once for the first four
+//! rounds of step 3, over the sixteen packs of half a block, whose round polynomials read the
+//! summand at the points of `{0, 1, infinity}^4`, where a pack is a sum of packs and a product
+//! of two is one carry-less product, which meets its position's weight written as a polynomial
+//! in `s` as a second one; and once for the table of field elements the remaining rounds fold. At
+//! `s`, a pack's value is the sum of the instance weights of its set bits, so a folded one is a
+//! sum of byte lookups. The blocks past the last input all equal the padding block, which every
+//! pass walks once, at their summed weight.
 //!
 //! `U`'s weighted bit sums go to buckets: each byte of a product picks one of 256, which its
 //! weight is added to, and a coefficient is a sum of buckets.
@@ -96,6 +99,7 @@ pub mod batch_bench;
 mod keccak;
 pub mod kernels;
 mod open;
+mod poly;
 mod protocol;
 mod prover;
 pub mod rmfe;

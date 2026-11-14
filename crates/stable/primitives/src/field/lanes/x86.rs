@@ -6,7 +6,7 @@
 //! The kernels below are written once over the register type `V` and the few width-specific moves in `v`.
 
 use crate::field::gf2_64::reduce;
-use crate::field::{F64, F128};
+use crate::field::{F64, F128, F128Unreduced};
 
 /// 128-bit lanes in a register.
 const W: usize = size_of::<V>() / 16;
@@ -227,6 +227,14 @@ impl F128x8 {
 
 impl Acc8 {
     pub const ZERO: Self = Self([[v::ZERO; 2]; R]);
+
+    /// The eight sums as they are, unreduced.
+    #[inline(always)]
+    pub fn to_array(self) -> [F128Unreduced; 8] {
+        // SAFETY: a register is `W` plain 128-bit lanes.
+        let c = unsafe { core::mem::transmute::<[[V; 2]; R], [[[u128; W]; 2]; R]>(self.0) };
+        core::array::from_fn(|i| F128Unreduced::from_limbs(c[i / W].map(|c| c[i % W])))
+    }
 
     /// Every lane reduced.
     #[inline(always)]
