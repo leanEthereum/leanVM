@@ -91,6 +91,18 @@ fn schoolbook(a: V, b: V) -> [V; 2] {
     [xor(m00, m11), xor3(m01, m10, times_x(m11))]
 }
 
+/// One product, the scalar [`F128`] multiply, kept in vector registers.
+#[inline(always)]
+pub(crate) fn mul(a: F128, b: F128) -> F128 {
+    // SAFETY: both sides of each transmute are 128 plain bits.
+    unsafe {
+        transmute::<V, F128>(reduce_pair(schoolbook(
+            transmute::<F128, V>(a),
+            transmute::<F128, V>(b),
+        )))
+    }
+}
+
 /// The eight carry-less products `a[i] * b[i]`, each 128 bits.
 #[inline(always)]
 pub fn clmul8(a: [u64; 8], b: [u64; 8]) -> [u128; 8] {
@@ -98,6 +110,16 @@ pub fn clmul8(a: [u64; 8], b: [u64; 8]) -> [u128; 8] {
     let p: [[V; 2]; 4] = core::array::from_fn(|q| [lo(a[q], b[q]), hi(a[q], b[q])]);
     // SAFETY: both sides are plain bits of one size.
     unsafe { transmute::<[[V; 2]; 4], [u128; 8]>(p) }
+}
+
+/// The low 64 bits of the eight carry-less products `a[i] * b[i]`.
+#[inline(always)]
+pub fn clmul8_low(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
+    let (a, b) = (F64x8::from_array(&a.map(F64)).0, F64x8::from_array(&b.map(F64)).0);
+    // SAFETY: NEON is part of the aarch64 baseline.
+    let p: [V; 4] = core::array::from_fn(|q| unsafe { vzip1q_u64(lo(a[q], b[q]), hi(a[q], b[q])) });
+    // SAFETY: both sides are plain bits of one size.
+    unsafe { transmute::<[V; 4], [u64; 8]>(p) }
 }
 
 impl F64x8 {

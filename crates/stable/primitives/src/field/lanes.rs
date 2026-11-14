@@ -5,7 +5,8 @@
 //! - [`F64x8`]: eight `K` elements.
 //! - [`Acc8`]: eight unreduced `E` sums, what products land in before one reduction per lane ([`Acc8::reduce`]) or
 //!   one for the whole sum ([`Acc8::sum`]).
-//! - [`clmul8`]: eight carry-less 64x64 products.
+//! - [`clmul8`]: eight carry-less 64x64 products, and [`clmul8_low`] their low halves, for products known to fit 64
+//!   bits.
 //!
 //! Every operation is lane by lane and agrees bit for bit with the scalar one ([`F128`], [`F64`]) on each lane, on
 //! every target. A backend defines the types and their core methods; this module adds the operators, the slice
@@ -18,15 +19,18 @@ use super::{F64, F128};
 cfg_select! {
     all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq") => {
         mod x86;
-        pub use x86::{Acc8, F64x8, F128x8, clmul8};
+        pub use x86::{Acc8, F64x8, F128x8, clmul8, clmul8_low};
+        pub(crate) use x86::mul;
     }
     all(target_arch = "aarch64", target_feature = "aes") => {
         mod neon;
-        pub use neon::{Acc8, F64x8, F128x8, clmul8};
+        pub use neon::{Acc8, F64x8, F128x8, clmul8, clmul8_low};
+        pub(crate) use neon::mul;
     }
     _ => {
         mod portable;
-        pub use portable::{Acc8, F64x8, F128x8, clmul8};
+        pub use portable::{Acc8, F64x8, F128x8, clmul8, clmul8_low};
+        pub(crate) use portable::mul;
     }
 }
 
@@ -189,6 +193,7 @@ mod tests {
             // Carry-less products.
             let (p, q) = (k.map(|k| k.0), l.map(|l| l.0));
             assert_eq!(clmul8(p, q), lanes(|i| clmul_portable(p[i], q[i])));
+            assert_eq!(clmul8_low(p, q), lanes(|i| clmul_portable(p[i], q[i]) as u64));
         }
     }
 
