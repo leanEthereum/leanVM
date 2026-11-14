@@ -99,16 +99,26 @@ pub struct Witness {
 
 /// Transpose a 64 by 64 bit matrix: bit `c` of row `r` becomes bit `r` of row `c`.
 pub(crate) fn transpose64(a: &mut [u64; 64]) {
-    let mut j = 32;
-    let mut mask = 0x0000_0000_ffff_ffffu64;
-    while j != 0 {
-        for k in (0..64).filter(|k| k & j == 0) {
-            let t = ((a[k] >> j) ^ a[k + j]) & mask;
-            a[k + j] ^= t;
-            a[k] ^= t << j;
+    // Swap the off-diagonal `j` by `j` blocks of every `2j` by `2j` block, `j` halving: rows `i` and `i + j` of a
+    // block, which the compiler vectorizes over `i`.
+    const MASKS: [u64; 6] = [
+        0x0000_0000_ffff_ffff,
+        0x0000_ffff_0000_ffff,
+        0x00ff_00ff_00ff_00ff,
+        0x0f0f_0f0f_0f0f_0f0f,
+        0x3333_3333_3333_3333,
+        0x5555_5555_5555_5555,
+    ];
+    for (level, mask) in MASKS.into_iter().enumerate() {
+        let j = 32 >> level;
+        for block in a.chunks_exact_mut(2 * j) {
+            let (low, high) = block.split_at_mut(j);
+            for (a, b) in low.iter_mut().zip(high) {
+                let t = ((*a >> j) ^ *b) & mask;
+                *b ^= t;
+                *a ^= t << j;
+            }
         }
-        j >>= 1;
-        mask ^= mask << j;
     }
 }
 
