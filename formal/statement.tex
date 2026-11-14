@@ -536,7 +536,7 @@ Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coo
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs})
+\paragraph{The outer verifier} (\texttt{AggregateProof::verify}, \texttt{aggregation/proof.rs})
 additionally checks that the DA digest is that of its root with the root's membership
 challenge, that the deferred claim holds ($\widehat{B}(\zeta) = v$), and the lists' form
 (sorted, no repeats). Of these, \lean{AggregateSound} below
@@ -778,7 +778,7 @@ program's DA check (\lean{Da.MatrixWitness.Opens}) and the outer verifier's deri
 LeanDA's code binding.
 \item That a parent can always form its witness from honest children (the batching hints exist),
 that batching true claims gives a true deferred claim, and that the deployed outer verifier
-(\texttt{EthereumProof::verify}) accepts an honest root.
+(\texttt{AggregateProof::verify}) accepts an honest root.
 \item Completeness for children whose proofs are not \lean{LeanVM.leanVmHonestProver}'s with the
 deployed Keccak (the Rust prover's, say), or under another seed than the deployed one:
 \lean{HonestChild} names the proof.

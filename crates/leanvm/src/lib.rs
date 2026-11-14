@@ -6,7 +6,7 @@
 //! Example: [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
 
 pub use rec_aggregation::{
-    AggregateProveError, AggregateVerifyError, EthereumClaims, EthereumProof, LeanSphincsClaim, LeanXmssClaim,
+    AggregateClaims, AggregateProof, AggregateProveError, AggregateVerifyError, LeanSphincsClaim, LeanXmssClaim,
     MAX_RECURSIONS, OutputClaims, StarkProveError, StarkVerifyError, aggregate,
 };
 
@@ -33,7 +33,7 @@ pub mod lean_sphincs {
     };
 }
 
-/// Call once before [`aggregate`] or [`EthereumProof::verify`].
+/// Call once before [`aggregate`] or [`AggregateProof::verify`].
 pub fn setup() {
     parallel::init();
     rec_aggregation::warm_up();

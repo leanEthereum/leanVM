@@ -1,7 +1,7 @@
 //! The coverage table: which slot each raw signature and child claim writes.
 
 use super::error::AggregateProveError;
-use super::proof::{EthereumClaims, EthereumProof};
+use super::proof::{AggregateClaims, AggregateProof};
 use super::{LeanSphincsClaim, LeanXmssClaim};
 use std::collections::BTreeSet;
 
@@ -108,8 +108,8 @@ fn take_slot<K: Ord + Clone>(claims: &[K], claimed: &mut [bool], duplicates: &mu
 pub(super) fn plan_coverage(
     raw_lean_xmss: &[LeanXmssClaim],
     raw_lean_sphincs: &[LeanSphincsClaim],
-    children: &[(EthereumClaims, EthereumProof)],
-    declare: Option<&EthereumClaims>,
+    children: &[(AggregateClaims, AggregateProof)],
+    declare: Option<&AggregateClaims>,
 ) -> Result<Coverage, AggregateProveError> {
     let cover = Coverage {
         lean_xmss: Region::plan(

@@ -77,7 +77,7 @@ impl Out {
     }
 
     /// `NodeStatement`: the claims, the DA digest (`verifier::da::digest`), and the deferred claim.
-    fn statement(&mut self, claims: &EthereumClaims, defer: &DeferredBytecodeClaim) {
+    fn statement(&mut self, claims: &AggregateClaims, defer: &DeferredBytecodeClaim) {
         self.tag("xmss");
         self.n(claims.lean_xmss.len());
         for (pk, m) in &claims.lean_xmss {
@@ -148,11 +148,11 @@ impl<'a> Cursor<'a> {
 /// Aggregate, and write the case: the statement, the witness, the installed streams.
 fn export(
     name: &str,
-    children: Vec<(EthereumClaims, EthereumProof)>,
+    children: Vec<(AggregateClaims, AggregateProof)>,
     raw_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: &[lean_da::Blob],
-) -> (EthereumClaims, EthereumProof) {
+) -> (AggregateClaims, AggregateProof) {
     let direct = (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build(blobs).expect("1 to DA_MAX_ROWS blobs"));
     capture_next();
     let (claims, node) = aggregate(

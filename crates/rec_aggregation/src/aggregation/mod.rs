@@ -29,7 +29,7 @@
 //! big to evaluate in-circuit, so each node exports one deferred claim on it
 //! and batches its children's carried claims with the fresh ones its
 //! verifications raise (`doc/leanvm/main.tex` §Deferred evaluation claims). Only
-//! the root's is discharged natively, by [`EthereumProof::verify`].
+//! the root's is discharged natively, by [`AggregateProof::verify`].
 //!
 //! `gen_verify` derives the guest's whole witness for a child from the real
 //! `cpu::layout` of the inner program and the summary the `verifier` crate
@@ -56,7 +56,7 @@ pub use guest::{unified_guest, warm_up};
 use lean_sphincs::LeanSphincsPublicKey;
 use lean_xmss::LeanXmssPublicKey;
 pub use node::{aggregate, aggregate_with_stats};
-pub use proof::{EthereumClaims, EthereumProof, OutputClaims};
+pub use proof::{AggregateClaims, AggregateProof, OutputClaims};
 
 /// One leanXMSS claim: a pubkey, and the message it signed at whatever leaf index its
 /// signature carries.

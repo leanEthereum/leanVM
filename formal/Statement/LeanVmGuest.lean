@@ -214,7 +214,7 @@ the bytecode's multilinear extension at the point (`DeferredBytecodeClaim::recom
 `aggregation/deferred.rs`). The length being `2 ^ len` is part of it: `HasBytecodeShape` reads
 `Nat.log2` of the length, which a bytecode of other length shares, and the extension is of
 `2 ^ len` values. Stronger than `BytecodeClaim.Holds` (the value only). The deployed outer verifier
-checks it of the root's deferred claim (`EthereumProof::verify`, `aggregation/proof.rs`). -/
+checks it of the root's deferred claim (`AggregateProof::verify`, `aggregation/proof.rs`). -/
 def DeferredBytecodeClaim.HoldsWithShape (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
   claim.HasBytecodeShape bytecode ∧ 2 ^ claim.bytecodePoint.length = bytecode.length ∧
     multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue

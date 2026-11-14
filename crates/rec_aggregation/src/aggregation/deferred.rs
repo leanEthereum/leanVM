@@ -96,7 +96,7 @@ pub(super) struct DeferredSubproof {
     pub(super) bytecode_value: F128,
 }
 
-/// [`stacked_bytecode`] as the `verifier` crate takes it, hashed once: what [`EthereumProof::verify`](super::EthereumProof::verify) checks proofs against, and [`aggregate`](super::aggregate) reads its children with.
+/// [`stacked_bytecode`] as the `verifier` crate takes it, hashed once: what [`AggregateProof::verify`](super::AggregateProof::verify) checks proofs against, and [`aggregate`](super::aggregate) reads its children with.
 pub(super) fn scalar_bytecode() -> &'static verifier::Bytecode {
     static BYTECODE: std::sync::OnceLock<verifier::Bytecode> = std::sync::OnceLock::new();
     BYTECODE.get_or_init(|| {

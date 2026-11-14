@@ -6,7 +6,7 @@ use bench::{Plan, Timing};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::{pretty_f64, pretty_integer};
 use rand::{Rng, SeedableRng, rngs::StdRng};
-use rec_aggregation::{EthereumClaims, EthereumProof, OutputClaims, aggregate, aggregate_with_stats, signers_cache};
+use rec_aggregation::{AggregateClaims, AggregateProof, OutputClaims, aggregate, aggregate_with_stats, signers_cache};
 
 fn blobs(n: usize, seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = StdRng::seed_from_u64(seed);
@@ -39,7 +39,7 @@ fn lean_sphincs_signers(from: usize, to: usize) -> Vec<RawLeanSphincs> {
 }
 
 /// Report the shape and cost of one aggregation node.
-fn report(label: &str, stats: &leanvm_core::cpu::Stats, sig: &EthereumProof, prove_time: &Timing) {
+fn report(label: &str, stats: &leanvm_core::cpu::Stats, sig: &AggregateProof, prove_time: &Timing) {
     println!("{label}");
     println!(
         "  cycles (VM steps)           : {} = {}",
@@ -266,7 +266,7 @@ fn write_leaves(
 /// A leaf's claims in the leaves' file: each list as its length and its `(key, message)` pairs, then
 /// a 0/1 byte for whether there is a DA root and 32 root bytes, zero without one. The proof carries
 /// no claims; the parent trusts its subprocess for them, standing in for a receiver that knows them.
-fn write_claims(out: &mut Vec<u8>, claims: &EthereumClaims) {
+fn write_claims(out: &mut Vec<u8>, claims: &AggregateClaims) {
     out.extend((claims.lean_xmss.len() as u64).to_le_bytes());
     for (pk, message) in &claims.lean_xmss {
         out.extend(pk.to_bytes());
@@ -300,7 +300,7 @@ impl<'a> LeavesFile<'a> {
     }
 
     /// The inverse of [`write_claims`].
-    fn claims(&mut self) -> EthereumClaims {
+    fn claims(&mut self) -> AggregateClaims {
         let n = self.count();
         let lean_xmss = (0..n)
             .map(|_| (LeanXmssPublicKey::from_bytes(&self.array()), self.array()))
@@ -316,7 +316,7 @@ impl<'a> LeavesFile<'a> {
             .collect();
         let [has_root] = self.array();
         let root = self.array();
-        EthereumClaims {
+        AggregateClaims {
             lean_xmss,
             lean_sphincs,
             da_commitment: (has_root == 1).then_some(root),
@@ -329,7 +329,7 @@ const LEAVES_OUT: &str = "LEANVM_LEAVES_OUT";
 
 /// The leaves of [`run_recursion`], from this same command rerun with [`LEAVES_OUT`] set. Peak
 /// memory is the process's high-water mark, which proving them here would make a leaf's.
-fn leaves_from_subprocess(n: usize) -> Vec<(EthereumClaims, EthereumProof)> {
+fn leaves_from_subprocess(n: usize) -> Vec<(AggregateClaims, AggregateProof)> {
     let out = std::env::temp_dir().join(format!("leanvm-leaves-{}.bin", std::process::id()));
     // Created here, refusing one already there, so no other user can plant or swap it in a shared `/tmp`.
     std::fs::OpenOptions::new()
@@ -352,7 +352,10 @@ fn leaves_from_subprocess(n: usize) -> Vec<(EthereumClaims, EthereumProof)> {
     while !file.0.is_empty() {
         let claims = file.claims();
         let len = file.count();
-        leaves.push((claims, EthereumProof::from_bytes(file.take(len)).expect("a leaf proof")));
+        leaves.push((
+            claims,
+            AggregateProof::from_bytes(file.take(len)).expect("a leaf proof"),
+        ));
     }
     assert_eq!(leaves.len(), n, "one proof per leaf");
     leaves

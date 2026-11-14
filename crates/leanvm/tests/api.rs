@@ -79,7 +79,7 @@ fn public_api_end_to_end() {
 
     // 4. Onto the wire, which carries only the proof: the receiver rebuilds the claims it expects, and
     //    verifying says exactly these pubkeys signed exactly these messages.
-    let received = EthereumProof::from_bytes(&proof.to_bytes()).unwrap();
+    let received = AggregateProof::from_bytes(&proof.to_bytes()).unwrap();
     received.verify(&claims).unwrap();
     let on = |message| claims.lean_xmss.iter().filter(|(_, m)| *m == message).count();
     assert_eq!((on(MSG_0), on(MSG_1), on(MSG_2)), (3, 4, 1));
@@ -90,7 +90,7 @@ fn public_api_end_to_end() {
 
     // 5. Removing some signatures from the aggregate: `OutputClaims::Only` is what we keep. Here every claim on MSG_1 goes,
     //    and one leanSPHINCS claim.
-    let retained = EthereumClaims {
+    let retained = AggregateClaims {
         lean_xmss: claims.lean_xmss.iter().filter(|(_, m)| *m != MSG_1).cloned().collect(),
         lean_sphincs: claims.lean_sphincs[1..].to_vec(),
         da_commitment: Some(commitment),
@@ -109,7 +109,7 @@ fn public_api_end_to_end() {
     assert_eq!(narrowed.0.num_signature_claims(), 11 - 4 - 1);
 
     // And the blob claim.
-    let without_blobs = EthereumClaims {
+    let without_blobs = AggregateClaims {
         da_commitment: None,
         ..retained
     };

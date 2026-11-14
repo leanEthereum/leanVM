@@ -5,7 +5,7 @@ use super::guest::{compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
 use super::node::aggregate;
 use super::placeholders::placeholder_map;
-use super::proof::{EthereumClaims, EthereumProof, decode, encode, public_input};
+use super::proof::{AggregateClaims, AggregateProof, decode, encode, public_input};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
 use fiat_shamir::merkle::{Hash, hash_pair, hash_to_scalars};
@@ -36,7 +36,7 @@ fn matrix(blobs: &[lean_da::Blob]) -> Option<lean_da::BlobMatrix> {
 }
 
 /// An aggregate's claims and proof, as [`aggregate`] returns them.
-type Node = (EthereumClaims, EthereumProof);
+type Node = (AggregateClaims, AggregateProof);
 
 trait VerifyNode {
     fn verify(&self) -> Result<(), AggregateVerifyError>;
@@ -390,22 +390,22 @@ fn aggregate_with_a_da_payload() {
     );
     // The receiver's own claims verify, any others fail.
     let bytes = node.1.to_bytes();
-    let received = EthereumProof::from_bytes(&bytes).unwrap();
-    let expected = EthereumClaims {
+    let received = AggregateProof::from_bytes(&bytes).unwrap();
+    let expected = AggregateClaims {
         da_commitment: Some(commitment),
-        ..EthereumClaims::default()
+        ..AggregateClaims::default()
     };
     received.verify(&expected).unwrap();
-    let other = EthereumClaims {
+    let other = AggregateClaims {
         da_commitment: Some([0; 32]),
-        ..EthereumClaims::default()
+        ..AggregateClaims::default()
     };
     assert!(matches!(received.verify(&other), Err(AggregateVerifyError::Snark(_))));
     let claim = (
         LeanXmssPublicKey::from_bytes(&[0; lean_xmss::PUB_KEY_SIZE]),
         [0; lean_xmss::MESSAGE_LEN],
     );
-    let unsorted = EthereumClaims {
+    let unsorted = AggregateClaims {
         lean_xmss: vec![claim, claim],
         ..expected.clone()
     };
@@ -413,16 +413,16 @@ fn aggregate_with_a_da_payload() {
         received.verify(&unsorted),
         Err(AggregateVerifyError::MalformedSignerSet)
     ));
-    let trailing = EthereumProof::from_bytes(&[&bytes[..], &[0]].concat());
+    let trailing = AggregateProof::from_bytes(&[&bytes[..], &[0]].concat());
     assert!(matches!(trailing, Err(AggregateVerifyError::MalformedEncoding)));
 }
 
 /// A node publishes a root it holds, and with blobs only their matrix's.
 #[test]
 fn invalid_da_selections_are_rejected_before_building_the_proof() {
-    let select = EthereumClaims {
+    let select = AggregateClaims {
         da_commitment: Some([0xa5; 32]),
-        ..EthereumClaims::default()
+        ..AggregateClaims::default()
     };
     assert_eq!(
         aggregate(&[], vec![], vec![], None, OutputClaims::Only(&select), LOG_INV_RATE).unwrap_err(),
@@ -440,7 +440,7 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
         .unwrap_err(),
         AggregateProveError::BlobsUnpublished
     );
-    let unpublished = EthereumClaims::default();
+    let unpublished = AggregateClaims::default();
     assert_eq!(
         aggregate(
             &[],
@@ -483,7 +483,7 @@ fn a_node_passes_on_one_childs_da_root() {
     );
     assert_ne!(first, second);
     let pass_on = |selected: Option<Option<[u8; 32]>>, blobs: &[lean_da::Blob]| {
-        let declare = selected.map(|da_commitment| EthereumClaims {
+        let declare = selected.map(|da_commitment| AggregateClaims {
             lean_xmss: children[0].0.lean_xmss.clone(),
             lean_sphincs: vec![],
             da_commitment,
@@ -792,7 +792,7 @@ fn a_node_may_publish_less_than_it_covers() {
     wide.verify().expect("the wide leaf verifies");
     assert_eq!(wide.0.lean_xmss.len(), 5);
 
-    let narrowed = |wide: &Node, declare: &EthereumClaims| {
+    let narrowed = |wide: &Node, declare: &AggregateClaims| {
         aggregate(
             std::slice::from_ref(wide),
             vec![],
@@ -802,9 +802,9 @@ fn a_node_may_publish_less_than_it_covers() {
             LOG_INV_RATE,
         )
     };
-    let only = |lean_xmss: Vec<LeanXmssClaim>| EthereumClaims {
+    let only = |lean_xmss: Vec<LeanXmssClaim>| AggregateClaims {
         lean_xmss,
-        ..EthereumClaims::default()
+        ..AggregateClaims::default()
     };
     let on_b: Vec<LeanXmssClaim> = wide
         .0
@@ -825,7 +825,7 @@ fn a_node_may_publish_less_than_it_covers() {
     assert_eq!(part.0.lean_xmss, one);
 
     assert_eq!(
-        narrowed(&wide, &EthereumClaims::default()).err(),
+        narrowed(&wide, &AggregateClaims::default()).err(),
         Some(AggregateProveError::Empty),
         "a declaration has to publish something"
     );
@@ -855,9 +855,9 @@ fn raw_signatures_may_go_undeclared() {
         raw,
         vec![],
         None,
-        OutputClaims::Only(&EthereumClaims {
+        OutputClaims::Only(&AggregateClaims {
             lean_xmss: claim_b.clone(),
-            ..EthereumClaims::default()
+            ..AggregateClaims::default()
         }),
         LOG_INV_RATE,
     )
@@ -1037,7 +1037,7 @@ fn aggregate_round_trips_through_the_wire() {
     .expect("node");
     node.verify().expect("the honest node verifies");
 
-    let received = EthereumProof::from_bytes(&node.1.to_bytes()).expect("round trip");
+    let received = AggregateProof::from_bytes(&node.1.to_bytes()).expect("round trip");
     assert_eq!(
         received.to_bytes(),
         node.1.to_bytes(),

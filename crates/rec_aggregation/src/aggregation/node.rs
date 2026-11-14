@@ -11,7 +11,7 @@ use super::guest::unified_guest;
 #[cfg(test)]
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
-use super::proof::{EthereumClaims, EthereumProof, OutputClaims, check_signer_set, public_input};
+use super::proof::{AggregateClaims, AggregateProof, OutputClaims, check_signer_set, public_input};
 use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
@@ -31,30 +31,30 @@ use primitives::field::F128;
 ///   higher gives smaller proof size but slower proving time.
 ///
 /// # WARNING
-/// - Signatures and children must be valid (children checked with [`EthereumProof::verify`]):
+/// - Signatures and children must be valid (children checked with [`AggregateProof::verify`]):
 ///   otherwise proving fails.
 /// - Do not run two `aggregate` calls at once in one process.
 pub fn aggregate(
-    children: &[(EthereumClaims, EthereumProof)],
+    children: &[(AggregateClaims, AggregateProof)],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: Option<&lean_da::BlobMatrix>,
     output: OutputClaims,
     log_inv_rate: usize,
-) -> Result<(EthereumClaims, EthereumProof), AggregateProveError> {
+) -> Result<(AggregateClaims, AggregateProof), AggregateProveError> {
     aggregate_with_stats(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
         .map(|(claims, proof, _)| (claims, proof))
 }
 
 /// [`aggregate`], under the same contract, also returning the prover's statistics (what the CLI's benchmarks report).
 pub fn aggregate_with_stats(
-    children: &[(EthereumClaims, EthereumProof)],
+    children: &[(AggregateClaims, AggregateProof)],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: Option<&lean_da::BlobMatrix>,
     output: OutputClaims,
     log_inv_rate: usize,
-) -> Result<(EthereumClaims, EthereumProof, leanvm_core::cpu::Stats), AggregateProveError> {
+) -> Result<(AggregateClaims, AggregateProof, leanvm_core::cpu::Stats), AggregateProveError> {
     let declare = match output {
         OutputClaims::All => None,
         OutputClaims::Only(claims) => Some(claims),
@@ -306,12 +306,12 @@ pub fn aggregate_with_stats(
     hints.install(&mut program);
     let (proof, stats) =
         prove(&program, public_input, log_inv_rate).map_err(|e| AggregateProveError::ProofError(StarkProveError(e)))?;
-    let claims = EthereumClaims {
+    let claims = AggregateClaims {
         lean_xmss: cover.lean_xmss.signers,
         lean_sphincs: cover.lean_sphincs.signers,
         da_commitment: da_root,
     };
-    let proof = EthereumProof {
+    let proof = AggregateProof {
         bytecode_point: defer.bytecode_point,
         proof,
     };

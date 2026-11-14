@@ -11,10 +11,10 @@ use primitives::field::F128;
 /// [`Self::lean_sphincs`] has a valid signature under that scheme, and [`Self::da_commitment`], if
 /// any, commits to blobs that are valid Reed-Solomon codewords.
 ///
-/// Each list must be strictly sorted (so without duplicates), or [`EthereumProof::verify`] rejects
+/// Each list must be strictly sorted (so without duplicates), or [`AggregateProof::verify`] rejects
 /// it. Either may be empty.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct EthereumClaims {
+pub struct AggregateClaims {
     pub lean_xmss: Vec<LeanXmssClaim>,
     pub lean_sphincs: Vec<LeanSphincsClaim>,
     /// `None` for no blobs.
@@ -28,13 +28,13 @@ pub enum OutputClaims<'a> {
     /// child's that has one, otherwise none.
     All,
     /// Exactly these, each covered by the inputs.
-    Only(&'a EthereumClaims),
+    Only(&'a AggregateClaims),
 }
 
-/// A proof of some [`EthereumClaims`], which travel separately: [`Self::verify`] checks it against
+/// A proof of some [`AggregateClaims`], which travel separately: [`Self::verify`] checks it against
 /// the claims the receiver expects.
 #[derive(Clone, Debug)]
-pub struct EthereumProof {
+pub struct AggregateProof {
     /// The point of the deferred bytecode claim; its value is computed from it.
     pub(super) bytecode_point: Vec<F128>,
     pub(super) proof: leanvm_core::cpu::Proof,
@@ -62,14 +62,14 @@ pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F128>, &[u8])> {
 }
 
 /// Each list must be strictly sorted, so that no claim counts twice.
-pub(super) fn check_signer_set(claims: &EthereumClaims) -> Result<(), AggregateVerifyError> {
+pub(super) fn check_signer_set(claims: &AggregateClaims) -> Result<(), AggregateVerifyError> {
     if !claims.lean_xmss.windows(2).all(|w| w[0] < w[1]) || !claims.lean_sphincs.windows(2).all(|w| w[0] < w[1]) {
         return Err(AggregateVerifyError::MalformedSignerSet);
     }
     Ok(())
 }
 
-impl EthereumClaims {
+impl AggregateClaims {
     /// The number of `(pubkey, message)` claims, not of distinct signers: a pubkey may sign
     /// several messages.
     pub fn num_signature_claims(&self) -> usize {
@@ -78,12 +78,12 @@ impl EthereumClaims {
 }
 
 /// The VM's public input: the digest of the claims and the deferred claim.
-pub(super) fn public_input(claims: &EthereumClaims, defer: &DeferredBytecodeClaim) -> [F128; 2] {
+pub(super) fn public_input(claims: &AggregateClaims, defer: &DeferredBytecodeClaim) -> [F128; 2] {
     let da = verifier::da::digest(claims.da_commitment);
     statement_digest(&claims.lean_xmss, &claims.lean_sphincs, da, defer)
 }
 
-impl EthereumProof {
+impl AggregateProof {
     pub fn to_bytes(&self) -> Vec<u8> {
         encode(&self.bytecode_point, &self.proof.to_bytes())
     }
@@ -100,7 +100,7 @@ impl EthereumProof {
 
     /// Verify that this proves `claims`: the lists are sorted, the deferred claim holds, and the stark
     /// proof is valid.
-    pub fn verify(&self, claims: &EthereumClaims) -> Result<(), AggregateVerifyError> {
+    pub fn verify(&self, claims: &AggregateClaims) -> Result<(), AggregateVerifyError> {
         check_signer_set(claims)?;
         let defer = DeferredBytecodeClaim::recompute_scalar(self.bytecode_point.clone())?;
         let pi = public_input(claims, &defer);
