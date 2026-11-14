@@ -305,37 +305,54 @@ impl Summand {
 /// round's values over the rows written while they are at hand, the pair of rows `p` weighted by
 /// `eq[p]`: zero once a single row is left.
 fn fold_rows(summand: &Summand, table: &[F128], challenge: F128, eq: &[F128]) -> (Vec<F128>, (F128, F128)) {
-    let mut out = parallel::filled(table.len() / 2, F128::ZERO);
-    let values = parallel::map_reduce_chunks_mut(
-        [&mut out],
-        [2 * BITS],
-        || (),
-        || (F128Unreduced::ZERO, F128Unreduced::ZERO),
-        |_, acc, p, [rows]| {
-            let src = &table[4 * BITS * p..][..2 * rows.len()];
-            for (row, src) in rows
-                .as_chunks_mut::<BITS>()
-                .0
-                .iter_mut()
-                .zip(src.as_chunks::<{ 2 * BITS }>().0)
-            {
-                let (low, high) = src.split_at(BITS);
-                let challenge = F128x8::splat(challenge);
-                for (i, out) in row.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-                    let (l, h) = (F128x8::load(&low[8 * i..][..8]), F128x8::load(&high[8 * i..][..8]));
-                    (l + challenge * (l + h)).store(out);
-                }
+    let challenge = F128x8::splat(challenge);
+    // Pair `p` of the rows written, from four rows of `table`.
+    let pair = |acc: &mut (F128Unreduced, F128Unreduced), p: usize, rows: &mut [F128]| {
+        let src = &table[4 * BITS * p..][..2 * rows.len()];
+        for (row, src) in rows
+            .as_chunks_mut::<BITS>()
+            .0
+            .iter_mut()
+            .zip(src.as_chunks::<{ 2 * BITS }>().0)
+        {
+            let (low, high) = src.split_at(BITS);
+            for (i, out) in row.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                let (l, h) = (F128x8::load(&low[8 * i..][..8]), F128x8::load(&high[8 * i..][..8]));
+                (l + challenge * (l + h)).store(out);
             }
-            if rows.len() == 2 * BITS {
-                let (zero, infinity) = summand.pair(&rows[..BITS], &rows[BITS..]);
-                acc.0 ^= zero.mul_unreduced(eq[p]);
-                acc.1 ^= infinity.mul_unreduced(eq[p]);
-            }
-        },
-        |a, b| (a.0 ^ b.0, a.1 ^ b.1),
-    );
+        }
+        if rows.len() == 2 * BITS {
+            let (zero, infinity) = summand.pair(&rows[..BITS], &rows[BITS..]);
+            acc.0 ^= zero.mul_unreduced(eq[p]);
+            acc.1 ^= infinity.mul_unreduced(eq[p]);
+        }
+    };
+    let zero = (F128Unreduced::ZERO, F128Unreduced::ZERO);
+    let (out, values) = if table.len() <= SERIAL_ROWS * BITS {
+        // Waking the pool would cost more than the work.
+        let mut out = vec![F128::ZERO; table.len() / 2];
+        let mut values = zero;
+        for (p, rows) in out.chunks_mut(2 * BITS).enumerate() {
+            pair(&mut values, p, rows);
+        }
+        (out, values)
+    } else {
+        let mut out = parallel::filled(table.len() / 2, F128::ZERO);
+        let values = parallel::map_reduce_chunks_mut(
+            [&mut out],
+            [2 * BITS],
+            || (),
+            || zero,
+            |_, acc, p, [rows]| pair(acc, p, rows),
+            |a, b| (a.0 ^ b.0, a.1 ^ b.1),
+        );
+        (out, values)
+    };
     (out, (values.0.reduce(), values.1.reduce()))
 }
+
+/// The tables a tail round folds on the calling thread, in rows.
+const SERIAL_ROWS: usize = 64;
 
 /// A round of the sumcheck over bit positions, on small tables: the coefficients of
 /// `sum_j w (kappa t0 + (kappa + t1) t2)` in the variable being bound.
