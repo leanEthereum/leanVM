@@ -30,13 +30,20 @@ namespace LeanVM.Guest.Backend
 
 @[expose] public section
 
+/-- The jump tables hold what was written: every slot an arm filled names that arm, and every
+slot of a shared table its callee. A slot written twice fails here. -/
+def slotsHold (slots : Array KVal) (fills : List Fill) (entries : List (Nat × String)) : Bool :=
+  (fills.all fun x => decide (slots[x.1]? = some x.2)) &&
+    entries.all fun x => decide (slots[x.1]? = some (.entry x.2))
+
 /-- The labelled code of a program's functions, in order, and the jump tables' slots. -/
 def lowerProgram (p : List TracedFn) : Except String (List Lowered × Array KVal) := do
   let (fns, tables) ← placeProgram p
-  let (lowered, fills) := fns.foldl (init := (#[], #[])) fun (ls, fills) pf =>
-    let (l, f) := emitFn pf.fn
-    (ls.push l, fills ++ f)
-  return (lowered.toList, tableSlots tables.len fills tables.entries)
+  let emitted := fns.map fun pf => emitFn pf.fn
+  let fills := emitted.flatMap (·.2.toList)
+  let slots := tableSlots tables.len fills.toArray tables.entries
+  if !slotsHold slots fills tables.entries.toList then throw "a jump table slot written twice"
+  return (emitted.map (·.1), slots)
 
 /-- The back end: the core functions of a program, each with its source and its trace, to the
 assembled program. -/
