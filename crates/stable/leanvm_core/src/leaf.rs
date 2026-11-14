@@ -11,10 +11,9 @@
 
 use crate::gkr;
 use crate::transcript::ProverState;
-use primitives::field::{F64, F128, F128Unreduced, Weights8, dot_base, g_pow, index_mle, mul_by_g};
+use primitives::field::{F64, F128, Weights8, dot_base, g_pow, index_mle, mul_by_g};
 use primitives::multilinear::{eq_eval, eq_table, interp, mle_eval, mle_eval_par};
 use std::collections::HashMap;
-use std::ops::Range;
 use std::sync::Arc;
 
 /// One tuple coordinate as a function of the block's row `z`.
@@ -192,203 +191,46 @@ fn push_terms<'a>(c: &'a Coord, w: F128, terms: &mut Vec<Term<'a>>, constant: &m
     }
 }
 
-/// One block's leaf formula: `const_part + Σ terms(z)` on its real rows, the identity
-/// on its padding rows.
-struct LeafBlock<'a> {
-    side: usize,
-    offset: usize,
-    kappa: usize,
-    rows: usize,
-    const_part: F128,
-    terms: Vec<Term<'a>>,
-}
-
-impl LeafBlock<'_> {
-    /// The leaf of real row `z`, whose index column value `g^z` is `index`.
-    #[inline]
-    fn leaf(&self, z: usize, cols: &[&[F64]], index: F64) -> F128 {
-        // The α-weighted coordinate sum defers its reductions: each mixed
-        // product contributes its two raw limb products (2 PMULL, no
-        // reduction tail), one combined reduction per row at the end,
-        // bit-identical to summing reduced `mul_base` terms.
-        let mut acc = F128Unreduced::ZERO;
-        for t in &self.terms {
-            acc ^= match t {
-                Term::Col(i, c) => c.mul_base_unreduced(cols[*i][z]),
-                Term::Prod(i, j, c) => c.mul_base_unreduced(cols[*i][z] * cols[*j][z]),
-                Term::Index(c) => c.mul_base_unreduced(index),
-                Term::Public(vals, c) => c.mul_base_unreduced(vals[z]),
-            };
+/// The leaf of row `z` of a block whose formula is `constant + Σ terms(z)`, `index` being `g^z`.
+fn leaf(constant: F128, terms: &[Term], cols: &[&[F64]], z: usize, index: F64) -> F128 {
+    terms.iter().fold(constant, |acc, t| {
+        acc + match *t {
+            Term::Col(i, c) => c.mul_base(cols[i][z]),
+            Term::Prod(i, j, c) => c.mul_base(cols[i][z] * cols[j][z]),
+            Term::Index(c) => c.mul_base(index),
+            Term::Public(vals, c) => c.mul_base(vals[z]),
         }
-        self.const_part + acc.reduce()
-    }
-
-    /// The leaves of rows `z0..z0 + out.len()`.
-    fn fill(&self, z0: usize, out: &mut [F128], cols: &[&[F64]]) {
-        let real = self.rows.saturating_sub(z0).min(out.len());
-        let (real_out, padding) = out.split_at_mut(real);
-        // A padding row's leaf is the identity, so it leaves the product alone.
-        padding.fill(F128::ONE);
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-        let done = self.fill_lanes(z0, real_out, cols);
-        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq")))]
-        let done = 0;
-        let mut index = g_pow(z0 + done);
-        for (i, slot) in real_out.iter_mut().enumerate().skip(done) {
-            *slot = self.leaf(z0 + i, cols, index);
-            index = mul_by_g(index);
-        }
-    }
-
-    /// [`fill`](Self::fill) [`lanes::N`] rows at a time, every term one lane-wise mixed
-    /// product; returns how many rows it wrote.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-    fn fill_lanes(&self, z0: usize, out: &mut [F128], cols: &[&[F64]]) -> usize {
-        use lanes::{E, K, Mixed, N};
-        let load = |source: &[F64], z: usize| K::load(source[z..z + N].try_into().unwrap());
-        // `g^z` for the `N` rows, stepped by `g^N`.
-        let mut index = K::new(std::array::from_fn(|i| g_pow(z0 + i)));
-        let step = K::splat(g_pow(N));
-        let coeffs: Vec<E> = self
-            .terms
-            .iter()
-            .map(|t| match t {
-                Term::Col(_, c) | Term::Prod(_, _, c) | Term::Index(c) | Term::Public(_, c) => E::splat(*c),
-            })
-            .collect();
-        let constant = E::splat(self.const_part);
-        let (chunks, _) = out.as_chunks_mut::<N>();
-        for (k, slot) in chunks.iter_mut().enumerate() {
-            let z = z0 + N * k;
-            let mut acc = Mixed::ZERO;
-            for (t, &c) in self.terms.iter().zip(&coeffs) {
-                match t {
-                    Term::Col(i, _) => acc.add(c, load(cols[*i], z)),
-                    Term::Prod(i, j, _) => acc.add(c, load(cols[*i], z) * load(cols[*j], z)),
-                    Term::Index(_) => acc.add(c, index),
-                    Term::Public(vals, _) => acc.add(c, load(vals, z)),
-                }
-            }
-            index = index * step;
-            (acc.reduce() + constant).store(slot);
-        }
-        N * chunks.len()
-    }
+    })
 }
 
-/// The lane-wise kernels [`LeafBlock::fill_lanes`] runs on: eight lanes with AVX-512
-/// ([`primitives::field::x8`]), four without ([`primitives::field::x4`]).
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
-mod lanes {
-    pub(super) use primitives::field::x8::{F64x8 as K, F128x8 as E, Mixed8 as Mixed};
-    pub(super) const N: usize = 8;
-}
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx2",
-    target_feature = "vpclmulqdq",
-    not(target_feature = "avx512f")
-))]
-mod lanes {
-    pub(super) use primitives::field::x4::{F64x4 as K, F128x4 as E, Mixed4 as Mixed};
-    pub(super) const N: usize = 4;
-}
-
-/// Build every tree's leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the
-/// tree's fingerprint weights `w`, followed implicitly by the identity `1`
-/// up to `2^μ`. The row-invariant weights and constant coordinates are folded once
-/// per block into its `const_part`.
-///
-/// The blocks of one height and row count (a table's push, pull and count blocks,
-/// which read the same columns) are built together, a chunk of rows at a time, so a
-/// column is read from memory once however many blocks flush it.
+/// Build every tree's leaves, `2^μ` of them: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the
+/// tree's fingerprint weights `w`, and every other leaf, a padding row's or one past the blocks, the
+/// identity `1`. The row-invariant weights and constant coordinates are folded once per block into its
+/// constant.
 pub(crate) fn build_leaves(
     sides: [(&[Block], &Layout, &[F128], F128); N_BUS_TREES],
     cols: &[&[F64]],
 ) -> [Vec<F128>; N_BUS_TREES] {
-    /// Rows staged at a time: one block's chunk stays in L1.
-    const CHUNK: usize = 1 << 11;
-    /// Leaves per task, whatever the group's block count, so that tasks balance.
-    const TASK_LEAVES: usize = 1 << 15;
-    /// Blocks below this height are left to a serial pass.
-    const CHUNKED: usize = 4;
-
-    let mut blocks: Vec<LeafBlock> = Vec::new();
-    let mut lens = [1usize; N_BUS_TREES];
-    for (side, &(side_blocks, lay, w, beta)) in sides.iter().enumerate() {
-        // `stack_offsets` packs the power-of-two blocks contiguously from zero,
-        // largest first, so they tile `0..len`.
-        if !side_blocks.is_empty() {
-            lens[side] = side_blocks.iter().map(|blk| 1usize << blk.kappa).sum();
-        }
-        for (b, blk) in side_blocks.iter().enumerate() {
-            assert!(
-                lay.offsets[b] + (1 << blk.kappa) <= lens[side],
-                "the blocks tile the leaves"
-            );
-            let mut const_part = beta;
-            let mut terms: Vec<Term> = Vec::with_capacity(blk.coords.len());
-            for (i, c) in blk.coords.iter().enumerate() {
-                push_terms(c, w[i], &mut terms, &mut const_part);
+    const CHUNK: usize = 1 << 12;
+    sides.map(|(blocks, lay, w, beta)| {
+        let mut leaves = vec![F128::ONE; 1 << lay.mu];
+        for (blk, &offset) in blocks.iter().zip(&lay.offsets) {
+            let mut constant = beta;
+            let mut terms = Vec::with_capacity(blk.coords.len());
+            for (c, &wi) in blk.coords.iter().zip(w) {
+                push_terms(c, wi, &mut terms, &mut constant);
             }
-            blocks.push(LeafBlock {
-                side,
-                offset: lay.offsets[b],
-                kappa: blk.kappa,
-                rows: blk.rows,
-                const_part,
-                terms,
+            parallel::chunks_mut(&mut leaves[offset..offset + blk.rows], CHUNK, |task, out| {
+                let z0 = task * CHUNK;
+                let mut index = g_pow(z0);
+                for (i, slot) in out.iter_mut().enumerate() {
+                    *slot = leaf(constant, &terms, cols, z0 + i, index);
+                    index = mul_by_g(index);
+                }
             });
         }
-        debug_assert!(lens[side] <= 1usize << lay.mu);
-    }
-
-    let mut values: [Vec<F128>; N_BUS_TREES] = lens.map(|n| vec![F128::ONE; n]);
-
-    let mut shapes: Vec<(usize, usize)> = blocks
-        .iter()
-        .filter(|b| b.kappa >= CHUNKED)
-        .map(|b| (b.kappa, b.rows))
-        .collect();
-    shapes.sort_unstable();
-    shapes.dedup();
-    let groups: Vec<Vec<&LeafBlock>> = shapes
-        .iter()
-        .map(|&shape| blocks.iter().filter(|b| (b.kappa, b.rows) == shape).collect())
-        .collect();
-    let tasks: Vec<(usize, Range<usize>)> = shapes
-        .iter()
-        .zip(&groups)
-        .enumerate()
-        .flat_map(|(g, (&(kappa, _), group))| {
-            let height = 1usize << kappa;
-            let rows = (TASK_LEAVES / group.len()).next_power_of_two().clamp(16, height);
-            (0..height).step_by(rows).map(move |z| (g, z..z + rows))
-        })
-        .collect();
-    let ptrs = values.each_mut().map(|v| parallel::SendPtr(v.as_mut_ptr()));
-    parallel::for_each(tasks.len(), |task| {
-        let (group, ref rows) = tasks[task];
-        let mut stage = [F128::ZERO; CHUNK];
-        let stream = primitives::stream::Stream::new();
-        for z0 in rows.clone().step_by(CHUNK) {
-            let len = CHUNK.min(rows.len());
-            let leaves = &mut stage[..len];
-            for blk in &groups[group] {
-                blk.fill(z0, leaves, cols);
-                let at = blk.offset + z0;
-                // SAFETY: a block's chunks are disjoint ranges of its side's leaves, and blocks are disjoint.
-                unsafe { stream.copy(ptrs[blk.side].slice(at, len), leaves) };
-            }
-        }
-    });
-
-    for (side, v) in values.iter_mut().enumerate() {
-        for blk in blocks.iter().filter(|b| b.side == side && b.kappa < CHUNKED) {
-            blk.fill(0, &mut v[blk.offset..blk.offset + (1 << blk.kappa)], cols);
-        }
-    }
-    values
+        leaves
+    })
 }
 
 /// One table's bus contribution on one side, as a form over that table's committed
@@ -960,8 +802,7 @@ mod tests {
 
     /// The leaves by their definition, every block at its offset.
     fn naive_leaves(blocks: &[Block], lay: &Layout, cols: &[&[F64]], w: &[F128], beta: F128) -> Vec<F128> {
-        let len = blocks.iter().map(|b| 1 << b.kappa).sum::<usize>().max(1);
-        let mut leaves = vec![F128::ONE; len];
+        let mut leaves = vec![F128::ONE; 1 << lay.mu];
         for (b, blk) in blocks.iter().enumerate() {
             for z in 0..blk.rows {
                 leaves[lay.offsets[b] + z] = blk
