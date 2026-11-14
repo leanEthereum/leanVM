@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# The compiler's back end in Lean (`LeanVM/Guest/Backend`) against the Rust compiler, by compiled
+# execution. Run from anywhere; needs `lake` and `cargo`.
+#
+#   scripts/backend-diff [DIR]
+#
+# 1. `scripts/expand-trace --check`: the traced expansion is `Expand.lean` with its recorded edits.
+# 2. `lake exe guest-backend check`: the guest's source, through `Expand` and the back end, is the
+#    statement's program (`Data.functions`, and every slot of `assemble Data.functions`); the back
+#    end's invariants hold of it, and the traced expansion's core functions are `Expand`'s.
+# 3. `lake exe guest-backend export programs … --check`: the test programs' checked-in exports
+#    (`crates/lean_compiler/tests/suite/lean_backend/`) are current.
+# 4. `cargo test -p lean_compiler --test suite lean_backend`: each is the Rust compiler's program,
+#    hints included, and runs on the Rust VM.
+# 5. `lake exe guest-backend export guest DIR/guest.txt`, then `rec_aggregation`'s ignored test
+#    `lean_backend_guest` on it: the Lean-compiled guest is `unified_guest()`, bytecode, hints,
+#    `main` frame and function ranges. The export is too large to check in, so it is written
+#    here. DIR defaults to a fresh temporary directory.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+dir="${1:-$(mktemp -d)}"
+mkdir -p "$dir"
+dir="$(cd "$dir" && pwd)"
+
+python3 -I scripts/expand-trace --check
+lake build guest-backend
+lake exe guest-backend check
+lake exe guest-backend export programs ../../crates/lean_compiler/tests/suite/lean_backend --check
+lake exe guest-backend export guest "$dir/guest.txt"
+cd ../..
+cargo test --release -p lean_compiler --test suite lean_backend
+LEAN_BACKEND_GUEST="$dir/guest.txt" cargo test --release -p rec_aggregation --lib lean_backend_guest -- --ignored
