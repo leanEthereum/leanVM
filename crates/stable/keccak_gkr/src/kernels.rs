@@ -1,7 +1,7 @@
 //! The bit-level kernels of the layer prover, over one block position at a time: the 32 packs of
 //! one bit position of one block.
 
-use primitives::field::{F128, clmul8};
+use primitives::field::{F128, F128x8, clmul8};
 
 use crate::rmfe::RMFE;
 use crate::witness::BLOCK_WORDS;
@@ -100,43 +100,42 @@ pub fn extend(packs: &[u32; PACKS]) -> [u64; SLOTS] {
 pub fn skip_row(acc: &mut SkipAcc, e: &[[u64; SLOTS]; 5], weights: [[u64; 2]; 5]) {
     let xor = |a: [u64; 8], b: [u64; 8]| -> [u64; 8] { std::array::from_fn(|i| a[i] ^ b[i]) };
     let low = |p: [u128; 8]| -> [u64; 8] { p.map(|p| p as u64) };
+    // A run of carry-less products, as lanes the vector unit adds.
+    let lanes = |p: [u128; 8]| F128x8::from_array(&p.map(F128::from));
     for (v, acc) in acc.0.iter_mut().enumerate() {
-        let lanes: [[u64; 8]; 5] = std::array::from_fn(|x| e[x][8 * v..][..8].try_into().unwrap());
-        let mut sums = [[0u128; 8]; 2];
+        let e: [[u64; 8]; 5] = std::array::from_fn(|x| e[x][8 * v..][..8].try_into().unwrap());
+        let mut sums = [F128x8::ZERO; 2];
         for (x, w) in weights.iter().enumerate() {
-            let (b, c) = (lanes[(x + 1) % 5], lanes[(x + 2) % 5]);
+            let (b, c) = (e[(x + 1) % 5], e[(x + 2) % 5]);
             let mut product = low(clmul8(b, c));
             if 8 * v < 2 * GROUP {
-                product = xor(product, low(clmul8([RMFE.ones as u64; 8], xor(lanes[x], c))));
+                product = xor(product, low(clmul8([RMFE.ones as u64; 8], xor(e[x], c))));
             }
-            for (sums, &w) in sums.iter_mut().zip(w) {
-                for (sum, p) in sums.iter_mut().zip(clmul8(product, [w; 8])) {
-                    *sum ^= p;
-                }
+            for (sum, &w) in sums.iter_mut().zip(w) {
+                *sum += lanes(clmul8(product, [w; 8]));
             }
         }
-        for (acc, sums) in acc.iter_mut().zip(sums) {
-            for (acc, sum) in acc.iter_mut().zip(sums) {
-                *acc ^= sum;
-            }
+        for (acc, sum) in acc.iter_mut().zip(sums) {
+            *acc += sum;
         }
     }
 }
 
-/// Per slot, the two partial products [`skip_row`] sums, eight slots to a run.
-pub struct SkipAcc([[[u128; 8]; 2]; SLOTS / 8]);
+/// Per slot, the two partial products [`skip_row`] sums, eight slots to a run, each product's
+/// bits read as an element.
+pub struct SkipAcc([[F128x8; 2]; SLOTS / 8]);
 
 impl SkipAcc {
     pub fn new() -> Box<Self> {
-        Box::new(Self([[[0; 8]; 2]; SLOTS / 8]))
+        Box::new(Self([[F128x8::ZERO; 2]; SLOTS / 8]))
     }
 
     pub fn clear(&mut self) {
-        self.0 = [[[0; 8]; 2]; SLOTS / 8];
+        self.0 = [[F128x8::ZERO; 2]; SLOTS / 8];
     }
 
     /// The two partial products of slot `p`.
     pub fn get(&self, p: usize) -> [u128; 2] {
-        self.0[p / 8].map(|k| k[p % 8])
+        self.0[p / 8].map(|k| u128::from(k.to_array()[p % 8]))
     }
 }
