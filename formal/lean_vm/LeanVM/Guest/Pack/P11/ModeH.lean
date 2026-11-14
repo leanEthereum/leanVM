@@ -11,6 +11,7 @@ public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P11».Mode0
 public import LeanVM.Guest.Pack.«P11».Mode1
 public import LeanVM.Guest.Pack.«P11».Mode2
+public import LeanVM.Guest.Pack.«P11».ModeX
 
 set_option Elab.async false
 
@@ -358,3 +359,18 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«level_residual__L17_L8_L4_L2_loop0»
+
+namespace LeanVM.Guest.Fn.«verify_bus_gkr_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `__loop6`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 91) (d := Data.adviceFn91) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«verify_bus_gkr_loop0»

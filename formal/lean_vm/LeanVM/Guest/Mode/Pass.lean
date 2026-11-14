@@ -423,8 +423,18 @@ theorem preAt_end {E : Env} {F : Fun} {code : List OffsetInstruction} (hw : walk
   unfold walk at hw
   unfold preAt at h
   rw [List.take_of_length_le hi] at h
-  rw [h] at hw
-  exact List.isEmpty_iff.mp hw
+  rw [h, Bool.and_eq_true] at hw
+  exact List.isEmpty_iff.mp hw.2
+
+/-- **No path falls through the code's end.** -/
+theorem preAt_end_cur {E : Env} {F : Fun} {code : List OffsetInstruction} (hw : walk E F code = true)
+    {i : ℕ} (hi : code.length ≤ i) {cur : List Abs} {pend : Pend}
+    (h : preAt E F code i = some (cur, pend)) : cur = [] := by
+  unfold walk at hw
+  unfold preAt at h
+  rw [List.take_of_length_le hi] at h
+  rw [h, Bool.and_eq_true] at hw
+  exact List.isEmpty_iff.mp hw.1
 
 /-- **A pending edge survives** to its target. -/
 theorem cov_forward {E : Env} {F : Fun} {code : List OffsetInstruction} (hw : walk E F code = true)

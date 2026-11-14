@@ -4,7 +4,8 @@ table sizes (`Mode.Fun`) with the kernel's check of its walk (`Mode.walk`, `Gues
 A function longer than `WMAX` is checked in windows (`Guest/Mode/Win.lean`): its data and the
 snapshots at its cuts in `ModeD{k}`, each window's check in `ModeD{k}W{m}`, their chain in
 `ModeL{k}`. The signatures and residuals are `infer.py`'s, the snapshots `walk.py`'s states.
-`--check` writes nothing and fails when a file differs.
+`--check` writes nothing and fails when a file differs. `MODE_CERT_CACHE=FILE` keeps the inference
+in `FILE` between runs (development only: stale once the walk, the inference or the guest changes).
 Usage: python3 -I scripts/mode-cert/gen.py [--check] [--only PACK...]"""
 import sys, os, collections
 sys.setrecursionlimit(100000)
@@ -391,6 +392,214 @@ def hintsFile(p, mods, ns):
     return ''.join(out)
 
 
+def dataFile(p, ns, R):
+    """The data of the pack's functions the kernel does not check (`ModeX`): failing or too costly, each
+    entering `ModeCerts` through a hypothesis (`Mode.WalkHyp`)."""
+    mod = 'LeanVM.Guest.Pack.«%s».ModeX' % p
+    out = [header(mod, "The mode walk data of compiled functions whose walks are hypotheses, unchecked.")]
+    out.append(importLines(imports(p, ns)))
+    for n in ns:
+        out.append(nsOpen(n))
+        out.append(dataDefs(n, R))
+        out.append(nsClose(n))
+    return ''.join(out)
+
+
+def trieOrder(keys):
+    """The keys in the order `Trie.entries` lists them, for a trie built by `trie`."""
+    def go(ks):
+        if not ks: return []
+        here = [0] if 0 in ks else []
+        left = go([k // 2 for k in ks if k % 2 == 1])
+        right = go([k // 2 - 1 for k in ks if k and k % 2 == 0])
+        return here + [2 * k + 1 for k in left] + [2 * k + 2 for k in right]
+    return go(sorted(keys))
+
+
+def calleeEntries(n):
+    """`n`'s callees by entry, in the order its environment's trie lists them."""
+    by = {I.fns[m]['entry']: m for m in calleesOf(n)}
+    return [(e, by[e]) for e in trieOrder(by)]
+
+
+def memProof(i):
+    """`x ∈ l`, `x` the `i`-th element of the literal list `l`."""
+    pr = 'List.mem_cons_self'
+    for _ in range(i): pr = 'List.mem_cons_of_mem _ (%s)' % pr
+    return pr
+
+
+def chain(ps):
+    """`∀ x ∈ l, P x` from the proofs `ps` of `P` at the literal list `l`'s elements."""
+    out = 'Mode.fa_nil'
+    for q in reversed(ps): out = 'Mode.fa_cons (%s)\n    (%s)' % (q, out)
+    return out
+
+
+def hypName(n, kind): return '«%s»' % n if kind == 'walk' else '«%s hints»' % n
+
+
+def certFile(p, ns, mods, walkH, hintsH):
+    """The pack's certificates (`Mode.Cert`), their static facts, walks and callee signatures as
+    lists, the walks and hints not checked as hypotheses."""
+    mod = 'LeanVM.Guest.Pack.«%s».ModeCert' % p
+    out = [header(mod, "The mode walk's certificates of compiled functions, with what each contributes to `ModeCerts`.")]
+    out.append(importLines({'LeanVM.Guest.Mode.CertDefs'} | {'LeanVM.Guest.Pack.«%s».%s' % (p, m) for m in mods}))
+    out.append('meta import LeanVM.Guest.KernelLit\n')
+    out.append('\nset_option Elab.async false\n')
+    for n in ns:
+        out.append(nsOpen(n))
+        out.append('/-- `%s`: its mode walk certificate. -/\nnoncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩\n\n' % n)
+        out.append('end\n\n')
+        es = calleeEntries(n)
+        out.append('/-- `%s`: the callee signatures its walk reads. -/\nkernel_rfl modeSigs : modeCert.E.sigs.entries = %s\n\n' % (
+            n, lst(es, lambda e: '(%d, %s.modeSig)' % (e[0], fnq(e[1])))))
+        out.append('end LeanVM.Guest.Fn.«%s»\n' % I.fns[n]['ns'])
+    out.append('\nnamespace LeanVM.Guest.ModePack.«%s»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n' % p)
+    out.append('/-- The pack\'s certificates. -/\nnoncomputable def certs : List Mode.Cert :=\n  %s\n\nend\n\npublic section\n\n' % lst(ns, lambda n: '%s.modeCert' % fnq(n)))
+    for k, n in enumerate(ns):
+        out.append('theorem mem%d : %s.modeCert ∈ certs := %s\n\n' % (k, fnq(n), memProof(k)))
+    out.append('/-- The certificates\' static facts. -/\ntheorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=\n  %s\n\n' % chain(
+        ['⟨by decide +kernel, rfl, rfl⟩'] * len(ns)))
+    hs = [(n, 'walk') for n in ns if n in walkH] + [(n, 'hints') for n in ns if n in hintsH]
+    args = ''.join(' (%s : Mode.%s %s.modeCert)' % (hypName(n, k), 'WalkHyp' if k == 'walk' else 'HintsHyp', fnq(n)) for n, k in hs)
+    def wp(n):
+        return '⟨%s, %s⟩' % (hypName(n, 'walk') if n in walkH else '%s.modeOk' % fnq(n),
+                             hypName(n, 'hints') if n in hintsH else '%s.modeHintsOk' % fnq(n))
+    out.append('/-- The certificates\' walks and hints. -/\ntheorem certs_walk%s :\n    ∀ K ∈ certs, Mode.CertWalk K :=\n  %s\n\n' % (
+        args, chain([wp(n) for n in ns])))
+    out.append('end\n\nend LeanVM.Guest.ModePack.«%s»\n' % p)
+    return ''.join(out)
+
+
+def plumbs():
+    """Each function's fixed cells (`plumb.stat`) and frame size (`fs`), from its pack's bundle."""
+    import re
+    out = {}
+    for b in __import__('glob').glob(os.path.join(PACKS, '*', 'Bundle.lean')):
+        txt = open(b).read()
+        for blk in txt.split('\nnamespace LeanVM.Guest.Fn.')[1:]:
+            ns = blk.split('\n', 1)[0].strip().strip('«»')
+            st = re.search(r'def plumb : B2C.Plumb where\n  stat := \[(.*?)\]\n', blk, re.S)
+            fs = re.search(r'\ndef fs : ℕ := (\d+)', blk)
+            if st is None or fs is None: continue
+            stat = {int(c): (int(a), int(b2)) for c, a, b2 in re.findall(r'\((\d+), \(\.k (\d+) (\d+)\)\)', st.group(1))}
+            out[ns] = (stat, int(fs.group(1)))
+    return out
+
+
+def nzStatOk(n, R, PL):
+    """`Mode.nzStat` at `n`'s index holds and some nonzero residual needs it: each nonzero residual's
+    product cell a fixed nonzero constant of the frame."""
+    f = I.fns[n]
+    if f['ns'] not in PL: return False
+    stat, fs = PL[f['ns']]
+    nz = [i for i, rs in R.get(n, {}).items() for r in rs if r[0] == 'nz']
+    if not nz: return False
+    for i in nz:
+        op, a = f['ops'][i]
+        c = a[2] if op == 'mul' else 0
+        w = stat.get(c)
+        if not (w is not None and 2 <= c < fs and w[0] < 2 ** 64 and w[1] < 2 ** 64 and w != (0, 0)): return False
+    return True
+
+
+LINKS = sorted(os.path.basename(f)[:-5] for f in __import__('glob').glob(os.path.join(I.data.ROOT, 'Checked', 'Link*.lean')))
+# the assembly's signature and link modules, packs at most this many functions each
+SIGCHUNK = 160
+# the certificates' packs in groups of this many, each group's facts one term
+GROUP = 16
+
+
+def assemblyFiles(packList, walkH, hintsH, R):
+    """`Mode/Certs/List.lean` (the certificates, each one's membership, no entry repeated),
+    `Mode/Certs/Sig{k}.lean` (callee signatures and the function table, pack by pack) and
+    `Mode/Certs.lean` (`ModeHyps`, the hypotheses, and `ModeCerts` from them)."""
+    base = os.path.join(I.data.ROOT, 'Mode')
+    files = {}
+    PL = plumbs()
+    pk = sorted(packList)
+    out = [header('LeanVM.Guest.Mode.Certs.List', "The mode walk's certificates, every guest function's, and their entries told apart.")]
+    out.append(importLines({'LeanVM.Guest.Pack.«%s».ModeCert' % p for p in pk}))
+    out.append('\nset_option Elab.async false\n')
+    out.append('\nnamespace LeanVM.Guest.Mode\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n')
+    G = [pk[i:i + GROUP] for i in range(0, len(pk), GROUP)]
+    gi = {p: (g, i) for g, ps in enumerate(G) for i, p in enumerate(ps)}
+    out.append('/-- The certificates by pack, packs in groups. -/\nnoncomputable def guestGroups : List (List (List Cert)) :=\n  [%s]\n\n' % ',\n   '.join(
+        '[%s]' % ', '.join('ModePack.«%s».certs' % p for p in ps) for ps in G))
+    out.append('/-- The certificates by pack. -/\nnoncomputable def guestPacks : List (List Cert) := guestGroups.flatten\n\n')
+    out.append('/-- **Every guest function\'s certificate.** -/\nnoncomputable def guestCerts : List Cert := guestPacks.flatten\n\nend\n\npublic section\n\n')
+    for k, p in enumerate(pk):
+        out.append('theorem guestPacks_mem%d : ModePack.«%s».certs ∈ guestPacks :=\n  mem_flatten_of (%s) (%s)\n\n' % (
+            k, p, memProof(gi[p][0]), memProof(gi[p][1])))
+    out.append('/-- No entry repeats. -/\ntheorem guestCerts_nodup : nodupB (guestCerts.map (·.F.entry)) 0 = true := by decide +kernel\n\n')
+    out.append('/-- The certificates\' static facts. -/\ntheorem guestCerts_st : ∀ K ∈ guestCerts, CertSt K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(
+        ['(%s)' % chain(['ModePack.«%s».certs_st' % p for p in ps]) for ps in G]))
+    out.append('end\n\nend LeanVM.Guest.Mode\n')
+    for k, p in enumerate(pk):
+        for i, n in enumerate(packList[p]):
+            out.append('\nnamespace LeanVM.Guest.Fn.«%s»\n\npublic section\n\ntheorem modeCert_in : modeCert ∈ Mode.guestCerts :=\n  Mode.mem_flatten_of Mode.guestPacks_mem%d ModePack.«%s».mem%d\n\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % (
+                I.fns[n]['ns'], k, p, i, I.fns[n]['ns']))
+    files[os.path.join(base, 'Certs', 'List.lean')] = ''.join(out)
+    chunks = []; cur = []; size = 0
+    for p in pk:
+        if cur and size + len(packList[p]) > SIGCHUNK: chunks.append(cur); cur = []; size = 0
+        cur.append(p); size += len(packList[p])
+    if cur: chunks.append(cur)
+    for c, ps in enumerate(chunks):
+        out = [header('LeanVM.Guest.Mode.Certs.Sig%d' % c, "The mode walk's certificates' callee signatures and code, pack by pack.")]
+        out.append(importLines({'LeanVM.Guest.Mode.Certs.List', 'LeanVM.Guest.Mode.CertNz', 'LeanVM.Guest.SoundFacts'} | {'LeanVM.Guest.Checked.%s' % l for l in LINKS}))
+        out.append('\nset_option Elab.async false\n')
+        nzs = []
+        for p in ps:
+            out.append('\nnamespace LeanVM.Guest.ModePack.«%s»\n\nopen LeanVM.Guest LeanVM.Guest.Mode\n\npublic section\n\n' % p)
+            ns = packList[p]
+            sp = []
+            for n in ns:
+                es = calleeEntries(n)
+                sp.append('Mode.sigsIn_of %s.modeSigs\n    (%s)' % (fnq(n), chain(['⟨_, %s.modeCert_in, rfl, rfl, rfl⟩' % fnq(m) for e, m in es])))
+            out.append('theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=\n  %s\n\n' % chain(sp))
+            fl = ['Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code%d rfl rfl' % FNIDX[n] for n in ns]
+            out.append('theorem certs_fn : ∀ K ∈ certs, FnLink K :=\n  %s\n\n' % chain(fl))
+            out.append('end\n\nend LeanVM.Guest.ModePack.«%s»\n' % p)
+            nzs += [n for n in ns if nzStatOk(n, R, PL)]
+        for n in nzs:
+            j = FNIDX[n]
+            out.append('\nnamespace LeanVM.Guest.Fn.«%s»\n\nopen LeanVM.Guest LeanVM.Guest.Mode\n\npublic section\n\n/-- `%s`: each nonzero residual\'s product a fixed nonzero constant of its frame. -/\ntheorem modeNzStat : NzStatOk modeCert :=\n  ⟨%d, by decide, by rw [Checked.code%d]; rfl,\n    by rw [Checked.plumbEq%d, Checked.fsEq%d]; decide +kernel⟩\n\nend\n\nend LeanVM.Guest.Fn.«%s»\n' % (
+                I.fns[n]['ns'], n, j, j, j, j, I.fns[n]['ns']))
+        files[os.path.join(base, 'Certs', 'Sig%d.lean' % c)] = ''.join(out)
+    # the hypotheses and the closed certificates
+    hs = [(n, 'walk') for n in sorted(walkH)] + [(n, 'hints') for n in sorted(hintsH)]
+    out = [header('LeanVM.Guest.Mode.Certs', "The mode walk's certificates closed (`ModeCerts`), from the walks and hints the kernel does not check.")]
+    out.append(importLines({'LeanVM.Guest.Mode.CertAssemble'} | {'LeanVM.Guest.Mode.Certs.Sig%d' % c for c in range(len(chunks))}))
+    out.append('\nset_option Elab.async false\n')
+    out.append('\nnamespace LeanVM.Guest.Mode\n\nopen LeanVM.Guest\n\npublic section\n\n')
+    out.append('/-- **The walks and hints the kernel does not check**, one per function: a walk failing or too\n    costly to check (`WalkHyp`), hints too costly to check in one piece (`HintsHyp`). -/\nstructure ModeHyps : Prop where\n')
+    for n, k in hs:
+        out.append('  %s : %s %s.modeCert\n' % (hypName(n, k), 'WalkHyp' if k == 'walk' else 'HintsHyp', fnq(n)))
+    out.append('\n')
+    def packWalk(p):
+        ns = packList[p]
+        a = ''.join(' h.%s' % hypName(n, k) for k, H in (('walk', walkH), ('hints', hintsH)) for n in ns if n in H)
+        return 'ModePack.«%s».certs_walk%s' % (p, a)
+    G = [pk[i:i + GROUP] for i in range(0, len(pk), GROUP)]
+    for g, ps in enumerate(G):
+        out.append('theorem guestGroup_walk%d (h : ModeHyps) : ∀ l ∈ guestGroups[%d]!, ∀ K ∈ l, CertWalk K :=\n  %s\n\n' % (
+            g, g, chain([packWalk(p) for p in ps])))
+    def two(f):
+        return 'fa_flatten (fa_flatten (%s))' % chain(['(%s)' % chain([f % p for p in ps]) for ps in G])
+    out.append('theorem guestCerts_walk (h : ModeHyps) : ∀ K ∈ guestCerts, CertWalk K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(
+        ['guestGroup_walk%d h' % g for g in range(len(G))]))
+    out.append('theorem guestCerts_sigs : ∀ K ∈ guestCerts, SigsIn guestCerts K :=\n  %s\n\n' % two('ModePack.«%s».certs_sigs'))
+    out.append('theorem guestCerts_fn : ∀ K ∈ guestCerts, FnLink K :=\n  %s\n\n' % two('ModePack.«%s».certs_fn'))
+    out.append('/-- **The certificates closed**, given the walks and hints the kernel does not check. -/\ntheorem modeCerts_guest (h : ModeHyps) :\n    EndExec.ModeCerts guestCerts Fn.«main».modeCert guestE0 :=\n  modeCerts_of guestCerts_st (guestCerts_walk h) guestCerts_fn guestCerts_sigs guestCerts_nodup\n    Fn.«main».modeCert_in rfl (by decide +kernel) rfl\n\n')
+    out.append('/-- No certificate\'s entry is `__jump_tables`\'s. -/\ntheorem guestCerts_entry_ne : ∀ K ∈ guestCerts, K.F.entry ≠ 0 := entry_ne_zero guestCerts_st\n\n')
+    out.append('/-- **`main`\'s certificate starts as the prologue leaves it.** -/\ntheorem mainOk_guestCerts : EndExec.MainOk Fn.«main».modeCert guestE0 := mainOk_guest rfl rfl\n\n')
+    out.append('end\n\nend LeanVM.Guest.Mode\n')
+    files[os.path.join(base, 'Certs.lean')] = ''.join(out)
+    return files
+
+
 res_ = res
 HEAVY = set()
 
@@ -398,19 +607,28 @@ HEAVY = set()
 def main(argv):
     check = '--check' in argv
     only = argv[argv.index('--only') + 1:] if '--only' in argv else None
-    sigs = {}; fails = {}; R = {}
-    for n in I.order:
-        f = I.fns[n]
-        try:
-            sigs[n], R[n] = I.infer(n)
-        except Fail as e:
-            fails[n] = e.args[0]
-            s = I.mkSig(f, [], [], list(range(2 + f.get('nargs', 0), 2 + f.get('nargs', 0) + f.get('nret', 0))))
-            I.E.sigs[f['entry']] = s; sigs[n] = s
-    cost = {n: profile(n, sigs[n], R.get(n, {}))[1][-1] for n in I.fns if n not in fails}
+    cache = os.environ.get('MODE_CERT_CACHE')
+    if cache and os.path.exists(cache):
+        import pickle
+        sigs, fails, R, I.E.sigs, cost = pickle.load(open(cache, 'rb'))
+    else:
+        sigs = {}; fails = {}; R = {}
+        for n in I.order:
+            f = I.fns[n]
+            try:
+                sigs[n], R[n] = I.infer(n)
+            except Fail as e:
+                fails[n] = e.args[0]
+                s = I.mkSig(f, [], [], list(range(2 + f.get('nargs', 0), 2 + f.get('nargs', 0) + f.get('nret', 0))))
+                I.E.sigs[f['entry']] = s; sigs[n] = s
+        cost = {n: profile(n, sigs[n], R.get(n, {}))[1][-1] for n in I.fns if n not in fails}
+        if cache:
+            import pickle
+            pickle.dump((sigs, fails, R, I.E.sigs, cost), open(cache, 'wb'))
     HEAVY.update(n for n, c in cost.items() if c > XCOST and c > XDENSE * I.fns[n]['count'])
     files = {}
     nwin = 0
+    walkH = set(); hintsH = set(); packList = {}
     for p, ns in packs().items():
         if only and p not in only: continue
         files[os.path.join(PACKS, p, 'ModeSig.lean')] = sigFile(p, ns, sigs)
@@ -427,10 +645,19 @@ def main(argv):
         for k, n in enumerate(long_):
             for name, text in winFiles(p, k, n, sigs, R).items():
                 files[os.path.join(PACKS, p, name)] = text; nwin += name.startswith('ModeD') and 'W' in name
-        mods = ['Mode%d' % k for k in range(len(groups))] + ['ModeD%d' % k for k in range(len(long_))]
-        hs = [n for n in [n for g in groups for n in g] + long_ if I.fns[n]['count'] <= HMAX]
+        xs = [n for n in ns if not checkable(n, fails)]
+        if xs: files[os.path.join(PACKS, p, 'ModeX.lean')] = dataFile(p, xs, R)
+        mods = ['Mode%d' % k for k in range(len(groups))] + ['ModeD%d' % k for k in range(len(long_))] + (['ModeX'] if xs else [])
+        hs = [n for n in [n for g in groups for n in g] + long_ + xs if I.fns[n]['count'] <= HMAX]
         if hs:
             files[os.path.join(PACKS, p, 'ModeH.lean')] = hintsFile(p, mods, hs)
+        walkH.update(xs)
+        hintsH.update(n for n in ns if I.fns[n]['count'] > HMAX)
+        cmods = ['Mode%d' % k for k in range(len(groups))] + ['ModeL%d' % k for k in range(len(long_))] + \
+            (['ModeX'] if xs else []) + (['ModeH'] if hs else [])
+        files[os.path.join(PACKS, p, 'ModeCert.lean')] = certFile(p, ns, cmods, walkH, hintsH)
+        packList[p] = ns
+    if not only: files.update(assemblyFiles(packList, walkH, hintsH, R))
     import glob
     bad = []
     for path in glob.glob(os.path.join(PACKS, '*', 'Mode*.lean')):
@@ -443,12 +670,16 @@ def main(argv):
         text = wrap(text)
         if old == text: continue
         if check: bad.append(path)
-        else: open(path, 'w').write(text)
+        else:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            open(path, 'w').write(text)
     if check and bad:
         print('stale:', *bad, sep='\n  '); sys.exit(1)
     nck = sum(1 for n in I.fns if checkable(n, fails))
     print('functions', len(I.fns), 'failing', len(fails), 'checked', nck, 'unchecked', sorted(HEAVY | MEASURED_HEAVY), 'windows', nwin, 'files', len(files),
           'changed', len(bad) if check else 'written')
+    print('failing', sorted(fails))
+    print('hypotheses: walks', sorted(walkH), 'hints', sorted(hintsH))
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ public import LeanVM.Guest.Mode.Abs
 A long function's walk is checked in windows: the kernel runs window `[a, b)` from the cut at `a`
 (`runCode` over `winCode`, its code read past whole chunks first) and the walk ends it at the cut at
 `b` (`cutAt`), whose paths and pending edges the next window starts from. `WinsOk` says each window
-goes through and the last leaves no edge pending; `walk_of_wins` chains them into the whole walk.
+goes through and the last leaves no path and no edge pending; `walk_of_wins` chains them into the whole walk.
 -/
 
 namespace LeanVM.Guest.Mode
@@ -26,18 +26,18 @@ def winCode (cs : List (List OffsetInstruction)) (a b : ℕ) : List OffsetInstru
   (codeAt cs a).take (b - a)
 
 /-- The walk of the rest of the code, from offset `a` with the paths and pending edges `S`, goes
-through and leaves no edge pending. -/
+through, no path falling through its end and no edge left pending. -/
 noncomputable def runRest (E : Env) (F : Fun) (code : List OffsetInstruction) (a : ℕ)
     (S : List Abs × Pend) : Bool :=
   match runCode E F code a S.1 S.2 with
-  | some (_, pend) => pend.isEmpty
+  | some (cur, pend) => cur.isEmpty && pend.isEmpty
   | none => false
 
 /-- The paths and pending edges at the cut at `b`. -/
 noncomputable def cutOf (F : Fun) (b : ℕ) : List Abs × Pend := (F.cuts.get b).getD ([], [])
 
 /-- The windows from offset `a`, each ending at a cut `b`: each goes through from the paths and
-pending edges `Sa` into the cut's, and the last leaves no edge pending. -/
+pending edges `Sa` into the cut's, and the last leaves no path and no edge pending. -/
 def WinsOk (E : Env) (F : Fun) (cs : List (List OffsetInstruction)) (n : ℕ) :
     ℕ → List Abs × Pend → List ℕ → Prop
   | a, Sa, [] => runRest E F (codeAt cs a) a Sa = true

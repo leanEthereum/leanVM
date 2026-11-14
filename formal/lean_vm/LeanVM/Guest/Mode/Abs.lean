@@ -1376,10 +1376,11 @@ noncomputable def runCode (E : Env) (F : Fun) :
         | none => none
       | none => none
 
-/-- **The walk accepts a function's code**: it goes through, no edge left pending. -/
+/-- **The walk accepts a function's code**: it goes through, no path falling through its end and
+no edge left pending. -/
 noncomputable def walk (E : Env) (F : Fun) (code : List OffsetInstruction) : Bool :=
   match runCode E F code 0 [entryAbs E F.sig] [] with
-  | some (_, pend) => pend.isEmpty
+  | some (cur, pend) => cur.isEmpty && pend.isEmpty
   | none => false
 
 end

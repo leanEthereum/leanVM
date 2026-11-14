@@ -13,6 +13,7 @@ public import LeanVM.Guest.Pack.«P3».Mode1
 public import LeanVM.Guest.Pack.«P3».Mode2
 public import LeanVM.Guest.Pack.«P3».Mode3
 public import LeanVM.Guest.Pack.«P3».ModeD0
+public import LeanVM.Guest.Pack.«P3».ModeX
 
 set_option Elab.async false
 
@@ -345,3 +346,18 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«da_levels__L1024_L10»
+
+namespace LeanVM.Guest.Fn.«verify_keccak»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `verify_keccak`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 13) (d := Data.adviceFn13) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«verify_keccak»

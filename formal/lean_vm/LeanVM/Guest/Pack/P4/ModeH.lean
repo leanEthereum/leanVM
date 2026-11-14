@@ -12,6 +12,7 @@ public import LeanVM.Guest.Pack.«P4».Mode0
 public import LeanVM.Guest.Pack.«P4».Mode1
 public import LeanVM.Guest.Pack.«P4».Mode2
 public import LeanVM.Guest.Pack.«P4».ModeD0
+public import LeanVM.Guest.Pack.«P4».ModeX
 
 set_option Elab.async false
 
@@ -284,3 +285,18 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«aggregate_claims»
+
+namespace LeanVM.Guest.Fn.«claim_list_digest_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `__loop15`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 347) (d := Data.adviceFn347) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«claim_list_digest_loop0»

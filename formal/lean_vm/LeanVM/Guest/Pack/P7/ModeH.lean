@@ -13,6 +13,7 @@ public import LeanVM.Guest.Pack.«P7».Mode1
 public import LeanVM.Guest.Pack.«P7».Mode2
 public import LeanVM.Guest.Pack.«P7».Mode3
 public import LeanVM.Guest.Pack.«P7».Mode4
+public import LeanVM.Guest.Pack.«P7».ModeX
 
 set_option Elab.async false
 
@@ -435,3 +436,18 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«walk_path__L18_L7»
+
+namespace LeanVM.Guest.Fn.«rs_eq_run»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `rs_eq_run`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 6) (d := Data.adviceFn6) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«rs_eq_run»

@@ -910,6 +910,7 @@ class Walk:
                             pend.append([list(go), [snap], False])
                 if k is not True: cur.append(learn0(A, c))
         if pend: raise Fail(('pend', [g[0][:3] for g in pend]))
+        if cur: raise Fail(('end', len(code)))
 
 
 def retPtrs(M, Bs):

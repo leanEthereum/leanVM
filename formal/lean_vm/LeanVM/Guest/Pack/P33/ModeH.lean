@@ -12,6 +12,7 @@ public import LeanVM.Guest.Pack.«P33».Mode0
 public import LeanVM.Guest.Pack.«P33».Mode1
 public import LeanVM.Guest.Pack.«P33».Mode2
 public import LeanVM.Guest.Pack.«P33».Mode3
+public import LeanVM.Guest.Pack.«P33».ModeX
 
 set_option Elab.async false
 
@@ -419,3 +420,33 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0»
+
+namespace LeanVM.Guest.Fn.«verify_sub»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `verify_sub`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 19) (d := Data.adviceFn19) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«verify_sub»
+
+namespace LeanVM.Guest.Fn.«da_verify_loop2»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `__loop23`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 406) (d := Data.adviceFn406) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«da_verify_loop2»
