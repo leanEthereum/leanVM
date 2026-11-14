@@ -47,9 +47,26 @@ fn span_get(basis: &[F64], idx: usize) -> F64 {
         .sum()
 }
 
+/// Two words as one `E` element, whose product by a `K` twiddle multiplies both: `F128::mul_base` takes the two
+/// products together.
+fn pair([a, b]: [F64; 2]) -> F128 {
+    F128::new(a.0, b.0)
+}
+
+fn unpair(e: F128) -> [F64; 2] {
+    e.to_limbs().map(F64)
+}
+
 /// `u' = u + v t; v' = v + u'` over a pair of rows.
 fn butterfly(top: &mut [F64], bot: &mut [F64], t: F64) {
-    for (u, v) in top.iter_mut().zip(bot.iter_mut()) {
+    let ((top2, top1), (bot2, bot1)) = (top.as_chunks_mut::<2>(), bot.as_chunks_mut::<2>());
+    for (u, v) in top2.iter_mut().zip(bot2) {
+        let (mut eu, mut ev) = (pair(*u), pair(*v));
+        eu += ev.mul_base(t);
+        ev += eu;
+        (*u, *v) = (unpair(eu), unpair(ev));
+    }
+    for (u, v) in top1.iter_mut().zip(bot1) {
         *u += *v * t;
         *v += *u;
     }
@@ -57,7 +74,14 @@ fn butterfly(top: &mut [F64], bot: &mut [F64], t: F64) {
 
 /// The transpose of [`butterfly`]: `s = u + v; u' = s; v' = s t + v`.
 pub(crate) fn transpose_butterfly(top: &mut [F64], bot: &mut [F64], t: F64) {
-    for (u, v) in top.iter_mut().zip(bot.iter_mut()) {
+    let ((top2, top1), (bot2, bot1)) = (top.as_chunks_mut::<2>(), bot.as_chunks_mut::<2>());
+    for (u, v) in top2.iter_mut().zip(bot2) {
+        let (mut eu, mut ev) = (pair(*u), pair(*v));
+        eu += ev;
+        ev += eu.mul_base(t);
+        (*u, *v) = (unpair(eu), unpair(ev));
+    }
+    for (u, v) in top1.iter_mut().zip(bot1) {
         *u += *v;
         *v += *u * t;
     }
@@ -113,13 +137,11 @@ impl AdditiveNttF64 {
 
     /// Layers `start..log_d` over `data`, `2^log_d` rows of `num_ntts` words.
     ///
-    /// While a layer has fewer blocks than the pool has tasks, each of its butterflies is split across the pool.
-    /// Then every block of the layer runs the rest on its own, depth first, so a block's last layers run in cache.
+    /// The layers whose blocks are fewer than the pool has tasks run together in one pass ([`Self::top_layers`]).
+    /// Then every block of the next layer runs the rest on its own, depth first, so a block's last layers run in cache.
     pub(crate) fn transform(&self, data: &mut [F64], num_ntts: usize, start: usize) {
         let (log_d, split) = self.split(data, num_ntts, start);
-        for layer in start..split {
-            self.layer(data, num_ntts, log_d, layer, butterfly);
-        }
+        self.top_layers(data, num_ntts << (log_d - split), start, split, false);
         parallel::chunks_mut(data, num_ntts << (log_d - split), |b, block| {
             self.transform_block(block, num_ntts, split, b);
         });
@@ -131,9 +153,7 @@ impl AdditiveNttF64 {
         parallel::chunks_mut(data, num_ntts << (log_d - split), |b, block| {
             self.transpose_block(block, num_ntts, split, b);
         });
-        for layer in (0..split).rev() {
-            self.layer(data, num_ntts, log_d, layer, transpose_butterfly);
-        }
+        self.top_layers(data, num_ntts << (log_d - split), 0, split, true);
     }
 
     /// `log_d`, and the first layer from `start` with as many blocks as the pool has tasks, `start` for a buffer too
@@ -151,22 +171,42 @@ impl AdditiveNttF64 {
         )
     }
 
-    /// One layer, each block's butterfly split across the pool.
-    fn layer(&self, data: &mut [F64], num_ntts: usize, log_d: usize, layer: usize, f: fn(&mut [F64], &mut [F64], F64)) {
-        let half = num_ntts << (log_d - layer - 1);
-        for (b, block) in data.chunks_exact_mut(2 * half).enumerate() {
-            let (top, bot) = block.split_at_mut(half);
-            let t = self.twiddle(layer, b);
-            let chunk = CHUNK.min(half);
-            parallel::map_reduce_chunks_mut(
-                [top, bot],
-                [chunk; 2],
-                || (),
-                || (),
-                |(), (), _, [top, bot]| f(top, bot, t),
-                |(), ()| (),
-            );
+    /// Layers `start..split`, or their transposes last first, in one pass.
+    ///
+    /// Those layers pair rows that differ in their block of `split`, of `slab` words, so they act on each group of
+    /// `2^(split - start)` rows at one place in every block of `split` inside a block of `start`. A task takes the
+    /// same run of words of each block of such a group and runs all the layers on it.
+    fn top_layers(&self, data: &mut [F64], slab: usize, start: usize, split: usize, transposed: bool) {
+        let g = split - start;
+        if g == 0 {
+            return;
         }
+        let chunk = (CHUNK >> g).max(64);
+        let mut tasks = Vec::new();
+        for (b, block) in data.chunks_exact_mut(slab << g).enumerate() {
+            let mut slabs: Vec<_> = block.chunks_exact_mut(slab).map(|s| s.chunks_mut(chunk)).collect();
+            for _ in 0..slab.div_ceil(chunk) {
+                let runs: Vec<&mut [F64]> = slabs.iter_mut().map(|s| s.next().expect("equal slabs")).collect();
+                tasks.push((b, runs));
+            }
+        }
+        parallel::chunks_mut(&mut tasks, 1, |_, task| {
+            let (b, runs) = &mut task[0];
+            for i in 0..g {
+                let i = if transposed { g - 1 - i } else { i };
+                // Layer `start + i` pairs the runs `2^(g - 1 - i)` apart, under one twiddle per `2^(g - i)` runs.
+                let half = 1 << (g - 1 - i);
+                for j in (0..1usize << g).filter(|j| j & half == 0) {
+                    let t = self.twiddle(start + i, *b << i | j >> (g - i));
+                    let (lo, hi) = runs.split_at_mut(j + half);
+                    if transposed {
+                        transpose_butterfly(lo[j], hi[0], t);
+                    } else {
+                        butterfly(lo[j], hi[0], t);
+                    }
+                }
+            }
+        });
     }
 
     /// Layers `layer..` over block `index` of `layer`, depth first.
