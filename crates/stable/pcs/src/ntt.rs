@@ -8,7 +8,9 @@
 //! - An `E` element is two `K` words and the twiddles lie in `K`, so an `E`-valued encode is the base transform over
 //!   twice the lanes (`words`).
 
-use primitives::field::{F64, F128};
+use core::ops::{Add, Mul};
+
+use primitives::field::{F64, F64x8, F128};
 use primitives::log2_strict_usize;
 
 /// Table of the normalized subspace polynomials at the basis, rows end to end.
@@ -47,44 +49,55 @@ fn span_get(basis: &[F64], idx: usize) -> F64 {
         .sum()
 }
 
-/// Two words as one `E` element, whose product by a `K` twiddle multiplies both: `F128::mul_base` takes the two
-/// products together.
-fn pair([a, b]: [F64; 2]) -> F128 {
-    F128::new(a.0, b.0)
+/// `step` on every word pair of two rows under twiddle `t`: eight words at a time, then the rest one by one.
+#[inline(always)]
+fn zip_rows(
+    top: &mut [F64],
+    bot: &mut [F64],
+    t: F64,
+    step8: impl Fn(F64x8, F64x8, F64x8) -> (F64x8, F64x8),
+    step: impl Fn(F64, F64, F64) -> (F64, F64),
+) {
+    let ((top8, top1), (bot8, bot1)) = (top.as_chunks_mut::<8>(), bot.as_chunks_mut::<8>());
+    let t8 = F64x8::splat(t);
+    for (u, v) in top8.iter_mut().zip(bot8) {
+        let (eu, ev) = step8(F64x8::from_array(u), F64x8::from_array(v), t8);
+        (*u, *v) = (eu.to_array(), ev.to_array());
+    }
+    for (u, v) in top1.iter_mut().zip(bot1) {
+        (*u, *v) = step(*u, *v, t);
+    }
 }
 
-fn unpair(e: F128) -> [F64; 2] {
-    e.to_limbs().map(F64)
+/// `u' = u + v t; v' = v + u'`.
+#[inline(always)]
+fn forward<T: Copy + Add<Output = T> + Mul<Output = T>>(u: T, v: T, t: T) -> (T, T) {
+    let u = u + v * t;
+    (u, v + u)
 }
 
-/// `u' = u + v t; v' = v + u'` over a pair of rows.
+/// The transpose of [`forward`]: `s = u + v; u' = s; v' = s t + v`.
+#[inline(always)]
+fn transposed<T: Copy + Add<Output = T> + Mul<Output = T>>(u: T, v: T, t: T) -> (T, T) {
+    let s = u + v;
+    (s, s * t + v)
+}
+
+/// The inverse of [`forward`]: `v' = v + u; u' = u + v' t`.
+#[inline(always)]
+fn inverse<T: Copy + Add<Output = T> + Mul<Output = T>>(u: T, v: T, t: T) -> (T, T) {
+    let v = v + u;
+    (u + v * t, v)
+}
+
+/// [`forward`] over a pair of rows.
 fn butterfly(top: &mut [F64], bot: &mut [F64], t: F64) {
-    let ((top2, top1), (bot2, bot1)) = (top.as_chunks_mut::<2>(), bot.as_chunks_mut::<2>());
-    for (u, v) in top2.iter_mut().zip(bot2) {
-        let (mut eu, mut ev) = (pair(*u), pair(*v));
-        eu += ev.mul_base(t);
-        ev += eu;
-        (*u, *v) = (unpair(eu), unpair(ev));
-    }
-    for (u, v) in top1.iter_mut().zip(bot1) {
-        *u += *v * t;
-        *v += *u;
-    }
+    zip_rows(top, bot, t, forward, forward);
 }
 
-/// The transpose of [`butterfly`]: `s = u + v; u' = s; v' = s t + v`.
+/// [`transposed`] over a pair of rows.
 pub(crate) fn transpose_butterfly(top: &mut [F64], bot: &mut [F64], t: F64) {
-    let ((top2, top1), (bot2, bot1)) = (top.as_chunks_mut::<2>(), bot.as_chunks_mut::<2>());
-    for (u, v) in top2.iter_mut().zip(bot2) {
-        let (mut eu, mut ev) = (pair(*u), pair(*v));
-        eu += ev;
-        ev += eu.mul_base(t);
-        (*u, *v) = (unpair(eu), unpair(ev));
-    }
-    for (u, v) in top1.iter_mut().zip(bot1) {
-        *u += *v;
-        *v += *u * t;
-    }
+    zip_rows(top, bot, t, transposed, transposed);
 }
 
 /// A slice of `E` elements as its `K` words, low limb first.
@@ -284,10 +297,7 @@ impl AdditiveNttF64 {
             for (b, block) in data.chunks_exact_mut(2 * half).enumerate() {
                 let t = self.twiddle(layer, b);
                 let (top, bot) = block.split_at_mut(half);
-                for (u, v) in top.iter_mut().zip(bot.iter_mut()) {
-                    *v += *u;
-                    *u += *v * t;
-                }
+                zip_rows(top, bot, t, inverse, inverse);
             }
         }
     }
