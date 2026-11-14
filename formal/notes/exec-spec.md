@@ -2,6 +2,18 @@
 
 Goal: from a node statement and witness alone, a Lean pipeline that runs and is proved: hints, guest execution, AIR witness, proof, accepted by the verifier. Headline: on every node meeting `NodeRelation`, within `DeployedLimits`, with honest children, the composed prover returns a proof the verifier accepts (up to proof-of-work fuel), the hints included.
 
+## Status
+
+Proved: `guest_prover_complete_of : OpenGaps → …` (`Guest/EndExecFinal.lean`), the headline (the composed prover's proof accepted on every node within `DeployedLimits` whose children are honest, `guest_prover_complete`'s statement), and `guestExecution_complete_of : OpenGaps → GuestExecutionComplete guestAdvice`, using only Lean's three axioms. `execGaps_of` builds `ExecGaps` for the mode walk's certificates (`Mode.guestCerts`), the deployed alignment (`Bridge.alignA`) and the hint invariant `YFin := YCur alignA ∧ YAlloc alignA` from every proved part: the certificates, `main`'s exactness, the prologue, `RefOk`, the alignment and its jumps, the computed, witness and allocation hints, both tracks kept and started, the residuals by family and the termination facts. What is left is the fields of `OpenGaps`:
+
+- `modeHyps : Mode.ModeHyps` (mode walk): `walk … = true` for the 30 functions the kernel does not check and `HintsOk` for `main_loop2` and `sp_wots`. False as stated: 12 of the walks fail (`__loop23`, `__loop25`, `__loop6`, `check_opening_terminal`, `da_verify`, the 2 `keccak_layer`, `main`, `verify_bus_gkr`, `verify_keccak`, `verify_sub`, `verify_tables`); the other 18 pass in `walk.py` but are too costly for the kernel. Closing a failure changes its certificate, so this field changes with it.
+- `sizes : SizesAt alignA` (allocation): each hint at a frame's pc reserves the words the honest tree places there (`treeSizes`).
+- `allocReady : AllocReady alignA` (allocation): each allocation hint has what it needs where the tree puts the bump pointer.
+- `hintsUsed : HintsUsed YFin` (allocation): the hints at a pc keep the cells used within the reference's `2^κ`.
+- `witPtrRes : WitPtrRes` (witness): the three heap witness pointers no atom of the spine pins (`dup_claims` in `main_loop0`, `main_loop1`, `child_defer` in `main_loop4`) are powers below `maxCells`.
+- `resCld`, `resCp : ResCert alignA …` (residuals): the residuals of `claim_list_digest` (its dispatch in a branch) and `certify_placement` (a divisor that is no parameter) hold at their honest frames.
+- `nz0`, `nz1 : NzVal …` (residuals): parameter `0` of `log2_ceil_in_the_exponent__L0_L34` and `__L16_L34` is nonzero at each honest instance.
+
 ## What exists
 
 - Hints: `Guest/Hints.lean`'s `honestStreams` is computable and equals the Rust's streams on real nodes (`guest-diff`, CI), but no theorem mentions it.
