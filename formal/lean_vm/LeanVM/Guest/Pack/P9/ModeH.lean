@@ -12,6 +12,7 @@ public import LeanVM.Guest.Pack.«P9».Mode0
 public import LeanVM.Guest.Pack.«P9».Mode1
 public import LeanVM.Guest.Pack.«P9».Mode2
 public import LeanVM.Guest.Pack.«P9».Mode3
+public import LeanVM.Guest.Pack.«P9».ModeD0
 
 set_option Elab.async false
 
@@ -374,3 +375,18 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«walk_path__L12_L3»
+
+namespace LeanVM.Guest.Fn.«ring_switch_weight»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `ring_switch_weight`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 15) (d := Data.adviceFn15) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«ring_switch_weight»

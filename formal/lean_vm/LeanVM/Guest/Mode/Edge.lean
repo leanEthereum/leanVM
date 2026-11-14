@@ -231,18 +231,61 @@ theorem call_enter {En : Env} {F : Fun} {i : ℕ} {A : Abs} {d f : ℕ} {mq : Mo
 theorem mem_filter_sub {α : Type} {p : α → Bool} {l : List α} {x : α} (h : x ∈ l.filter p) : x ∈ l :=
   (List.mem_filter.mp h).1
 
+/-- A pointer each of whose cells past it the walk knows is one whose cells are all known. -/
+theorem Abs.ptrAt_of_each {A : Abs} {k : Mono} {os : List ℕ} (hne : os ≠ [])
+    (h : ∀ t ∈ os, A.ptrAt k [t] = true) : A.ptrAt k os = true := by
+  obtain ⟨t0, ht0⟩ := List.exists_mem_of_ne_nil os hne
+  have h0 := h t0 ht0
+  unfold Abs.ptrAt at h0 ⊢
+  split at h0
+  · rename_i m hm
+    refine List.all_eq_true.mpr fun t ht ↦ ?_
+    have := h t ht
+    unfold Abs.ptrAt at this
+    rw [hm] at this
+    simpa using this
+  · cases h0
+
+/-- **A pointer every arm knows**: the run of one pointer `armPtrs` keeps holds where an arm does. -/
+theorem armPtrs_sound {s : St} {M : Abs} {Bs : List Abs} {X : Abs} (hm : X ∈ Bs) (hX : Holds s X)
+    (hfp : s.fp < maxCells) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells) {q : Rng × List ℕ}
+    (hq : q ∈ armPtrs M Bs) : PW s q.1 q.2 := by
+  match Bs, hq with
+  | B :: Y :: Ys, hq =>
+    unfold armPtrs at hq
+    obtain ⟨p, -, hp⟩ := List.mem_filterMap.mp hq
+    dsimp only at hp
+    split_ifs at hp with h1 h2
+    cases hp
+    have hall : ∀ t ∈ (List.range 64).filter (fun t ↦ (B :: Y :: Ys).all fun Z ↦ Z.ptrAt p.1 [t]),
+        X.ptrAt p.1 [t] = true := fun t ht ↦
+      List.all_eq_true.mp (List.mem_filter.mp ht).2 X hm
+    have hne : (List.range 64).filter (fun t ↦ (B :: Y :: Ys).all fun Z ↦ Z.ptrAt p.1 [t]) ≠ [] := by
+      intro he; rw [he] at h2; exact h2 rfl
+    obtain ⟨v, x, hv, hx, hpx⟩ := Abs.ptrAt_sound hX hfp hwf hu (Abs.ptrAt_of_each hne hall)
+    refine ⟨v, 0, 1, hv, rfl, rfl, fun j hj1 hj2 ↦ ?_⟩
+    obtain rfl : j = 0 := by omega
+    refine ⟨x, ?_, hpx⟩
+    simpa using hx
+
 /-- **The arms met**: the arm that ran holds, at its index under the selector. -/
 theorem armsMeet_sound {s : St} {sel : Option Base} {Bs : List Abs} {j : ℕ} {X : Abs}
-    (hj : Bs[j]? = some X) (hX : Holds s X) (hsel : ∀ x, sel = some x → IdxVal s (.ex x 0) j) :
+    (hj : Bs[j]? = some X) (hX : Holds s X) (hsel : ∀ x, sel = some x → IdxVal s (.ex x 0) j)
+    (hfp : s.fp < maxCells) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells) :
     Holds s (armsMeet sel Bs) := by
   match Bs, hj with
   | B :: Bs, hj =>
-    have hM : Holds s (foldlA Abs.interS B Bs) := by
+    have hM0 : Holds s (foldlA Abs.interS B Bs) := by
       have e : foldlA Abs.interS B Bs = Bs.foldl Abs.inter B := by
         rw [foldlA_eq]
         exact congrArg (fun f ↦ Bs.foldl f B) (funext fun A ↦ funext fun B ↦ Abs.interS_eq A B)
       rw [e]
       exact Holds.foldl_inter (List.mem_of_getElem? hj) hX
+    have hM : Holds s { foldlA Abs.interS B Bs with
+        p := armPtrs (foldlA Abs.interS B Bs) (B :: Bs) ++ (foldlA Abs.interS B Bs).p } :=
+      { hM0 with
+        p := fun q hq ↦ (List.mem_append.mp hq).elim
+          (armPtrs_sound (List.mem_of_getElem? hj) hX hfp hwf hu) (hM0.p q) }
     unfold armsMeet
     dsimp only
     split
@@ -291,7 +334,7 @@ theorem ret_resume {sC sR : St} {A : Abs} {sel : Option Base} {mq : Mono} {Gs : 
     (hT : ∀ p ∈ G'.term, LTF sR p.1 p.2) :
     Holds sC (armsMeet sel ((Gs.zipIdx.map fun p ↦ (p.1, atCall (A.assume sel p.2) mq p.1)).map
       fun p ↦ afterCall p.2 mq p.1)) := by
-  refine armsMeet_sound (j := j) ?_ (afterCall_sound F hA hR hL hLP hT) hsel
+  refine armsMeet_sound (j := j) ?_ (afterCall_sound F hA hR hL hLP hT) hsel F.fpC F.wf F.used
   simp only [List.getElem?_map, List.getElem?_zipIdx, hj, Option.map_some, Nat.zero_add]
 
 end

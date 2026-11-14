@@ -586,16 +586,27 @@ def infer1(n, named):
         post = set(); postR = set(); postP = set()
     sig = mkSig(f, I.pre, I.preR, ret, post, postR, postL, I.preP, postP, postLP, retV)
     E.sigs[f['entry']] = sig
-    # the final check: no demand
-    w = Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main)
+    # the final check: no demand; a guarantee that does not check dropped, one at a time
+    for _ in range(64):
+        w = Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main)
+        try:
+            w.run(f['ops']); break
+        except Fail as e:
+            kind, item = e.args[0][0], e.args[0][2] if len(e.args[0]) > 2 else None
+            lists = {'post': sig.post, 'postR': sig.postR, 'postP': [q for q in sig.postP]}
+            if kind not in lists: break
+            if kind == 'postP': sig.postP = [q for q in sig.postP if q != (item, e.args[0][3])]
+            else: lists[kind].remove(item)
+            E.sigs[f['entry']] = sig
+    else:
+        raise Fail(('final',))
     try:
-        w.run(f['ops'])
-    except Fail as e:
+        Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main).run(f['ops'])
+    except Fail:
         # drop what does not check
         sig = mkSig(f, I.pre, I.preR, ret, set(), set(), set(), I.preP, retV=retV)
         E.sigs[f['entry']] = sig
-        w = Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main)
-        w.run(f['ops'])
+        Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main).run(f['ops'])
     return sig, dict(I.res)
 
 

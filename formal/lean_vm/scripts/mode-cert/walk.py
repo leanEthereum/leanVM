@@ -831,6 +831,7 @@ class Walk:
                     Bs.append(self.afterCall(Aj, mq, G))
                 B = Bs[0]
                 for X in Bs[1:]: B = inter(B, X)
+                retPtrs(B, Bs)
                 for j, X in enumerate(Bs):
                     if x is None: break
                     F = condOf(B, X, x, j)
@@ -903,6 +904,16 @@ class Walk:
                             pend.append([list(go), [snap], False])
                 if k is not True: cur.append(learn0(A, c))
         if pend: raise Fail(('pend', [g[0][:3] for g in pend]))
+
+
+def retPtrs(M, Bs):
+    """The arms met: each heap word of the first arm the meet lost, a pointer on every arm, as a run
+    of one pointer with the cells below 64 past it every arm knows written (`armPtrs`)."""
+    if len(Bs) < 2: return
+    for k, x in Bs[0].hv.items():
+        if M.hv.get(k) == x: continue
+        os = tuple(t for t in range(64) if all(X.ptrAt(k, (t,)) for X in Bs))
+        if os: M.p.add(((k, ('num', 0), ('num', 1), 1, 0), os))
 
 
 def meetAll(sts):

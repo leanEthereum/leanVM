@@ -1092,6 +1092,16 @@ def Abs.assume (A : Abs) : Option Base → ℕ → Abs
         hv := A.hv ++ c.hv.filter (fun p ↦ !(A.hv.any fun q ↦ q.1.beq p.1)) }
     | none => A
 
+/-- Two or more arms met in `M`: each heap word of the first arm `M` lost, a pointer on every arm, as a
+run of one pointer with the cells below 64 past it every arm knows written (a call's arms returning
+different words). -/
+noncomputable def armPtrs (M : Abs) : List Abs → List (Rng × List ℕ)
+  | B :: X :: Xs => B.hv.filterMap fun p ↦
+      if M.hv.any (hvBeq p) then none else
+      let os := (List.range 64).filter fun t ↦ (B :: X :: Xs).all fun Y ↦ Y.ptrAt p.1 [t]
+      if os.isEmpty then none else some (⟨p.1, .num 0, .num 1, 1, 0⟩, os)
+  | _ => []
+
 /-- The facts of `X` not in `B`, under base `x`'s exponent `j`, if any. -/
 def condDiff (B X : Abs) (x : Base) (j : ℕ) : Option Cnd :=
   let d : Cnd := ⟨x, j, X.h.filter (fun k ↦ !(B.h.any (Mono.beq k))), X.r.filter (fun r ↦ !(B.r.any (Rng.beq r))),
@@ -1104,7 +1114,8 @@ and, for a table call on base `x`, what each knows beyond it, under `x`'s expone
 noncomputable def armsMeet (sel : Option Base) : List Abs → Abs
   | [] => ⟨.nil, .nil, .nil, [], [], [], [], [], .nil, [], []⟩
   | B :: Bs =>
-    let M := foldlA Abs.interS B Bs
+    let M0 := foldlA Abs.interS B Bs
+    let M := { M0 with p := armPtrs M0 (B :: Bs) ++ M0.p }
     match sel with
     | none => M
     | some x =>
