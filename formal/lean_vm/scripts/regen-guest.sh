@@ -131,6 +131,8 @@ part_bridge() {
   python3 -I scripts/bridge-cert/pair.py "${check[@]}"
   step "bridge: the witness cells checked (scripts/bridge-cert/wit.py)"
   python3 -I scripts/bridge-cert/wit.py "${check[@]}"
+  step "bridge: the allocation hints checked (scripts/bridge-cert/alloc.py)"
+  python3 -I scripts/bridge-cert/alloc.py "${check[@]}"
 }
 
 part_memory() {
