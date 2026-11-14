@@ -91,6 +91,18 @@ fn schoolbook(a: V, b: V) -> [V; 2] {
     [xor(m00, m11), xor3(m01, m10, times_x(m11))]
 }
 
+/// One product, the scalar [`F128`] multiply, kept in vector registers.
+#[inline(always)]
+pub(crate) fn mul(a: F128, b: F128) -> F128 {
+    // SAFETY: both sides of each transmute are 128 plain bits.
+    unsafe {
+        transmute::<V, F128>(reduce_pair(schoolbook(
+            transmute::<F128, V>(a),
+            transmute::<F128, V>(b),
+        )))
+    }
+}
+
 /// The eight carry-less products `a[i] * b[i]`, each 128 bits.
 #[inline(always)]
 pub fn clmul8(a: [u64; 8], b: [u64; 8]) -> [u128; 8] {

@@ -19,14 +19,17 @@ cfg_select! {
     all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq") => {
         mod x86;
         pub use x86::{Acc8, F64x8, F128x8, clmul8};
+        pub(crate) use x86::mul;
     }
     all(target_arch = "aarch64", target_feature = "aes") => {
         mod neon;
         pub use neon::{Acc8, F64x8, F128x8, clmul8};
+        pub(crate) use neon::mul;
     }
     _ => {
         mod portable;
         pub use portable::{Acc8, F64x8, F128x8, clmul8};
+        pub(crate) use portable::mul;
     }
 }
 

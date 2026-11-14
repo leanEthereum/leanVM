@@ -30,32 +30,28 @@ macro_rules! prover {
             use leanvm_core::{keccak, pcs};
             let least = (pcs::MIN_STACKED_LOG - keccak::SLOT_LOG).max(keccak::MIN_STEPS.ilog2() as usize);
             let most = pcs::MAX_STACKED_LOG - keccak::SLOT_LOG;
-            assert!(
-                (least..=most).contains(&log_n),
-                "--log-n must be in {least}..={most}"
-            );
+            if !(least..=most).contains(&log_n) {
+                crate::invalid(format!("--log-n must be in {least}..={most}"));
+            }
             keccak_gkr::batch_bench::run(1 << log_n, keccak::DEPTH, log_inv_rate, plan).print();
         }
 
         /// Run the CLI's command on this prover, whose thread pool is the only one started.
         pub fn run(cli: crate::Cli) {
             use crate::Command;
-            parallel::init();
-            let plan = bench::Plan::new(cli.repeat, cli.cooldown);
-            if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
-                bench::init_tracing();
-            }
             if let Command::Aggregate { blobs, .. }
             | Command::Recursion {
                 blobs_per_leaf: blobs,
                 ..
             } = cli.command
+                && blobs > lean_da::DA_MAX_ROWS
             {
-                assert!(
-                    blobs <= lean_da::DA_MAX_ROWS,
-                    "at most {} blobs",
-                    lean_da::DA_MAX_ROWS
-                );
+                crate::invalid(format!("at most {} blobs", lean_da::DA_MAX_ROWS));
+            }
+            parallel::init();
+            let plan = bench::Plan::new(cli.repeat, cli.cooldown);
+            if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
+                bench::init_tracing();
             }
             match cli.command {
                 Command::Aggregate { xmss, sphincs, blobs } => {
@@ -183,6 +179,14 @@ enum Command {
         #[arg(long, default_value = "2000000")]
         n: usize,
     },
+}
+
+/// Exit with a usage error, as clap reports an argument out of range.
+fn invalid(message: String) -> ! {
+    use clap::CommandFactory;
+    Cli::command()
+        .error(clap::error::ErrorKind::ValueValidation, message)
+        .exit()
 }
 
 fn main() {

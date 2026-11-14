@@ -74,6 +74,34 @@ fn karatsuba(a: V, b: V) -> [V; 2] {
     [d0, v::xor(v::xor(p01, d0), v::times_x(p1))]
 }
 
+/// One product, the scalar [`F128`] multiply: [`karatsuba`] and [`reduce_pair`] on a single 128-bit lane.
+#[inline(always)]
+pub(crate) fn mul(a: F128, b: F128) -> F128 {
+    use core::arch::x86_64::*;
+    // SAFETY: the module's cfg enables vpclmulqdq and avx2, which imply pclmulqdq and ssse3; each transmute is of 16
+    // plain bytes.
+    unsafe {
+        let (a, b) = (
+            core::mem::transmute::<F128, __m128i>(a),
+            core::mem::transmute::<F128, __m128i>(b),
+        );
+        let sum = |x| _mm_xor_si128(x, _mm_shuffle_epi32::<0x4E>(x));
+        let (p0, p1) = (_mm_clmulepi64_si128::<0x00>(a, b), _mm_clmulepi64_si128::<0x11>(a, b));
+        let p01 = _mm_clmulepi64_si128::<0x00>(sum(a), sum(b));
+        let times_x = _mm_or_si128(_mm_slli_epi64::<1>(p1), _mm_slli_si128::<8>(_mm_srli_epi64::<63>(p1)));
+        let d0 = _mm_xor_si128(p0, p1);
+        let d1 = _mm_xor_si128(_mm_xor_si128(p01, d0), times_x);
+        let (lo, hi) = (_mm_unpacklo_epi64(d0, d1), _mm_unpackhi_epi64(d0, d1));
+        let z = _mm_xor_si128(hi, _mm_slli_epi64::<1>(hi));
+        let g_spill = _mm_shuffle_epi8(
+            core::mem::transmute::<[u8; 16], __m128i>(G_SPILL),
+            _mm_srli_epi64::<60>(hi),
+        );
+        let c = _mm_xor_si128(_mm_xor_si128(lo, z), _mm_xor_si128(_mm_slli_epi64::<3>(z), g_spill));
+        core::mem::transmute::<__m128i, F128>(c)
+    }
+}
+
 /// The eight carry-less products `a[i] * b[i]`, each 128 bits.
 #[inline(always)]
 pub fn clmul8(a: [u64; 8], b: [u64; 8]) -> [u128; 8] {
