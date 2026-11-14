@@ -12,12 +12,13 @@
 //! a sum of byte lookups ([`PackFold`]).
 
 use fiat_shamir::transcript::ProverState;
-use primitives::field::{F128, F128Unreduced};
-use primitives::multilinear::{eq_table, interp, poly_eval};
+use primitives::field::{Acc8, F128, F128Unreduced, F128x8};
+use primitives::multilinear::{eq_table, poly_eval};
 
 use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
 use crate::kernels::{
-    GROUP, MIXED, MIXED_POINTS, PACKS, SKIP, SLOTS, TERNARY, byte_sums, embed, extend, products, skip_row, ternary,
+    GROUP, MIXED, MIXED_POINTS, PACKS, SKIP, SLOTS, SkipAcc, TERNARY, byte_sums, embed, extend, products, skip_row,
+    ternary,
 };
 use crate::open::fold;
 use crate::poly::AtS;
@@ -143,11 +144,11 @@ impl Layer<'_> {
             [0, 1].map(|half| self.task_weights(&eq.iter().skip(half).step_by(2).copied().collect::<Vec<_>>()));
         let sums = parallel::map_reduce_with_state(
             self.n_tasks(),
-            || Box::new([[0u128; 2]; SLOTS]),
+            SkipAcc::new,
             || [F128Unreduced::ZERO; TERNARY],
             |acc, sums, task| {
                 let (_, _, block) = self.block(task);
-                **acc = [[0; 2]; SLOTS];
+                acc.clear();
                 for r in 0..5 {
                     for z in 0..64 {
                         let js = row_positions(r, z);
@@ -158,10 +159,10 @@ impl Layer<'_> {
                 for (half, groups) in groups.iter().enumerate() {
                     let weight = groups[task];
                     for q in 0..GROUP {
-                        sums[ternary(q)] ^= at.eval(acc[GROUP * half + q]).mul_unreduced(weight);
+                        sums[ternary(q)] ^= at.eval(acc.get(GROUP * half + q)).mul_unreduced(weight);
                     }
                     for (i, &[t, ..]) in MIXED_POINTS.iter().enumerate() {
-                        sums[t] ^= at.eval(acc[2 * GROUP + MIXED * half + i]).mul_unreduced(weight);
+                        sums[t] ^= at.eval(acc.get(2 * GROUP + MIXED * half + i)).mul_unreduced(weight);
                     }
                 }
             },
@@ -189,8 +190,7 @@ impl Layer<'_> {
                     *t = fold.value(block, half, j, 0);
                 }
             }
-            let (zero, infinity) = summand.pair(&out[..BITS], &out[BITS..]);
-            (zero.reduce(), infinity.reduce())
+            summand.pair(&out[..BITS], &out[BITS..])
         };
         let padding: Vec<(Vec<F128>, (F128, F128))> = self
             .rounds
@@ -281,20 +281,21 @@ impl Summand {
     }
 
     /// For rows `low` and `high`, the values at the two points of the variable being bound,
-    /// `sum over positions of B[j] * T[j + 2]` at `0` and at infinity, unreduced, where
+    /// `sum over positions of B[j] * T[j + 2]` at `0` and at infinity, where
     /// `B[j] = weights[j] * (kappa + T[j + 1]) + kappa * weights[j + 2]`.
-    fn pair(&self, low: &[F128], high: &[F128]) -> (F128Unreduced, F128Unreduced) {
-        let (mut zero, mut infinity) = (F128Unreduced::ZERO, F128Unreduced::ZERO);
+    fn pair(&self, low: &[F128], high: &[F128]) -> (F128, F128) {
+        let kappa = F128x8::splat(self.kappa);
+        let (mut zero, mut infinity) = (Acc8::ZERO, Acc8::ZERO);
         for lane in 0..BITS / 64 {
             let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
-            for z in 0..64 {
-                let w = self.weights[a + z];
-                let factor = w * (self.kappa + low[b + z]) + self.constant[a + z];
-                zero ^= factor.mul_unreduced(low[c + z]);
-                infinity ^= (w * (low[b + z] + high[b + z])).mul_unreduced(low[c + z] + high[c + z]);
+            for z in (0..64).step_by(8) {
+                let at = |v: &[F128], j: usize| F128x8::load(&v[j + z..][..8]);
+                let (w, lb, lc) = (at(&self.weights, a), at(low, b), at(low, c));
+                zero += (w * (kappa + lb) + at(&self.constant, a)).mul_unreduced(lc);
+                infinity += (w * (lb + at(high, b))).mul_unreduced(lc + at(high, c));
             }
         }
-        (zero, infinity)
+        (zero.sum(), infinity.sum())
     }
 }
 
@@ -317,14 +318,16 @@ fn fold_rows(summand: &Summand, table: &[F128], challenge: F128, eq: &[F128]) ->
                 .zip(src.as_chunks::<{ 2 * BITS }>().0)
             {
                 let (low, high) = src.split_at(BITS);
-                for (out, (&l, &h)) in row.iter_mut().zip(low.iter().zip(high)) {
-                    *out = interp(l, h, challenge);
+                let challenge = F128x8::splat(challenge);
+                for (i, out) in row.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                    let (l, h) = (F128x8::load(&low[8 * i..][..8]), F128x8::load(&high[8 * i..][..8]));
+                    (l + challenge * (l + h)).store(out);
                 }
             }
             if rows.len() == 2 * BITS {
                 let (zero, infinity) = summand.pair(&rows[..BITS], &rows[BITS..]);
-                acc.0 ^= zero.reduce().mul_unreduced(eq[p]);
-                acc.1 ^= infinity.reduce().mul_unreduced(eq[p]);
+                acc.0 ^= zero.mul_unreduced(eq[p]);
+                acc.1 ^= infinity.mul_unreduced(eq[p]);
             }
         },
         |a, b| (a.0 ^ b.0, a.1 ^ b.1),

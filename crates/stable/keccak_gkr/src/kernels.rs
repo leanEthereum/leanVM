@@ -1,8 +1,7 @@
 //! The bit-level kernels of the layer prover, over one block position at a time: the 32 packs of
 //! one bit position of one block.
 
-use primitives::field::F128;
-use primitives::field::gf2_64::mul_wide;
+use primitives::field::{F128, clmul8};
 
 use crate::rmfe::RMFE;
 use crate::witness::BLOCK_WORDS;
@@ -21,8 +20,15 @@ pub fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
 
 /// The unprojected `chi` of 32 packs: `ones * (a + c) + b * c`.
 pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
-    let ones = RMFE.ones as u64;
-    std::array::from_fn(|q| (mul_wide(ones, (a[q] ^ c[q]) as u64) ^ mul_wide(b[q] as u64, c[q] as u64)) as u64)
+    let mut out = [0u64; PACKS];
+    for (v, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+        let lanes = |e: &[u32; PACKS]| -> [u64; 8] { std::array::from_fn(|i| e[8 * v + i] as u64) };
+        let (a, b, c) = (lanes(a), lanes(b), lanes(c));
+        let linear = clmul8([RMFE.ones as u64; 8], std::array::from_fn(|i| a[i] ^ c[i]));
+        let quadratic = clmul8(b, c);
+        *out = std::array::from_fn(|i| (linear[i] ^ quadratic[i]) as u64);
+    }
+    out
 }
 
 /// The sum of every subset of eight weights, indexed by the byte whose bits pick it.
@@ -91,17 +97,40 @@ pub fn extend(packs: &[u32; PACKS]) -> [u64; SLOTS] {
 /// its position's weight times its product, as the two partial products of the weight's words.
 /// A pack's product is the unprojected `chi`; a mixed point's keeps only `u[j + 1] * u[j + 2]`,
 /// the rest being linear, so of degree one in a variable at infinity.
-pub fn skip_row(acc: &mut [[u128; 2]; SLOTS], e: &[[u64; SLOTS]; 5], weights: [[u64; 2]; 5]) {
-    let ones = RMFE.ones as u64;
-    for (p, acc) in acc.iter_mut().enumerate().take(2 * TERNARY) {
+pub fn skip_row(acc: &mut SkipAcc, e: &[[u64; SLOTS]; 5], weights: [[u64; 2]; 5]) {
+    let xor = |a: [u64; 8], b: [u64; 8]| -> [u64; 8] { std::array::from_fn(|i| a[i] ^ b[i]) };
+    let low = |p: [u128; 8]| -> [u64; 8] { p.map(|p| p as u64) };
+    for (v, acc) in acc.0.iter_mut().enumerate() {
+        let lanes: [[u64; 8]; 5] = std::array::from_fn(|x| e[x][8 * v..][..8].try_into().unwrap());
         for (x, w) in weights.iter().enumerate() {
-            let (b, c) = (e[(x + 1) % 5][p], e[(x + 2) % 5][p]);
-            let mut product = mul_wide(b, c) as u64;
-            if p < 2 * GROUP {
-                product ^= mul_wide(ones, e[x][p] ^ c) as u64;
+            let (b, c) = (lanes[(x + 1) % 5], lanes[(x + 2) % 5]);
+            let mut product = low(clmul8(b, c));
+            if 8 * v < 2 * GROUP {
+                product = xor(product, low(clmul8([RMFE.ones as u64; 8], xor(lanes[x], c))));
             }
-            acc[0] ^= mul_wide(product, w[0]);
-            acc[1] ^= mul_wide(product, w[1]);
+            for (acc, &w) in acc.iter_mut().zip(w) {
+                for (acc, p) in acc.iter_mut().zip(clmul8(product, [w; 8])) {
+                    *acc ^= p;
+                }
+            }
         }
+    }
+}
+
+/// Per slot, the two partial products [`skip_row`] sums, eight slots to a run.
+pub struct SkipAcc([[[u128; 8]; 2]; SLOTS / 8]);
+
+impl SkipAcc {
+    pub fn new() -> Box<Self> {
+        Box::new(Self([[[0; 8]; 2]; SLOTS / 8]))
+    }
+
+    pub fn clear(&mut self) {
+        self.0 = [[[0; 8]; 2]; SLOTS / 8];
+    }
+
+    /// The two partial products of slot `p`.
+    pub fn get(&self, p: usize) -> [u128; 2] {
+        self.0[p / 8].map(|k| k[p % 8])
     }
 }
