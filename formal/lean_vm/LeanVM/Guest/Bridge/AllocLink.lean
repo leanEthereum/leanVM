@@ -27,11 +27,11 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-- **Compiled function `j` passes the allocation hints' check.** -/
 def AllocJ (j : ℕ) : Prop :=
-  allocChk (ctxOf j) (B2C.fsN j) (B2C.plumbOf j) (coreOf j).body (fnOf j).code (adviceOf j) = true
+  allocChk (ctxOf j) (B2C.fsN j) (coreOf j).loop (B2C.plumbOf j) (coreOf j).body (fnOf j).code (adviceOf j) = true
 
 /-- **Compiled function `j` passes the bump pointer's check** (`curChk`). -/
 def CurJ (j : ℕ) : Prop :=
-  curChk (ctxOf j) (B2C.plumbOf j) (coreOf j).body (fnOf j).code (adviceOf j) = true
+  curChk (ctxOf j) (B2C.fsN j) (coreOf j).loop (B2C.plumbOf j) (coreOf j).body (fnOf j).code (adviceOf j) = true
 
 end
 
@@ -48,7 +48,7 @@ theorem allocJ_of {j : ℕ} {f : CompiledFunction} {cf : Core.Fn} {C : Check.Cer
     (hb : curBody (AlignCtx.ofData C.locs ex f.entryPc main P Data.powTree Data.jtTrie en alignHalt f.instructionCount)
       P cf.body f.code d = true)
     (h : allocRest (AlignCtx.ofData C.locs ex f.entryPc main P Data.powTree Data.jtTrie en alignHalt f.instructionCount)
-      n P cf.body f.code d = true) : AllocJ j := by
+      n cf.loop P cf.body f.code d = true) : AllocJ j := by
   simp only [Prod.mk.injEq] at ht
   obtain ⟨hex, hen, hd⟩ := ht
   have hl : (certOf j).locs = C.locs := by rw [hC]; cases C; rfl
@@ -65,15 +65,16 @@ theorem curJ_of_allocJ {j : ℕ} (h : AllocJ j) : CurJ j := by
 theorem curJ_of {j : ℕ} {f : CompiledFunction} {cf : Core.Fn} {C : Check.Cert} {P : B2C.Plumb}
     {ex : List (ℕ × ℕ)} {en : List (String × ℕ)} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} {main : Bool}
     (hf : fnOf j = f) (hcf : coreOf j = cf) (hC : certOf j = C.withPows Data.powTree) (hP : B2C.plumbOf j = P)
-    (ht : (extraOf j, entsOf j, adviceOf j) = (ex, en, d)) (hm : (j == 1) = main)
+    (ht : (extraOf j, entsOf j, adviceOf j) = (ex, en, d)) (hm : (j == 1) = main) {n : ℕ}
+    (hn : B2C.fsN j = n)
     (hb : curBody (AlignCtx.ofData C.locs ex f.entryPc main P Data.powTree Data.jtTrie en alignHalt f.instructionCount)
       P cf.body f.code d = true)
     (h : curCode (AlignCtx.ofData C.locs ex f.entryPc main P Data.powTree Data.jtTrie en alignHalt f.instructionCount)
-      P f.code d = true) : CurJ j := by
+      n cf.loop P f.code d = true) : CurJ j := by
   simp only [Prod.mk.injEq] at ht
   obtain ⟨hex, hen, hd⟩ := ht
   have hl : (certOf j).locs = C.locs := by rw [hC]; cases C; rfl
-  rw [CurJ, curChk, ctxOf, hl, hex, hen, hd, hf, hcf, hP, hm, hb, h]
+  rw [CurJ, curChk, ctxOf, hl, hex, hen, hd, hf, hcf, hP, hm, hn, hb, h]
   rfl
 
 end

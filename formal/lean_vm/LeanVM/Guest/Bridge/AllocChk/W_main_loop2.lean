@@ -20,7 +20,7 @@ public section
 
 /-- `main_loop2`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«main_loop2».fs Fn.«main_loop2».plumb Fn.«main_loop2».core.body Fn.«main_loop2».code.code
+    Bridge.allocRest alignCtx Fn.«main_loop2».fs Fn.«main_loop2».core.loop Fn.«main_loop2».plumb Fn.«main_loop2».core.body Fn.«main_loop2».code.code
       Data.adviceFn37 = true := by
   rw [alignCtxEq]
   decide +kernel

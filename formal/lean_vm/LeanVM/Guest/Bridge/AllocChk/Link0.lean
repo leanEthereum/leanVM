@@ -173,8 +173,8 @@ theorem aok23 : Bridge.AllocJ 23 :=
     Fn.«list_split».allocShapeOk Fn.«list_split».curBodyOk Fn.«list_split».allocOk
 
 theorem cok24 : Bridge.CurJ 24 :=
-  Bridge.curJ_of Checked.code24 Checked.core24 Checked.cert24 Checked.plumbEq24 Bridge.ProgAl.tab24 rfl Fn.«claim_list_digest».curBodyOk
-    Fn.«claim_list_digest».curCodeOk
+  Bridge.curJ_of Checked.code24 Checked.core24 Checked.cert24 Checked.plumbEq24 Bridge.ProgAl.tab24 rfl Checked.fsEq24
+    Fn.«claim_list_digest».curBodyOk Fn.«claim_list_digest».curCodeOk
 
 theorem aok25 : Bridge.AllocJ 25 :=
   Bridge.allocJ_of Checked.code25 Checked.core25 Checked.cert25 Checked.plumbEq25 Bridge.ProgAl.tab25 rfl Checked.fsEq25

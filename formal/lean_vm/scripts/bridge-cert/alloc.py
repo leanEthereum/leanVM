@@ -90,7 +90,12 @@ def matches(ss):
     return out
 
 
-def chk(F, body, abody, A, locs, extra, pows, jt, fs):
+def is_loop(abody, name):
+    """`Core.Fn.loop`: the body ends with a `callIf` to the function itself, then `ret []`."""
+    return len(abody) >= 2 and abody[-1] == ('ret', []) and abody[-2][0] == 'callIf' and abody[-2][2] == name
+
+
+def chk(F, body, abody, A, locs, extra, pows, jt, fs, loop):
     """`Bridge.curChk` and `Bridge.allocShape`/`pairsA`, mirrored: the reason each fails, or `None`."""
     entry, code, stat = F['entry'], F['code'], F['stat']
     loc = lambda v: extra[v] if v in extra else (locs[v] if v < len(locs) else 0)
@@ -128,12 +133,17 @@ def chk(F, body, abody, A, locs, extra, pows, jt, fs):
         cur = 'count'
     for i in jumps:
         oc, od, of = code[i][1]
-        if not any(a > i for a, _ in bs) or zero_at(oc):
+        if not any(a > i for a, _ in bs) or (zero_at(oc) and of not in F['sites'] and not next_at(of)):
             continue
         t = pc_at(od)
         if not (self_at(of) and of not in F['sites'] and not (od == 0 and of == 1) and od not in F['arms']
                 and t is not None and not any(i < a and entry + a < t for a, _ in bs)):
             cur = cur or 'jump before a buffer'
+    for _, h in hs:
+        if h[0] == 'frameAddress' and not (h[1] == fs and loop):
+            cur = cur or 'frame address'
+        if h[0] == 'cellAddress' and not (stat.get(h[1]) == ('fpg', h[2], 0) and h[2] < fs):
+            cur = cur or 'cell address'
     seen = False
     for _, h in hs:
         if seen and is_buf(h):
@@ -185,7 +195,7 @@ def chk(F, body, abody, A, locs, extra, pows, jt, fs):
         elif c[0] == 'allocDyn' and h[0] == 'allocDyn':
             ok = cell(c[1]) and cell(c[2]) and loc(c[1]) == h[1] and loc(c[2]) == h[2]
         elif c[0] == 'allocDyn' and h[0] == 'alloc':
-            ok = cell(c[1]) and cell(c[2]) and loc(c[1]) == h[1] and pc_at(loc(c[2])) == h[2]
+            ok = cell(c[1]) and cell(c[2]) and loc(c[1]) == h[1] and pc_at(loc(c[2])) == h[2] and h[2] < 1 << 28
         elif c[0] == 'allocDyn' and h[0] == 'allocAdvice':
             ok = cell(c[1]) and loc(c[1]) == h[1]
         else:
@@ -209,8 +219,10 @@ def run(check):
     for j, (k, _, _) in sorted(lk.items()):
         F = dict(fns[k], main=(j == 1))
         extra = {int(a): int(b) for a, b in re.findall(r'\((\d+), (\d+)\)', ctxs[k][0])}
-        cur, why = chk(F, data.body_of(cores[k]), align.body_of(cores[k]), adv[F['entry']], bund[k]['locs'], extra,
-                       pows, jt, fss[k])
+        ab = align.body_of(cores[k])
+        name = re.search(r'name := "([^"]*)"', cores[k]).group(1)
+        cur, why = chk(F, data.body_of(cores[k]), ab, adv[F['entry']], bund[k]['locs'], extra,
+                       pows, jt, fss[k], is_loop(ab, name))
         if cur:
             sys.exit(f'bridge-cert: `{k}` fails the bump pointer check: {cur}')
         (failed if why else passed)[j] = why or k
@@ -259,13 +271,14 @@ theorem curBodyOk :
             pre = '' if win else body_thm(j, k)
             if j in failed:
                 return pre + f'''/-- `{k}`'s allocation hints pass the bump pointer's check on the code. -/
-theorem curCodeOk : Bridge.curCode alignCtx Fn.«{k}».plumb Fn.«{k}».code.code Data.adviceFn{j} = true := by
+theorem curCodeOk :
+    Bridge.curCode alignCtx Fn.«{k}».fs Fn.«{k}».core.loop Fn.«{k}».plumb Fn.«{k}».code.code Data.adviceFn{j} = true := by
   {prf}
 
 '''
             return (shape(k) if not win else '') + pre + f'''/-- `{k}`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«{k}».fs Fn.«{k}».plumb Fn.«{k}».core.body Fn.«{k}».code.code
+    Bridge.allocRest alignCtx Fn.«{k}».fs Fn.«{k}».core.loop Fn.«{k}».plumb Fn.«{k}».core.body Fn.«{k}».code.code
       Data.adviceFn{j} = true := by
   {prf}
 
@@ -309,16 +322,16 @@ theorem allocOk :
         for j in js:
             k, _, hp = lk[j]
             pe = f'Checked.plumbEq{j}' if hp else f'Bridge.ProgAl.plumbEq{j}'
-            if j in failed:
-                body.append(f'''theorem cok{j} : Bridge.CurJ {j} :=
-  Bridge.curJ_of Checked.code{j} Checked.core{j} Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl Fn.«{k}».curBodyOk
-    Fn.«{k}».curCodeOk
-''')
-                continue
             fe = f'Checked.fsEq{j}'
             if j not in fsq:
                 body.append(f'kernel_rfl fsEq{j} : B2C.fsN {j} = Fn.«{k}».fs\n')
                 fe = f'fsEq{j}'
+            if j in failed:
+                body.append(f'''theorem cok{j} : Bridge.CurJ {j} :=
+  Bridge.curJ_of Checked.code{j} Checked.core{j} Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe}
+    Fn.«{k}».curBodyOk Fn.«{k}».curCodeOk
+''')
+                continue
             body.append(f'''theorem aok{j} : Bridge.AllocJ {j} :=
   Bridge.allocJ_of Checked.code{j} Checked.core{j} Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe}
     Fn.«{k}».allocShapeOk Fn.«{k}».curBodyOk Fn.«{k}».allocOk

@@ -29,7 +29,7 @@ theorem curBodyOk :
 
 /-- `sp_wots`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«sp_wots».fs Fn.«sp_wots».plumb Fn.«sp_wots».core.body Fn.«sp_wots».code.code
+    Bridge.allocRest alignCtx Fn.«sp_wots».fs Fn.«sp_wots».core.loop Fn.«sp_wots».plumb Fn.«sp_wots».core.body Fn.«sp_wots».code.code
       Data.adviceFn20 = true := by
   decide +kernel
 

@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.EndExecCAlign
 public import LeanVM.Guest.Bridge.AllocLink
 public import LeanVM.Guest.Bridge.AllocSound
+public import LeanVM.Guest.Bridge.AllocCur
 public import LeanVM.Guest.Memory.Cursor
 
 /-!
@@ -20,9 +21,10 @@ buffers the function reserves before `off` (`Bridge.nbAt`) and the calls the fra
 the next callee's block while its frame is reserved and not entered (`Bridge.pendAt`). `ChainA`:
 each frame below the top resumes, at the return pc the header of the frame above holds, at the
 cursor where that frame's subtree ends (`Inst.endCur`), and a loop iteration past all its calls has
-a phantom last callee (`TailA`). `YAlloc A r s`: in the prologue the next
+a phantom last callee (`TailA`). `NcTop A e off`: at an offset at or before a buffer hint the frame has made no call (the
+check puts every call after the buffer hints). `YAlloc A r s`: in the prologue the next
 free cell is past `main`'s frame; past it, a state of the tree track at the state's pc and frame
-whose top frame's cursor is the next free cell, its frames chained.
+whose top frame's cursor is the next free cell, its frames chained, `NcTop` at its offset.
 
 Proved here: the track holds initially (`initY_alloc`), and the reference holds a buffer's base at
 its hint's pointer cell (`bufBase_ref`: the `k`-th buffer hint of a function passing the allocation
@@ -54,13 +56,20 @@ def TailA (e : Ent) : Prop :=
   coreProgram.loop e.I.t.name = true → e.I.t.kids.length ≤ e.nc → ∀ hk : e.I.t.kids ≠ [],
     (e.I.t.kids.getLast hk).total B2C.fs = (e.I.t.kids.getLast hk).block B2C.fs coreProgram.loop
 
+/-- **No call before the buffers**: at an offset at or before a buffer hint of its function, the
+frame has made no call. -/
+def NcTop (A : String → FnAl) (e : Ent) (off : ℕ) : Prop :=
+  (∃ q ∈ bufsOf (A e.I.t.name).X (A e.I.t.name).d, off ≤ q.1) → e.nc = 0
+
 /-- **Each frame below resumes where the frame above ends**: at the return pc the header of the
-frame above holds in `M`, its cursor that frame's end; and each frame `TailA`. -/
+frame above holds in `M`, its cursor that frame's end, no call made there before the buffers
+(`NcTop`); and each frame `TailA`. -/
 def ChainA (A : String → FnAl) (M : ℕ → E) : List Ent → Prop
   | [] => True
   | [e] => TailA e
   | e :: e' :: st => TailA e ∧ (∃ r, M (e.I.fp + 0) = ofK (addressOfIndex r) ∧ r < 2 ^ 63 ∧
-      e.I.endCur B2C.fs coreProgram.loop = cursorAt A e' (r - entOf A e'.I.t.name)) ∧ ChainA A M (e' :: st)
+      e.I.endCur B2C.fs coreProgram.loop = cursorAt A e' (r - entOf A e'.I.t.name) ∧
+      NcTop A e' (r - entOf A e'.I.t.name)) ∧ ChainA A M (e' :: st)
 
 /-- **The bump pointer's track**: in the prologue the next free cell is past `main`'s frame; past
 it, a state of the tree track at the state's pc and frame whose top frame's cursor is the next free
@@ -68,7 +77,8 @@ cell, its frames chained. -/
 def YAlloc (A : String → FnAl) (r : Ref) (s : St) : Prop :=
   (s.steps < proLen → s.nextFree = r.adv.mainFrame) ∧
     (proLen ≤ s.steps → s.steps < r.n → ∃ done e st, RefTrack A r s.pc s.fp (done, e :: st) ∧
-      s.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) ∧ ChainA A (memOf r.img) (e :: st))
+      s.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) ∧ ChainA A (memOf r.img) (e :: st) ∧
+      NcTop A e (s.pc - entOf A e.I.t.name))
 
 end
 
@@ -91,17 +101,57 @@ theorem allocDst_mem {es : List Ev} {d : V} (h : d ∈ allocDsts es) : ∃ a, Ev
     simp only [Ev.allocDst?, reduceCtorEq, Option.some.injEq] at hd <;> subst hd <;>
     exact ⟨_, he, by simp [atomUses, hintUses]⟩
 
+/-- **A value's cell holds it on the reference**: at a frame of the tree track of function `j`, a
+value an atom of its path uses, whose cell the allocation check admits (`allocCellOk`), is at that
+cell of the frame, below `maxCells`. -/
+theorem cellRef {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent} {st : List Ent}
+    (hT : RefTrack alignA r pc fp (done, e :: st)) {j : ℕ} (hj : B2C.idxOf e.I.t.name = some j) {v : V}
+    (hv : ∃ a, Ev.atom a ∈ e.pre ++ e.es ∧ v ∈ atomUses a) (hcell : allocCellOk (ctxOf j) (B2C.fsN j) v = true) :
+    e.I.fp + (ctxOf j).locAt v.idx < maxCells ∧ refMem r.img (e.I.fp + (ctxOf j).locAt v.idx) = e.σ v := by
+  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
+  obtain ⟨rd, hHon, hHX⟩ := hr.honest
+  obtain ⟨hI, j', bufs, kids, vs, hj', hIt, hfn, hw, hFH⟩ :=
+    (hT.frames hr.name hHon hHX.covers) e List.mem_cons_self
+  obtain rfl : j = j' := Option.some.inj (hj.symm.trans hj')
+  have hE := hT.track.ents e List.mem_cons_self
+  obtain ⟨at', hat, hdu⟩ := hv
+  have hevs : e.I.t.events coreProgram = e.pre ++ e.es := by rw [hIt]; exact events_node hE.find hw
+  have hA2 : alignA e.I.t.name = fnAl j := alignA_of hj
+  rcases hx : (ctxOf j).extra.lookup v.idx with _ | c
+  · simp only [allocCellOk, hx, Option.isSome_none, Bool.false_or, Bool.and_eq_true, decide_eq_true_eq] at hcell
+    obtain ⟨-, hlocC⟩ := pairOk_alignA _ _ j hE.find hj
+    have hx' : (alignA e.I.t.name).X.extra.lookup v.idx = none := by rw [hA2]; exact hx
+    have hlc : (ctxOf j).locAt v.idx = (certOf j).locs.getD v.idx 0 := by
+      have := hlocC v.idx hx' hcell.1.1
+      rwa [hA2] at this
+    have hcj : B2C.cellJ j v = (ctxOf j).locAt v.idx := hlc.symm
+    rw [← hcj] at hcell ⊢
+    have hrd := hFH.val v (List.mem_append_left _ (List.mem_append_right _ (List.mem_flatMap.mpr ⟨_, hat, hdu⟩)))
+      hcell.1.2 hcell.2
+    obtain ⟨i, -, -, -, -, -, hfs, -⟩ := B2C.fn_of_idx hj
+    have hwithin : e.I.fp + B2C.fs e.I.t.name ≤ r.T.total B2C.fs :=
+      honest_within hI (by have := hHon.cells.two_le e.I hI; omega)
+    have h28 : r.T.total B2C.fs ≤ 2 ^ r.κ := le_two_pow_logMem _
+    have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
+    exact refRd_img hκ r.img _ _ (by rw [hfs] at hwithin; omega) hrd
+  · have hx' : (alignA e.I.t.name).X.extra.lookup v.idx = some c := by rw [hA2]; exact hx
+    obtain ⟨hlt, hrd⟩ := hr.extra e.I hI _ _ bufs kids hIt v (by rw [hevs]; exact List.mem_flatMap.mpr ⟨_, hat, hdu⟩) c hx'
+    have hlc : (ctxOf j).locAt v.idx = c := by
+      unfold Bridge.AlignCtx.locAt; rw [hx]; rfl
+    rw [hlc]
+    have := refRd_img hκ r.img (e.I.fp + c) _ (by omega) hrd
+    exact this
+
 /-- **The reference holds a buffer's base at its hint's pointer cell**: at a frame of the tree track
 whose function passes the allocation check, the `k`-th buffer hint's pointer cell holds
 `g^(cur + bufs[0] + … + bufs[k-1])`, the instance's cursor past the buffers before it. -/
-theorem bufBase_ref {r : Ref} (hr : r.Ok) (hXR : ExtraRef alignA) {pc fp : ℕ} {done : List Pop} {e : Ent}
+theorem bufBase_ref {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent}
     {st : List Ent} (hT : RefTrack alignA r pc fp (done, e :: st)) {j : ℕ} (hj : B2C.idxOf e.I.t.name = some j)
     (hA : AllocJ j) {k : ℕ} {h : Prover.Exec.Hint}
     (hk : (((allocHints (adviceOf j)).filter fun q ↦ isBuf (ctxOf j) q.2).map (·.2))[k]? = some h)
     {p : ℕ} (hp : allocPtr h = some p) :
     k < e.I.t.bufs.length ∧ e.I.fp + p < maxCells ∧
       refMem r.img (e.I.fp + p) = ofK (addressOfIndex (e.I.cur + (e.I.t.bufs.take k).sum)) := by
-  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j', bufs, kids, vs, hj', hIt, hfn, hw, hFH⟩ :=
     (hT.frames hr.name hHon hHX.covers) e List.mem_cons_self
@@ -132,47 +182,10 @@ theorem bufBase_ref {r : Ref} (hr : r.Ok) (hXR : ExtraRef alignA) {pc fp : ℕ} 
   obtain ⟨hσ, hlt⟩ := hE'.alloc_at (cert := B2C.cert) hIp hIP hdk
   refine ⟨hlt, ?_⟩
   -- the pointer's cell
-  set d := allocDstOf a
-  have hdmem : d ∈ allocDsts (e.pre ++ e.es) := List.mem_of_getElem? hdk
-  obtain ⟨at', hat, hdu⟩ := allocDst_mem hdmem
-  have hevs : e.I.t.events coreProgram = e.pre ++ e.es := by rw [hIt]; exact events_node hE.find hw0
-  have hM : e.I.fp + p < 2 ^ r.κ ∧ refMem r.img (e.I.fp + p) = e.σ d := by
-    rcases hx : (alignA e.I.t.name).X.extra.lookup d.idx with _ | c
-    · have hA2 : alignA e.I.t.name = fnAl j := alignA_of hj
-      have hx' : (ctxOf j).extra.lookup d.idx = none := by rw [← hx, hA2]; rfl
-      simp only [allocCellOk, hx', Option.isSome_none, Bool.false_or, Bool.and_eq_true, decide_eq_true_eq] at hcell
-      obtain ⟨-, hlocC⟩ := pairOk_alignA _ _ j hE.find hj
-      have hlc : (ctxOf j).locAt d.idx = (certOf j).locs.getD d.idx 0 := by
-        have := hlocC d.idx (by rw [hA2]; exact hx') hcell.1.1
-        rwa [hA2] at this
-      have hcj : B2C.cellJ j d = (ctxOf j).locAt d.idx := hlc.symm
-      rw [← hcj] at hcell hloc
-      have hrd := hFH.val d (List.mem_append_left _ (List.mem_append_right _ (List.mem_flatMap.mpr ⟨_, hat, hdu⟩)))
-        hcell.1.2 hcell.2
-      obtain ⟨i, -, -, -, -, -, hfs, -⟩ := B2C.fn_of_idx hj
-      have hwithin : e.I.fp + B2C.fs e.I.t.name ≤ r.T.total B2C.fs :=
-        honest_within hI (by have := hHon.cells.two_le e.I hI; omega)
-      have h28 : r.T.total B2C.fs ≤ 2 ^ r.κ := le_two_pow_logMem _
-      have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
-      rw [← hloc]
-      refine ⟨by rw [hfs] at hwithin; omega, ?_⟩
-      exact (refRd_img hκ r.img _ _ (by rw [hfs] at hwithin; omega) hrd).2
-    · have hc := hXR r hr e.I hI _ _ bufs kids hIt d (by rw [hevs]; exact List.mem_flatMap.mpr ⟨_, hat, hdu⟩) c hx
-      have hlc : (alignA e.I.t.name).X.locAt d.idx = c := by
-        unfold Bridge.AlignCtx.locAt; rw [hx]; rfl
-      have hA2 : alignA e.I.t.name = fnAl j := alignA_of hj
-      rw [hA2] at hlc
-      change (ctxOf j).locAt d.idx = c at hlc
-      rw [hlc] at hloc
-      subst hloc
-      refine ⟨?_, hc⟩
-      by_contra hge
-      have h0 : refMem r.img (e.I.fp + c) = 0 := by unfold refMem; rw [dite_eq_right_iff.mpr (fun h ↦ absurd h hge)]
-      rw [hc, hσ] at h0
-      exact Mode.ofK_gpow_ne_zero _ h0
-  refine ⟨lt_of_lt_of_le hM.1 (Nat.pow_le_pow_right (by norm_num) hκ), ?_⟩
-  rw [hM.2]
-  exact hσ
+  have hdmem : allocDstOf a ∈ allocDsts (e.pre ++ e.es) := List.mem_of_getElem? hdk
+  obtain ⟨hc1, hc2⟩ := cellRef hr hT hj (allocDst_mem hdmem) hcell
+  rw [hloc] at hc1 hc2
+  exact ⟨hc1, hc2.trans hσ⟩
 
 end
 

@@ -29,7 +29,7 @@ theorem curBodyOk :
 
 /-- `shared_selector_tables`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«shared_selector_tables».fs Fn.«shared_selector_tables».plumb Fn.«shared_selector_tables».core.body Fn.«shared_selector_tables».code.code
+    Bridge.allocRest alignCtx Fn.«shared_selector_tables».fs Fn.«shared_selector_tables».core.loop Fn.«shared_selector_tables».plumb Fn.«shared_selector_tables».core.body Fn.«shared_selector_tables».code.code
       Data.adviceFn11 = true := by
   decide +kernel
 
@@ -54,7 +54,7 @@ theorem curBodyOk :
 
 /-- `eq_prefix_run__L39`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«eq_prefix_run__L39».fs Fn.«eq_prefix_run__L39».plumb Fn.«eq_prefix_run__L39».core.body Fn.«eq_prefix_run__L39».code.code
+    Bridge.allocRest alignCtx Fn.«eq_prefix_run__L39».fs Fn.«eq_prefix_run__L39».core.loop Fn.«eq_prefix_run__L39».plumb Fn.«eq_prefix_run__L39».core.body Fn.«eq_prefix_run__L39».code.code
       Data.adviceFn79 = true := by
   decide +kernel
 
@@ -79,7 +79,7 @@ theorem curBodyOk :
 
 /-- `rs_eq_rows__L3`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«rs_eq_rows__L3».fs Fn.«rs_eq_rows__L3».plumb Fn.«rs_eq_rows__L3».core.body Fn.«rs_eq_rows__L3».code.code
+    Bridge.allocRest alignCtx Fn.«rs_eq_rows__L3».fs Fn.«rs_eq_rows__L3».core.loop Fn.«rs_eq_rows__L3».plumb Fn.«rs_eq_rows__L3».core.body Fn.«rs_eq_rows__L3».code.code
       Data.adviceFn85 = true := by
   decide +kernel
 
@@ -104,7 +104,7 @@ theorem curBodyOk :
 
 /-- `index_mle__L11`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«index_mle__L11».fs Fn.«index_mle__L11».plumb Fn.«index_mle__L11».core.body Fn.«index_mle__L11».code.code
+    Bridge.allocRest alignCtx Fn.«index_mle__L11».fs Fn.«index_mle__L11».core.loop Fn.«index_mle__L11».plumb Fn.«index_mle__L11».core.body Fn.«index_mle__L11».code.code
       Data.adviceFn208 = true := by
   decide +kernel
 
@@ -129,7 +129,7 @@ theorem curBodyOk :
 
 /-- `index_mle__L28`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«index_mle__L28».fs Fn.«index_mle__L28».plumb Fn.«index_mle__L28».core.body Fn.«index_mle__L28».code.code
+    Bridge.allocRest alignCtx Fn.«index_mle__L28».fs Fn.«index_mle__L28».core.loop Fn.«index_mle__L28».plumb Fn.«index_mle__L28».core.body Fn.«index_mle__L28».code.code
       Data.adviceFn225 = true := by
   decide +kernel
 
@@ -154,7 +154,7 @@ theorem curBodyOk :
 
 /-- `column_selector__L18`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«column_selector__L18».fs Fn.«column_selector__L18».plumb Fn.«column_selector__L18».core.body Fn.«column_selector__L18».code.code
+    Bridge.allocRest alignCtx Fn.«column_selector__L18».fs Fn.«column_selector__L18».core.loop Fn.«column_selector__L18».plumb Fn.«column_selector__L18».core.body Fn.«column_selector__L18».code.code
       Data.adviceFn293 = true := by
   decide +kernel
 
@@ -179,7 +179,7 @@ theorem curBodyOk :
 
 /-- `column_selector__L21`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«column_selector__L21».fs Fn.«column_selector__L21».plumb Fn.«column_selector__L21».core.body Fn.«column_selector__L21».code.code
+    Bridge.allocRest alignCtx Fn.«column_selector__L21».fs Fn.«column_selector__L21».core.loop Fn.«column_selector__L21».plumb Fn.«column_selector__L21».core.body Fn.«column_selector__L21».code.code
       Data.adviceFn296 = true := by
   decide +kernel
 
@@ -204,7 +204,7 @@ theorem curBodyOk :
 
 /-- `squeeze_point_from__L27`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«squeeze_point_from__L27».fs Fn.«squeeze_point_from__L27».plumb Fn.«squeeze_point_from__L27».core.body Fn.«squeeze_point_from__L27».code.code
+    Bridge.allocRest alignCtx Fn.«squeeze_point_from__L27».fs Fn.«squeeze_point_from__L27».core.loop Fn.«squeeze_point_from__L27».plumb Fn.«squeeze_point_from__L27».core.body Fn.«squeeze_point_from__L27».code.code
       Data.adviceFn316 = true := by
   decide +kernel
 
@@ -229,7 +229,7 @@ theorem curBodyOk :
 
 /-- `opening_message__L1_L1`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«opening_message__L1_L1».fs Fn.«opening_message__L1_L1».plumb Fn.«opening_message__L1_L1».core.body Fn.«opening_message__L1_L1».code.code
+    Bridge.allocRest alignCtx Fn.«opening_message__L1_L1».fs Fn.«opening_message__L1_L1».core.loop Fn.«opening_message__L1_L1».plumb Fn.«opening_message__L1_L1».core.body Fn.«opening_message__L1_L1».code.code
       Data.adviceFn320 = true := by
   decide +kernel
 
@@ -254,7 +254,7 @@ theorem curBodyOk :
 
 /-- `claim_list_last__L5`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«claim_list_last__L5».fs Fn.«claim_list_last__L5».plumb Fn.«claim_list_last__L5».core.body Fn.«claim_list_last__L5».code.code
+    Bridge.allocRest alignCtx Fn.«claim_list_last__L5».fs Fn.«claim_list_last__L5».core.loop Fn.«claim_list_last__L5».plumb Fn.«claim_list_last__L5».core.body Fn.«claim_list_last__L5».code.code
       Data.adviceFn354 = true := by
   decide +kernel
 
@@ -279,7 +279,7 @@ theorem curBodyOk :
 
 /-- `child_claim_list_last__L2`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«child_claim_list_last__L2».fs Fn.«child_claim_list_last__L2».plumb Fn.«child_claim_list_last__L2».core.body Fn.«child_claim_list_last__L2».code.code
+    Bridge.allocRest alignCtx Fn.«child_claim_list_last__L2».fs Fn.«child_claim_list_last__L2».core.loop Fn.«child_claim_list_last__L2».plumb Fn.«child_claim_list_last__L2».core.body Fn.«child_claim_list_last__L2».code.code
       Data.adviceFn370 = true := by
   decide +kernel
 
@@ -304,7 +304,7 @@ theorem curBodyOk :
 
 /-- `da_levels__L512_L9`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«da_levels__L512_L9».fs Fn.«da_levels__L512_L9».plumb Fn.«da_levels__L512_L9».core.body Fn.«da_levels__L512_L9».code.code
+    Bridge.allocRest alignCtx Fn.«da_levels__L512_L9».fs Fn.«da_levels__L512_L9».core.loop Fn.«da_levels__L512_L9».plumb Fn.«da_levels__L512_L9».core.body Fn.«da_levels__L512_L9».code.code
       Data.adviceFn417 = true := by
   decide +kernel
 
@@ -329,7 +329,7 @@ theorem curBodyOk :
 
 /-- `da_column_offsets_loop1`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«da_column_offsets_loop1».fs Fn.«da_column_offsets_loop1».plumb Fn.«da_column_offsets_loop1».core.body Fn.«da_column_offsets_loop1».code.code
+    Bridge.allocRest alignCtx Fn.«da_column_offsets_loop1».fs Fn.«da_column_offsets_loop1».core.loop Fn.«da_column_offsets_loop1».plumb Fn.«da_column_offsets_loop1».core.body Fn.«da_column_offsets_loop1».code.code
       Data.adviceFn425 = true := by
   decide +kernel
 
@@ -354,7 +354,7 @@ theorem curBodyOk :
 
 /-- `level_residual__L218_L19_L6_L3`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«level_residual__L218_L19_L6_L3».fs Fn.«level_residual__L218_L19_L6_L3».plumb Fn.«level_residual__L218_L19_L6_L3».core.body Fn.«level_residual__L218_L19_L6_L3».code.code
+    Bridge.allocRest alignCtx Fn.«level_residual__L218_L19_L6_L3».fs Fn.«level_residual__L218_L19_L6_L3».core.loop Fn.«level_residual__L218_L19_L6_L3».plumb Fn.«level_residual__L218_L19_L6_L3».core.body Fn.«level_residual__L218_L19_L6_L3».code.code
       Data.adviceFn711 = true := by
   decide +kernel
 
@@ -379,7 +379,7 @@ theorem curBodyOk :
 
 /-- `level_positions__L8_L22_L4`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«level_positions__L8_L22_L4».fs Fn.«level_positions__L8_L22_L4».plumb Fn.«level_positions__L8_L22_L4».core.body Fn.«level_positions__L8_L22_L4».code.code
+    Bridge.allocRest alignCtx Fn.«level_positions__L8_L22_L4».fs Fn.«level_positions__L8_L22_L4».core.loop Fn.«level_positions__L8_L22_L4».plumb Fn.«level_positions__L8_L22_L4».core.body Fn.«level_positions__L8_L22_L4».code.code
       Data.adviceFn734 = true := by
   decide +kernel
 
@@ -404,7 +404,7 @@ theorem curBodyOk :
 
 /-- `level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».fs Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».plumb Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».core.body Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».code.code
+    Bridge.allocRest alignCtx Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».fs Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».core.loop Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».plumb Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».core.body Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».code.code
       Data.adviceFn751 = true := by
   decide +kernel
 
@@ -429,7 +429,7 @@ theorem curBodyOk :
 
 /-- `level_positions__L28_L26_L2`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«level_positions__L28_L26_L2».fs Fn.«level_positions__L28_L26_L2».plumb Fn.«level_positions__L28_L26_L2».core.body Fn.«level_positions__L28_L26_L2».code.code
+    Bridge.allocRest alignCtx Fn.«level_positions__L28_L26_L2».fs Fn.«level_positions__L28_L26_L2».core.loop Fn.«level_positions__L28_L26_L2».plumb Fn.«level_positions__L28_L26_L2».core.body Fn.«level_positions__L28_L26_L2».code.code
       Data.adviceFn901 = true := by
   decide +kernel
 
@@ -454,7 +454,7 @@ theorem curBodyOk :
 
 /-- `da_levels__L256_L8_loop3`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«da_levels__L256_L8_loop3».fs Fn.«da_levels__L256_L8_loop3».plumb Fn.«da_levels__L256_L8_loop3».core.body Fn.«da_levels__L256_L8_loop3».code.code
+    Bridge.allocRest alignCtx Fn.«da_levels__L256_L8_loop3».fs Fn.«da_levels__L256_L8_loop3».core.loop Fn.«da_levels__L256_L8_loop3».plumb Fn.«da_levels__L256_L8_loop3».core.body Fn.«da_levels__L256_L8_loop3».code.code
       Data.adviceFn977 = true := by
   decide +kernel
 
@@ -479,7 +479,7 @@ theorem curBodyOk :
 
 /-- `decode_query_windows__L18_L6`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«decode_query_windows__L18_L6».fs Fn.«decode_query_windows__L18_L6».plumb Fn.«decode_query_windows__L18_L6».core.body Fn.«decode_query_windows__L18_L6».code.code
+    Bridge.allocRest alignCtx Fn.«decode_query_windows__L18_L6».fs Fn.«decode_query_windows__L18_L6».core.loop Fn.«decode_query_windows__L18_L6».plumb Fn.«decode_query_windows__L18_L6».core.body Fn.«decode_query_windows__L18_L6».code.code
       Data.adviceFn1007 = true := by
   decide +kernel
 
@@ -504,7 +504,7 @@ theorem curBodyOk :
 
 /-- `level_residual__L33_L6_L4_L2_loop1`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«level_residual__L33_L6_L4_L2_loop1».fs Fn.«level_residual__L33_L6_L4_L2_loop1».plumb Fn.«level_residual__L33_L6_L4_L2_loop1».core.body Fn.«level_residual__L33_L6_L4_L2_loop1».code.code
+    Bridge.allocRest alignCtx Fn.«level_residual__L33_L6_L4_L2_loop1».fs Fn.«level_residual__L33_L6_L4_L2_loop1».core.loop Fn.«level_residual__L33_L6_L4_L2_loop1».plumb Fn.«level_residual__L33_L6_L4_L2_loop1».core.body Fn.«level_residual__L33_L6_L4_L2_loop1».code.code
       Data.adviceFn1059 = true := by
   decide +kernel
 
@@ -529,7 +529,7 @@ theorem curBodyOk :
 
 /-- `level_residual__L55_L11_L4_L2_loop1`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«level_residual__L55_L11_L4_L2_loop1».fs Fn.«level_residual__L55_L11_L4_L2_loop1».plumb Fn.«level_residual__L55_L11_L4_L2_loop1».core.body Fn.«level_residual__L55_L11_L4_L2_loop1».code.code
+    Bridge.allocRest alignCtx Fn.«level_residual__L55_L11_L4_L2_loop1».fs Fn.«level_residual__L55_L11_L4_L2_loop1».core.loop Fn.«level_residual__L55_L11_L4_L2_loop1».plumb Fn.«level_residual__L55_L11_L4_L2_loop1».core.body Fn.«level_residual__L55_L11_L4_L2_loop1».code.code
       Data.adviceFn1093 = true := by
   decide +kernel
 
@@ -554,7 +554,7 @@ theorem curBodyOk :
 
 /-- `level_residual__L109_L17_L6_L3_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«level_residual__L109_L17_L6_L3_loop0».fs Fn.«level_residual__L109_L17_L6_L3_loop0».plumb Fn.«level_residual__L109_L17_L6_L3_loop0».core.body Fn.«level_residual__L109_L17_L6_L3_loop0».code.code
+    Bridge.allocRest alignCtx Fn.«level_residual__L109_L17_L6_L3_loop0».fs Fn.«level_residual__L109_L17_L6_L3_loop0».core.loop Fn.«level_residual__L109_L17_L6_L3_loop0».plumb Fn.«level_residual__L109_L17_L6_L3_loop0».core.body Fn.«level_residual__L109_L17_L6_L3_loop0».code.code
       Data.adviceFn1166 = true := by
   decide +kernel
 
@@ -579,7 +579,7 @@ theorem curBodyOk :
 
 /-- `level_residual__L55_L22_L6_L3_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«level_residual__L55_L22_L6_L3_loop0».fs Fn.«level_residual__L55_L22_L6_L3_loop0».plumb Fn.«level_residual__L55_L22_L6_L3_loop0».core.body Fn.«level_residual__L55_L22_L6_L3_loop0».code.code
+    Bridge.allocRest alignCtx Fn.«level_residual__L55_L22_L6_L3_loop0».fs Fn.«level_residual__L55_L22_L6_L3_loop0».core.loop Fn.«level_residual__L55_L22_L6_L3_loop0».plumb Fn.«level_residual__L55_L22_L6_L3_loop0».core.body Fn.«level_residual__L55_L22_L6_L3_loop0».code.code
       Data.adviceFn1387 = true := by
   decide +kernel
 
@@ -604,7 +604,7 @@ theorem curBodyOk :
 
 /-- `level_residual__L19_L11_L4_L2_loop1`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«level_residual__L19_L11_L4_L2_loop1».fs Fn.«level_residual__L19_L11_L4_L2_loop1».plumb Fn.«level_residual__L19_L11_L4_L2_loop1».core.body Fn.«level_residual__L19_L11_L4_L2_loop1».code.code
+    Bridge.allocRest alignCtx Fn.«level_residual__L19_L11_L4_L2_loop1».fs Fn.«level_residual__L19_L11_L4_L2_loop1».core.loop Fn.«level_residual__L19_L11_L4_L2_loop1».plumb Fn.«level_residual__L19_L11_L4_L2_loop1».core.body Fn.«level_residual__L19_L11_L4_L2_loop1».code.code
       Data.adviceFn1454 = true := by
   decide +kernel
 
@@ -629,7 +629,7 @@ theorem curBodyOk :
 
 /-- `walk_path__L12_L4`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«walk_path__L12_L4».fs Fn.«walk_path__L12_L4».plumb Fn.«walk_path__L12_L4».core.body Fn.«walk_path__L12_L4».code.code
+    Bridge.allocRest alignCtx Fn.«walk_path__L12_L4».fs Fn.«walk_path__L12_L4».core.loop Fn.«walk_path__L12_L4».plumb Fn.«walk_path__L12_L4».core.body Fn.«walk_path__L12_L4».code.code
       Data.adviceFn1510 = true := by
   decide +kernel
 
@@ -654,7 +654,7 @@ theorem curBodyOk :
 
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».fs Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».plumb Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».code.code
+    Bridge.allocRest alignCtx Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».fs Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».core.loop Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».plumb Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».code.code
       Data.adviceFn1539 = true := by
   decide +kernel
 
@@ -679,7 +679,7 @@ theorem curBodyOk :
 
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».fs Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».plumb Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».code.code
+    Bridge.allocRest alignCtx Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».fs Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».core.loop Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».plumb Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».code.code
       Data.adviceFn1560 = true := by
   decide +kernel
 
@@ -704,7 +704,7 @@ theorem curBodyOk :
 
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».fs Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».plumb Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».code.code
+    Bridge.allocRest alignCtx Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».fs Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».core.loop Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».plumb Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».code.code
       Data.adviceFn1567 = true := by
   decide +kernel
 
@@ -729,7 +729,7 @@ theorem curBodyOk :
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».fs Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».plumb Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».code.code
+    Bridge.allocRest alignCtx Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».fs Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».core.loop Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».plumb Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».code.code
       Data.adviceFn1581 = true := by
   decide +kernel
 

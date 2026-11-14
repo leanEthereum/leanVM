@@ -29,7 +29,7 @@ theorem curBodyOk :
 
 /-- `verify_tables`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«verify_tables».fs Fn.«verify_tables».plumb Fn.«verify_tables».core.body Fn.«verify_tables».code.code
+    Bridge.allocRest alignCtx Fn.«verify_tables».fs Fn.«verify_tables».core.loop Fn.«verify_tables».plumb Fn.«verify_tables».core.body Fn.«verify_tables».code.code
       Data.adviceFn12 = true := by
   decide +kernel
 

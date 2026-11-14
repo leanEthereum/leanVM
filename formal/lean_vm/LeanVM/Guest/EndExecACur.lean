@@ -149,8 +149,13 @@ theorem frameOk_spec {X : AlignCtx} {code : List OffsetInstruction} {a : ℕ} {h
   · cases h2
 
 /-- **What the bump pointer check gives** of a function's code and body. -/
-structure CurFacts (X : AlignCtx) (P : B2C.Plumb) (body : List Stmt) (code : List OffsetInstruction)
-    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Prop where
+structure CurFacts (X : AlignCtx) (fs : ℕ) (loop : Bool) (P : B2C.Plumb) (body : List Stmt)
+    (code : List OffsetInstruction) (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Prop where
+  addr : ∀ p ∈ d.2.2, ∀ h ∈ p.2, addrOk X fs loop h = true
+  first : bufsFirst X false (allocHints d) = true
+  frameKind : ∀ q ∈ frames X d, (match q.2 with
+    | .alloc .. | .allocArm .. | .allocFrames .. => true
+    | _ => false) = true
   bufs : ∀ (i oc od of : ℕ), code[i]? = some (.jump oc od of) →
     (∀ q ∈ bufsOf X d, q.1 ≤ i) ∨ bufJumpOk X (bufsOf X d) i oc od of = true
   frame : ∀ q ∈ frames X d, frameOk X code q.1 q.2 = true
@@ -166,14 +171,19 @@ structure CurFacts (X : AlignCtx) (P : B2C.Plumb) (body : List Stmt) (code : Lis
 
 theorem pendIn_nil (code : List OffsetInstruction) (off : ℕ) : pendIn code [] off = false := rfl
 
-theorem curFacts_of {X : AlignCtx} {P : B2C.Plumb} {body : List Stmt} {code : List OffsetInstruction}
-    {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (h : curChk X P body code d = true) : CurFacts X P body code d := by
+theorem curFacts_of {X : AlignCtx} {fs : ℕ} {loop : Bool} {P : B2C.Plumb} {body : List Stmt}
+    {code : List OffsetInstruction} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)}
+    (h : curChk X fs loop P body code d = true) : CurFacts X fs loop P body code d := by
   simp only [curChk, curCode, curBody, Exec.listSeq_eq, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq,
     List.all_eq_true, Bool.not_eq_true'] at h
-  obtain ⟨⟨⟨⟨⟨⟨hj, -⟩, -⟩, hfr⟩, hso⟩, hret⟩, hcnt, harm⟩ := h
+  obtain ⟨⟨haddr, ⟨⟨⟨⟨⟨hj, hbf⟩, -⟩, hfr⟩, hso⟩, hret⟩⟩, hcnt, harm⟩ := h
   have hfr' : ∀ q ∈ frames X d, frameOk X code q.1 q.2 = true := hfr
   have hnil : frames X d = [] → ∀ off, pendIn code (frames X d) off = false := fun h0 off ↦ by rw [h0]; rfl
-  refine ⟨fun i oc od of hi ↦ ?_, hfr', fun i ins hi hjj ↦ ?_, fun hs i oc od of hi hsi ↦ ?_, fun i oc od of hi t ht ↦ ?_,
+  refine ⟨haddr, hbf, fun q hq ↦ by
+      have := hfr' q hq
+      unfold frameOk at this
+      rw [Bool.and_eq_true] at this
+      exact this.1, fun i oc od of hi ↦ ?_, hfr', fun i ins hi hjj ↦ ?_, fun hs i oc od of hi hsi ↦ ?_, fun i oc od of hi t ht ↦ ?_,
     fun s hs x arms he od a k t ha hax hk ht ↦ ?_, hret, hcnt⟩
   · have := bufsJumps_at 0 code hj i oc od of hi
     rwa [Nat.zero_add] at this
@@ -199,8 +209,8 @@ theorem curFacts_of {X : AlignCtx} {P : B2C.Plumb} {body : List Stmt} {code : Li
 
 /-- **A jump through the own frame, on a constant `0`, through a next frame or a return** is no frame
 hint's. -/
-theorem noFrame_of {X : AlignCtx} {P : B2C.Plumb} {body : List Stmt} {code : List OffsetInstruction}
-    {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (hF : CurFacts X P body code d) {off oc od of : ℕ}
+theorem noFrame_of {X : AlignCtx} {fs : ℕ} {loop : Bool} {P : B2C.Plumb} {body : List Stmt} {code : List OffsetInstruction}
+    {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (hF : CurFacts X fs loop P body code d) {off oc od of : ℕ}
     (hi : code[off]? = some (.jump oc od of))
     (hk : X.zeroAt oc = true ∨ X.selfAt of = true ∨ X.nextAt of = true ∨ (od = 0 ∧ of = 1)) :
     ∀ q ∈ frames X d, nextJump code q.1 ≠ off := fun q hq he ↦ by
@@ -213,8 +223,8 @@ theorem noFrame_of {X : AlignCtx} {P : B2C.Plumb} {body : List Stmt} {code : Lis
   · rw [h] at h3; cases h3
   · exact h4 h
 
-theorem frJump_of {X : AlignCtx} {P : B2C.Plumb} {body : List Stmt} {code : List OffsetInstruction}
-    {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (hF : CurFacts X P body code d) : FrJump code (frames X d) :=
+theorem frJump_of {X : AlignCtx} {fs : ℕ} {loop : Bool} {P : B2C.Plumb} {body : List Stmt} {code : List OffsetInstruction}
+    {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (hF : CurFacts X fs loop P body code d) : FrJump code (frames X d) :=
   fun q hq ↦ let ⟨_, _, _, hc, _⟩ := frameOk_spec (hF.frame q hq); ⟨_, hc⟩
 
 /-! ## The cursor and the chain by frame -/
@@ -303,7 +313,7 @@ variable {r : Ref}
 
 /-- What the bump pointer check gives of a frame's function. -/
 theorem curFacts_frame {f : String} {j : ℕ} (hj : B2C.idxOf f = some j) :
-    CurFacts (alignA f).X (B2C.plumbOf j) (alignA f).body (alignA f).code (alignA f).d := by
+    CurFacts (alignA f).X (B2C.fsN j) (coreOf j).loop (B2C.plumbOf j) (alignA f).body (alignA f).code (alignA f).d := by
   obtain ⟨i, rfl, -, -, -, -, -, -, h1, h2⟩ := B2C.fn_of_idx hj
   rw [alignA_of hj]
   exact curFacts_of (AllocChk.curJ_all _ h1 (by have : nFns = 1602 := rfl; omega))
@@ -454,9 +464,36 @@ theorem kidsC_getElem? {lp : String → Bool} {t : Tree} {nc : ℕ} (h : nc < (t
 
 theorem bif01 (b : Bool) : (bif b then 1 else 0) = if b = true then 1 else 0 := by cases b <;> rfl
 
+/-- `NcTop` past a step within the frame, the same calls made, forward. -/
+theorem ncTop_same {A : String → FnAl} {e e' : Ent} {off off' : ℕ} (hI : e'.I = e.I) (hnc : e'.nc = e.nc)
+    (h : NcTop A e off) (hle : off ≤ off') : NcTop A e' off' := fun ⟨q, hq, hq'⟩ ↦ by
+  rw [hnc]; exact h ⟨q, by rw [← hI]; exact hq, by omega⟩
+
+/-- `NcTop` past every buffer hint. -/
+theorem ncTop_past {A : String → FnAl} {e : Ent} {off : ℕ}
+    (h : ∀ q ∈ bufsOf (A e.I.t.name).X (A e.I.t.name).d, q.1 < off) : NcTop A e off :=
+  fun ⟨q, hq, hq'⟩ ↦ absurd (h q hq) (by omega)
+
+theorem ncTop_enter (A : String → FnAl) {P : Core.Program} (J : Inst) (fn : Fn) (off : ℕ) :
+    NcTop A (Ent.enter P J fn) off := fun _ ↦ rfl
+
+/-- **A jump through a call site's frame cell or a next frame is past every buffer hint.** -/
+theorem bufs_le_of_call {X : AlignCtx} {bs : List (ℕ × Prover.Exec.Hint)} {i oc od of : ℕ}
+    (h : (∀ q ∈ bs, q.1 ≤ i) ∨ bufJumpOk X bs i oc od of = true)
+    (hc : X.nextAt of = true ∨ (getF X.sites of).isSome = true) : ∀ q ∈ bs, q.1 ≤ i := by
+  rcases h with h | h
+  · exact h
+  · unfold bufJumpOk at h
+    rcases hc with hc | hc
+    · simp [hc, nextAt_selfAt hc] at h
+    · rw [Option.isSome_iff_ne_none] at hc
+      cases hs : getF X.sites of with
+      | none => exact absurd hs hc
+      | some _ => simp [hs] at h
+
 /-- **The cursor follows each step of the tree track**, on the deployed alignment. -/
 theorem curArith_alignA : CurArith alignA := by
-  intro r hr pc fp done e st r' htr hch hstep hne'
+  intro r hr pc fp done e st r' htr hch hncT hstep hne'
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, -⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
   have hE := htr.track.ents e List.mem_cons_self
@@ -492,7 +529,8 @@ theorem curArith_alignA : CurArith alignA := by
   have hkC := kidsC_length (lp := coreProgram.loop) e.I.t
   cases hk with
   | @fall e' ins hI' hnc' hins hjk =>
-    refine ⟨_, _, done', _, st, hr', hts', ?_, chainA_top hI' (tailA_congr hI' hnc' (chainA_tail hch)) hch⟩
+    refine ⟨_, _, done', _, st, hr', hts', ?_, chainA_top hI' (tailA_congr hI' hnc' (chainA_tail hch)) hch,
+      ncTop_same hI' hnc' hncT (by rw [hI']; omega)⟩
     rw [cursorAt_congr hI' hnc', hI', show entOf alignA e.I.t.name + off + 1 - entOf alignA e.I.t.name = off + 1 by omega,
       hstep', cursorAt_unfold, hnbS]
     have hpe : (bif pendAt (alignA e.I.t.name).X (alignA e.I.t.name).code (alignA e.I.t.name).d (off + 1) then 1 else 0) =
@@ -509,7 +547,8 @@ theorem curArith_alignA : CurArith alignA := by
     rw [hpe]
     rfl
   | @fwd e' oc od of _ hI' hnc' hins hz0 hself htgt hlt =>
-    refine ⟨_, _, done', _, st, hr', hts', ?_, chainA_top hI' (tailA_congr hI' hnc' (chainA_tail hch)) hch⟩
+    refine ⟨_, _, done', _, st, hr', hts', ?_, chainA_top hI' (tailA_congr hI' hnc' (chainA_tail hch)) hch,
+      ncTop_same hI' hnc' hncT (by rw [hI']; omega)⟩
     rw [cursorAt_congr hI' hnc', hI', hstep', cursorAt_unfold]
     have hlt' : off < pc' - entOf alignA e.I.t.name := by omega
     obtain ⟨h1, h2, -⟩ := pend_nf hins rfl (noFrame_of hF hins (Or.inr (Or.inl hself)))
@@ -520,7 +559,7 @@ theorem curArith_alignA : CurArith alignA := by
       · obtain ⟨ha, hb⟩ := nb_none hU h
         rw [hb _ hlt']; exact ha.symm
       · unfold bufJumpOk at h
-        simp only [hz0, Bool.false_or, Bool.and_eq_true] at h
+        simp only [hz0, Bool.false_and, Bool.false_or, Bool.and_eq_true] at h
         obtain ⟨⟨⟨⟨-, -⟩, -⟩, harm⟩, hpc'⟩ := h
         rcases htgt with ht | ⟨z, x, arms, ss, a, k, hz, hzc, ha, hax, hk, hjt⟩
         · rw [ht] at hpc'
@@ -578,7 +617,12 @@ theorem curArith_alignA : CurArith alignA := by
           simp only [Tree.total, Tree.block]
         rw [hpb, ← Nat.add_assoc]
         rfl
-    refine ⟨_, _, done', _, st, hr', hts', ?_, chainA_top hI' ?_ hch⟩
+    have hcall : (alignA e.I.t.name).X.nextAt of = true ∨ (getF (alignA e.I.t.name).X.sites of).isSome = true := by
+      rcases hcase with ⟨hnx, -⟩ | ⟨s, hs⟩
+      · exact Or.inl hnx
+      · exact Or.inr (siteAt_some hs)
+    have hle := bufs_le_of_call (hF.bufs off oc od of hins) hcall
+    refine ⟨_, _, done', _, st, hr', hts', ?_, chainA_top hI' ?_ hch, ncTop_past fun q hq ↦ ?_⟩
     · rw [hI', show entOf alignA e.I.t.name + off + 1 - entOf alignA e.I.t.name = off + 1 by omega]
       exact hcur
     · unfold TailA
@@ -588,6 +632,9 @@ theorem curArith_alignA : CurArith alignA := by
       · exact phantom_last hph (by omega) hne
       · have := hkl ▸ notLast_of_site hj hwj hl hc hs
         omega
+    · rw [hI'] at hq ⊢
+      have := hle q hq
+      omega
   | @push e' J fn oc od of c s hI' hnc' hins hc hsite hsr hat hJ hk hkf hfind hhdr =>
     have hPs : s ∈ (B2C.plumbOf j).sites := by
       rw [alignA_of hj] at hsite; exact (siteAt_ofData hsite).1
@@ -625,7 +672,9 @@ theorem curArith_alignA : CurArith alignA := by
       have := (entry_of_atPc progAl alLayout_alignA hE' hat).1
       rw [guest_logSize] at this
       omega
-    refine ⟨_, _, done', _, e' :: st, hr', hts', ?_, tailA_enter J fn, ⟨s.r, hhdr, hsr63, ?_⟩, chainA_top hI' ?_ hch⟩
+    have hle := bufs_le_of_call (hF.bufs off oc od of hins) (Or.inr (siteAt_some hsite))
+    refine ⟨_, _, done', _, e' :: st, hr', hts', ?_, ⟨tailA_enter J fn, ⟨s.r, hhdr, hsr63, ?_,
+      ncTop_past fun q hq ↦ ?_⟩, chainA_top hI' ?_ hch⟩, ncTop_enter alignA J fn _⟩
     · change cursorAt alignA (Ent.enter coreProgram J fn) (entOf alignA J.t.name - entOf alignA J.t.name) = _
       rw [Nat.sub_self, cursorAt_enter, hstep', hnbo, hfrAt, hpd, hsum, htake, ← hJcur,
         List.getElem?_eq_getElem hnc, hkc]
@@ -636,6 +685,9 @@ theorem curArith_alignA : CurArith alignA := by
       rw [cursorAt_unfold alignA e', hI', hnc', hnbt _ (by omega), hpd, hret, htake,
         endCur_kid (fs := B2C.fs) hnc hkc.symm hJfp.symm (by rw [← hJcur, ← hJfp, hkc])]
       simp only [Inst.curAt, List.take_length, Bool.cond_false, Nat.zero_mul, Nat.add_zero]
+    · rw [hI'] at hq ⊢
+      have := hle q hq
+      omega
     · unfold TailA
       rw [hI', hnc']
       intro hl hle
@@ -664,19 +716,19 @@ theorem curArith_alignA : CurArith alignA := by
       rw [take_map_sum_le (by omega)]
     have hend : J.endCur B2C.fs coreProgram.loop = e.I.endCur B2C.fs coreProgram.loop :=
       endCur_tail hl hne hJt hJcur.symm hnode
-    refine ⟨_, _, done', _, st, hr', hts', ?_, ?_⟩
+    refine ⟨_, _, done', _, st, hr', hts', ?_, ?_, ncTop_enter alignA J fn _⟩
     · change cursorAt alignA (Ent.enter coreProgram J fn) (entOf alignA J.t.name - entOf alignA J.t.name) = _
       rw [Nat.sub_self]; exact hcur
     · rcases st with _ | ⟨e2, st2⟩
       · exact tailA_enter J fn
-      · obtain ⟨-, ⟨r0, hr0, hlt, he⟩, hrest⟩ := hch
+      · obtain ⟨-, ⟨r0, hr0, hlt, he, hn2⟩, hrest⟩ := hch
         exact ⟨tailA_enter J fn, ⟨r0, by rw [← hr0]; exact hhdr, hlt, by
-          change J.endCur B2C.fs coreProgram.loop = _; rw [hend]; exact he⟩, hrest⟩
+          change J.endCur B2C.fs coreProgram.loop = _; rw [hend]; exact he, hn2⟩, hrest⟩
   | @ret e2 st2 oc _ hins hz0 hmain hst hlen hhdr =>
     subst hst
     obtain ⟨h1, h2, -⟩ := pend_nf hins rfl (noFrame_of hF hins (Or.inr (Or.inr (Or.inr ⟨rfl, rfl⟩))))
     obtain ⟨hnbo, -⟩ := hnone oc 0 1 hins (by unfold bufJumpOk; simp [hz0])
-    obtain ⟨htl, ⟨r1, hr1, hr1lt, hend⟩, hrest⟩ := hch
+    obtain ⟨htl, ⟨r1, hr1, hr1lt, hend, hn2⟩, hrest⟩ := hch
     have hE2 : EntOk coreProgram (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) e2 :=
       hts'.track.ents e2 List.mem_cons_self
     have hr0lt : pc' < 2 ^ 63 := by
@@ -689,7 +741,7 @@ theorem curArith_alignA : CurArith alignA := by
     subst hr10
     have htake : (e.I.t.bufs.take (bufsOf (alignA e.I.t.name).X (alignA e.I.t.name).d).length).sum = e.I.t.bufs.sum :=
       take_sum_le hbl
-    refine ⟨_, _, done', e2, st2, hr', hts', ?_, hrest⟩
+    refine ⟨_, _, done', e2, st2, hr', hts', ?_, hrest, hn2⟩
     rw [← hend, endCur_ret hnode (fun hl hk ↦ htl hl (by omega) hk), hstep', hnbo, hfrAt, h2, hpd, h1, htake]
     simp only [Inst.curAt, List.take_length, Bool.cond_false, Nat.zero_mul, Nat.add_zero]
     rw [take_map_sum_le (l := e.I.t.kidsC coreProgram.loop) (n := e.nc) (by rw [hkC]; split <;> omega)]

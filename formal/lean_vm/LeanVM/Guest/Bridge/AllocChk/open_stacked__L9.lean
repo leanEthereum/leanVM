@@ -29,7 +29,7 @@ theorem curBodyOk :
 
 /-- `open_stacked__L9`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«open_stacked__L9».fs Fn.«open_stacked__L9».plumb Fn.«open_stacked__L9».core.body Fn.«open_stacked__L9».code.code
+    Bridge.allocRest alignCtx Fn.«open_stacked__L9».fs Fn.«open_stacked__L9».core.loop Fn.«open_stacked__L9».plumb Fn.«open_stacked__L9».core.body Fn.«open_stacked__L9».code.code
       Data.adviceFn345 = true := by
   decide +kernel
 

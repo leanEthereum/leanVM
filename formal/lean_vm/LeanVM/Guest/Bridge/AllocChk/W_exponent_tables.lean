@@ -29,7 +29,7 @@ theorem curBodyOk :
 
 /-- `exponent_tables`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«exponent_tables».fs Fn.«exponent_tables».plumb Fn.«exponent_tables».core.body Fn.«exponent_tables».code.code
+    Bridge.allocRest alignCtx Fn.«exponent_tables».fs Fn.«exponent_tables».core.loop Fn.«exponent_tables».plumb Fn.«exponent_tables».core.body Fn.«exponent_tables».code.code
       Data.adviceFn2 = true := by
   decide +kernel
 

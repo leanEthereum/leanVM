@@ -29,7 +29,7 @@ theorem curBodyOk :
 
 /-- `verify_merkle_cap__L8`'s allocation hints pass the check. -/
 theorem allocOk :
-    Bridge.allocRest alignCtx Fn.«verify_merkle_cap__L8».fs Fn.«verify_merkle_cap__L8».plumb Fn.«verify_merkle_cap__L8».core.body Fn.«verify_merkle_cap__L8».code.code
+    Bridge.allocRest alignCtx Fn.«verify_merkle_cap__L8».fs Fn.«verify_merkle_cap__L8».core.loop Fn.«verify_merkle_cap__L8».plumb Fn.«verify_merkle_cap__L8».core.body Fn.«verify_merkle_cap__L8».code.code
       Data.adviceFn1236 = true := by
   decide +kernel
 
