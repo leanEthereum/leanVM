@@ -12,19 +12,20 @@
 //! the `eq`-weighted sum of byte lookups ([`PackFold`]).
 
 use fiat_shamir::transcript::ProverState;
+use primitives::field::lanes::{ByteMap, transpose_bytes};
 use primitives::field::{Acc8, F128, F128Unreduced, F128x8};
 use primitives::multilinear::{eq_table, poly_eval};
 
 use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose};
 use crate::kernels::{
-    COLUMNS, GROUP, MIXED, MIXED_POINTS, PROD_BYTES, ProductBlock, ProductMaps, SKIP, SkipBlock, TERNARY, byte_sums,
-    ternary,
+    COLUMNS, GROUP, MIXED, MIXED_POINTS, PROD_BYTES, ProductBlock, ProductMaps, SKIP, SkipBlock, TERNARY, element_maps,
+    map_sums, ternary,
 };
 use crate::open::fold;
 use crate::poly::AtS;
 use crate::protocol::{Claim, chi_weights, mu_at};
 use crate::rmfe::{PACK, PROD_BITS};
-use crate::witness::{Witness, words};
+use crate::witness::{BLOCK_WORDS, Shape, Witness};
 
 struct Layer<'a> {
     witness: &'a Witness,
@@ -160,7 +161,7 @@ impl Layer<'_> {
     /// position, the value at `s` of group `half` of block `g`'s packs, folded by `fold`. Rows of
     /// segments that do not exist are zero. The padding blocks' rows are those of the padding
     /// block, folded and summed once.
-    fn table(&self, summand: &Summand, fold: &PackFold, eq: &[F128]) -> (Vec<F128>, (F128, F128)) {
+    fn table(&self, summand: &Summand, fold: &PackFold, eq: &[F128], table: &mut [F128]) -> (F128, F128) {
         let shape = self.witness.shape;
         let (nb, written) = (shape.n_blocks(), self.witness.written());
         let rows = |block: &[u64], out: &mut [F128]| {
@@ -180,15 +181,15 @@ impl Layer<'_> {
                 (out, values)
             })
             .collect();
-        let mut table = parallel::filled((2 * BITS * nb) << shape.seg_log(), F128::ZERO);
         let values = parallel::map_reduce_chunks_mut(
-            [&mut table],
+            [table],
             [2 * BITS],
             || (),
             || (F128Unreduced::ZERO, F128Unreduced::ZERO),
             |_, acc, p, [out]| {
                 let (segment, g) = (p / nb, p % nb);
                 if segment >= self.rounds.len() {
+                    out.fill(F128::ZERO);
                     return;
                 }
                 let (zero, infinity) = if g < written {
@@ -202,38 +203,46 @@ impl Layer<'_> {
             },
             |a, b| (a.0 ^ b.0, a.1 ^ b.1),
         );
-        (table, (values.0.reduce(), values.1.reduce()))
+        (values.0.reduce(), values.1.reduce())
     }
 }
 
 /// The packs of a group folded at the skip's challenges: a pack's value at `s` is the sum of the
-/// instance weights of its set bits, so a folded one is a sum of byte lookups.
+/// instance weights of its set bits, so a folded group is a linear map of its 32 bytes, a byte map
+/// per byte of the input and of the value ([`map_sums`]), applied to 64 positions at a time.
 struct PackFold {
-    /// Per pack of a group, its `eq` weight times each instance weight, as subset sums of the pack's
-    /// low byte and of its high byte.
-    tables: Vec<[[F128; 256]; 2]>,
+    /// Per byte `t` of a position's 64, its share of its group's value: pack `t / 2`'s `eq` weight
+    /// times the instance weights of its low or its high byte.
+    maps: Vec<[ByteMap; 16]>,
 }
 
 impl PackFold {
     fn new(mu: &[F128; PACK], challenges: &[F128]) -> Self {
-        let tables = eq_table(challenges)
-            .iter()
-            .map(|&e| [0, 1].map(|k| byte_sums(&std::array::from_fn(|t| e * mu[8 * k + t]))))
+        let eq = eq_table(challenges);
+        let maps = (0..8 * BLOCK_WORDS)
+            .map(|t| element_maps(&std::array::from_fn(|c| eq[t / 2 % GROUP] * mu[8 * (t % 2) + c])))
             .collect();
-        Self { tables }
+        Self { maps }
     }
 
     /// Both groups of a block, folded: entry `BITS * half + j` of `out` is position `j` of group
     /// `half`.
     fn rows(&self, block: &[u64], out: &mut [F128]) {
-        for (half, row) in out.as_chunks_mut::<BITS>().0.iter_mut().enumerate() {
-            for (j, out) in row.iter_mut().enumerate() {
-                let words = words(block, j);
-                *out = F128::ZERO;
-                for (a, tables) in self.tables.iter().enumerate() {
-                    let q = GROUP * half + a;
-                    let pack = (words[q / 4] >> (16 * (q % 4))) as usize & 0xffff;
-                    *out += tables[0][pack & 0xff] + tables[1][pack >> 8];
+        for j in (0..BITS).step_by(64) {
+            // Byte `t` of each of the 64 positions from `j`.
+            let mut bytes = [[0u64; 8]; 64];
+            let positions = block[j * BLOCK_WORDS..][..64 * BLOCK_WORDS]
+                .as_chunks::<BLOCK_WORDS>()
+                .0;
+            for (k, positions) in positions.as_chunks::<16>().0.iter().enumerate() {
+                for (bytes, t) in bytes.iter_mut().zip(transpose_bytes(positions)) {
+                    bytes[2 * k..][..2].copy_from_slice(&[t as u64, (t >> 64) as u64]);
+                }
+            }
+            for (half, maps) in self.maps.chunks(32).enumerate() {
+                let values = map_sums(maps, |t| bytes[32 * half + t]);
+                for (out, v) in out[BITS * half + j..][..64].iter_mut().zip(values) {
+                    *out = F128::from(v);
                 }
             }
         }
@@ -347,9 +356,20 @@ fn local_round(w: &[F128], t: &[Vec<F128>; 3], kappa: F128) -> [F128; 4] {
     h
 }
 
+/// The two tables the rounds over packs and segments fold between, allocated once for every layer:
+/// a row per group of each block and segment, and half as many.
+pub(crate) struct Tables([Vec<F128>; 2]);
+
+impl Tables {
+    pub fn new(shape: Shape) -> Self {
+        let len = (2 * BITS * shape.n_blocks()) << shape.seg_log();
+        Self([len, len / 2].map(|len| parallel::filled(len, F128::ZERO)))
+    }
+}
+
 /// Prove one layer, as `crates/verifier`'s `keccak.rs` checks it: a claim on the states `step`
 /// layers below the outputs becomes one on the states a layer further down.
-pub fn prove_layer(ps: &mut ProverState, witness: &Witness, step: usize, claim: &Claim) -> Claim {
+pub fn prove_layer(ps: &mut ProverState, witness: &Witness, step: usize, claim: &Claim, tables: &mut Tables) -> Claim {
     let shape = witness.shape;
     let layer = Layer {
         witness,
@@ -393,13 +413,13 @@ pub fn prove_layer(ps: &mut ProverState, witness: &Witness, step: usize, claim: 
 
     // The groups, blocks and segments, on a table. Each pass over it writes the rows of one round
     // and sums that round's values over them.
-    let (mut table, mut values) = tracing::info_span!("Tables").in_scope(|| {
+    let [table, half] = &mut tables.0;
+    let mut values = tracing::info_span!("Tables").in_scope(|| {
         let eq = eq_table(&claim.point[SKIP + 1..]);
-        layer.table(&summand, &PackFold::new(&mu, &point), &eq)
+        layer.table(&summand, &PackFold::new(&mu, &point), &eq, table)
     });
     let tail = tracing::info_span!("Tail").entered();
     // Each round folds one table into the other.
-    let mut half = parallel::filled(table.len() / 2, F128::ZERO);
     let (mut src, mut dst) = (&mut table[..], &mut half[..]);
     for i in SKIP..claim.point.len() {
         let coeffs = round_coefficients(scale, values.0, values.1, value, claim.point[i]);

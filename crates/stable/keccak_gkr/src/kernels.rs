@@ -39,22 +39,39 @@ pub(crate) const PROD_BYTES: usize = PROD_BITS.div_ceil(8);
 const COLUMN_WORDS: usize = PACKS * PROD_BYTES;
 /// The weighted bit sums of a block: per pack, one per bit of its products.
 pub(crate) const COLUMNS: usize = 8 * COLUMN_WORDS;
-/// Bytes of a weight.
-const WEIGHT_BYTES: usize = 16;
-/// The bytes of the sums [`ProductBlock::run`] holds at once.
-const HELD: usize = 8;
+/// Bytes of a field element.
+const ELEMENT_BYTES: usize = 16;
+/// The bytes of the sums [`map_sums`] holds at once.
+const HELD: usize = 4;
 
-/// The position weights as byte maps: per run of eight positions and byte `b` of a weight, the map sending bit `k`
-/// to byte `b` of the weight of the run's position `k`.
-pub(crate) struct ProductMaps(Vec<[ByteMap; WEIGHT_BYTES]>);
+/// The byte maps of a linear map from bytes to field elements, one per byte of the element, from the images of the
+/// eight bits.
+pub(crate) fn element_maps(images: &[F128; 8]) -> [ByteMap; ELEMENT_BYTES] {
+    let bytes = images.map(|w| u128::from(w).to_le_bytes());
+    std::array::from_fn(|o| ByteMap::new(std::array::from_fn(|c| bytes[c][o])))
+}
+
+/// For 64 positions, the sum over `i` of `maps[i]` of byte `n` of `bytes(i)`, a field element per position `n`.
+pub(crate) fn map_sums(maps: &[[ByteMap; ELEMENT_BYTES]], bytes: impl Fn(usize) -> Run) -> [u128; 64] {
+    let mut sums = [[0u64; 8]; ELEMENT_BYTES];
+    for (o, sums) in sums.as_chunks_mut::<HELD>().0.iter_mut().enumerate() {
+        for (i, maps) in maps.iter().enumerate() {
+            let x = bytes(i);
+            for (sum, map) in sums.iter_mut().zip(&maps[HELD * o..]) {
+                *sum = xor(*sum, map_bytes(map, x));
+            }
+        }
+    }
+    transpose_bytes(&sums)
+}
+
+/// The position weights as byte maps ([`element_maps`]): per run of eight positions, bit `k` to the weight of its
+/// position `k`.
+pub(crate) struct ProductMaps(Vec<[ByteMap; ELEMENT_BYTES]>);
 
 impl ProductMaps {
     pub fn new(weights: &[F128]) -> Self {
-        let runs = weights.as_chunks::<8>().0.iter().map(|w| {
-            let bytes = w.map(|w| u128::from(w).to_le_bytes());
-            std::array::from_fn(|b| ByteMap::new(std::array::from_fn(|k| bytes[k][b])))
-        });
-        Self(runs.collect())
+        Self(weights.as_chunks::<8>().0.iter().map(element_maps).collect())
     }
 }
 
@@ -91,16 +108,9 @@ impl ProductBlock {
             }
         }
         for (v, out) in out.as_chunks_mut::<64>().0.iter_mut().enumerate() {
-            let mut sums = [[0u64; 8]; WEIGHT_BYTES];
-            for (o, sums) in sums.as_chunks_mut::<HELD>().0.iter_mut().enumerate() {
-                for (columns, maps) in self.columns.iter().zip(&maps.0) {
-                    let bits: Run = columns[8 * v..][..8].try_into().expect("eight words");
-                    for (sum, map) in sums.iter_mut().zip(&maps[HELD * o..]) {
-                        *sum = xor(*sum, map_bytes(map, bits));
-                    }
-                }
-            }
-            *out = transpose_bytes(&sums);
+            *out = map_sums(&maps.0, |a| {
+                self.columns[a][8 * v..][..8].try_into().expect("eight words")
+            });
         }
     }
 }

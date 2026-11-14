@@ -7,7 +7,7 @@ use verifier::VerifierError;
 use crate::batch_bench::{batch_instance, batch_transcript, commit_stack, open_commitment, scalar_proof};
 use crate::keccak::{BITS, LANE_VARS, LANES, LOCAL_VARS, along, iota_bit};
 use crate::protocol::{Claim, first_claim};
-use crate::prover::prove_layer;
+use crate::prover::{Tables, prove_layer};
 use crate::rmfe::PROD_BITS;
 use crate::witness::{BLOCK, BLOCK_LEN, BLOCK_WORDS, Shape, Witness, run_block};
 
@@ -77,8 +77,9 @@ fn layers_round_trip(n_instances: usize, depth: usize) {
     let (r_low, point, r_lane) = (ps.sample_vec(4), ps.sample_vec(shape.y_vars()), ps.sample_vec(5));
     let mut claim = first_claim(shape, &r_low, point, &r_lane);
     claim.value = evaluate(shape, &outputs, &claim);
+    let mut tables = Tables::new(shape);
     for step in 0..depth {
-        claim = prove_layer(&mut ps, &witness, step, &claim);
+        claim = prove_layer(&mut ps, &witness, step, &claim, &mut tables);
     }
     assert_eq!(
         claim.value,

@@ -193,9 +193,12 @@ impl Witness {
         first.value += committed_value;
 
         let mut claim = first.clone();
+        let mut tables = prover::Tables::new(shape);
         for step in 0..shape.depth {
-            claim = tracing::info_span!("Layer", step).in_scope(|| prover::prove_layer(ps, self, step, &claim));
+            claim = tracing::info_span!("Layer", step)
+                .in_scope(|| prover::prove_layer(ps, self, step, &claim, &mut tables));
         }
+        drop(tables);
         let _span = tracing::info_span!("Openings").entered();
         let outputs =
             (shape.segments() > 1).then(|| open::open_outputs(ps, shape, instance, &first, committed_value, folded));
