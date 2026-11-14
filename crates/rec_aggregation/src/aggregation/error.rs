@@ -10,7 +10,8 @@ pub enum AggregateError {
     /// A raw signature is invalid. Only some are caught here; the others make proving fail
     /// ([`Self::ProvingFailed`]).
     InvalidSignature,
-    /// A child cannot be read: it was never a valid proof.
+    /// A child is invalid. Only some are caught here; the others make proving fail
+    /// ([`Self::ProvingFailed`]).
     InvalidChild,
     /// No proof was made: an input that passed the checks above is invalid (a forged signature or
     /// child), or the node is too large for one proof.
@@ -22,7 +23,7 @@ impl std::fmt::Display for AggregateError {
         match self {
             Self::InvalidInput(reason) => write!(f, "invalid input: {reason}"),
             Self::InvalidSignature => write!(f, "a raw signature is invalid"),
-            Self::InvalidChild => write!(f, "a child is not a valid proof"),
+            Self::InvalidChild => write!(f, "a child is invalid"),
             Self::ProvingFailed => write!(f, "proving failed"),
         }
     }
