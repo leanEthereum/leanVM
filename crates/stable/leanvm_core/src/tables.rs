@@ -243,6 +243,9 @@ impl<'a> FillCtx<'a> {
     ) {
         /// Rows per task.
         const CHUNK: usize = 1 << 12;
+        /// Rows staged at a time. A row's values go to `N` windows a power of two apart, which share cache sets, so
+        /// they are written a column's run at a time rather than a row at a time.
+        const STAGE: usize = 64;
         assert!(n_rows <= self.height, "a table's rows must fit its cube");
         let padding: [F64; N] = std::array::from_fn(|k| self.padding[at + k]);
         let window: &mut [ColumnOut; N] = (&mut out[at..at + N]).try_into().unwrap();
@@ -257,11 +260,17 @@ impl<'a> FillCtx<'a> {
             || (),
             || (),
             |_, _, task, mut chunks| {
-                for i in 0..chunks[0].len() {
-                    let row = task * CHUNK + i;
-                    let values = if row < n_rows { f(row) } else { padding };
-                    for (column, value) in chunks.iter_mut().zip(values) {
-                        column[i] = value;
+                for start in (0..chunks[0].len()).step_by(STAGE) {
+                    let len = STAGE.min(chunks[0].len() - start);
+                    let mut staged = [[F64::ZERO; N]; STAGE];
+                    for (i, values) in staged[..len].iter_mut().enumerate() {
+                        let row = task * CHUNK + start + i;
+                        *values = if row < n_rows { f(row) } else { padding };
+                    }
+                    for (k, column) in chunks.iter_mut().enumerate() {
+                        for (slot, values) in column[start..start + len].iter_mut().zip(&staged) {
+                            *slot = values[k];
+                        }
                     }
                 }
             },
