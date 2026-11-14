@@ -7,7 +7,7 @@
 use fiat_shamir::merkle::Hash;
 use primitives::hash::{OUT_LEN, hash, hash_many};
 
-use crate::{Blob, BlobCountError, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Symbol, encode::encode_rows};
+use crate::{Blob, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Symbol, encode::encode_rows};
 
 /// Digests in one blob's flat tree.
 const BLOB_TREE: usize = 2 * CELLS_PER_ROW - 1;
@@ -40,6 +40,21 @@ impl DaWitness {
         self.root
     }
 }
+
+/// The number of blobs is not 1 to [`DA_MAX_ROWS`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BlobCountError {
+    /// The number of blobs given.
+    pub blobs: usize,
+}
+
+impl std::fmt::Display for BlobCountError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} blobs: expected 1 to {DA_MAX_ROWS}", self.blobs)
+    }
+}
+
+impl std::error::Error for BlobCountError {}
 
 /// Encode the blobs and commit to them; [`DaWitness::root`] is the commitment.
 ///

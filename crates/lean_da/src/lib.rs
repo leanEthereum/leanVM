@@ -13,7 +13,7 @@
 mod commit;
 mod encode;
 
-pub use commit::{DaWitness, commit, padding_root};
+pub use commit::{BlobCountError, DaWitness, commit, padding_root};
 
 /// Each blob is 128 KiB = 2^LOG_BLOB_SYMBOLS symbols in GF(2^128).
 pub const LOG_BLOB_SYMBOLS: usize = 13;
@@ -39,18 +39,3 @@ pub type Blob = [Symbol; BLOB_SYMBOLS];
 pub type Codeword = [Symbol; CODEWORD_SYMBOLS];
 
 const _: () = assert!(DA_MAX_ROWS.is_power_of_two());
-
-/// The number of blobs is not 1 to [`DA_MAX_ROWS`].
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct BlobCountError {
-    /// The number of blobs given.
-    pub blobs: usize,
-}
-
-impl std::fmt::Display for BlobCountError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} blobs: expected 1 to {DA_MAX_ROWS}", self.blobs)
-    }
-}
-
-impl std::error::Error for BlobCountError {}
