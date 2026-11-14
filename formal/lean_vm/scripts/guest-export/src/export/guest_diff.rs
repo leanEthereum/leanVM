@@ -77,7 +77,7 @@ impl Out {
     }
 
     /// `NodeStatement`: the claims, the DA digest (`verifier::da::digest`), and the deferred claim.
-    fn statement(&mut self, claims: &EthereumClaims, p: &EthereumProof) {
+    fn statement(&mut self, claims: &EthereumClaims, defer: &DeferredBytecodeClaim) {
         self.tag("xmss");
         self.n(claims.lean_xmss.len());
         for (pk, m) in &claims.lean_xmss {
@@ -92,7 +92,7 @@ impl Out {
         }
         self.tag("da");
         self.bytes(&verifier::da::digest(claims.da_commitment));
-        self.deferred(&p.defer);
+        self.deferred(defer);
     }
 
     /// The leaf index, then each layer, bottom first, its randomizer, chain values and path: read off the
@@ -174,17 +174,19 @@ fn export(
     out.tag("log_memory");
     out.n(node.proof.stream[0].c0 as usize);
     out.tag("public_input");
-    out.es(&public_input(&claims, &node.defer));
+    let defer = DeferredBytecodeClaim::recompute(node.bytecode_point.clone()).expect("a well-formed point");
+    out.es(&public_input(&claims, &defer));
     out.tag("statement");
-    out.statement(&claims, &node);
+    out.statement(&claims, &defer);
 
     out.tag("children");
     out.n(children.len());
     let bytecode = scalar_bytecode();
     for (child_claims, child) in &children {
         out.tag("child");
-        out.statement(child_claims, child);
-        let pi = public_input(child_claims, &child.defer);
+        let defer = DeferredBytecodeClaim::recompute(child.bytecode_point.clone()).expect("a well-formed point");
+        out.statement(child_claims, &defer);
+        let pi = public_input(child_claims, &defer);
         let scalar = scalar_proof(&child.proof);
         let summary =
             verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar).expect("the child replays");

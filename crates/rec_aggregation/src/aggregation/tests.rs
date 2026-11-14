@@ -343,7 +343,8 @@ fn aggregate_two_to_one() {
     let node = aggregate(&children, vec![], vec![], &[], None, LOG_INV_RATE).expect("node aggregates");
     node.verify().expect("node verifies");
     // `cpu::verify` accepts the same proof of the same statement.
-    verify(unified_guest(), &public_input(&node.0, &node.1.defer), &node.1.proof).expect("node verifies natively");
+    let defer = DeferredBytecodeClaim::recompute(node.1.bytecode_point.clone()).unwrap();
+    verify(unified_guest(), &public_input(&node.0, &defer), &node.1.proof).expect("node verifies natively");
     assert_eq!(node.0.lean_xmss.len(), SMALL_LEAF_SIZE + big);
 }
 

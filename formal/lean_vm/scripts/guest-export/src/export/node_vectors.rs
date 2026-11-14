@@ -116,14 +116,13 @@ pub fn file() -> File {
     let carried: Vec<DeferredBytecodeClaim> = (0..2)
         .map(|_| DeferredBytecodeClaim::recompute(elements(&mut rng, kbcv)).unwrap())
         .collect();
-    let carried_refs: Vec<&DeferredBytecodeClaim> = carried.iter().collect();
     // Each child's fresh claim, then its carried one: the batch's order, which its sums follow.
     let points: Vec<Vec<F128>> = subproofs
         .iter()
         .zip(&carried)
         .flat_map(|(subproof, carried)| [subproof.bytecode_point.clone(), carried.bytecode_point.clone()])
         .collect();
-    let (hints, batched) = aggregate_deferred_claims(&subproofs, &carried_refs, bytecode_sums(&points))
+    let (hints, batched) = aggregate_deferred_claims(&subproofs, &carried, bytecode_sums(&points))
         .expect("the honest children's deferred values are the bytecode's evaluations");
     let hint = |name: &str| &hints.iter().find(|(n, _)| *n == name).unwrap().1;
     let msgs = hint("bc_sumcheck_msgs");

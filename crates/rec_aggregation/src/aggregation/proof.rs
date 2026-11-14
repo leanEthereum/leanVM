@@ -1,6 +1,6 @@
 //! The aggregate, its wire format and its native verification.
 
-use super::deferred::{DeferredBytecodeClaim, scalar_bytecode};
+use super::deferred::{DeferredBytecodeClaim, bytecode_vars, scalar_bytecode};
 use super::error::{AggregateVerifyError, StarkVerifyError};
 use super::statement::statement_digest;
 use super::{LeanSphincsClaim, LeanXmssClaim};
@@ -25,8 +25,8 @@ pub struct EthereumClaims {
 /// the claims the receiver expects.
 #[derive(Clone, Debug)]
 pub struct EthereumProof {
-    /// The bytecode claim left to the parent proof, or to [`Self::verify`].
-    pub(super) defer: DeferredBytecodeClaim,
+    /// The point of the deferred bytecode claim; its value is computed from it.
+    pub(super) bytecode_point: Vec<F128>,
     pub(super) proof: leanvm_core::cpu::Proof,
 }
 
@@ -75,28 +75,25 @@ pub(super) fn public_input(claims: &EthereumClaims, defer: &DeferredBytecodeClai
 
 impl EthereumProof {
     pub fn to_bytes(&self) -> Vec<u8> {
-        encode(&self.defer.bytecode_point, &self.proof.to_bytes())
+        encode(&self.bytecode_point, &self.proof.to_bytes())
     }
 
     /// Decode a proof. This does not verify: call [`Self::verify`].
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, AggregateVerifyError> {
         let (bytecode_point, proof) = decode(bytes).ok_or(AggregateVerifyError::MalformedEncoding)?;
+        if bytecode_point.len() != bytecode_vars() {
+            return Err(AggregateVerifyError::MalformedClaim);
+        }
         let proof = leanvm_core::cpu::Proof::from_bytes(proof).ok_or(AggregateVerifyError::MalformedEncoding)?;
-        Ok(Self {
-            defer: DeferredBytecodeClaim::recompute_scalar(bytecode_point)?,
-            proof,
-        })
+        Ok(Self { bytecode_point, proof })
     }
 
     /// Verify that this proves `claims`: the lists are sorted, the deferred claim holds, and the stark
     /// proof is valid.
     pub fn verify(&self, claims: &EthereumClaims) -> Result<(), AggregateVerifyError> {
         check_signer_set(claims)?;
-        let defer = DeferredBytecodeClaim::recompute_scalar(self.defer.bytecode_point.clone())?;
-        if defer != self.defer {
-            return Err(AggregateVerifyError::MalformedClaim);
-        }
-        let pi = public_input(claims, &self.defer);
+        let defer = DeferredBytecodeClaim::recompute_scalar(self.bytecode_point.clone())?;
+        let pi = public_input(claims, &defer);
         verifier::verify_execution(scalar_bytecode(), &public_input_bytes(&pi), &scalar_proof(&self.proof))
             .map(|_| ())
             .map_err(|e| AggregateVerifyError::Snark(StarkVerifyError(e)))

@@ -117,19 +117,21 @@ pub fn aggregate_with_stats(
     // witness from, pinning the Merkle paths it reads, and fails on a proof it
     // cannot walk. A child that does not
     // verify fails in the guest instead, which verifies every child in the VM,
-    // so `prove` below returns the error. Its deferred claim is likewise not
-    // recomputed: the batching sumcheck below forces every batched value to be
-    // the true evaluation, refusing a false one, and the root discharges the one
-    // claim they reduce to.
+    // so `prove` below returns the error.
     let _span = tracing::info_span!("Replay children").entered();
+    let carried = children
+        .iter()
+        .map(|(_, proof)| DeferredBytecodeClaim::recompute(proof.bytecode_point.clone()))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(AggregateProveError::InvalidChild)?;
     let mut public_inputs = Vec::with_capacity(children.len());
     let child_da: Vec<[u8; 32]> = children
         .iter()
         .map(|(claims, _)| verifier::da::digest(claims.da_commitment))
         .collect();
-    for (claims, proof) in children {
+    for ((claims, _), defer) in children.iter().zip(&carried) {
         check_signer_set(claims).map_err(AggregateProveError::InvalidChild)?;
-        public_inputs.push(public_input(claims, &proof.defer));
+        public_inputs.push(public_input(claims, defer));
     }
     // One single-threaded replay per worker: nothing inside dispatches.
     let bytecode = scalar_bytecode();
@@ -218,10 +220,10 @@ pub fn aggregate_with_stats(
     // claim's value is read off the sums the batch runs on.
     let claim_points: Vec<Vec<F128>> = replayed
         .iter()
-        .zip(children)
-        .flat_map(|((_, summary), (_, child))| {
+        .zip(&carried)
+        .flat_map(|((_, summary), carried)| {
             let fresh = summary.bytecode_point.iter().copied().map(from_scalar).collect();
-            [fresh, child.defer.bytecode_point.clone()]
+            [fresh, carried.bytecode_point.clone()]
         })
         .collect();
     let sums = bytecode_sums(&claim_points);
@@ -232,8 +234,7 @@ pub fn aggregate_with_stats(
         gen_verify(guest, *pi, &children[i].1.proof, summary, value)
     });
     let mut subs = Vec::with_capacity(children.len());
-    let mut carried = Vec::with_capacity(children.len());
-    for (i, ((claims, child), verified)) in children.iter().zip(verified).enumerate() {
+    for (i, ((claims, _), verified)) in children.iter().zip(verified).enumerate() {
         hints.push(
             "child_meta",
             vec![count(claims.lean_xmss.len()), count(claims.lean_sphincs.len())],
@@ -258,14 +259,13 @@ pub fn aggregate_with_stats(
                 }
             }
         }
-        hints.push("child_defer", child.defer.cells());
+        hints.push("child_defer", carried[i].cells());
         hints.push("child_da", hash_to_scalars(&child_da[i]).to_vec());
         let (sub_hints, defer) = verified?;
         for (name, entry) in sub_hints {
             hints.push(name, entry);
         }
         subs.push(defer);
-        carried.push(&child.defer);
     }
 
     drop(_span);
@@ -324,5 +324,9 @@ pub fn aggregate_with_stats(
         lean_sphincs: cover.lean_sphincs.signers,
         da_commitment: da_root,
     };
-    Ok((claims, EthereumProof { defer, proof }, stats))
+    let proof = EthereumProof {
+        bytecode_point: defer.bytecode_point,
+        proof,
+    };
+    Ok((claims, proof, stats))
 }

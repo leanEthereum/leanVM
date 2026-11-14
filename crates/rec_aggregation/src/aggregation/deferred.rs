@@ -249,7 +249,7 @@ fn absorb_round(
 /// [`AggregateVerifyError::MalformedClaim`] when a child carried a value that is not the bytecode's evaluation.
 pub(super) fn aggregate_deferred_claims(
     subproofs: &[DeferredSubproof],
-    carried_claims: &[&DeferredBytecodeClaim],
+    carried_claims: &[DeferredBytecodeClaim],
     mut sums: Vec<Vec<F128>>,
 ) -> Result<(SubHints, DeferredBytecodeClaim), AggregateVerifyError> {
     let child_count = subproofs.len();
