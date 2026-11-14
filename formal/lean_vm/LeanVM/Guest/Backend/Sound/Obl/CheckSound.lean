@@ -38,9 +38,9 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 /-- `v = g^e` with `e < n`. -/
 def Bnd (v : E) (n : Nat) : Prop := ∃ e < n, v = ofK (addressOfIndex e)
 
-/-- The word at `p · g^c` is `g^e` with `e < n`. -/
+/-- The word at `p · g^c`, if read, is `g^e` with `e < n`. -/
 def MemB (rd : Reader) (p : E) (c n : Nat) : Prop :=
-  ∃ e < n, LoadHolds rd p c (ofK (addressOfIndex e))
+  ∀ v, LoadHolds rd p c v → Bnd v n
 
 /-- **A signature's precondition** on argument words, the relations tagged `t` meaning `R t`. -/
 def SigPre (R : Nat → Reader → E → Prop) (rd : Reader) (s : Sig) (args : List E) : Prop :=
@@ -65,19 +65,18 @@ def SigPostOf (w : Want) (σ : Val) (rs : List E) : Prop :=
 def PowsOk (T : Tab) : Prop := ∀ p ∈ T.pows, K.ofBits p.1 = addressOfIndex p.2
 
 /-- What a hypothesis says of a valuation. -/
-def Hyp.Holds (R : Nat → Reader → E → Prop) (T : Tab) (rd : Reader) (σ : Val) : Hyp → Prop
+def Hyp.Holds (R : Nat → Reader → E → Prop) (rd : Reader) (σ : Val) : Hyp → Prop
   | .atom a => a.Holds rd σ
   | .arm x j => σ x = ofK (addressOfIndex j)
-  | .ret f args rets =>
-      SigPost (T.sig f) ((args ++ rets).map σ) ∧ XPost R rd (T.sig f) ((args ++ rets).map σ)
+  | .ret s args rets => SigPost s ((args ++ rets).map σ) ∧ XPost R rd s ((args ++ rets).map σ)
   | .pre x n => Bnd (σ x) n
   | .mem x c n => MemB rd (σ x) c n
   | .rel v t => R t rd (σ v)
 
 /-- Every hypothesis holds. -/
-def CtxHolds (R : Nat → Reader → E → Prop) (T : Tab) (rd : Reader) (σ : Val) (ctx : List Hyp) :
+def CtxHolds (R : Nat → Reader → E → Prop) (rd : Reader) (σ : Val) (ctx : List Hyp) :
     Prop :=
-  ∀ h ∈ ctx, h.Holds R T rd σ
+  ∀ h ∈ ctx, h.Holds R rd σ
 
 /-! ## Words -/
 
@@ -179,7 +178,7 @@ theorem eq_of_veq {a b : V} (h : veq a b = true) : a = b := by
   cases b
   simp_all
 
-theorem gpOf_spec (hT : PowsOk T) (hc : CtxHolds R T rd σ ctx) {x : V} {j : Nat}
+theorem gpOf_spec (hT : PowsOk T) (hc : CtxHolds R rd σ ctx) {x : V} {j : Nat}
     (h : gpOf T ctx x = some j) : σ x = ofK (addressOfIndex j) := by
   unfold gpOf at h
   obtain ⟨a, ha, hp⟩ := List.exists_of_findSome?_eq_some h
@@ -202,7 +201,7 @@ theorem gpOf_spec (hT : PowsOk T) (hc : CtxHolds R T rd σ ctx) {x : V} {j : Nat
     · exact absurd hp (by simp)
   all_goals simp at hp
 
-theorem oppAt_spec (hc : CtxHolds R T rd σ ctx) {x : V} {k : Nat} (h : oppAt ctx x = some k) :
+theorem oppAt_spec (hc : CtxHolds R rd σ ctx) {x : V} {k : Nat} (h : oppAt ctx x = some k) :
     σ x = ofK (1 + addressOfIndex k) := by
   unfold oppAt at h
   obtain ⟨a, ha, hp⟩ := List.exists_of_findSome?_eq_some h
@@ -218,7 +217,7 @@ theorem oppAt_spec (hc : CtxHolds R T rd σ ctx) {x : V} {k : Nat} (h : oppAt ct
     · exact absurd hp (by simp)
   all_goals simp at hp
 
-theorem isBool_spec (hc : CtxHolds R T rd σ ctx) {x : V} (h : isBool ctx x = true) :
+theorem isBool_spec (hc : CtxHolds R rd σ ctx) {x : V} (h : isBool ctx x = true) :
     σ x = 0 ∨ σ x = 1 := by
   unfold isBool at h
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
@@ -235,7 +234,7 @@ theorem isBool_spec (hc : CtxHolds R T rd σ ctx) {x : V} (h : isBool ctx x = tr
     exact IsIdempotentElem.iff_eq_zero_or_one.mp hh.symm
   all_goals simp at hp
 
-theorem bscOf_spec (hc : CtxHolds R T rd σ ctx) {u : V} {k : Nat} (h : bscOf ctx u = some k) :
+theorem bscOf_spec (hc : CtxHolds R rd σ ctx) {u : V} {k : Nat} (h : bscOf ctx u = some k) :
     σ u = 0 ∨ σ u = ofK (1 + addressOfIndex k) := by
   unfold bscOf at h
   obtain ⟨a, ha, hp⟩ := List.exists_of_findSome?_eq_some h
@@ -282,7 +281,7 @@ theorem bscOf_spec (hc : CtxHolds R T rd σ ctx) {u : V} {k : Nat} (h : bscOf ct
     · exact absurd hp (by simp)
   all_goals simp at hp
 
-theorem hypMem_spec {x : V} {c n : Nat} {a : Hyp} (ha : a.Holds R T rd σ)
+theorem hypMem_spec {x : V} {c n : Nat} {a : Hyp} (ha : a.Holds R rd σ)
     (h : hypMem x c a = some n) : MemB rd (σ x) c n := by
   rcases a with _ | _ | _ | _ | ⟨y, c', n'⟩ | _
   all_goals try simp only [hypMem] at h
@@ -296,19 +295,20 @@ theorem hypMem_spec {x : V} {c n : Nat} {a : Hyp} (ha : a.Holds R T rd σ)
     exact ha
   · exact absurd h (by simp)
 
-theorem memOf_spec (hc : CtxHolds R T rd σ ctx) {x : V} {c n : Nat} (h : memOf ctx x c = some n) :
+theorem memOf_spec (hc : CtxHolds R rd σ ctx) {x : V} {c n : Nat} (h : memOf ctx x c = some n) :
     MemB rd (σ x) c n := by
   unfold memOf at h
   exact foldl_minO _ (fun n => MemB rd (σ x) c n) ctx none (by simp)
     (fun a ha m hm => hypMem_spec (hc a ha) hm) n h
 
-theorem memLe_spec (hc : CtxHolds R T rd σ ctx) {x : V} {c n : Nat} (h : memLe ctx x c n = true) :
+theorem memLe_spec (hc : CtxHolds R rd σ ctx) {x : V} {c n : Nat} (h : memLe ctx x c n = true) :
     MemB rd (σ x) c n := by
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   unfold leO at hp
   split at hp
   · rename_i m hm
-    obtain ⟨e, he, hx⟩ := hypMem_spec (hc a ha) hm
+    intro v hv
+    obtain ⟨e, he, hx⟩ := hypMem_spec (hc a ha) hm v hv
     exact ⟨e, by simp only [Nat.ble_eq] at hp; omega, hx⟩
   · exact absurd hp (by simp)
 
@@ -316,8 +316,8 @@ theorem getD_map_lt {l : List V} {i : Nat} (h : i < l.length) :
     (l.map σ).getD i 0 = σ (l.getD i default) := by
   simp [List.getD_eq_getElem?_getD, h]
 
-theorem postOf_spec {f : String} {cells : List V} {x : V} {n : Nat}
-    (hs : SigPost (T.sig f) (cells.map σ)) (h : postOf T f cells x = some n) : Bnd (σ x) n := by
+theorem postOf_spec {sg : Sig} {cells : List V} {x : V} {n : Nat}
+    (hs : SigPost sg (cells.map σ)) (h : postOf sg cells x = some n) : Bnd (σ x) n := by
   unfold postOf at h
   refine foldl_minO _ (fun n => Bnd (σ x) n) _ none (by simp) ?_ n h
   intro p hp m hm
@@ -352,12 +352,12 @@ variable {κ : ℕ} {L : MemoryImage κ}
 
 /-- **The bound one hypothesis puts on a value holds**, given that the bounds `rec` gives
 hold. -/
-theorem hypB_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R T L.read σ ctx) {x : V}
+theorem hypB_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R L.read σ ctx) {x : V}
     {rec : Option (V → Option Nat)}
     (hrec : ∀ r, rec = some r → ∀ y m, r y = some m → Bnd (σ y) m) {a : Hyp} (ha : a ∈ ctx)
     {m : Nat} (hm : hypB T ctx x rec a = some m) : Bnd (σ x) m := by
   have hh := hc a ha
-  rcases a with ⟨a⟩ | ⟨y, j⟩ | ⟨f, as, rs⟩ | ⟨y, n'⟩ | _ | _
+  rcases a with ⟨a⟩ | ⟨y, j⟩ | ⟨sg, as, rs⟩ | ⟨y, n'⟩ | _ | _
   · rcases a with ⟨d, c⟩ | ⟨d, a, b⟩ | ⟨d, a, b⟩ | ⟨d, s⟩ | ⟨d, p, off⟩ | _ | _ |
       ⟨y, yy, t1, t2, k⟩ | _ | _ | _ | _ | _
     all_goals try simp only [hypB] at hm
@@ -433,8 +433,7 @@ theorem hypB_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R T L.read �
       split at hm
       · rename_i hd
         obtain rfl := eq_of_veq hd
-        obtain ⟨e, he, hl⟩ := memOf_spec hc hm
-        exact ⟨e, he, Option.some.inj (hh.2.symm.trans hl.2)⟩
+        exact memOf_spec hc hm _ hh
       · exact absurd hm (by simp)
     · -- a range check
       split at hm
@@ -471,7 +470,7 @@ theorem hypB_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R T L.read �
   all_goals simp [hypB] at hm
 
 /-- **A bound the analysis finds holds.** -/
-theorem bnd_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R T L.read σ ctx) :
+theorem bnd_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R L.read σ ctx) :
     ∀ (fuel : Nat) (x : V) (n : Nat), bnd T fuel ctx x = some n → Bnd (σ x) n
   | 0, x, n, h => by
       simp only [bnd] at h
@@ -485,7 +484,7 @@ theorem bnd_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R T L.read σ
           exact bnd_sound hT hκ hc f y m' hy) ha hm) n h
 
 /-- **A bound `bndLe` finds holds.** -/
-theorem bndLe_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R T L.read σ ctx) {x : V} {n : Nat}
+theorem bndLe_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R L.read σ ctx) {x : V} {n : Nat}
     (h : bndLe T ctx x n = true) : Bnd (σ x) n := by
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   unfold leO at hp
@@ -497,11 +496,11 @@ theorem bndLe_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R T L.read 
     exact ⟨e, by simp only [Nat.ble_eq] at hp; omega, hx⟩
   · exact absurd hp (by simp)
 
-theorem xLe_spec (hc : CtxHolds R T L.read σ ctx) {v : V} {t : Nat} (h : xLe T ctx v t = true) :
+theorem xLe_spec (hc : CtxHolds R L.read σ ctx) {v : V} {t : Nat} (h : xLe ctx v t = true) :
     R t L.read (σ v) := by
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   have hh := hc a ha
-  rcases a with _ | _ | ⟨f, as, rs⟩ | _ | _ | ⟨y, t'⟩
+  rcases a with _ | _ | ⟨sg, as, rs⟩ | _ | _ | ⟨y, t'⟩
   all_goals try simp only at hp
   all_goals try (simp at hp; done)
   · obtain ⟨p, hp', hq⟩ := List.any_eq_true.mp hp
@@ -516,7 +515,7 @@ theorem xLe_spec (hc : CtxHolds R T L.read σ ctx) {v : V} {t : Nat} (h : xLe T 
 
 /-- **A call the analysis accepts meets its callee's precondition**, and its callee asks nothing
 beyond its signature. -/
-theorem callOk_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R T L.read σ ctx) {f : String}
+theorem callOk_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R L.read σ ctx) {f : String}
     {args : List V} (h : callOk T ctx f args = true) :
     (T.sig f).ext = false ∧ SigPre R L.read (T.sig f) (args.map σ) := by
   simp only [callOk, Bool.and_eq_true, Bool.not_eq_true', List.all_eq_true,
@@ -534,7 +533,7 @@ theorem callOk_sound (hT : PowsOk T) (hκ : κ ≤ 32) (hc : CtxHolds R T L.read
     exact xLe_spec hc hb
 
 theorem entry_holds {params : List V} {s : Sig} (h : SigPre R rd s (params.map σ)) :
-    CtxHolds R T rd σ (entry params s) := by
+    CtxHolds R rd σ (entry params s) := by
   intro a ha
   simp only [entry, List.mem_append, List.mem_filterMap, Option.map_eq_some_iff] at ha
   rcases ha with (⟨p, hp, v, hv, rfl⟩ | ⟨m, hm, v, hv, rfl⟩) | ⟨p, hp, v, hv, rfl⟩
@@ -571,8 +570,8 @@ theorem obl_of_chk (hT : PowsOk T) (hκ : κ ≤ 32)
     (hU : ∀ f a, (T.sig f).ext = false → SigPre R L.read (T.sig f) a → U f a)
     (hpost : ∀ f a r, C f a r →
       SigPost (T.sig f) (a ++ r) ∧ XPost R L.read (T.sig f) (a ++ r)) (w : Want) :
-    ∀ (s : Stmt) (ctx : List Hyp) (N : Prop), CtxHolds R T L.read σ ctx → chkS T w ctx s = true →
-      (CtxHolds R T L.read σ (after ctx s) → Stmt.Holds C L.read σ s True (fun _ => True) → N) →
+    ∀ (s : Stmt) (ctx : List Hyp) (N : Prop), CtxHolds R L.read σ ctx → chkS T w ctx s = true →
+      (CtxHolds R L.read σ (after T ctx s) → Stmt.Holds C L.read σ s True (fun _ => True) → N) →
         Obl C U L.read σ s N
   | .atom a, ctx, _, hc, _, hN => fun ha => hN (fun h hh => by
       rcases List.mem_cons.mp hh with rfl | hh
@@ -613,7 +612,7 @@ theorem oblList_of_chk (hT : PowsOk T) (hκ : κ ≤ 32)
     (hU : ∀ f a, (T.sig f).ext = false → SigPre R L.read (T.sig f) a → U f a)
     (hpost : ∀ f a r, C f a r →
       SigPost (T.sig f) (a ++ r) ∧ XPost R L.read (T.sig f) (a ++ r)) (w : Want) :
-    ∀ (ss : List Stmt) (ctx : List Hyp) (N : Prop), CtxHolds R T L.read σ ctx →
+    ∀ (ss : List Stmt) (ctx : List Hyp) (N : Prop), CtxHolds R L.read σ ctx →
       chkL T w ctx ss = true → (Stmt.HoldsList C L.read σ ss True (fun _ => True) → N) →
         OblList C U L.read σ ss N
   | [], _, _, _, _, hN => hN trivial
@@ -628,7 +627,7 @@ theorem oblArms_of_chk (hT : PowsOk T) (hκ : κ ≤ 32)
     (hU : ∀ f a, (T.sig f).ext = false → SigPre R L.read (T.sig f) a → U f a)
     (hpost : ∀ f a r, C f a r →
       SigPost (T.sig f) (a ++ r) ∧ XPost R L.read (T.sig f) (a ++ r)) (w : Want) (x : V) :
-    ∀ (arms : List (List Stmt)) (j : Nat) (ctx : List Hyp) (N : Prop), CtxHolds R T L.read σ ctx →
+    ∀ (arms : List (List Stmt)) (j : Nat) (ctx : List Hyp) (N : Prop), CtxHolds R L.read σ ctx →
       chkA T w ctx x j arms = true →
       (Stmt.HoldsArms C L.read σ x j arms True (fun _ => True) → N) → OblArms C U L.read σ x j arms N
   | [], _, _, _, _, _, _ => trivial
@@ -666,14 +665,14 @@ theorem oblT_of_chk (hT : PowsOk T) (hκ : κ ≤ 32)
       SigPost (T.sig f) (a ++ r) ∧ XPost R L.read (T.sig f) (a ++ r)) (w : Want)
     (facts : List (Nat × Hyp)) (body : List Stmt)
     (hf : ∀ p ∈ facts, Stmt.HoldsList C L.read σ (body.take p.1) True (fun _ => True) →
-      p.2.Holds R T L.read σ) :
+      p.2.Holds R L.read σ) :
     ∀ (ss : List Stmt) (i : Nat) (ctx : List Hyp) (N : Prop), body.drop i = ss →
-      Stmt.HoldsList C L.read σ (body.take i) True (fun _ => True) → CtxHolds R T L.read σ ctx →
+      Stmt.HoldsList C L.read σ (body.take i) True (fun _ => True) → CtxHolds R L.read σ ctx →
       chkT T w facts i ctx ss = true → N → OblList C U L.read σ ss N
   | [], _, _, _, _, _, _, _, hN => hN
   | s :: ss, i, ctx, N, hd, hpre, hc, h, hN => by
       simp only [chkT, Bool.and_eq_true] at h
-      have hc' : CtxHolds R T L.read σ (factsAt facts i ++ ctx) := by
+      have hc' : CtxHolds R L.read σ (factsAt facts i ++ ctx) := by
         intro a ha
         rcases List.mem_append.mp ha with ha | ha
         · simp only [factsAt, List.mem_filterMap] at ha
@@ -701,7 +700,7 @@ theorem fnF_obl_of_chk (hT : PowsOk T) (hκ : κ ≤ 32)
       SigPost (T.sig f) (a ++ r) ∧ XPost R L.read (T.sig f) (a ++ r)) {facts : List (Nat × Hyp)}
     {f : Fn} (h : chkFnF T facts f = true)
     (hf : ∀ p ∈ facts, Stmt.HoldsList C L.read σ (f.body.take p.1) True (fun _ => True) →
-      p.2.Holds R T L.read σ)
+      p.2.Holds R L.read σ)
     (hpre : SigPre R L.read (T.sig f.name) (f.params.map σ)) :
     OblList C U L.read σ f.body True :=
   oblT_of_chk hT hκ hU hpost _ facts f.body hf f.body 0 _ True rfl trivial (entry_holds hpre) h
@@ -722,8 +721,8 @@ before it holding. -/
 theorem holds_post (hT : PowsOk T) (hκ : κ ≤ 32)
     (hpost : ∀ f a r, C f a r →
       SigPost (T.sig f) (a ++ r) ∧ XPost R L.read (T.sig f) (a ++ r)) (w : Want) :
-    ∀ (s : Stmt) (ctx : List Hyp) (N N' : Prop) (kret : List E → Prop), CtxHolds R T L.read σ ctx →
-      chkS T w ctx s = true → (CtxHolds R T L.read σ (after ctx s) → N → N') →
+    ∀ (s : Stmt) (ctx : List Hyp) (N N' : Prop) (kret : List E → Prop), CtxHolds R L.read σ ctx →
+      chkS T w ctx s = true → (CtxHolds R L.read σ (after T ctx s) → N → N') →
       Stmt.Holds C L.read σ s N kret →
         Stmt.Holds C L.read σ s N' (fun rs => kret rs ∧ SigPostOf w σ rs)
   | .atom a, ctx, _, _, _, hc, _, hN, h => ⟨h.1, hN (fun b hb => by
@@ -757,7 +756,7 @@ theorem holdsList_post (hT : PowsOk T) (hκ : κ ≤ 32)
     (hpost : ∀ f a r, C f a r →
       SigPost (T.sig f) (a ++ r) ∧ XPost R L.read (T.sig f) (a ++ r)) (w : Want) :
     ∀ (ss : List Stmt) (ctx : List Hyp) (N N' : Prop) (kret : List E → Prop),
-      CtxHolds R T L.read σ ctx → chkL T w ctx ss = true → (N → N') →
+      CtxHolds R L.read σ ctx → chkL T w ctx ss = true → (N → N') →
       Stmt.HoldsList C L.read σ ss N kret →
         Stmt.HoldsList C L.read σ ss N' (fun rs => kret rs ∧ SigPostOf w σ rs)
   | [], _, _, _, _, _, _, hN, hh => hN hh
@@ -771,7 +770,7 @@ theorem holdsArms_post (hT : PowsOk T) (hκ : κ ≤ 32)
     (hpost : ∀ f a r, C f a r →
       SigPost (T.sig f) (a ++ r) ∧ XPost R L.read (T.sig f) (a ++ r)) (w : Want) (x : V) :
     ∀ (arms : List (List Stmt)) (j : Nat) (ctx : List Hyp) (N N' : Prop) (kret : List E → Prop),
-      CtxHolds R T L.read σ ctx → chkA T w ctx x j arms = true → (N → N') →
+      CtxHolds R L.read σ ctx → chkA T w ctx x j arms = true → (N → N') →
       Stmt.HoldsArms C L.read σ x j arms N kret →
         Stmt.HoldsArms C L.read σ x j arms N' (fun rs => kret rs ∧ SigPostOf w σ rs)
   | [], _, _, _, _, _, _, _, _, hh => hh

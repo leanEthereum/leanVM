@@ -75,8 +75,8 @@ inductive Hyp where
   | atom (a : Atom)
   /-- The arm `j` of a `match` on `x`: `x = g^j`. -/
   | arm (x : V) (j : Nat)
-  /-- A call of `f` on `args` returned `rets`. -/
-  | ret (f : String) (args rets : List V)
+  /-- A call of a function of signature `s` on `args` returned `rets`. -/
+  | ret (s : Sig) (args rets : List V)
   /-- The function's own precondition: `x = g^e`, `e < n`. -/
   | pre (x : V) (n : Nat)
   /-- The function's own precondition: the word at `x · g^c` is `g^e`, `e < n`. -/
@@ -163,8 +163,8 @@ def memOf (ctx : List Hyp) (x : V) (c : Nat) : Option Nat :=
 
 /-- The bound a callee's postcondition gives `x`, argument or return of the call: its frame
 cells past the first two, `args ++ rets`. -/
-def postOf (f : String) (cells : List V) (x : V) : Option Nat :=
-  (T.sig f).post.foldl (fun o p => minO o (if veq (cells.getD p.1 default) x && p.1 < cells.length
+def postOf (s : Sig) (cells : List V) (x : V) : Option Nat :=
+  s.post.foldl (fun o p => minO o (if veq (cells.getD p.1 default) x && p.1 < cells.length
     then some p.2 else none)) none
 
 /-- The bound one hypothesis puts on `x`, the bounds of other values given by `rec` (products
@@ -173,7 +173,7 @@ def hypB (ctx : List Hyp) (x : V) (rec : Option (V → Option Nat)) : Hyp → Op
   | .atom (.const d c) => if veq d x then (powOf T.pows c).map (· + 1) else none
   | .arm y j => if veq y x then some (j + 1) else none
   | .pre y n => if veq y x then some n else none
-  | .ret f args rets => postOf T f (args ++ rets) x
+  | .ret s args rets => postOf s (args ++ rets) x
   | .atom (.rangeCheck y _ _ _ k) =>
       if veq y x then
         match gpOf T ctx k with
@@ -224,7 +224,7 @@ def memLe (ctx : List Hyp) (x : V) (c n : Nat) : Bool :=
 def xLe (ctx : List Hyp) (v : V) (t : Nat) : Bool :=
   ctx.any fun h => match h with
     | .rel y t' => veq y v && t' == t
-    | .ret f args rets => (T.sig f).xpost.any fun p =>
+    | .ret s args rets => s.xpost.any fun p =>
         p.2 == t && p.1 < (args ++ rets).length && veq ((args ++ rets).getD p.1 default) v
     | _ => false
 
@@ -233,12 +233,12 @@ def callOk (ctx : List Hyp) (f : String) (args : List V) : Bool :=
   let s := T.sig f
   !s.ext && s.pre.all (fun p => p.1 < args.length && bndLe T ctx (args.getD p.1 default) p.2) &&
     s.mem.all (fun m => m.1 < args.length && memLe ctx (args.getD m.1 default) m.2.1 m.2.2) &&
-    s.xpre.all (fun p => p.1 < args.length && xLe T ctx (args.getD p.1 default) p.2)
+    s.xpre.all (fun p => p.1 < args.length && xLe ctx (args.getD p.1 default) p.2)
 
 /-- The hypotheses after a statement, for the statements after it in its block. -/
 def after (ctx : List Hyp) : Stmt → List Hyp
   | .atom a => .atom a :: ctx
-  | .call f args rets => .ret f args rets :: ctx
+  | .call f args rets => .ret (T.sig f) args rets :: ctx
   | _ => ctx
 
 /-- What a function promises at its returns: its parameters and the bounds of its frame cells
@@ -263,7 +263,7 @@ def chkS (post : Want) (ctx : List Hyp) : Stmt → Bool
 /-- The analysis of a block. -/
 def chkL (post : Want) (ctx : List Hyp) : List Stmt → Bool
   | [] => true
-  | s :: ss => chkS post ctx s && chkL post (after ctx s) ss
+  | s :: ss => chkS post ctx s && chkL post (after T ctx s) ss
 
 /-- The analysis of the arms of a `match` on `x`, arm `j` first. -/
 def chkA (post : Want) (ctx : List Hyp) (x : V) : Nat → List (List Stmt) → Bool
@@ -292,7 +292,7 @@ def chkT (post : Want) (facts : List (Nat × Hyp)) : Nat → List Hyp → List S
   | _, _, [] => true
   | i, ctx, s :: ss =>
       chkS T post (factsAt facts i ++ ctx) s &&
-        chkT post facts (i + 1) (after (factsAt facts i ++ ctx) s) ss
+        chkT post facts (i + 1) (after T (factsAt facts i ++ ctx) s) ss
 
 /-- The analysis of a function, facts from outside given at statements of its body. -/
 def chkFnF (facts : List (Nat × Hyp)) (f : Fn) : Bool :=
