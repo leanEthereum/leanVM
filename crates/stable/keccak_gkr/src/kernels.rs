@@ -3,8 +3,10 @@
 
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8, clmul8_low};
 
+use crate::keccak::row_positions;
+
 use crate::rmfe::RMFE;
-use crate::witness::BLOCK_WORDS;
+use crate::witness::{BLOCK_WORDS, words};
 
 /// Packs in a block position.
 pub(crate) const PACKS: usize = 32;
@@ -75,66 +77,90 @@ pub(crate) const MIXED_POINTS: [[usize; 3]; MIXED] = {
     out
 };
 
-/// A block position's packs at every point of `{0, 1, infinity}^SKIP` of each group, at their
-/// slots: along a variable, the value at infinity is the sum of the two others.
-pub fn extend(packs: &[u32; PACKS], out: &mut [u64; SLOTS]) {
+/// Eight values, one per position of a run of eight along `z`.
+type Run = [u64; 8];
+
+fn xor(a: Run, b: Run) -> Run {
+    std::array::from_fn(|i| a[i] ^ b[i])
+}
+
+/// The packs of a run of positions at every point of `{0, 1, infinity}^SKIP` of each group, at
+/// their slots: along a variable, the value at infinity is the sum of the two others.
+fn extend(packs: &[Run; PACKS], out: &mut [Run; SLOTS]) {
     // Both groups at once, group `half` in bits `32 * half ..` of each value.
-    let mut values = [0u64; TERNARY];
+    let mut values = [[0u64; 8]; TERNARY];
     for q in 0..GROUP {
-        values[ternary(q)] = packs[q] as u64 | (packs[GROUP + q] as u64) << 32;
+        values[ternary(q)] = std::array::from_fn(|i| packs[q][i] | packs[GROUP + q][i] << 32);
     }
     for &[t, zero, one] in &MIXED_POINTS {
-        values[t] = values[zero] ^ values[one];
+        values[t] = xor(values[zero], values[one]);
     }
+    out[..2 * GROUP].copy_from_slice(packs);
     for half in 0..2 {
-        for q in 0..GROUP {
-            out[GROUP * half + q] = packs[GROUP * half + q] as u64;
-        }
         for (i, &[t, ..]) in MIXED_POINTS.iter().enumerate() {
-            out[2 * GROUP + MIXED * half + i] = values[t] >> (32 * half) & 0xffff_ffff;
+            out[2 * GROUP + MIXED * half + i] = values[t].map(|v| v >> (32 * half) & 0xffff_ffff);
         }
     }
 }
 
-/// One row of five positions, which `chi` mixes cyclically: per slot, the sum over the row of
-/// its position's weight times its product. A weight is a polynomial in `s` ([`AtS::poly`]), its
-/// two words held as an element's limbs, so its product by a product is a mixed one, unreduced: the
-/// two partial products of its words. A pack's product is the unprojected `chi`; a mixed point's
-/// keeps only `u[j + 1] * u[j + 2]`, the rest being linear, so of degree one in a variable at
-/// infinity.
+/// The skip's sums over a block: per slot, the sum over positions of the position's weight times
+/// its product. A weight is a polynomial in `s` ([`AtS::poly`]), its two words held as an element's
+/// limbs, so its product by a product is a mixed one, unreduced: the two partial products of its
+/// words. A pack's product is the unprojected `chi`; a mixed point's keeps only
+/// `u[j + 1] * u[j + 2]`, the rest being linear, so of degree one in a variable at infinity.
+///
+/// Lane `i` of a slot's sums is position `z + i` of every run along `z`: a row of five positions,
+/// which `chi` mixes, is five runs, and their weights are eight consecutive ones.
 ///
 /// [`AtS::poly`]: crate::poly::AtS::poly
-pub fn skip_row(acc: &mut SkipAcc, e: &[[u64; SLOTS]; 5], weights: [F128x8; 5]) {
-    let xor = |a: [u64; 8], b: [u64; 8]| -> [u64; 8] { std::array::from_fn(|i| a[i] ^ b[i]) };
-    for (v, acc) in acc.0.iter_mut().enumerate() {
-        let e: [[u64; 8]; 5] = std::array::from_fn(|x| e[x][8 * v..][..8].try_into().unwrap());
-        let mut sum = Acc8::ZERO;
-        for (x, weight) in weights.iter().enumerate() {
-            let (b, c) = (e[(x + 1) % 5], e[(x + 2) % 5]);
-            let mut product = clmul8_low(b, c);
-            if 8 * v < 2 * GROUP {
-                product = xor(product, clmul8_low([RMFE.ones as u64; 8], xor(e[x], c)));
-            }
-            sum += weight.mul_base_unreduced(F64x8::from_array(&product.map(F64)));
-        }
-        *acc += sum;
-    }
+pub(crate) struct SkipBlock {
+    acc: Vec<Acc8>,
+    extended: Vec<[Run; SLOTS]>,
 }
 
-/// Per slot, the sums [`skip_row`] takes, eight slots to a run.
-pub struct SkipAcc([Acc8; SLOTS / 8]);
-
-impl SkipAcc {
-    pub fn new() -> Box<Self> {
-        Box::new(Self([Acc8::ZERO; SLOTS / 8]))
+impl SkipBlock {
+    pub fn new() -> Self {
+        Self {
+            acc: vec![Acc8::ZERO; 2 * TERNARY],
+            extended: vec![[[0; 8]; SLOTS]; 5],
+        }
     }
 
-    pub fn clear(&mut self) {
-        self.0 = [Acc8::ZERO; SLOTS / 8];
+    pub fn run(&mut self, block: &[u64], weights: &[F128]) {
+        self.acc.fill(Acc8::ZERO);
+        let ones = [RMFE.ones as u64; 8];
+        for r in 0..5 {
+            for z in (0..64).step_by(8) {
+                let js = row_positions(r, z);
+                for (extended, &j) in self.extended.iter_mut().zip(&js) {
+                    let packs: [[u32; PACKS]; 8] = std::array::from_fn(|i| embed(words(block, j + i)));
+                    extend(
+                        &std::array::from_fn(|q| std::array::from_fn(|i| packs[i][q] as u64)),
+                        extended,
+                    );
+                }
+                let w: [F128x8; 5] = js.map(|j| F128x8::load(&weights[j..][..8]));
+                let e = &self.extended;
+                for (p, acc) in self.acc.iter_mut().enumerate() {
+                    let mut sum = Acc8::ZERO;
+                    for (x, w) in w.iter().enumerate() {
+                        let (b, c) = (e[(x + 1) % 5][p], e[(x + 2) % 5][p]);
+                        let mut product = clmul8_low(b, c);
+                        if p < 2 * GROUP {
+                            product = xor(product, clmul8_low(ones, xor(e[x][p], c)));
+                        }
+                        sum += w.mul_base_unreduced(F64x8::from_array(&product.map(F64)));
+                    }
+                    *acc += sum;
+                }
+            }
+        }
     }
 
-    /// The two partial products of slot `p`: the sums of the products times each word of their weights.
+    /// The two partial products of slot `p`: the sums of the products times each word of their
+    /// weights.
     pub fn get(&self, p: usize) -> [u128; 2] {
-        self.0[p / 8].to_array()[p % 8].to_limbs()
+        let lanes = self.acc[p].to_array().map(|l| l.to_limbs());
+        lanes.into_iter().fold([0; 2], |a, b| [a[0] ^ b[0], a[1] ^ b[1]])
     }
 }

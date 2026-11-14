@@ -17,8 +17,7 @@ use primitives::multilinear::{eq_table, poly_eval};
 
 use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
 use crate::kernels::{
-    GROUP, MIXED, MIXED_POINTS, PACKS, SKIP, SLOTS, SkipAcc, TERNARY, byte_sums, embed, extend, products, skip_row,
-    ternary,
+    GROUP, MIXED, MIXED_POINTS, PACKS, SKIP, SkipBlock, TERNARY, byte_sums, embed, products, ternary,
 };
 use crate::open::fold;
 use crate::poly::AtS;
@@ -134,7 +133,7 @@ impl Layer<'_> {
     /// groups: `sum over groups of eq(point[SKIP..], group) * Q(p, group)`, indexed by `p`'s
     /// ternary digits.
     ///
-    /// Every product of a group's extended packs ([`skip_row`]) meets its position's weight as a
+    /// Every product of a group's extended packs ([`SkipBlock`]) meets its position's weight as a
     /// polynomial in `s` ([`AtS`]), so a block's sums are carry-less products, evaluated at `s`
     /// once per slot.
     fn skip_sums(&self, claim: &Claim, at: &AtS) -> Vec<F128> {
@@ -144,20 +143,11 @@ impl Layer<'_> {
             [0, 1].map(|half| self.task_weights(&eq.iter().skip(half).step_by(2).copied().collect::<Vec<_>>()));
         let sums = parallel::map_reduce_with_state(
             self.n_tasks(),
-            || (SkipAcc::new(), Box::new([[0u64; SLOTS]; 5])),
+            SkipBlock::new,
             || [F128Unreduced::ZERO; TERNARY],
-            |(acc, e), sums, task| {
+            |acc, sums, task| {
                 let (_, _, block) = self.block(task);
-                acc.clear();
-                for r in 0..5 {
-                    for z in 0..64 {
-                        let js = row_positions(r, z);
-                        for (e, &j) in e.iter_mut().zip(&js) {
-                            extend(&embed(words(block, j)), e);
-                        }
-                        skip_row(acc, e, js.map(|j| F128x8::splat(weights[j])));
-                    }
-                }
+                acc.run(block, &weights);
                 for (half, groups) in groups.iter().enumerate() {
                     let weight = groups[task];
                     for q in 0..GROUP {
