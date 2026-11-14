@@ -135,18 +135,27 @@ variable {κ : ℕ} (Γ : Site κ) (fp : K) (F : Std.HashMap V Loc)
 /-- Every statement is one instruction. -/
 def OpsOnly (ops : List PStmt) : Prop := ∀ s ∈ ops, ∃ h o, s = PStmt.op h o
 
+/-- The jump tables and the chain a `match` may be part of are unchanged. -/
+structure Same (st st' : St) : Prop where
+  tables : st'.tables = st.tables
+  chainIn : st'.chainIn = st.chainIn
+  chain : st'.chain = st.chain
+
+theorem Same.refl (st : St) : Same st st := ⟨rfl, rfl, rfl⟩
+
+theorem Same.trans {st st' st'' : St} (h₁ : Same st st') (h₂ : Same st' st'') : Same st st'' :=
+  ⟨h₂.tables.trans h₁.tables, h₂.chainIn.trans h₁.chainIn, h₂.chain.trans h₁.chain⟩
+
 /-- **The walk went from `st` to `st'` emitting straight-line instructions that give `Q`**, the
 facts `H` of the instructions before them known. -/
 def Emits (H : Prop) (st st' : St) (Q : Prop) : Prop :=
   ∃ ops : List PStmt, st'.out.toList = st.out.toList ++ ops ∧ OpsOnly ops ∧
-    Sub st.locs st'.locs ∧ st'.tables = st.tables ∧ st'.chainIn = st.chainIn ∧
+    Sub st.locs st'.locs ∧ Same st st' ∧
     ∀ (pos : ℕ) (N : Prop) (kj : E → E → Prop) (kret : Prop) (khalt : E → E → Prop),
       H → Sub st'.locs F → PoolOK Γ.L fp st.scope → PStmt.SemList Γ fp ops pos N kj kret khalt →
         PoolOK Γ.L fp st'.scope ∧ Q ∧ N
 
 variable {Γ fp F} {H : Prop}
-
-
 
 theorem semList_append (a b : List PStmt) (pos : ℕ) (N : Prop) (kj : E → E → Prop) (kret : Prop)
     (khalt : E → E → Prop) :
@@ -161,15 +170,15 @@ theorem semList_append (a b : List PStmt) (pos : ℕ) (N : Prop) (kj : E → E �
 theorem opsOnly_nil : OpsOnly [] := fun _ h => nomatch h
 
 theorem Emits.refl (st : St) : Emits Γ fp F H st st True :=
-  ⟨[], by simp, opsOnly_nil, Sub.refl _, rfl, rfl,
+  ⟨[], by simp, opsOnly_nil, Sub.refl _, Same.refl _,
     fun _ _ _ _ _ _ _ hp hs => ⟨hp, trivial, hs⟩⟩
 
 theorem Emits.trans {st st' st'' : St} {Q₁ Q₂ : Prop} (h₁ : Emits Γ fp F H st st' Q₁)
     (h₂ : Emits Γ fp F (H ∧ Q₁) st' st'' Q₂) : Emits Γ fp F H st st'' (Q₁ ∧ Q₂) := by
-  obtain ⟨ops₁, ho₁, hs₁, hl₁, ht₁, hc₁, hf₁⟩ := h₁
-  obtain ⟨ops₂, ho₂, hs₂, hl₂, ht₂, hc₂, hf₂⟩ := h₂
-  refine ⟨ops₁ ++ ops₂, by rw [ho₂, ho₁, List.append_assoc], ?_, hl₁.trans hl₂, ht₂.trans ht₁,
-    hc₂.trans hc₁, fun pos N kj kret khalt hH hF hp hs => ?_⟩
+  obtain ⟨ops₁, ho₁, hs₁, hl₁, ht₁, hf₁⟩ := h₁
+  obtain ⟨ops₂, ho₂, hs₂, hl₂, ht₂, hf₂⟩ := h₂
+  refine ⟨ops₁ ++ ops₂, by rw [ho₂, ho₁, List.append_assoc], ?_, hl₁.trans hl₂, ht₁.trans ht₂,
+    fun pos N kj kret khalt hH hF hp hs => ?_⟩
   · intro s hs
     rcases List.mem_append.mp hs with h | h
     · exact hs₁ s h
@@ -182,33 +191,33 @@ theorem Emits.trans {st st' st'' : St} {Q₁ Q₂ : Prop} (h₁ : Emits Γ fp F 
 /-- Weakening, with what the state after knows. -/
 theorem Emits.imp {st st' : St} {Q Q' : Prop} (h : Emits Γ fp F H st st' Q)
     (hq : H → Sub st'.locs F → PoolOK Γ.L fp st'.scope → Q → Q') : Emits Γ fp F H st st' Q' := by
-  obtain ⟨ops, ho, hs, hl, ht, hc, hf⟩ := h
-  refine ⟨ops, ho, hs, hl, ht, hc, fun pos N kj kret khalt hH hF hp hsem => ?_⟩
+  obtain ⟨ops, ho, hs, hl, ht, hf⟩ := h
+  refine ⟨ops, ho, hs, hl, ht, fun pos N kj kret khalt hH hF hp hsem => ?_⟩
   obtain ⟨hp', hq', hn⟩ := hf pos N kj kret khalt hH hF hp hsem
   exact ⟨hp', hq hH hF hp' hq', hn⟩
 
 /-- More may be assumed. -/
 theorem Emits.weaken {H' : Prop} {st st' : St} {Q : Prop} (h : Emits Γ fp F H st st' Q)
     (hH : H' → H) : Emits Γ fp F H' st st' Q := by
-  obtain ⟨ops, ho, hs, hl, ht, hc, hf⟩ := h
-  exact ⟨ops, ho, hs, hl, ht, hc, fun pos N kj kret khalt h' => hf pos N kj kret khalt (hH h')⟩
+  obtain ⟨ops, ho, hs, hl, ht, hf⟩ := h
+  exact ⟨ops, ho, hs, hl, ht, fun pos N kj kret khalt h' => hf pos N kj kret khalt (hH h')⟩
 
 /-- A state that differs in neither statements, places, tables nor open chain, and whose pools
 the facts so far justify. -/
 theorem Emits.frame {st st' : St} (ho : st'.out = st.out) (hl : st'.locs = st.locs)
-    (ht : st'.tables = st.tables) (hc : st'.chainIn = st.chainIn)
+    (ht : Same st st')
     (hsc : H → Sub st.locs F → PoolOK Γ.L fp st.scope → PoolOK Γ.L fp st'.scope) :
     Emits Γ fp F H st st' True :=
-  ⟨[], by simp [ho], opsOnly_nil, by rw [hl]; exact Sub.refl _, ht, hc,
+  ⟨[], by simp [ho], opsOnly_nil, by rw [hl]; exact Sub.refl _, ht,
     fun _ _ _ _ _ hH hF hp hs => ⟨hsc hH (hl ▸ hF) hp, trivial, hs⟩⟩
 
 /-- One straight-line instruction is emitted. -/
 theorem Emits.op {st st' : St} {hints : List LHint} {o : LOp} (hj : o.isJump = false)
     (ho : st'.out = st.out.push (.op hints o)) (hl : st'.locs = st.locs)
-    (ht : st'.tables = st.tables) (hc : st'.chainIn = st.chainIn) (hsc : st'.scope = st.scope) :
+    (ht : Same st st') (hsc : st'.scope = st.scope) :
     Emits Γ fp F H st st' (∃ pc, Holds Γ.L pc fp (Γ.R o)) := by
   refine ⟨[.op hints o], by simp [ho], fun s hs => ⟨hints, o, List.mem_singleton.mp hs⟩,
-    by rw [hl]; exact Sub.refl _, ht, hc, fun pos N kj kret khalt _ _ hp hsem => ?_⟩
+    by rw [hl]; exact Sub.refl _, ht, fun pos N kj kret khalt _ _ hp hsem => ?_⟩
   have h : OpSem Γ fp o pos N kj := hsem
   cases o with
   | jump => cases hj
@@ -218,10 +227,10 @@ theorem Emits.op {st st' : St} {hints : List LHint} {o : LOp} (hj : o.isJump = f
 theorem Emits.jumpZero {st st' : St} {hints : List LHint} {oc od of : ℕ}
     (hz : H → PoolOK Γ.L fp st.scope → wd Γ.L fp oc = 0)
     (ho : st'.out = st.out.push (.op hints (.jump oc od of))) (hl : st'.locs = st.locs)
-    (ht : st'.tables = st.tables) (hc : st'.chainIn = st.chainIn) (hsc : st'.scope = st.scope) :
+    (ht : Same st st') (hsc : st'.scope = st.scope) :
     Emits Γ fp F H st st' (IsInK (wd Γ.L fp od) ∧ IsInK (wd Γ.L fp of)) := by
   refine ⟨[.op hints (.jump oc od of)], by simp [ho],
-    fun s hs => ⟨hints, _, List.mem_singleton.mp hs⟩, by rw [hl]; exact Sub.refl _, ht, hc,
+    fun s hs => ⟨hints, _, List.mem_singleton.mp hs⟩, by rw [hl]; exact Sub.refl _, ht,
     fun pos N kj kret khalt hH _ hp hsem => ?_⟩
   obtain ⟨c, d, f, hrc, hrd, hrf, -, hdK, hfK, hfall, -⟩ : JumpAt Γ fp oc od of N kj := hsem
   have hc0 : c = 0 := by rw [← wd_of_read hrc]; exact hz hH hp
@@ -230,10 +239,10 @@ theorem Emits.jumpZero {st st' : St} {hints : List LHint} {oc od of : ℕ}
 
 /-- A value is placed. -/
 theorem Emits.place {st st' : St} {v : V} {l : Loc} (hnc : st.locs.contains v = false)
-    (ho : st'.out = st.out) (hl : st'.locs = st.locs.insert v l) (ht : st'.tables = st.tables)
-    (hc : st'.chainIn = st.chainIn) (hsc : st'.scope = st.scope) :
+    (ho : st'.out = st.out) (hl : st'.locs = st.locs.insert v l) (ht : Same st st')
+    (hsc : st'.scope = st.scope) :
     Emits Γ fp F H st st' (valP Γ.L fp F v = locVal Γ.L fp l) :=
-  ⟨[], by simp [ho], opsOnly_nil, by rw [hl]; exact Sub.insert l hnc, ht, hc,
+  ⟨[], by simp [ho], opsOnly_nil, by rw [hl]; exact Sub.insert l hnc, ht,
     fun _ _ _ _ _ _ hF hp hs => ⟨hsc ▸ hp, valP_of_sub hF (by rw [hl]; simp), hs⟩⟩
 
 /-! ## Specifications -/
@@ -292,13 +301,13 @@ theorem SpecAt.fail_bind {msg : String} {f : α → P β} {Q : β → Prop} :
   wp_bind.mpr wp_failP
 
 /-- A check that fails, or the rest knowing it passed. -/
-theorem SpecAt.guard_bind {c : Prop} [Decidable c] {msg : String} {f : PUnit → P β}
-    {Q : β → Prop} (h : ¬c → SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (f ⟨⟩) Q) :
+theorem SpecAt.guard {c : Prop} [Decidable c] {msg : String} {f : PUnit → P β}
+    {Q : β → Prop} (h : ¬c → SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (f PUnit.unit) Q) :
     SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st
-      ((if c then failP msg else Pure.pure PUnit.unit) >>= f) Q := by
+      (if c then failP msg >>= f else f PUnit.unit) Q := by
   split
   · exact SpecAt.fail_bind
-  · next hc => exact wp_bind.mpr (wp_pure.mpr (h hc))
+  · next hc => exact h hc
 
 /-- A step that changes the state, then the rest from the changed state. -/
 theorem SpecAt.modify_bind {g : St → St} {f : PUnit → P β} {Q₁ : Prop} {Q₂ : β → Prop}
@@ -306,6 +315,95 @@ theorem SpecAt.modify_bind {g : St → St} {f : PUnit → P β} {Q₁ : Prop} {Q
     (hf : SpecAt (Γ := Γ) (fp := fp) (F := F) (H ∧ Q₁) ctx (g st) (f ⟨⟩) Q₂) :
     SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (modify g >>= f) Q₂ :=
   wp_bind.mpr (wp_modify.mpr fun b st'' he => (hg.trans (hf b st'' he)).imp fun _ _ _ h => h.2)
+
+/-- A step that changes the state and returns a value, then the rest. -/
+theorem SpecAt.modifyGet_bind {g : St → α × St} {f : α → P β} {Q₁ : Prop} {Q₂ : β → Prop}
+    (hg : Emits Γ fp F H st (g st).2 Q₁)
+    (hf : SpecAt (Γ := Γ) (fp := fp) (F := F) (H ∧ Q₁) ctx (g st).2 (f (g st).1) Q₂) :
+    SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (modifyGet g >>= f) Q₂ :=
+  wp_bind.mpr (wp_modifyGet.mpr fun b st'' he =>
+    (hg.trans (hf b st'' he)).imp fun _ _ _ h => h.2)
+
+theorem SpecAt.modifyGet {g : St → α × St} {Q : α → Prop}
+    (hg : Emits Γ fp F H st (g st).2 (Q (g st).1)) :
+    SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (modifyGet g) Q :=
+  wp_modifyGet.mpr hg
+
+/-- A call whose guarantee the rest does not use. -/
+theorem SpecAt.bindT {m : P α} {f : α → P β} {Q₁ : α → Prop} {Q₂ : β → Prop}
+    (hm : SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st m Q₁)
+    (hf : ∀ a st', SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st' (f a) Q₂) :
+    SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (m >>= f) Q₂ :=
+  SpecAt.bind hm fun a st' b st'' he => (hf a st' b st'' he).weaken fun h => h.1
+
+/-- A step with no guarantee, then the rest. -/
+theorem SpecAt.bindTT {m : P α} {f : α → P β} {Q₂ : β → Prop}
+    (hm : SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st m (fun _ => True))
+    (hf : ∀ a st', SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st' (f a) Q₂) :
+    SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (m >>= f) Q₂ :=
+  SpecAt.bindT hm hf
+
+/-- A last call whose guarantee is not used. -/
+theorem SpecAt.lastT {m : P α} {Q₁ : α → Prop} (hm : Spec Γ fp F ctx m Q₁) :
+    SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st m (fun _ => True) :=
+  SpecAt.last hm fun _ _ _ => trivial
+
+/-- The event the walk is at. -/
+theorem wp_peek {Q : Option Event → St → Prop} :
+    wpP peek ctx st Q ↔ Q ctx.trace[st.pos]? st := by
+  constructor
+  · intro h
+    exact h _ st rfl
+  · intro h a st' he
+    cases he
+    exact h
+
+theorem SpecAt.peek_bind {f : Option Event → P β} {Q : β → Prop}
+    (h : SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (f ctx.trace[st.pos]?) Q) :
+    SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (peek >>= f) Q :=
+  wp_bind.mpr (wp_peek.mpr h)
+
+/-- A weaker postcondition, the places of the state before known. -/
+theorem SpecAt.mono' {m : P α} {Q Q' : α → Prop}
+    (h : SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st m Q)
+    (hq : ∀ a, H → Sub st.locs F → Q a → Q' a) :
+    SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st m Q' := by
+  intro a st' he
+  have e := h a st' he
+  have hl : Sub st.locs st'.locs := by
+    obtain ⟨_, _, _, hl, _⟩ := e
+    exact hl
+  exact e.imp fun hH hF _ hQ => hq a hH (hl.trans hF) hQ
+
+/-- The pools of the state before hold. -/
+theorem SpecAt.withPool {m : P α} {Q : α → Prop}
+    (h : SpecAt (Γ := Γ) (fp := fp) (F := F) (H ∧ PoolOK Γ.L fp st.scope) ctx st m Q) :
+    SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st m Q := by
+  intro a st' he
+  obtain ⟨ops, ho, hs, hl, ht, hf⟩ := h a st' he
+  exact ⟨ops, ho, hs, hl, ht, fun pos N kj kret khalt hH hF hp hsem =>
+    hf pos N kj kret khalt ⟨hH, hp⟩ hF hp hsem⟩
+
+/-- The places of the state before are final. -/
+theorem SpecAt.withSub {m : P α} {Q : α → Prop}
+    (h : SpecAt (Γ := Γ) (fp := fp) (F := F) (H ∧ Sub st.locs F) ctx st m Q) :
+    SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st m Q := by
+  intro a st' he
+  obtain ⟨ops, ho, hs, hl, ht, hf⟩ := h a st' he
+  exact ⟨ops, ho, hs, hl, ht, fun pos N kj kret khalt hH hF hp hsem =>
+    hf pos N kj kret khalt ⟨hH, hl.trans hF⟩ hF hp hsem⟩
+
+/-- A weaker postcondition. -/
+theorem SpecAt.mono {m : P α} {Q Q' : α → Prop}
+    (h : SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st m Q) (hq : ∀ a, H → Q a → Q' a) :
+    SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st m Q' :=
+  fun a st' he => (h a st' he).imp fun hH _ _ => hq a hH
+
+/-- More may be assumed. -/
+theorem SpecAt.weaken {H' : Prop} {m : P α} {Q : α → Prop}
+    (h : SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st m Q) (hH : H' → H) :
+    SpecAt (Γ := Γ) (fp := fp) (F := F) H' ctx st m Q :=
+  fun a st' he => (h a st' he).weaken hH
 
 theorem SpecAt.modify {g : St → St} {Q : Prop} (hg : Emits Γ fp F H st (g st) Q) :
     SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (modify g) (fun _ => Q) :=

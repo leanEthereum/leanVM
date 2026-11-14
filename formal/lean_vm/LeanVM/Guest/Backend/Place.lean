@@ -285,6 +285,21 @@ def gpowLimbs (e : Nat) : Nat × Nat := ((gpowK e).toBitVec.toNat, 0)
 /-- The β-immediate cap (`FOLD_MAX`). -/
 def foldMaxExp : Nat := 2 ^ 16
 
+/-- The nearest shifted pointer below `exp` whose distance to it is a constant already set: none
+if `g^exp` itself is set. -/
+def matPick (sc : Scope) (c : Cell) (exp : Nat) (mats : List (Nat × Cell)) : Option (Nat × Cell) :=
+  if sc.consts.contains (gpowLimbs exp) then none
+  else ((0, c) :: mats).foldl (init := none) fun best x =>
+    if x.1 < exp && sc.consts.contains (gpowLimbs (exp - x.1)) && best.all (·.1 ≤ x.1) then some x
+    else best
+
+/-- The cell a shifted pointer is made from and the shift still to apply: the pointer `c` and
+`exp`, or the nearest product below, among `mats`, whose distance is a constant already set. -/
+def matStart (sc : Scope) (c : Cell) (exp : Nat) (mats : List (Nat × Cell)) : Cell × Nat :=
+  match matPick sc c exp mats with
+  | some (e, src) => (src, exp - e)
+  | none => (c, exp)
+
 /-- A cell holding `c · g^exp` for the pointer in cell `c` (`materialize`): `c` itself, a
 product made before, or a product from `c` or the nearest shifted pointer below whose distance is
 a constant already set. -/
@@ -294,14 +309,7 @@ def materialize (c : Cell) (exp : Nat) : P Cell := do
   let sc := (← get).scope
   let mats := (sc.mats.get? c).getD []
   if let some (_, o) := mats.find? (·.1 == exp) then return o
-  let has := fun (e : Nat) => sc.consts.contains (gpowLimbs e)
-  let start : Option (Nat × Cell) :=
-    if has exp then none
-    else ((0, c) :: mats).foldl (init := none) fun best (e, src) =>
-      if e < exp && has (exp - e) && best.all (·.1 ≤ e) then some (e, src) else best
-  let (src, dist) := match start with
-    | some (e, src) => (src, exp - e)
-    | none => (c, exp)
+  let (src, dist) := matStart sc c exp mats
   let k ← constCell (gpowLimbs dist)
   let o ← mulCell src k
   modify fun s => { s with scope.mats := s.scope.mats.insert c (mats ++ [(exp, o)]) }
@@ -911,7 +919,7 @@ def placeFn (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : T
     name := f.name, isMain := f.name == "main", argCells, retCells, loops, sigs,
     trace := tf.trace }
   let ((), st) ← (placeBody tf).run ctx |>.run st
-  if 2 ^ 128 ≤ st.next then throw s!"in {f.name}: a frame past the compiler's exponents"
+  if 2 ^ 64 ≤ st.next then throw s!"in {f.name}: a frame past the address space"
   return (⟨{ name := f.name, body := st.out.toList, frameSize := st.next }, st.locs⟩, st.tables)
 
 /-- Place the functions in order: the jump tables grow as the lowering reaches each `match`. -/
