@@ -10,9 +10,9 @@ Proved: `guest_prover_complete_of : OpenGaps → …` (`Guest/EndExecFinal.lean`
 - `sizes : SizesAt alignA` (allocation): each hint at a frame's pc reserves the words the honest tree places there (`treeSizes`).
 - `allocReady : AllocReady alignA` (allocation): each allocation hint has what it needs where the tree puts the bump pointer.
 - `hintsUsed : HintsUsed YFin` (allocation): the hints at a pc keep the cells used within the reference's `2^κ`.
-- `witPtrRes : WitPtrRes` (witness): the three heap witness pointers no atom of the spine pins (`dup_claims` in `main_loop0`, `main_loop1`, `child_defer` in `main_loop4`) are powers below `maxCells`.
-- `resCld`, `resCp : ResCert alignA …` (residuals): the residuals of `claim_list_digest` (its dispatch in a branch) and `certify_placement` (a divisor that is no parameter) hold at their honest frames.
-- `nz0`, `nz1 : NzVal …` (residuals): parameter `0` of `log2_ceil_in_the_exponent__L0_L34` and `__L16_L34` is nonzero at each honest instance.
+- `resCp : ResCert alignA …` (residuals): `certify_placement`'s residuals (a divisor that is no parameter, two runs) hold at its honest frames.
+
+Proved since: `WitPtrRes` (`witPtrRes_guest`), `claim_list_digest`'s residuals (`resCld_alignA`) and the two `log2_ceil` nonzero parameters (`nzVal_lce0`, `nzVal_lce16`), by facts carried down the honest tree (`Res/Carry*`).
 
 ## What exists
 

@@ -18,6 +18,8 @@ import LeanVM.Guest.EndExecAKeep
 import LeanVM.Guest.EndExecAExtra
 import LeanVM.Guest.EndExecCAlign
 import LeanVM.Guest.Budget.MainExact
+import LeanVM.Guest.EndExecW
+import LeanVM.Guest.EndExecRCld
 
 /-!
 # The end theorem modulo the open facts
@@ -86,19 +88,8 @@ structure OpenGaps : Prop where
   allocReady : AllocReady alignA
   /-- Allocation track: the hints at a pc keep the cells used within the reference's `2^κ`. -/
   hintsUsed : HintsUsed YFin
-  /-- Witness track: the heap witness pointers no atom of the spine pins are powers below
-  `maxCells` (`dup_claims` in `main_loop0`, `main_loop1`, `child_defer` in `main_loop4`). -/
-  witPtrRes : WitPtrRes
-  /-- Residuals track: `claim_list_digest`'s residuals hold at its honest frames. -/
-  resCld : ResCert alignA Fn.«claim_list_digest».modeCert
   /-- Residuals track: `certify_placement`'s residuals hold at its honest frames. -/
   resCp : ResCert alignA Fn.«certify_placement».modeCert
-  /-- Residuals track: `log2_ceil_in_the_exponent__L0_L34`'s parameter `0` is nonzero at each
-  honest instance. -/
-  nz0 : NzVal "log2_ceil_in_the_exponent__L0_L34" (.n 0)
-  /-- Residuals track: `log2_ceil_in_the_exponent__L16_L34`'s parameter `0` is nonzero at each
-  honest instance. -/
-  nz1 : NzVal "log2_ceil_in_the_exponent__L16_L34" (.n 0)
 
 /-! ## The assembly -/
 
@@ -107,13 +98,13 @@ theorem execGaps_of (O : OpenGaps) :
     ExecGaps Mode.guestCerts Fn.«main».modeCert Mode.guestE0 (XOf YFin) (fun _ ↦ ProAt) :=
   ExecGaps.ofR (A := alignA) (Mode.modeCerts_guest O.modeHyps) Mode.mainOk_guestCerts Budget.mainExactHyp
     (hintAlloc_alignA O.sizes O.allocReady fun _ _ h ↦ h.2)
-    (hintWitness_alignA (witCells_alignA O.witPtrRes) pushShape fun _ _ h ↦ h.1)
+    (hintWitness_alignA (witCells_alignA witPtrRes_guest) pushShape fun _ _ h ↦ h.1)
     (hintComputed_alignA extraRef_alignA)
     (resTop_guestF (fun K hK ↦ by
       simp only [Res.resExc, List.mem_cons, List.not_mem_nil, or_false] at hK
       rcases hK with rfl | rfl
-      · exact O.resCld
-      · exact O.resCp) O.nz0 O.nz1)
+      · exact resCld_alignA
+      · exact O.resCp) nzVal_lce0 nzVal_lce16)
     termNode_guest Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at Mode.guestCerts_entry_ne
     (derefPow_all _) O.hintsUsed
     (KeepY.and (keepY_alignA (derefPow_all _) fun _ _ h ↦ h) (keepY_allocA_of O.sizes))

@@ -153,6 +153,8 @@ part_res() {
   python3 -I scripts/res-cert/mono.py "${check[@]}"
   step "res: every sub residual in a proved family (scripts/res-cert/sub.py)"
   python3 -I scripts/res-cert/sub.py "${check[@]}"
+  step "res: facts carried down to callees (scripts/res-cert/carry.py)"
+  python3 -I scripts/res-cert/carry.py "${check[@]}"
 }
 
 part_whir_data() {

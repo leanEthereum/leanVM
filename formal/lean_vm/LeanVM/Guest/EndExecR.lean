@@ -17,8 +17,9 @@ public import LeanVM.Guest.Bridge.FrameMap
 
 `TopAt A r K i e j`: the frame `e` is the top frame of a state of the tree track along `r`'s run at
 offset `i` of certificate `K`'s code: an honest instance of `K`'s function (index `j`), on its path,
-its frame holding what the completeness check reads (`FrameHolds`) and within `2^62`, and the
-instruction at `i`, an `XOR` or a `MUL`, holding on the reference at its frame (`ROp`).
+its frame holding what the completeness check reads (`FrameHolds`) and within `2^62`, the
+instruction at `i`, an `XOR` or a `MUL`, holding on the reference at its frame (`ROp`), and the
+path's rest from the frame's position.
 
 `ResTop Ks A`: each residual at such a frame holds of the reference there. `res_of_top`: `ResTop`
 gives `ExecGaps.res` for `X = XOf Y`, as `termRef_of` gives `term`: `trackAt_X` puts a state of the
@@ -55,6 +56,8 @@ structure TopAt (A : String → FnAl) (r : Ref) (K : Mode.Cert) (i : ℕ) (e : E
   fb : e.I.fp + fsN j ≤ 2 ^ 62
   at' : AtPc (entOf A) (alOf A) e (K.F.entry + i)
   op : ∀ ins, K.code[i]? = some ins → ROp (refMem r.img) e.I.fp ins
+  /-- The path from the frame's position. -/
+  rest : ∃ vs, walk e.σ e.pos = .ret e.es vs
 
 /-- **The residuals at the honest frames**: at each honest frame at an offset of a certificate, each
 residual there whose bases have words holds of the reference at the frame. -/
@@ -122,7 +125,8 @@ theorem res_of_top {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : S
     | xor a b c => exact ref_xor hκ hC hs hon hop
     | mul a b c => exact ref_mul hκ hC hs hon hop
     | _ => trivial
-  have ht : TopAt A r K i e j := ⟨hI, hE.node, hj, hent, hfn, ⟨vs, hw, hF⟩, hfb, hpc ▸ hat, hrop⟩
+  have ht : TopAt A r K i e j :=
+    ⟨hI, hE.node, hj, hent, hfn, ⟨vs, hw, hF⟩, hfb, hpc ▸ hat, hrop, hE.path.elim fun vs' h ↦ ⟨vs', h.2⟩⟩
   rw [← hfp] at hin ⊢
   exact h r hr K hK i hi e j ht x hx hin
 
