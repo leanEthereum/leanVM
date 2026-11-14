@@ -102,16 +102,22 @@ pub fn skip_row(acc: &mut SkipAcc, e: &[[u64; SLOTS]; 5], weights: [[u64; 2]; 5]
     let low = |p: [u128; 8]| -> [u64; 8] { p.map(|p| p as u64) };
     for (v, acc) in acc.0.iter_mut().enumerate() {
         let lanes: [[u64; 8]; 5] = std::array::from_fn(|x| e[x][8 * v..][..8].try_into().unwrap());
+        let mut sums = [[0u128; 8]; 2];
         for (x, w) in weights.iter().enumerate() {
             let (b, c) = (lanes[(x + 1) % 5], lanes[(x + 2) % 5]);
             let mut product = low(clmul8(b, c));
             if 8 * v < 2 * GROUP {
                 product = xor(product, low(clmul8([RMFE.ones as u64; 8], xor(lanes[x], c))));
             }
-            for (acc, &w) in acc.iter_mut().zip(w) {
-                for (acc, p) in acc.iter_mut().zip(clmul8(product, [w; 8])) {
-                    *acc ^= p;
+            for (sums, &w) in sums.iter_mut().zip(w) {
+                for (sum, p) in sums.iter_mut().zip(clmul8(product, [w; 8])) {
+                    *sum ^= p;
                 }
+            }
+        }
+        for (acc, sums) in acc.iter_mut().zip(sums) {
+            for (acc, sum) in acc.iter_mut().zip(sums) {
+                *acc ^= sum;
             }
         }
     }
