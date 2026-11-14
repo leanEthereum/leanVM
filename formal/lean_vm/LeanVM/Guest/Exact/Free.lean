@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Exact.Every
+public import LeanVM.Guest.Exact.Atoms
 public import LeanVM.Guest.Memory.CalleeIdx
 public import LeanVM.Guest.B1.Common.Find
 
@@ -32,14 +33,6 @@ namespace LeanVM.Guest.Memory
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest
 
 @[expose] public section
-
-/-- A computed hint: a hint the executor computes from what it reads. -/
-def isComputed : Atom → Bool
-  | .hint (.witness ..) => false
-  | .hint (.alloc ..) => false
-  | .hint (.allocDyn ..) => false
-  | .hint _ => true
-  | _ => false
 
 theorem exact_of_not_computed {rd : Reader} {σ : Val} : ∀ {a : Atom}, isComputed a = false → a.Exact rd σ
   | .hint (.witness ..), _ | .hint (.alloc ..), _ | .hint (.allocDyn ..), _ => trivial
@@ -166,6 +159,17 @@ theorem coreProgram_exactIn (rd : Reader) :
         simp only [Tree.events, Tree.name, Tree.val, hf, hw]
       rw [hev] at he
       exact exact_of_pinned hb hw hes rd' e he
+
+/-- **A function with no computed hint calling only itself passes the check**, its body's facts given (by pieces,
+for a body too large for one kernel evaluation). -/
+theorem exactFreeG_of_atoms {g : String} {j : ℕ} {fn : Fn} (hget : coreProgram[j]? = some fn) (hn : fn.name = g)
+    (hb : Stmt.atomsAll (fun a => !isComputed a) fn.body = true)
+    (hc : ∀ g' ∈ Stmt.blockCallees fn.body, (calleeIdx j g').isSome = true)
+    (hks : (Data.calleesJ j).all (· == j) = true) : ExactFreeG g := by
+  refine ⟨1, j, by rw [hget, Option.map_some, hn], ?_⟩
+  rw [exactJ, hget]
+  simp only [Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true]
+  exact ⟨⟨blockNextOk_of_atomsAll _ hb, hc⟩, fun k hk => Or.inl (List.all_eq_true.mp hks k hk)⟩
 
 /-- Function `j`'s callee `g` has its subtree's computed hints pinned locally. -/
 noncomputable def exactCallee (j : ℕ) (g : String) : Bool :=

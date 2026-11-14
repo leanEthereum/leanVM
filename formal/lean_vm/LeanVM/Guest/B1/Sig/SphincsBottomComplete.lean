@@ -124,12 +124,12 @@ theorem sBottom_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : 
     (σ : Val) (h1 : σ (.n 1) = bb)
     (hat : ClaimAt rd (σ (.n 0)) (cellOf128 pk.publicSeed) (cellOf128 pk.root) (msgLo m) (msgHi m)) :
     Completes C rd 2 5249 (sDigestBlock ++ (sForsAddrs ++ sForsB.1)) σ (fun σ' => BottomPost bb pk m sig σ' ∧
-      FallPops rd σ' (sDigestBlock ++ (sForsAddrs ++ sForsB.1)) (bottomPops pk m sig)) := by
+      FallPops rd σ' (sDigestBlock ++ (sForsAddrs ++ sForsB.1)) (bottomPops pk m sig) ∧ SBits σ') := by
   set T := digestT pk m sig with hTd
   refine Completes.append (m := 1372) (by norm_num) (by norm_num) sDigestBlock_nb
     (sDigestBlock_complete hm hbb pk m sig.randomizer hat σ rfl h1)
     (fun σA heA hA => ?_)
-  obtain ⟨hppA, hrA, hrdA, hpA, hdA, hqA, hunA⟩ := hA
+  obtain ⟨hppA, hrA, hrdA, hpA, hdA, hqA, hunA, hSA⟩ := hA
   replace hdA : DigestAt σA T := by
     have e : (Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600 pk
       sig.randomizer m)).toNat = T := rfl
@@ -165,7 +165,7 @@ theorem sBottom_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : 
     hdA.congr tCA, hqA.congr sDigestBlock_ptrs tCA,
     by rw [show sA0B = .n 1379 from rfl, tC _ (by norm_num)]; exact ha0B,
     by rw [show sKeyB = .n 1381 from rfl, tC _ (by norm_num)]; exact hkB,
-    by rw [hfC.1, hppB]; rfl⟩, ?_⟩, hhC⟩
+    by rw [hfC.1, hppB]; rfl⟩, ?_, hSA.congr fun k hk => tCA k (by omega)⟩, hhC⟩
   have hd := sDigestBlock_pops (rd := rd) σA
   have hu : (runV 1306 6).map σA = (List.range 6).map fun j =>
       ofK (addressOfIndex (spUnusedN pk m sig.randomizer / 256 ^ j % 256)) := by

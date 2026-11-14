@@ -87,6 +87,17 @@ theorem Tree.EveryKids.and : ∀ {ks : List Tree}, Tree.EveryKids Q ks → Tree.
       exact ⟨Tree.Every.and h.1 h'.1, Tree.EveryKids.and h.2 h'.2⟩
 end
 
+mutual
+/-- Every tree satisfies the trivial predicate. -/
+theorem Tree.every_true : ∀ (t : Tree), t.Every fun _ _ => True
+  | .node .. => Tree.every_node.mpr ⟨trivial, Tree.everyKids_true _⟩
+  | .phantom .. => Tree.every_phantom
+
+theorem Tree.everyKids_true : ∀ (ks : List Tree), Tree.EveryKids (fun _ _ => True) ks
+  | [] => by rw [Tree.EveryKids]; trivial
+  | k :: ks => by rw [Tree.EveryKids]; exact ⟨Tree.every_true k, Tree.everyKids_true ks⟩
+end
+
 /-- **A conjunction of node predicates** is carried as one. -/
 theorem every_and {t : Tree} : t.Every (fun f σ => Q f σ ∧ Q' f σ) ↔ t.Every Q ∧ t.Every Q' :=
   ⟨fun h => ⟨h.mono fun _ _ h => h.1, h.mono fun _ _ h => h.2⟩, fun h => h.1.and h.2⟩

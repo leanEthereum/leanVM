@@ -94,7 +94,8 @@ def SpCallsAt (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Sign
 
 /-- **The statements before the root's check complete**, for a claim of `pk` and `m` at `n0`
 signed by `sig`, the byte table at `n1`: the top layer reaches the key's root, and the byte reads
-are the table's, and the three calls of `sp_wots` are the honest ones. -/
+are the table's, and the three calls of `sp_wots` are the honest ones, and the bit run holds the bits of
+`H_msg`'s cells (`SBits`). -/
 theorem sPre_complete_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : MemOK rd 256)
     {bb : E} (hbb : ByteBits rd bb) (pk : Sphincs.PublicKey) (m : HashSig.Message)
     (sig : Sphincs.Signature) (hv : Sphincs.verifyWithKeccak pk m sig = true) (σ : Val)
@@ -102,13 +103,14 @@ theorem sPre_complete_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm
     (hat : ClaimAt rd (σ (.n 0)) (cellOf128 pk.publicSeed) (cellOf128 pk.root) (msgLo m) (msgHi m)) :
     Completes C rd 2 sLayerT.2.1 sPre σ (fun σ' => σ' sLayerT.2.2 = cellOf128 pk.root ∧
       σ' sRoot = cellOf128 pk.root ∧ TablePtrs bb σ' sPre ∧
-      (∀ k0 k1 k2, SplicePops rd σ' sPre [k0, k1, k2] (prePops pk m sig k0 k1 k2)) ∧ SpCallsAt pk m sig σ') := by
+      (∀ k0 k1 k2, SplicePops rd σ' sPre [k0, k1, k2] (prePops pk m sig k0 k1 k2)) ∧ SpCallsAt pk m sig σ' ∧
+      SBits σ') := by
   obtain ⟨r0, r1, h0, h1', h2⟩ := (verifyWithKeccak_iff_stages pk m sig).mp hv
   rw [sForsKeyOf_eq] at h0
   have hT8 := sLayerT_le
   unfold sPre
   refine Completes.append (m := 5249) (by norm_num) (by omega) sBottom_nb
-    (sBottom_complete hB hm hbb pk m sig σ h1 hat) (fun σA heA ⟨hA, hAP⟩ => ?_)
+    (sBottom_complete hB hm hbb pk m sig σ h1 hat) (fun σA heA ⟨hA, hAP, hAS⟩ => ?_)
   have hA1 : σA (.n 1) = bb := by rw [heA.apply (Or.inl (by norm_num))]; exact h1
   -- the bottom layer
   obtain ⟨hr0, hL0⟩ := layer_stage_vals hB hC hm hbb (l := 0) (by norm_num) h0
@@ -161,7 +163,8 @@ theorem sPre_complete_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm
   have tFD : ∀ k < 5556, σF (.n k) = σD (.n k) := fun k hk => by rw [tF k (by omega), tE k hk]
   obtain ⟨-, -, hrA, -, hqA, -⟩ := hA
   refine ⟨σF, heF, ⟨hF2.trans hR2, by rw [show sRoot = .n 3 from rfl, tFA 3 (by norm_num)]; exact hrA,
-    ?_, fun k0 k1 k2 => ?_, hBc.congr (by decide) tFB, hDc.congr (by decide) tFD, hFc⟩, hhF⟩
+    ?_, fun k0 k1 k2 => ?_, ⟨hBc.congr (by decide) tFB, hDc.congr (by decide) tFD, hFc⟩,
+    hAS.congr fun k hk => tFA k (by omega)⟩, hhF⟩
   swap
   · have h := (SplicePops.of_fallPops (hAP.agree sBottom_nb fun k hk => (tFA k hk).symm)).append
       (((hBs k0).agree sLayerB_nb fun k hk => (tFB k hk).symm).append

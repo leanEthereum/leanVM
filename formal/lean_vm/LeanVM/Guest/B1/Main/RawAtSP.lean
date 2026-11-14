@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Main.RawAt
 public import LeanVM.Guest.B1.Main.CompleteP
 public import LeanVM.Guest.B1.Sig.SphincsSigPops
+public import LeanVM.Guest.B1.Main.CompleteE
 
 /-!
 # `main_loop3`, placed with its pops
@@ -17,7 +18,8 @@ public import LeanVM.Guest.B1.Sig.SphincsSigPops
 
 * `VerifySigP fs cert nV`: `verify_sig_lean_sphincs`, on the hypotheses of `Lift.verify_sig_lean_sphincs_relIn`, is placed at every frame pointer in `nV` words by a tree popping `Sig.spSegPops`;
 * `l4Pops D j`: iteration `j`'s entries, its raw index `g^(slot j)` then the check's;
-* `rawS_stepP`, `rawS_loopP`, `rawS_completeAtDP`: an iteration, the loop from `g^j`, popping iterations `j ..< nrs`' entries in order.
+* `VerifySigPQ fs cert nV Q`: `VerifySigP` by a tree whose every node satisfies `Q`;
+* `rawS_stepPQ`, `rawS_loopPQ`, `rawS_completeAtDPQ`: an iteration, the loop from `g^j`, popping iterations `j ..< nrs`' entries in order, every node satisfying `Q` (`main_loop3`'s own nodes by `hq`); `rawS_stepP`, `rawS_loopP`, `rawS_completeAtDP` at `Q` trivial.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -41,6 +43,27 @@ def VerifySigP (fs : String → ℕ) (cert : String → V → ℕ) (nV : ℕ) : 
     (∀ v < 256, ∃ i, bb.limb 0 * addressOfIndex v = addressOfIndex i ∧ R i) →
     ∀ fp, RelAtInP coreProgram fs cert rd R (fun _ => False) fp nV "verify_sig_lean_sphincs" [p, bb] []
       (Sig.spSegPops pk m sig)
+
+/-- **`VerifySigP` by a tree whose every node satisfies `Q rd`.** -/
+def VerifySigPQ (fs : String → ℕ) (cert : String → V → ℕ) (nV : ℕ) (Q : Reader → String → Val → Prop) : Prop :=
+  ∀ (rd : Reader) (R : ℕ → Prop) (p bb : E) (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Signature),
+    Sig.MemOK rd 256 → Sig.ByteBits rd bb →
+    Sig.ClaimAt rd p (Sig.cellOf128 pk.publicSeed) (Sig.cellOf128 pk.root) (Sig.cellOf128 (m.extractLsb' 0 128))
+      (Sig.cellOf128 (m.extractLsb' 128 128)) →
+    Sphincs.verifyWithKeccak pk m sig = true →
+    (∀ k < 4, ∃ i, p.limb 0 * addressOfIndex k = addressOfIndex i ∧ R i) →
+    (∀ v < 256, ∃ i, bb.limb 0 * addressOfIndex v = addressOfIndex i ∧ R i) →
+    ∀ fp, RelAtInPE coreProgram fs cert rd (Q rd) R (fun _ => False) fp nV "verify_sig_lean_sphincs" [p, bb] []
+      (Sig.spSegPops pk m sig)
+
+theorem VerifySigPQ.toP {fs : String → ℕ} {cert : String → V → ℕ} {nV : ℕ} {Q : Reader → String → Val → Prop}
+    (h : VerifySigPQ fs cert nV Q) : VerifySigP fs cert nV :=
+  fun rd R p bb pk m sig hm hbb hat hv hreg hregb fp => (h rd R p bb pk m sig hm hbb hat hv hreg hregb fp).toP
+
+theorem VerifySigP.toPQ {fs : String → ℕ} {cert : String → V → ℕ} {nV : ℕ} (h : VerifySigP fs cert nV) :
+    VerifySigPQ fs cert nV fun _ _ _ => True :=
+  fun rd R p bb pk m sig hm hbb hat hv hreg hregb fp =>
+    (h rd R p bb pk m sig hm hbb hat hv hreg hregb fp).withEvery fun t _ _ => Tree.every_true t
 
 /-- **Iteration `j`'s entries**: its raw index, then its signature's check's. -/
 def l4Pops {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (j : ℕ) : List Pop :=
@@ -73,17 +96,20 @@ theorem splicePops_callIf {rd : Reader} {σ : Val} (c : V) (f : String) (args : 
   · split <;> rfl
   · split <;> simp [splice]
 
-/-- **One iteration of `main_loop3`, placed, with its pops**: its raw index and its check's, then its tail's `pt`
-(`[]` after the last). -/
-theorem rawS_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ} (hV : VerifySigP fs cert nV)
+/-- **One iteration of `main_loop3`, placed, with its pops, every node satisfying `Q`**: its raw index and its
+check's, then its tail's `pt` (`[]` after the last). -/
+theorem rawS_stepPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ} {Q : Reader → String → Val → Prop}
+    (hV : VerifySigPQ fs cert nV Q)
     {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23)
-    (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 23 rd) (hL : MemL rd Lin) {j : ℕ} (hj : j < nrs)
+    (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 23 rd) (hL : MemL rd Lin)
+    (hq : ∀ σ es vs, walk σ (coreProgram.getD idx% «main_loop3» default).body = .ret es vs →
+      (∀ e ∈ es, e.Holds rd σ) → Q rd name% «main_loop3» σ) {j : ℕ} (hj : j < nrs)
     {fp c Bt m : ℕ} {pt : List Pop}
     (htail : if j + 1 < nrs then
-        RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs name% «main_loop3») (c + nV) Bt m
+        RelAtInCPE coreProgram fs cert rd (Q rd) (RegionL Lin) (RegionL []) (fp + fs name% «main_loop3») (c + nV) Bt m
           name% «main_loop3» [gen ^ (j + 1), gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] [] pt
       else Bt = fs name% «main_loop3» ∧ m = 0 ∧ pt = []) :
-    RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c (fs name% «main_loop3» + Bt) (nV + m)
+    RelAtInCPE coreProgram fs cert rd (Q rd) (RegionL Lin) (RegionL []) fp c (fs name% «main_loop3» + Bt) (nV + m)
       name% «main_loop3» [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] []
       (l4Pops D j ++ pt) := by
   have hs := D.slot_lt j hj
@@ -138,7 +164,7 @@ theorem rawS_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ
   have hva : ([.n 17, .n 6] : List V).map σ = [gen ^ (tb + 4 * s), gen ^ bb] := by
     show [gen ^ tb * (gen ^ s * gen ^ s * (gen ^ s * gen ^ s)), gen ^ bb] = _
     rw [gen4, ← pow_add]
-  have h := relAtInP_of_walk_loop (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
+  have h := relAtInPE_of_walk_loop (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd) (Q := Q rd)
     coreProgram_wf (R := RegionL Lin) (D := RegionL []) (Dk := fun _ => False) (Rt := RegionL Lin)
     (Dt := RegionL []) (fp := fp) (c := c) (Bt := Bt) (m := m) (N := nV)
     (pss := [Sig.spSegPops (D.pk j) (D.msg j) (D.sig j)]) (pt := pt)
@@ -147,7 +173,7 @@ theorem rawS_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ
     (fun q hq => by rw [hpad, show l4Pre.filterMap Main.Stmt.addrS = [] from rfl] at hq; simp at hq)
     ⟨nV, 0, RegionL Lin, fun _ => False, (Nat.add_zero nV).symm, fun i hi => Or.inl (Or.inl hi),
       by rw [ite_eq_left_of_eq_true _ _ (eq_true rfl), hva, hal]; exact hv, rfl, fun _ h => h.elim⟩
-    (fun i hi => Or.inl hi) ?_ (fun i hi => by simp [RegionL] at hi) hps
+    (fun i hi => Or.inl hi) ?_ (fun i hi => by simp [RegionL] at hi) hps (hq σ _ _ hw hev)
   · simp only [hal, List.sum_nil, Nat.zero_add] at h; exact h
   · rw [hal, List.sum_nil, Nat.add_zero]
     have hta : ([.n 22, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] : List V).map σ =
@@ -170,15 +196,20 @@ theorem rawS_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ
     show (gen ^ (cv + X) * gen ^ s).limb 0 * addressOfIndex 0 = _
     rw [← pow_add, Nat.add_assoc, limb0_gen_pow_mul]; rfl
 
-/-- **`main_loop3` from the counter `g^j`, placed, with its pops**: iterations `j ..< nrs`' entries in order. -/
-theorem rawS_loopP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ} (hV : VerifySigP fs cert nV)
+/-- **`main_loop3` from the counter `g^j`, placed, with its pops, every node satisfying `Q`**: iterations
+`j ..< nrs`' entries in order. -/
+theorem rawS_loopPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ} {Q : Reader → String → Val → Prop}
+    (hV : VerifySigPQ fs cert nV Q)
     {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23)
-    (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 23 rd) (hL : MemL rd Lin) :
-    ∀ j < nrs, ∀ fp c, RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c
+    (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 23 rd) (hL : MemL rd Lin)
+    (hq : ∀ σ es vs, walk σ (coreProgram.getD idx% «main_loop3» default).body = .ret es vs →
+      (∀ e ∈ es, e.Holds rd σ) → Q rd name% «main_loop3» σ) :
+    ∀ j < nrs, ∀ fp c, RelAtInCPE coreProgram fs cert rd (Q rd) (RegionL Lin) (RegionL []) fp c
       ((nrs - j + 1) * fs name% «main_loop3») ((nrs - j) * nV) name% «main_loop3»
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] []
       ((List.range' j (nrs - j)).flatMap (l4Pops D)) := by
-  suffices key : ∀ t j, j + 1 + t = nrs → ∀ fp c, RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c
+  suffices key : ∀ t j, j + 1 + t = nrs → ∀ fp c, RelAtInCPE coreProgram fs cert rd (Q rd) (RegionL Lin) (RegionL [])
+      fp c
       ((nrs - j + 1) * fs name% «main_loop3») ((nrs - j) * nV) name% «main_loop3»
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] []
       ((List.range' j (nrs - j)).flatMap (l4Pops D)) from
@@ -187,7 +218,7 @@ theorem rawS_loopP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ
   induction t with
   | zero =>
     intro j hj fp c
-    have h := rawS_stepP fs cert hV D hY hnrs hl hL (j := j) (fp := fp) (c := c) (Bt := fs name% «main_loop3»)
+    have h := rawS_stepPQ fs cert hV D hY hnrs hl hL hq (j := j) (fp := fp) (c := c) (Bt := fs name% «main_loop3»)
       (m := 0) (pt := []) (by omega) (by rw [ite_eq_right_of_eq_false _ _ (eq_false (by omega))]; exact ⟨rfl, rfl, rfl⟩)
     rw [show nrs - j = 1 by omega, List.range'_one, List.flatMap_singleton, show (1 + 1) * fs name% «main_loop3» =
       fs name% «main_loop3» + fs name% «main_loop3» by ring, Nat.one_mul]
@@ -195,7 +226,7 @@ theorem rawS_loopP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ
     exact h
   | succ t ih =>
     intro j hj fp c
-    have h := rawS_stepP fs cert hV D hY hnrs hl hL (j := j) (fp := fp) (c := c) (by omega)
+    have h := rawS_stepPQ fs cert hV D hY hnrs hl hL hq (j := j) (fp := fp) (c := c) (by omega)
       (by rw [ite_eq_left_of_eq_true _ _ (eq_true (by omega))]
           exact ih (j + 1) (by omega) (fp + fs name% «main_loop3») (c + nV))
     rw [show nrs - j = nrs - (j + 1) + 1 by omega, List.range'_succ, List.flatMap_cons,
@@ -204,6 +235,48 @@ theorem rawS_loopP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ
       show (nrs - (j + 1) + 1) * nV = nV + (nrs - (j + 1)) * nV by ring]
     exact h
 
+theorem rawS_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ} (hV : VerifySigP fs cert nV)
+    {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23)
+    (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 23 rd) (hL : MemL rd Lin) {j : ℕ} (hj : j < nrs)
+    {fp c Bt m : ℕ} {pt : List Pop}
+    (htail : if j + 1 < nrs then
+        RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs name% «main_loop3») (c + nV) Bt m
+          name% «main_loop3» [gen ^ (j + 1), gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] [] pt
+      else Bt = fs name% «main_loop3» ∧ m = 0 ∧ pt = []) :
+    RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c (fs name% «main_loop3» + Bt) (nV + m)
+      name% «main_loop3» [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] []
+      (l4Pops D j ++ pt) := by
+  refine (rawS_stepPQ fs cert hV.toPQ D hY hnrs hl hL (fun _ _ _ _ _ => trivial) hj ?_).toP
+  by_cases hn : j + 1 < nrs
+  · rw [ite_eq_left_of_eq_true _ _ (eq_true hn)] at htail ⊢
+    exact htail.withEvery fun t _ _ => Tree.every_true t
+  · rw [ite_eq_right_of_eq_false _ _ (eq_false hn)] at htail ⊢
+    exact htail
+
+theorem rawS_loopP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ} (hV : VerifySigP fs cert nV)
+    {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23)
+    (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 23 rd) (hL : MemL rd Lin) :
+    ∀ j < nrs, ∀ fp c, RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c
+      ((nrs - j + 1) * fs name% «main_loop3») ((nrs - j) * nV) name% «main_loop3»
+      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] []
+      ((List.range' j (nrs - j)).flatMap (l4Pops D)) := fun j hj fp c =>
+  (rawS_loopPQ fs cert hV.toPQ D hY hnrs hl hL (fun _ _ _ _ _ => trivial) j hj fp c).toP
+
+/-- **`main_loop3` is complete, placed, with its pops, every node satisfying `Q`**, from every counter `g^j` below
+the count: iterations `j ..< nrs`' entries in order. -/
+theorem rawS_completeAtDPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ} {Q : Reader → String → Val → Prop}
+    (hV : VerifySigPQ fs cert nV Q)
+    {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23)
+    (hnrs : nrs < 2 ^ 34)
+    (hq : ∀ rd σ es vs, walk σ (coreProgram.getD idx% «main_loop3» default).body = .ret es vs →
+      (∀ e ∈ es, e.Holds rd σ) → Q rd name% «main_loop3» σ) :
+    ∀ j < nrs, CompleteAtDPE fs cert 23 name% «main_loop3» Lin
+      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] (Returns [])
+      (fun _ => (List.range' j (nrs - j)).flatMap (l4Pops D)) Q := fun j hj fp =>
+  ⟨(nrs - j + 1) * fs name% «main_loop3» + (nrs - j) * nV, [], [], [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
+    fun rd hl hL => (rawS_loopPQ fs cert hV D hY hnrs hl (by simpa using hL) (hq rd) j hj fp
+      (fp + (nrs - j + 1) * fs name% «main_loop3»)).relAtInPE⟩
+
 /-- **`main_loop3` is complete, placed, with its pops**, from every counter `g^j` below the count: iterations
 `j ..< nrs`' entries in order. -/
 theorem rawS_completeAtDP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ} (hV : VerifySigP fs cert nV)
@@ -211,10 +284,8 @@ theorem rawS_completeAtDP (fs : String → ℕ) (cert : String → V → ℕ) {n
     (hnrs : nrs < 2 ^ 34) :
     ∀ j < nrs, CompleteAtDP fs cert 23 name% «main_loop3» Lin
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] (Returns [])
-      (fun _ => (List.range' j (nrs - j)).flatMap (l4Pops D)) := fun j hj fp =>
-  ⟨(nrs - j + 1) * fs name% «main_loop3» + (nrs - j) * nV, [], [], [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
-    fun rd hl hL => (rawS_loopP fs cert hV D hY hnrs hl (by simpa using hL) j hj fp
-      (fp + (nrs - j + 1) * fs name% «main_loop3»)).relAtInP⟩
+      (fun _ => (List.range' j (nrs - j)).flatMap (l4Pops D)) := fun j hj =>
+  (rawS_completeAtDPQ fs cert hV.toPQ D hY hnrs (fun _ _ _ _ _ _ => trivial) j hj).toDP
 
 end
 end LeanVM.Guest.B1.Main

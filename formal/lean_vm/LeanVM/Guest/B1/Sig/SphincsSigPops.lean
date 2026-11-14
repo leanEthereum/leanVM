@@ -572,7 +572,8 @@ theorem verify_lean_sphincs_complete_pops (C : CallRel) (rd : Reader) (hC : SpWo
 
 /-- **`verify_sig_lean_sphincs` is complete, popping its hints, with its loads and calls**: a valuation from which the body
 holds, every walk of it loading the claim and the byte table only and popping `spSegPops` with `spKids` spliced in,
-which are `sphincsHints pk m sig`, stream by stream, its three calls of `sp_wots` the honest ones. -/
+which are `sphincsHints pk m sig`, stream by stream, its three calls of `sp_wots` the honest ones, its bit run the
+bits of `H_msg`'s cells (`SBits`). -/
 theorem verify_sig_lean_sphincs_complete_vals (C : CallRel) (rd : Reader) (p bb : E) (pk : Sphincs.PublicKey)
     (m : HashSig.Message) (sig : Sphincs.Signature) (hC : SpWotsCalls C) (hm : MemOK rd 256)
     (hbb : ByteBits rd bb)
@@ -585,17 +586,17 @@ theorem verify_sig_lean_sphincs_complete_vals (C : CallRel) (rd : Reader) (p bb 
         (∀ A ∈ loadAddrs σ es, (∃ k < 4, A = p.limb 0 * addressOfIndex k) ∨
           ∃ v < 256, A = bb.limb 0 * addressOfIndex v) ∧
         splice rd σ es (spKids pk m sig) = spSegPops pk m sig) ∧
-      SameStreams (spSegPops pk m sig) (Hints.sphincsHints pk m sig) ∧ SpCallsAt pk m sig σ := by
+      SameStreams (spSegPops pk m sig) (Hints.sphincsHints pk m sig) ∧ SpCallsAt pk m sig σ ∧ SBits σ := by
   let σ0 : Val := Function.update (Function.update (fun _ => (0 : E)) (.n 0) p) (.n 1) bb
   have e0 : σ0 (.n 0) = p := by
     simp only [σ0]
     rw [Function.update_of_ne (by simp), Function.update_self]
   have e1 : σ0 (.n 1) = bb := Function.update_self ..
-  obtain ⟨σf, hef, ⟨hroot, hrt, hptrs, hsp, hcs⟩, hhf⟩ :=
+  obtain ⟨σf, hef, ⟨hroot, hrt, hptrs, hsp, hcs, hS⟩, hhf⟩ :=
     sPre_complete_vals sphincsBlocksComplete hC hm hbb pk m sig hv σ0 e1 (by rw [e0]; exact hat)
   have f0 : σf (.n 0) = p := by rw [hef.apply (Or.inl (by norm_num))]; exact e0
   have f1 : σf (.n 1) = bb := by rw [hef.apply (Or.inl (by norm_num))]; exact e1
-  refine ⟨σf, f0, f1, ?_, fun es vs hw => ⟨fun A hA => ?_, ?_⟩, spSegPops_sameStreams pk m sig hv, hcs⟩
+  refine ⟨σf, f0, f1, ?_, fun es vs hw => ⟨fun A hA => ?_, ?_⟩, spSegPops_sameStreams pk m sig hv, hcs, hS⟩
   · rw [sBody_eq, sBody_splitC, holdsList_append]
     refine hhf _ _ ⟨?_, rfl⟩
     show σf sLayerT.2.2 + σf sRoot = 0

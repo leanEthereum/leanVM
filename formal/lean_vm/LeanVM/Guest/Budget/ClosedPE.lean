@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.Budget.ClosedP
 public import LeanVM.Guest.Budget.FinalPE
+public import LeanVM.Guest.B1.Main.MainLoop3E
+public import LeanVM.Guest.Exact.MainLoop2
 
 /-!
 # `main` within the deployed budget, every node exact
@@ -16,12 +18,17 @@ public import LeanVM.Guest.Budget.FinalPE
 `MainExactHyp`: at the deployed instance, `main_loop2`, `main_loop3` and the children's loop complete by trees of their predicates
 whose every node is exact (`MainGoalsRE`). `mainCompletePE_deployed`: `mainCompleteP_deployed` with every node of
 `main`'s tree exact, from it; `aggregate_claims` by `mainGoalsRR_agE`, the other callees exact for free.
+
+`MainExactHypL5`: `MainExactHyp`'s children's loop alone. `mainExactHyp_of_l5`: `main_loop2` is exact for free
+(`main_loop2_exactFree`, checked by chunks) and `main_loop3` by `mainGoalsRE_l4`, so `MainExactHyp` follows;
+`mainCompletePE_deployedL5`: `mainCompletePE_deployed` from it.
 -/
 
 namespace LeanVM.Guest.Budget
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash
+open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.End (bytecode bytecode_length)
 open LeanVM.Guest.B1.Main (VerifySubGoalsTBR ChildListGoalsTBR hKid hMonoX hMonoS xPlan sPlan MainPops pvH
   verifySubGoalsTBR_deployed)
@@ -67,6 +74,40 @@ theorem mainCompletePE_deployed (hE : MainExactHyp) :
       l5_honest_weight_le op hl (fun _ hc _ _ _ _ hP hv hb => by
         obtain ⟨-, h20, h30, d, hd, hF⟩ := hP hc
         exact vs_weight_le_deployed op h20 h30 hd hF hv hb) hv hb hT
+
+/-- **The children's loop, every node exact**: `MainExactHyp`'s field still open, at the deployed instance. -/
+def MainExactHypL5 : Prop :=
+  ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
+    (B1.Main.hm B2C.fs 0 seed s w).nc ≠ 0 →
+    B1.CompleteAtDTBR B2C.fs B2C.cert 23 name% «main_loop4» (B1.Main.hLmain B2C.fs 0 seed s w)
+      [1, gen ^ (B1.Main.hm B2C.fs 0 seed s w).nc, (B1.Main.hm B2C.fs 0 seed s w).a409,
+        (B1.Main.hm B2C.fs 0 seed s w).a77, (B1.Main.hm B2C.fs 0 seed s w).a117,
+        gen ^ ((B1.Main.hm B2C.fs 0 seed s w).nlx + (B1.Main.hm B2C.fs 0 seed s w).nxd),
+        (B1.Main.hm B2C.fs 0 seed s w).a80,
+        (B1.Main.hm B2C.fs 0 seed s w).a117 *
+          gen ^ ((B1.Main.hm B2C.fs 0 seed s w).nlx + (B1.Main.hm B2C.fs 0 seed s w).nxd),
+        gen ^ ((B1.Main.hm B2C.fs 0 seed s w).nls + (B1.Main.hm B2C.fs 0 seed s w).nsd),
+        (B1.Main.hm B2C.fs 0 seed s w).a406, (B1.Main.hm B2C.fs 0 seed s w).aDa,
+        (digestHalves (B1.Main.hm B2C.fs 0 seed s w).seed).1, (digestHalves (B1.Main.hm B2C.fs 0 seed s w).seed).2,
+        (B1.Main.hm B2C.fs 0 seed s w).a394, (B1.Main.hm B2C.fs 0 seed s w).et,
+        (B1.Main.hm B2C.fs 0 seed s w).a400] (B1.Returns [])
+      (B1.Main.mainPredsHP B2C.fs Count.wSB Count.wSK (B1.Main.childBv (vsBoundAt Count.vsWordsOs vkBound) w)
+        (deployedVsT w) s w (mainPopsD seed s w)).withExact.P5
+      (B1.Main.mainBsH B2C.fs Count.wSB Count.wSK (B1.Main.childBv (vsBoundAt Count.vsWordsOs vkBound) w) s w).B5
+
+/-- **`MainExactHyp` from the children's loop alone**: `main_loop2` exact for free, `main_loop3` by
+`mainGoalsRE_l4`. -/
+theorem mainExactHyp_of_l5 (h : MainExactHypL5) : MainExactHyp := fun seed s w hr hl hok =>
+  { l3 := fun h0 => (B1.Main.mainGoalsRR_l3 hr hl Count.mainStatics.main (fun _ => rfl) h0).andEvery
+      (B1.everyOn_exact main_loop2_exactFree)
+    l4 := B1.Main.mainGoalsRE_l4 hr hl Count.mainStatics.main fun _ => rfl
+    l5 := h seed s w hr hl hok }
+
+/-- **`main` is complete within the deployed budget with its pops, every node exact**, given the children's loop
+(`MainExactHypL5`). -/
+theorem mainCompletePE_deployedL5 (h : MainExactHypL5) :
+    MainCompletePE B2C.fs B2C.cert B2C.cnt (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
+  mainCompletePE_deployed (mainExactHyp_of_l5 h)
 
 end
 end LeanVM.Guest.Budget

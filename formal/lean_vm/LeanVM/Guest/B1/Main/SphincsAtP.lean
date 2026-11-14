@@ -7,13 +7,16 @@
 module
 
 public import LeanVM.Guest.B1.Main.SpWotsAtP
+public import LeanVM.Guest.B1.Sig.SphincsExact
+public import LeanVM.Guest.Exact.FreeSpWots
 
 /-!
 # `verify_sig_lean_sphincs`, placed with its pops
 
 `Sig.verify_sig_lean_sphincs_complete_vals`' valuation under the trivial call relation, placed by `relAtInP_of_walk`: the body is straight (`sStraight`), so its calls are the three layers' calls of `sp_wots` (`sCalls`), the honest ones (`Sig.SpCallsAt`), each placed by `spWots_relAtInP` (`layer_relAtInP`); it places nothing (`raw4_pure`) and loads the claim and the byte table.
 
-* `verifySigP`: `VerifySigP` in `fs "verify_sig_lean_sphincs" + 3 * fs "sp_wots"` words;
+* `verifySigPE`: `VerifySigPQ` in `fs "verify_sig_lean_sphincs" + 3 * fs "sp_wots"` words, every node exact: the
+  node's bit hints by `Sig.sNode_exact`, `sp_wots` for free; `verifySigP` without exactness;
 * `rawS_completeAtDP'`: `rawS_completeAtDP` at those words, without the hypothesis.
 -/
 
@@ -72,11 +75,12 @@ theorem sp_layers_valid {pk : Sphincs.PublicKey} {m : HashSig.Message} {sig : Sp
   rw [hr1] at h2
   exact ⟨hV0, hV1, (Sig.layer_cells h2).1⟩
 
-/-- **`verify_sig_lean_sphincs` placed with its pops**, in its frame and its three calls of `sp_wots`. -/
-theorem verifySigP (fs : String → ℕ) (cert : String → V → ℕ) :
-    VerifySigP fs cert (fs "verify_sig_lean_sphincs" + 3 * fs "sp_wots") := by
+/-- **`verify_sig_lean_sphincs` placed with its pops, every node exact**, in its frame and its three calls of
+`sp_wots`. -/
+theorem verifySigPE (fs : String → ℕ) (cert : String → V → ℕ) :
+    VerifySigPQ fs cert (fs "verify_sig_lean_sphincs" + 3 * fs "sp_wots") fun rd => ExactAt coreProgram rd := by
   intro rd R p bb pk m sig hm hbb hat hv hreg hregb fp
-  obtain ⟨σ, h0, h1, hb, hwk, -, hcs⟩ := Sig.verify_sig_lean_sphincs_complete_vals (fun _ _ _ => True) rd p bb pk m sig
+  obtain ⟨σ, h0, h1, hb, hwk, -, hcs, hS⟩ := Sig.verify_sig_lean_sphincs_complete_vals (fun _ _ _ => True) rd p bb pk m sig
     (fun _ _ _ _ _ _ _ => trivial) hm hbb hat hv
   have hw := walk_straight σ [] sPreR sStraight
   set es := sPreR.flatMap (slEvs σ) with hes
@@ -97,7 +101,10 @@ theorem verifySigP (fs : String → ℕ) (cert : String → V → ℕ) :
   obtain ⟨hld, hps⟩ := hwk es [] hw
   obtain ⟨hV0, hV1, hV2⟩ := sp_layers_valid hv
   have hm64 : Sig.MemOK rd 64 := fun i hi => hm i (by omega)
-  have h := relAtInP_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd) coreProgram_wf
+  have hsp : ∀ t : Tree, t.name = "sp_wots" → ∀ {a r : List E}, t.Valid coreProgram rd a r →
+      t.Every (ExactAt coreProgram rd) := fun t hn _ _ hv => every_exact_of_free sp_wots_exactFree hv hn rd
+  have h := relAtInPE_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
+    (Q := ExactAt coreProgram rd) coreProgram_wf
     (R := R) (D := fun _ => False) (Dk := fun _ => False) (fp := fp) (N := 3 * fs "sp_wots")
     (args := [p, bb]) (rets := []) (pss := Sig.spKids pk m sig) (ps := Sig.spSegPops pk m sig)
     Sig.find_verify_sig_lean_sphincs (Or.inl verify_sig_lean_sphincs_not_loop)
@@ -109,18 +116,24 @@ theorem verifySigP (fs : String → ℕ) (cert : String → V → ℕ) :
     (by
       rw [hc]
       exact ⟨fs "sp_wots", 2 * fs "sp_wots", fun _ => False, fun _ => False, by ring, fun _ h => h.elim,
-        layer_relAtInP fs cert hm64 hV0 hcs.1 _ _,
+        (layer_relAtInP fs cert hm64 hV0 hcs.1 _ _).withEvery fun t hn hv => hsp t hn hv,
         fs "sp_wots", fs "sp_wots", fun _ => False, fun _ => False, by ring, fun _ h => h.elim,
-        layer_relAtInP fs cert hm64 hV1 hcs.2.1 _ _,
+        (layer_relAtInP fs cert hm64 hV1 hcs.2.1 _ _).withEvery fun t hn hv => hsp t hn hv,
         fs "sp_wots", 0, fun _ => False, fun _ => False, rfl, fun _ h => h.elim,
-        layer_relAtInP fs cert hm64 hV2 hcs.2.2 _ _, rfl, fun _ h => h.elim⟩)
+        (layer_relAtInP fs cert hm64 hV2 hcs.2.2 _ _).withEvery fun t hn hv => hsp t hn hv, rfl, fun _ h => h.elim⟩)
     (fun A hA => ?_) (fun _ h => h.elim) hps
+    (exactAt_of_walk Sig.find_verify_sig_lean_sphincs hw (Sig.sNode_exact hw (fun e he => (hsat.1 e he).1) hS))
   · rw [hal, List.sum_nil, Nat.add_zero] at h; exact h
   · rcases hld A hA with ⟨k, hk, rfl⟩ | ⟨v, hv', rfl⟩
     · obtain ⟨i, hi, hR⟩ := hreg k hk
       exact ⟨i, hi, Or.inr (Or.inl hR)⟩
     · obtain ⟨i, hi, hR⟩ := hregb v hv'
       exact ⟨i, hi, Or.inr (Or.inl hR)⟩
+
+/-- **`verify_sig_lean_sphincs` placed with its pops**, in its frame and its three calls of `sp_wots`. -/
+theorem verifySigP (fs : String → ℕ) (cert : String → V → ℕ) :
+    VerifySigP fs cert (fs "verify_sig_lean_sphincs" + 3 * fs "sp_wots") :=
+  (verifySigPE fs cert).toP
 
 /-- **`main_loop3` is complete, placed, with its pops** (`rawS_completeAtDP` with `verifySigP`). -/
 theorem rawS_completeAtDP' (fs : String → ℕ) (cert : String → V → ℕ) {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout}
