@@ -7,25 +7,25 @@
 
 module
 
-public import LeanVM.Guest.Backend.Guest.Traced
+public import LeanVM.Guest.Backend.Guest.Program
 public import LeanVM.Guest.Backend.Sound.Main
-public import LeanVM.Guest.CoreData
 public import Statement.LeanVmGuest
 
 /-!
 # The guest's world
 
-The back end's input for the guest, `guestTraced`, is `coreProgram`'s function `j` with entry `j`
-of `GuestData.guestInfo` (`Guest/Traced.lean`, written by `lake exe guest-traced`): the allocation
-trace of its expansion, every value renamed as `coreProgram` names it, its return cells and its
-`loopSource`. So the core program of the guest's world is `coreProgram` by construction
-(`guestWorld_core`), and no theorem about renumbering is needed: the back end's correctness holds
-for any traced program it accepts, whatever the trace.
+The back end's input for the guest, `guestTraced` (`Guest/Program.lean`), is `coreProgram`'s
+function `j` with entry `j` of `GuestData.guestInfo`: the allocation trace of its expansion, every
+value renamed as `coreProgram` names it, its return cells and its `loopSource`. So the core program
+of the guest's world is `coreProgram` by construction (`guestWorld_core`), and no theorem about
+renumbering is needed: the back end's correctness holds for any traced program it accepts, whatever
+the trace.
 
 `GuestCompiles fns slots` is the one equation between the back end and the statement's data: the
 back end compiles `guestTraced` to the labelled functions `fns` and jump table slots `slots`, which
 assemble to the functions of `Statement/Data/` (`Data.functions`), padded to `2^19` slots.
-`lake exe guest-traced --check` evaluates it, compiled, and finds it true.
+`lake exe guest-traced --check` evaluates it, compiled, and finds it true; `Guest/Compiled.lean`
+proves it from the kernel-checked pieces `lake exe guest-pieces` writes.
 
 `guest_program_sound`: given it and every function's obligations, on a memory where a run of the
 statement's `guestProgram` from `(g^0, 1)` halts, `main`'s core body, `coreProgram`'s first
@@ -37,16 +37,6 @@ namespace LeanVM.Guest.Backend
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core GuestData
 
 @[expose] public section
-
-/-- **The back end's input for the guest**: `coreProgram`'s functions, each with its trace, its
-return cells and its `loopSource`. -/
-noncomputable def guestTraced : List TracedFn :=
-  (coreProgram.zip guestInfo).map fun x => ⟨x.1, x.2.1, x.2.2.1, x.2.2.2⟩
-
-/-- **The back end's input for the guest has `coreProgram`'s functions.** -/
-theorem guestTraced_core : guestTraced.map (·.core) = coreProgram := by
-  rw [guestTraced, List.map_map]
-  exact List.map_fst_zip (by rw [coreProgram_length, guestInfo_length])
 
 /-- **The guest as a compiled program on a memory**: the back end's input `guestTraced`, its
 output `fns` and `slots`, padded to `2^19` slots, a memory `L` and the preconditions `U` its
