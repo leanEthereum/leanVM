@@ -8,37 +8,18 @@
 /// ```
 ///
 /// So byte column `b` of the eight input rows becomes output row `b`, bit-transposed.
-///
-/// - AVX-512 VBMI with GFNI: one byte permute and one affine map.
-/// - aarch64: a table lookup, then three masked-swap rounds.
-/// - Elsewhere: the same rounds on a gathered word per column.
 #[inline]
 pub fn bit_transpose_64bytes(input: &[u8; 64], output: &mut [u8; 64]) {
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"))]
-    // SAFETY: the features are enabled at compile time.
-    unsafe {
-        bit_transpose_64bytes_gfni(input, output)
+    for (b, row) in output.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+        let column = u64::from_le_bytes(std::array::from_fn(|x| input[8 * x + b]));
+        *row = transpose_8x8_bits(column).to_le_bytes();
     }
-    #[cfg(target_arch = "aarch64")]
-    // SAFETY: aarch64 always has NEON.
-    unsafe {
-        bit_transpose_64bytes_neon(input, output)
-    }
-    #[cfg(not(any(
-        all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"),
-        target_arch = "aarch64"
-    )))]
-    bit_transpose_64bytes_portable(input, output);
 }
 
 /// Transpose the 8x8 bit matrix whose byte `r` is row `r` (Hacker's Delight, section 7-3).
 ///
 /// Bit `r * 8 + c` moves to bit `c * 8 + r`.
 #[inline(always)]
-#[cfg_attr(
-    all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"),
-    allow(dead_code)
-)]
 fn transpose_8x8_bits(mut x: u64) -> u64 {
     let t = (x ^ (x >> 7)) & 0x00AA_00AA_00AA_00AA;
     x ^= t ^ (t << 7);
@@ -46,33 +27,6 @@ fn transpose_8x8_bits(mut x: u64) -> u64 {
     x ^= t ^ (t << 14);
     let t = (x ^ (x >> 28)) & 0x0000_0000_F0F0_F0F0;
     x ^ t ^ (t << 28)
-}
-
-/// Gather each byte column into a word, and transpose its bits.
-///
-/// The compiler vectorizes the gather, which beats transposing the bytes in registers first.
-#[cfg_attr(
-    any(
-        all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"),
-        target_arch = "aarch64"
-    ),
-    allow(dead_code)
-)]
-#[inline]
-fn bit_transpose_64bytes_portable(input: &[u8; 64], output: &mut [u8; 64]) {
-    for (b, row) in output.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-        let column = u64::from_le_bytes(std::array::from_fn(|x| input[8 * x + b]));
-        *row = transpose_8x8_bits(column).to_le_bytes();
-    }
-}
-
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"))]
-#[target_feature(enable = "avx512f,avx512vbmi,gfni")]
-#[inline]
-fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
-    use crate::simd::{load, store};
-
-    store(output, 0, bit_transpose_64bytes_m512(load(input, 0)));
 }
 
 /// [`bit_transpose_64bytes`] in a register.
@@ -108,75 +62,6 @@ pub fn bit_transpose_64bytes_m512(input: core::arch::x86_64::__m512i) -> core::a
         let columns = _mm512_permutexvar_epi8(_mm512_loadu_si512(IDX.as_ptr().cast()), input);
         let unit = _mm512_set1_epi64(0x8040_2010_0804_0201_u64 as i64);
         _mm512_gf2p8affine_epi64_epi8::<0>(unit, columns)
-    }
-}
-
-/// `vqtbl4q_u8` gathers each byte column into a word, then three masked-swap rounds transpose its bits.
-#[cfg(target_arch = "aarch64")]
-#[inline(always)]
-unsafe fn bit_transpose_64bytes_neon(input: &[u8; 64], output: &mut [u8; 64]) {
-    // SAFETY: the module's cfg enables the NEON features this body uses.
-    unsafe {
-        use crate::{load_at, store_at};
-        use core::arch::aarch64::*;
-
-        let table = uint8x16x4_t(
-            load_at(input, 0),
-            load_at(input, 16),
-            load_at(input, 32),
-            load_at(input, 48),
-        );
-
-        // vqtbl4q indexes that bring bytes belonging to byte-chunk b ∈ 0..8
-        // into contiguous 8-byte runs, packed two-chunks-per-Q-reg.
-        const IDX0: [u8; 16] = [0, 8, 16, 24, 32, 40, 48, 56, 1, 9, 17, 25, 33, 41, 49, 57];
-        const IDX1: [u8; 16] = [2, 10, 18, 26, 34, 42, 50, 58, 3, 11, 19, 27, 35, 43, 51, 59];
-        const IDX2: [u8; 16] = [4, 12, 20, 28, 36, 44, 52, 60, 5, 13, 21, 29, 37, 45, 53, 61];
-        const IDX3: [u8; 16] = [6, 14, 22, 30, 38, 46, 54, 62, 7, 15, 23, 31, 39, 47, 55, 63];
-
-        let mut y0 = vreinterpretq_u64_u8(vqtbl4q_u8(table, load_at(&IDX0, 0)));
-        let mut y1 = vreinterpretq_u64_u8(vqtbl4q_u8(table, load_at(&IDX1, 0)));
-        let mut y2 = vreinterpretq_u64_u8(vqtbl4q_u8(table, load_at(&IDX2, 0)));
-        let mut y3 = vreinterpretq_u64_u8(vqtbl4q_u8(table, load_at(&IDX3, 0)));
-
-        let mask1 = vdupq_n_u64(0x00AA00AA00AA00AA);
-        let mask2 = vdupq_n_u64(0x0000CCCC0000CCCC);
-        let mask3 = vdupq_n_u64(0x00000000F0F0F0F0);
-
-        // Round 1: distance 7.
-        let t0 = vandq_u64(veorq_u64(y0, vshrq_n_u64::<7>(y0)), mask1);
-        let t1 = vandq_u64(veorq_u64(y1, vshrq_n_u64::<7>(y1)), mask1);
-        let t2 = vandq_u64(veorq_u64(y2, vshrq_n_u64::<7>(y2)), mask1);
-        let t3 = vandq_u64(veorq_u64(y3, vshrq_n_u64::<7>(y3)), mask1);
-        y0 = veorq_u64(y0, veorq_u64(t0, vshlq_n_u64::<7>(t0)));
-        y1 = veorq_u64(y1, veorq_u64(t1, vshlq_n_u64::<7>(t1)));
-        y2 = veorq_u64(y2, veorq_u64(t2, vshlq_n_u64::<7>(t2)));
-        y3 = veorq_u64(y3, veorq_u64(t3, vshlq_n_u64::<7>(t3)));
-
-        // Round 2: distance 14.
-        let t0 = vandq_u64(veorq_u64(y0, vshrq_n_u64::<14>(y0)), mask2);
-        let t1 = vandq_u64(veorq_u64(y1, vshrq_n_u64::<14>(y1)), mask2);
-        let t2 = vandq_u64(veorq_u64(y2, vshrq_n_u64::<14>(y2)), mask2);
-        let t3 = vandq_u64(veorq_u64(y3, vshrq_n_u64::<14>(y3)), mask2);
-        y0 = veorq_u64(y0, veorq_u64(t0, vshlq_n_u64::<14>(t0)));
-        y1 = veorq_u64(y1, veorq_u64(t1, vshlq_n_u64::<14>(t1)));
-        y2 = veorq_u64(y2, veorq_u64(t2, vshlq_n_u64::<14>(t2)));
-        y3 = veorq_u64(y3, veorq_u64(t3, vshlq_n_u64::<14>(t3)));
-
-        // Round 3: distance 28.
-        let t0 = vandq_u64(veorq_u64(y0, vshrq_n_u64::<28>(y0)), mask3);
-        let t1 = vandq_u64(veorq_u64(y1, vshrq_n_u64::<28>(y1)), mask3);
-        let t2 = vandq_u64(veorq_u64(y2, vshrq_n_u64::<28>(y2)), mask3);
-        let t3 = vandq_u64(veorq_u64(y3, vshrq_n_u64::<28>(y3)), mask3);
-        y0 = veorq_u64(y0, veorq_u64(t0, vshlq_n_u64::<28>(t0)));
-        y1 = veorq_u64(y1, veorq_u64(t1, vshlq_n_u64::<28>(t1)));
-        y2 = veorq_u64(y2, veorq_u64(t2, vshlq_n_u64::<28>(t2)));
-        y3 = veorq_u64(y3, veorq_u64(t3, vshlq_n_u64::<28>(t3)));
-
-        store_at(output, 0, vreinterpretq_u8_u64(y0));
-        store_at(output, 16, vreinterpretq_u8_u64(y1));
-        store_at(output, 32, vreinterpretq_u8_u64(y2));
-        store_at(output, 48, vreinterpretq_u8_u64(y3));
     }
 }
 
@@ -271,32 +156,16 @@ mod tests {
     }
 
     #[test]
-    fn every_arm_matches_reference() {
-        // Invariant: every arm this target compiles matches the definition, not only the dispatched one.
+    fn bit_transpose_64bytes_matches_reference() {
         let mut rng = Rng::new(0xB17_BB17);
         let edges = [[0u8; 64], [0xFF; 64], std::array::from_fn(|i| 1 << (i % 8))];
         for input in edges
             .into_iter()
             .chain((0..256).map(|_| std::array::from_fn(|_| rng.next_u8())))
         {
-            let want = reference(&input);
             let mut got = [0u8; 64];
             bit_transpose_64bytes(&input, &mut got);
-            assert_eq!(got, want, "dispatched");
-            bit_transpose_64bytes_portable(&input, &mut got);
-            assert_eq!(got, want, "portable");
-            #[cfg(all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"))]
-            {
-                // SAFETY: compiled only with the features enabled.
-                unsafe { bit_transpose_64bytes_gfni(&input, &mut got) };
-                assert_eq!(got, want, "gfni");
-            }
-            #[cfg(target_arch = "aarch64")]
-            {
-                // SAFETY: aarch64 always has NEON.
-                unsafe { bit_transpose_64bytes_neon(&input, &mut got) };
-                assert_eq!(got, want, "neon");
-            }
+            assert_eq!(got, reference(&input));
         }
     }
 }
