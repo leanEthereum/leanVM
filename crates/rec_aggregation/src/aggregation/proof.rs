@@ -21,6 +21,16 @@ pub struct EthereumClaims {
     pub da_commitment: Option<[u8; 32]>,
 }
 
+/// Which covered claims [`aggregate`](super::aggregate) proves.
+#[derive(Clone, Copy, Debug)]
+pub enum OutputClaims<'a> {
+    /// Every covered signature claim. The DA root is the one of `blobs` if any, otherwise the first
+    /// child's that has one, otherwise none.
+    All,
+    /// Exactly these, each covered by the inputs.
+    Only(&'a EthereumClaims),
+}
+
 /// A proof of some [`EthereumClaims`], which travel separately: [`Self::verify`] checks it against
 /// the claims the receiver expects.
 #[derive(Clone, Debug)]

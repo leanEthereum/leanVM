@@ -44,7 +44,7 @@ fn public_api_end_to_end() {
         lean_xmss_input[..4].to_vec(),
         lean_sphincs_input[..1].to_vec(),
         &blobs,
-        None,
+        OutputClaims::All,
         2,
     )
     .unwrap();
@@ -57,13 +57,21 @@ fn public_api_end_to_end() {
         lean_xmss_input[4..7].to_vec(),
         lean_sphincs_input[1..].to_vec(),
         &other_blobs,
-        None,
+        OutputClaims::All,
         2,
     )
     .unwrap();
     assert_eq!(right.0.da_commitment, Some(other_commitment));
     // A proof carries one blob matrix: the root passes on one child's, by default the first's.
-    let (claims, proof) = aggregate(&[left, right], lean_xmss_input[7..].to_vec(), vec![], &[], None, 2).unwrap();
+    let (claims, proof) = aggregate(
+        &[left, right],
+        lean_xmss_input[7..].to_vec(),
+        vec![],
+        &[],
+        OutputClaims::All,
+        2,
+    )
+    .unwrap();
     assert_eq!(claims.num_signature_claims(), 11);
     assert_eq!(claims.da_commitment, Some(commitment));
 
@@ -78,14 +86,22 @@ fn public_api_end_to_end() {
     fewer.lean_xmss.pop();
     assert!(matches!(received.verify(&fewer), Err(AggregateVerifyError::Snark(_))));
 
-    // 5. Removing some signatures from the aggregate: `declare` is what we keep. Here every claim on MSG_1 goes,
+    // 5. Removing some signatures from the aggregate: `OutputClaims::Only` is what we keep. Here every claim on MSG_1 goes,
     //    and one leanSPHINCS claim.
     let retained = EthereumClaims {
         lean_xmss: claims.lean_xmss.iter().filter(|(_, m)| *m != MSG_1).cloned().collect(),
         lean_sphincs: claims.lean_sphincs[1..].to_vec(),
         da_commitment: Some(commitment),
     };
-    let narrowed = aggregate(&[(claims, received)], vec![], vec![], &[], Some(&retained), 2).unwrap();
+    let narrowed = aggregate(
+        &[(claims, received)],
+        vec![],
+        vec![],
+        &[],
+        OutputClaims::Only(&retained),
+        2,
+    )
+    .unwrap();
     narrowed.1.verify(&narrowed.0).unwrap();
     assert_eq!(narrowed.0, retained);
     assert_eq!(narrowed.0.num_signature_claims(), 11 - 4 - 1);
@@ -95,7 +111,7 @@ fn public_api_end_to_end() {
         da_commitment: None,
         ..retained
     };
-    let dropped = aggregate(&[narrowed], vec![], vec![], &[], Some(&without_blobs), 2).unwrap();
+    let dropped = aggregate(&[narrowed], vec![], vec![], &[], OutputClaims::Only(&without_blobs), 2).unwrap();
     dropped.1.verify(&dropped.0).unwrap();
     assert_eq!(dropped.0, without_blobs);
 }

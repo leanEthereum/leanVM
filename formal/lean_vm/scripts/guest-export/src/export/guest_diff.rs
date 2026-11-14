@@ -159,7 +159,7 @@ fn export(
         raw_xmss.clone(),
         raw_sphincs.clone(),
         blobs,
-        None,
+        OutputClaims::All,
         LOG_INV_RATE,
     )
     .expect("node aggregates");

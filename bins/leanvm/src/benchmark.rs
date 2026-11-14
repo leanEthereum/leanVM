@@ -6,7 +6,7 @@ use bench::{Plan, Timing};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::{pretty_f64, pretty_integer};
 use rand::{Rng, SeedableRng, rngs::StdRng};
-use rec_aggregation::{EthereumClaims, EthereumProof, aggregate, aggregate_with_stats, signers_cache};
+use rec_aggregation::{EthereumClaims, EthereumProof, OutputClaims, aggregate, aggregate_with_stats, signers_cache};
 
 fn blobs(n: usize, seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = StdRng::seed_from_u64(seed);
@@ -92,7 +92,7 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
             raw_lean_xmss.clone(),
             raw_lean_sphincs.clone(),
             &blobs,
-            None,
+            OutputClaims::All,
             log_inv_rate,
         )
         .expect("leaf aggregates")
@@ -178,7 +178,7 @@ pub fn run_recursion(
     }
     let ((claims, sig, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        aggregate_with_stats(&children, vec![], vec![], &[], None, log_inv_rate).expect("node aggregates")
+        aggregate_with_stats(&children, vec![], vec![], &[], OutputClaims::All, log_inv_rate).expect("node aggregates")
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
@@ -245,7 +245,7 @@ fn write_leaves(
             all[k * per_leaf..(k + 1) * per_leaf].to_vec(),
             all_lean_sphincs[k * lean_sphincs_per_leaf..(k + 1) * lean_sphincs_per_leaf].to_vec(),
             &blobs(blobs_per_leaf, k as u64),
-            None,
+            OutputClaims::All,
             log_inv_rate,
         )
         .expect("leaf aggregates");

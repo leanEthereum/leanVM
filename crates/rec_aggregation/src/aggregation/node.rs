@@ -11,7 +11,7 @@ use super::guest::unified_guest;
 #[cfg(test)]
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
-use super::proof::{EthereumClaims, EthereumProof, check_signer_set, public_input};
+use super::proof::{EthereumClaims, EthereumProof, OutputClaims, check_signer_set, public_input};
 use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
@@ -21,39 +21,28 @@ use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use leanvm_core::cpu::{from_scalar, prove, public_input_bytes, scalar_proof};
 use primitives::field::F128;
 
-/// Prove existence of signatures and valid encoding of PQ-blobs, potentially using recursive children.
+/// Aggregate leanXMSS and leanSphincs signatures, and blobs, and the claims of child proofs.
 ///
-/// - `children`: child proofs with their claims; at most [`MAX_RECURSIONS`].
-/// - `raw_lean_xmss`: list of `(public_key, message, signature)`, any order, each signature at
-///   the leaf index it carries.
-/// - `raw_lean_sphincs`: list of `(public_key, message, signature)`, any order.
-/// - `blobs`: at most [`lean_da::DA_MAX_ROWS`] blobs, each a [`lean_da::Blob`] of 128-bit symbols.
-///   A node with blobs publishes their matrix's root, and none of its children's.
-/// - `declare`: `None` keeps all signature claims and publishes the blob matrix's root, or else
-///   the first child's that has one; `Some` specifies exactly the signatures and DA root to
-///   publish, which must be the blob matrix's if there are blobs. Every declared claim must be
-///   covered by the inputs above.
-/// - `log_inv_rate`: PCS code rate `2^-log_inv_rate`, higher `log_inv_rate` means a smaller proof
-///   but slower proving; in [`MIN_LOG_INV_RATE`](pcs::whir::MIN_LOG_INV_RATE)..=[`MAX_LOG_INV_RATE`](pcs::whir::MAX_LOG_INV_RATE).
+/// - `children`: at most [`MAX_RECURSIONS`], each with its claims.
+/// - `raw_lean_xmss`, `raw_lean_sphincs`: `(public_key, message, signature)`, in any order.
+/// - `blobs`: at most [`lean_da::DA_MAX_ROWS`].
+/// - `output`: which covered claims the proof attests.
+/// - `log_inv_rate`: the code rate's log, in [`MIN_LOG_INV_RATE`](pcs::whir::MIN_LOG_INV_RATE)..=[`MAX_LOG_INV_RATE`](pcs::whir::MAX_LOG_INV_RATE);
+///   higher gives smaller proof size but slower proving time.
 ///
-/// IMPORTANT:
-/// - `aggregate` should not be called more than once at a time in parallel per process.
-/// - Raw signatures are assumed valid: one that does not decode returns
-///   [`AggregateProveError::MalformedRawSignature`], and any other invalid one fails the guest's run,
-///   [`AggregateProveError::ProofError`].
-/// - Children are assumed verified by the caller ([`EthereumProof::verify`]): a child the replay
-///   cannot walk, or one carrying a false deferred value, returns [`AggregateProveError::InvalidChild`],
-///   and any other invalid child fails the guest's run, [`AggregateProveError::ProofError`] (TODO
-///   return the index of invalid proof).
+/// # WARNING
+/// - Signatures and children must be valid (children checked with [`EthereumProof::verify`]):
+///   otherwise proving fails.
+/// - Do not run two `aggregate` calls at once in one process.
 pub fn aggregate(
     children: &[(EthereumClaims, EthereumProof)],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: &[lean_da::Blob],
-    declare: Option<&EthereumClaims>,
+    output: OutputClaims,
     log_inv_rate: usize,
 ) -> Result<(EthereumClaims, EthereumProof), AggregateProveError> {
-    aggregate_with_stats(children, raw_lean_xmss, raw_lean_sphincs, blobs, declare, log_inv_rate)
+    aggregate_with_stats(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
         .map(|(claims, proof, _)| (claims, proof))
 }
 
@@ -63,9 +52,13 @@ pub fn aggregate_with_stats(
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: &[lean_da::Blob],
-    declare: Option<&EthereumClaims>,
+    output: OutputClaims,
     log_inv_rate: usize,
 ) -> Result<(EthereumClaims, EthereumProof, leanvm_core::cpu::Stats), AggregateProveError> {
+    let declare = match output {
+        OutputClaims::All => None,
+        OutputClaims::Only(claims) => Some(claims),
+    };
     let declared_root = declare.map(|claims| claims.da_commitment);
     // `cpu::prove` checks the rate too, but only after the witness is built.
     if !(leanvm_core::pcs::MIN_LOG_INV_RATE..=leanvm_core::pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {

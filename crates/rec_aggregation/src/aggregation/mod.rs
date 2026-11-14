@@ -16,7 +16,7 @@
 //! every level of the tree.
 //!
 //! A duplicate slot sits outside the prefix the digest hashes, so a claim in one is
-//! covered and not published. `aggregate`'s `declare` rests on that. A slot holds
+//! covered and not published. `aggregate`'s `OutputClaims::Only` rests on that. A slot holds
 //! four cells, the pubkey and its message, so the guest reads each signature's message
 //! out of the slot it verifies.
 //!
@@ -56,7 +56,7 @@ pub use guest::{unified_guest, warm_up};
 use lean_sphincs::LeanSphincsPublicKey;
 use lean_xmss::LeanXmssPublicKey;
 pub use node::{aggregate, aggregate_with_stats};
-pub use proof::{EthereumClaims, EthereumProof};
+pub use proof::{EthereumClaims, EthereumProof, OutputClaims};
 
 /// One leanXMSS claim: a pubkey, and the message it signed at whatever leaf index its
 /// signature carries.
