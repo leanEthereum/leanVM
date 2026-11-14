@@ -175,11 +175,12 @@ impl Layer<'_> {
         sums.iter().map(|s| s.reduce()).collect()
     }
 
-    /// The table the remaining rounds fold: row `half + 2 * (g + n_blocks * segment)` holds, per
+    /// The table the remaining rounds fold, and the first of those rounds' values, the pair of
+    /// rows `p` weighted by `eq[p]`: row `half + 2 * (g + n_blocks * segment)` holds, per
     /// position, the value at `s` of group `half` of block `g`'s packs, folded by `fold`. Rows of
     /// segments that do not exist are zero. The padding blocks' rows are those of the padding
-    /// block, folded once.
-    fn table(&self, fold: &PackFold) -> Vec<F128> {
+    /// block, folded and summed once.
+    fn table(&self, summand: &Summand, fold: &PackFold, eq: &[F128]) -> (Vec<F128>, (F128, F128)) {
         let shape = self.witness.shape;
         let (nb, written) = (shape.n_blocks(), self.witness.written());
         let rows = |block: &[u64], out: &mut [F128]| {
@@ -188,31 +189,45 @@ impl Layer<'_> {
                     *t = fold.value(block, half, j, 0);
                 }
             }
+            let (zero, infinity) = summand.pair(&out[..BITS], &out[BITS..]);
+            (zero.reduce(), infinity.reduce())
         };
-        let padding: Vec<Vec<F128>> = self
+        let padding: Vec<(Vec<F128>, (F128, F128))> = self
             .rounds
             .iter()
             .map(|&round| {
                 let mut out = vec![F128::ZERO; 2 * BITS];
-                if written < nb {
-                    rows(self.witness.layer(round, written), &mut out);
-                }
-                out
+                let values = if written < nb {
+                    rows(self.witness.layer(round, written), &mut out)
+                } else {
+                    (F128::ZERO, F128::ZERO)
+                };
+                (out, values)
             })
             .collect();
         let mut table = parallel::filled((2 * BITS * nb) << shape.seg_log(), F128::ZERO);
-        parallel::chunks_mut(&mut table, 2 * BITS, |i, out| {
-            let (segment, g) = (i / nb, i % nb);
-            if segment >= self.rounds.len() {
-                return;
-            }
-            if g < written {
-                rows(self.witness.layer(self.rounds[segment], g), out);
-            } else {
-                out.copy_from_slice(&padding[segment]);
-            }
-        });
-        table
+        let values = parallel::map_reduce_chunks_mut(
+            [&mut table],
+            [2 * BITS],
+            || (),
+            || (F128Unreduced::ZERO, F128Unreduced::ZERO),
+            |_, acc, p, [out]| {
+                let (segment, g) = (p / nb, p % nb);
+                if segment >= self.rounds.len() {
+                    return;
+                }
+                let (zero, infinity) = if g < written {
+                    rows(self.witness.layer(self.rounds[segment], g), out)
+                } else {
+                    out.copy_from_slice(&padding[segment].0);
+                    padding[segment].1
+                };
+                acc.0 ^= zero.mul_unreduced(eq[p]);
+                acc.1 ^= infinity.mul_unreduced(eq[p]);
+            },
+            |a, b| (a.0 ^ b.0, a.1 ^ b.1),
+        );
+        (table, (values.0.reduce(), values.1.reduce()))
     }
 }
 
@@ -283,35 +298,38 @@ impl Summand {
     }
 }
 
-/// A round over the leading variable of a table of rows of positions: its values at `0` and at
-/// infinity, the pair of rows `p` weighted by `eq[p]`.
-fn table_round(summand: &Summand, table: &[F128], eq: &[F128]) -> (F128, F128) {
-    let (zero, infinity) = parallel::map_reduce(
-        table.len() / (2 * BITS),
+/// Bind the leading variable of a table of rows of positions at `challenge`, and sum the next
+/// round's values over the rows written while they are at hand, the pair of rows `p` weighted by
+/// `eq[p]`: zero once a single row is left.
+fn fold_rows(summand: &Summand, table: &[F128], challenge: F128, eq: &[F128]) -> (Vec<F128>, (F128, F128)) {
+    let mut out = parallel::filled(table.len() / 2, F128::ZERO);
+    let values = parallel::map_reduce_chunks_mut(
+        [&mut out],
+        [2 * BITS],
+        || (),
         || (F128Unreduced::ZERO, F128Unreduced::ZERO),
-        |p| {
-            let pair = &table[2 * BITS * p..][..2 * BITS];
-            let (zero, infinity) = summand.pair(&pair[..BITS], &pair[BITS..]);
-            (
-                zero.reduce().mul_unreduced(eq[p]),
-                infinity.reduce().mul_unreduced(eq[p]),
-            )
+        |_, acc, p, [rows]| {
+            let src = &table[4 * BITS * p..][..2 * rows.len()];
+            for (row, src) in rows
+                .as_chunks_mut::<BITS>()
+                .0
+                .iter_mut()
+                .zip(src.as_chunks::<{ 2 * BITS }>().0)
+            {
+                let (low, high) = src.split_at(BITS);
+                for (out, (&l, &h)) in row.iter_mut().zip(low.iter().zip(high)) {
+                    *out = interp(l, h, challenge);
+                }
+            }
+            if rows.len() == 2 * BITS {
+                let (zero, infinity) = summand.pair(&rows[..BITS], &rows[BITS..]);
+                acc.0 ^= zero.reduce().mul_unreduced(eq[p]);
+                acc.1 ^= infinity.reduce().mul_unreduced(eq[p]);
+            }
         },
         |a, b| (a.0 ^ b.0, a.1 ^ b.1),
     );
-    (zero.reduce(), infinity.reduce())
-}
-
-/// Bind the leading variable of a table of rows of positions at `challenge`.
-fn fold_rows(table: &[F128], challenge: F128) -> Vec<F128> {
-    let mut out = parallel::filled(table.len() / 2, F128::ZERO);
-    parallel::chunks_mut(&mut out, BITS, |r, row| {
-        let (low, high) = table[2 * BITS * r..][..2 * BITS].split_at(BITS);
-        for (out, (&l, &h)) in row.iter_mut().zip(low.iter().zip(high)) {
-            *out = interp(l, h, challenge);
-        }
-    });
-    out
+    (out, (values.0.reduce(), values.1.reduce()))
 }
 
 /// A round of the sumcheck over bit positions, on small tables: the coefficients of
@@ -379,14 +397,18 @@ pub fn prove_layer(ps: &mut ProverState, witness: &Witness, step: usize, claim: 
     }
     let summand = Summand::new(claim, kappa);
 
-    // The groups, blocks and segments, on a table.
-    let mut table = tracing::info_span!("Tables").in_scope(|| layer.table(&PackFold::new(&mu, &point)));
+    // The groups, blocks and segments, on a table. Each pass over it writes the rows of one round
+    // and sums that round's values over them.
+    let (mut table, mut values) = tracing::info_span!("Tables").in_scope(|| {
+        let eq = eq_table(&claim.point[SKIP + 1..]);
+        layer.table(&summand, &PackFold::new(&mu, &point), &eq)
+    });
     let tail = tracing::info_span!("Tail").entered();
     for i in SKIP..claim.point.len() {
-        let (zero, infinity) = table_round(&summand, &table, &eq_table(&claim.point[i + 1..]));
-        let coeffs = round_coefficients(scale, zero, infinity, value, claim.point[i]);
+        let coeffs = round_coefficients(scale, values.0, values.1, value, claim.point[i]);
         let challenge = bind(ps, &coeffs, claim.point[i], &mut value, &mut scale, &mut point);
-        table = fold_rows(&table, challenge);
+        let eq = eq_table(claim.point.get(i + 2..).unwrap_or(&[]));
+        (table, values) = fold_rows(&summand, &table, challenge, &eq);
     }
     drop(tail);
 
