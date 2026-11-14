@@ -192,18 +192,45 @@ theorem Lays.weaken {H' : Prop} (h : Lays Γ fp F ctx slots B H st st' G S) (hH 
 /-- A state that differs in nothing but what the walk does not read and the jump tables. -/
 structure Quiet (st st' : St) : Prop where
   out : st'.out = st.out
-  locs : st'.locs = st.locs
+  locs : Sub st.locs st'.locs
   scope : st'.scope = st.scope
   tables : TablesLe st.tables st'.tables
   chainIn : st'.chainIn = st.chainIn
   chain : st'.chain = st.chain
 
-theorem Lays.ofQuiet (hq : Quiet st st') (h : Lays Γ fp F ctx slots B H st' st'' G S) :
+/-- A quiet step, what it found (`H'`) justified where the final places, the pools and the
+program's jump tables are known. -/
+theorem Lays.ofQuiet {H' : Prop} (hq : Quiet st st')
+    (hH' : TablesOK st.tables → EntriesIn slots st'.tables → Sub st'.locs F →
+      PoolOK Γ.L fp st.scope → H')
+    (h : Lays Γ fp F ctx slots B (H ∧ H') st' st'' G S) :
     Lays Γ fp F ctx slots B H st st'' G S := by
   obtain ⟨ps, ho, hl, ht, hm⟩ := h
-  refine ⟨ps, by rw [ho, hq.out], hq.locs ▸ hl, hq.tables.trans ht, fun hok => ?_⟩
-  rw [← hq.scope]
-  exact hm (hq.tables.ok hok)
+  refine ⟨ps, by rw [ho, hq.out], hq.locs.trans hl, hq.tables.trans ht,
+    fun hok pos N kj kretP khalt g next kret hH hF hp hB hfill hent => ?_⟩
+  have hp' : PoolOK Γ.L fp st'.scope := hq.scope ▸ hp
+  exact hm (hq.tables.ok hok) pos N kj kretP khalt g next kret
+    ⟨hH, hH' hok (hent.of_le ht) (hl.trans hF) hp⟩ hF hp' hB hfill hent
+
+/-- What a block of its own means, the places, pools and tables around it known. -/
+def BlockSem (Γ : Site κ) (fp : K) (ctx : Ctx) (slots : Array KVal) (B : ℕ) (blk : List PStmt)
+    (G : Prop → Prop) (S : Prop → (List E → Prop) → Prop) : Prop :=
+  ∀ (pos : ℕ) (N : Prop) (kj : E → E → Prop) (kretP : Prop) (khalt : E → E → Prop)
+    (g next : Prop) (kret : List E → Prop), pos + blockSize blk ≤ B →
+    FillsIn slots (blockFills ctx.name blk pos) → PStmt.SemList Γ fp blk pos N kj kretP khalt →
+    G g → (N → g → next) → (ctx.isMain = true ∨ kretP → kret (retWords Γ fp ctx)) → S next kret
+
+theorem Means.blockSem {locs' : Std.HashMap V Loc} {sc sc' : Scope} {t' : Tables}
+    {blk : List PStmt} (h : Means Γ fp F ctx slots B True locs' sc sc' t' blk G S)
+    (hF : Sub locs' F) (hp : PoolOK Γ.L fp sc) (hent : EntriesIn slots t') :
+    BlockSem Γ fp ctx slots B blk G S :=
+  fun pos N kj kretP khalt g next kret hB hfill hsem hG hnext hret =>
+    h pos N kj kretP khalt g next kret trivial hF hp hB hfill hent hsem hG
+      (fun _ hN hg => hnext hN hg) hret
+
+theorem Emits.same {Q : Prop} (h : Emits Γ fp F H st st' Q) : Same st st' := by
+  obtain ⟨_, _, _, _, hs, _⟩ := h
+  exact hs
 
 /-! ## Rules -/
 
@@ -295,16 +322,27 @@ theorem LaysAt.withSub {m : P α}
     hm hok pos N kj kretP khalt g next kret ⟨hH, hl.trans hF⟩ hF⟩
 
 /-- A step that changes only what `Quiet` allows, then the rest knowing what it found. -/
-theorem LaysAt.step {m : P α} {f : α → P β} {R : α → St → Prop}
-    (hm : wpP m ctx st (fun a st₁ => Quiet st st₁ ∧ R a st₁))
-    (hf : ∀ a st₁, R a st₁ → LaysAt Γ fp F ctx slots B H st₁ (f a) G S) :
+theorem LaysAt.step {m : P α} {f : α → P β} {R : α → Prop}
+    (hm : wpP m ctx st (fun a st₁ => Quiet st st₁ ∧ (TablesOK st.tables →
+      EntriesIn slots st₁.tables → Sub st₁.locs F → PoolOK Γ.L fp st.scope → R a)))
+    (hf : ∀ a st₁, LaysAt Γ fp F ctx slots B (H ∧ R a) st₁ (f a) G S) :
     LaysAt Γ fp F ctx slots B H st (m >>= f) G S := by
   intro hpl
   refine wp_bind.mpr fun a st₁ he b st₂ he' => ?_
   obtain ⟨hq, hR⟩ := hm a st₁ he
-  obtain ⟨hp, hl⟩ := hf a st₁ hR ⟨hq.chainIn.trans hpl.chainIn, hq.chain.trans hpl.chain⟩ b st₂
-    he'
-  exact ⟨hp, Lays.ofQuiet hq hl⟩
+  obtain ⟨hp, hl⟩ := hf a st₁ ⟨hq.chainIn.trans hpl.chainIn, hq.chain.trans hpl.chain⟩ b st₂ he'
+  exact ⟨hp, Lays.ofQuiet hq hR hl⟩
+
+/-- More may be assumed. -/
+theorem LaysAt.weaken {H' : Prop} {m : P α} (h : LaysAt Γ fp F ctx slots B H st m G S)
+    (hH : H' → H) : LaysAt Γ fp F ctx slots B H' st m G S :=
+  fun hpl a st' he => let ⟨hp, hl⟩ := h hpl a st' he; ⟨hp, hl.weaken hH⟩
+
+/-- No `match` is open at the state the walk is at. -/
+theorem LaysAt.plain {m : P α}
+    (h : Plain st → LaysAt Γ fp F ctx slots B H st m G S) :
+    LaysAt Γ fp F ctx slots B H st m G S :=
+  fun hpl => h hpl hpl
 
 /-- A placed statement is pushed: it means the construct. -/
 theorem LaysAt.push {s : PStmt}
