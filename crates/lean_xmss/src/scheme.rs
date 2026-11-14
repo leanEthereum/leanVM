@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::*;
 
+/// A leanXMSS public key: a Merkle root and a public parameter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct LeanXmssPublicKey {
     pub(crate) merkle_root: Digest,
@@ -46,6 +47,7 @@ impl LayerSignature {
     }
 }
 
+/// A leanXMSS signature, at one leaf index.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LeanXmssSignature {
     pub(crate) leaf_index: LeafIndex,
@@ -106,6 +108,7 @@ pub struct LeanXmssExpandedSecretKey {
     bottoms: Mutex<VecDeque<Arc<BottomTree>>>,
 }
 
+/// How many recently used bottom trees a [`LeanXmssExpandedSecretKey`] caches.
 pub const MAX_CACHED_BOTTOM_TREES: usize = 8;
 
 impl std::fmt::Debug for LeanXmssExpandedSecretKey {

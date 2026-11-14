@@ -34,8 +34,11 @@ pub const CELLS_PER_ROW: usize = CODEWORD_SYMBOLS / CELL_SYMBOLS;
 /// Symbols in one encoded blob, as a logarithm.
 pub const LOG_CODEWORD_SYMBOLS: usize = LOG_BLOB_SYMBOLS + 1;
 
+/// One element of `E`, as its 128 bits.
 pub type Symbol = u128;
+/// One blob: [`BLOB_SYMBOLS`] symbols.
 pub type Blob = [Symbol; BLOB_SYMBOLS];
+/// A [`Blob`] encoded at rate one half: [`CODEWORD_SYMBOLS`] symbols.
 pub type Codeword = [Symbol; CODEWORD_SYMBOLS];
 
 const _: () = assert!(DA_MAX_ROWS.is_power_of_two());

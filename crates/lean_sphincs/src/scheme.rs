@@ -9,6 +9,7 @@
 use crate::*;
 use primitives::hash::Hasher;
 
+/// A leanSPHINCS public key: `PK.seed` and `PK.root`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct LeanSphincsPublicKey {
     pub(crate) pk_seed: PkSeed,
@@ -75,6 +76,7 @@ impl LayerSignature {
     }
 }
 
+/// A leanSPHINCS signature: a randomizer, a FORS opening and one signature per layer.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LeanSphincsSignature {
     pub(crate) randomizer: Digest,
