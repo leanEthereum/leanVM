@@ -12,11 +12,11 @@ parallel = { package = "stable_parallel", path = "../parallel" }
 primitives = { package = "stable_primitives", path = "../primitives" }
 fiat_shamir = { package = "stable_fiat_shamir", path = "../fiat_shamir" }
 tracing.workspace = true
+verifier.workspace = true
 
 [dev-dependencies]
 primitives = { package = "stable_primitives", path = "../primitives", features = ["test-util"] }
 bench.workspace = true
-verifier.workspace = true
 
 [[bench]]
 name = "throughput"

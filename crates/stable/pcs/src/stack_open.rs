@@ -57,7 +57,7 @@ use super::whir_config::{BATCH_GRINDING_BITS, MAX_STACKED_CLAIMS};
 
 mod basis;
 
-pub(crate) use basis::{SWEEP, Terms};
+pub(crate) use basis::{LOW_VARS, Terms};
 
 // ---------------------------------------------------------------------------
 // Claim types
@@ -132,7 +132,7 @@ impl RingSwitchOpen {
 /// run, reusing the caller's [`super::whir::commit`] output as L0.
 ///
 /// `stack` is the committed message (not stored in [`ProverData`]), consumed: it goes once nothing reads it, after
-/// the first fold round or, when the commit kept no codeword, after the L0 open. It is the `2^log_n`-word stack truncated
+/// the first fold rounds. It is the `2^log_n`-word stack truncated
 /// to the lane blocks that carry data, zero past them. `config.initial_k` / `config.log_inv_rates[0]`
 /// must match the commit's `log_batch_size` / `log_inv_rate` (enforced by shape
 /// asserts inside the WHIR prover).
@@ -213,7 +213,7 @@ pub fn open_batch_mixed_whir_stacked(
     let lane_vars = log_n - config.initial_k;
     let rings: Vec<_> = rs_outputs.into_iter().map(|output| output.weight).collect();
     let initial_basis = tracing::info_span!("Basis")
-        .in_scope(|| basis::initial_basis(&stack, log_n, lane_vars, point_claims, lambdas_pd, ring, &rings));
+        .in_scope(|| basis::initial_basis(log_n, lane_vars, point_claims, lambdas_pd, ring, &rings));
 
     // 4. One WHIR over the full stack against the combined claim (the
     //    prover takes the stack; no copy).
@@ -235,8 +235,7 @@ mod tests {
     /// The level-0 rounds on a projected basis must send the tables of the dense rounds on the transposed stack and
     /// dense weight, and leave the same lane and weight, across claims inside
     /// one lane and spanning lanes, strides above the lane bit, shared and distinct points, one over the whole stack
-    /// past its lanes, and a q_keccak ring both spanning lanes and selected by lane bits, over a stack with runs of
-    /// equal blocks.
+    /// past its lanes, and a q_keccak ring both spanning lanes and selected by lane bits.
     #[test]
     fn projected_lane_rounds_match_the_dense_rounds() {
         const LANE_ROUNDS: usize = 6;
@@ -249,18 +248,11 @@ mod tests {
             (8, 5, 6),
             (10, 37, 12),
             (12, 5, 13),
-            // Sixteen blocks a lane: the claims' sums run eight blocks at a time.
             (14, 3, 15),
-            // Sixty-four blocks a lane: runs of equal blocks cross the projection's sweeps and the lane fold's tasks.
             (16, 3, 17),
         ] {
             let lane_block = 1usize << lane_vars;
-            let mut stack: Vec<F64> = (0..lanes_count * lane_block).map(|_| F64(rng.next_u64())).collect();
-            // Runs of equal blocks across lane boundaries and the lane fold's tasks, changing in some lanes only.
-            let block = 1usize << basis::LOW_VARS;
-            for b in (1..stack.len() / block).filter(|&b| b % 5 != 0 && b % 7 != 3) {
-                stack.copy_within((b - 1) * block..b * block, b * block);
-            }
+            let stack: Vec<F64> = (0..lanes_count * lane_block).map(|_| F64(rng.next_u64())).collect();
             let qkeccak_len = 1usize << qkeccak_vars;
             for offset in [0, qkeccak_len] {
                 if offset + qkeccak_len > stack.len() {
@@ -334,16 +326,9 @@ mod tests {
                 }
 
                 let rings: Vec<_> = rs_outputs.iter().map(|output| output.weight.clone()).collect();
-                let projected = basis::initial_basis(
-                    &stack,
-                    lane_vars + LANE_ROUNDS,
-                    lane_vars,
-                    &claims,
-                    &lambdas,
-                    &ring,
-                    &rings,
-                );
-                let mut lanes = LaneRounds::new(stack.clone(), projected, lane_block, false);
+                let projected =
+                    basis::initial_basis(lane_vars + LANE_ROUNDS, lane_vars, &claims, &lambdas, &ring, &rings);
+                let mut lanes = LaneRounds::new(stack.clone(), projected, lane_block);
                 let context =
                     format!("lane_vars={lane_vars}, lanes={lanes_count}, qkeccak_vars={qkeccak_vars}, offset={offset}");
                 // The reference: the stack and the weight coefficient by coefficient, lanes interleaved, the stack's
@@ -368,7 +353,7 @@ mod tests {
                     reference.fold(&ch);
                     lanes.fold(&ch);
                 }
-                let (p, w, _) = lanes.finish();
+                let (p, w) = lanes.finish();
                 assert_eq!(p, reference.f, "{context}, lane");
                 assert_eq!(w, reference.w, "{context}, weight");
             }

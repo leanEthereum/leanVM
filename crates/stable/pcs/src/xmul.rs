@@ -12,40 +12,25 @@
 
 use std::sync::OnceLock;
 
-use primitives::field::{F64, F64x8, F128, F128x8};
+use primitives::field::{F64, F128};
 
 /// A coefficient: `K` or `E`, scaled by the `K` constants `A_t`.
 pub(crate) trait Coef: Copy + Send + Sync + std::ops::Add<Output = Self> {
     const ZERO: Self;
     fn scale(self, k: F64) -> Self;
-    /// `v[j] * k[j]`, where `k[j]` is one at every odd `j`.
-    fn scale8(v: [Self; 8], k: [F64; 8]) -> [Self; 8];
 }
 
 impl Coef for F64 {
     const ZERO: Self = F64::ZERO;
-    #[inline(always)]
     fn scale(self, k: F64) -> Self {
         self * k
-    }
-    #[inline(always)]
-    fn scale8(v: [Self; 8], k: [F64; 8]) -> [Self; 8] {
-        std::array::from_fn(|j| if j % 2 == 0 { v[j] * k[j] } else { v[j] })
     }
 }
 
 impl Coef for F128 {
     const ZERO: Self = F128::ZERO;
-    #[inline(always)]
     fn scale(self, k: F64) -> Self {
         self.mul_base(k)
-    }
-    #[inline(always)]
-    fn scale8(v: [Self; 8], k: [F64; 8]) -> [Self; 8] {
-        F128x8::from_array(&v)
-            .mul_base_unreduced(F64x8::from_array(&k))
-            .reduce_lanes()
-            .to_array()
     }
 }
 
@@ -91,87 +76,13 @@ pub(crate) fn mul_x<T: Coef>(h: &[T], stride: usize, step: usize, first: usize, 
     }
 }
 
-/// The exponents `t` of the columns `c0 + j` of an aligned eight, `(X h)[c] = A_t s[c]`: the trailing zeros of an even
-/// column, zero for an odd one, and `t0` for `c0`.
-#[inline(always)]
-pub(crate) fn exponents8(t0: usize) -> [usize; 8] {
-    [t0, 0, 1, 0, 2, 0, 1, 0]
-}
-
-/// `A_t` for each exponent.
-#[inline(always)]
-pub(crate) fn multipliers8(t: [usize; 8]) -> [F64; 8] {
-    let a = constants();
-    t.map(|t| a[t])
-}
-
-/// `c A_t` for every `t`.
-pub(crate) fn multiples(c: F128) -> [F128; 64] {
-    constants().map(|a| c.mul_base(a))
-}
-
-/// The sums `s` of columns `8q..8q + 8` of a block of a lane `h`, `(X h)[c] = A_t s[c]` with `t` from [`exponents8`],
-/// and `t0`. `block[i] = h[first + i]`, and `outside(c)` gives the coefficients outside the block that the first column
-/// reads; the block's length is a power of two that divides `first`.
-#[inline(always)]
-pub(crate) fn sums8<T: Coef>(block: &[T], q: usize, first: usize, outside: impl Fn(usize) -> T) -> ([T; 8], usize) {
-    let b = &block[8 * q..8 * q + 8];
-    let (s0, t0) = match (q, first) {
-        (0, 0) => (T::ZERO, 0),
-        (0, _) => {
-            let t = first.trailing_zeros() as usize;
-            let far = (1usize << t) - 1;
-            (
-                outside(first - 1) + block.get(far).copied().unwrap_or_else(|| outside(first + far)),
-                t,
-            )
-        }
-        _ => {
-            let t = 3 + q.trailing_zeros() as usize;
-            (block[8 * q - 1] + block[8 * q + (1 << t) - 1], t)
-        }
-    };
-    let s = [
-        s0,
-        b[0] + b[1],
-        b[1] + b[3],
-        b[2] + b[3],
-        b[3] + b[7],
-        b[4] + b[5],
-        b[5] + b[7],
-        b[6] + b[7],
-    ];
-    (s, t0)
-}
-
-/// [`mul_x`] over one block of one lane `h`: `out[i] = (X h)[first + i]` from `block[i] = h[first + i]`, `outside(c)`
-/// giving the coefficients outside the block that the first entry reads. The block's length is a power of two, at least
-/// 8, that divides `first`.
-pub(crate) fn mul_x_block<T: Coef>(block: &[T], first: usize, outside: impl Fn(usize) -> T, out: &mut [T]) {
-    debug_assert!(block.len() >= 8 && block.len().is_power_of_two() && first.is_multiple_of(block.len()));
-    for (q, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-        let (s, t0) = sums8(block, q, first, &outside);
-        *out = T::scale8(s, multipliers8(exponents8(t0)));
-    }
-}
-
-/// `h[c + 2^t - 1]`, `t` the trailing zeros of the even `c`, or zero past `h`.
-#[inline(always)]
-fn far<T: Coef>(h: &[T], c: usize) -> T {
-    h.get(c + (1 << c.trailing_zeros()) - 1).copied().unwrap_or(T::ZERO)
-}
-
 /// `(X h)[c]` for one column, reading zero past `h`.
-#[inline]
 pub(crate) fn x_at<T: Coef>(h: &[T], c: usize) -> T {
-    if c == 0 {
-        return T::ZERO;
-    }
-    let prev = h.get(c - 1).copied().unwrap_or(T::ZERO);
-    if c & 1 == 1 {
-        prev + h.get(c).copied().unwrap_or(T::ZERO)
-    } else {
-        (prev + far(h, c)).scale(coeff(c))
+    let at = |c: usize| h.get(c).copied().unwrap_or(T::ZERO);
+    match c {
+        0 => T::ZERO,
+        _ if c & 1 == 1 => at(c - 1) + at(c),
+        _ => (at(c - 1) + at(c + (1 << c.trailing_zeros()) - 1)).scale(coeff(c)),
     }
 }
 
@@ -222,16 +133,6 @@ mod tests {
                         want[first..first + len],
                         "range {first}+{len}, mu={mu}, high={high}"
                     );
-                }
-
-                for log_block in 3..=mu {
-                    let n_block = 1usize << log_block;
-                    for first in (0..1usize << mu).step_by(n_block) {
-                        let mut got = vec![F64(7); n_block];
-                        let outside = |c: usize| h.get(c).copied().unwrap_or(F64::ZERO);
-                        mul_x_block(&h[first..first + n_block], first, outside, &mut got);
-                        assert_eq!(got, want[first..first + n_block], "block {first}+{n_block}, mu={mu}");
-                    }
                 }
 
                 // Interleaved E lanes: each limb of each lane is multiplied on its own.
