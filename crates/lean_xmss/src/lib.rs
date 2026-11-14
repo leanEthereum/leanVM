@@ -20,9 +20,9 @@ use tree::*;
 mod scheme;
 pub use scheme::*;
 
-/// Bytes in a [`SecretKey`].
+/// How many bytes in a [`SecretKey`].
 pub const SECRET_KEY_LEN: usize = 32;
-/// The secret key, the key's seed: all of its secret material.
+/// The secret key
 pub type SecretKey = [u8; SECRET_KEY_LEN];
 
 /// Hashed before the seed, so no other scheme derives from the same bytes.
@@ -32,8 +32,9 @@ pub(crate) const SEED_TAG: &[u8] = b"leanXMSS";
 pub const RANDOMIZER_LEN: usize = 16;
 pub(crate) type Randomizer = [u8; RANDOMIZER_LEN];
 
-/// The message to sign (a 256-bit message hash).
+/// How many bytes in a [`Message`].
 pub const MESSAGE_LEN: usize = 32;
+/// The message to be signed
 pub type Message = [u8; MESSAGE_LEN];
 
 /// Our double layer XMSS contains 2^32 WOTS. LeafIndex is the type to index each WOTS.
@@ -63,6 +64,7 @@ pub const LAYER_HEIGHT: usize = 16;
 /// log2 of maximum number of signatures you can sign.
 pub const LOG_LIFETIME: usize = 2 * LAYER_HEIGHT;
 
+/// how many bytes in a [`LeanXmssPublicKey`].
 pub const PUB_KEY_SIZE: usize = N + PUBLIC_PARAM_LEN;
 pub(crate) const LEAF_INDEX_SIZE: usize = size_of::<LeafIndex>();
 /// One layer's signature: the randomizer, the chain values and the path.

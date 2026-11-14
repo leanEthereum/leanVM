@@ -133,7 +133,7 @@ fn try_load_cache(path: &Path, message_id: u32) -> Option<Vec<LeanXmssSigner>> {
         let message = signer_message(index, message_id);
         if index >= NUM_KEYS && pk != signers[index % NUM_KEYS].0
             || sig.leaf_index() != leaf_index_of(index, message_id)
-            || lean_xmss::verify(&pk, &message, &sig).is_err()
+            || !lean_xmss::verify(&pk, &message, &sig)
         {
             eprintln!(
                 "warning: signers cache {} is stale at signer {index}; regenerating from there",

@@ -235,41 +235,15 @@ fn use_cached(bottoms: &mut VecDeque<Arc<BottomTree>>, index: u32) -> Option<Arc
     Some(bottom)
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-pub enum LeanXmssVerifyError {
-    /// A layer's message digest is not a codeword.
-    InvalidEncoding,
-    /// The top layer does not reach the key's root.
-    InvalidMerklePath,
-}
-
-impl std::fmt::Display for LeanXmssVerifyError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidEncoding => write!(f, "a layer's message digest is not a codeword"),
-            Self::InvalidMerklePath => write!(f, "the signature does not reach the key's root"),
-        }
-    }
-}
-
-impl std::error::Error for LeanXmssVerifyError {}
-
-pub fn verify(
-    pk: &LeanXmssPublicKey,
-    message: &Message,
-    signature: &LeanXmssSignature,
-) -> Result<(), LeanXmssVerifyError> {
+/// verifies a signature for a given message and public key
+pub fn verify(pk: &LeanXmssPublicKey, message: &Message, signature: &LeanXmssSignature) -> bool {
     let pp = &pk.public_param;
     let leaf_index = signature.leaf_index;
-    let (_, bottom_root) = layer_root(pp, 0, layer_index(leaf_index, 0), message, &signature.bottom, |_| {})
-        .ok_or(LeanXmssVerifyError::InvalidEncoding)?;
-    let (_, root) = layer_root(pp, 1, layer_index(leaf_index, 1), &bottom_root, &signature.top, |_| {})
-        .ok_or(LeanXmssVerifyError::InvalidEncoding)?;
-    if root == pk.merkle_root {
-        Ok(())
-    } else {
-        Err(LeanXmssVerifyError::InvalidMerklePath)
-    }
+    layer_root(pp, 0, layer_index(leaf_index, 0), message, &signature.bottom, |_| {})
+        .and_then(|(_, bottom_root)| {
+            layer_root(pp, 1, layer_index(leaf_index, 1), &bottom_root, &signature.top, |_| {})
+        })
+        .is_some_and(|(_, root)| root == pk.merkle_root)
 }
 
 /// The codeword of a layer's signature by key `e` and the root it reaches, or `None`

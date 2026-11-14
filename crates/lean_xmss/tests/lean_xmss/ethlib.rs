@@ -190,14 +190,11 @@ fn verify_matches_ethlib() {
             exact::<MESSAGE_LEN>(case.bytes("message")),
             exact::<SIG_SIZE>(case.bytes("signature")),
         ) {
-            (Some(pk), Some(message), Some(sig)) => Value::Bool(
-                verify(
-                    &LeanXmssPublicKey::from_bytes(&pk),
-                    &message,
-                    &LeanXmssSignature::from_bytes(&sig),
-                )
-                .is_ok(),
-            ),
+            (Some(pk), Some(message), Some(sig)) => Value::Bool(verify(
+                &LeanXmssPublicKey::from_bytes(&pk),
+                &message,
+                &LeanXmssSignature::from_bytes(&sig),
+            )),
             _ => Value::Null,
         };
         assert_eq!(output, case.output, "{}", case.name);

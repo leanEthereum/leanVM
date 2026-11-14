@@ -19,17 +19,17 @@ fn full_key_signs_and_verifies() {
         sk.prepare(5);
     });
     let first = sign(&sk, &message, 5);
-    verify(&pk, &message, &first).unwrap();
+    assert!(verify(&pk, &message, &first));
     let other_tree = sign(&sk, &message, other);
-    verify(&pk, &message, &other_tree).unwrap();
+    assert!(verify(&pk, &message, &other_tree));
     assert_ne!(first.__top(), other_tree.__top());
     assert_eq!(sign(&sk, &message, 5), first, "signing is deterministic");
     let mut bytes = first.to_bytes();
     bytes[..4].copy_from_slice(&4u32.to_le_bytes());
-    assert!(verify(&pk, &message, &LeanXmssSignature::from_bytes(&bytes)).is_err());
+    assert!(!verify(&pk, &message, &LeanXmssSignature::from_bytes(&bytes)));
     let mut other_message = message;
     other_message[0] ^= 1;
-    assert!(verify(&pk, &other_message, &first).is_err());
+    assert!(!verify(&pk, &other_message, &first));
 }
 
 /// Pins a full key's public key and one signature's bytes, so that a change to the
