@@ -17,8 +17,10 @@ pub const BLOCK: usize = 64;
 /// The weights of every bit of a row, prepared for folding.
 #[derive(Clone, Debug)]
 pub struct BitFold {
-    /// One subset-sum table per byte of a row: entry `[j][v]` sums the weights of the set bits of `v` at byte `j`.
-    tables: Vec<[F128; 256]>,
+    /// One subset-sum table per byte of a row: entry `[j][v]` sums the weights of the set bits of `v` at byte `j`, as
+    /// the `u128` of its limbs, low first: one load per lookup, which LLVM keeps scalar where it would turn a block's
+    /// lookups of two limbs into gathers that lose to them on AVX-512.
+    tables: Vec<[u128; 256]>,
 }
 
 impl BitFold {
@@ -33,11 +35,12 @@ impl BitFold {
         let tables = bytes
             .iter()
             .map(|w| {
-                let mut sums = [F128::ZERO; 256];
+                let mut sums = [0u128; 256];
                 // Each entry adds its lowest set bit's weight to an entry already built.
                 for v in 1..256usize {
                     let low = v.isolate_lowest_one();
-                    sums[v] = sums[v ^ low] + w[low.trailing_zeros() as usize];
+                    let [lo, hi] = w[low.trailing_zeros() as usize].to_limbs();
+                    sums[v] = sums[v ^ low] ^ (u128::from(hi) << 64 | u128::from(lo));
                 }
                 sums
             })
@@ -48,10 +51,11 @@ impl BitFold {
     /// The fold of one row: one lookup per byte.
     #[inline]
     fn fold_row(&self, row: &[u8]) -> F128 {
-        row.iter()
+        let sum = row
+            .iter()
             .zip(&self.tables)
-            .map(|(&v, sums)| sums[usize::from(v)])
-            .sum()
+            .fold(0, |sum, (&v, sums)| sum ^ sums[usize::from(v)]);
+        F128::new(sum as u64, (sum >> 64) as u64)
     }
 
     /// Fold up to 64 rows. Rows past the input fold to zero.
@@ -69,11 +73,11 @@ impl BitFold {
     pub fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F128; BLOCK]) {
         assert_eq!(CHUNKS, self.tables.len());
         for (p, o) in out.iter_mut().enumerate() {
-            *o = cols
+            let sum = cols
                 .iter()
                 .zip(&self.tables)
-                .map(|(col, sums)| sums[usize::from(col[p])])
-                .sum();
+                .fold(0, |sum, (col, sums)| sum ^ sums[usize::from(col[p])]);
+            *o = F128::new(sum as u64, (sum >> 64) as u64);
         }
     }
 }
