@@ -346,7 +346,7 @@ jobs:
         run: python3 -I ../tools/firewall-canary.py
       # Every executable in one build, before the cache is saved, so a cache hit holds them all.
       - name: Build the executables
-        run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs
+        run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute guest-run test-runs
       # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA
       # vector digests.
       - name: The Rust vectors' costly checks
@@ -398,12 +398,15 @@ jobs:
             LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean --check
       # Four real Rust aggregations (a leaf, a leaf of both schemes with a blob, a long leanXMSS
       # list, a node over them): the witness holds the statement, the honest hint generator gives
-      # the Rust's installed streams entry for entry, and the interpreter runs `main` on them.
-      - name: The honest hints are the Rust's (guest-diff)
+      # the Rust's installed streams entry for entry, and the interpreter runs `main` on them; the
+      # statement's executor runs the guest on them to the Rust interpreter's memory and step count.
+      - name: The honest hints are the Rust's (guest-diff), and the executor runs as the Rust's
         run: |
-          LEANVM_GUEST_DIFF="$RUNNER_TEMP/guest-diff" cargo test --release \
-            --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored
+          LEANVM_GUEST_DIFF="$RUNNER_TEMP/guest-diff" LEANVM_GUEST_EXEC="$RUNNER_TEMP/guest-exec" \
+            cargo test --release --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored
           .lake/build/bin/guest-diff "$RUNNER_TEMP"/guest-diff/*.txt
+          .lake/build/bin/leanvm-execute "$RUNNER_TEMP"/guest-exec/*/
+          .lake/build/bin/guest-run --rust "$RUNNER_TEMP/guest-exec" "$RUNNER_TEMP"/guest-diff/*.txt
       # The Lean verifier and the Rust verifier must agree on the committed proofs and on
       # mutations of them, so a bump to a protocol change fails here until the Lean one follows.
       - name: Rust-vs-Lean differential
@@ -420,9 +423,11 @@ jobs:
       # The statement's honest prover (`LeanVM.Prover.prove`), compiled, on the executions the
       # Rust interpreter runs of the twelve fixed cases: each proof must be the Rust prover's and
       # the committed fixture's byte for byte, accepted by the Lean and the Rust verifier, and
-      # every mutation of it rejected by both.
+      # every mutation of it rejected by both. Before it, the statement's executor runs each case to
+      # the Rust interpreter's memory and step count.
       - name: The statement's prover against both verifiers (prover-diff)
         run: |
           scripts/export-prover-traces-rust.sh "$RUNNER_TEMP/prover-cases" > /dev/null
+          .lake/build/bin/leanvm-execute "$RUNNER_TEMP"/prover-cases/*/
           python3 -I scripts/prover-diff.py "$RUNNER_TEMP/prover-cases" --mutations 40 --jobs 4 \
             --identical --expected tests/fixtures/verifier

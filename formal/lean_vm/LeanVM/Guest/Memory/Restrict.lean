@@ -170,8 +170,8 @@ theorem relAtIn_uniform_of_supp (fs : String → ℕ) (cert : String → V → �
   obtain ⟨t, hn, hv, hb⟩ := Program.Rel.tree hP h
   refine ⟨t.total fs, fun fp rd hext => ?_⟩
   have hv' := hv.transfer t fun q hq => hext _ _ (eqns_read_pure hS t hv (hn ▸ hg) q hq)
-  exact ⟨t, hn, hv', hb, placed_of_pure hS t hv hb (hn ▸ hg) fp, rfl,
-    loadsIn_of_loadsR t R fp (loadsR_of_supp hR t hv), fun _ h => h.elim⟩
+  exact ⟨t, hn, hv', hb, placed_of_pure hS t hv hb (hn ▸ hg) _, rfl,
+    loadsIn_of_loadsR t R _ (loadsR_of_supp hR t hv), fun _ h => h.elim⟩
 
 end Uniform
 

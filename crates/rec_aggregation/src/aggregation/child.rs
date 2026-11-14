@@ -5,6 +5,7 @@ use super::deferred::DeferredSubproof;
 use super::error::AggregationError;
 use super::hints::SubHints;
 use fiat_shamir::merkle::hash_to_scalars;
+use lean_compiler::HEAP_SIZE_STREAM;
 use leanvm_core::cpu::{Program, from_scalar};
 use leanvm_core::leaf::Block;
 use primitives::field::F128;
@@ -236,7 +237,15 @@ pub(super) fn gen_verify(
         bytecode_value,
     };
 
+    let rounds = *taus.iter().max().unwrap();
     let mut hints = vec![
+        // The `HeapBuf` sizes taken as advice: `verify_sub`'s `zeta`, the push side's mu
+        // coordinates; `verify_tables`' `zc_rounds`, `zc_cprod` and `zc_peq`, a record or a
+        // cell per round and one more.
+        (HEAP_SIZE_STREAM, vec![count(side_layouts[0].mu)]),
+        (HEAP_SIZE_STREAM, vec![count((rounds + 1) * ROUND_SLOTS)]),
+        (HEAP_SIZE_STREAM, vec![count(rounds + 1)]),
+        (HEAP_SIZE_STREAM, vec![count(rounds + 1)]),
         ("stream", {
             // The guest replays the proof off the same stream the native verifier
             // reads: every transmitted scalar (the level-0 OOD value, the fold rounds' tables,
@@ -249,7 +258,7 @@ pub(super) fn gen_verify(
         }),
         // the table sumcheck's round count: max_t tau_t, certified in-guest as a
         // maximum (one of the taus, and dominating them all).
-        ("zc_tau_max", vec![count(*taus.iter().max().unwrap())]),
+        ("zc_tau_max", vec![count(rounds)]),
         // Every table's log height, which the guest certifies against its row count.
         ("table_logs", taus.iter().map(|&t| count(t)).collect()),
         ("col_group_order", col_group_order),
@@ -258,6 +267,9 @@ pub(super) fn gen_verify(
     hints.extend(query_hints);
     Ok((hints, deferred))
 }
+
+/// The guest's `ROUND_SLOTS`: the cells of a table sumcheck round's record (`verify_tables`).
+const ROUND_SLOTS: usize = 7;
 
 /// The guest's baked buffer caps, which `placeholder_map` compiles in and
 /// `gen_verify` admits against: one definition, so a hinted shape can never

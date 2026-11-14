@@ -174,60 +174,101 @@ theorem clB_le (n : ℕ) : B1.Digest.clB fs SB SK n ≤ clC fs SB + n * clS fs S
         n + n * ((k15 + 135) / 136) + n * ((k16 + 16) / 17) := by ring
     omega
 
-/-- A child's claim list's digest's constant words: its frame, `list_split`, the any walk's frame
-(`child_claim_list_any`, the only walk the honest run takes) and its chain's first `13` words, its
-two loops' frames twice and its last group's helper. -/
+/-- A child's claim list's digest's constant words, on either walk: its frame, `list_split`, the
+walk's frame and its chain's first record (at most `15` words), its two loops' frames twice and
+its last group's helper, each the larger of the two walks'. -/
 def ccC : ℕ :=
-  fs "child_claim_list_digest" + 13 + SB "list_split" + fs "child_claim_list_any" +
-    2 * fs name% «child_claim_list_any_loop0» + 2 * fs name% «child_claim_list_any_loop1» + nameSum
-        (fun g => fs g) B1.Digest.cclNames 17
+  fs "child_claim_list_digest" + 15 + SB "list_split" +
+    max (fs "child_claim_list_any") (fs "child_claim_list_mono") +
+    2 * max (fs name% «child_claim_list_any_loop0») (fs name% «child_claim_list_mono_loop0») +
+    2 * max (fs name% «child_claim_list_any_loop1») (fs name% «child_claim_list_mono_loop1») +
+    max (nameSum (fun g => fs g) B1.Digest.cclNames 17) (nameSum (fun g => fs g) B1.Digest.mlNames 17)
 
-/-- A child's claim list's digest's words per claim: `13` and a `child_claim_list_any_loop0` frame
-per `136` claims,
-`13` and a `child_claim_list_any_loop1` frame per `17` claims. -/
-def ccS : ℕ := 1 + (fs name% «child_claim_list_any_loop0» + 135) / 136 + (fs
-    name% «child_claim_list_any_loop1» + 16) / 17
+/-- A child's claim list's digest's words per claim, on either walk: a record (at most `15` words)
+and a big loop's frame per `136` claims, a record and a group loop's frame per `17` claims. -/
+def ccS : ℕ :=
+  1 + (max (fs name% «child_claim_list_any_loop0») (fs name% «child_claim_list_mono_loop0») + 135) / 136 +
+    (max (fs name% «child_claim_list_any_loop1») (fs name% «child_claim_list_mono_loop1») + 16) / 17
 
-theorem ccB_le (n : ℕ) : B1.Digest.ccB fs SB n ≤ ccC fs SB + n * ccS fs := by
-  unfold B1.Digest.ccB B1.Digest.anyB ccC ccS
+/-- **A walk's words**: its frame `F`, `p ≤ 15` words a record, its loops' frames `L0`, `L1` and
+its last helper's `S`. -/
+theorem walkB_le (n F p L0 L1 S : ℕ) (hp : p ≤ 15) :
+    F + p * (n / 136 + n % 136 / 17 + 1) +
+        ((if n / 136 ≠ 0 then (n / 136 + 1) * L0 else L0) +
+          ((if n % 136 / 17 ≠ 0 then (n % 136 / 17 + 1) * L1 else L1) + (S + 0))) ≤
+      F + 15 + 2 * L0 + 2 * L1 + S + n * (1 + (L0 + 135) / 136 + (L1 + 16) / 17) := by
+  have h2 := div136_mul_le n L0
+  have h3 : (if n / 136 ≠ 0 then (n / 136 + 1) * L0 else L0) ≤ n * ((L0 + 135) / 136) + 2 * L0 := by
+    split
+    · have e : (n / 136 + 1) * L0 = n / 136 * L0 + L0 := by ring
+      omega
+    · omega
+  have h5 : n % 136 / 17 * L1 ≤ n * ((L1 + 16) / 17) :=
+    le_trans (Nat.mul_le_mul_right _ (show n % 136 / 17 ≤ n / 17 by omega)) (div17_mul_le n L1)
+  have h6 : (if n % 136 / 17 ≠ 0 then (n % 136 / 17 + 1) * L1 else L1) ≤
+      n * ((L1 + 16) / 17) + 2 * L1 := by
+    split
+    · have e : (n % 136 / 17 + 1) * L1 = n % 136 / 17 * L1 + L1 := by ring
+      omega
+    · omega
+  have h4 : p * (n / 136 + n % 136 / 17 + 1) ≤ 15 + n := by
+    have : p * (n / 136 + n % 136 / 17 + 1) ≤ 15 * (n / 136 + n % 136 / 17 + 1) :=
+      Nat.mul_le_mul_right _ hp
+    omega
+  have e : n * (1 + (L0 + 135) / 136 + (L1 + 16) / 17) =
+      n + n * ((L0 + 135) / 136) + n * ((L1 + 16) / 17) := by ring
+  omega
+
+theorem walkS_mono {L0 L0' L1 L1' n : ℕ} (h0 : L0 ≤ L0') (h1 : L1 ≤ L1') :
+    n * (1 + (L0 + 135) / 136 + (L1 + 16) / 17) ≤ n * (1 + (L0' + 135) / 136 + (L1' + 16) / 17) :=
+  Nat.mul_le_mul_left _ (by
+    have := Nat.div_le_div_right (c := 136) (show L0 + 135 ≤ L0' + 135 by omega)
+    have := Nat.div_le_div_right (c := 17) (show L1 + 16 ≤ L1' + 16 by omega)
+    omega)
+
+theorem nameSum_getD {names : List String} {k : ℕ} (hk : k < 17) (hl : k < names.length) :
+    fs (names.getD k "") ≤ nameSum (fun g => fs g) names 17 := by
+  have h1 := le_nameSum (g := fun g => fs g) (names := names) (n := 17) (j := k) hk
+  have hg : names.getD k "" = names[k]! := by
+    rw [List.getD_eq_getElem _ _ hl, getElem!_pos names k hl]
+  rw [hg]
+  exact h1
+
+theorem ccBM_le (mono : Bool) (n : ℕ) : B1.Digest.ccBM fs SB mono n ≤ ccC fs SB + n * ccS fs := by
+  unfold B1.Digest.ccBM ccC ccS
   split
   · omega
-  · have h1 := le_nameSum (g := fun g => fs g) (names := B1.Digest.cclNames) (j := n % 17)
-      (Nat.mod_lt _ (by omega))
-    have hg : B1.Digest.cclNames.getD (n % 17) "" = B1.Digest.cclNames[n % 17]! := by
-      simp only [List.getD_eq_getElem?_getD, getElem!_def]
-      cases B1.Digest.cclNames[n % 17]? <;> rfl
-    rw [hg]
-    have h2 := div136_mul_le n (fs name% «child_claim_list_any_loop0»)
-    have h3 : (if n / 136 ≠ 0 then (n / 136 + 1) * fs name% «child_claim_list_any_loop0» else fs
-        name% «child_claim_list_any_loop0») ≤
-        n * ((fs name% «child_claim_list_any_loop0» + 135) / 136) + 2 * fs
-            name% «child_claim_list_any_loop0» := by
-      split
-      · have e : (n / 136 + 1) * fs name% «child_claim_list_any_loop0» = n / 136 * fs
-          name% «child_claim_list_any_loop0» + fs name% «child_claim_list_any_loop0» := by ring
-        omega
-      · omega
-    have h5 : n % 136 / 17 * fs name% «child_claim_list_any_loop1» ≤ n * ((fs
-        name% «child_claim_list_any_loop1» + 16) / 17) :=
-      le_trans (Nat.mul_le_mul_right _ (show n % 136 / 17 ≤ n / 17 by omega))
-        (div17_mul_le n (fs name% «child_claim_list_any_loop1»))
-    have h6 : (if n % 136 / 17 ≠ 0 then (n % 136 / 17 + 1) * fs name% «child_claim_list_any_loop1»
-        else fs name% «child_claim_list_any_loop1») ≤
-        n * ((fs name% «child_claim_list_any_loop1» + 16) / 17) + 2 * fs
-            name% «child_claim_list_any_loop1» := by
-      split
-      · have e : (n % 136 / 17 + 1) * fs name% «child_claim_list_any_loop1» = n % 136 / 17 * fs
-          name% «child_claim_list_any_loop1» + fs name% «child_claim_list_any_loop1» := by
-          ring
-        omega
-      · omega
-    have h4 : 13 * (n / 136 + n % 136 / 17) ≤ n := by omega
-    have e : n * (1 + (fs name% «child_claim_list_any_loop0» + 135) / 136 + (fs
-        name% «child_claim_list_any_loop1» + 16) / 17) =
-        n + n * ((fs name% «child_claim_list_any_loop0» + 135) / 136) + n * ((fs
-            name% «child_claim_list_any_loop1» + 16) / 17) := by ring
-    omega
+  · cases mono
+    · simp only [Bool.false_eq_true, ↓reduceIte]
+      unfold B1.Digest.anyB
+      have hw := walkB_le n (fs "child_claim_list_any") 13 (fs name% «child_claim_list_any_loop0»)
+        (fs name% «child_claim_list_any_loop1») (fs (B1.Digest.cclNames.getD (n % 17) "")) (by omega)
+      have hS := nameSum_getD fs (names := B1.Digest.cclNames) (k := n % 17) (Nat.mod_lt _ (by omega))
+        (by simp [B1.Digest.cclNames]; omega)
+      have hm := walkS_mono (n := n) (le_max_left (fs name% «child_claim_list_any_loop0»)
+        (fs name% «child_claim_list_mono_loop0»)) (le_max_left (fs name% «child_claim_list_any_loop1»)
+        (fs name% «child_claim_list_mono_loop1»))
+      have := le_max_left (fs "child_claim_list_any") (fs "child_claim_list_mono")
+      have := le_max_left (fs name% «child_claim_list_any_loop0») (fs name% «child_claim_list_mono_loop0»)
+      have := le_max_left (fs name% «child_claim_list_any_loop1») (fs name% «child_claim_list_mono_loop1»)
+      have := le_max_left (nameSum (fun g => fs g) B1.Digest.cclNames 17)
+        (nameSum (fun g => fs g) B1.Digest.mlNames 17)
+      omega
+    · simp only [↓reduceIte]
+      unfold B1.Digest.monoB
+      have hw := walkB_le n (fs "child_claim_list_mono") 15 (fs name% «child_claim_list_mono_loop0»)
+        (fs name% «child_claim_list_mono_loop1») (fs (B1.Digest.mlNames.getD (n % 17) "")) le_rfl
+      have hS := nameSum_getD fs (names := B1.Digest.mlNames) (k := n % 17) (Nat.mod_lt _ (by omega))
+        (by simp [B1.Digest.mlNames]; omega)
+      have hm := walkS_mono (n := n) (le_max_right (fs name% «child_claim_list_any_loop0»)
+        (fs name% «child_claim_list_mono_loop0»)) (le_max_right (fs name% «child_claim_list_any_loop1»)
+        (fs name% «child_claim_list_mono_loop1»))
+      have := le_max_right (fs "child_claim_list_any") (fs "child_claim_list_mono")
+      have := le_max_right (fs name% «child_claim_list_any_loop0») (fs name% «child_claim_list_mono_loop0»)
+      have := le_max_right (fs name% «child_claim_list_any_loop1») (fs name% «child_claim_list_mono_loop1»)
+      have := le_max_right (nameSum (fun g => fs g) B1.Digest.cclNames 17)
+        (nameSum (fun g => fs g) B1.Digest.mlNames 17)
+      omega
 
 /-! ## The children's loop -/
 
@@ -272,18 +313,19 @@ theorem kid_counts (w : NodeWitness) (c : ℕ) : hEx w c + hEs w c =
 `Bv c`, and a slope per child's claim. -/
 theorem l5B_le (Bv : ℕ → ℕ) {s : NodeStatement} {w : NodeWitness}
     (hnc : w.children.length ≠ 0) :
-    l5B fs SB (fun c => B1.Digest.ccB fs SB (hKid s w c).ex) (fun c => B1.Digest.ccB fs SB (hKid s w c).es)
+    l5B fs SB (fun c => B1.Digest.ccBM fs SB (hMonoX s w c) (hKid s w c).ex)
+      (fun c => B1.Digest.ccBM fs SB (hMonoS s w c) (hKid s w c).es)
       Bv w ≤ l5A0 fs + w.children.length * l5A1 fs SB +
         ∑ c ∈ Finset.range w.children.length, Bv c + l5A2 fs * (End.work s w).childClaims := by
   unfold l5B
-  have h := l5Chain_le fs (fun c => l5K SB (B1.Digest.ccB fs SB (hKid s w c).ex)
-    (B1.Digest.ccB fs SB (hKid s w c).es) (Bv c)) (w.children.length - 1) 0
+  have h := l5Chain_le fs (fun c => l5K SB (B1.Digest.ccBM fs SB (hMonoX s w c) (hKid s w c).ex)
+    (B1.Digest.ccBM fs SB (hMonoS s w c) (hKid s w c).es) (Bv c)) (w.children.length - 1) 0
   rw [show w.children.length - 1 + 1 = w.children.length by omega] at h
-  have hK : ∀ c, l5K SB (B1.Digest.ccB fs SB (hKid s w c).ex) (B1.Digest.ccB fs SB (hKid s w c).es)
-      (Bv c) ≤ ((l5A1 fs SB - fs name% «main_loop4» + Bv c) + l5A2 fs * (hEx w c + hEs w c)) := by
+  have hK : ∀ c, l5K SB (B1.Digest.ccBM fs SB (hMonoX s w c) (hKid s w c).ex)
+      (B1.Digest.ccBM fs SB (hMonoS s w c) (hKid s w c).es) (Bv c) ≤ ((l5A1 fs SB - fs name% «main_loop4» + Bv c) + l5A2 fs * (hEx w c + hEs w c)) := by
     intro c
-    have h1 := ccB_le fs SB (hKid s w c).ex
-    have h2 := ccB_le fs SB (hKid s w c).es
+    have h1 := ccBM_le fs SB (hMonoX s w c) (hKid s w c).ex
+    have h2 := ccBM_le fs SB (hMonoS s w c) (hKid s w c).es
     unfold l5K l5A1 l5A2
     simp only [hKid] at h1 h2 ⊢
     have e : ccS fs * (hEx w c + hEs w c) = hEx w c * ccS fs + hEs w c * ccS fs := by ring
@@ -470,8 +512,8 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
   have e9 : (mainBsH fs SB SK (childBv Bvf w) s w).Bd = hDvB fs SB SK w := rfl
   have e10 : (mainBsH fs SB SK (childBv Bvf w) s w).Ba = aggB fs SB SK w.children.length := rfl
   have e11 : (mainBsH fs SB SK (childBv Bvf w) s w).B5 = l5B fs SB
-      (fun c => B1.Digest.ccB fs SB (hKid s w c).ex) (fun c => B1.Digest.ccB fs SB (hKid s w c).es)
-      (childBv Bvf w) w := rfl
+      (fun c => B1.Digest.ccBM fs SB (hMonoX s w c) (hKid s w c).ex)
+      (fun c => B1.Digest.ccBM fs SB (hMonoS s w c) (hKid s w c).es) (childBv Bvf w) w := rfl
   rw [e1, e2, e3, e4, e7, e8, e9, e10, e11] at hK
   rw [hcov'] at c1 c2 ⊢
   rw [e6]

@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Place.SqAt
 public import LeanVM.Guest.B1.Place.OsKidsP
+public import LeanVM.Guest.B1.Place.SqAtE
 
 /-!
 # A level's decoders, placed
@@ -20,9 +21,10 @@ call, then the other `n - 1` by the squeeze loop entered at `g` (`Whir.osSqueeze
 words `Lk` and the window pointers into those runs (`sqW`: `query_win_ptrs` from the level's
 offset, `sqWinPtrs`).
 
-`os_sq_group`: on every memory holding `Lk` with the window table, the capacity chain in the
+`os_sq_groupE`: on every memory holding `Lk` with the window table, the capacity chain in the
 squeeze run's rows `1 .. n - 1` and the decoded positions, the two calls are placed from any `b`
-in `fs D + sqTot` words; `os_sq_groupD`, `os_sq_groupB` the group forms.
+in `fs D + sqTot` words, by trees popping nothing whose every node is exact (`os_sq_loopE`, the decoders'
+`QwDecodeAtDE`); `os_sq_group` without the pops and exactness; `os_sq_groupB` the group form.
 -/
 
 namespace LeanVM.Guest.B1
@@ -127,12 +129,90 @@ theorem sqW_region {fs : String → ℕ} {cert : String → V → ℕ} {lv : OsL
 
 /-! ## The group, placed -/
 
+/-- `KidsFromInP` forgetting the pops. -/
+theorem _root_.LeanVM.Guest.Memory.KidsFromInP.kidsFromIn {P : Core.Program} {fs : String → ℕ}
+    {cert : String → V → ℕ} {rd : Reader} {σ : Val} {R : ℕ → Prop} :
+    ∀ {cs : List Call} {pss : List (List Pop)} {Dacc : ℕ → Prop} {b n : ℕ} {Dend : ℕ → Prop},
+      KidsFromInP P fs cert rd σ R Dacc cs pss b n Dend → KidsFromIn P fs cert rd σ R Dacc cs b n Dend
+  | [], [], _, _, _, _, h => h
+  | c :: cs, _ :: pss, _, _, _, _, ⟨m, n', Rk, Dk, hn, hR, hc, hk⟩ => by
+      refine ⟨m, n', Rk, Dk, hn, hR, ?_, hk.kidsFromIn⟩
+      by_cases ht : c.taken = true
+      · rw [ite_eq_left ht] at hc ⊢; exact hc.relAtIn
+      · rw [ite_eq_right ht] at hc ⊢; exact hc.1
+  | [], _ :: _, _, _, _, _, h | _ :: _, [], _, _, _, _, h => h.elim
+
+/-- **The loop of a level's decoders, placed at `fp` and exact**: entered when `2 ≤ n` by a tree popping nothing
+whose every node is exact on the memory, skipped (its frame) when `n = 1`. -/
+theorem os_sq_loopE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {lv : OsLv} {L : String}
+    {fn : Fn} (hfind : coreProgram.find? L = some fn) (hp : fn.params = osParams 6)
+    (hb : fn.body = sqLoopBody lv L) (hlp : coreProgram.loop L = true) (hit : SqIterC lv)
+    (hdec : QwDecodeAtDE fs cert κ lv.depth lv.capDepth (sqDecName lv))
+    {n : ℕ} (hn1 : 1 ≤ n) (hn : n < ordG) {w : ℕ → E} {cap : ℕ → List E}
+    (hcl : ∀ j, (cap j).length = 5) (hcw : ∀ j, 1 ≤ j → (⟨cap j, []⟩ : Fs).squeeze.1 = w j)
+    {sqz qpos qbp tabs : E} {Lin : Layout} (fp : ℕ)
+    (hmem : ∀ rd, LowDef κ rd → MemL rd Lin → ∀ j, 1 ≤ j → j < n →
+      (∀ i < 5, LoadHolds rd (sqz * (gen ^ j) ^ 5) i ((cap j).getD i 0)) ∧
+        ∀ i < 5, LoadHolds rd (sqz * (gen ^ j) ^ 5) (5 + i)
+          (((⟨cap j, []⟩ : Fs).squeeze.2.cap).getD i 0))
+    (hdmem : ∀ rd, LowDef κ rd → MemL rd Lin → WinTabs rd tabs ∧ ∀ t < n - 1, ∀ i < sqPer lv,
+      LoadHolds rd (qpos * gen ^ lv.posOff * (gen ^ (1 + t)) ^ sqPer lv) i
+          (eOfNat (qwPosOf lv.depth (w (1 + t)) i)) ∧
+        LoadHolds rd (qbp * gen ^ lv.posOff * (gen ^ (1 + t)) ^ sqPer lv) i
+          (qwPtrAt cert (sqDecName lv) (sqDecAt fs lv L (n - 1) fp t) lv.depth lv.capDepth i))
+    (hrow : ∀ j, 1 ≤ j → j < n → ∀ t < 10, ∃ i,
+      (sqz * (gen ^ j) ^ 5).limb 0 * Parameters.addressOfIndex t =
+        Parameters.addressOfIndex i ∧ RegionL Lin i)
+    (hreg : ∀ t < n - 1, QwRegs lv.depth [w (1 + t),
+        qpos * gen ^ lv.posOff * (gen ^ (1 + t)) ^ sqPer lv,
+        qbp * gen ^ lv.posOff * (gen ^ (1 + t)) ^ sqPer lv, tabs] (RegionL Lin))
+    (σ : Val) (c2 : Call) (h2f : c2.f = L) (h2t : c2.taken = decide (gen + gen ^ n ≠ 0))
+    (h2a : c2.args.map σ = [gen, gen ^ n, sqz, qpos, qbp, tabs]) (h2r : c2.rets = []) :
+    ∃ L1 : Layout,
+      Within (sqRuns fs cert lv L (n - 1) fp (fun t ↦ w (1 + t)) 0 ++ L1) fp
+        (sqTot fs lv L (n - 1) 0) ∧
+      DisjL (sqRuns fs cert lv L (n - 1) fp (fun t ↦ w (1 + t)) 0 ++ L1) ∧
+      ∀ rd, LowDef κ rd →
+        MemL rd (sqRuns fs cert lv L (n - 1) fp (fun t ↦ w (1 + t)) 0 ++ L1 ++ Lin) →
+        if c2.taken then RelAtInPE coreProgram fs cert rd (ExactAt coreProgram rd) (RegionL Lin)
+          (RegionL (sqRuns fs cert lv L (n - 1) fp (fun t ↦ w (1 + t)) 0)) fp
+          (sqTot fs lv L (n - 1) 0) c2.f (c2.args.map σ) (c2.rets.map σ) []
+        else sqTot fs lv L (n - 1) 0 = fs c2.f := by
+  have hw : (fun t ↦ (⟨cap (1 + t), []⟩ : Fs).squeeze.1) = fun t ↦ w (1 + t) :=
+    funext fun t ↦ hcw (1 + t) (by omega)
+  by_cases h2 : 2 ≤ n
+  · have hne : gen + gen ^ n ≠ 0 := by
+      intro he
+      have h0 := (gen_pow_add_eq_zero_iff 0).mp (by rw [pow_zero, one_mul]; exact he)
+      have := gen_pow_inj (by have := hn; unfold ordG at this; omega) (by omega) h0
+      omega
+    obtain ⟨L1, hW1, hD1, hrel1⟩ := sqLoop_relAtInE fs cert κ hfind hp hb hlp hit hdec
+      (e := 1) (n := n) (by omega) hn (sqz := sqz) (qpos := qpos) (qbp := qbp) (tabs := tabs)
+      (cap := cap) hcl (Lin := Lin) fp
+      (fun rd hl hm j hj1 hj ↦ hmem rd hl hm j hj1 hj)
+      (fun rd hl hm ↦ ⟨(hdmem rd hl hm).1, fun t ht i hi ↦ by
+        rw [hcw (1 + t) (by omega)]; exact (hdmem rd hl hm).2 t ht i hi⟩)
+      hrow (fun t ht ↦ by rw [hcw (1 + t) (by omega)]; exact hreg t ht)
+    rw [hw] at hW1 hD1 hrel1
+    refine ⟨L1, hW1, hD1, fun rd hl hm ↦ ?_⟩
+    rw [h2t, decide_eq_true hne]
+    simp only [↓reduceIte, h2f, h2a, h2r, List.map_nil]
+    have := hrel1 rd hl hm
+    rwa [pow_one] at this
+  · obtain rfl : n = 1 := by omega
+    have h0 : gen + gen = 0 := by
+      have := (gen_pow_add_eq_zero_iff (N := gen ^ 1) 0).mpr rfl
+      rwa [pow_zero, one_mul, pow_one] at this
+    refine ⟨[], fun q hq ↦ by simp [sqRuns] at hq, by simp [sqRuns, DisjL], fun rd _ _ ↦ ?_⟩
+    rw [h2t]
+    simp [h0, sqTot, h2f]
+
 /-- **The loop of a level's decoders, placed at `fp`**: entered when `2 ≤ n`, skipped (its frame)
-when `n = 1`. -/
+when `n = 1` (`os_sq_loopE`). -/
 theorem os_sq_loop (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {lv : OsLv} {L : String}
     {fn : Fn} (hfind : coreProgram.find? L = some fn) (hp : fn.params = osParams 6)
     (hb : fn.body = sqLoopBody lv L) (hlp : coreProgram.loop L = true) (hit : SqIterC lv)
-    (hdec : QwDecodeAtD fs cert κ lv.depth lv.capDepth (sqDecName lv))
+    (hdec : QwDecodeAtDE fs cert κ lv.depth lv.capDepth (sqDecName lv))
     {n : ℕ} (hn1 : 1 ≤ n) (hn : n < ordG) {w : ℕ → E} {cap : ℕ → List E}
     (hcl : ∀ j, (cap j).length = 5) (hcw : ∀ j, 1 ≤ j → (⟨cap j, []⟩ : Fs).squeeze.1 = w j)
     {sqz qpos qbp tabs : E} {Lin : Layout} (fp : ℕ)
@@ -163,40 +243,22 @@ theorem os_sq_loop (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
           (RegionL (sqRuns fs cert lv L (n - 1) fp (fun t ↦ w (1 + t)) 0)) fp
           (sqTot fs lv L (n - 1) 0) c2.f (c2.args.map σ) (c2.rets.map σ)
         else sqTot fs lv L (n - 1) 0 = fs c2.f := by
-  have hw : (fun t ↦ (⟨cap (1 + t), []⟩ : Fs).squeeze.1) = fun t ↦ w (1 + t) :=
-    funext fun t ↦ hcw (1 + t) (by omega)
-  by_cases h2 : 2 ≤ n
-  · have hne : gen + gen ^ n ≠ 0 := by
-      intro he
-      have h0 := (gen_pow_add_eq_zero_iff 0).mp (by rw [pow_zero, one_mul]; exact he)
-      have := gen_pow_inj (by have := hn; unfold ordG at this; omega) (by omega) h0
-      omega
-    obtain ⟨L1, hW1, hD1, hrel1⟩ := sqLoop_relAtIn fs cert κ hfind hp hb hlp hit hdec
-      (e := 1) (n := n) (by omega) hn (sqz := sqz) (qpos := qpos) (qbp := qbp) (tabs := tabs)
-      (cap := cap) hcl (Lin := Lin) fp
-      (fun rd hl hm j hj1 hj ↦ hmem rd hl hm j hj1 hj)
-      (fun rd hl hm ↦ ⟨(hdmem rd hl hm).1, fun t ht i hi ↦ by
-        rw [hcw (1 + t) (by omega)]; exact (hdmem rd hl hm).2 t ht i hi⟩)
-      hrow (fun t ht ↦ by rw [hcw (1 + t) (by omega)]; exact hreg t ht)
-    rw [hw] at hW1 hD1 hrel1
-    refine ⟨L1, hW1, hD1, fun rd hl hm ↦ ?_⟩
-    rw [h2t, decide_eq_true hne]
-    simp only [↓reduceIte, h2f, h2a, h2r, List.map_nil]
-    have := hrel1 rd hl hm
-    rwa [pow_one] at this
-  · obtain rfl : n = 1 := by omega
-    have h0 : gen + gen = 0 := by
-      have := (gen_pow_add_eq_zero_iff (N := gen ^ 1) 0).mpr rfl
-      rwa [pow_zero, one_mul, pow_one] at this
-    refine ⟨[], fun q hq ↦ by simp [sqRuns] at hq, by simp [sqRuns, DisjL], fun rd _ _ ↦ ?_⟩
-    rw [h2t]
-    simp [h0, sqTot, h2f]
+  obtain ⟨L1, hW, hD, h⟩ := os_sq_loopE fs cert κ hfind hp hb hlp hit hdec hn1 hn hcl hcw fp hmem hdmem hrow hreg σ c2
+    h2f h2t h2a h2r
+  refine ⟨L1, hW, hD, fun rd hl hm ↦ ?_⟩
+  have h' := h rd hl hm
+  cases ht : c2.taken
+  · rw [ht] at h'
+    exact h'
+  · rw [ht] at h'
+    exact RelAtInT.relAtIn h'
 
-/-- **A level's decoders, placed at `b`**, in `fs D + sqTot` words. -/
-theorem os_sq_group (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {lv : OsLv} {L : String}
+/-- **A level's decoders, placed at `b` and exact**, in `fs D + sqTot` words, by trees popping nothing whose every
+node is exact on the memory. -/
+theorem os_sq_groupE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {lv : OsLv} {L : String}
     {fn : Fn} (hfind : coreProgram.find? L = some fn) (hp : fn.params = osParams 6)
     (hb : fn.body = sqLoopBody lv L) (hlp : coreProgram.loop L = true) (hit : SqIterC lv)
-    (hdec : QwDecodeAtD fs cert κ lv.depth lv.capDepth (sqDecName lv))
+    (hdec : QwDecodeAtDE fs cert κ lv.depth lv.capDepth (sqDecName lv))
     {n : ℕ} (hn1 : 1 ≤ n) (hn : n < ordG) {w : ℕ → E} {cap : ℕ → List E}
     (hcl : ∀ j, (cap j).length = 5) (hcw : ∀ j, 1 ≤ j → (⟨cap j, []⟩ : Fs).squeeze.1 = w j)
     {sqz tabs : E} {eqp eq : ℕ} {Lk : Layout}
@@ -228,7 +290,7 @@ theorem os_sq_group (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
         MemL rd (sqGroupRuns fs cert lv L n b w ++ Lown) →
         MemL rd (Lk ++ sqW fs cert lv L n eq b) →
         (∀ i, RegionL (Lk ++ sqW fs cert lv L n eq b) i → R i ∨ Dacc i) →
-        KidsFromIn coreProgram fs cert rd σ R Dacc [c1, c2] b
+        KidsFromInPE coreProgram fs cert rd σ (ExactAt coreProgram rd) R Dacc [c1, c2] [[], []] b
           (fs (sqDecName lv) + sqTot fs lv L (n - 1) 0)
           (RegionL (sqGroupRuns fs cert lv L n b w)) := by
   set D := sqDecName lv with hD
@@ -266,7 +328,7 @@ theorem os_sq_group (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
         simp only [pow_zero, one_pow, mul_one] at this
         simpa [sqDecPos] using this
   -- the loop
-  obtain ⟨L1, hW1, hD1, hrel1⟩ := os_sq_loop fs cert κ hfind hp hb hlp hit hdec hn1 hn hcl hcw
+  obtain ⟨L1, hW1, hD1, hrel1⟩ := os_sq_loopE fs cert κ hfind hp hb hlp hit hdec hn1 hn hcl hcw
     (sqz := sqz) (qpos := qpos) (qbp := qbp) (tabs := tabs) (Lin := Lin) (b + fs D)
     (fun rd hl hm j hj1 hj ↦ (hmem rd hl (hLk rd hm)).2.1 j hj1 hj)
     (fun rd hl hm ↦ ⟨(hmem rd hl (hLk rd hm)).1, fun t ht i hi ↦
@@ -309,8 +371,13 @@ theorem os_sq_group (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
     have := hrel0 rd hl (Main.memL_append.mpr ⟨hm0, hmin⟩)
     exact this
   refine ⟨sqTot fs lv L (n - 1) 0, 0, RegionL Lin, RegionL runs, rfl,
-    fun i hi ↦ (hR i hi).imp_right Or.inl, hrel1 rd hl (Main.memL_append.mpr ⟨hm1, hmin⟩), rfl,
-    fun i hi ↦ ?_⟩
+    fun i hi ↦ (hR i hi).imp_right Or.inl, ?_, rfl, fun i hi ↦ ?_⟩
+  · have h := hrel1 rd hl (Main.memL_append.mpr ⟨hm1, hmin⟩)
+    cases ht : c2.taken
+    · rw [ht] at h
+      exact ⟨h, rfl⟩
+    · rw [ht] at h
+      exact h
   rcases os_regionL_append hi with hi | hi
   · exact Or.inl (Or.inr ⟨h1t, hi⟩)
   · cases ht : c2.taken
@@ -319,11 +386,54 @@ theorem os_sq_group (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
       simp at hq
     · exact Or.inr ⟨rfl, hi⟩
 
+/-- **A level's decoders, placed at `b`**, in `fs D + sqTot` words (`os_sq_groupE`). -/
+theorem os_sq_group (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {lv : OsLv} {L : String}
+    {fn : Fn} (hfind : coreProgram.find? L = some fn) (hp : fn.params = osParams 6)
+    (hb : fn.body = sqLoopBody lv L) (hlp : coreProgram.loop L = true) (hit : SqIterC lv)
+    (hdec : QwDecodeAtDE fs cert κ lv.depth lv.capDepth (sqDecName lv))
+    {n : ℕ} (hn1 : 1 ≤ n) (hn : n < ordG) {w : ℕ → E} {cap : ℕ → List E}
+    (hcl : ∀ j, (cap j).length = 5) (hcw : ∀ j, 1 ≤ j → (⟨cap j, []⟩ : Fs).squeeze.1 = w j)
+    {sqz tabs : E} {eqp eq : ℕ} {Lk : Layout}
+    (hmem : ∀ rd, LowDef κ rd → MemL rd Lk → WinTabs rd tabs ∧
+      (∀ j, 1 ≤ j → j < n →
+        (∀ i < 5, LoadHolds rd (sqz * (gen ^ j) ^ 5) i ((cap j).getD i 0)) ∧
+        ∀ i < 5, LoadHolds rd (sqz * (gen ^ j) ^ 5) (5 + i)
+          (((⟨cap j, []⟩ : Fs).squeeze.2.cap).getD i 0)) ∧
+      ∀ j < n, ∀ i < sqPer lv,
+        LoadHolds rd (ofK (Parameters.addressOfIndex eqp) * gen ^ lv.posOff * (gen ^ j) ^ sqPer lv) i
+          (eOfNat (qwPosOf lv.depth (w j) i)))
+    (hrow : ∀ j, 1 ≤ j → j < n → ∀ t < 10, ∃ i,
+      (sqz * (gen ^ j) ^ 5).limb 0 * Parameters.addressOfIndex t =
+        Parameters.addressOfIndex i ∧ RegionL Lk i)
+    (hrp : ∀ j < n, ∀ t < sqPer lv, RegionL Lk (eqp + lv.posOff + j * sqPer lv + t))
+    (hrt : ∀ t < 128, ∃ i, tabs.limb 0 * Parameters.addressOfIndex t =
+      Parameters.addressOfIndex i ∧ RegionL Lk i)
+    (σ : Val) (c1 c2 : Call) (h1f : c1.f = sqDecName lv) (h1t : c1.taken = true)
+    (h1a : c1.args.map σ = [w 0, ofK (Parameters.addressOfIndex eqp) * gen ^ lv.posOff,
+      ofK (Parameters.addressOfIndex eq) * gen ^ lv.posOff, tabs]) (h1r : c1.rets = [])
+    (h2f : c2.f = L) (h2t : c2.taken = decide (gen + gen ^ n ≠ 0))
+    (h2a : c2.args.map σ = [gen, gen ^ n, sqz, ofK (Parameters.addressOfIndex eqp),
+      ofK (Parameters.addressOfIndex eq), tabs]) (h2r : c2.rets = []) (b : ℕ) :
+    ∃ Lown : Layout,
+      Within (sqGroupRuns fs cert lv L n b w ++ Lown) b
+        (fs (sqDecName lv) + sqTot fs lv L (n - 1) 0) ∧
+      DisjL (sqGroupRuns fs cert lv L n b w ++ Lown) ∧
+      ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd →
+        MemL rd (sqGroupRuns fs cert lv L n b w ++ Lown) →
+        MemL rd (Lk ++ sqW fs cert lv L n eq b) →
+        (∀ i, RegionL (Lk ++ sqW fs cert lv L n eq b) i → R i ∨ Dacc i) →
+        KidsFromIn coreProgram fs cert rd σ R Dacc [c1, c2] b
+          (fs (sqDecName lv) + sqTot fs lv L (n - 1) 0)
+          (RegionL (sqGroupRuns fs cert lv L n b w)) := by
+  obtain ⟨Lown, hW, hD, hK⟩ := os_sq_groupE fs cert κ hfind hp hb hlp hit hdec hn1 hn hcl hcw hmem hrow hrp hrt σ c1
+    c2 h1f h1t h1a h1r h2f h2t h2a h2r b
+  exact ⟨Lown, hW, hD, fun rd R Dacc hl hm hmin hR ↦ (hK rd R Dacc hl hm hmin hR).toP.kidsFromIn⟩
+
 /-- **A level's decoders as a group** (`OsGroupB`, so `OsGroupD` by `toD`). -/
 theorem os_sq_groupB(fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {lv : OsLv} {L : String}
     {fn : Fn} (hfind : coreProgram.find? L = some fn) (hp : fn.params = osParams 6)
     (hb : fn.body = sqLoopBody lv L) (hlp : coreProgram.loop L = true) (hit : SqIterC lv)
-    (hdec : QwDecodeAtD fs cert κ lv.depth lv.capDepth (sqDecName lv))
+    (hdec : QwDecodeAtDE fs cert κ lv.depth lv.capDepth (sqDecName lv))
     {n : ℕ} (hn1 : 1 ≤ n) (hn : n < ordG) {w : ℕ → E} {cap : ℕ → List E}
     (hcl : ∀ j, (cap j).length = 5) (hcw : ∀ j, 1 ≤ j → (⟨cap j, []⟩ : Fs).squeeze.1 = w j)
     {sqz tabs : E} {eqp eq : ℕ} {Lk : Layout}

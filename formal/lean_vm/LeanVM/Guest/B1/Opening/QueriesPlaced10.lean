@@ -76,8 +76,8 @@ theorem oqMain1_placed (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Strin
   · have hne : 1 + gen ^ N ≠ 0 := (one_add_gen_pow hN).mpr hN0
     split
     · have := oqLoop1_relAtIn (fp := fp + fs name + (N + 1) + odd * fs wlk) hP fs cert hs hfin hpd1
-        hcd hW hfl hpl hbl hlp (by omega : N < ordG) hit 0 (by omega)
-      simp only [Nat.zero_mul, Nat.add_zero, Nat.sub_zero, pow_zero] at this
+        hcd hW hfl hpl hbl hlp (by omega : N < ordG) hit (by omega)
+      simp only [pow_zero] at this
       exact this
     · next h => exact absurd hne h
 
@@ -114,8 +114,8 @@ theorem oqMain0_placed (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Strin
   · have hne : 1 + gen ^ N ≠ 0 := (one_add_gen_pow hN).mpr hN0
     split
     · have := oqLoop0_relAtIn (fp := fp + fs name + (N + 1)) hP fs cert hs hfin hpd1 hcd hW
-        hfl hpl hbl hlp (by omega : N < ordG) hit 0 (by omega)
-      simp only [Nat.zero_mul, Nat.add_zero, Nat.sub_zero, pow_zero] at this
+        hfl hpl hbl hlp (by omega : N < ordG) hit (by omega)
+      simp only [pow_zero] at this
       rw [Nat.zero_mul, Nat.add_zero]
       exact this
     · next h => exact absurd hne h

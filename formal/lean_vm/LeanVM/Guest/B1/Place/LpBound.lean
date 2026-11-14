@@ -71,7 +71,7 @@ theorem lp_bound (κ : ℕ) {name loop : String} {S d cd : ℕ}
     (hlp : FnIs name (osParams 9) (lpBody S d cd loop))
     (hl : FnIs loop (osParams 6) (lpLoopBody d cd loop)) (hS : 0 < S) (hSo : S < ordG) (hSB : S ≤ 64)
     (hpw : digitsVal (osPowDigits (128 / d)) 1 = 128 / d)
-    (hdec : QwDecodeAtD fs cert κ d cd (dqwName d cd)) (hfs : ∀ f, fs f < 2 ^ 32) {B : ℕ}
+    (hdec : QwDecodeAtDE fs cert κ d cd (dqwName d cd)) (hfs : ∀ f, fs f < 2 ^ 32) {B : ℕ}
     (hT : TotalLe coreProgram fs name (fun _ ↦ B)) : lpN fs name loop S d cd ≤ B := by
   set Q := 128 / d with hQ
   set M := S * Q with hM
@@ -148,7 +148,7 @@ theorem level_positions_completeAtB (fs : String → ℕ) (cert : String → V �
   intro e he B hT
   obtain ⟨hlp, hl⟩ := lpTable_ok e he
   obtain ⟨hS, hSo, hSB, hpw, hmem⟩ := lpTable_facts e he
-  have hdec := qwDecodeAtD_holds hfit hcons hκ _ hmem
+  have hdec := qwDecodeAtDE_holds hfit hcons hκ _ hmem
   have hb := lp_bound κ hlp hl hS hSo hSB hpw hdec hfs hT
   intro w0 cap ep ew tabs Lin hcl hreg hregt hmemL fp
   obtain ⟨Lown, hW, hD, hR⟩ := lp_placed fs cert κ hlp hl hS hSo hSB hpw hdec hcl fp

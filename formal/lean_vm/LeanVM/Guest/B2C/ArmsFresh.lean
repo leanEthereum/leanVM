@@ -130,8 +130,8 @@ theorem armsFresh : ArmsFresh := by
 /-- **The checker's `keep`**, outright. -/
 theorem kfacts_keep_all (hdr : E × E) (T : Tree) :
     ∀ ν, ∀ I ∈ honestInsts coreProgram fs H hdr T,
-      ∀ I' ∈ honestInsts coreProgram fs H hdr (T.retemp coreProgram fs ν 0),
-        I'.fp = I.fp → I'.t = I.t.retemp coreProgram fs ν I.fp → ∀ q ∈ I'.cells C,
+      ∀ I' ∈ honestInsts coreProgram fs H hdr (T.retemp coreProgram fs ν (0, T.block fs coreProgram.loop)),
+        I'.fp = I.fp → I'.t = I.t.retemp coreProgram fs ν (I.fp, I.cur) → ∀ q ∈ I'.cells C,
           ¬ TmpOff coreProgram cert I.t q.1 → q ∈ I.cells C :=
   kfacts_keep coreProgram_fresh armsFresh hdr T
 

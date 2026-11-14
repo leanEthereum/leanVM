@@ -808,9 +808,13 @@ verifier differential fuzz; the wire differential (the Lean decoding against the
 Rust prover's, accepted by both verifiers, every mutation rejected by both), which does not yet
 include an execution of the guest program; the guest-diff check on real aggregations; and the node
 vectors.
-\item Witness generation: the Lean prover takes the execution (memory and hints) as input, checks
-it, and computes the committed columns from it, but nothing in Lean runs a program on its private
-inputs; in the prover differential the executions come from leanVM's Rust interpreter.
+\item Witness generation: the Lean prover takes the execution as input, checks it, and computes the
+committed columns from it. The executor \lean{LeanVM.Prover.Exec.execute}
+(\lean{Statement/Prover/Execute.lean}) runs a program on its advice (the hints and witness streams)
+as leanVM's Rust interpreter does, and gives the Rust's memory and step count, byte for byte, on the
+prover differential's programs and on real aggregations. Whatever the advice, an execution it returns
+is valid (\lean{LeanVM.Prover.Exec.execute\_sound}); no end statement names it yet, and nothing
+proves that it runs the guest to completion on the honest advice.
 \item The Lean prover's speed: compiled, it takes about $24$ times as long as the multithreaded
 Rust prover on the test corpus ($2876$ s against $119$ s), and no complexity bound is proved.
 \end{itemize}

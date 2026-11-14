@@ -81,9 +81,9 @@ theorem completeAtE_of_relIn {S : List String} (hS : coreProgram.PureIn S) {g : 
     fun rd hl hL => ?_⟩
   have hL' : MemL rd Lin := by simpa using hL
   have hr := relAtIn_transfer (fs := fs) (cert := cert) (D := fun _ => False) (fp := fp)
-    coreProgram_fresh hn hv hb (placed_of_pure hS t hv hb (hn ▸ hg) fp)
-    (loadsIn_of_loadsR t _ fp hlr) (fun _ h => h.elim) rd
-    (fun i hi => hi.elim (fun hi => ?_) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) fp i hd).elim)
+    coreProgram_fresh hn hv hb (placed_of_pure hS t hv hb (hn ▸ hg) _)
+    (loadsIn_of_loadsR t _ _ hlr) (fun _ h => h.elim) rd
+    (fun i hi => hi.elim (fun hi => ?_) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) _ i hd).elim)
     (fun A hA => ?_)
   · refine relAtIn_dmono hr fun i hi => ?_
     obtain ⟨q, hq, _⟩ := hi; simp at hq

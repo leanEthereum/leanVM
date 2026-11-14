@@ -153,7 +153,7 @@ lean_da() {
 }
 
 # Every lean_vm executable, in one build.
-EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs)
+EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute guest-run test-runs)
 
 # The six projects' targets and lean_vm's executables in one build from lean_vm, whose workspace holds the other
 # five, so that their modules build beside lean_vm's instead of one project after another. The projects' own builds
@@ -221,7 +221,7 @@ leanvm() {
   bg "leanvm: the fold rounds' table is the prover's (whir-fold-table)" \
     cargo run --release --manifest-path lean_vm/scripts/whir-fold-table/Cargo.toml -- \
     lean_vm/LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean --check
-  bg "leanvm: the honest hints are the Rust's, and the guest runs on them (guest-diff)" guest_diff
+  bg "leanvm: the honest hints are the Rust's, the guest runs on them, and the statement's executor runs it as the Rust does (guest-diff, leanvm-execute)" guest_diff
   # verification only; key generation and signing are run by hand (`scheme-vectors --xmss-sign`,
   # lean_sphincs' `lake exe signature-kat`)
   bg "leanvm: EthLib's vectors on the statement's verifiers, compiled (scheme-vectors)" \
@@ -239,9 +239,11 @@ guest_export_check() {
 guest_diff() {
   local gd
   gd=$(mktemp -d)
-  (cd lean_vm && LEANVM_GUEST_DIFF="$gd" cargo test --release \
+  (cd lean_vm && LEANVM_GUEST_DIFF="$gd/diff" LEANVM_GUEST_EXEC="$gd/exec" cargo test --release \
     --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored)
-  in_lean_vm .lake/build/bin/guest-diff "$gd"/*.txt
+  in_lean_vm .lake/build/bin/guest-diff "$gd"/diff/*.txt
+  in_lean_vm .lake/build/bin/leanvm-execute "$gd"/exec/*/
+  in_lean_vm .lake/build/bin/guest-run --rust "$gd/exec" "$gd"/diff/*.txt
   rm -rf "$gd"
 }
 fuzz_verifier() {
@@ -256,6 +258,7 @@ prover_diff() {
   local pd
   pd=$(mktemp -d)
   lean_vm/scripts/export-prover-traces-rust.sh "$pd" > /dev/null
+  in_lean_vm .lake/build/bin/leanvm-execute "$pd"/*/
   (cd lean_vm && python3 -I scripts/prover-diff.py "$pd" --mutations 40 --jobs "$par" --identical \
     --expected tests/fixtures/verifier)
   rm -rf "$pd"

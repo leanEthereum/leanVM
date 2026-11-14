@@ -3,7 +3,7 @@ use super::deferred::{DeferredClaim, bytecode_sums, bytecode_value, bytecode_var
 use super::error::{AggregateVerifyError, AggregationError};
 use super::guest::{compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
-use super::node::aggregate;
+use super::node::{aggregate, da_heap_sizes};
 use super::placeholders::placeholder_map;
 use super::proof::{EthereumClaims, EthereumProof, decode, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
@@ -63,6 +63,20 @@ fn guest_compiles_reproducibly() {
         format!("{:?}", two.prog()),
         "two compilations of the guest produced different bytecode, \
              so the compiler is reading a hash seed"
+    );
+}
+
+/// The guest functions that reserve a `HeapBuf` from advice (`lean_compiler::heap_size_advice`),
+/// whose sizes `heap_size_advice` in `node.rs` supplies: a new one needs its sizes there.
+#[test]
+fn guest_allocates_late_only_where_known() {
+    let guest = include_str!("../../guests/lean_ethereum.py");
+    let ast = parse_with_replacements(guest, &placeholder_map(20)).unwrap();
+    let mut late = lean_compiler::heap_size_advice(&ast);
+    late.sort();
+    assert_eq!(
+        late,
+        ["claim_list_digest", "da_verify", "main", "verify_sub", "verify_tables"]
     );
 }
 
@@ -599,6 +613,9 @@ fn da_guest_checks_codeword_membership() {
     let run = |words: &[u64]| {
         let (commitment, _) = lean_da::commit_codewords(words.to_vec());
         let mut hints = Hints::default();
+        for size in da_heap_sizes(n_rows) {
+            hints.push(lean_compiler::HEAP_SIZE_STREAM, vec![count(size)]);
+        }
         hints.push(
             "da_shape",
             vec![count(n_rows), count(n_rows.next_power_of_two().ilog2() as usize)],

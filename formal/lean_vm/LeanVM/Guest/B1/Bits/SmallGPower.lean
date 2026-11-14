@@ -205,14 +205,16 @@ theorem mod_sixteen_succ (e j : ℕ) : e % 16 ^ (j + 1) = e % 16 ^ j + e / 16 ^ 
   rw [Nat.mod_pow_succ, Nat.mul_comm]
 
 /-- **The honest valuation** of `assert_small_g_power` at `g^e`, `e < 16^9`, on any reader where
-each digit's range check reads its words (`hrc`) and the table at `q` holds the shares (`hshare`). -/
-theorem asg_holds_of {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 ^ 9)
+each digit's range check reads its words (`hrc`) and the table at `q` holds the shares (`hshare`): its digits are
+`g^(n_j)`. -/
+theorem asg_holds_ofD {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 ^ 9)
     (hrc : ∀ j, ∃ y t1 t2 : E, LoadHolds rd (gen ^ (e / 16 ^ j % 16)) 0 t1 ∧
       word (2 ^ (16 - 1)) 0 = gen ^ (e / 16 ^ j % 16) * y ∧ LoadHolds rd y 0 t2)
     (hshare : ∀ j < 9, LoadHolds rd (q * gen ^ (e / 16 ^ j % 16)) (34 + 16 * j)
       (gen ^ (e / 16 ^ j % 16 * 16 ^ j))) :
     ∃ σ : Val, σ (.n 0) = gen ^ e ∧ σ (.n 1) = q ∧
       (∀ j < 9, σ (.n (asgPtr j)) = q * gen ^ (e / 16 ^ j % 16)) ∧
+      (∀ j < 9, σ (.n (j + 2)) = gen ^ (e / 16 ^ j % 16)) ∧
       Stmt.HoldsList C rd σ asgBody False (fun rs ↦ rs = []) := by
   choose y t1 t2 hrc using hrc
   let σ : Val := fun v ↦ asgVals (gen ^ e) q e y t1 t2 v.idx
@@ -245,7 +247,7 @@ theorem asg_holds_of {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 
     | succ j =>
       rw [show asgPtr (j + 1) = 17 + 7 * j + 4 by simp only [asgPtr]; omega, eb j 4 (by omega)]
       rfl
-  refine ⟨σ, rfl, rfl, ep, (asg_holds_iff C rd σ _).2
+  refine ⟨σ, rfl, rfl, ep, ed, (asg_holds_iff C rd σ _).2
     ⟨eh 0 (by omega), ⟨?_, ?_, ?_⟩, ?_, ?_, fun j hj ↦ ?_, ?_, rfl⟩⟩
   · rw [d0, show 13 = 11 + 2 from rfl, eh 2 (by omega)]
     simpa using (hrc 0).1
@@ -286,6 +288,18 @@ theorem asg_holds_of {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 
     simp only [List.getD_cons_succ, List.getD_cons_zero]
     rw [Nat.mod_eq_of_lt (by simpa using he)]
     exact e_add_eq_zero_iff.mpr rfl
+
+/-- **The honest valuation** of `assert_small_g_power` (`asg_holds_ofD` without its digits). -/
+theorem asg_holds_of {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 ^ 9)
+    (hrc : ∀ j, ∃ y t1 t2 : E, LoadHolds rd (gen ^ (e / 16 ^ j % 16)) 0 t1 ∧
+      word (2 ^ (16 - 1)) 0 = gen ^ (e / 16 ^ j % 16) * y ∧ LoadHolds rd y 0 t2)
+    (hshare : ∀ j < 9, LoadHolds rd (q * gen ^ (e / 16 ^ j % 16)) (34 + 16 * j)
+      (gen ^ (e / 16 ^ j % 16 * 16 ^ j))) :
+    ∃ σ : Val, σ (.n 0) = gen ^ e ∧ σ (.n 1) = q ∧
+      (∀ j < 9, σ (.n (asgPtr j)) = q * gen ^ (e / 16 ^ j % 16)) ∧
+      Stmt.HoldsList C rd σ asgBody False (fun rs ↦ rs = []) :=
+  let ⟨σ, e0, e1, ep, _, hh⟩ := asg_holds_ofD (C := C) he hrc hshare
+  ⟨σ, e0, e1, ep, hh⟩
 
 /-- **`assert_small_g_power`'s core IR is its meaning.** -/
 theorem assert_small_g_power_holds : assert_small_g_power_Spec := by

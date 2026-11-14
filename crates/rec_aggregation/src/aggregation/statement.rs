@@ -29,6 +29,12 @@ pub(super) fn list_split(n: usize) -> Vec<F128> {
     ]
 }
 
+/// The cells of the sponge chain the guest hashes a list of `n` claims through (`claim_list_digest`'s
+/// `chain`): a state per frame and group, and the last; no chain for an empty list.
+pub(super) fn list_chain_cells(n: usize) -> Option<usize> {
+    (n > 0).then(|| (n / CLAIM_BIG + n % CLAIM_BIG / CLAIM_GROUP + 1) * leanvm_core::keccak::STATE_CELLS)
+}
+
 /// One scheme's declared claims, hashed plainly: 64 bytes a claim, its pubkey then
 /// the message it signed, and an empty list hashes the empty string. The guest
 /// computes this same digest [`CLAIM_GROUP`] claims at a time (`claim_list_digest`).

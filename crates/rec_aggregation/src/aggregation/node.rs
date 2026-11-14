@@ -3,16 +3,21 @@
 use super::cells::count;
 use super::child::gen_verify;
 use super::coverage::plan_coverage;
-use super::deferred::{DeferredClaim, aggregate_deferred_claims, bytecode_sums, bytecode_value, scalar_bytecode};
+use super::deferred::{
+    DeferredClaim, aggregate_deferred_claims, bytecode_sums, bytecode_value, bytecode_vars, scalar_bytecode,
+};
 use super::error::{AggregateVerifyError, AggregationError, SnarkProveError, SnarkVerifyError};
 use super::guest::unified_guest;
 #[cfg(test)]
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
 use super::proof::{EthereumClaims, EthereumProof, check_signer_set};
-use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
+use super::statement::{
+    lean_sphincs_claim_cells, lean_xmss_claim_cells, list_chain_cells, list_split, statement_digest,
+};
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
+use lean_compiler::HEAP_SIZE_STREAM;
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS};
 use leanvm_core::cpu::{from_scalar, prove, public_input_bytes, scalar_proof};
 use primitives::field::{F64, F128};
@@ -169,6 +174,14 @@ pub fn aggregate_with_stats(
     );
     let fs_seed = leanvm_core::cpu::fs_seed(guest);
     hints.push("fs_seed", vec![fs_seed[0], fs_seed[1]]);
+    let lists = [
+        (cover.lean_xmss.signers.len(), cover.lean_xmss.dups.len()),
+        (cover.lean_sphincs.signers.len(), cover.lean_sphincs.dups.len()),
+    ];
+    let blob_rows = (!blobs.is_empty()).then_some(blobs.len() / BLOB_SYMBOLS);
+    for size in heap_sizes(lists, children.len(), blob_rows) {
+        hints.push(HEAP_SIZE_STREAM, size.map(count).into_iter().collect());
+    }
     // Both lists in the guest's order, leanXMSS first: each one's split, its declared
     // claims, then its duplicates.
     let lean_xmss_cells: Vec<[F128; 4]> = cover.lean_xmss.signers.iter().map(lean_xmss_claim_cells).collect();
@@ -339,4 +352,33 @@ pub fn aggregate_with_stats(
         },
         stats,
     ))
+}
+
+/// The `HeapBuf` sizes the guest takes as advice ([`HEAP_SIZE_STREAM`]) before a child's, in the
+/// order it pops them: `main`'s two coverage tables (each scheme's declared claims and duplicates,
+/// four cells a slot), `da_digests`, `child_pi`, `child_fresh`, `child_carried` and `written`;
+/// each claim list's chain (`claim_list_digest`), `None` for an empty list, whose branch allocates
+/// none; with blobs, their regions and the roots over the padded rows (`da_verify`'s `blobs`,
+/// `roots`). A child's follow in [`gen_verify`].
+fn heap_sizes(lists: [(usize, usize); 2], children: usize, blob_rows: Option<usize>) -> Vec<Option<usize>> {
+    let defer = bytecode_vars() + 1;
+    let main = [
+        4 * (lists[0].0 + lists[0].1),
+        4 * (lists[1].0 + lists[1].1),
+        2 * (children + 1),
+        2 * children,
+        defer * children,
+        defer * children,
+        children + 1,
+    ];
+    let chains = lists.map(|(declared, _)| list_chain_cells(declared));
+    let da = blob_rows.into_iter().flat_map(da_heap_sizes);
+    (main.map(Some).into_iter()).chain(chains).chain(da.map(Some)).collect()
+}
+
+/// `da_verify`'s `HeapBuf` sizes taken as advice, for `rows` blobs: their regions, each a tree of
+/// `4 * CELLS_PER_ROW` cells and a running sum (the guest's `DA_REGION`), and the tree over the
+/// padded rows' roots, two cells a node.
+pub(super) fn da_heap_sizes(rows: usize) -> [usize; 2] {
+    [rows * (5 * CELLS_PER_ROW + 1), 4 * rows.next_power_of_two()]
 }

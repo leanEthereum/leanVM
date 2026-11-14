@@ -72,7 +72,8 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
       OutsOk (kidsAt (K fp) [] outs) outs → ∀ rd, LowDef κ rd → Main.MemL rd (own fp) →
       Main.MemL rd Lin →
       Main.MemL rd (outsL (kidsAt (K fp) [] outs) outs) →
-      ∃ σ : Val, (Fn.params fn% «verify_sub»).map σ = args ∧ (∀ s ∈ vsCPre, DispOk σ s) ∧
+      ∃ σ : Val, σ = vsσ rd (vsW (bases (fp + fs "verify_sub") (vsSizes S.d)) outs) args ∧
+        (Fn.params fn% «verify_sub»).map σ = args ∧ (∀ s ∈ vsCPre, DispOk σ s) ∧
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (Fn.body fn% «verify_sub») False (fun r ↦ r = []) ∧
         (vsCPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) =
           vsSizes S.d ∧
@@ -139,7 +140,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     have O := vs_outs S (bases b (vsSizes S.d)) sqE outs hl16 ho
     obtain ⟨D⟩ := vs_sig hbl S b sqE outE hexp hout O hκ hlow hB hL
     have hla : args.length = 6 := rfl
-    refine ⟨vsσ rd (vsW (bases b (vsSizes S.d)) outs) args, ?_, vs_dispOk D, ?_,
+    refine ⟨vsσ rd (vsW (bases b (vsSizes S.d)) outs) args, rfl, ?_, vs_dispOk D, ?_,
       vs_alloc_sizes hla (by omega) (vs_w253 hbl S O),
       vs_alloc_bases hla _ outs (by rw [bases_length]; rfl), hcm b outs O rd hB hL,
       fun q hq ↦ ?_⟩

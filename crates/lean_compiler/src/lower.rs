@@ -24,6 +24,7 @@ use super::*;
 mod builtins;
 mod call;
 mod eval;
+mod hoist;
 mod mem;
 use call::ret_binding;
 use eval::{field_pow, small_gpow};
@@ -228,6 +229,18 @@ struct FnLower<'a> {
     cur_line: u32,
     /// Hints queued to attach to the next emitted instruction.
     pending: Vec<Hint>,
+    /// Where the frame and `HeapBuf` reservations sit, by pointer cell, and what
+    /// moving one needs to know ([`Self::hoist_heap_bufs`]).
+    reservations: HashMap<Off, hoist::Site>,
+    /// The branch nesting of the code being emitted: `0` where every run that
+    /// gets this far runs it.
+    depth: u32,
+    /// The nesting of each instruction emitted.
+    code_depth: Vec<u32>,
+    /// Where the statement being lowered at depth `0` starts.
+    stmt_start: usize,
+    /// The index of each `return` jump.
+    returns: Vec<usize>,
     /// The `match` the one being lowered enters directly, its arms ending in the next
     /// one's dispatch rather than a join ([`Self::lower_match_dispatch`]).
     chain_next: Option<ChainNext>,
@@ -302,6 +315,7 @@ impl FnLower<'_> {
 
     fn emit(&mut self, op: LOp) {
         let hints = std::mem::take(&mut self.pending);
+        self.code_depth.push(self.depth);
         self.code.push(LInstr {
             op,
             line: self.cur_line,
@@ -474,9 +488,11 @@ impl FnLower<'_> {
             return o;
         }
         let q = self.fresh();
-        self.pending.push(Hint::AllocBuffer { ptr: q, size: 1 });
-        self.deref(q, 0, 0, DerefMode::Fp); // m[q] := fp
         let o = self.fresh();
+        // The bounce is `o` itself: `q` holds its address.
+        self.pending
+            .push(Hint::Resolved(RHint::CellAddress { ptr: q, cell: o }));
+        self.deref(q, 0, 0, DerefMode::Fp); // m[q] := fp
         self.deref(q, 0, o, DerefMode::Cell); // m[fp·g^o] := m[q]
         self.scope.self_fp_off = Some(o);
         o
@@ -497,6 +513,7 @@ impl FnLower<'_> {
     /// region must not be trusted outside it.
     fn scoped(&mut self, f: impl FnOnce(&mut Self)) {
         let saved_scope = self.scope.clone();
+        self.depth += 1;
         f(self);
         // A hint pending at the end of a branch (e.g. a trailing
         // `hint_witness`) must not attach to whatever instruction follows the
@@ -504,6 +521,7 @@ impl FnLower<'_> {
         if !self.pending.is_empty() {
             self.anchor();
         }
+        self.depth -= 1;
         self.scope = saved_scope;
     }
 
@@ -1091,7 +1109,7 @@ impl FnLower<'_> {
                 let arr = self.fresh();
                 self.heap_sizes.insert(arr, u128::from(*n));
                 // Allocate before the next instruction reads the pointer.
-                self.pending.push(Hint::AllocBuffer { ptr: arr, size: *n });
+                self.reserve(Hint::AllocBuffer { ptr: arr, size: *n });
                 arr
             }
             Expr::HeapBufDyn(e) => {
@@ -1099,7 +1117,7 @@ impl FnLower<'_> {
                 // alloc hint fires), then allocate before the pointer is read.
                 let size = self.expr(e);
                 let arr = self.fresh();
-                self.pending.push(Hint::AllocBufferDyn { ptr: arr, size });
+                self.reserve(Hint::AllocBufferDyn { ptr: arr, size });
                 arr
             }
             Expr::StackBuf(_) => self.fail("StackBuf(n) must be bound to a name: `x = StackBuf(n)`"),
@@ -1219,6 +1237,9 @@ impl FnLower<'_> {
     }
 
     fn stmt(&mut self, s: &Stmt) {
+        if self.depth == 0 {
+            self.stmt_start = self.code.len();
+        }
         let tail = std::mem::take(&mut self.tail_call);
         // Every diagnostic raised while lowering this statement, and every
         // instruction it emits, is attributed to this line.
@@ -1719,6 +1740,11 @@ pub(crate) fn lower_func(
         inline_stack_ret: None,
 
         pending: Vec::new(),
+        reservations: HashMap::new(),
+        depth: 0,
+        code_depth: Vec::new(),
+        stmt_start: 0,
+        returns: Vec::new(),
         chain_next: None,
         chain_in: None,
         inline_calls: Vec::new(),
@@ -1759,9 +1785,11 @@ pub(crate) fn lower_func(
         let last = f.body.last().map_or(0, |s| s.line);
         lowerer.stmt(&Stmt::new(last, StmtKind::Return(vec![])));
     }
+    let heap_size_advice = lowerer.hoist_heap_bufs();
     Lowered {
         name: f.name.clone(),
         code: lowerer.code,
         frame_size: lowerer.next,
+        heap_size_advice,
     }
 }

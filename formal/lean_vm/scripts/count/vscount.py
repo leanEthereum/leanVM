@@ -134,13 +134,15 @@ def tables(g):
 
 def l5_parts(tbl, k):
     """At the opcode index `k`: `__loop4`'s frame weight, `Budget.ccA` and `Budget.ccS` (the
-    children's claim lists' digests' constant and per-claim slope on the `child_claim_list_any` walk,
-    the honest one (`B1.Main.ccHonest`): the loop per `136` claims by the claims, the loop per `17`
-    at most `7` times and the last digest in the constant) and `vsCountT`, from `tables`."""
+    children's claim lists' digests' constant and per-claim slope on either walk, the larger of
+    `child_claim_list_any`'s and `child_claim_list_mono`'s (`B1.Main.ccHonest`): the loop per `136`
+    claims by the claims, the loop per `17` at most `7` times and the last digest in the constant) and `vsCountT`, from `tables`."""
     stat, loop, om, vsc, _ = tbl
-    ccA = (om[k]['child_claim_list_digest'] + stat(k, 'list_split') + om[k]['child_claim_list_any']
-           + (GROUPS - 1) * loop(k, CC_LP[1]) + max(stat(k, n) for n in CCL))
-    ccS = -(-loop(k, CC_LP[0]) // BIG)
+    ccA = (om[k]['child_claim_list_digest'] + stat(k, 'list_split')
+           + max(om[k]['child_claim_list_any'], om[k]['child_claim_list_mono'])
+           + (GROUPS - 1) * max(loop(k, CC_LP[1]), loop(k, CC_LP[3]))
+           + max(max(stat(k, n) for n in CCL), max(stat(k, n) for n in CCM)))
+    ccS = -(-max(loop(k, CC_LP[0]), loop(k, CC_LP[2])) // BIG)
     return om[k][L('main_loop4')], ccA, ccS, [vsc(k, c) for c in range(len(tbl[4]))]
 
 

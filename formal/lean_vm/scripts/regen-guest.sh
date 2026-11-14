@@ -4,7 +4,7 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert memory whir count tables decoder
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert mode bridge memory whir count tables decoder
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
@@ -29,7 +29,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export core changes vt cert memory whir count tables decoder)
+steps=(export core changes vt cert mode bridge memory whir count tables decoder)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
@@ -58,6 +58,8 @@ parts_core=(core_ir core_names core_vsat) targets_core=(guest-core)
 parts_changes=(changes) targets_changes=()
 parts_vt=(vt) targets_vt=()
 parts_cert=(cert) targets_cert=(guest-cert)
+parts_mode=(mode) targets_mode=()
+parts_bridge=(bridge) targets_bridge=()
 parts_memory=(memory) targets_memory=(guest-memory)
 parts_whir=(whir_data whir_mat_plan walk_known whir_queries) targets_whir=(guest-core)
 parts_count=(count_gen count_vsos) targets_count=()
@@ -106,6 +108,20 @@ part_vt() {
 part_cert() {
   step "cert: the certificates (guest-cert)"
   gen guest-cert
+}
+
+part_mode() {
+  step "mode: the mode walk's signatures and checks (scripts/mode-cert/gen.py)"
+  python3 -I scripts/mode-cert/gen.py "${check[@]}"
+  step "mode: the residuals by family (scripts/mode-cert/res.py)"
+  python3 -I scripts/mode-cert/res.py "${check[@]}"
+}
+
+part_bridge() {
+  step "bridge: the hint bridge's prefix checks (scripts/bridge-cert/gen.py)"
+  python3 -I scripts/bridge-cert/gen.py "${check[@]}"
+  step "bridge: the hint bridge's alignment checks (scripts/bridge-cert/align.py)"
+  python3 -I scripts/bridge-cert/align.py "${check[@]}"
 }
 
 part_memory() {

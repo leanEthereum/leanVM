@@ -23,5 +23,8 @@ theorem cl_sum : nameSum wSB B1.Digest.clNames 17 = 2343 := by decide +kernel
 /-- The children's claim lists' last digests' frames. -/
 theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = 4161 := by decide +kernel
 
+/-- The gap walk's last digests' frames. -/
+theorem ccm_sum : nameSum (fun g => B2C.fs g) B1.Digest.mlNames 17 = 3902 := by decide +kernel
+
 end
 end LeanVM.Guest.Count

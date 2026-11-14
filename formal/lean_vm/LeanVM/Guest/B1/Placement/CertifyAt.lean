@@ -19,7 +19,7 @@ bases) and `e293 = e137 + 9` (the columns' offsets, `94` words); the function re
 total and the offsets' pointer, and its returned layout is `cpOwn` there (`cpOut`).
 `certify_placement_completeAt`: `CompleteAtD` on the base, squares and rank-key runs `cpLin`, for
 `κ ≥ 14`, by `completeAt_flatOutD` on the honest valuation `cpσ` (`cp_body_holds`), every load in
-the inputs or the buffers (`cp_loads_ok`). `cp_out_ctx`: the returned offsets satisfy `PCtx`.
+the inputs or the buffers (`cp_loads_ok`). `certify_placement_completeAtBR`: within its frame and buffers, by its honest node, its valuation the honest one at its buffers, which the memory holds (`cpQn`); `certify_placement_completeAtB` forgets it. `cp_out_ctx`: the returned offsets satisfy `PCtx`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -266,25 +266,32 @@ theorem certify_placement_completeAt (fs : String → ℕ) (cert : String → V 
     intro q hq
     exact cp_loads_ok hl hlm hhs h5 ekb esq _ _ _ _ _ rd hq
 
-/-- **Within its frame and buffers:** `certify_placement` is complete, placed, on its base,
-squares and rank-key runs, at every frame pointer, on memories defined below `2^κ`, `κ ≥ 14`, its
-buffers at the bump allocator's positions, the offsets' returned. -/
-theorem certify_placement_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ}
+/-- The honest valuation at buffers from `b`, the memory holding them. -/
+def cpQn (lm : ℕ) (hs : List ℕ) (ekb esq : ℕ) (rd : Reader) (σ : Val) : Prop :=
+  ∃ b, σ = cpσ lm hs ekb esq b (b + 9) (b + 9 + 9) (b + 9 + 9 + 9) (b + 9 + 9 + 9 + 9) rd ∧
+    MemL rd (bufL b cpSizes (cpOwnL lm hs))
+
+/-- **`certify_placement_completeAtB` by its honest node**: its valuation the honest one at its buffers, which the
+memory holds (`cpQn`). -/
+theorem certify_placement_completeAtBR (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ}
     (hk : 14 ≤ k) {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
     (hhs : ∀ h ∈ hs, h < 33) (h5 : hs.getD 5 0 ≤ 27) (ekb esq : ℕ) :
-    CompleteAtDTB fs cert k "certify_placement" (cpLin lm hs ekb esq)
-      [ofK (addressOfIndex ekb), ofK (addressOfIndex esq)] (cpOut lm hs) (fun _ ↦ True)
+    CompleteAtDTBR fs cert k "certify_placement" (cpLin lm hs ekb esq)
+      [ofK (addressOfIndex ekb), ofK (addressOfIndex esq)] (cpOut lm hs)
+      (fun rd ↦ Budget.NodeHonest coreProgram "certify_placement" (cpQn lm hs ekb esq rd) (flatCalls cpPre)
+        (fun _ ↦ cpSizes) [])
       (fs "certify_placement" + cpSizes.sum) := by
   obtain ⟨fn, hf, hp, hb⟩ := cpFound
   set f := "certify_placement"
-  refine (completeAt_flatOutDTB (fs := fs) (cert := cert) hf cp_not_loop k (cpLin lm hs ekb esq) _
+  refine (completeAt_flatOutDTBR (fs := fs) (cert := cert) hf cp_not_loop k (cpLin lm hs ekb esq) _
     (fun fp ↦ [gen ^ stackTotal (columnKappas lm guestLogBytecode hs),
       ofK (addressOfIndex (fp + fs f + 9 + 9 + 9 + 9))]) _ hb cp_flat cp_addrs
     cpSizes (fun _ ↦ cpOwnL lm hs) (fun _ ↦ cp_own_len lm hs)
-    (fun fp ↦ ⟨_, _, _, _, _, rfl, cp_bufL lm hs (fp + fs f)⟩) (fun _ ↦ []) (fun _ ↦ True) [] []
+    (fun fp ↦ ⟨_, _, _, _, _, rfl, cp_bufL lm hs (fp + fs f)⟩) (fun _ ↦ []) (cpQn lm hs ekb esq) [] []
     0 (fun _ ↦ trivial) (fun _ ↦ le_rfl) (fun _ ↦ le_rfl) (fun _ _ h ↦ absurd h (by simp))
-    (fun _ _ _ _ _ h ↦ absurd h (by simp)) ?_).mono (by simp) fun _ _ ↦ trivial
+    (fun _ _ _ _ _ h ↦ absurd h (by simp)) ?_).mono (by simp) fun _ _ h ↦ h
   intro fp outs ho rd hlow hB hLin
+  have hB0 := hB
   rw [cp_bufL] at hB ⊢
   have hm := memLay_append.mpr ⟨hB, hLin⟩
   have hbody := cp_body_holds hl hlm hhs h5 ekb esq (fp + fs f) (fp + fs f + 9)
@@ -292,7 +299,7 @@ theorem certify_placement_completeAtB (fs : String → ℕ) (cert : String → V
   set σ := cpσ lm hs ekb esq (fp + fs f) (fp + fs f + 9) (fp + fs f + 9 + 9)
     (fp + fs f + 9 + 9 + 9) (fp + fs f + 9 + 9 + 9 + 9) rd with hσ
   have hnc : ∀ s ∈ cpPre, noCallB s = true := fun s hs ↦ List.all_eq_true.mp cp_noCall s hs
-  refine ⟨σ, by rw [hp]; rfl, fun s hs ↦ ?_, by rw [hb]; exact hbody, ?_, ?_, ?_, ?_, trivial⟩
+  refine ⟨σ, by rw [hp]; rfl, fun s hs ↦ ?_, by rw [hb]; exact hbody, ?_, ?_, ?_, ?_, fp + fs f, rfl, hB0⟩
   · have := hnc s hs
     cases s <;> first | exact True.intro | simp [noCallB] at this
   · rw [cp_allocs]; rfl
@@ -308,6 +315,17 @@ theorem certify_placement_completeAtB (fs : String → ℕ) (cert : String → V
   · rw [flatMap_loadsEv _ cpPre cp_noLoadIte]
     intro q hq
     exact cp_loads_ok hl hlm hhs h5 ekb esq _ _ _ _ _ rd hq
+
+/-- **Within its frame and buffers:** `certify_placement` is complete, placed, on its base,
+squares and rank-key runs, at every frame pointer, on memories defined below `2^κ`, `κ ≥ 14`, its
+buffers at the bump allocator's positions, the offsets' returned. -/
+theorem certify_placement_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ}
+    (hk : 14 ≤ k) {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
+    (hhs : ∀ h ∈ hs, h < 33) (h5 : hs.getD 5 0 ≤ 27) (ekb esq : ℕ) :
+    CompleteAtDTB fs cert k "certify_placement" (cpLin lm hs ekb esq)
+      [ofK (addressOfIndex ekb), ofK (addressOfIndex esq)] (cpOut lm hs) (fun _ ↦ True)
+      (fs "certify_placement" + cpSizes.sum) :=
+  (certify_placement_completeAtBR fs cert hk hl hlm hhs h5 ekb esq).toDTB fun _ _ _ ↦ trivial
 
 /-- **The returned offsets satisfy `PCtx`** on any memory holding the buffers. -/
 theorem cp_out_ctx {lm : ℕ} {hs : List ℕ} {rets : List E} {L : Layout} (h : cpOut lm hs rets L)

@@ -26,6 +26,9 @@ namespace LeanVM.Guest.B1.Sig
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (eOfNat)
 
+open LeanVM.Guest.Memory (FallPops)
+open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
+
 @[expose] public section
 
 variable {C : CallRel} {rd : Reader}
@@ -58,6 +61,33 @@ theorem tablePtrs_of_digestPtrs {σ : Val} {bb : E} (h : DigestPtrs σ bb) :
   simp only [sDigestPtrList, List.mem_map, List.mem_range] at hm
   obtain ⟨k, hk, rfl⟩ := hm
   exact h k (by omega)
+
+/-! ## What the stages up to FORS pop -/
+
+theorem sDigestBlock_atoms : atomsOnly sDigestBlock = true := by decide +kernel
+
+theorem sDigestBlock_hints :
+    hintsOf sDigestBlock = [("sp_rand", .stack [sRand]), ("sp_unused", .stack (runV 1306 6))] := by
+  decide +kernel
+
+/-- **The digest block pops the randomizer and the unused bytes**, from any valuation. -/
+theorem sDigestBlock_pops (σ : Val) :
+    FallPops rd σ sDigestBlock [("sp_rand", [σ sRand]), ("sp_unused", (runV 1306 6).map σ)] := by
+  have h := fallPops_hintsOf (rd := rd) σ sDigestBlock_atoms
+  rw [sDigestBlock_hints] at h
+  exact h
+
+/-- The second `H_msg` call's unused bytes, as a number: its low limb's bits from `16`. -/
+def spUnusedN (pk : Sphincs.PublicKey) (m : HashSig.Message) (R : HashSig.Randomizer) : Nat :=
+  unusedOf (digestHalves (keccak256
+    (hmsgBytes (cellOf128 R) (cellOf128 pk.publicSeed) (cellOf128 pk.root) m.toNat 1))).1
+
+/-- **The entries of the stages up to FORS**: the randomizer, the unused bytes, FORS's. -/
+def bottomPops (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Signature) : List Pop :=
+  [("sp_rand", [cellOf128 sig.randomizer]), ("sp_unused", (List.range 6).map fun j =>
+    ofK (addressOfIndex (spUnusedN pk m sig.randomizer / 256 ^ j % 256)))] ++
+  forsPops (cellOf128 pk.publicSeed) (adrsCell0 0 (layerTreeN (digestT pk m sig) 0))
+    (layerLeafN (digestT pk m sig) 0) (forsLeafN (digestT pk m sig)) (forsSecretCell sig) (forsSibCell sig)
 
 /-- What the stages up to FORS leave, for the claim of `pk` and `m` signed by `sig`. -/
 def BottomPost (bb : E) (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Signature)
@@ -93,12 +123,13 @@ theorem sBottom_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : 
     (hbb : ByteBits rd bb) (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Signature)
     (σ : Val) (h1 : σ (.n 1) = bb)
     (hat : ClaimAt rd (σ (.n 0)) (cellOf128 pk.publicSeed) (cellOf128 pk.root) (msgLo m) (msgHi m)) :
-    Completes C rd 2 5249 (sDigestBlock ++ (sForsAddrs ++ sForsB.1)) σ (BottomPost bb pk m sig) := by
+    Completes C rd 2 5249 (sDigestBlock ++ (sForsAddrs ++ sForsB.1)) σ (fun σ' => BottomPost bb pk m sig σ' ∧
+      FallPops rd σ' (sDigestBlock ++ (sForsAddrs ++ sForsB.1)) (bottomPops pk m sig) ∧ SBits σ') := by
   set T := digestT pk m sig with hTd
   refine Completes.append (m := 1372) (by norm_num) (by norm_num) sDigestBlock_nb
     (sDigestBlock_complete hm hbb pk m sig.randomizer hat σ rfl h1)
     (fun σA heA hA => ?_)
-  obtain ⟨hppA, hrA, -, hpA, hdA, hqA⟩ := hA
+  obtain ⟨hppA, hrA, hrdA, hpA, hdA, hqA, hunA, hSA⟩ := hA
   replace hdA : DigestAt σA T := by
     have e : (Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600 pk
       sig.randomizer m)).toNat = T := rfl
@@ -128,13 +159,23 @@ theorem sBottom_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : 
   obtain ⟨σC, heC, hfC, hhC⟩ := hF
   have tC : ∀ k < 1382, σC (.n k) = σB (.n k) := fun k hk => heC.apply (Or.inl hk)
   have tCA : ∀ k < 1372, σC (.n k) = σA (.n k) := fun k hk => by rw [tC k (by omega), tB k hk]
-  refine ⟨σC, heC, ⟨hpA.congr (b := 1372) (by unfold sPad; omega) fun j hj => (tCA j hj).symm,
+  refine ⟨σC, heC, ⟨⟨hpA.congr (b := 1372) (by unfold sPad; omega) fun j hj => (tCA j hj).symm,
     by rw [show sPP = .n 2 from rfl, tCA 2 (by norm_num)]; exact hppA,
     by rw [show sRoot = .n 3 from rfl, tCA 3 (by norm_num)]; exact hrA,
     hdA.congr tCA, hqA.congr sDigestBlock_ptrs tCA,
     by rw [show sA0B = .n 1379 from rfl, tC _ (by norm_num)]; exact ha0B,
     by rw [show sKeyB = .n 1381 from rfl, tC _ (by norm_num)]; exact hkB,
-    by rw [hfC, hppB]; rfl⟩, hhC⟩
+    by rw [hfC.1, hppB]; rfl⟩, ?_, hSA.congr fun k hk => tCA k (by omega)⟩, hhC⟩
+  have hd := sDigestBlock_pops (rd := rd) σA
+  have hu : (runV 1306 6).map σA = (List.range 6).map fun j =>
+      ofK (addressOfIndex (spUnusedN pk m sig.randomizer / 256 ^ j % 256)) := by
+    rw [runV, List.map_map]
+    exact List.map_congr_left fun j hj => hunA j (List.mem_range.mp hj)
+  rw [hrdA, hu] at hd
+  have hf := hfC.2
+  rw [hppB] at hf
+  exact FallPops.congr_pops ((hd.agree sDigestBlock_nb fun k hk => (tCA k hk).symm).append
+    ((fallPops_quiet σC rfl).append hf)) (by rw [List.nil_append]; rfl)
 
 end
 end LeanVM.Guest.B1.Sig

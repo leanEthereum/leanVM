@@ -18,17 +18,21 @@ The honest memory holds every frame cell; a load landing in a frame cell that is
 `frameAddr` run would have to read what that frame holds, which nothing in a completeness proof
 controls. So completeness records where its loads read, compositionally:
 
-* `Tree.Data P fs cert fp t`: the words of the subtree's data, every instance's `HeapBuf`s and
+* `Tree.Data P fs cert p t`: the words of the subtree's data, every instance's `HeapBuf`s and
   `frameAddr` runs as `Tree.Placed` places them;
-* `Tree.LoadsIn P fs cert R fp t`: every load of an instance reads its subtree's data or the
+* `Tree.LoadsIn P fs cert R p t`: every load of an instance reads its subtree's data or the
   region `R` its caller hands it, a callee getting its caller's subtree's data and `R`;
 * `RelAtIn P fs cert rd R D fp n f args rets`: `RelAt` by a tree whose loads are in `R` and whose
-  data contains `D` (the data the caller relies on afterwards, e.g. a `HeapBuf` a callee returns).
+  data contains `D` (the data the caller relies on afterwards, e.g. a `HeapBuf` a callee returns);
+* `RelAtInC P fs cert rd R D fp c B n f args rets`: the same of a loop's iterations from one on,
+  their frames (`B` words) from `fp`, the rest (`n` words) from `c`.
 
-**Composition** (`relAtIn_of_walk`, `relAtIn_of_walk_loop`): as `relAt_of_walk`, the callees by
-`KidsFromIn`, each in a region within the caller's region, its own data (`ownData`) and the data
-earlier callees claimed; the caller's own loads in its own data, its region or what its callees
-claimed.
+**Composition** (`relAtIn_of_walk`, `relAtIn_of_walk_loop`): the callees by `KidsFromIn`, one
+after another from the end of the caller's `HeapBuf`s, each in a region within the caller's region,
+its own data (`ownData`) and the data earlier callees claimed; the caller's own loads in its own
+data, its region or what its callees claimed. A loop helper's iteration at `(fp, c)` puts its
+tail call at `(fp + fs f, c')`, `c'` past its other callees (`RelAtInC`), and a loop entered
+fresh at `fp` is `RelAtInC` at `(fp, fp + B)` (`RelAtInC.relAtIn`).
 
 **Pure subtrees.** A subtree with no `HeapBuf` and no `frameAddr` has no data, so its loads read
 its region only, wherever it is placed. `Program.RelIn P rd R` is `Program.Rel` by a tree whose
@@ -72,32 +76,32 @@ def ownData (fp b : ℕ) (f : String) (bufs : List ℕ) (es : List Ev) (i : ℕ)
     ∃ q ∈ runs es, fp + cert f q.1 ≤ i ∧ i < fp + cert f q.1 + q.2
 
 mutual
-/-- **A subtree's data**: the own data of its instances placed from `fp`. -/
-def Tree.Data (fp : ℕ) : Tree → ℕ → Prop
+/-- **A subtree's data**: the own data of its instances placed from `p`. -/
+def Tree.Data (p : ℕ × ℕ) : Tree → ℕ → Prop
   | t@(.node f _ bufs kids), i =>
-      ownData cert fp (bufBase fs P.loop fp f (kids.map (Tree.total fs))) f bufs (t.events P) i ∨
-        Tree.DataKids (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids i
+      ownData cert p.1 p.2 f bufs (t.events P) i ∨
+        Tree.DataKids (kidPos fs P.loop p f bufs (kids.map (Tree.sz fs P.loop))) kids i
   | .phantom .., _ => False
 
 /-- The data of the callees `ks` placed at `ps`. -/
-def Tree.DataKids : List ℕ → List Tree → ℕ → Prop
+def Tree.DataKids : List (ℕ × ℕ) → List Tree → ℕ → Prop
   | _, [], _ => False
   | [], _ :: _, _ => False
   | p :: ps, k :: ks, i => k.Data p i ∨ Tree.DataKids ps ks i
 end
 
 mutual
-/-- **Loads in a region**: every load of every instance of `t` placed from `fp` reads its
+/-- **Loads in a region**: every load of every instance of `t` placed from `p` reads its
 subtree's data or `R`; a callee's region is its caller's subtree's data and `R`. -/
-def Tree.LoadsIn : (ℕ → Prop) → ℕ → Tree → Prop
-  | R, fp, t@(.node f σ bufs kids) =>
-      (∀ A ∈ loadAddrs σ (t.events P), ∃ i, A = addressOfIndex i ∧ (t.Data P fs cert fp i ∨ R i)) ∧
-        Tree.LoadsInKids (fun i => t.Data P fs cert fp i ∨ R i)
-          (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids
+def Tree.LoadsIn : (ℕ → Prop) → ℕ × ℕ → Tree → Prop
+  | R, p, t@(.node f σ bufs kids) =>
+      (∀ A ∈ loadAddrs σ (t.events P), ∃ i, A = addressOfIndex i ∧ (t.Data P fs cert p i ∨ R i)) ∧
+        Tree.LoadsInKids (fun i => t.Data P fs cert p i ∨ R i)
+          (kidPos fs P.loop p f bufs (kids.map (Tree.sz fs P.loop))) kids
   | _, _, .phantom .. => True
 
 /-- `Tree.LoadsIn` of the callees `ks` at `ps`. -/
-def Tree.LoadsInKids : (ℕ → Prop) → List ℕ → List Tree → Prop
+def Tree.LoadsInKids : (ℕ → Prop) → List (ℕ × ℕ) → List Tree → Prop
   | _, _, [] => True
   | _, [], _ :: _ => True
   | R, p :: ps, k :: ks => k.LoadsIn R p ∧ Tree.LoadsInKids R ps ks
@@ -106,8 +110,18 @@ end
 /-- **`Program.Rel` placed at `fp`, loading from `R`**: `RelAt` by a tree whose loads read its
 data or `R`, and whose data contains `D`. -/
 def RelAtIn (rd : Reader) (R D : ℕ → Prop) (fp n : ℕ) (f : String) (args rets : List E) : Prop :=
-  ∃ t : Tree, t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧ t.Placed P fs cert fp ∧
-    t.total fs = n ∧ t.LoadsIn P fs cert R fp ∧ ∀ i, D i → t.Data P fs cert fp i
+  ∃ t : Tree, t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧
+    t.Placed P fs cert (fp, fp + t.block fs P.loop) ∧ t.total fs = n ∧
+    t.LoadsIn P fs cert R (fp, fp + t.block fs P.loop) ∧
+    ∀ i, D i → t.Data P fs cert (fp, fp + t.block fs P.loop) i
+
+/-- **`RelAtIn` of a loop's iterations from one on**: its frames, `B` words, from `fp`, the rest of
+its subtree, `n` words, from `c`. -/
+def RelAtInC (rd : Reader) (R D : ℕ → Prop) (fp c B n : ℕ) (f : String) (args rets : List E) :
+    Prop :=
+  ∃ t : Tree, t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧ t.Placed P fs cert (fp, c) ∧
+    t.block fs P.loop = B ∧ t.total fs = B + n ∧ t.LoadsIn P fs cert R (fp, c) ∧
+    ∀ i, D i → t.Data P fs cert (fp, c) i
 
 /-- **The callees of the frames `cs` sets up**, as `KidsFrom`, each loading from a region within
 `R` and the data `Dacc` earlier callees claimed, claiming data `Dk` for the later ones; `Dend`
@@ -128,27 +142,41 @@ theorem RelAtIn.relAt {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : Strin
   let ⟨t, hn, hv, hb, hp, ht, _⟩ := h
   ⟨t, hn, hv, hb, hp, ht⟩
 
+/-- **A loop entered fresh**: its frames at `fp`, the rest right after them. -/
+theorem RelAtInC.relAtIn {rd : Reader} {R D : ℕ → Prop} {fp B n : ℕ} {f : String}
+    {args rets : List E} (h : RelAtInC P fs cert rd R D fp (fp + B) B n f args rets) :
+    RelAtIn P fs cert rd R D fp (B + n) f args rets := by
+  obtain ⟨t, hn, hv, hb, hp, hB, ht, hl, hd⟩ := h
+  subst hB
+  exact ⟨t, hn, hv, hb, hp, ht, hl, hd⟩
+
+theorem RelAtInC.dmono {rd : Reader} {R D D' : ℕ → Prop} {fp c B n : ℕ} {f : String}
+    {args rets : List E} (h : RelAtInC P fs cert rd R D fp c B n f args rets)
+    (hD : ∀ i, D' i → D i) : RelAtInC P fs cert rd R D' fp c B n f args rets :=
+  let ⟨t, hn, hv, hb, hp, hB, ht, hl, hd⟩ := h
+  ⟨t, hn, hv, hb, hp, hB, ht, hl, fun i hi => hd i (hD i hi)⟩
+
 /-! ## Unfolding -/
 
-theorem data_node {fp : ℕ} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} {i : ℕ} :
-    (Tree.node f σ bufs kids).Data P fs cert fp i ↔
-      ownData cert fp (bufBase fs P.loop fp f (kids.map (Tree.total fs))) f bufs
-          ((Tree.node f σ bufs kids).events P) i ∨
-        Tree.DataKids P fs cert (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids i := by
+theorem data_node {p : ℕ × ℕ} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} {i : ℕ} :
+    (Tree.node f σ bufs kids).Data P fs cert p i ↔
+      ownData cert p.1 p.2 f bufs ((Tree.node f σ bufs kids).events P) i ∨
+        Tree.DataKids P fs cert (kidPos fs P.loop p f bufs (kids.map (Tree.sz fs P.loop))) kids i := by
   rw [Tree.Data]
 
-theorem data_phantom {fp : ℕ} {f : String} {σ : Val} {i : ℕ} :
-    ¬ (Tree.phantom f σ).Data P fs cert fp i := by
+theorem data_phantom {p : ℕ × ℕ} {f : String} {σ : Val} {i : ℕ} :
+    ¬ (Tree.phantom f σ).Data P fs cert p i := by
   rw [Tree.Data]; exact id
 
-theorem dataKids_cons {p : ℕ} {ps : List ℕ} {k : Tree} {ks : List Tree} {i : ℕ} :
+theorem dataKids_cons {p : ℕ × ℕ} {ps : List (ℕ × ℕ)} {k : Tree} {ks : List Tree} {i : ℕ} :
     Tree.DataKids P fs cert (p :: ps) (k :: ks) i ↔ k.Data P fs cert p i ∨ Tree.DataKids P fs cert ps ks i := by
   rw [Tree.DataKids]
 
-theorem not_dataKids_nil {ps : List ℕ} {i : ℕ} : ¬ Tree.DataKids P fs cert ps [] i := by
+theorem not_dataKids_nil {ps : List (ℕ × ℕ)} {i : ℕ} : ¬ Tree.DataKids P fs cert ps [] i := by
   cases ps <;> (rw [Tree.DataKids]; exact id)
 
-theorem dataKids_append : ∀ {ps : List ℕ} {ks : List Tree} {ps' : List ℕ} {ks' : List Tree} {i : ℕ},
+theorem dataKids_append : ∀ {ps : List (ℕ × ℕ)} {ks : List Tree} {ps' : List (ℕ × ℕ)}
+    {ks' : List Tree} {i : ℕ},
     ps.length = ks.length →
     (Tree.DataKids P fs cert (ps ++ ps') (ks ++ ks') i ↔
       Tree.DataKids P fs cert ps ks i ∨ Tree.DataKids P fs cert ps' ks' i)
@@ -159,28 +187,30 @@ theorem dataKids_append : ∀ {ps : List ℕ} {ks : List Tree} {ps' : List ℕ} 
   | [], _ :: _, _, _, _, hl => absurd hl (by simp)
   | _ :: _, [], _, _, _, hl => absurd hl (by simp)
 
-theorem loadsIn_node {R : ℕ → Prop} {fp : ℕ} {f : String} {σ : Val} {bufs : List ℕ}
+theorem loadsIn_node {R : ℕ → Prop} {p : ℕ × ℕ} {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} :
-    (Tree.node f σ bufs kids).LoadsIn P fs cert R fp ↔
+    (Tree.node f σ bufs kids).LoadsIn P fs cert R p ↔
       (∀ A ∈ loadAddrs σ ((Tree.node f σ bufs kids).events P), ∃ i, A = addressOfIndex i ∧
-        ((Tree.node f σ bufs kids).Data P fs cert fp i ∨ R i)) ∧
-      Tree.LoadsInKids P fs cert (fun i => (Tree.node f σ bufs kids).Data P fs cert fp i ∨ R i)
-        (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids := by
+        ((Tree.node f σ bufs kids).Data P fs cert p i ∨ R i)) ∧
+      Tree.LoadsInKids P fs cert (fun i => (Tree.node f σ bufs kids).Data P fs cert p i ∨ R i)
+        (kidPos fs P.loop p f bufs (kids.map (Tree.sz fs P.loop))) kids := by
   rw [Tree.LoadsIn]
 
-theorem loadsIn_phantom {R : ℕ → Prop} {fp : ℕ} {f : String} {σ : Val} :
-    (Tree.phantom f σ).LoadsIn P fs cert R fp := by
+theorem loadsIn_phantom {R : ℕ → Prop} {p : ℕ × ℕ} {f : String} {σ : Val} :
+    (Tree.phantom f σ).LoadsIn P fs cert R p := by
   rw [Tree.LoadsIn]; trivial
 
-theorem loadsInKids_cons {R : ℕ → Prop} {p : ℕ} {ps : List ℕ} {k : Tree} {ks : List Tree} :
+theorem loadsInKids_cons {R : ℕ → Prop} {p : ℕ × ℕ} {ps : List (ℕ × ℕ)} {k : Tree}
+    {ks : List Tree} :
     Tree.LoadsInKids P fs cert R (p :: ps) (k :: ks) ↔
       k.LoadsIn P fs cert R p ∧ Tree.LoadsInKids P fs cert R ps ks := by
   rw [Tree.LoadsInKids]
 
-theorem loadsInKids_nil {R : ℕ → Prop} {ps : List ℕ} : Tree.LoadsInKids P fs cert R ps [] := by
+theorem loadsInKids_nil {R : ℕ → Prop} {ps : List (ℕ × ℕ)} :
+    Tree.LoadsInKids P fs cert R ps [] := by
   cases ps <;> (rw [Tree.LoadsInKids]; trivial)
 
-theorem loadsInKids_append : ∀ {R : ℕ → Prop} {ps : List ℕ} {ks : List Tree} {ps' : List ℕ}
+theorem loadsInKids_append : ∀ {R : ℕ → Prop} {ps : List (ℕ × ℕ)} {ks : List Tree} {ps' : List (ℕ × ℕ)}
     {ks' : List Tree}, ps.length = ks.length → Tree.LoadsInKids P fs cert R ps ks →
       Tree.LoadsInKids P fs cert R ps' ks' → Tree.LoadsInKids P fs cert R (ps ++ ps') (ks ++ ks')
   | _, [], [], _, _, _, _, h => h
@@ -193,9 +223,9 @@ theorem loadsInKids_append : ∀ {R : ℕ → Prop} {ps : List ℕ} {ks : List T
 
 mutual
 /-- A wider region. -/
-theorem loadsIn_mono : ∀ (t : Tree) {R R' : ℕ → Prop} (fp : ℕ), (∀ i, R i → R' i) →
-    t.LoadsIn P fs cert R fp → t.LoadsIn P fs cert R' fp
-  | .node f σ bufs kids, R, R', fp, hR, h => by
+theorem loadsIn_mono : ∀ (t : Tree) {R R' : ℕ → Prop} (p : ℕ × ℕ), (∀ i, R i → R' i) →
+    t.LoadsIn P fs cert R p → t.LoadsIn P fs cert R' p
+  | .node f σ bufs kids, R, R', p, hR, h => by
       rw [loadsIn_node] at h ⊢
       refine ⟨fun A hA => ?_, loadsInKids_mono kids _ (fun i => Or.imp_right (hR i)) h.2⟩
       obtain ⟨i, hi, h'⟩ := h.1 A hA
@@ -203,7 +233,7 @@ theorem loadsIn_mono : ∀ (t : Tree) {R R' : ℕ → Prop} (fp : ℕ), (∀ i, 
   | .phantom .., _, _, _, _, _ => loadsIn_phantom
 
 /-- `loadsIn_mono` for the callees. -/
-theorem loadsInKids_mono : ∀ (ks : List Tree) {R R' : ℕ → Prop} (ps : List ℕ),
+theorem loadsInKids_mono : ∀ (ks : List Tree) {R R' : ℕ → Prop} (ps : List (ℕ × ℕ)),
     (∀ i, R i → R' i) → Tree.LoadsInKids P fs cert R ps ks → Tree.LoadsInKids P fs cert R' ps ks
   | [], _, _, _, _, _ => loadsInKids_nil
   | _ :: _, _, _, [], _, _ => by rw [Tree.LoadsInKids]; trivial
@@ -223,8 +253,10 @@ theorem kid_ofIn {c : Call} {b m : ℕ} {Rk Dk : ℕ → Prop}
     (hc : c.taken = false → P.Takes c.f c.args.length = true)
     (h : if c.taken then RelAtIn P fs cert rd Rk Dk b m c.f (c.args.map σ) (c.rets.map σ)
       else m = fs c.f) :
-    ∃ k : Tree, Tree.KidsValid P rd σ [c] [k] ∧ k.BufsOk P ∧ k.Placed P fs cert b ∧
-      k.total fs = m ∧ k.LoadsIn P fs cert Rk b ∧ (c.taken = true → ∀ i, Dk i → k.Data P fs cert b i) := by
+    ∃ k : Tree, Tree.KidsValid P rd σ [c] [k] ∧ k.BufsOk P ∧
+      k.Placed P fs cert (b, b + k.block fs P.loop) ∧ k.total fs = m ∧
+      k.LoadsIn P fs cert Rk (b, b + k.block fs P.loop) ∧
+      (c.taken = true → ∀ i, Dk i → k.Data P fs cert (b, b + k.block fs P.loop) i) := by
   by_cases ht : c.taken = true
   · rw [ite_eq_left ht] at h
     obtain ⟨k, hn, hv, hb, hp, htot, hl, hd⟩ := h
@@ -237,17 +269,44 @@ theorem kid_ofIn {c : Call} {b m : ℕ} {Rk Dk : ℕ → Prop}
     obtain ⟨⟨f, σ', rfl⟩, -⟩ := hk
     exact ⟨_, hkv, hkb, hkp, hkt, loadsIn_phantom, fun h' => absurd h' ht⟩
 
+/-- A loop's tail call: its iterations from `(fp, c)`, or a phantom of one frame. -/
+theorem kid_ofInC {c : Call} {fp cur B m : ℕ} {Rk Dk : ℕ → Prop}
+    (hc : c.taken = false → P.Takes c.f c.args.length = true)
+    (h : if c.taken then
+        RelAtInC P fs cert rd Rk Dk fp cur B m c.f (c.args.map σ) (c.rets.map σ)
+      else B = fs c.f ∧ m = 0) :
+    ∃ k : Tree, Tree.KidsValid P rd σ [c] [k] ∧ k.BufsOk P ∧ k.Placed P fs cert (fp, cur) ∧
+      k.block fs P.loop = B ∧ k.total fs = B + m ∧ k.LoadsIn P fs cert Rk (fp, cur) ∧
+      (c.taken = true → ∀ i, Dk i → k.Data P fs cert (fp, cur) i) := by
+  by_cases ht : c.taken = true
+  · rw [ite_eq_left ht] at h
+    obtain ⟨k, hn, hv, hb, hp, hB, htot, hl, hd⟩ := h
+    exact ⟨k, ⟨hn, by rw [ite_eq_left ht]; exact hv, trivial⟩, hb, hp, hB, htot, hl, fun _ => hd⟩
+  · rw [ite_eq_right ht] at h
+    obtain ⟨σ', hph⟩ := phantom_of_takes (P := P) (f := c.f) (ws := c.args.map σ)
+      (by rw [List.length_map]; exact hc (by simpa using ht))
+    refine ⟨.phantom c.f σ', ⟨rfl, by rw [ite_eq_right ht]; exact ⟨⟨_, _, rfl⟩, hph⟩, trivial⟩,
+      by rw [Tree.BufsOk]; trivial, placed_phantom, by rw [block_phantom, h.1], ?_,
+      loadsIn_phantom, fun h' => absurd h' ht⟩
+    rw [Tree.total, h.1, h.2, Nat.add_zero]
+
+theorem basesC_cons_sz {b m : ℕ} {k : Tree} {ks : List Tree} (hkt : k.total fs = m) :
+    basesC b ((k :: ks).map (Tree.sz fs P.loop)) =
+      (b, b + k.block fs P.loop) :: basesC (b + m) (ks.map (Tree.sz fs P.loop)) := by
+  rw [List.map_cons, basesC, ← hkt]; rfl
+
 /-- The callees of `KidsFromIn`, placed one after another from `b`. -/
 theorem kids_of_kidsFromIn (R : ℕ → Prop) : ∀ (cs : List Call) (Dacc : ℕ → Prop) (b n : ℕ)
     (Dend : ℕ → Prop), (∀ c ∈ cs, c.taken = false → P.Takes c.f c.args.length = true) →
     KidsFromIn P fs cert rd σ R Dacc cs b n Dend →
     ∃ ks : List Tree, Tree.KidsValid P rd σ cs ks ∧ Tree.BufsOkKids P ks ∧
-      Tree.PlacedKids P fs cert (bases b (ks.map (Tree.total fs))) ks ∧
+      Tree.PlacedKids P fs cert (basesC b (ks.map (Tree.sz fs P.loop))) ks ∧
       (ks.map (Tree.total fs)).sum = n ∧
-      (∀ i, Dend i → Dacc i ∨ Tree.DataKids P fs cert (bases b (ks.map (Tree.total fs))) ks i) ∧
+      (∀ i, Dend i → Dacc i ∨
+        Tree.DataKids P fs cert (basesC b (ks.map (Tree.sz fs P.loop))) ks i) ∧
       ∀ Rp : ℕ → Prop, (∀ i, R i → Rp i) → (∀ i, Dacc i → Rp i) →
-        (∀ i, Tree.DataKids P fs cert (bases b (ks.map (Tree.total fs))) ks i → Rp i) →
-        Tree.LoadsInKids P fs cert Rp (bases b (ks.map (Tree.total fs))) ks
+        (∀ i, Tree.DataKids P fs cert (basesC b (ks.map (Tree.sz fs P.loop))) ks i → Rp i) →
+        Tree.LoadsInKids P fs cert Rp (basesC b (ks.map (Tree.sz fs P.loop))) ks
   | [], Dacc, _, n, Dend, _, h => by
       rw [KidsFromIn] at h
       refine ⟨[], by simp [Tree.KidsValid], by rw [Tree.BufsOkKids]; trivial, placedKids_nil,
@@ -258,8 +317,7 @@ theorem kids_of_kidsFromIn (R : ℕ → Prop) : ∀ (cs : List Call) (Dacc : ℕ
       obtain ⟨k, hkv, hkb, hkp, hkt, hkl, hkd⟩ := kid_ofIn (hw c List.mem_cons_self) hc
       obtain ⟨ks, hv, hb, hp, hs, hd, hl⟩ := kids_of_kidsFromIn R cs _ (b + m) n' Dend
         (fun c' hc' => hw c' (List.mem_cons_of_mem _ hc')) hcs
-      have hpos : bases b ((k :: ks).map (Tree.total fs)) = b :: bases (b + m) (ks.map (Tree.total fs)) := by
-        rw [List.map_cons, bases, hkt]
+      have hpos := basesC_cons_sz (P := P) (b := b) (ks := ks) hkt
       refine ⟨k :: ks, ⟨hkv.1, hkv.2.1, hv⟩, by rw [Tree.BufsOkKids]; exact ⟨hkb, hb⟩, ?_, ?_, ?_, ?_⟩
       · rw [hpos, placedKids_cons]; exact ⟨hkp, hp⟩
       · rw [List.map_cons, List.sum_cons, hkt, hs]
@@ -272,16 +330,16 @@ theorem kids_of_kidsFromIn (R : ℕ → Prop) : ∀ (cs : List Call) (Dacc : ℕ
       · intro Rp hR hD hK
         rw [hpos] at hK ⊢
         rw [loadsInKids_cons]
-        refine ⟨loadsIn_mono k b (fun i hi => (hRk i hi).elim (hR i) (hD i)) hkl,
+        refine ⟨loadsIn_mono k _ (fun i hi => (hRk i hi).elim (hR i) (hD i)) hkl,
           hl Rp hR (fun i hi => ?_) (fun i hi => hK i (dataKids_cons.mpr (Or.inr hi)))⟩
         rcases hi with h | ⟨ht, h⟩
         · exact hD i h
         · exact hK i (dataKids_cons.mpr (Or.inl (hkd ht i h)))
 
 /-- **Composition with regions**, a function that is not a loop helper (or whose path calls
-nothing): as `relAt_of_walk`, its callees in `KidsFromIn` from its region and its own data, its
-loads in its own data, its region or its callees' claims, and its claim within its own data and
-its callees' claims. -/
+nothing): its callees in `KidsFromIn` from its region and its own data, its loads in its own
+data, its region or its callees' claims, and its claim within its own data and its callees'
+claims. -/
 theorem relAtIn_of_walk (hP : P.Wf) {R D Dk : ℕ → Prop} {fp N : ℕ} {f : String}
     {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} (hf : P.find? f = some fn)
     (hl : P.loop f = false ∨ calls es = []) (hp : fn.params.map σ = args)
@@ -297,7 +355,7 @@ theorem relAtIn_of_walk (hP : P.Wf) {R D Dk : ℕ → Prop} {fp N : ℕ} {f : St
     RelAtIn P fs cert rd R D fp (fs f + (allocs σ es).sum + N) f args rets := by
   obtain ⟨ks, hkv, hkb, hkp, hks, hkd, hkl⟩ :=
     kids_of_kidsFromIn _ _ _ _ _ _ (takes_of_calls hP (List.mem_of_find?_eq_some hf) hw) hk
-  have hl' : P.loop f = false ∨ ks.map (Tree.total fs) = [] := by
+  have hl' : P.loop f = false ∨ ks.map (Tree.sz fs P.loop) = [] := by
     rcases hl with hl | hl
     · exact Or.inl hl
     · rw [hl] at hkv
@@ -305,19 +363,21 @@ theorem relAtIn_of_walk (hP : P.Wf) {R D Dk : ℕ → Prop} {fp N : ℕ} {f : St
       | nil => exact Or.inr rfl
       | cons _ _ => exact hkv.elim
   obtain ⟨hbb, hkpos⟩ := kidPos_not_loop (fs := fs) (fp := fp) (bufs := allocs σ es) hl'
-  have hdata : ∀ i, (Tree.node f σ (allocs σ es) ks).Data P fs cert fp i ↔
+  have hblk : (Tree.node f σ (allocs σ es) ks).block fs P.loop = fs f := by rw [block_node, hbb]
+  have hdata : ∀ i, (Tree.node f σ (allocs σ es) ks).Data P fs cert (fp, fp + fs f) i ↔
       ownData cert fp (fp + fs f) f (allocs σ es) es i ∨
-        Tree.DataKids P fs cert (bases (fp + fs f + (allocs σ es).sum) (ks.map (Tree.total fs))) ks i := by
+        Tree.DataKids P fs cert (basesC (fp + fs f + (allocs σ es).sum) (ks.map (Tree.sz fs P.loop)))
+          ks i := by
     intro i
-    rw [data_node, events_node hf hw, hbb, hkpos]
+    rw [data_node, events_node hf hw, hkpos]
   refine ⟨.node f σ (allocs σ es) ks, rfl, ⟨fn, hf, hp, es, vs, hw, hr, hes, hkv⟩, ?_, ?_, ?_, ?_, ?_⟩
   · rw [Tree.BufsOk, events_node hf hw]
     exact ⟨rfl, hkb⟩
-  · rw [placed_node, events_node hf hw, NodeAt, hbb, hkpos]
+  · rw [hblk, placed_node, events_node hf hw, NodeAt, hkpos]
     exact ⟨⟨hbuf, haddr⟩, hkp⟩
   · rw [total_node, totalKids_eq_sum, hks]
     omega
-  · rw [loadsIn_node, events_node hf hw, hkpos]
+  · rw [hblk, loadsIn_node, events_node hf hw, hkpos]
     refine ⟨fun A hA => ?_, hkl _ (fun i hi => ?_) (fun _ h => h.elim) (fun i hi => ?_)⟩
     · obtain ⟨i, hi, h⟩ := hload A hA
       refine ⟨i, hi, ?_⟩
@@ -331,73 +391,77 @@ theorem relAtIn_of_walk (hP : P.Wf) {R D Dk : ℕ → Prop} {fp N : ℕ} {f : St
       · exact Or.inl ((hdata i).mpr (Or.inl h))
     · exact Or.inl ((hdata i).mpr (Or.inr hi))
   · intro i hi
-    rw [hdata]
+    rw [hblk, hdata]
     rcases hD i hi with h | h
     · exact Or.inl h
     · exact (hkd i h).elim (fun h => h.elim) fun h => Or.inr h
 
-/-- **Composition with regions**, a loop helper: as `relAt_of_walk_loop`, its tail call loading
-from its region, its own data and its other callees' claims, and claiming `Dt`. -/
-theorem relAtIn_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp m N : ℕ} {f : String}
-    {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} {cs : List Call} {c : Call}
+/-- **Composition with regions**, a loop iteration at `(fp, c)`: its `HeapBuf`s from `c`, its other
+callees after them, `N` words, then its tail call's iterations at `(fp + fs f, c + bufs + N)`,
+loading from its region, its own data and its other callees' claims, and claiming `Dt`. -/
+theorem relAtIn_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp c Bt m N : ℕ} {f : String}
+    {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} {cs : List Call} {ct : Call}
     (hf : P.find? f = some fn) (hl : P.loop f = true) (hp : fn.params.map σ = args)
     (hw : walk σ fn.body = .ret es vs) (hr : vs.map σ = rets) (hes : ∀ e ∈ es, e.Holds rd σ)
-    (hc : calls es = cs ++ [c])
-    (htail : if c.taken then RelAtIn P fs cert rd Rt Dt (fp + fs f) m c.f (c.args.map σ) (c.rets.map σ)
-      else m = fs c.f)
-    (hbuf : (allocDsts es).map σ = (bases (fp + fs f + m) (allocs σ es)).map fun b
-        => ofK (addressOfIndex b))
+    (hc : calls es = cs ++ [ct])
+    (htail : if ct.taken then
+        RelAtInC P fs cert rd Rt Dt (fp + fs f) (c + (allocs σ es).sum + N) Bt m ct.f
+          (ct.args.map σ) (ct.rets.map σ)
+      else Bt = fs ct.f ∧ m = 0)
+    (hbuf : (allocDsts es).map σ = (bases c (allocs σ es)).map fun b => ofK (addressOfIndex b))
     (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + cert f q.2)))
-    (hk : KidsFromIn P fs cert rd σ (fun i => R i ∨ ownData cert fp (fp + fs f + m) f (allocs σ es) es i)
-      (fun _ => False) cs (fp + fs f + m + (allocs σ es).sum) N Dk)
-    (hRt : ∀ i, Rt i → R i ∨ ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨ Dk i)
+    (hk : KidsFromIn P fs cert rd σ (fun i => R i ∨ ownData cert fp c f (allocs σ es) es i)
+      (fun _ => False) cs (c + (allocs σ es).sum) N Dk)
+    (hRt : ∀ i, Rt i → R i ∨ ownData cert fp c f (allocs σ es) es i ∨ Dk i)
     (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧
-      (ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨ R i ∨ Dk i ∨ (c.taken = true ∧ Dt i)))
-    (hD : ∀ i, D i → ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨ Dk i ∨
-      (c.taken = true ∧ Dt i)) :
-    RelAtIn P fs cert rd R D fp (fs f + m + (allocs σ es).sum + N) f args rets := by
+      (ownData cert fp c f (allocs σ es) es i ∨ R i ∨ Dk i ∨ (ct.taken = true ∧ Dt i)))
+    (hD : ∀ i, D i → ownData cert fp c f (allocs σ es) es i ∨ Dk i ∨ (ct.taken = true ∧ Dt i)) :
+    RelAtInC P fs cert rd R D fp c (fs f + Bt) ((allocs σ es).sum + N + m) f args rets := by
   have htk := takes_of_calls hP (List.mem_of_find?_eq_some hf) hw
   rw [hc] at htk
   obtain ⟨ks, hkv, hkb, hkp, hks, hkd, hkl⟩ := kids_of_kidsFromIn _ _ _ _ _ _
     (fun c' hc' => htk c' (List.mem_append_left _ hc')) hk
-  obtain ⟨k, hkv', hkb', hkp', hkt, hkl', hkd'⟩ :=
-    kid_ofIn (htk c (List.mem_append_right _ List.mem_cons_self)) htail
-  have hns : (ks ++ [k]).map (Tree.total fs) = ks.map (Tree.total fs) ++ [m] := by
-    rw [List.map_append, List.map_singleton, hkt]
-  have hbb : bufBase fs P.loop fp f ((ks ++ [k]).map (Tree.total fs)) = fp + fs f + m := by
-    rw [hns]; simp [bufBase, hl]
-  have hkpos : kidPos fs P.loop fp f (allocs σ es) ((ks ++ [k]).map (Tree.total fs)) =
-      bases (fp + fs f + m + (allocs σ es).sum) (ks.map (Tree.total fs)) ++ [fp + fs f] := by
-    rw [kidPos, ite_eq_left hl, hbb, hns, List.dropLast_concat, List.getLast?_concat]
-    rfl
-  have hlen : (bases (fp + fs f + m + (allocs σ es).sum) (ks.map (Tree.total fs))).length = ks.length := by
-    rw [length_bases, List.length_map]
-  have hdata : ∀ i, (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i ↔
-      ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨
-        Tree.DataKids P fs cert (bases (fp + fs f + m + (allocs σ es).sum) (ks.map (Tree.total fs))) ks i ∨
-        k.Data P fs cert (fp + fs f) i := by
+  obtain ⟨k, hkv', hkb', hkp', hkB, hkt, hkl', hkd'⟩ :=
+    kid_ofInC (htk ct (List.mem_append_right _ List.mem_cons_self)) htail
+  have hns : (ks ++ [k]).map (Tree.sz fs P.loop) = ks.map (Tree.sz fs P.loop) ++ [(Bt + m, Bt)] := by
+    rw [List.map_append, List.map_singleton, Tree.sz, hkt, hkB]
+  have hkpos : kidPos fs P.loop (fp, c) f (allocs σ es) ((ks ++ [k]).map (Tree.sz fs P.loop)) =
+      basesC (c + (allocs σ es).sum) (ks.map (Tree.sz fs P.loop)) ++
+        [(fp + fs f, c + (allocs σ es).sum + N)] := by
+    rw [hns, kidPos_loop hl, map_sz_fst, hks]
+  have hlen : (basesC (c + (allocs σ es).sum) (ks.map (Tree.sz fs P.loop))).length = ks.length := by
+    rw [length_basesC, List.length_map]
+  have hdata : ∀ i, (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert (fp, c) i ↔
+      ownData cert fp c f (allocs σ es) es i ∨
+        Tree.DataKids P fs cert (basesC (c + (allocs σ es).sum) (ks.map (Tree.sz fs P.loop))) ks i ∨
+        k.Data P fs cert (fp + fs f, c + (allocs σ es).sum + N) i := by
     intro i
-    rw [data_node, events_node hf hw, hbb, hkpos, dataKids_append hlen, dataKids_cons]
+    rw [data_node, events_node hf hw, hkpos, dataKids_append hlen, dataKids_cons]
     simp only [not_dataKids_nil, or_false]
   refine ⟨.node f σ (allocs σ es) (ks ++ [k]), rfl,
-    ⟨fn, hf, hp, es, vs, hw, hr, hes, by rw [hc]; exact kidsValid_append hkv hkv'⟩, ?_, ?_, ?_, ?_, ?_⟩
+    ⟨fn, hf, hp, es, vs, hw, hr, hes, by rw [hc]; exact kidsValid_append hkv hkv'⟩, ?_, ?_, ?_, ?_,
+    ?_, ?_⟩
   · rw [Tree.BufsOk, events_node hf hw]
     refine ⟨rfl, bufsOkKids_append hkb ?_⟩
     rw [Tree.BufsOkKids, Tree.BufsOkKids]
     exact ⟨hkb', trivial⟩
-  · rw [placed_node, events_node hf hw, NodeAt, hbb, hkpos]
+  · rw [placed_node, events_node hf hw, NodeAt, hkpos]
     refine ⟨⟨hbuf, haddr⟩, placedKids_append hlen hkp ?_⟩
     rw [placedKids_cons]
     exact ⟨hkp', placedKids_nil⟩
-  · rw [total_node, totalKids_eq_sum, hns, List.sum_append, hks]
-    simp only [List.sum_cons, List.sum_nil]
+  · rw [block_node, hns]
+    simp [nodeBlock, hl, lastBlock]
+  · rw [total_node, totalKids_eq_sum, List.map_append, List.sum_append, hks]
+    simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hkt]
     omega
-  · have hDk : ∀ i, Dk i → (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i := fun i h =>
-      (hkd i h).elim (fun h => h.elim) fun h => (hdata i).mpr (Or.inr (Or.inl h))
-    have hDt : ∀ i, c.taken = true ∧ Dt i → (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i :=
+  · have hDk : ∀ i, Dk i → (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert (fp, c) i :=
+      fun i h => (hkd i h).elim (fun h => h.elim) fun h => (hdata i).mpr (Or.inr (Or.inl h))
+    have hDt : ∀ i, ct.taken = true ∧ Dt i →
+        (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert (fp, c) i :=
       fun i h => (hdata i).mpr (Or.inr (Or.inr (hkd' h.1 i h.2)))
-    have hown : ∀ i, ownData cert fp (fp + fs f + m) f (allocs σ es) es i →
-        (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i := fun i h => (hdata i).mpr (Or.inl h)
+    have hown : ∀ i, ownData cert fp c f (allocs σ es) es i →
+        (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert (fp, c) i :=
+      fun i h => (hdata i).mpr (Or.inl h)
     rw [loadsIn_node, events_node hf hw, hkpos]
     refine ⟨fun A hA => ?_, loadsInKids_append hlen ?_ ?_⟩
     · obtain ⟨i, hi, h⟩ := hload A hA
@@ -454,9 +518,9 @@ theorem _root_.LeanVM.Guest.Core.Program.RelIn.rel {rd : Reader} {R : ℕ → Pr
 
 mutual
 /-- Loads in `R` are loads in `R` and the subtree's data, wherever it is placed. -/
-theorem loadsIn_of_loadsR : ∀ (t : Tree) (R : ℕ → Prop) (fp : ℕ), t.LoadsR P R →
-    t.LoadsIn P fs cert R fp
-  | .node f σ bufs kids, R, fp, h => by
+theorem loadsIn_of_loadsR : ∀ (t : Tree) (R : ℕ → Prop) (p : ℕ × ℕ), t.LoadsR P R →
+    t.LoadsIn P fs cert R p
+  | .node f σ bufs kids, R, p, h => by
       rw [Tree.LoadsR] at h
       rw [loadsIn_node]
       refine ⟨fun A hA => ?_, loadsInKids_mono kids _ (fun i hi => Or.inr hi)
@@ -466,7 +530,7 @@ theorem loadsIn_of_loadsR : ∀ (t : Tree) (R : ℕ → Prop) (fp : ℕ), t.Load
   | .phantom .., _, _, _ => loadsIn_phantom
 
 /-- `loadsIn_of_loadsR` for the callees. -/
-theorem loadsInKids_of_loadsR : ∀ (ks : List Tree) (R : ℕ → Prop) (ps : List ℕ),
+theorem loadsInKids_of_loadsR : ∀ (ks : List Tree) (R : ℕ → Prop) (ps : List (ℕ × ℕ)),
     Tree.LoadsRKids P R ks → Tree.LoadsInKids P fs cert R ps ks
   | [], _, _, _ => loadsInKids_nil
   | _ :: _, _, [], _ => by rw [Tree.LoadsInKids]; trivial
@@ -695,11 +759,12 @@ variable {H : Inst → ℕ → E × E}
 
 mutual
 /-- **Every load of an instance reads its tree's data or its region.** -/
-theorem loads_insts : ∀ (t : Tree) (R : ℕ → Prop) (fp : ℕ) (hdr : E × E), t.LoadsIn P fs cert R fp →
-    ∀ I ∈ t.insts fs P.loop H fp hdr, (∃ f σ bufs kids, I.t = .node f σ bufs kids) →
-      ∀ A ∈ loadAddrs I.t.val (I.t.events P), ∃ i, A = addressOfIndex i ∧ (t.Data P fs cert fp
-          i ∨ R i)
-  | .node f σ bufs kids, R, fp, hdr, h, I, hI, hn, A, hA => by
+theorem loads_insts : ∀ (t : Tree) (R : ℕ → Prop) (p : ℕ × ℕ) (hdr : E × E),
+    t.LoadsIn P fs cert R p → ∀ I ∈ t.insts fs P.loop H p hdr,
+      (∃ f σ bufs kids, I.t = .node f σ bufs kids) →
+      ∀ A ∈ loadAddrs I.t.val (I.t.events P), ∃ i, A = addressOfIndex i ∧
+        (t.Data P fs cert p i ∨ R i)
+  | .node f σ bufs kids, R, p, hdr, h, I, hI, hn, A, hA => by
       rw [loadsIn_node] at h
       rw [insts_node, List.mem_cons] at hI
       rcases hI with rfl | hI
@@ -709,14 +774,14 @@ theorem loads_insts : ∀ (t : Tree) (R : ℕ → Prop) (fp : ℕ) (hdr : E × E
         rcases h' with h' | h'
         · exact Or.inl (data_node.mpr (Or.inr h'))
         · exact h'
-  | .phantom f σ, _, fp, hdr, _, I, hI, hn, _, _ => by
+  | .phantom f σ, _, p, hdr, _, I, hI, hn, _, _ => by
       rw [insts_phantom, List.mem_singleton] at hI
       subst hI
       obtain ⟨_, _, _, _, h⟩ := hn
       cases h
 
 /-- `loads_insts` for the callees. -/
-theorem loadsKids_insts : ∀ (ks : List Tree) (R : ℕ → Prop) (ps : List ℕ) (J : Inst) (j : ℕ),
+theorem loadsKids_insts : ∀ (ks : List Tree) (R : ℕ → Prop) (ps : List (ℕ × ℕ)) (J : Inst) (j : ℕ),
     Tree.LoadsInKids P fs cert R ps ks → ∀ I ∈ Tree.instsKids fs P.loop H J j ps ks,
       (∃ f σ bufs kids, I.t = .node f σ bufs kids) → ∀ A ∈ loadAddrs I.t.val (I.t.events P),
         ∃ i, A = addressOfIndex i ∧ (Tree.DataKids P fs cert ps ks i ∨ R i)

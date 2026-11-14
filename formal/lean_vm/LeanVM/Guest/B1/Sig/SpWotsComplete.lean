@@ -505,13 +505,11 @@ theorem spDigit_eq {d : Nat → Nat} (hd : ∀ i, d i < 4) {vals : Nat → E} {�
   rw [spDigitWord_eq (spK_lt d (i / 3)) (hgp (i / 3) (by omega)).1, spK_digit d (spN_mod i hi),
     show 3 * (i / 3) + i % 3 = i by omega, spDn_digit hd hi]
 
-/-- **`sp_wots`'s template is complete**: for any `pp`, `a0`, `a1`, digits below `4` of sum `128` and
-chain values, on a memory of at least `64` words, its body holds of some
-valuation whose arguments are `pp`, `a0`, `a1` and the digits' encoding (`spX`), returning the
-one-time leaf of the values (`spLeafCell`). -/
-theorem sp_wots_completeT {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i < 4)
+/-- **`sp_wots`'s template is complete, holding what it hints**: for any `pp`, `a0`, `a1`, digits below `4` of sum `128` and chain values, on a memory of at least `64` words, its body holds of some valuation whose arguments are `pp`, `a0`, `a1` and the digits' encoding (`spX`), returning the one-time leaf of the values (`spLeafCell`), each group's digit word and starts the digits' and the values (`SpGP`). -/
+theorem sp_wots_completeT_vals {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i < 4)
     (hsum : ∑ i ∈ Finset.range 64, d i = 128) {vals : Nat → E} (hm : MemOK rd 64) :
     ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat128 (spX d 64) ∧
+      (∀ q < 22, SpGP d vals q σ) ∧
       Stmt.HoldsList C rd σ spBodyT False (fun rs => rs = [spLeafCell pp a0 a1 d vals]) := by
   set σI : Val := Function.update (Function.update (Function.update (Function.update (fun _ => 0)
     (.n 0) pp) (.n 1) a0) (.n 2) a1) (.n 3) (eOfNat128 (spX d 64)) with hσI
@@ -582,9 +580,20 @@ theorem sp_wots_completeT {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i < 4)
   have e : σf (.n spLeafK.2.1) = spLeafCell pp a0 a1 d vals := by
     rw [List.singleton_inj.mp hrets, hval, f0, f1, f2]
     exact spLeafCell_congr (fun i hi => spDigit_eq hd hgpf hi) (fun i hi => spStart_eq hgpf hi)
-  refine ⟨σf, f0, f1, f2, f3, ?_⟩
+  refine ⟨σf, f0, f1, f2, f3, hgpf, ?_⟩
   rw [← e]
   exact hH
+
+/-- **`sp_wots`'s template is complete**: for any `pp`, `a0`, `a1`, digits below `4` of sum `128` and
+chain values, on a memory of at least `64` words, its body holds of some
+valuation whose arguments are `pp`, `a0`, `a1` and the digits' encoding (`spX`), returning the
+one-time leaf of the values (`spLeafCell`). -/
+theorem sp_wots_completeT {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i < 4)
+    (hsum : ∑ i ∈ Finset.range 64, d i = 128) {vals : Nat → E} (hm : MemOK rd 64) :
+    ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat128 (spX d 64) ∧
+      Stmt.HoldsList C rd σ spBodyT False (fun rs => rs = [spLeafCell pp a0 a1 d vals]) :=
+  let ⟨σ, h0, h1, h2, h3, _, hh⟩ := sp_wots_completeT_vals (C := C) hd hsum (vals := vals) hm
+  ⟨σ, h0, h1, h2, h3, hh⟩
 
 end
 end LeanVM.Guest.B1.Sig

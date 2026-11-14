@@ -337,7 +337,7 @@ theorem ccl_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k :
     B1.disj_nil, fun rd hlow hm => ?_⟩
   simp only [List.append_nil, List.nil_append] at hm
   obtain ⟨hS, hrec⟩ := hmem rd hm
-  obtain ⟨vs, σ, hb, hp, hat, hr, hload⟩ := ccl_core hk hsp hen hrg hpre hS hl hrec hlast hL33
+  obtain ⟨vs, σ, hb, hp, hat, hr, hload, -⟩ := ccl_core hk hsp hen hrg hpre hS hl hrec hlast hL33
     (boundMem_of_low hlow hLκ)
   refine RelAtIn.relAtInT (relAtIn_atoms (ccl_name hk) hb (ccl_loop hk) (ccl_na hk) hp hat hr
     (fun q hq => by rw [ccl_addr hk] at hq; exact absurd hq List.not_mem_nil) (fun q hq => ?_)

@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Digest.PlacedLib
 public import LeanVM.Guest.B1.Digest.LoopComplete
 public import LeanVM.Guest.B1.Digest.ClaimListCChk
+public import LeanVM.Guest.B1.Main.KidsT
 
 /-!
 # Loops of atoms, placed
@@ -18,7 +19,8 @@ public import LeanVM.Guest.B1.Digest.ClaimListCChk
 `CompleteAtD` from every counter `g^k`, `k < m`, to its end `g^m`, when at every counter and on
 every memory defined below `2^κ` holding the caller's words `Lin`, some valuation of the block
 holds and its loads read `Lin` (its range checks reading below `2^κ` are no loads). The run at
-`g^(k+1)` sits right after the frame (`relAtIn_of_walk_loop`), by induction from the end.
+`g^(k+1)` has its frames right after the iteration's (`relAtIn_of_walk_loop`, `CompleteAtL`),
+by induction from the end; `loopA_stepAt` takes any bound `Bd` on the words.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -26,7 +28,8 @@ namespace LeanVM.Guest.B1.Digest
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Guest.Memory
 open LeanVM.Protocol.Verifier (gen)
-open LeanVM.Guest.B1 (LowDef CompleteAtD Returns DisjL Within disj_append within_append)
+open LeanVM.Guest.B1 (LowDef CompleteAtD CompleteAtL completeAtL_tail Returns DisjL Within
+  disj_append within_append)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append)
 open LeanVM.Guest.B1.Da (SlOk slEvs_holds)
 
@@ -58,9 +61,11 @@ theorem loopA_stepAt {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hok : loopShapeF fn f = true) (hA : (loopPre fn).all isAtomS = true)
     (hU : (atomsIn (loopPre fn)).all atomUnplaced = true) {κ : ℕ} {Lin : Layout} {N : E}
     {rest : List E} {m k : ℕ} (hN : N = gen ^ m) (hm : m < 2 ^ 34) (hkm : k + 1 ≤ m)
-    (hblk : LoopBlockIn κ fn Lin k N rest)
-    (htail : k + 1 < m → CompleteAtD fs cert κ f Lin (gen ^ (k + 1) :: N :: rest) (Returns [])) :
-    CompleteAtD fs cert κ f Lin (gen ^ k :: N :: rest) (Returns []) := by
+    (hblk : LoopBlockIn κ fn Lin k N rest) {Bd Bd' : ℕ → Prop}
+    (hBd : ∀ x, (k + 1 < m → Bd' x) → (k + 1 = m → x = fs f) → Bd (fs f + x))
+    (htail : k + 1 < m →
+      CompleteAtL fs cert κ f Lin (gen ^ (k + 1) :: N :: rest) (Returns []) (fun _ => True) Bd') :
+    CompleteAtL fs cert κ f Lin (gen ^ k :: N :: rest) (Returns []) (fun _ => True) Bd := by
   have hloop : coreProgram.loop f = true := by
     have hok' := hok
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hok'
@@ -88,23 +93,17 @@ theorem loopA_stepAt {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
       simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
       obtain ⟨hp', rfl⟩ := hc
       obtain ⟨n, hn⟩ : ∃ n, fn.params.length = n + 2 := ⟨fn.params.length - 2, by omega⟩
-      intro fp
       -- the rest of the loop
-      obtain ⟨nt, Lt, hWt, hDt, hRt⟩ : ∃ nt Lt, Within Lt (fp + fs g) nt ∧ DisjL Lt ∧
-          ∀ rd, LowDef κ rd → MemL rd (Lt ++ Lin) →
-            if decide (k + 1 ≠ m) = true then
-              RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs g) nt g
-                (gen ^ (k + 1) :: N :: rest) []
-            else nt = fs g := by
-        by_cases hlast : k + 1 = m
-        · exact ⟨fs g, [], fun q hq => by simp at hq, List.Pairwise.nil, fun _ _ _ => by
-            simp [hlast]⟩
-        · obtain ⟨nt, Lt, rt, Lot, ⟨rfl, rfl⟩, hW, hD, hR⟩ := htail (by omega) (fp + fs g)
-          refine ⟨nt, Lt, by simpa using hW, by simpa using hD, fun rd hl hm => ?_⟩
-          simp only [ne_eq, hlast, not_false_eq_true, decide_true, ↓reduceIte]
-          exact hR rd hl (by simpa using hm)
-      refine ⟨fs g + nt, Lt, [], [], ⟨rfl, rfl⟩, by simpa using hWt.mono (by omega) (by omega),
-        by simpa using hDt, fun rd hlow hm => ?_⟩
+      obtain ⟨Bt, hRest⟩ := completeAtL_tail (fs := fs) (cert := cert) (g := g) (last := k + 1 = m)
+        fun h => htail (by omega)
+      refine ⟨fs g + Bt, fun fp cur hc => ?_⟩
+      obtain ⟨nt, Lt, hlt, hBdt, hWt, hDt, hRt⟩ := hRest (fp + fs g) cur (by omega)
+      refine ⟨nt, Lt, [], [], ?_, ⟨rfl, rfl⟩, by simpa using hWt, by simpa using hDt,
+        fun rd hlow hm => ?_⟩
+      · rw [Nat.add_assoc]
+        refine hBd _ (fun h => hBdt (by omega)) fun h => ?_
+        obtain ⟨rfl, rfl⟩ := hlt h
+        rfl
       simp only [List.nil_append] at hm
       obtain ⟨hmt, hLin⟩ := memL_append.mp hm
       have ht := hRt rd hlow (memL_append.mpr ⟨hmt, hLin⟩)
@@ -188,13 +187,15 @@ theorem loopA_stepAt {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
           rw [hcv]; exact gen_pow_add_isInK _ _
       have h := relAtIn_of_walk_loop (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
         (R := RegionL Lin) (D := RegionL []) (Dk := fun _ => False) (Rt := RegionL Lin)
-        (Dt := RegionL []) (fp := fp) (m := nt) (N := 0) (args := gen ^ k :: N :: rest)
+        (Dt := RegionL []) (fp := fp) (c := cur) (Bt := Bt) (m := nt) (N := 0)
+        (args := gen ^ k :: N :: rest)
         coreProgram_wf hf hloop hp hw rfl hev hcalls
         (by
+          rw [hal]
           by_cases hlast : k + 1 = m
           · simpa [hlast] using ht
           · simp only [ne_eq, hlast, not_false_eq_true, decide_true, ↓reduceIte] at ht ⊢
-            rw [hargs]; exact ht)
+            rw [hargs]; simpa using ht.relAtInC)
         (by rw [hal, hpd, List.filterMap_append, hpreA]; rfl)
         (fun q hq => by
           rw [hpad, List.filterMap_append, hpreF] at hq
@@ -210,7 +211,7 @@ theorem loopA_stepAt {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
           exact ⟨i, hi, Or.inr (Or.inl hr)⟩)
         (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq)
       rw [hal] at h
-      simpa using h
+      simpa using h.relAtInCT
     · exact absurd hc (by simp)
   · exact absurd hok (by simp)
 
@@ -221,18 +222,18 @@ theorem loopA_completeAt {f : String} {fn : Fn} (hf : coreProgram.find? f = some
     {rest : List E} {m : ℕ} (hN : N = gen ^ m) (hm : m < 2 ^ 34)
     (hblk : ∀ k < m, LoopBlockIn κ fn Lin k N rest) :
     ∀ k < m, CompleteAtD fs cert κ f Lin (gen ^ k :: N :: rest) (Returns []) := by
-  have key : ∀ t k, k + 1 + t = m →
-      CompleteAtD fs cert κ f Lin (gen ^ k :: N :: rest) (Returns []) := by
+  have key : ∀ t k, k + 1 + t = m → CompleteAtL fs cert κ f Lin (gen ^ k :: N :: rest)
+      (Returns []) (fun _ => True) (fun _ => True) := by
     intro t
     induction t with
     | zero => intro k hk
               exact loopA_stepAt fs cert hf hok hA hU hN hm (by omega) (hblk k (by omega))
-                fun h => absurd h (by omega)
+                (Bd' := fun _ => True) (fun _ _ _ => trivial) fun h => absurd h (by omega)
     | succ t ih => intro k hk
                    exact loopA_stepAt fs cert hf hok hA hU hN hm (by omega) (hblk k (by omega))
-                     fun _ => ih (k + 1) (by omega)
+                     (fun _ _ _ => trivial) fun _ => ih (k + 1) (by omega)
   intro k hk
-  exact key (m - k - 1) k (by omega)
+  exact (key (m - k - 1) k (by omega)).toD
 
 end
 end LeanVM.Guest.B1.Digest

@@ -16,7 +16,7 @@ public import LeanVM.Guest.Memory.LiftPure
 
 `main`'s words must be bounded before any memory exists (the honest memory is built from them),
 so each callee's size `n` must be bounded in its existential, before the memory: `CompleteAtDTB …
-T B` is `CompleteAtDT … T` with `n ≤ B` (mumbai's `CompleteAtB`, with a tree predicate).
+T B` is `CompleteAtDT … T` with `n ≤ B` (mumbai's `CompleteAtB`, with a tree predicate); `CompleteAtDTBR` takes a predicate of the memory, for what a tree reads through it (its pops).
 
 * `kidsFromInT_of_kidsDTB`: callees with bounds `Bs` give a total `N` at most `kidsBoundL`: each
   entered call's bound, each other call's frame.
@@ -50,6 +50,16 @@ theorem CompleteAtDTB.toDT {k : ℕ} {f : String} {Lin : Layout} {args : List E}
     let ⟨n, Lown, rets, Lout, _, ho, hw, hd, hr⟩ := h fp
     ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩
 
+/-- **A loop entered fresh, within `B` words.** -/
+theorem CompleteAtL.toDTB {k : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} {T : Tree → Prop} {B : ℕ}
+    (h : CompleteAtL fs cert k f Lin args Out T (· ≤ B)) : CompleteAtDTB fs cert k f Lin args Out T B :=
+  fun fp =>
+    let ⟨Bl, hB⟩ := h
+    let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := hB fp (fp + Bl) le_rfl
+    ⟨Bl + n, Lown, rets, Lout, hn, ho, hw.mono (by omega) (by omega), hd,
+      fun rd hl hm => (hr rd hl hm).relAtInT⟩
+
 /-- A bounded completeness on memories defined below `2^k` holds on those defined below
 `2^k'`, `k ≤ k'`. -/
 theorem CompleteAtDTB.lowMono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
@@ -75,6 +85,46 @@ theorem CompleteAtDTB.mono {k : ℕ} {f : String} {Lin : Layout} {args : List E}
   ⟨n, Lown, rets, Lout, le_trans hn hB, ho, hw, hd, fun rd hl hm =>
     let ⟨t, ht, hTt⟩ := hr rd hl hm
     ⟨t, ht, hT t hTt⟩⟩
+
+/-- **`CompleteAtDTB` by a tree satisfying a predicate of the memory.** -/
+def CompleteAtDTBR (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String) (Lin : Layout)
+    (args : List E) (Out : List E → Layout → Prop) (T : Reader → Tree → Prop) (B : ℕ) : Prop :=
+  ∀ fp, ∃ (n : ℕ) (Lown : Layout) (rets : List E) (Lout : Layout), n ≤ B ∧ Out rets Lout ∧
+    Within (Lout ++ Lown) fp n ∧ DisjL (Lout ++ Lown) ∧ ∀ rd, LowDef k rd →
+      MemL rd (Lout ++ Lown ++ Lin) →
+      RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets (T rd)
+
+theorem CompleteAtDTBR.mono {k : ℕ} {f : String} {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
+    {T T' : Reader → Tree → Prop} {B B' : ℕ} (h : CompleteAtDTBR fs cert k f Lin args Out T B) (hB : B ≤ B')
+    (hT : ∀ rd t, T rd t → T' rd t) : CompleteAtDTBR fs cert k f Lin args Out T' B' := fun fp =>
+  let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, hn.trans hB, ho, hw, hd, fun rd hl hm =>
+    let ⟨t, ht, hT'⟩ := hr rd hl hm
+    ⟨t, ht, hT rd t hT'⟩⟩
+
+/-- **Forgetting the memory**: a predicate holding on every memory. -/
+theorem CompleteAtDTBR.toDTB {k : ℕ} {f : String} {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
+    {T : Reader → Tree → Prop} {T' : Tree → Prop} {B : ℕ} (h : CompleteAtDTBR fs cert k f Lin args Out T B)
+    (hT : ∀ rd t, T rd t → T' t) : CompleteAtDTB fs cert k f Lin args Out T' B := fun fp =>
+  let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, hn, ho, hw, hd, fun rd hl hm =>
+    let ⟨t, ht, hT'⟩ := hr rd hl hm
+    ⟨t, ht, hT rd t hT'⟩⟩
+
+/-- A predicate of the tree alone is one of the memory. -/
+theorem CompleteAtDTB.toR {k : ℕ} {f : String} {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
+    {T : Tree → Prop} {B : ℕ} (h : CompleteAtDTB fs cert k f Lin args Out T B) :
+    CompleteAtDTBR fs cert k f Lin args Out (fun _ ↦ T) B := h
+
+/-- **A node's valid trees satisfy the predicate**, from its validity. -/
+theorem CompleteAtDTBR.monoV {k : ℕ} {f : String} {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
+    {T T' : Reader → Tree → Prop} {B B' : ℕ} (h : CompleteAtDTBR fs cert k f Lin args Out T B) (hB : B ≤ B')
+    (hT : ∀ rd t rets, t.Valid coreProgram rd args rets → T rd t → T' rd t) :
+    CompleteAtDTBR fs cert k f Lin args Out T' B' := fun fp =>
+  let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, hn.trans hB, ho, hw, hd, fun rd hl hm =>
+    let ⟨t, ht, hT'⟩ := hr rd hl hm
+    ⟨t, ht, hT rd t rets ht.2.1 hT'⟩⟩
 
 /-- Uniform's `CompleteAtB` is `CompleteAtDTB` with no predicate. -/
 theorem CompleteAtB.toDTB {k : ℕ} {f : String} {Lin : Layout} {args : List E}
@@ -222,9 +272,9 @@ theorem completeAtDTB_of_relIn {S : List String} (hS : coreProgram.PureIn S) {g 
     fun rd hl hL => ?_⟩
   have hL' : MemL rd Lin := by simpa using hL
   have hr := relAtIn_transfer (fs := fs) (cert := cert) (D := fun _ => False) (fp := fp)
-    coreProgram_fresh hn hv hb (placed_of_pure hS t hv hb (hn ▸ hg) fp)
-    (loadsIn_of_loadsR t _ fp hlr) (fun _ h => h.elim) rd
-    (fun i hi => hi.elim (fun hi => ?_) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) fp i hd).elim)
+    coreProgram_fresh hn hv hb (placed_of_pure hS t hv hb (hn ▸ hg) _)
+    (loadsIn_of_loadsR t _ _ hlr) (fun _ h => h.elim) rd
+    (fun i hi => hi.elim (fun hi => ?_) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) _ i hd).elim)
     (fun A hA => ?_)
   · refine (relAtIn_dmono hr fun i hi => ?_).relAtInT
     obtain ⟨q, hq, _⟩ := hi; simp at hq

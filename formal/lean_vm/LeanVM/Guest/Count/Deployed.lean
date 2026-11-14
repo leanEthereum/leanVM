@@ -20,7 +20,7 @@ open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A
 
 /-- **The deployed budget's words**, `Bvf μ r` for `verify_sub` on a child of announced stack log
 `μ` and rate `r`. -/
-def deployedWords (Bvf : ℕ → ℕ → ℕ) : End.Linear := ⟨32173, 33, 41, 1551, 8582, 186041, 215776, 82, 24697, 51, Bvf⟩
+def deployedWords (Bvf : ℕ → ℕ → ℕ) : End.Linear := ⟨32173, 33, 41, 1551, 8582, 186041, 215776, 82, 24701, 51, Bvf⟩
 
 /-- **The deployed budget's instructions of each opcode**, `verify_sub`'s on a child of announced
 stack log `μ` at its arm `μ - 20` (`Budget.vsCnt`). -/
@@ -29,7 +29,7 @@ def deployedInstrs : Opcode → End.Linear
     fun μ _ => [73264, 73592, 74450, 75425, 76510, 77303, 78362, 79476, 80402, 81216, 82019].getD (μ - 20) 0⟩
   | .mulNative => ⟨481, 1, 26, 199, 1483, 70235, 53064, 27, 2426, 7,
     fun μ _ => [149900, 149937, 151063, 152281, 154377, 155490, 157612, 159177, 160582, 161847, 162581].getD (μ - 20) 0⟩
-  | .setConstant => ⟨16570, 1, 8, 109, 1661, 2501, 3017, 17, 268, 1,
+  | .setConstant => ⟨16570, 1, 8, 109, 1661, 2501, 3017, 17, 298, 1,
     fun μ _ => [39410, 39071, 39179, 39460, 40639, 41501, 41186, 41517, 41980, 42182, 42460].getD (μ - 20) 0⟩
   | .deref => ⟨4309, 5, 0, 109, 290, 42082, 34991, 10, 2887, 8,
     fun μ _ => [83600, 82814, 82785, 84012, 86509, 88489, 88066, 88488, 89302, 89937, 90709].getD (μ - 20) 0⟩

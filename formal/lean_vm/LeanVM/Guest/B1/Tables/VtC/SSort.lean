@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SGrpT
 The honest buffers, for the memory's log-size `lm` and the tables' heights `τ` (`vtKg`: a group's
 log-size, `vtGsz`: its size in the exponent): `vtGKeyW` (`group_key`: `g^(247 κ - b0)`),
 `vtGSizeW` (`group_size`), `vtGOrdW` (`group_order`: each side's groups sorted by `stackLe`,
-`vtOrd`, the push side's at `0 .. 8`, the count side's at `18 .. 23`), `vtGBaseW` (`group_base`:
+`vtOrd`, the push side's at `0 .. 8`, the pull side's at `9 .. 17` in the same order, the count side's at `18 .. 23`), `vtGBaseW` (`group_base`:
 the prefix sums of the sizes in that order, `vtGP`).
 
 `rank0_ok`, `rank_ok`: a rank's statements hold from its equations and the memory; `boff_ok`: a
@@ -68,9 +68,10 @@ noncomputable def vtGKeyW (lm : ℕ) (τ : ℕ → ℕ) : List E := (List.range 
 noncomputable def vtGSizeW (lm : ℕ) (τ : ℕ → ℕ) : List E :=
   (List.range 24).map fun gi ↦ gen ^ vtGsz lm τ gi
 
-/-- `group_order`'s honest words (the pull side's slots unread). -/
+/-- `group_order`'s honest words (the pull side's, unread, in the push side's order). -/
 noncomputable def vtGOrdW (lm : ℕ) (τ : ℕ → ℕ) : List E := (List.range 24).map fun i ↦
-  if i < 9 then gen ^ vtPi lm τ 0 i else if i < 18 then 0 else gen ^ (18 + vtPi lm τ 2 (i - 18))
+  if i < 9 then gen ^ vtPi lm τ 0 i else if i < 18 then gen ^ (9 + vtPi lm τ 0 (i - 9))
+  else gen ^ (18 + vtPi lm τ 2 (i - 18))
 
 /-- `group_base`'s honest words (the pull side's slots unwritten). -/
 noncomputable def vtGBaseW (lm : ℕ) (τ : ℕ → ℕ) : List E := (List.range 24).map fun gi ↦

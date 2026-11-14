@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.B1.Tables.FlatAt
 public import LeanVM.Guest.B1.Place.HelperAt
+public import LeanVM.Guest.B1.Main.KidsT
 
 /-!
 # Straight-line bodies returning buffers, placed
@@ -21,6 +22,8 @@ memory holding its buffers and the caller's words, and its callees, from after i
 `KidsFromIn` on every memory holding also their layout. Its loads are in its buffers or the
 caller's words because they hold on every such memory (`os_addr_in_regionL`).
 `os_completeAt_placeJF`: the same for a flat body, its dispatches entering the selected callee.
+`os_completeAt_placeJFOT`: at an optional words bound (`CompleteAtOT`), its callees `KidsFromInT`, the tree its
+node with the callees' trees satisfying their predicates (`FlatNodeT`); `os_completeAt_placeJFO` drops them.
 -/
 
 namespace LeanVM.Guest.B1
@@ -314,17 +317,60 @@ theorem os_completeAt_placeJF {f : String} {fn : Fn} (hf : coreProgram.find? f =
     exact Or.inl (hown' i ⟨q, hqB, h1, h2⟩)
 
 
-/-- **`os_completeAt_placeJF` at an optional words bound**: within `B` when the frame, the buffers
-and the callees' total are. -/
-theorem os_completeAt_placeJFO {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+/-- **`CompleteAtO` by a tree satisfying a predicate of the memory.** -/
+def CompleteAtOT (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String) (Lin : Layout)
+    (args : List E) (Out : List E → Layout → Prop) (Bd : Option ℕ) (T : Reader → Tree → Prop) : Prop :=
+  ∀ fp, ∃ (n : ℕ) (Lown : Layout) (rets : List E) (Lout : Layout), Out rets Lout ∧
+    Within (Lout ++ Lown) fp n ∧ DisjL (Lout ++ Lown) ∧ (∀ B ∈ Bd, n ≤ B) ∧ ∀ rd, LowDef k rd →
+      MemL rd (Lout ++ Lown ++ Lin) →
+      RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets (T rd)
+
+theorem CompleteAtOT.toO {k : ℕ} {f : String} {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
+    {Bd : Option ℕ} {T : Reader → Tree → Prop} (h : CompleteAtOT fs cert k f Lin args Out Bd T) :
+    CompleteAtO fs cert k f Lin args Out Bd := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hw, hd, hn, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, hd, hn, fun rd hl hm => (hr rd hl hm).relAtIn⟩
+
+/-- **A flat function's node**: at a valuation `σ` with `Q σ`, its body's walk returning, its callees' trees
+satisfying `Ts σ rd`. -/
+def FlatNodeT (f : String) (fn : Fn) (pre : List Stmt) (Q : Val → Prop) (Ts : Val → Reader → List (Tree → Prop))
+    (rd : Reader) (t : Tree) : Prop :=
+  ∃ (σ : Val) (bufs : List ℕ) (ks : List Tree) (es : List Ev) (vs : List V), t = .node f σ bufs ks ∧
+    walk σ fn.body = .ret es vs ∧ calls es = (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ) ∧ Q σ ∧
+    KidsT (calls es) (Ts σ rd) ks
+
+theorem os_kidsFromInT_rmono {rd : Reader} {σ : Val} {R R' : ℕ → Prop} (hR : ∀ i, R i → R' i) :
+    ∀ (cs : List Call) (Ts : List (Tree → Prop)) (Dacc : ℕ → Prop) (b n : ℕ) (D : ℕ → Prop),
+      KidsFromInT coreProgram fs cert rd σ R Dacc cs Ts b n D →
+        KidsFromInT coreProgram fs cert rd σ R' Dacc cs Ts b n D
+  | [], _, _, _, _, _, h => h
+  | _ :: cs, Ts, _, _, _, _, ⟨m, n', Rk, Dk, hn, hRk, hc, hk⟩ =>
+    ⟨m, n', Rk, Dk, hn, fun i hi => (hRk i hi).imp_left (hR i), hc, os_kidsFromInT_rmono hR cs Ts.tail _ _ _ _ hk⟩
+
+theorem os_kidsFromIn_toT_nil {rd : Reader} {σ : Val} {R : ℕ → Prop} :
+    ∀ (cs : List Call) (Dacc : ℕ → Prop) (b n : ℕ) (D : ℕ → Prop),
+      KidsFromIn coreProgram fs cert rd σ R Dacc cs b n D → KidsFromInT coreProgram fs cert rd σ R Dacc cs [] b n D
+  | [], _, _, _, _, h => h
+  | c :: cs, _, _, _, _, ⟨m, n', Rk, Dk, hn, hR, hc, hk⟩ => by
+    refine ⟨m, n', Rk, Dk, hn, hR, ?_, os_kidsFromIn_toT_nil cs _ _ _ _ hk⟩
+    by_cases ht : c.taken = true
+    · simp only [ht, ↓reduceIte] at hc ⊢
+      exact hc.relAtInT
+    · simp only [ht, Bool.false_eq_true, ↓reduceIte] at hc ⊢
+      exact hc
+
+/-- **`os_completeAt_placeJF` at an optional words bound, by its node**: within `B` when the frame, the
+buffers and the callees' total are; the tree the node at the valuation, its callees' trees satisfying
+`Ts σ rd`. -/
+theorem os_completeAt_placeJFOT {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E)
     (Out : List E → Layout → Prop) (Bd : Option ℕ) {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (js : List ℕ) (hjs : js.Nodup) (hjl : ∀ j ∈ js, j < sizes.length)
-    {C : CallRel}
+    {C : CallRel} (Q : Val → Prop) (Ts : Val → Reader → List (Tree → Prop))
     (h : ∀ fp, ∃ (σ : Val) (own : List (List E)) (rets : List E) (N : ℕ) (L : Layout)
       (Dk : ℕ → Prop) (cs : List Call),
-      (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ) = cs ∧ (∀ s ∈ pre, DispOk σ s) ∧
+      (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ) = cs ∧ (∀ s ∈ pre, DispOk σ s) ∧ Q σ ∧
       List.Forall₂ (fun c s => c.length ≤ s) own sizes ∧
       Out rets (osLoutJ (fp + fs f) sizes own js) ∧
       Within L (fp + fs f + sizes.sum) N ∧ DisjL L ∧ (∀ B ∈ Bd, fs f + sizes.sum + N ≤ B) ∧
@@ -335,12 +381,12 @@ theorem os_completeAt_placeJFO {f : String} {fn : Fn} (hf : coreProgram.find? f 
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
           (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b))) ∧
       ∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f) sizes own) → MemL rd L → MemL rd Lin →
-        KidsFromIn coreProgram fs cert rd σ
+        KidsFromInT coreProgram fs cert rd σ
           (fun i => RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes own) i)
-          (fun _ => False) cs (fp + fs f + sizes.sum) N Dk) :
-    CompleteAtO fs cert κ f Lin args Out Bd := by
+          (fun _ => False) cs (Ts σ rd) (fp + fs f + sizes.sum) N Dk) :
+    CompleteAtOT fs cert κ f Lin args Out Bd (FlatNodeT f fn pre Q Ts) := by
   intro fp
-  obtain ⟨σ, own, rets, N, L, Dk, cs, hcs, hdo, hown, hout, hW, hD, hBd, hp, hh, hK⟩ := h fp
+  obtain ⟨σ, own, rets, N, L, Dk, cs, hcs, hdo, hQ, hown, hout, hW, hD, hBd, hp, hh, hK⟩ := h fp
   set B := bufL (fp + fs f) sizes own with hB
   have hBlen : B.length = sizes.length := by
     simp only [hB, bufL, List.length_zip, os_length_bases, hown.length_eq, Nat.min_self]
@@ -383,18 +429,19 @@ theorem os_completeAt_placeJFO {f : String} {fn : Fn} (hf : coreProgram.find? f 
       ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ)))
         (pre.flatMap (flEvs σ)) i :=
     fun i hi => Or.inl (by rw [hal]; exact bufL_region _ _ _ hown i hi)
-  have hk := os_kidsFromIn_rmono (fs := fs) (cert := cert)
+  have hk := os_kidsFromInT_rmono (fs := fs) (cert := cert)
     (R' := fun i => RegionL Lin i ∨
       ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ)))
         (pre.flatMap (flEvs σ)) i)
-    (fun i hi => hi.imp_right (hown' i)) _ _ _ _ _ (hK rd hlow hB1 hL1 hLin)
+    (fun i hi => hi.imp_right (hown' i)) _ _ _ _ _ _ (hK rd hlow hB1 hL1 hLin)
   rw [← hcs, ← i4, show fp + fs f + sizes.sum =
     fp + fs f + (allocs σ (pre.flatMap (flEvs σ))).sum by rw [hal]] at hk
-  have hrel := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
-    (D := RegionL Lo) (Dk := Dk) (N := N) (fp := fp) coreProgram_wf hf (Or.inl hl) hp hw hr hes
-    (by rw [hal, i1]; exact hbuf) (by rw [i3, haddrs]; simp) hk (fun A hA => ?_) (fun i hi => ?_)
-  · rw [hal] at hrel
-    exact hrel
+  have hrel := relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert)
+    (R := RegionL Lin) (D := RegionL Lo) (Dk := Dk) (N := N) (fp := fp) coreProgram_wf hf (Or.inl hl) hp hw hr
+    hes (by rw [hal, i1]; exact hbuf) (by rw [i3, haddrs]; simp) _ hk (fun A hA => ?_) (fun i hi => ?_)
+  · obtain ⟨t, ht, ks, rfl, hkT⟩ := hrel
+    rw [hal] at ht
+    exact ⟨_, ht, σ, _, ks, _, vs, rfl, hw, by rw [i4], hQ, hkT⟩
   · obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
     match e, hea with
     | .atom (.load d p off), hea =>
@@ -413,6 +460,37 @@ theorem os_completeAt_placeJFO {f : String} {fn : Fn} (hf : coreProgram.find? f 
   · obtain ⟨q, hq, h1, h2⟩ := hi
     have hqB : q ∈ B := hperm0.subset (List.mem_append_left _ hq)
     exact Or.inl (hown' i ⟨q, hqB, h1, h2⟩)
+
+/-- **`os_completeAt_placeJF` at an optional words bound**: within `B` when the frame, the buffers
+and the callees' total are. -/
+theorem os_completeAt_placeJFO {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+    (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E)
+    (Out : List E → Layout → Prop) (Bd : Option ℕ) {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
+    (sizes : List ℕ) (js : List ℕ) (hjs : js.Nodup) (hjl : ∀ j ∈ js, j < sizes.length)
+    {C : CallRel}
+    (h : ∀ fp, ∃ (σ : Val) (own : List (List E)) (rets : List E) (N : ℕ) (L : Layout)
+      (Dk : ℕ → Prop) (cs : List Call),
+      (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ) = cs ∧ (∀ s ∈ pre, DispOk σ s) ∧
+      List.Forall₂ (fun c s => c.length ≤ s) own sizes ∧
+      Out rets (osLoutJ (fp + fs f) sizes own js) ∧
+      Within L (fp + fs f + sizes.sum) N ∧ DisjL L ∧ (∀ B ∈ Bd, fs f + sizes.sum + N ≤ B) ∧
+      fn.params.map σ = args ∧
+      (∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f) sizes own) → MemL rd Lin →
+        Stmt.HoldsList C rd σ fn.body False (fun r => r = rets) ∧
+        (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
+        ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
+          (bases (fp + fs f) sizes).map (fun b => ofK (addressOfIndex b))) ∧
+      ∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f) sizes own) → MemL rd L → MemL rd Lin →
+        KidsFromIn coreProgram fs cert rd σ
+          (fun i => RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes own) i)
+          (fun _ => False) cs (fp + fs f + sizes.sum) N Dk) :
+    CompleteAtO fs cert κ f Lin args Out Bd :=
+  (os_completeAt_placeJFOT hf hl κ Lin args Out Bd hb hst haddrs sizes js hjs hjl (C := C) (fun _ => True)
+    (fun _ _ => []) fun fp =>
+      let ⟨σ, own, rets, N, L, Dk, cs, hcs, hdo, hown, hout, hW, hD, hBd, hp, hh, hK⟩ := h fp
+      ⟨σ, own, rets, N, L, Dk, cs, hcs, hdo, trivial, hown, hout, hW, hD, hBd, hp, hh,
+        fun rd hl hB hL hLin => os_kidsFromIn_toT_nil _ _ _ _ _ (hK rd hl hB hL hLin)⟩).toO
 
 end
 end LeanVM.Guest.B1

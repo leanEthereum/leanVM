@@ -32,9 +32,9 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
 open LeanVM.Guest (GuestLimits)
 open LeanVM.Guest.B1.Da (SlOk slEvs_holds regionL_of_mem limb0_gen_pow_mul exists_of_length_succ
   fn_name_of_find)
-open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT Returns Kid OutsOk CallsMatch RegionsOk outRegion
-  DisjL Within disj_append disj_nil kidsFromIn_of_kidsD regionsOk_of within_append bufL bufL_within
-  bufL_disj bufL_region LowDef)
+open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT CompleteAtL completeAtL_tail Returns Kid OutsOk
+  CallsMatch RegionsOk outRegion DisjL Within disj_append disj_nil kidsFromIn_of_kidsD regionsOk_of
+  within_append bufL bufL_within bufL_disj bufL_region LowDef)
 
 @[expose] public section
 
@@ -116,38 +116,22 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {k : KidH} {Px Ps Pv Tt : Tree → Prop}
     (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk)
     (hk : KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c k)
-    (htail : c + 1 < nk → CompleteAtDT fs cert 23 name% «main_loop4» Lin
+    (htail : c + 1 < nk → CompleteAtL fs cert 23 name% «main_loop4» Lin
       [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
-        gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) Tt)
+        gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) Tt (fun _ => True))
     (hVT : CompleteAtDT fs cert 20 "verify_sub" Lin
       [(k.pi s0 s1).1, (k.pi s0 s1).2, s0, s1, gsq, cfresh * gen ^ (24 * c)] (Returns []) Pv)
     (hXT : CompleteAtDT fs cert 23 "child_claim_list_digest" Lin [lxt, cover, k.base, lxs, gen ^ k.ex]
       (Returns [k.cx.1, k.cx.2]) Px)
     (hST : CompleteAtDT fs cert 23 "child_claim_list_digest" Lin
       [lst, spc, k.base * gen ^ k.ex, lss, gen ^ k.es] (Returns [k.cs.1, k.cs.2]) Ps) :
-    CompleteAtDT fs cert 23 name% «main_loop4» Lin
+    CompleteAtL fs cert 23 name% «main_loop4» Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
-        gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) (L5Node k Px Ps Pv Tt) := by
-  intro fp
+        gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) (L5Node k Px Ps Pv Tt) (fun _ => True) := by
   -- the rest of the loop
-  obtain ⟨nt, Lt, hWt, hDt, hRt⟩ : ∃ nt Lt, Within Lt (fp + fs name% «main_loop4») nt ∧ DisjL Lt ∧
-      ∀ rd, LowDef 23 rd → MemL rd (Lt ++ Lin) →
-        if decide (c + 1 ≠ nk) = true then
-          RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs name% «main_loop4»)
-              nt name% «main_loop4»
-            [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
-              gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] [] Tt
-        else nt = fs name% «main_loop4» := by
-    by_cases hlast : c + 1 = nk
-    · exact ⟨fs name% «main_loop4», [], fun q hq => by simp at hq, List.Pairwise.nil,
-                                                         fun _ _ _ => by
-        simp [hlast]⟩
-    · obtain ⟨nt, Lt, rt, Lot, ⟨rfl, rfl⟩, hW, hD, hR⟩ := htail (by omega) (fp + fs
-                                                                      name% «main_loop4»)
-      refine ⟨nt, Lt, by simpa using hW, by simpa using hD, fun rd hl hm => ?_⟩
-      simp only [ne_eq, hlast, not_false_eq_true, decide_true, ↓reduceIte]
-      exact hR rd hl (by simpa using hm)
-  set P1 := fp + fs name% «main_loop4» + nt with hP1
+  obtain ⟨Bt, hRest⟩ := completeAtL_tail (fs := fs) (cert := cert) (g := name% «main_loop4»)
+    (last := c + 1 = nk) fun h => htail (by omega)
+  refine ⟨fs name% «main_loop4» + Bt, fun fp cur hcur => ?_⟩
   -- the callees
   let ks : List Kid :=
     [⟨"child_claim_list_digest", true, [lxt, cover, k.base, lxs, gen ^ k.ex], Lin,
@@ -173,7 +157,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
       fun ht => (hok _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)) ht).toT,
       fun _ => hVT.lowMono (by norm_num), trivial⟩
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
-    B1.kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 23 ks (l5Ts4 Px Ps Pv) hokT P1
+    B1.kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 23 ks (l5Ts4 Px Ps Pv) hokT cur
   have hl0 : outs.length = 4 := hoo.length
   obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
   obtain ⟨o2, t2, rfl, hl2⟩ := exists_of_length_succ hl1
@@ -181,14 +165,15 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
   obtain ⟨o4, t4, rfl, hl4⟩ := exists_of_length_succ hl3
   obtain rfl := List.eq_nil_of_length_eq_zero hl4
   obtain ⟨h1, h2, h3, h4, -⟩ := hoo
+  obtain ⟨nt, Lt, -, -, hWt, hDt, hRt⟩ := hRest (fp + fs name% «main_loop4») (cur + Nk) (by omega)
   -- the layout
-  refine ⟨fs name% «main_loop4» + nt + Nk, Lt ++ Lk, [], [], ⟨rfl, rfl⟩, ?_,
-    by rw [List.nil_append]; exact disj_append hDt hD hWt hW (by omega), fun rd hlow hm => ?_⟩
+  refine ⟨Nk + nt, Lk ++ Lt, [], [], trivial, ⟨rfl, rfl⟩, ?_,
+    by rw [List.nil_append]; exact disj_append hD hDt hW hWt le_rfl, fun rd hlow hm => ?_⟩
   · rw [List.nil_append, within_append]
-    exact ⟨hWt.mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
+    exact ⟨hW.mono le_rfl (by omega), hWt.mono (by omega) (by omega)⟩
   simp only [List.nil_append] at hm
   obtain ⟨hm1, hLin⟩ := Main.memL_append.mp hm
-  obtain ⟨hmt, hLk⟩ := Main.memL_append.mp hm1
+  obtain ⟨hLk, hmt⟩ := Main.memL_append.mp hm1
   have ht := hRt rd hlow (Main.memL_append.mpr ⟨hmt, hLin⟩)
   obtain ⟨hb0, hb1, hd0, hd1, hpi0, hpi1, -⟩ := hk.mem rd hLin
   obtain ⟨rW0, rW1, rD0, rD1, rPi0, rPi1⟩ := hk.reg
@@ -264,10 +249,11 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
     rw [pr i (by simpa using h1), List.getD_eq_getElem _ _ h2]
   have h := relAtInWT_of_walk_loop (P := coreProgram) (Tt := Tt) (Ts := l5Ts4 Px Ps Pv) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
     (R := RegionL Lin) (D := RegionL []) (Rt := RegionL Lin) (Dt := RegionL []) (fp := fp)
-    (m := nt) (N := Nk) (args := args)
+    (c := cur) (Bt := Bt) (m := nt) (N := Nk) (args := args)
     (Dk := fun i => (fun _ => False) i ∨ outRegion ks [o1, o2, o3, o4] i)
     coreProgram_wf find_l5 l5_loop hparams hw' rfl hev hcalls
     (by
+      rw [hal, List.sum_nil, Nat.add_zero]
       by_cases hlast : c + 1 = nk
       · simpa [hlast] using ht
       · simp only [ne_eq, hlast, not_false_eq_true, decide_true, ↓reduceIte] at ht ⊢
@@ -285,7 +271,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
       rw [hpad, show (l5Pre ++ [l5Tail]).filterMap Main.Stmt.addrS = [] from rfl] at hq
       simp at hq)
     rfl ?_ (fun i hi => Or.inl hi) ?_ (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq)
-  · rw [hal] at h
+  · rw [hal, List.sum_nil, Nat.zero_add] at h
     obtain ⟨t, ht, ks', rfl, hk'⟩ := h
     refine ⟨_, ht, σ, _, ks', rfl, hV.v18, hV.v19, l5_calls σ, ?_⟩
     rw [← l5_calls σ]
@@ -365,25 +351,25 @@ theorem l5_completeAtT {Lin : Layout} {W D Pi Cr nk : ℕ}
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])
       (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (nk - c) c) := by
-  have key : ∀ t c, c + 1 + t = nk → CompleteAtDT fs cert 23 name% «main_loop4» Lin
+  have key : ∀ t c, c + 1 + t = nk → CompleteAtL fs cert 23 name% «main_loop4» Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])
-      (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (t + 1) c) := by
+      (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (t + 1) c) (fun _ => True) := by
     intro t
     induction t with
     | zero =>
       intro c hc
-      exact completeAtDT_mono (l5_stepAtT fs cert (Tt := fun _ => False) hnk (by omega)
+      exact (l5_stepAtT fs cert (Tt := fun _ => False) hnk (by omega)
         (hk c (by omega)) (fun h => absurd h (by omega)) (hVT c (by omega)) (hXT c (by omega))
-        (hST c (by omega))) fun _ ht => ht
+        (hST c (by omega))).mono (fun _ h => h) fun _ ht => ht
     | succ t ih =>
       intro c hc
-      exact completeAtDT_mono (l5_stepAtT fs cert hnk (by omega) (hk c (by omega))
-        (fun _ => ih (c + 1) (by omega)) (hVT c (by omega)) (hXT c (by omega)) (hST c (by omega)))
-        fun _ ht => ht
+      exact (l5_stepAtT fs cert hnk (by omega) (hk c (by omega))
+        (fun _ => ih (c + 1) (by omega)) (hVT c (by omega)) (hXT c (by omega)) (hST c (by omega))).mono
+        (fun _ h => h) fun _ ht => ht
   intro c hc
   rw [show nk - c = nk - c - 1 + 1 by omega]
-  exact key (nk - c - 1) c (by omega)
+  exact (key (nk - c - 1) c (by omega)).toDT
 
 variable {fs cert}
 

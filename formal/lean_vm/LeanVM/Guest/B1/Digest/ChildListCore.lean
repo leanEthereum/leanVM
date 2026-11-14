@@ -81,11 +81,13 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
           entries, region, marks, last] ∧
       (∀ a ∈ cclAtoms k, a.Holds rd σ) ∧
       vs.map σ = digestCells (keccak256 (pre ++ cellsBytes cells)) ∧
-      ∀ q ∈ (cclAtoms k).filterMap Memory.atomLoad?,
+      (∀ q ∈ (cclAtoms k).filterMap Memory.atomLoad?,
         (∃ o < 13, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (sP + o)) ∨
         (∃ j < k, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (rg + os j)) ∨
         (∃ j < k, ∃ c < 4,
-          (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * os j + c)) := by
+          (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * os j + c))) ∧
+      ∀ a ∈ cclAtoms k, Good rd (storesOf 5 (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body)
+        (slotW 5 os) σ a := by
   have hok := ccl_all k hk
   have hcok := ccc_all hk
   set fn := coreProgram.getD (idx% «child_claim_list_last__L0» + k) default
@@ -152,7 +154,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
       rw [this, List.take_of_length_le (by simp only [cclSpec]; omega)]
     rw [hv] at hd
     simp only [retOk, Bool.and_eq_true] at hret
-    refine ⟨[r0, r1], σ, hbody, ?_, hat, ?_, fun q hq => ?_⟩
+    refine ⟨[r0, r1], σ, hbody, ?_, hat, ?_, fun q hq => ?_, hg⟩
     · rw [hpar]
       simp only [List.map_cons, List.map_nil, e0, e1, e2, e3, e4]
     · rw [List.map_cons, List.map_cons, List.map_nil, copy_sound hret.1 hat, copy_sound hret.2 hat,

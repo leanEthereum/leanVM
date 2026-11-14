@@ -23,6 +23,7 @@
 #
 #   memory.bin            the execution's memory, 16 bytes per cell (two limbs, little-endian);
 #   trace.txt             `<log2 cells> <instructions executed> <rate>`;
+#   advice.txt            the run's advice (`Program::advice_text`), for `lake exe leanvm-execute`;
 #   rust.txt              the Rust prover's wall time in seconds.
 #
 # The proof is the honest proof of the Rust `prove`, its Merkle paths unpruned
@@ -246,6 +247,7 @@ fn main() {
             .flat_map(u64::to_le_bytes)
             .collect();
         std::fs::write(directory.join("memory.bin"), memory).expect("write memory");
+        std::fs::write(directory.join("advice.txt"), program.advice_text()).expect("write advice");
         let log_mem = exec.mem.len().trailing_zeros();
         std::fs::write(directory.join("trace.txt"), format!("{log_mem} {} {log_inv_rate}\n", exec.cycles))
             .expect("write trace");

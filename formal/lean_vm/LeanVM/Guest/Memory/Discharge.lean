@@ -29,7 +29,9 @@ temporaries' cells, `0` on a cycle (`resolveF_spec`). Choosing each temporary as
 a region `R` outside every frame but `main`'s header cells `0`, `1` (`Tree.LoadsIn`, at the root),
 which the image holds, with the certificate's facts about the cells (temporaries' cells hold only
 them, the other cells do not depend on them, `frameAddr` runs at their cells), has a re-chosen
-tree that is `HonestAt` on its honest memory.
+tree that is `HonestAt` on its honest memory. More words `Y`, consistent with the fixed ones and
+at no temporary's cell, join them (`honestAt_retempW`), and every write of the honest memory
+agrees with them: the words the hints write to the heap (`DischargeX.lean`).
 -/
 
 namespace LeanVM.Guest.Memory
@@ -159,30 +161,32 @@ variable {P : Core.Program} {fs : String → ℕ} {ν : ℕ → String → Val �
 mutual
 /-- **Every instance of the re-chosen tree is an instance of the tree re-chosen**, at the same
 frame. -/
-theorem insts_retemp : ∀ (t : Tree) (fp : ℕ) (hdr hdr' : E × E),
-    ∀ I' ∈ (t.retemp P fs ν fp).insts fs P.loop H' fp hdr',
-      ∃ I ∈ t.insts fs P.loop H fp hdr, I.fp = I'.fp ∧ I'.t = I.t.retemp P fs ν I.fp
-  | .node f σ bufs kids, fp, hdr, hdr', I', hI' => by
+theorem insts_retemp : ∀ (t : Tree) (pos : ℕ × ℕ) (hdr hdr' : E × E),
+    ∀ I' ∈ (t.retemp P fs ν pos).insts fs P.loop H' pos hdr',
+      ∃ I ∈ t.insts fs P.loop H pos hdr, I.fp = I'.fp ∧ I.cur = I'.cur ∧
+        I'.t = I.t.retemp P fs ν (I.fp, I.cur)
+  | .node f σ bufs kids, pos, hdr, hdr', I', hI' => by
       rw [retemp_node, insts_node, List.mem_cons] at hI'
-      rw [map_total_retempKids_kidPos] at hI'
+      rw [map_sz_retempKids_kidPos] at hI'
       rcases hI' with rfl | hI'
-      · refine ⟨⟨.node f σ bufs kids, fp, hdr, kidPos fs P.loop fp f bufs (kids.map (Tree.total fs)),
-          bases (bufBase fs P.loop fp f (kids.map (Tree.total fs))) bufs⟩,
-          by rw [insts_node]; exact List.mem_cons_self, rfl, ?_⟩
+      · refine ⟨⟨.node f σ bufs kids, pos.1, pos.2, hdr,
+          (kidPos fs P.loop pos f bufs (kids.map (Tree.sz fs P.loop))).map Prod.fst, bases pos.2 bufs⟩,
+          by rw [insts_node]; exact List.mem_cons_self, rfl, rfl, ?_⟩
         simp only
         rw [retemp_node]
       · obtain ⟨I, hI, h⟩ := instsKids_retemp kids _ _ _ 0 I' hI'
         exact ⟨I, by rw [insts_node]; exact List.mem_cons_of_mem _ hI, h⟩
-  | .phantom f σ, fp, hdr, hdr', I', hI' => by
+  | .phantom f σ, pos, hdr, hdr', I', hI' => by
       rw [retemp_phantom, insts_phantom, List.mem_singleton] at hI'
       subst hI'
-      exact ⟨⟨.phantom f σ, fp, hdr, [], []⟩, by rw [insts_phantom]; exact List.mem_singleton_self _,
-        rfl, by simp only; rw [retemp_phantom]⟩
+      exact ⟨⟨.phantom f σ, pos.1, pos.2, hdr, [], []⟩,
+        by rw [insts_phantom]; exact List.mem_singleton_self _, rfl, rfl,
+        by simp only; rw [retemp_phantom]⟩
 
 /-- `insts_retemp` for the callees at `ps`. -/
-theorem instsKids_retemp : ∀ (ks : List Tree) (ps : List ℕ) (J J' : Inst) (j : ℕ),
+theorem instsKids_retemp : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)) (J J' : Inst) (j : ℕ),
     ∀ I' ∈ Tree.instsKids fs P.loop H' J' j ps (Tree.retempKids P fs ν ps ks),
-      ∃ I ∈ Tree.instsKids fs P.loop H J j ps ks, I.fp = I'.fp ∧ I'.t = I.t.retemp P fs ν I.fp
+      ∃ I ∈ Tree.instsKids fs P.loop H J j ps ks, I.fp = I'.fp ∧ I.cur = I'.cur ∧ I'.t = I.t.retemp P fs ν (I.fp, I.cur)
   | [], _, _, _, _, I', hI' => by
       rw [retempKids_nil, instsKids_nil] at hI'; exact (List.not_mem_nil hI').elim
   | _ :: _, [], _, _, _, I', hI' => by
@@ -205,10 +209,10 @@ def ReadsAt (rd rd0 : Reader) (fp : ℕ) (f : String) (σ : Val) (es : List Ev) 
 
 mutual
 /-- **`Tree.ReadsAs` from its instances**: the local conditions at every node instance. -/
-theorem readsAs_of_insts {rd rd0 : Reader} : ∀ (t : Tree) (fp : ℕ) (hdr : E × E),
-    (∀ I ∈ t.insts fs P.loop H fp hdr, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
-      ReadsAt ν rd rd0 I.fp f σ (I.t.events P)) → t.ReadsAs P fs ν rd rd0 fp
-  | .node f σ bufs kids, fp, hdr, h => by
+theorem readsAs_of_insts {rd rd0 : Reader} : ∀ (t : Tree) (pos : ℕ × ℕ) (hdr : E × E),
+    (∀ I ∈ t.insts fs P.loop H pos hdr, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
+      ReadsAt ν rd rd0 I.fp f σ (I.t.events P)) → t.ReadsAs P fs ν rd rd0 pos
+  | .node f σ bufs kids, pos, hdr, h => by
       have h0 := h _ (by rw [insts_node]; exact List.mem_cons_self) f σ bufs kids rfl
       rw [readsAs_node]
       exact ⟨h0.1, h0.2, readsAsKids_of_insts kids _ _ 0 fun I hI =>
@@ -216,7 +220,7 @@ theorem readsAs_of_insts {rd rd0 : Reader} : ∀ (t : Tree) (fp : ℕ) (hdr : E 
   | .phantom .., _, _, _ => by rw [Tree.ReadsAs]; trivial
 
 /-- `readsAs_of_insts` for the callees. -/
-theorem readsAsKids_of_insts {rd rd0 : Reader} : ∀ (ks : List Tree) (ps : List ℕ) (J : Inst) (j : ℕ),
+theorem readsAsKids_of_insts {rd rd0 : Reader} : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)) (J : Inst) (j : ℕ),
     (∀ I ∈ Tree.instsKids fs P.loop H J j ps ks, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
       ReadsAt ν rd rd0 I.fp f σ (I.t.events P)) → Tree.ReadsAsKids P fs ν rd rd0 ps ks
   | [], ps, _, _, _ => by cases ps <;> (rw [Tree.ReadsAsKids]; trivial)
@@ -229,9 +233,9 @@ theorem readsAsKids_of_insts {rd rd0 : Reader} : ∀ (ks : List Tree) (ps : List
           h I (by rw [instsKids_cons]; exact List.mem_append_right _ hI)⟩
 end
 
-theorem node_of_retemp {fp : ℕ} : ∀ {t : Tree} {f : String} {σ' : Val} {bufs : List ℕ}
-    {kids' : List Tree}, t.retemp P fs ν fp = .node f σ' bufs kids' →
-      ∃ σ kids, t = .node f σ bufs kids ∧ σ' = retempVal P ν fp f σ
+theorem node_of_retemp {pos : ℕ × ℕ} : ∀ {t : Tree} {f : String} {σ' : Val} {bufs : List ℕ}
+    {kids' : List Tree}, t.retemp P fs ν pos = .node f σ' bufs kids' →
+      ∃ σ kids, t = .node f σ bufs kids ∧ σ' = retempVal P ν pos.1 f σ
   | .node g σ bs ks, f, σ', bufs, kids', h => by
       rw [retemp_node] at h
       cases h
@@ -240,35 +244,37 @@ theorem node_of_retemp {fp : ℕ} : ∀ {t : Tree} {f : String} {σ' : Val} {buf
 
 mutual
 /-- **Every instance of the tree has its re-chosen instance**, at the same frame. -/
-theorem insts_retemp_fwd : ∀ (t : Tree) (fp : ℕ) (hdr hdr' : E × E),
-    ∀ I ∈ t.insts fs P.loop H fp hdr,
-      ∃ I' ∈ (t.retemp P fs ν fp).insts fs P.loop H' fp hdr', I'.fp = I.fp ∧ I'.t = I.t.retemp P fs ν I.fp
-  | .node f σ bufs kids, fp, hdr, hdr', I, hI => by
+theorem insts_retemp_fwd : ∀ (t : Tree) (pos : ℕ × ℕ) (hdr hdr' : E × E),
+    ∀ I ∈ t.insts fs P.loop H pos hdr,
+      ∃ I' ∈ (t.retemp P fs ν pos).insts fs P.loop H' pos hdr', I'.fp = I.fp ∧ I'.cur = I.cur ∧
+        I'.t = I.t.retemp P fs ν (I.fp, I.cur)
+  | .node f σ bufs kids, pos, hdr, hdr', I, hI => by
       rw [insts_node, List.mem_cons] at hI
       rcases hI with rfl | hI
-      · refine ⟨⟨(Tree.node f σ bufs kids).retemp P fs ν fp, fp, hdr',
-          kidPos fs P.loop fp f bufs (kids.map (Tree.total fs)),
-          bases (bufBase fs P.loop fp f (kids.map (Tree.total fs))) bufs⟩, ?_, rfl, rfl⟩
-        rw [retemp_node, insts_node, map_total_retempKids_kidPos]
+      · refine ⟨⟨(Tree.node f σ bufs kids).retemp P fs ν pos, pos.1, pos.2, hdr',
+          (kidPos fs P.loop pos f bufs (kids.map (Tree.sz fs P.loop))).map Prod.fst,
+          bases pos.2 bufs⟩, ?_, rfl, rfl, rfl⟩
+        rw [retemp_node, insts_node, map_sz_retempKids_kidPos]
         exact List.mem_cons_self
-      · obtain ⟨I', hI', h⟩ := instsKids_retemp_fwd kids _ _ ⟨(Tree.node f σ bufs kids).retemp P fs ν fp, fp,
-          hdr', kidPos fs P.loop fp f bufs (kids.map (Tree.total fs)),
-          bases (bufBase fs P.loop fp f (kids.map (Tree.total fs))) bufs⟩ 0 I hI
+      · obtain ⟨I', hI', h⟩ := instsKids_retemp_fwd kids _ _
+          ⟨(Tree.node f σ bufs kids).retemp P fs ν pos, pos.1, pos.2, hdr',
+            (kidPos fs P.loop pos f bufs (kids.map (Tree.sz fs P.loop))).map Prod.fst,
+            bases pos.2 bufs⟩ 0 I hI
         refine ⟨I', ?_, h⟩
-        rw [retemp_node, insts_node, map_total_retempKids_kidPos]
+        rw [retemp_node, insts_node, map_sz_retempKids_kidPos]
         exact List.mem_cons_of_mem _ (by rw [← retemp_node]; exact hI')
-  | .phantom f σ, fp, hdr, hdr', I, hI => by
+  | .phantom f σ, pos, hdr, hdr', I, hI => by
       rw [insts_phantom, List.mem_singleton] at hI
       subst hI
-      refine ⟨⟨.phantom f σ, fp, hdr', [], []⟩, ?_, rfl, ?_⟩
+      refine ⟨⟨.phantom f σ, pos.1, pos.2, hdr', [], []⟩, ?_, rfl, rfl, ?_⟩
       · rw [retemp_phantom, insts_phantom]; exact List.mem_singleton_self _
       · simp only; rw [retemp_phantom]
 
 /-- `insts_retemp_fwd` for the callees at `ps`. -/
-theorem instsKids_retemp_fwd : ∀ (ks : List Tree) (ps : List ℕ) (J J' : Inst) (j : ℕ),
+theorem instsKids_retemp_fwd : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)) (J J' : Inst) (j : ℕ),
     ∀ I ∈ Tree.instsKids fs P.loop H J j ps ks,
       ∃ I' ∈ Tree.instsKids fs P.loop H' J' j ps (Tree.retempKids P fs ν ps ks),
-        I'.fp = I.fp ∧ I'.t = I.t.retemp P fs ν I.fp
+        I'.fp = I.fp ∧ I'.cur = I.cur ∧ I'.t = I.t.retemp P fs ν (I.fp, I.cur)
   | [], _, _, _, _, I, hI => by rw [instsKids_nil] at hI; exact (List.not_mem_nil hI).elim
   | _ :: _, [], _, _, _, I, hI => by rw [instsKids_nil_left] at hI; exact (List.not_mem_nil hI).elim
   | k :: ks, p :: ps, J, J', j, I, hI => by
@@ -291,23 +297,23 @@ variable {P : Core.Program} {fs : String → ℕ} {lp : String → Bool} {H : In
 
 mutual
 /-- **An atom's equation on a node instance's path is an equation of the tree.** -/
-theorem eqns_of_insts : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), ∀ I ∈ t.insts fs lp H fp hdr,
+theorem eqns_of_insts : ∀ (t : Tree) (pos : ℕ × ℕ) (hdr : E × E), ∀ I ∈ t.insts fs lp H pos hdr,
     (∃ f σ bufs kids, I.t = .node f σ bufs kids) → ∀ a, Ev.atom a ∈ I.t.events P →
       ∀ q ∈ atomEqns I.t.val a, q ∈ t.eqns P
-  | .node f σ bufs kids, fp, hdr, I, hI, hn, a, ha, q, hq => by
+  | .node f σ bufs kids, pos, hdr, I, hI, hn, a, ha, q, hq => by
       rw [insts_node, List.mem_cons] at hI
       rw [Tree.eqns, List.mem_append]
       rcases hI with rfl | hI
       · exact Or.inl (mem_evEqns ha hq)
       · exact Or.inr (eqnsKids_of_insts kids _ _ 0 I hI hn a ha q hq)
-  | .phantom .., fp, hdr, I, hI, hn, _, _, _, _ => by
+  | .phantom .., pos, hdr, I, hI, hn, _, _, _, _ => by
       rw [insts_phantom, List.mem_singleton] at hI
       subst hI
       obtain ⟨_, _, _, _, h⟩ := hn
       cases h
 
 /-- `eqns_of_insts` for the callees. -/
-theorem eqnsKids_of_insts : ∀ (ks : List Tree) (ps : List ℕ) (J : Inst) (j : ℕ),
+theorem eqnsKids_of_insts : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)) (J : Inst) (j : ℕ),
     ∀ I ∈ Tree.instsKids fs lp H J j ps ks, (∃ f σ bufs kids, I.t = .node f σ bufs kids) →
       ∀ a, Ev.atom a ∈ I.t.events P → ∀ q ∈ atomEqns I.t.val a, q ∈ Tree.eqnsKids P ks
   | [], _, _, _, I, hI, _, _, _, _, _ => by
@@ -326,14 +332,15 @@ variable {cert : String → V → ℕ}
 
 mutual
 /-- **A word of a tree's data is a `HeapBuf` word or a run cell of one of its instances.** -/
-theorem data_insts : ∀ (t : Tree) (fp : ℕ) (hdr : E × E) (i : ℕ), t.Data P fs cert fp i →
-    ∃ K ∈ t.insts fs P.loop H fp hdr, K.Buf i ∨ ∃ f σ bufs kids, K.t = .node f σ bufs kids ∧
+theorem data_insts : ∀ (t : Tree) (pos : ℕ × ℕ) (hdr : E × E) (i : ℕ), t.Data P fs cert pos i →
+    ∃ K ∈ t.insts fs P.loop H pos hdr, K.Buf i ∨ ∃ f σ bufs kids, K.t = .node f σ bufs kids ∧
       ∃ q ∈ runs (K.t.events P), K.fp + cert f q.1 ≤ i ∧ i < K.fp + cert f q.1 + q.2
-  | .node f σ bufs kids, fp, hdr, i, h => by
+  | .node f σ bufs kids, pos, hdr, i, h => by
       rw [data_node] at h
-      have hroot : (⟨.node f σ bufs kids, fp, hdr, kidPos fs P.loop fp f bufs (kids.map (Tree.total fs)),
-          bases (bufBase fs P.loop fp f (kids.map (Tree.total fs))) bufs⟩ : Inst) ∈
-          (Tree.node f σ bufs kids).insts fs P.loop H fp hdr := by
+      have hroot : (⟨.node f σ bufs kids, pos.1, pos.2, hdr,
+          (kidPos fs P.loop pos f bufs (kids.map (Tree.sz fs P.loop))).map Prod.fst,
+          bases pos.2 bufs⟩ : Inst) ∈
+          (Tree.node f σ bufs kids).insts fs P.loop H pos hdr := by
         rw [insts_node]; exact List.mem_cons_self
       rcases h with (h | h) | h
       · exact ⟨_, hroot, Or.inl h⟩
@@ -343,7 +350,7 @@ theorem data_insts : ∀ (t : Tree) (fp : ℕ) (hdr : E × E) (i : ℕ), t.Data 
   | .phantom .., _, _, _, h => (data_phantom h).elim
 
 /-- `data_insts` for the callees. -/
-theorem dataKids_insts : ∀ (ks : List Tree) (ps : List ℕ) (J : Inst) (j : ℕ) (i : ℕ),
+theorem dataKids_insts : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)) (J : Inst) (j : ℕ) (i : ℕ),
     Tree.DataKids P fs cert ps ks i →
     ∃ K ∈ Tree.instsKids fs P.loop H J j ps ks, K.Buf i ∨ ∃ f σ bufs kids,
       K.t = .node f σ bufs kids ∧
@@ -421,25 +428,26 @@ structure DischargeHyps (H : Inst → ℕ → E × E) (C : Inst → List (ℕ ×
   fresh : P.Fresh
   valid : T.Valid P M.read args rets
   bufsOk : T.BufsOk P
-  placed : T.Placed P fs cert 0
-  loads : T.LoadsIn P fs cert R 0
+  placed : T.Placed P fs cert (0, T.block fs P.loop)
+  loads : T.LoadsIn P fs cert R (0, T.block fs P.loop)
   region : ∀ i, R i → i < 2 ∨ ∀ I ∈ honestInsts P fs H hdr T, ∀ o < fs I.t.name,
     addressOfIndex i ≠ addressOfIndex (I.fp + o)
   hdr_read : M.read (addressOfIndex 0) = some hdr.1 ∧ M.read (addressOfIndex 1) = some hdr.2
   size : T.total fs ≤ 2 ^ 30
   addr : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = addressOfIndex i
   cells : CellsOk fs C (honestInsts P fs H hdr T)
-  cells' : ∀ ν, CellsOk fs C (honestInsts P fs H hdr (T.retemp P fs ν 0))
+  cells' : ∀ ν, CellsOk fs C (honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)))
   cert_lt : ∀ f, ∀ t ∈ P.temps f, 2 ≤ cert f t ∧ cert f t < fs f
   cert_inj : ∀ f, ∀ t ∈ P.temps f, ∀ t' ∈ P.temps f, cert f t = cert f t' → t = t'
   run : ∀ I ∈ honestInsts P fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
     ∀ p r rs, Ev.atom (.frameAddr p (r :: rs)) ∈ I.t.events P →
       ∀ (k : ℕ) (hk : k < (r :: rs).length), (cert f r + k, σ (r :: rs)[k]) ∈ C I ∧
         ∀ t ∈ P.temps f, cert f r + k ≠ cert f t
-  tmp : ∀ ν, ∀ I' ∈ honestInsts P fs H hdr (T.retemp P fs ν 0), ∀ f σ bufs kids,
+  tmp : ∀ ν, ∀ I' ∈ honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)), ∀ f σ bufs kids,
     I'.t = .node f σ bufs kids → ∀ t ∈ P.temps f, ∀ q ∈ C I', q.1 = cert f t → q.2 = σ t
-  keep : ∀ ν, ∀ I ∈ honestInsts P fs H hdr T, ∀ I' ∈ honestInsts P fs H hdr (T.retemp P fs ν 0),
-    I'.fp = I.fp → I'.t = I.t.retemp P fs ν I.fp → ∀ q ∈ I'.cells C, ¬ TmpOff P cert I.t q.1 →
+  keep : ∀ ν, ∀ I ∈ honestInsts P fs H hdr T, ∀ I' ∈ honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)),
+    I'.fp = I.fp → I'.t = I.t.retemp P fs ν (I.fp, I.cur) → ∀ q ∈ I'.cells C,
+      ¬ TmpOff P cert I.t q.1 →
       q ∈ I.cells C
 
 variable {H : Inst → ℕ → E × E} {C : Inst → List (ℕ × E)} {hdr : E × E} {T : Tree}
@@ -463,6 +471,11 @@ def TempsOn (τ : Inst × V × K) : Prop :=
 def tempCell (cert : String → V → ℕ) (τ : Inst × V × K) : K := addressOfIndex (τ.1.fp + cert
     τ.1.t.name τ.2.1)
 
+theorem honestInsts_retemp {ν : ℕ → String → Val → V → E} :
+    honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)) =
+      (T.retemp P fs ν (0, T.block fs P.loop)).insts fs P.loop H (0, T.block fs P.loop) hdr := by
+  rw [honestInsts, block_retemp]
+
 section Proof
 
 variable (h : DischargeHyps P fs cert H C hdr T R M args rets)
@@ -482,10 +495,10 @@ omit h in
 theorem insts_same {I J : Inst} (hI : I ∈ honestInsts P fs H hdr T)
     (hJ : J ∈ honestInsts P fs H hdr T) {i : ℕ} (hFI : I.Frame fs i) (hFJ : J.Frame fs i) : I = J := by
   by_contra hne
-  exact (insts_pairwise T 0 hdr).forall hI hJ hne i (Or.inl hFI) (Or.inl hFJ)
+  exact (insts_pairwise T _ hdr (Nat.zero_add _).le).forall hI hJ hne i (Or.inl hFI) (Or.inl hFJ)
 
 theorem DischargeHyps.frames_consistent : Consistent (frameWrites C (honestInsts P fs H hdr T)) :=
-  frameWrites_consistent (insts_pairwise T 0 hdr) h.cells fun I hI => by
+  frameWrites_consistent (insts_pairwise T _ hdr (Nat.zero_add _).le) h.cells fun I hI => by
     have := honest_within (P := P) hI (by have := h.cells.two_le I hI; omega)
     have := h.size
     omega
@@ -512,7 +525,7 @@ theorem DischargeHyps.classify {q : Write}
       K.t = .node g σK bufsK kidsK → ∀ {pK r rs}, Ev.atom (.frameAddr pK (r :: rs)) ∈ K.t.events P →
       σK pK = ofK (addressOfIndex (K.fp + cert g r)) := fun {K} hK {g σK bufsK kidsK} hKt {pK r
           rs} he =>
-    (Inst.nodeAt (insts_placedAt T 0 hdr h.placed K hK) (insts_placed T 0 hdr K hK) hKt).2 (pK, r)
+    (Inst.nodeAt (insts_placedAt T _ hdr h.placed K hK) (insts_placed T _ hdr (Nat.zero_add _).le K hK) hKt).2 (pK, r)
       (List.mem_filterMap.mpr ⟨_, he, rfl⟩)
   have hrunEq : ∀ {K : Inst}, K ∈ honestInsts P fs H hdr T → ∀ {g σK bufsK kidsK},
       K.t = .node g σK bufsK kidsK → ∀ {pK r rs}, Ev.atom (.frameAddr pK (r :: rs)) ∈ K.t.events P →
@@ -522,7 +535,7 @@ theorem DischargeHyps.classify {q : Write}
     have hm : ((σK pK).limb 0 * addressOfIndex k, σK (r :: rs)[k]) ∈ atomEqns σK (.frameAddr pK (r
         :: rs)) :=
       List.mem_mapIdx.mpr ⟨k, hk, rfl⟩
-    have := eqns_of_insts (P := P) T 0 hdr K hK ⟨g, σK, bufsK, kidsK, hKt⟩ _ he _
+    have := eqns_of_insts (P := P) T _ hdr K hK ⟨g, σK, bufsK, kidsK, hKt⟩ _ he _
       (by rw [hKt]; exact hm)
     rw [hpl hK hKt he, show (ofK (addressOfIndex (K.fp + cert g r))).limb 0 = addressOfIndex (K.fp +
         cert g r) by simp,
@@ -533,12 +546,12 @@ theorem DischargeHyps.classify {q : Write}
   cases a with
   | load d p off =>
       rw [List.mem_singleton.mp hq]
-      obtain ⟨i, hi, hd⟩ := loads_insts T R 0 hdr h.loads I hI ⟨f, σ, bufs, kids, ht⟩ _
+      obtain ⟨i, hi, hd⟩ := loads_insts T R _ hdr h.loads I hI ⟨f, σ, bufs, kids, ht⟩ _
         (List.mem_filterMap.mpr ⟨_, ha, by rw [ht]; rfl⟩)
       simp only [Tree.val] at hi
       rcases hd with hd | hR
       · obtain ⟨K, hK, hb | ⟨g, σK, bufsK, kidsK, hKt, qr, hqr, h1, h2⟩⟩ :=
-          data_insts (H := H) T 0 hdr i hd
+          data_insts (H := H) T _ hdr i hd
         · exact Or.inl ⟨K, hK, i, hb, hi⟩
         · obtain ⟨e, he, hre⟩ := List.mem_filterMap.mp hqr
           rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨pK, _ | ⟨r, rs⟩⟩ | _ | _⟩ | _ | _ | _ <;>
@@ -598,7 +611,7 @@ theorem DischargeHyps.cross_fixed {a : Write} (ha : a ∈ frameWrites C (honestI
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) {at' : Atom} (he : Ev.atom at' ∈ I.t.events P)
     (hta : atomTmps at' = []) {q : Write} (hq : q ∈ atomEqns σ at') (hx : a.1 = q.1) : a.2 = q.2 := by
   obtain ⟨J, hJ, c, hc, rfl⟩ := Memory.mem_frameWrites ha
-  have hqT : q ∈ T.eqns P := eqns_of_insts T 0 hdr I hI ⟨f, σ, bufs, kids, ht⟩ at' he q (by rw [ht]; exact hq)
+  have hqT : q ∈ T.eqns P := eqns_of_insts T _ hdr I hI ⟨f, σ, bufs, kids, ht⟩ at' he q (by rw [ht]; exact hq)
   rcases h.classify hI ht he hta hq with ⟨K, hK, i, hb, hqi⟩ | ⟨i, hR, hqi⟩ |
       ⟨K, hK, g, σK, bK, kK, hKt, pK, r, rs, hfa, k, hk, hqi, hqe⟩
   · exact absurd (hx.trans hqi) (frameWrites_not_buf h.cells h.size hK hb _ ha)
@@ -645,8 +658,8 @@ theorem DischargeHyps.fixed_consistent {x : K} {w w' : E} (hw : FixedW P fs cert
     exact h.cross_fixed (hfr hw) hI' ht' he' hta' hq' rfl
   · rw [ht] at hq
     exact (h.cross_fixed (hfr hw') hI ht he hta hq rfl).symm
-  · have h1 := eqns_of_insts T 0 hdr I hI ⟨f, σ, bufs, kids, ht⟩ a he _ hq
-    have h2 := eqns_of_insts T 0 hdr I' hI' ⟨f', σ', bufs', kids', ht'⟩ a' he' _ hq'
+  · have h1 := eqns_of_insts T _ hdr I hI ⟨f, σ, bufs, kids, ht⟩ a he _ hq
+    have h2 := eqns_of_insts T _ hdr I' hI' ⟨f', σ', bufs', kids', ht'⟩ a' he' _ hq'
     exact h.eqns_consistent _ h1 _ h2 rfl
 
 theorem DischargeHyps.temp_cell {τ : Inst × V × K} (hτ : TempsOn P fs H hdr T τ) :
@@ -678,13 +691,13 @@ theorem DischargeHyps.temp_not_fixed {τ : Inst × V × K} (hτ : TempsOn P fs H
       rw [hn]; exact (h.cert_lt g τ.2.1 hmem).2
     rcases h.classify hI hIt he hta hq with ⟨K, hK, i, hb, hqi⟩ | ⟨i, hR, hqi⟩ |
         ⟨K, hK, g', σK, bK, kK, hKt, pK, r, rs, hfa, k, hk, hqi, -⟩
-    · have hi := (insts_within T 0 hdr K hK i (Or.inr hb)).2
+    · have hi := honest_owns (P := P) hK (Or.inr hb)
       have heq := h.inj hlt (by omega) hqi
       rw [heq] at hF
       by_cases hKJ : K = τ.1
       · subst hKJ
-        exact (insts_placed T 0 hdr _ hJ).frame_buf hF hb
-      · exact (insts_pairwise T 0 hdr).forall hK hJ hKJ i (Or.inr hb) (Or.inl hF)
+        exact (insts_placed T _ hdr (Nat.zero_add _).le _ hJ).frame_buf hF hb
+      · exact (insts_pairwise T _ hdr (Nat.zero_add _).le).forall hK hJ hKJ i (Or.inr hb) (Or.inl hF)
     · rcases h.region i hR with hi2 | hR'
       · obtain ⟨I0, hI0, hI0t, -⟩ := root_inst (P := P) (fs := fs) (H := H) (hdr := hdr) (T := T)
         have h2 := h.cells.two_le I0 hI0
@@ -724,37 +737,52 @@ theorem DischargeHyps.temp_cell_inj {τ τ' : Inst × V × K} (hτ : TempsOn P f
 theorem DischargeHyps.path {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {f : String} {σ : Val}
     {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) :
     ∃ fn es vs, P.find? f = some fn ∧ walk σ fn.body = .ret es vs ∧ I.t.events P = es := by
-  rcases insts_good T 0 hdr h.valid I hI with ⟨_, _, hv⟩ | ⟨_, _, hph⟩
+  rcases insts_good T _ hdr h.valid I hI with ⟨_, _, hv⟩ | ⟨_, _, hph⟩
   · rw [ht] at hv
     obtain ⟨fn, hf, _, es, vs, hw, -⟩ := hv
     exact ⟨fn, es, vs, hf, hw, by rw [ht]; exact events_node hf hw⟩
   · rw [ht] at hph; cases hph
 
-/-- **The honest memory of a placed tree**: its temporaries re-chosen, it is `HonestAt`. -/
-theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν 0) cert
-    (honest P fs H C hdr (T.retemp P fs ν 0)).read args rets := by
-  obtain ⟨hF1, hF2⟩ := resolveF_spec (W := FixedW P fs cert H C hdr T)
+/-- **The honest memory of a placed tree, with more words**: words `Y` agreeing with the fixed
+ones and among themselves, none at a temporary's cell, join the fixed words; the temporaries
+re-chosen, the tree is `HonestAt` and every write of its honest memory agrees with `Y`. -/
+theorem honestAt_retempW (Y : K → E → Prop) (hYY : ∀ x w w', Y x w → Y x w' → w = w')
+    (hYF : ∀ x w w', FixedW P fs cert H C hdr T x w → Y x w' → w = w')
+    (hYt : ∀ τ, TempsOn P fs H hdr T τ → ∀ w, ¬ Y (tempCell cert τ) w) :
+    ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop)) cert
+      (honest P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))).read args rets ∧
+      ∀ a ∈ frameWrites C (honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop))) ++
+        (T.retemp P fs ν (0, T.block fs P.loop)).eqns P, ∀ w, Y a.1 w → a.2 = w := by
+  obtain ⟨hF1, hF2⟩ := resolveF_spec (W := fun x w => FixedW P fs cert H C hdr T x w ∨ Y x w)
     (Θ := TempsOn P fs H hdr T) (c := tempCell cert) (a := fun τ => τ.2.2)
-    (fun _ _ _ hw hw' => h.fixed_consistent hw hw') (fun _ _ hτ hτ' he => h.temp_cell_inj hτ hτ' he)
-    (fun _ w hτ => h.temp_not_fixed hτ w)
-  set F := resolveF (FixedW P fs cert H C hdr T) (TempsOn P fs H hdr T) (tempCell cert)
-    (fun τ => τ.2.2) with hFdef
+    (fun x w w' hw hw' => by
+      rcases hw with hw | hw <;> rcases hw' with hw' | hw'
+      · exact h.fixed_consistent hw hw'
+      · exact hYF x w w' hw hw'
+      · exact (hYF x w' w hw' hw).symm
+      · exact hYY x w w' hw hw')
+    (fun _ _ hτ hτ' he => h.temp_cell_inj hτ hτ' he)
+    (fun τ w hτ hw => hw.elim (h.temp_not_fixed hτ w) (hYt τ hτ w))
+  set F := resolveF (fun x w => FixedW P fs cert H C hdr T x w ∨ Y x w) (TempsOn P fs H hdr T)
+    (tempCell cert) (fun τ => τ.2.2) with hFdef
   refine ⟨fun fp f _ t => F (addressOfIndex (fp + cert f t)), ?_⟩
   set ν : ℕ → String → Val → V → E := fun fp f _ t => F (addressOfIndex (fp + cert f t)) with hν
   have hF := h.fresh
-  have htot : (T.retemp P fs ν 0).total fs = T.total fs := total_retemp T 0
+  have htot : (T.retemp P fs ν (0, T.block fs P.loop)).total fs = T.total fs := total_retemp T _
   have hrv : ∀ {fp : ℕ} {f : String} {σ : Val} {t : V}, t ∈ P.temps f →
       retempVal P ν fp f σ t = F (addressOfIndex (fp + cert f t)) := fun ht => by
     simp only [retempVal, ht, ↓reduceIte, hν]
   -- The frames of the re-chosen tree agree with `F`.
-  have hG1 : ∀ a ∈ frameWrites C (honestInsts P fs H hdr (T.retemp P fs ν 0)), F a.1 = a.2 := by
+  have hG1 : ∀ a ∈ frameWrites C (honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop))), F a.1 = a.2 := by
     intro a ha
     obtain ⟨I', hI', q, hq, rfl⟩ := Memory.mem_frameWrites ha
-    obtain ⟨I, hI, hfp, hteq⟩ := insts_retemp (H := H) T 0 hdr hdr I' hI'
+    obtain ⟨I, hI, hfp, -, hteq⟩ :=
+      insts_retemp (H := H) T _ hdr hdr I' (by rwa [honestInsts_retemp] at hI')
     by_cases hto : TmpOff P cert I.t q.1
     · obtain ⟨f, σ, bufs, kids, hIt, v, hv, hqv⟩ := hto
       have hI't : I'.t = .node f (retempVal P ν I.fp f σ) bufs
-          (Tree.retempKids P fs ν (kidPos fs P.loop I.fp f bufs (kids.map (Tree.total fs))) kids) := by
+          (Tree.retempKids P fs ν (kidPos fs P.loop (I.fp, I.cur) f bufs (kids.map (Tree.sz fs P.loop)))
+          kids) := by
         rw [hteq, hIt, retemp_node]
       have h2 := (h.cert_lt f v hv).1
       have hqC : q ∈ C I' := by
@@ -769,14 +797,15 @@ theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν 0) cer
     · have hq' := h.keep ν I hI I' hI' hfp.symm hteq q hq hto
       simp only
       rw [← hfp]
-      exact hF1 _ _ (Or.inl ⟨I, hI, q, hq', rfl, rfl, hto⟩)
+      exact hF1 _ _ (Or.inl (Or.inl ⟨I, hI, q, hq', rfl, rfl, hto⟩))
   -- The equations of the re-chosen tree agree with `F`, at addresses of the old tree's.
-  have hG2 : ∀ q ∈ (T.retemp P fs ν 0).eqns P,
+  have hG2 : ∀ q ∈ (T.retemp P fs ν (0, T.block fs P.loop)).eqns P,
       F q.1 = q.2 ∧ ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = addressOfIndex i := by
     intro q hq
     obtain ⟨I', hI', ⟨f, σ', bufs, kids', hI't⟩, a, he, hqa⟩ :=
-      eqns_insts (fs := fs) (lp := P.loop) (H := H) (T.retemp P fs ν 0) 0 hdr q hq
-    obtain ⟨I, hI, hfp, hteq⟩ := insts_retemp (H := H) T 0 hdr hdr I' hI'
+      eqns_insts (fs := fs) (lp := P.loop) (H := H) (T.retemp P fs ν (0, T.block fs P.loop))
+        (0, T.block fs P.loop) hdr q hq
+    obtain ⟨I, hI, hfp, -, hteq⟩ := insts_retemp (H := H) T _ hdr hdr I' hI'
     obtain ⟨σ, kids, hIt, rfl⟩ := node_of_retemp (hteq.symm.trans hI't)
     obtain ⟨fn, es, vs, hf, hw, hev⟩ := h.path hI hIt
     have hag := evAgree_retemp (ν := ν) hF hf (fp := I.fp) hw
@@ -788,15 +817,15 @@ theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν 0) cer
     have hIev : Ev.atom a ∈ I.t.events P := by rw [hev]; exact he
     by_cases hta : atomTmps a = []
     · rw [atomEqns_congr a hta fun v hv => hag _ he v hv] at hqa
-      have hqT := eqns_of_insts T 0 hdr I hI ⟨f, σ, bufs, kids, hIt⟩ a hIev q (by rw [hIt]; exact hqa)
-      exact ⟨hF1 _ _ (Or.inr ⟨I, hI, ⟨f, σ, bufs, kids, hIt⟩, a, hIev, hta, by rw [hIt]; exact hqa⟩),
+      have hqT := eqns_of_insts T _ hdr I hI ⟨f, σ, bufs, kids, hIt⟩ a hIev q (by rw [hIt]; exact hqa)
+      exact ⟨hF1 _ _ (Or.inl (Or.inr ⟨I, hI, ⟨f, σ, bufs, kids, hIt⟩, a, hIev, hta, by rw [hIt]; exact hqa⟩)),
         h.addr q hqT⟩
     · obtain ⟨r, hr, rfl⟩ := eqn_tmpReads hta hqa
       rw [tmpReads_congr a fun v hv => hag _ he v hv] at hr
       have htr := mem_temps_of_event hf hw he hr
       have hname : I.t.name = f := by rw [hIt]; rfl
       have hT : (r.2, σ r.1) ∈ T.eqns P :=
-        eqns_of_insts T 0 hdr I hI ⟨f, σ, bufs, kids, hIt⟩ _ hIev _ (by rw [hIt]; exact tmpReads_eqn hr)
+        eqns_of_insts T _ hdr I hI ⟨f, σ, bufs, kids, hIt⟩ _ hIev _ (by rw [hIt]; exact tmpReads_eqn hr)
       have hrc : F (tempCell cert (I, r.1, r.2)) = F r.2 := by
         refine hF2 (I, r.1, r.2) ⟨hI, f, σ, bufs, kids, hIt, a, ?_, hr⟩
         rw [events_eq_node (bufs := []) (ks := []) (bufs' := bufs) (ks' := kids), ← hIt, hev]
@@ -806,37 +835,39 @@ theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν 0) cer
       show F r.2 = retempVal P ν I.fp f σ r.1
       rw [hrv htr, ← hrc]
       simp only [tempCell, hname]
-  have hall : ∀ q ∈ frameWrites C (honestInsts P fs H hdr (T.retemp P fs ν 0)) ++
-      (T.retemp P fs ν 0).eqns P, F q.1 = q.2 := by
+  have hall : ∀ q ∈ frameWrites C (honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop))) ++
+      (T.retemp P fs ν (0, T.block fs P.loop)).eqns P, F q.1 = q.2 := by
     intro q hq
     rcases List.mem_append.mp hq with hq | hq
     · exact hG1 q hq
     · exact (hG2 q hq).1
   have hcons := consistent_of_read (rd := fun x => some (F x)) fun q hq => by rw [hall q hq]
-  have hκ' : logMem ((T.retemp P fs ν 0).total fs) < 64 := by rw [htot]; exact h.lt_64
-  have haddr' : ∀ q ∈ (T.retemp P fs ν 0).eqns P,
-      ∃ i : Fin (2 ^ logMem ((T.retemp P fs ν 0).total fs)), q.1 = addressOfIndex i := by
+  have hκ' : logMem ((T.retemp P fs ν (0, T.block fs P.loop)).total fs) < 64 := by rw [htot]; exact h.lt_64
+  have haddr' : ∀ q ∈ (T.retemp P fs ν (0, T.block fs P.loop)).eqns P,
+      ∃ i : Fin (2 ^ logMem ((T.retemp P fs ν (0, T.block fs P.loop)).total fs)), q.1 = addressOfIndex i := by
     intro q hq; rw [htot]; exact (hG2 q hq).2
-  have hread : ∀ q ∈ (T.retemp P fs ν 0).eqns P,
-      (honest P fs H C hdr (T.retemp P fs ν 0)).read q.1 = some q.2 :=
+  have hread : ∀ q ∈ (T.retemp P fs ν (0, T.block fs P.loop)).eqns P,
+      (honest P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))).read q.1 = some q.2 :=
     fun q hq => image_read hκ' hcons (List.mem_append_right _ hq) (haddr' q hq)
-  have hRA : T.ReadsAs P fs ν (honest P fs H C hdr (T.retemp P fs ν 0)).read M.read 0 := by
-    refine readsAs_of_insts (H := H) T 0 hdr fun I hI f σ bufs kids hIt => ?_
+  have hRA : T.ReadsAs P fs ν (honest P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))).read M.read
+      (0, T.block fs P.loop) := by
+    refine readsAs_of_insts (H := H) T _ hdr fun I hI f σ bufs kids hIt => ?_
     obtain ⟨fn, es, vs, hf, hw, hev⟩ := h.path hI hIt
     have hag := evAgree_retemp (ν := ν) hF hf (fp := I.fp) hw
-    obtain ⟨I', hI', -, hteq'⟩ := insts_retemp_fwd (H := H) (H' := H) (ν := ν) T 0 hdr hdr I hI
+    obtain ⟨I', hI', -, -, hteq'⟩ := insts_retemp_fwd (H := H) (H' := H) (ν := ν) T _ hdr hdr I hI
     have hI't : I'.t = .node f (retempVal P ν I.fp f σ) bufs
-        (Tree.retempKids P fs ν (kidPos fs P.loop I.fp f bufs (kids.map (Tree.total fs))) kids) := by
+        (Tree.retempKids P fs ν (kidPos fs P.loop (I.fp, I.cur) f bufs (kids.map (Tree.sz fs P.loop)))
+          kids) := by
       rw [hteq', hIt, retemp_node]
     have hev' : I'.t.events P = es := by
       rw [hI't, events_retemp hF (bufs' := bufs) (ks' := kids), ← hIt, hev]
     have hmem' : ∀ {a : Atom} {q : Write}, Ev.atom a ∈ es →
-        q ∈ atomEqns (retempVal P ν I.fp f σ) a → q ∈ (T.retemp P fs ν 0).eqns P := fun ha hq =>
-      eqns_of_insts _ 0 hdr I' hI' ⟨_, _, _, _, hI't⟩ _ (by rw [hev']; exact ha) _
+        q ∈ atomEqns (retempVal P ν I.fp f σ) a → q ∈ (T.retemp P fs ν (0, T.block fs P.loop)).eqns P := fun ha hq =>
+      eqns_of_insts _ _ hdr I' hI' ⟨_, _, _, _, hI't⟩ _ (by rw [hev']; exact ha) _
         (by rw [hI't]; exact hq)
     rw [hev]
     refine ⟨fun a ha hta q hq => ?_, fun a ha r hr => ?_⟩
-    · have hqT := eqns_of_insts T 0 hdr I hI ⟨f, σ, bufs, kids, hIt⟩ a (by rw [hev]; exact ha) q
+    · have hqT := eqns_of_insts T _ hdr I hI ⟨f, σ, bufs, kids, hIt⟩ a (by rw [hev]; exact ha) q
         (by rw [hIt]; exact hq)
       rw [hread q (hmem' ha (by rw [atomEqns_congr a hta fun v hv => hag _ ha v hv]; exact hq)),
         h.valid.eqns_read h.lt_64 T q hqT (h.addr q hqT)]
@@ -846,10 +877,17 @@ theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν 0) cer
       have e1 := hread _ (hmem' ha (tmpReads_eqn hr'))
       simp only [hrv htr] at e1
       exact e1
-  exact ⟨⟨retemp_valid hF T 0 h.valid hRA, by rw [htot]; exact h.size, h.cells' ν, haddr',
+  exact ⟨⟨⟨retemp_valid hF T _ h.valid hRA, by rw [htot]; exact h.size, h.cells' ν, haddr',
     fun a ha b hb => hcons a (List.mem_append_right _ ha) b (List.mem_append_right _ hb),
     fun a ha b hb => hcons a (List.mem_append_left _ ha) b (List.mem_append_right _ hb)⟩,
-    bufsOk_retemp hF T 0 h.valid h.bufsOk, placed_retemp hF T 0 h.valid h.placed⟩
+    bufsOk_retemp hF T _ h.valid h.bufsOk, by rw [block_retemp]; exact placed_retemp hF T _ h.valid h.placed⟩,
+    fun a ha w hw => (hall a ha).symm.trans (hF1 a.1 w (Or.inr hw))⟩
+
+/-- **The honest memory of a placed tree**: its temporaries re-chosen, it is `HonestAt`. -/
+theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop)) cert
+    (honest P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))).read args rets :=
+  (honestAt_retempW h (fun _ _ => False) (fun _ _ _ h => h.elim) (fun _ _ _ _ h => h.elim)
+    (fun _ _ _ h => h)).imp fun _ hν => hν.1
 
 end Proof
 

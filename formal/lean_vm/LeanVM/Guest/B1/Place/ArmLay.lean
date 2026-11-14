@@ -21,7 +21,8 @@ public import LeanVM.Guest.B1.Place.Lp
 * `qbpA c ws`: `query_win_ptrs`' words, level `l`'s window pointers `ws l` at `l·ligPosCap`;
   `winW … l p`: level `l`'s slice of them, its `level_positions` at `p`; `memL_winW`.
 * `os_calls_of_allOkF`, `os_kid_namedO`: a named frame of a flat body proved at `osCR` on every
-  memory holding `Lk` is complete placed on `Lk`, at an optional bound.
+  memory holding `Lk` is complete placed on `Lk`, at an optional bound; `os_kid_namedX`: any statement its kind's
+  callees satisfy on `Lk`.
 -/
 
 namespace LeanVM.Guest.B1.Arm
@@ -248,6 +249,25 @@ theorem os_calls_of_allOkF {C : CallRel} {rd : Reader} {σ : Val} :
 
 /-- **A named frame of a flat body proved at `osCR` on every memory holding `Lk`** is complete
 placed on `Lk`, given its kind's placed statement at an optional bound. -/
+theorem os_kid_namedX {Lk : Layout} {σ : Val} {pre : List Stmt}
+    {Sp : String → List E → List E → Prop}
+    (hall : ∀ rd, LowDef κ rd → MemL rd Lk → AllOk (osCR rd Sp (OsXOk κ Lk)) rd σ pre)
+    (hdo : ∀ s ∈ pre, DispOk σ s)
+    (hfl : ∀ s ∈ pre, ∀ x fs a r, s = .dispatch x fs a r → fs.length < 2 ^ 64 - 1)
+    (hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lk)
+    {c : Call} (hc : c ∈ (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (ht : c.taken = true)
+    {K : OsKind} (hK : osKindOf c.f = some K) {X : List E → List E → Prop}
+    (hnamed : ∀ (args rets : List E), RegPtrs K.spec args (RegionL Lk) →
+      (∀ rd, LowDef κ rd → MemL rd Lk → K.Pre rd args rets) → X args rets) :
+    X (c.args.map σ) (c.rets.map σ) := by
+  have hpre : ∀ rd, LowDef κ rd → MemL rd Lk → K.Pre rd (c.args.map σ) (c.rets.map σ) ∧
+      OsXOk κ Lk K (c.args.map σ) := fun rd hl hm ↦ by
+    have h := os_calls_of_allOkF (hall rd hl hm) hdo hfl c hc ht
+    unfold osCR at h; rw [hK] at h; exact h
+  obtain ⟨rd0, hl0, hm0⟩ := hex
+  exact hnamed _ _ (fixedReads_region (hpre rd0 hl0 hm0).2 ⟨rd0, hl0, hm0⟩)
+    fun rd hl hm ↦ (hpre rd hl hm).1
+
 theorem os_kid_namedO {Lk : Layout} {σ : Val} {pre : List Stmt}
     {Sp : String → List E → List E → Prop}
     (hall : ∀ rd, LowDef κ rd → MemL rd Lk → AllOk (osCR rd Sp (OsXOk κ Lk)) rd σ pre)
@@ -259,14 +279,8 @@ theorem os_kid_namedO {Lk : Layout} {σ : Val} {pre : List Stmt}
     (hnamed : ∀ (args rets : List E), RegPtrs K.spec args (RegionL Lk) →
       (∀ rd, LowDef κ rd → MemL rd Lk → K.Pre rd args rets) →
       CompleteAtO fs cert κ c.f Lk args (Returns rets) Bd) :
-    CompleteAtO fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) Bd := by
-  have hpre : ∀ rd, LowDef κ rd → MemL rd Lk → K.Pre rd (c.args.map σ) (c.rets.map σ) ∧
-      OsXOk κ Lk K (c.args.map σ) := fun rd hl hm ↦ by
-    have h := os_calls_of_allOkF (hall rd hl hm) hdo hfl c hc ht
-    unfold osCR at h; rw [hK] at h; exact h
-  obtain ⟨rd0, hl0, hm0⟩ := hex
-  exact hnamed _ _ (fixedReads_region (hpre rd0 hl0 hm0).2 ⟨rd0, hl0, hm0⟩)
-    fun rd hl hm ↦ (hpre rd hl hm).1
+    CompleteAtO fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) Bd :=
+  os_kid_namedX hall hdo hfl hex hc ht hK hnamed
 
 end
 end LeanVM.Guest.B1.Arm

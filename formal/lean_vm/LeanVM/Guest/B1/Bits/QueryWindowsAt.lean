@@ -9,6 +9,9 @@ module
 
 public import LeanVM.Guest.B1.Bits.QueryWindowsComplete
 public import LeanVM.Guest.Memory.LiftPure
+public import LeanVM.Guest.Memory.PopsNil
+public import LeanVM.Guest.B1.Main.RelAtInE
+public import LeanVM.Guest.Exact.Free
 
 /-!
 # `decode_query_windows`, placed (`crates/rec_aggregation/guests/lean_ethereum.py`)
@@ -27,6 +30,9 @@ the kinds `QwEnv.Ok` names, so the walk's loads read the caller's words, its `fr
 the run's address and its tails' (`run·g^(r - 5)`, the run's cells consecutive in the frame,
 `RunsConsec`, the certificates' fact as `Lift.RunsFit` is), and `relAtIn_of_walk` places it.
 `qwDecodeAtD_holds`: every deployed specialization (`QueryWindowsAtAll.lean`).
+
+**Exact** (`QwDecodeAtDE`, `qwDecodeAtDE_of`): the same by a tree popping nothing whose every node is exact on the
+memory, its windows the executor's of the word (`QwEnv.Ok`'s hint case); `QwDecodeAtD` is its corollary.
 -/
 
 namespace LeanVM.Guest.B1
@@ -71,6 +77,25 @@ def QwDecodeAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (d
       ∀ rd, LowDef k rd → MemL rd (qwRunL cert name fp d cd w ++ Lown ++ Lin) →
         RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL (qwRunL cert name fp d cd w)) fp
           (fs name) name [w, pos, ptrs, tabs] []
+
+/-- **`QwDecodeAtD` by a tree popping nothing, every node exact on the memory.** -/
+def QwDecodeAtDE (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (d cd : ℕ) (name : String) :
+    Prop :=
+  ∀ (w pos ptrs tabs : E) (Lin : Layout) (fp : ℕ),
+    QwRegs d [w, pos, ptrs, tabs] (RegionL Lin) →
+    (∀ rd, LowDef k rd → MemL rd Lin → WinTabs rd tabs ∧ ∀ j < 128 / d,
+      LoadHolds rd pos j (eOfNat (qwPosOf d w j)) ∧ LoadHolds rd ptrs j (qwPtrAt cert name fp d cd j)) →
+    ∃ Lown : Layout, Within (qwRunL cert name fp d cd w ++ Lown) fp (fs name) ∧
+      DisjL (qwRunL cert name fp d cd w ++ Lown) ∧
+      ∀ rd, LowDef k rd → MemL rd (qwRunL cert name fp d cd w ++ Lown ++ Lin) →
+        RelAtInPE coreProgram fs cert rd (ExactAt coreProgram rd) (RegionL Lin)
+          (RegionL (qwRunL cert name fp d cd w)) fp (fs name) name [w, pos, ptrs, tabs] [] []
+
+theorem QwDecodeAtDE.toD {fs : String → ℕ} {cert : String → V → ℕ} {k d cd : ℕ} {name : String}
+    (h : QwDecodeAtDE fs cert k d cd name) : QwDecodeAtD fs cert k d cd name :=
+  fun w pos ptrs tabs Lin fp hreg hpre =>
+    let ⟨Lown, hW, hD, hr⟩ := h w pos ptrs tabs Lin fp hreg hpre
+    ⟨Lown, hW, hD, fun rd hl hm => RelAtInT.relAtIn (hr rd hl hm)⟩
 
 /-- **Every frame run's cells are consecutive**: value `k` of a `frameAddr` run of a function's
 body sits `k` cells past the run's first. The certificates' fact (`B2C.FnStatic.run`), as
@@ -121,11 +146,11 @@ theorem qw_ev_mem {σ : Val} {d cd : ℕ} {e : Ev} (he : e ∈ (qwPre d cd).flat
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- **`decode_query_windows__L{d}_L{cd}` placed**, from its template, the certificates' frame runs
+/-- **`decode_query_windows__L{d}_L{cd}` placed and exact**, from its template, the certificates' frame runs
 fitting their frames and their cells consecutive. -/
-theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert)
+theorem qwDecodeAtDE_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert)
     (hcons : RunsConsec cert) (hs : QwShape d cd) (hq : QwIsP coreProgram name (qwBody d cd)) {k : ℕ}
-    (hk : 7 ≤ k) : QwDecodeAtD fs cert k d cd name := by
+    (hk : 7 ≤ k) : QwDecodeAtDE fs cert k d cd name := by
   obtain ⟨fn, hfind, hps, hbody⟩ := hq
   intro w pos ptrs tabs Lin fp hreg hpre
   have hM : 128 / d * qwN d cd ≤ 36 := hs.2.2.1
@@ -193,14 +218,38 @@ theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert
   have hp' := hp
   rw [← hps] at hp'
   simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
-  obtain ⟨-, h1, h2, h3, -⟩ := hp
+  obtain ⟨h0, h1, h2, h3, -⟩ := hp
   have hrunEs : (V.n 5, 36) ∈ runs es := by
     refine List.mem_filterMap.mpr ⟨.atom (.frameAddr (.n 4) qwRun), ?_, by rw [qwRun_eq]; rfl⟩
     exact List.mem_flatMap.mpr ⟨.atom (.frameAddr (.n 4) qwRun), by simp [qwPre], by simp [slEvs]⟩
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
-    (D := RegionL (qwRunL cert name fp d cd w)) (Dk := fun _ => False) (N := 0) (fp := fp)
+  have hnw : ∀ e ∈ es, e.noWit := fun e he ↦ by
+    obtain ⟨a, ha, rfl⟩ := qw_ev_mem he
+    have hok := (hAK a ha).2
+    cases a with
+    | hint h => cases h <;> first | rfl | exact hok.elim
+    | _ => rfl
+  have hex : ∀ e ∈ es, e.Exact rd σ := fun e he ↦ by
+    obtain ⟨a, ha, rfl⟩ := qw_ev_mem he
+    have hok := (hAK a ha).2
+    cases a with
+    | hint h =>
+      cases h with
+      | windowsExp v st wd c dst =>
+        cases dst with
+        | stack ds =>
+          obtain ⟨rfl, hd⟩ := hok
+          show ds.map σ = _
+          rw [h0]
+          exact hd
+        | heap => exact hok.elim
+      | _ => exact hok.elim
+    | _ => trivial
+  have h := relAtInPE_of_walk (P := coreProgram) (fs := fs) (cert := cert) (Q := ExactAt coreProgram rd)
+    (R := RegionL Lin) (D := RegionL (qwRunL cert name fp d cd w)) (Dk := fun _ => False) (N := 0) (fp := fp)
+    (pss := []) (ps := [])
     coreProgram_wf hfind (Or.inr hcalls) hp' hw rfl hes (by rw [hald, hal]; rfl)
     (fun q hq ↦ ?_) (by rw [hcalls]; exact ⟨rfl, fun _ h => h⟩) (fun A hA ↦ ?_) (fun i hi ↦ ?_)
+    (splice_nil_of _ _ hnw (by simp)) (exactAt_of_walk hfind hw hex)
   · simpa only [hal, List.sum_nil, Nat.add_zero, List.map_nil] using h
   · -- a `frameAddr`: the run's address, or its tail's
     obtain ⟨e, he, hq⟩ := List.mem_filterMap.mp hq
@@ -250,6 +299,12 @@ theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert
     simp only [qwRunList, List.length_map, List.length_range] at hq2
     exact Or.inl (Or.inr ⟨(V.n 5, 36), hrunEs, by show fp + cert name (.n 5) ≤ i; exact hq1,
       by show i < fp + cert name (.n 5) + 36; omega⟩)
+
+/-- **`decode_query_windows__L{d}_L{cd}` placed** (`qwDecodeAtDE_of` without exactness). -/
+theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert)
+    (hcons : RunsConsec cert) (hs : QwShape d cd) (hq : QwIsP coreProgram name (qwBody d cd)) {k : ℕ}
+    (hk : 7 ≤ k) : QwDecodeAtD fs cert k d cd name :=
+  (qwDecodeAtDE_of hfit hcons hs hq hk).toD
 
 end
 end LeanVM.Guest.B1

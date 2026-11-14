@@ -268,7 +268,7 @@ pub enum RHint {
     /// Announce a pointer into a reserved run of frames.
     FrameAddress { offset: Off },
     /// Reserve `log_g(m[end] * start_inverse)` consecutive frames of `size` cells,
-    /// then the `tail` cells the final, untaken call writes of one more.
+    /// then `tail` cells more, the final, untaken call's frame.
     AllocFrames {
         ptr: Off,
         size: u32,
@@ -281,6 +281,16 @@ pub enum RHint {
     /// `Alloc` with the cell count read at runtime as the g-power exponent of
     /// `m[fp+size]`.
     AllocDyn { ptr: Off, size: Off },
+    /// `Alloc` with the cell count advice: the exponent of stream `stream`'s next entry, one word
+    /// `g^size`, or nothing for an empty entry, the pointer left unwritten. A `HeapBuf` the
+    /// compiler reserves before its size is computed or a branch reaches it; a wrong size only
+    /// makes the run fail.
+    AllocAdvice { ptr: Off, stream: String },
+    /// `Alloc` of `sizes[k]` cells, where `m[fp+sel] = g^k`: a dispatched call's frame, sized
+    /// by the arm it selects.
+    AllocArm { ptr: Off, sel: Off, sizes: Vec<u32> },
+    /// Write the address of frame cell `cell`, `g^{fp+cell}`, to `fp+ptr`.
+    CellAddress { ptr: Off, cell: Off },
     /// Pop stream `name`'s next entry (`len` values) into frame cells `fp+base+k`.
     WitnessStack { name: String, base: Off, len: u32 },
     /// Pop stream `name`'s next entry (`len` values) into heap cells `m[fp+ptr]·g^{lo+k}`.
@@ -330,6 +340,104 @@ pub enum RHint {
     /// Prover-side debug print (`print(...)` in the zkDSL): display the value
     /// of `m[fp+cell]` at this program point. Witness generation only.
     Print { label: String, cell: Off },
+}
+
+impl super::Program {
+    /// What [`super::Program::execute`] needs besides the bytecode, as text for the Lean executor
+    /// (`formal/lean_vm/cli/LeanvmExecute.lean` reads it): `main`'s frame size, the hints by pc
+    /// (`Print` left out), and the witness streams by name, each entry's words as hex limbs.
+    pub fn advice_text(&self) -> String {
+        use std::fmt::Write;
+        let dest = |d: &BitsDest| match d {
+            BitsDest::Stack(o) => format!("s {o}"),
+            BitsDest::Heap(o) => format!("h {o}"),
+        };
+        let mut out = format!("leanvm-advice 1\nmain_frame {}\n", self.main_frame);
+        let mut pcs: Vec<_> = self.hints.iter().collect();
+        pcs.sort_by_key(|(pc, _)| **pc);
+        writeln!(out, "hints {}", pcs.len()).unwrap();
+        for (pc, hs) in pcs {
+            let hs: Vec<String> = hs
+                .iter()
+                .filter_map(|h| {
+                    Some(match h {
+                        RHint::FrameAddress { offset } => format!("fa {offset}"),
+                        RHint::AllocFrames {
+                            ptr,
+                            size,
+                            end,
+                            start_inverse,
+                            tail,
+                        } => {
+                            format!("af {ptr} {size} {end} {:x} {tail}", start_inverse.0)
+                        }
+                        RHint::Alloc { ptr, size } => format!("al {ptr} {size}"),
+                        RHint::AllocDyn { ptr, size } => format!("ad {ptr} {size}"),
+                        RHint::AllocAdvice { ptr, stream } => format!("av {ptr} {stream}"),
+                        RHint::AllocArm { ptr, sel, sizes } => {
+                            let sizes: Vec<String> = sizes.iter().map(u32::to_string).collect();
+                            format!("aa {ptr} {sel} {} {}", sizes.len(), sizes.join(" "))
+                        }
+                        RHint::CellAddress { ptr, cell } => format!("ca {ptr} {cell}"),
+                        RHint::WitnessStack { name, base, len } => format!("ws {name} {base} {len}"),
+                        RHint::WitnessHeap { name, ptr, lo, len } => format!("wh {name} {ptr} {lo} {len}"),
+                        RHint::Log2Ceil {
+                            bits,
+                            dst,
+                            nbits,
+                            floor,
+                        } => {
+                            format!("lc {} {dst} {nbits} {floor}", dest(bits))
+                        }
+                        RHint::BitDecompose { value, bits, nbits } => format!("bd {value} {} {nbits}", dest(bits)),
+                        RHint::BitDecomposeExp { value, bits, nbits } => {
+                            format!("be {value} {} {nbits}", dest(bits))
+                        }
+                        RHint::DigitDecomposeExp {
+                            value,
+                            dst,
+                            nbits,
+                            ndigits,
+                            digit_bits,
+                            start,
+                            start_cell,
+                        } => {
+                            let c = start_cell.map_or("-".to_string(), |c| c.to_string());
+                            format!("dd {value} {} {nbits} {ndigits} {digit_bits} {start} {c}", dest(dst))
+                        }
+                        RHint::WindowsExp {
+                            value,
+                            dest: d,
+                            at,
+                            start,
+                            width,
+                            count,
+                        } => {
+                            format!("we {value} {} {at} {start} {width} {count}", dest(d))
+                        }
+                        RHint::FieldLimbs { value, base, len } => format!("fl {value} {base} {len}"),
+                        RHint::Inverse { value, dst } => format!("iv {value} {dst}"),
+                        RHint::Print { .. } => return None,
+                    })
+                })
+                .collect();
+            writeln!(out, "{pc} {} {}", hs.len(), hs.join(" ")).unwrap();
+        }
+        let mut streams: Vec<_> = self.witness.iter().collect();
+        streams.sort_by_key(|(name, _)| name.as_str());
+        writeln!(out, "streams {}", streams.len()).unwrap();
+        for (name, entries) in streams {
+            write!(out, "{name} {}", entries.len()).unwrap();
+            for e in entries {
+                write!(out, " {}", e.len()).unwrap();
+                for w in e {
+                    write!(out, " {:x} {:x}", w.c0, w.c1).unwrap();
+                }
+            }
+            out.push('\n');
+        }
+        out
+    }
 }
 
 #[cfg(test)]

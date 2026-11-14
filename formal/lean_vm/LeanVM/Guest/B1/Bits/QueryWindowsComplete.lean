@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Bits.QueryWindowsHonest
+public import LeanVM.Guest.Exact.Defs
 
 /-!
 # `decode_query_windows`, complete (`crates/rec_aggregation/guests/lean_ethereum.py`)
@@ -91,17 +92,21 @@ structure QwEnv where
   tabs : E
   run : E
   np : ℕ
+  word : E
 
 /-- **An atom of a kind a placed proof covers**: its loads through `positions` or `win_ptrs` below
 `np`, or through `tabs·g^e`, `e < 128`; its `frameAddr`s of runs from `.n r`, `5 ≤ r < 41`, at
-`run·g^(r - 5)`; no `HeapBuf`. -/
+`run·g^(r - 5)`; its hints windows of the word at `.n 0` into frame cells, holding the executor's
+windows of `word` (`Hint.Exact`); no `HeapBuf`. -/
 def QwEnv.Ok (Q : QwEnv) (σ : Val) : Atom → Prop
   | .load _ q off => (σ q = Q.pos ∧ off < Q.np) ∨ (σ q = Q.ptrs ∧ off < Q.np) ∨
       ∃ e < 128, σ q = Q.tabs * gen ^ e ∧ off = 0
   | .frameAddr q (r :: _) => r = .n r.idx ∧ 5 ≤ r.idx ∧ r.idx < 41 ∧ σ q = Q.run * gen ^ (r.idx - 5)
   | .frameAddr _ [] => False
-  | .hint (.alloc ..) => False
-  | .hint (.allocDyn ..) => False
+  | .hint (.windowsExp v start width count (.stack ds)) => v = .n 0 ∧
+      ds.map σ = (List.range count).map fun i ↦
+        ofK (g ^ ((LeanVM.Prover.Exec.wordNat Q.word >>> (start + i * width)) % 2 ^ width))
+  | .hint _ => False
   | _ => True
 
 /-- Every atom of the block holds and is of a covered kind. -/
@@ -212,6 +217,32 @@ theorem qw_gen_pow_bound {w n : ℕ} (hw : w ≤ 7) (hn : n < 2 ^ w) :
   rw [qwBound_eq hw, ← pow_add, gen_pow_eq_ofK]
   congr 2; omega
 
+/-- A window of `W` hinted as `g^n`, `n` its bits from `start`: the executor's window. -/
+theorem qw_win_words {W : E} {start w n : ℕ} (h : n = (eToNat W >>> start) % 2 ^ w) :
+    [gen ^ n] = (List.range 1).map fun i ↦
+      ofK (g ^ ((LeanVM.Prover.Exec.wordNat W >>> (start + i * w)) % 2 ^ w)) := by
+  subst h
+  simp only [List.range_one, List.map_cons, List.map_nil, Nat.zero_mul, Nat.add_zero, gen_pow_eq_ofK]
+  rfl
+
+theorem qw_split_lo {X s w a : ℕ} (ha : a ≤ w) : (X >>> s) % 2 ^ w % 2 ^ a = (X >>> s) % 2 ^ a :=
+  Nat.mod_mod_of_dvd _ (Nat.pow_dvd_pow 2 ha)
+
+theorem qw_split_hi {X s w a : ℕ} (ha : a ≤ w) :
+    (X >>> s) % 2 ^ w / 2 ^ a = (X >>> (s + a)) % 2 ^ (w - a) := by
+  rw [show 2 ^ w = 2 ^ a * 2 ^ (w - a) by rw [← Nat.pow_add, Nat.add_sub_cancel' ha],
+    Nat.mod_mul_right_div_self, Nat.shiftRight_add, Nat.shiftRight_eq_div_pow (X >>> s) a]
+
+/-- **Window `i` of position `j`'s honest value is the word's bits** at the window's place. -/
+theorem qwVal_posOf {d cd : ℕ} (hs : QwShape d cd) (w : E) {j i : ℕ} (hi : i < qwN d cd) :
+    qwVal d cd (qwPosOf d w j) i = (eToNat w >>> (j * d + (qwWin d cd i).1)) % 2 ^ (qwWin d cd i).2 := by
+  obtain ⟨-, -, -, hd⟩ := hs.2.2.2.2.2.1 i hi
+  have hp : 2 ^ d = 2 ^ (qwWin d cd i).1 * 2 ^ (d - (qwWin d cd i).1) := by
+    rw [← Nat.pow_add]; congr 1; omega
+  rw [qwVal, qwPosOf, Nat.shiftRight_eq_div_pow, Nat.shiftRight_eq_div_pow,
+    Nat.shiftRight_eq_div_pow, hp, Nat.mod_mul_right_div_self, Nat.div_div_eq_div_mul, ← Nat.pow_add,
+    Nat.mod_mod_of_dvd _ (Nat.pow_dvd_pow 2 (by omega))]
+
 section reads
 
 variable {rd : Reader} {Q : QwEnv} (hT : WinTabs rd Q.tabs)
@@ -225,7 +256,7 @@ theorem qw_tabs {n : ℕ} (hn : n < 128) : LoadHolds rd (Q.tabs * gen ^ n) 0 (eO
 /-! ## A window read -/
 
 theorem qwRead_complete {l : List E} {k : ℕ} (hl : l.length = k) {c : V} {start w n : ℕ}
-    (hw : w ≤ 7) (hn : n < 2 ^ w) (hpre : QwStab l fun σ ↦ σ c = gen ^ n ∧ σ (.n 3) = Q.tabs) :
+    (hw : w ≤ 7) (hn : n < 2 ^ w) (hnW : n = (eToNat Q.word >>> start) % 2 ^ w) (hpre : QwStab l fun σ ↦ σ c = gen ^ n ∧ σ (.n 3) = Q.tabs) :
     QwExt l (qwRead c start w k).2.1 fun σ ↦
       qwAK rd Q σ (qwRead c start w k).1 ∧ σ (qwRead c start w k).2.2 = eOfNat n := by
   have h2w : 2 ^ w ≤ 128 := le_trans (Nat.pow_le_pow_right (n := 2) (by decide) hw) (by decide)
@@ -235,11 +266,12 @@ theorem qwRead_complete {l : List E} {k : ℕ} (hl : l.length = k) {c : V} {star
   rw [← List.append_assoc] at hc h3
   have hm : List.length [qwBound w, gen ^ (2 ^ w - 1 - n), qwRd rd n, qwRd rd (2 ^ w - 1 - n),
     Q.tabs * gen ^ n, eOfNat n] = 6 := rfl
-  simp only [qwRead, qwAK_cons, qwAK_nil, Atom.Holds, QwEnv.Ok, and_true]
+  simp only [qwRead, qwAK_cons, qwAK_nil, Atom.Holds, QwEnv.Ok, and_true, List.map_cons, List.map_nil]
   simp (disch := omega) only [qwOaN hl hm, Nat.add_sub_cancel_left, Nat.sub_self, List.getD_cons_zero,
     List.getD_cons_succ]
   rw [hc, h3]
-  exact ⟨⟨trivial, trivial, ⟨qw_lh hlow (by omega), qw_gen_pow_bound hw hn, qw_lh hlow (by omega)⟩, rfl,
+  exact ⟨⟨⟨trivial, trivial, qw_win_words hnW⟩, trivial,
+    ⟨qw_lh hlow (by omega), qw_gen_pow_bound hw hn, qw_lh hlow (by omega)⟩, rfl,
     qw_tabs hT (by omega), Or.inr (Or.inr ⟨n, by omega, rfl⟩)⟩, trivial⟩
 
 /-! ## A split window -/
@@ -268,7 +300,9 @@ theorem qwSplit_eq (c : V) (start a w k : ℕ) : qwSplit c start a w k =
 
 omit hT in
 theorem qwSplitA_complete {l : List E} {k : ℕ} (hl : l.length = k) {start a w n1 n2 : ℕ}
-    (ha : a ≤ 7) (hwa : w - a ≤ 7) (hn1 : n1 < 2 ^ a) (hn2 : n2 < 2 ^ (w - a)) :
+    (ha : a ≤ 7) (hwa : w - a ≤ 7) (hn1 : n1 < 2 ^ a) (hn2 : n2 < 2 ^ (w - a))
+    (hn1W : n1 = (eToNat Q.word >>> start) % 2 ^ a)
+    (hn2W : n2 = (eToNat Q.word >>> (start + a)) % 2 ^ (w - a)) :
     QwExt l (k + 10) fun σ ↦ qwAK rd Q σ (qwSplitA start a w k) ∧ σ (.n k) = gen ^ n1 ∧
       σ (.n (k + 1)) = gen ^ n2 := by
   have h2a : 2 ^ a ≤ 128 := le_trans (Nat.pow_le_pow_right (n := 2) (by decide) ha) (by decide)
@@ -280,12 +314,14 @@ theorem qwSplitA_complete {l : List E} {k : ℕ} (hl : l.length = k) {start a w 
   have hm : List.length [gen ^ n1, gen ^ n2, qwBound a, gen ^ (2 ^ a - 1 - n1), qwRd rd n1,
     qwRd rd (2 ^ a - 1 - n1), qwBound (w - a), gen ^ (2 ^ (w - a) - 1 - n2), qwRd rd n2,
     qwRd rd (2 ^ (w - a) - 1 - n2)] = 10 := rfl
-  simp only [qwSplitA, qwAK_cons, qwAK_nil, Atom.Holds, QwEnv.Ok, and_true]
+  simp only [qwSplitA, qwAK_cons, qwAK_nil, Atom.Holds, QwEnv.Ok, and_true, List.map_cons, List.map_nil]
   simp (disch := omega) only [qwOaN hl hm, Nat.add_sub_cancel_left, Nat.sub_self,
     List.getD_cons_zero, List.getD_cons_succ]
   repeat' first
     | exact qw_lh hlow (by omega)
     | exact qw_gen_pow_bound (by omega) (by omega)
+    | exact qw_win_words hn1W
+    | exact qw_win_words hn2W
     | trivial
     | refine ⟨?_, ?_⟩
 
@@ -321,6 +357,8 @@ theorem qwSplitC_complete {l : List E} {k a : ℕ} (hl : l.length = k + 10 + a) 
 
 theorem qwSplit_complete {l : List E} {k : ℕ} (hl : l.length = k) {c : V} {start a w n1 n2 : ℕ}
     (ha1 : 1 ≤ a) (ha : a < w) (hw : w ≤ 7) (hn1 : n1 < 2 ^ a) (hn2 : n2 < 2 ^ (w - a))
+    (hn1W : n1 = (eToNat Q.word >>> start) % 2 ^ a)
+    (hn2W : n2 = (eToNat Q.word >>> (start + a)) % 2 ^ (w - a))
     (hpre : QwStab l fun σ ↦ σ c = gen ^ (n1 + 2 ^ a * n2) ∧ σ (.n 3) = Q.tabs) :
     QwExt l (qwSplit c start a w k).2.1 fun σ ↦ qwAK rd Q σ (qwSplit c start a w k).1 ∧
       σ (qwSplit c start a w k).2.2.1 = eOfNat n1 ∧ σ (qwSplit c start a w k).2.2.2 = eOfNat n2 := by
@@ -330,7 +368,7 @@ theorem qwSplit_complete {l : List E} {k : ℕ} (hl : l.length = k) {c : V} {sta
     le_trans (Nat.pow_le_pow_right (n := 2) (by decide) (show w - a ≤ 7 by omega)) (by decide)
   rw [qwSplit_eq]
   have h := (qwSplitA_complete (Q := Q) hlow hl (start := start) (w := w) (show a ≤ 7 by omega)
-    (show w - a ≤ 7 by omega) hn1 hn2).bind fun m1 hm1 hs1 ↦
+    (show w - a ≤ 7 by omega) hn1 hn2 hn1W hn2W).bind fun m1 hm1 hs1 ↦
     (qwSquares_complete (rd := rd) (Q := Q) a hm1 (x := .n (k + 1)) (X := gen ^ n2)
       (hs1.mono fun σ h ↦ h.2.2)).bind fun m2 hm2 hs2 ↦
       qwSplitC_complete hT (k := k) (c := c) hm2 (show n1 < 128 by omega) (show n2 < 128 by omega)
@@ -344,6 +382,7 @@ theorem qwSplit_complete {l : List E} {k : ℕ} (hl : l.length = k) {c : V} {sta
 theorem qwWindow_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd base cut at0 i : ℕ}
     {lo hi : Option V} {n : ℕ} {LO HI : E} (hw : (qwWin d cd i).2 ≤ 7)
     (hn : n < 2 ^ (qwWin d cd i).2)
+    (hnW : n = (eToNat Q.word >>> (base + (qwWin d cd i).1)) % 2 ^ (qwWin d cd i).2)
     (hpre : QwStab l fun σ ↦ σ (.n (5 + at0 + i)) = gen ^ n ∧ σ (.n 3) = Q.tabs ∧
       qwOpt σ lo = LO ∧ qwOpt σ hi = HI) :
     QwExt l (qwWindow d cd base cut at0 i k lo hi).2.1 fun σ ↦
@@ -358,7 +397,7 @@ theorem qwWindow_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd base 
   simp only
   by_cases h1 : off + w ≤ cut
   · rw [ite_pos' h1]
-    have h := ((qwRead_complete hT hlow hl (c := .n (5 + at0 + i)) (start := base + off) hw hn
+    have h := ((qwRead_complete hT hlow hl (c := .n (5 + at0 + i)) (start := base + off) hw hn hnW
       (hpre.mono fun σ h ↦ ⟨h.1, h.2.1⟩)).bind fun m1 hm1 hs1 ↦
       (qwScale_complete (rd := rd) (Q := Q) hm1 off (hs1.mono fun σ h ↦ h.2)).bind fun m2 hm2 hs2 ↦
         qwAcc_complete (rd := rd) (Q := Q) hm2 (acc := lo)
@@ -376,6 +415,7 @@ theorem qwWindow_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd base 
         exact hn
       have h := ((qwSplit_complete hT hlow hl (c := .n (5 + at0 + i)) (start := base + off)
         (show 1 ≤ cut - off by omega) (show cut - off < w by omega) hw hlt hdl
+        (by rw [hnW, qw_split_lo (by omega)]) (by rw [hnW, qw_split_hi (by omega)])
         (hpre.mono fun σ h ↦ ⟨by rw [h.1, Nat.mod_add_div], h.2.1⟩)).bind fun m1 hm1 hs1 ↦
         (qwScale_complete (rd := rd) (Q := Q) hm1 off (hs1.mono fun σ h ↦ h.2.1)).bind
           fun m2 hm2 hs2 ↦
@@ -390,7 +430,7 @@ theorem qwWindow_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd base 
       · rw [hav, qwLoT, ite_neg' h1, ite_pos' h2]
       · rw [hbv, qwHiT, ite_neg' h1, ite_pos' h2]
     · rw [ite_neg' h2]
-      have h := ((qwRead_complete hT hlow hl (c := .n (5 + at0 + i)) (start := base + off) hw hn
+      have h := ((qwRead_complete hT hlow hl (c := .n (5 + at0 + i)) (start := base + off) hw hn hnW
         (hpre.mono fun σ h ↦ ⟨h.1, h.2.1⟩)).bind fun m1 hm1 hs1 ↦
         (qwScale_complete (rd := rd) (Q := Q) hm1 (off - cut) (hs1.mono fun σ h ↦ h.2)).bind
           fun m2 hm2 hs2 ↦
@@ -405,7 +445,8 @@ theorem qwWindow_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd base 
 
 theorem qwWindows_complete {d cd base cut at0 : ℕ} {ns : ℕ → ℕ} : ∀ (i m : ℕ) {l : List E} {k : ℕ},
     l.length = k → ∀ {lo hi : Option V} {LO HI : E},
-    (∀ t < m, (qwWin d cd (i + t)).2 ≤ 7 ∧ ns (i + t) < 2 ^ (qwWin d cd (i + t)).2) →
+    (∀ t < m, (qwWin d cd (i + t)).2 ≤ 7 ∧ ns (i + t) < 2 ^ (qwWin d cd (i + t)).2 ∧
+      ns (i + t) = (eToNat Q.word >>> (base + (qwWin d cd (i + t)).1)) % 2 ^ (qwWin d cd (i + t)).2) →
     QwStab l (fun σ ↦ (∀ t < m, σ (.n (5 + at0 + (i + t))) = gen ^ ns (i + t)) ∧ σ (.n 3) = Q.tabs ∧
       qwOpt σ lo = LO ∧ qwOpt σ hi = HI) →
     QwExt l (qwWindows d cd base cut at0 i m k lo hi).2.1 fun σ ↦
@@ -421,7 +462,7 @@ theorem qwWindows_complete {d cd base cut at0 : ℕ} {ns : ℕ → ℕ} : ∀ (i
     have hb0 := hb 0 (by omega)
     simp only [Nat.add_zero] at hb0
     have h1 := qwWindow_complete hT hlow hl (base := base) (cut := cut) (at0 := at0) (lo := lo)
-      (hi := hi) hb0.1 hb0.2 (h.mono fun σ h' ↦ ⟨by simpa using h'.1 0 (by omega), h'.2.1, h'.2.2.1,
+      (hi := hi) hb0.1 hb0.2.1 hb0.2.2 (h.mono fun σ h' ↦ ⟨by simpa using h'.1 0 (by omega), h'.2.1, h'.2.2.1,
         h'.2.2.2⟩)
     have e : ∀ t, i + 1 + t = i + (t + 1) := fun t ↦ by omega
     have h2 := h1.bind fun m1 hm1 hs1 ↦
@@ -571,7 +612,7 @@ theorem qwPtr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j n : ℕ} (h
 
 theorem qwPos_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd : ℕ} (hs : QwShape d cd)
     {j : ℕ} (hj : j < 128 / d) {recon : Option V} {R : E} (hrec : recon = none → j = 0) {P : ℕ}
-    (hP : P < 2 ^ d) (hnp : Q.np = 128 / d) (hpos : LoadHolds rd Q.pos j (eOfNat P))
+    (hP : P < 2 ^ d) (hPW : P = qwPosOf d Q.word j) (hnp : Q.np = 128 / d) (hpos : LoadHolds rd Q.pos j (eOfNat P))
     (hptr : LoadHolds rd Q.ptrs j (Q.run * gen ^ (j * qwN d cd)))
     (hpre : QwStab l fun σ ↦ (∀ i < qwN d cd, σ (.n (5 + j * qwN d cd + i)) = gen ^ qwVal d cd P i) ∧
       QwBase rd Q σ ∧ qwOpt σ recon = R) :
@@ -607,7 +648,8 @@ theorem qwPos_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd : ℕ} (
         exact hc⟩)
   have hW := qwWindows_complete hT hlow (ns := qwVal d cd P) (base := j * d) (cut := cut)
     (at0 := j * qwN d cd) 0 (qwN d cd) hl (lo := none) (hi := none) (LO := 0) (HI := 0)
-    (fun t ht ↦ by rw [Nat.zero_add]; exact ⟨(hwin t ht).2.1, hns t ht⟩)
+    (fun t ht ↦ by
+      rw [Nat.zero_add]; exact ⟨(hwin t ht).2.1, hns t ht, by rw [hPW]; exact qwVal_posOf hs Q.word ht⟩)
     (hpre.mono fun σ ⟨hc, hb, _⟩ ↦ ⟨fun t ht ↦ by rw [Nat.zero_add]; exact hc t ht, hb.2.2.1,
       rfl, rfl⟩)
   have h := (hW.bind fun m1 hm1 hs1 ↦
@@ -636,6 +678,7 @@ theorem qwPos_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd : ℕ} (
 
 theorem qwPositions_complete {d cd : ℕ} (hs : QwShape d cd) {Ps : ℕ → ℕ}
     (hPs : ∀ j < 128 / d, Ps j < 2 ^ d) (hnp : Q.np = 128 / d)
+    (hPsW : ∀ j < 128 / d, Ps j = qwPosOf d Q.word j)
     (hrd : ∀ j < 128 / d, LoadHolds rd Q.pos j (eOfNat (Ps j)) ∧
       LoadHolds rd Q.ptrs j (Q.run * gen ^ (j * qwN d cd))) :
     ∀ (j m : ℕ) {l : List E} {k : ℕ}, l.length = k → ∀ {recon : Option V} {R : E},
@@ -654,11 +697,11 @@ theorem qwPositions_complete {d cd : ℕ} (hs : QwShape d cd) {Ps : ℕ → ℕ}
       · omega)
   | j, m + 1, l, k, hl, recon, R, hjm, hrec, h => by
     simp only [qwPositions]
-    have h1 := qwPos_complete hT hlow hl hs (j := j) (by omega) hrec (hPs j (by omega)) hnp
+    have h1 := qwPos_complete hT hlow hl hs (j := j) (by omega) hrec (hPs j (by omega)) (hPsW j (by omega)) hnp
       (hrd j (by omega)).1 (hrd j (by omega)).2
       (h.mono fun σ ⟨hc, hb, hR⟩ ↦ ⟨hc j (by omega), hb, hR⟩)
     have e : ∀ t, j + 1 + t = j + (t + 1) := fun t ↦ by omega
-    have h2 := h1.bind fun m1 hm1 hs1 ↦ qwPositions_complete hs hPs hnp hrd (j + 1) m hm1
+    have h2 := h1.bind fun m1 hm1 hs1 ↦ qwPositions_complete hs hPs hnp hPsW hrd (j + 1) m hm1
       (by omega) (fun h0 ↦ by
         have := (hs1 []).2.2
         rw [h0] at this
@@ -672,7 +715,8 @@ theorem qwPositions_complete {d cd : ℕ} (hs : QwShape d cd) {Ps : ℕ → ℕ}
 /-! ## The rest windows -/
 
 theorem qwRest_complete {d cd : ℕ} (hs : QwShape d cd) {rs : ℕ → ℕ}
-    (hrs : ∀ r < qwRestN d, rs r < 2 ^ (qwRestWin d r).2) :
+    (hrs : ∀ r < qwRestN d, rs r < 2 ^ (qwRestWin d r).2)
+    (hrsW : ∀ r < qwRestN d, rs r = (eToNat Q.word >>> (qwRestWin d r).1) % 2 ^ (qwRestWin d r).2) :
     ∀ (i m : ℕ) {l : List E} {k : ℕ}, l.length = k → ∀ {recon : Option V} {R : E},
     i + m ≤ qwRestN d → QwStab l (fun σ ↦ σ (.n 3) = Q.tabs ∧ qwOpt σ recon = R) →
     QwExt l (qwRest d i m k recon).2.1 fun σ ↦ qwAK rd Q σ (qwRest d i m k recon).1 ∧
@@ -690,13 +734,13 @@ theorem qwRest_complete {d cd : ℕ} (hs : QwShape d cd) {rs : ℕ → ℕ}
         rw [qwOaN hl (m := [gen ^ rs i]) (N := 1) rfl le_rfl (by omega)]; simp⟩
     have e : ∀ t, i + 1 + t = i + (t + 1) := fun t ↦ by omega
     have h2 := h0.bind fun m0 hm0 hs0 ↦
-      (qwRead_complete hT hlow hm0 (c := .n k) (start := (qwRestWin d i).1) hw7 (hrs i (by omega))
+      (qwRead_complete hT hlow hm0 (c := .n k) (start := (qwRestWin d i).1) hw7 (hrs i (by omega)) (hrsW i (by omega))
         (((h.ext m0).and hs0).mono fun σ ⟨⟨h3, _⟩, hk⟩ ↦ ⟨hk, h3⟩)).bind fun m1 hm1 hs1 ↦
         (qwScale_complete (rd := rd) (Q := Q) hm1 (qwRestWin d i).1 (hs1.mono fun σ h ↦ h.2)).bind
           fun m2 hm2 hs2 ↦
           (qwAcc_complete (rd := rd) (Q := Q) hm2 (acc := recon)
             ((((h.ext m0).ext m1).ext m2).and hs2 |>.mono fun σ h ↦ ⟨h.1.2, h.2.2⟩)).bind
-            fun m3 hm3 hs3 ↦ qwRest_complete hs hrs (i + 1) m hm3 (by omega)
+            fun m3 hm3 hs3 ↦ qwRest_complete hs hrs hrsW (i + 1) m hm3 (by omega)
               ((((h.ext m0).ext m1).ext m2).ext m3 |>.and hs3 |>.mono fun σ h ↦ ⟨h.1.1, h.2.2⟩)
     refine h2.mono fun σ ⟨_, ⟨hr, _⟩, ⟨hsc, _⟩, ⟨ha, _⟩, hrest, ev, esome⟩ ↦
       ⟨qwAK_append.mpr ⟨qwAK_append.mpr ⟨qwAK_append.mpr ⟨hr, hsc⟩, ha⟩, hrest⟩, ?_,
@@ -739,9 +783,9 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
     (hrd : ∀ j < 128 / d, LoadHolds rd pos j (eOfNat (qwPosOf d w j)) ∧
       LoadHolds rd ptrs j (run * gen ^ (j * qwN d cd))) :
     ∃ σ : Val, [V.n 0, .n 1, .n 2, .n 3].map σ = [w, pos, ptrs, tabs] ∧
-      qwAK rd ⟨pos, ptrs, tabs, run, 128 / d⟩ σ (qwBody d cd) ∧
+      qwAK rd ⟨pos, ptrs, tabs, run, 128 / d, w⟩ σ (qwBody d cd) ∧
       ∀ C : CallRel, Stmt.HoldsList C rd σ (qwBody d cd) False (fun rs ↦ rs = []) := by
-  set Q : QwEnv := ⟨pos, ptrs, tabs, run, 128 / d⟩ with hQ
+  set Q : QwEnv := ⟨pos, ptrs, tabs, run, 128 / d, w⟩ with hQ
   have hT' : WinTabs rd Q.tabs := hT
   have hd14 := hs.1
   have hper : 128 / d * d ≤ 128 := Nat.div_mul_le_self 128 d
@@ -786,10 +830,10 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
       exact ⟨rfl, le_rfl, by decide, by rw [h4]; simp⟩
   -- the positions, the rest
   have hpos := qwPositions_complete (Q := Q) hT' hlow hs (Ps := qwPosOf d w)
-    (fun j _ ↦ qwPosOf_lt d w j) rfl hrd 0 (128 / d) hl0 (recon := none) (R := 0) (by omega)
+    (fun j _ ↦ qwPosOf_lt d w j) rfl (fun _ _ ↦ rfl) hrd 0 (128 / d) hl0 (recon := none) (R := 0) (by omega)
     (fun _ ↦ rfl) ((hcells.and hbase).mono fun σ h ↦ ⟨h.1, h.2, rfl⟩)
   have hall := (hpos.bind fun m1 hm1 hs1 ↦
-    qwRest_complete (Q := Q) hT' hlow hs (rs := qwRestOf d w) (fun r _ ↦ qwRestOf_lt d w r) 0
+    qwRest_complete (Q := Q) hT' hlow hs (rs := qwRestOf d w) (fun r _ ↦ qwRestOf_lt d w r) (fun _ _ ↦ rfl) 0
       (qwRestN d) hm1 (recon := (qwPositions d cd 0 (128 / d) 41 none).2.2) (by omega)
       (((hbase.ext m1).and hs1).mono fun σ h ↦ ⟨h.1.2.2.1, h.2.2.1⟩)).and_stab
     ((hFA.and hw0).and hbase)

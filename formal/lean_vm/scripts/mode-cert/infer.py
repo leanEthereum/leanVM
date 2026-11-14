@@ -1,0 +1,636 @@
+"""Signatures and residuals for the mode walk (`LeanVM/Guest/Mode/Abs.lean`), inferred callee
+first, by `walk.py`, a mirror of the Lean walk with demand hooks. Prints how many functions pass,
+and the residuals and failures; `gen.py` writes the certificates from them."""
+import sys, os, collections
+sys.setrecursionlimit(100000)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from walk import *
+import data
+P = data.load()
+fns, HINTS, POWS, JT = P['fns'], P['hints'], P['pows'], P['jt']
+byentry = {f['entry']: f for f in fns.values()}
+JT_LO, JT_HI, HALT = 430, 14367, 2 ** 19 - 1
+
+
+def conv(op, a):
+    if op in ('xor', 'mul'): return tuple(map(int, a))
+    if op == 'set': return tuple(map(int, a))
+    if op == 'deref': return (int(a[0]), int(a[1]), int(a[2]), a[3])
+    if op == 'jump': return tuple(map(int, a))
+    if op == 'keccak': return tuple(map(int, a[:8])) + (a[8] == 'true', a[9] == 'true', a[10])
+    raise Exception(op)
+
+
+for f in fns.values():
+    f['ops'] = [(op, conv(op, a)) for op, a in f['code']]
+    f['hints'] = {pc - f['entry']: hs for pc, hs in HINTS.items() if f['entry'] <= pc < f['entry'] + f['count']}
+
+_b = set()
+for f in fns.values():
+    c = f['ops']
+    for i in range(1, len(c)):
+        a, b = c[i - 1], c[i]
+        if a[0] == 'deref' and b[0] == 'jump' and a[1][3] == '.cell' and a[1][2] == b[1][1]:
+            _b.add(a[1][1])
+_bl = sorted(_b)
+REGION = {t: (_bl[k + 1] if k + 1 < len(_bl) else JT_HI) - t for k, t in enumerate(_bl)}
+for f in fns.values():
+    c = f['ops']; f['tabs'] = {}
+    for i in range(1, len(c)):
+        a, b = c[i - 1], c[i]
+        if a[0] == 'deref' and b[0] == 'jump' and a[1][3] == '.cell' and a[1][2] == b[1][1]:
+            f['tabs'][i] = REGION[a[1][1]]
+
+E = Env(POWS, JT, JT_LO, JT_HI, HALT)
+
+calls = collections.defaultdict(set)
+for f in fns.values():
+    for op, a in f['ops']:
+        if op == 'set' and a[2] == 0 and POWS.get(a[1]) in byentry:
+            calls[f['name']].add(byentry[POWS[a[1]]]['name'])
+    c = f['ops']
+    for i in range(1, len(c)):
+        a, b = c[i - 1], c[i]
+        if a[0] == 'deref' and b[0] == 'jump' and a[1][3] == '.cell' and a[1][2] == b[1][1]:
+            for j in range(REGION[a[1][1]]):
+                g = byentry.get(JT.get(a[1][1] + j))
+                if g: calls[f['name']].add(g['name'])
+order = []; seen = set()
+
+
+def dfs(n):
+    seen.add(n)
+    for m in sorted(calls[n]):
+        if m not in seen and m != n: dfs(m)
+    order.append(n)
+
+
+for n in sorted(fns, key=lambda n: fns[n]['entry']):
+    if n not in seen: dfs(n)
+
+# loop helpers: a tail call into themselves; their self cell
+isloop = set()
+selfc = {}
+for f in fns.values():
+    c = f['ops']
+    for i, (op, a) in enumerate(c):
+        if op == 'deref' and a[3] == '.cell' and a[0] == a[2]:
+            for d in range(1, 5):
+                if i + d < len(c) and c[i + d][0] == 'jump':
+                    od = c[i + d][1][1]
+                    for k in range(i - 1, max(-1, i - 300), -1):
+                        if c[k][0] == 'set' and c[k][1][0] == od:
+                            e = POWS.get(c[k][1][1])
+                            if e is not None: selfc[e] = a[1]
+                            break
+                    break
+for f in fns.values():
+    if f['name'] in calls[f['name']]: isloop.add(f['name'])
+
+
+def loopBound(f):
+    """A loop's bound: the exponent its next counter meets at the exit, a parameter's or a constant."""
+    c = f['ops']
+    sets = {a[0]: a[1] for op, a in c if op == 'set' and a[2] == 0}
+    muls = {a[2]: a for op, a in c if op == 'mul'}
+    for op, a in c:
+        if op == 'jump' and a[1] in sets and POWS.get(sets[a[1]]) == f['entry']:
+            for x, y, z in (a2 for op2, a2 in c if op2 == 'xor' and a2[2] == a[0]):
+                for nx, b in ((x, y), (y, x)):
+                    m = muls.get(nx)
+                    if m is not None and 2 in m[:2] and POWS.get(sets.get(m[1] if m[0] == 2 else m[0])) == 1:
+                        if b in sets and POWS.get(sets[b]) is not None: return ('num', POWS[sets[b]])
+                        return ('ex', ('fr', b), 0)
+    return ('ex', ('fr', 3), 0)
+
+
+BOUND = {n: loopBound(fns[n]) for n in isloop}
+
+
+def params(f): return set(range(2, 2 + f.get('nargs', 0)))
+
+
+def ifaceBase(f, b):
+    return b[1] in params(f)
+
+
+def ifaceMono(f, m):
+    return m[0] == 0 and all(ifaceBase(f, b) for b, e in m[2])
+
+
+def ifaceIdx(f, i):
+    return i[0] == 'num' or ifaceBase(f, i[1])
+
+
+class Infer:
+    def __init__(self, f):
+        self.f = f; self.pre = set(); self.preR = set(); self.res = collections.defaultdict(list)
+        self.preP = {}
+        self.new = False; self.unres = []; self.w = None
+
+    def demand(self, kind, i, *rest):
+        f = self.f
+        if kind == 'lnk':
+            o, (k, i0), A = rest
+            return self.key(k, i0, A)
+        if kind == 'nz':
+            kn, A = rest
+            self.res[i].append(('nz', kn)); self.new = True; return True
+        if kind == 'pre':
+            name, m, k, A = rest
+            if isinstance(name, tuple) and name[0] == 'tail':
+                return False
+            if k is None: return False
+            if self.key(k, i, A): return True
+            if self.armSub(k, i, A): return True
+            # a heap cell linked to frame cells loaded from unknown cells: those loads' cells
+            for c in self.w.lnks.get(k, []):
+                if c in self.w.lnk and c not in A.w and self.key(self.w.lnk[c][0], self.w.lnk[c][1], A): return True
+            return False
+        if kind == 'preP':
+            name, r, os, r2, A = rest
+            if isinstance(name, tuple) and name[0] == 'tail': return False
+            if r2 is not None and ifaceMono(f, r2[0]) and ifaceIdx(f, r2[1]) and ifaceIdx(f, r2[2]) and r2[0][2]:
+                self.addP(r2, os, A); return True
+            return False
+        if kind == 'preR':
+            name, r, r2, A = rest
+            if isinstance(name, tuple) and name[0] == 'tail': return False
+            if r2 is not None and ifaceMono(f, r2[0]) and ifaceIdx(f, r2[1]) and ifaceIdx(f, r2[2]) and r2[0][2]:
+                self.preR.add(r2); self.new = True; A.r.add(r2); return True
+            return r2 is not None and self.linSub(r2, i, A)
+        if kind == 'entry':
+            name, o, A, cs, lnk = rest
+            for c in cs:
+                if c in lnk and lnk[c][0] != None:
+                    k2, i0 = lnk[c]
+                    if self.key(k2, i0, A):
+                        return True
+            return False
+        if kind == 'H':
+            k, A = rest
+            return self.key(k, i, A)
+        if kind == 'sel':
+            x, n, A = rest
+            r = ('lt', ('ex', x, 0), ('num', n))
+            self.res[i].append(r); self.new = True; A.lt.add((r[1], r[2])); return True
+        return False
+
+    def armSub(self, k, i, A):
+        """A table call's arm reading `q·g^c`, inside a run the function holds over part of `q`: the run
+        over `q` below the selector's exponent is inside it (`Res.sub`), and `c` below the arm's index."""
+        x = self.w.cursel if self.w is not None else None
+        if x is None or k[0] != 0 or not k[2]: return False
+        q = (0, 0, k[2])
+        for R in sorted(A.r, key=str):
+            Q, lo, hi, S, d = R
+            if lo != ('num', 0) or S != 1 or d != 0 or not Q[2] or Q[1] != 0 or Q[2] == k[2]: continue
+            rest = dict(k[2])
+            if not all(rest.get(b, 0) >= e for b, e in Q[2]): continue
+            if not ifaceMono(self.f, Q): continue
+            a = (q, ('num', 0), ('ex', x, 0), 1, 0)
+            self.addRes(i, ('sub', a, [R])); A.r.add(a); return True
+        return False
+
+    def addRes(self, i, r):
+        if r not in self.res[i]:
+            self.res[i].append(r); self.new = True
+
+    def linSub(self, r2, i, A):
+        """A run over a bound not the interface's, inside a run over a parameter's bound by the code's
+        arithmetic: the parameter's word the bound's to the stride times more (`q^S r = n`), or the
+        bound's times `g^k` (`n / g`). A residual (`Res.sub`) and the parameter's run a precondition."""
+        f = self.f
+        q, lo, hi, S, d = r2
+        if not (q[2] and ifaceMono(f, q) and ifaceIdx(f, lo) and hi[0] == 'ex'): return False
+        hb, t = hi[1], hi[2]
+        if hb[0] == 'fr': mh = A.mono(hb[1])
+        else:
+            x = A.hvGet((0, hb[2], ((('fr', hb[1]), 1),)))
+            mh = x[1] if x is not None and x[0] == 'm' else None
+        cands = []
+        if mh is not None and mh[0] == 0 and t == 0 and lo == ('num', 0):
+            for p in sorted(params(f)):
+                mp = A.mono(p)
+                if mp is None or mp[0] != 0 or mp == root(p) or mp[1] < S * mh[1]: continue
+                dm = dict(mp[2])
+                if all(dm.get(b, 0) >= S * e for b, e in mh[2]):
+                    cands.append((q, ('num', 0), ('ex', ('fr', p), 0), 1, 0))
+        if hb[0] == 'fr':
+            for op, a in f['ops']:
+                if op == 'mul' and a[2] in params(f) and hb[1] in a[:2]:
+                    mo = A.mono(a[1] if a[0] == hb[1] else a[0])
+                    if mo is not None and mo[0] == 0 and not mo[2] and mo[1] >= t:
+                        cands.append((q, lo, ('ex', ('fr', a[2]), 0), S, d))
+        for b in cands:
+            self.preR.add(b); self.new = True; A.r.add(b)
+            self.addRes(i, ('sub', r2, [b])); A.r.add(r2)
+            return True
+        return False
+
+    def addP(self, r, os, A):
+        old = self.preP.get(r, set())
+        if not set(os) <= old:
+            self.preP[r] = old | set(os); self.new = True
+        A.p.add((r, tuple(sorted(self.preP[r]))))
+
+    def pkey(self, k2, o, A):
+        """A cell `o` past a pointer loaded from the heap cell `k2`: a run of such pointers."""
+        f = self.f
+        if k2[0] != 0: return False
+        for (x, e) in k2[2]:
+            if x[0] != 'fr': continue
+            Q = tuple((b, ee) for b, ee in k2[2] if b != x)
+            if not (Q and ifaceMono(f, (0, 0, Q))): continue
+            if f['name'] in isloop and x == ('fr', 2):
+                r = ((0, 0, Q), ('ex', x, 0), ('ex', x, 1), e, k2[1])
+                for r0 in self.preP:
+                    if r0[0] == r[0] and r0[3] == e and r0[4] == k2[1]: r = r0
+                self.addP(r, (o,), A); return True
+            for (p, hi) in sorted(A.lt, key=lambda t: (t[1][0] != 'num', t[1][1] if t[1][0] == 'num' else 0)):
+                if p == ('ex', x, 0) and ifaceIdx(f, hi) and hi != ('num', MAXCELLS):
+                    self.addP(((0, 0, Q), ('num', 0), hi, e, k2[1]), (o,), A); return True
+        return False
+
+    def key(self, k, i0, A, depth=0):
+        f = self.f
+        if k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and k[2][0][0][0] == 'fr' and self.w is not None:
+            c = k[2][0][0][1]
+            if c in self.w.ld and self.pkey(self.w.ld[c], k[1], A):
+                A.h.add(k); return True
+        # a jump table load through an unbounded selector: residual bound
+        if (i0 + 1) in f['tabs'] and k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and k[1] in REGION:
+            x = k[2][0][0]
+            r = ('lt', ('ex', x, 0), ('num', REGION[k[1]]))
+            if r not in self.res[i0]:
+                self.res[i0].append(r); self.new = True
+            A.lt.add((r[1], r[2])); return True
+        if k[0] == 0 and k[2] and ifaceMono(f, k):
+            self.pre.add(k); self.new = True; A.h.add(k); return True
+        # a table read at a loaded offset, inside a table the caller holds
+        tab = TABLES.get(tuple(sorted(m for m in calls if f['name'] in calls[m] and m != f['name'])))
+        # an entry's cell: one pointer, the other bases' powers whole entries
+        if tab is not None and k[0] == 0 and k[2] and depth == 0 and \
+                sorted(e % tab[2] for b, e in k[2]) == [0] * (len(k[2]) - 1) + [1]:
+            T, hi, S = tab
+            bs = [((0, 0, ((T, 1),)), ('num', 0), hi, S, c) for c in range(S)]
+            for b in bs: self.preR.add(b); A.r.add(b)
+            # the entry's whole stride of cells, once
+            a = ((0, k[1] - k[1] % S, k[2]), ('num', 0), ('num', S), 1, 0)
+            if not any(('sub', a, bs) in rs for rs in self.res.values()): self.addRes(i0, ('sub', a, bs))
+            A.r.add(a); return True
+        # a table written at the loaded words of a permutation: every cell
+        if k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and depth == 0:
+            b = k[2][0][0]
+            P = sorted(m for m in A.h if m[0] == 0 and m[1] == 0 and len(m[2]) == 2 and (b, 1) in m[2]
+                       and all(e == 1 for _, e in m[2]))
+            if len(P) > max(1, k[1]):
+                a = ((0, 0, ((b, 1),)), ('num', 0), ('num', len(P)), 1, 0)
+                self.addRes(i0, ('sub', a, [(m, ('num', 0), ('num', 1), 1, 0) for m in P])); A.r.add(a); return True
+        # a bounded table read: the loads its uncovered cells were linked to
+        if self.w is not None and k[0] == 0 and depth < 4:
+            got = False
+            for b, e in k[2]:
+                q = (0, 0, tuple(x for x in k[2] if x[0] != b))
+                n = A.bound(('ex', b, 1))
+                if n is None or n > 64: continue
+                for j in range(n):
+                    pt = shift(q, e * j + k[1])
+                    if A.covered(pt): continue
+                    for c in self.w.lnks.get(pt, []):
+                        if c in self.w.lnk and self.key(self.w.lnk[c][0], self.w.lnk[c][1], A, depth + 1): got = True
+            if got: A.h.add(k); return True
+        if k[0] != 0 or not k[2]: return False
+        for (x, e) in k[2]:
+            if x[0] != 'fr': continue
+            Q = tuple((b, ee) for b, ee in k[2] if b != x)
+            if not (Q and ifaceMono(f, (0, 0, Q))): continue
+            for (p, hi) in sorted(A.lt, key=lambda t: (t[1][0] != 'num', t[1][1] if t[1][0] == 'num' else 0)):
+                if p == ('ex', x, 0) and ifaceIdx(f, hi) and hi != ('num', MAXCELLS):
+                    r = ((0, 0, Q), ('num', 0), hi, e, k[1])
+                    self.preR.add(r); self.new = True; A.r.add(r); return True
+        return False
+
+
+def statMono(f):
+    """Each cell's word as a product, from the function's own `SET`s and `MUL`s, its named products
+    (`names`) their cells' words."""
+    m = {}
+    named = {r[1] for rs in names(f).values() for r in rs}
+    for op, a in f['ops']:
+        if op == 'set':
+            e = POWS.get(a[1]) if a[2] == 0 else None
+            m[a[0]] = gp(e) if e is not None else None
+        elif op == 'mul':
+            x = m.get(a[0], root(a[0])); y = m.get(a[1], root(a[1]))
+            m[a[2]] = None if x is None or y is None else root(a[2]) if a[2] in named else mul(x, y)
+        elif op == 'xor': m[a[2]] = None
+    return m
+
+
+def callArgs(f):
+    """At each call or tail call to a known entry: the callee and its frame cells' caller cells."""
+    sets = {}; args = collections.defaultdict(dict); out = []
+    for op, a in f['ops']:
+        if op == 'set': sets[a[0]] = a[1] if a[2] == 0 else None
+        if op == 'deref' and a[3] == '.cell': args[a[0]][a[1]] = a[2]
+        if op == 'jump':
+            g = byentry.get(POWS.get(sets.get(a[1]), -1))
+            if g is not None and a[2] in args: out.append((g['name'], dict(args[a[2]])))
+    return out
+
+
+def tables():
+    """The tables each function holds as a base cell and a length cell: an allocation whose size is a
+    cell's word to a power (`L^S`, `S` cells an entry), and, at every call from another function, a
+    pair of argument cells its caller holds as one."""
+    T = collections.defaultdict(set)
+    for f in fns.values():
+        m = statMono(f)
+        for hs in f['hints'].values():
+            for h in hs:
+                sz = m.get(h[2], root(h[2])) if h[0] == 'ad' else None
+                if sz and sz[0] == 0 and sz[1] == 0 and len(sz[2]) == 1 and sz[2][0][0][0] == 'fr':
+                    T[f['name']].add((h[1], sz[2][0][0][1], sz[2][0][1]))
+    into = collections.defaultdict(list)
+    for f in fns.values():
+        for g, args in callArgs(f):
+            if g != f['name']: into[g].append((f['name'], args))
+    changed = True
+    while changed:
+        changed = False
+        for g, cl in into.items():
+            cand = None
+            for n, args in cl:
+                inv = collections.defaultdict(list)
+                for o, x in args.items(): inv[x].append(o)
+                here = {(ob, ol, S) for pb, pl, S in T[n] for ob in inv[pb] for ol in inv[pl]}
+                cand = here if cand is None else cand & here
+            if cand and not cand <= T[g]: T[g] |= cand; changed = True
+    return T
+
+
+
+# consecutive heap cells over one product, at least this many, are a run in a signature
+COMPACT = 8
+
+
+def compact(ms, rs):
+    """Points `ms` (products `q·g^k`), each `COMPACT` or more consecutive over one `q` made a run."""
+    by = collections.defaultdict(list)
+    for m in ms: by[(m[0], m[2])].append(m[1])
+    pts = set(); runs = set(rs)
+    for (fp, bs), ks in by.items():
+        ks = sorted(set(ks)); i = 0
+        while i < len(ks):
+            j = i
+            while j + 1 < len(ks) and ks[j + 1] == ks[j] + 1: j += 1
+            if fp == 0 and bs and j + 1 - i >= COMPACT:
+                runs.add(((0, 0, bs), ('num', ks[i]), ('num', ks[j] + 1), 1, 0))
+            else:
+                pts.update((fp, k, bs) for k in ks[i:j + 1])
+            i = j + 1
+    return pts, runs
+
+
+def mkSig(f, pre, preR, ret=(), post=(), postR=(), postL=(), preP=None, postP=(), postLP=(), retV=()):
+    if f['name'].startswith('verify_merkle_cap'): pre, preR = compact(pre, preR)
+    post, postR = compact(post, postR)
+    loop = f['name'] in isloop
+    term = [(('ex', ('fr', 2), 0), BOUND[f['name']])] if loop else []
+    preP = sorted((r, tuple(sorted(os))) for r, os in (preP or {}).items())
+    return Sig(f['entry'], list(range(2 + f.get('nargs', 0))), selfc.get(f['entry']), sorted(pre), sorted(preR), term,
+               ret, sorted(post), sorted(postR), sorted(postL), preP, sorted(postP), sorted(postLP), sorted(retV))
+
+
+def renameRet(f, A, m):
+    """A product over the walk's bases in the function's own terms (parameters, return cells)."""
+    rets = range(2 + f.get('nargs', 0), 2 + f.get('nargs', 0) + f.get('nret', 0))
+    ren = {}
+    for r in rets:
+        x = A.v.get(r)
+        if x and x[0] == 'm' and x[1][0] == 0 and x[1][1] == 0 and len(x[1][2]) == 1 and x[1][2][0][1] == 1:
+            ren.setdefault(x[1][2][0][0], ('fr', r))
+    bs = tuple(sorted((ren.get(b, b), e) for b, e in m[2]))
+    return (m[0], m[1], bs)
+
+
+def ptrRuns(f, A):
+    """Runs of pointers the heap words show: consecutive cells over one interface product, each
+    holding a word with the same leading cells past it written."""
+    by = collections.defaultdict(dict)
+    for k, x in A.hv.items():
+        if x[0] != 'm': continue
+        k2 = renameRet(f, A, k)
+        if not okIface(f, (k2[0], 0, k2[2])): continue
+        n = 0
+        while n < 64 and A.covered(shift(x[1], n)): n += 1
+        if n: by[(k2[0], k2[2])][k2[1]] = n
+    out = set()
+    for (fp, bs), d in by.items():
+        ks = sorted(d); i = 0
+        while i < len(ks):
+            j = i
+            while j + 1 < len(ks) and ks[j + 1] == ks[j] + 1: j += 1
+            if j > i:
+                n = min(d[k] for k in ks[i:j + 1])
+                out.add((((0, 0, bs), ('num', ks[i]), ('num', ks[j] + 1), 1, 0), tuple(range(n))))
+            i = j + 1
+    return out
+
+
+def okIface(f, m):
+    rets = set(range(2 + f.get('nargs', 0), 2 + f.get('nargs', 0) + f.get('nret', 0)))
+    return m[0] == 0 and m[2] and all(b[1] in params(f) or (b[0] == 'fr' and b[1] in rets) for b, e in m[2])
+
+
+def names(f):
+    """The products the walk names by their cells (`Res.name`), at the next offset: a `MUL` of two or
+    more words each once, itself never a pointer but to a jump table, each a sum, a word no arithmetic
+    of the function writes (an argument, a load's, a hint's), a named product or a power of `g`."""
+    c = f['ops']; num = {}; out = {}
+    ptrs = {a[0] for i, (op, a) in enumerate(c) if op == 'deref' and (i + 1) not in f['tabs']}
+    writes = {a[2] for op, a in c if op in ('xor', 'mul')} | {a[0] for op, a in c if op == 'set'}
+    for o in {x for op, a in c if op == 'mul' for x in a[:2]} - writes: num[o] = {o: 1}
+    for i, (op, a) in enumerate(c):
+        if op == 'xor': num[a[2]] = {a[2]: 1}
+        elif op == 'set': num.pop(a[0], None) if POWS.get(a[1]) is None or a[2] != 0 else num.__setitem__(a[0], {})
+        elif op == 'mul' and a[0] in num and a[1] in num:
+            m = dict(num[a[0]])
+            for b, e in num[a[1]].items(): m[b] = m.get(b, 0) + e
+            if len(m) >= 2 and all(e == 1 for e in m.values()) and a[2] not in ptrs and i + 1 < len(c):
+                out.setdefault(i + 1, []).append(('name', a[2])); num[a[2]] = {a[2]: 1}
+            else: num[a[2]] = m
+        elif op == 'mul': num.pop(a[2], None)
+    return out
+
+
+# tables of entries a function reads at loaded offsets, by its callers: the one table of entries of
+# several cells the caller holds, its base and length the caller's cells, as strided runs
+TABLES = {(n,): (('hp', 1, b), ('ex', ('hp', 1, l), 0), S) for n, ts in tables().items()
+          if len([t for t in ts if t[2] > 1]) == 1 for b, l, S in ts if S > 1}
+
+
+def infer(n):
+    try: return infer1(n, False)
+    except Fail as e:
+        try: return infer1(n, True)
+        except Fail: raise e
+
+
+def infer1(n, named):
+    f = fns[n]
+    I = Infer(f)
+    if named:
+        for i, rs in names(f).items(): I.res[i] = list(rs)
+    main = n == 'main'
+    for it in range(200):
+        sig = mkSig(f, I.pre, I.preR, preP=I.preP)
+        E.sigs[f['entry']] = sig
+        I.new = False
+        w = Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main, demand=I.demand)
+        I.w = w
+        try:
+            w.run(f['ops'])
+        except Fail as e:
+            if not I.new:
+                # loop transport: a run of pointers at the counter's point, over the counter's range
+                if n in isloop and e.args[0][0] == 'preP' and isinstance(e.args[0][2], tuple):
+                    r = e.args[0][3]
+                    if r in I.preP and r[1] == ('ex', ('fr', 2), 0) and r[2] == ('ex', ('fr', 2), 1):
+                        I.preP[(r[0], r[1], BOUND[n], r[3], r[4])] = I.preP.pop(r)
+                        continue
+                # loop transport: generalize uncovered pre points over the counter
+                if n in isloop and e.args[0][0] == 'pre' and isinstance(e.args[0][2], tuple):
+                    m = e.args[0][3]
+                    S = dict(m[2]).get(('fr', 2))
+                    if S:
+                        Q = tuple((b, x) for b, x in m[2] if b != ('fr', 2))
+                        I.pre.discard(m)
+                        I.preR.add(((0, 0, Q), ('ex', ('fr', 2), 0), BOUND[n], S, m[1]))
+                        continue
+                raise
+            continue
+        if not I.new: break
+    else:
+        raise Fail(('nofix',))
+    # posts
+    nr = f.get('nret', 0); na = f.get('nargs', 0)
+    rets = list(range(2 + na, 2 + na + nr))
+    ret = [o for o in rets if all(o in A.w for A in w.rets)] if w.rets else rets
+    post = None; postR = None
+    for A in w.rets:
+        ks = {renameRet(f, A, k) for k in A.h}
+        ks = {k for k in ks if okIface(f, k)}
+        post = ks if post is None else post & ks
+        rs = set()
+        for (q, lo, hi, S, d) in A.r:
+            q2 = renameRet(f, A, q)
+            if okIface(f, q2) and ifaceIdx(f, lo) and ifaceIdx(f, hi): rs.add((q2, lo, hi, S, d))
+        postR = rs if postR is None else postR & rs
+    post = post or set(); postR = postR or set()
+    retV = set()
+    if w.rets and n not in isloop:
+        for o in ret:
+            ms = {A.mono(o) for A in w.rets}
+            if len(ms) == 1:
+                m = ms.pop()
+                if m is not None and m[0] == 0 and m[2] and all(b[0] == 'fr' and b[1] in params(f) for b, e in m[2]):
+                    retV.add((o, m))
+    postP = None
+    for A in w.rets:
+        ps = set()
+        for (q, lo, hi, S, d), os in A.p:
+            q2 = renameRet(f, A, q)
+            if okIface(f, q2) and ifaceIdx(f, lo) and ifaceIdx(f, hi): ps.add(((q2, lo, hi, S, d), os))
+        ps |= ptrRuns(f, A)
+        postP = ps if postP is None else postP & ps
+    postP = postP or set()
+    postL = set(); postLP = set()
+    if n in isloop:
+        ends = w.rets + [t[0] for t in w.tails]
+        cand = None
+        for A in ends:
+            ks = {k for k in A.h if k[0] == 0 and dict(k[2]).get(('fr', 2)) and ifaceMono(f, k)}
+            # the points of a run over a product with the counter
+            for (q, lo, hi, S, d) in A.r:
+                if q[0] == 0 and dict(q[2]).get(('fr', 2)) and ifaceMono(f, q) and lo[0] == 'num' and hi[0] == 'num' and hi[1] - lo[1] <= 128:
+                    ks |= {shift(q, S * j + d) for j in range(lo[1], hi[1])}
+            cand = ks if cand is None else cand & ks
+        cand = cand or set()
+        for k in cand:
+            S = dict(k[2])[('fr', 2)]
+            Q = tuple((b, x) for b, x in k[2] if b != ('fr', 2))
+            # an entry point the iteration writes a stride on: the caller has it from the next's run (`extR`)
+            if k in I.pre and shift(k, S) in cand: continue
+            if Q: postL.add(((0, 0, Q), ('ex', ('fr', 2), 0), BOUND[n], S, k[1]))
+        pcand = None
+        for A in ends:
+            ks = {}
+            for (q, lo, hi, S, d), os in A.p:
+                if q[0] == 0 and dict(q[2]).get(('fr', 2)) and ifaceMono(f, q) and lo[0] == 'num' and hi[0] == 'num' and hi[1] - lo[1] <= 128:
+                    for j in range(lo[1], hi[1]): ks[shift(q, S * j + d)] = set(os)
+            for k, x in A.hv.items():
+                if k[0] == 0 and dict(k[2]).get(('fr', 2)) and ifaceMono(f, k) and x[0] == 'm':
+                    m = x[1]
+                    os = {h[1] - m[1] for h in A.h if h[0] == m[0] and h[2] == m[2] and h[1] >= m[1]} | set(range(64))
+                    os = {o for o in os if o < 2 ** 30 and A.covered(shift(m, o))}
+                    if os: ks[k] = os
+            pcand = ks if pcand is None else {k: pcand[k] & ks[k] for k in pcand if k in ks and pcand[k] & ks[k]}
+        for A in ends:
+            pass
+        for k, os in (pcand or {}).items():
+            S = dict(k[2])[('fr', 2)]
+            Q = tuple((b, x) for b, x in k[2] if b != ('fr', 2))
+            if Q: postLP.add((((0, 0, Q), ('ex', ('fr', 2), 0), BOUND[n], S, k[1]), tuple(sorted(os))))
+        post = set(); postR = set(); postP = set()
+    sig = mkSig(f, I.pre, I.preR, ret, post, postR, postL, I.preP, postP, postLP, retV)
+    E.sigs[f['entry']] = sig
+    # the final check: no demand; a guarantee that does not check dropped, one at a time
+    for _ in range(64):
+        w = Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main)
+        try:
+            w.run(f['ops']); break
+        except Fail as e:
+            kind, item = e.args[0][0], e.args[0][2] if len(e.args[0]) > 2 else None
+            lists = {'post': sig.post, 'postR': sig.postR, 'postP': [q for q in sig.postP]}
+            if kind not in lists: break
+            if kind == 'postP': sig.postP = [q for q in sig.postP if q != (item, e.args[0][3])]
+            else: lists[kind].remove(item)
+            E.sigs[f['entry']] = sig
+    else:
+        raise Fail(('final',))
+    try:
+        Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main).run(f['ops'])
+    except Fail:
+        # drop what does not check
+        sig = mkSig(f, I.pre, I.preR, ret, set(), set(), set(), I.preP, retV=retV)
+        E.sigs[f['entry']] = sig
+        Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main).run(f['ops'])
+    return sig, dict(I.res)
+
+
+if __name__ == '__main__':
+    sigs = {}; fails = {}; res = {}
+    for n in order:
+        f = fns[n]
+        try:
+            sigs[n], res[n] = infer(n)
+        except Fail as e:
+            fails[n] = e.args[0]
+            sig = mkSig(f, [], [], list(range(2 + f.get('nargs', 0), 2 + f.get('nargs', 0) + f.get('nret', 0))))
+            E.sigs[f['entry']] = sig; sigs[n] = sig
+    print('fail', len(fails), collections.Counter(v[0] for v in fails.values()).most_common())
+    rk = collections.Counter(r[0] for n in res for rs in res[n].values() for r in rs)
+    print('resid kinds', rk, 'fns with resid', sum(1 for n in res if any(res[n].values())))
+    print('clean', sum(1 for n in sigs if n not in fails and not any(res.get(n, {}).values())))
+    # passing with every callee passing, transitively (a failing callee's signature is empty)
+    closed = set()
+    for n in order:
+        if n not in fails and all(m in closed for m in calls[n] if m != n): closed.add(n)
+    print('closed', len(closed), 'of', len(fns))
+    rootf = [n for n in fails if not any(m in fails for m in calls[n] if m != n)]
+    print('root failures', len(rootf), collections.Counter(fails[n][0] for n in rootf))
+    for n in sorted(rootf, key=lambda n: fns[n]["count"]):
+        e = fails[n]
+        print(n, fns[n]['count'], str(e[:4] if isinstance(e, tuple) else e)[:200])

@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Opening.QueriesPlaced4
 # A deeper iteration, placed
 
 `oqIter0_relAtIn`: as `oqIter1_relAtIn`, the iteration at `x = g^j` of a deeper level (one query,
-its point `positions[x]` and its window pointer `qptrs[x]`).
+its point `positions[x]` and its window pointer `qptrs[x]`), its walk from `c`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -31,27 +31,27 @@ theorem oqLoop0A_callS (s : Oq) (wlk : String) :
   simp only [List.filterMap_append, oqQueryT_callS]
   split <;> rfl
 
-/-- **A deeper iteration, placed**, its tail's tree `m` words, its walk after it. -/
+/-- **A deeper iteration, placed**, its walk from `c`, its tail's iterations after it. -/
 theorem oqIter0_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String → V → ℕ)
     {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd)
     {wlk loop : String} (hW : WalkFn coreProgram wlk s.pd s.cd) {fl : Fn}
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop0T s wlk loop) (hlp : coreProgram.loop loop = true)
-    {rd : Reader} {R : ℕ → Prop} {fp m j : ℕ} {N positions qptrs cap flags coefs hsp ch mu : E}
+    {rd : Reader} {R : ℕ → Prop} {fp c Bt m j : ℕ} {N positions qptrs cap flags coefs hsp ch mu : E}
     {rounds : List FoldRound} {hsv : List E} {w : QW} {bp v : E}
     (hok : (oqQD s 14 true 0 cap flags rounds hsv w).Ok rd coefs hsp bp)
     (hx : LoadHolds rd positions j (eOfNat w.1)) (hb : LoadHolds rd qptrs j bp)
     (hv : s.final ≠ 1 → LoadHolds rd ch j v ∧ LoadHolds rd ch (j + 1) ((v + oqResV s rounds w) * mu))
     (hK : IsInK (gen ^ j * gen + N))
     (htail : if gen ^ j * gen + N ≠ 0 then
-      RelAtIn coreProgram fs cert rd R (fun _ => False) (fp + fs loop) m loop
+      RelAtInC coreProgram fs cert rd R (fun _ => False) (fp + fs loop) (c + fs wlk) Bt m loop
         [gen ^ j * gen, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] []
-      else m = fs loop)
+      else Bt = fs loop ∧ m = 0)
     (hRp : OqIn R ((positions * gen ^ j).limb 0 * Parameters.addressOfIndex 0))
     (hRq : OqIn R ((qptrs * gen ^ j).limb 0 * Parameters.addressOfIndex 0))
     (hR1 : OqQReg R s cap flags coefs hsp bp w.1)
     (hRc : s.final ≠ 1 → ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.addressOfIndex e)) :
-    RelAtIn coreProgram fs cert rd R (fun _ => False) fp (fs loop + m + fs wlk) loop
+    RelAtInC coreProgram fs cert rd R (fun _ => False) fp c (fs loop + Bt) (fs wlk + m) loop
       [gen ^ j, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] [] := by
   set D1 := oqQD s 14 true 0 cap flags rounds hsv w with hD1
   set args : List E := [gen ^ j, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] with hargs
@@ -110,19 +110,20 @@ theorem oqIter0_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
     simp only [ha1, List.map_cons, List.map_nil, e0, e1, e13, eP 4 (by omega), eP 5 (by omega)]
     rfl
   have inR : ∀ A, OqIn R A → ∃ i, A = Parameters.addressOfIndex i ∧
-      (ownData cert fp (fp + fs loop + m) loop (allocs σ es) es i ∨ R i ∨ False ∨
+      (ownData cert fp c loop (allocs σ es) es i ∨ R i ∨ False ∨
         ((⟨loop, [.n (oqG0 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9], [],
           decide (σ (.n (oqG0 s + 2)) ≠ 0)⟩ : Call).taken = true ∧ False)) :=
     fun A ⟨i, hi, hr⟩ ↦ ⟨i, hi, Or.inr (Or.inl hr)⟩
   have h := relAtIn_of_walk_loop (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
     hP (R := R) (D := fun _ => False) (Dk := fun _ => False) (Rt := R) (Dt := fun _ => False)
-    (fp := fp) (m := m) (N := fs wlk + 0) (args := args) (rets := [])
+    (fp := fp) (c := c) (Bt := Bt) (m := m) (N := fs wlk + 0) (args := args) (rets := [])
     hfl hlp (hpl ▸ hpar) hw rfl hev hcalls ?_
     (by rw [i1, hal, hallocs]; rfl)
     (fun q hq ↦ ?_) ?_ (fun i hi ↦ Or.inl hi)
     (fun A hAl ↦ ?_) (fun _ h ↦ h.elim)
-  · rw [hallocs, List.sum_nil, Nat.add_zero, Nat.add_zero] at h; exact h
-  · have hargs' : ([.n (oqG0 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] :
+  · rw [hallocs, List.sum_nil, show 0 + (fs wlk + 0) + m = fs wlk + m by ring] at h; exact h
+  · rw [hallocs, List.sum_nil, show c + 0 + (fs wlk + 0) = c + fs wlk by ring]
+    have hargs' : ([.n (oqG0 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] :
         List V).map σ = [gen ^ j * gen, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] := by
       simp only [List.map_cons, List.map_nil, eG4, eP 1 (by omega), eP 2 (by omega),
         eP 3 (by omega), eP 4 (by omega), eP 5 (by omega), eP 6 (by omega), eP 7 (by omega),

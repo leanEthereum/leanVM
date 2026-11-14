@@ -26,7 +26,7 @@ public import LeanVM.Guest.Data.NameStrings
 (G7-cnt's certificates): `SB g` bounds every valid tree of a static callee `g`
 (`TotalLe`), a static loop helper `g`'s run `iterK fs SK g` words per iteration and its phantom
 frame `fs g` once (`TotalLeOn … LoopPre`).
-`mainBsH`: the non-static callees' bounds (`clB`, `hDvB`, `aggB`, `l5B` with `ccB`), `Bmain`:
+`mainBsH`: the non-static callees' bounds (`clB`, `hDvB`, `aggB`, `l5B` with `ccBM`), `Bmain`:
 `main`'s, `mainBH` at those. `main_honest_budgetB`: `main` within `Bmain`, its callees' trees
 `mainPredsH`, each non-static one within its bound (`MainPreds.withTotal`).
 -/
@@ -65,13 +65,13 @@ structure MainStatics (fs : String → ℕ) (SB SK : String → ℕ) : Prop wher
 
 /-- **The bounds of `main`'s non-static callees** on the honest run: its claim lists' digests
 (`clB`), `da_verify` (`hDvB`), `aggregate_claims` (`aggB`), the children's loop (`l5B`, each
-child's claim lists' digests within `ccB`, child `c`'s `verify_sub` within `Bv c`). -/
+child's claim lists' digests within `ccBM`, child `c`'s `verify_sub` within `Bv c`). -/
 def mainBsH (fs : String → ℕ) (SB SK : String → ℕ) (Bv : ℕ → ℕ) (s : NodeStatement) (w : NodeWitness) :
     MainBs :=
   ⟨B1.Digest.clB fs SB SK s.claims.xmss.length, B1.Digest.clB fs SB SK s.claims.sphincs.length,
     hDvB fs SB SK w, aggB fs SB SK w.children.length,
-    l5B fs SB (fun c => B1.Digest.ccB fs SB (hKid s w c).ex) (fun c => B1.Digest.ccB fs SB (hKid s w c).es)
-      Bv w⟩
+    l5B fs SB (fun c => B1.Digest.ccBM fs SB (hMonoX s w c) (hKid s w c).ex)
+      (fun c => B1.Digest.ccBM fs SB (hMonoS s w c) (hKid s w c).es) Bv w⟩
 
 /-- **`main`'s words on the honest run** at `fp`: its frame and buffers, `exponent_tables`', every
 other callee's bound (`mBs`, `kidsBoundL` over `mKids`). -/
