@@ -43,7 +43,7 @@ theorem cplRun_all : ∀ j, 1 ≤ j → j < nFns → CplRun j := cplRun_of_ok Cp
 
 /-- **B2's hypotheses**: every function runs, and every running instance's frame holds what the
 check reads (the call sites of a path apart, by the completeness checks). -/
-theorem b2Hyps : B2Hyps := ⟨cplRun_all, frameHolds_all (sitesApart_all_of Cplw.cplOk_all)
+theorem b2Hyps : B2Hyps := ⟨cplRun_all, frameHolds_cover (sitesApart_all_of Cplw.cplOk_all)
   fun j h1 h2 ↦ chainApart_of (Cplw.cplOk_all j h1 h2) (End.winOk_of h1 h2) (Chained.chainOk_all j h1 h2)⟩
 
 /-- **B2**: the honest memory runs from `main`'s entry to the end. -/
