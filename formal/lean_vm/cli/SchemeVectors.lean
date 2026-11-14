@@ -11,7 +11,7 @@ import LeanVM.Cli.Common
 (`Statement/LeanSphincs.lean`, `Statement/LeanXmss.lean`, over Keccak-f[1600] in `Id`) on their
 EthLib test vectors as the crates vendor them (`lean_sphincs/tests/lean_sphincs/ethlib` and
 `lean_xmss/tests/lean_xmss/ethlib` under this repository's `crates`, `../../crates`; the first
-argument overrides it) and on leanSPHINCS's known answer (`lean_sphincs/src/known_answer.hex`):
+argument overrides it) and on leanSPHINCS's known answer (`lean_sphincs/tests/lean_sphincs/known_answer.hex`):
 
 * by default, leanSPHINCS's and leanXMSS's verification (`verify`), leanXMSS's signature's leaf
   index (`signature_index`), and the verification of leanSPHINCS's known answer, which must accept,
@@ -116,7 +116,7 @@ def runCase (kind : String) (text : String) : Verdict := Id.run do
     return if (xmssSignatureOf sig).leafIndex.val == output.toNat?.getD 0 then .pass else .fail
   | _ => return .fail
 
-/-- The known answer's message `m[i] = 7 i + 3` (`known_answer`, `lean_sphincs/scheme.rs`;
+/-- The known answer's message `m[i] = 7 i + 3` (`known_answer`, `tests/lean_sphincs/scheme.rs`;
 its key's `SK.seed[i] = 37 i + 11`), from the file's line count, so that the compiler does not
 evaluate it as a closed term at start-up. -/
 def knownAnswerMessage (lineCount : Nat) : BitVec 256 :=
@@ -152,7 +152,7 @@ def main (args : List String) : IO UInt32 := do
   let mut failed := 0
   let mut passed := 0
   let mut skipped := 0
-  let knownAnswer := crates / "lean_sphincs" / "src" / "known_answer.hex"
+  let knownAnswer := crates / "lean_sphincs" / "tests" / "lean_sphincs" / "known_answer.hex"
   let lines := (← IO.FS.readFile knownAnswer).splitOn "\n" |>.filter (· ≠ "")
   for (name, verdict) in knownAnswerCases lines do
     match verdict with

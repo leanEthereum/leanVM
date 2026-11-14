@@ -134,8 +134,8 @@ use lean_sphincs::*;
 #[test]
 fn key_gen_matches_ethlib() {
     for case in cases("key_gen") {
-        let output = match exact::<SEED_LEN>(case.bytes("seed")) {
-            Some(seed) => Value::Bytes(key_gen(seed).1.to_bytes().to_vec()),
+        let output = match exact::<SECRET_KEY_LEN>(case.bytes("seed")) {
+            Some(seed) => Value::Bytes(key_gen(&seed).to_bytes().to_vec()),
             None => Value::Null,
         };
         assert_eq!(output, case.output, "{}", case.name);
@@ -146,14 +146,10 @@ fn key_gen_matches_ethlib() {
 fn sign_matches_ethlib() {
     for case in cases("sign") {
         let output = match (
-            exact::<SEED_LEN>(case.bytes("seed")),
+            exact::<SECRET_KEY_LEN>(case.bytes("seed")),
             exact::<MESSAGE_LEN>(case.bytes("message")),
         ) {
-            (Some(seed), Some(message)) => Value::Bytes(
-                sign(&LeanSphincsSecretKey::from_bytes(&seed), &message)
-                    .to_bytes()
-                    .to_vec(),
-            ),
+            (Some(seed), Some(message)) => Value::Bytes(sign(&seed, &message).to_bytes().to_vec()),
             _ => Value::Null,
         };
         assert_eq!(output, case.output, "{}", case.name);

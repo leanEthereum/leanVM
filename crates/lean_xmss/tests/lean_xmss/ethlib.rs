@@ -143,7 +143,7 @@ use lean_xmss::*;
 #[test]
 fn key_gen_matches_ethlib() {
     for case in cases("key_gen") {
-        let output = match exact::<SEED_LEN>(case.bytes("seed")) {
+        let output = match exact::<SECRET_KEY_LEN>(case.bytes("seed")) {
             Some(seed) => Value::Bytes(key_gen(seed).1.to_bytes().to_vec()),
             None => Value::Null,
         };
@@ -154,11 +154,11 @@ fn key_gen_matches_ethlib() {
 #[test]
 fn sign_matches_ethlib() {
     // A key is generated once per seed: generation builds the whole top tree.
-    let mut keys: HashMap<Seed, LeanXmssSecretKey> = HashMap::new();
+    let mut keys: HashMap<SecretKey, LeanXmssExpandedSecretKey> = HashMap::new();
     for case in cases("sign") {
         let leaf_index = LeafIndex::try_from(case.int("leaf_index")).expect("a 32-bit leaf index");
         let output = match (
-            exact::<SEED_LEN>(case.bytes("seed")),
+            exact::<SECRET_KEY_LEN>(case.bytes("seed")),
             exact::<MESSAGE_LEN>(case.bytes("message")),
         ) {
             (Some(seed), Some(message)) => {

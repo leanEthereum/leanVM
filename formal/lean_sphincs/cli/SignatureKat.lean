@@ -11,7 +11,7 @@ public import Statement.Fast.Schemes
 Keccak-f[1600], on the EthLib test vectors the crates vendor (`DIR` is this repository's `crates`,
 the vectors `lean_xmss/tests/lean_xmss/ethlib` and `lean_sphincs/tests/lean_sphincs/ethlib`: the
 `key_gen`, `sign` and `verify` cases of each scheme) and on leanSPHINCS's known answer
-(`crates/lean_sphincs/src/known_answer.hex`, given as a second
+(`crates/lean_sphincs/tests/lean_sphincs/known_answer.hex`, given as a second
 argument): the bytes must match. An input of the wrong length is rejected (`null`). Each case
 prints `ok` or `MISMATCH`; the exit code is the number of mismatches. `--sphincs` and `--xmss` run
 one scheme's cases; `--skip-xmss-sign` leaves out leanXMSS's signing cases, four tree builds of
@@ -489,7 +489,7 @@ def runCase (scheme kind : String) (lines : List String) : Option String :=
       bool (some (Xmss.verify publicKey message signature))
   | _, _ => none
 
-/-- leanSPHINCS's known answer (`known_answer`, `lean_sphincs/scheme.rs`): the public key
+/-- leanSPHINCS's known answer (`known_answer`, `tests/lean_sphincs/scheme.rs`): the public key
 and the signature of `SK.seed[i] = 37 i + 11` and the message `m[i] = 7 i + 3`, `sign` on the
 expanded key, and its verification. -/
 def knownAnswer (path : System.FilePath) : IO Bool := do

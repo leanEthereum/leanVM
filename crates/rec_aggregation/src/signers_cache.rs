@@ -77,16 +77,16 @@ fn leaf_index_of(index: usize, message_id: u32) -> LeafIndex {
     (BOTTOM_TREE << LAYER_HEIGHT) + (index / NUM_KEYS) as LeafIndex * MESSAGE_IDS + message_id
 }
 
-fn key_seed(k: usize) -> Seed {
-    let mut seed = [10; SEED_LEN];
+fn key_seed(k: usize) -> SecretKey {
+    let mut seed = [10; SECRET_KEY_LEN];
     seed[..8].copy_from_slice(&(k as u64).to_le_bytes());
     seed
 }
 
 /// The [`NUM_KEYS`] keys, each generated, with [`BOTTOM_TREE`] prepared, when first used.
-type Keys = [OnceLock<(LeanXmssSecretKey, LeanXmssPublicKey)>; NUM_KEYS];
+type Keys = [OnceLock<(LeanXmssExpandedSecretKey, LeanXmssPublicKey)>; NUM_KEYS];
 
-fn key(keys: &Keys, k: usize) -> &(LeanXmssSecretKey, LeanXmssPublicKey) {
+fn key(keys: &Keys, k: usize) -> &(LeanXmssExpandedSecretKey, LeanXmssPublicKey) {
     keys[k].get_or_init(|| {
         let (sk, pk) = key_gen(key_seed(k));
         sk.prepare(BOTTOM_TREE << LAYER_HEIGHT);
@@ -248,7 +248,8 @@ const LEAN_SPHINCS_RECORD: usize = lean_sphincs::PUB_KEY_SIZE + lean_sphincs::ME
 
 fn compute_lean_sphincs_signer(index: usize) -> CachedSphincsSignature {
     let mut rng = StdRng::seed_from_u64(0x5F1A_C500 ^ index as u64);
-    let (secret_key, public_key) = lean_sphincs::key_gen(rng.random());
+    let secret_key: lean_sphincs::SecretKey = rng.random();
+    let public_key = lean_sphincs::key_gen(&secret_key);
     let message = lean_sphincs_message(index);
     let signature = lean_sphincs::sign(&secret_key, &message);
     (public_key, message, signature)

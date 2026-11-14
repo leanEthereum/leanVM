@@ -75,7 +75,7 @@ abbrev ChainPairIndex := Fin (chainCount / 2)
 /-- The `v` digits a codeword assigns to the chains: how far each chain is opened. -/
 abbrev Encoding := ChainIndex → WinternitzDigit
 
-/-- The secret key (`LeanXmssSecretKey`, `scheme.rs`): the key's seed `S_0`, which the
+/-- The secret key (`SecretKey`, `lib.rs`; expanded, `LeanXmssExpandedSecretKey`, `scheme.rs`): the key's seed `S_0`, which the
 crate's key serializes and from which it derives every secret, and the public parameter `P`, which
 key generation derived from it. The crate's key also holds the top tree and the bottom tree it
 last signed in, hashes that this signer computes again. -/

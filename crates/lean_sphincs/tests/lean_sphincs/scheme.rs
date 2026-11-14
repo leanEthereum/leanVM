@@ -1,16 +1,16 @@
 use lean_sphincs::*;
 
-fn seed(x: u8) -> Seed {
+fn seed(x: u8) -> SecretKey {
     std::array::from_fn(|i| x.wrapping_mul(31).wrapping_add(i as u8))
 }
 
 #[test]
 fn signatures_verify_and_tampered_ones_do_not() {
-    let (sk, pk) = key_gen(seed(3));
+    let sk = seed(3);
+    let pk = key_gen(&sk);
     // The seed is SK.seed, and PK.seed = H("leanSPHINCS" || SK.seed || 0) cut to N bytes.
     let derive = |domain: u8| primitives::hash::hash(&[b"leanSPHINCS".as_slice(), &seed(3), &[domain]].concat());
     assert_eq!(pk.__pk_seed()[..], derive(0)[..N]);
-    assert_eq!(LeanSphincsSecretKey::from_bytes(&sk.to_bytes()).public_key(), pk);
     let message: Message = std::array::from_fn(|i| (3 + i) as u8);
     let signature = sign(&sk, &message);
     assert!(verify(&pk, &message, &signature));
@@ -38,4 +38,26 @@ fn signatures_verify_and_tampered_ones_do_not() {
         let bad = LeanSphincsSignature::from_bytes(&bad);
         assert!(!verify(&pk, &message, &bad), "byte {at}");
     }
+}
+
+/// A known answer, byte for byte: the key whose `SK.seed` is `S[i] = 37 i + 11`
+/// and its signature of `m[i] = 7 i + 3`.
+#[test]
+fn known_answer() {
+    let mut lines = include_str!("known_answer.hex").lines();
+    let mut unhex = || {
+        let s = lines.next().unwrap();
+        (0..s.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
+            .collect::<Vec<_>>()
+    };
+    let (pk_bytes, sig_bytes) = (unhex(), unhex());
+    let sk: SecretKey = std::array::from_fn(|i| (37 * i + 11) as u8);
+    let pk = key_gen(&sk);
+    let message: Message = std::array::from_fn(|i| (7 * i + 3) as u8);
+    assert_eq!(pk.to_bytes()[..], pk_bytes[..]);
+    let signature = sign(&sk, &message);
+    assert_eq!(signature.to_bytes()[..], sig_bytes[..]);
+    assert!(verify(&pk, &message, &signature));
 }

@@ -20,9 +20,10 @@ use tree::*;
 mod scheme;
 pub use scheme::*;
 
-/// The key's seed, the whole secret key.
-pub const SEED_LEN: usize = 32;
-pub type Seed = [u8; SEED_LEN];
+/// Bytes in a [`SecretKey`].
+pub const SECRET_KEY_LEN: usize = 32;
+/// The secret key, the key's seed: all of its secret material.
+pub type SecretKey = [u8; SECRET_KEY_LEN];
 
 /// Hashed before the seed, so no other scheme derives from the same bytes.
 pub(crate) const SEED_TAG: &[u8] = b"leanXMSS";
@@ -62,6 +63,7 @@ pub(crate) const MAX_RANDOMIZER_TRIALS: u64 = 1 << 32;
 // The trees
 /// Height of each layer's tree.
 pub const LAYER_HEIGHT: usize = 16;
+/// Leaf indices of a key, as a logarithm: each signs one message.
 pub const LOG_LIFETIME: usize = 2 * LAYER_HEIGHT;
 
 pub const PUB_KEY_SIZE: usize = N + PUBLIC_PARAM_LEN;

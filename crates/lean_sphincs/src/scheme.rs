@@ -41,31 +41,16 @@ impl LeanSphincsPublicKey {
     }
 }
 
-#[derive(Clone)]
-pub struct LeanSphincsSecretKey {
-    pub(crate) sk_seed: Seed,
+/// A [`SecretKey`] with what `slh_keygen_internal` derives from it, re-derived by each call:
+/// `PK.seed = Trunc_n(H(tag | SK.seed | 0))` and `SK.prf = H(tag | SK.seed | 1)`, 32 bytes.
+pub(crate) struct ExpandedKey {
+    pub(crate) sk_seed: SecretKey,
     pub(crate) sk_prf: [u8; 32],
     pub(crate) pk_seed: PkSeed,
 }
 
-impl std::fmt::Debug for LeanSphincsSecretKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("LeanSphincsSecretKey").finish_non_exhaustive()
-    }
-}
-
-impl LeanSphincsSecretKey {
-    pub fn public_key(&self) -> LeanSphincsPublicKey {
-        keygen(self).0
-    }
-
-    /// SECRET KEY MATERIAL
-    pub fn to_bytes(&self) -> Seed {
-        self.sk_seed
-    }
-
-    /// `PK.seed = Trunc_n(H(tag | SK.seed | 0))` and `SK.prf = H(tag | SK.seed | 1)`, 32 bytes
-    pub fn from_bytes(sk_seed: &Seed) -> Self {
+impl ExpandedKey {
+    pub(crate) fn new(sk_seed: &SecretKey) -> Self {
         let derive = |domain: u8| {
             Hasher::new()
                 .update(SEED_TAG)
@@ -241,7 +226,7 @@ fn node(pk_seed: &PkSeed, key: &OtsKey, z: usize, j: usize, children: &[Digest; 
 }
 
 /// The levels of the tree holding `key`, its leaves first and its root last.
-fn tree_levels(sk: &LeanSphincsSecretKey, key: &OtsKey) -> Vec<Vec<Digest>> {
+fn tree_levels(sk: &ExpandedKey, key: &OtsKey) -> Vec<Vec<Digest>> {
     let height = LAYER_HEIGHTS[key.layer];
     let leaves = (0..1 << height)
         .map(|leaf| wots_public_leaf(sk, &OtsKey { leaf, ..*key }))
@@ -251,15 +236,13 @@ fn tree_levels(sk: &LeanSphincsSecretKey, key: &OtsKey) -> Vec<Vec<Digest>> {
 
 /// `Gen`, deterministic: the seed is `SK.seed`, the key's entire secret material (draw it from a
 /// secure source of randomness), and the top tree gives `PK.root`.
-pub fn key_gen(seed: Seed) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
-    let sk = LeanSphincsSecretKey::from_bytes(&seed);
-    let pk = keygen(&sk).0;
-    (sk, pk)
+pub fn key_gen(secret_key: &SecretKey) -> LeanSphincsPublicKey {
+    keygen(&ExpandedKey::new(secret_key)).0
 }
 
 /// `slh_keygen_internal`: the public key, `PK.seed` and the top tree's root, with
 /// the top tree's levels, which signing reuses.
-fn keygen(sk: &LeanSphincsSecretKey) -> (LeanSphincsPublicKey, Vec<Vec<Digest>>) {
+fn keygen(sk: &ExpandedKey) -> (LeanSphincsPublicKey, Vec<Vec<Digest>>) {
     let top = tree_levels(sk, &OtsKey::of_index(LAYERS - 1, 0));
     let pk = LeanSphincsPublicKey {
         pk_seed: sk.pk_seed,
@@ -268,7 +251,7 @@ fn keygen(sk: &LeanSphincsSecretKey) -> (LeanSphincsPublicKey, Vec<Vec<Digest>>)
     (pk, top)
 }
 
-/// `Sign`. Deterministic and stateless. A key signs at most `2^30` messages (`doc/lean_sphincs`).
+/// `Sign`. Deterministic and stateless. A key signs at most `2^LOG_LIFETIME` messages.
 ///
 /// # Panics
 ///
@@ -277,7 +260,8 @@ fn keygen(sk: &LeanSphincsSecretKey) -> (LeanSphincsPublicKey, Vec<Vec<Digest>>)
 ///
 /// `slh_sign_internal`, deterministic (`opt_rand = PK.seed`): it builds the top tree for `PK.root`
 /// and the top path, then the FORS instance and the two trees below.
-pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> LeanSphincsSignature {
+pub fn sign(secret_key: &SecretKey, message: &Message) -> LeanSphincsSignature {
+    let sk = &ExpandedKey::new(secret_key);
     let (pk, mut top) = keygen(sk);
     let r = prf_msg(&sk.sk_prf, &sk.pk_seed, message);
     let (idx, leaves) = message_digest(&pk, &r, message);
@@ -336,31 +320,4 @@ pub fn verify(pk: &LeanSphincsPublicKey, message: &Message, signature: &LeanSphi
         signed = tree_fold(pk_seed, &key, leaf, signature.__path(layer), |_| ());
     }
     signed == pk.root
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// A known answer, byte for byte: the key whose `SK.seed` is `S[i] = 37 i + 11`
-    /// and its signature of `m[i] = 7 i + 3`.
-    #[test]
-    fn known_answer() {
-        let mut lines = include_str!("known_answer.hex").lines();
-        let mut unhex = || {
-            let s = lines.next().unwrap();
-            (0..s.len())
-                .step_by(2)
-                .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
-                .collect::<Vec<_>>()
-        };
-        let (pk_bytes, sig_bytes) = (unhex(), unhex());
-        let sk = LeanSphincsSecretKey::from_bytes(&std::array::from_fn(|i| (37 * i + 11) as u8));
-        let pk = keygen(&sk).0;
-        let message: Message = std::array::from_fn(|i| (7 * i + 3) as u8);
-        assert_eq!(pk.to_bytes()[..], pk_bytes[..]);
-        let signature = sign(&sk, &message);
-        assert_eq!(signature.to_bytes()[..], sig_bytes[..]);
-        assert!(verify(&pk, &message, &signature));
-    }
 }

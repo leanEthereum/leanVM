@@ -118,7 +118,7 @@ impl SchemeSeed {
 
 /// The seed the scheme derives from: the hash of `SEED_TAG` then the key's seed,
 /// so no other scheme derives from the same bytes.
-pub fn scheme_seed(seed: &Seed) -> SchemeSeed {
+pub fn scheme_seed(seed: &SecretKey) -> SchemeSeed {
     SchemeSeed(Hasher::new().update(SEED_TAG).update(seed).finalize())
 }
 

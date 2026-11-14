@@ -115,10 +115,12 @@ impl LeanXmssSignature {
     }
 }
 
-pub struct LeanXmssSecretKey {
+/// A [`SecretKey`] with what signing derives from it: the public parameter, the top tree and the
+/// bottom trees it used last.
+pub struct LeanXmssExpandedSecretKey {
     /// The key's seed, which the key serializes and whose [`scheme_seed`] every
     /// secret derives from.
-    key_seed: Seed,
+    key_seed: SecretKey,
     public_param: PublicParam,
     top: LayerTree,
     /// The bottom trees the key used last, least recently used first.
@@ -127,9 +129,9 @@ pub struct LeanXmssSecretKey {
 
 pub const MAX_CACHED_BOTTOM_TREES: usize = 8;
 
-impl std::fmt::Debug for LeanXmssSecretKey {
+impl std::fmt::Debug for LeanXmssExpandedSecretKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("LeanXmssSecretKey")
+        f.debug_struct("LeanXmssExpandedSecretKey")
             .field("public_key", &self.public_key())
             .finish_non_exhaustive()
     }
@@ -143,11 +145,11 @@ struct BottomTree {
 
 /// The key pair of `key_seed`, the key's entire secret material: draw it from a secure source of
 /// randomness.
-pub fn key_gen(key_seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
+pub fn key_gen(key_seed: SecretKey) -> (LeanXmssExpandedSecretKey, LeanXmssPublicKey) {
     let seed = scheme_seed(&key_seed);
     let public_param = public_param(&seed);
     let top = LayerTree::build(&public_param, &seed, 1, 0);
-    let sk = LeanXmssSecretKey {
+    let sk = LeanXmssExpandedSecretKey {
         key_seed,
         public_param,
         top,
@@ -164,7 +166,7 @@ pub fn key_gen(key_seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
 ///
 /// When none of a layer's `2^32` randomizer trials gives a codeword, with probability below
 /// `2^-2954` (`doc/lean_xmss`): impossible in practice.
-pub fn sign(sk: &LeanXmssSecretKey, message: &Message, leaf_index: LeafIndex) -> LeanXmssSignature {
+pub fn sign(sk: &LeanXmssExpandedSecretKey, message: &Message, leaf_index: LeafIndex) -> LeanXmssSignature {
     let bottom = sk.bottom_tree(leaf_index);
     let seed = scheme_seed(&sk.key_seed);
     let (randomizer, chain_values) =
@@ -180,17 +182,7 @@ pub fn sign(sk: &LeanXmssSecretKey, message: &Message, leaf_index: LeafIndex) ->
     }
 }
 
-impl LeanXmssSecretKey {
-    /// SECRET KEY MATERIAL: the key's seed, all of the key.
-    pub fn to_bytes(&self) -> Seed {
-        self.key_seed
-    }
-
-    /// Regenerates the key, as key generation does.
-    pub fn from_bytes(bytes: &Seed) -> Self {
-        key_gen(*bytes).0
-    }
-
+impl LeanXmssExpandedSecretKey {
     pub fn public_key(&self) -> LeanXmssPublicKey {
         LeanXmssPublicKey {
             merkle_root: self.top.root(),

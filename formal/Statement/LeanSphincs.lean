@@ -34,7 +34,7 @@ WOTS+C as its one-time signature and a hypertree of layers of different heights.
   `T = 128` read from the encoding hash by `base_2b`, and the least counter `c < 2^32` whose
   encoding is a codeword; the encoding hash has an address type of its own, `7`.
 
-**The signer** is the crate's, hash call for hash call (`LeanSphincsSecretKey::from_bytes`, then
+**The signer** is the crate's, hash call for hash call (`ExpandedKey::new`, then
 `sign`, `scheme.rs`): `SK.seed` expanded (`SK.prf`, then `PK.seed`), the top tree built level by level (`keygen`, whose
 levels the top layer's path is read from), the randomizer, the digest's two calls, each FORS tree
 built once (its secrets, its leaves, its levels) and `T_k` of their roots, then the layers from the
@@ -111,9 +111,8 @@ abbrev ChainIndex := Fin chainCount
 /-- The `v` digits a codeword assigns to the chains: how far each chain is opened. -/
 abbrev Encoding := ChainIndex → WinternitzDigit
 
-/-- The secret key: `SK.seed`, 32 bytes, all of the key (`LeanSphincsSecretKey`, `scheme.rs`;
-`Seed`, `lib.rs`). `PK.seed` and `SK.prf` are its hashes, which this signer derives at each
-signature and the crate's key derives once (`LeanSphincsSecretKey::from_bytes`). -/
+/-- The secret key: `SK.seed`, 32 bytes, all of the key (`SecretKey`, `lib.rs`). `PK.seed` and `SK.prf` are its hashes, which the signer derives again at
+each signature, as the crate's does (`ExpandedKey::new`). -/
 abbrev SecretKey := MasterSeed
 
 /-- `κ`, a tree of a FORS instance. -/
@@ -618,7 +617,7 @@ variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-! #### The key -/
 
-/-- What `slh_keygen_internal` takes (the fields of `LeanSphincsSecretKey`, `scheme.rs`). -/
+/-- What `slh_keygen_internal` takes (`ExpandedKey`, `scheme.rs`). -/
 structure ExpandedKey where
   /-- `SK.seed`, the secret key. -/
   secretSeed : MasterSeed
@@ -631,7 +630,7 @@ structure ExpandedKey where
 def keyDerivationInput (secretSeed : MasterSeed) (domain : UInt8) : HashInput :=
   seedTag ++ littleEndianBytes 32 secretSeed ++ [domain]
 
-/-- `LeanSphincsSecretKey::from_bytes` (`scheme.rs`): `SK.prf = H(leanSPHINCS ‖ SK.seed ‖ 1)`, then
+/-- `ExpandedKey::new` (`scheme.rs`): `SK.prf = H(leanSPHINCS ‖ SK.seed ‖ 1)`, then
 `PK.seed = Trunc_16(H(leanSPHINCS ‖ SK.seed ‖ 0))`, in the order the crate's struct literal
 computes them. -/
 def expandKey (secretSeed : SecretKey) : m ExpandedKey := do
@@ -807,7 +806,7 @@ def signWithExpandedKey (key : ExpandedKey) (message : Message) : m (Option Sign
   let some (topSignature, _) ← signLayer π key top index 2 middleRoot | return none
   return some ⟨randomizer, forsOpening, layerSignatures bottom middle topSignature⟩
 
-/-- `Sign`: the key's expansion (`LeanSphincsSecretKey::from_bytes`), then the crate's `sign`. -/
+/-- `Sign`: the key's expansion (`ExpandedKey::new`), then the crate's `sign`. -/
 def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
   let key ← expandKey π secretKey
   signWithExpandedKey π key message

@@ -93,7 +93,7 @@ pub fn th_digests(pk_seed: &PkSeed, adrs: &Adrs, values: &[Digest]) -> Digest {
 }
 
 /// `PRF(PK.seed, SK.seed, ADRS)`.
-pub fn prf(pk_seed: &PkSeed, sk_seed: &Seed, adrs: &Adrs) -> Digest {
+pub fn prf(pk_seed: &PkSeed, sk_seed: &SecretKey, adrs: &Adrs) -> Digest {
     th(pk_seed, adrs, sk_seed)
 }
 

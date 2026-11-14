@@ -79,7 +79,7 @@ python3 -I scripts/extractor-cost/cost.py scripts/extractor-cost/params.csv  # t
 LEANVM_GUEST_DIFF=/tmp/g cargo test --release --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored && lake exe guest-diff /tmp/g/*.txt
 
 # lean_sphincs: the crates' known answers on the compiled statement
-lake exe signature-kat ../../crates ../../crates/lean_sphincs/src/known_answer.hex
+lake exe signature-kat ../../crates ../../crates/lean_sphincs/tests/lean_sphincs/known_answer.hex
 ```
 
 ## Tools

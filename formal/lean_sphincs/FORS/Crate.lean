@@ -10,7 +10,7 @@ public import FORS.Scheme
 `key_gen` and `sign` of `crates/lean_sphincs/src/scheme.rs` (leanVM
 `40f877dc`), function for function as `Statement/LeanSphincs.lean` transcribes them
 (`KeyGenerationAndSigning`), written with FORS's hash inputs, addresses and types: the key
-expansion (`LeanSphincsSecretKey::from_bytes`, `SK.prf` then `PK.seed`), the trees built level by level
+expansion (`ExpandedKey::new`, `SK.prf` then `PK.seed`), the trees built level by level
 (`merkle_levels`), the top tree built at key generation and again at each signature (`keygen`),
 the randomizer, the digest, each FORS tree built once (`fors_open`), and the layers from the bottom
 up, each a WOTS+C signature followed by its tree's levels (the top layer reusing key generation's).
@@ -30,14 +30,14 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 /-! ### The key -/
 
-/-- What `slh_keygen_internal` takes (`LeanSphincsSecretKey`'s fields): `SK.seed`, `SK.prf` and
+/-- What `slh_keygen_internal` takes (`ExpandedKey`): `SK.seed`, `SK.prf` and
 `PK.seed`. -/
 structure ExpandedKey where
   secretSeed : MasterSeed
   secretPrfKey : HashOutput
   publicSeed : PublicParameter
 
-/-- `LeanSphincsSecretKey::from_bytes`: `SK.prf = H(leanSPHINCS ‖ SK.seed ‖ 1)`, then
+/-- `ExpandedKey::new`: `SK.prf = H(leanSPHINCS ‖ SK.seed ‖ 1)`, then
 `PK.seed = Trunc_16(H(leanSPHINCS ‖ SK.seed ‖ 0))`, in the order of the crate's struct literal. -/
 def expandKey (seed : MasterSeed) : m ExpandedKey := do
   let secretPrfKey ← oracleHash (keySeedInput seed 1)
@@ -170,7 +170,7 @@ def signWithExpandedKey (key : ExpandedKey) (message : Message) : m (Option Sign
     | return none
   return some ⟨randomizer, opening, layers⟩
 
-/-- The key's expansion (`LeanSphincsSecretKey::from_bytes`), then the crate's `sign`. -/
+/-- The key's expansion (`ExpandedKey::new`), then the crate's `sign`. -/
 def sign (seed : MasterSeed) (message : Message) : m (Option Signature) := do
   let key ← expandKey seed
   signWithExpandedKey key message

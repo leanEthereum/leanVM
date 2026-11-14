@@ -17,7 +17,7 @@
 //! `hash` module).
 //!
 //! The secret key is `SK.seed`, 32 bytes and the only secret: two hashes of it under
-//! the scheme's tag give `PK.seed` and a 32-byte `SK.prf` ([`LeanSphincsSecretKey::from_bytes`]). Key
+//! the scheme's tag give `PK.seed` and a 32-byte `SK.prf` (at the start of [`key_gen`] and [`sign`]). Key
 //! generation builds the top tree, and signing builds it again for `PK.root`, then
 //! the FORS instance and the two trees below it.
 
@@ -34,9 +34,12 @@ pub use scheme::*;
 
 use primitives::hash::permutations;
 
-/// `SK.seed`, the whole secret key.
-pub const SEED_LEN: usize = 32;
-pub type Seed = [u8; SEED_LEN];
+/// You should never sign more than 2^`LOG_LIFETIME` different messages, in order to keep
+/// 127 bits of SUF security in the ROM.
+pub const LOG_LIFETIME: usize = 30;
+
+pub const SECRET_KEY_LEN: usize = 32;
+pub type SecretKey = [u8; SECRET_KEY_LEN];
 
 /// Hashed before `SK.seed`, so no other scheme derives from the same bytes.
 pub(crate) const SEED_TAG: &[u8] = b"leanSPHINCS";

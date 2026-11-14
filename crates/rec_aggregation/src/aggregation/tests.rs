@@ -234,7 +234,8 @@ fn aggregate_one_scheme_per_child() {
 #[test]
 fn aggregate_one_key_two_messages() {
     parallel::init();
-    let (secret_key, public_key) = lean_sphincs::key_gen([77; lean_sphincs::SEED_LEN]);
+    let secret_key = [77; lean_sphincs::SECRET_KEY_LEN];
+    let public_key = lean_sphincs::key_gen(&secret_key);
     let raw: Vec<RawSphincs> = [3u8, 9]
         .into_iter()
         .map(|tag| {

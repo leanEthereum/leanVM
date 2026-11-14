@@ -11,7 +11,7 @@ fn test_message() -> Message {
 /// changed, the signature no longer verifies.
 #[test]
 fn full_key_signs_and_verifies() {
-    let (sk, pk) = key_gen([1; SEED_LEN]);
+    let (sk, pk) = key_gen([1; SECRET_KEY_LEN]);
     let message = test_message();
     let other = (7 << LAYER_HEIGHT) + 3;
     std::thread::scope(|s| {
@@ -39,7 +39,7 @@ fn full_key_signs_and_verifies() {
 #[test]
 fn known_answer() {
     let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
-    let seed: Seed = std::array::from_fn(|i| (i as u8).wrapping_mul(37).wrapping_add(11));
+    let seed: SecretKey = std::array::from_fn(|i| (i as u8).wrapping_mul(37).wrapping_add(11));
     let (sk, pk) = key_gen(seed);
     let message: Message = std::array::from_fn(|i| (i * 7 + 3) as u8);
     let signature = sign(&sk, &message, 0xA5C3_7E19);
@@ -51,19 +51,6 @@ fn known_answer() {
         hex(&primitives::hash::hash(&signature.to_bytes())),
         "f10d62beec95e64e1477028252c2c8683695eab9d8787ad8fa722f47b5fd5234"
     );
-}
-
-/// A secret key encodes as its seed, and the reloaded key signs exactly as the
-/// original does.
-#[test]
-fn secret_key_survives_a_round_trip() {
-    let seed = [6; SEED_LEN];
-    let (sk, pk) = key_gen(seed);
-    assert_eq!(sk.to_bytes(), seed);
-    let reloaded = LeanXmssSecretKey::from_bytes(&sk.to_bytes());
-    assert_eq!(reloaded.public_key(), pk);
-    let message = test_message();
-    assert_eq!(sign(&reloaded, &message, 43), sign(&sk, &message, 43));
 }
 
 /// The address layout, and `Th` as the leanVM hash of `P | A | M`.
