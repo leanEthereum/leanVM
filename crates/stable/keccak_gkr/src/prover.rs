@@ -80,13 +80,8 @@ impl Layer<'_> {
     /// weight goes to, and coefficient `8 b + t` sums byte `b`'s buckets whose value has bit `t`.
     /// The buckets of a block meet its weight once, at its end.
     fn product(&self, claim: &Claim) -> [F128; PROD_BITS] {
-        // Per position, its weight times each pack's of a block.
         let packs = eq_table(&claim.point[..SKIP + 1]);
-        let weights: Vec<[F128; PACKS]> = claim
-            .weights
-            .iter()
-            .map(|&w| std::array::from_fn(|q| packs[q] * w))
-            .collect();
+        let packs: [F128x8; PACKS / 8] = std::array::from_fn(|k| F128x8::load(&packs[8 * k..][..8]));
         let tasks = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
         let buckets = parallel::map_reduce_with_state(
             self.n_tasks(),
@@ -101,7 +96,13 @@ impl Layer<'_> {
                         let e: [[u32; PACKS]; 5] = std::array::from_fn(|x| embed(words(block, js[x])));
                         for x in 0..5 {
                             let p = products(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]);
-                            for (&p, &w) in p.iter().zip(&weights[js[x]]) {
+                            // The position's weight times each pack's.
+                            let mut weights = [F128::ZERO; PACKS];
+                            let w = F128x8::splat(claim.weights[js[x]]);
+                            for (out, &packs) in weights.as_chunks_mut::<8>().0.iter_mut().zip(&packs) {
+                                (w * packs).store(out);
+                            }
+                            for (&p, &w) in p.iter().zip(&weights) {
                                 for (b, bucket) in block_buckets.iter_mut().enumerate() {
                                     bucket[(p >> (8 * b)) as usize & 0xff] += w;
                                 }
