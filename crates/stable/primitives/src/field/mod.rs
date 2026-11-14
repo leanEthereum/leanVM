@@ -8,13 +8,16 @@
 //! - [`F64`]: GF(2^64), polynomial x^64 + x^4 + x^3 + x + 1
 //! - [`F128`]: `K[y]/(y^2 + x*y + 1)`
 //! - [`F128Unreduced`]: its deferred-reduction accumulator, for full and mixed products alike
+//! - [`lanes`]: eight elements at a time, the one SIMD layer
 
 pub mod gf2_64;
 pub mod gf2_64x2;
+pub mod lanes;
 
 pub use gf2_64::F64;
 use gf2_64::R64;
 pub use gf2_64x2::{F128, F128Unreduced};
+pub use lanes::{Acc8, F64x8, F128x8, clmul8};
 
 // ---------------------------------------------------------------------------
 // leanVM g-power helpers: domain separators / opcodes as x^k, and the g-power
