@@ -167,10 +167,21 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     let iv = primitives::hash::hash(LABEL);
     let (log_steps, mut depth_v, mut rate_v, mut log_v) = (shape.n_log(), depth, rate, shape.n_log());
     if lie == Lie::Statement {
-        match src.below(3) {
+        match src.below(4) {
             0 => depth_v = DEPTHS[(DEPTHS.iter().position(|&d| d == depth).unwrap() + src.range(1, 6)) % DEPTHS.len()],
             1 => rate_v = 1 + (rate + src.range(0, 2)) % 4,
-            _ => log_v = log_steps + 1,
+            2 => log_v = log_steps + 1,
+            // The shape contract the first check guards (`log_steps >= 9`, a depth dividing the
+            // rounds, a rate in the window): past it `pack_bits` would underflow. Every draw is
+            // guaranteed invalid AND different from the honest shape, so no draw is a no-op lie.
+            _ => match src.below(3) {
+                // A depth dividing no round count: none of these divides 24.
+                0 => depth_v = [5, 7, 9, 10, 11, 13, 14, 15, 16, 17][src.below(10)],
+                // A rate past the window: all of 5..=12.
+                1 => rate_v = 5 + src.below(8),
+                // A log_steps below the block floor: 0..=8, all under 9.
+                _ => log_v = src.below(9),
+            },
         }
     }
     let verdict = catch(|| verifier::verify_keccak_batch(&iv, log_v, depth_v, rate_v, &proof))
