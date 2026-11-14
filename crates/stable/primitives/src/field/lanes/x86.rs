@@ -120,6 +120,22 @@ pub fn clmul8(a: [u64; 8], b: [u64; 8]) -> [u128; 8] {
     unsafe { core::mem::transmute::<[V; R], [u128; 8]>(out) }
 }
 
+/// The low 64 bits of the eight carry-less products `a[i] * b[i]`: the even and odd products' low qwords, unpacked
+/// in place.
+#[inline(always)]
+pub fn clmul8_low(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
+    // SAFETY: both sides of each transmute are plain bits of one size.
+    let (a, b) = unsafe {
+        (
+            core::mem::transmute::<[u64; 8], [V; Q]>(a),
+            core::mem::transmute::<[u64; 8], [V; Q]>(b),
+        )
+    };
+    let out: [V; Q] = core::array::from_fn(|q| v::unpacklo(clmul::<0x00>(a[q], b[q]), clmul::<0x11>(a[q], b[q])));
+    // SAFETY: as above.
+    unsafe { core::mem::transmute::<[V; Q], [u64; 8]>(out) }
+}
+
 impl F64x8 {
     pub const ZERO: Self = Self([v::ZERO; Q]);
 

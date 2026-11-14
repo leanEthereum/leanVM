@@ -28,6 +28,12 @@ pub fn clmul8(a: [u64; 8], b: [u64; 8]) -> [u128; 8] {
     core::array::from_fn(|i| mul_wide(a[i], b[i]))
 }
 
+/// The low 64 bits of the eight carry-less products `a[i] * b[i]`.
+#[inline]
+pub fn clmul8_low(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
+    clmul8(a, b).map(|p| p as u64)
+}
+
 impl F64x8 {
     pub const ZERO: Self = Self([F64::ZERO; 8]);
 

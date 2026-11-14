@@ -112,6 +112,16 @@ pub fn clmul8(a: [u64; 8], b: [u64; 8]) -> [u128; 8] {
     unsafe { transmute::<[[V; 2]; 4], [u128; 8]>(p) }
 }
 
+/// The low 64 bits of the eight carry-less products `a[i] * b[i]`.
+#[inline(always)]
+pub fn clmul8_low(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
+    let (a, b) = (F64x8::from_array(&a.map(F64)).0, F64x8::from_array(&b.map(F64)).0);
+    // SAFETY: NEON is part of the aarch64 baseline.
+    let p: [V; 4] = core::array::from_fn(|q| unsafe { vzip1q_u64(lo(a[q], b[q]), hi(a[q], b[q])) });
+    // SAFETY: both sides are plain bits of one size.
+    unsafe { transmute::<[V; 4], [u64; 8]>(p) }
+}
+
 impl F64x8 {
     pub const ZERO: Self = Self([ZERO; 4]);
 

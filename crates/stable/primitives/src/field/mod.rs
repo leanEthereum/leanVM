@@ -17,7 +17,7 @@ pub mod lanes;
 pub use gf2_64::F64;
 use gf2_64::R64;
 pub use gf2_64x2::{F128, F128Unreduced};
-pub use lanes::{Acc8, F64x8, F128x8, clmul8};
+pub use lanes::{Acc8, F64x8, F128x8, clmul8, clmul8_low};
 
 // ---------------------------------------------------------------------------
 // leanVM g-power helpers: domain separators / opcodes as x^k, and the g-power
