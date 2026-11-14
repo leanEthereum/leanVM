@@ -41,11 +41,12 @@ open LeanVM.Prover.Exec
 @[expose] public section
 
 /-- **An honest frame at an offset of a certificate**: the top frame `e` of a state of the tree track
-along `r`'s run at offset `i` of `K`'s code, an honest instance of `K`'s function (index `j`) on its
+along `r`'s run at offset `i` of `K`'s code, a `node` instance of `K`'s function (index `j`) on its
 path, its frame holding what the completeness check reads and within `2^62`, and the instruction at
 `i` holding on the reference at its frame. -/
 structure TopAt (A : String → FnAl) (r : Ref) (K : Mode.Cert) (i : ℕ) (e : Ent) (j : ℕ) : Prop where
   inst : e.I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T
+  node : ∃ f bufs kids, e.I.t = .node f e.σ bufs kids
   idx : idxOf e.I.t.name = some j
   entry : entryOf e.I.t.name = K.F.entry
   fn : coreOf j = e.fn
@@ -121,7 +122,7 @@ theorem res_of_top {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : S
     | xor a b c => exact ref_xor hκ hC hs hon hop
     | mul a b c => exact ref_mul hκ hC hs hon hop
     | _ => trivial
-  have ht : TopAt A r K i e j := ⟨hI, hj, hent, hfn, ⟨vs, hw, hF⟩, hfb, hpc ▸ hat, hrop⟩
+  have ht : TopAt A r K i e j := ⟨hI, hE.node, hj, hent, hfn, ⟨vs, hw, hF⟩, hfb, hpc ▸ hat, hrop⟩
   rw [← hfp] at hin ⊢
   exact h r hr K hK i hi e j ht x hx hin
 

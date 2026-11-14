@@ -145,6 +145,8 @@ part_res() {
   python3 -I scripts/res-cert/loops.py "${check[@]}"
   step "res: the certificates' termination facts (scripts/res-cert/term.py)"
   python3 -I scripts/res-cert/term.py "${check[@]}"
+  step "res: the residuals' families (scripts/res-cert/sel.py)"
+  python3 -I scripts/res-cert/sel.py "${check[@]}"
 }
 
 part_whir_data() {
