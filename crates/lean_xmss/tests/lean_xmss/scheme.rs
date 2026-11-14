@@ -15,15 +15,15 @@ fn full_key_signs_and_verifies() {
     let message = test_message();
     let other = (7 << LAYER_HEIGHT) + 3;
     std::thread::scope(|s| {
-        s.spawn(|| sk.prepare(other).unwrap());
-        sk.prepare(5).unwrap();
+        s.spawn(|| sk.prepare(other));
+        sk.prepare(5);
     });
-    let first = sign(&sk, &message, 5).unwrap();
+    let first = sign(&sk, &message, 5);
     verify(&pk, &message, &first).unwrap();
-    let other_tree = sign(&sk, &message, other).unwrap();
+    let other_tree = sign(&sk, &message, other);
     verify(&pk, &message, &other_tree).unwrap();
     assert_ne!(first.__top(), other_tree.__top());
-    assert_eq!(sign(&sk, &message, 5).unwrap(), first, "signing is deterministic");
+    assert_eq!(sign(&sk, &message, 5), first, "signing is deterministic");
     let mut bytes = first.to_bytes();
     bytes[..4].copy_from_slice(&4u32.to_le_bytes());
     assert!(verify(&pk, &message, &LeanXmssSignature::from_bytes(&bytes)).is_err());
@@ -42,7 +42,7 @@ fn known_answer() {
     let seed: Seed = std::array::from_fn(|i| (i as u8).wrapping_mul(37).wrapping_add(11));
     let (sk, pk) = key_gen(seed);
     let message: Message = std::array::from_fn(|i| (i * 7 + 3) as u8);
-    let signature = sign(&sk, &message, 0xA5C3_7E19).unwrap();
+    let signature = sign(&sk, &message, 0xA5C3_7E19);
     assert_eq!(
         hex(&pk.to_bytes()),
         "4066673001949b6ff8b9299fd4ea17d28787ad501aafe4b64e2488107b5e3ec3"
@@ -63,7 +63,7 @@ fn secret_key_survives_a_round_trip() {
     let reloaded = LeanXmssSecretKey::from_bytes(&sk.to_bytes());
     assert_eq!(reloaded.public_key(), pk);
     let message = test_message();
-    assert_eq!(sign(&reloaded, &message, 43).unwrap(), sign(&sk, &message, 43).unwrap());
+    assert_eq!(sign(&reloaded, &message, 43), sign(&sk, &message, 43));
 }
 
 /// The address layout, and `Th` as the leanVM hash of `P | A | M`.

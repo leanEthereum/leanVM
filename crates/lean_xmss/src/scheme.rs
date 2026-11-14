@@ -141,21 +141,6 @@ struct BottomTree {
     top_signature: LayerSignature,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-pub enum LeanXmssSignError {
-    NoAdmissibleEncoding,
-}
-
-impl std::fmt::Display for LeanXmssSignError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NoAdmissibleEncoding => write!(f, "no admissible encoding within the randomizer trial limit"),
-        }
-    }
-}
-
-impl std::error::Error for LeanXmssSignError {}
-
 /// The key pair of `key_seed`, the key's entire secret material: draw it from a secure source of
 /// randomness.
 pub fn key_gen(key_seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
@@ -174,16 +159,17 @@ pub fn key_gen(key_seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
 
 /// Never use the same key and leaf index to sign two different messages.
 /// Signing is deterministic. The first signature in a bottom tree builds that tree.
-pub fn sign(
-    sk: &LeanXmssSecretKey,
-    message: &Message,
-    leaf_index: LeafIndex,
-) -> Result<LeanXmssSignature, LeanXmssSignError> {
-    let bottom = sk.bottom_tree(leaf_index)?;
+///
+/// # Panics
+///
+/// When none of a layer's `2^32` randomizer trials gives a codeword, with probability below
+/// `2^-2954` (`doc/lean_xmss`): impossible in practice.
+pub fn sign(sk: &LeanXmssSecretKey, message: &Message, leaf_index: LeafIndex) -> LeanXmssSignature {
+    let bottom = sk.bottom_tree(leaf_index);
     let seed = scheme_seed(&sk.key_seed);
     let (randomizer, chain_values) =
-        wots_sign(&sk.public_param, &seed, 0, leaf_index, message).ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
-    Ok(LeanXmssSignature {
+        wots_sign(&sk.public_param, &seed, 0, leaf_index, message).expect("an admissible encoding");
+    LeanXmssSignature {
         leaf_index,
         bottom: LayerSignature {
             randomizer,
@@ -191,7 +177,7 @@ pub fn sign(
             path: bottom.tree.path(leaf_index),
         },
         top: bottom.top_signature.clone(),
-    })
+    }
 }
 
 impl LeanXmssSecretKey {
@@ -215,22 +201,25 @@ impl LeanXmssSecretKey {
     /// Builds the bottom tree `leaf_index` is in, and signs its root, ahead of
     /// [`sign`]: the first signature in a bottom tree pays for both. The key keeps
     /// the [`MAX_CACHED_BOTTOM_TREES`] it used last.
-    pub fn prepare(&self, leaf_index: LeafIndex) -> Result<(), LeanXmssSignError> {
-        self.bottom_tree(leaf_index).map(drop)
+    ///
+    /// # Panics
+    ///
+    /// As [`sign`] does, with the same probability.
+    pub fn prepare(&self, leaf_index: LeafIndex) {
+        self.bottom_tree(leaf_index);
     }
 
     /// The bottom tree `leaf_index` is in, with the top layer's signature of its root:
     /// the cached one, or built and cached. Built outside the lock, which is only ever
     /// held to read or update the cache.
-    fn bottom_tree(&self, leaf_index: LeafIndex) -> Result<Arc<BottomTree>, LeanXmssSignError> {
+    fn bottom_tree(&self, leaf_index: LeafIndex) -> Arc<BottomTree> {
         let index = layer_index(leaf_index, 1);
         if let Some(bottom) = use_cached(&mut self.bottoms.lock().unwrap(), index) {
-            return Ok(bottom);
+            return bottom;
         }
         let (pp, seed) = (&self.public_param, &scheme_seed(&self.key_seed));
         let tree = LayerTree::build(pp, seed, 0, index);
-        let (randomizer, chain_values) =
-            wots_sign(pp, seed, 1, index, &tree.root()).ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
+        let (randomizer, chain_values) = wots_sign(pp, seed, 1, index, &tree.root()).expect("an admissible encoding");
         let bottom = Arc::new(BottomTree {
             index,
             top_signature: LayerSignature {
@@ -243,13 +232,13 @@ impl LeanXmssSecretKey {
         let mut bottoms = self.bottoms.lock().unwrap();
         // Another thread may have built it meanwhile.
         if let Some(cached) = use_cached(&mut bottoms, index) {
-            return Ok(cached);
+            return cached;
         }
         bottoms.push_back(Arc::clone(&bottom));
         if bottoms.len() > MAX_CACHED_BOTTOM_TREES {
             bottoms.pop_front();
         }
-        Ok(bottom)
+        bottom
     }
 }
 

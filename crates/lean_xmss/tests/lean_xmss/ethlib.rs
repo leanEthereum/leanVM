@@ -163,7 +163,7 @@ fn sign_matches_ethlib() {
         ) {
             (Some(seed), Some(message)) => {
                 let sk = keys.entry(seed).or_insert_with(|| key_gen(seed).0);
-                Value::Bytes(sign(sk, &message, leaf_index).unwrap().to_bytes().to_vec())
+                Value::Bytes(sign(sk, &message, leaf_index).to_bytes().to_vec())
             }
             _ => Value::Null,
         };

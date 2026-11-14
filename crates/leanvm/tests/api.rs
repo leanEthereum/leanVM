@@ -14,12 +14,12 @@ fn public_api_end_to_end() {
     // The first signature in a bottom tree builds it, so a signer prepares the tree ahead of time. Leaves 7 to 9
     // share one tree.
     for (secret_key, _) in &keys {
-        secret_key.prepare(7).unwrap();
+        secret_key.prepare(7);
     }
     let mut lean_xmss_input = Vec::new();
     for (leaf_index, (message, count)) in (7..).zip([(MSG_0, 3), (MSG_1, 4), (MSG_2, 1)]) {
         for (secret_key, pub_key) in &keys[..count] {
-            let signature = lean_xmss::sign(secret_key, &message, leaf_index).unwrap();
+            let signature = lean_xmss::sign(secret_key, &message, leaf_index);
             lean_xmss_input.push((*pub_key, message, signature));
         }
     }

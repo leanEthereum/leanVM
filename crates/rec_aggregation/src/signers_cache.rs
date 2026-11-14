@@ -89,7 +89,7 @@ type Keys = [OnceLock<(LeanXmssSecretKey, LeanXmssPublicKey)>; NUM_KEYS];
 fn key(keys: &Keys, k: usize) -> &(LeanXmssSecretKey, LeanXmssPublicKey) {
     keys[k].get_or_init(|| {
         let (sk, pk) = key_gen(key_seed(k));
-        sk.prepare(BOTTOM_TREE << LAYER_HEIGHT).expect("prepare");
+        sk.prepare(BOTTOM_TREE << LAYER_HEIGHT);
         (sk, pk)
     })
 }
@@ -97,7 +97,7 @@ fn key(keys: &Keys, k: usize) -> &(LeanXmssSecretKey, LeanXmssPublicKey) {
 fn compute_signer(keys: &Keys, index: usize, message_id: u32) -> LeanXmssSigner {
     let (sk, pk) = key(keys, index % NUM_KEYS);
     let message = signer_message(index, message_id);
-    let sig = sign(sk, &message, leaf_index_of(index, message_id)).expect("sign");
+    let sig = sign(sk, &message, leaf_index_of(index, message_id));
     (*pk, message, sig)
 }
 
