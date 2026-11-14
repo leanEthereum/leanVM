@@ -23,7 +23,7 @@
 //! `E`; the committed alphabet remains `K = GF(2^64)`.
 
 use crate::merkle::{self, Hash};
-use crate::ntt::{AdditiveNttF64, Codeword};
+use crate::ntt::{AdditiveNttF64, words};
 use crate::stack_open::Terms;
 use fiat_shamir::merkle::MerklePath;
 use fiat_shamir::transcript::ProverState;
@@ -40,7 +40,6 @@ pub use super::whir_config::{default_config, udr_queries};
 
 pub use crate::whir_induce::*;
 use crate::whir_lanes;
-use crate::whir_ntt_ext::*;
 
 // ===================================================================
 // Multilinear helpers over E
@@ -83,8 +82,25 @@ pub struct Commitment {
     pub root: Hash,
 }
 
-/// Prover-side state retained after commit for the opening phase: the codeword, whose rows are the committed lanes
-/// with zero lanes in front up to the vector width, and its Merkle tree.
+/// A codeword kept whole: rows of `row_words` words.
+struct Codeword {
+    words: Vec<F64>,
+    row_words: usize,
+}
+
+impl Codeword {
+    /// The rows at `positions`, `row_words` words each, back to back.
+    fn rows(&self, positions: &[usize]) -> Vec<F64> {
+        let mut out = Vec::with_capacity(positions.len() * self.row_words);
+        for &q in positions {
+            out.extend_from_slice(&self.words[q * self.row_words..][..self.row_words]);
+        }
+        out
+    }
+}
+
+/// Prover-side state retained after commit for the opening phase: the codeword, a row per position holding the
+/// committed lanes, and its Merkle tree.
 pub struct ProverData {
     codeword: Codeword,
     pub(crate) merkle_tree: merkle::CutTree,
@@ -104,10 +120,6 @@ pub struct ProverData {
 /// puts them at the front of the image where their whole chunks are one sponge
 /// state every leaf shares. At most the image's tail, the committed lanes,
 /// rides the proof, the opening saying its width and the image's.
-///
-/// The encoded row is padded to a whole AVX-512 vector of lanes with zero lanes
-/// in front, so the NTT has no masked tail. The padding is the image's zeros and
-/// never rides the proof.
 pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate: usize) -> (Commitment, ProverData) {
     assert!(log_inv_rate >= 1, "log_inv_rate must be >= 1 for a non-trivial RS code");
     assert!(log_n > log_batch_size, "witness must be wider than the interleaving");
@@ -119,20 +131,15 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
         "at most 2^log_batch_size lanes carry data"
     );
     let k_code = log_rows + log_inv_rate;
-    let n_positions = 1usize << k_code;
-    let row_words = n_lanes.next_multiple_of(8).min(1usize << log_batch_size);
-
-    // Leaves are hashed as the encode finishes each block of rows.
-    let tree = merkle::MerkleBuilder::new(n_positions, row_words, 1usize << log_batch_size);
     let ntt = AdditiveNttF64::standard(k_code);
-    let codeword =
-        tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = row_words).in_scope(|| {
-            let on_rows = |row, rows: &[F64]| tree.absorb(row, rows);
-            ntt.encode_lane_major(message, n_lanes, row_words, log_inv_rate, &on_rows)
-        });
-    let merkle_tree = tracing::info_span!("Merkle").in_scope(|| tree.finish());
+    let words = tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = n_lanes)
+        .in_scope(|| ntt.encode_lane_major(message, n_lanes, log_inv_rate));
+    let merkle_tree = tracing::info_span!("Merkle").in_scope(|| merkle::build(&words, n_lanes, 1 << log_batch_size));
     let root = merkle_tree.root();
-
+    let codeword = Codeword {
+        words,
+        row_words: n_lanes,
+    };
     (Commitment { root }, ProverData { codeword, merkle_tree })
 }
 
@@ -185,23 +192,19 @@ pub(crate) fn ligero_commit_ext(
     let log_block_len = log_msg_cols + log_inv_rate;
     assert_eq!(poly.len(), num_interleaved * msg_cols);
 
-    // One leaf per row, its F128s as K words: hashed as the encode finishes each block.
+    // One leaf per row, its F128s as K words.
     let row_words = 2 * num_interleaved;
-    let builder = merkle::MerkleBuilder::new(block_len, row_words, row_words);
-    let codeword = tracing::info_span!(
+    let words = tracing::info_span!(
         "NTT",
         kind = "extension encode",
         log_domain = log_block_len,
         lanes = num_interleaved
     )
-    .in_scope(|| {
-        let on_rows = |row, rows: &[F64]| builder.absorb(row, rows);
-        ntt.encode_interleaved_with(words(poly), row_words, log_inv_rate, &on_rows)
-    });
-    let tree = tracing::info_span!("Merkle").in_scope(|| builder.finish());
+    .in_scope(|| ntt.encode_rows(words(poly), row_words, log_inv_rate));
+    let tree = tracing::info_span!("Merkle").in_scope(|| merkle::build(&words, row_words, row_words));
 
     LigeroWitness {
-        codeword,
+        codeword: Codeword { words, row_words },
         tree,
         block_len,
         num_interleaved,
@@ -710,9 +713,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         n_lanes >= 1 && n_lanes <= num_interleaved_0,
         "at most 2^initial_k lanes"
     );
-    let row_words = prover_data.codeword.row_words;
-    assert_eq!(prover_data.codeword.words.len(), block_len_0 * row_words);
-    assert!((n_lanes..=num_interleaved_0).contains(&row_words));
+    assert_eq!(prover_data.codeword.row_words, n_lanes);
+    assert_eq!(prover_data.codeword.words.len(), block_len_0 * n_lanes);
 
     // Nothing is absorbed on entry. The commitment was bound by the `add_root` that
     // transmitted it, and the target is `sum_i lambda^i * claim_i` over claim values bound by their
@@ -823,7 +825,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
                 // The tree keeps no leaves: the rows of whole leaf groups are read back and rehashed.
                 let group = l0_tree.group_positions(&queries);
                 let group_rows = prover_data.codeword.rows(&group);
-                let image = |q| &fetched_row(&group, &group_rows, row_words, q)[row_words - n_lanes..];
+                let image = |q| fetched_row(&group, &group_rows, n_lanes, q);
                 // Lane `t` of the codeword is stack block `n_lanes-1-t`: reversing the image puts block `b` at index
                 // `b`, and the absent lanes' zeros at the end.
                 let mut rows = Vec::with_capacity(queries.len() * num_interleaved_0);
@@ -831,7 +833,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
                     let zeros = std::iter::repeat_n(F128::ZERO, num_interleaved_0 - n_lanes);
                     rows.extend(image(q).iter().rev().map(|&k| F128::from(k)).chain(zeros));
                 }
-                ps.hint_merkle(l0_tree.open(&queries, row_words, num_interleaved_0, &group_rows, image));
+                ps.hint_merkle(l0_tree.open(&queries, n_lanes, num_interleaved_0, &group_rows, image));
                 // Nothing reads the L0 codeword or its tree again.
                 drop(prover_data);
                 rows

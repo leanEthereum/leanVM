@@ -73,6 +73,7 @@ impl MerkleBuilder {
     /// # Panics
     ///
     /// Panics unless the block is aligned, sized like every other, and new.
+    #[cfg(test)]
     pub fn absorb(&self, first_leaf: usize, rows: &[F64]) {
         self.absorb_bytes(first_leaf, cast_slice(rows));
     }
@@ -142,7 +143,6 @@ impl MerkleBuilder {
     }
 
     /// Absorb all rows, in parallel blocks.
-    #[cfg(test)]
     fn absorb_all(&self, data: &[u8]) {
         let num_leaves = self.nodes.width(0);
         assert_eq!(data.len(), num_leaves * self.leaves.row_bytes(), "one row per leaf");
@@ -171,6 +171,13 @@ impl MerkleBuilder {
         let nodes = unsafe { self.nodes.assume_init() };
         CutTree { nodes, cut, num_leaves }
     }
+}
+
+/// The tree over `rows`, `row_words` each, hashed as the leaves `zeros(leaf_words - row_words) ‖ row`.
+pub(crate) fn build(rows: &[F64], row_words: usize, leaf_words: usize) -> CutTree {
+    let builder = MerkleBuilder::new(rows.len() / row_words, row_words, leaf_words);
+    builder.absorb_all(cast_slice(rows));
+    builder.finish()
 }
 
 /// The flat tree from level `cut` up, written at disjoint nodes by concurrent climbs.

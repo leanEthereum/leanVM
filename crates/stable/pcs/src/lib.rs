@@ -15,7 +15,6 @@ pub mod whir;
 pub mod whir_config;
 mod whir_induce;
 mod whir_lanes;
-mod whir_ntt_ext;
 mod xmul;
 
 pub use pack::LOG_PACKING;

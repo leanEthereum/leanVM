@@ -7,8 +7,7 @@
 //! dense per-query expansion, its succinct residual evaluator, and the sparse
 //! transposed-NTT fast path with the dispatch between them.
 
-use crate::ntt::{AdditiveNttF64, transpose_butterfly_lanes};
-use crate::whir_ntt_ext::words_mut;
+use crate::ntt::{AdditiveNttF64, transpose_butterfly, words_mut};
 use primitives::field::{F64, F128, Weights8, dot_base};
 
 // ===================================================================
@@ -142,7 +141,7 @@ fn transpose_butterfly_ext(t: F64, top: &mut [F128], bot: &mut [F128]) {
     if t.is_zero() {
         top.iter_mut().zip(bot.iter()).for_each(|(a, &b)| *a += b);
     } else {
-        transpose_butterfly_lanes(words_mut(top), words_mut(bot), t);
+        transpose_butterfly(words_mut(top), words_mut(bot), t);
     }
 }
 
