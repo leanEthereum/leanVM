@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.Pops
+public import LeanVM.Guest.Memory.Fresh
 public import Statement.Prover.Execute
 
 /-!
@@ -156,12 +157,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
 @[expose] public section
 
 /-! ## Pinned along a path -/
-
-/-- An outcome's events, none when stuck. -/
-def Out.evs : Out → List Ev
-  | .fall es => es
-  | .ret es _ => es
-  | .stuck => []
 
 variable {p : Atom → Bool} {q : Atom → Atom → Bool} {σ : Val}
 

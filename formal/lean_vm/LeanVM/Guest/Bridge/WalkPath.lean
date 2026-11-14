@@ -7,9 +7,8 @@
 module
 
 public import LeanVM.Guest.Bridge.Prefix
-public import LeanVM.Guest.Pack.«P10».Core
-public import LeanVM.Guest.Pack.«P10».Bundle
-public import LeanVM.Guest.Data.AdviceHints
+public import LeanVM.Guest.Bridge.Cells
+public import LeanVM.Guest.Bridge.PrefixOk.P10
 public import LeanVM.Guest.Memory.LiftPure
 
 /-!
@@ -17,7 +16,7 @@ public import LeanVM.Guest.Memory.LiftPure
 
 `walk_path__L6_L7` (a specialization of `walk_path`, compiled function `1599`) pops its Merkle path's `24` children from `merkle_children` before it hashes them. Its ISA hints (`Data.adviceFn1599`): `witnessStack "merkle_children" 7 24` at offset `0` and a `cellAddress` (plumbing) at offset `7`; its first jump is at offset `11`.
 
-* `prefixOk_wp`: it is in the prefix class, under its certificate's cells (`loc`), by the kernel.
+* `prefixOk_wp`: it is in the prefix class, under its certificate's cells (`loc`, its generated `bridgeLoc`), by the kernel (`Bridge/PrefixOk/P10.lean`).
 * `wp_isaFlow`, `wp_flow`, `wp_cells`: the per-pc pairing: its one ISA flow hint, at offset `0`, compiles its body's first atom, the witness of values `5` to `28`, which sit at cells `7` to `30`.
 * `wp_pops`: every instance pops exactly that hint's entry, its values' words.
 * `wp_hintOk`: the executor's hint at offset `0` meets `HintOk`, from the stream's next entry being the instance's and the frame holding its values at their cells.
@@ -31,7 +30,7 @@ open LeanVM.Prover.Exec (Ctx St HintOk StreamNext maxCells)
 @[expose] public section
 
 /-- The cells of `walk_path__L6_L7`'s values: its certificate's (`Cert.locs`). -/
-noncomputable def loc (i : ℕ) : ℕ := Fn.«walk_path__L6_L7».cert.locs.getD i 0
+noncomputable abbrev loc : ℕ → ℕ := Fn.«walk_path__L6_L7».bridgeLoc
 
 /-- The children the witness hint pops, values `5` to `28`. -/
 def kids : List V := (List.range 24).map fun k ↦ .n (5 + k)
@@ -42,8 +41,8 @@ public section
 
 /-- **`walk_path__L6_L7` is in the prefix class.** -/
 theorem prefixOk_wp : prefixOk loc Fn.«walk_path__L6_L7».core.body Fn.«walk_path__L6_L7».code.code
-    Data.adviceFn1599 = true := by
-  decide +kernel
+    Data.adviceFn1599 = true :=
+  Fn.«walk_path__L6_L7».bridgePrefixOk
 
 /-- Its ISA flow hints: the witness at offset `0`. -/
 theorem wp_isaFlow : isaFlow Data.adviceFn1599 = [(0, .witnessStack "merkle_children" 7 24)] := by
