@@ -27,7 +27,8 @@ whose every node is exact (`MainGoalsRE`). `mainCompletePE_deployed`: `mainCompl
 
 `VsExactHyp`: each child's `verify_sub` call at the deployed instance by a tree also exact; `mainExactHypL5_of_vs`:
 `MainExactHypL5` from it (`mainGoalsRR_l5E`); `vsExactHyp_of`: `VsExactHyp` from `verify_sub`'s callees with computed
-hints exact (`VsKidsExact`, `verifySubGoalsTBR_deployedE`).
+hints exact (`VsKidsExact`, `verifySubGoalsTBR_deployedE`). `mainExactHypL5_of_vk`, `mainCompletePE_deployedVk`: from
+`verify_keccak`'s trees exact alone (`vs_kids_exact_of_vk`).
 -/
 
 namespace LeanVM.Guest.Budget
@@ -138,6 +139,17 @@ theorem vsExactHyp_of
 theorem mainExactHypL5_of_kids
     (hK : B1.VerifySub.VsKidsExact B2C.fs B2C.cert 16 Count.vsWordsOs vkBound) : MainExactHypL5 :=
   mainExactHypL5_of_vs (vsExactHyp_of hK)
+
+/-- **The children's loop, every node exact**, given `verify_keccak`'s trees exact: `verify_sub`'s other callees by
+`vs_kids_exact_of_vk`. -/
+theorem mainExactHypL5_of_vk (hvk : B1.VerifySub.VkCompleteAtBKE B2C.fs B2C.cert 16 vkBound) : MainExactHypL5 :=
+  mainExactHypL5_of_kids (B1.VerifySub.vs_kids_exact_of_vk hvk)
+
+/-- **`main` is complete within the deployed budget with its pops, every node exact**, given `verify_keccak`'s trees
+exact. -/
+theorem mainCompletePE_deployedVk (hvk : B1.VerifySub.VkCompleteAtBKE B2C.fs B2C.cert 16 vkBound) :
+    MainCompletePE B2C.fs B2C.cert B2C.cnt (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
+  mainCompletePE_deployedL5 (mainExactHypL5_of_vk hvk)
 
 end
 end LeanVM.Guest.Budget

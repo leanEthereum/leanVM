@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Place.OsKidsBT
 
-  `os_levels_kidsB` with each level's calls after its positions by trees of a predicate of the memory.
+  `os_levels_kidsB` with each level's calls by trees of predicates of the memory.
 -/
 
 module
@@ -15,8 +15,9 @@ public import LeanVM.Guest.Budget.BoundedR
 * `kidsFromIn_toT`: callees `KidsFromIn` are `KidsFromInT` of predicates every tree satisfies;
 * `kidsFromInT_append`: `kidsFromIn_append` with the predicates appended;
 * `os_kids_blockBT`: `os_kids_blockB` by trees of `T rd` (`CompleteAtDTBR`);
-* `OsLvKOkBT`, `lvTs`, `os_levels_kidsBT`: `OsLvKOkB`, `os_levels_kidsB` with level `l`'s calls after its positions by
-  trees of `TB l rd`, every other call's by any tree.
+* `OsCompleteAtPBT`, `os_kidsFromIn_onePBT`: `OsCompleteAtPB`, `os_kidsFromIn_onePB` by a tree of `T rd`;
+* `OsLvKOkBT`, `lvTs`, `os_levels_kidsBT`: `OsLvKOkB`, `os_levels_kidsB` with level `l`'s calls before its positions by
+  trees of `TA rd`, its positions' by one of `TS rd`, its calls after them by trees of `TB l rd`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -118,44 +119,91 @@ theorem os_kids_blockBT (κ : ℕ) (Lk : Layout) (σ : Val) (cs : List Call) (Bk
     obtain ⟨c, -, rfl⟩ := List.mem_map.mp hk
     exact hR i hi
 
-/-- `OsLvKOkB` with the calls after the positions by trees of `TB rd`. -/
+/-- **`OsCompleteAtPB` by a tree satisfying a predicate of the memory.** -/
+def OsCompleteAtPBT (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (f : String) (Lin : ℕ → Layout)
+    (args rets : List E) (Lout : ℕ → Layout) (T : Reader → Tree → Prop) (B : ℕ) : Prop :=
+  ∀ fp, ∃ (n : ℕ) (Lown : Layout), Within (Lout fp ++ Lown) fp n ∧ DisjL (Lout fp ++ Lown) ∧ n ≤ B ∧
+    ∀ rd, LowDef κ rd → MemL rd (Lout fp ++ Lown ++ Lin fp) →
+      RelAtInT coreProgram fs cert rd (RegionL (Lin fp)) (RegionL (Lout fp)) fp n f args rets (T rd)
+
+theorem OsCompleteAtPBT.toPB {κ : ℕ} {f : String} {Lin : ℕ → Layout} {args rets : List E}
+    {Lout : ℕ → Layout} {T : Reader → Tree → Prop} {B : ℕ} (h : OsCompleteAtPBT fs cert κ f Lin args rets Lout T B) :
+    OsCompleteAtPB fs cert κ f Lin args rets Lout B := fun fp =>
+  let ⟨n, Lown, hW, hD, hn, hr⟩ := h fp
+  ⟨n, Lown, hW, hD, hn, fun rd hl hm => (hr rd hl hm).relAtIn⟩
+
+theorem OsCompleteAtPB.toT {κ : ℕ} {f : String} {Lin : ℕ → Layout} {args rets : List E}
+    {Lout : ℕ → Layout} {B : ℕ} (h : OsCompleteAtPB fs cert κ f Lin args rets Lout B) :
+    OsCompleteAtPBT fs cert κ f Lin args rets Lout (fun _ _ => True) B := fun fp =>
+  let ⟨n, Lown, hW, hD, hn, hr⟩ := h fp
+  ⟨n, Lown, hW, hD, hn, fun rd hl hm => (hr rd hl hm).relAtInT⟩
+
+theorem OsCompleteAtPBT.mono {κ : ℕ} {f : String} {Lin : ℕ → Layout} {args rets : List E}
+    {Lout : ℕ → Layout} {T T' : Reader → Tree → Prop} {B B' : ℕ}
+    (h : OsCompleteAtPBT fs cert κ f Lin args rets Lout T B) (hB : B ≤ B') (hT : ∀ rd t, T rd t → T' rd t) :
+    OsCompleteAtPBT fs cert κ f Lin args rets Lout T' B' := fun fp =>
+  let ⟨n, Lown, hW, hD, hn, hr⟩ := h fp
+  ⟨n, Lown, hW, hD, le_trans hn hB, fun rd hl hm =>
+    let ⟨t, ht, hTt⟩ := hr rd hl hm
+    ⟨t, ht, hT rd t hTt⟩⟩
+
+/-- **One such callee within `B` by a tree of `T rd`**, placed at `b`, claiming its buffers. -/
+theorem os_kidsFromIn_onePBT {κ : ℕ} {f : String} {Lin : ℕ → Layout} {args rets : List E}
+    {Lout : ℕ → Layout} {T : Reader → Tree → Prop} {B : ℕ}
+    (h : OsCompleteAtPBT fs cert κ f Lin args rets Lout T B) (σ : Val) (c : Call) (hf : c.f = f)
+    (ht : c.taken = true) (ha : c.args.map σ = args) (hr : c.rets.map σ = rets) (b : ℕ) :
+    ∃ (n : ℕ) (Lown : Layout), Within (Lout b ++ Lown) b n ∧ DisjL (Lout b ++ Lown) ∧ n ≤ B ∧
+      ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd (Lout b ++ Lown) → MemL rd (Lin b) →
+        (∀ i, RegionL (Lin b) i → R i ∨ Dacc i) →
+        KidsFromInT coreProgram fs cert rd σ R Dacc [c] [T rd] b n (RegionL (Lout b)) := by
+  obtain ⟨n, Lown, hW, hD, hn, hrel⟩ := h b
+  refine ⟨n, Lown, hW, hD, hn, fun rd R Dacc hlow hL hLin hR =>
+    ⟨n, 0, RegionL (Lin b), RegionL (Lout b), by omega, hR, ?_, ⟨rfl, fun i hi => Or.inr ⟨ht, hi⟩⟩⟩⟩
+  simp only [ht, ↓reduceIte, List.headD_cons]
+  rw [hf, ha, hr]
+  exact hrel rd hlow (Main.memL_append.mpr ⟨hL, hLin⟩)
+
+/-- `OsLvKOkB` with the calls before the positions by trees of `TA rd`, the positions' by one of `TS rd`, the calls
+after them by trees of `TB rd`. -/
 structure OsLvKOkBT (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (σ : Val) (Lk : Layout)
-    (W S : ℕ → Layout) (Bk : String → ℕ) (TB : Reader → Tree → Prop) (k : OsLvK) : Prop where
+    (W S : ℕ → Layout) (Bk : String → ℕ) (TA TS TB : Reader → Tree → Prop) (k : OsLvK) : Prop where
   A : ∀ c ∈ k.A, c.taken = true →
-    CompleteAtB fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) (Bk c.f)
+    CompleteAtDTBR fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) TA (Bk c.f)
   taken : k.sq.taken = true
-  sq : OsCompleteAtPB fs cert κ k.sq.f (fun p => Lk ++ W p) (k.sq.args.map σ) (k.sq.rets.map σ) S
+  sq : OsCompleteAtPBT fs cert κ k.sq.f (fun p => Lk ++ W p) (k.sq.args.map σ) (k.sq.rets.map σ) S TS
     (Bk k.sq.f)
   B : ∀ p, ∀ c ∈ k.B, c.taken = true →
     CompleteAtDTBR fs cert κ c.f (Lk ++ W p ++ S p) (c.args.map σ) (Returns (c.rets.map σ)) TB (Bk c.f)
 
-/-- The levels' calls' predicates: level `l`'s calls after its positions `TB l rd`, the others' none. -/
-def lvTs (TB : ℕ → Reader → Tree → Prop) (rd : Reader) : ℕ → List OsLvK → List (Tree → Prop)
+/-- The levels' calls' predicates: level `l`'s calls before its positions `TA rd`, its positions' `TS rd`, its calls
+after them `TB l rd`. -/
+def lvTs (TA TS : Reader → Tree → Prop) (TB : ℕ → Reader → Tree → Prop) (rd : Reader) :
+    ℕ → List OsLvK → List (Tree → Prop)
   | _, [] => []
-  | l, k :: ks => (k.A.map fun _ _ => True) ++ ((fun _ => True) :: k.B.map fun _ => TB l rd) ++ lvTs TB rd (l + 1) ks
+  | l, k :: ks => (k.A.map fun _ => TA rd) ++ (TS rd :: k.B.map fun _ => TB l rd) ++ lvTs TA TS TB rd (l + 1) ks
 
-/-- **`os_levels_kidsB` with level `l`'s calls after its positions by trees of `TB l rd`.** -/
+/-- **`os_levels_kidsB` with level `l`'s calls by trees of `lvTs TA TS TB`.** -/
 theorem os_levels_kidsBT (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ → Layout) (Bk : String → ℕ)
-    (TB : ℕ → Reader → Tree → Prop) :
+    (TA TS : Reader → Tree → Prop) (TB : ℕ → Reader → Tree → Prop) :
     ∀ (ks : List OsLvK) (l0 : ℕ),
-      (∀ i (h : i < ks.length), OsLvKOkBT fs cert κ σ Lk (W (l0 + i)) (S (l0 + i)) Bk (TB (l0 + i)) ks[i]) →
+      (∀ i (h : i < ks.length), OsLvKOkBT fs cert κ σ Lk (W (l0 + i)) (S (l0 + i)) Bk TA TS (TB (l0 + i)) ks[i]) →
       ∀ b, ∃ (N : ℕ) (L : Layout) (ps : List ℕ), ps.length = ks.length ∧ Within L b N ∧ DisjL L ∧
         N ≤ ((ks.flatMap OsLvK.calls).map fun c => max (fs c.f) (Bk c.f)).sum ∧
         ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd L → MemL rd Lk →
           (∀ i (h : i < ps.length), MemL rd (W (l0 + i) ps[i])) → (∀ i, RegionL Lk i → R i) →
           (∀ l, l0 ≤ l → l < l0 + ks.length → ∀ p i, RegionL (W l p) i → R i) →
-          KidsFromInT coreProgram fs cert rd σ R Dacc (ks.flatMap OsLvK.calls) (lvTs TB rd l0 ks) b N
+          KidsFromInT coreProgram fs cert rd σ R Dacc (ks.flatMap OsLvK.calls) (lvTs TA TS TB rd l0 ks) b N
             (fun _ => False)
   | [], _, _, b => ⟨0, [], [], rfl, fun _ h => by simp at h, disj_nil, Nat.zero_le _, fun _ _ _ _ _ _ _ _ _ =>
       ⟨rfl, fun _ h => h.elim⟩⟩
   | k :: ks, l0, hok, b => by
     have h0 := hok 0 (by simp)
     simp only [Nat.add_zero, List.getElem_cons_zero] at h0
-    obtain ⟨NA, LA, hWA, hDA, hNA, hKA⟩ := os_kids_blockB (fs := fs) (cert := cert) κ Lk σ k.A Bk h0.A b
-    obtain ⟨nS, LS, hWS, hDS, hNS, hKS⟩ := os_kidsFromIn_onePB h0.sq σ k.sq rfl h0.taken rfl rfl (b + NA)
+    obtain ⟨NA, LA, hWA, hDA, hNA, hKA⟩ := os_kids_blockBT (fs := fs) (cert := cert) κ Lk σ k.A Bk TA h0.A b
+    obtain ⟨nS, LS, hWS, hDS, hNS, hKS⟩ := os_kidsFromIn_onePBT h0.sq σ k.sq rfl h0.taken rfl rfl (b + NA)
     obtain ⟨NB, LB, hWB, hDB, hNB, hKB⟩ := os_kids_blockBT (fs := fs) (cert := cert) κ
       (Lk ++ W l0 (b + NA) ++ S l0 (b + NA)) σ k.B Bk (TB l0) (h0.B (b + NA)) (b + NA + nS)
-    obtain ⟨Nr, Lr, ps, hps, hWr, hDr, hNr, hKr⟩ := os_levels_kidsBT κ σ Lk W S Bk TB ks (l0 + 1) (fun i hi => by
+    obtain ⟨Nr, Lr, ps, hps, hWr, hDr, hNr, hKr⟩ := os_levels_kidsBT κ σ Lk W S Bk TA TS TB ks (l0 + 1) (fun i hi => by
       have := hok (i + 1) (by simp; omega)
       simp only [List.getElem_cons_succ, show l0 + (i + 1) = l0 + 1 + i by omega] at this
       exact this) (b + NA + nS + NB)
@@ -180,13 +228,13 @@ theorem os_levels_kidsBT (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ 
       have hS0 : MemL rd (S l0 (b + NA)) := (Main.memL_append.mp hLS).1
       simp only [List.flatMap_cons, OsLvK.calls, lvTs, List.append_assoc, List.cons_append]
       refine kidsFromInT_append _ _ _ _ _ _ _ _ _ _ (by simp)
-        (kidsFromIn_toT _ (by simp) (hKA rd R Dacc hlow hLA hLk fun i hi => Or.inl (hR i hi))) ?_
+        (hKA rd R Dacc hlow hLA hLk fun i hi => Or.inl (hR i hi)) ?_
       intro D1 _
       rw [show k.sq :: (k.B ++ ks.flatMap OsLvK.calls) = [k.sq] ++ (k.B ++ ks.flatMap OsLvK.calls) from rfl,
-        show (fun _ => True) :: ((k.B.map fun _ => TB l0 rd) ++ lvTs TB rd (l0 + 1) ks) =
-          [fun _ => True] ++ ((k.B.map fun _ => TB l0 rd) ++ lvTs TB rd (l0 + 1) ks) from rfl]
+        show TS rd :: ((k.B.map fun _ => TB l0 rd) ++ lvTs TA TS TB rd (l0 + 1) ks) =
+          [TS rd] ++ ((k.B.map fun _ => TB l0 rd) ++ lvTs TA TS TB rd (l0 + 1) ks) from rfl]
       refine kidsFromInT_append _ _ _ _ _ _ _ _ _ _ rfl
-        (kidsFromIn_toT _ (by simp) (hKS rd R D1 hlow hLS (Main.memL_append.mpr ⟨hLk, hW0⟩) fun i hi => ?_)) ?_
+        (hKS rd R D1 hlow hLS (Main.memL_append.mpr ⟨hLk, hW0⟩) fun i hi => ?_) ?_
       · rcases osT_regionL_append hi with hi | hi
         · exact Or.inl (hR i hi)
         · exact Or.inl (hRW l0 le_rfl (by simp) _ i hi)

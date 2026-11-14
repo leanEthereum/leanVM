@@ -11,14 +11,17 @@ public import LeanVM.Guest.B1.Whir.CRecHosP
 public import LeanVM.Guest.B1.VerifySub.CompleteBTE
 public import LeanVM.Guest.B1.Exact.Terminal
 public import LeanVM.Guest.B1.Exact.VerifyTables
+public import LeanVM.Guest.B1.Place.ArmExactAll
 
 /-!
 # `verify_sub`, popping its hints, every node exact
 
-`open_stacked_completeAtBPE_Spec`: `open_stacked_completeAtBP_Spec` by trees also exact; `vs_hos_ofE`, `vs_hos_of`'s
-from it. `VsKidsExact`: `verify_keccak` (`VkCompleteAtBKE`) and `open_stacked` by trees exact on the memory, and
-`verify_tables`' own computed hints exact at its honest valuation (`VtOwnExact`; its callees are `vt_callees_ok`, the
-terminal `ChildSegs.term_kidBWE`). `verify_sub_completeBTPE`, `verify_sub_completeBTSE`:
+`open_stacked_completeAtBPE_Spec`: `open_stacked_completeAtBP_Spec` by trees also exact; `open_stacked_completeAtBPE`
+proves it (the arm's node of `Arm.open_stacked_completeAtOT_of`, exact at every node by `Arm.flatNodeT_every`, its
+callees' trees satisfying `armXT`: `Arm.armTs_xt`); `vs_hos_ofE`, `vs_hos_of`'s from it. `VsKidsExact`: `verify_keccak`
+(`VkCompleteAtBKE`) and `open_stacked` by trees exact on the memory, and `verify_tables`' own computed hints exact at
+its honest valuation (`VtOwnExact`; its callees are `vt_callees_ok`, the terminal `ChildSegs.term_kidBWE`);
+`vs_kids_exact_of_vk`: from `verify_keccak`'s alone. `verify_sub_completeBTPE`, `verify_sub_completeBTSE`:
 `verify_sub_completeBTP`, `verify_sub_completeBTS` by a tree also exact (`verify_sub_completeBTGE`).
 -/
 
@@ -54,6 +57,39 @@ theorem open_stacked_completeAtBPE_Spec.toBP (h : open_stacked_completeAtBPE_Spe
   (h μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs S root target cur tabs xs os w s' roots' hrun hnz hcaps
     Lin hLin).mono le_rfl fun _ _ h => h.1
 
+/-- **`open_stacked` is complete placed within its bound by a tree popping its levels' `level_queries` entries and
+exact at every node.** -/
+theorem open_stacked_completeAtBPE : open_stacked_completeAtBPE_Spec := by
+  intro μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs S root target cur tabs xs os w s' roots' hrun hnz
+    hcaps Lin hLin
+  obtain ⟨cfg, Ls, hR, hst⟩ := Whir.honRunS_of h1 h2 h3 h4 hrun hnz hcaps
+  have hm : μ - Whir.minOpenLog < 11 := hR.m11
+  obtain ⟨fn, hf, -, h⟩ := Arm.open_stacked_completeAtOT_of (Bd := some Bnd) level_residual_completeAt h2 h3 h4
+    hrf hcons hκ (fun _ hB ↦ by cases hB; exact hleaf) (fun _ _ ↦ helperBounds fs cert κ hrf hcons hκ hfs)
+    (hR.osHonest (cur := cur) (tabs := tabs)) hLin
+  obtain ⟨fn', hf', hmu⟩ := Arm.armMute_all hm
+  have hf0 := hf
+  rw [Whir.openName_eq hm] at hf0
+  rw [hf0, Option.some.injEq] at hf'
+  subst hf'
+  intro fp
+  obtain ⟨n, Lown, rets, Lout, ho, hw, hd, hn, hr⟩ := h fp
+  refine ⟨n, Lown, rets, Lout, hn _ rfl, ho, hw, hd, fun rd hl hmem ↦ ?_⟩
+  obtain ⟨t, ht, hT⟩ := hr rd hl hmem
+  refine ⟨t, ht, ⟨cfg, Ls, hR, hst, ?_⟩, ?_⟩
+  · have hP : Arm.osLvPops (hR.osHonest (cur := cur) (tabs := tabs)) = Whir.lvPops Ls μ r := by
+      obtain ⟨e1, e2, e3, e4, e5⟩ := hR.osHonest_fields (cur := cur) (tabs := tabs)
+      funext l
+      simp only [Arm.osLvPops, Whir.lvPops, e1, e2, e3, e4, e5]
+    rw [Arm.arm_pops hm hR.r4 hf hmu ht.2.1 hT, hP]
+    exact SameStreams.refl _
+  · refine Arm.flatNodeT_every hm hf hT ht.2.1 (fun σ ↦ ?_)
+      fun σ c T hc _ hx t' hn' _ hT' ↦ Arm.armTs_xt _ σ rd T (List.of_mem_zip hc).2 t' hT' (by rw [hn']; exact hx)
+    have e := congrArg List.length (Arm.osBodyA_calls σ (Whir.osCfgR (μ - Whir.minOpenLog) (r - 1)))
+    rw [List.length_map] at e
+    rw [e]
+    simp only [Arm.armTs, Arm.armRest, List.length_append, List.length_map, Arm.lvTs_length, le_refl]
+
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- **`verify_sub_completeBTPE`'s `hos`**, from `open_stacked_completeAtBPE_Spec`. -/
@@ -86,6 +122,12 @@ structure VsKidsExact (fs : String → ℕ) (cert : String → V → ℕ) (κ : 
   vk : VkCompleteAtBKE fs cert κ Bvk
   vt : VtOwnExact
   os : open_stacked_completeAtBPE_Spec
+
+/-- **`VsKidsExact` from `verify_keccak`'s alone**: `verify_tables`' own hints by `vtOwnExact`, `open_stacked` by
+`open_stacked_completeAtBPE`. -/
+theorem vs_kids_exact_of_vk {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {W : VsWordsOs fs} {Bvk : ℕ}
+    (hvk : VkCompleteAtBKE fs cert κ Bvk) : VsKidsExact fs cert κ W Bvk :=
+  ⟨hvk, vtOwnExact, open_stacked_completeAtBPE⟩
 
 /-- **`verify_sub` is complete on an honest child within its own bound by a node popping `childHints` past its
 advised sizes and exact at every node**, given its `open_stacked` callee's trees popping the child's Merkle hints and

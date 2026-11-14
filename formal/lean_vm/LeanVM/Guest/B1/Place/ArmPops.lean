@@ -14,8 +14,8 @@ public import LeanVM.Guest.B1.Place.ArmMuteAll
 
 * `PopsBy rd cs Ts ps`: each entered callee's valid tree satisfying its predicate pops its entries, a skipped one's are `[]`; `popsKids_of_popsBy`: callees `KidsT` pop them;
 * `popsBy_mute`: callees with no witness hint in their subtrees pop nothing; `popsBy_lvs`: the levels' callees pop, level by level, their `level_queries`' entries (`lvPss`);
-* `arm_popsBy`: the arm's callees, classified by name (`armMute_all`, `lqNameB_of_kind`, `lqNameB_of_lp`, `lqNameB_of_lr`);
-* `arm_pops`: the arm's node (`FlatNodeT`), its body mute but for its calls (`splice_mute`), pops its levels' `osLvPops` in order.
+* `armTsP`: `armTs`' part on the pops (`armTs_armTsP`); `arm_popsBy`: the arm's callees, classified by name (`armMute_all`, `lqNameB_of_kind`, `lqNameB_of_lp`, `lqNameB_of_lr`);
+* `arm_pops`: the arm's node (`FlatNodeT`, its callees' trees of `armTs`), its body mute but for its calls (`splice_mute`), pops its levels' `osLvPops` in order.
 -/
 
 namespace LeanVM.Guest.B1.Arm
@@ -94,7 +94,7 @@ theorem popsBy_after {rd : Reader} {T : Tree → Prop} {p : List Pop} : ∀ (cs 
 /-- **The levels' callees pop their `level_queries`' entries**, level by level. -/
 theorem popsBy_lvs {rd : Reader} (TB : ℕ → Reader → Tree → Prop) (P : ℕ → List Pop) :
     ∀ (ks : List OsLvK) (l : ℕ), (∀ i (h : i < ks.length), LvPopsOk rd (TB (l + i) rd) (P (l + i)) ks[i]) →
-      PopsBy rd (ks.flatMap OsLvK.calls) (lvTs TB rd l ks) (lvPss P l ks)
+      PopsBy rd (ks.flatMap OsLvK.calls) (lvTs (fun _ _ ↦ True) (fun _ _ ↦ True) TB rd l ks) (lvPss P l ks)
   | [], _, _ => trivial
   | k :: ks, l, h => by
     obtain ⟨hA, hsq, hB⟩ := h 0 (by simp)
@@ -137,6 +137,21 @@ theorem armPss_flatten {c : OsCfg} {args : List E} {cur tabs : E} {xs : List E} 
     ← List.range_eq_range']
   simp
 
+/-- The arm's callees' predicates for their pops: within the bound `Bk`, level `l`'s `level_queries` popping its
+honest entries. -/
+noncomputable def armTsP (Bk : String → ℕ) {c : OsCfg} {args : List E} {cur tabs : E} {xs : List E}
+    {tgt inn res : E} {pt pt1 : List E} (H : OsHonestA c args cur tabs xs tgt inn res pt pt1) (σ : Val)
+    (rd : Reader) : List (Tree → Prop) :=
+  lvTs (fun _ _ ↦ True) (fun _ _ ↦ True) (lvTB (some Bk) fun l rd t ↦ t.pops coreProgram rd = osLvPops H l) rd 0
+    (osLvKOf σ c 0 c.levels (osHead c).2) ++ (armRest σ c).map fun _ _ ↦ True
+
+theorem armTs_armTsP {Bk : String → ℕ} {c : OsCfg} {args : List E} {cur tabs : E} {xs : List E}
+    {tgt inn res : E} {pt pt1 : List E} (H : OsHonestA c args cur tabs xs tgt inn res pt pt1) (σ : Val)
+    (rd : Reader) :
+    List.Forall₂ (fun T T' : Tree → Prop ↦ ∀ t, T t → T' t) (armTs (Bd := some Bk) H σ rd) (armTsP Bk H σ rd) :=
+  forall₂_append' (lvTs_forall₂ (fun _ _ ↦ trivial) (fun _ _ ↦ trivial) (fun _ _ h B hB ↦ (h B hB).1) 0 _)
+    (forall₂_map_same _ fun _ _ _ _ ↦ trivial)
+
 /-- **The arm's callees pop their levels' `level_queries`' honest entries**, at a valuation on the rate's
 selector, classified by name. -/
 theorem arm_popsBy {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {σ : Val}
@@ -146,7 +161,7 @@ theorem arm_popsBy {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {σ : Val}
     (hcs : cs = (osLvKOf σ (osCfgR m ri) 0 (osCfgR m ri).levels (osHead (osCfgR m ri)).2).flatMap OsLvK.calls ++
       armRest σ (osCfgR m ri))
     (hS : ∀ c' ∈ cs, armS c'.f = true) :
-    PopsBy rd cs (armTs (Bd := some Bk) H σ rd) (armPss H σ) := by
+    PopsBy rd cs (armTsP Bk H σ rd) (armPss H σ) := by
   obtain ⟨hB, -, hyr⟩ := armBody_ok ri hm
   have hLv := armLv_ok hm hri
   subst hcs
@@ -156,7 +171,7 @@ theorem arm_popsBy {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {σ : Val}
     simp only [armS, hq, Bool.false_or] at this
     exact noWitS_iff.mp this
   have hksl := osLvKOf_length σ (osCfgR m ri) 0 (osCfgR m ri).levels (osHead (osCfgR m ri)).2
-  unfold armTs armPss
+  unfold armTsP armPss
   refine popsBy_append (popsBy_lvs _ _ _ 0 fun i hi ↦ ?_) (popsBy_mute _ fun c' hc' ↦
     hnw c' (List.mem_append_right _ hc') ?_)
   · have hi' : i < (osCfgR m ri).levels.length := hksl ▸ hi
@@ -212,7 +227,8 @@ theorem arm_pops {m ri : ℕ} (hm : m < 11) (hri : ri < 4) {f : String} {fn : Fn
     rwa [hw] at this
   rw [Tree.pops_node hf hw, splice_mute es _ (fun e he ↦ (hm' e he).1)
     (by rw [length_popsKids, kidsValid_len hkv]),
-    popsKids_of_popsBy hkv hK (arm_popsBy hm hri hR H rd (hces.trans (osBodyA_calls σ _)) (calls_mem_of_mute hm')),
+    popsKids_of_popsBy hkv (kidsT_mono (armTs_armTsP H σ rd) hK)
+      (arm_popsBy hm hri hR H rd (hces.trans (osBodyA_calls σ _)) (calls_mem_of_mute hm')),
     armPss_flatten]
 
 end

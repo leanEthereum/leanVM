@@ -8,13 +8,14 @@
 module
 
 public import LeanVM.Guest.B1.Place.LpBound
+public import LeanVM.Guest.B1.Place.LpAtE
 
 /-!
 # `level_positions`, placed and exact
 
-`CompleteAtPOE`: `CompleteAtPO` by a tree popping nothing whose every node is exact on the memory; `LpAtOE`: `LpAtO`
-so. `level_positions_completeAtE` (no bound) and `level_positions_completeAtBE` (every words bound of its trees,
-frames below `2^32`): every entry of `lpTable` is `LpAtOE`, by `lp_placedE`.
+`LpAtOE.toO`: `LpAtOE` (`LpAtE`) is `LpAtO`. `level_positions_completeAtE` (no bound) and
+`level_positions_completeAtBE` (every words bound of its trees, frames below `2^32`): every entry of `lpTable` is
+`LpAtOE`, by `lp_placedE`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -25,34 +26,6 @@ open LeanVM.Guest.B1.Whir
 open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
-
-/-- **`CompleteAtPO` by a tree popping nothing whose every node is exact on the memory.** -/
-def CompleteAtPOE (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String)
-    (Lin : ℕ → Layout) (args rets : List E) (Lout : ℕ → Layout) (Bd : Option ℕ) : Prop :=
-  ∀ fp, ∃ (n : ℕ) (Lown : Layout), Within (Lout fp ++ Lown) fp n ∧ DisjL (Lout fp ++ Lown) ∧
-    (∀ B ∈ Bd, n ≤ B) ∧ ∀ rd, LowDef k rd → MemL rd (Lout fp ++ Lown ++ Lin fp) →
-      RelAtInPE coreProgram fs cert rd (ExactAt coreProgram rd) (RegionL (Lin fp)) (RegionL (Lout fp)) fp n f args
-        rets []
-
-theorem CompleteAtPOE.toPO {fs : String → ℕ} {cert : String → V → ℕ} {k : ℕ} {f : String} {Lin : ℕ → Layout}
-    {args rets : List E} {Lout : ℕ → Layout} {Bd : Option ℕ} (h : CompleteAtPOE fs cert k f Lin args rets Lout Bd) :
-    CompleteAtPO fs cert k f Lin args rets Lout Bd := fun fp =>
-  let ⟨n, Lown, hW, hD, hB, hr⟩ := h fp
-  ⟨n, Lown, hW, hD, hB, fun rd hl hm => RelAtInT.relAtIn (hr rd hl hm)⟩
-
-/-- **`LpAtO` by a tree popping nothing whose every node is exact on the memory.** -/
-def LpAtOE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name loop : String) (S d cd : ℕ)
-    (Bd : Option ℕ) : Prop :=
-  ∀ (w0 : E) (cap : List E) (ep ew : ℕ) (tabs : E) (Lin : ℕ → Layout), cap.length = 5 →
-    (∀ fp, ∀ k < S * (128 / d), RegionL (Lin fp) (ep + k) ∧ RegionL (Lin fp) (ew + k)) →
-    (∀ fp, ∀ t < 128, ∃ i, tabs.limb 0 * addressOfIndex t = addressOfIndex i ∧
-      RegionL (Lin fp) i) →
-    (∀ fp rd, LowDef κ rd → MemL rd (Lin fp) →
-      LpMem cert S d cd (lpDecPos fs name loop S d cd fp) w0 cap (ofK (addressOfIndex ep))
-        (ofK (addressOfIndex ew)) tabs rd) →
-    CompleteAtPOE fs cert κ name Lin
-      (w0 :: cap ++ [ofK (addressOfIndex ep), ofK (addressOfIndex ew), tabs])
-      ((⟨cap, []⟩ : Fs).squeezeN (S - 1)).2.cap (lpRuns fs cert name loop S d cd w0 cap) Bd
 
 theorem LpAtOE.toO {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {name loop : String} {S d cd : ℕ}
     {Bd : Option ℕ} (h : LpAtOE fs cert κ name loop S d cd Bd) : Arm.LpAtO fs cert κ name loop S d cd Bd :=

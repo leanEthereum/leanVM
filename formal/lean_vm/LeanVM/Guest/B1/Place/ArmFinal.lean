@@ -13,17 +13,19 @@ public import LeanVM.Guest.B1.Place.LqProof
 public import LeanVM.Guest.B1.Place.LqBoundP
 public import LeanVM.Guest.B1.Place.OsMeanB
 public import LeanVM.Guest.B1.Whir.Sound
+public import LeanVM.Guest.B1.Place.LpE
+public import LeanVM.Guest.B1.Place.ArmNamedE
 
 /-!
 # `open_stacked`, placed, every arm
 
-`HelperBounds`: each helper of the tables is complete placed within any bound of its valid trees
-(`TotalLe`). `open_stacked_completeAtOT_of`: the arm of `μ`, called on the rate's selector, is
-complete placed at an optional words bound (`osBosAt`) by its node, from `arm_completeAtO`, the
-body's honest data `H`, the named callees (`kindD_holds`, or `kindDB` within `OsLeafBounds`), and
-the helpers (`level_positions_completeAt`, `level_queries_completeAtOP`, `level_residual`'s
-statement, or `HelperBounds`); `open_stacked_completeAtO_of` with `H` from `os_honest_Spec`. `open_stacked_completeAtD_of`, `open_stacked_completeAtB_of`: the two
-statements of `Place/OsSpec`.
+`HelperBounds`: each helper of the tables is complete placed within any bound of its valid trees (`TotalLe`),
+`level_positions` exact (`LpAtOE`). `open_stacked_completeAtOT_of`: the arm of `μ`, called on the rate's selector, is
+complete placed at an optional words bound (`osBosAt`) by its node, from `arm_completeAtO`, the body's honest data `H`,
+the named callees (`kindD_holds`, or `kindDB` and `kindDBE` within `OsLeafBounds`), and the helpers
+(`level_positions_completeAtE`, `level_queries_completeAtOP`, `level_residual`'s statement, or `HelperBounds`);
+`open_stacked_completeAtO_of` with `H` from `os_honest_Spec`. `open_stacked_completeAtD_of`,
+`open_stacked_completeAtB_of`: the two statements of `Place/OsSpec`.
 -/
 
 namespace LeanVM.Guest.B1.Arm
@@ -40,7 +42,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 `lrTable` is complete placed within any `B` bounding its valid trees. -/
 def HelperBounds (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) : Prop :=
   (∀ e ∈ lpTable, ∀ B, TotalLe coreProgram fs e.1 (fun _ ↦ B) →
-    LpAtO fs cert κ e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2 (some B)) ∧
+    LpAtOE fs cert κ e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2 (some B)) ∧
   (∀ e ∈ lqTable, ∀ B, TotalLe coreProgram fs e.1 (fun _ ↦ B) →
     LqAtOP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2.1
       e.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.2 (some B)) ∧
@@ -117,11 +119,16 @@ theorem open_stacked_completeAtOT_of (hLR : level_residual_completeAt_Spec)
     | some Bk =>
       exact ((kindDB (cert := cert) hκ (hTot Bk rfl f hf) hK args rets L' hreg
         hpre).toCompleteAtB).toO
+  have hnamedT : ∀ Bk ∈ Bd, ∀ f ∈ osCalleeNames (osCfgR m ri), ∀ K, osKindOf f = some K →
+      ∀ (args rets : List E) (L' : Layout), RegPtrs K.spec args (RegionL L') →
+      (∀ rd, LowDef κ rd → MemL rd L' → K.Pre rd args rets) →
+      CompleteAtDTBR fs cert κ f L' args (Returns rets) armXT (Bk f) :=
+    fun Bk hBk f hf K hK args rets L' hreg hpre ↦ kindDBE hκ (hTot Bk hBk f hf) hK args rets L' hreg hpre
   have hlp : ∀ e ∈ lpTable, e.1 ∈ osCalleeNames (osCfgR m ri) →
-      LpAtO fs cert κ e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2 (Bd.map (· e.1)) := by
+      LpAtOE fs cert κ e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2 (Bd.map (· e.1)) := by
     intro e he hn
     cases Bd with
-    | none => exact lpAtO_of_D (level_positions_completeAt fs cert κ hrf hcons (by omega) e he)
+    | none => exact level_positions_completeAtE fs cert κ hrf hcons (by omega) e he
     | some Bk => exact (hHB Bk rfl).1 e he _ (hTot Bk rfl _ hn)
   have hlq : ∀ e ∈ lqTable, e.1 ∈ osCalleeNames (osCfgR m ri) →
       LqAtOP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2.1
@@ -139,7 +146,7 @@ theorem open_stacked_completeAtOT_of (hLR : level_residual_completeAt_Spec)
     | some Bk => exact (hHB Bk rfl).2.2 e he _ (hTot Bk rfl _ hn)
   have hargs : (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur,
       tabs]).length = 11 := by simp [capOf]
-  have h := arm_completeAtO (Bd := Bd) hm hri hf' hps hbody hnamed hlp hlq hlr hargs rfl H hLin
+  have h := arm_completeAtO (Bd := Bd) hm hri hf' hps hbody hnamed hnamedT hlp hlq hlr hargs rfl H hLin
   have e : (Bd.map fun Bk ↦ osBos fs Bk (openName μ) (osCfgR m ri)) =
       Bd.map fun Bk ↦ osBosAt fs Bk μ := by
     cases Bd <;> simp [osBosAt, osBos_rate, m]

@@ -14,6 +14,8 @@ public import LeanVM.Guest.B1.Place.OsKidsOT
 public import LeanVM.Guest.B1.Place.LqAtOP
 public import LeanVM.Guest.B1.Place.Lq
 public import LeanVM.Guest.B1.Place.Lr
+public import LeanVM.Guest.B1.Place.ArmXT
+public import LeanVM.Guest.B1.Place.LpAtE
 
 /-!
 # The callees, placed
@@ -24,13 +26,15 @@ public import LeanVM.Guest.B1.Place.Lr
   pointers into its decoders' runs, `winPtrsA`); `runsS … l p`: those runs.
 * `osLvPops H l`: level `l`'s `level_queries` entries at the honest witness; `arm_lq_ok`: its
   `level_queries` frame by `LqAtOP` on `Lk`, its window pointers and the decoders' runs, popping them.
+* `arm_lp_ok`: level `l`'s `level_positions` frame by `LpAtOE` on `Lk` and its window pointers, popping nothing and
+  exact at every node.
 * `arm_lv_ok`: on a body holding at the dispatch relation on every memory holding the callees'
   words `Lk` (`osLkA`, one such memory existing), with the helpers' dispatches at their honest
   values (`OsHelperVals`), level `l`'s frames satisfy `OsLvKOkOT`: the calls before its positions
-  named, `level_positions` by `LpAtO` on `Lk` and its window pointers, `level_queries` by
-  `arm_lq_ok`, within a bound by a tree popping `osLvPops`.
+  named, `level_positions` by `arm_lp_ok`, `level_queries` by `arm_lq_ok`; within a bound, the trees satisfy
+  `armXT` and `level_queries`' pop `osLvPops`.
 * `arm_rest_ok`: the frames after the levels: the closing rounds' and `fold_final_msg` named, the
-  residuals' by `LrAtO` on `Lk`.
+  residuals' by `LrAtO` on `Lk`; `arm_rest_okT`: within a bound by trees satisfying `armXT`.
 -/
 
 namespace LeanVM.Guest.B1.Arm
@@ -375,8 +379,98 @@ theorem arm_lq_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cu
       rw [H.qs_eq l hl k (by rw [hQ]; exact hk)]
       exact this
 
-set_option maxHeartbeats 1600000 in
-/-- **Level `l`'s frames are placed**, its `level_positions` at any `p`. -/
+/-- **`CompleteAtPOE` within a bound is `OsCompleteAtPBT` by a tree popping nothing, exact at every node.** -/
+theorem poe_toPBT {f : String} {Lin : ℕ → Layout} {args rets : List E} {Lout : ℕ → Layout} {B : ℕ}
+    (h : CompleteAtPOE fs cert κ f Lin args rets Lout (some B)) :
+    OsCompleteAtPBT fs cert κ f Lin args rets Lout
+      (fun rd t ↦ t.pops coreProgram rd = [] ∧ t.Every (ExactAt coreProgram rd)) B := fun fp ↦
+  let ⟨n, Lown, hW, hD, hn, hr⟩ := h fp
+  ⟨n, Lown, hW, hD, hn B rfl, hr⟩
+
+/-- **Level `l`'s `level_positions` frame is placed by a tree popping nothing, exact at every node**, at any `p`. -/
+theorem arm_lp_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cur tabs : E}
+    {xs : List E} {tgt inn res : E} {pt pt1 : List E}
+    (H : OsHonestA c args cur tabs xs tgt inn res pt pt1) {Lin : Layout}
+    (hLin : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs ∧ WinTabs rd tabs) {b0 : ℕ}
+    {σ : Val} (hdo : ∀ s ∈ osBodyA c, DispOk σ s)
+    (hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 (osLkA c b0 H.own Lin))
+    (hHV : OsHelperVals c b0 tabs H.own H.D σ)
+    (hsel : ∀ l (f : OsLv → String), selName σ c l f = f (osLvA c l))
+    (hyr : c.yrLevel < c.levels.length)
+    (hlp : ∀ e ∈ lpTable, e.1 ∈ osCalleeNames c →
+      LpAtOE fs cert κ e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2 (Bd.map (· e.1)))
+    {l : ℕ} (hl : l < c.levels.length) (hF : LvFacts c l)
+    (hin : ∀ c' ∈ (lvK σ c l (osLvA c l) (osLvSt c l)).calls,
+      c' ∈ ((osBodyA c).filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) :
+    CompleteAtPOE fs cert κ (lvK σ c l (osLvA c l) (osLvSt c l)).sq.f
+      (fun p ↦ osLkA c b0 H.own Lin ++ winW fs cert c b0 l p)
+      ((lvK σ c l (osLvA c l) (osLvSt c l)).sq.args.map σ) ((lvK σ c l (osLvA c l) (osLvSt c l)).sq.rets.map σ)
+      (runsS fs cert c H.D l) (Bd.map (· (lvK σ c l (osLvA c l) (osLvSt c l)).sq.f)) := by
+  set Lk := osLkA c b0 H.own Lin with hLk
+  have hlen : H.own.length = (osSizesL c).length := H.own_len.length_eq
+  have hSL := osSizesL_length (c := c) hyr.le
+  obtain ⟨rd0, hl0, hm0⟩ := hex
+  obtain ⟨hlpE, -, -, hpo, hSper, -, -, -, -, -, -, -, -, -, -, -⟩ := hF
+  have h9 : 9 < (osSizesL c).length := by omega
+  have hlen9 : (osOwnA H.own 9).length = c.levels.length * ligPosCap := by
+    rw [osOwnA, forall₂_getD_len H.own_len h9]; rfl
+  have hposIn : ∀ k < (osLvA c l).squeezes * (128 / (osLvA c l).depth),
+      (osLvA c l).posOff + k < c.levels.length * ligPosCap := fun k hk ↦ by
+    have : (l + 1) * ligPosCap ≤ c.levels.length * ligPosCap := Nat.mul_le_mul_right _ hl
+    rw [Nat.add_mul, one_mul] at this
+    omega
+  have hposR : ∀ k < (osLvA c l).squeezes * (128 / (osLvA c l).depth),
+      RegionL Lk (baseA c b0 9 + ((osLvA c l).posOff + k)) := fun k hk ↦
+    regionL_lkA_buf hlen h9 (by decide) (by rw [← osOwnA, hlen9]; exact hposIn k hk)
+  have hposL : ∀ rd, MemL rd Lk → ∀ k < (osLvA c l).squeezes * (128 / (osLvA c l).depth),
+      LoadHolds rd (ofK (addressOfIndex (baseA c b0 9 + (osLvA c l).posOff))) k
+        ((osOwnA H.own 9).getD ((osLvA c l).posOff + k) 0) := fun rd hm k hk ↦ by
+    rw [← osPtrA_mul]
+    exact osMemA_load_mul (osMemA_of_lk hlen hm) h9 (by decide) (by rw [hlen9]; exact hposIn k hk)
+  have hnm : osPositionsName (osLvA c l) ∈ osCalleeNames c := by
+    have := osKids_names hdo _ (hin _ (List.mem_append_right _ (List.mem_cons_self ..)))
+    rw [← hsel l osPositionsName]
+    exact this
+  have hE := hlp _ hlpE hnm
+  simp only at hE
+  obtain ⟨ha, hr, -⟩ := hHV l hl
+  show CompleteAtPOE fs cert κ (selName σ c l osPositionsName) (fun p ↦ Lk ++ winW fs cert c b0 l p)
+    ((osLpCallOf c l).1.map σ) ((osLpCallOf c l).2.map σ) (runsS fs cert c H.D l)
+    (Bd.map (· (selName σ c l osPositionsName)))
+  rw [hsel, ha, hr, osPtrA_mul, osPtrA_mul, hpo]
+  refine hE (H.D l).w0 (H.D l).capL (baseA c b0 9 + l * ligPosCap) (baseA c b0 osIxQbpA + l * ligPosCap)
+    tabs (fun p ↦ Lk ++ winW fs cert c b0 l p) (H.capL_len l hl) (fun fp k hk ↦ ⟨?_, ?_⟩)
+    (fun fp t ht ↦ ?_) (fun fp rd hlow hm ↦ ?_)
+  · have := hposR k hk
+    rw [hpo, ← Nat.add_assoc] at this
+    exact regionL_append_left this
+  · exact regionL_append_right (regionL_winW hk)
+  · obtain ⟨i, hi, hR⟩ := os_addr_in_regionL
+      (fun rd hl' hm ↦ ((hLin rd hl' hm).2 t (lt_of_lt_of_le ht (by norm_num [winTabBits]))).2)
+      hl0 (memL_lin_of_lkA hm0)
+    exact ⟨i, hi, regionL_append_left (regionL_lkA_lin hR)⟩
+  · obtain ⟨hmk, hmw⟩ := Main.memL_append.mp hm
+    refine ⟨(hLin rd hlow (memL_lin_of_lkA hmk)).2, fun j hj i hi ↦ ⟨?_, ?_⟩⟩
+    · have hk : j * (128 / (osLvA c l).depth) + i < (osLvA c l).squeezes * (128 / (osLvA c l).depth) := by
+        have : (j + 1) * (128 / (osLvA c l).depth) ≤ (osLvA c l).squeezes * (128 / (osLvA c l).depth) :=
+          Nat.mul_le_mul_right _ hj
+        rw [Nat.add_mul, one_mul] at this
+        omega
+      have := hposL rd hmk _ hk
+      rw [hpo, ← Nat.add_assoc, ← hpo, H.posW l hl j hj i hi] at this
+      rw [← hpo]
+      exact this
+    · obtain ⟨hk, he⟩ := sqWinPtrs_get (fs := fs) (cert := cert)
+        (lv := lpLvP (osLvA c l).depth (osLvA c l).capDepth) (L := lpLoopA c l)
+        (b := lpKidsAt fs (osPositionsName (osLvA c l)) (osLvA c l).squeezes fp) hj hi
+      have := memL_run_load (ws := sqWinPtrs fs cert (lpLvP (osLvA c l).depth (osLvA c l).capDepth)
+        (lpLoopA c l) (osLvA c l).squeezes (lpKidsAt fs (osPositionsName (osLvA c l))
+          (osLvA c l).squeezes fp)) hmw hk
+      rw [he] at this
+      exact this
+
+/-- **Level `l`'s frames are placed**, its `level_positions` at any `p`, within a bound by trees satisfying `armXT`,
+its `level_queries` popping `osLvPops`. -/
 theorem arm_lv_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cur tabs : E}
     {xs : List E} {tgt inn res : E} {pt pt1 : List E}
     (H : OsHonestA c args cur tabs xs tgt inn res pt pt1) {Lin : Layout}
@@ -395,8 +489,12 @@ theorem arm_lv_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cu
       (L' : Layout), RegPtrs K.spec args (RegionL L') →
       (∀ rd, LowDef κ rd → MemL rd L' → K.Pre rd args rets) →
       CompleteAtO fs cert κ f L' args (Returns rets) (Bd.map (· f)))
+    (hnamedT : ∀ Bk ∈ Bd, ∀ f ∈ osCalleeNames c, ∀ K, osKindOf f = some K → ∀ (args rets : List E)
+      (L' : Layout), RegPtrs K.spec args (RegionL L') →
+      (∀ rd, LowDef κ rd → MemL rd L' → K.Pre rd args rets) →
+      CompleteAtDTBR fs cert κ f L' args (Returns rets) armXT (Bk f))
     (hlp : ∀ e ∈ lpTable, e.1 ∈ osCalleeNames c →
-      LpAtO fs cert κ e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2 (Bd.map (· e.1)))
+      LpAtOE fs cert κ e.1 e.2.2.1 e.2.1 e.2.2.2.1 e.2.2.2.2 (Bd.map (· e.1)))
     (hlq : ∀ e ∈ lqTable, e.1 ∈ osCalleeNames c →
       LqAtOP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1
       e.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1
@@ -404,84 +502,31 @@ theorem arm_lv_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cu
     {l : ℕ} (hl : l < c.levels.length) (hF : LvFacts c l)
     (hin : ∀ c' ∈ (lvK σ c l (osLvA c l) (osLvSt c l)).calls,
       c' ∈ ((osBodyA c).filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) :
-    OsLvKOkOT fs cert κ σ (osLkA c b0 H.own Lin) (winW fs cert c b0 l) (runsS fs cert c H.D l) Bd
-      (fun rd t ↦ t.pops coreProgram rd = osLvPops H l) (lvK σ c l (osLvA c l) (osLvSt c l)) := by
+    OsLvKOkOT fs cert κ σ (osLkA c b0 H.own Lin) (winW fs cert c b0 l) (runsS fs cert c H.D l) Bd armXT armXT
+      (fun rd t ↦ t.pops coreProgram rd = osLvPops H l ∧ armXT rd t) (lvK σ c l (osLvA c l) (osLvSt c l)) := by
   have hq := arm_lq_ok (Lin := Lin) (b0 := b0) H hdo hHV hsel hyr hlq hl hF hin
-  set Lk := osLkA c b0 H.own Lin with hLk
-  have hlen : H.own.length = (osSizesL c).length := H.own_len.length_eq
-  have hSL := osSizesL_length (c := c) hyr.le
-  obtain ⟨rd0, hl0, hm0⟩ := hex
-  obtain ⟨hlpE, hlqE, -, hpo, hSper, hqS, hper, hS1, hpdcd, hcdE, hfinE, hfo, hnhs, -, -, hQ⟩ := hF
-  have h3 : 3 < (osSizesL c).length := by omega
-  have h9 : 9 < (osSizesL c).length := by omega
-  have hlen3 : (osOwnA H.own 3).length = 2 * c.nFolds := by
-    rw [osOwnA, forall₂_getD_len H.own_len h3]; rfl
-  have hlen9 : (osOwnA H.own 9).length = c.levels.length * ligPosCap := by
-    rw [osOwnA, forall₂_getD_len H.own_len h9]; rfl
-  have hposIn : ∀ k < (osLvA c l).squeezes * (128 / (osLvA c l).depth),
-      (osLvA c l).posOff + k < c.levels.length * ligPosCap := fun k hk ↦ by
-    have : (l + 1) * ligPosCap ≤ c.levels.length * ligPosCap := Nat.mul_le_mul_right _ hl
-    rw [Nat.add_mul, one_mul] at this
-    omega
-  have hposR : ∀ k < (osLvA c l).squeezes * (128 / (osLvA c l).depth),
-      RegionL Lk (baseA c b0 9 + ((osLvA c l).posOff + k)) := fun k hk ↦
-    regionL_lkA_buf hlen h9 (by decide) (by rw [← osOwnA, hlen9]; exact hposIn k hk)
-  have hposL : ∀ rd, MemL rd Lk → ∀ k < (osLvA c l).squeezes * (128 / (osLvA c l).depth),
-      LoadHolds rd (ofK (addressOfIndex (baseA c b0 9 + (osLvA c l).posOff))) k
-        ((osOwnA H.own 9).getD ((osLvA c l).posOff + k) 0) := fun rd hm k hk ↦ by
-    rw [← osPtrA_mul]
-    exact osMemA_load_mul (osMemA_of_lk hlen hm) h9 (by decide) (by rw [hlen9]; exact hposIn k hk)
-  refine ⟨⟨fun c' hc' ht ↦ ?_, rfl, ?_, fun p c' hc' _ ↦ (hq p c' hc').toO⟩, fun Bk hBk p c' hc' _ ↦ ?_⟩
+  have hsq := arm_lp_ok (Bd := Bd) H hLin hdo hex hHV hsel hyr hlp hl hF hin
+  have hqx : ∀ c' ∈ (lvK σ c l (osLvA c l) (osLvSt c l)).B, armExactS c'.f = false := by
+    intro c' hc'
+    simp only [lvK, List.mem_singleton] at hc'
+    subst hc'
+    show armExactS (selName σ c l (osQueriesName c l)) = false
+    rw [hsel]
+    have h := armExactS_lq hF.2.1
+    exact h
+  refine ⟨⟨fun c' hc' ht ↦ ?_, rfl, hsq.toPO, fun p c' hc' _ ↦ (hq p c' hc').toO⟩,
+    fun Bk hBk c' hc' ht ↦ ?_, fun Bk hBk ↦ ?_, fun Bk hBk p c' hc' _ ↦ ?_⟩
   · -- before the positions: named
     have hcb := hin c' (List.mem_append_left _ hc')
     obtain ⟨K, hK⟩ := named_of_plain hB (fun s hs ↦ lvPre_sub_body hl hs) hc'
-    exact os_kid_namedO hall hdo hfl ⟨rd0, hl0, hm0⟩ hcb ht hK
-      (hnamed c'.f (osKids_names hdo c' hcb) K hK · · Lk)
-  · -- `level_positions`
-    have hnm : osPositionsName (osLvA c l) ∈ osCalleeNames c := by
-      have := osKids_names hdo _ (hin _ (List.mem_append_right _ (List.mem_cons_self ..)))
-      rw [← hsel l osPositionsName]
-      exact this
-    have hE := hlp _ hlpE hnm
-    simp only at hE
-    obtain ⟨ha, hr, -⟩ := hHV l hl
-    show CompleteAtPO fs cert κ (selName σ c l osPositionsName) (fun p ↦ Lk ++ winW fs cert c b0 l p)
-      ((osLpCallOf c l).1.map σ) ((osLpCallOf c l).2.map σ) (runsS fs cert c H.D l)
-      (Bd.map (· (selName σ c l osPositionsName)))
-    rw [hsel, ha, hr, osPtrA_mul, osPtrA_mul, hpo]
-    refine hE (H.D l).w0 (H.D l).capL (baseA c b0 9 + l * ligPosCap) (baseA c b0 osIxQbpA + l * ligPosCap)
-      tabs (fun p ↦ Lk ++ winW fs cert c b0 l p) (H.capL_len l hl) (fun fp k hk ↦ ⟨?_, ?_⟩)
-      (fun fp t ht ↦ ?_) (fun fp rd hlow hm ↦ ?_)
-    · have := hposR k hk
-      rw [hpo, ← Nat.add_assoc] at this
-      exact regionL_append_left this
-    · exact regionL_append_right (regionL_winW hk)
-    · obtain ⟨i, hi, hR⟩ := os_addr_in_regionL
-        (fun rd hl' hm ↦ ((hLin rd hl' hm).2 t (lt_of_lt_of_le ht (by norm_num [winTabBits]))).2)
-        hl0 (memL_lin_of_lkA hm0)
-      exact ⟨i, hi, regionL_append_left (regionL_lkA_lin hR)⟩
-    · obtain ⟨hmk, hmw⟩ := Main.memL_append.mp hm
-      refine ⟨(hLin rd hlow (memL_lin_of_lkA hmk)).2, fun j hj i hi ↦ ⟨?_, ?_⟩⟩
-      · have hk : j * (128 / (osLvA c l).depth) + i < (osLvA c l).squeezes * (128 / (osLvA c l).depth) := by
-          have : (j + 1) * (128 / (osLvA c l).depth) ≤ (osLvA c l).squeezes * (128 / (osLvA c l).depth) :=
-            Nat.mul_le_mul_right _ hj
-          rw [Nat.add_mul, one_mul] at this
-          omega
-        have := hposL rd hmk _ hk
-        rw [hpo, ← Nat.add_assoc, ← hpo, H.posW l hl j hj i hi] at this
-        rw [← hpo]
-        exact this
-      · obtain ⟨hk, he⟩ := sqWinPtrs_get (fs := fs) (cert := cert)
-          (lv := lpLvP (osLvA c l).depth (osLvA c l).capDepth) (L := lpLoopA c l)
-          (b := lpKidsAt fs (osPositionsName (osLvA c l)) (osLvA c l).squeezes fp) hj hi
-        have := memL_run_load (ws := sqWinPtrs fs cert (lpLvP (osLvA c l).depth (osLvA c l).capDepth)
-          (lpLoopA c l) (osLvA c l).squeezes (lpKidsAt fs (osPositionsName (osLvA c l))
-            (osLvA c l).squeezes fp)) hmw hk
-        rw [he] at this
-        exact this
-  · -- `level_queries` within a bound
-    obtain rfl : Bd = some Bk := hBk
-    exact (hq p c' hc').toDTBR
+    exact os_kid_namedO hall hdo hfl hex hcb ht hK (hnamed c'.f (osKids_names hdo c' hcb) K hK · · _)
+  · have hcb := hin c' (List.mem_append_left _ hc')
+    obtain ⟨K, hK⟩ := named_of_plain hB (fun s hs ↦ lvPre_sub_body hl hs) hc'
+    exact os_kid_namedX hall hdo hfl hex hcb ht hK (hnamedT Bk hBk c'.f (osKids_names hdo c' hcb) K hK · · _)
+  · obtain rfl : Bd = some Bk := hBk
+    exact (poe_toPBT hsq).mono le_rfl fun _ _ h _ ↦ h.2
+  · obtain rfl : Bd = some Bk := hBk
+    exact (hq p c' hc').toDTBR.monoN le_rfl fun _ t hn h ↦ ⟨h, armXT_of_not (by rw [hn]; exact hqx c' hc')⟩
 
 /-! ## After the levels -/
 
@@ -643,6 +688,57 @@ theorem arm_rest_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {
       rw [hv]
       exact osMemA_load_mul hM h6 (by decide)
         (by rw [hlen6]; exact hstep _ _ hjl _ (lt_of_lt_of_le (by simpa using ht) hfolds))
+
+/-- **The frames after the levels are placed within a bound by trees satisfying `armXT`.** -/
+theorem arm_rest_okT {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cur tabs : E}
+    {xs : List E} {tgt inn res : E} {pt pt1 : List E}
+    (H : OsHonestA c args cur tabs xs tgt inn res pt pt1) {Lin : Layout} {b0 : ℕ} {σ : Val}
+    (hall : ∀ rd, LowDef κ rd → MemL rd (osLkA c b0 H.own Lin) →
+      Whir.AllOk (osCR rd (fun _ _ _ ↦ True) (OsXOk κ (osLkA c b0 H.own Lin))) rd σ (osBodyA c))
+    (hdo : ∀ s ∈ osBodyA c, DispOk σ s)
+    (hfl : ∀ s ∈ osBodyA c, ∀ x fs a r, s = .dispatch x fs a r → fs.length < 2 ^ 64 - 1)
+    (hB : (osBodyA c).all bodyOkS = true)
+    (hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 (osLkA c b0 H.own Lin))
+    (hHV : OsHelperVals c b0 tabs H.own H.D σ)
+    (hsel : ∀ l (f : OsLv → String), selName σ c l f = f (osLvA c l))
+    (hyr : c.yrLevel < c.levels.length)
+    (hLv : ∀ l < c.levels.length, LvFacts c l)
+    (hnamed : ∀ f ∈ osCalleeNames c, ∀ K, osKindOf f = some K → ∀ (args rets : List E)
+      (L' : Layout), RegPtrs K.spec args (RegionL L') →
+      (∀ rd, LowDef κ rd → MemL rd L' → K.Pre rd args rets) →
+      CompleteAtO fs cert κ f L' args (Returns rets) (Bd.map (· f)))
+    (hnamedT : ∀ Bk ∈ Bd, ∀ f ∈ osCalleeNames c, ∀ K, osKindOf f = some K → ∀ (args rets : List E)
+      (L' : Layout), RegPtrs K.spec args (RegionL L') →
+      (∀ rd, LowDef κ rd → MemL rd L' → K.Pre rd args rets) →
+      CompleteAtDTBR fs cert κ f L' args (Returns rets) armXT (Bk f))
+    (hlr : ∀ e ∈ lrTable, e.1 ∈ osCalleeNames c →
+      LrAtO fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 (Bd.map (· e.1)))
+    {Bk : String → ℕ} (hBk : Bk ∈ Bd) {c' : Call}
+    (hc' : c' ∈ ((osTlA c).filterMap Main.Stmt.callS).map (Main.mkCall σ) ++
+      (finFrames σ c).map (Main.mkCall σ))
+    (hin : c' ∈ ((osBodyA c).filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (ht : c'.taken = true) :
+    CompleteAtDTBR fs cert κ c'.f (osLkA c b0 H.own Lin) (c'.args.map σ) (Returns (c'.rets.map σ)) armXT
+      (Bk c'.f) := by
+  have hO := arm_rest_ok H hall hdo hfl hB hex hHV hsel hyr hLv hnamed hlr hc' hin ht
+  obtain rfl : Bd = some Bk := hBk
+  have hnm : ∀ K, osKindOf c'.f = some K → CompleteAtDTBR fs cert κ c'.f (osLkA c b0 H.own Lin) (c'.args.map σ)
+      (Returns (c'.rets.map σ)) armXT (Bk c'.f) :=
+    fun K hK ↦ os_kid_namedX hall hdo hfl hex hin ht hK (hnamedT Bk rfl c'.f (osKids_names hdo c' hin) K hK · · _)
+  rcases List.mem_append.mp hc' with hc | hc
+  · obtain ⟨K, hK⟩ := named_of_plain hB (fun s hs ↦ tl_sub_body hs) hc
+    exact hnm K hK
+  obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hc
+  rcases mem_finFrames hx with rfl | ⟨j, hj, rfl⟩
+  · obtain ⟨K, hK⟩ := Option.isSome_iff_exists.mp (List.all_eq_true.mp hB _ (ffm_mem_body c))
+    exact hnm K hK
+  have hjy : j < c.yrLevel := by simpa [Nat.min_eq_left hyr.le] using hj
+  have hjl : j < c.levels.length := by omega
+  refine hO.toB.toDTB.toR.monoN le_rfl fun _ _ hn _ ↦ armXT_of_not ?_
+  rw [hn]
+  show armExactS (selName σ c j osResidualName) = false
+  rw [hsel]
+  have h := armExactS_lr ((hLv j hjl).2.2.1 hjy)
+  exact h
 
 end
 end LeanVM.Guest.B1.Arm
