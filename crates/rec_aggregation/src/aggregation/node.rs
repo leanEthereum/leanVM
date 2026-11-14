@@ -4,7 +4,7 @@ use super::cells::count;
 use super::child::gen_verify;
 use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, aggregate_deferred_claims, bytecode_sums, bytecode_value, scalar_bytecode};
-use super::error::{AggregateVerifyError, AggregationError, SnarkProveError, SnarkVerifyError};
+use super::error::{AggregateProveError, AggregateVerifyError, SnarkProveError, SnarkVerifyError};
 use super::guest::unified_guest;
 #[cfg(test)]
 use super::hints::FORGE;
@@ -37,11 +37,11 @@ use primitives::field::F128;
 /// IMPORTANT:
 /// - `aggregate` should not be called more than once at a time in parallel per process.
 /// - Raw signatures are assumed valid: one that does not decode returns
-///   [`AggregationError::MalformedRawSignature`], and any other invalid one fails the guest's run,
-///   [`AggregationError::ProofError`].
+///   [`AggregateProveError::MalformedRawSignature`], and any other invalid one fails the guest's run,
+///   [`AggregateProveError::ProofError`].
 /// - Children are assumed verified by the caller ([`EthereumProof::verify`]): a child the replay
-///   cannot walk, or one carrying a false deferred value, returns [`AggregationError::InvalidChild`],
-///   and any other invalid child fails the guest's run, [`AggregationError::ProofError`] (TODO
+///   cannot walk, or one carrying a false deferred value, returns [`AggregateProveError::InvalidChild`],
+///   and any other invalid child fails the guest's run, [`AggregateProveError::ProofError`] (TODO
 ///   return the index of invalid proof).
 pub fn aggregate(
     children: &[EthereumProof],
@@ -50,7 +50,7 @@ pub fn aggregate(
     blobs: &[lean_da::Blob],
     declare: Option<&EthereumClaims>,
     log_inv_rate: usize,
-) -> Result<EthereumProof, AggregationError> {
+) -> Result<EthereumProof, AggregateProveError> {
     aggregate_with_stats(children, raw_lean_xmss, raw_lean_sphincs, blobs, declare, log_inv_rate).map(|(sig, _)| sig)
 }
 
@@ -62,14 +62,14 @@ pub fn aggregate_with_stats(
     blobs: &[lean_da::Blob],
     declare: Option<&EthereumClaims>,
     log_inv_rate: usize,
-) -> Result<(EthereumProof, leanvm_core::cpu::Stats), AggregationError> {
+) -> Result<(EthereumProof, leanvm_core::cpu::Stats), AggregateProveError> {
     let declared_root = declare.map(|claims| claims.da_commitment);
     // `cpu::prove` checks the rate too, but only after the witness is built.
     if !(leanvm_core::pcs::MIN_LOG_INV_RATE..=leanvm_core::pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
-        return Err(AggregationError::InvalidRate { log_inv_rate });
+        return Err(AggregateProveError::InvalidRate { log_inv_rate });
     }
     if children.len() > MAX_RECURSIONS {
-        return Err(AggregationError::TooLarge);
+        return Err(AggregateProveError::TooLarge);
     }
     let direct = if blobs.is_empty() {
         None
@@ -79,7 +79,7 @@ pub fn aggregate_with_stats(
     };
     let direct_root = direct.as_ref().map(lean_da::DaWitness::top_root);
     if direct_root.is_some() && declared_root.is_some_and(|declared| declared != direct_root) {
-        return Err(AggregationError::BlobsUnpublished);
+        return Err(AggregateProveError::BlobsUnpublished);
     }
     // The published root and the guest's slot for it: a child's, or `children.len()` for
     // the node's own, its blobs' or none.
@@ -94,7 +94,7 @@ pub fn aggregate_with_stats(
             let i = children
                 .iter()
                 .position(|child| child.claims.da_commitment == Some(root))
-                .ok_or(AggregationError::BlobNotCovered)?;
+                .ok_or(AggregateProveError::BlobNotCovered)?;
             (i, Some(root))
         }
     };
@@ -125,7 +125,7 @@ pub fn aggregate_with_stats(
         .map(|child| verifier::da::digest(child.claims.da_commitment))
         .collect();
     for child in children {
-        check_signer_set(&child.claims).map_err(AggregationError::InvalidChild)?;
+        check_signer_set(&child.claims).map_err(AggregateProveError::InvalidChild)?;
         public_inputs.push(child.vm_public_input());
     }
     // One single-threaded replay per worker: nothing inside dispatches.
@@ -137,7 +137,7 @@ pub fn aggregate_with_stats(
     let mut replayed = Vec::with_capacity(children.len());
     for (pi, summary) in public_inputs.into_iter().zip(summaries) {
         let summary =
-            summary.map_err(|e| AggregationError::InvalidChild(AggregateVerifyError::Snark(SnarkVerifyError(e))))?;
+            summary.map_err(|e| AggregateProveError::InvalidChild(AggregateVerifyError::Snark(SnarkVerifyError(e))))?;
         replayed.push((pi, summary));
     }
 
@@ -277,7 +277,7 @@ pub fn aggregate_with_stats(
     } else {
         let _span = tracing::info_span!("Batch deferred claims").entered();
         let (agg_hints, reduced) =
-            aggregate_deferred_claims(&subs, &carried, sums).map_err(AggregationError::InvalidChild)?;
+            aggregate_deferred_claims(&subs, &carried, sums).map_err(AggregateProveError::InvalidChild)?;
         for (name, entry) in agg_hints {
             hints.push(name, entry);
         }
@@ -310,7 +310,7 @@ pub fn aggregate_with_stats(
     }
     hints.push("da_pick", vec![count(da_pick)]);
     if cover.lean_xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
-        return Err(AggregationError::Empty);
+        return Err(AggregateProveError::Empty);
     }
 
     let public_input = statement_digest(&cover.lean_xmss.signers, &cover.lean_sphincs.signers, da, &defer);
@@ -321,7 +321,7 @@ pub fn aggregate_with_stats(
     }
     hints.install(&mut program);
     let (proof, stats) =
-        prove(&program, public_input, log_inv_rate).map_err(|e| AggregationError::ProofError(SnarkProveError(e)))?;
+        prove(&program, public_input, log_inv_rate).map_err(|e| AggregateProveError::ProofError(SnarkProveError(e)))?;
     Ok((
         EthereumProof {
             claims: EthereumClaims {

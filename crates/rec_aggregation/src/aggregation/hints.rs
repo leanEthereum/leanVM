@@ -1,7 +1,7 @@
 //! Hint streams and the raw signatures' witnesses.
 
 use super::cells::{count, exponent_bytes, pack_16_bytes};
-use super::error::AggregationError;
+use super::error::AggregateProveError;
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use leanvm_core::cpu::Program;
@@ -100,7 +100,7 @@ pub(super) fn lean_xmss_hints(
     pk: &LeanXmssPublicKey,
     sig: &LeanXmssSignature,
     message: &lean_xmss::Message,
-) -> Result<SubHints, AggregationError> {
+) -> Result<SubHints, AggregateProveError> {
     let pp = pk.__public_param();
     let index = u64::from(sig.leaf_index());
     let windows = (0..lean_xmss::LOG_LIFETIME).step_by(LX_WINDOW).map(|s| index >> s);
@@ -122,7 +122,7 @@ pub(super) fn lean_xmss_hints(
             ));
             level += 1;
         })
-        .ok_or(AggregationError::MalformedRawSignature)?;
+        .ok_or(AggregateProveError::MalformedRawSignature)?;
         hints.push(("randomizer", vec![pack_16_bytes(layer_sig.randomizer())]));
         hints.push(("lx_digits", digit_hints(&codeword, LX_DIGIT_GROUP).flatten().collect()));
         for value in layer_sig.chain_values() {
@@ -147,7 +147,7 @@ pub(super) fn lean_sphincs_hints(
     pk: &LeanSphincsPublicKey,
     sig: &LeanSphincsSignature,
     message: &lean_sphincs::Message,
-) -> Result<SubHints, AggregationError> {
+) -> Result<SubHints, AggregateProveError> {
     let pk_seed = pk.__pk_seed();
     let mut hints: SubHints = vec![("sp_rand", vec![pack_16_bytes(sig.__randomizer())])];
     let digest = lean_sphincs::h_msg(sig.__randomizer(), pk_seed, pk.__root(), message);
@@ -168,7 +168,7 @@ pub(super) fn lean_sphincs_hints(
     for (layer, layer_sig) in sig.__layers().iter().enumerate() {
         let key = lean_sphincs::OtsKey::of_index(layer, idx);
         let (codeword, leaf) = lean_sphincs::wots_leaf(pk_seed, &key, &signed, layer_sig.counter(), layer_sig.wots())
-            .ok_or(AggregationError::MalformedRawSignature)?;
+            .ok_or(AggregateProveError::MalformedRawSignature)?;
         hints.push(("sp_counter", exponent_bytes(&layer_sig.counter().to_be_bytes())));
         hints.extend(digit_hints(&codeword, DIGIT_GROUP).map(|entry| ("digits", entry)));
         for value in layer_sig.wots() {

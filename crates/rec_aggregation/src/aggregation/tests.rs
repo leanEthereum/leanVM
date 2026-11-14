@@ -1,6 +1,6 @@
 use super::cells::{count, pack_16_bytes};
 use super::deferred::{DeferredClaim, bytecode_sums, bytecode_value, bytecode_vars, stacked_bytecode};
-use super::error::{AggregateVerifyError, AggregationError};
+use super::error::{AggregateProveError, AggregateVerifyError};
 use super::guest::{compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
 use super::node::aggregate;
@@ -128,7 +128,7 @@ fn forged_lean_sphincs_hints_are_rejected() {
         FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
         let result = aggregate(&[], vec![], signers.clone(), &[], None, LOG_INV_RATE);
         assert!(
-            matches!(result, Err(AggregationError::ProofError(_))),
+            matches!(result, Err(AggregateProveError::ProofError(_))),
             "a forged hint is rejected"
         );
     }
@@ -152,7 +152,7 @@ fn forged_lean_xmss_hints_are_rejected() {
         FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
         let result = aggregate(&[], signers.clone(), vec![], &[], None, LOG_INV_RATE);
         assert!(
-            matches!(result, Err(AggregationError::ProofError(_))),
+            matches!(result, Err(AggregateProveError::ProofError(_))),
             "a forged hint is rejected"
         );
     }
@@ -402,16 +402,16 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
     };
     assert_eq!(
         aggregate(&[], vec![], vec![], &[], Some(&select), LOG_INV_RATE).unwrap_err(),
-        AggregationError::BlobNotCovered
+        AggregateProveError::BlobNotCovered
     );
     assert_eq!(
         aggregate(&[], vec![], vec![], &da_rows(1, 3), Some(&select), LOG_INV_RATE).unwrap_err(),
-        AggregationError::BlobsUnpublished
+        AggregateProveError::BlobsUnpublished
     );
     let unpublished = EthereumClaims::default();
     assert_eq!(
         aggregate(&[], vec![], vec![], &da_rows(1, 3), Some(&unpublished), LOG_INV_RATE).unwrap_err(),
-        AggregationError::BlobsUnpublished
+        AggregateProveError::BlobsUnpublished
     );
 }
 
@@ -490,7 +490,7 @@ fn forged_da_hints_are_rejected() {
         let blobs = if with_blobs { da_rows(1, 8) } else { vec![] };
         let result = aggregate(std::slice::from_ref(&child), vec![], vec![], &blobs, None, LOG_INV_RATE);
         assert!(
-            matches!(result, Err(AggregationError::ProofError(_))),
+            matches!(result, Err(AggregateProveError::ProofError(_))),
             "a forged DA hint is rejected"
         );
     }
@@ -510,7 +510,7 @@ fn forged_opening_hints_are_rejected() {
         FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
         let result = aggregate(std::slice::from_ref(&child), vec![], vec![], &[], None, LOG_INV_RATE);
         assert!(
-            matches!(result, Err(AggregationError::ProofError(_))),
+            matches!(result, Err(AggregateProveError::ProofError(_))),
             "a forged opening hint is rejected"
         );
     }
@@ -669,7 +669,7 @@ fn too_many_blobs_are_rejected() {
     let rows = da_rows(DA_MAX_ROWS + 1, 0);
     assert!(matches!(
         aggregate(&[], vec![], vec![], &rows, None, LOG_INV_RATE),
-        Err(AggregationError::InvalidBlobCount { blobs }) if blobs == DA_MAX_ROWS + 1
+        Err(AggregateProveError::InvalidBlobCount { blobs }) if blobs == DA_MAX_ROWS + 1
     ));
 }
 
@@ -746,18 +746,18 @@ fn a_node_may_publish_less_than_it_covers() {
 
     assert_eq!(
         narrowed(&wide, &EthereumClaims::default()).err(),
-        Some(AggregationError::Empty),
+        Some(AggregateProveError::Empty),
         "a declaration has to publish something"
     );
     // A pubkey that signed A only, declared on B: the cache reuses pubkeys.
     assert_eq!(
         narrowed(&wide, &only(vec![(at_a[2].0, message_for(MESSAGE_B))])).err(),
-        Some(AggregationError::NotCovered)
+        Some(AggregateProveError::NotCovered)
     );
     // A covered pubkey, against a message nobody signed.
     assert_eq!(
         narrowed(&wide, &only(vec![(at_a[0].0, message_for(MESSAGE_B + 1))])).err(),
-        Some(AggregationError::NotCovered)
+        Some(AggregateProveError::NotCovered)
     );
 }
 
@@ -1032,11 +1032,11 @@ fn malformed_raw_signature_is_an_error() {
 
     assert_eq!(
         lean_xmss_hints(&pk, &sig, &message).err(),
-        Some(AggregationError::MalformedRawSignature)
+        Some(AggregateProveError::MalformedRawSignature)
     );
     assert_eq!(
         aggregate(&[], vec![(pk, message, sig)], vec![], &[], None, LOG_INV_RATE).err(),
-        Some(AggregationError::MalformedRawSignature)
+        Some(AggregateProveError::MalformedRawSignature)
     );
 }
 
@@ -1054,6 +1054,6 @@ fn malformed_raw_lean_sphincs_signature_is_an_error() {
     let raw = vec![(public_key, signed, signature)];
     assert_eq!(
         aggregate(&[], vec![], raw, &[], None, LOG_INV_RATE).err(),
-        Some(AggregationError::MalformedRawSignature)
+        Some(AggregateProveError::MalformedRawSignature)
     );
 }

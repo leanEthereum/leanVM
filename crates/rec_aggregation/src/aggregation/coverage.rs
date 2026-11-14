@@ -1,6 +1,6 @@
 //! The coverage table: which slot each raw signature and child claim writes.
 
-use super::error::AggregationError;
+use super::error::AggregateProveError;
 use super::proof::{EthereumClaims, EthereumProof};
 use super::{LeanSphincsClaim, LeanXmssClaim};
 use std::collections::BTreeSet;
@@ -50,7 +50,7 @@ impl<K: Ord + Clone> Region<K> {
         raw: &[K],
         children: impl Iterator<Item = &'a [K]> + Clone,
         declare: Option<&[K]>,
-    ) -> Result<Self, AggregationError>
+    ) -> Result<Self, AggregateProveError>
     where
         K: 'a,
     {
@@ -64,7 +64,7 @@ impl<K: Ord + Clone> Region<K> {
             let mut wanted: BTreeSet<&K> = declare.iter().collect();
             signers.retain(|claim| wanted.remove(claim));
             if !wanted.is_empty() {
-                return Err(AggregationError::NotCovered);
+                return Err(AggregateProveError::NotCovered);
             }
         }
         let mut claimed = vec![false; signers.len()];
@@ -110,7 +110,7 @@ pub(super) fn plan_coverage(
     raw_lean_sphincs: &[LeanSphincsClaim],
     children: &[EthereumProof],
     declare: Option<&EthereumClaims>,
-) -> Result<Coverage, AggregationError> {
+) -> Result<Coverage, AggregateProveError> {
     let cover = Coverage {
         lean_xmss: Region::plan(
             raw_lean_xmss,

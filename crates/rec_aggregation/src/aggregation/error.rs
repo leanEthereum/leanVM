@@ -41,7 +41,7 @@ impl std::fmt::Display for SnarkProveError {
 impl std::error::Error for SnarkProveError {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AggregationError {
+pub enum AggregateProveError {
     /// A child's statement is malformed, or its proof cannot be walked. The walk fails on most tampering, the openings having to sit at query positions the transcript draws, so a statement that does not match the proof usually lands here as a Merkle opening error. Any other child that does not verify is a [`Self::ProofError`]: the guest's run fails on it.
     InvalidChild(AggregateVerifyError),
     /// No signature claims or DA root to publish.
@@ -83,13 +83,13 @@ impl std::fmt::Display for AggregateVerifyError {
 
 impl std::error::Error for AggregateVerifyError {}
 
-impl From<lean_da::BlobCountError> for AggregationError {
+impl From<lean_da::BlobCountError> for AggregateProveError {
     fn from(error: lean_da::BlobCountError) -> Self {
         Self::InvalidBlobCount { blobs: error.blobs }
     }
 }
 
-impl std::fmt::Display for AggregationError {
+impl std::fmt::Display for AggregateProveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidChild(_) => write!(f, "invalid child aggregate"),
@@ -120,7 +120,7 @@ impl std::fmt::Display for AggregationError {
     }
 }
 
-impl std::error::Error for AggregationError {
+impl std::error::Error for AggregateProveError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::InvalidChild(e) => Some(e),

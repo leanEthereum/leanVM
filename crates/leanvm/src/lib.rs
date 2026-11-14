@@ -6,7 +6,7 @@
 //! Example: [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
 
 pub use rec_aggregation::{
-    AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, LeanSphincsClaim, LeanXmssClaim,
+    AggregateProveError, AggregateVerifyError, EthereumClaims, EthereumProof, LeanSphincsClaim, LeanXmssClaim,
     MAX_RECURSIONS, SnarkProveError, SnarkVerifyError, aggregate,
 };
 
@@ -32,12 +32,6 @@ pub mod lean_sphincs {
 }
 
 /// Call once before [`aggregate`] or [`EthereumProof::verify`].
-///
-/// A proof's buffers are ordinary heap allocations, freed before it returns, so
-/// proving speed depends on the process's global allocator. One that keeps freed
-/// pages mapped serves the next proof from them with no page fault: jemalloc with
-/// dirty pages that never decay, which the `leanvm` CLI installs. glibc's default
-/// is the slow case, since it unmaps a large block on free.
 pub fn setup() {
     parallel::init();
     rec_aggregation::warm_up();
