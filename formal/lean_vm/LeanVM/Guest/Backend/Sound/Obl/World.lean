@@ -90,7 +90,7 @@ theorem World.obligations_of_chkF (hW : W.Compiled) (hT : PowsOk T) (hκ : κ �
     (h : chkFnF T facts tf.core = true)
     (hf : ∀ σ : Val, UOf T R X W.L.read tf.core.name (tf.core.params.map σ) → ∀ p ∈ facts,
       Stmt.HoldsList (W.core.Rel W.L.read) W.L.read σ (tf.core.body.take p.1) True
-        (fun _ => True) → p.2.Holds R T W.L.read σ) :
+        (fun _ => True) → p.2.Holds R W.L.read σ) :
     W.Obligations tf := by
   intro fp _ hpre
   rw [← World.params_vf hW htf fp, hU] at hpre

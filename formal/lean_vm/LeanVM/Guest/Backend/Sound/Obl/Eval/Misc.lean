@@ -2,7 +2,7 @@
   LeanVM.Guest.Backend.Sound.Obl.Eval.Misc
 
   The guest's facts the composition reads off the data: `verify_sub` with B1's facts, the
-  skipped functions' postconditions, the table's powers and relations.
+  table's postconditions and relations, the skipped functions' names.
 -/
 
 module
@@ -29,22 +29,24 @@ theorem vs_fn : (Data.coreFunctions.getD vsIdx default).name = "verify_sub" ∧
 /-- `verify_sub` takes the exponent table as argument `4`. -/
 theorem vs_xpre : (guestTab.sig "verify_sub").xpre = [(4, 0)] := by decide +kernel
 
-/-- The skipped functions have no postcondition. -/
-theorem skip_post : ((vsIdx :: guestRestIdx).all fun j =>
-    (guestTab.sig (Data.coreFunctions.getD j default).name).post.isEmpty) = true := by
-  decide +kernel
-
 /-- The guest's core program has `1601` functions. -/
 theorem core_length : Data.coreFunctions.length = 1601 := by decide +kernel
-
-/-- **The powers the table lists are right.** -/
-theorem guestTab_pows : PowsOk guestTab := by
-  unfold PowsOk
-  decide +kernel
 
 /-- Only `exponent_tables` has an `xpost`: its return is in relation `0`. -/
 theorem guestTab_xpost : ∀ p ∈ guestTab.sigs, p.2.xpost ≠ [] →
     p.1 = "exponent_tables" ∧ p.2.xpost = [(0, 0)] := by
+  decide +kernel
+
+/-- The functions with a postcondition. -/
+def postNames : List String := ["list_split", "log2_ceil_in_the_exponent__L0_L34", "da_row_shape"]
+
+/-- Only `postNames` have a postcondition. -/
+theorem guestTab_post : ∀ p ∈ guestTab.sigs, p.2.post ≠ [] → p.1 ∈ postNames := by
+  decide +kernel
+
+/-- The functions the analysis skips have no postcondition. -/
+theorem skip_names : ((vsIdx :: guestXIdx).all fun j =>
+    !postNames.contains (Data.coreFunctions.getD j default).name) = true := by
   decide +kernel
 
 end
