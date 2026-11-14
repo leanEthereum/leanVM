@@ -6,7 +6,7 @@
 //! `K`-valued (`F64`) while randomness is `E`-valued (`F128`), so the first
 //! fold of a committed table also lifts it into `E`.
 
-use crate::field::{F64, F128, Weights8, dot_base, mul4};
+use crate::field::{F64, F128, F128Unreduced, Weights8};
 
 /// Multilinear interpolation in one variable over `E`: `lo + t·(lo+hi)`, the
 /// char-2 form of `(1−t)·lo + t·hi`.
@@ -31,27 +31,27 @@ pub fn eq_eval(r: &[F128], x: &[F128]) -> F128 {
 
 /// The `eq(r, ·)` table over `n = r.len()` variables. See [`fill_eq_table`].
 pub fn eq_table(r: &[F128]) -> Vec<F128> {
-    // SAFETY: the fill writes every element before it reads any.
-    unsafe { crate::filled_vec(1usize << r.len(), |eq| fill_eq_table(r, F128::ONE, eq)) }
+    let mut eq = vec![F128::ZERO; 1 << r.len()];
+    fill_eq_table(r, F128::ONE, &mut eq);
+    eq
 }
 
 /// The `eq(r, ·)` table, built on the calling thread.
 pub fn eq_table_serial(r: &[F128]) -> Vec<F128> {
-    // SAFETY: the fill writes every element before it reads any.
-    unsafe { crate::filled_vec(1usize << r.len(), |eq| fill_eq_doubling(r, F128::ONE, eq)) }
+    let mut eq = vec![F128::ZERO; 1 << r.len()];
+    fill_eq_doubling(r, F128::ONE, &mut eq);
+    eq
 }
 
 /// Fill `out` with `seed * eq(r, .)`, in LSB-first order. The old contents of `out` are never read.
 ///
-/// A small table doubles a level at a time on the calling thread.
-///
-/// A large one is a tensor product, written in one parallel pass:
+/// A small table doubles a level at a time on the calling thread. A large one is a tensor product,
+/// written row by row in parallel:
 ///
 /// ```text
 ///     out[h * 2^L + l] = high[h] * low[l],    low = eq(r[..L]),  high = seed * eq(r[L..])
 /// ```
 ///
-/// `low` stays in L1, so each entry costs one product and one store, with no level-by-level rereads.
 /// A caller inside a dispatch must keep the table below `EQ_PAR_LEN`.
 pub fn fill_eq_table(r: &[F128], seed: F128, out: &mut [F128]) {
     assert_eq!(out.len(), 1usize << r.len(), "out must have length 2^r.len()");
@@ -59,16 +59,12 @@ pub fn fill_eq_table(r: &[F128], seed: F128, out: &mut [F128]) {
         return fill_eq_doubling(r, seed, out);
     }
     let (r_low, r_high) = r.split_at(EQ_LOW_VARS);
-    let low = eq_table(r_low);
-    // SAFETY: the fill writes every element before it reads any.
-    let high = unsafe { crate::filled_vec(1usize << r_high.len(), |high| fill_eq_table(r_high, seed, high)) };
-    let rows = parallel::recommended_chunk_size(high.len());
-    parallel::chunks_mut(out, rows * low.len(), |c, chunk| {
-        for (row, &w) in chunk.chunks_exact_mut(low.len()).zip(&high[c * rows..]) {
-            for (dst, src) in row.as_chunks_mut::<4>().0.iter_mut().zip(low.as_chunks::<4>().0) {
-                let p = mul4([w; 4], *src);
-                *dst = p;
-            }
+    let low = eq_table_serial(r_low);
+    let mut high = vec![F128::ZERO; 1 << r_high.len()];
+    fill_eq_table(r_high, seed, &mut high);
+    parallel::chunks_mut(out, low.len(), |h, row| {
+        for (o, &l) in row.iter_mut().zip(&low) {
+            *o = high[h] * l;
         }
     });
 }
@@ -76,7 +72,7 @@ pub fn fill_eq_table(r: &[F128], seed: F128, out: &mut [F128]) {
 /// Tables below this size are built on the calling thread.
 const EQ_PAR_LEN: usize = 1 << 16;
 
-/// The variables of the L1-resident factor of a large `eq` table.
+/// The variables of the row factor of a large `eq` table.
 const EQ_LOW_VARS: usize = 10;
 
 /// The level-by-level `eq` build: each level writes the high half from the low half, then rewrites the low half.
@@ -85,48 +81,24 @@ const EQ_LOW_VARS: usize = 10;
 fn fill_eq_doubling(r: &[F128], seed: F128, out: &mut [F128]) {
     out[0] = seed;
     for (i, &rk) in r.iter().enumerate() {
-        let half = 1usize << i;
-        let (lo, hi) = out[..2 * half].split_at_mut(half);
-        let (lo4, lo_tail) = lo.as_chunks_mut::<4>();
-        let (hi4, hi_tail) = hi.as_chunks_mut::<4>();
-        for (l, h) in lo4.iter_mut().zip(hi4) {
-            let p = mul4([rk; 4], *l);
-            *h = p;
-            for (l, p) in l.iter_mut().zip(p) {
-                *l += p;
-            }
-        }
-        for (l, h) in lo_tail.iter_mut().zip(hi_tail) {
-            let p = *l * rk;
-            *h = p;
-            *l += p;
+        let (lo, hi) = out[..2 << i].split_at_mut(1 << i);
+        for (l, h) in lo.iter_mut().zip(hi) {
+            *h = *l * rk;
+            *l += *h;
         }
     }
 }
 
-/// Below this a parallel dispatch costs more than the fold it replaces.
+/// Below this a parallel dispatch costs more than the evaluation it replaces.
 const PAR_THRESHOLD: usize = 1 << 12;
-
-/// The mixed fold: bind the lowest variable of a `K`-table to an
-/// `E`-challenge, producing the `E`-table the remaining rounds fold. One
-/// `mul_base` per output entry.
-fn fold_low_k(table: &[F64], chi: F128) -> Vec<F128> {
-    debug_assert_eq!(table.len() % 2, 0);
-    (0..table.len() / 2)
-        .map(|i| interp_k(table[2 * i], table[2 * i + 1], chi))
-        .collect()
-}
 
 /// Marginalize the highest variable out of an `eq` table (in place), for a top-down sumcheck.
 /// `eq(r, 0) + eq(r, 1) = 1`, so summing the two halves drops `r` with no multiplies.
 pub fn shrink_eq_high(table: &mut Vec<F128>) {
     let half = table.len() / 2;
-    {
-        // Split once, so the loop pays no reload or bounds check.
-        let (lo, hi) = (**table).split_at_mut(half);
-        for (l, h) in lo.iter_mut().zip(&*hi) {
-            *l += *h;
-        }
+    let (lo, hi) = table.split_at_mut(half);
+    for (l, h) in lo.iter_mut().zip(&*hi) {
+        *l += *h;
     }
     table.truncate(half);
 }
@@ -137,31 +109,34 @@ pub fn poly_eval(coeffs: &[F128], point: F128) -> F128 {
     coeffs.iter().rev().fold(F128::ZERO, |acc, &c| acc * point + c)
 }
 
+/// The variables of the low `eq` table of an MLE evaluation.
+const MLE_LOW_VARS: usize = 10;
+
+/// `sum_i w_i * k_i`, reduced once.
+fn dot(w: &[F128], k: &[F64]) -> F128 {
+    w.iter()
+        .zip(k)
+        .fold(F128Unreduced::ZERO, |acc, (w, &k)| acc ^ w.mul_base_unreduced(k))
+        .reduce()
+}
+
 /// Evaluate the MLE of a `K`-valued truth table at an `E`-point (length `log2(len)`).
 ///
-/// The `eq` weights factor into a low and a high table:
+/// The `eq` weights factor into a low and a high table, one dot product per row:
 ///
 /// ```text
 ///     f(point) = sum_h eq(point_high, h) * sum_l eq(point_low, l) * f[h * 2^L + l]
 /// ```
-///
-/// Each row's inner sum is one [`dot_base`] against the packed low table, reduced once.
-/// The table is read once and never lifted into `E`.
 pub fn mle_eval(table: &[F64], point: &[F128]) -> F128 {
     assert_eq!(table.len(), 1 << point.len());
-    if point.len() < 3 {
-        return match point.split_first() {
-            None => F128::from(table[0]),
-            Some((&p0, rest)) => fold_ladder(fold_low_k(table, p0), rest),
-        };
-    }
     let low_vars = point.len().min(MLE_LOW_VARS);
-    let low = packed_eq(&point[..low_vars]);
-    let rows = table
-        .chunks_exact(1 << low_vars)
-        .map(|row| dot_base(&low, row).reduce())
-        .collect();
-    fold_ladder(rows, &point[low_vars..])
+    let low = eq_table_serial(&point[..low_vars]);
+    let high = eq_table_serial(&point[low_vars..]);
+    table
+        .chunks_exact(low.len())
+        .zip(high)
+        .map(|(row, h)| h * dot(&low, row))
+        .sum()
 }
 
 /// [`mle_eval`] with the rows spread over the worker pool. A shorter `table` is zero past its end, which must be a
@@ -173,54 +148,48 @@ pub fn mle_eval_par(table: &[F64], point: &[F128]) -> F128 {
         return mle_eval(table, point);
     }
     let low_vars = point.len().min(MLE_LOW_VARS);
-    assert!(low_vars >= 3 && table.len().is_multiple_of(1 << low_vars));
-    let low = packed_eq(&point[..low_vars]);
+    let low = eq_table_serial(&point[..low_vars]);
     let high = eq_table(&point[low_vars..]);
-    let eval = |row: usize| high[row] * dot_base(&low, &table[row << low_vars..(row + 1) << low_vars]).reduce();
-    parallel::map_reduce(table.len() >> low_vars, || F128::ZERO, eval, |a, b| a + b)
+    assert!(table.len().is_multiple_of(low.len()));
+    let eval = |row: usize| high[row] * dot(&low, &table[row * low.len()..][..low.len()]);
+    parallel::map_reduce(table.len() / low.len(), || F128::ZERO, eval, |a, b| a + b)
 }
 
-/// The variables of the L1-resident low `eq` table of an MLE evaluation.
-const MLE_LOW_VARS: usize = 10;
-
-/// `eq(r, .)` packed eight weights at a time for [`dot_base`]. Needs `r.len() >= 3`.
+/// `eq(r, .)` packed eight weights at a time for [`crate::field::dot_base`]. Needs `r.len() >= 3`.
 pub fn packed_eq(r: &[F128]) -> Vec<Weights8> {
     eq_table(r).as_chunks::<8>().0.iter().map(Weights8::new).collect()
-}
-
-/// Bind the remaining variables of a half-folded `E`-table, LSB-first.
-fn fold_ladder(mut cur: Vec<F128>, point: &[F128]) -> F128 {
-    let mut len = cur.len();
-    for &p in point {
-        len /= 2;
-        for i in 0..len {
-            cur[i] = interp(cur[2 * i], cur[2 * i + 1], p);
-        }
-    }
-    cur[0]
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// The plain fold, one variable at a time, lowest first.
+    fn fold(table: &[F64], point: &[F128]) -> F128 {
+        let mut cur: Vec<F128> = table.iter().map(|&k| F128::from(k)).collect();
+        for &p in point {
+            cur = cur
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|&[lo, hi]| interp(lo, hi, p))
+                .collect();
+        }
+        cur[0]
+    }
+
     #[test]
-    fn parallel_mle_matches_folding() {
+    fn mle_matches_folding() {
         for n in [0, 1, 2, 3, 4, 5, 9, 11, 12, 13, 16] {
             let table: Vec<_> = (0..1 << n)
                 .map(|i: u64| F64(i.wrapping_mul(0x9E37_79B9_7F4A_7C15)))
                 .collect();
-            // The plain fold, one variable at a time, is the reference.
-            let fold = |point: &[F128]| match point.split_first() {
-                None => F128::from(table[0]),
-                Some((&p0, rest)) => fold_ladder(fold_low_k(&table, p0), rest),
-            };
             let point: Vec<_> = (0..n).map(|i| F128::new(17 + i, 231 + 3 * i)).collect();
-            assert_eq!(mle_eval(&table, &point), fold(&point));
-            assert_eq!(mle_eval_par(&table, &point), fold(&point));
+            assert_eq!(mle_eval(&table, &point), fold(&table, &point));
+            assert_eq!(mle_eval_par(&table, &point), fold(&table, &point));
             let point: Vec<_> = (0..n).map(|i| F128::from(F64(i % 2))).collect();
-            assert_eq!(mle_eval(&table, &point), fold(&point));
-            assert_eq!(mle_eval_par(&table, &point), fold(&point));
+            assert_eq!(mle_eval(&table, &point), fold(&table, &point));
+            assert_eq!(mle_eval_par(&table, &point), fold(&table, &point));
         }
     }
 }
