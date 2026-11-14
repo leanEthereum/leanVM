@@ -16,10 +16,22 @@ pub struct F128x8([F128; 8]);
 #[derive(Clone, Copy, Debug)]
 pub struct Acc8([F128Unreduced; 8]);
 
+/// One product, the scalar [`F128`] multiply.
+#[inline(always)]
+pub(crate) fn mul(a: F128, b: F128) -> F128 {
+    a.mul_unreduced(b).reduce()
+}
+
 /// The eight carry-less products `a[i] * b[i]`, each 128 bits.
 #[inline]
 pub fn clmul8(a: [u64; 8], b: [u64; 8]) -> [u128; 8] {
     core::array::from_fn(|i| mul_wide(a[i], b[i]))
+}
+
+/// The low 64 bits of the eight carry-less products `a[i] * b[i]`.
+#[inline]
+pub fn clmul8_low(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
+    clmul8(a, b).map(|p| p as u64)
 }
 
 impl F64x8 {

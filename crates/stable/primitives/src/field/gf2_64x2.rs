@@ -173,7 +173,7 @@ impl Mul for F128 {
     type Output = Self;
     #[inline]
     fn mul(self, rhs: Self) -> Self {
-        self.mul_unreduced(rhs).reduce()
+        super::lanes::mul(self, rhs)
     }
 }
 

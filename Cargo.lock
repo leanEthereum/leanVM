@@ -661,8 +661,8 @@ name = "stable_primitives"
 version = "0.1.0"
 dependencies = [
  "bench",
+ "keccak256",
  "rand",
- "sha3",
  "stable_parallel",
  "stable_primitives",
 ]
