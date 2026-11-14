@@ -257,19 +257,6 @@ impl RingWeight {
     pub(crate) fn point(&self) -> &[F128] {
         &self.point
     }
-
-    /// `Phi(value)`.
-    pub(crate) fn apply(&self, value: F128) -> F128 {
-        let mut acc = F128::ZERO;
-        for (limb, word) in value.to_limbs().into_iter().enumerate() {
-            let mut bits = word;
-            while bits != 0 {
-                acc += self.weights[limb * PACKING_WIDTH + bits.trailing_zeros() as usize];
-                bits &= bits - 1;
-            }
-        }
-        acc
-    }
 }
 
 impl RingFold {
