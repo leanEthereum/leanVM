@@ -156,6 +156,11 @@ def FillsIn (slots : Array KVal) (fills : List Fill) : Prop :=
 def EntriesIn (slots : Array KVal) (t : Tables) : Prop :=
   ∀ x ∈ t.entries.toList, slots[x.1]? = some (.entry x.2)
 
+/-- Every shared table's callees are among the entries: what the jump tables' state holds
+between two functions. -/
+def TablesOK (t : Tables) : Prop :=
+  ∀ p ∈ t.shared, ∀ j (h : j < p.1.length), (p.2 + j, p.1[j]) ∈ t.entries.toList
+
 /-! ## Placement -/
 
 /-- A trace event announcing a chain of `match`es. -/
@@ -183,12 +188,8 @@ structure PlaceEnv {κ : ℕ} (Γ : Site κ) (fp : K) (ctx : Ctx) (C : CallRel)
   post : ∀ g a r fp', isCallee ctx.sigs a r g = true → Γ.Post g fp' →
     C g (frameWords Γ.L fp' 2 a) (frameWords Γ.L fp' (2 + a) r)
 
-/-- The context `placeFn` walks a function in. -/
-def ctxOf (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tf : TracedFn) : Ctx :=
-  { name := tf.core.name, isMain := tf.core.name == "main", argCells := (sigOf tf).1,
-    retCells := (sigOf tf).2, loops, sigs, trace := tf.trace }
-
-/-- **Placement is sound** at one function: whenever `placeFn` succeeds, on any trace, a memory
+/-- **Placement is sound** at one function: whenever `placeFn` succeeds, on any trace, from
+jump tables whose shared tables are among the entries, a memory
 that has the meaning of the placed body at a frame (`PStmt.SemList`), with the program around as
 `PlaceEnv` says and the function's obligations, satisfies the core body under the valuation by
 places, and the parameters are the argument words. `kret` receives the return words where the
@@ -197,7 +198,7 @@ body returns: the run went on from the frame's return registers (`kretP`), or th
 def PlaceFnSound (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : Tables)
     (tf : TracedFn) : Prop :=
   ∀ (pf : Placed) (tables' : Tables), placeFn loops sigs tables tf = .ok (pf, tables') →
-    ∀ {κ : ℕ} (Γ : Site κ) (fp : K) (C : CallRel) (U : String → List E → Prop)
+    TablesOK tables → ∀ {κ : ℕ} (Γ : Site κ) (fp : K) (C : CallRel) (U : String → List E → Prop)
       (slots : Array KVal) (N : Prop) (kj : E → E → Prop) (kretP : Prop) (khalt : E → E → Prop)
       (kret : List E → Prop),
       PlaceEnv Γ fp (ctxOf loops sigs tf) C U slots (blockSize pf.fn.body) →
