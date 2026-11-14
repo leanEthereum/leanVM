@@ -12,7 +12,7 @@ public import LeanVM.Guest.Res.ResCerts1
 public import LeanVM.Guest.Res.ResCerts2
 public import LeanVM.Guest.Res.ResCerts3
 public import LeanVM.Guest.Res.ResCerts4
-public import LeanVM.Guest.EndExecRS
+public import LeanVM.Guest.EndExecRSplit
 
 set_option Elab.async false
 
@@ -111,11 +111,11 @@ theorem guestCerts_res : ∀ K ∈ guestCerts, ResOk resExc nzVals K :=
     (Mode.fa_nil)))))))
 
 /-- **The residuals at the honest frames**, for the mode walk's certificates: from the listed
-certificates', the `sub` family's and the listed parameters' nonzero values. -/
+certificates', the `sub` residuals' but the splits' and the listed parameters' nonzero values. -/
 theorem resTop_guest {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K)
-    (hsub : ResOpen guestCerts A fun x ↦ ∃ a bs, x = .sub a bs)
+    (hsub : ResOpen guestCerts A fun j x ↦ (∃ a bs, x = .sub a bs) ∧ splitB j x = false)
     (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop guestCerts A :=
-  resTop_of_ok guestCerts_res hexc hsub hnz
+  resTop_of_ok guestCerts_res hexc splits_ok hsub hnz
 
 end
 

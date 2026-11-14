@@ -89,17 +89,17 @@ def render():
     mod = 'LeanVM.Guest.Res.ResCerts'
     t = [header(mod, '`ResTop guestCerts alignA` from the families\' and the listed certificates\' residuals.')]
     t.append(''.join('public import %s\n' % m for m in mods))
-    t.append('public import LeanVM.Guest.EndExecRS\n')
+    t.append('public import LeanVM.Guest.EndExecRSplit\n')
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode '
              'LeanVM.Guest.Res\n\npublic section\n\n/-- **Every certificate\'s residuals are in the families.** -/\n'
              'theorem guestCerts_res : ∀ K ∈ guestCerts, ResOk resExc nzVals K :=\n  fa_flatten (fa_flatten (%s))\n\n' % term.chain(
                  ['(%s)' % term.chain(['ModePack.«%s».certs_res' % p for p in g]) for g in G]))
     t.append('/-- **The residuals at the honest frames**, for the mode walk\'s certificates: from the listed\n'
-             'certificates\', the `sub` family\'s and the listed parameters\' nonzero values. -/\n'
+             'certificates\', the `sub` residuals\' but the splits\' and the listed parameters\' nonzero values. -/\n'
              'theorem resTop_guest {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K)\n'
-             '    (hsub : ResOpen guestCerts A fun x ↦ ∃ a bs, x = .sub a bs)\n'
+             '    (hsub : ResOpen guestCerts A fun j x ↦ (∃ a bs, x = .sub a bs) ∧ splitB j x = false)\n'
              '    (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop guestCerts A :=\n'
-             '  resTop_of_ok guestCerts_res hexc hsub hnz\n\nend\n\nend LeanVM.Guest.EndExec\n')
+             '  resTop_of_ok guestCerts_res hexc splits_ok hsub hnz\n\nend\n\nend LeanVM.Guest.EndExec\n')
     files[mod] = ''.join(t)
     return {os.path.join(OUT, m.split('.')[-1] + '.lean'): v for m, v in files.items()}
 

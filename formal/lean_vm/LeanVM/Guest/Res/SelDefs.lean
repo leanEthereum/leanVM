@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Memory.StaticSound
 public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.Mode.Step
+public meta import LeanVM.Guest.CoreRef
 
 /-!
 # The selectors' checks
@@ -26,8 +27,9 @@ top-level atom before it loads from `[q]·g^k` (`scanHp_sound`). `ltSelB j r`: r
 a bound of function `j`'s body, its cell inside the frame (`2 ≤ cell < fsN j`, where the
 completeness check reads it).
 
-`nzB nzs j o`: residual `nz o` is the cell of a parameter of function `j`, its loop counter or
-listed in `nzs`. `ResOk exc nzs K`: certificate `K` is listed in `exc`, or each of its residuals
+`splitB j r`: residual `r` is a run inside another over the same product, both read off a split
+of the frame (`splits`: `[n] = [s]^S·[r]`, `[s]` and `[r]` powers of `g`). `nzB nzs j o`: residual
+`nz o` is the cell of a parameter of function `j`, its loop counter or listed in `nzs`. `ResOk exc nzs K`: certificate `K` is listed in `exc`, or each of its residuals
 is a name, a selector's bound or such a divisor at its function's index, or a run inside others
 (`sub`), decided per certificate (`resOk_of`). `allV p t`: every value stored in `t` satisfies `p`
 (`allV_get`).
@@ -123,6 +125,25 @@ parameter `v` of function `j`, its loop counter or listed with the function's na
 noncomputable def nzB (nzs : List (String × V)) (j o : ℕ) : Bool :=
   decide (2 ≤ o) && decide (o < fsN j) && (coreOf j).params.any fun v ↦
     cellJ j v == o && (ctrOf j == some v || decide (((coreOf j).name, v) ∈ nzs))
+
+/-- **The frames' splits**: function `j`, values `s`, `r`, `n` and a stride `S` with `n = s^S·r`,
+`s` and `r` powers of `g` (each one's bits hinted and pinned, `bitsExp`). -/
+noncomputable def splits : List (ℕ × V × V × V × ℕ) := [
+  (fn_idx% «rs_eq_run», .n 37, .n 23, .n 3, 8),
+  (fn_idx% «shared_selector_tables», .n 39, .n 20, .n 5, 4)]
+
+/-- **A run inside a split**: of stride `S` up to `[s]`'s exponent at an offset below `S`, or of
+stride `1` up to `[r]`'s exponent past `[s]^S`, inside the run up to `[n]`'s exponent over the same
+product. -/
+def splitShape (s r n S : ℕ) : Mode.Res → Bool
+  | .sub a [b] => decide (b.lo = .num 0 ∧ b.hi = .ex (.fr n) 0 ∧ b.S = 1 ∧ b.d = 0 ∧ a.lo = .num 0 ∧
+      ((a.q = b.q ∧ a.hi = .ex (.fr s) 0 ∧ a.S = S ∧ a.d < S) ∨
+        (a.q = ⟨b.q.fp, b.q.k, b.q.bs ++ [(.fr s, S)]⟩ ∧ a.hi = .ex (.fr r) 0 ∧ a.S = 1 ∧ a.d = 0)))
+  | _ => false
+
+/-- A run inside a split of function `j`'s frame. -/
+noncomputable def splitB (j : ℕ) (x : Mode.Res) : Bool :=
+  splits.any fun p ↦ p.1 == j && splitShape (cellJ j p.2.1) (cellJ j p.2.2.1) (cellJ j p.2.2.2.1) p.2.2.2.2 x
 
 /-- A residual the families take at function `j`: a name, a selector's bound (`ltSelB`), a run
 inside others, or a nonzero divisor at a parameter (`nzB`). -/

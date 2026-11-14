@@ -175,6 +175,92 @@ theorem nzPar_top (t : TopAt A r K i e j) (hr : r.Ok) {nzs : List (String × V)}
 
 end
 
+/-! ## Splits -/
+
+section
+
+variable {M : ℕ → E} {fp : ℕ}
+
+theorem rbs_snoc {b0 : Base} {e0 : ℕ} : ∀ {bs : List (Base × ℕ)} {w : E}, RBs M fp (bs ++ [(b0, e0)]) w →
+    ∃ u w1, RBase M fp b0 u ∧ RBs M fp bs w1 ∧ w = w1 * u ^ e0
+  | [], w, ⟨u, w', hu, hw', hw⟩ => ⟨u, 1, hu, rfl, by rw [hw, show w' = 1 from hw']; ring⟩
+  | (b, e) :: bs, w, ⟨u, w', hu, hw', hw⟩ => by
+    obtain ⟨u0, w1, h0, h1, rfl⟩ := rbs_snoc hw'
+    exact ⟨u0, u ^ e * w1, h0, ⟨u, w1, hu, h1, rfl⟩, by rw [hw]; ring⟩
+
+/-- **A run inside a split** (`splitShape`): on a frame whose `[n]` is `g^(S·a + b)`, `[s] = g^a`
+and `[r] = g^b`. -/
+theorem split_rres {s r n S a b : ℕ} (hs : M (fp + s) = ofK (Parameters.g ^ a))
+    (hr : M (fp + r) = ofK (Parameters.g ^ b))
+    (hn : M (fp + n) = ofK (Parameters.g ^ (S * a + b))) (hlt : S * a + b < 2 ^ 62) {x : Mode.Res}
+    (hx : Res.splitShape s r n S x = true) : RRes M fp x := by
+  match x, hx with
+  | .sub a' [b'], hx =>
+    simp only [Res.splitShape, decide_eq_true_eq] at hx
+    obtain ⟨hblo, hbhi, hbS, hbd, halo, h⟩ := hx
+    have hyhi : ∀ yhi, RIdx M fp b'.hi yhi → yhi = S * a + b := fun yhi hy ↦ by
+      rw [hbhi] at hy
+      obtain ⟨v, e', hv, hve, he', hx⟩ := hy
+      change M (fp + n) = v at hv
+      rw [hn, hve] at hv
+      have := gpow_inj (by omega) (by omega) (ofK_injective hv)
+      omega
+    have hylo : ∀ ylo, RIdx M fp b'.lo ylo → ylo = 0 := fun ylo hy ↦ by rw [hblo] at hy; exact hy
+    show RSub M fp a' [b']
+    rcases h with ⟨hq, hhi, hS, hd⟩ | ⟨hq, hhi, hS, hd⟩
+    · have haS : a ≤ S * a := Nat.le_mul_of_pos_left a (by omega)
+      refine ⟨0, a, by rw [halo]; rfl, by rw [hhi]; exact ⟨_, a, hs, rfl, by omega, rfl⟩,
+        fun vq hvq j _ hj ↦ ⟨b', List.mem_singleton_self _, fun vb ylo yhi hvb hlo hhi' ↦
+          ⟨S * j + a'.d, ?_, ?_, ?_⟩⟩⟩
+      · rw [hylo ylo hlo]; omega
+      · rw [hyhi yhi hhi']
+        have : S * j + a'.d < S * a := by
+          have : S * (j + 1) ≤ S * a := Nat.mul_le_mul_left _ (by omega)
+          rw [Nat.mul_succ] at this; omega
+        omega
+      · rw [hq] at hvq
+        rw [rmono_uniq hvq hvb, hS, hbS, hbd, one_mul, add_zero]
+    · refine ⟨0, b, by rw [halo]; rfl, by rw [hhi]; exact ⟨_, b, hr, rfl, by omega, rfl⟩,
+        fun vq hvq j _ hj ↦ ⟨b', List.mem_singleton_self _, fun vb ylo yhi hvb hlo hhi' ↦
+          ⟨S * a + j, ?_, ?_, ?_⟩⟩⟩
+      · rw [hylo ylo hlo]; omega
+      · rw [hyhi yhi hhi']; omega
+      · rw [hq] at hvq
+        obtain ⟨w, hw, rfl⟩ := hvq
+        obtain ⟨wb, hwb, rfl⟩ := hvb
+        obtain ⟨u, w1, hu, hw1, rfl⟩ := rbs_snoc hw
+        have e : ofK (Parameters.g ^ (S * a + j)) = ofK (Parameters.g ^ a) ^ S * ofK (Parameters.g ^ j) := by
+          rw [pow_add, pow_mul', ofK_mul, Mode.ofK_pow (Parameters.g ^ a) S]
+        rw [rbs_uniq hw1 hwb, show u = ofK (Parameters.g ^ a) from hu.symm.trans hs, hS, hd, hbS, hbd, one_mul,
+          one_mul, add_zero, add_zero, e]
+        ring
+  | .sub _ [], hx => simp [Res.splitShape] at hx
+  | .sub _ (_ :: _ :: _), hx => simp [Res.splitShape] at hx
+  | .lt _ _, hx => simp [Res.splitShape] at hx
+  | .nz _, hx => simp [Res.splitShape] at hx
+  | .name _, hx => simp [Res.splitShape] at hx
+
+end
+
+/-- **A split of function `j`'s frames**: at each honest frame of `j`, `[n] = g^(S·a + b)` with
+`[s] = g^a`, `[r] = g^b`, the cells those of `vs`, `vr`, `vn`. -/
+def SplitAt (A : String → FnAl) (j : ℕ) (vs vr vn : V) (S : ℕ) : Prop :=
+  ∀ (r : Ref) (K : Mode.Cert) (i : ℕ) (e : Bridge.Ent), r.Ok → TopAt A r K i e j → ∃ a b,
+    refMem r.img (e.I.fp + cellJ j vs) = ofK (Parameters.g ^ a) ∧
+    refMem r.img (e.I.fp + cellJ j vr) = ofK (Parameters.g ^ b) ∧
+    refMem r.img (e.I.fp + cellJ j vn) = ofK (Parameters.g ^ (S * a + b)) ∧ S * a + b < 2 ^ 62
+
+/-- **A run inside a split at an honest frame.** -/
+theorem split_top {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
+    (t : TopAt A r K i e j) (hr : r.Ok)
+    (hsp : ∀ p ∈ Res.splits, SplitAt A p.1 p.2.1 p.2.2.1 p.2.2.2.1 p.2.2.2.2) {x : Mode.Res}
+    (hx : Res.splitB j x = true) : RRes (refMem r.img) e.I.fp x := by
+  obtain ⟨p, hp, hpx⟩ := List.any_eq_true.mp hx
+  simp only [Bool.and_eq_true, beq_iff_eq] at hpx
+  obtain ⟨rfl, hsh⟩ := hpx
+  obtain ⟨a, b, hs, hr', hn, hlt⟩ := hsp p hp r K i e hr t
+  exact split_rres hs hr' hn hlt hsh
+
 /-! ## The assembly -/
 
 /-- **One certificate's residuals at the honest frames.** -/
@@ -182,16 +268,19 @@ def ResCert (A : String → FnAl) (K : Mode.Cert) : Prop :=
   ∀ r : Ref, r.Ok → ∀ i < K.code.length, ∀ e j, TopAt A r K i e j →
     ∀ x ∈ (K.F.res.get i).getD [], RIn (refMem r.img) e.I.fp x → RRes (refMem r.img) e.I.fp x
 
-/-- **A family's residuals at the honest frames**: each residual `p` accepts. -/
-def ResOpen (Ks : List Mode.Cert) (A : String → FnAl) (p : Mode.Res → Prop) : Prop :=
+/-- **A family's residuals at the honest frames**: each residual `p` accepts at the frame's
+function. -/
+def ResOpen (Ks : List Mode.Cert) (A : String → FnAl) (p : ℕ → Mode.Res → Prop) : Prop :=
   ∀ r : Ref, r.Ok → ∀ K ∈ Ks, ∀ i < K.code.length, ∀ e j, TopAt A r K i e j →
-    ∀ x ∈ (K.F.res.get i).getD [], p x → RIn (refMem r.img) e.I.fp x → RRes (refMem r.img) e.I.fp x
+    ∀ x ∈ (K.F.res.get i).getD [], p j x → RIn (refMem r.img) e.I.fp x → RRes (refMem r.img) e.I.fp x
 
 /-- **`ResTop` by family**: every certificate's residuals in the families, the listed ones', the
-`sub` family's and the listed parameters' nonzero values given. -/
+splits, the other `sub` residuals' and the listed parameters' nonzero values given. -/
 theorem resTop_of_ok {Ks exc : List Mode.Cert} {nzs : List (String × V)} {A : String → FnAl}
     (hok : ∀ K ∈ Ks, ResOk exc nzs K) (hexc : ∀ K ∈ exc, ResCert A K)
-    (hsub : ResOpen Ks A fun x ↦ ∃ a bs, x = .sub a bs) (hnz : ∀ p ∈ nzs, NzVal p.1 p.2) : ResTop Ks A := by
+    (hsp : ∀ p ∈ Res.splits, SplitAt A p.1 p.2.1 p.2.2.1 p.2.2.2.1 p.2.2.2.2)
+    (hsub : ResOpen Ks A fun j x ↦ (∃ a bs, x = .sub a bs) ∧ Res.splitB j x = false)
+    (hnz : ∀ p ∈ nzs, NzVal p.1 p.2) : ResTop Ks A := by
   intro r hr K hK i hi e j t x hx hin
   rcases hok K hK with hK' | ⟨j0, hj0, hent, hall⟩
   · exact hexc K hK' r hr i hi e j t x hx hin
@@ -209,7 +298,10 @@ theorem resTop_of_ok {Ks exc : List Mode.Cert} {nzs : List (String × V)} {A : S
     cases x with
     | name o => exact rres_name
     | lt a b => exact ltSel_top t hr hf hin
-    | sub a bs => exact hsub r hr K hK i hi e j t _ (by rw [hg]; exact hx) ⟨a, bs, rfl⟩ hin
+    | sub a bs =>
+      cases hs : Res.splitB j (.sub a bs) with
+      | true => exact split_top t hr hsp hs
+      | false => exact hsub r hr K hK i hi e j t _ (by rw [hg]; exact hx) ⟨⟨a, bs, rfl⟩, hs⟩ hin
     | nz o => exact nzPar_top t hr hnz hf
 
 end
