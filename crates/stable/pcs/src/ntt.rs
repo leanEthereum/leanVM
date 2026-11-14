@@ -6,7 +6,7 @@
 //!   one twiddle per block: layer 0 pairs rows half the domain apart, the last layer adjacent rows.
 //! - A codeword is `2^r` copies of the message, `r` the log inverse rate, transformed from layer `r` on.
 //! - An `E` element is two `K` words and the twiddles lie in `K`, so an `E`-valued encode is the base transform over
-//!   twice the lanes ([`words`]).
+//!   twice the lanes (`words`).
 
 use primitives::field::{F64, F128};
 use primitives::log2_strict_usize;

@@ -18,13 +18,17 @@ The fields are `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^2 + x*
 
 ## Layout
 
-The root `Cargo.toml` is workspace-only: libraries in `crates/`, the CLI in `bins/`. Dependency order, leaves first:
+The root `Cargo.toml` is workspace-only: libraries in `crates/`, the CLI in `bins/`. The prover exists twice, in two trees that share no crate:
+
+- `crates/stable/` (packages `stable_*`): the reference prover. Plain, portable, safe code, as short as the protocol allows: no `core::arch` but the one scalar carry-less multiply, no `cfg(target_feature)`, no uninitialized buffers, no non-temporal stores, no per-machine tuning. It is slower than experimental, and that is accepted; an optimization enters it only where leaving it out costs a whole-proof factor and the simple form of it stays short.
+- `crates/experimental/` (packages `experimental_*`): the optimized prover, where performance work lands first. The conventions below about NEON, AVX-512, streaming stores and the like are about this tree.
+
+Both prove the same protocol and give the same proof bytes, pinned by `bins/leanvm/tests/identical_proofs.rs`; a protocol change lands in both trees, the three verifiers and `formal/`, while an optimization lands in experimental alone. Only `crates/verifier` (the protocol) and `crates/bench` (the harness) are shared. `formal/`'s Rust helpers build against the experimental tree. Within a tree, crates name each other through Cargo renames (`pcs = { package = "stable_pcs", path = "../pcs" }`), so sources say `pcs::`; an integration test reaches its own crate with `extern crate stable_pcs as pcs;`, and a doctest names it in full. Each tree holds, in dependency order, leaves first:
 
 | crate             | role                                                                   |
 | ----------------- | ---------------------------------------------------------------------- |
 | `parallel`        | the thread pool (below)                                                |
-| `primitives`      | field kernels (NEON/AVX), Keccak, bit transposes, multilinear helpers, streaming stores |
-| `bench`           | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output, the jemalloc allocator); never linked by the prover |
+| `primitives`      | the fields, Keccak, bit transposes, multilinear helpers (experimental: NEON/AVX kernels, streaming stores) |
 | `fiat_shamir`     | the duplex sponge transcript and the prover's side of the proof transport |
 | `pcs`             | additive NTT, Merkle, ring switch, stacked WHIR: commit and open, no verifier |
 | `keccak_gkr`      | the prover of the VM's `KECCAK` argument                               |
@@ -33,11 +37,12 @@ The root `Cargo.toml` is workspace-only: libraries in `crates/`, the CLI in `bin
 | `lean_xmss`       | leanXMSS over Keccak-256                                               |
 | `lean_sphincs`    | leanSPHINCS over Keccak-256                                            |
 | `lean_da`         | additive Reed-Solomon blob encoding, commitments, membership vectors   |
-| `verifier`        | the one native verifier (below)                                        |
 | `rec_aggregation` | recursive signature and DA aggregation: the guest and public entry points |
 | `leanvm`          | the public API                                                         |
 
-`crates/leanvm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/leanvm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. Guests are zkDSL under `crates/rec_aggregation/guests/`. The CLI is `bins/leanvm`, run with `cargo leanvm <subcommand>` (`aggregate`, `recursion`, `fibonacci`, `hash`).
+and the shared crates are `verifier`, the one native verifier (below), and `bench`, the benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output, the jemalloc allocator), never linked by a prover.
+
+Paths below such as `crates/leanvm` or `crates/rec_aggregation/guests/` mean the crate in either tree. `crates/leanvm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/leanvm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. Guests are zkDSL under `crates/rec_aggregation/guests/`. The CLI is `bins/leanvm`, run with `cargo leanvm [--prover stable|experimental] <subcommand>` (`aggregate`, `recursion`, `fibonacci`, `hash`; experimental by default), each prover driving its own copy of the benchmarks.
 
 ## Building and testing
 
@@ -64,7 +69,7 @@ RUSTFLAGS="-C target-cpu=znver4" \
 
 To confirm an arm is reached rather than silently skipped, put a `compile_error!` in it and watch the check fail.
 
-Heavy benches are `benches/` targets, run with `cargo bench -p <crate> --bench <name>`: keccak_gkr's `hash_batch`, pcs's `throughput`, primitives' `hash_throughput`. Slow checks are `#[ignore]`d tests, run by name with `-- --ignored --nocapture`: `print_whir_query_counts`, `print_whir_query_table`, `encoding_grinding_bits`. `aggregate_two_to_one` is the fast end-to-end check.
+Heavy benches are `benches/` targets, run with `cargo bench -p <package> --bench <name>`: `experimental_keccak_gkr`'s `hash_batch`, `experimental_pcs`'s `throughput`, `experimental_primitives`' `hash_throughput` (and their `stable_*` copies). Slow checks are `#[ignore]`d tests, run by name with `-- --ignored --nocapture`: `print_whir_query_counts`, `print_whir_query_table`, `encoding_grinding_bits`. `aggregate_two_to_one` is the fast end-to-end check.
 
 Where a proof's time goes is the `tracing` span tree, and only that: `--tracing` on the CLI, `BENCH_TRACING=1` on the benches, `RUST_LOG` for the level. A new stage worth timing gets an `info_span!` (`stage!` in `leanvm_core`), never an `Instant` behind an env var.
 
@@ -75,6 +80,7 @@ cargo leanvm aggregate --xmss 900 --log-inv-rate 1 --repeat 3
 cargo leanvm aggregate --sphincs 410 --log-inv-rate 1 --repeat 3
 cargo leanvm recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
 cargo leanvm hash --log-n 17 --repeat 3     # the Keccak GKR alone, as keccak_gkr's `hash_batch`
+cargo leanvm --prover stable aggregate --xmss 900 --log-inv-rate 1 --repeat 3   # the same on the stable prover
 ```
 
 `aggregate` takes a count per scheme (both default to zero) and `--blobs`; `recursion` likewise takes `--sphincs-per-leaf` and `--blobs-per-leaf`. Compare schemes and changes by the reported VM cycle counts.
@@ -83,15 +89,15 @@ CI compares every PR with its base, never with a history: `bench.yml` runs both 
 
 ## The allocator
 
-The prover's buffers are plain `Vec`s and the libraries impose no allocator. A proof allocates and frees gigabytes, so the CLI and the benches install jemalloc with `dirty_decay_ms:-1` (`bench::Jemalloc`), which keeps freed pages mapped for the next proof at the cost of resident memory, and on Linux with `thp:always`, which backs its extents with transparent huge pages. Skip a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec` (`T: Plain`, every element written before it is read), and drop large buffers where their last use ends.
+The prover's buffers are plain `Vec`s and the libraries impose no allocator. A proof allocates and frees gigabytes, so the CLI and the benches install jemalloc with `dirty_decay_ms:-1` (`bench::Jemalloc`), which keeps freed pages mapped for the next proof at the cost of resident memory, and on Linux with `thp:always`, which backs its extents with transparent huge pages. Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec` (`T: Plain`, every element written before it is read); stable never reads uninitialized memory, and writes a large buffer's first pass with the pool (`parallel::filled`, or `parallel::map_collect` when every element is computed anyway), since a zero-fill on one thread costs a whole-proof factor on many cores. Both drop large buffers where their last use ends.
 
 ## The thread pool (`parallel`)
 
-No rayon. Every parallel site is "N independent items, each writing its own disjoint slice", so the pool is a claim counter: `NUM_THREADS - 1` workers plus the dispatcher, both core clusters sharing one queue. Do not add a second pool.
+No rayon. Every parallel site is "N independent items, each writing its own disjoint slice", so the pool is a claim counter: `NUM_THREADS - 1` workers plus the dispatcher, both core clusters sharing one queue. Do not add a second pool to a tree (each tree has its own, and a process starts only the one it proves with). Experimental's workers spin then park; stable's wait on a condvar.
 
 - Nested dispatch panics, because it would deadlock the dispatch lock.
-- One site runs beside the pool: `keccak::while_executing` spawns half the pool's count of plain threads while a program executes, gone before the next dispatch.
-- `LEANVM_NUM_THREADS` sets the performance-worker count; `1` is strictly sequential. The default is one worker per logical CPU (on Linux, per physical core the process may use), holding back one performance worker when efficiency workers exist.
+- One experimental site runs beside the pool: `keccak::while_executing` spawns half the pool's count of plain threads while a program executes, gone before the next dispatch. Stable builds the Keccak witness after execution, in the pool.
+- `LEANVM_NUM_THREADS=1` is strictly sequential. In experimental it sets the performance-worker count, and the default is one worker per logical CPU (on Linux, per physical core the process may use), holding back one performance worker when efficiency workers exist. In stable it sets the worker count, and the default is `available_parallelism()`.
 
 ## Three verifiers, one protocol
 
@@ -137,7 +143,7 @@ In the recursion program, the prover sends the verifier advice, called hints. Hi
 
 | var                                                                            | effect                                                |
 | ------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| `LEANVM_NUM_THREADS`                                                           | performance-worker count; `1` = sequential            |
+| `LEANVM_NUM_THREADS`                                                           | worker count (experimental: performance workers); `1` = sequential |
 | `BENCH_TRACING`, `BENCH_REPEAT`, `BENCH_COOLDOWN`                              | `--tracing`, `--repeat`, `--cooldown` for the benches |
 | `LEANVM_HASH_N`, `LEANVM_HASH_UNROLL`                                          | workload sizes in tests                               |
 | `KECCAK_N_LOG`, `KECCAK_DEPTH`                                                 | keccak_gkr batch size, rounds between committed states |

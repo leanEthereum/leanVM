@@ -106,8 +106,8 @@ impl ProverConfig {
 }
 
 /// The configuration for a `2^log_n`-word stack at L0 rate `2^-log_inv_rate`: the ladder folds
-/// [`INITIAL_FOLDING_FACTOR`], then [`SUBSEQUENT_FOLDING_FACTOR`] variables a level until at most
-/// [`RESIDUAL_MAX_LOG`] remain, and every level takes the verifier's tabulated query count.
+/// [`INITIAL_FOLDING_FACTOR`], then `SUBSEQUENT_FOLDING_FACTOR` variables a level until at most
+/// `RESIDUAL_MAX_LOG` remain, and every level takes the verifier's tabulated query count.
 pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig, String> {
     validate_log_inv_rate(log_inv_rate)?;
     let queries = verifier::whir_queries(log_n, log_inv_rate)
