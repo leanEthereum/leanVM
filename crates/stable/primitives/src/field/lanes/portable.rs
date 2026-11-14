@@ -16,6 +16,12 @@ pub struct F128x8([F128; 8]);
 #[derive(Clone, Copy, Debug)]
 pub struct Acc8([F128Unreduced; 8]);
 
+/// One product, the scalar [`F128`] multiply.
+#[inline(always)]
+pub(crate) fn mul(a: F128, b: F128) -> F128 {
+    a.mul_unreduced(b).reduce()
+}
+
 /// The eight carry-less products `a[i] * b[i]`, each 128 bits.
 #[inline]
 pub fn clmul8(a: [u64; 8], b: [u64; 8]) -> [u128; 8] {
