@@ -1,6 +1,6 @@
 use super::cells::{count, pack_16_bytes};
 use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars, stacked_bytecode};
-use super::error::{AggregateProveError, AggregateVerifyError};
+use super::error::AggregateError;
 use super::guest::{compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
 use super::node::aggregate;
@@ -39,11 +39,11 @@ fn matrix(blobs: &[lean_da::Blob]) -> Option<lean_da::BlobMatrix> {
 type Node = (AggregateClaims, AggregateProof);
 
 trait VerifyNode {
-    fn verify(&self) -> Result<(), AggregateVerifyError>;
+    fn verify(&self) -> bool;
 }
 
 impl VerifyNode for Node {
-    fn verify(&self) -> Result<(), AggregateVerifyError> {
+    fn verify(&self) -> bool {
         self.1.verify(&self.0)
     }
 }
@@ -122,7 +122,7 @@ fn prove_lean_sphincs_leaf(signers: &[RawSphincs]) -> Node {
 fn aggregate_one_lean_sphincs_signer() {
     parallel::init();
     let aggregate = prove_lean_sphincs_leaf(&get_lean_sphincs_signers(1));
-    aggregate.verify().expect("verifies");
+    assert!(aggregate.verify(), "verifies");
     assert!(aggregate.0.lean_xmss.is_empty());
     assert_eq!(aggregate.0.lean_sphincs.len(), 1);
 }
@@ -147,7 +147,7 @@ fn forged_lean_sphincs_hints_are_rejected() {
         FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
         let result = aggregate(&[], vec![], signers.clone(), None, OutputClaims::All, LOG_INV_RATE);
         assert!(
-            matches!(result, Err(AggregateProveError::ProofError(_))),
+            result.err() == Some(AggregateError::ProvingFailed),
             "a forged hint is rejected"
         );
     }
@@ -171,7 +171,7 @@ fn forged_lean_xmss_hints_are_rejected() {
         FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
         let result = aggregate(&[], signers.clone(), vec![], None, OutputClaims::All, LOG_INV_RATE);
         assert!(
-            matches!(result, Err(AggregateProveError::ProofError(_))),
+            result.err() == Some(AggregateError::ProvingFailed),
             "a forged hint is rejected"
         );
     }
@@ -181,7 +181,7 @@ fn forged_lean_xmss_hints_are_rejected() {
 fn aggregate_one_signer() {
     parallel::init();
     let aggregate = prove_leaf(&get_signers(1));
-    aggregate.verify().expect("verifies");
+    assert!(aggregate.verify(), "verifies");
     assert_eq!(aggregate.0.lean_xmss[0].1, message());
 }
 
@@ -198,7 +198,7 @@ fn aggregate_mixed_leaf() {
         LOG_INV_RATE,
     )
     .expect("leaf aggregates");
-    aggregate.verify().expect("verifies");
+    assert!(aggregate.verify(), "verifies");
     assert_eq!((aggregate.0.lean_xmss.len(), aggregate.0.lean_sphincs.len()), (3, 3));
 }
 
@@ -217,7 +217,7 @@ fn aggregate_mixed_two_to_one() {
     let right = leaf(&xmss[3..], &lean_sphincs[2..]);
     let node =
         aggregate(&[left, right], vec![], vec![], None, OutputClaims::All, LOG_INV_RATE).expect("node aggregates");
-    node.verify().expect("node verifies");
+    assert!(node.verify(), "node verifies");
     assert_eq!((node.0.lean_xmss.len(), node.0.lean_sphincs.len()), (6, 4));
     assert!(node.0.lean_xmss.windows(2).all(|w| w[0] < w[1]));
     assert!(node.0.lean_sphincs.windows(2).all(|w| w[0] < w[1]));
@@ -241,7 +241,7 @@ fn aggregate_one_scheme_per_child() {
         LOG_INV_RATE,
     )
     .expect("node aggregates");
-    node.verify().expect("node verifies");
+    assert!(node.verify(), "node verifies");
     assert_eq!((node.0.lean_xmss.len(), node.0.lean_sphincs.len()), (3, 2));
 }
 
@@ -262,7 +262,7 @@ fn aggregate_one_key_two_messages() {
         })
         .collect();
     let aggregate = prove_lean_sphincs_leaf(&raw);
-    aggregate.verify().expect("verifies");
+    assert!(aggregate.verify(), "verifies");
     assert_eq!(aggregate.0.lean_sphincs.len(), 2);
     let (first, second) = (aggregate.0.lean_sphincs[0], aggregate.0.lean_sphincs[1]);
     assert_eq!(first.0, second.0, "the same pubkey, twice");
@@ -348,7 +348,7 @@ fn aggregate_two_to_one() {
     let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
     let children = [left, right];
     let node = aggregate(&children, vec![], vec![], None, OutputClaims::All, LOG_INV_RATE).expect("node aggregates");
-    node.verify().expect("node verifies");
+    assert!(node.verify(), "node verifies");
     // `cpu::verify` accepts the same proof of the same statement.
     let defer = DeferredBytecodeClaim::recompute(node.1.bytecode_point.clone()).unwrap();
     verify(unified_guest(), &public_input(&node.0, &defer), &node.1.proof).expect("node verifies natively");
@@ -380,7 +380,7 @@ fn aggregate_with_a_da_payload() {
         LOG_INV_RATE,
     )
     .expect("node aggregates");
-    node.verify().expect("node verifies");
+    assert!(node.verify(), "node verifies");
     assert_eq!(node.0.num_signature_claims(), 0);
 
     let commitment = lean_da::BlobMatrix::build(&rows).unwrap().top_root();
@@ -396,12 +396,12 @@ fn aggregate_with_a_da_payload() {
         da_commitment: Some(commitment),
         ..AggregateClaims::default()
     };
-    received.verify(&expected).unwrap();
+    assert!(received.verify(&expected));
     let other = AggregateClaims {
         da_commitment: Some([0; 32]),
         ..AggregateClaims::default()
     };
-    assert!(matches!(received.verify(&other), Err(AggregateVerifyError::Snark(_))));
+    assert!(!received.verify(&other));
     let claim = (
         LeanXmssPublicKey::from_bytes(&[0; lean_xmss::PUB_KEY_SIZE]),
         [0; lean_xmss::MESSAGE_LEN],
@@ -410,12 +410,9 @@ fn aggregate_with_a_da_payload() {
         lean_xmss: vec![claim, claim],
         ..expected.clone()
     };
-    assert!(matches!(
-        received.verify(&unsorted),
-        Err(AggregateVerifyError::MalformedSignerSet)
-    ));
+    assert!(!received.verify(&unsorted));
     let trailing = AggregateProof::from_bytes(&[&bytes[..], &[0]].concat());
-    assert!(matches!(trailing, Err(AggregateVerifyError::MalformedEncoding)));
+    assert!(trailing.is_none());
 }
 
 /// A node publishes a root it holds, and with blobs only their matrix's.
@@ -427,7 +424,7 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
     };
     assert_eq!(
         aggregate(&[], vec![], vec![], None, OutputClaims::Only(&select), LOG_INV_RATE).unwrap_err(),
-        AggregateProveError::BlobNotCovered
+        AggregateError::InvalidInput("the requested DA root is not a child's")
     );
     assert_eq!(
         aggregate(
@@ -439,7 +436,7 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
             LOG_INV_RATE
         )
         .unwrap_err(),
-        AggregateProveError::BlobsUnpublished
+        AggregateError::InvalidInput("a node with blobs publishes their root")
     );
     let unpublished = AggregateClaims::default();
     assert_eq!(
@@ -452,7 +449,7 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
             LOG_INV_RATE
         )
         .unwrap_err(),
-        AggregateProveError::BlobsUnpublished
+        AggregateError::InvalidInput("a node with blobs publishes their root")
     );
 }
 
@@ -498,7 +495,7 @@ fn a_node_passes_on_one_childs_da_root() {
             LOG_INV_RATE,
         )
         .unwrap();
-        node.verify().unwrap();
+        assert!(node.verify());
         node.0.da_commitment
     };
     assert_eq!(pass_on(None, &[]), Some(first));
@@ -521,7 +518,7 @@ fn a_node_passes_on_one_childs_da_root() {
         LOG_INV_RATE,
     )
     .unwrap();
-    top.verify().unwrap();
+    assert!(top.verify());
     assert_eq!(top.0.da_commitment, Some(first));
 }
 
@@ -572,7 +569,7 @@ fn forged_da_hints_are_rejected() {
             LOG_INV_RATE,
         );
         assert!(
-            matches!(result, Err(AggregateProveError::ProofError(_))),
+            result.err() == Some(AggregateError::ProvingFailed),
             "a forged DA hint is rejected"
         );
     }
@@ -599,7 +596,7 @@ fn forged_opening_hints_are_rejected() {
             LOG_INV_RATE,
         );
         assert!(
-            matches!(result, Err(AggregateProveError::ProofError(_))),
+            result.err() == Some(AggregateError::ProvingFailed),
             "a forged opening hint is rejected"
         );
     }
@@ -765,7 +762,7 @@ fn da_row_count_is_a_run_time_parameter() {
             LOG_INV_RATE,
         )
         .expect("node aggregates");
-        node.verify().expect("node verifies");
+        assert!(node.verify(), "node verifies");
         let commitment = lean_da::BlobMatrix::build(&rows).unwrap().top_root();
         assert_eq!(node.0.da_commitment, Some(commitment), "{n_rows} rows");
     }
@@ -790,7 +787,7 @@ fn a_node_may_publish_less_than_it_covers() {
     let mut raw = at_a.clone();
     raw.extend_from_slice(&at_b);
     let wide = aggregate(&[], raw, vec![], None, OutputClaims::All, LOG_INV_RATE).expect("the wide leaf aggregates");
-    wide.verify().expect("the wide leaf verifies");
+    assert!(wide.verify(), "the wide leaf verifies");
     assert_eq!(wide.0.lean_xmss.len(), 5);
 
     let narrowed = |wide: &Node, declare: &AggregateClaims| {
@@ -817,28 +814,32 @@ fn a_node_may_publish_less_than_it_covers() {
     assert_eq!(on_b.len(), 2);
 
     let narrow = narrowed(&wide, &only(on_b.clone())).expect("narrows to one message");
-    narrow.verify().expect("the one-message narrowing verifies");
+    assert!(narrow.verify(), "the one-message narrowing verifies");
     assert_eq!(narrow.0.lean_xmss, on_b);
 
     let one = vec![(at_a[0].0, message())];
     let part = narrowed(&wide, &only(one.clone())).expect("narrows to one claim");
-    part.verify().expect("the one-claim narrowing verifies");
+    assert!(part.verify(), "the one-claim narrowing verifies");
     assert_eq!(part.0.lean_xmss, one);
 
     assert_eq!(
         narrowed(&wide, &AggregateClaims::default()).err(),
-        Some(AggregateProveError::Empty),
+        Some(AggregateError::InvalidInput("nothing to publish")),
         "a declaration has to publish something"
     );
     // A pubkey that signed A only, declared on B: the cache reuses pubkeys.
     assert_eq!(
         narrowed(&wide, &only(vec![(at_a[2].0, message_for(MESSAGE_B))])).err(),
-        Some(AggregateProveError::NotCovered)
+        Some(AggregateError::InvalidInput(
+            "a requested claim is not covered by the inputs"
+        ))
     );
     // A covered pubkey, against a message nobody signed.
     assert_eq!(
         narrowed(&wide, &only(vec![(at_a[0].0, message_for(MESSAGE_B + 1))])).err(),
-        Some(AggregateProveError::NotCovered)
+        Some(AggregateError::InvalidInput(
+            "a requested claim is not covered by the inputs"
+        ))
     );
 }
 
@@ -863,7 +864,7 @@ fn raw_signatures_may_go_undeclared() {
         LOG_INV_RATE,
     )
     .expect("the narrowing leaf aggregates");
-    sig.verify().expect("it verifies");
+    assert!(sig.verify(), "it verifies");
     assert_eq!(sig.0.lean_xmss, claim_b);
 }
 
@@ -882,7 +883,7 @@ fn aggregate_two_messages() {
     let mut right_raw = at_a[2..].to_vec();
     right_raw.extend_from_slice(&at_b);
     let right = aggregate(&[], right_raw, vec![], None, OutputClaims::All, LOG_INV_RATE).expect("right");
-    right.verify().expect("the two-message leaf verifies");
+    assert!(right.verify(), "the two-message leaf verifies");
     // A pubkey of `left` signing a second message is a second claim of that pubkey.
     let crossed = aggregate(
         std::slice::from_ref(&left),
@@ -893,7 +894,7 @@ fn aggregate_two_messages() {
         LOG_INV_RATE,
     )
     .expect("one pubkey under two messages aggregates");
-    crossed.verify().expect("the crossed node verifies");
+    assert!(crossed.verify(), "the crossed node verifies");
     let of_first: Vec<lean_xmss::Message> = crossed
         .0
         .lean_xmss
@@ -904,7 +905,7 @@ fn aggregate_two_messages() {
     assert_eq!(of_first, vec![message(), message_for(MESSAGE_B)]);
     assert_eq!(crossed.0.lean_xmss.len(), 4);
     let node = aggregate(&[left, right], vec![], vec![], None, OutputClaims::All, LOG_INV_RATE).expect("node");
-    node.verify().expect("the two-message node verifies");
+    assert!(node.verify(), "the two-message node verifies");
     let mut expected = at_a.clone();
     expected.extend_from_slice(&at_b);
     let mut expected: Vec<LeanXmssClaim> = expected
@@ -923,7 +924,7 @@ fn aggregate_overlapping_signers() {
     let right = prove_leaf(&signers[15..]);
     let node =
         aggregate(&[left, right], vec![], vec![], None, OutputClaims::All, LOG_INV_RATE).expect("node aggregates");
-    node.verify().expect("node verifies");
+    assert!(node.verify(), "node verifies");
     assert_eq!(node.0.lean_xmss.len(), 40);
     assert!(node.0.lean_xmss.windows(2).all(|w| w[0] < w[1]));
 }
@@ -1013,7 +1014,7 @@ fn aggregate_three_levels() {
         LOG_INV_RATE,
     )
     .expect("root aggregates");
-    root.verify().expect("root verifies");
+    assert!(root.verify(), "root verifies");
     assert_eq!(root.0.lean_xmss.len(), 4 * SMALL_LEAF_SIZE + 2);
     assert_eq!(root.0.lean_sphincs.len(), 4, "claims 0, 1, 2 and 4, the repeat merged");
     assert!(root.0.lean_xmss.windows(2).all(|w| w[0] < w[1]));
@@ -1036,7 +1037,7 @@ fn aggregate_round_trips_through_the_wire() {
         LOG_INV_RATE,
     )
     .expect("node");
-    node.verify().expect("the honest node verifies");
+    assert!(node.verify(), "the honest node verifies");
 
     let received = AggregateProof::from_bytes(&node.1.to_bytes()).expect("round trip");
     assert_eq!(
@@ -1044,7 +1045,7 @@ fn aggregate_round_trips_through_the_wire() {
         node.1.to_bytes(),
         "the wire format round-trips, recomputed claim value included"
     );
-    received.verify(&node.0).expect("the receiver's claims verify");
+    assert!(received.verify(&node.0), "the receiver's claims verify");
 }
 
 /// The all-zeros fast path in `DeferredBytecodeClaim::recompute` must agree with the
@@ -1111,7 +1112,7 @@ fn malformed_raw_signature_is_an_error() {
 
     assert_eq!(
         lean_xmss_hints(&pk, &sig, &message).err(),
-        Some(AggregateProveError::MalformedRawSignature)
+        Some(AggregateError::InvalidSignature)
     );
     assert_eq!(
         aggregate(
@@ -1123,7 +1124,7 @@ fn malformed_raw_signature_is_an_error() {
             LOG_INV_RATE
         )
         .err(),
-        Some(AggregateProveError::MalformedRawSignature)
+        Some(AggregateError::InvalidSignature)
     );
 }
 
@@ -1142,6 +1143,6 @@ fn malformed_raw_lean_sphincs_signature_is_an_error() {
     let raw = vec![(public_key, signed, signature)];
     assert_eq!(
         aggregate(&[], vec![], raw, None, OutputClaims::All, LOG_INV_RATE).err(),
-        Some(AggregateProveError::MalformedRawSignature)
+        Some(AggregateError::InvalidSignature)
     );
 }

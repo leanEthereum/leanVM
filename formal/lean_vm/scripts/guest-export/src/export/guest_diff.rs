@@ -165,7 +165,7 @@ fn export(
         LOG_INV_RATE,
     )
     .expect("node aggregates");
-    node.verify(&claims).expect("node verifies");
+    assert!(node.verify(&claims), "node verifies");
     let streams = INSTALLED.with(|i| i.take());
     let stream = |name: &str| streams.iter().find(|(n, _)| n == name).map(|(_, e)| e.as_slice());
 

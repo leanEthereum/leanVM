@@ -49,7 +49,7 @@ fn public_api_end_to_end() {
         2,
     )
     .unwrap();
-    left.1.verify(&left.0).unwrap();
+    assert!(left.1.verify(&left.0));
     assert_eq!(left.0.da_commitment, Some(commitment));
     let other_blobs: Vec<lean_da::Blob> = blobs.iter().map(|blob| blob.map(|x| x ^ 42)).collect();
     let other_matrix = lean_da::BlobMatrix::build(&other_blobs).unwrap();
@@ -80,13 +80,13 @@ fn public_api_end_to_end() {
     // 4. Onto the wire, which carries only the proof: the receiver rebuilds the claims it expects, and
     //    verifying says exactly these pubkeys signed exactly these messages.
     let received = AggregateProof::from_bytes(&proof.to_bytes()).unwrap();
-    received.verify(&claims).unwrap();
+    assert!(received.verify(&claims));
     let on = |message| claims.lean_xmss.iter().filter(|(_, m)| *m == message).count();
     assert_eq!((on(MSG_0), on(MSG_1), on(MSG_2)), (3, 4, 1));
     // Claims the proof does not prove fail, here one signature claim short.
     let mut fewer = claims.clone();
     fewer.lean_xmss.pop();
-    assert!(matches!(received.verify(&fewer), Err(AggregateVerifyError::Snark(_))));
+    assert!(!received.verify(&fewer));
 
     // 5. Removing some signatures from the aggregate: `OutputClaims::Only` is what we keep. Here every claim on MSG_1 goes,
     //    and one leanSPHINCS claim.
@@ -104,7 +104,7 @@ fn public_api_end_to_end() {
         2,
     )
     .unwrap();
-    narrowed.1.verify(&narrowed.0).unwrap();
+    assert!(narrowed.1.verify(&narrowed.0));
     assert_eq!(narrowed.0, retained);
     assert_eq!(narrowed.0.num_signature_claims(), 11 - 4 - 1);
 
@@ -114,6 +114,6 @@ fn public_api_end_to_end() {
         ..retained
     };
     let dropped = aggregate(&[narrowed], vec![], vec![], None, OutputClaims::Only(&without_blobs), 2).unwrap();
-    dropped.1.verify(&dropped.0).unwrap();
+    assert!(dropped.1.verify(&dropped.0));
     assert_eq!(dropped.0, without_blobs);
 }

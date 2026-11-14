@@ -1,7 +1,7 @@
 //! Hint streams and the raw signatures' witnesses.
 
 use super::cells::{count, exponent_bytes, pack_16_bytes};
-use super::error::AggregateProveError;
+use super::error::AggregateError;
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use leanvm_core::cpu::Program;
@@ -109,7 +109,7 @@ pub(super) fn lean_xmss_hints(
     pk: &LeanXmssPublicKey,
     sig: &LeanXmssSignature,
     message: &lean_xmss::Message,
-) -> Result<SubHints, AggregateProveError> {
+) -> Result<SubHints, AggregateError> {
     let pp = lean_xmss::internals::pk_public_param(pk);
     let index = u64::from(sig.leaf_index());
     let windows = (0..lean_xmss::LOG_LIFETIME).step_by(LX_WINDOW).map(|s| index >> s);
@@ -137,7 +137,7 @@ pub(super) fn lean_xmss_hints(
             ));
             level += 1;
         })
-        .ok_or(AggregateProveError::MalformedRawSignature)?;
+        .ok_or(AggregateError::InvalidSignature)?;
         hints.push(("randomizer", vec![pack_16_bytes(layer_sig.randomizer())]));
         hints.push(("lx_digits", digit_hints(&codeword, LX_DIGIT_GROUP).flatten().collect()));
         for value in layer_sig.chain_values() {
@@ -162,7 +162,7 @@ pub(super) fn lean_sphincs_hints(
     pk: &LeanSphincsPublicKey,
     sig: &LeanSphincsSignature,
     message: &lean_sphincs::Message,
-) -> Result<SubHints, AggregateProveError> {
+) -> Result<SubHints, AggregateError> {
     let pk_seed = lean_sphincs::internals::pk_seed(pk);
     let mut hints: SubHints = vec![(
         "sp_rand",
@@ -193,7 +193,7 @@ pub(super) fn lean_sphincs_hints(
         let key = lean_sphincs::internals::OtsKey::of_index(layer, idx);
         let (codeword, leaf) =
             lean_sphincs::internals::wots_leaf(pk_seed, &key, &signed, layer_sig.counter(), layer_sig.wots())
-                .ok_or(AggregateProveError::MalformedRawSignature)?;
+                .ok_or(AggregateError::InvalidSignature)?;
         hints.push(("sp_counter", exponent_bytes(&layer_sig.counter().to_be_bytes())));
         hints.extend(digit_hints(&codeword, DIGIT_GROUP).map(|entry| ("digits", entry)));
         for value in layer_sig.wots() {

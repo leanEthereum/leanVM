@@ -51,7 +51,7 @@ mod statement;
 #[cfg(test)]
 mod tests;
 
-pub use error::{AggregateProveError, AggregateVerifyError, StarkProveError, StarkVerifyError};
+pub use error::AggregateError;
 pub use guest::{unified_guest, warm_up};
 use lean_sphincs::LeanSphincsPublicKey;
 use lean_xmss::LeanXmssPublicKey;

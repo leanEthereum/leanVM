@@ -6,8 +6,8 @@
 //! Example: [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
 
 pub use rec_aggregation::{
-    AggregateClaims, AggregateProof, AggregateProveError, AggregateVerifyError, LeanSphincsClaim, LeanXmssClaim,
-    MAX_RECURSIONS, OutputClaims, StarkProveError, StarkVerifyError, aggregate,
+    AggregateClaims, AggregateError, AggregateProof, LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS, OutputClaims,
+    aggregate,
 };
 
 pub use leanvm_core::pcs::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};

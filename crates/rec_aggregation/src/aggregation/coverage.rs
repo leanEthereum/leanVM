@@ -1,6 +1,6 @@
 //! The coverage table: which slot each raw signature and child claim writes.
 
-use super::error::AggregateProveError;
+use super::error::AggregateError;
 use super::proof::{AggregateClaims, AggregateProof};
 use super::{LeanSphincsClaim, LeanXmssClaim};
 use std::collections::BTreeSet;
@@ -50,7 +50,7 @@ impl<K: Ord + Clone> Region<K> {
         raw: &[K],
         children: impl Iterator<Item = &'a [K]> + Clone,
         declare: Option<&[K]>,
-    ) -> Result<Self, AggregateProveError>
+    ) -> Result<Self, AggregateError>
     where
         K: 'a,
     {
@@ -64,7 +64,9 @@ impl<K: Ord + Clone> Region<K> {
             let mut wanted: BTreeSet<&K> = declare.iter().collect();
             signers.retain(|claim| wanted.remove(claim));
             if !wanted.is_empty() {
-                return Err(AggregateProveError::NotCovered);
+                return Err(AggregateError::InvalidInput(
+                    "a requested claim is not covered by the inputs",
+                ));
             }
         }
         let mut claimed = vec![false; signers.len()];
@@ -110,7 +112,7 @@ pub(super) fn plan_coverage(
     raw_lean_sphincs: &[LeanSphincsClaim],
     children: &[(AggregateClaims, AggregateProof)],
     declare: Option<&AggregateClaims>,
-) -> Result<Coverage, AggregateProveError> {
+) -> Result<Coverage, AggregateError> {
     let cover = Coverage {
         lean_xmss: Region::plan(
             raw_lean_xmss,

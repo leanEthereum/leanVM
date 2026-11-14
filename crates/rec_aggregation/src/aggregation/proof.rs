@@ -1,7 +1,6 @@
 //! The aggregate, its wire format and its native verification.
 
 use super::deferred::{DeferredBytecodeClaim, bytecode_vars, scalar_bytecode};
-use super::error::{AggregateVerifyError, StarkVerifyError};
 use super::statement::statement_digest;
 use super::{LeanSphincsClaim, LeanXmssClaim};
 use leanvm_core::cpu::{public_input_bytes, scalar_proof};
@@ -61,12 +60,9 @@ pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F128>, &[u8])> {
     Some((point, proof))
 }
 
-/// Each list must be strictly sorted, so that no claim counts twice.
-pub(super) fn check_signer_set(claims: &AggregateClaims) -> Result<(), AggregateVerifyError> {
-    if !claims.lean_xmss.windows(2).all(|w| w[0] < w[1]) || !claims.lean_sphincs.windows(2).all(|w| w[0] < w[1]) {
-        return Err(AggregateVerifyError::MalformedSignerSet);
-    }
-    Ok(())
+/// Whether each list is strictly sorted, so that no claim counts twice.
+pub(super) fn is_sorted(claims: &AggregateClaims) -> bool {
+    claims.lean_xmss.windows(2).all(|w| w[0] < w[1]) && claims.lean_sphincs.windows(2).all(|w| w[0] < w[1])
 }
 
 impl AggregateClaims {
@@ -88,24 +84,28 @@ impl AggregateProof {
         encode(&self.bytecode_point, &self.proof.to_bytes())
     }
 
-    /// Decode a proof. This does not verify: call [`Self::verify`].
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, AggregateVerifyError> {
-        let (bytecode_point, proof) = decode(bytes).ok_or(AggregateVerifyError::MalformedEncoding)?;
+    /// Decode a proof, `None` if the bytes are not one. This does not verify: call [`Self::verify`].
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        let (bytecode_point, proof) = decode(bytes)?;
         if bytecode_point.len() != bytecode_vars() {
-            return Err(AggregateVerifyError::MalformedClaim);
+            return None;
         }
-        let proof = leanvm_core::cpu::Proof::from_bytes(proof).ok_or(AggregateVerifyError::MalformedEncoding)?;
-        Ok(Self { bytecode_point, proof })
+        let proof = leanvm_core::cpu::Proof::from_bytes(proof)?;
+        Some(Self { bytecode_point, proof })
     }
 
-    /// Verify that this proves `claims`: the lists are sorted, the deferred claim holds, and the stark
+    /// Whether this proves `claims`: the lists are sorted, the deferred claim holds, and the stark
     /// proof is valid.
-    pub fn verify(&self, claims: &AggregateClaims) -> Result<(), AggregateVerifyError> {
-        check_signer_set(claims)?;
-        let defer = DeferredBytecodeClaim::recompute_scalar(self.bytecode_point.clone())?;
+    pub fn verify(&self, claims: &AggregateClaims) -> bool {
+        let Some(defer) = DeferredBytecodeClaim::recompute_scalar(self.bytecode_point.clone()) else {
+            return false;
+        };
         let pi = public_input(claims, &defer);
-        verifier::verify_execution(scalar_bytecode(), &public_input_bytes(&pi), &scalar_proof(&self.proof))
-            .map(|_| ())
-            .map_err(|e| AggregateVerifyError::Snark(StarkVerifyError(e)))
+        let verdict =
+            verifier::verify_execution(scalar_bytecode(), &public_input_bytes(&pi), &scalar_proof(&self.proof));
+        if let Err(error) = &verdict {
+            tracing::debug!(%error, "the proof does not verify");
+        }
+        is_sorted(claims) && verdict.is_ok()
     }
 }

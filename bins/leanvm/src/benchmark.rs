@@ -104,7 +104,7 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        sig.verify(&claims).expect("the leaf aggregate verifies");
+        assert!(sig.verify(&claims), "the leaf aggregate verifies");
     });
     drop(trace_span);
 
@@ -187,7 +187,7 @@ pub fn run_recursion(
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        sig.verify(&claims).expect("the recursive aggregate verifies");
+        assert!(sig.verify(&claims), "the recursive aggregate verifies");
     });
 
     println!(

@@ -7,6 +7,6 @@ mod hash_chain;
 pub mod signers_cache;
 
 pub use aggregation::{
-    AggregateClaims, AggregateProof, AggregateProveError, AggregateVerifyError, LeanSphincsClaim, LeanXmssClaim,
-    MAX_RECURSIONS, OutputClaims, StarkProveError, StarkVerifyError, aggregate, aggregate_with_stats, warm_up,
+    AggregateClaims, AggregateError, AggregateProof, LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS, OutputClaims,
+    aggregate, aggregate_with_stats, warm_up,
 };

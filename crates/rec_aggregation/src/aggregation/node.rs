@@ -6,12 +6,12 @@ use super::coverage::plan_coverage;
 use super::deferred::{
     DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums, bytecode_value, scalar_bytecode,
 };
-use super::error::{AggregateProveError, AggregateVerifyError, StarkProveError, StarkVerifyError};
+use super::error::AggregateError;
 use super::guest::unified_guest;
 #[cfg(test)]
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
-use super::proof::{AggregateClaims, AggregateProof, OutputClaims, check_signer_set, public_input};
+use super::proof::{AggregateClaims, AggregateProof, OutputClaims, is_sorted, public_input};
 use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
 use super::{LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
@@ -41,7 +41,7 @@ pub fn aggregate(
     blobs: Option<&lean_da::BlobMatrix>,
     output: OutputClaims,
     log_inv_rate: usize,
-) -> Result<(AggregateClaims, AggregateProof), AggregateProveError> {
+) -> Result<(AggregateClaims, AggregateProof), AggregateError> {
     aggregate_with_stats(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
         .map(|(claims, proof, _)| (claims, proof))
 }
@@ -54,7 +54,7 @@ pub fn aggregate_with_stats(
     blobs: Option<&lean_da::BlobMatrix>,
     output: OutputClaims,
     log_inv_rate: usize,
-) -> Result<(AggregateClaims, AggregateProof, leanvm_core::cpu::Stats), AggregateProveError> {
+) -> Result<(AggregateClaims, AggregateProof, leanvm_core::cpu::Stats), AggregateError> {
     let declare = match output {
         OutputClaims::All => None,
         OutputClaims::Only(claims) => Some(claims),
@@ -62,14 +62,14 @@ pub fn aggregate_with_stats(
     let declared_root = declare.map(|claims| claims.da_commitment);
     // `cpu::prove` checks the rate too, but only after the witness is built.
     if !(leanvm_core::pcs::MIN_LOG_INV_RATE..=leanvm_core::pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
-        return Err(AggregateProveError::InvalidRate { log_inv_rate });
+        return Err(AggregateError::InvalidInput("log_inv_rate out of range"));
     }
     if children.len() > MAX_RECURSIONS {
-        return Err(AggregateProveError::TooLarge);
+        return Err(AggregateError::InvalidInput("more than MAX_RECURSIONS children"));
     }
     let direct_root = blobs.map(lean_da::BlobMatrix::top_root);
     if direct_root.is_some() && declared_root.is_some_and(|declared| declared != direct_root) {
-        return Err(AggregateProveError::BlobsUnpublished);
+        return Err(AggregateError::InvalidInput("a node with blobs publishes their root"));
     }
     // The published root and the guest's slot for it: a child's, or `children.len()` for
     // the node's own, its blobs' or none.
@@ -84,7 +84,7 @@ pub fn aggregate_with_stats(
             let i = children
                 .iter()
                 .position(|(claims, _)| claims.da_commitment == Some(root))
-                .ok_or(AggregateProveError::BlobNotCovered)?;
+                .ok_or(AggregateError::InvalidInput("the requested DA root is not a child's"))?;
             (i, Some(root))
         }
     };
@@ -109,15 +109,17 @@ pub fn aggregate_with_stats(
     let carried = children
         .iter()
         .map(|(_, proof)| DeferredBytecodeClaim::recompute(proof.bytecode_point.clone()))
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(AggregateProveError::InvalidChild)?;
+        .collect::<Option<Vec<_>>>()
+        .ok_or(AggregateError::InvalidChild)?;
     let mut public_inputs = Vec::with_capacity(children.len());
     let child_da: Vec<[u8; 32]> = children
         .iter()
         .map(|(claims, _)| verifier::da::digest(claims.da_commitment))
         .collect();
     for ((claims, _), defer) in children.iter().zip(&carried) {
-        check_signer_set(claims).map_err(AggregateProveError::InvalidChild)?;
+        if !is_sorted(claims) {
+            return Err(AggregateError::InvalidChild);
+        }
         public_inputs.push(public_input(claims, defer));
     }
     // One single-threaded replay per worker: nothing inside dispatches.
@@ -128,8 +130,7 @@ pub fn aggregate_with_stats(
     });
     let mut replayed = Vec::with_capacity(children.len());
     for (pi, summary) in public_inputs.into_iter().zip(summaries) {
-        let summary =
-            summary.map_err(|e| AggregateProveError::InvalidChild(AggregateVerifyError::Snark(StarkVerifyError(e))))?;
+        let summary = summary.map_err(|_| AggregateError::InvalidChild)?;
         replayed.push((pi, summary));
     }
 
@@ -264,7 +265,7 @@ pub fn aggregate_with_stats(
     } else {
         let _span = tracing::info_span!("Batch deferred claims").entered();
         let (agg_hints, reduced) =
-            aggregate_deferred_claims(&subs, &carried, sums).map_err(AggregateProveError::InvalidChild)?;
+            aggregate_deferred_claims(&subs, &carried, sums).ok_or(AggregateError::ProvingFailed)?;
         for (name, entry) in agg_hints {
             hints.push(name, entry);
         }
@@ -294,7 +295,7 @@ pub fn aggregate_with_stats(
     }
     hints.push("da_pick", vec![count(da_pick)]);
     if cover.lean_xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
-        return Err(AggregateProveError::Empty);
+        return Err(AggregateError::InvalidInput("nothing to publish"));
     }
 
     let public_input = statement_digest(&cover.lean_xmss.signers, &cover.lean_sphincs.signers, da_digest, &defer);
@@ -304,8 +305,10 @@ pub fn aggregate_with_stats(
         forge(&mut hints);
     }
     hints.install(&mut program);
-    let (proof, stats) =
-        prove(&program, public_input, log_inv_rate).map_err(|e| AggregateProveError::ProofError(StarkProveError(e)))?;
+    let (proof, stats) = prove(&program, public_input, log_inv_rate).map_err(|error| {
+        tracing::debug!(%error, "proving failed");
+        AggregateError::ProvingFailed
+    })?;
     let claims = AggregateClaims {
         lean_xmss: cover.lean_xmss.signers,
         lean_sphincs: cover.lean_sphincs.signers,
