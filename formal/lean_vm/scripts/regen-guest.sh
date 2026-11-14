@@ -122,6 +122,8 @@ part_bridge() {
   python3 -I scripts/bridge-cert/gen.py "${check[@]}"
   step "bridge: the hint bridge's alignment checks (scripts/bridge-cert/align.py)"
   python3 -I scripts/bridge-cert/align.py "${check[@]}"
+  step "bridge: the program's alignment assembled (scripts/bridge-cert/progal.py)"
+  python3 -I scripts/bridge-cert/progal.py "${check[@]}"
 }
 
 part_memory() {
