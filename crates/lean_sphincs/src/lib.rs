@@ -17,7 +17,7 @@
 //! `hash` module).
 //!
 //! The secret key is `SK.seed`, 32 bytes and the only secret: two hashes of it under
-//! the scheme's tag give `PK.seed` and a 32-byte `SK.prf` ([`expand_key`]). Key
+//! the scheme's tag give `PK.seed` and a 32-byte `SK.prf` ([`LeanSphincsSecretKey::from_bytes`]). Key
 //! generation builds the top tree, and signing builds it again for `PK.root`, then
 //! the FORS instance and the two trees below it.
 

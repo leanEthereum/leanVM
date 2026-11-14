@@ -139,32 +139,6 @@ pub fn h_msg(r: &Digest, pk_seed: &PkSeed, pk_root: &Digest, m: &Message) -> [u8
     out
 }
 
-/// What `slh_keygen_internal` takes: `SK.seed`, `SK.prf` and `PK.seed`.
-#[derive(Clone, Copy)]
-pub struct ExpandedKey {
-    pub sk_seed: Seed,
-    pub sk_prf: [u8; 32],
-    pub pk_seed: PkSeed,
-}
-
-/// `SK.seed`, the whole secret key, expanded: `PK.seed = Trunc_n(H(tag | SK.seed | 0))`
-/// and `SK.prf = H(tag | SK.seed | 1)`, 32 bytes, so the randomizer is as hard to
-/// predict as the key.
-pub fn expand_key(sk_seed: &Seed) -> ExpandedKey {
-    let derive = |domain: u8| {
-        Hasher::new()
-            .update(SEED_TAG)
-            .update(sk_seed)
-            .update(&[domain])
-            .finalize()
-    };
-    ExpandedKey {
-        sk_seed: *sk_seed,
-        sk_prf: derive(1),
-        pk_seed: crate::truncate(derive(0)),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

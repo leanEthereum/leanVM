@@ -45,7 +45,7 @@ impl OtsKey {
 }
 
 /// The starts of the `v` chains of a one-time key, one `PRF` each.
-fn wots_secrets(sk: &ExpandedKey, key: &OtsKey) -> [Digest; V] {
+fn wots_secrets(sk: &LeanSphincsSecretKey, key: &OtsKey) -> [Digest; V] {
     let adrs = key.adrs(WOTS_PRF);
     std::array::from_fn(|i| prf(&sk.pk_seed, &sk.sk_seed, &adrs.with_chain(i as u32)))
 }
@@ -90,7 +90,7 @@ fn codeword(digest: &Digest) -> Option<[u8; V]> {
 /// opens. Deterministic in its inputs, which is what keeps one key to one
 /// codeword per message: a resumed or randomized search would leak two
 /// incomparable codewords.
-pub(crate) fn wots_sign(sk: &ExpandedKey, key: &OtsKey, message: &Digest) -> Option<(u32, [Digest; V])> {
+pub(crate) fn wots_sign(sk: &LeanSphincsSecretKey, key: &OtsKey, message: &Digest) -> Option<(u32, [Digest; V])> {
     let pk_seed = &sk.pk_seed;
     let encoder = encoder(pk_seed, key, message);
     let (c, x) = (0..MAX_ENCODING_ATTEMPTS).find_map(|c| encode(&encoder, c as u32).map(|x| (c as u32, x)))?;
@@ -118,7 +118,7 @@ pub fn wots_leaf(
 
 /// `wots_pkGen`: the leaf of a one-time key, from the secret key, what building a
 /// tree spends its hashes on.
-pub(crate) fn wots_public_leaf(sk: &ExpandedKey, key: &OtsKey) -> Digest {
+pub(crate) fn wots_public_leaf(sk: &LeanSphincsSecretKey, key: &OtsKey) -> Digest {
     let secrets = wots_secrets(sk, key);
     let ends = std::array::from_fn(|i| chain(&sk.pk_seed, key, i, 0, CHAIN_LEN - 1, secrets[i]));
     wots_leaf_hash(&sk.pk_seed, key, &ends)

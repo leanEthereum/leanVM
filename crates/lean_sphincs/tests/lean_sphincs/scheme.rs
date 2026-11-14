@@ -7,14 +7,9 @@ fn seed(x: u8) -> Seed {
 #[test]
 fn signatures_verify_and_tampered_ones_do_not() {
     let (sk, pk) = key_gen_from_seed(seed(3));
-    // The seed is SK.seed, PK.seed = H("leanSPHINCS" || SK.seed || 0) cut to N bytes and
-    // SK.prf = H("leanSPHINCS" || SK.seed || 1).
+    // The seed is SK.seed, and PK.seed = H("leanSPHINCS" || SK.seed || 0) cut to N bytes.
     let derive = |domain: u8| primitives::hash::hash(&[b"leanSPHINCS".as_slice(), &seed(3), &[domain]].concat());
-    let expanded = expand_key(&seed(3));
-    assert_eq!(expanded.sk_seed, seed(3));
-    assert_eq!(expanded.pk_seed[..], derive(0)[..N]);
-    assert_eq!(expanded.sk_prf, derive(1));
-    assert_eq!(pk.__pk_seed(), &expanded.pk_seed);
+    assert_eq!(pk.__pk_seed()[..], derive(0)[..N]);
     assert_eq!(LeanSphincsSecretKey::from_bytes(&sk.to_bytes()).public_key(), pk);
     let message: Message = std::array::from_fn(|i| (3 + i) as u8);
     let signature = sign(&sk, &message);

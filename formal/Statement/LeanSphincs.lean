@@ -34,8 +34,8 @@ WOTS+C as its one-time signature and a hypertree of layers of different heights.
   `T = 128` read from the encoding hash by `base_2b`, and the least counter `c < 2^32` whose
   encoding is a codeword; the encoding hash has an address type of its own, `7`.
 
-**The signer** is the crate's, hash call for hash call (`sign`, `sign_with`, `scheme.rs`):
-`SK.seed` expanded (`SK.prf`, then `PK.seed`), the top tree built level by level (`keygen`, whose
+**The signer** is the crate's, hash call for hash call (`LeanSphincsSecretKey::from_bytes`, then
+`sign`, `scheme.rs`): `SK.seed` expanded (`SK.prf`, then `PK.seed`), the top tree built level by level (`keygen`, whose
 levels the top layer's path is read from), the randomizer, the digest's two calls, each FORS tree
 built once (its secrets, its leaves, its levels) and `T_k` of their roots, then the layers from the
 bottom up, each a one-time signature (the counter search, the chain starts, the chains) followed by
@@ -112,8 +112,8 @@ abbrev ChainIndex := Fin chainCount
 abbrev Encoding := ChainIndex → WinternitzDigit
 
 /-- The secret key: `SK.seed`, 32 bytes, all of the key (`LeanSphincsSecretKey`, `scheme.rs`;
-`Seed`, `mod.rs`). `PK.seed` and `SK.prf` are its hashes, which the signer derives again at
-each signature, as the crate's does (`expand_key`). -/
+`Seed`, `lib.rs`). `PK.seed` and `SK.prf` are its hashes, which this signer derives at each
+signature and the crate's key derives once (`LeanSphincsSecretKey::from_bytes`). -/
 abbrev SecretKey := MasterSeed
 
 /-- `κ`, a tree of a FORS instance. -/
@@ -618,7 +618,7 @@ variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-! #### The key -/
 
-/-- What `slh_keygen_internal` takes (`ExpandedKey`, `hash.rs`). -/
+/-- What `slh_keygen_internal` takes (the fields of `LeanSphincsSecretKey`, `scheme.rs`). -/
 structure ExpandedKey where
   /-- `SK.seed`, the secret key. -/
   secretSeed : MasterSeed
@@ -631,7 +631,7 @@ structure ExpandedKey where
 def keyDerivationInput (secretSeed : MasterSeed) (domain : UInt8) : HashInput :=
   seedTag ++ littleEndianBytes 32 secretSeed ++ [domain]
 
-/-- `expand_key` (`hash.rs`): `SK.prf = H(leanSPHINCS ‖ SK.seed ‖ 1)`, then
+/-- `LeanSphincsSecretKey::from_bytes` (`scheme.rs`): `SK.prf = H(leanSPHINCS ‖ SK.seed ‖ 1)`, then
 `PK.seed = Trunc_16(H(leanSPHINCS ‖ SK.seed ‖ 0))`, in the order the crate's struct literal
 computes them. -/
 def expandKey (secretSeed : SecretKey) : m ExpandedKey := do
@@ -773,7 +773,7 @@ def keygenFromSeed (secretSeed : SecretKey) : m (PublicKey × SecretKey) := do
 /-- Layer `l`'s one-time signature of `message` with `K_l(idx)` (`wots_sign`), then the key's
 tree's levels, built here below the top layer and `top` (key generation's) at it: the layer's
 signature with the key's path, and the tree's root, which the layer above signs (the loop of
-`sign_with`, `scheme.rs`). -/
+`sign`, `scheme.rs`). -/
 def signLayer (key : ExpandedKey) (top : List (List Digest)) (index : Index) (layer : Layer)
     (message : Digest) : m (Option (LayerSignature layer × Digest)) := do
   let tree := treeOfIndex layer index
@@ -791,7 +791,7 @@ def layerSignatures (bottom : LayerSignature 0) (middle : LayerSignature 1)
   | ⟨2, _⟩ => top
   | ⟨_ + 3, h⟩ => absurd h (by unfold layerCount; omega)
 
-/-- `slh_sign_internal`, deterministic (`opt_rand = PK.seed`; `sign_with`, `scheme.rs`):
+/-- `slh_sign_internal`, deterministic (`opt_rand = PK.seed`; `sign`, `scheme.rs`):
 key generation's top tree and public key, the randomizer `R = PRF_msg(SK.prf, PK.seed, M')`, the
 digest's index and leaves, the FORS instance built once (its key and its opening), then the layers
 from the bottom up, each signing what the layer below gives: the FORS public key at the bottom,
@@ -807,7 +807,7 @@ def signWithExpandedKey (key : ExpandedKey) (message : Message) : m (Option Sign
   let some (topSignature, _) ← signLayer π key top index 2 middleRoot | return none
   return some ⟨randomizer, forsOpening, layerSignatures bottom middle topSignature⟩
 
-/-- `Sign` (`sign`, `scheme.rs`): the key's expansion (`expand_key`), then `sign_with`. -/
+/-- `Sign`: the key's expansion (`LeanSphincsSecretKey::from_bytes`), then the crate's `sign`. -/
 def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
   let key ← expandKey π secretKey
   signWithExpandedKey π key message

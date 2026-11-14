@@ -380,7 +380,7 @@ def keygenDomainFields : KeygenDomain → TweakFields
 def seedTag : HashInput := [0x6c, 0x65, 0x61, 0x6e, 0x53, 0x50, 0x48, 0x49, 0x4e, 0x43, 0x53]
 
 /-- `leanSPHINCS || SK.seed || domain`, 44 bytes: domain `0` gives `PK.seed`, its first 16 bytes, and
-domain `1` gives `SK.prf`, all 32 (`expand_key`). It has no parameter and no address. -/
+domain `1` gives `SK.prf`, all 32 (`LeanSphincsSecretKey::from_bytes`). It has no parameter and no address. -/
 def keySeedInput (seed : MasterSeed) (domain : Nat) : HashInput :=
   seedTag ++ bytesLE 32 seed ++ [UInt8.ofNat domain]
 

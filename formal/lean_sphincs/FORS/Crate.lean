@@ -10,7 +10,7 @@ public import FORS.Scheme
 `key_gen_from_seed` and `sign` of `crates/lean_sphincs/src/scheme.rs` (leanVM
 `40f877dc`), function for function as `Statement/LeanSphincs.lean` transcribes them
 (`KeyGenerationAndSigning`), written with FORS's hash inputs, addresses and types: the key
-expansion (`expand_key`, `SK.prf` then `PK.seed`), the trees built level by level
+expansion (`LeanSphincsSecretKey::from_bytes`, `SK.prf` then `PK.seed`), the trees built level by level
 (`merkle_levels`), the top tree built at key generation and again at each signature (`keygen`),
 the randomizer, the digest, each FORS tree built once (`fors_open`), and the layers from the bottom
 up, each a WOTS+C signature followed by its tree's levels (the top layer reusing key generation's).
@@ -30,13 +30,14 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 /-! ### The key -/
 
-/-- What `slh_keygen_internal` takes (`ExpandedKey`): `SK.seed`, `SK.prf` and `PK.seed`. -/
+/-- What `slh_keygen_internal` takes (`LeanSphincsSecretKey`'s fields): `SK.seed`, `SK.prf` and
+`PK.seed`. -/
 structure ExpandedKey where
   secretSeed : MasterSeed
   secretPrfKey : HashOutput
   publicSeed : PublicParameter
 
-/-- `expand_key`: `SK.prf = H(leanSPHINCS ‖ SK.seed ‖ 1)`, then
+/-- `LeanSphincsSecretKey::from_bytes`: `SK.prf = H(leanSPHINCS ‖ SK.seed ‖ 1)`, then
 `PK.seed = Trunc_16(H(leanSPHINCS ‖ SK.seed ‖ 0))`, in the order of the crate's struct literal. -/
 def expandKey (seed : MasterSeed) : m ExpandedKey := do
   let secretPrfKey ← oracleHash (keySeedInput seed 1)
@@ -155,7 +156,7 @@ def signLayer (key : ExpandedKey) (top : List (List Digest)) (index : Index) (la
   return some (⟨counter, values, fun z => levelNode levels z.val ((leaf.val >>> z.val) ^^^ 1)⟩,
     levelNode levels (layerHeight lay) 0)
 
-/-- `sign_with`: key generation's top tree and public key, the randomizer, the digest's index and
+/-- The crate's `sign`: key generation's top tree and public key, the randomizer, the digest's index and
 leaves, the FORS instance built once (its key and its opening), then the layers from the bottom up
 (`sequenceThread` runs the last layer, the bottom one, first), each signing what the layer below
 gives: the FORS public key at the bottom, the root of the tree below above it. -/
@@ -169,7 +170,7 @@ def signWithExpandedKey (key : ExpandedKey) (message : Message) : m (Option Sign
     | return none
   return some ⟨randomizer, opening, layers⟩
 
-/-- `sign`: the key's expansion (`expand_key`), then `sign_with`. -/
+/-- The key's expansion (`LeanSphincsSecretKey::from_bytes`), then the crate's `sign`. -/
 def sign (seed : MasterSeed) (message : Message) : m (Option Signature) := do
   let key ← expandKey seed
   signWithExpandedKey key message

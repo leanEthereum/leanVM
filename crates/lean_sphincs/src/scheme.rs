@@ -41,9 +41,13 @@ impl LeanSphincsPublicKey {
     }
 }
 
+/// `SK.seed`, the whole secret, with what `slh_keygen_internal` derives from it: `SK.prf` and
+/// `PK.seed`.
 #[derive(Clone)]
 pub struct LeanSphincsSecretKey {
-    sk_seed: Seed,
+    pub(crate) sk_seed: Seed,
+    pub(crate) sk_prf: [u8; 32],
+    pub(crate) pk_seed: PkSeed,
 }
 
 impl std::fmt::Debug for LeanSphincsSecretKey {
@@ -54,7 +58,7 @@ impl std::fmt::Debug for LeanSphincsSecretKey {
 
 impl LeanSphincsSecretKey {
     pub fn public_key(&self) -> LeanSphincsPublicKey {
-        keygen(&expand_key(&self.sk_seed)).0
+        keygen(self).0
     }
 
     /// SECRET KEY MATERIAL: `SK.seed`, all of the key.
@@ -62,8 +66,21 @@ impl LeanSphincsSecretKey {
         self.sk_seed
     }
 
-    pub fn from_bytes(bytes: &Seed) -> Self {
-        Self { sk_seed: *bytes }
+    /// `PK.seed = Trunc_n(H(tag | SK.seed | 0))` and `SK.prf = H(tag | SK.seed | 1)`, 32 bytes, so the
+    /// randomizer is as hard to predict as the key.
+    pub fn from_bytes(sk_seed: &Seed) -> Self {
+        let derive = |domain: u8| {
+            Hasher::new()
+                .update(SEED_TAG)
+                .update(sk_seed)
+                .update(&[domain])
+                .finalize()
+        };
+        Self {
+            sk_seed: *sk_seed,
+            sk_prf: derive(1),
+            pk_seed: crate::truncate(derive(0)),
+        }
     }
 }
 
@@ -227,7 +244,7 @@ fn node(pk_seed: &PkSeed, key: &OtsKey, z: usize, j: usize, children: &[Digest; 
 }
 
 /// The levels of the tree holding `key`, its leaves first and its root last.
-fn tree_levels(sk: &ExpandedKey, key: &OtsKey) -> Vec<Vec<Digest>> {
+fn tree_levels(sk: &LeanSphincsSecretKey, key: &OtsKey) -> Vec<Vec<Digest>> {
     let height = LAYER_HEIGHTS[key.layer];
     let leaves = (0..1 << height)
         .map(|leaf| wots_public_leaf(sk, &OtsKey { leaf, ..*key }))
@@ -237,12 +254,14 @@ fn tree_levels(sk: &ExpandedKey, key: &OtsKey) -> Vec<Vec<Digest>> {
 
 /// `Gen`, deterministic: the seed is `SK.seed`, and the top tree gives `PK.root`.
 pub fn key_gen_from_seed(seed: Seed) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
-    (LeanSphincsSecretKey { sk_seed: seed }, keygen(&expand_key(&seed)).0)
+    let sk = LeanSphincsSecretKey::from_bytes(&seed);
+    let pk = keygen(&sk).0;
+    (sk, pk)
 }
 
 /// `slh_keygen_internal`: the public key, `PK.seed` and the top tree's root, with
 /// the top tree's levels, which signing reuses.
-fn keygen(sk: &ExpandedKey) -> (LeanSphincsPublicKey, Vec<Vec<Digest>>) {
+fn keygen(sk: &LeanSphincsSecretKey) -> (LeanSphincsPublicKey, Vec<Vec<Digest>>) {
     let top = tree_levels(sk, &OtsKey::of_index(LAYERS - 1, 0));
     let pk = LeanSphincsPublicKey {
         pk_seed: sk.pk_seed,
@@ -262,14 +281,10 @@ pub fn key_gen() -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
 ///
 /// Where the specification's `Sign` fails: when all `C_max` encoding counters of a layer miss a
 /// codeword, which happens with probability below `2^-378193`: impossible in practice.
+///
+/// `slh_sign_internal`, deterministic (`opt_rand = PK.seed`): it builds the top tree for `PK.root`
+/// and the top path, then the FORS instance and the two trees below.
 pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> LeanSphincsSignature {
-    sign_with(&expand_key(&sk.sk_seed), message)
-}
-
-/// `slh_sign_internal`, deterministic (`opt_rand = PK.seed`). It builds the top
-/// tree for `PK.root` and the top path, then the FORS instance and the two trees
-/// below.
-fn sign_with(sk: &ExpandedKey, message: &Message) -> LeanSphincsSignature {
     let (pk, mut top) = keygen(sk);
     let r = prf_msg(&sk.sk_prf, &sk.pk_seed, message);
     let (idx, leaves) = message_digest(&pk, &r, message);
@@ -347,11 +362,11 @@ mod tests {
                 .collect::<Vec<_>>()
         };
         let (pk_bytes, sig_bytes) = (unhex(), unhex());
-        let sk = expand_key(&std::array::from_fn(|i| (37 * i + 11) as u8));
+        let sk = LeanSphincsSecretKey::from_bytes(&std::array::from_fn(|i| (37 * i + 11) as u8));
         let pk = keygen(&sk).0;
         let message: Message = std::array::from_fn(|i| (7 * i + 3) as u8);
         assert_eq!(pk.to_bytes()[..], pk_bytes[..]);
-        let signature = sign_with(&sk, &message);
+        let signature = sign(&sk, &message);
         assert_eq!(signature.to_bytes()[..], sig_bytes[..]);
         assert!(verify(&pk, &message, &signature));
     }

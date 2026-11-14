@@ -490,7 +490,7 @@ def runCase (scheme kind : String) (lines : List String) : Option String :=
   | _, _ => none
 
 /-- leanSPHINCS's known answer (`known_answer`, `lean_sphincs/scheme.rs`): the public key
-and the signature of `SK.seed[i] = 37 i + 11` and the message `m[i] = 7 i + 3`, `sign_with` on the
+and the signature of `SK.seed[i] = 37 i + 11` and the message `m[i] = 7 i + 3`, `sign` on the
 expanded key, and its verification. -/
 def knownAnswer (path : System.FilePath) : IO Bool := do
   let lines := (← IO.FS.readFile path).splitOn "\n" |>.filter (· ≠ "")
