@@ -22,10 +22,10 @@ booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruct
 
 * `sum_bitE_coordBasis` and `bits_of_reconstruct`: booleanity and `Σ b_i · COORD_BASIS[s + i] = x`
   make the `b_i` the bits of `x` from bit `s` on, and `x` zero elsewhere (`grind_check`,
-  G:923-948, whose reconstruction starts at bit `nbits`, G:911-918);
+  G:922-947, whose reconstruction starts at bit `nbits`, G:910-917);
 * `prod_bitE_gen_pow`: `Π (1 + b_j·(g^(2^j) + 1))` is `g` to the bits' integer
-  (`g_power_of_word`, G:748-761; `log2_ceil_in_the_exponent`, G:782-797; `column_selector`,
-  G:3131-3158, a nibble at a time),
+  (`g_power_of_word`, G:747-760; `log2_ceil_in_the_exponent`, G:781-796; `column_selector`,
+  G:3130-3157, a nibble at a time),
   and `gen_pow_inj` (the order of `g`, `Parameters.Generator`) makes that integer the exponent
   (`bits_of_exponent`, for `hint_decompose_bits_exponent`); together, `g_power_of_word_spec`,
   and `bits_of_exponent_shift` for bits pinned in the exponent and weighed over the coordinate
@@ -34,7 +34,7 @@ booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruct
   `x = g^e` with `e < k` (`LogLt`), and `gen_pow_div_eq` reads a range-checked quotient
   `log(a / b) < k` as `a = b + c`;
 * `log2Ceil_certified` and `verify_log2_ceil_sound`: `verify_log2_ceil`'s two bounds
-  (G:690-725) pin its hinted log to `max floor (log2Ceil W)` (`Statement/LeanVmVerifier.lean`, `log2Ceil`).
+  (G:689-724) pin its hinted log to `max floor (log2Ceil W)` (`Statement/LeanVmVerifier.lean`, `log2Ceil`).
 -/
 
 namespace LeanVM.Guest.Value
@@ -199,7 +199,7 @@ theorem gen_pow_eq_one_iff {a : ℕ} (ha : a < 2 ^ 64 - 1) : gen ^ a = 1 ↔ a =
   · rintro rfl
     exact pow_zero gen
 
-/-- **`g_power_of_word(value)`** (G:707-734, `n = LOG_WORD_BITS`): Boolean bits with
+/-- **`g_power_of_word(value)`** (G:706-733, `n = LOG_WORD_BITS`): Boolean bits with
 `Σ_{j < n} b_j · E(2^j) = value`, `n ≤ 63`, make `value` a word in `K` below `2^n`, and the
 product `Π (1 + b_j·(1 + g^(2^j)))` its g-power, `gpow (kToNat value.limb0)`. -/
 theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀ j < n, b j * b j = b j)
@@ -227,7 +227,7 @@ theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀
 /-- `assert log(x) < k` (`zkDSL.md` §Range checks): `x` is `g^e` with `e < k`. -/
 def LogLt (x : E) (k : ℕ) : Prop := ∃ e < k, x = gen ^ e
 
-/-! ## `log2Ceil`, certified by its two bounds (`verify_log2_ceil`, G:690-724) -/
+/-! ## `log2Ceil`, certified by its two bounds (`verify_log2_ceil`, G:689-723) -/
 
 theorem log2Ceil_le_iff {W L : ℕ} : log2Ceil W ≤ L ↔ W ≤ 2 ^ L := by
   unfold log2Ceil bitLength
@@ -264,10 +264,10 @@ theorem high_eq_zero_iff {W L : ℕ} (hW : W < 2 ^ 64) :
     exact Nat.mod_lt _ (Nat.two_pow_pos L)
   · exact Nat.mod_eq_of_lt
 
-/-- **`verify_log2_ceil` is sound** (G:690-724): with `W = Σ b_j 2^j` below `2^64` and the hinted
-log `L < 64` range-checked above `floor` (G:711-712), the guest's two products
-`high · low = 0` and `high · (W + 2^L) = 0` (G:715-716), and, unless `L` is the floor (or zero),
-`(low' + W)·(W + 2^(L-1)) ≠ 0` (G:717-723), pin `L` to `max floor (log2Ceil W)`. Here
+/-- **`verify_log2_ceil` is sound** (G:689-723): with `W = Σ b_j 2^j` below `2^64` and the hinted
+log `L < 64` range-checked above `floor` (G:710-711), the guest's two products
+`high · low = 0` and `high · (W + 2^L) = 0` (G:714-715), and, unless `L` is the floor (or zero),
+`(low' + W)·(W + 2^(L-1)) ≠ 0` (G:716-722), pin `L` to `max floor (log2Ceil W)`. Here
 `low = E(W mod 2^L)` and `low' = E(W mod 2^(L-1))` are the guest's prefix sums `psum_buf[g^L]`,
 `psum_buf[g^(L-1)]` (`bitsVal_mod`), and `high = low + E(W)`. -/
 theorem verify_log2_ceil_sound {W L floor : ℕ} (hW : W < 2 ^ 64) (hL : L < 64) (hfl : floor ≤ L)

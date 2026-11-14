@@ -23,7 +23,7 @@ leanXMSS region the writer is a raw leanXMSS signature (`m < RX`, the `m`-th raw
 that slot) or a child's claim (the child `kid m`, whose rebuilt list holds the slot's claim,
 `kidStmt_eq`): `xmss_covered`; likewise for leanSPHINCS.
 
-`da_rel`: the DA digest at the slot `da_pick` (G:4594-4597) is, with the direct DA check, the
+`da_rel`: the DA digest at the slot `da_pick` (G:4590-4593) is, with the direct DA check, the
 node's own slot, the digest of the claim `da_verify` returns (`CalleesW.da` opens it); without it,
 the node's own slot's zeros or child `da_pick`'s digest.
 -/

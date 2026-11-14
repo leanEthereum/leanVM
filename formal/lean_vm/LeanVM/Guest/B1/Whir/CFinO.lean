@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Whir.CFinEval
 public import LeanVM.Guest.B1.Whir.OodW
 
 /-!
-# The out-of-domain weights, in order (G:1813-1823)
+# The out-of-domain weights, in order (G:1812-1822)
 
 `osOodWeights_ssa`: the weights of the levels `ol ..` define their values in order, reading only
 `ood_scalars`, `ood_z` and the coordinates' sources (`fold_challenges`, `tail_challenges`).

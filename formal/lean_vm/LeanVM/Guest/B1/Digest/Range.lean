@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Digest.Range
 
   Range checks on a memory image, the compile-time powers of `g` the guest bounds them by, and B1
-  for `list_split` (G:4291-4306; TRIAGE #87).
+  for `list_split` (G:4290-4305; TRIAGE #87).
 -/
 
 module
@@ -84,7 +84,7 @@ theorem belowLog_lt {b : E} {e M : ℕ} (hM : M < 2 ^ 33) (hb : b = gen ^ M) (h 
 
 theorem word_g16 : word 65536 0 = gen ^ 16 := word_two_pow (a := 16) (by decide)
 
-/-! ## `list_split` (G:4291-4306, TRIAGE #87) -/
+/-! ## `list_split` (G:4290-4305, TRIAGE #87) -/
 
 theorem word_g7 : word 128 0 = gen ^ 7 := word_two_pow (a := 7) (by decide)
 

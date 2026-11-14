@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Main.Frames
 
 /-!
-# A non-final level (G:1531-1669)
+# A non-final level (G:1530-1668)
 
 `LvIn` is the guest's state at a level's start against the Spec's: the sponge it carries, the
 claim the guest's plus the deficit `recsDeficit` of the levels so far (each level's high-part

@@ -176,8 +176,8 @@ open LeanVM.Parameters (K.toBytes)
 
 namespace LeanDa
 
-/-- A symbol's eight little-endian bytes (`K.toBytes`, `as_bytes`), byte `t` its bits
-`8 t … 8 t + 7`. -/
+/-- A `K` word's eight little-endian bytes (`K.toBytes`; a symbol's limb, or a digest word), byte
+`t` its bits `8 t … 8 t + 7`. -/
 theorem toBytes_eq_shift (a : K) :
     K.toBytes a = (List.range 8).map fun t ↦ (a.toBitVec.toNat >>> (8 * t)).toUInt8 := by
   unfold LeanVM.Parameters.K.toBytes LeanVM.Protocol.KeccakHash.wordBytes

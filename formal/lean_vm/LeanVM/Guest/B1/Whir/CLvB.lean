@@ -101,7 +101,7 @@ theorem osHsCoefs_complete (src dst : ℕ) (sc : ℕ → ℕ) (si di : ℕ) (xs 
           exact hmem C rd hH j (by omega) (by omega)
     exact h.mono fun _ _ ↦ trivial
 
-/-- **A non-final level's high part, honestly** (G:1659-1666): word `2 + j` of `sent`, scaled,
+/-- **A non-final level's high part, honestly** (G:1658-1665): word `2 + j` of `sent`, scaled,
 into `level_hs[lvl·8 + j]`. -/
 theorem osHsMid_complete {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hsent : st.sent < st.k) (high : ℕ → E)
@@ -131,7 +131,7 @@ theorem osHsMid_complete {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : s
       by show m.src < K; omega,
       by show m.base < K; omega⟩
 
-/-- **The final level's lane, honestly** (G:1648-1658): a fresh buffer at `pH`, word `j` of
+/-- **The final level's lane, honestly** (G:1647-1657): a fresh buffer at `pH`, word `j` of
 `final_msg`, scaled, into its word `j`. -/
 theorem osHsFinal_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (pH : E) (lane : ℕ → E)

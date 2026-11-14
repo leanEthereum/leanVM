@@ -39,7 +39,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `exponent_tables` (lean_ethereum.py:717-745) -/
+/-! ## `exponent_tables` (lean_ethereum.py:716-744) -/
 
 /-- **`exponent_tables()`**: it returns a pointer holding the exponent table (`ExpTables`) and its
 bit windows (`ExpWinTab`, read as `WinTabs` at `q·g^236`, `winTabs_of_expWinTab`). -/
@@ -52,7 +52,7 @@ def exponent_tables_SpecP (P : Program) : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     P.Rel rd "exponent_tables" args rets ↔ MeaningExponentTables rd args rets
 
-/-! ## `g_power_of_word` (lean_ethereum.py:748-761) -/
+/-! ## `g_power_of_word` (lean_ethereum.py:747-760) -/
 
 /-- **`g_power_of_word(value)`**: the value is the integer `n < 2^6` (`E(n)`), and the function
 returns `g^n`. -/
@@ -65,7 +65,7 @@ def g_power_of_word_SpecP (P : Program) : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     P.Rel rd "g_power_of_word" args rets ↔ MeaningGPowerOfWord args rets
 
-/-! ## `assert_small_g_power` (lean_ethereum.py:764-779) -/
+/-! ## `assert_small_g_power` (lean_ethereum.py:763-778) -/
 
 /-- **`assert_small_g_power(x, g_squares)`**: `x = g^e` with `e < 2^36` (nine hinted nibbles,
 each range checked below `16`, their shares multiplied over the table); it returns nothing. -/
@@ -80,7 +80,7 @@ def assert_small_g_power_SpecP (P : Program) : Prop :=
     ∀ rets : List E, P.Rel L.read "assert_small_g_power" [x, q] rets ↔
       MeaningAssertSmallGPower [x, q] rets
 
-/-! ## `log2_ceil_in_the_exponent` (lean_ethereum.py:782-797) -/
+/-! ## `log2_ceil_in_the_exponent` (lean_ethereum.py:781-796) -/
 
 /-- **`log2_ceil_in_the_exponent(g_N, g_squares, floor, 34)`**: the hinted `L`, `floor ≤ L < 34`,
 pinned by `g^(2^L) / g_N = g^e` and, above the floor, `g_N / g^(2^(L-1) + 1) = g^e'`, both

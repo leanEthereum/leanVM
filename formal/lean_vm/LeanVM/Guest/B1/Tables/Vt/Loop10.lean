@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Sumcheck.Round4
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# The table sumcheck's rounds (`verify_tables_loop0`, G:2346-2356)
+# The table sumcheck's rounds (`verify_tables_loop0`, G:2345-2355)
 
 `verify_tables_loop0(x, g^n, rounds, tabs, chi, g^n, cprod)` at `x = g^j`: the record `rounds·x^7`
 (capacity cells `0 .. 4`, cursor `5`, claim `6`) runs `sumcheck_round4`, whose cursor and claim go

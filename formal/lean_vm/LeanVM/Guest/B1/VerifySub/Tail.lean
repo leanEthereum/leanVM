@@ -15,9 +15,9 @@ public import LeanVM.Guest.B1.Whir.Names
 /-!
 # The calls and the tail of `verify_sub`
 
-* `vsCallsT_holds` (G:3624-3635): the three calls on their argument words, `tabs` three times,
+* `vsCallsT_holds` (G:3623-3634): the three calls on their argument words, `tabs` three times,
   the Keccak table's `g^τ` read off `dims_g`, the output lanes at `col_eval_words·g^101`.
-* `vsTailT_holds` (G:3691-3706): the call of the stack size's `open_stacked` specialization (the
+* `vsTailT_holds` (G:3690-3705): the call of the stack size's `open_stacked` specialization (the
   dispatch on `size_sel`, the rate's selector its first argument), the cursor past the ring grind's nonce,
   `check_opening_terminal`'s call, the deferred claim's words, and the return.
 -/
@@ -37,7 +37,7 @@ theorem word_g101 : word 3710851743744 0 = gen ^ 101 := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 
-/-- **The three calls** (G:3624-3635). -/
+/-- **The three calls** (G:3623-3634). -/
 theorem vsCallsT_holds (h : Stmt.HoldsList C rd σ vsCallsT next kret) :
     σ (.n 561) = σ (.n 4) * gen ^ winTabAt ∧
     C "verify_bus_gkr" [σ (.n 554), σ (.n 555), σ (.n 556), σ (.n 557), σ (.n 558), σ (.n 320),
@@ -72,7 +72,7 @@ theorem vsOpenNames_eq : vsOpenNames = Whir.openNames := by
   rw [vsOpenNames_natStr, Whir.openNames]
   simp only [Whir.natStr_eq]
 
-/-- **The tail** (G:3691-3706): the call of the stack size's `open_stacked` on the rate's selector
+/-- **The tail** (G:3690-3705): the call of the stack size's `open_stacked` on the rate's selector
 (the dispatch on `size_sel = g^(m - 20)`), the terminal, the deferred claim's words, the return. -/
 theorem vsTailT_holds {m : ℕ} (hm20 : Whir.minOpenLog ≤ m) (hm30 : m ≤ 30)
     (h278 : σ (.n 278) = gen ^ (m - Whir.minOpenLog))

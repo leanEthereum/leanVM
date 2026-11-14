@@ -14,7 +14,7 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `main`'s first loops, checked
 
-`main_loop0`, `main_loop1` (G:4506-4511) write the hinted duplicate signature claims: each block is
+`main_loop0`, `main_loop1` (G:4505-4510) write the hinted duplicate signature claims: each block is
 atoms and one heap hint, no load. `mfLoop_pure`: the two place nothing and call only each other.
 -/
 

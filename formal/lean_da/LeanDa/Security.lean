@@ -263,7 +263,7 @@ theorem prob_sel_le {N : ℕ} (hN : 0 < N) (sel : (Fin N → K) → Fin N) (A : 
 
 /-- **The membership test is `(2^13 - 1) / 2^128`-sound**: a fixed matrix that is not a codeword
 passes for at most `2^13 - 1` of the `|E| = 2^128` values of the deployed challenge
-(`membership.rs:12-15`), which the nonce search reads off one label of uniform draws: the label
+(`membership.rs:13-17`), which the nonce search reads off one label of uniform draws: the label
 it selects depends on the proofs of work alone (`selectChal_some`, `prob_sel_le`). Without a valid
 nonce the check is on every challenge, which a non-codeword fails. -/
 theorem checker_sound (r : ℕ) :
@@ -327,7 +327,7 @@ theorem mem_code_of_forall_check {r : ℕ} {c : Fin (r * 128) → Cell}
   rw [mem_acceptSet] at hz₀
   exact hz₀ ((membershipCheck_iff z₀ c).mp (h z₀) i)
 
-/-- The lane of a symbol determines it. -/
+/-- A `K` word's lane determines it (the proof of work's lane). -/
 theorem lane_injective : Function.Injective K.lane := fun _ _ h ↦
   BF64.toBitVec_injective (congrArg UInt64.toBitVec h)
 

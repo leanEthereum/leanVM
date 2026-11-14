@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Base
 public import LeanVM.Guest.B1.Tables.InterfaceP
 
 /-!
-# The block certification's statements (G:2240-2277)
+# The block certification's statements (G:2239-2276)
 
 * `vt_grp{gi}`: block group `gi`'s rank key and size (`VtGrpFacts`), push groups `0 .. 8` and
   count groups `18 .. 23`;

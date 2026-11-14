@@ -10,12 +10,12 @@ module
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
-# `eqtree` (G:955-969, TRIAGE #23)
+# `eqtree` (G:954-968, TRIAGE #23)
 
 `eqtree(point_ptr, out, n)` writes `1 + r0`, `r0` at `out[0]`, `out[1]`, then for each coordinate
 `t = 1 .. n-1` doubles the previous level (the `2^t` words at `out[2^t - 2 ..]`) by `1 + r_t` and
 `r_t` into the next (`out[2^(t+1) - 2 ..]`). Its expansion from the value `b`, the point read at
-`p` from the offset `po` (`verify_keccak`, G:2930-2999, numbers it):
+`p` from the offset `po` (`verify_keccak`, G:2929-2998, numbers it):
 
 * `eqtreeT p o po b n`: `r0` at `b`, `1 + r0` at `b + 2`; level `t` from `eqtreeS b t`
   (`r_t`, `1 + r_t`, then five values per word of the previous level).
@@ -82,7 +82,7 @@ theorem length_eqKernel_eq (pt : List E) : (eqKernel pt).length = 2 ^ pt.length 
       List.length_append, List.length_singleton, pow_succ]
     ring
 
-/-- **`eqtree`** (G:955-969): with the point's words `rs` (`n ≥ 1` of them) at `p` from `po`,
+/-- **`eqtree`** (G:954-968): with the point's words `rs` (`n ≥ 1` of them) at `p` from `po`,
 level `t`, `1 ≤ t ≤ n`, of the run at `o` is `eqKernel (rs.take t)`. -/
 theorem eqtree_sound {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
     (hA : ∀ a, Stmt.atom a ∈ eqtreeT p o po b n → a.Holds rd σ) {rs : List E}

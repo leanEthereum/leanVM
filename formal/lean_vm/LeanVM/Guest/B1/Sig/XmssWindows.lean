@@ -3,7 +3,7 @@
 
   leanXMSS's leaf index, a window at a time (`lx_window`, `lx_top_window`, `lean_ethereum.py:
   3613-3653`): the windows pin the hinted shifts, and the path's addresses and bits are the index's.
-  The chain indices a chain step hashes (`walk`, `lean_ethereum.py:3737-3762`).
+  The chain indices a chain step hashes (`walk`, `lean_ethereum.py:3736-3761`).
 -/
 
 module
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Sig.Codeword
 /-!
 # The leaf index's windows, and the chain indices
 
-`verify_lean_xmss` (`lean_ethereum.py:3848-3920`, inline in `main`'s `main_loop2`) hints the leaf
+`verify_lean_xmss` (`lean_ethereum.py:3847-3919`, inline in `main`'s `main_loop2`) hints the leaf
 index's shifts `his[v] = L >>> 8v` (`lx_index`) and its four 8-bit windows in the exponent
 (`lx_windows`), and dispatches the path a window at a time: arm `k` of window `w` walks the
 window's eight levels, its bit `r` the order of level `r`'s node against its hinted sibling, and
@@ -255,7 +255,7 @@ tag `tags[slot - 1]`. -/
 def lxTagOf (z : E) (powers tags : Nat → E) (i : Nat) : E :=
   if i = 0 then z else if lxTagCarried i then tags (lxTagSlot i - 1) else powers (lxTagLog i)
 
-/-- **The carried tags hold their indices** (`main`'s `lx_tags`, `lean_ethereum.py:4540-4545`). -/
+/-- **The carried tags hold their indices** (`main`'s `lx_tags`, `lean_ethereum.py:4539-4544`). -/
 def LxTagsHold (tags : Nat → E) : Prop :=
   ∀ i < 58, lxTagCarried i = true → tags (lxTagSlot i - 1) = eOfNat i
 

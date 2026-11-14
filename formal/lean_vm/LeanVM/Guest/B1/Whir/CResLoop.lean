@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.B1.Whir.DataSpec
 
 /-!
-# The residual loop, honestly (G:1737-1752)
+# The residual loop, honestly (G:1736-1751)
 
 `resLoop_iter`: at `x = g^j`, `j < N`, the loop body's statements before its recursive call hold
 at the values they define (`evalV` with the memory `rdMem rd`): the batch's positions read at

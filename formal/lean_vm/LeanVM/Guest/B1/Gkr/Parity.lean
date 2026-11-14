@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Gkr.Holds
 public import LeanVM.Guest.WalkTags
 
 /-!
-# The layer loop's parity (lean_ethereum.py:1894-1897, 1932, 1953, 1956-2039)
+# The layer loop's parity (lean_ethereum.py:1893-1896, 1931, 1952, 1955-2038)
 
 `verify_bus_gkr_loop0`'s iteration `x` dispatches `gkr_rounds__L{2r}` on `parity = layer[g^12]`,
 `layer = layers·(x²·start_g)^13` (`LAYER_SLOTS = 13`, `LAYER_PARITY = 12`).
@@ -22,12 +22,12 @@ loop's arguments `[layers, x, start_g, k_mod_next]` (`WalkTags.lean`): every `k_
 * `ly_par_parity`: from the slot's statements on (`lyBody.take 49`, before the dispatch), the
   parity word the iteration reads (at `σ 17`, offset `12`) is such a power;
 * `ly_par_tail`: before the tail call (`lyBody.take 191`), `GkrPar` holds at the tail call's
-  `x·g` (`σ 238`): the iteration stores `layer(x·g)[g^12] = k_mod_next[parity]` (G:2039), the
+  `x·g` (`σ 238`): the iteration stores `layer(x·g)[g^12] = k_mod_next[parity]` (G:2038), the
   dispatch made `parity = g^r`, `r < 4`, and `layer(x·g) = layer(x)·g^26`;
 * `vbg_par`: before `verify_bus_gkr`'s loop call (`vbgPre.take 206`), `GkrPar` at `x = 1`:
-  `k_mod_next[g^r] = g^((r + 1) % 4)` (G:1896), `start_g = g^(2 - depth % 2)`, and the first
-  layer's parity, `g^0` at `layers·g^13` for an odd depth (G:1932), `g` at `layers·g^26` for an
-  even one (G:1953).
+  `k_mod_next[g^r] = g^((r + 1) % 4)` (G:1895), `start_g = g^(2 - depth % 2)`, and the first
+  layer's parity, `g^0` at `layers·g^13` for an odd depth (G:1931), `g` at `layers·g^26` for an
+  even one (G:1952).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -170,7 +170,7 @@ theorem vbg_par {C : CallRel} {σ : Val} {kret : List E → Prop} {μ : ℕ} (h�
   rw [tb_holds_ite_noRet _ _ _ rtFour_noRet rtTwo_noRet] at hi
   obtain ⟨⟨-, hfour, htwo⟩, -⟩ := hi
   rcases Nat.mod_two_eq_zero_or_one depth with h2 | h2
-  · -- an even depth: the radix-four root layer's slot, parity `g` (G:1953)
+  · -- an even depth: the radix-four root layer's slot, parity `g` (G:1952)
     have h0 : σ (.n 144) = 0 := by rw [a144, c143, e142, h2, pow_zero, e_add_self]
     have hf := hfour h0
     have c296 := tb_holds_atom rtFour_noRet hf 118 (.const (.n 296) (word 2 0)) (by decide +kernel)
@@ -179,7 +179,7 @@ theorem vbg_par {C : CallRel} {σ : Val} {kret : List E → Prop} {μ : ℕ} (h�
     rw [c296, tb_word_gen] at l296
     rw [h2] at hpl
     exact ⟨1, by omega, by rw [tb_loadHolds_unique hpl l296, ← gen_pow_eq_ofK, pow_one]⟩
-  · -- an odd depth: the binary root layer's slot, parity `g^0` (G:1932)
+  · -- an odd depth: the binary root layer's slot, parity `g^0` (G:1931)
     have hne : σ (.n 144) ≠ 0 := by
       rw [a144, c143, e142, h2, pow_one]
       intro h0

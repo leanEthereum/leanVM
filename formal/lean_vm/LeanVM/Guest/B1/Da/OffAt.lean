@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.OffAt
 
-  `da_column_offsets` placed (G:4654-4669): its `HeapBuf`s (the offsets, each bit's steps), its
+  `da_column_offsets` placed (G:4650-4665): its `HeapBuf`s (the offsets, each bit's steps), its
   seven doubling loops, the offsets returned, within its frame, its buffers and its loops' static
   bounds.
 -/

@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Common.Loops
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `verify_bus_gkr_loop0_loop0`, completely (G:1819-1838)
+# `verify_bus_gkr_loop0_loop0`, completely (G:1818-1837)
 
 An iteration of `verify_bus_gkr_loop0_loop0` is B1-a's `gkBody 8` (the eight rounds between records)
 without its returned `0`, renamed (`sh6`: the record, the row and the window table to the

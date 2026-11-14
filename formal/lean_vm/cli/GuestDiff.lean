@@ -13,7 +13,7 @@ import LeanVM.Cli.Common
 # `guest-diff`: the guest's mirror and hint generator against Rust executions
 
 `lake exe guest-diff <case>...` reads cases written by the exporter's ignored test `guest_diff`
-(`scripts/guest-export/src/export/guest_diff.rs`, format `leanvm-guest-diff 4`): a real
+(`scripts/guest-export/src/export/guest_diff.rs`, format `leanvm-guest-diff 5`): a real
 aggregation's statement `s`, seed, node witness `w`, the streams `aggregate` installed (captured
 through the test-only `FORGE` hook, `aggregation/hints.rs:53`) and its public input. For each
 case it checks
@@ -171,7 +171,7 @@ structure Case where
   streams : Streams
 
 def caseR : R Case := do
-  expect "leanvm-guest-diff"; expect "4"
+  expect "leanvm-guest-diff"; expect "5"
   expect "case"; let name ← tok
   expect "seed"; let seed ← digestR
   expect "log_memory"; let logMemory ← nat

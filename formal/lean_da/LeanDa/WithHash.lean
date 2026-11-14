@@ -159,7 +159,7 @@ def cellLeavesWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i j : ℕ) : Dige
 def blobRootWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : DigestBytes :=
   merkleRootWithHash H 7 (cellLeavesWithHash H c i)
 
-/-- **The root of a matrix** (`commit_codewords`): the Merkle root of the padded rows' blob roots. -/
+/-- **The root of a matrix** (`commit`): the Merkle root of the padded rows' blob roots. -/
 def commitCellsWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
   merkleRootWithHash H (logPaddedRowCount r) (blobRootWithHash H c)
 
@@ -193,11 +193,11 @@ def listBlobRootWithHash (row : List E) : DigestBytes :=
 def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap E.toBytes)
 
 /-- The blob root of the zero codeword, which pads the tree over the blob roots
-(`padding_root`, `commit.rs:70-78`). -/
+(`padding_root`, `commit.rs:67-75`). -/
 def paddingBlobRootWithHash : DigestBytes :=
   treeRootWithHash H (List.replicate cellsPerRow (paddingCellWithHash H))
 
-/-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`): the
+/-- **The root of a matrix of codewords, as the crate computes it** (`commit`): the
 rows padded to a power of two with zero codewords, the tree over their blob roots. -/
 def commitCodewordsWithHash (rows : List (List E)) : DigestBytes :=
   treeRootWithHash H (rows.map (listBlobRootWithHash H) ++
@@ -205,7 +205,7 @@ def commitCodewordsWithHash (rows : List (List E)) : DigestBytes :=
 
 end Pure
 
-/-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`,
+/-- **The root of a matrix of codewords, as the crate computes it** (`commit`,
 `commit.rs`), over a permutation `π`: on codewords of `2^14` symbols it is the statement's
 `commitCells π (cellsOfRows rows)` (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). The
 blob roots in the crate's order, each tree built level by level, as compiled code computes it

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkIn
 
-  `verify_keccak`'s inputs' opening up to the slices (G:3000-3019).
+  `verify_keccak`'s inputs' opening up to the slices (G:2999-3018).
 -/
 
 module
@@ -23,7 +23,7 @@ variable {rd : Reader} {σ : Val}
 theorem word_2p39 : word 549755813888 0 = gen ^ 39 := by
   rw [show (549755813888 : ℕ) = 2 ^ 39 from rfl]; exact word_two_pow (by decide)
 
-/-- **The inputs' opening up to the slices** (G:3000-3019). -/
+/-- **The inputs' opening up to the slices** (G:2999-3018). -/
 theorem vkInT_holds {τ : ℕ} (h6 : σ (.n 6) = gen ^ τ)
     {c : KeccakClaim} (hc : ClaimRec rd ((0 : ℕ) = 1) (σ (.n 161) * gen ^ (22 * 12)) c (τ - 3))
     (hw : FsPackOk σ (.n 931) (931 + 1) dsObserve)

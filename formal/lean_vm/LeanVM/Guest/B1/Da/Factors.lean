@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.Factors
 
-  `da_factors`' template and its meaning (G:4627-4635).
+  `da_factors`' template and its meaning (G:4623-4631).
 -/
 
 module

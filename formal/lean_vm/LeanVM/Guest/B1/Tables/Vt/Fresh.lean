@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 
 /-!
-# The bus's first stream words (G:2398-2440)
+# The bus's first stream words (G:2397-2439)
 
 The framework decomposition reads, in block order, the memory block's two values (push side), the
 final memory count and the final bytecode count (pull side), each `fs_next` into the rate. The

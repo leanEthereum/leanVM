@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsGlue
 
-  The addresses `verify_sig_lean_sphincs` builds between its stages (`lean_ethereum.py:4220-4221,
+  The addresses `verify_sig_lean_sphincs` builds between its stages (`lean_ethereum.py:4219-4220,
   4235-4236, 4239-4240`): each layer's `A0` and its key pair's `A1`, from the
   digest's leaves.
 -/
@@ -19,11 +19,11 @@ public import LeanVM.Guest.B1.Sig.SphincsHash
 leaf `layerLeafN T l` (`T` the digest's number, `SphincsSoundDigest`). The guest builds the key's
 address cells from the leaves' bytes and their shifts (`lvals`, `tree_mid`):
 
-* `sForsAddrs_vals` (`G:4220-4221`): `a0_b = lvals[8]·2^120 + tree_mid·2^112 + lvals[24]·2^104` is
+* `sForsAddrs_vals` (`G:4219-4220`): `a0_b = lvals[8]·2^120 + tree_mid·2^112 + lvals[24]·2^104` is
   `adrsCell0 0 (layerTreeN T 0)`, `key_b = lvals[0]·2^56` is `adrsCell1 0 (layerLeafN T 0) 0 0`;
-* `sMidAddrs_vals` (`G:4235-4236`): `a0_m = 2^24 + tree_mid·2^120 + lvals[24]·2^112`, `key_m =
+* `sMidAddrs_vals` (`G:4234-4235`): `a0_m = 2^24 + tree_mid·2^120 + lvals[24]·2^112`, `key_m =
   lvals[8]·2^56`;
-* `sTopAddrs_vals` (`G:4239-4240`): `key_t = tree_mid·2^56 + lvals[24]·2^48`, `a0_t = 2^25`;
+* `sTopAddrs_vals` (`G:4238-4239`): `key_t = tree_mid·2^56 + lvals[24]·2^48`, `a0_t = 2^25`;
 * `layerAddrs`: all three as `sA0Of l`, `sA1Of l`.
 
 Field addition is XOR, so a sum of words of disjoint bits is the word of their sum
@@ -98,7 +98,7 @@ theorem treeMid_eq {T : Nat} (hm : σ sTreeMid = eOfNat (byteN T 31)) :
 
 /-! ## The glue -/
 
-/-- **The bottom layer's address** (`G:4220-4221`): `a0_b` is the bottom key's tree's `A0`, `key_b`
+/-- **The bottom layer's address** (`G:4219-4220`): `a0_b` is the bottom key's tree's `A0`, `key_b`
 its leaf's `A1`. -/
 theorem sForsAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat (byteN T 31))
     (h : AtomsHold rd σ sForsAddrs) :
@@ -140,7 +140,7 @@ theorem sForsAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat
     congr 1
     omega
 
-/-- **The middle layer's address** (`G:4235-4236`). -/
+/-- **The middle layer's address** (`G:4234-4235`). -/
 theorem sMidAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat (byteN T 31))
     (h : AtomsHold rd σ sMidAddrs) :
     σ (sA0Of 1) = adrsCell0 1 (layerTreeN T 1) ∧ σ (sA1Of 1) = adrsCell1 0 (layerLeafN T 1) 0 0 := by
@@ -172,7 +172,7 @@ theorem sMidAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat 
     congr 1
     omega
 
-/-- **The top layer's address** (`G:4239-4240`): its tree is `0`. -/
+/-- **The top layer's address** (`G:4238-4239`): its tree is `0`. -/
 theorem sTopAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat (byteN T 31))
     (h : AtomsHold rd σ sTopAddrs) :
     σ (sA0Of 2) = adrsCell0 2 (layerTreeN T 2) ∧ σ (sA1Of 2) = adrsCell1 0 (layerLeafN T 2) 0 0 := by

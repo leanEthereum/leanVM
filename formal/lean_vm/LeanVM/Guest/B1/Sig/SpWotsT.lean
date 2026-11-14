@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SpWotsT
 
   The body of `sp_wots` as a template, written from the guest's structure
-  (`lean_ethereum.py:4072-4102`) with the values numbered uniformly, every
+  (`lean_ethereum.py:4071-4101`) with the values numbered uniformly, every
   chain step taking three fresh values; the guest's numbering is this one with the two values the
   steps without an address constant leave unused removed (`SpWotsLayout`'s `spRen`).
 -/
@@ -14,19 +14,19 @@ public import LeanVM.Guest.B1.Sig.WotsT
 /-!
 # `sp_wots` as a template
 
-`sp_wots(pp, a0, a1, encoding)` (`G:4072-4102`; `G` is `lean_ethereum.py`) has the parameters
+`sp_wots(pp, a0, a1, encoding)` (`G:4071-4101`; `G` is `lean_ethereum.py`) has the parameters
 `pp = n0`, the one-time key's FIPS 205 address `a0 = n1` (its layer and tree) and `a1 = n2` (type
 `WOTS_HASH`, its key pair), and `encoding = n3`; `at = [a0, a1]` copies them into `n4`, `n5`; the
 powers `g^s` are `n(6 + s)`, `s < 10`.
 
-Its codeword is the shared WOTS+C dispatch (`walk_group`, `G:3766-3777`, `lx = 0`): 21 groups of
+Its codeword is the shared WOTS+C dispatch (`walk_group`, `G:3765-3776`, `lx = 0`): 21 groups of
 three digits and the last chain's, each a hinted digit word, its range check, the hoisted constant
 and a `match` over its `4^n` arms, written with the shared templates (`WotsT`, `groupD`). No `KECCAK`
 precedes the codeword, so the compiler sets the padding run `[0x01, 0, 0, 0, 0]` above the first
 group's dispatch, at `n21 ..< n26` (`spPad`), after its range check: the first group's arms are laid
 out from `n21` (`spL`), five above its digit word; every chain step and the leaf read that run.
 
-* `spStepC`, `spWp`, `spW`: the chain step (`walk`, `G:3737-3763`): the address `at[1] + (i·2^88 +
+* `spStepC`, `spWp`, `spW`: the chain step (`walk`, `G:3736-3762`): the address `at[1] + (i·2^88 +
   s·2^120)` (the chain in `A1`'s byte 27, the step in its byte 31) and
   `keccak([pp, at[0]], [a, v], walks[o:o + 13])`, 64 bytes (`k64`), its run at `spPad`; the step of
   chain `0` leaving position `0` adds nothing, so the compiler sets no constant and hashes `at[1]`
@@ -80,7 +80,7 @@ theorem spDigitsC_zero (first n : Nat) : spDigitsC first n 0 = 0 := by
 
 /-- `sp_wots`'s chain step with its padding run at `X`: step `s` of chain `i`, the address
 `at[1] + spStepC i s`, then the 64-byte hash of `pp`, `at[0]`, it and the value (`walk`,
-`G:3737-3763`). Chain `0`'s step `0` adds nothing: no constant, `at[1]` hashed itself. -/
+`G:3736-3762`). Chain `0`'s step `0` adds nothing: no constant, `at[1]` hashed itself. -/
 def spWp (X : Nat) : WotsT where
   step i s v c o := if i = 0 ∧ s = 0 then k64 X (.n 0) (.n 4) (.n 5) v c o
     else cst c (lit (spStepC i s)) :: addS (.n (c + 1)) (.n 5) (.n c) ::

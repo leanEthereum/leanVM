@@ -16,7 +16,7 @@ public import LeanVM.Guest.CoreData
 /-!
 # `shared_selector_tables` (TRIAGE G #48)
 
-`shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)` (G:2103-2126) hints the
+`shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)` (G:2102-2125) hints the
 six bits of `len_g`'s exponent, pins them Boolean, rebuilds `r_g = g^r` from the low two and
 `q_g = g^q` from the high four, asserts `q_g^4·r_g = len_g` (so `len_g = g^n`, `n = 4q + r < 64`),
 runs its loop over `x = g^j`, `j < q` (`shared_selector_tables_loop0`: nibble `j`'s eq levels and

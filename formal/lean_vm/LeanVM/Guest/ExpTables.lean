@@ -61,7 +61,7 @@ abbrev nGkrSides : ℕ := guest_const% N_GKR_SIDES
 /-- `N_BLOCK_GROUPS`. -/
 abbrev nBlockGroups : ℕ := guest_const% N_BLOCK_GROUPS
 
-/-- **The exponent table at `q`** (`exponent_tables`, `lean_ethereum.py:698-723`): the squares
+/-- **The exponent table at `q`** (`exponent_tables`, `lean_ethereum.py:697-722`): the squares
 `q[g^j] = g^(2^j)`, `j < 34`; the nibble shares `q[g^(34 + 16j + u)] = g^(u·16^j)`, `j < 9`,
 `u < 16`; the rank keys `q[g^(178 + k)] = g^(k·247)`, `k < 34`; and each bus block group's side,
 `q[g^(212 + gi)] = E(s)` for the groups `gi` of side `s`. -/

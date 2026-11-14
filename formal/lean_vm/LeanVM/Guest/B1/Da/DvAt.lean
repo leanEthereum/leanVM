@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.DvAt
 
-  `da_verify` placed (G:4509-4547): the shape, the dual codeword, every blob's region and its
+  `da_verify` placed (G:4508-4546): the shape, the dual codeword, every blob's region and its
   columns, the blobs' trees and the padding, the tree over the roots, within its words bound
   before the memory (`dvB`), by a tree of its honest shape (`dvNH r L`).
 

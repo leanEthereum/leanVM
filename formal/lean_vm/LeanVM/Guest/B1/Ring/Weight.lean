@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Eq.RsEqRun
 /-!
 # `ring_switch_weight` (TRIAGE G #66)
 
-`ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)` (G:3298-3307, `fn% «ring_switch_weight»`)
+`ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)` (G:3297-3306, `fn% «ring_switch_weight»`)
 writes a row of `64` ones (`rswInit`), calls `rs_eq_run` on it, whose last row holds `ringRow 1 r p
 k` (`Π (r_n^(2^k) + p_n)`, B1-a's `MeaningRsEqRun`), and sums `c_table[k] · row[k]` (`rswTerm`).
 With `p = 1 + r'` the factor is `1 + r_n^(2^k) + r'_n`, so the sum is

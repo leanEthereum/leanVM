@@ -1,5 +1,5 @@
 # usage: python3 -I gensel.py  — writes Tables/Vt/SelBlocks.lean (verify_tables' table blocks'
-# selectors, G:2353-2364: hinted g-power digits of the block's offset, the
+# selectors, G:2352-2363: hinted g-power digits of the block's offset, the
 # `block_selector_tab` arm on its table's shared tables) from vt_ir.txt (dump.py).
 import os, sys, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -77,7 +77,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.SelMath
 
 /-!
-# The table blocks' selectors (G:2353-2364)
+# The table blocks' selectors (G:2352-2363)
 
 A table block `b` of table `t` (`vtSelT`): the hinted `g`-power digits of its certified offset
 `block_off[b]` (`vtBoffV b`) above `τ_t`, the `block_selector_tab` arm `μ - τ_t` (dispatched on

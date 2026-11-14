@@ -115,7 +115,7 @@ def aggSeed : List ℕ :=
     2936886303028784551432414362146044553]
 
 /-- **`AGG_SEED_c` is cell `8 + c` of the batching seed** (even layout): the guest's
-`seed = [AGG_SEED_0, …, AGG_SEED_4]` (`aggregate_claims`, `lean_ethereum.py:4649`) is the
+`seed = [AGG_SEED_0, …, AGG_SEED_4]` (`aggregate_claims`, `lean_ethereum.py:4645`) is the
 capacity a `cap=seed` duplex step reads. -/
 theorem aggSeed_cells (c : Fin 5) :
     LeanVM.Guest.litField (aggSeed.getD c 0) =
@@ -185,7 +185,7 @@ theorem paddingBlobRoot_eq :
     merkleRoot_const, daPadLevel_toBytes_succ (by norm_num)]
   rfl
 
-/-- **`DA_PAD_BLOB_0`, `DA_PAD_BLOB_1`** (`aggregation/placeholders.rs:840-842`, `lean_ethereum.py:4322-4323`)
+/-- **`DA_PAD_BLOB_0`, `DA_PAD_BLOB_1`** (`aggregation/placeholders.rs:840-842`, `lean_ethereum.py:4321-4322`)
 are the padding blob root's two cells. -/
 theorem daPadBlob_cells :
     (LeanVM.Guest.word 8002054802297438051 4108169256045952147,

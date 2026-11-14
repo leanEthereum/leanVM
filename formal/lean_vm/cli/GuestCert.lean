@@ -905,7 +905,7 @@ def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := I
       for g in loopsOf cf.body do
         m := m.insert g [(walkTag (if base == 1 then 1 else 0) odd d cd, [5, 2, 3]), (Check.tagNe, [2, 3])]
   -- `walk_path`'s windows: `WinsAt` on `wins` (argument 2, cell 4) at depth `path_depth + cap_depth`
-  -- (`lean_ethereum.py:1308-1320`); its callers take it as an obligation on the window pointer
+  -- (`lean_ethereum.py:1307-1319`); its callers take it as an obligation on the window pointer
     if let some (pd, cd) := wpParams cf.name then
       m := m.insert cf.name [(winsTag (pd + cd) cd, [4])]
     -- `open_stacked`'s window table `tabs` (argument 10, cell 12), which its grinds read and its
@@ -1034,7 +1034,7 @@ def winObligations (body : List Core.Stmt) (dispatches : Bool := false) :
 `LeanVM/Guest/`): before, after, and on memory (`(cell, offset, n)`, one word each), and the
 memory bounds they take from named obligations. `verify_tables` dispatches on `g_bus_mu`
 (argument 9) and on `dims_g[g^0]` (argument 10, cell 12: `kb[1]`, an unadjusted `kappa_g`,
-`lean_ethereum.py:2131-2134, 2231-2234`; the logs `t ≥ 1` it range checks itself, G:2189-2199),
+`lean_ethereum.py:2130-2133, 2230-2233`; the logs `t ≥ 1` it range checks itself, G:2188-2198),
 `log2_ceil_in_the_exponent`'s returned power (cell 4); `claim_list_digest` and
 `child_claim_list_any`/`child_claim_list_mono` on `list_split`'s `rest` (its cell 5, below
 `CLAIM_GROUP = 17`; their argument 6);
@@ -1042,7 +1042,7 @@ memory bounds they take from named obligations. `verify_tables` dispatches on `g
 (below `DA_TREE_ARMS`);
 `check_opening_terminal` on `kb[i] = kappa_base[g^i]` (argument 8, cell 10) and on `kb[0]·g^19`,
 `kb[7]·g^6`, which `verify_sub` knows from an obligation: `kb[0] = g^0`, `kb[1..6] < g^31`,
-`kb[7] < g^25` (`lean_ethereum.py:3366-3383`). -/
+`kb[7] < g^25` (`lean_ethereum.py:3365-3382`). -/
 def bounds (name : String) :
     List (ℕ × ℕ) × List (ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) :=
   if name == "da_row_shape" then ([], [(3, LeanVM.Guest.Data.const_DA_TREE_ARMS)], [], [])
@@ -1059,7 +1059,7 @@ def bounds (name : String) :
 
 /-- The selectors `1 + b·(1 + g)` (`b·b = b`, so `g^0` or `g^1`) a function dispatches on in
 windows after the one computing them: each window hands on their bound `2`. None at `1a379148`
-(`verify_keccak`'s `rem_g`, G:2949-2952, is passed on, not dispatched on). -/
+(`verify_keccak`'s `rem_g`, G:2948-2951, is passed on, not dispatched on). -/
 def selsHeld (_name : String) : List ℕ := []
 
 /-! ## Windows -/

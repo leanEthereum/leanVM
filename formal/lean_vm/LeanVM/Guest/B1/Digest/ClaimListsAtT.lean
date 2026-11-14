@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Digest.ChildDigest
 /-!
 # A child's claim list, placed
 
-The body (G:4136-4157) is a branch on `n = 0` between two runs (`ccd_body`). The empty list's arm
+The body (G:4135-4156) is a branch on `n = 0` between two runs (`ccd_body`). The empty list's arm
 hashes the empty string (`ccz_core`: the evaluated valuation, its atoms holding). The nonempty
 list's arm (`ccElse`) calls `list_split`, hints `child_mono`, and branches on `child_mono + g`:
 the honest prover hints `0`, so the run takes the walk by hinted indices, a call of

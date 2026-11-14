@@ -15,7 +15,7 @@ import LeanVM.Guest.Data.Source
 /-!
 # `certify_placement` (TRIAGE G #67): the interface
 
-`certify_placement(kappa_base, g_squares)` (G:3310-3354) groups the committed columns into the
+`certify_placement(kappa_base, g_squares)` (G:3309-3353) groups the committed columns into the
 runs sharing one `kappa_base` source (`COL_GROUP_START`, here `colGroupStart`; a column's `g^κ`
 is `kappa_base[COL_KAPPA_SRC]·g^COL_KAPPA_ADJ`, `colKappaSrc`, `colKappaAdj`, over
 `kappa_base = [1, g^log_mem, g^τ_0, …, g^τ_5]`), keys each group by `g^(κ·RANK_STRIDE - c₀)`
@@ -81,7 +81,7 @@ def colGroupStart : List ℕ := [0, 3, 4, 5, 18, 31, 38, 52, 66, 94]
 abbrev rankStride : ℕ := 247
 
 /-- The rank keys `exponent_tables` keeps at `g_squares·g^RANK_KEYS_AT` (`RANK_KEYS_AT = 178`,
-G:735-736): `g^(k·RANK_STRIDE)` for `k < SIZE_BITS = 34`. -/
+G:734-735): `g^(k·RANK_STRIDE)` for `k < SIZE_BITS = 34`. -/
 def rankKeysList : List E := (List.range 34).map fun k ↦ gen ^ (k * rankStride)
 
 /-- **What `certify_placement` hands `check_opening_terminal`**: `kappas` are the `158` columns'

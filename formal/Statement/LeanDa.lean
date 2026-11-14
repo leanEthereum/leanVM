@@ -122,13 +122,14 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   cell's digest is the hash of its symbols' bytes, each symbol its two limbs' little-endian bytes,
   `y^0` first (`blob_trees`). Each
   padded row, a blob, has the Merkle root of its `128` cell digests (`blobRootWith`), and the
-  commitment is the Merkle root of the padded rows' blob roots (`commit_codewords`). A tree hashes
+  commitment is the Merkle root of the padded rows' blob roots (`commit`). A tree hashes
   neighbours in pairs, level by level (`fill_levels`). A padding row's blob root is that of the
   zero codeword (`padding_root`), so the root is the commitment to the padded matrix.
 * **Openings.** A cell is opened by its authentication path in its blob's tree, then its blob
   root's in the tree over the blob roots: the path of leaf `128 i + j` in the one tree of depth
-  `7 + ⌈log₂ r⌉` that the two make. The crate keeps the trees for this (`DaWitness::blob_tree`,
-  `commit.rs:15-36`) but verifies no sample: `verifyCellWith` is the check these paths determine.
+  `7 + ⌈log₂ r⌉` that the two make. The crate keeps the codewords and the root (`DaWitness`,
+  `commit.rs:15-42`) but builds and verifies no path: `verifyCellWith` is the check these paths
+  determine.
 * **Membership** (`membership.rs`, `verifier/src/da.rs`). One challenge `z ∈ E` gives
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
   at the challenges `z^(2^j)`), with `Ŵ_j` the normalized subspace polynomial of the span of
@@ -143,8 +144,8 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   challenge (the Rust search never ends); the relation then asks every row to be a codeword
   (`membershipCheckOpt`), which keeps an honest matrix's relation true for every permutation.
 
-The row count `r` is a parameter: the crate takes `1 ≤ r ≤ maxRows` (`row_count`, `lib.rs:59-63`;
-`commit` rejects any other payload with a `BlobSizeError`, `commit.rs:42-50`, `lib.rs:40-57`);
+The row count `r` is a parameter: the crate takes `1 ≤ r ≤ maxRows` (`commit` rejects any
+other count with a `BlobCountError`, `commit.rs:44-53`, `lib.rs:44-57`);
 completeness and position binding hold for every `r`, code binding for
 `1 ≤ r ≤ maxRows`. The algorithms take a permutation `π` of the Keccak state as a parameter and hash with
 Keccak-256 over it (`keccakDigestBytes`, the hash `H` below): the crate's is Keccak-f[1600], the
@@ -152,7 +153,7 @@ hash Keccak-256 (`verifier/src/hash.rs:76-96`); in the end statements `π` is th
 permutation. A digest is 32 bytes, `DigestBytes` (`fiat_shamir::merkle::Hash`).
 -/
 
-/-! ### Shapes (`lib.rs:23-38`) -/
+/-! ### Shapes (`lib.rs:20-40`) -/
 
 /-- Payload symbols per row, as a logarithm (`LOG_BLOB_SYMBOLS`). -/
 def logK : ℕ := 13
@@ -299,7 +300,7 @@ padding row's is `padding_root`). -/
 def blobRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes :=
   merkleRootWith π 7 (cellLeavesWith π cells i)
 
-/-- **The root of a matrix** (`commit_codewords`): the Merkle root of the padded rows' blob
+/-- **The root of a matrix** (`commit`): the Merkle root of the padded rows' blob
 roots. -/
 def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes :=
   merkleRootWith π (logPaddedRowCount r) (blobRootWith π cells)

@@ -41,7 +41,7 @@ def grind (bits : ℕ) (nonce : E) : Chain Bool := do
 
 /-- The rounds of a batching sumcheck from the running claim: each round absorbs `g(1)` and
 `g(∞)`, squeezes the challenge, and folds the round polynomial (`batch_sumcheck`,
-`lean_ethereum.py:1128-1145`; `absorb_round`, `aggregation/deferred.rs:222-238`). The challenges and the
+`lean_ethereum.py:1127-1144`; `absorb_round`, `aggregation/deferred.rs:222-238`). The challenges and the
 final claim. -/
 def batchRounds : E → List (E × E) → Chain (List E × E)
   | claim, [] => return ([], claim)

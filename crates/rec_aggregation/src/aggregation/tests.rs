@@ -8,10 +8,12 @@ use super::placeholders::placeholder_map;
 use super::proof::{EthereumClaims, EthereumProof, decode, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
+use fiat_shamir::merkle::{Hash, hash_pair, hash_to_scalars};
 use lean_compiler::{compile, parse_with_replacements};
-use lean_da::{BLOB_SYMBOLS, DA_MAX_ROWS, LOG_BLOB_SYMBOLS};
-use leanvm_core::cpu::verify;
+use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, LOG_BLOB_SYMBOLS};
+use leanvm_core::cpu::{from_scalar, verify};
 use primitives::field::{F64, F128, g_pow};
+use primitives::hash::hash;
 use primitives::multilinear::mle_eval_par;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
@@ -583,7 +585,82 @@ def main():
 }
 
 /// The guest accepts committed codewords, and rejects a matrix with one symbol of
-/// one row flipped, though its root and vector are that matrix's: the row is no codeword.
+/// one row flipped, in either limb, though its root and vector are that matrix's: the row is no codeword.
+#[test]
+fn da_guest_checks_codeword_membership() {
+    parallel::init();
+    let (helpers, _) = include_str!("../../guests/lean_ethereum.py")
+        .split_once("\ndef main():")
+        .unwrap();
+    let source = format!(
+        r#"{helpers}
+def main():
+    r0, r1, z = da_verify(exponent_tables())
+    digest = StackBuf(2)
+    keccak([r0, r1], [z, 0], digest)
+    public = GEN ** 0
+    assert public[1] == digest[0]
+    assert public[GEN] == digest[1]
+    return
+"#
+    );
+    let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
+    let blobs = da_rows(3, 101);
+    let witness = lean_da::commit(&blobs).unwrap();
+    let rows: Vec<Codeword> = (0..blobs.len()).map(|i| *witness.row(i).unwrap()).collect();
+    assert_eq!(da_root(&rows), witness.root());
+    let run = |rows: &[Codeword]| {
+        let commitment = da_root(rows);
+        let mut hints = Hints::default();
+        hints.push(
+            "da_challenge",
+            vec![from_scalar(verifier::da::membership_challenge(&commitment))],
+        );
+        hints.push(
+            "da_shape",
+            vec![
+                count(rows.len()),
+                count(rows.len().next_power_of_two().ilog2() as usize),
+            ],
+        );
+        for j in 0..CELLS_PER_ROW {
+            for row in rows {
+                let cell = &row.as_chunks::<CELL_SYMBOLS>().0[j];
+                hints.push(
+                    "da_symbols",
+                    cell.iter().map(|&w| F128::new(w as u64, (w >> 64) as u64)).collect(),
+                );
+            }
+        }
+        let mut program = guest.clone();
+        hints.install(&mut program);
+        program.execute(hash_to_scalars(&verifier::da::digest(Some(commitment))))
+    };
+    assert!(run(&rows).unwrap().unconstrained_reads.is_empty());
+    for (position, flip) in [(0, 1), (BLOB_SYMBOLS + 5, 1 << 64)] {
+        let mut corrupted = rows.clone();
+        corrupted[1][position] ^= flip;
+        assert!(run(&corrupted).is_err(), "a flip of {flip:#x} at {position} passed");
+    }
+}
+
+/// The commitment to rows that need not be codewords, rebuilt pairwise as `lean_da::commit` builds it.
+fn da_root(rows: &[Codeword]) -> Hash {
+    fn root(mut level: Vec<Hash>) -> Hash {
+        while level.len() > 1 {
+            level = level.chunks(2).map(|pair| hash_pair(&pair[0], &pair[1])).collect();
+        }
+        level[0]
+    }
+    let cell_digest = |cell: &[u128]| hash(&cell.iter().flat_map(|w| w.to_le_bytes()).collect::<Vec<u8>>());
+    let mut blob_roots: Vec<Hash> = rows
+        .iter()
+        .map(|row| root(row.chunks(CELL_SYMBOLS).map(cell_digest).collect()))
+        .collect();
+    blob_roots.resize(rows.len().next_power_of_two(), lean_da::padding_root());
+    root(blob_roots)
+}
+
 #[test]
 fn too_many_blobs_are_rejected() {
     let rows = da_rows(DA_MAX_ROWS + 1, 0);

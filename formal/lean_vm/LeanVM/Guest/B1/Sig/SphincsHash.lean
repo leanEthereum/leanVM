@@ -3,7 +3,7 @@
 
   leanSPHINCS's addressed hash (the statement's, over Keccak-f[1600] in `Id`) as a function of the
   guest's cells (`crates/signatures/src/lean_sphincs/hash.rs:28-93`,
-  `lean_ethereum.py:501-519, 3708-3713, 4058-4069`).
+  `lean_ethereum.py:501-519, 3707-3712, 4057-4068`).
 -/
 
 module
@@ -31,11 +31,11 @@ bytes each, and holds the address as two (`adrsCell0`, `adrsCell1`, `lean_ethere
   `wots.rs:68-73`), are the first 68 bytes of the cells `[P, A0, A1] ++ M ++ [counter]`, the
   counter cell holding `BE_32(c)` in its low four bytes: the number `beWordAt 0 c`, `c`'s bytes
   reversed. The guest builds that number from four hinted bytes, the first lowest
-  (`sp_from_bytes`, `lean_ethereum.py:3926-3937`; `sp_layer`, `lean_ethereum.py:4128-4137`), so
+  (`sp_from_bytes`, `lean_ethereum.py:3925-3936`; `sp_layer`, `lean_ethereum.py:4127-4136`), so
   the hinted bytes are `BE_32(c)` in order;
 * `adrsCell1_add_words23`, `adrsCell1_add_word0`, `adrsCell1_add_step`, `adrsCell1_add_type`: the
   guest's constants added to an `A1` cell (field addition is XOR, the bits disjoint) set its words:
-  a chain step's `i·2^88 + s·2^120` (`walk`, `lean_ethereum.py:3736-3762`), a type's `t·2^24`;
+  a chain step's `i·2^88 + s·2^120` (`walk`, `lean_ethereum.py:3735-3761`), a type's `t·2^24`;
 * `hashDomainCells`, `hashDomain_cells`, `tweakableHash_sphincsCells`: each hash domain's two
   address cells (`hashDomainFields`, `wots.rs:41-73`, `scheme.rs:252-260`, `fors.rs:27-59`).
 -/
@@ -419,7 +419,7 @@ theorem lit_of_lt {c : Nat} (h : c < 2 ^ 64) : lit c = word c 0 := by
   rw [lit, Nat.mod_eq_of_lt h, Nat.div_eq_of_lt h, Nat.zero_mod]
 
 /-- **A chain step's constant** (`spStepC i s = i·2^88 + s·2^120`, `walk`,
-`lean_ethereum.py:3736-3762`) added to the key's address cell: chain `i`, step `s`. -/
+`lean_ethereum.py:3735-3761`) added to the key's address cell: chain `i`, step `s`. -/
 theorem adrsCell1_add_step {type keyPair i s : Nat} (hi : i < 256) (hs : s < 256) :
     adrsCell1 type keyPair 0 0 + lit (i * 2 ^ 88 + s * 2 ^ 120) = adrsCell1 type keyPair i s := by
   rw [← beWordAt_two_of_lt hi, ← beWordAt_three_of_lt hs]

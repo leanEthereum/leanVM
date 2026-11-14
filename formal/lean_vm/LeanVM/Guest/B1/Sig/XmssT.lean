@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.XmssT
 
   The body of `verify_lean_xmss` as a template, written from the guest's structure
-  (`lean_ethereum.py:3480-3692`) with the values numbered as the renumbered expansion numbers them.
+  (`lean_ethereum.py:3479-3691`) with the values numbered as the renumbered expansion numbers them.
 -/
 
 module
@@ -37,14 +37,14 @@ def xTag (i : Nat) : V := .n (138 + i)
 /-- `g^106`, the leanXMSS target sum in the exponent. -/
 def xTarget : E := word 118747255799808 0
 
-/-- The prologue (`lean_ethereum.py:3591-3643`). -/
+/-- The prologue (`lean_ethereum.py:3590-3642`). -/
 def xPrologue : List Stmt :=
   [loadS (.n 1) (.n 0) 1, hintW "leaf_index_bits" (runV 2 32)] ++ booleans 2 32 ++ shifts 2 32 34 ++
     (List.range 10).map (fun s => cst (128 + s) (word (2 ^ s) 0)) ++
     (List.range 58).map (fun i => cst (138 + i) (word i 0))
 
 /-- leanXMSS's chain step: `keccak([P, steps s], [v, i], walks[o:o + 1])` (`walk`,
-`lean_ethereum.py:3529`), its constant at `c`. -/
+`lean_ethereum.py:3528`), its constant at `c`. -/
 def xWots (steps : Nat → V) : WotsT where
   step i s v c o := k64 xPad (.n 1) (steps s) v (xTag i) c o
   size := 1

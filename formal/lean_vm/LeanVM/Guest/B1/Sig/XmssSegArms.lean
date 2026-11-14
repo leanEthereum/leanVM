@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegArms
 
-  The codeword of the leanXMSS check in `main_loop2` (`lean_ethereum.py:3655-3675`), sound: its
+  The codeword of the leanXMSS check in `main_loop2` (`lean_ethereum.py:3654-3674`), sound: its
   fifteen dispatches each take one arm, and the arms' walks, products and encodings give the chains'
   tips, the target sum and the digest's first cell.
 -/

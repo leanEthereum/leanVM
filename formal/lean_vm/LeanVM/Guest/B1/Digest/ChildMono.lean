@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildMono
 
-  B1 for `child_claim_list_mono` (G:4184-4252; TRIAGE #89): a child's claim list walked through
+  B1 for `child_claim_list_mono` (G:4183-4251; TRIAGE #89): a child's claim list walked through
   this node's table by hinted gaps, every claim marked with the list's base, its slots strictly
   increasing, and its digest.
 -/
@@ -19,13 +19,13 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `child_claim_list_mono`
 
-The walk (`child_claims_mono`, G:4419-4437) keeps a coverage pointer `region · g^P` and a table
+The walk (`child_claims_mono`, G:4418-4436) keeps a coverage pointer `region · g^P` and a table
 pointer `entries · g^(4P)`; claim `j` of a frame moves `P` on by its hinted gap `e < 2^32`
 (`assert_gpow`) and sits at slot `P + j`, so the slots of a frame from offset `O` are
 `O + e_0 + … + e_j + j`, strictly increasing, and the frame ends at `O' = o_last + 1`
 (`MonoWalk O os O'`). The frames carry `P` across in their records (`MONO_REC`, the pointers at
 13 and 14). The last specialization checks `region · g^O_end = t · region` with `t = g^e`
-range-checked against `limit = g^(e + e')` (G:4251): every slot lies below `e`.
+range-checked against `limit = g^(e + e')` (G:4250): every slot lies below `e`.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -444,7 +444,7 @@ theorem endOf_sound {rd : Reader} {σ : Val} {atoms : List Atom} {ce t : V}
 /-- **`child_claim_list_mono_last__L{k}`** `[rec, region, mark, limit]`: from the record at `rec`
 (the state after whole blocks `pre`, the pointers at `O`), `k` claims marked `mark` walking from
 `O` to `O'`, the digest of `pre` and their cells, and the bound `region · g^O' = g^e · region`,
-`limit = g^(e + e')` with `e, e' < 2^32` (G:4251). -/
+`limit = g^(e + e')` with `e, e' < 2^32` (G:4250). -/
 theorem monoLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {args rets : List E}
     (h : coreProgram.Rel rd (mlNames.getD k "") args rets) :
     ∃ rec region mark limit, args = [rec, region, mark, limit] ∧
@@ -559,7 +559,7 @@ theorem find_child_claim_list_mono :
     coreProgram.find? "child_claim_list_mono" = some fn% «child_claim_list_mono» :=
   coreProgram_find?_at (j := idx% «child_claim_list_mono») rfl
 
-/-- **`child_claim_list_mono`** (G:4440-4472): on `bigs = g^a`, `groups = g^b`, `rest = g^c`, the
+/-- **`child_claim_list_mono`** (G:4439-4471): on `bigs = g^a`, `groups = g^b`, `rest = g^c`, the
 `136a + 17b + c` claims walked by hinted gaps from slot 0 to `O`, every claim marked `base`, their
 digest, and the bound on `O`: `region · g^O = g^e · region`, `limit = g^(e + e')`. -/
 theorem child_claim_list_mono_sound {rd : Reader} (hm : MemOk rd) {args rets : List E}

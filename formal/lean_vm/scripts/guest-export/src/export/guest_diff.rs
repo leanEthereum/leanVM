@@ -167,7 +167,7 @@ fn export(
     let streams = INSTALLED.with(|i| i.take());
     let stream = |name: &str| streams.iter().find(|(n, _)| n == name).map(|(_, e)| e.as_slice());
 
-    let mut out = Out(format!("leanvm-guest-diff 4\ncase {name}"));
+    let mut out = Out(format!("leanvm-guest-diff 5\ncase {name}"));
     out.tag("seed");
     let seed = leanvm_core::cpu::fs_seed(unified_guest());
     out.bytes(&cell_bytes(seed));

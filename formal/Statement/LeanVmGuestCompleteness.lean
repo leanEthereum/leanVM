@@ -34,16 +34,16 @@ declared claims at most the claims held. -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
   signatures or by entries of the children's lists, each used once: each coverage slot is written
-  once and the declared claims have one slot each (`lean_ethereum.py:4773-4774, 4778-4779`; a
-  child's list by hinted indices, `:4362-4364`, or by strictly increasing hinted gaps, every claim
-  of the list writing one mark, `:4427-4432, 4487`; the count, `:4825`), where `NodeRelation` lets
+  once and the declared claims have one slot each (`lean_ethereum.py:4769-4770, 4774-4775`; a
+  child's list by hinted indices, `:4361-4363`, or by strictly increasing hinted gaps, every claim
+  of the list writing one mark, `:4426-4431, 4486`; the count, `:4821`), where `NodeRelation` lets
   two equal claims share one holder. -/
   claimsHeldWithMultiplicity :
     statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.xmss)).flatten) ∧
     statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.sphincs)).flatten)
-  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4708`). -/
+  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4704`). -/
   atMostSixteenChildren : witness.children.length ≤ 16
   /-- At most `2^17` claims in the children's lists, in all. -/
   atMost2Pow17ChildClaims :
@@ -71,7 +71,7 @@ nonce within its fuel, a zero where the guest program divides) is bounded in the
 random-permutation model for the same prover and check (`verifierRefusingZero`).
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each non-final level's batching challenge `λ`, `lean_ethereum.py:1651, 1766, 1772`), so a zero
+and each non-final level's batching challenge `λ`, `lean_ethereum.py:1650, 1765, 1771`), so a zero
 there makes it reject a child the verifier accepts. The honest child's hypothesis refuses a zero
 challenge anywhere (`VerifierProgram.refusingZeroChallenge`, a slightly stronger one, each
 challenge being zero with probability `2^-128`). -/

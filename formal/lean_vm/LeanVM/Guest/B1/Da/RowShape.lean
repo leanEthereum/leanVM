@@ -12,7 +12,7 @@ public import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Source
 
 /-!
-# `da_row_shape` (G:4550-4559)
+# `da_row_shape` (G:4549-4558)
 
 `da_row_shape(n_blob_g, g_log_pad, g_squares)`: `n_blob_g ≠ 1` (an inverse),
 `n_blob_g = g^r` with `r ≤ M`, `g_log_pad = g^L` with `L ≤ log M` (range checks against `g^M`,

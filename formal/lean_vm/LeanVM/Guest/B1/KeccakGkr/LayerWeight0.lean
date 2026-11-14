@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerWeight0
 
-  A later claim's weight at the local point in `keccak_layer` (G:2777-2780): `keccak_shifts_eq`
+  A later claim's weight at the local point in `keccak_layer` (G:2776-2779): `keccak_shifts_eq`
   then `keccak_form`.
 -/
 
@@ -47,7 +47,7 @@ theorem formVal_congr {F F' L S S' : ℕ → E} (hF : ∀ l < 25, F l = F' l)
 
 theorem rho_used : ∀ l < 25, kRho l ∈ shiftUsed ∧ (kRho l + 1) % 64 ∈ shiftUsed := by decide
 
-/-- **A later claim's weight section** (G:2783-2786). -/
+/-- **A later claim's weight section** (G:2782-2785). -/
 theorem weightOk_zero (o : ℕ) : WeightOk 0 o := by
   intro C rd σ c y locPt next kret hcr hlocL hloc hf h
   obtain ⟨-, -, -, -, -, -, lp, lanes, hlp, hlen, hlanes, lc, sl, loc, hlc, hlocL', hlocR, -, -, hw⟩ :=

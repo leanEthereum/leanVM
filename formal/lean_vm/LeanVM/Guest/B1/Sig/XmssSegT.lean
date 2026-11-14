@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegT
 
-  `verify_lean_xmss` (`lean_ethereum.py:3847-3919`), inline in `main`'s raw-leanXMSS loop
+  `verify_lean_xmss` (`lean_ethereum.py:3846-3918`), inline in `main`'s raw-leanXMSS loop
   `main_loop2`, as a template: statements 9 to 321 of `main_loop2`'s body, with the values numbered
   as the renumbered expansion numbers them.
 -/
@@ -64,20 +64,20 @@ def sTag (i : Nat) : V :=
 def bound255 : E := word 9223372036854810629 0
 
 /-- leanXMSS's chain step: `keccak([P, steps s], [v, tag i], walks[o:o + 1])` (`walk`,
-`lean_ethereum.py:3527-3531`), its constant at `c`. -/
+`lean_ethereum.py:3526-3530`), its constant at `c`. -/
 def sWots (steps : Nat → V) : WotsT where
   step i s v c o := k64 sLxPad sLxPP (steps s) v (sTag i) c o
   size := 1
   power := sPower
 
-/-- The prologue (`lean_ethereum.py:3624-3644`). -/
+/-- The prologue (`lean_ethereum.py:3623-3643`). -/
 def sPrologue : List Stmt :=
   [loadS sLxPP sSigner 1, hintW "lx_index" (runV 67 4), hintW "lx_windows" (runV 71 4)] ++
     (List.range 13).map (fun s => cst (75 + s) (word (2 ^ s) 0))
 
 /-! ## The codeword -/
 
-/-- Arm `k` of a group of `n` digits from base `b` (`walk_group`, `lean_ethereum.py:3765-3779`):
+/-- Arm `k` of a group of `n` digits from base `b` (`walk_group`, `lean_ethereum.py:3764-3778`):
 `armT` with the encoding of `k`'s own `n` digits, `k % 4^n` (`W.enc`, leanXMSS's default). -/
 def armM (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
     (prodIn encIn prodOut encOut : V) (k b : Nat) : List Stmt × Nat :=
@@ -124,7 +124,7 @@ def sDigitChecks (dg : Nat) : List Stmt :=
   (List.range 15).flatMap fun p =>
     rangeS (.n (dg + p)) (if p < 14 then bound255 else word (2 ^ 15) 0) (dg + 15 + 4 * p)
 
-/-- The codeword of `58` chains, its digit words from `dg` (`lean_ethereum.py:3660-3675`): the
+/-- The codeword of `58` chains, its digit words from `dg` (`lean_ethereum.py:3659-3674`): the
 hint, the range checks, the hoisted `2^63`, the `15` dispatches, the digits stored where the
 digest's first cell `d0` is and the target sum `g^T` asserted. The statements, the next base and
 the chains' tips. -/
@@ -137,7 +137,7 @@ def sCodewordT (W : WotsT) (target : E) (d0 : V) (dg : Nat) : List Stmt × Nat �
 /-! ## The path, a window at a time -/
 
 /-- Level `r` of window `w` in arm `k` from base `b`, from the node `cur` (`lx_levels`,
-`lean_ethereum.py:3804-3828`): the address (`his[w + 1] · g^(7 - r)` plus the constant, `his[w + 1]`
+`lean_ethereum.py:3803-3827`): the address (`his[w + 1] · g^(7 - r)` plus the constant, `his[w + 1]`
 plus it at `r = 7`, the constant alone in the top window), the hinted sibling and the `KECCAK` of
 the pair in the order of `k`'s bit `r`. The last level writes `out`, numbered in arm `0`
 (`outO = none`). The statements, the next base and the parent. -/
@@ -188,7 +188,7 @@ def lxArmsT (w : Nat) (cur : V) (o : Nat) : Nat → Nat → Nat → List (List S
 /-- Where arm `0` of window `w` from base `b` numbers `out`. -/
 def lxOut0 (w b : Nat) : Nat := if w + 1 = 4 then b + 31 else b + 46
 
-/-- Window `w` from base `b`, from the node `cur` (`lean_ethereum.py:3680-3689`): the range check,
+/-- Window `w` from base `b`, from the node `cur` (`lean_ethereum.py:3679-3688`): the range check,
 the hoisted `2^63` and the dispatch over `256` arms. The statements, the next base and `out`. -/
 def lxWindowT (w : Nat) (cur : V) (b : Nat) : List Stmt × Nat × Nat :=
   let arms := lxArmsT w cur (lxOut0 w (b + 5)) 256 0 (b + 5)
@@ -246,7 +246,7 @@ def xSeg : List Stmt :=
   sPrologue ++ l0.1 ++ l1.1 ++
     [loadS (.n l1.2.1) sSigner 0, .atom (.assertEq l1.2.2 (.n l1.2.1))]
 
-/-- `main_loop2`'s statements before the check (`lean_ethereum.py:4546-4554`): the raw index, its
+/-- `main_loop2`'s statements before the check (`lean_ethereum.py:4545-4553`): the raw index, its
 range
 check, the cover word, the claim's pointer `lx_table · idx^4`. -/
 def l2Pre : List Stmt :=

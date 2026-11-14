@@ -183,7 +183,7 @@ theorem vs_zero (hl : args.length = 6) :
     rcases hd with rfl | rfl | rfl | rfl <;> simp [vsHeadT, vsConst]
   exact ⟨e 8 (by simp), e 9 (by simp), e 10 (by simp), e 11 (by simp)⟩
 
-/-- **The seed's capacity** (G:3516-3520), on the arguments' digests. -/
+/-- **The seed's capacity** (G:3515-3519), on the arguments' digests. -/
 theorem vs_seedCap (hl : args.length = 6) {seed pi : Digest}
     (h0 : args.getD 0 0 = (digestHalves pi).1) (h1 : args.getD 1 0 = (digestHalves pi).2)
     (h2 : args.getD 2 0 = (digestHalves seed).1) (h3 : args.getD 3 0 = (digestHalves seed).2) :
@@ -241,7 +241,7 @@ theorem vsWords_eq (σ : Val) : vsWords σ = (List.range 8).map fun i ↦ σ (.n
 /-- The root's sponge: the root's two words waiting. -/
 noncomputable abbrev vsRootFsV (rd : Reader) (w : ℕ → E) (args : List E) : Fs := vsRootFs (vsσ rd w args)
 
-/-- **The announced and root words absorbed** (G:3534-3587): from the seed's capacity, the stream's
+/-- **The announced and root words absorbed** (G:3533-3586): from the seed's capacity, the stream's
 words `0 .. 7` then `8`, `9` give the root's sponge. -/
 theorem vs_rootFs (hl : args.length = 6) {ws : List E} (hwl : 10 ≤ ws.length)
     (hws : ∀ k < 10, LoadHolds rd (w 25) k (ws.getD k 0)) :
@@ -284,7 +284,7 @@ theorem vsg_tabs {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {c d :
   (vsTabsT_holds (C := fun _ _ _ ↦ True) (kret := fun _ ↦ True)
     (vs_holdsList_good hb hg (next := True) trivial)).1
 
-/-- **The out-of-domain sample** (G:3599-3604): the nonce `n` at stream offset `10` absorbed after
+/-- **The out-of-domain sample** (G:3598-3603): the nonce `n` at stream offset `10` absorbed after
 the root's words and permuted (`vsOodSt`), `grind_check`'s cell, the point's capacity and
 challenge, `tabs`, and the value's pointer `stream·g^11`. -/
 theorem vs_ood (hl : args.length = 6) {ws : List E}
@@ -326,7 +326,7 @@ theorem vs_ood (hl : args.length = 6) {ws : List E}
 
 /-! ## The bus grind -/
 
-/-- **The bus grind's index** (G:3611-3613): `g^(d - 20)`, and `tabs`. -/
+/-- **The bus grind's index** (G:3610-3612): `g^(d - 20)`, and `tabs`. -/
 theorem vs_busGrind (hl : args.length = 6) {d : ℕ} (hd : 20 ≤ d) (h253 : w 253 = gen ^ d) :
     ς (.n 322) = gen ^ (d - 20) ∧ ς (.n 323) = gen ^ 13 ∧
       ς (.n 328) = ς (.n 4) * gen ^ winTabAt := by
@@ -402,7 +402,7 @@ theorem vs_fpw_loop (hl : args.length = 6) : ∀ n ≤ 15,
       · exact hi i hi'
       · rw [hs, hq, show 336 + 14 * i + 13 = 349 + 14 * i by omega]
 
-/-- **The slot weights and `β`** (G:3614-3621): squeezed from `opening_message`'s capacity
+/-- **The slot weights and `β`** (G:3613-3620): squeezed from `opening_message`'s capacity
 (`vsFpwFs`), the fifteen weights at `349 + 14 i`, then `β` at `559` with the capacity after at
 `554 .. 558`. -/
 theorem vs_fpw (hl : args.length = 6) :
@@ -421,7 +421,7 @@ theorem vs_fpw (hl : args.length = 6) :
 
 /-! ## The three calls -/
 
-/-- **The three calls' arguments** (G:3624-3635): `tabs` thrice, `τ` read from `dims_g[6]`,
+/-- **The three calls' arguments** (G:3623-3634): `tabs` thrice, `τ` read from `dims_g[6]`,
 the output lanes at `col_eval_words·g^101`. -/
 theorem vs_callsV (hl : args.length = 6) :
     ς (.n 561) = ς (.n 4) * gen ^ winTabAt ∧ ς (.n 572) = ς (.n 4) * gen ^ winTabAt ∧

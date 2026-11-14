@@ -511,7 +511,7 @@ under its claim's key and message (Keccak-256 as the schemes' hash, at any leaf 
 claim of $s$ is a raw signature's claim or occurs in the corresponding list of some child's $s_i$.
 \item The DA digest is accounted for (\lean{DaDigestHeld}): with a direct matrix,
 $\mathit{da} = H(\rho \,\|\, z)$ of the claim it opens; without one, $\mathit{da}$ is zero or
-some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4828-4831}).
+some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4824-4827}).
 \item Every child is proven (\lean{ChildrenProven}): its deferred claim has the bytecode's shape,
 and the \emph{deferring verifier} accepts its proof: $\mathrm{verifyDeferred}(B, \sigma,
 \mathrm{dig}_\sigma(s_i), f_i, p_i) = \mathsf{true}$. The deferring verifier is the zkVM verifier
@@ -627,7 +627,7 @@ size ($G$ checks every announced count to be a memory address, \lean{valid_count
 $2^{37}(\lambda + 16)$ for the rest of the witness: $G$'s own asserts give at most $16$ children,
 each child's cursor is at most $8192$ words, as the stream of its proof is, which the deferring
 verifier accepts on a valid execution (\lean{valid_cursor}, from
-\lean{stream_le_of_verifyDeferred}), and the decoder clamps the DA matrix's row count at $1024$. The
+\lean{stream_le_of_verifyDeferred}), and the decoder clamps the DA matrix's row count at \lean{LeanDa.maxRows}. The
 budget is $2^{43.90}$ at $\kappa = 20$ and $2^{20}$ steps, $2^{47.44}$ at $\kappa = 24$ and
 $2^{24}$, $2^{51.42}$ at $\kappa = 28$ and $2^{28}$, $2^{53.42}$ at $\kappa = 30$ and $2^{30}$,
 $2^{70.25}$ at $\kappa = 30$ and $2^{49}$, and $2^{81.30}$ at $\kappa = 30$ and $2^{60}$ (the price

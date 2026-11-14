@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.FormT
 
-  `keccak_form`'s statements (`formAll`, G:2811-2837) compute `formVal`.
+  `keccak_form`'s statements (`formAll`, G:2810-2836) compute `formVal`.
 -/
 
 module
@@ -202,7 +202,7 @@ theorem sum_xy (G : ℕ → E) : ∑ x ∈ range 5, ∑ y ∈ range 5, G (x + 5 
   refine Finset.sum_congr rfl fun x _ ↦ Finset.sum_congr rfl fun y _ ↦ ?_
   rw [add_comm]
 
-/-- **`keccak_form`** (G:2811-2837): the total is `formVal` of the lane weights, the lanes at `π`
+/-- **`keccak_form`** (G:2810-2836): the total is `formVal` of the lane weights, the lanes at `π`
 and the shifts. -/
 theorem formAll_holds {lp : V} {sh f : ℕ → ℕ} {B : ℕ} {lanes : List E}
     (hlanes : ReadsAt rd (σ lp) lanes) (hlen : lanes.length = 25) {next : Prop}
