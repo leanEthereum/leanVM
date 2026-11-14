@@ -950,6 +950,7 @@ def placeProgram (p : List TracedFn) : Except String (List Placed × Tables) :=
   else if (p.map (·.core.name)).contains "__jump_tables" then
     .error "a function named __jump_tables"
   else if !decide (p.map (·.core.name)).Nodup then .error "two functions of one name"
+  else if ((loopTable p)["main"]?).any (·.registered) then .error "main is a loop helper"
   else placeFns (loopTable p) (sigTable p) p {}
 
 end

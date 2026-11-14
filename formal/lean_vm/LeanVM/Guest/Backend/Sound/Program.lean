@@ -117,7 +117,8 @@ theorem placeFns_spec {loops : Loops} {sigs : Std.HashMap String (ℕ × ℕ)} :
 theorem placeProgram_ok {p : List TracedFn} {placed : List Placed} {tables : Tables}
     (h : placeProgram p = .ok (placed, tables)) :
     (p.map (·.core.name)).head? = some "main" ∧ "__jump_tables" ∉ p.map (·.core.name) ∧
-      (p.map (·.core.name)).Nodup ∧ placeFns (loopTable p) (sigTable p) p {} = .ok (placed, tables) := by
+      (p.map (·.core.name)).Nodup ∧ ((loopTable p)["main"]?).any (·.registered) = false ∧
+      placeFns (loopTable p) (sigTable p) p {} = .ok (placed, tables) := by
   unfold placeProgram at h
   split at h
   · cases h
@@ -128,7 +129,10 @@ theorem placeProgram_ok {p : List TracedFn} {placed : List Placed} {tables : Tab
       split at h
       · cases h
       · next h3 =>
-        exact ⟨by simpa using h1, by simpa using h2, by simpa using h3, h⟩
+        split at h
+        · cases h
+        · next h4 =>
+          exact ⟨by simpa using h1, by simpa using h2, by simpa using h3, by simpa using h4, h⟩
 
 theorem slotsHold_spec {slots : Array KVal} {fills : List Fill}
     {shared : List (List String × ℕ)} (h : slotsHold slots fills shared = true) :
@@ -246,7 +250,7 @@ theorem forall₂_names {loops : Loops} {sigs : Std.HashMap String (ℕ × ℕ)}
 theorem fnAt_of_mem {κ : ℕ} {W : World κ} (hW : W.Compiled) {tf : TracedFn} (htf : tf ∈ W.p) :
     ∃ pf pre post f, FnAt W tf pf pre post f := by
   obtain ⟨placed, tables, hpp, hfns, hfill, hshared⟩ := lowerProgram_ok hW.1
-  obtain ⟨-, -, hnd, hpf⟩ := placeProgram_ok hpp
+  obtain ⟨-, -, hnd, -, hpf⟩ := placeProgram_ok hpp
   obtain ⟨-, hall⟩ := placeFns_spec _ _ hpf
   obtain ⟨hlen, hget⟩ := forall₂_getElem hall
   obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp htf

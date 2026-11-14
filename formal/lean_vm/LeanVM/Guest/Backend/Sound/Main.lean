@@ -26,7 +26,7 @@ theorem World.names (hW : W.Compiled) :
     W.fns.map (·.name) = W.p.map (·.core.name) ∧ (W.p.map (·.core.name)).Nodup ∧
       "__jump_tables" ∉ W.p.map (·.core.name) ∧ (W.p.map (·.core.name)).head? = some "main" := by
   obtain ⟨placed, tables, hpp, hfns, -, -⟩ := lowerProgram_ok hW.1
-  obtain ⟨hmain, hjt, hnd, hpf⟩ := placeProgram_ok hpp
+  obtain ⟨hmain, hjt, hnd, -, hpf⟩ := placeProgram_ok hpp
   obtain ⟨-, hall⟩ := placeFns_spec _ _ hpf
   refine ⟨?_, hnd, hjt, hmain⟩
   rw [hfns, ← forall₂_names hall, List.map_map]
@@ -182,6 +182,145 @@ theorem fn_sound (hW : W.Compiled) (hκ : κ < 64) {tf : TracedFn} (htf : tf ∈
   obtain ⟨k', hk', rg, hr, hs'⟩ := hback.resolve_left hne
   exact ⟨k', hk', rg, hr, ⟨tf', htf, rfl, ⟨hparams, holdsList_mono (fun _ _ _ h => h) _ id
     (fun _ h => h.1) hbody⟩, inMem_of_retRegs hκ hr, hpre', hs.2, tf', htf, rfl, rfl, rfl⟩, hs'⟩
+
+/-! ## The whole program -/
+
+/-- `main` is no loop helper. -/
+theorem main_not_registered (hW : W.Compiled) : ¬W.registered "main" := by
+  obtain ⟨placed, tables, hpp, -⟩ := lowerProgram_ok hW.1
+  have := (placeProgram_ok hpp).2.2.2.1
+  rw [World.registered, this]
+  exact Bool.false_ne_true
+
+/-- **`__jump_tables` writes the jump tables**: a run from `(g^0, 1)` reaches `main`'s entry at
+frame `1` with every slot of the tables written. -/
+theorem jt_of_run (hW : W.Compiled) {k : ℕ}
+    (hs : SafeReached W.prog W.L k ⟨addressOfIndex 0, 1⟩) :
+    ∃ k' ≤ k, JTHolds W.L W.layout W.slots ∧
+      SafeReached W.prog W.L k' ⟨addressOfIndex (W.ent "main"), 1⟩ := by
+  obtain ⟨hn, hnd, -, hmain⟩ := World.names hW
+  obtain ⟨m, rest, hfns⟩ : ∃ m rest, W.fns = m :: rest := by
+    cases hf : W.fns with
+    | nil =>
+        rw [← hn, hf] at hmain
+        cases hmain
+    | cons m rest => exact ⟨m, rest, rfl⟩
+  have hmname : m.name = "main" := by
+    rw [← hn, hfns] at hmain
+    simpa using hmain
+  have hndw := World.nodup hW
+  by_cases he : W.slots.isEmpty = true
+  · have hsplit : (withTables W.fns W.slots).1 = [] ++ m :: rest := by
+      rw [hfns]
+      simp [withTables, he]
+    have hentry := layout_entry (withTables W.fns W.slots).2 hndw hsplit
+    have hent : W.ent "main" = 0 := by
+      rw [World.ent, World.layout, layoutOf, Std.HashMap.getD_eq_getD_getElem?, ← hmname, hentry]
+      rfl
+    refine ⟨k, Nat.le_refl _, fun s kv w hsk _ => ?_, by rw [hent]; exact hs⟩
+    have hsz : W.slots.size = 0 := by simpa using he
+    have := (Array.getElem?_eq_some_iff.mp hsk).1
+    omega
+  · have hsplit0 : (withTables W.fns W.slots).1 = [] ++
+        (⟨"__jump_tables", W.slots.zipIdx.map fun (kv, j) => (⟨.set (m.frameSize + j) kv, []⟩ : LInstr),
+          m.frameSize + W.slots.size⟩ : Lowered) ::
+          ({ m with frameSize := m.frameSize + W.slots.size } :: rest) := by
+      rw [hfns]
+      simp [withTables, he]
+    have hbase : W.layout.tablesBase = m.frameSize := by
+      rw [World.layout, layoutOf, layout_tablesBase, hfns]
+      simp [withTables, he]
+    have hentry := layout_entry (withTables W.fns W.slots).2 hndw
+      (pre := [_]) (f := { m with frameSize := m.frameSize + W.slots.size }) (post := rest) hsplit0
+    have hent : W.ent "main" = W.slots.size := by
+      rw [World.ent, World.layout, layoutOf, Std.HashMap.getD_eq_getD_getElem?, ← hmname]
+      rw [show m.name = ({ m with frameSize := m.frameSize + W.slots.size } : Lowered).name from rfl,
+        hentry]
+      simp [totalSize]
+    have hL := loaded_of_assemble W.L hndw hsplit0 W.hl hW.2 W.Pre W.Post
+    obtain ⟨k', hk', hseg, hs'⟩ := seg_run hL _ 0 k (fun o ho => by
+      simp only [opsOf, List.mem_map, Array.mem_toList_iff, Array.mem_map] at ho
+      obtain ⟨_, ⟨_, _, rfl⟩, rfl⟩ := ho
+      rfl) (codeAt_self _) (by simpa [SafeAt, siteOf, World.prog] using hs)
+    refine ⟨k', by omega, fun s kv w hsk hw => ?_, ?_⟩
+    · obtain ⟨hslt, rfl⟩ := Array.getElem?_eq_some_iff.mp hsk
+      have := hseg s (by simpa [opsOf] using hslt)
+      simp only [opsOf, List.getElem_map, Array.getElem_toList, Array.getElem_map,
+        Array.getElem_zipIdx, siteOf, Nat.zero_add] at this
+      rw [hbase]
+      cases hkv : W.slots[s] with
+      | «at» f i =>
+          rw [hkv] at hw this
+          cases hw
+          simpa [Site.R, resolveOp, resolveK, Holds, World.layout] using this
+      | entry f =>
+          rw [hkv] at hw this
+          cases hw
+          simpa [Site.R, resolveOp, resolveK, Holds, World.layout] using this
+      | _ =>
+          rw [hkv] at hw
+          cases hw
+    · rw [hent]
+      simpa [SafeAt, siteOf, opsOf, World.prog] using hs'
+
+/-- **Every function's contract**, by induction on the steps left: every function on a trace
+with no `chain` event, every function's obligations holding. -/
+theorem contracts (hW : W.Compiled) (hκ : κ < 64) (hnc : ∀ tf ∈ W.p, NoChain tf)
+    (hobl : ∀ tf ∈ W.p, W.Obligations tf) (g : String) :
+    FunSpecReached W.prog W.L (W.ent g) (W.Pre g) (W.Post g) :=
+  funSpecReached_induction (ι := String) (entry := W.ent) (P := W.Pre) (Q := W.Post)
+    (fun n hn g fp k hk hpre hs => by
+      have hpre' := hpre
+      obtain ⟨hne, -, tf, htf, rfl, -⟩ := hpre
+      exact fn_sound hW hκ htf hne (hnc tf htf) (hobl tf htf) n hn fp k hk hpre' hs) g
+
+/-- **(c) The program is compiled correctly**: on a memory where a run of the compiled program
+from `(g^0, 1)` halts, every function on a trace with no `chain` event and every function's
+obligations holding, `main`'s core body holds at frame `1` under the valuation by places, its
+calls located. -/
+theorem program_sound (hW : W.Compiled) (hκ : κ < 64) (hnc : ∀ tf ∈ W.p, NoChain tf)
+    (hobl : ∀ tf ∈ W.p, W.Obligations tf)
+    (hU : ∀ tf ∈ W.p, tf.core.name = "main" → W.U "main" (frameWords W.L 1 2 (sigOf tf).1))
+    {k : ℕ} (hs : Safe W.prog W.L k ⟨addressOfIndex 0, 1⟩) : W.MainHolds := by
+  obtain ⟨-, -, -, hmain⟩ := World.names hW
+  obtain ⟨tf, htf, hname⟩ : ∃ tf ∈ W.p, tf.core.name = "main" := by
+    cases hp : W.p with
+    | nil =>
+        rw [hp] at hmain
+        cases hmain
+    | cons tf rest =>
+        rw [hp] at hmain
+        exact ⟨tf, List.mem_cons_self, by simpa using hmain⟩
+  obtain ⟨k', -, hjt, hs'⟩ := jt_of_run hW ⟨hs, Reach.refl _⟩
+  rw [← hname] at hs'
+  obtain ⟨hparams, hbody⟩ := body_of_run hW htf (hnc tf htf) (hobl tf htf) hjt (fun _ => rfl)
+    (fun hreg => absurd (hname ▸ hreg) (main_not_registered hW)) (hname ▸ hU tf htf hname)
+    (fun g => (contracts hW hκ hnc hobl g).lt k') (Nat.le_refl _) hs'
+  exact ⟨tf, htf, hname, hparams,
+    holdsList_mono (fun _ _ _ h => h) _ id (fun _ h => h.1) hbody⟩
+
+/-- **The whole program's relation**: a halting run makes `main`'s core relation hold of the
+argument and return words of its frame, in the core IR's own semantics (`Core.Program.Rel`). -/
+theorem program_rel (hW : W.Compiled) (h : W.MainHolds) :
+    ∃ tf ∈ W.p, tf.core.name = "main" ∧ W.core.Rel W.L.read "main"
+      (frameWords W.L 1 2 (sigOf tf).1) (frameWords W.L 1 (2 + (sigOf tf).1) (sigOf tf).2) := by
+  obtain ⟨tf, htf, hname, hparams, hbody⟩ := h
+  refine ⟨tf, htf, hname, ?_⟩
+  have hfind : W.core.find? "main" = some tf.core := by
+    have := find?_of_nodup (fun c : Core.Fn => c.name) (W.p.map (·.core)) tf.core
+      (by rw [List.map_map]; exact (World.names hW).2.1) (List.mem_map_of_mem htf)
+    rw [hname] at this
+    exact this
+  exact (rel_iff W.core "main" _ _).mpr ⟨tf.core, hfind, W.vf tf.core.name 1, hparams,
+    holdsList_mono (relL_le_rel W.core) _ id (fun _ h => h) hbody⟩
+
+/-- (c) for a valid execution of the compiled program. -/
+theorem program_sound_valid (hW : W.Compiled) (hκ : κ < 64) (hnc : ∀ tf ∈ W.p, NoChain tf)
+    (hobl : ∀ tf ∈ W.p, W.Obligations tf)
+    (hU : ∀ tf ∈ W.p, tf.core.name = "main" → W.U "main" (frameWords W.L 1 2 (sigOf tf).1))
+    {input : PublicInput} {steps : ℕ}
+    (h : ValidExecution W.prog input ⟨κ, W.L, steps⟩) : W.MainHolds :=
+  program_sound hW hκ hnc hobl hU (safe_of_validExecution h)
 
 end
 end LeanVM.Guest.Backend
