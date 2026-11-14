@@ -222,5 +222,289 @@ theorem ite_lays (c : V) (z nz rest : List Stmt) (st : St)
 
 end
 
+/-! ## `match` -/
+
+theorem armsSize_take_succ : ∀ (as : List (List PStmt)) (j : ℕ) (hj : j < as.length),
+    armsSize (as.take (j + 1)) = armsSize (as.take j) + blockSize as[j]
+  | [], _, hj => absurd hj (Nat.not_lt_zero _)
+  | a :: as, 0, _ => by simp [armsSize]
+  | a :: as, j + 1, hj => by
+      have := armsSize_take_succ as j (Nat.lt_of_succ_lt_succ hj)
+      simp only [List.take_succ_cons, armsSize, List.getElem_cons_succ, this]
+      omega
+
+theorem armsSize_take_le : ∀ (as : List (List PStmt)) (j : ℕ),
+    armsSize (as.take j) ≤ armsSize as
+  | [], _ => by simp [armsSize]
+  | a :: as, 0 => by simp [armsSize]
+  | a :: as, j + 1 => by
+      have := armsSize_take_le as j
+      simp only [List.take_succ_cons, armsSize]
+      omega
+
+theorem armsSize_take_length (as : List (List PStmt)) : armsSize (as.take as.length) = armsSize as := by
+  rw [List.take_length]
+
+/-- Arm `j`'s slot and the slots its block fills are among the stage's. -/
+theorem armsFills_mem (f : String) (first : ℕ) : ∀ (as : List (List PStmt)) (j₀ pos j : ℕ)
+    (hj : j < as.length),
+    (first + (j₀ + j), KVal.at f (pos + armsSize (as.take j))) ∈ armsFills f first as j₀ pos ∧
+      ∀ x ∈ blockFills f as[j] (pos + armsSize (as.take j)), x ∈ armsFills f first as j₀ pos
+  | [], _, _, _, hj => absurd hj (Nat.not_lt_zero _)
+  | a :: as, j₀, pos, 0, _ => by
+      simp only [armsFills, List.take_zero, armsSize, Nat.add_zero, List.getElem_cons_zero,
+        List.mem_cons, List.mem_append]
+      exact ⟨Or.inl trivial, fun x hx => Or.inr (Or.inl hx)⟩
+  | a :: as, j₀, pos, j + 1, hj => by
+      obtain ⟨h1, h2⟩ := armsFills_mem f first as (j₀ + 1) (pos + blockSize a) j
+        (Nat.lt_of_succ_lt_succ hj)
+      have e : pos + blockSize a + armsSize (as.take j) =
+          pos + armsSize ((a :: as).take (j + 1)) := by
+        simp only [List.take_succ_cons, armsSize]
+        omega
+      have e' : j₀ + 1 + j = j₀ + (j + 1) := by omega
+      rw [e, e'] at h1
+      rw [e] at h2
+      simp only [armsFills, List.mem_cons, List.mem_append, List.getElem_cons_succ]
+      exact ⟨Or.inr (Or.inr h1), fun x hx => Or.inr (Or.inr (h2 x hx))⟩
+
+section
+
+variable {kj : E → E → Prop} {kretP : Prop} {khalt : E → E → Prop}
+
+/-- A jump to arm `j`'s first instruction runs arm `j`. -/
+theorem armsJump_get : ∀ (as : List (List PStmt)) (pos j : ℕ) (hj : j < as.length) {d f : E},
+    PStmt.ArmsJump Γ fp as pos kj kretP khalt d f → d = Γ.tgt (pos + armsSize (as.take j)) →
+    f = ofK fp →
+    PStmt.SemList Γ fp as[j] (pos + armsSize (as.take j))
+      (kj (Γ.tgt (pos + armsSize (as.take j) + blockSize as[j])) (ofK fp)) kj kretP khalt
+  | [], _, _, hj, _, _, _, _, _ => absurd hj (Nat.not_lt_zero _)
+  | a :: as, pos, 0, _, d, f, h, hd, hf => by
+      simp only [PStmt.ArmsJump] at h
+      simpa [armsSize] using h.1 (by simpa [armsSize] using hd) hf
+  | a :: as, pos, j + 1, hj, d, f, h, hd, hf => by
+      simp only [PStmt.ArmsJump] at h
+      have e : pos + blockSize a + armsSize (as.take j) =
+          pos + armsSize ((a :: as).take (j + 1)) := by
+        simp only [List.take_succ_cons, armsSize]
+        omega
+      have := armsJump_get as (pos + blockSize a) j (Nat.lt_of_succ_lt_succ hj) h.2
+        (by rw [e]; exact hd) hf
+      rw [e] at this
+      exact this
+
+end
+
+section
+
+variable (Γ fp F ctx slots B C U)
+
+/-- What the placed arms of a `match` are: each the arm's block, which means the arm, then its
+jump to the join, the last falling into it. -/
+def ArmsSem (join one sfp : Cell) (n : ℕ) : List (List Stmt) → List (List PStmt) → ℕ → Prop
+  | [], [], _ => True
+  | arm :: more, b :: blocks, j =>
+      (∃ blk, b = blk ++ (if j + 1 != n then [PStmt.op [] (.jump one join sfp)] else []) ∧
+        BlockSem Γ fp ctx slots B blk (OblList C U Γ.L.read (valP Γ.L fp F) arm)
+          (fun next kret => Stmt.HoldsList C Γ.L.read (valP Γ.L fp F) arm next kret)) ∧
+        ArmsSem join one sfp n more blocks (j + 1)
+  | _, _, _ => False
+
+end
+
+theorem armsSem_get {join one sfp : Cell} {n : ℕ} : ∀ (arms : List (List Stmt))
+    (blocks : List (List PStmt)) (j₀ : ℕ), ArmsSem Γ fp F ctx C U slots B join one sfp n arms blocks j₀ →
+    arms.length = blocks.length ∧ ∀ j (h1 : j < arms.length) (h2 : j < blocks.length),
+      ∃ blk, blocks[j] = blk ++ (if j₀ + j + 1 != n then [PStmt.op [] (.jump one join sfp)]
+        else []) ∧
+        BlockSem Γ fp ctx slots B blk (OblList C U Γ.L.read (valP Γ.L fp F) arms[j])
+          (fun next kret => Stmt.HoldsList C Γ.L.read (valP Γ.L fp F) arms[j] next kret)
+  | [], [], _, _ => ⟨rfl, fun _ h => absurd h (Nat.not_lt_zero _)⟩
+  | [], _ :: _, _, h => h.elim
+  | _ :: _, [], _, h => h.elim
+  | arm :: more, b :: blocks, j₀, h => by
+      obtain ⟨hhead, htail⟩ := h
+      obtain ⟨hlen, hget⟩ := armsSem_get more blocks (j₀ + 1) htail
+      refine ⟨by simp [hlen], fun j h1 h2 => ?_⟩
+      cases j with
+      | zero => simpa using hhead
+      | succ j =>
+          have := hget j (Nat.lt_of_succ_lt_succ h1) (Nat.lt_of_succ_lt_succ h2)
+          have e : j₀ + 1 + j + 1 = j₀ + (j + 1) + 1 := by omega
+          rw [e] at this
+          simpa using this
+
+theorem oblArms_get {rd : Reader} {σ : Val} {x : V} {g : Prop} : ∀ (arms : List (List Stmt))
+    (j₀ : ℕ), OblArms C U rd σ x j₀ arms g → ∀ j (h : j < arms.length),
+      σ x = ofK (addressOfIndex (j₀ + j)) → OblList C U rd σ arms[j] g
+  | [], _, _, _, h, _ => absurd h (Nat.not_lt_zero _)
+  | a :: as, j₀, hobl, 0, _, hx => hobl.1 (by simpa using hx)
+  | a :: as, j₀, hobl, j + 1, h, hx => by
+      have := oblArms_get as (j₀ + 1) hobl.2 j (Nat.lt_of_succ_lt_succ h)
+        (by rw [hx]; congr 2; omega)
+      simpa using this
+
+section
+
+variable (env : PlaceEnv Γ fp ctx C U slots B)
+
+include env in
+/-- **A `match`**: at a selector in range the table jump enters the arm the selector names, the
+arm runs, and its jump, or for the last arm its end, is the join. -/
+theorem chain_means {H : Prop} {locs : Std.HashMap V Loc} {sc : Scope} {t : Tables} {x : V}
+    {arms : List (List Stmt)} {rest : List Stmt} {hints : List LHint}
+    {join lx entry one sfp : Cell} {first : ℕ} {blocks : List (List PStmt)}
+    (hH : H → wd Γ.L fp lx = valP Γ.L fp F x ∧ wd Γ.L fp sfp = ofK fp ∧ wd Γ.L fp one = 1 ∧
+      ArmsSem Γ fp F ctx C U slots B join one sfp arms.length arms blocks 0) :
+    Means Γ fp F ctx slots B H locs sc sc t
+      [.chain hints join lx entry one sfp [first] [blocks]]
+      (Obl C U Γ.L.read (valP Γ.L fp F) (.match_ x arms))
+      (StmtS C Γ.L.read (valP Γ.L fp F) (.match_ x arms) rest) := by
+  intro pos N kj kretP khalt g next kret hH' _ hp hB hfill _ hsem hG hnext hret _
+  obtain ⟨hlx, hsfp, hone, harms⟩ := hH hH'
+  simp only [PStmt.SemList, PStmt.Sem, List.headD_cons] at hsem
+  obtain ⟨hsetj, hslot, hj⟩ := hsem
+  obtain ⟨-, -, -, htaken⟩ := jumpAt_wd hj
+  have hgo := htaken (by rw [hone]; exact one_ne_zero)
+  simp only [PStmt.StagesJump] at hgo
+  obtain ⟨⟨j, hjlt, hxj⟩, hGarms⟩ := hG
+  obtain ⟨hlen, hget⟩ := armsSem_get arms blocks 0 harms
+  have hjb : j < blocks.length := hlen ▸ hjlt
+  obtain ⟨blk, hblk, hbs⟩ := hget j hjlt hjb
+  have hB' : pos + (3 + armsSize blocks) ≤ B := by
+    simpa [blockSize, stmtSize, stagesSize] using hB
+  have hpc := env.pcLt
+  have hle := armsSize_take_le blocks j
+  have hsucc := armsSize_take_succ blocks j hjb
+  have hle' := armsSize_take_le blocks (j + 1)
+  have hfill' : FillsIn slots (armsFills ctx.name first blocks 0 (pos + 3)) := by
+    simpa [blockFills, stmtFills, stagesFills] using hfill
+  obtain ⟨hslotj, hbf⟩ := armsFills_mem ctx.name first blocks 0 (pos + 3) j hjb
+  have hjoin : wd Γ.L fp join = Γ.tgt (pos + 3 + armsSize blocks) := by
+    have := holds_set_local env.pow (by simp only [stagesSize]; omega) hsetj
+    simpa [stagesSize] using this
+  have hent : wd Γ.L fp entry = Γ.tgt (pos + 3 + armsSize (blocks.take j)) := by
+    have hread := (holds_slot hslot).2
+    rw [hlx, hxj] at hread
+    have e : (ofK (addressOfIndex j)).limb 0 * addressOfIndex (Γ.l.tablesBase + first) =
+        addressOfIndex (Γ.l.tablesBase + (first + (0 + j))) := by
+      simp only [limb_ofK, Fin.val_zero, ↓reduceIte, addressOfIndex, ← pow_add]
+      congr 1
+      omega
+    rw [e, env.jt _ _ _ (hfill' _ hslotj) rfl, env.self] at hread
+    exact (Option.some.inj hread).symm.trans (Γ.l.immediateWord_pow env.pow (by
+      show _ < 2 ^ 128
+      omega))
+  have hsemj := armsJump_get blocks (pos + 3) j hjb hgo.1 hent hsfp
+  have hsizej : blockSize blocks[j] = blockSize blk +
+      blockSize (if 0 + j + 1 != arms.length then [PStmt.op [] (.jump one join sfp)] else []) := by
+    rw [hblk, blockSize_append]
+  have hbfj : FillsIn slots (blockFills ctx.name blk (pos + 3 + armsSize (blocks.take j))) := by
+    intro y hy
+    refine hfill' y (hbf y ?_)
+    rw [hblk, blockFills_append]
+    exact List.mem_append_left _ hy
+  rw [hblk, semList_append] at hsemj
+  refine (holds_match_iff x arms next kret).mpr ⟨j, hjlt, hxj, ?_⟩
+  refine hbs _ _ _ kretP khalt g next kret (by omega) hbfj hsemj
+    (oblArms_get arms 0 hGarms j hjlt (by simpa using hxj)) (fun hN' hg => ?_) hret
+  by_cases hlast : 0 + j + 1 = arms.length
+  · have hall : armsSize (blocks.take (j + 1)) = armsSize blocks := by
+      rw [show j + 1 = blocks.length by omega, List.take_length]
+    simp only [hlast, bne_self_eq_false, Bool.false_eq_true, ↓reduceIte, PStmt.SemList,
+      List.append_nil, blockSize, Nat.add_zero] at hN' hsizej
+    refine hnext hp (hN' ?_ trivial) hg
+    show Γ.tgt _ = Γ.tgt _
+    congr 1
+    omega
+  · have hne : (0 + j + 1 != arms.length) = true := by simpa using hlast
+    simp only [hne, ↓reduceIte, PStmt.SemList, PStmt.Sem, OpSem] at hN'
+    obtain ⟨-, -, -, htk⟩ := jumpAt_wd hN'
+    exact hnext hp (htk (by rw [hone]; exact one_ne_zero) hjoin hsfp) hg
+
+end
+
+theorem Quiet.of_eqv {st st' : St} (h : Eqv st st') : Quiet st st' :=
+  ⟨h.out, h.locs ▸ Sub.refl _, h.scope, TablesLe.of_eq h.tables, h.chainIn, h.chain⟩
+
+theorem Quiet.trans {st st' st'' : St} (h₁ : Quiet st st') (h₂ : Quiet st' st'') : Quiet st st'' :=
+  ⟨h₂.out.trans h₁.out, h₁.locs.trans h₂.locs, h₂.scope.trans h₁.scope, h₁.tables.trans h₂.tables,
+    h₂.chainIn.trans h₁.chainIn, h₂.chain.trans h₁.chain⟩
+
+section
+
+variable (hnc : ∀ e ∈ ctx.trace.toList, e.isChain = false)
+
+include hnc in
+/-- **The arms of a `match`**, each a block of its own from one cell on. -/
+theorem placeArms_wp (join one sfp : Cell) (n base : ℕ) : ∀ (arms : List (List Stmt)) (j : ℕ)
+    (st : St), (∀ arm ∈ arms, ∀ st₀, LaysAt Γ fp F ctx slots B True st₀ (placeBlock arm)
+      (OblList C U Γ.L.read (valP Γ.L fp F) arm)
+      (fun next kret => Stmt.HoldsList C Γ.L.read (valP Γ.L fp F) arm next kret)) → Plain st →
+    wpP (placeArms arms j n base (.join join one sfp)) ctx st (fun blocks st₁ => Plain st₁ ∧
+      Quiet st st₁ ∧ (TablesOK st.tables → EntriesIn slots st₁.tables → Sub st₁.locs F →
+        PoolOK Γ.L fp st.scope → ArmsSem Γ fp F ctx C U slots B join one sfp n arms blocks j))
+  | [], j, st, _, hpl => by
+      rw [placeArms]
+      exact wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ⟨⟨hpl.chainIn, hpl.chain⟩,
+        Quiet.of_eqv ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, fun _ _ _ _ => trivial⟩))
+  | arm :: more, j, st, ih, hpl => by
+      rw [placeArms]
+      refine wp_bind.mpr (wp_modify.mpr ?_)
+      refine wp_bind.mpr fun blk st1 he1 => ?_
+      obtain ⟨hp1, hq1, hm1⟩ := inBlock_spec hnc (ih arm List.mem_cons_self)
+        { st with next := base } ⟨hpl.chainIn, hpl.chain⟩ blk st1 he1
+      refine wp_bind.mpr (wp_pure.mpr ?_)
+      refine wp_bind.mpr (wp_get.mpr ?_)
+      refine wp_bind.mpr fun blocks st2 he2 => ?_
+      obtain ⟨hp2, hq2, ha2⟩ := placeArms_wp join one sfp n base more (j + 1) st1
+        (fun a ha => ih a (List.mem_cons_of_mem _ ha)) hp1 blocks st2 he2
+      refine wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ?_))
+      have hq0 : Quiet st { st with next := base } := Quiet.of_eqv ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+      refine ⟨⟨hp2.chainIn, hp2.chain⟩, ((hq0.trans hq1).trans hq2).trans
+        (Quiet.of_eqv ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩), fun hok hent hF hp => ?_⟩
+      exact ⟨⟨blk, rfl, (hm1 hok).blockSem (hq2.locs.trans hF) hp (hent.of_le hq2.tables)⟩,
+        ha2 (hq1.tables.ok hok) hent hF (hq1.scope ▸ hp)⟩
+
+variable (env : PlaceEnv Γ fp ctx C U slots B)
+
+include env hnc in
+/-- `match`, not chained, its arms' placement sound. -/
+theorem match_lays (x : V) (arms : List (List Stmt)) (rest : List Stmt) (st : St)
+    (ih : ∀ arm ∈ arms, ∀ st₀, LaysAt Γ fp F ctx slots B True st₀ (placeBlock arm)
+      (OblList C U Γ.L.read (valP Γ.L fp F) arm)
+      (fun next kret => Stmt.HoldsList C Γ.L.read (valP Γ.L fp F) arm next kret)) :
+    LaysAt Γ fp F ctx slots B True st (placeStmt (.match_ x arms) rest)
+      (Obl C U Γ.L.read (valP Γ.L fp F) (.match_ x arms))
+      (StmtS C Γ.L.read (valP Γ.L fp F) (.match_ x arms) rest) := by
+  rw [placeStmt]
+  refine LaysAt.callT (flush_spec hnc []) fun _ st₁ => ?_
+  refine LaysAt.plain fun hpl => ?_
+  refine LaysAt.get_bind ?_
+  simp only [hpl.chainIn, hpl.chain, Bool.false_eq_true, ↓reduceIte, pure_bind]
+  refine LaysAt.step (R := fun _ => True) (wp_set.mpr
+    ⟨Quiet.of_eqv ⟨rfl, rfl, rfl, rfl, hpl.chainIn.symm, hpl.chain.symm⟩,
+      fun _ _ _ _ => trivial⟩) fun _ _ => ?_
+  refine LaysAt.call (cellOf_spec x) fun lx _ => ?_
+  refine LaysAt.call (selfFp_spec env.main) fun sfp _ => ?_
+  refine LaysAt.call oneCell_spec fun one _ => ?_
+  refine LaysAt.callT fresh_spec fun join _ => ?_
+  refine LaysAt.callT takeHints_spec fun hints st₂ => ?_
+  refine LaysAt.step (R := fun _ => True) (wp_modifyGet.mpr
+    ⟨⟨rfl, Sub.refl _, rfl, ⟨fun _ h => h, fun h => h⟩, rfl, rfl⟩, fun _ _ _ _ => trivial⟩)
+    fun first _ => ?_
+  refine LaysAt.callT fresh_spec fun entry st₃ => ?_
+  refine LaysAt.get_bind ?_
+  refine LaysAt.plain fun hpl' => ?_
+  refine LaysAt.step (R := fun blocks => ArmsSem Γ fp F ctx C U slots B join one sfp arms.length
+      arms blocks 0)
+    (wp_mono (placeArms_wp hnc join one sfp arms.length st₃.next arms 0 st₃ ih hpl')
+      fun _ _ ⟨_, hq, ha⟩ => ⟨hq, ha⟩) fun blocks _ => ?_
+  refine LaysAt.callT (expect_spec _ _) fun _ _ => ?_
+  refine fun hpl'' => wp_bind.mpr (wp_mono (LaysAt.push (fun _ => chain_means env fun h =>
+    ⟨h.1.1.1.1.2, h.1.1.1.2, h.1.1.2, h.2⟩) hpl'') fun _ _ hq => wp_pure.mpr hq)
+
+end
+
 end
 end LeanVM.Guest.Backend
