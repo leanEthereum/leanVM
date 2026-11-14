@@ -183,13 +183,8 @@ impl LeanXmssExpandedSecretKey {
         }
     }
 
-    /// Builds the bottom tree `leaf_index` is in, and signs its root, ahead of
-    /// [`sign`]: the first signature in a bottom tree pays for both. The key keeps
-    /// the [`MAX_CACHED_BOTTOM_TREES`] it used last.
-    ///
-    /// # Panics
-    ///
-    /// As [`sign`] does, with the same probability.
+    /// Makes the future signing at `leaf_index` faster (by precomputing and caching the bottom tree).
+    /// The cache size is [`MAX_CACHED_BOTTOM_TREES`] bottom trees.
     pub fn prepare(&self, leaf_index: LeafIndex) {
         self.bottom_tree(leaf_index);
     }
