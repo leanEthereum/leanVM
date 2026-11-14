@@ -34,11 +34,13 @@ pub use scheme::*;
 
 use primitives::hash::permutations;
 
-/// You should never sign more than 2^`LOG_LIFETIME` different messages, in order to keep
+/// You should never sign more than 2^[`LOG_LIFETIME`] different messages, in order to keep
 /// 127 bits of SUF security in the ROM.
 pub const LOG_LIFETIME: usize = 30;
 
+/// number of bytes in a secret key
 pub const SECRET_KEY_LEN: usize = 32;
+/// secret key = [`SECRET_KEY_LEN`] bytes
 pub type SecretKey = [u8; SECRET_KEY_LEN];
 
 /// Hashed before `SK.seed`, so no other scheme derives from the same bytes.
@@ -48,8 +50,9 @@ pub(crate) const SEED_TAG: &[u8] = b"leanSPHINCS";
 pub const N: usize = 16;
 pub type Digest = [u8; N];
 
-/// The message to sign (a 256-bit message hash).
+/// number of bytes in a message
 pub const MESSAGE_LEN: usize = 32;
+/// message = [`MESSAGE_LEN`] bytes
 pub type Message = [u8; MESSAGE_LEN];
 
 /// The serialized width of an encoding counter.
@@ -103,6 +106,7 @@ pub const fn layer_sig_size(height: usize) -> usize {
     COUNTER_LEN + V * N + height * N
 }
 
+/// number of bytes in a signature
 pub const SIG_SIZE: usize = N
     + FORS_TREES * FORS_OPENING_SIZE
     + layer_sig_size(LAYER_HEIGHTS[0])

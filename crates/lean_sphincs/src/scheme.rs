@@ -234,8 +234,7 @@ fn tree_levels(sk: &ExpandedKey, key: &OtsKey) -> Vec<Vec<Digest>> {
     merkle_levels(leaves, height, |z, j, pair| node(&sk.pk_seed, key, z, j, pair))
 }
 
-/// `Gen`, deterministic: the seed is `SK.seed`, the key's entire secret material (draw it from a
-/// secure source of randomness), and the top tree gives `PK.root`.
+/// Compute the public key, given the secret key.
 pub fn key_gen(secret_key: &SecretKey) -> LeanSphincsPublicKey {
     keygen(&ExpandedKey::new(secret_key)).0
 }
@@ -307,7 +306,7 @@ pub fn tree_fold(
     })
 }
 
-/// `Ver`: whether `signature` is `pk`'s on `message`.
+/// verifies a signature for a given message and public key
 pub fn verify(pk: &LeanSphincsPublicKey, message: &Message, signature: &LeanSphincsSignature) -> bool {
     let pk_seed = &pk.pk_seed;
     let (idx, leaves) = message_digest(pk, &signature.randomizer, message);
