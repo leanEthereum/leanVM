@@ -503,7 +503,7 @@ theorem placeMatch_plain_lays (x : V) (arms : List (List Stmt)) (rest : List Stm
   refine LaysAt.callT fresh_spec fun join _ => ?_
   refine LaysAt.callT takeHints_spec fun hints st₂ => ?_
   refine LaysAt.step (R := fun _ => True) (wp_modifyGet.mpr
-    ⟨⟨rfl, Sub.refl _, rfl, ⟨fun _ h => h⟩, rfl⟩, fun _ _ _ => trivial⟩)
+    ⟨⟨rfl, Sub.refl _, rfl, ⟨List.suffix_refl _⟩, rfl⟩, fun _ _ _ => trivial⟩)
     fun first _ => ?_
   refine LaysAt.callT fresh_spec fun entry st₃ => ?_
   refine LaysAt.get_bind ?_

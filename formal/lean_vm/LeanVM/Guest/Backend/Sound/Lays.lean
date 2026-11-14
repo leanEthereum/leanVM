@@ -39,13 +39,13 @@ variable {α β : Type}
 
 /-- The shared jump tables only grew. -/
 structure TablesLe (t t' : Tables) : Prop where
-  shared : ∀ p ∈ t.shared, p ∈ t'.shared
+  shared : t.shared <:+ t'.shared
 
-theorem TablesLe.refl (t : Tables) : TablesLe t t := ⟨fun _ h => h⟩
+theorem TablesLe.refl (t : Tables) : TablesLe t t := ⟨List.suffix_refl _⟩
 
 theorem TablesLe.trans {t t' t'' : Tables} (h₁ : TablesLe t t') (h₂ : TablesLe t' t'') :
     TablesLe t t'' :=
-  ⟨fun x h => h₂.shared x (h₁.shared x h)⟩
+  ⟨h₁.shared.trans h₂.shared⟩
 
 theorem TablesLe.of_eq {t t' : Tables} (h : t' = t) : TablesLe t t' := h ▸ TablesLe.refl t
 
@@ -106,7 +106,7 @@ theorem FillsIn.right {a b : List Fill} (h : FillsIn slots (a ++ b)) : FillsIn s
 
 theorem SharedIn.of_le {t t' : Tables} (h : SharedIn slots t') (hle : TablesLe t t') :
     SharedIn slots t :=
-  fun p hp => h p (hle.shared p hp)
+  fun p hp => h p (hle.shared.subset hp)
 
 /-- Straight-line instructions whose facts give the construct. -/
 theorem Lays.ofEmits {Q : Prop} (he : Emits Γ fp F H st st' Q)

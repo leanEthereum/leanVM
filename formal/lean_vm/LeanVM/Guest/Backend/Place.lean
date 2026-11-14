@@ -11,6 +11,7 @@ public import LeanVM.Guest.Backend.Ir
 public import LeanVM.Guest.Backend.Trace
 public import LeanVM.Guest.Word
 public import LeanVM.Guest.Backend.Map
+public import LeanVM.Guest.Backend.Pow
 
 /-!
 # Placement
@@ -126,11 +127,13 @@ structure Ctx where
 structure Tables where
   /-- The slots given out so far. -/
   len : Nat := 0
-  /-- The table of each dispatched call's callees (`shared`). -/
+  /-- The table of each dispatched call's callees (`shared`), the last made first. -/
   shared : List (List String × Nat) := []
-  /-- The slots of the shared tables: `(slot, callee)`. -/
-  entries : Array (Nat × String) := #[]
   deriving Inhabited
+
+/-- The slots of the shared tables, `(slot, callee)`, in the order the tables were made. -/
+def Tables.entries (t : Tables) : Array (Nat × String) :=
+  (t.shared.reverse.flatMap fun (cs, first) => cs.zipIdx.map fun (c, j) => (first + j, c)).toArray
 
 /-- The placement state. -/
 structure St where
@@ -277,7 +280,7 @@ def isSelfFp (n : Cell) : P Bool := do
   return (← get).scope.selfFp == some n
 
 /-- The limbs of `g^e`. -/
-def gpowLimbs (e : Nat) : Nat × Nat := ((gpowK e).toBitVec.toNat, 0)
+def gpowLimbs (e : Nat) : Nat × Nat := (gpowBits e, 0)
 
 /-- The β-immediate cap (`FOLD_MAX`). -/
 def foldMaxExp : Nat := 2 ^ 16
@@ -663,18 +666,19 @@ def sharedTable (callees : List String) : P Nat := do
       let first := st.tables.len
       set { st with tables := {
         len := first + callees.length,
-        shared := (callees, first) :: st.tables.shared,
-        entries := st.tables.entries ++
-          (callees.zipIdx.map fun ((c, j) : String × Nat) => (first + j, c)).toArray } }
+        shared := (callees, first) :: st.tables.shared } }
       pure first
 
 /-- The exponent `k < limit` with `g^k` the word of these limbs. -/
 def smallLog (limit : Nat) (limbs : Nat × Nat) : Option Nat :=
   if limbs.2 != 0 then none else go limit 0 1
 where
-  go : Nat → Nat → K → Option Nat
+  /-- `x` is the bits of `g^k`, its products on words in `ℕ` (`mulN`). -/
+  go : Nat → Nat → Nat → Option Nat
     | 0, _, _ => none
-    | fuel + 1, k, x => if x.toBitVec.toNat == limbs.1 then some k else go fuel (k + 1) (x * g)
+    | fuel + 1, k, x =>
+        if (K.ofBits x).toBitVec.toNat == limbs.1 then some k
+        else go fuel (k + 1) (mulN x g.toBitVec.toNat)
 
 /-- The largest loop start looked for. -/
 def loopLogLimit : Nat := 2 ^ 20
@@ -950,18 +954,24 @@ def placeFns (loops : Loops) (sigs : SMap (Nat × Nat)) :
       match placeFn loops sigs tables tf with
       | .error e => .error e
       | .ok (pf, tables') =>
-          if !tables.shared.isSuffixOf tables'.shared then .error "a shared jump table was dropped"
-          else
-            match placeFns loops sigs rest tables' with
-            | .error e => .error e
-            | .ok (pfs, tables'') => .ok (pf :: pfs, tables'')
+          match placeFns loops sigs rest tables' with
+          | .error e => .error e
+          | .ok (pfs, tables'') => .ok (pf :: pfs, tables'')
+
+/-- Whether the names are distinct, by a map of the names seen. -/
+def namesDistinct (l : List String) : Bool :=
+  go l {}
+where
+  go : List String → SMap Unit → Bool
+    | [], _ => true
+    | n :: ns, seen => !seen.contains n && go ns (seen.insert n ())
 
 /-- Place a program, `main` first, its functions of distinct names. -/
 def placeProgram (p : List TracedFn) : Except String (List Placed × Tables) :=
   if (p.map (·.core.name)).head? != some "main" then .error "the first function is not main"
   else if (p.map (·.core.name)).contains "__jump_tables" then
     .error "a function named __jump_tables"
-  else if !decide (p.map (·.core.name)).Nodup then .error "two functions of one name"
+  else if !namesDistinct (p.map (·.core.name)) then .error "two functions of one name"
   else if ((loopTable p)["main"]?).any (·.registered) then .error "main is a loop helper"
   else placeFns (loopTable p) (sigTable p) p {}
 

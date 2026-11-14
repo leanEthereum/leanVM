@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Backend.Emit
 public import LeanVM.Guest.Word
+public import LeanVM.Guest.Backend.Pow
 
 /-!
 # Assembly
@@ -58,7 +59,7 @@ structure Layout where
 def Layout.pow (l : Layout) (k : Nat) : Nat :=
   match l.gpow[k]? with
   | some x => x
-  | none => (gpowK k).toBitVec.toNat
+  | none => gpowBits k
 
 /-- The smallest power of two that is at least `n`. -/
 def nextPow2 (n : Nat) : Nat :=
@@ -141,6 +142,10 @@ def assembleAt (l : Layout) (size : Nat) (fns : List Lowered) : Assembled :=
     (code, hints, ranges.push (f.name, start, f.code.size))
   { size, code, hints, mainFrame := l.frame.getD "main" 0, fns := ranges }
 
+/-- A function's resolved code. -/
+def resolvedFn (l : Layout) (pc0 : Nat) (f : Lowered) : List OffsetInstruction :=
+  f.code.toList.map fun ins => resolveOp l pc0 f.frameSize ins.op
+
 /-- Assemble the functions' labelled code, `main` first, with the jump tables' slots. -/
 def assemble (fns : List Lowered) (slots : Array KVal) : Assembled :=
   let (fns, tablesBase) := withTables fns slots
@@ -165,9 +170,9 @@ def Assembled.toFunctions (a : Assembled) : List CompiledFunction :=
 /-- The jump tables' slots, from the fills of the functions' `match`es and the shared tables of
 the dispatched calls. -/
 def tableSlots (len : Nat) (fills : Array Fill) (shared : Array (Nat × String)) : Array KVal :=
-  let slots := Array.replicate len (KVal.const 0 0)
-  let slots := fills.foldl (init := slots) fun s (i, k) => s.setIfInBounds i k
-  shared.foldl (init := slots) fun s (i, c) => s.setIfInBounds i (.entry c)
+  let m : NMap KVal := fills.foldl (init := {}) fun m (i, k) => m.insert i k
+  let m := shared.foldl (init := m) fun m (i, c) => m.insert i (.entry c)
+  ((List.range len).map fun i => (m.get? i).getD (.const 0 0)).toArray
 
 end
 end LeanVM.Guest.Backend
