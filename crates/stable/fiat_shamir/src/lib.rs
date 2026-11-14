@@ -160,57 +160,42 @@ impl FiatShamirState {
         (0..n).map(|_| self.sample()).collect()
     }
 
-    /// Whether `nonce` passes a `bits` grind here: absorbed as a nonce, the permutation drawing the next
-    /// challenge leaves its third lane with the low `bits` bits zero. A CONTIGUOUS low-bit window, so a
-    /// recursive verifier re-checks it with one bit decomposition (`grind_check` in `guests/lean_ethereum.py`).
-    fn pow_bits_ok(&self, nonce: F128, bits: u32) -> bool {
-        let mut probe = self.clone();
-        probe.absorb(nonce, DS_POW_NONCE);
-        probe.duplex_with_pow().1 & ((1u64 << bits) - 1) == 0
-    }
-
-    /// Prover-side PoW grind: find the smallest `u64` nonce clearing `bits` low zero bits, bind it, and keep
-    /// the challenge its permutation drew for the next [`Self::sample`]. `bits = 0` is no grind at all.
-    /// Parallel search for the larger grinds.
+    /// Prover-side PoW grind: find the smallest `u64` nonce whose permutation, the one drawing the next challenge,
+    /// leaves the low `bits` bits of its output's third lane zero; bind it, and keep that challenge for the next
+    /// [`Self::sample`]. `bits = 0` is no grind at all. A CONTIGUOUS low-bit window, so a recursive verifier
+    /// re-checks it with one bit decomposition (`grind_check` in `guests/lean_ethereum.py`).
     pub fn grind(&mut self, bits: u32) -> Option<u64> {
         assert!(bits < 64, "the grinding window fits a lane");
         if bits == 0 {
             return None;
         }
-        const PARALLEL_GRIND_MIN: u64 = 1 << 10;
-        let nonce = if (1u64 << bits) < PARALLEL_GRIND_MIN {
-            (0..)
-                .find(|&n| self.pow_bits_ok(F128::new(n, 0), bits))
-                .expect("a nonce exists")
-        } else {
-            // Many candidates at once through the batched permutation: each one's input is the
-            // state with a zero nonce absorbed, its nonce written into that scalar's first lane.
-            let mut base = self.clone();
-            base.absorb(F128::ZERO, DS_POW_NONCE);
-            let lane = 4 * (base.n_pending - 1);
-            const BATCH: usize = 2 * primitives::hash::LANES;
-            let batch = |first: u64| {
-                let mut states = [base.state; BATCH];
-                for (i, state) in states.iter_mut().enumerate() {
-                    state[lane] = first + i as u64;
-                }
-                primitives::hash::keccak_f_many(&mut states);
-                states.iter().position(|s| s[2] & ((1u64 << bits) - 1) == 0)
-            };
-            // The smallest matching batch and its first match give the smallest nonce.
-            // Blocks of a quarter of the expected search, so a hit rarely waits on a long tail.
-            let block: u64 = (1u64 << (bits.min(26) - 2)).max(BATCH as u64);
-            let mut start: u64 = 0;
-            loop {
-                if let Some(i) =
-                    parallel::find_first(block as usize / BATCH, |i| batch(start + (i * BATCH) as u64).is_some())
-                {
-                    let first = start + (i * BATCH) as u64;
-                    break first + batch(first).expect("the batch has a match") as u64;
-                }
-                start = start.saturating_add(block);
+        // Every candidate's input is the state with a zero nonce absorbed, its nonce written into that scalar's
+        // first lane.
+        let mut base = self.clone();
+        base.absorb(F128::ZERO, DS_POW_NONCE);
+        let lane = 4 * (base.n_pending - 1);
+        // The smallest passing nonce of batch `b`, the nonces `b * BATCH..(b + 1) * BATCH`.
+        const BATCH: u64 = 64;
+        let batch = |b: u64| {
+            let mut states = [base.state; BATCH as usize];
+            for (nonce, state) in (b * BATCH..).zip(&mut states) {
+                state[lane] = nonce;
             }
+            primitives::hash::keccak_f_many(&mut states);
+            let pass = |(_, state): &(u64, &[u64; STATE_LANES])| state[2] & ((1 << bits) - 1) == 0;
+            (b * BATCH..).zip(&states).find(pass).map(|(nonce, _)| nonce)
         };
+        let nonce = if bits < 10 {
+            (0..).find_map(batch)
+        } else {
+            // Windows of a quarter of the expected search; the first window holding a hit holds the smallest.
+            let window = (1u64 << (bits.min(26) - 2)).div_ceil(BATCH);
+            (0..).step_by(window as usize).find_map(|w: u64| {
+                parallel::find_first(window as usize, |i| batch(w + i as u64).is_some())
+                    .and_then(|i| batch(w + i as u64))
+            })
+        };
+        let nonce = nonce.expect("a nonce exists");
         self.absorb(F128::new(nonce, 0), DS_POW_NONCE);
         self.ground = Some(self.duplex());
         Some(nonce)
@@ -277,6 +262,13 @@ mod tests {
         );
     }
 
+    /// Whether `nonce` passes a `bits` grind from `state`, one permutation at a time.
+    fn pow_bits_ok(state: &FiatShamirState, nonce: u64, bits: u32) -> bool {
+        let mut probe = state.clone();
+        probe.absorb(F128::new(nonce, 0), DS_POW_NONCE);
+        probe.duplex_with_pow().1 & ((1u64 << bits) - 1) == 0
+    }
+
     #[test]
     fn pow_predicate() {
         let mut sp = FiatShamirState::new(digest_words(&primitives::hash::hash(b"t")), pi(1));
@@ -284,7 +276,7 @@ mod tests {
         for bits in [2, 8, 13, 17] {
             let mut clone = sp.clone();
             let good = clone.grind(bits).unwrap();
-            let expected = (0..=good).find(|&n| sp.pow_bits_ok(F128::new(n, 0), bits)).unwrap();
+            let expected = (0..=good).find(|&n| pow_bits_ok(&sp, n, bits)).unwrap();
             assert_eq!(good, expected, "smallest nonce at {bits} bits");
             // The grind's own permutation draws the next challenge, and the one after is fresh.
             let mut expected_state = sp.clone();
