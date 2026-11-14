@@ -763,7 +763,7 @@ def keygenInternal (key : ExpandedKey) : m (PublicKey × List (List Digest)) := 
   let top ← treeLevels π key topLayer 0
   return (⟨key.publicSeed, levelNode top (layerHeight topLayer) 0⟩, top)
 
-/-- `Gen` (`key_gen_from_seed`, `scheme.rs`): the secret key is `SK.seed`, the public key
+/-- `Gen` (`key_gen`, `scheme.rs`): the secret key is `SK.seed`, the public key
 that of its expansion. -/
 def keygenFromSeed (secretSeed : SecretKey) : m (PublicKey × SecretKey) := do
   let key ← expandKey π secretSeed

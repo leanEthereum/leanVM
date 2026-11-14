@@ -20,14 +20,14 @@ pub mod lean_xmss {
     pub use lean_xmss::{
         LOG_LIFETIME, LeafIndex, LeanXmssPublicKey, LeanXmssSecretKey, LeanXmssSignError, LeanXmssSignature,
         LeanXmssVerifyError, MAX_CACHED_BOTTOM_TREES, MESSAGE_LEN, Message, PUB_KEY_SIZE, SEED_LEN, SIG_SIZE, Seed,
-        key_gen, key_gen_from_seed, sign, verify,
+        key_gen, sign, verify,
     };
 }
 
 pub mod lean_sphincs {
     pub use lean_sphincs::{
         LeanSphincsPublicKey, LeanSphincsSecretKey, LeanSphincsSignature, MESSAGE_LEN, Message, PUB_KEY_SIZE, SEED_LEN,
-        SIG_SIZE, Seed, key_gen, key_gen_from_seed, sign, verify,
+        SIG_SIZE, Seed, key_gen, sign, verify,
     };
 }
 

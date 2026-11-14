@@ -7,7 +7,7 @@ public import FORS.Scheme
 /-!
 # The crate's key generation and signer, in FORS's primitives
 
-`key_gen_from_seed` and `sign` of `crates/lean_sphincs/src/scheme.rs` (leanVM
+`key_gen` and `sign` of `crates/lean_sphincs/src/scheme.rs` (leanVM
 `40f877dc`), function for function as `Statement/LeanSphincs.lean` transcribes them
 (`KeyGenerationAndSigning`), written with FORS's hash inputs, addresses and types: the key
 expansion (`LeanSphincsSecretKey::from_bytes`, `SK.prf` then `PK.seed`), the trees built level by level
@@ -138,7 +138,7 @@ def keygenInternal (key : ExpandedKey) : m (PublicKey × List (List Digest)) := 
   let top ← treeLevels key topLayer rootTree
   return (⟨levelNode top (layerHeight topLayer) 0, key.publicSeed⟩, top)
 
-/-- `key_gen_from_seed`: the secret key is `SK.seed`, the public key that of its expansion. -/
+/-- `key_gen`: the secret key is `SK.seed`, the public key that of its expansion. -/
 def keygen (seed : MasterSeed) : m (PublicKey × MasterSeed) := do
   let key ← expandKey seed
   let (publicKey, _) ← keygenInternal key

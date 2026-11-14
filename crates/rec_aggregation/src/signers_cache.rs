@@ -88,7 +88,7 @@ type Keys = [OnceLock<(LeanXmssSecretKey, LeanXmssPublicKey)>; NUM_KEYS];
 
 fn key(keys: &Keys, k: usize) -> &(LeanXmssSecretKey, LeanXmssPublicKey) {
     keys[k].get_or_init(|| {
-        let (sk, pk) = key_gen_from_seed(key_seed(k));
+        let (sk, pk) = key_gen(key_seed(k));
         sk.prepare(BOTTOM_TREE << LAYER_HEIGHT).expect("prepare");
         (sk, pk)
     })
@@ -248,7 +248,7 @@ const LEAN_SPHINCS_RECORD: usize = lean_sphincs::PUB_KEY_SIZE + lean_sphincs::ME
 
 fn compute_lean_sphincs_signer(index: usize) -> CachedSphincsSignature {
     let mut rng = StdRng::seed_from_u64(0x5F1A_C500 ^ index as u64);
-    let (secret_key, public_key) = lean_sphincs::key_gen_from_seed(rng.random());
+    let (secret_key, public_key) = lean_sphincs::key_gen(rng.random());
     let message = lean_sphincs_message(index);
     let signature = lean_sphincs::sign(&secret_key, &message);
     (public_key, message, signature)

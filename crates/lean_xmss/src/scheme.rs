@@ -156,13 +156,9 @@ impl std::fmt::Display for LeanXmssSignError {
 
 impl std::error::Error for LeanXmssSignError {}
 
-/// A fresh key pair, its seed from the operating system's randomness.
-pub fn key_gen() -> (LeanXmssSecretKey, LeanXmssPublicKey) {
-    key_gen_from_seed(rand::random())
-}
-
-/// Deterministic [`key_gen`]: the seed is the key's entire secret material.
-pub fn key_gen_from_seed(key_seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
+/// The key pair of `key_seed`, the key's entire secret material: draw it from a secure source of
+/// randomness.
+pub fn key_gen(key_seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
     let seed = scheme_seed(&key_seed);
     let public_param = public_param(&seed);
     let top = LayerTree::build(&public_param, &seed, 1, 0);
@@ -206,7 +202,7 @@ impl LeanXmssSecretKey {
 
     /// Regenerates the key, as key generation does.
     pub fn from_bytes(bytes: &Seed) -> Self {
-        key_gen_from_seed(*bytes).0
+        key_gen(*bytes).0
     }
 
     pub fn public_key(&self) -> LeanXmssPublicKey {

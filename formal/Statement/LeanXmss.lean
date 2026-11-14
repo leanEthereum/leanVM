@@ -395,7 +395,7 @@ def treePath (parameter : PublicParameter) (layer : Layer) (seed : MasterSeed) (
 def publicParameterOf (seed : MasterSeed) : m PublicParameter :=
   th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 seed)
 
-/-- `Gen` (`key_gen_from_seed`, `generate`, `scheme.rs`): hash the seed `S_0` into `S`
+/-- `Gen` (`key_gen`, `generate`, `scheme.rs`): hash the seed `S_0` into `S`
 (`scheme_seed`, `hash.rs`), derive the public parameter and build the top tree; the secret
 key is `S_0` and the public parameter. -/
 def keygenFromSeed (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do

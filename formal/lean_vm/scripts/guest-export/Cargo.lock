@@ -62,7 +62,6 @@ name = "lean_sphincs"
 version = "0.1.0"
 dependencies = [
  "primitives",
- "rand",
 ]
 
 [[package]]
@@ -70,7 +69,6 @@ name = "lean_xmss"
 version = "0.1.0"
 dependencies = [
  "primitives",
- "rand",
 ]
 
 [[package]]

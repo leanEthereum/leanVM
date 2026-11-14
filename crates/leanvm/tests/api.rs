@@ -10,7 +10,7 @@ fn public_api_end_to_end() {
 
     // 1. Eight leanXMSS signatures over three messages, three of the first, four of the second, one of the third,
     //    by four keys. A key signs each message at its own leaf index, which the statement does not record.
-    let keys: Vec<_> = (0..4).map(|_| lean_xmss::key_gen()).collect();
+    let keys: Vec<_> = (0..4u8).map(|k| lean_xmss::key_gen([k; lean_xmss::SEED_LEN])).collect();
     // The first signature in a bottom tree builds it, so a signer prepares the tree ahead of time. Leaves 7 to 9
     // share one tree.
     for (secret_key, _) in &keys {
@@ -27,7 +27,7 @@ fn public_api_end_to_end() {
     // 2. Three leanSPHINCS signatures, each on its own message
     let mut lean_sphincs_input = Vec::new();
     for signer in 0..3u8 {
-        let (secret_key, pub_key) = lean_sphincs::key_gen();
+        let (secret_key, pub_key) = lean_sphincs::key_gen([signer; lean_sphincs::SEED_LEN]);
         let message = [signer; lean_sphincs::MESSAGE_LEN];
         let signature = lean_sphincs::sign(&secret_key, &message);
         lean_sphincs_input.push((pub_key, message, signature));

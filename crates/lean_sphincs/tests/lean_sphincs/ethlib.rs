@@ -135,7 +135,7 @@ use lean_sphincs::*;
 fn key_gen_matches_ethlib() {
     for case in cases("key_gen") {
         let output = match exact::<SEED_LEN>(case.bytes("seed")) {
-            Some(seed) => Value::Bytes(key_gen_from_seed(seed).1.to_bytes().to_vec()),
+            Some(seed) => Value::Bytes(key_gen(seed).1.to_bytes().to_vec()),
             None => Value::Null,
         };
         assert_eq!(output, case.output, "{}", case.name);

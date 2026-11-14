@@ -41,8 +41,6 @@ impl LeanSphincsPublicKey {
     }
 }
 
-/// `SK.seed`, the whole secret, with what `slh_keygen_internal` derives from it: `SK.prf` and
-/// `PK.seed`.
 #[derive(Clone)]
 pub struct LeanSphincsSecretKey {
     pub(crate) sk_seed: Seed,
@@ -61,13 +59,12 @@ impl LeanSphincsSecretKey {
         keygen(self).0
     }
 
-    /// SECRET KEY MATERIAL: `SK.seed`, all of the key.
+    /// SECRET KEY MATERIAL
     pub fn to_bytes(&self) -> Seed {
         self.sk_seed
     }
 
-    /// `PK.seed = Trunc_n(H(tag | SK.seed | 0))` and `SK.prf = H(tag | SK.seed | 1)`, 32 bytes, so the
-    /// randomizer is as hard to predict as the key.
+    /// `PK.seed = Trunc_n(H(tag | SK.seed | 0))` and `SK.prf = H(tag | SK.seed | 1)`, 32 bytes
     pub fn from_bytes(sk_seed: &Seed) -> Self {
         let derive = |domain: u8| {
             Hasher::new()
@@ -252,8 +249,9 @@ fn tree_levels(sk: &LeanSphincsSecretKey, key: &OtsKey) -> Vec<Vec<Digest>> {
     merkle_levels(leaves, height, |z, j, pair| node(&sk.pk_seed, key, z, j, pair))
 }
 
-/// `Gen`, deterministic: the seed is `SK.seed`, and the top tree gives `PK.root`.
-pub fn key_gen_from_seed(seed: Seed) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
+/// `Gen`, deterministic: the seed is `SK.seed`, the key's entire secret material (draw it from a
+/// secure source of randomness), and the top tree gives `PK.root`.
+pub fn key_gen(seed: Seed) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
     let sk = LeanSphincsSecretKey::from_bytes(&seed);
     let pk = keygen(&sk).0;
     (sk, pk)
@@ -268,11 +266,6 @@ fn keygen(sk: &LeanSphincsSecretKey) -> (LeanSphincsPublicKey, Vec<Vec<Digest>>)
         root: top[LAYER_HEIGHTS[LAYERS - 1]][0],
     };
     (pk, top)
-}
-
-/// `Gen`, on a fresh seed from the operating system's randomness.
-pub fn key_gen() -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
-    key_gen_from_seed(rand::random())
 }
 
 /// `Sign`. Deterministic and stateless. A key signs at most `2^30` messages (`doc/lean_sphincs`).

@@ -144,7 +144,7 @@ use lean_xmss::*;
 fn key_gen_matches_ethlib() {
     for case in cases("key_gen") {
         let output = match exact::<SEED_LEN>(case.bytes("seed")) {
-            Some(seed) => Value::Bytes(key_gen_from_seed(seed).1.to_bytes().to_vec()),
+            Some(seed) => Value::Bytes(key_gen(seed).1.to_bytes().to_vec()),
             None => Value::Null,
         };
         assert_eq!(output, case.output, "{}", case.name);
@@ -162,7 +162,7 @@ fn sign_matches_ethlib() {
             exact::<MESSAGE_LEN>(case.bytes("message")),
         ) {
             (Some(seed), Some(message)) => {
-                let sk = keys.entry(seed).or_insert_with(|| key_gen_from_seed(seed).0);
+                let sk = keys.entry(seed).or_insert_with(|| key_gen(seed).0);
                 Value::Bytes(sign(sk, &message, leaf_index).unwrap().to_bytes().to_vec())
             }
             _ => Value::Null,

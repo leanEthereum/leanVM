@@ -424,7 +424,7 @@ def signatureOf (bytes : List UInt8) : Option Signature :=
 def keygen (seed : MasterSeed) : PublicKey :=
   ((KeyGenerationAndSigning.keygenFromSeed (m := StateM Unit) keccak seed).run' ()).1
 
-/-- The key of the seed, as the crate's (`key_gen_from_seed`), then its signature. -/
+/-- The key of the seed, as the crate's (`key_gen`), then its signature. -/
 def sign (seed : MasterSeed) (leafIndex : LeafIndex) (message : Message) : Option Signature :=
   (do
     let (_, secretKey) ← KeyGenerationAndSigning.keygenFromSeed (m := StateM Unit) keccak seed

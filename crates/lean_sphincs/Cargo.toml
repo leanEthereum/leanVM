@@ -9,4 +9,3 @@ workspace = true
 
 [dependencies]
 primitives.workspace = true
-rand.workspace = true

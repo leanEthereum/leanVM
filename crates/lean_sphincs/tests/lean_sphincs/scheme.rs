@@ -6,7 +6,7 @@ fn seed(x: u8) -> Seed {
 
 #[test]
 fn signatures_verify_and_tampered_ones_do_not() {
-    let (sk, pk) = key_gen_from_seed(seed(3));
+    let (sk, pk) = key_gen(seed(3));
     // The seed is SK.seed, and PK.seed = H("leanSPHINCS" || SK.seed || 0) cut to N bytes.
     let derive = |domain: u8| primitives::hash::hash(&[b"leanSPHINCS".as_slice(), &seed(3), &[domain]].concat());
     assert_eq!(pk.__pk_seed()[..], derive(0)[..N]);

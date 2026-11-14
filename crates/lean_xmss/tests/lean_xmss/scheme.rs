@@ -11,7 +11,7 @@ fn test_message() -> Message {
 /// changed, the signature no longer verifies.
 #[test]
 fn full_key_signs_and_verifies() {
-    let (sk, pk) = key_gen_from_seed([1; SEED_LEN]);
+    let (sk, pk) = key_gen([1; SEED_LEN]);
     let message = test_message();
     let other = (7 << LAYER_HEIGHT) + 3;
     std::thread::scope(|s| {
@@ -40,7 +40,7 @@ fn full_key_signs_and_verifies() {
 fn known_answer() {
     let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
     let seed: Seed = std::array::from_fn(|i| (i as u8).wrapping_mul(37).wrapping_add(11));
-    let (sk, pk) = key_gen_from_seed(seed);
+    let (sk, pk) = key_gen(seed);
     let message: Message = std::array::from_fn(|i| (i * 7 + 3) as u8);
     let signature = sign(&sk, &message, 0xA5C3_7E19).unwrap();
     assert_eq!(
@@ -58,7 +58,7 @@ fn known_answer() {
 #[test]
 fn secret_key_survives_a_round_trip() {
     let seed = [6; SEED_LEN];
-    let (sk, pk) = key_gen_from_seed(seed);
+    let (sk, pk) = key_gen(seed);
     assert_eq!(sk.to_bytes(), seed);
     let reloaded = LeanXmssSecretKey::from_bytes(&sk.to_bytes());
     assert_eq!(reloaded.public_key(), pk);

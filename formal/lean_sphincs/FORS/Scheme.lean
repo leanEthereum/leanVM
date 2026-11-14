@@ -933,7 +933,7 @@ def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × Secre
   let root ← treeRoot parameter topLayer rootTree seed
   return (⟨root, parameter⟩, ⟨seed, prf, parameter, root⟩)
 
-/-- `Gen` (`key_gen_from_seed`): the key's seed is `SK.seed`. -/
+/-- `Gen` (`key_gen`): the key's seed is `SK.seed`. -/
 def keygen (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) :=
   keygenFromSeed seed
 
