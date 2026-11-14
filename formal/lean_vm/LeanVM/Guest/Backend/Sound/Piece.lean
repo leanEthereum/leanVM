@@ -111,6 +111,33 @@ theorem tables_after {t t' : Tables} {o : FnOut} (hle : TablesLe t t') (hlen : t
   simp only at hlen hl
   rw [Tables.after, ← hlen, ← hl, this]
 
+/-- **What a success of `pieceOkWith` says**: `pieceOk`'s, and the test on the placed locations. -/
+theorem pieceOkWith_spec {extra : VMap Loc → Bool} {loops : Loops} {sigs : SMap (Nat × Nat)}
+    {l : Layout} {t : Tables} {tf : TracedFn} {o : FnOut} {pc0 frame : Nat} {cf : CompiledFunction}
+    (h : pieceOkWith extra loops sigs l t tf o pc0 frame cf = true) :
+    ∃ pf : Placed, placeFn loops sigs t tf = .ok (pf, t.after o) ∧
+      (emitFn pf.fn).2.toList = o.fills.map (fun x => (x.1, KVal.at tf.core.name x.2)) ∧
+      (emitFn pf.fn).1.name = tf.core.name ∧ (emitFn pf.fn).1.frameSize = o.frame ∧
+      (emitFn pf.fn).1.code.size = o.size ∧ cf.name = tf.core.name ∧ cf.entryPc = pc0 ∧
+      cf.instructionCount = o.size ∧
+      chunked (resolvedFn l pc0 { (emitFn pf.fn).1 with frameSize := frame }) = cf.chunks ∧
+      extra pf.locs = true := by
+  unfold pieceOkWith at h
+  split at h
+  · cases h
+  · next pf t' hpf =>
+    simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
+    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hlen, hsz⟩, htake⟩, hfills⟩, hframe⟩, hsize⟩, hname⟩, hpc⟩, hcount⟩, hcode⟩,
+      hextra⟩ := h
+    have hnm : pf.fn.name = tf.core.name := by
+      obtain ⟨st', -, rfl, -⟩ := placeFn_ok hpf
+      rfl
+    refine ⟨pf, ?_, ?_, hnm, hframe, hsize, hname, hpc, hcount, hcode, hextra⟩
+    · rw [tables_after (placeFn_tables hpf) hlen hsz htake] at hpf
+      exact hpf
+    · rw [← hnm]
+      exact allPairs_fillIs _ _ (emitFn_fills_of pf.fn) hfills
+
 /-- **What a success of `pieceOk` says.** -/
 theorem pieceOk_spec {loops : Loops} {sigs : SMap (Nat × Nat)} {l : Layout} {t : Tables}
     {tf : TracedFn} {o : FnOut} {pc0 frame : Nat} {cf : CompiledFunction}
@@ -121,20 +148,8 @@ theorem pieceOk_spec {loops : Loops} {sigs : SMap (Nat × Nat)} {l : Layout} {t 
       (emitFn pf.fn).1.code.size = o.size ∧ cf.name = tf.core.name ∧ cf.entryPc = pc0 ∧
       cf.instructionCount = o.size ∧
       chunked (resolvedFn l pc0 { (emitFn pf.fn).1 with frameSize := frame }) = cf.chunks := by
-  unfold pieceOk at h
-  split at h
-  · cases h
-  · next pf t' hpf =>
-    simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
-    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hlen, hsz⟩, htake⟩, hfills⟩, hframe⟩, hsize⟩, hname⟩, hpc⟩, hcount⟩, hcode⟩ := h
-    have hnm : pf.fn.name = tf.core.name := by
-      obtain ⟨st', -, rfl, -⟩ := placeFn_ok hpf
-      rfl
-    refine ⟨pf, ?_, ?_, hnm, hframe, hsize, hname, hpc, hcount, hcode⟩
-    · rw [tables_after (placeFn_tables hpf) hlen hsz htake] at hpf
-      exact hpf
-    · rw [← hnm]
-      exact allPairs_fillIs _ _ (emitFn_fills_of pf.fn) hfills
+  obtain ⟨pf, h1, h2, h3, h4, h5, h6, h7, h8, h9, -⟩ := pieceOkWith_spec h
+  exact ⟨pf, h1, h2, h3, h4, h5, h6, h7, h8, h9⟩
 
 /-! ## The pieces of a program -/
 
