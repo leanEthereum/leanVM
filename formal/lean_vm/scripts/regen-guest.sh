@@ -126,6 +126,8 @@ part_bridge() {
   python3 -I scripts/bridge-cert/progal.py "${check[@]}"
   step "bridge: the jump cells checked (scripts/bridge-cert/jumpcells.py)"
   python3 -I scripts/bridge-cert/jumpcells.py "${check[@]}"
+  step "bridge: the computed hints paired (scripts/bridge-cert/pair.py)"
+  python3 -I scripts/bridge-cert/pair.py "${check[@]}"
 }
 
 part_memory() {
