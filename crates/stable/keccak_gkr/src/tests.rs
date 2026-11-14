@@ -5,12 +5,24 @@ use primitives::test_rng::Rng;
 use verifier::VerifierError;
 
 use crate::batch_bench::{batch_instance, batch_transcript, commit_stack, open_commitment, scalar_proof};
-use crate::keccak::{BITS, LANE_VARS, LANES, LOCAL_VARS};
-use crate::open::state_words;
+use crate::keccak::{BITS, LANE_VARS, LANES, LOCAL_VARS, along, iota_bit};
 use crate::protocol::{Claim, first_claim};
 use crate::prover::prove_layer;
 use crate::rmfe::PROD_BITS;
-use crate::witness::{BLOCK, BLOCK_LEN, BLOCK_WORDS, Extent, Shape, Witness, block};
+use crate::witness::{BLOCK, BLOCK_LEN, BLOCK_WORDS, Shape, Witness, run_block};
+
+/// The eight words of position `j` in block `g` of the state after `round` rounds.
+fn state_words(witness: &Witness, round: usize, g: usize, j: usize) -> [u64; BLOCK_WORDS] {
+    let block = witness.layer(round, g);
+    std::array::from_fn(|w| {
+        let word = |j: usize| block[j * BLOCK_WORDS + w];
+        if round == 0 {
+            return word(j);
+        }
+        let chi = word(j) ^ (!word(along(j, 1)) & word(along(j, 2)));
+        if j < 64 && iota_bit(round, j) { !chi } else { chi }
+    })
+}
 
 /// The sliced state after `round` rounds.
 fn state_after(witness: &Witness, round: usize) -> Vec<u64> {
@@ -65,9 +77,8 @@ fn layers_round_trip(n_instances: usize, depth: usize) {
     let (r_low, point, r_lane) = (ps.sample_vec(4), ps.sample_vec(shape.y_vars()), ps.sample_vec(5));
     let mut claim = first_claim(shape, &r_low, point, &r_lane);
     claim.value = evaluate(shape, &outputs, &claim);
-    let mut scratch = crate::prover::Scratch::new(shape);
     for step in 0..depth {
-        claim = prove_layer(&mut ps, &witness, &mut scratch, step, &claim);
+        claim = prove_layer(&mut ps, &witness, step, &claim);
     }
     assert_eq!(
         claim.value,
@@ -222,14 +233,17 @@ fn proof_verifies_against_the_commitment() {
 
 /// The witness of every block run, the padding ones included.
 fn dense(shape: Shape, inputs: &[[u64; LANES]]) -> Witness {
-    let mut extent = Extent::new(0, shape.n_blocks());
-    for g in 0..shape.n_blocks() {
-        let inputs = &inputs[(g * BLOCK).min(inputs.len())..((g + 1) * BLOCK).min(inputs.len())];
-        // SAFETY: each block's slot, written once.
-        unsafe { block(shape.depth(), inputs, Some(extent.slot(g)), |_, _, _| {}) };
+    let blocks = (0..shape.n_blocks())
+        .map(|g| {
+            let inputs = &inputs[(g * BLOCK).min(inputs.len())..((g + 1) * BLOCK).min(inputs.len())];
+            run_block(shape.depth(), inputs, true).1
+        })
+        .collect();
+    Witness {
+        shape,
+        blocks,
+        written: shape.n_blocks(),
     }
-    // SAFETY: every block was written just above.
-    unsafe { Witness::from_extents(shape, vec![extent], shape.n_blocks(), None) }
 }
 
 /// The padding block, run once for the blocks after the last input, proves what running each
@@ -275,11 +289,4 @@ fn a_broken_committed_state_is_rejected() {
         assert!(!accepts(&bad, F128::ZERO), "slot {slot}");
     }
     assert!(!accepts(&committed, F128::ONE), "the output");
-}
-
-/// An extent whose size would wrap is refused, not allocated short.
-#[test]
-#[should_panic(expected = "fit in memory")]
-fn an_extent_too_large_to_address_is_refused() {
-    Extent::new(0, 1 << 55);
 }

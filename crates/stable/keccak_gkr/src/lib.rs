@@ -76,15 +76,14 @@
 //! # Prover
 //!
 //! The witness holds every round's `u` sliced by bit position, 64 instances to a word
-//! ([`witness`]). A layer walks it three times (`prover`): once for `U`, once for the first
-//! four rounds of step 3, which are sums of products of bit-level combinations of packs, and
-//! once to fold those four rounds' challenges into field elements. Everything after `s` is
-//! arithmetic in the power basis of `s`, where a pack's value is its embedding's bits and a
-//! weighted sum is a carry-less product (`basis`, `power`).
+//! ([`witness`]). A layer walks it six times (`prover`): once for `U`, once for each of the first
+//! four rounds of step 3, over the sixteen packs of half a block, and once for the table of
+//! field elements the remaining rounds fold. At `s`, a pack's value is the sum of the instance
+//! weights of its set bits, so a folded one is a sum of byte lookups. The blocks past the last
+//! input all equal the padding block, which every pass walks once, at their summed weight.
 //!
-//! `U`'s weighted bit sums are outer products: with GFNI (x86-64), one affine byte map per byte
-//! of eight positions' weights applied to bit-transposed products (`products_gfni`); elsewhere,
-//! the positions grouped by each byte of their weight (`prover`'s digit buckets).
+//! `U`'s weighted bit sums go to buckets: each byte of a product picks one of 256, which its
+//! weight is added to, and a coefficient is a sum of buckets.
 
 use fiat_shamir::transcript::ProverState;
 use keccak::LANE_VARS;
@@ -92,27 +91,14 @@ use primitives::field::{F64, F128, F128Unreduced};
 use primitives::multilinear::eq_table;
 use protocol::{Claim, dot, first_claim};
 
-mod basis;
 #[cfg(feature = "bench")]
 pub mod batch_bench;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"))]
-mod clmul;
 mod keccak;
 pub mod kernels;
 mod open;
-mod power;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
-mod products_gfni;
 mod protocol;
 mod prover;
 pub mod rmfe;
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx512f",
-    target_feature = "avx512bw",
-    target_feature = "gfni"
-))]
-mod table_gfni;
 pub mod witness;
 
 #[cfg(test)]
@@ -202,15 +188,13 @@ impl Witness {
         first.value += committed_value;
 
         let mut claim = first.clone();
-        let mut scratch = prover::Scratch::new(shape);
         for step in 0..shape.depth {
-            claim = tracing::info_span!("Layer", step)
-                .in_scope(|| prover::prove_layer(ps, self, &mut scratch, step, &claim));
+            claim = tracing::info_span!("Layer", step).in_scope(|| prover::prove_layer(ps, self, step, &claim));
         }
         let _span = tracing::info_span!("Openings").entered();
         let outputs =
             (shape.segments() > 1).then(|| open::open_outputs(ps, shape, instance, &first, committed_value, folded));
-        let inputs = open::open_inputs(ps, self, committed, &claim);
+        let inputs = open::open_inputs(ps, shape, committed, &claim);
         Openings { outputs, inputs }
     }
 }
