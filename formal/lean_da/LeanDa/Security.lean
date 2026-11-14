@@ -263,7 +263,7 @@ theorem prob_sel_le {N : ℕ} (hN : 0 < N) (sel : (Fin N → K) → Fin N) (A : 
 
 /-- **The membership test is `(2^13 - 1) / 2^128`-sound**: a fixed matrix that is not a codeword
 passes for at most `2^13 - 1` of the `|E| = 2^128` values of the deployed challenge
-(`membership.rs`), which the nonce search reads off one label of uniform draws: the label
+(Annex D, Proposition prop:rs-membership), which the nonce search reads off one label of uniform draws: the label
 it selects depends on the proofs of work alone (`selectChal_some`, `prob_sel_le`). Without a valid
 nonce the check is on every challenge, which a non-codeword fails. -/
 theorem checker_sound (r : ℕ) :

@@ -5,17 +5,15 @@
 //! `m = 2k` evaluations on an additive domain inside `K = GF(2^64)`. Each encoded row, a blob,
 //! has a Merkle root over its cell digests, and the commitment is the Merkle root over the blob
 //! roots. A row belongs to the code iff it is orthogonal to a membership vector the
-//! root's challenge determines, with high probability over that challenge (`membership`). The
+//! root's challenge determines, with high probability over that challenge. The
 //! aggregation guest proves this check together with the commitment.
 //!
 //! The tree over the blob roots pads the row count with zero rows, to the next power of two.
 
 mod commit;
 mod encode;
-mod membership;
 
 pub use commit::{DaWitness, commit, padding_root};
-pub use membership::subspace_above;
 
 /// Each blob is 128 KiB = 2^LOG_BLOB_SYMBOLS symbols in GF(2^128).
 pub const LOG_BLOB_SYMBOLS: usize = 13;
@@ -33,7 +31,8 @@ pub const CELL_SYMBOLS: usize = 1 << LOG_CELL_SYMBOLS;
 /// How many cells in one encoded blob.
 pub const CELLS_PER_ROW: usize = CODEWORD_SYMBOLS / CELL_SYMBOLS;
 /// How many GF(2^128) symbols in one encoded row.
-const LOG_CODEWORD_SYMBOLS: usize = LOG_BLOB_SYMBOLS + 1;
+/// Symbols in one encoded blob, as a logarithm: rate one half.
+pub const LOG_CODEWORD_SYMBOLS: usize = LOG_BLOB_SYMBOLS + 1;
 
 pub type Symbol = u128;
 pub type Blob = [Symbol; BLOB_SYMBOLS];

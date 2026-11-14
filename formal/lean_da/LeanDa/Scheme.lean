@@ -32,15 +32,15 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   over the blob roots: the path of leaf `128 i + j` in the one tree of depth `7 + ⌈log₂ r⌉` the
   two make. The crate keeps the codewords and the root (`DaWitness`, `commit.rs`) but
   builds and verifies no path.
-* **Membership** (`membership.rs`, `verifier/src/da.rs`). One challenge `z ∈ E` gives
+* **Membership** (`verifier/src/da.rs`, the guest program's `da_vector`). One challenge `z ∈ E` gives
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
   at the challenges `z^(2^j)`), with `Ŵ_j` the normalized subspace polynomial of the span of
   `e_0 … e_(j-1)`. A matrix passes when every row is orthogonal to `L` (the guest program's
-  `da_verify`; the crate's test `check_membership`, `membership.rs`). The challenge is drawn
+  `da_verify`). The challenge is drawn
   from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs`), its
   sponge over Keccak-f[1600] seeded with the label's hash and the root, squeezed once; the
   security game models it as one random oracle on the root.
-* **The deployed algorithms** (`commit.rs`, `membership.rs`,
+* **The deployed algorithms** (`commit.rs`, `subspace_above` in `rec_aggregation`'s `placeholders.rs`,
   `verifier/src/da.rs`, `verifier/src/transcript.rs`). The crate's computations,
   transcribed computably on lists, for `lean_vm` to state the aggregation node's DA claim with:
   `commitCodewords`, the tree of blob trees level by level, which is `commitCells` of the matrix
@@ -67,7 +67,7 @@ namespace LeanDa
 
 @[expose] public section
 
-/-! ## Membership (`membership.rs`, `verifier/src/da.rs`) -/
+/-! ## Membership (`verifier/src/da.rs`, the guest program's `da_vector`) -/
 
 /-- The tensor `⊗_j (1, z_j)`: coefficient `u` is the product of the `z_j` over the bits of `u`;
 at `z_j = z^(2^j)` it is `z^u`. -/
@@ -89,7 +89,7 @@ variable (H : List UInt8 → Common.DigestBytes)
 def membershipChallenge (root : Common.DigestBytes) : Option E :=
   Id.run (membershipChallengeMWithHash (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root)
 
-/-! ## The dual codeword as the guest builds it (`membership.rs`) -/
+/-! ## The dual codeword as the guest builds it (`subspace_above` in `rec_aggregation`'s `placeholders.rs`) -/
 
 /-- Row `i` of the subspace evaluations before scaling: `s_i` at the basis elements `x^j`,
 `j ≥ i` (`generate_evals_from_subspace`, `pcs/src/ntt/twiddles.rs`). -/
@@ -105,7 +105,7 @@ def subspaceEvaluations (i : ℕ) : List K :=
   (subspaceRow i).map (· * ((subspaceRow i).headD 0)⁻¹)
 
 /-- **`Ŵ_j` at the point whose bits above `j` are `y`'s**, `Σ_l bit_l(y) · Ŵ_j(e_(j+1+l))`
-(`subspace_above`, `membership.rs`: the NTT's twiddle of block `y` at layer `13 - j`, a
+(`subspace_above` in `rec_aggregation`'s `placeholders.rs`: the NTT's twiddle of block `y` at layer `13 - j`, a
 subset sum of row `j`, `twiddle`, `pcs/src/ntt/twiddles.rs`). For `y < 2^(13 - j)` it is
 `Ŵ_j(point (y · 2^(j+1)))` (`LeanDa.Subspace`'s `subspaceAbove_eq`). -/
 def subspaceAbove (j y : ℕ) : K :=
@@ -113,12 +113,12 @@ def subspaceAbove (j y : ℕ) : K :=
     (fun t l ↦ t + ((subspaceEvaluations j).drop 1).getD l 0) 0
 
 /-- `Ŵ_j` at point `i` from the table: bit `j` of `i`, plus `subspaceAbove` at its bits above `j`
-(`dual_codeword`, `membership.rs`). -/
+(the guest program's `da_vector`). -/
 def subspaceAt (j i : ℕ) : K :=
   (if i.testBit j then 1 else 0) + subspaceAbove j (i >>> (j + 1))
 
-/-- **The dual codeword of `z` as the guest builds it** (`dual_codeword`, `membership.rs`;
-the guest program's `da_vector`): at each of the `2^14` points `i`, `∏_j (1 + z^(2^j) Ŵ_j(i))`.
+/-- **The dual codeword of `z` as the guest builds it** (the guest program's
+`da_vector`): at each of the `2^14` points `i`, `∏_j (1 + z^(2^j) Ŵ_j(i))`.
 It is `dualCodewordAt z` (`LeanDa.Subspace`'s
 `dualCodeword_eq_dualCodewordAt`). -/
 def dualCodeword (z : E) : List E :=

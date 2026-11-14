@@ -6,7 +6,7 @@ public import LeanDa.ReedSolomon
 # The membership test
 
 Proposition prop:rs-membership of `doc/leanvm/body/d-novel-basis.tex` for the crate's code, with
-one challenge (`membership.rs`). The dual codeword of challenges
+one challenge (`verifier/src/da.rs`). The dual codeword of challenges
 `z_0 … z_12` is the encoding of the tensor `⊗_j (1, z_j)` (`dual_eq_sum`); the deployed one takes
 `z_j = z^(2^j)` (`dualCodewordAt_eq`), whose tensor is `(z^u)_u` (`tensor_powers`). So the inner
 product with a row `w` is the polynomial `Σ_u ⟨Xᵤ, w⟩ z^u` in `z` (`eval_membershipPoly`), of
@@ -189,7 +189,7 @@ theorem card_filter_le_natDegree {F : Type*} [Field F] [Fintype F] [DecidableEq 
   exact (Finset.card_le_card hsub).trans ((Multiset.toFinset_card_le _).trans (card_roots' _))
 
 /-- **A row that is not a codeword is orthogonal to the dual codeword for at most `2^13 - 1`
-challenges**, the roots of its membership polynomial (`membership.rs`). -/
+challenges**, the roots of its membership polynomial (Annex D, Proposition prop:rs-membership). -/
 theorem card_acceptSet_le {w : Row} (hw : w ∉ rsCode) : (acceptSet w).card ≤ 2 ^ 13 - 1 := by
   obtain ⟨u₀, hu₀⟩ : ∃ u, novelCoeff w u ≠ 0 := by
     by_contra h

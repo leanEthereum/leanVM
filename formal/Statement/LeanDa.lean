@@ -130,11 +130,11 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   `7 + ⌈log₂ r⌉` that the two make. The crate keeps the codewords and the root (`DaWitness`,
   `commit.rs`) but builds and verifies no path: `verifyCellWith` is the check these paths
   determine.
-* **Membership** (`membership.rs`, `verifier/src/da.rs`). One challenge `z ∈ E` gives
+* **Membership** (`verifier/src/da.rs`, the guest program's `da_vector`). One challenge `z ∈ E` gives
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
   at the challenges `z^(2^j)`), with `Ŵ_j` the normalized subspace polynomial of the span of
   `e_0 … e_(j-1)`. A matrix passes when every row is orthogonal to `L` (the guest program's
-  `da_verify`; the crate's test `check_membership`). The challenge is drawn
+  `da_verify`). The challenge is drawn
   from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs`): its
   sponge over Keccak-f[1600] seeded with the label's hash as its IV and the root as its public
   input (`verifier/src/transcript.rs`, `Field.lean`'s `Sponge`), then a `10`-bit grind
@@ -387,19 +387,19 @@ def openCell (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * 128)
     (p : Fin (r * 128)) : CellOpening :=
   Id.run (openCellWith (fun x ↦ pure (π x)) cells p)
 
-/-! ### Membership (`membership.rs`, `verifier/src/da.rs`) -/
+/-! ### Membership (`verifier/src/da.rs`, the guest program's `da_vector`) -/
 
 /-- The normalized subspace polynomial `Ŵ_j`, vanishing on the span of `e_0 … e_(j-1)` and one
 at `e_j` (CompPoly's `normalizedW`; `subspace_above` tabulates it, the NTT's twiddles). -/
 noncomputable def normalizedSubspacePolynomial (j : Fin 13) : K[X] :=
   AdditiveNTT.normalizedW (ZMod 2) basis (Fin.castLE (by omega) j)
 
-/-- **The dual codeword of the challenge `z`** (`membership.rs`, the guest program's
+/-- **The dual codeword of the challenge `z`** (the guest program's
 `da_vector`): `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain. -/
 noncomputable def dualCodewordAt (z : E) (b : Fin (2 ^ 14)) : E :=
   ∏ j : Fin 13, (1 + z ^ 2 ^ (j : ℕ) * ι ((normalizedSubspacePolynomial j).eval (point b)))
 
-/-- The inner product of the dual codeword with a row: `Σ_x L(x) row(x)` (`check_membership`). -/
+/-- The inner product of the dual codeword with a row: `Σ_x L(x) row(x)` (the guest program's `da_verify`). -/
 noncomputable def innerProduct (L : Fin (2 ^ 14) → E) (row : Row) : E := ∑ b, L b * row b
 
 /-- **The membership check**: every row is orthogonal to the dual codeword of `z`. -/
@@ -604,7 +604,7 @@ its transcript handed to the extractor: its game makes at most `Q + 2^65` calls 
 relation's check, the commitment's hashes (fewer than `2^22`) and, on the worst path, the nonce
 search's `2^64 + 2` (the label's hash, the seeded sponge and every `u64` nonce). The second is the
 membership test with its grind: the inner product of `L` with a row that is not a codeword is a
-nonzero polynomial in `z` of degree below `2^13` (`membership.rs`), so a challenge accepts it
+nonzero polynomial in `z` of degree below `2^13` (Annex D, Proposition prop:rs-membership), so a challenge accepts it
 with probability at most `(2^13 - 1) / 2^128`; a permutation call of the adversary draws a valid
 proof of work and an accepting challenge at once with probability at most `2^-10` of that,
 `2^-125`, and the verifier's own search for the root, however many nonces it tries, stops at its
