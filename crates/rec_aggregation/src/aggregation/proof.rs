@@ -6,12 +6,11 @@ use super::{LeanSphincsClaim, LeanXmssClaim};
 use leanvm_core::cpu::{public_input_bytes, scalar_proof};
 use primitives::field::F128;
 
-/// What an aggregate attests: each `(pubkey, message)` in [`Self::lean_xmss`] and
-/// [`Self::lean_sphincs`] has a valid signature under that scheme, and [`Self::da_commitment`], if
-/// any, commits to blobs that are valid Reed-Solomon codewords.
+/// What an  [`AggregateProof`] proves: a list of `(pubkey, message)` leanXMSS claims and a list of `(pubkey, message)`
+/// leanSphincs claims had a valid signature, and (optional) some digest represent a correct matrix of blobs (see
+/// [`lean_da::BlobMatrix`]).
 ///
-/// Each list must be strictly sorted (so without duplicates), or [`AggregateProof::verify`] rejects
-/// it. Either may be empty.
+/// Each of the first 2 list must be strictly sorted (so without duplicates), potentially empty.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AggregateClaims {
     pub lean_xmss: Vec<LeanXmssClaim>,

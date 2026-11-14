@@ -65,6 +65,5 @@ pub type LeanXmssClaim = (LeanXmssPublicKey, lean_xmss::Message);
 /// One leanSPHINCS claim: a pubkey, and the message it signed.
 pub type LeanSphincsClaim = (LeanSphincsPublicKey, lean_sphincs::Message);
 
-/// The most earlier aggregates one [`aggregate`] call can take, so the arity of
-/// an aggregation tree.
+/// The maximum number of child proofs one [`aggregate`] call can take.
 pub const MAX_RECURSIONS: usize = 16;
