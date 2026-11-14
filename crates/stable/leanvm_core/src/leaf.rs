@@ -299,6 +299,18 @@ pub(crate) fn build_leaves(
         leaves
     })
 }
+/// The leaves of the blocks' padding rows, which hold the identity, as sorted runs.
+fn padding_runs(blocks: &[Block], lay: &Layout) -> Vec<std::ops::Range<usize>> {
+    let mut runs: Vec<_> = blocks
+        .iter()
+        .zip(&lay.offsets)
+        .filter(|(blk, _)| blk.rows < 1 << blk.kappa)
+        .map(|(blk, &offset)| offset + blk.rows..offset + (1 << blk.kappa))
+        .collect();
+    runs.sort_unstable_by_key(|run| run.start);
+    runs
+}
+
 /// One table's bus contribution on one side, as a form over that table's committed
 /// columns: `Σ_c coeffs[c]·col_c(z) + Σ (a,b,c) c·col_a(z)·col_b(z) + constant`.
 /// Every coefficient is a public function of `α`, `β` and the block selectors at
@@ -642,7 +654,8 @@ pub(crate) fn prove_balance(
     let leaves = crate::stage!("Bus leaves", || build_leaves(sides, cols));
     // All three trees run as ONE RLC-batched GKR (equal μ: push/pull match
     // block-for-block, count is padded), so every claim lands on ONE point ζ.
-    let bus_gkr = crate::stage!("Bus GKR", || gkr::prove_products(leaves, ps));
+    let ones = std::array::from_fn(|s| padding_runs(blocks[s], lays[s]));
+    let bus_gkr = crate::stage!("Bus GKR", || gkr::prove_products(leaves, ones, ps));
 
     // Framework blocks keep their per-column claims (deduped: push/pull share ζ);
     // every table block becomes a form for the zerocheck instead.
