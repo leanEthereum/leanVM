@@ -7,7 +7,7 @@ use core::arch::aarch64::*;
 use core::mem::transmute;
 
 use crate::field::gf2_64::R64;
-use crate::field::{F64, F128};
+use crate::field::{F64, F128, F128Unreduced};
 
 type V = uint64x2_t;
 
@@ -219,6 +219,14 @@ impl F128x8 {
 
 impl Acc8 {
     pub const ZERO: Self = Self([[ZERO; 2]; 8]);
+
+    /// The eight sums as they are, unreduced.
+    #[inline(always)]
+    pub fn to_array(self) -> [F128Unreduced; 8] {
+        // SAFETY: both sides are plain bits of one size.
+        self.0
+            .map(|c| F128Unreduced::from_limbs(c.map(|c| unsafe { transmute::<V, u128>(c) })))
+    }
 
     /// Every lane reduced.
     #[inline(always)]

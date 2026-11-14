@@ -4,7 +4,7 @@
 //! - [`F128x8`]: eight `E` elements, lane `i` element `i`.
 //! - [`F64x8`]: eight `K` elements.
 //! - [`Acc8`]: eight unreduced `E` sums, what products land in before one reduction per lane ([`Acc8::reduce`]) or
-//!   one for the whole sum ([`Acc8::sum`]).
+//!   one for the whole sum ([`Acc8::sum`]), or read as they are ([`Acc8::to_array`]).
 //! - [`clmul8`]: eight carry-less 64x64 products, and [`clmul8_low`] their low halves, for products known to fit 64
 //!   bits.
 //!
@@ -189,6 +189,9 @@ mod tests {
                 s ^ a[i].mul_unreduced(b[i]) ^ c[i].mul_base_unreduced(k[i]) ^ b[i].mul_unreduced(c[i])
             });
             assert_eq!(acc.sum(), unreduced.reduce());
+            let products = va.mul_unreduced(vb) + vc.mul_base_unreduced(vk);
+            let want = lanes(|i| a[i].mul_unreduced(b[i]) ^ c[i].mul_base_unreduced(k[i]));
+            assert_eq!(products.to_array(), want);
 
             // Carry-less products.
             let (p, q) = (k.map(|k| k.0), l.map(|l| l.0));

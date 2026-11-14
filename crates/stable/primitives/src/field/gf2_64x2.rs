@@ -222,6 +222,18 @@ pub struct F128Unreduced([u128; 2]);
 impl F128Unreduced {
     pub const ZERO: Self = Self([0; 2]);
 
+    /// The coefficients of `y^0` and of `y^1`, each a 128-bit carry-less polynomial.
+    #[inline]
+    pub const fn to_limbs(self) -> [u128; 2] {
+        self.0
+    }
+
+    /// The sum whose coefficients of `y^0` and `y^1` are `limbs`.
+    #[inline]
+    pub const fn from_limbs(limbs: [u128; 2]) -> Self {
+        Self(limbs)
+    }
+
     /// Reduce each coefficient modulo the base polynomial.
     #[inline]
     pub fn reduce(self) -> F128 {

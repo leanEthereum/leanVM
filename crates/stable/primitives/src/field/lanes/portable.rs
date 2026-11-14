@@ -113,6 +113,12 @@ impl F128x8 {
 impl Acc8 {
     pub const ZERO: Self = Self([F128Unreduced::ZERO; 8]);
 
+    /// The eight sums as they are, unreduced.
+    #[inline(always)]
+    pub fn to_array(self) -> [F128Unreduced; 8] {
+        self.0
+    }
+
     /// Every lane reduced.
     #[inline(always)]
     pub fn reduce(self) -> F128x8 {
