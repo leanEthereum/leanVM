@@ -66,12 +66,16 @@ struct Job {
 // SAFETY: the closure behind `f` is `Sync`, and it outlives every worker's use of it (see `Job`).
 unsafe impl Send for Job {}
 
-/// What the workers wait on: the current job, numbered by its generation, and how many workers still run it.
+/// What the workers wait on: the current job, numbered by its generation, and how many workers sleep on `start`.
 struct State {
     generation: usize,
     job: Option<Job>,
-    running: usize,
+    sleeping: usize,
 }
+
+/// Idle spins before a worker or the dispatcher sleeps: back-to-back dispatches, the common case, then cost no
+/// wake-up through the kernel, which on many cores is where the time goes.
+const SPIN_LIMIT: u32 = 1 << 12;
 
 struct Pool {
     state: Mutex<State>,
@@ -79,6 +83,10 @@ struct Pool {
     start: Condvar,
     /// Signalled when the last worker finishes the job.
     done: Condvar,
+    /// `State::generation`, readable without the lock, for the spinning workers.
+    published: AtomicUsize,
+    /// Workers still running the current job.
+    running: AtomicUsize,
     /// Next item index to claim; reset per dispatch.
     counter: AtomicUsize,
     /// Serializes dispatchers: one driver at a time.
@@ -101,10 +109,12 @@ fn pool() -> &'static Pool {
             state: Mutex::new(State {
                 generation: 0,
                 job: None,
-                running: 0,
+                sleeping: 0,
             }),
             start: Condvar::new(),
             done: Condvar::new(),
+            published: AtomicUsize::new(0),
+            running: AtomicUsize::new(0),
             counter: AtomicUsize::new(0),
             dispatch: Mutex::new(()),
             panic: Mutex::new(None),
@@ -125,20 +135,33 @@ fn worker_main(pool: &'static Pool, id: usize) {
     IN_TASK.set(true); // a worker only ever runs tasks
     let mut seen = 0;
     loop {
+        spin_while(|| pool.published.load(Ordering::Acquire) == seen);
         let job = {
             let mut state = pool.state.lock().unwrap();
             while state.generation == seen {
+                state.sleeping += 1;
                 state = pool.start.wait(state).unwrap();
+                state.sleeping -= 1;
             }
             seen = state.generation;
             state.job.expect("a published job")
         };
         drain(pool, job);
-        let mut state = pool.state.lock().unwrap();
-        state.running -= 1;
-        if state.running == 0 {
+        if pool.running.fetch_sub(1, Ordering::AcqRel) == 1 {
+            // The dispatcher checks `running` under the lock before it sleeps, so this wake-up is never lost.
+            let _state = pool.state.lock().unwrap();
             pool.done.notify_one();
         }
+    }
+}
+
+/// Spin while `busy` holds, at most [`SPIN_LIMIT`] times.
+fn spin_while(busy: impl Fn() -> bool) {
+    for _ in 0..SPIN_LIMIT {
+        if !busy() {
+            return;
+        }
+        std::hint::spin_loop();
     }
 }
 
@@ -222,18 +245,24 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     };
 
     pool.counter.store(0, Ordering::Relaxed);
-    {
+    pool.running.store(num_threads() - 1, Ordering::Relaxed);
+    let sleeping = {
         let mut state = pool.state.lock().unwrap();
         state.generation += 1;
         state.job = Some(job);
-        state.running = num_threads() - 1;
+        pool.published.store(state.generation, Ordering::Release);
+        state.sleeping
+    };
+    // The spinning workers see the new generation by themselves.
+    if sleeping > 0 {
+        pool.start.notify_all();
     }
-    pool.start.notify_all();
 
     drain(pool, job); // the dispatcher runs as worker 0
+    spin_while(|| pool.running.load(Ordering::Acquire) > 0);
     {
         let mut state = pool.state.lock().unwrap();
-        while state.running > 0 {
+        while pool.running.load(Ordering::Acquire) > 0 {
             state = pool.done.wait(state).unwrap();
         }
         state.job = None;
