@@ -657,7 +657,7 @@ fn da_root(rows: &[Codeword]) -> Hash {
         .iter()
         .map(|row| root(row.chunks(CELL_SYMBOLS).map(cell_digest).collect()))
         .collect();
-    blob_roots.resize(rows.len().next_power_of_two(), lean_da::padding_root());
+    blob_roots.resize(rows.len().next_power_of_two(), lean_da::root_of_padding_blob());
     root(blob_roots)
 }
 

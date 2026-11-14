@@ -1,9 +1,3 @@
-//! A Merkle tree per blob, then one over the blob roots.
-//!
-//! A blob's leaves are its `ℓ = m/c` cell digests, so the left subtree of its root covers the
-//! systematic payload and a sampled cell opens against its blob root. The blob roots, padded with
-//! the zero codeword's to a power of two, are the leaves of the commitment's tree.
-
 use fiat_shamir::merkle::Hash;
 use primitives::hash::{OUT_LEN, hash, hash_many};
 
@@ -80,7 +74,7 @@ pub fn commit(blobs: &[Blob]) -> Result<DaWitness, BlobCountError> {
 }
 
 /// The root of a padding blob, the zero codeword.
-pub fn padding_root() -> Hash {
+pub fn root_of_padding_blob() -> Hash {
     padding_tree()[BLOB_TREE - 1]
 }
 
@@ -95,7 +89,7 @@ fn blob_trees(codewords: &[Codeword]) -> Vec<Hash> {
     let n_rows = codewords.len();
     let padding = padding_tree();
     let mut trees = vec![Hash::default(); n_rows.next_power_of_two() * BLOB_TREE];
-    parallel::chunks_mut(&mut trees, BLOB_TREE, |i, tree| {
+    for (i, tree) in trees.chunks_mut(BLOB_TREE).enumerate() {
         if i < n_rows {
             hash_many(
                 as_bytes(&codewords[i]),
@@ -106,7 +100,7 @@ fn blob_trees(codewords: &[Codeword]) -> Vec<Hash> {
         } else {
             tree.copy_from_slice(&padding);
         }
-    });
+    }
     trees
 }
 
