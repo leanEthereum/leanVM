@@ -415,10 +415,7 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
-    let (exec, keccak_blocks) = crate::stage!("Execute program", || {
-        crate::keccak::while_executing(|step| program.execute_with(public_input, step))
-    });
-    let exec = exec.map_err(ProveError::Execution)?;
+    let exec = crate::stage!("Execute program", || program.execute(public_input)).map_err(ProveError::Execution)?;
     // A live value that came from outside the constraint system would make the proof
     // about a weaker statement than the program text, so it is refused here, on the one
     // path every proof takes, rather than left to whichever test happens to look.
@@ -438,7 +435,7 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
         });
     }
     let cycles = exec.cycles;
-    let mut w = crate::stage!("Build witness", || program.build(&exec, layout, keccak_blocks));
+    let mut w = crate::stage!("Build witness", || program.build(&exec, layout));
     let mem_used = exec.mem_used;
     drop(exec);
     let committed_size = w.committed_size();

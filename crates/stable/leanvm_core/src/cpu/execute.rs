@@ -259,16 +259,6 @@ impl Program {
     /// Compilation yields the `Program`; executing it (here) and proving it are
     /// separate later phases.
     pub fn execute(&self, public_input: [F128; 2]) -> Result<Execution, ExecError> {
-        self.execute_with(public_input, &mut |_| {})
-    }
-
-    /// [`Self::execute`], handing `keccak_step` the lanes each `KECCAK` row reads, in row order
-    /// and as the row runs.
-    pub(crate) fn execute_with(
-        &self,
-        public_input: [F128; 2],
-        keccak_step: &mut dyn FnMut(&[u64; primitives::hash::STATE_LANES]),
-    ) -> Result<Execution, ExecError> {
         use super::hints::{BitsDest, GPow, RHint};
 
         let ending_pc = (self.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
@@ -941,7 +931,6 @@ impl Program {
                     // by the Keccak reduction, §keccak); the interpreter still computes it so
                     // the output cells are consistent for any later read.
                     let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
-                    keccak_step(&lanes);
                     primitives::hash::keccak_f(&mut lanes);
                     let written = STATE_CELLS + k.out_cells.cells();
                     let output = crate::keccak::cells_of_state(&lanes, k.out_odd);

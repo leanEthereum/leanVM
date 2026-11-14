@@ -489,8 +489,7 @@ pub(crate) fn table_logs(rows: [usize; tables::N_TABLES]) -> [usize; tables::N_T
 }
 
 impl Program {
-    /// `keccak_blocks` is what [`crate::keccak::while_executing`] built behind `exec`'s run.
-    pub(crate) fn build(&self, exec: &Execution, l: Layout, keccak_blocks: crate::keccak::Blocks) -> Witness {
+    pub(crate) fn build(&self, exec: &Execution, l: Layout) -> Witness {
         assert!(exec.mem.len().is_power_of_two());
         // The trace was emitted in the same walk as the memory image (no re-walk).
         let tr = &exec.trace;
@@ -609,9 +608,15 @@ impl Program {
             parallel::fill(windows[BFCNT], |i| gpow[tr.bytecode_count[i] as usize]); // … at g^{A[pc]}
         });
         // The committed Keccak states q_keccak, ALWAYS in this same stack: built from
-        // the executed KECCAK rows in order (row j = step j).
+        // the executed KECCAK rows in order (row j = step j), each step's input read back from
+        // the final memory image, which is write-once.
         let keccak_reduction = crate::stage!("Build q_keccak", || {
-            keccak_blocks.place(tr.keccak.len(), windows[QKECCAK])
+            let inputs = parallel::map_collect(tr.keccak.len(), |i| {
+                let row = tr.keccak.get(i);
+                let op = tables::KeccakOp::of(&self.prog[row.pc as usize]);
+                crate::keccak::state_of_cells(op.in_odd, |c| exec.mem.word(op.cell(row.fp, c) as usize))
+            });
+            crate::keccak::place(&inputs, windows[QKECCAK])
         });
 
         // (`execute` already asserts the run halts at the sentinel (pc, fp) =
