@@ -99,6 +99,20 @@ pub fn aggregate_with_stats(
     raw_lean_sphincs.sort_by_key(|(pk, message, _)| (*pk, *message));
     raw_lean_sphincs.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
 
+    // The request's checks, on the claim lists alone, before any costly work.
+    if !children.iter().all(|(claims, _)| is_sorted(claims)) {
+        return Err(AggregateError::InvalidChild);
+    }
+    let raw_xmss_claims: Vec<LeanXmssClaim> = raw_lean_xmss.iter().map(|(pk, message, _)| (*pk, *message)).collect();
+    let raw_lean_sphincs_claims: Vec<LeanSphincsClaim> = raw_lean_sphincs
+        .iter()
+        .map(|(pk, message, _)| (*pk, *message))
+        .collect();
+    let cover = plan_coverage(&raw_xmss_claims, &raw_lean_sphincs_claims, children, declare)?;
+    if cover.lean_xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
+        return Err(AggregateError::InvalidInput("nothing to publish"));
+    }
+
     // The children are assumed checked. Nothing here verifies one: the replay
     // only reads out of its proof the summary `gen_verify` derives the guest's
     // witness from, pinning the Merkle paths it reads, and fails on a proof it
@@ -106,9 +120,6 @@ pub fn aggregate_with_stats(
     // verify fails in the guest instead, which verifies every child in the VM,
     // so `prove` below returns the error.
     let _span = tracing::info_span!("Replay children").entered();
-    if !children.iter().all(|(claims, _)| is_sorted(claims)) {
-        return Err(AggregateError::InvalidChild);
-    }
     let carried = children
         .iter()
         .map(|(_, proof)| DeferredBytecodeClaim::recompute(proof.bytecode_point.clone()))
@@ -137,12 +148,6 @@ pub fn aggregate_with_stats(
     drop(_span);
 
     let _span = tracing::info_span!("Build witness").entered();
-    let raw_xmss_claims: Vec<LeanXmssClaim> = raw_lean_xmss.iter().map(|(pk, message, _)| (*pk, *message)).collect();
-    let raw_lean_sphincs_claims: Vec<LeanSphincsClaim> = raw_lean_sphincs
-        .iter()
-        .map(|(pk, message, _)| (*pk, *message))
-        .collect();
-    let cover = plan_coverage(&raw_xmss_claims, &raw_lean_sphincs_claims, children, declare)?;
 
     let mut hints = Hints::default();
     hints.push(
@@ -294,9 +299,6 @@ pub fn aggregate_with_stats(
         }
     }
     hints.push("da_pick", vec![count(da_pick)]);
-    if cover.lean_xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
-        return Err(AggregateError::InvalidInput("nothing to publish"));
-    }
 
     let public_input = statement_digest(&cover.lean_xmss.signers, &cover.lean_sphincs.signers, da_digest, &defer);
     let mut program = guest.clone();
