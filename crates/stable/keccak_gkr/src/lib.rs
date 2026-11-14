@@ -76,11 +76,12 @@
 //! # Prover
 //!
 //! The witness holds every round's `u` sliced by bit position, 64 instances to a word
-//! ([`witness`]). A layer walks it three times (`prover`): once for `U`, once for the first
-//! four rounds of step 3, which are sums of products of bit-level combinations of packs, and
-//! once to fold those four rounds' challenges into field elements. Everything after `s` is
-//! arithmetic in the power basis of `s`, where a pack's value is its embedding's bits and a
-//! weighted sum is a carry-less product (`basis`, `power`).
+//! ([`witness`]). A layer walks it six times (`prover`): once for `U`, once for each of the first
+//! four rounds of step 3, over the sixteen packs of half a block, and once to fold those four
+//! rounds' challenges into field elements. At `s`, a pack's value is the sum of the instance
+//! weights of its set bits, so a folded one is a sum of byte lookups. The rounds after those
+//! are arithmetic in the power basis of `s`, where a weighted sum is a carry-less product
+//! (`basis`, `power`).
 //!
 //! `U`'s weighted bit sums are outer products: the positions grouped by each byte of their weight
 //! (`prover`'s digit buckets).

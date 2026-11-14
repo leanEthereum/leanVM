@@ -3,29 +3,25 @@
 //! One layer makes three passes over the bits of the states it reduces to:
 //!
 //! 1. the product polynomial, before its evaluation point `s` is known;
-//! 2. the first sumcheck rounds, over the packs of half a block, as sums of bit-level products;
+//! 2. once per sumcheck round over the packs of half a block, folding them at the challenges so
+//!    far;
 //! 3. one field element per half block and position, for the rounds that remain.
 //!
-//! From `s` on, everything stays in the power basis of `s` ([`crate::power`]) until the tables
-//! are down to one row.
+//! The rounds after those over the packs stay in the power basis of `s` ([`crate::power`])
+//! until the tables are down to one row.
 
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{F128, F128Unreduced};
 use primitives::multilinear::{eq_table, poly_eval};
 
-use crate::basis::{PolyEval, add_mul, carry};
+use crate::basis::{PolyEval, add_mul, byte_sums, carry};
 use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
-use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed_points, products, slot};
+use crate::kernels::{GROUP, PACKS, SKIP, embed, products};
 use crate::open::fold;
 use crate::power::{Element, PowerField, get, set};
 use crate::protocol::{Claim, chi_weights, mu_at};
-use crate::rmfe::PROD_BITS;
+use crate::rmfe::{PACK, PROD_BITS};
 use crate::witness::{Shape, Witness, transpose64, words};
-
-/// The pattern index of a binary assignment.
-fn ternary(b: usize) -> usize {
-    (0..SKIP).fold(0, |acc, k| acc + (b >> k & 1) * 3usize.pow(k as u32))
-}
 
 /// Digits a weight splits into, and the values of one.
 const DIGIT_BITS: usize = 8;
@@ -241,52 +237,37 @@ impl Layer<'_> {
             .collect()
     }
 
-    /// The layer's summand at `s`, extended over the packs of a group and summed over the groups:
-    /// for every point `p` of `{0, 1, infinity}^SKIP`,
-    /// `sum over groups of eq(point[SKIP..], group) * Q(p, group)`.
-    ///
-    /// A point at infinity in some variable keeps only the product `u[j + 1] * u[j + 2]`, summed
-    /// here. A binary one is a pack, whose sum `binary` already holds. The packs of the padding
-    /// block are all equal, so their extension vanishes there.
-    fn skip_sums(&self, claim: &Claim, field: &PowerField, s: F128, binary: &[F128; GROUP]) -> Vec<F128> {
-        let weights: Vec<Element> = claim.weights.iter().map(|&w| field.to_poly(w)).collect();
-        let groups: Vec<Element> = eq_table(&claim.point[SKIP..])
-            .iter()
-            .map(|&e| field.to_poly(e))
-            .collect();
-        let (nb, written) = (self.witness.shape.n_blocks(), self.witness.written());
-        let mixed = parallel::map_reduce_with_state(
-            self.rounds.len() * written,
-            SkipBlock::new,
-            || vec![[0u64; 5]; MIXED],
-            |skip, total, task| {
-                let (segment, g) = (task / written, task % written);
-                let (row, block) = (g + nb * segment, self.witness.layer(self.rounds[segment], g));
-                skip.run(block, &weights);
+    /// A round over a variable of the packs of a group, from the witness: its values at `0` and
+    /// at infinity. `fold` folds the variables already bound, and `inner` is `eq` of the claim's
+    /// later variables of the group (pair `c` of group half `h` at `c + pairs * h`), `tasks` each
+    /// task's weight in `eq` of the rest.
+    fn group_round(&self, summand: &Summand, fold: &PackFold, inner: &[F128], tasks: &[F128]) -> (F128, F128) {
+        let pairs = inner.len() / 2;
+        let (zero, infinity) = parallel::map_reduce_with_state(
+            self.n_tasks(),
+            || (vec![F128::ZERO; BITS], vec![F128::ZERO; BITS]),
+            || (F128Unreduced::ZERO, F128Unreduced::ZERO),
+            |(low, high), acc, task| {
+                let (_, _, block) = self.block(task);
+                let (mut zero, mut infinity) = (F128Unreduced::ZERO, F128Unreduced::ZERO);
                 for half in 0..2 {
-                    for (i, total) in total.iter_mut().enumerate() {
-                        add_mul(total, &carry::<2, 3>(&skip.get(slot(half, i))), &groups[2 * row + half]);
+                    for c in 0..pairs {
+                        for j in 0..BITS {
+                            low[j] = fold.value(block, half, j, 2 * c);
+                            high[j] = fold.value(block, half, j, 2 * c + 1);
+                        }
+                        let (z, i) = summand.pair(low, high);
+                        let weight = inner[c + pairs * half];
+                        zero ^= z.reduce().mul_unreduced(weight);
+                        infinity ^= i.reduce().mul_unreduced(weight);
                     }
                 }
+                acc.0 ^= zero.reduce().mul_unreduced(tasks[task]);
+                acc.1 ^= infinity.reduce().mul_unreduced(tasks[task]);
             },
-            |mut a, b| {
-                for (x, y) in a.iter_mut().zip(b) {
-                    for (x, y) in x.iter_mut().zip(y) {
-                        *x ^= y;
-                    }
-                }
-                a
-            },
+            |a, b| (a.0 ^ b.0, a.1 ^ b.1),
         );
-        let eval = PolyEval::new(s, 40);
-        let mut sums = vec![F128::ZERO; TERNARY];
-        for (slot, p) in mixed_points().into_iter().enumerate() {
-            sums[p] = eval.eval(&mixed[slot]);
-        }
-        for (q, &value) in binary.iter().enumerate() {
-            sums[ternary(q)] = value;
-        }
-        sums
+        (zero.reduce(), infinity.reduce())
     }
 
     /// The table the remaining rounds fold, a row per group: `T[j]`, the value at `s` of position
@@ -354,6 +335,73 @@ impl Layer<'_> {
             RoundSums::merge,
         );
         round.finish(&sums)
+    }
+}
+
+/// The packs of a group folded at the challenges bound so far: a pack's value at `s` is the sum of
+/// the instance weights of its set bits, so a folded one is a sum of byte lookups.
+struct PackFold {
+    /// Per assignment `a` of the bound variables, its `eq` weight times each instance weight, as
+    /// subset sums of a pack's low byte and of its high byte.
+    tables: Vec<[[F128; 256]; 2]>,
+}
+
+impl PackFold {
+    fn new(mu: &[F128; PACK], challenges: &[F128]) -> Self {
+        let tables = eq_table(challenges)
+            .iter()
+            .map(|&e| [0, 1].map(|k| byte_sums(&std::array::from_fn(|t| e * mu[8 * k + t]))))
+            .collect();
+        Self { tables }
+    }
+
+    /// Entry `b` of position `j` of group `half` of a block: the sum over the bound assignments
+    /// `a` of pack `a + 2^bound * b`, weighted.
+    fn value(&self, block: &[u64], half: usize, j: usize, b: usize) -> F128 {
+        let words = words(block, j);
+        let bound = self.tables.len();
+        let mut acc = F128::ZERO;
+        for (a, tables) in self.tables.iter().enumerate() {
+            let q = GROUP * half + a + bound * b;
+            let pack = (words[q / 4] >> (16 * (q % 4))) as usize & 0xffff;
+            acc += tables[0][pack & 0xff] + tables[1][pack >> 8];
+        }
+        acc
+    }
+}
+
+/// What the rounds over packs and segments need of a claim: the position weights, `kappa`, and
+/// each position's `kappa * weights[j + 2]`.
+struct Summand {
+    weights: Vec<F128>,
+    constant: Vec<F128>,
+    kappa: F128,
+}
+
+impl Summand {
+    fn new(claim: &Claim, kappa: F128) -> Self {
+        Self {
+            weights: claim.weights.clone(),
+            constant: (0..BITS).map(|j| kappa * claim.weights[along(j, 2)]).collect(),
+            kappa,
+        }
+    }
+
+    /// For rows `low` and `high`, the values at the two points of the variable being bound,
+    /// `sum over positions of B[j] * T[j + 2]` at `0` and at infinity, unreduced, where
+    /// `B[j] = weights[j] * (kappa + T[j + 1]) + kappa * weights[j + 2]`.
+    fn pair(&self, low: &[F128], high: &[F128]) -> (F128Unreduced, F128Unreduced) {
+        let (mut zero, mut infinity) = (F128Unreduced::ZERO, F128Unreduced::ZERO);
+        for lane in 0..BITS / 64 {
+            let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
+            for z in 0..64 {
+                let w = self.weights[a + z];
+                let factor = w * (self.kappa + low[b + z]) + self.constant[a + z];
+                zero ^= factor.mul_unreduced(low[c + z]);
+                infinity ^= (w * (low[b + z] + high[b + z])).mul_unreduced(low[c + z] + high[c + z]);
+            }
+        }
+        (zero, infinity)
     }
 }
 
@@ -634,32 +682,20 @@ pub fn prove_layer(
     let mut value = poly_eval(&product, s);
     let field = PowerField::new(s).expect("the challenge lies in no proper subfield");
 
-    // The packs of a group, from sums of bit-level products. A pack's own sum is its product
-    // polynomial at `s`, over both groups of the block.
-    let binary: [F128; GROUP] = std::array::from_fn(|q| {
-        let half = claim.point[SKIP];
-        (F128::ONE + half) * poly_eval(&per_pack[q], s) + half * poly_eval(&per_pack[GROUP + q], s)
-    });
-    let mut sums = tracing::info_span!("Skip").in_scope(|| layer.skip_sums(claim, &field, s, &binary));
+    // The packs of a group, a pass over the witness per round.
+    let mu = mu_at(s);
+    let summand = Summand::new(claim, kappa);
+    let tasks = layer.task_weights(&eq_table(&claim.point[SKIP + 1..]));
     let mut scale = F128::ONE;
     let mut point = Vec::with_capacity(claim.point.len());
+    let skip = tracing::info_span!("Skip").entered();
     for i in 0..SKIP {
-        let later = eq_table(&claim.point[i + 1..SKIP]);
-        let mut h = [F128::ZERO; 3];
-        for (b, &eq) in later.iter().enumerate() {
-            for (d, h) in h.iter_mut().enumerate() {
-                *h += eq * sums[d + 3 * ternary(b)];
-            }
-        }
-        let coeffs = [scale * h[0], scale * (h[0] + h[1] + h[2]), scale * h[2]];
-        let challenge = bind(ps, &coeffs, claim.point[i], &mut value, &mut scale, &mut point);
-        sums = sums
-            .as_chunks::<3>()
-            .0
-            .iter()
-            .map(|v| v[0] + challenge * (v[0] + v[1]) + (challenge.square() + challenge) * v[2])
-            .collect();
+        let fold = PackFold::new(&mu, &point);
+        let (zero, infinity) = layer.group_round(&summand, &fold, &eq_table(&claim.point[i + 1..=SKIP]), &tasks);
+        let coeffs = round_coefficients(scale, zero, infinity, value, claim.point[i]);
+        bind(ps, &coeffs, claim.point[i], &mut value, &mut scale, &mut point);
     }
+    drop(skip);
 
     // The groups, blocks and segments, on a table in the power basis. Each pass over it writes
     // the rows of one round and sums that round's values over them.
