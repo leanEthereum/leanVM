@@ -23,8 +23,9 @@ statement on every path, that a body holding under `valP` holds under the cells'
 * a constant `v = c` whose cell holds `c` because an earlier constant atom on the path, `u = c`
   with `u` placed in that cell, holds (`known`: the cells the path has so far set, by limbs);
 * a hint constrains nothing;
-* a residual value (`res`): a constant whose cell holds it, or a value whose cell holds its word,
-  by a fact about the run that the core semantics does not give (`ResHolds`, a hypothesis).
+* a residual value (`res`): a constant whose cell holds it, or a pointer placed at `fp[n]·g^e`
+  whose cell holds that word, by a fact about the run that the core semantics does not give
+  (`ResFact`, a property of the memory at the frame: `B2/Prologue.lean` proves it from the code).
 
 Every other statement must name only values of the first kind (or residual pointers), so a value
 whose cells differ appears nowhere else: a dead constant, a hint's destination.
@@ -40,9 +41,21 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 inductive Res where
   /-- A dead constant `word c0 c1`: its cell holds it. -/
   | konst (c0 c1 : Nat)
-  /-- A value whose cell holds its word under the valuation by places. -/
-  | addr
+  /-- A pointer placed at `fp[n]·g^e`: its cell holds that word. -/
+  | addr (n e : Nat)
   deriving DecidableEq, Repr
+
+section
+
+variable {κ : ℕ} (L : MemoryImage κ) (fp : K)
+
+/-- **What a residual entry says of the frame cell `c`**: it holds the constant, or the pointer's
+word. -/
+def ResFact (c : Nat) : Res → Prop
+  | .konst c0 c1 => wd L fp c = word c0 c1
+  | .addr n e => wd L fp c = wd L fp n * ofK (addressOfIndex e)
+
+end
 
 /-- A function's places, its cell table and its residual values. -/
 structure Agree where
@@ -62,7 +75,8 @@ pointer. -/
 def eqv (v : V) : Bool :=
   match A.pl v with
   | some (.cell n) => n == A.cell v
-  | _ => A.res.contains (v, .addr)
+  | some (.shifted n e) => A.res.contains (v, .addr n e)
+  | none => false
 
 /-- The cells set so far on the path, after an atom: a constant placed in a cell sets it. -/
 def learn (known : List (Nat × Nat × Nat)) : Atom → List (Nat × Nat × Nat)
@@ -119,10 +133,8 @@ variable {κ : ℕ} (L : MemoryImage κ) (fp : K)
 /-- The valuation by the table's cells. -/
 noncomputable def valC : Val := fun v => wd L fp (A.cell v)
 
-/-- What a residual entry says at a frame, the valuation by places `σ`. -/
-def ResHolds (σ : Val) (v : V) : Res → Prop
-  | .konst c0 c1 => wd L fp (A.cell v) = word c0 c1
-  | .addr => wd L fp (A.cell v) = σ v
+/-- What a residual entry says at a frame: `ResFact` of the value's cell. -/
+def ResHolds (v : V) (r : Res) : Prop := ResFact L fp (A.cell v) r
 
 /-- The cells the path set hold their words. -/
 def KnownHolds (known : List (Nat × Nat × Nat)) : Prop :=
@@ -134,7 +146,8 @@ section Sound
 
 
 theorem eqv_sound (hpl : ∀ v, locs[v]? = A.pl v)
-    (hres : ∀ p ∈ A.res, A.ResHolds L fp (valP L fp locs) p.1 p.2) {v : V} (h : A.eqv v = true) : valP L fp locs v = A.valC L fp v := by
+    (hres : ∀ p ∈ A.res, A.ResHolds L fp p.1 p.2) {v : V} (h : A.eqv v = true) :
+    valP L fp locs v = A.valC L fp v := by
   unfold eqv at h
   unfold valC valP
   rw [hpl v]
@@ -142,14 +155,15 @@ theorem eqv_sound (hpl : ∀ v, locs[v]? = A.pl v)
   · rename_i n hn
     rw [hn, beq_iff_eq.mp h]
     rfl
-  · have := hres _ (List.contains_iff_mem.mp h)
-    simp only [ResHolds] at this
-    rw [this]
-    unfold valP
-    rw [hpl v]
+  · rename_i n e hn
+    have := hres _ (List.contains_iff_mem.mp h)
+    simp only [ResHolds, ResFact] at this
+    rw [hn, this]
+    rfl
+  · exact absurd h Bool.false_ne_true
 
 theorem map_eqv (hpl : ∀ v, locs[v]? = A.pl v)
-    (hres : ∀ p ∈ A.res, A.ResHolds L fp (valP L fp locs) p.1 p.2) {vs : List V} (h : vs.all A.eqv = true) :
+    (hres : ∀ p ∈ A.res, A.ResHolds L fp p.1 p.2) {vs : List V} (h : vs.all A.eqv = true) :
     vs.map (valP L fp locs) = vs.map (A.valC L fp) :=
   List.map_congr_left fun v hv => eqv_sound hpl hres (List.all_eq_true.mp h v hv)
 
@@ -173,7 +187,7 @@ theorem learn_sound (hpl : ∀ v, locs[v]? = A.pl v) {known : List (Nat × Nat �
   | _ => exact hk
 
 theorem atomOk_sound (hpl : ∀ v, locs[v]? = A.pl v)
-    (hres : ∀ p ∈ A.res, A.ResHolds L fp (valP L fp locs) p.1 p.2) {known : List (Nat × Nat × Nat)} (hk : KnownHolds L fp known) {rd : Reader}
+    (hres : ∀ p ∈ A.res, A.ResHolds L fp p.1 p.2) {known : List (Nat × Nat × Nat)} (hk : KnownHolds L fp known) {rd : Reader}
     {a : Atom} (hc : A.atomOk known a = true) (ha : a.Holds rd (valP L fp locs)) :
     a.Holds rd (A.valC L fp) := by
   unfold atomOk at hc
@@ -186,7 +200,7 @@ theorem atomOk_sound (hpl : ∀ v, locs[v]? = A.pl v)
           simp only [Atom.Holds, valC]
           rw [this, word_limbsOf]
         · have := hres _ (List.contains_iff_mem.mp hc)
-          simp only [ResHolds] at this
+          simp only [ResHolds, ResFact] at this
           simp only [Atom.Holds, valC]
           rw [this, word_limbsOf]
     | hint => trivial
@@ -194,7 +208,7 @@ theorem atomOk_sound (hpl : ∀ v, locs[v]? = A.pl v)
 
 mutual
 theorem blockOk_sound (hpl : ∀ v, locs[v]? = A.pl v)
-    (hres : ∀ p ∈ A.res, A.ResHolds L fp (valP L fp locs) p.1 p.2) {C : CallRel} {rd : Reader} :
+    (hres : ∀ p ∈ A.res, A.ResHolds L fp p.1 p.2) {C : CallRel} {rd : Reader} :
     ∀ (known : List (Nat × Nat × Nat)) (ss : List Stmt) (N N' : Prop) (kret : List E → Prop),
       KnownHolds L fp known → A.blockOk known ss = true → (N → N') →
       Stmt.HoldsList C rd (valP L fp locs) ss N kret → Stmt.HoldsList C rd (A.valC L fp) ss N' kret
@@ -246,7 +260,7 @@ theorem blockOk_sound (hpl : ∀ v, locs[v]? = A.pl v)
           exact h
 
 theorem armsOk_sound (hpl : ∀ v, locs[v]? = A.pl v)
-    (hres : ∀ p ∈ A.res, A.ResHolds L fp (valP L fp locs) p.1 p.2) {C : CallRel} {rd : Reader} :
+    (hres : ∀ p ∈ A.res, A.ResHolds L fp p.1 p.2) {C : CallRel} {rd : Reader} :
     ∀ (known : List (Nat × Nat × Nat)) (x : V) (arms : List (List Stmt)) (j : Nat) (N N' : Prop)
       (kret : List E → Prop), KnownHolds L fp known → valP L fp locs x = A.valC L fp x →
       A.armsOk known arms = true → (N → N') →
@@ -265,7 +279,7 @@ end
 residual entries hold, has its parameters' words and its body under the cells as under the
 places. -/
 theorem fnOk_sound (hpl : ∀ v, locs[v]? = A.pl v)
-    (hres : ∀ p ∈ A.res, A.ResHolds L fp (valP L fp locs) p.1 p.2) {f : Fn} (hc : A.fnOk f = true) :
+    (hres : ∀ p ∈ A.res, A.ResHolds L fp p.1 p.2) {f : Fn} (hc : A.fnOk f = true) :
     f.params.map (valP L fp locs) = f.params.map (A.valC L fp) ∧
       ∀ (C : CallRel) (rd : Reader) (N : Prop) (kret : List E → Prop),
         Stmt.HoldsList C rd (valP L fp locs) f.body N kret →

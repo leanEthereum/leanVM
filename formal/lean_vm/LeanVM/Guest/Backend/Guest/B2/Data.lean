@@ -10,7 +10,6 @@ module
 public import LeanVM.Guest.Glob
 public import LeanVM.Guest.Backend.Guest.World
 public import LeanVM.Guest.Backend.Guest.B2.Sig
-public import LeanVM.Guest.Backend.Guest.B2.Residual
 
 /-!
 # The certificates' data against the back end's
@@ -41,9 +40,6 @@ def infoOf (j : ℕ) : Array Event × Nat × Bool × Option Nat := GuestData.gue
 
 /-- What a caller knows of compiled function `j` (`Guest.sigOf`, the certificate's signature). -/
 noncomputable abbrev csig (j : ℕ) : Check.Sig := LeanVM.Guest.sigOf j
-
-/-- The residual entries of function `f` (`residual`). -/
-def resOf (f : String) : List (V × Res) := ((residual.find? (·.1 == f)).map (·.2)).getD []
 
 /-- `isLoopName`, as the kernel evaluates it on a literal. -/
 def loopB (s : String) : Bool := "__loop".toList.isPrefixOf s.toList
