@@ -11,6 +11,10 @@ module
 public import LeanVM.Guest.B1.Bits.Grind
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.Memory.Size
+public import LeanVM.Guest.Memory.PopsNil
+public import LeanVM.Guest.B1.Main.RelAtInE
+public import LeanVM.Guest.Exact.Free
+public import LeanVM.Guest.Budget.Bounded
 
 /-!
 # `grind_check`, placed
@@ -26,12 +30,16 @@ word that every memory holding them holds at a fixed address is one of theirs
 
 `grind_check_completeB` (bound `fs name`), `grind_check_completeB_of` (any bound a `TotalLe`
 gives), `grind_check_completeD`.
+
+`grind_relAtInE`, `grind_check_completeDTBR`: the same by a tree popping nothing whose every node is exact on the
+memory: the honest valuation's windows (`gcVals`) are the executor's windows of the word's low limb
+(`wordNat_window`, `gcPre_atom`).
 -/
 
 namespace LeanVM.Guest.B1
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
-open LeanVM.Protocol.Verifier (gen)
+open LeanVM.Protocol.Verifier (gen kToNat)
 open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
@@ -125,17 +133,69 @@ theorem gc_not_loop {b : ℕ} {fn : Fn} (hf : coreProgram.find? (grindCheckName 
   rw [Program.loop_of_find? hf, Fn.loop, hbody, gcBodyT, gcTail]
   simp
 
+/-! ## Exact -/
+
+/-- **A window of a word within its low limb** is the low limb's. -/
+theorem wordNat_window (w : E) {s n : ℕ} (h : s + n ≤ 64) :
+    (LeanVM.Prover.Exec.wordNat w >>> s) % 2 ^ n = kToNat (w.limb 0) / 2 ^ s % 2 ^ n := by
+  have e : LeanVM.Prover.Exec.wordNat w = kToNat (w.limb 0) + 2 ^ s * (2 ^ n * (2 ^ (64 - s - n) *
+      kToNat (w.limb 1))) := by
+    rw [← Nat.mul_assoc, ← Nat.mul_assoc, ← Nat.pow_add, ← Nat.pow_add,
+      show s + n + (64 - s - n) = 64 by omega]
+    rfl
+  rw [e, Nat.shiftRight_eq_div_pow, Nat.add_mul_div_left _ _ (by positivity), Nat.add_mul_mod_self_left]
+
+/-- **Every statement of `grind_check__L{b}` before its `ret` is an atom popping nothing and exact** under the
+honest valuation: its two hints are the word's windows. -/
+theorem gcPre_atom {rd : Reader} {b : ℕ} {w tabs : E}
+    (hs : 1 ≤ gcTop b ∧ gcTop b ≤ 11 ∧ b + 11 * gcW b + gcTop b = 64) {s : Stmt} (hs' : s ∈ gcPre b) :
+    ∃ a, s = .atom a ∧ atomNoWit a = true ∧ a.Exact rd (fun v => gcVals rd b w tabs v.idx) := by
+  obtain ⟨hT1, hT, hsum⟩ := hs
+  simp only [gcPre, gcHead, gcTailPre, List.mem_append, List.mem_flatten, List.mem_map,
+    List.mem_range] at hs'
+  rcases hs' with (hs' | ⟨l, ⟨i, hi, rfl⟩, hs'⟩) | hs'
+  · simp only [List.mem_cons, List.not_mem_nil, or_false] at hs'
+    rcases hs' with rfl | rfl | rfl | rfl | rfl | rfl
+    · refine ⟨_, rfl, rfl, ?_⟩
+      show ((List.range (gcW b)).map fun j => V.n (2 + j)).map (fun v => gcVals rd b w tabs v.idx) = _
+      rw [List.map_map]
+      refine List.map_congr_left fun j hj => ?_
+      have hj : j < gcW b := List.mem_range.mp hj
+      have e2 : 2 + j = gcW b + 2 - (gcW b - j) := by omega
+      show gcVals rd b w tabs (2 + j) = ofK (g ^ ((LeanVM.Prover.Exec.wordNat (gcVals rd b w tabs 0) >>>
+        (b + j * 11)) % 2 ^ 11))
+      rw [e2, gv_win (by omega) (show gcW b - j ≤ gcW b by omega), show gcVals rd b w tabs 0 = w from rfl,
+        wordNat_window w (by omega), gen_pow_eq_ofK, gcV, show gcW b - (gcW b - j) = j by omega,
+        Nat.mul_comm 11 j]
+    · refine ⟨_, rfl, rfl, ?_⟩
+      show [gcVals rd b w tabs (gcW b + 2)] = (List.range 1).map fun i => ofK (g ^ ((LeanVM.Prover.Exec.wordNat
+        (gcVals rd b w tabs 0) >>> (b + 11 * gcW b + i * gcTop b)) % 2 ^ gcTop b))
+      have hv : kToNat (w.limb 0) / 2 ^ (b + 11 * gcW b) < 2 ^ gcTop b := by
+        rw [Nat.div_lt_iff_lt_mul (by positivity), ← Nat.pow_add, show gcTop b + (b + 11 * gcW b) = 64 by omega]
+        exact kToNat_lt _
+      have e : gcVals rd b w tabs (gcW b + 2) = gen ^ gcV b w 0 := by
+        unfold gcVals
+        rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left rfl]
+      simp only [List.range_one, List.map_cons, List.map_nil, Nat.zero_mul, Nat.add_zero]
+      rw [e, show gcVals rd b w tabs 0 = w from rfl, wordNat_window w (by omega), Nat.mod_eq_of_lt hv,
+        gen_pow_eq_ofK, gcV, Nat.sub_zero]
+    all_goals exact ⟨_, rfl, rfl, trivial⟩
+  · simp only [gcIterAt, List.mem_cons, List.not_mem_nil, or_false] at hs'
+    rcases hs' with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl, rfl, trivial⟩
+  · simp only [List.mem_cons, List.not_mem_nil, or_false] at hs'
+    rcases hs' with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl, rfl, trivial⟩
+
 /-! ## Placed -/
 
 /-- **`grind_check__L{bits}` at `fp`**: on every memory defined below `2^κ`, `11 ≤ κ`, holding
 the caller's words, on which `grindPre` holds wherever they are held, its tree of `fs name`
 words holds, loading from the caller's words. -/
-theorem grind_relAtIn {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ} (hκ : 11 ≤ κ)
+theorem grind_relAtInE {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ} (hκ : 11 ≤ κ)
     {args rets : List E} {Lin : Main.Layout}
     (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → grindPre bits rd args rets) (fp : ℕ) {rd : Reader}
     (hlow : LowDef κ rd) (hLin : MemL rd Lin) :
-    RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL []) fp (fs (grindCheckName bits))
-      (grindCheckName bits) args rets := by
+    RelAtInPE coreProgram fs cert rd (ExactAt coreProgram rd) (RegionL Lin) (RegionL []) fp
+      (fs (grindCheckName bits)) (grindCheckName bits) args rets [] := by
   obtain ⟨fn, hf, hpar, hbody⟩ := grind_check_found bits hb
   have hl := gc_not_loop hf hbody
   obtain ⟨rfl, w, tabs, rfl, ht, hpow⟩ := hpre rd hlow hLin
@@ -175,7 +235,14 @@ theorem grind_relAtIn {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ} 
       simp only [List.cons.injEq, and_true] at he'
       rw [he'.2]
       exact winTab_load ht' he
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
+  have hev : ∀ e ∈ (gcPre bits).flatMap (Main.slEvs σ), ∃ a, e = .atom a ∧ atomNoWit a = true ∧ a.Exact rd σ :=
+    fun e he => by
+      obtain ⟨s, hs, he⟩ := List.mem_flatMap.mp he
+      obtain ⟨a, rfl, h1, h2⟩ := gcPre_atom (rd := rd) (w := w) (tabs := tabs) (gc_shape bits hb) hs
+      simp only [Main.slEvs, List.mem_singleton] at he
+      exact ⟨a, he, h1, h2⟩
+  have h := relAtInPE_of_walk (P := coreProgram) (fs := fs) (cert := cert) (Q := ExactAt coreProgram rd)
+    (R := RegionL Lin) (pss := []) (ps := [])
     (D := RegionL []) (Dk := fun _ => False) (N := 0) (fp := fp) coreProgram_wf hf (Or.inl hl)
     (args := [w, tabs]) (rets := []) (by
       rw [hpar]
@@ -184,6 +251,8 @@ theorem grind_relAtIn {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ} 
       simp) hw rfl (fun e he => (hsat.1 e he).1) (by rw [i1, i2]; rfl) (by rw [i3]; simp)
     (by rw [i4]; exact ⟨rfl, fun _ h => h⟩) (fun A hA => ?_)
     (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
+    (splice_nil_of _ _ (fun e he => by obtain ⟨a, rfl, h1, -⟩ := hev e he; exact h1) (by simp))
+    (exactAt_of_walk hf hw fun e he => by obtain ⟨a, rfl, -, h2⟩ := hev e he; exact h2)
   · rw [i2] at h
     simpa using h
   rw [loadAddrs_straight σ _ (gcPre_straight bits)] at hA
@@ -214,6 +283,24 @@ theorem grind_relAtIn {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ} 
       gv_iter (by omega) (by omega) (by omega)
     obtain ⟨j, hj, hr⟩ := htab _ (Nat.mod_lt _ (by positivity))
     exact ⟨j, by rw [e6]; exact hj, Or.inr (Or.inl hr)⟩
+
+/-- **`grind_check__L{bits}` at `fp`** (`grind_relAtInE` without its pops and exactness). -/
+theorem grind_relAtIn {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ} (hκ : 11 ≤ κ)
+    {args rets : List E} {Lin : Main.Layout}
+    (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → grindPre bits rd args rets) (fp : ℕ) {rd : Reader}
+    (hlow : LowDef κ rd) (hLin : MemL rd Lin) :
+    RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL []) fp (fs (grindCheckName bits))
+      (grindCheckName bits) args rets :=
+  RelAtInT.relAtIn (grind_relAtInE hb hκ hpre fp hlow hLin)
+
+/-- **`grind_check__L{bits}`, placed, bounded by its frame and exact**: a tree popping nothing, every node exact
+on the memory. -/
+theorem grind_check_completeDTBR {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ} (hκ : 11 ≤ κ)
+    {args rets : List E} {Lin : Main.Layout} (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → grindPre bits rd args rets) :
+    CompleteAtDTBR fs cert κ (grindCheckName bits) Lin args (Returns rets)
+      (fun rd t => t.pops coreProgram rd = [] ∧ t.Every (ExactAt coreProgram rd)) (fs (grindCheckName bits)) :=
+  fun fp => ⟨fs (grindCheckName bits), [], rets, [], le_rfl, ⟨rfl, rfl⟩, by simp [Within], disj_nil,
+    fun _ hl hL => grind_relAtInE hb hκ hpre fp hl (by simpa using hL)⟩
 
 /-- **`grind_check__L{bits}`, placed and bounded by its frame.** -/
 theorem grind_check_completeB {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ}
