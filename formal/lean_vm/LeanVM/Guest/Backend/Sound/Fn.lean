@@ -76,7 +76,7 @@ theorem poolOK_init {κ : ℕ} {L : MemoryImage κ} {fp : K} {loops : Loops} {ta
 /-- **Placement of a function is sound**, on any trace with no `chain` event. -/
 theorem placeFn_sound {loops : Loops} {sigs : Std.HashMap String (Nat × Nat)} {tables : Tables}
     {tf : TracedFn} (hnc : NoChain tf) : PlaceFnSound loops sigs tables tf := by
-  intro pf tables' h hok κ Γ fp C U slots N kj kretP khalt kret env hfill hent hself hsem hobl hret
+  intro pf tables' h κ Γ fp C U slots N kj kretP khalt kret env hfill hent hself hsem hobl hret
   obtain ⟨st', hrun, rfl, rfl, -, hr0, vs, hvs⟩ := placeFn_ok h
   have hnc' : ∀ e ∈ (ctxOf loops sigs tf).trace.toList, e.isChain = false := hnc
   have key : wpP (placeBody tf) (ctxOf loops sigs tf) (initSt loops tables tf) (fun _ st₃ =>
@@ -101,7 +101,7 @@ theorem placeFn_sound {loops : Loops} {sigs : Std.HashMap String (Nat × Nat)} {
     · exact wp_pure.mpr l
   obtain ⟨ps, ho, -, -, hm⟩ := key _ st' hrun
   have hps : st'.out.toList = ps := by simpa [initSt] using ho
-  have hres := hm hok 0 N kj kretP khalt True True kret trivial (Sub.refl _)
+  have hres := hm 0 N kj kretP khalt True True kret trivial (Sub.refl _)
     (poolOK_init hr0 hself) (by rw [hps]; omega) (hps ▸ hfill) hent (hps ▸ hsem) hobl
     (fun _ _ _ => trivial) (fun hk => hret (hk.imp (fun hm => eq_of_beq hm) id))
   refine ⟨?_, hres.2⟩

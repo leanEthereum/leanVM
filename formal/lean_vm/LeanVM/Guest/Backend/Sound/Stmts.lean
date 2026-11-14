@@ -82,12 +82,12 @@ theorem ret_lays (vs : List V) (rest : List Stmt) (st : St) :
   · next hm =>
     refine LaysAt.callT fresh_spec fun dest _ => ?_
     refine LaysAt.callT takeHints_spec fun hints _ => ?_
-    refine LaysAt.push fun _ pos N kj kretP khalt g next kret hH _ _ _ _ _ _ _ _ hret _ => ?_
+    refine LaysAt.push fun pos N kj kretP khalt g next kret hH _ _ _ _ _ _ _ _ hret _ => ?_
     show kret (vs.map (valP Γ.L fp F))
     rw [map_valP_cells hH.1.2, retWords_eq hcells]
     exact hret (Or.inl hm)
   · refine LaysAt.callT takeHints_spec fun hints _ => ?_
-    refine LaysAt.push fun _ pos N kj kretP khalt g next kret hH _ _ _ _ _ hsem _ _ hret _ => ?_
+    refine LaysAt.push fun pos N kj kretP khalt g next kret hH _ _ _ _ _ hsem _ _ hret _ => ?_
     obtain ⟨c, hc', hk⟩ := hsem
     have hne : c ≠ 0 := by
       rw [← wd_of_read hc', hH.2]
@@ -136,7 +136,7 @@ theorem placeCall_lays {H : Prop} {st : St} {f : String} {argVs : List V} {args 
     intro nfp entry oc st'
     refine LaysAt.callT takeHints_spec fun hints _ => ?_
     refine LaysAt.call (loopCount_spec f argVs args) fun loop _ => ?_
-    refine LaysAt.push fun _ pos N kj kretP khalt g next kret hH _ hp _ _ _ hsem hG hnext hret => ?_
+    refine LaysAt.push fun pos N kj kretP khalt g next kret hH _ hp _ _ _ hsem hG hnext hret => ?_
     have hnode := call_node env (c := ⟨f, nfp, entry, oc, args, rets, loop, tail⟩)
       (hcal hH.1.1) hH.2 htail hsem
     exact hfin oc N kretP g next kret hH.1.1 hH.1.2.1 hH.1.2.2 hnode hG
@@ -250,7 +250,7 @@ theorem callIf_lays (c : V) (f : String) (args : List V) (rest : List Stmt) (st 
         refine LaysAt.callT fresh_spec fun entry _ => ?_
         refine LaysAt.call oneCell_spec fun one _ => ?_
         refine LaysAt.callT takeHints_spec fun hints _ => ?_
-        refine LaysAt.push fun _ pos N kj kretP khalt g next kret hH _ hp _ _ _ hsem hG hnext hret
+        refine LaysAt.push fun pos N kj kretP khalt g next kret hH _ hp _ _ _ hsem hG hnext hret
           hesc => ?_
         obtain ⟨⟨⟨⟨⟨⟨-, hlc⟩, hlas⟩, hown⟩, hset⟩, hnfp⟩, hone⟩ := hH
         have hnfp' : wd Γ.L fp nfp = ofK (fp * addressOfIndex Γ.frame) := by
@@ -266,37 +266,21 @@ theorem callIf_lays (c : V) (f : String) (args : List V) (rest : List Stmt) (st 
   · simp only [hself, Bool.false_eq_true, ↓reduceIte, Bool.false_and]
     exact hplace false _ fun h => nomatch h
 
-/-- The shared table of a dispatch: its slots are among the entries. -/
+/-- The shared table of a dispatch is among the shared tables. -/
 theorem sharedTable_wp (fs : List String) (st : St) :
-    wpP (sharedTable fs) ctx st (fun first st₁ => Quiet st st₁ ∧ (TablesOK st.tables →
-      ∀ j (h : j < fs.length), (first + j, fs[j]) ∈ st₁.tables.entries.toList)) := by
+    wpP (sharedTable fs) ctx st (fun first st₁ => Quiet st st₁ ∧
+      (fs, first) ∈ st₁.tables.shared) := by
   unfold sharedTable
   refine wp_bind.mpr (wp_get.mpr ?_)
   split
   · next cs first hfind =>
-    refine wp_pure.mpr ⟨⟨rfl, Sub.refl _, rfl, TablesLe.refl _, rfl, rfl⟩, fun hok j hj => ?_⟩
+    refine wp_pure.mpr ⟨⟨rfl, Sub.refl _, rfl, TablesLe.refl _, rfl, rfl⟩, ?_⟩
     have hmem := List.mem_of_find?_eq_some hfind
     have hcs : cs = fs := by simpa using List.find?_some hfind
-    subst hcs
-    exact hok _ hmem j hj
-  · have hnew : ∀ j (h : j < fs.length), (st.tables.len + j, fs[j]) ∈
-        (st.tables.entries ++ (fs.zipIdx.map fun ((c, j) : String × ℕ) =>
-          (st.tables.len + j, c)).toArray).toList := by
-      intro j hj
-      have hz : (fs[j], j) ∈ fs.zipIdx :=
-        List.mem_iff_getElem.mpr ⟨j, by simpa using hj, by simp⟩
-      simp only [Array.toList_append, List.mem_append, List.mem_map, Prod.exists]
-      exact Or.inr ⟨fs[j], j, hz, rfl⟩
-    extract_lets first
-    refine wp_bind.mpr (wp_set.mpr (wp_pure.mpr ⟨⟨rfl, Sub.refl _, rfl, ⟨fun x hx => ?_, ?_⟩, rfl,
-      rfl⟩, fun _ => hnew⟩))
-    · simp only [Array.toList_append, List.mem_append]
-      exact Or.inl hx
-    · intro hok p hp j hj
-      rcases List.mem_cons.mp hp with rfl | hp
-      · exact hnew j hj
-      · simp only [Array.toList_append, List.mem_append]
-        exact Or.inl (hok p hp j hj)
+    exact hcs ▸ hmem
+  · extract_lets first
+    exact wp_bind.mpr (wp_set.mpr (wp_pure.mpr ⟨⟨rfl, Sub.refl _, rfl,
+      ⟨fun _ hp => List.mem_cons_of_mem _ hp⟩, rfl, rfl⟩, List.mem_cons_self⟩))
 
 include env hnc in
 /-- A fused `match` of calls. -/
@@ -320,9 +304,9 @@ theorem dispatch_lays (x : V) (fs : List String) (args rets : List V) (rest : Li
   refine LaysAt.step (R := fun first => ∀ j (h : j < fs.length),
     slots[first + j]? = some (.entry fs[j])) ?_ fun first _ => ?_
   · exact wp_mono (sharedTable_wp fs st₁) fun first st₂ ⟨hq, hin⟩ =>
-      ⟨hq, fun hok hent _ _ j hj => hent _ (hin hok j hj)⟩
+      ⟨hq, fun hent _ _ j hj => hent _ hin j hj⟩
   refine LaysAt.callT fresh_spec fun entry _ => ?_
-  refine LaysAt.push fun _ pos N kj kretP khalt g next kret hH _ hp hB _ _ hsem hG hnext _ _ => ?_
+  refine LaysAt.push fun pos N kj kretP khalt g next kret hH _ hp hB _ _ hsem hG hnext _ _ => ?_
   obtain ⟨⟨⟨⟨⟨-, hlas⟩, hlrs⟩, hlx⟩, hone⟩, hslots⟩ := hH
   have ha := forall₂_cells hlas
   have hr := map_valP_cells (L := Γ.L) (fp := fp) hlrs

@@ -37,16 +37,15 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 variable {α β : Type}
 
-/-- The jump tables only grew. -/
+/-- The shared jump tables only grew. -/
 structure TablesLe (t t' : Tables) : Prop where
-  entries : ∀ x ∈ t.entries.toList, x ∈ t'.entries.toList
-  ok : TablesOK t → TablesOK t'
+  shared : ∀ p ∈ t.shared, p ∈ t'.shared
 
-theorem TablesLe.refl (t : Tables) : TablesLe t t := ⟨fun _ h => h, id⟩
+theorem TablesLe.refl (t : Tables) : TablesLe t t := ⟨fun _ h => h⟩
 
 theorem TablesLe.trans {t t' t'' : Tables} (h₁ : TablesLe t t') (h₂ : TablesLe t' t'') :
     TablesLe t t'' :=
-  ⟨fun x h => h₂.entries x (h₁.entries x h), fun h => h₂.ok (h₁.ok h)⟩
+  ⟨fun x h => h₂.shared x (h₁.shared x h)⟩
 
 theorem TablesLe.of_eq {t t' : Tables} (h : t' = t) : TablesLe t t' := h ▸ TablesLe.refl t
 
@@ -72,7 +71,7 @@ def Means (H : Prop) (locs' : Std.HashMap V Loc) (sc sc' : Scope) (t' : Tables)
   ∀ (pos : ℕ) (N : Prop) (kj : E → E → Prop) (kretP : Prop) (khalt : E → E → Prop)
     (g next : Prop) (kret : List E → Prop),
     H → Sub locs' F → PoolOK Γ.L fp sc → pos + blockSize ps ≤ B →
-    FillsIn slots (blockFills ctx.name ps pos) → EntriesIn slots t' →
+    FillsIn slots (blockFills ctx.name ps pos) → SharedIn slots t' →
     PStmt.SemList Γ fp ps pos N kj kretP khalt → G g → (PoolOK Γ.L fp sc' → N → g → next) →
     (ctx.isMain = true ∨ kretP → kret (retWords Γ fp ctx)) → S next kret
 
@@ -80,7 +79,7 @@ def Means (H : Prop) (locs' : Std.HashMap V Loc) (sc sc' : Scope) (t' : Tables)
 def Lays (H : Prop) (st st' : St) (G : Prop → Prop) (S : Prop → (List E → Prop) → Prop) : Prop :=
   ∃ ps : List PStmt, st'.out.toList = st.out.toList ++ ps ∧ Sub st.locs st'.locs ∧
     TablesLe st.tables st'.tables ∧
-    (TablesOK st.tables → Means Γ fp F ctx slots B H st'.locs st.scope st'.scope st'.tables ps G S)
+    Means Γ fp F ctx slots B H st'.locs st.scope st'.scope st'.tables ps G S
 
 /-- From a state with no `match` open, every success of `m` places statements that mean the
 construct, and leaves no `match` open. -/
@@ -106,17 +105,17 @@ theorem FillsIn.left {a b : List Fill} (h : FillsIn slots (a ++ b)) : FillsIn sl
 theorem FillsIn.right {a b : List Fill} (h : FillsIn slots (a ++ b)) : FillsIn slots b :=
   fun x hx => h x (List.mem_append_right _ hx)
 
-theorem EntriesIn.of_le {t t' : Tables} (h : EntriesIn slots t') (hle : TablesLe t t') :
-    EntriesIn slots t :=
-  fun x hx => h x (hle.entries x hx)
+theorem SharedIn.of_le {t t' : Tables} (h : SharedIn slots t') (hle : TablesLe t t') :
+    SharedIn slots t :=
+  fun p hp => h p (hle.shared p hp)
 
 /-- Straight-line instructions whose facts give the construct. -/
 theorem Lays.ofEmits {Q : Prop} (he : Emits Γ fp F H st st' Q)
     (hq : H → Q → ∀ g next kret, G g → (g → next) → S next kret) :
     Lays Γ fp F ctx slots B H st st' G S := by
   obtain ⟨ops, ho, _, hl, hs, hf⟩ := he
-  refine ⟨ops, ho, hl, TablesLe.of_eq hs.tables, fun _ pos N kj kretP khalt g next kret hH hF hp _
-    _ _ hsem hG hnext _ => ?_⟩
+  refine ⟨ops, ho, hl, TablesLe.of_eq hs.tables, fun pos N kj kretP khalt g next kret hH hF hp _ _ _
+    hsem hG hnext _ => ?_⟩
   obtain ⟨hp', hQ, hN⟩ := hf pos N kj kretP khalt hH hF hp hsem
   exact hq hH hQ g next kret hG fun hg => hnext hp' hN hg
 
@@ -127,13 +126,13 @@ theorem Lays.prefix {Q : Prop} (he : Emits Γ fp F H st st' Q)
   obtain ⟨ops, ho, hops, hl₁, hs, hf⟩ := he
   obtain ⟨ps, ho₂, hl₂, ht₂, hm⟩ := hl
   refine ⟨ops ++ ps, by rw [ho₂, ho, List.append_assoc], hl₁.trans hl₂,
-    (TablesLe.of_eq hs.tables).trans ht₂, fun hok pos N kj kretP khalt g next kret hH hF hp hB
+    (TablesLe.of_eq hs.tables).trans ht₂, fun pos N kj kretP khalt g next kret hH hF hp hB
       hfill hent hsem hG hnext hret => ?_⟩
   rw [semList_append] at hsem
   rw [blockFills_append] at hfill
   rw [blockSize_append] at hB
   obtain ⟨hp', hQ, hsem'⟩ := hf pos _ kj kretP khalt hH (hl₂.trans hF) hp hsem
-  exact hm (hs.tables ▸ hok) _ N kj kretP khalt g next kret ⟨hH, hQ⟩ hF hp' (by omega) hfill.right
+  exact hm _ N kj kretP khalt g next kret ⟨hH, hQ⟩ hF hp' (by omega) hfill.right
     hent hsem' hG hnext hret
 
 /-- Statements, then straight-line instructions with no guarantee. -/
@@ -142,12 +141,12 @@ theorem Lays.suffix (hl : Lays Γ fp F ctx slots B H st st' G S)
   obtain ⟨ps, ho₁, hl₁, ht₁, hm⟩ := hl
   obtain ⟨ops, ho, hops, hl₂, hs, hf⟩ := he
   refine ⟨ps ++ ops, by rw [ho, ho₁, List.append_assoc], hl₁.trans hl₂,
-    ht₁.trans (TablesLe.of_eq hs.tables), fun hok pos N kj kretP khalt g next kret hH hF hp hB
+    ht₁.trans (TablesLe.of_eq hs.tables), fun pos N kj kretP khalt g next kret hH hF hp hB
       hfill hent hsem hG hnext hret => ?_⟩
   rw [semList_append] at hsem
   rw [blockFills_append] at hfill
   rw [blockSize_append] at hB
-  refine hm hok pos _ kj kretP khalt g next kret hH (hl₂.trans hF) hp (by omega) hfill.left
+  refine hm pos _ kj kretP khalt g next kret hH (hl₂.trans hF) hp (by omega) hfill.left
     (hs.tables ▸ hent) hsem hG (fun hp' hsem' hg => ?_) hret
   obtain ⟨hp'', -, hN⟩ := hf _ N kj kretP khalt trivial hF hp' hsem'
   exact hnext hp'' hN hg
@@ -160,13 +159,13 @@ theorem Lays.cons (h₁ : Lays Γ fp F ctx slots B H st st' G₁ S₁)
   obtain ⟨ps₁, ho₁, hl₁, ht₁, hm₁⟩ := h₁
   obtain ⟨ps₂, ho₂, hl₂, ht₂, hm₂⟩ := h₂
   refine ⟨ps₁ ++ ps₂, by rw [ho₂, ho₁, List.append_assoc], hl₁.trans hl₂, ht₁.trans ht₂,
-    fun hok pos N kj kretP khalt g next kret hH hF hp hB hfill hent hsem hG hnext hret => ?_⟩
+    fun pos N kj kretP khalt g next kret hH hF hp hB hfill hent hsem hG hnext hret => ?_⟩
   rw [semList_append] at hsem
   rw [blockFills_append] at hfill
   rw [blockSize_append] at hB
-  refine hm₁ hok pos _ kj kretP khalt (G₂ g) _ kret hH (hl₂.trans hF) hp (by omega) hfill.left
+  refine hm₁ pos _ kj kretP khalt (G₂ g) _ kret hH (hl₂.trans hF) hp (by omega) hfill.left
     (hent.of_le ht₂) hsem hG (fun hp' hsem' hg => ?_) hret
-  exact hm₂ (ht₁.ok hok) _ N kj kretP khalt g next kret hH hF hp' (by omega) hfill.right hent
+  exact hm₂ _ N kj kretP khalt g next kret hH hF hp' (by omega) hfill.right hent
     hsem' hg hnext hret
 
 /-- Weaker obligations asked, a weaker relation given. -/
@@ -175,23 +174,23 @@ theorem Lays.imp {G' : Prop → Prop} {S' : Prop → (List E → Prop) → Prop}
     (hS : ∀ next kret, S next kret → S' next kret) :
     Lays Γ fp F ctx slots B H st st' G' S' := by
   obtain ⟨ps, ho, hl, ht, hm⟩ := h
-  exact ⟨ps, ho, hl, ht, fun hok pos N kj kretP khalt g next kret hH hF hp hB hfill hent hsem hG'
-    hnext hret => hS next kret (hm hok pos N kj kretP khalt g next kret hH hF hp hB hfill hent
+  exact ⟨ps, ho, hl, ht, fun pos N kj kretP khalt g next kret hH hF hp hB hfill hent hsem hG'
+    hnext hret => hS next kret (hm pos N kj kretP khalt g next kret hH hF hp hB hfill hent
       hsem (hG g hG') hnext hret)⟩
 
 /-- What was assumed, with the relation. -/
 theorem Lays.withH (h : Lays Γ fp F ctx slots B H st st' G S) :
     Lays Γ fp F ctx slots B H st st' G (fun next kret => H ∧ S next kret) := by
   obtain ⟨ps, ho, hl, ht, hm⟩ := h
-  exact ⟨ps, ho, hl, ht, fun hok pos N kj kretP khalt g next kret hH hF hp hB hfill hent hsem hG
-    hnext hret => ⟨hH, hm hok pos N kj kretP khalt g next kret hH hF hp hB hfill hent hsem hG hnext
+  exact ⟨ps, ho, hl, ht, fun pos N kj kretP khalt g next kret hH hF hp hB hfill hent hsem hG
+    hnext hret => ⟨hH, hm pos N kj kretP khalt g next kret hH hF hp hB hfill hent hsem hG hnext
       hret⟩⟩
 
 theorem Lays.weaken {H' : Prop} (h : Lays Γ fp F ctx slots B H st st' G S) (hH : H' → H) :
     Lays Γ fp F ctx slots B H' st st' G S := by
   obtain ⟨ps, ho, hl, ht, hm⟩ := h
-  exact ⟨ps, ho, hl, ht, fun hok pos N kj kretP khalt g next kret h' =>
-    hm hok pos N kj kretP khalt g next kret (hH h')⟩
+  exact ⟨ps, ho, hl, ht, fun pos N kj kretP khalt g next kret h' =>
+    hm pos N kj kretP khalt g next kret (hH h')⟩
 
 /-- A state that differs in nothing but what the walk does not read and the jump tables. -/
 structure Quiet (st st' : St) : Prop where
@@ -205,16 +204,15 @@ structure Quiet (st st' : St) : Prop where
 /-- A quiet step, what it found (`H'`) justified where the final places, the pools and the
 program's jump tables are known. -/
 theorem Lays.ofQuiet {H' : Prop} (hq : Quiet st st')
-    (hH' : TablesOK st.tables → EntriesIn slots st'.tables → Sub st'.locs F →
-      PoolOK Γ.L fp st.scope → H')
+    (hH' : SharedIn slots st'.tables → Sub st'.locs F → PoolOK Γ.L fp st.scope → H')
     (h : Lays Γ fp F ctx slots B (H ∧ H') st' st'' G S) :
     Lays Γ fp F ctx slots B H st st'' G S := by
   obtain ⟨ps, ho, hl, ht, hm⟩ := h
   refine ⟨ps, by rw [ho, hq.out], hq.locs.trans hl, hq.tables.trans ht,
-    fun hok pos N kj kretP khalt g next kret hH hF hp hB hfill hent => ?_⟩
+    fun pos N kj kretP khalt g next kret hH hF hp hB hfill hent => ?_⟩
   have hp' : PoolOK Γ.L fp st'.scope := hq.scope ▸ hp
-  exact hm (hq.tables.ok hok) pos N kj kretP khalt g next kret
-    ⟨hH, hH' hok (hent.of_le ht) (hl.trans hF) hp⟩ hF hp' hB hfill hent
+  exact hm pos N kj kretP khalt g next kret
+    ⟨hH, hH' (hent.of_le ht) (hl.trans hF) hp⟩ hF hp' hB hfill hent
 
 /-- What a block of its own means, the places, pools and tables around it known. -/
 def BlockSem (Γ : Site κ) (fp : K) (ctx : Ctx) (slots : Array KVal) (B : ℕ) (blk : List PStmt)
@@ -226,7 +224,7 @@ def BlockSem (Γ : Site κ) (fp : K) (ctx : Ctx) (slots : Array KVal) (B : ℕ) 
 
 theorem Means.blockSem {locs' : Std.HashMap V Loc} {sc sc' : Scope} {t' : Tables}
     {blk : List PStmt} (h : Means Γ fp F ctx slots B True locs' sc sc' t' blk G S)
-    (hF : Sub locs' F) (hp : PoolOK Γ.L fp sc) (hent : EntriesIn slots t') :
+    (hF : Sub locs' F) (hp : PoolOK Γ.L fp sc) (hent : SharedIn slots t') :
     BlockSem Γ fp ctx slots B blk G S :=
   fun pos N kj kretP khalt g next kret hB hfill hsem hG hnext hret =>
     h pos N kj kretP khalt g next kret trivial hF hp hB hfill hent hsem hG
@@ -313,8 +311,8 @@ theorem LaysAt.withPool {m : P α}
     LaysAt Γ fp F ctx slots B H st m G S := by
   intro hpl a st' he
   obtain ⟨hp, ps, ho, hl, ht, hm⟩ := h hpl a st' he
-  exact ⟨hp, ps, ho, hl, ht, fun hok pos N kj kretP khalt g next kret hH hF hpool =>
-    hm hok pos N kj kretP khalt g next kret ⟨hH, hpool⟩ hF hpool⟩
+  exact ⟨hp, ps, ho, hl, ht, fun pos N kj kretP khalt g next kret hH hF hpool =>
+    hm pos N kj kretP khalt g next kret ⟨hH, hpool⟩ hF hpool⟩
 
 /-- The places of the state before are final. -/
 theorem LaysAt.withSub {m : P α}
@@ -322,13 +320,13 @@ theorem LaysAt.withSub {m : P α}
     LaysAt Γ fp F ctx slots B H st m G S := by
   intro hpl a st' he
   obtain ⟨hp, ps, ho, hl, ht, hm⟩ := h hpl a st' he
-  exact ⟨hp, ps, ho, hl, ht, fun hok pos N kj kretP khalt g next kret hH hF =>
-    hm hok pos N kj kretP khalt g next kret ⟨hH, hl.trans hF⟩ hF⟩
+  exact ⟨hp, ps, ho, hl, ht, fun pos N kj kretP khalt g next kret hH hF =>
+    hm pos N kj kretP khalt g next kret ⟨hH, hl.trans hF⟩ hF⟩
 
 /-- A step that changes only what `Quiet` allows, then the rest knowing what it found. -/
 theorem LaysAt.step {m : P α} {f : α → P β} {R : α → Prop}
-    (hm : wpP m ctx st (fun a st₁ => Quiet st st₁ ∧ (TablesOK st.tables →
-      EntriesIn slots st₁.tables → Sub st₁.locs F → PoolOK Γ.L fp st.scope → R a)))
+    (hm : wpP m ctx st (fun a st₁ => Quiet st st₁ ∧
+      (SharedIn slots st₁.tables → Sub st₁.locs F → PoolOK Γ.L fp st.scope → R a)))
     (hf : ∀ a st₁, LaysAt Γ fp F ctx slots B (H ∧ R a) st₁ (f a) G S) :
     LaysAt Γ fp F ctx slots B H st (m >>= f) G S := by
   intro hpl
@@ -350,8 +348,7 @@ theorem LaysAt.plain {m : P α}
 
 /-- A placed statement is pushed: it means the construct. -/
 theorem LaysAt.push {s : PStmt}
-    (hm : TablesOK st.tables → Means Γ fp F ctx slots B H st.locs st.scope st.scope st.tables [s]
-      G S) :
+    (hm : Means Γ fp F ctx slots B H st.locs st.scope st.scope st.tables [s] G S) :
     LaysAt Γ fp F ctx slots B H st (push s) G S := by
   intro hpl
   refine wp_modify.mpr ⟨⟨hpl.chainIn, hpl.chain⟩, [s], by simp, Sub.refl _, TablesLe.refl _, hm⟩
