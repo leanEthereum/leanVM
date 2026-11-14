@@ -866,7 +866,7 @@ mod tests {
     }
 
     /// Parameter-report helper:
-    /// `WHIR_LOG_INV_RATE=2 WHIR_NUM_VARS=22 cargo test --release -p pcs print_whir_query_counts -- --ignored --nocapture`
+    /// `WHIR_LOG_INV_RATE=2 WHIR_NUM_VARS=22 cargo test --release -p experimental_pcs print_whir_query_counts -- --ignored --nocapture`
     /// (those are the defaults).
     #[test]
     #[ignore = "manual parameter report; configure it through environment variables"]

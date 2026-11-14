@@ -109,7 +109,7 @@ fn whir_query_table_matches_the_search() {
 
 /// Regenerates the literals the pins above check: the rows go over `WHIR_QUERIES` in `crates/verifier/src/whir.rs`,
 /// the last line over `queryTable` in `formal/Statement/LeanVmVerifier.lean`.
-/// `cargo test --release -p leanvm_core --test verifiers print_whir_query_table -- --ignored --nocapture`
+/// `cargo test --release -p experimental_leanvm_core --test verifiers print_whir_query_table -- --ignored --nocapture`
 #[test]
 #[ignore = "manual table regeneration"]
 fn print_whir_query_table() {
