@@ -937,8 +937,8 @@ fn subspace_above() -> impl Fn(usize, usize) -> F64 {
 /// LeanDA (`doc/leanvm` §sec:leanda).
 fn da_placeholders(ps: &mut impl FnMut(&str, String)) {
     let pad_blob = hash_to_scalars(&lean_da::root_of_padding_blob());
-    ps("DA_LOG_K", LOG_BLOB_SYMBOLS.to_string());
-    ps("DA_LOG_CELL", LOG_CELL_SYMBOLS.to_string());
+    ps("LOG_BLOB_SYMBOLS", LOG_BLOB_SYMBOLS.to_string());
+    ps("LOG_CELL_SYMBOLS", LOG_CELL_SYMBOLS.to_string());
     ps("DA_MAX_ROWS", DA_MAX_ROWS.to_string());
     ps("DA_LOG_MAX_ROWS", DA_MAX_ROWS.ilog2().to_string());
     ps("DA_PAD_BLOB_0", f128_literal(pad_blob[0]));

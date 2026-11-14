@@ -762,11 +762,11 @@ def const_SP_UNUSED_BYTES : Nat := 6
 /-- The global constant `MAX_RECURSIONS`. -/
 def const_MAX_RECURSIONS : Nat := 16
 
-/-- The global constant `DA_LOG_K`. -/
-def const_DA_LOG_K : Nat := 13
+/-- The global constant `LOG_BLOB_SYMBOLS`. -/
+def const_LOG_BLOB_SYMBOLS : Nat := 13
 
-/-- The global constant `DA_LOG_CELL`. -/
-def const_DA_LOG_CELL : Nat := 7
+/-- The global constant `LOG_CELL_SYMBOLS`. -/
+def const_LOG_CELL_SYMBOLS : Nat := 7
 
 /-- The global constant `DA_MAX_ROWS`. -/
 def const_DA_MAX_ROWS : Nat := 32

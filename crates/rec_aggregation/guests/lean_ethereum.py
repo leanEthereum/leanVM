@@ -540,25 +540,25 @@ MAX_RECURSIONS = MAX_RECURSIONS_PLACEHOLDER
 # ---------------------------------- LeanDA ------------------------------------------
 # Blob and cell widths are fixed. The blob count is hinted and bounded by DA_MAX_ROWS;
 # zero rows pad the matrix to DA_MAX_ROWS.
-DA_LOG_K = DA_LOG_K_PLACEHOLDER
-DA_LOG_CELL = DA_LOG_CELL_PLACEHOLDER
+LOG_BLOB_SYMBOLS = LOG_BLOB_SYMBOLS_PLACEHOLDER
+LOG_CELL_SYMBOLS = LOG_CELL_SYMBOLS_PLACEHOLDER
 DA_MAX_ROWS = DA_MAX_ROWS_PLACEHOLDER
 DA_LOG_MAX_ROWS = DA_LOG_MAX_ROWS_PLACEHOLDER
 DA_PAD_BLOB_0 = DA_PAD_BLOB_0_PLACEHOLDER
 DA_PAD_BLOB_1 = DA_PAD_BLOB_1_PLACEHOLDER
 # Vhat_j at the points the membership vector's product tree needs (da_factors): each
 # parent node of the tree over a cell index, then of the tree inside a cell, at the bit
-# j it splits; and Vhat_j(beta_(DA_LOG_CELL + b)) at DA_LOG_CELL * b + j, for each factor
-# j inside a cell and bit b of the cell index.
+# j it splits; and Vhat_j(beta_(LOG_CELL_SYMBOLS + b)) at LOG_CELL_SYMBOLS * b + j, for
+# each factor j inside a cell and bit b of the cell index.
 DA_VHAT = DA_VHAT_PLACEHOLDER
 DA_VHAT_COLUMN = DA_VHAT_COLUMN_PLACEHOLDER
 
-DA_LOG_M = DA_LOG_K + 1                         # log of the symbols per encoded row
-DA_CELL = 2 ** DA_LOG_CELL                      # symbols in a cell
-DA_BLOCK_BITS = DA_LOG_M - DA_LOG_CELL          # log of the cells per row
-DA_CELLS = 2 ** DA_BLOCK_BITS                   # cells per row
-DA_SUM = 4 * DA_CELLS                           # where a blob's running sum starts, past its tree
-DA_REGION = DA_SUM + DA_CELLS + 1               # cells of one blob's tree and running sum
+DA_LOG_M = LOG_BLOB_SYMBOLS + 1              # log of the symbols per encoded row
+DA_CELL = 2 ** LOG_CELL_SYMBOLS              # symbols in a cell
+DA_BLOCK_BITS = DA_LOG_M - LOG_CELL_SYMBOLS  # log of the cells per row
+DA_CELLS = 2 ** DA_BLOCK_BITS                # cells per row
+DA_SUM = 4 * DA_CELLS                        # where a blob's running sum starts, past its tree
+DA_REGION = DA_SUM + DA_CELLS + 1            # cells of one blob's tree and running sum
 
 # =================================== field packing ==================================
 # A word is a cell, so a value a KECCAK hashes or a transcript absorbs needs no check
@@ -4553,7 +4553,7 @@ def da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offset
     # Column log(xb) of every blob: its weights expand the tree inside a cell from the
     # column's leaf of the tree above; a cell's digest is leaf log(xb) of its blob's tree,
     # and its inner product with the weights joins its blob's running sum.
-    lvals = da_expand(top_leaves[xb], cell_factors, zs, offsets * xb ** DA_LOG_CELL, DA_LOG_CELL - 1, DA_LOG_CELL)
+    lvals = da_expand(top_leaves[xb], cell_factors, zs, offsets * xb ** LOG_CELL_SYMBOLS, LOG_CELL_SYMBOLS - 1, LOG_CELL_SYMBOLS)
     xb2 = xb * xb
     for xi in mul_range(1, n_blob_g):
         d0, d1, s = da_verify_cell(lvals)
@@ -4590,23 +4590,23 @@ def da_levels(tree, n: Const, log_n: Const):
 
 
 def da_vector(z):
-    # L(x) = prod_(j < DA_LOG_K) (1 + z_j Vhat_j(x)), z_j = z^(2^j), as a binary tree over
+    # L(x) = prod_(j < LOG_BLOB_SYMBOLS) (1 + z_j Vhat_j(x)), z_j = z^(2^j), as a binary tree over
     # x's bits from the top down: factor j depends only on the bits from j up, so a node
     # is its parent times one factor. The tree over the cell index runs once; each column
     # expands the tree inside a cell from its leaf, its factors shifted by the cell
     # index's part of each Vhat_j (da_column_offsets).
     zs = HeapBuf(DA_LOG_M)
     zj = z
-    for j in unroll(0, DA_LOG_K):
+    for j in unroll(0, LOG_BLOB_SYMBOLS):
         zs[GEN ** j] = zj
         zj = zj * zj
-    zs[GEN ** DA_LOG_K] = 0  # the top bit splits without a factor: the degree bound
+    zs[GEN ** LOG_BLOB_SYMBOLS] = 0  # the top bit splits without a factor: the degree bound
     above_top = HeapBuf(DA_LOG_M)  # nothing sits above the tree over the cell index
-    for j in unroll(DA_LOG_CELL, DA_LOG_M):
+    for j in unroll(LOG_CELL_SYMBOLS, DA_LOG_M):
         above_top[GEN ** j] = 0
-    top_factors = da_factors(zs, DA_LOG_K, DA_BLOCK_BITS, 0)
-    top_leaves = da_expand(1, top_factors, zs, above_top, DA_LOG_K, DA_BLOCK_BITS)
-    cell_factors = da_factors(zs, DA_LOG_CELL - 1, DA_LOG_CELL, DA_CELLS)
+    top_factors = da_factors(zs, LOG_BLOB_SYMBOLS, DA_BLOCK_BITS, 0)
+    top_leaves = da_expand(1, top_factors, zs, above_top, LOG_BLOB_SYMBOLS, DA_BLOCK_BITS)
+    cell_factors = da_factors(zs, LOG_CELL_SYMBOLS - 1, LOG_CELL_SYMBOLS, DA_CELLS)
     offsets = da_column_offsets(zs)
     return zs, top_leaves, cell_factors, offsets
 
@@ -4639,19 +4639,19 @@ def da_expand(root, factors, zs, shifts, top: Const, depth: Const):
 
 
 def da_column_offsets(zs):
-    # offsets[DA_LOG_CELL * h + j] = z_j Vhat_j at the cell index h's bits, for each factor
+    # offsets[LOG_CELL_SYMBOLS * h + j] = z_j Vhat_j at the cell index h's bits, for each factor
     # j inside a cell: zero at h = 0, then one doubling per bit of h.
-    offsets = HeapBuf(DA_LOG_CELL * DA_CELLS)
-    for j in unroll(0, DA_LOG_CELL):
+    offsets = HeapBuf(LOG_CELL_SYMBOLS * DA_CELLS)
+    for j in unroll(0, LOG_CELL_SYMBOLS):
         offsets[GEN ** j] = 0
     for b in unroll(0, DA_BLOCK_BITS):
-        steps = HeapBuf(DA_LOG_CELL)
-        for j in unroll(0, DA_LOG_CELL):
-            steps[GEN ** j] = zs[GEN ** j] * DA_VHAT_COLUMN[DA_LOG_CELL * b + j]
+        steps = HeapBuf(LOG_CELL_SYMBOLS)
+        for j in unroll(0, LOG_CELL_SYMBOLS):
+            steps[GEN ** j] = zs[GEN ** j] * DA_VHAT_COLUMN[LOG_CELL_SYMBOLS * b + j]
         for xh in mul_range(1, GEN ** (2 ** b)):
-            src = offsets * xh ** DA_LOG_CELL
-            dst = src * GEN ** (DA_LOG_CELL * 2 ** b)
-            for j in unroll(0, DA_LOG_CELL):
+            src = offsets * xh ** LOG_CELL_SYMBOLS
+            dst = src * GEN ** (LOG_CELL_SYMBOLS * 2 ** b)
+            for j in unroll(0, LOG_CELL_SYMBOLS):
                 dst[GEN ** j] = src[GEN ** j] + steps[GEN ** j]
     return offsets
 
