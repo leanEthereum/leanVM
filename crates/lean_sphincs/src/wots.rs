@@ -75,7 +75,9 @@ fn encoder(pk_seed: &PkSeed, key: &OtsKey, message: &Digest) -> primitives::hash
 /// `Enc(K, M, c)`: `Trunc_n(H(PK.seed | ADRS_enc(K) | M | BE_32(c)))` as a codeword,
 /// or `None` if this counter's digest is not one.
 fn encode(encoder: &primitives::hash::Hasher, c: u32) -> Option<[u8; V]> {
-    codeword(&crate::truncate(encoder.clone().update(&c.to_be_bytes()).finalize()))
+    codeword(&primitives::hash::truncate(
+        encoder.clone().update(&c.to_be_bytes()).finalize(),
+    ))
 }
 
 /// `base_2b(D, w, v)` (FIPS 205 Algorithm 4): the digest as `v` chunks of `w` bits,

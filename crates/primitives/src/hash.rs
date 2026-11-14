@@ -320,6 +320,41 @@ impl Default for Hasher {
     }
 }
 
+/// The tweakable hash of leanXMSS and leanSPHINCS is `Truncate_N(H(prefix | address | payload))`,
+/// the prefix being the public parameter or `PK.seed` and the address each scheme's own: a hasher that
+/// has absorbed `prefix | address`.
+pub fn prefixed_hasher<const N: usize>(prefix: &[u8; N], address: &[u8]) -> Hasher {
+    let mut hasher = Hasher::new();
+    hasher.update(prefix).update(address);
+    hasher
+}
+
+/// `Truncate_N`: an `N`-byte hash value from a Keccak-256 output.
+pub fn truncate<const N: usize>(output: [u8; OUT_LEN]) -> [u8; N] {
+    output[..N].try_into().unwrap()
+}
+
+/// The root that `leaf`, at index `e`, and its authentication `path` reach, showing `visit` the two
+/// children of every node on the way up, `node(z, j, children)` hashing node `j` at height `z`.
+pub fn path_fold<const N: usize>(
+    leaf: [u8; N],
+    e: usize,
+    path: &[[u8; N]],
+    mut visit: impl FnMut(&[[u8; N]; 2]),
+    node: impl Fn(usize, usize, &[[u8; N]; 2]) -> [u8; N],
+) -> [u8; N] {
+    path.iter().enumerate().fold(leaf, |current, (z, &sibling)| {
+        // Bit `z` of `e` says whether the node is the right child.
+        let children = if (e >> z) & 1 == 0 {
+            [current, sibling]
+        } else {
+            [sibling, current]
+        };
+        visit(&children);
+        node(z + 1, e >> (z + 1), &children)
+    })
+}
+
 /// Keccak-256 of `data`, Ethereum's `keccak256`: FIPS 202's sponge over Keccak-f\[1600\] with
 /// rate [`RATE`] and Keccak's original padding.
 pub fn hash(data: &[u8]) -> [u8; OUT_LEN] {

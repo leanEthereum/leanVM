@@ -79,12 +79,12 @@ impl Adrs {
 
 /// A hasher that has absorbed `PK.seed | ADRS`.
 pub fn hasher(pk_seed: &PkSeed, adrs: &Adrs) -> Hasher {
-    crate::prefixed_hasher(pk_seed, adrs.as_bytes())
+    primitives::hash::prefixed_hasher(pk_seed, adrs.as_bytes())
 }
 
 /// `F`, `H` and `T_l`: `Trunc_n(H(PK.seed | ADRS | M))`.
 pub fn th(pk_seed: &PkSeed, adrs: &Adrs, m: &[u8]) -> Digest {
-    crate::truncate(hasher(pk_seed, adrs).update(m).finalize())
+    primitives::hash::truncate(hasher(pk_seed, adrs).update(m).finalize())
 }
 
 /// [`th`] over a concatenation of values: a node, a one-time key or a FORS key.
@@ -116,7 +116,7 @@ fn framed(m: &Message) -> [u8; FRAMED_LEN] {
 
 /// `PRF_msg(SK.prf, opt_rand, M') = Trunc_n(H(SK.prf | opt_rand | M'))`.
 pub fn prf_msg(sk_prf: &[u8; 32], opt_rand: &[u8; N], m: &Message) -> Digest {
-    crate::truncate(
+    primitives::hash::truncate(
         Hasher::new()
             .update(sk_prf)
             .update(opt_rand)

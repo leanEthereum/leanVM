@@ -86,12 +86,12 @@ pub const fn blocks(payload: usize) -> usize {
 
 /// A hasher that has absorbed `P | A`.
 pub fn hasher(pp: &PublicParam, tw: &Tweak) -> Hasher {
-    crate::prefixed_hasher(pp, &address(tw))
+    primitives::hash::prefixed_hasher(pp, &address(tw))
 }
 
 /// `Th` over a byte payload.
 pub fn th(pp: &PublicParam, tw: &Tweak, payload: &[u8]) -> Digest {
-    crate::truncate(hasher(pp, tw).update(payload).finalize())
+    primitives::hash::truncate(hasher(pp, tw).update(payload).finalize())
 }
 
 /// `Th` over a concatenation of digests: a Merkle node or a leaf.

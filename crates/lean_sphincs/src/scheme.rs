@@ -7,6 +7,7 @@
 //! tree's root, and the top tree's root is `PK.root`.
 
 use crate::*;
+use primitives::hash::Hasher;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct LeanSphincsPublicKey {
@@ -51,7 +52,7 @@ impl ExpandedKey {
         Self {
             sk_seed: *sk_seed,
             sk_prf: derive(1),
-            pk_seed: crate::truncate(derive(0)),
+            pk_seed: primitives::hash::truncate(derive(0)),
         }
     }
 }
@@ -273,7 +274,7 @@ pub fn tree_fold(
     path: &[Digest],
     visit: impl FnMut(&[Digest; 2]),
 ) -> Digest {
-    crate::path_fold(leaf, key.leaf as usize, path, visit, |z, j, pair| {
+    primitives::hash::path_fold(leaf, key.leaf as usize, path, visit, |z, j, pair| {
         node(pk_seed, key, z, j, pair)
     })
 }
