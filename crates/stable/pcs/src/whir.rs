@@ -22,7 +22,7 @@
 //! Soundness note: [`WhirSecurityConfig`] analyzes the challenge field
 //! `E`; the committed alphabet remains `K = GF(2^64)`.
 
-use crate::merkle::{self, Hash};
+use crate::merkle::{Hash, MerkleTree};
 use crate::ntt::{AdditiveNttF64, words};
 use crate::stack_open::Terms;
 use fiat_shamir::merkle::MerklePath;
@@ -89,13 +89,9 @@ struct Codeword {
 }
 
 impl Codeword {
-    /// The rows at `positions`, `row_words` words each, back to back.
-    fn rows(&self, positions: &[usize]) -> Vec<F64> {
-        let mut out = Vec::with_capacity(positions.len() * self.row_words);
-        for &q in positions {
-            out.extend_from_slice(&self.words[q * self.row_words..][..self.row_words]);
-        }
-        out
+    /// The row at position `q`.
+    fn row(&self, q: usize) -> &[F64] {
+        &self.words[q * self.row_words..][..self.row_words]
     }
 }
 
@@ -103,7 +99,7 @@ impl Codeword {
 /// committed lanes, and its Merkle tree.
 pub struct ProverData {
     codeword: Codeword,
-    pub(crate) merkle_tree: merkle::CutTree,
+    merkle_tree: MerkleTree,
 }
 
 /// Commit to the `F64` message of a `2^log_n`-word witness: the message is its
@@ -134,7 +130,8 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     let ntt = AdditiveNttF64::standard(k_code);
     let words = tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = n_lanes)
         .in_scope(|| ntt.encode_lane_major(message, n_lanes, log_inv_rate));
-    let merkle_tree = tracing::info_span!("Merkle").in_scope(|| merkle::build(&words, n_lanes, 1 << log_batch_size));
+    let merkle_tree =
+        tracing::info_span!("Merkle").in_scope(|| MerkleTree::build(&words, n_lanes, 1 << log_batch_size));
     let root = merkle_tree.root();
     let codeword = Codeword {
         words,
@@ -147,7 +144,7 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
 /// `num_interleaved` lanes, one Merkle leaf of `num_interleaved * 16` bytes.
 pub(crate) struct LigeroWitness {
     codeword: Codeword,
-    pub tree: merkle::CutTree,
+    tree: MerkleTree,
     pub block_len: usize,
     pub num_interleaved: usize,
 }
@@ -155,17 +152,14 @@ pub(crate) struct LigeroWitness {
 impl LigeroWitness {
     /// The rows at `queries`, in order and back to back, and their paths.
     fn open(&self, queries: &[usize]) -> (Vec<F128>, Vec<MerklePath>) {
-        let group = self.tree.group_positions(queries);
-        let group_rows = self.codeword.rows(&group);
-        let row_words = 2 * self.num_interleaved;
-        let row = |q| fetched_row(&group, &group_rows, row_words, q);
+        let row = |q| self.codeword.row(q);
         let mut rows = Vec::with_capacity(queries.len() * self.num_interleaved);
         rows.extend(
             queries
                 .iter()
                 .flat_map(|&q| row(q).as_chunks::<2>().0.iter().map(|w| F128::new(w[0].0, w[1].0))),
         );
-        let paths = self.tree.open(queries, row_words, row_words, &group_rows, row);
+        let paths = self.tree.open(queries, 2 * self.num_interleaved, row);
         (rows, paths)
     }
 
@@ -201,7 +195,7 @@ pub(crate) fn ligero_commit_ext(
         lanes = num_interleaved
     )
     .in_scope(|| ntt.encode_rows(words(poly), row_words, log_inv_rate));
-    let tree = tracing::info_span!("Merkle").in_scope(|| merkle::build(&words, row_words, row_words));
+    let tree = tracing::info_span!("Merkle").in_scope(|| MerkleTree::build(&words, row_words, row_words));
 
     LigeroWitness {
         codeword: Codeword { words, row_words },
@@ -625,12 +619,6 @@ fn sample_queries_ordered(ch: &mut ProverState, block_len: usize, count: usize) 
     out
 }
 
-/// The row at position `q` out of `rows`, `row_words` each, back to back, which hold the sorted `group` positions.
-fn fetched_row<'a>(group: &[usize], rows: &'a [F64], row_words: usize, q: usize) -> &'a [F64] {
-    let k = group.binary_search(&q).expect("a fetched row");
-    &rows[k * row_words..][..row_words]
-}
-
 /// One level's claims batched into the running one with powers of the level's challenge `lambda`, the running claim
 /// keeping `lambda^0 = 1`: claim `tau` (counting from 1) adds `lambda^tau` times its weight and its value.
 fn glue<const N: usize>(w: &mut [F128], claim: &mut F128, pending: [(Vec<F128>, F128); N], lambda: F128) {
@@ -821,11 +809,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         let span = tracing::info_span!("Open", level).entered();
         let rows: Vec<F128> = match prover_data.take() {
             Some(prover_data) => {
-                let l0_tree = &prover_data.merkle_tree;
-                // The tree keeps no leaves: the rows of whole leaf groups are read back and rehashed.
-                let group = l0_tree.group_positions(&queries);
-                let group_rows = prover_data.codeword.rows(&group);
-                let image = |q| fetched_row(&group, &group_rows, n_lanes, q);
+                let image = |q| prover_data.codeword.row(q);
                 // Lane `t` of the codeword is stack block `n_lanes-1-t`: reversing the image puts block `b` at index
                 // `b`, and the absent lanes' zeros at the end.
                 let mut rows = Vec::with_capacity(queries.len() * num_interleaved_0);
@@ -833,7 +817,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
                     let zeros = std::iter::repeat_n(F128::ZERO, num_interleaved_0 - n_lanes);
                     rows.extend(image(q).iter().rev().map(|&k| F128::from(k)).chain(zeros));
                 }
-                ps.hint_merkle(l0_tree.open(&queries, n_lanes, num_interleaved_0, &group_rows, image));
+                ps.hint_merkle(prover_data.merkle_tree.open(&queries, num_interleaved_0, image));
                 // Nothing reads the L0 codeword or its tree again.
                 drop(prover_data);
                 rows
