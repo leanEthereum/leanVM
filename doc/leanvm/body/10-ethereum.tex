@@ -52,7 +52,7 @@ Our construction uses Keccak-256 and the additive Reed-Solomon encoder of the PC
 
 \subsubsection{The commitment}\label{sec:da-commit}
 
-A blob is a polynomial in $\E[X]$ of degree less than $\kdim$, represented by its $\kdim$ evaluations on $\subsp_{\log_2\kdim}$. Its Reed-Solomon encoding is the vector of evaluations on the larger domain $\dom=\subsp_{\log_2\blen}$, where $\blen=2\kdim$: a codeword of $\RS[\E,\dom,\kdim]$ (Definition~\ref{def:rs-code}). The first $\kdim$ symbols are the original blob, so the encoding is systematic; the remaining symbols provide redundancy. Any $\kdim$ encoded evaluations recover the blob. The domain and the novel basis lie in $\K$, so the two limbs of a blob are polynomials in $\K[X]$ encoded apart: the codeword is two codewords of $\RS[\K,\dom,\kdim]$ interleaved, with the same rate and distance.
+A blob is a polynomial in $\E[X]$ of degree less than $\kdim$, represented by its $\kdim$ evaluations on $\subsp_{\log_2\kdim}$. Its Reed-Solomon encoding is the vector of evaluations on the larger domain $\dom=\subsp_{\log_2\blen}$, where $\blen=2\kdim$: a codeword of $\RS[\E,\dom,\kdim]$ (Definition~\ref{def:rs-code}). The first $\kdim$ symbols are the original blob, so the encoding is systematic; the remaining symbols provide redundancy. Any $\kdim$ encoded evaluations recover the blob.
 
 One commitment covers a nonempty matrix of $\nblob$ encoded blobs, one per row.
 
@@ -147,7 +147,7 @@ The guest recomputes $\daroot$, takes $\dachal$ as a hint, computes $\davec$ and
   =\sum_{x\in\dom}\dual(x)w_i(x)
   \;\qeq\;0
 \]
-for every row $w_i$. A symbol is one VM word, so the guest hashes and multiplies it as it is, with no check of its own. Factor $j$ of \eqref{eq:dual-product} depends only on the bits of $x$ from $j$ up, so $\davec$ is a product tree over those bits, built once for all rows.
+for every row $w_i$. Factor $j$ of \eqref{eq:dual-product} depends only on the bits of $x$ from $j$ up, so $\davec$ is a product tree over those bits, built once for all rows.
 
 The native verifier derives $\dachal$ from $\daroot$ outside the SNARK, as the security proof requires, and checks the proof against $H(\daroot,\dachal)$. A node passing on a child's root passes its digest unchanged.
 
