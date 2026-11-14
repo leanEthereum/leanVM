@@ -4,7 +4,8 @@
 //! any of them is Critical.
 
 use crate::{Cost, Ctx, Finding, Target, catch};
-use leanvm_core::cpu::{CpuError, Proof};
+use leanvm_core::cpu::Proof;
+use verifier::VerifierError as CpuError;
 
 pub mod determinism;
 pub mod dos;

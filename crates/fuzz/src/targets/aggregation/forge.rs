@@ -12,7 +12,7 @@ use super::fixtures::{Fixtures, N_SPHINCS, N_XMSS, fixtures, root_of};
 use crate::mutate_proof::{perturb, stream_position};
 use crate::{Ctx, Finding, Outcome, Source};
 use fiat_shamir::merkle::{hash_pair, hash_to_scalars, hash_words};
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 use rec_aggregation::EthereumClaims;
 use rec_aggregation::fuzzing::{Hints, arm_forgery, disarm_forgery, prepare_node, run_guest, statement_of};
 use signatures::lean_sphincs::LeanSphincsPublicKey;
@@ -87,12 +87,12 @@ pub fn random_inputs(src: &mut Source, f: &Fixtures) -> Inputs {
     let nx = src.weighted(&[2, 3, 2, 1]);
     let start = src.below(N_XMSS);
     for k in 0..nx {
-        inp.xmss.push(s.xmss[(start + k) % N_XMSS].clone());
+        inp.lean_xmss.push(s.lean_xmss[(start + k) % N_XMSS].clone());
     }
     if src.chance(1, 4) {
-        inp.xmss.push(s.xmss_two[src.below(3)].clone());
+        inp.lean_xmss.push(s.xmss_two[src.below(3)].clone());
         if src.bool() {
-            inp.xmss.push(s.xmss_two[src.below(3)].clone());
+            inp.lean_xmss.push(s.xmss_two[src.below(3)].clone());
         }
     }
     let ns = src.weighted(&[3, 3, 1]);
@@ -117,10 +117,10 @@ pub fn random_inputs(src: &mut Source, f: &Fixtures) -> Inputs {
         let n = d.num_signature_claims();
         if n > 1 && src.bool() {
             let k = src.below(n);
-            if k < d.xmss.len() {
-                d.xmss.remove(k);
+            if k < d.lean_xmss.len() {
+                d.lean_xmss.remove(k);
             } else {
-                d.lean_sphincs.remove(k - d.xmss.len());
+                d.lean_sphincs.remove(k - d.lean_xmss.len());
             }
         }
         if inp.blobs.is_empty() {
@@ -135,8 +135,8 @@ pub fn random_inputs(src: &mut Source, f: &Fixtures) -> Inputs {
             inp.declare = Some(d);
         }
     }
-    if inp.xmss.is_empty() && inp.sphincs.is_empty() && inp.children.is_empty() && inp.blobs.is_empty() {
-        inp.xmss.push(s.xmss[0].clone());
+    if inp.lean_xmss.is_empty() && inp.sphincs.is_empty() && inp.children.is_empty() && inp.blobs.is_empty() {
+        inp.lean_xmss.push(s.lean_xmss[0].clone());
     }
     inp
 }
@@ -269,12 +269,12 @@ pub(super) fn index_of(streams: &Streams, name: &str) -> Option<usize> {
 }
 
 /// One cell of a stream entry, never past a child proof's real stream, whose padding is documented as unread.
-fn pick_cell(name: &str, entry: &[F192], i: usize, s: &mut Source, lens: &[usize]) -> usize {
+fn pick_cell(name: &str, entry: &[F128], i: usize, s: &mut Source, lens: &[usize]) -> usize {
     match name {
         "stream" => stream_position(lens.get(i).copied().unwrap_or(entry.len()).min(entry.len()), s),
         // Mostly the cap nodes the openings bind; the rest are opaque by design.
         "merkle_caps" if s.chance(3, 4) => {
-            let bound: Vec<usize> = (0..entry.len()).filter(|&k| entry[k] != F192::ZERO).collect();
+            let bound: Vec<usize> = (0..entry.len()).filter(|&k| entry[k] != F128::ZERO).collect();
             if bound.is_empty() {
                 s.below(entry.len())
             } else {
@@ -305,9 +305,9 @@ fn edit_witness(streams: &mut Streams, s: &mut Source, lens: &[usize]) -> Edit {
         _ => s.below(n),
     };
     let other = |s: &mut Source| if n > 1 && s.bool() { (i + 1) % n } else { s.below(n) };
-    let cell_edit = |entries: &mut Vec<Vec<F192>>, s: &mut Source, how: u8| -> (&'static str, String) {
+    let cell_edit = |entries: &mut Vec<Vec<F128>>, s: &mut Source, how: u8| -> (&'static str, String) {
         if entries[i].is_empty() {
-            entries[i].push(s.f192());
+            entries[i].push(s.f128());
             return ("entry-grow", format!("entry {i} was empty"));
         }
         let k = pick_cell(&stream, &entries[i], i, s, lens);
@@ -374,7 +374,7 @@ fn edit_witness(streams: &mut Streams, s: &mut Source, lens: &[usize]) -> Edit {
         }
         _ => {
             if s.bool() || entries[i].is_empty() {
-                let x = s.f192();
+                let x = s.f128();
                 entries[i].push(x);
                 ("entry-grow", format!("entry {i}/{n} one cell longer"))
             } else {
@@ -512,11 +512,11 @@ fn benign_cells(honest: &Streams, forged: &Streams, lens: &[usize]) -> Option<St
                     // `verify_sub`: "the unused suffix is outside the recursively verified proof".
                     "stream" if k >= lens.get(e).copied().unwrap_or(usize::MAX) => "stream padding",
                     // `gen_verify`: "unknown, unused subtrees stay opaque"; a node no active parent hashes.
-                    "merkle_caps" if hv == F192::ZERO => "opaque cap node",
+                    "merkle_caps" if hv == F128::ZERO => "opaque cap node",
                     // `verify_merkle_cap` reads an internal node's flag only as `!= 0`.
-                    "merkle_cap_active" if hv != F192::ZERO && fv != F192::ZERO => "cap flag nonzero either way",
+                    "merkle_cap_active" if hv != F128::ZERO && fv != F128::ZERO => "cap flag nonzero either way",
                     // A zero flag no walk sets and no hash depends on: node 0 of a cap level, which has no node.
-                    "merkle_cap_active" if hv == F192::ZERO => "unread cap flag",
+                    "merkle_cap_active" if hv == F128::ZERO => "unread cap flag",
                     // `walk_window` hashes the running node with the sibling half of the pair, never the other half.
                     "merkle_children" if own_half(honest, e, k) => "running node's copy in a Merkle pair",
                     "da_pick" if same_da(honest, forged) => "DA pick of an equal digest",
@@ -562,7 +562,7 @@ fn pull_ranks() -> std::ops::Range<usize> {
         .clone()
 }
 
-fn stream<'a>(streams: &'a Streams, name: &str) -> Option<&'a Vec<Vec<F192>>> {
+fn stream<'a>(streams: &'a Streams, name: &str) -> Option<&'a Vec<Vec<F128>>> {
     streams.iter().find(|(n, _)| n == name).map(|(_, e)| e)
 }
 
@@ -595,7 +595,7 @@ fn own_half(honest: &Streams, e: usize, k: usize) -> bool {
 
 /// Whether the forged `da_pick` names a digest equal to the honest pick's.
 fn same_da(honest: &Streams, forged: &Streams) -> bool {
-    let digest = |streams: &Streams| -> Option<Vec<F192>> {
+    let digest = |streams: &Streams| -> Option<Vec<F128>> {
         let meta = stream(streams, "meta")?.first()?;
         let n_children = log_g(meta[6])?;
         let own_blobs = log_g(meta[7])? == 1;
@@ -603,7 +603,7 @@ fn same_da(honest: &Streams, forged: &Streams) -> bool {
         if pick < n_children {
             stream(honest, "child_da")?.get(pick).cloned()
         } else if pick == n_children && !own_blobs {
-            Some(vec![F192::ZERO; 2])
+            Some(vec![F128::ZERO; 2])
         } else {
             None
         }
@@ -613,7 +613,7 @@ fn same_da(honest: &Streams, forged: &Streams) -> bool {
 
 /// The claim every coverage writer reads, in the order the guest walks them: each raw leanXMSS signature, each raw
 /// leanSPHINCS signature, then each child's two lists. `None` when the hints do not parse.
-fn coverage(streams: &Streams) -> Option<Vec<Vec<F192>>> {
+fn coverage(streams: &Streams) -> Option<Vec<Vec<F128>>> {
     let meta = stream(streams, "meta")?.first()?;
     let n: Vec<usize> = meta.iter().map(|&x| log_g(x)).collect::<Option<_>>()?;
     let (n_lx, n_xdup, n_raw_x, n_s, n_sdup, n_raw_s, n_children) = (n[0], n[1], n[2], n[3], n[4], n[5], n[6]);
@@ -623,13 +623,13 @@ fn coverage(streams: &Streams) -> Option<Vec<Vec<F192>>> {
     if claims.len() < n_lx + n_s || dups.len() < n_xdup + n_sdup {
         return None;
     }
-    let x_table: Vec<&Vec<F192>> = claims[..n_lx].iter().chain(&dups[..n_xdup]).collect();
-    let s_table: Vec<&Vec<F192>> = claims[n_lx..n_lx + n_s]
+    let x_table: Vec<&Vec<F128>> = claims[..n_lx].iter().chain(&dups[..n_xdup]).collect();
+    let s_table: Vec<&Vec<F128>> = claims[n_lx..n_lx + n_s]
         .iter()
         .chain(&dups[n_xdup..n_xdup + n_sdup])
         .collect();
     let mut cursor = std::collections::HashMap::<&str, usize>::new();
-    let mut next = |name: &'static str| -> Option<F192> {
+    let mut next = |name: &'static str| -> Option<F128> {
         let at = cursor.entry(name).or_default();
         let v = *stream(streams, name)?.get(*at)?.first()?;
         *at += 1;
@@ -668,7 +668,7 @@ fn coverage(streams: &Streams) -> Option<Vec<Vec<F192>>> {
 }
 
 /// `list_split` in the guest and in `statement.rs`.
-pub(super) fn list_split(n: usize) -> Vec<F192> {
+pub(super) fn list_split(n: usize) -> Vec<F128> {
     const GROUP: usize = 17;
     const BIG: usize = GROUP * 8;
     vec![count(n / BIG), count(n % BIG / GROUP), count(n % BIG % GROUP)]
@@ -677,8 +677,8 @@ pub(super) fn list_split(n: usize) -> Vec<F192> {
 /// What a statement forgery made of the claim lists, as cells, and the DA root it publishes instead, if any.
 struct Claimed {
     kind: &'static str,
-    xmss: Vec<Vec<F192>>,
-    sphincs: Vec<Vec<F192>>,
+    lean_xmss: Vec<Vec<F128>>,
+    sphincs: Vec<Vec<F128>>,
     da: Option<Option<[u8; 32]>>,
     detail: String,
 }
@@ -702,7 +702,7 @@ fn statement_forgery(src: &mut Source, inputs: &Inputs, ctx: &Ctx) -> Outcome {
     }));
     let prepared = prepare_node(
         &inputs.children,
-        inputs.xmss.clone(),
+        inputs.lean_xmss.clone(),
         inputs.sphincs.clone(),
         &inputs.blobs,
         inputs.declare.as_ref(),
@@ -721,9 +721,9 @@ fn statement_forgery(src: &mut Source, inputs: &Inputs, ctx: &Ctx) -> Outcome {
     };
     ctx.note(format!("statement {}", claimed.kind));
     let to_claim =
-        |cells: &Vec<F192>| -> Option<([u8; 32], [u8; 32])> { Some((bytes_of(&cells[..2])?, bytes_of(&cells[2..])?)) };
-    let xmss: Option<Vec<_>> = claimed
-        .xmss
+        |cells: &Vec<F128>| -> Option<([u8; 32], [u8; 32])> { Some((bytes_of(&cells[..2])?, bytes_of(&cells[2..])?)) };
+    let lean_xmss: Option<Vec<_>> = claimed
+        .lean_xmss
         .iter()
         .map(|c| to_claim(c).map(|(pk, m)| (LeanXmssPublicKey::from_bytes(&pk), m)))
         .collect();
@@ -732,12 +732,12 @@ fn statement_forgery(src: &mut Source, inputs: &Inputs, ctx: &Ctx) -> Outcome {
         .iter()
         .map(|c| to_claim(c).map(|(pk, m)| (LeanSphincsPublicKey::from_bytes(&pk), m)))
         .collect();
-    let (Some(xmss), Some(lean_sphincs)) = (xmss, sphincs) else {
+    let (Some(lean_xmss), Some(lean_sphincs)) = (lean_xmss, sphincs) else {
         ctx.note("statement forgery: a non-canonical claim");
         return Ok(());
     };
     let forged = EthereumClaims {
-        xmss,
+        lean_xmss,
         lean_sphincs,
         da_commitment: claimed.da.unwrap_or(prepared.claims.da_commitment),
     };
@@ -784,14 +784,14 @@ fn forge_claims(streams: &mut Streams, s: &mut Source, foreign_root: [u8; 32]) -
     let n: Vec<usize> = meta.iter().map(|&x| log_g(x)).collect::<Option<_>>()?;
     let (n_lx, n_xdup, n_s, n_sdup) = (n[0], n[1], n[3], n[4]);
     let c = index_of(streams, "claims");
-    let claims: Vec<Vec<F192>> = c.map(|c| streams[c].1.clone()).unwrap_or_default();
+    let claims: Vec<Vec<F128>> = c.map(|c| streams[c].1.clone()).unwrap_or_default();
     if claims.len() < n_lx + n_s {
         return None;
     }
-    let mut xmss = claims[..n_lx].to_vec();
+    let mut lean_xmss = claims[..n_lx].to_vec();
     let mut sphincs = claims[n_lx..n_lx + n_s].to_vec();
-    let foreign = |s: &mut Source, like: Option<&Vec<F192>>| -> Vec<F192> {
-        let mut claim = like.cloned().unwrap_or_else(|| vec![F192::new(7, 7, 0); 4]);
+    let foreign = |s: &mut Source, like: Option<&Vec<F128>>| -> Vec<F128> {
+        let mut claim = like.cloned().unwrap_or_else(|| vec![F128::new(7, 7); 4]);
         let k = s.below(4);
         claim[k].c0 ^= 1 << s.below(64);
         claim
@@ -802,7 +802,7 @@ fn forge_claims(streams: &mut Streams, s: &mut Source, foreign_root: [u8; 32]) -
             let j = s.below(n_lx + n_s);
             let forged = foreign(s, Some(&claims[j]));
             if j < n_lx {
-                xmss[j] = forged.clone()
+                lean_xmss[j] = forged.clone()
             } else {
                 sphincs[j - n_lx] = forged.clone()
             }
@@ -813,15 +813,15 @@ fn forge_claims(streams: &mut Streams, s: &mut Source, foreign_root: [u8; 32]) -
             // The boundary between the lists moved by one: a claim verified under one scheme published as the other's.
             let to_sphincs = n_lx > 0 && (n_s == 0 || s.bool());
             if to_sphincs {
-                sphincs.insert(0, xmss.pop()?);
+                sphincs.insert(0, lean_xmss.pop()?);
                 streams[m].1[0][0] *= count_inv(1);
                 streams[m].1[0][3] *= count(1);
             } else {
-                xmss.push(sphincs.remove(0));
+                lean_xmss.push(sphincs.remove(0));
                 streams[m].1[0][0] *= count(1);
                 streams[m].1[0][3] *= count_inv(1);
             }
-            resplit(streams, n_lx, n_s, xmss.len(), sphincs.len());
+            resplit(streams, n_lx, n_s, lean_xmss.len(), sphincs.len());
             "scheme-move"
         }
         2 if n_xdup + n_sdup > 0 => {
@@ -832,7 +832,7 @@ fn forge_claims(streams: &mut Streams, s: &mut Source, foreign_root: [u8; 32]) -
             let forged = foreign(s, like);
             if x {
                 streams[d].1.remove(0);
-                xmss.push(forged.clone());
+                lean_xmss.push(forged.clone());
                 streams[c?].1.insert(n_lx, forged);
                 streams[m].1[0][0] *= count(1);
                 streams[m].1[0][1] *= count_inv(1);
@@ -843,13 +843,13 @@ fn forge_claims(streams: &mut Streams, s: &mut Source, foreign_root: [u8; 32]) -
                 streams[m].1[0][3] *= count(1);
                 streams[m].1[0][4] *= count_inv(1);
             }
-            resplit(streams, n_lx, n_s, xmss.len(), sphincs.len());
+            resplit(streams, n_lx, n_s, lean_xmss.len(), sphincs.len());
             "promote-dup"
         }
         _ => {
             return Some(Claimed {
                 kind: "da-root",
-                xmss,
+                lean_xmss,
                 sphincs,
                 da: Some(Some(foreign_root)),
                 detail: "a DA root no input has".into(),
@@ -860,10 +860,10 @@ fn forge_claims(streams: &mut Streams, s: &mut Source, foreign_root: [u8; 32]) -
         kind,
         detail: format!(
             "{kind}: lists of {n_lx} and {n_s} claims become {} and {}",
-            xmss.len(),
+            lean_xmss.len(),
             sphincs.len()
         ),
-        xmss,
+        lean_xmss,
         sphincs,
         da: None,
     })

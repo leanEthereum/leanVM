@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Opening.WalkPath
 
-  `walk_path` (a function of its own at 40f877dc): from a node and a position's windows, the path
+  `walk_path` (a function of its own): from a node and a position's windows, the path
   climbs by hinted siblings into the cap leaf, whose parent it flags; soundly.
 -/
 
@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Opening.QueriesCap
 public import LeanVM.Guest.B1.Opening.QueriesFlatC
 
 /-!
-# `walk_path`, soundly (lean_ethereum.py:1308-1343 at 40f877dc)
+# `walk_path`, soundly (lean_ethereum.py:1303-1338)
 
 `walk_path__L{pd}_L{cd}(n0, n1, wins, cap, flags)`: the children hinted (`merkle_children`), the
 windows of the position at `wins` dispatched a window at a time (`walk_window`, the arm's order
@@ -75,18 +75,18 @@ theorem oqCapT_atoms (s : Oq) (bp cap flags : V) (kL ch : ℕ) : AllAtoms (oqCap
 
 /-- The padding run's values: `1, 0, 0, 0, 0`. -/
 theorem oqPad_values {pr : ℕ} (hA : ∀ a, Stmt.atom a ∈ oqPadT pr → a.Holds rd σ) :
-    σ (.n pr) = word 1 0 0 ∧ ∀ i < 4, σ (.n (pr + 1 + i)) = 0 := by
-  refine ⟨hA _ (by simp [oqPadT] : Stmt.atom (.const (.n pr) (word 1 0 0)) ∈ _), fun i hi => ?_⟩
+    σ (.n pr) = word 1 0 ∧ ∀ i < 4, σ (.n (pr + 1 + i)) = 0 := by
+  refine ⟨hA _ (by simp [oqPadT] : Stmt.atom (.const (.n pr) (word 1 0)) ∈ _), fun i hi => ?_⟩
   interval_cases i
-  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 1)) (word 0 0 0)) ∈ _)).trans word_zero
-  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 2)) (word 0 0 0)) ∈ _)).trans word_zero
-  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 3)) (word 0 0 0)) ∈ _)).trans word_zero
-  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 4)) (word 0 0 0)) ∈ _)).trans word_zero
+  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 1)) (word 0 0)) ∈ _)).trans word_zero
+  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 2)) (word 0 0)) ∈ _)).trans word_zero
+  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 3)) (word 0 0)) ∈ _)).trans word_zero
+  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 4)) (word 0 0)) ∈ _)).trans word_zero
 
 /-- The path's first window places the padding run (`pd ≥ 1`). -/
 theorem oqPath_pad {s : Oq} (hpd : 1 ≤ s.pd) {bp : V} {pr kL ch : ℕ}
     (hA : BlockOk rd σ (oqPathT s bp pr kL ch)) :
-    σ (.n pr) = word 1 0 0 ∧ ∀ i < 4, σ (.n (pr + 1 + i)) = 0 :=
+    σ (.n pr) = word 1 0 ∧ ∀ i < 4, σ (.n (pr + 1 + i)) = 0 :=
   oqPad_values fun a ha ↦ hA.atom (oqPathT_mem_win (i := 0) (by unfold oqNpw; omega)
     (by simp only [oqWinT, ↓reduceIte, List.mem_append]; exact Or.inl (Or.inr ha)))
 
@@ -142,11 +142,11 @@ def WalkOpens (rd : Reader) (pd cd : ℕ) (wins cap flags : E) (q : ℕ) (leaf :
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ pd)) (digestHalves (climbD leaf q sibs)).1 ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ pd) + 1) (digestHalves (climbD leaf q sibs)).2
 
-/-- **`walk` is a sound walk of `pd` levels below a cap of depth `cd`**: a call on the halves of
+/-- **`walk` is, in the program `P`, a sound walk of `pd` levels below a cap of depth `cd`**: a call on the halves of
 `leaf`, its windows (when read) those of `q < 2^(pd + cd)`, returns nothing and opens. -/
-def WalkSound (walk : String) (pd cd : ℕ) : Prop :=
+def WalkSound (P : Program) (walk : String) (pd cd : ℕ) : Prop :=
   ∀ (rd : Reader) (n0 n1 wins cap flags : E) (rets : List E),
-    coreProgram.Rel rd walk [n0, n1, wins, cap, flags] rets →
+    P.Rel rd walk [n0, n1, wins, cap, flags] rets →
     ∀ (leaf : Digest) (q : ℕ), (n0, n1) = digestHalves leaf → q < 2 ^ (pd + cd) →
       (∀ i v, LoadHolds rd wins i v → i < qwN (pd + cd) cd → v = gen ^ qwVal (pd + cd) cd q i) →
       rets = [] ∧ WalkOpens rd pd cd wins cap flags q leaf
@@ -196,21 +196,21 @@ theorem wp_frame_sound {s : Oq} (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) {C : CallR
   rw [← hwin i v hv hi]
   exact hv
 
-/-- **`walk` is `walk_path__L{pd}_L{cd}`**: a function of five parameters whose body is the
+/-- **`walk` is `walk_path__L{pd}_L{cd}`** in the program `P`: a function of five parameters whose body is the
 template. -/
-def WalkFn (walk : String) (pd cd : ℕ) : Prop :=
-  ∃ fn : Fn, coreProgram.find? walk = some fn ∧ fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4] ∧
-    fn.body = wpBodyT ⟨0, 0, pd, cd⟩
+def WalkFn (P : Program) (walk : String) (pd cd : ℕ) : Prop :=
+  ∃ fn : Fn, P.find? walk = some fn ∧ fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4] ∧
+    fn.body = wpBodyT ⟨0, 0, pd, cd, 0, [], 0, 0⟩
 
 /-- **A `walk_path` specialization is a sound walk.** -/
-theorem WalkFn.sound {walk : String} {pd cd : ℕ} (hpd : 1 ≤ pd) (hcd : 1 ≤ cd)
-    (hW : WalkFn walk pd cd) : WalkSound walk pd cd := by
+theorem WalkFn.sound {P : Program} {walk : String} {pd cd : ℕ} (hpd : 1 ≤ pd) (hcd : 1 ≤ cd)
+    (hW : WalkFn P walk pd cd) : WalkSound P walk pd cd := by
   intro rd n0 n1 wins cap flags rets h leaf q hleaf hq hwin
   obtain ⟨fn, hf, hp, hb⟩ := hW
   rw [rel_iff_sem hf, hb, hp] at h
   obtain ⟨τ, hpar, h⟩ := h
   obtain ⟨hr, hl, sibs, hsl, -, hfl, h0, h1⟩ :=
-    wp_frame_sound (s := ⟨0, 0, pd, cd⟩) hpd hcd hpar h hleaf hq hwin
+    wp_frame_sound (s := ⟨0, 0, pd, cd, 0, [], 0, 0⟩) hpd hcd hpar h hleaf hq hwin
   exact ⟨hr, hl, sibs, hsl, hfl, h0, h1⟩
 
 end

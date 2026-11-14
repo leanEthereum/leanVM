@@ -1,5 +1,5 @@
 """The generated guest data, read into Python: the core IR (`Data/Core*.lean`), the powers of `g`
-the constants name (`Data/Pows.lean`), each compiled function's `pmax` (`Data/Plumb*.lean`), the
+the constants name (`Data/Pows.lean`), each compiled function's `pmax` (its pack's `Bundle.lean`), the
 frame sizes (`Data/FrameSizes.lean`) and the separately counted arms (`Data/CplArms.lean`).
 
 Every loader takes the data directory, `lean_vm/LeanVM/Guest/Data/`. A function is a dict
@@ -112,15 +112,17 @@ def stmt(e, defs):
 def block(e, defs): return [stmt(x, defs) for x in tolist(e, defs)]
 
 
-def _files(D):
-    return sorted(glob.glob(os.path.join(D, 'Core[0-9][0-9].lean')))
+def _texts(D):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    import coredata
+    return coredata.legacy_texts(D)
 
 
 def _load(D):
     raw = {}; hdr = {}; cur = None; name = None; hcur = None
-    for f in _files(D):
-        for line in open(f, encoding='utf-8'):
-            s = line.rstrip('\n')
+    for text in _texts(D):
+        for line in text.split('\n'):
+            s = line
             m = re.match(r'namespace core(\d+)$', s)
             if m: cur = int(m.group(1)); raw.setdefault(cur, {}); name = None; continue
             if re.match(r'end core\d+$', s): cur = None; name = None; continue
@@ -150,7 +152,7 @@ def load(D, cache=None):
     if cache is None:
         return _load(D)
     h = hashlib.sha256()
-    for f in _files(D): h.update(open(f, 'rb').read())
+    for t in _texts(D): h.update(t.encode('utf-8'))
     p = os.path.join(cache, 'core-%s.pickle' % h.hexdigest()[:16])
     if os.path.exists(p):
         return pickle.load(open(p, 'rb'))
@@ -168,13 +170,20 @@ def load_pows(D):
 
 
 def load_pmax(D):
-    """Each compiled function's `pmax` (`B2C.plumbOf j`), by compiled index; `[]` when absent."""
+    """Each compiled function's `pmax` (`B2C.plumbOf j`, its pack's `Fn.«name».plumb`), by compiled
+    index; `[]` when absent."""
+    names = open(os.path.join(D, 'Names.lean'), encoding='utf-8').read()
+    sec = names[names.index('\nnamespace I\n'):]
+    index = {n: int(k) + 1 for n, k in re.findall(r'^abbrev «([^»]*)» : Nat := (\d+)$', sec, re.M)}
     pm = {}
-    for f in sorted(glob.glob(os.path.join(D, 'Plumb[0-9][0-9].lean'))):
+    for f in sorted(glob.glob(os.path.join(D, '..', 'Pack', '*', 'Bundle.lean'))):
         cur = None
         for line in open(f, encoding='utf-8'):
-            m = re.match(r'noncomputable def plumb(\d+) : B2C.Plumb where', line)
-            if m: cur = int(m.group(1)); pm[cur] = []; continue
+            m = re.match(r'namespace LeanVM\.Guest\.Fn\.«([^»]*)»$', line)
+            if m: cur = index[m.group(1)]; continue
+            if line.startswith('noncomputable def plumb : B2C.Plumb where'):
+                pm[cur] = []
+                continue
             m = re.match(r'\s+pmax := \[([\d, ]*)\]', line)
             if m and cur is not None:
                 pm[cur] = [int(x) for x in m.group(1).replace(' ', '').split(',') if x]
@@ -208,3 +217,17 @@ if __name__ == '__main__':
     D = sys.argv[1]
     fns = load(D)
     print(len(fns), fns[0]['name'], len(fns[0]['body']))
+
+
+_STABLE = None
+
+
+def L(s):
+    """The compiler's name of the core function of stable name `s` (`Data/NameStrings.lean`): a loop
+    helper is `{caller}_loop{k}` there, which no added or removed function renumbers."""
+    global _STABLE
+    if _STABLE is None:
+        lv = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        t = open(os.path.join(lv, 'LeanVM', 'Guest', 'Data', 'NameStrings.lean'), encoding='utf-8').read()
+        _STABLE = dict(re.findall(r'abbrev «([^»]+)» : String := "([^"]+)"', t))
+    return _STABLE[s]

@@ -22,11 +22,10 @@ rand = { workspace = true, optional = true }
 tracing.workspace = true
 
 [features]
-# `signers_cache`: cached benchmark signers over leanXMSS mock keys, for tests and the CLI.
-signers-cache = ["signatures/mock", "dep:rand"]
+# `signers_cache`: cached benchmark signers, for tests and the CLI.
+signers-cache = ["dep:rand"]
 # `aggregation::fuzzing`: forged guest witnesses, forged children and guest runs without a proof, for the fuzzer. Never in a real build.
 fuzzing = ["leanvm_core/fuzzing"]
 
 [dev-dependencies]
-signatures = { workspace = true, features = ["mock"] }
 rand.workspace = true

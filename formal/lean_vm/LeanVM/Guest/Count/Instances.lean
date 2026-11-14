@@ -3,23 +3,23 @@
 
   The budget's static hypotheses at the deployed frame sizes, from the certificate families: the
   words of `main`'s statically bounded callees and of its non-static callees' static callees
-  (`mainStatics`), and `open_stacked`'s named callees and residual loops (`osLeafBounds`,
-  `osLoopBounds`). `main`'s callees' instruction counts (`mainCounts`) are `Budget/MvCount`'s.
+  (`mainStatics`). `main`'s callees' instruction counts (`mainCounts`) are `Budget/MvCount`'s;
+  `open_stacked`'s callees' words (`osLeafBounds`) are `Count/VsOsAll`'s.
 -/
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Count.Words
 public import LeanVM.Guest.Budget.MainCount
 public import LeanVM.Guest.B1.Main.MainHonestBudgetB
-public import LeanVM.Guest.B1.Place.OsFinalB
 
 /-!
 # The budget's static hypotheses
 
 Words at `B2C.fs` by name (`Count.Words`): `wSB f`, `f`'s constant, and `wSK f`, a loop helper's
 words per iteration with its run's phantom frame, which every call site of `main`'s side charges
-once (`iterK_totalLeOn`), each function found by `wIdx` (`wIdxL` for `__loop{n}`) and checked by
+once (`iterK_totalLeOn`), each function found by `wIdx` (a loop helper by `idx%`) and checked by
 `decide +kernel`.
 -/
 
@@ -40,19 +40,19 @@ theorem iterK_totalLeOn {j : ℕ} {f : String} (h : wOkK j f = true) :
 
 /-- **`main`'s statically bounded callees' words.** -/
 theorem mainStaticsMain : B1.Main.MainStaticsMain B2C.fs wSB wSK where
-  l1 := iterK_totalLeOn (j := wIdxL 0) (by decide +kernel)
-  l2 := iterK_totalLeOn (j := wIdxL 1) (by decide +kernel)
-  l3 := iterK_totalLeOn (j := wIdxL 2) (by decide +kernel)
-  l4 := iterK_totalLeOn (j := wIdxL 3) (by decide +kernel)
+  l1 := iterK_totalLeOn (j := idx% main_loop0) (by decide +kernel)
+  l2 := iterK_totalLeOn (j := idx% main_loop1) (by decide +kernel)
+  l3 := iterK_totalLeOn (j := idx% main_loop2) (by decide +kernel)
+  l4 := iterK_totalLeOn (j := idx% main_loop3) (by decide +kernel)
   st := wSB_totalLe (j := wIdx "statement_digest") (by decide +kernel)
 
 /-- `da_levels__L{2^k}_L{k}`, `k ≤ 10`, checked. -/
 theorem dlNames_ok : (List.range 11).all (fun k => wOkB (wIdx B1.Da.dlNames[k]!) B1.Da.dlNames[k]!) = true := by
   decide +kernel
 
-/-- The column offsets' doubling loops `__loop{26 + b}`, checked. -/
+/-- The column offsets' doubling loops `da_column_offsets_loop{b}`, checked. -/
 theorem offLoops_ok :
-    (List.range 7).all (fun b => wOkK (wIdxL (26 + b)) (B1.Da.offLoopName b)) = true := by
+    (List.range 7).all (fun b => wOkK (idx% da_column_offsets_loop0 + b) (B1.Da.offLoopName b)) = true := by
   decide +kernel
 
 /-- **`da_vector`'s words within its static bound**: its frame and buffers, its callees' frames
@@ -70,10 +70,10 @@ theorem exp_le : B2C.fs "da_expand__L7_L8" ≤ wSB "da_expand__L7_L8" := by deci
 
 /-- **`da_verify`'s static bounds**, at the deployed frame sizes. -/
 theorem dvStatic : B1.Da.DvStaticB B2C.fs wSB wSK where
-  l17 := iterK_totalLeOn (j := wIdxL 21) (by decide +kernel)
-  l19 := iterK_totalLeOn (j := wIdxL 23) (by decide +kernel)
-  l20 := iterK_totalLeOn (j := wIdxL 24) (by decide +kernel)
-  l21 := iterK_totalLeOn (j := wIdxL 25) (by decide +kernel)
+  l17 := iterK_totalLeOn (j := idx% da_verify_loop0) (by decide +kernel)
+  l19 := iterK_totalLeOn (j := idx% da_verify_loop2) (by decide +kernel)
+  l20 := iterK_totalLeOn (j := idx% da_verify_loop3) (by decide +kernel)
+  l21 := iterK_totalLeOn (j := idx% da_verify_column_loop0) (by decide +kernel)
   off := fun _ hb => iterK_totalLeOn (all_range_get offLoops_ok hb)
   dl := fun _ hk => wSB_totalLe (all_range_get dlNames_ok (Nat.lt_succ_of_le hk))
   vec := vec_le
@@ -89,34 +89,14 @@ theorem mainStatics : B1.Main.MainStatics B2C.fs wSB wSK where
   main := mainStaticsMain
   dv := dvStatic
   ls := wSB_totalLe (j := wIdx "list_split") (by decide +kernel)
-  l15 := iterK_totalLeOn (j := wIdxL 15) (by decide +kernel)
-  l16 := iterK_totalLeOn (j := wIdxL 16) (by decide +kernel)
+  l15 := iterK_totalLeOn (j := idx% claim_list_digest_loop0) (by decide +kernel)
+  l16 := iterK_totalLeOn (j := idx% claim_list_digest_loop1) (by decide +kernel)
   cl := fun _ hk => wSB_totalLe (all_range_get clNames_ok hk)
-  l25 := iterK_totalLeOn (j := wIdxL 33) (by decide +kernel)
-  l26 := iterK_totalLeOn (j := wIdxL 34) (by decide +kernel)
-  l27 := iterK_totalLeOn (j := wIdxL 35) (by decide +kernel)
+  l25 := iterK_totalLeOn (j := idx% aggregate_claims_loop0) (by decide +kernel)
+  l26 := iterK_totalLeOn (j := idx% aggregate_claims_loop1) (by decide +kernel)
+  l27 := iterK_totalLeOn (j := idx% aggregate_claims_loop2) (by decide +kernel)
   bs := wSB_totalLe (j := wIdx "batch_sumcheck__L23") (by decide +kernel)
-
-/-- `open_stacked`'s named callees, checked. -/
-theorem osKind_ok : B1.osKindTable.all (fun p => wOkB (wIdx p.1) p.1) = true := by
-  decide +kernel
-
-/-- **`open_stacked`'s named callees within `wSB`.** -/
-theorem osLeafBounds : B1.OsLeafBounds B2C.fs wSB := fun f K hK =>
-  wSB_totalLe (List.all_eq_true.mp osKind_ok (f, K) (B1.os_mem_of_lookup B1.osKindTable hK))
-
-set_option maxRecDepth 100000 in
-/-- The residual loops of the candidates, checked. -/
-theorem osRes_ok : ∀ m < 28, ∀ l < (B1.Whir.osCfg m).levels.length,
-    wOkK (wIdxL ((B1.Whir.osCfg m).loopBase + (B1.Whir.osCfg m).levels.length + l))
-      ((B1.Whir.osCfg m).resLoop l) = true := by
-  decide +kernel
-
-/-- **Each candidate's residual loops' runs within `wSKt` (`wSK` less the frame) per iteration
-and their one phantom frame.** -/
-theorem osLoopBounds :
-    ∀ m < 28, B1.OsLoopBounds B2C.fs (fun f => wSK f - B2C.fs f) (B1.Whir.osCfg m) :=
-  fun m hm l hl => by simpa only [wSKt_eq] using wSKt_totalLeOn (osRes_ok m hm l hl)
+  gr := wSB_totalLe (j := wIdx "grind_check__L2") (by decide +kernel)
 
 end
 end LeanVM.Guest.Count

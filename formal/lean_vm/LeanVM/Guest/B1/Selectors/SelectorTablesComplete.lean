@@ -10,12 +10,13 @@ module
 
 public import LeanVM.Guest.B1.Selectors.SelectorTables
 public import LeanVM.Guest.B1.Selectors.LayoutBasic
+public import LeanVM.Guest.CoreData
 
 /-!
 # `selector_tables`, completely (TRIAGE G #69)
 
 The point and its complements are the runs `(ept, p)`, `(ept1, p1)` (`stLin`); the buffer's base
-is `ese` (`448` words). The honest valuation `stVal` is the body evaluated on `layRd` of the point
+is `ese` (`512` words). The honest valuation `stVal` is the body evaluated on `layRd` of the point
 (`Fwd.ev`, the allocation answered by the base). The buffer's words (`stOwn`): at offset
 `o = 64j + 16w + u`, `u` a multiple of `2^(3 - w)` (`stStored`), the value stored there
 (`stD o`, level `w`'s entry `u / 2^(3 - w)` of nibble `j`); the words between the strided entries
@@ -55,19 +56,19 @@ def stStored (o : ℕ) : Bool := o % 16 % 2 ^ (3 - stLvl o) == 0
 
 /-- The eq buffer's words: the stored values, `0` between them. -/
 def stEqWords (σ : Val) : List E :=
-  (List.range 448).map fun o => if stStored o then σ (.n (stD o)) else 0
+  (List.range 512).map fun o => if stStored o then σ (.n (stD o)) else 0
 
 /-- The buffer's run. -/
 noncomputable def stOwn (ept ept1 ese : ℕ) (p p1 : List E) : TLay :=
   [(ese, stEqWords (stVal ept ept1 ese p p1))]
 
-theorem st_chk : chk 2 stPre = some 256 := by decide +kernel
+theorem st_chk : chk 2 stPre = some 292 := by decide +kernel
 
 /-- What a statement of the body is: a pure atom, a hint, a load of the point, or a store. -/
 def stKind : Stmt → Bool
   | .atom (.hint _) => true
-  | .atom (.load (.n _) (.n 0) o) | .atom (.load (.n _) (.n 1) o) => decide (o < 28)
-  | .atom (.load (.n d) (.n 2) o) => decide (o < 448) && decide (d = stD o) && stStored o
+  | .atom (.load (.n _) (.n 0) o) | .atom (.load (.n _) (.n 1) o) => decide (o < 32)
+  | .atom (.load (.n d) (.n 2) o) => decide (o < 512) && decide (d = stD o) && stStored o
   | .atom a => pureB a
   | _ => false
 
@@ -80,14 +81,14 @@ def stStoreOk : Atom → Bool
 
 theorem st_stores : (storesOf 2 stPre).all stStoreOk = true := by decide +kernel
 
-theorem st_alloc_mem : Stmt.atom (.hint (.alloc (.n 2) 448)) ∈ stPre := by
+theorem st_alloc_mem : Stmt.atom (.hint (.alloc (.n 2) 512)) ∈ stPre := by
   unfold stPre; simp
 
 /-- The kinds of the body's statements. -/
 theorem stKind_cases {s : Stmt} (h : stKind s = true) :
     (∃ hn, s = .atom (.hint hn)) ∨
-    (∃ d o, (s = .atom (.load (.n d) (.n 0) o) ∨ s = .atom (.load (.n d) (.n 1) o)) ∧ o < 28) ∨
-    (∃ o, s = .atom (.load (.n (stD o)) (.n 2) o) ∧ o < 448 ∧ stStored o = true) ∨
+    (∃ d o, (s = .atom (.load (.n d) (.n 0) o) ∨ s = .atom (.load (.n d) (.n 1) o)) ∧ o < 32) ∨
+    (∃ o, s = .atom (.load (.n (stD o)) (.n 2) o) ∧ o < 512 ∧ stStored o = true) ∨
     (∃ a, s = .atom a ∧ pureB a = true) := by
   unfold stKind at h
   split at h
@@ -122,22 +123,22 @@ theorem stVal_param (ept ept1 ese : ℕ) (p p1 : List E) :
 /-- The buffer's pointer, allocated and returned. -/
 theorem stVal_bufs (ept ept1 ese : ℕ) (p p1 : List E) :
     stVal ept ept1 ese p p1 (.n 2) = ofK (addressOfIndex ese) ∧
-      stVal ept ept1 ese p p1 (.n 255) = ofK (addressOfIndex ese) := by
+      stVal ept ept1 ese p p1 (.n 291) = ofK (addressOfIndex ese) := by
   have hg : ∀ s ∈ stPre, GoodS (layRd (stLin ept ept1 p p1)) (storesOf 2 stPre) (stW ese)
       (stVal ept ept1 ese p p1) s :=
     (ev_spec (layRd (stLin ept ept1 p p1)) (stW ese) stPre
       [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)] st_chk).2.2
   have e2 : stVal ept ept1 ese p p1 (.n 2) = ofK (addressOfIndex ese) := by
     simpa [GoodS, Good, stW] using hg _ st_alloc_mem
-  have c1 := hg _ (show Stmt.atom (.copy (.n 255) (.n 2)) ∈ stPre by simp [stPre])
+  have c1 := hg _ (show Stmt.atom (.copy (.n 291) (.n 2)) ∈ stPre by simp [stPre])
   simp only [GoodS, Good] at c1
   exact ⟨e2, by rw [c1, e2]⟩
 
 set_option maxRecDepth 10000 in
 /-- **Every statement holds** on the honest valuation, on every memory holding the buffer and the
 point. -/
-theorem st_sholds (ept ept1 ese : ℕ) (p p1 : List E) (hl : p.length = 28)
-    (hl1 : p1.length = 28) (rd : Reader)
+theorem st_sholds (ept ept1 ese : ℕ) (p p1 : List E) (hl : p.length = 32)
+    (hl1 : p1.length = 32) (rd : Reader)
     (hm : MemLay rd (stOwn ept ept1 ese p p1 ++ stLin ept ept1 p p1)) :
     ∀ s ∈ stPre, SHolds (coreProgram.Rel rd) rd (stVal ept ept1 ese p p1) s := by
   have hg : ∀ s ∈ stPre, GoodS (layRd (stLin ept ept1 p p1)) (storesOf 2 stPre) (stW ese)
@@ -178,19 +179,19 @@ theorem st_sholds (ept ept1 ese : ℕ) (p p1 : List E) (hl : p.length = 28)
 set_option maxRecDepth 10000 in
 /-- **The relation holds** on a memory holding the buffer and the point, the buffer's pointer
 returned. -/
-theorem st_holds (ept ept1 ese : ℕ) (p p1 : List E) (hl : p.length = 28)
-    (hl1 : p1.length = 28) (rd : Reader)
+theorem st_holds (ept ept1 ese : ℕ) (p p1 : List E) (hl : p.length = 32)
+    (hl1 : p1.length = 32) (rd : Reader)
     (hm : MemLay rd (stOwn ept ept1 ese p p1 ++ stLin ept ept1 p p1)) :
     coreProgram.Rel rd "selector_tables" [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)]
       [ofK (addressOfIndex ese)] := by
   obtain ⟨fn, hf, hp, hb⟩ := stFound
   obtain ⟨e0, e1⟩ := stVal_param ept ept1 ese p p1
-  obtain ⟨-, e255⟩ := stVal_bufs ept ept1 ese p p1
+  obtain ⟨-, e291⟩ := stVal_bufs ept ept1 ese p p1
   have hat := st_sholds ept ept1 ese p p1 hl hl1 rd hm
   refine (tb_rel_iff_sem hf _ _).mpr ⟨stVal ept ept1 ese p p1, by rw [hp]; simp [e0, e1], ?_⟩
   rw [hb]
   refine holdsList_straight stPre _ _ _ hat ?_
-  simp [e255]
+  simp [e291]
 
 end
 end LeanVM.Guest.B1.Tables

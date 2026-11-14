@@ -1,4 +1,5 @@
 import LeanVM.Protocol.LeanVMSound
+import LeanVM.Protocol.ErrorBounds
 import LeanVM.Protocol.WithHash
 
 /-!
@@ -17,7 +18,8 @@ example (prog : LeanIsaProgram) (input : PublicInput) (proof : LeanVM.Protocol.C
     verify prog input proof = Id.run (verifierWithHash (m := Id) keccak256 keccakF1600 prog input proof) :=
   rfl
 
-example {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
+example {A : Adversary} {Q : ℕ}
+    (hA : A.IsTotalQueryBound Q) :
     Pr{let z ← experiment A}[z.1.2 = true ∧
       ¬ ∃ t, extractor z.1.1.1.1 z.1.1.1.2 z.2.2 z.1.1.2 = some t ∧
         ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
@@ -26,22 +28,24 @@ example {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
 
 /-- The adversary chooses the statement: a fixed statement is the special case of an adversary
 that outputs it. -/
-example (prog : LeanIsaProgram) (input : PublicInput) (P : OracleComp KeccakCalls LeanVM.Protocol.Compile.Proof) {Q : ℕ}
+example (prog : LeanIsaProgram) (input : PublicInput)
+    (P : OracleComp KeccakCalls LeanVM.Protocol.Compile.Proof) {Q : ℕ}
     (hP : P.IsTotalQueryBound Q) :
     Pr{let z ← experiment ((fun proof ↦ ((prog, input), proof)) <$> P)}[Breaks extractor z] ≤
       soundnessError Q :=
   knowledgeSoundnessRom ((OracleComp.isQueryBound_map_iff P _ Q _ _).mpr hP)
 
-/-- The numbers: `12006` verifier queries, a collision term of `5` per pair of queries. -/
+/-- The numbers: `13708` verifier queries, `2^-125` per message, a collision term of `5` per pair
+of queries. -/
 example (Q : ℕ) : soundnessError Q =
-    ((Q + 12006 : ℕ) : ENNReal) *
-        ((2 : ENNReal)⁻¹ ^ 128 + ((5 * (Q + 12006) : ℕ) : ENNReal) / 2 ^ 256) +
-      ((12006 : ℕ) : ENNReal) / 2 ^ 256 := rfl
+    ((Q + 13708 : ℕ) : ENNReal) *
+        ((2 : ENNReal)⁻¹ ^ 125 + ((5 * (Q + 13708) : ℕ) : ENNReal) / 2 ^ 256) +
+      ((13708 : ℕ) : ENNReal) / 2 ^ 256 := rfl
 
-example {Q : ℕ} (hQ : Q ≤ 2 ^ 64) : soundnessError Q ≤ (2 : ENNReal)⁻¹ ^ 63 :=
+example {Q : ℕ} (hQ : Q ≤ 2 ^ 64) : soundnessError Q ≤ (2 : ENNReal)⁻¹ ^ 60 :=
   soundnessError_le hQ
 
-/-- The proofs of work have `17` bits. -/
+/-- The query positions' proofs of work have `17` bits. -/
 example : LeanVM.Parameters.Whir.queryGrindingBits = 17 := rfl
 
 /-- info: 'LeanVM.knowledgeSoundnessRom' depends on axioms: [propext, Classical.choice, Quot.sound] -/

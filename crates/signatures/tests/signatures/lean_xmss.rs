@@ -5,18 +5,31 @@ fn test_message() -> Message {
     std::array::from_fn(|i| (i * 3 + 7) as u8)
 }
 
-/// A full key: the whole top tree, and signatures in two bottom trees, each with
-/// its own top-layer signature.
+/// A full key: the whole top tree, and signatures in two bottom trees, prepared at
+/// once on two threads, each with its own top-layer signature. The leaf index rides
+/// the signature, so the verifier hashes at it: moved to a neighbour, or the message
+/// changed, the signature no longer verifies.
 #[test]
 fn full_key_signs_and_verifies() {
     let (sk, pk) = key_gen_from_seed([1; SEED_LEN]);
     let message = test_message();
+    let other = (7 << LAYER_HEIGHT) + 3;
+    std::thread::scope(|s| {
+        s.spawn(|| sk.prepare(other).unwrap());
+        sk.prepare(5).unwrap();
+    });
     let first = sign(&sk, &message, 5).unwrap();
     verify(&pk, &message, &first).unwrap();
-    let other_tree = sign(&sk, &message, (7 << LAYER_HEIGHT) + 3).unwrap();
+    let other_tree = sign(&sk, &message, other).unwrap();
     verify(&pk, &message, &other_tree).unwrap();
-    assert_ne!(first.top(), other_tree.top());
+    assert_ne!(first.__top(), other_tree.__top());
     assert_eq!(sign(&sk, &message, 5).unwrap(), first, "signing is deterministic");
+    let mut bytes = first.to_bytes();
+    bytes[..4].copy_from_slice(&4u32.to_le_bytes());
+    assert!(verify(&pk, &message, &LeanXmssSignature::from_bytes(&bytes)).is_err());
+    let mut other_message = message;
+    other_message[0] ^= 1;
+    assert!(verify(&pk, &other_message, &first).is_err());
 }
 
 /// Pins a full key's public key and one signature's bytes, so that a change to the
@@ -38,37 +51,6 @@ fn known_answer() {
         hex(&primitives::hash::hash(&signature.to_bytes())),
         "f10d62beec95e64e1477028252c2c8683695eab9d8787ad8fa722f47b5fd5234"
     );
-}
-
-#[test]
-fn mock_keys_sign_in_range() {
-    let message = test_message();
-    // A range across two bottom trees.
-    let start = (3 << LAYER_HEIGHT) - 2;
-    let (sk, pk) = mock::key_gen_from_seed([2; SEED_LEN], start, start + 5);
-    for leaf_index in start..=start + 5 {
-        let sig = mock::sign(&sk, &message, leaf_index).unwrap();
-        assert_eq!(sig.leaf_index(), leaf_index);
-        verify(&pk, &message, &sig).unwrap();
-    }
-    let (_, same) = mock::key_gen_from_seed([2; SEED_LEN], start, start + 5);
-    assert_eq!(pk, same);
-}
-
-/// The leaf index rides the signature, so the verifier hashes at it: moved to a
-/// neighbour, or the message changed, the signature no longer verifies.
-#[test]
-fn signature_is_bound_to_its_leaf_index_and_message() {
-    let (sk, pk) = mock::key_gen_from_seed([4; SEED_LEN], 0, 7);
-    let message = test_message();
-    let sig = mock::sign(&sk, &message, 5).unwrap();
-    let mut bytes = sig.to_bytes();
-    bytes[..4].copy_from_slice(&4u32.to_le_bytes());
-    let moved = LeanXmssSignature::from_bytes(&bytes);
-    assert!(verify(&pk, &message, &moved).is_err());
-    let mut other = message;
-    other[0] ^= 1;
-    assert!(verify(&pk, &other, &sig).is_err());
 }
 
 /// A secret key encodes as its seed, and the reloaded key signs exactly as the

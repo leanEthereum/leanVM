@@ -1,9 +1,10 @@
 /-
   LeanVM.Guest.B1.Digest.MonoDefs
 
-  The checks `child_claim_list_mono`'s proof evaluates (G:4234-4302; TRIAGE #89): a claim of the
+  The checks `child_claim_list_mono`'s proof evaluates (G:4184-4252; TRIAGE #89): a claim of the
   gap walk (`child_claims_mono`), the walk's records, the frame loops' bodies, the specializations
-  `child_claim_list_mono_last__L{k}`, and the windows of the 64-block frame loop `__loop19`.
+  `child_claim_list_mono_last__L{k}`, and the windows of the 64-block frame loop
+  `child_claim_list_mono_loop0`.
 -/
 
 module
@@ -13,15 +14,15 @@ public import LeanVM.Guest.B1.Digest.ChildListDefs
 /-!
 # `child_claim_list_mono`: the checks
 
-`child_claims_mono` (G:4234-4252) walks a list by hinted gaps: claim `j`'s gap `g^e` is a power
-of `g` (`assert_gpow`, a load through it), the coverage pointer moves on to `cov · g^e` and the
+`child_claims_mono` (G:4419-4437) walks a list by hinted gaps: claim `j`'s gap `g^e` is a power
+of `g` (`assert_gpow`, a touch through it), the coverage pointer moves on to `cov · g^e` and the
 table pointer to `ent · g^(4e)`, the mark is written at `cov · g^j` and the four cells read at
 `ent · g^(4j + c)`. Its eleven atoms sit at `p0 + 11 j` with the gap at `.n (g0 + 10 j)`
 (`monoClaimOk`, checked on its window `monoWin`, `monoRecs`). A frame loop's record (`MONO_REC`
 = 15 cells: the sponge state, the coverage pointer at 13, the table pointer at 14) is at
 `chain · x^15` (`.n 10`); the frame writes the next record at offset 15 (`monoOk`). The last
 `k < 17` claims (`mlOk`) end with the bound: the walk's end pointer `cov_end = t · region` with
-`t` range-checked against `limit` (G:4301).
+`t` range-checked against `limit` (G:4251).
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -32,9 +33,9 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 
 /-! ## A claim of the gap walk -/
 
-/-- Some value is loaded through `p` at offset 0 (`assert_gpow`). -/
+/-- Some touch cell is loaded through `p` (`assert_gpow`). -/
 def isDerefOf (p : V) : Atom → Bool
-  | .load _ q off => decide (q = p) && off == 0
+  | .touch _ q => decide (q = p)
   | _ => false
 
 /-- The coverage pointer before claim `j`: `.n cov0`, else the previous claim's. -/
@@ -188,17 +189,21 @@ def mlOk (k : ℕ) (f : Fn) : Bool :=
        | none => false)
   | _ => false
 
-/-! ## The big frame loop `__loop19` (136 claims, 64 blocks), in sixteen windows -/
+/-! ## The big frame loop `child_claim_list_mono_loop0` (136 claims, 64 blocks), in sixteen windows
+-/
 
-/-- `__loop19`'s atoms. -/
-noncomputable def mono136Atoms : List Atom := loopAtoms (coreProgram.getD 368 default)
+/-- `child_claim_list_mono_loop0`'s atoms. -/
+noncomputable def mono136Atoms : List Atom := loopAtoms (coreProgram.getD
+    idx% «child_claim_list_mono_loop0» default)
 
-/-- `__loop19`'s chain. -/
+/-- `child_claim_list_mono_loop0`'s chain. -/
 noncomputable def mono136Spec : ChainSpec := monoSpec 136 1377 mono136Atoms
 
-/-- Window `i` of `__loop19`: blocks `4i … 4i + 3`, claims `9i … 9i + 8`. -/
+/-- Window `i` of `child_claim_list_mono_loop0`: blocks `4i … 4i + 3` (searched from their atoms
+on), claims
+`9i … 9i + 8`. -/
 noncomputable def monoWinOk (i : ℕ) : Bool :=
-  mono136Spec.blocksOk mono136Atoms (4 * i) 4 &&
+  mono136Spec.blocksFrom mono136Atoms (4 * i) 4 &&
     monoRecs mono136Atoms 9 13 11 12 (.n 3) 136 (9 * i) 9
 
 end

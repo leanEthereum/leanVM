@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerCBlock
 
-  A block of atoms on an evaluated valuation holds: its canonical `KECCAK` inputs and its `K`
-  assertions checked by kernel evaluation, the remaining atoms (`resid`) given.
+  A block of atoms on an evaluated valuation holds: its `K` assertions on values known in `K` by
+  their equations, the remaining atoms (`resid`) given.
 -/
 
 module
@@ -16,8 +16,7 @@ public import LeanVM.Guest.B1.Fwd.Canon
 On a valuation satisfying every atom's equations (`Fwd.Good`), an atom holds by them alone unless
 it needs a side condition (`needsSide`): a load, an assertion, a quotient. Of those, an
 `assertInK` of two values known in `K` (`inKVals`: a hinted limb, a constant without `y` limbs)
-holds by the equations too. `resid as`: the atoms left, which `block_holds` takes as given, with
-the canonical `KECCAK` inputs checked by `canonChk`.
+holds by the equations too. `resid as`: the atoms left, which `block_holds` takes as given.
 
 `side_loadVia`: a load that is not a store, through a pointer whose words the memory holds, has
 its side condition.
@@ -48,7 +47,7 @@ theorem mem_atomsL {B : List Stmt} {a : Atom} : a ∈ atomsL B ↔ Stmt.atom a �
 /-- The values known in `K` by their equations: hinted limbs, constants without `y` limbs. -/
 def inKVals (as : List Atom) : List ℕ := as.flatMap fun a ↦ match a with
   | .hint (.limbs _ ds) => ds.map V.idx
-  | .const d e => if e.limb 1 = 0 ∧ e.limb 2 = 0 then [d.idx] else []
+  | .const d e => if e.limb 1 = 0 then [d.idx] else []
   | _ => []
 
 /-- An `assertInK` of two values known in `K`. -/
@@ -88,17 +87,13 @@ theorem inK_of_inKVals (hσ : ∀ v, σ v = σ (.n v.idx)) {as : List Atom}
     · simp at hi
   | _ => simp at hi
 
-/-- **`block_holds` after a prefix `P`**: the canonical `KECCAK` inputs checked along `P ++ B`,
-whose atoms satisfy their equations. -/
-theorem block_holdsP {P B : List Stmt} (hall : B.all isAtom = true)
-    (hσ : ∀ v, σ v = σ (.n v.idx)) {A : List ℕ} (hk : canonChk A (atomsL (P ++ B)) = true)
-    (hg : ∀ s ∈ P ++ B, GoodS rd S w σ s) (hA : ∀ i ∈ A, IsCanonical128 (σ (.n i)))
+/-- **A block of atoms on an evaluated valuation holds**, its residual atoms given. -/
+theorem block_holds {B : List Stmt} (hall : B.all isAtom = true)
+    (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ B, GoodS rd S w σ s)
     (hR : ∀ a ∈ resid (atomsL B), a.Holds rd σ ∨ Side rd S σ a) :
     ∀ {next : Prop} {kret : List E → Prop}, next → Stmt.HoldsList C rd σ B next kret := by
   intro next kret hn
-  have hgA : ∀ a ∈ atomsL (P ++ B), Good rd S w σ a := fun a ha ↦ hg _ (mem_atomsL.mp ha)
-  have hgB : ∀ a ∈ atomsL B, Good rd S w σ a :=
-    fun a ha ↦ hg _ (List.mem_append_right _ (mem_atomsL.mp ha))
+  have hgB : ∀ a ∈ atomsL B, Good rd S w σ a := fun a ha ↦ hg _ (mem_atomsL.mp ha)
   have H : ∀ a ∈ atomsL B, a.Holds rd σ := by
     intro a ha
     cases hns : needsSide a
@@ -109,16 +104,7 @@ theorem block_holdsP {P B : List Stmt} (hall : B.all isAtom = true)
         simp only [Side]
         rw [ite_pos' hns]
         trivial
-      | keccak ins outs i o =>
-        intro c
-        obtain ⟨hl, -, -⟩ := (hgB _ ha : Good rd S w σ (.keccak ins outs i o))
-        have := canonGo_sound hσ A _ hk hgA hA ins outs i o
-          (mem_atomsL.mpr (List.mem_append_right _ (mem_atomsL.mp ha)))
-        simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map,
-          List.getElem?_eq_getElem (show c.val < ins.length by omega), Option.map_some,
-          Option.getD_some]
-        exact this _ (List.getElem_mem _)
-      | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr => simp [needsSide] at hns
+      | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr | touch => simp [needsSide] at hns
       | _ => trivial
     · cases hik : inkB (inKVals (atomsL B)) a
       · rcases hR a (List.mem_filter.mpr ⟨ha, by simp [hns, hik]⟩) with h | h
@@ -175,11 +161,6 @@ theorem holds_read {d p : V} {off : ℕ} (hS : Atom.load d p off ∉ S)
   holds_of_good hg (side_load hS h)
 
 theorem idx_lt {a b : ℕ} (h : a < b) : (V.n a).idx < (V.n b).idx := h
-
-theorem canon_zero : IsCanonical128 (0 : E) := by
-  have cz : IsCanonical128 (word 0 0 0) := by
-    rw [word_zero]; unfold IsCanonical128; exact limb_zero 2
-  rwa [word_zero] at cz
 
 end
 end LeanVM.Guest.B1.VerifySub

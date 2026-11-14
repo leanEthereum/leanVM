@@ -195,5 +195,5 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
 
 /// The stacked sizes `verify_keccak_batch` admits.
 fn verifier_bounds() -> std::ops::RangeInclusive<usize> {
-    leanvm_core::pcs::MIN_MU..=leanvm_core::pcs::MAX_MU
+    leanvm_core::pcs::MIN_STACKED_LOG..=leanvm_core::pcs::MAX_STACKED_LOG
 }

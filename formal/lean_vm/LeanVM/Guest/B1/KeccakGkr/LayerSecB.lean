@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerSecB
 
-  `keccak_layer`'s middle sections (G:2746-2813): the product at `s` (Horner), the pack rounds'
+  `keccak_layer`'s middle sections (G:2696-2763): the product at `s` (Horner), the pack rounds'
   first record and their two loops, and the last record read.
 -/
 
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerT
 # The pack rounds' records
 
 `hornerT_holds`: the Horner chain is `polyEval` of the product at `s` (V:1998). `packSetupT_holds`:
-the first record (`RoundRec`, the capacity after `s`, the cursor past the product, the product at
+the first record (`RoundRec`, the capacity after `s`, the cursor past the product and the nonce, the product at
 `s`, the scale `1`), the two loops' calls (`LayerW.h0`, `hloop`, `hrem`). `lastT_holds`: the
 record `rounds·step_g·rem_g` read.
 -/
@@ -32,7 +32,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 /-- The value after `j` steps of the chain. -/
 def hornerV (a : ℕ → ℕ) (b j : ℕ) : ℕ := if j = 0 then a 46 else b + 2 * j - 1
 
-/-- **Horner** (G:2746-2748): the chain's last value is the product at `s`. -/
+/-- **Horner** (G:2696-2698): the chain's last value is the product at `s`. -/
 theorem hornerT_holds {a : ℕ → ℕ} {s b : ℕ} {cs : List E} (hl : cs.length = 47)
     (hc : ∀ k < 47, σ (.n (a k)) = cs.getD k 0) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (hornerT a s b) next kret) :
@@ -66,60 +66,62 @@ theorem hornerT_holds {a : ℕ → ℕ} {s b : ℕ} {cs : List E} (hl : cs.lengt
 
 /-! ## The pack rounds' setup -/
 
-theorem gen47 : word 140737488355328 0 0 = gen ^ 47 := by
-  rw [show (140737488355328 : ℕ) = 2 ^ 47 from rfl]; exact word_two_pow (by decide)
+theorem gen48 : word 281474976710656 0 = gen ^ 48 := by
+  rw [show (281474976710656 : ℕ) = 2 ^ 48 from rfl]; exact word_two_pow (by decide)
 
-/-- **The pack rounds' setup** (G:2750-2790): the first record at `rounds` (value `1053`), the
+/-- **The pack rounds' setup** (G:2700-2740): the first record at `rounds` (value `o + 720`), the
 eight-round loop's call, and the remainder loop's on `rounds·step_g`, `prev_point·step_g⁸`,
-`point·step_g⁸`. -/
-theorem packSetupT_holds {first : ℕ} {next : Prop} {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ (packSetupT first) next kret) :
-    LoadHolds rd (σ (.n 11)) 2 (σ (.n 1051)) ∧
-      RoundRec rd (σ (.n 1053)) 0 ((cap5 866).map σ) (σ (.n 7) * gen ^ 47) (σ (.n 1050)) 1 ∧
+`point·step_g⁸`, both passed `tabs`. -/
+theorem packSetupT_holds {o first : ℕ} {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (packSetupT o first) next kret) :
+    LoadHolds rd (σ (.n 11)) 2 (σ (.n (o + 718))) ∧
+      RoundRec rd (σ (.n (o + 720))) 0 ((cap5 (o + 539)).map σ) (σ (.n 7) * gen ^ 48)
+        (σ (.n (o + 717))) 1 ∧
       IsInK (1 + σ (.n 9)) ∧
-      (1 + σ (.n 9) ≠ 0 →
-        C (packLoopName first) [1, σ (.n 9), σ (.n 1053), σ (.n 1051), σ (.n 1052)] []) ∧
-      σ (.n 1060) = σ (.n 1053) * σ (.n 9) ∧ IsInK (1 + σ (.n 10)) ∧
+      (1 + σ (.n 9) ≠ 0 → C (packLoopName first)
+        [1, σ (.n 9), σ (.n (o + 720)), σ (.n (o + 718)), σ (.n (o + 719)), σ (.n 14)] []) ∧
+      σ (.n (o + 727)) = σ (.n (o + 720)) * σ (.n 9) ∧ IsInK (1 + σ (.n 10)) ∧
       (1 + σ (.n 10) ≠ 0 →
-        C (remLoopName first) [1, σ (.n 10), σ (.n 1053) * σ (.n 9), σ (.n 1051) * σ (.n 9) ^ 8,
-          σ (.n 1052) * σ (.n 9) ^ 8] []) ∧ next := by
+        C (remLoopName first) [1, σ (.n 10), σ (.n (o + 720)) * σ (.n 9),
+          σ (.n (o + 718)) * σ (.n 9) ^ 8, σ (.n 14), σ (.n (o + 719)) * σ (.n 9) ^ 8] []) ∧
+      next := by
   simp only [packSetupT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at h
-  obtain ⟨lpp, -, -, c0, c1, c2, c3, c4, e54, e55, lcur, lclaim, e56, lsc, e57, e58, e59,
-    hik, hcall, e60, e61, e62, e63, e64, e65, e66, e67, e68, e69, e70, e71, hik', hcall', hn⟩ := h
-  have e58' : σ (.n 1058) = 1 + σ (.n 9) := by rw [e58, e57, word_one]
-  have e70' : σ (.n 1070) = 1 + σ (.n 10) := by rw [e70, e69, word_one]
-  have hrec : RoundRec rd (σ (.n 1053)) 0 ((cap5 866).map σ) (σ (.n 7) * gen ^ 47)
-      (σ (.n 1050)) 1 := by
+  obtain ⟨lpp, -, -, c0, c1, c2, c3, c4, e21, e22, lcur, lclaim, e23, lsc, e24, e25, e26,
+    hik, hcall, e27, e28, e29, e30, e31, e32, e33, e34, e35, e36, e37, e38, hik', hcall', hn⟩ := h
+  have e25' : σ (.n (o + 725)) = 1 + σ (.n 9) := by rw [e25, e24, word_one]
+  have e37' : σ (.n (o + 737)) = 1 + σ (.n 10) := by rw [e37, e36, word_one]
+  have hrec : RoundRec rd (σ (.n (o + 720))) 0 ((cap5 (o + 539)).map σ) (σ (.n 7) * gen ^ 48)
+      (σ (.n (o + 717))) 1 := by
     refine ⟨?_, ?_, ?_, ?_⟩
     · simp only [cap5, List.map_cons, List.map_nil]
       exact capAt_five c0 c1 c2 c3 c4
-    · simpa [krCap, e55, e54, gen47] using lcur
-    · simpa [krCap] using lclaim
-    · simpa [krCap, e56, word_one] using lsc
-  have h8 : σ (.n 1063) = σ (.n 9) ^ 8 := by rw [e63, e62, e61]; ring
-  have h8' : σ (.n 1067) = σ (.n 9) ^ 8 := by rw [e67, e66, e65]; ring
-  refine ⟨lpp, hrec, e58' ▸ hik, fun hne ↦ ?_, e60, e70' ▸ hik', fun hne ↦ ?_, hn⟩
-  · have := hcall (by rw [e58']; exact hne)
-    rwa [e59, word_one] at this
-  · have := hcall' (by rw [e70']; exact hne)
-    rwa [e71, word_one, e60, e64, h8, e68, h8'] at this
+    · rw [e22, e21, gen48] at lcur
+      exact lcur
+    · exact lclaim
+    · rw [e23, word_one] at lsc
+      exact lsc
+  have h8 : σ (.n (o + 730)) = σ (.n 9) ^ 8 := by rw [e30, e29, e28]; ring
+  have h8' : σ (.n (o + 734)) = σ (.n 9) ^ 8 := by rw [e34, e33, e32]; ring
+  refine ⟨lpp, hrec, e25' ▸ hik, fun hne ↦ ?_, e27, e37' ▸ hik', fun hne ↦ ?_, hn⟩
+  · have := hcall (by rw [e25']; exact hne)
+    rwa [e26, word_one] at this
+  · have := hcall' (by rw [e37']; exact hne)
+    rwa [e38, word_one, e27, e31, h8, e35, h8'] at this
 
-/-- **The last record** (G:2809-2813): `rounds·step_g·rem_g` (value `1072`) and its capacity,
+/-- **The last record** (G:2759-2763): `rounds·step_g·rem_g` (value `o + 739`) and its capacity,
 cursor, claim and scale. -/
-theorem lastT_holds {next : Prop} {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ lastT next kret) :
-    σ (.n 1072) = σ (.n 1060) * σ (.n 10) ∧
-      RoundRec rd (σ (.n 1072)) 0 ((cap5 1073).map σ) (σ (.n 1078)) (σ (.n 1079)) (σ (.n 1080)) ∧
-      next := by
+theorem lastT_holds {o : ℕ} {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (lastT o) next kret) :
+    σ (.n (o + 739)) = σ (.n (o + 727)) * σ (.n 10) ∧
+      RoundRec rd (σ (.n (o + 739))) 0 ((cap5 (o + 740)).map σ) (σ (.n (o + 745)))
+        (σ (.n (o + 746))) (σ (.n (o + 747))) ∧ next := by
   rw [lastT, holdsList_append, holdsList_append, holdsList_map_atoms] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨e, ⟨hc, -, hn⟩⟩ := h
-  refine ⟨e, ⟨?_, by simpa [krCap] using hc 5 (by omega), by simpa [krCap] using hc 6 (by omega),
-    by simpa [krCap] using hc 7 (by omega)⟩, hn⟩
+  refine ⟨e, ⟨?_, hc 5 (by omega), hc 6 (by omega), hc 7 (by omega)⟩, hn⟩
   simp only [cap5, List.map_cons, List.map_nil]
-  exact capAt_five (by simpa using hc 0 (by omega)) (by simpa [Nat.add_assoc] using hc 1 (by omega))
-    (by simpa [Nat.add_assoc] using hc 2 (by omega)) (by simpa [Nat.add_assoc] using hc 3 (by omega))
-    (by simpa [Nat.add_assoc] using hc 4 (by omega))
+  exact capAt_five (hc 0 (by omega)) (hc 1 (by omega)) (hc 2 (by omega)) (hc 3 (by omega))
+    (hc 4 (by omega))
 
 end
 end LeanVM.Guest.B1.VerifySub

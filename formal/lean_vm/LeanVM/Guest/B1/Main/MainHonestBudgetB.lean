@@ -17,6 +17,7 @@ public import LeanVM.Guest.B1.Main.MainGoalsDvTB
 public import LeanVM.Guest.B1.Main.MainGoalsHAgTB
 public import LeanVM.Guest.B1.Main.MainGoalsHL5TB
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main` on an honest run, within its words
@@ -43,18 +44,24 @@ structure MainStatics (fs : String → ℕ) (SB SK : String → ℕ) : Prop wher
   main : MainStaticsMain fs SB SK
   dv : Da.DvStaticB fs SB SK
   ls : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")
-  l15 : TotalLeOn coreProgram fs "__loop15" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop15" + fs "__loop15")
-  l16 : TotalLeOn coreProgram fs "__loop16" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop16" + fs "__loop16")
+  l15 : TotalLeOn coreProgram fs name% «claim_list_digest_loop0» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop0» + fs
+        name% «claim_list_digest_loop0»)
+  l16 : TotalLeOn coreProgram fs name% «claim_list_digest_loop1» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs
+        name% «claim_list_digest_loop1»)
   cl : ∀ j < 17, TotalLe coreProgram fs B1.Digest.clNames[j]! (fun _ => SB B1.Digest.clNames[j]!)
-  l25 : TotalLeOn coreProgram fs "__loop33" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop33" + fs "__loop33")
-  l26 : TotalLeOn coreProgram fs "__loop34" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop34" + fs "__loop34")
-  l27 : TotalLeOn coreProgram fs "__loop35" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop35" + fs "__loop35")
+  l25 : TotalLeOn coreProgram fs name% «aggregate_claims_loop0» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs
+        name% «aggregate_claims_loop0»)
+  l26 : TotalLeOn coreProgram fs name% «aggregate_claims_loop1» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop1» + fs
+        name% «aggregate_claims_loop1»)
+  l27 : TotalLeOn coreProgram fs name% «aggregate_claims_loop2» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop2» + fs
+        name% «aggregate_claims_loop2»)
   bs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")
+  gr : TotalLe coreProgram fs "grind_check__L2" (fun _ => SB "grind_check__L2")
 
 /-- **The bounds of `main`'s non-static callees** on the honest run: its claim lists' digests
 (`clB`), `da_verify` (`hDvB`), `aggregate_claims` (`aggB`), the children's loop (`l5B`, each
@@ -76,35 +83,36 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
   {w : NodeWitness} {bytecode : List K}
 
 /-- **`main`'s non-static callees on the honest run within their bounds, by trees of honest
-shape.** -/
+shape**. -/
 theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hrf : Lift.RunsFit fs cert) (hS : MainStatics fs SB SK)
     (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
     MainGoalsTB fs cert fp seed s w (mainPredsH s w (hDvNH w) Pvs) (mainBsH fs SB SK Bv s w) :=
   ⟨mainGoalClXTB fs cert fp seed s w hl hS.ls hS.l15 hS.l16 hS.cl,
     mainGoalClSTB fs cert fp seed s w hl hS.ls hS.l15 hS.l16 hS.cl,
     mainGoalDvTB fs cert fp hr hrf hS.dv,
-    mainGoalAgTB fs fp cert SB SK hS.l25 hS.l26 hS.l27 hS.bs hbl hr hl,
+    mainGoalAgTB fs fp cert SB SK hS.gr hS.l25 hS.l26 hS.l27 hS.bs hbl hr hl,
     mainGoalL5TB fs cert SB hS.main.st hbl hr hl hV (childListGoalsTB_honest cert hl hS.ls)⟩
 
 /-- **`main`'s completeness on the honest run within its words**: for `NodeRelation` within `Limits`
 and a bytecode of `2^23` words, from the signature schemes' completeness (B1-e), the frame runs'
-certificate facts, the static bounds (`MainStatics`) and child `c`'s `verify_sub` within `Bv c` by a
+certificate facts, the static bounds (`MainStatics`, `grind_check__L2`'s among them), and child `c`'s `verify_sub` within `Bv c` by a
 tree satisfying `Pvs c` (B1-d): a size `n ≤ Bmain` and a layout `L` within `[fp, fp + n)`, above
 `main`'s frame, pairwise disjoint, containing `main`'s honest words; on every memory holding `L`
 and the statement's digest at words `0`, `1`, `main` holds at `fp` by its node at its honest
 values, its walk's calls and buffers, its callees' trees satisfying `mainPredsH` and, the
 non-static ones, within their bounds. -/
 theorem main_honest_budgetB {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.SphincsCompleteSpecs) (hrf : Lift.RunsFit fs cert)
-    (hS : MainStatics fs SB SK) (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
+    (hS : MainStatics fs SB SK)
+    (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
     ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ Bmain fs SB SK Bv fp seed s w ∧
       Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L →
         LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
         LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []

@@ -1,7 +1,8 @@
 /-
   LeanVM.Guest.B1.Da.ColumnDefs
 
-  The checks of `da_verify_column`'s body and of its blob loop `__loop25` (G:4378-4392).
+  The checks of `da_verify_column`'s body and of its blob loop `da_verify_column_loop0`
+  (G:4562-4576).
 -/
 
 module
@@ -9,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Da.VecFn
 public import LeanVM.Guest.B1.Da.CellSound
 public import LeanVM.Guest.B1.Main.Frames
+public import LeanVM.Guest.Data.NameStrings
 
 namespace LeanVM.Guest.B1.Da
 
@@ -22,10 +24,10 @@ variable {rd : Reader}
 
 /-! ## The checks -/
 
-/-- `__loop25`: blob `x`'s cell of the column. -/
+/-- `da_verify_column_loop0`: blob `x`'s cell of the column. -/
 def l21Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop25" && decide (fn.params.length = 6) &&
+  loopShapeF fn name% «da_verify_column_loop0» && decide (fn.params.length = 6) &&
   hasCall (loopPre fn) "da_verify_cell" [.n 2] [.n 6, .n 7, .n 8] &&
   isMul A (.n 9) (.n 3) (.n 0) && A.any (isLoadAt (.n 10) (.n 9) 0) &&
   isMul A (.n 11) (.n 10) (.n 4) && A.any (isLoadAt (.n 12) (.n 11) 512) &&
@@ -34,19 +36,19 @@ def l21Ok (fn : Fn) : Bool :=
   A.any (isLoadAt (.n 7) (.n 14) 1)
 
 /-- `da_verify_column`'s block (its body but the final `ret`). -/
-noncomputable def colP : List Stmt := (Fn.body Data.core29).dropLast
+noncomputable def colP : List Stmt := (Fn.body fn% «da_verify_column»).dropLast
 
 /-- **`da_verify_column`'s block, checked.** -/
 noncomputable def colOk : Bool :=
   let P := colP
   let A := atomsIn P
-  decide (Data.core29.params = (List.range 7).map V.n) &&
-  stmtsEqb (Fn.body Data.core29) (P ++ [.ret []]) && P.all Stmt.flat &&
+  decide ((fn% «da_verify_column»).params = (List.range 7).map V.n) &&
+  stmtsEqb (Fn.body fn% «da_verify_column») (P ++ [.ret []]) && P.all Stmt.flat &&
   isMul A (.n 7) (.n 4) (.n 0) && A.any (isLoadAt (.n 8) (.n 7) 0) &&
   monoIs A (.n 12) (.n 6) (.n 0) 8 &&
   hasCall P "da_expand__L7_L8" [.n 8, .n 5, .n 3, .n 12] [.n 13] &&
   isMul A (.n 14) (.n 0) (.n 0) &&
-  guardOk P (.n 16) "__loop25" (.n 17) (.n 1) [.n 13, .n 2, .n 0, .n 14]
+  guardOk P (.n 16) name% «da_verify_column_loop0» (.n 17) (.n 1) [.n 13, .n 2, .n 0, .n 14]
 
 /-! ## A blob's step and the frames -/
 
@@ -59,10 +61,12 @@ def CellStepW (C : CallRel) (rd : Reader) (σr : Val) (lv rowbase xb xb2 x : E) 
       LoadHolds rd (base * xb) 513 (a + σr (.n 8)) ∧ LoadHolds rd (base * xb2) 0 (σr (.n 6)) ∧
       LoadHolds rd (base * xb2) 1 (σr (.n 7))
 
-/-- The valuation of blob `i`'s iteration of `__loop25` in the column called with `cargs`
+/-- The valuation of blob `i`'s iteration of `da_verify_column_loop0` in the column called with
+`cargs`
 (`[g^h, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets]`), at the frame map `Vm`. -/
 def colRowV (Vm : FrameMap) (cargs : List E) (i : ℕ) : Val :=
-  Vm "__loop25" [gen ^ i, cargs.getD 1 0, Vm "da_verify_column" cargs [] (.n 13), cargs.getD 2 0,
+  Vm name% «da_verify_column_loop0» [gen ^ i, cargs.getD 1 0,
+      Vm "da_verify_column" cargs [] (.n 13), cargs.getD 2 0,
     cargs.getD 0 0, Vm "da_verify_column" cargs [] (.n 14)] []
 
 /-- The symbols of blob `i`'s cell in the column called with `cargs`: its cell check's. -/

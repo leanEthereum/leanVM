@@ -1,7 +1,11 @@
-import LeanVM.Protocol.WithHashBridge
-import LeanVM.Protocol.Compile.Rom.Bridge
-import LeanVM.Prover.Refine
-import Common.PiOnly
+module
+
+public import LeanVM.Protocol.WithHashBridge
+public import LeanVM.Protocol.Compile.Rom.Bridge
+public import LeanVM.Prover.Refine
+public import Common.PiOnly
+
+@[expose] public section
 
 /-!
 # The statement's experiments are the experiments with the two calls
@@ -189,3 +193,5 @@ theorem completeness_of_withHash (h : CompletenessWithHash) : Completeness := by
   exact h prog input t ρ hv hs hρ
 
 end LeanVM
+
+end

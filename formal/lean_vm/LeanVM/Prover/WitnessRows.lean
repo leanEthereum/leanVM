@@ -33,46 +33,46 @@ open LeanVM.Protocol.Halting
 /-! ## The typed rows, flattened -/
 
 theorem xorRow_toArray {F : Type} (r : XorRow F) : (toElements r).toArray =
-    #[r.pc, r.fp, r.oA, r.oB, r.oC, r.vA[0], r.vA[1], r.vA[2], r.vB[0], r.vB[1], r.vB[2], r.rA,
-      r.rB, r.rC, r.rbc] := by
+    #[r.pc, r.fp, r.oA, r.oB, r.oC, r.vA[0], r.vA[1], r.vB[0], r.vB[1], r.rA, r.rB, r.rC,
+      r.rbc] := by
   obtain ⟨pc, fp, oA, oB, oC, vA, vB, rA, rB, rC, rbc⟩ := r
   simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
   apply Array.toList_inj.mp
   rw [Vector.toList_toArray]
   repeat rw [Vector.toList_append]
-  rw [vec3_toList, vec3_toList]
+  rw [vec2_toList, vec2_toList]
   simp
 
 theorem mulRow_toArray {F : Type} (r : MulRow F) : (toElements r).toArray =
-    #[r.pc, r.fp, r.oA, r.oB, r.oC, r.vA[0], r.vA[1], r.vA[2], r.vB[0], r.vB[1], r.vB[2], r.rA,
-      r.rB, r.rC, r.rbc] := by
+    #[r.pc, r.fp, r.oA, r.oB, r.oC, r.vA[0], r.vA[1], r.vB[0], r.vB[1], r.rA, r.rB, r.rC,
+      r.rbc] := by
   obtain ⟨pc, fp, oA, oB, oC, vA, vB, rA, rB, rC, rbc⟩ := r
   simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
   apply Array.toList_inj.mp
   rw [Vector.toList_toArray]
   repeat rw [Vector.toList_append]
-  rw [vec3_toList, vec3_toList]
+  rw [vec2_toList, vec2_toList]
   simp
 
 theorem setRow_toArray {F : Type} (r : SetRow F) : (toElements r).toArray =
-    #[r.pc, r.fp, r.o, r.k[0], r.k[1], r.k[2], r.r, r.rbc] := by
+    #[r.pc, r.fp, r.o, r.k[0], r.k[1], r.r, r.rbc] := by
   obtain ⟨pc, fp, o, k, rr, rbc⟩ := r
   simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
   apply Array.toList_inj.mp
   rw [Vector.toList_toArray]
   repeat rw [Vector.toList_append]
-  rw [vec3_toList]
+  rw [vec2_toList]
   simp
 
 theorem derefRow_toArray {F : Type} (r : DerefRow F) : (toElements r).toArray =
-    #[r.pc, r.fp, r.o1, r.o2, r.o3, r.fpc, r.ffp, r.p, r.v3[0], r.v3[1], r.v3[2], r.r1, r.r2,
-      r.r3, r.rbc] := by
+    #[r.pc, r.fp, r.o1, r.o2, r.o3, r.fpc, r.ffp, r.p, r.v3[0], r.v3[1], r.r1, r.r2, r.r3,
+      r.rbc] := by
   obtain ⟨pc, fp, o1, o2, o3, fpc, ffp, p, v3, r1, r2, r3, rbc⟩ := r
   simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
   apply Array.toList_inj.mp
   rw [Vector.toList_toArray]
   repeat rw [Vector.toList_append]
-  rw [vec3_toList]
+  rw [vec2_toList]
   simp
 
 theorem jumpRow_toArray {F : Type} (r : JumpRow F) : (toElements r).toArray =
@@ -104,13 +104,13 @@ theorem keccakRow_toArray {F : Type} (r : KeccakRow F) : (toElements r).toArray 
   simp [vec4_toList, Vector.toList_push, Vector.toList_toArray]
 
 theorem memRow_toArray {F : Type} (r : MemRow F) : (toElements r).toArray =
-    #[r.m[0], r.m[1], r.m[2], r.idx, r.cntFin] := by
+    #[r.m[0], r.m[1], r.idx, r.cntFin] := by
   obtain ⟨m, idx, cntFin⟩ := r
   simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
   apply Array.toList_inj.mp
   rw [Vector.toList_toArray]
   repeat rw [Vector.toList_append]
-  rw [vec3_toList]
+  rw [vec2_toList]
   simp
 
 theorem bytecodeRow_toArray {F : Type} (r : BytecodeRow F) : (toElements r).toArray =

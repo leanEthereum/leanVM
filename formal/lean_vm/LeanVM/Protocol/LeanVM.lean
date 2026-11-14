@@ -18,15 +18,14 @@ The statements are in `LeanVM/Spec/` (the ISA, the verifier, the extractor, `Sta
 `Rpm.lean`), which imports nothing else from the repository; their proofs
 (`LeanVM/Protocol/LeanVMRpm.lean`) go through the two-oracle random-oracle model of
 `LeanVM/Protocol/Rom/Statement.lean`. There, knowledge soundness, `knowledgeSoundnessRom_holds`,
-and its numbers are proved in `LeanVM.Protocol.LeanVMSound`; this page proves completeness,
-`completenessRom_holds`, with an explicit honest prover, and the soundness bound in bits: at most
-`(Q + 2^14) · 2^-127` for `Q ≤ 2^120` queries (`knowledgeSoundnessRom_bits`).
+is proved in `LeanVM.Protocol.LeanVMSound`, and its numbers in `LeanVM.Protocol.ErrorBounds`;
+this page proves completeness, `completenessRom_holds`, with an explicit honest prover.
 
 **Completeness** (`completenessRom`): for a valid execution whose committed size
 (`Execution.committedSize`: the memory, the bytecode and a table per opcode, each at its height) is at
-most `2^28`, the most the verifier admits, the honest prover
+most `2^30`, the most the verifier admits, the honest prover
 (`honestProver`), run in the same random-oracle experiment, makes the verifier reject with probability at most
-`completenessError fuel`, which is below `2^-257` at a fuel of `2^25` nonces per proof of work
+`completenessError fuel`, which is below `2^-257` at a fuel of `2^35` nonces per proof of work
 (`completenessError_le`). The honest prover is a specification, not an implementation.
 
 **Scope and trust.**
@@ -68,51 +67,25 @@ noncomputable def honestProver (prog : LeanIsaProgram) (input : PublicInput) (t 
   Complete.honestProverRom prog input t ρ fuel
 
 /-- The statement's completeness error is the random-oracle theorem's,
-`(12008 + 48019 · (2^27 + 2·fuel + 2)) · (1 - 2^-17)^fuel`. -/
+`(13710 + 54825 · (2^27 + 2·fuel + 2)) · (1 - 2^-25)^fuel`. -/
 theorem completenessError_eq (fuel : ℕ) :
     completenessError fuel = Complete.completenessError fuel :=
   Complete.completenessError_eq fuel
 
-/-- **Completeness in the two-oracle random-oracle model.** For a valid execution whose committed size is at most `2^28`, at an inverse
+/-- **Completeness in the two-oracle random-oracle model.** For a valid execution whose committed size is at most `2^30`, at an inverse
 rate `2^ρ` with `1 ≤ ρ ≤ 4`: the verifier rejects the honest prover's proof, in the random-oracle
 experiment, with probability at most `completenessError fuel`. -/
 theorem completenessRom {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 30) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← experiment (honestProver prog input t ρ fuel)}[z.1.2 = false] ≤
       completenessError fuel :=
   Complete.completeness_le hv hbudget hρ hfuel
 
-/-- **The numbers**: at a fuel of `2^25` nonces per proof of work, the completeness error is
+/-- **The numbers**: at a fuel of `2^35` nonces per proof of work, the completeness error is
 below `2^-257`. -/
-theorem completenessError_le : completenessError (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=
+theorem completenessError_le : completenessError (2 ^ 35) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=
   Complete.statement_completenessError_le
-
-/-! ## Knowledge soundness in bits -/
-
-/-- **The soundness bound in bits**: for `Q ≤ 2^120`, the soundness error is at most
-`(Q + 2^14) · 2^-127`. With `N = Q + 12006`, `5N ≤ 2^128`, so the error is at most
-`(2N · 2^128 + 12006) / 2^256`, and `2N + 1 ≤ 2(Q + 2^14)`. -/
-theorem soundnessError_le_bits {Q : ℕ} (hQ : Q ≤ 2 ^ 120) :
-    soundnessError Q ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 := by
-  have h2 : ((2 ^ 256 : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 256 := by rw [Nat.cast_pow, Nat.cast_ofNat]
-  have hV : (verifierQueries : ℝ≥0∞) = ((12006 : ℕ) : ℝ≥0∞) := rfl
-  have hQ' : (Q + 2 ^ 14 : ℝ≥0∞) = ((Q + 2 ^ 14 : ℕ) : ℝ≥0∞) := by norm_cast
-  rw [soundnessError, hV, show verifierQueries = 12006 from rfl,
-    Sound.inv_pow_eq_div 128 256 (by norm_num), ← h2,
-    ENNReal.div_add_div_same, ← mul_div_assoc, ← Nat.cast_add, ← Nat.cast_mul,
-    ENNReal.div_add_div_same, ← Nat.cast_add, Sound.inv_pow_eq_div 127 256 (by norm_num), hQ',
-    ← mul_div_assoc, ← Nat.cast_mul]
-  refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  rw [show 256 - 128 = 128 from rfl, show 256 - 127 = 129 from rfl]
-  have h5 : 5 * (Q + 12006) ≤ 2 ^ 128 :=
-    calc 5 * (Q + 12006) ≤ 5 * (2 ^ 120 + 12006) := by gcongr
-      _ ≤ 2 ^ 128 := by norm_num
-  calc (Q + 12006) * (2 ^ 128 + 5 * (Q + 12006)) + 12006
-      ≤ (Q + 12006) * (2 ^ 128 + 2 ^ 128) + 12006 := by gcongr
-    _ = Q * 2 ^ 129 + (12006 * 2 ^ 129 + 12006) := by ring
-    _ ≤ Q * 2 ^ 129 + 2 ^ 14 * 2 ^ 129 := Nat.add_le_add_left (by norm_num) _
-    _ = (Q + 2 ^ 14) * 2 ^ 129 := by ring
 
 /-! ## The statement of `LeanVM/Protocol/Rom/Statement.lean` -/
 

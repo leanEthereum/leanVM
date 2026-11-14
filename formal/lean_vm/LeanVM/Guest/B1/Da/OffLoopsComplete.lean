@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.OffLoopsComplete
 
-  `da_column_offsets`' seven doubling loops, completely (G:4480-4484): each block holds on the words
+  `da_column_offsets`' seven doubling loops, completely (G:4430-4434): each block holds on the words
   an honest run leaves in memory, so each loop runs to its end.
 -/
 
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Da.OffsetsChk
 /-!
 # The offsets' loops, completely
 
-`offLoops_body`: bit `b`'s loop (`core 407 + b`) is its atoms `offLoopA b` then the closing tail
+`offLoops_body`: bit `b`'s loop (`core 423 + b`) is its atoms `offLoopA b` then the closing tail
 call (kernel evaluation). `off_block`: its block at the counter `x` holds when, for each `j < 8`,
 the region `offsets·x^8` holds a word at `j`, `steps` a word at `j`, and the region their sum at
 `8·2^b + j`.
@@ -30,13 +30,15 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 variable {rd : Reader}
 
 set_option maxRecDepth 100000 in
-theorem offLoops_body : ∀ b < 7, stmtsEqb (Fn.body (coreProgram.getD (407 + b) default))
+theorem offLoops_body : ∀ b < 7, stmtsEqb (Fn.body (coreProgram.getD
+    (idx% «da_column_offsets_loop0» + b) default))
     ((offLoopA b).map Stmt.atom ++ tailAt (offLoopName b) 32 3) = true := by
   decide +kernel
 
 theorem find_off {b : ℕ} (hb : b < 7) :
-    coreProgram.find? (offLoopName b) = some (coreProgram.getD (407 + b) default) :=
-  find_of_idx (offLoop_idx b hb) (by rw [coreProgram_length]; omega)
+    coreProgram.find? (offLoopName b) = some (coreProgram.getD (idx% «da_column_offsets_loop0» + b)
+        default) :=
+  find_of_idx (offLoop_idx b hb)
 
 /-- The words of the block's run: the counter's powers and the region, then each `j`'s source,
 step and sum, then the step to the next counter. -/
@@ -44,7 +46,7 @@ def offVals (x N off st : E) (sv tv : ℕ → E) : List E :=
   [x, N, off, st, x * x, x * x * (x * x), x * x * (x * x) * (x * x * (x * x)),
     off * (x * x * (x * x) * (x * x * (x * x)))] ++
   (List.range 8).flatMap (fun j ↦ [sv j, tv j, sv j + tv j]) ++
-  [word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0]
+  [word 2 0, x * word 2 0, x * word 2 0 + N, word 2 0, x * word 2 0]
 
 theorem offVals_mid {x N off st : E} {sv tv : ℕ → E} {j : ℕ} (hj : j < 8) :
     (offVals x N off st sv tv).getD (8 + 3 * j) 0 = sv j ∧
@@ -60,7 +62,7 @@ theorem off_block {b : ℕ} (hb : b < 7) {x N off st : E} (sv tv : ℕ → E)
     (h2 : ∀ j < 8, LoadHolds rd st j (tv j))
     (h3 : ∀ j < 8, LoadHolds rd (off * (x * x * (x * x) * (x * x * (x * x)))) (8 * 2 ^ b + j)
       (sv j + tv j)) :
-    LoopBlock rd (coreProgram.getD (407 + b) default) x N [off, st] := by
+    LoopBlock rd (coreProgram.getD (idx% «da_column_offsets_loop0» + b) default) x N [off, st] := by
   have hok := offLoop_ok b hb
   simp only [offLoopOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨hs, hl⟩, -⟩ := hok

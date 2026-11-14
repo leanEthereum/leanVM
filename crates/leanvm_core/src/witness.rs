@@ -88,7 +88,7 @@ pub fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackShape) {
         .collect();
     // Floor at the PCS minimum (WHIR's level ladder needs room); tiny
     // witnesses zero-pad up. Both sides derive this identically from the kappas.
-    let mu = crate::log2_ceil_usize(placed.max(1)).max(crate::pcs::MIN_MU);
+    let mu = crate::log2_ceil_usize(placed.max(1)).max(crate::pcs::MIN_STACKED_LOG);
     // The columns tile from 0, so the padding is the tail: round it up to a whole
     // lane and the lanes past that are never committed at all.
     let n_lanes = placed.div_ceil(1 << (mu - crate::pcs::LOG_BATCH)).max(1);
@@ -159,7 +159,7 @@ mod tests {
     fn placements_cover_the_columns_in_the_fewest_lanes() {
         let lanes = 1usize << crate::pcs::LOG_BATCH;
         // A power-of-two total, one word over one, one just under, a virtual column
-        // in the middle, and a stack far below the MIN_MU floor.
+        // in the middle, and a stack far below the MIN_STACKED_LOG floor.
         let cases: [Vec<Option<usize>>; 5] = [
             vec![Some(20), Some(20)],
             vec![Some(20), Some(20), Some(0)],
@@ -172,7 +172,10 @@ mod tests {
             let (placements, shape) = placements_of(&kappas);
             let lane_block = 1usize << (shape.mu - crate::pcs::LOG_BATCH);
 
-            assert_eq!(shape.mu, crate::log2_ceil_usize(placed).max(crate::pcs::MIN_MU));
+            assert_eq!(
+                shape.mu,
+                crate::log2_ceil_usize(placed).max(crate::pcs::MIN_STACKED_LOG)
+            );
             assert!((1..=lanes).contains(&shape.n_lanes), "lane count out of range");
             assert!(shape.committed_len() >= placed, "columns must fit the commitment");
             assert!(

@@ -5,7 +5,7 @@ use super::reference as r;
 use super::{bulk_e, bulk_k, check, edge_e, edge_k};
 use crate::{Ctx, Outcome, Source};
 use primitives::field::{
-    self, F64, F64x8, F192, F192Unreduced, F192x8, Prod8, Weights8, dot_base, fold_lones8_ext, fold_pairs8_ext, g_pow,
+    self, F64, F64x8, F128, F128Unreduced, F128x8, Prod8, Weights8, dot_base, fold_lones8_ext, fold_pairs8_ext, g_pow,
     g_pow32_by_lookup, g_powers, gf2_64, msg_lone8_ext, msg_terms8_ext, mul_base_splat8, mul_unreduced4, mul2, mul4,
     powers, xor_into8,
 };
@@ -115,80 +115,80 @@ fn extension(src: &mut Source, ctx: &Ctx) -> Outcome {
     let want = r::mul_e(a, b);
     check!(
         a * b == want,
-        "F192 mul",
+        "F128 mul",
         "{a:?} * {b:?}: got {:?}, want {want:?}",
         a * b
     );
     let mut c = a;
     c *= b;
-    check!(c == want, "F192 mul_assign", "{a:?} * {b:?}");
+    check!(c == want, "F128 mul_assign", "{a:?} * {b:?}");
     check!(
         a.mul_unreduced(b).reduce() == want,
-        "F192 mul_unreduced",
+        "F128 mul_unreduced",
         "{a:?} * {b:?}"
     );
     check!(
-        field::gf2_64x3::software::mul(a, b) == want,
-        "gf2_64x3::software::mul",
+        field::gf2_64x2::software::mul(a, b) == want,
+        "gf2_64x2::software::mul",
         "{a:?} * {b:?}"
     );
     check!(
-        field::gf2_64x3::software::mul_unreduced(a, b) == a.mul_unreduced(b),
-        "F192 mul_unreduced coefficients",
+        field::gf2_64x2::software::mul_unreduced(a, b) == a.mul_unreduced(b),
+        "F128 mul_unreduced coefficients",
         "{a:?} * {b:?}: unreduced products are exact polynomials and must agree across kernels"
     );
     let base = r::mul_base(a, k.0);
-    check!(a.mul_base(k) == base, "F192 mul_base", "{a:?} * {k:?}");
+    check!(a.mul_base(k) == base, "F128 mul_base", "{a:?} * {k:?}");
     check!(
         a.mul_base_unreduced(k).reduce() == base,
-        "F192 mul_base_unreduced",
+        "F128 mul_base_unreduced",
         "{a:?} * {k:?}"
     );
     check!(
-        a.mul_base_unreduced(k) == a.mul_unreduced(F192::from(k)),
-        "F192 mul_base_unreduced coefficients",
+        a.mul_base_unreduced(k) == a.mul_unreduced(F128::from(k)),
+        "F128 mul_base_unreduced coefficients",
         "{a:?} * {k:?}"
     );
-    check!(a * F192::from(k) == base, "F192 mul by an embedded K", "{a:?} * {k:?}");
-    check!(a.square() == r::mul_e(a, a), "F192 square", "{a:?}");
+    check!(a * F128::from(k) == base, "F128 mul by an embedded K", "{a:?} * {k:?}");
+    check!(a.square() == r::mul_e(a, a), "F128 square", "{a:?}");
     check!(
         a.frobenius() == r::pow_e(a, 1 << 64),
-        "F192 frobenius",
+        "F128 frobenius",
         "{a:?}: got {:?}",
         a.frobenius()
     );
-    check!(a + b == r::add_e(a, b), "F192 add", "{a:?} + {b:?}");
+    check!(a + b == r::add_e(a, b), "F128 add", "{a:?} + {b:?}");
     let mut s = a;
     s += b;
-    check!(s == r::add_e(a, b), "F192 add_assign", "{a:?} + {b:?}");
+    check!(s == r::add_e(a, b), "F128 add_assign", "{a:?} + {b:?}");
     check!(
-        F192::from_limbs(a.to_limbs()) == a && a.to_limbs() == [a.c0, a.c1, a.c2],
-        "F192 limbs",
+        F128::from_limbs(a.to_limbs()) == a && a.to_limbs() == [a.c0, a.c1],
+        "F128 limbs",
         "{a:?}"
     );
     check!(
-        a.as_base() == (a.c1 == 0 && a.c2 == 0).then_some(F64(a.c0)),
-        "F192 as_base",
+        a.as_base() == (a.c1 == 0).then_some(F64(a.c0)),
+        "F128 as_base",
         "{a:?}"
     );
-    check!(a.is_zero() == (a == F192::ZERO), "F192 is_zero", "{a:?}");
+    check!(a.is_zero() == (a == F128::ZERO), "F128 is_zero", "{a:?}");
     let n = src.below(9);
     let xs = bulk_e(src, n);
-    let sum: F192 = xs.iter().sum();
-    let prod: F192 = xs.iter().product();
+    let sum: F128 = xs.iter().sum();
+    let prod: F128 = xs.iter().product();
     check!(
-        sum == xs.iter().fold(F192::ZERO, |s, &x| r::add_e(s, x)),
-        "F192 sum",
+        sum == xs.iter().fold(F128::ZERO, |s, &x| r::add_e(s, x)),
+        "F128 sum",
         "{xs:?}"
     );
     check!(
-        prod == xs.iter().fold(F192::ONE, |p, &x| r::mul_e(p, x)),
-        "F192 product",
+        prod == xs.iter().fold(F128::ONE, |p, &x| r::mul_e(p, x)),
+        "F128 product",
         "{xs:?}"
     );
     let n = src.below(40);
     let x = edge_e(src);
-    let mut p = F192::ONE;
+    let mut p = F128::ONE;
     for (i, &got) in powers(x, n).iter().enumerate() {
         check!(got == p, "powers", "{x:?}^{i}");
         p = r::mul_e(p, x);
@@ -196,34 +196,34 @@ fn extension(src: &mut Source, ctx: &Ctx) -> Outcome {
     check!(powers(x, n).len() == n, "powers", "length {n}");
     let index = src.below(12);
     let zeta = bulk_e(src, index);
-    let mut want = F192::ONE;
+    let mut want = F128::ONE;
     for (k, &z) in zeta.iter().enumerate() {
         let g2k = r::pow_k(2, 1u128 << k);
-        want = r::mul_e(want, r::add_e(F192::ONE, r::mul_base(z, 1 ^ g2k)));
+        want = r::mul_e(want, r::add_e(F128::ONE, r::mul_base(z, 1 ^ g2k)));
     }
     check!(field::index_mle(&zeta) == want, "index_mle", "{zeta:?}");
     #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
     {
-        use field::gf2_64x3::aarch64 as neon;
+        use field::gf2_64x2::aarch64 as neon;
         check!(
             neon::mul(a, b) == want_mul(a, b),
-            "gf2_64x3::aarch64::mul",
+            "gf2_64x2::aarch64::mul",
             "{a:?} * {b:?}"
         );
         check!(
             neon::mul_base(a, k) == base,
-            "gf2_64x3::aarch64::mul_base",
+            "gf2_64x2::aarch64::mul_base",
             "{a:?} * {k:?}"
         );
-        check!(neon::square(a) == r::mul_e(a, a), "gf2_64x3::aarch64::square", "{a:?}");
+        check!(neon::square(a) == r::mul_e(a, a), "gf2_64x2::aarch64::square", "{a:?}");
         check!(
             neon::reduce(neon::mul_unreduced(a, b)) == want_mul(a, b),
-            "gf2_64x3::aarch64::mul_unreduced",
+            "gf2_64x2::aarch64::mul_unreduced",
             "{a:?} * {b:?}"
         );
         check!(
             neon::reduce(neon::mul_base_unreduced(a, k)) == base,
-            "gf2_64x3::aarch64::mul_base_unreduced",
+            "gf2_64x2::aarch64::mul_base_unreduced",
             "{a:?} * {k:?}"
         );
     }
@@ -231,11 +231,11 @@ fn extension(src: &mut Source, ctx: &Ctx) -> Outcome {
 }
 
 #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-fn want_mul(a: F192, b: F192) -> F192 {
+fn want_mul(a: F128, b: F128) -> F128 {
     r::mul_e(a, b)
 }
 
-fn arr8(src: &mut Source) -> [F192; 8] {
+fn arr8(src: &mut Source) -> [F128; 8] {
     bulk_e(src, 8).try_into().unwrap()
 }
 
@@ -246,7 +246,7 @@ fn arr8k(src: &mut Source) -> [F64; 8] {
 fn batched(src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note("batched");
     let (a, b) = (arr8(src), arr8(src));
-    let want: [F192; 8] = std::array::from_fn(|i| r::mul_e(a[i], b[i]));
+    let want: [F128; 8] = std::array::from_fn(|i| r::mul_e(a[i], b[i]));
     let two = mul2([a[0], a[1]], [b[0], b[1]]);
     check!(two == [want[0], want[1]], "mul2", "{a:?} * {b:?}");
     let four = mul4([a[0], a[1], a[2], a[3]], [b[0], b[1], b[2], b[3]]);
@@ -266,7 +266,7 @@ fn batched(src: &mut Source, ctx: &Ctx) -> Outcome {
     }
     // Weights8 round trips, and dot_base is the mixed inner product.
     let n = src.range(0, 6);
-    let weights: Vec<[F192; 8]> = (0..n).map(|_| arr8(src)).collect();
+    let weights: Vec<[F128; 8]> = (0..n).map(|_| arr8(src)).collect();
     let packed: Vec<Weights8> = weights.iter().map(Weights8::new).collect();
     for (w, p) in weights.iter().zip(&packed) {
         for (i, &wi) in w.iter().enumerate() {
@@ -278,7 +278,7 @@ fn batched(src: &mut Source, ctx: &Ctx) -> Outcome {
         .as_flattened()
         .iter()
         .zip(&ks)
-        .fold(F192::ZERO, |s, (&w, k)| r::add_e(s, r::mul_base(w, k.0)));
+        .fold(F128::ZERO, |s, (&w, k)| r::add_e(s, r::mul_base(w, k.0)));
     check!(dot_base(&packed, &ks).reduce() == want, "dot_base", "{n} groups");
     Ok(())
 }
@@ -288,9 +288,9 @@ fn wide8(src: &mut Source, ctx: &Ctx) -> Outcome {
     let (x0, x1, y0, y1) = (arr8(src), arr8(src), arr8(src), arr8(src));
     let (k0, k1) = (arr8k(src), arr8k(src));
     let rr = edge_e(src);
-    let lane = |f: &dyn Fn(usize) -> F192| -> [F192; 8] { std::array::from_fn(f) };
-    let dot = |x: &[F192; 8], y: &[F192; 8]| (0..8).fold(F192::ZERO, |s, j| r::add_e(s, r::mul_e(x[j], y[j])));
-    let interp = |lo: F192, hi: F192, t: F192| r::add_e(lo, r::mul_e(t, r::add_e(lo, hi)));
+    let lane = |f: &dyn Fn(usize) -> F128| -> [F128; 8] { std::array::from_fn(f) };
+    let dot = |x: &[F128; 8], y: &[F128; 8]| (0..8).fold(F128::ZERO, |s, j| r::add_e(s, r::mul_e(x[j], y[j])));
+    let interp = |lo: F128, hi: F128, t: F128| r::add_e(lo, r::mul_e(t, r::add_e(lo, hi)));
 
     check!(
         fold_pairs8_ext(&x0, &x1, rr) == lane(&|j| interp(x0[j], x1[j], rr)),
@@ -320,45 +320,45 @@ fn wide8(src: &mut Source, ctx: &Ctx) -> Outcome {
     check!(sum == xs, "xor_into8", "");
 
     let (xa, xb, xc) = (
-        F192x8::from_array(&x0),
-        F192x8::from_array(&x1),
-        F192x8::from_array(&y0),
+        F128x8::from_array(&x0),
+        F128x8::from_array(&x1),
+        F128x8::from_array(&y0),
     );
-    check!(xa.to_array() == x0, "F192x8 from_array", "");
-    check!(F192x8::splat(rr).to_array() == [rr; 8], "F192x8 splat", "");
-    check!((xa + xb).to_array() == xs, "F192x8 add", "");
+    check!(xa.to_array() == x0, "F128x8 from_array", "");
+    check!(F128x8::splat(rr).to_array() == [rr; 8], "F128x8 splat", "");
+    check!((xa + xb).to_array() == xs, "F128x8 add", "");
     check!(
         (xa * xb).to_array() == lane(&|j| r::mul_e(x0[j], x1[j])),
-        "F192x8 mul",
+        "F128x8 mul",
         "{x0:?} * {x1:?}"
     );
     let sums = (xa.mul_unreduced(xb) ^ xc.mul_unreduced(xa)).reduce_lanes();
     check!(
         sums.to_array() == lane(&|j| r::add_e(r::mul_e(x0[j], x1[j]), r::mul_e(y0[j], x0[j]))),
-        "F192x8 mul_unreduced",
+        "F128x8 mul_unreduced",
         ""
     );
     check!(xa.mul_unreduced(xb).reduce() == dot(&x0, &x1), "Prod8 reduce", "");
-    let (even, odd) = F192x8::even_odd(xa, xb);
+    let (even, odd) = F128x8::even_odd(xa, xb);
     check!(
         even.to_array() == lane(&|j| if j < 4 { x0[2 * j] } else { x1[2 * (j - 4)] }),
-        "F192x8 even_odd",
+        "F128x8 even_odd",
         "even"
     );
     check!(
         odd.to_array() == lane(&|j| if j < 4 { x0[2 * j + 1] } else { x1[2 * (j - 4) + 1] }),
-        "F192x8 even_odd",
+        "F128x8 even_odd",
         "odd"
     );
     let (ka, kb) = (F64x8::from_array(&k0), F64x8::from_array(&k1));
     check!(
-        F192x8::from(ka + kb).to_array() == lane(&|j| F192::from(F64(k0[j].0 ^ k1[j].0))),
+        F128x8::from(ka + kb).to_array() == lane(&|j| F128::from(F64(k0[j].0 ^ k1[j].0))),
         "F64x8 add",
         ""
     );
     check!(
         xa.mul_base_unreduced(ka).reduce_lanes().to_array() == lane(&|j| r::mul_base(x0[j], k0[j].0)),
-        "F192x8 mul_base_unreduced",
+        "F128x8 mul_base_unreduced",
         ""
     );
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
@@ -368,52 +368,52 @@ fn wide8(src: &mut Source, ctx: &Ctx) -> Outcome {
 
 /// The AVX-512 coefficient-major lanes, `primitives::field::x8`.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
-fn x8(src: &mut Source, ctx: &Ctx, x0: &[F192; 8], x1: &[F192; 8], k0: &[F64; 8]) -> Outcome {
-    use primitives::field::x8::{F64x8 as K8, F192x8 as E8, Mixed8, Sum8};
+fn x8(src: &mut Source, ctx: &Ctx, x0: &[F128; 8], x1: &[F128; 8], k0: &[F64; 8]) -> Outcome {
+    use primitives::field::x8::{F64x8 as K8, F128x8 as E8, Mixed8, Sum8};
     ctx.note("x8");
     let (a, b) = (E8::load(x0), E8::load(x1));
-    check!(a.to_array() == *x0, "x8::F192x8 load/store", "");
-    let mut out = [F192::ZERO; 8];
+    check!(a.to_array() == *x0, "x8::F128x8 load/store", "");
+    let mut out = [F128::ZERO; 8];
     (a * b).store(&mut out);
     check!(
         out == std::array::from_fn(|j| r::mul_e(x0[j], x1[j])),
-        "x8::F192x8 mul",
+        "x8::F128x8 mul",
         "{x0:?} * {x1:?}"
     );
     check!(
         (a + b).to_array() == std::array::from_fn(|j| r::add_e(x0[j], x1[j])),
-        "x8::F192x8 add",
+        "x8::F128x8 add",
         ""
     );
     let mut s = a;
     s += b;
-    check!(s.to_array() == (a + b).to_array(), "x8::F192x8 add_assign", "");
-    let dot = (0..8).fold(F192::ZERO, |s, j| r::add_e(s, r::mul_e(x0[j], x1[j])));
-    check!(a.mul_sum(b).reduce() == dot, "x8::F192x8 mul_sum", "");
+    check!(s.to_array() == (a + b).to_array(), "x8::F128x8 add_assign", "");
+    let dot = (0..8).fold(F128::ZERO, |s, j| r::add_e(s, r::mul_e(x0[j], x1[j])));
+    check!(a.mul_sum(b).reduce() == dot, "x8::F128x8 mul_sum", "");
     check!((Sum8::ZERO ^ a.mul_sum(b)).reduce() == dot, "x8::Sum8 xor", "");
     let (ev, od) = E8::deinterleave(a, b);
     check!(
         ev.to_array() == std::array::from_fn(|j| if j < 4 { x0[2 * j] } else { x1[2 * (j - 4)] }),
-        "x8::F192x8 deinterleave",
+        "x8::F128x8 deinterleave",
         ""
     );
     check!(
         od.to_array() == std::array::from_fn(|j| if j < 4 { x0[2 * j + 1] } else { x1[2 * (j - 4) + 1] }),
-        "x8::F192x8 deinterleave",
+        "x8::F128x8 deinterleave",
         ""
     );
     let (lo, hi) = E8::interleave(ev, od);
     check!(
         lo.to_array() == *x0 && hi.to_array() == *x1,
-        "x8::F192x8 interleave",
+        "x8::F128x8 interleave",
         "not the inverse of deinterleave"
     );
-    let block: [F192; 64] = bulk_e(src, 64).try_into().unwrap();
+    let block: [F128; 64] = bulk_e(src, 64).try_into().unwrap();
     let runs = E8::load_runs(&block);
     for (j, run) in runs.iter().enumerate() {
         check!(
             run.to_array() == std::array::from_fn(|p| block[8 * p + j]),
-            "x8::F192x8 load_runs",
+            "x8::F128x8 load_runs",
             "run {j}"
         );
     }
@@ -491,13 +491,13 @@ fn inverses(src: &mut Source, ctx: &Ctx) -> Outcome {
     let e = edge_e(src);
     let einv = e.inv();
     if e.is_zero() {
-        check!(einv.is_zero(), "F192 inv", "inv(0) = {einv:?}");
+        check!(einv.is_zero(), "F128 inv", "inv(0) = {einv:?}");
     } else {
-        check!(r::mul_e(e, einv) == F192::ONE, "F192 inv", "{e:?} * {einv:?} != 1");
+        check!(r::mul_e(e, einv) == F128::ONE, "F128 inv", "{e:?} * {einv:?} != 1");
     }
-    let ve = E::new(e.c0, e.c1, e.c2).inv();
+    let ve = E::new(e.c0, e.c1).inv();
     check!(
-        (ve.c0, ve.c1, ve.c2) == (einv.c0, einv.c1, einv.c2),
+        (ve.c0, ve.c1) == (einv.c0, einv.c1),
         "verifier E inv",
         "{e:?}: verifier {ve:?}, prover {einv:?}"
     );
@@ -508,8 +508,8 @@ fn inverses(src: &mut Source, ctx: &Ctx) -> Outcome {
 fn verifier_field(src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note("verifier");
     let (a, b, k) = (edge_e(src), edge_e(src), edge_k(src));
-    let (va, vb) = (E::new(a.c0, a.c1, a.c2), E::new(b.c0, b.c1, b.c2));
-    let lift = |e: E| F192::new(e.c0, e.c1, e.c2);
+    let (va, vb) = (E::new(a.c0, a.c1), E::new(b.c0, b.c1));
+    let lift = |e: E| F128::new(e.c0, e.c1);
     check!(lift(va * vb) == r::mul_e(a, b), "verifier E mul", "{a:?} * {b:?}");
     let mut m = va;
     m *= vb;
@@ -527,7 +527,7 @@ fn verifier_field(src: &mut Source, ctx: &Ctx) -> Outcome {
         "verifier E mul K",
         "{a:?} * {k:?}"
     );
-    check!(lift(E::from(K(k.0))) == F192::from(k), "verifier E from K", "{k:?}");
+    check!(lift(E::from(K(k.0))) == F128::from(k), "verifier E from K", "{k:?}");
     check!(
         (K(a.c0) * K(k.0)).0 == r::mul_k(a.c0, k.0),
         "verifier K mul",
@@ -539,15 +539,15 @@ fn verifier_field(src: &mut Source, ctx: &Ctx) -> Outcome {
     check!(K(k.0).to_bytes() == k.0.to_le_bytes(), "verifier K to_bytes", "{k:?}");
     let mask = src.edgy_u64();
     check!(
-        lift(va.masked(mask)) == F192::new(a.c0 & mask, a.c1 & mask, a.c2 & mask),
+        lift(va.masked(mask)) == F128::new(a.c0 & mask, a.c1 & mask),
         "verifier E masked",
         "{a:?} & {mask:#x}"
     );
     let n = src.below(6);
     let xs = bulk_e(src, n);
-    let vs: Vec<E> = xs.iter().map(|x| E::new(x.c0, x.c1, x.c2)).collect();
+    let vs: Vec<E> = xs.iter().map(|x| E::new(x.c0, x.c1)).collect();
     check!(
-        lift(E::sum(vs)) == xs.iter().fold(F192::ZERO, |s, &x| r::add_e(s, x)),
+        lift(E::sum(vs)) == xs.iter().fold(F128::ZERO, |s, &x| r::add_e(s, x)),
         "verifier E sum",
         ""
     );
@@ -560,8 +560,8 @@ fn accumulate(src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note("accumulate");
     let n = src.range(1, 64);
     let (xs, ys, ks) = (bulk_e(src, n), bulk_e(src, n), bulk_k(src, n));
-    let mut acc = F192Unreduced::ZERO;
-    let mut want = F192::ZERO;
+    let mut acc = F128Unreduced::ZERO;
+    let mut want = F128::ZERO;
     for i in 0..n {
         if src.bool() {
             acc ^= xs[i].mul_unreduced(ys[i]);
@@ -571,10 +571,10 @@ fn accumulate(src: &mut Source, ctx: &Ctx) -> Outcome {
             want = r::add_e(want, r::mul_base(xs[i], ks[i].0));
         }
         if src.chance(1, 8) {
-            acc ^= F192Unreduced::from(ys[i]);
+            acc ^= F128Unreduced::from(ys[i]);
             want = r::add_e(want, ys[i]);
         }
     }
-    check!(acc.reduce() == want, "F192Unreduced accumulation", "{n} terms");
+    check!(acc.reduce() == want, "F128Unreduced accumulation", "{n} terms");
     Ok(())
 }

@@ -10,17 +10,17 @@ to reduce there; they do from a plain file and not from a `module`.
 Nothing here evaluates `addressIndex?`: every fetch and read is `LeanIsaProgram.fetch_gpow` or
 `MemoryImage.read_gpow` at a literal index, or one of the failure lemmas.
 
-Fixtures, from leanVM's executor tests at the pin (`990b9352`): `mul_192bit_word`
-(`crates/leanvm_core/src/cpu/mod.rs:918-936`, operands and product as the test computes them with
-the executor's `F192` arithmetic at `a386121f`, the test unchanged since but for unwrapping the now
-fallible `execute`) as a `ValidExecution`; the first `KECCAK` row of
+Fixtures, from leanVM's executor tests: `mul_128bit_word` (`crates/leanvm_core/src/cpu/mod.rs:853-869`
+at `leanvm-rev`, the operands the test's and the product as its executor's `F128` arithmetic
+computes it, checked against `crates/primitives/src/field/gf2_64x2.rs`'s reference) as a
+`ValidExecution`; the first `KECCAK` row of
 `keccak_permutes_in_both_layouts` (`cpu/mod.rs:835-868`) on that test's cells, with a mutation;
 `halts_in_the_final_state` (`cpu/mod.rs:878-916`): the machine halts in the final state
 `(g^(N_prog - 1), 1)`, so a `JUMP` in the last slot, reached in another frame, is a step of a valid
 execution, and a `SET_CONSTANT` there leaves no valid execution, whatever the memory. Also a taken
 `JUMP`; a `DEREF` in `pc` mode; the rejections of failed reads, a step from the final state, the
 last slot reached with a wrong frame pointer, an out-of-range `DEREF` cell, a `JUMP` destination
-outside `K` and a non-canonical cell.
+outside `K`.
 -/
 
 namespace LeanVMTests.Semantics.Execution
@@ -72,15 +72,12 @@ example : (1: K) + 1 = 0 := by decide
 /-- Register equality decides in the kernel on a product against a power. -/
 example : Registers.next ⟨1, 1⟩ = ⟨addressOfIndex 1, 1⟩ := by decide +kernel
 
-/-! ## `mul_192bit_word` (`cpu/mod.rs:918-936`) -/
+/-! ## `mul_128bit_word` (`cpu/mod.rs:853-869`) -/
 
--- The operands and product of the executor test `mul_192bit_word` at leanVM a386121f.
-def mulX : E :=
-  E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfeedfacedeadbeef) (K.ofBits 0x1111222233334444)
-def mulY : E :=
-  E.ofLimbs (K.ofBits 0x9999aaaabbbbcccc) (K.ofBits 0x13579bdf2468ace0) (K.ofBits 0x5555666677778888)
-def mulXY : E :=
-  E.ofLimbs (K.ofBits 0xf4bccd9a2e8e525b) (K.ofBits 0xf85ebb9433986f2f) (K.ofBits 0x918137982bf175ac)
+-- The operands and product of the executor test `mul_128bit_word`.
+def mulX : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfeedfacedeadbeef)
+def mulY : E := E.ofLimbs (K.ofBits 0x9999aaaabbbbcccc) (K.ofBits 0x13579bdf2468ace0)
+def mulXY : E := E.ofLimbs (K.ofBits 0x1b4ac62c35ac2ecc) (K.ofBits 0x421e3037aaa197d0)
 
 /-- CompPoly's product of the two words is the executor's. -/
 example : mulX * mulY = mulXY := by decide +kernel
@@ -95,7 +92,7 @@ def mulInput : PublicInput := ⟨![1, 0, K.ofBits 2, 0]⟩
 
 /-- The image the executor commits, at the smallest size: the public words, the operands, the
 product, and zero elsewhere. -/
-def mulImage : MemoryImage minLogMem := fun i ↦
+def mulImage : MemoryImage 16 := fun i ↦
   match (i : ℕ) with
   | 0 => mulInput.word0
   | 1 => mulInput.word1
@@ -105,7 +102,7 @@ def mulImage : MemoryImage minLogMem := fun i ↦
   | _ => 0
 
 /-- Three instructions execute before the final state. -/
-def mulTrace : Execution mulProg := ⟨minLogMem, mulImage, 3⟩
+def mulTrace : Execution mulProg := ⟨16, mulImage, 3⟩
 
 theorem mul_step0 : step mulProg mulImage ⟨1, 1⟩ = some ⟨addressOfIndex 1, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one mulProg)]
@@ -134,14 +131,14 @@ theorem mul_run : run mulProg mulImage 3 Registers.initial = some (Registers.fin
 
 /-- The two public words are in place, whatever the program and the step count. -/
 theorem mulImage_boundary {prog : LeanIsaProgram} (steps : ℕ) :
-    HoldsPublicInput mulInput (⟨minLogMem, mulImage, steps⟩ : Execution prog) := by
-  refine ⟨le_rfl, (by decide : minLogMem ≤ maxLogMem), ?_, ?_⟩
+    HoldsPublicInput mulInput (⟨16, mulImage, steps⟩ : Execution prog) := by
+  refine ⟨(by decide : minLogMem ≤ 16), (by decide : 16 ≤ maxLogMem), ?_, ?_⟩
   · show mulImage.read (addressOfIndex 0) = some (mulImage ⟨0, by decide⟩)
     exact read_lit mulImage 0
   · show mulImage.read (addressOfIndex 1) = some (mulImage ⟨1, by decide⟩)
     exact read_lit mulImage 1
 
-/-- `mul_192bit_word` is a valid execution. -/
+/-- `mul_128bit_word` is a valid execution. -/
 example : ValidExecution mulProg mulInput mulTrace := ⟨mulImage_boundary 3, mul_run⟩
 
 /-- Its register sequence has four states. -/
@@ -158,7 +155,7 @@ example : run mulProg mulImage 4 Registers.initial = none := by
 def oneProg : LeanIsaProgram := ⟨0, by decide, ![.xor 1 1 1]⟩
 
 /-- Zero steps from `(1, 1)` reach `(g^0, 1)`, so the program has a valid execution... -/
-example : ValidExecution oneProg mulInput ⟨minLogMem, mulImage, 0⟩ :=
+example : ValidExecution oneProg mulInput ⟨16, mulImage, 0⟩ :=
   ⟨mulImage_boundary 0, by rw [run_zero]; decide +kernel⟩
 
 /-- ...and its one slot is not executed, whatever it holds: the initial state is the final one. -/
@@ -167,7 +164,7 @@ example : run oneProg mulImage 1 Registers.initial = none := run_succ_of_eq (by 
 /-- The same with a `JUMP` in that slot. -/
 def oneJumpProg : LeanIsaProgram := ⟨0, by decide, ![.jump 0 0 0]⟩
 
-example : ValidExecution oneJumpProg mulInput ⟨minLogMem, mulImage, 0⟩ :=
+example : ValidExecution oneJumpProg mulInput ⟨16, mulImage, 0⟩ :=
   ⟨mulImage_boundary 0, by rw [run_zero]; decide +kernel⟩
 example : run oneJumpProg mulImage 1 Registers.initial = none :=
   run_succ_of_eq (by decide +kernel) 0
@@ -179,14 +176,14 @@ example : run oneJumpProg mulImage 1 Registers.initial = none :=
 target `g² · pc` at `7`; the `JUMP` to the last slot reads `g` at `14`. -/
 def ctlImage : MemoryImage 4 := fun i ↦
   match (i : ℕ) with
-  | 2 => E.ofLimbs 1 0 0
-  | 3 => E.ofLimbs (addressOfIndex 3) 0 0
-  | 4 => E.ofLimbs (addressOfIndex 5) 0 0
-  | 5 => E.ofLimbs (addressOfIndex 7) 0 0
-  | 6 => E.ofLimbs (K.ofBits 9) (K.ofBits 9) (K.ofBits 9)
-  | 7 => E.ofLimbs (addressOfIndex 2) 0 0
-  | 13 => E.ofLimbs 0 1 0
-  | 14 => E.ofLimbs g 0 0
+  | 2 => E.ofLimbs 1 0
+  | 3 => E.ofLimbs (addressOfIndex 3) 0
+  | 4 => E.ofLimbs (addressOfIndex 5) 0
+  | 5 => E.ofLimbs (addressOfIndex 7) 0
+  | 6 => E.ofLimbs (K.ofBits 9) (K.ofBits 9)
+  | 7 => E.ofLimbs (addressOfIndex 2) 0
+  | 13 => E.ofLimbs 0 1
+  | 14 => E.ofLimbs g 0
   | _ => 0
 
 /-- A two-slot program: the instruction under test, then the last slot. -/
@@ -262,7 +259,7 @@ example : step (oneStep (.deref (addressOfIndex 5) 1 (addressOfIndex 6) .cell)) 
 
 /-- Change the target to the frame pointer embedded in `E`; the local cell is still read. -/
 def derefFpImage : MemoryImage 4 := fun i ↦
-  if i.val = 7 then E.ofLimbs 1 0 0 else ctlImage i
+  if i.val = 7 then E.ofLimbs 1 0 else ctlImage i
 
 theorem derefFp_pointer : (derefFpImage ⟨5, by decide⟩).limb 0 = addressOfIndex 7 :=
   by decide +kernel
@@ -298,7 +295,7 @@ example : step (oneStep (.deref (addressOfIndex 5) 1 (addressOfIndex 6) .fp)) ct
 
 /-- Every mode rejects a pointer whose upper limbs are nonzero, before using it as an address. -/
 def nonKPointerImage : MemoryImage 4 := fun i ↦
-  if i.val = 5 then E.ofLimbs (addressOfIndex 7) 1 0 else ctlImage i
+  if i.val = 5 then E.ofLimbs (addressOfIndex 7) 1 else ctlImage i
 
 example : step (oneStep (.deref (addressOfIndex 5) 1 (addressOfIndex 6) .cell)) nonKPointerImage
     ⟨1, 1⟩ =
@@ -399,10 +396,10 @@ example : ∀ n, run haltProg ctlImage n Registers.initial ≠ some (Registers.f
 -- The input cells of the executor test `keccak_permutes_in_both_layouts` at leanVM `990b9352`:
 -- the words `a, b` (each read twice through the aliased `m` pairs), the padding's first byte in
 -- the tail, its last bit in `b8` (whose free high limb `0x5555` is ignored), and a zero capacity.
-def kA : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210) 0
-def kB : E := E.ofLimbs (K.ofBits 0xdeadbeefcafebabe) (K.ofBits 0x0badf00d0badf00d) 0
-def kPad : E := E.ofLimbs (K.ofBits 0x01) 0 0
-def kEnd : E := E.ofLimbs (K.ofBits 0x8000000000000000) (K.ofBits 0x5555) 0
+def kA : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210)
+def kB : E := E.ofLimbs (K.ofBits 0xdeadbeefcafebabe) (K.ofBits 0x0badf00d0badf00d)
+def kPad : E := E.ofLimbs (K.ofBits 0x01) 0
+def kEnd : E := E.ofLimbs (K.ofBits 0x8000000000000000) (K.ofBits 0x5555)
 
 /-- The thirteen output cells in the odd layout, `permute_cells(input, false, true)` as the
 pinned verifier's `keccak_f` and `keccak_cell_lanes` compute it
@@ -412,19 +409,19 @@ lanes are the Keccak-256 digest
 test's own check). -/
 def kOut : Fin 13 → E := fun c ↦
   match (c : ℕ) with
-  | 0 => E.ofLimbs (K.ofBits 0x0) (K.ofBits 0x8dbfafed17b66d45) 0
-  | 1 => E.ofLimbs (K.ofBits 0x30fd63be3bf8b935) (K.ofBits 0x77167d7a851a2a5a) 0
-  | 2 => E.ofLimbs (K.ofBits 0xd9174937e0d9005e) (K.ofBits 0xa6a08643e0752e62) 0
-  | 3 => E.ofLimbs (K.ofBits 0x96fa9d5eb49e3867) (K.ofBits 0xd3075d1a22781d5) 0
-  | 4 => E.ofLimbs (K.ofBits 0x81ae728bf7328686) (K.ofBits 0xf51da81b6f1b6499) 0
-  | 5 => E.ofLimbs (K.ofBits 0xdaf2a8af5b43dbf9) (K.ofBits 0xdbf85b3cc1312641) 0
-  | 6 => E.ofLimbs (K.ofBits 0x993d35c56291827e) (K.ofBits 0x47fd59ac60e225e2) 0
-  | 7 => E.ofLimbs (K.ofBits 0x36607d1d9e6abed) (K.ofBits 0x6cee5561314ca0f3) 0
-  | 8 => E.ofLimbs (K.ofBits 0x3e20ee955c09012e) (K.ofBits 0x8a928dc9e22c3dcf) 0
-  | 9 => E.ofLimbs (K.ofBits 0x7f24a1dac6837929) (K.ofBits 0xd22b33eacce5fcd2) 0
-  | 10 => E.ofLimbs (K.ofBits 0x2b1e71fdcd52b881) (K.ofBits 0x427618061608ac91) 0
-  | 11 => E.ofLimbs (K.ofBits 0x44c480aa40bfdbf9) (K.ofBits 0x7a29ee993739ddb0) 0
-  | 12 => E.ofLimbs (K.ofBits 0xf7f9aa87f90247d1) (K.ofBits 0xe5177d767bf6bd92) 0
+  | 0 => E.ofLimbs (K.ofBits 0x0) (K.ofBits 0x8dbfafed17b66d45)
+  | 1 => E.ofLimbs (K.ofBits 0x30fd63be3bf8b935) (K.ofBits 0x77167d7a851a2a5a)
+  | 2 => E.ofLimbs (K.ofBits 0xd9174937e0d9005e) (K.ofBits 0xa6a08643e0752e62)
+  | 3 => E.ofLimbs (K.ofBits 0x96fa9d5eb49e3867) (K.ofBits 0xd3075d1a22781d5)
+  | 4 => E.ofLimbs (K.ofBits 0x81ae728bf7328686) (K.ofBits 0xf51da81b6f1b6499)
+  | 5 => E.ofLimbs (K.ofBits 0xdaf2a8af5b43dbf9) (K.ofBits 0xdbf85b3cc1312641)
+  | 6 => E.ofLimbs (K.ofBits 0x993d35c56291827e) (K.ofBits 0x47fd59ac60e225e2)
+  | 7 => E.ofLimbs (K.ofBits 0x36607d1d9e6abed) (K.ofBits 0x6cee5561314ca0f3)
+  | 8 => E.ofLimbs (K.ofBits 0x3e20ee955c09012e) (K.ofBits 0x8a928dc9e22c3dcf)
+  | 9 => E.ofLimbs (K.ofBits 0x7f24a1dac6837929) (K.ofBits 0xd22b33eacce5fcd2)
+  | 10 => E.ofLimbs (K.ofBits 0x2b1e71fdcd52b881) (K.ofBits 0x427618061608ac91)
+  | 11 => E.ofLimbs (K.ofBits 0x44c480aa40bfdbf9) (K.ofBits 0x7a29ee993739ddb0)
+  | 12 => E.ofLimbs (K.ofBits 0xf7f9aa87f90247d1) (K.ofBits 0xe5177d767bf6bd92)
   | _ => 0
 
 /-- The executor's cells: the public input at `0, 1`, `a, b` at `2, 3`, the tail at `4..7`, `b8` at
@@ -567,9 +564,9 @@ memory. -/
 
 /-- The words `1`, `g^7` (the last slot's counter) and `g` (a frame pointer other than
 `main`'s). -/
-def wOne : E := E.ofLimbs 1 0 0
-def wLast : E := E.ofLimbs (addressOfIndex 7) 0 0
-def wFp : E := E.ofLimbs g 0 0
+def wOne : E := E.ofLimbs 1 0
+def wLast : E := E.ofLimbs (addressOfIndex 7) 0
+def wFp : E := E.ofLimbs g 0
 
 /-- leanVM's program with `last` in its last slot. -/
 def finalProg (last : LeanIsaInstruction) : LeanIsaProgram :=
@@ -589,7 +586,7 @@ abbrev setLast : LeanIsaProgram := finalProg (.setConstant (addressOfIndex 5) wO
 def finalInput : PublicInput := ⟨![K.ofBits 7, 0, K.ofBits 11, 0]⟩
 
 /-- The memory leanVM's executor writes: the public words and the three cells set. -/
-def finalImage : MemoryImage minLogMem := fun i ↦
+def finalImage : MemoryImage 16 := fun i ↦
   match (i : ℕ) with
   | 0 => finalInput.word0
   | 1 => finalInput.word1
@@ -666,8 +663,8 @@ theorem jumpLast_run : run jumpLast finalImage 5 Registers.initial = some (Regis
     Option.bind_some, run_zero]
 
 /-- **`halts_in_the_final_state` is a valid execution.** -/
-theorem jumpLast_valid : ValidExecution jumpLast finalInput ⟨minLogMem, finalImage, 5⟩ := by
-  refine ⟨⟨le_rfl, (by decide : minLogMem ≤ maxLogMem), ?_, ?_⟩, jumpLast_run⟩
+theorem jumpLast_valid : ValidExecution jumpLast finalInput ⟨16, finalImage, 5⟩ := by
+  refine ⟨⟨(by decide : minLogMem ≤ 16), (by decide : 16 ≤ maxLogMem), ?_, ?_⟩, jumpLast_run⟩
   · show finalImage.read (addressOfIndex 0) = some (finalImage ⟨0, by decide⟩)
     exact read_lit finalImage 0
   · show finalImage.read (addressOfIndex 1) = some (finalImage ⟨1, by decide⟩)

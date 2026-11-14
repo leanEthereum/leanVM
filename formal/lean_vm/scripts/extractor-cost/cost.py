@@ -43,7 +43,7 @@ def lg(x):
 
 def costs(r):
     mu, R, kappa, n, A, m, ell = (int(r[c]) for c in ("mu", "R", "kappa", "n", "A", "m", "ell"))
-    k = 2 ** kappa
+    k = 2 ** kappa + 6  # the message length: level 0's degree is 2^kappa - 1 + 6
     q = int(r["vars"])  # the interpolation's unknowns: a bound on Q's coefficients, |Q|
     w = m * A - 1  # Q's (1, k-1)-weighted degree, so its X-degree
     t = {}

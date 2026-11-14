@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegSound
 
-  The leanXMSS check inline in `__loop2` (`verify_lean_xmss`, `lean_ethereum.py:3656-3728`) is
+  The leanXMSS check inline in `main_loop2` (`verify_lean_xmss`, `lean_ethereum.py:3848-3920`) is
   sound: whenever its statements hold, the rest holds, and with the carried chain indices held the
   signature its valuation holds verifies the claim at its pointer (`verify_lean_xmss_sound_holds`).
 -/
@@ -11,10 +11,10 @@ module
 public import LeanVM.Guest.B1.Sig.XmssSegArms
 public import LeanVM.Guest.B1.Sig.XmssSegPath
 public import LeanVM.Guest.B1.Sig.XmssLayer
-public import LeanVM.Guest.B1.Sig.Interface
+public import LeanVM.Guest.B1.Sig.InterfaceP
 
 /-!
-# The leanXMSS check of `__loop2`, sound
+# The leanXMSS check of `main_loop2`, sound
 
 `xmssSigOf σ`: the leaf index of the four windows the path's dispatches take (`sKw`, `lxIndex`),
 and per layer (`sPart`) the randomizer, the chain starts in the codeword's arms taken (`sStart`)
@@ -63,7 +63,7 @@ noncomputable def sPart (layer b : Nat) (σ : Val) : LeanXmss.LayerSignature :=
     fun i => xv (σ (sStart (sW layer b) σ (sA layer b + 6) (sA layer b + 6 + 70) i.val)),
     fun l => xv (sSibAt σ layer b l.val)⟩
 
-/-- **The leanXMSS signature the check of `__loop2` verifies**, read off the loop's valuation. -/
+/-- **The leanXMSS signature the check of `main_loop2` verifies**, read off the loop's valuation. -/
 noncomputable def xmssSigOf (σ : Val) : LeanXmss.Signature :=
   ⟨⟨lxIndex (sKw σ), lxIndex_lt fun w _ => sKw_lt σ w⟩, fun lay =>
     if lay = LeanXmss.bottomLayer then sPart 0 88 σ else sPart 1 (sLayer 0 88 (.n 0)).2.1 σ⟩
@@ -110,7 +110,7 @@ theorem xFold_two {pp : E} {A A0 A1 : Nat → E} {bits b0 b1 : Nat → Bool} {si
 /-! ## Addresses and windows -/
 
 theorem lxNodeAddr_eq {L layer l : Nat} (hl16 : l < 16) :
-    lxNodeAddr L (2 * layer + l / 8) (l % 8) = word (xAddrOf layer l) 0 0 +
+    lxNodeAddr L (2 * layer + l / 8) (l % 8) = word (xAddrOf layer l) 0 +
       (if 16 * layer + l + 1 = 32 then 0 else eOfNat (L >>> (16 * layer + l + 1))) := by
   have e : 8 * (2 * layer + l / 8) + l % 8 = 16 * layer + l := by omega
   unfold lxNodeAddr lxNodeConst xAddrOf
@@ -133,7 +133,7 @@ theorem sPrologue_atoms : atomsOnly sPrologue = true := by decide
 theorem sPrologue_sound (h : AtomsHold rd σ sPrologue) :
     LoadHolds rd (σ sSigner) 1 (σ sLxPP) ∧ ∀ s < 13, σ (sPower s) = gen ^ s := by
   refine ⟨h.atom (a := .load sLxPP sSigner 1) (by simp [sPrologue, loadS]), fun s hs => ?_⟩
-  have e := h.atom (a := .const (.n (75 + s)) (word (2 ^ s) 0 0)) (by
+  have e := h.atom (a := .const (.n (75 + s)) (word (2 ^ s) 0)) (by
     simp only [sPrologue, List.mem_append, List.mem_map, List.mem_range]
     exact Or.inr ⟨s, hs, rfl⟩)
   simp only [Atom.Holds] at e
@@ -142,7 +142,7 @@ theorem sPrologue_sound (h : AtomsHold rd σ sPrologue) :
 theorem sDigest0_atoms (b : Nat) : atomsOnly (sDigest0 b) = true := rfl
 
 theorem sDigest0_pad (b k : Nat) (hk : k < 5) :
-    cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0 0) ∈ sDigest0 b := by
+    cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0) ∈ sDigest0 b := by
   simp only [sDigest0, List.mem_append, List.mem_map, List.mem_range]
   exact Or.inl (Or.inr ⟨k, hk, rfl⟩)
 
@@ -150,22 +150,22 @@ theorem sDigest0_pad (b k : Nat) (hk : k < 5) :
 `P`, the message's address, the two cells and the randomizer. -/
 theorem sDigest0_sound (h : AtomsHold rd σ (sDigest0 88)) :
     LoadHolds rd (σ sSigner) 2 (σ (.n 91)) ∧ LoadHolds rd (σ sSigner) 3 (σ (.n 92)) ∧
-      PadOK σ sLxPad ∧ σ (.n 90) = σ (sHis 0) + word (tw 12) 0 0 ∧
+      PadOK σ sLxPad ∧ σ (.n 90) = σ (sHis 0) + word (tw 12) 0 ∧
       σ (.n 103) = (hcell [σ sLxPP, σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 88)]).1 := by
   have ld2 := h.atom (a := .load (.n 91) sSigner 2) (by simp [sDigest0, loadS])
   have ld3 := h.atom (a := .load (.n 92) sSigner 3) (by simp [sDigest0, loadS])
   have ad := h.atom (a := .add (.n 90) (sHis 0) (.n 89)) (by simp [sDigest0, addS])
-  have c89 := h.atom (a := .const (.n 89) (word (tw 12) 0 0)) (by simp [sDigest0, cst])
+  have c89 := h.atom (a := .const (.n 89) (word (tw 12) 0)) (by simp [sDigest0, cst])
   have cp := h.atom (a := .copy (.n 93) (.n 88)) (by simp [sDigest0, copyS])
-  have c94 := h.atom (a := .const (.n 94) (word 1 0 0)) (by simp [sDigest0, cst])
-  have c95 := h.atom (a := .const (.n 95) (word 0 0 0)) (by simp [sDigest0, cst])
-  have c96 := h.atom (a := .const (.n 96) (word 0 0 0)) (by simp [sDigest0, cst])
-  have c97 := h.atom (a := .const (.n 97) (word (2 ^ 63) 0 0)) (by simp [sDigest0, cst])
-  have p0 : σ (.n 98) = word (if 0 = 0 then 1 else 0) 0 0 := h.atom (sDigest0_pad 88 0 (by norm_num))
-  have p1 : σ (.n 99) = word (if 1 = 0 then 1 else 0) 0 0 := h.atom (sDigest0_pad 88 1 (by norm_num))
-  have p2 : σ (.n 100) = word (if 2 = 0 then 1 else 0) 0 0 := h.atom (sDigest0_pad 88 2 (by norm_num))
-  have p3 : σ (.n 101) = word (if 3 = 0 then 1 else 0) 0 0 := h.atom (sDigest0_pad 88 3 (by norm_num))
-  have p4 : σ (.n 102) = word (if 4 = 0 then 1 else 0) 0 0 := h.atom (sDigest0_pad 88 4 (by norm_num))
+  have c94 := h.atom (a := .const (.n 94) (word 1 0)) (by simp [sDigest0, cst])
+  have c95 := h.atom (a := .const (.n 95) (word 0 0)) (by simp [sDigest0, cst])
+  have c96 := h.atom (a := .const (.n 96) (word 0 0)) (by simp [sDigest0, cst])
+  have c97 := h.atom (a := .const (.n 97) (word (2 ^ 63) 0)) (by simp [sDigest0, cst])
+  have p0 : σ (.n 98) = word (if 0 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 0 (by norm_num))
+  have p1 : σ (.n 99) = word (if 1 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 1 (by norm_num))
+  have p2 : σ (.n 100) = word (if 2 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 2 (by norm_num))
+  have p3 : σ (.n 101) = word (if 3 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 3 (by norm_num))
+  have p4 : σ (.n 102) = word (if 4 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 4 (by norm_num))
   simp only [Atom.Holds, word_zero] at ad c89 cp c94 c95 c96 c97
   simp only [↓reduceIte, word_zero, one_ne_zero, OfNat.ofNat_ne_zero] at p0 p1 p2 p3 p4
   refine ⟨ld2, ld3, ⟨p0, p1, p2, p3, p4⟩, by rw [ad, c89], ?_⟩
@@ -184,14 +184,14 @@ theorem sDigest1_atoms (b : Nat) (root : V) : atomsOnly (sDigest1 b root) = true
 /-- **The top layer's index and digest**: the digest of `P`, the message's address, the bottom root
 and the randomizer. -/
 theorem sDigest1_sound {b : Nat} {root : V} (hpad : PadOK σ sLxPad) (h : AtomsHold rd σ (sDigest1 b root)) :
-    σ (.n (b + 1)) = σ (sHis 2) + word lxTop 0 0 ∧
-      σ (.n (b + 4)) = σ (.n (b + 1)) + word (tw 12) 0 0 ∧
+    σ (.n (b + 1)) = σ (sHis 2) + word lxTop 0 ∧
+      σ (.n (b + 4)) = σ (.n (b + 1)) + word (tw 12) 0 ∧
       σ (.n (b + 6)) = (hcell [σ sLxPP, σ (.n (b + 4)), σ root, σ (.n (b + 2))]).1 := by
-  have c0 : σ (.n b) = word lxTop 0 0 := h.atom (a := .const (.n b) (word lxTop 0 0)) (by simp [sDigest1, cst])
+  have c0 : σ (.n b) = word lxTop 0 := h.atom (a := .const (.n b) (word lxTop 0)) (by simp [sDigest1, cst])
   have a1 : σ (.n (b + 1)) = σ (sHis 2) + σ (.n b) :=
     h.atom (a := .add (.n (b + 1)) (sHis 2) (.n b)) (by simp [sDigest1, addS])
-  have c3 : σ (.n (b + 3)) = word (tw 12) 0 0 :=
-    h.atom (a := .const (.n (b + 3)) (word (tw 12) 0 0)) (by simp [sDigest1, cst])
+  have c3 : σ (.n (b + 3)) = word (tw 12) 0 :=
+    h.atom (a := .const (.n (b + 3)) (word (tw 12) 0)) (by simp [sDigest1, cst])
   have a4 : σ (.n (b + 4)) = σ (.n (b + 1)) + σ (.n (b + 3)) :=
     h.atom (a := .add (.n (b + 4)) (.n (b + 1)) (.n (b + 3))) (by simp [sDigest1, addS])
   have hk : AtomsHold rd σ (k64 sLxPad sLxPP (.n (b + 4)) root (.n (b + 2)) (b + 5) (b + 6)) :=
@@ -220,7 +220,7 @@ theorem sLeafK_atoms (layer b : Nat) : atomsOnly (sLeafK layer b).1 = true := kM
 
 theorem sLayer_split (layer b : Nat) (root : V) : (sLayer layer b root).1 =
     (if layer = 0 then sDigest0 b else sDigest1 b root) ++ (xStepAddrs (sLxIdx layer b) (sA layer b) ++
-      ((sCw layer b).1 ++ ([cst (sCw layer b).2.1 (word (tw 2) 0 0),
+      ((sCw layer b).1 ++ ([cst (sCw layer b).2.1 (word (tw 2) 0),
         addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b) (.n (sCw layer b).2.1)] ++
         ((sLeafK layer b).1 ++ ((sWin0 layer b).1 ++ (sWin1 layer b).1))))) := by
   simp only [sLayer, List.append_assoc]
@@ -239,7 +239,7 @@ reaches the root the second window reaches. -/
 theorem sLayerCore_sound (hpad : PadOK σ sLxPad) (hpow : ∀ s < 13, σ (sPower s) = gen ^ s)
     {layer b : Nat} (hl : layer < 2) {rest : List Stmt} {next : Prop}
     (h : Stmt.HoldsList C rd σ (xStepAddrs (sLxIdx layer b) (sA layer b) ++ ((sCw layer b).1 ++
-      ([cst (sCw layer b).2.1 (word (tw 2) 0 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
+      ([cst (sCw layer b).2.1 (word (tw 2) 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
         (.n (sCw layer b).2.1)] ++ ((sLeafK layer b).1 ++ ((sWin0 layer b).1 ++
           ((sWin1 layer b).1 ++ rest)))))) next kret) :
     Stmt.HoldsList C rd σ rest next kret ∧ WinOK σ (2 * layer) ∧ WinOK σ (2 * layer + 1) ∧
@@ -258,11 +258,11 @@ theorem sLayerCore_sound (hpad : PadOK σ sLxPad) (hpow : ∀ s < 13, σ (sPower
   have hsteps := xStepAddrs_sound (atomsHold_of_holdsList (xStepAddrs_atoms _ _) s1.1)
   obtain ⟨s2, htips, hsum, hd⟩ := sCodewordT_sound (W := sW layer b) (fun _ _ _ _ _ => rfl)
     (sStep_sound hpad layer b) hpow (target := xTarget) (d0 := sD0 layer b) (dg := sA layer b + 6) s1.2
-  have s3 := holdsList_split_atoms (xs := [cst (sCw layer b).2.1 (word (tw 2) 0 0),
+  have s3 := holdsList_split_atoms (xs := [cst (sCw layer b).2.1 (word (tw 2) 0),
       addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b) (.n (sCw layer b).2.1)])
     (atomsOnly_cst_addS _ _ _ _ _) s2
   have hla := atomsHold_of_holdsList (atomsOnly_cst_addS _ _ _ _ _) s3.1
-  have e1 : σ (.n (sCw layer b).2.1) = word (tw 2) 0 0 := hla.atom (List.mem_cons_self ..)
+  have e1 : σ (.n (sCw layer b).2.1) = word (tw 2) 0 := hla.atom (List.mem_cons_self ..)
   have e2 : σ (.n ((sCw layer b).2.1 + 1)) = σ (sLxIdx layer b) + σ (.n (sCw layer b).2.1) :=
     hla.atom (List.mem_cons_of_mem _ (List.mem_singleton_self _))
   have s4 := holdsList_split_atoms (xs := (sLeafK layer b).1) (sLeafK_atoms layer b) s3.2
@@ -390,7 +390,7 @@ theorem sTag_eq (σ : Val) (i : Nat) :
   unfold sTag lxTagOf
   split_ifs <;> rfl
 
-/-- **The leanXMSS check of `__loop2` is sound**, for the signature its valuation holds. -/
+/-- **The leanXMSS check of `main_loop2` is sound**, for the signature its valuation holds. -/
 theorem verify_lean_xmss_sound_holds : verify_lean_xmss_sound_Spec xmssSigOf := by
   intro C rd σ rest next kret h
   simp only [xSeg, List.append_assoc] at h

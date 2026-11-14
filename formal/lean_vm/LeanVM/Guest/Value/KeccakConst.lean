@@ -14,7 +14,7 @@ public import Statement.LeanSphincs
 public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Guest.Batch.Def
@@ -35,11 +35,11 @@ terms, checked here by `decide +kernel` through the evaluator of `KeccakEval` (`
   (`Table.padding`, the guest's `COORD_PADDING`);
 * `batchSeed_eq`, `aggSeed_cells`: the batching transcript's initial state, whose five capacity
   cells are `AGG_SEED_0 .. AGG_SEED_4` (`FiatShamirState::from_label(RECURSION_AGG_LABEL)
-  .capacity_cells()`, `aggregation/placeholders.rs:823-826`);
+  .capacity_cells()`, `aggregation/placeholders.rs:818-821`);
 * `paddingCell_eq`, `paddingBlobRoot_eq`, `daPadBlob_cells`: LeanDA's padding blob root, the root
   of the tree over `128` copies of the zero cell's digest (`padding_root`, `padding_tree`,
-  `crates/lean_da/src/commit.rs:70-78`), whose two cells are `DA_PAD_BLOB_0/1` (`hash_to_scalars`,
-  `aggregation/placeholders.rs:841-847`).
+  `crates/lean_da/src/commit.rs:74-82`), whose two cells are `DA_PAD_BLOB_0/1` (`hash_to_scalars`,
+  `aggregation/placeholders.rs:836-842`).
 
 Kernel cost (measured on the build machine): each permutation of the evaluator is milliseconds;
 Keccak-256 of the 2048-byte zero cell (16 permutations) about 6 s and 2 GB over the imports.
@@ -115,7 +115,7 @@ def aggSeed : List ℕ :=
     2936886303028784551432414362146044553]
 
 /-- **`AGG_SEED_c` is cell `8 + c` of the batching seed** (even layout): the guest's
-`seed = [AGG_SEED_0, …, AGG_SEED_4]` (`aggregate_claims`, `lean_ethereum.py:4686`) is the
+`seed = [AGG_SEED_0, …, AGG_SEED_4]` (`aggregate_claims`, `lean_ethereum.py:4649`) is the
 capacity a `cap=seed` duplex step reads. -/
 theorem aggSeed_cells (c : Fin 5) :
     LeanVM.Guest.litField (aggSeed.getD c 0) =
@@ -170,7 +170,7 @@ theorem daPadLevel_toBytes_succ {k : ℕ} (hk : k < 7) :
   rw [Da.keccak256Bytes, ← daPadLevel_succ k hk]
   rfl
 
-/-- **LeanDA's padding blob root** (`padding_root`, `commit.rs:70-78`): the zero codeword's blob
+/-- **LeanDA's padding blob root** (`padding_root`, `commit.rs:74-82`): the zero codeword's blob
 root is `daPadBlobDigest`. -/
 theorem paddingBlobRoot_eq :
     LeanDa.paddingBlobRootWithHash Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadBlobDigest := by
@@ -185,11 +185,11 @@ theorem paddingBlobRoot_eq :
     merkleRoot_const, daPadLevel_toBytes_succ (by norm_num)]
   rfl
 
-/-- **`DA_PAD_BLOB_0`, `DA_PAD_BLOB_1`** (`aggregation/placeholders.rs:845-847`, `lean_ethereum.py:4360-4361`)
+/-- **`DA_PAD_BLOB_0`, `DA_PAD_BLOB_1`** (`aggregation/placeholders.rs:840-842`, `lean_ethereum.py:4322-4323`)
 are the padding blob root's two cells. -/
 theorem daPadBlob_cells :
-    (LeanVM.Guest.word 8002054802297438051 4108169256045952147 0,
-      LeanVM.Guest.word 12830724869163462953 1721925254677230945 0) =
+    (LeanVM.Guest.word 8002054802297438051 4108169256045952147,
+      LeanVM.Guest.word 12830724869163462953 1721925254677230945) =
       digestHalves daPadBlobDigest := by
   simp only [digestHalves, daPadBlobDigest, LeanVM.Guest.word]; rfl
 

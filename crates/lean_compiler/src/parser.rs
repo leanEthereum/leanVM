@@ -18,10 +18,8 @@ use std::collections::BTreeMap;
 mod consts;
 mod expr;
 mod subst;
-use consts::{
-    apply_replacements, const_int_expr, eval_const_int, gpow_bound, is_int_arith, parse_f192_const, parse_gpow_bound,
-};
-pub use consts::{f192_literal, parse_const};
+use consts::{apply_replacements, const_int_expr, eval_const_int, gpow_bound, is_int_arith, parse_gpow_bound};
+pub use consts::{f128_literal, parse_const};
 use expr::{
     binding_name, call_args, is_ident, parse_expr, split_assign, split_aug, split_once_top, split_top, string_lit,
     strip_comment, strip_const_wrapper, top_level_cmp,
@@ -38,10 +36,19 @@ pub fn parse(src: &str) -> Result<Ast, String> {
 /// identifier that is a key of `replacements` becomes its value everywhere it
 /// appears, which is how a host bakes sizes and flags into a program without
 /// editing it. The top level then peels off the **global constants**, each
-/// evaluated as a compile-time integer (or an `f192` literal / constant array)
+/// evaluated as a compile-time integer (or a field-valued expression / constant array)
 /// and substituted into the `def`s below. See the "Placeholders" and "Global
 /// constants" sections of `zkDSL.md`.
 pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String>) -> Result<Ast, String> {
+    parse_with_constants(src, replacements).map(|(ast, _)| ast)
+}
+
+/// Like [`parse_with_replacements`], with the global scalar constants too, in declaration order, each
+/// the decimal literal substituted for it. For tooling (the formalization's guest export).
+pub fn parse_with_constants(
+    src: &str,
+    replacements: &BTreeMap<String, String>,
+) -> Result<(Ast, Vec<(String, String)>), String> {
     // Substitution runs over the RAW source, before lines are split, so a
     // replacement carrying a newline would shift every line after it and make
     // every diagnostic below name the wrong one. It would also inject statements
@@ -93,7 +100,8 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
     // positions that demand a parse-time literal (`StackBuf`, `**`, `assert log
     // _ < _`).
     let mut consts: BTreeMap<String, String> = BTreeMap::new();
-    let mut const_arrays: Vec<(String, Vec<F192>)> = Vec::new();
+    let mut const_order: Vec<String> = Vec::new();
+    let mut const_arrays: Vec<(String, Vec<F128>)> = Vec::new();
     let mut start = 0;
     while start < lines.len() {
         let Line {
@@ -147,10 +155,8 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
                     continue; // tolerate a trailing comma
                 }
                 let err = |e: String| at(format!("global constant array `{name}`: {e}"));
-                let elem = if let Some(v) = parse_f192_const(p) {
-                    v.map_err(err)?
-                } else if let Ok(n) = eval_const_int(p) {
-                    F192::new(n as u64, (n >> 64) as u64, 0)
+                let elem = if let Ok(n) = eval_const_int(p) {
+                    F128::from(n)
                 } else if parse_expr(p).is_ok_and(|e| is_int_arith(&e)) {
                     return Err(err(format!("`{p}` overflows a u128, goes negative or divides by zero")));
                 } else {
@@ -160,12 +166,9 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
             }
             const_arrays.push((name, elems));
         } else {
-            // A scalar constant: an `f192` literal, else a compile-time integer,
-            // else a field-valued expression.
-            if let Some(value) = parse_f192_const(rhs) {
-                let v = value.map_err(|e| at(format!("global constant `{name}`: {e}")))?;
-                consts.insert(name, f192_literal(v));
-            } else if let Ok(value) = eval_const_int(rhs) {
+            // A scalar constant: a compile-time integer, else a field-valued expression.
+            const_order.push(name.clone());
+            if let Ok(value) = eval_const_int(rhs) {
                 consts.insert(name, value.to_string());
             } else if parse_expr(rhs).is_ok_and(|e| is_int_arith(&e)) {
                 // Integer arithmetic that did not fold. Reading it in the field
@@ -176,18 +179,11 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
             } else {
                 // `GEN ** 2` and friends. The ISA is written in g-powers, so this
                 // is the natural spelling for a constant one, and it is not an
-                // integer expression. Rendered as a decimal wherever the value
-                // fits the low two limbs, so the constant still works in the
-                // positions that demand a literal rather than only as a value.
+                // integer expression. Rendered as the decimal its limbs spell, so the
+                // constant still works in the positions that demand a literal rather
+                // than only as a value.
                 let v = parse_const(rhs).map_err(|e| at(format!("global constant `{name}`: {e}")))?;
-                consts.insert(
-                    name,
-                    if v.c2 == 0 {
-                        (v.c0 as u128 | ((v.c1 as u128) << 64)).to_string()
-                    } else {
-                        f192_literal(v)
-                    },
-                );
+                consts.insert(name, f128_literal(v));
             }
         }
         start += 1;
@@ -239,7 +235,11 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
         }
     }
     infer_return_shapes(&mut funcs);
-    Ok(Ast { funcs, const_arrays })
+    let consts = const_order
+        .into_iter()
+        .map(|n| (n.clone(), consts[&n].clone()))
+        .collect();
+    Ok((Ast { funcs, const_arrays }, consts))
 }
 
 /// Every name the lowerer resolves before it looks for a user function. A `def`
@@ -258,12 +258,11 @@ const BUILTINS: &[&str] = &[
     "keccak",
     "keccak_cells",
     "const",
-    "f192",
     "hint_decompose_bits",
     "hint_decompose_bits_exponent",
     "hint_decompose_digits_exponent",
     "hint_windows_exponent",
-    "hint_f192_limbs",
+    "hint_f128_limbs",
     "hint_log2_ceil",
     "hint_witness",
     "len",

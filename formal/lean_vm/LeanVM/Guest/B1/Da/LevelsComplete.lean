@@ -23,7 +23,7 @@ public import LeanVM.Guest.B1.Digest.ListsComplete
 # `da_levels`, completely
 
 * the tree: `treeLvl_succ`, `length_treeLvl`, `cellRoot_treeLvl` (the root is the last level's
-  node), the internal levels' cells canonical (digests);
+  node);
 * `lvl_block`: a level loop's block holds at every node of its level, on the evaluated valuation
   (`Fwd.ev`): its four loads read the level's cells, its pair hash is the next level's node
   (`chain_final`), which its two stores find in memory;
@@ -45,7 +45,7 @@ variable {rd : Reader}
 /-- `da_levels`' meaning, for a tree whose levels are in memory, gives its core IR. -/
 def da_levels_complete_Spec : Prop :=
   ∀ k ≤ 10, ∀ (rd : Reader) (tree : E) (leaves : List (E × E)), leaves.length = 2 ^ k →
-    (0 < k → AllCanonical (pairCells leaves)) → TreeMem rd tree k leaves →
+    TreeMem rd tree k leaves →
       coreProgram.Rel rd (daLevelsName k) [tree] [(cellRoot k leaves).1, (cellRoot k leaves).2]
 
 /-! ## The tree -/
@@ -86,24 +86,6 @@ theorem pairCells_getD' : ∀ (l : List (E × E)) (i : ℕ),
 
 theorem length_pairCells (l : List (E × E)) : (pairCells l).length = 2 * l.length := by
   simp [pairCells, List.length_flatMap, mul_comm]
-
-/-- The cells of an internal level are canonical: digests. -/
-theorem canon_level_succ (leaves : List (E × E)) (l : ℕ) :
-    AllCanonical (pairCells (treeLvl leaves (l + 1))) := by
-  intro c hc
-  rw [treeLvl_succ] at hc
-  simp only [pairCells, cellLevel, List.mem_flatMap, List.mem_map, List.mem_range] at hc
-  obtain ⟨_, ⟨i, -, rfl⟩, hc⟩ := hc
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
-  rcases hc with rfl | rfl
-  · exact (digestScalars_canonical _).1
-  · exact (digestScalars_canonical _).2
-
-theorem canon_level {leaves : List (E × E)} {k l : ℕ} (hk : 0 < k → AllCanonical (pairCells leaves))
-    (hl : l < k) : AllCanonical (pairCells (treeLvl leaves l)) := by
-  rcases l with _ | l
-  · exact hk (by omega)
-  · exact canon_level_succ leaves l
 
 /-- A cell of a level, read from memory. -/
 theorem treeMem_load {tree : E} {k : ℕ} {leaves : List (E × E)} (hlen : leaves.length = 2 ^ k)
@@ -146,7 +128,6 @@ theorem lvl_block {f : String} {fn : Fn}
     (hld : ∀ i < 4, (atomsIn (loopPre fn)).any (isLoadAt (.n (c0 + i)) (.n pa) i) = true)
     (hatoms : (loopPre fn).all (fun s => match s with | .atom _ => true | _ => false) = true)
     {c' : ℕ} (hchk : chk 3 fn.body = some c')
-    (hcan : canonChk ((List.range 4).map (c0 + ·)) (lvlA' fn) = true)
     (hneeds : (atomsIn (loopPre fn)).all (fun a => !needsSide a ||
       decide (a ∈ storesOf 3 fn.body) || isLoadVia (.n pa) c0 a) = true)
     (hS : storesOf 3 fn.body = [.load ((lvlSp fn c0).outV ((lvlSp fn c0).nb - 1) 0) (.n pb) 0,
@@ -156,8 +137,7 @@ theorem lvl_block {f : String} {fn : Fn}
       true)
     (hsp : (lvlSp fn c0).check (lvlA' fn) = true)
     {tree : E} {leaves : List (E × E)} (hlen : leaves.length = 2 ^ k)
-    (hcl : 0 < k → AllCanonical (pairCells leaves)) (hmem : TreeMem rd tree k leaves)
-    {p : ℕ} (hp : p < 2 ^ (k - lvl - 1)) :
+    (hmem : TreeMem rd tree k leaves) {p : ℕ} (hp : p < 2 ^ (k - lvl - 1)) :
     LoopBlock rd fn (gen ^ p) (gen ^ 2 ^ (k - lvl - 1)) [tree] := by
   set A := atomsIn (loopPre fn) with hAdef
   set S := storesOf 3 fn.body
@@ -201,16 +181,7 @@ theorem lvl_block {f : String} {fn : Fn}
     · rw [h, rdAt_of_load (hcell _ hi)]
   -- the non-store atoms, then the stores
   have hat : ∀ a ∈ A, a.Holds rd σ := by
-    refine atoms_holds_stores (S := S) (w := fun _ => 0) (fun v => rfl) hcan hg ?_ ?_ ?_
-    · intro i hi
-      obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hi
-      have hj' := List.mem_range.mp hj
-      rw [hv j hj']
-      have hcl' := canon_level hcl (k := k) (l := lvl) hl
-      have hlt : 4 * p + j < (pairCells L).length := by
-        rw [length_pairCells, hLlen, h2]; omega
-      rw [List.getD_eq_getElem _ _ hlt]
-      exact hcl' _ (List.getElem_mem _)
+    refine atoms_holds_stores (S := S) (w := fun _ => 0) hg ?_ ?_
     · intro a ha hnS hns
       have := List.all_eq_true.mp hneeds a ha
       simp only [hns, Bool.not_true, Bool.false_or, Bool.or_eq_true, decide_eq_true_eq] at this
@@ -226,7 +197,7 @@ theorem lvl_block {f : String} {fn : Fn}
     · intro h1 a ha haS
       have hA' : ∀ b ∈ lvlA' fn, b.Holds rd σ := fun b hb =>
         h1 b (List.mem_filter.mp hb).1 (by simpa using (List.mem_filter.mp hb).2)
-      obtain ⟨hd, -⟩ := chain_final hsp rfl hA' (pre := []) (n := 0) rfl
+      have hd := chain_final hsp rfl hA' (pre := []) (n := 0) rfl
         (fun c => (cellsOfState_zero false c).symm)
       have hvals : ((lvlSp fn c0).vals σ).take ((lvlSp fn c0).len / 16) =
           [σ (.n c0), σ (.n (c0 + 1)), σ (.n (c0 + 2)), σ (.n (c0 + 3))] := by
@@ -280,11 +251,12 @@ theorem headD_eq_getD (l : List (E × E)) : l.headD 0 = l.getD 0 0 := by cases l
 /-- **A checked specialization is complete.** -/
 theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok : dlCEntryOk k = true)
     (rd : Reader) (tree : E) (leaves : List (E × E)) (hlen : leaves.length = 2 ^ k)
-    (hcl : 0 < k → AllCanonical (pairCells leaves)) (hmem : TreeMem rd tree k leaves) :
+    (hmem : TreeMem rd tree k leaves) :
     coreProgram.Rel rd (daLevelsName k) [tree] [(cellRoot k leaves).1, (cellRoot k leaves).2] := by
   unfold dlEntryOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at hok
   obtain ⟨⟨⟨⟨⟨-, hname⟩, hidx⟩, hlt⟩, hdl⟩, hloops⟩ := hok
+  replace hidx := coreIdx?_eq hidx
   unfold dlCEntryOk at hcok
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, List.isEmpty_iff, List.all_eq_true,
     List.mem_range] at hcok
@@ -302,7 +274,7 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
     simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range,
       Bool.or_eq_true] at hdl hbody
     obtain ⟨⟨⟨⟨rfl, -⟩, hguards⟩, hr0⟩, hr1⟩ := hdl
-    obtain ⟨⟨hcan, hneeds⟩, hcalls⟩ := hbody
+    obtain ⟨hneeds, hcalls⟩ := hbody
     have hb := splitRet_eq hsr
     let σ : Val := B1.Val.ofArgs (ev rd (fun _ => 0) [tree] fn.body)
     obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) fn.body [tree] hchk
@@ -324,7 +296,7 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
     have v0 := hval _ _ 0 (by omega) rfl hr0
     have v1 := hval _ _ 1 (by omega) (by omega) hr1
     have hat : ∀ a ∈ atomsIn P, a.Holds rd σ := by
-      refine atoms_holds (fun v => rfl) hcan hg (fun i hi => absurd hi (by simp)) fun a ha hns => ?_
+      refine atoms_holds hg fun a ha hns => ?_
       refine Or.inl ?_
       rcases hneeds a ha with (h | h) | h
       · rw [hns] at h; exact absurd h (by simp)
@@ -349,7 +321,7 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
         rw [hj] at hclo
         simp only [Bool.and_eq_true, decide_eq_true_eq] at hlo
         obtain ⟨hjl, hlok⟩ := hlo
-        have hfl := find_of_idx hj hjl
+        have hfl := find_of_idx (coreIdx?_eq hj) hjl
         simp only [guardPowOk, Bool.and_eq_true] at hg'
         obtain ⟨⟨⟨-, ha⟩, h1⟩, hN⟩ := hg'
         split at ha
@@ -366,10 +338,10 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
             List.mem_range] at hlok
           obtain ⟨⟨⟨⟨⟨hshape, hplen⟩, hld⟩, -⟩, -⟩, -⟩ := hlok
           simp only [lvlCOk, Bool.and_eq_true, Option.isSome_iff_exists, decide_eq_true_eq] at hclo
-          obtain ⟨⟨⟨⟨⟨⟨⟨⟨c2, hchk2⟩, hatoms⟩, hcan2⟩, hneeds2⟩, hS2⟩, hpa⟩, hpb⟩, hsp⟩ := hclo
+          obtain ⟨⟨⟨⟨⟨⟨⟨c2, hchk2⟩, hatoms⟩, hneeds2⟩, hS2⟩, hpa⟩, hpb⟩, hsp⟩ := hclo
           have hgd := guard_complete hfl hshape (rest := [tree]) (m := 2 ^ (k - lvl - 1))
             (fun p hp => lvl_block hl hk (by split <;> decide) hshape hplen hld hatoms hchk2
-              hcan2 hneeds2 hS2 hpa hpb hsp hlen hcl hmem hp)
+              hneeds2 hS2 hpa hpb hsp hlen hmem hp)
           show IsInK (σ (.n (5 * lvl + 3))) ∧ (σ (.n (5 * lvl + 3)) ≠ 0 →
             coreProgram.Rel rd (e.2.2.2.getD lvl "") [σ (.n (5 * lvl + 4)), σ (.n (5 * lvl + 5)),
               σ (.n 0)] [])

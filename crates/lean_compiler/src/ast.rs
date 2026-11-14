@@ -1,13 +1,13 @@
 //! The surface AST produced by the parser: expressions, statements, functions.
 
-use primitives::field::F192;
+use primitives::field::F128;
 use std::sync::Arc;
 
 /// An expression. Arithmetic is the field's own: `+` is `XOR`, `*` is `MUL`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
-    /// Integer / field literal: the source syntax provides a raw 128-bit value,
-    /// embedded into the low two limbs of the 192-bit tower element (`c2 = 0`).
+    /// Integer / field literal: a raw 128-bit value, the tower element whose
+    /// two limbs its bits spell.
     Lit(u128),
     /// The generator `g`, written `GEN`. A logical index `i` rides the exponent
     /// as `gⁱ`, so `GEN` is the unit step.
@@ -208,9 +208,9 @@ pub enum ForBound {
 /// runtime `g^n`. Same gadget either way, only the cell holding `g^{k-1}`
 /// differing.
 ///
-/// A runtime bound loses the `k ≤ 2^MIN_LOG_MEM` cap the compiler would check,
-/// so the PROGRAM owes it: range-check the bound itself first, or `log X < log n`
-/// bounds `X` only by the prover-announced memory size.
+/// A runtime bound's meaning is the PROGRAM's to give: it owes a small `n`, by checking it
+/// first (`assert_gpow(n)` bounds its log by the memory size), or `log X < log n` bounds `X`
+/// by nothing.
 #[derive(Clone, Debug)]
 pub enum LtBound {
     Const(u64),
@@ -295,7 +295,7 @@ pub struct Ast {
     /// Indexed `NAME[i]` and measured `len(NAME)` at compile time only, `i` being
     /// a literal, a constant or an `unroll` variable. Unlike a scalar constant
     /// these are not textually substituted, but resolved at lowering.
-    pub const_arrays: Vec<(String, Vec<F192>)>,
+    pub const_arrays: Vec<(String, Vec<F128>)>,
 }
 
 // Free-variable analysis: pure AST, no lowering state. Its one consumer is the

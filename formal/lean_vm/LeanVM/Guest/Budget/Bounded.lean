@@ -50,6 +50,15 @@ theorem CompleteAtDTB.toDT {k : ℕ} {f : String} {Lin : Layout} {args : List E}
     let ⟨n, Lown, rets, Lout, _, ho, hw, hd, hr⟩ := h fp
     ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩
 
+/-- A bounded completeness on memories defined below `2^k` holds on those defined below
+`2^k'`, `k ≤ k'`. -/
+theorem CompleteAtDTB.lowMono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} {T : Tree → Prop} {B : ℕ}
+    (h : CompleteAtDTB fs cert k f Lin args Out T B) (hk : k ≤ k') :
+    CompleteAtDTB fs cert k' f Lin args Out T B := fun fp =>
+  let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, hn, ho, hw, hd, fun rd hl hm => hr rd (hl.mono hk) hm⟩
+
 /-- A bounded completeness with a tree predicate forgets the predicate (`CompleteAtB`). -/
 theorem CompleteAtDTB.toCompleteAtB {k : ℕ} {f : String} {Lin : Layout} {args : List E}
     {Out : List E → Layout → Prop} {T : Tree → Prop} {B : ℕ}
@@ -109,6 +118,11 @@ def KidsDTB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
 def kidsBoundL (fs : String → ℕ) : List Kid → List ℕ → ℕ
   | k :: ks, Bs => (if k.taken then Bs.headD 0 else fs k.f) + kidsBoundL fs ks Bs.tail
   | [], _ => 0
+
+theorem KidsDTB.lowMono {κ κ' : ℕ} (hk : κ ≤ κ') : ∀ {ks : List Kid} {Ts : List (Tree → Prop)}
+    {Bs : List ℕ}, KidsDTB fs cert κ ks Ts Bs → KidsDTB fs cert κ' ks Ts Bs
+  | [], _, _, _ => trivial
+  | _ :: _, _, _, ⟨h, hs⟩ => ⟨fun ht => (h ht).lowMono hk, hs.lowMono hk⟩
 
 theorem KidsDTB.toDT {κ : ℕ} : ∀ {ks : List Kid} {Ts : List (Tree → Prop)} {Bs : List ℕ},
     KidsDTB fs cert κ ks Ts Bs → KidsDT fs cert κ ks Ts

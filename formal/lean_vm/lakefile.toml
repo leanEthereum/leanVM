@@ -138,8 +138,8 @@ name = "guest-diff"
 root = "GuestDiff"
 srcDir = "cli"
 
-# Writes the guest's kernel-checked memory-layer facts (`LeanVM/Guest/Memory/GuestFresh*`,
-# `GuestWf*`); `--check` fails when they are stale.
+# Writes the guest's kernel-checked memory check (`LeanVM/Guest/Memory/GuestMem*`); `--check` fails
+# when it is stale.
 [[lean_exe]]
 name = "guest-memory"
 root = "GuestMemory"
@@ -151,4 +151,12 @@ srcDir = "cli"
 [[lean_exe]]
 name = "wire-diff"
 root = "WireDiff"
+srcDir = "cli"
+
+# The tests' runs too slow for the interpreter, compiled (cli/TestRuns.lean, `LeanVMTests/Runs.lean`):
+# check-all runs it, under `lake env` (it reads the guest's core data from its `.olean`), after
+# `lake test`.
+[[lean_exe]]
+name = "test-runs"
+root = "TestRuns"
 srcDir = "cli"

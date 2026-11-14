@@ -8,7 +8,8 @@ use super::fixtures::{Fixtures, N_SPHINCS, N_XMSS, X3, fixtures, message_b, root
 use super::forge::random_inputs;
 use crate::{Ctx, Finding, Outcome, Source};
 use rec_aggregation::fuzzing::Parts;
-use rec_aggregation::{EthereumClaims, EthereumProof, MAX_KEYS, MAX_RECURSIONS};
+use crate::MAX_KEYS;
+use rec_aggregation::{EthereumClaims, EthereumProof, MAX_RECURSIONS};
 use signatures::lean_sphincs::{self, LeanSphincsPublicKey, LeanSphincsSignature};
 use signatures::lean_xmss::{self, LeanXmssPublicKey, LeanXmssSignature};
 
@@ -16,7 +17,7 @@ type Case = fn(&Fixtures, &mut Source, &Ctx) -> Outcome;
 
 const CASES: &[(&str, Case)] = &[
     ("valid", valid),
-    ("bitflip-xmss", bitflip_xmss),
+    ("bitflip-lean_xmss", bitflip_xmss),
     ("bitflip-sphincs", bitflip_sphincs),
     ("wrong-message", wrong_message),
     ("wrong-key", wrong_key),
@@ -60,11 +61,11 @@ fn check(f: &Fixtures, src: &mut Source, ctx: &Ctx, case: &str, inputs: &Inputs)
 }
 
 /// Random valid inputs with no `declare`, at least one raw signature of the scheme asked for.
-fn base(f: &Fixtures, src: &mut Source, xmss: bool, sphincs: bool) -> Inputs {
+fn base(f: &Fixtures, src: &mut Source, lean_xmss: bool, sphincs: bool) -> Inputs {
     let mut inputs = random_inputs(src, f);
     inputs.declare = None;
-    if xmss && inputs.xmss.is_empty() {
-        inputs.xmss.push(f.signers.xmss[src.below(N_XMSS)].clone());
+    if lean_xmss && inputs.lean_xmss.is_empty() {
+        inputs.lean_xmss.push(f.signers.lean_xmss[src.below(N_XMSS)].clone());
     }
     if sphincs && inputs.sphincs.is_empty() {
         inputs.sphincs.push(f.signers.sphincs[src.below(N_SPHINCS)].clone());
@@ -84,11 +85,11 @@ fn flip(bytes: &mut [u8], src: &mut Source) {
 
 fn bitflip_xmss(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = base(f, src, true, false);
-    let k = src.below(inputs.xmss.len());
-    let mut bytes = inputs.xmss[k].2.to_bytes();
+    let k = src.below(inputs.lean_xmss.len());
+    let mut bytes = inputs.lean_xmss[k].2.to_bytes();
     flip(&mut bytes, src);
-    inputs.xmss[k].2 = LeanXmssSignature::from_bytes(&bytes);
-    check(f, src, ctx, "bitflip-xmss", &inputs)
+    inputs.lean_xmss[k].2 = LeanXmssSignature::from_bytes(&bytes);
+    check(f, src, ctx, "bitflip-lean_xmss", &inputs)
 }
 
 fn bitflip_sphincs(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
@@ -108,8 +109,8 @@ fn wrong_message(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
         _ => src.array(),
     };
     if src.bool() {
-        let k = src.below(inputs.xmss.len());
-        inputs.xmss[k].1 = message;
+        let k = src.below(inputs.lean_xmss.len());
+        inputs.lean_xmss[k].1 = message;
     } else {
         let k = src.below(inputs.sphincs.len());
         inputs.sphincs[k].1 = message;
@@ -120,9 +121,9 @@ fn wrong_message(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
 fn wrong_key(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = base(f, src, true, true);
     if src.bool() {
-        let k = src.below(inputs.xmss.len());
-        inputs.xmss[k].0 = if src.bool() {
-            f.signers.xmss[src.below(N_XMSS)].0
+        let k = src.below(inputs.lean_xmss.len());
+        inputs.lean_xmss[k].0 = if src.bool() {
+            f.signers.lean_xmss[src.below(N_XMSS)].0
         } else {
             f.signers.xmss_two[0].0
         };
@@ -141,12 +142,12 @@ fn wrong_key(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
 fn other_scheme_key(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = base(f, src, true, true);
     if src.bool() {
-        let k = src.below(inputs.xmss.len());
+        let k = src.below(inputs.lean_xmss.len());
         let pk = f.signers.sphincs[src.below(N_SPHINCS)].0.to_bytes();
-        inputs.xmss[k].0 = LeanXmssPublicKey::from_bytes(&pk);
+        inputs.lean_xmss[k].0 = LeanXmssPublicKey::from_bytes(&pk);
     } else {
         let k = src.below(inputs.sphincs.len());
-        let pk = f.signers.xmss[src.below(N_XMSS)].0.to_bytes();
+        let pk = f.signers.lean_xmss[src.below(N_XMSS)].0.to_bytes();
         inputs.sphincs[k].0 = LeanSphincsPublicKey::from_bytes(&pk);
     }
     check(f, src, ctx, "other-scheme-key", &inputs)
@@ -155,9 +156,9 @@ fn other_scheme_key(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
 fn garbage_signature(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = base(f, src, true, true);
     if src.bool() {
-        let k = src.below(inputs.xmss.len());
+        let k = src.below(inputs.lean_xmss.len());
         let bytes: [u8; lean_xmss::SIG_SIZE] = src.bulk(lean_xmss::SIG_SIZE).try_into().unwrap();
-        inputs.xmss[k].2 = LeanXmssSignature::from_bytes(&bytes);
+        inputs.lean_xmss[k].2 = LeanXmssSignature::from_bytes(&bytes);
     } else {
         let k = src.below(inputs.sphincs.len());
         let bytes: [u8; lean_sphincs::SIG_SIZE] = src.bulk(lean_sphincs::SIG_SIZE).try_into().unwrap();
@@ -171,13 +172,13 @@ fn duplicate_raw(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = base(f, src, true, false);
     match src.below(3) {
         0 => {
-            let k = src.below(inputs.xmss.len());
-            let copy = inputs.xmss[k].clone();
-            inputs.xmss.insert(src.below(inputs.xmss.len() + 1), copy);
+            let k = src.below(inputs.lean_xmss.len());
+            let copy = inputs.lean_xmss[k].clone();
+            inputs.lean_xmss.insert(src.below(inputs.lean_xmss.len() + 1), copy);
         }
         1 => {
-            inputs.xmss.push(f.signers.xmss_two[0].clone());
-            inputs.xmss.push(f.signers.xmss_two[2].clone());
+            inputs.lean_xmss.push(f.signers.xmss_two[0].clone());
+            inputs.lean_xmss.push(f.signers.xmss_two[2].clone());
         }
         _ => {
             let copy = f.signers.sphincs[src.below(N_SPHINCS)].clone();
@@ -193,16 +194,16 @@ fn raw_and_child_overlap(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = Inputs::default();
     let i = src.below(f.children.len());
     inputs.child(f, i);
-    for (pk, m) in &f.claims(i).xmss {
+    for (pk, m) in &f.claims(i).lean_xmss {
         if let Some(raw) = f
             .signers
-            .xmss
+            .lean_xmss
             .iter()
             .chain(&f.signers.xmss_two)
             .find(|r| r.0 == *pk && r.1 == *m)
             && src.bool()
         {
-            inputs.xmss.push(raw.clone());
+            inputs.lean_xmss.push(raw.clone());
         }
     }
     for (pk, m) in &f.claims(i).lean_sphincs {
@@ -238,7 +239,7 @@ fn max_children(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
         inputs.child(f, src.below(f.children.len()));
     }
     if src.bool() {
-        inputs.xmss.push(f.signers.xmss[src.below(N_XMSS)].clone());
+        inputs.lean_xmss.push(f.signers.lean_xmss[src.below(N_XMSS)].clone());
     }
     check(f, src, ctx, "max-children", &inputs)
 }
@@ -267,7 +268,7 @@ fn child_at_max_keys(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
         ..
     } = f.proof(X3).clone().into_parts();
     let claims = EthereumClaims {
-        xmss: synthetic_claims(n),
+        lean_xmss: synthetic_claims(n),
         ..EthereumClaims::default()
     };
     let forged = EthereumProof::from_parts(Parts {
@@ -276,11 +277,9 @@ fn child_at_max_keys(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
         defer_value,
         proof,
     });
-    let kinds: &'static [&'static str] = if n >= MAX_KEYS {
-        &["InvalidChild/MalformedSignerSet"]
-    } else {
-        BAD_CHILD
-    };
+    // Main bounds a claim list only by the guest's memory, so a size the old signer-set check
+    // refused is now the proof that refuses: the coverage argument, like the undersized case.
+    let kinds: &'static [&'static str] = BAD_CHILD;
     match forged.verify() {
         Ok(()) => {
             return Err(Finding::critical(
@@ -308,18 +307,18 @@ fn declare_uncovered(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     };
     let mut d = inputs.declare.clone().unwrap_or_else(|| all.clone());
     match src.below(4) {
-        0 if !all.xmss.is_empty() => {
-            let (pk, _) = all.xmss[src.below(all.xmss.len())];
-            d.xmss.push((pk, [0xC3; 32]));
+        0 if !all.lean_xmss.is_empty() => {
+            let (pk, _) = all.lean_xmss[src.below(all.lean_xmss.len())];
+            d.lean_xmss.push((pk, [0xC3; 32]));
         }
-        1 if !all.xmss.is_empty() => {
-            let (pk, m) = all.xmss[src.below(all.xmss.len())];
+        1 if !all.lean_xmss.is_empty() => {
+            let (pk, m) = all.lean_xmss[src.below(all.lean_xmss.len())];
             d.lean_sphincs
                 .push((LeanSphincsPublicKey::from_bytes(&pk.to_bytes()), m));
         }
         2 if !all.lean_sphincs.is_empty() => {
             let (pk, m) = all.lean_sphincs[src.below(all.lean_sphincs.len())];
-            d.xmss.push((LeanXmssPublicKey::from_bytes(&pk.to_bytes()), m));
+            d.lean_xmss.push((LeanXmssPublicKey::from_bytes(&pk.to_bytes()), m));
         }
         _ => {
             let (pk, m, _) = &f.signers.sphincs_two[1];
@@ -327,7 +326,7 @@ fn declare_uncovered(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
         }
     }
     let covered =
-        d.xmss.iter().all(|c| all.xmss.contains(c)) && d.lean_sphincs.iter().all(|c| all.lean_sphincs.contains(c));
+        d.lean_xmss.iter().all(|c| all.lean_xmss.contains(c)) && d.lean_sphincs.iter().all(|c| all.lean_sphincs.contains(c));
     if covered {
         return Ok(());
     }
@@ -406,7 +405,7 @@ fn empty(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
             inputs.declare = Some(EthereumClaims::default());
         }
         _ => {
-            inputs.xmss.push(f.signers.xmss[src.below(N_XMSS)].clone());
+            inputs.lean_xmss.push(f.signers.lean_xmss[src.below(N_XMSS)].clone());
             inputs.declare = Some(EthereumClaims::default());
         }
     }
@@ -419,7 +418,7 @@ fn invalid_rate(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let result = crate::catch(|| {
         rec_aggregation::aggregate(
             &inputs.children,
-            inputs.xmss.clone(),
+            inputs.lean_xmss.clone(),
             inputs.sphincs.clone(),
             &inputs.blobs,
             inputs.declare.as_ref(),
@@ -446,10 +445,10 @@ fn invalid_rate(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
 fn declare_messy(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = random_inputs(src, f);
     let mut d = inputs.declare.clone().unwrap_or_else(|| inputs.expected_claims());
-    d.xmss.reverse();
+    d.lean_xmss.reverse();
     d.lean_sphincs.reverse();
-    if let Some(&c) = d.xmss.first() {
-        d.xmss.push(c);
+    if let Some(&c) = d.lean_xmss.first() {
+        d.lean_xmss.push(c);
     }
     if let Some(&c) = d.lean_sphincs.last() {
         d.lean_sphincs.insert(0, c);

@@ -14,6 +14,10 @@
 //!   public API.
 //! - **Low**: a panic on a path documented to panic on bad input (the compiler on a malformed program), kept for triage.
 
+/// The claim-count scale the aggregation targets build their largest cases at: main bounds a claim list only
+/// by the guest's memory, so this is a fuzzing scale, not a protocol bound.
+pub(crate) const MAX_KEYS: usize = 1 << 16;
+
 pub mod findings;
 pub mod mutate_proof;
 pub mod programs;

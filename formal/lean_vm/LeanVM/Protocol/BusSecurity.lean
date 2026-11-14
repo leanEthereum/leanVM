@@ -2,7 +2,7 @@
   LeanVM.Protocol.BusSecurity
 
   Round-by-round knowledge soundness of the bus phase at the slot's error: the fingerprint
-  challenges at `4·2^{μ_bus}/|E|`, the grand-product argument at its own errors, the roots and
+  challenges at `2^{μ_bus}/|E|`, the grand-product argument at its own errors, the roots and
   the boundary values at none.
 -/
 
@@ -20,7 +20,7 @@ round-by-round soundness: a stack outside `M3Holds` reaches `Seam.bus` only thro
 challenge. It is composed from the four steps' halves, at the same intermediate relations as
 `busComplete`, so every challenge keeps the error the slot assigns it:
 
-* **The challenges `(α, β)`** (`challengeSecurity`), at `4·2^{μ_bus}/|E|` (Theorem 5.1 and
+* **The challenges `(α, β)`** (`challengeSecurity`), at `2^{μ_bus}/|E|` (Theorem 5.1 and
   Proposition `prop:pad`, `doc/leanvm/body/08-end-to-end-protocol.tex` at leanVM `3a37fb6e1`).
   The state after them is `afterChallenge`: the push and pull products agree at `(α, β)`, the
   count product is nonzero, every constraint vanishes, and the public lines and the Keccak
@@ -28,8 +28,8 @@ challenge. It is composed from the four steps' halves, at the same intermediate 
   products could be charged to no later challenge. A stack outside `M3Holds` whose executed count
   cells are nonzero and that meets the clauses no challenge touches is unbalanced: its executed
   rows' two multisets differ. Each side's product is then its executed tuples' product times its
-  padding leaves, the fingerprints of nonzero tuples whatever the padding rows hold, so the two
-  sides of at most `2^{μ_bus}` leaves collide at no more than `4·2^{μ_bus}·|E|⁴` of the `|E|⁵`
+  padding leaves `1 − π_α(d)`, nonzero polynomials whatever the padding rows hold, so the two
+  sides of at most `2^{μ_bus}` leaves collide at no more than `2^{μ_bus}·|E|^16` of the `|E|^17`
   challenges (`card_paddedSideProduct_collision_le`). A zero executed count cell makes the count
   product zero at every challenge (`countsNonzero_of_prod`).
 * **The roots** (`rootsSecurity`), at no error: a root that passes the check `R_c ≠ 0` and is
@@ -49,7 +49,7 @@ challenge. It is composed from the four steps' halves, at the same intermediate 
 
 Every part takes no real number and no `Fintype` instance as an argument, and the compositions
 are inlined, so the security computes, its extractor included. The count of bad challenges is a
-number the compiled security holds, so `|E|` is written `2^192` there (`card_E`): `Nat.card E` does
+number the compiled security holds, so `|E|` is written `2^128` there (`card_E`): `Nat.card E` does
 not compute.
 
 Written from the specification and the protocol's relations; nothing is transcribed.
@@ -68,18 +68,18 @@ variable {I : M3Instance}
 
 /-! ## The challenges -/
 
-/-- `|E| = 2^192`, counted with `Nat.card`. -/
-private theorem natCard_E : Nat.card E = 2 ^ 192 := by
+/-- `|E| = 2^128`, counted with `Nat.card`. -/
+private theorem natCard_E : Nat.card E = 2 ^ 128 := by
   rw [Nat.card_eq_fintype_card, card_E]
 
-/-- From a stack outside `M3Holds`, at most `4·2^{μ_bus}·|E|⁴` challenges `(α, β)` lead into
+/-- From a stack outside `M3Holds`, at most `2^{μ_bus}·|E|^16` challenges `(α, β)` lead into
 `afterChallenge`: none if an executed count cell is zero (the count product is then zero) or a
 clause no challenge touches fails, a collision of the two products otherwise, whatever the padding
 rows hold (Proposition `prop:pad`). -/
 private theorem card_afterChallenge_le (h : Conditions I) (s : I.Stmt) (o : ∀ i, TheOracle I i)
     (hs : ¬ M3Holds I s (theStack o)) :
-    Nat.card {ab : (Fin 4 → E) × E // (((s, ab), o), ()) ∈ afterChallenge I} ≤
-      4 * 2 ^ I.μBus * (2 ^ 192) ^ 4 := by
+    Nat.card {ab : (Fin 16 → E) × E // (((s, ab), o), ()) ∈ afterChallenge I} ≤
+      2 ^ I.μBus * (2 ^ 128) ^ 16 := by
   rw [← natCard_E]
   by_cases hrest : I.CountsNonzero (theStack o) ∧ I.ConstraintsVanish (theStack o) ∧
       I.PublicLinesHold s (theStack o) ∧ I.aux (theStack o)
@@ -97,36 +97,35 @@ private theorem card_afterChallenge_le (h : Conditions I) (s : I.Stmt) (o : ∀ 
       rw [Multiset.coe_card, Multiset.coe_card, length_side (k := 1) rfl]
       exact h.pull_fits
     refine (Finite.card_le_of_embedding (Subtype.impEmbedding _ _ fun ab hab ↦ ?_)).trans
-      (card_paddedSideProduct_collision_le hne (fun u hu ↦ padTuple_ne_zero h hu)
-        (fun u hu ↦ padTuple_ne_zero h hu) hP hQ)
+      (card_paddedSideProduct_collision_le hne hP hQ)
     have hprod := hab.1
     change ∏ x : Fin (2 ^ I.μBus), (pushLeaves I ab.1 ab.2 (theStack o))[x] =
       ∏ x : Fin (2 ^ I.μBus), (pullLeaves I ab.1 ab.2 (theStack o))[x] at hprod
     rw [prod_pushLeaves, prod_pullLeaves h] at hprod
     exact hprod
-  · have : IsEmpty {ab : (Fin 4 → E) × E // (((s, ab), o), ()) ∈ afterChallenge I} :=
+  · have : IsEmpty {ab : (Fin 16 → E) × E // (((s, ab), o), ()) ∈ afterChallenge I} :=
       ⟨fun ab ↦ hrest ⟨countsNonzero_of_prod h _ _ _ ab.2.2.1, ab.2.2.2⟩⟩
     rw [Nat.card_of_isEmpty]
     exact Nat.zero_le _
 
-/-- The challenges' count over their number is the slot's error, `4·2^{μ_bus}/|E|`. -/
+/-- The challenges' count over their number is the slot's error, `2^{μ_bus}/|E|`. -/
 private theorem challenge_error_eq :
-    ((4 * 2 ^ I.μBus * (2 ^ 192) ^ 4 : ℕ) : ℝ≥0) / (Nat.card ((Fin 4 → E) × E) : ℝ≥0) =
-      overE (4 * 2 ^ I.μBus) := by
+    ((2 ^ I.μBus * (2 ^ 128) ^ 16 : ℕ) : ℝ≥0) / (Nat.card ((Fin 16 → E) × E) : ℝ≥0) =
+      overE (2 ^ I.μBus) := by
   rw [← natCard_E]
   have hE : (Nat.card E : ℝ≥0) ≠ 0 := by
     rw [Nat.card_eq_fintype_card]
     exact_mod_cast Fintype.card_ne_zero
   rw [overE, ← Nat.card_eq_fintype_card, Nat.card_prod, Nat.card_fun, Nat.card_fin]
   push_cast
-  rw [mul_comm ((Nat.card E : ℝ≥0) ^ 4) (Nat.card E : ℝ≥0),
-    mul_div_mul_right _ _ (pow_ne_zero 4 hE)]
+  rw [mul_comm ((Nat.card E : ℝ≥0) ^ 16) (Nat.card E : ℝ≥0),
+    mul_div_mul_right _ _ (pow_ne_zero 16 hE)]
 
-/-- The challenges' typed security half, at `4·2^{μ_bus}/|E|` (Theorem 5.1). -/
+/-- The challenges' typed security half, at `2^{μ_bus}/|E|` (Theorem 5.1). -/
 def challengeSecurity (h : Conditions I) :
     Typed.Security (challengeStep I) (Seam.commit I) (afterChallenge I)
-      (Typed.drawErrors _ (overE (4 * 2 ^ I.μBus))) :=
-  (Typed.sampleChallengeSecurity (4 * 2 ^ I.μBus * (2 ^ 192) ^ 4) fun s o _ ↦
+      (Typed.drawErrors _ (overE (2 ^ I.μBus))) :=
+  (Typed.sampleChallengeSecurity (2 ^ I.μBus * (2 ^ 128) ^ 16) fun s o _ ↦
     Typed.card_badChallenge_le_of_unit _ s o fun hs ↦
       by exact card_afterChallenge_le h s o hs).mono
       (by exact ⟨le_of_eq challenge_error_eq, fun _ ↦ trivial⟩)

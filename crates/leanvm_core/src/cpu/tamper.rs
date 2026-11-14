@@ -4,10 +4,10 @@
 //! [`fiat_shamir::tamper`], re-exported here.
 
 use super::layout::{KeccakLane, Witness, keccak_value, schema};
-use super::{Layout, MEM_HI, MEM_LO, MEM_TOP, QKECCAK, Stats};
+use super::{Layout, MEM_HI, MEM_LO, QKECCAK, Stats};
 use crate::leaf::{Block, Coord};
 use crate::tables;
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -62,9 +62,8 @@ impl WitnessView<'_> {
         let name = match (column, self.owner(column)) {
             (MEM_LO, _) => "MEM_LO".into(),
             (MEM_HI, _) => "MEM_HI".into(),
-            (MEM_TOP, _) => "MEM_TOP".into(),
-            (3, _) => "MFCNT".into(),
-            (4, _) => "BFCNT".into(),
+            (super::MFCNT, _) => "MFCNT".into(),
+            (super::BFCNT, _) => "BFCNT".into(),
             (QKECCAK, _) => "QKECCAK".into(),
             (_, Owner::Table { table, local }) => format!("{}.{local}", Stats::TABLES[table]),
             (c, Owner::Shared) => format!("shared.{c}"),
@@ -177,7 +176,7 @@ impl WitnessView<'_> {
                     addr,
                     cell: cells.get(&addr.0).copied(),
                     count: col(&pull.coords[2]),
-                    values: [col(&pull.coords[3]), col(&pull.coords[4]), col(&pull.coords[5])],
+                    values: [col(&pull.coords[3]), col(&pull.coords[4])],
                 });
             }
         }
@@ -203,7 +202,7 @@ impl WitnessView<'_> {
             .unwrap_or(1);
         let gpow = primitives::field::g_powers(longest);
         for (i, half) in l.pi.iter().enumerate() {
-            let limbs = [cols[MEM_LO][i], cols[MEM_HI][i], cols[MEM_TOP][i]];
+            let limbs = [cols[MEM_LO][i], cols[MEM_HI][i]];
             if limbs != half.to_limbs().map(F64) {
                 return Err("public input".into());
             }
@@ -244,17 +243,17 @@ impl WitnessView<'_> {
         for (t, table) in tables::tables().iter().enumerate() {
             let (base, n) = (schema().base[t], table.n_committed_columns());
             for identity in 0..table.n_constraints() {
-                let mut pows = vec![F192::ZERO; table.n_constraints()];
-                pows[identity] = F192::ONE;
+                let mut pows = vec![F128::ZERO; table.n_constraints()];
+                pows[identity] = F128::ONE;
                 let form = table.constraint(&pows);
-                let at = |c: usize, row: usize| F192::new(cols[base + c][row].0, 0, 0);
+                let at = |c: usize, row: usize| F128::new(cols[base + c][row].0, 0);
                 for row in 0..1 << l.taus[t] {
                     let linear = (0..n).fold(form.constant, |acc, c| acc + form.coeffs[c] * at(c, row));
                     let value = form
                         .prods
                         .iter()
                         .fold(linear, |acc, &(a, b, w)| acc + w * at(a, row) * at(b, row));
-                    if value != F192::ZERO {
+                    if value != F128::ZERO {
                         return Err(format!("{} identity {identity}", Stats::TABLES[t]));
                     }
                 }
@@ -304,9 +303,9 @@ pub struct Access {
     pub cell: Option<usize>,
     /// The global column holding the read count, when it is one.
     pub count: Option<usize>,
-    /// The global columns carrying the word's three limbs, each `None` where the flush derives the limb or
+    /// The global columns carrying the word's two limbs, each `None` where the flush derives the limb or
     /// carries a constant.
-    pub values: [Option<usize>; 3],
+    pub values: [Option<usize>; 2],
 }
 
 /// Each table flush's index in `Layout::push` (and `pull`, which pairs with it), and the table that owns it.

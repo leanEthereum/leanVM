@@ -9,7 +9,7 @@
 use crate::Source;
 use fiat_shamir::merkle::MerklePath;
 use leanvm_core::cpu::Proof;
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 /// The scalars every execution proof starts with: `log_memory`, six table row counts, `log_inv_rate`.
 pub const ANNOUNCED: usize = 8;
@@ -38,30 +38,30 @@ pub fn stream_position(len: usize, src: &mut Source) -> usize {
 }
 
 /// Replace `x` by a value close to it or on an edge.
-pub fn perturb(x: F192, src: &mut Source) -> F192 {
+pub fn perturb(x: F128, src: &mut Source) -> F128 {
     match src.below(9) {
         0 => {
             let limb = src.below(3);
             let bit = 1u64 << src.below(64);
             let mut limbs = x.to_limbs();
             limbs[limb] ^= bit;
-            F192::new(limbs[0], limbs[1], limbs[2])
+            F128::new(limbs[0], limbs[1])
         }
-        1 => x + F192::ONE,
-        2 => F192::ZERO,
-        3 => F192::ONE,
-        4 => x * F192::new(2, 0, 0),
-        5 => F192::new(x.c0, x.c1, x.c2 ^ src.edgy_u64().max(1)),
-        6 => src.f192(),
-        7 => F192::new(x.c0.wrapping_add(1), x.c1, x.c2),
-        _ => F192::new(src.edgy_u64(), 0, 0),
+        1 => x + F128::ONE,
+        2 => F128::ZERO,
+        3 => F128::ONE,
+        4 => x * F128::new(2, 0),
+        5 => F128::new(x.c0, x.c1 ^ src.edgy_u64().max(1)),
+        6 => src.f128(),
+        7 => F128::new(x.c0.wrapping_add(1), x.c1),
+        _ => F128::new(src.edgy_u64(), 0),
     }
 }
 
 fn mutate_stream(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> &'static str {
     let len = proof.stream.len();
     if len == 0 {
-        proof.stream.push(src.f192());
+        proof.stream.push(src.f128());
         return "stream/fill-empty";
     }
     let i = stream_position(len, src);
@@ -84,7 +84,7 @@ fn mutate_stream(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
                 3 => src.below(70) as u64,
                 _ => (1u64 << src.below(40)) + 1,
             };
-            proof.stream[j] = F192::new(v, if src.chance(1, 4) { 1 } else { 0 }, 0);
+            proof.stream[j] = F128::new(v, if src.chance(1, 4) { 1 } else { 0 });
             "stream/announced-edge"
         }
         5 => {
@@ -93,7 +93,7 @@ fn mutate_stream(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
             "stream/swap"
         }
         6 => {
-            proof.stream.insert(i, src.f192());
+            proof.stream.insert(i, src.f128());
             "stream/insert"
         }
         7 => {
@@ -106,7 +106,7 @@ fn mutate_stream(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
         }
         9 => {
             for _ in 0..src.range(1, 64) {
-                proof.stream.push(src.f192());
+                proof.stream.push(src.f128());
             }
             "stream/append"
         }
@@ -118,7 +118,7 @@ fn mutate_stream(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
                 "stream/splice-other"
             }
             None => {
-                proof.stream[i] += F192::new(2, 0, 0);
+                proof.stream[i] += F128::new(2, 0);
                 "stream/perturb"
             }
         },

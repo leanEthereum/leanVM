@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundFors
 
-  The FORS block of `verify_sig_lean_sphincs` (`sp_fors_tree`, `lean_ethereum.py:3842-3863`, and
-  `T_k`, `lean_ethereum.py:4031-4036`, at leanVM main 40f877dc) is sound: whatever secrets and children
+  The FORS block of `verify_sig_lean_sphincs` (`sp_fors_tree`, `lean_ethereum.py:4034-4055`, and
+  `T_k`, `lean_ethereum.py:4226-4228`) is sound: whatever secrets and children
   are hinted, each tree's root is the fold of its hinted secret and siblings, and the FORS key their
   `T_k`.
 -/
@@ -40,7 +40,7 @@ open LeanVM.Protocol.Verifier (eOfNat)
 def fIdx (c z s : Nat) : Nat := 2 ^ (10 - z) * c + s >>> z
 
 /-- The address of tree `c`'s node at height `z` on the path of leaf `s`, `A1` the trees'. -/
-def fAdrE (A1 : E) (c z s : Nat) : E := A1 + word 0 (a1Hi z (fIdx c z s)) 0
+def fAdrE (A1 : E) (c z s : Nat) : E := A1 + word 0 (a1Hi z (fIdx c z s))
 
 theorem fIdx_lt {c z s : Nat} (hc : c < 24) (hz : z ≤ 10) (hs : s < 2 ^ 10) :
     fIdx c z s < 2 ^ 16 := by
@@ -113,7 +113,7 @@ theorem sAddK_next (a : V) (k : Nat) (w : E) (x : Nat) :
   unfold sAddK; split <;> rfl
 
 /-- The height's constant: `z · 2^88`, the height at bit `24` of limb `1`. -/
-theorem lit_height (z : Nat) (hz : z < 2 ^ 8) : lit (2 ^ 88 * z) = word 0 (a1Hi z 0) 0 := by
+theorem lit_height (z : Nat) (hz : z < 2 ^ 8) : lit (2 ^ 88 * z) = word 0 (a1Hi z 0) := by
   rw [show 2 ^ 88 * z = 2 ^ 64 * (2 ^ 24 * z) by ring, lit_hi (by omega)]
   simp [a1Hi]
 

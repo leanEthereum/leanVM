@@ -8,26 +8,24 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F1_0
-public import LeanVM.Guest.Checked.F8_0
-public import LeanVM.Guest.Checked.F8_0
-public import LeanVM.Guest.Checked.F12_3
-public import LeanVM.Guest.Checked.F12_3
-public import LeanVM.Guest.Checked.F13_2
-public import LeanVM.Guest.Checked.F18_0
-public import LeanVM.Guest.Checked.F18_0
-public import LeanVM.Guest.Checked.F18_0
-public import LeanVM.Guest.Checked.F20_2
-public import LeanVM.Guest.Checked.F20_7
-public import LeanVM.Guest.Checked.F20_12
-public import LeanVM.Guest.Checked.F20_17
-public import LeanVM.Guest.Checked.F20_17
-public import LeanVM.Guest.Checked.F21_4
-public import LeanVM.Guest.Checked.F21_12
-public import LeanVM.Guest.Checked.F21_20
-public import LeanVM.Guest.Checked.F24_0
-public import LeanVM.Guest.Checked.F31_1
-public import LeanVM.Guest.Checked.F31_1
+meta import LeanVM.Guest.KernelLit
+import LeanVM.Guest.Checked.Link0
+import LeanVM.Guest.Checked.Link1
+import LeanVM.Guest.Checked.Link2
+import LeanVM.Guest.Checked.Link3
+import LeanVM.Guest.Checked.Link4
+import LeanVM.Guest.Checked.Link5
+import LeanVM.Guest.Checked.Link6
+import LeanVM.Guest.Checked.Link7
+import LeanVM.Guest.Checked.Link8
+import LeanVM.Guest.Checked.Link9
+import LeanVM.Guest.Checked.Link10
+import LeanVM.Guest.Checked.Link11
+import LeanVM.Guest.Checked.Link12
+import LeanVM.Guest.Checked.Link13
+import LeanVM.Guest.Checked.Link14
+import LeanVM.Guest.Checked.Link15
+import LeanVM.Guest.Checked.Link16
 public import LeanVM.Guest.Checked.F37_1
 public import LeanVM.Guest.Checked.F37_2
 public import LeanVM.Guest.Checked.F37_3
@@ -44,9 +42,7 @@ public import LeanVM.Guest.Checked.F37_13
 public import LeanVM.Guest.Checked.F37_14
 public import LeanVM.Guest.Checked.F37_15
 public import LeanVM.Guest.Checked.F37_17
-public import LeanVM.Guest.Checked.F37_18
 public import LeanVM.Guest.Checked.F37_19
-public import LeanVM.Guest.Checked.F37_20
 public import LeanVM.Guest.Checked.F37_21
 public import LeanVM.Guest.Checked.F37_22
 public import LeanVM.Guest.Checked.F37_23
@@ -63,13 +59,224 @@ public import LeanVM.Guest.Checked.F37_33
 public import LeanVM.Guest.Checked.F37_34
 public import LeanVM.Guest.Checked.F37_35
 public import LeanVM.Guest.Checked.F37_37
-public import LeanVM.Guest.Checked.F37_38
 public import LeanVM.Guest.Checked.F37_39
-public import LeanVM.Guest.Checked.F37_40
+public import LeanVM.Guest.Pack.«P8».Core
+public import LeanVM.Guest.Pack.«P8».Bundle
+public import LeanVM.Guest.Pack.«P42».Sig
+public import LeanVM.Guest.Pack.«P27».Sig
+public import LeanVM.Guest.Pack.«P29».Sig
+public import LeanVM.Guest.Pack.«P54».Sig
+public import LeanVM.Guest.Pack.«P4».Sig
+public import LeanVM.Guest.Pack.«P17».Sig
+public import LeanVM.Guest.Pack.«P62».Sig
+public import LeanVM.Guest.Pack.«P43».Sig
+public import LeanVM.Guest.Pack.«P24».Sig
+public import LeanVM.Guest.Pack.«P42».Core
+public import LeanVM.Guest.Pack.«P42».Bundle
+public import LeanVM.Guest.Pack.«P41».Core
+public import LeanVM.Guest.Pack.«P41».Bundle
+public import LeanVM.Guest.Pack.«P35».Core
+public import LeanVM.Guest.Pack.«P35».Bundle
+public import LeanVM.Guest.Pack.«P14».Core
+public import LeanVM.Guest.Pack.«P14».Bundle
+public import LeanVM.Guest.Pack.«P20».Sig
+public import LeanVM.Guest.Pack.«P39».Sig
+public import LeanVM.Guest.Pack.«P58».Sig
+public import LeanVM.Guest.Pack.«P13».Sig
+public import LeanVM.Guest.Pack.«P8».Sig
+public import LeanVM.Guest.Pack.«P46».Sig
+public import LeanVM.Guest.Pack.«P1».Sig
+public import LeanVM.Guest.Pack.«P60».Sig
+public import LeanVM.Guest.Pack.«P15».Sig
+public import LeanVM.Guest.Pack.«P53».Sig
+public import LeanVM.Guest.Pack.«P34».Sig
+public import LeanVM.Guest.Pack.«P41».Sig
+public import LeanVM.Guest.Pack.«P22».Sig
+public import LeanVM.Guest.Pack.«P3».Sig
+public import LeanVM.Guest.Pack.«P48».Sig
+public import LeanVM.Guest.Pack.«P10».Sig
+public import LeanVM.Guest.Pack.«P36».Sig
+public import LeanVM.Guest.Pack.«P55».Sig
+public import LeanVM.Guest.Pack.«P38».Sig
+public import LeanVM.Guest.Pack.«P57».Sig
+public import LeanVM.Guest.Pack.«P7».Sig
+public import LeanVM.Guest.Pack.«P52».Sig
+public import LeanVM.Guest.Pack.«P45».Sig
+public import LeanVM.Guest.Pack.«P26».Sig
+public import LeanVM.Guest.Pack.«P59».Sig
+public import LeanVM.Guest.Pack.«P40».Sig
+public import LeanVM.Guest.Pack.«P33».Sig
+public import LeanVM.Guest.Pack.«P14».Sig
+public import LeanVM.Guest.Pack.«P47».Sig
+public import LeanVM.Guest.Pack.«P28».Sig
+public import LeanVM.Guest.Pack.«P7».Core
+public import LeanVM.Guest.Pack.«P7».Bundle
+public import LeanVM.Guest.Pack.«P18».Sig
+public import LeanVM.Guest.Pack.«P21».Sig
+public import LeanVM.Guest.Pack.«P2».Sig
+public import LeanVM.Guest.Pack.«P9».Sig
+public import LeanVM.Guest.Pack.«P35».Sig
+public import LeanVM.Guest.Pack.«P16».Sig
+public import LeanVM.Guest.Pack.«P53».Core
+public import LeanVM.Guest.Pack.«P53».Bundle
+public import LeanVM.Guest.Pack.«P0».Core
+public import LeanVM.Guest.Pack.«P0».Bundle
+public import LeanVM.Guest.Pack.«P45».Core
+public import LeanVM.Guest.Pack.«P45».Bundle
+public import LeanVM.Guest.Pack.«P38».Core
+public import LeanVM.Guest.Pack.«P38».Bundle
+public import LeanVM.Guest.Pack.«P11».Sig
+public import LeanVM.Guest.Pack.«P56».Sig
+public import LeanVM.Guest.Pack.«P28».Core
+public import LeanVM.Guest.Pack.«P28».Bundle
+public import LeanVM.Guest.Pack.«P37».Sig
+public import LeanVM.Guest.Pack.«P44».Sig
+public import LeanVM.Guest.Pack.«P63».Sig
+public import LeanVM.Guest.Pack.«verify_tables».Core
+public import LeanVM.Guest.Pack.«verify_tables».Bundle
+public import LeanVM.Guest.Pack.«P49».Sig
+public import LeanVM.Guest.Pack.«P30».Sig
+public import LeanVM.Guest.Pack.«P61».Sig
+public import LeanVM.Guest.Pack.«P23».Sig
+public import LeanVM.Guest.Pack.«P25».Sig
+public import LeanVM.Guest.Pack.«P6».Sig
+public import LeanVM.Guest.Pack.«P0».Sig
+public import LeanVM.Guest.Pack.«P19».Sig
+public import LeanVM.Guest.Pack.«P50».Sig
+public import LeanVM.Guest.Pack.«P5».Sig
+public import LeanVM.Guest.Pack.«P51».Sig
+public import LeanVM.Guest.Pack.«P32».Sig
+public import LeanVM.Guest.Pack.«P12».Sig
+public import LeanVM.Guest.Pack.«P31».Sig
+public import LeanVM.Guest.Pack.«P3».Core
+public import LeanVM.Guest.Pack.«P3».Bundle
+public import LeanVM.Guest.Pack.«P56».Core
+public import LeanVM.Guest.Pack.«P56».Bundle
+public import LeanVM.Guest.Pack.«P9».Core
+public import LeanVM.Guest.Pack.«P9».Bundle
+public import LeanVM.Guest.Pack.«P51».Core
+public import LeanVM.Guest.Pack.«P51».Bundle
+public import LeanVM.Guest.Pack.«P32».Core
+public import LeanVM.Guest.Pack.«P32».Bundle
+public import LeanVM.Guest.Pack.«P17».Core
+public import LeanVM.Guest.Pack.«P17».Bundle
+public import LeanVM.Guest.Pack.«P33».Core
+public import LeanVM.Guest.Pack.«P33».Bundle
+public import LeanVM.Guest.Pack.«sp_wots».Core
+public import LeanVM.Guest.Pack.«sp_wots».Bundle
+public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Core
+public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
+public import LeanVM.Guest.Pack.«P27».Core
+public import LeanVM.Guest.Pack.«P27».Bundle
+public import LeanVM.Guest.Pack.«P29».Core
+public import LeanVM.Guest.Pack.«P29».Bundle
+public import LeanVM.Guest.Pack.«P16».Core
+public import LeanVM.Guest.Pack.«P16».Bundle
+public import LeanVM.Guest.Pack.«P34».Core
+public import LeanVM.Guest.Pack.«P34».Bundle
+public import LeanVM.Guest.Pack.«P63».Core
+public import LeanVM.Guest.Pack.«P63».Bundle
+public import LeanVM.Guest.Pack.«P54».Core
+public import LeanVM.Guest.Pack.«P54».Bundle
+public import LeanVM.Guest.Pack.«P49».Core
+public import LeanVM.Guest.Pack.«P49».Bundle
+public import LeanVM.Guest.Pack.«P24».Core
+public import LeanVM.Guest.Pack.«P24».Bundle
+public import LeanVM.Guest.Pack.«P4».Core
+public import LeanVM.Guest.Pack.«P4».Bundle
+public import LeanVM.Guest.Pack.«P62».Core
+public import LeanVM.Guest.Pack.«P62».Bundle
+public import LeanVM.Guest.Pack.«main_loop2».Core
+public import LeanVM.Guest.Pack.«P43».Bundle
+public import LeanVM.Guest.Pack.«P20».Core
+public import LeanVM.Guest.Pack.«P20».Bundle
+public import LeanVM.Guest.Pack.«P39».Core
+public import LeanVM.Guest.Pack.«P39».Bundle
+public import LeanVM.Guest.Pack.«P58».Core
+public import LeanVM.Guest.Pack.«P58».Bundle
+public import LeanVM.Guest.Pack.«P13».Core
+public import LeanVM.Guest.Pack.«P13».Bundle
+public import LeanVM.Guest.Pack.«P46».Core
+public import LeanVM.Guest.Pack.«P46».Bundle
+public import LeanVM.Guest.Pack.«P1».Core
+public import LeanVM.Guest.Pack.«P1».Bundle
+public import LeanVM.Guest.Pack.«P60».Core
+public import LeanVM.Guest.Pack.«P60».Bundle
+public import LeanVM.Guest.Pack.«P15».Core
+public import LeanVM.Guest.Pack.«P15».Bundle
+import LeanVM.Guest.Pack.«P8».Checked
+import LeanVM.Guest.Pack.«P42».Checked
+import LeanVM.Guest.Pack.«P41».Checked
+import LeanVM.Guest.Pack.«P35».Checked
+import LeanVM.Guest.Pack.«P14».Checked
+import LeanVM.Guest.Pack.«P7».Checked
+import LeanVM.Guest.Pack.«P53».Checked
+import LeanVM.Guest.Pack.«P0».Checked
+import LeanVM.Guest.Pack.«P45».Checked
+import LeanVM.Guest.Pack.«P38».Checked
+import LeanVM.Guest.Pack.«P28».Checked
+import LeanVM.Guest.Pack.«verify_tables».Checked0
+import LeanVM.Guest.Pack.«verify_tables».Checked8
+import LeanVM.Guest.Pack.«P3».Checked
+import LeanVM.Guest.Pack.«P56».Checked
+import LeanVM.Guest.Pack.«P9».Checked
+import LeanVM.Guest.Pack.«P51».Checked
+import LeanVM.Guest.Pack.«P32».Checked
+import LeanVM.Guest.Pack.«P17».Checked
+import LeanVM.Guest.Pack.«P33».Checked
+import LeanVM.Guest.Pack.«sp_wots».Checked0
+import LeanVM.Guest.Pack.«sp_wots».Checked5
+import LeanVM.Guest.Pack.«sp_wots».Checked10
+import LeanVM.Guest.Pack.«sp_wots».Checked15
+import LeanVM.Guest.Pack.«sp_wots».Checked20
+import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Checked0
+import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Checked8
+import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Checked16
+import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Checked24
+import LeanVM.Guest.Pack.«P27».Checked
+import LeanVM.Guest.Pack.«P29».Checked
+import LeanVM.Guest.Pack.«P16».Checked
+import LeanVM.Guest.Pack.«P34».Checked
+import LeanVM.Guest.Pack.«P63».Checked
+import LeanVM.Guest.Pack.«P54».Checked
+import LeanVM.Guest.Pack.«P49».Checked
+import LeanVM.Guest.Pack.«P24».Checked
+import LeanVM.Guest.Pack.«P4».Checked
+import LeanVM.Guest.Pack.«P62».Checked
+import LeanVM.Guest.Pack.«P43».Checked
+import LeanVM.Guest.Pack.«P20».Checked
+import LeanVM.Guest.Pack.«P39».Checked
+import LeanVM.Guest.Pack.«P58».Checked
+import LeanVM.Guest.Pack.«P13».Checked
+import LeanVM.Guest.Pack.«P46».Checked
+import LeanVM.Guest.Pack.«P1».Checked
+import LeanVM.Guest.Pack.«P60».Checked
+import LeanVM.Guest.Pack.«P15».Checked
 
 namespace LeanVM.Guest.Checked
 
+open LeanVM.Guest.Check
+
 @[expose] public section
+
+theorem link1 : Link 1 (Glob.ofSigs ([(2, Fn.«exponent_tables».sig), (22, Fn.«statement_digest».sig), (24, Fn.«claim_list_digest».sig), (28, Fn.«da_verify».sig), (34, Fn.«aggregate_claims».sig), (35, Fn.«main_loop0».sig), (36, Fn.«main_loop1».sig), (37, Fn.«main_loop2».sig), (38, Fn.«main_loop3».sig), (39, Fn.«main_loop4».sig)]) Data.jtTrie globSem)
+    Fn.«main».code Fn.«main».core (Fn.«main».cert.withPows Data.powTree) :=
+  Link.of code1 core1 cert1 
+    (SigsOk.cons sig2 rfl 
+    (SigsOk.cons sig22 rfl 
+    (SigsOk.cons sig24 rfl 
+    (SigsOk.cons sig28 rfl 
+    (SigsOk.cons sig34 rfl 
+    (SigsOk.cons sig35 rfl 
+    (SigsOk.cons sig36 rfl 
+    (SigsOk.cons sig37 rfl 
+    (SigsOk.cons sig38 rfl 
+    (SigsOk.cons sig39 rfl SigsOk.nil))))))))))
+    (by decide +kernel)
+
+theorem w1_0 : WinOk 1 0 := link1.win rfl Fn.«main».w0
+
+theorem w1_1 : WinOk 1 1 := link1.win rfl Fn.«main».w1
 
 theorem ok1 : CheckOk 1 := fun i hi ↦ by
   have h : (certOf 1).cuts.length = 1 := by decide +kernel
@@ -78,21 +285,189 @@ theorem ok1 : CheckOk 1 := fun i hi ↦ by
   · exact w1_0
   · exact w1_1
 
-theorem plain2 : Plain 2 := plain_of_nil (by decide +kernel)
+theorem link2 : Link 2 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«exponent_tables».code Fn.«exponent_tables».core (Fn.«exponent_tables».cert.withPows Data.powTree) :=
+  Link.of code2 core2 cert2 SigsOk.nil
+    (by decide +kernel)
+
+theorem w2_0 : WinOk 2 0 := link2.win rfl Fn.«exponent_tables».w0
+
+theorem w2_1 : WinOk 2 1 := link2.win rfl Fn.«exponent_tables».w1
+
+theorem w2_2 : WinOk 2 2 := link2.win rfl Fn.«exponent_tables».w2
+
+theorem w2_3 : WinOk 2 3 := link2.win rfl Fn.«exponent_tables».w3
+
+theorem w2_4 : WinOk 2 4 := link2.win rfl Fn.«exponent_tables».w4
+
+theorem w2_5 : WinOk 2 5 := link2.win rfl Fn.«exponent_tables».w5
+
+theorem w2_6 : WinOk 2 6 := link2.win rfl Fn.«exponent_tables».w6
+
+theorem w2_7 : WinOk 2 7 := link2.win rfl Fn.«exponent_tables».w7
+
+theorem ok2 : CheckOk 2 := fun i hi ↦ by
+  have h : (certOf 2).cuts.length = 7 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w2_0
+  · exact w2_1
+  · exact w2_2
+  · exact w2_3
+  · exact w2_4
+  · exact w2_5
+  · exact w2_6
+  · exact w2_7
+
+theorem plain2 : Plain 2 := by
+  unfold Plain
+  decide +kernel
+
+theorem link3 : Link 3 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«g_power_of_word».code Fn.«g_power_of_word».core (Fn.«g_power_of_word».cert.withPows Data.powTree) :=
+  Link.of code3 core3 cert3 SigsOk.nil
+    (by decide +kernel)
+
+theorem w3_0 : WinOk 3 0 := link3.win rfl Fn.«g_power_of_word».w0
+
+theorem ok3 : CheckOk 3 := checkOk_one (by decide +kernel) w3_0
 
 theorem plain3 : Plain 3 := plain_of_nil (by decide +kernel)
 
+theorem link4 : Link 4 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«assert_small_g_power».code Fn.«assert_small_g_power».core (Fn.«assert_small_g_power».cert.withPows Data.powTree) :=
+  Link.of code4 core4 cert4 SigsOk.nil
+    (by decide +kernel)
+
+theorem w4_0 : WinOk 4 0 := link4.win rfl Fn.«assert_small_g_power».w0
+
+theorem ok4 : CheckOk 4 := checkOk_one (by decide +kernel) w4_0
+
 theorem plain4 : Plain 4 := plain_of_nil (by decide +kernel)
+
+theorem link5 : Link 5 (Glob.ofSigs ([(40, Fn.«eq_prefix_run__L0».sig), (41, Fn.«eq_prefix_run__L1».sig), (42, Fn.«eq_prefix_run__L2».sig), (43, Fn.«eq_prefix_run__L3».sig), (44, Fn.«eq_prefix_run__L4».sig), (45, Fn.«eq_prefix_run__L5».sig), (46, Fn.«eq_prefix_run__L6».sig), (47, Fn.«eq_prefix_run__L7».sig), (48, Fn.«eq_prefix_run__L8».sig), (49, Fn.«eq_prefix_run__L9».sig), (50, Fn.«eq_prefix_run__L10».sig), (51, Fn.«eq_prefix_run__L11».sig), (52, Fn.«eq_prefix_run__L12».sig), (53, Fn.«eq_prefix_run__L13».sig), (54, Fn.«eq_prefix_run__L14».sig), (55, Fn.«eq_prefix_run__L15».sig)] ++ [(56, Fn.«eq_prefix_run__L16».sig), (57, Fn.«eq_prefix_run__L17».sig), (58, Fn.«eq_prefix_run__L18».sig), (59, Fn.«eq_prefix_run__L19».sig), (60, Fn.«eq_prefix_run__L20».sig), (61, Fn.«eq_prefix_run__L21».sig), (62, Fn.«eq_prefix_run__L22».sig), (63, Fn.«eq_prefix_run__L23».sig), (64, Fn.«eq_prefix_run__L24».sig), (65, Fn.«eq_prefix_run__L25».sig), (66, Fn.«eq_prefix_run__L26».sig), (67, Fn.«eq_prefix_run__L27».sig), (68, Fn.«eq_prefix_run__L28».sig), (69, Fn.«eq_prefix_run__L29».sig), (70, Fn.«eq_prefix_run__L30».sig), (71, Fn.«eq_prefix_run__L31».sig)] ++ [(72, Fn.«eq_prefix_run__L32».sig), (73, Fn.«eq_prefix_run__L33».sig), (74, Fn.«eq_prefix_run__L34».sig), (75, Fn.«eq_prefix_run__L35».sig), (76, Fn.«eq_prefix_run__L36».sig), (77, Fn.«eq_prefix_run__L37».sig), (78, Fn.«eq_prefix_run__L38».sig), (79, Fn.«eq_prefix_run__L39».sig), (80, Fn.«eq_prefix_run__L40».sig)]) Data.jtTrie globSem)
+    Fn.«eq_prefix_chain».code Fn.«eq_prefix_chain».core (Fn.«eq_prefix_chain».cert.withPows Data.powTree) :=
+  have h2 : SigsOk ([(72, Fn.«eq_prefix_run__L32».sig), (73, Fn.«eq_prefix_run__L33».sig), (74, Fn.«eq_prefix_run__L34».sig), (75, Fn.«eq_prefix_run__L35».sig), (76, Fn.«eq_prefix_run__L36».sig), (77, Fn.«eq_prefix_run__L37».sig), (78, Fn.«eq_prefix_run__L38».sig), (79, Fn.«eq_prefix_run__L39».sig), (80, Fn.«eq_prefix_run__L40».sig)]) :=
+    (SigsOk.cons sig72 rfl 
+    (SigsOk.cons sig73 rfl 
+    (SigsOk.cons sig74 rfl 
+    (SigsOk.cons sig75 rfl 
+    (SigsOk.cons sig76 rfl 
+    (SigsOk.cons sig77 rfl 
+    (SigsOk.cons sig78 rfl 
+    (SigsOk.cons sig79 rfl 
+    (SigsOk.cons sig80 rfl SigsOk.nil)))))))))
+  have h1 : SigsOk ([(56, Fn.«eq_prefix_run__L16».sig), (57, Fn.«eq_prefix_run__L17».sig), (58, Fn.«eq_prefix_run__L18».sig), (59, Fn.«eq_prefix_run__L19».sig), (60, Fn.«eq_prefix_run__L20».sig), (61, Fn.«eq_prefix_run__L21».sig), (62, Fn.«eq_prefix_run__L22».sig), (63, Fn.«eq_prefix_run__L23».sig), (64, Fn.«eq_prefix_run__L24».sig), (65, Fn.«eq_prefix_run__L25».sig), (66, Fn.«eq_prefix_run__L26».sig), (67, Fn.«eq_prefix_run__L27».sig), (68, Fn.«eq_prefix_run__L28».sig), (69, Fn.«eq_prefix_run__L29».sig), (70, Fn.«eq_prefix_run__L30».sig), (71, Fn.«eq_prefix_run__L31».sig)] ++ [(72, Fn.«eq_prefix_run__L32».sig), (73, Fn.«eq_prefix_run__L33».sig), (74, Fn.«eq_prefix_run__L34».sig), (75, Fn.«eq_prefix_run__L35».sig), (76, Fn.«eq_prefix_run__L36».sig), (77, Fn.«eq_prefix_run__L37».sig), (78, Fn.«eq_prefix_run__L38».sig), (79, Fn.«eq_prefix_run__L39».sig), (80, Fn.«eq_prefix_run__L40».sig)]) :=
+    SigsOk.append (l₁ := [(56, Fn.«eq_prefix_run__L16».sig), (57, Fn.«eq_prefix_run__L17».sig), (58, Fn.«eq_prefix_run__L18».sig), (59, Fn.«eq_prefix_run__L19».sig), (60, Fn.«eq_prefix_run__L20».sig), (61, Fn.«eq_prefix_run__L21».sig), (62, Fn.«eq_prefix_run__L22».sig), (63, Fn.«eq_prefix_run__L23».sig), (64, Fn.«eq_prefix_run__L24».sig), (65, Fn.«eq_prefix_run__L25».sig), (66, Fn.«eq_prefix_run__L26».sig), (67, Fn.«eq_prefix_run__L27».sig), (68, Fn.«eq_prefix_run__L28».sig), (69, Fn.«eq_prefix_run__L29».sig), (70, Fn.«eq_prefix_run__L30».sig), (71, Fn.«eq_prefix_run__L31».sig)]) (l₂ := ([(72, Fn.«eq_prefix_run__L32».sig), (73, Fn.«eq_prefix_run__L33».sig), (74, Fn.«eq_prefix_run__L34».sig), (75, Fn.«eq_prefix_run__L35».sig), (76, Fn.«eq_prefix_run__L36».sig), (77, Fn.«eq_prefix_run__L37».sig), (78, Fn.«eq_prefix_run__L38».sig), (79, Fn.«eq_prefix_run__L39».sig), (80, Fn.«eq_prefix_run__L40».sig)]))
+    
+    (SigsOk.cons sig56 rfl 
+    (SigsOk.cons sig57 rfl 
+    (SigsOk.cons sig58 rfl 
+    (SigsOk.cons sig59 rfl 
+    (SigsOk.cons sig60 rfl 
+    (SigsOk.cons sig61 rfl 
+    (SigsOk.cons sig62 rfl 
+    (SigsOk.cons sig63 rfl 
+    (SigsOk.cons sig64 rfl 
+    (SigsOk.cons sig65 rfl 
+    (SigsOk.cons sig66 rfl 
+    (SigsOk.cons sig67 rfl 
+    (SigsOk.cons sig68 rfl 
+    (SigsOk.cons sig69 rfl 
+    (SigsOk.cons sig70 rfl 
+    (SigsOk.cons sig71 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(40, Fn.«eq_prefix_run__L0».sig), (41, Fn.«eq_prefix_run__L1».sig), (42, Fn.«eq_prefix_run__L2».sig), (43, Fn.«eq_prefix_run__L3».sig), (44, Fn.«eq_prefix_run__L4».sig), (45, Fn.«eq_prefix_run__L5».sig), (46, Fn.«eq_prefix_run__L6».sig), (47, Fn.«eq_prefix_run__L7».sig), (48, Fn.«eq_prefix_run__L8».sig), (49, Fn.«eq_prefix_run__L9».sig), (50, Fn.«eq_prefix_run__L10».sig), (51, Fn.«eq_prefix_run__L11».sig), (52, Fn.«eq_prefix_run__L12».sig), (53, Fn.«eq_prefix_run__L13».sig), (54, Fn.«eq_prefix_run__L14».sig), (55, Fn.«eq_prefix_run__L15».sig)] ++ [(56, Fn.«eq_prefix_run__L16».sig), (57, Fn.«eq_prefix_run__L17».sig), (58, Fn.«eq_prefix_run__L18».sig), (59, Fn.«eq_prefix_run__L19».sig), (60, Fn.«eq_prefix_run__L20».sig), (61, Fn.«eq_prefix_run__L21».sig), (62, Fn.«eq_prefix_run__L22».sig), (63, Fn.«eq_prefix_run__L23».sig), (64, Fn.«eq_prefix_run__L24».sig), (65, Fn.«eq_prefix_run__L25».sig), (66, Fn.«eq_prefix_run__L26».sig), (67, Fn.«eq_prefix_run__L27».sig), (68, Fn.«eq_prefix_run__L28».sig), (69, Fn.«eq_prefix_run__L29».sig), (70, Fn.«eq_prefix_run__L30».sig), (71, Fn.«eq_prefix_run__L31».sig)] ++ [(72, Fn.«eq_prefix_run__L32».sig), (73, Fn.«eq_prefix_run__L33».sig), (74, Fn.«eq_prefix_run__L34».sig), (75, Fn.«eq_prefix_run__L35».sig), (76, Fn.«eq_prefix_run__L36».sig), (77, Fn.«eq_prefix_run__L37».sig), (78, Fn.«eq_prefix_run__L38».sig), (79, Fn.«eq_prefix_run__L39».sig), (80, Fn.«eq_prefix_run__L40».sig)]) :=
+    SigsOk.append (l₁ := [(40, Fn.«eq_prefix_run__L0».sig), (41, Fn.«eq_prefix_run__L1».sig), (42, Fn.«eq_prefix_run__L2».sig), (43, Fn.«eq_prefix_run__L3».sig), (44, Fn.«eq_prefix_run__L4».sig), (45, Fn.«eq_prefix_run__L5».sig), (46, Fn.«eq_prefix_run__L6».sig), (47, Fn.«eq_prefix_run__L7».sig), (48, Fn.«eq_prefix_run__L8».sig), (49, Fn.«eq_prefix_run__L9».sig), (50, Fn.«eq_prefix_run__L10».sig), (51, Fn.«eq_prefix_run__L11».sig), (52, Fn.«eq_prefix_run__L12».sig), (53, Fn.«eq_prefix_run__L13».sig), (54, Fn.«eq_prefix_run__L14».sig), (55, Fn.«eq_prefix_run__L15».sig)]) (l₂ := ([(56, Fn.«eq_prefix_run__L16».sig), (57, Fn.«eq_prefix_run__L17».sig), (58, Fn.«eq_prefix_run__L18».sig), (59, Fn.«eq_prefix_run__L19».sig), (60, Fn.«eq_prefix_run__L20».sig), (61, Fn.«eq_prefix_run__L21».sig), (62, Fn.«eq_prefix_run__L22».sig), (63, Fn.«eq_prefix_run__L23».sig), (64, Fn.«eq_prefix_run__L24».sig), (65, Fn.«eq_prefix_run__L25».sig), (66, Fn.«eq_prefix_run__L26».sig), (67, Fn.«eq_prefix_run__L27».sig), (68, Fn.«eq_prefix_run__L28».sig), (69, Fn.«eq_prefix_run__L29».sig), (70, Fn.«eq_prefix_run__L30».sig), (71, Fn.«eq_prefix_run__L31».sig)] ++ [(72, Fn.«eq_prefix_run__L32».sig), (73, Fn.«eq_prefix_run__L33».sig), (74, Fn.«eq_prefix_run__L34».sig), (75, Fn.«eq_prefix_run__L35».sig), (76, Fn.«eq_prefix_run__L36».sig), (77, Fn.«eq_prefix_run__L37».sig), (78, Fn.«eq_prefix_run__L38».sig), (79, Fn.«eq_prefix_run__L39».sig), (80, Fn.«eq_prefix_run__L40».sig)]))
+    
+    (SigsOk.cons sig40 rfl 
+    (SigsOk.cons sig41 rfl 
+    (SigsOk.cons sig42 rfl 
+    (SigsOk.cons sig43 rfl 
+    (SigsOk.cons sig44 rfl 
+    (SigsOk.cons sig45 rfl 
+    (SigsOk.cons sig46 rfl 
+    (SigsOk.cons sig47 rfl 
+    (SigsOk.cons sig48 rfl 
+    (SigsOk.cons sig49 rfl 
+    (SigsOk.cons sig50 rfl 
+    (SigsOk.cons sig51 rfl 
+    (SigsOk.cons sig52 rfl 
+    (SigsOk.cons sig53 rfl 
+    (SigsOk.cons sig54 rfl 
+    (SigsOk.cons sig55 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code5 core5 cert5 h0
+    (by decide +kernel)
+
+theorem w5_0 : WinOk 5 0 := link5.win rfl Fn.«eq_prefix_chain».w0
+
+theorem ok5 : CheckOk 5 := checkOk_one (by decide +kernel) w5_0
 
 theorem plain5 : Plain 5 := plain_of_nil (by decide +kernel)
 
+theorem link6 : Link 6 (Glob.ofSigs ([(81, Fn.«rs_eq_run_loop0».sig), (82, Fn.«rs_eq_rows__L0».sig), (83, Fn.«rs_eq_rows__L1».sig), (84, Fn.«rs_eq_rows__L2».sig), (85, Fn.«rs_eq_rows__L3».sig), (86, Fn.«rs_eq_rows__L4».sig), (87, Fn.«rs_eq_rows__L5».sig), (88, Fn.«rs_eq_rows__L6».sig), (89, Fn.«rs_eq_rows__L7».sig)]) Data.jtTrie globSem)
+    Fn.«rs_eq_run».code Fn.«rs_eq_run».core (Fn.«rs_eq_run».cert.withPows Data.powTree) :=
+  Link.of code6 core6 cert6 
+    (SigsOk.cons sig81 rfl 
+    (SigsOk.cons sig82 rfl 
+    (SigsOk.cons sig83 rfl 
+    (SigsOk.cons sig84 rfl 
+    (SigsOk.cons sig85 rfl 
+    (SigsOk.cons sig86 rfl 
+    (SigsOk.cons sig87 rfl 
+    (SigsOk.cons sig88 rfl 
+    (SigsOk.cons sig89 rfl SigsOk.nil)))))))))
+    (by decide +kernel)
+
+theorem w6_0 : WinOk 6 0 := link6.win rfl Fn.«rs_eq_run».w0
+
+theorem ok6 : CheckOk 6 := checkOk_one (by decide +kernel) w6_0
+
 theorem plain6 : Plain 6 := plain_of_nil (by decide +kernel)
+
+theorem link7 : Link 7 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«sumcheck_round4».code Fn.«sumcheck_round4».core (Fn.«sumcheck_round4».cert.withPows Data.powTree) :=
+  Link.of code7 core7 cert7 SigsOk.nil
+    (by decide +kernel)
+
+theorem w7_0 : WinOk 7 0 := link7.win rfl Fn.«sumcheck_round4».w0
+
+theorem ok7 : CheckOk 7 := checkOk_one (by decide +kernel) w7_0
 
 theorem plain7 : Plain 7 := plain_of_nil (by decide +kernel)
 
+theorem link8 : Link 8 (Glob.ofSigs ([(90, Fn.«grind_check__L7».sig)]) Data.jtTrie globSem)
+    Fn.«opening_round».code Fn.«opening_round».core (Fn.«opening_round».cert.withPows Data.powTree) :=
+  Link.of code8 core8 cert8 
+    (SigsOk.cons sig90 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w8_0 : WinOk 8 0 := link8.win rfl Fn.«opening_round».w0
+
+theorem ok8 : CheckOk 8 := checkOk_one (by decide +kernel) w8_0
+
 theorem plain8 : Plain 8 := plain_of_nil (by decide +kernel)
 
+theorem link9 : Link 9 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«opening_tail_round».code Fn.«opening_tail_round».core (Fn.«opening_tail_round».cert.withPows Data.powTree) :=
+  Link.of code9 core9 cert9 SigsOk.nil
+    (by decide +kernel)
+
+theorem w9_0 : WinOk 9 0 := link9.win rfl Fn.«opening_tail_round».w0
+
+theorem ok9 : CheckOk 9 := checkOk_one (by decide +kernel) w9_0
+
 theorem plain9 : Plain 9 := plain_of_nil (by decide +kernel)
+
+theorem link10 : Link 10 (Glob.ofSigs ([(91, Fn.«verify_bus_gkr_loop0».sig), (92, Fn.«verify_bus_gkr_loop1».sig)]) Data.jtTrie globSem)
+    Fn.«verify_bus_gkr».code Fn.«verify_bus_gkr».core (Fn.«verify_bus_gkr».cert.withPows Data.powTree) :=
+  Link.of code10 core10 cert10 
+    (SigsOk.cons sig91 rfl 
+    (SigsOk.cons sig92 rfl SigsOk.nil))
+    (by decide +kernel)
+
+theorem w10_0 : WinOk 10 0 := link10.win rfl Fn.«verify_bus_gkr».w0
+
+theorem w10_1 : WinOk 10 1 := link10.win rfl Fn.«verify_bus_gkr».w1
 
 theorem ok10 : CheckOk 10 := fun i hi ↦ by
   have h : (certOf 10).cuts.length = 1 := by decide +kernel
@@ -101,7 +476,246 @@ theorem ok10 : CheckOk 10 := fun i hi ↦ by
   · exact w10_0
   · exact w10_1
 
+theorem link11 : Link 11 (Glob.ofSigs ([(93, Fn.«shared_selector_tables_loop0».sig), (94, Fn.«sel_partial_nibble__L0».sig), (95, Fn.«sel_partial_nibble__L1».sig), (96, Fn.«sel_partial_nibble__L2».sig), (97, Fn.«sel_partial_nibble__L3».sig)]) Data.jtTrie globSem)
+    Fn.«shared_selector_tables».code Fn.«shared_selector_tables».core (Fn.«shared_selector_tables».cert.withPows Data.powTree) :=
+  Link.of code11 core11 cert11 
+    (SigsOk.cons sig93 rfl 
+    (SigsOk.cons sig94 rfl 
+    (SigsOk.cons sig95 rfl 
+    (SigsOk.cons sig96 rfl 
+    (SigsOk.cons sig97 rfl SigsOk.nil)))))
+    (by decide +kernel)
+
+theorem w11_0 : WinOk 11 0 := link11.win rfl Fn.«shared_selector_tables».w0
+
+theorem ok11 : CheckOk 11 := checkOk_one (by decide +kernel) w11_0
+
 theorem plain11 : Plain 11 := plain_of_nil (by decide +kernel)
+
+theorem link12 : Link 12 (Glob.ofSigs ([(5, Fn.«eq_prefix_chain».sig), (9, Fn.«opening_tail_round».sig), (11, Fn.«shared_selector_tables».sig), (98, Fn.«padding_weight__L0».sig), (99, Fn.«padding_weight__L1».sig), (100, Fn.«padding_weight__L2».sig), (101, Fn.«padding_weight__L3».sig), (102, Fn.«padding_weight__L4».sig), (103, Fn.«padding_weight__L5».sig), (104, Fn.«padding_weight__L6».sig), (105, Fn.«padding_weight__L7».sig), (106, Fn.«padding_weight__L8».sig), (107, Fn.«padding_weight__L9».sig), (108, Fn.«padding_weight__L10».sig), (109, Fn.«padding_weight__L11».sig), (110, Fn.«padding_weight__L12».sig)] ++ [(111, Fn.«padding_weight__L13».sig), (112, Fn.«padding_weight__L14».sig), (113, Fn.«padding_weight__L15».sig), (114, Fn.«padding_weight__L16».sig), (115, Fn.«padding_weight__L17».sig), (116, Fn.«padding_weight__L18».sig), (117, Fn.«padding_weight__L19».sig), (118, Fn.«padding_weight__L20».sig), (119, Fn.«padding_weight__L21».sig), (120, Fn.«padding_weight__L22».sig), (121, Fn.«padding_weight__L23».sig), (122, Fn.«padding_weight__L24».sig), (123, Fn.«padding_weight__L25».sig), (124, Fn.«padding_weight__L26».sig), (125, Fn.«padding_weight__L27».sig), (126, Fn.«padding_weight__L28».sig)] ++ [(127, Fn.«padding_weight__L29».sig), (128, Fn.«padding_weight__L30».sig), (129, Fn.«plus_one_run__L0».sig), (130, Fn.«plus_one_run__L1».sig), (131, Fn.«plus_one_run__L2».sig), (132, Fn.«plus_one_run__L3».sig), (133, Fn.«plus_one_run__L4».sig), (134, Fn.«plus_one_run__L5».sig), (135, Fn.«plus_one_run__L6».sig), (136, Fn.«plus_one_run__L7».sig), (137, Fn.«plus_one_run__L8».sig), (138, Fn.«plus_one_run__L9».sig), (139, Fn.«plus_one_run__L10».sig), (140, Fn.«plus_one_run__L11».sig), (141, Fn.«plus_one_run__L12».sig), (142, Fn.«plus_one_run__L13».sig)] ++ [(143, Fn.«plus_one_run__L14».sig), (144, Fn.«plus_one_run__L15».sig), (145, Fn.«plus_one_run__L16».sig), (146, Fn.«plus_one_run__L17».sig), (147, Fn.«plus_one_run__L18».sig), (148, Fn.«plus_one_run__L19».sig), (149, Fn.«plus_one_run__L20».sig), (150, Fn.«plus_one_run__L21».sig), (151, Fn.«plus_one_run__L22».sig), (152, Fn.«plus_one_run__L23».sig), (153, Fn.«plus_one_run__L24».sig), (154, Fn.«plus_one_run__L25».sig), (155, Fn.«plus_one_run__L26».sig), (156, Fn.«plus_one_run__L27».sig), (157, Fn.«plus_one_run__L28».sig), (158, Fn.«plus_one_run__L29».sig)] ++ [(159, Fn.«plus_one_run__L30».sig), (160, Fn.«plus_one_run__L31».sig), (161, Fn.«plus_one_run__L32».sig), (162, Fn.«plus_one_run__L33».sig), (163, Fn.«block_selector__L0».sig), (164, Fn.«block_selector__L1».sig), (165, Fn.«block_selector__L2».sig), (166, Fn.«block_selector__L3».sig), (167, Fn.«block_selector__L4».sig), (168, Fn.«block_selector__L5».sig), (169, Fn.«block_selector__L6».sig), (170, Fn.«block_selector__L7».sig), (171, Fn.«block_selector__L8».sig), (172, Fn.«block_selector__L9».sig), (173, Fn.«block_selector__L10».sig), (174, Fn.«block_selector__L11».sig)] ++ [(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)] ++ [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«verify_tables».code Fn.«verify_tables».core (Fn.«verify_tables».cert.withPows Data.powTree) :=
+  have h10 : SigsOk ([(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]) :=
+    (SigsOk.cons sig255 rfl 
+    (SigsOk.cons sig256 rfl 
+    (SigsOk.cons sig257 rfl 
+    (SigsOk.cons sig258 rfl 
+    (SigsOk.cons sig259 rfl 
+    (SigsOk.cons sig260 rfl 
+    (SigsOk.cons sig261 rfl 
+    (SigsOk.cons sig262 rfl 
+    (SigsOk.cons sig263 rfl 
+    (SigsOk.cons sig264 rfl 
+    (SigsOk.cons sig265 rfl SigsOk.nil)))))))))))
+  have h9 : SigsOk ([(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]) :=
+    SigsOk.append (l₁ := [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)]) (l₂ := ([(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]))
+    
+    (SigsOk.cons sig239 rfl 
+    (SigsOk.cons sig240 rfl 
+    (SigsOk.cons sig241 rfl 
+    (SigsOk.cons sig242 rfl 
+    (SigsOk.cons sig243 rfl 
+    (SigsOk.cons sig244 rfl 
+    (SigsOk.cons sig245 rfl 
+    (SigsOk.cons sig246 rfl 
+    (SigsOk.cons sig247 rfl 
+    (SigsOk.cons sig248 rfl 
+    (SigsOk.cons sig249 rfl 
+    (SigsOk.cons sig250 rfl 
+    (SigsOk.cons sig251 rfl 
+    (SigsOk.cons sig252 rfl 
+    (SigsOk.cons sig253 rfl 
+    (SigsOk.cons sig254 rfl SigsOk.nil)))))))))))))))) h10
+  have h8 : SigsOk ([(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]) :=
+    SigsOk.append (l₁ := [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)]) (l₂ := ([(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]))
+    
+    (SigsOk.cons sig223 rfl 
+    (SigsOk.cons sig224 rfl 
+    (SigsOk.cons sig225 rfl 
+    (SigsOk.cons sig226 rfl 
+    (SigsOk.cons sig227 rfl 
+    (SigsOk.cons sig228 rfl 
+    (SigsOk.cons sig229 rfl 
+    (SigsOk.cons sig230 rfl 
+    (SigsOk.cons sig231 rfl 
+    (SigsOk.cons sig232 rfl 
+    (SigsOk.cons sig233 rfl 
+    (SigsOk.cons sig234 rfl 
+    (SigsOk.cons sig235 rfl 
+    (SigsOk.cons sig236 rfl 
+    (SigsOk.cons sig237 rfl 
+    (SigsOk.cons sig238 rfl SigsOk.nil)))))))))))))))) h9
+  have h7 : SigsOk ([(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]) :=
+    SigsOk.append (l₁ := [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)]) (l₂ := ([(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]))
+    
+    (SigsOk.cons sig207 rfl 
+    (SigsOk.cons sig208 rfl 
+    (SigsOk.cons sig209 rfl 
+    (SigsOk.cons sig210 rfl 
+    (SigsOk.cons sig211 rfl 
+    (SigsOk.cons sig212 rfl 
+    (SigsOk.cons sig213 rfl 
+    (SigsOk.cons sig214 rfl 
+    (SigsOk.cons sig215 rfl 
+    (SigsOk.cons sig216 rfl 
+    (SigsOk.cons sig217 rfl 
+    (SigsOk.cons sig218 rfl 
+    (SigsOk.cons sig219 rfl 
+    (SigsOk.cons sig220 rfl 
+    (SigsOk.cons sig221 rfl 
+    (SigsOk.cons sig222 rfl SigsOk.nil)))))))))))))))) h8
+  have h6 : SigsOk ([(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]) :=
+    SigsOk.append (l₁ := [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)]) (l₂ := ([(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]))
+    
+    (SigsOk.cons sig191 rfl 
+    (SigsOk.cons sig192 rfl 
+    (SigsOk.cons sig193 rfl 
+    (SigsOk.cons sig194 rfl 
+    (SigsOk.cons sig195 rfl 
+    (SigsOk.cons sig196 rfl 
+    (SigsOk.cons sig197 rfl 
+    (SigsOk.cons sig198 rfl 
+    (SigsOk.cons sig199 rfl 
+    (SigsOk.cons sig200 rfl 
+    (SigsOk.cons sig201 rfl 
+    (SigsOk.cons sig202 rfl 
+    (SigsOk.cons sig203 rfl 
+    (SigsOk.cons sig204 rfl 
+    (SigsOk.cons sig205 rfl 
+    (SigsOk.cons sig206 rfl SigsOk.nil)))))))))))))))) h7
+  have h5 : SigsOk ([(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)] ++ [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]) :=
+    SigsOk.append (l₁ := [(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)]) (l₂ := ([(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]))
+    
+    (SigsOk.cons sig175 rfl 
+    (SigsOk.cons sig176 rfl 
+    (SigsOk.cons sig177 rfl 
+    (SigsOk.cons sig178 rfl 
+    (SigsOk.cons sig179 rfl 
+    (SigsOk.cons sig180 rfl 
+    (SigsOk.cons sig181 rfl 
+    (SigsOk.cons sig182 rfl 
+    (SigsOk.cons sig183 rfl 
+    (SigsOk.cons sig184 rfl 
+    (SigsOk.cons sig185 rfl 
+    (SigsOk.cons sig186 rfl 
+    (SigsOk.cons sig187 rfl 
+    (SigsOk.cons sig188 rfl 
+    (SigsOk.cons sig189 rfl 
+    (SigsOk.cons sig190 rfl SigsOk.nil)))))))))))))))) h6
+  have h4 : SigsOk ([(159, Fn.«plus_one_run__L30».sig), (160, Fn.«plus_one_run__L31».sig), (161, Fn.«plus_one_run__L32».sig), (162, Fn.«plus_one_run__L33».sig), (163, Fn.«block_selector__L0».sig), (164, Fn.«block_selector__L1».sig), (165, Fn.«block_selector__L2».sig), (166, Fn.«block_selector__L3».sig), (167, Fn.«block_selector__L4».sig), (168, Fn.«block_selector__L5».sig), (169, Fn.«block_selector__L6».sig), (170, Fn.«block_selector__L7».sig), (171, Fn.«block_selector__L8».sig), (172, Fn.«block_selector__L9».sig), (173, Fn.«block_selector__L10».sig), (174, Fn.«block_selector__L11».sig)] ++ [(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)] ++ [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]) :=
+    SigsOk.append (l₁ := [(159, Fn.«plus_one_run__L30».sig), (160, Fn.«plus_one_run__L31».sig), (161, Fn.«plus_one_run__L32».sig), (162, Fn.«plus_one_run__L33».sig), (163, Fn.«block_selector__L0».sig), (164, Fn.«block_selector__L1».sig), (165, Fn.«block_selector__L2».sig), (166, Fn.«block_selector__L3».sig), (167, Fn.«block_selector__L4».sig), (168, Fn.«block_selector__L5».sig), (169, Fn.«block_selector__L6».sig), (170, Fn.«block_selector__L7».sig), (171, Fn.«block_selector__L8».sig), (172, Fn.«block_selector__L9».sig), (173, Fn.«block_selector__L10».sig), (174, Fn.«block_selector__L11».sig)]) (l₂ := ([(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)] ++ [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]))
+    
+    (SigsOk.cons sig159 rfl 
+    (SigsOk.cons sig160 rfl 
+    (SigsOk.cons sig161 rfl 
+    (SigsOk.cons sig162 rfl 
+    (SigsOk.cons sig163 rfl 
+    (SigsOk.cons sig164 rfl 
+    (SigsOk.cons sig165 rfl 
+    (SigsOk.cons sig166 rfl 
+    (SigsOk.cons sig167 rfl 
+    (SigsOk.cons sig168 rfl 
+    (SigsOk.cons sig169 rfl 
+    (SigsOk.cons sig170 rfl 
+    (SigsOk.cons sig171 rfl 
+    (SigsOk.cons sig172 rfl 
+    (SigsOk.cons sig173 rfl 
+    (SigsOk.cons sig174 rfl SigsOk.nil)))))))))))))))) h5
+  have h3 : SigsOk ([(143, Fn.«plus_one_run__L14».sig), (144, Fn.«plus_one_run__L15».sig), (145, Fn.«plus_one_run__L16».sig), (146, Fn.«plus_one_run__L17».sig), (147, Fn.«plus_one_run__L18».sig), (148, Fn.«plus_one_run__L19».sig), (149, Fn.«plus_one_run__L20».sig), (150, Fn.«plus_one_run__L21».sig), (151, Fn.«plus_one_run__L22».sig), (152, Fn.«plus_one_run__L23».sig), (153, Fn.«plus_one_run__L24».sig), (154, Fn.«plus_one_run__L25».sig), (155, Fn.«plus_one_run__L26».sig), (156, Fn.«plus_one_run__L27».sig), (157, Fn.«plus_one_run__L28».sig), (158, Fn.«plus_one_run__L29».sig)] ++ [(159, Fn.«plus_one_run__L30».sig), (160, Fn.«plus_one_run__L31».sig), (161, Fn.«plus_one_run__L32».sig), (162, Fn.«plus_one_run__L33».sig), (163, Fn.«block_selector__L0».sig), (164, Fn.«block_selector__L1».sig), (165, Fn.«block_selector__L2».sig), (166, Fn.«block_selector__L3».sig), (167, Fn.«block_selector__L4».sig), (168, Fn.«block_selector__L5».sig), (169, Fn.«block_selector__L6».sig), (170, Fn.«block_selector__L7».sig), (171, Fn.«block_selector__L8».sig), (172, Fn.«block_selector__L9».sig), (173, Fn.«block_selector__L10».sig), (174, Fn.«block_selector__L11».sig)] ++ [(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)] ++ [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]) :=
+    SigsOk.append (l₁ := [(143, Fn.«plus_one_run__L14».sig), (144, Fn.«plus_one_run__L15».sig), (145, Fn.«plus_one_run__L16».sig), (146, Fn.«plus_one_run__L17».sig), (147, Fn.«plus_one_run__L18».sig), (148, Fn.«plus_one_run__L19».sig), (149, Fn.«plus_one_run__L20».sig), (150, Fn.«plus_one_run__L21».sig), (151, Fn.«plus_one_run__L22».sig), (152, Fn.«plus_one_run__L23».sig), (153, Fn.«plus_one_run__L24».sig), (154, Fn.«plus_one_run__L25».sig), (155, Fn.«plus_one_run__L26».sig), (156, Fn.«plus_one_run__L27».sig), (157, Fn.«plus_one_run__L28».sig), (158, Fn.«plus_one_run__L29».sig)]) (l₂ := ([(159, Fn.«plus_one_run__L30».sig), (160, Fn.«plus_one_run__L31».sig), (161, Fn.«plus_one_run__L32».sig), (162, Fn.«plus_one_run__L33».sig), (163, Fn.«block_selector__L0».sig), (164, Fn.«block_selector__L1».sig), (165, Fn.«block_selector__L2».sig), (166, Fn.«block_selector__L3».sig), (167, Fn.«block_selector__L4».sig), (168, Fn.«block_selector__L5».sig), (169, Fn.«block_selector__L6».sig), (170, Fn.«block_selector__L7».sig), (171, Fn.«block_selector__L8».sig), (172, Fn.«block_selector__L9».sig), (173, Fn.«block_selector__L10».sig), (174, Fn.«block_selector__L11».sig)] ++ [(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)] ++ [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]))
+    
+    (SigsOk.cons sig143 rfl 
+    (SigsOk.cons sig144 rfl 
+    (SigsOk.cons sig145 rfl 
+    (SigsOk.cons sig146 rfl 
+    (SigsOk.cons sig147 rfl 
+    (SigsOk.cons sig148 rfl 
+    (SigsOk.cons sig149 rfl 
+    (SigsOk.cons sig150 rfl 
+    (SigsOk.cons sig151 rfl 
+    (SigsOk.cons sig152 rfl 
+    (SigsOk.cons sig153 rfl 
+    (SigsOk.cons sig154 rfl 
+    (SigsOk.cons sig155 rfl 
+    (SigsOk.cons sig156 rfl 
+    (SigsOk.cons sig157 rfl 
+    (SigsOk.cons sig158 rfl SigsOk.nil)))))))))))))))) h4
+  have h2 : SigsOk ([(127, Fn.«padding_weight__L29».sig), (128, Fn.«padding_weight__L30».sig), (129, Fn.«plus_one_run__L0».sig), (130, Fn.«plus_one_run__L1».sig), (131, Fn.«plus_one_run__L2».sig), (132, Fn.«plus_one_run__L3».sig), (133, Fn.«plus_one_run__L4».sig), (134, Fn.«plus_one_run__L5».sig), (135, Fn.«plus_one_run__L6».sig), (136, Fn.«plus_one_run__L7».sig), (137, Fn.«plus_one_run__L8».sig), (138, Fn.«plus_one_run__L9».sig), (139, Fn.«plus_one_run__L10».sig), (140, Fn.«plus_one_run__L11».sig), (141, Fn.«plus_one_run__L12».sig), (142, Fn.«plus_one_run__L13».sig)] ++ [(143, Fn.«plus_one_run__L14».sig), (144, Fn.«plus_one_run__L15».sig), (145, Fn.«plus_one_run__L16».sig), (146, Fn.«plus_one_run__L17».sig), (147, Fn.«plus_one_run__L18».sig), (148, Fn.«plus_one_run__L19».sig), (149, Fn.«plus_one_run__L20».sig), (150, Fn.«plus_one_run__L21».sig), (151, Fn.«plus_one_run__L22».sig), (152, Fn.«plus_one_run__L23».sig), (153, Fn.«plus_one_run__L24».sig), (154, Fn.«plus_one_run__L25».sig), (155, Fn.«plus_one_run__L26».sig), (156, Fn.«plus_one_run__L27».sig), (157, Fn.«plus_one_run__L28».sig), (158, Fn.«plus_one_run__L29».sig)] ++ [(159, Fn.«plus_one_run__L30».sig), (160, Fn.«plus_one_run__L31».sig), (161, Fn.«plus_one_run__L32».sig), (162, Fn.«plus_one_run__L33».sig), (163, Fn.«block_selector__L0».sig), (164, Fn.«block_selector__L1».sig), (165, Fn.«block_selector__L2».sig), (166, Fn.«block_selector__L3».sig), (167, Fn.«block_selector__L4».sig), (168, Fn.«block_selector__L5».sig), (169, Fn.«block_selector__L6».sig), (170, Fn.«block_selector__L7».sig), (171, Fn.«block_selector__L8».sig), (172, Fn.«block_selector__L9».sig), (173, Fn.«block_selector__L10».sig), (174, Fn.«block_selector__L11».sig)] ++ [(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)] ++ [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]) :=
+    SigsOk.append (l₁ := [(127, Fn.«padding_weight__L29».sig), (128, Fn.«padding_weight__L30».sig), (129, Fn.«plus_one_run__L0».sig), (130, Fn.«plus_one_run__L1».sig), (131, Fn.«plus_one_run__L2».sig), (132, Fn.«plus_one_run__L3».sig), (133, Fn.«plus_one_run__L4».sig), (134, Fn.«plus_one_run__L5».sig), (135, Fn.«plus_one_run__L6».sig), (136, Fn.«plus_one_run__L7».sig), (137, Fn.«plus_one_run__L8».sig), (138, Fn.«plus_one_run__L9».sig), (139, Fn.«plus_one_run__L10».sig), (140, Fn.«plus_one_run__L11».sig), (141, Fn.«plus_one_run__L12».sig), (142, Fn.«plus_one_run__L13».sig)]) (l₂ := ([(143, Fn.«plus_one_run__L14».sig), (144, Fn.«plus_one_run__L15».sig), (145, Fn.«plus_one_run__L16».sig), (146, Fn.«plus_one_run__L17».sig), (147, Fn.«plus_one_run__L18».sig), (148, Fn.«plus_one_run__L19».sig), (149, Fn.«plus_one_run__L20».sig), (150, Fn.«plus_one_run__L21».sig), (151, Fn.«plus_one_run__L22».sig), (152, Fn.«plus_one_run__L23».sig), (153, Fn.«plus_one_run__L24».sig), (154, Fn.«plus_one_run__L25».sig), (155, Fn.«plus_one_run__L26».sig), (156, Fn.«plus_one_run__L27».sig), (157, Fn.«plus_one_run__L28».sig), (158, Fn.«plus_one_run__L29».sig)] ++ [(159, Fn.«plus_one_run__L30».sig), (160, Fn.«plus_one_run__L31».sig), (161, Fn.«plus_one_run__L32».sig), (162, Fn.«plus_one_run__L33».sig), (163, Fn.«block_selector__L0».sig), (164, Fn.«block_selector__L1».sig), (165, Fn.«block_selector__L2».sig), (166, Fn.«block_selector__L3».sig), (167, Fn.«block_selector__L4».sig), (168, Fn.«block_selector__L5».sig), (169, Fn.«block_selector__L6».sig), (170, Fn.«block_selector__L7».sig), (171, Fn.«block_selector__L8».sig), (172, Fn.«block_selector__L9».sig), (173, Fn.«block_selector__L10».sig), (174, Fn.«block_selector__L11».sig)] ++ [(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)] ++ [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]))
+    
+    (SigsOk.cons sig127 rfl 
+    (SigsOk.cons sig128 rfl 
+    (SigsOk.cons sig129 rfl 
+    (SigsOk.cons sig130 rfl 
+    (SigsOk.cons sig131 rfl 
+    (SigsOk.cons sig132 rfl 
+    (SigsOk.cons sig133 rfl 
+    (SigsOk.cons sig134 rfl 
+    (SigsOk.cons sig135 rfl 
+    (SigsOk.cons sig136 rfl 
+    (SigsOk.cons sig137 rfl 
+    (SigsOk.cons sig138 rfl 
+    (SigsOk.cons sig139 rfl 
+    (SigsOk.cons sig140 rfl 
+    (SigsOk.cons sig141 rfl 
+    (SigsOk.cons sig142 rfl SigsOk.nil)))))))))))))))) h3
+  have h1 : SigsOk ([(111, Fn.«padding_weight__L13».sig), (112, Fn.«padding_weight__L14».sig), (113, Fn.«padding_weight__L15».sig), (114, Fn.«padding_weight__L16».sig), (115, Fn.«padding_weight__L17».sig), (116, Fn.«padding_weight__L18».sig), (117, Fn.«padding_weight__L19».sig), (118, Fn.«padding_weight__L20».sig), (119, Fn.«padding_weight__L21».sig), (120, Fn.«padding_weight__L22».sig), (121, Fn.«padding_weight__L23».sig), (122, Fn.«padding_weight__L24».sig), (123, Fn.«padding_weight__L25».sig), (124, Fn.«padding_weight__L26».sig), (125, Fn.«padding_weight__L27».sig), (126, Fn.«padding_weight__L28».sig)] ++ [(127, Fn.«padding_weight__L29».sig), (128, Fn.«padding_weight__L30».sig), (129, Fn.«plus_one_run__L0».sig), (130, Fn.«plus_one_run__L1».sig), (131, Fn.«plus_one_run__L2».sig), (132, Fn.«plus_one_run__L3».sig), (133, Fn.«plus_one_run__L4».sig), (134, Fn.«plus_one_run__L5».sig), (135, Fn.«plus_one_run__L6».sig), (136, Fn.«plus_one_run__L7».sig), (137, Fn.«plus_one_run__L8».sig), (138, Fn.«plus_one_run__L9».sig), (139, Fn.«plus_one_run__L10».sig), (140, Fn.«plus_one_run__L11».sig), (141, Fn.«plus_one_run__L12».sig), (142, Fn.«plus_one_run__L13».sig)] ++ [(143, Fn.«plus_one_run__L14».sig), (144, Fn.«plus_one_run__L15».sig), (145, Fn.«plus_one_run__L16».sig), (146, Fn.«plus_one_run__L17».sig), (147, Fn.«plus_one_run__L18».sig), (148, Fn.«plus_one_run__L19».sig), (149, Fn.«plus_one_run__L20».sig), (150, Fn.«plus_one_run__L21».sig), (151, Fn.«plus_one_run__L22».sig), (152, Fn.«plus_one_run__L23».sig), (153, Fn.«plus_one_run__L24».sig), (154, Fn.«plus_one_run__L25».sig), (155, Fn.«plus_one_run__L26».sig), (156, Fn.«plus_one_run__L27».sig), (157, Fn.«plus_one_run__L28».sig), (158, Fn.«plus_one_run__L29».sig)] ++ [(159, Fn.«plus_one_run__L30».sig), (160, Fn.«plus_one_run__L31».sig), (161, Fn.«plus_one_run__L32».sig), (162, Fn.«plus_one_run__L33».sig), (163, Fn.«block_selector__L0».sig), (164, Fn.«block_selector__L1».sig), (165, Fn.«block_selector__L2».sig), (166, Fn.«block_selector__L3».sig), (167, Fn.«block_selector__L4».sig), (168, Fn.«block_selector__L5».sig), (169, Fn.«block_selector__L6».sig), (170, Fn.«block_selector__L7».sig), (171, Fn.«block_selector__L8».sig), (172, Fn.«block_selector__L9».sig), (173, Fn.«block_selector__L10».sig), (174, Fn.«block_selector__L11».sig)] ++ [(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)] ++ [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]) :=
+    SigsOk.append (l₁ := [(111, Fn.«padding_weight__L13».sig), (112, Fn.«padding_weight__L14».sig), (113, Fn.«padding_weight__L15».sig), (114, Fn.«padding_weight__L16».sig), (115, Fn.«padding_weight__L17».sig), (116, Fn.«padding_weight__L18».sig), (117, Fn.«padding_weight__L19».sig), (118, Fn.«padding_weight__L20».sig), (119, Fn.«padding_weight__L21».sig), (120, Fn.«padding_weight__L22».sig), (121, Fn.«padding_weight__L23».sig), (122, Fn.«padding_weight__L24».sig), (123, Fn.«padding_weight__L25».sig), (124, Fn.«padding_weight__L26».sig), (125, Fn.«padding_weight__L27».sig), (126, Fn.«padding_weight__L28».sig)]) (l₂ := ([(127, Fn.«padding_weight__L29».sig), (128, Fn.«padding_weight__L30».sig), (129, Fn.«plus_one_run__L0».sig), (130, Fn.«plus_one_run__L1».sig), (131, Fn.«plus_one_run__L2».sig), (132, Fn.«plus_one_run__L3».sig), (133, Fn.«plus_one_run__L4».sig), (134, Fn.«plus_one_run__L5».sig), (135, Fn.«plus_one_run__L6».sig), (136, Fn.«plus_one_run__L7».sig), (137, Fn.«plus_one_run__L8».sig), (138, Fn.«plus_one_run__L9».sig), (139, Fn.«plus_one_run__L10».sig), (140, Fn.«plus_one_run__L11».sig), (141, Fn.«plus_one_run__L12».sig), (142, Fn.«plus_one_run__L13».sig)] ++ [(143, Fn.«plus_one_run__L14».sig), (144, Fn.«plus_one_run__L15».sig), (145, Fn.«plus_one_run__L16».sig), (146, Fn.«plus_one_run__L17».sig), (147, Fn.«plus_one_run__L18».sig), (148, Fn.«plus_one_run__L19».sig), (149, Fn.«plus_one_run__L20».sig), (150, Fn.«plus_one_run__L21».sig), (151, Fn.«plus_one_run__L22».sig), (152, Fn.«plus_one_run__L23».sig), (153, Fn.«plus_one_run__L24».sig), (154, Fn.«plus_one_run__L25».sig), (155, Fn.«plus_one_run__L26».sig), (156, Fn.«plus_one_run__L27».sig), (157, Fn.«plus_one_run__L28».sig), (158, Fn.«plus_one_run__L29».sig)] ++ [(159, Fn.«plus_one_run__L30».sig), (160, Fn.«plus_one_run__L31».sig), (161, Fn.«plus_one_run__L32».sig), (162, Fn.«plus_one_run__L33».sig), (163, Fn.«block_selector__L0».sig), (164, Fn.«block_selector__L1».sig), (165, Fn.«block_selector__L2».sig), (166, Fn.«block_selector__L3».sig), (167, Fn.«block_selector__L4».sig), (168, Fn.«block_selector__L5».sig), (169, Fn.«block_selector__L6».sig), (170, Fn.«block_selector__L7».sig), (171, Fn.«block_selector__L8».sig), (172, Fn.«block_selector__L9».sig), (173, Fn.«block_selector__L10».sig), (174, Fn.«block_selector__L11».sig)] ++ [(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)] ++ [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]))
+    
+    (SigsOk.cons sig111 rfl 
+    (SigsOk.cons sig112 rfl 
+    (SigsOk.cons sig113 rfl 
+    (SigsOk.cons sig114 rfl 
+    (SigsOk.cons sig115 rfl 
+    (SigsOk.cons sig116 rfl 
+    (SigsOk.cons sig117 rfl 
+    (SigsOk.cons sig118 rfl 
+    (SigsOk.cons sig119 rfl 
+    (SigsOk.cons sig120 rfl 
+    (SigsOk.cons sig121 rfl 
+    (SigsOk.cons sig122 rfl 
+    (SigsOk.cons sig123 rfl 
+    (SigsOk.cons sig124 rfl 
+    (SigsOk.cons sig125 rfl 
+    (SigsOk.cons sig126 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(5, Fn.«eq_prefix_chain».sig), (9, Fn.«opening_tail_round».sig), (11, Fn.«shared_selector_tables».sig), (98, Fn.«padding_weight__L0».sig), (99, Fn.«padding_weight__L1».sig), (100, Fn.«padding_weight__L2».sig), (101, Fn.«padding_weight__L3».sig), (102, Fn.«padding_weight__L4».sig), (103, Fn.«padding_weight__L5».sig), (104, Fn.«padding_weight__L6».sig), (105, Fn.«padding_weight__L7».sig), (106, Fn.«padding_weight__L8».sig), (107, Fn.«padding_weight__L9».sig), (108, Fn.«padding_weight__L10».sig), (109, Fn.«padding_weight__L11».sig), (110, Fn.«padding_weight__L12».sig)] ++ [(111, Fn.«padding_weight__L13».sig), (112, Fn.«padding_weight__L14».sig), (113, Fn.«padding_weight__L15».sig), (114, Fn.«padding_weight__L16».sig), (115, Fn.«padding_weight__L17».sig), (116, Fn.«padding_weight__L18».sig), (117, Fn.«padding_weight__L19».sig), (118, Fn.«padding_weight__L20».sig), (119, Fn.«padding_weight__L21».sig), (120, Fn.«padding_weight__L22».sig), (121, Fn.«padding_weight__L23».sig), (122, Fn.«padding_weight__L24».sig), (123, Fn.«padding_weight__L25».sig), (124, Fn.«padding_weight__L26».sig), (125, Fn.«padding_weight__L27».sig), (126, Fn.«padding_weight__L28».sig)] ++ [(127, Fn.«padding_weight__L29».sig), (128, Fn.«padding_weight__L30».sig), (129, Fn.«plus_one_run__L0».sig), (130, Fn.«plus_one_run__L1».sig), (131, Fn.«plus_one_run__L2».sig), (132, Fn.«plus_one_run__L3».sig), (133, Fn.«plus_one_run__L4».sig), (134, Fn.«plus_one_run__L5».sig), (135, Fn.«plus_one_run__L6».sig), (136, Fn.«plus_one_run__L7».sig), (137, Fn.«plus_one_run__L8».sig), (138, Fn.«plus_one_run__L9».sig), (139, Fn.«plus_one_run__L10».sig), (140, Fn.«plus_one_run__L11».sig), (141, Fn.«plus_one_run__L12».sig), (142, Fn.«plus_one_run__L13».sig)] ++ [(143, Fn.«plus_one_run__L14».sig), (144, Fn.«plus_one_run__L15».sig), (145, Fn.«plus_one_run__L16».sig), (146, Fn.«plus_one_run__L17».sig), (147, Fn.«plus_one_run__L18».sig), (148, Fn.«plus_one_run__L19».sig), (149, Fn.«plus_one_run__L20».sig), (150, Fn.«plus_one_run__L21».sig), (151, Fn.«plus_one_run__L22».sig), (152, Fn.«plus_one_run__L23».sig), (153, Fn.«plus_one_run__L24».sig), (154, Fn.«plus_one_run__L25».sig), (155, Fn.«plus_one_run__L26».sig), (156, Fn.«plus_one_run__L27».sig), (157, Fn.«plus_one_run__L28».sig), (158, Fn.«plus_one_run__L29».sig)] ++ [(159, Fn.«plus_one_run__L30».sig), (160, Fn.«plus_one_run__L31».sig), (161, Fn.«plus_one_run__L32».sig), (162, Fn.«plus_one_run__L33».sig), (163, Fn.«block_selector__L0».sig), (164, Fn.«block_selector__L1».sig), (165, Fn.«block_selector__L2».sig), (166, Fn.«block_selector__L3».sig), (167, Fn.«block_selector__L4».sig), (168, Fn.«block_selector__L5».sig), (169, Fn.«block_selector__L6».sig), (170, Fn.«block_selector__L7».sig), (171, Fn.«block_selector__L8».sig), (172, Fn.«block_selector__L9».sig), (173, Fn.«block_selector__L10».sig), (174, Fn.«block_selector__L11».sig)] ++ [(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)] ++ [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]) :=
+    SigsOk.append (l₁ := [(5, Fn.«eq_prefix_chain».sig), (9, Fn.«opening_tail_round».sig), (11, Fn.«shared_selector_tables».sig), (98, Fn.«padding_weight__L0».sig), (99, Fn.«padding_weight__L1».sig), (100, Fn.«padding_weight__L2».sig), (101, Fn.«padding_weight__L3».sig), (102, Fn.«padding_weight__L4».sig), (103, Fn.«padding_weight__L5».sig), (104, Fn.«padding_weight__L6».sig), (105, Fn.«padding_weight__L7».sig), (106, Fn.«padding_weight__L8».sig), (107, Fn.«padding_weight__L9».sig), (108, Fn.«padding_weight__L10».sig), (109, Fn.«padding_weight__L11».sig), (110, Fn.«padding_weight__L12».sig)]) (l₂ := ([(111, Fn.«padding_weight__L13».sig), (112, Fn.«padding_weight__L14».sig), (113, Fn.«padding_weight__L15».sig), (114, Fn.«padding_weight__L16».sig), (115, Fn.«padding_weight__L17».sig), (116, Fn.«padding_weight__L18».sig), (117, Fn.«padding_weight__L19».sig), (118, Fn.«padding_weight__L20».sig), (119, Fn.«padding_weight__L21».sig), (120, Fn.«padding_weight__L22».sig), (121, Fn.«padding_weight__L23».sig), (122, Fn.«padding_weight__L24».sig), (123, Fn.«padding_weight__L25».sig), (124, Fn.«padding_weight__L26».sig), (125, Fn.«padding_weight__L27».sig), (126, Fn.«padding_weight__L28».sig)] ++ [(127, Fn.«padding_weight__L29».sig), (128, Fn.«padding_weight__L30».sig), (129, Fn.«plus_one_run__L0».sig), (130, Fn.«plus_one_run__L1».sig), (131, Fn.«plus_one_run__L2».sig), (132, Fn.«plus_one_run__L3».sig), (133, Fn.«plus_one_run__L4».sig), (134, Fn.«plus_one_run__L5».sig), (135, Fn.«plus_one_run__L6».sig), (136, Fn.«plus_one_run__L7».sig), (137, Fn.«plus_one_run__L8».sig), (138, Fn.«plus_one_run__L9».sig), (139, Fn.«plus_one_run__L10».sig), (140, Fn.«plus_one_run__L11».sig), (141, Fn.«plus_one_run__L12».sig), (142, Fn.«plus_one_run__L13».sig)] ++ [(143, Fn.«plus_one_run__L14».sig), (144, Fn.«plus_one_run__L15».sig), (145, Fn.«plus_one_run__L16».sig), (146, Fn.«plus_one_run__L17».sig), (147, Fn.«plus_one_run__L18».sig), (148, Fn.«plus_one_run__L19».sig), (149, Fn.«plus_one_run__L20».sig), (150, Fn.«plus_one_run__L21».sig), (151, Fn.«plus_one_run__L22».sig), (152, Fn.«plus_one_run__L23».sig), (153, Fn.«plus_one_run__L24».sig), (154, Fn.«plus_one_run__L25».sig), (155, Fn.«plus_one_run__L26».sig), (156, Fn.«plus_one_run__L27».sig), (157, Fn.«plus_one_run__L28».sig), (158, Fn.«plus_one_run__L29».sig)] ++ [(159, Fn.«plus_one_run__L30».sig), (160, Fn.«plus_one_run__L31».sig), (161, Fn.«plus_one_run__L32».sig), (162, Fn.«plus_one_run__L33».sig), (163, Fn.«block_selector__L0».sig), (164, Fn.«block_selector__L1».sig), (165, Fn.«block_selector__L2».sig), (166, Fn.«block_selector__L3».sig), (167, Fn.«block_selector__L4».sig), (168, Fn.«block_selector__L5».sig), (169, Fn.«block_selector__L6».sig), (170, Fn.«block_selector__L7».sig), (171, Fn.«block_selector__L8».sig), (172, Fn.«block_selector__L9».sig), (173, Fn.«block_selector__L10».sig), (174, Fn.«block_selector__L11».sig)] ++ [(175, Fn.«block_selector__L12».sig), (176, Fn.«block_selector__L13».sig), (177, Fn.«block_selector__L14».sig), (178, Fn.«block_selector__L15».sig), (179, Fn.«block_selector__L16».sig), (180, Fn.«block_selector__L17».sig), (181, Fn.«block_selector__L18».sig), (182, Fn.«block_selector__L19».sig), (183, Fn.«block_selector__L20».sig), (184, Fn.«block_selector__L21».sig), (185, Fn.«block_selector__L22».sig), (186, Fn.«block_selector__L23».sig), (187, Fn.«block_selector__L24».sig), (188, Fn.«block_selector__L25».sig), (189, Fn.«block_selector__L26».sig), (190, Fn.«block_selector__L27».sig)] ++ [(191, Fn.«block_selector__L28».sig), (192, Fn.«block_selector__L29».sig), (193, Fn.«block_selector__L30».sig), (194, Fn.«block_selector__L31».sig), (195, Fn.«block_selector__L32».sig), (196, Fn.«block_selector__L33».sig), (197, Fn.«index_mle__L0».sig), (198, Fn.«index_mle__L1».sig), (199, Fn.«index_mle__L2».sig), (200, Fn.«index_mle__L3».sig), (201, Fn.«index_mle__L4».sig), (202, Fn.«index_mle__L5».sig), (203, Fn.«index_mle__L6».sig), (204, Fn.«index_mle__L7».sig), (205, Fn.«index_mle__L8».sig), (206, Fn.«index_mle__L9».sig)] ++ [(207, Fn.«index_mle__L10».sig), (208, Fn.«index_mle__L11».sig), (209, Fn.«index_mle__L12».sig), (210, Fn.«index_mle__L13».sig), (211, Fn.«index_mle__L14».sig), (212, Fn.«index_mle__L15».sig), (213, Fn.«index_mle__L16».sig), (214, Fn.«index_mle__L17».sig), (215, Fn.«index_mle__L18».sig), (216, Fn.«index_mle__L19».sig), (217, Fn.«index_mle__L20».sig), (218, Fn.«index_mle__L21».sig), (219, Fn.«index_mle__L22».sig), (220, Fn.«index_mle__L23».sig), (221, Fn.«index_mle__L24».sig), (222, Fn.«index_mle__L25».sig)] ++ [(223, Fn.«index_mle__L26».sig), (224, Fn.«index_mle__L27».sig), (225, Fn.«index_mle__L28».sig), (226, Fn.«index_mle__L29».sig), (227, Fn.«index_mle__L30».sig), (228, Fn.«index_mle__L31».sig), (229, Fn.«index_mle__L32».sig), (230, Fn.«index_mle__L33».sig), (231, Fn.«block_selector_tab__L0».sig), (232, Fn.«block_selector_tab__L1».sig), (233, Fn.«block_selector_tab__L2».sig), (234, Fn.«block_selector_tab__L3».sig), (235, Fn.«block_selector_tab__L4».sig), (236, Fn.«block_selector_tab__L5».sig), (237, Fn.«block_selector_tab__L6».sig), (238, Fn.«block_selector_tab__L7».sig)] ++ [(239, Fn.«block_selector_tab__L8».sig), (240, Fn.«block_selector_tab__L9».sig), (241, Fn.«block_selector_tab__L10».sig), (242, Fn.«block_selector_tab__L11».sig), (243, Fn.«block_selector_tab__L12».sig), (244, Fn.«block_selector_tab__L13».sig), (245, Fn.«block_selector_tab__L14».sig), (246, Fn.«block_selector_tab__L15».sig), (247, Fn.«block_selector_tab__L16».sig), (248, Fn.«block_selector_tab__L17».sig), (249, Fn.«block_selector_tab__L18».sig), (250, Fn.«block_selector_tab__L19».sig), (251, Fn.«block_selector_tab__L20».sig), (252, Fn.«block_selector_tab__L21».sig), (253, Fn.«block_selector_tab__L22».sig), (254, Fn.«block_selector_tab__L23».sig)] ++ [(255, Fn.«block_selector_tab__L24».sig), (256, Fn.«block_selector_tab__L25».sig), (257, Fn.«block_selector_tab__L26».sig), (258, Fn.«block_selector_tab__L27».sig), (259, Fn.«block_selector_tab__L28».sig), (260, Fn.«block_selector_tab__L29».sig), (261, Fn.«block_selector_tab__L30».sig), (262, Fn.«block_selector_tab__L31».sig), (263, Fn.«block_selector_tab__L32».sig), (264, Fn.«block_selector_tab__L33».sig), (265, Fn.«verify_tables_loop0».sig)]))
+    
+    (SigsOk.cons sig5 rfl 
+    (SigsOk.cons sig9 rfl 
+    (SigsOk.cons sig11 rfl 
+    (SigsOk.cons sig98 rfl 
+    (SigsOk.cons sig99 rfl 
+    (SigsOk.cons sig100 rfl 
+    (SigsOk.cons sig101 rfl 
+    (SigsOk.cons sig102 rfl 
+    (SigsOk.cons sig103 rfl 
+    (SigsOk.cons sig104 rfl 
+    (SigsOk.cons sig105 rfl 
+    (SigsOk.cons sig106 rfl 
+    (SigsOk.cons sig107 rfl 
+    (SigsOk.cons sig108 rfl 
+    (SigsOk.cons sig109 rfl 
+    (SigsOk.cons sig110 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code12 core12 cert12 h0
+    (by decide +kernel)
+
+theorem w12_0 : WinOk 12 0 := link12.win rfl Fn.«verify_tables».w0
+
+theorem w12_1 : WinOk 12 1 := link12.win rfl Fn.«verify_tables».w1
+
+theorem w12_2 : WinOk 12 2 := link12.win rfl Fn.«verify_tables».w2
+
+theorem w12_3 : WinOk 12 3 := link12.win rfl Fn.«verify_tables».w3
+
+theorem w12_4 : WinOk 12 4 := link12.win rfl Fn.«verify_tables».w4
+
+theorem w12_5 : WinOk 12 5 := link12.win rfl Fn.«verify_tables».w5
+
+theorem w12_6 : WinOk 12 6 := link12.win rfl Fn.«verify_tables».w6
+
+theorem w12_7 : WinOk 12 7 := link12.win rfl Fn.«verify_tables».w7
+
+theorem w12_8 : WinOk 12 8 := link12.win rfl Fn.«verify_tables».w8
 
 theorem ok12 : CheckOk 12 := fun i hi ↦ by
   have h : (certOf 12).cuts.length = 8 := by decide +kernel
@@ -121,6 +735,30 @@ theorem plain12 : Plain 12 := by
   unfold Plain
   decide +kernel
 
+theorem link13 : Link 13 (Glob.ofSigs ([(266, Fn.«verify_keccak_loop0».sig), (267, Fn.«keccak_layer__L1».sig), (268, Fn.«keccak_layer__L0».sig), (269, Fn.«keccak_plain_rounds__L6_L0».sig), (270, Fn.«verify_keccak_loop1».sig), (271, Fn.«keccak_plain_rounds__L4_L1».sig), (272, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem)
+    Fn.«verify_keccak».code Fn.«verify_keccak».core (Fn.«verify_keccak».cert.withPows Data.powTree) :=
+  Link.of code13 core13 cert13 
+    (SigsOk.cons sig266 rfl 
+    (SigsOk.cons sig267 rfl 
+    (SigsOk.cons sig268 rfl 
+    (SigsOk.cons sig269 rfl 
+    (SigsOk.cons sig270 rfl 
+    (SigsOk.cons sig271 rfl 
+    (SigsOk.cons sig272 rfl SigsOk.nil)))))))
+    (by decide +kernel)
+
+theorem w13_0 : WinOk 13 0 := link13.win rfl Fn.«verify_keccak».w0
+
+theorem w13_1 : WinOk 13 1 := link13.win rfl Fn.«verify_keccak».w1
+
+theorem w13_2 : WinOk 13 2 := link13.win rfl Fn.«verify_keccak».w2
+
+theorem w13_3 : WinOk 13 3 := link13.win rfl Fn.«verify_keccak».w3
+
+theorem w13_4 : WinOk 13 4 := link13.win rfl Fn.«verify_keccak».w4
+
+theorem w13_5 : WinOk 13 5 := link13.win rfl Fn.«verify_keccak».w5
+
 theorem ok13 : CheckOk 13 := fun i hi ↦ by
   have h : (certOf 13).cuts.length = 5 := by decide +kernel
   rw [h] at hi
@@ -136,13 +774,104 @@ theorem plain13 : Plain 13 := by
   unfold Plain
   decide +kernel
 
+theorem link14 : Link 14 (Glob.ofSigs ([(273, Fn.«ring_switch_target_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«ring_switch_target».code Fn.«ring_switch_target».core (Fn.«ring_switch_target».cert.withPows Data.powTree) :=
+  Link.of code14 core14 cert14 
+    (SigsOk.cons sig273 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w14_0 : WinOk 14 0 := link14.win rfl Fn.«ring_switch_target».w0
+
+theorem ok14 : CheckOk 14 := checkOk_one (by decide +kernel) w14_0
+
 theorem plain14 : Plain 14 := plain_of_nil (by decide +kernel)
+
+theorem link15 : Link 15 (Glob.ofSigs ([(6, Fn.«rs_eq_run».sig)]) Data.jtTrie globSem)
+    Fn.«ring_switch_weight».code Fn.«ring_switch_weight».core (Fn.«ring_switch_weight».cert.withPows Data.powTree) :=
+  Link.of code15 core15 cert15 
+    (SigsOk.cons sig6 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w15_0 : WinOk 15 0 := link15.win rfl Fn.«ring_switch_weight».w0
+
+theorem ok15 : CheckOk 15 := checkOk_one (by decide +kernel) w15_0
 
 theorem plain15 : Plain 15 := plain_of_nil (by decide +kernel)
 
+theorem link16 : Link 16 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«certify_placement».code Fn.«certify_placement».core (Fn.«certify_placement».cert.withPows Data.powTree) :=
+  Link.of code16 core16 cert16 SigsOk.nil
+    (by decide +kernel)
+
+theorem w16_0 : WinOk 16 0 := link16.win rfl Fn.«certify_placement».w0
+
+theorem ok16 : CheckOk 16 := checkOk_one (by decide +kernel) w16_0
+
 theorem plain16 : Plain 16 := plain_of_nil (by decide +kernel)
 
+theorem link17 : Link 17 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«selector_tables».code Fn.«selector_tables».core (Fn.«selector_tables».cert.withPows Data.powTree) :=
+  Link.of code17 core17 cert17 SigsOk.nil
+    (by decide +kernel)
+
+theorem w17_0 : WinOk 17 0 := link17.win rfl Fn.«selector_tables».w0
+
+theorem ok17 : CheckOk 17 := checkOk_one (by decide +kernel) w17_0
+
 theorem plain17 : Plain 17 := plain_of_nil (by decide +kernel)
+
+theorem link18 : Link 18 (Glob.ofSigs ([(5, Fn.«eq_prefix_chain».sig), (15, Fn.«ring_switch_weight».sig), (17, Fn.«selector_tables».sig), (274, Fn.«check_opening_terminal_loop0».sig), (275, Fn.«column_selector__L0».sig), (276, Fn.«column_selector__L1».sig), (277, Fn.«column_selector__L2».sig), (278, Fn.«column_selector__L3».sig), (279, Fn.«column_selector__L4».sig), (280, Fn.«column_selector__L5».sig), (281, Fn.«column_selector__L6».sig), (282, Fn.«column_selector__L7».sig), (283, Fn.«column_selector__L8».sig), (284, Fn.«column_selector__L9».sig), (285, Fn.«column_selector__L10».sig), (286, Fn.«column_selector__L11».sig)] ++ [(287, Fn.«column_selector__L12».sig), (288, Fn.«column_selector__L13».sig), (289, Fn.«column_selector__L14».sig), (290, Fn.«column_selector__L15».sig), (291, Fn.«column_selector__L16».sig), (292, Fn.«column_selector__L17».sig), (293, Fn.«column_selector__L18».sig), (294, Fn.«column_selector__L19».sig), (295, Fn.«column_selector__L20».sig), (296, Fn.«column_selector__L21».sig), (297, Fn.«column_selector__L22».sig), (298, Fn.«column_selector__L23».sig), (299, Fn.«column_selector__L24».sig), (300, Fn.«column_selector__L25».sig), (301, Fn.«column_selector__L26».sig), (302, Fn.«column_selector__L27».sig)] ++ [(303, Fn.«column_selector__L28».sig), (304, Fn.«column_selector__L29».sig), (305, Fn.«column_selector__L30».sig)]) Data.jtTrie globSem)
+    Fn.«check_opening_terminal».code Fn.«check_opening_terminal».core (Fn.«check_opening_terminal».cert.withPows Data.powTree) :=
+  have h2 : SigsOk ([(303, Fn.«column_selector__L28».sig), (304, Fn.«column_selector__L29».sig), (305, Fn.«column_selector__L30».sig)]) :=
+    (SigsOk.cons sig303 rfl 
+    (SigsOk.cons sig304 rfl 
+    (SigsOk.cons sig305 rfl SigsOk.nil)))
+  have h1 : SigsOk ([(287, Fn.«column_selector__L12».sig), (288, Fn.«column_selector__L13».sig), (289, Fn.«column_selector__L14».sig), (290, Fn.«column_selector__L15».sig), (291, Fn.«column_selector__L16».sig), (292, Fn.«column_selector__L17».sig), (293, Fn.«column_selector__L18».sig), (294, Fn.«column_selector__L19».sig), (295, Fn.«column_selector__L20».sig), (296, Fn.«column_selector__L21».sig), (297, Fn.«column_selector__L22».sig), (298, Fn.«column_selector__L23».sig), (299, Fn.«column_selector__L24».sig), (300, Fn.«column_selector__L25».sig), (301, Fn.«column_selector__L26».sig), (302, Fn.«column_selector__L27».sig)] ++ [(303, Fn.«column_selector__L28».sig), (304, Fn.«column_selector__L29».sig), (305, Fn.«column_selector__L30».sig)]) :=
+    SigsOk.append (l₁ := [(287, Fn.«column_selector__L12».sig), (288, Fn.«column_selector__L13».sig), (289, Fn.«column_selector__L14».sig), (290, Fn.«column_selector__L15».sig), (291, Fn.«column_selector__L16».sig), (292, Fn.«column_selector__L17».sig), (293, Fn.«column_selector__L18».sig), (294, Fn.«column_selector__L19».sig), (295, Fn.«column_selector__L20».sig), (296, Fn.«column_selector__L21».sig), (297, Fn.«column_selector__L22».sig), (298, Fn.«column_selector__L23».sig), (299, Fn.«column_selector__L24».sig), (300, Fn.«column_selector__L25».sig), (301, Fn.«column_selector__L26».sig), (302, Fn.«column_selector__L27».sig)]) (l₂ := ([(303, Fn.«column_selector__L28».sig), (304, Fn.«column_selector__L29».sig), (305, Fn.«column_selector__L30».sig)]))
+    
+    (SigsOk.cons sig287 rfl 
+    (SigsOk.cons sig288 rfl 
+    (SigsOk.cons sig289 rfl 
+    (SigsOk.cons sig290 rfl 
+    (SigsOk.cons sig291 rfl 
+    (SigsOk.cons sig292 rfl 
+    (SigsOk.cons sig293 rfl 
+    (SigsOk.cons sig294 rfl 
+    (SigsOk.cons sig295 rfl 
+    (SigsOk.cons sig296 rfl 
+    (SigsOk.cons sig297 rfl 
+    (SigsOk.cons sig298 rfl 
+    (SigsOk.cons sig299 rfl 
+    (SigsOk.cons sig300 rfl 
+    (SigsOk.cons sig301 rfl 
+    (SigsOk.cons sig302 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(5, Fn.«eq_prefix_chain».sig), (15, Fn.«ring_switch_weight».sig), (17, Fn.«selector_tables».sig), (274, Fn.«check_opening_terminal_loop0».sig), (275, Fn.«column_selector__L0».sig), (276, Fn.«column_selector__L1».sig), (277, Fn.«column_selector__L2».sig), (278, Fn.«column_selector__L3».sig), (279, Fn.«column_selector__L4».sig), (280, Fn.«column_selector__L5».sig), (281, Fn.«column_selector__L6».sig), (282, Fn.«column_selector__L7».sig), (283, Fn.«column_selector__L8».sig), (284, Fn.«column_selector__L9».sig), (285, Fn.«column_selector__L10».sig), (286, Fn.«column_selector__L11».sig)] ++ [(287, Fn.«column_selector__L12».sig), (288, Fn.«column_selector__L13».sig), (289, Fn.«column_selector__L14».sig), (290, Fn.«column_selector__L15».sig), (291, Fn.«column_selector__L16».sig), (292, Fn.«column_selector__L17».sig), (293, Fn.«column_selector__L18».sig), (294, Fn.«column_selector__L19».sig), (295, Fn.«column_selector__L20».sig), (296, Fn.«column_selector__L21».sig), (297, Fn.«column_selector__L22».sig), (298, Fn.«column_selector__L23».sig), (299, Fn.«column_selector__L24».sig), (300, Fn.«column_selector__L25».sig), (301, Fn.«column_selector__L26».sig), (302, Fn.«column_selector__L27».sig)] ++ [(303, Fn.«column_selector__L28».sig), (304, Fn.«column_selector__L29».sig), (305, Fn.«column_selector__L30».sig)]) :=
+    SigsOk.append (l₁ := [(5, Fn.«eq_prefix_chain».sig), (15, Fn.«ring_switch_weight».sig), (17, Fn.«selector_tables».sig), (274, Fn.«check_opening_terminal_loop0».sig), (275, Fn.«column_selector__L0».sig), (276, Fn.«column_selector__L1».sig), (277, Fn.«column_selector__L2».sig), (278, Fn.«column_selector__L3».sig), (279, Fn.«column_selector__L4».sig), (280, Fn.«column_selector__L5».sig), (281, Fn.«column_selector__L6».sig), (282, Fn.«column_selector__L7».sig), (283, Fn.«column_selector__L8».sig), (284, Fn.«column_selector__L9».sig), (285, Fn.«column_selector__L10».sig), (286, Fn.«column_selector__L11».sig)]) (l₂ := ([(287, Fn.«column_selector__L12».sig), (288, Fn.«column_selector__L13».sig), (289, Fn.«column_selector__L14».sig), (290, Fn.«column_selector__L15».sig), (291, Fn.«column_selector__L16».sig), (292, Fn.«column_selector__L17».sig), (293, Fn.«column_selector__L18».sig), (294, Fn.«column_selector__L19».sig), (295, Fn.«column_selector__L20».sig), (296, Fn.«column_selector__L21».sig), (297, Fn.«column_selector__L22».sig), (298, Fn.«column_selector__L23».sig), (299, Fn.«column_selector__L24».sig), (300, Fn.«column_selector__L25».sig), (301, Fn.«column_selector__L26».sig), (302, Fn.«column_selector__L27».sig)] ++ [(303, Fn.«column_selector__L28».sig), (304, Fn.«column_selector__L29».sig), (305, Fn.«column_selector__L30».sig)]))
+    
+    (SigsOk.cons sig5 rfl 
+    (SigsOk.cons sig15 rfl 
+    (SigsOk.cons sig17 rfl 
+    (SigsOk.cons sig274 rfl 
+    (SigsOk.cons sig275 rfl 
+    (SigsOk.cons sig276 rfl 
+    (SigsOk.cons sig277 rfl 
+    (SigsOk.cons sig278 rfl 
+    (SigsOk.cons sig279 rfl 
+    (SigsOk.cons sig280 rfl 
+    (SigsOk.cons sig281 rfl 
+    (SigsOk.cons sig282 rfl 
+    (SigsOk.cons sig283 rfl 
+    (SigsOk.cons sig284 rfl 
+    (SigsOk.cons sig285 rfl 
+    (SigsOk.cons sig286 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code18 core18 cert18 h0
+    (by decide +kernel)
+
+theorem w18_0 : WinOk 18 0 := link18.win rfl Fn.«check_opening_terminal».w0
+
+theorem w18_1 : WinOk 18 1 := link18.win rfl Fn.«check_opening_terminal».w1
+
+theorem w18_2 : WinOk 18 2 := link18.win rfl Fn.«check_opening_terminal».w2
 
 theorem ok18 : CheckOk 18 := fun i hi ↦ by
   have h : (certOf 18).cuts.length = 2 := by decide +kernel
@@ -156,13 +885,129 @@ theorem plain18 : Plain 18 := by
   unfold Plain
   decide +kernel
 
+theorem link19 : Link 19 (Glob.ofSigs ([(3, Fn.«g_power_of_word».sig), (10, Fn.«verify_bus_gkr».sig), (12, Fn.«verify_tables».sig), (13, Fn.«verify_keccak».sig), (14, Fn.«ring_switch_target».sig), (16, Fn.«certify_placement».sig), (18, Fn.«check_opening_terminal».sig), (306, Fn.«log2_ceil_in_the_exponent__L0_L34».sig), (307, Fn.«log2_ceil_in_the_exponent__L16_L34».sig), (308, Fn.«grind_check__L15».sig), (309, Fn.«squeeze_point_from__L20».sig), (310, Fn.«squeeze_point_from__L21».sig), (311, Fn.«squeeze_point_from__L22».sig), (312, Fn.«squeeze_point_from__L23».sig), (313, Fn.«squeeze_point_from__L24».sig), (314, Fn.«squeeze_point_from__L25».sig)] ++ [(315, Fn.«squeeze_point_from__L26».sig), (316, Fn.«squeeze_point_from__L27».sig), (317, Fn.«squeeze_point_from__L28».sig), (318, Fn.«squeeze_point_from__L29».sig), (319, Fn.«squeeze_point_from__L30».sig), (320, Fn.«opening_message__L1_L1».sig), (321, Fn.«bus_grind_check__L0».sig), (322, Fn.«bus_grind_check__L1».sig), (323, Fn.«bus_grind_check__L2».sig), (324, Fn.«bus_grind_check__L3».sig), (325, Fn.«bus_grind_check__L4».sig), (326, Fn.«bus_grind_check__L5».sig), (327, Fn.«bus_grind_check__L6».sig), (328, Fn.«bus_grind_check__L7».sig), (329, Fn.«bus_grind_check__L8».sig), (330, Fn.«bus_grind_check__L9».sig)] ++ [(331, Fn.«bus_grind_check__L10».sig), (332, Fn.«bus_grind_check__L11».sig), (333, Fn.«bus_grind_check__L12».sig), (334, Fn.«bus_grind_check__L13».sig), (335, Fn.«grind_check__L13».sig), (336, Fn.«open_stacked__L0».sig), (337, Fn.«open_stacked__L1».sig), (338, Fn.«open_stacked__L2».sig), (339, Fn.«open_stacked__L3».sig), (340, Fn.«open_stacked__L4».sig), (341, Fn.«open_stacked__L5».sig), (342, Fn.«open_stacked__L6».sig), (343, Fn.«open_stacked__L7».sig), (344, Fn.«open_stacked__L8».sig), (345, Fn.«open_stacked__L9».sig), (346, Fn.«open_stacked__L10».sig)]) Data.jtTrie globSem)
+    Fn.«verify_sub».code Fn.«verify_sub».core (Fn.«verify_sub».cert.withPows Data.powTree) :=
+  have h2 : SigsOk ([(331, Fn.«bus_grind_check__L10».sig), (332, Fn.«bus_grind_check__L11».sig), (333, Fn.«bus_grind_check__L12».sig), (334, Fn.«bus_grind_check__L13».sig), (335, Fn.«grind_check__L13».sig), (336, Fn.«open_stacked__L0».sig), (337, Fn.«open_stacked__L1».sig), (338, Fn.«open_stacked__L2».sig), (339, Fn.«open_stacked__L3».sig), (340, Fn.«open_stacked__L4».sig), (341, Fn.«open_stacked__L5».sig), (342, Fn.«open_stacked__L6».sig), (343, Fn.«open_stacked__L7».sig), (344, Fn.«open_stacked__L8».sig), (345, Fn.«open_stacked__L9».sig), (346, Fn.«open_stacked__L10».sig)]) :=
+    (SigsOk.cons sig331 rfl 
+    (SigsOk.cons sig332 rfl 
+    (SigsOk.cons sig333 rfl 
+    (SigsOk.cons sig334 rfl 
+    (SigsOk.cons sig335 rfl 
+    (SigsOk.cons sig336 rfl 
+    (SigsOk.cons sig337 rfl 
+    (SigsOk.cons sig338 rfl 
+    (SigsOk.cons sig339 rfl 
+    (SigsOk.cons sig340 rfl 
+    (SigsOk.cons sig341 rfl 
+    (SigsOk.cons sig342 rfl 
+    (SigsOk.cons sig343 rfl 
+    (SigsOk.cons sig344 rfl 
+    (SigsOk.cons sig345 rfl 
+    (SigsOk.cons sig346 rfl SigsOk.nil))))))))))))))))
+  have h1 : SigsOk ([(315, Fn.«squeeze_point_from__L26».sig), (316, Fn.«squeeze_point_from__L27».sig), (317, Fn.«squeeze_point_from__L28».sig), (318, Fn.«squeeze_point_from__L29».sig), (319, Fn.«squeeze_point_from__L30».sig), (320, Fn.«opening_message__L1_L1».sig), (321, Fn.«bus_grind_check__L0».sig), (322, Fn.«bus_grind_check__L1».sig), (323, Fn.«bus_grind_check__L2».sig), (324, Fn.«bus_grind_check__L3».sig), (325, Fn.«bus_grind_check__L4».sig), (326, Fn.«bus_grind_check__L5».sig), (327, Fn.«bus_grind_check__L6».sig), (328, Fn.«bus_grind_check__L7».sig), (329, Fn.«bus_grind_check__L8».sig), (330, Fn.«bus_grind_check__L9».sig)] ++ [(331, Fn.«bus_grind_check__L10».sig), (332, Fn.«bus_grind_check__L11».sig), (333, Fn.«bus_grind_check__L12».sig), (334, Fn.«bus_grind_check__L13».sig), (335, Fn.«grind_check__L13».sig), (336, Fn.«open_stacked__L0».sig), (337, Fn.«open_stacked__L1».sig), (338, Fn.«open_stacked__L2».sig), (339, Fn.«open_stacked__L3».sig), (340, Fn.«open_stacked__L4».sig), (341, Fn.«open_stacked__L5».sig), (342, Fn.«open_stacked__L6».sig), (343, Fn.«open_stacked__L7».sig), (344, Fn.«open_stacked__L8».sig), (345, Fn.«open_stacked__L9».sig), (346, Fn.«open_stacked__L10».sig)]) :=
+    SigsOk.append (l₁ := [(315, Fn.«squeeze_point_from__L26».sig), (316, Fn.«squeeze_point_from__L27».sig), (317, Fn.«squeeze_point_from__L28».sig), (318, Fn.«squeeze_point_from__L29».sig), (319, Fn.«squeeze_point_from__L30».sig), (320, Fn.«opening_message__L1_L1».sig), (321, Fn.«bus_grind_check__L0».sig), (322, Fn.«bus_grind_check__L1».sig), (323, Fn.«bus_grind_check__L2».sig), (324, Fn.«bus_grind_check__L3».sig), (325, Fn.«bus_grind_check__L4».sig), (326, Fn.«bus_grind_check__L5».sig), (327, Fn.«bus_grind_check__L6».sig), (328, Fn.«bus_grind_check__L7».sig), (329, Fn.«bus_grind_check__L8».sig), (330, Fn.«bus_grind_check__L9».sig)]) (l₂ := ([(331, Fn.«bus_grind_check__L10».sig), (332, Fn.«bus_grind_check__L11».sig), (333, Fn.«bus_grind_check__L12».sig), (334, Fn.«bus_grind_check__L13».sig), (335, Fn.«grind_check__L13».sig), (336, Fn.«open_stacked__L0».sig), (337, Fn.«open_stacked__L1».sig), (338, Fn.«open_stacked__L2».sig), (339, Fn.«open_stacked__L3».sig), (340, Fn.«open_stacked__L4».sig), (341, Fn.«open_stacked__L5».sig), (342, Fn.«open_stacked__L6».sig), (343, Fn.«open_stacked__L7».sig), (344, Fn.«open_stacked__L8».sig), (345, Fn.«open_stacked__L9».sig), (346, Fn.«open_stacked__L10».sig)]))
+    
+    (SigsOk.cons sig315 rfl 
+    (SigsOk.cons sig316 rfl 
+    (SigsOk.cons sig317 rfl 
+    (SigsOk.cons sig318 rfl 
+    (SigsOk.cons sig319 rfl 
+    (SigsOk.cons sig320 rfl 
+    (SigsOk.cons sig321 rfl 
+    (SigsOk.cons sig322 rfl 
+    (SigsOk.cons sig323 rfl 
+    (SigsOk.cons sig324 rfl 
+    (SigsOk.cons sig325 rfl 
+    (SigsOk.cons sig326 rfl 
+    (SigsOk.cons sig327 rfl 
+    (SigsOk.cons sig328 rfl 
+    (SigsOk.cons sig329 rfl 
+    (SigsOk.cons sig330 rfl SigsOk.nil)))))))))))))))) h2
+  have h0 : SigsOk ([(3, Fn.«g_power_of_word».sig), (10, Fn.«verify_bus_gkr».sig), (12, Fn.«verify_tables».sig), (13, Fn.«verify_keccak».sig), (14, Fn.«ring_switch_target».sig), (16, Fn.«certify_placement».sig), (18, Fn.«check_opening_terminal».sig), (306, Fn.«log2_ceil_in_the_exponent__L0_L34».sig), (307, Fn.«log2_ceil_in_the_exponent__L16_L34».sig), (308, Fn.«grind_check__L15».sig), (309, Fn.«squeeze_point_from__L20».sig), (310, Fn.«squeeze_point_from__L21».sig), (311, Fn.«squeeze_point_from__L22».sig), (312, Fn.«squeeze_point_from__L23».sig), (313, Fn.«squeeze_point_from__L24».sig), (314, Fn.«squeeze_point_from__L25».sig)] ++ [(315, Fn.«squeeze_point_from__L26».sig), (316, Fn.«squeeze_point_from__L27».sig), (317, Fn.«squeeze_point_from__L28».sig), (318, Fn.«squeeze_point_from__L29».sig), (319, Fn.«squeeze_point_from__L30».sig), (320, Fn.«opening_message__L1_L1».sig), (321, Fn.«bus_grind_check__L0».sig), (322, Fn.«bus_grind_check__L1».sig), (323, Fn.«bus_grind_check__L2».sig), (324, Fn.«bus_grind_check__L3».sig), (325, Fn.«bus_grind_check__L4».sig), (326, Fn.«bus_grind_check__L5».sig), (327, Fn.«bus_grind_check__L6».sig), (328, Fn.«bus_grind_check__L7».sig), (329, Fn.«bus_grind_check__L8».sig), (330, Fn.«bus_grind_check__L9».sig)] ++ [(331, Fn.«bus_grind_check__L10».sig), (332, Fn.«bus_grind_check__L11».sig), (333, Fn.«bus_grind_check__L12».sig), (334, Fn.«bus_grind_check__L13».sig), (335, Fn.«grind_check__L13».sig), (336, Fn.«open_stacked__L0».sig), (337, Fn.«open_stacked__L1».sig), (338, Fn.«open_stacked__L2».sig), (339, Fn.«open_stacked__L3».sig), (340, Fn.«open_stacked__L4».sig), (341, Fn.«open_stacked__L5».sig), (342, Fn.«open_stacked__L6».sig), (343, Fn.«open_stacked__L7».sig), (344, Fn.«open_stacked__L8».sig), (345, Fn.«open_stacked__L9».sig), (346, Fn.«open_stacked__L10».sig)]) :=
+    SigsOk.append (l₁ := [(3, Fn.«g_power_of_word».sig), (10, Fn.«verify_bus_gkr».sig), (12, Fn.«verify_tables».sig), (13, Fn.«verify_keccak».sig), (14, Fn.«ring_switch_target».sig), (16, Fn.«certify_placement».sig), (18, Fn.«check_opening_terminal».sig), (306, Fn.«log2_ceil_in_the_exponent__L0_L34».sig), (307, Fn.«log2_ceil_in_the_exponent__L16_L34».sig), (308, Fn.«grind_check__L15».sig), (309, Fn.«squeeze_point_from__L20».sig), (310, Fn.«squeeze_point_from__L21».sig), (311, Fn.«squeeze_point_from__L22».sig), (312, Fn.«squeeze_point_from__L23».sig), (313, Fn.«squeeze_point_from__L24».sig), (314, Fn.«squeeze_point_from__L25».sig)]) (l₂ := ([(315, Fn.«squeeze_point_from__L26».sig), (316, Fn.«squeeze_point_from__L27».sig), (317, Fn.«squeeze_point_from__L28».sig), (318, Fn.«squeeze_point_from__L29».sig), (319, Fn.«squeeze_point_from__L30».sig), (320, Fn.«opening_message__L1_L1».sig), (321, Fn.«bus_grind_check__L0».sig), (322, Fn.«bus_grind_check__L1».sig), (323, Fn.«bus_grind_check__L2».sig), (324, Fn.«bus_grind_check__L3».sig), (325, Fn.«bus_grind_check__L4».sig), (326, Fn.«bus_grind_check__L5».sig), (327, Fn.«bus_grind_check__L6».sig), (328, Fn.«bus_grind_check__L7».sig), (329, Fn.«bus_grind_check__L8».sig), (330, Fn.«bus_grind_check__L9».sig)] ++ [(331, Fn.«bus_grind_check__L10».sig), (332, Fn.«bus_grind_check__L11».sig), (333, Fn.«bus_grind_check__L12».sig), (334, Fn.«bus_grind_check__L13».sig), (335, Fn.«grind_check__L13».sig), (336, Fn.«open_stacked__L0».sig), (337, Fn.«open_stacked__L1».sig), (338, Fn.«open_stacked__L2».sig), (339, Fn.«open_stacked__L3».sig), (340, Fn.«open_stacked__L4».sig), (341, Fn.«open_stacked__L5».sig), (342, Fn.«open_stacked__L6».sig), (343, Fn.«open_stacked__L7».sig), (344, Fn.«open_stacked__L8».sig), (345, Fn.«open_stacked__L9».sig), (346, Fn.«open_stacked__L10».sig)]))
+    
+    (SigsOk.cons sig3 rfl 
+    (SigsOk.cons sig10 rfl 
+    (SigsOk.cons sig12 rfl 
+    (SigsOk.cons sig13 rfl 
+    (SigsOk.cons sig14 rfl 
+    (SigsOk.cons sig16 rfl 
+    (SigsOk.cons sig18 rfl 
+    (SigsOk.cons sig306 rfl 
+    (SigsOk.cons sig307 rfl 
+    (SigsOk.cons sig308 rfl 
+    (SigsOk.cons sig309 rfl 
+    (SigsOk.cons sig310 rfl 
+    (SigsOk.cons sig311 rfl 
+    (SigsOk.cons sig312 rfl 
+    (SigsOk.cons sig313 rfl 
+    (SigsOk.cons sig314 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code19 core19 cert19 h0
+    (by decide +kernel)
+
+theorem w19_0 : WinOk 19 0 := link19.win rfl Fn.«verify_sub».w0
+
+theorem w19_1 : WinOk 19 1 := link19.win rfl Fn.«verify_sub».w1
+
+theorem w19_2 : WinOk 19 2 := link19.win rfl Fn.«verify_sub».w2
+
+theorem w19_3 : WinOk 19 3 := link19.win rfl Fn.«verify_sub».w3
+
 theorem ok19 : CheckOk 19 := fun i hi ↦ by
-  have h : (certOf 19).cuts.length = 2 := by decide +kernel
+  have h : (certOf 19).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w19_0
   · exact w19_1
   · exact w19_2
+  · exact w19_3
+
+theorem link20 : Link 20 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«sp_wots».code Fn.«sp_wots».core (Fn.«sp_wots».cert.withPows Data.powTree) :=
+  Link.of code20 core20 cert20 SigsOk.nil
+    (by decide +kernel)
+
+theorem w20_0 : WinOk 20 0 := link20.win rfl Fn.«sp_wots».w0
+
+theorem w20_1 : WinOk 20 1 := link20.win rfl Fn.«sp_wots».w1
+
+theorem w20_2 : WinOk 20 2 := link20.win rfl Fn.«sp_wots».w2
+
+theorem w20_3 : WinOk 20 3 := link20.win rfl Fn.«sp_wots».w3
+
+theorem w20_4 : WinOk 20 4 := link20.win rfl Fn.«sp_wots».w4
+
+theorem w20_5 : WinOk 20 5 := link20.win rfl Fn.«sp_wots».w5
+
+theorem w20_6 : WinOk 20 6 := link20.win rfl Fn.«sp_wots».w6
+
+theorem w20_7 : WinOk 20 7 := link20.win rfl Fn.«sp_wots».w7
+
+theorem w20_8 : WinOk 20 8 := link20.win rfl Fn.«sp_wots».w8
+
+theorem w20_9 : WinOk 20 9 := link20.win rfl Fn.«sp_wots».w9
+
+theorem w20_10 : WinOk 20 10 := link20.win rfl Fn.«sp_wots».w10
+
+theorem w20_11 : WinOk 20 11 := link20.win rfl Fn.«sp_wots».w11
+
+theorem w20_12 : WinOk 20 12 := link20.win rfl Fn.«sp_wots».w12
+
+theorem w20_13 : WinOk 20 13 := link20.win rfl Fn.«sp_wots».w13
+
+theorem w20_14 : WinOk 20 14 := link20.win rfl Fn.«sp_wots».w14
+
+theorem w20_15 : WinOk 20 15 := link20.win rfl Fn.«sp_wots».w15
+
+theorem w20_16 : WinOk 20 16 := link20.win rfl Fn.«sp_wots».w16
+
+theorem w20_17 : WinOk 20 17 := link20.win rfl Fn.«sp_wots».w17
+
+theorem w20_18 : WinOk 20 18 := link20.win rfl Fn.«sp_wots».w18
+
+theorem w20_19 : WinOk 20 19 := link20.win rfl Fn.«sp_wots».w19
+
+theorem w20_20 : WinOk 20 20 := link20.win rfl Fn.«sp_wots».w20
 
 theorem ok20 : CheckOk 20 := fun i hi ↦ by
   have h : (certOf 20).cuts.length = 20 := by decide +kernel
@@ -193,6 +1038,64 @@ theorem ok20 : CheckOk 20 := fun i hi ↦ by
 theorem plain20 : Plain 20 := by
   unfold Plain
   decide +kernel
+
+theorem link21 : Link 21 (Glob.ofSigs ([(20, Fn.«sp_wots».sig)]) Data.jtTrie globSem)
+    Fn.«verify_sig_lean_sphincs».code Fn.«verify_sig_lean_sphincs».core (Fn.«verify_sig_lean_sphincs».cert.withPows Data.powTree) :=
+  Link.of code21 core21 cert21 
+    (SigsOk.cons sig20 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w21_0 : WinOk 21 0 := link21.win rfl Fn.«verify_sig_lean_sphincs».w0
+
+theorem w21_1 : WinOk 21 1 := link21.win rfl Fn.«verify_sig_lean_sphincs».w1
+
+theorem w21_2 : WinOk 21 2 := link21.win rfl Fn.«verify_sig_lean_sphincs».w2
+
+theorem w21_3 : WinOk 21 3 := link21.win rfl Fn.«verify_sig_lean_sphincs».w3
+
+theorem w21_4 : WinOk 21 4 := link21.win rfl Fn.«verify_sig_lean_sphincs».w4
+
+theorem w21_5 : WinOk 21 5 := link21.win rfl Fn.«verify_sig_lean_sphincs».w5
+
+theorem w21_6 : WinOk 21 6 := link21.win rfl Fn.«verify_sig_lean_sphincs».w6
+
+theorem w21_7 : WinOk 21 7 := link21.win rfl Fn.«verify_sig_lean_sphincs».w7
+
+theorem w21_8 : WinOk 21 8 := link21.win rfl Fn.«verify_sig_lean_sphincs».w8
+
+theorem w21_9 : WinOk 21 9 := link21.win rfl Fn.«verify_sig_lean_sphincs».w9
+
+theorem w21_10 : WinOk 21 10 := link21.win rfl Fn.«verify_sig_lean_sphincs».w10
+
+theorem w21_11 : WinOk 21 11 := link21.win rfl Fn.«verify_sig_lean_sphincs».w11
+
+theorem w21_12 : WinOk 21 12 := link21.win rfl Fn.«verify_sig_lean_sphincs».w12
+
+theorem w21_13 : WinOk 21 13 := link21.win rfl Fn.«verify_sig_lean_sphincs».w13
+
+theorem w21_14 : WinOk 21 14 := link21.win rfl Fn.«verify_sig_lean_sphincs».w14
+
+theorem w21_15 : WinOk 21 15 := link21.win rfl Fn.«verify_sig_lean_sphincs».w15
+
+theorem w21_16 : WinOk 21 16 := link21.win rfl Fn.«verify_sig_lean_sphincs».w16
+
+theorem w21_17 : WinOk 21 17 := link21.win rfl Fn.«verify_sig_lean_sphincs».w17
+
+theorem w21_18 : WinOk 21 18 := link21.win rfl Fn.«verify_sig_lean_sphincs».w18
+
+theorem w21_19 : WinOk 21 19 := link21.win rfl Fn.«verify_sig_lean_sphincs».w19
+
+theorem w21_20 : WinOk 21 20 := link21.win rfl Fn.«verify_sig_lean_sphincs».w20
+
+theorem w21_21 : WinOk 21 21 := link21.win rfl Fn.«verify_sig_lean_sphincs».w21
+
+theorem w21_22 : WinOk 21 22 := link21.win rfl Fn.«verify_sig_lean_sphincs».w22
+
+theorem w21_23 : WinOk 21 23 := link21.win rfl Fn.«verify_sig_lean_sphincs».w23
+
+theorem w21_24 : WinOk 21 24 := link21.win rfl Fn.«verify_sig_lean_sphincs».w24
+
+theorem w21_25 : WinOk 21 25 := link21.win rfl Fn.«verify_sig_lean_sphincs».w25
 
 theorem ok21 : CheckOk 21 := fun i hi ↦ by
   have h : (certOf 21).cuts.length = 25 := by decide +kernel
@@ -229,23 +1132,209 @@ theorem plain21 : Plain 21 := by
   unfold Plain
   decide +kernel
 
+theorem link22 : Link 22 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«statement_digest».code Fn.«statement_digest».core (Fn.«statement_digest».cert.withPows Data.powTree) :=
+  Link.of code22 core22 cert22 SigsOk.nil
+    (by decide +kernel)
+
+theorem w22_0 : WinOk 22 0 := link22.win rfl Fn.«statement_digest».w0
+
+theorem ok22 : CheckOk 22 := checkOk_one (by decide +kernel) w22_0
+
 theorem plain22 : Plain 22 := plain_of_nil (by decide +kernel)
+
+theorem link23 : Link 23 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«list_split».code Fn.«list_split».core (Fn.«list_split».cert.withPows Data.powTree) :=
+  Link.of code23 core23 cert23 SigsOk.nil
+    (by decide +kernel)
+
+theorem w23_0 : WinOk 23 0 := link23.win rfl Fn.«list_split».w0
+
+theorem ok23 : CheckOk 23 := checkOk_one (by decide +kernel) w23_0
 
 theorem plain23 : Plain 23 := plain_of_nil (by decide +kernel)
 
+theorem link24 : Link 24 (Glob.ofSigs ([(23, Fn.«list_split».sig), (347, Fn.«claim_list_digest_loop0».sig), (348, Fn.«claim_list_digest_loop1».sig), (349, Fn.«claim_list_last__L0».sig), (350, Fn.«claim_list_last__L1».sig), (351, Fn.«claim_list_last__L2».sig), (352, Fn.«claim_list_last__L3».sig), (353, Fn.«claim_list_last__L4».sig), (354, Fn.«claim_list_last__L5».sig), (355, Fn.«claim_list_last__L6».sig), (356, Fn.«claim_list_last__L7».sig), (357, Fn.«claim_list_last__L8».sig), (358, Fn.«claim_list_last__L9».sig), (359, Fn.«claim_list_last__L10».sig), (360, Fn.«claim_list_last__L11».sig), (361, Fn.«claim_list_last__L12».sig)] ++ [(362, Fn.«claim_list_last__L13».sig), (363, Fn.«claim_list_last__L14».sig), (364, Fn.«claim_list_last__L15».sig), (365, Fn.«claim_list_last__L16».sig)]) Data.jtTrie globSem)
+    Fn.«claim_list_digest».code Fn.«claim_list_digest».core (Fn.«claim_list_digest».cert.withPows Data.powTree) :=
+  have h1 : SigsOk ([(362, Fn.«claim_list_last__L13».sig), (363, Fn.«claim_list_last__L14».sig), (364, Fn.«claim_list_last__L15».sig), (365, Fn.«claim_list_last__L16».sig)]) :=
+    (SigsOk.cons sig362 rfl 
+    (SigsOk.cons sig363 rfl 
+    (SigsOk.cons sig364 rfl 
+    (SigsOk.cons sig365 rfl SigsOk.nil))))
+  have h0 : SigsOk ([(23, Fn.«list_split».sig), (347, Fn.«claim_list_digest_loop0».sig), (348, Fn.«claim_list_digest_loop1».sig), (349, Fn.«claim_list_last__L0».sig), (350, Fn.«claim_list_last__L1».sig), (351, Fn.«claim_list_last__L2».sig), (352, Fn.«claim_list_last__L3».sig), (353, Fn.«claim_list_last__L4».sig), (354, Fn.«claim_list_last__L5».sig), (355, Fn.«claim_list_last__L6».sig), (356, Fn.«claim_list_last__L7».sig), (357, Fn.«claim_list_last__L8».sig), (358, Fn.«claim_list_last__L9».sig), (359, Fn.«claim_list_last__L10».sig), (360, Fn.«claim_list_last__L11».sig), (361, Fn.«claim_list_last__L12».sig)] ++ [(362, Fn.«claim_list_last__L13».sig), (363, Fn.«claim_list_last__L14».sig), (364, Fn.«claim_list_last__L15».sig), (365, Fn.«claim_list_last__L16».sig)]) :=
+    SigsOk.append (l₁ := [(23, Fn.«list_split».sig), (347, Fn.«claim_list_digest_loop0».sig), (348, Fn.«claim_list_digest_loop1».sig), (349, Fn.«claim_list_last__L0».sig), (350, Fn.«claim_list_last__L1».sig), (351, Fn.«claim_list_last__L2».sig), (352, Fn.«claim_list_last__L3».sig), (353, Fn.«claim_list_last__L4».sig), (354, Fn.«claim_list_last__L5».sig), (355, Fn.«claim_list_last__L6».sig), (356, Fn.«claim_list_last__L7».sig), (357, Fn.«claim_list_last__L8».sig), (358, Fn.«claim_list_last__L9».sig), (359, Fn.«claim_list_last__L10».sig), (360, Fn.«claim_list_last__L11».sig), (361, Fn.«claim_list_last__L12».sig)]) (l₂ := ([(362, Fn.«claim_list_last__L13».sig), (363, Fn.«claim_list_last__L14».sig), (364, Fn.«claim_list_last__L15».sig), (365, Fn.«claim_list_last__L16».sig)]))
+    
+    (SigsOk.cons sig23 rfl 
+    (SigsOk.cons sig347 rfl 
+    (SigsOk.cons sig348 rfl 
+    (SigsOk.cons sig349 rfl 
+    (SigsOk.cons sig350 rfl 
+    (SigsOk.cons sig351 rfl 
+    (SigsOk.cons sig352 rfl 
+    (SigsOk.cons sig353 rfl 
+    (SigsOk.cons sig354 rfl 
+    (SigsOk.cons sig355 rfl 
+    (SigsOk.cons sig356 rfl 
+    (SigsOk.cons sig357 rfl 
+    (SigsOk.cons sig358 rfl 
+    (SigsOk.cons sig359 rfl 
+    (SigsOk.cons sig360 rfl 
+    (SigsOk.cons sig361 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code24 core24 cert24 h0
+    (by decide +kernel)
+
+theorem w24_0 : WinOk 24 0 := link24.win rfl Fn.«claim_list_digest».w0
+
+theorem ok24 : CheckOk 24 := checkOk_one (by decide +kernel) w24_0
+
 theorem plain24 : Plain 24 := plain_of_nil (by decide +kernel)
+
+theorem link25 : Link 25 (Glob.ofSigs ([(23, Fn.«list_split».sig), (26, Fn.«child_claim_list_any».sig), (27, Fn.«child_claim_list_mono».sig)]) Data.jtTrie globSem)
+    Fn.«child_claim_list_digest».code Fn.«child_claim_list_digest».core (Fn.«child_claim_list_digest».cert.withPows Data.powTree) :=
+  Link.of code25 core25 cert25 
+    (SigsOk.cons sig23 rfl 
+    (SigsOk.cons sig26 rfl 
+    (SigsOk.cons sig27 rfl SigsOk.nil)))
+    (by decide +kernel)
+
+theorem w25_0 : WinOk 25 0 := link25.win rfl Fn.«child_claim_list_digest».w0
+
+theorem ok25 : CheckOk 25 := checkOk_one (by decide +kernel) w25_0
 
 theorem plain25 : Plain 25 := plain_of_nil (by decide +kernel)
 
+theorem link26 : Link 26 (Glob.ofSigs ([(366, Fn.«child_claim_list_any_loop0».sig), (367, Fn.«child_claim_list_any_loop1».sig), (368, Fn.«child_claim_list_last__L0».sig), (369, Fn.«child_claim_list_last__L1».sig), (370, Fn.«child_claim_list_last__L2».sig), (371, Fn.«child_claim_list_last__L3».sig), (372, Fn.«child_claim_list_last__L4».sig), (373, Fn.«child_claim_list_last__L5».sig), (374, Fn.«child_claim_list_last__L6».sig), (375, Fn.«child_claim_list_last__L7».sig), (376, Fn.«child_claim_list_last__L8».sig), (377, Fn.«child_claim_list_last__L9».sig), (378, Fn.«child_claim_list_last__L10».sig), (379, Fn.«child_claim_list_last__L11».sig), (380, Fn.«child_claim_list_last__L12».sig), (381, Fn.«child_claim_list_last__L13».sig)] ++ [(382, Fn.«child_claim_list_last__L14».sig), (383, Fn.«child_claim_list_last__L15».sig), (384, Fn.«child_claim_list_last__L16».sig)]) Data.jtTrie globSem)
+    Fn.«child_claim_list_any».code Fn.«child_claim_list_any».core (Fn.«child_claim_list_any».cert.withPows Data.powTree) :=
+  have h1 : SigsOk ([(382, Fn.«child_claim_list_last__L14».sig), (383, Fn.«child_claim_list_last__L15».sig), (384, Fn.«child_claim_list_last__L16».sig)]) :=
+    (SigsOk.cons sig382 rfl 
+    (SigsOk.cons sig383 rfl 
+    (SigsOk.cons sig384 rfl SigsOk.nil)))
+  have h0 : SigsOk ([(366, Fn.«child_claim_list_any_loop0».sig), (367, Fn.«child_claim_list_any_loop1».sig), (368, Fn.«child_claim_list_last__L0».sig), (369, Fn.«child_claim_list_last__L1».sig), (370, Fn.«child_claim_list_last__L2».sig), (371, Fn.«child_claim_list_last__L3».sig), (372, Fn.«child_claim_list_last__L4».sig), (373, Fn.«child_claim_list_last__L5».sig), (374, Fn.«child_claim_list_last__L6».sig), (375, Fn.«child_claim_list_last__L7».sig), (376, Fn.«child_claim_list_last__L8».sig), (377, Fn.«child_claim_list_last__L9».sig), (378, Fn.«child_claim_list_last__L10».sig), (379, Fn.«child_claim_list_last__L11».sig), (380, Fn.«child_claim_list_last__L12».sig), (381, Fn.«child_claim_list_last__L13».sig)] ++ [(382, Fn.«child_claim_list_last__L14».sig), (383, Fn.«child_claim_list_last__L15».sig), (384, Fn.«child_claim_list_last__L16».sig)]) :=
+    SigsOk.append (l₁ := [(366, Fn.«child_claim_list_any_loop0».sig), (367, Fn.«child_claim_list_any_loop1».sig), (368, Fn.«child_claim_list_last__L0».sig), (369, Fn.«child_claim_list_last__L1».sig), (370, Fn.«child_claim_list_last__L2».sig), (371, Fn.«child_claim_list_last__L3».sig), (372, Fn.«child_claim_list_last__L4».sig), (373, Fn.«child_claim_list_last__L5».sig), (374, Fn.«child_claim_list_last__L6».sig), (375, Fn.«child_claim_list_last__L7».sig), (376, Fn.«child_claim_list_last__L8».sig), (377, Fn.«child_claim_list_last__L9».sig), (378, Fn.«child_claim_list_last__L10».sig), (379, Fn.«child_claim_list_last__L11».sig), (380, Fn.«child_claim_list_last__L12».sig), (381, Fn.«child_claim_list_last__L13».sig)]) (l₂ := ([(382, Fn.«child_claim_list_last__L14».sig), (383, Fn.«child_claim_list_last__L15».sig), (384, Fn.«child_claim_list_last__L16».sig)]))
+    
+    (SigsOk.cons sig366 rfl 
+    (SigsOk.cons sig367 rfl 
+    (SigsOk.cons sig368 rfl 
+    (SigsOk.cons sig369 rfl 
+    (SigsOk.cons sig370 rfl 
+    (SigsOk.cons sig371 rfl 
+    (SigsOk.cons sig372 rfl 
+    (SigsOk.cons sig373 rfl 
+    (SigsOk.cons sig374 rfl 
+    (SigsOk.cons sig375 rfl 
+    (SigsOk.cons sig376 rfl 
+    (SigsOk.cons sig377 rfl 
+    (SigsOk.cons sig378 rfl 
+    (SigsOk.cons sig379 rfl 
+    (SigsOk.cons sig380 rfl 
+    (SigsOk.cons sig381 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code26 core26 cert26 h0
+    (by decide +kernel)
+
+theorem w26_0 : WinOk 26 0 := link26.win rfl Fn.«child_claim_list_any».w0
+
+theorem ok26 : CheckOk 26 := checkOk_one (by decide +kernel) w26_0
+
 theorem plain26 : Plain 26 := plain_of_nil (by decide +kernel)
+
+theorem link27 : Link 27 (Glob.ofSigs ([(385, Fn.«child_claim_list_mono_loop0».sig), (386, Fn.«child_claim_list_mono_loop1».sig), (387, Fn.«child_claim_list_mono_last__L0».sig), (388, Fn.«child_claim_list_mono_last__L1».sig), (389, Fn.«child_claim_list_mono_last__L2».sig), (390, Fn.«child_claim_list_mono_last__L3».sig), (391, Fn.«child_claim_list_mono_last__L4».sig), (392, Fn.«child_claim_list_mono_last__L5».sig), (393, Fn.«child_claim_list_mono_last__L6».sig), (394, Fn.«child_claim_list_mono_last__L7».sig), (395, Fn.«child_claim_list_mono_last__L8».sig), (396, Fn.«child_claim_list_mono_last__L9».sig), (397, Fn.«child_claim_list_mono_last__L10».sig), (398, Fn.«child_claim_list_mono_last__L11».sig), (399, Fn.«child_claim_list_mono_last__L12».sig), (400, Fn.«child_claim_list_mono_last__L13».sig)] ++ [(401, Fn.«child_claim_list_mono_last__L14».sig), (402, Fn.«child_claim_list_mono_last__L15».sig), (403, Fn.«child_claim_list_mono_last__L16».sig)]) Data.jtTrie globSem)
+    Fn.«child_claim_list_mono».code Fn.«child_claim_list_mono».core (Fn.«child_claim_list_mono».cert.withPows Data.powTree) :=
+  have h1 : SigsOk ([(401, Fn.«child_claim_list_mono_last__L14».sig), (402, Fn.«child_claim_list_mono_last__L15».sig), (403, Fn.«child_claim_list_mono_last__L16».sig)]) :=
+    (SigsOk.cons sig401 rfl 
+    (SigsOk.cons sig402 rfl 
+    (SigsOk.cons sig403 rfl SigsOk.nil)))
+  have h0 : SigsOk ([(385, Fn.«child_claim_list_mono_loop0».sig), (386, Fn.«child_claim_list_mono_loop1».sig), (387, Fn.«child_claim_list_mono_last__L0».sig), (388, Fn.«child_claim_list_mono_last__L1».sig), (389, Fn.«child_claim_list_mono_last__L2».sig), (390, Fn.«child_claim_list_mono_last__L3».sig), (391, Fn.«child_claim_list_mono_last__L4».sig), (392, Fn.«child_claim_list_mono_last__L5».sig), (393, Fn.«child_claim_list_mono_last__L6».sig), (394, Fn.«child_claim_list_mono_last__L7».sig), (395, Fn.«child_claim_list_mono_last__L8».sig), (396, Fn.«child_claim_list_mono_last__L9».sig), (397, Fn.«child_claim_list_mono_last__L10».sig), (398, Fn.«child_claim_list_mono_last__L11».sig), (399, Fn.«child_claim_list_mono_last__L12».sig), (400, Fn.«child_claim_list_mono_last__L13».sig)] ++ [(401, Fn.«child_claim_list_mono_last__L14».sig), (402, Fn.«child_claim_list_mono_last__L15».sig), (403, Fn.«child_claim_list_mono_last__L16».sig)]) :=
+    SigsOk.append (l₁ := [(385, Fn.«child_claim_list_mono_loop0».sig), (386, Fn.«child_claim_list_mono_loop1».sig), (387, Fn.«child_claim_list_mono_last__L0».sig), (388, Fn.«child_claim_list_mono_last__L1».sig), (389, Fn.«child_claim_list_mono_last__L2».sig), (390, Fn.«child_claim_list_mono_last__L3».sig), (391, Fn.«child_claim_list_mono_last__L4».sig), (392, Fn.«child_claim_list_mono_last__L5».sig), (393, Fn.«child_claim_list_mono_last__L6».sig), (394, Fn.«child_claim_list_mono_last__L7».sig), (395, Fn.«child_claim_list_mono_last__L8».sig), (396, Fn.«child_claim_list_mono_last__L9».sig), (397, Fn.«child_claim_list_mono_last__L10».sig), (398, Fn.«child_claim_list_mono_last__L11».sig), (399, Fn.«child_claim_list_mono_last__L12».sig), (400, Fn.«child_claim_list_mono_last__L13».sig)]) (l₂ := ([(401, Fn.«child_claim_list_mono_last__L14».sig), (402, Fn.«child_claim_list_mono_last__L15».sig), (403, Fn.«child_claim_list_mono_last__L16».sig)]))
+    
+    (SigsOk.cons sig385 rfl 
+    (SigsOk.cons sig386 rfl 
+    (SigsOk.cons sig387 rfl 
+    (SigsOk.cons sig388 rfl 
+    (SigsOk.cons sig389 rfl 
+    (SigsOk.cons sig390 rfl 
+    (SigsOk.cons sig391 rfl 
+    (SigsOk.cons sig392 rfl 
+    (SigsOk.cons sig393 rfl 
+    (SigsOk.cons sig394 rfl 
+    (SigsOk.cons sig395 rfl 
+    (SigsOk.cons sig396 rfl 
+    (SigsOk.cons sig397 rfl 
+    (SigsOk.cons sig398 rfl 
+    (SigsOk.cons sig399 rfl 
+    (SigsOk.cons sig400 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code27 core27 cert27 h0
+    (by decide +kernel)
+
+theorem w27_0 : WinOk 27 0 := link27.win rfl Fn.«child_claim_list_mono».w0
+
+theorem ok27 : CheckOk 27 := checkOk_one (by decide +kernel) w27_0
 
 theorem plain27 : Plain 27 := plain_of_nil (by decide +kernel)
 
+theorem link28 : Link 28 (Glob.ofSigs ([(29, Fn.«da_row_shape».sig), (32, Fn.«da_vector».sig), (404, Fn.«da_verify_loop0».sig), (405, Fn.«da_verify_loop1».sig), (406, Fn.«da_verify_loop2».sig), (407, Fn.«da_verify_loop3».sig), (408, Fn.«da_levels__L1_L0».sig), (409, Fn.«da_levels__L2_L1».sig), (410, Fn.«da_levels__L4_L2».sig), (411, Fn.«da_levels__L8_L3».sig), (412, Fn.«da_levels__L16_L4».sig), (413, Fn.«da_levels__L32_L5».sig), (414, Fn.«da_levels__L64_L6».sig), (415, Fn.«da_levels__L128_L7».sig), (416, Fn.«da_levels__L256_L8».sig), (417, Fn.«da_levels__L512_L9».sig)] ++ [(418, Fn.«da_levels__L1024_L10».sig)]) Data.jtTrie globSem)
+    Fn.«da_verify».code Fn.«da_verify».core (Fn.«da_verify».cert.withPows Data.powTree) :=
+  have h1 : SigsOk ([(418, Fn.«da_levels__L1024_L10».sig)]) :=
+    (SigsOk.cons sig418 rfl SigsOk.nil)
+  have h0 : SigsOk ([(29, Fn.«da_row_shape».sig), (32, Fn.«da_vector».sig), (404, Fn.«da_verify_loop0».sig), (405, Fn.«da_verify_loop1».sig), (406, Fn.«da_verify_loop2».sig), (407, Fn.«da_verify_loop3».sig), (408, Fn.«da_levels__L1_L0».sig), (409, Fn.«da_levels__L2_L1».sig), (410, Fn.«da_levels__L4_L2».sig), (411, Fn.«da_levels__L8_L3».sig), (412, Fn.«da_levels__L16_L4».sig), (413, Fn.«da_levels__L32_L5».sig), (414, Fn.«da_levels__L64_L6».sig), (415, Fn.«da_levels__L128_L7».sig), (416, Fn.«da_levels__L256_L8».sig), (417, Fn.«da_levels__L512_L9».sig)] ++ [(418, Fn.«da_levels__L1024_L10».sig)]) :=
+    SigsOk.append (l₁ := [(29, Fn.«da_row_shape».sig), (32, Fn.«da_vector».sig), (404, Fn.«da_verify_loop0».sig), (405, Fn.«da_verify_loop1».sig), (406, Fn.«da_verify_loop2».sig), (407, Fn.«da_verify_loop3».sig), (408, Fn.«da_levels__L1_L0».sig), (409, Fn.«da_levels__L2_L1».sig), (410, Fn.«da_levels__L4_L2».sig), (411, Fn.«da_levels__L8_L3».sig), (412, Fn.«da_levels__L16_L4».sig), (413, Fn.«da_levels__L32_L5».sig), (414, Fn.«da_levels__L64_L6».sig), (415, Fn.«da_levels__L128_L7».sig), (416, Fn.«da_levels__L256_L8».sig), (417, Fn.«da_levels__L512_L9».sig)]) (l₂ := ([(418, Fn.«da_levels__L1024_L10».sig)]))
+    
+    (SigsOk.cons sig29 rfl 
+    (SigsOk.cons sig32 rfl 
+    (SigsOk.cons sig404 rfl 
+    (SigsOk.cons sig405 rfl 
+    (SigsOk.cons sig406 rfl 
+    (SigsOk.cons sig407 rfl 
+    (SigsOk.cons sig408 rfl 
+    (SigsOk.cons sig409 rfl 
+    (SigsOk.cons sig410 rfl 
+    (SigsOk.cons sig411 rfl 
+    (SigsOk.cons sig412 rfl 
+    (SigsOk.cons sig413 rfl 
+    (SigsOk.cons sig414 rfl 
+    (SigsOk.cons sig415 rfl 
+    (SigsOk.cons sig416 rfl 
+    (SigsOk.cons sig417 rfl SigsOk.nil)))))))))))))))) h1
+  Link.of code28 core28 cert28 h0
+    (by decide +kernel)
+
+theorem w28_0 : WinOk 28 0 := link28.win rfl Fn.«da_verify».w0
+
+theorem ok28 : CheckOk 28 := checkOk_one (by decide +kernel) w28_0
+
 theorem plain28 : Plain 28 := plain_of_nil (by decide +kernel)
+
+theorem link29 : Link 29 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«da_row_shape».code Fn.«da_row_shape».core (Fn.«da_row_shape».cert.withPows Data.powTree) :=
+  Link.of code29 core29 cert29 SigsOk.nil
+    (by decide +kernel)
+
+theorem w29_0 : WinOk 29 0 := link29.win rfl Fn.«da_row_shape».w0
+
+theorem ok29 : CheckOk 29 := checkOk_one (by decide +kernel) w29_0
 
 theorem plain29 : Plain 29 := plain_of_nil (by decide +kernel)
 
+theorem link30 : Link 30 (Glob.ofSigs ([(419, Fn.«da_expand__L7_L8».sig), (420, Fn.«da_verify_column_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«da_verify_column».code Fn.«da_verify_column».core (Fn.«da_verify_column».cert.withPows Data.powTree) :=
+  Link.of code30 core30 cert30 
+    (SigsOk.cons sig419 rfl 
+    (SigsOk.cons sig420 rfl SigsOk.nil))
+    (by decide +kernel)
+
+theorem w30_0 : WinOk 30 0 := link30.win rfl Fn.«da_verify_column».w0
+
+theorem ok30 : CheckOk 30 := checkOk_one (by decide +kernel) w30_0
+
 theorem plain30 : Plain 30 := plain_of_nil (by decide +kernel)
+
+theorem link31 : Link 31 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«da_verify_cell».code Fn.«da_verify_cell».core (Fn.«da_verify_cell».cert.withPows Data.powTree) :=
+  Link.of code31 core31 cert31 SigsOk.nil
+    (by decide +kernel)
+
+theorem w31_0 : WinOk 31 0 := link31.win rfl Fn.«da_verify_cell».w0
+
+theorem w31_1 : WinOk 31 1 := link31.win rfl Fn.«da_verify_cell».w1
 
 theorem ok31 : CheckOk 31 := fun i hi ↦ by
   have h : (certOf 31).cuts.length = 1 := by decide +kernel
@@ -258,15 +1347,98 @@ theorem plain31 : Plain 31 := by
   unfold Plain
   decide +kernel
 
+theorem link32 : Link 32 (Glob.ofSigs ([(33, Fn.«da_column_offsets».sig), (421, Fn.«da_factors__L14_L7_L0».sig), (422, Fn.«da_expand__L14_L7».sig), (423, Fn.«da_factors__L7_L8_L128».sig)]) Data.jtTrie globSem)
+    Fn.«da_vector».code Fn.«da_vector».core (Fn.«da_vector».cert.withPows Data.powTree) :=
+  Link.of code32 core32 cert32 
+    (SigsOk.cons sig33 rfl 
+    (SigsOk.cons sig421 rfl 
+    (SigsOk.cons sig422 rfl 
+    (SigsOk.cons sig423 rfl SigsOk.nil))))
+    (by decide +kernel)
+
+theorem w32_0 : WinOk 32 0 := link32.win rfl Fn.«da_vector».w0
+
+theorem ok32 : CheckOk 32 := checkOk_one (by decide +kernel) w32_0
+
 theorem plain32 : Plain 32 := plain_of_nil (by decide +kernel)
+
+theorem link33 : Link 33 (Glob.ofSigs ([(424, Fn.«da_column_offsets_loop0».sig), (425, Fn.«da_column_offsets_loop1».sig), (426, Fn.«da_column_offsets_loop2».sig), (427, Fn.«da_column_offsets_loop3».sig), (428, Fn.«da_column_offsets_loop4».sig), (429, Fn.«da_column_offsets_loop5».sig), (430, Fn.«da_column_offsets_loop6».sig)]) Data.jtTrie globSem)
+    Fn.«da_column_offsets».code Fn.«da_column_offsets».core (Fn.«da_column_offsets».cert.withPows Data.powTree) :=
+  Link.of code33 core33 cert33 
+    (SigsOk.cons sig424 rfl 
+    (SigsOk.cons sig425 rfl 
+    (SigsOk.cons sig426 rfl 
+    (SigsOk.cons sig427 rfl 
+    (SigsOk.cons sig428 rfl 
+    (SigsOk.cons sig429 rfl 
+    (SigsOk.cons sig430 rfl SigsOk.nil)))))))
+    (by decide +kernel)
+
+theorem w33_0 : WinOk 33 0 := link33.win rfl Fn.«da_column_offsets».w0
+
+theorem ok33 : CheckOk 33 := checkOk_one (by decide +kernel) w33_0
 
 theorem plain33 : Plain 33 := plain_of_nil (by decide +kernel)
 
+theorem link34 : Link 34 (Glob.ofSigs ([(431, Fn.«aggregate_claims_loop0».sig), (432, Fn.«grind_check__L2».sig), (433, Fn.«aggregate_claims_loop1».sig), (434, Fn.«batch_sumcheck__L23».sig), (435, Fn.«aggregate_claims_loop2».sig)]) Data.jtTrie globSem)
+    Fn.«aggregate_claims».code Fn.«aggregate_claims».core (Fn.«aggregate_claims».cert.withPows Data.powTree) :=
+  Link.of code34 core34 cert34 
+    (SigsOk.cons sig431 rfl 
+    (SigsOk.cons sig432 rfl 
+    (SigsOk.cons sig433 rfl 
+    (SigsOk.cons sig434 rfl 
+    (SigsOk.cons sig435 rfl SigsOk.nil)))))
+    (by decide +kernel)
+
+theorem w34_0 : WinOk 34 0 := link34.win rfl Fn.«aggregate_claims».w0
+
+theorem ok34 : CheckOk 34 := checkOk_one (by decide +kernel) w34_0
+
 theorem plain34 : Plain 34 := plain_of_nil (by decide +kernel)
+
+theorem link35 : Link 35 (Glob.ofSigs ([(35, Fn.«main_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«main_loop0».code Fn.«main_loop0».core (Fn.«main_loop0».cert.withPows Data.powTree) :=
+  Link.of code35 core35 cert35 
+    (SigsOk.cons sig35 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w35_0 : WinOk 35 0 := link35.win rfl Fn.«main_loop0».w0
+
+theorem ok35 : CheckOk 35 := checkOk_one (by decide +kernel) w35_0
 
 theorem plain35 : Plain 35 := plain_of_nil (by decide +kernel)
 
+theorem link36 : Link 36 (Glob.ofSigs ([(36, Fn.«main_loop1».sig)]) Data.jtTrie globSem)
+    Fn.«main_loop1».code Fn.«main_loop1».core (Fn.«main_loop1».cert.withPows Data.powTree) :=
+  Link.of code36 core36 cert36 
+    (SigsOk.cons sig36 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w36_0 : WinOk 36 0 := link36.win rfl Fn.«main_loop1».w0
+
+theorem ok36 : CheckOk 36 := checkOk_one (by decide +kernel) w36_0
+
 theorem plain36 : Plain 36 := plain_of_nil (by decide +kernel)
+
+theorem link37 : Link 37 (Glob.ofSigs ([(37, Fn.«main_loop2».sig)]) Data.jtTrie globSem)
+    Fn.«main_loop2».code Fn.«main_loop2».core (Fn.«main_loop2».cert.withPows Data.powTree) :=
+  Link.of code37 core37 cert37 
+    (SigsOk.cons sig37 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w37_0 : WinOk 37 0 := link37.win rfl Fn.«main_loop2».w0
+
+theorem w37_16 : WinOk 37 16 := link37.win rfl Fn.«main_loop2».w16
+
+theorem w37_18 : WinOk 37 18 := link37.win rfl Fn.«main_loop2».w18
+
+theorem w37_20 : WinOk 37 20 := link37.win rfl Fn.«main_loop2».w20
+
+theorem w37_36 : WinOk 37 36 := link37.win rfl Fn.«main_loop2».w36
+
+theorem w37_38 : WinOk 37 38 := link37.win rfl Fn.«main_loop2».w38
+
+theorem w37_40 : WinOk 37 40 := link37.win rfl Fn.«main_loop2».w40
 
 theorem ok37 : CheckOk 37 := fun i hi ↦ by
   have h : (certOf 37).cuts.length = 40 := by decide +kernel
@@ -318,29 +1490,152 @@ theorem plain37 : Plain 37 := by
   unfold Plain
   decide +kernel
 
+theorem link38 : Link 38 (Glob.ofSigs ([(21, Fn.«verify_sig_lean_sphincs».sig), (38, Fn.«main_loop3».sig)]) Data.jtTrie globSem)
+    Fn.«main_loop3».code Fn.«main_loop3».core (Fn.«main_loop3».cert.withPows Data.powTree) :=
+  Link.of code38 core38 cert38 
+    (SigsOk.cons sig21 rfl 
+    (SigsOk.cons sig38 rfl SigsOk.nil))
+    (by decide +kernel)
+
+theorem w38_0 : WinOk 38 0 := link38.win rfl Fn.«main_loop3».w0
+
+theorem ok38 : CheckOk 38 := checkOk_one (by decide +kernel) w38_0
+
 theorem plain38 : Plain 38 := plain_of_nil (by decide +kernel)
+
+theorem link39 : Link 39 (Glob.ofSigs ([(19, Fn.«verify_sub».sig), (22, Fn.«statement_digest».sig), (25, Fn.«child_claim_list_digest».sig), (39, Fn.«main_loop4».sig)]) Data.jtTrie globSem)
+    Fn.«main_loop4».code Fn.«main_loop4».core (Fn.«main_loop4».cert.withPows Data.powTree) :=
+  Link.of code39 core39 cert39 
+    (SigsOk.cons sig19 rfl 
+    (SigsOk.cons sig22 rfl 
+    (SigsOk.cons sig25 rfl 
+    (SigsOk.cons sig39 rfl SigsOk.nil))))
+    (by decide +kernel)
+
+theorem w39_0 : WinOk 39 0 := link39.win rfl Fn.«main_loop4».w0
+
+theorem ok39 : CheckOk 39 := checkOk_one (by decide +kernel) w39_0
 
 theorem plain39 : Plain 39 := plain_of_nil (by decide +kernel)
 
+theorem link40 : Link 40 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«eq_prefix_run__L0».code Fn.«eq_prefix_run__L0».core (Fn.«eq_prefix_run__L0».cert.withPows Data.powTree) :=
+  Link.of code40 core40 cert40 SigsOk.nil
+    (by decide +kernel)
+
+theorem w40_0 : WinOk 40 0 := link40.win rfl Fn.«eq_prefix_run__L0».w0
+
+theorem ok40 : CheckOk 40 := checkOk_one (by decide +kernel) w40_0
+
 theorem plain40 : Plain 40 := plain_of_nil (by decide +kernel)
+
+theorem link41 : Link 41 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«eq_prefix_run__L1».code Fn.«eq_prefix_run__L1».core (Fn.«eq_prefix_run__L1».cert.withPows Data.powTree) :=
+  Link.of code41 core41 cert41 SigsOk.nil
+    (by decide +kernel)
+
+theorem w41_0 : WinOk 41 0 := link41.win rfl Fn.«eq_prefix_run__L1».w0
+
+theorem ok41 : CheckOk 41 := checkOk_one (by decide +kernel) w41_0
 
 theorem plain41 : Plain 41 := plain_of_nil (by decide +kernel)
 
+theorem link42 : Link 42 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«eq_prefix_run__L2».code Fn.«eq_prefix_run__L2».core (Fn.«eq_prefix_run__L2».cert.withPows Data.powTree) :=
+  Link.of code42 core42 cert42 SigsOk.nil
+    (by decide +kernel)
+
+theorem w42_0 : WinOk 42 0 := link42.win rfl Fn.«eq_prefix_run__L2».w0
+
+theorem ok42 : CheckOk 42 := checkOk_one (by decide +kernel) w42_0
+
 theorem plain42 : Plain 42 := plain_of_nil (by decide +kernel)
+
+theorem link43 : Link 43 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«eq_prefix_run__L3».code Fn.«eq_prefix_run__L3».core (Fn.«eq_prefix_run__L3».cert.withPows Data.powTree) :=
+  Link.of code43 core43 cert43 SigsOk.nil
+    (by decide +kernel)
+
+theorem w43_0 : WinOk 43 0 := link43.win rfl Fn.«eq_prefix_run__L3».w0
+
+theorem ok43 : CheckOk 43 := checkOk_one (by decide +kernel) w43_0
 
 theorem plain43 : Plain 43 := plain_of_nil (by decide +kernel)
 
+theorem link44 : Link 44 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«eq_prefix_run__L4».code Fn.«eq_prefix_run__L4».core (Fn.«eq_prefix_run__L4».cert.withPows Data.powTree) :=
+  Link.of code44 core44 cert44 SigsOk.nil
+    (by decide +kernel)
+
+theorem w44_0 : WinOk 44 0 := link44.win rfl Fn.«eq_prefix_run__L4».w0
+
+theorem ok44 : CheckOk 44 := checkOk_one (by decide +kernel) w44_0
+
 theorem plain44 : Plain 44 := plain_of_nil (by decide +kernel)
+
+theorem link45 : Link 45 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«eq_prefix_run__L5».code Fn.«eq_prefix_run__L5».core (Fn.«eq_prefix_run__L5».cert.withPows Data.powTree) :=
+  Link.of code45 core45 cert45 SigsOk.nil
+    (by decide +kernel)
+
+theorem w45_0 : WinOk 45 0 := link45.win rfl Fn.«eq_prefix_run__L5».w0
+
+theorem ok45 : CheckOk 45 := checkOk_one (by decide +kernel) w45_0
 
 theorem plain45 : Plain 45 := plain_of_nil (by decide +kernel)
 
+theorem link46 : Link 46 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«eq_prefix_run__L6».code Fn.«eq_prefix_run__L6».core (Fn.«eq_prefix_run__L6».cert.withPows Data.powTree) :=
+  Link.of code46 core46 cert46 SigsOk.nil
+    (by decide +kernel)
+
+theorem w46_0 : WinOk 46 0 := link46.win rfl Fn.«eq_prefix_run__L6».w0
+
+theorem ok46 : CheckOk 46 := checkOk_one (by decide +kernel) w46_0
+
 theorem plain46 : Plain 46 := plain_of_nil (by decide +kernel)
+
+theorem link47 : Link 47 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«eq_prefix_run__L7».code Fn.«eq_prefix_run__L7».core (Fn.«eq_prefix_run__L7».cert.withPows Data.powTree) :=
+  Link.of code47 core47 cert47 SigsOk.nil
+    (by decide +kernel)
+
+theorem w47_0 : WinOk 47 0 := link47.win rfl Fn.«eq_prefix_run__L7».w0
+
+theorem ok47 : CheckOk 47 := checkOk_one (by decide +kernel) w47_0
 
 theorem plain47 : Plain 47 := plain_of_nil (by decide +kernel)
 
+theorem link48 : Link 48 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«eq_prefix_run__L8».code Fn.«eq_prefix_run__L8».core (Fn.«eq_prefix_run__L8».cert.withPows Data.powTree) :=
+  Link.of code48 core48 cert48 SigsOk.nil
+    (by decide +kernel)
+
+theorem w48_0 : WinOk 48 0 := link48.win rfl Fn.«eq_prefix_run__L8».w0
+
+theorem ok48 : CheckOk 48 := checkOk_one (by decide +kernel) w48_0
+
 theorem plain48 : Plain 48 := plain_of_nil (by decide +kernel)
 
+theorem link49 : Link 49 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«eq_prefix_run__L9».code Fn.«eq_prefix_run__L9».core (Fn.«eq_prefix_run__L9».cert.withPows Data.powTree) :=
+  Link.of code49 core49 cert49 SigsOk.nil
+    (by decide +kernel)
+
+theorem w49_0 : WinOk 49 0 := link49.win rfl Fn.«eq_prefix_run__L9».w0
+
+theorem ok49 : CheckOk 49 := checkOk_one (by decide +kernel) w49_0
+
 theorem plain49 : Plain 49 := plain_of_nil (by decide +kernel)
+
+theorem link50 : Link 50 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«eq_prefix_run__L10».code Fn.«eq_prefix_run__L10».core (Fn.«eq_prefix_run__L10».cert.withPows Data.powTree) :=
+  Link.of code50 core50 cert50 SigsOk.nil
+    (by decide +kernel)
+
+theorem w50_0 : WinOk 50 0 := link50.win rfl Fn.«eq_prefix_run__L10».w0
+
+theorem ok50 : CheckOk 50 := checkOk_one (by decide +kernel) w50_0
 
 theorem plain50 : Plain 50 := plain_of_nil (by decide +kernel)
 

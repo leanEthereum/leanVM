@@ -44,8 +44,8 @@ def opcodeCounts : List Nat :=
 #guard bytecodeLog = logSize
 
 /- The guest's source: its functions, constant arrays, and `main` among them. -/
-#guard guest.funcs.length = 124
-#guard guest.constArrays.length = 84
+#guard guest.funcs.length = 130
+#guard guest.constArrays.length = 76
 #guard guest.funcs.any (·.name == "main")
 
 /- The compiler's fifteen test programs. -/

@@ -57,7 +57,7 @@ def offCalls : List (Option V × String × List V × List V) := (List.range 7).m
 
 /-- **`da_column_offsets`, evaluated.** -/
 def offCOk : Bool :=
-  (chk 1 offP).isSome && atomsEqb (storesOf 1 offP) offStores && canonChk [] offAtoms &&
+  (chk 1 offP).isSome && atomsEqb (storesOf 1 offP) offStores &&
   offAtoms.all (fun a => !needsSide a || (atomLoad? a).isSome) &&
   offAtoms.all (fun a => match a with | .load d p off => isOffLoad d p off | _ => true) &&
   offP.all isOffStmt && offP.all Core.Stmt.flat && decide (offP.filterMap Stmt.addrS = []) &&

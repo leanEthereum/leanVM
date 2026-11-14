@@ -11,9 +11,8 @@ Regression and negative tests for `LeanVM.Protocol.Compile.Cost` and
   the cost the accounting gives, and the conditions doing the work are load-bearing: a
   commitment taller than the height bound, an opening charged per position and level, and a
   budget one short are refuted.
-* The leanVM constants: the bound is `12006`; the WHIR bound and the height bound are attained
-  by an admissible ladder (`μ = 28` at rates `1` and `4`), so they are not slack in the ladder
-  table.
+* The leanVM constants: the bound is `13708`; the height bound is attained by an admissible
+  ladder (`μ = 30` at rate `4`), and the WHIR bound by the ladder at `μ = 28`, rate `1`.
 * The seed: the leanVM seeding has three hash steps.
 * An executed run: the compiled leanVM verifier, its hash and permutation counting their calls,
   rejects a garbage proof at the first GKR layer after exactly the queries the sponge makes,
@@ -64,18 +63,19 @@ example : ¬ (VerifierProgram.queryOpenings 0 [0, 1]).CostLE 3 31 := fun h ↦ a
 
 /-! ## The leanVM constants -/
 
-example : leanVmQueryBound = 12006 := leanVmQueryBound_eq
+example : leanVmQueryBound = 13708 := leanVmQueryBound_eq
 
-/-- The WHIR bound is attained by the ladder at `μ = 28`, rate `1`. -/
-example : whirCost costHeight 28 ((Whir.ladder 28 1).getD []) = whirBound := by decide +kernel
-
-/-- The height bound is attained: the stack's commitment at `μ = 28`, rate `4`, has height
-`28 - 6 + 4 = 26`. -/
-example : stackHeightLE (costHeight - 1) 28 ((Whir.ladder 28 4).getD []) = false := by
+/-- The WHIR bound is attained, by the ladder at `μ = 28`, rate `1`. -/
+example : whirCost costHeight 28 ((Whir.ladder 28 1).getD []) = whirBound := by
   decide +kernel
 
-/-- The bus depth bound: `54` blocks of `2^32` rows. -/
-example : gkrCost 38 0 = gkrBound := by decide
+/-- The height bound is attained: the stack's commitment at `μ = 30`, rate `4`, has height
+`30 - 6 + 4 = 28`. -/
+example : stackHeightLE (costHeight - 1) 30 ((Whir.ladder 30 4).getD []) = false := by
+  decide +kernel
+
+/-- The bus depth bound: `54` blocks of `2^30` rows. -/
+example : gkrCost 36 0 = gkrBound := by decide
 
 /-- The seed has `1` hash, the IV's. -/
 example (bytecode : List K) (publicInput : Digest) :
@@ -87,8 +87,8 @@ example (bytecode : List K) (publicInput : Digest) :
 def fw (k lane : ℕ) : ℕ :=
   ((k + 1) * 0x9E3779B97F4A7C15 + lane * 0xD1B54A32D192ED03 + 0x632BE59BD9B4E019) % 2 ^ 64
 
-/-- An `E` element from its three limbs. -/
-def e (c0 c1 c2 : ℕ) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1) (K.ofBits c2)
+/-- An `E` element from its two limbs. -/
+def e (c0 c1 : ℕ) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1)
 
 /-- The bytecode: 32 words. -/
 def sampleBytecode : List K := (List.range 32).map fun i ↦ K.ofBits (fw i 9)
@@ -96,12 +96,11 @@ def sampleBytecode : List K := (List.range 32).map fun i ↦ K.ofBits (fw i 9)
 /-- The public input. -/
 def samplePublicInput : Digest := Vector.ofFn fun j : Fin 4 ↦ (fw j 10).toUInt64
 
-/-- The sizes (memory `2^16`, small tables, rate `4`), two canonical root halves, then `n`
-scalars. -/
+/-- The sizes (memory `2^16`, small tables, rate `4`), two root halves, then `n` scalars. -/
 def stream (n : ℕ) : List E :=
   [eOfNat 16] ++ [2, 1, 1, 2, 2, 3].map eOfNat ++ [eOfNat 4] ++
-    [e (fw 8 0) (fw 8 1) 0, e (fw 9 0) (fw 9 1) 0] ++
-    (List.range n).map fun k ↦ e (fw (10 + k) 0) (fw (10 + k) 1) (fw (10 + k) 2)
+    [e (fw 8 0) (fw 8 1), e (fw 9 0) (fw 9 1)] ++
+    (List.range n).map fun k ↦ e (fw (10 + k) 0) (fw (10 + k) 1)
 
 /-- Keccak-256, counting its calls. -/
 def countingHash (x : Bytes) : StateM ℕ Digest := do
@@ -117,11 +116,11 @@ def countingPerm (s : KeccakState) : StateM ℕ KeccakState := do
 def countedRun (n : ℕ) : Bool × ℕ :=
   (verifyWithHash countingHash countingPerm sampleBytecode samplePublicInput ⟨stream n, []⟩).run 0
 
--- Rejected at the first GKR layer (the depth is odd, so one level), after the IV's hash and the
--- seed's permutation, then the sponge's permutations: the fifth of the `8` sizes, the
--- first half of the root, the `5` bus challenges, the first layer's combiner, and the fifth of the
--- `3 · 2` children (four scalars waiting each time); the failed check itself queries nothing.
-#guard countedRun 100 = (false, 1 + 1 + 1 + 1 + 5 + 1 + 1)
+-- Rejected at the stack commitment's out-of-domain proof of work (the garbage nonce fails its
+-- `15` bits), after the IV's hash and the seed's permutation, then the sponge's permutations: the
+-- fifth of the `8` sizes, the first half of the root (four scalars waiting each time), and the
+-- nonce's own.
+#guard countedRun 100 = (false, 1 + 1 + 1 + 1 + 1)
 #guard (countedRun 100).2 ≤ leanVmQueryBound
 
 end LeanVMTests.Protocol.Verifier.Cost

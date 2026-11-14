@@ -23,8 +23,8 @@ The price of `decodeStacksDistinctPM μ R W` (`Fast/LanePM.lean`, compiled in
   lists, and the pruning's states, are the extractor's: `laneListWith_eq`, `pruneUpToWith_eq`);
 * **`decodeStacksPMC_cost`** `≤ decoderBoundPM p μ R BW Lw` at an admissible shape whose lanes
   are word-sized, and **`decodeStacksPMC_cost_worst`**: at every admissible shape, at the model's
-  prices with their margin, at most `(BW + 12·Lw)·2^26 + pmDecoderWorstPrice`
-  (`decoderShapePM_ok`, `pmDecoderWorstPrice ≈ 2^80.49`).
+  prices with their margin, at most `(BW + 12·Lw)·2^28 + pmDecoderBudget μ`
+  (`decoderShapePM_ok`, `pmDecoderBudget μ = 2^max(80, 2μ + 25) - 2^75`).
 
 Each lane's interpolation is priced by `interpolatePMC_cost_price` (`Bounds/PMSolve/Final.lean`),
 at prices fitting the proved transforms (`FFTPricesOK p`) and where its per-shape conditions hold
@@ -48,14 +48,14 @@ variable (P : MachineProgram)
 
 /-- The lane's run on `pmSolver` returns at most `max 1 ℓ` polynomials (`k > 1`). -/
 theorem gsLaneWith_size_le {κ R A : ℕ} (h : κ + R ≤ 64)
-    (hk : 1 < (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.messageDegree) (S : ℕ → ℕ → K)
+    (hk : 1 < (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp.messageDegree) (S : ℕ → ℕ → K)
     (u : ℕ) :
     (gsLaneWith pmSolver κ R A S u).size ≤
-      max 1 (interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp) :=
+      max 1 (interpolationYCap (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp) :=
   gsRunDistinctWith_size_le (lanePointsS_distinct h S u) _ _ hk
 
 /-- Where the final root check is redundant, the new lane's candidates are the extractor's. -/
-theorem laneEncodedWith_eq {κ R A : ℕ} (h : checkRedundant κ R (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A))
+theorem laneEncodedWith_eq {κ R A : ℕ} (h : checkRedundant κ R (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A))
     (S : ℕ → ℕ → K) (u : ℕ) :
     laneEncodedWith pmSolver κ R A S u = laneEncodedDistinct κ R A S u := by
   rw [laneEncodedWith, laneEncodedDistinct, laneListWith_eq pmSolver h]
@@ -76,13 +76,17 @@ theorem gsLaneWithC_cost (hP : Includes P (cost_const% (gsLaneWith pmSolver) cos
   obtain ⟨hκR, hA, hb, hs, hk1, hX, hY⟩ := h
   rw [(cost_const% (gsLaneWith pmSolver) costEq) P hP κ R A S SVal hS]
   have hn : 2 ^ (κ + R) < 2 ^ 32 := Nat.pow_lt_pow_right (by norm_num) (by omega)
-  have hk : 2 ^ κ < 2 ^ 31 := Nat.pow_lt_pow_right (by norm_num) (by omega)
+  have hk : 2 ^ κ + Whir.initialFold < 2 ^ 31 := by
+    have : 2 ^ κ ≤ 2 ^ 30 := Nat.pow_le_pow_right (by norm_num) (by omega)
+    simp only [Whir.initialFold]; omega
   rw [limbs_shift (show κ < 64 by omega), limbs_shift (show κ + R < 64 by omega),
     limbs_of_lt (show κ < 2 ^ 64 by omega), limbs_of_lt (show R < 2 ^ 64 by omega),
-    limbs_of_lt (show κ + R < 2 ^ 64 by omega)]
+    limbs_of_lt (show κ + R < 2 ^ 64 by omega), limbs_of_lt (show 2 ^ κ < 2 ^ 64 by omega),
+    limbs_of_lt (show 2 ^ κ + Whir.initialFold < 2 ^ 64 by omega),
+    limbs_of_lt (show Whir.initialFold < 2 ^ 64 by simp [Whir.initialFold])]
   have h1 := decoderSearchC_cost P (by includes_sub) hk hn hA hb
-  have h2 := decoderParamsAtC_cost P (by includes_sub) (k := 2 ^ κ) hn hA
-    (m := gsMultiplicityAt (2 ^ κ) (2 ^ (κ + R)) A)
+  have h2 := decoderParamsAtC_cost P (by includes_sub) (k := 2 ^ κ + Whir.initialFold) hn hA
+    (m := gsMultiplicityAt (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A)
     ((decoderMultiplicity_le _ _ _).trans_lt hb)
   -- the points
   rw [(cost_const% lanePointsS costEq) P (by includes_sub) _ S SVal hS]
@@ -101,12 +105,12 @@ theorem gsLaneWithC_cost (hP : Includes P (cost_const% (gsLaneWith pmSolver) cos
   -- the run
   have hd := lanePointsS_distinct (by omega : κ + R ≤ 64) S u
   have hi := PMSolve.interpolatePMC_cost_price P (by includes_sub) p hp
-    (lanePointsS (2 ^ (κ + R)) S u) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp
+    (lanePointsS (2 ^ (κ + R)) S u) (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp
     (by rw [lanePointsS_size]; exact hI.1)
     (by rw [lanePointsS_size]; exact hI.2)
     (by rwa [lanePointsS_size]) hk1
   have h4 := gsRunPMC_cost P (by includes_sub) (lanePointsS (2 ^ (κ + R)) S u)
-    (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).radius hi
+    (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).radius hi
     (by rwa [lanePointsS_size]) hk1 hd
     (by simp only [gsParamsFor, gsParamsAt]; omega) hX hY
     (by simp only [gsParamsFor, gsParamsAt]; omega)
@@ -121,7 +125,7 @@ theorem gsLaneWithC_cost (hP : Includes P (cost_const% (gsLaneWith pmSolver) cos
 candidates in the novel basis, deduplicated, sorted, each re-encoded): at most the run's price
 plus `laneExtraBound κ R L k`. -/
 theorem laneEncodedWithC_cost (hP : Includes P (cost_const% (laneEncodedWith pmSolver) costDeps))
-    (κ R A : ℕ) (hκR : κ + R ≤ 62) (S : ℕ → ℕ → K) (SVal : MachineValue)
+    (κ R A : ℕ) (hκR : κ + R ≤ 62) (hR : 1 ≤ R) (S : ℕ → ℕ → K) (SVal : MachineValue)
     (hS : ∀ a b, RunsApp P SVal [encodeValue a, encodeValue b] (encodeValue (S a b))) (u : ℕ)
     {L k : ℕ} (hL : (gsLaneWith pmSolver κ R A S u).size ≤ L) (hL60 : L < 2 ^ 30)
     (hk : ∀ p ∈ gsLaneWith pmSolver κ R A S u, p.val.size ≤ k) :
@@ -134,48 +138,48 @@ theorem laneEncodedWithC_cost (hP : Includes P (cost_const% (laneEncodedWith pmS
     (cost_const% (laneListWith pmSolver) costEq) P (by includes_sub) κ R A S SVal hS]
   generalize hC : gsLaneWith pmSolver κ R A S u = cands at hL hk
   -- the novel basis
-  have hf1 := fun p ↦ RunsApp.of_spec (us := [encodeValue κ]) (vs := [encodeValue p])
-    ((cost_const% (laneListWith pmSolver) lam1.costSpec) P (by includes_sub) κ p)
+  have hf1 := fun p ↦ RunsApp.of_spec (us := [encodeValue (κ + 1)]) (vs := [encodeValue p])
+    ((cost_const% (laneListWith pmSolver) lam1.costSpec) P (by includes_sub) (κ + 1) p)
   have hm1 := listMap_le P Auto.List.map.c30.costIdx
-    (.closure (cost_const% (laneListWith pmSolver) lam1.costIdx) [encodeValue κ])
+    (.closure (cost_const% (laneListWith pmSolver) lam1.costIdx) [encodeValue (κ + 1)])
     (Auto.List.map.c30.costEq_nil P (by includes_sub) _ _ hf1)
     (Auto.List.map.c30.costEq_cons P (by includes_sub) _ _ hf1)
-    ((46 * k + 34) * 2 ^ κ + κ * (174 * 2 ^ κ + 2921) + 35) cands.toList
+    ((46 * k + 34) * 2 ^ (κ + 1) + (κ + 1) * (174 * 2 ^ (κ + 1) + 2921) + 44) cands.toList
     (fun p hp ↦ by
       rw [appCost_fn, List.singleton_append,
         (cost_const% (laneListWith pmSolver) lam1.costEq) P (by includes_sub)]
       simp only [List.length_cons, List.length_nil]
-      have := toNovelFastC_cost P (by includes_sub) κ (by omega) p
-      have := Nat.mul_le_mul_right (2 ^ κ) (show 46 * p.val.size + 34 ≤ 46 * k + 34 by
+      have := toNovelFastC_cost P (by includes_sub) (κ + 1) (by omega) p
+      have := Nat.mul_le_mul_right (2 ^ (κ + 1)) (show 46 * p.val.size + 34 ≤ 46 * k + 34 by
         have := hk p (by simpa using hp); omega)
       omega)
   -- the deduplication
-  have hlen : (cands.toList.map (toNovelFast κ)).length ≤ L := by simpa using hL
-  have hd := dedupC_cost P (by includes_sub) (2 ^ κ) (cands.toList.map (toNovelFast κ))
+  have hlen : (cands.toList.map (toNovelFast (κ + 1))).length ≤ L := by simpa using hL
+  have hd := dedupC_cost P (by includes_sub) (2 ^ (κ + 1)) (cands.toList.map (toNovelFast (κ + 1)))
     (fun c hc ↦ by
       obtain ⟨p, -, rfl⟩ := List.mem_map.1 hc
-      exact toNovelFast_size κ p)
-  have hd1 : ((21 * 2 ^ κ + 26) * (cands.toList.map (toNovelFast κ)).length + 25) *
-      (cands.toList.map (toNovelFast κ)).length ≤ ((21 * 2 ^ κ + 26) * L + 25) * L :=
-    Nat.mul_le_mul (by have := Nat.mul_le_mul_left (21 * 2 ^ κ + 26) hlen; omega) hlen
+      exact toNovelFast_size (κ + 1) p)
+  have hd1 : ((21 * 2 ^ (κ + 1) + 26) * (cands.toList.map (toNovelFast (κ + 1))).length + 25) *
+      (cands.toList.map (toNovelFast (κ + 1))).length ≤ ((21 * 2 ^ (κ + 1) + 26) * L + 25) * L :=
+    Nat.mul_le_mul (by have := Nat.mul_le_mul_left (21 * 2 ^ (κ + 1) + 26) hlen; omega) hlen
   -- the sort
-  have hdl : (cands.toList.map (toNovelFast κ)).dedup.length ≤ L :=
+  have hdl : (cands.toList.map (toNovelFast (κ + 1))).dedup.length ≤ L :=
     (List.dedup_sublist _).length_le.trans hlen
   have hl0 := fun a b ↦ RunsApp.of_spec (us := []) (vs := [encodeValue a, encodeValue b])
     ((cost_const% (laneListWith pmSolver) lam0.costSpec) P (by includes_sub) a b)
   have hs := mergeSortList_cost_sq P (by includes_sub) _
     (.closure (cost_const% (laneListWith pmSolver) lam0.costIdx) []) hl0
-    (fun c : Array K ↦ c.size = 2 ^ κ) (53 * 2 ^ κ + 21)
+    (fun c : Array K ↦ c.size = 2 ^ (κ + 1)) (53 * 2 ^ (κ + 1) + 21)
     (fun a b ha hb ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero]
       rw [(cost_const% (laneListWith pmSolver) lam0.costEq) P (by includes_sub)]
       have := coeffsLEC_cost P (by includes_sub) a b ha hb
       omega)
-    _ (cands.toList.map (toNovelFast κ)).dedup rfl (by omega)
+    _ (cands.toList.map (toNovelFast (κ + 1))).dedup rfl (by omega)
     (fun c hc ↦ mem_dedup_toNovel_size hc)
-  have hs1 : (53 * 2 ^ κ + 21 + 74) *
-      ((cands.toList.map (toNovelFast κ)).dedup.length *
-        (cands.toList.map (toNovelFast κ)).dedup.length) ≤ (53 * 2 ^ κ + 95) * (L * L) :=
+  have hs1 : (53 * 2 ^ (κ + 1) + 21 + 74) *
+      ((cands.toList.map (toNovelFast (κ + 1))).dedup.length *
+        (cands.toList.map (toNovelFast (κ + 1))).dedup.length) ≤ (53 * 2 ^ (κ + 1) + 95) * (L * L) :=
     Nat.mul_le_mul_left _ (Nat.mul_le_mul hdl hdl)
   -- the re-encoding
   have hlist : (laneListWith pmSolver κ R A S u).length ≤ L := by
@@ -186,31 +190,37 @@ theorem laneEncodedWithC_cost (hP : Includes P (cost_const% (laneEncodedWith pmS
     (.closure (cost_const% (laneEncodedWith pmSolver) lam0.costIdx) [encodeValue κ, encodeValue R])
     (Auto.List.map.c30.costEq_nil P (by includes_sub) _ _ hf2)
     (Auto.List.map.c30.costEq_cons P (by includes_sub) _ _ hf2)
-    (κ * (171 * 2 ^ (κ + R) + 2924) + 28 * 2 ^ (κ + R) + 47) (laneListWith pmSolver κ R A S u)
+    ((κ + 1) * (171 * 2 ^ (κ + R) + 2924) + 28 * 2 ^ (κ + R) + 57) (laneListWith pmSolver κ R A S u)
     (fun c _ ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         (cost_const% (laneEncodedWith pmSolver) lam0.costEq) P (by includes_sub)]
       simp only [List.length_cons, List.length_nil]
-      have := novelFwd_cost P (by includes_sub) κ R hκR c
+      rw [limbs_of_lt (show κ < 2 ^ 64 by omega), limbs_of_lt (show κ + 1 < 2 ^ 64 by omega),
+        limbs_of_lt (show R < 2 ^ 64 by omega)]
+      have := novelFwd_cost P (by includes_sub) (κ + 1) (R - 1) (by omega) c
+      rw [show κ + 1 + (R - 1) = κ + R by omega] at this
       omega)
   simp only [Array.length_toList, List.length_map] at hm1 hlen
-  have h1 : ((46 * k + 34) * 2 ^ κ + κ * (174 * 2 ^ κ + 2921) + 35 + 13) * cands.size ≤
-      ((46 * k + 34) * 2 ^ κ + κ * (174 * 2 ^ κ + 2921) + 35 + 13) * L :=
+  have h1 : ((46 * k + 34) * 2 ^ (κ + 1) + (κ + 1) * (174 * 2 ^ (κ + 1) + 2921) + 44 + 13) * cands.size ≤
+      ((46 * k + 34) * 2 ^ (κ + 1) + (κ + 1) * (174 * 2 ^ (κ + 1) + 2921) + 44 + 13) * L :=
     Nat.mul_le_mul_left _ hL
-  have e5 : ((46 * k + 34) * 2 ^ κ + κ * (174 * 2 ^ κ + 2921) + 51) * L =
-      ((46 * k + 34) * 2 ^ κ + κ * (174 * 2 ^ κ + 2921) + 35 + 13) * L + 3 * L := by ring
-  have h2 : (κ * (171 * 2 ^ (κ + R) + 2924) + 28 * 2 ^ (κ + R) + 47 + 13) *
+  have e5 : ((46 * k + 34) * 2 ^ (κ + 1) + (κ + 1) * (174 * 2 ^ (κ + 1) + 2921) + 60) * L =
+      ((46 * k + 34) * 2 ^ (κ + 1) + (κ + 1) * (174 * 2 ^ (κ + 1) + 2921) + 44 + 13) * L + 3 * L := by ring
+  have h2 : ((κ + 1) * (171 * 2 ^ (κ + R) + 2924) + 28 * 2 ^ (κ + R) + 57 + 13) *
       (laneListWith pmSolver κ R A S u).length ≤
-      (κ * (171 * 2 ^ (κ + R) + 2924) + 28 * 2 ^ (κ + R) + 60) * L := Nat.mul_le_mul_left _ hlist
+      ((κ + 1) * (171 * 2 ^ (κ + R) + 2924) + 28 * 2 ^ (κ + R) + 70) * L :=
+    Nat.mul_le_mul_left _ hlist
   have h3 : 3 * cands.size ≤ 3 * L := by omega
+  have l1 := limbs_of_lt (show κ < 2 ^ 64 by omega)
+  have l2 := limbs_of_lt (show κ + 1 < 2 ^ 64 by omega)
   unfold laneExtraBound
   omega
 
 /-- **A lane's candidates on `pmSolver`** (`laneEncodedWith pmSolver κ R A S u`): at most
 `decoderLaneBoundPM p κ R A BS`. -/
 theorem decoderLanePMC_cost (hP : Includes P (cost_const% (laneEncodedWith pmSolver) costDeps))
-    {p : PMPrices} (hp : PMFFT.FFTPricesOK p) (κ R A : ℕ) (hI : LaneInterpOKPM p κ R A)
-    (S : ℕ → ℕ → K) (SVal : MachineValue)
+    {p : PMPrices} (hp : PMFFT.FFTPricesOK p) (κ R A : ℕ) (hR : 1 ≤ R)
+    (hI : LaneInterpOKPM p κ R A) (S : ℕ → ℕ → K) (SVal : MachineValue)
     (hS : ∀ a b, RunsApp P SVal [encodeValue a, encodeValue b] (encodeValue (S a b)))
     {BS : ℕ} (hBS : ∀ a b : ℕ, appCost P SVal [encodeValue a, encodeValue b] ≤ BS) (u : ℕ)
     (h : DecoderLaneSizes κ R A) :
@@ -219,9 +229,9 @@ theorem decoderLanePMC_cost (hP : Includes P (cost_const% (laneEncodedWith pmSol
       decoderLaneBoundPM p κ R A BS := by
   have hrun := gsLaneWithC_cost P (by includes_sub) hp κ R A hI S SVal hS hBS u h
   obtain ⟨hκR, -, -, hs, hk1, -, hY⟩ := h
-  have := laneEncodedWithC_cost P hP κ R A (by omega) S SVal hS u
-    (L := max 1 (interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp))
-    (k := 2 ^ κ) (gsLaneWith_size_le (by omega) hk1 S u) (by omega)
+  have := laneEncodedWithC_cost P hP κ R A (by omega) hR S SVal hS u
+    (L := max 1 (interpolationYCap (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp))
+    (k := 2 ^ κ + Whir.initialFold) (gsLaneWith_size_le (by omega) hk1 S u) (by omega)
     (fun p hp ↦ by
       have := gsRunDistinctWith_mem_size_le hp
       simpa [gsParamsFor, gsParamsAt] using this)
@@ -234,7 +244,7 @@ theorem decoderLanePMC_cost (hP : Includes P (cost_const% (laneEncodedWith pmSol
 `pruneBound …`, the lanes' candidates of price at most `G` and at most `Lc` each, the survivors at
 most `Smax` after every lane, where the final root check is redundant. -/
 theorem pruneUpToPMC_cost (hP : Includes P pruneUpToPMC.costDeps) (κ R A U : ℕ)
-    (hcr : checkRedundant κ R (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A))
+    (hcr : checkRedundant κ R (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A))
     (hκR : κ + R ≤ 60) (hU : U < 2 ^ 62) (hA : A < 2 ^ 128) (W : ℕ → List K) (WVal : MachineValue)
     (hW : ∀ a, RunsApp P WVal [encodeValue a] (encodeValue (W a))) {BW Lw G Lc Smax : ℕ}
     (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw)
@@ -370,12 +380,12 @@ theorem decodeStacksPMC_cost (hP : Includes P decodeStacksPMC.costDeps) {p : PMP
   have hSV := fun a b ↦ RunsApp.of_spec (us := [encodeValue T]) (vs := [encodeValue a, encodeValue b])
     (fastStacksFastC.lam1.lam2.costSpec P (by includes_sub) T a b)
   have hLc : ∀ u, (laneEncodedDistinct κ R A (tableSymbol T) u).length ≤
-      max 1 (interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp) := fun u ↦ by
+      max 1 (interpolationYCap (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp) := fun u ↦ by
     rw [laneEncodedDistinct_length]; exact laneListDistinct_length_le (by omega) hk1 _ u
   have hpr := pruneUpToPMC_cost P (by includes_sub) κ R A (2 ^ Whir.initialFold) hcr (by omega)
     (by rw [hf]; norm_num) (by omega) W WVal hW hBW hLw
     (G := decoderLaneBoundPM p κ R A 13)
-    (fun u _ ↦ decoderLanePMC_cost P (by includes_sub) hp κ R A hI (tableSymbol T)
+    (fun u _ ↦ decoderLanePMC_cost P (by includes_sub) hp κ R A h3 hI (tableSymbol T)
       (.closure fastStacksFastC.lam1.lam2.costIdx [encodeValue T]) hSV
       (fun a b ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
@@ -421,8 +431,8 @@ theorem decoderBoundPM_eq (p : PMPrices) (μ R BW Lw : ℕ) :
 /-! ## At every admissible shape -/
 
 /-- **The decoder on `pmSolver` at every admissible shape**, at the model's prices with
-their margin: at most `(BW + 12·Lw)·2^26 + pmDecoderWorstPrice` (`decoderShapePM_ok`,
-`pmDecoderWorstPrice = 1696768204877294467202512 ≈ 2^80.49`): no hypothesis but the word's
+their margin: at most `(BW + 12·Lw)·2^28 + pmDecoderBudget μ` (`decoderShapePM_ok`, the stack size's
+budget less `2^75`): no hypothesis but the word's
 prices, each lane's interpolation priced by `interpolatePMC_cost_price` at the shape's
 decided conditions (`LaneInterpOKPM marginPrices`) and `FFTPricesOK marginPrices`
 (`PMSolve.fftPricesOK_margin`). -/
@@ -432,7 +442,7 @@ theorem decodeStacksPMC_cost_worst (hP : Includes P decodeStacksPMC.costDeps)
     {BW Lw : ℕ}
     (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
     machineCost P decodeStacksPMC.costIdx [encodeValue μ, encodeValue R, WVal] ≤
-      (BW + 12 * Lw) * 2 ^ 26 + pmDecoderWorstPrice := by
+      (BW + 12 * Lw) * 2 ^ 28 + pmDecoderBudget μ := by
   obtain ⟨hsz, hI, hle⟩ := decoderShapePM_ok hadm
   have h := decodeStacksPMC_cost P hP PMSolve.fftPricesOK_margin μ R hadm hsz hI W WVal hW hBW
     hLw
@@ -440,7 +450,7 @@ theorem decodeStacksPMC_cost_worst (hP : Includes P decodeStacksPMC.costDeps)
   have hadm' := hadm
   obtain ⟨-, h2, -, h4⟩ := hadm'
   simp only [Whir.maxLogStack] at h2
-  have hp : 2 ^ (μ - Whir.initialFold + R) ≤ 2 ^ 26 :=
+  have hp : 2 ^ (μ - Whir.initialFold + R) ≤ 2 ^ 28 :=
     Nat.pow_le_pow_right (by norm_num) (by simp only [Whir.initialFold]; omega)
   have := Nat.mul_le_mul_left (BW + 12 * Lw) hp
   omega

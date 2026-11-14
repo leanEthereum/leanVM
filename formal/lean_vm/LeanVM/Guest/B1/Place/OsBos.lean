@@ -1,20 +1,29 @@
 /-
   LeanVM.Guest.B1.Place.OsBos
 
-  open_stacked's frame-size bound: its frame, its buffers, a bound per callee.
+  open_stacked's frame-size bound at each stack size: its frame, its buffers, a bound per call
+  statement.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Place.OsFinalK
+public import LeanVM.Guest.B1.Whir.Template
+public import LeanVM.Guest.Memory.Uniform
 
 /-!
-# The frame-size bound
+# The frame-size bound of an opening arm
 
-`osCallB fs Bk f`: a call of `f`, entered within `Bk f` words or skipped (its frame `fs f`).
-`osKidsB fs Bk c`: the body's calls' total, one `osCallB` per call statement, whatever `σ` (a
-call's callee is its statement's). `osBos fs Bk name c`: the frame `fs name`, the buffers, the
-callees.
+The arm of size `m` (`open_stacked__L{m}`, stack log `μ = minOpenLog + m`) has the body
+`osBody (osCfg m)` (`Whir/Template.lean`, checked equal to the core IR by `Whir/Data*.lean`):
+straight-line atoms, calls and dispatches on the rate's selector, then its `ret`. A rate is a
+dispatch's arm, so a static bound of the body covers every rate.
+
+* `osSizesL c`: the sizes of the body's `HeapBuf`s, in allocation order.
+* `osCallees c`: each call statement's callees, in order: a call's one, a dispatch's every arm.
+  `osCalleeNames c`: all of them.
+* `osCallB fs Bk names`: a call statement entered within `Bk f` words or skipped (its frame `fs f`)
+  at its costliest callee; `osKidsB`, their total; `osBos fs Bk name c`: the frame `fs name`, the
+  buffers, the calls.
 -/
 
 namespace LeanVM.Guest.B1
@@ -25,47 +34,64 @@ open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
 
-/-- A call of `f`: entered within `Bk f` words, or skipped. -/
-def osCallB (fs Bk : String → ℕ) (f : String) : ℕ := max (fs f) (Bk f)
+/-! ## The buffers and the calls -/
 
-/-- The body's callees' total, one `osCallB` per call statement. -/
-def osKidsB (fs Bk : String → ℕ) (c : OsCfg) : ℕ :=
-  (((osBodyA c).filterMap Main.Stmt.callS).map fun x ↦ osCallB fs Bk x.2.1).sum
+/-- **`open_stacked`'s heap buffers' sizes**, in allocation order (`Whir.osHead`, `osLevel`,
+`osTail`, `osFinish`): the head's eleven (`final_msg`, `level_roots`, `fold_challenges`,
+`round_coefs`, `level_scales`, `level_lam_invs`, `level_hs`, `ood_z`, `ood_scalars`, `query_positions`,
+`query_win_ptrs`); each non-final level's message `sent`; the final level's normalized lane `hs`;
+`tail_challenges`, `point`, `point1`, `basis_d`, `level_scale`, `level_after`, `inner_chain`. -/
+def osSizesL (c : OsCfg) : List ℕ :=
+  let n := c.levels.length
+  let lane := c.yrLen + (c.levels.getD c.yrLevel default).folds
+  [lane, 2 * n, c.nFolds, 2 * c.nFolds, n, n, n * hsStride, n * ligColsCap, n, n * ligPosCap,
+    n * ligPosCap] ++
+  ((c.levels.take c.yrLevel).map fun lv ↦ 2 + lv.folds) ++
+  [lane, yrLogCap, pointCap, pointCap, n * ligColsCap, n, n, 2 * n]
+
+/-- The callees of a call statement: a call's, a conditional call's, a dispatch's arms. -/
+def Stmt.calleesS : Stmt → Option (List String)
+  | .call f _ _ => some [f]
+  | .callIf _ f _ => some [f]
+  | .dispatch _ fs _ _ => some fs
+  | _ => none
+
+/-- The body's call statements' callees, in order. -/
+def osCallees (c : OsCfg) : List (List String) := (osBody c).filterMap Stmt.calleesS
+
+/-- Every callee of the body. -/
+def osCalleeNames (c : OsCfg) : List String := (osCallees c).flatten
+
+/-! ## The bound -/
+
+/-- A call statement: entered within `Bk f` words or skipped (its frame `fs f`), at its costliest
+callee. -/
+def osCallB (fs Bk : String → ℕ) (names : List String) : ℕ :=
+  (names.map fun f ↦ max (fs f) (Bk f)).foldl max 0
+
+/-- The body's calls' total, one `osCallB` per call statement. -/
+def osKidsB (fs Bk : String → ℕ) (c : OsCfg) : ℕ := ((osCallees c).map (osCallB fs Bk)).sum
 
 /-- **`open_stacked`'s frame-size bound** at a configuration. -/
 def osBos (fs Bk : String → ℕ) (name : String) (c : OsCfg) : ℕ :=
   fs name + (osSizesL c).sum + osKidsB fs Bk c
 
-theorem mkCall_f (σ : Val) (x : Option V × String × List V × List V) :
-    (Main.mkCall σ x).f = x.2.1 := by
-  obtain ⟨cv, f, a, r⟩ := x; cases cv <;> rfl
+theorem le_foldl_max_init : ∀ (l : List ℕ) (a : ℕ), a ≤ l.foldl max a
+  | [], _ => le_rfl
+  | y :: l, a => le_trans (le_max_left a y) (le_foldl_max_init l (max a y))
 
-theorem mkCalls_sumB (fs Bk : String → ℕ) (σ : Val) :
-    ∀ xs : List (Option V × String × List V × List V),
-      ((xs.map (Main.mkCall σ)).map fun c' ↦ osCallB fs Bk c'.f).sum =
-        (xs.map fun x ↦ osCallB fs Bk x.2.1).sum
-  | [] => rfl
-  | x :: xs => by
-    simp only [List.map_cons, List.sum_cons, mkCall_f, mkCalls_sumB fs Bk σ xs]
+theorem le_foldl_max : ∀ {l : List ℕ} {x : ℕ}, x ∈ l → ∀ a : ℕ, x ≤ l.foldl max a
+  | [], _, h, _ => absurd h List.not_mem_nil
+  | y :: l, x, h, a => by
+    rw [List.foldl_cons]
+    rcases List.mem_cons.mp h with rfl | h
+    · exact le_trans (le_max_right a x) (le_foldl_max_init l _)
+    · exact le_foldl_max h _
 
-/-- The body's frames under any `σ` total `osKidsB`. -/
-theorem osBodyCalls_sumB (fs Bk : String → ℕ) (σ : Val) (c : OsCfg) :
-    ((osBodyCalls σ c).map fun c' ↦ osCallB fs Bk c'.f).sum = osKidsB fs Bk c := by
-  rw [osBodyCalls_eq, osKidsB]
-  generalize (osBodyA c).filterMap Main.Stmt.callS = xs
-  exact mkCalls_sumB fs Bk σ xs
-
-/-- `CompleteAtB` on fewer words read. -/
-theorem completeAtB_lin_mono {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String}
-    {Lin Lin' : Main.Layout} {args : List E} {Out : List E → Main.Layout → Prop} {B : ℕ}
-    (h : CompleteAtB fs cert κ f Lin args Out B) (hsub : ∀ q ∈ Lin, q ∈ Lin') :
-    CompleteAtB fs cert κ f Lin' args Out B := fun fp ↦ by
-  obtain ⟨n, Lown, rets, Lout, ho, hw, hd, hn, hr⟩ := h fp
-  refine ⟨n, Lown, rets, Lout, ho, hw, hd, hn, fun rd hl hm ↦ ?_⟩
-  obtain ⟨h1, h2⟩ := Main.memL_append.mp hm
-  have h3 : Main.MemL rd Lin := fun q hq ↦ h2 q (hsub q hq)
-  exact (hr rd hl (Main.memL_append.mpr ⟨h1, h3⟩)).mono fun i ⟨q, hq, hq1, hq2⟩ ↦
-    ⟨q, hsub q hq, hq1, hq2⟩
+/-- **A callee within its statement's bound.** -/
+theorem le_osCallB {fs Bk : String → ℕ} {names : List String} {f : String} (h : f ∈ names) :
+    max (fs f) (Bk f) ≤ osCallB fs Bk names :=
+  le_foldl_max (List.mem_map.mpr ⟨f, h, rfl⟩ : max (fs f) (Bk f) ∈ names.map fun f ↦ max (fs f) (Bk f)) 0
 
 end
 end LeanVM.Guest.B1

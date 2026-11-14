@@ -43,24 +43,9 @@ theorem any_filter_of (hq : ∀ a, isLoadB a = false → q a = true) {P : Atom �
         · exact absurd (hq a (hP a h)) ha
       simp [ha, hPa, any_filter_of hq hP l]
 
-theorem addOf_filter (hq : ∀ a, isLoadB a = false → q a = true) :
-    ∀ (l : List Atom) (x : V), addOf (l.filter q) x = addOf l x
-  | [], _ => rfl
-  | a :: l, x => by
-    by_cases ha : q a = true
-    · simp only [List.filter_cons, ha, ite_true, addOf, List.findSome?_cons]
-      have := addOf_filter hq l x
-      unfold addOf at this
-      rw [this]
-    · have hl : isLoadB a = true := by
-        cases h : isLoadB a
-        · exact absurd (hq a h) ha
-        · rfl
-      cases a <;> simp only [isLoadB, Bool.false_eq_true] at hl
-      simp only [List.filter_cons, ha, Bool.false_eq_true, ite_false, addOf, List.findSome?_cons]
-      have := addOf_filter hq l x
-      unfold addOf at this
-      exact this
+theorem addWith_filter (hq : ∀ a, isLoadB a = false → q a = true) (l : List Atom) (x : V)
+    (f : V → V → Bool) : addWith (l.filter q) x f = addWith l x f :=
+  any_filter_of hq (fun a h => by cases a <;> simp_all [isLoadB]) l
 
 theorem const_notLoad (x : V) (lo hi : ℕ) : ∀ a, isConstAt x lo hi a = true → isLoadB a = false := by
   intro a h; cases a <;> simp_all [isConstAt, isLoadB]
@@ -77,7 +62,7 @@ theorem check_filter (hq : ∀ a, isLoadB a = false → q a = true) (s : ChainSp
     s.check (l.filter q) = s.check l := by
   unfold ChainSpec.check ChainSpec.blockOk ChainSpec.rateAt ChainSpec.capAt rateOk evalP
   simp only [any_filter_of hq (const_notLoad _ _ _), any_filter_of hq (copy_notLoad _ _),
-    any_filter_of hq (keccak_notLoad _ _ _ _), addOf_filter hq]
+    any_filter_of hq (keccak_notLoad _ _ _ _), addWith_filter hq]
 
 end
 end LeanVM.Guest.B1.Digest

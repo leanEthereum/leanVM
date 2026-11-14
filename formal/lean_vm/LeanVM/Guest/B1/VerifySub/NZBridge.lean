@@ -1,86 +1,128 @@
 /-
   LeanVM.Guest.B1.VerifySub.NZBridge
 
-  From a child's acceptance by the deferring verifier refusing zero challenges (G7's
-  `Limits.verifyDeferredNZ`) to the hypotheses of `open_stacked`'s completeness (B1-b's
-  `B1.Whir.NoZeroChallenge`, `B1.Whir.CapsAgree`) at the stacked opening.
+  From a child's acceptance by the deferring verifier refusing zero challenges (and by the guest's
+  variant refusing a zero fold, tail or level batching challenge or a vanishing combiner) to runs
+  of its prefix and of its stacked opening.
 -/
 
 module
 
-public import LeanVM.Protocol.Verifier.WhirTarget
-public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.NoCommit
-public import LeanVM.Protocol.WithHash
-public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.B1.VerifySub.NZRun
+public import LeanVM.Guest.NZProgram
 
 /-!
-# The opening's hypotheses from the child's
+# The deferring verifier's runs, split at the stacked opening
 
-The deferring verifier (`deferringVerifierProgram`, V:2358) and G7's variant refusing a zero fold,
-tail or level batching challenge (`Limits.deferredProgramNZ`) share their run up to the stacked
-opening:
-`specPre`, the announced sizes, the stack's commitment and the claims (`restClaims`: the bus,
-the tables, the public input, the Keccak reduction, the ring switch). Then each squeezes the
-batching challenge `λ` and runs B1-b's `whirOpen` (`whirOpenNZ`) and the terminal's check
-(`verifyExecution_pre`, `verifyExecutionNZ_pre`, `verifyStackedOpening_split`,
-`verifyStackedOpeningNZ_split`).
+`flatPre c bytecode pi`: the deferring verifier up to its stacked opening, its phases grouped as
+`verify_sub` runs them (Split.lean's `deferredFlat`), returning the layout, the rate and the
+claims. The deferring verifier is `flatPre`, then `verifyStackedOpening` (`deferred_pre`); the
+guest's variant is `flatPre`, then `Limits.verifyStackedOpeningNZ` (`deferredNZ_pre`, the steps of
+Claims.lean's `verifyExecution_claims`).
 
-`nz_open_of_nz`: an accepted run of the NZ variant passes through `specPre` to the opening's
-start, the caller's sponge state `S` with nothing waiting, the stream's rest `xsW`, the proof's
-openings and the stack's root alone among the commitments (`specPre`'s phases but the stack's
-commitment commit nothing, `NoCommit`); there the opening runs (`RunsWith (whirOpen …)`), with no
-zero challenge (`B1.Whir.NoZeroChallenge`), and its end passes the terminal's check.
-`caps_open_of_caps`: at the same start, the opening's query steps are among the whole run's
-(`queriesOf_eq_steps`), so G7's agreement of the run's openings gives B1-b's `CapsAgree`.
+`accept_rz`, `accept_nz`: an accepted run of either is a run of `flatPre` from the child's start,
+then of its stacked opening to the stream's and the openings' end. `opening_rz`, `opening_nz`: the
+stacked opening is the claims' check, the batching challenge, then `Whir.whirOpen` (refusing zero
+challenges) or `Limits.whirOpenNZ`, then the terminal's check. `refuseZero_bind`: refusing zero
+challenges commutes with sequencing.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Protocol.Verifier.Claims
 
 @[expose] public section
 
-/-! ## The shared prefix -/
+/-! ## The prefix -/
 
-/-- The claims the stacked opening batches, from the stack's commitment on (`verifyExecution`,
-steps 3-7): the bus, the tables, the public input, the Keccak reduction, the ring switch. -/
-def restClaims (ev : (List K → List E → VerifierProgram E)) (layout : Layout) (publicInput :
-    Digest) :
-    VerifierProgram (List StackClaim) := do
-  let bus ← verifyBusBalance ev layout
-  let claims ← tablePhaseClaims layout bus
-  let publicClaims ← publicInputPhase layout publicInput
-  let (claims, keccakPoint, keccakSlices) ← keccakPhaseClaims layout (claims ++ publicClaims)
-  let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
-  return ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout)
-
-/-- **The deferring verifier up to its stacked opening**: the layout, the rate and the claims. -/
-def specPre (ev : (List K → List E → VerifierProgram E)) (bytecode : List K) (publicInput :
-    Digest) :
+/-- **The deferring verifier up to its stacked opening**, grouped as `verify_sub` runs it. -/
+def flatPre (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
     VerifierProgram (Layout × ℕ × List StackClaim) :=
   (readAnnouncedSizes bytecode).bind fun ls ↦
   (commitStack ls.1.stackLog ls.2).bind fun _ ↦
-  (restClaims ev ls.1 publicInput).bind fun cl ↦ VerifierProgram.ret (ls.1, ls.2, cl)
+  (readOod ls.1.stackLog).bind fun ood ↦
+  (VerifierProgram.require (busDepth ls.1 < 64)).bind fun _ ↦
+  (busChallenges (busDepth ls.1)).bind fun wb ↦
+  (Tables.gkrPhase (busDepth ls.1)).bind fun r ↦
+  (Tables.tablesSeg (claimedBytecodeValue c) ls.1 pi wb.1 wb.2 r.2.1 r.2.2).bind fun bc ↦
+  (keccakPhaseClaims ls.1 bc.2).bind fun kc ↦
+  (ringSwitch kc.2.1 kc.2.2).bind fun rs ↦
+  VerifierProgram.ret (ls.1, ls.2, stackClaims ls.1 kc.1 rs.1 rs.2 ood)
 
-theorem verifyExecution_pre (ev : (List K → List E → VerifierProgram E)) (bytecode : List K) (pi :
-    Digest) :
-    verifyExecutionClaims ev bytecode pi =
-      (specPre ev bytecode pi).bind fun q ↦ verifyStackedOpening q.1.stackLog q.2.1 q.2.2 := by
-  simp only [verifyExecutionClaims, specPre, restClaims, VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
-    VerifierProgram.ret_bind]
+/-- **The deferring verifier: the prefix, then the stacked opening.** -/
+theorem deferred_pre (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
+    deferringVerifierProgram c bytecode pi = (flatPre c bytecode pi).bind fun q ↦
+      (verifyStackedOpening q.1.stackLog q.2.1 q.2.2).bind fun _ ↦ VerifierProgram.ret true := by
+  rw [deferred_eq]
+  simp only [deferredFlat, flatPre, VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
 
-theorem verifyExecutionNZ_pre (ev : (List K → List E → VerifierProgram E)) (bytecode : List K) (pi :
-    Digest) :
-    Limits.verifyExecutionNZ ev bytecode pi =
-      (specPre ev bytecode pi).bind fun q ↦
-        Limits.verifyStackedOpeningNZ q.1.stackLog q.2.1 q.2.2 := by
-  simp only [Limits.verifyExecutionNZ, specPre, restClaims, VerifierProgram.bind_eq,
-      VerifierProgram.pure_eq,
+/-- `verifyExecutionClaims` with the stacked opening refusing what makes the guest divide. -/
+def verifyExecutionClaimsNZ (ev : List K → List E → E → VerifierProgram Unit) (bytecode : List K)
+    (publicInput : Digest) : VerifierProgram Unit := do
+  let (layout, logInverseRate) ← readAnnouncedSizes bytecode
+  commitStack layout.stackLog logInverseRate
+  let ood ← readOod layout.stackLog
+  let bus ← verifyBusBalance ev layout
+  let claims ← tablePhaseClaims layout bus
+  let publicClaims ← publicInputPhase layout publicInput
+  let claims := claims ++ publicClaims
+  let (claims, keccakPoint, keccakSlices) ← keccakPhaseClaims layout claims
+  let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
+  Limits.verifyStackedOpeningNZ layout.stackLog logInverseRate
+    (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout) ++ [ood])
+
+/-- **The guest's verifier on the claim-list form** (Claims.lean's `verifyExecution_claims`). -/
+theorem verifyExecutionNZ_claims (ev : List K → List E → E → VerifierProgram Unit)
+    (bytecode : List K) (publicInput : Digest) :
+    Limits.verifyExecutionNZ ev bytecode publicInput =
+      verifyExecutionClaimsNZ ev bytecode publicInput := by
+  unfold Limits.verifyExecutionNZ verifyExecutionClaimsNZ
+  simp only [VerifierProgram.bind_eq]
+  refine Claims.bind_congr (Q := fun x ↦ LayoutOk x.1) (fun x hl ↦ ?_) _ (allRet_readSizes bytecode)
+  refine Claims.bind_congr (Q := fun _ ↦ True) (fun _ _ ↦ ?_) _ (allRet_true _)
+  refine Claims.bind_congr (Q := fun _ ↦ True) (fun ood _ ↦ ?_) _ (allRet_true _)
+  refine Claims.bind_congr (fun bus hb ↦ ?_) _ (allRet_verifyBusBalance ev x.1)
+  rw [tablePhaseClaims_eq, VerifierProgram.bind_assoc]
+  refine Claims.bind_congr (fun rows hr ↦ ?_) _ (allRet_tablePhase hl hb)
+  rw [VerifierProgram.ret_bind]
+  refine Claims.bind_congr (fun pc hpc ↦ ?_) _ (allRet_publicInputPhase x.1 publicInput)
+  rw [keccakPhaseClaims_eq hb.2 hpc hr, VerifierProgram.bind_assoc]
+  refine Claims.bind_congr (fun r hout ↦ ?_) _ (allRet_keccakPhase x.1 rows)
+  rw [VerifierProgram.ret_bind]
+  refine Claims.bind_congr (Q := fun _ ↦ True) (fun rs _ ↦ ?_) _ (allRet_true _)
+  have hlt : ∀ c ∈ bus.claims ++ tableColumnClaims rows ++ pc ++ r.1, c.column < 158 := by
+    intro c hc
+    simp only [List.mem_append] at hc
+    rcases hc with ((hc | hc) | hc) | hc
+    · have := hb.2 c hc
+      simp only [framework, memory0, memory1, memoryFinalCounters, bytecodeFinalCounters,
+        List.mem_cons, List.not_mem_nil, or_false] at this
+      omega
+    · exact tableClaims_lt hr c hc
+    · have := hpc c hc
+      simp only [memory0, memory1, List.mem_cons, List.not_mem_nil, or_false] at this
+      omega
+    · rw [hout c hc]; decide
+  have hfm := filterMap_onStack hl _ hlt
+  rw [List.filter_append,
+    (List.filter_eq_self (l := r.1)).mpr fun c hc ↦ by rw [hout c hc]; decide] at hfm
+  exact congrArg (fun l ↦ Limits.verifyStackedOpeningNZ x.1.stackLog x.2 (_ :: l ++ [ood])) hfm
+
+/-- **The guest's deferring verifier: the prefix, then its stacked opening.** -/
+theorem deferredNZ_pre (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
+    Limits.deferredProgramNZ c bytecode pi = (flatPre c bytecode pi).bind fun q ↦
+      (Limits.verifyStackedOpeningNZ q.1.stackLog q.2.1 q.2.2).bind fun _ ↦
+        VerifierProgram.ret true := by
+  show (Limits.verifyExecutionNZ _ _ _).bind _ = _
+  rw [verifyExecutionNZ_claims]
+  simp only [verifyExecutionClaimsNZ, flatPre, verifyBusBalance_split, busChallenges,
+    Tables.tablesSeg, stackClaims, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
     VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
 
-/-! ## The opening -/
+/-! ## The stacked opening -/
 
 /-- The batching's target over the claims at `λ`. -/
 def batchTarget (cl : List StackClaim) (lam : E) : E :=
@@ -91,212 +133,67 @@ def batchBasis (cl : List StackClaim) (lam : E) : List E → E :=
   fun point ↦ dot (powers lam cl.length) (cl.map fun c ↦ c.1 point)
 
 theorem verifyStackedOpening_split (μ r : ℕ) (cl : List StackClaim) :
-    verifyStackedOpening μ r cl = VerifierProgram.sampleChallenge.bind fun lam ↦
+    verifyStackedOpening μ r cl =
+      (VerifierProgram.require (StackedOk cl)).bind fun _ ↦
+      VerifierProgram.sampleChallenge.bind fun lam ↦
       (Whir.whirOpen μ r (batchTarget cl lam)).bind fun w ↦
         VerifierProgram.require (w.Accepts (batchBasis cl lam)) := by
-  simp only [verifyStackedOpening, verifyWhir_eq_target, Whir.verifyWhir_split, VerifierProgram.bind_eq, batchTarget]
+  rw [verifyStackedOpening_nf]
+  simp only [Whir.verifyWhir_split, VerifierProgram.bind_eq]
   rfl
-
-theorem foldRoundsNZ_eq : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
-    Limits.foldRoundsNZ n s lf = Whir.foldRoundsNZ n s lf
-  | 0, _, _ => rfl
-  | n + 1, s, lf => by
-    simp only [Limits.foldRoundsNZ, Whir.foldRoundsNZ, foldRoundsNZ_eq n]
-
-theorem tailRoundsNZ_eq : ∀ (n : ℕ) (t : E) (quad : List E),
-    Limits.tailRoundsNZ n t quad = Whir.tailRoundsNZ n t quad
-  | 0, _, _ => rfl
-  | n + 1, t, quad => by
-    simp only [Limits.tailRoundsNZ, Whir.tailRoundsNZ, tailRoundsNZ_eq n]
-
-theorem whirLevelsNZ_split (logN laneFolds : ℕ) (eb : List E → E) :
-    ∀ (index : ℕ) (levels : List Whir.Level) (s : WhirStateT),
-      Limits.whirLevelsNZ logN laneFolds eb index levels s =
-        (Whir.whirLevelsOpenNZ logN laneFolds index levels s).bind fun w ↦
-          VerifierProgram.require (w.Accepts eb)
-  | _, [], _ => rfl
-  | index, [level], s => by
-    rw [Limits.whirLevelsNZ, Whir.whirLevelsOpenNZ]
-    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
-        VerifierProgram.ret_bind, Whir.WhirEnd.Accepts,
-      foldRoundsNZ_eq, tailRoundsNZ_eq]
-    repeat refine Whir.prog_bind_congr fun _ ↦ ?_
-    rw [Whir.foldl_add_shift _ (eb _), add_comm (eb _)]
-    congr 1
-  | index, level :: next :: rest, s => by
-    rw [Limits.whirLevelsNZ, Whir.whirLevelsOpenNZ]
-    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
-        VerifierProgram.ret_bind, foldRoundsNZ_eq,
-      whirLevelsNZ_split logN laneFolds eb (index + 1) (next :: rest)]
-
-theorem verifyWhirNZ_split (logN logInvRate : ℕ) (target : E) (eb : List E → E) :
-    Limits.verifyWhirNZ logN logInvRate target eb = (do
-      let w ← Whir.whirOpenNZ logN logInvRate target
-      VerifierProgram.require (w.Accepts eb)) := by
-  simp only [Limits.verifyWhirNZ, Whir.whirOpenNZ, VerifierProgram.bind_eq,
-      VerifierProgram.bind_assoc,
-    whirLevelsNZ_split]
 
 theorem verifyStackedOpeningNZ_split (μ r : ℕ) (cl : List StackClaim) :
-    Limits.verifyStackedOpeningNZ μ r cl = VerifierProgram.sampleChallenge.bind fun lam ↦
-      (Whir.whirOpenNZ μ r (batchTarget cl lam)).bind fun w ↦
+    Limits.verifyStackedOpeningNZ μ r cl =
+      (VerifierProgram.require (StackedOk cl)).bind fun _ ↦
+      VerifierProgram.sampleChallenge.bind fun lam ↦
+      (Limits.whirOpenNZ μ r (batchTarget cl lam)).bind fun w ↦
         VerifierProgram.require (w.Accepts (batchBasis cl lam)) := by
-  simp only [Limits.verifyStackedOpeningNZ, verifyWhirNZ_split, VerifierProgram.bind_eq,
-      batchTarget]
+  unfold Limits.verifyStackedOpeningNZ
+  simp only [Limits.verifyWhirNZ_split, VerifierProgram.bind_eq]
   rfl
 
+/-! ## Refusing zero challenges -/
 
-/-! ## The prefix commits only the stack -/
+theorem bind_ite_fail {α β : Type} (c : Prop) [Decidable c] (P : VerifierProgram α)
+    (f : α → VerifierProgram β) :
+    (if c then (VerifierProgram.fail : VerifierProgram α) else P).bind f =
+      if c then VerifierProgram.fail else P.bind f := by
+  split <;> rfl
 
-theorem noCommit_busRest (c : BytecodeClaim) (L : Layout) (alphas : List E) (beta : E)
-    (point tv : List E) : NoCommit (Tables.busRest (claimedBytecodeValue c) L alphas beta point
-        tv) := by
-  unfold Tables.busRest
-  simp only [claimedBytecodeValue]
-  nc
+/-- **Refusing zero challenges commutes with sequencing.** -/
+theorem refuseZero_bind {α β : Type} : ∀ (P : VerifierProgram α) (f : α → VerifierProgram β),
+    (P.bind f).refusingZeroChallenge =
+      P.refusingZeroChallenge.bind fun a ↦ (f a).refusingZeroChallenge
+  | .ret _, _ => rfl
+  | .fail, _ => rfl
+  | .read k, f => congrArg VerifierProgram.read (funext fun x ↦ refuseZero_bind (k x) f)
+  | .sample k, f => by
+    show VerifierProgram.sample (fun x ↦ if x = 0
+        then VerifierProgram.fail else ((k x).bind f).refusingZeroChallenge) =
+      VerifierProgram.sample fun x ↦ (if x = 0
+          then VerifierProgram.fail else (k x).refusingZeroChallenge).bind
+        fun a ↦ (f a).refusingZeroChallenge
+    refine congrArg _ (funext fun x ↦ ?_)
+    rw [bind_ite_fail, refuseZero_bind (k x) f]
+  | .grind _ k, f => congrArg (VerifierProgram.grind _) (refuseZero_bind k f)
+  | .commit _ _ k, f => congrArg (VerifierProgram.commit _ _) (refuseZero_bind k f)
+  | .query _ _ k, f =>
+    congrArg (VerifierProgram.query _ _) (funext fun r ↦ refuseZero_bind (k r) f)
 
-theorem noCommit_verifyBusBalance (c : BytecodeClaim) (layout : Layout) :
-    NoCommit (verifyBusBalance (claimedBytecodeValue c) layout) := by
-  rw [verifyBusBalance_split]
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_sampleN _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_sampleE
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_gkrPhase _
-  intro _
-  exact noCommit_busRest _ _ _ _ _ _
+/-! ## From the child's acceptance -/
 
-theorem noCommit_publicInputPhase (layout : Layout) (pi : Digest) :
-    NoCommit (publicInputPhase layout pi) := by
-  unfold publicInputPhase
-  nc
-
-theorem noCommit_verifyKeccak (logSteps : ℕ) (inst output : List E) :
-    NoCommit (verifyKeccak logSteps inst output) := by
-  have h1 : 1 < keccakSegments := by decide
-  unfold verifyKeccak
-  simp only [h1, ↓reduceIte, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
-      VerifierProgram.ret_bind]
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_sampleN _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_sampleN _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_readE
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_keccakLayers _ _ _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_keccakOpen _ _ _ _ _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_readE
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_require _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_sumcheck _ _ _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_keccakOpen _ _ _ _ _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_readN _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_require _
-  intro _
-  exact noCommit_ret _
-
-theorem noCommit_restClaims (c : BytecodeClaim) (layout : Layout) (pi : Digest) :
-    NoCommit (restClaims (claimedBytecodeValue c) layout pi) := by
-  unfold restClaims keccakPhaseClaims ringSwitch
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
-      VerifierProgram.ret_bind]
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_verifyBusBalance _ _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_tablePhase _ _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_publicInputPhase _ _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_require _
-  intro _
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_verifyKeccak _ _ _
-  intro x
-  rcases x with ⟨cl, kp, ks⟩
-  refine NoCommit.bind ?_ ?_
-  · exact noCommit_sampleN _
-  intro _
-  exact noCommit_ret _
-
-/-- **The stack's commitment commits the stack's shape**, alone. -/
-theorem commitStack_runF {μ r : ℕ} {st : Whir.FSt} {u : Unit} {st' : Whir.FSt}
-    (h : Whir.runF (commitStack μ r) st = some (u, st')) :
-    (∃ root, st'.roots = st.roots ++ [(root, Whir.stackShape μ r)]) ∧
-      st'.openings = st.openings := by
-  cases hc : Whir.ladder μ r with
-  | none =>
-    unfold commitStack at h
-    rw [hc] at h
-    exact absurd h (by simp [Verifier.liftOption, VerifierProgram.bind, Whir.runF])
-  | some cfg =>
-    cases cfg with
-    | nil =>
-      unfold commitStack at h
-      rw [hc] at h
-      exact absurd h (by simp [Verifier.liftOption, VerifierProgram.bind, Whir.runF])
-    | cons level rest =>
-      rw [Whir.commitStack_eq hc] at h
-      obtain ⟨s, stream, os, R⟩ := st
-      match stream, h with
-      | x0 :: x1 :: xs, h =>
-        simp only [VerifierProgram.readCommitment, Whir.runF] at h
-        split at h
-        · rename_i root _
-          simp only [Option.some.injEq, Prod.mk.injEq] at h
-          obtain ⟨-, rfl⟩ := h
-          exact ⟨⟨root, rfl⟩, rfl⟩
-        · simp at h
-
-/-- **The prefix's commitments**: from no commitment, the stack's root alone, the openings kept. -/
-theorem specPre_runF {c : BytecodeClaim} {bytecode : List K} {pi : Digest} {st : Whir.FSt}
-    {q : Layout × ℕ × List StackClaim} {st1 : Whir.FSt} (h0 : st.roots = [])
-    (h : Whir.runF (specPre (claimedBytecodeValue c) bytecode pi) st = some (q, st1)) :
-    (∃ root, st1.roots = [(root, Whir.stackShape q.1.stackLog q.2.1)]) ∧
-      st1.openings = st.openings := by
-  unfold specPre at h
-  obtain ⟨ls, sA, hA, h⟩ := Whir.runF_bind_some h
-  obtain ⟨rA, oA⟩ := NoCommit.runF (noCommit_readSizes _) hA
-  obtain ⟨u, sB, hB, h⟩ := Whir.runF_bind_some h
-  obtain ⟨⟨root, rB⟩, oB⟩ := commitStack_runF hB
-  obtain ⟨cl, sC, hC, h⟩ := Whir.runF_bind_some h
-  obtain ⟨rC, oC⟩ := NoCommit.runF (noCommit_restClaims _ _ _) hC
-  simp only [Whir.runF, Option.some.injEq, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl⟩ := h
-  refine ⟨⟨root, ?_⟩, by rw [oC, oB, oA]⟩
-  rw [rC, rB, rA, h0, List.nil_append]
-
-/-! ## From the child's acceptance to the opening -/
+/-- The deferring verifier's start on a child's proof. -/
+def deferStart (seed pi : Digest) (π : Proof) : VerifierProgramState :=
+  ⟨⟨keccakF1600 (seedInput seed pi), [], none⟩, π.stream, π.openings, []⟩
 
 theorem runProof_accepts {P : VerifierProgram Bool} {seed : KeccakState} {π : Proof}
     (h : Id.run (runProofWithHash (m := Id) keccak256 keccakF1600 P seed π) = true) :
-    ∃ t : VerifierProgramState, runId P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ = some (true, t) ∧
-      t.stream = [] ∧ t.openings = [] := by
+    ∃ t : VerifierProgramState, runId P ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩ =
+      some (true, t) ∧ t.stream = [] ∧ t.openings = [] := by
   unfold runProofWithHash at h
   revert h
-  match hr : Compile.runWithHash (m := Id) keccak256 keccakF1600 P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
+  match hr : Compile.runWithHash (m := Id) keccak256 keccakF1600 P
+      ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩ with
   | some (true, s) =>
     intro h
     change (s.stream.isEmpty && s.openings.isEmpty) = true at h
@@ -311,134 +208,132 @@ theorem runProof_accepts {P : VerifierProgram Bool} {seed : KeccakState} {π : P
     change false = true at h
     exact absurd h Bool.false_ne_true
 
-theorem runF_sample_bind {β : Type} (g : E → VerifierProgram β) (st : Whir.FSt) :
-    Whir.runF (VerifierProgram.sampleChallenge.bind g) st =
-      Whir.runF (g st.sponge.squeeze.1) { st with sponge := st.sponge.squeeze.2 } := rfl
+/-- A run of `p`, then `ret`, is a run of `p`. -/
+theorem runId_bind_ret {α β : Type} {p : VerifierProgram α} {b : β}
+    {st : VerifierProgramState} {r : β × VerifierProgramState}
+    (h : runId (p.bind fun _ ↦ VerifierProgram.ret b) st = some r) :
+    ∃ a, runId p st = some (a, r.2) := by
+  obtain ⟨a, st', h1, h2⟩ := runId_bind_some h
+  have e : runId (VerifierProgram.ret b) st' = some (b, st') := rfl
+  rw [e, Option.some.injEq] at h2
+  subst h2
+  exact ⟨a, h1⟩
 
-theorem runF_require_bind {β : Type} {c : Prop} [Decidable c] {k : Unit → VerifierProgram β}
-    {st : Whir.FSt} {r : β × Whir.FSt} (h : Whir.runF ((VerifierProgram.require c).bind k) st =
-        some r) :
-    c ∧ Whir.runF (k ()) st = some r := by
+/-- **A proof the deferring verifier refusing zero challenges accepts**: a run of the prefix,
+then of its stacked opening refusing zero challenges, to the stream's and the openings' end. -/
+theorem accept_rz {bytecode : List K} {seed pi : Digest} {c : BytecodeClaim} {π : Proof}
+    (h : Limits.verifyDeferredRefusingZero bytecode seed pi c π = true) :
+    ∃ q stq t, runId (flatPre c bytecode pi) (deferStart seed pi π) = some (q, stq) ∧
+      runId (verifyStackedOpening q.1.stackLog q.2.1 q.2.2).refusingZeroChallenge stq =
+        some ((), t) ∧ t.stream = [] ∧ t.openings = [] := by
+  unfold Limits.verifyDeferredRefusingZero at h
+  rw [runProof_eq_withHash, keccak256With_keccakF1600] at h
+  obtain ⟨t, hrun, ht1, ht2⟩ := runProof_accepts h
+  rw [deferred_pre, refuseZero_bind] at hrun
+  obtain ⟨q, stq, h1, h2⟩ := runId_bind_some hrun
+  rw [refuseZero_bind] at h2
+  obtain ⟨u, h3⟩ := runId_bind_ret h2
+  exact ⟨q, stq, t, runId_of_rz _ _ _ h1, h3, ht1, ht2⟩
+
+/-- **A proof the guest's deferring verifier accepts**: a run of the prefix, then of its stacked
+opening, to the stream's and the openings' end. -/
+theorem accept_nz {bytecode : List K} {seed pi : Digest} {c : BytecodeClaim} {π : Proof}
+    (h : Limits.verifyDeferredNZ bytecode seed pi c π = true) :
+    ∃ q stq t, runId (flatPre c bytecode pi) (deferStart seed pi π) = some (q, stq) ∧
+      runId (Limits.verifyStackedOpeningNZ q.1.stackLog q.2.1 q.2.2) stq = some ((), t) ∧
+      t.stream = [] ∧ t.openings = [] := by
+  obtain ⟨t, hrun, ht1, ht2⟩ := runProof_accepts h
+  rw [deferredNZ_pre] at hrun
+  obtain ⟨q, stq, h1, h2⟩ := runId_bind_some hrun
+  obtain ⟨u, h3⟩ := runId_bind_ret h2
+  exact ⟨q, stq, t, h1, h3, ht1, ht2⟩
+
+/-- A sample's run. -/
+theorem runId_sample_bind {α : Type} (g : E → VerifierProgram α) (st : VerifierProgramState) :
+    runId (VerifierProgram.sampleChallenge.bind g) st =
+      runId (g (Id.run (squeeze keccakF1600 st.sponge)).1)
+        { st with sponge := (Id.run (squeeze keccakF1600 st.sponge)).2 } := rfl
+
+/-- A requirement's run. -/
+theorem runId_require_bind {α : Type} {c : Prop} [Decidable c] {k : Unit → VerifierProgram α}
+    {st : VerifierProgramState} {r : α × VerifierProgramState}
+    (h : runId ((VerifierProgram.require c).bind k) st = some r) : c ∧ runId (k ()) st = some r := by
   unfold VerifierProgram.require at h
   split at h
   · exact ⟨by assumption, h⟩
-  · simp [VerifierProgram.bind, Whir.runF] at h
+  · exact absurd h (by rintro ⟨⟩)
 
-/-- The carried state the deferring verifier starts from. -/
-def deferStart (seed pi : Digest) (π : Proof) : Whir.FSt :=
-  ⟨⟨capOf (keccakF1600 (seedInput seed pi)), []⟩, π.stream, π.openings, []⟩
+/-- **The stacked opening refusing zero challenges**: the claims' check, a nonzero batching
+challenge, then `whirOpen` refusing zero challenges (so `whirOpen`) to an end passing the
+terminal's check. -/
+theorem opening_rz {μ r : ℕ} {cl : List StackClaim} {st t : VerifierProgramState} {u : Unit}
+    (h : runId (verifyStackedOpening μ r cl).refusingZeroChallenge st = some (u, t)) :
+    cl.length ≤ maxStackedClaims ∧ ∃ w,
+      runId (Whir.whirOpen μ r (batchTarget cl (Id.run (squeeze keccakF1600 st.sponge)).1))
+        { st with sponge := (Id.run (squeeze keccakF1600 st.sponge)).2 } = some (w, t) ∧
+      runId (Whir.whirOpen μ r
+          (batchTarget cl (Id.run (squeeze keccakF1600 st.sponge)).1)).refusingZeroChallenge
+        { st with sponge := (Id.run (squeeze keccakF1600 st.sponge)).2 } = some (w, t) ∧
+      w.Accepts (batchBasis cl (Id.run (squeeze keccakF1600 st.sponge)).1) := by
+  rw [verifyStackedOpening_split, refuseZero_bind] at h
+  obtain ⟨u1, st1, h1, h2⟩ := runId_bind_some h
+  have e1 : (VerifierProgram.require (StackedOk cl)).refusingZeroChallenge =
+      VerifierProgram.require (StackedOk cl) := by
+    unfold VerifierProgram.require; split <;> rfl
+  rw [e1] at h1
+  have hreq : StackedOk cl ∧ st1 = st := by
+    unfold VerifierProgram.require at h1
+    split at h1
+    · rename_i hc
+      have e : runId (VerifierProgram.ret ()) st = some ((), st) := rfl
+      rw [e, Option.some.injEq, Prod.mk.injEq] at h1
+      exact ⟨hc, h1.2.symm⟩
+    · exact absurd h1 (by rintro ⟨⟩)
+  obtain ⟨hlen, rfl⟩ := hreq
+  refine ⟨hlen.length_le, ?_⟩
+  have e2 : runId ((VerifierProgram.sampleChallenge.bind fun lam ↦
+      (Whir.whirOpen μ r (batchTarget cl lam)).bind fun w ↦
+        VerifierProgram.require (w.Accepts (batchBasis cl lam))).refusingZeroChallenge) st1 =
+      runId (if (Id.run (squeeze keccakF1600 st1.sponge)).1 = 0 then VerifierProgram.fail else
+        ((Whir.whirOpen μ r (batchTarget cl (Id.run (squeeze keccakF1600 st1.sponge)).1)).bind
+          fun w ↦ VerifierProgram.require (w.Accepts (batchBasis cl
+            (Id.run (squeeze keccakF1600 st1.sponge)).1))).refusingZeroChallenge)
+        { st1 with sponge := (Id.run (squeeze keccakF1600 st1.sponge)).2 } := rfl
+  rw [e2] at h2
+  split at h2
+  · exact absurd h2 (by rintro ⟨⟩)
+  rw [refuseZero_bind] at h2
+  obtain ⟨w, st3, h3, h4⟩ := runId_bind_some h2
+  have e3 : ∀ c' : Prop, ∀ _ : Decidable c',
+      (VerifierProgram.require c').refusingZeroChallenge = VerifierProgram.require c' := by
+    intro c' _; unfold VerifierProgram.require; split <;> rfl
+  rw [e3] at h4
+  unfold VerifierProgram.require at h4
+  split at h4
+  · rename_i hacc
+    have e : runId (VerifierProgram.ret ()) st3 = some ((), st3) := rfl
+    rw [e, Option.some.injEq, Prod.mk.injEq] at h4
+    obtain ⟨-, rfl⟩ := h4
+    exact ⟨w, runId_of_rz _ _ _ h3, h3, hacc⟩
+  · exact absurd h4 (by rintro ⟨⟩)
 
-/-- **The opening's hypotheses from the child's acceptance with no zero challenge**: the
-deferring verifier runs `specPre` to the opening's start (the sponge `sq`, the words `xsW` left,
-the proof's openings, the stack's root alone); its batching challenge `λ` leaves the state `S`;
-there `whirOpen` runs on `xsW` and the openings (`RunsWith`), with no zero challenge
-(`B1.Whir.NoZeroChallenge`), to an end passing the terminal's check. -/
-theorem nz_open_of_nz {bytecode : List K} {seed pi : Digest} {c : BytecodeClaim} {π : Proof}
-    (h : Limits.verifyDeferredNZ bytecode seed pi c π = true) :
-    ∃ (q : Layout × ℕ × List StackClaim) (sq : Fs) (root : Digest) (xsW : List E) (w : Whir.WhirEnd)
-      (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
-      Whir.runF (specPre (claimedBytecodeValue c) bytecode pi) (deferStart seed pi π) =
-        some (q, ⟨sq, xsW, π.openings, [(root, Whir.stackShape q.1.stackLog q.2.1)]⟩) ∧
-      Whir.RunsWith (Whir.whirOpen q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1))
-        ⟨capOf sq.perm, []⟩ xsW π.openings [(root, Whir.stackShape q.1.stackLog q.2.1)] w s'
-        roots' ∧
-      Whir.NoZeroChallenge q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1) sq.perm xsW
-        π.openings root ∧
-      w.Accepts (batchBasis q.2.2 sq.squeeze.1) := by
-  obtain ⟨t, hrun, ht1, ht2⟩ := runProof_accepts h
-  have hF := Whir.runF_of_runId _ (deferStart seed pi π) ⟨keccakF1600 (seedInput seed pi), []⟩
-    ⟨rfl, rfl⟩ true t hrun
-  rw [ht1, ht2] at hF
-  simp only [Limits.deferredProgramNZ, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
-      verifyExecutionNZ_pre,
-    VerifierProgram.bind_assoc] at hF
-  obtain ⟨q, st1, h1, h2⟩ := Whir.runF_bind_some hF
-  obtain ⟨⟨root, hr1⟩, ho1⟩ := specPre_runF (by rfl) h1
-  rw [verifyStackedOpeningNZ_split, VerifierProgram.bind_assoc, runF_sample_bind] at h2
-  simp only [VerifierProgram.bind_assoc] at h2
-  obtain ⟨w, st3, h3, h4⟩ := Whir.runF_bind_some h2
-  obtain ⟨hacc, h5⟩ := runF_require_bind h4
-  simp only [Whir.runF, Option.some.injEq, Prod.mk.injEq] at h5
-  obtain ⟨-, rfl⟩ := h5
-  obtain ⟨sq, xsW, os1, R1⟩ := st1
-  simp only at hr1 ho1
-  subst hr1 ho1
-  have hsq : sq.squeeze.2 = ⟨capOf sq.perm, []⟩ := rfl
-  rw [hsq] at h3
-  have hW : Whir.runF (Whir.whirOpen q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1))
-      ⟨⟨capOf sq.perm, []⟩, xsW, π.openings, [(root, Whir.stackShape q.1.stackLog q.2.1)]⟩ =
-      some (w, ⟨Whir.fsOf t.sponge, [], [], t.roots⟩) := (Whir.whirOpenNZ_ref _ _ _ _ _ h3).1
-  exact ⟨q, sq, root, xsW, w, _, _, h1, runsWith_of_runF hW, ⟨w, _, _, runsWith_of_runF h3⟩,
-    hacc⟩
-
-
-/-! ## The caps -/
-
-theorem deferredProgram_pre (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
-    deferringVerifierProgram c bytecode pi = (specPre (claimedBytecodeValue c) bytecode pi).bind
-        fun q ↦
-      (VerifierProgram.sampleChallenge.bind fun lam ↦
-        (Whir.whirOpen q.1.stackLog q.2.1 (batchTarget q.2.2 lam)).bind fun w ↦
-          VerifierProgram.require (w.Accepts (batchBasis q.2.2 lam))).bind fun _ ↦
-              VerifierProgram.ret true := by
-  simp only [deferredProgram_eq, verifyExecution_pre, VerifierProgram.bind_assoc,
-    verifyStackedOpening_split]
-
-/-- **The opening's caps from the run's**: at the opening's start `nz_open_of_nz` gives, the
-opening's query steps are among the deferring verifier's, so their agreement is B1-b's
-`CapsAgree`. -/
-theorem caps_open_of_caps {bytecode : List K} {seed pi : Digest} {c : BytecodeClaim} {π : Proof}
-    {q : Layout × ℕ × List StackClaim} {sq : Fs} {root : Digest} {xsW : List E}
-    (hpre : Whir.runF (specPre (claimedBytecodeValue c) bytecode pi) (deferStart seed pi π) =
-      some (q, ⟨sq, xsW, π.openings, [(root, Whir.stackShape q.1.stackLog q.2.1)]⟩))
-    (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c bytecode pi)
-      ⟨⟨keccakF1600 (seedInput seed pi), []⟩, π.stream, π.openings, []⟩, Limits.OpeningsAgree b.1 b.2) :
-    Whir.CapsAgree q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1) sq.perm xsW π.openings
-      root := by
-  intro b hb
-  apply batchAgrees_of
-  apply hcaps
-  have e : Limits.queryStepsOf (deferringVerifierProgram c bytecode pi)
-      ⟨⟨keccakF1600 (seedInput seed pi), []⟩, π.stream, π.openings, []⟩ =
-      Whir.queryStepsOf (deferringVerifierProgram c bytecode pi) (deferStart seed pi π) :=
-    queriesOf_eq_steps _ (deferStart seed pi π) ⟨keccakF1600 (seedInput seed pi), []⟩ ⟨rfl, rfl⟩
-  rw [e, deferredProgram_pre, Whir.queriesOf_bind, hpre]
-  refine List.mem_append_right _ ?_
-  simp only
-  rw [Whir.queriesOf_bind]
-  refine List.mem_append_left _ ?_
-  show b ∈ Whir.queryStepsOf ((Whir.whirOpen q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1)).bind
-    fun w ↦ VerifierProgram.require (w.Accepts (batchBasis q.2.2 sq.squeeze.1))) _
-  rw [Whir.queriesOf_bind]
-  exact List.mem_append_left _ hb
-
-/-! ## For a child -/
-
-/-- **`open_stacked`'s hypotheses for an honest child**: under G7's per-child hypotheses
-(acceptance with no zero challenge, openings agreeing in the caps), the deferring verifier runs
-`specPre` to the opening's start; there `whirOpen` runs, with no zero challenge and openings
-agreeing in the caps, to an end passing the terminal's check. -/
-theorem child_open {bytecode : List K} (seed : Digest) (c : Node.Child)
-    (hnz : Limits.verifyDeferredNZ bytecode seed (Node.statementDigest seed c.statement) c.freshClaim
-      c.proof = true)
-    (hcaps : ∀ b ∈ Limits.queryStepsOf
-      (deferringVerifierProgram c.freshClaim bytecode (Node.statementDigest seed c.statement))
-      (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) :
-    ∃ (q : Layout × ℕ × List StackClaim) (sq : Fs) (root : Digest) (xsW : List E)
-      (w : Whir.WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
-      Whir.runF (specPre (claimedBytecodeValue c.freshClaim) bytecode (Node.statementDigest seed c.statement))
-        (deferStart seed (Node.statementDigest seed c.statement) c.proof) =
-        some (q, ⟨sq, xsW, c.proof.openings, [(root, Whir.stackShape q.1.stackLog q.2.1)]⟩) ∧
-      Whir.RunsWith (Whir.whirOpen q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1))
-        ⟨capOf sq.perm, []⟩ xsW c.proof.openings [(root, Whir.stackShape q.1.stackLog q.2.1)] w s'
-        roots' ∧
-      Whir.NoZeroChallenge q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1) sq.perm xsW
-        c.proof.openings root ∧
-      Whir.CapsAgree q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1) sq.perm xsW
-        c.proof.openings root ∧
-      w.Accepts (batchBasis q.2.2 sq.squeeze.1) := by
-  obtain ⟨q, sq, root, xsW, w, s', roots', hpre, hrun, hnz', hacc⟩ := nz_open_of_nz hnz
-  exact ⟨q, sq, root, xsW, w, s', roots', hpre, hrun, hnz', caps_open_of_caps hpre hcaps, hacc⟩
+/-- **The guest's stacked opening**: the claims' check, the batching challenge, then
+`Limits.whirOpenNZ` to an end passing the terminal's check. -/
+theorem opening_nz {μ r : ℕ} {cl : List StackClaim} {st t : VerifierProgramState} {u : Unit}
+    (h : runId (Limits.verifyStackedOpeningNZ μ r cl) st = some (u, t)) :
+    ∃ w, runId (Limits.whirOpenNZ μ r (batchTarget cl (Id.run (squeeze keccakF1600 st.sponge)).1))
+        { st with sponge := (Id.run (squeeze keccakF1600 st.sponge)).2 } = some (w, t) := by
+  rw [verifyStackedOpeningNZ_split] at h
+  obtain ⟨-, h⟩ := runId_require_bind h
+  rw [runId_sample_bind] at h
+  obtain ⟨w, st3, h3, h4⟩ := runId_bind_some h
+  unfold VerifierProgram.require at h4
+  split at h4
+  · have e : runId (VerifierProgram.ret ()) st3 = some ((), st3) := rfl
+    rw [e, Option.some.injEq, Prod.mk.injEq] at h4
+    obtain ⟨-, rfl⟩ := h4
+    exact ⟨w, h3⟩
+  · exact absurd h4 (by rintro ⟨⟩)
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -11,11 +11,11 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SBase
 
 /-!
-# The tables' heights (G:2195-2209)
+# The tables' heights (G:2306-2319)
 
 `pad_ok` (`t < 5`, floor `0`) and `pad5_ok` (`KECCAK`, floor `9`): from the template's equations,
 its two reads not stores, a memory holding `g^τ` and the rows `n` with `τ = max (log2Ceil n)
-floor < 29`, the bus point's first `τ` coordinates `zs` at `zeta`, and the oracle's returns of
+floor < 31`, the bus point's first `τ` coordinates `zs` at `zeta`, and the oracle's returns of
 `padding_weight` (`paddingWeight zs n`, `lead`, `rest`), every statement holds and the padding
 weight is `paddingWeight zs n`.
 -/
@@ -31,7 +31,7 @@ open LeanVM.Guest.B1.Fwd
 variable {rd : Reader} {w : ℕ → E} {σ : Val}
 
 /-- The dispatch on `g^τ` to `padding_weight__L{τ}`. -/
-theorem pad_dispatch {x r a b c τ n : ℕ} {zs : List E} (hτ : τ < 29) (hv : σ (.n x) = gen ^ τ)
+theorem pad_dispatch {x r a b c τ n : ℕ} {zs : List E} (hτ : τ < 31) (hv : σ (.n x) = gen ^ τ)
     (hrow : σ (.n r) = eOfNat n) (hz : TbReadsAt rd (σ (.n 8)) zs) (hzl : zs.length = τ)
     (hn : n ≤ 2 ^ τ) (h6 : σ (.n a) = paddingWeight zs n) (h7 : σ (.n b) = PadLead τ n)
     (h8 : σ (.n c) = PadRest τ n) :
@@ -46,9 +46,9 @@ theorem pad_dispatch {x r a b c τ n : ℕ} {zs : List E} (hτ : τ < 29) (hv : 
 theorem pad_ok {v t τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd)
     (hg : GoodL rd w σ (vtPadT v t))
     (s4 : Atom.load (.n (v + 4)) (.n 11) t ∉ vtSL)
-    (hkb : σ (.n (30 + t)) = gen ^ τ)
+    (hkb : σ (.n (27 + t)) = gen ^ τ)
     (hrow : LoadHolds rd (σ (.n 11)) t (eOfNat n))
-    (hz : TbReadsAt rd (σ (.n 8)) zs) (hzl : zs.length = τ) (hτ : τ < 29) (hlog : log2Ceil n = τ)
+    (hz : TbReadsAt rd (σ (.n 8)) zs) (hzl : zs.length = τ) (hτ : τ < 31) (hlog : log2Ceil n = τ)
     (hw5 : w (v + 5) = paddingWeight zs n) (hw6 : w (v + 6) = PadLead τ n)
     (hw7 : w (v + 7) = PadRest τ n) :
     (∀ st ∈ vtPadT v t, VSH (coreProgram.Rel rd) rd σ st) ∧
@@ -61,7 +61,7 @@ theorem pad_ok {v t τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd)
   have hn : n ≤ 2 ^ τ := log2Ceil_le_iff.mp (le_of_eq hlog)
   obtain ⟨hlr1, hlr2⟩ := (lead_rest_iff (by omega) hn).mpr hlog
   obtain ⟨r1, r2, r3⟩ := g1
-  obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 hkb (by rw [g0, vtW28_gen]) (by omega)
+  obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 hkb (by rw [g0, vtW30_gen]) (by omega)
     (by norm_num)
   obtain ⟨e4, l2⟩ := read_of (g2.resolve_left s4) hrow
   have e5 : σ (.n (v + 5)) = paddingWeight zs n := by rw [g5, hw5]
@@ -79,17 +79,17 @@ theorem pad_ok {v t τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd)
     rw [g12, g11, mul_inv_cancel₀ (by rw [e10]; exact hlr2)]
 
 /-- **The `KECCAK` table's height**, its floor `9`. -/
-theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 36 ≤ v)
+theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 33 ≤ v)
     (hg : GoodL rd w σ (vtPad5T v))
-    (hgb : GoodL rd w σ [.atom (.const (.n (v + 16)) (word 1 0 0)),
-      .atom (.assertEq (.n (v + 6)) (.n (v + 16))), .atom (.const (.n (v + 17)) (word 0 0 0)),
+    (hgb : GoodL rd w σ [.atom (.const (.n (v + 16)) (word 1 0)),
+      .atom (.assertEq (.n (v + 6)) (.n (v + 16))), .atom (.const (.n (v + 17)) (word 0 0)),
       .atom (.add (.n (v + 18)) (.n (v + 7)) (.n (v + 17))),
       .atom (.hint (.inverse (.n (v + 18)) (.n (v + 19)))),
       .atom (.assertNe (.n (v + 18)) (.n (v + 19)) (.n (v + 20)))])
     (s4 : Atom.load (.n (v + 4)) (.n 11) 5 ∉ vtSL)
-    (hkb : σ (.n 35) = gen ^ τ)
+    (hkb : σ (.n 32) = gen ^ τ)
     (hrow : LoadHolds rd (σ (.n 11)) 5 (eOfNat n))
-    (hz : TbReadsAt rd (σ (.n 8)) zs) (hzl : zs.length = τ) (hτ : τ < 29)
+    (hz : TbReadsAt rd (σ (.n 8)) zs) (hzl : zs.length = τ) (hτ : τ < 31)
     (hlog : τ = max (log2Ceil n) 9)
     (hw5 : w (v + 5) = paddingWeight zs n) (hw6 : w (v + 6) = PadLead τ n)
     (hw7 : w (v + 7) = PadRest τ n) :
@@ -101,24 +101,24 @@ theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 36 ≤
   simp only [GoodL, GoodS, fixNe, Good, and_true] at hgb
   obtain ⟨b16, -, b17, b18, b19, b20⟩ := hgb
   simp only [show v < v + 1 by omega, show v + 8 < v + 11 by omega,
-    show ¬ (v + 10 < 35 ∧ v + 9 < 35) from fun h => by omega,
+    show ¬ (v + 10 < 32 ∧ v + 9 < 32) from fun h => by omega,
     show v + 18 < v + 20 ∧ v + 19 < v + 20 from ⟨by omega, by omega⟩, ↓reduceIte] at g1 g10 g11 b20
   have hn : n ≤ 2 ^ τ := by
     have := log2Ceil_le_iff.mp (show log2Ceil n ≤ τ by omega)
     exact this
   obtain ⟨r1, r2, r3⟩ := g1
-  obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 hkb (by rw [g0, vtW28_gen]) (by omega)
+  obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 hkb (by rw [g0, vtW30_gen]) (by omega)
     (by norm_num)
   obtain ⟨e4, l2⟩ := read_of (g2.resolve_left s4) hrow
   have e5 : σ (.n (v + 5)) = paddingWeight zs n := by rw [g5, hw5]
   have e6 : σ (.n (v + 6)) = PadLead τ n := by rw [g6, hw6]
   have e7 : σ (.n (v + 7)) = PadRest τ n := by rw [g7, hw7]
-  have w512 : word 512 0 0 = gen ^ 9 := by
+  have w512 : word 512 0 = gen ^ 9 := by
     rw [show (512 : ℕ) = 2 ^ 9 by norm_num, tb_word_two_pow (by norm_num)]
   have e9 : σ (.n (v + 9)) = gen ^ 9 := by rw [g9, w512]
   have e10 : σ (.n (v + 10)) = gen ^ (τ - 9) := by rw [g10, hkb, e9, gen_pow_div (by omega)]
   obtain ⟨q1, q2, q3⟩ := g11
-  obtain ⟨hrc10, -⟩ := rc_holds (κ := 14) hlow q1 q2 q3 e10 (by rw [g8, vtW28_gen]) (by omega)
+  obtain ⟨hrc10, -⟩ := rc_holds (κ := 14) hlow q1 q2 q3 e10 (by rw [g8, vtW30_gen]) (by omega)
     (by norm_num)
   refine ⟨?_, e5⟩
   simp only [vtPad5T, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,

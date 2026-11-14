@@ -32,11 +32,11 @@ open LeanVM.Guest.B1 (CompleteAtDTB Returns)
 def ChildListGoalsTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (Pxs Pss : ℕ → Tree → Prop) (Bxs Bss : ℕ → ℕ) : Prop :=
   ∀ c, c < w.children.length →
-    CompleteAtDTB fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 23 "child_claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base,
         gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), gen ^ (hKid s w c).ex]
       (Returns [(hKid s w c).cx.1, (hKid s w c).cx.2]) (Pxs c) (Bxs c) ∧
-    CompleteAtDTB fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 23 "child_claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a80,
         (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hKid s w c).base * gen ^ (hKid s w c).ex,

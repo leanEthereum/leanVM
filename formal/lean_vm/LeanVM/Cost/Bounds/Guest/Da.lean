@@ -101,7 +101,7 @@ theorem cellSymsAt_cost (hP : Includes P Decoder.cellSymsAtC.costDeps) (c13 : E)
   rw [Decoder.cellSymsAtC.costEq P hP Vn VnV hVn c13 row rowV hrow]
   set a := [row (.n 6), row (.n 7), row (.n 8)]
   have hσ : ∀ v : V, RunsApp P (.closure Decoder.cellSymsAtC.lam0.costIdx
-      [VnV, encodeValue a, encodeValue [c13]]) [encodeValue v] (encodeValue (Vn 31 [c13] a v)) :=
+      [VnV, encodeValue a, encodeValue [c13]]) [encodeValue v] (encodeValue (Vn (fn_idx% da_verify_cell) [c13] a v)) :=
     fun v ↦ RunsApp.of_spec (Decoder.cellSymsAtC.lam0.costSpec P (by includes) Vn VnV hVn a [c13] v)
   rw [Decoder.cellSymsOfC.costEq P (by includes) _ _ hσ]
   have m := rangeMap_le P (by includes) (by includes) _
@@ -115,7 +115,7 @@ theorem cellSymsAt_cost (hP : Includes P Decoder.cellSymsAtC.costDeps) (c13 : E)
         limbs_of_lt (by omega : j < 2 ^ 64), limbs_of_lt (by omega : j + 1 < 2 ^ 64), appCost_fn, List.cons_append, List.cons_append,
         List.cons_append, List.nil_append,
         Decoder.cellSymsAtC.lam0.costEq P (by includes) Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-      have := hF 31 [c13] a (.n (j + 1)) (by norm_num) (by simp [a])
+      have := hF (fn_idx% da_verify_cell) [c13] a (.n (j + 1)) (by norm_num) (by simp [a])
       omega)
   have := hRw (.n 6); have := hRw (.n 7); have := hRw (.n 8)
   omega
@@ -136,8 +136,8 @@ theorem dvColArgs_cost (hP : Includes P Decoder.dvColArgsC.costDeps) (j : ℕ)
   rw [Decoder.dvColArgsC.costEq P hP σ σV hσ]
   have := powSqE_cost_lt P (by includes) LeanVM.Protocol.Verifier.gen j 7 (by norm_num)
     (by norm_num) (by omega)
-  have := hS (.n 1); have := hS (.n 32); have := hS (.n 16); have := hS (.n 17)
-  have := hS (.n 18); have := hS (.n 19)
+  have := hS (.n 1); have := hS (.n 22); have := hS (.n 6); have := hS (.n 7)
+  have := hS (.n 8); have := hS (.n 9)
   omega
 
 /-- **Column `j`'s valuation** (`dvColVNC`) at `a`, `j < 128`: `F + 8·S + 4378`. -/
@@ -146,7 +146,7 @@ theorem dvColVN_cost (hP : Includes P Decoder.dvColVNC.costDeps) (j : ℕ) (hj :
       F + 8 * S + 4378 := by
   rw [Decoder.dvColVNC.costEq P hP σ σV hσ Vn VnV hVn]
   have := dvColArgs_cost P hσ hS (by includes) j hj
-  have := hF 30 (Da.dvColArgs σ j) [] a (by norm_num) (by simp [Da.dvColArgs])
+  have := hF (fn_idx% da_verify_column) (Da.dvColArgs σ j) [] a (by norm_num) (by simp [Da.dvColArgs])
   omega
 
 /-- **Column `j`'s two words** (`dvColWordsC`), its frame looked up once per word, `j < 128`:
@@ -194,8 +194,8 @@ theorem dvRowVW_cost (hP : Includes P Decoder.dvRowVWC.costDeps) (cw : E × E) (
   rw [Decoder.dvRowVWC.costEq P hP σ σV hσ Vn VnV hVn]
   have := powSqK_cost_lt P (by includes) Parameters.g i k hk0 (by omega) hi
   have := powSqK_cost_lt P (by includes) Parameters.g j 7 (by norm_num) (by norm_num) (by omega)
-  have := hS (.n 1); have := hS (.n 32)
-  have := hF 404 [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 32), ofK (Parameters.g ^ j),
+  have := hS (.n 1); have := hS (.n 22)
+  have := hF (fn_idx% da_verify_column_loop0) [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 22), ofK (Parameters.g ^ j),
     cw.2] [] a (by norm_num) (by simp)
   omega
 

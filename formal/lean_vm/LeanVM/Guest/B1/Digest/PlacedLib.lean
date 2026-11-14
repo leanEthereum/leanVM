@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Digest.CompleteSmall
   walk the run's events, the condition, the arm's events, then the run's.
 * `pure_one`: a function whose body places nothing and calls only itself is pure on its own.
 * `list_split_completeAt`: `list_split` (a leaf without loads, its range checks reading below
-  `2^16`) is `CompleteAtD` with its split's returns, reading no caller's word.
+  `2^20`) is `CompleteAtD` with its split's returns, reading no caller's word.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -72,22 +72,23 @@ theorem loads_none {σ : Val} {es : List Ev} (h : ∀ e ∈ es, Lift.EvLeafOk no
   | _ => rfl
 
 set_option maxRecDepth 100000 in
-theorem list_split_leafOk : Lift.Stmt.leafOkList noLoad Data.core22.body = true := by decide +kernel
+theorem list_split_leafOk : Lift.Stmt.leafOkList noLoad (fn% «list_split»).body = true :=
+  by decide +kernel
 
 theorem list_split_pure : coreProgram.PureIn ["list_split"] :=
   Lift.pureIn_of_leafOk find_list_split list_split_leafOk
 
 /-- **`list_split` is complete, placed**: its split's returns, no caller's word read. -/
 theorem list_split_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {a b c : ℕ}
-    (ha : a < maxKeys) (hb : b < bigGroups) (hc : c < claimGroup) :
-    CompleteAtD fs cert 16 "list_split" [] [gen ^ (claimBig * a + claimGroup * b + c)]
+    (ha : a < bigFramesCap) (hb : b < bigGroups) (hc : c < claimGroup) :
+    CompleteAtD fs cert 20 "list_split" [] [gen ^ (claimBig * a + claimGroup * b + c)]
       (Returns [gen ^ a, gen ^ b, gen ^ c]) :=
   Lift.completeAtD_of_relIn list_split_pure (List.mem_singleton_self _) fun rd hl _ =>
     Lift.relIn_of_leaf find_list_split list_split_leafOk
       (fun σ es vs _ hw A hA => by
         have hall : (Out.ret es vs).All (Lift.EvLeafOk noLoad) := by
-          have := Lift.walk_leafOk (σ := σ) Data.core22.body list_split_leafOk
-          exact (show walk σ Data.core22.body = .ret es vs from hw) ▸ this
+          have := Lift.walk_leafOk (σ := σ) (fn% «list_split»).body list_split_leafOk
+          exact (show walk σ (fn% «list_split»).body = .ret es vs from hw) ▸ this
         rw [loads_none hall] at hA
         exact absurd hA List.not_mem_nil)
       (list_split_complete' rd hl _ _ ⟨a, ha, b, hb, c, hc, rfl, rfl⟩)

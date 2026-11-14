@@ -1,7 +1,6 @@
 //! Keccak-256 (Ethereum's), the permutation the VM's `KECCAK` applies, and digests.
 
 use crate::field::E;
-use crate::{VerifierError, require};
 
 pub const STATE_LANES: usize = 25;
 /// The sponge rate in bytes.
@@ -109,11 +108,10 @@ impl Digest {
     /// Its two 128-bit halves, the one form a digest travels in.
     pub fn halves(&self) -> (E, E) {
         let [w0, w1, w2, w3] = self.words();
-        (E::new(w0, w1, 0), E::new(w2, w3, 0))
+        (E::new(w0, w1), E::new(w2, w3))
     }
 
-    pub fn from_halves(low: E, high: E) -> Result<Self, VerifierError> {
-        require(low.c2 == 0 && high.c2 == 0, VerifierError::DigestHalf)?;
+    pub fn from_halves(low: E, high: E) -> Self {
         let mut value = [0u8; 32];
         for (bytes, word) in value
             .as_chunks_mut()
@@ -123,7 +121,7 @@ impl Digest {
         {
             *bytes = word.to_le_bytes();
         }
-        Ok(Self(value))
+        Self(value)
     }
 }
 

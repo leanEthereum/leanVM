@@ -37,22 +37,17 @@ pub fn file() -> File {
          /-- The compiled functions. -/\ndef functionCount : Nat := {nf}\n\n\
          /-- The instructions of each opcode (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`), the padding included. -/\n\
          def opcodeCounts : List Nat := {counts:?}\n\n\
-         /-- The smallest stacked witness the guest's proofs commit to, as a log (`min_log_committed`). -/\n\
-         def minLogCommitted : Nat := {minlog}\n\n\
-         /-- `fs_seed`: the guest's Fiat-Shamir IV, two cells as `(c0, c1, c2)` limbs. -/\n\
-         def fsSeed : List (Nat × Nat × Nat) := [({}, {}, {}), ({}, {}, {})]\n\n\
+         /-- `fs_seed`: the guest's Fiat-Shamir IV, two cells as `(c0, c1)` limbs. -/\n\
+         def fsSeed : List (Nat × Nat) := [({}, {}), ({}, {})]\n\n\
          end LeanVMTests.Guest.Manifest\n",
         seed[0].c0,
         seed[0].c1,
-        seed[0].c2,
         seed[1].c0,
         seed[1].c1,
-        seed[1].c2,
         rev = env!("LEANVM_REV"),
         log = g.prog().len().trailing_zeros(),
         code = g.code_len(),
         nf = g.fn_ranges.len(),
-        minlog = g.min_log_committed,
     );
     File {
         path: "tests/LeanVMTests/Guest/Manifest.lean".into(),

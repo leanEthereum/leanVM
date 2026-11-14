@@ -30,7 +30,7 @@ statement itself is written from the specification, as what the M3 model means b
 accepted instance (specification §5, `doc/leanvm/body/05-arithmetization.tex:4`: "an instance
 is accepted exactly when every table's constraints hold and the bus balances", the balance
 being the multiset equality of `:14`), and what the verifier checks of an announced instance
-is transcribed: the caps (`crates/verifier/src/lib.rs:229-247` and
+is transcribed: the caps (`crates/verifier/src/lib.rs:227-245` and
 `crates/verifier/src/layout.rs:478-489`, the
 announcement checks of `walk` and `build_layout`, which replace `read_public` of `a386121f`;
 §6.2 "Instance caps", `06-bus-interactions.tex:80`), the nonzero count product (§6.2 "The count
@@ -83,22 +83,21 @@ the six tables carries a nonzero count, message index `1` (bus coordinate 2) of 
 bytecode tuple (§6.2 "The count product"; `layout.rs:136` and `:463-479`, the count channel
 stacks the read-count columns of the six tables and nothing else, so the finalize counts of
 the two blocks are outside it, as §6.2 "Nothing checks the finalize counts" says). `Caps w` is
-the M3 part of the announcement checks (`read_public` at `a386121f`; at the pin, `walk` and
-`build_layout`, `verifier/src/lib.rs:229-247` and `verifier/src/layout.rs:478-489`, behind the
-wrapper `crates/leanvm_core/src/cpu/mod.rs:673-686`), which make eight checks: (1) the
-announced sizes have zero upper limbs (`verifier/src/lib.rs:234-238`, the transcript format)
-and (2) the two public words have a zero third limb (`cpu/mod.rs:676-678`), both by type here
+the M3 part of the announcement checks (`read_public` at `a386121f`; at `leanvm-rev`, `walk` and
+`build_layout`, `verifier/src/lib.rs:243-261` and `verifier/src/layout.rs:483-494`, behind the
+wrapper `crates/leanvm_core/src/cpu/mod.rs:627-639`), which make eight checks: (1) the
+announced sizes have zero upper limbs (`verifier/src/lib.rs:248-252`, the transcript format) and
+(2) the two public words are two-limb words (`cpu/mod.rs:627`, `[F128; 2]`), both by type here
 (`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^32`
-(`cpu/mod.rs:688`, `verifier/src/layout.rs:483` and `:487`), `Program`'s by type
+(`cpu/mod.rs:629`, `verifier/src/layout.rs:488` and `:492`), `Program`'s by type
 (`LeanIsaProgram.logSize_le`); (4) the memory log-size is within
-`[MIN_LOG_MEM, MAX_LOG_MEM] = [16, 32]` (`verifier/src/layout.rs:485`); (5) every table has at most
-`2^MAX_LOG_ROWS` rows (`verifier/src/layout.rs:417` at leanVM
-`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`; the prover announces each table's row count, the rows
+`[MIN_LOG_MEM, MAX_LOG_MEM] = [16, 32]` (`verifier/src/layout.rs:490`); (5) every table has at most
+`2^MAX_LOG_ROWS` rows (`verifier/src/layout.rs:491`; the prover announces each table's row count, the rows
 past it in the table's height being padding rows, which the bus never sees, so the witness's tables
 are the executed rows only); (6) the `KECCAK` table's height floor (`TABLE_LOG_FLOORS`) is the
 protocol layer's, its padding rows being outside the bus; (7) the WHIR rate
-(`verifier/src/lib.rs:242`) and (8) the stacked size `mu ∈ [MIN_MU, MAX_MU]`
-(`verifier/src/lib.rs:244-247`) are parameters of the commitment, left to the protocol layer, which
+(`verifier/src/lib.rs:256`) and (8) the stacked size `mu ∈ [MIN_MU, MAX_MU]`
+(`verifier/src/lib.rs:258-261`) are parameters of the commitment, left to the protocol layer, which
 reads them off the same announcement. `Caps` transcribes (4), on the announced `κ`, and (5). That
 the prover data is well shaped (`WellShapedData`, so that `imageOf` drops no row) is no longer a
 hypothesis: the data is the memory block's `2^κ` rows (`Caps.well_shaped`). These caps are what
@@ -109,9 +108,10 @@ keeps the total read count below `2^64 - 1`, the bound the bus argument of `Soun
 it, three hypotheses of `SatisfiedBy`). The memory block's index column is fixed to `g^i`, so
 `IndexColumnsAreRowIndices w` is a theorem (§6.5, the index column the verifier computes;
 `layout.rs:431` and `:442`, `Index`). The prover data is derived from the rows, and the memory
-block, named `"mem"`, holds the limbs in its first three cells, so the image the data names *is* the
+block, named `"mem"`, holds the limbs in its first two cells, so the image the data names *is* the
 block (`memRows_data`) and `SeedRowsAreTheImage w` is a theorem (§6.2 "Seed" and "Finalize";
-`layout.rs:425-448`, `MEM_LO, MEM_HI, MEM_TOP` and `MFCNT`, the index and finalize columns free).
+`cpu/layout.rs:431-440` at `leanvm-rev`, `MEM_LO, MEM_HI` and `MFCNT`, the index and finalize
+columns free).
 The bytecode block's counter and entry columns are fixed to the program's, so
 `BytecodeRowsAreTheProgram prog w` is a theorem (§8.6 Bus 4: the verifier forms "the program's
 whole share of the two bytecode blocks" itself; `layout.rs:354-356` and `:449-461`,
@@ -316,17 +316,17 @@ def CountsNonzero (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
       ∀ h : 1 < i.msg.size, i.msg[1] ≠ 0
 
 /-- The M3 checks of the announced instance, two of the verifier's announcement checks
-(`crates/verifier/src/layout.rs:457-461`; §6.2 "Instance caps"): the window of the announced memory
-log-size `κ` and the row cap. The bytecode length and the public words' third limbs are checked by
+(`crates/verifier/src/layout.rs:489-494` at `leanvm-rev`; §6.2 "Instance caps"): the window of the announced memory
+log-size `κ` and the row cap. The bytecode length and the public words' two limbs are checked by
 type (`Program`, `PublicInput`); the WHIR rate and the stacked size are the protocol layer's (see
 the module docstring). -/
 structure Caps (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop where
-  /-- `MIN_LOG_MEM ≤ log_mem` (`:388`). -/
+  /-- `MIN_LOG_MEM ≤ log_mem` (`:490`). -/
   minLogMem_le_logMem : minLogMem ≤ κ
-  /-- `log_mem ≤ MAX_LOG_MEM` (`:388`). -/
+  /-- `log_mem ≤ MAX_LOG_MEM` (`:490`). -/
   logMem_le_maxLogMem : κ ≤ maxLogMem
-  /-- Every table has at most `2^MAX_LOG_ROWS` rows (`rows <= 1 << MAX_TABLE_LOG`, `layout.rs:500`
-  at `40f877dc`; the rows are the executed ones, announced as counts). The verifier is not among
+  /-- Every table has at most `2^MAX_LOG_ROWS` rows (`rows <= 1 << MAX_TABLE_LOG`, `layout.rs:491`
+  at `leanvm-rev`; the rows are the executed ones, announced as counts). The verifier is not among
   `w.tables`. -/
   heights : ∀ t ∈ w.tables, t.table.length ≤ 2 ^ maxLogRows
 
@@ -343,12 +343,12 @@ def IndexColumnsAreRowIndices (w : EnsembleWitness (leanIsaEnsemble prog κ)) : 
 
 /-- The memory block's rows are the words of the image the prover data names, in order, for
 some index column `idx` and finalize-count column `cntFin`: the committed columns `MEM_LO,
-MEM_HI, MEM_TOP` are the image (§6.2 "Seed" and "Finalize"; `layout.rs:425-448`). -/
+MEM_HI` are the image (§6.2 "Seed" and "Finalize"; `cpu/layout.rs:431-440` at `leanvm-rev`). -/
 def SeedRowsAreTheImage (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
   ∃ idx cntFin : Fin (2 ^ (imageOf w.data).1) → K,
     memBlockRows w = List.ofFn fun i ↦
-      (toElements (⟨#v[((imageOf w.data).2 i).limb 0, ((imageOf w.data).2 i).limb 1,
-        ((imageOf w.data).2 i).limb 2], idx i, cntFin i⟩ : MemRow K)).toArray
+      (toElements (⟨#v[((imageOf w.data).2 i).limb 0, ((imageOf w.data).2 i).limb 1], idx i,
+        cntFin i⟩ : MemRow K)).toArray
 
 /-- The bytecode block's rows are the program's: for some finalize-count column `cntFin`, the
 block's raw rows are `bytecodeRowOf prog i (cntFin i)` for `i < 2 ^ prog.logSize`, in order.
@@ -510,8 +510,8 @@ block is the program: the three facts that were hypotheses of the statement unti
 columns, now theorems of every witness (`SatisfiedBy.index_columns`, `SatisfiedBy.seed_rows`,
 `SatisfiedBy.bytecode_rows`), and the data is well shaped (`Caps.well_shaped`). -/
 
-/-- The memory block's rows have five cells: its input, no local witness. -/
-theorem memComponent_width : (memComponent κ).width = 5 := rfl
+/-- The memory block's rows have four cells: its input, no local witness. -/
+theorem memComponent_width : (memComponent κ).width = 4 := rfl
 /-- The bytecode block's rows have fifteen cells. -/
 theorem bytecodeComponent_width : (bytecodeComponent prog).width = 15 := rfl
 
@@ -526,10 +526,10 @@ theorem tableAt_mem (w : EnsembleWitness (leanIsaEnsemble prog κ)) (j : Fin 8) 
     tableAt w j ∈ w.tables := List.getElem_mem _
 
 /-- **The image is the memory block.** The prover data's `"mem"` table, which `imageOf` reads, is
-Clean's derivation from the witness: the memory block's rows cut at three cells, its limbs. -/
+Clean's derivation from the witness: the memory block's rows cut at two cells, its limbs. -/
 theorem memRows_data (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
-    memRows w.data = ((memBlockRows w).map (Air.Flat.rowPrefix 3)).toArray := by
-  have h := Air.Flat.deriveProverData_eq_of_mem w.tables (names_nodup w) (tableAt_mem w 6) 3
+    memRows w.data = ((memBlockRows w).map (Air.Flat.rowPrefix 2)).toArray := by
+  have h := Air.Flat.deriveProverData_eq_of_mem w.tables (names_nodup w) (tableAt_mem w 6) 2
   rw [tableAt_component] at h
   exact h
 
@@ -628,7 +628,7 @@ theorem bytecodeRowsAreTheProgram (w : EnsembleWitness (leanIsaEnsemble prog κ)
   exact Fin.ext hnat
 
 theorem memRowAt_m (w : EnsembleWitness (leanIsaEnsemble prog κ)) (row : Array K) :
-    (memRowAt w row).m = Air.Flat.rowPrefix 3 row := by
+    (memRowAt w row).m = Air.Flat.rowPrefix 2 row := by
   rw [memRowAt_eq]
   ext j hj
   interval_cases j <;> simp [Air.Flat.rowPrefix, explicit_provable_type, circuit_norm]
@@ -649,7 +649,7 @@ theorem seedRowsAreTheImage (w : EnsembleWitness (leanIsaEnsemble prog κ)) (hκ
   rw [List.getElem_ofFn]
   conv_lhs => rw [← toElements_rowPrefix hw, ← memRowAt_eq w]
   have himg := imageOf_apply hws ⟨k, by simpa using hk'⟩
-    (v := Air.Flat.rowPrefix 3 (memBlockRows w)[k]) (by simp [memRows_data])
+    (v := Air.Flat.rowPrefix 2 (memBlockRows w)[k]) (by simp [memRows_data])
   rw [himg]
   have hm := memRowAt_m w (memBlockRows w)[k]
   simp only []
@@ -728,7 +728,7 @@ theorem exists_run_of_balanced (h : SatisfiedBy prog input w) :
     ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog)
 ```
 
-The read bound `mem_channel_sound` needs is derived from `Caps` (`≤ 27 · 6 · 2^32`), never
+The read bound `mem_channel_sound` needs is derived from `Caps` (`≤ 27 · 6 · 2^30`), never
 assumed; there is no hypothesis on the program.
 -/
 

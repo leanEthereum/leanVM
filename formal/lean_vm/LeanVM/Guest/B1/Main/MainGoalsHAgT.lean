@@ -15,7 +15,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (DeployedLimits)
+open LeanVM.Guest (GuestLimits)
 open LeanVM.Guest.B1 (CompleteAtDT CompleteAtD Returns bufL)
 
 @[expose] public section
@@ -25,12 +25,14 @@ variable {seed s w}
 
 /-- **`main`'s honest `aggregate_claims` call is complete, by a tree of honest shape**: under `NodeRelation` and `Limits`, for a
 bytecode of `2^bytecodeVars` words. -/
-theorem mainGoalAgT (cert : String → V → ℕ) {bytecode : List K}
+theorem mainGoalAgT (cert : String → V → ℕ)
+    {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
-    (hl : DeployedLimits s w) : (hm fs fp seed s w).nc ≠ 0 →
-      CompleteAtDT fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
+    (hl : GuestLimits s w) : (hm fs fp seed s w).nc ≠ 0 →
+      CompleteAtDT fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)
         [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
-          (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns [])
+          (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
+          (hm fs fp seed s w).et * word 133823759239872512 0] (Returns [])
         (aggHonest (hm fs fp seed s w).nc) := by
   intro hnc
   have hnc' : w.children.length ≠ 0 := hnc
@@ -44,10 +46,10 @@ theorem mainGoalAgT (cert : String → V → ℕ) {bytecode : List K}
     exact hpt
   have hdst := mem_hLmain fs fp seed s w (i := 9) (by omega)
   simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at hdst
-  have := aggregate_claims_completeAtT fs cert (m := w.children.length) (by omega) hl.atMostSixteenChildren
-    (cs := hKids seed w) (by rw [List.length_map]) hrl hb
-    (fun rd hM => hkids_words fs fp hbl hrel hM) hdst
-  exact this
+  have := aggregate_claims_completeAtT fs cert (m := w.children.length) (by omega)
+    hl.atMostSixteenChildren (cs := hKids seed w) (by rw [List.length_map]) hrl hb
+    (fun rd hM => hkids_words fs fp hbl hrel hM) (fun rd _ hM => hLmain_winTabs fs fp hM) hdst
+  exact this.lowMono (by norm_num)
 
 end
 end LeanVM.Guest.B1.Main

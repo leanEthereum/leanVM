@@ -102,7 +102,7 @@ impl FnLower<'_> {
             self.fail("keccak pad_tail=1: a or b reads a cell past len, which the padding sets")
         }
         for (k, o) in set.enumerate() {
-            self.set_const(o, if k == 0 { keccak_pad_value() } else { F192::ZERO });
+            self.set_const(o, if k == 0 { keccak_pad_value() } else { F128::ZERO });
         }
     }
 
@@ -338,11 +338,7 @@ impl FnLower<'_> {
     fn xor_byte(&mut self, cells: &mut [SpongeCell], at: usize, v: u8) {
         let (cell, byte) = (at / 16, at % 16);
         let w = u64::from(v) << (8 * (byte % 8));
-        let v = if byte < 8 {
-            F192::new(w, 0, 0)
-        } else {
-            F192::new(0, w, 0)
-        };
+        let v = if byte < 8 { F128::new(w, 0) } else { F128::new(0, w) };
         cells[cell] = match cells[cell] {
             SpongeCell::Zero => SpongeCell::Const(v),
             SpongeCell::Const(c) => SpongeCell::Const(c + v),
@@ -421,7 +417,7 @@ impl FnLower<'_> {
         for (j, &c) in cells.iter().enumerate() {
             let dst = t + j as u32;
             match c {
-                SpongeCell::Zero => self.set_const(dst, F192::ZERO),
+                SpongeCell::Zero => self.set_const(dst, F128::ZERO),
                 SpongeCell::Const(v) => self.set_const(dst, v),
                 SpongeCell::Cell(o) => self.copy(o, dst),
             }
@@ -434,7 +430,7 @@ impl FnLower<'_> {
     /// advice, re-checked in-circuit by their caller: `hint_decompose_bits`
     /// writes a value's bits into a buffer, `hint_decompose_bits_exponent` the
     /// bits of `n` where the value is `g^n` (a bounded dlog at witness
-    /// generation), `hint_f192_limbs` a value's coordinate limbs.
+    /// generation), `hint_f128_limbs` a value's coordinate limbs.
     pub(super) fn lower_builtin(&mut self, f: &str, args: &[Expr]) -> bool {
         match f {
             "hint_decompose_bits" | "hint_decompose_bits_exponent" => {
@@ -452,8 +448,8 @@ impl FnLower<'_> {
                 let bits = self.bits_dest(&args[0], nbits, f);
                 let value = self.expr(&args[1]);
                 self.pending.push(Hint::Resolved(if plain {
-                    if nbits > 192 {
-                        self.fail(format!("{f} reads {nbits} bits of a 192-bit word"))
+                    if nbits > 128 {
+                        self.fail(format!("{f} reads {nbits} bits of a 128-bit word"))
                     };
                     RHint::BitDecompose { value, bits, nbits }
                 } else {
@@ -470,8 +466,8 @@ impl FnLower<'_> {
                 let start = self.const_index(&args[2]);
                 let width = self.const_index(&args[3]);
                 let count = self.const_index(&args[4]);
-                if !(1..=16).contains(&width) || u64::from(start) + u64::from(width * count) > 192 {
-                    self.fail(format!("{f}: windows of 1..=16 bits inside a 192-bit word"))
+                if !(1..=16).contains(&width) || u64::from(start) + u64::from(width * count) > 128 {
+                    self.fail(format!("{f}: windows of 1..=16 bits inside a 128-bit word"))
                 };
                 let at = args.get(5).map_or(0, |at| self.const_index(at));
                 let dest = self.bits_dest(&args[0], at + count, f);
@@ -538,22 +534,22 @@ impl FnLower<'_> {
                 let t = self.fresh();
                 self.deref(x, 0, t, DerefMode::Cell);
             }
-            "hint_f192_limbs" => {
+            "hint_f128_limbs" => {
                 if args.len() != 2 {
                     self.fail(format!(
-                        "hint_f192_limbs takes two arguments, `(dest, value)`, got {}",
+                        "hint_f128_limbs takes two arguments, `(dest, value)`, got {}",
                         args.len()
                     ))
                 };
                 let (base, len) = self.stack_of(&args[0]).unwrap_or_else(|| {
                     self.fail(format!(
-                        "hint_f192_limbs writes 1..=3 frame cells, so its destination must be a \
+                        "hint_f128_limbs writes 1..=2 frame cells, so its destination must be a \
                              StackBuf, got `{:?}`",
                         args[0]
                     ))
                 });
-                if !((1..=3).contains(&len)) {
-                    self.fail("hint_f192_limbs destination must have 1..=3 cells")
+                if !((1..=2).contains(&len)) {
+                    self.fail("hint_f128_limbs destination must have 1..=2 cells")
                 };
                 let value = self.expr(&args[1]);
                 // Names the physical cells, as the two consumers above do: whatever
@@ -644,7 +640,7 @@ impl FnLower<'_> {
         }
         let o = self.alloc_stack(5);
         for k in 0..5 {
-            let value = if k == 0 { keccak_pad_value() } else { F192::ZERO };
+            let value = if k == 0 { keccak_pad_value() } else { F128::ZERO };
             self.set_const(o + k, value);
             self.scope.const_cells.entry(value).or_insert(o + k);
         }
@@ -663,7 +659,7 @@ impl FnLower<'_> {
                         "{what} needs {nbits} cells, its StackBuf destination has {len}"
                     ))
                 };
-                // The hint names the physical cells, as `hint_f192_limbs` does.
+                // The hint names the physical cells, as `hint_f128_limbs` does.
                 BitsDest::Stack(base)
             }
             None => {
@@ -702,13 +698,13 @@ const RATE: usize = primitives::hash::RATE;
 const MAX_EXPONENT_BITS: u32 = 40;
 
 /// The last rate lane of a 64-byte message's one block: the padding's closing `0x80` byte.
-pub(super) fn two_to_one_close() -> F192 {
-    F192::new(0x80 << 56, 0, 0)
+pub(super) fn two_to_one_close() -> F128 {
+    F128::new(0x80 << 56, 0)
 }
 
 /// A cell holding the padding's first byte at its start: `0x01` in the low lane.
-fn keccak_pad_value() -> F192 {
-    F192::new(u64::from(primitives::hash::PAD_FIRST), 0, 0)
+fn keccak_pad_value() -> F128 {
+    F128::new(u64::from(primitives::hash::PAD_FIRST), 0)
 }
 
 /// Where a `keccak` writes: the stack run its instruction targets, the output cells it writes there, and a heap
@@ -724,6 +720,6 @@ struct KeccakOut {
 #[derive(Clone, Copy, Debug)]
 enum SpongeCell {
     Zero,
-    Const(F192),
+    Const(F128),
     Cell(Off),
 }

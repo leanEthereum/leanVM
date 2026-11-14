@@ -7,7 +7,7 @@ use crate::targets::kernels::reference as r;
 use crate::{Ctx, Finding, Outcome, Source, catch};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, DA_LOG_K, DA_MAX_ROWS};
 use pcs::ntt::AdditiveNttF64;
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     // Mostly a handful of rows; the full 1024 only at depth 2, being seconds of encoding.
@@ -188,24 +188,24 @@ fn membership(src: &mut Source, ctx: &Ctx, root: &[u8; 32], codewords: &[u64]) -
     }
     ctx.note("membership");
     let z = verifier::da::membership_challenge(root);
-    let z = F192::new(z.c0, z.c1, z.c2);
+    let z = F128::new(z.c0, z.c1);
     let vhat = lean_da::subspace_above();
     let mut z_pow = vec![z];
     for j in 1..DA_LOG_K {
         z_pow.push(r::mul_e(z_pow[j - 1], z_pow[j - 1]));
     }
-    let dual: Vec<F192> = (0..CODEWORD_SYMBOLS)
+    let dual: Vec<F128> = (0..CODEWORD_SYMBOLS)
         .map(|i| {
-            (0..DA_LOG_K).fold(F192::ONE, |acc, j| {
+            (0..DA_LOG_K).fold(F128::ONE, |acc, j| {
                 let at = ((i >> j) & 1) as u64 ^ vhat(j, i >> (j + 1)).0;
-                acc * (F192::ONE + z_pow[j].mul_base(F64(at)))
+                acc * (F128::ONE + z_pow[j].mul_base(F64(at)))
             })
         })
         .collect();
     let residual = |row: &[u64]| {
         row.iter()
             .zip(&dual)
-            .fold(F192::ZERO, |s, (&w, &l)| s + l.mul_base(F64(w)))
+            .fold(F128::ZERO, |s, (&w, &l)| s + l.mul_base(F64(w)))
     };
     let i = src.below(codewords.len() / CODEWORD_SYMBOLS);
     let row = &codewords[i * CODEWORD_SYMBOLS..(i + 1) * CODEWORD_SYMBOLS];

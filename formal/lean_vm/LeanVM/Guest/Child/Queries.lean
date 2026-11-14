@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Child.Range
+public import LeanVM.Protocol.Compile.Prover
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.AcceptableChild
@@ -16,7 +17,8 @@ public import LeanVM.Guest.AcceptableChild
 # The honest proof's query steps
 
 `queriesOf_proveFrom`: `run_proveFrom`'s simulation, for the query steps `Limits.queryStepsOf`
-lists. From a history whose strategy wins, the verifier's run on the honest prover's output opens,
+lists. From a history whose strategy wins, no challenge waiting unless a sample follows, the
+verifier's run on the honest prover's output opens,
 at each query step, the tree of one committed word of height `ht` at positions `ps` with the
 openings `openingAt keccak256 ht word` of those positions; with `InRange`, every position is below
 `2^ht`.
@@ -31,19 +33,15 @@ open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 
 /-- A query step of honest openings: one tree of height `ht`, positions below `2^ht`. -/
 def HonestBatch (b : ℕ × List (ℕ × Opening)) : Prop :=
-  ∃ (ht : ℕ) (word : Word) (ps : List ℕ), b = (ht, ps.zip (ps.map (openingAt keccak256 ht word))) ∧ ∀ q ∈ ps, q < 2 ^ ht
-
-theorem zip_map_append {β γ : Type} (ps : List β) (f : β → γ) (rest : List γ) :
-    ps.zip (ps.map f ++ rest) = ps.zip (ps.map f) := by
-  induction ps with
-  | nil => rfl
-  | cons p ps ih => simp [ih]
+  ∃ (ht : ℕ) (word : Word) (ps : List ℕ),
+    b = (ht, ps.zip (ps.map (openingAt keccak256 ht word))) ∧ ∀ q ∈ ps, q < 2 ^ ht
 
 /-- **The honest proof's query steps are honest batches.** -/
 theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
     ∀ (p : VerifierProgram Bool) (h : List Ev) (sp : Sponge) (xs : List E) (os : List (List Opening))
       (restS : List E) (restO : List (List Opening)),
-      S.AcceptsFrom p h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) →
+      S.AcceptsFrom p h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) → GrindThenSample p →
+      (sp.ground = none ∨ ∃ k, p = .sample k) →
       InRange p ((commits h).map (·.1)) (fun _ _ ↦ True) →
       proveFrom keccak256 keccakF1600 S fuel p sp h = some (xs, os) →
       ∀ b ∈ Limits.queryStepsOf p ⟨sp, xs ++ restS, os ++ restO, rootsOf keccak256 (commits h)⟩,
@@ -51,13 +49,14 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
   intro p
   induction p with
   | ret b =>
-    intro h sp xs os restS restO _ _ _ _ b hb
+    intro h sp xs os restS restO _ _ _ _ _ _ b hb
     simp [Limits.queryStepsOf] at hb
   | fail =>
     intro h sp xs os restS restO hacc
     exact absurd hacc id
   | read k ih =>
-    intro h sp xs os restS restO hacc hws hir hp b hb
+    intro h sp xs os restS restO hacc hws hP hg hir hp b hb
+    have hg0 : sp.ground = none := hg.resolve_right (by simp)
     simp only [proveFrom] at hp
     obtain ⟨t, ht, he⟩ := Option.map_eq_some_iff.mp hp
     simp only [Prod.mk.injEq] at he
@@ -66,12 +65,14 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
       simpa [commits_append, commits] using hws
     have hc : commits (h ++ [Ev.read (S.msg h)]) = commits h := by
       simp [commits_append, commits]
-    simp only [List.cons_append, Limits.queryStepsOf] at hb
-    refine ih _ _ _ t.1 t.2 restS restO hacc hws' (hc ▸ hir _) ht b ?_
+    simp only [List.cons_append, Limits.queryStepsOf, hg0] at hb
+    refine ih _ _ _ t.1 t.2 restS restO hacc hws'
+      (grindThenSample_after hP (l := [Ev.read (S.msg h)]) (by simp [VerifierProgram.after]))
+      (Or.inl ((absorbI_ground keccakF1600 _ _ _).trans hg0)) (hc ▸ hir _) ht b ?_
     rw [hc]
     exact hb
   | sample k ih =>
-    intro h sp xs os restS restO hacc hws hir hp b hb
+    intro h sp xs os restS restO hacc hws hP _ hir hp b hb
     simp only [proveFrom] at hp
     have hc : commits (h ++ [Ev.sample (squeezeI keccakF1600 sp).1]) = commits h := by
       simp [commits_append, commits]
@@ -79,11 +80,16 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
         WellShaped c.2.1 c.2.2 := by
       rw [hc]; exact hws
     simp only [Limits.queryStepsOf] at hb
-    refine ih _ _ _ xs os restS restO (hacc _) hws' (hc ▸ hir _) hp b ?_
+    refine ih _ _ _ xs os restS restO (hacc _) hws'
+      (grindThenSample_after hP (l := [Ev.sample (squeezeI keccakF1600 sp).1])
+        (by simp [VerifierProgram.after]))
+      (Or.inl (squeezeI_ground keccakF1600 sp)) (hc ▸ hir _) hp b ?_
     rw [hc]
     exact hb
   | grind bits k ih =>
-    intro h sp xs os restS restO hacc hws hir hp b hb
+    intro h sp xs os restS restO hacc hws hP hg hir hp b hb
+    have hg0 : sp.ground = none := hg.resolve_right (by simp)
+    obtain ⟨k', rfl⟩ := hP [] bits k rfl
     simp only [proveFrom] at hp
     split at hp
     · exact absurd hp (by simp)
@@ -96,15 +102,17 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
       have hws' : ∀ c ∈ commits (h ++ [Ev.grind bits]), WellShaped c.2.1 c.2.2 := by
         rw [hc]; exact hws
       have hpow := powOk_of_findNonce keccakF1600 hn
-      simp only [List.cons_append, Limits.queryStepsOf] at hb
-      rw [show powOk bits n (Id.run (squeeze keccakF1600 (Id.run (absorb keccakF1600 sp n dsPowNonce)))).1
-        = true from hpow] at hb
-      simp only [↓reduceIte] at hb
-      refine ih _ _ t.1 t.2 restS restO hacc hws' (hc ▸ hir) ht b ?_
+      simp only [List.cons_append, Limits.queryStepsOf, hg0] at hb
+      change b ∈ (if powOk bits (powStep keccakF1600 sp n).1 = true then _ else []) at hb
+      simp only [hpow, ↓reduceIte] at hb
+      refine ih _ _ t.1 t.2 restS restO hacc hws'
+        (grindThenSample_after hP (l := [Ev.grind bits]) (by simp [VerifierProgram.after]))
+        (Or.inr ⟨k', rfl⟩) (hc ▸ hir) ht b ?_
       rw [hc]
       exact hb
   | commit ht w k ih =>
-    intro h sp xs os restS restO hacc hws hir hp b hb
+    intro h sp xs os restS restO hacc hws hP hg hir hp b hb
+    have hg0 : sp.ground = none := hg.resolve_right (by simp)
     obtain ⟨hw, hacc⟩ := hacc
     simp only [proveFrom] at hp
     obtain ⟨t, htt, he⟩ := Option.map_eq_some_iff.mp hp
@@ -115,22 +123,24 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
       rintro c (hc | rfl)
       · exact hws c hc
       · exact hw
-    have hdec : digestFromHalves ((digestHalves (treeRoot keccak256 ht (S.word h))).1,
-        (digestHalves (treeRoot keccak256 ht (S.word h))).2) =
-          some (treeRoot keccak256 ht (S.word h)) :=
-      digestOfScalars_digestScalars _
     have hroots : rootsOf keccak256 (commits (h ++ [Ev.commit ht w (S.word h)])) =
         rootsOf keccak256 (commits h) ++ [(treeRoot keccak256 ht (S.word h), ht, w)] := by
       simp [rootsOf, commits_append, commits]
     have hcm : (commits (h ++ [Ev.commit ht w (S.word h)])).map (·.1) =
         (commits h).map (·.1) ++ [ht] := by
       simp [commits_append, commits]
-    simp only [List.cons_append, Limits.queryStepsOf, hdec] at hb
-    refine ih _ _ t.1 t.2 restS restO hacc hws' (hcm ▸ hir) htt b ?_
+    simp only [List.cons_append, Limits.queryStepsOf, hg0, Prod.mk.eta,
+      digestOfScalars_digestScalars] at hb
+    refine ih _ _ t.1 t.2 restS restO hacc hws'
+      (grindThenSample_after hP (l := [Ev.commit ht w (S.word h)])
+        (by simp [VerifierProgram.after]))
+      (Or.inl ((absorbI_ground keccakF1600 _ _ _).trans ((absorbI_ground keccakF1600 _ _ _).trans
+        hg0))) (hcm ▸ hir) htt b ?_
     rw [hroots]
     exact hb
   | query i ps k ih =>
-    intro h sp xs os restS restO hacc hws hir hp b hb
+    intro h sp xs os restS restO hacc hws hP hg hir hp b hb
+    have hg0 : sp.ground = none := hg.resolve_right (by simp)
     obtain ⟨rows, hans, hacc⟩ := hacc
     simp only [proveFrom] at hp
     split at hp
@@ -163,7 +173,10 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
       simp only at hb
       rcases List.mem_cons.mp hb with rfl | hb
       · exact ⟨ht, word, ps, rfl, fun q hq ↦ hgi ▸ hir.1 q hq⟩
-      · refine ih _ _ _ t.1 t.2 restS restO hacc hws' (hcq ▸ hir.2 _) htt b ?_
+      · refine ih _ _ _ t.1 t.2 restS restO hacc hws'
+          (grindThenSample_after hP (l := [Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))])
+            (by simp [VerifierProgram.after]))
+          (Or.inl hg0) (hcq ▸ hir.2 _) htt b ?_
         rw [hcq]
         exact hb
 

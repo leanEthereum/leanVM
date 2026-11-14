@@ -20,3 +20,4 @@ __pycache__/
 
 # Agents
 .claude/
+/lean_vm/scripts/whir-fold-table/target/

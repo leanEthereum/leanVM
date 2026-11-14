@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Main.MainWalkChk
 public import LeanVM.Guest.B1.Main.MainCore
 public import LeanVM.Guest.B1.Main.ExpTablesAt
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main`, placed: the definitions
@@ -80,7 +81,7 @@ def MainData.toIn (fs : String → ℕ) (fp : ℕ) : MainIn :=
     sdg := d.sdg, daR := d.daR, dap := d.dap, leaf := d.leaf }
 
 /-- `exponent_tables`' table, placed. -/
-def etL (fs : String → ℕ) (fp : ℕ) : B1.Main.Layout := [(etB fs (mK0 d fs fp), expTableWords)]
+def etL (fs : String → ℕ) (fp : ℕ) : B1.Main.Layout := [(etB fs (mK0 d fs fp), expTabAllWords)]
 
 /-- **`main`'s callees after `exponent_tables`**, in call order, reading `Lin`. -/
 def mKids (m : MainIn) (Lin : B1.Main.Layout) : List Kid :=
@@ -89,18 +90,23 @@ def mKids (m : MainIn) (Lin : B1.Main.Layout) : List Kid :=
   let Y := m.nls + m.nsd
   [⟨"claim_list_digest", true, [m.a77, gen ^ m.nlx], Lin, Returns (digestCells m.xd)⟩,
     ⟨"claim_list_digest", true, [m.a80, gen ^ m.nls], Lin, Returns (digestCells m.sd)⟩,
-    ⟨"__loop0", decide (m.nxd ≠ 0), [one, gen ^ m.nxd, m.a77, gen ^ m.nlx], Lin, Returns []⟩,
-    ⟨"__loop1", decide (m.nsd ≠ 0), [one, gen ^ m.nsd, m.a80, gen ^ m.nls], Lin, Returns []⟩,
-    ⟨"__loop2", decide (m.nrx ≠ 0), [one, gen ^ m.nrx, gen ^ X, m.a117, m.a77] ++ lxTagWords, Lin,
+    ⟨name% «main_loop0», decide (m.nxd ≠ 0), [one, gen ^ m.nxd, m.a77, gen ^ m.nlx], Lin,
+        Returns []⟩,
+    ⟨name% «main_loop1», decide (m.nsd ≠ 0), [one, gen ^ m.nsd, m.a80, gen ^ m.nls], Lin,
+        Returns []⟩,
+    ⟨name% «main_loop2», decide (m.nrx ≠ 0), [one, gen ^ m.nrx, gen ^ X, m.a117,
+        m.a77] ++ lxTagWords, Lin,
       Returns []⟩,
-    ⟨"__loop3", decide (m.nrs ≠ 0), [one, gen ^ m.nrs, gen ^ Y, m.a117 * gen ^ X, gen ^ m.nrx,
+    ⟨name% «main_loop3», decide (m.nrs ≠ 0), [one, gen ^ m.nrs, gen ^ Y, m.a117 * gen ^ X,
+        gen ^ m.nrx,
       m.a80, m.a119], Lin, Returns []⟩] ++
   (if m.nd = 1 then [⟨"da_verify", true, [m.et], Lin, Returns m.daR⟩] else []) ++
-  [⟨"__loop4", decide (m.nc ≠ 0), [one, gen ^ m.nc, m.a409, m.a77, m.a117, gen ^ X, m.a80,
+  [⟨name% «main_loop4», decide (m.nc ≠ 0), [one, gen ^ m.nc, m.a409, m.a77, m.a117, gen ^ X, m.a80,
     m.a117 * gen ^ X, gen ^ Y, m.a406, m.aDa, (digestHalves m.seed).1, (digestHalves m.seed).2,
     m.a394, m.et, m.a400], Lin, Returns []⟩] ++
   (if m.nc = 0 then [] else
-    [⟨"aggregate_claims", true, [gen ^ m.nc, m.a394, m.a400, m.a406, m.a417], Lin, Returns []⟩]) ++
+    [⟨"aggregate_claims", true, [gen ^ m.nc, m.a394, m.a400, m.a406, m.a417,
+      m.et * word 133823759239872512 0], Lin, Returns []⟩]) ++
   [⟨"statement_digest", true, [(digestHalves m.seed).1, (digestHalves m.seed).2,
     (digestHalves m.xd).1, (digestHalves m.xd).2, (digestHalves m.sd).1, (digestHalves m.sd).2,
     (digestHalves m.dap).1, (digestHalves m.dap).2, m.a417], Lin, Returns (digestCells m.sdg)⟩]

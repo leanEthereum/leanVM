@@ -9,6 +9,6 @@ pub mod signers_cache;
 #[cfg(feature = "fuzzing")]
 pub use aggregation::fuzzing;
 pub use aggregation::{
-    AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, LeanSphincsClaim, LeanXmssClaim, MAX_KEYS,
+    AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, LeanSphincsClaim, LeanXmssClaim,
     MAX_RECURSIONS, SnarkProveError, SnarkVerifyError, aggregate, aggregate_with_stats, warm_up,
 };

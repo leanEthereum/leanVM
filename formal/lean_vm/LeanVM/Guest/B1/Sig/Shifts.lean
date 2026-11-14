@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.Shifts
 
-  `shifts` (`lean_ethereum.py:3512-3518` at leanVM `1a379148`) over bits pinned Boolean: output
+  `shifts` (`lean_ethereum.py:3501-3507` at leanVM `1a379148`) over bits pinned Boolean: output
   `l` is the integer of the bits shifted right by `l`, as a word.
 -/
 
@@ -43,7 +43,7 @@ theorem shiftRight_split (N k : Nat) : N >>> k = 2 * (N >>> (k + 1)) + (N.testBi
   rcases Nat.mod_two_eq_zero_or_one (N / 2 ^ k) with h | h <;> simp [h] <;> omega
 
 theorem mem_shifts_step {bitBase n outBase r : Nat} (hr : 1 ≤ r) (hrn : r < n) :
-    ∀ x ∈ [cst (outBase + 3 * r - 2) (word 2 0 0),
+    ∀ x ∈ [cst (outBase + 3 * r - 2) (word 2 0),
       mulS (.n (outBase + 3 * r - 1)) (.n (outBase + 3 * r - 2)) (.n (outBase + 3 * r - 3)),
       addS (.n (outBase + 3 * r)) (.n (bitBase + n - 1 - r)) (.n (outBase + 3 * r - 1))],
       x ∈ shifts bitBase n outBase := by

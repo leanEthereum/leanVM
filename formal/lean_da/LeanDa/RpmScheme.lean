@@ -14,7 +14,7 @@ public import LeanDa.WithHash
 The random-permutation model (`Common`) instantiates LeanDA's hash `H` with Keccak-256, the
 sponge over a permutation `π` of the 200-byte Keccak-f[1600] state, and the challenges' duplex
 sponge `P` with `π` itself. The definitions of `LeanDa.Scheme` take `H` and `P` as functions; here
-they are transcribed for oracles, in any monad (`Sponge.newWith`, `Sponge.sampleWith`,
+they are transcribed for oracles, in any monad (`Sponge.newWith`, `grindMWithHash`,
 `membershipChallengeMWithHash`, `walkMWithHash`, `verifyCellMWithHash`), and are the scheme's own
 for pure ones (`membershipChallengeM_id`, `verifyCellM_id`).
 
@@ -26,7 +26,7 @@ an element of `K` has the bytes `laneBytes` gives it (`laneBytes_toList`). `lane
 `128 … 199`: the capacity and the last rate byte `135`, whose top bit no padded block has clear
 (`Common.keccakNF`). So every permutation call of the challenges' sponge absorbs a non-final
 block into the zero state or into an earlier answer (`duplexP_membershipChallengeR`,
-`duplexP_membershipChallengePairR`): the duplex
+`duplexP_membershipChallengeVecR`): the duplex
 discipline of the two-oracle transfer (`Common.keccak256_transfer2`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
@@ -214,37 +214,60 @@ theorem duplexP_newM (hist : List KState) (iv publicInput : Common.DigestBytes) 
   obtain ⟨⟨y, hy, rfl⟩, hsub⟩ := h
   exact duplexP_pure ⟨⟨y, hy, rfl⟩, hsub⟩
 
-theorem duplexP_duplexM {hist : List KState} {s : Sponge} (hs : SpongeOK hist s) :
-    DuplexP (SpongePost hist) (Sponge.duplexWith pR s) hist := by
-  refine duplexP_bind (duplexP_pR (admissible_duplexInput hs)) fun L hist' h ↦ ?_
-  obtain ⟨⟨y, hy, rfl⟩, hsub⟩ := h
-  exact duplexP_pure ⟨⟨y, hy, rfl⟩, hsub⟩
-
 theorem SpongePost.trans {h₀ h₁ h₂ : List KState} {s : Sponge} (h01 : h₀ ⊆ h₁)
     (h : SpongePost h₁ s h₂) : SpongePost h₀ s h₂ := ⟨h.1, fun _ ha ↦ h.2 (h01 ha)⟩
 
-theorem duplexP_sampleM {hist : List KState} {s : Sponge} (hs : SpongeOK hist s) :
-    DuplexP (fun p hist' ↦ SpongePost hist p.2 hist') (Sponge.sampleWith pR s) hist := by
-  unfold Sponge.sampleWith
-  exact duplexP_bind (duplexP_duplexM hs) fun s' hist' h ↦ duplexP_pure h
+/-- A nonce's state is permuted from an earlier answer's lanes. -/
+theorem duplexP_nonceR {hist : List KState} {y : Lanes} (hy : ∃ y' ∈ hist, y = stateToLanes y')
+    (nonce : ℕ) :
+    DuplexP (fun L' hist' ↦ (∃ y ∈ hist', L' = stateToLanes y) ∧ hist ⊆ hist')
+      (pR (nonceInput y nonce)) hist :=
+  duplexP_pR (admissible_duplexInput (s := ⟨y, _⟩) hy)
+
+/-- **The nonce search follows the duplex discipline**: each nonce's call permutes the seeded
+answer's lanes with the nonce over the rate. -/
+theorem duplexP_grindR (y : Lanes) : ∀ (fuel nonce : ℕ) (hist₀ hist : List KState),
+    hist₀ ⊆ hist → (∃ y' ∈ hist, y = stateToLanes y') →
+      DuplexP (fun _ hist' ↦ hist₀ ⊆ hist') (grindMWithHash pR y nonce fuel) hist
+  | 0, _, _, _, h0, _ => duplexP_pure h0
+  | fuel + 1, nonce, hist₀, hist, h0, hy => by
+    unfold grindMWithHash
+    refine duplexP_bind (duplexP_nonceR hy nonce) fun o h₁ ho ↦ ?_
+    split
+    · exact duplexP_pure fun _ ha ↦ ho.2 (h0 ha)
+    · obtain ⟨y', hy', rfl⟩ := hy
+      exact duplexP_grindR _ fuel (nonce + 1) hist₀ h₁ (fun _ ha ↦ ho.2 (h0 ha))
+        ⟨y', ho.2 hy', rfl⟩
+
+/-- The duplex discipline of the nonces' draws. -/
+theorem duplexP_branchDrawsR (y : Lanes) : ∀ (js : List (Fin nLabels)) (hist₀ hist : List KState),
+    hist₀ ⊆ hist → (∃ y' ∈ hist, y = stateToLanes y') →
+      DuplexP (fun _ hist' ↦ hist₀ ⊆ hist') (branchDrawsM pR y js) hist
+  | [], _, _, h0, _ => duplexP_pure h0
+  | j :: js, hist₀, hist, h0, hy => by
+    unfold branchDrawsM
+    refine duplexP_bind (duplexP_nonceR hy (j.val - 1)) fun o h₁ ho ↦ ?_
+    obtain ⟨y', hy', rfl⟩ := hy
+    exact duplexP_bind (duplexP_branchDrawsR _ js hist₀ h₁ (fun _ ha ↦ ho.2 (h0 ha))
+      ⟨y', ho.2 hy', rfl⟩) fun _ h₂ hs₂ ↦ duplexP_pure hs₂
 
 /-- **The challenge's sponge follows the duplex discipline**: its first call permutes a fresh
-sponge, a non-final block into the zero state, and its sample an earlier answer's lanes. -/
+sponge, a non-final block into the zero state, and each nonce's call an earlier answer's lanes. -/
 theorem duplexP_membershipChallengeR (root : Common.DigestBytes) (hist : List KState) :
     DuplexP (fun _ hist' ↦ hist ⊆ hist') (membershipChallengeMWithHash hR pR root) hist := by
   unfold membershipChallengeMWithHash
   refine duplexP_hR_bind _ _ hist fun iv ↦ ?_
   refine duplexP_bind (duplexP_newM hist iv _) fun s₁ h₁ hs₁ ↦ ?_
-  refine duplexP_bind (duplexP_sampleM hs₁.1) fun p h₂ hs₂ ↦ ?_
-  exact duplexP_pure fun _ ha ↦ hs₂.2 (hs₁.2 ha)
+  exact duplexP_grindR _ _ _ hist h₁ hs₁.2 hs₁.1
 
-/-- The duplex discipline of the pair of samples (`membershipChallengePairM`). -/
-theorem duplexP_membershipChallengePairR (root : Common.DigestBytes) (hist : List KState) :
-    DuplexP (fun _ hist' ↦ hist ⊆ hist') (membershipChallengePairM hR pR root) hist := by
-  unfold membershipChallengePairM
+/-- The duplex discipline of the draws (`membershipChallengeVecM`). -/
+theorem duplexP_membershipChallengeVecR (root : Common.DigestBytes) (hist : List KState) :
+    DuplexP (fun _ hist' ↦ hist ⊆ hist') (membershipChallengeVecM hR pR root) hist := by
+  unfold membershipChallengeVecM
+  generalize Common.SeedDuplex.branchIdx nLabels = js
   refine duplexP_hR_bind _ _ hist fun iv ↦ ?_
   refine duplexP_bind (duplexP_newM hist iv _) fun s₁ h₁ hs₁ ↦ ?_
-  refine duplexP_bind (duplexP_sampleM hs₁.1) fun p h₂ hs₂ ↦ ?_
-  exact duplexP_pure fun _ ha ↦ hs₂.2 (hs₁.2 ha)
+  exact duplexP_bind (duplexP_branchDrawsR s₁.state js hist h₁ hs₁.2 hs₁.1) fun _ h₂ hs₂ ↦
+    duplexP_pure hs₂
 
 end LeanDa

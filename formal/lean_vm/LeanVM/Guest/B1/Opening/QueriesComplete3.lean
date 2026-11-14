@@ -8,9 +8,10 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesComplete2
+public import LeanVM.Guest.CoreData
 
 /-!
-# `walk_path`, completeness (lean_ethereum.py:1308-1343 at 40f877dc)
+# `walk_path`, completeness (lean_ethereum.py:1303-1338)
 
 The honest nodes are the climb's (`arm_nodes`: each step's pair hash, `level_out`); with the
 memory holding the position's windows, the cap leaf and the parent's flag (`WD.MemOk`), at the
@@ -33,11 +34,6 @@ namespace WD
 variable (w : WD) {rd : Reader} {σ : Val}
 
 /-! ## The path's values -/
-
-theorem pc_canonical (k : ℕ) : IsCanonical128 (w.pc k) := by
-  unfold pc pathCell
-  dsimp only
-  split <;> exact canonical_ofLimbs _ _
 
 /-- A level's pair hash is the climb's step. -/
 theorem level_out {l : ℕ} (hl : l < w.sibs.length) {o0 o1 : E}
@@ -129,10 +125,7 @@ theorem step_keccak {l K : ℕ} {ins : List V} (hins : ins.map σ = w.levelIns l
     (Atom.keccak ins [.n (K + 1), .n (K + 2)] false false).Holds rd σ := by
   have hl : ins.length = 13 := by
     have := congrArg List.length hins; simpa [levelIns] using this
-  refine keccak_holds_two.mpr ⟨hl, ?_, ?_, ?_⟩
-  · rw [hins]
-    intro c
-    fin_cases c <;> simp [cells13, levelIns] <;> first | exact w.pc_canonical _ | exact canonical_word _ _
+  refine keccak_holds_two.mpr ⟨hl, ?_, ?_⟩
   · rw [hins, hout 0 (by omega), stepV]
     rfl
   · rw [hins, show K + 2 = K + 1 + 1 by omega, hout 1 (by omega), stepV]
@@ -198,7 +191,7 @@ theorem target_val (hv : w.Hv σ) {i c : ℕ} (hi : i < oqNpw w.s) (hc : c < 2) 
 
 /-- The padding run window `0` places, at `wpPr`. -/
 theorem pad_val (hpd : 1 ≤ w.s.pd) (hv : w.Hv σ) :
-    σ (.n (wpPr w.s)) = word 1 0 0 ∧ ∀ i < 4, σ (.n (wpPr w.s + 1 + i)) = word 0 0 0 := by
+    σ (.n (wpPr w.s)) = word 1 0 ∧ ∀ i < 4, σ (.n (wpPr w.s + 1 + i)) = word 0 0 := by
   have h0 : 0 < oqNpw w.s := by unfold oqNpw; omega
   have hs : 9 ≤ winSz w.s 0 := by unfold winSz oqWo; simp
   have hpr : wpPr w.s = oqWk w.s wpCh 0 + 1 := by simp [wpPr, oqWk]
@@ -250,7 +243,7 @@ theorem arm_nodes (hpd : 1 ≤ w.s.pd) (hsl : w.sibs.length = w.s.pd) (hv : w.Hv
       have hi' := hi; have hr' := hr
       unfold oqWw oqNpw at hr'; unfold oqNpw at hi'; split at hr' <;> omega
     set K := oqArmK w.s wpCh i (w.wv i) + 3 * r with hK
-    have hk0 : σ (.n K) = word (2 ^ 63) 0 0 := by
+    have hk0 : σ (.n K) = word (2 ^ 63) 0 := by
       rw [hK, show oqArmK w.s wpCh i (w.wv i) + 3 * r = oqArmK w.s wpCh i (w.wv i) + 3 * r + 0
         from rfl, w.arm_val hv hi (by omega) (by omega), stepV]; rfl
     have hc : ∀ j < 4, σ (.n (wpCh + 4 * (6 * i + r) + j)) = w.pc (4 * (6 * i + r) + j) :=
@@ -308,7 +301,7 @@ theorem oqWin_complete (hpd : 1 ≤ w.s.pd) (hsl : w.sibs.length = w.s.pd) (hv :
   have s0 : σ (.n (oqWk w.s wpCh i)) = gen ^ w.wv i := by
     rw [show oqWk w.s wpCh i = oqWk w.s wpCh i + 0 from rfl, hv,
       val_win w hi (by unfold winSz; omega), winV]; simp
-  have s1 : σ (.n (oqWk w.s wpCh i + 1 + oqWo i)) = word (2 ^ 63) 0 0 := by
+  have s1 : σ (.n (oqWk w.s wpCh i + 1 + oqWo i)) = word (2 ^ 63) 0 := by
     rw [show oqWk w.s wpCh i + 1 + oqWo i = oqWk w.s wpCh i + (oqWo i + 1) by omega,
       w.winA_val hv hi le_rfl (by unfold winSz; have : 1 ≤ 2 ^ oqWw w.s i := Nat.one_le_two_pow; omega),
       winA]; simp
@@ -361,7 +354,7 @@ theorem oqWin_complete (hpd : 1 ≤ w.s.pd) (hsl : w.sibs.length = w.s.pd) (hv :
           rw [show wpPr w.s + 1 + 1 = wpPr w.s + 2 by omega] at z2
           rw [show wpPr w.s + 1 + 2 = wpPr w.s + 3 by omega] at z3
           rw [show wpPr w.s + 1 + 3 = wpPr w.s + 4 by omega] at z4
-          have hk0 : σ (.n (oqArmK w.s wpCh i (w.wv i) + 3 * r)) = word (2 ^ 63) 0 0 := by
+          have hk0 : σ (.n (oqArmK w.s wpCh i (w.wv i) + 3 * r)) = word (2 ^ 63) 0 := by
             rw [show oqArmK w.s wpCh i (w.wv i) + 3 * r = oqArmK w.s wpCh i (w.wv i) + 3 * r + 0
               from rfl, w.arm_val hv hi hr (by omega), stepV]; rfl
           simp [hpad, z1, z2, z3, z4, hk0, levelIns]) (fun c hc => by
@@ -409,7 +402,7 @@ theorem oqCap_complete (hsl : w.sibs.length = w.s.pd) (hcd : 1 ≤ w.s.cd)
   have t0 : σ (.n w.Cq) = w.wbV := by rw [show w.Cq = w.Cq + 0 from rfl, t 0 (by omega)]; rfl
   have t1 : σ (.n (w.Cq + 1)) = w.qV := by rw [t 1 (by omega)]; rfl
   have t2 : σ (.n (w.Cq + 2)) = w.flagsv * w.qV := by rw [t 2 (by omega)]; rfl
-  have t3 : σ (.n (w.Cq + 3)) = word 1 0 0 := by rw [t 3 (by omega)]; rfl
+  have t3 : σ (.n (w.Cq + 3)) = word 1 0 := by rw [t 3 (by omega)]; rfl
   have t4 : σ (.n (w.Cq + 4)) = w.qV * w.qV := by rw [t 4 (by omega)]; rfl
   have t5 : σ (.n (w.Cq + 5)) = w.capv * (w.qV * w.qV) := by rw [t 5 (by omega)]; rfl
   have t6 : σ (.n (w.Cq + 6)) = w.capv * (w.qV * w.qV) * (w.qV * w.qV) := by rw [t 6 (by omega)]; rfl
@@ -487,7 +480,7 @@ theorem walk_block (hpd : 1 ≤ w.s.pd) (hcd : 1 ≤ w.s.cd) (hsl : w.sibs.lengt
 pointer, the cap and the flags of an honest walk returns nothing. -/
 theorem walk_rel (hpd : 1 ≤ w.s.pd) (hcd : 1 ≤ w.s.cd) (hsl : w.sibs.length = w.s.pd)
     (hq : w.q < 2 ^ (w.s.pd + w.s.cd)) (hm : w.MemOk rd) {walk : String}
-    (hW : WalkFn walk w.s.pd w.s.cd) :
+    (hW : WalkFn coreProgram walk w.s.pd w.s.cd) :
     coreProgram.Rel rd walk [(digestHalves w.leaf).1, (digestHalves w.leaf).2, w.bpv, w.capv,
       w.flagsv] [] := by
   obtain ⟨fn, hf, hp, hb⟩ := hW

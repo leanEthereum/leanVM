@@ -8,11 +8,13 @@
 module
 
 public import LeanVM.Guest.B1.Selectors.IndexMle
+public import LeanVM.Guest.B1.Selectors.Interface
+public import LeanVM.Guest.CoreData
 
 /-!
 # `block_selector` (TRIAGE G #50)
 
-`block_selector(sel_bits, zeta1_hi, idxc_hi, n)` (G:1881-1896) reads bit `k < n` at `sel_bits`,
+`block_selector(sel_bits, zeta1_hi, idxc_hi, n)` (G:2165-2180) reads bit `k < n` at `sel_bits`,
 pins it by the write-once store of its square (`b = b²`, so `b ∈ {0, 1}`), and multiplies
 `b + zeta1_hi[k]` and `1 + b·idxc_hi[k]`. Its specialization `block_selector__L{n}` is `bsBody n`:
 bit `k`'s block from value `10k + 1` (`bsBlk`), the first without the products, then copies of the
@@ -42,7 +44,7 @@ def bsBlk (k : ℕ) : List Stmt :=
   if k = 0 then
     [.atom (.load (.n 3) (.n 0) 0), .atom (.mul (.n 4) (.n 3) (.n 3)),
       .atom (.load (.n 4) (.n 0) 0), .atom (.load (.n 5) (.n 1) 0),
-      .atom (.add (.n 6) (.n 3) (.n 5)), .atom (.const (.n 7) (word 1 0 0)),
+      .atom (.add (.n 6) (.n 3) (.n 5)), .atom (.const (.n 7) (word 1 0)),
       .atom (.load (.n 8) (.n 2) 0), .atom (.mul (.n 9) (.n 3) (.n 8)),
       .atom (.add (.n 10) (.n 7) (.n 9))]
   else
@@ -51,14 +53,14 @@ def bsBlk (k : ℕ) : List Stmt :=
       .atom (.load (.n (B + 1)) (.n 0) k), .atom (.load (.n (B + 2)) (.n 1) k),
       .atom (.add (.n (B + 3)) (.n B) (.n (B + 2))),
       .atom (.mul (.n (B + 4)) (.n (bsEq (k - 1))) (.n (B + 3))),
-      .atom (.const (.n (B + 5)) (word 1 0 0)), .atom (.load (.n (B + 6)) (.n 2) k),
+      .atom (.const (.n (B + 5)) (word 1 0)), .atom (.load (.n (B + 6)) (.n 2) k),
       .atom (.mul (.n (B + 7)) (.n B) (.n (B + 6))),
       .atom (.add (.n (B + 8)) (.n (B + 5)) (.n (B + 7))),
       .atom (.mul (.n (B + 9)) (.n (bsRb (k - 1))) (.n (B + 8)))]
 
 /-- `block_selector__L{n}`'s statements before its `ret`. -/
 def bsPre (n : ℕ) : List Stmt :=
-  if n = 0 then [.atom (.const (.n 3) (word 1 0 0)), .atom (.const (.n 4) (word 1 0 0))]
+  if n = 0 then [.atom (.const (.n 3) (word 1 0)), .atom (.const (.n 4) (word 1 0))]
   else ((List.range n).map bsBlk).flatten ++
     [.atom (.copy (.n (10 * n + 1)) (.n (bsEq (n - 1)))),
       .atom (.copy (.n (10 * n + 2)) (.n (bsRb (n - 1))))]

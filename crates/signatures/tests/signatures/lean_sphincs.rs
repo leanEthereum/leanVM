@@ -14,7 +14,7 @@ fn signatures_verify_and_tampered_ones_do_not() {
     assert_eq!(expanded.sk_seed, seed(3));
     assert_eq!(expanded.pk_seed[..], derive(0)[..N]);
     assert_eq!(expanded.sk_prf, derive(1));
-    assert_eq!(pk.pk_seed(), &expanded.pk_seed);
+    assert_eq!(pk.__pk_seed(), &expanded.pk_seed);
     assert_eq!(LeanSphincsSecretKey::from_bytes(&sk.to_bytes()).public_key(), pk);
     let message: Message = std::array::from_fn(|i| (3 + i) as u8);
     let signature = sign(&sk, &message).unwrap();

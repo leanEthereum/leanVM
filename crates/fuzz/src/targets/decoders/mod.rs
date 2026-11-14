@@ -5,7 +5,7 @@
 use crate::programs::{self, Spec};
 use crate::{Cost, Target, catch};
 use leanvm_core::cpu::{Program, Proof};
-use primitives::field::F192;
+use primitives::field::F128;
 use std::sync::OnceLock;
 
 mod aggregate;
@@ -44,7 +44,7 @@ pub static TARGETS: &[&Target] = &[
 pub struct Honest {
     pub name: &'static str,
     pub program: Program,
-    pub public_input: [F192; 2],
+    pub public_input: [F128; 2],
     pub proof: Proof,
     pub bytes: Vec<u8>,
 }

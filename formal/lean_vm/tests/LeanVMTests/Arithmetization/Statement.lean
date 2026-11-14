@@ -8,7 +8,7 @@ A classic test for kernel evaluation: the fixture decides `K` and `E` arithmetic
 Keccak-f[1600] permutation, and the bus permutations in the kernel.
 
 **The fixture** is one hand-built witness of `SatisfiedBy` for the program of the execution
-tests, the executor's `mul_192bit_word` (`crates/leanvm_core/src/cpu/mod.rs:888-903` at leanVM
+tests, the executor's `mul_128bit_word` (`crates/leanvm_core/src/cpu/mod.rs:888-903` at leanVM
 `4af2cddd`, `tests/LeanVMTests/Semantics/Execution.lean`), extended with closed walks: a `JUMP` to
 the sentinel after the three instructions, and three blocks run in frames disjoint from the
 program's own, each a loop ending in a `JUMP` back to its first instruction: one `XOR`, one
@@ -22,8 +22,8 @@ layout, the output lanes the pinned verifier's `keccak_f` computes
 The statement accepts rows that are not steps of the run as long as the state pair balances (Prop.
 6.1: one walk from the initial to the final registers, and closed walks), and the fixture exercises
 that. The thirty-two-slot program `walkProg` runs four steps from `(1, 1)` to `(g^31, 1)`
-(`walk_run`, a `ValidExecution`), and its honest witness `walkW kLout 1 g memCnt` at the minimum
-memory size `2^16` satisfies every conjunct of
+(`walk_run`, a `ValidExecution`), and its honest witness `walkW kLout 1 g memCnt` at the memory
+size `2^16` satisfies every conjunct of
 `SatisfiedBy` (`walk_satisfiedBy`) and represents the trace (`walk_represents`): the completeness
 instance for this program, by hand (`walk_t1_instance`). The witness is parametric in the
 `KECCAK` row's output lanes (written consistently in the row and in the image), the first
@@ -38,23 +38,13 @@ forty-four cells the run touches, decided in the kernel with the tables' reads, 
 untouched suffix, whose seed and finalize messages coincide because its finalize counts are `1`
 (`memCnt_of_ge`). The kernel evaluates a table's interactions through Clean's
 `Component.rowOperations` (`table_interactions_eq`), since `Component.operations` reaches them
-through `instantiate` and `toSubcircuit`, which the kernel does not unfold. `KeccakRowsValid`
-is one kernel evaluation of Keccak-f[1600] (`keccak_lanes`).
+through `instantiate` and `toSubcircuit`, which the kernel does not unfold. The `KECCAK` table's
+and the bytecode block's sends, the costliest, are first put in the closed form of
+`keccak_sends_gen` and `bytecode_sends_gen` (`keccak_sends_closed`, `bytecode_sends_closed`), so
+that each decision reads them off the rows' fields instead of evaluating the row and the circuit
+again. `KeccakRowsValid` is one kernel evaluation of Keccak-f[1600] (`keccak_lanes`).
 
-**Rejections**, each the honest witness with one thing changed, and each failing exactly the
-conjunct named. A wrong finalize count unbalances the memory pair (§6.2 "Nothing checks the
-finalize counts"): cell `4`'s finalize count `1` instead of `g`. A read count of `0` that
-*balances* fails `CountsNonzero` alone (§6.2 "The count product"): the first `SET_CONSTANT`
-row reads `x` with count `0`, a pull and a push of one tuple, the product row then reads `x`
-first, and every other conjunct still holds (`zero_count_witness`). A wrong output lane, written
-consistently in the `KECCAK` row and in the image, fails `KeccakRowsValid` alone
-(`wrong_lane_witness`): the bus binds the lanes to the cells, not the permutation, and the table
-has no constraint; the permutation is the Keccak reduction's. A memory block whose index column
-is shifted fails `IndexColumnsAreRowIndices` (§6.5). A wrong public word fails `word0_eq`
-(§8.2). A three-row table and a four-row `KECCAK` table are within `Caps`: a table's row count
-need not be a power of two, and there is no `KECCAK` floor (`Caps` bounds the memory log-size and
-each table's rows by `2^MAX_LOG_ROWS` only; the protocol pads every table with public padding
-rows, `doc/leanvm` §`sec:e2e-pad`).
+**Rejections**, each the honest witness with one thing changed, are `StatementRejections.lean`.
 -/
 
 -- The kernel decisions one at a time: elaborated in parallel, the fixture's bus permutations and
@@ -67,15 +57,16 @@ namespace LeanVMTests.Arithmetization.Statement
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization
 open Air.Flat (Component EnsembleWitness)
 
-/-! ## The fixture: `mul_192bit_word` with closed walks -/
+/-! ## The fixture: `mul_128bit_word` with closed walks -/
 
--- The operands and product of the executor test `mul_192bit_word` at leanVM a386121f.
+-- The operands and product of the executor test `mul_128bit_word` (`cpu/mod.rs:853-869` at
+-- `leanvm-rev`).
 def mulX : E :=
-  E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfeedfacedeadbeef) (K.ofBits 0x1111222233334444)
+  E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfeedfacedeadbeef)
 def mulY : E :=
-  E.ofLimbs (K.ofBits 0x9999aaaabbbbcccc) (K.ofBits 0x13579bdf2468ace0) (K.ofBits 0x5555666677778888)
+  E.ofLimbs (K.ofBits 0x9999aaaabbbbcccc) (K.ofBits 0x13579bdf2468ace0)
 def mulXY : E :=
-  E.ofLimbs (K.ofBits 0xf4bccd9a2e8e525b) (K.ofBits 0xf85ebb9433986f2f) (K.ofBits 0x918137982bf175ac)
+  E.ofLimbs (K.ofBits 0x1b4ac62c35ac2ecc) (K.ofBits 0x421e3037aaa197d0)
 
 -- The executor test `keccak_permutes_in_both_layouts` at leanVM 4af2cddd, its first permutation
 -- (as in `tests/LeanVMTests/Arithmetization/Tables.lean` and `Semantics/Execution.lean`): the
@@ -83,10 +74,10 @@ def mulXY : E :=
 -- first byte in the tail, its last bit in `b8` (whose free high limb `0x5555` holds no lane), and
 -- a zero capacity; the input lanes they hold in the even layout, and their image under `keccak_f`
 -- (`hash.rs:50-69`, computed outside Lean).
-def kA : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210) 0
-def kB : E := E.ofLimbs (K.ofBits 0xdeadbeefcafebabe) (K.ofBits 0x0badf00d0badf00d) 0
-def kPad : E := E.ofLimbs (K.ofBits 0x01) 0 0
-def kEnd : E := E.ofLimbs (K.ofBits 0x8000000000000000) (K.ofBits 0x5555) 0
+def kA : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210)
+def kB : E := E.ofLimbs (K.ofBits 0xdeadbeefcafebabe) (K.ofBits 0x0badf00d0badf00d)
+def kPad : E := E.ofLimbs (K.ofBits 0x01) 0
+def kEnd : E := E.ofLimbs (K.ofBits 0x8000000000000000) (K.ofBits 0x5555)
 
 def kLin : Vector K 25 :=
   #v[K.ofBits 0x123456789abcdef, K.ofBits 0xfedcba9876543210, K.ofBits 0xdeadbeefcafebabe,
@@ -111,16 +102,16 @@ def kLout : Vector K 25 :=
 of cell `0`, then the lane pairs `(2c - 1, 2c)`. At `kLout` they are the executor's (`kOut` of
 the execution tests). -/
 def outCells (L : Vector K 25) : List E :=
-  [E.ofLimbs 0 L[0] 0, E.ofLimbs L[1] L[2] 0, E.ofLimbs L[3] L[4] 0, E.ofLimbs L[5] L[6] 0,
-    E.ofLimbs L[7] L[8] 0, E.ofLimbs L[9] L[10] 0, E.ofLimbs L[11] L[12] 0,
-    E.ofLimbs L[13] L[14] 0, E.ofLimbs L[15] L[16] 0, E.ofLimbs L[17] L[18] 0,
-    E.ofLimbs L[19] L[20] 0, E.ofLimbs L[21] L[22] 0, E.ofLimbs L[23] L[24] 0]
+  [E.ofLimbs 0 L[0], E.ofLimbs L[1] L[2], E.ofLimbs L[3] L[4], E.ofLimbs L[5] L[6],
+    E.ofLimbs L[7] L[8], E.ofLimbs L[9] L[10], E.ofLimbs L[11] L[12],
+    E.ofLimbs L[13] L[14], E.ofLimbs L[15] L[16], E.ofLimbs L[17] L[18],
+    E.ofLimbs L[19] L[20], E.ofLimbs L[21] L[22], E.ofLimbs L[23] L[24]]
 
 /-- The public input `[w(1), w(2)]`. -/
 def mulInput : PublicInput := ⟨![1, 0, K.ofBits 2, 0]⟩
 
 /-- A word of `K` as a cell. -/
-def cellK (a : K) : E := E.ofLimbs a 0 0
+def cellK (a : K) : E := E.ofLimbs a 0
 
 /-- The program: the executor's three instructions in frame `1` (slots `0..2`), a `JUMP` to the
 sentinel (`3`), an `XOR` loop in frame `g^5` (`4`, `5`), a `DEREF` loop in the same frame
@@ -160,11 +151,11 @@ def walkCells (L : Vector K 25) : Array E :=
     [cellK 1, cellK (addressOfIndex 8), cellK (addressOfIndex 14), cellK 1, cellK (addressOfIndex
         31), cellK 1]).toArray
 
-/-- The image, at the minimum size `2^16`. -/
-def walkImage (L : Vector K 25) : MemoryImage minLogMem := fun i ↦ ((walkCells L)[(i : ℕ)]?).getD 0
+/-- The image, of `2^16` cells. -/
+def walkImage (L : Vector K 25) : MemoryImage 16 := fun i ↦ ((walkCells L)[(i : ℕ)]?).getD 0
 
 /-- The trace: four steps, over the honest image. -/
-def walkTrace : Execution walkProg := ⟨minLogMem, walkImage kLout, 4⟩
+def walkTrace : Execution walkProg := ⟨16, walkImage kLout, 4⟩
 
 /-- The honest finalize counts `g^A[i]` of the touched cells; `1` elsewhere (`memCnt`). The
 `KECCAK` row reads `a` and `b` twice, every other cell of its frame once. -/
@@ -195,23 +186,22 @@ def bcCntFin (i : Fin (2 ^ walkProg.logSize)) : K := bcCnt i
 -- Frame `1`: the run.
 /-- Slot `0`, `SET_CONSTANT g^2 ← x`, with read count `c` (`1` for the honest prover). -/
 def setRow0 (c : K) : SetRow K :=
-  ⟨addressOfIndex 0, 1, addressOfIndex 2, #v[mulX.limb 0, mulX.limb 1, mulX.limb 2], c, 1⟩
+  ⟨addressOfIndex 0, 1, addressOfIndex 2, #v[mulX.limb 0, mulX.limb 1], c, 1⟩
 /-- Slot `1`, `SET_CONSTANT g^3 ← y`. -/
-def setRow1 : SetRow K := ⟨addressOfIndex 1, 1, addressOfIndex 3, #v[mulY.limb 0, mulY.limb 1,
-    mulY.limb 2], 1, 1⟩
+def setRow1 : SetRow K := ⟨addressOfIndex 1, 1, addressOfIndex 3, #v[mulY.limb 0, mulY.limb 1], 1, 1⟩
 /-- Slot `2`, `MUL_NATIVE`: the read of `x` with count `rA` (`g` for the honest prover, the
 second read), the second read of `y`, the first of the product. -/
 def mulRow (rA : K) : MulRow K :=
   ⟨addressOfIndex 2, 1, addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, #v[mulX.limb 0,
-      mulX.limb 1, mulX.limb 2],
-    #v[mulY.limb 0, mulY.limb 1, mulY.limb 2], rA, g, 1, 1⟩
+      mulX.limb 1],
+    #v[mulY.limb 0, mulY.limb 1], rA, g, 1, 1⟩
 /-- Slot `3`, the `JUMP` to the sentinel: `(g^3, 1) → (g^31, 1)`. -/
 def jumpRow3 : JumpRow K := ⟨addressOfIndex 3, 1, addressOfIndex 41, addressOfIndex 42,
     addressOfIndex 43, 1, addressOfIndex 31, 1, 1, 1, 1, 1⟩
 
 -- Frame `g^5`: the `XOR` and `DEREF` blocks.
 /-- Slot `4`, `XOR 1 1 1` on the zero cell `g^5`: three reads. -/
-def xorRow : XorRow K := ⟨addressOfIndex 4, addressOfIndex 5, 1, 1, 1, #v[0, 0, 0], #v[0, 0, 0], 1,
+def xorRow : XorRow K := ⟨addressOfIndex 4, addressOfIndex 5, 1, 1, 1, #v[0, 0], #v[0, 0], 1,
     g, g ^ 2, 1⟩
 /-- Slot `5`, the `JUMP` back to slot `4`. -/
 def jumpRow5 : JumpRow K := ⟨addressOfIndex 5, addressOfIndex 5, g, addressOfIndex 2, addressOfIndex
@@ -219,7 +209,7 @@ def jumpRow5 : JumpRow K := ⟨addressOfIndex 5, addressOfIndex 5, g, addressOfI
 /-- Slot `6`, `DEREF` in `cell` mode: the pointer `g^5` at `g^11`, the local and target cell
 both `g^5` (its fourth and fifth reads). -/
 def derefRow : DerefRow K :=
-  ⟨addressOfIndex 6, addressOfIndex 5, addressOfIndex 6, 1, 1, 0, 0, addressOfIndex 5, #v[0, 0, 0],
+  ⟨addressOfIndex 6, addressOfIndex 5, addressOfIndex 6, 1, 1, 0, 0, addressOfIndex 5, #v[0, 0],
       g, g ^ 4, g ^ 3, 1⟩
 /-- Slot `7`, the `JUMP` back to slot `6`. -/
 def jumpRow7 : JumpRow K := ⟨addressOfIndex 7, addressOfIndex 5, g, addressOfIndex 3, addressOfIndex
@@ -254,27 +244,26 @@ theorem jumpRaws_size (rs : List (JumpRow K)) :
 
 /-- Row `i` of the memory block: `(mem[i], g^i, cnt i)`, the raw form of the typed row
 (`memRowOf`: the limbs first, as the committed columns). -/
-def memRowArr (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array K :=
+def memRowArr (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ 16)) : Array K :=
   rawRow (memRowOf (walkImage L) i (cnt i))
 
-/-- The memory row's five cells, without evaluating the block's row list. -/
-theorem memRowArr_eq (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) :
+/-- The memory row's four cells, without evaluating the block's row list. -/
+theorem memRowArr_eq (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ 16)) :
     memRowArr L cnt i =
-      #[(walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L i).limb 2, addressOfIndex i,
-        cnt i] := by
+      #[(walkImage L i).limb 0, (walkImage L i).limb 1, addressOfIndex i, cnt i] := by
   with_unfolding_all rfl
 
 /-- The memory block's rows, with any finalize counts, agree with its fixed index column: the
 block is preallocated, `2^16` rows, row `i` at `g^i`. -/
 theorem memRows_fixed (L : Vector K 25) (cnt : ℕ → K) :
-    (memComponent minLogMem).FixedRowsMatch (List.ofFn (memRowArr L cnt)) := by
-  show (List.ofFn (memRowArr L cnt)).length = (UInt64.ofNat (2 ^ minLogMem)).toNat ∧
-    ∀ i (hi : i < (List.ofFn (memRowArr L cnt)).length), (memMode minLogMem).FixedAt
+    (memComponent 16).FixedRowsMatch (List.ofFn (memRowArr L cnt)) := by
+  show (List.ofFn (memRowArr L cnt)).length = (UInt64.ofNat (2 ^ 16)).toNat ∧
+    ∀ i (hi : i < (List.ofFn (memRowArr L cnt)).length), (memMode 16).FixedAt
       (UInt64.ofNat i) (fromElements (Air.Flat.rowPrefix (size MemRow)
         (List.ofFn (memRowArr L cnt))[i]))
-  have h64 : 2 ^ minLogMem < 2 ^ 64 := by decide
+  have h64 : 2 ^ 16 < 2 ^ 64 := by decide
   refine ⟨by rw [List.length_ofFn, UInt64.toNat_ofNat_of_lt' h64], fun i hi ↦ ?_⟩
-  have hi' : i < 2 ^ minLogMem := by rwa [List.length_ofFn] at hi
+  have hi' : i < 2 ^ 16 := by rwa [List.length_ofFn] at hi
   have hnat : (UInt64.ofNat i).toNat = i := UInt64.toNat_ofNat_of_lt' (lt_trans hi' h64)
   refine (memMode_fixedAt (by rw [hnat]; exact hi') _).mpr ?_
   rw [List.getElem_ofFn, memRowArr, fromElements_rowPrefix_rawRow, hnat]
@@ -325,7 +314,7 @@ def kT (L : Vector K 25) : Air.Flat.Table K :=
   opT keccakTable ([kRow L].map rawRow) (rawRows_size [kRow L])
 /-- The memory block, with finalize counts `cnt`. -/
 def memT (L : Vector K 25) (cnt : ℕ → K) : Air.Flat.Table K :=
-  ownTable (memComponent minLogMem) (List.ofFn (memRowArr L cnt))
+  ownTable (memComponent 16) (List.ofFn (memRowArr L cnt))
     (by
       intro r hr
       rw [List.mem_ofFn] at hr
@@ -345,21 +334,21 @@ def bcT : Air.Flat.Table K :=
 /-- A witness whose tables are `ts`, eight tables of the ensemble's components in order, with the
 prover data Clean derives from them (`withDerivedData`) and the public input `mulInput`. -/
 theorem mkW_names (ts : List (Air.Flat.Table K))
-    (hc : ts.map (·.component) = (leanIsaEnsemble walkProg minLogMem).tables) :
+    (hc : ts.map (·.component) = (leanIsaEnsemble walkProg 16).tables) :
     (ts.map fun t ↦ t.component.circuit.name).Nodup := by
-  have h := (leanIsaEnsemble walkProg minLogMem).unique_names
+  have h := (leanIsaEnsemble walkProg 16).unique_names
   rw [← hc, List.map_map] at h
   exact h
 
 theorem mkW_components (ts : List (Air.Flat.Table K))
-    (hc : ts.map (·.component) = (leanIsaEnsemble walkProg minLogMem).tables) :
+    (hc : ts.map (·.component) = (leanIsaEnsemble walkProg 16).tables) :
     (Air.Flat.withDerivedData ts (mkW_names ts hc)).map (·.component) =
-      (leanIsaEnsemble walkProg minLogMem).tables := by
+      (leanIsaEnsemble walkProg 16).tables := by
   rw [Air.Flat.withDerivedData_map_component, hc]
 
 def mkW (ts : List (Air.Flat.Table K))
-    (hc : ts.map (·.component) = (leanIsaEnsemble walkProg minLogMem).tables := by rfl) :
-    EnsembleWitness (leanIsaEnsemble walkProg minLogMem) where
+    (hc : ts.map (·.component) = (leanIsaEnsemble walkProg 16).tables := by rfl) :
+    EnsembleWitness (leanIsaEnsemble walkProg 16) where
   tables := Air.Flat.withDerivedData ts (mkW_names ts hc)
   publicInput := PublicIO.ofInput mulInput
   same_length := by simp only [← mkW_components ts hc, List.length_map]
@@ -372,7 +361,7 @@ def mkW (ts : List (Air.Flat.Table K))
 first `SET_CONSTANT` row's read count `c`, the product row's read count of `x` `rA`, and the
 memory block's finalize counts `cnt`; the honest one is `walkW kLout 1 g memCnt`. -/
 def walkW (L : Vector K 25) (c rA : K) (cnt : ℕ → K) :
-    EnsembleWitness (leanIsaEnsemble walkProg minLogMem) :=
+    EnsembleWitness (leanIsaEnsemble walkProg 16) :=
   mkW [xorT, mulT rA, setT c, derefT, jumpT, kT L, memT L cnt, bcT]
 
 /-! ## The tables of the witness, read back -/
@@ -451,11 +440,11 @@ theorem walk_memRows (L : Vector K 25) (c rA : K) (cnt : ℕ → K) :
   rw [memRows_data, walk_table6, List.map_ofFn, imageRows, List.toArray_ofFn]
   congr 1
   funext i
-  exact rowPrefix_three_rawRow (walkW L c rA cnt) _
+  exact rowPrefix_two_rawRow (walkW L c rA cnt) _
 
 /-- The image the data names, as one equality of dependent pairs. -/
 theorem walk_imageOf (L : Vector K 25) (c rA : K) (cnt : ℕ → K) :
-    imageOf (walkW L c rA cnt).data = ⟨minLogMem, walkImage L⟩ :=
+    imageOf (walkW L c rA cnt).data = ⟨16, walkImage L⟩ :=
   imageOf_of_memRows (walk_memRows L c rA cnt) (by decide)
 
 /-! ## The run -/
@@ -472,9 +461,9 @@ theorem fetch_one : walkProg.fetch 1 = some (.setConstant (addressOfIndex 2) mul
   simpa using fetch_at 0 (.setConstant (addressOfIndex 2) mulX)
 
 /-- The word at `g^k`. -/
-theorem read_at (L : Vector K 25) (k : ℕ) (v : E) (hk : k < 2 ^ minLogMem := by decide)
+theorem read_at (L : Vector K 25) (k : ℕ) (v : E) (hk : k < 2 ^ 16 := by decide)
     (hv : walkImage L ⟨k, hk⟩ = v := by rfl) : (walkImage L).read (addressOfIndex k) = some v := by
-  rw [show addressOfIndex k = addressOfIndex ((⟨k, hk⟩ : Fin (2 ^ minLogMem)) : ℕ) from rfl,
+  rw [show addressOfIndex k = addressOfIndex ((⟨k, hk⟩ : Fin (2 ^ 16)) : ℕ) from rfl,
     MemoryImage.read_gpow (by decide), hv]
 
 theorem walk_step0 : step walkProg (walkImage kLout) ⟨1, 1⟩ = some ⟨addressOfIndex 1, 1⟩ := by
@@ -533,7 +522,7 @@ theorem walk_run : run walkProg (walkImage kLout) 4 Registers.initial = some (Re
 
 /-- The public words are in place. -/
 theorem walk_boundary : HoldsPublicInput mulInput walkTrace :=
-  ⟨le_rfl, by decide, read_at kLout 0 (cellK 1), read_at kLout 1 (cellK (K.ofBits 2))⟩
+  ⟨(by decide : minLogMem ≤ 16), by decide, read_at kLout 0 (cellK 1), read_at kLout 1 (cellK (K.ofBits 2))⟩
 
 /-- The extended program is a valid execution of the executor's on the same input. -/
 example : ValidExecution walkProg mulInput walkTrace := ⟨walk_boundary, walk_run⟩
@@ -557,6 +546,44 @@ sends, never the data. -/
 /-- The sends of a table's rows over the data `d`. -/
 def sendsOver (t : Air.Flat.Table K) (d : ProverData K) : List (String × Array K) :=
   t.table.flatMap fun row ↦ rowSends t.component (Environment.fromArray row d)
+
+/-- The `KECCAK` table's sends, over any data, are its circuit's on the row. -/
+theorem kT_sendsOver (L : Vector K 25) (d : ProverData K) :
+    sendsOver (kT L) d =
+      rowSends (opcodeComponent keccakTable) (Environment.fromArray (rawRow (kRow L)) d) := by
+  simp only [sendsOver, kT, opT, ownTable, List.map_cons, List.map_nil, List.flatMap_cons,
+    List.flatMap_nil, List.append_nil]
+
+/-- A bytecode block row's sends, as `bytecode_sends_gen` gives them. -/
+def bcSendsOf (r : BytecodeRow K) : List (String × Array K) :=
+  [(BytecodePush.name,
+    #[r.idx, 1, r.opcode, r.op[0], r.op[1], r.op[2], r.op[3], r.op[4], r.op[5], r.op[6],
+      r.op[7], r.op[8], r.op[9], r.op[10], r.op[11]]),
+   (BytecodePull.name,
+    #[r.idx, r.cntFin, r.opcode, r.op[0], r.op[1], r.op[2], r.op[3], r.op[4], r.op[5],
+      r.op[6], r.op[7], r.op[8], r.op[9], r.op[10], r.op[11]])]
+
+/-- The bytecode block's sends, over any data, read off its typed rows: the kernel then never
+flattens a row into its cells nor evaluates the circuit. -/
+theorem bcT_sendsOver (d : ProverData K) :
+    sendsOver bcT d =
+      (List.ofFn fun i ↦ bytecodeRowOf walkProg i (bcCntFin i)).flatMap bcSendsOf := by
+  have h (r : BytecodeRow K) :
+      rowSends (bytecodeComponent walkProg) (Environment.fromArray (rawRow r) d) = bcSendsOf r := by
+    rw [rowSends_bytecodeComponent, bytecode_sends_gen _ _ _ _ (eval_rowVar _ d)]
+    rfl
+  simp only [sendsOver, bcT, ownTable, bcRows, List.ofFn_eq_map, List.flatMap_map, h]
+
+/-- Before a kernel decision: the `KECCAK` table's sends in the closed form of `keccak_sends_gen`,
+read off the row's fields, so that the kernel never flattens the row into its cells nor evaluates
+the circuit. -/
+macro "keccak_sends_closed" : tactic =>
+  `(tactic| rw [LeanVMTests.Arithmetization.Statement.kT_sendsOver, rowSends_mk,
+    keccak_sends_gen _ _ _ _ (eval_rowVar _ _)])
+
+/-- The same for the bytecode block. -/
+macro "bytecode_sends_closed" : tactic =>
+  `(tactic| rw [LeanVMTests.Arithmetization.Statement.bcT_sendsOver])
 
 /-- A witness's messages on a channel: the verifier's two sends, then the sends of the rows of
 `ts` over the witness's data. -/
@@ -583,16 +610,16 @@ theorem memT_table (L : Vector K 25) (cnt : ℕ → K) :
   dsimp only [memT, ownTable]
 
 /-- The seed message of cell `i`: `(g^i, 1, mem[i])`. -/
-def seedMsg (L : Vector K 25) (i : Fin (2 ^ minLogMem)) : Array K :=
-  #[addressOfIndex i, 1, (walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L i).limb 2]
+def seedMsg (L : Vector K 25) (i : Fin (2 ^ 16)) : Array K :=
+  #[addressOfIndex i, 1, (walkImage L i).limb 0, (walkImage L i).limb 1]
 
 /-- The finalize message of cell `i`: `(g^i, cnt i, mem[i])`. -/
-def finMsg (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array K :=
-  #[addressOfIndex i, cnt i, (walkImage L i).limb 0, (walkImage L i).limb 1, (walkImage L i).limb 2]
+def finMsg (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ 16)) : Array K :=
+  #[addressOfIndex i, cnt i, (walkImage L i).limb 0, (walkImage L i).limb 1]
 
 /-- Row `i` of the memory block pushes its seed and pulls its finalize message, over any data. -/
-theorem memRow_sends (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) (i : Fin (2 ^ minLogMem)) :
-    rowSends (memComponent minLogMem) (Environment.fromArray (memRowArr L cnt i) d) =
+theorem memRow_sends (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) (i : Fin (2 ^ 16)) :
+    rowSends (memComponent 16) (Environment.fromArray (memRowArr L cnt i) d) =
       [(MemPush.name, seedMsg L i), (MemPull.name, finMsg L cnt i)] := by
   rw [rowSends_memComponent, memRowArr,
     mem_sends_gen _ _ _ _ (eval_rowVar (memRowOf (walkImage L) i (cnt i)) d)]
@@ -607,7 +634,7 @@ theorem memT_filter (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) (n : 
   rw [sendsOver, memT_table, List.mem_flatMap] at hp
   obtain ⟨row, hrow, hp⟩ := hp
   obtain ⟨i, rfl⟩ := List.mem_ofFn.mp hrow
-  rw [show (memT L cnt).component = memComponent minLogMem from rfl, memRow_sends] at hp
+  rw [show (memT L cnt).component = memComponent 16 from rfl, memRow_sends] at hp
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hp
   rcases hp with rfl | rfl
   · simpa using Ne.symm hn
@@ -617,14 +644,14 @@ theorem memT_filter (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) (n : 
 theorem memT_pushes (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) :
     ((sendsOver (memT L cnt) d).filter (·.1 = MemPush.toRaw.name)).map (·.2) =
       List.ofFn (seedMsg L) := by
-  have h1 : ∀ i, ((rowSends (memComponent minLogMem)
+  have h1 : ∀ i, ((rowSends (memComponent 16)
       (Environment.fromArray (memRowArr L cnt i) d)).filter (·.1 = MemPush.toRaw.name)).map (·.2) =
         [seedMsg L i] := fun i ↦ by
     rw [memRow_sends]
     rfl
   rw [sendsOver, memT_table, List.filter_flatMap, List.map_flatMap, List.ofFn_eq_map,
     List.flatMap_map, List.ofFn_eq_map,
-    show (memT L cnt).component = memComponent minLogMem from rfl]
+    show (memT L cnt).component = memComponent 16 from rfl]
   simp only [h1]
   rw [← List.map_eq_flatMap]
 
@@ -632,14 +659,14 @@ theorem memT_pushes (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) :
 theorem memT_pulls (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) :
     ((sendsOver (memT L cnt) d).filter (·.1 = MemPull.toRaw.name)).map (·.2) =
       List.ofFn (finMsg L cnt) := by
-  have h1 : ∀ i, ((rowSends (memComponent minLogMem)
+  have h1 : ∀ i, ((rowSends (memComponent 16)
       (Environment.fromArray (memRowArr L cnt i) d)).filter (·.1 = MemPull.toRaw.name)).map (·.2) =
         [finMsg L cnt i] := fun i ↦ by
     rw [memRow_sends]
     rfl
   rw [sendsOver, memT_table, List.filter_flatMap, List.map_flatMap, List.ofFn_eq_map,
     List.flatMap_map, List.ofFn_eq_map,
-    show (memT L cnt).component = memComponent minLogMem from rfl]
+    show (memT L cnt).component = memComponent 16 from rfl]
   simp only [h1]
   rw [← List.map_eq_flatMap]
 
@@ -664,7 +691,7 @@ theorem bcT_filter (d : ProverData K) (n : String) (hn : n ≠ BytecodePush.name
 of the `2^16` are seeded and finalized with count `1` and cancel. -/
 abbrev touched : ℕ := 44
 abbrev untouched : ℕ := 65492
-theorem touched_add_untouched : touched + untouched = 2 ^ minLogMem := by decide
+theorem touched_add_untouched : touched + untouched = 2 ^ 16 := by decide
 
 /-- The seeds, split at the touched cells. -/
 theorem seeds_split (L : Vector K 25) : List.ofFn (seedMsg L) =
@@ -685,7 +712,7 @@ theorem fins_split (L : Vector K 25) (cnt : ℕ → K) (h : ∀ i, touched ≤ i
   refine congrArg₂ _ rfl (congrArg _ (funext fun j ↦ ?_))
   show #[addressOfIndex (touched + j), cnt (touched + j), (walkImage L (Fin.natAdd touched
       j)).limb 0,
-    (walkImage L (Fin.natAdd touched j)).limb 1, (walkImage L (Fin.natAdd touched j)).limb 2] = _
+    (walkImage L (Fin.natAdd touched j)).limb 1] = _
   rw [h _ (Nat.le_add_right touched j)]
   rfl
 
@@ -734,6 +761,7 @@ theorem walk_state_balanced :
     memT_filter _ _ _ StatePull.toRaw.name (by decide) (by decide),
     bcT_filter _ StatePush.toRaw.name (by decide) (by decide),
     bcT_filter _ StatePull.toRaw.name (by decide) (by decide)]
+  keccak_sends_closed
   decide +kernel
 
 /-- The bytecode pair balances: every executed slot read once, the seeds and finalizes of all
@@ -745,6 +773,8 @@ theorem walk_bytecode_balanced :
     List.filter_append, List.map_append,
     memT_filter _ _ _ BytecodePush.toRaw.name (by decide) (by decide),
     memT_filter _ _ _ BytecodePull.toRaw.name (by decide) (by decide)]
+  keccak_sends_closed
+  bytecode_sends_closed
   decide +kernel
 
 /-- The memory pair, reduced to the touched cells: with the block's seeds and finalizes split
@@ -778,6 +808,7 @@ theorem mem_balanced_iff (L : Vector K 25) (c rA : K) (cnt : ℕ → K)
 /-- The memory pair balances. -/
 theorem walk_mem_balanced : BalancedPair (walkW kLout 1 g memCnt) MemPull.toRaw MemPush.toRaw := by
   rw [mem_balanced_iff kLout 1 g memCnt fun _ ↦ memCnt_of_ge]
+  keccak_sends_closed
   decide +kernel
 
 /-- The count product over the first six tables, read off their rows' sends. -/
@@ -800,12 +831,16 @@ theorem mkW_countsNonzero (ts : List (Air.Flat.Table K)) (hc)
 
 /-- Every read count is nonzero. -/
 theorem walk_countsNonzero : CountsNonzero (walkW kLout 1 g memCnt) :=
-  mkW_countsNonzero _ _ (by decide +kernel)
+  mkW_countsNonzero _ _ (by
+    simp only [List.take_succ_cons, List.take_zero, List.forall_mem_cons, List.not_mem_nil,
+      IsEmpty.forall_iff, implies_true, and_true]
+    keccak_sends_closed
+    decide +kernel)
 
 /-- Tables within the row cap are within the caps: the memory log-size is `16`. -/
 theorem mkW_caps (ts : List (Air.Flat.Table K)) (hc)
     (h : ∀ t ∈ ts, t.table.length ≤ 2 ^ maxLogRows) : Caps (mkW ts hc) where
-  minLogMem_le_logMem := le_rfl
+  minLogMem_le_logMem := (by decide : minLogMem ≤ 16)
   logMem_le_maxLogMem := by decide
   heights t ht := by
     obtain ⟨t₀, ht₀, -, htab⟩ := mem_mkW ht
@@ -973,247 +1008,7 @@ theorem walk_t1_instance : ValidExecution walkProg mulInput walkTrace ∧
   ⟨⟨walk_boundary, walk_run⟩, walk_satisfiedBy, walk_represents⟩
 
 /-- The image the witness names is the trace's, as one equality. -/
-example : imageOf (walkW kLout 1 g memCnt).data = ⟨minLogMem, walkImage kLout⟩ :=
+example : imageOf (walkW kLout 1 g memCnt).data = ⟨16, walkImage kLout⟩ :=
   assignmentRepresents_image walk_represents
-
-/-! ## Rejections -/
-
-/-- A wrong finalize count: cell `4` is read once, its finalize count `1` instead of `g`. -/
-def wrongCnt (i : ℕ) : K := if i = 4 then 1 else memCnt i
-
-theorem wrongCnt_of_ge {i : ℕ} (h : 44 ≤ i) : wrongCnt i = 1 := by
-  unfold wrongCnt
-  rw [ite_eq_right (by omega), memCnt_of_ge h]
-
-/-- Nothing checks the finalize counts (§6.2): the block accepts the row, and the bus does not
-balance. -/
-example : ¬ BalancedPair (walkW kLout 1 g wrongCnt) MemPull.toRaw MemPush.toRaw := by
-  rw [mem_balanced_iff kLout 1 g wrongCnt fun _ ↦ wrongCnt_of_ge]
-  decide +kernel
-
-/-- The finalize counts of a read count `0` at cell `2`: the first `SET_CONSTANT` row's read
-pulls and pushes `(g^2, 0, x)`, the product row's read is then the first, and the cell is
-finalized at `g`. -/
-def zeroCnt (i : ℕ) : K := if i = 2 then g else memCnt i
-
-theorem zeroCnt_of_ge {i : ℕ} (h : 44 ≤ i) : zeroCnt i = 1 := by
-  unfold zeroCnt
-  rw [ite_eq_right (by omega), memCnt_of_ge h]
-
-/-- The zero-count witness balances the memory pair: a pull and a push of one tuple cancel,
-which is what the count product exists to reject (§6.2 "The count product", Theorem 6.4). -/
-theorem zero_mem_balanced :
-    BalancedPair (walkW kLout 0 1 zeroCnt) MemPull.toRaw MemPush.toRaw := by
-  rw [mem_balanced_iff kLout 0 1 zeroCnt fun _ ↦ zeroCnt_of_ge]
-  decide +kernel
-
-theorem zero_state_balanced :
-    BalancedPair (walkW kLout 0 1 zeroCnt) StatePull.toRaw StatePush.toRaw := by
-  unfold BalancedPair
-  simp only [messagesOn_walkW, List.flatMap_cons, List.flatMap_nil, List.append_nil,
-    List.filter_append, List.map_append,
-    memT_filter _ _ _ StatePush.toRaw.name (by decide) (by decide),
-    memT_filter _ _ _ StatePull.toRaw.name (by decide) (by decide),
-    bcT_filter _ StatePush.toRaw.name (by decide) (by decide),
-    bcT_filter _ StatePull.toRaw.name (by decide) (by decide)]
-  decide +kernel
-
-theorem zero_bytecode_balanced :
-    BalancedPair (walkW kLout 0 1 zeroCnt) BytecodePull.toRaw BytecodePush.toRaw := by
-  unfold BalancedPair
-  simp only [messagesOn_walkW, List.flatMap_cons, List.flatMap_nil, List.append_nil,
-    List.filter_append, List.map_append,
-    memT_filter _ _ _ BytecodePush.toRaw.name (by decide) (by decide),
-    memT_filter _ _ _ BytecodePull.toRaw.name (by decide) (by decide)]
-  decide +kernel
-
-/-- The count product is load-bearing: the zero-count witness satisfies every other conjunct
-of `SatisfiedBy` and fails `CountsNonzero` (§6.2 "The count product"). -/
-theorem zero_count_witness :
-    (walkW kLout 0 1 zeroCnt).publicInput = PublicIO.ofInput mulInput ∧
-    (walkW kLout 0 1 zeroCnt).Constraints ∧
-    BalancedPair (walkW kLout 0 1 zeroCnt) StatePull.toRaw StatePush.toRaw ∧
-    BalancedPair (walkW kLout 0 1 zeroCnt) MemPull.toRaw MemPush.toRaw ∧
-    BalancedPair (walkW kLout 0 1 zeroCnt) BytecodePull.toRaw BytecodePush.toRaw ∧
-    Caps (walkW kLout 0 1 zeroCnt) ∧ IndexColumnsAreRowIndices (walkW kLout 0 1 zeroCnt) ∧
-    SeedRowsAreTheImage (walkW kLout 0 1 zeroCnt) ∧
-    BytecodeRowsAreTheProgram walkProg (walkW kLout 0 1 zeroCnt) ∧
-    KeccakRowsValid (walkW kLout 0 1 zeroCnt) ∧
-    (imageOf (walkW kLout 0 1 zeroCnt).data).2.read (addressOfIndex 0) = some mulInput.word0 ∧
-    (imageOf (walkW kLout 0 1 zeroCnt).data).2.read (addressOfIndex 1) = some mulInput.word1 ∧
-    ¬ CountsNonzero (walkW kLout 0 1 zeroCnt) :=
-  ⟨rfl, walk_constraints kLout 0 1 zeroCnt, zero_state_balanced, zero_mem_balanced,
-    zero_bytecode_balanced, walk_caps kLout 0 1 zeroCnt, walk_indexColumns kLout 0 1 zeroCnt,
-    walk_seedRows kLout 0 1 zeroCnt, walk_bytecodeRows kLout 0 1 zeroCnt,
-    walk_keccakValid 0 1 zeroCnt, walk_word0 kLout 0 1 zeroCnt, walk_word1 kLout 0 1 zeroCnt,
-    fun h ↦ by
-      have hmem : tableAt (walkW kLout 0 1 zeroCnt) 2 ∈ (walkW kLout 0 1 zeroCnt).tables.take 6 := by
-        rw [List.mem_take_iff_getElem]
-        exact ⟨2, by rw [← (walkW kLout 0 1 zeroCnt).same_length]; decide, rfl⟩
-      have h2 := h _ hmem
-      rw [table_interactions_eq, walk_table2, tableAt_component] at h2
-      revert h2
-      decide +kernel⟩
-
-/-- A wrong output lane: lane `0` plus one, a canonical word, written consistently in the
-`KECCAK` row and in its output cell `0` of the image (cell `25`). -/
-def wrongLout : Vector K 25 := kLout.set 0 (kLout[0] + 1)
-
-/-- The wrong row fails the relation: its lane `0` is not Keccak-f[1600]'s. -/
-theorem kRow_wrong_no_relation : ¬ KeccakRelation (kRow wrongLout) := by
-  intro h
-  exact absurd ((congrFun h 0).trans (keccak_lanes 0)) (by decide +kernel)
-
-/-- The permutation is checked (§8.6): the wrong output lane fails `KeccakRowsValid`. -/
-theorem wrong_lane_not_valid : ¬ KeccakRowsValid (walkW wrongLout 1 g memCnt) := fun h ↦
-  kRow_wrong_no_relation (by
-    have hrel := h (rawRow (kRow wrongLout)) (by
-      rw [keccakRows, walk_table5]
-      exact List.mem_cons_self)
-    rwa [rawRow, keccakRowAt_toElements] at hrel)
-
-theorem wrong_mem_balanced :
-    BalancedPair (walkW wrongLout 1 g memCnt) MemPull.toRaw MemPush.toRaw := by
-  rw [mem_balanced_iff wrongLout 1 g memCnt fun _ ↦ memCnt_of_ge]
-  decide +kernel
-
-theorem wrong_state_balanced :
-    BalancedPair (walkW wrongLout 1 g memCnt) StatePull.toRaw StatePush.toRaw := by
-  unfold BalancedPair
-  simp only [messagesOn_walkW, List.flatMap_cons, List.flatMap_nil, List.append_nil,
-    List.filter_append, List.map_append,
-    memT_filter _ _ _ StatePush.toRaw.name (by decide) (by decide),
-    memT_filter _ _ _ StatePull.toRaw.name (by decide) (by decide),
-    bcT_filter _ StatePush.toRaw.name (by decide) (by decide),
-    bcT_filter _ StatePull.toRaw.name (by decide) (by decide)]
-  decide +kernel
-
-theorem wrong_bytecode_balanced :
-    BalancedPair (walkW wrongLout 1 g memCnt) BytecodePull.toRaw BytecodePush.toRaw := by
-  unfold BalancedPair
-  simp only [messagesOn_walkW, List.flatMap_cons, List.flatMap_nil, List.append_nil,
-    List.filter_append, List.map_append,
-    memT_filter _ _ _ BytecodePush.toRaw.name (by decide) (by decide),
-    memT_filter _ _ _ BytecodePull.toRaw.name (by decide) (by decide)]
-  decide +kernel
-
-/-- The permutation is the Keccak reduction's alone (§8.6): the witness with the wrong output
-lane, consistent in the row and in the image, satisfies every other conjunct of `SatisfiedBy`
-and fails `KeccakRowsValid`. It fails no constraint: the table has none (`keccak_constraints`),
-and the bus binds the lanes to the cells, which hold the wrong lane too. -/
-theorem wrong_lane_witness :
-    (walkW wrongLout 1 g memCnt).publicInput = PublicIO.ofInput mulInput ∧
-    (walkW wrongLout 1 g memCnt).Constraints ∧
-    BalancedPair (walkW wrongLout 1 g memCnt) StatePull.toRaw StatePush.toRaw ∧
-    BalancedPair (walkW wrongLout 1 g memCnt) MemPull.toRaw MemPush.toRaw ∧
-    BalancedPair (walkW wrongLout 1 g memCnt) BytecodePull.toRaw BytecodePush.toRaw ∧
-    CountsNonzero (walkW wrongLout 1 g memCnt) ∧
-    Caps (walkW wrongLout 1 g memCnt) ∧ IndexColumnsAreRowIndices (walkW wrongLout 1 g memCnt) ∧
-    SeedRowsAreTheImage (walkW wrongLout 1 g memCnt) ∧
-    BytecodeRowsAreTheProgram walkProg (walkW wrongLout 1 g memCnt) ∧
-    (imageOf (walkW wrongLout 1 g memCnt).data).2.read (addressOfIndex 0) = some mulInput.word0 ∧
-    (imageOf (walkW wrongLout 1 g memCnt).data).2.read (addressOfIndex 1) = some mulInput.word1 ∧
-    ¬ KeccakRowsValid (walkW wrongLout 1 g memCnt) :=
-  ⟨rfl, walk_constraints wrongLout 1 g memCnt, wrong_state_balanced, wrong_mem_balanced,
-    wrong_bytecode_balanced, mkW_countsNonzero _ _ (by decide +kernel),
-    walk_caps wrongLout 1 g memCnt, walk_indexColumns wrongLout 1 g memCnt,
-    walk_seedRows wrongLout 1 g memCnt, walk_bytecodeRows wrongLout 1 g memCnt,
-    walk_word0 wrongLout 1 g memCnt, walk_word1 wrongLout 1 g memCnt, wrong_lane_not_valid⟩
-
-/-- The memory block with its index column shifted by one row. -/
-def memRowArrShift (i : Fin (2 ^ minLogMem)) : Array K :=
-  rawRow (⟨#v[(walkImage kLout i).limb 0, (walkImage kLout i).limb 1, (walkImage kLout i).limb 2],
-    addressOfIndex (i + 1), memCnt i⟩ : MemRow K)
-
-/-- The index column is fixed (§6.5): rows whose row `0` carries `g^1` disagree with the memory
-block's fixed column, so they are the rows of no witness's memory block (Clean's
-`fixed_rows_match`; a hypothesis of the statement, `IndexColumnsAreRowIndices`, before Clean's
-fixed columns). -/
-example : ¬ (memComponent minLogMem).FixedRowsMatch (List.ofFn memRowArrShift) := fun h ↦ by
-  have h0 := (show (List.ofFn memRowArrShift).length = (UInt64.ofNat (2 ^ minLogMem)).toNat ∧
-    ∀ i (hi : i < (List.ofFn memRowArrShift).length), (memMode minLogMem).FixedAt
-      (UInt64.ofNat i) (fromElements (Air.Flat.rowPrefix (size MemRow)
-        (List.ofFn memRowArrShift)[i])) from h).2 0 (by rw [List.length_ofFn]; decide)
-  rw [memMode_fixedAt (by decide), List.getElem_ofFn, memRowArrShift,
-    fromElements_rowPrefix_rawRow] at h0
-  revert h0
-  decide +kernel
-
-/-- The bytecode block with slot `1`'s row in slot `0`. -/
-def bcRowsWrong : List (Array K) :=
-  List.ofFn fun i : Fin (2 ^ walkProg.logSize) ↦
-    rawRow (bytecodeRowOf walkProg (if (i : ℕ) = 0 then 1 else i) (bcCntFin i))
-
-/-- The bytecode block is fixed to the program (§8.6): a block whose slot `0` holds slot `1`'s
-entry disagrees with the fixed counter and entry columns (a hypothesis of the statement,
-`BytecodeRowsAreTheProgram`, before Clean's fixed columns). -/
-example : ¬ (bytecodeComponent walkProg).FixedRowsMatch bcRowsWrong := fun h ↦ by
-  have h0 := (show bcRowsWrong.length = (UInt64.ofNat (2 ^ walkProg.logSize)).toNat ∧
-    ∀ i (hi : i < bcRowsWrong.length), (bytecodeMode walkProg).FixedAt (UInt64.ofNat i)
-      (fromElements (Air.Flat.rowPrefix (size BytecodeRow) bcRowsWrong[i])) from h).2 0
-    (by rw [bcRowsWrong, List.length_ofFn]; decide)
-  rw [bytecodeMode_fixedAt walkProg (by decide)] at h0
-  have e : bcRowsWrong[0]'(by rw [bcRowsWrong, List.length_ofFn]; decide) =
-      rawRow (bytecodeRowOf walkProg 1 (bcCntFin 0)) := by
-    simp only [bcRowsWrong, List.getElem_ofFn]
-    rfl
-  rw [e, fromElements_rowPrefix_rawRow] at h0
-  have := congrArg BytecodeRow.idx h0
-  revert this
-  decide +kernel
-
-/-- The public words are checked (§8.2): `input₀ = 3` in place of `1` fails `word0_eq`. -/
-example : ¬ SatisfiedBy walkProg ⟨![K.ofBits 3, 0, K.ofBits 2, 0]⟩ (walkW kLout 1 g memCnt) :=
-  fun h ↦ by
-    have h0 := h.word0_eq
-    rw [walk_word0] at h0
-    have h1 := congrArg (fun o : Option E ↦ (o.getD 0).limb 0) h0
-    revert h1
-    decide +kernel
-
-/-- A three-row `SET_CONSTANT` table, not a power of two. -/
-def setT3 : Air.Flat.Table K :=
-  opT setTable ([setRow0 1, setRow1, setRow1].map rawRow) (rawRows_size [setRow0 1, setRow1, setRow1])
-
-def heightW : EnsembleWitness (leanIsaEnsemble walkProg minLogMem) :=
-  mkW [xorT, mulT g, setT3, derefT, jumpT, kT kLout, memT kLout memCnt, bcT]
-
-/-- A row count that is not a power of two is within the caps (`crates/verifier/src/layout.rs`,
-`build_layout`, at `3a37fb6e1`: a table's height is the least power of two holding its rows):
-`Caps` bounds each table's rows by `2^MAX_LOG_ROWS` and nothing else. -/
-example : Caps heightW := by
-  refine mkW_caps _ _ fun t ht ↦ ?_
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
-  rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · decide
-  · decide
-  · decide
-  · decide
-  · decide
-  · decide
-  · rw [memT_table, List.length_ofFn]; decide
-  · rw [show bcT.table = bcRows by dsimp only [bcT, ownTable], bcRows, List.length_ofFn]; decide
-
-/-- Four `KECCAK` rows, the honest row repeated. -/
-def kT4 : Air.Flat.Table K :=
-  opT keccakTable ((List.replicate 4 (kRow kLout)).map rawRow)
-    (rawRows_size (List.replicate 4 (kRow kLout)))
-
-def floorW : EnsembleWitness (leanIsaEnsemble walkProg minLogMem) :=
-  mkW [xorT, mulT g, setT 1, derefT, jumpT, kT4, memT kLout memCnt, bcT]
-
-/-- There is no `KECCAK` floor: four rows are within the caps. -/
-example : Caps floorW := by
-  refine mkW_caps _ _ fun t ht ↦ ?_
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
-  rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · decide
-  · decide
-  · decide
-  · decide
-  · decide
-  · decide
-  · rw [memT_table, List.length_ofFn]; decide
-  · rw [show bcT.table = bcRows by dsimp only [bcT, ownTable], bcRows, List.length_ofFn]; decide
 
 end LeanVMTests.Arithmetization.Statement

@@ -5,9 +5,13 @@
   world, exactly the random oracle's answers to the simulator's hash queries.
 -/
 
-import LeanVM.Protocol.Rpm.Game
-import Common.Keccak
-import LeanVM.Protocol.WithHash
+module
+
+public import LeanVM.Protocol.Rpm.Game
+public import Common.Keccak
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # The transcript's hashes are the adversary's cache
@@ -267,3 +271,5 @@ theorem transcriptHashes_eq_of_mem_support (A : DetAdversary)
     rfl
 
 end LeanVM.Rpm
+
+end

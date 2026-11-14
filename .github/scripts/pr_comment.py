@@ -6,7 +6,7 @@
 The comment is created, edited on every run, and deleted once nothing is shown. `--dry-run`
 prints it instead and calls nothing.
 
-counts-comment.yml and bench-comment.yml run this from the default branch with a write token,
+bench-comment.yml runs this from the default branch with a write token,
 on artifacts a PR's run wrote, a fork's included, so nothing in them is trusted: the PR number
 is taken from them only to ask GitHub whether that PR's head is HEAD_SHA, the commit the run
 measured, and every name and number is checked before it reaches the comment. Never run it from
@@ -56,6 +56,11 @@ def checked(pattern, value, what):
     if isinstance(value, str) and pattern.fullmatch(value):
         return value
     raise Bad(f"not {what}: {value!r}")
+
+
+def unmentioned(text):
+    """`text` with a zero-width joiner after each `@`, so the posted comment notifies no one."""
+    return text.replace("@", "@\u200d")
 
 
 def number(value):
@@ -183,7 +188,7 @@ def family(benchmark):
         "pcs": "PCS",
         "ntt": "PCS",
         "f64": "Field and transpose kernels",
-        "f192": "Field and transpose kernels",
+        "f128": "Field and transpose kernels",
         "transpose": "Field and transpose kernels",
     }.get(prefix, "Other benchmarks")
 
@@ -268,7 +273,7 @@ def bench(docs, head):
         raise Bad(f"not one base commit: {bases}")
     rows, rounds, stages = [], 0, {}
     for doc in docs:
-        testbed, cpu = checked(NAME, doc.get("testbed"), "a name"), checked(TEXT, doc.get("cpu"), "plain text")
+        testbed, cpu = checked(NAME, doc.get("testbed"), "a name"), unmentioned(checked(TEXT, doc.get("cpu"), "plain text"))
         runs = doc.get("runs")
         if not isinstance(runs, list) or not runs:
             raise Bad("no runs")

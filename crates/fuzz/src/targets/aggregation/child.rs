@@ -7,7 +7,7 @@ use super::common::{Inputs, benign_twin, describe_claims, describe_outcome, outc
 use super::fixtures::{Fixtures, N_SPHINCS, N_XMSS, fixtures};
 use crate::mutate_proof::{mutate, perturb};
 use crate::{Ctx, Finding, Outcome, Source};
-use primitives::field::F192;
+use primitives::field::F128;
 use rec_aggregation::fuzzing::{Parts, leaf_deferred, true_deferred_value};
 use rec_aggregation::{EthereumClaims, EthereumProof};
 use signatures::lean_sphincs::LeanSphincsPublicKey;
@@ -70,7 +70,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
         }
     }
     if src.chance(1, 4) {
-        inputs.xmss.push(f.signers.xmss[src.below(N_XMSS)].clone());
+        inputs.lean_xmss.push(f.signers.lean_xmss[src.below(N_XMSS)].clone());
     }
     if src.chance(1, 6) {
         inputs.sphincs.push(f.signers.sphincs[src.below(N_SPHINCS)].clone());
@@ -198,7 +198,7 @@ pub fn forge(parts: &mut Parts, src: &mut Source, f: &Fixtures, i: usize) -> Str
             if src.bool() {
                 parts.defer_point.pop();
             } else {
-                parts.defer_point.push(F192::ZERO);
+                parts.defer_point.push(F128::ZERO);
             }
             "defer point length".into()
         }
@@ -210,19 +210,19 @@ pub fn forge(parts: &mut Parts, src: &mut Source, f: &Fixtures, i: usize) -> Str
             }
             let k = src.below(n);
             let flip = |m: &mut [u8; 32], src: &mut Source| m[src.below(32)] ^= 1 << src.below(8);
-            if k < c.xmss.len() {
-                flip(&mut c.xmss[k].1, src);
+            if k < c.lean_xmss.len() {
+                flip(&mut c.lean_xmss[k].1, src);
             } else {
-                flip(&mut c.lean_sphincs[k - c.xmss.len()].1, src);
+                flip(&mut c.lean_sphincs[k - c.lean_xmss.len()].1, src);
             }
             sort(c);
             "claims message".into()
         }
         9 => {
             let c = &mut parts.claims;
-            if !c.xmss.is_empty() && (c.lean_sphincs.is_empty() || src.bool()) {
-                let k = src.below(c.xmss.len());
-                c.xmss[k].0 = f.signers.xmss[src.below(N_XMSS)].0;
+            if !c.lean_xmss.is_empty() && (c.lean_sphincs.is_empty() || src.bool()) {
+                let k = src.below(c.lean_xmss.len());
+                c.lean_xmss[k].0 = f.signers.lean_xmss[src.below(N_XMSS)].0;
             } else if !c.lean_sphincs.is_empty() {
                 let k = src.below(c.lean_sphincs.len());
                 c.lean_sphincs[k].0 = f.signers.sphincs[src.below(N_SPHINCS)].0;
@@ -234,8 +234,8 @@ pub fn forge(parts: &mut Parts, src: &mut Source, f: &Fixtures, i: usize) -> Str
             let c = &mut parts.claims;
             match src.below(4) {
                 0 => {
-                    let (pk, m, _) = &f.signers.xmss[src.below(N_XMSS)];
-                    c.xmss.push((*pk, *m));
+                    let (pk, m, _) = &f.signers.lean_xmss[src.below(N_XMSS)];
+                    c.lean_xmss.push((*pk, *m));
                 }
                 1 => {
                     let (pk, m, _) = &f.signers.sphincs[src.below(N_SPHINCS)];
@@ -243,12 +243,12 @@ pub fn forge(parts: &mut Parts, src: &mut Source, f: &Fixtures, i: usize) -> Str
                 }
                 2 => {
                     let (pk, m, _) = &f.signers.xmss_two[1];
-                    c.xmss.push((*pk, *m));
+                    c.lean_xmss.push((*pk, *m));
                 }
                 _ => {
                     let mut pk = [0u8; 32];
                     src.rng().fill(&mut pk);
-                    c.xmss.push((LeanXmssPublicKey::from_bytes(&pk), src.array()));
+                    c.lean_xmss.push((LeanXmssPublicKey::from_bytes(&pk), src.array()));
                 }
             }
             sort(c);
@@ -261,31 +261,31 @@ pub fn forge(parts: &mut Parts, src: &mut Source, f: &Fixtures, i: usize) -> Str
                 return "claims none to remove".into();
             }
             let k = src.below(n);
-            if k < c.xmss.len() {
-                c.xmss.remove(k);
+            if k < c.lean_xmss.len() {
+                c.lean_xmss.remove(k);
             } else {
-                c.lean_sphincs.remove(k - c.xmss.len());
+                c.lean_sphincs.remove(k - c.lean_xmss.len());
             }
             "claims remove".into()
         }
         12 => {
             let c = &mut parts.claims;
-            if !c.xmss.is_empty() && (c.lean_sphincs.is_empty() || src.bool()) {
-                let (pk, m) = c.xmss.remove(src.below(c.xmss.len()));
+            if !c.lean_xmss.is_empty() && (c.lean_sphincs.is_empty() || src.bool()) {
+                let (pk, m) = c.lean_xmss.remove(src.below(c.lean_xmss.len()));
                 c.lean_sphincs
                     .push((LeanSphincsPublicKey::from_bytes(&pk.to_bytes()), m));
             } else if !c.lean_sphincs.is_empty() {
                 let (pk, m) = c.lean_sphincs.remove(src.below(c.lean_sphincs.len()));
-                c.xmss.push((LeanXmssPublicKey::from_bytes(&pk.to_bytes()), m));
+                c.lean_xmss.push((LeanXmssPublicKey::from_bytes(&pk.to_bytes()), m));
             }
             sort(c);
             "claims other scheme".into()
         }
         13 => {
             let c = &mut parts.claims;
-            if c.xmss.len() > 1 {
-                let k = src.below(c.xmss.len() - 1);
-                c.xmss.swap(k, k + 1);
+            if c.lean_xmss.len() > 1 {
+                let k = src.below(c.lean_xmss.len() - 1);
+                c.lean_xmss.swap(k, k + 1);
             } else if c.lean_sphincs.len() > 1 {
                 c.lean_sphincs.swap(0, 1);
             }

@@ -38,9 +38,9 @@ structure ReaderTabsOK (Tb : ReaderTabs) : Prop where
 
 theorem readerTabs_ok : ReaderTabsOK readerTabs := ⟨xmssTabs_ok, spTabs_ok, whirTabs_ok⟩
 
-/-- **The readers' tables, built once per decoding** (`readerTabsC`): at most `32900`. -/
+/-- **The readers' tables, built once per decoding** (`readerTabsC`): at most `38708`. -/
 theorem readerTabs_cost (hP : Includes P Decoder.readerTabsC.costDeps) :
-    machineCost P Decoder.readerTabsC.costIdx [] ≤ 32900 := by
+    machineCost P Decoder.readerTabsC.costIdx [] ≤ 38708 := by
   rw [Decoder.readerTabsC.costEq P hP]
   have := xmssTabs_cost P (by includes)
   have := spTabs_cost P (by includes)
@@ -75,7 +75,7 @@ omit hF in
 /-- `da_verify`'s frame (`daAtFrameC.lam0`), the valuation `dvWitNC` takes: its spec. -/
 theorem daFrame_runs (hP : Includes P Decoder.daAtFrameC.lam0.costDeps) (args rets : List E) (v : V) :
     RunsApp P (.closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets])
-      [encodeValue v] (encodeValue (Vn 28 args rets v)) :=
+      [encodeValue v] (encodeValue (Vn (fn_idx% da_verify) args rets v)) :=
   RunsApp.of_spec (Decoder.daAtFrameC.lam0.costSpec P hP Vn VnV hVn _ _ v)
 
 /-- `da_verify`'s frame (`daAtFrameC.lam0`): its price `F + 9`. -/
@@ -85,7 +85,7 @@ theorem daFrame_cost (hP : Includes P Decoder.daAtFrameC.lam0.costDeps) (args re
       [encodeValue v] ≤ F + 9 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
     Decoder.daAtFrameC.lam0.costEq P hP Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-  have := hF 28 args rets v (by norm_num) hlen; omega
+  have := hF (fn_idx% da_verify) args rets v (by norm_num) hlen; omega
 
 /-- **A child's proof off its `verify_sub` frame** (`proofAtFrameC`), the readers' tables `Tb`
 given, the cursor's length at the frame at most `L`: `vsPiPrice R (F + 9) F C L + 13`. -/
@@ -96,40 +96,40 @@ theorem proofAtFrame_cost (hP : Includes P Decoder.proofAtFrameC.costDeps) (Tb :
     (hcl : ∀ a b : E, RunsApp P clV [encodeValue a, encodeValue b] (encodeValue (cl a b)))
     {C : ℕ} (hC : ∀ a b : E, appCost P clV [encodeValue a, encodeValue b] ≤ C)
     {L : ℕ} (hL32 : L ≤ 2 ^ 32) (args : List E) (hlen : args.length ≤ 16)
-    (hL : cl (Vn 19 args [] (.n 25)) (Vn 19 args [] (.n 656)) ≤ L) :
+    (hL : cl (Vn (fn_idx% verify_sub) args [] (.n 25)) (Vn (fn_idx% verify_sub) args [] (.n 1919)) ≤ L) :
     machineCost P Decoder.proofAtFrameC.costIdx [encodeValue Tb, rdV, VnV, clV, encodeValue args] ≤
       vsPiPrice R (F + 9) F C L + 13 := by
   rw [Decoder.proofAtFrameC.costEq P hP Tb rd rdV hrd Vn VnV hVn cl clV hcl]
   have hσ : ∀ v : V, RunsApp P (.closure Decoder.proofAtFrameC.lam0.costIdx
       [VnV, encodeValue args, encodeValue ([] : List E)]) [encodeValue v]
-      (encodeValue (Vn 19 args [] v)) :=
+      (encodeValue (Vn (fn_idx% verify_sub) args [] v)) :=
     fun v ↦ RunsApp.of_spec (Decoder.proofAtFrameC.lam0.costSpec P (by includes) Vn VnV hVn _ _ v)
   have hS : ∀ v : V, appCost P (.closure Decoder.proofAtFrameC.lam0.costIdx
       [VnV, encodeValue args, encodeValue ([] : List E)]) [encodeValue v] ≤ F + 9 := fun v ↦ by
     rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
       Decoder.proofAtFrameC.lam0.costEq P (by includes) Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-    have := hF 19 args [] v (by norm_num) (by simpa using hlen); omega
+    have := hF (fn_idx% verify_sub) args [] v (by norm_num) (by simpa using hlen); omega
   have := vsPiOfN_cost P hrd hR hσ hS hVn hF hcl hC hL hL32 (by includes) Tb.whir hTb.whir
   omega
 
 /-- **The batching's hints off `aggregate_claims`' frame** (`hintsAtFrameC`):
-`47·F + 46·R + 138487`. -/
+`48·F + 47·R + 142050`. -/
 theorem hintsAtFrame_cost (hP : Includes P Decoder.hintsAtFrameC.costDeps) {rd : Reader}
     {rdV : MachineValue} (hrd : ∀ a : K, RunsApp P rdV [encodeValue a] (encodeValue (rd a)))
     {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R) (args : List E)
     (hlen : args.length ≤ 16) :
     machineCost P Decoder.hintsAtFrameC.costIdx [rdV, VnV, encodeValue args] ≤
-      47 * F + 46 * R + 138487 := by
+      48 * F + 47 * R + 142050 := by
   rw [Decoder.hintsAtFrameC.costEq P hP rd rdV hrd Vn VnV hVn]
   have hσ : ∀ v : V, RunsApp P (.closure Decoder.hintsAtFrameC.lam0.costIdx
       [VnV, encodeValue args, encodeValue ([] : List E)]) [encodeValue v]
-      (encodeValue (Vn 34 args [] v)) :=
+      (encodeValue (Vn (fn_idx% aggregate_claims) args [] v)) :=
     fun v ↦ RunsApp.of_spec (Decoder.hintsAtFrameC.lam0.costSpec P (by includes) Vn VnV hVn _ _ v)
   have hS : ∀ v : V, appCost P (.closure Decoder.hintsAtFrameC.lam0.costIdx
       [VnV, encodeValue args, encodeValue ([] : List E)]) [encodeValue v] ≤ F + 9 := fun v ↦ by
     rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
       Decoder.hintsAtFrameC.lam0.costEq P (by includes) Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-    have := hF 34 args [] v (by norm_num) (by simpa using hlen); omega
+    have := hF (fn_idx% aggregate_claims) args [] v (by norm_num) (by simpa using hlen); omega
   have := aggHints_cost P hσ hS hrd hR (by includes)
   omega
 
@@ -176,7 +176,7 @@ include hVn hF hrd hR hcl hC hL32 in
 cursor's length at `verify_sub`'s frame at most `L`: `vsPiPrice R (F + 9) F C L + 23`. -/
 theorem wV_cost (hP : Includes P Decoder.decWitNC.lam1.costDeps) (Tb : ReaderTabs)
     (hTb : ReaderTabsOK Tb) (args : List E) (hlen : args.length ≤ 16)
-    (hL : cl (Vn 19 args [] (.n 25)) (Vn 19 args [] (.n 656)) ≤ L) :
+    (hL : cl (Vn (fn_idx% verify_sub) args [] (.n 25)) (Vn (fn_idx% verify_sub) args [] (.n 1919)) ≤ L) :
     appCost P (.closure Decoder.decWitNC.lam1.costIdx [encodeValue Tb, rdV, VnV, clV])
       [encodeValue args] ≤ vsPiPrice R (F + 9) F C L + 23 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
@@ -185,11 +185,11 @@ theorem wV_cost (hP : Includes P Decoder.decWitNC.lam1.costDeps) (Tb : ReaderTab
   omega
 
 include hVn hF hrd hR in
-/-- The batching hints' witness function (`decWitNC.lam2`): `47·F + 46·R + 138493`. -/
+/-- The batching hints' witness function (`decWitNC.lam2`): `48·F + 47·R + 142056`. -/
 theorem wA_cost (hP : Includes P Decoder.decWitNC.lam2.costDeps) (args : List E)
     (hlen : args.length ≤ 16) :
     appCost P (.closure Decoder.decWitNC.lam2.costIdx [rdV, VnV]) [encodeValue args] ≤
-      47 * F + 46 * R + 138493 := by
+      48 * F + 47 * R + 142056 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
     Decoder.decWitNC.lam2.costEq P hP rd rdV hrd Vn VnV hVn, List.length_cons, List.length_cons, List.length_nil]
   have := hintsAtFrame_cost P hVn hF (by includes) hrd hR args hlen

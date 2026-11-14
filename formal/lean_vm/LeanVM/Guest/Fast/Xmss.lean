@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Sig.XmssSegSound
 /-!
 # leanXMSS's signature reader, computable
 
-The leanXMSS check is inline in `main`'s raw-signature loop `__loop2` (main 40f877dc,
+The leanXMSS check is inline in `main`'s raw-signature loop `main_loop2` (main 40f877dc,
 `B1/Sig/XmssSegT.lean`: `xSeg`, statements `9` to `321` of its body), so a signature is read off
 an iteration's frame `σ`, at the cells the template gives:
 
@@ -105,18 +105,16 @@ def xPartA (T : XmssTabs) (kw : List ℕ) (layer : ℕ) (σ : Val) : LeanXmss.La
 def lxLeafOf (kw : List ℕ) : ℕ :=
   (kw.getD 0 0 + 256 * kw.getD 1 0 + 65536 * kw.getD 2 0 + 16777216 * kw.getD 3 0) % 2 ^ 32
 
-theorem lxLeafOf_eq (kw : List ℕ) : lxLeafOf kw = lxIndex (fun w ↦ kw.getD w 0) % 2 ^ 32 := rfl
-
 theorem lxLeafOf_lt (kw : List ℕ) :
     lxLeafOf kw < LeanXmss.lifetime :=
   Nat.mod_lt _ (by norm_num)
 
-/-- **The leanXMSS signature `__loop2`'s iteration checks, off the tables `T`**, from its frame. -/
+/-- **The leanXMSS signature `main_loop2`'s iteration checks, off the tables `T`**, from its frame. -/
 def xmssSigOfA (T : XmssTabs) (σ : Val) : LeanXmss.Signature :=
   let kw := (List.range 4).map fun w ↦ logGTWith T.lanes (σ (.n (71 + w))) 256
   ⟨⟨lxLeafOf kw, lxLeafOf_lt kw⟩, fun lay ↦ xPartA T kw lay.val σ⟩
 
-/-- **The leanXMSS signature `__loop2`'s iteration checks**, off the tables built. -/
+/-- **The leanXMSS signature `main_loop2`'s iteration checks**, off the tables built. -/
 def xmssSigOfN (σ : Val) : LeanXmss.Signature := xmssSigOfA xmssTabs σ
 
 theorem xmssSigOfA_tabs (σ : Val) : xmssSigOfA xmssTabs σ = xmssSigOfN σ := rfl
@@ -330,7 +328,7 @@ theorem xPartA_eq (σ : Val) {layer b : ℕ} (hL : layer < 2) (hρ : sRho layer 
   · have hl : l.val < 16 := l.2
     rw [sSibAt_eq σ hL hl h0 h1, kw_getD σ (by omega)]
 
-/-- **The reader is `xmssSigOf`**: off the tables built, the leanXMSS signature `__loop2`'s
+/-- **The reader is `xmssSigOf`**: off the tables built, the leanXMSS signature `main_loop2`'s
 iteration checks is the one its soundness reads (`B1/Sig/XmssSegSound.lean`). -/
 theorem xmssSigOfN_eq (σ : Val) : xmssSigOfN σ = xmssSigOf σ := by
   unfold xmssSigOfN xmssSigOfA xmssSigOf

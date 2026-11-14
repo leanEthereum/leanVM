@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildListAny3
 
-  Windows 12–15 of `child_claim_list_any`'s big frame loop `__loop17`: blocks
+  Windows 12–15 of `child_claim_list_any`'s big frame loop `child_claim_list_any_loop0`: blocks
   48–63, records 108–135, each window a kernel check of its own.
 -/
 

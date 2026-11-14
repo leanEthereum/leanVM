@@ -174,17 +174,17 @@ theorem runC_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : JumpTables L) :
       exact RunC.refl _
     | succ i ih =>
       intro hi
-      obtain ⟨o, k0, k1, k2, hins, hq⟩ := End.f0_instr (show i < Data.f0.instructionCount by omega)
+      obtain ⟨o, k0, k1, hins, hq⟩ := End.f0_instr (show i < Data.f0.instructionCount by omega)
       have hf := End.f0_fetch (show i < Data.f0.instructionCount by omega)
       rw [hins] at hf
-      have hH : Holds L i 1 (.set o k0 k1 k2) := by
-        show L.read (1 * addressOfIndex o) = some (OffsetInstruction.immediateWord k0 k1 k2)
+      have hH : Holds L i 1 (.set o k0 k1) := by
+        show L.read (1 * addressOfIndex o) = some (OffsetInstruction.immediateWord k0 k1)
         rw [End.gpow_mul_one]
         exact h _ hq
       have := (ih (by omega)).trans (runC_fallThrough hf (End.f0_pc_lt (by omega)) rfl hH)
       have e : (fun op : Opcode => if op = .setConstant then i + 1 else 0) =
           (fun op : Opcode => if op = .setConstant then i else 0) +
-            (fun op ↦ if op = (OffsetInstruction.set o k0 k1 k2).toLeanIsaInstruction.opcode
+            (fun op ↦ if op = (OffsetInstruction.set o k0 k1).toLeanIsaInstruction.opcode
                 then 1 else 0) := by
         funext op
         by_cases hop : op = .setConstant <;> simp [hop, OffsetInstruction.toLeanIsaInstruction,
@@ -281,7 +281,7 @@ theorem inst_runs : ∀ n, ∀ I ∈ honestInsts coreProgram fs H hdr T, I.t.tot
         rw [hget]
         exact (hcf i').1 c kfp hc hkfp ht
       have hjt : JumpTables L := jumpTables_honestC hH.toHonest hname
-      have hκ : logMem (T.total fs) ≤ 32 := hH.toHonest.logMem_le
+      have hκ : logMem (T.total fs) ≤ 32 := hH.toHonest.logMem_le.trans (by decide)
       have hmain : i + 1 = 1 → I.fp = 0 := fun h1' =>
         hm (by rw [hti]; exact (idx_one_iff hj).mp h1')
       obtain ⟨r, c, hr, hrun, hle, hrets'⟩ := h.run (i + 1) (by omega) hlt L hκ (End.jtHolds_of hjt) hjt

@@ -6,7 +6,7 @@ use super::fixtures::{Fixtures, RawSphincs, RawXmss, root_of};
 use crate::programs::fault_kind;
 use crate::{Finding, Source};
 use leanvm_core::cpu::ProveError;
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F64, F128, g_pow};
 use rec_aggregation::fuzzing::{NodeRun, execute_node};
 use rec_aggregation::{AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof};
 use signatures::{lean_sphincs, lean_xmss};
@@ -14,7 +14,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::sync::OnceLock;
 
 /// A node's hint streams, by name, each entry in the order the guest pops them.
-pub type Streams = Vec<(String, Vec<Vec<F192>>)>;
+pub type Streams = Vec<(String, Vec<Vec<F128>>)>;
 
 /// One node's inputs, as `aggregate` takes them.
 #[derive(Clone, Default)]
@@ -22,7 +22,7 @@ pub struct Inputs {
     pub children: Vec<EthereumProof>,
     /// Which fixture each child is, or a name for a forged one, for the finding's detail.
     pub names: Vec<String>,
-    pub xmss: Vec<RawXmss>,
+    pub lean_xmss: Vec<RawXmss>,
     pub sphincs: Vec<RawSphincs>,
     pub blobs: Vec<u64>,
     pub declare: Option<EthereumClaims>,
@@ -42,7 +42,7 @@ impl Inputs {
     pub fn execute(&self) -> Result<NodeRun, AggregationError> {
         execute_node(
             &self.children,
-            self.xmss.clone(),
+            self.lean_xmss.clone(),
             self.sphincs.clone(),
             &self.blobs,
             self.declare.as_ref(),
@@ -53,8 +53,8 @@ impl Inputs {
         format!(
             "children {:?}, {} raw leanXMSS {:?}, {} raw leanSPHINCS {:?}, {} blob rows, declare {}",
             self.names,
-            self.xmss.len(),
-            self.xmss
+            self.lean_xmss.len(),
+            self.lean_xmss
                 .iter()
                 .map(|(pk, m, s)| (short(&pk.to_bytes()), short(m), s.leaf_index()))
                 .collect::<Vec<_>>(),
@@ -70,7 +70,7 @@ impl Inputs {
 
     /// What a successful run may publish: [`Backing`] of these inputs.
     pub fn backing(&self) -> Backing {
-        Backing::of(&self.children, &self.xmss, &self.sphincs, &self.blobs)
+        Backing::of(&self.children, &self.lean_xmss, &self.sphincs, &self.blobs)
     }
 
     /// What `aggregate` publishes on these inputs, when they are valid: the declared claims, or every claim, and
@@ -81,7 +81,7 @@ impl Inputs {
             super::fixtures::normalize(&mut c);
             return c;
         }
-        let mut c = super::fixtures::claims_of(&self.xmss, &self.sphincs, None);
+        let mut c = super::fixtures::claims_of(&self.lean_xmss, &self.sphincs, None);
         for child in &self.children {
             c = super::fixtures::union(&c, child.claims());
         }
@@ -100,8 +100,8 @@ pub fn short(bytes: &[u8]) -> String {
 
 pub fn describe_claims(c: &EthereumClaims) -> String {
     format!(
-        "{{xmss {:?}, sphincs {:?}, da {:?}}}",
-        c.xmss
+        "{{lean_xmss {:?}, sphincs {:?}, da {:?}}}",
+        c.lean_xmss
             .iter()
             .map(|(pk, m)| (short(&pk.to_bytes()), short(m)))
             .collect::<Vec<_>>(),
@@ -116,21 +116,21 @@ pub fn describe_claims(c: &EthereumClaims) -> String {
 /// The claims a node's inputs can back: raw signatures that verify natively, the claims of children that verify,
 /// and the roots of its blobs and of those children.
 pub struct Backing {
-    pub xmss: BTreeSet<([u8; 32], [u8; 32])>,
+    pub lean_xmss: BTreeSet<([u8; 32], [u8; 32])>,
     pub sphincs: BTreeSet<([u8; 32], [u8; 32])>,
     pub roots: BTreeSet<[u8; 32]>,
 }
 
 impl Backing {
-    pub fn of(children: &[EthereumProof], xmss: &[RawXmss], sphincs: &[RawSphincs], blobs: &[u64]) -> Self {
+    pub fn of(children: &[EthereumProof], lean_xmss: &[RawXmss], sphincs: &[RawSphincs], blobs: &[u64]) -> Self {
         let mut b = Backing {
-            xmss: BTreeSet::new(),
+            lean_xmss: BTreeSet::new(),
             sphincs: BTreeSet::new(),
             roots: BTreeSet::new(),
         };
-        for (pk, m, sig) in xmss {
+        for (pk, m, sig) in lean_xmss {
             if lean_xmss::verify(pk, m, sig).is_ok() {
-                b.xmss.insert((pk.to_bytes(), *m));
+                b.lean_xmss.insert((pk.to_bytes(), *m));
             }
         }
         for (pk, m, sig) in sphincs {
@@ -146,7 +146,7 @@ impl Backing {
         for child in children {
             if child.verify().is_ok() {
                 let c = child.claims();
-                b.xmss.extend(c.xmss.iter().map(|(pk, m)| (pk.to_bytes(), *m)));
+                b.lean_xmss.extend(c.lean_xmss.iter().map(|(pk, m)| (pk.to_bytes(), *m)));
                 b.sphincs
                     .extend(c.lean_sphincs.iter().map(|(pk, m)| (pk.to_bytes(), *m)));
                 b.roots.extend(c.da_commitment);
@@ -157,8 +157,8 @@ impl Backing {
 
     /// The first published claim nothing backs, named.
     pub fn unbacked(&self, c: &EthereumClaims) -> Option<String> {
-        for (pk, m) in &c.xmss {
-            if !self.xmss.contains(&(pk.to_bytes(), *m)) {
+        for (pk, m) in &c.lean_xmss {
+            if !self.lean_xmss.contains(&(pk.to_bytes(), *m)) {
                 return Some(format!(
                     "leanXMSS claim ({}, {}) has no valid signature behind it",
                     short(&pk.to_bytes()),
@@ -217,7 +217,6 @@ pub fn verify_kind(e: &AggregateVerifyError) -> &'static str {
 pub fn refusal_kind(e: &ProveError) -> String {
     match e {
         ProveError::InvalidRate { .. } => "InvalidRate".into(),
-        ProveError::PublicInputNotDigest => "PublicInputNotDigest".into(),
         ProveError::Execution(e) => format!("Execution/{}", fault_kind(&e.fault)),
         ProveError::UnconstrainedReads(_) => "UnconstrainedReads".into(),
         ProveError::WitnessOutOfRange { .. } => "WitnessOutOfRange".into(),
@@ -274,18 +273,18 @@ pub fn check_backed(context: &str, inputs: &Inputs, run: &NodeRun, extra: &str) 
 }
 
 /// `g^n`: a count as the guest carries it.
-pub fn count(n: usize) -> F192 {
-    F192::from(g_pow(n))
+pub fn count(n: usize) -> F128 {
+    F128::from(g_pow(n))
 }
 
-pub fn count_inv(n: usize) -> F192 {
-    F192::from(g_pow(n).inv())
+pub fn count_inv(n: usize) -> F128 {
+    F128::from(g_pow(n).inv())
 }
 
 /// `n` for a cell `g^n` with `n < 2^17`.
-pub fn log_g(x: F192) -> Option<usize> {
+pub fn log_g(x: F128) -> Option<usize> {
     static LOGS: OnceLock<HashMap<u64, usize>> = OnceLock::new();
-    if x.c1 != 0 || x.c2 != 0 {
+    if x.c1 != 0 {
         return None;
     }
     let logs = LOGS.get_or_init(|| {
@@ -302,14 +301,14 @@ pub fn log_g(x: F192) -> Option<usize> {
 }
 
 /// A count on an edge of the ranges the guest checks.
-pub fn edge_count(src: &mut Source, near: usize) -> F192 {
+pub fn edge_count(src: &mut Source, near: usize) -> F128 {
     match src.below(10) {
         0 => count(0),
         1 => count(near.saturating_sub(1)),
         2 => count(near),
         3 => count(near + 1),
-        4 => count(rec_aggregation::MAX_KEYS - 1),
-        5 => count(rec_aggregation::MAX_KEYS),
+        4 => count(crate::MAX_KEYS - 1),
+        5 => count(crate::MAX_KEYS),
         6 => count_inv(1),
         7 => count_inv(src.range(2, 64)),
         8 => count(rec_aggregation::MAX_RECURSIONS + src.below(3)),
@@ -318,14 +317,14 @@ pub fn edge_count(src: &mut Source, near: usize) -> F192 {
 }
 
 /// A 32-byte value as the two cells the guest holds it in.
-pub fn cells_of(bytes: &[u8; 32]) -> [F192; 2] {
+pub fn cells_of(bytes: &[u8; 32]) -> [F128; 2] {
     let word = |o: usize| u64::from_le_bytes(bytes[o..o + 8].try_into().unwrap());
-    [F192::new(word(0), word(8), 0), F192::new(word(16), word(24), 0)]
+    [F128::new(word(0), word(8)), F128::new(word(16), word(24))]
 }
 
 /// The 32 bytes two canonical cells hold.
-pub fn bytes_of(cells: &[F192]) -> Option<[u8; 32]> {
-    if cells.len() != 2 || cells.iter().any(|c| c.c2 != 0) {
+pub fn bytes_of(cells: &[F128]) -> Option<[u8; 32]> {
+    if cells.len() != 2 {
         return None;
     }
     let mut out = [0; 32];
@@ -363,7 +362,7 @@ fn kept<T: Clone, K: PartialEq>(raw: &[T], key: impl Fn(&T) -> K) -> Vec<T> {
 /// What valid-looking inputs deserve: refused if a signature the node keeps does not verify natively, else exactly
 /// [`Inputs::expected_claims`]. Assumes its children are fixtures and its `declare` covered.
 pub fn expect_for(inputs: &Inputs) -> Expect {
-    let xmss_ok = kept(&inputs.xmss, |(pk, m, _)| (pk.to_bytes(), *m))
+    let xmss_ok = kept(&inputs.lean_xmss, |(pk, m, _)| (pk.to_bytes(), *m))
         .iter()
         .all(|(pk, m, s)| lean_xmss::verify(pk, m, s).is_ok());
     let sphincs_ok = kept(&inputs.sphincs, |(pk, m, _)| (pk.to_bytes(), *m))
@@ -517,7 +516,7 @@ pub fn prove_and_check(
     let rate = src.range(leanvm_core::pcs::MIN_LOG_INV_RATE, leanvm_core::pcs::MAX_LOG_INV_RATE);
     let proof = rec_aggregation::aggregate(
         &inputs.children,
-        inputs.xmss.clone(),
+        inputs.lean_xmss.clone(),
         inputs.sphincs.clone(),
         &inputs.blobs,
         inputs.declare.as_ref(),
@@ -560,8 +559,8 @@ pub fn prove_and_check(
     ctx.note(format!("{context}: proven"));
     let mut other = want.clone();
     let what = match src.below(5) {
-        0 if !other.xmss.is_empty() => {
-            other.xmss.pop();
+        0 if !other.lean_xmss.is_empty() => {
+            other.lean_xmss.pop();
             "one leanXMSS claim fewer"
         }
         1 if !other.lean_sphincs.is_empty() => {
@@ -575,8 +574,8 @@ pub fn prove_and_check(
             };
             "another DA root"
         }
-        3 if !other.xmss.is_empty() => {
-            let (pk, m) = other.xmss.remove(0);
+        3 if !other.lean_xmss.is_empty() => {
+            let (pk, m) = other.lean_xmss.remove(0);
             other.lean_sphincs.push((
                 signatures::lean_sphincs::LeanSphincsPublicKey::from_bytes(&pk.to_bytes()),
                 m,
@@ -588,9 +587,9 @@ pub fn prove_and_check(
             let mut pk = [0u8; 32];
             src.rng().fill(&mut pk);
             other
-                .xmss
+                .lean_xmss
                 .push((signatures::lean_xmss::LeanXmssPublicKey::from_bytes(&pk), [3; 32]));
-            other.xmss.sort();
+            other.lean_xmss.sort();
             "one leanXMSS claim more"
         }
     };
@@ -621,7 +620,7 @@ pub fn witness_of(inputs: &Inputs) -> Option<Streams> {
     let built = crate::catch(|| {
         rec_aggregation::fuzzing::prepare_node(
             &inputs.children,
-            inputs.xmss.clone(),
+            inputs.lean_xmss.clone(),
             inputs.sphincs.clone(),
             &inputs.blobs,
             inputs.declare.as_ref(),

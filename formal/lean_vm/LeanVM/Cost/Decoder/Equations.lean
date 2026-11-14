@@ -97,8 +97,8 @@ theorem memReader_memoryVector (memT : Array (ℕ × ℕ)) {κ : ℕ} (L : Memor
 
 /-- `main`'s certificate's cells (`certOf 1`, `Glob.lean`), its two windows. -/
 theorem certOf_one_locs :
-    (LeanVM.Guest.certOf 1).locs = LeanVM.Guest.Data.cert1_w0_0 ++ LeanVM.Guest.Data.cert1_w1_0 := by
-  show List.flatten [LeanVM.Guest.Data.cert1_w0_0, LeanVM.Guest.Data.cert1_w1_0] = _
+    (LeanVM.Guest.certOf 1).locs = LeanVM.Guest.Fn.«main».cert_w0_0 ++ LeanVM.Guest.Fn.«main».cert_w1_0 := by
+  show List.flatten [LeanVM.Guest.Fn.«main».cert_w0_0, LeanVM.Guest.Fn.«main».cert_w1_0] = _
   simp
 
 /-- `main`'s row of the table of cells is its certificate's cells. -/
@@ -117,7 +117,7 @@ theorem mainVal_eq : mainVal = LeanVM.Guest.End.mainValWith := by
 value. -/
 theorem mainVal_eq_cert (rd : Reader) (v : V) :
     mainVal rd v = LeanVM.Guest.Located.wordWith rd 1
-      ((LeanVM.Guest.Data.cert1_w0_0 ++ LeanVM.Guest.Data.cert1_w1_0).getD v.idx 0) := by
+      ((LeanVM.Guest.Fn.«main».cert_w0_0 ++ LeanVM.Guest.Fn.«main».cert_w1_0).getD v.idx 0) := by
   unfold mainVal
   rw [guestLocs_main, certOf_one_locs]
 

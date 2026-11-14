@@ -7,12 +7,12 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.Vt.Pi
+public import LeanVM.Guest.B1.Tables.Vt.Base
 public import LeanVM.Guest.B1.Tables.CoordPadding
 public import LeanVM.Protocol.EndToEnd.Complete.Flushes
 
 /-!
-# The forms' terms (G:2246-2277)
+# The forms' terms (G:2620-2647)
 
 `verify_tables` evaluates each table block's coordinate as the sum of its baked terms over the
 table's column evaluations (`vtCoordTerms`). The specification's flushes are the symbolic tables of

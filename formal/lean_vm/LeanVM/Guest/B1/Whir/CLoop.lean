@@ -24,11 +24,11 @@ open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {rd : Reader}
+variable {P : Program} {rd : Reader}
 
 /-- **A flat block at a finite depth.** -/
 theorem allOk_relN {σ : Val} : ∀ (A : List Stmt), A.all Stmt.flat = true →
-    AllOk (coreProgram.Rel rd) rd σ A → ∃ D, AllOk (coreProgram.relN rd D) rd σ A
+    AllOk (P.Rel rd) rd σ A → ∃ D, AllOk (P.relN rd D) rd σ A
   | [], _, _ => ⟨0, allOk_nil⟩
   | s :: A, hf, h => by
     simp only [List.all_cons, Bool.and_eq_true] at hf
@@ -37,28 +37,31 @@ theorem allOk_relN {σ : Val} : ∀ (A : List Stmt), A.all Stmt.flat = true →
     match s, hf.1, h.1 with
     | .atom a, _, ha => exact ⟨D, allOk_cons.mpr ⟨ha, hD⟩⟩
     | .call f args rets, _, ⟨d, hd⟩ =>
-      exact ⟨max D d, allOk_cons.mpr ⟨relN_mono coreProgram (le_max_right D d) _ _ _ hd,
-        allOk_mono (relN_mono coreProgram (le_max_left D d)) hD⟩⟩
+      exact ⟨max D d, allOk_cons.mpr ⟨relN_mono P (le_max_right D d) _ _ _ hd,
+        allOk_mono (relN_mono P (le_max_left D d)) hD⟩⟩
     | .callIf c f args, _, ⟨hK, hc⟩ =>
       by_cases h0 : σ c ≠ 0
       · obtain ⟨d, hd⟩ := hc h0
-        exact ⟨max D d, allOk_cons.mpr ⟨⟨hK, fun _ ↦ relN_mono coreProgram (le_max_right D d) _ _ _ hd⟩,
-          allOk_mono (relN_mono coreProgram (le_max_left D d)) hD⟩⟩
+        exact ⟨max D d, allOk_cons.mpr ⟨⟨hK, fun _ ↦ relN_mono P (le_max_right D d) _ _ _ hd⟩,
+          allOk_mono (relN_mono P (le_max_left D d)) hD⟩⟩
       · exact ⟨D, allOk_cons.mpr ⟨⟨hK, fun h ↦ absurd h h0⟩, hD⟩⟩
+    | .dispatch x fs args rets, _, ⟨j, hj, hx, d, hd⟩ =>
+      exact ⟨max D d, allOk_cons.mpr ⟨⟨j, hj, hx, relN_mono P (le_max_right D d) _ _ _ hd⟩,
+        allOk_mono (relN_mono P (le_max_left D d)) hD⟩⟩
 
 /-- **A loop, honestly**: its body holding at every iteration, entered behind its guard. -/
-theorem loop_complete {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+theorem loop_complete {f : String} {fn : Fn} (hf : P.find? f = some fn)
     {A : List Stmt} (hflat : A.all Stmt.flat = true) {c : ℕ} {args : List V}
     (hb : fn.body = A ++ [.callIf (.n c) f args, .ret []]) {N : E} {rest : List E} {n : ℕ}
     (hn0 : 0 < n) (hN : N = gen ^ n)
     (hstep : ∀ j < n, ∃ σ : Val, fn.params.map σ = gen ^ j :: N :: rest ∧
-      AllOk (coreProgram.Rel rd) rd σ A ∧ σ (.n c) = gen ^ j * gen + N ∧
+      AllOk (P.Rel rd) rd σ A ∧ σ (.n c) = gen ^ j * gen + N ∧
       args.map σ = gen ^ j * gen :: N :: rest) :
-    IsInK (1 + N) ∧ (1 + N ≠ 0 → coreProgram.Rel rd f (1 :: N :: rest) []) := by
+    IsInK (1 + N) ∧ (1 + N ≠ 0 → P.Rel rd f (1 :: N :: rest) []) := by
   have hK : ∀ j, IsInK (gen ^ j * gen + N) := fun j ↦ by
     rw [hN]; exact isInK_add (isInK_mul (gen_pow_isInK j) (by simpa using gen_pow_isInK 1))
       (gen_pow_isInK _)
-  have key : ∀ i, i < n → ∃ d, coreProgram.relN rd d f (gen ^ (n - 1 - i) :: N :: rest) [] := by
+  have key : ∀ i, i < n → ∃ d, P.relN rd d f (gen ^ (n - 1 - i) :: N :: rest) [] := by
     intro i
     induction i with
     | zero =>
@@ -81,10 +84,10 @@ theorem loop_complete {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn
       refine ⟨max D d' + 1, (relN_succ_iff hf (max D d') _ _).mpr ⟨σ, hp, ?_⟩⟩
       rw [hb, show A ++ [.callIf (.n c) f args, .ret []] = (A ++ [.callIf (.n c) f args]) ++ [.ret []]
         by simp, holdsList_flat_ret _ (by simp [hflat, Stmt.flat])]
-      refine ⟨allOk_append.mpr ⟨allOk_mono (relN_mono coreProgram (le_max_left D d')) hD, ?_⟩, rfl⟩
+      refine ⟨allOk_append.mpr ⟨allOk_mono (relN_mono P (le_max_left D d')) hD, ?_⟩, rfl⟩
       refine allOk_cons.mpr ⟨⟨by rw [hc]; exact hK _, fun _ ↦ ?_⟩, allOk_nil⟩
       rw [ha, gen_pow_mul_gen, show n - 1 - (i + 1) + 1 = n - 1 - i by omega]
-      exact relN_mono coreProgram (le_max_right D d') _ _ _ hd'
+      exact relN_mono P (le_max_right D d') _ _ _ hd'
   refine ⟨by
     rw [hN]; exact isInK_add (by rw [← pow_zero gen]; exact gen_pow_isInK 0) (gen_pow_isInK n),
     fun _ ↦ ?_⟩

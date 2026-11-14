@@ -37,8 +37,8 @@ fn bytecode(fixture: &'static Fixture) -> Arc<Bytecode> {
 }
 
 fn random_scalar(src: &mut Source) -> E {
-    let x = src.f192();
-    E::new(x.c0, x.c1, x.c2)
+    let x = src.f128();
+    E::new(x.c0, x.c1)
 }
 
 /// An announced row count or log size, biased to the caps the verifier enforces and just past them.
@@ -76,36 +76,36 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
             let (mut lo, mut hi) = (proof.stream[i].c0, if i == 0 { 64 } else { 1u64 << 33 });
             while lo + 1 < hi {
                 let mid = lo + (hi - lo) / 2;
-                proof.stream[i] = E::new(mid, 0, 0);
+                proof.stream[i] = E::new(mid, 0);
                 if past_the_caps(&verifier::replay_unchecked(&bytecode, &public_input, &proof)) {
                     hi = mid;
                 } else {
                     lo = mid;
                 }
             }
-            proof.stream[i] = E::new(lo, 0, 0);
+            proof.stream[i] = E::new(lo, 0);
             ctx.note(format!("announce: size {i} at the largest admitted"));
         }
         0 => {
-            proof.stream[0] = E::new(big(src, 6).min(40), 0, 0);
+            proof.stream[0] = E::new(big(src, 6).min(40), 0);
             for t in 1..7 {
-                proof.stream[t] = E::new(big(src, 32), 0, 0);
+                proof.stream[t] = E::new(big(src, 32), 0);
             }
             ctx.note("announce: every size large");
         }
         1 => {
             let t = src.range(1, 6);
-            proof.stream[t] = E::new(big(src, 33), 0, 0);
+            proof.stream[t] = E::new(big(src, 33), 0);
             ctx.note("announce: one table large");
         }
         2 => {
-            proof.stream[0] = E::new(src.range(10, 40) as u64, 0, 0);
+            proof.stream[0] = E::new(src.range(10, 40) as u64, 0);
             ctx.note("announce: memory size");
         }
         _ => ctx.note("announce: honest sizes"),
     }
     if src.chance(1, 4) {
-        proof.stream[7] = E::new(src.range(1, 4) as u64, 0, 0);
+        proof.stream[7] = E::new(src.range(1, 4) as u64, 0);
     }
 
     for round in 0..src.range(1, 16) {
@@ -145,7 +145,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
                 let fill = src.below(3);
                 for _ in 0..grow {
                     let x = match fill {
-                        0 => E::new(0, 0, 0),
+                        0 => E::new(0, 0),
                         1 => random_scalar(src),
                         _ => honest_proof.stream[src.below(honest_proof.stream.len())],
                     };

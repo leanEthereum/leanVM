@@ -18,19 +18,19 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- The evaluations' and permutations' statements lie in the window. -/
-theorem vtEval_inF : ∀ k < 159, vtFLo ≤ (vtEvalData.getD k (0, 0)).1 ∧
+theorem vtEval_inF : ∀ k < 153, vtFLo ≤ (vtEvalData.getD k (0, 0)).1 ∧
     (vtEvalData.getD k (0, 0)).1 + (vtEvalT (vtEvalData.getD k (0, 0)).2 k).length ≤ vtFHi := by
   decide +kernel
 
-theorem vtPerm_inF : ∀ j < 39, vtFLo ≤ (vtPermData.getD j (0, 0)).1 ∧
+theorem vtPerm_inF : ∀ j < 38, vtFLo ≤ (vtPermData.getD j (0, 0)).1 ∧
     (vtPermData.getD j (0, 0)).1 + 1 ≤ vtFHi := by
   decide +kernel
 
 /-- **Evaluation `k`**, on the window. -/
-theorem vt_evalF {rd : Reader} {σ : Val} (h : VtF rd σ) {k : ℕ} (hk : k < 159) :
-    LoadHolds rd (σ (.n 2625)) k (σ (.n (vtEvB k))) ∧
+theorem vt_evalF {rd : Reader} {σ : Val} (h : VtF rd σ) {k : ℕ} (hk : k < 153) :
+    LoadHolds rd (σ (.n 2647)) k (σ (.n (vtEvB k))) ∧
       FsPackOk σ (.n (vtEvB k)) (vtEvB k + 1) dsObserve ∧
-      σ (.n (vtEvB k + 10)) = σ (.n (vtEvB k)) := by
+      σ (.n (vtEvB k + 3)) = σ (.n (vtEvB k)) := by
   obtain ⟨_, hs⟩ := h.sliceAt _ _ (vtEval_check k hk) (vtEval_inF k hk)
   unfold vtEvalT at hs
   rw [tb_holdsList_append_noRet (by simp [fsNextT, fsPackT]; rfl), holds_fsNextT] at hs
@@ -38,31 +38,30 @@ theorem vt_evalF {rd : Reader} {σ : Val} (h : VtF rd σ) {k : ℕ} (hk : k < 15
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hr
   exact ⟨hl, hp, hr⟩
 
-/-- **Permutation `j`'s state**, on the window. -/
+/-- **Permutation `j`'s state**, on the window. After `4(j + 1)` evaluations the sponge carries `vtCapV j` with
+the last four waiting, and permutation `j`'s capacity outputs are its permutation's. -/
 theorem vt_evals_fsF {rd : Reader} {σ : Val} (h : VtF rd σ) :
-    ∀ j < 39, (⟨vtCapV σ 0, []⟩ : Fs).absorbAll ((vtEvs σ).take (4 * (j + 1))) dsObserve =
+    ∀ j < 38, (⟨vtCapV σ 0, []⟩ : Fs).absorbAll ((vtEvs σ).take (4 * (j + 1))) dsObserve =
       ⟨vtCapV σ j, (((vtEvs σ).drop (4 * j)).take 4).map (·, dsObserve)⟩ ∧
       vtCapV σ (j + 1) = capOf (Fs.perm ⟨vtCapV σ j,
         (((vtEvs σ).drop (4 * j)).take 4).map (·, dsObserve)⟩) := by
-  have hperm : ∀ j < 39, vtCapV σ (j + 1) = capOf (Fs.perm ⟨vtCapV σ j,
+  -- permutation `j`'s facts
+  have hperm : ∀ j < 38, vtCapV σ (j + 1) = capOf (Fs.perm ⟨vtCapV σ j,
       (((vtEvs σ).drop (4 * j)).take 4).map (·, dsObserve)⟩) := by
     intro j hj
     have hk := h.atomAt _ _ (vtPerm_check j hj) (vtPerm_inF j hj)
-    obtain ⟨hcan, -, hC⟩ := ly_keccak hk
-    have cell : ∀ i < 4, σ (.n (vtEvB (4 * j + i) + 7)) =
+    obtain ⟨-, hC⟩ := ly_keccak hk
+    have cell : ∀ i < 4, σ (.n (vtEvB (4 * j + i) + 1)) =
         (Keccak.scalarCells (σ (.n (vtEvB (4 * j + i)))) dsObserve).1 ∧
-        σ (.n (vtEvB (4 * j + i) + 9)) =
+        σ (.n (vtEvB (4 * j + i) + 2)) =
         (Keccak.scalarCells (σ (.n (vtEvB (4 * j + i)))) dsObserve).2 := by
       intro i hi
-      apply tb_pack_cells (vt_evalF h (k := 4 * j + i) (by omega)).2.1
-      apply hcan
-      simp only [List.map_append, List.mem_append, List.map_flatMap, List.mem_flatMap,
-        List.mem_range, List.map_cons, List.map_nil, List.mem_cons]
-      exact Or.inl ⟨i, hi, Or.inl rfl⟩
+      have e := fsPackT_cells (vt_evalF h (k := 4 * j + i) (by omega)).2.1
+      exact ⟨congrArg Prod.fst e, congrArg Prod.snd e⟩
     have c0 := cell 0 (by norm_num)
     simp only [Nat.add_zero] at c0
-    have hin : ((((List.range 4).flatMap fun i ↦ [V.n (vtEvB (4 * j + i) + 7),
-        .n (vtEvB (4 * j + i) + 9)]) ++ vtPermCap j).map σ) =
+    have hin : ((((List.range 4).flatMap fun i ↦ [V.n (vtEvB (4 * j + i) + 1),
+        .n (vtEvB (4 * j + i) + 2)]) ++ vtPermCap j).map σ) =
         rateOf ((((vtEvs σ).drop (4 * j)).take 4).map (·, dsObserve)) ++ vtCapV σ j := by
       rw [vt_four_eq σ hj, rateOf_eq_cells _ (by simp)]
       simp only [vtCapV, List.range_succ, List.range_zero, List.nil_append,

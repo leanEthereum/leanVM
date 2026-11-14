@@ -6,7 +6,7 @@
 //! expanded from one drawn word rather than drawn byte by byte, so it neither bloats the recording nor dilutes a
 //! mutator's edits.
 
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F64, F128, g_pow};
 
 /// The most tail bytes a case records. A case that draws more replays from its seed, not from its recording.
 const RECORD_CAP: usize = 1 << 20;
@@ -228,15 +228,15 @@ impl Source {
     }
 
     /// A machine word, often degenerate: in `K`, 128-bit, top limb only, or edge limbs.
-    pub fn f192(&mut self) -> F192 {
+    pub fn f128(&mut self) -> F128 {
         match self.byte() % 8 {
-            0 => F192::ZERO,
-            1 => F192::ONE,
-            2 => F192::from(self.f64()),
-            3 => F192::new(self.edgy_u64(), self.edgy_u64(), 0),
-            4 => F192::new(self.edgy_u64(), self.edgy_u64(), self.edgy_u64()),
-            5 => F192::new(0, 0, self.edgy_u64()),
-            _ => F192::new(self.u64(), self.u64(), self.u64()),
+            0 => F128::ZERO,
+            1 => F128::ONE,
+            2 => F128::from(self.f64()),
+            3 => F128::new(self.edgy_u64(), self.edgy_u64()),
+            4 => F128::new(self.edgy_u64(), self.edgy_u64()),
+            5 => F128::new(0, self.edgy_u64()),
+            _ => F128::new(self.u64(), self.u64()),
         }
     }
 

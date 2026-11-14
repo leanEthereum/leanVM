@@ -2,17 +2,17 @@
 //!
 //! Oracles: the fixed-size decoders are bijections (decode then encode is the identity, both ways); verifying garbage
 //! never panics and never accepts; an honest signature verifies; and one changed bit or byte of a real signature, its
-//! key or its message is refused (Critical otherwise). Keys and signatures are made once per process: leanXMSS mock keys
-//! whose short leaf ranges straddle a bottom-tree boundary and end at the last leaf index, and a leanSPHINCS key.
+//! key or its message is refused (Critical otherwise). Keys and signatures are made once per process: leanXMSS keys
+//! whose prepared bottom tree holds their fixture leaves, one range ending at the last leaf index, and a leanSPHINCS key.
 
 use crate::{Ctx, Finding, Outcome, Source, catch};
 use signatures::lean_sphincs::{self, LeanSphincsPublicKey, LeanSphincsSignature};
-use signatures::lean_xmss::{self, LeanXmssPublicKey, LeanXmssSignature, mock};
+use signatures::lean_xmss::{self, LeanXmssPublicKey, LeanXmssSecretKey, LeanXmssSignature};
 use std::sync::OnceLock;
 
 struct Fixtures {
-    xmss: Vec<(LeanXmssPublicKey, [u8; 32], LeanXmssSignature)>,
-    xmss_keys: Vec<(mock::MockSecretKey, LeanXmssPublicKey, u32, u32)>,
+    lean_xmss: Vec<(LeanXmssPublicKey, [u8; 32], LeanXmssSignature)>,
+    xmss_keys: Vec<(LeanXmssSecretKey, LeanXmssPublicKey, u32, u32)>,
     sphincs: Vec<(LeanSphincsPublicKey, [u8; 32], LeanSphincsSignature)>,
     sphincs_key: (lean_sphincs::LeanSphincsSecretKey, LeanSphincsPublicKey),
 }
@@ -20,17 +20,19 @@ struct Fixtures {
 fn fixtures() -> &'static Fixtures {
     static F: OnceLock<Fixtures> = OnceLock::new();
     F.get_or_init(|| {
-        let ranges = [(0u32, 2u32), (0xfffe, 0x1_0001), (u32::MAX - 1, u32::MAX)];
-        let mut xmss = Vec::new();
+        // Ranges inside one bottom tree each, so the prepared tree serves every fresh sign.
+        let ranges = [(0u32, 2u32), (0xfffe, 0xffff), (u32::MAX - 1, u32::MAX)];
+        let mut lean_xmss = Vec::new();
         let mut xmss_keys = Vec::new();
         for (k, &(first, last)) in ranges.iter().enumerate() {
             let mut seed = [0x5au8; 32];
             seed[0] = k as u8;
-            let (sk, pk) = mock::key_gen_from_seed(seed, first, last);
+            let (sk, pk) = lean_xmss::key_gen_from_seed(seed);
+            sk.prepare(first).expect("prepare");
             for (j, leaf) in [first, last].into_iter().enumerate() {
                 let msg: [u8; 32] = std::array::from_fn(|i| (i * 7 + k * 3 + j) as u8);
-                let sig = mock::sign(&sk, &msg, leaf).expect("a mock key signs in its range");
-                xmss.push((pk, msg, sig));
+                let sig = lean_xmss::sign(&sk, &msg, leaf).expect("signs");
+                lean_xmss.push((pk, msg, sig));
             }
             xmss_keys.push((sk, pk, first, last));
         }
@@ -42,7 +44,7 @@ fn fixtures() -> &'static Fixtures {
             })
             .collect();
         Fixtures {
-            xmss,
+            lean_xmss,
             xmss_keys,
             sphincs,
             sphincs_key: (sk, pk),
@@ -96,7 +98,7 @@ fn verdict<T>(what: &str, f: impl FnOnce() -> T) -> Result<T, Finding> {
 }
 
 fn xmss_tamper(src: &mut Source, ctx: &Ctx, f: &Fixtures) -> Outcome {
-    let (pk, msg, sig) = &f.xmss[src.below(f.xmss.len())];
+    let (pk, msg, sig) = &f.lean_xmss[src.below(f.lean_xmss.len())];
     let (mut pkb, mut m, mut sb) = (pk.to_bytes(), *msg, sig.to_bytes());
     let part = src.below(4);
     let how = match part {
@@ -108,14 +110,14 @@ fn xmss_tamper(src: &mut Source, ctx: &Ctx, f: &Fixtures) -> Outcome {
         return Ok(());
     }
     ctx.note(format!(
-        "xmss {} {how}",
+        "lean_xmss {} {how}",
         ["key", "message", "signature", "signature"][part]
     ));
     let (pk2, sig2) = (LeanXmssPublicKey::from_bytes(&pkb), LeanXmssSignature::from_bytes(&sb));
     let accepted = verdict("lean_xmss::verify", || lean_xmss::verify(&pk2, &m, &sig2))?;
     if accepted.is_ok()
         && !f
-            .xmss
+            .lean_xmss
             .iter()
             .any(|(p, mm, s)| (p.to_bytes(), *mm, s.to_bytes()) == (pkb, m, sb))
     {
@@ -188,12 +190,12 @@ fn sphincs_tamper(src: &mut Source, ctx: &Ctx, f: &Fixtures) -> Outcome {
 fn garbage(src: &mut Source, ctx: &Ctx) -> Outcome {
     let f = fixtures();
     if src.bool() {
-        ctx.note("xmss garbage");
+        ctx.note("lean_xmss garbage");
         let pkb: [u8; lean_xmss::PUB_KEY_SIZE] = src.bulk(lean_xmss::PUB_KEY_SIZE).try_into().unwrap();
         let mut sb: [u8; lean_xmss::SIG_SIZE] = src.bulk(lean_xmss::SIG_SIZE).try_into().unwrap();
         if src.bool() {
             // A real key, a signature with garbage after a real leaf index.
-            sb[..4].copy_from_slice(&f.xmss[0].2.leaf_index().to_le_bytes());
+            sb[..4].copy_from_slice(&f.lean_xmss[0].2.leaf_index().to_le_bytes());
         }
         let msg: [u8; 32] = src.bulk(32).try_into().unwrap();
         let (pk, sig) = (LeanXmssPublicKey::from_bytes(&pkb), LeanXmssSignature::from_bytes(&sb));
@@ -203,7 +205,7 @@ fn garbage(src: &mut Source, ctx: &Ctx) -> Outcome {
         let key = if src.bool() {
             pk
         } else {
-            f.xmss[src.below(f.xmss.len())].0
+            f.lean_xmss[src.below(f.lean_xmss.len())].0
         };
         if verdict("lean_xmss::verify", || lean_xmss::verify(&key, &msg, &sig))?.is_ok() {
             return Err(Finding::critical("lean_xmss::verify accepted a random signature", ""));
@@ -296,9 +298,9 @@ fn fresh(src: &mut Source, ctx: &Ctx, f: &Fixtures) -> Outcome {
     }
     let (sk, pk, first, last) = &f.xmss_keys[src.below(f.xmss_keys.len())];
     let leaf = first + src.below((last - first) as usize + 1) as u32;
-    ctx.note("xmss fresh");
-    let sig = verdict("mock::sign", || mock::sign(sk, &msg, leaf))?
-        .map_err(|e| Finding::high("lean_xmss mock::sign failed", format!("{e}")))?;
+    ctx.note("lean_xmss fresh");
+    let sig = verdict("lean_xmss::sign", || lean_xmss::sign(sk, &msg, leaf))?
+        .map_err(|e| Finding::high("lean_xmss::sign failed on a prepared key", format!("{e}")))?;
     if sig.leaf_index() != leaf || LeanXmssSignature::from_bytes(&sig.to_bytes()) != sig {
         return Err(Finding::high("leanXMSS signature does not round-trip its bytes", ""));
     }

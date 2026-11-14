@@ -31,6 +31,7 @@ open LeanVM.Cost LeanVM.Parameters LeanVM.Guest.B1 LeanVM.Guest.Fast
 
 cost_enc LeanVM.Guest.B1.Oq
 cost_enc LeanVM.Guest.Fast.OsCall
+cost_enc LeanVM.Guest.B1.OqShape
 cost_enc LeanVM.Guest.Fast.SpTabs
 cost_enc LeanVM.Guest.Fast.WhirTabs
 
@@ -79,21 +80,124 @@ cost_compile sphincsSigOfNC := sphincsSigOfA
 cost_compile spWotsArgsC := spWotsArgs
 cost_compile spWotsRetsC := spWotsRets
 
-/-! ## A child's proof -/
+/-! ## A child's proof
+
+A query's result (`oqRes`) at the final level is `novel_eval`'s next free value, which `oqNovel`
+computes beside its statements (no machine encoding): `oqResN` computes it alone (`nvEnd`), and
+the readers compile `oqRes` through it (`oqRes_eq_oqResN`). -/
+
+/-- The next free value after `c` levels of `novel_eval` on `n` values from `k` (`nvLevelsT`'s). -/
+def nvEnd : ℕ → ℕ → ℕ → ℕ
+  | 0, _, k => k
+  | c + 1, n, k => nvEnd c ((n + 1) / 2) (k + n)
+
+theorem nvLevelT_end (w : LeanVM.Guest.Core.V) : ∀ (ins : List ℕ) (k : ℕ),
+    (nvLevelT w ins k).2.2 = k + ins.length ∧
+      (nvLevelT w ins k).2.1.length = (ins.length + 1) / 2
+  | lo :: hi :: rest, k => by
+    obtain ⟨h1, h2⟩ := nvLevelT_end w rest (k + 2)
+    simp only [nvLevelT, List.length_cons, h1, h2]
+    omega
+  | [_], _ => by simp [nvLevelT]
+  | [], _ => by simp [nvLevelT]
+
+theorem nvLevelsT_end (ws : ℕ → ℕ) : ∀ (c i : ℕ) (ins : List ℕ) (k : ℕ),
+    (nvLevelsT ws c i ins k).2.2 = nvEnd c ins.length k
+  | 0, _, _, _ => rfl
+  | c + 1, i, ins, k => by
+    simp only [nvLevelsT, nvEnd]
+    rw [nvLevelsT_end ws c, (nvLevelT_end _ _ _).2, (nvLevelT_end _ _ _).1]
+
+/-- A query's result (`oqRes`), `novel_eval`'s next free value counted alone. -/
+def oqResN (s : Oq) (b : ℕ) (emit : Bool) : ℕ :=
+  if s.final = 1 then
+    nvEnd (s.hsBits - 1) (s.nHs / 2) (oqVal s (oqCh s b emit) + 2 + 3 * s.mu + 4 * (s.nHs / 2))
+  else oqVal s (oqCh s b emit)
+
+theorem oqRes_eq_oqResN (s : Oq) (b : ℕ) (emit : Bool) : oqRes s b emit = oqResN s b emit := by
+  unfold oqRes oqResN oqNovel
+  split_ifs
+  · rw [nvLevelsT_end, List.length_map, List.length_range]
+  · rfl
+
+cost_rewrite oqRes_eq_oqResN
+
+/-- The shapes of `openingQueriesLoops`, without their names (strings have no machine encoding). -/
+def oqShapeTab : List OqShape :=
+  [⟨1, 1, 6, 32, 15, 3, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 16, 4, 0, 0, 0, 0, 0, []⟩,
+    ⟨1, 1, 6, 32, 17, 5, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 18, 6, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 14, 2, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 15, 3, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 16, 4, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 17, 5, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 13, 7, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 12, 6, 2, 3, 8, 3, 1, [1, 6]⟩,
+    ⟨0, 0, 4, 16, 13, 7, 2, 3, 8, 3, 1, [1, 6]⟩, ⟨0, 0, 4, 16, 14, 2, 2, 3, 8, 3, 1, [1, 6]⟩,
+    ⟨0, 0, 4, 16, 15, 3, 2, 3, 8, 3, 1, [1, 6]⟩, ⟨0, 1, 6, 32, 16, 4, 0, 0, 0, 0, 0, []⟩,
+    ⟨1, 1, 6, 32, 19, 7, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 18, 6, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 13, 7, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
+    ⟨0, 0, 4, 16, 14, 2, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
+    ⟨0, 0, 4, 16, 15, 3, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
+    ⟨0, 0, 4, 16, 16, 4, 3, 6, 12, 4, 1, [1, 6, 360]⟩, ⟨0, 1, 6, 32, 17, 5, 0, 0, 0, 0, 0, []⟩,
+    ⟨1, 1, 6, 32, 20, 2, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 19, 7, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 14, 2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
+    ⟨0, 0, 4, 16, 15, 3, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
+    ⟨0, 0, 4, 16, 16, 4, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
+    ⟨0, 0, 4, 16, 17, 5, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
+    ⟨0, 1, 6, 32, 18, 6, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 21, 3, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 20, 2, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 15, 3, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
+    ⟨0, 0, 4, 16, 16, 4, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
+    ⟨0, 0, 4, 16, 17, 5, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
+    ⟨0, 0, 4, 16, 18, 6, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
+    ⟨0, 1, 6, 32, 19, 7, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 22, 4, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 21, 3, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 16, 4, 2, 3, 8, 3, 1, [1, 6]⟩,
+    ⟨0, 0, 4, 16, 17, 5, 2, 3, 8, 3, 1, [1, 6]⟩, ⟨0, 0, 4, 16, 18, 6, 2, 3, 8, 3, 1, [1, 6]⟩,
+    ⟨0, 1, 6, 32, 20, 8, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 23, 5, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 22, 4, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 17, 5, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
+    ⟨0, 0, 4, 16, 18, 6, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
+    ⟨0, 0, 4, 16, 19, 7, 3, 6, 12, 4, 1, [1, 6, 360]⟩, ⟨0, 1, 6, 32, 21, 3, 0, 0, 0, 0, 0, []⟩,
+    ⟨1, 1, 6, 32, 24, 6, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 23, 5, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 18, 6, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
+    ⟨0, 0, 4, 16, 19, 7, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
+    ⟨0, 0, 4, 16, 20, 2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
+    ⟨0, 1, 6, 32, 22, 4, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 25, 7, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 24, 6, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 19, 7, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
+    ⟨0, 0, 4, 16, 20, 2, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
+    ⟨0, 0, 4, 16, 21, 3, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩,
+    ⟨0, 1, 6, 32, 23, 5, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 26, 2, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 25, 7, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 19, 7, 2, 3, 8, 3, 1, [1, 6]⟩,
+    ⟨0, 0, 4, 16, 20, 2, 2, 3, 8, 3, 1, [1, 6]⟩, ⟨0, 0, 4, 16, 21, 3, 2, 3, 8, 3, 1, [1, 6]⟩,
+    ⟨0, 1, 6, 32, 24, 6, 0, 0, 0, 0, 0, []⟩, ⟨1, 1, 6, 32, 27, 3, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 26, 2, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 20, 2, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
+    ⟨0, 0, 4, 16, 21, 3, 3, 6, 12, 4, 1, [1, 6, 360]⟩,
+    ⟨0, 0, 4, 16, 22, 4, 3, 6, 12, 4, 1, [1, 6, 360]⟩, ⟨0, 1, 6, 32, 25, 7, 0, 0, 0, 0, 0, []⟩,
+    ⟨1, 1, 6, 32, 28, 4, 0, 0, 0, 0, 0, []⟩, ⟨0, 0, 4, 16, 27, 3, 0, 0, 0, 0, 0, []⟩,
+    ⟨0, 0, 4, 16, 21, 3, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
+    ⟨0, 0, 4, 16, 22, 4, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩,
+    ⟨0, 0, 4, 16, 23, 5, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩]
+
+theorem oqShapeTab_eq : openingQueriesLoops.map (·.2.2) = oqShapeTab := rfl
+
+theorem oqShapeAt_eq_tab (i : ℕ) :
+    LeanVM.Guest.B1.Whir.oqShapeAt i = oqShapeTab.getD i LeanVM.Guest.B1.Whir.oqShapeZero := by
+  rw [LeanVM.Guest.B1.Whir.oqShapeAt, List.getD_eq_getElem?_getD, ← oqShapeTab_eq,
+    List.getElem?_map]
+
+cost_rewrite oqShapeAt_eq_tab
 
 cost_compile oqRowC := oqRow
-cost_compile OqRC := Oq.R
 cost_compile digestOfCellsWC := LeanVM.Guest.B1.digestOfCells
 cost_compile oqSibsOfC := oqSibsOf
+cost_compile OqIC := Oq.I
+cost_compile OqNcellsC := Oq.ncells
 cost_compile oqK1C := oqK1
-cost_compile OqTszC := Oq.tsz
-cost_compile rowLoC := rowLo
-cost_compile OqGC := Oq.G
-cost_compile OqDC := Oq.D
 cost_compile oqKLC := oqKL
 cost_compile OqBC := Oq.B
 cost_compile OqChainLenC := Oq.chainLen
 cost_compile oqChC := oqCh
+cost_compile oqRKC measure fun _ _ j ↦ j := oqRK
+cost_compile oqValC := oqVal
+cost_compile nvEndC measure fun c _ _ ↦ c := nvEnd
+cost_compile oqResNC := oqResN
 cost_compile oqEndC := oqEnd
 cost_compile oqE1C := oqE1
 cost_compile oqBsC := oqBs
@@ -122,10 +226,19 @@ cost_compile oqQueryAC := oqQueryA
 cost_compile oqIterAC := oqIterA
 cost_compile oqItersFromC measure fun _ _ _ _ _ _ _ n _ ↦ n := oqItersFrom
 cost_compile oqsOfNC := oqsOfA
+set_option maxRecDepth 100000 in
+cost_compile oqShapeTabC := oqShapeTab
+cost_compile oqShapeZeroC := LeanVM.Guest.B1.Whir.oqShapeZero
+cost_compile OqShapeOqC := OqShape.oq
+cost_compile OsCallShapeC := OsCall.shape
 cost_compile levelOsAtC := levelOsAt
+cost_compile oqCallArgsC := oqCallArgs
+cost_compile levelOsQC := levelOsQ
+cost_compile levelOsFC := levelOsF
 cost_compile levelOsNC := levelOsA
 cost_compile vsPiOfAtC := vsPiOfAt
 cost_compile vsPiOfMC := vsPiOfM
+cost_compile vsPiOfSC := vsPiOfS
 cost_compile vsPiOfNC := vsPiOfA
 
 end

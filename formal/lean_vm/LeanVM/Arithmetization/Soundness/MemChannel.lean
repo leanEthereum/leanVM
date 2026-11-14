@@ -33,10 +33,10 @@ Every gate is `0` or `1` (`opRecs_bits`): a row's bytecode coordinates are the p
 pushes `(a, g·c, v)`, a read; at flag `0` it pulls and pushes the one tuple `(a, c, v)`, which
 `perm_cancel_mid` drops from both sides (`mem_triples_perm`). The counts of the reads are nonzero
 (`CountsNonzero`, which covers every memory pull of the six tables), there are fewer than
-`2^64 - 1` reads (`opReads_length_lt`, from `Caps`: at most twenty-six reads per row, `2^32` rows
+`2^64 - 1` reads (`opReads_length_lt`, from `Caps`: at most twenty-six reads per row, `2^30` rows
 per table, six tables), and each finalize has a seed's key. So `lookup_sound` makes every read's
 key, its address and limbs, a seed's: `(g^i, m_i)`, which is a correct read of word `i`
-(`MemoryImage.read_gpow`, as `κ ≤ 32`). A pull of multiplicity `1` is a read a row makes or a
+(`MemoryImage.read_gpow`, as `κ ≤ 30`). A pull of multiplicity `1` is a read a row makes or a
 finalize (`mem_pull_of_mult`), hence a correct read (`mem_channel_sound`).
 
 ## Wrong readings excluded
@@ -62,23 +62,23 @@ variable {prog : LeanIsaProgram} {κ : ℕ} {input : PublicInput} {w : EnsembleW
 /-! ## Memory messages as triples -/
 
 /-- A memory message as its triple. -/
-def memMsgOfTriple (x : K × K × Vector K 3) : Array K := memMsgOf x.1 x.2.1 x.2.2
+def memMsgOfTriple (x : K × K × Vector K 2) : Array K := memMsgOf x.1 x.2.1 x.2.2
 
 /-- The triple of a memory message, `0` for a missing coordinate. -/
-def tripleOfMemMsg (a : Array K) : K × K × Vector K 3 :=
-  (a.getD 0 0, a.getD 1 0, #v[a.getD 2 0, a.getD 3 0, a.getD 4 0])
+def tripleOfMemMsg (a : Array K) : K × K × Vector K 2 :=
+  (a.getD 0 0, a.getD 1 0, #v[a.getD 2 0, a.getD 3 0])
 
-/-- A vector of three is its entries. -/
-theorem vec3_eta (v : Vector K 3) : #v[v[0], v[1], v[2]] = v := by
+/-- A vector of two is its entries. -/
+theorem vec2_eta (v : Vector K 2) : #v[v[0], v[1]] = v := by
   refine Vector.ext fun i hi ↦ ?_
   interval_cases i <;> rfl
 
 /-- Reading a memory message back gives its triple. -/
-theorem tripleOfMemMsg_memMsgOfTriple (x : K × K × Vector K 3) :
+theorem tripleOfMemMsg_memMsgOfTriple (x : K × K × Vector K 2) :
     tripleOfMemMsg (memMsgOfTriple x) = x := by
   obtain ⟨a, c, v⟩ := x
   simp only [tripleOfMemMsg, memMsgOfTriple, memMsgOf]
-  simp [vec3_eta]
+  simp [vec2_eta]
 
 /-- Memory messages are injective in their triple. -/
 theorem memMsgOfTriple_injective : Function.Injective memMsgOfTriple := fun x y h ↦ by
@@ -90,7 +90,7 @@ theorem toElements_memMsg (m : MemMsg K) :
   memMsg_toArray m
 
 /-- Reading a memory message back gives its coordinates. -/
-theorem tripleOfMemMsg_memMsgOf (a c : K) (v : Vector K 3) :
+theorem tripleOfMemMsg_memMsgOf (a c : K) (v : Vector K 2) :
     tripleOfMemMsg (memMsgOf a c v) = (a, c, v) :=
   tripleOfMemMsg_memMsgOfTriple (a, c, v)
 
@@ -98,19 +98,19 @@ theorem tripleOfMemMsg_memMsgOf (a c : K) (v : Vector K 3) :
 
 /-- The reads the rows of the six tables make: each row's reads and gated reads at flag `1`. -/
 def opReads (w : EnsembleWitness (leanIsaEnsemble prog κ)) (f : Air.Flat.Table K × Array K → RowRec) :
-    List (K × K × Vector K 3) :=
+    List (K × K × Vector K 2) :=
   (opPairs w).flatMap fun p ↦ (f p).real
 
 /-- The cancelled pairs of the rows of the six tables: their gated reads at flag `0`. -/
 def opSkips (w : EnsembleWitness (leanIsaEnsemble prog κ)) (f : Air.Flat.Table K × Array K → RowRec) :
-    List (K × K × Vector K 3) :=
+    List (K × K × Vector K 2) :=
   (opPairs w).flatMap fun p ↦ (f p).skips
 
 /-- A read pushed back: its count multiplied by `g`. -/
-def bumpRead (x : K × K × Vector K 3) : K × K × Vector K 3 := (x.1, g * x.2.1, x.2.2)
+def bumpRead (x : K × K × Vector K 2) : K × K × Vector K 2 := (x.1, g * x.2.1, x.2.2)
 
 /-- The gated reads at a flag other than `1` are those at flag `0`, when every gate is a bit. -/
-theorem filter_not_one {l : List (K × K × K × Vector K 3)} (hb : ∀ y ∈ l, y.1 = 0 ∨ y.1 = 1) :
+theorem filter_not_one {l : List (K × K × K × Vector K 2)} (hb : ∀ y ∈ l, y.1 = 0 ∨ y.1 = 1) :
     l.filter (fun y ↦ !decide (y.1 = 1)) = l.filter fun y ↦ y.1 = 0 := by
   refine List.filter_congr fun y hy ↦ ?_
   rcases hb y hy with h | h <;> simp [h]
@@ -123,7 +123,7 @@ theorem chanOf_rowRec_memPull_perm (x : RowRec) (hb : ∀ y ∈ x.gated, y.1 = 0
     gatedSends_memPull, RowRec.real, RowRec.skips, List.append_assoc, List.map_append]
   refine List.Perm.append (by rfl) ?_
   have hp := (List.filter_append_perm (fun y ↦ decide (y.1 = 1)) x.gated).map
-    (fun y : K × K × K × Vector K 3 ↦ memMsgOf y.2.1 y.2.2.1 y.2.2.2)
+    (fun y : K × K × K × Vector K 2 ↦ memMsgOf y.2.1 y.2.2.1 y.2.2.2)
   rw [filter_not_one hb] at hp
   simpa [List.map_map, Function.comp_def, memMsgOfTriple] using hp.symm
 
@@ -138,7 +138,7 @@ theorem chanOf_rowRec_memPush_perm (x : RowRec) (hb : ∀ y ∈ x.gated, y.1 = 0
     ?_
   rw [← List.map_append]
   have hp := (List.filter_append_perm (fun y ↦ decide (y.1 = 1)) x.gated).map
-    (fun y : K × K × K × Vector K 3 ↦ memMsgOf y.2.1 (gatedCount y.1 y.2.2.1) y.2.2.2)
+    (fun y : K × K × K × Vector K 2 ↦ memMsgOf y.2.1 (gatedCount y.1 y.2.2.1) y.2.2.2)
   rw [filter_not_one hb] at hp
   have h1 : ∀ y ∈ x.gated.filter (fun y ↦ decide (y.1 = 1)),
       memMsgOf y.2.1 (gatedCount y.1 y.2.2.1) y.2.2.2 = memMsgOfTriple (bumpRead y.2) := by
@@ -219,7 +219,7 @@ theorem mem_reads_seeded (h : SatisfiedByB prog input w) {f : Air.Flat.Table K �
       ∃ i : Fin (2 ^ (imageOf w.data).1), x.1 = addressOfIndex i ∧ x.2.2 = limbsOf (imageOf
           w.data).2 i := by
   have hperm := mem_triples_perm h hall (opRecs_bits h hf)
-  let key : K × K × Vector K 3 → K × Vector K 3 := fun x ↦ (x.1, x.2.2)
+  let key : K × K × Vector K 2 → K × Vector K 2 := fun x ↦ (x.1, x.2.2)
   have hseeded := lookup_sound key (·.2.1) bumpRead (opReads w f) _ _ (fun _ _ ↦ rfl)
     (fun _ _ ↦ rfl) hperm
     (fun x hx ↦ by
@@ -312,7 +312,7 @@ theorem mem_channel_sound (h : SatisfiedByB prog input w) :
   rw [hm, toElements_memMsg] at hxm
   obtain rfl := memMsgOfTriple_injective hxm
   have hκ : (imageOf w.data).1 < 64 := lt_of_le_of_lt h.caps.le_maxLogMem (by decide)
-  show (imageOf w.data).2.read m.addr = some (E.ofLimbs m.v[0] m.v[1] m.v[2])
+  show (imageOf w.data).2.read m.addr = some (E.ofLimbs m.v[0] m.v[1])
   rw [show m.addr = addressOfIndex j from h1, show m.v = limbsOf (imageOf w.data).2 j from h2,
     MemoryImage.read_gpow hκ]
   simp only [limbsOf]

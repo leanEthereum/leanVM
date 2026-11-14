@@ -24,7 +24,6 @@ fn structural(e: &VerifierError) -> bool {
             | PcsInverseRate
             | CommittedSize
             | AnnouncedTableSizes
-            | DigestHalf
             | WhirShape
             | QueryCountLadder
             | WhirNoTerminalLevel
@@ -71,7 +70,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
                 detail(),
             ));
         }
-        (Err(leanvm_core::cpu::CpuError::Verifier(v)), replay) if structural(v) => {
+        (Err(v), replay) if structural(v) => {
             ctx.note(format!("structural {}", fixtures::verifier_error_name(v)));
             if replay.as_ref().err() != Some(v) {
                 return Err(Finding::high(

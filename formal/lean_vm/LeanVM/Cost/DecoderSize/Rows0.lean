@@ -13,7 +13,7 @@ namespace LeanVM.Cost.Decoder
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem rowsSize_0_37 : rowsSize 0 37 = 48779 := by
+theorem rowsSize_0_37 : rowsSize 0 37 = 49508 := by
   decide +kernel
 
 end

@@ -13,7 +13,7 @@ public import LeanVM.Protocol.ToVCVio.Rom.LoggedOracle
 public import Statement.LeanVm
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Protocol.WithHash
 
@@ -120,7 +120,14 @@ theorem simulateQ_absorb (sp : Sponge) (x : E) (tag : ℕ) :
 
 theorem simulateQ_squeeze (sp : Sponge) :
     simulateQ impl (squeeze callKeccakF1600 sp) = squeeze (implF impl) sp := by
-  simp only [squeeze, simulateQ_bind, simulateQ_duplex, simulateQ_pure]
+  simp only [squeeze]
+  split
+  · simp
+  · simp only [simulateQ_bind, simulateQ_duplex, simulateQ_pure]
+
+theorem simulateQ_absorbNonce (sp : Sponge) (n : E) :
+    simulateQ impl (absorbNonce callKeccakF1600 sp n) = absorbNonce (implF impl) sp n := by
+  simp only [absorbNonce, simulateQ_bind, simulateQ_absorb, simulateQ_duplex, simulateQ_pure]
 
 theorem simulateQ_run :
     ∀ (p : VerifierProgram Bool) (s : VerifierProgramState),
@@ -130,29 +137,27 @@ theorem simulateQ_run :
   | .read k, s => by
     simp only [runWithHash]
     split
-    · simp
     · simp only [simulateQ_bind, simulateQ_absorb]
       congr 1; funext sp; exact simulateQ_run _ _
+    · simp
   | .sample k, s => by
     simp only [runWithHash, simulateQ_bind, simulateQ_squeeze]
     congr 1; funext r; exact simulateQ_run _ _
   | .grind bits k, s => by
     simp only [runWithHash]
     split
-    · simp
-    · simp only [simulateQ_bind, simulateQ_absorb, simulateQ_squeeze]
-      congr 1; funext sp; congr 1; funext r
+    · simp only [simulateQ_bind, simulateQ_absorbNonce]
+      congr 1; funext r
       split
       · exact simulateQ_run _ _
       · simp
+    · simp
   | .commit ht w k, s => by
     simp only [runWithHash]
     split
     · simp only [simulateQ_bind, simulateQ_absorb]
       congr 1; funext sp0; congr 1; funext sp1
-      split
-      · exact simulateQ_run _ _
-      · simp
+      exact simulateQ_run _ _
     · simp
   | .query i ps k, s => by
     simp only [runWithHash]

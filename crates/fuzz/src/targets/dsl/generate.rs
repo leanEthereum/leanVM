@@ -7,7 +7,7 @@ use crate::findings::normalize;
 use crate::programs::{self, CompileFailure};
 use crate::{Ctx, Finding, Outcome, Source};
 use leanvm_core::cpu::{Execution, Fault, Program};
-use primitives::field::F192;
+use primitives::field::F128;
 
 /// Runs longer than this are not proven: a generated program is small, and a long one is the generator's doing.
 const PROVE_CYCLES: usize = 1 << 18;
@@ -83,7 +83,7 @@ pub fn compile_and_run(source: &str, g: &Generated, context: &str) -> Result<(Pr
 /// Run on the public input the generator computed: any fault is the program computing something else.
 pub fn run_expect(
     program: &Program,
-    pi: [F192; 2],
+    pi: [F128; 2],
     source: &str,
     g: &Generated,
     context: &str,
@@ -108,7 +108,7 @@ pub fn run_expect(
 /// Prove and verify, then check the proof does not verify for a neighbouring statement.
 pub fn prove_and_perturb(
     program: &Program,
-    pi: [F192; 2],
+    pi: [F128; 2],
     src: &mut Source,
     ctx: &Ctx,
     context: &str,
@@ -124,7 +124,6 @@ pub fn prove_and_perturb(
     let mut other = pi;
     let i = src.below(2);
     other[i] = crate::mutate_proof::perturb(other[i], src);
-    other[i].c2 = 0;
     if other != pi && leanvm_core::cpu::verify(program, &other, &proof).is_ok() {
         return Err(Finding::critical(
             format!("{context}: a proof verifies for another public input"),
@@ -138,13 +137,9 @@ pub fn prove_and_perturb(
 /// `leanvm-fuzz programs` once saved under `crates/fuzz/programs/`.
 pub fn annotated(source: &str, g: &Generated) -> String {
     // `parse_const` reads integers, `+` and `*`: the third limb is a multiple of `y² = (2^64)²`.
-    let elt = |x: &F192| {
+    let elt = |x: &F128| {
         let low = x.c0 as u128 | (x.c1 as u128) << 64;
-        if x.c2 == 0 {
-            low.to_string()
-        } else {
-            format!("{low} + {} * 18446744073709551616 * 18446744073709551616", x.c2)
-        }
+        low.to_string()
     };
     let mut out = format!(
         "# public_input: {}, {}\n",

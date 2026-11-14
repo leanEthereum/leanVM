@@ -1,148 +1,143 @@
 /-
   LeanVM.Guest.B1.Whir.Levels
 
-  The template's levels run the Spec's levels up to the tail.
+  The levels of `open_stacked` and its closing rounds run the Spec's `whirLevelsOpen`.
 -/
 
 module
 
-public import LeanVM.Protocol.Verifier.WhirTarget
-public import LeanVM.Guest.B1.Whir.Level
-public import LeanVM.Guest.B1.Whir.LevelSpec
+public import LeanVM.Guest.B1.Whir.LevelLast
 
 /-!
-# The levels (G:1488-1646)
+# The levels (G:1535-1705)
 
-`whirLevelsHead`: `whirLevelsOpen` without its tail (`whirLevelsOpen_eq`). `osLevels_sound`: the
-template's levels, the configuration's facts holding level by level (`LevelsOk`) and the callees
-by their meanings (`CalleesOk`), run `whirLevelsHead`; they leave the final message, every
-level's record (`RecStored`), the fold challenges in `fold_challenges` and the guest's state for
-the tail.
+`LevelsOk`: every non-final level's facts and callees (`MidFacts`, `MidCalls`), then the final
+level's (`FinFacts`, `FinCalls`). `osLevels_sound`: from a level's `LvIn`, the template's levels
+from it and the closing rounds run `whirLevelsOpen`, reading `lvsWords` words at the cursor and
+the openings `osLevelsW` (one phase a level, the witness's); the returned terminal is the
+guest's tail claim plus the deficit of every level's record times the closing challenges, and
+the records' values are in memory (`RecStored`) for the finish.
 -/
 
 namespace LeanVM.Guest.B1.Whir
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
-open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
+open LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-- `whirLevelsOpen` up to the tail: the levels' heads. -/
-def whirLevelsHead (logN : ℕ) : ℕ → List Whir.Level → WhirStateT → VerifierProgram (List E × ℕ ×
-    WhirStateT)
-  | _, [], _ => VerifierProgram.fail
-  | index, [level], s => levelHead logN index level [] s
-  | index, level :: next :: rest, s =>
-    (levelHead logN index level (next :: rest) s).bind fun r ↦
-      whirLevelsHead logN (index + 1) (next :: rest) r.2.2
-
-/-- **The levels, then the tail.** -/
-theorem whirLevelsOpen_eq (logN laneFolds : ℕ) : ∀ (index : ℕ) (cfg : List Whir.Level)
-    (s : WhirStateT), cfg ≠ [] →
-    whirLevelsOpen logN laneFolds index cfg s =
-      (whirLevelsHead logN index cfg s).bind fun r ↦ levelTail laneFolds r.2.1 r.1 r.2.2
-  | _, [], _, h => absurd rfl h
-  | index, [level], s, _ => by rw [whirLevelsOpen_head]; rfl
-  | index, level :: next :: rest, s, _ => by
-    rw [whirLevelsOpen_head, whirLevelsHead, VerifierProgram.bind_assoc]
-    refine prog_bind_congr fun r ↦ ?_
-    exact whirLevelsOpen_eq logN laneFolds (index + 1) (next :: rest) r.2.2 (by simp)
-
-/-- The configuration's facts, level by level. -/
-def LevelsOk (c : OsCfg) (logN : ℕ) : ℕ → List OsLv → List Whir.Level → Prop
-  | lvl, [lv], [level] => LvB c lvl lv level lv.logCols ∧ level.fold = lv.folds ∧
-      1 ≤ lv.folds ∧ logN - (lv.foldsOff + lv.folds) = lv.logCols ∧
-      2 ^ lv.logCols = c.yrLen ∧ lvl = c.yrLevel
-  | lvl, lv :: lv' :: lvs, level :: next :: cfg => LvB c lvl lv level lv.logCols ∧
-      level.fold = lv.folds ∧ 1 ≤ lv.folds ∧ logN - (lv.foldsOff + lv.folds) = lv.logCols ∧
-      1 ≤ lv.logCols ∧ (lvl + 1) * ligColsCap < u128Bound ∧ lvl ≠ c.yrLevel ∧
-      lv'.foldsOff = lv.foldsOff + lv.folds ∧
-      levelShape lv.logCols next (3 * 2 ^ next.fold) = (lv'.depth, lvWidth (lvl + 1) lv') ∧
-      LevelsOk c logN (lvl + 1) (lv' :: lvs) (next :: cfg)
+/-- Every level's facts and callees, from level `lvl`. -/
+def LevelsOk (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (logN : ℕ) :
+    ℕ → List OsLv → List Whir.Level → Prop
+  | lvl, [lv], [level] => FinFacts c logN lvl lv level ∧ FinCalls rd C σ c lvl lv
+  | lvl, lv :: lv' :: lvs, level :: next :: cfg => MidFacts c logN lvl lv level next lv' ∧
+      MidCalls rd C σ c lvl lv ∧ LevelsOk rd C σ c logN (lvl + 1) (lv' :: lvs) (next :: cfg)
   | _, _, _ => False
 
-/-- The callees, level by level. -/
-def CalleesOk (rd : Reader) (c : OsCfg) : ℕ → List OsLv → Prop
-  | _, [] => True
-  | lvl, lv :: lvs => LvCallees rd c lvl lv ∧ CalleesOk rd c (lvl + 1) lvs
+/-- The stream words of the levels from `lvl`. -/
+def lvsWords (c : OsCfg) : ℕ → List OsLv → ℕ
+  | _, [] => 0
+  | lvl, lv :: rest => lvWords c lvl lv + lvsWords c (lvl + 1) rest
 
-/-- The levels' `opening_queries` calls of `C`, sound with their queries `Wf lvl lv`. -/
-def QWOk (rd : Reader) (C : CallRel) (Wf : ℕ → OsLv → List E → List E → List QW) :
-    ℕ → List OsLv → Prop
-  | _, [] => True
-  | lvl, lv :: lvs => LvQW rd C lvl lv (Wf lvl lv) ∧ QWOk rd C Wf (lvl + 1) lvs
+/-- The levels' folds. -/
+def lvsFolds : List OsLv → ℕ
+  | [] => 0
+  | lv :: rest => lv.folds + lvsFolds rest
 
-/-- **The levels** run `whirLevelsHead`, on the openings their queries' witnesses name. -/
-theorem osLevels_sound {c : OsCfg} {logN : ℕ} {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd))
-    {Wf : ℕ → OsLv → List E → List E → List QW} : ∀ (lvs : List OsLv) (cfg : List Whir.Level)
-    (lvl : ℕ) (st : OsSt) (ws : WhirStateT) (R : List (Digest × ℕ × ℕ)) (root : Digest),
-    LevelsOk c logN lvl lvs cfg → CalleesOk rd c lvl lvs → QWOk rd C Wf lvl lvs →
-    LvIn rd σ lvl (lvs.headD default) st ws R root → WinTabs rd (σ (.n osWin)) →
-    AllOk C rd σ (osLevels c lvl lvs st).1 →
-    ∃ (xs : List E) (os : List (List Opening)) (R' : List (Digest × ℕ × ℕ)) (ms : List E)
-      (ws' : WhirStateT) (rs : List OsRec),
-      ReadsAt rd (st.cur σ) xs ∧
-      RunsWith (whirLevelsHead logN lvl cfg ws) (st.F σ) xs os R
-        (ms, (lvs.getLastD default).logCols, ws') ((osLevels c lvl lvs st).2.F σ) R' ∧
-      ms.length = c.yrLen ∧ ReadsAt rd (σ (.n osFmsg)) ms ∧
-      ws'.glued = ws.glued ++ rs.flatMap recClaims ∧ rs.length = lvs.length ∧
-      (∀ i (hi : i < rs.length) (hi' : i < lvs.length), RecStored rd σ c (lvl + i) lvs[i] rs[i]) ∧
-      ws'.folds.length = (lvs.getLastD default).foldsOff + (lvs.getLastD default).folds ∧
-      (∀ j (h : j < ws'.folds.length), LoadHolds rd (σ (.n osFch)) j ws'.folds[j]) ∧
-      ws'.quad = (osLevels c lvl lvs st).2.quad σ ∧
-      ws'.target = σ (.n (osLevels c lvl lvs st).2.t) ∧
-      (osLevels c lvl lvs st).2.fs.length = 5 ∧ PadOk σ (osLevels c lvl lvs st).2.pad ∧
-      (osLevels c lvl lvs st).2.co ≤ 8 ∧
-      (osLevels c lvl lvs st).2.cur σ = st.cur σ * gen ^ xs.length ∧
-      os = (osQCalls c lvl lvs st).map (fun e ↦ lvOpenings rd σ e.2.1 (Wf e.1 e.2.1) e.2.2) ∧
-      xs.length = lvsWords c lvl lvs
-  | [lv], [level], lvl, st, ws, R, root, hok, hcal, hqw, hin, hwt, hall => by
-    obtain ⟨hcfg, hfold, h4, hml, hlen, hfin⟩ := hok
-    have hall' : AllOk C rd σ (osLevel c lvl lv st).1 := by
-      have := (allOk_append.mp hall).1
-      exact this
-    obtain ⟨xs, os, ws', ms, r, hrd, hrun, hmsl, hfm, hgl, hrec, hfl, hfch, hq, ht, hfs, hpad,
-      hco, hcur, hos, hxl⟩ := osLevel_final_sound hle hqw.1 hcal.1 hcfg hfold h4 hml hlen hfin hin hwt hall'
-    exact ⟨xs, [os], R, ms, ws', [r], hrd, hrun, hmsl, hfm, by simpa using hgl, rfl,
-      fun i hi _ ↦ by
-        obtain rfl : i = 0 := by simpa using hi
-        simpa using hrec, hfl, hfch, hq, ht, hfs, hpad, hco, hcur,
-      by rw [hos]; simp [osQCalls], by rw [hxl]; simp [lvsWords, hfin]⟩
-  | lv :: lv' :: lvs, level :: next :: cfg, lvl, st, ws, R, root, hok, hcal, hqw, hin, hwt, hall => by
-    obtain ⟨hcfg, hfold, h4, hml, hm, hlvl, hnf, hoff', hshape, hrest⟩ := hok
-    have e1 : osLevels c lvl (lv :: lv' :: lvs) st =
-        ((osLevel c lvl lv st).1 ++ (osLevels c (lvl + 1) (lv' :: lvs) (osLevel c lvl lv st).2).1,
-          (osLevels c (lvl + 1) (lv' :: lvs) (osLevel c lvl lv st).2).2) := rfl
-    rw [e1] at hall ⊢
-    rw [allOk_append] at hall
-    obtain ⟨xs1, os1, ws1, root', r, hrd1, hrun1, hin1, hgl1, hrec1, hcur1, hos1, hxl1⟩ :=
-      osLevel_nonfinal_sound (rest := cfg) hle hqw.1 hcal.1 hcfg hfold h4 hml hm hlvl hnf hoff'
-        hshape hin hwt hall.1
-    obtain ⟨xs2, os2, R', ms, ws', rs, hrd2, hrun2, hmsl, hfm, hgl2, hrl, hrec2, hfl, hfch, hq,
-      ht, hfs, hpad, hco, hcur2, hos2, hxl2⟩ :=
-      osLevels_sound hle (lv' :: lvs) (next :: cfg) (lvl + 1) _ ws1 _ root' hrest hcal.2 hqw.2 hin1
-        hwt hall.2
-    refine ⟨xs1 ++ xs2, [os1] ++ os2, R', ms, ws', r :: rs, readsAt_append hrd1 (by
-        rw [← hcur1]; exact hrd2), ?_, hmsl, hfm, ?_, by simp [hrl], ?_, hfl, hfch, hq, ht, hfs,
-      hpad, hco, ?_, ?_, ?_⟩
-    · exact RunsWith.bind' hrun1 hrun2
-    · rw [hgl2, hgl1]; simp
-    · intro i hi hi'
+/-- The last level's row. -/
+def lvsLast (lvs : List OsLv) : OsLv := lvs.getLastD default
+
+theorem osLevels_cons (c : OsCfg) (lvl : ℕ) (lv : OsLv) (rest : List OsLv) (s : OsSt) :
+    (osLevels c lvl (lv :: rest) s).1 =
+      (osLevel c lvl lv s).1 ++ (osLevels c (lvl + 1) rest (osLevel c lvl lv s).2).1 := rfl
+
+theorem osLevels_cons_snd (c : OsCfg) (lvl : ℕ) (lv : OsLv) (rest : List OsLv) (s : OsSt) :
+    (osLevels c lvl (lv :: rest) s).2 = (osLevels c (lvl + 1) rest (osLevel c lvl lv s).2).2 := rfl
+
+/-- **The levels from `lvl` and the closing rounds, soundly.** -/
+theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
+    (hle : CallRel.Le C (coreProgram.Rel rd)) (hwt : WinTabs rd (σ (.n osTabs)))
+    {c : OsCfg} {logN : ℕ} (lane : ℕ) :
+    ∀ (lvl : ℕ) (lv : OsLv) (lvs : List OsLv) (cfg : List Whir.Level) (st : OsSt) (ws : WhirState)
+      (recs : List OsRec) (R : List (Digest × ℕ × ℕ)) (root : Digest),
+      LevelsOk rd C σ c logN lvl (lv :: lvs) cfg → LvIn rd σ lvl lv st ws recs R root →
+      AllOk C rd σ (osLevels c lvl (lv :: lvs) st).1 →
+      AllOk C rd σ (osTail c (osLevels c lvl (lv :: lvs) st).2).1 →
+      ∃ (xs : List E) (recs' : List OsRec) (gs fold T : List E) (R' : List (Digest × ℕ × ℕ)),
+        xs.length = lvsWords c lvl (lv :: lvs) + 2 * c.yrLog ∧ ReadsAt rd (st.cur σ) xs ∧
+        RunsWith (whirLevelsOpen logN lane lvl cfg ws) (st.F σ) xs
+          (osLevelsW rd V σ c lvl (lv :: lvs) st) R
+          ⟨((ws.alphas ++ gs) ++ T).drop lane ++ ((ws.alphas ++ gs) ++ T).take lane,
+            ((recs ++ recs').flatMap recGlued).foldl
+              (fun w g ↦ w + g.scalar * g.weightAt (((ws.alphas ++ gs) ++ T).drop g.foldStart)) 0,
+            multilinearEval (fold.take c.yrLen) T,
+            σ (.n (osTail c (osLevels c lvl (lv :: lvs) st).2).2.1.claim) +
+              T.prod * recsDeficit (recs ++ recs') (ws.alphas ++ gs)⟩
+          ((osTail c (osLevels c lvl (lv :: lvs) st).2).2.1.F σ) R' ∧
+        recs'.length = lvs.length ∧
+        (∀ i (hi : i < recs'.length), RecStored rd σ (lvl + i) ((lv :: lvs).getD i default) recs'[i]) ∧
+        (∀ r ∈ recs, r.F ≤ ws.alphas.length) ∧
+        gs.length = lvsFolds (lv :: lvs) ∧
+        (∀ j (h : j < (ws.alphas ++ gs).length), LoadHolds rd (σ (.n osFch)) j (ws.alphas ++ gs)[j]) ∧
+        ReadsAt rd (σ (.n osFmsg)) fold ∧ fold.length = c.yrLen + (lvsLast (lv :: lvs)).folds ∧
+        ReadsAt rd (σ (.n (osTail c (osLevels c lvl (lv :: lvs) st).2).2.2)) T ∧
+        T.length = c.yrLog ∧ MatsOk σ (osTail c (osLevels c lvl (lv :: lvs) st).2).2.1.mats
+  | lvl, lv, [], [level], st, ws, recs, R, root, hok, hin, hA, hT => by
+    obtain ⟨hF, hcal⟩ := hok
+    simp only [osLevels, List.append_nil] at hA hT
+    obtain ⟨xs, gs, fold, T, hxl, hrd, hgl, hfl, hTl, hrun, hfm, hTr, lg, hmT⟩ :=
+      osLevelLast_sound hU hle hwt hF hcal hin hA hT lane
+    refine ⟨xs, [], gs, fold, T, R, by simp [hxl, lvsWords], hrd, ?_, rfl,
+      fun i hi ↦ absurd hi (by simp), hin.recF, by simp [hgl, lvsFolds], ?_, hfm, hfl, hTr, hTl,
+      by simpa [osLevels] using hmT⟩
+    · rw [whirLevelsOpen_last]
+      simp only [osLevelsW, List.append_nil, osLevels]
+      refine RunsWith.of_eq hrun rfl rfl rfl rfl ?_ rfl rfl
+      rw [hin.glued, recsDeficit_append_alphas _ _ _ hin.recF]
+    · intro j hj
+      by_cases h0 : j < ws.alphas.length
+      · rw [List.getElem_append_left h0]; exact hin.fch j h0
+      · rw [List.getElem_append_right (by omega)]
+        have := lg (j - ws.alphas.length) (by simp at hj; omega)
+        rw [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem (by simp at hj; omega),
+          Option.getD_some, ← hin.glen, Nat.add_sub_cancel' (by omega)] at this
+        exact this
+  | lvl, lv, lv' :: lvs, level :: next :: cfg, st, ws, recs, R, root, hok, hin, hA, hT => by
+    obtain ⟨hF, hcal, hrest⟩ := hok
+    rw [osLevels_cons] at hA
+    rw [osLevels_cons_snd] at hT ⊢
+    rw [allOk_append] at hA
+    obtain ⟨xs1, ws1, r, root', hxl1, hrd1, hrun1, hin1, hrec, hcur1, gs1, hgs1, hgl1⟩ :=
+      osLevelMid_sound hU hle hwt hF hcal hin hA.1
+    obtain ⟨xs2, recs', gs2, fold, T, R', hxl2, hrd2, hrun2, hrl, hrecs, -, hgl2, hfch, hfm,
+      hfl, hTr, hTl, hmT⟩ :=
+      osLevels_sound hU hle hwt lane (lvl + 1) lv' lvs (next :: cfg) (osLevel c lvl lv st).2 ws1
+        (recs ++ [r]) _ root' hrest hin1 hA.2 hT
+    have eG : ws1.alphas ++ gs2 = ws.alphas ++ (gs1 ++ gs2) := by rw [hgs1, List.append_assoc]
+    rw [eG] at hrun2 hfch
+    rw [List.append_assoc] at hrun2
+    refine ⟨xs1 ++ xs2, r :: recs', gs1 ++ gs2, fold, T, R', ?_, ?_, ?_, by simp [hrl], ?_,
+      hin.recF, by simp [hgl1, hgl2, lvsFolds], hfch, hfm, ?_, hTr, hTl, hmT⟩
+    · simp only [List.length_append, hxl1, hxl2, lvsWords]; ring
+    · exact readsAt_append hrd1 (by rw [← hcur1]; exact hrd2)
+    · rw [whirLevelsOpen_next]
+      have h := RunsWith.bind' hrun1 hrun2
+      simp only [VerifierProgram.bind_assoc] at h
+      exact RunsWith.of_eq h rfl rfl rfl rfl (by simp) rfl rfl
+    · intro i hi
       rcases i with _ | i
-      · simpa using hrec1
-      · have := hrec2 i (by simpa using hi) (by simpa using hi')
+      · simpa using hrec
+      · have := hrecs i (by simp at hi; omega)
         rw [show lvl + 1 + i = lvl + (i + 1) by ring] at this
         simpa using this
-    · rw [hcur2, hcur1, List.length_append, pow_add, mul_assoc]
-    · rw [hos1, hos2]; simp [osQCalls]
-    · rw [List.length_append, hxl1, hxl2]; simp [lvsWords, hnf]
-  | [], _, _, _, _, _, _, hok, _, _, _, _, _ => by simp [LevelsOk] at hok
-  | [_], [], _, _, _, _, _, hok, _, _, _, _, _ => by simp [LevelsOk] at hok
-  | [_], _ :: _ :: _, _, _, _, _, _, hok, _, _, _, _, _ => by simp [LevelsOk] at hok
-  | _ :: _ :: _, [], _, _, _, _, _, hok, _, _, _, _, _ => by simp [LevelsOk] at hok
-  | _ :: _ :: _, [_], _, _, _, _, _, hok, _, _, _, _, _ => by simp [LevelsOk] at hok
+    · rw [hfl]; rfl
+  | _, _, [], [], _, _, _, _, _, hok, _, _, _ => absurd hok (by simp [LevelsOk])
+  | _, _, [], _ :: _ :: _, _, _, _, _, _, hok, _, _, _ => absurd hok (by simp [LevelsOk])
+  | _, _, _ :: _, [], _, _, _, _, _, hok, _, _, _ => absurd hok (by simp [LevelsOk])
+  | _, _, _ :: _, [_], _, _, _, _, _, hok, _, _, _ => absurd hok (by simp [LevelsOk])
 
 end
 end LeanVM.Guest.B1.Whir

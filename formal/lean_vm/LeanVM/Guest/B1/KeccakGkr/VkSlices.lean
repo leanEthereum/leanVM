@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkSlices
 
-  `verify_keccak`'s 64 slices (G:3060-3069): read at the cursor, stored, absorbed four to a
+  `verify_keccak`'s 64 slices (G:3010-3019): read at the cursor, stored, absorbed four to a
   permutation, then the ring map's first challenge squeezed.
 -/
 
@@ -24,7 +24,7 @@ theorem absorbAll_append (s : Fs) (xs ys : List E) (t : ℕ) :
 
 /-- The cells of group `g`'s four reads. -/
 def slGroup (b g : ℕ) : List (V × V) :=
-  (List.range 4).map fun j ↦ (.n (slB b (4 * g + j) + 7), .n (slB b (4 * g + j) + 9))
+  (List.range 4).map fun j ↦ (.n (slB b (4 * g + j) + 1), .n (slB b (4 * g + j) + 2))
 
 theorem slGroup_cells (b g : ℕ) : pendCellsV (slGroup b g) = slCells b g := by
   simp [pendCellsV, slGroup, slCells, List.range_succ]
@@ -40,8 +40,8 @@ theorem group_absorb {cap : List E} {capV : List V} (hc : cap = capV.map σ) {b 
   refine ⟨hc, ?_⟩
   simp only [slWords, slGroup, List.range_succ, List.range_zero, List.nil_append, List.map_cons,
     List.map_nil, List.cons_append, PendOk]
-  refine ⟨fun h ↦ fsPackT_cells (hp 0 (by omega)) h, fun h ↦ fsPackT_cells (hp 1 (by omega)) h,
-    fun h ↦ fsPackT_cells (hp 2 (by omega)) h, fun h ↦ fsPackT_cells (hp 3 (by omega)) h, trivial⟩
+  exact ⟨fsPackT_cells (hp 0 (by omega)), fsPackT_cells (hp 1 (by omega)),
+    fsPackT_cells (hp 2 (by omega)), fsPackT_cells (hp 3 (by omega)), trivial⟩
 
 theorem absorbAll_full {s : Fs} (h : s.pend.length = 4) (x : E) (xs : List E) (t : ℕ) :
     s.absorbAll (x :: xs) t = (⟨capOf s.perm, []⟩ : Fs).absorbAll (x :: xs) t := by
@@ -59,19 +59,20 @@ theorem range_map_take (f : ℕ → E) (g : ℕ) :
   rw [show 4 * (g + 1) = 4 * g + 4 by ring, List.range_add, List.map_append, List.map_map]
   rfl
 
-/-- **The slices** (G:3060-3069). -/
+/-- **The slices** (G:3010-3019). -/
 theorem slicesT_holds {cur : V} {capb b : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (slicesT cur capb b) next kret) :
     ReadsAt rd (σ cur) ((List.range 64).map fun z ↦ σ (.n (slB b z))) ∧
       (∀ z < 64, LoadHolds rd (σ (.n 10)) z (σ (.n (slB b z)))) ∧
       ((⟨(cap5 capb).map σ, []⟩ : Fs).absorbAll ((List.range 64).map fun z ↦ σ (.n (slB b z)))
-        dsObserve).squeeze = (σ (.n (b + 854)), ⟨(cap5 (b + 843)).map σ, []⟩) ∧ next := by
-  rw [slicesT, holdsList_append, holdsList_append, holdsList_range_flatten _ _ (fun g ↦ by
+        dsObserve).pend.length = rateScalars ∧
+      capOf ((⟨(cap5 capb).map σ, []⟩ : Fs).absorbAll ((List.range 64).map fun z ↦ σ (.n (slB b z)))
+        dsObserve).perm = (cap5 (slP b 16 + 8)).map σ ∧ next := by
+  rw [slicesT, holdsList_append, holdsList_range_flatten _ _ (fun g ↦ by
     rw [noRetList_append, noRetList_flatten_map _ (fun j ↦ rfl)]; split <;> rfl)] at h
   obtain ⟨hg, hfin⟩ := h
   simp only [keccakA, Stmt.HoldsList, Stmt.Holds] at hfin
-  obtain ⟨hkf, hfin⟩ := hfin
-  obtain ⟨hch, hn⟩ := (holds_challengeT _ _ _ _ _).1 hfin
+  obtain ⟨hkf, hn⟩ := hfin
   -- each group
   have G : ∀ g < 16, (g ≠ 0 → (Atom.keccak (slCells b (g - 1) ++ cap5 (slCap capb b (g - 1)))
         ((List.range 13).map fun k ↦ .n (slP b g + k)) false false).Holds rd σ) ∧
@@ -127,20 +128,15 @@ theorem slicesT_holds {cur : V} {capb b : ℕ} {next : Prop} {kret : List E → 
     rwa [Nat.div_add_mod] at this
   have hs := inv 15 (by omega)
   simp only [show 4 * (15 + 1) = 64 from rfl] at hs
+  generalize (⟨(cap5 capb).map σ, []⟩ : Fs).absorbAll (List.map f (List.range 64)) dsObserve = S
+    at hs ⊢
   obtain ⟨hperm, hout⟩ := spOk_perm hs hkf (zs := []) (by simp [slGroup_cells, slCap])
     (by simp [slGroup]) (by simp [slGroup])
-  refine ⟨fun z hz' ↦ ?_, fun z hz' ↦ (hz z (by simpa using hz')).2, ?_, hn⟩
+  refine ⟨fun z hz' ↦ ?_, fun z hz' ↦ (hz z (by simpa using hz')).2, ?_, ?_, hn⟩
   · simp only [List.length_map, List.length_range] at hz'
     simpa using (hz z hz').1.1
-  · have h0 := hout 0 (by omega)
-    have h1 := hout 1 (by omega)
-    simp only [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range (by omega : 0 < 13),
-      List.getElem?_range (by omega : 1 < 13), Option.map_some, Option.getD_some,
-      Nat.add_zero] at h0 h1
-    have hc := challengeT_value hch h0 h1
-    have hcap := capOf_outs hout
-    simp only [Fs.squeeze]
-    rw [hc, hcap]
+  · exact (pendOk_length hs.2).trans rfl
+  · rw [capOf_outs hout]
     simp [capOuts, cap5, List.range_succ, Nat.add_assoc]
 
 end

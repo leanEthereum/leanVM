@@ -12,12 +12,12 @@ public import LeanVM.Guest.B1.Common.Sponge
 /-!
 # Merkle caps: meanings (TRIAGE G #33, #34)
 
-The guest (`lean_ethereum.py` at leanVM main `40f877dc`, G below) opens a WHIR commitment in two
+The guest (`lean_ethereum.py`, G below) opens a WHIR commitment in two
 parts: each query climbs its leaf's hash up `depth - cap_depth` levels (`walk_path`,
-G:1308-1343, called by `opening_query`) to a node of the cap, a hinted top of the tree whose
+G:1303-1338, called by `opening_query`) to a node of the cap, a hinted top of the tree whose
 node `k` (`1 ≤ k < 2^(cap_depth+1)`, node `1` the root, `2k`, `2k + 1` its children) sits at the
 cap's cells `2k`, `2k + 1`; the query writes the node it reached there and flags the node's
-parent. `verify_merkle_cap(cap, flags, depth)` (G:1167-1210) then hashes every flagged node of
+parent. `verify_merkle_cap(cap, flags, depth)` (G:1156-1199) then hashes every flagged node of
 the cap, and the root always; an unflagged internal node pins its children's flags to zero, so
 every flagged node's ancestors are hashed. Together they are `climb` (V:492) to the root, the
 root being what `openOne` (V:501) compares (`B1/Merkle/Climb.lean`).
@@ -25,7 +25,7 @@ root being what `openOne` (V:501) compares (`B1/Merkle/Climb.lean`).
 * `HashesPair l0 l1 r0 r1 p0 p1`: the four child cells are canonical and the parent's cells are
   the digest of their 64 bytes (`keccak(…)` of two two-cell digests, `keccak_one`), which for
   digests' cells is `hashPair` (`LeanVM/Protocol/KeccakHash.lean`).
-* `MeaningVerifyMerkleCap D`: what `verify_merkle_cap__L{D}` checks, `4 ≤ D ≤ 8`.
+* `MeaningVerifyMerkleCap D`: what `verify_merkle_cap__L{D}` checks, `2 ≤ D ≤ 8`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -35,13 +35,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- A node's two cells hash its children's: the children's four cells are canonical, and the
-node's cells are the digest of their 64 bytes. -/
+/-- A node's two cells hash its children's: the node's cells are the digest of their 64 bytes. -/
 def HashesPair (l0 l1 r0 r1 p0 p1 : E) : Prop :=
-  AllCanonical [l0, l1, r0, r1] ∧
-    (p0, p1) = digestHalves (keccak256 (Keccak.cellsBytes [l0, l1, r0, r1]))
+  (p0, p1) = digestHalves (keccak256 (Keccak.cellsBytes [l0, l1, r0, r1]))
 
-/-- **`verify_merkle_cap(cap, flags, D)`** (G:1167-1210; TRIAGE #34): the cap's cells `cell k`,
+/-- **`verify_merkle_cap(cap, flags, D)`** (G:1156-1199; TRIAGE #34): the cap's cells `cell k`,
 `2 ≤ k < 2^(D+2)` (node `k / 2`'s cell `k % 2`), are in memory; the flags `fl k` of the internal
 nodes `2 ≤ k < 2^D` are in memory and in `K`; the root and every flagged internal node hash their
 children; an unflagged internal node whose children are internal has their flags zero; the
@@ -58,16 +56,21 @@ def MeaningVerifyMerkleCap (D : ℕ) (rd : Reader) : List E → List E → Prop
         rets = [cell 2, cell 3]
   | _, _ => False
 
-/-- The deployed specializations, cap depths `4 .. 8`, by name (a name built by `++ toString`
+/-- The deployed specializations, cap depths `2 .. 8`, by name (a name built by `++ toString`
 does not reduce in a `module`'s kernel). -/
 def merkleCapNames : List (String × ℕ) :=
-  [("verify_merkle_cap__L4", 4), ("verify_merkle_cap__L5", 5), ("verify_merkle_cap__L6", 6),
-    ("verify_merkle_cap__L7", 7), ("verify_merkle_cap__L8", 8)]
+  [("verify_merkle_cap__L2", 2),
+    ("verify_merkle_cap__L3", 3),
+    ("verify_merkle_cap__L4", 4),
+    ("verify_merkle_cap__L5", 5),
+    ("verify_merkle_cap__L6", 6),
+    ("verify_merkle_cap__L7", 7),
+    ("verify_merkle_cap__L8", 8)]
 
-/-- `verify_merkle_cap__L{D}`'s core IR is its meaning, `4 ≤ D ≤ 8`. -/
-def verify_merkle_cap_Spec : Prop :=
+/-- `verify_merkle_cap__L{D}`'s function in the program `P` is its meaning, `2 ≤ D ≤ 8`. -/
+def verify_merkle_cap_SpecP (P : Program) : Prop :=
   ∀ p ∈ merkleCapNames, ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd p.1 args rets ↔ MeaningVerifyMerkleCap p.2 rd args rets
+    P.Rel rd p.1 args rets ↔ MeaningVerifyMerkleCap p.2 rd args rets
 
 end
 end LeanVM.Guest.B1

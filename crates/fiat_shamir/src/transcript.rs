@@ -2,19 +2,19 @@
 
 use crate::FiatShamirState;
 use crate::merkle::{Hash, MerklePath, hash_to_scalars};
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 /// A scalar stream and its Merkle opening phases, each query's path in the order the verifier samples them.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Proof {
-    pub stream: Vec<F192>,
+    pub stream: Vec<F128>,
     pub merkle: Vec<Vec<MerklePath>>,
 }
 
 /// Writes scalars into the stream and opening phases to the side.
 pub struct ProverState {
     fs: FiatShamirState,
-    stream: Vec<F192>,
+    stream: Vec<F128>,
     merkle: Vec<Vec<MerklePath>>,
     #[cfg(feature = "fuzzing")]
     tamper: Option<crate::tamper::ScalarTamper>,
@@ -48,11 +48,11 @@ impl ProverState {
         }
     }
 
-    pub fn sample(&mut self) -> F192 {
+    pub fn sample(&mut self) -> F128 {
         self.fs.sample()
     }
 
-    pub fn sample_vec(&mut self, n: usize) -> Vec<F192> {
+    pub fn sample_vec(&mut self, n: usize) -> Vec<F128> {
         self.fs.sample_vec(n)
     }
 
@@ -65,7 +65,8 @@ impl ProverState {
     /// Transmit a scalar into the proof AND bind it into the state (the two are
     /// inseparable: you cannot send without binding).
     #[inline]
-    pub fn add_scalar(&mut self, x: F192) {
+    pub fn add_scalar(&mut self, x: F128) {
+        // Under the fuzzer's `fuzzing` feature an edit may change what is bound and sent.
         #[cfg(feature = "fuzzing")]
         let x = match &mut self.tamper {
             Some(tamper) => tamper(self.stream.len(), x),
@@ -75,7 +76,7 @@ impl ProverState {
         self.stream.push(x);
     }
 
-    pub fn add_scalars(&mut self, xs: &[F192]) {
+    pub fn add_scalars(&mut self, xs: &[F128]) {
         for &x in xs {
             self.add_scalar(x);
         }
@@ -98,7 +99,10 @@ impl ProverState {
     /// plain round has `h(0) + h(1) = Σ_{i≥1} c_i = claim`, which fixes `c_1`,
     /// and a round whose `eq` weight `r` was factored out has
     /// `(1 + r)·h(0) + r·h(1) = c_0 + r·Σ_{i≥1} c_i = claim`, which fixes `c_0`.
-    pub fn add_round_poly(&mut self, coeffs: &[F192], eq: bool) {
+    ///
+    /// Then the round's grind: the round's error is its degree over `|E|`, the degree of the whole round
+    /// polynomial, eq factor included.
+    pub fn add_round_poly(&mut self, coeffs: &[F128], eq: bool) {
         assert!(coeffs.len() >= 2, "a round polynomial has at least two coefficients");
         let fixed = usize::from(!eq);
         for (i, &c) in coeffs.iter().enumerate() {
@@ -106,22 +110,23 @@ impl ProverState {
                 self.add_scalar(c);
             }
         }
+        self.grind(crate::grinding_bits((coeffs.len() - 1 + usize::from(eq)) as u128));
     }
 
-    /// Proof-of-work grind of `bits` before the next challenge, raising that
-    /// challenge's Schwartz-Zippel soundness by `bits` (the prover must redo
-    /// the PoW to re-roll the challenge). Grinds, binds the nonce into the
-    /// state, and transmits it on the stream as raw transport (already bound
-    /// by the grind, so it is NOT re-absorbed). `bits = 0` is the canonical
-    /// no-work nonce `0`.
+    /// Proof-of-work grind of `bits` before the next challenge, which divides that verifier message's
+    /// round-by-round error by `2^bits` (the prover must redo the work to re-roll it). Binds the nonce and
+    /// transmits it on the stream as raw transport (already bound, so NOT re-absorbed). A grind of zero bits
+    /// is nothing: no nonce, no permutation.
     pub fn grind(&mut self, bits: u32) {
-        let nonce = self.fs.grind_pow(bits);
-        let nonce = F192::new(nonce, 0, 0);
-        #[cfg(feature = "fuzzing")]
-        let nonce = match &mut self.tamper {
-            Some(tamper) => tamper(self.stream.len(), nonce),
-            None => nonce,
-        };
-        self.stream.push(nonce);
+        if let Some(nonce) = self.fs.grind(bits) {
+            #[cfg(feature = "fuzzing")]
+            let sent = match &mut self.tamper {
+                Some(tamper) => tamper(self.stream.len(), F128::new(nonce, 0)),
+                None => F128::new(nonce, 0),
+            };
+            #[cfg(not(feature = "fuzzing"))]
+            let sent = F128::new(nonce, 0);
+            self.stream.push(sent);
+        }
     }
 }

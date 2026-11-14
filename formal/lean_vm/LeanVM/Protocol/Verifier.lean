@@ -7,16 +7,11 @@
 
 module
 
-public import LeanVM.Parameters.Whir
 public import Statement.LeanVmVerifier
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
-public import LeanVM.Protocol.Compile.Prog
-public import LeanVM.Protocol.KeccakHash
-public import LeanVM.Parameters.Field
-public import LeanVM.Protocol.WithHash
 
 /-!
 # The verifier on its files
@@ -39,7 +34,7 @@ open LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 
 * `bytecode.bin`: the bytecode table, 8 little-endian bytes per `K` word (`decodeWords`);
 * `public_input.bin`: the 32 bytes of the public input digest (`decodeDigest`);
-* `stream.bin`: the scalar stream, 24 bytes per `E` element, its three limbs in order
+* `stream.bin`: the scalar stream, 16 bytes per `E` element, its two limbs in order
   (`decodeScalars`).
 
 The Merkle openings are read by `leanvm-verify` (`readPhasesFile`) or from the wire encoding
@@ -68,8 +63,8 @@ def kOfBytes (b : Bytes) : K := K.ofLane (laneOfBytes b)
 def digestOfBytes (b : Bytes) : Digest :=
   Vector.ofFn fun j : Fin 4 ↦ laneOfBytes (b.drop (8 * j))
 
-/-- The scalar of 24 bytes, three little-endian limbs. -/
-def eOfBytes (b : Bytes) : E := E.ofLimbs (kOfBytes b) (kOfBytes (b.drop 8)) (kOfBytes (b.drop 16))
+/-- The scalar of 16 bytes, two little-endian limbs. -/
+def eOfBytes (b : Bytes) : E := E.ofLimbs (kOfBytes b) (kOfBytes (b.drop 8))
 
 /-! ### The files -/
 
@@ -87,7 +82,7 @@ def decodeDigest (b : Bytes) : Option Digest :=
   if b.length = 32 then some (digestOfBytes b) else none
 
 /-- `stream.bin`: the scalars. -/
-def decodeScalars (b : Bytes) : Option (List E) := decodeAll 24 eOfBytes b
+def decodeScalars (b : Bytes) : Option (List E) := decodeAll 16 eOfBytes b
 
 end
 end LeanVM.Protocol.Verifier

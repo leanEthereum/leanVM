@@ -46,7 +46,7 @@ open LeanVM.Parameters LeanVM.Protocol CompPoly CMlPolynomialEval
 def arbitrary : Column 3 := ⟨#v[K.ofBits 9, K.ofBits 8, K.ofBits 7, K.ofBits 6, K.ofBits 5, K.ofBits 4, K.ofBits 3, K.ofBits 2]⟩
 
 /-- A point of `E` outside `K`. -/
-def u : E := E.ofLimbs 0 1 0
+def u : E := E.ofLimbs 0 1
 
 example : ¬ IsInK u := by decide
 

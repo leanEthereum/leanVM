@@ -5,31 +5,46 @@
 
 Fails, listing each hit as `file:line: text`, on any of these outside comments:
 
-* `sorry`, `sorryAx`, `admit`, `native_decide`, `decide +native` (`+native`), `unsafe`,
-  `implemented_by` and `#exit`;
-* an `axiom` declaration, with any modifiers before it (`private axiom`, `@[simp] axiom`, ...);
+* `sorry`, `sorryAx`, `admit`, `admitGoal`, `native_decide`, `decide +native` (`+native`), `unsafe`,
+  `implemented_by`, `@[extern]` and `#exit`;
+* the keyword `axiom` anywhere, so an `axiom` declaration whatever comes before it (`private axiom`,
+  `meta axiom`, `@[simp] axiom`, `open Nat in axiom`, ...);
 * the ways to skip the kernel that `#print axioms` cannot see: `skipKernelTC`, `addDeclCore`,
-  `addDeclWithoutChecking`, `doCheck`, `ofReduceBool`, `trustCompiler`.
+  `addDeclWithoutChecking`, `doCheck`, `ofReduceBool`, `trustCompiler`, and adding to the environment
+  past `addDecl`: `addConstAsync`, `commitConst`, `Kernel.Environment.add`, `setEnv` (`ALLOWED` lists
+  the benign uses).
 
 Comments (`--` to the end of the line, `/- ... -/` nested, docstrings included) are blanked
 before the search, keeping the lines, so a forbidden word in a comment passes and one in code
-after a comment on the same line does not. String and character literals are kept as code (a
-`--` or `/-` inside one opens no comment). Directories named `.lake` are skipped, and symbolic
-links are not followed. `.lean` files only, so `lake-build.py`'s `--dev`, which names
-`skipKernelTC`, is exempt. The CI (`.github/workflows/lean.yml`) and `check-all.sh` both run it.
+after a comment on the same line does not. String, raw string (`r"..."`, `r#"..."#`) and character
+literals are kept as code (a `--` or `/-` inside one opens no comment). Directories named `.lake`
+are skipped, and symbolic links are not followed. `.lean` files only, so `lake-build.py`'s `--dev`,
+which names `skipKernelTC`, is exempt. The CI (`.github/workflows/lean.yml`) and `check-all.sh` both
+run it.
 """
 import os
 import re
 import sys
 
-WORDS = ("sorry|sorryAx|admit|native_decide|unsafe|implemented_by|skipKernelTC|addDeclCore|"
-         "addDeclWithoutChecking|doCheck|ofReduceBool|trustCompiler")
-MODIFIERS = r"(?:(?:private|protected|public|noncomputable|unsafe|partial|nonrec|scoped|local)\s+)*"
+WORDS = ("sorry|sorryAx|admit|admitGoal|native_decide|unsafe|implemented_by|skipKernelTC|addDeclCore|"
+         "addDeclWithoutChecking|doCheck|ofReduceBool|trustCompiler|addConstAsync|commitConst|"
+         "Environment\\.add|setEnv")
 PATTERN = re.compile(
     r"\b(?:" + WORDS + r")\b"
     r"|#exit\b"
     r"|\+native\b"
-    r"|^\s*(?:@\[[^\]]*\]\s*)*" + MODIFIERS + r"axiom\b")
+    r"|(?:@|\battribute\s*)\[[^\]]*\bextern\b"
+    r"|(?<![.«`'])\baxiom\b(?!['?!])")
+
+# Every hit contains one of these words, and blanking comments only removes text: a file without
+# any of them needs no scan.
+QUICK = re.compile(r"(?:" + WORDS + r"|#exit|\+native|extern|axiom)")
+
+# The benign uses, by file (its path's end) and word: `copyDecl` sets compiler attributes on a
+# declaration `addDecl` added.
+ALLOWED = {("LeanVM/Prover/Fast/Copy.lean", "setEnv")}
+
+RAW = re.compile(r'r(#*)"')
 
 CHAR = re.compile(r"'(?:\\[^']{1,8}|[^'\\\n])'")
 
@@ -61,6 +76,13 @@ def strip_comments(text: str) -> str:
             j = n if j < 0 else j
             out.append(" " * (j - i))
             i = j
+        elif c == "r" and (i == 0 or not (text[i - 1].isalnum() or text[i - 1] in "_'!?.")) \
+                and RAW.match(text, i):
+            m = RAW.match(text, i)
+            j = text.find('"' + m.group(1), m.end())
+            j = n if j < 0 else j + 1 + len(m.group(1))
+            out.append(text[i:j])
+            i = j
         elif c == '"':
             j = i + 1
             while j < n and text[j] != '"':
@@ -81,10 +103,13 @@ def strip_comments(text: str) -> str:
 def scan(path: str) -> list[str]:
     with open(path, encoding="utf-8") as f:
         text = f.read()
+    if not QUICK.search(text):
+        return []
     hits = []
     original = text.split("\n")
+    allowed = {w for f, w in ALLOWED if path.replace(os.sep, "/").endswith(f)}
     for k, line in enumerate(strip_comments(text).split("\n")):
-        if PATTERN.search(line):
+        if any(m.group(0) not in allowed for m in PATTERN.finditer(line)):
             hits.append(f"{path}:{k + 1}: {original[k].strip()}")
     return hits
 

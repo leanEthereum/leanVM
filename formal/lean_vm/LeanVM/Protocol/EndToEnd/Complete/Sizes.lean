@@ -15,9 +15,9 @@ public import LeanVM.Protocol.Whir.Complete.Opening
 # The announced sizes and the commitment
 
 Steps 1 and 2 of `verify_execution` (`readAnnouncedSizes`, `commitStack`;
-`crates/verifier/src/lib.rs:219-237` at leanVM `40f877dc`). The honest prover sends the eight
+`crates/verifier/src/lib.rs`). The honest prover sends the eight
 scalars `announce s ρ` (`Front.announce`: the memory's log-size, the six tables' row counts, then
-the WHIR rate, each the scalar `E::new(n, 0, 0)`), then the stack's level-0 word.
+the WHIR rate, each the scalar `E::new(n, 0)`), then the stack's level-0 word.
 
 * `follows_readSizes`: for sizes admissible for the program and a valid rate, every `require` of
   `readAnnouncedSizes` passes, and it returns `(verifierLayout prog s, ρ)`: the converse of
@@ -38,10 +38,8 @@ open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.Whir
 
 /-! ## The announced scalars -/
 
-/-- The scalar `E::new(n, 0, 0)` has zero upper limbs. -/
+/-- The scalar `E::new(n, 0)` has a zero upper limb. -/
 theorem eOfNat_limb_one (n : ℕ) : (eOfNat n).limb 1 = 0 := by simp [eOfNat]
-
-theorem eOfNat_limb_two (n : ℕ) : (eOfNat n).limb 2 = 0 := by simp [eOfNat]
 
 /-- The low limb of `E::new(n, 0, 0)`, read back (`value.c0`), is `n` for a word-sized `n`. -/
 theorem kToNat_eOfNat {n : ℕ} (h : n < 2 ^ 64) : kToNat ((eOfNat n).limb 0) = n := by
@@ -65,11 +63,10 @@ theorem follows_readSizes (prog : LeanIsaProgram) {s : Sizes} (hs : s.Admissible
   rw [← hlen, ← Script.bind_ret (Script.sendList (announce s ρ))]
   refine Follows.bind (fun cs' _ b hb ↦ ?_) _ _ _ (Follows.sendList_readN cs _)
   obtain ⟨rfl, rfl⟩ := hb
-  have hlimbs : ((announce s ρ).all fun value ↦ decide (value.limb 1 = 0 ∧ value.limb 2 = 0)) =
-      true := by
-    simp [announce, eOfNat_limb_one, eOfNat_limb_two]
+  have hlimbs : ((announce s ρ).all fun value ↦ decide (value.limb 1 = 0)) = true := by
+    simp [announce, eOfNat_limb_one]
   have hmem : s.logMem < 2 ^ 64 := by
-    have : s.logMem ≤ 32 := h2
+    have : s.logMem ≤ 30 := h2
     omega
   have hhead : kToNat (((announce s ρ).headD 0).limb 0) = s.logMem := by
     simp only [announce, List.cons_append, List.map_cons, List.headD_cons]
@@ -106,6 +103,38 @@ theorem follows_readSizes (prog : LeanIsaProgram) {s : Sizes} (hs : s.Admissible
 theorem whirAdmissible (prog : LeanIsaProgram) {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
     (hρ : validRate ρ) : Whir.Admissible (leanIsaμ prog s) ρ :=
   ⟨le_max_right _ _, hs.2.2.2, hρ.1, hρ.2⟩
+
+/-! ## The commitment's out-of-domain sample -/
+
+/-- The stack's multilinear extension at `z`: the value the out-of-domain claim holds. -/
+noncomputable def oodValue {μ : ℕ} (q : Column μ) (z : List E) : E :=
+  ∑ x : Fin (2 ^ μ), eqEval z (boolPoint μ x) * ofK (q.values.getD x 0)
+
+/-- **The honest prover of the commitment's out-of-domain sample** (`readOod`; `ood_sample`,
+`crates/pcs/src/ood.rs:20-31`): pass the grind, receive the point `z` of the stack's variables,
+send the stack's extension there; return the program's claim. -/
+noncomputable def hOod {μ : ℕ} (q : Column μ) : Script StackClaim :=
+  (Script.grindBits Whir.oodGrindingBits).bind fun _ ↦
+  (Script.sampleN μ).bind fun z ↦
+  (Script.sendE (oodValue q z)).bind fun _ ↦
+  .ret (fun x ↦ eqEval z x, oodValue q z)
+
+/-- **Completeness of the out-of-domain sample.** The honest prover follows `readOod`, and the
+claim the program returns holds of the stack with a multilinear weight. -/
+theorem follows_readOod {μ : ℕ} (q : Column μ) (cs : Commits) :
+    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ StackClaim.Holds μ b q ∧ IsMultilinearFn μ b.1)
+      (hOod q) (readOod μ) cs := by
+  unfold hOod readOod
+  simp only [VerifierProgram.bind_eq]
+  refine Follows.bind (fun cs₀ _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ cs)
+  subst h
+  refine Follows.bind (fun cs₁ z z' h ↦ ?_) _ _ _ (Follows.sampleN_sampleN _ μ)
+  obtain ⟨rfl, rfl, hl⟩ := h
+  refine Follows.bind (fun cs₂ _ v h ↦ ?_) _ _ _ (Follows.sendE_readE _ cs₁)
+  obtain ⟨rfl, rfl⟩ := h
+  refine ⟨rfl, rfl, rfl, ?_⟩
+  have := isMultilinearFn_eqEval z
+  rwa [hl] at this
 
 end
 end LeanVM.Protocol.EndToEnd.Complete

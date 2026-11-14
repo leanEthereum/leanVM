@@ -7,13 +7,14 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.DataSpec
+public import LeanVM.Guest.B1.Whir.DataSpecP
 
 /-!
 # Flat bodies
 
-`open_stacked`'s body (`osBody`) and its loops have no branch, `match` or dispatch: every
-statement is an atom, a call or a conditional call, and the last is the `ret`. So the body holds
+`open_stacked`'s body (`osBody`) and its loops have no branch or `match`: every statement is an
+atom, a call, a conditional call or a dispatch (a call of one of several functions, chosen by a
+selector), and the last is the `ret`. So the body holds
 of a valuation exactly when every statement's relation does (`StmtOk`) and the `ret`'s words are
 the returns (`holdsList_flat_ret`). `AllOk σ ss` is that conjunction over a block; it splits over
 `++` (`allOk_append`), so each block of the template is read on its own.
@@ -33,9 +34,9 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## Flat statements -/
 
-/-- A flat statement: an atom, a call or a conditional call. -/
+/-- A flat statement: an atom, a call, a conditional call or a dispatch. -/
 def Stmt.flat : Stmt → Bool
-  | .atom _ | .call .. | .callIf .. => true
+  | .atom _ | .call .. | .callIf .. | .dispatch .. => true
   | _ => false
 
 /-- A flat statement's relation. -/
@@ -43,6 +44,8 @@ def StmtOk (C : CallRel) (rd : Reader) (σ : Val) : Stmt → Prop
   | .atom a => a.Holds rd σ
   | .call f args rets => C f (args.map σ) (rets.map σ)
   | .callIf c f args => IsInK (σ c) ∧ (σ c ≠ 0 → C f (args.map σ) [])
+  | .dispatch x fs args rets =>
+      ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (addressOfIndex j) ∧ C fs[j] (args.map σ) (rets.map σ)
   | _ => True
 
 /-- Every statement of a block holds. -/
@@ -77,6 +80,18 @@ theorem holdsList_flat : ∀ (ss : List Stmt), ss.all Stmt.flat = true → ∀ (
     | .atom a, _ => simp only [Stmt.HoldsList, Stmt.Holds, StmtOk, ih, and_assoc]
     | .call f args rets, _ => simp only [Stmt.HoldsList, Stmt.Holds, StmtOk, ih, and_assoc]
     | .callIf c f args, _ => simp only [Stmt.HoldsList, Stmt.Holds, StmtOk, ih, and_assoc]
+    | .dispatch x fs args rets, _ => simp only [Stmt.HoldsList, Stmt.Holds, StmtOk, ih, and_assoc]
+
+/-- **A dispatch at the selector `g^i`** calls its `i`-th function. -/
+theorem stmtOk_dispatch {x : V} {fs : List String} {args rets : List V} {i : ℕ}
+    (hx : σ x = ofK (Parameters.addressOfIndex i)) (hi : i < 2 ^ 64 - 1)
+    (hfl : fs.length < 2 ^ 64 - 1) (h : StmtOk C rd σ (.dispatch x fs args rets)) :
+    i < fs.length ∧ C (fs.getD i "") (args.map σ) (rets.map σ) := by
+  obtain ⟨j, hj, hjx, hc⟩ := h
+  have hji : j = i := gen_pow_inj (by omega) hi
+    (by rw [gen_pow_eq_ofK, gen_pow_eq_ofK, ← hjx, hx])
+  subst hji
+  exact ⟨hj, by rw [List.getD_eq_getElem _ _ hj]; exact hc⟩
 
 /-- **A flat body ending in a `ret`** holds exactly when every statement before it does and the
 returns are its words. -/
@@ -85,6 +100,18 @@ theorem holdsList_flat_ret (ss : List Stmt) (h : ss.all Stmt.flat = true) (vs : 
     Stmt.HoldsList C rd σ (ss ++ [.ret vs]) False kret ↔ AllOk C rd σ ss ∧ kret (vs.map σ) := by
   rw [holdsList_append, holdsList_flat ss h]
   simp [Stmt.HoldsList, Stmt.Holds]
+
+/-! ## Atoms -/
+
+theorem holds_const (d : V) (c : E) : (Atom.const d c).Holds rd σ ↔ σ d = c := Iff.rfl
+theorem holds_add (d a b : V) : (Atom.add d a b).Holds rd σ ↔ σ d = σ a + σ b := Iff.rfl
+theorem holds_mul (d a b : V) : (Atom.mul d a b).Holds rd σ ↔ σ d = σ a * σ b := Iff.rfl
+theorem holds_copy (d s : V) : (Atom.copy d s).Holds rd σ ↔ σ d = σ s := Iff.rfl
+theorem holds_load (d p : V) (o : ℕ) : (Atom.load d p o).Holds rd σ ↔ LoadHolds rd (σ p) o (σ d) :=
+  Iff.rfl
+theorem stmtOk_atom (a : Atom) : StmtOk C rd σ (.atom a) ↔ a.Holds rd σ := Iff.rfl
+theorem stmtOk_call (f : String) (args rets : List V) :
+    StmtOk C rd σ (.call f args rets) ↔ C f (args.map σ) (rets.map σ) := Iff.rfl
 
 /-! ## Words -/
 
@@ -166,20 +193,6 @@ theorem osMatP_eq {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {base of
   unfold osMatP osMatSD
   simp only [h0, ↓reduceIte]
   split <;> rename_i h <;> simp only [h]
-
-/-- The source times `g^dist` is the base times `g^off`. -/
-theorem osMatSD_ok {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} (hm : MatsOk σ mats)
-    {base off : ℕ} (h : off < u128Bound) :
-    (osMatSD plan mats base off).2 < u128Bound ∧ σ (.n (osMatSD plan mats base off).1) *
-      gen ^ (osMatSD plan mats base off).2 = σ (.n base) * gen ^ off := by
-  unfold osMatSD
-  split
-  · rename_i m hf
-    have he := List.find?_some hf
-    simp only [Bool.and_eq_true, beq_iff_eq] at he
-    obtain ⟨-, hd, -, hs⟩ := hm m (List.mem_of_find?_eq_some hf)
-    exact ⟨hd, by rw [hs, he.1, he.2]⟩
-  · exact osMatSrc_ok hm h
 
 /-- The materializations' values lie below `K`. -/
 def MatsBelow (K : ℕ) (mats : List OsMat) : Prop := ∀ m ∈ mats, m.out < K ∧ m.src < K ∧ m.base < K

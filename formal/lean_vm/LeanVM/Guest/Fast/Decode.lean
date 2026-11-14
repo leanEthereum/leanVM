@@ -33,7 +33,7 @@ theorem decWitN_eq (σ : Val) (rd : Reader) (V : FrameMap) :
     decWitN σ rd (fun k ↦ V (decoderFunctionName k)) VerifySub.cursorLen =
       decWitV σ rd V VerifySub.vsPiOf := by
   simp only [decWitN, decWitV, xmssSigOfN_eq, sphincsSigOfN_eq, dvWitN_eq, vsPiOfN_eq,
-    name_loop2, name_verify_sig_lean_sphincs, name_da_verify, name_verify_sub,
+    name_xmss, name_verify_sig_lean_sphincs, name_da_verify, name_verify_sub,
     name_aggregate_claims]
 
 /-- **The deployed decoder reads the frames by index**, through the restated readers, the

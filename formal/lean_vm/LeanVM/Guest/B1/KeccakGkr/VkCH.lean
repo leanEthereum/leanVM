@@ -63,9 +63,9 @@ variable {D : VkData}
 theorem layer_xs (s : ℕ) : (D.layer s).xs = ltXs (D.T s) := rfl
 
 theorem ltXs_length (h : D.Ok) {s : ℕ} (hs : s < 12) :
-    (ltXs (D.T s)).length = 47 + 2 * (D.τ - 3) + 36 := by
+    (ltXs (D.T s)).length = 48 + 2 * (D.τ - 3) + 36 := by
   rw [← layer_xs]
-  obtain ⟨hpl, hpm, hlm, -, -⟩ := D.layer_facts h hs
+  obtain ⟨hpl, -, hpm, hlm, -, -⟩ := D.layer_facts h hs
   rw [LayerData.xs_length hpl hpm hlm, D.layer_y h (by omega)]
 
 theorem xs_eq (h : D.Ok) : D.xs = [D.committed] ++ (List.range 12).flatMap (fun s ↦ ltXs (D.T s)) ++
@@ -84,8 +84,8 @@ theorem xs_reads (h : D.Ok) {rd : Reader} {curE : ℕ} (hr : ReadsAt rd (ptr cur
       ReadsAt rd (ptr (curE + D.lcur 12 + 13)) (D.mI.flatMap fun m ↦ [m.1, m.2]) ∧
       ReadsAt rd (ptr (curE + D.lcur 12 + 21)) (D.mS.flatMap fun m ↦ [m.1, m.2]) ∧
       ReadsAt rd (ptr (curE + D.lcur 12 + 33)) D.slices := by
-  obtain ⟨-, -, -, -, -, -, -, hmO, hmI, hmS, -, -, -⟩ := id h
-  have hc : ∀ k < 12, (ltXs (D.T k)).length = 47 + 2 * (D.τ - 3) + 36 :=
+  obtain ⟨-, -, -, -, -, -, hmO, hmI, hmS, -, -, -⟩ := id h
+  have hc : ∀ k < 12, (ltXs (D.T k)).length = 48 + 2 * (D.τ - 3) + 36 :=
     fun k hk ↦ ltXs_length h hk
   rw [xs_eq h] at hr
   refine ⟨?_, fun s hs ↦ ?_, ?_⟩
@@ -99,7 +99,7 @@ theorem xs_reads (h : D.Ok) {rd : Reader} {curE : ℕ} (hr : ReadsAt rd (ptr cur
   · have h1 := (readsAt_append.1 hr).2
     rw [ptr_mul_gen, List.length_append, flatMap_range_length _ hc] at h1
     simp only [List.length_singleton] at h1
-    rw [show curE + (1 + 12 * (47 + 2 * (D.τ - 3) + 36)) = curE + D.lcur 12 by simp [lcur]]
+    rw [show curE + (1 + 12 * (48 + 2 * (D.τ - 3) + 36)) = curE + D.lcur 12 by simp [lcur]]
       at h1
     simp only [readsAt_append, flatMap_pairs_length, hmO, hmI, List.length_append,
       List.length_singleton, ptr_mul_gen] at h1
@@ -125,7 +125,7 @@ theorem c0_mu (h : D.Ok) : D.c0.mu.length = 16 := by
 
 theorem locPt_length (h : D.Ok) {s : ℕ} (hs : s < 12) :
     ((D.layer s).locPt (firstOf s)).length = 11 := by
-  obtain ⟨-, -, hlm, -, -⟩ := D.layer_facts h hs
+  obtain ⟨-, -, -, hlm, -, -⟩ := D.layer_facts h hs
   rw [LayerData.locPt, LayerData.loc, layerLocal, localRunF_length, hlm]
 
 /-- **Claim `s`'s record and buffers hold what `ClaimLay.Ok` asks.** -/
@@ -160,10 +160,9 @@ theorem CL_ok (h : D.Ok) (B : ℕ) (ls : ℕ → ℕ) {s : ℕ} (hs : s ≤ 12) 
       rw [laterWeights]
       exact congrArg keccakLinearTranspose (batch_factor _ hlocL _)
 
-/-- A squeezed sponge: nothing waiting, a canonical capacity. -/
-theorem sq_ok (t : Fs) : t.squeeze.2 = ⟨t.squeeze.2.cap, []⟩ ∧ t.squeeze.2.cap.length = 5 ∧
-    AllCanonical t.squeeze.2.cap :=
-  ⟨squeeze_snd_eq t, by simp [Fs.squeeze, capOf], squeeze_cap_canonical _⟩
+/-- A squeezed sponge: nothing waiting, five capacity cells. -/
+theorem sq_ok (t : Fs) : t.squeeze.2 = ⟨t.squeeze.2.cap, []⟩ ∧ t.squeeze.2.cap.length = 5 :=
+  ⟨squeeze_snd_eq t, by simp [Fs.squeeze, capOf]⟩
 
 theorem plainRun_sq : ∀ (ms : List (E × E)) (v : E) (s : Fs), ms ≠ [] →
     ∃ t : Fs, (plainRun ms v s).2.2 = t.squeeze.2
@@ -175,8 +174,8 @@ theorem plainRun_sq : ∀ (ms : List (E × E)) (v : E) (s : Fs), ms ≠ [] →
     exact plainRun_sq (m' :: ms) _ _ (by simp)
 
 theorem plainRun_ok (ms : List (E × E)) (v : E) (s : Fs) (h : ms ≠ []) :
-    (plainRun ms v s).2.2 = ⟨(plainRun ms v s).2.2.cap, []⟩ ∧ (plainRun ms v s).2.2.cap.length = 5 ∧
-      AllCanonical (plainRun ms v s).2.2.cap := by
+    (plainRun ms v s).2.2 = ⟨(plainRun ms v s).2.2.cap, []⟩ ∧
+      (plainRun ms v s).2.2.cap.length = 5 := by
   obtain ⟨t, ht⟩ := plainRun_sq ms v s h
   rw [ht]; exact sq_ok t
 
@@ -184,21 +183,18 @@ theorem L_eq (h : D.Ok) : D.L = D.chain 12 := by
   simp only [chain, L, keccakDepth]
   rw [List.take_of_length_le (by simp), List.take_of_length_le (by rw [ok_Ts h])]
 
-theorem L_ok (h : D.Ok) : D.L.2 = ⟨D.L.2.cap, []⟩ ∧ D.L.2.cap.length = 5 ∧ AllCanonical D.L.2.cap := by
+theorem L_ok (h : D.Ok) : D.L.2 = ⟨D.L.2.cap, []⟩ ∧ D.L.2.cap.length = 5 := by
   rw [L_eq h, D.layer_succ h (by norm_num : 11 < 12)]
   exact sq_ok _
 
-theorem O_ok (h : D.Ok) : D.O.2.2 = ⟨D.O.2.2.cap, []⟩ ∧ D.O.2.2.cap.length = 5 ∧
-    AllCanonical D.O.2.2.cap :=
+theorem O_ok (h : D.Ok) : D.O.2.2 = ⟨D.O.2.2.cap, []⟩ ∧ D.O.2.2.cap.length = 5 :=
+  plainRun_ok _ _ _ (by rw [← List.length_pos_iff_ne_nil, h.2.2.2.2.2.2.1]; norm_num)
+
+theorem I_ok (h : D.Ok) : D.I.2.2 = ⟨D.I.2.2.cap, []⟩ ∧ D.I.2.2.cap.length = 5 :=
   plainRun_ok _ _ _ (by rw [← List.length_pos_iff_ne_nil, h.2.2.2.2.2.2.2.1]; norm_num)
 
-theorem I_ok (h : D.Ok) : D.I.2.2 = ⟨D.I.2.2.cap, []⟩ ∧ D.I.2.2.cap.length = 5 ∧
-    AllCanonical D.I.2.2.cap :=
+theorem S_ok (h : D.Ok) : D.S.2.2 = ⟨D.S.2.2.cap, []⟩ ∧ D.S.2.2.cap.length = 5 :=
   plainRun_ok _ _ _ (by rw [← List.length_pos_iff_ne_nil, h.2.2.2.2.2.2.2.2.1]; norm_num)
-
-theorem S_ok (h : D.Ok) : D.S.2.2 = ⟨D.S.2.2.cap, []⟩ ∧ D.S.2.2.cap.length = 5 ∧
-    AllCanonical D.S.2.2.cap :=
-  plainRun_ok _ _ _ (by rw [← List.length_pos_iff_ne_nil, h.2.2.2.2.2.2.2.2.2.1]; norm_num)
 
 theorem O_run (h : D.Ok) (w : E) : plainRun D.mO D.committed (plainStart 0 D.L.2.cap w) = D.O := by
   simp only [plainStart, show ¬ ((0 : ℕ) = 1) by decide, ↓reduceIte, O]

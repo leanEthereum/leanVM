@@ -60,15 +60,27 @@ impl Abi {
     const RET_FP: Off = 1;
     /// Argument `i`, after the two return slots and the preceding arguments.
     fn arg(shapes: impl Iterator<Item = Shape>, i: usize) -> Off {
-        2 + shapes.take(i).map(Shape::cells).sum::<u32>()
+        Self::fit(2 + Self::width(shapes.take(i)))
     }
     /// Total width of the argument area.
     fn arg_cells(shapes: impl Iterator<Item = Shape>) -> u32 {
-        shapes.map(Shape::cells).sum()
+        Self::fit(Self::width(shapes))
     }
     /// Return cell `i` of a callee whose arguments occupy `arg_cells` cells.
     fn ret(arg_cells: u32, i: u32) -> Off {
-        2 + arg_cells + i
+        Self::fit(2 + u64::from(arg_cells) + u64::from(i))
+    }
+    /// The cells `shapes` occupy, summed where a `StackBuf(n)` of up to `2^32 - 1` cells cannot overflow it.
+    fn width(shapes: impl Iterator<Item = Shape>) -> u64 {
+        shapes.map(|s| u64::from(s.cells())).sum()
+    }
+    /// A call-area offset or width as an [`Off`], refusing one that does not fit rather than wrapping it into a
+    /// small offset that aliases another cell. `Off::MAX` is refused too, so a caller may add one.
+    fn fit(cells: u64) -> Off {
+        match Off::try_from(cells) {
+            Ok(off) if off < Off::MAX => off,
+            _ => panic!("a call's arguments and returns outgrow 2^32 frame cells"),
+        }
     }
     /// One past the last cell the CALLER touches, so the first local cell.
     fn end(arg_cells: u32, n_ret_cells: u32) -> Off {
@@ -80,7 +92,7 @@ impl Abi {
 /// the largest immediate, so beyond this a huge constant index falls back to a
 /// materialized pointer instead of inflating that table. The one cap: every site
 /// that folds an exponent into `β` measures it against this.
-const FOLD_MAX: u128 = 1 << leanvm_core::cpu::MIN_LOG_MEM;
+const FOLD_MAX: u128 = 1 << 16;
 
 /// The two pure operations worth interning. Both are commutative, so operands
 /// are stored sorted.
@@ -109,7 +121,7 @@ enum Binding {
     Scalar(Off),
     Stack(Off, u32),
     Gaddr(GAddr),
-    FConst(F192),
+    FConst(F128),
 }
 
 /// What one name means: its value binding, plus an OPTIONAL compile-time integer
@@ -153,7 +165,7 @@ struct Scope {
     /// use in scope. A `SET` first emitted inside a branch must not be named from
     /// outside it, where the other path leaves the cell unwritten and therefore
     /// prover-chosen, which is why this reverts at a join with the bindings.
-    const_cells: HashMap<F192, Off>,
+    const_cells: HashMap<F128, Off>,
     /// Materialized shifted pointers: base cell → `(exp, cell holding base·g^exp)`.
     /// A later `base·g^k` multiplies the nearest one up by a constant already set,
     /// so an unrolled walk `p·g, p·g^2, …` pays one `SET` of `g` rather than one per step.
@@ -241,7 +253,7 @@ struct FnLower<'a> {
     defs: &'a HashMap<&'a str, &'a Func>,
     /// Top-level constant arrays, resolved at compile time: `NAME[i]` yields the
     /// element (a field value or an index), `len(NAME)` its length.
-    const_arrays: &'a HashMap<&'a str, &'a [F192]>,
+    const_arrays: &'a HashMap<&'a str, &'a [F128]>,
     /// Every `match` dispatches through a slot of these.
     tables: &'a mut JumpTables,
 }
@@ -301,7 +313,7 @@ impl FnLower<'_> {
         self.emit(LOp::Set { o, k });
     }
 
-    fn set_const(&mut self, o: Off, v: F192) {
+    fn set_const(&mut self, o: Off, v: F128) {
         self.set(o, KVal::Const(v));
     }
 
@@ -317,7 +329,7 @@ impl FnLower<'_> {
     /// branch join, or on a path this hint does not belong to).
     fn anchor(&mut self) {
         let o = self.fresh();
-        self.set_const(o, F192::ZERO);
+        self.set_const(o, F128::ZERO);
     }
 
     /// A top-level constant name is reserved (`zkDSL.md` §Global constants). A
@@ -397,7 +409,7 @@ impl FnLower<'_> {
 
     /// A frame cell holding `1` (always-taken `JUMP` condition).
     fn one(&mut self) -> Off {
-        self.const_cell(F192::ONE)
+        self.const_cell(F128::ONE)
     }
 
     /// A frame cell holding `v`, shared by every dominated use in the current
@@ -411,7 +423,7 @@ impl FnLower<'_> {
     /// the cell unwritten and so prover-chosen. Several call sites hoist
     /// [`Self::one`] above a branch on purpose; the revert is what makes that an
     /// optimization rather than the thing holding the invariant up.
-    fn const_cell(&mut self, v: F192) -> Off {
+    fn const_cell(&mut self, v: F128) -> Off {
         if let Some(&o) = self.scope.const_cells.get(&v) {
             return o;
         }
@@ -424,7 +436,7 @@ impl FnLower<'_> {
     /// A frame cell holding `0`, set lazily once (or a zero of the `keccak` padding
     /// run, when that came first): the condition of `assert_in_k`'s untaken jump.
     fn zero(&mut self) -> Off {
-        self.const_cell(F192::ZERO)
+        self.const_cell(F128::ZERO)
     }
 
     /// Terminate `main`: jump to the halt sentinel `g^{B-1}` with `fp = g^0`, the
@@ -558,7 +570,7 @@ impl FnLower<'_> {
         // through a table of the callees' entries. Const args select specializations;
         // see `lower_dispatched_call` for the shared argument/return layout checks.
         // `@inline` arms instead expand into this frame, below.
-        // A builtin arm (`f192(…)`, `hint_log2_ceil(…)`) has no entry to dispatch to.
+        // A builtin arm (`hint_log2_ceil(…)`) has no entry to dispatch to.
         if arms
             .iter()
             .all(|a| matches!(a, Expr::Call(f, _) if self.defs.get(f.as_str()).is_some_and(|d| !d.inline)))
@@ -867,7 +879,7 @@ impl FnLower<'_> {
         self.pending.push(Hint::Resolved(RHint::Inverse { value: x, dst: inv }));
         let p = self.fresh();
         self.emit(LOp::Mul { a: x, b: inv, c: p });
-        self.set_const(p, F192::ONE);
+        self.set_const(p, F128::ONE);
     }
 
     /// The frame cell holding `g^{k-1}`, the range-check product target, shared
@@ -892,25 +904,26 @@ impl FnLower<'_> {
     ///    so the runner back-solves the one unknown operand;
     /// 3. `DEREF` through `y`, proving `y = g^f` with `f < 2^h`.
     ///
-    /// Then `e + f ≡ k-1 (mod 2^64-1)` with `e, f < 2^h`, and a negative `k-1-e`
-    /// wraps to `≈ 2^64 ≫ 2^h`, so `e ≤ k-1` for ANY announced memory size,
-    /// provided `k ≤ 2^MIN_LOG_MEM`. Both `DEREF` destinations are unconstrained
-    /// touches, back-filled at the end of execution unless a cached read needs
-    /// their value sooner. Only the ADDRESS matters to the range check itself.
+    /// Then `e + f ≡ k-1 (mod 2^64-1)` with `e, f < 2^h ≤ 2^30`, and a negative
+    /// `k-1-e` wraps to `≈ 2^64 ≫ 2^h`, so `e ≤ k-1` for ANY announced memory size.
+    /// The check is complete at the memory an honest prover announces, which holds
+    /// every cell the run touches, the complement included. Both `DEREF` destinations
+    /// are unconstrained touches, back-filled at the end of execution unless a cached
+    /// read needs their value sooner. Only the ADDRESS matters to the range check itself.
     ///
     /// A [`LtBound::Runtime`] bound reaches the same gadget through one extra
-    /// `MUL` for `g^{k-1} = Y·g^{-1}`, still back-solved rather than hinted, and
-    /// the `k ≤ 2^MIN_LOG_MEM` obligation moves to the program.
+    /// `MUL` for `g^{k-1} = Y·g^{-1}`, still back-solved rather than hinted; a small
+    /// `k` is then the program's to show.
     fn lower_assert_lt(&mut self, e: &Expr, bound: &LtBound) {
         let kcell = match bound {
             LtBound::Const(k) => {
                 if *k < 1 {
                     self.fail("range-check bound GEN ** 0 names the empty set")
                 };
-                if *k > 1 << leanvm_core::cpu::MIN_LOG_MEM {
+                if *k > 1 << leanvm_core::cpu::MAX_LOG_MEMORY {
                     self.fail(format!(
-                        "range-check bound GEN ** {k} exceeds 2^{} (the minimum memory size)",
-                        leanvm_core::cpu::MIN_LOG_MEM
+                        "range-check bound GEN ** {k} exceeds 2^{} (the largest memory size)",
+                        leanvm_core::cpu::MAX_LOG_MEMORY
                     ))
                 };
                 self.bound_cell(*k)
@@ -918,14 +931,13 @@ impl FnLower<'_> {
             LtBound::Runtime(b) => {
                 // A bound that folds only after substitution (`GEN ** i` inside an
                 // `unroll`) reaches here rather than the arm above, and would then
-                // skip the `k <= 2^MIN_LOG_MEM` cap entirely. Reject it: the author
-                // wrote a compile-time bound and should get the compile-time check.
+                // skip its cap. Reject it: the author wrote a compile-time bound and
+                // should get the compile-time treatment.
                 if self.try_field_const(b).is_some() {
-                    self.fail(format!(
+                    self.fail(
                         "a compile-time range-check bound must be written as `log GEN ** k` or an \
-                     integer, so that the 2^{} cap applies",
-                        leanvm_core::cpu::MIN_LOG_MEM
-                    ))
+                     integer, so that its cap applies",
+                    )
                 };
                 // A bound `c·g^j` with `j ≥ 1` has `c·g^{j-1}` as its target, at no `g^{-1}`.
                 if let Some(
@@ -940,7 +952,7 @@ impl FnLower<'_> {
                     return self.range_check(e, kcell);
                 }
                 let bcell = self.expr(b);
-                let inv = self.const_cell(F192::from(F64::G.inv()));
+                let inv = self.const_cell(F128::from(F64::G.inv()));
                 // Interned: the MUL that first writes `Y·g^{-1}` pins it, so every later
                 // check of the same bound in its scope multiplies into that cell.
                 self.pure(PureOp::Mul, bcell, inv)
@@ -1030,8 +1042,6 @@ impl FnLower<'_> {
                 self.emit(LOp::Mul { a: q, b: lb, c: la });
                 q
             }
-            // A well-formed one folds above, so this is a malformed call.
-            Expr::Call(f, _) if f == "f192" => self.fail("f192 needs three literal u64 limbs"),
             // Folded above when it is what it claims to be, so reaching here means
             // it is not: name that, rather than reporting an unknown function.
             Expr::Call(f, args) if f == "const" => {
@@ -1130,7 +1140,7 @@ impl FnLower<'_> {
         }
         if k == 0 {
             let o = self.fresh();
-            self.set_const(o, F192::ONE);
+            self.set_const(o, F128::ONE);
             return o;
         }
         // Runtime base: square-and-multiply over the compile-time exponent bits.
@@ -1265,7 +1275,7 @@ impl FnLower<'_> {
                         // Integer-only fold (`//`, `-`, `%` of constants): a
                         // compile-time value too, and as a scalar it is the field
                         // element with those 128 bits, materialized on demand.
-                        self.rebind(name, Binding::FConst(lit_field(k)));
+                        self.rebind(name, Binding::FConst(F128::from(k)));
                     } else if let Expr::Call(cf, cargs) = e
                         && self.defs.contains_key(cf.as_str())
                     {
@@ -1644,12 +1654,23 @@ fn plus_k(lo: &Expr, hi: &Expr) -> Option<u128> {
 }
 
 /// Lower one function to its instruction list and frame size.
+/// Whether a `return` of this function occurs in `stmts`: nested `if` and `unroll` bodies included, a
+/// `mul_range` body not, since it becomes a helper function whose `return` leaves the loop.
+fn has_return(stmts: &[Stmt]) -> bool {
+    stmts.iter().any(|s| match &s.kind {
+        StmtKind::Return(_) => true,
+        StmtKind::If { then, els, .. } => has_return(then) || has_return(els),
+        StmtKind::Unroll { body, .. } => has_return(body),
+        _ => false,
+    })
+}
+
 pub(crate) fn lower_func(
     f: &Func,
     queue: &mut Vec<Func>,
     loop_ctr: &mut usize,
     defs: &HashMap<&str, &Func>,
-    const_arrays: &HashMap<&str, &[F192]>,
+    const_arrays: &HashMap<&str, &[F128]>,
     loop_bounds: &mut HashMap<String, (u64, Option<u64>)>,
     tables: &mut JumpTables,
 ) -> Lowered {
@@ -1673,7 +1694,7 @@ pub(crate) fn lower_func(
     }
     // Reserve [0,1] retpc/retfp, params, then the flattened return area, then
     // locals. A StackBuf(n) return occupies n consecutive physical slots.
-    let n_ret_cells: u32 = f.return_shapes.iter().map(|s| s.cells()).sum();
+    let n_ret_cells = Abi::fit(Abi::width(f.return_shapes.iter().copied()));
     let arg_cells = Abi::arg_cells(f.param_shapes());
     let abi_end = Abi::end(arg_cells, n_ret_cells);
     // Loop callers write the callee's own fp just past its arguments. That
@@ -1708,6 +1729,17 @@ pub(crate) fn lower_func(
         const_arrays,
         tables,
     };
+    if f.name == "main" {
+        // `main` halts at its end, so a `return` anywhere else would read as an early exit that does not happen.
+        for (i, s) in f.body.iter().enumerate() {
+            let trailing = i + 1 == f.body.len() && matches!(s.kind, StmtKind::Return(_));
+            assert!(
+                trailing || !has_return(std::slice::from_ref(s)),
+                "line {}: `return` in `main` is allowed only as its last statement",
+                s.line
+            );
+        }
+    }
     for (i, s) in f.body.iter().enumerate() {
         // Tail position: a conditional call whose only successor is a bare
         // `return`, in a function that returns nothing. The `mul_range` helper

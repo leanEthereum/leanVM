@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Selectors.IndexMle
+public import LeanVM.Guest.B1.Selectors.Glue
 
 /-!
 # `index_mle` is complete (TRIAGE G #44)
@@ -26,7 +26,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- Block `t`'s factor word. -/
-def imFac (t : ℕ) : E := word (imFactor t) 0 0
+def imFac (t : ℕ) : E := word (imFactor t) 0
 
 /-- The running product after block `t`. -/
 def imAccV (zs : List E) : ℕ → E
@@ -87,7 +87,7 @@ theorem index_mle_complete_holds : index_mle_complete_Spec := by
   intro n hn rd args rets h
   match args, rets, h with
   | [zeta], [v], ⟨zs, hzl, hzr, hv⟩ =>
-    obtain ⟨fn, hf, hp, hb⟩ := imFound hn
+    obtain ⟨fn, hf, hp, hb⟩ := imFound imCheck_all hn
     have hz0 : imVal n zeta zs 0 = zeta := by simp [imVal]
     refine (tb_rel_pre hf hb (imPre_noRet n) [zeta] [v]).mpr ⟨fun x ↦ imVal n zeta zs x.idx,
       by rw [hp]; simp only [List.map_cons, List.map_nil]; exact congrArg (· :: []) hz0, ?_, ?_⟩

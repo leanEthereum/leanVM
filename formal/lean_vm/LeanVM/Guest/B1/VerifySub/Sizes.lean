@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.Interface
+public import LeanVM.Guest.B1.Tables.InterfaceP
 public import LeanVM.Guest.B1.Common.Run
 
 /-!
@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Common.Run
 * `stackLog_eq`, `logBytecode_eq`: the layout's stack log-size and bytecode log-size, for the
   guest's bytecode of `2^23` words.
 * `pushDepth_eq`: the push side's bus cube is `log2Ceil` of the sum of `2^κ` over the guest's
-  `54` push blocks (`BLOCK_KAPPA_SRC`, `BLOCK_KAPPA_ADJ`, G:126-127, 3376-3388).
+  `54` push blocks (`BLOCK_KAPPA_SRC`, `BLOCK_KAPPA_ADJ`, G:126-127, 3326-3338).
 * `readSizes_runsTo`: on the words `logMem`, the six row counts, `lir`, `readAnnouncedSizes` returns
   the layout `layoutOf` and `lir`.
 -/
@@ -63,7 +63,7 @@ theorem log2_bytecode {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) :
   rw [hbl, Nat.log2_two_pow]; rfl
 
 theorem sz_placementsOf_snd (kappas : List ℕ) :
-    (placementsOf kappas).2 = max 15 (log2Ceil (Tables.stackTotal kappas)) := by
+    (placementsOf kappas).2 = max 16 (log2Ceil (Tables.stackTotal kappas)) := by
   unfold placementsOf
   simp only []
   rw [stackOffsets_snd]
@@ -77,17 +77,17 @@ theorem logBytecode_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (log
   simp only []
   exact log2_bytecode hbl
 
-/-- **The stack's log-size**: at least `15`, else `log2Ceil` of the committed columns' total. -/
+/-- **The stack's log-size**: at least `16`, else `log2Ceil` of the committed columns' total. -/
 theorem stackLog_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem : ℕ)
     (rowsN : List ℕ) : (Tables.layoutOf bytecode logMem rowsN).stackLog =
-      max 15 (log2Ceil (Tables.stackTotal (columnKappas logMem 19 (Tables.tableHeightsOf rowsN)))) := by
+      max 16 (log2Ceil (Tables.stackTotal (columnKappas logMem 19 (Tables.tableHeightsOf rowsN)))) := by
   unfold Tables.layoutOf
   simp only []
   rw [sz_placementsOf_snd, log2_bytecode hbl]
 
 /-! ## The push side's cube -/
 
-/-- Push block `b`'s log-height (G:3377-3381, 3388): source `BLOCK_KAPPA_SRC[b]` of
+/-- Push block `b`'s log-height (G:3327-3331, 3338): source `BLOCK_KAPPA_SRC[b]` of
 `[0, log_mem, τ_0, …, τ_5]`, plus `BLOCK_KAPPA_ADJ[b]`. -/
 def pushKappa (logMem : ℕ) (hs : List ℕ) (b : ℕ) : ℕ :=
   ([0, logMem] ++ hs).getD (Tables.blockKappaSrc.getD b 0) 0 + Tables.blockKappaAdj b
@@ -123,7 +123,7 @@ theorem pushKappas_eq (logMem h0 h1 h2 h3 h4 h5 : ℕ) :
       [0, logMem, 19] ++ (List.replicate 5 h0 ++ List.replicate 5 h1 ++ List.replicate 3 h2 ++
         List.replicate 5 h3 ++ List.replicate 5 h4 ++ List.replicate 28 h5) := rfl
 
-/-- **The push side's cube** (G:3201-3204): its log-size is `log2Ceil` of the sum of `2^κ` over
+/-- **The push side's cube** (G:3151-3154): its log-size is `log2Ceil` of the sum of `2^κ` over
 the guest's `54` push blocks. -/
 theorem pushDepth_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem : ℕ)
     (rowsN : List ℕ) (hlen : rowsN.length = 6) :
@@ -151,12 +151,6 @@ theorem sz_runsTo_require_bind {β : Type} {c : Prop} [Decidable c] (h : c) {f :
     exact runsTo_ret () s
   exact (hr.bind hf).of_eq rfl (List.nil_append _) rfl rfl
 
-theorem sz_runsTo_liftOption_bind {α β : Type} {o : Option α} {a : α} (h : o = some a)
-    {f : α → VerifierProgram β} {s s' : Fs} {xs : List E} {b : β} (hf : RunsTo (f a) s xs b s') :
-    RunsTo (liftOption o >>= f) s xs b s' := by
-  subst h
-  exact ((runsTo_ret a s).bind hf).of_eq rfl (List.nil_append _) rfl rfl
-
 theorem le_pow_of_log2Ceil {r k : ℕ} (h : log2Ceil r ≤ k) : r ≤ 2 ^ k := by
   unfold log2Ceil bitLength at h
   split at h
@@ -167,21 +161,19 @@ theorem le_pow_of_log2Ceil {r k : ℕ} (h : log2Ceil r ≤ k) : r ≤ 2 ^ k := b
 
 theorem eOfNat_limb1 (n : ℕ) : (eOfNat n).limb 1 = 0 := by simp [eOfNat]
 
-theorem eOfNat_limb2 (n : ℕ) : (eOfNat n).limb 2 = 0 := by simp [eOfNat]
-
 theorem kToNat_eOfNat {n : ℕ} (h : n < 2 ^ 64) : kToNat ((eOfNat n).limb 0) = n := by
   simp [eOfNat, kToNat_ofBits]
   omega
 
 /-- `buildLayout` accepts the honest sizes, with the layout `layoutOf`. -/
 theorem buildLayout_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem : ℕ}
-    {rowsN : List ℕ} (h16 : 16 ≤ logMem) (h32 : logMem ≤ 32) (hlen : rowsN.length = 6)
-    (hrows : ∀ r ∈ rowsN, r ≤ 2 ^ 32) :
+    {rowsN : List ℕ} (hlm1 : 1 ≤ logMem) (h30 : logMem ≤ 30) (hlen : rowsN.length = 6)
+    (hrows : ∀ r ∈ rowsN, r ≤ 2 ^ 30) :
     buildLayout bytecode logMem rowsN = some (Tables.layoutOf bytecode logMem rowsN) := by
   have hls : log2Strict bytecode.length = some 23 := by rw [hbl]; decide
-  have hc : busBits ≤ 23 ∧ 16 ≤ logMem ∧ logMem ≤ 32 ∧ rowsN.all (· ≤ 2 ^ 32) ∧
-      23 - busBits ≤ 32 ∧ rowsN.length = tables.length :=
-    ⟨by decide, h16, h32, by simpa using hrows, by decide, by rw [hlen]; rfl⟩
+  have hc : busBits ≤ 23 ∧ 1 ≤ logMem ∧ logMem ≤ 30 ∧ rowsN.all (· ≤ 2 ^ 30) ∧
+      23 - busBits ≤ 30 ∧ rowsN.length = tables.length :=
+    ⟨by decide, hlm1, h30, by simpa using hrows, by decide, by rw [hlen]; rfl⟩
   unfold buildLayout
   rw [hls]
   simp only [hc, and_self, ↓reduceIte]
@@ -189,7 +181,7 @@ theorem buildLayout_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {log
   rw [hbl, Nat.log2_two_pow]
 
 theorem rows_le {rowsN : List ℕ} (hlen : rowsN.length = 6)
-    (hh : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 29) : ∀ r ∈ rowsN, r ≤ 2 ^ 28 := by
+    (hh : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 31) : ∀ r ∈ rowsN, r ≤ 2 ^ 30 := by
   match rowsN, hlen with
   | [r0, r1, r2, r3, r4, r5], _ =>
     simp only [Tables.tableHeightsOf, tableLogFloors, List.zipWith_cons_cons,
@@ -205,9 +197,9 @@ theorem rows_le {rowsN : List ℕ} (hlen : rowsN.length = 6)
 layout
 `layoutOf` and `lir`. -/
 theorem readSizes_runsTo {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem lir : ℕ}
-    {rowsN : List ℕ} (h16 : 16 ≤ logMem) (h32 : logMem ≤ 32) (hlen : rowsN.length = 6)
-    (hh : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 29) (hl1 : 1 ≤ lir) (hl4 : lir ≤ 4)
-    (hst : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 28) (s : Fs) :
+    {rowsN : List ℕ} (hlm1 : 1 ≤ logMem) (h30 : logMem ≤ 30) (hlen : rowsN.length = 6)
+    (hh : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 31) (hl1 : 1 ≤ lir) (hl4 : lir ≤ 4)
+    (hst : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 30) (s : Fs) :
     RunsTo (readAnnouncedSizes bytecode) s (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat lir])
       (Tables.layoutOf bytecode logMem rowsN, lir)
       (s.absorbAll (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat lir]) dsObserve) := by
@@ -225,21 +217,24 @@ theorem readSizes_runsTo {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {l
     refine List.map_congr_left fun r hr ↦ ?_
     have := hrows r hr
     exact kToNat_eOfNat (by
-      calc r ≤ 2 ^ 28 := this
+      calc r ≤ 2 ^ 30 := this
         _ < 2 ^ 64 := by norm_num)
   have e3 : kToNat ((xs.getLastD 0).limb 0) = lir := by
     rw [hxs, List.getLastD_eq_getLast?, List.getLast?_append, List.getLast?_singleton]
     exact kToNat_eOfNat (by omega)
-  have hall : (xs.all fun value ↦ decide (value.limb 1 = 0 ∧ value.limb 2 = 0)) = true := by
-    simp [xs, eOfNat_limb1, eOfNat_limb2]
-  unfold readAnnouncedSizes
+  have hall : (xs.all fun value ↦ decide (value.limb 1 = 0)) = true := by
+    simp [xs, eOfNat_limb1]
+  have hmin : Whir.minLogStack ≤ (Tables.layoutOf bytecode logMem rowsN).stackLog := by
+    rw [stackLog_eq hbl]; exact le_max_left _ _
+  have hmax : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ Whir.maxLogStack := hst
+  have hs : sizesOf bytecode xs = some (Tables.layoutOf bytecode logMem rowsN, lir) := by
+    simp only [sizesOf, hall, e1, e2, e3, hl1, hl4, and_self, ↓reduceIte,
+      buildLayout_eq hbl hlm1 h30 hlen hrows, Option.bind_some, hmin, hmax]
+  rw [readAnnouncedSizes_eq]
   refine (r.bind ?_).of_eq rfl (List.append_nil _) rfl rfl
-  simp only [e1, e2, e3]
-  refine sz_runsTo_require_bind hall (sz_runsTo_require_bind ⟨hl1, hl4⟩
-    (sz_runsTo_liftOption_bind (buildLayout_eq hbl h16 h32 hlen fun r hr ↦ ?_)
-      (sz_runsTo_require_bind ⟨?_, hst⟩ (runsTo_ret _ _))))
-  · exact (hrows r hr).trans (Nat.pow_le_pow_right (by norm_num) (by norm_num))
-  · rw [stackLog_eq hbl]; exact le_max_left _ _
+  show RunsTo (liftOption (sizesOf bytecode xs)) _ _ _ _
+  rw [hs]
+  exact runsTo_ret _ _
 
 end
 end LeanVM.Guest.B1.VerifySub

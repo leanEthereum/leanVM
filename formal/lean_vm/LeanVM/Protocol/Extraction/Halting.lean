@@ -30,7 +30,7 @@ public import LeanVM.Protocol.EndToEnd.Sound.Extractor
 **The cap is structural.** **`stepCap_le_stack`**: `stepCap (verifierLayout prog s)` is at most
 `2^μ`, the stack's size: the six opcode tables, the memory and the bytecode each own a committed
 column, hence a block of the stack of their height. **`stepCap_le_maxMu`**: at admissible sizes, at
-most `2^28`.
+most `2^30`.
 -/
 
 namespace LeanVM.Protocol.Halting
@@ -167,28 +167,6 @@ def capCol : Fin 8 → Col
   | ⟨1, _⟩ => bfcntCol
   | ⟨j + 2, h⟩ => ⟨opIdx ⟨j, by omega⟩,
       ⟨width (opIdx ⟨j, by omega⟩) - 1, by have := width_opIdx_pos ⟨j, by omega⟩; omega⟩⟩
-
-/-- The columns are committed. -/
-theorem not_isVirtual_capCol : ∀ i, ¬ IsVirtual (capCol i) := by decide +kernel
-
-/-- The columns are in distinct tables. -/
-theorem capCol_injective : Function.Injective capCol := by
-  have h : Function.Injective fun i ↦ (capCol i).1 := by decide
-  exact fun a b hab ↦ h (congrArg Sigma.fst hab)
-
-/-- The columns' log-heights: the memory's, the bytecode's, and the opcode tables'. -/
-theorem sum_kappa_capCol :
-    ∑ i, 2 ^ kappa prog s (capCol i) = (∑ j, 2 ^ s.τ j) + 2 ^ s.logMem + 2 ^ prog.logSize := by
-  simp only [Fin.sum_univ_eight, Fin.sum_univ_six]
-  simp only [kappa, capCol, memCol, bfcntCol, opIdx, height, Fin.isValue]
-  have e0 : s.τ ⟨0, by omega⟩ = s.τ 0 := rfl
-  have e1 : s.τ ⟨1, by omega⟩ = s.τ 1 := rfl
-  have e2 : s.τ ⟨2, by omega⟩ = s.τ 2 := rfl
-  have e3 : s.τ ⟨3, by omega⟩ = s.τ 3 := rfl
-  have e4 : s.τ ⟨4, by omega⟩ = s.τ 4 := rfl
-  have e5 : s.τ ⟨5, by omega⟩ = s.τ 5 := rfl
-  rw [e0, e1, e2, e3, e4, e5]
-  omega
 
 end Structural
 

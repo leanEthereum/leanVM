@@ -128,8 +128,48 @@ theorem split_some (r claim : E) (tail : List E) :
   simp only [List.sum_cons]
   linear_combination (CharTwo.two_eq_zero (R := E)) * (r * claim + r * r * tail.sum + r * tail.sum)
 
+/-- A grind adds no commitment. -/
+theorem commits_grindEvs (b : ℕ) : commits (Spec.grindEvs b) = [] := by
+  unfold Spec.grindEvs
+  split <;> rfl
+
+/-- **A grind keeps doom**, and what else the history carries; the lead is the follower's at
+zero bits, `0` otherwise. -/
+noncomputable def doomGrind (hst : Stable C) (A : β → Prop) (Q : Prop) (b : ℕ)
+    (hT : (2 : ℝ≥0∞)⁻¹ ^ b * T ≤ εmax) :
+    Spec (VerifierProgram.grindProofOfWork b) (fun h ↦ Q ∧ Doomed C A h)
+      (fun _ h ↦ Q ∧ Doomed C A h) εmax (if b = 0 then T else 0) T :=
+  Spec.grindP b (fun _ hp ↦ ⟨hp.1, (Doomed.append hst (commits_grindEvs b)).mpr hp.2⟩) hT
+
+/-- A bound on the follower's lead bounds it discounted. -/
+theorem discount_le (b : ℕ) (hT : T ≤ εmax) : (2 : ℝ≥0∞)⁻¹ ^ b * T ≤ εmax :=
+  le_trans (mul_le_of_le_one_left zero_le (pow_le_one₀ zero_le (by norm_num))) hT
+
+/-- A grind for a numerator at most `8` is of zero bits. -/
+theorem grindingBits_le_eight {n : ℕ} (hn : n ≤ 8) : grindingBits n = 0 := by
+  unfold grindingBits
+  split_ifs with h
+  · rfl
+  · have : Nat.log2 (n - 1) < 3 := (Nat.log2_lt (by omega)).2 (by omega)
+    simp only [securityBits]
+    omega
+
+/-- The grind before a layer's evaluation point, for the product's degree `46`, is of three
+bits. -/
+theorem grindingBits_product : grindingBits (productBits - 1) = 3 := by
+  have h : Nat.log2 45 = 5 := by
+    rw [Nat.log2_eq_iff (by norm_num)]
+    norm_num
+  simp [grindingBits, securityBits, productBits, embedBits, h]
+
+theorem grindLead_le' (b : ℕ) (hT : T ≤ εmax) : (if b = 0 then T else 0) ≤ εmax := by
+  split
+  · exact hT
+  · exact zero_le
+
 /-- **A round's message**: the reads keep doom, and the message the program builds passes the
-round's check. Lead `0`. -/
+round's check; the grind for the round's degree that follows (zero bits at every round the
+verifier runs) keeps it. Lead `0`. -/
 noncomputable def roundSpec (hst : Stable C) (A : β → Prop) (hT : T ≤ εmax) (count : ℕ)
     (hc : 2 ≤ count) (claim : E) (mode : Option E) :
     Spec (sumcheckRoundPoly count claim mode) (Doomed C A)
@@ -137,15 +177,21 @@ noncomputable def roundSpec (hst : Stable C) (A : β → Prop) (hT : T ≤ εmax
         RoundSplit mode claim (polyEval msg 0) (polyEval msg 1) ∧ Doomed C A h) εmax 0 T :=
   match mode with
   | none =>
-    (doomRead hst A hT).bind' fun c0 ↦ (readNSpec hst A hT (count - 2)).bind' fun tail ↦
+    (doomRead hst A (grindLead_le' _ hT)).bind' fun c0 ↦
+      (readNSpec hst A (grindLead_le' _ hT) (count - 2)).bind' fun tail ↦
+      (doomGrind hst A (tail.length = count - 2) (grindingBits (count - 1))
+        (discount_le _ hT)).bind' fun _ ↦
       (Spec.ret (c0 :: (claim + sumE tail) :: tail)).mono
         (fun _ h ↦ ⟨by simp [h.1]; omega, split_none c0 claim tail, h.2⟩) (fun _ _ h ↦ h)
         le_rfl le_rfl le_rfl
   | some r =>
     Spec.congr (p := VerifierProgram.readScalars (count - 2 + 1) >>= fun tail ↦
+        VerifierProgram.grindProofOfWork (grindingBits (count - 1 + 1)) >>= fun _ ↦
         VerifierProgram.ret ((claim + r * sumE tail) :: tail)) (by
           simp only [sumcheckRoundPoly, show count - 2 + 1 = count - 1 by omega]; rfl) <|
-      (doomReadN hst A hT (count - 2)).bind' fun tail ↦
+      (doomReadN hst A (grindLead_le' _ hT) (count - 2)).bind' fun tail ↦
+      (doomGrind hst A (tail.length = count - 2 + 1) (grindingBits (count - 1 + 1))
+        (discount_le _ hT)).bind' fun _ ↦
         (Spec.ret ((claim + r * sumE tail) :: tail)).mono
           (fun _ h ↦ ⟨by simp [h.1]; omega, split_some r claim tail, h.2⟩) (fun _ _ h ↦ h)
           le_rfl le_rfl le_rfl

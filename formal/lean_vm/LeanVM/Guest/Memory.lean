@@ -9,6 +9,7 @@
 
 module
 
+public import LeanVM.Guest.Data.FrameSizes
 public import LeanVM.Guest.Memory.Alloc
 public import LeanVM.Guest.Memory.Tree
 public import LeanVM.Guest.Memory.Placed
@@ -51,8 +52,8 @@ every equation (`Honest.read_eqn`); the evaluation and every instance in it are 
 image (`Honest.valid_image`, `Honest.inst_good`); a callee is the instance at its caller's
 callee frame (`honest_kid`), a loop helper's tail call at `fp + fs f` (`honest_kidFps_getLast?`); the
 public input is in words `0`, `1` and `minLogMem ≤ κ ≤ maxLogMem` (`Honest.publicBoundary`).
-`Execution.committedSize ≤ 2^28` is the end theorem's: `logMem_le_iff` and `two_pow_logMem_le`
-bound `2^κ` by the words allocated.
+`Execution.committedSize ≤ 2^30` is the end theorem's: `logMem_le_iff` bounds `2^κ` by the words
+allocated.
 -/
 
 namespace LeanVM.Guest.Memory
@@ -134,8 +135,8 @@ noncomputable def honest : MemoryImage (logMem (T.total fs)) :=
 structure Honest (rd : Reader) (args rets : List E) : Prop where
   /-- The evaluation, on some reader. -/
   valid : T.Valid P rd args rets
-  /-- At most `2^32` words are allocated. -/
-  size : T.total fs ≤ 2 ^ 32
+  /-- At most `2^30` words are allocated. -/
+  size : T.total fs ≤ 2 ^ 30
   /-- The cells fit their frames and agree. -/
   cells : CellsOk fs C (honestInsts P fs H hdr T)
   /-- The equations name addresses of the memory. -/
@@ -274,7 +275,7 @@ theorem frameWrites_addr (hok : CellsOk fs C (honestInsts P fs H hdr T)) {a : Wr
 
 /-- **No frame write is in a `HeapBuf`**: an equation there meets no frame. -/
 theorem frameWrites_not_buf (hok : CellsOk fs C (honestInsts P fs H hdr T))
-    (hsize : T.total fs ≤ 2 ^ 32) {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {i : ℕ}
+    (hsize : T.total fs ≤ 2 ^ 30) {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {i : ℕ}
     (hi : I.Buf i) : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), a.1 ≠ addressOfIndex i := by
   intro a ha he
   obtain ⟨J, hJ, o, ho, hao⟩ := frameWrites_addr hok ha
@@ -358,18 +359,20 @@ theorem Honest.read_value (h : Honest P fs H C hdr T rd args rets) {cert : Strin
 and its word. -/
 def tableCells : List (ℕ × E) :=
   Data.f0.code.filterMap fun
-    | .set o k0 k1 k2 => some (o, OffsetInstruction.immediateWord k0 k1 k2)
+    | .set o k0 k1 => some (o, OffsetInstruction.immediateWord k0 k1)
     | _ => none
 
 set_option maxRecDepth 100000 in
-/-- The slots are `444, 445, …`, one per `SET`. -/
-theorem tableCells_offsets : tableCells.map Prod.fst = List.range' 444 16555 := by
+/-- The slots are `Data.mainCells, Data.mainCells + 1, …`, one per `SET`. -/
+theorem tableCells_offsets : tableCells.map Prod.fst = List.range' Data.mainCells Data.jtSlots := by
   decide +kernel
 
-/-- The slots lie in `main`'s frame past its header, below `444 + 16555`. -/
-theorem tableCells_off {q : ℕ × E} (hq : q ∈ tableCells) : 2 ≤ q.1 ∧ q.1 < 444 + 16555 := by
+/-- The slots lie in `main`'s frame past its header, below `Data.mainCells + Data.jtSlots`. -/
+theorem tableCells_off {q : ℕ × E} (hq : q ∈ tableCells) :
+    2 ≤ q.1 ∧ q.1 < Data.mainCells + Data.jtSlots := by
   have := tableCells_offsets ▸ List.mem_map_of_mem (f := Prod.fst) hq
   rw [List.mem_range'_1] at this
+  have : 2 ≤ Data.mainCells := by decide
   omega
 
 /-- Two slots at one offset are one slot. -/

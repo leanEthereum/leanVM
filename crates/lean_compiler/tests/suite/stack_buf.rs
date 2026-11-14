@@ -5,21 +5,21 @@
 //! `keccak(h, h, out)` aliases one pair into both input operands) and writes
 //! the digest into `out`.
 //!
-//! Since these DSL scalars are K-embedded F192 cells, a `StackBuf(2)` written
+//! Since these DSL scalars are K-embedded F128 cells, a `StackBuf(2)` written
 //! cell-by-cell holds the lanes `[v0, 0, v1, 0]`.
 
-use lean_compiler::{compile, f192_literal, parse};
+use lean_compiler::{compile, f128_literal, parse};
 use leanvm_core::cpu::{prove, verify};
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F64, F128, g_pow};
 
 use crate::common::mix;
 
 /// The digest cells of the hash of `bytes`: what a `keccak(...)` output `StackBuf(2)` holds
 /// cell-by-cell (lo = word 0/2, hi = word 1/3).
-fn hash_cells(bytes: &[u8]) -> [F192; 2] {
+fn hash_cells(bytes: &[u8]) -> [F128; 2] {
     let d = primitives::hash::hash(bytes);
     let word = |o: usize| u64::from_le_bytes(d[o..o + 8].try_into().unwrap());
-    [F192::new(word(0), word(8), 0), F192::new(word(16), word(24), 0)]
+    [F128::new(word(0), word(8)), F128::new(word(16), word(24))]
 }
 
 /// The bytes of cells each holding one small scalar in its low lane.
@@ -31,7 +31,7 @@ fn scalar_cells(values: impl IntoIterator<Item = u64>) -> Vec<u8> {
 }
 
 /// Prove and verify `src` against the public input `want`.
-fn proves(src: &str, want: [F192; 2]) {
+fn proves(src: &str, want: [F128; 2]) {
     let program = compile(&parse(src).expect("parse"));
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("verifies");
@@ -114,8 +114,8 @@ def main():
     let two = hash_cells(&bytes[..136]);
     bytes.truncate(135);
     let src = src
-        .replace("TWO_0", &f192_literal(two[0]))
-        .replace("TWO_1", &f192_literal(two[1]));
+        .replace("TWO_0", &f128_literal(two[0]))
+        .replace("TWO_1", &f128_literal(two[1]));
     proves(&src, hash_cells(&bytes));
 }
 
@@ -163,8 +163,8 @@ def main():
 ";
     let heap = hash_cells(&scalar_cells(1..=16));
     let src = src
-        .replace("HEAP_0", &f192_literal(heap[0]))
-        .replace("HEAP_1", &f192_literal(heap[1]));
+        .replace("HEAP_0", &f128_literal(heap[0]))
+        .replace("HEAP_1", &f128_literal(heap[1]));
     proves(&src, hash_cells(&scalar_cells(1..=20)));
 }
 
@@ -232,7 +232,7 @@ def main():
     let want = hash_cells(&scalar_cells(1..=4));
     for flag in [0, 1] {
         let mut program = compile(&parse(src).expect("parse"));
-        program.set_witness("flag", vec![vec![F192::new(flag, 0, 0)]]);
+        program.set_witness("flag", vec![vec![F128::new(flag, 0)]]);
         let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).expect("post-join padding run is initialized on both paths");
     }
@@ -260,7 +260,7 @@ def main():
     let want = hash_cells(&scalar_cells(1..=4));
     for flag in [0, 1] {
         let mut program = compile(&parse(src).expect("parse"));
-        program.set_witness("flag", vec![vec![F192::new(flag, 0, 0)]]);
+        program.set_witness("flag", vec![vec![F128::new(flag, 0)]]);
         let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).expect("each branch initializes its padding run");
     }
@@ -341,7 +341,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     // `+` is XOR: 3 ^ 4 = 7. Published: (sa[2], sa[1]) = (7, 4).
-    let want = [F192::from(F64(7)), F192::from(F64(4))];
+    let want = [F128::from(F64(7)), F128::from(F64(4))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     assert_eq!(mix(src, want)[5], 0, "no KECCAK here");
     verify(&program, &want, &proof).expect("StackBuf indexing verifies");
@@ -373,7 +373,7 @@ def make(v):
 ";
     let program = compile(&parse(src).expect("parse"));
     // Field addition is XOR: 5 ^ (5 ^ 3) == 3.
-    program.execute([F192::from(F64(3)), F192::from(F64(11))]).unwrap();
+    program.execute([F128::from(F64(3)), F128::from(F64(11))]).unwrap();
 }
 
 /// Tuple returns retain their source-level arity even though a StackBuf member
@@ -393,7 +393,7 @@ def make(v):
     return out, v + 1
 ";
     let program = compile(&parse(src).expect("parse"));
-    program.execute([F192::from(F64(15)), F192::from(F64(8))]).unwrap();
+    program.execute([F128::from(F64(15)), F128::from(F64(8))]).unwrap();
 }
 
 /// HeapBuf already crosses a normal call as its one-cell pointer. Allocation
@@ -416,7 +416,7 @@ def make():
     return out
 ";
     let program = compile(&parse(src).expect("parse"));
-    program.execute([F192::from(F64(17)), F192::from(F64(23))]).unwrap();
+    program.execute([F128::from(F64(17)), F128::from(F64(23))]).unwrap();
 }
 
 /// A StackBuf index literal that does not fit `u32` is rejected at compile time,
@@ -435,7 +435,7 @@ fn stack_buf_index_overflow_rejected() {
 fn stack_buf_rebind_to_scalar() {
     let src = "def main():\n    x = StackBuf(2)\n    x = 5\n    p = 1\n    p[1] = x\n    p[GEN] = x\n    return\n";
     let program = compile(&parse(src).expect("parse"));
-    let want = [F192::from(F64(5)), F192::from(F64(5))];
+    let want = [F128::from(F64(5)), F128::from(F64(5))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("rebound-scalar program verifies");
 }
@@ -446,8 +446,8 @@ fn stack_buf_rebind_to_scalar() {
 fn stack_buf_loop_capture() {
     let src = "def main():\n    h = StackBuf(2)\n    h[0] = 5\n    h[1] = 7\n    for i in mul_range(1, GEN ** 4):\n        p = 1\n        p[1] = h[0]\n        p[GEN] = h[1]\n    return\n";
     let program = compile(&parse(src).expect("parse"));
-    program.execute([F192::from(F64(5)), F192::from(F64(7))]).unwrap();
-    assert!(program.execute([F192::from(F64(5)), F192::from(F64(8))]).is_err());
+    program.execute([F128::from(F64(5)), F128::from(F64(7))]).unwrap();
+    assert!(program.execute([F128::from(F64(5)), F128::from(F64(8))]).is_err());
 }
 
 /// An `@inline` may return a `StackBuf` *and* a scalar together (a tuple bind):
@@ -527,7 +527,7 @@ def select_pair(flag, a, b):
     return first, second
 ";
     let program = compile(&parse(src).expect("parse"));
-    program.execute([F192::ONE, F192::ZERO]).unwrap();
+    program.execute([F128::ONE, F128::ZERO]).unwrap();
 }
 
 /// An `@inline` may also alias-return a folded **g-address** among its values:
@@ -568,7 +568,7 @@ def step(state, cursor):
     let program = compile(&parse(src).expect("parse"));
     // a = hb[0] = 10, b = hb[1] = 20, v = hb[2] = 30 read through the cursor
     // returned twice-advanced. a + b is XOR: 10 ^ 20 = 30.
-    let want = [F192::from(F64(30)), F192::from(F64(30))];
+    let want = [F128::from(F64(30)), F128::from(F64(30))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("inline advanced-cursor return verifies");
 }
@@ -645,6 +645,35 @@ fn heap_keccak_slice_oob_rejected() {
     let _ = compile(&parse(src).expect("parse"));
 }
 
+/// An index whose exponent ends past `u128` is out of bounds: `exp + 1` used to
+/// wrap to 0 and pass the check, so `hb[GEN ** (2^128 - 1)]` compiled.
+#[test]
+#[should_panic(expected = "heap index 340282366920938463463374607431768211455 out of bounds for `hb` (HeapBuf size 8)")]
+fn heap_index_exponent_overflow_rejected() {
+    let src =
+        "def main():\n    hb = HeapBuf(8)\n    hb[GEN ** 340282366920938463463374607431768211455] = 5\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
+}
+
+/// An alias shift plus an index that overflows `u128` is out of bounds too,
+/// where the check used to be skipped.
+#[test]
+#[should_panic(expected = "out of bounds for `hb` (HeapBuf size 8)")]
+fn heap_alias_exponent_overflow_rejected() {
+    let src = "def main():\n    hb = HeapBuf(8)\n    row = hb * GEN ** 340282366920938463463374607431768211455\n    row[GEN ** 2] = 5\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
+}
+
+/// A `StackBuf(n)` parameter as wide as `u32` allows pushes the next
+/// parameter's offset past `u32`: refused, rather than wrapped onto the
+/// return slots.
+#[test]
+#[should_panic(expected = "a call's arguments and returns outgrow 2^32 frame cells")]
+fn stack_buf_param_area_overflow_rejected() {
+    let src = "def wide(s: StackBuf(4294967295), i):\n    return i\n\ndef main():\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
+}
+
 /// A heap index that folds to a non-g-power field constant (an integer loop
 /// var leaking in from a StackBuf conversion) can never name a heap cell (cell
 /// k lives at `buf · g^k`) and used to survive to proving time as a
@@ -671,7 +700,7 @@ def main():
 fn heap_index_boundary_ok() {
     let src = "def main():\n    hb = HeapBuf(8)\n    hb[GEN ** 7] = 5\n    row = hb * GEN ** 4\n    y = row[GEN ** 3]\n    assert y == 5\n    return\n";
     let program = compile(&parse(src).expect("parse"));
-    let pi = [F192::from(F64(3)), F192::from(F64(4))];
+    let pi = [F128::from(F64(3)), F128::from(F64(4))];
     let (proof, _) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &pi, &proof).expect("boundary access verifies");
 }
@@ -777,7 +806,7 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    let want = [F192::from(g_pow(5)); 2];
+    let want = [F128::from(g_pow(5)); 2];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("three spellings of cell 2 agree");
 }
@@ -798,7 +827,7 @@ def main():
     let program = compile(&parse(src).expect("parse"));
     let size = (1 << 20) + 1;
     let exec = program
-        .execute([F192::from(g_pow(size)), F192::from(g_pow(size - 1))])
+        .execute([F128::from(g_pow(size)), F128::from(g_pow(size - 1))])
         .unwrap();
     assert!(exec.unconstrained_reads.is_empty());
     assert!(exec.mem_used > size);

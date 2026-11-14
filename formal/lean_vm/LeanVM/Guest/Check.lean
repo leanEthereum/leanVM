@@ -150,7 +150,7 @@ abbrev Book := Trie (List Exec.Atom)
 def keys : Exec.Atom → List ℕ
   | .instr _ (.xor _ _ c) => [c]
   | .instr _ (.mul _ _ c) => [c]
-  | .instr _ (.set o _ _ _) => [o]
+  | .instr _ (.set o _ _) => [o]
   | .instr _ (.deref _ _ o3 .cell) => [o3]
   | .instr _ (.deref o1 _ _ .fp) => [o1]
   | .instr _ (.keccak _ _ _ _ _ _ _ out _ _ _) => [out]
@@ -195,16 +195,16 @@ section Atoms
 variable (F : Exec.Facts) (B : Book) (ψ : Trie Sym)
 
 /-- The bits of a limb. -/
-def limbNat (x : E) (i : Fin 3) : ℕ := (x.limb i).toBitVec.toNat
+def limbNat (x : E) (i : Fin 2) : ℕ := (x.limb i).toBitVec.toNat
 
-/-- `fp[c]` is the word of limbs `l0, l1, l2`, by a `SET`. -/
-noncomputable def setImm (c l0 l1 l2 : ℕ) : Bool :=
+/-- `fp[c]` is the word of limbs `l0, l1`, by a `SET`. -/
+noncomputable def setImm (c l0 l1 : ℕ) : Bool :=
   (look B c).any fun a ↦ match a with
-    | .instr _ (.set o k0 k1 k2) => o == c && l0 == k0 && l1 == k1 && l2 == k2
+    | .instr _ (.set o k0 k1) => o == c && l0 == k0 && l1 == k1
     | _ => false
 
 /-- `fp[c]` is the constant `x`, by a `SET` of its limbs. -/
-noncomputable def setIs (c : ℕ) (x : E) : Bool := setImm B c (limbNat x 0) (limbNat x 1) (limbNat x 2)
+noncomputable def setIs (c : ℕ) (x : E) : Bool := setImm B c (limbNat x 0) (limbNat x 1)
 
 /-- `(x, y, z)` is a permutation of `(p, q, r)`. -/
 def perm3 (x y z p q r : ℕ) : Bool :=
@@ -242,12 +242,12 @@ noncomputable def loadOk (d p off : ℕ) : Bool :=
 
 /-- The `!=` gadget: `fp[p] = fp[x] · fp[i]` and `fp[p] = 1` (its limbs, since a module's
 kernel does not reduce `1 : E`). -/
-noncomputable def neOk (x i p : ℕ) : Bool := mulOk B p x i && setImm B p 1 0 0
+noncomputable def neOk (x i p : ℕ) : Bool := mulOk B p x i && setImm B p 1 0
 
 /-- `fp[p] = fp[q]`: one cell, or two cells `SET` to one immediate. -/
 noncomputable def setSame (p q : ℕ) : Bool :=
   p == q || (look B p).any fun a ↦ match a with
-    | .instr _ (.set o k0 k1 k2) => o == p && setImm B q k0 k1 k2
+    | .instr _ (.set o k0 k1) => o == p && setImm B q k0 k1
     | _ => false
 
 /-- `fp[a] = fp[b]` by construction: `sameOk`, `setSame`, or products `fp[x]·fp[y]`,
@@ -310,7 +310,7 @@ noncomputable def gpAt (y : ℕ) : Option ℕ :=
   match ψ.get y with
   | some (.gp e) => some e
   | _ => ((look B y).findSome? fun a ↦ match a with
-      | .instr _ (.set o k0 0 0) => bif o == y then F.pows.find k0 else none
+      | .instr _ (.set o k0 0) => bif o == y then F.pows.find k0 else none
       | _ => none)
 
 /-- `fp[x] = fp · g^e` through at most `n` products by known powers of `g` from a cell `fpgAt`
@@ -357,6 +357,7 @@ noncomputable def atomOk (loc : Trie ℕ) : Core.Atom → Bool
   | .keccak ins outs inOdd outOdd => keccakOk B (cellsOf loc ins) (cellsOf loc outs) inOdd outOdd
   | .frameAddr p run => addrOk F B ψ loc (cellOf loc p) run
   | .hint _ => true
+  | .touch t p => loadOk B (cellOf loc t) (cellOf loc p) 0
 
 end Atoms
 
@@ -395,6 +396,7 @@ noncomputable def locate (loc : Trie ℕ) : Core.Atom → LAtom
   | .keccak ins outs inOdd outOdd => .keccak (cellsOf loc ins) (cellsOf loc outs) inOdd outOdd
   | .frameAddr p run => .addr (cellOf loc p) (cellsOf loc run)
   | .hint _ => .none
+  | .touch t p => .load (cellOf loc t) (cellOf loc p) 0
 
 /-- `k ns`, the list and its numbers evaluated first. -/
 def natsSeq {β : Type} : List ℕ → (List ℕ → β) → β
@@ -491,6 +493,7 @@ structure Sig where
   post : List (ℕ × ℕ)
   mem : List (ℕ × ℕ × ℕ)
   sem : List (ℕ × List ℕ)
+  deriving DecidableEq
 
 /-- The start of a window of a function's check after the first: at the code offset `J`, in the
 environment `env`, at core statement `start`, with the atoms `facts` filed under their cells and
@@ -546,6 +549,34 @@ structure Glob where
   jt : Trie ℕ
   sem : ℕ → Core.Reader → List E → Prop
 
+/-- No function: the signature a context gives an index it does not name. -/
+def Sig.none : Sig := ⟨"", 0, 0, 0, [], [], [], [], []⟩
+
+/-- The context `G` as a function with callees `cs` sees it: their signatures, and no other
+function. A window's check reads the context only so (`Cert.fxAt`), so two contexts agreeing on
+the callees give it alike (`Glob.restrict_congr`): a check stated over a function's own view of
+its callees is the check over the whole program's. -/
+def Glob.restrict (G : Glob) (cs : List ℕ) : Glob :=
+  ⟨fun j ↦ bif cs.contains j then G.sig j else Sig.none, fun j ↦ cs.contains j && G.good j, G.jt,
+    G.sem⟩
+
+theorem Glob.restrict_congr {G G' : Glob} {cs : List ℕ}
+    (h : ∀ j ∈ cs, G.sig j = G'.sig j ∧ G.good j = G'.good j) (hjt : G.jt = G'.jt)
+    (hsem : G.sem = G'.sem) : G.restrict cs = G'.restrict cs := by
+  unfold Glob.restrict
+  rw [hjt, hsem]
+  congr 1
+  · funext j
+    cases hj : cs.contains j
+    · rfl
+    · simp only [Bool.cond_true]
+      exact (h j (List.contains_iff_mem.mp hj)).1
+  · funext j
+    cases hj : cs.contains j
+    · rfl
+    · simp only [Bool.true_and]
+      exact (h j (List.contains_iff_mem.mp hj)).2
+
 /-- The tag of the relation `a ≠ b` on two words, which the checker discharges itself at a call
 guarded by `a + b` (`neAt`). -/
 def tagNe : ℕ := 1
@@ -558,6 +589,18 @@ def impTag (t k l : ℕ) : ℕ := t + 2 ^ 32 * (1 + k + 8 * l)
 
 /-- A conditional tag's tag. -/
 def impBase (t : ℕ) : ℕ := t % 2 ^ 32
+
+/-- A tag conditional on a dispatch's arm, in `[2^31, 2^32)`: `selTag t e`, `t < 2^26`, `e < 32`,
+holds of words whose last is `g^e` only if the others are in the relation of tag `t`. A window's
+obligation on the arguments of a dispatched callee, which only arm `e` assumes, takes this form on
+the arguments' cells and the selector's, and the dispatch checks the selector (`semOk`). -/
+def selTag (t e : ℕ) : ℕ := 2 ^ 31 + 32 * t + e
+
+/-- A tag conditional on a dispatch's arm: its tag. -/
+def selBase (t : ℕ) : ℕ := (t - 2 ^ 31) / 32
+
+/-- A tag conditional on a dispatch's arm: its arm. -/
+def selArm (t : ℕ) : ℕ := (t - 2 ^ 31) % 32
 
 /-- A conditional tag's position. -/
 def impPos (t : ℕ) : ℕ := (t / 2 ^ 32 - 1) % 8
@@ -696,7 +739,7 @@ variable (B : Book)
 /-- `fp[q] = 1 + g^k`, by a `SET`: `k`. -/
 noncomputable def selConst (q : ℕ) : Option ℕ :=
   (look B q).findSome? fun a ↦ match a with
-    | .instr _ (.set o k0 k1 k2) => optIf (o == q && k1 == 0 && k2 == 0) (onePlusPow k0)
+    | .instr _ (.set o k0 k1) => optIf (o == q && k1 == 0) (onePlusPow k0)
     | _ => none
 
 /-- `fp[u] = fp[b] · (1 + g^k)` with `fp[b]·fp[b] = fp[b]`, by a `MUL`: `k`. -/
@@ -711,8 +754,8 @@ noncomputable def boolScaled (u : ℕ) : Option ℕ :=
 noncomputable def boolSel (c : ℕ) : Option ℕ :=
   (look B c).findSome? fun a ↦ match a with
     | .instr _ (.xor x y z) =>
-        optIf (z == c) ((orOpt (optIf (setImm B x 1 0 0) (boolScaled B y))
-          (optIf (setImm B y 1 0 0) (boolScaled B x))).map (· + 1))
+        optIf (z == c) ((orOpt (optIf (setImm B x 1 0) (boolScaled B y))
+          (optIf (setImm B y 1 0) (boolScaled B x))).map (· + 1))
     | _ => none
 
 /-- **A bound on a selector from booleanity**: `boolSel`, or a `MUL` of two such, `fuel` deep. -/
@@ -804,19 +847,29 @@ def memOk (known : List (ℕ × ℕ × ℕ)) (args : List ℕ) (mem : List (ℕ 
 /-- The caller's cell of a callee frame cell, the arguments' and returns' cells after `fp[0..1]`. -/
 def frameCell (cs : List ℕ) (o : ℕ) : ℕ := listElementOrDefault cs (o - 2) 0
 
+/-- At arm `e` of a dispatch on the cell `c` (`sel`), the callee's tuple `s` on argument cells is
+one the caller knows with the selector's cell appended, its tag conditional on that arm
+(`selTag`). -/
+def selOk (sel : Option (ℕ × ℕ)) (sems : List (ℕ × List ℕ)) (args : List ℕ) (s : ℕ × List ℕ) : Bool :=
+  match sel with
+  | some (c, e) => Nat.blt s.1 (2 ^ 26) && Nat.blt e 32 &&
+      sems.any fun q ↦ q.1 == selTag s.1 e && q.2 == s.2.map (frameCell args) ++ [c]
+  | none => false
+
 /-- The callee's tagged tuples of cells in the semantic relation, on argument cells: a tuple the
 caller knows with the same tag, or with that tag conditional on a cell the book knows `SET` to the
 immediate (`impTag`), or a pair tagged `tagNe` that `ne` gives (`neAt` at a call guarded by their
-sum). -/
-noncomputable def semOk (B : Book) (ne : ℕ → ℕ → Bool) (sems : List (ℕ × List ℕ)) (args : List ℕ)
-    (sem : List (ℕ × List ℕ)) : Bool :=
+sum), or, at a dispatch's arm, one `selOk` accepts. -/
+noncomputable def semOk (B : Book) (ne : ℕ → ℕ → Bool) (sel : Option (ℕ × ℕ))
+    (sems : List (ℕ × List ℕ)) (args : List ℕ) (sem : List (ℕ × List ℕ)) : Bool :=
   sem.all fun s ↦ s.2.all (fun o ↦ Nat.ble 2 o && Nat.blt (o - 2) args.length) &&
     (sems.any (fun q ↦ q.2 == s.2.map (frameCell args) &&
-      (q.1 == s.1 || (Nat.ble (2 ^ 32) q.1 && impBase q.1 == s.1 && Nat.blt (impPos q.1) s.2.length &&
-        setImm B (listElementOrDefault q.2 (impPos q.1) 0) (impImm q.1) 0 0))) ||
+      (q.1 == s.1 || (Nat.ble (2 ^ 32) q.1 && impBase q.1 == s.1 && Nat.blt s.1 (2 ^ 31) &&
+        Nat.blt (impPos q.1) s.2.length &&
+        setImm B (listElementOrDefault q.2 (impPos q.1) 0) (impImm q.1) 0))) ||
       (s.1 == tagNe && match s.2 with
         | [a, b] => ne (frameCell args a) (frameCell args b)
-        | _ => false))
+        | _ => false) || selOk sel sems args s)
 
 /-- The callee's bounds after the call, on the caller's cells. -/
 def postBnd (cs : List ℕ) (post : List (ℕ × ℕ)) : List (ℕ × ℕ) :=
@@ -824,12 +877,12 @@ def postBnd (cs : List ℕ) (post : List (ℕ × ℕ)) : List (ℕ × ℕ) :=
 
 /-- What a call needs of the callee `s` into the frame `fp[q]`: its name, arity, stored
 arguments and self frame pointer cells, bounded arguments and memory, its semantic tuples (pairs
-`ne` knows different). -/
+`ne` knows different; at a dispatch's arm, `sel`). -/
 noncomputable def callOk (X : Fx) (B : Book) (ψ : Trie Sym) (bnd : List (ℕ × ℕ)) (ne : ℕ → ℕ → Bool)
-    (s : Sig) (f : String) (q : ℕ) (args : List ℕ) (nrets : ℕ) : Bool :=
+    (sel : Option (ℕ × ℕ)) (s : Sig) (f : String) (q : ℕ) (args : List ℕ) (nrets : ℕ) : Bool :=
   f == s.name && args.length == s.nargs && nrets == s.nret && storesOk B q 2 args &&
     envStoresOk B q s.env && preOk X.F ψ X.mem B bnd args s.pre && memOk X.known args s.mem &&
-    semOk B ne X.sems args s.sem &&
+    semOk B ne sel X.sems args s.sem &&
     s.post.all (fun p ↦ Nat.ble 2 p.1 && Nat.blt p.1 (2 + s.nargs + s.nret))
 
 /-- The callee at `pc`, among the function's callees, by index. -/
@@ -848,13 +901,13 @@ noncomputable def armsOk (G : Glob) (entry base : ℕ) : ℕ → List ℕ → Bo
   | _, [] => true
   | j, a :: as => G.jt.get (base + j) == some (entry + a) && armsOk G entry base (j + 1) as
 
-/-- Slot `base + j` holds the entry of the callee named `fs[j]`, a callee meeting `ok`. -/
-noncomputable def tableCallsOk (X : Fx) (base : ℕ) (ok : String → Sig → Bool) :
+/-- Slot `base + j` holds the entry of the callee named `fs[j]`, a callee meeting `ok j`. -/
+noncomputable def tableCallsOk (X : Fx) (base : ℕ) (ok : ℕ → String → Sig → Bool) :
     ℕ → List String → Bool
   | _, [] => true
   | j, f :: fs => (match X.G.jt.get (base + j) with
       | some pc => match calleeAt X pc with
-        | some j => ok f (X.G.sig j)
+        | some j' => ok j f (X.G.sig j')
         | none => false
       | none => false) && tableCallsOk X base ok (j + 1) fs
 
@@ -962,7 +1015,7 @@ noncomputable def tailOk (X : Fx) (st : CS) (x : Exec.Exit) (oc S : ℕ) (s : Si
     (ca : List ℕ) (P : List Core.Atom) : Bool :=
   f == s.name && ca.length == s.nargs && s.nret == 0 && X.nret == 0 &&
     preOk X.F st.psi X.mem st.book st.bnd ca s.pre && s.mem.isEmpty && X.post.isEmpty &&
-    semOk st.book (neAt st.book oc) X.sems ca s.sem &&
+    semOk st.book (neAt st.book oc) none X.sems ca s.sem &&
     tailArgsOk st.book S 2 ca &&
     s.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) && tailEnvOk st.book x.env S p.1) &&
     nextHolds st.book S 0 0 && nextHolds st.book S 1 1 && pendOk X st P && !X.main &&
@@ -1049,7 +1102,7 @@ noncomputable def chkL (X : Fx) : List Core.Stmt → CS → List Core.Atom → R
         | .call (.gp e) q r =>
             match calleeAt X e with
             | some j =>
-                bif callOk X se.book se.psi se.bnd (fun _ _ ↦ false) (X.G.sig j) f q (cellsOf X.loc args)
+                bif callOk X se.book se.psi se.bnd (fun _ _ ↦ false) none (X.G.sig j) f q (cellsOf X.loc args)
                     rets.length &&
                     Nat.ble X.entry r && se.seg.exit.succ == [r - X.entry] then
                   match afterCall X (r - X.entry) q (2 + args.length) (cellsOf X.loc rets)
@@ -1071,8 +1124,9 @@ noncomputable def chkL (X : Fx) : List Core.Stmt → CS → List Core.Atom → R
             | some base =>
                 bif boundOk X.F se.psi X.mem se.book se.bnd (cellOf X.loc v) fs.length && Nat.ble X.entry r &&
                     se.seg.exit.succ == [r - X.entry] &&
-                    tableCallsOk X base (fun f s ↦
-                      callOk X se.book se.psi se.bnd (fun _ _ ↦ false) s f q (cellsOf X.loc args)
+                    tableCallsOk X base (fun e f s ↦
+                      callOk X se.book se.psi se.bnd (fun _ _ ↦ false) (some (cellOf X.loc v, e)) s f q
+                        (cellsOf X.loc args)
                         rets.length &&
                         s.post.isEmpty) 0 fs then
                   match afterCall X (r - X.entry) q (2 + args.length) (cellsOf X.loc rets)
@@ -1091,7 +1145,7 @@ noncomputable def chkL (X : Fx) : List Core.Stmt → CS → List Core.Atom → R
             | .call (.gp e) q r =>
                 match calleeAt X e with
                 | some j =>
-                    bif callOk X st'.book st'.psi st'.bnd (neAt st'.book oc) (X.G.sig j) f q
+                    bif callOk X st'.book st'.psi st'.bnd (neAt st'.book oc) none (X.G.sig j) f q
                         (cellsOf X.loc args) 0 &&
                         (X.G.sig j).post.isEmpty &&
                         Nat.ble X.entry r && x.succ == [r - X.entry] then
@@ -1206,7 +1260,8 @@ def Cert.stmtsAt (C : Cert) (cf : Core.Fn) (i : ℕ) : List Core.Stmt :=
 noncomputable def Cert.fxAt (G : Glob) (f : CompiledFunction) (cf : Core.Fn) (C : Cert) (main
     : Bool)
     (i : ℕ) (segs : List Exec.Seg) (idx : Trie Exec.Seg) (loc : Trie ℕ) : Fx :=
-  ⟨G, C.facts, f.entryPc, segs, idx, loc, cf.params.length, C.nret, main, C.callees, C.post,
+  ⟨G.restrict C.callees, C.facts, f.entryPc, segs, idx, loc, cf.params.length, C.nret, main,
+    C.callees, C.post,
     C.mem ++ ((C.cutAt i).known ++ (C.cutAt i).knownIf), (C.cutAt i).known, (C.cutAt i).sems,
     bif Nat.blt i C.cuts.length then
       some ((C.cutAt (i + 1)).J, (C.cutAt (i + 1)).facts, (C.cutAt (i + 1)).bnd)
@@ -1267,6 +1322,7 @@ def atomVals : Core.Atom → List Core.V
   | .keccak ins outs _ _ => ins ++ outs
   | .frameAddr q run => q :: run
   | .hint _ => []
+  | .touch t q => [t, q]
 
 mutual
 /-- The values a statement names. -/
@@ -1307,10 +1363,6 @@ noncomputable def walkFrom (X : Fx) (env : List (ℕ × Sym)) (sel : ℕ) (succ 
     (ss : List Core.Stmt) (st : CS) : Res :=
   bif succ.isEmpty then chkL X ss st []
   else bif startsOk X.idx env succ then chainL X sel succ st.book st.psi st.bnd ss [] else .fail
-
-theorem walkFrom_nil {X : Fx} {env : List (ℕ × Sym)} {sel : ℕ} {succ : List ℕ} (h : succ = [])
-    (ss : List Core.Stmt) (st : CS) : walkFrom X env sel succ ss st = chkL X ss st [] := by
-  simp [walkFrom, h]
 
 /-- **The check of window `i`** of `f` with core function `cf` and certificate `C`: its
 executor's segments are linked, its cells are the certificate's and cover its statements, its walk

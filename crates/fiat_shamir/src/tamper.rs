@@ -6,11 +6,11 @@
 //! forged message gives, so the proof is Fiat-Shamir consistent with the forgery: only the checks the
 //! forged message feeds can reject it.
 
-use primitives::field::F192;
+use primitives::field::F128;
 use std::cell::RefCell;
 
 /// Called with each scalar's stream index and honest value; returns the value sent.
-pub type ScalarTamper = Box<dyn FnMut(usize, F192) -> F192>;
+pub type ScalarTamper = Box<dyn FnMut(usize, F128) -> F128>;
 
 thread_local! {
     static ARMED: RefCell<Option<ScalarTamper>> = const { RefCell::new(None) };

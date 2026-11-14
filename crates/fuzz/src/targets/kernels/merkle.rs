@@ -9,7 +9,7 @@ use crate::{Ctx, Finding, Outcome, Source};
 use fiat_shamir::merkle::{MerklePath, hash_pair, hash_words, open};
 use fiat_shamir::transcript::Proof;
 use pcs::ntt::AdditiveNttF64;
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     if src.chance(1, 2) {
@@ -194,7 +194,7 @@ fn openings(src: &mut Source, ctx: &Ctx) -> Outcome {
 
     // The proof's wire format: one encoding, which decodes back to the same paths.
     if leaf_words <= 64 && count <= 256 {
-        let stream: Vec<F192> = (0..src.below(5)).map(|_| src.f192()).collect();
+        let stream: Vec<F128> = (0..src.below(5)).map(|_| src.f128()).collect();
         let proof = Proof {
             stream,
             merkle: vec![paths.clone(); src.range(1, 3)],

@@ -22,8 +22,8 @@ def cellSymsOf (σ : Val) : List K := (List.range 256).map fun j => (σ (.n (j +
 /-- **`da_verify_cell`'s body, at a valuation**: under any call relation (it calls nothing), the
 meaning holds with the symbols `cellSymsOf σ` and the weights read at its argument. -/
 theorem da_verify_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : List E}
-    (hpar : Data.core30.params.map σ = args)
-    (hb : Stmt.HoldsList C rd σ (Fn.body Data.core30) False (fun rs => rs = rets)) :
+    (hpar : (fn% «da_verify_cell»).params.map σ = args)
+    (hb : Stmt.HoldsList C rd σ (Fn.body fn% «da_verify_cell») False (fun rs => rs = rets)) :
     ∃ lv, args = [lv] ∧ (cellSymsOf σ).length = LeanDa.cellSymbols ∧
       ReadsAt rd lv (memRun rd lv 256) ∧ (memRun rd lv 256).length = LeanDa.cellSymbols ∧
       rets = digestCells (keccak256 ((cellSymsOf σ).flatMap K.toBytes)) ++
@@ -45,7 +45,7 @@ theorem da_verify_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
       rw [← atomsEqb_sound htm] at ha
       exact hat a (List.mem_of_mem_drop (List.mem_of_mem_take ha))
     have hC : ∀ a ∈ A.drop 1280, a.Holds rd σ := fun a ha => hat a (List.mem_of_mem_drop ha)
-    obtain ⟨hd, -⟩ := straight_digest hchk rfl rfl hret hC
+    have hd := straight_digest hchk rfl rfl hret hC
     have hsym : ∀ j < 256, IsInK (σ (.n (j + 1))) := by
       intro j hj
       obtain ⟨h1, h2, -⟩ := blk_sound (show j / 2 < 128 by omega) htmpl

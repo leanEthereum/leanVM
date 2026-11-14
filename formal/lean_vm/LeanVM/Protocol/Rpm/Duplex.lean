@@ -5,8 +5,13 @@
   lanes `16..24` of the zero state or of an earlier answer.
 -/
 
-import LeanVM.Protocol.LeanVM
-import LeanVM.Protocol.WithHash
+module
+
+public import LeanVM.Protocol.Verifier.Cost
+public import LeanVM.Protocol.Compile.Rom.Complete
+public import LeanVM.Protocol.WithHash
+
+@[expose] public section
 
 /-!
 # The duplex discipline
@@ -32,7 +37,7 @@ namespace LeanVM.Rpm
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
-open LeanVM.Prover (Tree buildTreeWithHash parentsWithHash levelsWithHash powStepM searchM findNonceM)
+open LeanVM.Prover (Tree buildTreeWithHash parentsWithHash levelsWithHash searchM findNonceM)
 open OracleComp OracleSpec
 
 /-! ## The discipline -/
@@ -246,7 +251,16 @@ theorem duplexP_absorb {h : List KeccakState} {sp : Sponge} (hs : sp.state ∈ h
 theorem duplexP_squeeze {h : List KeccakState} {sp : Sponge} (hs : sp.state ∈ h) :
     DuplexP (squeeze callKeccakF1600 sp) h fun r h' ↦ r.2.state ∈ h' := by
   simp only [squeeze]
-  exact (duplexP_duplex hs).bind fun sp' h' hsp ↦ hsp
+  split
+  · exact hs
+  · exact (duplexP_duplex hs).bind fun sp' h' hsp ↦ hsp
+
+/-- A proof of work's nonce: an absorption, then one permutation of the sponge. -/
+theorem duplexP_absorbNonce {h : List KeccakState} {sp : Sponge} (hs : sp.state ∈ h) (n : E) :
+    DuplexP (absorbNonce callKeccakF1600 sp n) h fun r h' ↦ r.2.state ∈ h' := by
+  simp only [absorbNonce]
+  exact (duplexP_absorb hs _ _).bind fun sp' h' hsp ↦ (duplexP_duplex hsp).bind
+    fun sp'' h'' hsp' ↦ hsp'
 
 /-! ## The verifier -/
 
@@ -293,8 +307,8 @@ theorem duplexP_run {α : Type} (P : VerifierProgram α) :
     intro s h hs
     simp only [Compile.runWithHash]
     split
-    · trivial
     · exact (duplexP_absorb hs _ _).bind fun sp h' hsp ↦ ih _ _ _ hsp
+    · trivial
   | sample k ih =>
     intro s h hs
     simp only [Compile.runWithHash]
@@ -303,21 +317,17 @@ theorem duplexP_run {α : Type} (P : VerifierProgram α) :
     intro s h hs
     simp only [Compile.runWithHash]
     split
-    · trivial
-    · refine (duplexP_absorb hs _ _).bind fun sp h' hsp ↦ ?_
-      refine (duplexP_squeeze hsp).bind fun r h'' hr ↦ ?_
+    · refine (duplexP_absorbNonce hs _).bind fun r h' hr ↦ ?_
       split
       · exact ih _ _ hr
       · trivial
+    · trivial
   | commit height width k ih =>
     intro s h hs
     simp only [Compile.runWithHash]
     split
     · refine (duplexP_absorb hs _ _).bind fun sp h' hsp ↦ ?_
-      refine (duplexP_absorb hsp _ _).bind fun sp' h'' hsp' ↦ ?_
-      split
-      · exact ih _ _ hsp'
-      · trivial
+      exact (duplexP_absorb hsp _ _).bind fun sp' h'' hsp' ↦ ih _ _ hsp'
     · trivial
   | query i ps k ih =>
     intro s h hs
@@ -384,17 +394,13 @@ theorem hOnly_buildTreeM (height : ℕ) (word : Word) : HOnly (buildTreeWithHash
   (hOnly_arrayMapM _ (fun _ ↦ hOnly_queryH _) _).bind fun _ ↦
     (hOnly_levelsM _ _).bind fun _ ↦ trivial
 
-theorem duplexP_powStepM {h : List KeccakState} {sp : Sponge} (hs : sp.state ∈ h) (n : E) :
-    DuplexP (powStepM callKeccakF1600 sp n) h fun r h' ↦ r.2.state ∈ h' :=
-  (duplexP_absorb hs _ _).bind fun _ _ hsp ↦ duplexP_squeeze hsp
-
 /-- The nonce search keeps the discipline, and the sponge it searches at. -/
 theorem duplexP_searchM (bits : ℕ) {h : List KeccakState} {sp : Sponge} (hs : sp.state ∈ h) :
     ∀ (count n : ℕ), DuplexP (searchM callKeccakF1600 bits sp n count) h fun _ h' ↦ sp.state ∈ h'
   | 0, _ => hs
   | count + 1, n => by
     simp only [searchM]
-    refine (duplexP_powStepM hs _).grow.bind fun r h' hr ↦ ?_
+    refine (duplexP_absorbNonce hs _).grow.bind fun r h' hr ↦ ?_
     split
     · exact hr.2 hs
     · exact duplexP_searchM bits (hr.2 hs) count (n + 1)
@@ -402,9 +408,7 @@ theorem duplexP_searchM (bits : ℕ) {h : List KeccakState} {sp : Sponge} (hs : 
 theorem duplexP_findNonceM (bits : ℕ) {h : List KeccakState} {sp : Sponge} (hs : sp.state ∈ h)
     (fuel : ℕ) : DuplexP (findNonceM callKeccakF1600 bits sp fuel) h fun _ h' ↦ sp.state ∈ h' := by
   simp only [findNonceM]
-  split
-  · exact hs
-  · exact duplexP_searchM bits hs _ _
+  exact duplexP_searchM bits hs _ _
 
 /-- **The honest prover keeps the discipline**, from a sponge whose state is an earlier answer. -/
 theorem duplexP_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} (P : VerifierProgram α) :
@@ -428,7 +432,7 @@ theorem duplexP_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} (P : Verifier
     refine (duplexP_findNonceM bits hs fuel).bind fun r h' hr ↦ ?_
     split
     · trivial
-    · exact (duplexP_powStepM hr _).bind fun r' h'' hr' ↦
+    · exact (duplexP_absorbNonce hr _).bind fun r' h'' hr' ↦
         (ih _ _ _ _ hr').bind fun _ _ _ ↦ trivial
   | commit height width k ih =>
     intro sp ev cs h hs
@@ -455,3 +459,5 @@ theorem duplexVm_romHonestComp (prog : LeanIsaProgram) (input : PublicInput) (S 
     (duplexP_proveFromM _ _ _ _ _ _ _ hs).bind fun _ _ _ ↦ trivial
 
 end LeanVM.Rpm
+
+end

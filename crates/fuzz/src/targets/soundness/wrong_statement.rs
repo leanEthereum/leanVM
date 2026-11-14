@@ -26,12 +26,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
             if other == fixture.public_input {
                 return Ok(());
             }
-            let has_top = other.iter().any(|h| h.c2 != 0);
-            ctx.note(if has_top {
-                "public input with a top limb"
-            } else {
-                "other public input"
-            });
+            ctx.note("other public input");
             let verdict = catch(|| leanvm_core::cpu::verify(&fixture.program, &other, &honest.proof))
                 .map_err(|(m, l)| Finding::panic(&m, &l).in_context(&context))?;
             super::must_reject(

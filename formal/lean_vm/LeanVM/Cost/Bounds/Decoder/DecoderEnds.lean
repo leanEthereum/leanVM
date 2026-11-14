@@ -12,8 +12,8 @@ The prices of `Cost/Decoder/Ends.lean`'s functions and of the decoder's output
 * **`decoderTables_cost`**: the two address tables (`decoderTablesC`, the extractor's `powTable`
   twice), at most `(74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42`;
 * **`memReader_cost`**: one memory read (`memReaderC`, the binary search in the table and the
-  vector's entry), at most `111 + 36·log₂|memT|`; on the table `powTable κ`, `κ ≤ 32`, at most
-  `111 + 36κ ≤ 1263` (`memReader_cost_deployed`), the price `R` of the reader closure the readers
+  vector's entry), at most `111 + 36·log₂|memT|`; on the table `powTable κ`, `κ ≤ 30`, at most
+  `111 + 36κ ≤ 1191` (`memReader_cost_deployed`), the price `R` of the reader closure the readers
   and the precondition's test take;
 * `decodedOf_cost`: `7`;
 * **`decoderOutput_cost`**: the seed (`decSeedC`, at most `A`) and the statement (`decStmtC`, the
@@ -38,7 +38,7 @@ theorem decoderTables_cost (hP : Includes P decoderTablesC.costDeps) (prog : Lea
     (hκ : κ ≤ 62) :
     machineCost P decoderTablesC.costIdx [encodeValue prog, encodeValue κ] ≤
       (74 * κ + 121) * 2 ^ κ + (74 * prog.logSize + 121) * 2 ^ prog.logSize + 42 := by
-  have hls : prog.logSize ≤ 32 := prog.logSize_le
+  have hls : prog.logSize ≤ 30 := prog.logSize_le
   rw [decoderTablesC.costEq P hP]
   have h1 := powTable_cost P (by includes) κ hκ
   have h2 := powTable_cost P (by includes) prog.logSize (by omega)
@@ -59,12 +59,12 @@ theorem memReader_cost (hP : Includes P memReaderC.costDeps) (memT : Array (ℕ 
     (gLogTable memT κ a) (fun i _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [stepVec.c258.lam0.lam0.lam0.costEq P (by includes), limbs_shift hκ,
-        limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.c316.costEq P (by includes), max_self])
+        limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.c315.costEq P (by includes), max_self])
   omega
 
-/-- **One memory read at the deployed shape** (the table `powTable κ`, `κ ≤ 32`): at most
-`111 + 36κ ≤ 1263`. -/
-theorem memReader_cost_deployed (hP : Includes P memReaderC.costDeps) {κ : ℕ} (hκ : κ ≤ 32)
+/-- **One memory read at the deployed shape** (the table `powTable κ`, `κ ≤ 30`): at most
+`111 + 36κ ≤ 1191`. -/
+theorem memReader_cost_deployed (hP : Includes P memReaderC.costDeps) {κ : ℕ} (hκ : κ ≤ 30)
     (mem : Vector E (2 ^ κ)) (a : K) :
     machineCost P memReaderC.costIdx [encodeValue (powTable κ), encodeValue κ, encodeValue mem,
       encodeValue a] ≤ 111 + 36 * κ := by

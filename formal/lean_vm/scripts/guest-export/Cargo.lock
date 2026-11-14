@@ -197,7 +197,6 @@ dependencies = [
 name = "signatures"
 version = "0.1.0"
 dependencies = [
- "parallel",
  "primitives",
  "rand",
 ]

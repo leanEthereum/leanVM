@@ -6,10 +6,9 @@
   children the guest program accepts and the honest proof being such a child.
 -/
 
-import LeanVM.Guest.Child.Covered
 import LeanVM.Guest.Child.FreshUnique
-import LeanVM.Guest.Budget.Covered
-import LeanVM.Prover.End
+import LeanVM.Guest.Budget.Fits
+import LeanVM.Prover.EndChild
 
 /-!
 # Completeness on honest children
@@ -20,7 +19,7 @@ the honest proof is an acceptable child, and `NodeRelation`'s `ChildrenProven` h
 verifier accept the proof with the witness's fresh claim, which is true; the deferring verifier
 accepts a proof with at most one true claim (`Child.freshClaim_unique`), so the two claims are one
 (`acceptableChild_of_honestChild`). The completeness on acceptable children
-(`guest_complete_covered`, every seed) then gives `GuestCompleteOnHonestChildren`.
+(`guest_complete_on_acceptable_children`, every seed) then gives `GuestCompleteOnHonestChildren`.
 -/
 
 namespace LeanVM.Guest.Completeness
@@ -34,9 +33,9 @@ theorem acceptableChild_of_honestChild {witness : NodeWitness}
     (hProven : ChildrenProven (bytecodeWords guestProgram) (deployedSeed guestProgram) witness)
     {child : Child} (hc : child ∈ witness.children) (hHonest : HonestChild child) :
     AcceptableChild (bytecodeWords guestProgram) (deployedSeed guestProgram) child := by
-  obtain ⟨hHolds, execution, ρ, h21, hSome, hAccepted⟩ := hHonest
+  obtain ⟨hHolds, execution, ρ, hSome, hAccepted⟩ := hHonest
   obtain ⟨hShape, hVerifies⟩ := hProven child hc
-  obtain ⟨fresh, hFresh, hOk⟩ := Budget.guest_child_complete.2 child.statement execution ρ h21
+  obtain ⟨fresh, hFresh, hOk⟩ := Budget.guest_child_complete.2 child.statement execution ρ
     hShape child.proof hSome hAccepted
   have hEq : fresh = child.freshClaim :=
     LeanVM.Guest.Child.freshClaim_unique hOk.verifies hVerifies hFresh hHolds
@@ -62,15 +61,13 @@ theorem acceptableChildren_of_honest {statement : NodeStatement} {witness : Node
   fun child hc ↦ acceptableChild_of_honestChild (childrenProven_of_nodeRelation hRelation) hc
     (hHonest child hc)
 
-/-- **Every covered node whose children carry honest proofs has a valid execution of the guest
-program** (`GuestCompleteOnHonestChildren`): `guest_complete_covered`'s execution, of committed
-size at least `2^22`, so above the statement's floor `2^21`. -/
+/-- **Every node within the deployed limits whose children carry honest proofs has a valid execution of the
+guest program** (`GuestCompleteOnHonestChildren`): `guest_complete_on_acceptable_children`'s
+execution, of committed size at most `2^30`. -/
 theorem guest_complete_on_honest_children : GuestCompleteOnHonestChildren := by
-  intro statement witness hRelation hLimits hCovered hHonest
-  obtain ⟨execution, hValid, hMin, hMax⟩ := Budget.guest_complete_covered
-    (deployedSeed guestProgram) statement witness hRelation hLimits
-    (acceptableChildren_of_honest hRelation hHonest) hCovered
-  exact ⟨execution, hValid, lt_of_lt_of_le (by norm_num) hMin, hMax⟩
+  intro statement witness hRelation hLimits hHonest
+  exact Budget.guest_complete_on_acceptable_children (deployedSeed guestProgram) statement witness
+    hRelation hLimits (acceptableChildren_of_honest hRelation hHonest)
 
 /-- **The honest proof is rarely refused** (`HonestProofRarelyRefused`): `guest_child_complete`'s
 first part. -/

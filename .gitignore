@@ -2,4 +2,6 @@
 target
 __pycache__/
 .vscode
-fuzz-out
+# Never committed: papers and previews kept beside the repo, LaTeX scratch.
+/*.pdf
+*.tex.tex

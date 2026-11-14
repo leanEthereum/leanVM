@@ -18,10 +18,10 @@ use std::fs;
 
 use lean_compiler::{compile, parse, parse_const};
 use leanvm_core::cpu::{prove, verify};
-use primitives::field::F192;
+use primitives::field::F128;
 
 /// The `# public_input: <elt>, <elt>` annotation, if any.
-pub(crate) fn public_input(src: &str) -> Option<[F192; 2]> {
+pub(crate) fn public_input(src: &str) -> Option<[F128; 2]> {
     for line in src.lines() {
         if let Some(rest) = line.trim().strip_prefix("# public_input:") {
             let parts: Vec<&str> = rest.split(',').collect();
@@ -40,8 +40,8 @@ pub(crate) fn public_input(src: &str) -> Option<[F192; 2]> {
 /// The `# witness <name>: <elt>, …` annotations: one line per *entry*
 /// (repeated lines with the same name are the stream's successive entries,
 /// popped by successive `hint_witness` calls).
-pub(crate) fn witness(src: &str) -> std::collections::HashMap<String, Vec<Vec<F192>>> {
-    let mut streams: std::collections::HashMap<String, Vec<Vec<F192>>> = Default::default();
+pub(crate) fn witness(src: &str) -> std::collections::HashMap<String, Vec<Vec<F128>>> {
+    let mut streams: std::collections::HashMap<String, Vec<Vec<F128>>> = Default::default();
     for rest in src.lines().filter_map(|l| l.trim().strip_prefix("# witness ")) {
         let (name, vals) = rest.split_once(':').expect("`# witness` needs `name: values`");
         let entry = vals
@@ -68,7 +68,7 @@ fn all_py_programs() {
     for path in paths {
         let name = path.file_name().unwrap().to_string_lossy().into_owned();
         let src = fs::read_to_string(&path).unwrap_or_else(|e| panic!("{name}: read: {e}"));
-        let want = public_input(&src).unwrap_or([F192::ZERO; 2]);
+        let want = public_input(&src).unwrap_or([F128::ZERO; 2]);
         let ast = parse(&src).unwrap_or_else(|e| panic!("{name}: parse: {e}"));
         let mut program = compile(&ast);
         for (stream, entries) in witness(&src) {

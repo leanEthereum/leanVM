@@ -17,14 +17,14 @@ import Mathlib.Tactic.NormNum.Prime
 `g = x`, the word
 `0x2`, is transcribed from `crates/primitives/src/field/gf2_64.rs:25` (`F64::G = F64(2)`, "with
 `ord(x) = 2^64 - 1`") at leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`, cross-checked
-against `crates/verifier/src/field.rs:114` at `40f877dc` (`GEN: E = E::new(2, 0, 0)`).
+against `crates/verifier/src/field.rs:113` at `leanvm-rev` (`GEN: E = E::new(2, 0)`).
 Specification §2
 (`02-vm-specification.tex:12`) fixes a generator of `K^×` of order `2^64 - 1` without naming it.
 The value appears exactly once, in `g` (`Statement.Field`), and is symbolic everywhere else.
 
 The order is certified, not asserted. `|K^×| = 2^64 - 1 = 3·5·17·257·641·65537·6700417`;
 `g^(2^64-1) = 1` is Lagrange (`FiniteField.pow_card_sub_one_eq_one` with `BF64.card_bf64`); and
-`g^((2^64-1)/p) ≠ 1` for each of the seven primes is a `decide +kernel` on CompPoly's computable
+`g^((2^64-1)/p) ≠ 1` for the seven primes is one `decide +kernel` on CompPoly's computable
 arithmetic. Mathlib's `orderOf_eq_of_pow_and_pow_div_prime` turns these into
 `orderOf g = 2^64 - 1`, hence `gpow_injOn`: addresses `g^i` and `g^j` with `i, j < 2^64 - 1`
 collide only when `i = j`. An element of smaller order passes six of
@@ -55,26 +55,40 @@ theorem g_pow_card_sub_one : g ^ (2 ^ 64 - 1) = 1 := by
   simp only [BF64.card_bf64] at h
   exact h
 
+/-- The seven checks of the certificate, in one kernel evaluation: the squarings of `g` that
+`npowBinRec` shares are computed once. -/
+private theorem g_pow_div_primes_ne_one :
+    g ^ ((2 ^ 64 - 1) / 3) ≠ 1 ∧
+    g ^ ((2 ^ 64 - 1) / 5) ≠ 1 ∧
+    g ^ ((2 ^ 64 - 1) / 17) ≠ 1 ∧
+    g ^ ((2 ^ 64 - 1) / 257) ≠ 1 ∧
+    g ^ ((2 ^ 64 - 1) / 641) ≠ 1 ∧
+    g ^ ((2 ^ 64 - 1) / 65537) ≠ 1 ∧
+    g ^ ((2 ^ 64 - 1) / 6700417) ≠ 1 := by
+  decide +kernel
+
 /-- The prime-`3` check of the certificate. -/
-theorem g_pow_div_three_ne_one : g ^ ((2 ^ 64 - 1) / 3) ≠ 1 := by decide +kernel
+theorem g_pow_div_three_ne_one : g ^ ((2 ^ 64 - 1) / 3) ≠ 1 := g_pow_div_primes_ne_one.1
 
 /-- The prime-`5` check of the certificate. -/
-theorem g_pow_div_five_ne_one : g ^ ((2 ^ 64 - 1) / 5) ≠ 1 := by decide +kernel
+theorem g_pow_div_five_ne_one : g ^ ((2 ^ 64 - 1) / 5) ≠ 1 := g_pow_div_primes_ne_one.2.1
 
 /-- The prime-`17` check of the certificate. -/
-theorem g_pow_div_seventeen_ne_one : g ^ ((2 ^ 64 - 1) / 17) ≠ 1 := by decide +kernel
+theorem g_pow_div_seventeen_ne_one : g ^ ((2 ^ 64 - 1) / 17) ≠ 1 := g_pow_div_primes_ne_one.2.2.1
 
 /-- The prime-`257` check of the certificate. -/
-theorem g_pow_div_257_ne_one : g ^ ((2 ^ 64 - 1) / 257) ≠ 1 := by decide +kernel
+theorem g_pow_div_257_ne_one : g ^ ((2 ^ 64 - 1) / 257) ≠ 1 := g_pow_div_primes_ne_one.2.2.2.1
 
 /-- The prime-`641` check of the certificate. -/
-theorem g_pow_div_641_ne_one : g ^ ((2 ^ 64 - 1) / 641) ≠ 1 := by decide +kernel
+theorem g_pow_div_641_ne_one : g ^ ((2 ^ 64 - 1) / 641) ≠ 1 := g_pow_div_primes_ne_one.2.2.2.2.1
 
 /-- The prime-`65537` check of the certificate. -/
-theorem g_pow_div_65537_ne_one : g ^ ((2 ^ 64 - 1) / 65537) ≠ 1 := by decide +kernel
+theorem g_pow_div_65537_ne_one : g ^ ((2 ^ 64 - 1) / 65537) ≠ 1 :=
+  g_pow_div_primes_ne_one.2.2.2.2.2.1
 
 /-- The prime-`6700417` check of the certificate. -/
-theorem g_pow_div_6700417_ne_one : g ^ ((2 ^ 64 - 1) / 6700417) ≠ 1 := by decide +kernel
+theorem g_pow_div_6700417_ne_one : g ^ ((2 ^ 64 - 1) / 6700417) ≠ 1 :=
+  g_pow_div_primes_ne_one.2.2.2.2.2.2
 
 /-- `g` generates `K^×`: its order is exactly `2^64 - 1`. -/
 theorem orderOf_g : orderOf g = 2 ^ 64 - 1 := by

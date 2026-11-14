@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.FlatAt
+public import LeanVM.Guest.B1.Tables.VtC.Calls
 public import LeanVM.Guest.B1.Tables.VtC.Agree
 public import LeanVM.Guest.B1.Fwd.FlatIte
 public import LeanVM.Guest.Memory.LiftPure
@@ -213,11 +214,6 @@ theorem FlatFn.agree (F : FlatFn) {rd1 rd2 : Reader} {w : ℕ → E} {args : Lis
   unfold FlatFn.σ B1.Val.ofArgs
   exact hag _ hv
 
-/-- A call, conditional call or dispatch. -/
-def callB : Stmt → Bool
-  | .call .. | .callIf .. | .dispatch .. => true
-  | _ => false
-
 /-- **A call statement's values are not range-check reads.** -/
 theorem FlatFn.call_vals (F : FlatFn) {s : Stmt} (hs : s ∈ F.pre) (hc : callB s = true) :
     ∀ v ∈ s.vals, F.aux v.idx = false := by
@@ -227,6 +223,7 @@ theorem FlatFn.call_vals (F : FlatFn) {s : Stmt} (hs : s ∈ F.pre) (hc : callB 
     rwa [hfix] at this
   have hd := List.all_eq_true.mp F.hdead s hm
   exact dead_vals hd (fun x y t1 t2 k h ↦ by subst h; simp [callB] at hc)
+    (fun t p h ↦ by subst h; simp [callB] at hc)
 
 theorem regionL_append {L L' : Layout} {i : ℕ} (h : RegionL (L ++ L') i) :
     RegionL L i ∨ RegionL L' i := by

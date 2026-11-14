@@ -87,14 +87,15 @@ enum Command {
     },
     /// Prove and verify a batch of Keccak-f permutations with the VM's GKR, outside the VM.
     Hash {
-        /// Log2 of the number of permutations, from the reduction's fewest steps up to the
-        /// largest batch whose committed block the verifiers accept.
+        /// Log2 of the number of permutations: a committed block the verifiers accept, from the
+        /// least stack (or the reduction's fewest steps, if more) to the largest.
         #[arg(
             long,
             default_value_t = 17,
             value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(
-                u64::from(leanvm_core::keccak::MIN_STEPS.ilog2())
-                    ..=(leanvm_core::pcs::MAX_MU - leanvm_core::keccak::SLOT_LOG) as u64
+                (leanvm_core::pcs::MIN_STACKED_LOG - leanvm_core::keccak::SLOT_LOG)
+                    .max(leanvm_core::keccak::MIN_STEPS.ilog2() as usize) as u64
+                    ..=(leanvm_core::pcs::MAX_STACKED_LOG - leanvm_core::keccak::SLOT_LOG) as u64
             )
         )]
         log_n: usize,
@@ -109,7 +110,7 @@ enum Command {
 
 fn main() {
     let cli = Cli::parse();
-    leanvm_core::init_prover();
+    parallel::init();
     let plan = bench::Plan::new(cli.repeat, cli.cooldown);
     if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
         bench::init_tracing();

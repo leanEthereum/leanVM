@@ -326,7 +326,7 @@ theorem layerA_cost (hP : Includes P Decoder.layerAC.costDeps) (T : SpTabs) (hT 
     machineCost P Decoder.layerAC.costIdx [encodeValue T, σV, wV, encodeValue l,
       encodeValue layer] ≤ 169 * S + 104600 := by
   rw [Decoder.layerAC.costEq P hP T σ σV hσ w wV hw, ofFnFrom_length, ofFnFrom_length,
-    Auto.Sphincs.layerHeight.c845.costEq P (by includes)]
+    Auto.Sphincs.layerHeight.c844.costEq P (by includes)]
   have := spCtr_cost P (by includes) l hl
   have := hS (.n (spCtr l))
   have := cellNat_cost P (by includes) (σ (.n (spCtr l)))
@@ -401,8 +401,8 @@ theorem sphincsSigOfA_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
   have l0 := layerA_cost P hσ hS (by includes) T hT hw0 hW0 0 (by norm_num) 0
   have l1 := layerA_cost P hσ hS (by includes) T hT hw1 hW1 1 (by norm_num) 1
   have l2 := layerA_cost P hσ hS (by includes) T hT hw2 hW2 2 (by norm_num) 2
-  rw [Auto.Fin.ofNat.c848.costEq P (by includes), Auto.Fin.ofNat.c848.costEq P (by includes),
-    Auto.Fin.ofNat.c848.costEq P (by includes)]
+  rw [Auto.Fin.ofNat.c847.costEq P (by includes), Auto.Fin.ofNat.c847.costEq P (by includes),
+    Auto.Fin.ofNat.c847.costEq P (by includes)]
   simp only [Sphincs.forsTreeCount, Sphincs.layerCount, Nat.sub_zero] at m0 ⊢
   limbs_one
   omega

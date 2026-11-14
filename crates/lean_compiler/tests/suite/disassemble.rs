@@ -11,7 +11,7 @@ fn disassemble_covers_every_opcode() {
 @inline
 def pack64x2(a, b):
     assert_in_k(a, b)
-    return a + f192(0, 1, 0) * b
+    return a + 18446744073709551616 * b
 
 def main():
     buff = HeapBuf(6)

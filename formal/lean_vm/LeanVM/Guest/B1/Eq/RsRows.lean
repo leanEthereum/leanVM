@@ -7,9 +7,10 @@
 module
 
 public import LeanVM.Guest.B1.Eq.Meaning
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
-# `rs_eq_rows` (lean_ethereum.py:1030-1049 at leanVM `40f877dc`)
+# `rs_eq_rows` (lean_ethereum.py:1018-1037)
 
 `rs_eq_rows(row, zs, ps, n)` at `n = 0` returns `row`. Otherwise it reads the `n` coordinates
 `zs[i]`, `ps[i]` (`rrHead`), and for each `k < 64` the row word `row[k]`, multiplies it by
@@ -111,19 +112,28 @@ def rrT (n : ℕ) : ℕ := rrS n 63 + 1 + 2 * n
 /-- The expansion of `rs_eq_rows__L{n}`, `n ≥ 1`. -/
 def rrBody (n : ℕ) : List Stmt :=
   ((List.range n).map rrHeadBlk).flatten ++ ((List.range 64).map (rrRow n)).flatten ++
-    [.atom (.const (.n (rrT n)) (word 27 0 0)), .atom (.mul (.n (rrT n + 1)) (.n 0) (.n (rrT n))),
+    [.atom (.const (.n (rrT n)) (word 27 0)), .atom (.mul (.n (rrT n + 1)) (.n 0) (.n (rrT n))),
       .atom (.copy (.n (rrT n + 2)) (.n (rrT n + 1))), .ret [.n (rrT n + 2)]]
 
-theorem core81_body : Fn.body Data.core81 = [.atom (.copy (.n 3) (.n 0)), .ret [.n 3]] :=
+theorem rs_eq_rows_L0_body : Fn.body fn% «rs_eq_rows__L0» = [.atom (.copy (.n 3) (.n 0)),
+    .ret [.n 3]] :=
   stmtsEqb_sound (by decide +kernel)
-theorem core82_body : Fn.body Data.core82 = rrBody 1 := stmtsEqb_sound (by decide +kernel)
-theorem core83_body : Fn.body Data.core83 = rrBody 2 := stmtsEqb_sound (by decide +kernel)
-theorem core84_body : Fn.body Data.core84 = rrBody 3 := stmtsEqb_sound (by decide +kernel)
-theorem core85_body : Fn.body Data.core85 = rrBody 4 := stmtsEqb_sound (by decide +kernel)
-theorem core86_body : Fn.body Data.core86 = rrBody 5 := stmtsEqb_sound (by decide +kernel)
-theorem core87_body : Fn.body Data.core87 = rrBody 6 := stmtsEqb_sound (by decide +kernel)
-theorem core88_body : Fn.body Data.core88 = rrBody 7 := stmtsEqb_sound (by decide +kernel)
-theorem core418_body : Fn.body Data.core418 = rrBody 8 := stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L1_body : Fn.body fn% «rs_eq_rows__L1» = rrBody 1 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L2_body : Fn.body fn% «rs_eq_rows__L2» = rrBody 2 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L3_body : Fn.body fn% «rs_eq_rows__L3» = rrBody 3 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L4_body : Fn.body fn% «rs_eq_rows__L4» = rrBody 4 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L5_body : Fn.body fn% «rs_eq_rows__L5» = rrBody 5 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L6_body : Fn.body fn% «rs_eq_rows__L6» = rrBody 6 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L7_body : Fn.body fn% «rs_eq_rows__L7» = rrBody 7 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L8_body : Fn.body fn% «rs_eq_rows__L8» = rrBody 8 :=
+  stmtsEqb_sound (by decide +kernel)
 
 /-! ## The conditions -/
 
@@ -170,7 +180,7 @@ theorem rr_unfold {name : String} {f : Fn} (n : ℕ) (hfind : coreProgram.find? 
     coreProgram.Rel rd name args rets ↔ ∃ σ : Val, [σ (.n 0), σ (.n 1), σ (.n 2)] = args ∧
       (∀ i < n, LoadHolds rd (σ (.n 1)) i (σ (.n (3 + 2 * i))) ∧
         LoadHolds rd (σ (.n 2)) i (σ (.n (4 + 2 * i)))) ∧
-      (∀ k < 64, RrRowOk rd σ n k) ∧ σ (.n (rrT n)) = word 27 0 0 ∧
+      (∀ k < 64, RrRowOk rd σ n k) ∧ σ (.n (rrT n)) = word 27 0 ∧
       σ (.n (rrT n + 1)) = σ (.n 0) * σ (.n (rrT n)) ∧
       σ (.n (rrT n + 2)) = σ (.n (rrT n + 1)) ∧ [σ (.n (rrT n + 2))] = rets := by
   rw [rel_iff_sem hfind, hbody, hparams, rrBody]
@@ -238,7 +248,7 @@ theorem length_rrRowVals (n : ℕ) (zs ps c : List E) (k : ℕ) :
 def rrVals (n : ℕ) (row z p : E) (zs ps c : List E) : List E :=
   [row, z, p] ++ (List.range n).flatMap (fun i ↦ [zs.getD i 0, ps.getD i 0]) ++
     (List.range 64).flatMap (rrRowVals n zs ps c) ++
-    [word 27 0 0, row * word 27 0 0, row * word 27 0 0]
+    [word 27 0, row * word 27 0, row * word 27 0]
 
 theorem length_rrHeadVals (n : ℕ) (zs ps : List E) :
     ((List.range n).flatMap (fun i ↦ [zs.getD i 0, ps.getD i 0])).length = n * 2 :=
@@ -319,7 +329,7 @@ theorem rrRowVals_coord (k i s : ℕ) (hi : i < n) (hs : s < rrStride k) :
 
 theorem rrVals_tail (t : ℕ) (ht : t < 3) :
     (rrVals n row z p zs ps c).getD (rrT n + t) 0 =
-      [word 27 0 0, row * word 27 0 0, row * word 27 0 0].getD t 0 := by
+      [word 27 0, row * word 27 0, row * word 27 0].getD t 0 := by
   have hB := length_rrPreRows n row z p zs ps c
   unfold rrVals
   rw [List.getD_append_right _ _ _ _ (by rw [hB]; omega), hB, Nat.add_sub_cancel_left]
@@ -349,7 +359,7 @@ theorem rr_iff {name : String} {f : Fn} (n : ℕ) (hn : 0 < n)
     coreProgram.Rel rd name args rets ↔ MeaningRsEqRows n rd args rets := by
   rw [rr_unfold n hfind hparams hbody]
   have hk27 : K.ofBits 27 = K.ofBits 2 ^ 64 := by decide +kernel
-  have w27 : word 27 0 0 = gen ^ 64 := by
+  have w27 : word 27 0 = gen ^ 64 := by
     rw [word_eOfNat, show gen = ofK (K.ofBits 2) from rfl, ← ofK_pow, ← hk27]
     rfl
   constructor
@@ -444,8 +454,8 @@ theorem rr_iff {name : String} {f : Fn} (n : ℕ) (hn : 0 < n)
 
 theorem rr0_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "rs_eq_rows__L0" args rets ↔ MeaningRsEqRows 0 rd args rets := by
-  rw [rel_iff_sem (Program.find?_of_indexOf? (j := 81) (by decide +kernel) rfl), core81_body,
-    show Fn.params Data.core81 = [.n 0, .n 1, .n 2] from rfl]
+  rw [rel_iff_sem (coreProgram_find?_at (j := idx% «rs_eq_rows__L0») rfl), rs_eq_rows_L0_body,
+    show Fn.params fn% «rs_eq_rows__L0» = [.n 0, .n 1, .n 2] from rfl]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   constructor
   · rintro ⟨σ, hp, h3, hret⟩
@@ -464,22 +474,22 @@ theorem rs_eq_rows_holds : rs_eq_rows_Spec := by
   intro n hn rd args rets
   interval_cases n
   · exact rr0_iff rd args rets
-  · exact rr_iff 1 (by decide) (Program.find?_of_indexOf? (j := 82) (by decide +kernel) rfl) rfl
-      core82_body rd args rets
-  · exact rr_iff 2 (by decide) (Program.find?_of_indexOf? (j := 83) (by decide +kernel) rfl) rfl
-      core83_body rd args rets
-  · exact rr_iff 3 (by decide) (Program.find?_of_indexOf? (j := 84) (by decide +kernel) rfl) rfl
-      core84_body rd args rets
-  · exact rr_iff 4 (by decide) (Program.find?_of_indexOf? (j := 85) (by decide +kernel) rfl) rfl
-      core85_body rd args rets
-  · exact rr_iff 5 (by decide) (Program.find?_of_indexOf? (j := 86) (by decide +kernel) rfl) rfl
-      core86_body rd args rets
-  · exact rr_iff 6 (by decide) (Program.find?_of_indexOf? (j := 87) (by decide +kernel) rfl) rfl
-      core87_body rd args rets
-  · exact rr_iff 7 (by decide) (Program.find?_of_indexOf? (j := 88) (by decide +kernel) rfl) rfl
-      core88_body rd args rets
-  · exact rr_iff 8 (by decide) (Program.find?_of_indexOf? (j := 418) (by decide +kernel) rfl) rfl
-      core418_body rd args rets
+  · exact rr_iff 1 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L1») rfl) rfl
+      rs_eq_rows_L1_body rd args rets
+  · exact rr_iff 2 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L2») rfl) rfl
+      rs_eq_rows_L2_body rd args rets
+  · exact rr_iff 3 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L3») rfl) rfl
+      rs_eq_rows_L3_body rd args rets
+  · exact rr_iff 4 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L4») rfl) rfl
+      rs_eq_rows_L4_body rd args rets
+  · exact rr_iff 5 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L5») rfl) rfl
+      rs_eq_rows_L5_body rd args rets
+  · exact rr_iff 6 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L6») rfl) rfl
+      rs_eq_rows_L6_body rd args rets
+  · exact rr_iff 7 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L7») rfl) rfl
+      rs_eq_rows_L7_body rd args rets
+  · exact rr_iff 8 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L8») rfl) rfl
+      rs_eq_rows_L8_body rd args rets
 
 end
 end LeanVM.Guest.B1

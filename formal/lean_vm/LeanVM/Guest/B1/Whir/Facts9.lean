@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.Facts9
 
-  Candidate 9's facts, by kernel evaluation.
+  Size 9's facts at each rate, by kernel evaluation.
 -/
 
 module
@@ -13,7 +13,16 @@ namespace LeanVM.Guest.B1.Whir
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem candB_9 : candB 9 24 2 = true := by decide +kernel
+theorem candB_9_0 : candB 9 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem candB_9_1 : candB 9 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem candB_9_2 : candB 9 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem candB_9_3 : candB 9 3 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Whir

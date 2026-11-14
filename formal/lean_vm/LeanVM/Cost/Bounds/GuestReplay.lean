@@ -87,7 +87,7 @@ theorem replayStatesOf_cost (hP : Includes P replayStatesOfC.costDeps) (prog :
           encodeValue κ, encodeValue mem] ≤
       (runnerStepPrice κ prog.logSize + 46) *
           (replayStatesOf (powTable κ) (powTable prog.logSize) prog mem).length + 2456 := by
-  have hls : prog.logSize ≤ 32 := prog.logSize_le
+  have hls : prog.logSize ≤ 30 := prog.logSize_le
   rw [replayStatesOfC.costEq P hP, Auto.LeanVM.Semantics.LeanIsaProgram.pcFinal.c242.costEq P (by includes),
     replayFuelC.costEq P (by includes)]
   have h1 := statesVec_cost P (by includes) (powTable κ) (powTable prog.logSize) prog mem
@@ -97,10 +97,10 @@ theorem replayStatesOf_cost (hP : Includes P replayStatesOfC.costDeps) (prog :
       rw [powTable_size, powTable_size, Nat.log2_two_pow, Nat.log2_two_pow] at this
       unfold runnerStepPrice
       omega) replayFuel ⟨addressOfIndex 0, 1⟩ (le_of_eq rfl)
-  have hp : 2 ^ prog.logSize ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hls
+  have hp : 2 ^ prog.logSize ≤ 2 ^ 30 := Nat.pow_le_pow_right (by norm_num) hls
   have hp0 : 0 < 2 ^ prog.logSize := Nat.two_pow_pos _
   have h2 := powSq_cost P (by includes) g (2 ^ prog.logSize - 1) (by omega)
-  have h3 := log2_lt_of (k := 32) (n := 2 ^ prog.logSize - 1) (by norm_num) (by omega)
+  have h3 := log2_lt_of (k := 30) (n := 2 ^ prog.logSize - 1) (by norm_num) (by omega)
   have h4 := powSq_cost P (by includes) g 0 (by norm_num)
   have h5 : limbCount (1 <<< 128) ≤ 3 := limbs_le_three (by rw [Nat.one_shiftLeft]; norm_num)
   rw [limbs_shift (by omega : prog.logSize < 64), limbs_of_lt (by omega : prog.logSize < 2 ^ 64),

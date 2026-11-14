@@ -23,7 +23,7 @@ pub fn lean_op(op: &Op) -> String {
     match *op {
         Op::Xor { a, b, c } => format!(".xor {a} {b} {c}"),
         Op::Mul { a, b, c } => format!(".mul {a} {b} {c}"),
-        Op::Set { o, k } => format!(".set {o} {} {} {}", k.c0, k.c1, k.c2),
+        Op::Set { o, k } => format!(".set {o} {} {}", k.c0, k.c1),
         Op::Deref { o1, o2, o3, mode } => {
             let mode = match mode {
                 DerefMode::Cell => "cell",
@@ -81,7 +81,7 @@ pub fn files(guest: &Program) -> Vec<File> {
     assert!(code_len < prog.len());
     for op in &prog[code_len..] {
         assert!(
-            matches!(*op, Op::Set { o: 0, k } if k == F192::ZERO),
+            matches!(*op, Op::Set { o: 0, k } if k == F128::ZERO),
             "the padding is not `SET fp[0] = 0`"
         );
     }

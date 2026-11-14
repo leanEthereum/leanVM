@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Protocol.Compile.SpecRules.Basic
 public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
+public import LeanVM.Protocol.Verifier.Phases
 
 /-!
 # The announced sizes
@@ -21,7 +22,7 @@ tables' row counts and the WHIR rate, checks them, and builds the layout. For th
 * `readSizes_ret`: what the program checks, on the history it read;
 * `readSizes_ret_sizes`: it returns `(layout, ρ)` only after reading `announce s ρ` for sizes
   `s` with `Sizes.Admissible prog s` (the Rust verifier's checks,
-  `crates/verifier/src/layout.rs:381-395` and `crates/verifier/src/lib.rs:215-220`; until
+  `crates/verifier/src/layout.rs:381-395` and `crates/verifier/src/lib.rs:213-218`; until
   `127510d1` they were `read_public`'s, `crates/lean_vm/src/cpu/mod.rs:157-176` at `a386121f`)
   and a rate with `validRate ρ`, and `layout = verifierLayout prog s`; so its `stackLog` is
   `leanIsaμ prog s` (`stackLog_verifierLayout`) and its placements are the instance's.
@@ -73,11 +74,10 @@ theorem after_readN_ret : ∀ (n : ℕ) {l : List Ev} {xs : List E},
 theorem ofBits_kToNat (k : K) : K.ofBits (kToNat k) = k := by
   cases k; simp [K.ofBits, kToNat, BF64.ofBitVec]
 
-/-- A scalar with zero upper limbs is `eOfNat` of its low limb's value. -/
-theorem eq_eOfNat_of_limbs {x : E} (h1 : x.limb 1 = 0) (h2 : x.limb 2 = 0) :
-    x = eOfNat (kToNat (x.limb 0)) := by
+/-- A scalar with a zero upper limb is `eOfNat` of its low limb's value. -/
+theorem eq_eOfNat_of_limbs {x : E} (h1 : x.limb 1 = 0) : x = eOfNat (kToNat (x.limb 0)) := by
   rw [eOfNat, ofBits_kToNat]
-  exact E.ext fun i ↦ by fin_cases i <;> simp [h1, h2]
+  exact E.ext fun i ↦ by fin_cases i <;> simp [h1]
 
 /-- The eight scalars that announce the sizes `s` and the rate `ρ`, as the verifier reads them. -/
 def announce (s : Sizes) (ρ : ℕ) : List E := (s.logMem :: List.ofFn s.rows ++ [ρ]).map eOfNat
@@ -90,12 +90,6 @@ theorem IsPure.bind {α β : Type} {p : VerifierProgram α} {f : α → Verifier
     (hf : ∀ a, IsPure (f a)) : IsPure (p.bind f) := by
   rcases hp with ⟨a, rfl⟩ | rfl
   · exact hf a
-  · exact .inr rfl
-
-/-- `require` has no event. -/
-theorem isPure_require (c : Prop) [Decidable c] : IsPure (VerifierProgram.require c) := by
-  unfold VerifierProgram.require; split_ifs
-  · exact .inl ⟨_, rfl⟩
   · exact .inr rfl
 
 /-- `liftOption` has no event. -/
@@ -114,72 +108,39 @@ theorem IsPure.after_cons {α : Type} {p : VerifierProgram α} (hp : IsPure p) (
 @[simp] theorem fail_bind' {α β : Type} (f : α → VerifierProgram β) :
     (VerifierProgram.fail : VerifierProgram α).bind f = .fail := rfl
 
-/-- **What `readAnnouncedSizes` returns**: after eight reads whose upper limbs are zero, the rate in
+/-- **What `readAnnouncedSizes` returns**: after eight reads whose upper limb is zero, the rate in
 `[1, 4]` from the last, the layout `buildLayout` gives from the first seven, and a stacked size in
 the window. -/
 theorem readSizes_ret {bytecode : List K} {l : List Ev} {a : Verifier.Layout × ℕ}
     (h : (readAnnouncedSizes bytecode).after l = some (.ret a)) :
     ∃ xs : List E, l = xs.map Ev.read ∧ xs.length = 8 ∧
-      (xs.all fun value ↦ value.limb 1 = 0 ∧ value.limb 2 = 0) ∧
+      (xs.all fun value ↦ value.limb 1 = 0) ∧
       1 ≤ a.2 ∧ a.2 ≤ 4 ∧ a.2 = kToNat ((xs.getLastD 0).limb 0) ∧
       buildLayout bytecode (kToNat ((xs.headD 0).limb 0))
         (((xs.drop 1).take 6).map fun value ↦ kToNat (value.limb 0)) = some a.1 ∧
       Whir.minLogStack ≤ a.1.stackLog ∧ a.1.stackLog ≤ Whir.maxLogStack := by
-  unfold readAnnouncedSizes at h
+  rw [readAnnouncedSizes_eq] at h
   simp only [VerifierProgram.bind_eq] at h
   rcases VerifierProgram.after_bind_cases _ h with ⟨q, hq, hr⟩ | ⟨xs, l₁, l₂, rfl, h1, h2, h3⟩
   · obtain ⟨xs, rfl, hk⟩ := bind_eq_ret hr.symm
     obtain ⟨rfl, hlen⟩ := after_readN_ret _ hq
-    refine ⟨xs, rfl, by simpa [tables] using hlen, ?_⟩
-    have ht : tables.length = 6 := rfl
-    rw [ht] at hk
-    by_cases c1 : (xs.all fun value ↦ decide (value.limb 1 = 0 ∧ value.limb 2 = 0)) = true
-    · by_cases c2 : 1 ≤ kToNat ((xs.getLastD 0).limb 0) ∧ kToNat ((xs.getLastD 0).limb 0) ≤ 4
-      · cases hb : buildLayout bytecode (kToNat ((xs.headD 0).limb 0))
-            (((xs.drop 1).take 6).map fun value ↦ kToNat (value.limb 0)) with
-        | none =>
-          simp only [VerifierProgram.require, c1, c2, hb, Verifier.liftOption, ↓reduceIte,
-              VerifierProgram.ret_bind,
-            fail_bind'] at hk
-          cases hk
-        | some layout =>
-          by_cases c3 : Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack
-          · simp only [VerifierProgram.require, c1, c2, hb, c3, Verifier.liftOption, ↓reduceIte,
-              and_self,
-              VerifierProgram.ret_bind, VerifierProgram.pure_eq, VerifierProgram.ret.injEq] at hk
-            subst hk
-            exact ⟨c1, c2.1, c2.2, rfl, rfl, c3⟩
-          · simp only [VerifierProgram.require, c1, c2, hb, c3, Verifier.liftOption, ↓reduceIte,
-              VerifierProgram.ret_bind,
-              fail_bind'] at hk
-            cases hk
-      · simp only [VerifierProgram.require, c1, c2, ↓reduceIte, VerifierProgram.ret_bind,
-          fail_bind'] at hk
-        cases hk
-    · simp only [VerifierProgram.require, c1, ↓reduceIte, fail_bind', Bool.false_eq_true] at hk
-      cases hk
+    have ho : sizesOf bytecode xs = some a := by
+      cases ho : sizesOf bytecode xs with
+      | none => rw [ho] at hk; cases hk
+      | some y => rw [ho] at hk; cases hk; rfl
+    have s := sizesOf_spec ho
+    exact ⟨xs, rfl, by simpa [tables] using hlen, s.limbs, s.rate_ge, s.rate_le, s.rate, s.layout,
+      s.stack_ge, s.stack_le⟩
   · exfalso
-    have hpure : IsPure ((fun announced : List E ↦
-        (VerifierProgram.require ((announced.all fun value ↦ decide (value.limb 1 = 0 ∧ value.limb 2
-            = 0)) =
-          true)).bind fun _ ↦
-        (VerifierProgram.require (1 ≤ kToNat ((announced.getLastD 0).limb 0) ∧
-          kToNat ((announced.getLastD 0).limb 0) ≤ 4)).bind fun _ ↦
-        (Verifier.liftOption (buildLayout bytecode (kToNat ((announced.headD 0).limb 0))
-          (((announced.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)))).bind
-            fun layout ↦
-          (VerifierProgram.require (Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack)).bind
-            fun _ ↦ (pure (layout, kToNat ((announced.getLastD 0).limb 0)) : VerifierProgram
-                _)) xs) :=
-      (isPure_require _).bind fun _ ↦ (isPure_require _).bind fun _ ↦
-        (isPure_liftOption _).bind fun _ ↦ (isPure_require _).bind fun _ ↦ .inl ⟨_, rfl⟩
+    have hpure : IsPure ((fun announced : List E ↦ Verifier.liftOption (sizesOf bytecode announced)) xs) :=
+      isPure_liftOption _
     cases l₂ with
     | nil => exact h2 rfl
     | cons e l₂ => rw [hpure.after_cons] at h3; cases h3
 
-/-- A layout is built only for a memory of at least `2^16` cells. -/
+/-- A layout is built only for a memory of at least `2` cells. -/
 theorem logMem_of_buildLayout {bytecode : List K} {lm : ℕ} {tl : List ℕ} {layout : Verifier.Layout}
-    (h : buildLayout bytecode lm tl = some layout) : 16 ≤ lm := by
+    (h : buildLayout bytecode lm tl = some layout) : 1 ≤ lm := by
   unfold buildLayout at h
   split at h
   · cases h
@@ -218,11 +179,11 @@ theorem readSizes_ret_sizes (prog : LeanIsaProgram) {l : List Ev} {a : Verifier.
         List.nil_append, List.ofFn_succ, List.ofFn_zero]
       rw [hρ]
       simp only [List.getLastD_cons, List.getLastD_nil]
-      obtain ⟨⟨a0, b0⟩, ⟨a1, b1⟩, ⟨a2, b2⟩, ⟨a3, b3⟩, ⟨a4, b4⟩, ⟨a5, b5⟩, ⟨a6, b6⟩, a7, b7⟩ := hall
+      obtain ⟨a0, a1, a2, a3, a4, a5, a6, a7⟩ := hall
       simp only [List.cons.injEq, Ev.read.injEq, and_true]
-      exact ⟨eq_eOfNat_of_limbs a0 b0, eq_eOfNat_of_limbs a1 b1, eq_eOfNat_of_limbs a2 b2,
-        eq_eOfNat_of_limbs a3 b3, eq_eOfNat_of_limbs a4 b4, eq_eOfNat_of_limbs a5 b5,
-        eq_eOfNat_of_limbs a6 b6, eq_eOfNat_of_limbs a7 b7⟩
+      exact ⟨eq_eOfNat_of_limbs a0, eq_eOfNat_of_limbs a1, eq_eOfNat_of_limbs a2,
+        eq_eOfNat_of_limbs a3, eq_eOfNat_of_limbs a4, eq_eOfNat_of_limbs a5,
+        eq_eOfNat_of_limbs a6, eq_eOfNat_of_limbs a7⟩
 
 end
 end LeanVM.Protocol.EndToEnd.Front

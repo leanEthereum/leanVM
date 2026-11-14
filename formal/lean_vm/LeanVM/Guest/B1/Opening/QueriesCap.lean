@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesPath
 
 /-!
-# A query's cap leaf (`walk_path`, lean_ethereum.py:1334-1344 at 40f877dc)
+# A query's cap leaf (`walk_path`, lean_ethereum.py:1329-1339 at 40f877dc)
 
 The last two windows of the position are `wb = g^b`, `b` its bit `pd`, and `q = g^Q`,
 `Q = pos / 2^(pd+1)` (the parent's index among the cap's internal nodes at the level above the
@@ -29,14 +29,14 @@ variable {rd : Reader} {σ : Val}
 
 /-- The cap child bit's window: `(q >>> pd) % 2`. -/
 theorem qwVal_capBit {pd cd q : ℕ} :
-    qwVal (pd + cd) cd q (oqNpw ⟨0, 0, pd, cd⟩) = (if q.testBit pd then 1 else 0) := by
+    qwVal (pd + cd) cd q (oqNpw ⟨0, 0, pd, cd, 0, [], 0, 0⟩) = (if q.testBit pd then 1 else 0) := by
   simp only [qwVal, qwWin, qwNp, oqNpw, Nat.add_sub_cancel, ↓reduceIte, pow_one,
     Nat.shiftRight_eq_div_pow, Nat.testBit_eq_decide_div_mod_eq]
   rcases Nat.mod_two_eq_zero_or_one (q / 2 ^ pd) with h | h <;> simp [h]
 
 /-- The cap parent index's window: `q / 2^(pd+1)`. -/
 theorem qwVal_capIdx {pd cd q : ℕ} (hcd : 1 ≤ cd) (hq : q < 2 ^ (pd + cd)) :
-    qwVal (pd + cd) cd q (oqNpw ⟨0, 0, pd, cd⟩ + 1) = q / 2 ^ (pd + 1) := by
+    qwVal (pd + cd) cd q (oqNpw ⟨0, 0, pd, cd, 0, [], 0, 0⟩ + 1) = q / 2 ^ (pd + 1) := by
   have h1 : (pd + 5) / 6 + 1 ≠ (pd + 5) / 6 := by omega
   simp only [qwVal, qwWin, qwNp, oqNpw, Nat.add_sub_cancel, h1, ↓reduceIte,
     Nat.shiftRight_eq_div_pow]
@@ -45,7 +45,7 @@ theorem qwVal_capIdx {pd cd q : ℕ} (hcd : 1 ≤ cd) (hq : q < 2 ^ (pd + cd)) :
   calc q < 2 ^ (pd + cd) := hq
     _ = 2 ^ (cd - 1 + (pd + 1)) := by congr 1; omega
 
-theorem oqNpw_eq (s : Oq) : oqNpw s = oqNpw ⟨0, 0, s.pd, s.cd⟩ := rfl
+theorem oqNpw_eq (s : Oq) : oqNpw s = oqNpw ⟨0, 0, s.pd, s.cd, 0, [], 0, 0⟩ := rfl
 
 /-- **The cap leaf** (`walk_path`'s end): with the last two windows those of `q < 2^(pd+cd)`
 (`wb = g^b`, `q' = g^(q / 2^(pd+1))`), the parent's flag is set and the node `oqNd … npw` is
@@ -65,7 +65,7 @@ theorem oqCap_sound {s : Oq} (hcd : 1 ≤ s.cd) {bp cap flags : V} {kL ch q : �
   have c0 := hA _ (by simp [oqCapT, ← hk] : Stmt.atom (.load (.n k) bp (oqNpw s)) ∈ _)
   have c1 := hA _ (by simp [oqCapT, ← hk] : Stmt.atom (.load (.n (k + 1)) bp (oqNpw s + 1)) ∈ _)
   have c2 := hA _ (by simp [oqCapT, ← hk] : Stmt.atom (.mul (.n (k + 2)) flags (.n (k + 1))) ∈ _)
-  have c3 := hA _ (by simp [oqCapT, ← hk] : Stmt.atom (.const (.n (k + 3)) (word 1 0 0)) ∈ _)
+  have c3 := hA _ (by simp [oqCapT, ← hk] : Stmt.atom (.const (.n (k + 3)) (word 1 0)) ∈ _)
   have c4 := hA _ (by simp [oqCapT, ← hk] :
     Stmt.atom (.load (.n (k + 3)) (.n (k + 2)) (2 ^ (s.cd - 1))) ∈ _)
   have c5 := hA _ (by simp [oqCapT, ← hk] : Stmt.atom (.mul (.n (k + 4)) (.n (k + 1)) (.n (k + 1))) ∈ _)

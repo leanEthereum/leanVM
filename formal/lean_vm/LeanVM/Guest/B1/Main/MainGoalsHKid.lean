@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.MainGoalsHKid
 
-  A child of `main`'s honest run as `__loop4` reads it (`hKid`): its counts, its base, its lists'
+  A child of `main`'s honest run as `main_loop4` reads it (`hKid`): its counts, its base, its lists'
   digests, its DA digest, its deferred cells; and its statement's digest.
 -/
 
@@ -26,7 +26,7 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (DeployedLimits)
+open LeanVM.Guest (GuestLimits)
 open LeanVM.Guest.Hints (claimCells cellOfBytes cellsOfBytes)
 open LeanVM.Guest.B1 (CompleteAtD Returns bufL)
 
@@ -69,13 +69,6 @@ theorem cellsBytes_claimCells (r p : BitVec 128) (m : BitVec 256) :
     cellBytes_cellOfBytes (by rw [List.length_drop]; omega),
     cellBytes_cellOfBytes (by rw [List.length_drop]; omega)]
   exact take16_chain hl
-
-theorem claimCells_canonical (r p : BitVec 128) (m : BitVec 256) :
-    AllCanonical (claimCells r p m) := by
-  intro x hx
-  rw [kid_claimCells_eq] at hx
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-  rcases hx with rfl | rfl | rfl | rfl <;> rfl
 
 /-! ## The lists' digests are their cells' -/
 
@@ -141,7 +134,7 @@ theorem kid_segOf_sum : ∀ (ls : List ℕ) (c j : ℕ) (hc : c < ls.length), j 
 
 variable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
 
-/-- **Child `c` of the honest run**, as `__loop4` reads it. -/
+/-- **Child `c` of the honest run**, as `main_loop4` reads it. -/
 def hKid (c : ℕ) : KidH where
   ex := hEx w c
   es := hEs w c
@@ -178,15 +171,14 @@ theorem hKid_da {c : ℕ} (hc : c < w.children.length) :
 theorem hKid_defer {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).defer = w.children[c].statement.deferredClaim.cells := getD_map_lt _ _ _ hc
 
-/-- **Child `c`'s statement digest**, as `__loop4` computes it, is the child's statement's. -/
-theorem hKid_pi {c : ℕ} (hc : c < w.children.length)
-    (hlen : w.children[c].statement.deferredClaim.cells.length = 24) :
+/-- **Child `c`'s statement digest**, as `main_loop4` computes it, is the child's statement's. -/
+theorem hKid_pi {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).pi (digestHalves seed).1 (digestHalves seed).2 =
       digestHalves (statementDigest seed w.children[c].statement) := by
   unfold KidH.pi
   rw [hKid_cx hc, hKid_cs hc, hKid_da hc, hKid_defer hc,
     statementDigest_of_parts (digestBytes_eq_cells seed) (digestBytes_eq_cells _)
-      (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen]
+      (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl]
 
 end
 end LeanVM.Guest.B1.Main

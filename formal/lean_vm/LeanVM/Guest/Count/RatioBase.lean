@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.Memory.WeightRatio
 public import LeanVM.Guest.B2C.ArmBound
@@ -38,7 +39,7 @@ noncomputable def krName (k : ℕ) : String := ((coreProgram[k]?).map Fn.name).g
 /-- Function `i` calls the functions of indices `C i`, all in `J`. -/
 noncomputable def krClosedAt (J : List ℕ) (C : ℕ → List ℕ) (i : ℕ) : Bool :=
   (Stmt.blockCallees ((coreProgram[i]?).getD default).body == (C i).map krName) &&
-    (C i).all fun k => decide (k ∈ J) && Nat.blt k 991
+    (C i).all fun k => decide (k ∈ J) && Nat.blt k coreProgram.length
 
 /-- Function `i` within the ratios `A op / 1000`. -/
 noncomputable def krRatioAt (A : Opcode → ℕ) (i : ℕ) : Bool :=
@@ -77,7 +78,7 @@ theorem kr_callsIn {J : List ℕ} {C : ℕ → List ℕ} (h : J.all (krClosedAt 
   obtain ⟨k, hk, rfl⟩ := List.mem_map.mp hg
   have hk' := List.all_eq_true.mp hc.2 k hk
   simp only [Bool.and_eq_true, decide_eq_true_eq, Nat.blt_eq] at hk'
-  have hkl : k < coreProgram.length := by rw [coreProgram_length]; exact hk'.2
+  have hkl : k < coreProgram.length := hk'.2
   refine ⟨k, hk'.1, ?_⟩
   simp [krName, List.getElem?_eq_getElem hkl]
 
@@ -94,10 +95,9 @@ theorem kr_ratio {J : List ℕ} {A : Opcode → ℕ} (h : J.all (krRatioAt A) = 
   simp only [hx]
   exact Nat.le_of_ble_eq_true hr
 
-/-- Core function `j` is `__loop2` exactly when `j` is its index. -/
-theorem kr_name_xmss {j : ℕ} (hj : j < coreProgram.length) :
-    coreProgram[j].name = "__loop2" ↔ j = 36 := by
-  have hx : (coreProgram[36]?).map Fn.name = some "__loop2" := by decide +kernel
+/-- Core function `j` is `main_loop2` exactly when `j` is its index `x`. -/
+theorem kr_name_xmss {x j : ℕ} (hx : (coreProgram[x]?).map Fn.name = some (name% main_loop2))
+    (hj : j < coreProgram.length) : coreProgram[j].name = (name% main_loop2) ↔ j = x := by
   constructor
   · intro h
     have := coreIdx_getElem hj
@@ -107,12 +107,13 @@ theorem kr_name_xmss {j : ℕ} (hj : j < coreProgram.length) :
     rw [List.getElem?_eq_getElem hj] at hx
     simpa using hx
 
-/-- **Off `__loop2`, the frame weights are the path maxima.** -/
-theorem kr_ratio_om {J : List ℕ} {A : Opcode → ℕ} (h : J.all (krRatioAt A) = true) (hx : 36 ∉ J)
+/-- **Off `main_loop2`, the frame weights are the path maxima.** -/
+theorem kr_ratio_om {J : List ℕ} {A : Opcode → ℕ} (h : J.all (krRatioAt A) = true) {x : ℕ}
+    (hxn : (coreProgram[x]?).map Fn.name = some (name% main_loop2)) (hx : x ∉ J)
     (op : Opcode) : ∀ g, krIn J g → 1000 * ωArm xmssArmC op g ≤ A op * fs g := by
   intro g hg
   obtain ⟨i, hJ, hi, rfl⟩ := kr_of_in hg
-  have hne : ¬ coreProgram[i].name = "__loop2" := fun e => hx ((kr_name_xmss hi).mp e ▸ hJ)
+  have hne : ¬ coreProgram[i].name = (name% main_loop2) := fun e => hx ((kr_name_xmss hxn hi).mp e ▸ hJ)
   have := kr_ratio h op coreProgram[i].name ⟨i, hJ, by simp [List.getElem?_eq_getElem hi]⟩
   unfold ωArm
   simp only [hne, ↓reduceIte, Nat.add_zero]
@@ -120,10 +121,11 @@ theorem kr_ratio_om {J : List ℕ} {A : Opcode → ℕ} (h : J.all (krRatioAt A)
 
 /-- **A valid tree of a function of `J` within the ratios of its words.** -/
 theorem kr_weight {J : List ℕ} {C : ℕ → List ℕ} {A : Opcode → ℕ} (hc : J.all (krClosedAt J C) = true)
-    (hr : J.all (krRatioAt A) = true) (hx : 36 ∉ J) {f : String} (hf : krIn J f) (op : Opcode)
+    (hr : J.all (krRatioAt A) = true) {x : ℕ} (hxn : (coreProgram[x]?).map Fn.name = some (name% main_loop2))
+    (hx : x ∉ J) {f : String} (hf : krIn J f) (op : Opcode)
     {rd : Reader} {t : Tree} {args rets : List E} (hn : t.name = f) (hv : t.Valid coreProgram rd args rets) :
     1000 * t.weight (ωArm xmssArmC op) ≤ A op * t.total fs :=
-  weight_le_ratio (S := krIn J) (kr_callsIn hc) (kr_ratio_om hr hx op) t (hn ▸ hf) hv
+  weight_le_ratio (S := krIn J) (kr_callsIn hc) (kr_ratio_om hr hxn hx op) t (hn ▸ hf) hv
 
 end
 end LeanVM.Guest.Count

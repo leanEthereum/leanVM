@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Main.MainHonestT
 public import LeanVM.Guest.B1.Main.MainGoalsStaticB
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main` on an honest run, within its words
@@ -41,8 +42,11 @@ structure MainBs where
 
 /-- **Every callee's bound**, aligned with `mKids`. -/
 def mBs (fs SB SK : String → ℕ) (m : MainIn) (b : MainBs) : List ℕ :=
-  [b.Bx, b.Bs, m.nxd * iterK fs SK "__loop0" + fs "__loop0", m.nsd * iterK fs SK "__loop1" + fs "__loop1",
-    m.nrx * iterK fs SK "__loop2" + fs "__loop2", m.nrs * iterK fs SK "__loop3" + fs "__loop3"] ++ (if m.nd = 1 then [b.Bd] else []) ++ [b.B5] ++
+  [b.Bx, b.Bs, m.nxd * iterK fs SK name% «main_loop0» + fs name% «main_loop0»,
+      m.nsd * iterK fs SK name% «main_loop1» + fs name% «main_loop1»,
+    m.nrx * iterK fs SK name% «main_loop2» + fs name% «main_loop2»,
+        m.nrs * iterK fs SK name% «main_loop3» + fs name% «main_loop3»] ++ (if m.nd = 1 then [b.Bd]
+        else []) ++ [b.B5] ++
     (if m.nc = 0 then [] else [b.Ba]) ++ [SB "statement_digest"]
 
 /-- **`main`'s words**, its callees within `mBs`. -/
@@ -69,21 +73,22 @@ structure MainStaticGoalsB (SB SK : String → ℕ) : Prop where
 
 /-- **`main`'s non-static callees within their bounds `b`, by trees satisfying `p`.** -/
 structure MainGoalsTB (p : MainPreds) (b : MainBs) : Prop where
-  clx : CompleteAtDTB fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  clx : CompleteAtDTB fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) p.Px b.Bx
-  cls : CompleteAtDTB fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  cls : CompleteAtDTB fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) p.Ps b.Bs
   dv : (hm fs fp seed s w).nd = 1 →
-    CompleteAtDTB fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtDTB fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
       (Returns (hm fs fp seed s w).daR) p.Pd b.Bd
   ag : (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDTB fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)
       [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
-        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns []) p.Pa b.Ba
+        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
+          (hm fs fp seed s w).et * word 133823759239872512 0] (Returns []) p.Pa b.Ba
   l5 : (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDTB fs cert 16 "__loop4" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 23 name% «main_loop4» (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80,
@@ -104,40 +109,40 @@ theorem MainGoalsTB.withTotal {p : MainPreds} {b : MainBs} (h : MainGoalsTB fs c
 /-- **`main`'s callees within their bounds.** -/
 theorem mainKidsDTB {SB SK : String → ℕ} {p : MainPreds} {b : MainBs}
     (hg : MainStaticGoalsB fs cert fp seed s w SB SK) (hT : MainGoalsTB fs cert fp seed s w p b) :
-    KidsDTB fs cert 16 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
+    KidsDTB fs cert 23 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
       (mTs (hm fs fp seed s w) p) (mBs fs SB SK (hm fs fp seed s w) b) := by
   unfold mKids mTs mBs
   by_cases hnd : (hm fs fp seed s w).nd = 1 <;> by_cases hnc : (hm fs fp seed s w).nc = 0 <;>
     simp only [hnd, hnc, ↓reduceIte]
-  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
-      fun ht => hg.l2 (of_decide_eq_true ht), fun ht => hg.l3 (of_decide_eq_true ht),
-      fun ht => hg.l4 (of_decide_eq_true ht), fun _ => hT.dv hnd,
-      fun ht => by simp at ht, fun _ => hg.st, trivial⟩
-  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
-      fun ht => hg.l2 (of_decide_eq_true ht), fun ht => hg.l3 (of_decide_eq_true ht),
-      fun ht => hg.l4 (of_decide_eq_true ht), fun _ => hT.dv hnd,
-      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => hT.ag hnc, fun _ => hg.st, trivial⟩
-  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
-      fun ht => hg.l2 (of_decide_eq_true ht), fun ht => hg.l3 (of_decide_eq_true ht),
+  · exact ⟨fun _ => hT.clx.lowMono (by norm_num), fun _ => hT.cls.lowMono (by norm_num), fun ht => (hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num),
+      fun ht => (hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num), fun ht => hg.l3 (of_decide_eq_true ht),
+      fun ht => hg.l4 (of_decide_eq_true ht), fun _ => (hT.dv hnd).lowMono (by norm_num),
+      fun ht => by simp at ht, fun _ => hg.st.lowMono (by norm_num), trivial⟩
+  · exact ⟨fun _ => hT.clx.lowMono (by norm_num), fun _ => hT.cls.lowMono (by norm_num), fun ht => (hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num),
+      fun ht => (hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num), fun ht => hg.l3 (of_decide_eq_true ht),
+      fun ht => hg.l4 (of_decide_eq_true ht), fun _ => (hT.dv hnd).lowMono (by norm_num),
+      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => (hT.ag hnc).lowMono (by norm_num), fun _ => hg.st.lowMono (by norm_num), trivial⟩
+  · exact ⟨fun _ => hT.clx.lowMono (by norm_num), fun _ => hT.cls.lowMono (by norm_num), fun ht => (hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num),
+      fun ht => (hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num), fun ht => hg.l3 (of_decide_eq_true ht),
       fun ht => hg.l4 (of_decide_eq_true ht),
-      fun ht => by simp at ht, fun _ => hg.st, trivial⟩
-  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
-      fun ht => hg.l2 (of_decide_eq_true ht), fun ht => hg.l3 (of_decide_eq_true ht),
+      fun ht => by simp at ht, fun _ => hg.st.lowMono (by norm_num), trivial⟩
+  · exact ⟨fun _ => hT.clx.lowMono (by norm_num), fun _ => hT.cls.lowMono (by norm_num), fun ht => (hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num),
+      fun ht => (hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num), fun ht => hg.l3 (of_decide_eq_true ht),
       fun ht => hg.l4 (of_decide_eq_true ht),
-      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => hT.ag hnc, fun _ => hg.st, trivial⟩
+      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => (hT.ag hnc).lowMono (by norm_num), fun _ => hg.st.lowMono (by norm_num), trivial⟩
 
 variable {bytecode : List K}
 
 /-- **`main` at `fp` on the honest run within its words**: its size at most `mainBH`, its
 callees' trees satisfying `p`. -/
 theorem main_honest_relAtInTB {SB SK : String → ℕ} {p : MainPreds} {b : MainBs}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hg : MainStaticGoalsB fs cert fp seed s w SB SK) (hT : MainGoalsTB fs cert fp seed s w p b) :
     ∃ (n : ℕ) (L : B1.Main.Layout),
       n ≤ mainBH fs SB SK (hData seed s w) (hm fs fp seed s w) (hLmain fs fp seed s w) b ∧
       Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L →
         LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
         LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
@@ -151,23 +156,23 @@ theorem main_honest_relAtInTB {SB SK : String → ℕ} {p : MainPreds} {b : Main
 
 /-- **The static bounds of `main`'s own static callees** (G7-cnt's certificates). -/
 structure MainStaticsMain (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
-  l1 : TotalLeOn coreProgram fs "__loop0" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop0" + fs "__loop0")
-  l2 : TotalLeOn coreProgram fs "__loop1" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop1" + fs "__loop1")
-  l3 : TotalLeOn coreProgram fs "__loop2" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop2" + fs "__loop2")
-  l4 : TotalLeOn coreProgram fs "__loop3" LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop3" + fs "__loop3")
+  l1 : TotalLeOn coreProgram fs name% «main_loop0» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop0» + fs name% «main_loop0»)
+  l2 : TotalLeOn coreProgram fs name% «main_loop1» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop1» + fs name% «main_loop1»)
+  l3 : TotalLeOn coreProgram fs name% «main_loop2» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop2» + fs name% «main_loop2»)
+  l4 : TotalLeOn coreProgram fs name% «main_loop3» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop3» + fs name% «main_loop3»)
   st : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest")
 
 /-- **`main`'s static callees on the honest run, within their bounds.** -/
 theorem mainStaticGoalsB_of {SB SK : String → ℕ} (hbl : bytecode.length = 2 ^ 23)
-    (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+    (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.SphincsCompleteSpecs) (hS : MainStaticsMain fs SB SK) :
     MainStaticGoalsB fs cert fp seed s w SB SK := by
-  have hb : MainBounds (hm fs fp seed s w) := hData_bounds hl fs fp
+  have hb : MainBounds (2 ^ 23) (hm fs fp seed s w) := hData_bounds hl fs fp
   exact ⟨mainGoalL1B hS.l1 (by have := hb.xd; omega), mainGoalL2B hS.l2 (by have := hb.sd; omega),
     mainGoalL3B hr hl hxc hS.l3, mainGoalL4B hr hl hsc hS.l4, mainGoalStB hr hbl hS.st⟩
 

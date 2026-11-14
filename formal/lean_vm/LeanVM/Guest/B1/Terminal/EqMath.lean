@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.B1.Terminal.Interface
-public import LeanVM.Guest.B1.Eq.Meaning
+public import LeanVM.Guest.B1.Terminal.InterfaceP
+public import LeanVM.Guest.B1.Eq.MeaningP
 
 /-!
 # Equality weights, factored
@@ -126,16 +126,16 @@ theorem getD_map_one {l : List E} {k : ℕ} (h : k < l.length) :
     List.getD_eq_getElem _ _ h]
 
 /-- **The guest's selector** (`column_selector`, over the padded point and its complements) is
-the bits' weight over bits `κ .. 28`. -/
-theorem bitsEq_sel (o : ℕ) {κ : ℕ} (hκ : κ ≤ 28) {x : List E} (hx : x.length ≤ termPointCap) :
-    Tables.bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i))
-        (((padPoint x).take 28).drop κ) ((((padPoint x).map (1 + ·)).take 28).drop κ) =
-      selProd o κ (28 - κ) x := by
+the bits' weight over bits `κ .. 31`. -/
+theorem bitsEq_sel (o : ℕ) {κ : ℕ} (hκ : κ ≤ 32) {x : List E} (hx : x.length ≤ termPointCap) :
+    Tables.bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i))
+        (((padPoint x).take 32).drop κ) ((((padPoint x).map (1 + ·)).take 32).drop κ) =
+      selProd o κ (32 - κ) x := by
   have hp := padPoint_length hx
   rw [bitsEq_prod, selProd]
   simp only [List.length_map, List.length_range, List.length_drop, List.length_take, hp,
     termPointCap]
-  rw [show min (28 - κ) (min (min 28 40 - κ) (min 28 40 - κ)) = 28 - κ by omega]
+  rw [show min (32 - κ) (min (min 32 40 - κ) (min 32 40 - κ)) = 32 - κ by omega]
   refine prod_congr rfl fun i hi ↦ ?_
   have hi' := mem_range.mp hi
   rw [List.getD_eq_getElem _ _ (by simp; omega), List.getElem_map, List.getElem_range,

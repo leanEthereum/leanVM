@@ -5,7 +5,7 @@
 use super::program::{Builder, Exit, garbage};
 use crate::{Ctx, Outcome, Source};
 use leanvm_core::cpu::Op;
-use primitives::field::F192;
+use primitives::field::F128;
 
 /// Where callee frames start: above every cell main uses.
 const FRAMES: u32 = 1 << 13;
@@ -67,10 +67,10 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
 }
 
 /// A statement: two 128-bit halves, often small or zero.
-pub fn public_input(src: &mut Source) -> [F192; 2] {
+pub fn public_input(src: &mut Source) -> [F128; 2] {
     std::array::from_fn(|_| match src.below(4) {
-        0 => F192::ZERO,
-        1 => F192::new(src.edgy_u64(), 0, 0),
-        _ => F192::new(src.u64(), src.u64(), 0),
+        0 => F128::ZERO,
+        1 => F128::new(src.edgy_u64(), 0),
+        _ => F128::new(src.u64(), src.u64()),
     })
 }

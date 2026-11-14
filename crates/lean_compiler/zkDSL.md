@@ -1,6 +1,6 @@
 # zkDSL Language Reference (leanVM)
 
-The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instructions (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`) over the binary field GF(2^192), with write-once memory and all indices carried "in the exponent" as powers of a fixed generator. For the underlying VM and proving system, see [`doc/leanvm/main.tex`](../../doc/leanvm/main.tex).
+The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instructions (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`) over the binary field GF(2^128), with write-once memory and all indices carried "in the exponent" as powers of a fixed generator. For the underlying VM and proving system, see [`doc/leanvm/main.tex`](../../doc/leanvm/main.tex).
 
 Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `keccak` and `keccak_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
 
@@ -14,17 +14,17 @@ The repo ships a root [`pyrightconfig.json`](../../pyrightconfig.json) with `"ex
 
 The fields are
 
-`K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^3 + y + 1) = GF(2^192)`.
+`K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^2 + x*y + 1) = GF(2^128)`, a word `c0 + c1*y` with `c0, c1 ∈ K`.
 
 Machine **words** (the contents of a memory cell, an immediate, a hashed value) are elements of `E`. **Addresses**, the program counter, the frame pointer, the `JUMP` condition, read counters, operands, opcodes, and domain separators live in the 64-bit subfield `K = GF(2^64)`. There are no runtime integers.
 
-- `+` is field addition = bitwise **XOR** (192-bit on words, so `x + x == 0`),
+- `+` is field addition = bitwise **XOR** (128-bit on words, so `x + x == 0`),
 - `*` is multiplication in `E`; for g-powers and addresses it stays within `K`,
 - `/` is runtime field division, `a / b = a · b⁻¹`. It costs one `MUL`: the compiler leaves the quotient cell unset and emits the checked relation `quotient · b == a`, which witness generation back-solves. Division by zero is undefined. This is distinct from `//`, compile-time integer floor division in sizes and indices,
-- an integer literal `n` supplies up to 128 raw bits and is embedded as `F192(c0, c1, 0)`. This is a source-syntax limit, not the machine-word width: words have three 64-bit limbs. Thus `5` is `1 + x^2`, not the integer five, and the literal `18446744073709551616` is the tower element `y`. Written `2 ** 64` in a value position it is not: `**` there is a field power, so it is `x^64` reduced. `const(2 ** 64)` is the literal. Full-width constants use `f192(c0, c1, c2)`, with each limb an unsigned 64-bit compile-time integer,
+- an integer literal `n < 2^128` is the full machine word whose two 64-bit limbs its bits spell: `c0` its low 64 bits, `c1` its high 64 bits. So every word has a literal. Thus `5` is `1 + x^2`, not the integer five, and the literal `18446744073709551616` is the tower element `y`. Written `2 ** 64` in a value position it is not: `**` there is a field power, so it is `x^64` reduced. `const(2 ** 64)` is the literal,
 - `GEN` is the fixed generator `g = x` of the 64-bit subfield `K^×` (multiplicative order `2^64 − 1`),
 - `GEN ** e` is the compile-time constant `g^e ∈ K` (`**` takes base `GEN` and a compile-time integer exponent: a literal, a constant, an `unroll` variable, `len(...)`, or index arithmetic of those). So `buf[GEN ** i]` names heap cell `i` directly inside an `unroll` loop, with no running-pointer cursor.
-- constant arithmetic means different things in the two positions, and this is a silent trap: `a + b` on two constants is **integer** addition in an index, a bound or a keyword (`buf[GEN ** (i + 1)]`, `unroll(0, n + 1)`, `len=16 * (q + 1)`), and **XOR** in a value, where `1 + 1` is `0`. So a literal built in a value position must not add overlapping integers: `tweak = base + (level + 1) * SHIFT` drops the whole term on odd levels. Products are safe (an integer times a power of two is that shift, as long as the top bit stays inside the limb); to add, name the regime with `const(...)`: `tweak = base + const((level + 1) * SHIFT)`.
+- constant arithmetic means different things in the two positions, and this is a silent trap: `a + b` on two constants is **integer** addition in an index, a bound or a keyword (`buf[GEN ** (i + 1)]`, `unroll(0, n + 1)`, `len=16 * (q + 1)`), and **XOR** in a value, where `1 + 1` is `0`. So a literal built in a value position must not add overlapping integers: `tweak = base + (level + 1) * SHIFT` drops the whole term on odd levels. Products are safe (an integer times a power of two below `2^64` is that shift, as long as no bit leaves its limb; times `y` it is a shift only of a `K`-valued word, since `y^2 = x*y + 1`); to add, name the regime with `const(...)`: `tweak = base + const((level + 1) * SHIFT)`.
 - a **global constant** and a **`Const` parameter** are integer-arithmetic throughout, which is deliberate (it is what makes a derived size right) but means the same text means different things in the two places: `STEP = 3 + 1` is the integer `4` everywhere it appears, while the identical `x = 3 + 1` written inside a function is the field element `2`. Neither is wrong; they are two regimes, and a name crossing between them is where the trap bites.
 - a **compile-time `if`** must say which regime it means when the two disagree. The fold decides on the integer reading while the runtime test of the same condition compares field values, so `if 3 + 1 == 4` is true one way and false the other. Such a condition is **rejected**; write `if const(3 + 1 == 4):` to decide it with integer arithmetic, or spell the operands so the two readings agree (a product or a shift rather than a sum of overlapping integers). A condition whose readings already agree needs no wrapper.
 - `base ** e` with a **non-`GEN`** base and a compile-time exponent `e` below `2^32` is square-and-multiply: integer arithmetic in an index/bound position (`2 ** c`), or field arithmetic in a value position (`x ** k`, e.g. a loop counter `g^i` raised to a stride to reach cell `i·stride`). The base may be runtime.
@@ -54,7 +54,7 @@ Ordinary functions may return scalars, `HeapBuf` pointers, and `StackBuf` values
 
 ## Public input
 
-Memory cells `m[0]` and `m[1]` hold the two public-input words, each an F192 machine word. A program *publishes* results by asserting them against those cells through the write-once heap store (the pointer `g^0` addresses absolute memory):
+Memory cells `m[0]` and `m[1]` hold the two public-input words, each an F128 machine word. A program *publishes* results by asserting them against those cells through the write-once heap store (the pointer `g^0` addresses absolute memory):
 
 ```python
 p = GEN ** 0
@@ -87,7 +87,7 @@ def main():
     return
 ```
 
-Each constant is **evaluated as a compile-time integer expression** (or an `f192` literal, or a field-valued one such as `GEN ** 2`) and substituted as a single literal everywhere its name appears below, so unlike a `Const` parameter it needs no call site and works in every literal position. Integer arithmetic is the point: it is what makes a derived size come out right, as in `N_TWEAK_WORDS = 2 + CHAIN_STEPS * V + LOG_LIFETIME`. Constants must precede the `def`s and are resolved *before* variables, so a constant name is **reserved**: do not reuse it as a parameter or local name. A constant may not take the name of a builtin or of the language's own words (`GEN`, `log`, `range`, `unroll`, `mul_range`, `print`), which it would replace everywhere they appear. A constant whose integer arithmetic overflows a `u128`, goes negative or divides by zero is an error, not a field value. Text inside a string literal (a stream name, a print label) is never substituted. (Syntactically, `N = 8` is just a Python module global.)
+Each constant is **evaluated as a compile-time integer expression** (or a field-valued one such as `GEN ** 2`) and substituted as a single literal everywhere its name appears below, so unlike a `Const` parameter it needs no call site and works in every literal position. Integer arithmetic is the point: it is what makes a derived size come out right, as in `N_TWEAK_WORDS = 2 + CHAIN_STEPS * V + LOG_LIFETIME`. Constants must precede the `def`s and are resolved *before* variables, so a constant name is **reserved**: do not reuse it as a parameter or local name. A constant may not take the name of a builtin or of the language's own words (`GEN`, `log`, `range`, `unroll`, `mul_range`, `print`), which it would replace everywhere they appear. A constant whose integer arithmetic overflows a `u128`, goes negative or divides by zero is an error, not a field value. Text inside a string literal (a stream name, a print label) is never substituted. (Syntactically, `N = 8` is just a Python module global.)
 
 **Placeholders** let a host fill values at compile time without editing the source. Any identifier may be mapped to replacement text before parsing (`parse_with_replacements`, taking a `BTreeMap<String, String>`); the replacement is identifier-bounded (`FOO` does not touch `FOOBAR`). The idiom is a placeholder feeding a constant:
 
@@ -129,7 +129,7 @@ z = f(p, q)               # expression position: first return
 f(p, q)                   # statement: returns discarded
 ```
 
-Functions may recurse. Each call gets a **fresh frame**: the frame pointer is prover-hinted (write-once memory makes an unconstrained cell prover-chosen), arguments and the return address/frame are stored with `DEREF`s, and control transfers with one `JUMP`. Cost: about `n_args + n_returns + 4` instructions per call. A function's result count is that of its top-level `return`, so one that returns values must end in an explicit `return`; one that returns nothing may leave it out, the compiler closing it with a bare `return`. In `main`, `return` is a no-op (main halts at a sentinel automatically).
+Functions may recurse. Each call gets a **fresh frame**: the frame pointer is prover-hinted (write-once memory makes an unconstrained cell prover-chosen), arguments and the return address/frame are stored with `DEREF`s, and control transfers with one `JUMP`. Cost: about `n_args + n_returns + 4` instructions per call. A function's result count is that of its top-level `return`, so one that returns values must end in an explicit `return`; one that returns nothing may leave it out, the compiler closing it with a bare `return`. In `main`, a `return` may only be the last statement, where it is a no-op (main halts at a sentinel automatically); one in a `mul_range` body leaves the loop.
 
 ### `StackBuf` parameters
 
@@ -199,7 +199,7 @@ A store into a stack cell is NOT virtual: `sa[k] = other` always emits. If the c
 
 ## Debugging
 
-`print(expr)` / `print("label", expr)` displays a value at witness generation (prover side only, with no constraints and nothing entering the transcript). The label defaults to the argument's source text; output goes to stderr as `[print] label = ...`, showing the decimal reading for small integers, `g^k` when the value is a small g-power (both when they overlap: `8 (g^3)`), or `c2:c1:c0` hex otherwise, from the most significant limb to the least significant. Each print costs one anchor instruction, so the witness differs from a print-free build: strip prints before benchmarking.
+`print(expr)` / `print("label", expr)` displays a value at witness generation (prover side only, with no constraints and nothing entering the transcript). The label defaults to the argument's source text; output goes to stderr as `[print] label = ...`, showing the decimal reading for small integers, `g^k` when the value is a small g-power (both when they overlap: `8 (g^3)`), or `c1:c0` hex otherwise, the high limb first. Each print costs one anchor instruction, so the witness differs from a print-free build: strip prints before benchmarking.
 
 ## Memory
 
@@ -372,7 +372,7 @@ A proof-enforced inequality, in **3 instructions and no branch**: `XOR` for `x =
 
 ### Range checks: `assert log x < log Y` and `assert log x < k`
 
-The *range check in the exponent*: proves `x ∈ {g^0, g^1, …, g^{k-1}}`, i.e. `log_g(x) < k`. A compile-time bound is either `log GEN ** k` or a plain integer exponent `k`, with `1 ≤ k ≤ 2^16` (the minimum memory size, which keeps the gadget provable at every memory size the prover may announce). `log x` and `log(x)` both parse; the parenthesized form is the valid-Python spelling, and its parentheses must close the side: `log(x) * 2` is rejected, Python reading it as `2·log x`. A bare `assert x < y` is rejected: field elements have no order, only their logs do.
+The *range check in the exponent*: proves `x ∈ {g^0, g^1, …, g^{k-1}}`, i.e. `log_g(x) < k`. A compile-time bound is either `log GEN ** k` or a plain integer exponent `k`, with `1 ≤ k ≤ 2^30` (the largest memory size). The gadget is sound at every memory size, and complete at the memory an honest prover announces, which holds every cell the run touches, the complement `g^{k-1-e}` included, as long as the run's committed witness fits the `2^30` stack (four memory columns, so a memory of at most about `2^27` cells). `log x` and `log(x)` both parse; the parenthesized form is the valid-Python spelling, and its parentheses must close the side: `log(x) * 2` is rejected, Python reading it as `2·log x`. A bare `assert x < y` is rejected: field elements have no order, only their logs do.
 
 ```python
 assert log(x) < log(GEN ** 8)
@@ -380,7 +380,7 @@ assert log(x) < 8               # the same check
 assert log(x) < log(n)          # n = g^k runtime: same gadget, +1 cycle
 ```
 
-A **runtime** bound costs one extra `MUL` for `g^{k-1} = n·g⁻¹` and is otherwise identical, except that the `k ≤ 2^16` cap becomes the program's to enforce: range-check the bound itself first, with `assert log n < 2^16`. That check is not optional: without it the gadget is unsound.
+A **runtime** bound costs one extra `MUL` for `g^{k-1} = n·g⁻¹` and is otherwise identical, except that a small `k` becomes the program's to show: check the bound itself first, for example with `assert_gpow(n)`, which puts its log below the memory size, at most `2^30`. That check is not optional: without it `n` may be any field element and the check bounds nothing.
 
 Cost: **3 cycles** (leanVM's DEREF range-check trick, in the exponent) plus one amortized `SET` per distinct bound per frame:
 
@@ -406,22 +406,14 @@ Packing is ordinary zkDSL built on that assertion:
 @inline
 def pack64x2(a, b):
     assert_in_k(a, b)
-    return a + f192(0, 1, 0) * b
+    return a + 18446744073709551616 * b
 ```
 
-The inline helper takes three cycles, one `JUMP`, one `MUL` and one `XOR`, and returns the canonical 128-bit packing `(a.c0, b.c0, 0)`. Assignment-target lowering writes its return directly into the destination, including an already-written cell whose second write is an equality assertion. A caller needing only membership uses `assert_in_k` directly and pays no packing arithmetic.
+The inline helper takes three cycles, one `JUMP`, one `MUL` and one `XOR`, and returns the 128-bit packing `a.c0 + b.c0*y`, the word `(a.c0, b.c0)`. Assignment-target lowering writes its return directly into the destination, including an already-written cell whose second write is an equality assertion. A caller needing only membership uses `assert_in_k` directly and pays no packing arithmetic.
 
-The recursion transcript uses `challenge_from_state(state)` to reinterpret the first three 64-bit lanes of a canonical two-cell digest as one extension field challenge. For `state = [s0, s1]`, it lowers exactly as follows (the limb hints cost no cycles, but are not trusted):
+The recursion transcript's challenge is the sponge's first two 64-bit lanes as one extension field element, `c0 + c1*y`. A two-cell digest `state = [s0, s1]` holds those lanes as the word `s0`, so the challenge is `state[0]` itself, at no cost.
 
-```python
-d2 = StackBuf(1)
-hint_f192_limbs(d2, state[1])
-d3 = (state[1] + d2[0]) * Y_INV
-assert_in_k(d2[0], d3)
-challenge = state[0] + d2[0] * f192(0, 0, 1)
-```
-
-Both state words are hash outputs, so their top limbs are already zero. Only `d2` must be exposed separately; deriving `d3 = (s1+d2)/Y` and proving both values lie in GF(2^64) binds the one hinted limb by uniqueness of the tower representation. The challenge is `s0+d2·Y² = d0+d1·Y+d2·Y²`, while `d3` is checked but deliberately discarded. `challenge_from_state` is not a compiler intrinsic: this is the complete `@inline` helper used by the recursion guest.
+`hint_f128_limbs(dest, value)` writes the first `len(dest)` (1 or 2) limbs of `value`, each as a `K`-valued word, into a `StackBuf`. It is untrusted advice: a caller binds the limbs with `assert_in_k` and by rebuilding `value` from them, which the uniqueness of `c0 + c1*y` makes binding.
 
 ## KECCAK
 

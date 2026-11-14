@@ -120,10 +120,10 @@ theorem extractorTop_output (P : MachineProgram) (hsize : MachineProgram.size P 
       afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
       extractorTop prog input (permutationQueries T) π = some t →
       cost prog input (permutationQueries T) π + 14 ≤
-        leanVmKnowledgeExtractorBudget (permutationQueries T).length)
+        leanVmKnowledgeExtractorBudget (announcedStackLog prog π) (permutationQueries T).length)
     (prog : Semantics.LeanIsaProgram) (input : PublicInput) (T : OracleQueryLog) (proof : Proof) :
     (outputWithin P leanVmKnowledgeExtractorSizeBound
-        (leanVmKnowledgeExtractorBudget (permutationQueries T).length)
+        (leanVmKnowledgeExtractorBudget (announcedStackLog prog proof) (permutationQueries T).length)
         (encodeLeanVmKnowledgeExtractorInput prog input T proof)).bind (decodeExecution
             prog) =
       transcriptExtractor prog input T proof := by
@@ -133,7 +133,7 @@ theorem extractorTop_output (P : MachineProgram) (hsize : MachineProgram.size P 
   | none =>
     rw [ht] at hentryRun
     cases ho : outputWithin P leanVmKnowledgeExtractorSizeBound
-        (leanVmKnowledgeExtractorBudget (permutationQueries T).length)
+        (leanVmKnowledgeExtractorBudget (announcedStackLog prog proof) (permutationQueries T).length)
         (encodeLeanVmKnowledgeExtractorInput prog input T proof) with
     | none => rfl
     | some v =>
@@ -169,7 +169,7 @@ theorem extractorOf_eq_of_spec (P : MachineProgram)
       afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
       extractorTop prog input (permutationQueries T) π = some t →
       cost prog input (permutationQueries T) π + 14 ≤
-        leanVmKnowledgeExtractorBudget (permutationQueries T).length) :
+        leanVmKnowledgeExtractorBudget (announcedStackLog prog π) (permutationQueries T).length) :
     LeanVM.extractorComputedBy P = transcriptExtractor := by
   funext prog input T proof
   exact extractorTop_output P hsize j hentry cost hrun hcost prog input T proof
@@ -185,8 +185,8 @@ theorem extractorProgram_includes_all : Includes compiledKnowledgeExtractor
   rw [extractorProgramBodies_eq, List.map_cons]
   exact h
 
-/-- **The program's size is within `leanVmKnowledgeExtractorSizeBound`** (`14500`), evaluated
-(`Cost/ExtractorSize.lean`; exactly `14225`). -/
+/-- **The program's size is within `leanVmKnowledgeExtractorSizeBound`** (`14159`), evaluated
+(`Cost/ExtractorSize.lean`; exactly `14039`). -/
 theorem extractorProgram_size_le : compiledKnowledgeExtractor.size ≤
     leanVmKnowledgeExtractorSizeBound :=
   extractorProgram_size_le_measured.trans (by decide)
@@ -203,13 +203,13 @@ theorem extractorProgram_entry : compiledKnowledgeExtractor[0]? = some (entryBod
 
 /-- **The compiled extractor's price is within the budget** (`extractorC_within`,
 `Cost/Bounds/Top.lean`): wherever the proof announces a shape, the price in `compiledKnowledgeExtractor` and
-the entry's `14` are within `leanVmKnowledgeExtractorBudget`. -/
+the entry's `14` are within `leanVmKnowledgeExtractorBudget` at the stack size the proof announces. -/
 theorem extractorPrice_within_budget : ∀ prog input T π layout logInverseRate st (t : Execution prog),
     afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
     extractorTop prog input (permutationQueries T) π = some t →
     machineCost compiledKnowledgeExtractor extractorC.costIdx
         [encodeValue prog, encodeValue input, encodeValue (permutationQueries T), encodeValue π] + 14 ≤
-      leanVmKnowledgeExtractorBudget (permutationQueries T).length :=
+      leanVmKnowledgeExtractorBudget (announcedStackLog prog π) (permutationQueries T).length :=
   fun prog input T π layout logInverseRate st _ ha _ ↦
     Bounds.extractorC_within compiledKnowledgeExtractor extractorProgram_includes prog input T
         π layout

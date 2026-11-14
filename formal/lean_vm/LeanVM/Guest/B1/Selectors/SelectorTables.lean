@@ -8,12 +8,13 @@
 module
 
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
+public import LeanVM.Guest.CoreData
 
 /-!
 # `selector_tables` (TRIAGE G #69)
 
-`selector_tables(point, point1)` (G:3211-3231) allocates `sel_eq` (`7·64` words) and for each
-nibble `j < 7` computes the eq levels over its top coordinates `4j + 3, 4j + 2, …` (level `w` from
+`selector_tables(point, point1)` (G:3387-3407) allocates `sel_eq` (`8·64` words) and for each
+nibble `j < 8` computes the eq levels over its top coordinates `4j + 3, 4j + 2, …` (level `w` from
 level `w - 1`: entry `i` times `1 + r`, then times `r`, `r` coordinate `4j + 3 - w`) and stores
 level `w`'s `2^(w+1)` entries at `sel_eq[64j + 16w ..]`, strided by `2^(3 - w)`: entry `u` there
 is the eq weight of `u`'s bits `3 - w .. 3` (`selEqEntry`).
@@ -60,19 +61,19 @@ def stNib (j : ℕ) : List Stmt :=
 
 /-- `selector_tables`'s statements before its `ret`. -/
 def stPre : List Stmt :=
-  [.atom (.hint (.alloc (.n 2) 448))] ++ ((List.range 7).map stNib).flatten ++
-    [.atom (.copy (.n 255) (.n 2))]
+  [.atom (.hint (.alloc (.n 2) 512))] ++ ((List.range 8).map stNib).flatten ++
+    [.atom (.copy (.n 291) (.n 2))]
 
 /-- The function found by name is the template. -/
 noncomputable def stCheck : Bool :=
   match coreProgram.find? "selector_tables" with
-  | some fn => decide (fn.params = [.n 0, .n 1]) && tbStmtsEqb fn.body (stPre ++ [.ret [.n 255]])
+  | some fn => decide (fn.params = [.n 0, .n 1]) && tbStmtsEqb fn.body (stPre ++ [.ret [.n 291]])
   | none => false
 
 theorem stCheck_eq : stCheck = true := by decide +kernel
 
 theorem stFound : ∃ fn : Fn, coreProgram.find? "selector_tables" = some fn ∧
-    fn.params = [.n 0, .n 1] ∧ fn.body = stPre ++ [.ret [.n 255]] := by
+    fn.params = [.n 0, .n 1] ∧ fn.body = stPre ++ [.ret [.n 291]] := by
   have h := stCheck_eq
   unfold stCheck at h
   split at h
@@ -161,12 +162,12 @@ theorem holds_stNib {j : ℕ} (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
   exact this i hi
 
 /-- **The eq levels of nibble `j`**: level `w`'s entry `i` is the table's entry `i·2^(3 - w)`. -/
-theorem stLevels {j : ℕ} (hj : j < 7) {p p1 : List E} (hp : p.length = 28) (hp1 : p1.length = 28)
+theorem stLevels {j : ℕ} (hj : j < 8) {p p1 : List E} (hp : p.length = 32) (hp1 : p1.length = 32)
     (hpt : TbReadsAt rd (σ (.n 0)) p) (hpt1 : TbReadsAt rd (σ (.n 1)) p1)
     (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
     ∀ w < 4, ∀ i < 2 ^ (w + 1), σ (.n (stV j w i)) = selEqEntry p p1 j w (i * 2 ^ (3 - w)) := by
   obtain ⟨⟨l0, l1⟩, hL1, hL2, hL3, -⟩ := holds_stNib h
-  have hrd : ∀ (q : List E) (pq : E), q.length = 28 → TbReadsAt rd pq q → ∀ s < 4, ∀ x,
+  have hrd : ∀ (q : List E) (pq : E), q.length = 32 → TbReadsAt rd pq q → ∀ s < 4, ∀ x,
       LoadHolds rd pq (4 * j + s) x → x = q.getD (4 * j + s) 0 := fun q pq hq hr s hs x hx => by
     have := hr (4 * j + s) (by omega)
     rw [List.getD_eq_getElem _ _ (by omega)]

@@ -4,7 +4,7 @@
 use super::reference as r;
 use super::{bulk_e, bulk_k, check, edge_e};
 use crate::{Ctx, Outcome, Source};
-use primitives::field::{F64, F192, Weights8, dot_base};
+use primitives::field::{F64, F128, Weights8, dot_base};
 use primitives::multilinear::{
     eq_eval, eq_table, eq_table_serial, fill_eq_table, interp, interp_k, mle_eval, mle_eval_par, packed_eq, poly_eval,
     shrink_eq_high,
@@ -22,15 +22,15 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
 }
 
 /// A point, often with Boolean or zero coordinates (where the eq weights degenerate).
-fn point(src: &mut Source, n: usize) -> Vec<F192> {
+fn point(src: &mut Source, n: usize) -> Vec<F128> {
     let mut p = bulk_e(src, n);
     match src.below(4) {
-        0 => p.iter_mut().for_each(|x| *x = F192::new(src.below(2) as u64, 0, 0)),
+        0 => p.iter_mut().for_each(|x| *x = F128::new(src.below(2) as u64, 0)),
         1 => {
             for _ in 0..src.below(n + 1) {
                 let i = src.below(n.max(1));
                 if i < n {
-                    p[i] = *src.pick(&[F192::ZERO, F192::ONE]);
+                    p[i] = *src.pick(&[F128::ZERO, F128::ONE]);
                 }
             }
         }
@@ -40,11 +40,11 @@ fn point(src: &mut Source, n: usize) -> Vec<F192> {
 }
 
 /// `eq(r, .)` by doubling, with the reference product, LSB-first.
-fn eq_ref(point: &[F192], seed: F192) -> Vec<F192> {
+fn eq_ref(point: &[F128], seed: F128) -> Vec<F128> {
     let mut t = vec![seed];
     for &rk in point {
-        let hi: Vec<F192> = t.iter().map(|&x| r::mul_e(x, rk)).collect();
-        let lo: Vec<F192> = t.iter().zip(&hi).map(|(&x, &h)| r::add_e(x, h)).collect();
+        let hi: Vec<F128> = t.iter().map(|&x| r::mul_e(x, rk)).collect();
+        let lo: Vec<F128> = t.iter().zip(&hi).map(|(&x, &h)| r::add_e(x, h)).collect();
         t = [lo, hi].concat();
     }
     t
@@ -57,35 +57,35 @@ fn eq_tables(src: &mut Source, ctx: &Ctx) -> Outcome {
     };
     ctx.note(format!("eq vars {}", if n >= 16 { "tensored" } else { "doubling" }));
     let p = point(src, n);
-    let want = eq_ref(&p, F192::ONE);
+    let want = eq_ref(&p, F128::ONE);
     check!(eq_table(&p) == want, "eq_table", "{n} variables");
     if n <= 13 {
         check!(eq_table_serial(&p) == want, "eq_table_serial", "{n} variables");
     }
     let seed = edge_e(src);
-    let mut out = vec![F192::new(7, 7, 7); 1 << n];
+    let mut out = vec![F128::new(7, 7); 1 << n];
     fill_eq_table(&p, seed, &mut out);
     check!(out == eq_ref(&p, seed), "fill_eq_table", "{n} variables, seed {seed:?}");
     for _ in 0..3 {
         let i = src.below(1 << n);
-        let x: Vec<F192> = (0..n).map(|k| F192::new((i >> k & 1) as u64, 0, 0)).collect();
+        let x: Vec<F128> = (0..n).map(|k| F128::new((i >> k & 1) as u64, 0)).collect();
         check!(eq_eval(&p, &x) == want[i], "eq_eval", "{n} variables at index {i}");
     }
     if n > 0 {
         let mut t = want.clone();
         shrink_eq_high(&mut t);
-        check!(t == eq_ref(&p[..n - 1], F192::ONE), "shrink_eq_high", "{n} variables");
+        check!(t == eq_ref(&p[..n - 1], F128::ONE), "shrink_eq_high", "{n} variables");
     }
     Ok(())
 }
 
 /// `sum_i table[i] eq(point, i)` with the reference product.
-fn mle_ref(table: &[F64], point: &[F192]) -> F192 {
-    let eq = eq_ref(point, F192::ONE);
+fn mle_ref(table: &[F64], point: &[F128]) -> F128 {
+    let eq = eq_ref(point, F128::ONE);
     table
         .iter()
         .zip(&eq)
-        .fold(F192::ZERO, |s, (k, &w)| r::add_e(s, r::mul_base(w, k.0)))
+        .fold(F128::ZERO, |s, (k, &w)| r::add_e(s, r::mul_base(w, k.0)))
 }
 
 fn table(src: &mut Source, n: usize) -> Vec<F64> {
@@ -133,9 +133,9 @@ fn mle(src: &mut Source, ctx: &Ctx) -> Outcome {
     check!(mle_eval(&t, &p) == want, "mle_eval", "{n} variables");
     check!(mle_eval_par(&t, &p) == want, "mle_eval_par", "{n} variables");
     let words: Vec<u64> = t.iter().map(|w| w.0).collect();
-    let ve = Bytecode::new(&words).evaluate(&p.iter().map(|x| E::new(x.c0, x.c1, x.c2)).collect::<Vec<_>>());
+    let ve = Bytecode::new(&words).evaluate(&p.iter().map(|x| E::new(x.c0, x.c1)).collect::<Vec<_>>());
     check!(
-        ve.as_ref().map(|e| F192::new(e.c0, e.c1, e.c2)) == Ok(want),
+        ve.as_ref().map(|e| F128::new(e.c0, e.c1)) == Ok(want),
         "verifier Bytecode::evaluate",
         "{n} variables: {ve:?}, want {want:?}"
     );
@@ -160,10 +160,10 @@ fn bytecode(src: &mut Source, ctx: &Ctx) -> Outcome {
     );
     let p = point(src, n);
     let want = mle_ref(&t, &p);
-    let vp: Vec<E> = p.iter().map(|x| E::new(x.c0, x.c1, x.c2)).collect();
+    let vp: Vec<E> = p.iter().map(|x| E::new(x.c0, x.c1)).collect();
     let got = bc.evaluate(&vp);
     check!(
-        got.map(|e| F192::new(e.c0, e.c1, e.c2)) == Ok(want),
+        got.map(|e| F128::new(e.c0, e.c1)) == Ok(want),
         "verifier Bytecode::evaluate",
         "{n} variables: got {got:?}, want {want:?}"
     );
@@ -174,7 +174,7 @@ fn bytecode(src: &mut Source, ctx: &Ctx) -> Outcome {
         _ => 64 + src.below(4),
     };
     if other != n {
-        let wrong: Vec<E> = (0..other).map(|_| E::new(1, 0, 0)).collect();
+        let wrong: Vec<E> = (0..other).map(|_| E::new(1, 0)).collect();
         check!(
             bc.evaluate(&wrong).is_err(),
             "verifier Bytecode::evaluate",
@@ -194,15 +194,15 @@ fn small(src: &mut Source, ctx: &Ctx) -> Outcome {
     );
     let (kl, kh) = (F64(src.u64()), F64(src.edgy_u64()));
     check!(
-        interp_k(kl, kh, t) == r::add_e(F192::from(kl), r::mul_base(t, kl.0 ^ kh.0)),
+        interp_k(kl, kh, t) == r::add_e(F128::from(kl), r::mul_base(t, kl.0 ^ kh.0)),
         "interp_k",
         "{kl:?} {kh:?} {t:?}"
     );
     let n = src.below(10);
     let coeffs = bulk_e(src, n);
     let x = edge_e(src);
-    let mut want = F192::ZERO;
-    let mut power = F192::ONE;
+    let mut want = F128::ZERO;
+    let mut power = F128::ONE;
     for &c in &coeffs {
         want = r::add_e(want, r::mul_e(c, power));
         power = r::mul_e(power, x);
@@ -220,7 +220,7 @@ fn packed(src: &mut Source, ctx: &Ctx) -> Outcome {
     let n = src.range(3, 11);
     ctx.note(format!("packed vars {}", n.min(6)));
     let p = point(src, n);
-    let eq = eq_ref(&p, F192::ONE);
+    let eq = eq_ref(&p, F128::ONE);
     let packed = packed_eq(&p);
     check!(
         packed.len() == eq.len() / 8,
@@ -242,7 +242,7 @@ fn packed(src: &mut Source, ctx: &Ctx) -> Outcome {
     let want = eq
         .iter()
         .zip(&k)
-        .fold(F192::ZERO, |s, (&w, x)| r::add_e(s, r::mul_base(w, x.0)));
+        .fold(F128::ZERO, |s, (&w, x)| r::add_e(s, r::mul_base(w, x.0)));
     check!(dot_base(&packed, &k).reduce() == want, "dot_base", "{n} variables");
     let rebuilt: Vec<Weights8> = eq.as_chunks::<8>().0.iter().map(Weights8::new).collect();
     check!(

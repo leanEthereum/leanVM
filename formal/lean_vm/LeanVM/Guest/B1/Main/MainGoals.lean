@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.MainHonest
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `main`'s callees on an honest run
@@ -51,44 +52,44 @@ abbrev hLmain : B1.Main.Layout :=
 /-! ## The callees -/
 
 def MainGoalClX : Prop :=
-  CompleteAtD fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  CompleteAtD fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx] (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd))
 
 def MainGoalClS : Prop :=
-  CompleteAtD fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  CompleteAtD fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls] (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd))
 
 def MainGoalL1 : Prop :=
   (hm fs fp seed s w).nxd ≠ 0 →
-    CompleteAtD fs cert 16 "__loop0" (hLmain fs fp seed s w)
+    CompleteAtD fs cert 20 name% «main_loop0» (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nxd, (hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx] (Returns [])
 
 def MainGoalL2 : Prop :=
   (hm fs fp seed s w).nsd ≠ 0 →
-    CompleteAtD fs cert 16 "__loop1" (hLmain fs fp seed s w)
+    CompleteAtD fs cert 20 name% «main_loop1» (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nsd, (hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls] (Returns [])
 
 def MainGoalL3 : Prop :=
   (hm fs fp seed s w).nrx ≠ 0 →
-    CompleteAtD fs cert 16 "__loop2" (hLmain fs fp seed s w)
+    CompleteAtD fs cert 23 name% «main_loop2» (hLmain fs fp seed s w)
       ([1, gen ^ (hm fs fp seed s w).nrx, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a117, (hm fs fp seed s w).a77] ++ lxTagWords) (Returns [])
 
 def MainGoalL4 : Prop :=
   (hm fs fp seed s w).nrs ≠ 0 →
-    CompleteAtD fs cert 16 "__loop3" (hLmain fs fp seed s w)
+    CompleteAtD fs cert 23 name% «main_loop3» (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nrs, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
         (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         gen ^ (hm fs fp seed s w).nrx, (hm fs fp seed s w).a80, (hm fs fp seed s w).a119] (Returns [])
 
 def MainGoalDv : Prop :=
   (hm fs fp seed s w).nd = 1 →
-    CompleteAtD fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtD fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
       (Returns (hm fs fp seed s w).daR)
 
 def MainGoalL5 : Prop :=
   (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtD fs cert 16 "__loop4" (hLmain fs fp seed s w)
+    CompleteAtD fs cert 23 name% «main_loop4» (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80,
@@ -100,12 +101,13 @@ def MainGoalL5 : Prop :=
 
 def MainGoalAg : Prop :=
   (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtD fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
+    CompleteAtD fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)
       [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
-        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns [])
+        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
+        (hm fs fp seed s w).et * word 133823759239872512 0] (Returns [])
 
 def MainGoalSt : Prop :=
-  CompleteAtD fs cert 16 "statement_digest" (hLmain fs fp seed s w)
+  CompleteAtD fs cert 20 "statement_digest" (hLmain fs fp seed s w)
     [(digestHalves (hm fs fp seed s w).seed).1, (digestHalves (hm fs fp seed s w).seed).2,
       (digestHalves (hm fs fp seed s w).xd).1, (digestHalves (hm fs fp seed s w).xd).2,
       (digestHalves (hm fs fp seed s w).sd).1, (digestHalves (hm fs fp seed s w).sd).2,

@@ -6,7 +6,7 @@ use super::{bulk_e, check};
 use crate::{Ctx, Outcome, Source};
 use primitives::bit_fold::{BLOCK, BitFold};
 use primitives::bits::bit_transpose_64bytes;
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 use primitives::stream::Stream;
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
@@ -40,8 +40,8 @@ fn transpose(src: &mut Source, ctx: &Ctx) -> Outcome {
 }
 
 /// `sum_(bit s of row set) w_s`, bit `b` of byte `j` being bit `8j + b`.
-fn fold_ref(weights: &[F192], row: &[u8]) -> F192 {
-    let mut acc = F192::ZERO;
+fn fold_ref(weights: &[F128], row: &[u8]) -> F128 {
+    let mut acc = F128::ZERO;
     for (j, &byte) in row.iter().enumerate() {
         for b in 0..8 {
             if byte >> b & 1 == 1 {
@@ -80,13 +80,18 @@ fn pair<const A: usize, const B: usize>(src: &mut Source) -> Outcome {
         _ => src.below(BLOCK + 1),
     };
     let (head, tail) = (rows::<A>(src, n), rows::<B>(src, n));
-    let mut out = [F192::new(9, 9, 9); BLOCK];
-    fa.fold_block_pair(&fb, &head, &tail, &mut out);
+    let mut out = [F128::new(9, 9); BLOCK];
+    let mut other = [F128::ZERO; BLOCK];
+    fa.fold_block(&head, &mut out);
+    fb.fold_block(&tail, &mut other);
+    for (o, t) in out.iter_mut().zip(&other) {
+        *o += *t;
+    }
     for p in 0..BLOCK {
         let want = if p < n {
             r::add_e(fold_ref(&wa, &head[p]), fold_ref(&wb, &tail[p]))
         } else {
-            F192::ZERO
+            F128::ZERO
         };
         check!(
             out[p] == want,
@@ -117,7 +122,7 @@ fn columns<const C: usize>(src: &mut Source) -> Outcome {
     let fold = BitFold::new(&w);
     let rows = rows::<C>(src, BLOCK);
     let cols: [[u8; BLOCK]; C] = std::array::from_fn(|j| std::array::from_fn(|p| rows[p][j]));
-    let mut out = [F192::ZERO; BLOCK];
+    let mut out = [F128::ZERO; BLOCK];
     fold.fold_columns(&cols, &mut out);
     for (p, row) in rows.iter().enumerate() {
         check!(
@@ -168,13 +173,13 @@ fn stream(src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut wdst = vec![0u64; words.len()];
     s.copy(&mut wdst, &words);
     check!(wdst == words, "Stream::copy", "{} words", words.len());
-    let elems: Vec<F192> = words
+    let elems: Vec<F128> = words
         .chunks(3)
-        .map(|c| F192::new(c[0], *c.get(1).unwrap_or(&0), 0))
+        .map(|c| F128::new(c[0], *c.get(1).unwrap_or(&0)))
         .collect();
-    let mut edst = vec![F192::ZERO; elems.len()];
+    let mut edst = vec![F128::ZERO; elems.len()];
     s.copy(&mut edst, &elems);
-    check!(edst == elems, "Stream::copy", "{} F192", elems.len());
+    check!(edst == elems, "Stream::copy", "{} F128", elems.len());
     let k: Vec<F64> = words.iter().map(|&w| F64(w)).collect();
     let mut kdst = vec![F64::ZERO; k.len()];
     Stream::default().copy(&mut kdst, &k);

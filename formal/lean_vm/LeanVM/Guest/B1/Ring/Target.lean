@@ -1,22 +1,29 @@
 /-
   LeanVM.Guest.B1.Ring.Target
 
-  B1 of `ring_switch_target`: its core IR computes `Σ_i g^i Φ(s_i)`.
+  B1 of `ring_switch_target`: its core IR computes the statement's `ringTarget`.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Ring.Weight
+public import LeanVM.Guest.CoreRef
+public import LeanVM.Guest.B1.Ring.Interface
+public import LeanVM.Guest.B1.Ring.TargetMath
+public import LeanVM.Guest.B1.KeccakGkr.Lib
+public import LeanVM.Guest.B1.Common.Find
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # `ring_switch_target` (TRIAGE G #64, #65)
 
-`ring_switch_target(slices, map_challenges)` (G:3102-3119, `Data.core13`) seeds a two-slot chain
-`(x^0, 0)` and runs `__loop13` (`Data.core269`) for `x = g^j`, `j < 8`: the loop body evaluates
-`Φ` (`ring_map`, G:3092-3098, inline: six stages, each `lin + f_p · lin^(2^shift)` by `shift`
-squarings, `stageT`) on the eight slices `8j .. 8j + 7` and combines them in Horner form by `g`
-(the chunk `Σ_i g^i Φ(s_(8j+i))`), then extends the chain: `x^0 ← x^0·g^8`,
-`sum ← sum + x^0·chunk`. The chain's last sum is `polyEval (s.map Φ) g`.
+`ring_switch_target(slices, map_challenges)` (`fn% «ring_switch_target»`) zeroes the eight Horner
+chains' first row of `rs_chain` and runs `ring_switch_target_loop0` (`fn%
+«ring_switch_target_loop0»`) for `x = g^j`, `j < 8`. The loop body reads `g_0 .. g_7`
+(`map_challenges[8 ..]`), computes `Ψ` (`ring_psi`, inline: `psRow`) of the eight slices at
+`slices·x^8`, and steps each chain `p` by eight Horner steps in `w_p = RING_W[p]` (`hzRow`), from
+row `x^8` of `rs_chain` to the next. Chain `p` ends at `wHorner w_p (Ψ(s_0), …, Ψ(s_63))`; the tail
+raises it to `2^(8p)` by `8p` squarings, scales it by `f_p = map_challenges[p]`, sums, and
+multiplies by `x^63`: `guest_target_eq`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -28,347 +35,463 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-! ## One stage of `ring_map` -/
+/-! ## `ring_psi` on one row -/
 
-/-- The value squaring `i` reads: `lin`, then the previous square. -/
-def sqSrc (lin : V) (b : ℕ) : ℕ → V
-  | 0 => lin
-  | i + 1 => .n (b + i)
+/-- Row `r`'s first value. -/
+abbrev psBase (r : ℕ) : ℕ := 16 + 23 * r
 
-/-- `d` squarings of `lin` into `b .. b + d - 1`. -/
-def sqChainT (lin : V) (b d : ℕ) : List Stmt :=
-  ((List.range d).map fun i ↦ [.atom (.mul (.n (b + i)) (sqSrc lin b i) (sqSrc lin b i))]).flatten
+/-- Stage `k + 2` of `Ψ` on the row at `b`: square, scale by `g_(k+2)`, add. -/
+def psStage (b k : ℕ) : List Stmt :=
+  [.atom (.mul (.n (b + 5 + 3 * k)) (.n (b + 2 + 3 * k)) (.n (b + 2 + 3 * k))),
+    .atom (.mul (.n (b + 6 + 3 * k)) (.n (6 + k)) (.n (b + 5 + 3 * k))),
+    .atom (.add (.n (b + 7 + 3 * k)) (.n (b + 4 + 3 * k)) (.n (b + 6 + 3 * k)))]
 
-/-- One stage (`d ≥ 1` squarings): `lin^(2^d)` into `b + d - 1`, the challenge `map[s]` into
-`b + d`, the product into `b + d + 1`, `lin + f·lin^(2^d)` into `b + d + 2`. -/
-def stageT (lin : V) (b d s : ℕ) : List Stmt :=
-  sqChainT lin b d ++
-    [.atom (.load (.n (b + d)) (.n 2) s), .atom (.mul (.n (b + d + 1)) (.n (b + d)) (.n (b + d - 1))),
-      .atom (.add (.n (b + d + 2)) lin (.n (b + d + 1)))]
+/-- The row of slice `r`, its values from `b`: `Ψ` of `rows[r]` at `b + 22`. -/
+def psRowAt (b r : ℕ) : List Stmt :=
+  [.atom (.load (.n b) (.n 15) r), .atom (.mul (.n (b + 1)) (.n 4) (.n b)),
+    .atom (.mul (.n (b + 2)) (.n b) (.n b)), .atom (.mul (.n (b + 3)) (.n 5) (.n (b + 2))),
+    .atom (.add (.n (b + 4)) (.n (b + 1)) (.n (b + 3)))] ++
+  ((List.range 6).map (psStage b)).flatten
 
-/-- `ring_map` on `lin`, its values from `b`: six stages of `32, 16, 8, 4, 2, 1` squarings; the
-result at `b + 80`. -/
-def rmapT (lin : V) (b : ℕ) : List Stmt :=
-  stageT lin b 32 0 ++ stageT (.n (b + 34)) (b + 35) 16 1 ++ stageT (.n (b + 53)) (b + 54) 8 2 ++
-    stageT (.n (b + 64)) (b + 65) 4 3 ++ stageT (.n (b + 71)) (b + 72) 2 4 ++
-    stageT (.n (b + 76)) (b + 77) 1 5
+/-- Row `r`. -/
+def psRow (r : ℕ) : List Stmt := psRowAt (psBase r) r
 
-theorem holds_sqChainT {lin : V} {b d : ℕ} {next : Prop} {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ (sqChainT lin b d) next kret) :
-    (∀ i < d, σ (.n (b + i)) = σ lin ^ 2 ^ (i + 1)) ∧ next := by
-  obtain ⟨hall, hn⟩ := (holdsList_range_flatten d _ (fun _ ↦ rfl) next kret).mp h
-  refine ⟨fun i hi => ?_, hn⟩
-  have hsq : ∀ j < d, σ (.n (b + j)) = σ (sqSrc lin b j) * σ (sqSrc lin b j) := by
-    intro j hj
-    simpa [Stmt.HoldsList, Stmt.Holds, Atom.Holds] using hall j hj
-  induction i with
-  | zero => rw [hsq 0 hi]; simp [sqSrc, pow_two]
-  | succ i ih =>
-    rw [hsq (i + 1) hi, sqSrc, ih (by omega), ← pow_two, ← pow_mul, ← pow_succ]
+theorem psStage_noRet (b k : ℕ) : Stmt.noRetList (psStage b k) = true := rfl
 
-theorem sqChainT_noRet (lin : V) (b d : ℕ) : Stmt.noRetList (sqChainT lin b d) = true :=
-  noRetList_flatten_map _ (fun _ ↦ rfl) _
+theorem psRow_noRet (r : ℕ) : Stmt.noRetList (psRow r) = true := by
+  rw [psRow, psRowAt, noRetList_append, noRetList_flatten_map _ (psStage_noRet _) _]; rfl
 
-theorem stageT_noRet (lin : V) (b d s : ℕ) : Stmt.noRetList (stageT lin b d s) = true := by
-  rw [stageT, noRetList_append, sqChainT_noRet]; rfl
+/-- The challenges `g_0 .. g_7`, at `4 .. 11`. -/
+def gVals (σ : Val) : List E := (List.range 8).map fun b ↦ σ (.n (4 + b))
 
-/-- **One stage**: with the challenge `f = map[s]` (`d ≥ 1`), `b + d + 2` holds
-`lin + f·lin^(2^d)`. -/
-theorem holds_stageT {lin : V} {b d s : ℕ} (hd : 1 ≤ d) {next : Prop} {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ (stageT lin b d s) next kret) :
-    (LoadHolds rd (σ (.n 2)) s (σ (.n (b + d))) ∧
-      σ (.n (b + d + 2)) = σ lin + σ (.n (b + d)) * σ lin ^ 2 ^ d) ∧ next := by
-  rw [stageT, holdsList_append] at h
-  obtain ⟨hsq, h⟩ := holds_sqChainT h
+/-- **One row of `ring_psi`**: the slice it loads, and `Ψ` of it at `b + 22`. -/
+theorem holds_psRowAt {b r : ℕ} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (psRowAt b r) True kret) :
+    LoadHolds rd (σ (.n 15)) r (σ (.n b)) ∧ σ (.n (b + 22)) = ringPsi (σ (.n b)) (gVals σ) := by
+  rw [psRowAt, holdsList_append] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
-  obtain ⟨hl, hm, ha, hn⟩ := h
-  refine ⟨⟨hl, ?_⟩, hn⟩
-  rw [ha, hm, show b + d - 1 = b + (d - 1) by omega, hsq (d - 1) (by omega),
-    show d - 1 + 1 = d by omega]
+  obtain ⟨l0, e1, e2, e3, e4, h⟩ := h
+  obtain ⟨hs, -⟩ := (holdsList_range_flatten 6 (psStage b) (psStage_noRet b) _ _).mp h
+  have st : ∀ k < 6, σ (.n (b + 5 + 3 * k)) = σ (.n (b + 2 + 3 * k)) * σ (.n (b + 2 + 3 * k)) ∧
+      σ (.n (b + 6 + 3 * k)) = σ (.n (6 + k)) * σ (.n (b + 5 + 3 * k)) ∧
+      σ (.n (b + 7 + 3 * k)) = σ (.n (b + 4 + 3 * k)) + σ (.n (b + 6 + 3 * k)) := by
+    intro k hk
+    have := hs k hk
+    simp only [psStage, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at this
+    exact ⟨this.1, this.2.1, this.2.2.1⟩
+  obtain ⟨a0, b0, c0⟩ := st 0 (by decide)
+  obtain ⟨a1, b1, c1⟩ := st 1 (by decide)
+  obtain ⟨a2, b2, c2⟩ := st 2 (by decide)
+  obtain ⟨a3, b3, c3⟩ := st 3 (by decide)
+  obtain ⟨a4, b4, c4⟩ := st 4 (by decide)
+  obtain ⟨a5, b5, c5⟩ := st 5 (by decide)
+  simp only [Nat.add_assoc, Nat.reduceAdd, Nat.reduceMul] at a0 b0 c0 a1 b1 c1 a2 b2 c2
+  simp only [Nat.add_assoc, Nat.reduceAdd, Nat.reduceMul] at a3 b3 c3 a4 b4 c4 a5 b5 c5
+  refine ⟨l0, ?_⟩
+  simp only [gVals, List.range_succ, List.range_zero, List.map_nil, List.map_cons,
+    List.nil_append, List.cons_append, ringPsi, List.foldl_cons, List.foldl_nil, Nat.reduceAdd]
+  rw [c5, b5, a5, c4, b4, a4, c3, b3, a3, c2, b2, a2, c1, b1, a1, c0, b0, a0, e4, e3, e2, e1]
+  ring
 
-theorem rmapT_noRet (lin : V) (b : ℕ) : Stmt.noRetList (rmapT lin b) = true := by
-  simp only [rmapT, noRetList_append, stageT_noRet]; rfl
+/-! ## The Horner chains -/
 
-/-- **`ring_map`** (G:3093-3099): the six challenges it loads from `map_challenges` (value `2`),
-and `Φ` of `lin` at them (`phiMap`, V:2103) at `b + 80`. -/
-theorem holds_rmapT {lin : V} {b : ℕ} {next : Prop} {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ (rmapT lin b) next kret) :
-    (ReadsAt rd (σ (.n 2)) [σ (.n (b + 32)), σ (.n (b + 51)), σ (.n (b + 62)), σ (.n (b + 69)),
-        σ (.n (b + 74)), σ (.n (b + 78))] ∧
-      σ (.n (b + 80)) = phiMap (σ lin) [σ (.n (b + 32)), σ (.n (b + 51)), σ (.n (b + 62)),
-        σ (.n (b + 69)), σ (.n (b + 74)), σ (.n (b + 78))]) ∧ next := by
-  simp only [rmapT, holdsList_append] at h
-  obtain ⟨⟨l0, e0⟩, h⟩ := holds_stageT (by decide) h
-  obtain ⟨⟨l1, e1⟩, h⟩ := holds_stageT (by decide) h
-  obtain ⟨⟨l2, e2⟩, h⟩ := holds_stageT (by decide) h
-  obtain ⟨⟨l3, e3⟩, h⟩ := holds_stageT (by decide) h
-  obtain ⟨⟨l4, e4⟩, h⟩ := holds_stageT (by decide) h
-  obtain ⟨⟨l5, e5⟩, h⟩ := holds_stageT (by decide) h
-  refine ⟨⟨?_, ?_⟩, h⟩
-  · intro k hk
-    simp only [List.length_cons, List.length_nil] at hk
-    interval_cases k
-    · exact l0
-    · exact l1
-    · exact l2
-    · exact l3
-    · exact l4
-    · exact l5
-  · simp only [Nat.add_assoc, Nat.reduceAdd] at e0 e1 e2 e3 e4 e5 ⊢
-    rw [e5, e4, e3, e2, e1, e0]
+/-- `RING_W[p]`'s words: `w_p = z_p⁻¹`, `z_p = x^(2^(64 - 8p))` (`ringWK`). -/
+def ringWNat : List ℕ :=
+  [9223372036854775821, 3553348109046704045, 6991530515271458276, 8630512066575425152,
+    8543422393626980591, 2539607212871081783, 4576227429734584387, 15746294976420764300]
+
+theorem word_ringW {p : ℕ} (hp : p < 8) : word (ringWNat.getD p 0) 0 = ofK (ringWK.getD p 0) := by
+  rw [word_eOfNat]
+  interval_cases p <;> rfl
+
+/-- Chain `p`'s first value. -/
+abbrev hzBase (p : ℕ) : ℕ := 204 + 25 * p
+
+/-- Step `r` of chain `p` (values from `a`): `acc·w_p + Ψ(s_r)`. -/
+def hzStep (a p r : ℕ) : List Stmt :=
+  [.atom (.const (.n (a + 1 + 3 * r)) (word (ringWNat.getD p 0) 0)),
+    .atom (.mul (.n (a + 2 + 3 * r)) (.n (a + 3 * r)) (.n (a + 1 + 3 * r))),
+    .atom (.add (.n (a + 3 + 3 * r)) (.n (a + 2 + 3 * r)) (.n (psBase r + 22)))]
+
+/-- Chain `p` over one chunk, its values from `a`: its row's entry `p` in, entry `8 + p` out. -/
+def hzRowAt (a p : ℕ) : List Stmt :=
+  [.atom (.load (.n a) (.n 203) p)] ++ ((List.range 8).map (hzStep a p)).flatten ++
+    [.atom (.load (.n (a + 24)) (.n 203) (8 + p))]
+
+/-- Chain `p`. -/
+def hzRow (p : ℕ) : List Stmt := hzRowAt (hzBase p) p
+
+theorem hzStep_noRet (a p r : ℕ) : Stmt.noRetList (hzStep a p r) = true := rfl
+
+theorem hzRow_noRet (p : ℕ) : Stmt.noRetList (hzRow p) = true := by
+  rw [hzRow, hzRowAt, noRetList_append, noRetList_append,
+    noRetList_flatten_map _ (hzStep_noRet _ _) _]; rfl
+
+/-- The eight images `Ψ(s_r)` of a chunk. -/
+def psVals (σ : Val) : List E := (List.range 8).map fun r ↦ σ (.n (psBase r + 22))
+
+/-- One Horner step in `w`. -/
+def hstep (w : E) (acc c : E) : E := acc * w + c
+
+theorem hz_steps {a p : ℕ} (hp : p < 8)
+    (hs : ∀ r < 8, σ (.n (a + 1 + 3 * r)) = word (ringWNat.getD p 0) 0 ∧
+      σ (.n (a + 2 + 3 * r)) = σ (.n (a + 3 * r)) * σ (.n (a + 1 + 3 * r)) ∧
+      σ (.n (a + 3 + 3 * r)) = σ (.n (a + 2 + 3 * r)) + σ (.n (psBase r + 22))) :
+    ∀ r ≤ 8, σ (.n (a + 3 * r)) =
+      (((List.range r).map fun t ↦ σ (.n (psBase t + 22))).foldl
+        (hstep (ofK (ringWK.getD p 0))) (σ (.n a)))
+  | 0, _ => by simp
+  | r + 1, hr => by
+    obtain ⟨e1, e2, e3⟩ := hs r (by omega)
+    rw [show a + 3 * (r + 1) = a + 3 + 3 * r by ring, e3, e2, e1, word_ringW hp,
+      hz_steps hp hs r (by omega), List.range_succ, List.map_append, List.foldl_append]
     rfl
 
-/-! ## The loop body (`__loop13`) -/
-
-/-- The first value of row `r ≥ 1` of a chunk: `5 + 85r`. -/
-abbrev ltBase (r : ℕ) : ℕ := 5 + 85 * r
-
-/-- Row `r ∈ 1..7` of a chunk: `chunk·g` (the constant `2 = g` at `ltBase r`), the slice
-`7 - r` of the chunk read, `Φ` of it, the sum at `ltBase r + 84`. -/
-def ltRow (r : ℕ) : List Stmt :=
-  [.atom (.const (.n (ltBase r)) (word 2 0 0)),
-    .atom (.mul (.n (ltBase r + 1)) (.n (if r = 1 then 89 else ltBase r - 1)) (.n (ltBase r))),
-    .atom (.load (.n (ltBase r + 2)) (.n 7) (7 - r))] ++ rmapT (.n (ltBase r + 2)) (ltBase r + 3) ++
-  [.atom (.add (.n (ltBase r + 84)) (.n (ltBase r + 1)) (.n (ltBase r + 83)))]
-
-/-- `__loop13`'s body. -/
-def loop14T : List Stmt :=
-  [.atom (.mul (.n 4) (.n 0) (.n 0)), .atom (.mul (.n 5) (.n 4) (.n 4)),
-    .atom (.mul (.n 6) (.n 5) (.n 5)), .atom (.mul (.n 7) (.n 1) (.n 6)),
-    .atom (.load (.n 8) (.n 7) 7)] ++ rmapT (.n 8) 9 ++
-  ((List.range 7).map fun r ↦ ltRow (r + 1)).flatten ++
-  [.atom (.mul (.n 685) (.n 0) (.n 0)), .atom (.mul (.n 686) (.n 3) (.n 685)),
-    .atom (.load (.n 687) (.n 686) 0), .atom (.const (.n 688) (word 256 0 0)),
-    .atom (.mul (.n 689) (.n 687) (.n 688)), .atom (.load (.n 689) (.n 686) 2),
-    .atom (.load (.n 690) (.n 686) 1), .atom (.mul (.n 691) (.n 687) (.n 684)),
-    .atom (.add (.n 692) (.n 690) (.n 691)), .atom (.load (.n 692) (.n 686) 3),
-    .atom (.const (.n 693) (word 2 0 0)), .atom (.mul (.n 694) (.n 0) (.n 693)),
-    .atom (.const (.n 695) (word 256 0 0)), .atom (.add (.n 696) (.n 694) (.n 695)),
-    .atom (.const (.n 697) (word 2 0 0)), .atom (.mul (.n 698) (.n 0) (.n 697)),
-    .callIf (.n 696) "__loop13" [.n 698, .n 1, .n 2, .n 3], .ret []]
-
-theorem loop14_body : Data.core269.body = loop14T := stmtsEqb_sound (by decide +kernel)
-
-theorem find_loop14 : coreProgram.find? "__loop13" = some Data.core269 :=
-  Program.find?_of_indexOf? (j := 269) (by decide +kernel) rfl
-
-theorem ltRow_noRet (r : ℕ) : Stmt.noRetList (ltRow r) = true := by
-  simp only [ltRow, noRetList_append, rmapT_noRet]; rfl
-
-/-- What row `r` of a chunk asks of a valuation. -/
-theorem holds_ltRow {r : ℕ} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (ltRow r) True kret) :
-    σ (.n (ltBase r + 1)) = σ (.n (if r = 1 then 89 else ltBase r - 1)) * gen ∧
-      LoadHolds rd (σ (.n 7)) (7 - r) (σ (.n (ltBase r + 2))) ∧
-      ReadsAt rd (σ (.n 2)) [σ (.n (ltBase r + 3 + 32)), σ (.n (ltBase r + 3 + 51)),
-        σ (.n (ltBase r + 3 + 62)), σ (.n (ltBase r + 3 + 69)), σ (.n (ltBase r + 3 + 74)),
-        σ (.n (ltBase r + 3 + 78))] ∧
-      σ (.n (ltBase r + 84)) = σ (.n (ltBase r + 1)) +
-        phiMap (σ (.n (ltBase r + 2))) [σ (.n (ltBase r + 3 + 32)), σ (.n (ltBase r + 3 + 51)),
-          σ (.n (ltBase r + 3 + 62)), σ (.n (ltBase r + 3 + 69)), σ (.n (ltBase r + 3 + 74)),
-          σ (.n (ltBase r + 3 + 78))] := by
-  rw [ltRow, holdsList_append, holdsList_append] at h
+/-- **One chain over one chunk.** -/
+theorem holds_hzRowAt {a p : ℕ} (hp : p < 8) {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (hzRowAt a p) True kret) :
+    LoadHolds rd (σ (.n 203)) p (σ (.n a)) ∧
+      LoadHolds rd (σ (.n 203)) (8 + p)
+        ((psVals σ).foldl (hstep (ofK (ringWK.getD p 0))) (σ (.n a))) := by
+  rw [hzRowAt, holdsList_append, holdsList_append] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
-  obtain ⟨e0, e1, l2, h⟩ := h
-  obtain ⟨⟨rl, rv⟩, h⟩ := holds_rmapT h
-  simp only [and_true] at h
-  refine ⟨by rw [e1, e0, word_gen], l2, rl, ?_⟩
-  rw [h, ← rv, show ltBase r + 3 + 80 = ltBase r + 83 by omega]
+  obtain ⟨l0, h⟩ := h
+  obtain ⟨hs, l24, -⟩ := (holdsList_range_flatten 8 (hzStep a p) (hzStep_noRet a p) _ _).mp h
+  have hs' : ∀ r < 8, σ (.n (a + 1 + 3 * r)) = word (ringWNat.getD p 0) 0 ∧
+      σ (.n (a + 2 + 3 * r)) = σ (.n (a + 3 * r)) * σ (.n (a + 1 + 3 * r)) ∧
+      σ (.n (a + 3 + 3 * r)) = σ (.n (a + 2 + 3 * r)) + σ (.n (psBase r + 22)) := by
+    intro r hr
+    have := hs r hr
+    simp only [hzStep, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at this
+    exact ⟨this.1, this.2.1, this.2.2.1⟩
+  refine ⟨l0, ?_⟩
+  have := hz_steps hp hs' 8 le_rfl
+  rw [show a + 3 * 8 = a + 24 by ring] at this
+  rw [psVals, ← this]
+  exact l24
 
-/-- The chunk of slices `vs` (eight): `Σ_i g^i Φ(vs_i)`. -/
-def rsChunk (vs chs : List E) : E := ∑ i ∈ Finset.range 8, gen ^ i * phiMap (vs.getD i 0) chs
+/-! ## The loop body (`ring_switch_target_loop0`) -/
 
-/-- **The loop body's meaning at `x`**: the eight slices at `slices·x^8`, the chain's row at
-`chain·x^2` holds `(x₀, run)` and the next row `(x₀·g^8, run + x₀·chunk)`. -/
-def RowOk (rd : Reader) (sl mc ch x : E) : Prop :=
-  ∃ (vs : List E) (xp run : E), vs.length = 8 ∧ ReadsAt rd (sl * x ^ 8) vs ∧
-    LoadHolds rd (ch * x ^ 2) 0 xp ∧ LoadHolds rd (ch * x ^ 2) 1 run ∧
-    LoadHolds rd (ch * x ^ 2) 2 (xp * gen ^ 8) ∧
-    (∃ chs : List E, chs.length = 6 ∧ ReadsAt rd mc chs) ∧
-    ∀ chs : List E, chs.length = 6 → ReadsAt rd mc chs →
-      LoadHolds rd (ch * x ^ 2) 3 (run + xp * rsChunk vs chs)
+/-- `ring_switch_target_loop0`'s body. -/
+def loop13T : List Stmt :=
+  ((List.range 8).map fun b ↦ [.atom (.load (.n (4 + b)) (.n 1) (8 + b))]).flatten ++
+  [.atom (.mul (.n 12) (.n 0) (.n 0)), .atom (.mul (.n 13) (.n 12) (.n 12)),
+    .atom (.mul (.n 14) (.n 13) (.n 13)), .atom (.mul (.n 15) (.n 2) (.n 14))] ++
+  ((List.range 8).map psRow).flatten ++
+  [.atom (.mul (.n 200) (.n 0) (.n 0)), .atom (.mul (.n 201) (.n 200) (.n 200)),
+    .atom (.mul (.n 202) (.n 201) (.n 201)), .atom (.mul (.n 203) (.n 3) (.n 202))] ++
+  ((List.range 8).map hzRow).flatten ++
+  [.atom (.const (.n 404) (word 2 0)), .atom (.mul (.n 405) (.n 0) (.n 404)),
+    .atom (.const (.n 406) (word 256 0)), .atom (.add (.n 407) (.n 405) (.n 406)),
+    .atom (.const (.n 408) (word 2 0)), .atom (.mul (.n 409) (.n 0) (.n 408)),
+    .callIf (.n 407) name% «ring_switch_target_loop0» [.n 409, .n 1, .n 2, .n 3], .ret []]
 
-theorem readsAt_six_unique {p : E} {a b c d e f : E} {chs : List E} (hl : chs.length = 6)
-    (h : ReadsAt rd p chs) (h' : ReadsAt rd p [a, b, c, d, e, f]) : [a, b, c, d, e, f] = chs := by
-  apply List.ext_getElem (by simp [hl])
-  intro k hk _
-  exact loadHolds_unique (h' k hk) (h k (by simp at hk; omega))
+theorem loop13_body : (fn% «ring_switch_target_loop0»).body = loop13T :=
+  stmtsEqb_sound (by decide +kernel)
 
-/-- **`__loop13`'s step**: at depth `d + 1` and `x`, the body's meaning, and the call at `x·g`
+theorem find_loop13 : coreProgram.find? name% «ring_switch_target_loop0» = some
+    fn% «ring_switch_target_loop0» :=
+  coreProgram_find?_at (j := idx% «ring_switch_target_loop0») rfl
+
+/-- **The loop body's meaning at `x`**: `g_0 .. g_7` at `map_challenges[8 ..]`, the eight slices
+at `slices·x^8`, and each chain `p`'s entry `p` of row `rs_chain·x^8` stepped by the chunk's images
+into its entry `8 + p`. -/
+def RowOk13 (rd : Reader) (mc sl ch x : E) : Prop :=
+  ∃ gs vs : List E, gs.length = 8 ∧ vs.length = 8 ∧ (∀ b < 8, LoadHolds rd mc (8 + b)
+      (gs.getD b 0)) ∧ ReadsAt rd (sl * x ^ 8) vs ∧
+    ∀ p < 8, ∃ acc : E, LoadHolds rd (ch * x ^ 8) p acc ∧
+      LoadHolds rd (ch * x ^ 8) (8 + p)
+        ((vs.map (ringPsi · gs)).foldl (hstep (ofK (ringWK.getD p 0))) acc)
+
+/-- **`ring_switch_target_loop0`'s step**: at depth `d + 1` and `x`, the body's meaning, and the
+call at `x·g`
 one level shallower unless `x·g = g^8`. -/
-theorem loop14_step (d : ℕ) (x sl mc ch : E)
-    (h : coreProgram.relN rd (d + 1) "__loop13" [x, sl, mc, ch] []) :
-    RowOk rd sl mc ch x ∧
-      (x * gen + gen ^ 8 ≠ 0 → coreProgram.relN rd d "__loop13" [x * gen, sl, mc, ch] []) := by
+theorem loop13_step (d : ℕ) (x mc sl ch : E)
+    (h : coreProgram.relN rd (d + 1) name% «ring_switch_target_loop0» [x, mc, sl, ch] []) :
+    RowOk13 rd mc sl ch x ∧
+      (x * gen + gen ^ 8 ≠ 0 → coreProgram.relN rd d name% «ring_switch_target_loop0» [x * gen, mc,
+          sl, ch] []) := by
   obtain ⟨fn, hf, σ, hpar, hb⟩ := h
-  rw [find_loop14] at hf
+  rw [find_loop13] at hf
   cases hf
-  simp only [Data.core269, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
+  rw [loop13_body] at hb
+  simp only [core_eq% «ring_switch_target_loop0», List.map_cons, List.map_nil, List.cons.injEq,
+      and_true] at hpar hb
   obtain ⟨rfl, rfl, rfl, rfl⟩ := hpar
-  rw [loop14_body] at hb
-  simp only [loop14T, holdsList_append] at hb
+  simp only [loop13T, holdsList_append] at hb
+  obtain ⟨hg, hb⟩ := (holdsList_range_flatten 8
+    (fun b ↦ [Stmt.atom (.load (.n (4 + b)) (.n 1) (8 + b))]) (fun _ ↦ rfl) _ _).mp hb
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hb
-  obtain ⟨e4, e5, e6, e7, l8, hb⟩ := hb
-  obtain ⟨⟨rl0, rv0⟩, hb⟩ := holds_rmapT hb
-  obtain ⟨hrows, e685, e686, l687, e688, e689, l689, l690, e691, e692, l692, e693, e694, e695,
-    e696, e697, e698, -, hcall, -⟩ :=
-    (holdsList_range_flatten 7 (fun r ↦ ltRow (r + 1)) (fun r ↦ ltRow_noRet (r + 1)) _ _).mp hb
-  have w1 := holds_ltRow (hrows 0 (by decide))
-  have w2 := holds_ltRow (hrows 1 (by decide))
-  have w3 := holds_ltRow (hrows 2 (by decide))
-  have w4 := holds_ltRow (hrows 3 (by decide))
-  have w5 := holds_ltRow (hrows 4 (by decide))
-  have w6 := holds_ltRow (hrows 5 (by decide))
-  have w7 := holds_ltRow (hrows 6 (by decide))
-  simp only [ltBase, Nat.reduceAdd, Nat.reduceMul, Nat.reduceSub, ↓reduceIte,
-    show ¬ (2 : ℕ) = 1 by decide, show ¬ (3 : ℕ) = 1 by decide, show ¬ (4 : ℕ) = 1 by decide,
-    show ¬ (5 : ℕ) = 1 by decide, show ¬ (6 : ℕ) = 1 by decide, show ¬ (7 : ℕ) = 1 by decide]
-    at w1 w2 w3 w4 w5 w6 w7
-  simp only [Nat.reduceAdd] at rl0 rv0
-  have hx8 : σ (.n 6) = σ (.n 0) ^ 8 := by rw [e6, e5, e4]; ring
-  have hx2 : σ (.n 686) = σ (.n 3) * σ (.n 0) ^ 2 := by rw [e686, e685]; ring
-  refine ⟨⟨[σ (.n 602), σ (.n 517), σ (.n 432), σ (.n 347), σ (.n 262), σ (.n 177), σ (.n 92),
-    σ (.n 8)], σ (.n 687), σ (.n 690), rfl, ?_, ?_, ?_, ?_, ⟨_, rfl, rl0⟩, fun chs hl hchs => ?_⟩,
-    ?_⟩
-  · rw [← hx8, ← e7]
-    intro k hk
-    simp only [List.length_cons, List.length_nil] at hk
-    interval_cases k
-    · exact w7.2.1
-    · exact w6.2.1
-    · exact w5.2.1
-    · exact w4.2.1
-    · exact w3.2.1
-    · exact w2.2.1
-    · exact w1.2.1
-    · exact l8
-  · rw [← hx2]; exact l687
-  · rw [← hx2]; exact l690
-  · rw [← hx2, ← word_two_pow (by decide : 8 < 64)]
-    rw [e689, e688] at l689
-    exact l689
-  · rw [← hx2]
-    rw [e692, e691] at l692
-    rw [readsAt_six_unique hl hchs rl0] at rv0
-    rw [readsAt_six_unique hl hchs w1.2.2.1] at w1
-    rw [readsAt_six_unique hl hchs w2.2.2.1] at w2
-    rw [readsAt_six_unique hl hchs w3.2.2.1] at w3
-    rw [readsAt_six_unique hl hchs w4.2.2.1] at w4
-    rw [readsAt_six_unique hl hchs w5.2.2.1] at w5
-    rw [readsAt_six_unique hl hchs w6.2.2.1] at w6
-    rw [readsAt_six_unique hl hchs w7.2.2.1] at w7
-    convert l692 using 3
-    rw [w7.2.2.2, w7.1, w6.2.2.2, w6.1, w5.2.2.2, w5.1, w4.2.2.2, w4.1, w3.2.2.2, w3.1, w2.2.2.2,
-      w2.1, w1.2.2.2, w1.1, rv0]
-    simp only [rsChunk, Finset.sum_range_succ, Finset.sum_range_zero, List.getD_cons_zero,
-      List.getD_cons_succ, pow_zero, pow_one, one_mul, zero_add]
-    ring
+  obtain ⟨e12, e13, e14, e15, hb⟩ := hb
+  obtain ⟨hps, hb⟩ := (holdsList_range_flatten 8 psRow psRow_noRet _ _).mp hb
+  obtain ⟨e200, e201, e202, e203, hb⟩ := hb
+  obtain ⟨hhz, hb⟩ := (holdsList_range_flatten 8 hzRow hzRow_noRet _ _).mp hb
+  obtain ⟨e404, e405, e406, e407, e408, e409, -, hcall, -⟩ := hb
+  have hx8 : σ (.n 14) = σ (.n 0) ^ 8 := by rw [e14, e13, e12]; ring
+  have hy8 : σ (.n 202) = σ (.n 0) ^ 8 := by rw [e202, e201, e200]; ring
+  have hrow : ∀ r < 8, LoadHolds rd (σ (.n 15)) r (σ (.n (psBase r))) ∧
+      σ (.n (psBase r + 22)) = ringPsi (σ (.n (psBase r))) (gVals σ) := fun r hr ↦
+    holds_psRowAt (hps r hr)
+  have hvals : psVals σ = ((List.range 8).map fun r ↦ σ (.n (psBase r))).map
+      (ringPsi · (gVals σ)) := by
+    simp only [psVals, List.map_map]
+    refine List.map_congr_left fun r hr ↦ ?_
+    exact (hrow r (List.mem_range.mp hr)).2
+  refine ⟨⟨gVals σ, (List.range 8).map fun r ↦ σ (.n (psBase r)), by simp [gVals], by simp,
+    fun b hb ↦ ?_, fun r hr ↦ ?_, fun p hp ↦ ?_⟩, ?_⟩
+  · have := hg b hb
+    simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at this
+    rw [show (gVals σ).getD b 0 = σ (.n (4 + b)) by
+      simp [gVals, List.getD_eq_getElem?_getD, hb]]
+    exact this.1
+  · simp only [List.length_map, List.length_range] at hr
+    simp only [List.getElem_map, List.getElem_range]
+    rw [← hx8, ← e15]
+    exact (hrow r hr).1
+  · obtain ⟨l0, l1⟩ := holds_hzRowAt hp (hhz p hp)
+    refine ⟨σ (.n (hzBase p)), ?_, ?_⟩
+    · rw [← hy8, ← e203]; exact l0
+    · rw [← hy8, ← e203, ← hvals]; exact l1
   · intro hne
-    have e : σ (.n 696) = σ (.n 0) * gen + gen ^ 8 := by
-      rw [e696, e694, e693, e695, word_gen, ← word_two_pow (by decide : 8 < 64)]; rfl
-    have e' : σ (.n 698) = σ (.n 0) * gen := by rw [e698, e697, word_gen]
+    have e : σ (.n 407) = σ (.n 0) * gen + gen ^ 8 := by
+      rw [e407, e405, e404, e406, word_gen, ← word_two_pow (by decide : 8 < 64)]; rfl
+    have e' : σ (.n 409) = σ (.n 0) * gen := by rw [e409, e408, word_gen]
     have := hcall (by rw [e]; exact hne)
     simpa [e'] using this
 
+
 /-! ## `ring_switch_target` -/
+
+/-- `n` squarings of the value at `h`, into `h + 1 .. h + n`. -/
+def sqRunT (h n : ℕ) : List Stmt :=
+  ((List.range n).map fun j ↦ [Stmt.atom (.mul (.n (h + j + 1)) (.n (h + j)) (.n (h + j)))]).flatten
+
+theorem holds_sqRunT {h n : ℕ} {kret : List E → Prop}
+    (hb : Stmt.HoldsList C rd σ (sqRunT h n) True kret) :
+    ∀ j ≤ n, σ (.n (h + j)) = σ (.n h) ^ 2 ^ j := by
+  obtain ⟨hs, -⟩ := (holdsList_range_flatten n _ (fun _ ↦ rfl) _ _).mp hb
+  intro j hj
+  induction j with
+  | zero => simp
+  | succ j ih =>
+    have := hs j (by omega)
+    simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at this
+    rw [← Nat.add_assoc, this.1, ih (by omega), ← pow_two, ← pow_mul, ← pow_succ]
+
+/-- Tail block `p`'s first value. -/
+abbrev tbBase (p : ℕ) : ℕ := 13 + 4 * p * p
+
+/-- The running sum before tail block `p`. -/
+def tbPrev (p : ℕ) : ℕ := if p = 1 then 16 else tbBase (p - 1) + 8 * (p - 1) + 3
+
+/-- Tail block `p ≥ 1`: `sums[p]^(2^(8p))·f_p` added to the running sum. -/
+def tbBlock (p : ℕ) : List Stmt :=
+  [.atom (.load (.n (tbBase p)) (.n 13) p)] ++ sqRunT (tbBase p) (8 * p) ++
+  [.atom (.load (.n (tbBase p + 8 * p + 1)) (.n 1) p),
+    .atom (.mul (.n (tbBase p + 8 * p + 2)) (.n (tbBase p + 8 * p + 1)) (.n (tbBase p + 8 * p))),
+    .atom (.add (.n (tbBase p + 8 * p + 3)) (.n (tbPrev p)) (.n (tbBase p + 8 * p + 2)))]
+
+theorem tbBlock_noRet (p : ℕ) : Stmt.noRetList (tbBlock p) = true := by
+  rw [tbBlock, noRetList_append, noRetList_append, sqRunT,
+    noRetList_flatten_map _ (fun _ ↦ rfl) _]; rfl
+
+theorem holds_tbBlock {p : ℕ} {kret : List E → Prop}
+    (hb : Stmt.HoldsList C rd σ (tbBlock p) True kret) :
+    LoadHolds rd (σ (.n 13)) p (σ (.n (tbBase p))) ∧
+      LoadHolds rd (σ (.n 1)) p (σ (.n (tbBase p + 8 * p + 1))) ∧
+      σ (.n (tbBase p + 8 * p + 3)) = σ (.n (tbPrev p)) +
+        σ (.n (tbBase p + 8 * p + 1)) * σ (.n (tbBase p)) ^ 2 ^ (8 * p) := by
+  rw [tbBlock, holdsList_append, holdsList_append] at hb
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hb
+  obtain ⟨l0, hb⟩ := hb
+  rw [holdsList_noRet _ (by rw [sqRunT]; exact noRetList_flatten_map _ (fun _ ↦ rfl) _)] at hb
+  obtain ⟨hs, l1, e2, e3, -⟩ := hb
+  refine ⟨l0, l1, ?_⟩
+  rw [e3, e2, holds_sqRunT hs (8 * p) le_rfl]
 
 /-- `ring_switch_target`'s body. -/
 def rstT : List Stmt :=
-  [.atom (.hint (.alloc (.n 2) 18)), .atom (.const (.n 3) (word 1 0 0)),
-    .atom (.load (.n 3) (.n 2) 0), .atom (.const (.n 4) (word 0 0 0)),
-    .atom (.load (.n 4) (.n 2) 1), .atom (.const (.n 5) (word 1 0 0)),
-    .call "__loop13" [.n 5, .n 0, .n 1, .n 2] [], .atom (.const (.n 6) (word 65536 0 0)),
-    .atom (.mul (.n 7) (.n 2) (.n 6)), .atom (.load (.n 8) (.n 7) 1), .ret [.n 8]]
+  [.atom (.hint (.alloc (.n 2) 72))] ++
+  ((List.range 8).map fun p ↦
+    [Stmt.atom (.const (.n (3 + p)) (word 0 0)), .atom (.load (.n (3 + p)) (.n 2) p)]).flatten ++
+  [.atom (.const (.n 11) (word 1 0)), .call name% «ring_switch_target_loop0» [.n 11, .n 1, .n 0,
+      .n 2] [],
+    .atom (.const (.n 12) (word 27 0)), .atom (.mul (.n 13) (.n 2) (.n 12)),
+    .atom (.load (.n 14) (.n 1) 0), .atom (.load (.n 15) (.n 13) 0),
+    .atom (.mul (.n 16) (.n 14) (.n 15))] ++
+  ((List.range 7).map fun p ↦ tbBlock (p + 1)).flatten ++
+  [.atom (.const (.n 269) (word 9223372036854775808 0)), .atom (.mul (.n 270) (.n 268) (.n 269)),
+    .ret [.n 270]]
 
-theorem rst_body : Data.core13.body = rstT := stmtsEqb_sound (by decide +kernel)
+theorem rst_body : (fn% «ring_switch_target»).body = rstT := stmtsEqb_sound (by decide +kernel)
 
-theorem find_rst : coreProgram.find? "ring_switch_target" = some Data.core13 :=
-  Program.find?_of_indexOf? (j := 13) (by decide +kernel) rfl
+theorem find_rst : coreProgram.find? "ring_switch_target" = some fn% «ring_switch_target» :=
+  coreProgram_find?_at (j := idx% «ring_switch_target») rfl
 
-/-- `polyEval` as a sum (`Σ_t l_t·x^t`). -/
-theorem polyEval_eq_sum (x : E) :
-    ∀ l : List E, polyEval l x = ∑ t ∈ Finset.range l.length, l.getD t 0 * x ^ t
-  | [] => by simp [polyEval]
-  | c :: l => by
-    rw [show polyEval (c :: l) x = polyEval l x * x + c from rfl, polyEval_eq_sum x l,
-      List.length_cons, Finset.sum_range_succ', Finset.sum_mul]
-    simp only [List.getD_cons_succ, List.getD_cons_zero, pow_zero, mul_one, pow_succ, mul_assoc]
 
-theorem loadHolds_sq {p x : E} {j k : ℕ} {w : E} (hx : x = gen ^ j) :
-    LoadHolds rd (p * x ^ 2) k w ↔ LoadHolds rd p (2 * j + k) w := by
-  rw [hx, ← pow_mul, show j * 2 = 2 * j by ring, loadHolds_mul_gen_pow]
+theorem word_27 : word 27 0 = gen ^ 64 := by
+  rw [word_eOfNat, gen_pow_eq_ofK]
+  exact congrArg ofK (by decide +kernel)
 
-/-- **`ring_switch_target` computes `Σ_i g^i Φ(s_i)`.** -/
+theorem gen_eq_genE : gen = Ring.genE := rfl
+
+theorem hstep_foldl_eq (w : E) (l : List E) (a : E) :
+    l.foldl (hstep w) a = l.foldl (fun acc c ↦ acc * w + c) a := rfl
+
+/-- **`ring_switch_target` computes the statement's `ringTarget`.** -/
 theorem ring_switch_target_holds : ring_switch_target_Spec := by
   intro rd args rets h
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_rst args rets).mp h
-  simp only [Data.core13, List.map_cons, List.map_nil] at hpar hb
-  subst hpar
   rw [rst_body] at hb
-  simp only [rstT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
-  obtain ⟨-, e3, l3, e4, l4, e5, hloop, e6, e7, l8, hret⟩ := hb
-  have hrows : ∀ j, j < 8 → RowOk rd (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (gen ^ j) := by
-    have := loop_sound (P := coreProgram) (f := "__loop13") (ps := [σ (.n 0), σ (.n 1), σ (.n 2)])
-      (N := gen ^ 8) (m := 8) (B := RowOk rd (σ (.n 0)) (σ (.n 1)) (σ (.n 2)))
-      (fun d x h => loop14_step d x _ _ _ h) rfl (by decide) 0
-      (by rw [pow_zero, ← word_one, ← e5]; exact hloop)
+  simp only [core_eq% «ring_switch_target», List.map_cons, List.map_nil] at hpar hb
+  subst hpar
+  simp only [rstT, holdsList_append] at hb
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hb
+  obtain ⟨-, hb⟩ := hb
+  obtain ⟨hz, hb⟩ := (holdsList_range_flatten 8 (fun p ↦
+    [Stmt.atom (.const (.n (3 + p)) (word 0 0)), .atom (.load (.n (3 + p)) (.n 2) p)])
+    (fun _ ↦ rfl) _ _).mp hb
+  obtain ⟨e11, hloop, e12, e13, l14, l15, e16, hb⟩ := hb
+  obtain ⟨htb, e269, e270, hret⟩ := (holdsList_range_flatten 7 (fun p ↦ tbBlock (p + 1))
+    (fun p ↦ tbBlock_noRet (p + 1)) _ _).mp hb
+  -- the loop's rows
+  have hrows : ∀ j, j < 8 → RowOk13 rd (σ (.n 1)) (σ (.n 0)) (σ (.n 2)) (gen ^ j) := by
+    have := loop_sound (P := coreProgram) (f := name% «ring_switch_target_loop0») (ps := [σ (.n 1),
+        σ (.n 0), σ (.n 2)])
+      (N := gen ^ 8) (m := 8) (B := RowOk13 rd (σ (.n 1)) (σ (.n 0)) (σ (.n 2)))
+      (fun d x h => loop13_step d x _ _ _ h) rfl (by decide) 0
+      (by rw [pow_zero, ← word_one, ← e11]; exact hloop)
     exact fun j hj => this j (Nat.zero_le j) hj
-  choose vs xp run hvl hvs hxp hrun hnext hch hval using hrows
-  obtain ⟨chs, hcl, hchs⟩ := hch 0 (by decide)
-  let sOf : ℕ → E := fun t ↦ if h : t / 8 < 8 then (vs (t / 8) h).getD (t % 8) 0 else 0
-  let S : ℕ → E := fun j ↦ ∑ t ∈ Finset.range (8 * j), gen ^ t * phiMap (sOf t) chs
-  have hchain : ∀ j ≤ 8, LoadHolds rd (σ (.n 2)) (2 * j) (gen ^ (8 * j)) ∧
-      LoadHolds rd (σ (.n 2)) (2 * j + 1) (S j) := by
+  choose gs vs hgl hvl hg hvs hch using hrows
+  set G := gs 0 (by decide) with hG
+  have hgsame : ∀ j (hj : j < 8), gs j hj = G := by
     intro j hj
+    apply List.ext_getElem (by rw [hgl, hgl])
+    intro b h1 h2
+    have hb8 : b < 8 := by rw [hgl] at h1; exact h1
+    have a := hg j hj b hb8
+    have c := hg 0 (by decide) b hb8
+    rw [List.getD_eq_getElem _ _ h1] at a
+    rw [List.getD_eq_getElem _ _ h2] at c
+    exact loadHolds_unique a c
+  let sF : ℕ → E := fun t ↦ if h : t / 8 < 8 then (vs (t / 8) h).getD (t % 8) 0 else 0
+  let img : ℕ → E := fun t ↦ ringPsi (sF t) G
+  -- the chains
+  have hchain : ∀ j ≤ 8, ∀ p < 8, LoadHolds rd (σ (.n 2)) (8 * j + p)
+      (((List.range (8 * j)).map img).foldl (hstep (ofK (ringWK.getD p 0))) 0) := by
+    intro j
     induction j with
     | zero =>
-      refine ⟨?_, ?_⟩
-      · rw [e3, word_one] at l3; simpa using l3
-      · rw [e4, word_zero] at l4; simpa [S] using l4
+      intro _ p hp
+      have := hz p hp
+      simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at this
+      obtain ⟨ec, lc, -⟩ := this
+      rw [ec, word_zero] at lc
+      simpa using lc
     | succ j ih =>
-      obtain ⟨ih1, ih2⟩ := ih (by omega)
+      intro hj p hp
       have hj8 : j < 8 := by omega
-      have x0 := (loadHolds_sq rfl).mp (hxp j hj8)
-      have r0 := (loadHolds_sq rfl).mp (hrun j hj8)
-      have n2 := (loadHolds_sq rfl).mp (hnext j hj8)
-      have n3 := (loadHolds_sq rfl).mp (hval j hj8 chs hcl hchs)
-      simp only [Nat.add_zero] at x0
-      rw [loadHolds_unique x0 ih1] at n2 n3
-      rw [loadHolds_unique r0 ih2] at n3
-      refine ⟨?_, ?_⟩
-      · rw [show 2 * (j + 1) = 2 * j + 2 by ring, show 8 * (j + 1) = 8 * j + 8 by ring, pow_add]
-        exact n2
-      · rw [show 2 * (j + 1) + 1 = 2 * j + 3 by ring]
-        convert n3 using 1
-        simp only [S, rsChunk, show 8 * (j + 1) = 8 * j + 8 by ring, Finset.sum_range_add,
-          Finset.mul_sum]
-        refine congrArg₂ (· + ·) rfl (Finset.sum_congr rfl fun i hi => ?_)
-        have hi8 : i < 8 := Finset.mem_range.mp hi
-        have hd : (8 * j + i) / 8 = j := by omega
-        have hm : (8 * j + i) % 8 = i := by omega
-        simp only [sOf, hd, hm, hj8, ↓reduceDIte, pow_add, mul_assoc]
-  refine ⟨(List.range 64).map sOf, chs, by simp [kBits], by simpa [ringMapShifts] using hcl, ?_,
-    hchs, ?_⟩
+      obtain ⟨acc, la, lb⟩ := hch j hj8 p hp
+      rw [← pow_mul, loadHolds_mul_gen_pow, Nat.mul_comm j 8] at la lb
+      have ihp := ih (by omega) p hp
+      rw [loadHolds_unique la ihp] at lb
+      rw [show 8 * (j + 1) + p = 8 * j + (8 + p) by ring]
+      convert lb using 1
+      rw [show 8 * (j + 1) = 8 * j + 8 by ring, List.range_add, List.map_append, List.foldl_append,
+        hgsame j hj8]
+      congr 1
+      apply List.ext_getElem (by simp [hvl])
+      intro i h1 h2
+      simp only [List.length_map, List.length_range] at h1
+      simp only [List.getElem_map, List.getElem_range, img, sF]
+      have hd : (8 * j + i) / 8 = j := by omega
+      have hm : (8 * j + i) % 8 = i := by omega
+      simp only [hd, hm, hj8, ↓reduceDIte]
+      rw [List.getD_eq_getElem _ _ (by rw [hvl]; exact h1)]
+  -- the sums, at `rs_chain·g^64`
+  have hsum : ∀ p < 8, LoadHolds rd (σ (.n 13)) p
+      (((List.range 64).map img).foldl (hstep (ofK (ringWK.getD p 0))) 0) := by
+    intro p hp
+    rw [e13, e12, word_27, loadHolds_mul_gen_pow]
+    exact hchain 8 le_rfl p hp
+  -- the challenges `f_p`
+  let fV : ℕ → E := fun p ↦ if p = 0 then σ (.n 14) else σ (.n (tbBase p + 8 * p + 1))
+  have hf : ∀ p < 8, LoadHolds rd (σ (.n 1)) p (fV p) := by
+    intro p hp
+    by_cases h0 : p = 0
+    · subst h0; exact l14
+    · have := (holds_tbBlock (htb (p - 1) (by omega))).2.1
+      rw [show p - 1 + 1 = p by omega] at this
+      simpa [fV, h0] using this
+  -- the running sum
+  let H : ℕ → E := fun p ↦ ((List.range 64).map img).foldl (hstep (ofK (ringWK.getD p 0))) 0
+  have hrun : ∀ q < 8, σ (.n (if q = 0 then 16 else tbBase q + 8 * q + 3)) =
+      ∑ p ∈ Finset.range (q + 1), fV p * H p ^ 2 ^ (8 * p) := by
+    intro q
+    induction q with
+    | zero =>
+      intro _
+      simp only [↓reduceIte]
+      rw [Finset.sum_range_one, e16, loadHolds_unique l15 (hsum 0 (by decide))]
+      simp [fV, H]
+    | succ q ih =>
+      intro hq
+      obtain ⟨lh, -, ea⟩ := holds_tbBlock (htb q (by omega))
+      rw [loadHolds_unique lh (hsum (q + 1) hq)] at ea
+      simp only [Nat.add_one_ne_zero, ↓reduceIte]
+      rw [ea, Finset.sum_range_succ, ← ih (by omega)]
+      congr 2
+      simp only [tbPrev]
+      rcases q with _ | q
+      · simp
+      · simp only [show q + 1 + 1 ≠ 1 by omega, ↓reduceIte, show q + 1 ≠ 0 by omega,
+          Nat.add_sub_cancel]
+  -- the answer
+  let sFn : Fin 64 → E := fun i ↦ sF i
+  let fFn : Fin 8 → E := fun p ↦ fV p
+  let gFn : Fin 8 → E := fun b ↦ G.getD b 0
+  have hGofFn : List.ofFn gFn = G := by
+    apply List.ext_getElem (by rw [List.length_ofFn, hG, hgl])
+    intro b h1 h2
+    rw [List.getElem_ofFn]
+    simp only [gFn]
+    rw [List.getD_eq_getElem _ _ h2]
+  have himg : ∀ p : Fin 8, H p = wHorner (ofK (ringWK.getD p 0))
+      (List.ofFn fun i : Fin 64 ↦ Verifier.ringPsi (sFn i) (List.ofFn gFn)) := by
+    intro p
+    simp only [H, wHorner, hstep_foldl_eq, hGofFn]
+    congr 1
+  refine ⟨List.ofFn sFn, List.ofFn fFn ++ List.ofFn gFn, by simp [kBits],
+    by simp [ringMapWidth], ?_, ?_, ?_⟩
   · intro t ht
-    simp only [List.length_map, List.length_range] at ht
-    simp only [List.getElem_map, List.getElem_range]
+    simp only [List.length_ofFn] at ht
+    simp only [List.getElem_ofFn, sFn, sF]
     have h8 : t / 8 < 8 := by omega
     have hrd := hvs (t / 8) h8 (t % 8) (by rw [hvl]; omega)
     rw [← pow_mul, loadHolds_mul_gen_pow, show t / 8 * 8 + t % 8 = t by omega] at hrd
-    simp only [sOf, h8, ↓reduceDIte]
+    simp only [h8, ↓reduceDIte]
     rw [List.getD_eq_getElem _ _ (by rw [hvl]; omega)]
     exact hrd
+  · intro k hk
+    simp only [List.length_append, List.length_ofFn] at hk
+    by_cases hk8 : k < 8
+    · rw [List.getElem_append_left (by simpa using hk8), List.getElem_ofFn]
+      exact hf k hk8
+    · rw [List.getElem_append_right (by simpa using hk8)]
+      simp only [List.length_ofFn, List.getElem_ofFn, gFn]
+      have := hg 0 (by decide) (k - 8) (by omega)
+      rw [show 8 + (k - 8) = k by omega] at this
+      exact this
   · rw [← hret]
-    simp only [List.cons.injEq, and_true]
-    have h17 := (hchain 8 le_rfl).2
-    rw [e7, e6, show (65536 : ℕ) = 2 ^ 16 from rfl, word_two_pow (by decide),
-      loadHolds_mul_gen_pow] at l8
-    rw [loadHolds_unique l8 h17, polyEval_eq_sum]
-    simp only [S, List.length_map, List.length_range, Nat.reduceMul]
-    refine Finset.sum_congr rfl fun t ht => ?_
-    have ht' : t < 64 := Finset.mem_range.mp ht
-    rw [List.getD_eq_getElem _ _ (by simpa using ht')]
-    simp only [List.getElem_map, List.getElem_range]
-    ring
+    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true]
+    have hl : (List.ofFn fFn).length = ringMapWidth := by simp [ringMapWidth]
+    rw [List.take_left' hl, List.drop_left' hl, ← guest_target_eq, e270, e269,
+      show (9223372036854775808 : ℕ) = 2 ^ 63 from rfl, word_two_pow (by decide), gen_eq_genE]
+    congr 1
+    have := hrun 7 (by decide)
+    simp only [show (7 : ℕ) ≠ 0 by decide, ↓reduceIte, show tbBase 7 + 8 * 7 + 3 = 268 from rfl]
+      at this
+    rw [this, Finset.sum_range, ← Finset.sum_congr rfl fun p _ ↦ by rw [himg p]]
 
 end
 end LeanVM.Guest.B1.VerifySub

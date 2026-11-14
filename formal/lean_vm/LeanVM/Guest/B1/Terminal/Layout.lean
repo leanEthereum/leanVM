@@ -7,13 +7,13 @@
 
 module
 
-public import LeanVM.Guest.B1.Terminal.Interface
+public import LeanVM.Guest.B1.Terminal.InterfaceP
 public import LeanVM.Guest.B1.Placement.Kappas
 
 /-!
 # The layout
 
-`placementsOf kappas` (V:997-1012) places the committed columns (`committedCols`, all but the
+`placementsOf kappas` (V:1128-1140) places the committed columns (`committedCols`, all but the
 `KECCAK` columns with a `q_keccak` slot and its output lanes) at `stackOffsets`'s offsets and each
 slotted column at `q_keccak`'s offset plus its slot's `2^κ` words (`placement_committed`,
 `placement_slot`). Every offset is below
@@ -29,56 +29,56 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- `KECCAK`'s output lanes are global columns `113 .. 137`. -/
-theorem keccakOutputColumns_eq : keccakOutputColumns = (List.range 25).map (113 + ·) := by
+/-- `KECCAK`'s output lanes are global columns `106 .. 130`. -/
+theorem keccakOutputColumns_eq : keccakOutputColumns = (List.range 25).map (106 + ·) := by
   decide +kernel
 
-/-- The `q_keccak` slots of the global columns (`qkeccak_slot`, V:951-953): the input lanes
-`88 .. 112` at slots `0 .. 24`, `KECCAK`'s fourteen operand and flag columns `73 .. 86` at slots
+/-- The `q_keccak` slots of the global columns (`keccakSlot`, V:1105): the input lanes
+`81 .. 105` at slots `0 .. 24`, `KECCAK`'s fourteen operand and flag columns `66 .. 79` at slots
 `50 .. 63`. -/
 def slotOfCol (c : ℕ) : Option ℕ :=
-  if 88 ≤ c ∧ c < 113 then some (c - 88) else if 73 ≤ c ∧ c < 87 then some (c - 23) else none
+  if 81 ≤ c ∧ c < 106 then some (c - 81) else if 66 ≤ c ∧ c < 80 then some (c - 16) else none
 
 theorem keccakSlot_eq_all :
-    (List.range 165).all (fun c ↦ keccakSlot c == slotOfCol c) = true := by
+    (List.range 158).all (fun c ↦ keccakSlot c == slotOfCol c) = true := by
   decide +kernel
 
-theorem keccakSlot_eq {c : ℕ} (hc : c < 165) : keccakSlot c = slotOfCol c := by
+theorem keccakSlot_eq {c : ℕ} (hc : c < 158) : keccakSlot c = slotOfCol c := by
   have := List.all_eq_true.mp keccakSlot_eq_all c (List.mem_range.mpr hc)
   simpa using this
 
-/-- Committed column `cc`'s global column: `0 .. 72`, then `KECCAK`'s free column `87`, then its
-read counts `138 .. 164`. -/
-def colOfCommitted (cc : ℕ) : ℕ := if cc < 73 then cc else if cc = 73 then 87 else cc + 64
+/-- Committed column `cc`'s global column: `0 .. 65`, then `KECCAK`'s free column `80`, then its
+read counts `131 .. 157`. -/
+def colOfCommitted (cc : ℕ) : ℕ := if cc < 66 then cc else if cc = 66 then 80 else cc + 64
 
 theorem committedCols_idxOf_all :
     (List.range Tables.nCommittedCols).all
-      (fun cc ↦ (Tables.committedCols 165).idxOf ((Tables.committedCols 165).getD cc 0) == cc) =
+      (fun cc ↦ (Tables.committedCols 158).idxOf ((Tables.committedCols 158).getD cc 0) == cc) =
       true := by
-  rw [Tables.committedCols_165]; decide +kernel
+  rw [Tables.committedCols_158]; decide +kernel
 
 theorem committedCols_idxOf {cc : ℕ} (hcc : cc < Tables.nCommittedCols) :
-    (Tables.committedCols 165).idxOf ((Tables.committedCols 165).getD cc 0) = cc := by
+    (Tables.committedCols 158).idxOf ((Tables.committedCols 158).getD cc 0) = cc := by
   have := List.all_eq_true.mp committedCols_idxOf_all cc (List.mem_range.mpr hcc)
   simpa using this
 
 /-- Committed column `cc`'s global column. -/
 theorem committedCols_getD {cc : ℕ} (hcc : cc < Tables.nCommittedCols) :
-    (Tables.committedCols 165).getD cc 0 = colOfCommitted cc := by
-  have hcc' : cc < 101 := hcc
-  have hall : (List.range 101).all (fun c ↦ (Tables.committedCols 165).getD c 0 == colOfCommitted c) =
+    (Tables.committedCols 158).getD cc 0 = colOfCommitted cc := by
+  have hcc' : cc < 94 := hcc
+  have hall : (List.range 94).all (fun c ↦ (Tables.committedCols 158).getD c 0 == colOfCommitted c) =
       true := by
-    rw [Tables.committedCols_165]; decide +kernel
+    rw [Tables.committedCols_158]; decide +kernel
   simpa using List.all_eq_true.mp hall cc (List.mem_range.mpr hcc')
 
 theorem colOfCommitted_all :
-    (List.range Tables.nCommittedCols).all (fun cc ↦ decide (colOfCommitted cc < 165) &&
+    (List.range Tables.nCommittedCols).all (fun cc ↦ decide (colOfCommitted cc < 158) &&
       slotOfCol (colOfCommitted cc) == none &&
       decide (colOfCommitted cc ∉ keccakOutputColumns)) = true := by
   rw [keccakOutputColumns_eq]; decide +kernel
 
 theorem colOfCommitted_facts {cc : ℕ} (hcc : cc < Tables.nCommittedCols) :
-    colOfCommitted cc < 165 ∧ slotOfCol (colOfCommitted cc) = none ∧
+    colOfCommitted cc < 158 ∧ slotOfCol (colOfCommitted cc) = none ∧
       colOfCommitted cc ∉ keccakOutputColumns := by
   have := List.all_eq_true.mp colOfCommitted_all cc (List.mem_range.mpr hcc)
   simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at this
@@ -105,9 +105,9 @@ theorem placementsOf_snd (kappas : List ℕ) :
   rfl
 
 /-- **A committed column's placement**: its size and `stackOffsets`'s offset. -/
-theorem placement_committed {layout : Layout} {kappas : List ℕ} (hl : kappas.length = 165)
+theorem placement_committed {layout : Layout} {kappas : List ℕ} (hl : kappas.length = 158)
     (hP : layout.placements = (placementsOf kappas).1) {cc : ℕ} (hcc : cc < Tables.nCommittedCols) :
-    layout.placement ((Tables.committedCols 165).getD cc 0) =
+    layout.placement ((Tables.committedCols 158).getD cc 0) =
       Placement.mk ((Tables.committedKappas kappas).getD cc 0)
         ((stackOffsets (Tables.committedKappas kappas)).1.getD cc 0) := by
   have hg := committedCols_getD hcc
@@ -116,27 +116,27 @@ theorem placement_committed {layout : Layout} {kappas : List ℕ} (hl : kappas.l
   rw [Layout.placement, hP, placementsOf_getD _ (by rw [hl]; exact hglt), keccakSlot_eq hglt, hs, hl,
     committedCols_idxOf hcc]
   simp only [ho, ↓reduceIte, Option.getD_some]
-  have hlen : cc < (Tables.committedCols 165).length := by
-    rw [Tables.committedCols_165_length]; exact hcc
+  have hlen : cc < (Tables.committedCols 158).length := by
+    rw [Tables.committedCols_158_length]; exact hcc
   have e : (Tables.committedKappas kappas).getD cc 0 =
-      kappas.getD ((Tables.committedCols 165).getD cc 0) 0 := by
+      kappas.getD ((Tables.committedCols 158).getD cc 0) 0 := by
     rw [Tables.committedKappas, hl, List.getD_eq_getElem _ _ (by simpa using hlen),
       List.getElem_map, List.getD_eq_getElem _ _ hlen]
   rw [e]
 
 /-- **A slotted column's placement** (an input lane or a spare slot's column): its size,
 `q_keccak`'s offset plus its slot's `2^κ` words. -/
-theorem placement_slot {layout : Layout} {kappas : List ℕ} (hl : kappas.length = 165)
-    (hP : layout.placements = (placementsOf kappas).1) {g s : ℕ} (hg : g < 165)
+theorem placement_slot {layout : Layout} {kappas : List ℕ} (hl : kappas.length = 158)
+    (hP : layout.placements = (placementsOf kappas).1) {g s : ℕ} (hg : g < 158)
     (hs : slotOfCol g = some s) :
     layout.placement g =
-      Placement.mk (kappas.getD g 0) ((stackOffsets (Tables.committedKappas kappas)).1.getD 5 0 +
+      Placement.mk (kappas.getD g 0) ((stackOffsets (Tables.committedKappas kappas)).1.getD 4 0 +
           s * 2 ^ kappas.getD g 0) := by
-  have h5 := committedCols_idxOf (cc := 5) (by decide)
-  rw [committedCols_getD (by decide)] at h5
+  have h4 := committedCols_idxOf (cc := 4) (by decide)
+  rw [committedCols_getD (by decide)] at h4
   rw [Layout.placement, hP, placementsOf_getD _ (by omega), keccakSlot_eq hg, hs, hl]
-  rw [show qkeccak = 5 from rfl, show colOfCommitted 5 = 5 from rfl] at *
-  rw [h5]
+  rw [show qkeccak = 4 from rfl, show colOfCommitted 4 = 4 from rfl] at *
+  rw [h4]
   rfl
 
 /-! ## Offsets and sizes -/

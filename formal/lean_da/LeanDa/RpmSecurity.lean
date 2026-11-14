@@ -237,7 +237,7 @@ theorem duplexP_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : 
 theorem duplexP_verifyRpm (crs : Crs) (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell)
     (τ : CellOpening) (hist : List KState) :
     DuplexP (fun _ _ ↦ True) (verifyRpm hR pR r ps crs com p x τ) hist :=
-  duplexP_bind (duplexP_membershipChallengePairR com.1 hist) fun _ hist' _ ↦
+  duplexP_bind (duplexP_membershipChallengeVecR com.1 hist) fun _ hist' _ ↦
     duplexP_bind (duplexP_verifyCellM r com.1 p x τ hist') fun _ _ _ ↦ duplexP_pure trivial
 
 /-- **The position-binding verifier follows the duplex discipline.** -/

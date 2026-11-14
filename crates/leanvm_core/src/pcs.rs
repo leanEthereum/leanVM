@@ -1,5 +1,5 @@
 //! Witness commitment: an inner-product PCS committing over `K = F_{2^64}` and
-//! opening over `E = F_{2^192}` (doc §sec:stacking, §annex:pcs), through **WHIR**. An
+//! opening over `E = F_{2^128}` (doc §sec:stacking, §annex:pcs), through **WHIR**. An
 //! opening proves `Σ_x q(x)·W(x) = C` against any verifier-evaluable `E`-valued
 //! weight `W` (a point evaluation `q̂(r)` is `W = eq(r,·)`). A batch of claims
 //! `q̂(point_j) = value_j` folds with random `γ`s into one weight and target,
@@ -19,15 +19,16 @@
 //! rides the proof.
 //!
 //! Security: every supported rate ([`MIN_LOG_INV_RATE`]..=[`MAX_LOG_INV_RATE`]) uses
-//! Johnson list decoding with OOD binding and 128-bit round-by-round soundness
-//! ([`::pcs::whir::SECURITY_BITS`]). L0's opening claim supplies its binding
-//! evaluation; each deeper commitment takes one explicit OOD sample. The base-field
+//! Johnson list decoding with OOD binding and round-by-round soundness
+//! ([`::pcs::whir::SECURITY_BITS`]). L0 takes its OOD sample right after its root
+//! ([`::pcs::ood`]); each deeper commitment takes one inside the opening, after its own grind. The base-field
 //! commitment only shrinks the level-0 symbols to 8 bytes; every random
 //! ingredient is sampled from `E`.
 
 use crate::transcript::ProverState;
 use primitives::field::F64;
 
+use ::pcs::ood::ood_sample;
 use ::pcs::stack_open::open_batch_mixed_whir_stacked;
 pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim as SlotClaim};
 use ::pcs::whir::ProverConfig;
@@ -43,12 +44,8 @@ pub(crate) const LOG_BATCH: usize = ::pcs::whir::INITIAL_FOLDING_FACTOR;
 pub const TEST_LOG_INV_RATE: usize = ::pcs::whir::LOG_INV_RATE_0;
 /// The `log_inv_rate` values a WHIR configuration can be derived for.
 pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-// The PCS and the unground F192 bus argument both target `SECURITY_BITS`.
-const _: () = assert!(::pcs::whir::SECURITY_BITS == crate::SECURITY_BITS as usize);
-/// Minimum committed-witness log-size accepted by the WHIR level ladder, with one level of margin.
-pub const MIN_MU: usize = 15;
-/// Largest committed size accepted by all verifiers and compiled into the recursion guest.
-pub const MAX_MU: usize = 28;
+/// The committed stack's log-size bounds, the protocol's.
+pub use verifier::{MAX_STACKED_LOG, MIN_STACKED_LOG};
 
 /// The shared WHIR config for a `2^μ`-word witness, memoized per `(μ, log_inv_rate)`.
 fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {
@@ -60,8 +57,8 @@ fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {
     let mut map = cache.lock().expect("whir config cache poisoned");
     Arc::clone(map.entry((mu, log_inv_rate)).or_insert_with(|| {
         assert!(
-            mu >= MIN_MU,
-            "witness must be ≥ 2^{MIN_MU} elements (padded by placements_of)"
+            mu >= MIN_STACKED_LOG,
+            "witness must be ≥ 2^{MIN_STACKED_LOG} elements (padded by placements_of)"
         );
         let config = config_for_rate(mu, log_inv_rate)
             .unwrap_or_else(|e| panic!("whir config for mu={mu}, log_inv_rate={log_inv_rate}: {e}"));
@@ -81,11 +78,13 @@ pub struct Committed {
     pub mu: usize,
     /// L0 inverse-rate logarithm bound into the transcript before this commitment.
     pub log_inv_rate: usize,
+    /// The OOD sample's claim ([`::pcs::ood`]), which the opening discharges after the caller's.
+    pub ood: SlotClaim,
 }
 
-/// Commit a `K`-valued witness of `2^μ` words (`μ ≥ MIN_MU`, from
-/// [`crate::witness::placements_of`]) and bind its root into the transcript,
-/// before any challenge is sampled.
+/// Commit a `K`-valued witness of `2^μ` words (`μ ≥ MIN_STACKED_LOG`, from
+/// [`crate::witness::placements_of`]), bind its root into the transcript
+/// before any challenge is sampled, and take its OOD sample ([`::pcs::ood`]).
 ///
 /// `witness` is the stack truncated to the lane blocks that carry data
 /// ([`crate::witness::StackShape::committed_len`]); the zero tail past them is
@@ -99,8 +98,8 @@ pub fn commit(
 ) -> Committed {
     let mu = shape.mu;
     assert!(
-        mu >= MIN_MU,
-        "witness must be ≥ 2^{MIN_MU} elements (padded by placements_of)"
+        mu >= MIN_STACKED_LOG,
+        "witness must be ≥ 2^{MIN_STACKED_LOG} elements (padded by placements_of)"
     );
     assert_eq!(
         witness.len(),
@@ -109,10 +108,12 @@ pub fn commit(
     );
     let (commitment, prover_data) = whir_commit(witness, mu, LOG_BATCH, log_inv_rate);
     ps.add_root(&commitment.root);
+    let ood = ood_sample(ps, witness, mu);
     Committed {
         prover_data,
         mu,
         log_inv_rate,
+        ood,
     }
 }
 
@@ -135,13 +136,15 @@ pub fn commit(
 /// There is no plain (non-ring-switch) path: the witness ALWAYS carries a `q_keccak`
 /// sub-block (§cpu), so every opening is stacked.
 ///
-/// The opening consumes the commitment: it frees the codeword and tree once the L0 queries are answered.
+/// The OOD sample's claim follows `points`. The opening consumes the commitment: it frees the codeword and tree once
+/// the L0 queries are answered.
 pub fn open(ps: &mut ProverState, c: Committed, q: Vec<F64>, points: &[SlotClaim], ring: &RingSwitchOpen) {
     let lane_block = 1usize << (c.mu - LOG_BATCH);
     assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
     assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");
     let cfg = whir_config(c.mu, c.log_inv_rate);
-    open_batch_mixed_whir_stacked(ps, c.mu, q, c.prover_data, &cfg, points, ring)
+    let points = [points, &[c.ood]].concat();
+    open_batch_mixed_whir_stacked(ps, c.mu, q, c.prover_data, &cfg, &points, ring)
 }
 
 #[cfg(test)]
@@ -153,7 +156,7 @@ mod tests {
     #[test]
     fn supported_window_is_configurable() {
         for rate in ::pcs::whir::MIN_LOG_INV_RATE..=::pcs::whir::MAX_LOG_INV_RATE {
-            for mu in MIN_MU..=MAX_MU {
+            for mu in MIN_STACKED_LOG..=MAX_STACKED_LOG {
                 assert!(config_for_rate(mu, rate).is_ok(), "mu={mu} rate={rate}");
             }
         }

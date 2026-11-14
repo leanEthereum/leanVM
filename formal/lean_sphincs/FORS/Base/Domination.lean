@@ -1,6 +1,8 @@
 module
 
-public import Mathlib
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Basic.ENNReal.Inv
 public import VCVio.OracleComp.EvalDist
 public import VCVio.OracleComp.ProbComp
 

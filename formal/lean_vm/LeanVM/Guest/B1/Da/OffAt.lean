@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.OffAt
 
-  `da_column_offsets` placed (G:4470-4485): its `HeapBuf`s (the offsets, each bit's steps), its
+  `da_column_offsets` placed (G:4654-4669): its `HeapBuf`s (the offsets, each bit's steps), its
   seven doubling loops, the offsets returned, within its frame, its buffers and its loops' static
   bounds.
 -/
@@ -78,7 +78,8 @@ theorem offLoop_rel {b : ℕ} (hb : b < 7) {Z : ℕ → E} {b0 bs : ℕ}
   simp only [offLoopOk, Bool.and_eq_true] at hok
   have hb64 : 2 ^ b ≤ 64 :=
     le_trans (Nat.pow_le_pow_right (n := 2) (by norm_num) (show b ≤ 6 by omega)) (by norm_num)
-  have hblk : ∀ j < 2 ^ b, Digest.LoopBlock rd (coreProgram.getD (407 + b) default) (gen ^ j)
+  have hblk : ∀ j < 2 ^ b, Digest.LoopBlock rd (coreProgram.getD (idx% «da_column_offsets_loop0» +
+      b) default) (gen ^ j)
       (gen ^ 2 ^ b) [gen ^ b0, gen ^ bs] := by
     intro j hj
     have hl : ∀ i < 8, 8 * j + i < 1024 := fun i hi => by omega
@@ -145,10 +146,10 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
   have hcok := off_cok
   unfold offCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq, Option.isSome_iff_exists] at hcok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hst⟩, hcan⟩, hside⟩, hloads⟩, hstmts⟩, hflat⟩, haddr⟩, halloc⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hst⟩, hside⟩, hloads⟩, hstmts⟩, hflat⟩, haddr⟩, halloc⟩,
     hcalls⟩, hnli⟩ := hcok
   have hS := atomsEqb_sound hst
-  have hNb : ∀ b < 7, word (offN b) 0 0 = gen ^ 2 ^ b := fun b hb' => by
+  have hNb : ∀ b < 7, word (offN b) 0 = gen ^ 2 ^ b := fun b hb' => by
     rw [word_eOfNat, eOfNat, hN b hb', gen_pow_eq_ofK]
   have hKB : ((List.range 7).map fun b => 2 ^ b * iterK fs SK (offLoopName b) +
       fs (offLoopName b)).sum = offKB fs SK := rfl
@@ -198,7 +199,6 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     reads_of_memL hB (List.mem_cons_of_mem _ (List.mem_map.mpr ⟨b, List.mem_range.mpr hb', rfl⟩))
   let w : ℕ → E := fun i => if i = 1 then gen ^ b0 else gen ^ (b0 + 1024 + 8 * ((i - 10) / 30))
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd w [gen ^ c] offP) := ⟨_, rfl⟩
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd w offP [gen ^ c] hchk
   rw [show [gen ^ c].length = 1 from rfl, hS, ← hσ] at hgs
   have hgA : ∀ a, Stmt.atom a ∈ offP → Good rd offStores w σ a := fun a h => hgs (.atom a) h
@@ -221,7 +221,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     intro b hb' j hj
     have e := fun a (ha : a ∈ offStepA b j) => hgA a (mem_offP_block hb' (mem_offBlock_step hj ha))
     have l1 := e (.load (.n (offB b + 1 + 3 * j)) (.n 0) j) (by simp [offStepA])
-    have c1 := e (.const (.n (offB b + 1 + 3 * j + 1)) (word (offC b j) 0 0)) (by simp [offStepA])
+    have c1 := e (.const (.n (offB b + 1 + 3 * j + 1)) (word (offC b j) 0)) (by simp [offStepA])
     have m1 := e (.mul (.n (offB b + 1 + 3 * j + 2)) (.n (offB b + 1 + 3 * j))
       (.n (offB b + 1 + 3 * j + 1))) (by simp [offStepA])
     simp only [Good] at l1 c1 m1
@@ -240,11 +240,11 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
       σ (.n (offB b + 29)) = gen ^ 2 ^ b := by
     intro b hb'
     have e := fun a (ha : Stmt.atom a ∈ offBlockS b) => hgA a (mem_offP_block hb' ha)
-    have c25 := e (.const (.n (offB b + 25)) (word 1 0 0)) (by simp [offBlockS])
-    have c26 := e (.const (.n (offB b + 26)) (word (offN b) 0 0)) (by simp [offBlockS])
+    have c25 := e (.const (.n (offB b + 25)) (word 1 0)) (by simp [offBlockS])
+    have c26 := e (.const (.n (offB b + 26)) (word (offN b) 0)) (by simp [offBlockS])
     have a27 := e (.add (.n (offB b + 27)) (.n (offB b + 25)) (.n (offB b + 26))) (by simp [offBlockS])
-    have c28 := e (.const (.n (offB b + 28)) (word 1 0 0)) (by simp [offBlockS])
-    have c29 := e (.const (.n (offB b + 29)) (word (offN b) 0 0)) (by simp [offBlockS])
+    have c28 := e (.const (.n (offB b + 28)) (word 1 0)) (by simp [offBlockS])
+    have c29 := e (.const (.n (offB b + 29)) (word (offN b) 0)) (by simp [offBlockS])
     simp only [Good] at c25 c26 a27 c28 c29
     rw [hNb b hb', word_one] at *
     exact ⟨by rw [a27, c25, c26], c28, c29⟩
@@ -252,8 +252,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     hgA (.copy (.n 220) (.n 1)) (List.mem_append_right _ (List.mem_singleton_self _))
   -- the atoms
   have hat : ∀ a ∈ offAtoms, a.Holds rd σ := by
-    refine atoms_holds (A := []) (S := offStores) (w := w) hidx hcan (fun a ha => ?_) (by simp)
-      fun a ha hns => Or.inl ?_
+    refine atoms_holds (S := offStores) (w := w) (fun a ha => ?_) fun a ha hns => Or.inl ?_
     · obtain ⟨s, hs, hsa⟩ := List.mem_filterMap.mp ha
       cases s <;> simp only [atomOfS, Option.some.injEq, reduceCtorEq] at hsa
       subst hsa
@@ -265,7 +264,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     | load d p off =>
       obtain ⟨ho8, ⟨rfl, rfl⟩ | ⟨rfl, b, hb', rfl⟩ | ⟨b, hb', rfl, rfl⟩⟩ := isOffLoad_spec hsh
       · -- a zero
-        have hc := hgA (.const (.n (2 + off)) (word 0 0 0)) (mem_offP_zero ho8 (by simp [offZeroA]))
+        have hc := hgA (.const (.n (2 + off)) (word 0 0)) (mem_offP_zero ho8 (by simp [offZeroA]))
         simp only [Good] at hc
         show LoadHolds rd (σ (.n 1)) off (σ (.n (2 + off)))
         rw [e1, hc, word_zero]

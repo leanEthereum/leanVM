@@ -8,7 +8,7 @@
 use crate::programs::{self, fault_kind, prove_honest};
 use crate::{Cost, Ctx, Finding, Outcome, Source, Target, catch};
 use leanvm_core::cpu::{DerefMode, Op, OutCells, Program, ProveError};
-use primitives::field::F192;
+use primitives::field::F128;
 
 mod edge;
 pub mod program;
@@ -36,7 +36,7 @@ const PROVE_MAX_CYCLES: usize = 1 << 16;
 /// The whole oracle on one program. `built`, when the generator made it, also checks the run's memory.
 pub fn check(
     program: &Program,
-    public_input: [F192; 2],
+    public_input: [F128; 2],
     built: Option<&program::Built>,
     src: &mut Source,
     ctx: &Ctx,
@@ -98,7 +98,6 @@ pub fn check(
     let mut other = public_input;
     let i = src.below(2);
     other[i] = crate::mutate_proof::perturb(other[i], src);
-    other[i].c2 = 0;
     if other != public_input && leanvm_core::cpu::verify(program, &other, &proof).is_ok() {
         return Err(Finding::critical(
             format!("{context}: a proof verifies for another public input"),

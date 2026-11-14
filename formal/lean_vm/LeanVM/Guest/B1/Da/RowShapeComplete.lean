@@ -27,24 +27,24 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 
 @[expose] public section
 
-/-- `da_row_shape`'s meaning gives its core IR, on a memory image. -/
+/-- `da_row_shape`'s meaning gives its core IR, on a memory defined below `2^16`. -/
 def da_row_shape_complete_Spec : Prop :=
-  ∀ (rd : Reader), MemOk rd → ∀ gsq : E, SquaresAt rd gsq → ∀ r L : ℕ, 1 ≤ r →
+  ∀ (rd : Reader), Sig.MemOK rd (2 ^ 16) → ∀ gsq : E, SquaresAt rd gsq → ∀ r L : ℕ, 1 ≤ r →
     r ≤ LeanDa.maxRows → 2 ^ L = LeanDa.paddedRowCount r →
       coreProgram.Rel rd "da_row_shape" [gen ^ r, gen ^ L, gsq] [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]
 
-theorem core25_body : Fn.body Data.core28 = [
-    .atom (.const (.n 3) (word 1 0 0)), .atom (.add (.n 4) (.n 0) (.n 3)),
+theorem da_row_shape_body : Fn.body fn% «da_row_shape» = [
+    .atom (.const (.n 3) (word 1 0)), .atom (.add (.n 4) (.n 0) (.n 3)),
     .atom (.hint (.inverse (.n 4) (.n 5))), .atom (.assertNe (.n 4) (.n 5) (.n 6)),
-    .atom (.const (.n 7) (word 281474976776218 0 0)),
+    .atom (.const (.n 7) (word 281474976776218 0)),
     .atom (.rangeCheck (.n 0) (.n 8) (.n 9) (.n 10) (.n 7)),
-    .atom (.const (.n 11) (word 1024 0 0)),
+    .atom (.const (.n 11) (word 1024 0)),
     .atom (.rangeCheck (.n 1) (.n 12) (.n 13) (.n 14) (.n 11)),
     .atom (.mul (.n 15) (.n 2) (.n 1)), .atom (.load (.n 16) (.n 15) 0),
-    .atom (.mul (.n 16) (.n 17) (.n 0)), .atom (.const (.n 18) (word 281474976776218 0 0)),
+    .atom (.mul (.n 16) (.n 17) (.n 0)), .atom (.const (.n 18) (word 281474976776218 0)),
     .atom (.rangeCheck (.n 17) (.n 19) (.n 20) (.n 21) (.n 18)),
-    .atom (.const (.n 22) (word 140737488388109 0 0)), .atom (.mul (.n 23) (.n 0) (.n 0)),
-    .atom (.const (.n 24) (word 2 0 0)), .atom (.mul (.n 25) (.n 16) (.n 24)),
+    .atom (.const (.n 22) (word 140737488388109 0)), .atom (.mul (.n 23) (.n 0) (.n 0)),
+    .atom (.const (.n 24) (word 2 0)), .atom (.mul (.n 25) (.n 16) (.n 24)),
     .atom (.mul (.n 23) (.n 26) (.n 25)),
     .atom (.rangeCheck (.n 26) (.n 27) (.n 28) (.n 29) (.n 22)),
     .atom (.copy (.n 30) (.n 16)), .atom (.copy (.n 31) (.n 17)), .ret [.n 30, .n 31]] :=
@@ -90,19 +90,19 @@ theorem da_row_shape_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (gsq :
     (by norm_num)
   obtain ⟨t28, t29, h28, e27, h29⟩ := rc_holds' hm (k := 2 * r - 2 ^ L - 1) (K := 1023) (by omega)
     (by norm_num)
-  have hne : gen ^ r + word 1 0 0 ≠ 0 := by
+  have hne : gen ^ r + word 1 0 ≠ 0 := by
     rw [word_one, Ne, e_add_eq_zero_iff, ← pow_zero gen]
     intro h
     have := gen_pow_inj' (by omega) (by omega) h
     omega
-  refine (rel_iff_sem find_da_row_shape _ _).mpr ⟨Val.ofArgs [gen ^ r, gen ^ L, gsq, word 1 0 0,
-    gen ^ r + word 1 0 0, (gen ^ r + word 1 0 0)⁻¹, (gen ^ r + word 1 0 0) * (gen ^ r + word 1 0 0)⁻¹,
-    word 281474976776218 0 0, gen ^ (1024 - r), t9, t10, word 1024 0 0, gen ^ (10 - L), t13, t14,
-    gsq * gen ^ L, gen ^ 2 ^ L, gen ^ (2 ^ L - r), word 281474976776218 0 0,
-    gen ^ (1024 - (2 ^ L - r)), t20, t21, word 140737488388109 0 0, gen ^ r * gen ^ r, word 2 0 0,
-    gen ^ 2 ^ L * word 2 0 0, gen ^ (2 * r - 2 ^ L - 1), gen ^ (1023 - (2 * r - 2 ^ L - 1)), t28, t29,
+  refine (rel_iff_sem find_da_row_shape _ _).mpr ⟨Val.ofArgs [gen ^ r, gen ^ L, gsq, word 1 0,
+    gen ^ r + word 1 0, (gen ^ r + word 1 0)⁻¹, (gen ^ r + word 1 0) * (gen ^ r + word 1 0)⁻¹,
+    word 281474976776218 0, gen ^ (1024 - r), t9, t10, word 1024 0, gen ^ (10 - L), t13, t14,
+    gsq * gen ^ L, gen ^ 2 ^ L, gen ^ (2 ^ L - r), word 281474976776218 0,
+    gen ^ (1024 - (2 ^ L - r)), t20, t21, word 140737488388109 0, gen ^ r * gen ^ r, word 2 0,
+    gen ^ 2 ^ L * word 2 0, gen ^ (2 * r - 2 ^ L - 1), gen ^ (1023 - (2 * r - 2 ^ L - 1)), t28, t29,
     gen ^ 2 ^ L, gen ^ (2 ^ L - r)], rfl, ?_⟩
-  rw [core25_body]
+  rw [da_row_shape_body]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, ofArgs_n,
     List.getD_cons_succ, List.getD_cons_zero]
   refine ⟨trivial, trivial, trivial, ⟨trivial, mul_inv_cancel₀ hne⟩, trivial,
@@ -124,7 +124,7 @@ theorem da_row_shape_complete : da_row_shape_complete_Spec := by
         _ ≤ 2 ^ 11 := by norm_num; omega
     have := (Nat.pow_lt_pow_iff_right (by norm_num : 1 < 2)).mp hlt
     omega
-  exact da_row_shape_complete' rd (memOK_of_memOk hm) gsq r L (hsq L (by omega)) hr1 hr hL
+  exact da_row_shape_complete' rd hm gsq r L (hsq L (by omega)) hr1 hr hL
 
 end
 end LeanVM.Guest.B1.Da

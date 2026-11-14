@@ -614,10 +614,10 @@ impl Printer<'_> {
             Ex::Lit(n) => self.lit(*n, free),
             Ex::Zero => "0".into(),
             Ex::Fe(x) => {
-                if x.c2 == 0 && free && self.chance(self.style.litform) {
+                if free && self.chance(self.style.litform) {
                     (x.c0 as u128 | (x.c1 as u128) << 64).to_string()
                 } else {
-                    format!("f192({}, {}, {})", x.c0, x.c1, x.c2)
+                    format!("f128({}, {})", x.c0, x.c1)
                 }
             }
             Ex::GPow(k) => match k {

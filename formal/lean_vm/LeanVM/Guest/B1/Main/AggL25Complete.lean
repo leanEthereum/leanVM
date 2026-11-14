@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.AggL25Complete
 
-  `__loop33` (a child's absorption), completely.
+  `aggregate_claims_loop0` (a child's absorption), completely.
 -/
 
 module
@@ -11,13 +11,12 @@ public import LeanVM.Guest.B1.Main.AggL25CChk
 /-!
 # A child's absorption, completely
 
-`l25_block`: `__loop33`'s block at the child `x` holds on the evaluated valuation (`Fwd.ev`) when
-its row (`absorb·x^13`) holds the honest words of a sponge with four waiting scalars, the next
-row the honest words of the sponge after the child's `52` words, the pointer tables the child's
-claims, and the child's words are in memory. Its atoms but its stores hold (their side conditions
-its loads and its packs' `assert_in_k`; the `KECCAK`s' inputs canonical from the row and the
-packed cells), so its chain is the absorption (`DupSpec.chain`, as in `l25_step`), which its
-stores find.
+`l25_block`: `aggregate_claims_loop0`'s block at the child `x` holds on the evaluated valuation
+(`Fwd.ev`) when its row (`absorb·x^13`) holds the honest words of a sponge with four waiting
+scalars, the next row the honest words of the sponge after the child's `52` words, the pointer
+tables the child's claims, and the child's words are in memory. Its atoms but its stores hold (their
+side conditions its loads), so its chain is the absorption (`DupSpec.chain`, as in `l25_step`),
+which its stores find.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -31,7 +30,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Da
 variable {rd : Reader}
 
 set_option maxRecDepth 20000 in
-/-- **A child's absorption** (`__loop33`). -/
+/-- **A child's absorption** (`aggregate_claims_loop0`). -/
 theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : StOk st)
     (hp4 : st.pend.length = 4) (hrow : ReadsAt rd (absorb * x ^ 13) (rowW st))
     (hnext : ReadsAt rd (absorb * x ^ 13 * gen ^ 13)
@@ -41,7 +40,8 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
     (hpi : ∀ o < 2, ∃ v, LoadHolds rd (cpi * x ^ 2) o v)
     (hfr : ∀ o < 24, ∃ v, LoadHolds rd (cfresh * x ^ 24) o v)
     (hca : ∀ o < 24, ∃ v, LoadHolds rd (ccarried * x ^ 24) o v) :
-    LoopBlock rd (coreProgram.getD 414 default) x N [absorb, cfresh, lfT, ccarried, lcT, cpi] := by
+    LoopBlock rd (coreProgram.getD idx% «aggregate_claims_loop0» default) x N [absorb, cfresh, lfT,
+        ccarried, lcT, cpi] := by
   have hok := l25_ok
   simp only [l25Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩,
@@ -49,19 +49,18 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
   have hcok := l25c_ok
   simp only [l25COk, Bool.and_eq_true, Option.isSome_iff_exists, List.all_eq_true,
     decide_eq_true_eq, Bool.or_eq_true, Bool.not_eq_true', List.mem_range] at hcok
-  obtain ⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hcanA⟩, hneeds⟩, hrl⟩ := hcok
+  obtain ⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hneeds⟩, -⟩ := hcok
   have hdok := l25d_ok
   simp only [l25DOk, Bool.and_eq_true, decide_eq_true_eq] at hdok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hpk, hchkS⟩, hnb⟩, hrin⟩, hcst⟩, hrst⟩, hsrc⟩, hm13⟩, hm59⟩, hm70⟩, hm50⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hpk, hchkS⟩, hnb⟩, hrin⟩, hcst⟩, hrst⟩, hsrc⟩, hm13⟩, hm59⟩, hm63⟩, hm50⟩,
     hm57⟩, hm51⟩, hm58⟩ := hdok
   simp only [List.all_eq_true, List.mem_range] at hsrc
   simp only [List.all_eq_true, List.mem_range, decide_eq_true_eq, Bool.and_eq_true] at hcst hrst
   have hS := l25_stores
-  set fn := coreProgram.getD 414 default
+  set fn := coreProgram.getD idx% «aggregate_claims_loop0» default
   set A := atomsIn (loopPre fn)
   let args : List E := [x, N, absorb, cfresh, lfT, ccarried, lcT, cpi]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) fn.body args hchk
   rw [show args.length = 8 from rfl, ← hσ, hS] at hgs
   have hg : ∀ a ∈ A, Good rd l25Stores (fun _ => 0) σ a := fun a ha =>
@@ -74,7 +73,7 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
   have hP : ∀ a ∈ A.filter pureB, a.Holds rd σ := pure_holds hg
   have p13 : σ (.n 13) = absorb * x ^ 13 := by rw [monoIs_sound hm13 hP, par 2 (by omega), e0]; rfl
   have p59 : σ (.n 59) = cpi * x ^ 2 := by rw [monoIs_sound hm59 hP, par 7 (by omega), e0]; rfl
-  have p70 : σ (.n 70) = cpi * x ^ 2 := by rw [monoIs_sound hm70 hP, par 7 (by omega), e0]; rfl
+  have p63 : σ (.n 63) = cpi * x ^ 2 := by rw [monoIs_sound hm63 hP, par 7 (by omega), e0]; rfl
   have p50 : σ (.n 50) = cfresh * x ^ 24 := by
     rw [monoIs_sound hm50 hP, par 3 (by omega), e0]; rfl
   have p57 : σ (.n 57) = ccarried * x ^ 24 := by
@@ -88,27 +87,11 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
   have hrowL : ∀ o < 13, LoadHolds rd (σ (.n 13)) o ((rowW st).getD o 0) := fun o ho => by
     rw [p13, List.getD_eq_getElem _ _ (by rw [rowW_length hst]; exact ho)]
     exact hrow o (by rw [rowW_length hst]; exact ho)
-  have vrow : ∀ o < 13, σ (.n (14 + o)) = (rowW st).getD o 0 := fun o ho =>
-    (load_of_good (hnS _ (hrl o ho)) (hg' _ (hrl o ho)) (hrowL o ho)).1
   have hpw : ∀ p ∈ packsOf l25A, packIn l25A p.1 p.2 = true := List.all_eq_true.mp hpk
-  have hAc : ∀ i ∈ (List.range 13).map (14 + ·) ++
-      (packsOf l25A).flatMap (fun p => [p.2 + 6, p.2 + 8]), IsCanonical128 (σ (.n i)) := by
-    intro i hi
-    rcases List.mem_append.mp hi with hi | hi
-    · obtain ⟨o, ho, rfl⟩ := List.mem_map.mp hi
-      have ho' := List.mem_range.mp ho
-      rw [vrow o ho']
-      exact rowW_canonical hst _ (getD_mem (by rw [rowW_length hst]; exact ho'))
-    · obtain ⟨p, hp, hi⟩ := List.mem_flatMap.mp hi
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
-      rcases hi with rfl | rfl
-      · exact (pack_canon (hpw p hp) hg').1
-      · exact (pack_canon (hpw p hp) hg').2
   have hat' : ∀ a ∈ l25A, a.Holds rd σ := by
-    refine atoms_holds hidx hcanA hg' hAc fun a ha hns => ?_
-    rcases hneeds a ha with ((h | h) | h) | h
+    refine atoms_holds hg' fun a ha hns => ?_
+    rcases hneeds a ha with (h | h) | h
     · rw [hns] at h; exact absurd h (by simp)
-    · exact Or.inl (pack_inK hpk hg' h)
     · cases a <;> simp only [isL25RowLoad, Bool.false_eq_true, Bool.and_eq_true,
         decide_eq_true_eq] at h
       rename_i d p o
@@ -122,19 +105,16 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
       · obtain ⟨v, hv⟩ := hpi 0 (by omega)
         rw [p59, memAt_of_load hv]; exact hv
       · obtain ⟨v, hv⟩ := hpi 1 (by omega)
-        rw [p70, memAt_of_load hv]; exact hv
+        rw [p63, memAt_of_load hv]; exact hv
       · obtain ⟨v, hv⟩ := hfr o ho
         rw [p50, memAt_of_load hv]; exact hv
       · obtain ⟨v, hv⟩ := hca o ho
         rw [p57, memAt_of_load hv]; exact hv
   -- the chain
-  obtain ⟨-, hwl, hK, -, -⟩ := DupSpec.check_facts hchkS hat'
+  obtain ⟨-, hwl, -, -, -⟩ := DupSpec.check_facts hchkS hat'
   have hin := rowIn_sound hrin hat'
   rw [p13] at hin
-  have hcan := (DupSpec.keccak_facts (hK 0 (by rw [hnb]; omega)).2.2).1
-  rw [hin] at hcan
   have hperm := rowRel_perm (rowRel_of_reads hst hrow)
-    (fun c hc => hcan c (List.mem_append_left _ hc))
   rw [← hin] at hperm
   have hch := DupSpec.chain hchkS hat' st hp4 hperm
   have hw : l25S.wvals σ = l25Words rd cpi cfresh ccarried x := by
@@ -149,7 +129,7 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
       rw [ite_pos' ha, ← this]
       rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl
       · rw [ite_pos' rfl, p59]
-      · rw [ite_neg' (show ¬ (1 = 0) by omega), p70]
+      · rw [ite_neg' (show ¬ (1 = 0) by omega), p63]
     by_cases hb : w < 26
     · rw [l25Src_fresh (by omega) hb, srcOk_some] at hs'
       rw [ite_neg' ha, ite_pos' hb, ← p50]
@@ -178,8 +158,8 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
       rw [p51, p50]; exact hlf
     · show LoadHolds rd (σ (.n 58)) 0 (σ (.n 57))
       rw [p58, p57]; exact hlc
-    · show LoadHolds rd (σ (.n 13)) (13 + i) (σ (.n (692 + i)))
-      have e : σ (.n (692 + i)) =
+    · show LoadHolds rd (σ (.n 13)) (13 + i) (σ (.n (356 + i)))
+      have e : σ (.n (356 + i)) =
           (rowW (st.absorbAll (l25Words rd cpi cfresh ccarried x) dsObserve)).getD i 0 := by
         rw [rowW_getD_cap hst' hi, hch, ← hcst i hi]
         simp [List.getD_eq_getElem?_getD, hi]
@@ -196,15 +176,15 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
       have hv := hr.trans hpc.symm
       simp only [Prod.ext_iff] at hv
       obtain ⟨r6, r8⟩ := hrst j hj
-    · show LoadHolds rd (σ (.n 13)) (18 + 2 * j) (σ (.n (704 + 10 * j)))
-      have e : σ (.n (704 + 10 * j)) =
+    · show LoadHolds rd (σ (.n 13)) (18 + 2 * j) (σ (.n (362 + 3 * j)))
+      have e : σ (.n (362 + 3 * j)) =
           (rowW (st.absorbAll (l25Words rd cpi cfresh ccarried x) dsObserve)).getD (5 + 2 * j) 0 := by
         rw [rowW_getD_rate hst' (by omega), hch, hv.1, ← r6]
         rfl
       rw [e, show 18 + 2 * j = 13 + (5 + 2 * j) by omega]
       exact hnext' _ (by omega)
-    · show LoadHolds rd (σ (.n 13)) (19 + 2 * j) (σ (.n (706 + 10 * j)))
-      have e : σ (.n (706 + 10 * j)) =
+    · show LoadHolds rd (σ (.n 13)) (19 + 2 * j) (σ (.n (363 + 3 * j)))
+      have e : σ (.n (363 + 3 * j)) =
           (rowW (st.absorbAll (l25Words rd cpi cfresh ccarried x) dsObserve)).getD
             (5 + (2 * j + 1)) 0 := by
         rw [rowW_getD_rate hst' (by omega), hch, hv.2, ← r8]

@@ -1,16 +1,17 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FBase
 
-  `verify_tables`' table evaluations, forms and air terms (statements `2688 ..< 6352`) as facts
+  `verify_tables`' table evaluations, forms and air terms (statements `2685 ..< 5524`) as facts
   of a valuation: the soundness proof's reading by position, restricted to that window.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Tables.VtC.Hon
+public import LeanVM.Guest.CoreData
 
 /-!
-# The window `2688 ..< 6352`
+# The window `2685 ..< 5524`
 
 `VtF rd σ`: every block of statements read inside the window holds. It is what the soundness
 proof's forms, evaluations and air terms read of `VtH` (`VtF.slice`, `VtF.atom` take the same
@@ -26,10 +27,10 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 @[expose] public section
 
 /-- The window's first statement. -/
-abbrev vtFLo : ℕ := 2688
+abbrev vtFLo : ℕ := 2685
 
 /-- The window's end: the final check (`assert air_acc == claim`). -/
-abbrev vtFHi : ℕ := 6352
+abbrev vtFHi : ℕ := 5524
 
 /-- **Every block read inside the window holds.** -/
 def VtF (rd : Reader) (σ : Val) : Prop :=
@@ -73,7 +74,7 @@ theorem mem_take_drop_mono {α : Type} {l : List α} {a b n m : ℕ} (h1 : a ≤
   rw [e, e2] at hx
   exact List.take_subset_take_left _ (by omega) (List.mem_of_mem_drop hx)
 
-/-- **The honest window**: statements `2688 ..< 6352` each holding make `VtF`. -/
+/-- **The honest window**: statements `2685 ..< 5524` each holding make `VtF`. -/
 theorem vtF_of_vsh
     (hA : ∀ s ∈ (vtPre.drop vtFLo).take (vtFHi - vtFLo), VSH (coreProgram.Rel rd) rd σ s) :
     VtF rd σ := by

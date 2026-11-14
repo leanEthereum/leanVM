@@ -1,403 +1,328 @@
 /-
   LeanVM.Guest.B1.Whir.CFinRes
 
-  A level's residual sum, honestly.
+  A non-final level's residual in the finish, honestly: its pointers materialized, `λ⁻¹` read, the
+  dispatch into `level_residual` on the rate's selector, its sums into `inner_chain`.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Whir.CFinResQ
-public import LeanVM.Guest.B1.Whir.Residuals
+public import LeanVM.Guest.B1.Whir.CFinRs
+public import LeanVM.Guest.B1.Whir.CLevel
+public import LeanVM.Guest.B1.Place.OsProtoSpec
 
 /-!
-# A level's residual sum, honestly
+# The residuals, honestly
 
-`osResidual_complete`: `μ` read from `level_mus`, the chain's buffer allocated at `RC` (its first
-word zero, its word `n = queries / 8` the loop's chain `acc`), the loop called (a hypothesis on the
-call relation), the remaining `queries % 8` queries inline (`osResSteps_complete`: each
-`h ← (h + R(p))·μ`), `inner[lvl + 1] = inner[lvl] + scale·h` stored. `osResiduals_complete`: every
-level.
+`osMatP_blkA`: a fixed buffer's shifted pointer, materialized from the materializations `mats`.
+`ResMemD`: what memory holds for a level's residual: `λ⁻¹` in `level_lam_invs`, the inner chain's entries
+before and after, the scale, `β` and the product of the coordinates, at the dispatch's returns
+`P`, `Q`. `osResidual_complete`: one level; `osResiduals_complete`: the levels `lvl ..`, each
+dispatch's arguments and returns (`osResCallsL`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
-open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Guest.Value LeanVM.Guest.Memory LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {C : CallRel} {rd : Reader}
+variable {H : CallRel → Reader → Prop}
 
-/-- The values before the remaining queries: `μ`, the buffer, its first word, the loop's call, the
-chain after the loop. -/
-def resPreVals (n : ℕ) (M RC acc : E) : List E :=
-  [M, gw (n + 1), RC, word 0 0 0, word 1 0 0, gw n, word 1 0 0 + gw n, word 1 0 0, gw n, acc]
+/-- **A fixed buffer's shifted pointer, materialized.** -/
+theorem osMatP_blkA {P : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {base off k : ℕ} (σ : Val)
+    (hbase : base < k) (hmb : MatsBelow k mats) (hm : ∀ C rd, H C rd → MatsOk σ mats)
+    (hoff : off < u128Bound) :
+    BlkA H σ k (osMatP P mats base off k).2.2 (osMatP P mats base off k).1
+      (fun σ' ↦ σ' (.n (osMatP P mats base off k).2.1) = σ (.n base) * gen ^ off ∧
+        MatsOk σ' (osMatsAfter P mats base off k) ∧
+        MatsBelow (osMatP P mats base off k).2.2 (osMatsAfter P mats base off k)) :=
+  osMatS_blkA (s := { (default : OsSt) with k := k, mats := mats }) σ hbase hmb hm hoff
 
-/-- The part before the remaining queries. -/
-def osResPre (c : OsCfg) (bd lvl : ℕ) (lv : OsLv) (k : ℕ) : List Stmt :=
-  [.atom (.load (.n k) (.n osMus) lvl)] ++ osHeap (lv.queries / resBatch + 1) (k + 1) ++
-    [.atom (.const (.n (k + 3)) (word 0 0 0)), .atom (.load (.n (k + 3)) (.n (k + 2)) 0)] ++
-    osLoopCall (c.resLoop lvl) (lv.queries / resBatch) [osQpos, bd, k + 2, k] (k + 4) ++
-    [.atom (.load (.n (k + 9)) (.n (k + 2)) (lv.queries / resBatch))]
+theorem osMatP_k (P : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (base off k : ℕ) :
+    k ≤ (osMatP P mats base off k).2.2 :=
+  osMatS_k P base off { (default : OsSt) with k := k, mats := mats }
 
-/-- **The part before the remaining queries, honestly.** -/
-theorem osResPre_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {bd k : ℕ} (σ : Val) (M RC acc : E)
-    (hk : 164 ≤ k) (hbd : bd < k) (hn : lv.queries / resBatch < u128Bound)
-    (hM : LoadHolds rd (σ (.n osMus)) lvl M)
-    (hL : IsInK (1 + gen ^ (lv.queries / resBatch)) ∧ (1 + gen ^ (lv.queries / resBatch) ≠ 0 →
-      C (c.resLoop lvl) [1, gen ^ (lv.queries / resBatch), σ (.n osQpos), σ (.n bd), RC, M] []))
-    (h0 : LoadHolds rd RC 0 0) (hacc : LoadHolds rd RC (lv.queries / resBatch) acc) :
-    BlkF C rd σ k (k + 10) (fun j ↦ (resPreVals (lv.queries / resBatch) M RC acc).getD (j - k) 0)
-      (osResPre c bd lvl lv k)
-      (fun σ' ↦ σ' (.n (k + 9)) = acc ∧ σ' (.n k) = M ∧ AgreeBelow k σ σ') := by
-  intro σ' ha hr
-  have V : ∀ j < 10, σ' (.n (k + j)) = (resPreVals (lv.queries / resBatch) M RC acc).getD j 0 :=
-    fun j hj ↦ by rw [hr _ (by omega) (by omega)]; simp only [Nat.add_sub_cancel_left]
-  have v0 := V 0 (by omega); have v1 := V 1 (by omega); have v2 := V 2 (by omega)
-  have v3 := V 3 (by omega); have v4 := V 4 (by omega); have v5 := V 5 (by omega)
-  have v6 := V 6 (by omega); have v7 := V 7 (by omega); have v8 := V 8 (by omega)
-  have v9 := V 9 (by omega)
-  simp only [resPreVals, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2 v3 v4 v5 v6 v7 v8 v9
-  refine ⟨?_, v9, v0, ha⟩
-  have hgn : gw (lv.queries / resBatch) = gen ^ (lv.queries / resBatch) := gw_eq hn
-  simp only [osResPre, osHeap, osLoopCall, allOk_append, allOk_cons, allOk_nil, and_true, StmtOk,
-    Atom.Holds, List.map_cons, List.map_nil, and_assoc]
-  have eq1 : σ' (.n osQpos) = σ (.n osQpos) := ha _ (show osQpos < k by unfold osQpos; omega)
-  have eq2 : σ' (.n osMus) = σ (.n osMus) := ha _ (show osMus < k by unfold osMus; omega)
-  have eq3 := ha _ hbd
-  refine ⟨by rw [v0, eq2]; exact hM, v1, v3, by rw [v3, v2, word_zero]; exact h0, v4, v5,
-    by rw [v6, v4, v5], v7, v8, by rw [v6, word_one, hgn]; exact hL.1, fun h ↦ ?_,
-    by rw [v9, v2]; exact hacc⟩
-  rw [v6, word_one, hgn] at h
-  rw [v7, v8, v2, v0, word_one, hgn, eq1, eq3]
-  exact hL.2 h
+theorem osMatP_lt (P : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (base off k : ℕ) (hb : base < k) :
+    (osMatP P mats base off k).2.1 < (osMatP P mats base off k).2.2 :=
+  osMatS_ptr_lt P base off { (default : OsSt) with k := k, mats := mats } hb
 
-theorem osResQuery_k (pos bd row vo n k : ℕ) :
-    k + 2 ≤ (osResQuery pos bd row vo n k).2.2 ∧
-      (osResQuery pos bd row vo n k).2.1 < (osResQuery pos bd row vo n k).2.2 := by
-  have h := osResQ_k pos bd row vo (n - 1) 1 (k + 1) (k + 2)
-  simp only [osResQuery]
-  refine ⟨by omega, ?_⟩
-  rcases Nat.eq_zero_or_pos (n - 1) with h0 | h0
-  · rw [h.2.1 h0]; omega
-  · rw [h.2.2 h0]; omega
+theorem osMatP_below {P : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {base off k : ℕ}
+    (hmb : MatsBelow k mats) (hbase : base < k) :
+    MatsBelow (osMatP P mats base off k).2.2 (osMatsAfter P mats base off k) :=
+  osMatS_below (s := { (default : OsSt) with k := k, mats := mats }) hmb hbase
 
-/-- The values of one residual step from `k`: the position, its `residual_query`, the chain's
-sum and product. -/
-def resStepF (bd row vo ncols : ℕ) (D : ℕ → E) (M p hv : E) (k : ℕ) (σ : Val) : ℕ → E :=
-  let e := (osResQuery k bd row vo ncols (k + 1)).2.2
-  let R := residualProd (osVals vo ncols) p D ncols
-  seqF σ k (k + 1) (fun _ ↦ p) fun σ1 ↦
-  seqF σ1 (k + 1) e (resQueryF vo ncols k (k + 1) σ1 D) fun _ ↦
-  fun i ↦ if i = e then hv + R else (hv + R) * M
+theorem osMatP_allocs (P : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (base off k : ℕ) :
+    (osMatP P mats base off k).1.filterMap Stmt.allocSz = [] := by
+  unfold osMatP; split_ifs <;> rfl
 
-/-- **One residual step, honestly.** -/
-theorem osResStep_complete {pp bd row vo ncols mu j h k : ℕ} {D : ℕ → E} {M p hv PP BD : E}
-    (σ : Val) (hn : 1 ≤ ncols) (hk : 6 ≤ k) (hpp : pp < k) (hbd : bd < k) (hh : h < k)
-    (hmu : mu < k) (ePP : σ (.n pp) = PP) (eBD : σ (.n bd) = BD) (eh : σ (.n h) = hv)
-    (eM : σ (.n mu) = M) (hp : LoadHolds rd PP j p)
-    (hD : ∀ s < ncols, LoadHolds rd BD (row + s) (D s)) :
-    BlkF C rd σ k (osResStep pp bd row vo ncols mu j h k).2.2 (resStepF bd row vo ncols D M p hv k σ)
-      (osResStep pp bd row vo ncols mu j h k).1
-      (fun σ' ↦ σ' (.n (osResStep pp bd row vo ncols mu j h k).2.1) =
-        (hv + residualProd (osVals vo ncols) p D ncols) * M ∧ AgreeBelow k σ σ') := by
-  obtain ⟨he1, he2⟩ := osResQuery_k k bd row vo ncols (k + 1)
-  set e := osResQuery k bd row vo ncols (k + 1) with hedef
-  set R := residualProd (osVals vo ncols) p D ncols
-  have est : (osResStep pp bd row vo ncols mu j h k).1 = [.atom (.load (.n k) (.n pp) j)] ++
-      (e.1 ++ [.atom (.add (.n e.2.2) (.n h) (.n e.2.1)), .atom (.mul (.n (e.2.2 + 1)) (.n e.2.2) (.n mu))]) := by
-    simp only [osResStep, List.append_assoc]; rfl
-  have ek : (osResStep pp bd row vo ncols mu j h k).2 = (e.2.2 + 1, e.2.2 + 2) := rfl
-  rw [est, ek]
-  unfold resStepF
-  have hA : BlkF C rd σ k (k + 1) (fun _ ↦ p) [.atom (.load (.n k) (.n pp) j)]
-      (fun σ' ↦ σ' (.n k) = p ∧ AgreeBelow k σ σ') := by
-    intro σ' ha hr
-    have v := hr k le_rfl (by omega)
-    refine ⟨?_, v, ha⟩
-    simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
-    rw [v, ha _ hpp, ePP]; exact hp
-  refine BlkF.then (k1 := k + 1) (by omega) (by omega) hA fun σ1 _ ⟨h1, ha1⟩ ↦ ?_
-  have hQ := osResQuery_complete (C := C) (rd := rd) (pos := k) (bd := bd) (row := row) (vo := vo)
-    (n := ncols) (k := k + 1) (D := D) σ1 hn (by omega) (by omega) (by omega)
-    (fun s hs ↦ by rw [ha1 _ hbd, eBD]; exact hD s hs)
-  refine BlkF.then (k1 := e.2.2) (by omega) (by omega) hQ fun σ2 _ ⟨h2, ha2⟩ ↦ ?_
-  rw [h1] at h2
-  intro σ' ha hr
-  have v0 := hr e.2.2 le_rfl (by omega)
-  have v1 := hr (e.2.2 + 1) (by omega) (by omega)
-  try rw [← hedef] at v0 v1 h2
-  beta_reduce at v0 v1
-  simp only [show e.2.2 + 1 ≠ e.2.2 by omega, ↓reduceIte] at v0 v1
-  have eh' : σ' (.n h) = hv := by rw [ha _ (by omega), ha2 _ (by omega), ha1 _ hh, eh]
-  have eM' : σ' (.n mu) = M := by rw [ha _ (by omega), ha2 _ (by omega), ha1 _ hmu, eM]
-  have eR : σ' (.n e.2.1) = R := by rw [ha _ he2, h2]
-  refine ⟨?_, show σ' (.n (e.2.2 + 1)) = (hv + R) * M from v1,
-    fun i hi ↦ (ha i (by omega)).trans ((ha2 i (by omega)).trans (ha1 i hi))⟩
-  simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
-  exact ⟨by rw [v0, eh', eR], by rw [v1, v0, eM']⟩
+/-- What memory holds for a level's residual, at the dispatch's returns `P`, `Q`. -/
+structure ResMemD (rd : Reader) (σ : Val) (lvl ich ls la : ℕ) (mu i0 i1 s b a P Q : E) : Prop where
+  mus : LoadHolds rd (σ (.n osMus)) lvl mu
+  li0 : LoadHolds rd (σ (.n ich)) (2 * lvl) i0
+  li1 : LoadHolds rd (σ (.n ich)) (2 * lvl + 1) i1
+  lsc : LoadHolds rd (σ (.n ls)) lvl s
+  lbe : LoadHolds rd (σ (.n osBetas)) lvl b
+  laf : LoadHolds rd (σ (.n la)) lvl a
+  st0 : LoadHolds rd (σ (.n ich)) (2 * lvl + 2) (i0 + s * P)
+  st1 : LoadHolds rd (σ (.n ich)) (2 * lvl + 3) (i1 + b * a * Q)
 
-/-- The values of the residual steps from `k`, the chain at `hv`. -/
-def resStepsF (bd row vo ncols : ℕ) (D : ℕ → E) (M : E) : List E → E → ℕ → Val → ℕ → E
-  | [], _, _, _ => fun _ ↦ 0
-  | p :: ps, hv, k, σ =>
-    let e := (osResQuery k bd row vo ncols (k + 1)).2.2
-    seqF σ k (e + 2) (resStepF bd row vo ncols D M p hv k σ) fun σ1 ↦
-      resStepsF bd row vo ncols D M ps ((hv + residualProd (osVals vo ncols) p D ncols) * M) (e + 2) σ1
+theorem ResMemD.agree {rd : Reader} {σ σ' : Val} {lvl ich ls la k : ℕ} {mu i0 i1 s b a P Q : E}
+    (h : ResMemD rd σ lvl ich ls la mu i0 i1 s b a P Q) (hich : ich < k) (hls : ls < k) (hla : la < k)
+    (hk : 33 ≤ k) (ha : AgreeBelow k σ σ') : ResMemD rd σ' lvl ich ls la mu i0 i1 s b a P Q := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [ha osMus (by show 22 < k; omega)]; exact h.mus
+  · rw [ha _ hich]; exact h.li0
+  · rw [ha _ hich]; exact h.li1
+  · rw [ha _ hls]; exact h.lsc
+  · rw [ha osBetas (by show 20 < k; omega)]; exact h.lbe
+  · rw [ha _ hla]; exact h.laf
+  · rw [ha _ hich]; exact h.st0
+  · rw [ha _ hich]; exact h.st1
 
-theorem osResSteps_k (pp bd row vo ncols mu : ℕ) : ∀ (js : List ℕ) (h k : ℕ), h < k →
-    k ≤ (osResSteps pp bd row vo ncols mu js h k).2.2 ∧
-      (osResSteps pp bd row vo ncols mu js h k).2.1 < (osResSteps pp bd row vo ncols mu js h k).2.2
-  | [], h, k, hh => ⟨le_rfl, hh⟩
-  | j :: js, h, k, _ => by
-    have := osResQuery_k k bd row vo ncols (k + 1)
-    have ih := osResSteps_k pp bd row vo ncols mu js
-      ((osResQuery k bd row vo ncols (k + 1)).2.2 + 1) ((osResQuery k bd row vo ncols (k + 1)).2.2 + 2)
-      (by omega)
-    show k ≤ (osResSteps pp bd row vo ncols mu js ((osResQuery k bd row vo ncols (k + 1)).2.2 + 1)
-      ((osResQuery k bd row vo ncols (k + 1)).2.2 + 2)).2.2 ∧ _
-    exact ⟨by omega, ih.2⟩
+/-- The arguments and returns of `osResidual c ich bd ls la lvl lv mats k`'s dispatch. -/
+def osResCall1 (c : OsCfg) (bd lvl : ℕ) (lv : OsLv) (mats : List OsMat) (k : ℕ) : List V × List V :=
+  let qp := osMatP c.plan mats osQpos lv.posOff k
+  let m1 := osMatsAfter c.plan mats osQpos lv.posOff k
+  let bp := osMatP c.plan m1 bd (lvl * ligColsCap) qp.2.2
+  let m2 := osMatsAfter c.plan m1 bd (lvl * ligColsCap) qp.2.2
+  let hp := osMatP c.plan m2 osHs (lvl * hsStride) bp.2.2
+  ([.n qp.2.1, .n bp.2.1, .n hp.2.1, .n hp.2.2], osRun (hp.2.2 + 1) 2)
 
-/-- **The residual steps, honestly.** -/
-theorem osResSteps_complete {pp bd row vo ncols mu : ℕ} {D : ℕ → E} {M PP BD : E} (hn : 1 ≤ ncols) :
-    ∀ (js : List ℕ) (ps : List E) (h k : ℕ) (hv : E) (σ : Val), 6 ≤ k → pp < k → bd < k → h < k →
-      mu < k → σ (.n pp) = PP → σ (.n bd) = BD → σ (.n h) = hv → σ (.n mu) = M →
-      List.Forall₂ (fun j p ↦ LoadHolds rd PP j p) js ps →
-      (∀ s < ncols, LoadHolds rd BD (row + s) (D s)) →
-      BlkF C rd σ k (osResSteps pp bd row vo ncols mu js h k).2.2
-        (resStepsF bd row vo ncols D M ps hv k σ) (osResSteps pp bd row vo ncols mu js h k).1
-        (fun σ' ↦ σ' (.n (osResSteps pp bd row vo ncols mu js h k).2.1) = resFold D vo ncols M hv ps ∧
-          AgreeBelow k σ σ')
-  | [], [], h, k, hv, σ, _, _, _, hh, _, _, _, eh, _, _, _ => by
-    simp only [osResSteps]
-    exact BlkF.nil fun σ' ha ↦ ⟨by rw [ha _ hh, eh]; rfl, ha⟩
-  | j :: js, p :: ps, h, k, hv, σ, hk, hpp, hbd, hh, hmu, ePP, eBD, eh, eM, hF, hD => by
-    obtain ⟨-, hFs⟩ := List.forall₂_cons.mp hF
-    have hp := (List.forall₂_cons.mp hF).1
-    have hA := osResStep_complete (C := C) (rd := rd) (pp := pp) (bd := bd) (row := row) (vo := vo)
-      (ncols := ncols) (mu := mu) (j := j) (h := h) (k := k) (D := D) σ hn hk hpp hbd hh hmu ePP eBD
-      eh eM hp hD
-    have hqk := osResQuery_k k bd row vo ncols (k + 1)
-    set e := osResQuery k bd row vo ncols (k + 1) with hedef
-    have e1 : (osResStep pp bd row vo ncols mu j h k).2 = (e.2.2 + 1, e.2.2 + 2) := rfl
-    rw [e1] at hA
-    dsimp only at hA
-    have hk2 := (osResSteps_k pp bd row vo ncols mu js (e.2.2 + 1) (e.2.2 + 2) (by omega)).1
-    have eS : osResSteps pp bd row vo ncols mu (j :: js) h k =
-        ((osResStep pp bd row vo ncols mu j h k).1 ++
-          (osResSteps pp bd row vo ncols mu js (e.2.2 + 1) (e.2.2 + 2)).1,
-          (osResSteps pp bd row vo ncols mu js (e.2.2 + 1) (e.2.2 + 2)).2) := rfl
-    have eF : resStepsF bd row vo ncols D M (p :: ps) hv k σ = seqF σ k (e.2.2 + 2)
-        (resStepF bd row vo ncols D M p hv k σ) (fun σ1 ↦ resStepsF bd row vo ncols D M ps
-          ((hv + residualProd (osVals vo ncols) p D ncols) * M) (e.2.2 + 2) σ1) := rfl
-    rw [eS, eF]
-    dsimp only
-    have hB : ∀ σ1, AgreeBelow k σ σ1 →
-        (σ1 (.n (e.2.2 + 1)) = (hv + residualProd (osVals vo ncols) p D ncols) * M ∧
-          AgreeBelow k σ σ1) →
-        BlkF C rd σ1 (e.2.2 + 2) (osResSteps pp bd row vo ncols mu js (e.2.2 + 1) (e.2.2 + 2)).2.2
-          (resStepsF bd row vo ncols D M ps ((hv + residualProd (osVals vo ncols) p D ncols) * M)
-            (e.2.2 + 2) σ1)
-          (osResSteps pp bd row vo ncols mu js (e.2.2 + 1) (e.2.2 + 2)).1
-          (fun σ' ↦ σ' (.n (osResSteps pp bd row vo ncols mu js (e.2.2 + 1) (e.2.2 + 2)).2.1) =
-            resFold D vo ncols M ((hv + residualProd (osVals vo ncols) p D ncols) * M) ps ∧
-            AgreeBelow k σ σ') := fun σ1 _ ⟨h1, ha1⟩ ↦
-      BlkF.mono (osResSteps_complete hn js ps (e.2.2 + 1) (e.2.2 + 2) _ σ1 (by omega) (by omega)
-        (by omega) (by omega) (by omega) (by rw [ha1 _ hpp, ePP]) (by rw [ha1 _ hbd, eBD]) h1
-        (by rw [ha1 _ hmu, eM]) hFs hD) fun σ' ⟨hv', ha2⟩ ↦
-          ⟨hv', fun i hi ↦ (ha2 i (by omega)).trans (ha1 i hi)⟩
-    refine BlkF.mono (BlkF.seq (k1 := e.2.2 + 2) (by omega) hk2 hA hB)
-      fun σ' ⟨_, hv', ha2⟩ ↦ ⟨?_, ha2⟩
-    rw [hv']; simp [resFold, List.foldl_cons]
-  | [], _ :: _, _, _, _, _, _, _, _, _, _, _, _, _, _, hF, _ => by cases hF
-  | _ :: _, [], _, _, _, _, _, _, _, _, _, _, _, _, _, hF, _ => by cases hF
-
-/-- The values after the level's sum: the inner value, the scale, the scaled sum, the new inner. -/
-def resEndVals (I L sum : E) : List E := [I, L, L * sum, I + L * sum]
-
-/-- The end of a level's residual: the inner value and the scale read, the new inner value
-stored. -/
-theorem resEnd_complete {ich ls e sv lvl : ℕ} (σ : Val) (hich : ich < e) (hls : ls < e)
-    (hsv : sv < e) {I L : E} (hI : LoadHolds rd (σ (.n ich)) lvl I)
-    (hL : LoadHolds rd (σ (.n ls)) lvl L)
-    (hout : LoadHolds rd (σ (.n ich)) (lvl + 1) (I + L * σ (.n sv))) :
-    BlkF C rd σ e (e + 4) (fun j ↦ (resEndVals I L (σ (.n sv))).getD (j - e) 0)
-      [.atom (.load (.n e) (.n ich) lvl), .atom (.load (.n (e + 1)) (.n ls) lvl),
-        .atom (.mul (.n (e + 2)) (.n (e + 1)) (.n sv)), .atom (.add (.n (e + 3)) (.n e) (.n (e + 2))),
-        .atom (.load (.n (e + 3)) (.n ich) (lvl + 1))]
-      (fun σ' ↦ AgreeBelow e σ σ') := by
-  intro σ' ha hr
-  have V : ∀ j < 4, σ' (.n (e + j)) = (resEndVals I L (σ (.n sv))).getD j 0 := fun j hj ↦ by
-    rw [hr _ (by omega) (by omega)]; simp only [Nat.add_sub_cancel_left]
-  have v0 := V 0 (by omega); have v1 := V 1 (by omega); have v2 := V 2 (by omega)
-  have v3 := V 3 (by omega)
-  simp only [resEndVals, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2 v3
-  refine ⟨?_, ha⟩
-  simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
-  refine ⟨by rw [v0, ha _ hich]; exact hI, by rw [v1, ha _ hls]; exact hL,
-    by rw [v2, v1, ha _ hsv], by rw [v3, v0, v2], by rw [v3, ha _ hich]; exact hout⟩
-
-
-/-- A level's remaining queries' steps. -/
-abbrev resTl (lvl : ℕ) (lv : OsLv) (bd k : ℕ) : List Stmt × ℕ × ℕ :=
-  osResSteps osQpos bd (lvl * ligColsCap) lv.vanish lv.logCols k (osResTail lv) (k + 9) (k + 10)
-
-theorem osResidual_eq (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ) :
-    osResidual c ich bd ls lvl lv k =
-      (osResPre c bd lvl lv k ++ ((resTl lvl lv bd k).1 ++
-        [.atom (.load (.n (resTl lvl lv bd k).2.2) (.n ich) lvl),
-          .atom (.load (.n ((resTl lvl lv bd k).2.2 + 1)) (.n ls) lvl),
-          .atom (.mul (.n ((resTl lvl lv bd k).2.2 + 2)) (.n ((resTl lvl lv bd k).2.2 + 1))
-            (.n (resTl lvl lv bd k).2.1)),
-          .atom (.add (.n ((resTl lvl lv bd k).2.2 + 3)) (.n (resTl lvl lv bd k).2.2)
-            (.n ((resTl lvl lv bd k).2.2 + 2))),
-          .atom (.load (.n ((resTl lvl lv bd k).2.2 + 3)) (.n ich) (lvl + 1))]),
-        (resTl lvl lv bd k).2.2 + 4) := by
-  simp only [osResidual, osResPre, List.append_assoc]
-
-/-- The values of a level's residual. -/
-def residualF (_c : OsCfg) (lvl : ℕ) (lv : OsLv) (bd k : ℕ) (σ : Val) (RC acc M I L : E)
-    (P D : ℕ → E) : ℕ → E :=
-  seqF σ k (k + 10) (fun j ↦ (resPreVals (lv.queries / resBatch) M RC acc).getD (j - k) 0) fun σ1 ↦
-  seqF σ1 (k + 10) (resTl lvl lv bd k).2.2
-    (resStepsF bd (lvl * ligColsCap) lv.vanish lv.logCols D M
-      ((List.range (lv.queries % resBatch)).map P) acc (k + 10) σ1) fun σ2 ↦
-  fun j ↦ (resEndVals I L (σ2 (.n (resTl lvl lv bd k).2.1))).getD (j - (resTl lvl lv bd k).2.2) 0
-
-theorem forall₂_resTail (lv : OsLv) {Q : E} {P : ℕ → E}
-    (hP : ∀ i < lv.queries % resBatch,
-      LoadHolds rd Q (lv.posOff + (lv.queries - lv.queries % resBatch) + i) (P i)) :
-    List.Forall₂ (fun j p ↦ LoadHolds rd Q j p) (osResTail lv)
-      ((List.range (lv.queries % resBatch)).map P) := by
-  unfold osResTail
-  rw [List.forall₂_iff_get]
-  refine ⟨by simp, fun i h1 h2 ↦ ?_⟩
-  simp only [List.get_eq_getElem, List.getElem_map, List.getElem_range]
-  simp only [List.length_map, List.length_range] at h1
-  exact hP i h1
-
-/-- **A level's residual sum, honestly.** -/
-theorem osResidual_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {ich bd ls k : ℕ} (σ : Val)
-    (hk : 164 ≤ k) (hich : ich < k) (hbd : bd < k) (hls : ls < k) (hml : 1 ≤ lv.logCols)
-    (hn : lv.queries / resBatch < u128Bound) (RC acc M : E)
-    (hM : LoadHolds rd (σ (.n osMus)) lvl M)
-    (hL : IsInK (1 + gen ^ (lv.queries / resBatch)) ∧ (1 + gen ^ (lv.queries / resBatch) ≠ 0 →
-      C (c.resLoop lvl) [1, gen ^ (lv.queries / resBatch), σ (.n osQpos), σ (.n bd), RC, M] []))
-    (h0 : LoadHolds rd RC 0 0) (hacc : LoadHolds rd RC (lv.queries / resBatch) acc)
-    {P D : ℕ → E}
-    (hP : ∀ i < lv.queries % resBatch,
-      LoadHolds rd (σ (.n osQpos)) (lv.posOff + (lv.queries - lv.queries % resBatch) + i) (P i))
-    (hD : ∀ s < lv.logCols, LoadHolds rd (σ (.n bd)) (lvl * ligColsCap + s) (D s))
-    {I L : E} (hI : LoadHolds rd (σ (.n ich)) lvl I) (hLs : LoadHolds rd (σ (.n ls)) lvl L)
-    (hout : LoadHolds rd (σ (.n ich)) (lvl + 1)
-      (I + L * resFold D lv.vanish lv.logCols M acc ((List.range (lv.queries % resBatch)).map P))) :
-    BlkF C rd σ k (osResidual c ich bd ls lvl lv k).2 (residualF c lvl lv bd k σ RC acc M I L P D)
-      (osResidual c ich bd ls lvl lv k).1 (fun σ' ↦ AgreeBelow k σ σ') := by
-  rw [osResidual_eq]
-  dsimp only
-  unfold residualF
-  have hpre := osResPre_complete (C := C) (rd := rd) (c := c) (lvl := lvl) (lv := lv) (bd := bd)
-    (k := k) σ M RC acc hk hbd hn hM hL h0 hacc
-  have htk : k + 10 ≤ (resTl lvl lv bd k).2.2 ∧ (resTl lvl lv bd k).2.1 < (resTl lvl lv bd k).2.2 :=
-    osResSteps_k osQpos bd (lvl * ligColsCap) lv.vanish lv.logCols k (osResTail lv) (k + 9)
-      (k + 10) (by omega)
-  refine BlkF.then (k1 := k + 10) (by omega) (by omega) hpre fun σ1 _ ⟨h9, hk0, ha1⟩ ↦ ?_
-  have hS := osResSteps_complete (C := C) (rd := rd) (pp := osQpos) (bd := bd) (row := lvl * ligColsCap)
-    (vo := lv.vanish) (ncols := lv.logCols) (mu := k) (D := D) (M := M) (PP := σ (.n osQpos))
-    (BD := σ (.n bd)) hml (osResTail lv) ((List.range (lv.queries % resBatch)).map P) (k + 9) (k + 10)
-    acc σ1 (by omega) (by unfold osQpos; omega) (by omega) (by omega) (by omega)
-    (ha1 _ (by unfold osQpos; omega)) (ha1 _ hbd) h9 hk0 (forall₂_resTail lv hP) hD
-  refine BlkF.then (k1 := (resTl lvl lv bd k).2.2) htk.1 (by omega) hS fun σ2 _ ⟨hs, ha2⟩ ↦ ?_
-  have e2 : ∀ v, v < k → σ2 (.n v) = σ (.n v) := fun v hv ↦ (ha2 v (by omega)).trans (ha1 v hv)
-  refine BlkF.mono (resEnd_complete (C := C) (rd := rd) (ich := ich) (ls := ls)
-    (e := (resTl lvl lv bd k).2.2) (sv := (resTl lvl lv bd k).2.1) (lvl := lvl) σ2
-    (by omega) (by omega) htk.2 (by rw [e2 _ hich]; exact hI) (by rw [e2 _ hls]; exact hLs)
-    (by rw [e2 _ hich, hs]; exact hout)) fun σ' ha3 i hi ↦
-      (ha3 i (by omega)).trans ((ha2 i (by omega)).trans (ha1 i hi))
-
-/-- What a level's residual reads and stores, its honest data named: the chain's buffer `RC`, the
-loop's chain `acc`, `μ`, the remaining queries' positions `P`, the row's words `D`. -/
-structure ResMem (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv)
-    (RC acc M I L : E) (P D : ℕ → E) : Prop where
-  hml : 1 ≤ lv.logCols
-  hn : lv.queries / resBatch < u128Bound
-  hM : LoadHolds rd (σ (.n osMus)) lvl M
-  hL : IsInK (1 + gen ^ (lv.queries / resBatch)) ∧ (1 + gen ^ (lv.queries / resBatch) ≠ 0 →
-    C (c.resLoop lvl) [1, gen ^ (lv.queries / resBatch), σ (.n osQpos), σ (.n bd), RC, M] [])
-  h0 : LoadHolds rd RC 0 0
-  hacc : LoadHolds rd RC (lv.queries / resBatch) acc
-  hP : ∀ i < lv.queries % resBatch,
-    LoadHolds rd (σ (.n osQpos)) (lv.posOff + (lv.queries - lv.queries % resBatch) + i) (P i)
-  hD : ∀ s < lv.logCols, LoadHolds rd (σ (.n bd)) (lvl * ligColsCap + s) (D s)
-  hI : LoadHolds rd (σ (.n ich)) lvl I
-  hLs : LoadHolds rd (σ (.n ls)) lvl L
-  hout : LoadHolds rd (σ (.n ich)) (lvl + 1)
-    (I + L * resFold D lv.vanish lv.logCols M acc ((List.range (lv.queries % resBatch)).map P))
-
-/-- The values of every level's residual. -/
-def residualsF (c : OsCfg) (bd : ℕ) (RC acc M I L : ℕ → E) (P D : ℕ → ℕ → E) :
-    ℕ → List OsLv → ℕ → Val → ℕ → E
-  | lvl, lv :: rest, k, σ =>
-    seqF σ k (osResidual c 0 bd 0 lvl lv k).2
-      (residualF c lvl lv bd k σ (RC lvl) (acc lvl) (M lvl) (I lvl) (L lvl) (P lvl) (D lvl))
-      fun σ1 ↦ residualsF c bd RC acc M I L P D (lvl + 1) rest (osResidual c 0 bd 0 lvl lv k).2 σ1
-  | _, [], _, _ => fun _ ↦ 0
-
-theorem osResidual_k_eq (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ) :
-    (osResidual c ich bd ls lvl lv k).2 = (osResidual c 0 bd 0 lvl lv k).2 := rfl
-
-theorem osResidual_k (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ) :
-    k + 14 ≤ (osResidual c ich bd ls lvl lv k).2 := by
-  rw [osResidual_eq]
-  have : k + 10 ≤ (resTl lvl lv bd k).2.2 :=
-    (osResSteps_k osQpos bd (lvl * ligColsCap) lv.vanish lv.logCols k (osResTail lv) (k + 9)
-      (k + 10) (by omega)).1
-  show k + 14 ≤ (resTl lvl lv bd k).2.2 + 4
+theorem osResidual_next (c : OsCfg) (ich bd ls la lvl : ℕ) (lv : OsLv) (mats : List OsMat) (k : ℕ) :
+    k ≤ (osResidual c ich bd ls la lvl lv mats k).2.2 := by
+  have a := osMatP_k c.plan mats osQpos lv.posOff k
+  have b := osMatP_k c.plan (osMatsAfter c.plan mats osQpos lv.posOff k) bd (lvl * ligColsCap)
+    (osMatP c.plan mats osQpos lv.posOff k).2.2
+  have d := osMatP_k c.plan (osMatsAfter c.plan (osMatsAfter c.plan mats osQpos lv.posOff k) bd
+    (lvl * ligColsCap) (osMatP c.plan mats osQpos lv.posOff k).2.2) osHs (lvl * hsStride)
+    (osMatP c.plan (osMatsAfter c.plan mats osQpos lv.posOff k) bd (lvl * ligColsCap)
+      (osMatP c.plan mats osQpos lv.posOff k).2.2).2.2
+  simp only [osResidual]
   omega
 
-theorem osResiduals_k (c : OsCfg) (ich bd ls : ℕ) : ∀ (lvl : ℕ) (levels : List OsLv) (k : ℕ),
-    k ≤ (osResiduals c ich bd ls lvl levels k).2
-  | _, [], _ => le_rfl
-  | lvl, lv :: rest, k => by
-    simp only [osResiduals]
-    have := osResidual_k c ich bd ls lvl lv k
-    have := osResiduals_k c ich bd ls (lvl + 1) rest (osResidual c ich bd ls lvl lv k).2
-    omega
+theorem osResidual_allocs (c : OsCfg) (ich bd ls la lvl : ℕ) (lv : OsLv) (mats : List OsMat) (k : ℕ) :
+    (osResidual c ich bd ls la lvl lv mats k).1.filterMap Stmt.allocSz = [] := by
+  simp only [osResidual, List.filterMap_append, osMatP_allocs, List.nil_append]
+  rfl
 
-/-- **Every level's residual sum, honestly.** -/
-theorem osResiduals_complete {c : OsCfg} {ich bd ls : ℕ} (RC acc M I L : ℕ → E)
-    (P D : ℕ → ℕ → E) : ∀ (levels : List OsLv) (lvl k : ℕ) (σ : Val), 164 ≤ k → ich < k → bd < k →
-      ls < k → (∀ i (hi : i < levels.length), ResMem C rd σ c ich bd ls (lvl + i) levels[i]
-        (RC (lvl + i)) (acc (lvl + i)) (M (lvl + i)) (I (lvl + i)) (L (lvl + i)) (P (lvl + i))
-        (D (lvl + i))) →
-      BlkF C rd σ k (osResiduals c ich bd ls lvl levels k).2
-        (residualsF c bd RC acc M I L P D lvl levels k σ) (osResiduals c ich bd ls lvl levels k).1
-        (fun σ' ↦ AgreeBelow k σ σ')
-  | [], lvl, k, σ, _, _, _, _, _ => by
-    simp only [osResiduals]; exact BlkF.nil fun _ h ↦ h
-  | lv :: rest, lvl, k, σ, hk, hich, hbd, hls, h => by
-    have h0 := h 0 (by simp)
-    simp only [Nat.add_zero, List.getElem_cons_zero] at h0
-    have hA := osResidual_complete (C := C) (rd := rd) (c := c) (lvl := lvl) (lv := lv) (ich := ich)
-      (bd := bd) (ls := ls) (k := k) σ hk hich hbd hls h0.hml h0.hn (RC lvl) (acc lvl) (M lvl) h0.hM
-      h0.hL h0.h0 h0.hacc h0.hP h0.hD h0.hI h0.hLs h0.hout
-    simp only [osResiduals, residualsF]
-    rw [← osResidual_k_eq c ich bd ls lvl lv k]
-    have hk1 := osResidual_k c ich bd ls lvl lv k
-    have hk2 := osResiduals_k c ich bd ls (lvl + 1) rest (osResidual c ich bd ls lvl lv k).2
-    refine BlkF.then (k1 := (osResidual c ich bd ls lvl lv k).2) (by omega) hk2 hA
-      fun σ1 _ ha1 ↦ ?_
-    refine BlkF.mono (osResiduals_complete RC acc M I L P D rest (lvl + 1) _ σ1 (by omega) (by omega)
-      (by omega) (by omega) fun i hi ↦ ?_) fun σ' ha2 i hi ↦ (ha2 i (by omega)).trans (ha1 i hi)
-    have := h (i + 1) (by simp; omega)
-    rw [show lvl + (i + 1) = lvl + 1 + i by ring] at this
-    have e : ∀ v, v < k → σ1 (.n v) = σ (.n v) := ha1
-    have eq : σ1 (.n osQpos) = σ (.n osQpos) := e _ (show osQpos < k by unfold osQpos; omega)
-    have em : σ1 (.n osMus) = σ (.n osMus) := e _ (show osMus < k by unfold osMus; omega)
-    obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11⟩ := this
-    exact ⟨g1, g2, by rw [em]; exact g3, by rw [eq, e _ hbd]; exact g4, g5, g6,
-      fun i hi ↦ by rw [eq]; exact g7 i hi, fun s hs ↦ by rw [e _ hbd]; exact g8 s hs,
-      by rw [e _ hich]; exact g9, by rw [e _ hls]; exact g10, by rw [e _ hich]; exact g11⟩
+/-- **A level's residual, honestly**: the dispatch at its arguments, returning `P`, `Q`, the sums
+stored. -/
+theorem osResidual_complete {c : OsCfg} {ich bd ls la lvl : ℕ} {lv : OsLv} {mats : List OsMat} {k : ℕ}
+    {σ : Val} {mu i0 i1 s b a P Q : E}
+    (hbd : bd < k) (hich : ich < k) (hls : ls < k) (hla : la < k) (hk : 33 ≤ k)
+    (hmb : MatsBelow k mats) (hmo : ∀ C rd, H C rd → MatsOk σ mats)
+    (hpo : lv.posOff < u128Bound) (hlc : lvl * ligColsCap < u128Bound) (hhs : lvl * hsStride < u128Bound)
+    (hrate : ∀ C rd, H C rd → LvRate σ c lvl lv)
+    (hm : ∀ C rd, H C rd → ResMemD rd σ lvl ich ls la mu i0 i1 s b a P Q)
+    (hC : ∀ C rd, H C rd → C (osResidualName lv)
+      [σ (.n osQpos) * gen ^ lv.posOff, σ (.n bd) * gen ^ (lvl * ligColsCap),
+        σ (.n osHs) * gen ^ (lvl * hsStride), mu] [P, Q]) :
+    BlkA H σ k (osResidual c ich bd ls la lvl lv mats k).2.2 (osResidual c ich bd ls la lvl lv mats k).1
+      (fun σ' ↦ MatsOk σ' (osResidual c ich bd ls la lvl lv mats k).2.1 ∧
+        MatsBelow (osResidual c ich bd ls la lvl lv mats k).2.2 (osResidual c ich bd ls la lvl lv mats k).2.1 ∧
+        (osResCall1 c bd lvl lv mats k).1.map σ' =
+          [σ (.n osQpos) * gen ^ lv.posOff, σ (.n bd) * gen ^ (lvl * ligColsCap),
+            σ (.n osHs) * gen ^ (lvl * hsStride), mu] ∧
+        (osResCall1 c bd lvl lv mats k).2.map σ' = [P, Q]) := by
+  set qp := osMatP c.plan mats osQpos lv.posOff k with hqp
+  set m1 := osMatsAfter c.plan mats osQpos lv.posOff k with hm1
+  set bp := osMatP c.plan m1 bd (lvl * ligColsCap) qp.2.2 with hbp
+  set m2 := osMatsAfter c.plan m1 bd (lvl * ligColsCap) qp.2.2 with hm2
+  set hp := osMatP c.plan m2 osHs (lvl * hsStride) bp.2.2 with hhp
+  set m3 := osMatsAfter c.plan m2 osHs (lvl * hsStride) bp.2.2 with hm3
+  set j := hp.2.2 with hj
+  have k1 : k ≤ qp.2.2 := osMatP_k _ _ _ _ _
+  have k2 : qp.2.2 ≤ bp.2.2 := osMatP_k _ _ _ _ _
+  have k3 : bp.2.2 ≤ j := osMatP_k _ _ _ _ _
+  have l1 : qp.2.1 < qp.2.2 := osMatP_lt _ _ _ _ _ (show 30 < k by omega)
+  have l2 : bp.2.1 < bp.2.2 := osMatP_lt _ _ _ _ _ (show bd < qp.2.2 by omega)
+  have l3 : hp.2.1 < j := osMatP_lt _ _ _ _ _ (show 24 < bp.2.2 by omega)
+  have mb1 : MatsBelow qp.2.2 m1 := osMatP_below hmb (show 30 < k by omega)
+  have mb2 : MatsBelow bp.2.2 m2 := osMatP_below mb1 (show bd < qp.2.2 by omega)
+  have mb3 : MatsBelow j m3 := osMatP_below mb2 (show 24 < bp.2.2 by omega)
+  -- the pointers
+  have b1 := osMatP_blkA (H := H) (P := c.plan) (mats := mats) (base := osQpos) (off := lv.posOff) (k := k) σ
+    (show 30 < k by omega) hmb hmo hpo
+  have b2 := BlkA.seq (H := H) k1 k2 b1 (B := bp.1)
+    (OutB := fun σ' ↦ σ' (.n bp.2.1) = σ (.n bd) * gen ^ (lvl * ligColsCap) ∧ MatsOk σ' m2 ∧
+      MatsBelow bp.2.2 m2) fun σ1 ha1 ho1 ↦ by
+      have h := osMatP_blkA (H := H) (P := c.plan) (mats := m1) (base := bd) (off := lvl * ligColsCap)
+        (k := qp.2.2) σ1 (by omega) mb1 (fun C rd hH ↦ (ho1 C rd hH).2.1) hlc
+      rw [ha1 _ hbd] at h
+      exact h
+  have b3 := BlkA.seq (H := H) (le_trans k1 k2) k3 b2 (B := hp.1)
+    (OutB := fun σ' ↦ σ' (.n hp.2.1) = σ (.n osHs) * gen ^ (lvl * hsStride) ∧ MatsOk σ' m3 ∧
+      MatsBelow j m3) fun σ1 ha1 ho1 ↦ by
+      have h := osMatP_blkA (H := H) (P := c.plan) (mats := m2) (base := osHs) (off := lvl * hsStride)
+        (k := bp.2.2) σ1 (show 24 < bp.2.2 by omega) mb2 (fun C rd hH ↦ (ho1 C rd hH).2.2.1) hhs
+      rw [ha1 osHs (by show 24 < k; omega)] at h
+      exact h
+  -- `μ`
+  have b4 := BlkA.seq (H := H) (le_trans (le_trans k1 k2) k3) (show j ≤ j + 1 by omega) b3
+    (B := [osLd j osMus lvl]) (OutB := fun σ' ↦ σ' (.n j) = mu) fun σ1 ha1 _ ↦ by
+      refine ⟨lstF j [mu], fun C rd hH σ' ha hr ↦ ?_⟩
+      have v : σ' (.n j) = mu := by
+        have := lstF_at hr (by simp) 0 (by simp)
+        simpa using this
+      refine ⟨?_, v⟩
+      simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, osLd]
+      rw [v, ha osMus (by show 22 < j; omega), ha1 osMus (by show 22 < k; omega)]
+      exact (hm C rd hH).mus
+  -- the dispatch
+  have hargsV : ∀ σ1 : Val, (∀ C rd, H C rd →
+      ((σ1 (.n qp.2.1) = σ (.n osQpos) * gen ^ lv.posOff ∧ MatsOk σ1 m1 ∧ MatsBelow qp.2.2 m1) ∧
+        σ1 (.n bp.2.1) = σ (.n bd) * gen ^ (lvl * ligColsCap) ∧ MatsOk σ1 m2 ∧ MatsBelow bp.2.2 m2) ∧
+        σ1 (.n hp.2.1) = σ (.n osHs) * gen ^ (lvl * hsStride) ∧ MatsOk σ1 m3 ∧ MatsBelow j m3) →
+      (∀ C rd, H C rd → σ1 (.n j) = mu) → ∀ C rd, H C rd →
+      [qp.2.1, bp.2.1, hp.2.1, j].map (fun i ↦ σ1 (.n i)) =
+        [σ (.n osQpos) * gen ^ lv.posOff, σ (.n bd) * gen ^ (lvl * ligColsCap),
+          σ (.n osHs) * gen ^ (lvl * hsStride), mu] := fun σ1 h1 h2 C rd hH ↦ by
+    obtain ⟨⟨⟨e1, -⟩, e2, -⟩, e3, -⟩ := h1 C rd hH
+    simp only [List.map_cons, List.map_nil, e1, e2, e3, h2 C rd hH]
+  have b5 := BlkA.seq (H := H) (show k ≤ j + 1 by omega) (show j + 1 ≤ j + 1 + 2 by omega) b4
+    (B := [.dispatch (.n osRate) ((c.lvAt lvl).map osResidualName) ([qp.2.1, bp.2.1, hp.2.1, j].map V.n)
+      (osRun (j + 1) 2)])
+    (OutB := fun σ' ↦ [qp.2.1, bp.2.1, hp.2.1, j].map (fun i ↦ σ' (.n i)) =
+        [σ (.n osQpos) * gen ^ lv.posOff, σ (.n bd) * gen ^ (lvl * ligColsCap),
+          σ (.n osHs) * gen ^ (lvl * hsStride), mu] ∧
+      ∀ j' < 2, σ' (.n (j + 1 + j')) = [P, Q].getD j' 0) fun σ1 ha1 ho1 ↦ by
+      have hargs : ∀ i ∈ [qp.2.1, bp.2.1, hp.2.1, j], i < j + 1 := fun i hi ↦ by
+        simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
+        rcases hi with rfl | rfl | rfl | rfl <;> omega
+      have h := rateDisp_blk (H := H) (σ := σ1) (c := c) (lvl := lvl) (lv := lv) (r := j + 1) (n := 2)
+        osResidualName (args := [qp.2.1, bp.2.1, hp.2.1, j]) [P, Q] rfl hargs (by omega)
+        (fun C rd hH ↦ by
+          obtain ⟨ri, hri, hx, hlen, hlv⟩ := hrate C rd hH
+          exact ⟨ri, hri, by rw [ha1 _ (show 0 < k by omega)]; exact hx, hlen, hlv⟩)
+        (fun C rd hH ↦ by
+          rw [hargsV σ1 (fun C rd hH ↦ (ho1 C rd hH).1) (fun C rd hH ↦ (ho1 C rd hH).2) C rd hH]
+          exact hC C rd hH)
+      refine BlkA.monoH h fun C rd hH σ' ha hv ↦ ⟨?_, hv⟩
+      rw [← hargsV σ1 (fun C rd hH ↦ (ho1 C rd hH).1) (fun C rd hH ↦ (ho1 C rd hH).2) C rd hH]
+      exact List.map_congr_left fun i hi ↦ ha _ (hargs i hi)
+  -- the sums
+  have b6 := BlkA.seq (H := H) (show k ≤ j + 1 + 2 by omega) (show j + 1 + 2 ≤ j + 3 + 10 by omega) b5
+    (B := resB ich ls la lvl (j + 1) (j + 2) (j + 3)) (OutB := fun _ ↦ True) fun σ2 ha2 ho2 ↦ by
+      have h := resB_complete (H := H) (ich := ich) (ls := ls) (la := la) (lvl := lvl) (h := j + 1)
+        (hh := j + 2) (a := j + 3) (σ := σ2) (i0 := i0) (i1 := i1) (s := s) (b := b) (af := a) (P := P)
+        (Q := Q) (by omega) (by omega) (by omega) (by omega) (by omega) (by omega)
+        (fun C rd hH ↦ by
+          have v := (ho2 C rd hH).2.2
+          exact ⟨by simpa using v 0 (by omega), by simpa using v 1 (by omega)⟩)
+        (fun C rd hH ↦ by
+          have hM := (hm C rd hH).agree hich hls hla hk ha2
+          exact ⟨hM.li0, hM.lsc, hM.li1, hM.lbe, hM.laf, hM.st0, hM.st1⟩)
+      exact BlkA.congr (h.mono fun _ _ ↦ trivial) (by rw [show j + 3 = j + 1 + 2 by omega])
+  have ek : (osResidual c ich bd ls la lvl lv mats k).2.2 = j + 3 + 10 := rfl
+  have em : (osResidual c ich bd ls la lvl lv mats k).2.1 = m3 := rfl
+  rw [ek, em]
+  refine BlkA.congr (BlkA.mono b6 fun σ' ho ↦ ?_) (by
+    simp only [osResidual, resB, List.append_assoc, List.cons_append, List.nil_append]; rfl)
+  obtain ⟨⟨⟨⟨⟨-, -⟩, -, mo3, -⟩, -⟩, eargs, erets⟩, -⟩ := ho
+  refine ⟨mo3, fun m hm' ↦ ?_, ?_, ?_⟩
+  · obtain ⟨x, y, z⟩ := mb3 m hm'; exact ⟨by omega, by omega, by omega⟩
+  · show ([V.n qp.2.1, V.n bp.2.1, V.n hp.2.1, V.n j]).map σ' = _
+    rw [← eargs]; rfl
+  · show (osRun (j + 1) 2).map σ' = [P, Q]
+    rw [osRun_map, show List.range 2 = [0, 1] from rfl]
+    simp only [List.map_cons, List.map_nil]
+    rw [erets 0 (by omega), erets 1 (by omega)]
+    rfl
+
+theorem osResiduals_next (c : OsCfg) (ich bd ls la : ℕ) :
+    ∀ (lvs : List OsLv) (lvl : ℕ) (mats : List OsMat) (k : ℕ),
+      k ≤ (osResiduals c ich bd ls la lvl lvs mats k).2
+  | [], _, _, _ => le_rfl
+  | lv :: rest, lvl, mats, k => by
+    simp only [osResiduals]
+    exact le_trans (osResidual_next c ich bd ls la lvl lv mats k)
+      (osResiduals_next c ich bd ls la rest (lvl + 1) _ _)
+
+theorem osResiduals_allocs (c : OsCfg) (ich bd ls la : ℕ) :
+    ∀ (lvl : ℕ) (lvs : List OsLv) (mats : List OsMat) (k : ℕ),
+      (osResiduals c ich bd ls la lvl lvs mats k).1.filterMap Stmt.allocSz = []
+  | _, [], _, _ => rfl
+  | lvl, lv :: rest, mats, k => by
+    simp only [osResiduals, List.filterMap_append, osResidual_allocs, osResiduals_allocs c ich bd ls la (lvl + 1),
+      List.nil_append]
+
+/-- **Every non-final level's residual, honestly**, the levels `lvl ..`: each dispatch into
+`level_residual` at its arguments, returning `P`, `Q`. -/
+theorem osResiduals_complete {c : OsCfg} {ich bd ls la : ℕ} (mu I0 I1 S B A P Q : ℕ → E) :
+    ∀ (lvs : List OsLv) (lvl : ℕ) (mats : List OsMat) (k : ℕ) (σ : Val),
+      bd < k → ich < k → ls < k → la < k → 33 ≤ k → MatsBelow k mats →
+      (∀ C rd, H C rd → MatsOk σ mats) →
+      (∀ i < lvs.length, (lvs.getD i default).posOff < u128Bound ∧
+        (lvl + i) * ligColsCap < u128Bound ∧ (lvl + i) * hsStride < u128Bound) →
+      (∀ i < lvs.length, ∀ C rd, H C rd → LvRate σ c (lvl + i) (lvs.getD i default)) →
+      (∀ i < lvs.length, ∀ C rd, H C rd → ResMemD rd σ (lvl + i) ich ls la (mu (lvl + i)) (I0 (lvl + i))
+        (I1 (lvl + i)) (S (lvl + i)) (B (lvl + i)) (A (lvl + i)) (P (lvl + i)) (Q (lvl + i))) →
+      (∀ i < lvs.length, ∀ C rd, H C rd → C (osResidualName (lvs.getD i default))
+        [σ (.n osQpos) * gen ^ (lvs.getD i default).posOff, σ (.n bd) * gen ^ ((lvl + i) * ligColsCap),
+          σ (.n osHs) * gen ^ ((lvl + i) * hsStride), mu (lvl + i)] [P (lvl + i), Q (lvl + i)]) →
+      BlkA H σ k (osResiduals c ich bd ls la lvl lvs mats k).2 (osResiduals c ich bd ls la lvl lvs mats k).1
+        (fun σ' ↦ ∀ i < lvs.length,
+          ((osResCallsL c ich bd ls la lvl lvs mats k).getD i ([], [])).1.map σ' =
+            [σ (.n osQpos) * gen ^ (lvs.getD i default).posOff, σ (.n bd) * gen ^ ((lvl + i) * ligColsCap),
+              σ (.n osHs) * gen ^ ((lvl + i) * hsStride), mu (lvl + i)] ∧
+          ((osResCallsL c ich bd ls la lvl lvs mats k).getD i ([], [])).2.map σ' = [P (lvl + i), Q (lvl + i)])
+  | [], _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ =>
+    BlkA.nil fun _ _ i hi ↦ absurd hi (by simp)
+  | lv :: rest, lvl, mats, k, σ, hbd, hich, hls, hla, hk, hmb, hmo, hoff, hrate, hm, hC => by
+    have o0 := hoff 0 (by simp)
+    simp only [List.getD_cons_zero, Nat.add_zero] at o0
+    have h0 := osResidual_complete (H := H) (c := c) (ich := ich) (bd := bd) (ls := ls) (la := la)
+      (lvl := lvl) (lv := lv) (mats := mats) (k := k) (σ := σ) (mu := mu lvl) (i0 := I0 lvl) (i1 := I1 lvl)
+      (s := S lvl) (b := B lvl) (a := A lvl) (P := P lvl) (Q := Q lvl) hbd hich hls hla hk hmb hmo o0.1 o0.2.1
+      o0.2.2 (fun C rd hH ↦ by simpa using hrate 0 (by simp) C rd hH)
+      (fun C rd hH ↦ by simpa using hm 0 (by simp) C rd hH) (fun C rd hH ↦ by simpa using hC 0 (by simp) C rd hH)
+    set r := osResidual c ich bd ls la lvl lv mats k with hr
+    have hn : k ≤ r.2.2 := osResidual_next c ich bd ls la lvl lv mats k
+    have hn2 := osResiduals_next c ich bd ls la rest (lvl + 1) r.2.1 r.2.2
+    have hB := BlkA.seq (H := H) hn hn2 h0 (B := (osResiduals c ich bd ls la (lvl + 1) rest r.2.1 r.2.2).1)
+      (OutB := fun σ' ↦ ∀ i < rest.length,
+        ((osResCallsL c ich bd ls la (lvl + 1) rest r.2.1 r.2.2).getD i ([], [])).1.map σ' =
+          [σ (.n osQpos) * gen ^ (rest.getD i default).posOff, σ (.n bd) * gen ^ ((lvl + 1 + i) * ligColsCap),
+            σ (.n osHs) * gen ^ ((lvl + 1 + i) * hsStride), mu (lvl + 1 + i)] ∧
+        ((osResCallsL c ich bd ls la (lvl + 1) rest r.2.1 r.2.2).getD i ([], [])).2.map σ' =
+          [P (lvl + 1 + i), Q (lvl + 1 + i)])
+      fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd0, hH0⟩ ↦ by
+      have e1 : σ1 (.n osQpos) = σ (.n osQpos) := ha1 osQpos (by show 30 < k; omega)
+      have e2 : σ1 (.n bd) = σ (.n bd) := ha1 _ hbd
+      have e3 : σ1 (.n osHs) = σ (.n osHs) := ha1 osHs (by show 24 < k; omega)
+      have h := osResiduals_complete mu I0 I1 S B A P Q rest (lvl + 1) r.2.1 r.2.2 σ1 (lt_of_lt_of_le hbd hn)
+        (lt_of_lt_of_le hich hn) (lt_of_lt_of_le hls hn) (lt_of_lt_of_le hla hn) (le_trans hk hn)
+        (ho1 C0 rd0 hH0).2.1 (fun C rd hH ↦ (ho1 C rd hH).1)
+        (fun i hi ↦ by
+          have := hoff (i + 1) (by simp; omega)
+          simpa [show lvl + (i + 1) = lvl + 1 + i by ring] using this)
+        (fun i hi C rd hH ↦ by
+          obtain ⟨ri, hri, hx, hlen, hlv⟩ := hrate (i + 1) (by simp; omega) C rd hH
+          refine ⟨ri, hri, by rw [ha1 _ (show 0 < k by omega)]; exact hx, ?_, ?_⟩
+          · simpa [show lvl + (i + 1) = lvl + 1 + i by ring] using hlen
+          · simpa [show lvl + (i + 1) = lvl + 1 + i by ring] using hlv)
+        (fun i hi C rd hH ↦ by
+          have := (hm (i + 1) (by simp; omega) C rd hH).agree hich hls hla hk ha1
+          simpa [show lvl + (i + 1) = lvl + 1 + i by ring] using this)
+        fun i hi C rd hH ↦ by
+          have := hC (i + 1) (by simp; omega) C rd hH
+          rw [e1, e2, e3]
+          simpa [show lvl + (i + 1) = lvl + 1 + i by ring] using this
+      exact h.mono fun σ' hv i hi ↦ by rw [← e1, ← e2, ← e3]; exact hv i hi
+    refine (hB.congr rfl).mono fun σ' ⟨⟨_, _, a0, r0⟩, hs⟩ ↦ fun i hi ↦ ?_
+    rcases i with _ | i
+    · have e0 : (osResCallsL c ich bd ls la lvl (lv :: rest) mats k).getD 0 ([], []) =
+          osResCall1 c bd lvl lv mats k := rfl
+      simp only [List.getD_cons_zero, Nat.add_zero]
+      rw [e0]
+      exact ⟨a0, r0⟩
+    · have e : (osResCallsL c ich bd ls la lvl (lv :: rest) mats k).getD (i + 1) ([], []) =
+          (osResCallsL c ich bd ls la (lvl + 1) rest r.2.1 r.2.2).getD i ([], []) := rfl
+      have := hs i (by simp at hi; omega)
+      rw [e, List.getD_cons_succ, show lvl + (i + 1) = lvl + 1 + i by ring]
+      exact this
 
 end
 end LeanVM.Guest.B1.Whir

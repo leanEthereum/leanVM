@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Selectors.SelectorTables
 /-!
 # `sel_eq_nibble`, `sel_g_nibble` (TRIAGE G #45, #46)
 
-Both are `@inline` (G:1951-1987): their atoms sit in their callers (`sel_partial_nibble`,
+Both are `@inline` (G:1901-1937): their atoms sit in their callers (`sel_partial_nibble`,
 `shared_selector_tables`'s loop), numbered from a first value.
 
 * `nbEq B pz pz1 peq w` (`sel_eq_nibble(out, z, z1, w)`): level `0` (`z1[0]`, `z[0]`) at values
@@ -73,7 +73,7 @@ def nbGStep (c : ℕ) (pgs : V) (t : ℕ) : List Stmt :=
 
 /-- `sel_g_nibble(out, gs, w)` from value `c`, `1 ≤ w`. -/
 def nbG (c : ℕ) (pgs pgo : V) (w : ℕ) : List Stmt :=
-  [.atom (.const (.n c) (word 1 0 0)), .atom (.load (.n (c + 1)) pgs 0)] ++
+  [.atom (.const (.n c) (word 1 0)), .atom (.load (.n (c + 1)) pgs 0)] ++
     ((List.range (w - 1)).map fun t ↦ nbGStep c pgs (t + 1)).flatten ++
     (List.range (2 ^ w)).map (fun u ↦ .atom (.load (.n (nbGV c u)) pgo u))
 
@@ -165,7 +165,7 @@ theorem nb_log2_two_pow_add {t v : ℕ} (hv : v < 2 ^ t) : Nat.log2 (2 ^ t + v) 
 /-- The value loaded as share `t`. -/
 def nbGL (c t : ℕ) : ℕ := if t = 0 then c + 1 else c + 2 ^ t + t - 1
 
-theorem nbGs {c : ℕ} {pgs : V} {w : ℕ} (h1 : σ (.n c) = word 1 0 0)
+theorem nbGs {c : ℕ} {pgs : V} {w : ℕ} (h1 : σ (.n c) = word 1 0)
     (hG : ∀ t < w - 1, Stmt.HoldsList C rd σ (nbGStep c pgs (t + 1)) True kret) :
     ∀ t < w, ∀ u < 2 ^ (t + 1), σ (.n (nbGV c u)) = ∏ s ∈ Finset.range (t + 1),
       bitPick u s (σ (.n (nbGL c s))) 1 := by
@@ -276,7 +276,7 @@ theorem holds_nbG {c : ℕ} {pgs pgo : V} {w : ℕ} (hw1 : 1 ≤ w)
     (h : Stmt.HoldsList C rd σ (nbG c pgs pgo w) True kret) :
     ∃ gl : List E, gl.length = w ∧ TbReadsAt rd (σ pgs) gl ∧ TbReadsAt rd (σ pgo) (gTable gl) := by
   have nG := tb_noRetList_flatten_range (w - 1) _ (fun t => nbGStep_noRet c pgs (t + 1))
-  have n0 : Stmt.noRetList [Stmt.atom (.const (.n c) (word 1 0 0)),
+  have n0 : Stmt.noRetList [Stmt.atom (.const (.n c) (word 1 0)),
     Stmt.atom (.load (.n (c + 1)) pgs 0)] = true := rfl
   rw [nbG, tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nG, n0, Bool.and_self]),
     tb_holdsList_append_noRet n0, tb_holdsList_mapAtoms,

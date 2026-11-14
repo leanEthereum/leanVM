@@ -176,10 +176,6 @@ theorem toList_tableTabA_owned (hcols : ColsOk prog s q cols) (β : E) (w : List
   rw [ht]
   exact toList_tableTabA hcols β w t _
 
-theorem cols_memCol (hcols : ColsOk prog s q cols) (i : Fin 4) :
-    cols.getD (i : ℕ) #[] = ((inst prog s).column q (memCol i)).values.toArray := by
-  rw [← hcols, refCol_memCol]
-
 /-- The memory block's leaves, `cnt` its counts. -/
 theorem toList_memTabA (hcols : ColsOk prog s q cols) {N : ℕ} (hN : 2 ^ s.logMem ≤ N) (β : E)
     (w : List E) (cnt : ℕ → E) (cntL : List E)
@@ -190,8 +186,7 @@ theorem toList_memTabA (hcols : ColsOk prog s q cols) {N : ℕ} (hN : 2 ^ s.logM
   have hy := y.isLt
   have hk : y.1 < 2 ^ kappa prog s (memCol 0) := hy
   rw [getD_powsA_gen (by omega), hcnt y hy, ← cell_eq hcols (memCol 0) hk,
-    ← cell_eq hcols (memCol 1) hk, ← cell_eq hcols (memCol 2) hk, refCol_memCol, refCol_memCol,
-    refCol_memCol]
+    ← cell_eq hcols (memCol 1) hk, refCol_memCol, refCol_memCol]
   rfl
 
 /-- The bytecode block's leaves, `cnt` its counts. -/

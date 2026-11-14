@@ -39,10 +39,8 @@ theorem commitPure_roots {height width : ℕ} {s : VerifierProgramState} {t : Un
     ∃ root, t.2.roots = s.roots ++ [(root, height, width)] := by
   unfold commitPure at h
   split at h
-  · split at h
-    · obtain rfl := Option.some.inj h.symm
-      exact ⟨_, rfl⟩
-    · simp at h
+  · obtain rfl := Option.some.inj h.symm
+    exact ⟨_, rfl⟩
   · simp at h
 
 /-- **The stack's root**: `afterRootLite`'s one root, at the ladder's first level: height

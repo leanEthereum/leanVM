@@ -3,7 +3,7 @@ module
 /-!
 # `sp_wots`' positions, as literal tables
 
-The cells `sp_wots` (`Data.core19`) hints its chains' starts at, precomputed from its template
+The cells `sp_wots` hints its chains' starts at, precomputed from its template
 (`B1/Sig/SpWotsT.lean`, `spGroupsT`, `spLast`) in the guest's numbering (`spRen`) and checked
 equal to it by kernel evaluation
 (`Fast/SpWotsTablesCheck.lean`): its codeword groups' selector cells (each group's digit hint, its

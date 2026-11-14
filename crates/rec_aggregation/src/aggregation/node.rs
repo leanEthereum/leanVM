@@ -1,7 +1,7 @@
 //! The entry points that prove one node of an aggregation tree.
 
 use super::cells::count;
-use super::child::{MU_MIN, gen_verify};
+use super::child::gen_verify;
 use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, aggregate_deferred_claims, bytecode_sums, bytecode_value, scalar_bytecode};
 use super::error::{AggregateVerifyError, AggregationError, SnarkProveError, SnarkVerifyError};
@@ -11,11 +11,11 @@ use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
 use super::proof::{EthereumClaims, EthereumProof, check_signer_set};
 use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
-use super::{LeanSphincsClaim, LeanXmssClaim, MAX_KEYS, MAX_RECURSIONS};
+use super::{LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS};
 use leanvm_core::cpu::{from_scalar, prove, public_input_bytes, scalar_proof};
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use signatures::{lean_sphincs, lean_xmss};
@@ -35,8 +35,6 @@ use signatures::{lean_sphincs, lean_xmss};
 ///   covered by the inputs above.
 /// - `log_inv_rate`: PCS code rate `2^-log_inv_rate`, higher `log_inv_rate` means a smaller proof
 ///   but slower proving; in [`MIN_LOG_INV_RATE`](pcs::whir::MIN_LOG_INV_RATE)..=[`MAX_LOG_INV_RATE`](pcs::whir::MAX_LOG_INV_RATE).
-///
-/// The combined leanXMSS and leanSPHINCS claim count, including duplicate coverage slots, must be strictly below [`MAX_KEYS`].
 ///
 /// IMPORTANT:
 /// - `aggregate` should not be called more than once at a time in parallel per process.
@@ -88,7 +86,7 @@ pub fn aggregate_with_stats(
 /// aggregate will claim and defer.
 pub(super) struct Node {
     pub(super) program: leanvm_core::cpu::Program,
-    pub(super) public_input: [F192; 2],
+    pub(super) public_input: [F128; 2],
     pub(super) claims: EthereumClaims,
     pub(super) defer: DeferredClaim,
 }
@@ -184,16 +182,13 @@ pub(super) fn build_node(
         .map(|(pk, message, _)| (*pk, *message))
         .collect();
     let cover = plan_coverage(&raw_xmss_claims, &raw_lean_sphincs_claims, children, declare)?;
-    if cover.n_total() >= MAX_KEYS {
-        return Err(AggregationError::TooLarge);
-    }
 
     let mut hints = Hints::default();
     hints.push(
         "meta",
         vec![
-            count(cover.xmss.signers.len()),
-            count(cover.xmss.dups.len()),
+            count(cover.lean_xmss.signers.len()),
+            count(cover.lean_xmss.dups.len()),
             count(raw_lean_xmss.len()),
             count(cover.lean_sphincs.signers.len()),
             count(cover.lean_sphincs.dups.len()),
@@ -206,8 +201,8 @@ pub(super) fn build_node(
     hints.push("fs_seed", vec![fs_seed[0], fs_seed[1]]);
     // Both lists in the guest's order, leanXMSS first: each one's split, its declared
     // claims, then its duplicates.
-    let lean_xmss_cells: Vec<[F192; 4]> = cover.xmss.signers.iter().map(lean_xmss_claim_cells).collect();
-    let lean_sphincs_cells: Vec<[F192; 4]> = cover
+    let lean_xmss_cells: Vec<[F128; 4]> = cover.lean_xmss.signers.iter().map(lean_xmss_claim_cells).collect();
+    let lean_sphincs_cells: Vec<[F128; 4]> = cover
         .lean_sphincs
         .signers
         .iter()
@@ -221,7 +216,7 @@ pub(super) fn build_node(
             hints.push("claims", claim.to_vec());
         }
     }
-    let dups = cover.xmss.dups.iter().map(lean_xmss_claim_cells);
+    let dups = cover.lean_xmss.dups.iter().map(lean_xmss_claim_cells);
     for claim in dups.chain(cover.lean_sphincs.dups.iter().map(lean_sphincs_claim_cells)) {
         hints.push("dup_claims", claim.to_vec());
     }
@@ -231,7 +226,7 @@ pub(super) fn build_node(
         let (pk, message, sig) = &raw_lean_xmss[i];
         lean_xmss_hints(pk, sig, message)
     });
-    for (&offset, sub) in cover.xmss.raw.iter().zip(lean_xmss_hints) {
+    for (&offset, sub) in cover.lean_xmss.raw.iter().zip(lean_xmss_hints) {
         hints.push("raw_index", vec![count(offset)]);
         for (name, entry) in sub? {
             hints.push(name, entry);
@@ -250,7 +245,7 @@ pub(super) fn build_node(
 
     // Both claims of each child, in the batch's order: the fresh one, then the one it carried. The fresh
     // claim's value is read off the sums the batch runs on.
-    let claim_points: Vec<Vec<F192>> = replayed
+    let claim_points: Vec<Vec<F128>> = replayed
         .iter()
         .zip(children)
         .flat_map(|((_, summary), child)| {
@@ -270,9 +265,12 @@ pub(super) fn build_node(
     for (i, (child, verified)) in children.iter().zip(verified).enumerate() {
         hints.push(
             "child_meta",
-            vec![count(child.claims.xmss.len()), count(child.claims.lean_sphincs.len())],
+            vec![
+                count(child.claims.lean_xmss.len()),
+                count(child.claims.lean_sphincs.len()),
+            ],
         );
-        for offsets in [&cover.xmss.children[i], &cover.lean_sphincs.children[i]] {
+        for offsets in [&cover.lean_xmss.children[i], &cover.lean_sphincs.children[i]] {
             if offsets.is_empty() {
                 continue;
             }
@@ -339,23 +337,19 @@ pub(super) fn build_node(
                     "da_symbols",
                     witness.codewords[i * m + j * c..i * m + (j + 1) * c]
                         .iter()
-                        .map(|&w| F192::from(F64(w)))
+                        .map(|&w| F128::from(F64(w)))
                         .collect(),
                 );
             }
         }
     }
     hints.push("da_pick", vec![count(da_pick)]);
-    if cover.xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
+    if cover.lean_xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
         return Err(AggregationError::Empty);
     }
 
-    let public_input = statement_digest(&cover.xmss.signers, &cover.lean_sphincs.signers, da, &defer);
+    let public_input = statement_digest(&cover.lean_xmss.signers, &cover.lean_sphincs.signers, da, &defer);
     let mut program = guest.clone();
-    // Every aggregate is a potential child, and the guest has no opening arm below
-    // `2^MU_MIN`. A run smaller than that (a leaf of a few dozen signatures) grows
-    // its SET table until it clears the floor.
-    program.min_log_committed = MU_MIN;
     #[cfg(any(test, feature = "fuzzing"))]
     if let Some(forge) = FORGE.with(|forge| forge.borrow_mut().take()) {
         forge(&mut hints);
@@ -365,7 +359,7 @@ pub(super) fn build_node(
         program,
         public_input,
         claims: EthereumClaims {
-            xmss: cover.xmss.signers,
+            lean_xmss: cover.lean_xmss.signers,
             lean_sphincs: cover.lean_sphincs.signers,
             da_commitment: da_root,
         },

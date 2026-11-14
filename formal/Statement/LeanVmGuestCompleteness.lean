@@ -5,8 +5,8 @@ public import Statement.LeanVmGuest
 /-!
 # The leanISA guest program: completeness, and the batching's soundness
 
-The guest program's completeness on the covered nodes whose children carry honest proofs
-(`GuestCompleteOnHonestChildren`, within the deployed limits, `DeployedLimits`), the honest proof
+The guest program's completeness on the nodes within the deployed limits (`DeployedLimits`) whose
+children carry honest proofs (`GuestCompleteOnHonestChildren`), the honest proof
 rarely refused (`HonestProofRarelyRefused`), and the recursion step, the batching of the
 children's deferred claims, sound in the random-permutation model (`BatchingSound`). The
 soundness side, what a node proves, is `LeanVmGuest.lean`. `lean_ethereum.py:N` is line `N`
@@ -25,79 +25,56 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 /-! ## The deployed limits -/
 
-/-- **The coverage table's slots** (`n_total`, `lean_ethereum.py:4530`): one for each raw
-signature and each entry of a child's signature lists, every slot written once
-(`lean_ethereum.py:4564-4567`: the writes `:4590, 4595, 4179, 4247`, counted by `written`,
-`:4614-4615, 4640-4641`). -/
-def coverageSlots (witness : NodeWitness) : ℕ :=
-  witness.xmssSignatures.length + witness.sphincsSignatures.length +
-    (witness.children.map fun child ↦
-      child.statement.claims.xmss.length + child.statement.claims.sphincs.length).sum
-
-/-- **The deployed limits**, where `NodeRelation` admits witnesses the guest program cannot run.
-Implied by these, with `NodeRelation` and honest children, and so not limits of their own: a child's
-stack log at most `28` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked
-directly (`NodeWitness.daMatrix`, `lean_ethereum.py:4525`), every count of `meta` and of a child's
-lists below `2^16` (`lean_ethereum.py:4518-4523, 4626-4627`: each at most `coverageSlots`), the bus
-depth at most `32` (`lean_ethereum.py:1779`), the tables' heights at most `28`
-(`lean_ethereum.py:2195`). -/
+/-- **The deployed limits**, where `NodeRelation` admits witnesses the guest program cannot run, and
+the node's fixed capacities, within which its run fits `2^30` committed words. Implied by these,
+with `NodeRelation` and honest children, and so not limits of their own: a child's stack log at
+most `30` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked directly
+(`NodeWitness.daMatrix`), the bus depth at most `32`, the tables' heights at most `30`, and the
+declared claims at most the claims held. -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
   signatures or by entries of the children's lists, each used once: each coverage slot is written
-  once and the declared claims have one slot each (`lean_ethereum.py:4589-4590, 4594-4595`; a
-  child's list by hinted indices, `:4178-4179`, or by strictly increasing hinted gaps, every claim
-  of the list writing one mark, `:4243-4247, 4301`; the count, `:4641`), where `NodeRelation` lets
+  once and the declared claims have one slot each (`lean_ethereum.py:4773-4774, 4778-4779`; a
+  child's list by hinted indices, `:4362-4364`, or by strictly increasing hinted gaps, every claim
+  of the list writing one mark, `:4427-4432, 4487`; the count, `:4825`), where `NodeRelation` lets
   two equal claims share one holder. -/
   claimsHeldWithMultiplicity :
     statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.xmss)).flatten) ∧
     statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.sphincs)).flatten)
-  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4524`). -/
+  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4708`). -/
   atMostSixteenChildren : witness.children.length ≤ 16
-  /-- The coverage table below `2^16` (`lean_ethereum.py:4531`). -/
-  coverageSlotsBelow2Pow16 : coverageSlots witness < 2 ^ 16
+  /-- At most `2^17` claims in the children's lists, in all. -/
+  atMost2Pow17ChildClaims :
+    (witness.children.map fun child ↦
+      child.statement.claims.xmss.length + child.statement.claims.sphincs.length).sum ≤ 2 ^ 17
+  /-- At most `2048` raw leanXMSS signatures. -/
+  atMost2048Xmss : witness.xmssSignatures.length ≤ 2048
+  /-- At most `512` raw leanSPHINCS signatures. -/
+  atMost512Sphincs : witness.sphincsSignatures.length ≤ 512
+  /-- At most `32` rows in the blob matrix checked directly. -/
+  atMost32Rows : ∀ p ∈ witness.daMatrix, p.2.rows.length ≤ 32
 
-/-! ## The guest program's completeness on the covered nodes -/
+/-! ## The guest program's completeness
+
+The guest program runs every node within the deployed limits whose children carry honest proofs,
+in at most `2^30` committed words. -/
 
 namespace Completeness
-
-/-- **The nodes the deployed budget covers**, seven families by the node's children, raw
-signatures, the rows of the blob matrix checked directly, and coverage slots (`coverageSlots`: the
-raw signatures and the children's claims): a recursion node of `2048` slots; a leaf of `2048` raw
-signatures; `8` children and `2^15` slots; `4` children, `1024` raw signatures and `8192` slots;
-`4` children, a matrix of `32` rows and `8192` slots; `2` children, `256` raw signatures, a matrix
-of `32` rows and `8192` slots; `2` children, a matrix of `32` rows and `2^14` slots. A node of no
-child and no raw signature, so of no claim, with a matrix of `32` rows, is of the fifth. The raw
-signatures are counted with a leanSPHINCS signature as three (`raw`): its check costs the guest
-program about three leanXMSS ones (at leanVM `40f877dc`, `899` `KECCAK`s against `398`, `8582`
-memory words against `1551`). -/
-def CoveredNode (witness : NodeWitness) : Prop :=
-  let n := witness.children.length
-  let raw := witness.xmssSignatures.length + 3 * witness.sphincsSignatures.length
-  let blobs := (witness.daMatrix.map fun _ ↦ 1).getD 0
-  let rows := (witness.daMatrix.map fun p ↦ p.2.rows.length).getD 0
-  let slots := coverageSlots witness
-  (raw = 0 ∧ blobs = 0 ∧ slots ≤ 2048) ∨
-  (n = 0 ∧ blobs = 0 ∧ raw ≤ 2048 ∧ slots ≤ 2048) ∨
-  (n ≤ 8 ∧ raw = 0 ∧ blobs = 0 ∧ slots ≤ 2 ^ 15) ∨
-  (n ≤ 4 ∧ raw ≤ 1024 ∧ blobs = 0 ∧ slots ≤ 8192) ∨
-  (n ≤ 4 ∧ raw = 0 ∧ rows ≤ 32 ∧ slots ≤ 8192) ∨
-  (n ≤ 2 ∧ raw ≤ 256 ∧ rows ≤ 32 ∧ slots ≤ 8192) ∨
-  (n ≤ 2 ∧ raw = 0 ∧ rows ≤ 32 ∧ slots ≤ 2 ^ 14)
 
 /-! ### Children carrying honest proofs
 
 The guest program checks a child with the deployed Keccak, so the honest proof is made with it
 (the honest prover in `Id` over `keccakF1600`); what it can fail by (a proof of work without a
-nonce within its fuel, a zero challenge where the guest program divides) is bounded in the
+nonce within its fuel, a zero where the guest program divides) is bounded in the
 random-permutation model for the same prover and check (`verifierRefusingZero`).
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each level's batching challenge `λ`, `lean_ethereum.py:1400, 1709, 1714`), so a zero one makes
-it reject a child the verifier accepts; the honest child's hypothesis refuses a zero challenge
-anywhere (`VerifierProgram.refusingZeroChallenge`), a slightly stronger one, each challenge being
-zero with probability `2^-192`. -/
+and each non-final level's batching challenge `λ`, `lean_ethereum.py:1651, 1766, 1772`), so a zero
+there makes it reject a child the verifier accepts. The honest child's hypothesis refuses a zero
+challenge anywhere (`VerifierProgram.refusingZeroChallenge`, a slightly stronger one, each
+challenge being zero with probability `2^-128`). -/
 
 /-- **`program` refusing a zero challenge**: every sampled challenge `0` fails. -/
 def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : Type} :
@@ -110,69 +87,69 @@ def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : T
   | .commit height width k => .commit height width k.refusingZeroChallenge
   | .query i ps k => .query i ps fun rows ↦ (k rows).refusingZeroChallenge
 
-/-- **The leanVM verifier refusing a zero challenge** (`VerifierProgram.refusingZeroChallenge`):
-`leanVmVerifier π` with every sampled challenge `0` a failure. -/
+/-- **The leanVM verifier refusing every zero challenge** (`VerifierProgram.refusingZeroChallenge`),
+slightly stronger than refusing a zero only where the guest program divides. -/
 def verifierRefusingZero {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
     (program : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool := do
   let seed ← spongeSeedWith π (bytecodeWords program) (publicInputDigest input)
   runProof π
-    (leanVmVerifierProgram (bytecodeWords program) (publicInputDigest input)).refusingZeroChallenge
-        seed proof
+    (do
+      verifyExecution computedBytecodeValue (bytecodeWords program) (publicInputDigest input)
+      return true : VerifierProgram Bool).refusingZeroChallenge
+    seed proof
 
 open OracleComp OracleSpec in
-/-- **The honest proof is rarely refused**: in the random-permutation model, at `2^25` nonces per
+/-- **The honest proof is rarely refused**: in the random-permutation model, at `2^35` nonces per
 proof of work, the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover.prove`)
 makes no proof, or `verifierRefusingZero` rejects its proof, of a valid execution of committed size
-at most `2^28`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`. -/
+at most `2^30`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-100`. -/
 def HonestProofRarelyRefused : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
-    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 28 →
+    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 30 →
     1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let accepted ← Common.runWithRandomPermutation (do
         match ← LeanVM.leanVmHonestProver Common.queryPermutation program input execution ρ (2 ^
-            25) with
+            35) with
         | none => pure false
         | some proof =>
           verifierRefusingZero Common.queryPermutation program input proof)}[accepted = false] ≤
-      (2 : ℝ≥0∞)⁻¹ ^ 126
+      (2 : ℝ≥0∞)⁻¹ ^ 100
 
 /-- **A child carrying an honest proof**: its fresh claim on the bytecode is true, and its proof
-is the honest prover's, with the deployed Keccak, of an execution of the guest program of
-committed size above `2^21` on its statement's digest under the deployed seed, and the leanVM
-verifier refusing a zero challenge accepts it. The floor is the one the guest program checks: it
-has an opening arm for a child's stack log `⌈log₂ committedSize⌉` from `22` (`MU_MIN`,
-`aggregation/child.rs:259`) to `28` only (`lean_ethereum.py:3489-3493`), and the aggregator pads
-every aggregate's memory, doubling it, until that log is at least `22` (`min_log_committed =
-MU_MIN`, `aggregation/node.rs:325`; `execute.rs:1052-1061`; the log is `placements_of`'s `mu`,
-`⌈log₂⌉` of the committed cells, `cpu/layout.rs:280-284`, `witness.rs:79-96`). `lean_vm` proves that
+is the honest prover's, with the deployed Keccak, of an execution of the guest program on its
+statement's digest under the deployed seed, and the leanVM verifier refusing a zero challenge
+accepts it. No size is asked: the guest program has an opening arm for every stack log the
+verifier admits of an execution of its bytecode, from `20` (`min_execution_stacked_log`,
+`crates/verifier`'s `layout.rs`: the bytecode's `2^19` instructions alone fill `2^19` words) to `30`
+(`MAX_STACKED_LOG`), and the
+honest prover makes no proof past `2^30` committed words (`maxCommitted`). `lean_vm` proves that
 such a child meets what the guest program checks of a child (`guest_child_complete`). -/
 def HonestChild (child : Child) : Prop :=
   let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
   child.freshClaim.Holds (bytecodeWords guestProgram) ∧
-    ∃ (execution : Execution guestProgram) (ρ : ℕ), 2 ^ 21 < execution.committedSize ∧
-      LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 25) =
+    ∃ (execution : Execution guestProgram) (ρ : ℕ),
+      LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 35) =
         some child.proof ∧
       verifierRefusingZero (m := Id) keccakF1600 guestProgram input child.proof = true
 
-/-- **Every covered node whose children carry honest proofs has a valid execution of the guest
-program**: for every statement and witness with `NodeRelation` under the deployed seed, within the
-deployed limits, in one of the families `CoveredNode` lists, every child carrying an honest proof
-(`HonestChild`), there is a valid execution of the guest program on the statement's digest of
-committed size above `2^21` and at most `2^28`, so of stack log `⌈log₂ committedSize⌉` from `22` to
-`28`, the sizes `HonestChild` admits (the aggregator's floor, `aggregation/node.rs:325`,
-`execute.rs:1052-1061`). Reading `HonestProofRarelyRefused` for the deployed Keccak,
+/-- **Every node within the deployed limits whose children carry honest proofs has a valid execution
+of the guest program**: for every statement and witness with `NodeRelation` under the deployed seed,
+within the deployed limits (`DeployedLimits`), every child carrying an honest proof (`HonestChild`),
+there is a valid execution of the guest program on the statement's digest of
+committed size at most `2^30`, the sizes the honest prover proves and `HonestProofRarelyRefused`
+covers. Reading `HonestProofRarelyRefused` for the deployed Keccak,
 so that the honest proof is a `HonestChild`, is the heuristic that the deployed Keccak-f[1600]
 behaves as a random permutation, applied to this prover. Proved by
 `LeanVM.Guest.Completeness.guest_complete_on_honest_children`. -/
 def GuestCompleteOnHonestChildren : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
-    DeployedLimits statement witness → CoveredNode witness →
+    DeployedLimits statement witness →
     (∀ child ∈ witness.children, HonestChild child) →
     ∃ execution : Execution guestProgram,
       ValidExecution guestProgram
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧
-      2 ^ 21 < execution.committedSize ∧ execution.committedSize ≤ 2 ^ 28
+      execution.committedSize ≤ 2 ^ 30
 
 end Completeness
 
@@ -259,11 +236,11 @@ def SomeChildClaimFalse (bytecode : List K) (childCountBound : ℕ) (proof : Pro
       child.freshClaim.Holds bytecode ∧ child.carriedClaim.HoldsWithShape bytecode
 
 /-- **The batching program's query bound** on child counts below `childCountBound`: the seed's two
-queries, then a quarter of the program's cost (the count, the children's cells, the challenge, the
-sumcheck's rounds and the final value). -/
+queries, then a quarter of the program's cost (the count, the children's cells, the proof of work
+and the challenge, the sumcheck's rounds and the final value). -/
 def batchingQueryBound (bytecode : List K) (childCountBound : ℕ) : ℕ :=
   2 + (rateScalars + (childCountBound * (childWordCount (Nat.log2 bytecode.length) +
-    zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 4 + 6 * Nat.log2
+    zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 5 + 4 + 6 * Nat.log2
       bytecode.length + 1)) / 4
 
 open OracleComp OracleSpec in
@@ -271,11 +248,13 @@ open OracleComp OracleSpec in
 a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries to `π` and `π⁻¹`
 outputs a proof; the probability that the batching's verifier over `π` (Keccak-256 the sponge over
 `π`) accepts it while its stream begins with fewer than `M` children of the bytecode's shapes one
-of whose claims is false is at most `(QA + QV + 1) · M · 2^-191 + 5 (QA + QV)² · 2^-256`, for
-`QA ≤ 2^128` and the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the
-adversary's private coins are free. The factor `M` is the batching's one challenge `λ`: the
-children's `2n` claims, `n < M`, are combined with its powers, and a nonzero combination of degree
-below `2M` vanishes at fewer than `2M` values of `λ` (a sumcheck round's challenge at at most `2`).
+of whose claims is false is at most `(QA + QV + 1) · max(2M - 3, 8) · 2^-130 + 5 (QA + QV)² · 2^-256`,
+for `QA ≤ 2^128` and the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the
+adversary's private coins are free. The factor `max(2M - 3, 8) · 2^-130` bounds each query's chance at
+a challenge: a sumcheck round's is bad at no more than `2` values, `2/|E| = 8 · 2^-130`; the
+batching's one challenge `λ` combines the children's `2n` claims, `n < M`, with its powers, a
+nonzero combination of degree at most `2M - 3` vanishes at no more than `2M - 3` values of `λ`, and
+a query reaches `λ` only by passing the proof of work of `batchLambdaGrindBits = 2` bits before it.
 
 This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
 the guest program's in-circuit statements, whose `KECCAK` instruction computes the deployed
@@ -292,7 +271,8 @@ def BatchingSound : Prop :=
            runBatching Common.queryPermutation (boundedBatchingProgram M bytecode) output.2
          return (output, accepted))}[
       outcome.2 = true ∧ SomeChildClaimFalse bytecode M outcome.1.2] ≤
-      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 191 +
+      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) *
+          (2 : ℝ≥0∞)⁻¹ ^ 130 +
         5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end Batch

@@ -18,19 +18,19 @@ public import Mathlib.Algebra.CharP.Two
 /-!
 # The `DEREF` table
 
-At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `b41c196b`. The columns
-are `crates/leanvm_core/src/tables.rs:591-614` (`mod deref`, in that order), the store coordinates
-`tables.rs:621-628` (`deref_store`), the flushes `tables.rs:638-648` (`DerefTable::flushes`),
-matching specification §7.4 (`doc/leanvm/body/07-instruction-tables.tex:66-92`). There is no
+At `leanvm-rev` and Clean pin `b41c196b`. The columns
+are `crates/leanvm_core/src/tables.rs:596-618` (`mod deref`, in that order), the store coordinates
+`tables.rs:625-632` (`deref_store`), the flushes `tables.rs:642-652` (`DerefTable::flushes`),
+matching specification §7.4 (`doc/leanvm/body/07-instruction-tables.tex`). There is no
 constraint enforcing Boolean flags. Local soundness instead requires the bytecode pull's
 canonical-entry guarantee, whose decoder (`decode`) admits only the three flag pairs. The typed
 public program stores `LeanIsaInstruction` values; this does not supply a raw-program parser or its
 correspondence theorem.
 
 **The row** `DerefRow` is the column list: `pc, fp`; the operands `o₁, o₂, o₃`; the flags
-`f_pc, f_fp`; the pointer `p`, a single `K` limb; the local word `v₃` as three limbs; the memory
+`f_pc, f_fp`; the pointer `p`, a single `K` limb; the local word `v₃` as two limbs; the memory
 counts `r₁, r₂, r₃`; the bytecode count `r_bc`. The target word is never a column: its limbs
-ride the target read as `(f̄·v₃₀ + f_pc·(g²·pc) + f_fp·fp, f̄·v₃₁, f̄·v₃₂)` with
+ride the target read as `(f̄·v₃₀ + f_pc·(g²·pc) + f_fp·fp, f̄·v₃₁)` with
 `f̄ = 1 + f_pc + f_fp`, the flag-selected source of §7.4, which `storeCoords_eval` identifies
 with `derefSource` at each of the three flag settings.
 
@@ -50,7 +50,7 @@ execution by `derefRowOf_refines`. The table is program-free, as leanVM's is
 
 **The component** `derefTable` pulls the state `(pc, fp)`, pushes and returns `(g·pc, fp)`,
 reads the bytecode entry `(DRF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)` at `pc`, reads the pointer cell
-`fp·o₁` as `(p, 0, 0)`, the local cell `fp·o₃`, and the target cell `p·o₂`, in the order of
+`fp·o₁` as `(p, 0)`, the local cell `fp·o₃`, and the target cell `p·o₂`, in the order of
 §7.4; `Spec` is `DerefSpec`. Soundness reads the instruction the pulled tuple decodes to
 through `decode_deref_eq_some_iff`, the one use a table makes of the bytecode
 guarantee: the pulled tuple *is* an instruction, so its flag pair is a store mode's (a pair that
@@ -67,7 +67,7 @@ prover data, from the execution alone.
 
 ## Wrong readings excluded
 
-* The pointer read carries literal zeros above its low limb (`memory_k`, `tables.rs:179-181`),
+* The pointer read carries a literal zero above its low limb (`memory_k`, `tables.rs:155-157`),
   so a pointer word outside `K` cannot balance the bus; `step` asserts `IsInK p` the same way.
 * The local cell is read in every mode, `pc` and `fp` modes included:
   `memRead (fp·o₃)` is unconditional, as is the third read of `execute`, and `DerefBindings`
@@ -85,7 +85,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `DEREF` columns, in the order of `tables.rs:591-614`. -/
+/-- The `DEREF` columns, in the order of `tables.rs:596-618`. -/
 structure DerefRow (F : Type) where
   /-- The program counter. -/
   pc : F
@@ -104,7 +104,7 @@ structure DerefRow (F : Type) where
   /-- The pointer `p`, the low limb of the word at `fp · o₁`. -/
   p : F
   /-- The local word at `fp · o₃`, as limbs. -/
-  v3 : Vector F 3
+  v3 : Vector F 2
   /-- The read count of the pointer cell. -/
   r1 : F
   /-- The read count of the target cell. -/
@@ -118,15 +118,14 @@ structure DerefRow (F : Type) where
 /-! ## The store coordinates -/
 
 /-- The store coordinates evaluate to `derefSource` at each flag setting
-(specification §7.4; `tables.rs:621-628`): the local word in `cell` mode, `g²·pc` in `pc` mode,
+(specification §7.4; `tables.rs:625-632`): the local word in `cell` mode, `g²·pc` in `pc` mode,
 `fp` in `fp` mode. -/
-theorem storeCoords_eval (mode : DerefMode) (pc fp v30 v31 v32 : K) :
+theorem storeCoords_eval (mode : DerefMode) (pc fp v30 v31 : K) :
     E.ofLimbs
         ((1 + (derefFlags mode).1 + (derefFlags mode).2) * v30 +
           (derefFlags mode).1 * (g ^ 2 * pc) + (derefFlags mode).2 * fp)
-        ((1 + (derefFlags mode).1 + (derefFlags mode).2) * v31)
-        ((1 + (derefFlags mode).1 + (derefFlags mode).2) * v32) =
-      derefSource mode ⟨pc, fp⟩ (E.ofLimbs v30 v31 v32) := by
+        ((1 + (derefFlags mode).1 + (derefFlags mode).2) * v31) =
+      derefSource mode ⟨pc, fp⟩ (E.ofLimbs v30 v31) := by
   cases mode <;>
     simp only [derefFlags, derefSource, ofK_eq_ofLimbs, add_zero, zero_add, one_mul, zero_mul,
       CharTwo.add_self_eq_zero]
@@ -140,9 +139,9 @@ structure DerefBindings {κ : ℕ} (mem : MemoryImage κ) (r : DerefRow K) (mode
   /-- The row's flags are the mode's. -/
   flags_eq : derefFlags mode = (r.fpc, r.ffp)
   /-- The pointer cell `fp · o₁` holds `p`, a word in `K`. -/
-  ptr_eq : mem.read (r.fp * r.o1) = some (E.ofLimbs r.p 0 0)
+  ptr_eq : mem.read (r.fp * r.o1) = some (E.ofLimbs r.p 0)
   /-- The local cell `fp · o₃` holds the row's word `v₃`. -/
-  local_eq : mem.read (r.fp * r.o3) = some (E.ofLimbs r.v3[0] r.v3[1] r.v3[2])
+  local_eq : mem.read (r.fp * r.o3) = some (E.ofLimbs r.v3[0] r.v3[1])
 
 /-- The relation a `DEREF` row refines: for some store mode, the row is bound to the image and
 from its registers the machine executes the instruction it names in that mode,
@@ -158,7 +157,7 @@ theorem deref_refines_iff {κ : ℕ} (mem : MemoryImage κ) (r : DerefRow K) (ne
     DerefRefines mem r next ↔
       ∃ mode, DerefBindings mem r mode ∧
         mem.read (r.p * r.o2) =
-          some (derefSource mode ⟨r.pc, r.fp⟩ (E.ofLimbs r.v3[0] r.v3[1] r.v3[2])) ∧
+          some (derefSource mode ⟨r.pc, r.fp⟩ (E.ofLimbs r.v3[0] r.v3[1])) ∧
         next = Registers.next ⟨r.pc, r.fp⟩ := by
   constructor
   · rintro ⟨mode, ⟨hflags, h1, h3⟩, hexec⟩
@@ -199,10 +198,10 @@ private theorem deref_tuple (c o1 o2 o3 fpc ffp : K) :
 
 /-! ## The table -/
 
-/-- The `DEREF` table (specification §7.4; `tables.rs:591-687`): state step, bytecode read of
-`(DRF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)`, the pointer read `(p, 0, 0)` at `fp·o₁`, the target read
+/-- The `DEREF` table (specification §7.4; `tables.rs:594-688`): state step, bytecode read of
+`(DRF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)`, the pointer read `(p, 0)` at `fp·o₁`, the target read
 at `p·o₂` carrying the flag-selected source, and the local read at `fp·o₃`, in the order of
-`tables.rs:642-647` and of `flushes_deref` (`crates/verifier/src/layout.rs:247-270`), which
+`tables.rs:646-651` and of `flushes_deref` (`crates/verifier/src/layout.rs:243-265`), which
 fixes the order of the bus blocks. Returns the pushed successor `(g·pc, fp)`. -/
 def derefTable : GeneralFormalCircuit K DerefRow Registers where
   -- The table's name in leanVM (`TABLES`, `cpu/mod.rs:391`), unique in the ensemble (Clean keys
@@ -216,10 +215,10 @@ def derefTable : GeneralFormalCircuit K DerefRow Registers where
     StatePush.push next
     bytecodeRead r.pc r.rbc (Expression.const Opcode.deref.busCode)
       #v[r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0, 0, 0, 0, 0, 0]
-    memRead (r.fp * r.o1) r.r1 #v[r.p, 0, 0]
+    memRead (r.fp * r.o1) r.r1 #v[r.p, 0]
     memRead (r.p * r.o2) r.r2
       #v[fbar * r.v3[0] + r.fpc * (Expression.const (g ^ 2) * r.pc) + r.ffp * r.fp,
-         fbar * r.v3[1], fbar * r.v3[2]]
+         fbar * r.v3[1]]
     memRead (r.fp * r.o3) r.r3 r.v3
     pure next
   -- The push channels: their requirements are vacuous, the obligation is `Spec`.
@@ -287,10 +286,10 @@ theorem derefRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp o1 o2 o3 : K
   obtain ⟨p, hp, u, hu, v3, hv3, -⟩ := h
   have hin := guard_eq_some hu
   refine ⟨mode, ⟨rfl, ?_, ?_⟩, hexec⟩
-  · show mem.read (fp * o1) = some (E.ofLimbs (mem.limbsAt (fp * o1))[0] 0 0)
+  · show mem.read (fp * o1) = some (E.ofLimbs (mem.limbsAt (fp * o1))[0] 0)
     rw [MemoryImage.limbsAt_getElem_zero hp, ofLimbs_of_isInK hin]; exact hp
   · show mem.read (fp * o3) = some (E.ofLimbs (mem.limbsAt (fp * o3))[0]
-      (mem.limbsAt (fp * o3))[1] (mem.limbsAt (fp * o3))[2])
+      (mem.limbsAt (fp * o3))[1])
     rw [MemoryImage.ofLimbs_limbsAt hv3]; exact hv3
 
 /-- Every valid `DEREF` execution has a satisfying row, from the execution alone: the

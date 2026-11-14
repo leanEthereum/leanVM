@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Selectors.SharedTables
 
   B1 for `shared_selector_tables`: a selector run's nibble tables, the full nibbles by its loop
-  `__loop8` and the last partial one by `sel_partial_nibble`.
+  `shared_selector_tables_loop0` and the last partial one by `sel_partial_nibble`.
 -/
 
 module
@@ -10,16 +10,18 @@ module
 public import LeanVM.Guest.B1.Selectors.Nibble
 public import LeanVM.Guest.B1.Selectors.SelPartial
 public import LeanVM.Guest.B1.Selectors.BlockSelectorTab
+public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.CoreData
 
 /-!
 # `shared_selector_tables` (TRIAGE G #48)
 
-`shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)` (G:1990-2013) hints the
+`shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)` (G:2103-2126) hints the
 six bits of `len_g`'s exponent, pins them Boolean, rebuilds `r_g = g^r` from the low two and
 `q_g = g^q` from the high four, asserts `q_g^4·r_g = len_g` (so `len_g = g^n`, `n = 4q + r < 64`),
-runs its loop over `x = g^j`, `j < q` (`__loop8`: nibble `j`'s eq levels and `g` table by the
-inline `sel_eq_nibble`, `sel_g_nibble`), then dispatches the partial nibble `q` of width `r` to
-`sel_partial_nibble__L{r}`.
+runs its loop over `x = g^j`, `j < q` (`shared_selector_tables_loop0`: nibble `j`'s eq levels and
+`g` table by the inline `sel_eq_nibble`, `sel_g_nibble`), then dispatches the partial nibble `q` of
+width `r` to `sel_partial_nibble__L{r}`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -31,7 +33,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## The loop -/
 
-/-- `__loop8`'s statements before its conditional call. -/
+/-- `shared_selector_tables_loop0`'s statements before its conditional call. -/
 def lpPre : List Stmt :=
   [.atom (.mul (.n 7) (.n 0) (.n 0)), .atom (.mul (.n 8) (.n 7) (.n 7)),
     .atom (.mul (.n 9) (.n 8) (.n 8)), .atom (.mul (.n 10) (.n 9) (.n 9)),
@@ -40,16 +42,17 @@ def lpPre : List Stmt :=
   nbEq 15 (.n 13) (.n 14) (.n 12) 4 ++
   [.atom (.mul (.n 51) (.n 5) (.n 10)), .atom (.mul (.n 52) (.n 6) (.n 8))] ++
   nbG 53 (.n 52) (.n 51) 4 ++
-  [.atom (.const (.n 72) (word 2 0 0)), .atom (.mul (.n 73) (.n 0) (.n 72)),
-    .atom (.add (.n 74) (.n 73) (.n 1)), .atom (.const (.n 75) (word 2 0 0)),
+  [.atom (.const (.n 72) (word 2 0)), .atom (.mul (.n 73) (.n 0) (.n 72)),
+    .atom (.add (.n 74) (.n 73) (.n 1)), .atom (.const (.n 75) (word 2 0)),
     .atom (.mul (.n 76) (.n 0) (.n 75))]
 
-/-- `__loop8`'s body. -/
+/-- `shared_selector_tables_loop0`'s body. -/
 def lpBody : List Stmt :=
-  lpPre ++ [.callIf (.n 74) "__loop8" [.n 76, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], .ret []]
+  lpPre ++ [.callIf (.n 74) name% «shared_selector_tables_loop0» [.n 76, .n 1, .n 2, .n 3, .n 4,
+      .n 5, .n 6], .ret []]
 
 noncomputable def lpCheck : Bool :=
-  match coreProgram.find? "__loop8" with
+  match coreProgram.find? name% «shared_selector_tables_loop0» with
   | some fn => decide (fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]) &&
       tbStmtsEqb fn.body lpBody
   | none => false
@@ -64,27 +67,28 @@ def ssPre : List Stmt :=
     .atom (.mul (.n 6) (.n 6) (.n 6)), .atom (.mul (.n 7) (.n 7) (.n 7)),
     .atom (.mul (.n 8) (.n 8) (.n 8)), .atom (.mul (.n 9) (.n 9) (.n 9)),
     .atom (.mul (.n 10) (.n 10) (.n 10)), .atom (.mul (.n 11) (.n 11) (.n 11)),
-    .atom (.const (.n 12) (word 1 0 0)), .atom (.const (.n 13) (word (imFactor 0) 0 0)),
+    .atom (.const (.n 12) (word 1 0)), .atom (.const (.n 13) (word (imFactor 0) 0)),
     .atom (.mul (.n 14) (.n 6) (.n 13)), .atom (.add (.n 15) (.n 12) (.n 14)),
-    .atom (.const (.n 16) (word 1 0 0)), .atom (.const (.n 17) (word (imFactor 1) 0 0)),
+    .atom (.const (.n 16) (word 1 0)), .atom (.const (.n 17) (word (imFactor 1) 0)),
     .atom (.mul (.n 18) (.n 7) (.n 17)), .atom (.add (.n 19) (.n 16) (.n 18)),
     .atom (.mul (.n 20) (.n 15) (.n 19)),
-    .atom (.const (.n 21) (word 1 0 0)), .atom (.const (.n 22) (word (imFactor 0) 0 0)),
+    .atom (.const (.n 21) (word 1 0)), .atom (.const (.n 22) (word (imFactor 0) 0)),
     .atom (.mul (.n 23) (.n 8) (.n 22)), .atom (.add (.n 24) (.n 21) (.n 23)),
-    .atom (.const (.n 25) (word 1 0 0)), .atom (.const (.n 26) (word (imFactor 1) 0 0)),
+    .atom (.const (.n 25) (word 1 0)), .atom (.const (.n 26) (word (imFactor 1) 0)),
     .atom (.mul (.n 27) (.n 9) (.n 26)), .atom (.add (.n 28) (.n 25) (.n 27)),
     .atom (.mul (.n 29) (.n 24) (.n 28)),
-    .atom (.const (.n 30) (word 1 0 0)), .atom (.const (.n 31) (word (imFactor 2) 0 0)),
+    .atom (.const (.n 30) (word 1 0)), .atom (.const (.n 31) (word (imFactor 2) 0)),
     .atom (.mul (.n 32) (.n 10) (.n 31)), .atom (.add (.n 33) (.n 30) (.n 32)),
     .atom (.mul (.n 34) (.n 29) (.n 33)),
-    .atom (.const (.n 35) (word 1 0 0)), .atom (.const (.n 36) (word (imFactor 3) 0 0)),
+    .atom (.const (.n 35) (word 1 0)), .atom (.const (.n 36) (word (imFactor 3) 0)),
     .atom (.mul (.n 37) (.n 11) (.n 36)), .atom (.add (.n 38) (.n 35) (.n 37)),
     .atom (.mul (.n 39) (.n 34) (.n 38)),
     .atom (.mul (.n 40) (.n 39) (.n 39)), .atom (.mul (.n 41) (.n 40) (.n 40)),
     .atom (.mul (.n 42) (.n 41) (.n 20)), .atom (.assertEq (.n 42) (.n 5)),
-    .atom (.const (.n 43) (word 1 0 0)), .atom (.add (.n 44) (.n 43) (.n 39)),
-    .atom (.const (.n 45) (word 1 0 0)),
-    .callIf (.n 44) "__loop8" [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1, .n 4],
+    .atom (.const (.n 43) (word 1 0)), .atom (.add (.n 44) (.n 43) (.n 39)),
+    .atom (.const (.n 45) (word 1 0)),
+    .callIf (.n 44) name% «shared_selector_tables_loop0» [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1,
+        .n 4],
     .atom (.mul (.n 46) (.n 41) (.n 41)), .atom (.mul (.n 47) (.n 46) (.n 46)),
     .atom (.mul (.n 48) (.n 0) (.n 47)), .atom (.mul (.n 49) (.n 48) (.n 47)),
     .atom (.mul (.n 50) (.n 1) (.n 47)), .atom (.mul (.n 51) (.n 2) (.n 41)),
@@ -101,7 +105,7 @@ noncomputable def ssCheck : Bool :=
 
 theorem ssCheck_eq : ssCheck = true := by decide +kernel
 
-theorem lpFound : ∃ fn : Fn, coreProgram.find? "__loop8" = some fn ∧
+theorem lpFound : ∃ fn : Fn, coreProgram.find? name% «shared_selector_tables_loop0» = some fn ∧
     fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧ fn.body = lpBody := by
   have h := lpCheck_eq
   unfold lpCheck at h
@@ -126,8 +130,9 @@ theorem lpPre_noRet : Stmt.noRetList lpPre = true := by
 
 theorem ssPre_noRet : Stmt.noRetList ssPre = true := rfl
 
-/-- What one iteration of `__loop8` at `x` writes: for the four coordinates, complements and
-shares read at `z·x^4`, `z1·x^4`, `gsq·x^4`, their eq levels at `eqt·x^32` and their `g` table
+/-- What one iteration of `shared_selector_tables_loop0` at `x` writes: for the four coordinates,
+complements and shares read at `z·x^4`, `z1·x^4`, `gsq·x^4`, their eq levels at `eqt·x^32` and their
+`g` table
 at `gt·x^16`. -/
 def LpB (rd : Reader) (eqt z z1 gt gsq x : E) : Prop :=
   ∀ zs zs1 gs : List E, zs.length = 4 → zs1.length = 4 → gs.length = 4 →
@@ -135,9 +140,11 @@ def LpB (rd : Reader) (eqt z z1 gt gsq x : E) : Prop :=
     TbReadsAt rd (eqt * x ^ 32) (eqLevels zs zs1) ∧ TbReadsAt rd (gt * x ^ 16) (gTable gs)
 
 theorem lp_step {rd : Reader} {N eqt z z1 gt gsq : E} (d : ℕ) (x : E)
-    (h : coreProgram.relN rd (d + 1) "__loop8" (x :: [N, eqt, z, z1, gt, gsq]) []) :
+    (h : coreProgram.relN rd (d + 1) name% «shared_selector_tables_loop0» (x :: [N, eqt, z, z1, gt,
+        gsq]) []) :
     LpB rd eqt z z1 gt gsq x ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop8" (x * gen :: [N, eqt, z, z1, gt, gsq]) []) := by
+      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «shared_selector_tables_loop0» (x * gen :: [N,
+          eqt, z, z1, gt, gsq]) []) := by
   obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
   obtain ⟨fn', hf', hp, hb⟩ := lpFound
   rw [hf] at hf'
@@ -198,7 +205,7 @@ theorem lName_sel_partial (j : ℕ) (hj : j < 4) :
 
 /-- `Π (1 + b_j·(1 + g^(2^j)))` over pinned bits, as the data writes the factors. -/
 theorem ss_prod {b : ℕ → E} {n : ℕ} (hn : n ≤ 4) (hb : ∀ j < n, b j * b j = b j) :
-    ∏ j ∈ Finset.range n, (1 + b j * word (imFactor j) 0 0) =
+    ∏ j ∈ Finset.range n, (1 + b j * word (imFactor j) 0) =
       gen ^ bitsVal (fun j ↦ decide (b j = 1)) n := by
   rw [← prod_gen_pow_of_bool hb]
   refine Finset.prod_congr rfl fun j hj => ?_

@@ -19,7 +19,8 @@ An accepting run from a carried sponge is the carried run (`runsTo_toT`, `Tables
 deterministic: the reads, samples and `require`s read back from it (`vi_readE`, `vi_readN`,
 `vi_require`), the pack rounds (`vi_pack`: `packRunF`), the position rounds (`vi_local`:
 `localRunF`), the plain rounds (`vi_plain`: `plainRun`), and a layer (`vi_layer`): its product,
-its messages, `t`, its two checks, the claim it returns (`layerClaim`) and the sponge after it.
+its nonce, its messages, `t`, its two checks, the claim it returns (`layerClaim`) and the sponge
+after it; and `verifyKeccak` (`vi_vk`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -35,10 +36,12 @@ open LeanVM.Protocol.KeccakGkr LeanVM.Guest.B1.Tables
 /-- **An accepting run is the carried run.** -/
 theorem runsTo_toT {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
     (h : RunsTo p s xs a s') {sp : Sponge} (hc : s.Carries sp) :
-    runT p ⟨s, xs, [], []⟩ = some (a, ⟨s', [], [], []⟩) := by
+    runT p ⟨s, none, xs, [], []⟩ = some (a, ⟨s', none, [], [], []⟩) := by
   obtain ⟨sp', hc', he⟩ := h sp hc [] [] []
   simp only [List.append_nil] at he
-  rw [runT_of_runId p ⟨s, xs, [], []⟩ sp hc a _ he, ← eq_fsOfT hc']
+  rw [runT_of_runId p ⟨s, none, xs, [], []⟩ sp (tcar_none.mpr hc) a _ he]
+  obtain ⟨e1, e2⟩ := eq_fsOfT (tcar_none.mpr hc')
+  rw [← e1, ← e2]
 
 theorem vi_bind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {st st'' : TSt}
     {b : β}
@@ -58,8 +61,8 @@ theorem vi_ret {α : Type} {a b : α} {st st' : TSt}
     (h : runT (VerifierProgram.ret a) st = some (b, st')) : b = a ∧ st' = st := vi_pure h
 
 theorem vi_readE {s : Fs} {zs : List E} {os : List (List Opening)} {R : List (Digest × ℕ × ℕ)}
-    {x : E} {st' : TSt} (h : runT VerifierProgram.readScalar ⟨s, zs, os, R⟩ = some (x, st')) :
-    ∃ zs', zs = x :: zs' ∧ st' = ⟨s.absorb x dsObserve, zs', os, R⟩ := by
+    {x : E} {st' : TSt} (h : runT VerifierProgram.readScalar ⟨s, none, zs, os, R⟩ = some (x, st')) :
+    ∃ zs', zs = x :: zs' ∧ st' = ⟨s.absorb x dsObserve, none, zs', os, R⟩ := by
   cases zs with
   | nil => simp [VerifierProgram.readScalar, runT] at h
   | cons z zs' =>
@@ -67,13 +70,14 @@ theorem vi_readE {s : Fs} {zs : List E} {os : List (List Opening)} {R : List (Di
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨zs', rfl, rfl⟩
 
-theorem vi_sampleE (st : TSt) :
-    runT VerifierProgram.sampleChallenge st = some (st.sponge.squeeze.1, { st with sponge := st.sponge.squeeze.2 }) :=
+theorem vi_sampleE (s : Fs) (zs : List E) (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) :
+    runT VerifierProgram.sampleChallenge ⟨s, none, zs, os, R⟩ =
+      some (s.squeeze.1, ⟨s.squeeze.2, none, zs, os, R⟩) :=
   rfl
 
-theorem vi_sampleE' {st st' : TSt} {x : E} (h : runT VerifierProgram.sampleChallenge st = some (x,
-    st')) :
-    x = st.sponge.squeeze.1 ∧ st' = { st with sponge := st.sponge.squeeze.2 } := by
+theorem vi_sampleE' {s : Fs} {zs : List E} {os : List (List Opening)} {R : List (Digest × ℕ × ℕ)}
+    {st' : TSt} {x : E} (h : runT VerifierProgram.sampleChallenge ⟨s, none, zs, os, R⟩ = some (x, st')) :
+    x = s.squeeze.1 ∧ st' = ⟨s.squeeze.2, none, zs, os, R⟩ := by
   rw [vi_sampleE] at h
   simp only [Option.some.injEq, Prod.mk.injEq] at h
   exact ⟨h.1.symm, h.2.symm⟩
@@ -81,8 +85,8 @@ theorem vi_sampleE' {st st' : TSt} {x : E} (h : runT VerifierProgram.sampleChall
 /-- `n` reads take the next `n` words, absorbed. -/
 theorem vi_readN : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) (xs : List E) (st' : TSt),
-    runT (VerifierProgram.readScalars n) ⟨s, zs, os, R⟩ = some (xs, st') →
-      ∃ rest, xs.length = n ∧ zs = xs ++ rest ∧ st' = ⟨s.absorbAll xs dsObserve, rest, os, R⟩
+    runT (VerifierProgram.readScalars n) ⟨s, none, zs, os, R⟩ = some (xs, st') →
+      ∃ rest, xs.length = n ∧ zs = xs ++ rest ∧ st' = ⟨s.absorbAll xs dsObserve, none, rest, os, R⟩
   | 0, s, zs, os, R, xs, st', h => by
     obtain ⟨rfl, rfl⟩ := vi_ret (a := ([] : List E)) h
     exact ⟨zs, rfl, rfl, rfl⟩
@@ -96,22 +100,52 @@ theorem vi_readN : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List (List Opening
     exact ⟨rest, by simp [hl], by rw [hz]; rfl, hst⟩
 
 /-- `n` samples squeeze `n` challenges. -/
-theorem vi_sampleN : ∀ (n : ℕ) (st : TSt),
-    runT (VerifierProgram.sampleChallenges n) st = some ((st.sponge.squeezeN n).1,
-      { st with sponge := (st.sponge.squeezeN n).2 })
-  | 0, ⟨s, zs, os, R⟩ => rfl
-  | n + 1, st => by
+theorem vi_sampleN : ∀ (n : ℕ) (s : Fs) (zs : List E) (os : List (List Opening))
+    (R : List (Digest × ℕ × ℕ)),
+    runT (VerifierProgram.sampleChallenges n) ⟨s, none, zs, os, R⟩ =
+      some ((s.squeezeN n).1, ⟨(s.squeezeN n).2, none, zs, os, R⟩)
+  | 0, s, zs, os, R => rfl
+  | n + 1, s, zs, os, R => by
     simp only [VerifierProgram.sampleChallenges, prog_bind_eq, runT_bind, vi_sampleE,
         Option.bind_some]
     rw [vi_sampleN n]
     rfl
 
-theorem vi_sampleN' {n : ℕ} {st st' : TSt} {xs : List E}
-    (h : runT (VerifierProgram.sampleChallenges n) st = some (xs, st')) :
-    xs = (st.sponge.squeezeN n).1 ∧ st' = { st with sponge := (st.sponge.squeezeN n).2 } := by
+theorem vi_sampleN' {n : ℕ} {s : Fs} {zs : List E} {os : List (List Opening)}
+    {R : List (Digest × ℕ × ℕ)} {st' : TSt} {xs : List E}
+    (h : runT (VerifierProgram.sampleChallenges n) ⟨s, none, zs, os, R⟩ = some (xs, st')) :
+    xs = (s.squeezeN n).1 ∧ st' = ⟨(s.squeezeN n).2, none, zs, os, R⟩ := by
   rw [vi_sampleN] at h
   simp only [Option.some.injEq, Prod.mk.injEq] at h
   exact ⟨h.1.symm, h.2.symm⟩
+
+/-- **A grind of `bits ≠ 0` bits, then a sample, read back**: the nonce read, its proof of work,
+and the sample is the grind's challenge (`grindSqueeze`). -/
+theorem vi_grindSample {β : Type} {bits : ℕ} (hb : bits ≠ 0) {k : E → VerifierProgram β} {s : Fs}
+    {zs : List E} {os : List (List Opening)} {R : List (Digest × ℕ × ℕ)} {b : β} {st' : TSt}
+    (h : runT (VerifierProgram.grindProofOfWork bits >>= fun _ ↦
+      VerifierProgram.sampleChallenge >>= k) ⟨s, none, zs, os, R⟩ = some (b, st')) :
+    ∃ n zs', zs = n :: zs' ∧ s.GrindOk bits n ∧
+      runT (k (s.grindSqueeze bits n).1) ⟨(s.grindSqueeze bits n).2, none, zs', os, R⟩ =
+        some (b, st') := by
+  obtain ⟨u, st1, h1, h2⟩ := vi_bind h
+  unfold VerifierProgram.grindProofOfWork at h1
+  simp only [hb, ↓reduceIte] at h1
+  cases zs with
+  | nil => simp [runT] at h1
+  | cons n zs' =>
+    simp only [runT] at h1
+    split at h1
+    · rename_i hp
+      simp only [Option.some.injEq, Prod.mk.injEq] at h1
+      obtain ⟨-, rfl⟩ := h1
+      obtain ⟨c, st2, h3, h4⟩ := vi_bind h2
+      simp only [VerifierProgram.sampleChallenge, runT, Option.some.injEq, Prod.mk.injEq] at h3
+      obtain ⟨rfl, rfl⟩ := h3
+      refine ⟨n, zs', rfl, Or.inr hp, ?_⟩
+      rw [Fs.grindSqueeze_pos _ hb]
+      exact h4
+    · simp at h1
 
 theorem vi_require {c : Prop} [Decidable c] {st st' : TSt} {u : Unit}
     (h : runT (VerifierProgram.require c) st = some (u, st')) : c ∧ st' = st := by
@@ -127,10 +161,10 @@ theorem vi_require {c : Prop} [Decidable c] {st st' : TSt} {u : Unit}
 /-- **The pack rounds, read back.** -/
 theorem vi_pack : ∀ (rs : List E) (v sc : E) (s : Fs) (zs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) (res : E × E × List E) (st' : TSt),
-    runT (keccakPackRounds rs v sc) ⟨s, zs, os, R⟩ = some (res, st') →
+    runT (keccakPackRounds rs v sc) ⟨s, none, zs, os, R⟩ = some (res, st') →
       ∃ (ms : List (E × E)) (rest : List E), ms.length = rs.length ∧
         zs = ms.flatMap (fun m ↦ [m.1, m.2]) ++ rest ∧ res = (packRunF rs ms v sc s).1 ∧
-        st' = ⟨(packRunF rs ms v sc s).2, rest, os, R⟩
+        st' = ⟨(packRunF rs ms v sc s).2, none, rest, os, R⟩
   | [], v, sc, s, zs, os, R, res, st', h => by
     obtain ⟨rfl, rfl⟩ := vi_pure (a := ((v, sc, []) : E × E × List E)) h
     exact ⟨[], zs, rfl, rfl, rfl, rfl⟩
@@ -154,18 +188,17 @@ theorem vi_pack : ∀ (rs : List E) (v sc : E) (s : Fs) (zs : List E) (os : List
     have hl2 : tail.length = 2 := by simpa using hl
     obtain ⟨g1, g2, rfl⟩ := List.length_eq_two.mp hl2
     · refine ⟨(g1, g2) :: ms, rest, by simp [hml], ?_, ?_, ?_⟩
-      · simp only at hz'
-        simp [hz, hz']
+      · simp [hz, hz']
       · simp only [packRunF, hr]
       · simp only [packRunF]; exact hst
 
 /-- **The position rounds, read back.** -/
 theorem vi_local : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) (res : List E × E) (st' : TSt),
-    runT (sumcheck v 4 (List.replicate n none)) ⟨s, zs, os, R⟩ = some (res, st') →
+    runT (sumcheck v 4 (List.replicate n none)) ⟨s, none, zs, os, R⟩ = some (res, st') →
       ∃ (ms : List (E × E × E)) (rest : List E), ms.length = n ∧
         zs = ms.flatMap (fun m ↦ [m.1, m.2.1, m.2.2]) ++ rest ∧ res = (localRunF ms v s).1 ∧
-        st' = ⟨(localRunF ms v s).2, rest, os, R⟩
+        st' = ⟨(localRunF ms v s).2, none, rest, os, R⟩
   | 0, v, s, zs, os, R, res, st', h => by
     obtain ⟨rfl, rfl⟩ := vi_pure (a := (([] : List E), v)) h
     exact ⟨[], zs, rfl, rfl, rfl, rfl⟩
@@ -191,8 +224,7 @@ theorem vi_local : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List (List
     have hl2 : tail.length = 2 := by simpa using hl
     obtain ⟨c2, c3, rfl⟩ := List.length_eq_two.mp hl2
     · refine ⟨(c0, c2, c3) :: ms, rest, by simp [hml], ?_, ?_, ?_⟩
-      · simp only at hz'
-        simp [hz, hz']
+      · simp [hz, hz']
       · rw [localRunF_cons, hr]
         rfl
       · rw [localRunF_cons]; exact hst
@@ -200,11 +232,11 @@ theorem vi_local : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List (List
 /-- **The plain rounds, read back.** -/
 theorem vi_plain : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List (List Opening))
     (R : List (Digest × ℕ × ℕ)) (res : List E × E) (st' : TSt),
-    runT (sumcheck v 3 (List.replicate n none)) ⟨s, zs, os, R⟩ = some (res, st') →
+    runT (sumcheck v 3 (List.replicate n none)) ⟨s, none, zs, os, R⟩ = some (res, st') →
       ∃ (ms : List (E × E)) (rest : List E), ms.length = n ∧
         zs = ms.flatMap (fun m ↦ [m.1, m.2]) ++ rest ∧
         res = ((plainRun ms v s).1, (plainRun ms v s).2.1) ∧
-        st' = ⟨(plainRun ms v s).2.2, rest, os, R⟩
+        st' = ⟨(plainRun ms v s).2.2, none, rest, os, R⟩
   | 0, v, s, zs, os, R, res, st', h => by
     obtain ⟨rfl, rfl⟩ := vi_pure (a := (([] : List E), v)) h
     exact ⟨[], zs, rfl, rfl, rfl, rfl⟩
@@ -232,114 +264,121 @@ theorem vi_plain : ∀ (n : ℕ) (v : E) (s : Fs) (zs : List E) (os : List (List
     · have hev : ∀ q : E, polyEval [c0, v + sumE [c2], c2] q = c0 + q * ((v + c2) + q * c2) := by
         intro q; simp [polyEval, sumE]; ring
       refine ⟨(c0, c2) :: ms, rest, by simp [hml], ?_, ?_, ?_⟩
-      · simp only at hz'
-        simp [hz, hz']
+      · simp [hz, hz']
       · simp only [plainRun, hr, hev]
         rfl
       · simp only [plainRun, hev] at hst ⊢; exact hst
 
 /-! ## A layer -/
 
-/-- **A layer, read back**: its product, its pack and position rounds' messages, `t`, its two
-checks, the claim it returns and the sponge after it. -/
+theorem grindPow_two : VerifierProgram.grindProofOfWork (grindingBits 2) = VerifierProgram.ret () := by
+  simp [VerifierProgram.grindProofOfWork, show grindingBits 2 = 0 by decide]
+
+/-- **A layer, read back**: its product, the nonce of the grind before `s`, its pack and position
+rounds' messages, `t`, its two checks, the claim it returns and the sponge after it. -/
 theorem vi_layer {L step : ℕ} {c c' : KeccakClaim} {s : Fs} {zs : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {st' : TSt}
-    (h : runT (verifyKeccakLayer L step c) ⟨s, zs, os, R⟩ = some (c', st')) :
-    ∃ (product : List E) (packMsgs : List (E × E)) (localMsgs : List (E × E × E)) (t : E × E × E)
-      (rest : List E), product.length = productBits ∧ packMsgs.length = c.point.length ∧
+    (h : runT (verifyKeccakLayer L step c) ⟨s, none, zs, os, R⟩ = some (c', st')) :
+    ∃ (product : List E) (n : E) (packMsgs : List (E × E)) (localMsgs : List (E × E × E))
+      (t : E × E × E) (rest : List E), product.length = productBits ∧
+      (s.absorbAll product dsObserve).GrindOk sGrindBits n ∧ packMsgs.length = c.point.length ∧
       localMsgs.length = keccakLocalBits ∧
-      zs = product ++ packMsgs.flatMap (fun m ↦ [m.1, m.2]) ++
+      zs = product ++ [n] ++ packMsgs.flatMap (fun m ↦ [m.1, m.2]) ++
         localMsgs.flatMap (fun m ↦ [m.1, m.2.1, m.2.2]) ++ [t.1, t.2.1, t.2.2] ++ rest ∧
       projectedOf c product + keccakIota L step c * sumE c.mu = c.value ∧
-      LayerFinal c s product packMsgs localMsgs t ∧
-      c' = layerClaim c s product packMsgs localMsgs t ∧
-      st' = ⟨(layerBeta c s product packMsgs localMsgs t).2, rest, os, R⟩ := by
+      LayerFinal c s product n packMsgs localMsgs t ∧
+      c' = layerClaim c s product n packMsgs localMsgs t ∧
+      st' = ⟨(layerBeta c s product n packMsgs localMsgs t).2, none, rest, os, R⟩ := by
   unfold verifyKeccakLayer at h
   obtain ⟨product, st1, h1, h2⟩ := vi_bind h
   obtain ⟨rest1, hpl, hz1, rfl⟩ := vi_readN _ _ _ _ _ _ _ h1
   obtain ⟨u, st2, h3, h4⟩ := vi_bind h2
   obtain ⟨hproj, rfl⟩ := vi_require h3
-  obtain ⟨sv, st3, h5, h6⟩ := vi_bind h4
-  obtain ⟨rfl, rfl⟩ := vi_sampleE' h5
+  obtain ⟨n, rest2, rfl, hgr, h6⟩ := vi_grindSample
+    (by rw [show grindingBits (productBits - 1) = 3 from sGrindBits_eq]; decide) h4
   obtain ⟨res, st4, h7, h8⟩ := vi_bind h6
-  obtain ⟨packMsgs, rest2, hpm, hz2, hr, rfl⟩ := vi_pack _ _ _ _ _ _ _ _ _ h7
+  obtain ⟨packMsgs, rest3, hpm, hz2, hr, rfl⟩ := vi_pack _ _ _ _ _ _ _ _ _ h7
   obtain ⟨vL, scL, chs⟩ := res
   obtain ⟨res2, st5, h9, h10⟩ := vi_bind h8
-  obtain ⟨localMsgs, rest3, hlm, hz3, hr2, rfl⟩ := vi_local _ _ _ _ _ _ _ _ h9
+  obtain ⟨localMsgs, rest4, hlm, hz3, hr2, rfl⟩ := vi_local _ _ _ _ _ _ _ _ h9
   obtain ⟨locPt, vR⟩ := res2
   obtain ⟨tl, st6, h11, h12⟩ := vi_bind h10
-  obtain ⟨rest4, htl, hz4, rfl⟩ := vi_readN _ _ _ _ _ _ _ h11
+  obtain ⟨rest5, htl, hz4, rfl⟩ := vi_readN _ _ _ _ _ _ _ h11
   obtain ⟨t0, t1, t2, rfl⟩ := List.length_eq_three.mp htl
   obtain ⟨u2, st7, h13, h14⟩ := vi_bind h12
   obtain ⟨hfin, rfl⟩ := vi_require h13
-  obtain ⟨beta, st8, h15, h16⟩ := vi_bind h14
+  obtain ⟨u3, st7', h14a, h14b⟩ := vi_bind h14
+  rw [grindPow_two] at h14a
+  obtain ⟨-, rfl⟩ := vi_ret h14a
+  obtain ⟨beta, st8, h15, h16⟩ := vi_bind h14b
   obtain ⟨rfl, rfl⟩ := vi_sampleE' h15
   obtain ⟨rfl, rfl⟩ := vi_pure h16
-  simp only at hr hr2 hz2 hz3 hz4 hfin
   simp only [Prod.ext_iff] at hr hr2
   obtain ⟨rfl, rfl, rfl⟩ := hr
   obtain ⟨rfl, rfl⟩ := hr2
-  refine ⟨product, packMsgs, localMsgs, (t0, t1, t2), rest4, hpl, hpm, hlm, ?_, hproj, hfin, rfl,
-    rfl⟩
+  refine ⟨product, n, packMsgs, localMsgs, (t0, t1, t2), rest5, hpl, hgr, hpm, hlm, ?_, hproj,
+    hfin, rfl, rfl⟩
   rw [hz1, hz2, hz3, hz4]; simp
 
 /-! ## The layers -/
 
-/-- A layer's words: the product, the pack and position rounds' messages, `t`. -/
-abbrev LT : Type := List E × List (E × E) × List (E × E × E) × (E × E × E)
+/-- A layer's words: the product, the nonce, the pack and position rounds' messages, `t`. -/
+abbrev LT : Type := List E × E × List (E × E) × List (E × E × E) × (E × E × E)
 
 /-- The words a layer reads. -/
 def ltXs (T : LT) : List E :=
-  T.1 ++ T.2.1.flatMap (fun m ↦ [m.1, m.2]) ++ T.2.2.1.flatMap (fun m ↦ [m.1, m.2.1, m.2.2]) ++
-    [T.2.2.2.1, T.2.2.2.2.1, T.2.2.2.2.2]
+  T.1 ++ [T.2.1] ++ T.2.2.1.flatMap (fun m ↦ [m.1, m.2]) ++
+    T.2.2.2.1.flatMap (fun m ↦ [m.1, m.2.1, m.2.2]) ++
+    [T.2.2.2.2.1, T.2.2.2.2.2.1, T.2.2.2.2.2.2]
 
 /-- The claim and the sponge after the layers. -/
 def chainEnd : List ℕ → KeccakClaim → Fs → List LT → KeccakClaim × Fs
   | _ :: steps, c, s, T :: Ts =>
-    chainEnd steps (layerClaim c s T.1 T.2.1 T.2.2.1 T.2.2.2)
-      (layerBeta c s T.1 T.2.1 T.2.2.1 T.2.2.2).2 Ts
+    chainEnd steps (layerClaim c s T.1 T.2.1 T.2.2.1 T.2.2.2.1 T.2.2.2.2)
+      (layerBeta c s T.1 T.2.1 T.2.2.1 T.2.2.2.1 T.2.2.2.2).2 Ts
   | _, c, s, _ => (c, s)
 
-/-- What the layers' words satisfy: their lengths and each layer's two checks. -/
+/-- What the layers' words satisfy: their lengths, each grind's proof of work and each layer's two
+checks. -/
 def ChainOk (L : ℕ) : List ℕ → KeccakClaim → Fs → List LT → Prop
   | a :: steps, c, s, T :: Ts =>
-    T.1.length = productBits ∧ T.2.1.length = c.point.length ∧
-      T.2.2.1.length = keccakLocalBits ∧
+    T.1.length = productBits ∧ (s.absorbAll T.1 dsObserve).GrindOk sGrindBits T.2.1 ∧
+      T.2.2.1.length = c.point.length ∧ T.2.2.2.1.length = keccakLocalBits ∧
       projectedOf c T.1 + keccakIota L a c * sumE c.mu = c.value ∧
-      LayerFinal c s T.1 T.2.1 T.2.2.1 T.2.2.2 ∧
-      ChainOk L steps (layerClaim c s T.1 T.2.1 T.2.2.1 T.2.2.2)
-        (layerBeta c s T.1 T.2.1 T.2.2.1 T.2.2.2).2 Ts
+      LayerFinal c s T.1 T.2.1 T.2.2.1 T.2.2.2.1 T.2.2.2.2 ∧
+      ChainOk L steps (layerClaim c s T.1 T.2.1 T.2.2.1 T.2.2.2.1 T.2.2.2.2)
+        (layerBeta c s T.1 T.2.1 T.2.2.1 T.2.2.2.1 T.2.2.2.2).2 Ts
   | [], _, _, [] => True
   | _, _, _, _ => False
 
 /-- **The layers, read back.** -/
 theorem vi_layers {L : ℕ} : ∀ (steps : List ℕ) (c : KeccakClaim) (s : Fs) (zs : List E)
     (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (c' : KeccakClaim) (st' : TSt),
-    runT (keccakLayers L steps c) ⟨s, zs, os, R⟩ = some (c', st') →
+    runT (keccakLayers L steps c) ⟨s, none, zs, os, R⟩ = some (c', st') →
       ∃ (Ts : List LT) (rest : List E), ChainOk L steps c s Ts ∧
         zs = Ts.flatMap ltXs ++ rest ∧ c' = (chainEnd steps c s Ts).1 ∧
-        st' = ⟨(chainEnd steps c s Ts).2, rest, os, R⟩
+        st' = ⟨(chainEnd steps c s Ts).2, none, rest, os, R⟩
   | [], c, s, zs, os, R, c', st', h => by
     obtain ⟨rfl, rfl⟩ := vi_pure (a := c) h
     exact ⟨[], zs, trivial, rfl, rfl, rfl⟩
   | a :: steps, c, s, zs, os, R, c', st', h => by
     obtain ⟨c1, st1, h1, h2⟩ := vi_bind h
-    obtain ⟨product, packMsgs, localMsgs, t, rest1, hpl, hpm, hlm, hz, hproj, hfin, rfl, rfl⟩ :=
-      vi_layer h1
+    obtain ⟨product, n, packMsgs, localMsgs, t, rest1, hpl, hgr, hpm, hlm, hz, hproj, hfin, rfl,
+      rfl⟩ := vi_layer h1
     obtain ⟨Ts, rest, hok, hz', rfl, rfl⟩ := vi_layers steps _ _ _ _ _ _ _ h2
-    refine ⟨(product, packMsgs, localMsgs, t) :: Ts, rest, ⟨hpl, hpm, hlm, hproj, hfin, hok⟩, ?_,
-      rfl, rfl⟩
+    refine ⟨(product, n, packMsgs, localMsgs, t) :: Ts, rest,
+      ⟨hpl, hgr, hpm, hlm, hproj, hfin, hok⟩, ?_, rfl, rfl⟩
     rw [hz, hz']
     simp [ltXs]
 
-/-! ## `keccakSeg` -/
+/-! ## `verifyKeccak` -/
 
 set_option maxRecDepth 20000 in
-/-- **`keccakSeg`, read back**: the committed word, the layers' words, the openings' rounds, the
-word, the slices; the two opening checks; the results. -/
-theorem vi_seg {τ : ℕ} {inst outs : List E} {f xs op point slices cap' : List E} {word m0 : E}
-    (h : runT (keccakSeg τ inst outs) ⟨⟨f, []⟩, xs, [], []⟩ =
-      some ((([⟨qkeccak, op, word⟩], point, slices), m0), ⟨⟨cap', []⟩, [], [], []⟩)) :
+/-- **`verifyKeccak`, read back**: the committed word, the layers' words, the openings' rounds,
+the word, the slices; the two opening checks; the results and the sponge after the slices. -/
+theorem vi_vk {τ : ℕ} {inst outs : List E} {f xs op point slices : List E} {word : E} {S' : Fs}
+    (h : runT (verifyKeccak τ inst outs) ⟨⟨f, []⟩, none, xs, [], []⟩ =
+      some (([⟨qkeccak, op, word⟩], point, slices), ⟨S', none, [], [], []⟩)) :
     ∃ (committed : E) (Ts : List LT) (mO mI mS : List (E × E)),
       let s1 := (⟨f, []⟩ : Fs).squeezeN keccakSegmentBits
       let s2 := s1.2.squeezeN keccakLaneBits
@@ -353,18 +392,13 @@ theorem vi_seg {τ : ℕ} {inst outs : List E} {f xs op point slices cap' : List
       ((foldAll O.1 (keccakSlotWeights τ c0 1 1)).headD []).headD 0 * word = O.2.1 ∧
       multilinearEval L.1.mu I.1 * dot ((foldAll S.1 (keccakSlotWeights τ L.1 0 2)).headD [])
         slices = S.2.1 ∧
-      (S.2.2.absorbAll slices dsObserve).squeeze = (m0, ⟨cap', []⟩) ∧
+      S' = S.2.2.absorbAll slices dsObserve ∧
       xs = [committed] ++ Ts.flatMap ltXs ++ mO.flatMap (fun m ↦ [m.1, m.2]) ++ [word] ++
         mI.flatMap (fun m ↦ [m.1, m.2]) ++ mS.flatMap (fun m ↦ [m.1, m.2]) ++ slices ∧
       op = inst.take 4 ++ inst.drop 4 ++ O.1 ∧
       point = I.1 ++ L.1.point.take (τ - 4) ++ S.1 := by
-  unfold keccakSeg at h
-  obtain ⟨r, st1, h1, h2⟩ := vi_bind h
-  obtain ⟨m, st2, h3, h4⟩ := vi_bind h2
-  obtain ⟨rfl, rfl⟩ := vi_sampleE' h3
-  obtain ⟨hr, hst⟩ := vi_pure h4
-  rw [verifyKeccak_eq] at h1
-  obtain ⟨seg, sA, a1, a2⟩ := vi_bind h1
+  rw [verifyKeccak_eq] at h
+  obtain ⟨seg, sA, a1, a2⟩ := vi_bind h
   obtain ⟨rfl, rfl⟩ := vi_sampleN' a1
   obtain ⟨rl, sB, a3, a4⟩ := vi_bind a2
   obtain ⟨rfl, rfl⟩ := vi_sampleN' a3
@@ -392,19 +426,17 @@ theorem vi_seg {τ : ℕ} {inst outs : List E} {f xs op point slices cap' : List
   obtain ⟨rest5, hsl, hz7, rfl⟩ := vi_readN _ _ _ _ _ _ _ a23
   obtain ⟨u2, sM, a25, a26⟩ := vi_bind a24
   obtain ⟨hchkI, rfl⟩ := vi_require a25
-  obtain ⟨rfl, rfl⟩ := vi_pure a26
+  obtain ⟨hr, hst⟩ := vi_pure a26
   simp only [qkeccakSlotBits_eq'] at hmO hmS
   simp only [Prod.mk.injEq, List.cons.injEq, ColumnClaim.mk.injEq, and_true, true_and] at hr
   simp only [TSt.mk.injEq] at hst
   simp only [and_assoc] at hr
   simp only at hchkO hchkI hok
-  obtain ⟨hop, rfl, hpt, rfl, hm0⟩ := hr
-  obtain ⟨hcap, rfl, -, -⟩ := hst
-  refine ⟨committed, Ts, mO, mI, mS, hok, hmO, hmI, hmS, hsl, hchkO, hchkI, ?_, ?_, hop, hpt⟩
-  · rw [hm0, hcap]
-  · simp only at hz1 hz3 hz4 hz5 hz6 hz7
-    rw [hz1, hz2, hz3, hz4, hz5, hz6, hz7]
-    simp
+  obtain ⟨hop, rfl, hpt, rfl⟩ := hr
+  obtain ⟨hS, -, rfl, -, -⟩ := hst
+  refine ⟨committed, Ts, mO, mI, mS, hok, hmO, hmI, hmS, hsl, hchkO, hchkI, hS, ?_, hop, hpt⟩
+  rw [hz1, hz2, hz3, hz4, hz5, hz6, hz7]
+  simp
 
 end
 end LeanVM.Guest.B1.VerifySub

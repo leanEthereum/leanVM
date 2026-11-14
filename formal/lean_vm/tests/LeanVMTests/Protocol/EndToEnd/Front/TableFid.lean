@@ -9,14 +9,10 @@ import LeanVM.Protocol.EndToEnd.Front.TableFidLeanIsa
   likewise (`jumpConstraints_evalE`).
 * **The instance's shape.** The sumcheck tables are the six opcode tables, `B = 2`, and the
   boundary columns are the memory columns and `BFCNT`.
-* **The weights, and the mutation that makes the length of `α` load-bearing.** For four `α` the
-  verifier's equality kernel is the protocol's fingerprint weights; for five it is not: the fifth
-  coordinate `1` multiplies the first sixteen weights by `1 + 1 = 0`. `TableFid` is therefore
-  stated for reads whose fingerprint challenges are four, which the wire guarantees
-  (`abProg_bind_guard`).
-* **The boundary blocks.** At a read with four challenges the protocol's push boundary values are
-  the verifier's framework fingerprints (`bnd_push`); at the same read with a fifth challenge they
-  are not.
+* **The weights.** The verifier's sixteen slot weights are the protocol's fingerprint weights.
+* **The boundary blocks, and the mutation that makes the share load-bearing.** At a read whose
+  share is the bytecode's the protocol's push boundary values are the verifier's framework
+  fingerprints (`bnd_push`); at the same read with another share they are not.
 * **Inhabitants.** A read of the right shape at the test's sizes, and the instantiated theorems.
 -/
 
@@ -69,7 +65,7 @@ example (t : Fin 6) (side : Side) : refVals t side = instVals t side := refFlush
 /-! ## The instance's shape -/
 
 example : I₁.B = 2 := sumcheckB_leanIsa _ _
-example : I₁.boundaryColumns = [memCol 0, memCol 1, memCol 2, memCol 3, bfcntCol] :=
+example : I₁.boundaryColumns = [memCol 0, memCol 1, memCol 2, bfcntCol] :=
   boundaryColumns_leanIsa _ _
 example (j : Fin 9) (h : I₁.SumcheckTable j) : 3 ≤ j.val := three_le_of_sumcheckTable _ _ j h
 example (t : Fin 6) : I₁.SumcheckTable (opIdx t) := sumcheckTable_opIdx _ _ t
@@ -79,27 +75,24 @@ example : I₁.μBus ≠ 0 := μBus_ne_zero _ _
 example : (busLayout [0, (verifierLayout prog4 s₁).logMemory, (verifierLayout prog4 s₁).logBytecode]
     (verifierLayout prog4 s₁).push).depth = I₁.μBus := busDepth_leanIsa _ _
 
-/-! ## The weights: four `α`, and the mutation with five -/
+/-! ## The weights -/
 
-/-- Four challenges outside `K`. -/
-def α₄ : List E := [yE, 0, 1, yE + 1]
+/-- Sixteen slot weights outside `K`. -/
+def α₁₆ : List E := (List.range 16).map fun i : ℕ ↦ yE ^ (i + 1)
 
 #guard (List.range 16).all fun k ↦
-  (eqKernel α₄).getD k 0 == if h : k < 16 then (fingerprintWeights (toAlpha α₄))[k] else 0
+  α₁₆.getD k 0 == if h : k < 16 then (fingerprintWeights (toAlpha α₁₆))[k] else 0
 
-example (k : Fin 16) :
-    (fingerprintWeights (toAlpha α₄))[k.val] = (eqKernel α₄).getD k 0 :=
+example (k : Fin 16) : (fingerprintWeights (toAlpha α₁₆))[k.val] = α₁₆.getD k 0 :=
   fingerprintWeights_toAlpha rfl k
-
-/-- Five challenges: the fifth is `1`. -/
-def α₅ : List E := [0, 0, 0, 0, 1]
-
--- Mutation: with five `α` the verifier's first sixteen weights vanish, the protocol's do not.
-#guard (List.range 16).all fun k ↦ (eqKernel α₅).getD k 0 == 0
-#guard (fingerprintWeights (toAlpha α₅))[0] == 1
 
 /-- Sizes with a one-variable memory and one-row tables, to evaluate the boundary blocks. -/
 def sTiny : Sizes := ⟨1, by decide, ![1, 1, 1, 1, 1, 1]⟩
+
+/-- The bytecode's true share at a point's low coordinates, for the slot weights `α₁₆`. -/
+def trueShare (s : Sizes) (point : List E) : E :=
+  shareTotal (vecOf (2 ^ 4) α₁₆)
+    (slotValues (verifierLayout prog4 s).bytecode (point.take prog4.logSize))
 
 /-- Whether the protocol's push boundary values at a read are the verifier's framework
 fingerprints (`bnd_push`). -/
@@ -107,44 +100,44 @@ def bndPushAgrees (w : BusWit) : Bool :=
   ((boundary prog4 sTiny).filter fun b ↦ decide (b.side = Side.push)).map (fun b ↦
       arkB prog4 sTiny (toAlpha w.alphas) w.beta
         (w.vals _) w.point (.boundary b)) ==
-    (fingerprints (eqKernel w.alphas) w.memory (w.point.take sTiny.logMem)
-      (w.point.take prog4.logSize)
-      (multilinearEval ((verifierLayout prog4 sTiny).bytecode.map ofK)
-        (w.point.take prog4.logSize ++ w.alphas)) (Verifier.gpow 0) 1 1).map
-        (w.beta + ·)
+    (fingerprints w.alphas w.memory (w.point.take sTiny.logMem)
+      (w.point.take prog4.logSize) w.share (Verifier.gpow 0) 1 1).map (w.beta + ·)
 
-/-- A read with four challenges. -/
-def r₄ : BusWit := ⟨α₄, yE, [yE, 1, yE + 1, 1], [0, 1, yE], [1, yE, yE + 1], yE, 1⟩
+/-- A read whose share is the bytecode's. -/
+def r₁₆ : BusWit :=
+  ⟨α₁₆, yE, [yE, 1, yE + 1, 1], [0, 1, yE], [1, yE], yE, 1,
+    trueShare sTiny [yE, 1, yE + 1, 1], []⟩
 
-/-- The same read with five challenges, the fifth `1`. -/
-def r₅ : BusWit := { r₄ with alphas := α₅ }
+/-- The same read with another share. -/
+def rWrong : BusWit := { r₁₆ with share := r₁₆.share + 1 }
 
-#guard bndPushAgrees r₄
--- Mutation: with five challenges the boundary blocks are no longer the verifier's fingerprints, so
+#guard bndPushAgrees r₁₆
+-- Mutation: with a wrong share the boundary blocks are no longer the verifier's fingerprints, so
 -- the totals (and `TableFid`'s target) differ.
-#guard !bndPushAgrees r₅
+#guard !bndPushAgrees rWrong
 
-example : bndPushAgrees r₄ = true := by
+example : bndPushAgrees r₁₆ = true := by
   unfold bndPushAgrees
-  rw [bnd_push prog4 sTiny r₄ rfl rfl (by decide) (by decide)]
+  rw [bnd_push prog4 sTiny r₁₆ rfl rfl rfl (by decide) (by decide)]
   simp
 
 /-! ## Inhabitants -/
 
-/-- A read of the bus phase of the right shape at the test's sizes, with four challenges. -/
+/-- A read of the bus phase of the right shape at the test's sizes. -/
 def w₀ : BusWit :=
-  ⟨α₄, yE, List.replicate I₁.μBus yE, [0, 1, yE], [1, yE, 0], yE, 1⟩
+  ⟨α₁₆, yE, List.replicate I₁.μBus yE, [0, 1, yE], [1, yE], yE, 1,
+    trueShare s₁ (List.replicate I₁.μBus yE), []⟩
 
-example : w₀.Shaped I₁ := ⟨by simp [w₀], rfl, rfl⟩
+example : w₀.Shaped I₁ (verifierLayout prog4 s₁) := ⟨by simp [w₀], rfl, rfl, rfl⟩
 
 example (input : PublicInput) :
     TableFid I₁ (leanIsa_conditions _ _) input (verifierLayout prog4 s₁) refCol w₀ :=
-  tableFid_leanIsa _ _ input _ w₀ ⟨by simp [w₀], rfl, rfl⟩ rfl
+  tableFid_leanIsa _ _ input _ w₀ ⟨by simp [w₀], rfl, rfl, rfl⟩ rfl
 
 example (input : PublicInput) (ξ : E) :
     dot (fpsOf ξ) (w₀.result (verifierLayout prog4 s₁)).totals =
       powerBatch (claimed I₁ (busStmt I₁ (leanIsa_conditions _ _) input w₀)) ξ :=
-  target_leanIsa _ _ input w₀ (by simp [w₀]) rfl rfl ξ
+  target_leanIsa _ _ input w₀ (by simp [w₀]) rfl rfl rfl ξ
 
 #guard cpsOf yE == [1, yE]
 #guard fpsOf yE == [yE ^ 2, yE ^ 3, yE ^ 4]

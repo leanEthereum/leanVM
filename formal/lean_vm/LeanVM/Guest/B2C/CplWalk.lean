@@ -55,7 +55,7 @@ theorem ksum_succ (ck : List (Opcode → ℕ)) (n : ℕ) (op : Opcode) :
 theorem idxOf_coreOf {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : idxOf (coreOf j).name = some j := by
   have hl : j - 1 < coreProgram.length := by
     have := coreProgram_length
-    have : nFns = 992 := rfl
+    have : nFns = fn_count% := rfl
     omega
   have hc : coreOf j = coreProgram[j - 1] := by unfold coreOf; exact nth_eq hl
   unfold idxOf Core.Program.indexOf?
@@ -73,7 +73,7 @@ theorem idxOf_coreOf {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : idxOf (coreOf j)
   omega
 
 /-- A callee the code reaches, by its entry. -/
-theorem calleeC_some {X : CX} (hG : X.G = glob) {e j' : ℕ} (h : calleeC X e = some j') :
+theorem calleeC_some {X : CX} (hG : X.G = glob.restrict X.callees) {e j' : ℕ} (h : calleeC X e = some j') :
     2 ≤ j' ∧ j' < nFns ∧ (fnOf j').entryPc = e := by
   unfold calleeC at h
   obtain ⟨⟨j, sg⟩, hs, rfl⟩ := Option.map_eq_some_iff.mp h
@@ -181,7 +181,7 @@ structure WH (L : MemoryImage κ) (j fp : ℕ) (X : CX) (segs : List Exec.Seg) (
   linked : linkedWeak X.idx segs wJ wenv = true
   loc : LocOk j X.loc
   fs : X.fs = fsN j
-  G : X.G = glob
+  G : X.G = glob.restrict X.callees
   main : X.main = (j == 1)
   name : X.name = (coreOf j).name
   nargs : X.nargs = (coreOf j).params.length
@@ -462,18 +462,19 @@ theorem tbl_jt_mem {s t : ℕ} (h : glob.jt.get s = some t) : ∃ w, (s, w) ∈ 
   unfold JumpTable.entryOk at he
   rw [Bool.and_eq_true] at he
   obtain ⟨hlt, he⟩ := he
-  have hlen : s - 444 < Data.f0.instructionCount := by simpa using hlt
-  obtain ⟨o, k0, k1, k2, hins, hmem⟩ := End.f0_instr hlen
+  have hlen : s - Data.mainCells < Data.f0.instructionCount := by simpa using hlt
+  obtain ⟨o, k0, k1, hins, hmem⟩ := End.f0_instr hlen
   rw [hins] at he
   simp only [Bool.and_eq_true, beq_iff_eq] at he
-  obtain ⟨⟨⟨rfl, -⟩, -⟩, -⟩ := he
+  obtain ⟨⟨rfl, -⟩, -⟩ := he
   exact ⟨_, hmem⟩
 
 /-- **Slot `s` of the jump table**, holding `g^e`: the table cell found there. -/
 theorem tbl_slot {κ : ℕ} {L : MemoryImage κ} (hjt : JTHolds glob L)
     (htab : ∀ q ∈ tableCells, L.read (addressOfIndex q.1) = some q.2) {s e : ℕ} (h : glob.jt.get s =
         some e) :
-    (tableCells.find? fun q ↦ q.1 == s) = some (s, ofK (addressOfIndex e)) ∧ s < 444 + 16555 := by
+    (tableCells.find? fun q ↦ q.1 == s) = some (s, ofK (addressOfIndex e)) ∧
+      s < Data.mainCells + Data.jtSlots := by
   obtain ⟨w, hw⟩ := tbl_jt_mem h
   have hs := tableCells_off hw
   obtain ⟨q, hq⟩ := Option.isSome_iff_exists.mp
@@ -489,7 +490,8 @@ theorem tbl_slot {κ : ℕ} {L : MemoryImage κ} (hjt : JTHolds glob L)
 /-- The table word `armWord` at the selector `g^k` is slot `base + k`'s. -/
 theorem tbl_armWord {σ : Val} {x base k e : ℕ} (hk : σ (V.n x) = ofK (addressOfIndex k))
     (hf : (tableCells.find? fun q ↦ q.1 == base + k) = some (base + k, ofK (addressOfIndex e)))
-    (hlt : base + k < 444 + 16555) : armWord σ x base = ofK (addressOfIndex e) := by
+    (hlt : base + k < Data.mainCells + Data.jtSlots) : armWord σ x base = ofK (addressOfIndex e) := by
+  simp only [Data.mainCells, Data.jtSlots] at hlt
   unfold armWord
   split
   case isFalse hn => exact absurd ⟨k, by omega, hk⟩ hn
@@ -655,7 +657,7 @@ theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) 
     rw [hoe] at hp1
     obtain rfl := Option.some.inj hp1
     have hslot := tbl_armsOk succ1 0 hao e hle
-    rw [Nat.zero_add, H.G] at hslot
+    rw [Nat.zero_add, H.G, Glob.restrict_jt] at hslot
     have hwv : w = ofK (addressOfIndex (X.entry + succ1[e])) := by
       rw [limb_ofK0, ← gpow_addC, Nat.add_comm e b] at hrw
       exact Option.some.inj (hrw.symm.trans (H.jt _ _ hslot))
@@ -874,7 +876,7 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
     cw_call H.G hok
   obtain ⟨se, s', hse, hs', rfl⟩ := afterC_ok haf
   obtain ⟨hj1, hj2, he⟩ := calleeC_some H.G hj
-  have hfn : f = (coreOf j').name := by rw [hf, H.G]; rfl
+  have hfn : f = (coreOf j').name := by rw [hf, calleeC_sig H.G hj]; rfl
   have hw' : o = (walk σ ss).pre [.call f args rets] := by rw [← hw]; rfl
   have hst' : walk σ ss ≠ .stuck := fun h ↦ hs (by rw [hw', h]; rfl)
   have hes2 : es = ebef ++ Ev.call f args rets :: ((walk σ ss).evs ++ eaft) := by
@@ -892,7 +894,7 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
     rw [List.map_append, inFrame_append, Bool.and_eq_true] at h2
     exact h2.1
   obtain ⟨kfp, hkfp, hq, hfcs, hret⟩ := call_frame H hci hj1 hj2 hfn hs0 hnl hin'
-    (selfs := (X.G.sig j').env.map (·.1)) (fun o ho ↦ by rw [H.G] at ho; exact ho)
+    (selfs := (X.G.sig j').env.map (·.1)) (fun o ho ↦ by rw [calleeC_sig H.G hj] at ho; exact ho)
   rw [hq0] at hq
   rw [hr0] at hfcs hret
   obtain ⟨-, hkid⟩ := H.kids
@@ -1177,7 +1179,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
       hle1, hse, hkr, hle2, hcw⟩
   · -- a call of another function
     obtain ⟨hj1, hj2, hent⟩ := calleeC_some H.G hj
-    have hfn : f = (coreOf j').name := by rw [hf, H.G]; rfl
+    have hfn : f = (coreOf j').name := by rw [hf, calleeC_sig H.G hj]; rfl
     obtain ⟨s0, hs0, hq0, hr0, -⟩ := siteOk_spec hsite
     have hnl := notLast H hci fun h ↦ hfne (h.trans H.name.symm)
     have hin' : inFrame X.fs (s0.q :: args.map X.loc.cell) = true := by
@@ -1185,7 +1187,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
       simp only [inFrame, Bool.and_eq_true] at hin hinq ⊢
       exact ⟨hinq.1, hin.2⟩
     obtain ⟨kfp, hkfp, hq, hfcs, hret⟩ := call_frame H hci hj1 hj2 hfn hs0 hnl hin'
-      (selfs := (X.G.sig j').env.map (·.1)) (fun o ho ↦ by rw [H.G] at ho; exact ho)
+      (selfs := (X.G.sig j').env.map (·.1)) (fun o ho ↦ by rw [calleeC_sig H.G hj] at ho; exact ho)
     rw [hq0] at hq
     rw [hr0] at hfcs hret
     have hp1 := posZ_fr H hp hq hfcs

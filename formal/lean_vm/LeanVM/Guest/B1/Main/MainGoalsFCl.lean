@@ -13,7 +13,7 @@ public import LeanVM.Guest.AcceptableChild
 # `main`'s claim lists' digests
 
 `mainGoalClX`, `mainGoalClS`: the leanXMSS and leanSPHINCS tables' declared claims are their
-`claimCells`, canonical, hashing as the Spec's list digests (`mf_xmss_digest`,
+`claimCells`, hashing as the Spec's list digests (`mf_xmss_digest`,
 `mf_sphincs_digest`); the counts are below the coverage table's bound (`Limits`).
 -/
 
@@ -30,11 +30,11 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
   (w : NodeWitness)
 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims.** -/
-theorem mainGoalClX (hL : DeployedLimits s w) : MainGoalClX fs cert fp seed s w := by
-  have hn : s.claims.xmss.length < claimBig * maxKeys := by
-    have := hL.planSlotsBelow2Pow16
+theorem mainGoalClX (hL : GuestLimits s w) : MainGoalClX fs cert fp seed s w := by
+  have hn : s.claims.xmss.length < claimBig * bigFramesCap := by
+    have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, maxKeys]
+    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 0 [] =
       s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
@@ -42,10 +42,8 @@ theorem mainGoalClX (hL : DeployedLimits s w) : MainGoalClX fs cert fp seed s w 
     rw [← List.flatMap_append]; rfl
   have hl := mf_length_flatMap (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2)
     (fun c => mf_claimCells_length c.1.root c.1.parameter c.2) s.claims.xmss
-  have hc := mf_canon_flatMap (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2)
-    (fun c => mf_claimCells_canon c.1.root c.1.parameter c.2) s.claims.xmss
   have key := claim_list_digest_completeAt fs cert (Lin := hLmain fs fp seed s w)
-    (eP := mfB fs fp seed s w 0) hn hl hc
+    (eP := mfB fs fp seed s w 0) hn hl
     (fun rd h => by
       have h1 := mf_reads fs fp seed s w h (i := 0) (by omega)
       rw [e] at h1
@@ -56,14 +54,14 @@ theorem mainGoalClX (hL : DeployedLimits s w) : MainGoalClX fs cert fp seed s w 
   have hd : (hm fs fp seed s w).xd = claimListDigest xmssPublicKeyBytes s.claims.xmss := rfl
   unfold MainGoalClX
   rw [ha, hn', hd, mf_xmss_digest]
-  exact key
+  exact CompleteAtD.lowMono key (by norm_num)
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims.** -/
-theorem mainGoalClS (hL : DeployedLimits s w) : MainGoalClS fs cert fp seed s w := by
-  have hn : s.claims.sphincs.length < claimBig * maxKeys := by
-    have := hL.planSlotsBelow2Pow16
+theorem mainGoalClS (hL : GuestLimits s w) : MainGoalClS fs cert fp seed s w := by
+  have hn : s.claims.sphincs.length < claimBig * bigFramesCap := by
+    have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, maxKeys]
+    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 1 [] =
       s.claims.sphincs.flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2) ++
@@ -71,10 +69,8 @@ theorem mainGoalClS (hL : DeployedLimits s w) : MainGoalClS fs cert fp seed s w 
     rw [← List.flatMap_append]; rfl
   have hl := mf_length_flatMap (fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2)
     (fun c => mf_claimCells_length c.1.publicSeed c.1.root c.2) s.claims.sphincs
-  have hc := mf_canon_flatMap (fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2)
-    (fun c => mf_claimCells_canon c.1.publicSeed c.1.root c.2) s.claims.sphincs
   have key := claim_list_digest_completeAt fs cert (Lin := hLmain fs fp seed s w)
-    (eP := mfB fs fp seed s w 1) hn hl hc
+    (eP := mfB fs fp seed s w 1) hn hl
     (fun rd h => by
       have h1 := mf_reads fs fp seed s w h (i := 1) (by omega)
       rw [e] at h1
@@ -85,7 +81,7 @@ theorem mainGoalClS (hL : DeployedLimits s w) : MainGoalClS fs cert fp seed s w 
   have hd : (hm fs fp seed s w).sd = claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs := rfl
   unfold MainGoalClS
   rw [ha, hn', hd, mf_sphincs_digest]
-  exact key
+  exact CompleteAtD.lowMono key (by norm_num)
 
 end
 end LeanVM.Guest.B1.Main

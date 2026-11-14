@@ -9,14 +9,17 @@ module
 
 public import LeanVM.Guest.B1.Selectors.SharedTables
 public import LeanVM.Guest.B1.Selectors.SelPartialComplete
+public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.CoreData
 
 /-!
 # `shared_selector_tables` is complete (TRIAGE G #48)
 
-* `__loop8`: the valuation `lpVal` gives each value of an iteration at `x = g^j` its role: the
-  powers of `x` and the pointers; the eq levels' entries of nibble `j` (`spLvV`) and the
-  coordinates and complements each level loads; the `g` table's entries (`spGV`) and the shares
-  each step loads; the next `x`. `lp_complete`: from `g^j`, `j < q`, the iterations run to `g^q`.
+* `shared_selector_tables_loop0`: the valuation `lpVal` gives each value of an iteration at `x =
+  g^j` its role: the powers of `x` and the pointers; the eq levels' entries of nibble `j` (`spLvV`)
+  and the coordinates and complements each level loads; the `g` table's entries (`spGV`) and the
+  shares each step loads; the next `x`. `lp_complete`: from `g^j`, `j < q`, the iterations run to
+  `g^q`.
 * `shared_selector_tables`: the valuation `ssVal` gives the hint's six bits of `n`, the factors,
   `g^r`, `g^q` (`n = 4q + r`), the pointers of the partial nibble; the loop runs the full nibbles
   and `sel_partial_nibble__L{r}` the partial one (`sel_partial_nibble_complete_holds`).
@@ -54,7 +57,7 @@ def lpG (gl : List E) (o : ℕ) : E :=
   else if o = 5 then gl.getD 2 0 else if o < 10 then spGV 4 gl (o - 2)
   else if o = 10 then gl.getD 3 0 else spGV 4 gl (o - 3)
 
-/-- **Value `x` of `__loop8`'s iteration at `g^j`.** -/
+/-- **Value `x` of `shared_selector_tables_loop0`'s iteration at `g^j`.** -/
 def lpVal (j : ℕ) (N eqt z z1 gt gsq : E) (zs zs1 gs : List E) (x : ℕ) : E :=
   if x < 7 then [gen ^ j, N, eqt, z, z1, gt, gsq].getD x 0
   else if x < 15 then
@@ -69,8 +72,8 @@ def lpVal (j : ℕ) (N eqt z z1 gt gsq : E) (zs zs1 gs : List E) (x : ℕ) : E :
   else if x = 51 then gt * gen ^ (16 * j)
   else if x = 52 then gsq * (gen ^ j * gen ^ j * (gen ^ j * gen ^ j))
   else if x < 72 then lpG (nib gs j) (x - 53)
-  else [word 2 0 0, gen ^ j * word 2 0 0, gen ^ j * word 2 0 0 + N, word 2 0 0,
-    gen ^ j * word 2 0 0].getD (x - 72) 0
+  else [word 2 0, gen ^ j * word 2 0, gen ^ j * word 2 0 + N, word 2 0,
+    gen ^ j * word 2 0].getD (x - 72) 0
 
 theorem lp_pow4 (j : ℕ) : gen ^ j * gen ^ j * (gen ^ j * gen ^ j) = gen ^ (4 * j) := by ring
 
@@ -136,7 +139,8 @@ theorem lp_eqEntry {e : ℕ} (he : e < 30) : ∃ t i, t < 4 ∧ i < 2 ^ (t + 1) 
   · exact ⟨2, e - 6, by omega, by simp; omega, by simp; omega, by simp [nbEqV, e2, e6, e14]⟩
   exact ⟨3, e - 14, by omega, by simp; omega, by simp; omega, by simp [nbEqV, e2, e6, e14]⟩
 
-/-- **An iteration of `__loop8`** at `g^j`: its nibble's coordinates, complements and shares in
+/-- **An iteration of `shared_selector_tables_loop0`** at `g^j`: its nibble's coordinates,
+complements and shares in
 memory and their tables written, and the next iteration's relation unless `j + 1 = q`. -/
 theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
     {zs zs1 gs : List E} (hlz : 4 * q ≤ zs.length) (hlz1 : 4 * q ≤ zs1.length)
@@ -144,9 +148,10 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
     (hg : TbReadsAt rd gsq gs)
     (htab : TbReadsAt rd (eqt * gen ^ (32 * j)) (eqLevels (nib zs j) (nib zs1 j)) ∧
       TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j)))
-    (hnext : j + 1 < q → coreProgram.Rel rd "__loop8"
+    (hnext : j + 1 < q → coreProgram.Rel rd name% «shared_selector_tables_loop0»
       [gen ^ (j + 1), gen ^ q, eqt, z, z1, gt, gsq] []) :
-    coreProgram.Rel rd "__loop8" [gen ^ j, gen ^ q, eqt, z, z1, gt, gsq] [] := by
+    coreProgram.Rel rd name% «shared_selector_tables_loop0» [gen ^ j, gen ^ q, eqt, z, z1, gt,
+        gsq] [] := by
   obtain ⟨fn, hf, hp, hb⟩ := lpFound
   set F := lpVal j (gen ^ q) eqt z z1 gt gsq zs zs1 gs with hF
   have hlen : ∀ l : List E, 4 * q ≤ l.length → (nib l j).length = 4 := fun l hl ↦ by
@@ -257,13 +262,13 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
       ring
     · -- the `g` table
       have nG := tb_noRetList_flatten_range (4 - 1) _ (fun t => nbGStep_noRet 53 (.n 52) (t + 1))
-      have nn : Stmt.noRetList [Stmt.atom (.const (.n 53) (word 1 0 0)),
+      have nn : Stmt.noRetList [Stmt.atom (.const (.n 53) (word 1 0)),
         Stmt.atom (.load (.n (53 + 1)) (.n 52) 0)] = true := rfl
       rw [nbG, tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nG, nn,
           Bool.and_self]),
         tb_holdsList_append_noRet nn, tb_holdsList_mapAtoms,
         tb_holdsList_flatten_range _ _ (fun t => nbGStep_noRet 53 (.n 52) (t + 1))]
-      have g0 : F 53 = word 1 0 0 := by
+      have g0 : F 53 = word 1 0 := by
         have := gv 0 (by norm_num)
         simp only [nbGV, ↓reduceIte] at this
         rw [this, tb_word_one, spGV]
@@ -325,7 +330,8 @@ theorem lp_chain {rd : Reader} {eqt z z1 gt gsq : E} {q : ℕ} {zs zs1 gs : List
     (hz : TbReadsAt rd z zs) (hz1 : TbReadsAt rd z1 zs1) (hg : TbReadsAt rd gsq gs)
     (htab : ∀ j < q, TbReadsAt rd (eqt * gen ^ (32 * j)) (eqLevels (nib zs j) (nib zs1 j)) ∧
       TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j))) :
-    ∀ j < q, coreProgram.Rel rd "__loop8" [gen ^ j, gen ^ q, eqt, z, z1, gt, gsq] [] := by
+    ∀ j < q, coreProgram.Rel rd name% «shared_selector_tables_loop0» [gen ^ j, gen ^ q, eqt, z, z1,
+        gt, gsq] [] := by
   intro j hj
   obtain ⟨m, hm⟩ : ∃ m, q = j + 1 + m := ⟨q - j - 1, by omega⟩
   induction m generalizing j with
@@ -340,7 +346,7 @@ theorem lp_chain {rd : Reader} {eqt z z1 gt gsq : E} {q : ℕ} {zs zs1 gs : List
 def ssB (n k : ℕ) : E := bitE (n.testBit k)
 
 /-- The factor of bit `k` of `n` at share `t`. -/
-def ssF (n k t : ℕ) : E := word 1 0 0 + ssB n k * word (imFactor t) 0 0
+def ssF (n k t : ℕ) : E := word 1 0 + ssB n k * word (imFactor t) 0
 
 /-- **Value `x` of `shared_selector_tables`.** -/
 def ssVal (eqt gt z z1 gsq : E) (n x : ℕ) : E :=
@@ -349,15 +355,15 @@ def ssVal (eqt gt z z1 gsq : E) (n x : ℕ) : E :=
   let v41 := v39 * v39 * (v39 * v39)
   let v47 := v41 * v41 * (v41 * v41)
   [eqt, gt, z, z1, gsq, gen ^ n, ssB n 0, ssB n 1, ssB n 2, ssB n 3, ssB n 4, ssB n 5,
-    word 1 0 0, word (imFactor 0) 0 0, ssB n 0 * word (imFactor 0) 0 0, ssF n 0 0,
-    word 1 0 0, word (imFactor 1) 0 0, ssB n 1 * word (imFactor 1) 0 0, ssF n 1 1, v20,
-    word 1 0 0, word (imFactor 0) 0 0, ssB n 2 * word (imFactor 0) 0 0, ssF n 2 0,
-    word 1 0 0, word (imFactor 1) 0 0, ssB n 3 * word (imFactor 1) 0 0, ssF n 3 1,
+    word 1 0, word (imFactor 0) 0, ssB n 0 * word (imFactor 0) 0, ssF n 0 0,
+    word 1 0, word (imFactor 1) 0, ssB n 1 * word (imFactor 1) 0, ssF n 1 1, v20,
+    word 1 0, word (imFactor 0) 0, ssB n 2 * word (imFactor 0) 0, ssF n 2 0,
+    word 1 0, word (imFactor 1) 0, ssB n 3 * word (imFactor 1) 0, ssF n 3 1,
     ssF n 2 0 * ssF n 3 1,
-    word 1 0 0, word (imFactor 2) 0 0, ssB n 4 * word (imFactor 2) 0 0, ssF n 4 2,
+    word 1 0, word (imFactor 2) 0, ssB n 4 * word (imFactor 2) 0, ssF n 4 2,
     ssF n 2 0 * ssF n 3 1 * ssF n 4 2,
-    word 1 0 0, word (imFactor 3) 0 0, ssB n 5 * word (imFactor 3) 0 0, ssF n 5 3, v39,
-    v39 * v39, v41, v41 * v20, word 1 0 0, word 1 0 0 + v39, word 1 0 0, v41 * v41, v47,
+    word 1 0, word (imFactor 3) 0, ssB n 5 * word (imFactor 3) 0, ssF n 5 3, v39,
+    v39 * v39, v41, v41 * v20, word 1 0, word 1 0 + v39, word 1 0, v41 * v41, v47,
     eqt * v47, eqt * v47 * v47, gt * v47, z * v41, z1 * v41, gsq * v41, 0].getD x 0
 
 theorem ssF_eq (n k t : ℕ) (ht : t < 34) :

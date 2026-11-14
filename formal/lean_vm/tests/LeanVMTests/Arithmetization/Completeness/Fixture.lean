@@ -7,7 +7,7 @@ A program of `2^11` slots whose first instruction is `JUMP [g^2, g^2, g^3]` to t
 every other slot a `SET_CONSTANT` (`jumpProg`), and a valid execution of it, one step on an image
 whose five words are linearly independent over `GF(2)`, so that no `XOR` executes on it at any
 registers or operands (`badImage_no_xor`). The image holds the public words `y` and `x·y`, the
-`JUMP` operand cells `(d, d)` and `1`, and `y²` everywhere else. Its witness has an empty `XOR`
+`JUMP` operand cells `(d, d)` and `1`, and `x²·y` everywhere else. Its witness has an empty `XOR`
 table: a table holds the run's rows, any number of them, and nothing more.
 
 Also the generic arms of `executeWith` and run lemmas the long-run test uses.
@@ -69,8 +69,8 @@ theorem gpow_ne_pcFinal (prog : LeanIsaProgram) {n : ℕ} (hn : n + 1 < 2 ^ prog
     addressOfIndex n ≠ prog.pcFinal := by
   unfold LeanIsaProgram.pcFinal
   intro heq
-  have hL : prog.logSize ≤ 32 := prog.logSize_le
-  have h32 : 2 ^ prog.logSize ≤ 4294967296 := by
+  have hL : prog.logSize ≤ 30 := prog.logSize_le
+  have h32 : 2 ^ prog.logSize ≤ 1073741824 := by
     have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) hL
     simpa using this
   have hc : (2 : ℕ) ^ 64 - 1 = 18446744073709551615 := by norm_num
@@ -89,13 +89,13 @@ theorem read_lit {κ : ℕ} (L : MemoryImage κ) (j : ℕ) (hκ : κ < 64 := by 
 /-! ## The image -/
 
 /-- `y`, the first public word. -/
-def wA : E := E.ofLimbs 0 1 0
+def wA : E := E.ofLimbs 0 1
 
 /-- `x·y`, the second public word (`K.ofBits 2` is `x`). -/
-def wB : E := E.ofLimbs 0 (K.ofBits 2) 0
+def wB : E := E.ofLimbs 0 (K.ofBits 2)
 
-/-- `y²`, the word of every other cell. -/
-def vS : E := E.ofLimbs 0 0 1
+/-- `x²·y`, the word of every other cell. -/
+def vS : E := E.ofLimbs 0 (K.ofBits 4)
 
 /-- The five words the image holds, for the sentinel counter `d`. -/
 def S (d : K) : List E := [wA, wB, ofK d, ofK 1, vS]
@@ -119,9 +119,9 @@ theorem d₀_ne_one : d₀ ≠ 1 := by decide +kernel
 /-- The sentinel counter of a `2^11`-slot program is not `0`. -/
 theorem d₀_ne_zero : d₀ ≠ 0 := by decide +kernel
 
-/-- The image: the two public words, the `JUMP` operand cells `(d, d)` and `1`, and `y²`
+/-- The image: the two public words, the `JUMP` operand cells `(d, d)` and `1`, and `x²·y`
 everywhere else. -/
-def badImage (d : K) : MemoryImage minLogMem := fun i ↦
+def badImage (d : K) : MemoryImage 16 := fun i ↦
   match (i : ℕ) with
   | 0 => wA
   | 1 => wB
@@ -130,7 +130,7 @@ def badImage (d : K) : MemoryImage minLogMem := fun i ↦
   | _ => vS
 
 /-- Every cell of the image is one of the five words. -/
-theorem badImage_mem (d : K) (i : Fin (2 ^ minLogMem)) : badImage d i ∈ S d := by
+theorem badImage_mem (d : K) (i : Fin (2 ^ 16)) : badImage d i ∈ S d := by
   obtain ⟨i, hi⟩ := i
   unfold badImage
   match i, hi with
@@ -170,7 +170,7 @@ theorem badImage_no_xor (r : Registers K) (oA oB oC : K) :
     r oA oB oC
 
 /-- The all-zero image. -/
-def zeroImage : MemoryImage minLogMem := fun _ ↦ 0
+def zeroImage : MemoryImage 16 := fun _ ↦ 0
 
 /-- Control: the sum-free hypothesis is what blocks the step. On the all-zero image, where
 `0 = 0 + 0`, an `XOR` of three cells executes. -/
@@ -213,8 +213,8 @@ theorem bad_run (prog : LeanIsaProgram) (d : K) (hd : prog.pcFinal = d) (hd0 : d
 
 /-- The image holds the public words at `g^0` and `g^1`. -/
 theorem bad_boundary {prog : LeanIsaProgram} (d : K) (steps : ℕ) :
-    HoldsPublicInput badInput (⟨minLogMem, badImage d, steps⟩ : Execution prog) := by
-  refine ⟨le_rfl, (by decide : minLogMem ≤ maxLogMem), ?_, ?_⟩
+    HoldsPublicInput badInput (⟨16, badImage d, steps⟩ : Execution prog) := by
+  refine ⟨(by decide : minLogMem ≤ 16), (by decide : 16 ≤ maxLogMem), ?_, ?_⟩
   · rw [read_lit (badImage d) 0]; rfl
   · rw [read_lit (badImage d) 1]; rfl
 
@@ -222,7 +222,7 @@ theorem bad_boundary {prog : LeanIsaProgram} (d : K) (steps : ℕ) :
 the sentinel is a valid execution on `badImage d₀`. -/
 theorem bad_valid (prog : LeanIsaProgram) (hL : prog.logSize = 11)
     (h0 : prog.fetch 1 = some (.jump (addressOfIndex 2) (addressOfIndex 2) (addressOfIndex 3))) :
-    ValidExecution prog badInput (⟨minLogMem, badImage d₀, 1⟩ : Execution prog) := by
+    ValidExecution prog badInput (⟨16, badImage d₀, 1⟩ : Execution prog) := by
   have hfin : prog.pcFinal = d₀ := by
     have h : 2 ^ prog.logSize - 1 = 2047 := by rw [hL]; norm_num
     unfold LeanIsaProgram.pcFinal
@@ -247,7 +247,7 @@ theorem jumpProg_fetch_one : jumpProg.fetch 1 = some (.jump (addressOfIndex 2) (
   simp [jumpProg]
 
 /-- The trace: one step, `JUMP` to the sentinel. -/
-def badTrace : Execution jumpProg := ⟨minLogMem, badImage d₀, 1⟩
+def badTrace : Execution jumpProg := ⟨16, badImage d₀, 1⟩
 
 /-- It is a valid execution. -/
 theorem badTrace_valid : ValidExecution jumpProg badInput badTrace :=

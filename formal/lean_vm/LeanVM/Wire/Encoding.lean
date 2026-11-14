@@ -190,13 +190,13 @@ def readPhases : (count : ℕ) → Bytes → Option (List PrunedPhase × Bytes)
     some (phase :: phases, input)
 
 /-- `Proof::from_bytes` up to the hashing (`wire.rs:41-54`): the stream's length and its elements,
-each three words `c0, c1, c2` (`F192::new`); the number of phases, at most `wireMaxPhases`, and the
+each two words `c0, c1` (`F128::new`); the number of phases, at most `wireMaxPhases`, and the
 phases; refused unless no byte is left. -/
 def readProof (bytes : Bytes) : Option (List E × List PrunedPhase) := do
   let (length, input) ← readU32 bytes
-  let (words, input) ← readWords (3 * length) input
+  let (words, input) ← readWords (2 * length) input
   let stream := (List.range length).map fun i ↦
-    E.ofLimbs (words.getD (3 * i) 0) (words.getD (3 * i + 1) 0) (words.getD (3 * i + 2) 0)
+    E.ofLimbs (words.getD (2 * i) 0) (words.getD (2 * i + 1) 0)
   let (phaseCount, input) ← readU32 input
   guard (phaseCount ≤ wireMaxPhases)
   let (phases, input) ← readPhases phaseCount input
@@ -298,7 +298,7 @@ def phaseToBytes (paths : List Opening) : List UInt8 :=
         fun (_, sibling) ↦ digestBytes sibling
 
 /-- **The proof's one encoding** (`Proof::to_bytes`, `wire.rs:26-38`): the stream's length, then
-each element as its three words; the number of phases, then each phase pruned (`phaseToBytes`). -/
+each element as its two words; the number of phases, then each phase pruned (`phaseToBytes`). -/
 def _root_.LeanVM.Protocol.Compile.Proof.toBytes (proof : Proof) : List UInt8 :=
   u32Bytes proof.stream.length ++ proof.stream.flatMap E.toBytes ++
     u32Bytes proof.openings.length ++ proof.openings.flatMap phaseToBytes

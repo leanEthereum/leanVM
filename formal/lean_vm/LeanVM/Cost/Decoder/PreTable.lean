@@ -8,8 +8,7 @@ public import LeanVM.Cost.Decoder.PreTest
 `preTableC`: `Guest.Fast.preTable` (`Fast/PreTable.lean`, the functions' preconditions
 `fnPreOf (glob.sig j)` the kernel wrote out), compiled as a function of no argument, its body the
 table's constructors: a literal of the decoder's program. The decoder's top level calls it once
-and passes the table to `preTestAtC` (`PreTest.lean`). Its size is measured in
-`Cost/Decoder/PreTableSize.lean`.
+and passes the table to `preTestAtC` (`PreTest.lean`).
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -18,10 +17,10 @@ open LeanVM.Cost LeanVM.Guest.Fast
 
 @[expose] public section
 
--- The spec's `simp` (`preTableC.costSpec`) unfolds the 879 entries of the literal table: about
--- 13 s, just above the default heartbeats (profiled with `tools/profile.py`).
+-- The spec's `simp` (`preTableC.costSpec`) unfolds every entry of the literal table, past the
+-- default heartbeats.
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 250000 in
+set_option maxHeartbeats 2000000 in
 cost_compile preTableC := preTable
 
 end

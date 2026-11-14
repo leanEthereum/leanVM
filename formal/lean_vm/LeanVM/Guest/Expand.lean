@@ -128,7 +128,7 @@ inductive CellRun where
 /-- The function being lowered, and the program. -/
 structure Ctx where
   defs : List Func
-  arrays : List (String × List (Nat × Nat × Nat))
+  arrays : List (String × List (Nat × Nat))
   fnName : String
   isMain : Bool
   returnShapes : List Shape
@@ -305,7 +305,7 @@ def gmul (a b : GAddr) : Option GAddr :=
   | _, _ => none
 
 /-- A constant array element's word. -/
-def arrayWord (c : Nat × Nat × Nat) : E := word c.1 c.2.1 c.2.2
+def arrayWord (c : Nat × Nat) : E := word c.1 c.2
 
 /-! ## Evaluation (`lower/eval.rs`) -/
 
@@ -376,18 +376,7 @@ def eval : Nat → Expr → M Known
                 match arr[i]? with
                 | none => fail s!"const array `{v}` index {i} out of bounds (len {arr.length})"
                 | some c =>
-                    return { int := if c.2.2 = 0 then some (c.1 + c.2.1 * u64Bound) else none,
-                             field := some (arrayWord c) }
-    | .call "f192" [a, b, c] =>
-        let limb : Expr → Option Nat := fun
-          | .lit k => if k < u64Bound then some k else none
-          | _ => none
-        let f : Option E := do
-          let x ← limb a
-          let y ← limb b
-          let z ← limb c
-          pure (word x y z)
-        return { field := f }
+                    return { int := some (c.1 + c.2 * u64Bound), field := some (arrayWord c) }
     | .call "const" [a] => do
         checkConstLeaves n a
         match (← eval n a).int with
@@ -753,7 +742,7 @@ def keccakPadRun : M (List V) := do
 
 /-- The last rate lane of a 64-byte message's one block, the padding's closing `0x80` byte
 (`two_to_one_close`). -/
-def twoToOneClose : E := word (0x80 * 2 ^ 56) 0 0
+def twoToOneClose : E := word (0x80 * 2 ^ 56) 0
 
 /-- A value holding a message cell (`sponge_cell`). -/
 def spongeCell : SpongeCell → M V
@@ -961,7 +950,6 @@ def expr : Nat → Expr → M V
         let q ← fresh
         emitAtom (.mul la q lb)
         return q
-    | .call "f192" _ => fail "f192 needs three literal u64 limbs"
     | .call "const" _ => fail "const(...) asks for a compile-time integer"
     | .call "addr" args => do
         let ga ← stackAddr args
@@ -1534,7 +1522,7 @@ def lowerBuiltin : Nat → String → List Expr → M Bool
           let start ← match args[3]? with
             | some s => constIndex s
             | none => pure 0
-          if 192 < start + nbits then fail s!"{f} reads bits {start}..{start + nbits} of a 192-bit word"
+          if 128 < start + nbits then fail s!"{f} reads bits {start}..{start + nbits} of a 128-bit word"
           emitHint (.bits value start nbits bits)
         else
           emitHint (.bitsExp value nbits bits)
@@ -1545,8 +1533,8 @@ def lowerBuiltin : Nat → String → List Expr → M Bool
         let start ← constIndex args[2]!
         let width ← constIndex args[3]!
         let count ← constIndex args[4]!
-        if !(1 ≤ width && width ≤ 16) || 192 < start + width * count then
-          fail s!"{f}: windows of 1..=16 bits inside a 192-bit word"
+        if !(1 ≤ width && width ≤ 16) || 128 < start + width * count then
+          fail s!"{f}: windows of 1..=16 bits inside a 128-bit word"
         let skip ← match args[5]? with
           | some a => constIndex a
           | none => pure 0
@@ -1577,7 +1565,7 @@ def lowerBuiltin : Nat → String → List Expr → M Bool
         let [a0] := args | fail "assert_gpow(x) takes one scalar cell"
         let x ← expr n a0
         let t ← fresh
-        emitAtom (.load t x 0)
+        emitAtom (.touch t x)
         return true
     | "keccak" => do
         lowerKeccak n args
@@ -1591,11 +1579,11 @@ def lowerBuiltin : Nat → String → List Expr → M Bool
         let b ← expr n a1
         emitAtom (.assertInK a b)
         return true
-    | "hint_f192_limbs" => do
-        let [d, v] := args | fail "hint_f192_limbs takes two arguments, `(dest, value)`"
-        let some cells ← stackOf d | fail "hint_f192_limbs writes frame cells: its destination must be a StackBuf"
-        if !(1 ≤ cells.length && cells.length ≤ 3) then
-          fail "hint_f192_limbs destination must have 1..=3 cells"
+    | "hint_f128_limbs" => do
+        let [d, v] := args | fail "hint_f128_limbs takes two arguments, `(dest, value)`"
+        let some cells ← stackOf d | fail "hint_f128_limbs writes frame cells: its destination must be a StackBuf"
+        if !(1 ≤ cells.length && cells.length ≤ 2) then
+          fail "hint_f128_limbs destination must have 1..=2 cells"
         let value ← expr n v
         emitHint (.limbs value cells)
         return true

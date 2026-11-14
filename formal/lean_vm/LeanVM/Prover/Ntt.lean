@@ -375,18 +375,18 @@ theorem stackWordFast_eq {μ : ℕ} (hμ : μ ≤ 64) (R : ℕ) (q : Column μ) 
 
 /-! ## The level words -/
 
-theorem limb_ofK_mul (a : K) (x : E) (l : Fin 3) : (ofK a * x).limb l = a * x.limb l := by
+theorem limb_ofK_mul (a : K) (x : E) (l : Fin 2) : (ofK a * x).limb l = a * x.limb l := by
   rw [← ofLimbs_limb x, ofK_eq_ofLimbs, mul_limbs]
   fin_cases l <;> simp [ofLimbs_limb]
 
-theorem limb_sum {ι : Type} (s : Finset ι) (f : ι → E) (l : Fin 3) :
+theorem limb_sum {ι : Type} (s : Finset ι) (f : ι → E) (l : Fin 2) :
     (∑ i ∈ s, f i).limb l = ∑ i ∈ s, (f i).limb l := by
   classical
   induction s using Finset.induction_on with
   | empty => simp [limb_zero]
   | insert a s ha ih => rw [sum_insert ha, sum_insert ha, limb_add, ih]
 
-theorem limb_encAt (κ : ℕ) (g : (Fin κ → Bool) → E) (p : ℕ) (l : Fin 3) :
+theorem limb_encAt (κ : ℕ) (g : (Fin κ → Bool) → E) (p : ℕ) (l : Fin 2) :
     (encAt κ g p).limb l = encKAt κ (fun u ↦ (g u).limb l) p := by
   rw [encAt, encKAt, limb_sum]
   refine sum_congr rfl fun u _ ↦ ?_
@@ -397,8 +397,8 @@ theorem array_getD_toList {α : Type} (a : Array α) (i : ℕ) (d : α) :
   simp [List.getD_eq_getElem?_getD]
 
 theorem levelCodes_getD {κ k R : ℕ} (hκ : κ ≤ 64) (g : Array E) {j : ℕ} (hj : j < 2 ^ k)
-    (l : Fin 3) (p : ℕ) :
-    ((levelCodes κ k R g).getD (3 * j + l) #[]).getD p 0 =
+    (l : Fin 2) (p : ℕ) :
+    ((levelCodes κ k R g).getD (2 * j + l) #[]).getD p 0 =
       (if p < 2 ^ (κ + R) then encAt κ (laneMsg κ k g.toList j) p else 0).limb l := by
   rw [levelCodes, getD_ofFn _ _ _ (by omega)]
   simp only
@@ -406,8 +406,8 @@ theorem levelCodes_getD {κ k R : ℕ} (hκ : κ ≤ 64) (g : Array E) {j : ℕ}
   congr 2
   funext u
   rw [getD_ofFn _ _ _ (bitsToNat_lt u), laneMsg, array_getD_toList,
-    show (3 * j + (l : ℕ)) / 3 = j by omega]
-  exact congrArg _ (Fin.ext (show (3 * j + (l : ℕ)) % 3 = l by omega))
+    show (2 * j + (l : ℕ)) / 2 = j by omega]
+  exact congrArg _ (Fin.ext (show (2 * j + (l : ℕ)) % 2 = l by omega))
 
 /-- **The executable level word is the specification's**, at every position. -/
 theorem levelWordFast_eq {κ : ℕ} (hκ : κ ≤ 64) (k R : ℕ) (g : Array E) :
@@ -416,8 +416,7 @@ theorem levelWordFast_eq {κ : ℕ} (hκ : κ ≤ 64) (k R : ℕ) (g : Array E) 
   rw [levelWordFast, levelWordFast.levelWordOf, levelWord, List.flatMap_map]
   refine List.flatMap_congr fun j hj ↦ ?_
   have hj' : j < 2 ^ k := List.mem_range.mp hj
-  rw [limbsOf, ← levelCodes_getD hκ g hj' 0 p, ← levelCodes_getD hκ g hj' 1 p,
-    ← levelCodes_getD hκ g hj' 2 p]
+  rw [limbsOf, ← levelCodes_getD hκ g hj' 0 p, ← levelCodes_getD hκ g hj' 1 p]
   rfl
 
 end

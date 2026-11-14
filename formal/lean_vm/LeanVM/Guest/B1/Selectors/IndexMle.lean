@@ -6,13 +6,13 @@
 
 module
 
-public import LeanVM.Guest.B1.Selectors.Interface
+public import LeanVM.Guest.B1.Selectors.InterfaceP
 public import LeanVM.Guest.B1.Tables.Squares
 
 /-!
 # `index_mle` (TRIAGE G #44)
 
-`index_mle(zeta, n)` (G:1938-1947) multiplies `1 + zeta[g^t]·INDEX_MLE_FACTORS[t]` over `t < n`,
+`index_mle(zeta, n)` (G:2051-2060) multiplies `1 + zeta[g^t]·INDEX_MLE_FACTORS[t]` over `t < n`,
 `INDEX_MLE_FACTORS[t] = 1 + g^(2^t)` (`imFactor_eq`). Its specialization `index_mle__L{n}` is
 `imBody n`: block `t` from value `6t` (`imBlk`), the first without the product, then a copy of
 the last product (`imFound`, by kernel evaluation for all `n < 34`). The products are
@@ -61,7 +61,7 @@ theorem indexMle_eq_prod (zs : List E) :
 /-- `INDEX_MLE_FACTORS[t]`: the word of `1 + g^(2^t)`. -/
 def imFactor (t : ℕ) : ℕ := tbGSquaresBits.getD t 0 ^^^ 1
 
-theorem imFactor_eq {t : ℕ} (ht : t < 34) : word (imFactor t) 0 0 = 1 + gen ^ 2 ^ t := by
+theorem imFactor_eq {t : ℕ} (ht : t < 34) : word (imFactor t) 0 = 1 + gen ^ 2 ^ t := by
   rw [tb_word_eOfNat, imFactor, eOfNat_xor, eOfNat_one, gen_pow_two_pow_eq ht, add_comm]
 
 /-- The value loaded at block `t`. -/
@@ -73,36 +73,35 @@ def imAcc (t : ℕ) : ℕ := 6 * t + 5
 /-- Block `t` of `index_mle`. -/
 def imBlk (t : ℕ) : List Stmt :=
   if t = 0 then
-    [.atom (.const (.n 1) (word 1 0 0)), .atom (.load (.n 2) (.n 0) 0),
-      .atom (.const (.n 3) (word (imFactor 0) 0 0)), .atom (.mul (.n 4) (.n 2) (.n 3)),
+    [.atom (.const (.n 1) (word 1 0)), .atom (.load (.n 2) (.n 0) 0),
+      .atom (.const (.n 3) (word (imFactor 0) 0)), .atom (.mul (.n 4) (.n 2) (.n 3)),
       .atom (.add (.n 5) (.n 1) (.n 4))]
   else
-    [.atom (.const (.n (6 * t)) (word 1 0 0)), .atom (.load (.n (6 * t + 1)) (.n 0) t),
-      .atom (.const (.n (6 * t + 2)) (word (imFactor t) 0 0)),
+    [.atom (.const (.n (6 * t)) (word 1 0)), .atom (.load (.n (6 * t + 1)) (.n 0) t),
+      .atom (.const (.n (6 * t + 2)) (word (imFactor t) 0)),
       .atom (.mul (.n (6 * t + 3)) (.n (6 * t + 1)) (.n (6 * t + 2))),
       .atom (.add (.n (6 * t + 4)) (.n (6 * t)) (.n (6 * t + 3))),
       .atom (.mul (.n (6 * t + 5)) (.n (6 * t - 1)) (.n (6 * t + 4)))]
 
 /-- `index_mle__L{n}`'s statements before its `ret`. -/
 def imPre (n : ℕ) : List Stmt :=
-  if n = 0 then [.atom (.const (.n 1) (word 1 0 0))]
+  if n = 0 then [.atom (.const (.n 1) (word 1 0))]
   else ((List.range n).map imBlk).flatten ++ [.atom (.copy (.n (6 * n)) (.n (6 * n - 1)))]
 
 /-- The value `index_mle__L{n}` returns. -/
 def imRet (n : ℕ) : ℕ := if n = 0 then 1 else 6 * n
 
-/-- The function found by name is the template. -/
-noncomputable def imCheck (n : ℕ) : Bool :=
-  match coreProgram.find? (lName "index_mle" n) with
+/-- The function `P` finds by name is the template. -/
+noncomputable def imCheckP (P : Program) (n : ℕ) : Bool :=
+  match P.find? (lName "index_mle" n) with
   | some fn => decide (fn.params = [.n 0]) && tbStmtsEqb fn.body (imPre n ++ [.ret [.n (imRet n)]])
   | none => false
 
-theorem imCheck_all : (List.range 34).all imCheck = true := by decide +kernel
-
-theorem imFound {n : ℕ} (hn : n < 34) : ∃ fn : Fn, coreProgram.find? (lName "index_mle" n) = some fn ∧
+theorem imFound {P : Program} (hall : (List.range 34).all (imCheckP P) = true) {n : ℕ} (hn : n < 34) :
+    ∃ fn : Fn, P.find? (lName "index_mle" n) = some fn ∧
     fn.params = [.n 0] ∧ fn.body = imPre n ++ [.ret [.n (imRet n)]] := by
-  have h := List.all_eq_true.mp imCheck_all n (List.mem_range.mpr hn)
-  unfold imCheck at h
+  have h := List.all_eq_true.mp hall n (List.mem_range.mpr hn)
+  unfold imCheckP at h
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
@@ -156,9 +155,10 @@ end Sem
 
 /-- **`index_mle` is sound**: `index_mle__L{n}(zeta)` returns `indexMle` of the first `n` words
 at `zeta`. -/
-theorem index_mle_sound {n : ℕ} (hn : n < 34) {rd : Reader} {args rets : List E}
-    (h : coreProgram.Rel rd (lName "index_mle" n) args rets) : IndexMleOut n rd args rets := by
-  obtain ⟨fn, hf, hp, hb⟩ := imFound hn
+theorem index_mle_sound {P : Program} (hall : (List.range 34).all (imCheckP P) = true) {n : ℕ}
+    (hn : n < 34) {rd : Reader} {args rets : List E}
+    (h : P.Rel rd (lName "index_mle" n) args rets) : IndexMleOut n rd args rets := by
+  obtain ⟨fn, hf, hp, hb⟩ := imFound hall hn
   obtain ⟨σ, hpar, hpre, hret⟩ := (tb_rel_pre hf hb (imPre_noRet n) args rets).mp h
   rw [hp] at hpar
   simp only [List.map_cons, List.map_nil] at hpar hret
@@ -174,7 +174,7 @@ theorem index_mle_sound {n : ℕ} (hn : n < 34) {rd : Reader} {args rets : List 
         obtain ⟨t, -, rfl⟩ := List.mem_map.mp hb; exact imBlk_noRet t)] at hpre
     obtain ⟨hblk, hcopy⟩ := hpre
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hcopy
-    have hb : ∀ t < n, Stmt.HoldsList (coreProgram.Rel rd) rd σ (imBlk t) True
+    have hb : ∀ t < n, Stmt.HoldsList (P.Rel rd) rd σ (imBlk t) True
         (fun rs => rs = [σ (.n (imRet n))]) :=
       fun t ht => hblk _ (List.mem_map.mpr ⟨t, List.mem_range.mpr ht, rfl⟩)
     let zs := (List.range n).map fun t ↦ σ (.n (imLoad t))
@@ -201,7 +201,10 @@ theorem index_mle_sound {n : ℕ} (hn : n < 34) {rd : Reader} {args rets : List 
         simp only [imAcc]; omega, hacc (n - 1) (by omega), show n - 1 + 1 = n by omega]
       simp [zs]
 
-theorem index_mle_holds : index_mle_Spec := fun _ hn _ _ _ h => index_mle_sound hn h
+/-- **`index_mle` is its meaning** in every program whose functions are the templates. -/
+theorem index_mle_holdsP (P : Program) (hall : (List.range 34).all (imCheckP P) = true) :
+    index_mle_SpecP P :=
+  fun _ hn _ _ _ h => index_mle_sound hall hn h
 
 end
 end LeanVM.Guest.B1.Tables

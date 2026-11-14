@@ -5,7 +5,7 @@
 //! End to end in [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
 
 pub use rec_aggregation::{
-    AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, LeanSphincsClaim, LeanXmssClaim, MAX_KEYS,
+    AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, LeanSphincsClaim, LeanXmssClaim,
     MAX_RECURSIONS, SnarkProveError, SnarkVerifyError, aggregate,
 };
 
@@ -21,17 +21,16 @@ pub mod lean_da {
 
 pub mod lean_xmss {
     pub use signatures::lean_xmss::{
-        Digest, LOG_LIFETIME, LeafIndex, LeanXmssPublicKey, LeanXmssSecretKey, LeanXmssSignError, LeanXmssSignature,
-        LeanXmssVerifyError, MESSAGE_LEN, Message, PUB_KEY_SIZE, PublicParam, SEED_LEN, SIG_SIZE, Seed, key_gen,
-        key_gen_from_seed, sign, verify,
+        LOG_LIFETIME, LeafIndex, LeanXmssPublicKey, LeanXmssSecretKey, LeanXmssSignError, LeanXmssSignature,
+        LeanXmssVerifyError, MAX_CACHED_BOTTOM_TREES, MESSAGE_LEN, Message, PUB_KEY_SIZE, SEED_LEN, SIG_SIZE, Seed,
+        key_gen, key_gen_from_seed, sign, verify,
     };
 }
 
 pub mod lean_sphincs {
     pub use signatures::lean_sphincs::{
-        Digest, LeanSphincsPublicKey, LeanSphincsSecretKey, LeanSphincsSignError, LeanSphincsSignature,
-        LeanSphincsVerifyError, MESSAGE_LEN, Message, PUB_KEY_SIZE, PkSeed, SEED_LEN, SIG_SIZE, Seed, key_gen,
-        key_gen_from_seed, sign, verify,
+        LeanSphincsPublicKey, LeanSphincsSecretKey, LeanSphincsSignError, LeanSphincsSignature, LeanSphincsVerifyError,
+        MESSAGE_LEN, Message, PUB_KEY_SIZE, SEED_LEN, SIG_SIZE, Seed, key_gen, key_gen_from_seed, sign, verify,
     };
 }
 
@@ -43,6 +42,6 @@ pub mod lean_sphincs {
 /// dirty pages that never decay, which the `leanvm` CLI installs. glibc's default
 /// is the slow case, since it unmaps a large block on free.
 pub fn setup() {
-    leanvm_core::init_prover();
+    parallel::init();
     rec_aggregation::warm_up();
 }

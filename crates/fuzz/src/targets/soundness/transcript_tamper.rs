@@ -10,7 +10,7 @@ use crate::mutate_proof::{ANNOUNCED, perturb};
 use crate::{Ctx, Outcome, Source, catch};
 use leanvm_core::cpu::tamper::transcript;
 use leanvm_core::tables::{N_TABLES, TABLE_LOG_FLOORS, tables};
-use primitives::field::F192;
+use primitives::field::F128;
 use std::cell::Cell;
 use std::collections::BTreeMap;
 use std::ops::Range;
@@ -52,7 +52,7 @@ impl Stages {
         let nonces = (keccak.end..len)
             .filter(|&i| {
                 let x = honest.proof.stream[i];
-                x.c1 == 0 && x.c2 == 0 && x.c0 < 1 << 32
+                x.c1 == 0 && x.c0 < 1 << 32
             })
             .collect();
         Self { named, nonces }
@@ -86,12 +86,12 @@ impl Stages {
 /// What the forger does to the scalar at one position: add a difference, or send a value outright.
 #[derive(Clone, Copy, Debug)]
 enum Forge {
-    Add(F192),
-    Set(F192),
+    Add(F128),
+    Set(F128),
 }
 
 impl Forge {
-    fn apply(self, x: F192) -> F192 {
+    fn apply(self, x: F128) -> F128 {
         match self {
             Forge::Add(d) => x + d,
             Forge::Set(v) => v,
@@ -100,7 +100,7 @@ impl Forge {
 }
 
 /// A lie about announced size `j` (`log_mem`, a table's rows, the rate), the prover committing its real witness.
-fn announced_lie(j: usize, honest: &F192, src: &mut Source) -> F192 {
+fn announced_lie(j: usize, honest: &F128, src: &mut Source) -> F128 {
     let v = honest.c0;
     let lie = match src.below(6) {
         0 => v.wrapping_add(1),
@@ -111,7 +111,7 @@ fn announced_lie(j: usize, honest: &F192, src: &mut Source) -> F192 {
         4 => v.wrapping_add(src.range(2, 1 << 12) as u64),
         _ => v ^ (1 << src.below(40)),
     };
-    F192::new(lie, 0, 0)
+    F128::new(lie, 0)
 }
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {

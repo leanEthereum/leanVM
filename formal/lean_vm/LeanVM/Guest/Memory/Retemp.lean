@@ -1,9 +1,9 @@
 /-
   LeanVM.Guest.Memory.Retemp
 
-  Re-choosing the range-check temporaries of a call tree: the same paths, `HeapBuf`s,
-  placement, data and loads, valid on any reader that agrees with the old one on every other
-  word the paths read and holds the new temporaries where the range checks read.
+  Re-choosing the temporaries of a call tree (range checks' and touches' cells): the same paths,
+  `HeapBuf`s, placement, data and loads, valid on any reader that agrees with the old one on
+  every other word the paths read and holds the new temporaries where their atoms read.
 -/
 
 module
@@ -14,14 +14,15 @@ public import LeanVM.Guest.Memory.Fresh
 /-!
 # Re-choosing temporaries
 
-In a program whose range-check temporaries are fresh (`Program.Fresh`), nothing but its range
-check reads a temporary, so a tree stays valid when they change, provided the memory holds the
-new values where the range checks read. `Tree.retemp P fs ν fp t` replaces, in every instance of
+In a program whose temporaries are fresh (`Program.Fresh`), nothing but its own atom (a range
+check, a touch) reads a temporary, so a tree stays valid when they change, provided the memory
+holds the new values where those atoms read (`tmpReads`). `Tree.retemp P fs ν fp t` replaces,
+in every instance of
 `t` placed from `fp`, the value of each temporary `v` of its function `f` by `ν fp f σ v`, `σ`
 its old valuation (`retempVal`).
 
 * `retemp_valid`: if `t` is valid on `rd0` and `rd` agrees with `rd0` on every word a path reads
-  except at range checks, and holds the new temporaries where the range checks read
+  except at the temporaries' atoms, and holds the new temporaries where those read
   (`Tree.ReadsAs`), the re-chosen tree is valid on `rd`;
 * it keeps the name, the size, the `HeapBuf`s, the placement, the data and the loads
   (`name_retemp`, `total_retemp`, `bufsOk_retemp`, `placed_retemp`, `data_retemp`,
@@ -80,6 +81,8 @@ theorem atom_holds_congr : ∀ (a : Atom), (∀ v ∈ atomUses a ++ atomTmps a, 
       exact and_congr_right fun _ => forall_congr' fun k => forall_congr' fun hk =>
         forall_congr' fun w => by rw [hr k hk]
   | .hint _, _ => Iff.rfl
+  | .touch t p, h => by
+      simp only [Atom.Holds, LoadHolds, h t (by simp [atomTmps]), h p (by simp [atomUses])]
 
 /-- An atom holds on any reader agreeing with one it holds on where it reads. -/
 theorem atom_holds_agree : ∀ (a : Atom), a.Holds rd0 σ →
@@ -88,6 +91,7 @@ theorem atom_holds_agree : ∀ (a : Atom), a.Holds rd0 σ →
   | .rangeCheck .., h, he =>
       ⟨⟨h.1.1, (he _ List.mem_cons_self).trans h.1.2⟩, h.2.1,
         ⟨h.2.2.1, (he _ (List.mem_cons_of_mem _ List.mem_cons_self)).trans h.2.2.2⟩⟩
+  | .touch .., h, he => ⟨h.1, (he _ (List.mem_singleton_self _)).trans h.2⟩
   | .frameAddr p run, h, he => ⟨h.1, fun k hk w hw => h.2 k hk w <| by
       have hm : ((σ p).limb 0 * addressOfIndex k, σ run[k]) ∈ atomEqns σ (.frameAddr p run) :=
         List.mem_mapIdx.mpr ⟨k, hk, rfl⟩
@@ -102,12 +106,100 @@ theorem atom_holds_agree : ∀ (a : Atom), a.Holds rd0 σ →
   | .keccak .., h, _ => h
   | .hint _, h, _ => h
 
+/-- **An atom's temporary reads**: a range check's two and a touch's one, each temporary with
+the address it reads. -/
+def tmpReads (σ : Val) : Atom → List (V × K)
+  | .rangeCheck x y t1 t2 _ =>
+      [(t1, (σ x).limb 0 * addressOfIndex 0), (t2, (σ y).limb 0 * addressOfIndex 0)]
+  | .touch t p => [(t, (σ p).limb 0 * addressOfIndex 0)]
+  | _ => []
+
+theorem tmpReads_fst (a : Atom) : (tmpReads σ a).map Prod.fst = atomTmps a := by
+  cases a <;> rfl
+
+theorem mem_atomTmps_of_tmpReads {a : Atom} {r : V × K} (hr : r ∈ tmpReads σ a) :
+    r.1 ∈ atomTmps a := by
+  rw [← tmpReads_fst (σ := σ)]
+  exact List.mem_map_of_mem (f := Prod.fst) hr
+
+theorem tmpReads_congr (a : Atom) (h : ∀ v ∈ atomUses a, σ' v = σ v) :
+    tmpReads σ' a = tmpReads σ a := by
+  cases a
+  case rangeCheck x y t1 t2 k =>
+    simp only [tmpReads, h x (by simp [atomUses]), h y (by simp [atomUses])]
+  case touch t p => simp only [tmpReads, h p (by simp [atomUses])]
+  all_goals rfl
+
+/-- A temporary read is an equation of its atom. -/
+theorem tmpReads_eqn {a : Atom} {r : V × K} (hr : r ∈ tmpReads σ a) :
+    (r.2, σ r.1) ∈ atomEqns σ a := by
+  cases a
+  case rangeCheck x y t1 t2 k =>
+    simp only [tmpReads, List.mem_cons, List.not_mem_nil, or_false] at hr
+    rcases hr with rfl | rfl
+    · exact List.mem_cons_self
+    · exact List.mem_cons_of_mem _ List.mem_cons_self
+  case touch t p =>
+    rw [List.mem_singleton.mp hr]
+    exact List.mem_singleton_self _
+  all_goals exact (List.not_mem_nil hr).elim
+
+/-- The equations of an atom with temporaries are its temporary reads. -/
+theorem eqn_tmpReads {a : Atom} (ht : atomTmps a ≠ []) {q : K × E} (hq : q ∈ atomEqns σ a) :
+    ∃ r ∈ tmpReads σ a, q = (r.2, σ r.1) := by
+  cases a
+  case rangeCheck x y t1 t2 k =>
+    simp only [atomEqns, List.mem_cons, List.not_mem_nil, or_false] at hq
+    rcases hq with rfl | rfl
+    · exact ⟨_, List.mem_cons_self, rfl⟩
+    · exact ⟨_, List.mem_cons_of_mem _ List.mem_cons_self, rfl⟩
+  case touch t p =>
+    exact ⟨_, List.mem_singleton_self _, List.mem_singleton.mp hq⟩
+  all_goals simp [atomTmps] at ht
+
+/-- An atom reads its temporaries where it holds. -/
+theorem tmpReads_read {a : Atom} (h : a.Holds rd σ) {r : V × K} (hr : r ∈ tmpReads σ a) :
+    rd r.2 = some (σ r.1) := by
+  cases a
+  case rangeCheck x y t1 t2 k =>
+    simp only [tmpReads, List.mem_cons, List.not_mem_nil, or_false] at hr
+    rcases hr with rfl | rfl
+    · exact h.1.2
+    · exact h.2.2.2
+  case touch t p =>
+    rw [List.mem_singleton.mp hr]
+    exact h.2
+  all_goals exact (List.not_mem_nil hr).elim
+
+/-- **An atom with temporaries holds on a new reader** holding the new temporaries where it
+reads, its other values unchanged. -/
+theorem holds_of_tmpReads {a : Atom} (ht : atomTmps a ≠ []) (h : a.Holds rd0 σ)
+    (hu : ∀ v ∈ atomUses a, σ' v = σ v) (hr : ∀ r ∈ tmpReads σ a, rd r.2 = some (σ' r.1)) :
+    a.Holds rd σ' := by
+  cases a
+  case rangeCheck x y t1 t2 k =>
+    have hx := hu x (by simp [atomUses])
+    have hy := hu y (by simp [atomUses])
+    have hk := hu k (by simp [atomUses])
+    have r1 := hr _ List.mem_cons_self
+    have r2 := hr _ (List.mem_cons_of_mem _ List.mem_cons_self)
+    simp only at r1 r2
+    simp only [Atom.Holds, LoadHolds, hx, hy, hk]
+    exact ⟨⟨h.1.1, r1⟩, h.2.1, ⟨h.2.2.1, r2⟩⟩
+  case touch t p =>
+    have hp := hu p (by simp [atomUses])
+    have r1 := hr _ (List.mem_singleton_self _)
+    simp only at r1
+    simp only [Atom.Holds, LoadHolds, hp]
+    exact ⟨h.1, r1⟩
+  all_goals simp [atomTmps] at ht
+
 /-- A path whose events' values agree under two valuations. -/
 def EvAgree (σ σ' : Val) (es : List Ev) : Prop := ∀ e ∈ es, ∀ v ∈ e.uses, σ' v = σ v
 
 theorem allocs_congr {es : List Ev} (h : EvAgree σ σ' es) : allocs σ' es = allocs σ es := by
   refine filterMap_congr' fun e he => ?_
-  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨_ | _ | _ | _ | _ | _ | _ | _⟩⟩ | _ | _ | _ <;>
+  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨_ | _ | _ | _ | _ | _ | _ | _⟩ | _⟩ | _ | _ | _ <;>
     try rfl
   rename_i d s
   simp only [Ev.alloc?, h _ he s (by simp [Ev.uses, atomUses, hintUses])]
@@ -116,7 +208,7 @@ theorem allocDsts_congr {es : List Ev} (h : EvAgree σ σ' es) :
     (allocDsts es).map σ' = (allocDsts es).map σ := by
   refine List.map_congr_left fun d hd => ?_
   obtain ⟨e, he, hed⟩ := List.mem_filterMap.mp hd
-  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨_ | _ | _ | _ | _ | _ | _ | _⟩⟩ | _ | _ | _ <;>
+  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨_ | _ | _ | _ | _ | _ | _ | _⟩ | _⟩ | _ | _ | _ <;>
     simp only [Ev.allocDst?, reduceCtorEq, Option.some.injEq] at hed
   · subst hed; exact h _ he _ (by simp [Ev.uses, atomUses, hintUses])
   · subst hed; exact h _ he _ (by simp [Ev.uses, atomUses, hintUses])
@@ -124,7 +216,7 @@ theorem allocDsts_congr {es : List Ev} (h : EvAgree σ σ' es) :
 theorem addrs_congr {es : List Ev} (h : EvAgree σ σ' es) : ∀ q ∈ addrs es, σ' q.1 = σ q.1 := by
   intro q hq
   obtain ⟨e, he, heq⟩ := List.mem_filterMap.mp hq
-  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨p, _ | ⟨r, rs⟩⟩ | _⟩ | _ | _ | _ <;>
+  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨p, _ | ⟨r, rs⟩⟩ | _ | _⟩ | _ | _ | _ <;>
     simp only [Ev.addr?, reduceCtorEq, Option.some.injEq] at heq
   subst heq
   exact h _ he p (by simp [Ev.uses, atomUses])
@@ -265,14 +357,13 @@ end Paths
 variable (P fs ν) (rd rd0 : Reader)
 
 mutual
-/-- **What a reader must give a re-chosen tree**: every atom of a path other than a range
-check reads what `rd0` reads, and every range check reads the new temporaries. -/
+/-- **What a reader must give a re-chosen tree**: every atom of a path without temporaries
+reads what `rd0` reads, and every temporary read (a range check's, a touch's) reads the new
+temporary. -/
 def Tree.ReadsAs : ℕ → Tree → Prop
   | fp, t@(.node f σ _ kids) =>
       (∀ a, Ev.atom a ∈ t.events P → atomTmps a = [] → ∀ q ∈ atomEqns σ a, rd q.1 = rd0 q.1) ∧
-      (∀ x y t1 t2 k, Ev.atom (.rangeCheck x y t1 t2 k) ∈ t.events P →
-        rd ((σ x).limb 0 * addressOfIndex 0) = some (ν fp f σ t1) ∧
-          rd ((σ y).limb 0 * addressOfIndex 0) = some (ν fp f σ t2)) ∧
+      (∀ a, Ev.atom a ∈ t.events P → ∀ r ∈ tmpReads σ a, rd r.2 = some (ν fp f σ r.1)) ∧
       Tree.ReadsAsKids (kidPos fs P.loop fp f t.bufs (kids.map (Tree.total fs))) kids
   | _, .phantom .. => True
 
@@ -289,9 +380,8 @@ theorem readsAs_node {fp : ℕ} {f : String} {σ : Val} {bufs : List ℕ} {kids 
     (Tree.node f σ bufs kids).ReadsAs P fs ν rd rd0 fp ↔
       (∀ a, Ev.atom a ∈ (Tree.node f σ bufs kids).events P → atomTmps a = [] →
         ∀ q ∈ atomEqns σ a, rd q.1 = rd0 q.1) ∧
-      (∀ x y t1 t2 k, Ev.atom (.rangeCheck x y t1 t2 k) ∈ (Tree.node f σ bufs kids).events P →
-        rd ((σ x).limb 0 * addressOfIndex 0) = some (ν fp f σ t1) ∧
-          rd ((σ y).limb 0 * addressOfIndex 0) = some (ν fp f σ t2)) ∧
+      (∀ a, Ev.atom a ∈ (Tree.node f σ bufs kids).events P → ∀ r ∈ tmpReads σ a,
+        rd r.2 = some (ν fp f σ r.1)) ∧
       Tree.ReadsAsKids P fs ν rd rd0 (kidPos fs P.loop fp f bufs (kids.map (Tree.total fs))) kids := by
   rw [Tree.ReadsAs]; rfl
 
@@ -300,17 +390,14 @@ theorem readsAsKids_cons {p : ℕ} {ps : List ℕ} {k : Tree} {ks : List Tree} :
       k.ReadsAs P fs ν rd rd0 p ∧ Tree.ReadsAsKids P fs ν rd rd0 ps ks := by
   rw [Tree.ReadsAsKids]
 
-/-- A temporary of a range check on a path is a temporary of the function. -/
+/-- A temporary an atom on a path reads is a temporary of the function. -/
 theorem mem_temps_of_event {fn : Fn} {f : String} (hf : P.find? f = some fn) {σ : Val} {es : List Ev}
-    {vs : List V} (hw : walk σ fn.body = .ret es vs) {x y t1 t2 k : V}
-    (he : Ev.atom (.rangeCheck x y t1 t2 k) ∈ es) : t1 ∈ P.temps f ∧ t2 ∈ P.temps f := by
+    {vs : List V} (hw : walk σ fn.body = .ret es vs) {a : Atom} (he : Ev.atom a ∈ es) {σ' : Val}
+    {r : V × K} (hr : r ∈ tmpReads σ' a) : r.1 ∈ P.temps f := by
   have := (walk_within (σ := σ) fn.body)
   rw [hw] at this
-  have hs := this.2.1
   rw [Program.temps, hf]
-  have h1 : t1 ∈ es.flatMap Ev.tmps := List.mem_flatMap.mpr ⟨_, he, by simp [Ev.tmps, atomTmps]⟩
-  have h2 : t2 ∈ es.flatMap Ev.tmps := List.mem_flatMap.mpr ⟨_, he, by simp [Ev.tmps, atomTmps]⟩
-  exact ⟨hs.subset h1, hs.subset h2⟩
+  exact this.2.1.subset (List.mem_flatMap.mpr ⟨_, he, mem_atomTmps_of_tmpReads hr⟩)
 
 section Valid
 
@@ -319,9 +406,7 @@ theorem events_holds_retemp (hF : P.Fresh) {fn : Fn} {f : String} (hf : P.find? 
     {es : List Ev} {vs : List V} (hw : walk σ fn.body = .ret es vs)
     (hes : ∀ e ∈ es, e.Holds rd0 σ)
     (hna : ∀ a, Ev.atom a ∈ es → atomTmps a = [] → ∀ q ∈ atomEqns σ a, rd q.1 = rd0 q.1)
-    (hrc : ∀ x y t1 t2 k, Ev.atom (.rangeCheck x y t1 t2 k) ∈ es →
-      rd ((σ x).limb 0 * addressOfIndex 0) = some (ν fp f σ t1) ∧
-        rd ((σ y).limb 0 * addressOfIndex 0) = some (ν fp f σ t2)) :
+    (hrc : ∀ a, Ev.atom a ∈ es → ∀ r ∈ tmpReads σ a, rd r.2 = some (ν fp f σ r.1)) :
     ∀ e ∈ es, e.Holds rd (retempVal P ν fp f σ) := by
   have hag := evAgree_retemp (ν := ν) hF hf (fp := fp) hw
   intro e he
@@ -332,19 +417,9 @@ theorem events_holds_retemp (hF : P.Fresh) {fn : Fn} {f : String} (hf : P.find? 
         refine (atom_holds_congr a fun v hv => ?_).mpr h1
         rw [ht, List.append_nil] at hv
         exact hag _ he v hv
-      · rcases a with _ | _ | _ | _ | _ | _ | _ | ⟨x, y, t1, t2, k⟩ | _ | _ | _ | _ <;>
-          simp only [atomTmps, not_true_eq_false] at ht
-        have h0 := hes _ he
-        obtain ⟨hx, hy⟩ := hrc x y t1 t2 k he
-        obtain ⟨ht1, ht2⟩ := mem_temps_of_event hf hw he
-        have hu : ∀ v ∈ [x, y, k], retempVal P ν fp f σ v = σ v := fun v hv =>
-          hag _ he v (by simpa [Ev.uses, atomUses] using hv)
-        refine ⟨⟨?_, ?_⟩, ?_, ⟨?_, ?_⟩⟩
-        · rw [hu x (by simp)]; exact h0.1.1
-        · rw [hu x (by simp), hx]; simp [retempVal, ht1]
-        · rw [hu x (by simp), hu y (by simp), hu k (by simp)]; exact h0.2.1
-        · rw [hu y (by simp)]; exact h0.2.2.1
-        · rw [hu y (by simp), hy]; simp [retempVal, ht2]
+      · refine holds_of_tmpReads ht (hes _ he) (fun v hv => hag _ he v hv) fun r hr => ?_
+        rw [hrc a he r hr]
+        simp [retempVal, mem_temps_of_event hf hw he hr]
   | inK c =>
       have := hes _ he
       simp only [Ev.Holds] at this ⊢
@@ -580,20 +655,29 @@ theorem eq_of_nodup_flatMap {α β : Type} {g : α → List β} : ∀ {l : List 
       · subst h2; exact (hl hxb h1 hxa).elim
       · exact eq_of_nodup_flatMap h.2.1 h1 h2 hxa hxb
 
-/-- A range check on the path of `f` under `σ` reads the temporary `t` at `A`. -/
+/-- An atom on the path of `f` under `σ` reads the temporary `t` at `A`. -/
 def RcRead (P : Core.Program) (f : String) (σ : Val) (t : V) (A : K) : Prop :=
-  ∃ x y t1 t2 k, Ev.atom (.rangeCheck x y t1 t2 k) ∈ (Tree.node f σ [] []).events P ∧
-    ((t = t1 ∧ A = (σ x).limb 0 * addressOfIndex 0) ∨ (t = t2 ∧ A = (σ y).limb 0 *
-        addressOfIndex 0))
+  ∃ a, Ev.atom a ∈ (Tree.node f σ [] []).events P ∧ (t, A) ∈ tmpReads σ a
 
 theorem events_eq_node {f : String} {σ : Val} {bufs bufs' : List ℕ} {ks ks' : List Tree} :
     (Tree.node f σ bufs ks).events P = (Tree.node f σ bufs' ks').events P := rfl
 
+theorem snd_eq_of_nodup_fst {α β : Type} : ∀ {l : List (α × β)}, (l.map Prod.fst).Nodup →
+    ∀ {x : α} {b b' : β}, (x, b) ∈ l → (x, b') ∈ l → b = b'
+  | [], _, _, _, _, h, _ => (List.not_mem_nil h).elim
+  | c :: l, hn, x, b, b', h, h' => by
+      rw [List.map_cons, List.nodup_cons] at hn
+      rcases List.mem_cons.mp h with h1 | h1 <;> rcases List.mem_cons.mp h' with h2 | h2
+      · exact (Prod.mk.inj (h1.trans h2.symm)).2
+      · rw [← h1] at hn; exact absurd (List.mem_map_of_mem (f := Prod.fst) h2) hn.1
+      · rw [← h2] at hn; exact absurd (List.mem_map_of_mem (f := Prod.fst) h1) hn.1
+      · exact snd_eq_of_nodup_fst hn.2 h1 h2
+
 /-- **A temporary is read at one address**, in a program with fresh temporaries. -/
 theorem rcRead_unique (hF : P.Fresh) {f : String} {σ : Val} {t : V} {A A' : K}
     (h : RcRead P f σ t A) (h' : RcRead P f σ t A') : A = A' := by
-  obtain ⟨x, y, t1, t2, k, he, hA⟩ := h
-  obtain ⟨x', y', t1', t2', k', he', hA'⟩ := h'
+  obtain ⟨a, he, hA⟩ := h
+  obtain ⟨a', he', hA'⟩ := h'
   unfold Tree.events at he he'
   simp only [Tree.name, Tree.val] at he he'
   cases hf : P.find? f with
@@ -611,22 +695,16 @@ theorem rcRead_unique (hF : P.Fresh) {f : String} {σ : Val} {t : V} {A A' : K}
           rw [hw] at hwi
           have hnd : (es.flatMap Ev.tmps).Nodup :=
             hwi.2.1.nodup (hF fn (List.mem_of_find?_eq_some hf)).1
-          have hnd1 : (Ev.atom (.rangeCheck x y t1 t2 k)).tmps.Nodup := by
-            rw [List.nodup_flatMap] at hnd; exact hnd.1 _ he
-          have htm : t ∈ (Ev.atom (.rangeCheck x y t1 t2 k)).tmps := by
-            rcases hA with ⟨rfl, -⟩ | ⟨rfl, -⟩ <;> simp [Ev.tmps, atomTmps]
-          have htm' : t ∈ (Ev.atom (.rangeCheck x' y' t1' t2' k')).tmps := by
-            rcases hA' with ⟨rfl, -⟩ | ⟨rfl, -⟩ <;> simp [Ev.tmps, atomTmps]
-          have heq := eq_of_nodup_flatMap hnd he he' htm htm'
-          simp only [Ev.atom.injEq, Atom.rangeCheck.injEq] at heq
-          obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := heq
-          simp only [Ev.tmps, atomTmps, List.nodup_cons, List.mem_singleton, List.not_mem_nil,
-            not_false_eq_true, List.nodup_nil, and_true] at hnd1
-          rcases hA with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> rcases hA' with ⟨h1, rfl⟩ | ⟨h1, rfl⟩
-          · rfl
-          · exact absurd h1 hnd1
-          · exact absurd h1.symm hnd1
-          · rfl
+          have m1 : t ∈ (Ev.atom a).tmps := mem_atomTmps_of_tmpReads hA
+          have m2 : t ∈ (Ev.atom a').tmps := mem_atomTmps_of_tmpReads hA'
+          have heq := eq_of_nodup_flatMap hnd he he' m1 m2
+          simp only [Ev.atom.injEq] at heq
+          subst heq
+          have hnd1 : ((tmpReads σ a).map Prod.fst).Nodup := by
+            rw [tmpReads_fst]
+            rw [List.nodup_flatMap] at hnd
+            exact hnd.1 _ he
+          exact snd_eq_of_nodup_fst hnd1 hA hA'
 
 open Classical in
 /-- **Temporaries read from `rd`**: each temporary the word `rd` holds where its range check
@@ -656,7 +734,7 @@ theorem readsAs_nuRead (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd A).i
       rw [readsAs_node, hev]
       rw [placed_node, hev] at hp
       rw [loadsIn_node, hev] at hl
-      refine ⟨fun a ha hta q hq => ?_, fun x y t1 t2 k he => ?_, ?_⟩
+      refine ⟨fun a ha hta q hq => ?_, fun a ha r hr => ?_, ?_⟩
       · cases a with
         | load d p off =>
             rw [List.mem_singleton.mp hq]
@@ -681,6 +759,7 @@ theorem readsAs_nuRead (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd A).i
                 · simp only; omega
                 · simp only [List.length_cons] at hk ⊢; omega
         | rangeCheck _ _ _ _ _ => simp [atomTmps] at hta
+        | touch _ _ => simp [atomTmps] at hta
         | const _ _ => exact (List.not_mem_nil hq).elim
         | add _ _ _ => exact (List.not_mem_nil hq).elim
         | mul _ _ _ => exact (List.not_mem_nil hq).elim
@@ -690,17 +769,12 @@ theorem readsAs_nuRead (hF : P.Fresh) (hdef : ∀ A, (rd0 A).isSome → (rd A).i
         | assertInK _ _ => exact (List.not_mem_nil hq).elim
         | keccak _ _ _ _ => exact (List.not_mem_nil hq).elim
         | hint _ => exact (List.not_mem_nil hq).elim
-      · have h0 := hes _ he
-        have hmem : Ev.atom (.rangeCheck x y t1 t2 k) ∈ (Tree.node f σ [] []).events P := by
+      · have hmem : Ev.atom a ∈ (Tree.node f σ [] []).events P := by
           show Ev.atom _ ∈ (Tree.node f σ bufs kids).events P
-          rw [hev]; exact he
-        have side : ∀ (t' : V) (A : K) (w0 : E), RcRead P f σ t' A → rd0 A = some w0 →
-            rd A = some (nuRead P rd fp f σ t') := by
-          intro t' A w0 hr h0'
-          obtain ⟨w, hw⟩ := Option.isSome_iff_exists.mp (hdef A (by rw [h0']; rfl))
-          rw [hw, nuRead_eq hF hr hw]
-        exact ⟨side t1 _ _ ⟨x, y, t1, t2, k, hmem, Or.inl ⟨rfl, rfl⟩⟩ h0.1.2,
-          side t2 _ _ ⟨x, y, t1, t2, k, hmem, Or.inr ⟨rfl, rfl⟩⟩ h0.2.2.2⟩
+          rw [hev]; exact ha
+        have h0 := tmpReads_read (hes _ ha) hr
+        obtain ⟨w, hw⟩ := Option.isSome_iff_exists.mp (hdef r.2 (by rw [h0]; rfl))
+        rw [hw, nuRead_eq (t := r.1) (A := r.2) hF ⟨a, hmem, hr⟩ hw]
       · exact readsAsKids_nuRead hF hdef kids σ (calls es) _ _ hk hp.2 hl.2 fun i hi =>
           hi.elim (fun h => h.elim (fun hd => hag i (Or.inr hd)) fun hr => hag i (Or.inl hr))
             fun hd => hag i (Or.inr (data_node.mpr (Or.inr hd)))
@@ -774,7 +848,7 @@ variable {S : List String}
 theorem runs_pure {es : List Ev} (h : ∀ e ∈ es, e.pure S) : runs es = [] := by
   refine List.filterMap_eq_nil_iff.mpr fun e he => ?_
   have := h e he
-  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _⟩ | _ | _ | _ <;>
+  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _⟩ | _ | _ | _ <;>
     first | rfl | simp [Ev.pure, atomUnplaced] at this
 
 mutual
@@ -827,17 +901,6 @@ theorem relAtIn_uniform_pure (hF : P.Fresh) (hS : P.PureIn S) {g : String} (hg :
   exact relAtIn_transfer hF hn hv hb (placed_of_pure hS t hv hb (hn ▸ hg) fp)
     (loadsIn_of_loadsR t R fp hl) (fun _ h => h.elim) rd
     (fun i hi => hi.elim (hag i) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) fp i hd).elim) hdef
-
-/-- **A function of a quiet set, on every reader**: `Program.Rel` on `rd0` gives the placed
-relation on any reader defined wherever `rd0` is, at any frame pointer and region. -/
-theorem relAtIn_uniform_quiet (hP : P.Wf) (hF : P.Fresh) (hS : P.QuietIn S) {g : String}
-    (hg : g ∈ S) {args rets : List E} (h : P.Rel rd0 g args rets) :
-    ∃ n, ∀ (fp : ℕ) (R : ℕ → Prop) (rd : Reader), (∀ A, (rd0 A).isSome → (rd A).isSome) →
-      RelAtIn P fs cert rd R (fun _ => False) fp n g args rets := by
-  obtain ⟨t, hn, hv, hb⟩ := Program.Rel.tree hP h
-  obtain ⟨n, hn'⟩ := relAtIn_uniform_pure (fs := fs) (cert := cert) hF hS.pureIn hg
-    ⟨t, hn, hv, hb, loadsR_of_quiet hS (fun _ => False) t hv (hn ▸ hg)⟩
-  exact ⟨n, fun fp R rd hdef => (hn' fp rd (fun _ h => h.elim) hdef).mono fun _ h => h.elim⟩
 
 end Pure
 

@@ -1,24 +1,24 @@
 /-
   LeanVM.Guest.B1.VerifySub.Lanes
 
-  The output lanes' claims of `tablesSeg` share the table sumcheck's point, cut to the `KECCAK`
-  table's height.
+  The output lanes among `verify_tables`' pooled claims: where they are, their point, their values.
 -/
 
 module
 
-public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Guest.B1.VerifySub.Always
+public import LeanVM.Guest.B1.VerifySub.Front
+public import LeanVM.Guest.B1.Tables.InterfaceP
 
 /-!
-# The output lanes' point
+# The output lanes among the pooled claims
 
-`tablesSeg_lanes`: whatever `tablesSeg` reads and samples, every claim it returns on a `KECCAK`
-output lane is at `pt.take τ`, `pt` the table sumcheck's point (`max` of the heights coordinates)
-and `τ` the `KECCAK` table's height. The bus's and the public input's claims are on the memory
-and final-counter columns, none an output lane; the table sumcheck puts table `t`'s claims at
-`point.take height_t` (`tableTerms`), and only the `KECCAK` table owns output-lane columns
-(`lanes_owner`, by kernel evaluation over `tables`).
+The pool's `159` claims are `claimColumns`'s; slots `105 .. 129` are the `KECCAK` table's output
+lanes, in lane order, and no other slot is one (`claimColumns_*`, by the kernel).
+
+* `filter_lanes_eq`, `filter_notLanes_eq`: the lanes are slots `105 .. 129`, the rest slots
+  `0 .. 104` and `130 .. 158`.
+* `lanes_facts`: the lanes' columns are `keccakOutputColumns`, each at the table sumcheck's
+  point cut to the `KECCAK` table's height, their values at `col_eval_words·g^101`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -28,158 +28,125 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## The columns -/
+variable {rd : Reader}
 
-/-- Only the `KECCAK` table owns output-lane columns. -/
-theorem lanes_owner : ∀ i (hi : i < tables.length), ∀ j < tables[i].width,
-    globalColumnBases.getD tables[i].opcode 0 + j ∈ keccakOutputColumns → i = opKeccak := by
+theorem claimColumns_length : Tables.claimColumns.length = 159 := by decide +kernel
+
+theorem claimColumns_front : ∀ x ∈ Tables.claimColumns.take 105, x ∉ keccakOutputColumns := by
   decide +kernel
 
-/-- The framework's columns are no output lane. -/
-theorem framework_not_lanes : ∀ x ∈ [memory0, memory1, memory2, memoryFinalCounters,
-    bytecodeFinalCounters], x ∉ keccakOutputColumns := by decide +kernel
+theorem claimColumns_lanes : (Tables.claimColumns.drop 105).take 25 = keccakOutputColumns := by
+  decide +kernel
 
-theorem zipWith_column {β : Type} (pt : List E) :
-    ∀ (cols : List ℕ) (vals : List β) (g : β → E) (c : ColumnClaim),
-      c ∈ List.zipWith (fun column value ↦ (⟨column, pt, g value⟩ : ColumnClaim)) cols vals →
-        c.column ∈ cols
-  | [], _, _, _, h => by simp at h
-  | _ :: _, [], _, _, h => by simp at h
-  | col :: cols, v :: vals, g, c, h => by
-    rw [List.zipWith_cons_cons, List.mem_cons] at h
-    rcases h with rfl | h
-    · exact List.mem_cons_self ..
-    · exact List.mem_cons_of_mem _ (zipWith_column pt cols vals g c h)
+theorem claimColumns_back : ∀ x ∈ Tables.claimColumns.drop 130, x ∉ keccakOutputColumns := by
+  decide +kernel
 
-/-! ## The table sumcheck -/
+theorem claimKappaSrc_lanes : ∀ k < 25, Tables.claimKappaSrc.getD (105 + k) 0 = 7 := by
+  decide +kernel
 
-/-- The rows' heights: a row whose table owns an output lane is at height `hK`. -/
-def RowsOk (rows : List (Table × ℕ × List Form × E)) (hK : ℕ) : Prop :=
-  ∀ r ∈ rows, ∀ j < r.1.width, globalColumnBases.getD r.1.opcode 0 + j ∈ keccakOutputColumns →
-    r.2.1 = hK
+theorem claims_split {claims : List ColumnClaim} :
+    claims = claims.take 105 ++ ((claims.drop 105).take 25 ++ claims.drop 130) := by
+  rw [show claims.drop 130 = (claims.drop 105).drop 25 by simp [List.drop_drop],
+    List.take_append_drop, List.take_append_drop]
 
-theorem rowsOk_tables (heights : List ℕ) (rest : List (List Form × E)) :
-    RowsOk (List.zip tables (List.zip heights rest)) (heights.getD opKeccak 0) := by
-  intro r hr j hj hout
-  obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hr
-  simp only [List.length_zip] at hi
-  simp only [List.getElem_zip] at hj hout ⊢
-  have hi1 : i < tables.length := by omega
-  have hi2 : i < heights.length := by simp at hi; omega
-  have := lanes_owner i hi1 j hj hout
-  subst this
-  rw [List.getD_eq_getElem _ _ hi2]
+theorem mem_column {claims l : List ColumnClaim} {f : List ColumnClaim → List ColumnClaim}
+    {g : List ℕ → List ℕ} (hf : (f claims).map (·.column) = g (claims.map (·.column)))
+    (hl : l = f claims) {c : ColumnClaim} (hc : c ∈ l) :
+    c.column ∈ g (claims.map (·.column)) := by
+  rw [← hf, ← hl]
+  exact List.mem_map_of_mem hc
 
-theorem always_tableTerms (cP fP point : List E) (hK : ℕ) :
-    ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
-      (claims : List ColumnClaim), RowsOk rows hK →
-      (∀ c ∈ claims, c.column ∈ keccakOutputColumns → c.point = point.take hK) →
-      Always (tableTermsClaims cP fP point rows cursor final claims)
-        fun r ↦ ∀ c ∈ r.2, c.column ∈ keccakOutputColumns → c.point = point.take hK
-  | [], _, _, _, _, hc => hc
-  | (table, height, forms, weight) :: rest, cursor, final, claims, hrows, hc => by
-    unfold tableTermsClaims
-    simp only [VerifierProgram.bind_eq]
-    refine Always.bind (fun evs hevs ↦ ?_) _ (always_readN table.width)
-    refine always_tableTerms cP fP point hK rest _ _ _
-      (fun r hr ↦ hrows r (List.mem_cons_of_mem _ hr)) fun c hcm hout ↦ ?_
-    rw [List.mem_append] at hcm
-    rcases hcm with hcm | hcm
-    · exact hc c hcm hout
-    · obtain ⟨⟨v, col⟩, hvc, rfl⟩ := List.mem_map.1 hcm
-      have hcol := List.snd_lt_of_mem_zipIdx hvc
-      simp only [Nat.add_zero, hevs] at hcol
-      have := hrows _ (List.mem_cons_self ..) col hcol hout
-      simp only at this
-      rw [this]
+/-- **The output lanes are slots `105 .. 129`.** -/
+theorem filter_lanes_eq {claims : List ColumnClaim}
+    (hcol : claims.map (·.column) = Tables.claimColumns) :
+    claims.filter (fun c ↦ c.column ∈ keccakOutputColumns) = (claims.drop 105).take 25 := by
+  conv_lhs => rw [claims_split (claims := claims)]
+  rw [List.filter_append, List.filter_append, List.filter_eq_nil_iff.2, List.filter_eq_self.2,
+    List.filter_eq_nil_iff.2, List.nil_append, List.append_nil]
+  · intro c hc
+    have := mem_column (f := (·.drop 130)) (g := (·.drop 130)) (List.map_drop ..) rfl hc
+    rw [hcol] at this
+    simpa using claimColumns_back _ this
+  · intro c hc
+    have := mem_column (f := fun l ↦ (l.drop 105).take 25) (g := fun l ↦ (l.drop 105).take 25)
+      (by rw [List.map_take, List.map_drop]) rfl hc
+    rw [hcol, claimColumns_lanes] at this
+    simpa using this
+  · intro c hc
+    have := mem_column (f := (·.take 105)) (g := (·.take 105)) (List.map_take ..) rfl hc
+    rw [hcol] at this
+    simpa using claimColumns_front _ this
 
-theorem always_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
-    (cP fP eqPt : List E) (target : E) :
-    Always (tableSumcheckClaims heights busForms cP fP eqPt target) fun claims ↦
-      ∃ pt : List E, pt.length = heights.foldl max 0 ∧
-        ∀ c ∈ claims, c.column ∈ keccakOutputColumns → c.point = pt.take (heights.getD opKeccak 0) := by
-  unfold tableSumcheckClaims
-  simp only [VerifierProgram.bind_eq]
-  refine Always.bind (fun r hr ↦ ?_) _ (always_sumcheck 4 _ target)
-  obtain ⟨chs, cl⟩ := r
-  simp only [List.length_replicate] at hr
-  dsimp only
-  refine Always.bind (fun r hr2 ↦ ?_) _ (always_tableTerms cP fP chs.reverse
-    (heights.getD opKeccak 0) _ 0 0 [] (rowsOk_tables heights _) fun c hc ↦ absurd hc (by simp))
-  obtain ⟨fin, claims⟩ := r
-  refine Always.bind (fun _ _ ↦ ?_) _ (always_true _)
-  exact ⟨chs.reverse, by rw [List.length_reverse, hr], hr2⟩
+/-- **The other claims are slots `0 .. 104` and `130 .. 158`.** -/
+theorem filter_notLanes_eq {claims : List ColumnClaim}
+    (hcol : claims.map (·.column) = Tables.claimColumns) :
+    claims.filter (fun c ↦ c.column ∉ keccakOutputColumns) = claims.take 105 ++ claims.drop 130 := by
+  conv_lhs => rw [claims_split (claims := claims)]
+  rw [List.filter_append, List.filter_append, List.filter_eq_self.2, List.filter_eq_nil_iff.2,
+    List.filter_eq_self.2, List.nil_append]
+  · intro c hc
+    have := mem_column (f := (·.drop 130)) (g := (·.drop 130)) (List.map_drop ..) rfl hc
+    rw [hcol] at this
+    simpa using claimColumns_back _ this
+  · intro c hc
+    have := mem_column (f := fun l ↦ (l.drop 105).take 25) (g := fun l ↦ (l.drop 105).take 25)
+      (by rw [List.map_take, List.map_drop]) rfl hc
+    rw [hcol, claimColumns_lanes] at this
+    simpa using this
+  · intro c hc
+    have := mem_column (f := (·.take 105)) (g := (·.take 105)) (List.map_take ..) rfl hc
+    rw [hcol] at this
+    simpa using claimColumns_front _ this
 
-/-! ## The segment -/
-
-theorem always_busRest (ev : (List K → List E → VerifierProgram E)) (L : Layout) (alphas : List E)
-    (beta : E)
-    (point tv : List E) :
-    Always (Tables.busRest ev L alphas beta point tv) fun bus ↦
-      ∀ c ∈ bus.claims, c.column ∉ keccakOutputColumns := by
-  unfold Tables.busRest
-  simp only [VerifierProgram.bind_eq]
-  refine Always.bind (fun memory _ ↦ ?_) _ (always_true _)
-  refine Always.bind (fun mf _ ↦ ?_) _ (always_true _)
-  refine Always.bind (fun bf _ ↦ ?_) _ (always_true _)
-  refine Always.bind (fun bv _ ↦ ?_) _ (always_true _)
-  intro c hc
-  rw [List.mem_append] at hc
-  refine framework_not_lanes _ ?_
-  rcases hc with hc | hc
-  · have := zipWith_column _ _ _ id c hc
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at this ⊢
-    tauto
-  · simp only [List.mem_cons, List.not_mem_nil, or_false] at hc ⊢
-    rcases hc with rfl | rfl <;> simp
-
-theorem always_tablePhase (L : Layout) (bus : BusResult)
-    (hb : ∀ c ∈ bus.claims, c.column ∉ keccakOutputColumns) :
-    Always (tablePhaseClaims L bus) fun claims ↦
-      ∃ pt : List E, pt.length = L.tableLogHeights.foldl max 0 ∧
-        ∀ c ∈ claims, c.column ∈ keccakOutputColumns →
-          c.point = pt.take (L.tableLogHeights.getD opKeccak 0) := by
-  unfold tablePhaseClaims
-  simp only [VerifierProgram.bind_eq]
-  refine Always.bind (fun xi _ ↦ ?_) _ (always_true _)
-  refine Always.bind (fun cl hcl ↦ ?_) _ (always_tableSumcheck _ _ _ _ _ _)
-  obtain ⟨pt, hpt, hc⟩ := hcl
-  refine ⟨pt, hpt, fun c hcm hout ↦ ?_⟩
-  rw [List.mem_append] at hcm
-  rcases hcm with hcm | hcm
-  · exact absurd hout (hb c hcm)
-  · exact hc c hcm hout
-
-theorem always_publicInputPhase (L : Layout) (pi : Digest) :
-    Always (publicInputPhase L pi) fun claims ↦ ∀ c ∈ claims, c.column ∉ keccakOutputColumns := by
-  unfold publicInputPhase
-  simp only [VerifierProgram.bind_eq]
-  refine Always.bind (fun ch _ ↦ ?_) _ (always_true _)
-  intro c hc
-  refine framework_not_lanes _ ?_
-  have := zipWith_column _ _ _ id c hc
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at this ⊢
-  tauto
-
-/-- **The output lanes' point**: every claim `tablesSeg` returns on a `KECCAK` output lane is at
-the table sumcheck's point cut to the `KECCAK` table's height. -/
-theorem tablesSeg_lanes (ev : (List K → List E → VerifierProgram E)) (L : Layout) (pi : Digest) (alphas : List E)
-    (beta : E) (point tv : List E) :
-    Always (Tables.tablesSeg ev L pi alphas beta point tv) fun bc ↦
-      ∃ pt : List E, pt.length = L.tableLogHeights.foldl max 0 ∧
-        ∀ c ∈ bc.2, c.column ∈ keccakOutputColumns →
-          c.point = pt.take (L.tableLogHeights.getD opKeccak 0) := by
-  unfold Tables.tablesSeg
-  simp only [VerifierProgram.bind_eq]
-  refine Always.bind (fun bus hb ↦ ?_) _ (always_busRest ev L alphas beta point tv)
-  refine Always.bind (fun cl hcl ↦ ?_) _ (always_tablePhase L bus hb)
-  refine Always.bind (fun pc hpc ↦ ?_) _ (always_publicInputPhase L pi)
-  obtain ⟨pt, hpt, hc⟩ := hcl
-  refine ⟨pt, hpt, fun c hcm hout ↦ ?_⟩
-  rw [List.mem_append] at hcm
-  rcases hcm with hcm | hcm
-  · exact hc c hcm hout
-  · exact absurd hout (hpc c hcm)
+/-- **The output lanes**: their columns, their point (the table sumcheck's, cut to the `KECCAK`
+table's height `taus[5]`), and their `25` values at `col_eval_words·g^101`. -/
+theorem lanes_facts {claims : List ColumnClaim} (hcl : claims.length = 159)
+    (hcol : claims.map (·.column) = Tables.claimColumns) {chis : List E} {logMem : ℕ}
+    {taus : List ℕ}
+    (hpts : ∀ j (p : List E), (claims.map (·.point))[j]? = some p →
+      (j < Tables.nPooled → p.length = Tables.claimLowDim logMem taus j) ∧
+      (Tables.nBusClaims ≤ j → j < Tables.nPooled → p = chis.take p.length))
+    {cew : E} (hcew : ReadsAt rd cew (((claims.drop 4).take 153).map (·.value))) :
+    (claims.filter fun c ↦ c.column ∈ keccakOutputColumns).map (·.column) = keccakOutputColumns ∧
+    (∀ c ∈ claims.filter (fun c ↦ c.column ∈ keccakOutputColumns),
+      c.point = chis.take (taus.getD 5 0)) ∧
+    ((claims.filter fun c ↦ c.column ∈ keccakOutputColumns).headD default).point =
+      chis.take (taus.getD 5 0) ∧
+    ((claims.filter fun c ↦ c.column ∈ keccakOutputColumns).map (·.value)).length = 25 ∧
+    ReadsAt rd (cew * gen ^ 101)
+      ((claims.filter fun c ↦ c.column ∈ keccakOutputColumns).map (·.value)) := by
+  rw [filter_lanes_eq hcol]
+  have hpt : ∀ c ∈ (claims.drop 105).take 25, c.point = chis.take (taus.getD 5 0) := by
+    intro c hc
+    obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hc
+    simp only [List.length_take, List.length_drop, hcl] at hk
+    simp only [List.getElem_take, List.getElem_drop]
+    have hj := hpts (105 + k) claims[105 + k].point (by
+      simp only [List.getElem?_map, List.getElem?_eq_getElem (show 105 + k < claims.length by omega),
+        Option.map_some])
+    obtain ⟨h1, h2⟩ := hj
+    have hlen := h1 (by simp only [Tables.nPooled, Tables.nClaims]; omega)
+    have hdim : Tables.claimLowDim logMem taus (105 + k) = taus.getD 5 0 := by
+      have hadj : Tables.claimKappaAdj (105 + k) = 0 := by
+        simp only [Tables.claimKappaAdj]; split <;> omega
+      simp only [Tables.claimLowDim, claimKappaSrc_lanes k (by omega), hadj, add_zero]
+      rfl
+    have hb4 : Tables.nBusClaims ≤ 105 + k := by simp only [Tables.nBusClaims]; omega
+    have hp157 : 105 + k < Tables.nPooled := by simp only [Tables.nPooled, Tables.nClaims]; omega
+    rw [h2 hb4 hp157, hlen, hdim]
+  have hl : ((claims.drop 105).take 25).length = 25 := by simp [hcl]
+  refine ⟨by rw [List.map_take, List.map_drop, hcol, claimColumns_lanes], hpt, ?_, by simp [hcl],
+    ?_⟩
+  · obtain ⟨c, cs, hcs⟩ :=
+      List.exists_cons_of_length_pos (show 0 < ((claims.drop 105).take 25).length by omega)
+    rw [hcs]
+    exact hpt c (by rw [hcs]; exact List.mem_cons_self)
+  · rw [readsAt_gen_pow_mul]
+    intro k hk
+    simp only [List.length_map, hl] at hk
+    have := hcew (101 + k) (by simp [hcl]; omega)
+    simp only [List.getElem_map, List.getElem_take, List.getElem_drop] at this ⊢
+    simpa [show 4 + (101 + k) = 105 + k by omega] using this
 
 end
 end LeanVM.Guest.B1.VerifySub

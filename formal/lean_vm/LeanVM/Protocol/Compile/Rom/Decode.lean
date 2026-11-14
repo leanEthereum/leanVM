@@ -9,7 +9,6 @@
 module
 
 public import LeanVM.Protocol.Compile.Rom.Extract
-public import LeanVM.Protocol.Compile.Prover
 
 /-!
 # Decoding a log
@@ -37,8 +36,9 @@ record per permutation entry (`Dec.kinds`). An entry `(t, u)` is read as follows
   (`extract`); a scalar of tag `4` at a `grind` node, the last one, is the nonce. Openings take
   no query of the sponge: before each scalar the openings are followed, each answered from the
   extracted words (`settle`). Then (`decodeAt`):
-  - after a nonce, the permutation is the proof of work's squeeze: `u` is the state after the
-    proof of work, its challenge's low bits the check;
+  - after a nonce, the permutation is the proof of work's: its third lane's low bits are the check,
+    and its first two lanes the challenge the next `sample` returns (`ground`), after the openings
+    in between: `u` is the state after that challenge;
   - at a `sample` node (after the openings), the permutation is a squeeze: `u` is the state after
     the challenge `challengeOf u`;
   - with four scalars consumed and the program at an absorption (`read`, `commit`, `grind`, or in
@@ -54,8 +54,9 @@ output is a state at the boundary history `h` with node `p`, after the seed (`pw
 proof of work of `b` bits with nonce `n` (`pw = some (b, n)`); `sq h p` if it is the first
 squeeze of the group starting at the boundary `h`, the scalars of the permutation being the
 prover's last moves. The potential (`LeanVM.Protocol.Compile.Rom.Potential`) gives each record a
-term. A squeeze after the seed or a proof of work, with no scalar waiting, gets no record: the
-state's record carries its group.
+term. A squeeze after the seed, with no scalar waiting, gets no record: the state's record carries
+its group. A proof of work's permutation draws the first challenge of its group itself, and its
+record carries the group.
 
 Every record and every decoded state carries a reachable history at which the program is at the
 recorded node (`decode_ok`): the certificate's lemmas apply to them.
@@ -102,8 +103,6 @@ theorem not_boundary_append_query (h : List Ev) (rows : List (List K)) :
   unfold Boundary; split
   · simp_all
   · rw [getLast?_append_single]; simp
-
-theorem grindBits_nil : grindBits [] = 0 := rfl
 
 theorem grindBits_append_read (h : List Ev) (x : E) : grindBits (h ++ [Ev.read x]) = 0 := by
   simp [grindBits]
@@ -197,9 +196,7 @@ def consume (W : Digest → ℕ → ℕ → Word) : List Ev → Pos → List (E 
     | _ => .bad
   | h, .half ht w k x₀, (x, tag) :: rest =>
     if tag = 1 then
-      match digestFromHalves (x₀, x) with
-      | some r => consume W (h ++ [Ev.commit ht w (W r ht w)]) (.node k) rest
-      | none => .bad
+      consume W (h ++ [Ev.commit ht w (W (digestFromHalves (x₀, x)) ht w)]) (.node k) rest
     else .bad
 
 /-! ## The decoder -/
@@ -246,7 +243,9 @@ def decodeAt : Cons → List (E × ℕ) → Shape × (KeccakState → Option Inf
     | some (h1, .grind b k) => forced h1 (.grind b k) ps
     | _ => (.none, fun _ ↦ none)
   | .grd h b k n, _ =>
-    (.st (h ++ [Ev.grind b]) k (some (b, n)), fun _ ↦ some (h ++ [Ev.grind b], .node k))
+    (.st (h ++ [Ev.grind b]) k (some (b, n)), fun u ↦ match settle (h ++ [Ev.grind b]) k with
+      | some (h1, .sample k') => some (h1 ++ [Ev.sample (challengeOf u)], .node (k' (challengeOf u)))
+      | _ => none)
   | .bad, _ => (.none, fun _ ↦ none)
 
 /-- A history at which a seed can put the program: reachable, a boundary without proof of work
@@ -452,24 +451,22 @@ theorem consume_ok {W : Digest → ℕ → ℕ → Word} (hW : ∀ r ht w, WellS
     obtain ⟨hr, ha⟩ := hi
     simp only [consume]
     split
-    · split
-      · rename_i r _
-        have hr' := VerifierProgram.Reachable.commit (W r ht w) hr ha (hW r ht w)
-        have ha' := after_commit_step ha (W r ht w)
-        have hc := consume_ok hW rest (h ++ [Ev.commit ht w (W r ht w)]) (.node k) ⟨hr', ha'⟩
-        rcases hrest : rest with _ | ⟨y, rest'⟩
-        · subst hrest
-          exact ⟨⟨hr', ha'⟩, fun _ p' _ ↦
-            ⟨boundary_append_commit _ _ _ _, grindBits_append_commit _ _ _ _⟩⟩
-        · rw [← hrest]
-          revert hc
-          generalize consume W (h ++ [Ev.commit ht w (W r ht w)]) (.node k) rest = c
-          intro hc
-          rcases c with ⟨h', pos'⟩ | _ | _
-          · exact ⟨hc.1, fun _ p' hp' ↦ hc.2 (by rw [hrest]; simp) p' hp'⟩
-          · exact hc
-          · trivial
-      · trivial
+    · set r := digestFromHalves (x₀, x)
+      have hr' := VerifierProgram.Reachable.commit (W r ht w) hr ha (hW r ht w)
+      have ha' := after_commit_step ha (W r ht w)
+      have hc := consume_ok hW rest (h ++ [Ev.commit ht w (W r ht w)]) (.node k) ⟨hr', ha'⟩
+      rcases hrest : rest with _ | ⟨y, rest'⟩
+      · subst hrest
+        exact ⟨⟨hr', ha'⟩, fun _ p' _ ↦
+          ⟨boundary_append_commit _ _ _ _, grindBits_append_commit _ _ _ _⟩⟩
+      · rw [← hrest]
+        revert hc
+        generalize consume W (h ++ [Ev.commit ht w (W r ht w)]) (.node k) rest = c
+        intro hc
+        rcases c with ⟨h', pos'⟩ | _ | _
+        · exact ⟨hc.1, fun _ p' hp' ↦ hc.2 (by rw [hrest]; simp) p' hp'⟩
+        · exact hc
+        · trivial
     · trivial
 
 theorem forced_ok {h : List Ev} {p : VerifierProgram Bool} (hr : P.Reachable h) (ha : P.after h =
@@ -517,8 +514,14 @@ theorem decodeAt_ok {ps : List (E × ℕ)} {c : Cons} (hc : ConsOk P ps c) :
     simp only [decodeAt]
     have hr' := VerifierProgram.Reachable.grind hr ha
     have ha' := after_grind_step ha
-    exact ⟨⟨hr', boundary_append_grind h b, ha', by simp [grindBits_append_grind]⟩,
-      fun _ i hi ↦ by cases hi; exact ⟨hr', ha'⟩⟩
+    refine ⟨⟨hr', boundary_append_grind h b, ha', by simp [grindBits_append_grind]⟩, ?_⟩
+    intro u i hi
+    split at hi
+    · rename_i h1 k' hs
+      obtain ⟨hr1, ha1⟩ := settle_ok k _ hr' ha' hs
+      cases hi
+      exact ⟨VerifierProgram.Reachable.sample _ hr1 ha1, after_sample_step ha1 _⟩
+    · simp at hi
   · exact ⟨trivial, fun _ _ hi ↦ by simp [decodeAt] at hi⟩
 
 theorem setInfo_ok {f : (Fin 9 → UInt64) → Option Info} {c : Fin 9 → UInt64} {o : Option Info}

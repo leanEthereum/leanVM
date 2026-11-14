@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Merkle.Meaning
 public import LeanVM.Guest.B1.Fs.Templates
 
 /-!
-# `verify_merkle_cap` (G:1167-1210, TRIAGE #34)
+# `verify_merkle_cap` (G:1156-1199, TRIAGE #34)
 
 With `L = 2^D` leaves, the expansion of `verify_merkle_cap__L{D}` is `mcBody L`:
 
@@ -25,7 +25,7 @@ With `L = 2^D` leaves, the expansion of `verify_merkle_cap__L{D}` is `mcBody L`:
 * the root's cells returned.
 
 `mc_keccak_hash` is what one node's `KECCAK` gives (`keccak_one`), `merkle_cap_iff` the meaning at
-every depth, and `verify_merkle_cap_holds` the five deployed depths.
+every depth, and `verify_merkle_cap_holds` the seven deployed depths.
 -/
 
 namespace LeanVM.Guest.B1
@@ -41,7 +41,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 /-! ## The template -/
 
 /-- The `0x80` padding constant of a 64-byte message's last byte (`0x80 << 56`). -/
-abbrev w63 : E := word 9223372036854775808 0 0
+abbrev w63 : E := word 9223372036854775808 0
 
 /-- The first value of the padding run. -/
 def mcP (L : ℕ) : ℕ := 4 * L
@@ -69,8 +69,8 @@ def mcNode (L k b : ℕ) : List Stmt :=
   [.atom (.load (.n b) (.n 1) k),
     .ite (.n b)
       (if 2 * k < L then
-        [.atom (.const (.n (b + 1)) (word 0 0 0)), .atom (.load (.n (b + 1)) (.n 1) (2 * k)),
-          .atom (.const (.n (b + 2)) (word 0 0 0)), .atom (.load (.n (b + 2)) (.n 1) (2 * k + 1))]
+        [.atom (.const (.n (b + 1)) (word 0 0)), .atom (.load (.n (b + 1)) (.n 1) (2 * k)),
+          .atom (.const (.n (b + 2)) (word 0 0)), .atom (.load (.n (b + 2)) (.n 1) (2 * k + 1))]
       else [])
       [.atom (.const (.n (b + mcOc L k)) w63),
         keccakA (mcIns L k (b + mcOc L k)) (mcOuts k)]]
@@ -78,9 +78,9 @@ def mcNode (L k b : ℕ) : List Stmt :=
 /-- The expansion of `verify_merkle_cap` at `L` leaves. -/
 def mcBody (L : ℕ) : List Stmt :=
   ((List.range (4 * L - 2)).map fun i ↦ [.atom (.load (.n (i + 2)) (.n 0) (i + 2))]).flatten ++
-  [.atom (.const (.n (mcP L)) (word 1 0 0)), .atom (.const (.n (mcP L + 1)) (word 0 0 0)),
-    .atom (.const (.n (mcP L + 2)) (word 0 0 0)), .atom (.const (.n (mcP L + 3)) (word 0 0 0)),
-    .atom (.const (.n (mcP L + 4)) (word 0 0 0)), .atom (.const (.n (mcP L + 5)) w63),
+  [.atom (.const (.n (mcP L)) (word 1 0)), .atom (.const (.n (mcP L + 1)) (word 0 0)),
+    .atom (.const (.n (mcP L + 2)) (word 0 0)), .atom (.const (.n (mcP L + 3)) (word 0 0)),
+    .atom (.const (.n (mcP L + 4)) (word 0 0)), .atom (.const (.n (mcP L + 5)) w63),
     keccakA (mcIns L 1 (mcP L + 5)) (mcOuts 1)] ++
   ((List.range (L - 2)).map fun j ↦ mcNode L (j + 2) (mcBase L (j + 2))).flatten ++
   [.atom (.copy (.n (mcBase L L)) (.n 2)), .atom (.copy (.n (mcBase L L + 1)) (.n 3)),
@@ -93,7 +93,7 @@ theorem noRet_mcNode (L k b : ℕ) : Stmt.noRetList (mcNode L k b) = true := by
 
 /-- The digest of 64 bytes: `keccak([a0, a1], [b0, b1], out)` (`keccak_one`). -/
 theorem pair_digest (a0 a1 b0 b1 : E) (O : Fin 13 → E)
-    (hK : KeccakCellsRelation (cells13 [a0, a1, b0, b1, word 1 0 0, 0, 0, 0, w63, 0, 0, 0, 0]) false O
+    (hK : KeccakCellsRelation (cells13 [a0, a1, b0, b1, word 1 0, 0, 0, 0, w63, 0, 0, 0, 0]) false O
       false .all) :
     (O 0, O 1) = digestHalves (keccak256 (cellsBytes [a0, a1, b0, b1])) := by
   have := (keccak_one (cells := [a0, a1, b0, b1]) (len := 64) (by simp) (by decide)
@@ -103,69 +103,44 @@ theorem pair_digest (a0 a1 b0 b1 : E) (O : Fin 13 → E)
     (fun c hc ↦ by fin_cases c <;> simp_all [cells13]) hK).2
   rwa [List.take_of_length_le (by simp)] at this
 
-theorem canonical_pad :
-    AllCanonical [word 1 0 0, 0, 0, 0, w63, 0, 0, 0, 0] := by
-  intro c hc
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
-  have z : IsCanonical128 (0 : E) := by
-    rw [zero_eq_ofLimbs]; exact (isCanonical128_ofLimbs_iff _ _ _).mpr rfl
-  rcases hc with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  all_goals exact z
-
 /-- The inputs of a node's `KECCAK`, the padding run's values known. -/
-theorem mcIns_map {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0 0)
-    (h1 : σ (.n (mcP L + 1)) = word 0 0 0) (h2 : σ (.n (mcP L + 2)) = word 0 0 0)
-    (h3 : σ (.n (mcP L + 3)) = word 0 0 0) (h4 : σ (.n (mcP L + 4)) = word 0 0 0)
+theorem mcIns_map {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0)
+    (h1 : σ (.n (mcP L + 1)) = word 0 0) (h2 : σ (.n (mcP L + 2)) = word 0 0)
+    (h3 : σ (.n (mcP L + 3)) = word 0 0) (h4 : σ (.n (mcP L + 4)) = word 0 0)
     (hc : σ (.n c) = w63) :
     (mcIns L k c).map σ = [σ (.n (4 * k)), σ (.n (4 * k + 1)), σ (.n (4 * k + 2)),
-      σ (.n (4 * k + 3)), word 1 0 0, 0, 0, 0, w63, 0, 0, 0, 0] := by
+      σ (.n (4 * k + 3)), word 1 0, 0, 0, 0, w63, 0, 0, 0, 0] := by
   simp [mcIns, hP, h1, h2, h3, h4, hc, word_zero]
 
 /-- **A node's `KECCAK`** hashes its children's cells into its own. -/
-theorem mc_keccak_hash {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0 0)
-    (h1 : σ (.n (mcP L + 1)) = word 0 0 0) (h2 : σ (.n (mcP L + 2)) = word 0 0 0)
-    (h3 : σ (.n (mcP L + 3)) = word 0 0 0) (h4 : σ (.n (mcP L + 4)) = word 0 0 0)
+theorem mc_keccak_hash {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0)
+    (h1 : σ (.n (mcP L + 1)) = word 0 0) (h2 : σ (.n (mcP L + 2)) = word 0 0)
+    (h3 : σ (.n (mcP L + 3)) = word 0 0) (h4 : σ (.n (mcP L + 4)) = word 0 0)
     (hc : σ (.n c) = w63) (hK : (Atom.keccak (mcIns L k c) (mcOuts k) false false).Holds rd σ) :
     HashesPair (σ (.n (4 * k))) (σ (.n (4 * k + 1))) (σ (.n (4 * k + 2))) (σ (.n (4 * k + 3)))
       (σ (.n (2 * k))) (σ (.n (2 * k + 1))) := by
   obtain ⟨-, -, O, hKC, hw⟩ := keccak_holds_full hK
   rw [mcIns_map hP h1 h2 h3 h4 hc] at hKC
-  refine ⟨fun x hx ↦ ?_, ?_⟩
-  · simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-    rcases hx with rfl | rfl | rfl | rfl
-    · exact hKC.1 0
-    · exact hKC.1 1
-    · exact hKC.1 2
-    · exact hKC.1 3
-  · have e0 : σ (.n (2 * k)) = O 0 := hw 0 (by simp [mcOuts])
-    have e1 : σ (.n (2 * k + 1)) = O 1 := hw 1 (by simp [mcOuts])
-    rw [e0, e1]
-    exact pair_digest _ _ _ _ _ hKC
+  have e0 : σ (.n (2 * k)) = O 0 := hw 0 (by simp [mcOuts])
+  have e1 : σ (.n (2 * k + 1)) = O 1 := hw 1 (by simp [mcOuts])
+  unfold HashesPair
+  rw [e0, e1]
+  exact pair_digest _ _ _ _ _ hKC
 
 /-- The converse: children's canonical cells and the parent's cells their digest make a node's
 `KECCAK` hold. -/
-theorem mc_keccak_of {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0 0)
-    (h1 : σ (.n (mcP L + 1)) = word 0 0 0) (h2 : σ (.n (mcP L + 2)) = word 0 0 0)
-    (h3 : σ (.n (mcP L + 3)) = word 0 0 0) (h4 : σ (.n (mcP L + 4)) = word 0 0 0)
+theorem mc_keccak_of {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0)
+    (h1 : σ (.n (mcP L + 1)) = word 0 0) (h2 : σ (.n (mcP L + 2)) = word 0 0)
+    (h3 : σ (.n (mcP L + 3)) = word 0 0) (h4 : σ (.n (mcP L + 4)) = word 0 0)
     (hc : σ (.n c) = w63)
     (hH : HashesPair (σ (.n (4 * k))) (σ (.n (4 * k + 1))) (σ (.n (4 * k + 2)))
       (σ (.n (4 * k + 3))) (σ (.n (2 * k))) (σ (.n (2 * k + 1)))) :
     (Atom.keccak (mcIns L k c) (mcOuts k) false false).Holds rd σ := by
-  obtain ⟨hcan, hd⟩ := hH
-  have hcanI : ∀ x, IsCanonical128 (cells13 [σ (.n (4 * k)), σ (.n (4 * k + 1)),
-      σ (.n (4 * k + 2)), σ (.n (4 * k + 3)), word 1 0 0, 0, 0, 0, w63, 0, 0, 0, 0] x) := by
-    intro x
-    fin_cases x
-    · exact hcan _ (by simp [cells13])
-    · exact hcan _ (by simp [cells13])
-    · exact hcan _ (by simp [cells13])
-    · exact hcan _ (by simp [cells13])
-    all_goals exact canonical_pad _ (by simp [cells13])
+  have hd := hH
   have hS := pair_digest (σ (.n (4 * k))) (σ (.n (4 * k + 1))) (σ (.n (4 * k + 2)))
-    (σ (.n (4 * k + 3))) _ ⟨hcanI, fun _ _ ↦ rfl⟩
+    (σ (.n (4 * k + 3))) _ (fun _ _ ↦ rfl)
   rw [← hd, Prod.mk.injEq] at hS
-  refine keccak_holds_two.mpr ⟨rfl, ?_, ?_, ?_⟩
-  · rw [mcIns_map hP h1 h2 h3 h4 hc]; exact hcanI
+  refine keccak_holds_two.mpr ⟨rfl, ?_, ?_⟩
   · rw [mcIns_map hP h1 h2 h3 h4 hc]; exact hS.1.symm
   · rw [mcIns_map hP h1 h2 h3 h4 hc]; exact hS.2.symm
 
@@ -174,8 +149,8 @@ theorem mc_keccak_of {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0 0)
 /-- What node `k`'s atoms ask, from the value `b`. -/
 def McNodeOk (rd : Reader) (σ : Val) (L k b : ℕ) : Prop :=
   LoadHolds rd (σ (.n 1)) k (σ (.n b)) ∧ IsInK (σ (.n b)) ∧
-    (σ (.n b) = 0 → 2 * k < L → σ (.n (b + 1)) = word 0 0 0 ∧
-      LoadHolds rd (σ (.n 1)) (2 * k) (σ (.n (b + 1))) ∧ σ (.n (b + 2)) = word 0 0 0 ∧
+    (σ (.n b) = 0 → 2 * k < L → σ (.n (b + 1)) = word 0 0 ∧
+      LoadHolds rd (σ (.n 1)) (2 * k) (σ (.n (b + 1))) ∧ σ (.n (b + 2)) = word 0 0 ∧
       LoadHolds rd (σ (.n 1)) (2 * k + 1) (σ (.n (b + 2)))) ∧
     (σ (.n b) ≠ 0 → σ (.n (b + mcOc L k)) = w63 ∧
       (Atom.keccak (mcIns L k (b + mcOc L k)) (mcOuts k) false false).Holds rd σ)
@@ -195,9 +170,9 @@ theorem holds_mcNode (L k b : ℕ) (kret : List E → Prop) :
 theorem holds_mcBody (L : ℕ) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ (mcBody L) False kret ↔
       (∀ i < 4 * L - 2, LoadHolds rd (σ (.n 0)) (i + 2) (σ (.n (i + 2)))) ∧
-      σ (.n (mcP L)) = word 1 0 0 ∧ σ (.n (mcP L + 1)) = word 0 0 0 ∧
-      σ (.n (mcP L + 2)) = word 0 0 0 ∧ σ (.n (mcP L + 3)) = word 0 0 0 ∧
-      σ (.n (mcP L + 4)) = word 0 0 0 ∧ σ (.n (mcP L + 5)) = w63 ∧
+      σ (.n (mcP L)) = word 1 0 ∧ σ (.n (mcP L + 1)) = word 0 0 ∧
+      σ (.n (mcP L + 2)) = word 0 0 ∧ σ (.n (mcP L + 3)) = word 0 0 ∧
+      σ (.n (mcP L + 4)) = word 0 0 ∧ σ (.n (mcP L + 5)) = w63 ∧
       (Atom.keccak (mcIns L 1 (mcP L + 5)) (mcOuts 1) false false).Holds rd σ ∧
       (∀ j < L - 2, McNodeOk rd σ L (j + 2) (mcBase L (j + 2))) ∧
       σ (.n (mcBase L L)) = σ (.n 2) ∧ σ (.n (mcBase L L + 1)) = σ (.n 3) ∧
@@ -216,7 +191,7 @@ def nodeVal (L : ℕ) (fl : ℕ → E) (k o : ℕ) : E :=
 def mcVal (L : ℕ) (cap flags : E) (cell fl : ℕ → E) (i : ℕ) : E :=
   if i = 0 then cap else if i = 1 then flags
   else if i < 4 * L then cell i
-  else if i = 4 * L then word 1 0 0
+  else if i = 4 * L then word 1 0
   else if i < 4 * L + 5 then 0
   else if i = 4 * L + 5 then w63
   else if i < mcBase L (L / 2) then
@@ -225,7 +200,7 @@ def mcVal (L : ℕ) (cap flags : E) (cell fl : ℕ → E) (i : ℕ) : E :=
     nodeVal L fl (L / 2 + (i - mcBase L (L / 2)) / 2) ((i - mcBase L (L / 2)) % 2)
   else cell (i - mcBase L L + 2)
 
-theorem mcVal_node (L : ℕ) (hL : 16 ≤ L) (hL2 : L % 2 = 0) (cap flags : E) (cell fl : ℕ → E)
+theorem mcVal_node (L : ℕ) (hL : 4 ≤ L) (hL2 : L % 2 = 0) (cap flags : E) (cell fl : ℕ → E)
     {k o : ℕ} (hk : 2 ≤ k) (hkL : k < L) (ho : o < mcOc L k + 1) :
     mcVal L cap flags cell fl (mcBase L k + o) = nodeVal L fl k o := by
   have hb2 : mcBase L (L / 2) = 4 * L + 6 + 4 * (L / 2 - 2) := by
@@ -265,10 +240,10 @@ theorem meaningCapL_iff (D : ℕ) (rd : Reader) (args rets : List E) :
   split <;> simp only [h4L]
 
 /-- **`verify_merkle_cap` at `L` leaves**, for a compiled function whose body is `mcBody L`. -/
-theorem merkle_cap_iffL {name : String} {f : Fn} (L : ℕ) (hL : 16 ≤ L) (hL2 : L % 2 = 0)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
+theorem merkle_cap_iffL {P : Program} {name : String} {f : Fn} (L : ℕ) (hL : 4 ≤ L) (hL2 : L % 2 = 0)
+    (hfind : P.find? name = some f) (hparams : f.params = [.n 0, .n 1])
     (hbody : f.body = mcBody L) (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd name args rets ↔ MeaningCapL L rd args rets := by
+    P.Rel rd name args rets ↔ MeaningCapL L rd args rets := by
   rw [rel_iff_sem hfind, hbody, hparams]
   simp only [holds_mcBody, List.map_cons, List.map_nil]
   constructor
@@ -312,10 +287,10 @@ theorem merkle_cap_iffL {name : String} {f : Fn} (L : ℕ) (hL : 16 ≤ L) (hL2 
     have ecell : ∀ k, 2 ≤ k → k < 4 * L → σ (.n k) = cell k := fun k h1 h2 ↦ by
       rw [ev]; unfold mcVal; rw [ite_neg' (by omega), ite_neg' (by omega), ite_pos' h2]
     have e1 : σ (.n 1) = flags := rfl
-    have eP : σ (.n (mcP L)) = word 1 0 0 := by
+    have eP : σ (.n (mcP L)) = word 1 0 := by
       rw [ev]; unfold mcVal mcP
       rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_pos' rfl]
-    have eZ : ∀ i, 1 ≤ i → i < 5 → σ (.n (mcP L + i)) = word 0 0 0 := fun i h1 h2 ↦ by
+    have eZ : ∀ i, 1 ≤ i → i < 5 → σ (.n (mcP L + i)) = word 0 0 := fun i h1 h2 ↦ by
       rw [ev, word_zero]; unfold mcVal mcP
       rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
         ite_pos' (by omega)]

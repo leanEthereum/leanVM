@@ -20,9 +20,9 @@ witness's (`decWitNC` at the frames stage's closures, at most `Wn`) a parameter:
   and `5`), for `decWitN_cost`;
 * **`decTopFrames_cost`**: the witness (at most `Wn`) and the decoding: `framesPrice G R S X Wn`;
 * **`decTopStates_cost`**, **`decTopTables_cost`**, **`decTop_cost`**: the entry table (at most `E`),
-  `main`'s valuation, the reader (`1271` at `κ ≤ 32`), the replay (`replayStatesOf_cost`), the
+  `main`'s valuation, the reader (`1271` at `κ ≤ 30`), the replay (`replayStatesOf_cost`), the
   tables built once (the preconditions' at most `Kpre`, the entries' at most `Kpc`, the readers'
-  `32900`): at most `(runnerStepPrice κ ℓ + 46)·|states| + E + Kpre + Kpc +
+  `38708`): at most `(runnerStepPrice κ ℓ + 46)·|states| + E + Kpre + Kpc +
   addressTablesPrice κ ℓ + topConstPrice X Wn`, the address tables
   `(74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42` (`decoderTables_cost`);
 * `frameWit_cost`: the witness at the frames stage's closures, `Wn` from the frame map's price `F`
@@ -170,25 +170,25 @@ theorem sphincsAtFp_cost (hP : Includes P Decoder.sphincsAtFpC.costDeps) (Rt : R
       encodeValue o] ≤ 3 * F + 1507 * (R + 1551) + 351500 := by
   rw [Decoder.sphincsAtFpC.costEq P hP Rt table rd rdV hrd o]
   have hs : ∀ v : V, RunsApp P (.closure Decoder.sphincsAtFpC.lam0.costIdx [rdV, encodeValue o])
-      [encodeValue v] (encodeValue (Decoder.frameValAt rd o 21 v)) :=
+      [encodeValue v] (encodeValue (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs) v)) :=
     fun v ↦ RunsApp.of_spec (Decoder.sphincsAtFpC.lam0.costSpec P (by includes) rd rdV hrd o v)
   have hS : ∀ v : V, appCost P (.closure Decoder.sphincsAtFpC.lam0.costIdx [rdV, encodeValue o])
       [encodeValue v] ≤ R + 1551 := fun v ↦ by
     rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
       Decoder.sphincsAtFpC.lam0.costEq P (by includes) rd rdV hrd]
-    have := frameValAt_cost P rd rdV hrd R hR (by includes) o 21 (by norm_num) v
+    have := frameValAt_cost P rd rdV hrd R hR (by includes) o (fn_idx% verify_sig_lean_sphincs) (by norm_num) v
     simp only [List.length_cons, List.length_nil]
     omega
   have hw : ∀ (o' : Option K) (v : V), RunsApp P
       (.closure Decoder.sphincsAtFpC.lam1.costIdx [rdV, encodeValue o'])
-      [encodeValue v] (encodeValue (Decoder.frameValAt rd o' 20 v)) :=
+      [encodeValue v] (encodeValue (Decoder.frameValAt rd o' (fn_idx% sp_wots) v)) :=
     fun o' v ↦ RunsApp.of_spec (Decoder.sphincsAtFpC.lam1.costSpec P (by includes) rd rdV hrd o' v)
   have hW : ∀ (o' : Option K) (v : V), appCost P
       (.closure Decoder.sphincsAtFpC.lam1.costIdx [rdV, encodeValue o']) [encodeValue v] ≤
         R + 1551 := fun o' v ↦ by
     rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
       Decoder.sphincsAtFpC.lam1.costEq P (by includes) rd rdV hrd]
-    have := frameValAt_cost P rd rdV hrd R hR (by includes) o' 20 (by norm_num) v
+    have := frameValAt_cost P rd rdV hrd R hR (by includes) o' (fn_idx% sp_wots) (by norm_num) v
     simp only [List.length_cons, List.length_nil]
     omega
   have a0 := spWotsArgs_cost P hs hS (by includes) 0 (by norm_num)
@@ -197,19 +197,19 @@ theorem sphincsAtFp_cost (hP : Includes P Decoder.sphincsAtFpC.costDeps) (Rt : R
   have r0 := spWotsRets_cost P hs hS (by includes) 0 (by norm_num)
   have r1 := spWotsRets_cost P hs hS (by includes) 1 (by norm_num)
   have r2 := spWotsRets_cost P hs hS (by includes) 2 (by norm_num)
-  have f0 := hFp 20 (spWotsArgs (Decoder.frameValAt rd o 21) 0)
-    (spWotsRets (Decoder.frameValAt rd o 21) 0) (by norm_num) (by simp [spWotsArgs, spWotsRets])
-  have f1 := hFp 20 (spWotsArgs (Decoder.frameValAt rd o 21) 1)
-    (spWotsRets (Decoder.frameValAt rd o 21) 1) (by norm_num) (by simp [spWotsArgs, spWotsRets])
-  have f2 := hFp 20 (spWotsArgs (Decoder.frameValAt rd o 21) 2)
-    (spWotsRets (Decoder.frameValAt rd o 21) 2) (by norm_num) (by simp [spWotsArgs, spWotsRets])
+  have f0 := hFp (fn_idx% sp_wots) (spWotsArgs (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 0)
+    (spWotsRets (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 0) (by norm_num) (by simp [spWotsArgs, spWotsRets])
+  have f1 := hFp (fn_idx% sp_wots) (spWotsArgs (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 1)
+    (spWotsRets (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 1) (by norm_num) (by simp [spWotsArgs, spWotsRets])
+  have f2 := hFp (fn_idx% sp_wots) (spWotsArgs (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 2)
+    (spWotsRets (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 2) (by norm_num) (by simp [spWotsArgs, spWotsRets])
   have := sphincsSigOfA_cost P hs hS (by includes) Rt.sphincs hRt
-    (hw (Decoder.frameFpA table 20 (spWotsArgs (Decoder.frameValAt rd o 21) 0)
-      (spWotsRets (Decoder.frameValAt rd o 21) 0))) (hW _)
-    (hw (Decoder.frameFpA table 20 (spWotsArgs (Decoder.frameValAt rd o 21) 1)
-      (spWotsRets (Decoder.frameValAt rd o 21) 1))) (hW _)
-    (hw (Decoder.frameFpA table 20 (spWotsArgs (Decoder.frameValAt rd o 21) 2)
-      (spWotsRets (Decoder.frameValAt rd o 21) 2))) (hW _)
+    (hw (Decoder.frameFpA table (fn_idx% sp_wots) (spWotsArgs (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 0)
+      (spWotsRets (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 0))) (hW _)
+    (hw (Decoder.frameFpA table (fn_idx% sp_wots) (spWotsArgs (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 1)
+      (spWotsRets (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 1))) (hW _)
+    (hw (Decoder.frameFpA table (fn_idx% sp_wots) (spWotsArgs (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 2)
+      (spWotsRets (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 2))) (hW _)
   omega
 
 /-- **The leanSPHINCS signature checked at slot address `p`** (`sphincsAtFrameTC`), at `main`'s
@@ -222,10 +222,10 @@ theorem sphincsAtFrameT_cost (hP : Includes P Decoder.sphincsAtFrameTC.costDeps)
     machineCost P Decoder.sphincsAtFrameTC.costIdx [encodeValue Rt, encodeValue table, rdV, σV,
       encodeValue p] ≤ 2 * S + 4 * F + 1507 * (R + 1551) + 351525 := by
   rw [Decoder.sphincsAtFrameTC.costEq P hP Rt table rd rdV hrd σ σV hσ p]
-  have := hS (.n 68)
-  have := hFp 21 [p, σ (.n 68)] [] (by norm_num) (by simp)
+  have := hS (.n 47)
+  have := hFp (fn_idx% verify_sig_lean_sphincs) [p, σ (.n 47)] [] (by norm_num) (by simp)
   have := sphincsAtFp_cost P hrd hR table hFp (by includes) Rt hRt
-    (Decoder.frameFpA table 21 [p, σ (.n 68)] [])
+    (Decoder.frameFpA table (fn_idx% verify_sig_lean_sphincs) [p, σ (.n 47)] [])
   omega
 
 omit hR hFp in
@@ -261,11 +261,11 @@ variable {rd : Reader} {rdV : MachineValue}
   {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R)
   (table : Array (CallKey × K)) {F4 : ℕ}
   (hFp4 : ∀ (args rets : List E), args.length + rets.length ≤ 64 →
-    machineCost P Decoder.frameFpAC.costIdx [encodeValue table, encodeValue 37, encodeValue args,
+    machineCost P Decoder.frameFpAC.costIdx [encodeValue table, encodeValue (fn_idx% main_loop2), encodeValue args,
       encodeValue rets] ≤ F4)
 include hrd hR hFp4
 
-/-- **The leanXMSS signature `__loop2`'s iteration on `args` checks** (`xmssAtFrameTC`), its
+/-- **The leanXMSS signature `main_loop2`'s iteration on `args` checks** (`xmssAtFrameTC`), its
 frame looked up once (a search on a key of at most `64` words, at most `F4`), the reader at the
 words off the frame pointer (`frameValAt`, `R + 1551` each): at most
 `F4 + xmssPrice (R + 1551) + 12`. -/
@@ -275,16 +275,16 @@ theorem xmssAtFrameT_cost (hP : Includes P Decoder.xmssAtFrameTC.costDeps) (Rt :
       encodeValue args] ≤ F4 + xmssPrice (R + 1551) + 12 := by
   rw [Decoder.xmssAtFrameTC.costEq P hP Rt table rd rdV hrd args]
   have hs : ∀ v : V, RunsApp P (.closure Decoder.xmssAtFrameTC.lam0.costIdx
-      [rdV, encodeValue (Decoder.frameFpA table 37 args [])]) [encodeValue v]
-      (encodeValue (Decoder.frameValAt rd (Decoder.frameFpA table 37 args []) 37 v)) :=
+      [rdV, encodeValue (Decoder.frameFpA table (fn_idx% main_loop2) args [])]) [encodeValue v]
+      (encodeValue (Decoder.frameValAt rd (Decoder.frameFpA table (fn_idx% main_loop2) args []) (fn_idx% main_loop2) v)) :=
     fun v ↦ RunsApp.of_spec (Decoder.xmssAtFrameTC.lam0.costSpec P (by includes) rd rdV hrd _ v)
   have hS : ∀ v : V, appCost P (.closure Decoder.xmssAtFrameTC.lam0.costIdx
-      [rdV, encodeValue (Decoder.frameFpA table 37 args [])]) [encodeValue v] ≤ R + 1551 :=
+      [rdV, encodeValue (Decoder.frameFpA table (fn_idx% main_loop2) args [])]) [encodeValue v] ≤ R + 1551 :=
     fun v ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         Decoder.xmssAtFrameTC.lam0.costEq P (by includes) rd rdV hrd]
-      have := frameValAt_cost P rd rdV hrd R hR (by includes) (Decoder.frameFpA table 37 args [])
-        37 (by norm_num) v
+      have := frameValAt_cost P rd rdV hrd R hR (by includes) (Decoder.frameFpA table (fn_idx% main_loop2) args [])
+        (fn_idx% main_loop2) (by norm_num) v
       simp only [List.length_cons, List.length_nil]
       omega
   have := xmssSigOfN_cost P hs hS (by includes) Rt.xmss hRt
@@ -347,14 +347,14 @@ theorem frameWit_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitNC.
       machineCost P Decoder.frameFpAC.costIdx [encodeValue table, encodeValue j, encodeValue args,
         encodeValue rets] ≤ F) (F4 : ℕ)
     (hFp4 : ∀ (args rets : List E), args.length + rets.length ≤ 64 →
-      machineCost P Decoder.frameFpAC.costIdx [encodeValue table, encodeValue 37, encodeValue args,
+      machineCost P Decoder.frameFpAC.costIdx [encodeValue table, encodeValue (fn_idx% main_loop2), encodeValue args,
         encodeValue rets] ≤ F4)
     (C : ℕ) (hC : ∀ p q : E, machineCost P Decoder.cursorLengthC.costIdx
       [encodeValue D, encodeValue p, encodeValue q] ≤ C)
     {Kc N X : ℕ} (hc : CountsWithin D σ Kc N X) (L : ℕ) (hL32 : L ≤ 2 ^ 32)
     (hLk : ∀ c < Decoder.nKidsD D σ,
-      Decoder.cursorLength D (Decoder.frameAtA table rd 19 (Decoder.subArgsK rd σ c) [] (.n 25))
-        (Decoder.frameAtA table rd 19 (Decoder.subArgsK rd σ c) [] (.n 656)) ≤ L) :
+      Decoder.cursorLength D (Decoder.frameAtA table rd (fn_idx% verify_sub) (Decoder.subArgsK rd σ c) [] (.n 25))
+        (Decoder.frameAtA table rd (fn_idx% verify_sub) (Decoder.subArgsK rd σ c) [] (.n 1919)) ≤ L) :
     machineCost P Decoder.decWitNC.costIdx [encodeValue D, encodeValue Tb, σV, rdV,
       .closure Decoder.decTopFramesC.lam0.costIdx [rdV, encodeValue table],
       .closure Decoder.decTopFramesC.lam1.costIdx [encodeValue Tb, rdV, encodeValue table],
@@ -448,7 +448,7 @@ theorem decTopStates_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decTo
   omega
 
 /-- The reader closure the tables stage passes (`decTopTablesC.lam0`) at the address table
-`powTable κ`, `κ ≤ 32`: its spec. -/
+`powTable κ`, `κ ≤ 30`: its spec. -/
 theorem readerClosure_runs (hP : Includes P Decoder.decTopTablesC.lam0.costDeps) {κ : ℕ}
     (mem : Vector E (2 ^ κ)) (a : K) :
     RunsApp P (.closure Decoder.decTopTablesC.lam0.costIdx [encodeValue κ, encodeValue mem,
@@ -458,7 +458,7 @@ theorem readerClosure_runs (hP : Includes P Decoder.decTopTablesC.lam0.costDeps)
 
 /-- The reader closure: at most `1271` (`111 + 36κ` and its call). -/
 theorem readerClosure_cost (hP : Includes P Decoder.decTopTablesC.lam0.costDeps) {κ : ℕ}
-    (hκ : κ ≤ 32) (mem : Vector E (2 ^ κ)) (a : K) :
+    (hκ : κ ≤ 30) (mem : Vector E (2 ^ κ)) (a : K) :
     appCost P (.closure Decoder.decTopTablesC.lam0.costIdx [encodeValue κ, encodeValue mem,
       encodeValue (powTable κ)]) [encodeValue a] ≤ 1271 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
@@ -472,10 +472,10 @@ abbrev readerV (κ : ℕ) (mem : Vector E (2 ^ κ)) : MachineValue :=
     encodeValue (powTable κ)]
 
 /-- **The tables stage** (`decTopTablesC`) at the address tables `decoderTables prog κ`,
-`κ ≤ 32`: the replay, then the states stage at the reader's price `1271`. -/
+`κ ≤ 30`: the replay, then the states stage at the reader's price `1271`. -/
 theorem decTopTables_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decTopTablesC.costDeps)
     (hG : GLogBound P D G) (T : Array (Option FnPre)) (Pw : Array E) (Rt : ReaderTabs)
-    (pcT : SortedMap ℕ (List ℕ)) (prog : Semantics.LeanIsaProgram) {κ : ℕ} (hκ : κ ≤ 32)
+    (pcT : SortedMap ℕ (List ℕ)) (prog : Semantics.LeanIsaProgram) {κ : ℕ} (hκ : κ ≤ 30)
     (mem : Vector E (2 ^ κ)) (E' Wn : ℕ)
     (hE : machineCost P Decoder.entryArrayTC.costIdx [encodeValue pcT,
       .closure Decoder.decTopStatesC.lam1.costIdx [encodeValue D, encodeValue T, encodeValue Pw,
@@ -526,16 +526,16 @@ program's of `2^ℓ` instructions, each sorted. -/
 /-- The top's constant, the address tables apart: the witness (at most `Wn`), the decoding, the
 replay's and the other tables' constants. -/
 @[expose] def topConstPrice (X Wn : ℕ) : ℕ :=
-  framesPrice gLogPrice 1271 (1271 + 1525) X Wn + 42 + 2456 + 90351983 + 17565 + 32900 + 12
+  framesPrice gLogPrice 1271 (1271 + 1525) X Wn + 42 + 2456 + 90351983 + 17565 + 38708 + 12
 
-/-- **The decoder's top** (`decTopC`) on a program of `ℓ` and a memory of `2^κ` words, `κ ≤ 32`:
+/-- **The decoder's top** (`decTopC`) on a program of `ℓ` and a memory of `2^κ` words, `κ ≤ 30`:
 the tables built once (the logarithm's, the preconditions' at most `Kpre`, the powers, the readers'
-`30452`, the entries' at most `Kpc`, the address tables), the replay, the entry table (at most
+`38708`, the entries' at most `Kpc`, the address tables), the replay, the entry table (at most
 `E`), the witness (at most `Wn`), the counts within `K N X`: at most `(runnerStepPrice κ ℓ +
 46)·|states| + E + Kpre + Kpc + addressTablesPrice κ ℓ + topConstPrice X Wn`. -/
 theorem decTop_cost (hP : Includes P Decoder.decTopC.costDeps) (prog : Semantics.LeanIsaProgram)
     {κ : ℕ}
-    (hκ : κ ≤ 32) (mem : Vector E (2 ^ κ)) (Kpre Kpc E' Wn : ℕ)
+    (hκ : κ ≤ 30) (mem : Vector E (2 ^ κ)) (Kpre Kpc E' Wn : ℕ)
     (hPre : machineCost P Decoder.preTableC.costIdx [] ≤ Kpre)
     (hPc : machineCost P Decoder.pcTableTC.costIdx [] ≤ Kpc)
     (hE : machineCost P Decoder.entryArrayTC.costIdx [encodeValue Decoder.pcTableT,

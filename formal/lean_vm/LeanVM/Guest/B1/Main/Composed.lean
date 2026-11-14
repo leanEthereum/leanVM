@@ -10,7 +10,6 @@ public import LeanVM.Guest.B1.Main.Callees
 public import LeanVM.Guest.B1.Main.Aggregate
 public import LeanVM.Guest.B1.Da.Verify
 public import LeanVM.Guest.B1.Sig.SphincsSound
-public import LeanVM.Guest.B1.VerifySub.Interface
 
 /-!
 # `main`, composed

@@ -9,7 +9,7 @@ module
 public import Statement.LeanVmVerifier
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Protocol.Compile.Prog
 public import LeanVM.Protocol.KeccakHash

@@ -19,5 +19,23 @@ namespace LeanVM.Guest.B2C.Cplw
 /-- `__loop2`, window 0, part 0. -/
 theorem cw37_0_0 : cplWin 37 0 0 = true := by decide +kernel
 
+/-- `__loop2`, window 16, part 0. -/
+theorem cw37_16_0 : cplWin 37 16 0 = true := by decide +kernel
+
+/-- `__loop2`, window 18, part 0. -/
+theorem cw37_18_0 : cplWin 37 18 0 = true := by decide +kernel
+
+/-- `__loop2`, window 20, part 0. -/
+theorem cw37_20_0 : cplWin 37 20 0 = true := by decide +kernel
+
+/-- `__loop2`, window 36, part 0. -/
+theorem cw37_36_0 : cplWin 37 36 0 = true := by decide +kernel
+
+/-- `__loop2`, window 38, part 0. -/
+theorem cw37_38_0 : cplWin 37 38 0 = true := by decide +kernel
+
+/-- `__loop2`, window 40, part 0. -/
+theorem cw37_40_0 : cplWin 37 40 0 = true := by decide +kernel
+
 end
 end LeanVM.Guest.B2C.Cplw

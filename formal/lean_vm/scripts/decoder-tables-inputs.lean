@@ -12,4 +12,4 @@ open LeanVM.Guest LeanVM.Cost.Decoder
 
 #eval IO.println s!"entries: {(List.range nFns).map fun j ↦ (fnOf j).entryPc}"
 #eval IO.println s!"rows: {guestLocsList.map List.length}"
-#eval IO.println s!"split: {guestLocsRow37.map List.length}"
+#eval IO.println s!"split: {guestLocsSplit.map List.length}"

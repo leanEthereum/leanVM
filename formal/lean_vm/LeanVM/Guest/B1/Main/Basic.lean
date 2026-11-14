@@ -132,9 +132,8 @@ theorem claimBytes_cells (a b c d : E) :
 theorem digestBytes_ofCells (a b : E) : digestBytes (digestOfCells a b) = cellsBytes [a, b] := by
   simp [digestBytes, digestOfCells, cellsBytes, cellBytes, K.toBytes, List.append_assoc]
 
-theorem digestScalars_ofCells' {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical128 b) :
-    digestHalves (digestOfCells a b) = (a, b) :=
-  digestScalars_ofCells ha hb
+theorem digestScalars_ofCells' (a b : E) : digestHalves (digestOfCells a b) = (a, b) :=
+  digestScalars_ofCells a b
 
 theorem digestOfCells_scalars (d : Digest) :
     digestOfCells (digestHalves d).1 (digestHalves d).2 = d := by
@@ -147,10 +146,6 @@ theorem digestBytes_eq_cells (d : Digest) :
     digestBytes d = cellsBytes [(digestHalves d).1, (digestHalves d).2] := by
   conv_lhs => rw [← digestOfCells_scalars d]
   exact digestBytes_ofCells _ _
-
-theorem digestScalars_canonical (d : Digest) :
-    IsCanonical128 (digestHalves d).1 ∧ IsCanonical128 (digestHalves d).2 :=
-  ⟨rfl, rfl⟩
 
 theorem digestScalars_inj {d d' : Digest} (h : digestHalves d = digestHalves d') : d = d' := by
   rw [← digestOfCells_scalars d, ← digestOfCells_scalars d', h]

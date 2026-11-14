@@ -17,7 +17,7 @@
 use crate::{Finding, catch};
 use lean_compiler::{compile, parse, parse_const};
 use leanvm_core::cpu::{ExecError, Execution, Fault, Program, ProveError};
-use primitives::field::F192;
+use primitives::field::F128;
 
 include!(concat!(env!("OUT_DIR"), "/programs.rs"));
 
@@ -34,8 +34,8 @@ pub enum Expect {
 pub struct Spec {
     pub name: &'static str,
     pub source: &'static str,
-    pub public_input: Option<[F192; 2]>,
-    pub witness: Vec<(String, Vec<Vec<F192>>)>,
+    pub public_input: Option<[F128; 2]>,
+    pub witness: Vec<(String, Vec<Vec<F128>>)>,
     pub expect: Expect,
     pub slow: bool,
 }
@@ -184,7 +184,7 @@ pub fn compile_source(source: &str) -> Result<Program, CompileFailure> {
 /// Run `program`, learning the public input it publishes when `public_input` is `None`. A run on zeros that publishes
 /// `x` conflicts on the pair `{0, x}`, at the public cell or at the cell the store copies from, so `x` is tried in each
 /// zero slot, keeping the first that moves the run past that conflict.
-pub fn execute(program: &Program, public_input: Option<[F192; 2]>) -> (Result<Execution, ExecError>, [F192; 2]) {
+pub fn execute(program: &Program, public_input: Option<[F128; 2]>) -> (Result<Execution, ExecError>, [F128; 2]) {
     match public_input {
         Some(pi) => (program.execute(pi), pi),
         None => discover(program),
@@ -192,23 +192,23 @@ pub fn execute(program: &Program, public_input: Option<[F192; 2]>) -> (Result<Ex
 }
 
 /// The value a run conflicted on against zero, if that is how it failed.
-fn published(result: &Result<Execution, ExecError>) -> Option<F192> {
+fn published(result: &Result<Execution, ExecError>) -> Option<F128> {
     match result {
         Err(ExecError {
             fault: Fault::Conflict {
                 had, new, hint: None, ..
             },
             ..
-        }) if (*had == F192::ZERO) != (*new == F192::ZERO) => Some(*had + *new),
+        }) if (*had == F128::ZERO) != (*new == F128::ZERO) => Some(*had + *new),
         _ => None,
     }
 }
 
-fn discover(program: &Program) -> (Result<Execution, ExecError>, [F192; 2]) {
-    let mut pi = [F192::ZERO; 2];
+fn discover(program: &Program) -> (Result<Execution, ExecError>, [F128; 2]) {
+    let mut pi = [F128::ZERO; 2];
     let mut result = program.execute(pi);
     while let Some(x) = published(&result) {
-        let next = (0..2).filter(|&slot| pi[slot] == F192::ZERO).find_map(|slot| {
+        let next = (0..2).filter(|&slot| pi[slot] == F128::ZERO).find_map(|slot| {
             let mut candidate = pi;
             candidate[slot] = x;
             let run = program.execute(candidate);
@@ -231,7 +231,6 @@ pub fn log_inv_rate(source: &mut crate::Source) -> usize {
 pub fn prove_error_kind(e: &ProveError) -> String {
     match e {
         ProveError::InvalidRate { .. } => "InvalidRate".into(),
-        ProveError::PublicInputNotDigest => "PublicInputNotDigest".into(),
         ProveError::Execution(e) => format!("Execution/{}", fault_kind(&e.fault)),
         ProveError::UnconstrainedReads(_) => "UnconstrainedReads".into(),
         ProveError::WitnessOutOfRange { .. } => "WitnessOutOfRange".into(),
@@ -244,7 +243,6 @@ pub fn fault_kind(fault: &Fault) -> &'static str {
         Fault::WildPointer { .. } => "WildPointer",
         Fault::NotInK { .. } => "NotInK",
         Fault::NotAGPower { .. } => "NotAGPower",
-        Fault::NotCanonical { .. } => "NotCanonical",
         Fault::BackSolveThroughZero => "BackSolveThroughZero",
         Fault::Witness(_) => "Witness",
         Fault::OutOfMemory => "OutOfMemory",
@@ -257,7 +255,7 @@ pub fn fault_kind(fault: &Fault) -> &'static str {
 /// and a prover error on a run that executed is one too, unless it is the documented refusal of a witness out of range.
 pub fn prove_honest(
     program: &Program,
-    public_input: [F192; 2],
+    public_input: [F128; 2],
     log_inv_rate: usize,
     context: &str,
 ) -> Result<Option<leanvm_core::cpu::Proof>, Finding> {
@@ -270,7 +268,6 @@ pub fn prove_honest(
             )),
         },
         Err(ProveError::WitnessOutOfRange { .. }) => Ok(None),
-        Err(ProveError::PublicInputNotDigest) if public_input.iter().any(|h| h.c2 != 0) => Ok(None),
         Err(e) => Err(Finding::high(
             format!("{context}: prove refused an executed run: {}", prove_error_kind(&e)),
             format!("{e}"),
@@ -280,7 +277,7 @@ pub fn prove_honest(
 
 #[cfg(test)]
 mod tests {
-    use primitives::field::F192;
+    use primitives::field::F128;
 
     #[test]
     fn every_annotation_parses() {
@@ -297,8 +294,8 @@ mod tests {
         assert_eq!(
             pi,
             [
-                F192::new(5, 0, 0),
-                F192::new(5, 0, 0) * F192::from(primitives::field::g_pow(1))
+                F128::new(5, 0),
+                F128::new(5, 0) * F128::from(primitives::field::g_pow(1))
             ]
         );
     }

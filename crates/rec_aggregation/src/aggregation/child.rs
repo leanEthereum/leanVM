@@ -7,7 +7,7 @@ use super::hints::SubHints;
 use fiat_shamir::merkle::hash_to_scalars;
 use leanvm_core::cpu::{Program, from_scalar};
 use leanvm_core::leaf::Block;
-use primitives::field::F192;
+use primitives::field::F128;
 
 /// The verifier-side WHIR config for one committed size and rate, plus the
 /// query packing derived from it. The hint builder needs it for the real
@@ -19,7 +19,7 @@ pub(super) struct WhirShape {
     pub(super) levels: pcs::whir::LevelShapes,
     /// Merkle tree depth per level.
     pub(super) depth: Vec<usize>,
-    /// Query positions carried by one squeezed F192 word, per level.
+    /// Query positions carried by one squeezed F128 word, per level.
     pub(super) per_squeeze: Vec<usize>,
 }
 
@@ -27,7 +27,7 @@ pub(super) fn whir_shape(mu: usize, log_inv_rate: usize) -> WhirShape {
     let config = pcs::whir::config_for_rate(mu, log_inv_rate).expect("stacked whir config");
     let levels = config.level_shapes(mu);
     let depth: Vec<usize> = levels.block_len.iter().map(|b| b.trailing_zeros() as usize).collect();
-    let per_squeeze = depth.iter().map(|&d| 192 / d).collect();
+    let per_squeeze = depth.iter().map(|&d| 128 / d).collect();
     WhirShape {
         config,
         levels,
@@ -36,8 +36,19 @@ pub(super) fn whir_shape(mu: usize, log_inv_rate: usize) -> WhirShape {
     }
 }
 
+/// The path bits a query's Merkle walk dispatches on at a time, the guest's `QW` (`walk_path`).
+pub(super) const QUERY_WINDOW_BITS: usize = 6;
+/// The cells `decode_query_windows` holds a squeezed word's windows in, the guest's `QUERY_WINDOWS_CAP`.
+pub(super) const QUERY_WINDOWS_CAP: usize = 36;
+
+/// The depth of the cap a level's paths are walked into, which leaves the walked part whole windows of
+/// [`QUERY_WINDOW_BITS`] bits: at least two levels deep, and from `log2(queries) - 5` to five levels below that.
 pub(super) fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
-    (queries.next_power_of_two().ilog2() as usize).min(depth)
+    let near = (queries.next_power_of_two().ilog2() as usize)
+        .saturating_sub(QUERY_WINDOW_BITS - 1)
+        .max(2)
+        .min(depth);
+    depth - (depth - near) / QUERY_WINDOW_BITS * QUERY_WINDOW_BITS
 }
 
 /// The first column of each column group: a maximal run of committed columns, in compact
@@ -63,10 +74,10 @@ pub(super) fn col_groups(sources: &[(usize, usize)]) -> Vec<usize> {
 /// drift). Nothing here says the child verifies: the guest's run does.
 pub(super) fn gen_verify(
     program: &Program,
-    public_input: [F192; 2],
+    public_input: [F128; 2],
     proof: &leanvm_core::cpu::Proof,
     summary: &verifier::Summary,
-    bytecode_value: F192,
+    bytecode_value: F128,
 ) -> Result<(SubHints, DeferredSubproof), AggregationError> {
     let layout = program.layout(
         summary.log_memory,
@@ -75,42 +86,33 @@ pub(super) fn gen_verify(
     );
     let sides: [&[Block]; 3] = [&layout.push, &layout.pull, &layout.count];
     let side_layouts = sides.map(leanvm_core::leaf::layout);
-    // The guest holds one opening arm per candidate committed size, so a child
-    // outside that window has no arm to dispatch to. `min_log_committed` keeps
-    // every aggregate above the low end, leaving only the ceiling reachable.
-    // Fixed capacities: every buffer/stride placeholder is a global cap so
-    // the placeholder map is SHAPE-INDEPENDENT (the definition of generic). A
-    // child that verifies and has an arm fits them; one that does not need not.
+    // The guest holds one opening arm per committed size an execution can have, so
+    // a child the native verifier accepts always has one. Fixed capacities: every
+    // buffer/stride placeholder is a global cap so the placeholder map is
+    // SHAPE-INDEPENDENT (the definition of generic). A child that verifies fits them.
     let fits = side_layouts.iter().all(|side| side.mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
-    if !(MU_MIN..=MU_MAX).contains(&layout.shape.mu) || !fits {
+    if !fits {
         return Err(AggregationError::ChildOutOfRange {
             log_committed: layout.shape.mu,
         });
     }
+    let kbc = program.prog().len().trailing_zeros() as usize;
 
     // ---- typed extraction: the proof's stream + the verifier's summary ----
-    let scalars = |values: &[verifier::E]| -> Vec<F192> { values.iter().copied().map(from_scalar).collect() };
+    let scalars = |values: &[verifier::E]| -> Vec<F128> { values.iter().copied().map(from_scalar).collect() };
     // Push and pull share the bytecode point.
     let bytecode_point = scalars(&summary.bytecode_point);
-    let kbc = bytecode_point.len() - leanvm_core::leaf::N_BYTECODE_SELECTORS;
 
     let taus = layout.taus;
     // ---- the stacked opening: config + the opening summary ----
     let stack = whir_shape(layout.shape.mu, summary.log_inv_rate);
-
-    // ---- hints ----
-    // The program's whole share of a bytecode leaf: ONE value, the stacked
-    // polynomial at (ζ_lo, α⃗), the slot coordinates of the claim's own point being
-    // the fingerprint challenges (§sec:e2e-bc). The summary carries the point
-    // only; the caller evaluates it.
-    let bcv = vec![bytecode_value];
 
     // ---- per-sub HINT data (the placeholder map is built once, elsewhere) ----
     // Per side, the packing order read straight off `leaf::layout`'s offsets:
     // sort_order[side_base + rank] = g^{global index of the rank-r block}. The
     // guest certifies it is the native verifier's order (descending kappa, then
     // ascending index) before deriving offsets from it.
-    let mut sort_order: Vec<F192> = Vec::new();
+    let mut sort_order: Vec<F128> = Vec::new();
     let mut gbase = 0usize;
     let block_sources = leanvm_core::cpu::block_kappa_sources(kbc);
     let side_starts: Vec<usize> = sides
@@ -161,7 +163,7 @@ pub(super) fn gen_verify(
     // The order by column group (`col_groups`): its columns are consecutive in it.
     let groups = col_groups(&col_sources.iter().flatten().copied().collect::<Vec<_>>());
     let group_of = |compact: usize| groups.partition_point(|&start| start <= compact) - 1;
-    let mut col_group_order: Vec<F192> = Vec::new();
+    let mut col_group_order: Vec<F128> = Vec::new();
     let mut last_group = usize::MAX;
     for &global in &col_order {
         let group = group_of(compact_col[global]);
@@ -177,22 +179,30 @@ pub(super) fn gen_verify(
     );
 
     // ---- Hints for the stacked WHIR opening ----
-    // Share the upper Merkle tree across queries. Unknown, unused subtrees stay
-    // opaque; the guest authenticates every cap leaf a query reaches.
+    // Share the upper Merkle tree across a level's queries, one cap entry a level. Unknown,
+    // unused subtrees stay opaque; the guest authenticates every cap leaf a query reaches.
     let mut query_hints = Vec::new();
-    let (mut caps, mut cap_active) = (Vec::new(), Vec::new());
     let levels = stack.config.queries.iter().zip(&stack.depth);
-    for ((&queries, &depth), phase) in levels.zip(&proof.merkle) {
+    for (level, ((&queries, &depth), phase)) in levels.zip(&proof.merkle).enumerate() {
         let cap_depth = merkle_cap_depth(queries, depth);
         let n = 1 << cap_depth;
         let path_depth = depth - cap_depth;
         let mut nodes = vec![[0u8; 32]; 2 * n];
-        let mut active = vec![F192::ZERO; n];
+        let mut active = vec![F128::ZERO; n];
         for opening in phase {
-            query_hints.push((
-                "merkle_leaf_rows",
-                opening.leaf.iter().map(|&x| F192::from(x)).collect(),
-            ));
+            // Level 0's rows are K lanes, a cell each; deeper ones E words, two lanes a cell.
+            let row = if level == 0 {
+                opening.leaf.iter().map(|&x| F128::from(x)).collect()
+            } else {
+                opening
+                    .leaf
+                    .as_chunks()
+                    .0
+                    .iter()
+                    .map(|&[c0, c1]| F128::new(c0.0, c1.0))
+                    .collect()
+            };
+            query_hints.push(("merkle_leaf_rows", row));
             let mut path_children = Vec::with_capacity(4 * path_depth);
             let mut node = fiat_shamir::merkle::hash_words(&opening.leaf);
             let mut index = (1 << depth) + opening.leaf_index as usize;
@@ -200,7 +210,7 @@ pub(super) fn gen_verify(
                 if height >= path_depth {
                     nodes[index] = node;
                     nodes[index ^ 1] = *sibling;
-                    active[index >> 1] = F192::ONE;
+                    active[index >> 1] = F128::ONE;
                 }
                 let (left, right) = if index & 1 == 0 {
                     (&node, sibling)
@@ -217,8 +227,8 @@ pub(super) fn gen_verify(
             nodes[1] = node;
             query_hints.push(("merkle_children", path_children));
         }
-        caps.extend(nodes.iter().flat_map(hash_to_scalars));
-        cap_active.extend(active);
+        query_hints.push(("merkle_caps", nodes.iter().flat_map(hash_to_scalars).collect()));
+        query_hints.push(("merkle_cap_active", active));
     }
     let deferred = DeferredSubproof {
         public_input,
@@ -228,20 +238,15 @@ pub(super) fn gen_verify(
 
     let mut hints = vec![
         ("stream", {
-            // The guest replays the WHIR opening off the same stream the native
-            // verifier reads: every transmitted scalar (sumcheck messages, level
-            // roots, OOD claims, grind nonces, `yr`) is already there in protocol
-            // order, so there is nothing to reassemble. The guest's `open_stacked`
-            // picks it up at `msg_cursor = cursor`, which sits where the Keccak
-            // reduction stopped; the ring-switch messages are struct-observed and
-            // still do not advance that cursor.
+            // The guest replays the proof off the same stream the native verifier
+            // reads: every transmitted scalar (the level-0 OOD value, the fold rounds' tables,
+            // level roots, high parts, OOD values, grind nonces, the final lane, the
+            // closing rounds) is already there in protocol order, so there is nothing
+            // to reassemble.
             let mut stream = proof.stream.clone();
-            stream.resize(STREAM_CAP, F192::ZERO);
+            stream.resize(STREAM_CAP, F128::ZERO);
             stream
         }),
-        ("bytecode_val", bcv),
-        ("merkle_caps", caps),
-        ("merkle_cap_active", cap_active),
         // the table sumcheck's round count: max_t tau_t, certified in-guest as a
         // maximum (one of the taus, and dominating them all).
         ("zc_tau_max", vec![count(*taus.iter().max().unwrap())]),
@@ -253,13 +258,6 @@ pub(super) fn gen_verify(
     hints.extend(query_hints);
     Ok((hints, deferred))
 }
-
-/// The stacked sizes `2^mu` a child may commit, `mu` in `MU_MIN..=MU_MAX`: the guest
-/// carries one set of opening tables per size and rate.
-pub(super) const MU_MIN: usize = 22;
-pub(super) const MU_MAX: usize = leanvm_core::pcs::MAX_MU;
-
-const _: () = assert!(MU_MIN >= leanvm_core::pcs::MIN_MU);
 
 /// The guest's baked buffer caps, which `placeholder_map` compiles in and
 /// `gen_verify` admits against: one definition, so a hinted shape can never

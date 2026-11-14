@@ -102,7 +102,7 @@ def trackE : ℕ := 2 ^ 20
 
 /-- A constant word is `g^e`: the word `2^e` below the first reduction, by digits above. -/
 def constOk (w : E) (e : ℕ) : Bool :=
-  decide (e < 2 ^ 20) && decide (w.limb 1 = 0) && decide (w.limb 2 = 0) &&
+  decide (e < 2 ^ 20) && decide (w.limb 1 = 0) &&
     (if e < 64 then decide (w.limb 0 = K.ofBits (2 ^ e)) else decide (w.limb 0 = Pow.gpowW e))
 
 /-- A value's entry, its index compared first. -/
@@ -406,19 +406,24 @@ def isEnd (pre : List Stmt) (p1 : Option V) (endc : Option ℕ) (y : V) : Bool :
     | some (.const _ w) => constOk w e
     | _ => false
 
-/-- **A loop helper's shape**: its body `pre ++ [callIf c f (i' :: rest), ret []]`, `pre` without
-`ret`, `i' = i·g`, `c = i·g + end`, the other parameters passed through. -/
-def loopShape (fn : Fn) (endc : Option ℕ) : Option (List Stmt) :=
+/-- A loop helper's shape but its `ret`-freedom (`loopShape`): its body
+`pre ++ [callIf c f (i' :: rest), ret []]`, `i' = i·g`, `c = i·g + end`, the other parameters passed
+through. -/
+def loopTail (fn : Fn) (endc : Option ℕ) : Option (List Stmt) :=
   match fn.body.reverse, fn.params with
   | .ret [] :: .callIf c g (i' :: rest) :: rpre, p0 :: prest =>
       let pre := rpre.reverse
-      if g = fn.name ∧ rest = prest ∧ Stmt.noRetListS pre = true ∧ isStep pre p0 i' = true ∧
+      if g = fn.name ∧ rest = prest ∧ isStep pre p0 i' = true ∧
           (match defAtom c pre with
             | some (.add _ x y) => (isStep pre p0 x && isEnd pre prest.head? endc y) ||
                 (isStep pre p0 y && isEnd pre prest.head? endc x)
             | _ => false) = true
       then some pre else none
   | _, _ => none
+
+/-- **A loop helper's shape** (`loopTail`), `pre` without `ret`. -/
+def loopShape (fn : Fn) (endc : Option ℕ) : Option (List Stmt) :=
+  (loopTail fn endc).filter Stmt.noRetListS
 
 /-- A search tree by index. -/
 inductive NTree (α : Type) where
@@ -445,19 +450,6 @@ theorem NTree.find_all {α : Type} {p : α → Bool} : ∀ {t : NTree α} {k : �
       · cases h; exact ha.1.1
       · exact NTree.find_all ha.1.2 h
       · exact NTree.find_all ha.2 h
-
-/-- A name as a number, for a search tree: its characters in base `2^21`, shifted by one. -/
-def nameKey (s : String) : ℕ := s.toList.foldr (fun c acc => c.toNat + 1 + 2 ^ 21 * acc) 0
-
-/-- A search tree by name. -/
-inductive STree (α : Type) where
-  | leaf
-  | node (k : String) (v : α) (l r : STree α)
-
-/-- The value of a name. -/
-def STree.find {α : Type} : STree α → String → Option α
-  | .leaf, _ => none
-  | .node k v l r, s => if s = k then some v else if s < k then l.find s else r.find s
 
 /-- `a`'s constant and terms are at most `b`'s, term by term. -/
 def Aff.leB (a b : Aff) : Bool := decide (a.c ≤ b.c) && a.cs == b.cs

@@ -9,18 +9,17 @@ module
 
 public import LeanVM.Guest.B2C.ShareSplit
 public import LeanVM.Guest.B2C.Shared.H37_39_0
-public import LeanVM.Guest.B2C.Shared.H37_39_8
 
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
-/-- `__loop2`, window 39: one `match`, by 16 groups of arms. -/
+/-- `__loop2`, window 39: one `match`, by 8 groups of arms. -/
 theorem w37_39 : shareWin 37 (snapsOf 37) 39 = true :=
-  shareWin_of_split [(1, 17, 32, 496, 0, 32), (17, 33, 528, 496, 0, 32), (33, 49, 1024, 496, 0, 32), (49, 65, 1520, 496, 0, 32), (65, 81, 2016, 496, 0, 32), (81, 97, 2512, 496, 0, 32), (97, 113, 3008, 496, 0, 32), (113, 129, 3504, 496, 0, 32), (129, 145, 4000, 496, 0, 32), (145, 161, 4496, 496, 0, 32), (161, 177, 4992, 496, 0, 32), (177, 193, 5488, 496, 0, 32), (193, 209, 5984, 496, 0, 32), (209, 225, 6480, 496, 0, 32), (225, 241, 6976, 496, 0, 32), (241, 256, 7472, 465, 0, 32)]
-    (1, 17, 32, 496, 0, 32) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
+  shareWin_of_split [(1, 33, 32, 992, 0, 32), (33, 65, 1024, 992, 0, 32), (65, 97, 2016, 992, 0, 32), (97, 129, 3008, 992, 0, 32), (129, 161, 4000, 992, 0, 32), (161, 193, 4992, 992, 0, 32), (193, 225, 5984, 992, 0, 32), (225, 256, 6976, 961, 0, 32)]
+    (1, 33, 32, 992, 0, 32) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hg
-      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
       · exact sg37_39_0
       · exact sg37_39_1
       · exact sg37_39_2
@@ -29,14 +28,6 @@ theorem w37_39 : shareWin 37 (snapsOf 37) 39 = true :=
       · exact sg37_39_5
       · exact sg37_39_6
       · exact sg37_39_7
-      · exact sg37_39_8
-      · exact sg37_39_9
-      · exact sg37_39_10
-      · exact sg37_39_11
-      · exact sg37_39_12
-      · exact sg37_39_13
-      · exact sg37_39_14
-      · exact sg37_39_15
 
 end
 end LeanVM.Guest.B2C.Shared

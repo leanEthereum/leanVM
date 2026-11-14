@@ -8,132 +8,750 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F262_0
-public import LeanVM.Guest.Checked.F262_0
-public import LeanVM.Guest.Checked.F265_3
+meta import LeanVM.Guest.KernelLit
+import LeanVM.Guest.Checked.Link0
+import LeanVM.Guest.Checked.Link1
+import LeanVM.Guest.Checked.Link2
+import LeanVM.Guest.Checked.Link3
+import LeanVM.Guest.Checked.Link4
+import LeanVM.Guest.Checked.Link5
+import LeanVM.Guest.Checked.Link6
+import LeanVM.Guest.Checked.Link7
+import LeanVM.Guest.Checked.Link8
+import LeanVM.Guest.Checked.Link9
+import LeanVM.Guest.Checked.Link10
+import LeanVM.Guest.Checked.Link11
+import LeanVM.Guest.Checked.Link12
+import LeanVM.Guest.Checked.Link13
+import LeanVM.Guest.Checked.Link14
+import LeanVM.Guest.Checked.Link15
+import LeanVM.Guest.Checked.Link16
+public import LeanVM.Guest.Pack.«P6».Core
+public import LeanVM.Guest.Pack.«P6».Bundle
+public import LeanVM.Guest.Pack.«P25».Core
+public import LeanVM.Guest.Pack.«P25».Bundle
+public import LeanVM.Guest.Pack.«P32».Core
+public import LeanVM.Guest.Pack.«P32».Bundle
+public import LeanVM.Guest.Pack.«P51».Core
+public import LeanVM.Guest.Pack.«P51».Bundle
+public import LeanVM.Guest.Pack.«P18».Core
+public import LeanVM.Guest.Pack.«P18».Bundle
+public import LeanVM.Guest.Pack.«P37».Core
+public import LeanVM.Guest.Pack.«P37».Bundle
+public import LeanVM.Guest.Pack.«P44».Core
+public import LeanVM.Guest.Pack.«P44».Bundle
+public import LeanVM.Guest.Pack.«P63».Core
+public import LeanVM.Guest.Pack.«P63».Bundle
+public import LeanVM.Guest.Pack.«P30».Core
+public import LeanVM.Guest.Pack.«P30».Bundle
+public import LeanVM.Guest.Pack.«P49».Core
+public import LeanVM.Guest.Pack.«P49».Bundle
+public import LeanVM.Guest.Pack.«P15».Core
+public import LeanVM.Guest.Pack.«P15».Bundle
+public import LeanVM.Guest.Pack.«P60».Core
+public import LeanVM.Guest.Pack.«P60».Bundle
+public import LeanVM.Guest.Pack.«P53».Core
+public import LeanVM.Guest.Pack.«P53».Bundle
+public import LeanVM.Guest.Pack.«P34».Core
+public import LeanVM.Guest.Pack.«P34».Bundle
+public import LeanVM.Guest.Pack.«P1».Core
+public import LeanVM.Guest.Pack.«P1».Bundle
+public import LeanVM.Guest.Pack.«P53».Sig
+public import LeanVM.Guest.Pack.«P1».Sig
+public import LeanVM.Guest.Pack.«P46».Core
+public import LeanVM.Guest.Pack.«P46».Bundle
+public import LeanVM.Guest.Pack.«P46».Sig
+public import LeanVM.Guest.Pack.«P36».Core
+public import LeanVM.Guest.Pack.«P36».Bundle
+public import LeanVM.Guest.Pack.«P33».Sig
+public import LeanVM.Guest.Pack.«P45».Sig
+public import LeanVM.Guest.Pack.«P26».Sig
+public import LeanVM.Guest.Pack.«P55».Core
+public import LeanVM.Guest.Pack.«P55».Bundle
+public import LeanVM.Guest.Pack.«P34».Sig
+public import LeanVM.Guest.Pack.«P45».Core
+public import LeanVM.Guest.Pack.«P45».Bundle
+public import LeanVM.Guest.Pack.«P8».Core
+public import LeanVM.Guest.Pack.«P8».Bundle
+public import LeanVM.Guest.Pack.«P8».Sig
+public import LeanVM.Guest.Pack.«P33».Core
+public import LeanVM.Guest.Pack.«P33».Bundle
+public import LeanVM.Guest.Pack.«P56».Core
+public import LeanVM.Guest.Pack.«P56».Bundle
+public import LeanVM.Guest.Pack.«P56».Sig
+public import LeanVM.Guest.Pack.«P31».Core
+public import LeanVM.Guest.Pack.«P31».Bundle
+public import LeanVM.Guest.Pack.«P12».Core
+public import LeanVM.Guest.Pack.«P12».Bundle
+public import LeanVM.Guest.Pack.«P5».Core
+public import LeanVM.Guest.Pack.«P5».Bundle
+public import LeanVM.Guest.Pack.«P50».Core
+public import LeanVM.Guest.Pack.«P50».Bundle
+public import LeanVM.Guest.Pack.«P19».Core
+public import LeanVM.Guest.Pack.«P19».Bundle
+public import LeanVM.Guest.Pack.«P0».Core
+public import LeanVM.Guest.Pack.«P0».Bundle
+public import LeanVM.Guest.Pack.«P57».Core
+public import LeanVM.Guest.Pack.«P57».Bundle
+public import LeanVM.Guest.Pack.«P38».Core
+public import LeanVM.Guest.Pack.«P38».Bundle
+public import LeanVM.Guest.Pack.«P52».Core
+public import LeanVM.Guest.Pack.«P52».Bundle
+public import LeanVM.Guest.Pack.«P7».Core
+public import LeanVM.Guest.Pack.«P7».Bundle
+public import LeanVM.Guest.Pack.«P26».Core
+public import LeanVM.Guest.Pack.«P26».Bundle
+public import LeanVM.Guest.Pack.«P40».Core
+public import LeanVM.Guest.Pack.«P40».Bundle
+public import LeanVM.Guest.Pack.«P59».Core
+public import LeanVM.Guest.Pack.«P59».Bundle
+public import LeanVM.Guest.Pack.«P14».Core
+public import LeanVM.Guest.Pack.«P14».Bundle
+public import LeanVM.Guest.Pack.«P28».Core
+public import LeanVM.Guest.Pack.«P28».Bundle
+public import LeanVM.Guest.Pack.«P47».Core
+public import LeanVM.Guest.Pack.«P47».Bundle
+public import LeanVM.Guest.Pack.«P21».Core
+public import LeanVM.Guest.Pack.«P21».Bundle
+public import LeanVM.Guest.Pack.«P2».Core
+public import LeanVM.Guest.Pack.«P2».Bundle
+public import LeanVM.Guest.Pack.«P35».Core
+public import LeanVM.Guest.Pack.«P35».Bundle
+public import LeanVM.Guest.Pack.«P16».Core
+public import LeanVM.Guest.Pack.«P16».Bundle
+import LeanVM.Guest.Pack.«P6».Checked
+import LeanVM.Guest.Pack.«P25».Checked
+import LeanVM.Guest.Pack.«P32».Checked
+import LeanVM.Guest.Pack.«P51».Checked
+import LeanVM.Guest.Pack.«P18».Checked
+import LeanVM.Guest.Pack.«P37».Checked
+import LeanVM.Guest.Pack.«P44».Checked
+import LeanVM.Guest.Pack.«P63».Checked
+import LeanVM.Guest.Pack.«P30».Checked
+import LeanVM.Guest.Pack.«P49».Checked
+import LeanVM.Guest.Pack.«P15».Checked
+import LeanVM.Guest.Pack.«P60».Checked
+import LeanVM.Guest.Pack.«P53».Checked
+import LeanVM.Guest.Pack.«P34».Checked
+import LeanVM.Guest.Pack.«P1».Checked
+import LeanVM.Guest.Pack.«P46».Checked
+import LeanVM.Guest.Pack.«P36».Checked
+import LeanVM.Guest.Pack.«P55».Checked
+import LeanVM.Guest.Pack.«P45».Checked
+import LeanVM.Guest.Pack.«P8».Checked
+import LeanVM.Guest.Pack.«P33».Checked
+import LeanVM.Guest.Pack.«P56».Checked
+import LeanVM.Guest.Pack.«P31».Checked
+import LeanVM.Guest.Pack.«P12».Checked
+import LeanVM.Guest.Pack.«P5».Checked
+import LeanVM.Guest.Pack.«P50».Checked
+import LeanVM.Guest.Pack.«P19».Checked
+import LeanVM.Guest.Pack.«P0».Checked
+import LeanVM.Guest.Pack.«P57».Checked
+import LeanVM.Guest.Pack.«P38».Checked
+import LeanVM.Guest.Pack.«P52».Checked
+import LeanVM.Guest.Pack.«P7».Checked
+import LeanVM.Guest.Pack.«P26».Checked
+import LeanVM.Guest.Pack.«P40».Checked
+import LeanVM.Guest.Pack.«P59».Checked
+import LeanVM.Guest.Pack.«P14».Checked
+import LeanVM.Guest.Pack.«P28».Checked
+import LeanVM.Guest.Pack.«P47».Checked
+import LeanVM.Guest.Pack.«P21».Checked
+import LeanVM.Guest.Pack.«P2».Checked
+import LeanVM.Guest.Pack.«P35».Checked
+import LeanVM.Guest.Pack.«P16».Checked
 
 namespace LeanVM.Guest.Checked
 
+open LeanVM.Guest.Check
+
 @[expose] public section
+
+theorem link251 : Link 251 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L20».code Fn.«block_selector_tab__L20».core (Fn.«block_selector_tab__L20».cert.withPows Data.powTree) :=
+  Link.of code251 core251 cert251 SigsOk.nil
+    (by decide +kernel)
+
+theorem w251_0 : WinOk 251 0 := link251.win rfl Fn.«block_selector_tab__L20».w0
+
+theorem ok251 : CheckOk 251 := checkOk_one (by decide +kernel) w251_0
 
 theorem plain251 : Plain 251 := plain_of_nil (by decide +kernel)
 
+theorem link252 : Link 252 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L21».code Fn.«block_selector_tab__L21».core (Fn.«block_selector_tab__L21».cert.withPows Data.powTree) :=
+  Link.of code252 core252 cert252 SigsOk.nil
+    (by decide +kernel)
+
+theorem w252_0 : WinOk 252 0 := link252.win rfl Fn.«block_selector_tab__L21».w0
+
+theorem ok252 : CheckOk 252 := checkOk_one (by decide +kernel) w252_0
+
 theorem plain252 : Plain 252 := plain_of_nil (by decide +kernel)
+
+theorem link253 : Link 253 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L22».code Fn.«block_selector_tab__L22».core (Fn.«block_selector_tab__L22».cert.withPows Data.powTree) :=
+  Link.of code253 core253 cert253 SigsOk.nil
+    (by decide +kernel)
+
+theorem w253_0 : WinOk 253 0 := link253.win rfl Fn.«block_selector_tab__L22».w0
+
+theorem ok253 : CheckOk 253 := checkOk_one (by decide +kernel) w253_0
 
 theorem plain253 : Plain 253 := plain_of_nil (by decide +kernel)
 
+theorem link254 : Link 254 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L23».code Fn.«block_selector_tab__L23».core (Fn.«block_selector_tab__L23».cert.withPows Data.powTree) :=
+  Link.of code254 core254 cert254 SigsOk.nil
+    (by decide +kernel)
+
+theorem w254_0 : WinOk 254 0 := link254.win rfl Fn.«block_selector_tab__L23».w0
+
+theorem ok254 : CheckOk 254 := checkOk_one (by decide +kernel) w254_0
+
 theorem plain254 : Plain 254 := plain_of_nil (by decide +kernel)
+
+theorem link255 : Link 255 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L24».code Fn.«block_selector_tab__L24».core (Fn.«block_selector_tab__L24».cert.withPows Data.powTree) :=
+  Link.of code255 core255 cert255 SigsOk.nil
+    (by decide +kernel)
+
+theorem w255_0 : WinOk 255 0 := link255.win rfl Fn.«block_selector_tab__L24».w0
+
+theorem ok255 : CheckOk 255 := checkOk_one (by decide +kernel) w255_0
 
 theorem plain255 : Plain 255 := plain_of_nil (by decide +kernel)
 
+theorem link256 : Link 256 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L25».code Fn.«block_selector_tab__L25».core (Fn.«block_selector_tab__L25».cert.withPows Data.powTree) :=
+  Link.of code256 core256 cert256 SigsOk.nil
+    (by decide +kernel)
+
+theorem w256_0 : WinOk 256 0 := link256.win rfl Fn.«block_selector_tab__L25».w0
+
+theorem ok256 : CheckOk 256 := checkOk_one (by decide +kernel) w256_0
+
 theorem plain256 : Plain 256 := plain_of_nil (by decide +kernel)
+
+theorem link257 : Link 257 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L26».code Fn.«block_selector_tab__L26».core (Fn.«block_selector_tab__L26».cert.withPows Data.powTree) :=
+  Link.of code257 core257 cert257 SigsOk.nil
+    (by decide +kernel)
+
+theorem w257_0 : WinOk 257 0 := link257.win rfl Fn.«block_selector_tab__L26».w0
+
+theorem ok257 : CheckOk 257 := checkOk_one (by decide +kernel) w257_0
 
 theorem plain257 : Plain 257 := plain_of_nil (by decide +kernel)
 
+theorem link258 : Link 258 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L27».code Fn.«block_selector_tab__L27».core (Fn.«block_selector_tab__L27».cert.withPows Data.powTree) :=
+  Link.of code258 core258 cert258 SigsOk.nil
+    (by decide +kernel)
+
+theorem w258_0 : WinOk 258 0 := link258.win rfl Fn.«block_selector_tab__L27».w0
+
+theorem ok258 : CheckOk 258 := checkOk_one (by decide +kernel) w258_0
+
 theorem plain258 : Plain 258 := plain_of_nil (by decide +kernel)
+
+theorem link259 : Link 259 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L28».code Fn.«block_selector_tab__L28».core (Fn.«block_selector_tab__L28».cert.withPows Data.powTree) :=
+  Link.of code259 core259 cert259 SigsOk.nil
+    (by decide +kernel)
+
+theorem w259_0 : WinOk 259 0 := link259.win rfl Fn.«block_selector_tab__L28».w0
+
+theorem ok259 : CheckOk 259 := checkOk_one (by decide +kernel) w259_0
 
 theorem plain259 : Plain 259 := plain_of_nil (by decide +kernel)
 
+theorem link260 : Link 260 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L29».code Fn.«block_selector_tab__L29».core (Fn.«block_selector_tab__L29».cert.withPows Data.powTree) :=
+  Link.of code260 core260 cert260 SigsOk.nil
+    (by decide +kernel)
+
+theorem w260_0 : WinOk 260 0 := link260.win rfl Fn.«block_selector_tab__L29».w0
+
+theorem ok260 : CheckOk 260 := checkOk_one (by decide +kernel) w260_0
+
 theorem plain260 : Plain 260 := plain_of_nil (by decide +kernel)
+
+theorem link261 : Link 261 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L30».code Fn.«block_selector_tab__L30».core (Fn.«block_selector_tab__L30».cert.withPows Data.powTree) :=
+  Link.of code261 core261 cert261 SigsOk.nil
+    (by decide +kernel)
+
+theorem w261_0 : WinOk 261 0 := link261.win rfl Fn.«block_selector_tab__L30».w0
+
+theorem ok261 : CheckOk 261 := checkOk_one (by decide +kernel) w261_0
 
 theorem plain261 : Plain 261 := plain_of_nil (by decide +kernel)
 
+theorem link262 : Link 262 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L31».code Fn.«block_selector_tab__L31».core (Fn.«block_selector_tab__L31».cert.withPows Data.powTree) :=
+  Link.of code262 core262 cert262 SigsOk.nil
+    (by decide +kernel)
+
+theorem w262_0 : WinOk 262 0 := link262.win rfl Fn.«block_selector_tab__L31».w0
+
+theorem ok262 : CheckOk 262 := checkOk_one (by decide +kernel) w262_0
+
 theorem plain262 : Plain 262 := plain_of_nil (by decide +kernel)
+
+theorem link263 : Link 263 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L32».code Fn.«block_selector_tab__L32».core (Fn.«block_selector_tab__L32».cert.withPows Data.powTree) :=
+  Link.of code263 core263 cert263 SigsOk.nil
+    (by decide +kernel)
+
+theorem w263_0 : WinOk 263 0 := link263.win rfl Fn.«block_selector_tab__L32».w0
+
+theorem ok263 : CheckOk 263 := checkOk_one (by decide +kernel) w263_0
 
 theorem plain263 : Plain 263 := plain_of_nil (by decide +kernel)
 
-theorem ok264 : CheckOk 264 := fun i hi ↦ by
-  have h : (certOf 264).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w264_0
-  · exact w264_1
-  · exact w264_2
+theorem link264 : Link 264 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«block_selector_tab__L33».code Fn.«block_selector_tab__L33».core (Fn.«block_selector_tab__L33».cert.withPows Data.powTree) :=
+  Link.of code264 core264 cert264 SigsOk.nil
+    (by decide +kernel)
 
-theorem plain264 : Plain 264 := by
-  unfold Plain
-  decide +kernel
+theorem w264_0 : WinOk 264 0 := link264.win rfl Fn.«block_selector_tab__L33».w0
 
-theorem ok265 : CheckOk 265 := fun i hi ↦ by
-  have h : (certOf 265).cuts.length = 3 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w265_0
-  · exact w265_1
-  · exact w265_2
-  · exact w265_3
+theorem ok264 : CheckOk 264 := checkOk_one (by decide +kernel) w264_0
 
-theorem plain265 : Plain 265 := by
-  unfold Plain
-  decide +kernel
+theorem plain264 : Plain 264 := plain_of_nil (by decide +kernel)
+
+theorem link265 : Link 265 (Glob.ofSigs ([(7, Fn.«sumcheck_round4».sig), (265, Fn.«verify_tables_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«verify_tables_loop0».code Fn.«verify_tables_loop0».core (Fn.«verify_tables_loop0».cert.withPows Data.powTree) :=
+  Link.of code265 core265 cert265 
+    (SigsOk.cons sig7 rfl 
+    (SigsOk.cons sig265 rfl SigsOk.nil))
+    (by decide +kernel)
+
+theorem w265_0 : WinOk 265 0 := link265.win rfl Fn.«verify_tables_loop0».w0
+
+theorem ok265 : CheckOk 265 := checkOk_one (by decide +kernel) w265_0
+
+theorem plain265 : Plain 265 := plain_of_nil (by decide +kernel)
+
+theorem link266 : Link 266 (Glob.ofSigs ([(266, Fn.«verify_keccak_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«verify_keccak_loop0».code Fn.«verify_keccak_loop0».core (Fn.«verify_keccak_loop0».cert.withPows Data.powTree) :=
+  Link.of code266 core266 cert266 
+    (SigsOk.cons sig266 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w266_0 : WinOk 266 0 := link266.win rfl Fn.«verify_keccak_loop0».w0
+
+theorem ok266 : CheckOk 266 := checkOk_one (by decide +kernel) w266_0
 
 theorem plain266 : Plain 266 := plain_of_nil (by decide +kernel)
 
-theorem plain267 : Plain 267 := plain_of_nil (by decide +kernel)
+theorem link267 : Link 267 (Glob.ofSigs ([(443, Fn.«grind_check__L3».sig), (444, Fn.«keccak_layer__L1_loop0».sig), (445, Fn.«keccak_layer__L1_loop1».sig)]) Data.jtTrie globSem)
+    Fn.«keccak_layer__L1».code Fn.«keccak_layer__L1».core (Fn.«keccak_layer__L1».cert.withPows Data.powTree) :=
+  Link.of code267 core267 cert267 
+    (SigsOk.cons sig443 rfl 
+    (SigsOk.cons sig444 rfl 
+    (SigsOk.cons sig445 rfl SigsOk.nil)))
+    (by decide +kernel)
 
-theorem plain268 : Plain 268 := plain_of_nil (by decide +kernel)
+theorem w267_0 : WinOk 267 0 := link267.win rfl Fn.«keccak_layer__L1».w0
+
+theorem w267_1 : WinOk 267 1 := link267.win rfl Fn.«keccak_layer__L1».w1
+
+theorem w267_2 : WinOk 267 2 := link267.win rfl Fn.«keccak_layer__L1».w2
+
+theorem ok267 : CheckOk 267 := fun i hi ↦ by
+  have h : (certOf 267).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w267_0
+  · exact w267_1
+  · exact w267_2
+
+theorem plain267 : Plain 267 := by
+  unfold Plain
+  decide +kernel
+
+theorem link268 : Link 268 (Glob.ofSigs ([(443, Fn.«grind_check__L3».sig), (446, Fn.«keccak_layer__L0_loop0».sig), (447, Fn.«keccak_layer__L0_loop1».sig)]) Data.jtTrie globSem)
+    Fn.«keccak_layer__L0».code Fn.«keccak_layer__L0».core (Fn.«keccak_layer__L0».cert.withPows Data.powTree) :=
+  Link.of code268 core268 cert268 
+    (SigsOk.cons sig443 rfl 
+    (SigsOk.cons sig446 rfl 
+    (SigsOk.cons sig447 rfl SigsOk.nil)))
+    (by decide +kernel)
+
+theorem w268_0 : WinOk 268 0 := link268.win rfl Fn.«keccak_layer__L0».w0
+
+theorem w268_1 : WinOk 268 1 := link268.win rfl Fn.«keccak_layer__L0».w1
+
+theorem w268_2 : WinOk 268 2 := link268.win rfl Fn.«keccak_layer__L0».w2
+
+theorem ok268 : CheckOk 268 := fun i hi ↦ by
+  have h : (certOf 268).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w268_0
+  · exact w268_1
+  · exact w268_2
+
+theorem plain268 : Plain 268 := by
+  unfold Plain
+  decide +kernel
+
+theorem link269 : Link 269 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«keccak_plain_rounds__L6_L0».code Fn.«keccak_plain_rounds__L6_L0».core (Fn.«keccak_plain_rounds__L6_L0».cert.withPows Data.powTree) :=
+  Link.of code269 core269 cert269 SigsOk.nil
+    (by decide +kernel)
+
+theorem w269_0 : WinOk 269 0 := link269.win rfl Fn.«keccak_plain_rounds__L6_L0».w0
+
+theorem ok269 : CheckOk 269 := checkOk_one (by decide +kernel) w269_0
 
 theorem plain269 : Plain 269 := plain_of_nil (by decide +kernel)
 
+theorem link270 : Link 270 (Glob.ofSigs ([(270, Fn.«verify_keccak_loop1».sig)]) Data.jtTrie globSem)
+    Fn.«verify_keccak_loop1».code Fn.«verify_keccak_loop1».core (Fn.«verify_keccak_loop1».cert.withPows Data.powTree) :=
+  Link.of code270 core270 cert270 
+    (SigsOk.cons sig270 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w270_0 : WinOk 270 0 := link270.win rfl Fn.«verify_keccak_loop1».w0
+
+theorem ok270 : CheckOk 270 := checkOk_one (by decide +kernel) w270_0
+
 theorem plain270 : Plain 270 := plain_of_nil (by decide +kernel)
+
+theorem link271 : Link 271 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«keccak_plain_rounds__L4_L1».code Fn.«keccak_plain_rounds__L4_L1».core (Fn.«keccak_plain_rounds__L4_L1».cert.withPows Data.powTree) :=
+  Link.of code271 core271 cert271 SigsOk.nil
+    (by decide +kernel)
+
+theorem w271_0 : WinOk 271 0 := link271.win rfl Fn.«keccak_plain_rounds__L4_L1».w0
+
+theorem ok271 : CheckOk 271 := checkOk_one (by decide +kernel) w271_0
 
 theorem plain271 : Plain 271 := plain_of_nil (by decide +kernel)
 
+theorem link272 : Link 272 (Glob.ofSigs ([(272, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem)
+    Fn.«verify_keccak_loop2».code Fn.«verify_keccak_loop2».core (Fn.«verify_keccak_loop2».cert.withPows Data.powTree) :=
+  Link.of code272 core272 cert272 
+    (SigsOk.cons sig272 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w272_0 : WinOk 272 0 := link272.win rfl Fn.«verify_keccak_loop2».w0
+
+theorem ok272 : CheckOk 272 := checkOk_one (by decide +kernel) w272_0
+
 theorem plain272 : Plain 272 := plain_of_nil (by decide +kernel)
+
+theorem link273 : Link 273 (Glob.ofSigs ([(273, Fn.«ring_switch_target_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«ring_switch_target_loop0».code Fn.«ring_switch_target_loop0».core (Fn.«ring_switch_target_loop0».cert.withPows Data.powTree) :=
+  Link.of code273 core273 cert273 
+    (SigsOk.cons sig273 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w273_0 : WinOk 273 0 := link273.win rfl Fn.«ring_switch_target_loop0».w0
+
+theorem ok273 : CheckOk 273 := checkOk_one (by decide +kernel) w273_0
 
 theorem plain273 : Plain 273 := plain_of_nil (by decide +kernel)
 
+theorem link274 : Link 274 (Glob.ofSigs ([(274, Fn.«check_opening_terminal_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«check_opening_terminal_loop0».code Fn.«check_opening_terminal_loop0».core (Fn.«check_opening_terminal_loop0».cert.withPows Data.powTree) :=
+  Link.of code274 core274 cert274 
+    (SigsOk.cons sig274 rfl SigsOk.nil)
+    (by decide +kernel)
+
+theorem w274_0 : WinOk 274 0 := link274.win rfl Fn.«check_opening_terminal_loop0».w0
+
+theorem ok274 : CheckOk 274 := checkOk_one (by decide +kernel) w274_0
+
 theorem plain274 : Plain 274 := plain_of_nil (by decide +kernel)
+
+theorem link275 : Link 275 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L0».code Fn.«column_selector__L0».core (Fn.«column_selector__L0».cert.withPows Data.powTree) :=
+  Link.of code275 core275 cert275 SigsOk.nil
+    (by decide +kernel)
+
+theorem w275_0 : WinOk 275 0 := link275.win rfl Fn.«column_selector__L0».w0
+
+theorem ok275 : CheckOk 275 := checkOk_one (by decide +kernel) w275_0
 
 theorem plain275 : Plain 275 := plain_of_nil (by decide +kernel)
 
+theorem link276 : Link 276 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L1».code Fn.«column_selector__L1».core (Fn.«column_selector__L1».cert.withPows Data.powTree) :=
+  Link.of code276 core276 cert276 SigsOk.nil
+    (by decide +kernel)
+
+theorem w276_0 : WinOk 276 0 := link276.win rfl Fn.«column_selector__L1».w0
+
+theorem ok276 : CheckOk 276 := checkOk_one (by decide +kernel) w276_0
+
 theorem plain276 : Plain 276 := plain_of_nil (by decide +kernel)
+
+theorem link277 : Link 277 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L2».code Fn.«column_selector__L2».core (Fn.«column_selector__L2».cert.withPows Data.powTree) :=
+  Link.of code277 core277 cert277 SigsOk.nil
+    (by decide +kernel)
+
+theorem w277_0 : WinOk 277 0 := link277.win rfl Fn.«column_selector__L2».w0
+
+theorem ok277 : CheckOk 277 := checkOk_one (by decide +kernel) w277_0
 
 theorem plain277 : Plain 277 := plain_of_nil (by decide +kernel)
 
+theorem link278 : Link 278 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L3».code Fn.«column_selector__L3».core (Fn.«column_selector__L3».cert.withPows Data.powTree) :=
+  Link.of code278 core278 cert278 SigsOk.nil
+    (by decide +kernel)
+
+theorem w278_0 : WinOk 278 0 := link278.win rfl Fn.«column_selector__L3».w0
+
+theorem ok278 : CheckOk 278 := checkOk_one (by decide +kernel) w278_0
+
 theorem plain278 : Plain 278 := plain_of_nil (by decide +kernel)
+
+theorem link279 : Link 279 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L4».code Fn.«column_selector__L4».core (Fn.«column_selector__L4».cert.withPows Data.powTree) :=
+  Link.of code279 core279 cert279 SigsOk.nil
+    (by decide +kernel)
+
+theorem w279_0 : WinOk 279 0 := link279.win rfl Fn.«column_selector__L4».w0
+
+theorem ok279 : CheckOk 279 := checkOk_one (by decide +kernel) w279_0
 
 theorem plain279 : Plain 279 := plain_of_nil (by decide +kernel)
 
+theorem link280 : Link 280 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L5».code Fn.«column_selector__L5».core (Fn.«column_selector__L5».cert.withPows Data.powTree) :=
+  Link.of code280 core280 cert280 SigsOk.nil
+    (by decide +kernel)
+
+theorem w280_0 : WinOk 280 0 := link280.win rfl Fn.«column_selector__L5».w0
+
+theorem ok280 : CheckOk 280 := checkOk_one (by decide +kernel) w280_0
+
 theorem plain280 : Plain 280 := plain_of_nil (by decide +kernel)
+
+theorem link281 : Link 281 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L6».code Fn.«column_selector__L6».core (Fn.«column_selector__L6».cert.withPows Data.powTree) :=
+  Link.of code281 core281 cert281 SigsOk.nil
+    (by decide +kernel)
+
+theorem w281_0 : WinOk 281 0 := link281.win rfl Fn.«column_selector__L6».w0
+
+theorem ok281 : CheckOk 281 := checkOk_one (by decide +kernel) w281_0
 
 theorem plain281 : Plain 281 := plain_of_nil (by decide +kernel)
 
+theorem link282 : Link 282 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L7».code Fn.«column_selector__L7».core (Fn.«column_selector__L7».cert.withPows Data.powTree) :=
+  Link.of code282 core282 cert282 SigsOk.nil
+    (by decide +kernel)
+
+theorem w282_0 : WinOk 282 0 := link282.win rfl Fn.«column_selector__L7».w0
+
+theorem ok282 : CheckOk 282 := checkOk_one (by decide +kernel) w282_0
+
 theorem plain282 : Plain 282 := plain_of_nil (by decide +kernel)
+
+theorem link283 : Link 283 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L8».code Fn.«column_selector__L8».core (Fn.«column_selector__L8».cert.withPows Data.powTree) :=
+  Link.of code283 core283 cert283 SigsOk.nil
+    (by decide +kernel)
+
+theorem w283_0 : WinOk 283 0 := link283.win rfl Fn.«column_selector__L8».w0
+
+theorem ok283 : CheckOk 283 := checkOk_one (by decide +kernel) w283_0
 
 theorem plain283 : Plain 283 := plain_of_nil (by decide +kernel)
 
+theorem link284 : Link 284 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L9».code Fn.«column_selector__L9».core (Fn.«column_selector__L9».cert.withPows Data.powTree) :=
+  Link.of code284 core284 cert284 SigsOk.nil
+    (by decide +kernel)
+
+theorem w284_0 : WinOk 284 0 := link284.win rfl Fn.«column_selector__L9».w0
+
+theorem ok284 : CheckOk 284 := checkOk_one (by decide +kernel) w284_0
+
 theorem plain284 : Plain 284 := plain_of_nil (by decide +kernel)
+
+theorem link285 : Link 285 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L10».code Fn.«column_selector__L10».core (Fn.«column_selector__L10».cert.withPows Data.powTree) :=
+  Link.of code285 core285 cert285 SigsOk.nil
+    (by decide +kernel)
+
+theorem w285_0 : WinOk 285 0 := link285.win rfl Fn.«column_selector__L10».w0
+
+theorem ok285 : CheckOk 285 := checkOk_one (by decide +kernel) w285_0
 
 theorem plain285 : Plain 285 := plain_of_nil (by decide +kernel)
 
+theorem link286 : Link 286 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L11».code Fn.«column_selector__L11».core (Fn.«column_selector__L11».cert.withPows Data.powTree) :=
+  Link.of code286 core286 cert286 SigsOk.nil
+    (by decide +kernel)
+
+theorem w286_0 : WinOk 286 0 := link286.win rfl Fn.«column_selector__L11».w0
+
+theorem ok286 : CheckOk 286 := checkOk_one (by decide +kernel) w286_0
+
 theorem plain286 : Plain 286 := plain_of_nil (by decide +kernel)
+
+theorem link287 : Link 287 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L12».code Fn.«column_selector__L12».core (Fn.«column_selector__L12».cert.withPows Data.powTree) :=
+  Link.of code287 core287 cert287 SigsOk.nil
+    (by decide +kernel)
+
+theorem w287_0 : WinOk 287 0 := link287.win rfl Fn.«column_selector__L12».w0
+
+theorem ok287 : CheckOk 287 := checkOk_one (by decide +kernel) w287_0
 
 theorem plain287 : Plain 287 := plain_of_nil (by decide +kernel)
 
+theorem link288 : Link 288 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L13».code Fn.«column_selector__L13».core (Fn.«column_selector__L13».cert.withPows Data.powTree) :=
+  Link.of code288 core288 cert288 SigsOk.nil
+    (by decide +kernel)
+
+theorem w288_0 : WinOk 288 0 := link288.win rfl Fn.«column_selector__L13».w0
+
+theorem ok288 : CheckOk 288 := checkOk_one (by decide +kernel) w288_0
+
 theorem plain288 : Plain 288 := plain_of_nil (by decide +kernel)
+
+theorem link289 : Link 289 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L14».code Fn.«column_selector__L14».core (Fn.«column_selector__L14».cert.withPows Data.powTree) :=
+  Link.of code289 core289 cert289 SigsOk.nil
+    (by decide +kernel)
+
+theorem w289_0 : WinOk 289 0 := link289.win rfl Fn.«column_selector__L14».w0
+
+theorem ok289 : CheckOk 289 := checkOk_one (by decide +kernel) w289_0
 
 theorem plain289 : Plain 289 := plain_of_nil (by decide +kernel)
 
+theorem link290 : Link 290 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L15».code Fn.«column_selector__L15».core (Fn.«column_selector__L15».cert.withPows Data.powTree) :=
+  Link.of code290 core290 cert290 SigsOk.nil
+    (by decide +kernel)
+
+theorem w290_0 : WinOk 290 0 := link290.win rfl Fn.«column_selector__L15».w0
+
+theorem ok290 : CheckOk 290 := checkOk_one (by decide +kernel) w290_0
+
 theorem plain290 : Plain 290 := plain_of_nil (by decide +kernel)
+
+theorem link291 : Link 291 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L16».code Fn.«column_selector__L16».core (Fn.«column_selector__L16».cert.withPows Data.powTree) :=
+  Link.of code291 core291 cert291 SigsOk.nil
+    (by decide +kernel)
+
+theorem w291_0 : WinOk 291 0 := link291.win rfl Fn.«column_selector__L16».w0
+
+theorem ok291 : CheckOk 291 := checkOk_one (by decide +kernel) w291_0
 
 theorem plain291 : Plain 291 := plain_of_nil (by decide +kernel)
 
+theorem link292 : Link 292 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L17».code Fn.«column_selector__L17».core (Fn.«column_selector__L17».cert.withPows Data.powTree) :=
+  Link.of code292 core292 cert292 SigsOk.nil
+    (by decide +kernel)
+
+theorem w292_0 : WinOk 292 0 := link292.win rfl Fn.«column_selector__L17».w0
+
+theorem ok292 : CheckOk 292 := checkOk_one (by decide +kernel) w292_0
+
 theorem plain292 : Plain 292 := plain_of_nil (by decide +kernel)
+
+theorem link293 : Link 293 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L18».code Fn.«column_selector__L18».core (Fn.«column_selector__L18».cert.withPows Data.powTree) :=
+  Link.of code293 core293 cert293 SigsOk.nil
+    (by decide +kernel)
+
+theorem w293_0 : WinOk 293 0 := link293.win rfl Fn.«column_selector__L18».w0
+
+theorem ok293 : CheckOk 293 := checkOk_one (by decide +kernel) w293_0
 
 theorem plain293 : Plain 293 := plain_of_nil (by decide +kernel)
 
+theorem link294 : Link 294 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L19».code Fn.«column_selector__L19».core (Fn.«column_selector__L19».cert.withPows Data.powTree) :=
+  Link.of code294 core294 cert294 SigsOk.nil
+    (by decide +kernel)
+
+theorem w294_0 : WinOk 294 0 := link294.win rfl Fn.«column_selector__L19».w0
+
+theorem ok294 : CheckOk 294 := checkOk_one (by decide +kernel) w294_0
+
 theorem plain294 : Plain 294 := plain_of_nil (by decide +kernel)
+
+theorem link295 : Link 295 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L20».code Fn.«column_selector__L20».core (Fn.«column_selector__L20».cert.withPows Data.powTree) :=
+  Link.of code295 core295 cert295 SigsOk.nil
+    (by decide +kernel)
+
+theorem w295_0 : WinOk 295 0 := link295.win rfl Fn.«column_selector__L20».w0
+
+theorem ok295 : CheckOk 295 := checkOk_one (by decide +kernel) w295_0
 
 theorem plain295 : Plain 295 := plain_of_nil (by decide +kernel)
 
+theorem link296 : Link 296 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L21».code Fn.«column_selector__L21».core (Fn.«column_selector__L21».cert.withPows Data.powTree) :=
+  Link.of code296 core296 cert296 SigsOk.nil
+    (by decide +kernel)
+
+theorem w296_0 : WinOk 296 0 := link296.win rfl Fn.«column_selector__L21».w0
+
+theorem ok296 : CheckOk 296 := checkOk_one (by decide +kernel) w296_0
+
 theorem plain296 : Plain 296 := plain_of_nil (by decide +kernel)
+
+theorem link297 : Link 297 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L22».code Fn.«column_selector__L22».core (Fn.«column_selector__L22».cert.withPows Data.powTree) :=
+  Link.of code297 core297 cert297 SigsOk.nil
+    (by decide +kernel)
+
+theorem w297_0 : WinOk 297 0 := link297.win rfl Fn.«column_selector__L22».w0
+
+theorem ok297 : CheckOk 297 := checkOk_one (by decide +kernel) w297_0
 
 theorem plain297 : Plain 297 := plain_of_nil (by decide +kernel)
 
+theorem link298 : Link 298 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L23».code Fn.«column_selector__L23».core (Fn.«column_selector__L23».cert.withPows Data.powTree) :=
+  Link.of code298 core298 cert298 SigsOk.nil
+    (by decide +kernel)
+
+theorem w298_0 : WinOk 298 0 := link298.win rfl Fn.«column_selector__L23».w0
+
+theorem ok298 : CheckOk 298 := checkOk_one (by decide +kernel) w298_0
+
 theorem plain298 : Plain 298 := plain_of_nil (by decide +kernel)
 
+theorem link299 : Link 299 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L24».code Fn.«column_selector__L24».core (Fn.«column_selector__L24».cert.withPows Data.powTree) :=
+  Link.of code299 core299 cert299 SigsOk.nil
+    (by decide +kernel)
+
+theorem w299_0 : WinOk 299 0 := link299.win rfl Fn.«column_selector__L24».w0
+
+theorem ok299 : CheckOk 299 := checkOk_one (by decide +kernel) w299_0
+
 theorem plain299 : Plain 299 := plain_of_nil (by decide +kernel)
+
+theorem link300 : Link 300 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«column_selector__L25».code Fn.«column_selector__L25».core (Fn.«column_selector__L25».cert.withPows Data.powTree) :=
+  Link.of code300 core300 cert300 SigsOk.nil
+    (by decide +kernel)
+
+theorem w300_0 : WinOk 300 0 := link300.win rfl Fn.«column_selector__L25».w0
+
+theorem ok300 : CheckOk 300 := checkOk_one (by decide +kernel) w300_0
 
 theorem plain300 : Plain 300 := plain_of_nil (by decide +kernel)
 

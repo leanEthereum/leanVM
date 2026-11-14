@@ -11,26 +11,24 @@ use crate::targets::kernels::reference as r;
 use crate::{Finding, Source};
 use leanvm_core::cpu::{DerefMode, Op, OutCells, Program};
 use leanvm_core::keccak::{STATE_CELLS, cell_lanes};
-use primitives::field::{F192, g_pow};
+use primitives::field::{F128, g_pow};
 use std::collections::{BTreeMap, HashMap};
 
 /// What a cell holds, as far as an instruction that reads it cares.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Kind {
-    /// In `K`: limbs 1 and 2 zero.
+    /// In `K`: limb 1 zero.
     K,
-    /// Canonical, a `KECCAK` input: limb 2 zero.
+    /// A word: every value is a `KECCAK` input on the tower.
     Canon,
     Ext,
 }
 
-pub fn kind_of(v: F192) -> Kind {
-    if v.c1 == 0 && v.c2 == 0 {
+pub fn kind_of(v: F128) -> Kind {
+    if v.c1 == 0 {
         Kind::K
-    } else if v.c2 == 0 {
-        Kind::Canon
     } else {
-        Kind::Ext
+        Kind::Canon
     }
 }
 
@@ -47,7 +45,7 @@ pub struct Frame {
     pub code: Vec<Op>,
     next: u32,
     /// Frame-relative cells written, with their values.
-    pub written: BTreeMap<u32, F192>,
+    pub written: BTreeMap<u32, F128>,
     /// `(index in code, label)`: a `SET` whose immediate is `g^` the label's pc.
     fixups: Vec<(usize, Label)>,
     /// Whether the code may still fall through: false once it ends with a jump away.
@@ -75,13 +73,13 @@ impl Frame {
         c
     }
 
-    fn set(&mut self, o: u32, k: F192) {
+    fn set(&mut self, o: u32, k: F128) {
         self.code.push(Op::Set { o, k });
         self.written.insert(o, k);
     }
 
-    fn pick(&self, src: &mut Source, want: Option<Kind>) -> Option<(u32, F192)> {
-        let ok: Vec<(u32, F192)> = self
+    fn pick(&self, src: &mut Source, want: Option<Kind>) -> Option<(u32, F128)> {
+        let ok: Vec<(u32, F128)> = self
             .written
             .iter()
             .filter(|(_, v)| match want {
@@ -96,13 +94,13 @@ impl Frame {
     }
 
     /// A value for a `SET`: often in `K`, often canonical, sometimes a full word.
-    fn value(src: &mut Source) -> F192 {
+    fn value(src: &mut Source) -> F128 {
         match src.below(6) {
-            0 => F192::new(src.edgy_u64(), 0, 0),
-            1 => F192::from(g_pow(src.below(64))),
-            2 | 3 => F192::new(src.u64(), src.u64(), 0),
-            4 => F192::ZERO,
-            _ => src.f192(),
+            0 => F128::new(src.edgy_u64(), 0),
+            1 => F128::from(g_pow(src.below(64))),
+            2 | 3 => F128::new(src.u64(), src.u64()),
+            4 => F128::ZERO,
+            _ => src.f128(),
         }
     }
 
@@ -163,7 +161,7 @@ impl Frame {
             // a2 = written, a3 = fresh.
             let off = src.below(self.base as usize + w as usize + 1) as u32;
             let base = self.base + w - off;
-            self.set(ptr, F192::from(g_pow(base as usize)));
+            self.set(ptr, F128::from(g_pow(base as usize)));
             self.code.push(Op::Deref {
                 o1: ptr,
                 o2: off,
@@ -174,7 +172,7 @@ impl Frame {
             // a2 = fresh, a3 = written.
             let off = src.below(self.base as usize + f as usize + 1) as u32;
             let base = self.base + f - off;
-            self.set(ptr, F192::from(g_pow(base as usize)));
+            self.set(ptr, F128::from(g_pow(base as usize)));
             self.code.push(Op::Deref {
                 o1: ptr,
                 o2: off,
@@ -190,7 +188,7 @@ impl Frame {
         let f = self.fresh(1);
         let ptr = self.fresh(1);
         let off = src.below(f as usize + 1) as u32;
-        self.set(ptr, F192::from(g_pow((self.base + f - off) as usize)));
+        self.set(ptr, F128::from(g_pow((self.base + f - off) as usize)));
         let o3 = self.pick(src, None).map_or(0, |(c, _)| c);
         self.code.push(Op::Deref {
             o1: ptr,
@@ -198,7 +196,7 @@ impl Frame {
             o3,
             mode: DerefMode::Fp,
         });
-        self.written.insert(f, F192::from(g_pow(self.base as usize)));
+        self.written.insert(f, F128::from(g_pow(self.base as usize)));
     }
 
     /// A `KECCAK` over canonical cells, its inputs set first when the frame has too few, its output checked against
@@ -208,16 +206,16 @@ impl Frame {
         let block = self.fresh(STATE_CELLS as u32);
         for c in 0..STATE_CELLS as u32 {
             let v = match src.below(4) {
-                0 => F192::ZERO,
-                1 => F192::new(src.u64(), 0, 0),
-                _ => F192::new(src.u64(), src.u64(), 0),
+                0 => F128::ZERO,
+                1 => F128::new(src.u64(), 0),
+                _ => F128::new(src.u64(), src.u64()),
             };
             self.set(block + c, v);
         }
-        let canon: Vec<(u32, F192)> = self
+        let canon: Vec<(u32, F128)> = self
             .written
             .iter()
-            .filter(|(_, v)| v.c2 == 0)
+            .filter(|(_, _)| true)
             .map(|(&c, &v)| (c, v))
             .collect();
         let pick = |src: &mut Source| canon[src.below(canon.len())].0;
@@ -257,7 +255,7 @@ impl Frame {
             out_odd,
             out_cells,
         });
-        let input: Vec<F192> = m
+        let input: Vec<F128> = m
             .iter()
             .copied()
             .chain((0..4).map(|k| tail + k))
@@ -276,7 +274,7 @@ impl Frame {
         }
         r::keccak_f(&mut lanes);
         for (c, &(lo, hi)) in cell_lanes(out_odd).iter().enumerate().take(out_cells.cells()) {
-            let v = F192::new(lo.map_or(0, |l| lanes[l]), hi.map_or(0, |h| lanes[h]), 0);
+            let v = F128::new(lo.map_or(0, |l| lanes[l]), hi.map_or(0, |h| lanes[h]));
             self.written.insert(out + c as u32, v);
         }
     }
@@ -290,7 +288,7 @@ impl Frame {
             0 => {
                 // A second, different value for a written cell.
                 if let Some((c, v)) = self.pick(src, None) {
-                    self.code.push(Op::Set { o: c, k: v + F192::ONE });
+                    self.code.push(Op::Set { o: c, k: v + F128::ONE });
                 }
             }
             1 => {
@@ -299,12 +297,12 @@ impl Frame {
                 self.code.push(Op::Xor { a: fresh, b: fresh, c });
                 // The run accepts it, so the program is as broken as an earlier mistake left it.
                 self.broken = was_broken;
-                self.written.insert(c, F192::ZERO);
-                self.written.insert(fresh, F192::ZERO);
+                self.written.insert(c, F128::ZERO);
+                self.written.insert(fresh, F128::ZERO);
             }
             2 => {
                 // A pointer that is no g-power in range.
-                self.set(fresh, F192::new(src.u64() | 1 << 63, src.u64(), 0));
+                self.set(fresh, F128::new(src.u64() | 1 << 63, src.u64()));
                 let c = self.fresh(1);
                 self.code.push(Op::Deref {
                     o1: fresh,
@@ -315,7 +313,7 @@ impl Frame {
             }
             3 => {
                 // A JUMP condition outside K.
-                self.set(fresh, F192::new(1, 1 + src.u64() % 7, 0));
+                self.set(fresh, F128::new(1, 1 + src.u64() % 7));
                 self.code.push(Op::Jump {
                     oc: fresh,
                     od: fresh,
@@ -326,7 +324,7 @@ impl Frame {
                 // A KECCAK reading a non-canonical cell.
                 let block = self.fresh(STATE_CELLS as u32);
                 for c in 0..STATE_CELLS as u32 {
-                    self.set(block + c, F192::new(c as u64, 0, u64::from(c == 5)));
+                    self.set(block + c, F128::new(c as u64, u64::from(c == 5)));
                 }
                 let out = self.fresh(STATE_CELLS as u32);
                 self.code.push(Op::Keccak {
@@ -342,17 +340,17 @@ impl Frame {
             }
             5 => {
                 // A back-solve through zero.
-                self.set(fresh, F192::ZERO);
+                self.set(fresh, F128::ZERO);
                 let c = self.fresh(1);
-                self.set(c, F192::ONE);
+                self.set(c, F128::ONE);
                 let b = self.fresh(1);
                 self.code.push(Op::Mul { a: fresh, b, c });
             }
             _ => {
                 // A taken JUMP whose target is no pc.
-                self.set(fresh, F192::ONE);
+                self.set(fresh, F128::ONE);
                 let t = self.fresh(1);
-                self.set(t, F192::new(src.u64() | 3, 0, 0));
+                self.set(t, F128::new(src.u64() | 3, 0));
                 self.code.push(Op::Jump {
                     oc: fresh,
                     od: t,
@@ -378,14 +376,14 @@ pub struct Builder {
     pub main: Frame,
     /// The callees: their bodies, frame-relative, and the frame each call gives them.
     pub callees: Vec<Frame>,
-    pub public_input: [F192; 2],
+    pub public_input: [F128; 2],
     /// Once a callee halts the machine: main's cells written by then, and the callees entered by then. Nothing
     /// after runs.
     halted: Option<(Vec<u32>, usize)>,
 }
 
 impl Builder {
-    pub fn new(public_input: [F192; 2]) -> Self {
+    pub fn new(public_input: [F128; 2]) -> Self {
         let mut main = Frame::new(0, 2);
         main.written.insert(0, public_input[0]);
         main.written.insert(1, public_input[1]);
@@ -401,11 +399,11 @@ impl Builder {
     pub fn skip(&mut self, src: &mut Source, skip: usize) {
         let m = &mut self.main;
         let (cond, target, fp) = (m.fresh(1), m.fresh(1), m.fresh(1));
-        m.set(cond, F192::new(src.u64().max(1), 0, 0));
-        m.set(fp, F192::ONE);
+        m.set(cond, F128::new(src.u64().max(1), 0));
+        m.set(fp, F128::ONE);
         // The target is this jump's pc + 1 + skip: two SETs and the jump come first.
         let pc = m.code.len() as u32 + 1;
-        m.set(target, F192::from(g_pow((pc + 1) as usize + skip)));
+        m.set(target, F128::from(g_pow((pc + 1) as usize + skip)));
         m.code.push(Op::Jump {
             oc: cond,
             od: target,
@@ -418,9 +416,9 @@ impl Builder {
     pub fn untaken(&mut self, src: &mut Source) {
         let m = &mut self.main;
         let (cond, a, b) = (m.fresh(1), m.fresh(1), m.fresh(1));
-        m.set(cond, F192::ZERO);
-        m.set(a, F192::new(src.edgy_u64(), 0, 0));
-        m.set(b, F192::new(src.edgy_u64(), 0, 0));
+        m.set(cond, F128::ZERO);
+        m.set(a, F128::new(src.edgy_u64(), 0));
+        m.set(b, F128::new(src.edgy_u64(), 0));
         m.code.push(Op::Jump { oc: cond, od: a, of: b });
     }
 
@@ -431,14 +429,14 @@ impl Builder {
         let callee = self.callees.len();
         let m = &mut self.main;
         let (cond, target, ptr) = (m.fresh(1), m.fresh(1), m.fresh(1));
-        m.set(cond, F192::ONE);
+        m.set(cond, F128::ONE);
         m.fixups.push((m.code.len(), Label::Callee(callee)));
         // A placeholder nothing reads until the layout patches it.
         m.code.push(Op::Set {
             o: target,
-            k: F192::ZERO,
+            k: F128::ZERO,
         });
-        m.set(ptr, F192::from(g_pow(base as usize)));
+        m.set(ptr, F128::from(g_pow(base as usize)));
         let o3 = m.pick(src, None).map_or(0, |(c, _)| c);
         m.code.push(Op::Deref {
             o1: ptr,
@@ -459,24 +457,24 @@ impl Builder {
             of: ptr,
         });
         let mut f = Frame::new(base, 2);
-        f.written.insert(0, F192::ONE);
-        f.written.insert(1, F192::from(g_pow(ret as usize)));
+        f.written.insert(0, F128::ONE);
+        f.written.insert(1, F128::from(g_pow(ret as usize)));
         for _ in 0..body {
             f.step(src);
         }
         let c = f.fresh(1);
-        f.set(c, F192::new(src.u64().max(1), 0, 0));
+        f.set(c, F128::new(src.u64().max(1), 0));
         match exit {
             Exit::Return => f.code.push(Op::Jump { oc: c, od: 1, of: 0 }),
             Exit::HaltMain | Exit::HaltHere => {
                 let t = f.fresh(1);
                 f.fixups.push((f.code.len(), Label::Halt));
-                f.code.push(Op::Set { o: t, k: F192::ZERO });
+                f.code.push(Op::Set { o: t, k: F128::ZERO });
                 let of = if exit == Exit::HaltMain {
                     0
                 } else {
                     let x = f.fresh(1);
-                    f.set(x, F192::from(g_pow(base as usize)));
+                    f.set(x, F128::from(g_pow(base as usize)));
                     f.broken = true;
                     x
                 };
@@ -496,13 +494,13 @@ impl Builder {
     pub fn jump_to_halt(&mut self, src: &mut Source) {
         let m = &mut self.main;
         let (cond, target, fp) = (m.fresh(1), m.fresh(1), m.fresh(1));
-        m.set(cond, F192::new(src.u64().max(1), 0, 0));
-        m.set(fp, F192::ONE);
+        m.set(cond, F128::new(src.u64().max(1), 0));
+        m.set(fp, F128::ONE);
         m.fixups.push((m.code.len(), Label::Halt));
         // A placeholder nothing reads until the layout patches it.
         m.code.push(Op::Set {
             o: target,
-            k: F192::ZERO,
+            k: F128::ZERO,
         });
         m.code.push(Op::Jump {
             oc: cond,
@@ -526,8 +524,8 @@ impl Builder {
             starts.push(at);
             at += f.code.len();
         }
-        let resolve = |label: Label| -> F192 {
-            F192::from(g_pow(match label {
+        let resolve = |label: Label| -> F128 {
+            F128::from(g_pow(match label {
                 Label::Halt => len - 1,
                 Label::Callee(i) => starts[i],
             }))
@@ -564,7 +562,7 @@ impl Builder {
             Some((cells, n)) => (Some(cells), *n),
             None => (None, self.callees.len()),
         };
-        let mut expect: HashMap<u32, F192> = self
+        let mut expect: HashMap<u32, F128> = self
             .main
             .written
             .iter()
@@ -608,7 +606,7 @@ pub fn garbage(src: &mut Source) -> Op {
         },
         2 => Op::Set {
             o: o(src),
-            k: src.f192(),
+            k: src.f128(),
         },
         3 => Op::Deref {
             o1: o(src),
@@ -637,10 +635,10 @@ pub fn garbage(src: &mut Source) -> Op {
 pub struct Built {
     pub prog: Vec<Op>,
     /// Every cell the generator wrote, absolute, with its value.
-    pub expect: HashMap<u32, F192>,
+    pub expect: HashMap<u32, F128>,
     /// A deliberate mistake was made: the run should fail.
     pub broken: bool,
-    pub public_input: [F192; 2],
+    pub public_input: [F128; 2],
     /// One past the highest cell the generator used.
     pub cells: u32,
 }
@@ -652,7 +650,7 @@ impl Built {
 
     /// The final memory against the generator's values.
     pub fn check_memory(&self, mem: &leanvm_core::cpu::Memory, context: &str) -> Result<(), Finding> {
-        let mut cells: Vec<(&u32, &F192)> = self.expect.iter().collect();
+        let mut cells: Vec<(&u32, &F128)> = self.expect.iter().collect();
         cells.sort_by_key(|(c, _)| **c);
         for (&c, &want) in cells {
             let got = mem.word(c as usize);

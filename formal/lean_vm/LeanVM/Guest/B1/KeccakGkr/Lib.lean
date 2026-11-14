@@ -7,20 +7,20 @@
 
 module
 
-public import LeanVM.Guest.B1.KeccakGkr.Interface
+public import LeanVM.Guest.B1.KeccakGkr.InterfaceP
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
 # B1-d: shared lemmas
 
-* `keccak_outs`: a `KECCAK` atom in the even layouts reads canonical cells and writes the cells
-  of their permutation (`permOf`), output `k` its cell `k`;
+* `keccak_outs`: a `KECCAK` atom in the even layouts writes the cells of the permutation of the
+  cells it reads (`permOf`), output `k` its cell `k`;
 * `rateOf_nil` … `rateOf_four`: the rate cells of `k ≤ 4` waiting scalars (`Keccak.scalarCells`);
 * `squeeze_atom`: the atom on the rate cells of `s.pend` and the capacity `s.cap`, followed by
-  `challenge_from_state` on its outputs `0`, `1`, is `s.squeeze`: the challenge, and the
-  capacity cells `8..12` of its outputs;
-* `fsPack_scalar`: `fs_pack`'s two cells, once read canonical, are the scalar's rate cells.
+  `challenge_from_state` on its output `0`, is `s.squeeze`: the challenge, and the capacity
+  cells `8..12` of its outputs;
+* `fsNext_scalar`: `fs_next`'s two cells are the scalar's rate cells.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -34,14 +34,14 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## A `KECCAK` atom -/
 
-/-- **A `KECCAK` atom in the even layouts**: it reads thirteen canonical cells and writes, as
-output `k`, cell `k` of their permutation. -/
+/-- **A `KECCAK` atom in the even layouts**: it reads thirteen cells and writes, as output `k`,
+cell `k` of their permutation. -/
 theorem keccak_outs {ins outs : List V} (h : (Atom.keccak ins outs false false).Holds rd σ)
     (ho : outs.length = 13 := by first | rfl | simp) :
-    ins.length = 13 ∧ outs.length = 13 ∧ AllCanonical (ins.map σ) ∧
+    ins.length = 13 ∧ outs.length = 13 ∧
       ∀ k (hk : k < 13), σ (outs.getD k default) = cellsOfState (permOf (ins.map σ)) false ⟨k, hk⟩ := by
-  obtain ⟨hi, -, hc, hout⟩ := keccakA_perm h ho
-  refine ⟨hi, ho, hc, fun k hk => ?_⟩
+  obtain ⟨hi, -, hout⟩ := keccakA_perm h ho
+  refine ⟨hi, ho, fun k hk => ?_⟩
   have := congrFun hout ⟨k, hk⟩
   simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map,
     List.getElem?_eq_getElem (show k < outs.length by omega), Option.map_some,
@@ -127,16 +127,16 @@ theorem rateOf_four (a b c d : E × ℕ) :
 /-! ## A squeeze -/
 
 /-- **A squeeze as atoms**: a `KECCAK` atom in the even layouts on the rate cells of the waiting
-scalars and the capacity, then `challenge_from_state` on its outputs `0`, `1` from the value `b`:
-the challenge is `s.squeeze`'s, and the outputs `8..12` its capacity. -/
+scalars and the capacity, then `challenge_from_state` on its output `0` into the value `b`: the
+challenge is `s.squeeze`'s, and the outputs `8..12` its capacity. -/
 theorem squeeze_atom {ins outs : List V} {b : ℕ} {s : Fs}
     (hk : (Atom.keccak ins outs false false).Holds rd σ) (hin : ins.map σ = rateOf s.pend ++ s.cap)
-    (hch : ChallengeOk σ (outs.getD 0 default) (outs.getD 1 default) b)
+    (hch : ChallengeOk σ (outs.getD 0 default) b)
     (ho : outs.length = 13 := by first | rfl | simp) :
-    σ (.n (b + 6)) = s.squeeze.1 ∧ (outs.drop 8).map σ = s.squeeze.2.cap := by
-  obtain ⟨-, -, -, hout⟩ := keccak_outs hk ho
+    σ (.n b) = s.squeeze.1 ∧ (outs.drop 8).map σ = s.squeeze.2.cap := by
+  obtain ⟨-, -, hout⟩ := keccak_outs hk ho
   rw [hin] at hout
-  refine ⟨challengeT_value hch (hout 0 (by omega)) (hout 1 (by omega)), ?_⟩
+  refine ⟨challengeT_value hch (hout 0 (by omega)), ?_⟩
   apply List.ext_getElem
   · simp [ho, Fs.squeeze, capOf]
   · intro i h1 h2
@@ -148,16 +148,7 @@ theorem squeeze_atom {ins outs : List V} {b : ℕ} {s : Fs}
     simp only [Fs.squeeze, Fs.perm]
     interval_cases i <;> rfl
 
-/-- A squeeze's capacity cells are canonical. -/
-theorem squeeze_cap_canonical (s : Fs) : AllCanonical s.squeeze.2.cap := by
-  intro c hc
-  simp only [Fs.squeeze, capOf, List.mem_cons, List.not_mem_nil, or_false] at hc
-  rcases hc with rfl | rfl | rfl | rfl | rfl <;> exact cellsOfState_canonical _ _ _
-
 /-! ## Words -/
-
-theorem word_gen_sq : word 4 0 0 = gen ^ 2 := by
-  rw [show (4 : ℕ) = 2 ^ 2 from rfl]; exact word_two_pow (by decide)
 
 /-! ## Records and runs -/
 
@@ -198,14 +189,6 @@ theorem readsAt_append {p : E} {xs ys : List E} :
     · rw [List.getElem_append_right (by omega)]
       have := hy (k - xs.length) (by simp at hk; omega)
       rwa [show xs.length + (k - xs.length) = k by omega] at this
-
-theorem readsAt_two {p a b : E} (ha : LoadHolds rd p 0 a) (hb : LoadHolds rd p 1 b) :
-    ReadsAt rd p [a, b] := by
-  intro k hk
-  simp only [List.length_cons, List.length_nil] at hk
-  interval_cases k
-  · exact ha
-  · exact hb
 
 /-! ## Statement lists without `ret` -/
 
@@ -277,12 +260,11 @@ theorem loop_sound {P : Core.Program} {f : String} {ps : List E} {N : E} {B : E 
 
 /-! ## `fs_pack`'s cells -/
 
-/-- **`fs_next`'s cells** (`fsNextT cur off b`): once its first cell `b + 7` is read canonical,
-the cells `b + 7`, `b + 9` are the read word's rate cells with the tag `DS_OBSERVE`. -/
-theorem fsNext_scalar {b : ℕ} (h : FsPackOk σ (.n b) (b + 1) dsObserve)
-    (hcan : IsCanonical128 (σ (.n (b + 7)))) :
-    (σ (.n (b + 7)), σ (.n (b + 9))) = Keccak.scalarCells (σ (.n b)) dsObserve :=
-  fsPackT_cells h hcan
+/-- **`fs_next`'s cells** (`fsNextT cur off b`): the cells `b + 1`, `b + 2` are the read word's
+rate cells with the tag `DS_OBSERVE`. -/
+theorem fsNext_scalar {b : ℕ} (h : FsPackOk σ (.n b) (b + 1) dsObserve) :
+    (σ (.n (b + 1)), σ (.n (b + 2))) = Keccak.scalarCells (σ (.n b)) dsObserve :=
+  fsPackT_cells h
 
 end
 end LeanVM.Guest.B1.VerifySub

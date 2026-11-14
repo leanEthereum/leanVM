@@ -10,7 +10,7 @@
 #
 #   bytecode.bin          the bytecode table, little-endian 64-bit words;
 #   public_input.bin      the public input's two halves, 16 bytes each (c0, c1 little-endian);
-#   stream.bin            the scalar stream, 24-byte little-endian E elements;
+#   stream.bin            the scalar stream, 16-byte little-endian E elements;
 #   merkle_phases.bin     the Merkle openings in the `verifier` crate's structure
 #                         (`Proof::merkle_openings: Vec<Vec<MerklePath>>`), every number
 #                         little-endian: the phase count (u32); per phase its path count (u32);
@@ -21,7 +21,7 @@
 # and in `traces` mode, for the Lean prover's differential test (`lake exe leanvm-prove`,
 # `scripts/prover-diff.py`), the execution by the Rust interpreter (`Program::execute`):
 #
-#   memory.bin            the execution's memory, 24 bytes per cell (three limbs, little-endian);
+#   memory.bin            the execution's memory, 16 bytes per cell (two limbs, little-endian);
 #   trace.txt             `<log2 cells> <instructions executed> <rate>`;
 #   rust.txt              the Rust prover's wall time in seconds.
 #
@@ -92,12 +92,12 @@ cat >> "$work/src/main.rs" <<'EOF'
 use fixture::chain;
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{Program, prove, public_input_bytes, scalar_proof, verify};
-use primitives::field::F192;
+use primitives::field::F128;
 use std::path::Path;
 
 // A program of crates/lean_compiler/tests/programs with its `# public_input:` and `# witness`
 // annotations; `None` for a program without a declared public input.
-fn suite_program(path: &Path) -> Option<(Program, [F192; 2])> {
+fn suite_program(path: &Path) -> Option<(Program, [F128; 2])> {
     let source = std::fs::read_to_string(path).expect("read suite program");
     let public_input = py_source::public_input(&source)?;
     let mut program = compile(&parse(&source).expect("parse suite program"));
@@ -109,8 +109,8 @@ fn suite_program(path: &Path) -> Option<(Program, [F192; 2])> {
 
 // The corpus: every suite program with a declared public input, and the chain at three sizes, each
 // at the four rates.
-fn corpus(checkout: &Path) -> Vec<(String, (Program, [F192; 2]), usize)> {
-    let mut programs: Vec<(String, Box<dyn Fn() -> (Program, [F192; 2])>)> = Vec::new();
+fn corpus(checkout: &Path) -> Vec<(String, (Program, [F128; 2]), usize)> {
+    let mut programs: Vec<(String, Box<dyn Fn() -> (Program, [F128; 2])>)> = Vec::new();
     let directory = checkout.join("crates/lean_compiler/tests/programs");
     let mut paths: Vec<_> = std::fs::read_dir(&directory)
         .expect("suite programs")
@@ -139,7 +139,7 @@ fn corpus(checkout: &Path) -> Vec<(String, (Program, [F192; 2]), usize)> {
 // The fixed cases: three per rate, the chain at three loop counts and suite programs that hash
 // (`hash_*`, `wots_walk`), branch (`conditionals`, `match_arms`), read hints (`hint`), allocate
 // (`heapbuf_dyn`) and unroll (`unroll`).
-fn fixed(checkout: &Path) -> Vec<(String, (Program, [F192; 2]), usize)> {
+fn fixed(checkout: &Path) -> Vec<(String, (Program, [F128; 2]), usize)> {
     let suite = |name: &str| {
         suite_program(&checkout.join(format!("crates/lean_compiler/tests/programs/{name}.py")))
             .expect("a suite program with a declared public input")
@@ -198,18 +198,18 @@ fn main() {
         let wire = proof.to_bytes();
         assert!(fiat_shamir::transcript::Proof::from_bytes(&wire) == Some(proof.clone()), "the wire round trip");
         let scalar = scalar_proof(&proof);
-        let table: Vec<u8> = leanvm_core::cpu::layout::bytecode_table(&program.prog)
+        let table: Vec<u8> = leanvm_core::cpu::layout::bytecode_table(&program.prog())
             .iter()
             .flat_map(|w| w.0.to_le_bytes())
             .collect();
         std::fs::write(directory.join("bytecode.bin"), &table).expect("write bytecode");
         std::fs::write(directory.join("public_input.bin"), public_input_bytes(&public_input))
             .expect("write public input");
-        // The stream as 24-byte little-endian elements, three limbs each.
+        // The stream as 16-byte little-endian elements, two limbs each.
         let stream: Vec<u8> = proof
             .stream
             .iter()
-            .flat_map(|scalar| [scalar.c0, scalar.c1, scalar.c2])
+            .flat_map(|scalar| [scalar.c0, scalar.c1])
             .flat_map(u64::to_le_bytes)
             .collect();
         let u32_bytes = |n: usize| u32::try_from(n).expect("a count fits in u32").to_le_bytes();
@@ -231,7 +231,7 @@ fn main() {
         let Some(exec) = exec else {
             println!(
                 "{name}: {} instructions, {} cycles, {} scalars, {} phases, {} openings, {} wire bytes",
-                program.prog.len(),
+                program.prog().len(),
                 stats.cycles,
                 proof.stream.len(),
                 scalar.merkle_openings.len(),
@@ -242,7 +242,7 @@ fn main() {
         };
         let memory: Vec<u8> = (0..exec.mem.len())
             .map(|i| exec.mem.word(i))
-            .flat_map(|w| [w.c0, w.c1, w.c2])
+            .flat_map(|w| [w.c0, w.c1])
             .flat_map(u64::to_le_bytes)
             .collect();
         std::fs::write(directory.join("memory.bin"), memory).expect("write memory");
@@ -252,7 +252,7 @@ fn main() {
         std::fs::write(directory.join("rust.txt"), format!("{seconds}\n")).expect("write time");
         println!(
             "{name}: {} instructions, 2^{log_mem} cells, {} cycles, Rust prover {seconds:.3} s",
-            program.prog.len(),
+            program.prog().len(),
             stats.cycles,
         );
     }

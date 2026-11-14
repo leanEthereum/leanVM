@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.Expand
 
-  `da_expand`'s template and its meaning (G:4454-4467).
+  `da_expand`'s template and its meaning (G:4638-4651).
 -/
 
 module
@@ -9,16 +9,16 @@ module
 public import LeanVM.Guest.B1.Da.Factors
 
 /-!
-# `da_expand` (G:4454-4467)
+# `da_expand` (G:4638-4651)
 
-`da_expand(root, factors, zs, shifts, top, D)` (`da_expand__L7_L8`, `core402`; `da_expand__L14_L7`,
-`core405`): the tree's nodes are values, node `1` the root (`.n 4`); depth `d` loads its power and
-shift (`.n (expB d)`, `.n (expB d + 1)`), and node `2^d + y` its factor (`.n s`,
-`s = expB d + 2 + 5y`), adds the shift, and makes its children `node · (factor + shift)` (`s + 2`)
-and that plus `node · z` (`s + 4`) (`expDepthA`). The nodes are the frame run `nodes` (a fresh word,
-the nodes in heap order, fresh words up to `512`), and the function returns `nodes · g^(2^D)`, its
-leaves (`expT`, `expOk`, checked by kernel evaluation in `ExpandChk`). `exp_node`: node `2^d + y` is
-`expandLeaf … d y`; `da_expand_val`: the meaning.
+`da_expand(root, factors, zs, shifts, top, D)` (`da_expand__L7_L8`; `da_expand__L14_L7`): the tree's
+nodes are values, node `1` the root (`.n 4`); depth `d` loads its power and shift (`.n (expB d)`,
+`.n (expB d + 1)`), and node `2^d + y` its factor (`.n s`, `s = expB d + 2 + 5y`), adds the shift,
+and makes its children `node · (factor + shift)` (`s + 2`) and that plus `node · z` (`s + 4`)
+(`expDepthA`). The nodes are the frame run `nodes` (a fresh word, the nodes in heap order, fresh
+words up to `512`), and the function returns `nodes · g^(2^D)`, its leaves (`expT`, `expOk`, checked
+by kernel evaluation in `ExpandChk`). `exp_node`: node `2^d + y` is `expandLeaf … d y`;
+`da_expand_val`: the meaning.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -67,7 +67,7 @@ def expBodyA (top D : ℕ) : List Atom := .copy (.n 4) (.n 0) :: (List.range D).
 /-- **`da_expand`'s atoms**, `W` the word of `g^(2^D)`. -/
 def expT (top D W : ℕ) : List Atom :=
   expBodyA top D ++
-    [.frameAddr (.n (expB D)) (expRun D), .const (.n (expC D)) (word W 0 0),
+    [.frameAddr (.n (expB D)) (expRun D), .const (.n (expC D)) (word W 0),
       .mul (.n (expC D + 1)) (.n (expB D)) (.n (expC D))]
 
 /-- **`da_expand`'s body, checked.** -/
@@ -184,7 +184,7 @@ theorem da_expand_val {fn : Fn} {top D W : ℕ} (hok : expOk fn top D W = true) 
     rw [hparams] at hpar
     subst hpar hrets
     have hatB : ∀ a ∈ expBodyA top D, a.Holds rd σ := fun a ha ↦ hat a (List.mem_append_left _ ha)
-    have hend : ∀ a ∈ [Atom.frameAddr (.n (expB D)) (expRun D), .const (.n (expC D)) (word W 0 0),
+    have hend : ∀ a ∈ [Atom.frameAddr (.n (expB D)) (expRun D), .const (.n (expC D)) (word W 0),
         .mul (.n (expC D + 1)) (.n (expB D)) (.n (expC D))], a.Holds rd σ := fun a ha ↦
       hat a (List.mem_append_right _ ha)
     simp only [List.mem_cons, List.mem_nil_iff, or_false, forall_eq_or_imp, forall_eq,
@@ -209,11 +209,11 @@ theorem da_expand_val {fn : Fn} {top D W : ℕ} (hok : expOk fn top D W = true) 
     · beta_reduce
       rw [show top - (top - d) = d by omega]
       exact (exp_depth hd (Nat.two_pow_pos d) hatB).2.1
-    · have hw : word W 0 0 = ofK (addressOfIndex (2 ^ D)) := by
+    · have hw : word W 0 = ofK (addressOfIndex (2 ^ D)) := by
         rw [word_eOfNat, eOfNat, hW]
       rw [hmul, hcst, hw]
       refine ⟨isInK_mul hfk (ofK_isInK _), fun k hk w hr ↦ ?_⟩
-      rw [limb0_mul_ofK hfk, mul_assoc, addressOfIndex, addressOfIndex, ← pow_add] at hr
+      rw [limb0_mul_ofK _ _, mul_assoc, addressOfIndex, addressOfIndex, ← pow_add] at hr
       have hlen : (expRun D).length = 512 := by
         simp only [expRun, List.length_cons, List.length_append, List.length_map, List.length_range,
           length_nodesBelow]

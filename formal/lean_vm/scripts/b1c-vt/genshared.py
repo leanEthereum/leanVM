@@ -1,5 +1,5 @@
 # usage: python3 -I genshared.py  — writes Tables/Vt/SharedT.lean (verify_tables' shared selector
-# tables, G:2218-2228 at 40f877dc: each table's `shared_len` and its `shared_selector_tables` call,
+# tables, G:2318-2325 at the commit in leanvm-rev: each table's `shared_len` and its `shared_selector_tables` call,
 # the tables' pointers stepped one from another) from vt_ir.txt (dump.py).
 import os, sys, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -13,10 +13,10 @@ def main():
     # find the six calls
     calls = [p for p in range(690, 800) if IR[p].startswith('.call "shared_selector_tables"')]
     assert len(calls) == 6, calls
-    EQ0, G0 = 705, 706
-    assert atom(699) == ('hint', '(.alloc (.n 705) 1728)') or 'alloc (.n 705)' in IR[699]
+    EQ0, G0 = 701, 702
+    assert 'alloc (.n 701) 1728' in IR[695]
     out = []
-    prev_end = 700
+    prev_end = 696
     val = {EQ0: ('EQ', 0), G0: ('G', 0)}   # var -> (table kind, exponent in units)
     for t, pc in enumerate(calls):
         args = [int(x) for x in re.findall(r'\.n (\d+)', IR[pc])]
@@ -56,10 +56,10 @@ def main():
         for k, v in defs.items(): gdefs[k] = v
         eqr, eqe = ptr(eqv, EQ0); gr, ge = ptr(gv, G0)
         assert eqe == 288 * t and ge == 144 * t, (t, eqe, ge)
-        lastc = calls[t - 1] if t else 700
+        lastc = calls[t - 1] if t else 696
         seg = [x for x in hs if x[1] > lastc]
         mlen = [a for nm, p, a in seg if a and a[0] == 'mul' and a[1][0] == 9]
-        assert mlen and mlen[0][1][2] == 30 + t
+        assert mlen and mlen[0][1][2] == 27 + t
         lenraw = mlen[0][1][1]
         cp = [(nm, a) for nm, p, a in seg if a and a[0] == 'copy']
         assert cp and cp[0][1][1] == [lenv, lenraw]
@@ -67,7 +67,7 @@ def main():
         assert len(rc) == 1
         zm = [(nm, a) for nm, p, a in seg if a and a[0] == 'mul' and a[1][0] in (zv, z1v, sqv)]
         nmof = {a[1][0]: nm for nm, a in zm}
-        assert [a[1][1] for nm, a in zm] == [8, 703, 12] and all(a[1][2] == 30 + t for nm, a in zm)
+        assert [a[1][1] for nm, a in zm] == [8, 699, 12] and all(a[1][2] == 27 + t for nm, a in zm)
         mnm = [nm for nm, p, a in seg if a and a[0] == 'mul' and a[1][0] == 9][0]
         cnm = cp[0][0]
         rcnm = rc[0][0]
@@ -87,11 +87,11 @@ def main():
             for i in range(0, len(r), 2): rws += [r[i], r[i + 1]]
             return f'by rw [{", ".join(rws)}]' if len(r) == 2 else f'by rw [{", ".join(rws)}]; ring'
         out.append(f'''theorem vt_sh{t} {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) :
-    σ (.n 9) = σ (.n {lenv}) * σ (.n {30 + t}) ∧ (Atom.rangeCheck {rc[0][1][1]}).Holds rd σ ∧
+    σ (.n 9) = σ (.n {lenv}) * σ (.n {27 + t}) ∧ (Atom.rangeCheck {rc[0][1][1]}).Holds rd σ ∧
       σ (.n {wvar}) = vtW33 ∧
       coreProgram.Rel rd "shared_selector_tables" [σ (.n {EQ0}) * gen ^ (288 * {t}),
-        σ (.n {G0}) * gen ^ (144 * {t}), σ (.n 8) * σ (.n {30 + t}), σ (.n 703) * σ (.n {30 + t}),
-        σ (.n 12) * σ (.n {30 + t}), σ (.n {lenv})] [] ∧
+        σ (.n {G0}) * gen ^ (144 * {t}), σ (.n 8) * σ (.n {27 + t}), σ (.n 699) * σ (.n {27 + t}),
+        σ (.n 12) * σ (.n {27 + t}), σ (.n {lenv})] [] ∧
       σ (.n {eqv}) = σ (.n {EQ0}) * gen ^ (288 * {t}) ∧ σ (.n {gv}) = σ (.n {G0}) * gen ^ (144 * {t}) := by
 {body}
   have e1 : σ (.n {eqv}) = σ (.n {EQ0}) * gen ^ (288 * {t}) := {ptrproof(eqr, eqe, EQ0)}
@@ -112,12 +112,13 @@ HDR = '''/-
 module
 
 public import LeanVM.Guest.B1.Tables.Vt.Base
+public import LeanVM.Guest.CoreData
 
 /-!
-# The shared tables' statements (G:2201-2211)
+# The shared tables' statements (G:2318-2325)
 
 `vt_sh{t}`: table `t`'s `shared_len[t]` (`σ 9 = len · τ_g`, `τ_g = kb[2 + t]` the variable
-`30 + t`), its range check below `g^34`, and its `shared_selector_tables` call at
+`27 + t`), its range check below `g^34`, and its `shared_selector_tables` call at
 `shared_eq·g^(288 t)`, `shared_g·g^(144 t)` (the compiler steps these pointers from one another).
 -/
 
@@ -129,15 +130,15 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- `g^33`, `g^288`, `g^144`, as the data writes them. -/
-abbrev vtW33 : E := word 8589934592 0 0
-abbrev vtW288 : E := word 299140177199104 0 0
-abbrev vtW144 : E := word 21299200 0 0
+abbrev vtW33 : E := word 8589934592 0
+abbrev vtW288 : E := word 299140177199104 0
+abbrev vtW144 : E := word 21299200 0
 
-theorem vtW288_eq : word 299140177199104 0 0 = gen ^ 288 := by
+theorem vtW288_eq : word 299140177199104 0 = gen ^ 288 := by
   rw [tb_word_eOfNat, eOfNat, gen_pow_eq_ofK,
     show K.ofBits 299140177199104 = Parameters.addressOfIndex 288 by decide +kernel]
 
-theorem vtW144_eq : word 21299200 0 0 = gen ^ 144 := by
+theorem vtW144_eq : word 21299200 0 = gen ^ 144 := by
   rw [tb_word_eOfNat, eOfNat, gen_pow_eq_ofK,
     show K.ofBits 21299200 = Parameters.addressOfIndex 144 by decide +kernel]
 '''

@@ -1,19 +1,21 @@
 /-
   LeanVM.Guest.B1.Whir.CHead
 
-  The head of open_stacked, honestly.
+  The head of open_stacked honestly: the eleven fixed buffers allocated at given pointers, the
+  root stored into `level_roots`.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Whir.CLevels
+public import LeanVM.Guest.B1.Whir.CBlk
 
 /-!
 # The head, honestly
 
-`osHead_complete`: on the first round polynomial's two words `c0`, `c2` at the cursor and the
-commitment's root stored at `level_roots`, the head holds at the values `headF` (the words, the
-fixed buffers at the pointers `P`), and the levels start from its state.
+`headSizes c`: the fixed buffers' sizes in allocation order (`osSizesL c`'s first eleven);
+`headVals c P`: the values `11 .. 32`, each buffer's size `g^size` then its pointer `P i`.
+`osHead_complete`: the head as a block at fixed values, the root's two cells (the arguments `7`,
+`8`) stored at `level_roots`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -23,101 +25,64 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-variable {C : CallRel} {rd : Reader}
+variable {H : CallRel → Reader → Prop}
 
-/-- The head's values from `9`. -/
-def headVals (c : OsCfg) (target : E) (P : OsPtrs) (c0 c2 : E) : List E :=
-  [c0, c2, target + c2, gw (4 * c.capLen), P.caps, gw c.capLen, P.flags, gw c.yrLen, P.fmsg,
-    gw (2 * c.levels.length), P.roots, gw c.nFolds, P.fch, gw c.levels.length, P.betas,
-    gw c.levels.length, P.mus, gw c.posLen, P.qpos, gw c.posLen, P.qbp, gw 128, P.win] ++
-    (List.range 128).map (fun i ↦ word i 0 0) ++
-    [gw (c.levels.length * ligColsCap), P.oodz, gw (c.levels.length * oodSlots), P.ood]
+/-- The fixed buffers' sizes, in allocation order (`osSizesL c`'s first eleven). -/
+def headSizes (c : OsCfg) : List ℕ :=
+  [c.yrLen + (c.levels.getD c.yrLevel default).folds, 2 * c.levels.length, c.nFolds, 2 * c.nFolds,
+    c.levels.length, c.levels.length, c.levels.length * hsStride, c.levels.length * ligColsCap,
+    c.levels.length, c.levels.length * ligPosCap, c.levels.length * ligPosCap]
 
-/-- The head's values. -/
-def headF (c : OsCfg) (σ : Val) (P : OsPtrs) (c0 c2 : E) : ℕ → E :=
-  fun i ↦ (headVals c (σ (.n 5)) P c0 c2).getD (i - 9) 0
+/-- The head's values from `11`: each buffer's size word, then its pointer. -/
+def headVals (c : OsCfg) (P : ℕ → E) : List E :=
+  [gw (c.yrLen + (c.levels.getD c.yrLevel default).folds), P 0, gw (2 * c.levels.length), P 1,
+    gw c.nFolds, P 2, gw (2 * c.nFolds), P 3, gw c.levels.length, P 4, gw c.levels.length, P 5,
+    gw (c.levels.length * hsStride), P 6, gw (c.levels.length * ligColsCap), P 7,
+    gw c.levels.length, P 8, gw (c.levels.length * ligPosCap), P 9,
+    gw (c.levels.length * ligPosCap), P 10]
 
-theorem headVals_tab (c : OsCfg) (target : E) (P : OsPtrs) (c0 c2 : E) {i : ℕ} (hi : i < 128) :
-    (headVals c target P c0 c2).getD (23 + i) 0 = word i 0 0 := by
-  unfold headVals
-  rw [List.getD_append _ _ _ _ (by simp; omega), List.getD_append_right _ _ _ _ (by simp)]
-  simp [hi]
+theorem headVals_length (c : OsCfg) (P : ℕ → E) : (headVals c P).length = 22 := rfl
 
-theorem headVals_end (c : OsCfg) (target : E) (P : OsPtrs) (c0 c2 : E) (j : ℕ) :
-    (headVals c target P c0 c2).getD (151 + j) 0 =
-      [gw (c.levels.length * ligColsCap), P.oodz, gw (c.levels.length * oodSlots), P.ood].getD j 0 := by
-  unfold headVals
-  rw [List.getD_append_right _ _ _ _ (by simp)]
-  simp
+theorem holds_hint {rd : Reader} {σ : Val} (h : Hint) : (Atom.hint h).Holds rd σ ↔ True := Iff.rfl
 
-/-- **The head, honestly.** -/
-theorem osHead_complete {c : OsCfg} (σ : Val) (P : OsPtrs) {c0 c2 : E}
-    (h0 : LoadHolds rd (σ (.n 8)) 0 c0) (h2 : LoadHolds rd (σ (.n 8)) 1 c2)
-    (hr0 : LoadHolds rd P.roots 0 (σ (.n 6))) (hr1 : LoadHolds rd P.roots 1 (σ (.n 7)))
-    (hwin : ∀ i < 128, LoadHolds rd P.win i (word i 0 0))
-    (hcan : AllCanonical [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)]) :
-    BlkF C rd σ 9 164 (headF c σ P c0 c2) (osHead c).1
-      (fun σ' ↦ LvsSt σ' (osHead c).2
-        ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], [(c0, dsObserve), (c2, dsObserve)]⟩
-        [c0, σ (.n 5) + c2, c2] (σ (.n 5)) (σ (.n 8) * gen ^ 2) ∧ ptrsOf σ' = P ∧
-        AgreeBelow 9 σ σ') := by
-  intro σ' hg hr
-  have V : ∀ j < 155, σ' (.n (9 + j)) = (headVals c (σ (.n 5)) P c0 c2).getD j 0 :=
-    fun j hj ↦ by rw [hr _ (by omega) (by omega)]; simp only [headF, Nat.add_sub_cancel_left]
-  have v0 := V 0 (by omega); have v1 := V 1 (by omega); have v2 := V 2 (by omega)
-  have v3 := V 3 (by omega); have v4 := V 4 (by omega); have v5 := V 5 (by omega)
-  have v6 := V 6 (by omega); have v7 := V 7 (by omega); have v8 := V 8 (by omega)
-  have v9 := V 9 (by omega); have v10 := V 10 (by omega); have v11 := V 11 (by omega)
-  have v12 := V 12 (by omega); have v13 := V 13 (by omega); have v14 := V 14 (by omega)
-  have v15 := V 15 (by omega); have v16 := V 16 (by omega); have v17 := V 17 (by omega)
-  have v18 := V 18 (by omega); have v19 := V 19 (by omega); have v20 := V 20 (by omega)
-  have v21 := V 21 (by omega); have v22 := V 22 (by omega)
-  simp only [headVals, List.cons_append, List.getD_cons_zero, List.getD_cons_succ, Nat.reduceAdd,
-    Nat.add_zero] at v0 v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15 v16 v17 v18 v19 v20 v21 v22
-  have ve : ∀ j < 4, σ' (.n (160 + j)) =
-      [gw (c.levels.length * ligColsCap), P.oodz, gw (c.levels.length * oodSlots), P.ood].getD j 0 :=
-    fun j hj ↦ by rw [show 160 + j = 9 + (151 + j) by omega, V _ (by omega), headVals_end _ _ _ _ _ j]
-  have w0 := ve 0 (by omega); have w1 := ve 1 (by omega); have w2 := ve 2 (by omega)
-  have w3 := ve 3 (by omega)
-  simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.reduceAdd, Nat.add_zero] at w0 w1 w2 w3
-  have vt : ∀ i < 128, σ' (.n (32 + i)) = word i 0 0 := fun i hi ↦ by
-    rw [show 32 + i = 9 + (23 + i) by omega, V _ (by omega), headVals_tab _ _ _ _ _ hi]
-  have g0 := hg 0 (by omega); have g1 := hg 1 (by omega); have g2 := hg 2 (by omega)
-  have g3 := hg 3 (by omega); have g4 := hg 4 (by omega); have g5 := hg 5 (by omega)
-  have g6 := hg 6 (by omega); have g7 := hg 7 (by omega); have g8 := hg 8 (by omega)
-  have hwt : AllOk C rd σ' osWinTabs := by
-    unfold osWinTabs
-    rw [allOk_flatten]
-    intro b hb
-    obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hb
-    rw [List.mem_range] at hi
-    simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
-    exact ⟨vt i hi, by rw [vt i hi, show osWin = 9 + 22 from rfl, v22]; exact hwin i hi⟩
-  refine ⟨?_, ?_, ?_, hg⟩
-  · simp only [osHead, allOk_append]
-    refine ⟨⟨⟨?_, hwt⟩, ?_⟩, ?_⟩
-    · simp only [osHeap, allOk_cons, allOk_nil, and_true,
-        StmtOk, Atom.Holds, osCaps, osFlags, osRoots, v0, v1, v2, v3, v5, v7, v9, v10, v11, v13,
-        v15, v17, v19, v21, g5, g6, g7, g8, and_self]
-      exact ⟨⟨h0, h2⟩, hr0, hr1⟩
-    · simp only [osHeap, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds, w0]
-    · simp only [osHeap, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds, w2]
-  · refine ⟨?_, ?_, ?_, ?_, rfl, (show 2 ≤ 8 by omega), ⟨?_, show 9 < 164 by omega,
-      show 10 < 164 by omega, show 8 < 164 by omega, show 9 < 164 by omega, show 11 < 164 by omega,
-      show 10 < 164 by omega, show 5 < 164 by omega⟩, le_rfl, ?_, trivial, (fun p hp ↦ by cases hp),
-      matsOk_nil σ', (fun _ h ↦ absurd h (by simp [osHead]))⟩
-    · simp only [OsSt.F, OsSt.fsv, osHead, List.map_cons, List.map_nil, g0, g1, g2, g3, g4, v0, v1]
-    · simp only [OsSt.quad, osHead, v0, v1, v2]
-    · simp only [osHead, g5]
-    · simp only [OsSt.cur, osHead, g8]
-    · intro f hf
-      simp only [osHead, List.mem_cons, List.not_mem_nil, or_false] at hf
-      show f < 164
-      omega
-    · simp only [OsSt.fsv, osHead, List.map_cons, List.map_nil, g0, g1, g2, g3, g4]; exact hcan
-  · cases P
-    simp only [ptrsOf, osCaps, osFlags, osFmsg, osRoots, osFch, osBetas, osMus, osQpos, osQbp,
-      osWin, osOodz, osOod, v4, v6, v8, v10, v12, v14, v16, v18, v20, v22, w1, w3]
+/-- The head's state's static facts. -/
+theorem osHead_sf (c : OsCfg) : (osHead c).2.Sf := by
+  refine ⟨rfl, ⟨fun f hf ↦ ?_, show 9 < 33 by omega, show 6 < 33 by omega,
+    fun m hm ↦ absurd hm (by simp [osHead])⟩, by show 0 < u128Bound; unfold u128Bound; positivity,
+    fun p hp ↦ absurd hp (by simp [osHead]), show 33 ≤ 33 from le_rfl⟩
+  have hf' : f ∈ [1, 2, 3, 4, 5] := hf
+  show f < 33
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hf'
+  omega
+
+/-- **The head, honestly**: the fixed buffers at the pointers `P i`, the root's two cells (the
+arguments `7`, `8`) stored in `level_roots` (`P 1`). -/
+theorem osHead_complete (c : OsCfg) (σ : Val) (P : ℕ → E)
+    (hr : ∀ C rd, H C rd → LoadHolds rd (P 1) 0 (σ (.n 7)) ∧ LoadHolds rd (P 1) 1 (σ (.n 8))) :
+    BlkA H σ 11 33 (osHead c).1 (fun σ' ↦ (osHead c).2.Ok σ' ∧
+      (∀ j < 22, σ' (.n (11 + j)) = (headVals c P).getD j 0) ∧ AgreeBelow 11 σ σ') := by
+  refine ⟨lstF 11 (headVals c P), fun C rd hH σ' ha hv ↦ ?_⟩
+  have v : ∀ j < 22, σ' (.n (11 + j)) = (headVals c P).getD j 0 := fun j hj ↦
+    lstF_at hv (by simp [headVals_length]) j (by simp [headVals_length]; omega)
+  have w : ∀ j, 11 ≤ j → j < 33 → σ' (.n j) = (headVals c P).getD (j - 11) 0 := fun j h1 h2 ↦ by
+    have := v (j - 11) (by omega)
+    rwa [show 11 + (j - 11) = j by omega] at this
+  refine ⟨?_, ⟨osHead_sf c, fun m hm ↦ absurd hm (by simp [osHead]), fun p hp ↦ absurd hp (by simp [osHead])⟩,
+    v, ha⟩
+  obtain ⟨l0, l1⟩ := hr C rd hH
+  have er : σ' (.n osRoots) = P 1 := by rw [w 14 (by omega) (by omega)]; rfl
+  simp only [osHead, osHeap, osCst, osLd, List.cons_append, List.nil_append, er,
+    allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const, holds_load, holds_hint, true_and]
+  simp (disch := omega) only [w, Nat.reduceSub, headVals, List.getD_cons_zero, List.getD_cons_succ,
+    ha 7 (by omega), ha 8 (by omega), true_and]
+  exact ⟨l0, l1, trivial⟩
+
+/-- The head's buffers: buffer `i`'s size word at `11 + 2i`, its pointer at `12 + 2i`. -/
+theorem headVals_at {c : OsCfg} {P : ℕ → E} {σ' : Val}
+    (h : ∀ j < 22, σ' (.n (11 + j)) = (headVals c P).getD j 0) (i : ℕ) (hi : i < 11) :
+    σ' (.n (11 + 2 * i)) = gw ((headSizes c).getD i 0) ∧ σ' (.n (12 + 2 * i)) = P i := by
+  rw [h (2 * i) (by omega), show 12 + 2 * i = 11 + (2 * i + 1) by omega, h (2 * i + 1) (by omega)]
+  interval_cases i <;> simp [headVals, headSizes]
 
 end
 end LeanVM.Guest.B1.Whir

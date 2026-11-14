@@ -27,14 +27,14 @@ row counts (`crates/verifier/src/lib.rs`); the bytecode's log-size is the progra
 log-height is `max(log2_ceil(rows), floor)`, the floor `0` but for `KECCAK`'s `9`
 (`TABLE_LOG_FLOORS`, `crates/verifier/src/layout.rs:489-490`; `KECCAK_MIN_STEPS_LOG`).
 `Sizes.Admissible prog s` is the part of the verifier's checks on sizes (`build_layout`,
-`crates/verifier/src/layout.rs:497-503`, and `lib.rs:230-233`): the memory window `[16, 32]`, the
-row cap `2^32`, and the stacked size `leanIsaμ prog s ≤ 28` (`crates/leanvm_core/src/pcs.rs:49-51`;
-its floor `15` holds by construction). `validRate` is the WHIR rate check, read off the same
+`crates/verifier/src/layout.rs`, and `lib.rs`): the memory window `[minLogMem, maxLogMem]`
+(`MIN_LOG_MEMORY`, `MAX_LOG_MEMORY`), the row cap `2^maxLogRows` (`MAX_TABLE_LOG`), and the stacked
+size `leanIsaμ prog s ≤ maxMu` (`MAX_STACKED_LOG`; its floor holds by construction). `validRate` is the WHIR rate check, read off the same
 announcement and used by the commitment, not by the instance.
 
 **The tables.** Nine, in the order of the Rust's global columns
-(`crates/leanvm_core/src/cpu/layout.rs:14-28`): the memory columns `MEM_LO, MEM_HI, MEM_TOP,
-MFCNT` at height `2^logMem`; the bytecode finalize count `BFCNT` at `2^prog.logSize`; the Keccak
+(`crates/leanvm_core/src/cpu/layout.rs:14-28`): the memory columns `MEMORY_0, MEMORY_1, MFCNT`
+at height `2^logMem`; the bytecode finalize count `BFCNT` at `2^prog.logSize`; the Keccak
 reduction's column `QKECCAK` at `2^(τ_KECCAK + 6)` (`layout.rs:223`, `SLOT_LOG = 6`); then the six
 opcode tables at their log-heights, each `Component.toM3` of its Clean component with leanISA's
 separators, directions and counted channels (`channelSep`, `channelDir`, the memory and bytecode
@@ -52,10 +52,10 @@ parties, `Coord.known`; `bytecode_columns`, `layout.rs:295`). The index column i
 **The stack** (`crates/leanvm_core/src/witness.rs:56-95`). Every committed column has a
 log-size, its table's; the `KECCAK` table's columns `0 … 64` but `14` have none (`IsVirtual`: the
 fifty value lanes and the fourteen columns riding `QKECCAK`'s spare slots; `Placement::VIRTUAL`,
-`witness.rs:20`; `layout.rs:228-240`), so `101` of the `165` columns are committed. The committed
+`witness.rs:20`; `layout.rs:228-240`), so `94` of the `158` columns are committed. The committed
 columns, in global order, are sorted by log-size, largest first, ties in global order
 (`stack_offsets`), and laid end to end at aligned offsets (`Blocks.layout`); the stack has
-`μ = max(⌈log₂ total⌉, 15)` variables (`placements_of`). Input lane `l` of the `KECCAK` table is
+`μ = max(⌈log₂ total⌉, 16)` variables (`placements_of`). Input lane `l` of the `KECCAK` table is
 read at slot `l` of `QKECCAK`, and its columns `0 … 13` at slots `50 … 63` (`qSlot`,
 `Blocks.sliceLayout`; `qkeccak_slot`, `crates/verifier/src/layout.rs:422-432, 559-563`): cell `x`
 of the column at slot `k` is cell `x + k · 2^τ_KECCAK` of the region. The output lanes are *derived*
@@ -70,10 +70,9 @@ output lane is the lane of Keccak-f[1600] of the row's input lanes (`keccakF_eq_
 slices, renamed to the instance's columns; an output lane is routed to its input lane's slice,
 a reading no one makes, since the instance reads a derived column through `derived`.
 
-**The public lines** (§8.2). Three: cells `0, 1` of `MEM_LO` are `input₀, input₂`, of `MEM_HI`
-are `input₁, input₃`, and of `MEM_TOP` are `0, 0`. None is sent: the verifier computes every
-limb's value on its line itself. The third line pins the top limbs, which the statement's words
-have zero by type.
+**The public lines** (§8.2). Two: cells `0, 1` of `MEMORY_0` are `input₀, input₂`, of
+`MEMORY_1` are `input₁, input₃`. None is sent: the verifier computes every limb's value on its line
+itself (`publicInputPhase`).
 
 **The Keccak region** is `QKECCAK`, with `2^τ_KECCAK` steps: `M3Holds` asks of it that every
 step's slots `25 … 49` hold the first twelve rounds of its slots `0 … 24`. Its slots `50 … 63`
@@ -86,7 +85,7 @@ lanes, their states after twelve rounds (padding steps: the zero state) and thei
 spare columns (`keccakWitness`). `witnessOf prog s q`
 reads a witness off any stack `q`, at the memory size `logMem`: the six opcode tables from their
 rows, the memory block from the memory columns and the index `g^i`, the bytecode block from the
-program and `BFCNT`, the public input from cells `0, 1` of `MEM_LO, MEM_HI`; its prover data is
+program and `BFCNT`, the public input from cells `0, 1` of `MEMORY_0, MEMORY_1`; its prover data is
 derived from the tables (Clean's `withDerivedData`), so its image is the memory block's limbs.
 Clean indexes rows by `u64`: a table that would pass `2^64` rows is read as empty, which
 admissible sizes never ask for (`Sizes.Admissible.logMem_lt`, `rows_le_size`). Both maps are total
@@ -184,9 +183,9 @@ theorem Sizes.minSteps_le (s : Sizes) : Verifier.keccakMinStepsLog ≤ s.τ 5 :=
 /-- The index of opcode table `j` among the instance's tables. -/
 def opIdx (j : Fin 6) : Fin 9 := ⟨j + 3, by omega⟩
 
-/-- The widths: the four memory columns, `BFCNT`, `QKECCAK`, then the opcode tables'. -/
+/-- The widths: the three memory columns, `BFCNT`, `QKECCAK`, then the opcode tables'. -/
 def width : Fin 9 → ℕ
-  | ⟨0, _⟩ => 4
+  | ⟨0, _⟩ => 3
   | ⟨1, _⟩ => 1
   | ⟨2, _⟩ => 1
   | ⟨j + 3, h⟩ => (opcodeComponent ⟨j, by omega⟩).width
@@ -271,8 +270,8 @@ theorem flushes_degree : ∀ j, ∀ f ∈ flushes j, ∀ k, (f.2.get k).totalDeg
 /-- A column of the instance: table `j`, column `i`. -/
 abbrev Col : Type := Σ j : Fin 9, Fin (width j)
 
-/-- Memory column `i`: `MEM_LO, MEM_HI, MEM_TOP, MFCNT`. -/
-def memCol (i : Fin 4) : Col := ⟨⟨0, by decide⟩, i⟩
+/-- Memory column `i`: `MEMORY_0, MEMORY_1, MFCNT`. -/
+def memCol (i : Fin 3) : Col := ⟨⟨0, by decide⟩, i⟩
 
 /-- The bytecode finalize count `BFCNT`. -/
 def bfcntCol : Col := ⟨⟨1, by decide⟩, ⟨0, by decide⟩⟩
@@ -374,10 +373,10 @@ def blocks : Blocks where
       exact this
 
 /-- The minimum stacked size, `MIN_MU` (`pcs.rs:49`). -/
-def minMu : ℕ := 15
+def minMu : ℕ := 16
 
-/-- The maximum stacked size, `MAX_MU` (`pcs.rs:51`). -/
-def maxMu : ℕ := 28
+/-- The maximum stacked size, `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs`). -/
+def maxMu : ℕ := 30
 
 /-- The stack's number of variables: the blocks' total, rounded up to a power of two, at least
 `2 ^ MIN_MU` (`placements_of`, `witness.rs:91`). -/
@@ -500,22 +499,20 @@ def boundary : List (BoundaryBlock (shape prog s)) :=
     (List.finRange 13).map fun k ↦ .known (entryColumn prog k)
   [⟨0, .push, coords [.const (channelSep StatePush.toRaw), .const 1, .const 1]⟩,
     ⟨s.logMem, .push, coords [.const (channelSep MemPush.toRaw), .known (idxColumn s.logMem),
-      .const 1, .committed (memCol 0) rfl, .committed (memCol 1) rfl, .committed (memCol 2) rfl]⟩,
+      .const 1, .committed (memCol 0) rfl, .committed (memCol 1) rfl]⟩,
     ⟨prog.logSize, .push, coords ([.const (channelSep BytecodePush.toRaw),
       .known (idxColumn prog.logSize), .const 1] ++ entries)⟩,
     ⟨0, .pull, coords [.const (channelSep StatePull.toRaw), .const prog.pcFinal, .const 1]⟩,
     ⟨s.logMem, .pull, coords [.const (channelSep MemPull.toRaw), .known (idxColumn s.logMem),
-      .committed (memCol 3) rfl, .committed (memCol 0) rfl, .committed (memCol 1) rfl,
-      .committed (memCol 2) rfl]⟩,
+      .committed (memCol 2) rfl, .committed (memCol 0) rfl, .committed (memCol 1) rfl]⟩,
     ⟨prog.logSize, .pull, coords ([.const (channelSep BytecodePull.toRaw),
       .known (idxColumn prog.logSize), .committed bfcntCol rfl] ++ entries)⟩]
 
-/-- The three public lines (§8.2): `MEM_LO` holds `input₀, input₂` at cells `0, 1`, `MEM_HI`
-holds `input₁, input₃`, `MEM_TOP` holds `0, 0`; none is sent. -/
-def publicLines (input : PublicInput) : Vector (PublicLine (shape prog s)) 3 :=
+/-- The two public lines (§8.2): `MEMORY_0` holds `input₀, input₂` at cells `0, 1`, `MEMORY_1`
+holds `input₁, input₃`; none is sent. -/
+def publicLines (input : PublicInput) : Vector (PublicLine (shape prog s)) 2 :=
   #v[⟨memCol 0, input.lanes 0, input.lanes 2, false, s.logMem_pos⟩,
-    ⟨memCol 1, input.lanes 1, input.lanes 3, false, s.logMem_pos⟩,
-    ⟨memCol 2, 0, 0, false, s.logMem_pos⟩]
+    ⟨memCol 1, input.lanes 1, input.lanes 3, false, s.logMem_pos⟩]
 
 /-- The verifier's padding row of a table, in `K` (`Table::padding`,
 `crates/verifier/src/layout.rs:455-460`): zero, but for the `KECCAK` output lanes, which hold
@@ -537,9 +534,6 @@ theorem padding_eq_map_ofK (t : Verifier.Table) : t.padding = (padRowK t).map of
   split_ifs <;> rfl
 
 /-! ### The `KECCAK` padding row, by column -/
-
-/-- The `KECCAK` table has ninety-two column names. -/
-theorem keccakColumns_length : Verifier.keccakColumns.length = 92 := by decide +kernel
 
 /-- `KECCAK_OUT` is column `40`. -/
 theorem keccakOut_eq : Verifier.keccakOut = 40 := by decide +kernel
@@ -608,7 +602,7 @@ abbrev leanIsaInstance (prog : LeanIsaProgram) (s : Sizes) : M3Instance where
   μ := leanIsaμ prog s
   layout := layout prog s
   derived := derived prog s
-  nLines := 3
+  nLines := 2
   publicLines := publicLines prog s
   keccak := some (keccakRegion prog s)
 
@@ -617,7 +611,7 @@ namespace LeanIsa
 /-! ## Admissible sizes -/
 
 /-- The checks the verifier makes of the announced sizes (`build_layout`,
-`crates/verifier/src/layout.rs:497-503`, and `lib.rs:230-233`): the memory window, the row cap,
+`crates/verifier/src/layout.rs`, and `lib.rs`): the memory window, the row cap,
 and the stacked size's cap. The bytecode cap is `Program`'s by type, and the stacked size's floor
 holds by construction (`leanIsaμ`). -/
 def Sizes.Admissible (prog : LeanIsaProgram) (s : Sizes) : Prop :=
@@ -627,7 +621,7 @@ def Sizes.Admissible (prog : LeanIsaProgram) (s : Sizes) : Prop :=
 instance (prog : LeanIsaProgram) (s : Sizes) : Decidable (s.Admissible prog) :=
   inferInstanceAs (Decidable (_ ∧ _))
 
-/-- The WHIR rate check (`pcs/src/whir_config.rs:43-55`): the inverse rate's logarithm is in
+/-- The WHIR rate check (`pcs/src/whir_config.rs:44-56`): the inverse rate's logarithm is in
 `[1, 4]`. A parameter of the commitment, read off the same announcement. -/
 def validRate (ρ : ℕ) : Prop := 1 ≤ ρ ∧ ρ ≤ 4
 
@@ -657,29 +651,27 @@ def opcodeRows (j : Fin 6) : List (Array K) :=
   List.ofFn fun x : Fin (s.rows j) ↦
     Array.ofFn ((leanIsaInstance prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x))
 
-/-- The memory block's rows: the three limbs, the index `g^x`, the finalize count `MFCNT`. -/
+/-- The memory block's rows: the two limbs, the index `g^x`, the finalize count `MFCNT`. -/
 def memBlockRowsOf : List (Array K) :=
   List.ofFn fun x : Fin (2 ^ s.logMem) ↦ (toElements (⟨#v[cell prog s q (memCol 0) x,
-    cell prog s q (memCol 1) x, cell prog s q (memCol 2) x], addressOfIndex x,
-      cell prog s q (memCol 3) x⟩ : MemRow K)).toArray
+    cell prog s q (memCol 1) x], addressOfIndex x, cell prog s q (memCol 2) x⟩ : MemRow K)).toArray
 
 /-- The bytecode block's rows: the program's, with the finalize counts `BFCNT`. -/
 def bytecodeBlockRowsOf : List (Array K) :=
   List.ofFn fun i : Fin (2 ^ prog.logSize) ↦
     (toElements (bytecodeRowOf prog i (cell prog s q bfcntCol i))).toArray
 
-/-- The memory image: the three limb columns, word by word. -/
-def imageRows : Array (Vector K 3) :=
-  Array.ofFn fun x : Fin (2 ^ s.logMem) ↦
-    #v[cell prog s q (memCol 0) x, cell prog s q (memCol 1) x, cell prog s q (memCol 2) x]
+/-- The memory image: the two limb columns, word by word. -/
+def imageRows : Array (Vector K 2) :=
+  Array.ofFn fun x : Fin (2 ^ s.logMem) ↦ #v[cell prog s q (memCol 0) x, cell prog s q (memCol 1) x]
 
 /-- Cell `0` of a memory column. -/
-def cell0 (i : Fin 4) : K := cell prog s q (memCol i) ⟨0, Nat.two_pow_pos _⟩
+def cell0 (i : Fin 3) : K := cell prog s q (memCol i) ⟨0, Nat.two_pow_pos _⟩
 
 /-- Cell `1` of a memory column. -/
-def cell1 (i : Fin 4) : K := cell prog s q (memCol i) ⟨1, Nat.one_lt_two_pow s.logMem_pos.ne'⟩
+def cell1 (i : Fin 3) : K := cell prog s q (memCol i) ⟨1, Nat.one_lt_two_pow s.logMem_pos.ne'⟩
 
-/-- The public input: cells `0` and `1` of `MEM_LO` and `MEM_HI`. -/
+/-- The public input: cells `0` and `1` of `MEMORY_0` and `MEMORY_1`. -/
 def publicInputOf : PublicIO K :=
   ⟨#v[cell0 prog s q 0, cell0 prog s q 1, cell1 prog s q 0, cell1 prog s q 1]⟩
 
@@ -717,8 +709,8 @@ theorem memBlockRowsOf_length : (memBlockRowsOf prog s q).length = 2 ^ s.logMem 
 theorem memBlockRowsOf_row (x : Fin (2 ^ s.logMem)) :
     (fromElements (Air.Flat.rowPrefix (size MemRow) ((memBlockRowsOf prog s q)[x.val]'(by
       rw [memBlockRowsOf_length]; exact x.isLt))) : MemRow K) =
-      ⟨#v[cell prog s q (memCol 0) x, cell prog s q (memCol 1) x, cell prog s q (memCol 2) x],
-        addressOfIndex x, cell prog s q (memCol 3) x⟩ := by
+      ⟨#v[cell prog s q (memCol 0) x, cell prog s q (memCol 1) x], addressOfIndex x,
+        cell prog s q (memCol 2) x⟩ := by
   unfold memBlockRowsOf
   exact fromElements_ofFn _ x.val (by simp)
 
@@ -812,7 +804,7 @@ theorem witnessTables_names :
 
 /-- The witness a stack carries: the six opcode tables from their rows, the memory and
 bytecode blocks from the memory columns, the program and `BFCNT`, the public input from the first
-two cells of `MEM_LO` and `MEM_HI`. Its prover data is derived from its tables: the image is the
+two cells of `MEMORY_0` and `MEMORY_1`. Its prover data is derived from its tables: the image is the
 memory block's limbs. -/
 def witnessOf : EnsembleWitness (leanIsaEnsemble prog s.logMem) where
   tables := Air.Flat.withDerivedData (witnessTables prog s q) (witnessTables_names prog s q)
@@ -901,8 +893,8 @@ variable (prog : LeanIsaProgram) (s : Sizes) {κ : ℕ}
 /-- Cell `i` of row `x` of a table, `0` when missing. -/
 def cellOf (t : Air.Flat.Table K) (x i : ℕ) : K := ((t.table[x]?).bind (·[i]?)).getD 0
 
-/-- The memory block's cell of memory column `i`: the limbs at `0, 1, 2`, `MFCNT` at `4`. -/
-def memRowCell : Fin 4 → ℕ := ![0, 1, 2, 4]
+/-- The memory block's cell of memory column `i`: the limbs at `0, 1`, `MFCNT` at `3`. -/
+def memRowCell : Fin 3 → ℕ := ![0, 1, 3]
 
 /-- Input lane `l` of row `x` of the `KECCAK` table; a padding row's is zero (`padRow`). -/
 def inLaneOf (w : EnsembleWitness (leanIsaEnsemble prog κ)) (x : ℕ) (l : Fin 25) : K :=

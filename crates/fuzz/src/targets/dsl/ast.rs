@@ -1,7 +1,7 @@
 //! The generator's program representation: what a generated program means, printed by [`super::print`] in any of
 //! several equivalent spellings.
 
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 use std::collections::HashMap;
 
 pub type V = usize;
@@ -13,7 +13,7 @@ pub enum Ex {
     Lit(u128),
     /// A literal `0` that must be spelled as one (a `keccak` cell past `len`).
     Zero,
-    Fe(F192),
+    Fe(F128),
     GPow(u64),
     Var(V),
     Add(Box<Ex>, Box<Ex>),
@@ -232,30 +232,26 @@ pub struct Prog {
     pub stack_sizes: HashMap<V, u32>,
 }
 
-pub fn lit(n: u128) -> F192 {
-    F192::new(n as u64, (n >> 64) as u64, 0)
+pub fn lit(n: u128) -> F128 {
+    F128::new(n as u64, (n >> 64) as u64)
 }
 
-pub fn gpow(k: u64) -> F192 {
+pub fn gpow(k: u64) -> F128 {
     F64::G.pow(k as u128).into()
 }
 
-/// The literal spelling a value has: a plain integer when it fits 128 bits, `f192(...)` otherwise.
-pub fn lit_of(v: F192) -> Ex {
-    if v.c2 == 0 {
-        Ex::Lit(v.c0 as u128 | (v.c1 as u128) << 64)
-    } else {
-        Ex::Fe(v)
-    }
+/// The literal spelling a value has: every word's bits spell one integer below `2^128`.
+pub fn lit_of(v: F128) -> Ex {
+    Ex::Lit(v.c0 as u128 | (v.c1 as u128) << 64)
 }
 
 /// Exponents of the g-powers the generator may meet as indices, scrutinees and range-checked values.
 pub const LOG_TABLE: u32 = 1 << 17;
 
 /// `e` when `v = g^e` with `e < LOG_TABLE`.
-pub fn log_of(v: F192) -> Option<u32> {
+pub fn log_of(v: F128) -> Option<u32> {
     static TABLE: std::sync::OnceLock<HashMap<u64, u32>> = std::sync::OnceLock::new();
-    if v.c1 != 0 || v.c2 != 0 {
+    if v.c1 != 0 {
         return None;
     }
     let table = TABLE.get_or_init(|| {

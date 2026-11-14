@@ -3,13 +3,14 @@
 
   Completeness of the leanVM verifier in the random-oracle model: the honest prover of a valid
   execution within the budget, run against the random oracles, makes the verifier reject with
-  probability at most `completenessError fuel`, below `2^-257` at a fuel of `2^25` nonces per
+  probability at most `completenessError fuel`, below `2^-257` at a fuel of `2^33` nonces per
   proof of work.
 -/
 
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.Small
+public import LeanVM.Protocol.EndToEnd.Complete.BusDepth
 public import LeanVM.Protocol.Errors
 public import LeanVM.Protocol.EndToEnd.Sound.Moves
 public import LeanVM.Protocol.Compile.Rom.Complete
@@ -25,15 +26,16 @@ hash a query to the random oracle for Keccak-256 and every permutation one to th
 for Keccak-f[1600]. In the experiment of the knowledge-soundness theorem with this prover as the
 adversary, the verifier rejects with probability at most (`Rom.romComplete`)
 
-  `completenessError fuel = Q · (1 - 2^-17)^fuel`,
+  `completenessError fuel = Q · (1 - 2^-27)^fuel`,
 
-`Q = (1 + 1) + 48019 · (2^27 + 2·fuel + 2) + 12006` the queries of the prover and the verifier
-together (`completenessQueries`): the seed's hash and permutation, `leanVmCost = 48019`
+`Q = (1 + 1) + 54825 · (2^29 + 2·fuel + 2) + 13708` the queries of the prover and the verifier
+together (`completenessQueries`): the seed's hash and permutation, `leanVmCost = 54825`
 moves of the program each costing the prover at most `proverFactor costHeight fuel =
-2^27 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound = 12006`
-(`romComplete_leanVm`). At `fuel = 2^25`, it is below `2^-257` (`completenessError_le`): `Q ≤ 2^44`,
-and the seventeen-bit proofs of work fail with probability `(1 - 2^-17)^(2^25) ≤ e^-256 < 2^-320`
-each.
+2^29 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound = 13708`
+(`romComplete_leanVm`). Every proof of work the honest prover meets has at most `27` bits, the
+bus's at the widest (`busGrindLE_twentySeven`), WHIR's at most `17`. At `fuel = 2^35`, the error is
+below `2^-257` (`completenessError_two_pow_35_le`): `Q ≤ 2^52`, and a proof of work of at most `27`
+bits fails with probability `(1 - 2^-27)^(2^35) ≤ e^-256 < 2^-320`.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete
@@ -65,9 +67,61 @@ def completenessQueries (fuel : ℕ) : ℕ :=
   1 + 1 + leanVmCost * proverFactor costHeight fuel + leanVmQueryBound
 
 /-- **The completeness error** at a fuel of `fuel` nonces per proof of work: every query may
-complete a proof of work whose nonces all failed. -/
+complete a proof of work of at most `27` bits whose nonces all failed. -/
 noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
-  (completenessQueries fuel : ℝ≥0∞) * missProb Whir.queryGrindingBits ^ fuel
+  (completenessQueries fuel : ℝ≥0∞) * missProb 27 ^ fuel
+
+/-- **Every layout the verifier builds for the program's bytecode within the stack's cap has its
+bus grind at most `27` bits**: the push tree is no deeper than the stack (`busDepth_le_leanIsaμ`),
+which has at most `30` variables. -/
+theorem busGrindLE_twentySeven {prog : LeanIsaProgram} {logMemory : ℕ} {rows : List ℕ}
+    {layout : Verifier.Layout} (h : buildLayout (bytecodeWords prog) logMemory rows = some layout)
+    (hmax : layout.stackLog ≤ Whir.maxLogStack) : Sound.BusGrindLE 27 layout := by
+  intro _
+  have hc : rows.length = 6 ∧ 1 ≤ logMemory := by
+    unfold buildLayout at h
+    split at h
+    · cases h
+    · split_ifs at h with hc
+      exact ⟨hc.2.2.2.2.2.trans rfl, hc.2.1⟩
+  obtain ⟨s, hs1, hs2⟩ : ∃ s : Sizes, s.logMem = logMemory ∧ tableRows s = rows := by
+    refine ⟨⟨logMemory, by omega, fun j ↦ rows.getD j 0⟩, rfl, ?_⟩
+    apply List.ext_getElem (by simp [tableRows, hc.1])
+    intro i h1 h2
+    simp only [tableRows, List.getElem_ofFn]
+    exact List.getD_eq_getElem _ _ h2
+  have hb := buildLayout_eq prog s
+  rw [hs1, hs2, h] at hb
+  split_ifs at hb
+  · simp only [Option.some.injEq] at hb
+    subst hb
+    rw [busLayout_depth_verifier]
+    rw [stackLog_verifierLayout] at hmax
+    have hD := (busDepth_le_leanIsaμ prog s).trans hmax
+    simp only [Whir.maxLogStack] at hD
+    exact Sound.grindingBits_le_of (Nat.pow_le_pow_right (by norm_num) (by omega))
+
+/-- **Every proof of work of the leanVM verifier, on the program's bytecode, has at most `27`
+bits.** -/
+theorem moves_leanVm_twentySeven (prog : LeanIsaProgram) (publicInput : Digest) :
+    Sound.Moves (· ≤ 27) True (fun _ ↦ True) (fun _ ↦ False)
+      (leanVmVerifierProgram (bytecodeWords prog) publicInput) :=
+  Sound.moves_leanVmProgram_le (by decide) _ _ fun _ _ _ ↦ busGrindLE_twentySeven
+
+/-- **The specification's honest prover, `none` where it makes no proof**: `Rom.honestComp`
+before it stands the empty proof in for `none` (`honestComp_eq_getD`). -/
+def _root_.LeanVM.Protocol.Compile.Rom.honestComp? (σ : Seed) (P : VerifierProgram Bool) (S :
+    Strategy)
+    (fuel : ℕ) : OracleComp KeccakCalls (Option Proof) := do
+  let seed ← σ.run callKeccak256 callKeccakF1600
+  proveM callKeccak256 callKeccakF1600 P S seed fuel
+
+/-- `Rom.honestComp` is `Rom.honestComp?` with the empty proof for `none`. -/
+theorem honestComp_eq_getD (σ : Seed) (P : VerifierProgram Bool) (S : Strategy) (fuel : ℕ) :
+    Rom.honestComp σ P S fuel = (·.getD ⟨[], []⟩) <$> Rom.honestComp? σ P S fuel := by
+  unfold Rom.honestComp Rom.honestComp?
+  rw [map_bind]
+  simp only [map_eq_bind_pure_comp, Function.comp_def]
 
 /-- **Completeness in the random-oracle model, at a witness.** For an honest witness `w` at the
 sizes `s` (`HonestFor`) and a fuel of at most `2^64` nonces, the verifier rejects the proof of the
@@ -89,19 +143,20 @@ theorem romComplete_at {prog : LeanIsaProgram} {input : PublicInput} {t : Execut
   -- Unifying through the strategy unfolds it under Lean 4.35: name it first.
   generalize leanVmProver prog s ρ (stackOf prog s w) = S at hrun ⊢
   have h := Rom.romComplete (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) _
-    (leanVmSeed (bytecodeWords prog) (publicInputDigest input)) (bits := Whir.queryGrindingBits)
-    (by decide) (by decide) hfuel (fun _ _ _ hg ↦ Sound.grind_bits_eq _ _ hg)
+    (leanVmSeed (bytecodeWords prog) (publicInputDigest input)) (bits := 27)
+    (by norm_num) hfuel (Sound.grindThenSample_leanVmProgram _ _)
+    (fun _ _ _ hg _ ↦ ((moves_leanVm_twentySeven prog _).after hg).1)
     (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2)
     (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input))
   refine h.trans (le_of_eq ?_)
   rfl
 
 /-- **Completeness in the random-oracle model.** For a valid execution whose committed size is at
-most `2^28`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
+most `2^30`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
 prover's proof with probability at most `completenessError fuel`. -/
 theorem romComplete_leanVm {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ completeMu)
     (hρ : validRate ρ) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← romExperiment (honestComp prog input t ρ fuel)
         (verifierComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
@@ -113,20 +168,22 @@ theorem romComplete_leanVm {prog : LeanIsaProgram} {input : PublicInput} {t : Ex
   simp only [hex, ↓reduceDIte]
   exact romComplete_at hex.choose_spec.choose_spec hfuel
 
-/-- **The numbers**: at a fuel of `2^25` nonces per proof of work, the completeness error is
-below `2^-257`: at most `2^44` queries, each missing with probability `(1 - 2^-17)^(2^25) ≤ 2^-320`
-(`missProb_pow_four_le`). -/
-theorem completenessError_le : completenessError (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
-  have hQ : completenessQueries (2 ^ 25) ≤ 2 ^ 44 := by decide
-  have hmiss : missProb Whir.queryGrindingBits ^ (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ (44 + 276) := by
-    have := missProb_pow_four_le Whir.queryGrindingBits 64
-    rwa [show 2 ^ Whir.queryGrindingBits * 4 * 64 = 2 ^ 25 by decide] at this
-  unfold completenessError
-  calc (completenessQueries (2 ^ 25) : ℝ≥0∞) * missProb Whir.queryGrindingBits ^ 2 ^ 25
-      ≤ (2 : ℝ≥0∞) ^ 44 * (2 : ℝ≥0∞)⁻¹ ^ (44 + 276) := by
+/-- **The numbers**: at a fuel of `2^35` nonces per proof of work, the completeness error is
+below `2^-257`: at most `2^52` queries, each missing a proof of work of at most `27` bits with
+probability `(1 - 2^-27)^(2^35) ≤ 2^-320` (`missProb_pow_four_le`). -/
+theorem completenessError_two_pow_35_le :
+    LeanVM.completenessError (2 ^ 35) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
+  have hQ : LeanVM.completenessQueries (2 ^ 35) ≤ 2 ^ 52 := by
+    norm_num [LeanVM.completenessQueries]
+  have hmiss : (1 - (2 : ℝ≥0∞)⁻¹ ^ 27) ^ (2 ^ 35) ≤ (2 : ℝ≥0∞)⁻¹ ^ (52 + 268) := by
+    have := missProb_pow_four_le 27 64
+    rwa [missProb, show 2 ^ 27 * 4 * 64 = 2 ^ 35 by norm_num] at this
+  unfold LeanVM.completenessError
+  calc (LeanVM.completenessQueries (2 ^ 35) : ℝ≥0∞) * (1 - (2 : ℝ≥0∞)⁻¹ ^ 27) ^ 2 ^ 35
+      ≤ (2 : ℝ≥0∞) ^ 52 * (2 : ℝ≥0∞)⁻¹ ^ (52 + 268) := by
         gcongr
         exact_mod_cast hQ
-    _ = (2 : ℝ≥0∞)⁻¹ ^ 276 := by
+    _ = (2 : ℝ≥0∞)⁻¹ ^ 268 := by
         rw [pow_add, ← mul_assoc, ← mul_pow,
           ENNReal.mul_inv_cancel two_ne_zero ENNReal.ofNat_ne_top, one_pow, one_mul]
     _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=

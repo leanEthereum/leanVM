@@ -1,10 +1,10 @@
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{prove, verify};
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F64, F128, g_pow};
 
 #[test]
 fn loop_frames_preserve_escaped_cells_and_nested_allocations() {
-    leanvm_core::init_prover();
+    parallel::init();
     let source = r#"
 def make_heap(x):
     h = HeapBuf(2)
@@ -48,7 +48,7 @@ def main():
     let program = compile(&parse(source).unwrap());
     for end in [2, 3, 9] {
         let sum = (2..end).map(g_pow).sum::<F64>();
-        let public = [F192::from(sum), F192::from(g_pow(end))];
+        let public = [F128::from(sum), F128::from(g_pow(end))];
         assert!(program.execute(public).unwrap().unconstrained_reads.is_empty());
         if end == 9 {
             let (proof, _) = prove(&program, public, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
@@ -71,7 +71,7 @@ def main():
     return
 "#;
     let program = compile(&parse(source).unwrap());
-    let execution = program.execute([F192::from(F64(7)), F192::ZERO]).unwrap();
+    let execution = program.execute([F128::from(F64(7)), F128::ZERO]).unwrap();
     assert!(execution.unconstrained_reads.is_empty());
 }
 
@@ -101,7 +101,7 @@ def main():
 
 #[test]
 fn rebound_counter_keeps_incremental_frames() {
-    leanvm_core::init_prover();
+    parallel::init();
     let source = r#"
 def bump(x):
     if x == 1:
@@ -120,7 +120,7 @@ def main():
     assert seen[GEN] == GEN
     return
 "#;
-    let public = [F192::ZERO, g_pow(2).into()];
+    let public = [F128::ZERO, g_pow(2).into()];
     for bound in ["GEN ** 2", "public[GEN]"] {
         let program = compile(&parse(&source.replace("STOP", bound)).unwrap());
         assert!(program.execute(public).unwrap().unconstrained_reads.is_empty());

@@ -41,13 +41,13 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 
 /-- `MainGoalClX` by a tree of honest shape. -/
 def MainGoalClXT : Prop :=
-  CompleteAtDT fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  CompleteAtDT fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) (clHonest (hm fs fp seed s w).nlx)
 
 /-- `MainGoalClS` by a tree of honest shape. -/
 def MainGoalClST : Prop :=
-  CompleteAtDT fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  CompleteAtDT fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) (clHonest (hm fs fp seed s w).nls)
 
@@ -60,11 +60,11 @@ theorem MainGoalClST.goal (h : MainGoalClST fs cert fp seed s w) : MainGoalClS f
   CompleteAtDT.toD h
 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims, by a tree of honest shape.** -/
-theorem mainGoalClXT (hL : DeployedLimits s w) : MainGoalClXT fs cert fp seed s w := by
-  have hn : s.claims.xmss.length < claimBig * maxKeys := by
-    have := hL.planSlotsBelow2Pow16
+theorem mainGoalClXT (hL : GuestLimits s w) : MainGoalClXT fs cert fp seed s w := by
+  have hn : s.claims.xmss.length < claimBig * bigFramesCap := by
+    have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, maxKeys]
+    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 0 [] =
       s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
@@ -72,10 +72,8 @@ theorem mainGoalClXT (hL : DeployedLimits s w) : MainGoalClXT fs cert fp seed s 
     rw [← List.flatMap_append]; rfl
   have hl := mf_length_flatMap (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2)
     (fun c => mf_claimCells_length c.1.root c.1.parameter c.2) s.claims.xmss
-  have hc := mf_canon_flatMap (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2)
-    (fun c => mf_claimCells_canon c.1.root c.1.parameter c.2) s.claims.xmss
   have key := claim_list_digest_completeAtT fs cert (Lin := hLmain fs fp seed s w)
-    (eP := mfB fs fp seed s w 0) hn hl hc
+    (eP := mfB fs fp seed s w 0) hn hl
     (fun rd h => by
       have h1 := mf_reads fs fp seed s w h (i := 0) (by omega)
       rw [e] at h1
@@ -86,14 +84,14 @@ theorem mainGoalClXT (hL : DeployedLimits s w) : MainGoalClXT fs cert fp seed s 
   have hd : (hm fs fp seed s w).xd = claimListDigest xmssPublicKeyBytes s.claims.xmss := rfl
   unfold MainGoalClXT clHonest
   rw [ha, hn', hd, mf_xmss_digest]
-  exact key
+  exact key.lowMono (by norm_num)
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims, by a tree of honest shape.** -/
-theorem mainGoalClST (hL : DeployedLimits s w) : MainGoalClST fs cert fp seed s w := by
-  have hn : s.claims.sphincs.length < claimBig * maxKeys := by
-    have := hL.planSlotsBelow2Pow16
+theorem mainGoalClST (hL : GuestLimits s w) : MainGoalClST fs cert fp seed s w := by
+  have hn : s.claims.sphincs.length < claimBig * bigFramesCap := by
+    have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, maxKeys]
+    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 1 [] =
       s.claims.sphincs.flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2) ++
@@ -101,10 +99,8 @@ theorem mainGoalClST (hL : DeployedLimits s w) : MainGoalClST fs cert fp seed s 
     rw [← List.flatMap_append]; rfl
   have hl := mf_length_flatMap (fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2)
     (fun c => mf_claimCells_length c.1.publicSeed c.1.root c.2) s.claims.sphincs
-  have hc := mf_canon_flatMap (fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2)
-    (fun c => mf_claimCells_canon c.1.publicSeed c.1.root c.2) s.claims.sphincs
   have key := claim_list_digest_completeAtT fs cert (Lin := hLmain fs fp seed s w)
-    (eP := mfB fs fp seed s w 1) hn hl hc
+    (eP := mfB fs fp seed s w 1) hn hl
     (fun rd h => by
       have h1 := mf_reads fs fp seed s w h (i := 1) (by omega)
       rw [e] at h1
@@ -115,7 +111,7 @@ theorem mainGoalClST (hL : DeployedLimits s w) : MainGoalClST fs cert fp seed s 
   have hd : (hm fs fp seed s w).sd = claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs := rfl
   unfold MainGoalClST clHonest
   rw [ha, hn', hd, mf_sphincs_digest]
-  exact key
+  exact key.lowMono (by norm_num)
 
 
 end

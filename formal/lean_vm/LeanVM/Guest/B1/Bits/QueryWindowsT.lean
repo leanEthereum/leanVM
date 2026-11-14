@@ -11,10 +11,10 @@ public import LeanVM.Guest.B1.Common.Basic
 public import LeanVM.Guest.WalkWindows
 
 /-!
-# The template of `decode_query_windows` (lean_ethereum.py:798-909 at 40f877dc)
+# The template of `decode_query_windows` (`crates/rec_aggregation/guests/lean_ethereum.py`)
 
 `decode_query_windows(word, positions, win_ptrs, tabs, d, cd)` hints the squeezed word's bits in
-windows: each of the `192 / d` positions `j` (from bit `j·d`) in `qwN d cd` windows (`qwWin`: the
+windows: each of the `128 / d` positions `j` (from bit `j·d`) in `qwN d cd` windows (`qwWin`: the
 path bits six at a time from the bottom, the last path window the remainder, the cap child bit,
 the cap parent index), each hinted as `g^n` into the frame run `wins` (cells `5 ..`, its address
 at `4`), range checked below `2^w` and read back as `n`'s bit pattern through the table `tabs`
@@ -25,7 +25,7 @@ back, and joined in the exponent into its `wins` cell. Each position is stored a
 the pointer to the `wins` run from its first window (`addr` of the run's tail) at `win_ptrs[j]`, and the word is
 rebuilt from the positions and 7-bit windows of the bits above them (`qwRest`).
 
-`qwBody d cd` is the expansion, value by value; `QueryWindowsData.lean` checks the 45
+`qwBody d cd` is the expansion, value by value; `QueryWindowsData.lean` checks the 43
 specializations against it by kernel evaluation.
 -/
 
@@ -36,7 +36,7 @@ open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest
 @[expose] public section
 
 /-- `COORD_BASIS[i]` as the data writes it. -/
-def cbWord (i : ℕ) : E := word (2 ^ i % 2 ^ 64) (2 ^ i / 2 ^ 64 % 2 ^ 64) (2 ^ i / 2 ^ 128)
+def cbWord (i : ℕ) : E := word (2 ^ i % 2 ^ 64) (2 ^ i / 2 ^ 64 % 2 ^ 64)
 
 /-- Window `i`'s value of the position `q`: its bits at the window's place. -/
 def qwVal (d cd q i : ℕ) : ℕ := (q >>> (qwWin d cd i).1) % 2 ^ (qwWin d cd i).2
@@ -47,7 +47,7 @@ def FrameRun (rd : Reader) (p : E) (n : ℕ) (f : ℕ → E) : Prop :=
   IsInK p ∧ ∀ i < n, ∀ v, rd (p.limb 0 * Parameters.addressOfIndex i) = some v → v = f i
 
 /-- The range check's bound for a window of `w` bits: `g^(2^w - 1)`. -/
-def qwBound (w : ℕ) : E := E.ofLimbs (gpowK (2 ^ w - 1)) 0 0
+def qwBound (w : ℕ) : E := E.ofLimbs (gpowK (2 ^ w - 1)) 0
 
 /-- `x·COORD_BASIS[c]` from `k`, the unit factor folded: the statements, the next free value and
 the product. -/
@@ -149,7 +149,7 @@ def qwPr (j base cut d k : ℕ) (lo hi : V) (recon : Option V) : List Stmt × �
 the pointer's value. -/
 def qwPtr (j n k : ℕ) : List Stmt × ℕ × ℕ :=
   if j = 0 then ([.atom (.load (.n 4) (.n 2) 0)], k, 4) else
-    ([.atom (.frameAddr (.n k) ((List.range (56 - j * n)).map fun i => .n (5 + j * n + i))),
+    ([.atom (.frameAddr (.n k) ((List.range (36 - j * n)).map fun i => .n (5 + j * n + i))),
       .atom (.load (.n k) (.n 2) j)], k + 1, k)
 
 /-- Position `j` from `k`: its windows, store and reconstruction term, pointer. -/
@@ -170,12 +170,12 @@ def qwPositions (d cd : ℕ) : ℕ → ℕ → ℕ → Option V → List Stmt ×
     (r.1 ++ rest.1, rest.2)
 
 /-- The rest windows' count: 7-bit windows over the bits above the last position. -/
-def qwRestN (d : ℕ) : ℕ := (192 - 192 / d * d + 6) / 7
+def qwRestN (d : ℕ) : ℕ := (128 - 128 / d * d + 6) / 7
 
 /-- Rest window `i`'s start and width. -/
 def qwRestWin (d i : ℕ) : ℕ × ℕ :=
-  let start := 192 / d * d + 7 * i
-  (start, if start + 7 ≤ 192 then 7 else 192 - start)
+  let start := 128 / d * d + 7 * i
+  (start, if start + 7 ≤ 128 then 7 else 128 - start)
 
 /-- Rest windows `i ..< i + n` from `k`, onto the reconstruction `recon`. -/
 def qwRest (d : ℕ) : ℕ → ℕ → ℕ → Option V → List Stmt × ℕ × Option V
@@ -187,68 +187,41 @@ def qwRest (d : ℕ) : ℕ → ℕ → ℕ → Option V → List Stmt × ℕ × 
     let rest := qwRest d (i + 1) n a.2.1 a.2.2
     (r.1 ++ s.1 ++ a.1 ++ rest.1, rest.2)
 
-/-- The `wins` frame run: cells `5 .. 60`. -/
-def qwRun : List V := (List.range 56).map fun i => .n (5 + i)
+/-- The `wins` frame run (`QUERY_WINDOWS_CAP = 36`): cells `5 .. 40`. -/
+def qwRun : List V := (List.range 36).map fun i => .n (5 + i)
 
 /-- **The expansion of `decode_query_windows__L{d}_L{cd}`.** -/
 def qwBody (d cd : ℕ) : List Stmt :=
-  let p := qwPositions d cd 0 (192 / d) 61 none
+  let p := qwPositions d cd 0 (128 / d) 41 none
   let r := qwRest d 0 (qwRestN d) p.2.1 p.2.2
   [.atom (.frameAddr (.n 4) qwRun)] ++ p.1 ++ r.1 ++
     [.atom (.assertEq (r.2.2.getD (.n 0)) (.n 0)), .ret []]
 
-/-- A core function of the name with the parameters `0 .. 3` and the body. -/
-def QwIs (name : String) (body : List Stmt) : Prop :=
-  ∃ fn, coreProgram.find? name = some fn ∧ fn.params = [.n 0, .n 1, .n 2, .n 3] ∧ fn.body = body
+/-- Program `P` holds a function of the name with the parameters `0 .. 3` and the body. -/
+def QwIsP (P : Program) (name : String) (body : List Stmt) : Prop :=
+  ∃ fn, P.find? name = some fn ∧ fn.params = [.n 0, .n 1, .n 2, .n 3] ∧ fn.body = body
 
 /-- The deployed specializations: `(name, depth, cap depth)`. -/
 def queryWindowsShapes : List (String × ℕ × ℕ) :=
-  [
-    ("decode_query_windows__L14_L5", 14, 5),
-    ("decode_query_windows__L15_L5", 15, 5),
+  -- Generated by `scripts/whir-queries/lists.py`; do not edit.
+  [("decode_query_windows__L12_L6", 12, 6),
+    ("decode_query_windows__L13_L7", 13, 7),
+    ("decode_query_windows__L14_L2", 14, 2),
+    ("decode_query_windows__L15_L3", 15, 3),
     ("decode_query_windows__L16_L4", 16, 4),
-    ("decode_query_windows__L16_L5", 16, 5),
-    ("decode_query_windows__L16_L6", 16, 6),
-    ("decode_query_windows__L17_L4", 17, 4),
     ("decode_query_windows__L17_L5", 17, 5),
-    ("decode_query_windows__L17_L6", 17, 6),
-    ("decode_query_windows__L17_L8", 17, 8),
-    ("decode_query_windows__L18_L4", 18, 4),
-    ("decode_query_windows__L18_L5", 18, 5),
     ("decode_query_windows__L18_L6", 18, 6),
-    ("decode_query_windows__L18_L7", 18, 7),
-    ("decode_query_windows__L18_L8", 18, 8),
-    ("decode_query_windows__L19_L4", 19, 4),
-    ("decode_query_windows__L19_L5", 19, 5),
-    ("decode_query_windows__L19_L6", 19, 6),
     ("decode_query_windows__L19_L7", 19, 7),
-    ("decode_query_windows__L19_L8", 19, 8),
-    ("decode_query_windows__L20_L4", 20, 4),
-    ("decode_query_windows__L20_L5", 20, 5),
-    ("decode_query_windows__L20_L6", 20, 6),
-    ("decode_query_windows__L20_L7", 20, 7),
+    ("decode_query_windows__L20_L2", 20, 2),
     ("decode_query_windows__L20_L8", 20, 8),
-    ("decode_query_windows__L21_L4", 21, 4),
-    ("decode_query_windows__L21_L5", 21, 5),
-    ("decode_query_windows__L21_L6", 21, 6),
-    ("decode_query_windows__L21_L7", 21, 7),
-    ("decode_query_windows__L21_L8", 21, 8),
+    ("decode_query_windows__L21_L3", 21, 3),
     ("decode_query_windows__L22_L4", 22, 4),
-    ("decode_query_windows__L22_L5", 22, 5),
-    ("decode_query_windows__L22_L6", 22, 6),
-    ("decode_query_windows__L22_L7", 22, 7),
-    ("decode_query_windows__L22_L8", 22, 8),
     ("decode_query_windows__L23_L5", 23, 5),
-    ("decode_query_windows__L23_L6", 23, 6),
-    ("decode_query_windows__L23_L7", 23, 7),
-    ("decode_query_windows__L23_L8", 23, 8),
-    ("decode_query_windows__L24_L5", 24, 5),
     ("decode_query_windows__L24_L6", 24, 6),
-    ("decode_query_windows__L24_L7", 24, 7),
-    ("decode_query_windows__L25_L5", 25, 5),
-    ("decode_query_windows__L25_L6", 25, 6),
     ("decode_query_windows__L25_L7", 25, 7),
-    ("decode_query_windows__L26_L6", 26, 6)]
+    ("decode_query_windows__L26_L2", 26, 2),
+    ("decode_query_windows__L27_L3", 27, 3),
+    ("decode_query_windows__L28_L4", 28, 4)]
 
 end
 end LeanVM.Guest.B1

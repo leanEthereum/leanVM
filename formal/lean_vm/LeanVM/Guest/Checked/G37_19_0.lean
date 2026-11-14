@@ -17,44 +17,44 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop2`, window 19, arms 1 to 16. -/
-theorem wg37_19_0 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 1 17
-    [(0, 47), (47, 768)] = true :=
+/-- `__loop2`, window 19, arms 1 to 32. -/
+theorem wg37_19_0 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 1 33
+    [(0, 47), (47, 1536)] = true :=
   checkWinS_of_pre x37_19_eq (by decide +kernel)
 
-/-- `__loop2`, window 19, arms 17 to 32. -/
-theorem wg37_19_1 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 17 33
-    [(0, 47), (815, 768)] = true :=
+/-- `__loop2`, window 19, arms 33 to 64. -/
+theorem wg37_19_1 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 33 65
+    [(0, 47), (1583, 1536)] = true :=
   checkWinS_of_pre x37_19_eq (by decide +kernel)
 
-/-- `__loop2`, window 19, arms 33 to 48. -/
-theorem wg37_19_2 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 33 49
-    [(0, 47), (1583, 768)] = true :=
+/-- `__loop2`, window 19, arms 65 to 96. -/
+theorem wg37_19_2 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 65 97
+    [(0, 47), (3119, 1536)] = true :=
   checkWinS_of_pre x37_19_eq (by decide +kernel)
 
-/-- `__loop2`, window 19, arms 49 to 64. -/
-theorem wg37_19_3 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 49 65
-    [(0, 47), (2351, 768)] = true :=
+/-- `__loop2`, window 19, arms 97 to 128. -/
+theorem wg37_19_3 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 97 129
+    [(0, 47), (4655, 1536)] = true :=
   checkWinS_of_pre x37_19_eq (by decide +kernel)
 
-/-- `__loop2`, window 19, arms 65 to 80. -/
-theorem wg37_19_4 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 65 81
-    [(0, 47), (3119, 768)] = true :=
+/-- `__loop2`, window 19, arms 129 to 160. -/
+theorem wg37_19_4 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 129 161
+    [(0, 47), (6191, 1536)] = true :=
   checkWinS_of_pre x37_19_eq (by decide +kernel)
 
-/-- `__loop2`, window 19, arms 81 to 96. -/
-theorem wg37_19_5 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 81 97
-    [(0, 47), (3887, 768)] = true :=
+/-- `__loop2`, window 19, arms 161 to 192. -/
+theorem wg37_19_5 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 161 193
+    [(0, 47), (7727, 1536)] = true :=
   checkWinS_of_pre x37_19_eq (by decide +kernel)
 
-/-- `__loop2`, window 19, arms 97 to 112. -/
-theorem wg37_19_6 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 97 113
-    [(0, 47), (4655, 768)] = true :=
+/-- `__loop2`, window 19, arms 193 to 224. -/
+theorem wg37_19_6 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 193 225
+    [(0, 47), (9263, 1536)] = true :=
   checkWinS_of_pre x37_19_eq (by decide +kernel)
 
-/-- `__loop2`, window 19, arms 113 to 128. -/
-theorem wg37_19_7 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 113 129
-    [(0, 47), (5423, 768)] = true :=
+/-- `__loop2`, window 19, arms 225 to 255. -/
+theorem wg37_19_7 : checkWinS glob 37 (coreOf 37) (certOf 37) false 19 225 256
+    [(0, 47), (10799, 1488)] = true :=
   checkWinS_of_pre x37_19_eq (by decide +kernel)
 
 end

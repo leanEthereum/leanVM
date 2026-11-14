@@ -7,12 +7,10 @@
 
 module
 
-public import LeanVM.Guest.Check
+public import LeanVM.Guest.CheckView
 public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.Data.Cert
 public import LeanVM.Guest.Data.Pows
-public import LeanVM.Guest.ExpTables
-public import LeanVM.Guest.WalkTags
 
 /-!
 # The guest's checks
@@ -33,7 +31,7 @@ open LeanVM.Guest.Check
 @[expose] public section
 
 /-- The number of compiled functions. -/
-def nFns : ℕ := 992
+def nFns : ℕ := fn_count%
 
 instance : Inhabited CompiledFunction := ⟨⟨"", 0, 0, []⟩⟩
 
@@ -62,19 +60,7 @@ noncomputable def sigOf (j : ℕ) : Sig :=
 /-- The callees: every function but `__jump_tables` and `main`. -/
 def good (j : ℕ) : Bool := Nat.ble 2 j && Nat.blt j nFns
 
-/-- The semantic relations by tag (`WalkTags.lean`): `0` the exponent table (`B1.ExpTables`),
-which `verify_sub` and `__loop4` assume of an argument; `1` the checker's own (`Check.tagNe`, here
-unused); `tagGkr` the GKR layer loop's parity (`GkrPar`); the others the windowed Merkle walk's
-(`walkSem`). -/
-def globSem (t : ℕ) (rd : Core.Reader) (ws : List LeanVM.Parameters.E) : Prop :=
-  match t with
-  | 0 => B1.ExpTables rd (ws.getD 0 0)
-  | 1 => True
-  | t => if t = tagGkr then
-      GkrPar rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) (ws.getD 3 0) (ws.getD 4 0)
-    else walkSem t rd ws
-
-/-- The context the guest's checks share, with the semantic relations `globSem`. -/
+/-- The context the guest's checks share, with the semantic relations `globSem` (`CheckView.lean`). -/
 noncomputable def glob : Glob := ⟨sigOf, good, Data.jtTrie, globSem⟩
 
 /-- **The check of window `i` of function `j`**. -/
@@ -85,6 +71,12 @@ noncomputable instance (j i : ℕ) : Decidable (WinOk j i) := inferInstanceAs (D
 
 /-- **The check of function `j`**: every window's. -/
 noncomputable def CheckOk (j : ℕ) : Prop := ∀ i ≤ (certOf j).cuts.length, WinOk j i
+
+/-- `P j` from `P k` at `j = k`, by its bounds: a leaf of the generated proofs over all functions
+(`Checked.all_ok` and the like). -/
+theorem at_of_bounds {P : ℕ → Prop} {j k : ℕ} (h1 : k ≤ j) (h2 : j < k + 1) (h : P k) : P j := by
+  obtain rfl : j = k := by omega
+  exact h
 
 theorem checkOk_one {j : ℕ} (h : (certOf j).cuts.length = 0) (w : WinOk j 0) : CheckOk j := by
   intro i hi

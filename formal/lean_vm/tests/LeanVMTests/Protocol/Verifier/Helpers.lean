@@ -1,34 +1,35 @@
 import LeanVM.Protocol.Verifier
 
 /-!
-# Verifier helper tests: differential against the verifier at its pins
+# Verifier helper tests: differential against the verifier at its pin
 
-Every expected value below is the verifier's at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`
-on inputs drawn from the word generator `fw`, which the driver mirrors exactly, but the tag, the
-IV and the seed, taken at `990b935263dc7f793f280914f262ca7955ddc3e0` (the only functions checked
-here that changed between the two), and the tables, the `q_keccak` slots, the output columns and
-`build_layout`'s sample layout and bus blocks, taken at leanVM main
-`40f877dc2c858f013c5974ab71ca594b31a7aec9` (the `KECCAK` table's output flags; the driver checked
-first to print the previous values at `5e3ade21`); the drivers live in the port's scratch, not in
-the repository. The line citations are to `crates/verifier/src/` at `40f877dc`. Compiled checks
-(`#guard`): `E` multiplication does not reduce in the kernel from module files.
+Every expected value below is the Rust verifier's (`crates/verifier`) at `leanvm-rev`, on inputs drawn from the word generator `fw`, which the driver mirrors exactly; the
+driver is the verifier crate's sources with their items made crate-visible and a module printing
+each probe, kept in the port's scratch, not in the repository. Values that no change of the
+protocol touched (the RMFE, the carry-less arithmetic, Keccak-f, Keccak-256, the IV and the seed)
+are those of the earlier pins (`4af2cdddd`, `990b93526`), the others the driver's at `afe891a73`
+but `fold_row` (at `71205cca4`) and `derive_config`'s query counts (at the pin): nothing else they
+read changed since. The line citations are to
+`crates/verifier/src/` at the pin. Compiled checks (`#guard`): `E` multiplication does not reduce
+in the kernel from module files.
 
 Covered: `powers`, `eq_kernel`, `multilinear_eval` (on `E` and on lifted `K` tables), `eq_eval`,
 `dot`, `index_mle`, `poly_eval`, `gpow`, `padding_weight`, `log2_ceil`, `log2_strict`,
-`selector_point`; `subspace_roots`, `induced_weight`, `ext_row`, the enforced sum of a WHIR
-level; the ring map `ring_map`, `ring_weight`, and `ring_switch`'s Frobenius coefficients, weight
-and target; `stack_offsets`, `Placement::stack_point` and `eq_above`; the tables' columns, widths,
-global bases, log-height floors, constraint counts, count columns and padding rows,
-`jump_constraints`, `keccak_cell_lanes`, `layout_limb`, the `q_keccak` slots (`qkeccak_slot`) and
-output columns; `build_layout` on a sample bytecode and sizes (log-heights, stack log-size, every
-placement, every bus block's shape and flushed tuple at a sample row), `bus_layout` of the three
-sides; `derive_config` on all 56 admissible pairs; `along`, `linear_transpose`,
-`instance_weights`, the slot weights of `open`, the RMFE's factors, `RMFE_EMBED`, `RMFE_PROJECT`,
-the carry-less product and division and the Keccak reduction's constants; `KECCAK_RC`,
-`KECCAK_RHO`, `KECCAK_PI`, `keccak_f`, `keccak_hash` across the block boundary, the sponge's
-`duplex` and `sample`; `TAG` (`versionTag`), the IV (`fiatShamirIv`), the public input's halves,
-and the Fiat-Shamir seed (`Sponge::new`: Keccak-f of `iv ‖ pi ‖ 0`). `build_layout`'s
-rejections are checked against what the verifier rejects on the same inputs.
+`selector_point`, `grinding_bits`; `subspace_roots`, `Subspace::at`, `novel_eval`, `fold_row`,
+`induced_weight`, `ext_row`; the ring map's `ring_coefficients`, `ring_psi`, `ring_target`,
+`ring_weight` and `frobenius_8`; `stack_offsets`, `Placement::stack_point` and `eq_above`; the
+tables' columns, widths, global bases, log-height floors, constraint counts, count columns and
+padding rows, `jump_constraints`, `keccak_cell_lanes`, `layout_limb`, the `q_keccak` slots
+(`qkeccak_slot`) and output columns; `build_layout` on a sample bytecode and sizes (log-heights,
+stack log-size, every placement, every bus block's shape and flushed tuple at a sample row),
+`bus_layout` of the three sides; `derive_config` on all 56 admissible pairs; `along`,
+`linear_transpose`, `instance_weights`, the slot weights of `open`, the RMFE's factors,
+`RMFE_EMBED`, `RMFE_PROJECT`, the carry-less product and division and the Keccak reduction's
+constants; `KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, `keccak_f`, `keccak_hash` across the block
+boundary, the sponge's `duplex`, `sample` and `absorb_nonce`; `TAG` (`versionTag`), the IV
+(`fiatShamirIv`), the public input's halves, and the Fiat-Shamir seed (`Sponge::new`: Keccak-f of
+`iv ‖ pi ‖ 0`). `build_layout`'s rejections are checked against what the verifier rejects on the
+same inputs.
 -/
 
 namespace LeanVMTests.Protocol.Verifier.Helpers
@@ -42,11 +43,11 @@ open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 def fw (k lane : ℕ) : ℕ :=
   ((k + 1) * 0x9E3779B97F4A7C15 + lane * 0xD1B54A32D192ED03 + 0x632BE59BD9B4E019) % 2 ^ 64
 
-/-- An `E` element from its three limbs. -/
-def e (c0 c1 c2 : ℕ) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1) (K.ofBits c2)
+/-- An `E` element from its two limbs. -/
+def e (c0 c1 : ℕ) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1)
 
 /-- The driver's `fe(k)`. -/
-def fe (i : ℕ) : E := e (fw i 0) (fw i 1) (fw i 2)
+def fe (i : ℕ) : E := e (fw i 0) (fw i 1)
 
 /-- `fe(a), …, fe(a + n - 1)`. -/
 def fes (a n : ℕ) : List E := (List.range n).map fun i ↦ fe (a + i)
@@ -54,9 +55,12 @@ def fes (a n : ℕ) : List E := (List.range n).map fun i ↦ fe (a + i)
 /-- A lifted `K` table of sixteen entries. -/
 def kTable : List E := (List.range 16).map fun i ↦ ofK (K.ofBits (fw i 5))
 
-/-- Three lifted `K` rows of four words. -/
-def kRows : List (List E) :=
-  (List.range 3).map fun q ↦ (List.range 4).map fun j ↦ ofK (K.ofBits (fw (10 * q + j) 7))
+/-- Three fold rounds, `α, β` the elements `fe(910 + 2r), fe(911 + 2r)`. -/
+def sampleRounds : List FoldRound :=
+  (List.range 3).map fun r ↦ ⟨fe (910 + 2 * r), fe (911 + 2 * r)⟩
+
+/-- A domain point outside the small subspaces: the word `fw(3, 7)`. -/
+def samplePoint : K := K.ofBits (fw 3 7)
 
 /-- A sample placement (its two checks printed at the pin, `../leanvm-rev`). -/
 def samplePlacement : Placement := { variableCount := 3, index := 0b1011001 }
@@ -97,8 +101,14 @@ def sampleState : KeccakState := Vector.ofFn fun i : Fin 25 ↦ (fw i 12).toUInt
 /-- `Sponge::duplex` from `sampleState` with these scalars waiting, and the challenge
 `sample` reads off the result. -/
 def duplexProbe (pending : List (E × ℕ)) : List UInt64 × E :=
-  let s := keccakF1600 (duplexInput ⟨sampleState, pending⟩)
+  let s := keccakF1600 (duplexInput ⟨sampleState, pending, none⟩)
   (s.toList, challengeOf s)
+
+/-- `Sponge::absorb_nonce` from `sampleState` with these scalars waiting: the proof of work, the
+state, and the challenge it leaves for the next `sample`. -/
+def nonceProbe (pending : List (E × ℕ)) (nonce : E) : UInt64 × List UInt64 × Option E :=
+  let (pow, sponge) := Id.run (absorbNonce keccakF1600 ⟨sampleState, pending, none⟩ nonce)
+  (pow, sponge.state.toList, sponge.ground)
 
 /-- The `(j, k)` pairs `along` is probed at. -/
 def alongPairs : List (ℕ × ℕ) :=
@@ -115,9 +125,8 @@ def sampleClaim : KeccakClaim := ⟨fe 609, fes 640 16, fes 610 6, fes 1000 1600
 
 /-- The slot weights at `log_steps = 9` of `sampleClaim` on `count` segments from `first`: the
 number of rows, whether each is 64 wide, and all of them batched by powers of `fe 620`. At the pin
-they are no function of their own: `open` (`keccak.rs:208-221`) sums them against the slot
-challenges' eq weights. The expected values are those of the separate function of the previous pin
-`3375f7a13`. -/
+they are no function of their own: `open` (`keccak.rs:212-225`) sums them against the slot
+challenges' eq weights; the driver computes them by its loop with the slot weight left out. -/
 def slotProbe (first count : ℕ) : ℕ × Bool × E :=
   let w := keccakSlotWeights 9 sampleClaim first count
   (w.length, w.all (·.length == 64), dot (powers (fe 620) 4096) w.flatten)
@@ -140,13 +149,14 @@ def keccakConstants : List ℕ :=
 
 /-! ## Constants and conventions -/
 
-#guard yE = y
+/- `y`, the generator of `E` over `K`, is a root of its modulus `y^2 + x·y + 1`. -/
+#guard yE * yE = gen * yE + 1
 #guard gen = ofK (K.ofBits 2)
 #guard (buildLayout sampleBytecode 16 sampleRows).isSome
 #guard sampleLayout.push.all fun b ↦ b.rows == sampleRows.getD b.owner 0
 #guard sampleLayout.placements.length = globalColumnCount + tableWidths.sum
 
-/- Every column a table's flushes name exists (`cols`'s `expect`, `layout.rs:105-112`): a missing
+/- Every column a table's flushes name exists (`cols`'s `expect`, `layout.rs:104-111`): a missing
 name would be `columnIndexByName`'s out-of-range index, the table's width. -/
 #guard tables.all fun t ↦ (t.flushes.push ++ t.flushes.pull).all fun tuple ↦
   tuple.all fun f ↦ f.terms.all fun (m, _) ↦ m.all (· < t.width)
@@ -160,74 +170,70 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 #guard (buildLayout (sampleBytecode.take 24) 16 sampleRows).isNone
 #guard (buildLayout (sampleBytecode.take 8) 16 sampleRows).isNone
 #guard (buildLayout (sampleBytecode.take 16) 16 sampleRows).isSome
-/- The memory window `[16, 32]`. -/
-#guard (buildLayout sampleBytecode 15 sampleRows).isNone
-#guard (buildLayout sampleBytecode 33 sampleRows).isNone
-#guard (buildLayout sampleBytecode 32 sampleRows).isSome
-/- The row cap `2^32`, on any table. -/
-#guard (buildLayout sampleBytecode 16 [2 ^ 32 + 1, 2, 2, 4, 3, 5]).isNone
-#guard (buildLayout sampleBytecode 16 [2 ^ 32, 2, 2, 4, 3, 5]).isSome
-#guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 2 ^ 32]).isSome
+/- The memory window `[1, 30]`. -/
+#guard (buildLayout sampleBytecode 0 sampleRows).isNone
+#guard (buildLayout sampleBytecode 1 sampleRows).isSome
+#guard (buildLayout sampleBytecode 31 sampleRows).isNone
+#guard (buildLayout sampleBytecode 30 sampleRows).isSome
+/- The row cap `2^30`, on any table. -/
+#guard (buildLayout sampleBytecode 16 [2 ^ 30 + 1, 2, 2, 4, 3, 5]).isNone
+#guard (buildLayout sampleBytecode 16 [2 ^ 30, 2, 2, 4, 3, 5]).isSome
+#guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 2 ^ 30]).isSome
 /- No `KECCAK` row is no rejection: the table's height is its floor. Past the floor it grows. -/
 #guard ((buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 0]).map (·.tableLogHeights)) =
   some [2, 1, 1, 2, 2, 9]
 #guard ((buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 600]).map (·.tableLogHeights)) =
   some [2, 1, 1, 2, 2, 10]
-/- Not one row count per table (the Rust verifier reads exactly `N_TABLES`, `lib.rs:220`). -/
+/- Not one row count per table (the Rust verifier reads exactly `N_TABLES`, `lib.rs:248`). -/
 #guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 5, 0]).isNone
 #guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3]).isNone
 
 /-! ## `derive_config` outside the window -/
 
-#guard (Whir.ladder 14 1).isNone ∧ (Whir.ladder 29 1).isNone
+#guard (Whir.ladder 15 1).isNone ∧ (Whir.ladder 33 1).isNone
 #guard (Whir.ladder 20 0).isNone ∧ (Whir.ladder 20 5).isNone
 
-/-! ## Field and multilinear arithmetic (`field.rs:258-267`, `multilinear.rs`, `layout.rs:114`) -/
+/-! ## Field and multilinear arithmetic (`field.rs:255-264`, `multilinear.rs`, `layout.rs:113`;
+`transcript.rs:95-104`) -/
 
 #guard (powers (fe 1) 6) =
-    [(e 0x1 0x0 0x0), (e 0x9f9ad90ed849d843 0x71502341a9dcc546 0x43056d747b6fb249),
-     (e 0x8d41cdea3c9b1743 0xa53215ff9e6ed6ea 0x2669efafa20976fe),
-     (e 0xa4fb932c8c6005f5 0x12e1091c975015a3 0xfc6d64707160a1e0),
-     (e 0xc23af15976790af3 0x29d9da9d0e15fe53 0xc526b9a545adaa4a),
-     (e 0x2d1ea809ca35b247 0x46ab55d456449e8f 0x3d619d6840f9ce6d)]
+    [(e 0x1 0x0), (e 0x9f9ad90ed849d843 0x71502341a9dcc546),
+     (e 0xe1a37ba00fcb757 0x6b7f4a078cf4033), (e 0xa8122ee46f0a5aa9 0x207e9faa54d4477e),
+     (e 0x1386ae69256209bc 0x2935cd2a2d6d520a), (e 0x75aabec44b6c29e4 0x149ffcea20068577)]
 
 #guard (eqKernel [fe 2, fe 3, fe 4]) =
-    [(e 0x7487318548636ffa 0x104be15054f9c970 0x9838154b1a7217e),
-     (e 0xe19ce463199bbeab 0x3d97c60a62a2663f 0xbe54a33bf161b600),
-     (e 0x1e37011ff0590bf5 0x417ccde534ddbc7e 0x9f56dd4601895e41),
-     (e 0xf16d92c2f7889627 0x27567ad1253a2ab4 0x352a2589b800efb7),
-     (e 0x8801dc0423f74bd4 0x4a42f1c429ad748d 0x3b75987221284df6),
-     (e 0xc113c563a4d14ae9 0xca21c02ab78766b2 0xf3d6dafa1bea70fb),
-     (e 0xdf63be56cc597b82 0x14f2418a60ae40d8 0x4c9c234d6bbc1c97),
-     (e 0xec30e10a1d56363d 0xdf67e00ad9386b62 0x9994bb65a8310712)]
+    [(e 0xbead2bd434e75d5f 0xda6b629b43525dbe), (e 0x3d20be3cf61a211 0x4fcc71c241dada95),
+     (e 0x59418220818cc34 0x21a6e468f3306334), (e 0xc2aa7e2ea5b77ff9 0xfff7675fd604dd9a),
+     (e 0x425c891d2a16dba4 0xa5ca2492f4f2a42b), (e 0x232a65ab074ef486 0x9dd2217f5e0b9e70),
+     (e 0xc4b7e823417d1e96 0x51803e9a6db7dbfa), (e 0xdf8042ae3a0c7d36 0x226eab19e0f2d824)]
 
 #guard (multilinearEval ((List.range 8).map fe) [fe 10, fe 11, fe 12]) =
-    (e 0xbca1256ff477f64b 0x625ffcf5f0075399 0x1af46b1ee1f7415d)
+    (e 0x3e614120d15a4536 0xcd07a5dac74e097a)
 
 #guard (multilinearEval kTable (fes 13 4)) =
-    (e 0x34ffd6cb8e8988f1 0xca8604399a32af81 0xfb923ada57162173)
+    (e 0x1dc3a1c24ded43f0 0xf8b7ffe93761c398)
 
 #guard (eqEval [fe 20, fe 21, fe 22] [fe 23, fe 24, fe 25]) =
-    (e 0xc0f2b18b0773cd0f 0x326bbc9c17ea3be0 0x1b82601b0a7f7e26)
+    (e 0x82bd01e07f82614f 0x7851b73699908985)
 
 #guard (dot [fe 26, fe 27, fe 28] [fe 29, fe 30, fe 31]) =
-    (e 0xbdb04ddfb1e0a46e 0xeb3249201502d601 0x585ea508c62854b7)
+    (e 0x51628321ce552fa1 0x8fa5c83b4a6033d3)
 
 #guard (indexMle [fe 32, fe 33, fe 34, fe 35]) =
-    (e 0x132494cb3bc463b2 0x3624558675c28ed0 0x9111de27755aab6)
+    (e 0x76b748ec823a93fb 0xf9c17010b7cf0a2c)
 
 #guard (polyEval [fe 40, fe 41, fe 42, fe 43, fe 44] (fe 45)) =
-    (e 0x135b962c7eb72a4d 0xa624b34b0383f4b8 0xdcf22a0b0f465e2e)
+    (e 0x9ad61792f8d1c662 0xe7ba24ba7baefa70)
 
 #guard (Verifier.gpow 5) =
-    (e 0x20 0x0 0x0)
+    (e 0x20 0x0)
 
 #guard (Verifier.gpow (2 ^ 32 - 1)) =
-    (e 0xae3111b3bb81428f 0x0 0x0)
+    (e 0xae3111b3bb81428f 0x0)
 
 #guard ([0, 5, 11, 16].map (paddingWeight (fes 120 4))) =
-    [(e 0x1 0x0 0x0), (e 0x640f7f969c5b2061 0x90deeb5bf84036c7 0xd25ce47a63bd7fdc),
-     (e 0xa2ae4697e637e700 0x2ae7b1c3c637f562 0xb87a7de37e6c85f9), (e 0x0 0x0 0x0)]
+    [(e 0x1 0x0), (e 0xfe088f14baad8355 0x396e02003469a810),
+     (e 0x36fb865ece8ef208 0x83f8ca436afff1ea), (e 0x0 0x0)]
 
 #guard ([0, 1, 2, 3, 5, 64, 65, 2 ^ 20].map log2Ceil) =
     [0, 0, 1, 2, 3, 6, 7, 20]
@@ -236,111 +242,96 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
     [some 4, none, none, some 0, none, some 20]
 
 #guard (selectorPoint 13 6) =
-    [(e 0x1 0x0 0x0), (e 0x0 0x0 0x0), (e 0x1 0x0 0x0), (e 0x1 0x0 0x0), (e 0x0 0x0 0x0),
-     (e 0x0 0x0 0x0)]
+    [(e 0x1 0x0), (e 0x0 0x0), (e 0x1 0x0), (e 0x1 0x0), (e 0x0 0x0), (e 0x0 0x0)]
 
-/-! ## WHIR helpers (`whir.rs:65-126`, `:197-211`) -/
+/- `grinding_bits`, at the inputs of `fiat_shamir`'s own test -/
+#guard ([0, 1, 2, 8, 9, 31, 46, 64, 65, 2 ^ 20].map grindingBits) =
+    [0, 0, 0, 0, 1, 2, 3, 3, 4, 17]
 
-#guard (subspaceRoots 12) =
-    [(e 0x1 0x0 0x0), (e 0x6 0x0 0x0), (e 0x168 0x0 0x0), (e 0x1166880 0x0 0x0),
-     (e 0x11616686880801b 0x0 0x0), (e 0x726b6e3c6e39234e 0x0 0x0), (e 0x796adf34d64462c2 0x0 0x0),
-     (e 0xf1060866be6fa9c 0x0 0x0), (e 0x6a06f1b0a76acb05 0x0 0x0), (e 0xd2d14e471a7186d9 0x0 0x0),
-     (e 0x6d55ab94bb5f9605 0x0 0x0), (e 0xd08c5570c6423a2a 0x0 0x0), (e 0xa0ca298b954731 0x0 0x0)]
+/-! ## WHIR helpers (`whir.rs:72-202`) -/
+
+#guard ((subspaceRoots 12).map kToNat) =
+    [0x1, 0x6, 0x168, 0x1166880, 0x11616686880801b, 0x726b6e3c6e39234e, 0x796adf34d64462c2,
+     0xf1060866be6fa9c, 0x6a06f1b0a76acb05, 0xd2d14e471a7186d9, 0x6d55ab94bb5f9605,
+     0xd08c5570c6423a2a, 0xa0ca298b954731]
+
+#guard ((subspaceAt 5 samplePoint).map kToNat) =
+    [0x97fed3e591e34b82, 0x820abeab5326f91b, 0xa114ae0175dc5efb, 0xbe64d74b712dcf9b,
+     0x78e3eabfdbd2fc1f, 0xbbb44a699f093317]
+
+#guard (novelEval (fes 50 7) (subspaceAt 5 samplePoint)) =
+    (e 0xb6f010b2bcb2ddf3 0x4ea90edd296a3d9)
+
+/- `2^5 + 1` coefficients: the last weighs `What_5`. -/
+#guard (novelEval (fes 50 33) (subspaceAt 5 samplePoint)) =
+    (e 0x87e252e36d1b76a7 0xe08d5e4b4a5b7a2e)
+
+#guard (foldRow (fes 900 8) (K.ofBits 23) sampleRounds) =
+    (e 0xb8d373c1d29ea65a 0xba103fe1bfbd4c47)
 
 #guard (inducedWeight 5 [3, 17, 30, 0] (powers (fe 60) 4) [fe 61, fe 62, fe 63, fe 64, fe 65]) =
-    (e 0x2ac3fadca39d4b81 0x1629ae443f03334e 0x4f97f27d36b81fbf)
+    (e 0x1f414c84d37628a1 0xfc45dc207f904f40)
 
 #guard (extRow ((List.range 6).map fun i ↦ K.ofBits (fw i 6))) =
-    [(e 0xeba31c864270ea40 0x89da963fc1bb6655 0x28120ff94105e26a),
-     (e 0xc64989b2c0505e7f 0x6481036c3f9ada94 0x2b87d25bee556a9)]
+    [(e 0xeba31c864270ea40 0x89da963fc1bb6655), (e 0x28120ff94105e26a 0xc64989b2c0505e7f),
+     (e 0x6481036c3f9ada94 0x2b87d25bee556a9)]
 
+/- An odd word is dropped. -/
 #guard (extRow ((List.range 7).map fun i ↦ K.ofBits (fw i 6))) =
-    [(e 0xeba31c864270ea40 0x89da963fc1bb6655 0x28120ff94105e26a),
-     (e 0xc64989b2c0505e7f 0x6481036c3f9ada94 0x2b87d25bee556a9), (e 0xa0eff6df3e2fd2be 0x0 0x0)]
+    [(e 0xeba31c864270ea40 0x89da963fc1bb6655), (e 0x28120ff94105e26a 0xc64989b2c0505e7f),
+     (e 0x6481036c3f9ada94 0x2b87d25bee556a9)]
 
-#guard (enforcedSum kRows [fe 66, fe 67] [fe 68, fe 69, fe 70]) =
-    (e 0xda0d62a8fab09447 0xf78fdc7451a4bb0a 0x2bb794332b986985)
+/-! ## Ring switching (`ring_switch.rs:10-68`) -/
 
-/-! ## Ring switching (`ring_switch.rs:8-54`) -/
+#guard (ringCoefficients (fes 80 8) (fes 88 8)) =
+    [(e 0x50a3732d98b25847 0x485783167b605da4), (e 0x6abb07138c18f0f9 0xeac0f214fe325859),
+     (e 0xd611ecc1cc4d7387 0x4c9e9d11365c1009), (e 0x12259a8cb8ab8986 0xcc029a2a82c1df76),
+     (e 0xe567e0c2e347c200 0xd1433bb6c65b3eef), (e 0x69ffd590d5ce4d57 0x7c4f1ab7870c6460),
+     (e 0x8c4f9c70125ac3f5 0xb8f6fe4a0ec0f6b8), (e 0x37cbf2331969ec0d 0xb3130f3790a148b4),
+     (e 0x6b37f06cee3af49e 0xa2731ed82dc1ca60), (e 0xf7efb79f9c3f4b85 0x8f015b52604972b1),
+     (e 0xde572696c46b9d4f 0xa4545fa66490a55d), (e 0x1452537f52385cca 0x342dea07aacf85b5),
+     (e 0xe134b152c370c9ca 0x27cf634c9ea7e054), (e 0xe99dfd5eefc375ad 0xb97246efb1831500),
+     (e 0xc9e0fa00f3e10266 0x7e8374871f70dcc7), (e 0x4830007e983476f1 0x83a07c3a3ce4c8fc),
+     (e 0x31998518d78293e 0xc70177ed1621782), (e 0x665719ec07847cf5 0x161e89c73e72a776),
+     (e 0xf677b54994c01f5f 0x3ef09127b630250f), (e 0x6b18eedae39b86b8 0xa781a1b9af8e17ce),
+     (e 0x140e5c59be8ffc1c 0xc212ca142beea2b1), (e 0xccc99e8f38368d8d 0xa22ff0ef6cf6971e),
+     (e 0xf981c0f6300698ec 0xc38bd33b406d1e8b), (e 0x601f24f47b8b4b98 0x2d1e568a5efc6a89),
+     (e 0xe4cd38e05ed82c32 0x8743589f25c0c4d2), (e 0xa21982c467a0e41 0x6de2080435fad976),
+     (e 0x27245558a61e31a3 0x37aed79f9f48980b), (e 0xa6737ae9057e6d48 0x21e6aee3abdfcb4f),
+     (e 0xad83ad6089574a19 0x907b2785d8cb8ba), (e 0x2a96e6a8a92f269c 0x2a3d3963c4c6338e),
+     (e 0x5618cf20676d722f 0x9c9ff4efdfb18922), (e 0x5260511768780187 0xb65099e25fa961a4),
+     (e 0x57717a286aae26df 0x54f6dd51432bfc56), (e 0x9bbd0bb06816822c 0xf87b83080eaf117d),
+     (e 0xd1cba5a6ca17829a 0xd1029176ba5f290), (e 0x94478543effd4a5f 0x982e46b42467c97e),
+     (e 0x2c9a2089ca3ef389 0x27025004df19c53a), (e 0xeb3b1bc451ebdb52 0x678ffd8eeaa46d9b),
+     (e 0x2633586dd089f9f0 0xea6c9a4ffeed6340), (e 0x3ce88fd4eafdadb5 0x2a2461e73fe5f42c),
+     (e 0xe610862aa209e590 0x6ee7470aa8a54db4), (e 0xfb05cf13c32e8dd6 0xc382dceeb934ef62),
+     (e 0xe274fac9a3d02b03 0x8ea64c0fe553be15), (e 0x704d785f0f74af52 0x3543596cc84b8279),
+     (e 0x18954d11d787dbe1 0x690318d6b15d7c1f), (e 0x66ac6c02d71561cf 0x6fc5b31d9837a89d),
+     (e 0xc56eb4882a99e0f3 0x28cea2759a37504d), (e 0x22cbbfd05d23ef9f 0xa3dc0e8c508898b4),
+     (e 0xf4abe83726c2a35e 0x20609568eba0870d), (e 0x5f8b3250b8cb068e 0x9074e1ad5bf4d69b),
+     (e 0xc3c0e4e98922d4dc 0xb8c6e9ad428ada02), (e 0x1c3c14cb7e00faf8 0x1feaddd455ec9a8d),
+     (e 0x2cfc85a970655be1 0xf3ecab42599a8a7f), (e 0x3a4ea0cd9267e037 0xd282f0ec3fab5310),
+     (e 0xd1fe62fbcd70f92b 0x86848a0a6de29968), (e 0xc66219c21c0d31ab 0x1fddc983bd14871a),
+     (e 0xee238a1ddcb4cc62 0x1076e966ccf1012c), (e 0xaa3447cda6a54d 0x7c102d47a198ac87),
+     (e 0x697b03fdc18b2c1f 0xb63a1b13bb08eb27), (e 0x60be2559a1170a21 0x6df0832ec7cee6dd),
+     (e 0x802a0b932c334ecc 0x29b24e4ec9fc781c), (e 0xee98666e19e50c19 0x85fc104d06ba77ff),
+     (e 0x3638fa1b4cf435c2 0x883f3ea488e72c88), (e 0xfb74e1c597a32a29 0x649b0ee661d7fa42)]
 
-/- `ring_switch`'s Frobenius coefficients, read off its weight closure -/
-#guard (ringCoefficients (fes 80 6)) =
-    [(e 0x1 0x0 0x0), (e 0x89cec9ec9cba8f27 0x5b84141f6e4d7c2a 0x2d395e523fe0692d),
-     (e 0xeb9750331d701312 0xbd4c9a65ef030015 0x8f01e498c095ed18),
-     (e 0x1a7c40727dd8414f 0x2f9d6f2f3bb4ff59 0x1f7361f312626e20),
-     (e 0x4d5fd6799e2596fd 0x1f1520ac6fb88400 0xf0ca6adf414b7103),
-     (e 0xb2a07f1e3c8bbe4 0x60c454fe8a2f953a 0xd700c89eddae366a),
-     (e 0xae8c650e35408c75 0xa3752cd2a81171d2 0xb8373defb3dc0c0f),
-     (e 0xe54deb03304a8ec2 0x63ff83c454d2f505 0x8c748a0177b012c9),
-     (e 0xaf285cc01edb1ae8 0x80dda6f2f06e07eb 0x5292f125c200f4ee),
-     (e 0x45a9dd1b0887cf79 0xaa23719a2697304 0x1636533a0a0b2647),
-     (e 0x2c3f81b450a4ee56 0xb4c13f22c80edd7f 0x5936ca6bc197d291),
-     (e 0xf09b7a73a2037a1d 0x50ea044e8029fa1d 0x34223b534589f155),
-     (e 0x73bdefcf33b76ad8 0x61dff0d68cf064eb 0xf5e4caaa31c98d2a),
-     (e 0x5c3d12d4f4b870da 0xb905c99cb580d034 0x2ab61b719c9a8e02),
-     (e 0xf4c379a61a521ad5 0x431b95c70a4cff67 0x45714d9dd1754a3),
-     (e 0xe830de7397c0b57b 0xd7b6d466cc022395 0x71ba4c36c31c9f6),
-     (e 0x10f0e3069f909ed3 0xe2a62d3971238bd6 0xb45b776c42b678d9),
-     (e 0x94ecc3a46a0ae180 0xc1291ed04076ed69 0xd75bbc119be4b11c),
-     (e 0x12a02e5408fa03b7 0xf574adf1305b70df 0x5a4469247528dd8b),
-     (e 0x6c686912cd5496 0x5f589f78b7f3710f 0x934d979a24b70235),
-     (e 0xb5756470f7895ae0 0x95e99b2f511e6c64 0x65955f68772f5828),
-     (e 0x868cc50d867c8d0b 0x56a5c25c87443c52 0x6e7654977b5475d7),
-     (e 0xf9ad4b17204401eb 0xa04d55a7b59654ab 0x75699c8cc9af9824),
-     (e 0xf86178ca66b168d2 0x625eadd785948d5f 0xc8383a3ba7053b93),
-     (e 0x19267c799cdcbcbc 0x308902d334dae1ab 0x68b9e488bab285a0),
-     (e 0x733e727b41c7930e 0x9346028f3c57a53e 0xb36ac3078aa750db),
-     (e 0xb2fc17c003b5c0ea 0x4b98761a1cb0bf73 0x8bc53228089fc5b1),
-     (e 0xe25ac417ae6335bb 0xa593fd70a5ea6600 0xecedc965790e356),
-     (e 0xe7f79ef1fb1b818f 0xf1d37fb39d85318c 0xfe615821cd511531),
-     (e 0xa92f8648a40142ce 0x21c0cc6b0d52457e 0x6612b789222a7511),
-     (e 0xce8a3ce2f3c3cfd7 0xab7e14a2e761f6ca 0x7744aaa7e2b25568),
-     (e 0x6f239b04edc29ac1 0xd2259a0f29920eec 0x84362804534c18a8),
-     (e 0x72b9694d204622be 0x446eb37ff1d90fc1 0x1623fdb2c36bfcc4),
-     (e 0x39b05ea96f358f31 0x7bd4217b65c741d1 0xea5bccaedbc5839b),
-     (e 0xbb80e13021735db6 0x9c2f96dbd8191b42 0x2d01b4431368a1d3),
-     (e 0x95891fe3b06fb6d7 0xbb004038c8cc87c1 0x84fb5a682502a9f8),
-     (e 0xb39aeb2b4eec67b5 0xed5db671df042983 0x517f86b97ce90ea7),
-     (e 0x29c536f8b59db1bf 0xbb9aad369381f224 0x64ec782b6068e442),
-     (e 0x26388d1ee006b87a 0x5a8b7e83eac7cbe7 0xedd36f3ae6bbeb10),
-     (e 0xf5f6c39299d61870 0x23d74893e970712c 0xf1d31aac027f430e),
-     (e 0xb3a3624183354c2b 0xb10e40a508738a3d 0xea362b2627b798c2),
-     (e 0x4ecca651cb5ccdb8 0x784932bb7c69c4b7 0x8a6863be430d25b7),
-     (e 0xeabb13a4ac61f2ff 0x3328c70e401c28fc 0xd3f15588cd4e5741),
-     (e 0xdeffa1631ea291d6 0x4fe8a4e14f94ef12 0x9d20c94c7917b4f0),
-     (e 0x36fb18cacf186a62 0x97a0774dda76cda9 0x27ac7b2dc0083b9f),
-     (e 0x49ea5d8cd342e17f 0x9ca74798d6c20e15 0xa451a87214f60ca0),
-     (e 0x11a3c2b31ec81702 0x605af12b4ea740e9 0x84ab236cc314f425),
-     (e 0xf9a06f0ff05ef00c 0x992957c88bebe9ab 0xb1c06fe1a43ba046),
-     (e 0xb106eb65df8351f4 0x8a1bbb40ae6c777f 0x60a7052f59c62bad),
-     (e 0x6ea5f06f50685bd9 0x87d63d7bc3a29f89 0x5780a2078b34f30c),
-     (e 0xdf24e6d1aad3cdbf 0xa01950302029bcc2 0xf87a419a246be97c),
-     (e 0xe419df4f5cbeddc5 0x939266745075ca5 0x1caca95cc094185a),
-     (e 0x9fa6188c3e2ce0c0 0x41982a77e8368460 0xfba40b2e918c89c2),
-     (e 0xe2d5ab2bffc5ef12 0xf5c647d81817abbe 0x7dfbe57d9f8ff1b8),
-     (e 0x154e491c19d73349 0xb027cb813c9af06a 0x4e69276ce673dad3),
-     (e 0x47d820cf3671e107 0x6fbd3067e6c7f1c6 0xc315538253c09236),
-     (e 0x315fb2b1ff153ab4 0xdb9f7f6f190d8f96 0x44aefb8c75abe8d9),
-     (e 0xb4b03fae779f4a89 0xef6b93bc1591e6e6 0x279a13593d71775f),
-     (e 0x48119b4a4de8a490 0x708759452f73e21c 0x13665fec849375dd),
-     (e 0x75f5bbab22fc9912 0x35d5b141c6eab00e 0x457ffd0c062f3e3),
-     (e 0xb535f1342e213efe 0x2b894b61e7bd9ed4 0x8d044cc798827ec3),
-     (e 0xcc2d4824ff06cb55 0xe9425184c3aee8f0 0x16d6ac40a3e37732),
-     (e 0xa451609bc2845b0f 0xe67b08b9c73baef5 0xcfde494daf247df0),
-     (e 0xd2bf176e84e98d06 0x64e9a84ba5a1604d 0x7762e57a4da3a1c5)]
+#guard (ringPsi (fe 86) (fes 88 8)) =
+    (e 0xb254215a0dad7123 0xa6def745624dd0b9)
 
-#guard (phiMap (fe 86) (fes 80 6)) =
-    (e 0x4cb668700da3f261 0xab0d10fba861e7b4 0x23339057a2a50ce8)
+#guard (ringTarget (fes 130 64) (fes 80 8) (fes 88 8)) =
+    (e 0x9a2f7a8e451a7d5e 0x92fdd92ed9c8d7c3)
 
 #guard (ringWeight (fes 71 4) (fes 75 4) (fes 100 64)) =
-    (e 0x6f0eb6aeec94b739 0xa58b39c32b7e22f6 0x7a7dd4c24feb966a)
+    (e 0x3f0a017409b44f2b 0xfd9d5985b95b676d)
 
-/- `ring_switch`'s weight `W` at `r' = fes 75 4`, and its target on the slices `fes 130 64` -/
-#guard (ringWeight (fes 71 4) (fes 75 4) (ringCoefficients (fes 80 6))) =
-    (e 0x328877f69da26c34 0x790f74e5b6d4aeff 0x9e6f2eef8593477c)
+/- `ring_switch`'s weight `W` at `r' = fes 75 4` -/
+#guard (ringWeight (fes 71 4) (fes 75 4) (ringCoefficients (fes 80 8) (fes 88 8))) =
+    (e 0xd929f3139f6cb600 0xa9c0309d15183135)
 
-#guard (polyEval ((fes 130 64).map (phiMap · (fes 80 6))) gen) =
-    (e 0xb69e86537be854df 0xc66fc5b97b11e1ed 0x80a34c7b2b8c9e71)
+#guard (frobenius8 (fe 87) 3) =
+    (e 0x6d621675ade71890 0xc961818aa4701716)
 
 /-! ## Placements (`multilinear.rs:114-148`) -/
 
@@ -348,42 +339,40 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
     ([96, 0, 32, 110, 104, 64, 108], 7)
 
 #guard (samplePlacement.stackPoint [fe 90, fe 91, fe 92] 9) =
-    [(e 0xa0e42a8c192efb90 0x729974beeac1e893 0x444ebef1bc54d596),
-     (e 0x3f1ba445987977a5 0x10d0ee786a0c64a8 0xe28638ab3b9f51ab),
-     (e 0xdd531dff17c3f3ba 0xaf086831e956e0bd 0x80bdb264bae9cdc0), (e 0x1 0x0 0x0), (e 0x1 0x0 0x0),
-     (e 0x0 0x0 0x0), (e 0x1 0x0 0x0), (e 0x0 0x0 0x0), (e 0x0 0x0 0x0)]
+    [(e 0xa0e42a8c192efb90 0x729974beeac1e893), (e 0x3f1ba445987977a5 0x10d0ee786a0c64a8),
+     (e 0xdd531dff17c3f3ba 0xaf086831e956e0bd), (e 0x1 0x0), (e 0x1 0x0), (e 0x0 0x0), (e 0x1 0x0),
+     (e 0x0 0x0), (e 0x0 0x0)]
 
 #guard (samplePlacement.eqAbove (fes 93 9)) =
-    (e 0xb55551000c96060f 0x491ccd354400b340 0x66d12dcfc1d3da0a)
+    (e 0x8e1ca664b6991f1a 0xcae2304f3a4d6e6e)
 
-/-! ## The tables (`layout.rs:130-490`) -/
+/-! ## The tables (`layout.rs:129-481`) -/
 
 #guard (tables.map Table.columns) =
-    [["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a",
-      "cnt_b", "cnt_c", "cnt_bc"],
-     ["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a",
-      "cnt_b", "cnt_c", "cnt_bc"],
-     ["pc", "fp", "o", "k_0", "k_1", "k_2", "cnt", "cnt_bc"],
-     ["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "v3_2", "cnt_ptr",
-      "cnt_target", "cnt_local", "cnt_bc"],
+    [["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "vb_0", "vb_1", "cnt_a", "cnt_b", "cnt_c",
+      "cnt_bc"],
+     ["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "vb_0", "vb_1", "cnt_a", "cnt_b", "cnt_c",
+      "cnt_bc"], ["pc", "fp", "o", "k_0", "k_1", "cnt", "cnt_bc"],
+     ["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "cnt_ptr", "cnt_target",
+      "cnt_local", "cnt_bc"],
      ["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f",
       "cnt_bc", "w", "b"],
      ["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in",
       "odd_out", "out_two", "out_all", "free", "in_0", "in_1", "in_2", "in_3", "in_4", "in_5",
-      "in_6", "in_7", "in_8", "in_9", "in_10", "in_11", "in_12", "in_13", "in_14", "in_15",
-      "in_16", "in_17", "in_18", "in_19", "in_20", "in_21", "in_22", "in_23", "in_24", "out_0",
-      "out_1", "out_2", "out_3", "out_4", "out_5", "out_6", "out_7", "out_8", "out_9", "out_10",
-      "out_11", "out_12", "out_13", "out_14", "out_15", "out_16", "out_17", "out_18", "out_19",
-      "out_20", "out_21", "out_22", "out_23", "out_24", "cnt_0", "cnt_1", "cnt_2", "cnt_3",
-      "cnt_4", "cnt_5", "cnt_6", "cnt_7", "cnt_8", "cnt_9", "cnt_10", "cnt_11", "cnt_12", "cnt_13",
-      "cnt_14", "cnt_15", "cnt_16", "cnt_17", "cnt_18", "cnt_19", "cnt_20", "cnt_21", "cnt_22",
-      "cnt_23", "cnt_24", "cnt_25", "cnt_bc"]]
+      "in_6", "in_7", "in_8", "in_9", "in_10", "in_11", "in_12", "in_13", "in_14", "in_15", "in_16",
+      "in_17", "in_18", "in_19", "in_20", "in_21", "in_22", "in_23", "in_24", "out_0", "out_1",
+      "out_2", "out_3", "out_4", "out_5", "out_6", "out_7", "out_8", "out_9", "out_10", "out_11",
+      "out_12", "out_13", "out_14", "out_15", "out_16", "out_17", "out_18", "out_19", "out_20",
+      "out_21", "out_22", "out_23", "out_24", "cnt_0", "cnt_1", "cnt_2", "cnt_3", "cnt_4", "cnt_5",
+      "cnt_6", "cnt_7", "cnt_8", "cnt_9", "cnt_10", "cnt_11", "cnt_12", "cnt_13", "cnt_14",
+      "cnt_15", "cnt_16", "cnt_17", "cnt_18", "cnt_19", "cnt_20", "cnt_21", "cnt_22", "cnt_23",
+      "cnt_24", "cnt_25", "cnt_bc"]]
 
 #guard (tableWidths) =
-    [15, 15, 8, 15, 14, 92]
+    [13, 13, 7, 14, 14, 92]
 
 #guard (globalColumnBases) =
-    [6, 21, 36, 44, 59, 73]
+    [5, 18, 31, 38, 52, 66]
 
 #guard (tableLogFloors) =
     [0, 0, 0, 0, 0, 9]
@@ -392,19 +381,13 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
     [0, 0, 0, 0, 2, 0]
 
 #guard (tables.map Table.countColumns) =
-    [[11, 12, 13, 14],
-     [11, 12, 13, 14],
-     [6, 7],
-     [11, 12, 13, 14],
-     [8, 9, 10, 11],
+    [[9, 10, 11, 12], [9, 10, 11, 12], [5, 6], [10, 11, 12, 13], [8, 9, 10, 11],
      [65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87,
       88, 89, 90, 91]]
 
 #guard (tables.map fun t ↦ t.padding.map eToNat) =
-    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+     [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0xf1258f7940e1dde7, 0x84d5ccf933c0478a, 0xd598261ea65aa9ee,
@@ -417,8 +400,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
       0, 0, 0, 0, 0, 0, 0, 0, 0]]
 
 #guard (jumpConstraints (fes 400 14)) =
-    [(e 0x74c3d55b8563cc8d 0xe14fe16b59b07f5b 0xc8d072e655497420),
-     (e 0xa796fc834b5ba71f 0x101f01afc165bbbb 0xa16e9550118705e7)]
+    [(e 0x81ab9cd5332cf16a 0xc9caef27e887674d), (e 0x7344c6060c9320ca 0x987a8c1955c70dee)]
 
 #guard ([false, true].map fun odd ↦ (List.range 13).map (LeanVM.Semantics.cellLanes odd)) =
     [[(some 0, some 1), (some 2, some 3), (some 4, some 5), (some 6, some 7), (some 8, some 9),
@@ -429,234 +411,232 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
       (some 17, some 18), (some 19, some 20), (some 21, some 22), (some 23, some 24)]]
 
 #guard ((layoutLimb (some 3) (some 5) 7 (some 9)).evaluate fun i ↦ fe (150 + i)) =
-    (e 0x85ec37342d31c0a9 0x6c27ed054ad7bd99 0x88bbd549302a0e)
+    (e 0xd51b5df9c3a2114e 0xaed8f199a2d42f42)
 
 #guard ((layoutLimb none (some 5) 7 (some 9)).evaluate fun i ↦ fe (150 + i)) =
-    (e 0xfc746ee9dfa27169 0x100d5386fe7e4d15 0xdc3df7492cc30e19)
+    (e 0x82a6265599796dc4 0xb572cac242f27e3b)
 
 #guard ((layoutLimb (some 3) none 7 none).evaluate fun i ↦ fe (150 + i)) =
-    (e 0x26e523742a1b7be2 0xded54b00374ddb4d 0x340c90abd786cf33)
+    (e 0xd0b726c353e61095 0xbe9f7b339d0c5441)
 
 #guard ((layoutLimb none none 7 none).evaluate fun i ↦ fe (150 + i)) =
-    (e 0x0 0x0 0x0)
+    (e 0x0 0x0)
 
 #guard ((layoutLimb none none 7 (some 9)).evaluate fun i ↦ fe (150 + i)) =
-    (e 0x45d7f98b68426d39 0x178d43be39d55a3c 0xe9428df10b68473f)
+    (e 0x45d7f98b68426d39 0x178d43be39d55a3c)
 
 #guard ((layoutLimb (some 4) (some 4) 7 none).evaluate fun i ↦ fe (150 + i)) =
-    (e 0x2ec298ebebce00d0 0x77e31ebd60edd3 0xd22d2d518ef3dad6)
+    (e 0x2ec298ebebce00d0 0x77e31ebd60edd3)
 
 #guard ((layoutLimb none (some 9) 7 (some 9)).evaluate fun i ↦ fe (150 + i)) =
-    (e 0x45d7f98b68426d39 0x178d43be39d55a3c 0xe9428df10b68473f)
+    (e 0x45d7f98b68426d39 0x178d43be39d55a3c)
 
-/- `build_layout`'s `q_keccak` slots (`qkeccak_slot`) and `outputs`, and the output lanes' columns -/
-#guard ((List.range 168).filterMap fun c ↦ (keccakSlot c).map (c, ·)) =
-    [(73, 50), (74, 51), (75, 52), (76, 53), (77, 54), (78, 55), (79, 56), (80, 57), (81, 58),
-     (82, 59), (83, 60), (84, 61), (85, 62), (86, 63), (88, 0), (89, 1), (90, 2), (91, 3), (92, 4),
-     (93, 5), (94, 6), (95, 7), (96, 8), (97, 9), (98, 10), (99, 11), (100, 12), (101, 13),
-     (102, 14), (103, 15), (104, 16), (105, 17), (106, 18), (107, 19), (108, 20), (109, 21),
-     (110, 22), (111, 23), (112, 24)]
+/- `build_layout`'s `q_keccak` slots (`qkeccak_slot`), and the output lanes' columns (`outputs`) -/
+#guard ((List.range 200).filterMap fun c ↦ (keccakSlot c).map (c, ·)) =
+    [(66, 50), (67, 51), (68, 52), (69, 53), (70, 54), (71, 55), (72, 56), (73, 57), (74, 58),
+     (75, 59), (76, 60), (77, 61), (78, 62), (79, 63), (81, 0), (82, 1), (83, 2), (84, 3), (85, 4),
+     (86, 5), (87, 6), (88, 7), (89, 8), (90, 9), (91, 10), (92, 11), (93, 12), (94, 13), (95, 14),
+     (96, 15), (97, 16), (98, 17), (99, 18), (100, 19), (101, 20), (102, 21), (103, 22), (104, 23),
+     (105, 24)]
 
 #guard (keccakOutputColumns) =
-    [113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131,
-     132, 133, 134, 135, 136, 137]
+    [106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124,
+     125, 126, 127, 128, 129, 130]
 
-/-! ## `build_layout` on the sample (`bus.rs:53-79`, `layout.rs:492-583`) -/
+/-! ## `build_layout` on the sample (`bus.rs:77-103`, `layout.rs:483-567`) -/
 
 #guard (sampleLayout.tableLogHeights) =
     [2, 1, 1, 2, 2, 9]
 
 #guard (sampleLayout.stackLog) =
-    19
+    18
 
 #guard (sampleLayout.logBytecode) =
     1
 
 #guard (sampleLayout.placements.map (·.map fun p ↦ (p.variableCount, p.index))) =
-    [some (16, 0), some (16, 65536), some (16, 131072), some (16, 196608), some (1, 309424),
-     some (15, 262144), some (2, 309248), some (2, 309252), some (2, 309256), some (2, 309260),
-     some (2, 309264), some (2, 309268), some (2, 309272), some (2, 309276), some (2, 309280),
-     some (2, 309284), some (2, 309288), some (2, 309292), some (2, 309296), some (2, 309300),
-     some (2, 309304), some (1, 309426), some (1, 309428), some (1, 309430), some (1, 309432),
-     some (1, 309434), some (1, 309436), some (1, 309438), some (1, 309440), some (1, 309442),
-     some (1, 309444), some (1, 309446), some (1, 309448), some (1, 309450), some (1, 309452),
-     some (1, 309454), some (1, 309456), some (1, 309458), some (1, 309460), some (1, 309462),
-     some (1, 309464), some (1, 309466), some (1, 309468), some (1, 309470), some (2, 309308),
-     some (2, 309312), some (2, 309316), some (2, 309320), some (2, 309324), some (2, 309328),
-     some (2, 309332), some (2, 309336), some (2, 309340), some (2, 309344), some (2, 309348),
-     some (2, 309352), some (2, 309356), some (2, 309360), some (2, 309364), some (2, 309368),
-     some (2, 309372), some (2, 309376), some (2, 309380), some (2, 309384), some (2, 309388),
-     some (2, 309392), some (2, 309396), some (2, 309400), some (2, 309404), some (2, 309408),
-     some (2, 309412), some (2, 309416), some (2, 309420), some (9, 287744), some (9, 288256),
-     some (9, 288768), some (9, 289280), some (9, 289792), some (9, 290304), some (9, 290816),
-     some (9, 291328), some (9, 291840), some (9, 292352), some (9, 292864), some (9, 293376),
-     some (9, 293888), some (9, 294400), some (9, 294912), some (9, 262144), some (9, 262656),
-     some (9, 263168), some (9, 263680), some (9, 264192), some (9, 264704), some (9, 265216),
-     some (9, 265728), some (9, 266240), some (9, 266752), some (9, 267264), some (9, 267776),
-     some (9, 268288), some (9, 268800), some (9, 269312), some (9, 269824), some (9, 270336),
-     some (9, 270848), some (9, 271360), some (9, 271872), some (9, 272384), some (9, 272896),
-     some (9, 273408), some (9, 273920), some (9, 274432), none, none, none, none, none, none,
-     none, none, none, none, none, none, none, none, none, none, none, none, none, none, none,
-     none, none, none, none, some (9, 295424), some (9, 295936), some (9, 296448),
-     some (9, 296960), some (9, 297472), some (9, 297984), some (9, 298496), some (9, 299008),
-     some (9, 299520), some (9, 300032), some (9, 300544), some (9, 301056), some (9, 301568),
-     some (9, 302080), some (9, 302592), some (9, 303104), some (9, 303616), some (9, 304128),
-     some (9, 304640), some (9, 305152), some (9, 305664), some (9, 306176), some (9, 306688),
-     some (9, 307200), some (9, 307712), some (9, 308224), some (9, 308736)]
+    [some (16, 0), some (16, 65536), some (16, 131072), some (1, 243876), some (15, 196608),
+     some (2, 243712), some (2, 243716), some (2, 243720), some (2, 243724), some (2, 243728),
+     some (2, 243732), some (2, 243736), some (2, 243740), some (2, 243744), some (2, 243748),
+     some (2, 243752), some (2, 243756), some (2, 243760), some (1, 243878), some (1, 243880),
+     some (1, 243882), some (1, 243884), some (1, 243886), some (1, 243888), some (1, 243890),
+     some (1, 243892), some (1, 243894), some (1, 243896), some (1, 243898), some (1, 243900),
+     some (1, 243902), some (1, 243904), some (1, 243906), some (1, 243908), some (1, 243910),
+     some (1, 243912), some (1, 243914), some (1, 243916), some (2, 243764), some (2, 243768),
+     some (2, 243772), some (2, 243776), some (2, 243780), some (2, 243784), some (2, 243788),
+     some (2, 243792), some (2, 243796), some (2, 243800), some (2, 243804), some (2, 243808),
+     some (2, 243812), some (2, 243816), some (2, 243820), some (2, 243824), some (2, 243828),
+     some (2, 243832), some (2, 243836), some (2, 243840), some (2, 243844), some (2, 243848),
+     some (2, 243852), some (2, 243856), some (2, 243860), some (2, 243864), some (2, 243868),
+     some (2, 243872), some (9, 222208), some (9, 222720), some (9, 223232), some (9, 223744),
+     some (9, 224256), some (9, 224768), some (9, 225280), some (9, 225792), some (9, 226304),
+     some (9, 226816), some (9, 227328), some (9, 227840), some (9, 228352), some (9, 228864),
+     some (9, 229376), some (9, 196608), some (9, 197120), some (9, 197632), some (9, 198144),
+     some (9, 198656), some (9, 199168), some (9, 199680), some (9, 200192), some (9, 200704),
+     some (9, 201216), some (9, 201728), some (9, 202240), some (9, 202752), some (9, 203264),
+     some (9, 203776), some (9, 204288), some (9, 204800), some (9, 205312), some (9, 205824),
+     some (9, 206336), some (9, 206848), some (9, 207360), some (9, 207872), some (9, 208384),
+     some (9, 208896), none, none, none, none, none, none, none, none, none, none, none, none, none,
+     none, none, none, none, none, none, none, none, none, none, none, none, some (9, 229888),
+     some (9, 230400), some (9, 230912), some (9, 231424), some (9, 231936), some (9, 232448),
+     some (9, 232960), some (9, 233472), some (9, 233984), some (9, 234496), some (9, 235008),
+     some (9, 235520), some (9, 236032), some (9, 236544), some (9, 237056), some (9, 237568),
+     some (9, 238080), some (9, 238592), some (9, 239104), some (9, 239616), some (9, 240128),
+     some (9, 240640), some (9, 241152), some (9, 241664), some (9, 242176), some (9, 242688),
+     some (9, 243200)]
 
 #guard (blockProbe sampleLayout.push) =
-    [(2, 0, 3, (e 0x295f303850cc44ae 0x2a75f12fa9759b1f 0x8d1125d19e1d7bb9)),
-     (2, 0, 9, (e 0xedf31ca2a5aeb794 0xc5f4f6cee8ff67c4 0xe528ff9c358a2f2e)),
-     (2, 0, 6, (e 0xc075807cea5391e6 0x45b4d3b13324285f 0x37a448cdfa07b1e8)),
-     (2, 0, 6, (e 0x8e56ac23c73d6fad 0xe71e806358deb151 0xe10275b0cef82904)),
-     (2, 0, 6, (e 0xae07e3f503f3500d 0x557572d8f9b4c066 0x43beb1b37255bfd1)),
-     (1, 1, 3, (e 0x295f303850cc44ae 0x2a75f12fa9759b1f 0x8d1125d19e1d7bb9)),
-     (1, 1, 9, (e 0xa961aa7f6e20ddeb 0x5548538ed22c297b 0xb012a9933dca2dc7)),
-     (1, 1, 6, (e 0xc075807cea5391e6 0x45b4d3b13324285f 0x37a448cdfa07b1e8)),
-     (1, 1, 6, (e 0x8e56ac23c73d6fad 0xe71e806358deb151 0xe10275b0cef82904)),
-     (1, 1, 6, (e 0x428c6b7038d05f6b 0xa7b0a0e69f961918 0x4d7d8041bbefec3c)),
-     (1, 2, 3, (e 0x295f303850cc44ae 0x2a75f12fa9759b1f 0x8d1125d19e1d7bb9)),
-     (1, 2, 9, (e 0xdd943ffb420a88b3 0x9bb7754d3264ee59 0x24601c10e20f984d)),
-     (1, 2, 6, (e 0x667ebdf7f01724dd 0xd09e2e1ecdea85b9 0x7e8169447f73cf3b)),
-     (2, 3, 3, (e 0x295f303850cc44ae 0x2a75f12fa9759b1f 0x8d1125d19e1d7bb9)),
-     (2, 3, 9, (e 0xae91a91b89c52fe2 0x49d81f26e8247a8d 0x144f4d427bdd6c7a)),
-     (2, 3, 6, (e 0xf346890a1c1be1c6 0x65e453c8a3b76162 0x61cf098a3fc5a527)),
-     (2, 3, 6, (e 0xe939a7d9ea89509e 0xec3c042db13b74c5 0x2296f7e76346c102)),
-     (2, 3, 6, (e 0x73e5ac0b63062ab2 0x29150db386eb53d4 0xed6e27e2b115a020)),
-     (2, 4, 3, (e 0x2a620b88289f92f9 0xa356282ef1076929 0x4c3a74498ad38e95)),
-     (2, 4, 9, (e 0x2f105080de04647c 0x8e57d5862349c84c 0xa98f8689116eb156)),
-     (2, 4, 6, (e 0xe830f8eef2f6ad55 0xc08ddeba64d34674 0xc55a4021e18ecaca)),
-     (2, 4, 6, (e 0xaa491a07c444d14a 0x487ed1b20d9c060e 0x44f2c76fa9f7bf5a)),
-     (2, 4, 6, (e 0x828ba7871753914 0x36c4c4d664bde020 0xceee367e0f161c65)),
-     (9, 5, 3, (e 0x295f303850cc44ae 0x2a75f12fa9759b1f 0x8d1125d19e1d7bb9)),
-     (9, 5, 16, (e 0xe5f394bca1806783 0x60cc95d400bd2b7e 0xc09c9961d6f769c4)),
-     (9, 5, 6, (e 0xcf9fccff0a082b33 0xf56977ad0a4cf607 0x7513a2c91dfd0649)),
-     (9, 5, 6, (e 0x922c7bc0d7c591ac 0xa9877aa7f706c77e 0x31f108ade44012fb)),
-     (9, 5, 6, (e 0x2f177f5c4d457990 0x4f4d90b19ab8a3d6 0x79df62b17a37bbe9)),
-     (9, 5, 6, (e 0x2c618b6014272d08 0x76680dd7427bfbbd 0xd4698557ac4446d1)),
-     (9, 5, 6, (e 0x850e972fd3f29dbc 0x6c9d678493790829 0xe7e4c266e8b8487f)),
-     (9, 5, 6, (e 0xe92f9548b3346004 0xcb1faab0c0bb76ae 0x3410fdae1cb02386)),
-     (9, 5, 6, (e 0x80cd0ff16b0d80d7 0x3b635b2b6195bc89 0x2b0b467cc56a36f8)),
-     (9, 5, 6, (e 0x23dd18f3298bbdd5 0x54ce58d45c517aa4 0x859624456eb6a32a)),
-     (9, 5, 6, (e 0x778df542131fe406 0xd6d9ef4b22805c00 0x355aca466469e69c)),
-     (9, 5, 6, (e 0x6b07af9ca1271754 0xceacb7fd504f8239 0x2f90517d2dd4cb19)),
-     (9, 5, 6, (e 0xd8269dac5bd129f6 0x445c01af5167cb3d 0x2ac36bfc1a185954)),
-     (9, 5, 6, (e 0x5cad4a33b43cce63 0x4e43d993c8a1e892 0xe4c95e704ec9b18c)),
-     (9, 5, 6, (e 0x718f149b9d832049 0x9372253d1071fa45 0xbaa4db2370bcdbce)),
-     (9, 5, 6, (e 0x6faaf3fbf9205892 0xfc0a4896cf2cc959 0xc348e52c6ab1852c)),
-     (9, 5, 6, (e 0xf4f624ac201816e 0x475924781e968a0b 0x8770f6079080b423)),
-     (9, 5, 6, (e 0x645c37bf01c865b8 0x77cb04c6b07dc4e4 0xa337956bcfc13ace)),
-     (9, 5, 6, (e 0x490197447a37f81e 0x9e37d1bd40b9348c 0x48347ca738f4d1d1)),
-     (9, 5, 6, (e 0x7d2aa87c73c92986 0xe8ab150a2fc3800e 0x775484cec92ff6c2)),
-     (9, 5, 6, (e 0x3312bcf950b13d00 0x57698308116cffcd 0x8785a099fcc494a4)),
-     (9, 5, 6, (e 0x3900920c1bee4014 0xedce6fda19554f16 0xf14a54e45d220725)),
-     (9, 5, 6, (e 0x781179c586d7e139 0x3d8eaa6494fb4f13 0x2f6b69808858ea11)),
-     (9, 5, 6, (e 0x3a7ea10b0c2cd88 0x44c49fdc00794f23 0xe5154aaaa473a326)),
-     (9, 5, 6, (e 0xcf01cba40de7c930 0xd82d494db95c65d1 0xb1ffbd4296019ba1)),
-     (9, 5, 6, (e 0x4e72a1d7a2d08974 0x645f93574128bec3 0x29bb739244b014d5)),
-     (9, 5, 6, (e 0x5be151ae8026c49e 0x69fd4619a72a5e32 0xb95be21d16822f88)),
-     (9, 5, 6, (e 0x824b277e3751f27 0xea42e3682f184d5b 0x596c5a494fd94887))]
+    [(2, 0, 3, (e 0xc77f4d63a694c8bc 0x49db39674d2a61ac)),
+     (2, 0, 9, (e 0x5477aa853dfdf47f 0xda20611594aca9aa)),
+     (2, 0, 5, (e 0x14787529efbe2405 0x8a32441475ba3804)),
+     (2, 0, 5, (e 0x30bf17c5c69d8f19 0x7203d24986d6705)),
+     (2, 0, 5, (e 0x82f66e6c811d1319 0xe6685e0342accb44)),
+     (1, 1, 3, (e 0xc77f4d63a694c8bc 0x49db39674d2a61ac)),
+     (1, 1, 9, (e 0x48b8b39d507e266e 0x5946a5b3d81f5847)),
+     (1, 1, 5, (e 0x14787529efbe2405 0x8a32441475ba3804)),
+     (1, 1, 5, (e 0x30bf17c5c69d8f19 0x7203d24986d6705)),
+     (1, 1, 5, (e 0xdee72ec8999b27f2 0xe6083333e99f7fe4)),
+     (1, 2, 3, (e 0xc77f4d63a694c8bc 0x49db39674d2a61ac)),
+     (1, 2, 9, (e 0xfcffafbd8028aa77 0x2445999093296cc2)),
+     (1, 2, 5, (e 0x3d6d8e988a2b26ae 0x4429d17ccb80f1ed)),
+     (2, 3, 3, (e 0xc77f4d63a694c8bc 0x49db39674d2a61ac)),
+     (2, 3, 9, (e 0xcf687a2e5165cb37 0xcafce0693b18d671)),
+     (2, 3, 5, (e 0xf373c23aeb590ca9 0x226ac29cac305ae3)),
+     (2, 3, 5, (e 0x999a50d4e8ff6a30 0xc9bdb27b2921d093)),
+     (2, 3, 5, (e 0x30f51b189cf98456 0xfec3a2fa2f62e170)),
+     (2, 4, 3, (e 0xf0b42a7910c706ef 0x145db5d09a7db01c)),
+     (2, 4, 9, (e 0x20dbcd4330881f33 0x8ff272ed83641a2c)),
+     (2, 4, 5, (e 0xfde1a663790b2da6 0x9d459073bc457344)),
+     (2, 4, 5, (e 0x466fea2f5d4b4377 0xf4b61427e33572e6)),
+     (2, 4, 5, (e 0xcee82f496bdc6693 0xd47cfb53f5060b)),
+     (9, 5, 3, (e 0xc77f4d63a694c8bc 0x49db39674d2a61ac)),
+     (9, 5, 16, (e 0x8b7ecbb5b7e0df54 0x58e67b7dcb7b363e)),
+     (9, 5, 5, (e 0x4b8f3afa5d0f5f5a 0xe3376dd52b7435fe)),
+     (9, 5, 5, (e 0xec9ded693c405084 0x94c15383ba388d9e)),
+     (9, 5, 5, (e 0x47e5b36a6a952ad9 0x11125929fe7924fd)),
+     (9, 5, 5, (e 0xeae33bb7ea10b28b 0x4414dfd140e07108)),
+     (9, 5, 5, (e 0xba640eae40267b8 0xd759cb9d63f099be)),
+     (9, 5, 5, (e 0xcdc4d475e4161a01 0xbe6d046238316bcd)),
+     (9, 5, 5, (e 0x2269c9dc24ca537e 0x8aa212aad3f42f)),
+     (9, 5, 5, (e 0x5d5717bc77ba0d20 0xe99851f94416ad62)),
+     (9, 5, 5, (e 0x1bb05d0af5184fca 0xe465371aa362e3dc)),
+     (9, 5, 5, (e 0xc6ca2d7de6807043 0x4a7e831a59676f8e)),
+     (9, 5, 5, (e 0xf58a0beb0989ea1d 0x816de8916ebfab49)),
+     (9, 5, 5, (e 0x631e8896fd395b06 0x9e12f4f01e82fc05)),
+     (9, 5, 5, (e 0x8359db553322439d 0xc6383a97501bc813)),
+     (9, 5, 5, (e 0xdda35c52de7b266b 0x68f4af1669046a7d)),
+     (9, 5, 5, (e 0x16f3eeccc0e7a23b 0x55c79af15490c3c8)),
+     (9, 5, 5, (e 0xb978a31d5a087c22 0x5ae46655ed3d44d0)),
+     (9, 5, 5, (e 0xb8d6616935975033 0x12fb4022241c3816)),
+     (9, 5, 5, (e 0x505dd217454a67b 0x9439915de0dc9bed)),
+     (9, 5, 5, (e 0xef76ba727ac304e4 0x6b2fc445e40dfef6)),
+     (9, 5, 5, (e 0x5ee69819afad3059 0x637fa006e9a32bf5)),
+     (9, 5, 5, (e 0x8a2320cc84d693a 0x2ad4ad5856efe34a)),
+     (9, 5, 5, (e 0x38b9d4197f9f2439 0x15c17fdf69573439)),
+     (9, 5, 5, (e 0x8ca3641aeacc282f 0xbcca9f3ef2d2a62e)),
+     (9, 5, 5, (e 0xec6a916d0ecd35bf 0x77ad755680cc0b0d)),
+     (9, 5, 5, (e 0xf425a1f22f635b30 0x21ee7e413179c02a)),
+     (9, 5, 5, (e 0xcf1d50c367c4e54c 0x3d1b72babc6ce5e3))]
 
 #guard (blockProbe sampleLayout.pull) =
-    [(2, 0, 3, (e 0xa2064c999c552c7a 0xa625e23b836e1f30 0x3a85996546700198)),
-     (2, 0, 9, (e 0x8a39d21e2195222f 0xa8381fa57bf3cb14 0x58b1482211f54409)),
-     (2, 0, 6, (e 0x82f1497391a3d8bd 0xbb1f097c5b6ae05 0xe386a193aece1d8c)),
-     (2, 0, 6, (e 0x8ac461d703ce7f2a 0x41b48880e9fe47bf 0xca86f4d1074bf0af)),
-     (2, 0, 6, (e 0x50223f593589df6d 0x1001e52c4f785b4a 0xab78958c806477a4)),
-     (1, 1, 3, (e 0xa2064c999c552c7a 0xa625e23b836e1f30 0x3a85996546700198)),
-     (1, 1, 9, (e 0xceab64c3ea1b4850 0x3884bae5412085ab 0xd8b1e2d19b546e0)),
-     (1, 1, 6, (e 0x82f1497391a3d8bd 0xbb1f097c5b6ae05 0xe386a193aece1d8c)),
-     (1, 1, 6, (e 0x8ac461d703ce7f2a 0x41b48880e9fe47bf 0xca86f4d1074bf0af)),
-     (1, 1, 6, (e 0xbca9b7dc0eaad00b 0xe2c43712295a8234 0xa5bba47e49de2449)),
-     (1, 2, 3, (e 0xa2064c999c552c7a 0xa625e23b836e1f30 0x3a85996546700198)),
-     (1, 2, 9, (e 0x9f65390701977326 0x9a150c936b0b672f 0x2ed2de50fe4a1858)),
-     (1, 2, 6, (e 0xd6c08b719f317415 0x7b76af9bc85d3bf1 0xaad7604cf772c3ba)),
-     (2, 3, 3, (e 0xa2064c999c552c7a 0xa625e23b836e1f30 0x3a85996546700198)),
-     (2, 3, 9, (e 0xc95b67a70dfeba59 0x2414f64d7b28d65d 0xa9d6fafc5fa2075d)),
-     (2, 3, 6, (e 0xb1c2400567eba89d 0x2be170ee5525e738 0xb5ede0d46b0c0943)),
-     (2, 3, 6, (e 0xedab6a2d2e7a4019 0x4a960cce001b822b 0x9127686aaf518a9)),
-     (2, 3, 6, (e 0x8dc070a7557ca5d2 0x6c619a473027c8f8 0x5a803dd43246855)),
-     (2, 4, 3, (e 0xa2064c999c552c7a 0xa625e23b836e1f30 0x3a85996546700198)),
-     (2, 4, 9, (e 0x6d94998fa5f42d27 0xc052f6a0d5db4e16 0x7dad6fd745a71d32)),
-     (2, 4, 6, (e 0x262baccc1718a4 0x457b5901855f9bdb 0x332382ae6a3b42c)),
-     (2, 4, 6, (e 0x4d5dc026d34ab832 0xfac2e9644cd582c7 0xde9586075ba6b06a)),
-     (2, 4, 6, (e 0x1affed3568958e29 0xbcd57d73d231ea37 0x6949862fdb9c5235)),
-     (9, 5, 3, (e 0xa2064c999c552c7a 0xa625e23b836e1f30 0x3a85996546700198)),
-     (9, 5, 16, (e 0xc05ec97e5d23e579 0xbfb70d730f941c8e 0x5d649115571354d2)),
-     (9, 5, 6, (e 0x5ca3f8f4a03f808e 0xd1d5df849e99d56b 0x758118cf4ae2ab6a)),
-     (9, 5, 6, (e 0x3e012595df415fc5 0x77f5681db35f6a7c 0x3be713804aaea112)),
-     (9, 5, 6, (e 0xc83a12dda32af5b0 0xb7736db527d7cca5 0x3828892c974021a5)),
-     (9, 5, 6, (e 0x16fe276aac63a824 0xe4303ca4a60be419 0xa820acc471fbbb06)),
-     (9, 5, 6, (e 0x4a611a09ba036a68 0x24d4fe2b8e5180f1 0xc0695dd993ebd878)),
-     (9, 5, 6, (e 0x393fe087e7d16c8b 0x3976053a15674185 0x7ea577a1b1a409b7)),
-     (9, 5, 6, (e 0xd304bf5c2d16b51f 0x4f1bcedb7c6f9bca 0xd79ad8c72f3d3b5f)),
-     (9, 5, 6, (e 0x603e02630ec376ff 0x6037631da2596ff7 0x688299a31067a7d5)),
-     (9, 5, 6, (e 0xe66ca12bae44d884 0x6f343c0a91caf137 0xb2d2d6ce164b2fa7)),
-     (9, 5, 6, (e 0xbac04432136cf90 0x5fc9dc11e1f2a7b 0x89bd968561776d8)),
-     (9, 5, 6, (e 0xcf1741245acb15b6 0xa8c248d7962ee3e0 0x8ccfe3d320d4854f)),
-     (9, 5, 6, (e 0x84df46e3e460066b 0xf45ccca9ff3ea4c9 0x1bf78afd01d8f59a)),
-     (9, 5, 6, (e 0x10fa1840f18ab0fd 0xfc7705b50be1a738 0x97fe4e2b34c4f7ca)),
-     (9, 5, 6, (e 0xe33b1def59476c95 0x39c4ac1797ebdd2b 0x4cdd548f8253d8bd)),
-     (9, 5, 6, (e 0xfa54ff9bdc17327d 0xa62b19416b4f6cac 0xca7bf83e5407d031)),
-     (9, 5, 6, (e 0xd659f595ea6699a3 0xd259a64f376b5392 0x4875a4beab2c7e4b)),
-     (9, 5, 6, (e 0xae5a201e3cc39a3c 0x4473fd13dacebf0 0xf9865f560e642205)),
-     (9, 5, 6, (e 0x1015b91c3c009e9b 0x9aefc5a31a7310d4 0xb1736dc6606bec4e)),
-     (9, 5, 6, (e 0x4f498f500cb168e 0x2e668ac0ed3fac1b 0xecd618713ff3284e)),
-     (9, 5, 6, (e 0x1a8e5b948382b276 0x57bea397317ec799 0xed2ea25978c9c6e3)),
-     (9, 5, 6, (e 0xc7f3db8d61ff11a4 0x2a2f2452a98f1d3e 0x45279a24dd7367fc)),
-     (9, 5, 6, (e 0x8bb1b9176834b6de 0x4fc57bd34b788a2f 0x617921ec8a390482)),
-     (9, 5, 6, (e 0x98395262ee3e52a6 0xbe7833f8616c99b8 0xf1d4b79a58392300)),
-     (9, 5, 6, (e 0x8eca886b4cf60b5c 0x9ad0850d213f0af1 0x243c9f9ae450f0f6)),
-     (9, 5, 6, (e 0xe4b6c9b66bba241a 0x160aea72efbecea4 0xd74b4e0889de46ec)),
-     (9, 5, 6, (e 0x3fbc789e9a8a81a8 0x386310b1efc64478 0xbeeb1748405c64a1))]
+    [(2, 0, 3, (e 0x480baa0adf35c21e 0x2b89c30f85e10827)),
+     (2, 0, 9, (e 0x8b4db1992bd45ffb 0x93b6b34d9809e2b)),
+     (2, 0, 5, (e 0x7446233a1ce2fd65 0xe4b76e41aa5f1ae8)),
+     (2, 0, 5, (e 0x34e116e043806f3d 0x55c576ca9492b3e6)),
+     (2, 0, 5, (e 0x7b29651ac624dffa 0x90cd0947506a617f)),
+     (1, 1, 3, (e 0x480baa0adf35c21e 0x2b89c30f85e10827)),
+     (1, 1, 9, (e 0x9782a88146578dea 0x8a5daf9295336fc6)),
+     (1, 1, 5, (e 0x7446233a1ce2fd65 0xe4b76e41aa5f1ae8)),
+     (1, 1, 5, (e 0x34e116e043806f3d 0x55c576ca9492b3e6)),
+     (1, 1, 5, (e 0x273825bedea2eb11 0x90ad6477fb59d5df)),
+     (1, 2, 3, (e 0x480baa0adf35c21e 0x2b89c30f85e10827)),
+     (1, 2, 9, (e 0x68f00db998f8bdd8 0xb1777c69e57c67a5)),
+     (1, 2, 5, (e 0xb2fcad3840a4ebc1 0x686f8833c6ea25d6)),
+     (2, 3, 3, (e 0x480baa0adf35c21e 0x2b89c30f85e10827)),
+     (2, 3, 9, (e 0x164e7aa31a4f6484 0x80e63fd47251d312)),
+     (2, 3, 5, (e 0xf72dc31f6e44ec8d 0x708f8972a0cf8e00)),
+     (2, 3, 5, (e 0x60455ba2afc6a6d3 0xbf18e53f3be77aa8)),
+     (2, 3, 5, (e 0xefcf00048ad02fd2 0x2dd8a8db624ed6f1)),
+     (2, 4, 3, (e 0x480baa0adf35c21e 0x2b89c30f85e10827)),
+     (2, 4, 9, (e 0xd904c63577b1d3d0 0xf95725a991a2b017)),
+     (2, 4, 5, (e 0x8bf0a9d5ec04167 0xa1776b229380be6e)),
+     (2, 4, 5, (e 0x2651bc3cae179a17 0x9a333e723cd0500a)),
+     (2, 4, 5, (e 0xcab62e6ceec186b7 0x523137155f0ad2e8)),
+     (9, 5, 3, (e 0x480baa0adf35c21e 0x2b89c30f85e10827)),
+     (9, 5, 16, (e 0x95603ba76a57962b 0xaefb703326110973)),
+     (9, 5, 5, (e 0x84f42ad3e3701b77 0xe34e785742d3b20b)),
+     (9, 5, 5, (e 0x70432dba32f88bac 0x1c0775bc7117bbd6)),
+     (9, 5, 5, (e 0x9028c56cae10fe75 0x1625760f76a71e91)),
+     (9, 5, 5, (e 0xc0ca243858b41815 0x965e06d1558b28d8)),
+     (9, 5, 5, (e 0x5a58d56ee3bbe07c 0x752b89239df60784)),
+     (9, 5, 5, (e 0xfded56235bea7461 0xc925b264ec79cb26)),
+     (9, 5, 5, (e 0x5eb343e0b7d0e683 0x37aeb3c520818161)),
+     (9, 5, 5, (e 0x52a604101484a04c 0x7214332bbc537eb8)),
+     (9, 5, 5, (e 0x1c5d3ce7a2521666 0x8fba7127482ab9fd)),
+     (9, 5, 5, (e 0x6220362bd2ea9e6c 0x29011d1690b5162f)),
+     (9, 5, 5, (e 0x60a34c5b7d3ebb73 0x2982048bbed83fca)),
+     (9, 5, 5, (e 0x8f0ebe28795380ca 0x8249a6e42d296019)),
+     (9, 5, 5, (e 0x9af7cd7681baf4e7 0x2945c5797ebf5932)),
+     (9, 5, 5, (e 0x5a984f5b0026acac 0xf67365ad5d0c506)),
+     (9, 5, 5, (e 0x871d1c6959402272 0x6cf245307f514ed8)),
+     (9, 5, 5, (e 0xcad157ac9b62617 0x2d184d30e65a4f77)),
+     (9, 5, 5, (e 0xe3c9ed6a88f8616a 0x79db456300aa0dc8)),
+     (9, 5, 5, (e 0x7b7451ceac3780d6 0x9bef6f164bd9fec4)),
+     (9, 5, 5, (e 0x54b25295922f2516 0x1a09fa51da772613)),
+     (9, 5, 5, (e 0x1897fc5a7cadbada 0x13575886e90d2743)),
+     (9, 5, 5, (e 0x86379b9e3b2da2e5 0xa98381c7bbddd474)),
+     (9, 5, 5, (e 0x4eb467f13ad61547 0x71470ffa9fa259d3)),
+     (9, 5, 5, (e 0xeaf1687882da352c 0x6a48a6289df21f82)),
+     (9, 5, 5, (e 0x3d3f094a710445da 0x96154d6190f8a62f)),
+     (9, 5, 5, (e 0x2d53279831b846af 0xbca652d799d3df79)),
+     (9, 5, 5, (e 0x41c4bb77a7df8d4b 0x7b1b671fefe4f6ed))]
 
 #guard (blockProbe sampleLayout.count) =
-    [(2, 0, 1, (e 0x691cb3394363a17d 0x3ad1fd6c14f68e80 0xc87479ee6897b83)),
-     (2, 0, 1, (e 0x7542cf2c2ae1d92 0xd909772594410a95 0xaabec15865d3f798)),
-     (2, 0, 1, (e 0xa58ba6ac41f899a7 0x7740f0df138b86aa 0x48f63b11e51e73ad)),
-     (2, 0, 1, (e 0x43c32065c14315bc 0x15786a9892d602bf 0xe72db4cb6468efc2)),
-     (1, 1, 1, (e 0x691cb3394363a17d 0x3ad1fd6c14f68e80 0xc87479ee6897b83)),
-     (1, 1, 1, (e 0x7542cf2c2ae1d92 0xd909772594410a95 0xaabec15865d3f798)),
-     (1, 1, 1, (e 0xa58ba6ac41f899a7 0x7740f0df138b86aa 0x48f63b11e51e73ad)),
-     (1, 1, 1, (e 0x43c32065c14315bc 0x15786a9892d602bf 0xe72db4cb6468efc2)),
-     (1, 2, 1, (e 0x52075299c6ef3514 0x23bc9ccc98822217 0xf571e6ff6a150f1a)),
-     (1, 2, 1, (e 0xf03ecc534639b129 0xc1f4168617cc9e2c 0x93a960b8e95f8b2f)),
-     (2, 3, 1, (e 0x691cb3394363a17d 0x3ad1fd6c14f68e80 0xc87479ee6897b83)),
-     (2, 3, 1, (e 0x7542cf2c2ae1d92 0xd909772594410a95 0xaabec15865d3f798)),
-     (2, 3, 1, (e 0xa58ba6ac41f899a7 0x7740f0df138b86aa 0x48f63b11e51e73ad)),
-     (2, 3, 1, (e 0x43c32065c14315bc 0x15786a9892d602bf 0xe72db4cb6468efc2)),
-     (2, 4, 1, (e 0x8e76460cc5842d3e 0x602b903f97171a41 0x31e0da7268aa0744)),
-     (2, 4, 1, (e 0x2cadbfc644cea953 0xfe6309f916619656 0xd018542be7f48359)),
-     (2, 4, 1, (e 0xcae5397fc4192568 0x9c9a83b295ac126b 0x6e4fcde5673eff6e)),
-     (2, 4, 1, (e 0x691cb3394363a17d 0x3ad1fd6c14f68e80 0xc87479ee6897b83)),
-     (9, 5, 1, (e 0xc8d0605a1d19cdeb 0x9a85aa8ceeacbaee 0x6c3af4bfc03fa7f1)),
-     (9, 5, 1, (e 0x6707da139c644a00 0x38bd24466df73703 0xa726e793f8a2406)),
-     (9, 5, 1, (e 0x53f53cd1baec615 0xd6f49dffed41b318 0xa8a9e832bed4a01b)),
-     (9, 5, 1, (e 0xa376cd869af9422a 0x752c17b96c8c2f2d 0x46e161ec3e1f1c30)),
-     (9, 5, 1, (e 0x41ae47401a43be3f 0x13639172ebd6ab42 0xe518dba5bd699845)),
-     (9, 5, 1, (e 0xdfe5c0f9998e3a54 0xb19b0b2c6b212757 0x8350555f3cb4145a)),
-     (9, 5, 1, (e 0x7e1d3ab318d8b669 0x4fd284e5ea6ba36c 0x2187cf18bbfe906f)),
-     (9, 5, 1, (e 0x1c54b46c9823327e 0xee09fe9f69b61f81 0xbfbf48d23b490c84)),
-     (9, 5, 1, (e 0xba8c2e26176dae93 0x8c417858e9009b96 0x5df6c28bba938899)),
-     (9, 5, 1, (e 0x58c3a7df96b82aa8 0x2a78f212684b17ab 0xfc2e3c4539de04ae)),
-     (9, 5, 1, (e 0xf6fb21991602a6bd 0xc8b06bcbe79593c0 0x9a65b5feb92880c3)),
-     (9, 5, 1, (e 0x95329b52954d22d2 0x66e7e58566e00fd5 0x389d2fb83872fcd8)),
-     (9, 5, 1, (e 0x336a150c14979ee7 0x51f5f3ee62a8bea 0xd6d4a971b7bd78ed)),
-     (9, 5, 1, (e 0xd1a18ec593e21afc 0xa356d8f8657507ff 0x750c232b3707f502)),
-     (9, 5, 1, (e 0x6fd9087f132c9711 0x418e52b1e4bf8414 0x13439ce4b6527117)),
-     (9, 5, 1, (e 0xe10823892771326 0xdfc5cc6b640a0029 0xb17b169e359ced2c)),
-     (9, 5, 1, (e 0xac47fbf211c18f3b 0x7dfd4624e3547c3e 0x4fb29057b4e76941)),
-     (9, 5, 1, (e 0x4a7f75ab910c0b50 0x1c34bfde629ef853 0xedea0a113431e556)),
-     (9, 5, 1, (e 0xe8b6ef6510568765 0xba6c3997e1e97468 0x8c2183cab37c616b)),
-     (9, 5, 1, (e 0x86ee691e8fa1037a 0x58a3b3516133f07d 0x2a58fd8432c6dd80)),
-     (9, 5, 1, (e 0x2525e2d80eeb7f8f 0xf6db2d0ae07e6c92 0xc890773db2115995)),
-     (9, 5, 1, (e 0xc35d5c918e35fba4 0x9512a6c45fc8e8a7 0x66c7f0f7315bd5aa)),
-     (9, 5, 1, (e 0x6194d64b0d8077b9 0x334a207ddf1364bc 0x4ff6ab0b0a651bf)),
-     (9, 5, 1, (e 0xffcc50048ccaf3ce 0xd1819a375e5de0d1 0xa336e46a2ff0cdd4)),
-     (9, 5, 1, (e 0x9e03c9be0c156fe3 0x6fb913f0dda85ce6 0x416e5e23af3b49e9)),
-     (9, 5, 1, (e 0x3c3b43778b5febf8 0xdf08daa5cf2d8fb 0xdfa5d7dd2e85c5fe)),
-     (9, 5, 1, (e 0xda72bd310aaa680d 0xac280763dc3d5510 0x7ddd5196add04213))]
-
+    [(2, 0, 1, (e 0x2cadbfc644cea953 0xfe6309f916619656)),
+     (2, 0, 1, (e 0xcae5397fc4192568 0x9c9a83b295ac126b)),
+     (2, 0, 1, (e 0x691cb3394363a17d 0x3ad1fd6c14f68e80)),
+     (2, 0, 1, (e 0x7542cf2c2ae1d92 0xd909772594410a95)),
+     (1, 1, 1, (e 0x2cadbfc644cea953 0xfe6309f916619656)),
+     (1, 1, 1, (e 0xcae5397fc4192568 0x9c9a83b295ac126b)),
+     (1, 1, 1, (e 0x691cb3394363a17d 0x3ad1fd6c14f68e80)),
+     (1, 1, 1, (e 0x7542cf2c2ae1d92 0xd909772594410a95)),
+     (1, 2, 1, (e 0xb3cfd8e047a4b8ff 0x858523131937a602)),
+     (1, 2, 1, (e 0x52075299c6ef3514 0x23bc9ccc98822217)),
+     (2, 3, 1, (e 0xcae5397fc4192568 0x9c9a83b295ac126b)),
+     (2, 3, 1, (e 0x691cb3394363a17d 0x3ad1fd6c14f68e80)),
+     (2, 3, 1, (e 0x7542cf2c2ae1d92 0xd909772594410a95)),
+     (2, 3, 1, (e 0xa58ba6ac41f899a7 0x7740f0df138b86aa)),
+     (2, 4, 1, (e 0x8e76460cc5842d3e 0x602b903f97171a41)),
+     (2, 4, 1, (e 0x2cadbfc644cea953 0xfe6309f916619656)),
+     (2, 4, 1, (e 0xcae5397fc4192568 0x9c9a83b295ac126b)),
+     (2, 4, 1, (e 0x691cb3394363a17d 0x3ad1fd6c14f68e80)),
+     (9, 5, 1, (e 0xc8d0605a1d19cdeb 0x9a85aa8ceeacbaee)),
+     (9, 5, 1, (e 0x6707da139c644a00 0x38bd24466df73703)),
+     (9, 5, 1, (e 0x53f53cd1baec615 0xd6f49dffed41b318)),
+     (9, 5, 1, (e 0xa376cd869af9422a 0x752c17b96c8c2f2d)),
+     (9, 5, 1, (e 0x41ae47401a43be3f 0x13639172ebd6ab42)),
+     (9, 5, 1, (e 0xdfe5c0f9998e3a54 0xb19b0b2c6b212757)),
+     (9, 5, 1, (e 0x7e1d3ab318d8b669 0x4fd284e5ea6ba36c)),
+     (9, 5, 1, (e 0x1c54b46c9823327e 0xee09fe9f69b61f81)),
+     (9, 5, 1, (e 0xba8c2e26176dae93 0x8c417858e9009b96)),
+     (9, 5, 1, (e 0x58c3a7df96b82aa8 0x2a78f212684b17ab)),
+     (9, 5, 1, (e 0xf6fb21991602a6bd 0xc8b06bcbe79593c0)),
+     (9, 5, 1, (e 0x95329b52954d22d2 0x66e7e58566e00fd5)),
+     (9, 5, 1, (e 0x336a150c14979ee7 0x51f5f3ee62a8bea)),
+     (9, 5, 1, (e 0xd1a18ec593e21afc 0xa356d8f8657507ff)),
+     (9, 5, 1, (e 0x6fd9087f132c9711 0x418e52b1e4bf8414)),
+     (9, 5, 1, (e 0xe10823892771326 0xdfc5cc6b640a0029)),
+     (9, 5, 1, (e 0xac47fbf211c18f3b 0x7dfd4624e3547c3e)),
+     (9, 5, 1, (e 0x4a7f75ab910c0b50 0x1c34bfde629ef853)),
+     (9, 5, 1, (e 0xe8b6ef6510568765 0xba6c3997e1e97468)),
+     (9, 5, 1, (e 0x86ee691e8fa1037a 0x58a3b3516133f07d)),
+     (9, 5, 1, (e 0x2525e2d80eeb7f8f 0xf6db2d0ae07e6c92)),
+     (9, 5, 1, (e 0xc35d5c918e35fba4 0x9512a6c45fc8e8a7)),
+     (9, 5, 1, (e 0x6194d64b0d8077b9 0x334a207ddf1364bc)),
+     (9, 5, 1, (e 0xffcc50048ccaf3ce 0xd1819a375e5de0d1)),
+     (9, 5, 1, (e 0x9e03c9be0c156fe3 0x6fb913f0dda85ce6)),
+     (9, 5, 1, (e 0x3c3b43778b5febf8 0xdf08daa5cf2d8fb)),
+     (9, 5, 1, (e 0xda72bd310aaa680d 0xac280763dc3d5510))]
 
 #guard (busProbe [0, 16, 1] sampleLayout.push) =
     (17,
@@ -689,98 +669,100 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
       (9, 6144), (9, 6656), (9, 7168), (9, 7680), (9, 8192), (9, 8704), (9, 9216), (9, 9728),
       (9, 10240), (9, 10752), (9, 11264), (9, 11776), (9, 12288), (9, 12800), (9, 13312)])
 
-/-! ## `derive_config` (`whir.rs:17-63`) -/
+/-! ## `derive_config` (`whir.rs:24-70`) -/
 
 /-- `derive_config(log_n, rate)` for every admissible pair: folds, rates, queries. -/
 def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
-  [(15, 1, [6, 4], [1, 4], [222, 55]), (16, 1, [6, 4, 4], [1, 4, 7], [223, 56, 30]),
-   (17, 1, [6, 4, 4], [1, 4, 7], [223, 56, 31]), (18, 1, [6, 4, 4], [1, 4, 7], [223, 56, 32]),
-   (19, 1, [6, 4, 4], [1, 4, 7], [223, 56, 32]),
-   (20, 1, [6, 4, 4, 4], [1, 4, 7, 10], [223, 56, 32, 22]),
-   (21, 1, [6, 4, 4, 4], [1, 4, 7, 10], [223, 56, 32, 22]),
-   (22, 1, [6, 4, 4, 4], [1, 4, 7, 10], [224, 56, 32, 23]),
-   (23, 1, [6, 4, 4, 4], [1, 4, 7, 10], [224, 56, 32, 23]),
-   (24, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [224, 56, 32, 23, 17]),
-   (25, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [224, 56, 32, 23, 17]),
-   (26, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [224, 56, 32, 23, 18]),
-   (27, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [225, 56, 32, 23, 18]),
-   (28, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [225, 56, 32, 23, 18, 14]),
-   (15, 2, [6, 4], [2, 5], [111, 45]), (16, 2, [6, 4, 4], [2, 5, 8], [112, 45, 27]),
-   (17, 2, [6, 4, 4], [2, 5, 8], [112, 45, 28]), (18, 2, [6, 4, 4], [2, 5, 8], [112, 45, 28]),
-   (19, 2, [6, 4, 4], [2, 5, 8], [112, 45, 28]),
-   (20, 2, [6, 4, 4, 4], [2, 5, 8, 11], [112, 45, 28, 20]),
-   (21, 2, [6, 4, 4, 4], [2, 5, 8, 11], [112, 45, 28, 20]),
-   (22, 2, [6, 4, 4, 4], [2, 5, 8, 11], [112, 45, 28, 21]),
-   (23, 2, [6, 4, 4, 4], [2, 5, 8, 11], [112, 45, 28, 21]),
-   (24, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [112, 45, 28, 21, 16]),
-   (25, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [112, 45, 28, 21, 16]),
-   (26, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [112, 45, 28, 21, 16]),
-   (27, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [112, 45, 28, 21, 16]),
-   (28, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [112, 45, 28, 21, 16, 13]),
-   (15, 3, [6, 4], [3, 6], [75, 37]), (16, 3, [6, 4, 4], [3, 6, 9], [75, 37, 24]),
-   (17, 3, [6, 4, 4], [3, 6, 9], [75, 37, 25]), (18, 3, [6, 4, 4], [3, 6, 9], [75, 38, 25]),
-   (19, 3, [6, 4, 4], [3, 6, 9], [75, 38, 25]),
-   (20, 3, [6, 4, 4, 4], [3, 6, 9, 12], [75, 38, 25, 18]),
-   (21, 3, [6, 4, 4, 4], [3, 6, 9, 12], [75, 38, 25, 19]),
-   (22, 3, [6, 4, 4, 4], [3, 6, 9, 12], [75, 38, 25, 19]),
-   (23, 3, [6, 4, 4, 4], [3, 6, 9, 12], [75, 38, 25, 19]),
-   (24, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [75, 38, 25, 19, 15]),
-   (25, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [75, 38, 25, 19, 15]),
-   (26, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [75, 38, 25, 19, 15]),
-   (27, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [75, 38, 25, 19, 15]),
-   (28, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [75, 38, 25, 19, 15, 13]),
-   (15, 4, [6, 4], [4, 7], [56, 32]), (16, 4, [6, 4, 4], [4, 7, 10], [56, 32, 22]),
-   (17, 4, [6, 4, 4], [4, 7, 10], [56, 32, 22]), (18, 4, [6, 4, 4], [4, 7, 10], [56, 32, 23]),
-   (19, 4, [6, 4, 4], [4, 7, 10], [56, 32, 23]),
-   (20, 4, [6, 4, 4, 4], [4, 7, 10, 13], [56, 32, 23, 17]),
-   (21, 4, [6, 4, 4, 4], [4, 7, 10, 13], [56, 32, 23, 17]),
-   (22, 4, [6, 4, 4, 4], [4, 7, 10, 13], [56, 32, 23, 18]),
-   (23, 4, [6, 4, 4, 4], [4, 7, 10, 13], [56, 32, 23, 18]),
-   (24, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [56, 32, 23, 18, 14]),
-   (25, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [56, 32, 23, 18, 14]),
-   (26, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [56, 32, 23, 18, 14]),
-   (27, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [56, 32, 23, 18, 15]),
-   (28, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [56, 32, 23, 18, 15, 12])]
+  [(16, 1, [6, 4, 4], [1, 4, 7], [230, 60, 42]),
+   (17, 1, [6, 4, 4], [1, 4, 7], [225, 58, 38]),
+   (18, 1, [6, 4, 4], [1, 4, 7], [222, 57, 35]),
+   (19, 1, [6, 4, 4], [1, 4, 7], [220, 56, 34]),
+   (20, 1, [6, 4, 4, 4], [1, 4, 7, 10], [219, 55, 33, 27]),
+   (21, 1, [6, 4, 4, 4], [1, 4, 7, 10], [218, 55, 32, 25]),
+   (22, 1, [6, 4, 4, 4], [1, 4, 7, 10], [218, 55, 32, 24]),
+   (23, 1, [6, 4, 4, 4], [1, 4, 7, 10], [218, 55, 32, 23]),
+   (24, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [218, 55, 32, 23, 20]),
+   (25, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [218, 55, 32, 23, 19]),
+   (26, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [218, 55, 32, 23, 18]),
+   (27, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [218, 55, 32, 23, 18]),
+   (28, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [218, 55, 32, 23, 18, 16]),
+   (29, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [218, 55, 32, 23, 18, 15]),
+   (30, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [218, 55, 32, 23, 18, 15]),
+   (16, 2, [6, 4, 4], [2, 5, 8], [112, 47, 35]),
+   (17, 2, [6, 4, 4], [2, 5, 8], [111, 46, 32]),
+   (18, 2, [6, 4, 4], [2, 5, 8], [110, 45, 31]),
+   (19, 2, [6, 4, 4], [2, 5, 8], [110, 45, 29]),
+   (20, 2, [6, 4, 4, 4], [2, 5, 8, 11], [109, 44, 29, 24]),
+   (21, 2, [6, 4, 4, 4], [2, 5, 8, 11], [109, 44, 28, 23]),
+   (22, 2, [6, 4, 4, 4], [2, 5, 8, 11], [109, 44, 28, 22]),
+   (23, 2, [6, 4, 4, 4], [2, 5, 8, 11], [109, 44, 28, 21]),
+   (24, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [109, 44, 28, 21, 18]),
+   (25, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [109, 44, 28, 21, 17]),
+   (26, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [109, 44, 28, 21, 17]),
+   (27, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [109, 44, 28, 21, 17]),
+   (28, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [109, 44, 28, 21, 17, 15]),
+   (29, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [109, 44, 28, 21, 17, 15]),
+   (30, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [109, 44, 28, 21, 17, 15]),
+   (16, 3, [6, 4, 4], [3, 6, 9], [74, 39, 30]),
+   (17, 3, [6, 4, 4], [3, 6, 9], [74, 38, 28]),
+   (18, 3, [6, 4, 4], [3, 6, 9], [73, 37, 27]),
+   (19, 3, [6, 4, 4], [3, 6, 9], [73, 37, 26]),
+   (20, 3, [6, 4, 4, 4], [3, 6, 9, 12], [73, 37, 25, 22]),
+   (21, 3, [6, 4, 4, 4], [3, 6, 9, 12], [73, 37, 25, 20]),
+   (22, 3, [6, 4, 4, 4], [3, 6, 9, 12], [73, 37, 25, 20]),
+   (23, 3, [6, 4, 4, 4], [3, 6, 9, 12], [73, 37, 25, 19]),
+   (24, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [73, 37, 25, 19, 17]),
+   (25, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [73, 37, 25, 19, 16]),
+   (26, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [73, 37, 25, 19, 16]),
+   (27, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [73, 37, 25, 19, 16]),
+   (28, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [73, 37, 25, 19, 16, 15]),
+   (29, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [73, 37, 25, 19, 16, 14]),
+   (30, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [73, 37, 25, 19, 16, 15]),
+   (16, 4, [6, 4, 4], [4, 7, 10], [56, 33, 27]),
+   (17, 4, [6, 4, 4], [4, 7, 10], [55, 32, 25]),
+   (18, 4, [6, 4, 4], [4, 7, 10], [55, 32, 24]),
+   (19, 4, [6, 4, 4], [4, 7, 10], [55, 32, 23]),
+   (20, 4, [6, 4, 4, 4], [4, 7, 10, 13], [55, 32, 23, 20]),
+   (21, 4, [6, 4, 4, 4], [4, 7, 10, 13], [55, 32, 23, 19]),
+   (22, 4, [6, 4, 4, 4], [4, 7, 10, 13], [55, 32, 23, 18]),
+   (23, 4, [6, 4, 4, 4], [4, 7, 10, 13], [55, 32, 23, 18]),
+   (24, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 23, 18, 16]),
+   (25, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 23, 18, 15]),
+   (26, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 23, 18, 15]),
+   (27, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 23, 18, 15]),
+   (28, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [55, 32, 23, 18, 15, 14]),
+   (29, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [55, 32, 23, 18, 16, 14]),
+   (30, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [55, 32, 23, 18, 16, 14])]
 
-#guard refConfigs.length = 56
+#guard refConfigs.length = 60
 #guard refConfigs.all fun (n, r, folds, rates, queries) ↦
   decide ((Whir.ladder n r).map (fun ls ↦
     (ls.map (·.fold), ls.map (·.logInvRate), ls.map (·.queries))) = some (folds, rates, queries))
 
-/-! ## Keccak GKR and the RMFE (`keccak.rs:14-113`, `:208-221`) -/
+/-! ## Keccak GKR and the RMFE (`keccak.rs:14-113`, `:212-225`) -/
 
 #guard (alongPairs.map fun (j, k) ↦ keccakAlong j k) =
     [64, 319, 192, 127, 1064, 1535, 1280]
 
 #guard (transposeProbe) =
-    (1600,
-     [(e 0xca8abc6d967083b1 0x23e90670f9332354 0xf6e220ad94161c47),
-      (e 0xe18c283116a57e56 0x3d63a0587881af69 0xc54b99b0a60ab8c)],
-     (e 0x9957ef50a4776ca3 0x29facd4353569cf0 0xa17e5a9bd314d8c4))
+    (1600, [(e 0xca8abc6d967083b1 0x23e90670f9332354), (e 0xe18c283116a57e56 0x3d63a0587881af69)],
+     (e 0x18512301d3bb1def 0x58f71514239c1028))
 
 #guard (keccakInstanceWeights (fe 600)) =
-    [(e 0xabf76e47f0538fe3 0x25c59b093b738419 0xa078d3a21966422f),
-     (e 0xaa15ec70e967a4f9 0x90baaedf5703239d 0x52289def6d60ee2e),
-     (e 0x12fe76f613f4585f 0xf937853a55de468b 0x25c93ea9b9df7e59),
-     (e 0x1dc48c30a766e0fe 0xb53d94e9881cdaad 0x4c1957abaf45ba7f),
-     (e 0xb7efb58bfffb136b 0xb1905f6529f0cc14 0x11d24bf6d67b619d),
-     (e 0xd7a307cede31f29a 0x50df91ec5e0d0252 0xf4d77942c78a6beb),
-     (e 0x97cb741f6b59cadd 0x87779aa014ec0dd1 0x851772f64f90c6da),
-     (e 0x77fbb2d0cedf2b37 0x70e2253e144298ed 0xffbabe05fc4c8caf),
-     (e 0x8d43b725fccc5d3d 0xf897c5d8a269a8a2 0x53cc92cf4f9e50a0),
-     (e 0x1a7d105c173d0fdd 0x4f761d7fb86338d7 0x12bba7e7208a6c62),
-     (e 0xb804dcd11bb21a98 0xd2bfc0917515037 0xbac7572c28cdd784),
-     (e 0xefd10d90052a38a1 0xbfe33fb9531accc0 0xb7c17643504a6bdc),
-     (e 0x5038636ecfaa2cb0 0x7e32c36af721e9 0x751c4d914b60f03f),
-     (e 0x7ce5a398eacfaa54 0xad8c86a7032429d1 0xd9486452839663fd),
-     (e 0xd972d9438d33a47b 0x7f303cbb60543024 0xbb95675af8f83f41),
-     (e 0xe715d527918f04f1 0x706dda4850a86d5b 0x21e60ce9386aa849)]
+    [(e 0xa52fefc1ac0d7a0 0xaafd3b9a726acd34), (e 0xacfe43ba7bb6e9bd 0x5a7f7f3b1a274ba),
+     (e 0x2332778e532fc3ec 0xf6d55c6b09decc68), (e 0x171aadeba89d3bfe 0xc46ffcbc452f4842),
+     (e 0x1884961b9484a0b3 0xe15bd89b05d5a7aa), (e 0x7a84ab7916508023 0x940a4d7330a93a0b),
+     (e 0x3a8e63c129aa464a 0x3bc6c1f50e7c6af2), (e 0x159f64052fdb06ca 0x6f9caf57bf95618c),
+     (e 0xc289527a4cd91db7 0xe3ffa88c291323a4), (e 0x2452c1cde88ed6f0 0x632e5b58ef41269a),
+     (e 0xa45b3f2a2c038545 0xed0ae5a668a1567c), (e 0x1795531c103995e4 0x1ff11c0eb8ee98ca),
+     (e 0xfc501772b3dd0922 0x4086d18d1e79f0f7), (e 0xa3ccb4106931fc89 0x7249f88792352b6a),
+     (e 0x3356022b7c67f956 0xaf170f5564911e72), (e 0xb6c9bb9d329b71bd 0x65a3d0bc80700cb7)]
 
 #guard (slotProbe 0 2) =
-    (64, true, (e 0x10f3280723043bde 0x6cbb309461f07cdc 0x458ec0d7e494875))
+    (64, true, (e 0xee64d4d570e2c99e 0x44df39a864249bb5))
 
 #guard (slotProbe 1 1) =
-    (64, true, (e 0xcb8ea1ef741e8eca 0xe04b54c5f0899db4 0x866d484ffa7bb30a))
+    (64, true, (e 0xcc1c5bf753aae3d9 0x9b117bda43b57d11))
 
 #guard (rmfeFactors) =
     [(0b10, 1), (0b11, 1), (0b1011, 2), (0b1101, 2), (0b100101, 3), (0b101001, 3), (0b101111, 3)]
@@ -802,12 +784,11 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
      (0x0, 0x5)]
 
 #guard (keccakConstants) =
-    [12, 2, 1, 6, 9, 1600, 11, 5, 64, 16, 24, 47, 6, 4, 15, 28]
+    [12, 2, 1, 6, 9, 1600, 11, 5, 64, 16, 24, 47, 5, 4, 16, 30]
 
-#guard (ringMapShifts) =
-    [32, 16, 8, 4, 2, 1]
+#guard (ringMapWidth) = 8
 
-/-! ## Keccak-f, Keccak-256 and the sponge (`hash.rs:6-99`, `transcript.rs:17-75`) -/
+/-! ## Keccak-f, Keccak-256 and the sponge (`hash.rs:5-98`, `transcript.rs:17-90`) -/
 
 #guard (keccakRC) =
     [0x1, 0x8082, 0x800000000000808a, 0x8000000080008000, 0x808b, 0x80000001, 0x8000000080008081,
@@ -865,29 +846,52 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
       0x35e50f807d9e647b, 0x1f806ab5f98c1db7, 0x9d3e256d10db6635, 0x3f030c8a70795ae6,
       0xb236683aae5f33ca, 0xe3b607cb1d995ac1, 0xfd8ef7d66bf2cef9, 0x337a8960ca3f21fa,
       0xeef74e55ee09f48d, 0x87c2c8cfa1a748a9, 0x8184d72c67c99ec0, 0x39e027c8d413076,
-      0x163dcd923875c144], (e 0xd85b3e2fd2e1eb4f 0xd3d1d5831bc8efcd 0xa4056d0625b721fd))
+      0x163dcd923875c144], (e 0xd85b3e2fd2e1eb4f 0xd3d1d5831bc8efcd))
 
 #guard (duplexProbe [(fe 800, 1), (fe 801, 4), (fe 802, 1)]) =
-    ([0x5c65f06a8c48e5d3, 0xff98d475e0ca11de, 0x888cb567449790e7, 0xc26fc20e304badc6,
-      0xfbcca4fdafb56689, 0xad71ffb0d635248f, 0x1c03491988471785, 0x8045e33617757193,
-      0xc34c4ef70674131d, 0xd7d7f87d41b52f94, 0xc6a681c2b319e6f9, 0x6e88eff078527160,
-      0x4424be1e66f80f08, 0xb129d190df13c0c9, 0xe0eb32fac77fc508, 0x27f09328b09c2a10,
-      0xec26a77f057643d6, 0x9aa83a127f5c1c1c, 0x5299d3d57892f07f, 0xa4efda258e20c562,
-      0xe13a109ff887969, 0xe3199f10eedfe092, 0xdd3fa52d85b383f3, 0xee14430390d231b4,
-      0xa4f3f800c9b0f4f3], (e 0x5c65f06a8c48e5d3 0xff98d475e0ca11de 0x888cb567449790e7))
+    ([0xf0717f39d6afa2cc, 0x9cecec659afe4d18, 0xbfd3c7ad7e7bfe0f, 0x9a10c4a913fff9fa,
+      0x61da3ae809ee3543, 0x802f2580b48b90a5, 0xf5df65913686d948, 0x8f33a0dc707c8189,
+      0x904235e575cf25d3, 0x55a7cacf41897802, 0x7e027766f7a7c70b, 0xc955060de4248bd4,
+      0x3a354b2564540357, 0x6e86585b19ea95c7, 0x827d6359de30c158, 0x235777594084262c,
+      0x11b945aab9196735, 0xef21aeb8dfa01499, 0xfb54ef2b21e2d600, 0xa356dd21cd02c0fe,
+      0x74059c856f05cecd, 0xc9357a096f17c098, 0x49765849639dd2c2, 0xabba0d79f75283f2,
+      0xc05eee3800036462], (e 0xf0717f39d6afa2cc 0x9cecec659afe4d18))
 
 #guard (duplexProbe [(fe 803, 1), (fe 804, 1), (fe 805, 4), (fe 806, 1)]) =
-    ([0x64dc67f1e0409331, 0x2bbdabde4d11810f, 0x5f84b465ed2dc183, 0x47597d7327c5f9df,
-      0xb023c216dd9aed4e, 0x3b0209d2863f6875, 0xac5249717127864e, 0xea4b63efef6a7362,
-      0x56e1e947403c0534, 0x876fac31329f0048, 0x89e1c37ead2e965a, 0x906e6d8b2cfe8182,
-      0xe55326f9923f04ab, 0x949494d9c721c805, 0xfd1ebfedd92744a8, 0xe367df91e05da0f1,
-      0x7b1f895158f02429, 0x18a4a56f3336a459, 0xc200fd5d1f7ff09, 0xb4821d1e596ee97d,
-      0xc423cd04d2d6b248, 0x2e89040fcc61f189, 0x75c84d5504e01c28, 0xbf54aece417c3beb,
-      0x4d44fe1a93147d07], (e 0x64dc67f1e0409331 0x2bbdabde4d11810f 0x5f84b465ed2dc183))
+    ([0xebeedba924c61115, 0x8cef96123e1e8fc3, 0xebdb8ec315092f44, 0x647a3a0fd5194aed,
+      0xc07a703d5877f22e, 0x69c9e1e1c31e1603, 0xc47d361e8e9439a4, 0x6b49f9ff062fb999,
+      0x3cfca783247dde82, 0x66e191543392af8e, 0xae8eb3980bd2a81a, 0x3d4539159a206168,
+      0xa63b1163d3fb8b76, 0x81deb06e326f0747, 0xbb6dd3aca9d675e6, 0xc8e113c0ee5ae16,
+      0x8c810e5cb255fb21, 0xf961b8d5430035e4, 0xb0f63460d37e3300, 0x7420bc4681ec058b,
+      0x22641ca1b086370e, 0xcc1ea014cc013c50, 0x9f9607c115a452af, 0x3524e4d53dd759d3,
+      0x4c018208d2a28b5c], (e 0xebeedba924c61115 0x8cef96123e1e8fc3))
 
-/-! ## The tag, the IV and the seed (`layout.rs:68`, `bytecode.rs:46-53`, `transcript.rs:33-46`) -/
+/- `Sponge::absorb_nonce` after one waiting scalar, and after four (the nonce's absorb permutes
+them first) -/
+#guard (nonceProbe [(fe 808, 1)] (fe 809)) =
+    (0x9c5d2e33fcd86254,
+     [0xec443f4173e43f31, 0xaf4f713894ff670a, 0x9c5d2e33fcd86254, 0x795249884078a412,
+      0x9edc32a503c1e727, 0xe49dfa22c35f016a, 0x993f66ce8008b63e, 0x10900e1cf0a00d3f,
+      0x6a0bdf664bc2ffb3, 0xeca1d084da04273b, 0x4e8354571163e60c, 0x3f0be7f5005cf7c5,
+      0x11c65905c6043e49, 0x3f577fcf0e4ba908, 0xbde80a5fcf417d36, 0x6c4833d43ed1b03e,
+      0x4bf94068f683554, 0x1ef3ded7f55f5788, 0x4022bc21004c55a4, 0x7162a415c46111a1,
+      0xc2abd0b1b85088ce, 0xb8c4faaf94944e89, 0x21fdc980fdc3c695, 0xb313e520d5f653fd,
+      0x348e1631cac8b971], some (e 0xec443f4173e43f31 0xaf4f713894ff670a))
 
-#guard (versionTag) = [108, 101, 97, 110, 118, 109, 45, 118, 49]
+#guard (nonceProbe [(fe 810, 1), (fe 811, 1), (fe 812, 1), (fe 813, 1)] (fe 814)) =
+    (0xbfab84464e4d4ec9,
+     [0x12c2014d119c4383, 0xd30e6b61a8acbea6, 0xbfab84464e4d4ec9, 0xde53fd3050428bea,
+      0x24cd3c07ea6c879, 0x22df8b7a3d14a47f, 0x11e565a0d9904513, 0xd5bd00d7165a4b3b,
+      0xac25ea648b2bb85d, 0x7bd4bb1675d189d6, 0x189f284ecc1cb5a9, 0x960571e8adf5b966,
+      0x2813dc00fafdee8, 0xd7c7913f4fe07f99, 0xcb67407e583cc273, 0x7ee0262f734d2241,
+      0x57ff37dda9bc7a33, 0xccb8fb6dc40e9827, 0x48d91e433375b538, 0x3894a1e093b47fa9,
+      0x3c6a117f5daa1975, 0x31c4a9d7468387bd, 0x1b1c4426ba8af87d, 0x2fbc9cb1d64538c,
+      0xbfc7c9b13da31fc0], some (e 0x12c2014d119c4383 0xd30e6b61a8acbea6))
+
+/-! ## The tag, the IV and the seed (`layout.rs:68`, `bytecode.rs:45-53`, `transcript.rs:36-49`) -/
+
+#guard (versionTag) =
+    [108, 101, 97, 110, 118, 109, 45, 118, 49]
 
 #guard ((keccak256 (sampleBytecode.flatMap K.toBytes)).toList) =
     [0x5ee1b7ed85bd7f40, 0xe30f235e90f241ba, 0x2c5175ed6d0af92b, 0x99aaaff5bf8937b8]
@@ -899,7 +903,7 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
     [0xdfcab5a08b76614c, 0x87725d48331e09f4, 0x2f1a05f0dbc6b19c, 0xd7c2ad98836e5944]
 
 #guard ([(digestHalves samplePublicInput).1, (digestHalves samplePublicInput).2]) =
-    [(e 0xdfcab5a08b76614c 0x87725d48331e09f4 0x0), (e 0x2f1a05f0dbc6b19c 0xd7c2ad98836e5944 0x0)]
+    [(e 0xdfcab5a08b76614c 0x87725d48331e09f4), (e 0x2f1a05f0dbc6b19c 0xd7c2ad98836e5944)]
 
 #guard ((seed sampleBytecode samplePublicInput).toList) =
     [0x9d7d4eb7cc97e374, 0xb724b7ba8b1c3421, 0x14d14d64d9182a28, 0x1c1a4bc2a316a26c,

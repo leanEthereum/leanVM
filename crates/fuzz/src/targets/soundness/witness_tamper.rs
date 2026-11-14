@@ -14,8 +14,8 @@ use super::fixtures;
 use crate::source::Rng;
 use crate::{Ctx, Finding, Outcome, Source, catch};
 use leanvm_core::cpu::tamper::{self, Access, Owner, WitnessView};
-use leanvm_core::cpu::{KeccakLane, MEM_HI, MEM_LO, MEM_TOP, Stats, keccak_value, schema};
-use primitives::field::{F64, F192};
+use leanvm_core::cpu::{KeccakLane, MEM_HI, MEM_LO, Stats, keccak_value, schema};
+use primitives::field::{F64, F128};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -222,7 +222,7 @@ fn edit(kind: &str, view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bo
         "public-input-lie" => {
             let accesses = view.accesses();
             let cell = rng.below(2) as usize;
-            let delta = F192::new(nonzero(rng).0, 0, 0);
+            let delta = F128::new(nonzero(rng).0, 0);
             shift_cell(view, &accesses, cell, delta, None);
             Some((format!("public-input-lie @ cell {cell}"), true))
         }
@@ -278,7 +278,7 @@ fn edit(kind: &str, view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bo
             if rng.below(2) == 0
                 && let Some(cell) = a.cell
             {
-                shift_cell_except(view, &accesses, cell, F192::new((old + new).0, 0, 0), (a.table, a.row));
+                shift_cell_except(view, &accesses, cell, F128::new((old + new).0, 0), (a.table, a.row));
             }
             Some((format!("deref-pointer @ row {}", a.row), false))
         }
@@ -485,20 +485,20 @@ fn word(view: &mut WitnessView, rng: &mut Rng, padding: bool) -> Option<(String,
 }
 
 /// A nonzero change of a machine word: mostly its low limb, sometimes the others.
-fn word_delta(rng: &mut Rng) -> F192 {
+fn word_delta(rng: &mut Rng) -> F128 {
     match rng.below(4) {
-        0 => F192::new(0, nonzero(rng).0, 0),
-        1 => F192::new(rng.next_u64(), rng.next_u64(), rng.next_u64().max(1)),
-        _ => F192::new(nonzero(rng).0, 0, 0),
+        0 => F128::new(0, nonzero(rng).0),
+        1 => F128::new(rng.next_u64(), rng.next_u64().max(1)),
+        _ => F128::new(nonzero(rng).0, 0),
     }
 }
 
-fn read_word(view: &WitnessView, values: &[Option<usize>; 3], row: usize) -> F192 {
+fn read_word(view: &WitnessView, values: &[Option<usize>; 2], row: usize) -> F128 {
     let limb = |c: Option<usize>| c.map_or(0, |c| view.column(c)[row].0);
-    F192::new(limb(values[0]), limb(values[1]), limb(values[2]))
+    F128::new(limb(values[0]), limb(values[1]))
 }
 
-fn add_word(view: &mut WitnessView, values: &[Option<usize>; 3], row: usize, delta: F192) {
+fn add_word(view: &mut WitnessView, values: &[Option<usize>; 2], row: usize, delta: F128) {
     for (c, d) in values.iter().zip(delta.to_limbs()) {
         if let Some(c) = c {
             view.column_mut(*c)[row] += F64(d);
@@ -508,8 +508,8 @@ fn add_word(view: &mut WitnessView, values: &[Option<usize>; 3], row: usize, del
 
 /// Add `delta` to memory cell `cell` and to every read of it a column carries, leaving out the reads of table
 /// `keep` (whose values a public column pins).
-fn shift_cell(view: &mut WitnessView, accesses: &[Access], cell: usize, delta: F192, keep: Option<usize>) {
-    for (c, d) in [MEM_LO, MEM_HI, MEM_TOP].into_iter().zip(delta.to_limbs()) {
+fn shift_cell(view: &mut WitnessView, accesses: &[Access], cell: usize, delta: F128, keep: Option<usize>) {
+    for (c, d) in [MEM_LO, MEM_HI].into_iter().zip(delta.to_limbs()) {
         view.column_mut(c)[cell] += F64(d);
     }
     for a in accesses
@@ -520,8 +520,8 @@ fn shift_cell(view: &mut WitnessView, accesses: &[Access], cell: usize, delta: F
     }
 }
 
-fn shift_cell_except(view: &mut WitnessView, accesses: &[Access], cell: usize, delta: F192, skip: (usize, usize)) {
-    for (c, d) in [MEM_LO, MEM_HI, MEM_TOP].into_iter().zip(delta.to_limbs()) {
+fn shift_cell_except(view: &mut WitnessView, accesses: &[Access], cell: usize, delta: F128, skip: (usize, usize)) {
+    for (c, d) in [MEM_LO, MEM_HI].into_iter().zip(delta.to_limbs()) {
         view.column_mut(c)[cell] += F64(d);
     }
     for a in accesses
@@ -585,7 +585,7 @@ fn zero_count(view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bool)> {
                     let other_word = read_word(view, &other.values, other.row);
                     add_word(view, &a.values, a.row, delta);
                     let follows = if a.table == XOR { delta } else { delta * other_word };
-                    for (col, d) in [MEM_LO, MEM_HI, MEM_TOP].into_iter().zip(follows.to_limbs()) {
+                    for (col, d) in [MEM_LO, MEM_HI].into_iter().zip(follows.to_limbs()) {
                         view.column_mut(col)[c] += F64(d);
                     }
                     lied = " with an operand lie";

@@ -12,13 +12,13 @@ and its numbers, with the axioms each depends on. Knowledge soundness is locked 
 open LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol.LeanIsa LeanVM
 
 example {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 30) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← experiment (honestProver prog input t ρ fuel)}[z.1.2 = false] ≤
       completenessError fuel :=
   completenessRom hv hbudget hρ hfuel
 
-example : completenessError (2 ^ 25) ≤ (2 : ENNReal)⁻¹ ^ 257 := completenessError_le
+example : completenessError (2 ^ 35) ≤ (2 : ENNReal)⁻¹ ^ 257 := completenessError_le
 
 /-- info: 'LeanVM.completenessRom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms completenessRom

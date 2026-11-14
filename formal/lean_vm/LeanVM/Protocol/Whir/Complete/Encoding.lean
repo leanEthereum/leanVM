@@ -12,6 +12,7 @@ public import LeanVM.Protocol.Whir.Complete.Tables
 public import LeanVM.Protocol.Whir.ColumnWeight
 public import LeanVM.Protocol.EndToEnd.Candidates
 public import LeanVM.Protocol.Verifier
+public import LeanVM.Protocol.Whir.SubspaceAt
 
 /-!
 # The honest words
@@ -28,8 +29,8 @@ that the two words are equal (`LeanVM.Prover.Enc.stackWordFast_eq`).
   lanes are the stack's `64` blocks (`blockOf`, `LeanVM.Protocol.EndToEnd.Candidates`), the
   leaf stores their `K`-valued codeword entries in reverse lane order. `stackWord_agrees`: it is
   the encoding of the stack in the sense of `Agrees`, on every column.
-* `levelWord κ k R g`: a deeper level's word, each `E` entry written as its three limbs, the layout
-  `ext_row` regroups (`crates/verifier/src/whir.rs:65-73`).
+* `levelWord κ k R g`: a deeper level's word, each `E` entry written as its two limbs, the layout
+  `ext_row` regroups (`crates/verifier/src/whir.rs:72-75`).
 * `stackTable μ q`: the stack as a table in the WHIR variable order: the six lane variables
   first, then the block offset (`f(u, x) = q(x, u)`), i.e. the stack's index rotated by six
   bits.
@@ -38,10 +39,9 @@ What the verifier computes from an honest opening:
 
 * `readRow_stackWord`, `extRow_levelWord`: the rows it reads are the lanes' codeword entries
   (`laneCodes`);
-* `dot_laneCodes_eqKernel`: folding them with the level's challenges gives the codeword entry of
-  the folded message (folding commutes with the encoder, entrywise);
-* `enforcedSum_honest`: the sum a level's queries enforce is the pairing of the folded message
-  with the table of the verifier's `inducedWeight` (the column weights of `lem:colweight`);
+* `subspaceAt_eq`: the verifier's `subspaceAt n x` is `[Ŵ_0(x), …, Ŵ_n(x)]`;
+* `queryTable_eq`: the table of the verifier's `inducedWeight` is the batched column weights
+  `Σ_q w_q X_i(x_q)` of `lem:colweight`;
 * `inducedWeight_eq_sum`, `isMultilinearFn_inducedWeight`: the verifier's `inducedWeight` is a
   sum of products of affine factors, hence multilinear, so its value at the terminal point is the
   extension of that table.
@@ -83,13 +83,6 @@ theorem sum_cube (κ : ℕ) (F : (Fin κ → Bool) → E) :
 /-- A message read from a table: `u ↦ t[⟨u⟩]`. -/
 def msgOf (κ : ℕ) (t : List E) : (Fin κ → Bool) → E := fun u ↦ t.getD (bitsToNat u) 0
 
-/-- `Enc(t)` at a position as a sum over the table. -/
-theorem encAt_msgOf (κ : ℕ) (t : List E) (p : ℕ) :
-    encAt κ (msgOf κ t) p = ∑ i ∈ range (2 ^ κ), t.getD i 0 * ofK (novelAt i (K.ofBits p)) := by
-  rw [encAt, sum_cube]
-  refine sum_congr rfl fun i hi ↦ ?_
-  rw [msgOf, bitsToNat_testBit (mem_range.mp hi)]
-
 /-! ## Lanes -/
 
 /-- Lane `j` of a table cut along its first `k` variables: `x ↦ t[j + 2^k·⟨x⟩]`. -/
@@ -100,28 +93,12 @@ def laneMsg (κ k : ℕ) (t : List E) (j : ℕ) : (Fin κ → Bool) → E :=
 def laneCodes (κ k : ℕ) (t : List E) (p : ℕ) : List E :=
   (List.range (2 ^ k)).map fun j ↦ encAt κ (laneMsg κ k t j) p
 
-/-- **Folding commutes with the encoder.** Folding the lanes' entries at a position with the
-equality kernel of `r` gives the entry of the encoding of the table folded at `r`. -/
-theorem dot_laneCodes_eqKernel (κ : ℕ) (t r : List E) (p : ℕ)
-    (ht : t.length = 2 ^ (r.length + κ)) :
-    dot (laneCodes κ r.length t p) (eqKernel r) = encAt κ (msgOf κ (foldAll t r)) p := by
-  rw [dot_eqKernel _ _ (by simp [laneCodes])]
-  have hl : ∀ j ∈ range (2 ^ r.length), (laneCodes κ r.length t p).getD j 0 =
-      encAt κ (laneMsg κ r.length t j) p := fun j hj ↦ by
-    simp [laneCodes, mem_range.mp hj]
-  rw [sum_congr rfl fun j hj ↦ by rw [hl j hj]]
-  simp only [encAt, laneMsg, msgOf, sum_mul]
-  rw [sum_comm]
-  refine sum_congr rfl fun u _ ↦ ?_
-  rw [getD_foldAll r t κ _ ht (bitsToNat_lt u), sum_mul]
-  exact sum_congr rfl fun j _ ↦ by ring
-
 /-! ## The level words -/
 
-/-- The three limbs of an entry, the order `ext_row` reads them. -/
-def limbsOf (e : E) : List K := [e.limb 0, e.limb 1, e.limb 2]
+/-- The two limbs of an entry, the order `ext_row` reads them. -/
+def limbsOf (e : E) : List K := [e.limb 0, e.limb 1]
 
-/-- **A deeper level's word**: leaf `p` holds the `2^k` lanes' entries at `x_p`, three limbs
+/-- **A deeper level's word**: leaf `p` holds the `2^k` lanes' entries at `x_p`, two limbs
 each, on the domain `p < 2^(κ+R)`; zero entries off it, as the executable prover's arrays read
 past their end (the run reads the leaves below the committed height only). -/
 def levelWord (κ k R : ℕ) (g : List E) : Word :=
@@ -135,16 +112,16 @@ theorem extRow_flatMap_limbsOf : ∀ l : List E, extRow (l.flatMap limbsOf) = l
     simp only [List.flatMap_cons, limbsOf, List.cons_append, List.nil_append, extRow,
       ofLimbs_limb, extRow_flatMap_limbsOf l]
 
-/-- Three limbs per entry. -/
-theorem length_flatMap_limbsOf : ∀ l : List E, (l.flatMap limbsOf).length = 3 * l.length
+/-- Two limbs per entry. -/
+theorem length_flatMap_limbsOf : ∀ l : List E, (l.flatMap limbsOf).length = 2 * l.length
   | [] => rfl
   | e :: l => by
     rw [List.flatMap_cons, List.length_append, length_flatMap_limbsOf l]
     simp [limbsOf]; ring
 
-/-- A level word has `3·2^k` words per leaf, the width the verifier announces. -/
+/-- A level word has `2·2^k` words per leaf, the width the verifier announces. -/
 theorem wellShaped_levelWord (κ k R : ℕ) (g : List E) :
-    WellShaped (3 * 2 ^ k) (levelWord κ k R g) := by
+    WellShaped (2 * 2 ^ k) (levelWord κ k R g) := by
   intro p
   rw [levelWord, length_flatMap_limbsOf]
   simp
@@ -176,8 +153,11 @@ theorem wellShaped_stackWord (μ R : ℕ) (q : Column μ) :
 /-- The stack's word is its encoding: it agrees with the encoding of `q` on every column. -/
 theorem stackWord_agrees (μ R : ℕ) (q : Column μ) :
     Agrees μ R (stackWord μ R q) q Finset.univ := by
-  intro v _ u
-  simp only [laneOf, stackWord, List.reverse_reverse, v.isLt, ite_true]
+  have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
+  refine ⟨fun _ ↦ 0, fun _ ↦ by rw [Polynomial.degree_zero]; exact WithBot.bot_lt_coe _,
+    fun v _ u ↦ ?_⟩
+  simp only [laneOf, laneValue, stackWord, List.reverse_reverse, v.isLt, ite_true,
+    Polynomial.eval_zero, mul_zero, h0, add_zero]
   rw [List.getD_eq_getElem _ _ (by simp), List.getElem_map, List.getElem_range, ofK_encKAt]
   rfl
 
@@ -213,80 +193,7 @@ theorem readRow_stackWord {μ R : ℕ} (hμ : laneBits ≤ μ) (q : Column μ) {
 
 /-! ## The verifier's induced weight -/
 
-private theorem ofK_pow (a : K) (n : ℕ) : ofK (a ^ n) = ofK a ^ n := map_pow (algebraMap K E) a n
-
-private theorem ofK_inv (a : K) : ofK a⁻¹ = (ofK a)⁻¹ := map_inv₀ (algebraMap K E) a
-
 private theorem ofK_one : ofK 1 = 1 := map_one (algebraMap K E)
-
-/-- The verifier's `subspaceRoots`: `[W_0(e_0), …, W_n(e_n)]`. -/
-theorem verifier_subspaceRoots_eq (n : ℕ) :
-    Verifier.subspaceRoots n =
-      (List.range (n + 1)).map fun i ↦ ofK (vanishingAt i (basisVec i)) := by
-  have hstep : ∀ j c, ofK (vanishingAt j (basisVec c)) ^ 2 +
-      ofK (vanishingAt j (basisVec j)) * ofK (vanishingAt j (basisVec c)) =
-        ofK (vanishingAt (j + 1) (basisVec c)) := by
-    intro j c
-    rw [vanishingAt_succ, ofK_add, ofK_mul, ofK_pow]
-  have key : ∀ k j, subspaceRootsAux k (ofK (vanishingAt j (basisVec j)))
-      ((List.range' (j + 1) k).map fun c ↦ ofK (vanishingAt j (basisVec c))) =
-        (List.range' (j + 1) k).map fun i ↦ ofK (vanishingAt i (basisVec i)) := by
-    intro k
-    induction k with
-    | zero => intro j; simp [subspaceRootsAux]
-    | succ k ih =>
-      intro j
-      simp only [List.range'_succ, List.map_cons, List.map_map, Function.comp_def, hstep,
-        subspaceRootsAux]
-      rw [← ih (j + 1)]
-  have h0 : ∀ a : K, vanishingAt 0 a = a := fun a ↦ by simp [vanishingAt]
-  have e1 : ofK (vanishingAt 0 (basisVec 0)) = 1 := by rw [h0, basisVec_zero, ofK_one]
-  have hl : (List.range n).map (fun i ↦ eOfNat (2 ^ (i + 1))) =
-      (List.range' (0 + 1) n).map fun c ↦ ofK (vanishingAt 0 (basisVec c)) := by
-    rw [List.range'_eq_map_range, List.map_map]
-    exact List.map_congr_left fun i _ ↦ by simp [h0, eOfNat, basisVec, Nat.add_comm]
-  have hr : (List.range n).map ((fun i ↦ ofK (vanishingAt i (basisVec i))) ∘ Nat.succ) =
-      (List.range' (0 + 1) n).map fun i ↦ ofK (vanishingAt i (basisVec i)) := by
-    rw [List.range'_eq_map_range, List.map_map]
-    exact List.map_congr_left fun i _ ↦ by simp [Nat.add_comm]
-  rw [Verifier.subspaceRoots, List.range_succ_eq_map, List.map_cons, List.map_map, hl, hr,
-    ← key n 0, e1]
-
-/-- The inner loop of `inducedWeight`: from coordinate `s` with `basis = W_s(x)`, the product
-gains the affine factors `1 + (1 + Ŵ_c(x))·p_c` and the basis becomes `W_{s+|l|}(x)`. -/
-private theorem inducedWeight_inner (roots inverses : List E) (x : K) :
-    ∀ (l : List E) (s : ℕ) (p : E),
-      (∀ c, s ≤ c → c < s + l.length → roots.getD c 0 = ofK (vanishingAt c (basisVec c))) →
-      (∀ c, s ≤ c → c < s + l.length →
-        inverses.getD c 0 = (ofK (vanishingAt c (basisVec c)))⁻¹) →
-      (l.zipIdx s).foldl (fun (acc : E × E) (cc : E × ℕ) ↦
-          (acc.1 * (1 + cc.1 * (1 + acc.2 * inverses.getD cc.2 0)),
-            acc.2 ^ 2 + roots.getD cc.2 0 * acc.2)) (p, ofK (vanishingAt s x)) =
-        (p * affProd (fun _ ↦ 1) (fun c ↦ 1 + ofK (normVanishingAt (s + c) x)) l,
-          ofK (vanishingAt (s + l.length) x))
-  | [], s, p, _, _ => by simp [affProd]
-  | a :: l, s, p, hr, hi => by
-    rw [List.zipIdx_cons, List.foldl_cons]
-    have hs : s < s + (a :: l).length := by simp
-    simp only [hr s le_rfl hs, hi s le_rfl hs]
-    have hW : ofK (vanishingAt s x) ^ 2 + ofK (vanishingAt s (basisVec s)) * ofK (vanishingAt s x) =
-        ofK (vanishingAt (s + 1) x) := by
-      rw [vanishingAt_succ, ofK_add, ofK_mul, ofK_pow]
-    have hn : ofK (vanishingAt s x) * (ofK (vanishingAt s (basisVec s)))⁻¹ =
-        ofK (normVanishingAt s x) := by
-      rw [normVanishingAt, ofK_mul, ofK_inv]
-    rw [hW, hn, inducedWeight_inner roots inverses x l (s + 1) _
-      (fun c h1 h2 ↦ hr c (by omega) (by simp; omega))
-      (fun c h1 h2 ↦ hi c (by omega) (by simp; omega))]
-    simp only [affProd, add_zero, List.length_cons]
-    refine Prod.ext ?_ ?_
-    · simp only
-      rw [show (fun c ↦ 1 + ofK (normVanishingAt (s + 1 + c) x)) =
-        fun c ↦ 1 + ofK (normVanishingAt (s + (c + 1)) x) by
-          funext c; rw [Nat.add_assoc, Nat.add_comm 1 c]]
-      ring
-    · simp only
-      rw [Nat.add_assoc, Nat.add_comm 1 l.length]
 
 /-- A left fold that adds `f a` at every step is a sum. -/
 theorem foldl_eq_add_sum {α : Type} (F : E → α → E) (f : α → E) (hF : ∀ t a, F t a = t + f a) :
@@ -295,25 +202,28 @@ theorem foldl_eq_add_sum {α : Type} (F : E → α → E) (f : α → E) (hF : �
   | a :: l, t => by
     rw [List.foldl_cons, foldl_eq_add_sum F f hF l, hF, List.map_cons, List.sum_cons, add_assoc]
 
-/-- The verifier's subspace roots, read at `c ≤ n`. -/
-private theorem subspaceRoots_getD (n c : ℕ) (hc : c < n + 1) :
-    (Verifier.subspaceRoots n).getD c 0 = ofK (vanishingAt c (basisVec c)) := by
-  rw [verifier_subspaceRoots_eq, List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map,
-    List.getElem_range]
+/-- `affProd` reads its factors' coefficients below the point's length only. -/
+theorem affProd_congr {a b b' : ℕ → E} : ∀ {p : List E}, (∀ c < p.length, b c = b' c) →
+    affProd a b p = affProd a b' p
+  | [], _ => rfl
+  | _ :: p, h => by
+    rw [affProd, affProd, h 0 (by simp),
+      affProd_congr (p := p) fun c hc ↦ h (c + 1) (by simp; omega)]
 
-/-- Their inverses (zero for zero), read at `c ≤ n`. -/
-private theorem subspaceRoots_inv_getD (n c : ℕ) (hc : c < n + 1) :
-    ((Verifier.subspaceRoots n).map fun value ↦ if value = 0 then 0 else value⁻¹).getD c 0 =
-      (ofK (vanishingAt c (basisVec c)))⁻¹ := by
-  have h := List.getD_map (fun value : E ↦ if value = 0 then 0 else value⁻¹)
-    (l := Verifier.subspaceRoots n) (n := c) (d := 0)
-  rw [ite_eq_left rfl] at h
-  rw [h, subspaceRoots_getD n c hc]
-  by_cases h0 : ofK (vanishingAt c (basisVec c)) = 0
-  · rw [ite_eq_left h0, h0, inv_zero]
-  · rw [ite_eq_right h0]
+/-- The product loop of `inducedWeight` as a product of affine factors. -/
+theorem foldl_zip_affProd : ∀ (point : List E) (what : List K) (weight : E),
+    point.length ≤ what.length →
+    (List.zip point what).foldl (fun product (cv : E × K) ↦ product * (1 + cv.1 * ofK (1 + cv.2)))
+        weight = weight * affProd (fun _ ↦ 1) (fun i ↦ 1 + ofK (what.getD i 0)) point
+  | [], _, weight, _ => by simp [affProd]
+  | c :: p, [], _, h => by simp at h
+  | c :: p, v :: what, weight, h => by
+    rw [List.zip_cons_cons, List.foldl_cons,
+      foldl_zip_affProd p what _ (by simpa using h), affProd]
+    simp only [List.getD_cons_zero, List.getD_cons_succ, ofK_add, ofK_one]
+    ring
 
-/-- **The verifier's induced weight** at a point of at most `n` coordinates is
+/-- **The verifier's induced weight** at a point of at most `n + 1` coordinates is
 `Σ_q w_q·Π_c (1 + (1 + Ŵ_c(x_q))·p_c)`, the batched column weights of `lem:colweight`. -/
 theorem inducedWeight_eq_sum (n : ℕ) (queries : List ℕ) (queryWeights point : List E)
     (hp : point.length ≤ n) :
@@ -321,19 +231,16 @@ theorem inducedWeight_eq_sum (n : ℕ) (queries : List ℕ) (queryWeights point 
       ((List.zip queryWeights queries).map fun wq ↦
         wq.1 * affProd (fun _ ↦ 1) (fun c ↦ 1 + ofK (normVanishingAt c (K.ofBits wq.2)))
           point).sum := by
-  have hroots := subspaceRoots_getD n
-  have hinv := subspaceRoots_inv_getD n
   simp only [Verifier.inducedWeight]
   rw [foldl_eq_add_sum _ (fun wq : E × ℕ ↦ wq.1 * affProd (fun _ ↦ 1)
     (fun c ↦ 1 + ofK (normVanishingAt c (K.ofBits wq.2))) point) (fun t wq ↦ ?_), zero_add]
   obtain ⟨w, q⟩ := wq
-  have h0 : eOfNat q = ofK (vanishingAt 0 (K.ofBits q)) := by simp [eOfNat, vanishingAt]
-  have := inducedWeight_inner (Verifier.subspaceRoots n)
-    ((Verifier.subspaceRoots n).map fun value ↦ if value = 0 then 0 else value⁻¹) (K.ofBits q)
-    point 0 w (fun c _ h2 ↦ hroots c (by omega)) (fun c _ h2 ↦ hinv c (by omega))
-  simp only [zero_add] at this
   simp only
-  rw [h0, this]
+  rw [foldl_zip_affProd point _ w (by rw [subspaceAt_eq]; simp; omega)]
+  congr 2
+  refine affProd_congr fun c hc ↦ ?_
+  rw [subspaceAt_eq, List.getD_eq_getElem _ _ (by simp; omega), List.getElem_map,
+    List.getElem_range]
 
 /-- **The induced weight is multilinear** on points of `n` coordinates. -/
 theorem isMultilinearFn_inducedWeight (n : ℕ) (queries : List ℕ) (queryWeights : List E) :
@@ -392,42 +299,6 @@ theorem queryTable_eq {κ : ℕ} (hκ : κ ≤ 64) (queries : List ℕ) (queryWe
     queryTable κ queries queryWeights = tableOf κ (Verifier.inducedWeight κ queries queryWeights) :=
   List.map_congr_left fun i hi ↦
     (inducedWeight_boolPoint hκ queries queryWeights i (List.mem_range.mp hi)).symm
-
-/-! ## The enforced sum -/
-
-private theorem list_sum_finset_sum {α : Type} (L : List α) (s : Finset ℕ) (f : α → ℕ → E) :
-    (L.map fun a ↦ ∑ i ∈ s, f a i).sum = ∑ i ∈ s, (L.map fun a ↦ f a i).sum := by
-  induction L with
-  | nil => simp
-  | cons a L ih => simp [ih, sum_add_distrib]
-
-/-- `enforcedSum` as a sum over the queries. -/
-theorem enforcedSum_eq (rows : List (List E)) (folds queryWeights : List E) :
-    enforcedSum rows folds queryWeights =
-      ((List.zip queryWeights rows).map fun wr ↦ wr.1 * dot wr.2 (eqKernel folds)).sum := by
-  rw [enforcedSum, foldl_eq_add_sum _ (fun wr : E × List E ↦ wr.1 * dot wr.2 (eqKernel folds))
-    (fun _ _ ↦ rfl), zero_add]
-
-/-- **The sum an honest level's queries enforce.** Reading the lanes of `g` at the query
-positions, the enforced sum is the pairing of the table of the verifier's induced weight with
-`g` folded at the level's challenges. -/
-theorem enforcedSum_honest {κ : ℕ} (hκ : κ ≤ 64) (g r : List E) (queries : List ℕ)
-    (queryWeights : List E) (hg : g.length = 2 ^ (r.length + κ)) :
-    enforcedSum (queries.map (laneCodes κ r.length g)) r queryWeights =
-      dot (tableOf κ (Verifier.inducedWeight κ queries queryWeights)) (foldAll g r) := by
-  have hlen : (foldAll g r).length = 2 ^ κ := length_foldAll r g κ hg
-  rw [enforcedSum_eq, dot_tableOf _ _ _ hlen, List.zip_map_right, List.map_map]
-  have : ∀ wq ∈ List.zip queryWeights queries,
-      ((fun wr : E × List E ↦ wr.1 * dot wr.2 (eqKernel r)) ∘ Prod.map id (laneCodes κ r.length g))
-        wq = ∑ i ∈ range (2 ^ κ),
-          wq.1 * ofK (novelAt i (K.ofBits wq.2)) * (foldAll g r).getD i 0 := by
-    intro wq _
-    simp only [Function.comp_apply, Prod.map_fst, id_eq, Prod.map_snd]
-    rw [dot_laneCodes_eqKernel κ g r _ hg, encAt_msgOf, mul_sum]
-    exact sum_congr rfl fun i _ ↦ by ring
-  rw [List.map_congr_left this, list_sum_finset_sum]
-  refine sum_congr rfl fun i hi ↦ ?_
-  rw [inducedWeight_boolPoint hκ _ _ i (mem_range.mp hi), ← List.sum_map_mul_right]
 
 end
 end LeanVM.Protocol.Whir.Complete

@@ -46,7 +46,7 @@ def TraceBounds (t : Execution prog) : Prop :=
   t.logMemorySize ≤ maxLogMem ∧ ∀ op, Skel.count op t.runSkels ≤ 2 ^ maxLogRows
 
 /-- A valid execution within the committed-size cap is within `skelWitness`'s bounds. -/
-theorem traceBounds_of (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28) :
+theorem traceBounds_of (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 30) :
     TraceBounds t := by
   refine ⟨hv.1.2.1, fun op ↦ ?_⟩
   have hcount : ∀ op, t.opcodeCount op = t.runRows op := Execution.count_eq_runRows hv.2
@@ -57,7 +57,7 @@ theorem traceBounds_of (hv : ValidExecution prog input t) (hcap : t.committedSiz
       Nat.pow_le_pow_right (by norm_num) (le_max_left _ _)
     simp only [Execution.committedSize]
     cases op <;> omega
-  have h28 : (2 : ℕ) ^ 28 ≤ 2 ^ maxLogRows := Nat.pow_le_pow_right (by norm_num) (by decide)
+  have h28 : (2 : ℕ) ^ 30 ≤ 2 ^ maxLogRows := Nat.pow_le_pow_right (by norm_num) (by decide)
   rw [Execution.count_runSkels, ← hcount]
   exact (Nat.le_pow_clog (by norm_num) _).trans ((hheight.trans hcap).trans h28)
 
@@ -216,8 +216,8 @@ theorem outStates_getD (R : Array (Array K)) (h x : ℕ) (hx : x < 2 ^ h) :
 /-- The memory block's cells. -/
 theorem memCell_trace (hb : TraceBounds t) (x : ℕ) (hx : x < 2 ^ t.logMemorySize) (k : ℕ) :
     cellOf (tableAt (traceWitness prog input t) 6) x k =
-      (#[(t.memory ⟨x, hx⟩).limb 0, (t.memory ⟨x, hx⟩).limb 1, (t.memory ⟨x, hx⟩).limb 2,
-        addressOfIndex x, g ^ skelMemFin t.memory t.runSkels (addressOfIndex x)][k]?).getD 0 := by
+      (#[(t.memory ⟨x, hx⟩).limb 0, (t.memory ⟨x, hx⟩).limb 1, addressOfIndex x,
+        g ^ skelMemFin t.memory t.runSkels (addressOfIndex x)][k]?).getD 0 := by
   rw [cellOf, traceWitness_eq hb, skelWitness_tableAt_table]
   show ((List.ofFn fun i : Fin (2 ^ t.logMemorySize) ↦ rawRow (memRowOf t.memory i
     (g ^ skelMemFin t.memory t.runSkels (addressOfIndex i))))[x]?.bind (·[k]?)).getD 0 = _

@@ -3,7 +3,7 @@
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{Proof, ProveError, prove, verify};
 use leanvm_core::vmhash::compress;
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 /// A program that hashes one block and publishes the digest, so its proof carries
 /// the Keccak reduction over a real compression.
@@ -21,13 +21,13 @@ def main():
 ";
 
 /// The public input `HASHING` publishes.
-fn hashing_pi() -> [F192; 2] {
+fn hashing_pi() -> [F128; 2] {
     let h = [F64(5), F64(0), F64(7), F64(0)];
     let d = compress(h, h);
-    [F192::new(d[0].0, d[1].0, 0), F192::new(d[2].0, d[3].0, 0)]
+    [F128::new(d[0].0, d[1].0), F128::new(d[2].0, d[3].0)]
 }
 
-fn hashing_proof() -> (leanvm_core::cpu::Program, [F192; 2], Proof) {
+fn hashing_proof() -> (leanvm_core::cpu::Program, [F128; 2], Proof) {
     let program = compile(&parse(HASHING).expect("parse"));
     let pi = hashing_pi();
     let (proof, _) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
@@ -56,18 +56,6 @@ fn an_unsupported_rate_is_an_error() {
     );
 }
 
-/// A public input that is not a 256-bit digest is an error, not a panic or a proof no verifier accepts.
-#[test]
-fn a_public_input_with_a_third_limb_is_an_error() {
-    let program = compile(&parse(HASHING).expect("parse"));
-    let mut pi = hashing_pi();
-    pi[1].c2 = 1;
-    assert_eq!(
-        prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).err(),
-        Some(ProveError::PublicInputNotDigest)
-    );
-}
-
 /// A KECCAK table of any height proves and verifies: below the Keccak reduction's
 /// block of 512 steps, where padding fills the floor, at it, and one step past it.
 #[test]
@@ -82,10 +70,22 @@ fn any_number_of_steps_proves() {
         for _ in 0..n {
             h = compress(h, h);
         }
-        let pi = [F192::new(h[0].0, h[1].0, 0), F192::new(h[2].0, h[3].0, 0)];
+        let pi = [F128::new(h[0].0, h[1].0), F128::new(h[2].0, h[3].0)];
         let program = compile(&parse(&source).expect("parse"));
         let (proof, stats) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         assert_eq!(stats.rows[5], n, "{n} steps");
         verify(&program, &pi, &proof).unwrap_or_else(|e| panic!("{n} steps: {e:?}"));
     }
+}
+
+/// The memory announced is the least power of two covering the cells a run touches,
+/// with no floor but the protocol's: the empty program proves on a memory of a few
+/// cells, smaller than a line of the memory columns' fill.
+#[test]
+fn a_tiny_memory_proves() {
+    let program = compile(&parse("def main():\n    return\n").expect("parse"));
+    let pi = [F128::ZERO; 2];
+    let (proof, stats) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    assert!(stats.log_mem < 3, "memory of 2^{} cells", stats.log_mem);
+    verify(&program, &pi, &proof).expect("honest proof verifies");
 }

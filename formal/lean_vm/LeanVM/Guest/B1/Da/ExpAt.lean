@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.ExpAt
 
-  `da_expand` placed (G:4454-4467): its product tree in its frame run, the run returned at its
+  `da_expand` placed (G:4638-4651): its product tree in its frame run, the run returned at its
   leaves, within its frame, by its evaluated valuation.
 -/
 
@@ -148,7 +148,7 @@ theorem exp_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     have hb := splitBody_eq hsp
     unfold expCOk at hcok
     simp only [Bool.and_eq_true, decide_eq_true_eq, List.isEmpty_iff] at hcok
-    obtain ⟨⟨⟨⟨⟨⟨⟨hchk, hst⟩, hcan⟩, hside⟩, hvals⟩, hna⟩, haddr⟩, hrun⟩ := hcok
+    obtain ⟨⟨⟨⟨⟨⟨hchk, hst⟩, hside⟩, hvals⟩, hna⟩, haddr⟩, hrun⟩ := hcok
     intro fp
     set rb := fp + cert f (.n (expB D + 1)) with hrb
     have hlenR : (expRunVals root F Z S top D).length = 512 := by simp [expRunVals]
@@ -174,9 +174,8 @@ theorem exp_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
       with hevl
     set rbE : E := ofK (addressOfIndex rb) with hrbE
     set tl : List E := rbE :: (List.replicate (expC D - expB D - 1) 0 ++
-      [word W 0 0, rbE * word W 0 0]) with htl
+      [word W 0, rbE * word W 0]) with htl
     obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (evl ++ tl) := ⟨_, rfl⟩
-    have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
     have hag : ∀ v : V, v.idx < expB D → B1.Val.ofArgs evl v = σ v := fun v hv => by
       rw [hσ]; exact (ofArgs_old (by rw [hlen]; exact hv)).symm
     have hg : ∀ a ∈ expBodyA top D, Good rd [] w σ a := fun a ha =>
@@ -197,7 +196,7 @@ theorem exp_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     have hmC : expC D - expB D - 1 = 1 + (512 - 2 ^ (D + 1)) := by unfold expC; omega
     -- the computing atoms
     have hatB : ∀ a ∈ expBodyA top D, a.Holds rd σ := by
-      refine atoms_holds (A := []) hidx hcan hg (by simp) fun a ha hns => Or.inr ?_
+      refine atoms_holds hg fun a ha hns => Or.inr ?_
       have hld := List.all_eq_true.mp hside a ha
       rw [hns] at hld
       cases a with
@@ -267,20 +266,20 @@ theorem exp_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
             rw [hmC]
             have h2 : 2 ^ (D + 1) ≤ k := by omega
             omega
-          exact tl_mid rbE (word W 0 0) (rbE * word W 0 0) (by omega) hjm
+          exact tl_mid rbE (word W 0) (rbE * word W 0) (by omega) hjm
     have hrunLen : (expRun D).length = 512 := by
       simp only [expRun, List.length_cons, List.length_append, List.length_map, List.length_range,
         length_nodesBelow]
       have := Nat.one_le_two_pow (n := D + 1)
       omega
     have hpE : σ (.n (expB D)) = rbE := by rw [← Nat.add_zero (expB D), htl_at 0]; rfl
-    have hcE : σ (.n (expC D)) = word W 0 0 := by
+    have hcE : σ (.n (expC D)) = word W 0 := by
       rw [show expC D = expB D + (expC D - expB D - 1 + 1) by unfold expC; omega, htl_at, htl,
         tl_a]
-    have hmE : σ (.n (expC D + 1)) = rbE * word W 0 0 := by
+    have hmE : σ (.n (expC D + 1)) = rbE * word W 0 := by
       rw [show expC D + 1 = expB D + (expC D - expB D - 1 + 2) by unfold expC; omega, htl_at,
         htl, tl_b]
-    have hWv : word W 0 0 = ofK (addressOfIndex (2 ^ D)) := by rw [word_eOfNat, eOfNat, hW]
+    have hWv : word W 0 = ofK (addressOfIndex (2 ^ D)) := by rw [word_eOfNat, eOfNat, hW]
     have hat : ∀ a ∈ expT top D W, a.Holds rd σ := by
       intro a ha
       rcases List.mem_append.mp ha with ha | ha

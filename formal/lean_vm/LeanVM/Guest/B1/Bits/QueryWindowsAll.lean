@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Bits.QueryWindowsAll
 
-  `decode_query_windows` is sound at each of its 45 specializations.
+  `decode_query_windows` is sound at each of its 43 specializations.
 -/
 
 module
@@ -20,6 +20,13 @@ public import LeanVM.Guest.B1.Bits.QueryWindowsData
 namespace LeanVM.Guest.B1
 
 @[expose] public section
+
+/-- `decode_query_windows__L{d}_L{cd}`'s core IR establishes its meaning. -/
+def decode_query_windows_Spec (name : String) (d cd : ℕ) : Prop :=
+  decode_query_windows_SpecP coreProgram name d cd
+
+/-- Every deployed specialization. -/
+def decode_query_windows_all_Spec : Prop := decode_query_windows_all_SpecP coreProgram
 
 theorem decode_query_windows_all_holds : decode_query_windows_all_Spec :=
   fun p hp ↦ qw_sound (qwShape_all p hp) (queryWindows_data p hp)

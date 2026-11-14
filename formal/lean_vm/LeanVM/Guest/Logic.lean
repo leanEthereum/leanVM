@@ -65,7 +65,7 @@ def Holds (pc : ℕ) (fp : K) : OffsetInstruction → Prop
       L.read (fp * addressOfIndex c) = some (vA + vB)
   | .mul a b c => ∃ vA vB, L.read (fp * addressOfIndex a) = some vA ∧ L.read (fp * addressOfIndex b) = some vB ∧
       L.read (fp * addressOfIndex c) = some (vA * vB)
-  | .set o k0 k1 k2 => L.read (fp * addressOfIndex o) = some (OffsetInstruction.immediateWord k0 k1 k2)
+  | .set o k0 k1 => L.read (fp * addressOfIndex o) = some (OffsetInstruction.immediateWord k0 k1)
   | .deref o1 o2 o3 mode => ∃ p v3, L.read (fp * addressOfIndex o1) = some p ∧ IsInK p ∧
       L.read (fp * addressOfIndex o3) = some v3 ∧
       L.read (p.limb 0 * addressOfIndex o2) = some (derefSource mode ⟨addressOfIndex pc, fp⟩ v3)
@@ -148,7 +148,7 @@ theorem execute_iff_holds {pc : ℕ} {fp : K} {ins : OffsetInstruction} (hj : in
       exact ⟨⟨vA, vB, hA, hB, hC⟩, rfl⟩
     · rintro ⟨⟨vA, vB, hA, hB, hC⟩, rfl⟩
       exact ⟨vA, hA, vB, hB, _, hC, rfl, rfl⟩
-  | set o k0 k1 k2 =>
+  | set o k0 k1 =>
     simp only [execute, executeWith, OffsetInstruction.toLeanIsaInstruction, Holds,
         Option.bind_eq_bind,
       Option.bind_eq_some_iff, guard_eq_some_iff, exists_const, Option.pure_def, Option.some.injEq, hnext]
@@ -194,7 +194,7 @@ theorem execute_jump_iff {pc : ℕ} {fp : K} {oc od of : ℕ} {r : Registers K} 
 /-- A pc before the last slot is not the halting one. -/
 theorem gpow_ne_pcFinal {pc : ℕ} (hpc : pc < 2 ^ prog.logSize - 1) : addressOfIndex pc ≠
     prog.pcFinal := by
-  have hlog : 2 ^ prog.logSize ≤ 2 ^ 32 := Nat.pow_le_pow_right (by decide) prog.logSize_le
+  have hlog : 2 ^ prog.logSize ≤ 2 ^ 30 := Nat.pow_le_pow_right (by decide) prog.logSize_le
   intro h
   have := gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega) h
   omega

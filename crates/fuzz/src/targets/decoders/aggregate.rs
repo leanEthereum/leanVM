@@ -11,9 +11,10 @@
 use super::honest;
 use crate::source::{Rng, mutate};
 use crate::{Ctx, Finding, Outcome, Source, catch};
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 use rec_aggregation::aggregation::unified_guest;
-use rec_aggregation::{AggregateVerifyError, EthereumClaims, EthereumProof, MAX_KEYS, fuzzing};
+use crate::MAX_KEYS;
+use rec_aggregation::{AggregateVerifyError, EthereumClaims, EthereumProof, fuzzing};
 use signatures::{lean_sphincs, lean_xmss};
 use std::sync::OnceLock;
 
@@ -43,16 +44,15 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
         deferred_agree(src, ctx, n)?;
     }
     let claims = claims(src, ctx);
-    let valid_set = claims.num_signature_claims() < MAX_KEYS
-        && claims.xmss.windows(2).all(|w| w[0] < w[1])
-        && claims.lean_sphincs.windows(2).all(|w| w[0] < w[1]);
+    let valid_set =
+        claims.lean_xmss.windows(2).all(|w| w[0] < w[1]) && claims.lean_sphincs.windows(2).all(|w| w[0] < w[1]);
 
     // The point: its announced count, then its limbs.
     let (count, point) = match src.below(10) {
         0 => {
             ctx.note("count off by one");
             let c = if src.bool() { n + 1 } else { n.saturating_sub(1) };
-            (c as u64, vec![F192::ZERO; c])
+            (c as u64, vec![F128::ZERO; c])
         }
         1 => {
             ctx.note("count edge");
@@ -61,15 +61,15 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
         }
         2 if src.chance(1, 4) => {
             ctx.note("random point");
-            (n as u64, (0..n).map(|_| src.f192()).collect())
+            (n as u64, (0..n).map(|_| src.f128()).collect())
         }
         3 => {
             ctx.note("boolean point");
-            (n as u64, (0..n).map(|_| F192::new(src.below(2) as u64, 0, 0)).collect())
+            (n as u64, (0..n).map(|_| F128::new(src.below(2) as u64, 0)).collect())
         }
         _ => {
             ctx.note("zero point");
-            (n as u64, vec![F192::ZERO; n])
+            (n as u64, vec![F128::ZERO; n])
         }
     };
     let fixtures = honest();
@@ -81,7 +81,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
         }
         3 => Vec::new(),
         _ => leanvm_core::cpu::Proof {
-            stream: (0..src.below(16)).map(|_| src.f192()).collect(),
+            stream: (0..src.below(16)).map(|_| src.f128()).collect(),
             merkle: Vec::new(),
         }
         .to_bytes(),
@@ -130,7 +130,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
             format!(
                 "{} bytes, {} leanXMSS and {} leanSPHINCS claims, sorted set {valid_set}",
                 bytes.len(),
-                claims.xmss.len(),
+                claims.lean_xmss.len(),
                 claims.lean_sphincs.len()
             ),
         ));
@@ -162,7 +162,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
             format!(
                 "{} bytes, claims {} + {}",
                 bytes.len(),
-                claims.xmss.len(),
+                claims.lean_xmss.len(),
                 claims.lean_sphincs.len()
             ),
         )),
@@ -197,7 +197,7 @@ fn claims(src: &mut Source, ctx: &Ctx) -> EthereumClaims {
         if nx + ns >= MAX_KEYS - 2 { "huge" } else { "small" }
     ));
     let mut rng = Rng::new(src.u64());
-    let mut xmss: Vec<_> = (0..nx)
+    let mut lean_xmss: Vec<_> = (0..nx)
         .map(|_| {
             (
                 lean_xmss::LeanXmssPublicKey::from_bytes(&bytes32(&mut rng)),
@@ -215,10 +215,10 @@ fn claims(src: &mut Source, ctx: &Ctx) -> EthereumClaims {
         .collect();
     match shape {
         0 => {}
-        1 if xmss.len() > 1 => {
-            xmss.sort();
-            let i = src.below(xmss.len() - 1);
-            xmss[i + 1] = xmss[i];
+        1 if lean_xmss.len() > 1 => {
+            lean_xmss.sort();
+            let i = src.below(lean_xmss.len() - 1);
+            lean_xmss[i + 1] = lean_xmss[i];
         }
         2 if sphincs.len() > 1 => {
             sphincs.sort();
@@ -230,20 +230,20 @@ fn claims(src: &mut Source, ctx: &Ctx) -> EthereumClaims {
             }
             sphincs.sort();
         }
-        3 if xmss.len() > 1 => {
-            xmss.sort();
-            xmss.reverse();
+        3 if lean_xmss.len() > 1 => {
+            lean_xmss.sort();
+            lean_xmss.reverse();
         }
         _ => {
-            xmss.sort();
-            xmss.dedup();
+            lean_xmss.sort();
+            lean_xmss.dedup();
             sphincs.sort();
             sphincs.dedup();
         }
     }
     let da_commitment = src.bool().then(|| bytes32(&mut rng));
     EthereumClaims {
-        xmss,
+        lean_xmss,
         lean_sphincs: sphincs,
         da_commitment,
     }
@@ -253,10 +253,10 @@ fn claims(src: &mut Source, ctx: &Ctx) -> EthereumClaims {
 /// every honest aggregate at that point fails.
 fn deferred_agree(src: &mut Source, ctx: &Ctx, n: usize) -> Outcome {
     ctx.note("deferred agree");
-    let point: Vec<F192> = match src.below(3) {
-        0 => (0..n).map(|_| src.f192()).collect(),
-        1 => (0..n).map(|_| F192::new(src.below(2) as u64, 0, 0)).collect(),
-        _ => (0..n).map(|_| *src.pick(&[F192::ZERO, F192::ONE, F192::Y])).collect(),
+    let point: Vec<F128> = match src.below(3) {
+        0 => (0..n).map(|_| src.f128()).collect(),
+        1 => (0..n).map(|_| F128::new(src.below(2) as u64, 0)).collect(),
+        _ => (0..n).map(|_| *src.pick(&[F128::ZERO, F128::ONE, F128::Y])).collect(),
     };
     let scalar = fuzzing::true_deferred_value(&point);
     let pooled = primitives::multilinear::mle_eval_par(stacked(), &point);

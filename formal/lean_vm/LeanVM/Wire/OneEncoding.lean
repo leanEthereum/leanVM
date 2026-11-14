@@ -66,13 +66,6 @@ theorem oneEncoding_of
 theorem oneEncoding : OneEncodingStatement :=
   oneEncoding_of fun h _ hr ↦ hr.phaseSiblingBytes_unprunePhase h
 
-/-- **One encoding of the transcribed decoding**, Keccak-256 over a permutation `π` in `Id`:
-bytes that decode to a proof are its encoding. -/
-theorem toBytes_of_fromBytes (π : KeccakState → Id KeccakState) {bytes : Bytes} {proof : Proof}
-    (hdecode : Proof.fromBytes π bytes = some proof) : proof.toBytes = bytes := by
-  rw [fromBytes_eq_withHash] at hdecode
-  exact oneEncoding _ bytes proof hdecode
-
 end LeanVM.Wire
 
 end

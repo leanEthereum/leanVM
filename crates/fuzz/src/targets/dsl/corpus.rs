@@ -108,8 +108,7 @@ pub fn check(spec: &programs::Spec, src: &mut Source, ctx: &Ctx) -> Outcome {
             let mut other = pi;
             let i = src.below(2);
             other[i] = crate::mutate_proof::perturb(other[i], src);
-            other[i].c2 = 0;
-            if other != pi && leanvm_core::cpu::verify(&program, &other, &proof).is_ok() {
+                    if other != pi && leanvm_core::cpu::verify(&program, &other, &proof).is_ok() {
                 return Err(Finding::critical(
                     format!("{context}: a proof verifies for another public input"),
                     format!("proven {pi:?}, accepted {other:?}"),

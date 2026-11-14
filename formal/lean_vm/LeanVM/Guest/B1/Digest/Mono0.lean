@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.Mono0
 
-  Windows 0–3 of `child_claim_list_mono`'s big frame loop `__loop19`: blocks
+  Windows 0–3 of `child_claim_list_mono`'s big frame loop `child_claim_list_mono_loop0`: blocks
   0–15, claims 0–35, each window a kernel check of its own.
 -/
 

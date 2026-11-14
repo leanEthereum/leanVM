@@ -61,6 +61,7 @@ def Atom.rename (r : V → V) : Atom → Atom
   | .keccak ins outs inOdd outOdd => .keccak (ins.map r) (outs.map r) inOdd outOdd
   | .frameAddr p run => .frameAddr (r p) (run.map r)
   | .hint h => .hint (h.rename r)
+  | .touch t p => .touch (r t) (r p)
 
 mutual
 def Stmt.rename (r : V → V) : Stmt → Stmt
@@ -167,6 +168,7 @@ def Atom.vals : Atom → List V
   | .keccak ins outs _ _ => ins ++ outs
   | .frameAddr p run => p :: run
   | .hint h => h.vals
+  | .touch t p => [t, p]
 
 mutual
 /-- The values of a statement, in order. -/

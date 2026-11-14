@@ -3,7 +3,7 @@
 //! one function differ, and a proof built on the wrong one fails (or, worse, verifies something else).
 
 use crate::{Cost, Source, Target};
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 mod bits;
 mod field;
@@ -104,20 +104,16 @@ pub mod reference {
         acc
     }
 
-    /// Schoolbook over `K[y]/(y^3 + y + 1)`: five coefficients, then `y^3 = y + 1` and `y^4 = y^2 + y`.
-    pub fn mul_e(a: F192, b: F192) -> F192 {
-        let (a, b) = (a.to_limbs(), b.to_limbs());
-        let mut d = [0u64; 5];
-        for i in 0..3 {
-            for j in 0..3 {
-                d[i + j] ^= mul_k(a[i], b[j]);
-            }
-        }
-        F192::new(d[0] ^ d[3], d[1] ^ d[3] ^ d[4], d[2] ^ d[4])
+    /// Schoolbook over `K[y]/(y² + xy + 1)`: three coefficients, then `y² = xy + 1`.
+    pub fn mul_e(a: F128, b: F128) -> F128 {
+        let (a0, a1) = (a.c0, a.c1);
+        let (b0, b1) = (b.c0, b.c1);
+        let p = mul_k(a1, b1);
+        F128::new(mul_k(a0, b0) ^ mul_k(2, p), mul_k(a0, b1) ^ mul_k(a1, b0) ^ mul_k(2, p))
     }
 
-    pub fn pow_e(a: F192, mut e: u128) -> F192 {
-        let (mut acc, mut base) = (F192::ONE, a);
+    pub fn pow_e(a: F128, mut e: u128) -> F128 {
+        let (mut acc, mut base) = (F128::ONE, a);
         while e > 0 {
             if e & 1 == 1 {
                 acc = mul_e(acc, base);
@@ -128,12 +124,12 @@ pub mod reference {
         acc
     }
 
-    pub fn add_e(a: F192, b: F192) -> F192 {
-        F192::new(a.c0 ^ b.c0, a.c1 ^ b.c1, a.c2 ^ b.c2)
+    pub fn add_e(a: F128, b: F128) -> F128 {
+        F128::new(a.c0 ^ b.c0, a.c1 ^ b.c1)
     }
 
-    pub fn mul_base(a: F192, k: u64) -> F192 {
-        F192::new(mul_k(a.c0, k), mul_k(a.c1, k), mul_k(a.c2, k))
+    pub fn mul_base(a: F128, k: u64) -> F128 {
+        F128::new(mul_k(a.c0, k), mul_k(a.c1, k))
     }
 
     /// Keccak-f\[1600\] from the specification: round constants from the LFSR, rotation offsets from the `(x, y)`
@@ -224,23 +220,23 @@ pub fn edge_k(src: &mut Source) -> F64 {
 }
 
 /// An `E` element biased like [`edge_k`], limb by limb.
-pub fn edge_e(src: &mut Source) -> F192 {
+pub fn edge_e(src: &mut Source) -> F128 {
     match src.below(6) {
-        0 => F192::new(edge_k(src).0, edge_k(src).0, edge_k(src).0),
-        1 => F192::new(0, 0, edge_k(src).0),
-        2 => F192::new(0, edge_k(src).0, 0),
-        _ => src.f192(),
+        0 => F128::new(edge_k(src).0, edge_k(src).0),
+        1 => F128::new(0, edge_k(src).0),
+        2 => F128::new(edge_k(src).0, 0),
+        _ => src.f128(),
     }
 }
 
 /// `n` random `E` elements expanded from one draw, a few of them replaced by edges.
-pub fn bulk_e(src: &mut Source, n: usize) -> Vec<F192> {
-    let words = src.bulk_u64(3 * n);
-    let mut out: Vec<F192> = words
-        .as_chunks::<3>()
+pub fn bulk_e(src: &mut Source, n: usize) -> Vec<F128> {
+    let words = src.bulk_u64(2 * n);
+    let mut out: Vec<F128> = words
+        .as_chunks::<2>()
         .0
         .iter()
-        .map(|w| F192::new(w[0], w[1], w[2]))
+        .map(|w| F128::new(w[0], w[1]))
         .collect();
     for _ in 0..src.below(4) {
         if n > 0 {

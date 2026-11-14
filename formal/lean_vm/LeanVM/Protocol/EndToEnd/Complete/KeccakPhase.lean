@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Complete.Table
+public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
 public import LeanVM.Protocol.EndToEnd.Front.KeccakBridge
 public import LeanVM.Protocol.Keccak.Complete
 public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
@@ -110,18 +111,20 @@ open LeanVM.Protocol.EndToEnd.Sound (RetOK RetOK.ret RetOK.bind_true) in
 theorem retOK_busColumns (layout : Verifier.Layout) :
     RetOK (fun bus : BusResult ↦ ∀ c ∈ bus.claims, c.column < 6)
       (verifyBusBalance computedBytecodeValue layout) := by
-  unfold verifyBusBalance
-  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun r ↦ ?_
-  obtain ⟨countRoot, point, treeValues⟩ := r
-  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun memory ↦ RetOK.bind_true fun _ ↦
-    RetOK.bind_true fun _ ↦ RetOK.ret ?_
+  rw [verifyBusBalance_eq]
+  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
+    RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
+      RetOK.bind_true fun memory ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
+        RetOK.bind_true fun r ↦ ?_
+  obtain ⟨share, bp, value⟩ := r
+  refine RetOK.bind_true fun _ ↦ RetOK.ret ?_
   intro c hc
-  simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
+  simp only [busOut, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
   rcases hc with hc | rfl | rfl
   · obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hc
     simp only [List.getElem_zipWith, List.length_zipWith] at hi ⊢
-    have : i < 3 := by simp at hi; omega
-    interval_cases i <;> simp [memory0, memory1, memory2]
+    have : i < 2 := by simp at hi; omega
+    interval_cases i <;> simp [memory0, memory1]
   · show memoryFinalCounters < 6; decide
   · show bytecodeFinalCounters < 6; decide
 
@@ -135,8 +138,8 @@ theorem retOK_publicColumns (layout : Verifier.Layout) (publicInput : Digest) :
   intro c hc
   obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hc
   simp only [List.getElem_zipWith, List.length_zipWith] at hi ⊢
-  have : i < 3 := by simp at hi; omega
-  interval_cases i <;> simp [memory0, memory1, memory2]
+  have : i < 2 := by simp at hi; omega
+  interval_cases i <;> simp [memory0, memory1]
 
 variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
@@ -211,7 +214,7 @@ theorem trueClaim_of_colTrue {c : Verifier.ColumnClaim} (hc : colTrue (s.τ 5) (
 theorem honestLanes_columns (z : Vector E (s.τ 5)) :
     (honestLanes prog s q z).map (·.column) = keccakOutputColumns := by
   rw [keccakOutputColumns_eq, honestLanes, List.map_map]
-  show (List.finRange 25).map (fun l : Fin 25 ↦ 113 + l.val) = _
+  show (List.finRange 25).map (fun l : Fin 25 ↦ 106 + l.val) = _
   decide +kernel
 
 /-- **The check on the honest lanes passes.** -/
@@ -263,7 +266,7 @@ theorem follows_keccakPhase {input : PublicInput} (hq : M3Holds (inst prog s) in
     (z : Vector E (s.τ 5)) (hl : lanesOf claims = honestLanes prog s q z) (cs : Commits) :
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧
         (∀ c ∈ b.1, TrueClaim prog s q c ∧ c.column ∉ keccakOutputColumns) ∧
-        slicesTrue (s.τ 5) (qkH prog s q) b.2.1 b.2.2)
+        slicesTrue (s.τ 5) (qkH prog s q) b.2.1 b.2.2 ∧ b.1.length ≤ claims.length + 1)
       (hKeccakPhase prog s q claims) (keccakPhaseClaims (verifierLayout prog s) claims) cs := by
   have hP : s.τ 5 - 4 + 4 = s.τ 5 := by
     have := s.minSteps_le
@@ -296,8 +299,11 @@ theorem follows_keccakPhase {input : PublicInput} (hq : M3Holds (inst prog s) in
     rw [hP, hinst]; exact midAgree_honest prog s q hq z
   refine Follows.bind (fun cs₂ a b h₂ ↦ ?_) _ _ _
     (follows_keccak (s.τ 5 - 4) (qkH prog s q) hi ho hmid hagree cs₁)
-  obtain ⟨rfl, rfl, hcol, hsl⟩ := h₂
-  refine ⟨rfl, rfl, fun c hc ↦ ?_, by rw [hP] at hsl; exact hsl⟩
+  obtain ⟨rfl, rfl, hcol, hsl, hlen1⟩ := h₂
+  refine ⟨rfl, rfl, fun c hc ↦ ?_, by rw [hP] at hsl; exact hsl, ?_⟩
+  swap
+  · rw [List.length_append, hlen1]
+    exact Nat.add_le_add_right (List.length_filter_le _ _) 1
   rcases List.mem_append.mp hc with hc | hc
   · obtain ⟨hmem, hnot⟩ := List.mem_filter.mp hc
     exact ⟨htrue c hmem, by simpa using hnot⟩

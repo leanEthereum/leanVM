@@ -1,11 +1,11 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSound
 
-  `verify_sig_lean_sphincs` (`lean_ethereum.py:3951-4052` at leanVM main 40f877dc) is sound: under a
+  `verify_sig_lean_sphincs` (`lean_ethereum.py:4143-4244`) is sound: under a
   call relation that unfolds at a frame map, on a memory image of at most `2^32` words, whenever
   its body holds it returns no words, and with the byte table at its second argument the signature
   read off its valuation and its three `sp_wots` frames verifies the claim at its first
-  (`verify_sig_lean_sphincs_sound_holds`).
+  (`verify_sig_lean_sphincs_sound_holdsP`, in any program that finds `sp_wots`).
 -/
 
 module
@@ -18,13 +18,13 @@ public import LeanVM.Guest.B1.Sig.SphincsData
 /-!
 # `verify_sig_lean_sphincs`, sound
 
-The body (`Data.core20.body = sBody`, `SphincsData`) is four blocks of atoms around the three calls
-of `sp_wots` (`sBody_split`, `SphincsSoundBlocks`): the digest block, FORS, the bottom key's
-addresses and the bottom layer's counter and encoding (`sBlockA`); the bottom path, the middle
-layer's addresses, counter and encoding (`sBlockB`); the middle path and the top layer's
+The body (`(Fn.«verify_sig_lean_sphincs».core).body = sBody`, `SphincsData`) is four blocks of atoms
+around the three calls of `sp_wots` (`sBody_split`, `SphincsSoundBlocks`): the digest block, FORS,
+the bottom key's addresses and the bottom layer's counter and encoding (`sBlockA`); the bottom path,
+the middle layer's addresses, counter and encoding (`sBlockB`); the middle path and the top layer's
 (`sBlockC`); the top path and `root[0] == pk_root` (`sBlockD`).
 
-`verify_sig_lean_sphincs_sound_holds` reads the stages off them (`verifyWithKeccak_iff_stages`):
+`verify_sig_lean_sphincs_sound_holdsP` reads the stages off them (`verifyWithKeccak_iff_stages`):
 
 * the digest block (`sDigestBlock_sound_stmt`, spdig's): the claim at the pointer, and the
   statement's `H_msg` of it and the randomizer `sphincsSigOf` reads is the number `T` the block
@@ -49,7 +49,8 @@ open Sphincs Sphincs.Verification
 
 /-- **`verify_sig_lean_sphincs` is sound**, for the signature read off its valuation and the frames
 of its `sp_wots` calls. -/
-theorem verify_sig_lean_sphincs_sound_holds : verify_sig_lean_sphincs_sound_Spec sphincsSigOf := by
+theorem verify_sig_lean_sphincs_sound_holdsP (P : Program) [Finds P "sp_wots" Fn.«sp_wots».core] :
+    verify_sig_lean_sphincs_sound_SpecP P sphincsSigOf := by
   intro C Vm κ L hκ hV σ rets h
   rw [sBody_eq, sBody_split] at h
   obtain ⟨hA, h⟩ := holdsList_split_atoms sBlockA_atoms h

@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Count.VsWords
 public import LeanVM.Guest.Count.Fast
 public import LeanVM.Guest.Count.StaticV
@@ -50,10 +51,10 @@ set_option maxHeartbeats 40000000 in
 /-- **`verify_tables`' weight bound at the deployed instance.** -/
 theorem vtWB_eq (op : Opcode) : B1.VerifySub.vtWB vsWords op = kcVtW op := by
   show B2C.ωArm B2C.xmssArmC op "verify_tables" + (B1.Tables.vtBs (kuSB op)
-    (B2C.ωArm B2C.xmssArmC op "shared_selector_tables" + 15 * kuSK op "__loop8" + kSpW op)
-    (28 * kuSK op "__loop9")).sum = kcVtW op
-  rw [ωArm_idx (j := 11) (by decide +kernel) (by decide),
-    ωArm_idx (j := 10) (by decide +kernel) (by decide)]
+    (B2C.ωArm B2C.xmssArmC op "shared_selector_tables" + 15 * kuSK op (name% shared_selector_tables_loop0) + kSpW op)
+    (32 * kuSK op (name% verify_tables_loop0))).sum = kcVtW op
+  rw [ωArm_idx (j := idx% verify_tables) (by decide +kernel) (by decide),
+    ωArm_idx (j := idx% shared_selector_tables) (by decide +kernel) (by decide)]
   unfold kSpW
   rw [← kuSBFast_eq, ← kuSKFast_eq]
   cases op <;> decide +kernel
@@ -64,11 +65,11 @@ set_option maxHeartbeats 40000000 in
 theorem termWB_eq (op : Opcode) : B1.VerifySub.termWB vsWords op = kcTermW op := by
   show B2C.ωArm B2C.xmssArmC op "check_opening_terminal" +
     (B1.VerifySub.termWs (fun op => kuSB op "eq_prefix_chain")
-      (fun op => krVl15A op * max (B2C.fs "__loop14") (32 * 38) / 1000)
+      (fun op => krVl15A op * max (B2C.fs (name% check_opening_terminal_loop0)) (32 * 38) / 1000)
       (fun op => kuSB op "selector_tables") kCsW
       (fun op => krVrswA op * (B2C.fs "ring_switch_weight" + 2240 + 16433) / 1000) op).sum =
     kcTermW op
-  rw [ωArm_idx (j := 17) (by decide +kernel) (by decide)]
+  rw [ωArm_idx (j := idx% check_opening_terminal) (by decide +kernel) (by decide)]
   unfold kCsW
   rw [← kuSBFast_eq, ← fsFast_eq]
   cases op <;> decide +kernel

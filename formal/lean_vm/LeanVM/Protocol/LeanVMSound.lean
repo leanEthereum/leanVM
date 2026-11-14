@@ -2,7 +2,7 @@
   LeanVM.Protocol.LeanVMSound
 
   Knowledge soundness of the leanVM verifier in the two-oracle random-oracle model
-  (`LeanVM/Protocol/Rom/Statement.lean`), at 128 bits per query: the step of the proof of
+  (`LeanVM/Protocol/Rom/Statement.lean`), at 125 bits per query: the step of the proof of
   `LeanVM.KnowledgeSoundness` (`Statement/LeanVm.lean`) before the random-permutation model.
 -/
 
@@ -12,6 +12,7 @@ public import LeanVM.Protocol.EndToEnd.Sound.Statements
 public import LeanVM.Protocol.EndToEnd.Sound.Extractor
 public import LeanVM.Protocol.Extraction.Sound
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.Whir.Params.Iface
 
 /-!
 # leanVM, knowledge soundness
@@ -23,7 +24,7 @@ This page proves knowledge soundness in the two-oracle random-oracle model of
 `LeanVM.Protocol.LeanVM` proves completeness there, and `LeanVM.Protocol.LeanVMRpm` moves both to
 the random-permutation model.
 
-The verifier is leanVM's at `40f877dc2c858f013c5974ab71ca594b31a7aec9` (`crates/verifier`), its
+The verifier is leanVM's at the commit `leanvm-rev` names (`crates/verifier`), its
 Fiat-Shamir sponge a duplex sponge over Keccak-f[1600] and its Merkle hash Keccak-256. Both are
 modelled as independent random oracles (`HashSpec = (Bytes →ₒ Digest) + (KState →ₒ KState)`).
 
@@ -34,11 +35,12 @@ instruction is not a `JUMP` and the extractor (`extractor`, `LeanVM/Protocol/Ext
 the proof and the oracle's answers to the adversary's Keccak-256 queries only, the halting run of
 the memory image of a stack in the Johnson list of the word the proof commits to) does not return
 a valid execution of the program on the public input is at most
-`soundnessError Q = (Q + 12006) · (2^-128 + 5·(Q + 12006)/2^256) + 12006/2^256`, which is at most
-`2^-63` for `Q ≤ 2^64` (`soundnessError_le`). The `2^-128` is per oracle query: every group of the
-protocol's challenges, discounted by the proof of work before it, escapes with probability at
-most `2^-128`, certified for every admissible size and rate (`Whir.Params.Deployed`). The
-`12006` bounds the verifier's queries on every statement and proof
+`soundnessError Q = (Q + 13708) · (2^-125 + 5·(Q + 13708)/2^256) + 13708/2^256`, which is at most
+`2^-60` for `Q ≤ 2^64` (`soundnessError_le`, `LeanVM.Protocol.ErrorBounds`). The `2^-125` is per
+oracle query: every group of the protocol's challenges, discounted by the proof of work before it,
+escapes with probability at most `2^-125`, the round-by-round error every verifier message is held
+to after its grind (`SECURITY_BITS`), certified for every admissible size and rate. The
+`13708` bounds the verifier's queries on every statement and proof
 (`Verifier.leanVmQueryBound_eq`).
 
 The proof (`knowledgeSoundnessRom`) runs the experiment over the ordered log of fresh queries, the
@@ -51,9 +53,14 @@ predicts a digest or a sponge state's capacity the log refers to: `5 + 2` per ea
 adversary's part of the log only, returns a valid execution (`Sound.extractor_of_extracted`):
 without failure, every climb to the announced root through the log runs through the adversary's
 queries, unless a fresh Keccak-256 answer of the verifier is the root itself, which has
-probability at most `12006/2^256` (`Sound.prEvent_logged2_root_le`, the second term).
+probability at most `13708/2^256` (`Sound.prEvent_logged2_root_le`, the second term).
 
 **Scope and trust.**
+
+* The stacked opening's specification enters through the interface `Sound.OpeningIface`
+  (`EndToEnd/Sound/Assemble.lean`): level 0's threshold, list bound and shape, and the opening's
+  specification from "every candidate violates a claim", filled by the deployed WHIR opening
+  (`Whir.Params.openingIface`, `LeanVM/Protocol/Whir/Params/Iface.lean`).
 
 * Keccak-256 and Keccak-f[1600] are independent random oracles here, the step of the proof before
   the random-permutation model of the statements (`LeanVM/Protocol/LeanVMRpm.lean`).
@@ -118,23 +125,25 @@ queries, which chooses the program, the public input and the proof, the verifier
 the extractor `extractor`
 (`LeanVM/Protocol/Extraction/Extractor.lean`) does not return a valid execution of the program on the public
 input with probability at most `soundnessError Q`. -/
-theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
+theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ}
+    (hA : A.IsTotalQueryBound Q) :
     Pr{let z ← experiment A}[Breaks extractor z] ≤ soundnessError Q := by
   -- Doom or failure, read off the final log.
-  have h1 := romSound_log Sound.anyProgram Sound.anyCert Sound.leanVmSeeds
-    (fun x ↦ Sound.rootOk_stmtHistory x) Sound.εLean Sound.anyCert_bound A Q hA
+  have h1 := romSound_log Sound.anyProgram (Sound.anyCert LeanVM.Protocol.Whir.Params.openingIface) Sound.leanVmSeeds
+    (fun x ↦ Sound.rootOk_stmtHistory x) εmsg (Sound.anyCert_bound LeanVM.Protocol.Whir.Params.openingIface) A Q hA
     leanVmQueryBound Sound.isTotalQueryBound_leanVmFam
     (fun z ℓ ↦ Fail Sound.leanVmSeeds ℓ ∨
       Rom.verify (lookH ℓ) (lookF ℓ)
         (leanVmSeed (bytecodeWords z.1.1) (publicInputDigest z.1.2))
         (leanVmVerifierProgram (bytecodeWords z.1.1) (publicInputDigest z.1.2)) z.2 ≠ some true ∨
-      ¬ Sound.Extracted z.1.1 z.1.2 (cacheOf ℓ) z.2)
+      ¬ Sound.Extracted LeanVM.Protocol.Whir.Params.openingIface z.1.1 z.1.2 (cacheOf ℓ) z.2)
     (fun z ℓ hf hv hb ↦ by
       simp only [Sound.leanVmSeeds, Sound.nodeAt_stmtHistory] at hv
       rcases hb with hb | hb | hb
       · exact absurd hb hf
       · exact absurd hv hb
-      · exact Sound.doomed_of_doomedRun hv (Sound.doomed_of_not_extracted z.1.1 z.1.2 hv hb))
+      · exact Sound.doomed_of_doomedRun LeanVM.Protocol.Whir.Params.openingIface hv
+          (Sound.doomed_of_not_extracted LeanVM.Protocol.Whir.Params.openingIface z.1.1 z.1.2 hv hb))
   rw [Sound.logExperiment_eq_logged2, prEvent_map] at h1
   -- A fresh Keccak-256 answer of the verifier that is the announced root.
   have h2 := Sound.prEvent_logged2_root_le A (Rom.verifierFam Sound.leanVmSeeds Sound.anyProgram)
@@ -154,13 +163,13 @@ theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBoun
         w.1.1.2 = some true := by
       by_contra h
       exact hn1 ⟨hacc, Or.inr (Or.inl h)⟩
-    have hx : Sound.Extracted w.1.1.1.1 w.1.1.1.2 (cacheOf w.2.2) w.1.1.2 := by
+    have hx : Sound.Extracted LeanVM.Protocol.Whir.Params.openingIface w.1.1.1.1 w.1.1.1.2 (cacheOf w.2.2) w.1.1.2 := by
       by_contra h
       exact hn1 ⟨hacc, Or.inr (Or.inr h)⟩
     have hpre : w.1.2 <+: w.2.2 := by
       by_contra h
       exact hn2 (Or.inl h)
-    obtain ⟨t, ht, htv⟩ := Sound.extractor_of_extracted Sound.leanVmSeeds hf hv
+    obtain ⟨t, ht, htv⟩ := Sound.extractor_of_extracted LeanVM.Protocol.Whir.Params.openingIface Sound.leanVmSeeds hf hv
       (fun r hr x hx ↦ hn2 (Or.inr ⟨r, hr, x, hx⟩)) hx
     rw [← List.prefix_iff_eq_take.mp hpre] at ht
     exact hno ⟨t, ht, htv⟩
@@ -169,27 +178,11 @@ theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBoun
   · rw [leanVmQueryBound_eq, div_eq_mul_inv, verifierQueries]
 
 /-- **The extractor's list is short**: at every admissible stack size and rate, the candidates of
-any word at the Johnson threshold are at most `2^12` (level 0's list bound). -/
+any word at the Johnson threshold are at most level 0's list bound. -/
 theorem candidates_ncard_le {μ R : ℕ} (h : Parameters.Whir.Admissible μ R) (W : ℕ → List K) :
-    (Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W).ncard ≤ 2 ^ 12 :=
-  Sound.spec_candidates_ncard_le h W
-
-/-- **The numbers**: against `2^64` queries, the soundness error is at most `2^-63`. -/
-theorem soundnessError_le {Q : ℕ} (hQ : Q ≤ 2 ^ 64) : soundnessError Q ≤ (2 : ℝ≥0∞)⁻¹ ^ 63 := by
-  have h2 : ((2 ^ 256 : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 256 := by rw [Nat.cast_pow, Nat.cast_ofNat]
-  have hV : (verifierQueries : ℝ≥0∞) = ((12006 : ℕ) : ℝ≥0∞) := rfl
-  rw [soundnessError, hV, show verifierQueries = 12006 from rfl,
-    Sound.inv_pow_eq_div 128 256 (by norm_num), ← h2,
-    ENNReal.div_add_div_same, ← mul_div_assoc, ← Nat.cast_add, ← Nat.cast_mul,
-    ENNReal.div_add_div_same, ← Nat.cast_add, Sound.inv_pow_eq_div 63 256 (by norm_num)]
-  refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  rw [show 256 - 128 = 128 from rfl, show 256 - 63 = 193 from rfl]
-  have hN : Q + 12006 ≤ 2 ^ 64 + 12006 := by omega
-  calc (Q + 12006) * (2 ^ 128 + 5 * (Q + 12006)) + 12006
-      ≤ (2 ^ 64 + 12006) * (2 ^ 128 + 5 * (2 ^ 64 + 12006)) + 12006 :=
-        Nat.add_le_add_right (Nat.mul_le_mul hN (Nat.add_le_add_left
-          (Nat.mul_le_mul_left 5 hN) _)) _
-    _ ≤ 2 ^ 193 := by norm_num
+    (Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W).ncard ≤
+      Protocol.Whir.Params.listMax₀ μ R :=
+  Sound.spec_candidates_ncard_le LeanVM.Protocol.Whir.Params.openingIface h W
 
 /-! ## The statement of `LeanVM/Protocol/Rom/Statement.lean` -/
 

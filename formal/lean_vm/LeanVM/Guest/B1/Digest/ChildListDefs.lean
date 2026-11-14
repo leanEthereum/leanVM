@@ -3,7 +3,7 @@
 
   The checks `child_claim_list_any`'s proof evaluates (TRIAGE #89): a claim record, the records'
   layout, `child_claim_list_last__L{k}`'s body, the frame loops' bodies, and the windows of the
-  64-block frame loop `__loop17`.
+  64-block frame loop `child_claim_list_any_loop0`.
 -/
 
 module
@@ -15,9 +15,9 @@ public import LeanVM.Guest.B1.Digest.Window
 
 What the kernel evaluates for `child_claim_list_any` (`ChildList`): `claimOk` (one record),
 `recordsOk` (the records at their layout), `cclOk` (`child_claim_list_last__L{k}`), `anyOk` (a
-frame loop of `m` claims), split for the big loop `__loop17` into `anyHead` and the windows
-`anyWin i` (four blocks and nine records each, four to a module `ChildListAny{q}`), which
-`anyOk_of_parts` puts back together. Only definitions and the gluing.
+frame loop of `m` claims), split for the big loop `child_claim_list_any_loop0` into `anyHead` and
+the windows `anyWin i` (four blocks and nine records each, four to a module `ChildListAny{q}`),
+which `anyOk_of_parts` puts back together. Only definitions and the gluing.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -194,17 +194,21 @@ theorem anyOk_of_parts {fn : Fn} {f : String} {m o0 p0 mk st0 w W v U : ℕ}
   simp only [anyOk, h1, h2, h4, h5, h6, h7, ChainSpec.check_of_blocks h3 hnb hb,
     recordsOk_of_wins hm hr, Bool.and_self]
 
-/-! ## The big frame loop `__loop17` (136 claims, 64 blocks), in sixteen windows -/
+/-! ## The big frame loop `child_claim_list_any_loop0` (136 claims, 64 blocks), in sixteen windows
+-/
 
-/-- `__loop17`'s atoms. -/
-noncomputable def any136Atoms : List Atom := loopAtoms (coreProgram.getD 349 default)
+/-- `child_claim_list_any_loop0`'s atoms. -/
+noncomputable def any136Atoms : List Atom := loopAtoms (coreProgram.getD
+    idx% «child_claim_list_any_loop0» default)
 
-/-- `__loop17`'s chain. -/
+/-- `child_claim_list_any_loop0`'s chain. -/
 noncomputable def any136Spec : ChainSpec := anySpec 136 22 1924 any136Atoms
 
-/-- Window `i` of `__loop17`: blocks `4i … 4i + 3`, records `9i … 9i + 8`. -/
+/-- Window `i` of `child_claim_list_any_loop0`: blocks `4i … 4i + 3` (searched from their atoms on),
+records
+`9i … 9i + 8`. -/
 noncomputable def anyWin (i : ℕ) : Bool :=
-  any136Spec.blocksOk any136Atoms (4 * i) 4 &&
+  any136Spec.blocksFrom any136Atoms (4 * i) 4 &&
     recordsWin any136Atoms (anyP 21) 22 15 136 (9 * i) 9
 
 end

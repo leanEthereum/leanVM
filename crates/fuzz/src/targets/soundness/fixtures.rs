@@ -4,8 +4,9 @@
 
 use crate::programs;
 use crate::{Finding, Source};
-use leanvm_core::cpu::{self, CpuError, Program, Proof};
-use primitives::field::{F64, F192};
+use leanvm_core::cpu::{self, Program, Proof};
+use verifier::VerifierError as CpuError;
+use primitives::field::{F64, F128};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
@@ -104,7 +105,7 @@ def main():
 pub struct Fixture {
     pub name: String,
     pub program: Program,
-    pub public_input: [F192; 2],
+    pub public_input: [F128; 2],
     /// The pcs the honest run executed, recorded the first time it is proven.
     executed: OnceLock<Vec<usize>>,
 }
@@ -163,7 +164,6 @@ pub fn fixtures() -> &'static [Fixture] {
                     && (exec.cycles > MAX_CYCLES
                         || exec.rows()[KECCAK_TABLE] > MAX_KECCAK
                         || exec.mem.len() > MAX_CELLS))
-                || public_input.iter().any(|h| h.c2 != 0)
             {
                 continue;
             }
@@ -264,10 +264,7 @@ pub fn draw(src: &mut Source) -> Result<Option<Drawn>, Finding> {
 
 /// A verifier error's variant, without its payload: what notes and keys name.
 pub fn error_name(e: &CpuError) -> String {
-    match e {
-        CpuError::PublicInput => "PublicInput".to_string(),
-        CpuError::Verifier(v) => verifier_error_name(v),
-    }
+    verifier_error_name(e)
 }
 
 pub fn verifier_error_name(e: &verifier::VerifierError) -> String {

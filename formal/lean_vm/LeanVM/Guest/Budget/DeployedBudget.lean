@@ -4,7 +4,7 @@
   The deployed budget (`deployedBudget Bvf`): `mainBudget` at the deployed frame sizes, the static
   certificates' words (`Count.wSB`, `Count.wSK`) and counts (`Count.mainCounts`, `Budget/MvCount`), the children's
   loop's static counts (`l5C`, `ccS`, `vsCnt`, `Budget/L5Count`), the jump table's `SET`s and
-  `__loop2`'s arms (`B2C.xmssArmC`); and the guest's completeness within it, from each
+  `main_loop2`'s arms (`B2C.xmssArmC`); and the guest's completeness within it, from each
   child's `verify_sub` within `Bvf` words and `vsCnt` instructions at its announced stack log and
   rate.
 -/
@@ -38,7 +38,7 @@ noncomputable def deployedBudget (Bvf : ℕ → ℕ → ℕ) : Budget :=
 /-- **The guest is complete within the deployed budget**, each child's `verify_sub` complete within
 `Bvf` words at its announced stack log and rate, by a tree of `vsCnt op` instructions at it. -/
 theorem guest_complete_deployed {Pvs : NodeWitness → ℕ → Tree → Prop} {Bvf : ℕ → ℕ → ℕ}
-    (hV : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
+    (hV : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
       ChildrenOk bytecode seed w →
       VerifySubGoalsTB B2C.fs B2C.cert 0 seed s w (Pvs w) (childBv Bvf w))
     (hPv : ∀ op (w : NodeWitness) c (hc : c < w.children.length) (rd : Reader) (t : Tree)

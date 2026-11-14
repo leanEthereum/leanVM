@@ -9,14 +9,14 @@
 
 use super::ast::*;
 use crate::Source;
-use primitives::field::F192;
+use primitives::field::F128;
 use primitives::hash::hash;
 use std::collections::{BTreeSet, HashMap};
 
 pub struct Generated {
     pub prog: Prog,
-    pub witness: Vec<(String, Vec<Vec<F192>>)>,
-    pub public_input: [F192; 2],
+    pub witness: Vec<(String, Vec<Vec<F128>>)>,
+    pub public_input: [F128; 2],
     pub features: BTreeSet<&'static str>,
 }
 
@@ -66,7 +66,7 @@ enum VK {
 struct Var {
     depth: usize,
     kind: VK,
-    vals: Vec<F192>,
+    vals: Vec<F128>,
     /// Derived from a hint, so never a compile-time constant however the program is spelled.
     rt: bool,
     /// Bound to an expression the compiler folds, so the name is a literal to it (`x = 3 * 5`).
@@ -103,14 +103,14 @@ struct JCtx {
 struct FnState {
     fun: FnId,
     nret: usize,
-    rets: Vec<Vec<F192>>,
+    rets: Vec<Vec<F128>>,
     early: bool,
     allow_early: bool,
     has_mul: bool,
     konst_ct: bool,
 }
 
-type Tv = (Ex, Vec<F192>);
+type Tv = (Ex, Vec<F128>);
 
 struct Gen<'a> {
     src: &'a mut Source,
@@ -120,17 +120,17 @@ struct Gen<'a> {
     barrier: usize,
     cxs: Vec<Cx>,
     active: Vec<usize>,
-    mem: HashMap<(usize, u32), (F192, Tag)>,
+    mem: HashMap<(usize, u32), (F128, Tag)>,
     nbuf: usize,
     uid: usize,
     prog: Prog,
-    streams: Vec<(String, Vec<Vec<F192>>)>,
+    streams: Vec<(String, Vec<Vec<F128>>)>,
     budget: usize,
     nest: usize,
     jctx: Option<JCtx>,
     fns: Vec<FnState>,
     features: BTreeSet<&'static str>,
-    public_input: [F192; 2],
+    public_input: [F128; 2],
     /// Buffers a construct being generated will write itself: hidden from its body.
     reserved: std::collections::HashSet<V>,
 }
@@ -161,7 +161,7 @@ pub fn generate(src: &mut Source, lim: Limits) -> Generated {
         jctx: None,
         fns: Vec::new(),
         features: BTreeSet::new(),
-        public_input: [F192::ZERO; 2],
+        public_input: [F128::ZERO; 2],
         reserved: Default::default(),
     };
     g.prog.funs.push(Fun {
@@ -227,7 +227,7 @@ impl Gen<'_> {
         t
     }
 
-    fn val(&self, v: V, t: usize) -> F192 {
+    fn val(&self, v: V, t: usize) -> F128 {
         let x = &self.vars[v];
         x.vals[self.lift(t, x.depth)]
     }
@@ -251,7 +251,7 @@ impl Gen<'_> {
         self.scopes[self.barrier..].iter().flatten().copied().collect()
     }
 
-    fn new_var(&mut self, kind: VK, vals: Vec<F192>, rt: bool) -> V {
+    fn new_var(&mut self, kind: VK, vals: Vec<F128>, rt: bool) -> V {
         let v = self.vars.len();
         self.vars.push(Var {
             depth: self.depth(),
@@ -276,7 +276,7 @@ impl Gen<'_> {
 
     fn new_stack(&mut self, n: u32) -> V {
         let inst = self.fresh_insts();
-        let vals = vec![F192::ZERO; self.n()];
+        let vals = vec![F128::ZERO; self.n()];
         let v = self.new_var(VK::Stack { n, inst }, vals, false);
         self.prog.stack_sizes.insert(v, n);
         v
@@ -284,7 +284,7 @@ impl Gen<'_> {
 
     fn new_heap(&mut self, n: u32) -> V {
         let inst = self.fresh_insts();
-        let vals = vec![F192::ZERO; self.n()];
+        let vals = vec![F128::ZERO; self.n()];
         self.new_var(VK::Heap { n, inst }, vals, false)
     }
 
@@ -293,7 +293,7 @@ impl Gen<'_> {
     }
 
     /// The value of cell `c` of buffer `v` in lane `t`, if it has certainly been written by then.
-    fn cell(&self, v: V, c: u32, t: usize) -> Option<F192> {
+    fn cell(&self, v: V, c: u32, t: usize) -> Option<F128> {
         let (val, tag) = *self.mem.get(&(self.inst(v, t), c))?;
         self.readable(tag, t).then_some(val)
     }
@@ -303,8 +303,8 @@ impl Gen<'_> {
     }
 
     /// Cell `c` of `v` on every active lane.
-    fn cells_all(&self, v: V, c: u32) -> Option<Vec<F192>> {
-        let mut out = vec![F192::ZERO; self.n()];
+    fn cells_all(&self, v: V, c: u32) -> Option<Vec<F128>> {
+        let mut out = vec![F128::ZERO; self.n()];
         for &t in &self.active {
             out[t] = self.cell(v, c, t)?;
         }
@@ -313,8 +313,8 @@ impl Gen<'_> {
 
     /// Write `(lane, buffer, cell, value)` if no cell would take two values; a cell that already holds the value is
     /// the write-once equality.
-    fn try_write(&mut self, writes: &[(usize, V, u32, F192)]) -> bool {
-        let mut batch: HashMap<(usize, u32), F192> = HashMap::new();
+    fn try_write(&mut self, writes: &[(usize, V, u32, F128)]) -> bool {
+        let mut batch: HashMap<(usize, u32), F128> = HashMap::new();
         for &(t, v, c, x) in writes {
             let key = (self.inst(v, t), c);
             if let Some((old, _)) = self.mem.get(&key)
@@ -399,24 +399,24 @@ impl Gen<'_> {
 
     // ----- values -----
 
-    fn lanes(&self, f: impl Fn(usize) -> F192) -> Vec<F192> {
-        let mut out = vec![F192::ZERO; self.n()];
+    fn lanes(&self, f: impl Fn(usize) -> F128) -> Vec<F128> {
+        let mut out = vec![F128::ZERO; self.n()];
         for &t in &self.active {
             out[t] = f(t);
         }
         out
     }
 
-    fn all(&self, vals: &[F192], f: impl Fn(F192) -> bool) -> bool {
+    fn all(&self, vals: &[F128], f: impl Fn(F128) -> bool) -> bool {
         self.active.iter().all(|&t| f(vals[t]))
     }
 
-    fn uniform(&self, vals: &[F192]) -> Option<F192> {
+    fn uniform(&self, vals: &[F128]) -> Option<F128> {
         let first = vals[*self.active.first()?];
         self.all(vals, |x| x == first).then_some(first)
     }
 
-    fn logs(&self, vals: &[F192]) -> Option<Vec<u32>> {
+    fn logs(&self, vals: &[F128]) -> Option<Vec<u32>> {
         let mut out = vec![0; self.n()];
         for &t in &self.active {
             out[t] = log_of(vals[t])?;
@@ -477,7 +477,7 @@ impl Gen<'_> {
 
     fn pow(&self, a: Tv, k: u32) -> Tv {
         let v = self.lanes(|t| {
-            let mut acc = F192::ONE;
+            let mut acc = F128::ONE;
             for _ in 0..k {
                 acc *= a.1[t];
             }
@@ -486,7 +486,7 @@ impl Gen<'_> {
         (Ex::Pow(Box::new(a.0), k), v)
     }
 
-    fn konst(&self, x: F192) -> Tv {
+    fn konst(&self, x: F128) -> Tv {
         (lit_of(x), self.lanes(|_| x))
     }
 
@@ -625,7 +625,7 @@ impl Gen<'_> {
                     return (Ex::Lit(n), self.lanes(|_| lit(n)));
                 }
                 2 => {
-                    let x = self.src.f192();
+                    let x = self.src.f128();
                     return (Ex::Fe(x), self.lanes(|_| x));
                 }
                 3 => {
@@ -834,11 +834,11 @@ impl Gen<'_> {
         (Ex::Lit(n), self.lanes(|_| lit(n)))
     }
 
-    /// An expression whose value is canonical (no third limb) on every active lane: a `keccak` input.
+    /// An expression whose value is canonical on every active lane: a `keccak` input.
     fn canonical(&mut self) -> Tv {
         for _ in 0..4 {
             let e = self.ex(2);
-            if self.all(&e.1, |x| x.c2 == 0) {
+            if self.all(&e.1, |x| x.c1 == 0) {
                 return e;
             }
         }
@@ -848,14 +848,7 @@ impl Gen<'_> {
 
     /// An expression in `K` on every active lane.
     fn in_k(&mut self) -> Tv {
-        for _ in 0..4 {
-            let e = self.ex(2);
-            if self.all(&e.1, |x| x.c1 == 0 && x.c2 == 0) {
-                return e;
-            }
-        }
-        let n = self.src.u64() as u128;
-        (Ex::Lit(n), self.lanes(|_| lit(n)))
+        self.canonical()
     }
 
     // ----- statements -----
@@ -985,7 +978,7 @@ impl Gen<'_> {
                 (self.mul(q, d), a)
             }
             4 => (self.mul(a.clone(), b.clone()), self.mul(b, a)),
-            5 => (self.add(a.clone(), a), self.konst(F192::ZERO)),
+            5 => (self.add(a.clone(), a), self.konst(F128::ZERO)),
             _ => {
                 let s = self.add(a.clone(), b.clone());
                 (self.add(s, b), a)
@@ -1067,19 +1060,19 @@ impl Gen<'_> {
         i
     }
 
-    fn push_entries(&mut self, s: usize, per_lane: &[Vec<F192>]) {
-        let entries: Vec<Vec<F192>> = self.active.iter().map(|&t| per_lane[t].clone()).collect();
+    fn push_entries(&mut self, s: usize, per_lane: &[Vec<F128>]) {
+        let entries: Vec<Vec<F128>> = self.active.iter().map(|&t| per_lane[t].clone()).collect();
         self.streams[s].1.extend(entries);
     }
 
-    fn hint_value(&mut self, kind: usize) -> F192 {
+    fn hint_value(&mut self, kind: usize) -> F128 {
         match kind {
             0 => {
                 let bits = self.src.range(1, 9);
                 gpow(self.src.below(1 << bits) as u64)
             }
             1 => lit(self.lit128()),
-            _ => self.src.f192(),
+            _ => self.src.f128(),
         }
     }
 
@@ -1089,7 +1082,7 @@ impl Gen<'_> {
         let first = self.hint_value(kind);
         let n = self.n();
         let mut per = vec![vec![]; n];
-        let mut vals = vec![F192::ZERO; n];
+        let mut vals = vec![F128::ZERO; n];
         for t in self.active.clone() {
             let x = if uniform { first } else { self.hint_value(kind) };
             per[t] = vec![x];
@@ -1202,8 +1195,8 @@ impl Gen<'_> {
         let mut per = vec![vec![]; n];
         let mut writes = Vec::new();
         for t in self.active.clone() {
-            let vals: Vec<F192> = (0..len)
-                .map(|_| if canonical { lit(self.lit128()) } else { self.src.f192() })
+            let vals: Vec<F128> = (0..len)
+                .map(|_| if canonical { lit(self.lit128()) } else { self.src.f128() })
                 .collect();
             for (i, &x) in vals.iter().enumerate() {
                 writes.push((t, v, starts[t] + i as u32, x));
@@ -1251,7 +1244,7 @@ impl Gen<'_> {
         // Sometimes store what the cell already holds: the write-once equality.
         let restore = self.src.chance(1, 4);
         let (e, vals) = if restore {
-            let held: Option<Vec<F192>> = self
+            let held: Option<Vec<F128>> = self
                 .active
                 .iter()
                 .map(|&t| self.cell(v, cells[t], t))
@@ -1349,11 +1342,11 @@ impl Gen<'_> {
         };
         // The test is a `JUMP` on `lhs + rhs`, which zkDSL.md requires in `K`: a condition outside it is the
         // documented `exec-fail` of `compiler/top_limb_branch.py`, not a program this generator may emit.
-        let in_k = |g: &Self, r: &[F192]| g.active.iter().all(|&t| (lv[t] + r[t]).as_base().is_some());
+        let in_k = |g: &Self, r: &[F128]| g.active.iter().all(|&t| (lv[t] + r[t]).as_base().is_some());
         if !in_k(self, &rhs.1) {
             let t = self.active[self.src.below(self.active.len())];
             let delta = if self.src.bool() {
-                F192::ZERO
+                F128::ZERO
             } else {
                 lit(self.src.u64() as u128)
             };
@@ -1570,7 +1563,7 @@ impl Gen<'_> {
                 }
                 ArgV::Heap(size, insts) => {
                     let inst = (0..n).map(|t| insts[lanes[t]]).collect();
-                    let v = self.new_var(VK::Heap { n: *size, inst }, vec![F192::ZERO; n], false);
+                    let v = self.new_var(VK::Heap { n: *size, inst }, vec![F128::ZERO; n], false);
                     params.push((v, PK::Heap));
                 }
                 ArgV::Stack(size, cells) => {
@@ -1592,7 +1585,7 @@ impl Gen<'_> {
         self.fns.push(FnState {
             fun: f,
             nret,
-            rets: vec![vec![F192::ZERO; n]; nret],
+            rets: vec![vec![F128::ZERO; n]; nret],
             early: false,
             allow_early: !as_arm && matches!(rets, RetShape::Scalars(_)),
             has_mul: false,
@@ -1618,7 +1611,7 @@ impl Gen<'_> {
                 debug_assert!(ok);
                 body.push(St::List(v, items.iter().map(|i| i.0.clone()).collect()));
                 body.push(St::Return(vec![Ret::Buf(v)]));
-                let mut cells = vec![vec![F192::ZERO; len as usize]; caller_n];
+                let mut cells = vec![vec![F128::ZERO; len as usize]; caller_n];
                 for t in 0..n {
                     cells[lanes[t]] = items.iter().map(|i| i.1[t]).collect();
                 }
@@ -1627,7 +1620,7 @@ impl Gen<'_> {
         }
         let st = self.fns.pop().unwrap();
         for r in &st.rets {
-            let mut vals = vec![F192::ZERO; caller_n];
+            let mut vals = vec![F128::ZERO; caller_n];
             for t in 0..n {
                 vals[lanes[t]] = r[t];
             }
@@ -1847,7 +1840,7 @@ impl Gen<'_> {
         };
         let outer = self.active.clone();
         let mut segs = Vec::new();
-        let mut results = vec![vec![F192::ZERO; self.n()]; nret];
+        let mut results = vec![vec![F128::ZERO; self.n()]; nret];
         for (si, &(lo, hi)) in ranges.iter().enumerate() {
             let lanes: Vec<usize> = outer
                 .iter()
@@ -1952,7 +1945,7 @@ impl Gen<'_> {
             }
             let vals = self.lanes(|t| gpow((lo + counts[t]) as u64));
             let s = self.stream();
-            let per: Vec<Vec<F192>> = (0..n).map(|t| vec![vals[t]]).collect();
+            let per: Vec<Vec<F128>> = (0..n).map(|t| vec![vals[t]]).collect();
             self.push_entries(s, &per);
             let b = self.new_var(VK::Scalar, vals, true);
             pre.push(St::LetHint(b, self.streams[s].0.clone()));
@@ -2011,7 +2004,7 @@ impl Gen<'_> {
         let saved_active = std::mem::take(&mut self.active);
         self.active = (0..parent_of.len()).collect();
         self.scopes.push(Vec::new());
-        let cvals: Vec<F192> = iters.iter().map(|&i| gpow(i as u64)).collect();
+        let cvals: Vec<F128> = iters.iter().map(|&i| gpow(i as u64)).collect();
         let counter = self.new_var(VK::Counter, cvals, false);
         self.prog.counter_of.insert(counter, l);
         self.prog.loops[l].var = counter;
@@ -2072,7 +2065,7 @@ impl Gen<'_> {
     }
 
     /// Two cells for a `keccak` operand, canonical and readable on every active lane.
-    fn pair(&mut self, pre: &mut Vec<St>) -> (Run, Vec<[F192; 2]>) {
+    fn pair(&mut self, pre: &mut Vec<St>) -> (Run, Vec<[F128; 2]>) {
         let n = self.n();
         for _ in 0..3 {
             match self.src.below(4) {
@@ -2083,10 +2076,7 @@ impl Gen<'_> {
                         let size = self.size(v);
                         if size >= 2 {
                             let lo = self.src.below((size - 1) as usize) as u32;
-                            if let (Some(a), Some(b)) = (self.cells_all(v, lo), self.cells_all(v, lo + 1))
-                                && self.all(&a, |x| x.c2 == 0)
-                                && self.all(&b, |x| x.c2 == 0)
-                            {
+                            if let (Some(a), Some(b)) = (self.cells_all(v, lo), self.cells_all(v, lo + 1)) {
                                 let run = if size == 2 {
                                     Run::Whole(v)
                                 } else {
@@ -2105,25 +2095,22 @@ impl Gen<'_> {
                         if size >= 2 {
                             if self.src.bool() {
                                 let lo = self.src.below((size - 1) as usize) as u32;
-                                if let (Some(a), Some(b)) = (self.cells_all(v, lo), self.cells_all(v, lo + 1))
-                                    && self.all(&a, |x| x.c2 == 0)
-                                    && self.all(&b, |x| x.c2 == 0)
-                                {
+                                if let (Some(a), Some(b)) = (self.cells_all(v, lo), self.cells_all(v, lo + 1)) {
                                     return (Run::Slice(v, lo, lo + 2), (0..n).map(|t| [a[t], b[t]]).collect());
                                 }
                             } else {
                                 let gs = self.index_vars(size - 1);
                                 if !gs.is_empty() {
                                     let (x, logs) = gs[self.src.below(gs.len())].clone();
-                                    let cells: Option<Vec<[F192; 2]>> = self
+                                    let cells: Option<Vec<[F128; 2]>> = self
                                         .active
                                         .iter()
                                         .map(|&t| Some([self.cell(v, logs[t], t)?, self.cell(v, logs[t] + 1, t)?]))
                                         .collect();
                                     if let Some(cells) = cells
-                                        && cells.iter().all(|c| c[0].c2 == 0 && c[1].c2 == 0)
+                                        && cells.iter().all(|c| c[0].c1 == 0 && c[1].c1 == 0)
                                     {
-                                        let mut out = vec![[F192::ZERO; 2]; n];
+                                        let mut out = vec![[F128::ZERO; 2]; n];
                                         for (i, &t) in self.active.iter().enumerate() {
                                             out[t] = cells[i];
                                         }
@@ -2150,7 +2137,7 @@ impl Gen<'_> {
 
     /// Where a digest goes: `cells` fresh cells, or the cells of an earlier digest of the same message (the
     /// write-once equality, which makes the hash a verification).
-    fn digest_out(&mut self, cells: u32, digests: &[Vec<F192>], pre: &mut Vec<St>) -> Option<Run> {
+    fn digest_out(&mut self, cells: u32, digests: &[Vec<F128>], pre: &mut Vec<St>) -> Option<Run> {
         let (run, v, starts) = self.fresh_run(cells, pre);
         let writes: Vec<_> = self
             .active
@@ -2175,12 +2162,12 @@ impl Gen<'_> {
                     let Some(logs) = self.logs(&self.lanes(|t| self.val(*x, t))) else {
                         continue;
                     };
-                    let vals: Option<Vec<F192>> = (0..n)
+                    let vals: Option<Vec<F128>> = (0..n)
                         .map(|t| {
                             if self.active.contains(&t) {
                                 self.cell(*v, logs[t] + c, t)
                             } else {
-                                Some(F192::ZERO)
+                                Some(F128::ZERO)
                             }
                         })
                         .collect();
@@ -2217,7 +2204,7 @@ impl Gen<'_> {
             if len <= 48 {
                 let x = self.lit128() & mask(len - 32);
                 b0 = (Ex::Lit(x), self.lanes(|_| lit(x)));
-                b1 = (Ex::Zero, self.lanes(|_| F192::ZERO));
+                b1 = (Ex::Zero, self.lanes(|_| F128::ZERO));
             } else {
                 b0 = self.canonical();
                 let x = self.lit128() & mask(len - 48);
@@ -2279,10 +2266,10 @@ impl Gen<'_> {
             .into_iter()
             .filter(|&v| {
                 self.stack_readable(v)
-                    && (0..self.size(v)).all(|c| self.cells_all(v, c).is_some_and(|x| self.all(&x, |y| y.c2 == 0)))
+                    && (0..self.size(v)).all(|c| self.cells_all(v, c).is_some_and(|x| self.all(&x, |y| y.c1 == 0)))
             })
             .collect();
-        let (run, msgs): (Run, Vec<Vec<F192>>) = if !full.is_empty() && self.src.bool() {
+        let (run, msgs): (Run, Vec<Vec<F128>>) = if !full.is_empty() && self.src.bool() {
             let v = full[self.src.below(full.len())];
             let size = self.size(v);
             let mut msgs = vec![vec![]; n];
@@ -2387,12 +2374,9 @@ impl Gen<'_> {
             out.push(St::AssertEq(acc.0.clone(), lit_of(x)));
             accs.push((acc, x));
         }
-        let mut pi = [F192::ZERO; 2];
+        let mut pi = [F128::ZERO; 2];
         for (slot, (acc, x)) in accs.into_iter().enumerate() {
-            let e = if x.c2 != 0 {
-                pi[slot] = F192::new(x.c0, x.c1, 0);
-                Ex::Add(Box::new(acc.0), Box::new(Ex::Fe(F192::new(0, 0, x.c2))))
-            } else {
+            let e = {
                 pi[slot] = x;
                 acc.0
             };
@@ -2404,10 +2388,10 @@ impl Gen<'_> {
 }
 
 enum ArgV {
-    Val(Vec<F192>, bool),
+    Val(Vec<F128>, bool),
     Const(Vec<u32>, u32),
     Heap(u32, Vec<usize>),
-    Stack(u32, Vec<Vec<F192>>),
+    Stack(u32, Vec<Vec<F128>>),
 }
 
 enum RetShape {
@@ -2416,12 +2400,12 @@ enum RetShape {
 }
 
 enum RetV {
-    Val(Vec<F192>),
-    Buf(u32, Vec<Vec<F192>>),
+    Val(Vec<F128>),
+    Buf(u32, Vec<Vec<F128>>),
 }
 
 /// A cell's sixteen message bytes, as a `keccak` reads them.
-pub fn bytes(x: F192) -> [u8; 16] {
+pub fn bytes(x: F128) -> [u8; 16] {
     let mut out = [0; 16];
     out[..8].copy_from_slice(&x.c0.to_le_bytes());
     out[8..].copy_from_slice(&x.c1.to_le_bytes());
@@ -2429,7 +2413,7 @@ pub fn bytes(x: F192) -> [u8; 16] {
 }
 
 /// A digest as the two cells it occupies.
-pub fn digest_cells(d: &[u8; 32]) -> Vec<F192> {
+pub fn digest_cells(d: &[u8; 32]) -> Vec<F128> {
     let limb = |i: usize| u64::from_le_bytes(d[8 * i..8 * i + 8].try_into().unwrap());
-    vec![F192::new(limb(0), limb(1), 0), F192::new(limb(2), limb(3), 0)]
+    vec![F128::new(limb(0), limb(1)), F128::new(limb(2), limb(3))]
 }

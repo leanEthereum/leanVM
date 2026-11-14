@@ -2,6 +2,7 @@
 //! expects. The case's input picks the scenario, and the variant where a scenario has several. A forgery accepted is
 //! Critical; an honest node refused or publishing other claims is High.
 
+use crate::MAX_KEYS;
 use super::api::synthetic_claims;
 use super::common::{
     BAD_SIGNATURE, Expect, Inputs, cells_of, count, count_inv, describe_claims, expect_for, judge, outcome,
@@ -13,13 +14,13 @@ use super::fixtures::{
 use super::forge::{Streams, index_of, resplit};
 use crate::mutate_proof::perturb;
 use crate::{Ctx, Finding, Outcome, Source};
-use primitives::field::F192;
+use primitives::field::F128;
 use rec_aggregation::fuzzing::{
     NodeRun, Parts, arm_forgery, disarm_forgery, leaf_deferred, prepare_node, run_guest, statement_of,
     true_deferred_value,
 };
 use rec_aggregation::{
-    AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, MAX_KEYS, MAX_RECURSIONS,
+    AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, MAX_RECURSIONS,
 };
 use signatures::lean_sphincs::LeanSphincsPublicKey;
 use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
@@ -47,7 +48,7 @@ pub const SCENARIOS: &[(&str, Scenario)] = &[
     ("swapped-deferred-claims", swapped_deferred_claims),
     ("dataless-child-only", dataless_child_only),
     ("root-forged-deferred-value", root_forged_deferred_value),
-    ("xmss-claim-declared-as-sphincs", xmss_claim_declared_as_sphincs),
+    ("lean_xmss-claim-declared-as-sphincs", xmss_claim_declared_as_sphincs),
     ("child-claim-moved-to-other-scheme", child_claim_moved_to_other_scheme),
     ("child-claim-dropped", child_claim_dropped),
     ("child-claim-added", child_claim_added),
@@ -60,7 +61,7 @@ pub const SCENARIOS: &[(&str, Scenario)] = &[
     ("declared-list-with-repeats", declared_list_with_repeats),
     ("claim-of-another-signer-by-hint", claim_of_another_signer_by_hint),
     (
-        "sphincs-signature-published-as-xmss",
+        "sphincs-signature-published-as-lean_xmss",
         sphincs_signature_published_as_xmss,
     ),
     ("dup-slot-promoted-to-foreign-claim", dup_slot_promoted_to_foreign_claim),
@@ -140,7 +141,7 @@ fn statement_refused(
     arm_forgery(Box::new(move |hints| edit(hints.streams_mut())));
     let node = prepare_node(
         &inputs.children,
-        inputs.xmss.clone(),
+        inputs.lean_xmss.clone(),
         inputs.sphincs.clone(),
         &inputs.blobs,
         inputs.declare.as_ref(),
@@ -171,7 +172,7 @@ fn statement_refused(
     }
 }
 
-fn claim_cells(pk: &[u8; 32], message: &[u8; 32]) -> Vec<F192> {
+fn claim_cells(pk: &[u8; 32], message: &[u8; 32]) -> Vec<F128> {
     [cells_of(pk), cells_of(message)].concat()
 }
 
@@ -185,14 +186,14 @@ fn pubkey_in_both_schemes(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome 
     inputs.sphincs.push((pk, m, sig));
     if src.bool() {
         inputs.declare = Some(EthereumClaims {
-            xmss: vec![(as_xmss, m)],
+            lean_xmss: vec![(as_xmss, m)],
             ..EthereumClaims::default()
         });
         refused(ctx, &inputs, &["NotCovered"])
     } else {
         inputs
-            .xmss
-            .push((as_xmss, m, f.signers.xmss[src.below(N_XMSS)].2.clone()));
+            .lean_xmss
+            .push((as_xmss, m, f.signers.lean_xmss[src.below(N_XMSS)].2.clone()));
         refused(ctx, &inputs, BAD_SIGNATURE)
     }
 }
@@ -201,15 +202,15 @@ fn pubkey_in_both_schemes(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome 
 /// node publishes exactly the declared claim.
 fn one_key_two_messages_declared_once(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = Inputs {
-        xmss: f.signers.xmss_two[..2].to_vec(),
+        lean_xmss: f.signers.xmss_two[..2].to_vec(),
         ..Inputs::default()
     };
     if src.bool() {
-        inputs.xmss.reverse();
+        inputs.lean_xmss.reverse();
     }
     let (pk, m, _) = &f.signers.xmss_two[src.below(2)];
     let want = EthereumClaims {
-        xmss: vec![(*pk, *m)],
+        lean_xmss: vec![(*pk, *m)],
         ..EthereumClaims::default()
     };
     inputs.declare = Some(want.clone());
@@ -219,18 +220,18 @@ fn one_key_two_messages_declared_once(f: &Fixtures, src: &mut Source, ctx: &Ctx)
 /// One claim under two signatures of one key at different leaf indices: one claim, published once.
 fn one_claim_two_signatures(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = Inputs {
-        xmss: vec![f.signers.xmss_two[0].clone(), f.signers.xmss_two[2].clone()],
+        lean_xmss: vec![f.signers.xmss_two[0].clone(), f.signers.xmss_two[2].clone()],
         ..Inputs::default()
     };
     if src.bool() {
-        inputs.xmss.reverse();
+        inputs.lean_xmss.reverse();
     }
     let (pk, m, _) = &f.signers.xmss_two[0];
     exactly(
         ctx,
         &inputs,
         EthereumClaims {
-            xmss: vec![(*pk, *m)],
+            lean_xmss: vec![(*pk, *m)],
             ..EthereumClaims::default()
         },
     )
@@ -256,8 +257,8 @@ fn same_child_twice(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
 fn child_claim_redeclared_other_message(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = with_children(f, &[X3]);
     let mut d = f.claims(X3).clone();
-    let k = src.below(d.xmss.len());
-    d.xmss[k].1 = if src.bool() { message_b() } else { src.array() };
+    let k = src.below(d.lean_xmss.len());
+    d.lean_xmss[k].1 = if src.bool() { message_b() } else { src.array() };
     inputs.declare = Some(d);
     refused(ctx, &inputs, &["NotCovered"])
 }
@@ -268,7 +269,7 @@ fn leaf_child_forged_deferred_value(f: &Fixtures, src: &mut Source, ctx: &Ctx) -
     let leaf = [X3, S2, DA, MIXED, X3R2, TWO_MSG][src.below(6)];
     let forged = edited(f, leaf, |p| {
         p.defer_value = if src.bool() {
-            p.defer_value + F192::ONE
+            p.defer_value + F128::ONE
         } else {
             perturb(p.defer_value, src)
         };
@@ -308,11 +309,11 @@ fn children_at_two_rates(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
 /// A node that dropped a claim by `declare`, then a grandparent that re-adds it with no signature: by `declare`
 /// (`NotCovered`), or by a child claiming it (rejected).
 fn grandparent_readds_dropped_claim(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
-    let dropped_x = f.claims(MIXED).xmss[0];
+    let dropped_x = f.claims(MIXED).lean_xmss[0];
     let dropped_s = f.claims(MIXED).lean_sphincs[0];
     let mut readded = f.claims(NARROW).clone();
     if src.bool() {
-        readded.xmss.push(dropped_x);
+        readded.lean_xmss.push(dropped_x);
     } else {
         readded.lean_sphincs.push(dropped_s);
     }
@@ -352,8 +353,8 @@ fn blobs_declaring_no_root(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome
         blobs: f.blobs[1 + src.below(2)].clone(),
         ..Inputs::default()
     };
-    inputs.xmss.push(f.signers.xmss[0].clone());
-    let mut d = super::fixtures::claims_of(&inputs.xmss, &[], None);
+    inputs.lean_xmss.push(f.signers.lean_xmss[0].clone());
+    let mut d = super::fixtures::claims_of(&inputs.lean_xmss, &[], None);
     if src.bool() {
         inputs.child(f, DA);
         d.da_commitment = if src.bool() { None } else { f.claims(DA).da_commitment };
@@ -362,28 +363,28 @@ fn blobs_declaring_no_root(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome
     refused(ctx, &inputs, &["BlobsUnpublished"])
 }
 
-/// A child claiming `MAX_KEYS - 1` claims over a real proof of three: inside the signer-set bound, so only the proof
-/// can refuse it. One more is `MalformedSignerSet` at decoding already.
+/// A child claiming `MAX_KEYS - 1` claims over a real proof of three: the signer-set check no longer has a size
+/// bound, so only the proof can refuse it. A list of `MAX_KEYS` sorted claims decodes; the forgery dies at verify.
 fn child_at_max_keys_minus_one(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     if src.bool() {
         let claims = EthereumClaims {
-            xmss: synthetic_claims(MAX_KEYS),
+            lean_xmss: synthetic_claims(MAX_KEYS),
             ..EthereumClaims::default()
         };
         return match EthereumProof::from_proof_bytes(&f.proof(X3).proof_bytes(), claims) {
-            Err(AggregateVerifyError::MalformedSignerSet) => {
-                ctx.note("MAX_KEYS claims: MalformedSignerSet");
+            Ok(_) => {
+                ctx.note("MAX_KEYS claims decode: the bound is the guest's memory");
                 Ok(())
             }
             other => Err(Finding::high(
-                "MAX_KEYS claims decode",
+                "MAX_KEYS sorted claims refused at decode",
                 format!("{:?}", other.map(|_| ())),
             )),
         };
     }
     let forged = edited(f, X3, |p| {
         p.claims = EthereumClaims {
-            xmss: synthetic_claims(MAX_KEYS - 1),
+            lean_xmss: synthetic_claims(MAX_KEYS - 1),
             ..EthereumClaims::default()
         }
     });
@@ -487,7 +488,7 @@ fn root_forged_deferred_value(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outc
 fn xmss_claim_declared_as_sphincs(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = with_children(f, &[X3]);
     let mut d = f.claims(X3).clone();
-    let (pk, m) = d.xmss.remove(src.below(d.xmss.len()));
+    let (pk, m) = d.lean_xmss.remove(src.below(d.lean_xmss.len()));
     d.lean_sphincs
         .push((LeanSphincsPublicKey::from_bytes(&pk.to_bytes()), m));
     inputs.declare = Some(d);
@@ -502,12 +503,12 @@ fn child_claim_moved_to_other_scheme(f: &Fixtures, src: &mut Source, ctx: &Ctx) 
     let forged = edited(f, i, |p| {
         let c = &mut p.claims;
         if to_sphincs || c.lean_sphincs.is_empty() {
-            let (pk, m) = c.xmss.remove(k % c.xmss.len());
+            let (pk, m) = c.lean_xmss.remove(k % c.lean_xmss.len());
             c.lean_sphincs
                 .push((LeanSphincsPublicKey::from_bytes(&pk.to_bytes()), m));
         } else {
             let (pk, m) = c.lean_sphincs.remove(k % c.lean_sphincs.len());
-            c.xmss.push((LeanXmssPublicKey::from_bytes(&pk.to_bytes()), m));
+            c.lean_xmss.push((LeanXmssPublicKey::from_bytes(&pk.to_bytes()), m));
         }
         super::fixtures::normalize(c);
     });
@@ -522,10 +523,10 @@ fn child_claim_dropped(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
         let c = &mut p.claims;
         let n = c.num_signature_claims();
         let k = k % n;
-        if k < c.xmss.len() {
-            c.xmss.remove(k);
+        if k < c.lean_xmss.len() {
+            c.lean_xmss.remove(k);
         } else {
-            c.lean_sphincs.remove(k - c.xmss.len());
+            c.lean_sphincs.remove(k - c.lean_xmss.len());
         }
     });
     reject_child(ctx, CX, Inputs::default(), forged, 0)
@@ -534,15 +535,15 @@ fn child_claim_dropped(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
 /// A child claiming one more claim than proven, a real signer's.
 fn child_claim_added(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let i = [X3, S2, DA, MIXED, NODE][src.below(5)];
-    let (pk, m, _) = f.signers.xmss[5 + src.below(3)].clone();
+    let (pk, m, _) = f.signers.lean_xmss[5 + src.below(3)].clone();
     let forged = edited(f, i, |p| {
-        p.claims.xmss.push((pk, m));
+        p.claims.lean_xmss.push((pk, m));
         super::fixtures::normalize(&mut p.claims);
     });
     let mut inputs = Inputs::default();
     if src.bool() {
         // The added claim is also signed raw: the forged child's other claims are what nothing backs.
-        inputs.xmss.push(f.signers.xmss[5].clone());
+        inputs.lean_xmss.push(f.signers.lean_xmss[5].clone());
     }
     reject_child(ctx, CX, inputs, forged, 0)
 }
@@ -559,11 +560,11 @@ fn raw_repeats_child_claim(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome
     let mut inputs = with_children(f, &[X3]);
     for k in 0..3 {
         if src.bool() {
-            inputs.xmss.push(f.signers.xmss[k].clone());
+            inputs.lean_xmss.push(f.signers.lean_xmss[k].clone());
         }
     }
-    if inputs.xmss.is_empty() {
-        inputs.xmss.push(f.signers.xmss[2].clone());
+    if inputs.lean_xmss.is_empty() {
+        inputs.lean_xmss.push(f.signers.lean_xmss[2].clone());
     }
     exactly(ctx, &inputs, f.claims(X3).clone())
 }
@@ -572,8 +573,8 @@ fn raw_repeats_child_claim(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome
 /// and the node is refused (acceptance would publish nothing false, and is Low).
 fn invalid_undeclared_raw_signature(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = Inputs::default();
-    inputs.xmss.push(f.signers.xmss[0].clone());
-    let (pk, m, sig) = f.signers.xmss[1].clone();
+    inputs.lean_xmss.push(f.signers.lean_xmss[0].clone());
+    let (pk, m, sig) = f.signers.lean_xmss[1].clone();
     let mut bytes = sig.to_bytes();
     let at = src.below(bytes.len());
     bytes[at] ^= 1 << src.below(8);
@@ -581,8 +582,8 @@ fn invalid_undeclared_raw_signature(f: &Fixtures, src: &mut Source, ctx: &Ctx) -
     if signatures::lean_xmss::verify(&pk, &m, &bad).is_ok() {
         return Ok(());
     }
-    inputs.xmss.push((pk, m, bad));
-    inputs.declare = Some(super::fixtures::claims_of(&inputs.xmss[..1], &[], None));
+    inputs.lean_xmss.push((pk, m, bad));
+    inputs.declare = Some(super::fixtures::claims_of(&inputs.lean_xmss[..1], &[], None));
     refused(ctx, &inputs, BAD_SIGNATURE)
 }
 
@@ -636,8 +637,8 @@ fn declared_list_with_repeats(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outc
     let mut inputs = with_children(f, &[X3, S2]);
     let want = f.claims(NODE).clone();
     let mut d = want.clone();
-    d.xmss.reverse();
-    d.xmss.push(d.xmss[src.below(d.xmss.len())]);
+    d.lean_xmss.reverse();
+    d.lean_xmss.push(d.lean_xmss[src.below(d.lean_xmss.len())]);
     d.lean_sphincs
         .insert(0, d.lean_sphincs[src.below(d.lean_sphincs.len())]);
     inputs.declare = Some(d);
@@ -648,15 +649,15 @@ fn declared_list_with_repeats(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outc
 /// a pubkey (one that signed the same message elsewhere) that signed nothing here.
 fn claim_of_another_signer_by_hint(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = Inputs {
-        xmss: f.signers.xmss[..2].to_vec(),
+        lean_xmss: f.signers.lean_xmss[..2].to_vec(),
         ..Inputs::default()
     };
     if src.bool() {
         inputs.child(f, S2);
     }
     let k = src.below(2);
-    let other = f.signers.xmss[6].0;
-    let declared: Vec<_> = super::fixtures::claims_of(&inputs.xmss, &[], None).xmss;
+    let other = f.signers.lean_xmss[6].0;
+    let declared: Vec<_> = super::fixtures::claims_of(&inputs.lean_xmss, &[], None).lean_xmss;
     let (pk, m) = declared[k];
     let replace = claim_cells(&other.to_bytes(), &m);
     let original = claim_cells(&pk.to_bytes(), &m);
@@ -673,7 +674,7 @@ fn claim_of_another_signer_by_hint(f: &Fixtures, src: &mut Source, ctx: &Ctx) ->
         },
         move |honest| {
             let mut c = honest.clone();
-            c.xmss[k].0 = other;
+            c.lean_xmss[k].0 = other;
             c
         },
     )
@@ -686,7 +687,7 @@ fn sphincs_signature_published_as_xmss(f: &Fixtures, src: &mut Source, ctx: &Ctx
     inputs.sphincs.push(f.signers.sphincs[src.below(2)].clone());
     let with_xmss = src.bool();
     if with_xmss {
-        inputs.xmss.push(f.signers.xmss[0].clone());
+        inputs.lean_xmss.push(f.signers.lean_xmss[0].clone());
     }
     let n_lx = usize::from(with_xmss);
     statement_refused(
@@ -703,7 +704,7 @@ fn sphincs_signature_published_as_xmss(f: &Fixtures, src: &mut Source, ctx: &Ctx
         |honest| {
             let mut c = honest.clone();
             let (pk, m) = c.lean_sphincs.remove(0);
-            c.xmss.push((LeanXmssPublicKey::from_bytes(&pk.to_bytes()), m));
+            c.lean_xmss.push((LeanXmssPublicKey::from_bytes(&pk.to_bytes()), m));
             c
         },
     )
@@ -713,10 +714,10 @@ fn sphincs_signature_published_as_xmss(f: &Fixtures, src: &mut Source, ctx: &Ctx
 /// claim, and the duplicate count drops by one to keep the table's size.
 fn dup_slot_promoted_to_foreign_claim(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let inputs = with_children(f, &[X3, [X3R2, X3][src.below(2)]]);
-    let n = f.claims(X3).xmss.len();
-    let mut foreign_pk = f.claims(X3).xmss[0].0.to_bytes();
+    let n = f.claims(X3).lean_xmss.len();
+    let mut foreign_pk = f.claims(X3).lean_xmss[0].0.to_bytes();
     foreign_pk[src.below(32)] ^= 1 << src.below(8);
-    let m = f.claims(X3).xmss[0].1;
+    let m = f.claims(X3).lean_xmss[0].1;
     let foreign = claim_cells(&foreign_pk, &m);
     statement_refused(
         ctx,
@@ -735,7 +736,7 @@ fn dup_slot_promoted_to_foreign_claim(f: &Fixtures, src: &mut Source, ctx: &Ctx)
         },
         move |honest| {
             let mut c = honest.clone();
-            c.xmss.push((LeanXmssPublicKey::from_bytes(&foreign_pk), m));
+            c.lean_xmss.push((LeanXmssPublicKey::from_bytes(&foreign_pk), m));
             c
         },
     )
@@ -745,7 +746,7 @@ fn dup_slot_promoted_to_foreign_claim(f: &Fixtures, src: &mut Source, ctx: &Ctx)
 /// on the leanXMSS region must refuse it.
 fn raw_index_into_other_region(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = Inputs::default();
-    inputs.xmss.push(f.signers.xmss[0].clone());
+    inputs.lean_xmss.push(f.signers.lean_xmss[0].clone());
     inputs.sphincs.push(f.signers.sphincs[0].clone());
     let shift = src.range(1, 2);
     if src.bool() {
@@ -766,7 +767,7 @@ fn raw_index_into_other_region(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Out
 /// A child's claim walk stepping past its scheme's region into the other's.
 fn child_walk_into_other_region(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let inputs = with_children(f, &[[MIXED, NODE][src.below(2)]]);
-    let n_x = inputs.children[0].claims().xmss.len();
+    let n_x = inputs.children[0].claims().lean_xmss.len();
     let at = src.below(n_x);
     forgery_refused(ctx, &inputs, "a child's gap walk past its region", move |s| {
         if let Some(i) = index_of(s, "child_claim_gap")
@@ -822,9 +823,9 @@ fn da_root_without_child(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
 /// malformed claim, and a parent must not be built over it.
 fn leaf_lies_about_deferred_value(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut inputs = Inputs::default();
-    inputs.xmss.push(f.signers.xmss[src.below(N_XMSS)].clone());
+    inputs.lean_xmss.push(f.signers.lean_xmss[src.below(N_XMSS)].clone());
     let (point, value) = leaf_deferred();
-    let lie = value + F192::ONE;
+    let lie = value + F128::ONE;
     arm_forgery(Box::new(move |hints| {
         let s = hints.streams_mut();
         if let Some(i) = index_of(s, "leaf_defer") {
@@ -833,7 +834,7 @@ fn leaf_lies_about_deferred_value(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> 
     }));
     let node = prepare_node(
         &inputs.children,
-        inputs.xmss.clone(),
+        inputs.lean_xmss.clone(),
         inputs.sphincs.clone(),
         &inputs.blobs,
         None,
@@ -872,7 +873,7 @@ fn child_claims_collapsed_to_a_repeat(f: &Fixtures, src: &mut Source, ctx: &Ctx)
     let i = [TWO_MSG, X3, NODE][src.below(3)];
     let forged = edited(f, i, |p| {
         let c = &mut p.claims;
-        c.xmss[1] = c.xmss[0];
+        c.lean_xmss[1] = c.lean_xmss[0];
     });
     if !matches!(forged.verify(), Err(AggregateVerifyError::MalformedSignerSet)) {
         return Err(Finding::high(

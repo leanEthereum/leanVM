@@ -76,7 +76,7 @@ theorem retOK_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : 4 ≤ i
       (verifyKeccak logSteps inst output) := by
   unfold verifyKeccak
   refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
-    RetOK.bind_true fun _ ↦ ?_
+    RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ ?_
   simp only [show 1 < keccakSegments from by decide, ↓reduceIte]
   refine (retOK_keccakOpen _ _ _ _ _).bind fun r hr ↦ ?_
   obtain ⟨slot, weights, value⟩ := r
@@ -103,7 +103,7 @@ theorem retOK_verifyKeccak_count (logSteps : ℕ) (inst output : List E) :
       (verifyKeccak logSteps inst output) := by
   unfold verifyKeccak
   refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
-    RetOK.bind_true fun _ ↦ ?_
+    RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ ?_
   simp only [show 1 < keccakSegments from by decide, ↓reduceIte]
   refine RetOK.bind_true fun r ↦ ?_
   obtain ⟨slot, weights, value⟩ := r
@@ -144,12 +144,14 @@ theorem retOK_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
     RetOK (fun c : KeccakClaim ↦ c.point.length = claim.point.length)
       (verifyKeccakLayer logSteps step claim) := by
   unfold verifyKeccakLayer
-  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ ?_
+  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
+    RetOK.bind_true fun _ ↦ ?_
   refine (retOK_keccakPackRounds _ _ _).bind fun r hr ↦ ?_
   obtain ⟨value, scale, point⟩ := r
   refine RetOK.bind_true fun r ↦ ?_
   obtain ⟨localPoint, value'⟩ := r
-  exact RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.ret hr
+  exact RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
+    RetOK.bind_true fun _ ↦ RetOK.ret hr
 
 /-- The layers keep the length of the claim's point. -/
 theorem retOK_keccakLayers (logSteps : ℕ) : ∀ (steps : List ℕ) (claim : KeccakClaim),
@@ -284,8 +286,8 @@ theorem outCol_getD (q : Column (verifierLayout prog s).stackLog) (l : Fin 25) {
     (by rw [Vector.size_toArray]; exact hx), Option.getD_some]
   exact h
 
-/-- The global column of output lane `l` is `113 + l`. -/
-theorem refCol_outCol : ∀ l : Fin 25, refCol (outCol l) = 113 + l.val := by
+/-- The global column of output lane `l` is `106 + l`. -/
+theorem refCol_outCol : ∀ l : Fin 25, refCol (outCol l) = 106 + l.val := by
   decide +kernel
 
 /-- **A lane's claim is the Keccak reduction's output claim**: the program's claim on output lane
@@ -294,14 +296,14 @@ when the extension over the steps of lane `l` of the second segment of the commi
 is the claimed value. -/
 theorem laneHolds_iff (q : Column (verifierLayout prog s).stackLog) (l : Fin 25) (inst : List E)
     (hi : inst.length = s.τ 5) (v : E) :
-    WireHolds prog s ⟨113 + l.val, inst, v⟩ q ↔
+    WireHolds prog s ⟨106 + l.val, inst, v⟩ q ↔
       KeccakGkr.stepMle (s.τ 5) inst (fun x ↦ KeccakGkr.laneWord (KeccakGkr.roundsFrom 12 12
         (KeccakGkr.inState (s.τ 5) (qkOf (verifierLayout prog s) q) 1 x)) l) = v := by
   let z : Vector E (s.τ 5) := ⟨inst.toArray, by simpa using hi⟩
   have hz : z.toList = inst := by simp [z]
   have h := wireHolds_iff prog s (outCol l) z v q
   rw [refCol_outCol] at h
-  refine (show WireHolds prog s ⟨113 + l.val, inst, v⟩ q ↔ _ from h).trans ?_
+  refine (show WireHolds prog s ⟨106 + l.val, inst, v⟩ q ↔ _ from h).trans ?_
   have hs : ∀ x ∈ range (2 ^ s.τ 5), KeccakGkr.eqAt inst x *
       ofK (((leanIsaInstance prog s).column (toI prog s q) (outCol l)).values.getD x 0) =
       KeccakGkr.eqAt inst x * ofK (KeccakGkr.laneWord (KeccakGkr.roundsFrom 12 12
@@ -425,7 +427,7 @@ variable (prog : LeanIsaProgram) (s : Sizes)
 /-- The program's claims hold claims on all 25 output lanes at the low `τ_KECCAK` coordinates of
 the point `pt`. -/
 def OutLanesAt (claims : List Verifier.ColumnClaim) (pt : List E) : Prop :=
-  ∀ l : Fin 25, ∃ v, (⟨113 + l.val, pt.take (s.τ 5), v⟩ : Verifier.ColumnClaim) ∈ claims
+  ∀ l : Fin 25, ∃ v, (⟨106 + l.val, pt.take (s.τ 5), v⟩ : Verifier.ColumnClaim) ∈ claims
 
 /-- The `KECCAK` table is a sumcheck table. -/
 theorem keccak_sumcheckTable : (leanIsaInstance prog s).SumcheckTable (opIdx 5) :=
@@ -437,7 +439,7 @@ theorem outLane_mem_tableOut (st : SumcheckRound.Stmt (Data (leanIsaInstance pro
       (leanIsaInstance prog s).τmax)
     (v : Vector E (leanIsaInstance prog s).tableColumns) (l : Fin 25) :
     ∃ c ∈ (tableOut (leanIsaInstance prog s) st v).2.columns.toList,
-      refCol c.col = 113 + l.val ∧ c.point.toList = st.2.1.reverse.toList.take (s.τ 5) := by
+      refCol c.col = 106 + l.val ∧ c.point.toList = st.2.1.reverse.toList.take (s.τ 5) := by
   let j : (leanIsaInstance prog s).SumcheckTables := ⟨opIdx 5, keccak_sumcheckTable prog s⟩
   let i : Fin ((leanIsaInstance prog s).width j.1) := (outCol l).2
   let k := TableSumcheck.columnPos (leanIsaInstance prog s) ⟨j, i⟩
@@ -527,7 +529,7 @@ theorem inst_eq {claims : List Verifier.ColumnClaim} {pt : List E} (hok : LanesO
     (hout : OutLanesAt s claims pt) :
     ((lanesOf claims).headD default).point = pt.take (s.τ 5) := by
   obtain ⟨v, hv⟩ := hout 0
-  have hmem : (⟨113 + (0 : Fin 25).val, pt.take (s.τ 5), v⟩ : Verifier.ColumnClaim) ∈
+  have hmem : (⟨106 + (0 : Fin 25).val, pt.take (s.τ 5), v⟩ : Verifier.ColumnClaim) ∈
       lanesOf claims := by
     rw [List.mem_filter]
     refine ⟨hv, ?_⟩
@@ -541,9 +543,9 @@ theorem length_lanesOf {claims : List Verifier.ColumnClaim} (hok : LanesOk claim
   rw [List.length_map, keccakOutputColumns_eq] at this
   simpa using this
 
-/-- The column of lane `i` is `113 + i`. -/
+/-- The column of lane `i` is `106 + i`. -/
 theorem column_lanesOf {claims : List Verifier.ColumnClaim} (hok : LanesOk claims) (i : ℕ)
-    (hi : i < (lanesOf claims).length) : ((lanesOf claims)[i]).column = 113 + i := by
+    (hi : i < (lanesOf claims).length) : ((lanesOf claims)[i]).column = 106 + i := by
   have h := congrArg (·[i]?) hok.1
   simp only [List.getElem?_map, List.getElem?_eq_getElem hi, keccakOutputColumns_eq,
     Option.map_some] at h
@@ -578,7 +580,7 @@ theorem gkrPre_of_keccakPre {claims : List Verifier.ColumnClaim} {h : List Ev}
       have hpt := hok.2 _ hcl
       have hval : ((lanesOf claims).map (·.value)).getD i 0 = ((lanesOf claims)[i]).value := by
         simp [hi]
-      have e : (lanesOf claims)[i] = ⟨113 + (⟨i, hi25⟩ : Fin 25).val,
+      have e : (lanesOf claims)[i] = ⟨106 + (⟨i, hi25⟩ : Fin 25).val,
           ((lanesOf claims).headD default).point, ((lanesOf claims)[i]).value⟩ := by
         rw [← hcol, ← hpt]
       rw [e, laneHolds_iff prog s q ⟨i, hi25⟩ _ hil]
@@ -592,10 +594,13 @@ open Classical in
 /-- **The Keccak phase's specification**: from the doom the table sumcheck and the public input
 leave (`KeccakPre`) to the doom ring switching starts from (`KeccakOut`), by the Keccak
 reduction's specification (`KeccakGkr.gkrSpec`): lead `L₀ · 6/|E|` (the segment and lane
-challenges), every later group at most `L₀ · 46/|E|`. -/
+challenges, after a grind of zero bits), the evaluation points `L₀ · 46/|E|` after their grinds
+(`h46`), every other group at most `L₀ · 3/|E|` (`h3`). -/
 noncomputable def keccakPhaseSpec (hst : Stable C) {L₀ : ℕ} (hcard : ∀ h, (C h).ncard ≤ L₀)
-    {εmax T : ℝ≥0∞} (hT : T ≤ εmax) (h46 : (L₀ : ℝ≥0∞) * KeccakGkr.errE 46 ≤ εmax)
-    (claims : List Verifier.ColumnClaim) :
+    {εmax T : ℝ≥0∞} (hT : T ≤ εmax)
+    (h46 : (2 : ℝ≥0∞)⁻¹ ^ grindingBits (productBits - 1) * ((L₀ : ℝ≥0∞) * KeccakGkr.errE 46) ≤
+      εmax)
+    (h3 : (L₀ : ℝ≥0∞) * KeccakGkr.errE 3 ≤ εmax) (claims : List Verifier.ColumnClaim) :
     Spec (keccakPhaseClaims (verifierLayout prog s) claims) (KeccakPre prog s C claims)
       (KeccakOut prog s C) εmax ((L₀ : ℝ≥0∞) * KeccakGkr.errE 6) T :=
   haveI := finite_column (verifierLayout prog s).stackLog
@@ -616,7 +621,7 @@ noncomputable def keccakPhaseSpec (hst : Stable C) {L₀ : ℕ} (hcard : ∀ h, 
   if hi : inst.length = s.τ 5 - 4 + 4 then
     if ho : output.length = 25 then
       Spec.congr (by rw [hτ]; rfl) <|
-      ((Sound.Spec.retInv ((KeccakGkr.gkrSpec hst hcard R qk (s.τ 5 - 4) hi ho hT h46).mono
+      ((Sound.Spec.retInv ((KeccakGkr.gkrSpec hst hcard R qk (s.τ 5 - 4) hi ho hT h46 h3).mono
           (Pre' := fun h ↦ LanesOk claims ∧ KeccakPre prog s C claims h)
           (fun h hp ↦ by rw [hP]; exact gkrPre_of_keccakPre prog s C hp.2 hp.1)
           (fun _ _ hq ↦ hq) le_rfl le_rfl le_rfl)

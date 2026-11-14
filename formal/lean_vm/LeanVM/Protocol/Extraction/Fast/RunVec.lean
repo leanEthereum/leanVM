@@ -17,7 +17,7 @@ registers with `Registers.final prog` at every step. Here the same search for a 
 * `candidateExecutionVec`: the public boundary checked first, on the two words it reads
   (`boundaryOfStack`), the memory vector built and the halting loop run only when it holds
   (`candidateExecutionVec_eq`, through `filter_boundaryOK_map`);
-* `candidateExecutionIn_eq_none`: above `2^32` words a stack has no execution (`boundaryOK`
+* `candidateExecutionIn_eq_none`: above `2^30` words a stack has no execution (`boundaryOK`
   fails), so above `2^63` words the fast search returns `none` with no hash map;
 * all on the lighter layout (`LayoutLite`, `Fast/AfterRoot.lean`: the fields the extractor reads),
   with `LayoutLite.placement`, `memoryImageLite`, `stepCapLite`, each the statement's at
@@ -64,7 +64,7 @@ theorem layoutLite_stackLog (layout : Verifier.Layout) :
     MemoryImage layout.logMemory :=
   fun i ↦
     let limb (column : ℕ) : K := q.getD ((layout.placement column).index + i) 0
-    E.ofLimbs (limb memory0) (limb memory1) (limb memory2)
+    E.ofLimbs (limb memory0) (limb memory1)
 
 theorem memoryImageLite_layoutLite (layout : Verifier.Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) :
     memoryImageLite (layoutLite layout) q = memoryImage layout q :=
@@ -79,13 +79,12 @@ theorem stepCapLite_layoutLite (layout : Verifier.Layout) :
   rfl
 
 /-- **The memory image of a stack, as a vector**: `memoryImageLite`, the offsets of the placements
-of `MEMORY_0`, `MEMORY_1`, `MEMORY_2` computed once. -/
+of `MEMORY_0`, `MEMORY_1` computed once. -/
 @[expose] def memoryVec (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ)) :
     Vector E (2 ^ layout.logMemory) :=
   let o₀ := (layout.placement memory0).index
   let o₁ := (layout.placement memory1).index
-  let o₂ := (layout.placement memory2).index
-  Vector.ofFn fun i ↦ E.ofLimbs (q.getD (o₀ + i) 0) (q.getD (o₁ + i) 0) (q.getD (o₂ + i) 0)
+  Vector.ofFn fun i ↦ E.ofLimbs (q.getD (o₀ + i) 0) (q.getD (o₁ + i) 0)
 
 theorem memoryVec_get (layout : LayoutLite) {μ : ℕ} (q : Vector K (2 ^ μ))
     (i : Fin (2 ^ layout.logMemory)) : (memoryVec layout q).get i = memoryImageLite layout q i := by
@@ -169,7 +168,7 @@ theorem boundaryOfStack_of_lt (input : PublicInput) (layout : LayoutLite) {μ : 
     exact absurd hc.2 (Nat.not_le.2 h)
   · rfl
 
-/-- **Above `2^32` words a stack has no execution**: its runs fail the boundary. -/
+/-- **Above `2^30` words a stack has no execution**: its runs fail the boundary. -/
 theorem candidateExecutionIn_eq_none (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram)
     (input : PublicInput) (layout : Verifier.Layout) (h : maxLogMem < layout.logMemory) {μ : ℕ}
     (q : Vector K (2 ^ μ)) : candidateExecutionIn memIdx codeIdx prog input layout q = none := by

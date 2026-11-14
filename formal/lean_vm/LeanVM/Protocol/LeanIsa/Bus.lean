@@ -37,7 +37,7 @@ open Air.Flat (Component EnsembleWitness Ensemble)
 
 /-- The six channels by name, with their arities. -/
 def channelTable : List (String × ℕ) :=
-  [(StatePull.name, 2), (StatePush.name, 2), (MemPull.name, 5), (MemPush.name, 5),
+  [(StatePull.name, 2), (StatePush.name, 2), (MemPull.name, 4), (MemPush.name, 4),
     (BytecodePull.name, 15), (BytecodePush.name, 15)]
 
 /-- The ensemble's six channels, with their arities. -/
@@ -68,7 +68,7 @@ def channelOf : Side → Fin 3 → RawChannel K
   | .pull => pullOf
 
 /-- The arity of pair `k`'s messages. -/
-def arityOf (k : Fin 3) : ℕ := ![2, 5, 15] k
+def arityOf (k : Fin 3) : ℕ := ![2, 4, 15] k
 
 /-- The three separators are distinct and nonzero. -/
 private theorem gpow_facts : addressOfIndex 0 ≠ addressOfIndex 1 ∧ addressOfIndex 0 ≠ addressOfIndex
@@ -275,11 +275,10 @@ private theorem vec_fifteen {α : Type} (a b c d e f g h i j k l m n o : α) :
   simp only [Vector.toArray_append]
   simp
 
-/-- The memory row's variables: the limbs `0, 1, 2`, the index `3`, the finalize count `4`. -/
+/-- The memory row's variables: the limbs `0, 1`, the index `2`, the finalize count `3`. -/
 private theorem memRowVar : (fromElements (M := MemRow) (F := Expression K)
     (Vector.mapRange (size MemRow) fun i ↦ var { index := i })) =
-      ⟨#v[var { index := 0 }, var { index := 1 }, var { index := 2 }], var { index := 3 },
-        var { index := 4 }⟩ := by
+      ⟨#v[var { index := 0 }, var { index := 1 }], var { index := 2 }, var { index := 3 }⟩ := by
   simp only [fromElements, ProvableStruct.structFromElements_eq]
   simp [explicit_provable_type, circuit_norm, size, ProvableStruct.combinedSize,
     ProvableStruct.combinedSize', Vector.mapRange_succ, Vector.mapRange_zero,
@@ -290,17 +289,16 @@ private theorem memRowVar' (κ : ℕ) :
     (@fromElements MemRow (Air.Flat.instProvableTypeInput (memComponent κ)) (Expression K)
       (Vector.mapRange (@size MemRow (Air.Flat.instProvableTypeInput (memComponent κ)))
         fun i ↦ var { index := i })) =
-      ⟨#v[var { index := 0 }, var { index := 1 }, var { index := 2 }], var { index := 3 },
-        var { index := 4 }⟩ :=
+      ⟨#v[var { index := 0 }, var { index := 1 }], var { index := 2 }, var { index := 3 }⟩ :=
   memRowVar
 
 /-- The memory block's two messages on a row: the seed push `(idx, 1, m)` and the finalize pull
 `(idx, cntFin, m)`. -/
-theorem memTable_messages (κ : ℕ) (idx cnt a b c : K) (data : ProverData K) :
+theorem memTable_messages (κ : ℕ) (idx cnt a b : K) (data : ProverData K) :
     ((memComponent κ).operations.interactionValues
-      (Environment.fromArray (toElements (⟨#v[a, b, c], idx, cnt⟩ : MemRow K)).toArray data)).map
+      (Environment.fromArray (toElements (⟨#v[a, b], idx, cnt⟩ : MemRow K)).toArray data)).map
         (fun i ↦ (i.channel.name, i.msg)) =
-      [(MemPush.name, #[idx, 1, a, b, c]), (MemPull.name, #[idx, cnt, a, b, c])] := by
+      [(MemPush.name, #[idx, 1, a, b]), (MemPull.name, #[idx, cnt, a, b])] := by
   rw [Air.Flat.Component.interactionsValues_eq]
   simp [Operations.interactionValues, Air.Flat.Component.rowOperations, memComponent, memTable,
     circuit_norm,
@@ -397,8 +395,7 @@ private theorem tuplesOn_truncate (c : Component K)
     congrArg Array.ofFn (funext hr)
   rw [Air.Flat.Component.interactionsValues_eq, Air.Flat.Component.interactionsValues_eq]
   simp only [tuplesOn, Operations.interactionValues, List.map_map]
-  congr 2
-  refine List.map_congr_left fun ai hai ↦ ?_
+  refine congrArg (List.map _) (congrArg (List.filter _) (List.map_congr_left fun ai hai ↦ ?_))
   have hm : ai.msg.map (fun x ↦ Expression.eval (Environment.fromArray row data) x) =
       ai.msg.map (fun x ↦ Expression.eval (Environment.fromArray (Array.ofFn r) data) x) := by
     refine Vector.ext fun k hk ↦ ?_
@@ -504,9 +501,9 @@ private theorem coords_coordCell (I : M3Instance) {κ : ℕ} (σ : K) (rest : Li
 
 variable (s : Sizes) (q : Column (leanIsaμ prog s))
 
-/-- The memory columns' cells of row `x`: the three limbs. -/
+/-- The memory columns' cells of row `x`: the two limbs. -/
 abbrev memLimbs (x : Fin (2 ^ s.logMem)) : List K :=
-  [cell prog s q (memCol 0) x, cell prog s q (memCol 1) x, cell prog s q (memCol 2) x]
+  [cell prog s q (memCol 0) x, cell prog s q (memCol 1) x]
 
 /-- The program's entry at slot `i`, its thirteen coordinates. -/
 abbrev entryList (i : Fin (2 ^ prog.logSize)) : List K :=
@@ -550,7 +547,7 @@ theorem boundaryTuples_pull :
     (leanIsaInstance prog s).boundaryTuples q .pull =
       [tupleOf (addressOfIndex 0) #[prog.pcFinal, 1]] ++
       ((List.finRange (2 ^ s.logMem)).map fun x : Fin (2 ^ s.logMem) ↦
-        tupleOf (addressOfIndex 1) (#[addressOfIndex x, cell prog s q (memCol 3) x] ++ (memLimbs s q
+        tupleOf (addressOfIndex 1) (#[addressOfIndex x, cell prog s q (memCol 2) x] ++ (memLimbs s q
             x).toArray)) ++
       ((List.finRange (2 ^ prog.logSize)).map fun i : Fin (2 ^ prog.logSize) ↦
         tupleOf (addressOfIndex 2) (#[addressOfIndex i, cell prog s q bfcntCol i] ++ (entryList
@@ -607,13 +604,13 @@ theorem tuplesOn_memBlock {w : EnsembleWitness (leanIsaEnsemble prog κ)} (h : A
     tuplesOn (tableAt w 6).interactions side =
       (List.finRange (2 ^ s.logMem)).map fun x : Fin (2 ^ s.logMem) ↦
         tupleOf (addressOfIndex 1) ((if side = .push then #[addressOfIndex x, 1]
-          else #[addressOfIndex x, cell prog s q (memCol 3) x]) ++ (memLimbs s q x).toArray) := by
+          else #[addressOfIndex x, cell prog s q (memCol 2) x]) ++ (memLimbs s q x).toArray) := by
   rw [Air.Flat.Table.interactions, tuplesOn_flatMap,
     show (tableAt w 6).table = memBlockRowsOf prog s q from h.memRows, memBlockRowsOf,
     List.ofFn_eq_map, List.flatMap_map, tableAt_component]
   rw [← List.flatMap_pure_eq_map]
   refine List.flatMap_congr fun x _ ↦ ?_
-  refine (tuplesOn_pair (memTable_messages κ _ _ _ _ _ (tableAt w 6).data)
+  refine (tuplesOn_pair (memTable_messages κ _ _ _ _ (tableAt w 6).data)
     (nameView_six _).2.2.1 (nameView_six _).2.2.2.1 side).trans ?_
   cases side <;> rfl
 

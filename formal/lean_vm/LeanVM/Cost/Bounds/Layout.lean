@@ -9,19 +9,19 @@ import all LeanVM.Protocol.Extraction.Fast.AfterRoot
 # Bounds: the layouts the replay returns
 
 The runner's bound (`runner_cost`, `Bounds/Runner.lean`) assumes of the layout what
-`buildLayoutLite`'s checks give: `κ = logMemory ≤ 32`, `logBytecode ≤ 32`, at most six tables of
-log-height at most `32`, and every placement's offset a word. Here they are proved for every
+`buildLayoutLite`'s checks give: `κ = logMemory ≤ 30`, `logBytecode ≤ 30`, at most six tables of
+log-height at most `30`, and every placement's offset a word. Here they are proved for every
 layout `afterRootLite` returns:
 
 * `stackOffsets_le`: blocks of log-size at most `s`: every offset at most `2^s·n`, `n` blocks
   (the running total; `stackOffsets_bounds`' `2^63` was the word room left for the sum);
-* `placementsOf_index_lt`: at most `165` columns of log-size at most `40` (`columnKappas`: `32`
-  but `q_keccak`'s `38`): every placement's offset below `2^48`: a block's offset is at most
+* `placementsOf_index_lt`: at most `165` columns of log-size at most `40` (`columnKappas`: `30`
+  but `q_keccak`'s `36`): every placement's offset below `2^48`: a block's offset is at most
   `165·2^40`, a Keccak slot's `q_keccak`'s offset plus a slot (below `64`) of `2^κ` words;
 * **`buildLayoutLite_facts`**, **`afterRootLite_facts`**: the layout's fields (`LayoutFacts`), the
-  stack's log-size in `[15, 28]` and the rate's in `[1, 4]`;
+  stack's log-size in `[16, 30]` and the rate's in `[1, 4]`;
 * **`runner_cost_afterRootLite`**: `runner_cost` on `afterRootLite`'s layouts, its hypotheses
-  discharged: at most `runnerBudget` (`≈ 2^65.60`).
+  discharged: at most `runnerBudget` (`≈ 2^65.59`).
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -125,11 +125,11 @@ theorem placementsOf_index_lt (kappas : List ℕ) (hn : kappas.length ≤ 165)
 
 /-- What the runner's bound assumes of a layout. -/
 structure LayoutFacts (L : LayoutLite) : Prop where
-  logMemory_ge : 16 ≤ L.logMemory
-  logMemory_le : L.logMemory ≤ 32
-  logBytecode_le : L.logBytecode ≤ 32
+  logMemory_ge : 1 ≤ L.logMemory
+  logMemory_le : L.logMemory ≤ 30
+  logBytecode_le : L.logBytecode ≤ 30
   heights_length : L.tableLogHeights.length ≤ 6
-  heights_le : ∀ h ∈ L.tableLogHeights, h ≤ 32
+  heights_le : ∀ h ∈ L.tableLogHeights, h ≤ 30
   index_lt : ∀ c, (L.placement c).index < 2 ^ 48
 
 theorem LayoutFacts.index_lt_word {L : LayoutLite} (h : LayoutFacts L) (c : ℕ) :
@@ -147,12 +147,12 @@ theorem buildLayoutLite_facts {bytecode : List K} {logMemory : ℕ} {tableRows :
     split_ifs at h with hc
     obtain rfl := Option.some.inj h
     obtain ⟨c1, c2, c3, c4, c5, c6⟩ := hc
-    have hr32 : ∀ r ∈ tableRows, r ≤ 2 ^ 32 := fun r hr' ↦ by
+    have hr30 : ∀ r ∈ tableRows, r ≤ 2 ^ 30 := fun r hr' ↦ by
       have := List.all_eq_true.1 c4 r hr'; simpa using this
-    obtain ⟨hhl, hhm⟩ := heights_facts tableRows hr32
+    obtain ⟨hhl, hhm⟩ := heights_facts tableRows hr30
     set heights := List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) tableRows
       tableLogFloors
-    have hhD : ∀ i, heights.getD i 0 ≤ 32 := fun i ↦ by
+    have hhD : ∀ i, heights.getD i 0 ≤ 30 := fun i ↦ by
       rcases getD_mem_or heights i 0 with h' | h'
       · exact hhm _ h'
       · rw [h']; omega
@@ -174,13 +174,13 @@ theorem buildLayoutLite_facts {bytecode : List K} {logMemory : ℕ} {tableRows :
     · show log2Strict bytecode.length = some (val - busBits + busBits)
       rw [Nat.sub_add_cancel c1]; exact hval
 
-/-- `readSizesLite`'s layout is `buildLayoutLite`'s, its stack's log-size in `[15, 28]`, its rate
+/-- `readSizesLite`'s layout is `buildLayoutLite`'s, its stack's log-size in `[16, 30]`, its rate
 in `[1, 4]`. -/
 theorem readSizesLite_layout {bytecode : List K} {s s' :
     LeanVM.Protocol.Compile.VerifierProgramState}
     {L : LayoutLite} {R : ℕ} (h : readSizesLite bytecode s = some ((L, R), s')) :
     (∃ logMemory tableRows, buildLayoutLite bytecode logMemory tableRows = some L) ∧
-      15 ≤ L.stackLog ∧ L.stackLog ≤ 28 ∧ 1 ≤ R ∧ R ≤ 4 := by
+      16 ≤ L.stackLog ∧ L.stackLog ≤ 30 ∧ 1 ≤ R ∧ R ≤ 4 := by
   unfold readSizesLite at h
   obtain ⟨r, -, h⟩ := Option.bind_eq_some_iff.1 h
   split_ifs at h
@@ -193,12 +193,12 @@ theorem readSizesLite_layout {bytecode : List K} {s s' :
   simp only [Whir.minLogStack, Whir.maxLogStack] at h3
   exact ⟨⟨_, _, hL'⟩, h3.1, h3.2, h2.1, h2.2⟩
 
-/-- **`afterRootLite`'s layouts** meet `LayoutFacts`; the stack's log-size is in `[15, 28]`, the
+/-- **`afterRootLite`'s layouts** meet `LayoutFacts`; the stack's log-size is in `[16, 30]`, the
 rate's in `[1, 4]`, and the bytecode has `2^(ℓ + 4)` words. -/
 theorem afterRootLite_facts {bytecode : List K} {π : LeanVM.Protocol.Compile.Proof}
     {L : LayoutLite} {R : ℕ} {st : LeanVM.Protocol.Compile.VerifierProgramState}
     (h : afterRootLite bytecode π = some ((L, R), st)) :
-    LayoutFacts L ∧ 15 ≤ L.stackLog ∧ L.stackLog ≤ 28 ∧ 1 ≤ R ∧ R ≤ 4 ∧
+    LayoutFacts L ∧ 16 ≤ L.stackLog ∧ L.stackLog ≤ 30 ∧ 1 ≤ R ∧ R ≤ 4 ∧
       log2Strict bytecode.length = some (L.logBytecode + busBits) := by
   unfold afterRootLite at h
   cases hr : readSizesLite bytecode (initialState π) with
@@ -216,7 +216,7 @@ theorem afterRootLite_facts {bytecode : List K} {π : LeanVM.Protocol.Compile.Pr
 /-! ## The runner on the replay's layouts -/
 
 /-- **The runner on `afterRootLite`'s layouts**: `runner_cost`, its hypotheses on the layout
-discharged (`afterRootLite_facts`): at most `runnerBudget` (`≈ 2^65.60`). -/
+discharged (`afterRootLite_facts`): at most `runnerBudget` (`≈ 2^65.59`). -/
 theorem runner_cost_afterRootLite (P : LeanVM.Cost.MachineProgram) (hT : Includes P runnerTablesC.costDeps)
     (hW : Includes P runWithTablesC.costDeps) (prog : Semantics.LeanIsaProgram) (input :
         PublicInput)

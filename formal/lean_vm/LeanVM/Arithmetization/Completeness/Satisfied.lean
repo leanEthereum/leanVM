@@ -109,10 +109,9 @@ theorem opRows_sends {κ : ℕ} (img : MemoryImage κ) (R : List PRow) (op : Opc
 /-- The sends of the memory block: per cell, the seed push and the finalize pull. -/
 def memBlockSends {κ : ℕ} (img : MemoryImage κ) (fin : K → ℕ) : List (String × Array K) :=
   (List.finRange (2 ^ κ)).flatMap fun i : Fin (2 ^ κ) ↦
-    [(MemPush.name, #[addressOfIndex i, 1, (img i).limb 0, (img i).limb 1, (img i).limb 2]),
+    [(MemPush.name, #[addressOfIndex i, 1, (img i).limb 0, (img i).limb 1]),
       (MemPull.name,
-        #[addressOfIndex i, g ^ fin (addressOfIndex i), (img i).limb 0, (img i).limb 1, (img
-            i).limb 2])]
+        #[addressOfIndex i, g ^ fin (addressOfIndex i), (img i).limb 0, (img i).limb 1])]
 
 /-- The sends of the memory block's rows, over any data, are `memBlockSends`. -/
 theorem memBlock_sends {κ : ℕ} (img : MemoryImage κ) (fin : K → ℕ) (data : ProverData K) :
@@ -225,7 +224,7 @@ theorem chanOf_skelSends_perm (prog : LeanIsaProgram) {κ : ℕ} (img : MemoryIm
 /-- The word at the address of an index, as a memory message. -/
 theorem memMsg_gpow {κ : ℕ} (hκ : κ < 64) (img : MemoryImage κ) (i : Fin (2 ^ κ)) (e : ℕ) :
     memMsg img (addressOfIndex i) e =
-      #[addressOfIndex i, g ^ e, (img i).limb 0, (img i).limb 1, (img i).limb 2] := by
+      #[addressOfIndex i, g ^ e, (img i).limb 0, (img i).limb 1] := by
   have h := MemImage.limbsAt_eq_of_read (MemoryImage.read_gpow hκ img i)
   simp [memMsg, memMsgOf, h]
 
@@ -329,7 +328,7 @@ theorem mem_pair_perm (prog : LeanIsaProgram) {κ : ℕ} (hκ : κ ≤ maxLogMem
     obtain ⟨w, hw⟩ := readAddrs_valid (pc := sk.pc) (fp := sk.fp) hn a ha
     obtain ⟨i, rfl, -⟩ := (MemoryImage.read_eq_some_iff hκ64 img).mp hw
     exact List.mem_map.mpr ⟨i, List.mem_finRange _, rfl⟩
-  have hb := block_balance _ (gpow_keys_nodup κ hκ) (memMsg img) _ hmem
+  have hb := block_balance _ (gpow_keys_nodup κ (hκ.trans (by decide))) (memMsg img) _ hmem
   -- The rows' pulls and pushes: the chained reads, and the cancelled pairs `C`, alike on both
   -- sides.
   set C := (skelRows img S).flatMap (PRow.skipMsgs img) with hC
@@ -380,7 +379,7 @@ theorem bc_pair_perm (prog : LeanIsaProgram) {κ : ℕ} (img : MemoryImage κ) (
     obtain ⟨sk, hsk, rfl⟩ := List.mem_map.mp ha
     obtain ⟨i, hi, -⟩ := LeanIsaProgram.fetch_eq_some_iff prog |>.mp (hS sk hsk).1
     exact List.mem_map.mpr ⟨i, List.mem_finRange _, hi.symm⟩
-  have hb := block_balance _ (gpow_keys_nodup prog.logSize prog.logSize_le) (bcMsg prog) _ hmem
+  have hb := block_balance _ (gpow_keys_nodup prog.logSize (prog.logSize_le.trans (by decide))) (bcMsg prog) _ hmem
   have hF : ∀ sk ∈ S, prog.fetch sk.pc = some sk.ins := fun sk h ↦ (hS sk h).1
   have h1 : (skelRows img S).flatMap (fun r ↦ chanOf BytecodePush.name (r.sends img)) =
       List.zipWith (fun pc e ↦ bcMsg prog pc (e + 1)) (S.map (·.pc))
@@ -534,7 +533,7 @@ theorem skelWitness_constraints (prog : LeanIsaProgram) (input : PublicInput) {�
 
 /-- Every pull of a row's read carries a nonzero count, when the row's counts are nonzero. -/
 theorem sendsOf_counts_ne_zero {pc fp : K} {next : Registers K} {rbc : K} {e : Vector K 13}
-    {reads : List (K × K × Vector K 3)} (hb : rbc ≠ 0) (hr : ∀ x ∈ reads, x.2.1 ≠ 0) :
+    {reads : List (K × K × Vector K 2)} (hb : rbc ≠ 0) (hr : ∀ x ∈ reads, x.2.1 ≠ 0) :
     ∀ y ∈ sendsOf pc fp next rbc e reads,
       (y.1 = MemPull.name ∨ y.1 = BytecodePull.name) → ∃ h : 1 < y.2.size, y.2[1] ≠ 0 := by
   intro y hy hn

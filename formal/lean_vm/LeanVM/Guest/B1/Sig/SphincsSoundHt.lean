@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundHt
 
-  A hypertree layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3937-3948` at
-  leanVM main 40f877dc) against the statement: its counter and encoding, the call of `sp_wots` and the
+  A hypertree layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:4129-4140`)
+  against the statement: its counter and encoding, the call of `sp_wots` and the
   path reach the statement's layer root (`LayerReaches`).
 -/
 
@@ -67,7 +67,7 @@ theorem otsLeaf_of_valid {P : PublicParameter} {layer : Layer} {tree : TreeIndex
 /-- A path node's address cell is the statement's (type `TREE`, no key pair). -/
 theorem pathAdr_eq {h i : Nat} (hh : h < 256) (hi : i < 2 ^ 16) : pathAdr h i = adrsCell1 2 0 h i := by
   have ha : a1Hi h i < 2 ^ 64 := by unfold a1Hi; omega
-  rw [pathAdr, word_eq192 (by norm_num) ha, adrsCell1_eq]
+  rw [pathAdr, word_eq128 (by norm_num), adrsCell1_eq]
   congr 1
   simp only [adrsNat1, beWordAt, a1Hi]
   omega
@@ -130,11 +130,6 @@ theorem beWordAt_zero_beWordAt_zero {N : Nat} (h : N < 2 ^ 32) : beWordAt 0 (beW
     ⟨N % 256, N / 256 % 256, N / 65536 % 256, N / 16777216, by omega, by omega, by omega, by omega,
       by omega⟩
   rw [beWordAt_zero_digits ha hb hc hd, beWordAt_zero_digits hd hc hb ha]
-
-/-- The layer's counter, as the signature reads it off its cell. -/
-theorem counter_of_cell {N : Nat} (h : N < 2 ^ 32) :
-    (BitVec.ofNat 32 (beWordAt 0 (cellNat (eOfNat N))) : EncodingCounter).toNat = beWordAt 0 N := by
-  rw [cellNat_eOfNat (by omega), BitVec.toNat_ofNat, Nat.mod_eq_of_lt (beWordAt_zero_lt N)]
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
@@ -255,8 +250,8 @@ theorem sLayerPath_sound (hp : PadOK σ sPad) {T : Nat} (hD : DigestAt σ T) {l 
 call of `sp_wots` at the key `K_l(idx)`'s address cells (`a0 = sA0Of l`, `a1 = sA1Of l`) and its
 path reach, from the message `signed`, the root the path computes, with the layer's signature
 `sphincsSigOf σ Vm`'s, when the digest `T` gives the leaf. -/
-theorem layer_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} {Vm : FrameMap}
-    (hV : UnfoldsV L.read C Vm) (hbb : ByteBits L.read (σ (.n 1))) (hp : PadOK σ sPad) {T : Nat}
+theorem layer_sound {P : Program} [Finds P "sp_wots" Fn.«sp_wots».core] {κ : Nat} (hκ : κ ≤ 32)
+    {L : MemoryImage κ} {Vm : FrameMap} (hV : UnfoldsVP P L.read C Vm) (hbb : ByteBits L.read (σ (.n 1))) (hp : PadOK σ sPad) {T : Nat}
     (hD : DigestAt σ T) (l : Layer) {signed : V}
     (hpre : AtomsHold L.read σ (sLayerPre l.val (sA0Of l.val) (sA1Of l.val) signed))
     (hcall : C "sp_wots" ([sPP, sA0Of l.val, sA1Of l.val,

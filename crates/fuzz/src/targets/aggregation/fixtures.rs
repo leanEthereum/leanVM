@@ -32,7 +32,7 @@ pub const NAMES: [&str; 8] = ["x3", "s2", "da", "mixed", "node", "x3r2", "two-ms
 const VERSION: u32 = 1;
 
 pub struct Signers {
-    pub xmss: Vec<RawXmss>,
+    pub lean_xmss: Vec<RawXmss>,
     pub sphincs: Vec<RawSphincs>,
     /// One leanXMSS key: [`message_a`] at the first leaf of its range, [`message_b`] at the second, [`message_a`]
     /// again at the third.
@@ -83,16 +83,15 @@ pub fn root_of(blobs: &[u64]) -> [u8; 32] {
 }
 
 fn signers() -> Signers {
-    let xmss = rec_aggregation::signers_cache::get_signers(N_XMSS)
-        .into_iter()
-        .map(|(pk, sig)| (pk, message_a(), sig))
-        .collect();
+    let lean_xmss = rec_aggregation::signers_cache::get_signers(N_XMSS);
     let sphincs = rec_aggregation::signers_cache::get_lean_sphincs_signers(N_SPHINCS);
-    // A seed backs one key: this one, over this range, nowhere else.
+    // A seed backs one key: this one, over this range, nowhere else. Built here rather than drawn
+    // from the signers cache (one key at three leaves of its own), so a campaign pays one key
+    // generation and three signs, once, before its fixtures are read from disk.
     const FIRST: lean_xmss::LeafIndex = 3_000_000_100;
-    let (sk, pk) = lean_xmss::mock::key_gen_from_seed([0xA7; 32], FIRST, FIRST + 3);
+    let (sk, pk) = lean_xmss::key_gen_from_seed([0xA7; 32]);
     let sign = |message: lean_xmss::Message, leaf| {
-        let sig = lean_xmss::mock::sign(&sk, &message, leaf).expect("mock signs in range");
+        let sig = lean_xmss::sign(&sk, &message, leaf).expect("signs in range");
         (pk, message, sig)
     };
     let xmss_two = [
@@ -106,7 +105,7 @@ fn signers() -> Signers {
         (pk, message, sig)
     });
     Signers {
-        xmss,
+        lean_xmss,
         sphincs,
         xmss_two,
         sphincs_two,
@@ -188,13 +187,13 @@ fn load_or_build(dir: &Path, signers: &Signers, blobs: &[Vec<u64>; 3]) -> Result
 fn prove(
     name: &str,
     children: &[EthereumProof],
-    xmss: &[RawXmss],
+    lean_xmss: &[RawXmss],
     sphincs: &[RawSphincs],
     blobs: &[u64],
     declare: Option<&EthereumClaims>,
     rate: usize,
 ) -> Result<EthereumProof, Finding> {
-    let proof = aggregate(children, xmss.to_vec(), sphincs.to_vec(), blobs, declare, rate).map_err(|e| {
+    let proof = aggregate(children, lean_xmss.to_vec(), sphincs.to_vec(), blobs, declare, rate).map_err(|e| {
         Finding::high(
             format!("aggregation fixtures: honest aggregate `{name}` refused"),
             format!("{e:?}"),
@@ -211,16 +210,16 @@ fn prove(
 
 fn build(dir: &Path, s: &Signers, blobs: &[Vec<u64>; 3]) -> Result<(), Finding> {
     eprintln!("building the aggregation fixtures in {}", dir.display());
-    let x3 = prove("x3", &[], &s.xmss[..3], &[], &[], None, 1)?;
+    let x3 = prove("x3", &[], &s.lean_xmss[..3], &[], &[], None, 1)?;
     let s2 = prove("s2", &[], &[], &s.sphincs[..2], &[], None, 2)?;
     let da = prove("da", &[], &[], &[], &blobs[0], None, 1)?;
-    let mixed = prove("mixed", &[], &s.xmss[2..5], &s.sphincs[1..3], &blobs[1], None, 1)?;
+    let mixed = prove("mixed", &[], &s.lean_xmss[2..5], &s.sphincs[1..3], &blobs[1], None, 1)?;
     let node = prove("node", &[x3.clone(), s2.clone()], &[], &[], &[], None, 1)?;
-    let x3r2 = prove("x3r2", &[], &s.xmss[..3], &[], &[], None, 2)?;
+    let x3r2 = prove("x3r2", &[], &s.lean_xmss[..3], &[], &[], None, 2)?;
     let two_msg = prove("two-msg", &[], &s.xmss_two[..2], &[], &[], None, 1)?;
     // Drops leanXMSS signer 2's claim and one leanSPHINCS claim, keeping the root.
     let mut narrowed = mixed.claims().clone();
-    narrowed.xmss.remove(0);
+    narrowed.lean_xmss.remove(0);
     narrowed.lean_sphincs.remove(0);
     let narrow = prove(
         "narrow",
@@ -266,8 +265,8 @@ fn load(dir: &Path) -> Result<Vec<Fixture>, Finding> {
 fn encode(rate: usize, proof: &EthereumProof) -> Vec<u8> {
     let claims = proof.claims();
     let mut out = (rate as u64).to_le_bytes().to_vec();
-    out.extend((claims.xmss.len() as u32).to_le_bytes());
-    for (pk, message) in &claims.xmss {
+    out.extend((claims.lean_xmss.len() as u32).to_le_bytes());
+    for (pk, message) in &claims.lean_xmss {
         out.extend(pk.to_bytes());
         out.extend(message);
     }
@@ -296,10 +295,10 @@ fn decode(bytes: &[u8]) -> Option<(usize, EthereumClaims, &[u8])> {
     };
     let rate = u64::from_le_bytes(take(8)?.try_into().ok()?) as usize;
     let nx = u32::from_le_bytes(take(4)?.try_into().ok()?) as usize;
-    let mut xmss: Vec<LeanXmssClaim> = Vec::new();
+    let mut lean_xmss: Vec<LeanXmssClaim> = Vec::new();
     for _ in 0..nx {
         let pk = LeanXmssPublicKey::from_bytes(take(lean_xmss::PUB_KEY_SIZE)?.try_into().ok()?);
-        xmss.push((pk, take(32)?.try_into().ok()?));
+        lean_xmss.push((pk, take(32)?.try_into().ok()?));
     }
     let ns = u32::from_le_bytes(take(4)?.try_into().ok()?) as usize;
     let mut lean_sphincs: Vec<LeanSphincsClaim> = Vec::new();
@@ -313,7 +312,7 @@ fn decode(bytes: &[u8]) -> Option<(usize, EthereumClaims, &[u8])> {
     Some((
         rate,
         EthereumClaims {
-            xmss,
+            lean_xmss,
             lean_sphincs,
             da_commitment,
         },
@@ -322,9 +321,9 @@ fn decode(bytes: &[u8]) -> Option<(usize, EthereumClaims, &[u8])> {
 }
 
 /// The claims a set of raw signatures would publish, sorted and deduplicated, with `da`.
-pub fn claims_of(xmss: &[RawXmss], sphincs: &[RawSphincs], da: Option<[u8; 32]>) -> EthereumClaims {
+pub fn claims_of(lean_xmss: &[RawXmss], sphincs: &[RawSphincs], da: Option<[u8; 32]>) -> EthereumClaims {
     let mut c = EthereumClaims {
-        xmss: xmss.iter().map(|(pk, m, _)| (*pk, *m)).collect(),
+        lean_xmss: lean_xmss.iter().map(|(pk, m, _)| (*pk, *m)).collect(),
         lean_sphincs: sphincs.iter().map(|(pk, m, _)| (*pk, *m)).collect(),
         da_commitment: da,
     };
@@ -334,8 +333,8 @@ pub fn claims_of(xmss: &[RawXmss], sphincs: &[RawSphincs], da: Option<[u8; 32]>)
 
 /// Sort and deduplicate both lists, as a node publishes them.
 pub fn normalize(c: &mut EthereumClaims) {
-    c.xmss.sort();
-    c.xmss.dedup();
+    c.lean_xmss.sort();
+    c.lean_xmss.dedup();
     c.lean_sphincs.sort();
     c.lean_sphincs.dedup();
 }
@@ -343,7 +342,7 @@ pub fn normalize(c: &mut EthereumClaims) {
 /// `a` with `b`'s claims merged in; `a`'s DA root.
 pub fn union(a: &EthereumClaims, b: &EthereumClaims) -> EthereumClaims {
     let mut c = a.clone();
-    c.xmss.extend(b.xmss.iter().copied());
+    c.lean_xmss.extend(b.lean_xmss.iter().copied());
     c.lean_sphincs.extend(b.lean_sphincs.iter().copied());
     normalize(&mut c);
     c

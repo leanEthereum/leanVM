@@ -10,7 +10,7 @@ use crate::source::{Rng, mutate};
 use crate::{Ctx, Finding, Outcome, Source, catch};
 use fiat_shamir::merkle::{hash_pair, hash_words, open};
 use leanvm_core::cpu::Proof;
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     let fixtures = honest();
@@ -59,7 +59,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
 
 pub fn check(
     bytes: &[u8],
-    origin: Option<(&str, &leanvm_core::cpu::Program, &[F192; 2], &Proof)>,
+    origin: Option<(&str, &leanvm_core::cpu::Program, &[F128; 2], &Proof)>,
     ctx: &Ctx,
 ) -> Outcome {
     let decoded =
@@ -222,7 +222,7 @@ fn edit_field(bytes: &[u8], src: &mut Source, ctx: &Ctx) -> Vec<u8> {
 /// A well-formed encoding of a random proof: a stream and phases opened from random trees, some leaves sharing
 /// leading zeros, some queries repeated.
 fn synthetic(src: &mut Source) -> Vec<u8> {
-    let stream: Vec<F192> = (0..src.below(20)).map(|_| src.f192()).collect();
+    let stream: Vec<F128> = (0..src.below(20)).map(|_| src.f128()).collect();
     let phases = (0..src.range(0, 3))
         .map(|_| {
             let height = src.range(0, 6);

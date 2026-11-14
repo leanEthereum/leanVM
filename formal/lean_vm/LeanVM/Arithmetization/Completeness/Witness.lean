@@ -50,9 +50,9 @@ open Air.Flat (Component EnsembleWitness)
 
 /-! ## The image a `"mem"` table names -/
 
-/-- The `"mem"` table of an image: its words, one row of three limbs each. -/
-def imageRows {κ : ℕ} (img : MemoryImage κ) : Array (Vector K 3) :=
-  Array.ofFn fun i : Fin (2 ^ κ) ↦ #v[(img i).limb 0, (img i).limb 1, (img i).limb 2]
+/-- The `"mem"` table of an image: its words, one row of two limbs each. -/
+def imageRows {κ : ℕ} (img : MemoryImage κ) : Array (Vector K 2) :=
+  Array.ofFn fun i : Fin (2 ^ κ) ↦ #v[(img i).limb 0, (img i).limb 1]
 
 section Image
 
@@ -74,7 +74,7 @@ theorem wellShaped_of_memRows (h : memRows data = imageRows img) (hκ : κ ≤ m
 makes both the elaborator and the kernel unroll it. -/
 theorem memRows_row_of (h : memRows data = imageRows img) (k : ℕ) (hk : k < 2 ^ κ) :
     (memRows data)[k]? =
-      some #v[(img ⟨k, hk⟩).limb 0, (img ⟨k, hk⟩).limb 1, (img ⟨k, hk⟩).limb 2] := by
+      some #v[(img ⟨k, hk⟩).limb 0, (img ⟨k, hk⟩).limb 1] := by
   rw [h, imageRows, Array.getElem?_ofFn, dite_eq_left hk]
 
 /-- Every word such data names is the image's. -/
@@ -85,7 +85,7 @@ theorem imageOf_apply_of_memRows (h : memRows data = imageRows img) (hκ : κ �
   have hk' : k < 2 ^ κ := by rw [imageOf_fst_of_memRows h hκ] at hk; exact hk
   conv_rhs => rw [← ofLimbs_limb (img ⟨k, hk'⟩)]
   refine imageOf_apply (wellShaped_of_memRows h hκ) ⟨k, hk⟩
-    (v := #v[(img ⟨k, hk'⟩).limb 0, (img ⟨k, hk'⟩).limb 1, (img ⟨k, hk'⟩).limb 2]) ?_
+    (v := #v[(img ⟨k, hk'⟩).limb 0, (img ⟨k, hk'⟩).limb 1]) ?_
   rw [Array.getElem_eq_iff]
   exact memRows_row_of h k hk'
 
@@ -376,10 +376,10 @@ theorem skelWitness_memBlockRows (prog : LeanIsaProgram) (input : PublicInput) {
     memBlockRows (skelWitness prog input img S hκ hrows) = memBlockRaw img (skelMemFin img S) :=
   skelWitness_tableAt_table prog input img S hκ hrows 6
 
-/-- A memory row's first three cells are its limbs. -/
-theorem rowPrefix_three_rawRow {prog : LeanIsaProgram} {κ : ℕ}
+/-- A memory row's first two cells are its limbs. -/
+theorem rowPrefix_two_rawRow {prog : LeanIsaProgram} {κ : ℕ}
     (w : EnsembleWitness (leanIsaEnsemble prog κ)) (r : MemRow K) :
-    Air.Flat.rowPrefix 3 (rawRow r) = r.m :=
+    Air.Flat.rowPrefix 2 (rawRow r) = r.m :=
   (memRowAt_m w (rawRow r)).symm.trans (congrArg MemRow.m (memRowAt_toElements w r))
 
 /-- **The `"mem"` table of the witness's data is the image**: Clean derives it from the memory
@@ -392,7 +392,7 @@ theorem memRows_skelWitness (prog : LeanIsaProgram) (input : PublicInput) {κ : 
     List.toArray_ofFn]
   congr 1
   funext i
-  exact rowPrefix_three_rawRow (skelWitness prog input img S hκ hrows) _
+  exact rowPrefix_two_rawRow (skelWitness prog input img S hκ hrows) _
 
 /-- **The image the witness names is `img`.** -/
 theorem imageOf_skelWitness (prog : LeanIsaProgram) (input : PublicInput) {κ : ℕ}

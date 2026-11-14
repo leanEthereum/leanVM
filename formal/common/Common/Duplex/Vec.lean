@@ -197,21 +197,21 @@ variable {St W Cp : Type} [DecidableEq St] [DecidableEq Cp] [SampleableType St]
   [SampleableType W] [Fintype St] [Fintype W]
   {D : DuplexSpec Msg Dg St Root Z W Cp n}
 
-theorem noCoins_chainP (k : ℕ) (y : St) :
-    NoCoins (hs := hfSpec Msg Dg St) (chainP (Msg := Msg) (Dg := Dg) D k y) := by
-  induction k generalizing y with
-  | zero => trivial
-  | succ k ih =>
-    unfold chainP
-    exact (noCoins_hq_bind (hs := hfSpec Msg Dg St) (.inr (D.next y)) _).mpr fun y' ↦
-      noCoins_bind (ih y') fun _ ↦ trivial
+theorem noCoins_branchesP (y₀ : St) (js : List (Fin n)) :
+    NoCoins (hs := hfSpec Msg Dg St) (branchesP (Msg := Msg) (Dg := Dg) D y₀ js) := by
+  induction js with
+  | nil => trivial
+  | cons j js ih =>
+    unfold branchesP
+    exact (noCoins_hq_bind (hs := hfSpec Msg Dg St) (.inr (D.next j y₀)) _).mpr fun _ ↦
+      noCoins_bind ih fun _ ↦ trivial
 
 /-- **The challenges flip no coins.** -/
 theorem noCoins_chalP (r : Root) : NoCoins (hs := hfSpec Msg Dg St) (chalP D r) := by
   unfold chalP
   exact (noCoins_hq_bind (hs := hfSpec Msg Dg St) (.inl D.label) _).mpr fun iv ↦
-    (noCoins_hq_bind (hs := hfSpec Msg Dg St) (.inr (D.first r iv)) _).mpr fun (y₁ : St) ↦
-      noCoins_bind (noCoins_chainP (n - 1) y₁) fun _ ↦ trivial
+    (noCoins_hq_bind (hs := hfSpec Msg Dg St) (.inr (D.first r iv)) _).mpr fun (y₀ : St) ↦
+      noCoins_bind (noCoins_branchesP y₀ (branchIdx n)) fun _ ↦ trivial
 
 /-- Queries of the challenges `G`, one each. -/
 def gCalls : (unifSpec + GSpec Msg Dg Root Z n).Domain → ℕ

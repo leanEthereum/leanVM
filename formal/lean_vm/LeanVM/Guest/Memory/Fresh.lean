@@ -1,9 +1,10 @@
 /-
   LeanVM.Guest.Memory.Fresh
 
-  The temporaries of a function, the two words a range check reads into its frame: fresh when
-  no other part of the body names them; then a path does not depend on them, and each lies on at
-  most one range check of a path. A kernel-friendly check of freshness.
+  The temporaries of a function, the two words a range check reads into its frame and the word
+  a touch (`assert_gpow`) reads: fresh when no other part of the body names them; then a path does
+  not depend on them, and each lies on at most one atom of a path. A kernel-friendly check of
+  freshness.
 -/
 
 module
@@ -13,14 +14,16 @@ public import LeanVM.Guest.Memory.Eval
 /-!
 # Range-check temporaries
 
-`rangeCheck x y t1 t2 k` reads the words at `x` and at `y` into the cells of `t1`, `t2`, which
-nothing else uses: the guest's compiler gives each a cell of its own. Their values are whatever
+`rangeCheck x y t1 t2 k` reads the words at `x` and at `y` into the cells of `t1`, `t2`, and
+`touch t p` the word at `p` into the cell of `t`, which nothing else uses: the guest's compiler
+gives each a cell of its own. Their values are whatever
 the final memory holds at `x` and `y`, which is the only place a frame's values feed back into
 its own memory without the program's control, so the honest memory chooses them last
 (`Memory/Retemp.lean`).
 
-`atomUses`, `Stmt.usesList`: every value a block names, the temporaries of its range checks
-apart; `Stmt.tmpsList`: those temporaries. A function is `Fn.Fresh` when its temporaries are
+`atomUses`, `Stmt.usesList`: every value a block names, the temporaries of its range checks and
+touches apart; `Stmt.tmpsList`: those temporaries. A function is `Fn.Fresh` when its temporaries
+are
 distinct and appear nowhere else, nor among its parameters; `Fn.freshB` decides it with bit masks
 of the values' indices, so that the kernel checks the guest in time linear in its size
 (`fn_fresh_of_freshB`).
@@ -70,10 +73,12 @@ def atomUses : Atom → List V
   | .keccak ins outs _ _ => ins ++ outs
   | .frameAddr p run => p :: run
   | .hint h => hintUses h
+  | .touch _ p => [p]
 
-/-- A range check's temporaries. -/
+/-- A range check's temporaries, and a touch's cell. -/
 def atomTmps : Atom → List V
   | .rangeCheck _ _ t1 t2 _ => [t1, t2]
+  | .touch t _ => [t]
   | _ => []
 
 mutual
@@ -218,19 +223,6 @@ theorem RangeFresh.append {ss ss' : List Stmt} {ts ts' all : List ℕ} (h : Rang
   intro t ht
   rw [usesList_append, idxMask_append, Nat.testBit_or, h1 t ht, h2 t ht]
   rfl
-
-/-- The ranges from `a` and from `a + n` make the range from `a`. -/
-theorem rangeFresh_drop {l : List Stmt} {a n : ℕ} {ts ts' all : List ℕ}
-    (h : RangeFresh ((l.drop a).take n) ts all) (h' : RangeFresh (l.drop (a + n)) ts' all) :
-    RangeFresh (l.drop a) (ts ++ ts') all := by
-  have := h.append h'
-  rwa [← List.drop_drop, List.take_append_drop] at this
-
-theorem rangeFresh_end {l : List Stmt} {a : ℕ} (ha : l.length ≤ a) (all : List ℕ) :
-    RangeFresh (l.drop a) [] all := by
-  rw [List.drop_eq_nil_of_le ha]
-  refine ⟨rfl, ?_⟩
-  simp [Stmt.usesList, idxMask]
 
 /-- **A body certified by ranges is fresh**: its temporaries are `all`, distinct, and no
 parameter. -/

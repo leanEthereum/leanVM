@@ -52,8 +52,8 @@ example {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ :
   honestProofOf_isSome hv hbudget hρ H F fuel hpow
 
 example (prog : LeanIsaProgram) (s : Sizes) : (LeanVM.Protocol.LeanIsa.blocks prog s).total =
-    4 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (s.τ 5 + 6) + 15 * 2 ^ s.τ 0 + 15 * 2 ^ s.τ 1 +
-      8 * 2 ^ s.τ 2 + 15 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 28 * 2 ^ s.τ 5 :=
+    3 * 2 ^ s.logMem + 2 ^ prog.logSize + 2 ^ (s.τ 5 + 6) + 13 * 2 ^ s.τ 0 + 13 * 2 ^ s.τ 1 +
+      7 * 2 ^ s.τ 2 + 14 * 2 ^ s.τ 3 + 14 * 2 ^ s.τ 4 + 28 * 2 ^ s.τ 5 :=
   blocks_total_eq prog s
 
 /--
@@ -111,7 +111,7 @@ theorem committedSize_le {prog : LeanIsaProgram} {t : Execution prog} {rf : Regi
 instructions. -/
 theorem committedSize_le_of_caps {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hsteps : t.stepCount ≤ 2 ^ 19) (hmem : t.logMemorySize ≤ 23)
-    (hcode : prog.logSize ≤ 23) : t.committedSize ≤ 2 ^ 28 := by
+    (hcode : prog.logSize ≤ 23) : t.committedSize ≤ 2 ^ 30 := by
   have := committedSize_le hv.2 hsteps
   have hm : 2 ^ t.logMemorySize ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hmem
   have hc : 2 ^ prog.logSize ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hcode
@@ -251,7 +251,7 @@ theorem committedSize_le_of_jumps {prog : LeanIsaProgram} (t : Execution prog)
   omega
 
 /-- **The long run is within the budget**, -/
-theorem longTrace_budget : longTrace.committedSize ≤ 2 ^ 28 := by
+theorem longTrace_budget : longTrace.committedSize ≤ 2 ^ 30 := by
   refine (committedSize_le_of_jumps longTrace (fun _ ↦ count_eq_zero)
     (height_le longTrace_valid.2 (le_rfl : longTrace.stepCount ≤ 2 ^ 20) .jump)).trans ?_
   rw [show longTrace.logMemorySize = 22 from rfl, show loopProg.logSize = 1 from rfl]
@@ -268,9 +268,9 @@ theorem longTrace_complete {ρ fuel : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (hfuel 
 
 /-! ## The negative case -/
 
-/-- **A `KECCAK` table of more than `2^21` rows is inadmissible**, for every program and every
-other size: its height is `2^22`, and `q_keccak` alone has `2^28` cells. -/
-theorem not_admissible_of_keccak (prog : LeanIsaProgram) (s : Sizes) (h : s.τ 5 = 22) :
+/-- **A `KECCAK` table of more than `2^25` rows is inadmissible**, for every program and every
+other size: its height is `2^26`, and `q_keccak` alone has `2^32` cells. -/
+theorem not_admissible_of_keccak (prog : LeanIsaProgram) (s : Sizes) (h : s.τ 5 = 26) :
     ¬ s.Admissible prog := by
   intro hs
   have hμ := (blocks_fits prog s).trans (Nat.pow_le_pow_right (by norm_num) hs.2.2.2)

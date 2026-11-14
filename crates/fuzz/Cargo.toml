@@ -31,7 +31,7 @@ keccak_gkr.workspace = true
 leanvm_core = { workspace = true, features = ["fuzzing"] }
 lean_compiler.workspace = true
 lean_da.workspace = true
-signatures = { workspace = true, features = ["mock"] }
+signatures.workspace = true
 parallel.workspace = true
 verifier.workspace = true
 rec_aggregation = { workspace = true, features = ["fuzzing", "signers-cache"], optional = true }

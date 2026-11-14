@@ -4,7 +4,7 @@ use super::program::{Builder, Exit, garbage};
 use super::random::public_input;
 use crate::{Ctx, Finding, Outcome, Source, catch};
 use leanvm_core::cpu::{DerefMode, Op, OutCells, Program};
-use primitives::field::{F192, g_pow};
+use primitives::field::{F128, g_pow};
 use std::collections::HashMap;
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
@@ -52,7 +52,7 @@ fn table_rows(src: &mut Source, ctx: &Ctx) -> Outcome {
     let table = src.below(6);
     ctx.note(format!("rows table {table} 2^{}", k.min(10)));
     let pi = public_input(src);
-    let w = |x: u64| F192::new(x, 0, 0);
+    let w = |x: u64| F128::new(x, 0);
     let mut prog = vec![Op::Set { o: 2, k: w(3) }, Op::Set { o: 3, k: w(5) }];
     let mut next = 4u32;
     let mut fresh = |n: u32| {
@@ -76,7 +76,7 @@ fn table_rows(src: &mut Source, ctx: &Ctx) -> Outcome {
             for _ in 0..n {
                 prog.push(Op::Set {
                     o: fresh(1),
-                    k: src.f192(),
+                    k: src.f128(),
                 });
             }
         }
@@ -84,7 +84,7 @@ fn table_rows(src: &mut Source, ctx: &Ctx) -> Outcome {
             // DEREF copies through one pointer to cell 0: a2 = 2 + j reads cells 2 and 3, a3 fresh.
             prog.push(Op::Set {
                 o: 1000,
-                k: F192::from(g_pow(0)),
+                k: F128::from(g_pow(0)),
             });
             for _ in 0..n {
                 let mode = *src.pick(&[DerefMode::Cell, DerefMode::Cell, DerefMode::Fp]);
@@ -97,13 +97,13 @@ fn table_rows(src: &mut Source, ctx: &Ctx) -> Outcome {
                 prog.push(Op::Deref { o1: 1000, o2, o3, mode });
                 if mode == DerefMode::Fp {
                     // `o3` is only counted, never written: give it a value so nothing reads it unwritten later.
-                    prog.push(Op::Set { o: o3, k: F192::ZERO });
+                    prog.push(Op::Set { o: o3, k: F128::ZERO });
                 }
             }
         }
         4 => {
             // Untaken jumps over the same three cells.
-            prog.push(Op::Set { o: 1000, k: F192::ZERO });
+            prog.push(Op::Set { o: 1000, k: F128::ZERO });
             for _ in 0..n {
                 prog.push(Op::Jump { oc: 1000, od: 2, of: 3 });
             }
@@ -115,7 +115,7 @@ fn table_rows(src: &mut Source, ctx: &Ctx) -> Outcome {
             for c in 0..13 {
                 prog.push(Op::Set {
                     o: block + c,
-                    k: F192::new(src.u64(), src.u64(), 0),
+                    k: F128::new(src.u64(), src.u64()),
                 });
             }
             for _ in 0..n {
@@ -137,7 +137,7 @@ fn table_rows(src: &mut Source, ctx: &Ctx) -> Outcome {
     while prog.len() < len - 1 {
         prog.push(Op::Set {
             o: fresh(1),
-            k: F192::ONE,
+            k: F128::ONE,
         });
     }
     prog.push(Op::Xor { a: 0, b: 0, c: 0 });
@@ -169,12 +169,12 @@ fn halt_elsewhere(src: &mut Source, ctx: &Ctx) -> Outcome {
 /// A jump to itself: the run stops at the step limit with an error, after a bounded time.
 fn self_loop(src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note("self loop");
-    let w = |x: u64| F192::new(x, 0, 0);
+    let w = |x: u64| F128::new(x, 0);
     let prog = vec![
         Op::Set { o: 2, k: w(1) },
         Op::Set {
             o: 3,
-            k: F192::from(g_pow(3)),
+            k: F128::from(g_pow(3)),
         },
         Op::Set { o: 4, k: w(1) },
         Op::Jump { oc: 2, od: 3, of: 4 },
@@ -185,7 +185,7 @@ fn self_loop(src: &mut Source, ctx: &Ctx) -> Outcome {
         prog.insert(prog.len() - 1, garbage(src));
     }
     let program = Program::assemble(prog, HashMap::new(), 8);
-    let run = catch(|| program.execute([F192::ZERO; 2]))
+    let run = catch(|| program.execute([F128::ZERO; 2]))
         .map_err(|(m, l)| Finding::panic(&m, &l).in_context("isa-edge loop"))?;
     match run {
         Err(e) if matches!(e.fault, leanvm_core::cpu::Fault::StepLimit) => Ok(()),
@@ -203,7 +203,7 @@ fn big_operands(src: &mut Source, ctx: &Ctx) -> Outcome {
     let pi = public_input(src);
     let mut b = Builder::new(pi);
     b.main.step(src);
-    let w = |x: u64| F192::new(x, 0, 0);
+    let w = |x: u64| F128::new(x, 0);
     let what = src.below(5);
     let op = match what {
         // A KECCAK whose consecutive input cells run past u32::MAX, in main's frame.
@@ -223,7 +223,7 @@ fn big_operands(src: &mut Source, ctx: &Ctx) -> Outcome {
             // A base of at least 20, so base + offset always passes u32::MAX.
             b.main.code.push(Op::Set {
                 o: p,
-                k: F192::from(g_pow(src.range(20, 100))),
+                k: F128::from(g_pow(src.range(20, 100))),
             });
             Op::Deref {
                 o1: p,
@@ -240,11 +240,11 @@ fn big_operands(src: &mut Source, ctx: &Ctx) -> Outcome {
             b.main.code.push(Op::Set { o: cond, k: w(1) });
             b.main.code.push(Op::Set {
                 o: target,
-                k: F192::from(g_pow(at)),
+                k: F128::from(g_pow(at)),
             });
             b.main.code.push(Op::Set {
                 o: ptr,
-                k: F192::from(g_pow(base)),
+                k: F128::from(g_pow(base)),
             });
             b.main.code.push(Op::Jump {
                 oc: cond,
@@ -307,7 +307,7 @@ fn odd_lengths(src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut prog: Vec<Op> = (1..len)
         .map(|i| Op::Set {
             o: 2 + i as u32,
-            k: F192::ONE,
+            k: F128::ONE,
         })
         .collect();
     if len > 0 {

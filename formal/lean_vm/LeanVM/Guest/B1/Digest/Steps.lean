@@ -27,6 +27,8 @@ namespace LeanVM.Guest.B1.Digest
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
+open scoped VDec
+
 @[expose] public section
 
 /-! ## Memory runs -/
@@ -384,11 +386,11 @@ theorem chain_whole_mem {rd : Reader} {σ : Val} {atoms : List Atom} {s : ChainS
     (hout : stLoadsOk atoms op ((List.range 13).map (s.outV (s.nb - 1))) oo = true)
     (hat : ∀ a ∈ atoms, a.Holds rd σ) {n : ℕ} {pre : List UInt8} (hpre : pre.length = rate * n)
     (hS : StateAt rd (σ sp) 0 (absorbChunks n zeroState pre)) :
-    ReadsAt rd (σ mp) (s.vals σ) ∧ AllCanonical (s.vals σ) ∧
+    ReadsAt rd (σ mp) (s.vals σ) ∧
       StateAt rd (σ op) oo (absorbChunks (n + s.nb) zeroState (pre ++ cellsBytes (s.vals σ))) ∧
       (pre ++ cellsBytes (s.vals σ)).length = rate * (n + s.nb) := by
-  obtain ⟨hw, hl, hcan⟩ := chain_whole hc hfin hat hpre (initCell_of_loads hinit hst hat hS)
-  refine ⟨loads_sound hmsg hat, hcan, fun c => ?_, hl⟩
+  obtain ⟨hw, hl⟩ := chain_whole hc hfin hat hpre (initCell_of_loads hinit hst hat hS)
+  refine ⟨loads_sound hmsg hat, fun c => ?_, hl⟩
   have := stLoads_sound hout hat c
   rw [← hw c]
   simpa [List.getD_eq_getElem?_getD, c.isLt] using this
@@ -400,11 +402,11 @@ theorem chain_final_mem {rd : Reader} {σ : Val} {atoms : List Atom} {s : ChainS
     (hmsg : loadsOk atoms mp s.msg = true) (hr : retOk atoms s r0 r1 = true)
     (hat : ∀ a ∈ atoms, a.Holds rd σ) {n : ℕ} {pre : List UInt8} (hpre : pre.length = rate * n)
     (hS : StateAt rd (σ sp) 0 (absorbChunks n zeroState pre)) :
-    ReadsAt rd (σ mp) (s.vals σ) ∧ AllCanonical ((s.vals σ).take (s.len / 16)) ∧
+    ReadsAt rd (σ mp) (s.vals σ) ∧
       [σ r0, σ r1] = digestCells (keccak256 (pre ++ cellsBytes ((s.vals σ).take (s.len / 16)))) := by
-  obtain ⟨hd, hcan⟩ := chain_final hc hfin hat hpre (initCell_of_loads hinit hst hat hS)
+  have hd := chain_final hc hfin hat hpre (initCell_of_loads hinit hst hat hS)
   simp only [retOk, Bool.and_eq_true] at hr
-  refine ⟨loads_sound hmsg hat, hcan, ?_⟩
+  refine ⟨loads_sound hmsg hat, ?_⟩
   rw [copy_sound hr.1 hat, copy_sound hr.2 hat, digestCells, ← hd]
 
 end

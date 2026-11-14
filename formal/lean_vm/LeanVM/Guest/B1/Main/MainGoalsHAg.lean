@@ -24,7 +24,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (DeployedLimits)
+open LeanVM.Guest (GuestLimits)
 open LeanVM.Guest.B1 (CompleteAtD Returns bufL)
 
 @[expose] public section
@@ -62,3 +62,18 @@ theorem hkids_words {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVar
     rwa [loadHolds_mul_gen_pow, Nat.add_zero] at this
   · have := p6 1 (by simp [B1.Digest.digestCells])
     rwa [loadHolds_mul_gen_pow] at this
+
+set_option maxRecDepth 100000 in
+/-- `tabs = g_squares · g^236`'s word. -/
+theorem word_winTab : word 133823759239872512 0 = gen ^ winTabAt := by
+  show _ = gen ^ 236
+  rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
+  congr 1
+
+/-- **`main`'s words hold the bit windows at `tabs`**, the exponent table's window section. -/
+theorem hLmain_winTabs {rd : Reader} (hM : B1.Main.MemL rd (hLmain fs fp seed s w)) :
+    WinTabs rd ((hm fs fp seed s w).et * word 133823759239872512 0) := by
+  have hq : (etB fs (mK0 (hData seed s w) fs fp), expTabAllWords) ∈ hLmain fs fp seed s w :=
+    List.mem_append_right _ (by simp [etL])
+  rw [word_winTab]
+  exact winTabs_of_expWinTab (expTables_of_reads (Da.reads_of_memL hM hq)).2

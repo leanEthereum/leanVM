@@ -1,21 +1,27 @@
 /-
   LeanVM.Guest.B1.Whir.LevelB
 
-  A level after its proof of work runs the Spec's `levelRest`.
+  A level's high part, queries and glue (`osHsMid`, `osHsFinal`, `osQueries`, `osGlue`), soundly,
+  block by block.
 -/
 
 module
 
-public import LeanVM.Protocol.Verifier.WhirTarget
-public import LeanVM.Guest.B1.Whir.LevelRest
-public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.B1.Whir.Lam
+public import LeanVM.Guest.B1.Whir.QOpen
+public import LeanVM.Guest.B1.Whir.RateCfg
 
 /-!
-# A level's queries and glue, soundly (G:1554-1646)
+# A level's high part, queries and glue
 
-`osLevelB_sound`: `osLevelB`'s atoms and calls (the squeezes, the weights, the queries, the glue)
-run `levelRest` from the sponge with nothing waiting after the proof of work, and leave the
-level's record (`LvRec`) for the terminal's weights.
+* `osHsCoefs_val`: each coefficient read from `src` and stored at `dst` times its normalizer
+  `word (sc c) 0`; `osHsMid_sound`, `osHsFinal_sound`: a non-final level's high part (from `sent`
+  into `level_hs`) and the final lane (from `final_msg` into a fresh `hs`).
+* `osQueries_sound`: the dispatch on the rate into `level_queries` on `λ`, `1/λ` (both `0` at the
+  final level), the round coefficients, the high part, the positions and windows; its returned
+  root's cells those in `level_roots`.
+* `osGlue_sound`: the claim plus `λ·y0 + λ²·λ^n·batched`, `λ` into `ood_scalars`, `λ²·λ^n`
+  into `level_scales`, `1/λ` into `level_lam_invs`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -26,363 +32,132 @@ open LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-! ## The state a level leaves -/
+/-! ## The high part -/
 
-section
-variable (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt)
+/-- **The scaled coefficients** (`osHsCoefs`): coefficient `c` read from `src·g^(si + c)` and
+stored at `dst·g^(di + c)` times its normalizer `word (sc c) 0`. -/
+theorem osHsCoefs_val (src dst : ℕ) (sc : ℕ → ℕ) (si di : ℕ) :
+    ∀ (n i k : ℕ), AllOk C rd σ (osHsCoefs src dst sc si di n i k).1 →
+      ∀ c, i ≤ c → c < i + n → ∃ v, LoadHolds rd (σ (.n src)) (si + c) v ∧
+        LoadHolds rd (σ (.n dst)) (di + c) (v * word (sc c) 0)
+  | 0, _, _, _, c, h1, h2 => absurd h2 (by omega)
+  | n + 1, i, k, hok, c, h1, h2 => by
+    simp only [osHsCoefs, allOk_append] at hok
+    rcases Nat.eq_or_lt_of_le h1 with e | hlt
+    · subst e
+      have h0 := hok.1
+      unfold osHsCoef at h0
+      by_cases h : sc i = 1
+      · simp only [h, ↓reduceIte, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load,
+          osLd] at h0
+        exact ⟨_, h0.1, by rw [h, word_one, mul_one]; exact h0.2⟩
+      · simp only [h, ↓reduceIte, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load,
+          holds_const, holds_mul, osLd, osCst, osMul] at h0
+        obtain ⟨l, cs, m, st⟩ := h0
+        exact ⟨_, l, by rw [m, cs] at st; exact st⟩
+    · exact osHsCoefs_val src dst sc si di n (i + 1) _ hok.2 c (by omega) (by omega)
 
-/-- The squeezes' state. -/
-abbrev bSq : OsSt := (osSqueezes c lvl lv st).2
-/-- The batching challenge's value. -/
-abbrev bLam : ℕ := (bSq c lvl lv st).k - 1
-/-- `lam^q` and `μ`'s block. -/
-abbrev bLp : List Stmt × ℕ × ℕ := osLamPow lvl (bLam c lvl lv st) lv.queries (bSq c lvl lv st).k
-/-- `lam^q`'s value. -/
-abbrev bLamN : ℕ := (bLp c lvl lv st).2.1
-/-- The queries block. -/
-abbrev bQ : List Stmt × ℕ × ℕ × ℕ × ℕ × ℕ :=
-  osQueries c lvl lv (bLam c lvl lv st) (bLamN c lvl lv st)
-    { bSq c lvl lv st with k := (bLp c lvl lv st).2.2 }
-/-- The state after the intro. -/
-abbrev bS1 : OsSt :=
-  { bSq c lvl lv st with
-    k := (bQ c lvl lv st).2.1
-    w0 := (bQ c lvl lv st).2.2.2.1
-    w1 := (bQ c lvl lv st).2.2.2.2.2
-    co := (bSq c lvl lv st).co + 2
-    mats := osQueriesMats c lv { bSq c lvl lv st with k := (bLp c lvl lv st).2.2 } }
+/-- **A non-final level's high part, normalized** (G:1659-1666): coefficient `c` of the high part
+read from `sent` past the root, stored in `level_hs` times its normalizer. -/
+theorem osHsMid_sound {lvl : ℕ} {lv : OsLv} {st : OsSt} (hok : AllOk C rd σ (osHsMid lvl lv st).1) :
+    (∀ c < lv.folds, ∃ v, LoadHolds rd (σ (.n st.sent)) (2 + c) v ∧
+      LoadHolds rd (σ (.n osHs)) (lvl * hsStride + c)
+        (v * word (hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 0)) ∧
+      (osHsMid lvl lv st).2 = { st with k := (osHsMid lvl lv st).2.k } :=
+  ⟨fun c hc ↦ osHsCoefs_val _ _ _ _ _ _ _ _ hok c (Nat.zero_le _) (by omega), rfl⟩
 
-/-- The level's openings, named by the queries' witness `W`. -/
-abbrev bOs (rd : Reader) (σ : Val) (W : List E → List E → List QW) : List Opening :=
-  lvOpenings rd σ lv W (osQueriesCall c lvl lv (bLam c lvl lv st) (bLamN c lvl lv st)
-    { bSq c lvl lv st with k := (bLp c lvl lv st).2.2 })
+/-- **The final lane, normalized** (G:1648-1658): coefficient `c` read from `final_msg`, stored in
+a fresh `hs` times its normalizer. -/
+theorem osHsFinal_sound {c : OsCfg} {lv : OsLv} {st : OsSt}
+    (hok : AllOk C rd σ (osHsFinal c lv st).1) :
+    (∀ i < c.yrLen + lv.folds, ∃ v, LoadHolds rd (σ (.n osFmsg)) i v ∧
+      LoadHolds rd (σ (.n (osHsFinal c lv st).2.hs)) i
+        (v * word (hsScale lv.vanish (c.yrLog + 1) i 1) 0)) ∧
+      (osHsFinal c lv st).2 = { st with
+        k := (osHsFinal c lv st).2.k
+        hs := (osHsFinal c lv st).2.hs } := by
+  unfold osHsFinal at hok ⊢
+  simp only [allOk_append] at hok
+  refine ⟨fun i hi ↦ ?_, rfl⟩
+  have := osHsCoefs_val _ _ _ _ _ _ _ _ hok.2 i (Nat.zero_le _) (by omega)
+  simpa using this
 
-theorem osLevelB_eq : osLevelB c lvl lv st =
-    if lvl = c.yrLevel then
-      ((osSqueezes c lvl lv st).1 ++ (bLp c lvl lv st).1 ++
-        (bQ c lvl lv st).1 ++ [] ++
-        [.atom (.mul (.n (bS1 c lvl lv st).k) (.n (bLam c lvl lv st)) (.n (bLamN c lvl lv st))),
-          .atom (.load (.n (bS1 c lvl lv st).k) (.n osBetas) lvl)] ++
-        (osGlue (bLam c lvl lv st) (bQ c lvl lv st).2.2.1 (bQ c lvl lv st).2.2.2.1
-          (bQ c lvl lv st).2.2.2.2.1 (bQ c lvl lv st).2.2.2.2.2
-          { bS1 c lvl lv st with k := (bS1 c lvl lv st).k + 1 }).1,
-       (osGlue (bLam c lvl lv st) (bQ c lvl lv st).2.2.1 (bQ c lvl lv st).2.2.2.1
-          (bQ c lvl lv st).2.2.2.2.1 (bQ c lvl lv st).2.2.2.2.2
-          { bS1 c lvl lv st with k := (bS1 c lvl lv st).k + 1 }).2)
-    else
-      ((osSqueezes c lvl lv st).1 ++ (bLp c lvl lv st).1 ++
-        (bQ c lvl lv st).1 ++ (osOodGlue lvl (bLam c lvl lv st) (bS1 c lvl lv st)).1 ++
-        [.atom (.mul (.n ((bS1 c lvl lv st).k + 13)) (.n ((bS1 c lvl lv st).k + 12))
-            (.n (bLamN c lvl lv st))),
-          .atom (.load (.n ((bS1 c lvl lv st).k + 13)) (.n osBetas) lvl)] ++
-        (osGlue ((bS1 c lvl lv st).k + 12) (bQ c lvl lv st).2.2.1 (bQ c lvl lv st).2.2.2.1
-          (bQ c lvl lv st).2.2.2.2.1 (bQ c lvl lv st).2.2.2.2.2
-          { (osOodGlue lvl (bLam c lvl lv st) (bS1 c lvl lv st)).2 with
-            k := (bS1 c lvl lv st).k + 13 + 1 }).1,
-       (osGlue ((bS1 c lvl lv st).k + 12) (bQ c lvl lv st).2.2.1 (bQ c lvl lv st).2.2.2.1
-          (bQ c lvl lv st).2.2.2.2.1 (bQ c lvl lv st).2.2.2.2.2
-          { (osOodGlue lvl (bLam c lvl lv st) (bS1 c lvl lv st)).2 with
-            k := (bS1 c lvl lv st).k + 13 + 1 }).2) := by
-  unfold osLevelB
-  by_cases h : lvl = c.yrLevel
-  · simp only [h, ↓reduceIte]
-  · simp only [h, ↓reduceIte]
-    rfl
+/-! ## The glue -/
 
-end
+/-- **A non-final level's claims glued.** -/
+theorem osGlue_sound {lvl : ℕ} {st : OsSt} (hok : AllOk C rd σ (osGlue lvl st).1) :
+    σ (.n (osGlue lvl st).2.claim) = σ (.n st.claim) + σ (.n st.lam) * σ (.n (st.ys.getD 0 0)) +
+        σ (.n st.lam) ^ 2 * σ (.n st.lamPow) * σ (.n st.batched) ∧
+      LoadHolds rd (σ (.n osOodSc)) (lvl + 1) (σ (.n st.lam)) ∧
+      LoadHolds rd (σ (.n osBetas)) lvl (σ (.n st.lam) ^ 2 * σ (.n st.lamPow)) ∧
+      LoadHolds rd (σ (.n osMus)) lvl (σ (.n st.lamInv)) ∧
+      (osGlue lvl st).2 = { st with
+        k := (osGlue lvl st).2.k
+        claim := (osGlue lvl st).2.claim } := by
+  unfold osGlue at hok ⊢
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, holds_mul, holds_add, osLd,
+    osMul, osAdd] at hok
+  obtain ⟨l0, m0, a1, m2, m3, m4, a5, l6, l7⟩ := hok
+  refine ⟨?_, l0, ?_, l7, rfl⟩
+  · rw [a5, a1, m0, m4, m3, m2]; ring
+  · rw [m3, m2, ← sq] at l6; exact l6
 
-theorem ceilDiv_le {a b : ℕ} (hb : 1 ≤ b) : ceilDiv a b ≤ a := by
-  unfold ceilDiv
-  rcases Nat.eq_zero_or_pos a with rfl | ha
-  · simp only [Nat.zero_add]; exact (Nat.div_eq_of_lt (by omega)).le
-  · obtain ⟨a', rfl⟩ : ∃ a', a = a' + 1 := ⟨a - 1, by omega⟩
-    obtain ⟨b', rfl⟩ : ∃ b', b = b' + 1 := ⟨b - 1, by omega⟩
-    apply Nat.div_le_of_le_mul
-    have e : a' + 1 + (b' + 1) - 1 = a' + b' + 1 := by omega
-    rw [e]
-    nlinarith [Nat.zero_le (a' * b')]
+/-! ## The queries -/
 
-theorem le_ceilDiv_mul {a b : ℕ} (hb : 1 ≤ b) : a ≤ ceilDiv a b * b := by
-  unfold ceilDiv
-  have h1 := Nat.div_add_mod (a + b - 1) b
-  have h2 := Nat.mod_lt (a + b - 1) (show 0 < b by omega)
-  rw [Nat.mul_comm]
-  generalize (a + b - 1) / b = q at h1 ⊢
-  generalize (a + b - 1) % b = r at h1 h2
-  omega
+/-- The `level_queries` call's arguments. -/
+def osQArgs (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List E :=
+  [if lvl = c.yrLevel then 0 else σ (.n st.lam), if lvl = c.yrLevel then 0 else σ (.n st.lamInv),
+    σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
+    if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ (lvl * hsStride),
+    σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff]
 
-/-- The squeezes, the weights and the queries of a level. -/
-theorem osLevelB_common {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg}
-    {lvl : ℕ} {lv : OsLv} {st : OsSt} {level : Whir.Level}
-    {ml : ℕ} (hcfg : LvB c lvl lv level ml)
-    (hsq : AllOk (coreProgram.Rel rd) rd σ (osSqueezes c lvl lv st).1)
-    (hlp : AllOk (coreProgram.Rel rd) rd σ (bLp c lvl lv st).1)
-    (hq : AllOk C rd σ (bQ c lvl lv st).1)
-    (hloop : FnIs (c.sqLoop lvl) (osParams 6) (sqLoopBody lv (c.sqLoop lvl)))
-    (hdec : ∀ args rets, WinTabs rd (args.getD 3 0) →
-      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-        args rets → MeaningDecodeQueryWindows lv.depth lv.capDepth rd args rets)
-    (hwt : WinTabs rd (σ (.n osWin)))
-    (hRW : ∀ args rets, coreProgram.Rel rd ("opening_row_weights__L" ++ natStr lv.folds ++ "_L" ++
-      natStr (if lvl = 0 then 1 else 0)) args rets →
-        MeaningOpeningRowWeights lv.folds (if lvl = 0 then 1 else 0) rd args rets)
-    (hCap : ∀ args rets, coreProgram.Rel rd ("verify_merkle_cap__L" ++ natStr lv.capDepth) args rets →
-      MeaningVerifyMerkleCap lv.capDepth rd args rets)
-    (W : List E → List E → List QW)
-    (hQW : ∀ args rets, C (osQueriesName lvl lv) args rets →
-      args.getD 6 0 = gen ^ (lv.queries / (1 + if lvl = 0 then 1 else 0)) →
-      lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG → lv.capDepth ≤ lv.depth →
-      (∀ N, args.getD 6 0 = gen ^ N → N < ordG → QueryWinsOk rd (args.getD 4 0)
-        (oqCount (lv.queries % 2 * (if lvl = 0 then 1 else 0)) (if lvl = 0 then 1 else 0) N)
-        lv.depth lv.capDepth) →
-      MeaningOpeningQueriesW (lv.queries % 2 * (if lvl = 0 then 1 else 0))
-        (if lvl = 0 then 1 else 0) lv.interleave lv.depth lv.capDepth rd (W args rets) args rets)
-    (hfs : st.fs.length = 5) (hpad : PadOk σ st.pad) (hmats : MatsOk σ st.mats)
-    {lf : List E} (hlf : lf.length = lv.folds)
-    (hfch : ∀ j < lv.folds, LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j) (lf.getD j 0))
-    {root : Digest}
-    (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestHalves root).1)
-    (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestHalves root).2) :
-    let F2 : Fs := ⟨st.fsv σ, []⟩
-    let qs := queriesOf (192 / lv.depth) lv.depth (F2.squeezeN lv.squeezes).1 lv.queries
-    σ (.n (bLam c lvl lv st)) = (F2.squeezeN lv.squeezes).2.squeeze.1 ∧
-    (bSq c lvl lv st).fsv σ = (F2.squeezeN lv.squeezes).2.squeeze.2.cap ∧
-    PadOk σ (bSq c lvl lv st).pad ∧ (bSq c lvl lv st).fs.length = 5 ∧
-    qs.length = lv.queries ∧ (∀ k < lv.queries, qs.getD k 0 < 2 ^ lv.depth) ∧
-    (∀ k < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + k) (eOfNat (qs.getD k 0))) ∧
-    σ (.n (bLamN c lvl lv st)) = σ (.n (bLam c lvl lv st)) ^ lv.queries ∧
-    σ (.n (bLam c lvl lv st)) ≠ 0 ∧
-    LoadHolds rd (σ (.n osMus)) lvl (σ (.n (bLam c lvl lv st)))⁻¹ ∧
-    MatsOk σ (bS1 c lvl lv st).mats ∧
-    ∃ (os : List Opening) (ic0 ic2 : E), os = bOs c lvl lv st rd σ W ∧ os.length = lv.queries ∧
-      (∀ k (hk : k < qs.length) (ho : k < os.length),
-        Id.run (Compile.openOneWithHash (m := Id) keccak256 root lv.depth
-          (if lvl = 0 then lv.interleave else 3 * lv.interleave) qs[k] os[k]) = true) ∧
-      σ (.n (bQ c lvl lv st).2.2.1) = enforcedSum ((os.map (·.leaf)).map (specRow lvl)) lf
-        (powers (σ (.n (bLam c lvl lv st))) lv.queries) ∧
-      ReadsAt rd (st.cur σ) [ic0, ic2] ∧ σ (.n (bQ c lvl lv st).2.2.2.1) = ic0 ∧
-      σ (.n (bQ c lvl lv st).2.2.2.2.2) = ic2 ∧
-      σ (.n (bQ c lvl lv st).2.2.2.2.1) = σ (.n (bQ c lvl lv st).2.2.1) + ic2 ∧
-      os.map Opening.leafIndex = qs := by
-  intro F2 qs
-  obtain ⟨hdepth, hqq, hq2, hqd, hper, hsqz, hdig, hpo, hsq0, hsqo, hsq5, hrow, hcd, hcd8, hcdd,
-    hbo⟩ := hcfg
-  obtain ⟨D, hlam, hfsv, hpad', hfs', hmsq⟩ :=
-    osSqueezes_sound hsq hloop hdig hpo hdec hwt hsq0 hsqo hsq5 hfs hpad
-  obtain ⟨hlamN, hl0, hmu⟩ := osLamPow_sound hqd hlp
-  have hdec' : ∀ jj < lv.squeezes, MeaningDecodeQueryWindows lv.depth lv.capDepth rd
-      [(F2.squeezeN lv.squeezes).1.getD jj 0,
-        σ (.n osQpos) * gen ^ (lv.posOff + jj * (192 / lv.depth)),
-        σ (.n osQbp) * gen ^ (lv.posOff + jj * (192 / lv.depth)), σ (.n osWin)] [] := by
-    intro jj hjj
-    rw [squeezeN_getD _ _ _ hjj]
-    exact D jj hjj
-  have hqle : lv.queries ≤ lv.squeezes * (192 / lv.depth) := by
-    rw [hsqz]; exact le_ceilDiv_mul hper
-  have tab := positions_of_decodes hper hqle _ hdec'
-  have hqlt : ∀ k < lv.queries, qs.getD k 0 < 2 ^ lv.depth := by
-    intro k hk
-    simp only [qs, queriesOf, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hk,
-      Option.map_some, Option.getD_some]
-    exact Nat.mod_lt _ (by positivity)
-  obtain ⟨ic0, ic2, hol, hop, hsum, hrd, e0, e2, e1, hmq, hidx⟩ :=
-    osQueries_sound hle hq (by simpa [hmsq] using hmats) hrow hcd hcd8 hcdd hRW hCap W hQW hlf hfch
-      hr0 hr1 qs (by simp [qs, queriesOf]) hqlt (fun k hk ↦ (tab k hk).2) hlamN hbo
-  refine ⟨hlam, hfsv, hpad', hfs', by simp [qs, queriesOf], hqlt, fun k hk ↦ (tab k hk).1, hlamN,
-    hl0, hmu, hmq, _, ic0, ic2, rfl, hol, hop, hsum, ?_, e0, e2, e1, hidx⟩
-  exact hrd
-
-theorem specRows_eq (lvl : ℕ) (words : List (List K)) :
-    (if lvl = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow) =
-      words.map (specRow lvl) := by
-  by_cases h : lvl = 0 <;> simp [specRow, h]
-
-/-- **The Spec's `levelRest`** from a sponge with nothing waiting: the positions of `nsq`
-squeezes, the batching challenge, the openings, the intro's two words. -/
-theorem levelRest_run {ml lvl : ℕ} {level : Whir.Level} {lf : List E} {ws : WhirStateT}
-    {pending : List (E × List E × (List E → E))} {F : Fs} {d nsq : ℕ}
-    (hd : ml + level.logInvRate = d) (hper : 1 ≤ 192 / d)
-    (hn : nsq = ceilDiv level.queries (192 / d)) {R : List (Digest × ℕ × ℕ)} {root : Digest}
-    {height width : ℕ} (hR : R[lvl]? = some (root, height, width)) (os : List Opening)
-    (hol : os.length = (queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries).length)
-    (hop : ∀ k (hk : k < (queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries).length)
-      (ho : k < os.length), Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width
-        (queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries)[k] os[k]) = true)
-    (hidx : os.map Opening.leafIndex = queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries)
-    (ic0 ic2 : E) :
-    let qs := queriesOf (192 / d) d (F.squeezeN nsq).1 level.queries
-    let lam := (F.squeezeN nsq).2.squeeze.1
-    let enf := enforcedSum ((os.map (·.leaf)).map (specRow lvl)) lf (powers lam qs.length)
-    RunsWith (levelRest ml lvl level lf ws pending) F [ic0, ic2] [os] R
-      (glueT lam ws (pending ++ [(enf, [ic0, enf + ic2, ic2],
-        fun x ↦ inducedWeight ml qs (powers lam qs.length) x)]))
-      ⟨(F.squeezeN nsq).2.squeeze.2.cap, [(ic0, dsObserve), (ic2, dsObserve)]⟩ R := by
-  subst hn
-  intro qs lam enf
-  have h1 : RunsWith (sampleQueries (ml + level.logInvRate) level.queries) F [] [] R qs
-      (F.squeezeN (ceilDiv level.queries (192 / d))).2 R := by
-    rw [hd]
-    unfold sampleQueries
-    exact RunsTo.withRoots
-      (sampleQueriesAux_run d hper level.queries level.queries F (ceilDiv_le hper)) R
-  set nsq := ceilDiv level.queries (192 / d)
-  have h2 := RunsTo.withRoots (runsTo_sampleE (F.squeezeN nsq).2) R
-  have h3 := runsWith_queryP (F.squeezeN nsq).2.squeeze.2 R hR qs os hol hop hidx
-  have h4 := RunsTo.withRoots (runsTo_round3 (F.squeezeN nsq).2.squeeze.2 enf ic0 ic2) R
-  have hF4 : (((F.squeezeN nsq).2.squeeze.2.absorb ic0 dsObserve).absorbAll [ic2] dsObserve) =
-      ⟨(F.squeezeN nsq).2.squeeze.2.cap, [(ic0, dsObserve), (ic2, dsObserve)]⟩ := by
-    simp [Fs.absorbAll, Fs.absorb, Fs.squeeze, rateScalars]
-  rw [hF4] at h4
-  have e : levelRest ml lvl level lf ws pending =
-      (sampleQueries (ml + level.logInvRate) level.queries).bind fun queries ↦
-        VerifierProgram.sampleChallenge.bind fun lam ↦ (VerifierProgram.queryOpenings lvl
-            queries).bind fun words ↦
-          (sumcheckRoundPoly 3 (enforcedSum (words.map (specRow lvl)) lf
-            (powers lam queries.length)) none).bind fun intro ↦
-            VerifierProgram.ret (glueT lam ws (pending ++ [(enforcedSum (words.map (specRow lvl)) lf
-              (powers lam queries.length), intro,
-              fun x ↦ inducedWeight ml queries (powers lam queries.length) x)])) := by
-    simp only [levelRest, specRows_eq, VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  rw [e]
-  refine RunsWith.of_eq (RunsWith.bind' h1 (RunsWith.bind' h2 (RunsWith.bind' h3 (RunsWith.bind' h4
-    (runsWith_ret _ _ _))))) rfl (by simp) (by simp) rfl rfl rfl rfl
-
-/-- **A level's queries and glue.** -/
-theorem osLevelB_sound {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg}
-    {lvl : ℕ} {lv : OsLv} {st : OsSt} {level : Whir.Level}
-    {ml : ℕ} (hcfg : LvB c lvl lv level ml)
-    (hok : AllOk C rd σ (osLevelB c lvl lv st).1)
-    (hloop : FnIs (c.sqLoop lvl) (osParams 6) (sqLoopBody lv (c.sqLoop lvl)))
-    (hdec : ∀ args rets, WinTabs rd (args.getD 3 0) →
-      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-        args rets → MeaningDecodeQueryWindows lv.depth lv.capDepth rd args rets)
-    (hwt : WinTabs rd (σ (.n osWin)))
-    (hRW : ∀ args rets, coreProgram.Rel rd ("opening_row_weights__L" ++ natStr lv.folds ++ "_L" ++
-      natStr (if lvl = 0 then 1 else 0)) args rets →
-        MeaningOpeningRowWeights lv.folds (if lvl = 0 then 1 else 0) rd args rets)
-    (hCap : ∀ args rets, coreProgram.Rel rd ("verify_merkle_cap__L" ++ natStr lv.capDepth) args rets →
-      MeaningVerifyMerkleCap lv.capDepth rd args rets)
-    (W : List E → List E → List QW)
-    (hQW : ∀ args rets, C (osQueriesName lvl lv) args rets →
-      args.getD 6 0 = gen ^ (lv.queries / (1 + if lvl = 0 then 1 else 0)) →
-      lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG → lv.capDepth ≤ lv.depth →
-      (∀ N, args.getD 6 0 = gen ^ N → N < ordG → QueryWinsOk rd (args.getD 4 0)
-        (oqCount (lv.queries % 2 * (if lvl = 0 then 1 else 0)) (if lvl = 0 then 1 else 0) N)
-        lv.depth lv.capDepth) →
-      MeaningOpeningQueriesW (lv.queries % 2 * (if lvl = 0 then 1 else 0))
-        (if lvl = 0 then 1 else 0) lv.interleave lv.depth lv.capDepth rd (W args rets) args rets)
-    (hfs : st.fs.length = 5) (hpad : PadOk σ st.pad) (hmats : MatsOk σ st.mats)
-    {ws : WhirStateT} (hquad : ws.quad = st.quad σ) (ht : ws.target = σ (.n st.t))
-    {lf : List E} (hlf : lf.length = lv.folds)
-    (hfch : ∀ j < lv.folds, LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j) (lf.getD j 0))
-    {R : List (Digest × ℕ × ℕ)} {root : Digest}
-    (hR : R[lvl]? = some (root, lv.depth, if lvl = 0 then lv.interleave else 3 * lv.interleave))
-    (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestHalves root).1)
-    (hr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestHalves root).2)
-    {pending : List (E × List E × (List E → E))} (hpend : PendOk rd σ c lvl pending) :
-    ∃ (xs : List E) (os : List Opening) (ws' : WhirStateT) (lam : E) (qs : List ℕ),
-      os = bOs c lvl lv st rd σ W ∧ ReadsAt rd (st.cur σ) xs ∧ xs.length = 2 ∧
-      RunsWith (levelRest ml lvl level lf ws pending) ⟨st.fsv σ, []⟩ xs [os] R ws'
-        ((osLevelB c lvl lv st).2.F σ) R ∧
-      ws'.quad = (osLevelB c lvl lv st).2.quad σ ∧ ws'.target = σ (.n (osLevelB c lvl lv st).2.t) ∧
-      (∃ (enf : E) (intro : List E), ws' = glueT lam ws (pending ++
-        [(enf, intro, fun x ↦ inducedWeight ml qs (powers lam qs.length) x)])) ∧
-      LvRec rd σ c lvl lv lam qs ∧
-      (osLevelB c lvl lv st).2.fs.length = 5 ∧ PadOk σ (osLevelB c lvl lv st).2.pad ∧
-      (osLevelB c lvl lv st).2.cb = st.cb ∧ (osLevelB c lvl lv st).2.co = st.co + 2 ∧
-      MatsOk σ (osLevelB c lvl lv st).2.mats := by
-  have hsqc : (bSq c lvl lv st).c = st.c ∧ (bSq c lvl lv st).b = st.b ∧
-      (bSq c lvl lv st).a = st.a ∧ (bSq c lvl lv st).t = st.t ∧ (bSq c lvl lv st).cb = st.cb ∧
-      (bSq c lvl lv st).co = st.co := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
-  rw [osLevelB_eq] at hok ⊢
+/-- **The level's queries**: the dispatch on the rate into `level_queries` on its arguments,
+the root it returns that in `level_roots`. -/
+theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (hr : LvRate σ c lvl lv)
+    (hm : MatsOk σ st.mats) (hf : 2 * lv.foldsOff < u128Bound)
+    (hh : lvl * hsStride < u128Bound) (hp : lv.posOff < u128Bound)
+    (hok : AllOk C rd σ (osQueries c lvl lv st).1) :
+    (osQCallOf c lvl lv st).1.map σ = osQArgs σ c lvl lv st ∧
+      C (osQueriesName c lvl lv) (osQArgs σ c lvl lv st) ((osQCallOf c lvl lv st).2.map σ) ∧
+      (∃ r0 r1 : E, (osQCallOf c lvl lv st).2.map σ =
+          [r0, r1, σ (.n (osQueries c lvl lv st).2.batched), σ (.n (osQueries c lvl lv st).2.lamPow)] ∧
+        LoadHolds rd (σ (.n osRoots)) (2 * lvl) r0 ∧ LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) r1) ∧
+      MatsOk σ (osQueries c lvl lv st).2.mats ∧
+      (osQueries c lvl lv st).2 = { st with
+        k := (osQueries c lvl lv st).2.k
+        mats := (osQueries c lvl lv st).2.mats
+        batched := (osQueries c lvl lv st).2.batched
+        lamPow := (osQueries c lvl lv st).2.lamPow } := by
+  unfold osQueries at hok ⊢
+  unfold osQCallOf
+  simp only [allOk_append] at hok
+  obtain ⟨⟨⟨⟨⟨hli, hcf⟩, hhp⟩, hqp⟩, hwp⟩, hrest⟩ := hok
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, osLd] at hrest
+  obtain ⟨hd, l0, l1⟩ := hrest
+  have hC := dispatch_rate hr (osQueriesName c lvl) hd
   by_cases hfin : lvl = c.yrLevel
-  · have hc : (lvl = c.yrLevel) = True := eq_true hfin
-    simp only [hc, ↓reduceIte] at hok ⊢
-    simp only [allOk_append, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds] at hok
-    obtain ⟨⟨⟨⟨hsq, hlp⟩, hq⟩, hbm, hbeta⟩, hgl⟩ := hok
-    have hpend' : pending = [] := by
-      have := hpend; unfold PendOk at this; simpa only [hc, ↓reduceIte] using this
-    subst hpend'
-    obtain ⟨hlam, hfsv, hpad', hfs', hqlen, hqlt, hpos, hlamN, hl0, hmu, hmq, os, ic0, ic2, hos, hol,
-      hop, hsum, hrd, e0, e2, e1, hidx⟩ := osLevelB_common hle hcfg (allOk_mono hle hsq) (allOk_mono hle hlp)
-      hq hloop hdec hwt hRW hCap W hQW hfs hpad hmats hlf hfch hr0 hr1
-    obtain ⟨gq, gt⟩ := osGlue_sound hgl
-    rw [hbm, hlamN] at hbeta
-    have hd := hcfg.depth.symm
-    have hqq := hcfg.queries
-    have hrun := levelRest_run (F := ⟨st.fsv σ, []⟩) (ws := ws) (lf := lf) (pending := [])
-      (nsq := lv.squeezes) hd hcfg.per (by rw [hqq]; exact hcfg.squeezes) hR os
-      (by simp [hol, hqq, queriesOf]) (by rw [hqq]; exact hop) (by rw [hqq]; exact hidx) ic0 ic2
-    rw [hqq] at hrun
-    have hql : (queriesOf (192 / lv.depth) lv.depth
-        (Fs.squeezeN lv.squeezes ⟨st.fsv σ, []⟩).1 lv.queries).length = lv.queries := by
-      simp [queriesOf]
-    refine ⟨_, os, _, _, _, hos, hrd, rfl, RunsWith.of_eq hrun rfl rfl rfl rfl rfl ?_ rfl, ?_, ?_,
-      ⟨_, _, rfl⟩, ⟨hqlen, hqlt, hpos, by rw [← hlam]; exact hl0, by rw [← hlam]; exact hmu,
-        by simp only [hc, ↓reduceIte]; rw [← hlam]; exact hbeta, fun h ↦ absurd hfin h⟩, hfs',
-      hpad', rfl, rfl, hmq⟩
-    · show _ = (⟨(bSq c lvl lv st).fsv σ, [(σ (.n (bQ c lvl lv st).2.2.2.1), dsObserve),
-        (σ (.n (bQ c lvl lv st).2.2.2.2.2), dsObserve)]⟩ : Fs)
-      rw [hfsv, e0, e2]
-    · rw [gq, hql]
-      simp only [List.nil_append, glue_one, hquad, OsSt.quad, List.zipWith_cons_cons,
-        List.zipWith_nil_left, one_mul]
-      rw [e0, e1, e2, hsum, hlam]
-      simp only [hsqc.1, hsqc.2.1, hsqc.2.2.1]
-    · rw [gt, hql]
-      simp only [List.nil_append, glue_one, ht, one_mul]
-      rw [hsum, hlam]
-      simp only [hsqc.2.2.2.1]
-  · have hc : (lvl = c.yrLevel) = False := eq_false hfin
-    simp only [hc, ↓reduceIte] at hok ⊢
-    simp only [allOk_append, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds] at hok
-    obtain ⟨⟨⟨⟨⟨hsq, hlp⟩, hq⟩, hog⟩, hbm, hbeta⟩, hgl⟩ := hok
-    obtain ⟨y, c0, c2, z, hpe, hy, hc0, hc2⟩ : ∃ (y c0 c2 : E) (z : List E),
-        pending = [(y, [c0, y + c2, c2], fun x ↦ eqEval z x)] ∧
-        LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 1) y ∧
-        LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 2) c0 ∧
-        LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 3) c2 := by
-      have := hpend; unfold PendOk at this; simpa only [hc, ↓reduceIte] using this
-    subst hpe
-    obtain ⟨hlam, hfsv, hpad', hfs', hqlen, hqlt, hpos, hlamN, hl0, hmu, hmq, os, ic0, ic2, hos, hol,
-      hop, hsum, hrd, e0, e2, e1, hidx⟩ := osLevelB_common hle hcfg (allOk_mono hle hsq) (allOk_mono hle hlp)
-      hq hloop hdec hwt hRW hCap W hQW hfs hpad hmats hlf hfch hr0 hr1
-    obtain ⟨y', c0', c2', hy', hc0', hc2', hlo, oq, ot, ob⟩ := osOodGlue_sound hog
-    rw [hbm, hlamN] at hbeta
-    rw [loadHolds_unique hy' hy] at oq ot
-    rw [loadHolds_unique hc0' hc0] at oq
-    rw [loadHolds_unique hc2' hc2] at oq
-    obtain ⟨gq, gt⟩ := osGlue_sound hgl
-    simp only [OsSt.quad, List.cons.injEq, and_true] at oq
-    obtain ⟨oc, obb, oa⟩ := oq
-    have hd := hcfg.depth.symm
-    have hqq := hcfg.queries
-    have hrun := levelRest_run (F := ⟨st.fsv σ, []⟩) (ws := ws) (lf := lf)
-      (pending := [(y, [c0, y + c2, c2], fun x ↦ eqEval z x)])
-      (nsq := lv.squeezes) hd hcfg.per (by rw [hqq]; exact hcfg.squeezes) hR os
-      (by simp [hol, hqq, queriesOf]) (by rw [hqq]; exact hop) (by rw [hqq]; exact hidx) ic0 ic2
-    rw [hqq] at hrun
-    have hql : (queriesOf (192 / lv.depth) lv.depth
-        (Fs.squeezeN lv.squeezes ⟨st.fsv σ, []⟩).1 lv.queries).length = lv.queries := by
-      simp [queriesOf]
-    refine ⟨_, os, _, _, _, hos, hrd, rfl, RunsWith.of_eq hrun rfl rfl rfl rfl rfl ?_ rfl, ?_, ?_,
-      ⟨_, _, rfl⟩, ⟨hqlen, hqlt, hpos, by rw [← hlam]; exact hl0, by rw [← hlam]; exact hmu,
-        by simp only [hc, ↓reduceIte]; rw [← hlam, ← ob]; exact hbeta,
-        fun _ ↦ by rw [← hlam]; exact hlo⟩, hfs', hpad', rfl, rfl, hmq⟩
-    · show _ = (⟨(bSq c lvl lv st).fsv σ, [(σ (.n (bQ c lvl lv st).2.2.2.1), dsObserve),
-        (σ (.n (bQ c lvl lv st).2.2.2.2.2), dsObserve)]⟩ : Fs)
-      rw [hfsv, e0, e2]
-    · rw [gq, hql]
-      simp only [List.singleton_append, glue_two, hquad, OsSt.quad, List.zipWith_cons_cons,
-        List.zipWith_nil_left, one_mul]
-      rw [oc, obb, oa, ob, e0, e1, e2, hsum, hlam]
-      simp only [hsqc.1, hsqc.2.1, hsqc.2.2.1]
-    · rw [gt, ot, hql]
-      simp only [List.singleton_append, glue_two, ht, one_mul]
-      rw [ob, hsum, hlam]
-      simp only [hsqc.2.2.2.1]
+  · subst hfin
+    simp only [↓reduceIte] at hcf hhp hqp hwp hli hC l0 l1 ⊢
+    simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const, osCst] at hli
+    obtain ⟨z0, z1⟩ := hli
+    obtain ⟨ecf, hm3⟩ := osMatS_val' hcf hm hf
+    obtain ⟨eqp, hm4⟩ := osMatS_val' hqp hm3 hp
+    obtain ⟨ewp, hm5⟩ := osMatS_val' hwp hm4 hp
+    refine (fun ha ↦ ⟨ha, ha ▸ hC, ⟨_, _, ?_, l0, l1⟩, hm5, rfl⟩) ?_
+    · simp only [List.map_cons, List.map_nil, osQArgs, ↓reduceIte]
+      rw [z0, z1, ecf, eqp, ewp, word_zero]
+    · simp [osRun, List.range_succ]
+  · simp only [hfin, ↓reduceIte] at hcf hhp hqp hwp hli hC l0 l1 ⊢
+    obtain ⟨ecf, hm3⟩ := osMatS_val' hcf hm hf
+    obtain ⟨ehp, hm4⟩ := osMatS_val' hhp hm3 hh
+    obtain ⟨eqp, hm5⟩ := osMatS_val' hqp hm4 hp
+    obtain ⟨ewp, hm6⟩ := osMatS_val' hwp hm5 hp
+    refine (fun ha ↦ ⟨ha, ha ▸ hC, ⟨_, _, ?_, l0, l1⟩, hm6, rfl⟩) ?_
+    · simp only [List.map_cons, List.map_nil, osQArgs, hfin, ↓reduceIte]
+      rw [ecf, ehp, eqp, ewp]
+    · simp [osRun, List.range_succ]
 
 end
 end LeanVM.Guest.B1.Whir

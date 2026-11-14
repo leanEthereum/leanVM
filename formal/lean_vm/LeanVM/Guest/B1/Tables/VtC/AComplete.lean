@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Tables.VtC.Lift
 `vt_completeAt` on the caller's honest buffers `H.linL B`, the own buffers' honest words
 `H.ownW B` at the allocator's positions from `fp + fs "verify_tables"`, the oracle `vtW`, the
 returns `H.retsH B`; its run from `vt_rel_complete_vtW` and `vt_relIn_complete` on every memory
-defined below `2^κ`, `κ ≥ 14` (the rank keys' range check against `g^8635`), holding that
+defined below `2^κ`, `κ ≥ 14` (the rank keys' range check against `g^8397`), holding that
 layout.
 -/
 

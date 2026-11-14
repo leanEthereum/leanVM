@@ -649,7 +649,7 @@ end
 theorem loadAddrs_quiet {es : List Ev} (h : ∀ e ∈ es, e.quiet) : loadAddrs σ es = [] := by
   refine List.filterMap_eq_nil_iff.mpr fun e he => ?_
   have := h e he
-  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _⟩ | _ | _ | _ <;>
+  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _⟩ | _ | _ | _ <;>
     first | rfl | simp [Ev.quiet, atomQuiet, atomUnplaced] at this
 
 mutual

@@ -23,18 +23,17 @@ def facStores (D : ℕ) : List Atom :=
     .load (.n (facB d + 4 + 4 * y)) (.n 1) (2 ^ d + y)
 
 /-- **`da_factors`, evaluated**: defined in order from its argument, its stores the nodes',
-canonical without inputs, one `HeapBuf` of `256` words, no `frameAddr`. -/
+one `HeapBuf` of `256` words, no `frameAddr`. -/
 def facCOk (fn : Fn) (top D : ℕ) : Bool :=
   (chk 1 fn.body).isSome && atomsEqb (storesOf 1 fn.body) (facStores D) &&
-  canonChk [] (facT top D) &&
   decide (((facT top D).map Stmt.atom).filterMap Stmt.addrS = []) &&
   decide (((facT top D).map Stmt.atom).filterMap Stmt.allocSz = [(.n 1, .inl 256)])
 
 set_option maxRecDepth 100000 in
-theorem fac14_cok : facCOk Data.core404 14 7 = true := by decide +kernel
+theorem fac14_cok : facCOk fn% «da_factors__L14_L7_L0» 14 7 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem fac7_cok : facCOk Data.core406 7 8 = true := by decide +kernel
+theorem fac7_cok : facCOk fn% «da_factors__L7_L8_L128» 7 8 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Da

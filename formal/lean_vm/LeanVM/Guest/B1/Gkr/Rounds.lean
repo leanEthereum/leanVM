@@ -2,12 +2,16 @@
   LeanVM.Guest.B1.Gkr.Rounds
 
   Runs of GKR rounds between round records: B1-a's meaning of `gkr_rounds` (copied), rounds
-  chained, and `verify_bus_gkr`'s inner loop `__loop27`, four rounds an iteration.
+  chained, and `verify_bus_gkr`'s inner loop `da_column_offsets_loop1`, four rounds an iteration.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Gkr.Round
+public import LeanVM.Guest.CoreData
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # Rounds between records
@@ -20,8 +24,8 @@ their eq factors at `pt[0 .. n]`, store their challenges at `pt[42 ..]`, and the
 
 * `tb_gkrRun_append`: rounds run in sequence;
 * `gkrRoundsOut_append`: two runs of rounds, the second from the first's last record, are one;
-* `l29_holds`: `__loop27` holds at `g^0` exactly-below `half = g^h` gives the `4h` rounds from the
-  record at `head`.
+* `l29_holds`: `da_column_offsets_loop1` holds at `g^0` exactly-below `half = g^h` gives the `4h`
+  rounds from the record at `head`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -32,7 +36,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- `GKR_ROUNDS_CAP`. -/
-abbrev gkCap : ℕ := 862
+abbrev gkCap : ℕ := guest_const% GKR_ROUNDS_CAP
 
 /-- A record's five capacity cells, its fields `stride` words apart from offset `off`
 (B1-a's `CapAt`). -/
@@ -42,7 +46,7 @@ def TbCapAt (rd : Reader) (rec : E) (off stride : ℕ) (cap : List E) : Prop :=
 /-- **`n` GKR rounds between records** (B1-a's `MeaningGkrRounds`, on its arguments). -/
 def TbGkrRoundsOut (n : ℕ) (rd : Reader) (rec pt : E) : Prop :=
   ∃ (cap : List E) (cur claim : E) (cs : List (List E)) (es : List E),
-    TbCapAt rd rec 0 gkCap cap ∧ AllCanonical cap ∧
+    TbCapAt rd rec 0 gkCap cap ∧
     LoadHolds rd rec (5 * gkCap) cur ∧ LoadHolds rd rec (6 * gkCap) claim ∧
     cs.length = n ∧ (∀ c ∈ cs, c.length = 4) ∧ TbReadsAt rd cur cs.flatten ∧
     es.length = n ∧ TbReadsAt rd pt es ∧
@@ -54,8 +58,8 @@ def TbGkrRoundsOut (n : ℕ) (rd : Reader) (rec pt : E) : Prop :=
 /-- `gkr_rounds__L{n}`, `n ∈ {1, 2, 4, 6}`, is sound (B1-a's `gkr_rounds_Spec`, in this direction;
 B1-a proves it). -/
 def tb_gkr_rounds_Spec : Prop :=
-  ∀ n ∈ gkrRoundsCounts, ∀ (rd : Reader) (rec pt : E) (rets : List E),
-    coreProgram.Rel rd (gkrRoundsName n) [rec, pt] rets → TbGkrRoundsOut n rd rec pt
+  ∀ n ∈ gkrRoundsCounts, ∀ (rd : Reader) (rec pt tabs : E) (rets : List E),
+    coreProgram.Rel rd (gkrRoundsName n) [rec, pt, tabs] rets → TbGkrRoundsOut n rd rec pt
 
 /-! ## Rounds in sequence -/
 
@@ -80,17 +84,6 @@ theorem tb_gkrRun_length : ∀ (cs : List (List E)) (es : List E) (claim : E) (s
     simp only [List.length_cons, Nat.add_right_cancel_iff] at h
     simp [gkrRun, tb_gkrRun_length cs es _ _ h]
   | [], _ :: _, _, _, h | _ :: _, [], _, _, h => by simp at h
-
-theorem tb_gkrRun_canonical : ∀ (cs : List (List E)) (es : List E) (claim : E) (s : Fs),
-    AllCanonical s.cap → AllCanonical (gkrRun cs es claim s).2.2.cap
-  | [], _, _, _, h => by cases ‹List E› <;> exact h
-  | c :: cs, [], _, _, h => h
-  | c :: cs, e :: es, claim, s, _ => by
-    simp only [gkrRun]
-    apply tb_gkrRun_canonical
-    intro x hx
-    simp only [Fs.squeeze, capOf, List.mem_cons, List.not_mem_nil, or_false] at hx
-    rcases hx with rfl | rfl | rfl | rfl | rfl <;> exact cellsOfState_canonical _ _ _
 
 theorem tbCapAt_mul_gen_pow {rd : Reader} {rec : E} {a off stride : ℕ} {cap : List E} :
     TbCapAt rd (rec * gen ^ a) off stride cap ↔ TbCapAt rd rec (a + off) stride cap := by
@@ -132,9 +125,9 @@ theorem gkrRoundsOut_append {rd : Reader} {n1 n2 : ℕ} {rec pt : E}
     (h1 : TbGkrRoundsOut n1 rd rec pt)
     (h2 : TbGkrRoundsOut n2 rd (rec * gen ^ n1) (pt * gen ^ n1)) :
     TbGkrRoundsOut (n1 + n2) rd rec pt := by
-  obtain ⟨cap, cur, claim, cs1, es1, hc, hcan, hcur, hcl, hl1, h4, hr1, he1, hre1, hch1, hc1, hu1,
+  obtain ⟨cap, cur, claim, cs1, es1, hc, hcur, hcl, hl1, h4, hr1, he1, hre1, hch1, hc1, hu1,
     hcl1⟩ := h1
-  obtain ⟨cap2, cur2, claim2, cs2, es2, hc2, -, hcur2, hcl2, hl2, h42, hr2, he2, hre2, hch2, hc2',
+  obtain ⟨cap2, cur2, claim2, cs2, es2, hc2, hcur2, hcl2, hl2, h42, hr2, he2, hre2, hch2, hc2',
     hu2, hcl2'⟩ := h2
   rw [tbCapAt_mul_gen_pow, Nat.add_zero] at hc2
   rw [tb_loadHolds_mul_gen_pow] at hcur2 hcl2
@@ -143,7 +136,7 @@ theorem gkrRoundsOut_append {rd : Reader} {n1 n2 : ℕ} {rec pt : E}
   have ecl := tb_loadHolds_unique hcl2 hcl1
   subst ecap ecur ecl
   have hrun := tb_gkrRun_append cs1 cs2 es1 es2 claim ⟨cap, []⟩ (hl1.trans he1.symm)
-  refine ⟨cap, cur, claim, cs1 ++ cs2, es1 ++ es2, hc, hcan, hcur, hcl, by simp [hl1, hl2],
+  refine ⟨cap, cur, claim, cs1 ++ cs2, es1 ++ es2, hc, hcur, hcl, by simp [hl1, hl2],
     fun c hc' => ?_, ?_, by simp [he1, he2], ?_, ?_, ?_, ?_, ?_⟩
   · rcases List.mem_append.mp hc' with h | h
     · exact h4 c h

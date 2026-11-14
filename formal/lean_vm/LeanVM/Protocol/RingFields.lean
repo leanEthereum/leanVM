@@ -2,19 +2,15 @@
   LeanVM.Protocol.RingFields
 
   The facts about leanVM's fields that ring switching rests on: a word of `K` is its bits packed
-  by the powers of `x`, the Frobenius periods, and the injectivity of ring switching.
+  by the powers of `x`, the Frobenius periods, the injectivity of ring switching over
+  `E = K[y]/(y^2 + x·y + 1)`, and the count of the challenges at which the drawn map misses a
+  wrong claim.
 -/
 
 module
 
-public import Statement.LeanVmVerifier
-public import LeanVM.Facts.Verifier
-public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
-public import Statement.Fast.FieldWords
 public import LeanVM.Parameters.Field
-public import LeanVM.Parameters.Generator
-public import LeanVM.Protocol.Field
+public import LeanVM.Protocol.ToArkLib.FrobeniusMap
 import Mathlib.Algebra.CharP.Reduced
 import Mathlib.FieldTheory.Finite.Basic
 import Mathlib.LinearAlgebra.Vandermonde
@@ -22,30 +18,40 @@ import Mathlib.LinearAlgebra.Vandermonde
 /-!
 # Field facts for ring switching
 
-Ring switching (`ringSwitch`, `crates/verifier/src/ring_switch.rs:36-54` at leanVM `40f877dc`;
-`crates/pcs/src/ring_switch.rs`) packs the `64` bit
-slices of `q_keccak` by the powers of `x = g` and draws a random `F_2`-linear map. Its soundness
-rests on two facts about `K = GF(2^64)` and `E = K[y]/(y^3 + y + 1)` (`LeanVM.Parameters.Field`):
+Ring switching (`doc/leanvm/body/a-ring-switching.tex`, §A.3 and §A.4;
+`crates/verifier/src/ring_switch.rs`) packs the `64` bit slices of `q_keccak` by
+the powers of `x = g` and draws a random `F_2`-linear map `Φ` of support `{0, …, 63}`. Its
+soundness rests on facts about `K = GF(2^64)` and `E = K[y]/(y^2 + x·y + 1)`
+(`LeanVM.Parameters.Field`):
 
 * `K.eq_sum_bits`: a word of `K` is its bits packed by the powers of `x`,
   `a = Σ_{i < 64} a_i · x^i` (through CompPoly's bridge to `GF(2)[X] / (X^64 + X^4 + X^3 + X + 1)`).
-* **Ring-switching injectivity**, `ringSwitch_injective`: a family `δ : Fin 64 → E` with
+* **Ring-switching injectivity**, `ringSwitch_injective` (§A.3): a family `δ : Fin 64 → E` with
   `Σ_i x^i · δ_i^(2^k) = 0` for every `k < 64` is zero. Two steps: `limbs_eq_zero_of_frob`
-  (`1, y^(2^k), y^(2^(k+1))` is a `K`-basis of `E`, so each limb family satisfies the same
-  equations in `K`) and `eq_zero_of_frob_sums_K` (the polynomial `Σ_i d_i X^i`, of degree below
-  64, vanishes at the 64 conjugates `x^(2^m)` of `x = g`, which are distinct by
-  `g_conj_injective`, a kernel check on `K` words).
+  (`1, y^(2^k)` is a `K`-basis of `E`: `y^(2^k) ∉ K`, since the Frobenius maps `K` onto itself and
+  is injective, and `y ∉ K`; so `a + b·y^(2^k) = 0` forces `b = 0`, then `a = 0`), and
+  `eq_zero_of_frob_sums_K` (the polynomial `Σ_i d_i X^i`, of degree below 64, vanishes at the 64
+  conjugates `x^(2^m)` of `x = g`, distinct by `g_conj_injective`, a kernel check on `K` words).
+* **Soundness of the drawn map** (§A.4), `card_ringSwitch_zero_le`: for a nonzero error family
+  `δ`, `Σ_i x^i Φ(δ_i) = 0` holds at no more than `2·|E|^15` of the `|E|^16` challenges
+  `(f, g) ∈ E^8 × E^8`, `Φ = frobPhi 8 f g` (`ToArkLib/FrobeniusMap.lean`); as a fraction,
+  `2/|E|` (`ringSwitch_zero_ratio_le`). Injectivity gives a nonzero `π_k`, `k = 8p + b < 64`,
+  and each stage is linear in its own challenges.
 
-`ringSwitch_injective` needs all 64 twists `k < 64`: `δ ↦ (Σ_i x^i · δ_i^(2^k))_k` is
-`F_2`-linear from `E^64`, so fewer than 64 twists cannot make it injective. The declarations live
-in `LeanVM.Protocol.Ring`.
+The declarations live in `LeanVM.Protocol.Ring`.
 -/
 
 namespace LeanVM.Protocol.Ring
 
-open LeanVM.Parameters
+open LeanVM.Parameters CompPoly.Extension Finset
+open scoped ENNReal
 
 @[expose] public section
+
+/-- `|E| = 2^128`, counted with `Nat.card`. -/
+theorem natCard_E : Nat.card E = 2 ^ 128 := by
+  rw [Ext.nat_card_ext]
+  rfl
 
 /-! ## Packing bits into `K` -/
 
@@ -83,15 +89,10 @@ private theorem ofK_sum {ι : Type*} (s : Finset ι) (f : ι → K) :
 
 /-- Every `a : K` satisfies `a ^ 2 ^ 64 = a`. -/
 theorem K.pow_two_pow_sixtyFour (a : K) : a ^ 2 ^ 64 = a := by
+  let := Fintype.ofFinite K
   have h := FiniteField.pow_card a
   -- `simp only`, not `rw`: a goal mentioning `Fintype.card K` makes the elaborator enumerate `K`.
   simp only [BF64.card_bf64] at h
-  exact h
-
-/-- Every `a : E` satisfies `a ^ 2 ^ 192 = a`. -/
-theorem E.pow_two_pow_oneNinetyTwo (a : E) : a ^ 2 ^ 192 = a := by
-  have h := FiniteField.pow_card a
-  simp only [card_E] at h
   exact h
 
 /-- In characteristic two, `x^(2^a) = x^(2^b)` with `a ≤ b` gives `x^(2^(b-a)) = x`. -/
@@ -142,62 +143,113 @@ theorem eq_zero_of_frob_sums_K (d : Fin 64 → K)
       rw [← pow_mul (d i), ← pow_add, Nat.sub_add_cancel (by omega), K.pow_two_pow_sixtyFour]
   exact congrFun (Matrix.eq_zero_of_forall_index_sum_pow_mul_eq_zero g_conj_injective hroot)
 
-/-! ## Ring switching -/
+/-! ## The limbs of `E` -/
 
-/-- `1, y^(2^k), y^(2^(k+1))` are `K`-independent in `E`. -/
-theorem limbs_eq_zero_of_frob (k : ℕ) (hk : k < 192) (a b c : K)
-    (h : ofK a + ofK b * y ^ 2 ^ k + ofK c * (y ^ 2 ^ k) ^ 2 = 0) : a = 0 ∧ b = 0 ∧ c = 0 := by
-  have hy : (y ^ 2 ^ k) ^ 2 ^ (192 - k) = y := by
-    rw [← pow_mul, ← pow_add, Nat.add_sub_cancel' hk.le, E.pow_two_pow_oneNinetyTwo]
-  have h' : (ofK a + ofK b * y ^ 2 ^ k + ofK c * (y ^ 2 ^ k) ^ 2) ^ 2 ^ (192 - k) = 0 := by
-    rw [h, zero_pow (pow_ne_zero _ two_ne_zero)]
-  rw [add_pow_char_pow, add_pow_char_pow, mul_pow, mul_pow,
-    pow_right_comm (y ^ 2 ^ k) 2 (2 ^ (192 - k)), hy, ← ofK_pow, ← ofK_pow, ← ofK_pow,
-    ← ofLimbs_eq] at h'
-  have h0 := congrArg (fun z : E ↦ z.limb 0) h'
-  have h1 := congrArg (fun z : E ↦ z.limb 1) h'
-  have h2 := congrArg (fun z : E ↦ z.limb 2) h'
-  simp only [limb_ofLimbs, limb_zero, Matrix.cons_val_zero, Matrix.cons_val_one,
-    Matrix.cons_val_two, Matrix.head_cons, Matrix.tail_cons] at h0 h1 h2
-  have hn : 2 ^ (192 - k) ≠ 0 := pow_ne_zero _ two_ne_zero
-  exact ⟨(pow_eq_zero_iff hn).mp h0, (pow_eq_zero_iff hn).mp h1, (pow_eq_zero_iff hn).mp h2⟩
+/-- `y ∉ K`. -/
+theorem y_ne_ofK (a : K) : y ≠ ofK a := by
+  intro h
+  have h1 : Ext.coeff (Ext.gen : E) ⟨1, eParams.two_le⟩ =
+      Ext.coeff (ofK a) ⟨1, eParams.two_le⟩ := congrArg (fun z : E ↦ Ext.coeff z _) h
+  rw [Ext.coeff_gen, Ext.coeff_ofBase] at h1
+  simp at h1
+
+/-- `y^(2^k) ∉ K`: the Frobenius maps `K` onto itself and is injective on `E`. -/
+theorem y_frob_ne_ofK (k : ℕ) (a : K) : y ^ 2 ^ k ≠ ofK a := by
+  intro h
+  obtain ⟨c, hc⟩ := (Finite.injective_iff_surjective.mp (iterateFrobenius_inj K 2 k)) a
+  rw [iterateFrobenius_def] at hc
+  rw [← hc, ofK_pow] at h
+  exact y_ne_ofK c (iterateFrobenius_inj E 2 k (by simpa only [iterateFrobenius_def] using h))
+
+/-- `1, y^(2^k)` are `K`-independent in `E`. -/
+theorem limbs_eq_zero_of_frob (k : ℕ) (a b : K) (h : ofK a + ofK b * y ^ 2 ^ k = 0) :
+    a = 0 ∧ b = 0 := by
+  by_cases hb : b = 0
+  · subst hb
+    refine ⟨ofK_injective ?_, rfl⟩
+    simpa using h
+  · refine absurd ?_ (y_frob_ne_ofK k (-a * b⁻¹))
+    have hb' : ofK b ≠ 0 := fun h0 ↦ hb (ofK_injective (h0.trans (map_zero (algebraMap K E)).symm))
+    change _ = algebraMap K E (-a * b⁻¹)
+    rw [map_mul, map_neg, map_inv₀]
+    change _ = -ofK a * (ofK b)⁻¹
+    field_simp
+    linear_combination h
 
 /-- The Frobenius `x ↦ x^(2^k)` on limbs. -/
-private theorem frob_limbs (x : E) (k : ℕ) :
-    x ^ 2 ^ k = ofK (x.limb 0 ^ 2 ^ k) + ofK (x.limb 1 ^ 2 ^ k) * y ^ 2 ^ k +
-      ofK (x.limb 2 ^ 2 ^ k) * (y ^ 2 ^ k) ^ 2 := by
+theorem frob_limbs (x : E) (k : ℕ) :
+    x ^ 2 ^ k = ofK (x.limb 0 ^ 2 ^ k) + ofK (x.limb 1 ^ 2 ^ k) * y ^ 2 ^ k := by
   conv_lhs => rw [E.eq_sum_limbs x]
-  rw [add_pow_char_pow, add_pow_char_pow, mul_pow, mul_pow, pow_right_comm y 2 (2 ^ k),
-    ofK_pow, ofK_pow, ofK_pow]
+  rw [add_pow_char_pow, mul_pow, ofK_pow, ofK_pow]
+
+/-! ## Ring switching -/
+
+/-- The packing weights `x^i`, `i < 64`, in `E`. -/
+def ringW (i : Fin 64) : E := algebraMap K E (g ^ i.val)
 
 /-- **Ring-switching injectivity** (Annex A, §A.3): a family of `E` whose sums
 `Σ_i x^i · δ_i^(2^k)` vanish for every `k < 64` is zero. -/
 theorem ringSwitch_injective (δ : Fin 64 → E)
-    (h : ∀ k < 64, ∑ i : Fin 64, algebraMap K E (g ^ i.val) * δ i ^ 2 ^ k = 0) :
-    ∀ i, δ i = 0 := by
+    (h : ∀ k < 64, ∑ i : Fin 64, ringW i * δ i ^ 2 ^ k = 0) : ∀ i, δ i = 0 := by
   have hsplit : ∀ k < 64, (∑ i : Fin 64, g ^ i.val * (δ i).limb 0 ^ 2 ^ k) = 0 ∧
-      (∑ i : Fin 64, g ^ i.val * (δ i).limb 1 ^ 2 ^ k) = 0 ∧
-      (∑ i : Fin 64, g ^ i.val * (δ i).limb 2 ^ 2 ^ k) = 0 := by
+      (∑ i : Fin 64, g ^ i.val * (δ i).limb 1 ^ 2 ^ k) = 0 := by
     intro k hk
-    apply limbs_eq_zero_of_frob k (by omega)
-    have e : ∀ i : Fin 64, algebraMap K E (g ^ i.val) * δ i ^ 2 ^ k =
+    apply limbs_eq_zero_of_frob k
+    have e : ∀ i : Fin 64, ringW i * δ i ^ 2 ^ k =
         ofK (g ^ i.val * (δ i).limb 0 ^ 2 ^ k) +
-          ofK (g ^ i.val * (δ i).limb 1 ^ 2 ^ k) * y ^ 2 ^ k +
-          ofK (g ^ i.val * (δ i).limb 2 ^ 2 ^ k) * (y ^ 2 ^ k) ^ 2 := by
+          ofK (g ^ i.val * (δ i).limb 1 ^ 2 ^ k) * y ^ 2 ^ k := by
       intro i
-      rw [frob_limbs (δ i) k, ofK_mul, ofK_mul, ofK_mul]
+      rw [frob_limbs (δ i) k, ofK_mul, ofK_mul]
       change ofK (g ^ i.val) * _ = _
       ring
     rw [← h k hk, Finset.sum_congr rfl fun i _ ↦ e i, Finset.sum_add_distrib,
-      Finset.sum_add_distrib, ← Finset.sum_mul, ← Finset.sum_mul, ofK_sum, ofK_sum, ofK_sum]
+      ← Finset.sum_mul, ofK_sum, ofK_sum]
   have ha := eq_zero_of_frob_sums_K (fun i ↦ (δ i).limb 0) fun k hk ↦ (hsplit k hk).1
-  have hb := eq_zero_of_frob_sums_K (fun i ↦ (δ i).limb 1) fun k hk ↦ (hsplit k hk).2.1
-  have hc := eq_zero_of_frob_sums_K (fun i ↦ (δ i).limb 2) fun k hk ↦ (hsplit k hk).2.2
+  have hb := eq_zero_of_frob_sums_K (fun i ↦ (δ i).limb 1) fun k hk ↦ (hsplit k hk).2
   intro i
-  refine E.ext fun j ↦ ?_
-  rw [limb_zero]
+  refine Ext.ext fun j ↦ ?_
+  rw [show Ext.coeff (0 : E) j = 0 from Ext.coeff_zero (P := eParams) j]
   fin_cases j
-  exacts [ha i, hb i, hc i]
+  exacts [ha i, hb i]
+
+/-- A nonzero error family leaves a nonzero pairing `π_{8p + b}`, `p, b < 8`. -/
+theorem exists_frobPair_ne {δ : Fin 64 → E} (hδ : δ ≠ 0) :
+    ∃ p : Fin 8, ∃ b : Fin 8, frobPair univ ringW δ (8 * p + b) ≠ 0 := by
+  by_contra hall
+  simp only [not_exists, not_not] at hall
+  refine hδ (funext (ringSwitch_injective δ fun k hk ↦ ?_))
+  have h := hall ⟨k / 8, by omega⟩ ⟨k % 8, by omega⟩
+  rwa [frobPair, show 8 * (k / 8) + k % 8 = k from Nat.div_add_mod k 8] at h
+
+/-- **Ring switching's soundness, counting form** (Annex A, §A.4): for a nonzero error family
+`δ`, the drawn map `Φ = frobPhi 8 f g` cancels `Σ_i x^i Φ(δ_i)` at no more than `2·|E|^15` of
+the challenges `(f, g)`. -/
+theorem card_ringSwitch_zero_le {δ : Fin 64 → E} (hδ : δ ≠ 0) :
+    Nat.card {fg : (Fin 8 → E) × (Fin 8 → E) //
+      ∑ i, ringW i * frobPhi 8 fg.1 fg.2 (δ i) = 0} ≤ 2 * Nat.card E ^ 15 := by
+  classical
+  let := Fintype.ofFinite E
+  rw [Nat.card_eq_fintype_card, Fintype.card_subtype, Nat.card_eq_fintype_card]
+  exact card_frobPhi_zero_le univ ringW δ 8 (exists_frobPair_ne hδ)
+
+/-- **Ring switching's soundness**: for a nonzero error family, the fraction of the challenges
+`(f, g) ∈ E^8 × E^8` at which `Σ_i x^i Φ(δ_i) = 0` is at most `2/|E|`. -/
+theorem ringSwitch_zero_ratio_le {δ : Fin 64 → E} (hδ : δ ≠ 0) :
+    (Nat.card {fg : (Fin 8 → E) × (Fin 8 → E) //
+        ∑ i, ringW i * frobPhi 8 fg.1 fg.2 (δ i) = 0} : ℝ≥0∞) /
+      (Nat.card ((Fin 8 → E) × (Fin 8 → E)) : ℝ≥0∞) ≤ 2 / (Nat.card E : ℝ≥0∞) := by
+  have hc : Nat.card ((Fin 8 → E) × (Fin 8 → E)) = Nat.card E * Nat.card E ^ 15 := by
+    simp only [Nat.card_prod, Nat.card_fun, Nat.card_fin]
+    rw [← pow_add, ← pow_succ']
+  have hE : (Nat.card E : ℝ≥0∞) ≠ 0 := by rw [natCard_E]; positivity
+  have hE' : (Nat.card E : ℝ≥0∞) ^ 15 ≠ 0 := pow_ne_zero _ hE
+  have hT : (Nat.card E : ℝ≥0∞) ^ 15 ≠ ⊤ := ENNReal.pow_ne_top (ENNReal.natCast_ne_top _)
+  rw [hc, Nat.cast_mul, Nat.cast_pow]
+  calc _ ≤ ((2 * Nat.card E ^ 15 : ℕ) : ℝ≥0∞) / ((Nat.card E : ℝ≥0∞) * (Nat.card E : ℝ≥0∞) ^ 15) := by
+        gcongr
+        exact_mod_cast card_ringSwitch_zero_le hδ
+    _ = 2 / (Nat.card E : ℝ≥0∞) := by
+        rw [Nat.cast_mul, Nat.cast_pow, Nat.cast_ofNat, ENNReal.mul_div_mul_right _ _ hE' hT]
 
 end
 end LeanVM.Protocol.Ring

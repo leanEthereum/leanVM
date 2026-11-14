@@ -12,19 +12,19 @@
 //! 1. per *row byte* with a nonzero weight (the same byte of the five lanes of a row, which `chi`
 //!    mixes): the five lane bytes' embeddings, the products of each active lane byte, and their
 //!    bit transposes into column bytes, staged register by register in a per-thread buffer;
-//! 2. per staged register, every active lane byte's 24 matrices applied into accumulators held in
-//!    registers (eight at a time on AVX2, all 24 with AVX-512), then one byte transpose back to
+//! 2. per staged register, every active lane byte's 16 matrices applied into accumulators held in
+//!    registers (eight at a time on AVX2, all 16 with AVX-512), then one byte transpose back to
 //!    field elements.
 //!
 //! The 8x8 byte transpose without VPERMB ([`transpose_bytes8x8`]) leaves the positions in a fixed
 //! order ([`TRANSPOSED_ORDER`]), which the matrices absorb ([`COLUMN_BIT_POSITION`]).
 //!
 //! The two-phase outer-product scheme follows hashmancer-keccak's GFNI kernels; the code here is
-//! written for this crate's layout (16-instance packs, 192-bit weights).
+//! written for this crate's layout (16-instance packs, 128-bit weights).
 
 use core::arch::x86_64::*;
 
-use primitives::field::F192;
+use primitives::field::F128;
 
 use crate::keccak::BITS;
 use crate::kernels::{PACKS, embed, products};
@@ -34,7 +34,7 @@ use crate::witness::words;
 /// Staged registers per active lane byte: 32 column bytes each, six coefficient bytes per pack.
 const STAGED: usize = PAYLOAD_BITS / 32;
 /// Bytes of a weight.
-const WEIGHT_BYTES: usize = 24;
+const WEIGHT_BYTES: usize = 16;
 
 type V = __m256i;
 
@@ -119,15 +119,15 @@ const fn staged_index(r: usize, a: usize, n_active: usize) -> usize {
 
 /// Bit `n` of a weight.
 #[inline(always)]
-fn bit(w: F192, n: usize) -> u8 {
+fn bit(w: F128, n: usize) -> u8 {
     (w.to_limbs()[n / 64] >> (n % 64)) as u8 & 1
 }
 
-/// The 24 matrices of a lane byte's weights: `M_b` maps a column byte (bit `i` = position
+/// The 16 matrices of a lane byte's weights: `M_b` maps a column byte (bit `i` = position
 /// `COLUMN_BIT_POSITION[i]`) to byte `b` of the sum of the weights it selects. An affine byte map
 /// reads output bit `i` off matrix byte `7 - i`, whose bit `k` is then bit `8 b + i` of
 /// `w[COLUMN_BIT_POSITION[k]]`.
-fn lane_byte_matrices(w: &[F192]) -> [u64; WEIGHT_BYTES] {
+fn lane_byte_matrices(w: &[F128]) -> [u64; WEIGHT_BYTES] {
     std::array::from_fn(|b| {
         (0..8).fold(0u64, |m, i| {
             let row = (0..8).fold(0u8, |row, k| row | bit(w[COLUMN_BIT_POSITION[k]], 8 * b + i) << k);
@@ -150,17 +150,17 @@ pub struct Scratch {
     /// The staged registers of a block, laid out by [`staged_index`].
     staged: Vec<V>,
     acc: Box<[[V; WEIGHT_BYTES]; STAGED]>,
-    /// Per payload bit, its weighted sum's three words.
-    pub out: Box<[[u64; 3]; PAYLOAD_BITS]>,
+    /// Per payload bit, its weighted sum's two words.
+    pub out: Box<[[u64; 2]; PAYLOAD_BITS]>,
 }
 
 impl ProductSums {
-    pub fn new(weights: &[F192]) -> Self {
+    pub fn new(weights: &[F128]) -> Self {
         assert!(weights.len() >= BITS);
         let lane_bytes: Vec<Option<[u64; WEIGHT_BYTES]>> = (0..BITS / 8)
             .map(|o| {
                 let w = &weights[8 * o..8 * o + 8];
-                w.iter().any(|&x| x != F192::ZERO).then(|| lane_byte_matrices(w))
+                w.iter().any(|&x| x != F128::ZERO).then(|| lane_byte_matrices(w))
             })
             .collect();
         let mut row_bytes = Vec::new();
@@ -184,7 +184,7 @@ impl ProductSums {
         Scratch {
             staged: vec![zero; STAGED * self.matrices.len()],
             acc: Box::new([[zero; WEIGHT_BYTES]; STAGED]),
-            out: Box::new([[0; 3]; PAYLOAD_BITS]),
+            out: Box::new([[0; 2]; PAYLOAD_BITS]),
         }
     }
 
@@ -264,7 +264,7 @@ impl ProductSums {
         }
     }
 
-    /// Phase 2: per staged register, every active lane byte through its 24 matrices, eight
+    /// Phase 2: per staged register, every active lane byte through its 16 matrices, eight
     /// accumulators at a time in registers.
     #[cfg(not(all(target_feature = "avx512f", target_feature = "avx512bw")))]
     fn accumulate(&self, staged: &[V], n_active: usize, acc: &mut [[V; WEIGHT_BYTES]; STAGED]) {
@@ -289,7 +289,7 @@ impl ProductSums {
     }
 
     /// Phase 2 with AVX-512: per pair of staged registers (one 512-bit load), every active lane byte
-    /// through its 24 matrices, all 24 accumulators in registers, two lane bytes per three-way XOR.
+    /// through its 16 matrices, all 16 accumulators in registers, two lane bytes per three-way XOR.
     #[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
     fn accumulate(&self, staged: &[V], n_active: usize, acc: &mut [[V; WEIGHT_BYTES]; STAGED]) {
         assert!(staged.len() >= STAGED * n_active);
@@ -301,11 +301,11 @@ impl ProductSums {
             unsafe {
                 let ld = |a: usize| _mm512_loadu_si512(staged.as_ptr().add(staged_index(2 * pair, a, n_active)).cast());
                 let bc = |m: u64| _mm512_set1_epi64(m as i64);
-                let mut a24 = [_mm512_setzero_si512(); WEIGHT_BYTES];
+                let mut sums = [_mm512_setzero_si512(); WEIGHT_BYTES];
                 let mut a = 0;
                 while a + 1 < n_active {
                     let (c0, c1, m0, m1) = (ld(a), ld(a + 1), &matrices[a], &matrices[a + 1]);
-                    for (b, ab) in a24.iter_mut().enumerate() {
+                    for (b, ab) in sums.iter_mut().enumerate() {
                         let g0 = _mm512_gf2p8affine_epi64_epi8(c0, bc(m0[b]), 0);
                         let g1 = _mm512_gf2p8affine_epi64_epi8(c1, bc(m1[b]), 0);
                         *ab = _mm512_ternarylogic_epi64(*ab, g0, g1, 0x96);
@@ -314,12 +314,12 @@ impl ProductSums {
                 }
                 if a < n_active {
                     let (c0, m0) = (ld(a), &matrices[a]);
-                    for (b, ab) in a24.iter_mut().enumerate() {
+                    for (b, ab) in sums.iter_mut().enumerate() {
                         *ab = _mm512_xor_si512(*ab, _mm512_gf2p8affine_epi64_epi8(c0, bc(m0[b]), 0));
                     }
                 }
                 // The low half is staged register `2 pair`, the high one `2 pair + 1`.
-                for (b, ab) in a24.iter().enumerate() {
+                for (b, ab) in sums.iter().enumerate() {
                     acc[2 * pair][b] = _mm512_castsi512_si256(*ab);
                     acc[2 * pair + 1][b] = _mm512_extracti64x4_epi64::<1>(*ab);
                 }
@@ -329,27 +329,17 @@ impl ProductSums {
 
     /// The accumulators as field elements: register `r`'s accumulator `b` byte `n` is byte `b` of
     /// payload bit `32 r + n`'s sum.
-    fn to_field_elements(acc: &[[V; WEIGHT_BYTES]; STAGED], out: &mut [[u64; 3]; PAYLOAD_BITS]) {
+    fn to_field_elements(acc: &[[V; WEIGHT_BYTES]; STAGED], out: &mut [[u64; 2]; PAYLOAD_BITS]) {
         for (r, acc) in acc.iter().enumerate() {
-            // SAFETY: AVX2 is enabled at compile time; the stores write 16 bytes into checked
-            // `[u64; 3]` entries.
+            // SAFETY: AVX2 is enabled at compile time; each store writes one 16-byte `[u64; 2]` entry.
             unsafe {
-                let mut lo: [V; 16] = std::array::from_fn(|b| acc[b]);
-                let z = _mm256_setzero_si256();
-                let mut hi: [V; 16] = std::array::from_fn(|b| if b < 8 { acc[16 + b] } else { z });
-                primitives::bits::transpose_bytes16x16_per_lane256(&mut lo);
-                primitives::bits::transpose_bytes16x16_per_lane256(&mut hi);
-                // lo[k] lane l: bytes 0..16 of payload bit 32 r + 16 l + k; hi[k]: bytes 16..24.
-                for k in 0..16 {
-                    for l in 0..2 {
-                        let o = &mut out[32 * r + 16 * l + k];
-                        let (v, w) = if l == 0 {
-                            (_mm256_castsi256_si128(lo[k]), _mm256_castsi256_si128(hi[k]))
-                        } else {
-                            (_mm256_extracti128_si256(lo[k], 1), _mm256_extracti128_si256(hi[k], 1))
-                        };
-                        _mm_storeu_si128(o.as_mut_ptr().cast(), v);
-                        o[2] = _mm_cvtsi128_si64(w) as u64;
+                let mut sums = *acc;
+                primitives::bits::transpose_bytes16x16_per_lane256(&mut sums);
+                // sums[k] lane l: the 16 bytes of payload bit 32 r + 16 l + k.
+                for (k, &sum) in sums.iter().enumerate() {
+                    let halves = [_mm256_castsi256_si128(sum), _mm256_extracti128_si256::<1>(sum)];
+                    for (l, v) in halves.into_iter().enumerate() {
+                        _mm_storeu_si128(out[32 * r + 16 * l + k].as_mut_ptr().cast(), v);
                     }
                 }
             }

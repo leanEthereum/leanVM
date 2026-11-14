@@ -45,7 +45,7 @@ theorem forall₂_of_map_length : ∀ (l : List (List E)) (ss : List ℕ), l.map
     simp only [List.map_cons, List.cons.injEq] at h
     exact .cons h.1.le (forall₂_of_map_length l ss h.2)
 
-theorem length_daCells (c : DaClaim) : (daCells c).length = 4 := by
+theorem length_daCells (c : DaClaim) : (daCells c).length = 3 := by
   simp [daCells, B1.Digest.digestCells]
 
 theorem length_claimCells (r p : BitVec 128) (m : BitVec 256) : (claimCells r p m).length = 4 := by
@@ -121,8 +121,8 @@ theorem hW_eq (c : ℕ) : hW s w c = (hRawX s w).length + (hRawS s w).length +
 theorem length_raw {α W : Type} (l : List (α × W)) : (l.map (·.1)).length = l.length := by simp
 
 /-- **After the last child, the running count is the coverage table's size.** -/
-theorem hW_total (hl : DeployedLimits s w) : hW s w w.children.length = planSlots s w := by
-  rw [hW_eq, List.take_length, coverage_made hl, length_made, length_made]
+theorem hW_total (hl : GuestLimits s w) : hW s w w.children.length = planSlots s w := by
+  rw [hW_eq, List.take_length, coverage_made hl.toDeployedLimits, length_made, length_made]
   simp only [hRawX, hRawS, length_raw, List.map_map]
   simp only [Function.comp_def]
   omega
@@ -184,20 +184,13 @@ theorem daPick_digest (hr : NodeRelation bytecode seed s w) :
           List.getElem_append_left (by simp; omega), List.getElem_map]
         exact beq_iff_eq.mp hp
 
-theorem daCells_canon (c : DaClaim) : AllCanonical (daCells c) := by
-  intro x hx
-  simp only [daCells, B1.Digest.digestCells, List.mem_append, List.mem_cons, List.not_mem_nil,
-    or_false] at hx
-  rcases hx with (rfl | rfl) | (rfl | rfl)
-  exacts [(digestScalars_canonical _).1, (digestScalars_canonical _).2,
-    (isCanonical128_ofLimbs_iff _ _ _).mpr rfl, (isCanonical128_ofLimbs_iff _ _ _).mpr rfl]
-
 theorem daCells_bytes (c : DaClaim) :
-    cellsBytes (daCells c) = digestBytes c.daRoot ++ E.toBytes c.membershipChallenge ++
-      List.replicate 8 0 := by
+    cellsBytes (daCells c ++ [0]) = digestBytes c.daRoot ++ E.toBytes c.membershipChallenge ++
+      List.replicate 16 0 := by
+  have e0 : Keccak.cellBytes (0 : E) = List.replicate 16 0 := by decide +kernel
   rw [digestBytes_eq_cells]
-  simp [daCells, B1.Digest.digestCells, cellsBytes, Keccak.scalarCells, Keccak.cellBytes, E.toBytes,
-    List.append_assoc]
+  simp only [daCells, B1.Digest.digestCells, cellsBytes, List.cons_append, List.nil_append,
+    List.flatMap_cons, List.flatMap_nil, List.append_nil, e0, List.append_assoc]
   rfl
 
 /-- A run of digests' cells: digest `k`'s at `2k`. -/
@@ -214,27 +207,27 @@ theorem readsAt_digests {rd : Reader} {p : E} {L : List Digest}
   exact h.2.1
 
 /-- **`main`'s honest counts are within its bounds**, under the deployed limits. -/
-theorem hData_bounds (hl : DeployedLimits s w) (fs : String → ℕ) (fp : ℕ) :
-    MainBounds ((hData seed s w).toIn fs fp) := by
-  have hc := hl.planSlotsBelow2Pow16
+theorem hData_bounds (hl : GuestLimits s w) (fs : String → ℕ) (fp : ℕ) :
+    MainBounds (2 ^ 23) ((hData seed s w).toIn fs fp) := by
+  have hc := hl.planSlotsBelow2Pow23
   rw [coverage_eq] at hc
   have hx : w.xmssSignatures.length ≤ (s.claims.xmss ++ (xPlan s w).duplicates).length :=
-    raw_le_table s.claims.xmss w.xmssSignatures _ (xPlan_held hl)
+    raw_le_table s.claims.xmss w.xmssSignatures _ (xPlan_held hl.toDeployedLimits)
   have hs : w.sphincsSignatures.length ≤
       (s.claims.sphincs ++ (sPlan s w).duplicates).length :=
-    raw_le_table s.claims.sphincs w.sphincsSignatures _ (sPlan_held hl)
+    raw_le_table s.claims.sphincs w.sphincsSignatures _ (sPlan_held hl.toDeployedLimits)
   simp only [List.length_append] at hc hx hs
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, hl.atMostSixteenChildren, ?_, ?_, daPick_le, fun h => ?_, fun h => ?_⟩
-  · show s.claims.xmss.length ≤ 65535; omega
-  · show (xPlan s w).duplicates.length ≤ 65535; omega
-  · show w.xmssSignatures.length ≤ 65535; omega
-  · show s.claims.sphincs.length ≤ 65535; omega
-  · show (sPlan s w).duplicates.length ≤ 65535; omega
-  · show w.sphincsSignatures.length ≤ 65535; omega
+  · show s.claims.xmss.length < 2 ^ 23; omega
+  · show (xPlan s w).duplicates.length < 2 ^ 23; omega
+  · show w.xmssSignatures.length < 2 ^ 23; omega
+  · show s.claims.sphincs.length < 2 ^ 23; omega
+  · show (sPlan s w).duplicates.length < 2 ^ 23; omega
+  · show w.sphincsSignatures.length < 2 ^ 23; omega
   · show (w.daMatrix.map fun _ => 1).getD 0 ≤ 1
     cases w.daMatrix <;> simp
   · show s.claims.xmss.length + (xPlan s w).duplicates.length +
-      (s.claims.sphincs.length + (sPlan s w).duplicates.length) ≤ 65535
+      (s.claims.sphincs.length + (sPlan s w).duplicates.length) < 2 ^ 23
     omega
   · have h' : (w.daMatrix.map fun _ => 1).getD 0 = 1 := h
     show daPick s w = w.children.length
@@ -242,11 +235,10 @@ theorem hData_bounds (hl : DeployedLimits s w) (fs : String → ℕ) (fp : ℕ) 
     | none => simp [hw] at h'
     | some p => exact daPick_da (by simp [hw])
   · have h' : (w.daMatrix.map fun _ => 1).getD 0 = 1 := h
-    show ((w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0, 0]).length = 4 ∧
-      AllCanonical ((w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0, 0])
+    show ((w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0]).length = 3
     cases hw : w.daMatrix with
     | none => simp [hw] at h'
-    | some p => exact ⟨length_daCells _, daCells_canon _⟩
+    | some p => exact length_daCells _
 
 /-! ## `main`'s words on an honest memory -/
 
@@ -262,7 +254,7 @@ theorem mem_bufL_getD {b : ℕ} {sizes : List ℕ} {own : List (List E)} (hlen :
 
 /-- **`main`'s header-free reads hold on a memory holding its honest buffers.** -/
 theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytecode seed s w)
-    (hf : FreshShaped w) (hl : DeployedLimits s w) (fs : String → ℕ) (fp : ℕ) (rd : Reader)
+    (hf : FreshShaped w) (hl : GuestLimits s w) (fs : String → ℕ) (fp : ℕ) (rd : Reader)
     (hM : B1.Main.MemL rd (bufL (fp + fs "main") (mSizes (hData seed s w)) (hOwn seed s w)))
     (h0 : LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1)
     (h1 : LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2) :
@@ -300,7 +292,7 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytec
     | some p =>
       have e1 : hOwnDa w = daClaimDigest p.1 := by simp [hOwnDa, hw]
       have e2 : MainIn.ownDa ((hData seed s w).toIn fs fp) =
-          B1.Digest.digestCells (keccak256 (cellsBytes (daCells p.1))) := by
+          B1.Digest.digestCells (keccak256 (cellsBytes (daCells p.1 ++ [0]))) := by
         simp [MainIn.ownDa, hData, MainData.toIn, hw]
       rw [e1, daClaimDigest, ← daCells_bytes] at this
       rw [e2]; exact this

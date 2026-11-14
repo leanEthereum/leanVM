@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.B1.Da.VerifyDefs
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The pure callees
@@ -27,21 +28,48 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory
 
 /-- The level loops of the `da_levels` functions. -/
 def lvlLoops : List String :=
-  ["__loop334", "__loop335", "__loop336", "__loop337", "__loop338", "__loop339", "__loop340",
-  "__loop313", "__loop314", "__loop315", "__loop316", "__loop317", "__loop318", "__loop319",
-  "__loop320", "__loop321", "__loop322", "__loop323", "__loop324", "__loop325", "__loop326",
-  "__loop327", "__loop328", "__loop329", "__loop330", "__loop331", "__loop332", "__loop333",
-  "__loop341", "__loop342", "__loop343", "__loop344", "__loop345", "__loop346", "__loop347",
-  "__loop348", "__loop349", "__loop350", "__loop351", "__loop352", "__loop353", "__loop354",
-  "__loop355", "__loop356", "__loop357", "__loop358", "__loop359", "__loop360", "__loop361",
-  "__loop362", "__loop363", "__loop364", "__loop365", "__loop366", "__loop367"]
+  [name% «da_levels__L2_L1_loop0», name% «da_levels__L4_L2_loop0», name% «da_levels__L4_L2_loop1»,
+      name% «da_levels__L8_L3_loop0», name% «da_levels__L8_L3_loop1»,
+      name% «da_levels__L8_L3_loop2», name% «da_levels__L16_L4_loop0»,
+  name% «da_levels__L16_L4_loop1», name% «da_levels__L16_L4_loop2»,
+      name% «da_levels__L16_L4_loop3», name% «da_levels__L32_L5_loop0»,
+      name% «da_levels__L32_L5_loop1», name% «da_levels__L32_L5_loop2»,
+      name% «da_levels__L32_L5_loop3»,
+  name% «da_levels__L32_L5_loop4», name% «da_levels__L64_L6_loop0»,
+      name% «da_levels__L64_L6_loop1», name% «da_levels__L64_L6_loop2»,
+      name% «da_levels__L64_L6_loop3», name% «da_levels__L64_L6_loop4»,
+      name% «da_levels__L64_L6_loop5»,
+  name% «da_levels__L128_L7_loop0», name% «da_levels__L128_L7_loop1»,
+      name% «da_levels__L128_L7_loop2», name% «da_levels__L128_L7_loop3»,
+      name% «da_levels__L128_L7_loop4», name% «da_levels__L128_L7_loop5»,
+      name% «da_levels__L128_L7_loop6»,
+  name% «da_levels__L256_L8_loop0», name% «da_levels__L256_L8_loop1»,
+      name% «da_levels__L256_L8_loop2», name% «da_levels__L256_L8_loop3»,
+      name% «da_levels__L256_L8_loop4», name% «da_levels__L256_L8_loop5»,
+      name% «da_levels__L256_L8_loop6»,
+  name% «da_levels__L256_L8_loop7», name% «da_levels__L512_L9_loop0»,
+      name% «da_levels__L512_L9_loop1», name% «da_levels__L512_L9_loop2»,
+      name% «da_levels__L512_L9_loop3», name% «da_levels__L512_L9_loop4»,
+      name% «da_levels__L512_L9_loop5»,
+  name% «da_levels__L512_L9_loop6», name% «da_levels__L512_L9_loop7»,
+      name% «da_levels__L512_L9_loop8», name% «da_levels__L1024_L10_loop0»,
+      name% «da_levels__L1024_L10_loop1», name% «da_levels__L1024_L10_loop2»,
+      name% «da_levels__L1024_L10_loop3»,
+  name% «da_levels__L1024_L10_loop4», name% «da_levels__L1024_L10_loop5»,
+      name% «da_levels__L1024_L10_loop6», name% «da_levels__L1024_L10_loop7»,
+      name% «da_levels__L1024_L10_loop8», name% «da_levels__L1024_L10_loop9»]
 
-/-- **The pure callees of `da_verify`**: the cell check, the loops over the blobs (`__loop21`,
-`__loop23`, `__loop24`), the columns' row loop (`__loop25`), the offsets' doubling loops
-(`__loop26` to `__loop32`), the DA levels and their loops. -/
+/-- **The pure callees of `da_verify`**: the cell check, the loops over the blobs
+(`da_verify_loop0`, `da_verify_loop2`, `da_verify_loop3`), the columns' row loop
+(`da_verify_column_loop0`), the offsets' doubling loops
+(`da_column_offsets_loop0` to `da_column_offsets_loop6`), the DA levels and their loops. -/
 def daPureSet : List String :=
-  ["da_verify_cell", "__loop21", "__loop23", "__loop24", "__loop25", "__loop26", "__loop27",
-    "__loop28", "__loop29", "__loop30", "__loop31", "__loop32"] ++ dlNames ++ lvlLoops
+  ["da_verify_cell", name% «da_verify_loop0», name% «da_verify_loop2», name% «da_verify_loop3»,
+      name% «da_verify_column_loop0», name% «da_column_offsets_loop0»,
+      name% «da_column_offsets_loop1»,
+    name% «da_column_offsets_loop2», name% «da_column_offsets_loop3»,
+        name% «da_column_offsets_loop4», name% «da_column_offsets_loop5»,
+        name% «da_column_offsets_loop6»] ++ dlNames ++ lvlLoops
 
 /-- Every member's body places nothing and calls members only. -/
 noncomputable def daPureOk : Bool :=

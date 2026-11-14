@@ -14,12 +14,16 @@ public import LeanXmss.Scheme
 public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.Verifier
 public import LeanVM.Guest.Word
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Protocol.KeccakHash
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The honest hint generator
@@ -30,10 +34,10 @@ of entries in the order the guest pops them, for a run on the statement `s` unde
 at cells `g^0` and `g^1`. They mirror the Rust producers of
 `crates/rec_aggregation/src/aggregation/` (leanVM main `40f877dc`) push for push (`honestPushes`,
 grouped by stream as `Hints::push` does, `aggregation/hints.rs:62-67`): the node's streams
-(`aggregate_with_stats`, `aggregation/node.rs:61-345`), a raw signature's (`lean_xmss_hints`,
+(`aggregate_with_stats`, `aggregation/node.rs:62-348`), a raw signature's (`lean_xmss_hints`,
 `aggregation/hints.rs:100-135`; `lean_sphincs_hints`, `aggregation/hints.rs:147-183`), a child's
-(`gen_verify`, `aggregation/child.rs:64-255`), the batching's (`aggregate_deferred_claims`,
-`aggregation/deferred.rs:245-351`) and LeanDA's.
+(`gen_verify`, `aggregation/child.rs:75-260`), the batching's (`aggregate_deferred_claims`,
+`aggregation/deferred.rs:245-354`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
 deferring verifier (`verifyDeferredWith` over Keccak-f[1600], from
@@ -48,7 +52,7 @@ Choices the witness does not fix, made as the Rust makes them:
 
 * **Coverage slots** (`plan`, `take_slot`, `aggregation/coverage.rs:49-116`): the raw signatures
   first, in the witness's order (`NodeWitness.xmssSignatures`, `sphincsSignatures`; the Rust's
-  sorted and deduplicated, `aggregation/node.rs:106-113`), then every child's claims, child by
+  sorted and deduplicated, `aggregation/node.rs:107-114`), then every child's claims, child by
   child; a claim takes its declared slot if it is still free, else the next duplicate slot. The
   deployed lists are strictly sorted, where the first free match is the slot `binary_search`
   finds.
@@ -98,7 +102,7 @@ dispatches on at a time. -/
 def lxDigitGroup : ℕ := 4
 
 /-- `LX_WINDOW` (`aggregation/hints.rs:19`): the leaf index bits a leanXMSS path dispatch covers. -/
-def lxWindow : ℕ := 8
+def lxWindow : ℕ := guest_const% LX_WINDOW
 
 /-! ## Encodings -/
 
@@ -108,8 +112,8 @@ def count (n : ℕ) : E := gpowE n
 /-- A bit as a word. -/
 def bit (b : Bool) : E := if b then 1 else 0
 
-/-- 16 bytes as a canonical cell, limb `0` the first 8 (`pack_16_bytes`). -/
-def cellOfBytes (b : List UInt8) : E := E.ofLimbs (kOfBytes b) (kOfBytes (b.drop 8)) 0
+/-- 16 bytes as a cell, limb `0` the first 8 (`pack_16_bytes`). -/
+def cellOfBytes (b : List UInt8) : E := E.ofLimbs (kOfBytes b) (kOfBytes (b.drop 8))
 
 /-- A byte string's 16-byte cells. -/
 def cellsOfBytes (b : List UInt8) : List E :=
@@ -196,7 +200,7 @@ def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXms
   let (top, _) := xmssLayer pk.parameter LeanXmss.topLayer (LeanXmss.keyIndexOnLayer index
       LeanXmss.topLayer)
     (HashSig.littleEndianBytes 16 root) (σ.layers LeanXmss.topLayer)
-  ("lx_index", shifts.map fun x ↦ word x 0 0) ::
+  ("lx_index", shifts.map fun x ↦ word x 0) ::
     ("lx_windows", shifts.map fun x ↦ count (x % 2 ^ lxWindow)) :: bottom ++ top
 
 /-! ## A leanSPHINCS signature (`lean_sphincs_hints`) -/
@@ -278,7 +282,7 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphi
 /-! ## LeanDA -/
 
 /-- A blob matrix's hints: the claim's membership challenge, the row count and its padded log, and
-every row's cells, column by column (`aggregation/node.rs:289-314`). The Rust pushes the root's
+every row's cells, column by column (`aggregation/node.rs:292-317`). The Rust pushes the root's
 challenge (`membership_challenge`, `crates/verifier/src/da.rs:14-17`), the claim's on an honest
 node. -/
 def daHints (c : DaClaim) (w : Da.MatrixWitness) : List (String × Entry) :=
@@ -325,18 +329,34 @@ def stepChildren (step : ℕ × Digest × Digest) : Entry :=
   if step.1 % 2 = 0 then digestCells step.2.1 ++ digestCells step.2.2
   else digestCells step.2.2 ++ digestCells step.2.1
 
-/-- One level's Merkle hints, from its commitment's height, its query count and its phase of
-openings: per opening its leaf's words and the ordered children below the cap, climbing from its
-leaf index (`merkle_leaf_rows`, `merkle_children`), and the level's cap nodes and their parents'
-activity flags (`aggregation/child.rs:178-222`). -/
-def levelHints (depth count : ℕ) (phase : List Opening) :
-    List (String × Entry) × Entry × Entry :=
-  let capDepth := min (log2Ceil count) depth
+/-- A leaf's lanes as the guest's cells: level `0`'s a `K` lane each, a deeper level's an `E` word
+of two lanes each (`aggregation/child.rs:193-204`). -/
+def leafCells (first : Bool) (leaf : List K) : Entry :=
+  if first then leaf.map ofK
+  else (List.range (leaf.length / 2)).map fun i ↦
+    E.ofLimbs (leaf.getD (2 * i) 0) (leaf.getD (2 * i + 1) 0)
+
+/-- The bits of a query position the guest reads per window (`QUERY_WINDOW_BITS`). -/
+def queryWindowBits : ℕ := 6
+
+/-- A level's cap depth (`merkle_cap_depth`): whole windows below the root, the last ending from
+`log2 count - 5` to five levels below that, and at least two levels deep. -/
+def capDepthOf (count depth : ℕ) : ℕ :=
+  let near := min (max (log2Ceil count - (queryWindowBits - 1)) 2) depth
+  depth - (depth - near) / queryWindowBits * queryWindowBits
+
+/-- One level's Merkle hints, from whether it is level `0`, its commitment's height, its query
+count and its phase of openings: per opening its leaf's cells and the ordered children below the
+cap, climbing from its leaf index (`merkle_leaf_rows`, `merkle_children`), then the level's cap
+nodes and their parents' activity flags (`merkle_caps`, `merkle_cap_active`;
+`aggregation/child.rs:184-232`). -/
+def levelHints (first : Bool) (depth count : ℕ) (phase : List Opening) : List (String × Entry) :=
+  let capDepth := capDepthOf count depth
   let pathDepth := depth - capDepth
   let climbs := phase.map fun o ↦
     (o, climbSteps (2 ^ depth + o.leafIndex) (merkleLeafDigest o.leaf) o.path)
   let pushes := climbs.flatMap fun (o, steps, _) ↦
-    [("merkle_leaf_rows", o.leaf.map ofK),
+    [("merkle_leaf_rows", leafCells first o.leaf),
       ("merkle_children", (steps.take pathDepth).flatMap stepChildren)]
   let capSteps := climbs.flatMap fun (_, steps, _) ↦ steps.drop pathDepth
   let nodes := capSteps.foldl (fun (a : Array Digest) step ↦
@@ -345,16 +365,14 @@ def levelHints (depth count : ℕ) (phase : List Opening) :
   let nodes := climbs.foldl (fun (a : Array Digest) (_, _, root) ↦ a.set! 1 root) nodes
   let active := capSteps.foldl (fun (a : Array E) step ↦ a.set! (step.1 / 2) 1)
     (Array.replicate (2 ^ capDepth) 0)
-  (pushes, nodes.toList.flatMap digestCells, active.toList)
+  pushes ++ [("merkle_caps", nodes.toList.flatMap digestCells), ("merkle_cap_active", active.toList)]
 
 /-- Every level's Merkle hints, each level with its phase of the proof's openings (the levels
-zipped with `proof.merkle`); the caps and the flags of all levels each make one entry. -/
-def merkleHints : List (ℕ × List ℕ) → List (List Opening) → List (String × Entry) × Entry × Entry
+zipped with `proof.merkle`), the first `first`. -/
+def merkleHints (first : Bool) : List (ℕ × List ℕ) → List (List Opening) → List (String × Entry)
   | (depth, positions) :: rest, phase :: phases =>
-    let (pushes, caps, active) := levelHints depth positions.length phase
-    let (pushes', caps', active') := merkleHints rest phases
-    (pushes ++ pushes', caps ++ caps', active ++ active')
-  | _, _ => ([], [], [])
+    levelHints first depth positions.length phase ++ merkleHints false rest phases
+  | _, _ => []
 
 /-- A side's blocks in the order the stacked leaf cube lays them out, by offset. -/
 def blockOrder (sizes : List ℕ) : List ℕ :=
@@ -367,7 +385,7 @@ def runHeads : List ℕ → List ℕ
   | l => l
 
 /-- The group of each key of a run, numbered from `next`: a group is a maximal run of one key
-(`block_groups`, `col_groups`, `aggregation/child.rs:46-57`). -/
+(`block_groups`, `col_groups`, `aggregation/child.rs:57-74`). -/
 def runGroups : ℕ → Option ℕ → List ℕ → List ℕ
   | _, _, [] => []
   | next, prev, k :: ks =>
@@ -379,7 +397,7 @@ framework's three blocks `(0, 0)`, `(1, 0)`, `(0, log_bytecode)`, a table's bloc
 def blockKey (b : BusBlock) : ℕ := 3 + b.owner
 
 /-- Every side's block groups in layout order, each as `g` to its index over the three sides,
-once per group, whose blocks are consecutive (`block_group_order`, `aggregation/child.rs:113-144`):
+once per group, whose blocks are consecutive (`block_group_order`, `aggregation/child.rs:111-145`):
 push and pull after the framework's three blocks, then count; a group is a maximal run of blocks
 of one kappa source within a side. -/
 def blockGroupOrder (layout : Layout) : Entry :=
@@ -397,14 +415,14 @@ def committedColumns (layout : Layout) : List ℕ :=
   (List.range layout.placements.length).filter fun c ↦
     (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
 
-/-- A global column's kappa source, as a key (`col_kappa_sources`, `layout.rs:219-247`): the
-memory's columns and `MFCNT` `(1, 0)`, `BFCNT` `(0, log_bytecode)`, `QKECCAK` its own, a table's
-columns their table. -/
+/-- A global column's kappa source, as a key (`col_kappa_sources`, `layout.rs:211-238`): the
+memory's two columns and `MFCNT` `(1, 0)`, `BFCNT` `(0, log_bytecode)`, `QKECCAK` its own, a
+table's columns their table. -/
 def colKey (c : ℕ) : ℕ :=
-  if c < 4 then 0 else if c < 6 then c - 3 else 3 + (globalColumnBases.filter (· ≤ c)).length
+  if c < 3 then 0 else if c < 5 then c - 2 else 3 + (globalColumnBases.filter (· ≤ c)).length
 
 /-- The committed columns' groups in stack order, each as `g` to its index, once per group,
-whose columns are consecutive (`col_group_order`, `aggregation/child.rs:149-177`): a group is a
+whose columns are consecutive (`col_group_order`, `aggregation/child.rs:147-179`): a group is a
 maximal run of committed columns, in their order, of one kappa source. -/
 def colGroupOrder (layout : Layout) : Entry :=
   let columns := committedColumns layout
@@ -413,16 +431,14 @@ def colGroupOrder (layout : Layout) : Entry :=
   (runHeads (((List.range columns.length).mergeSort fun i j ↦ offset i ≤ offset j).map
     (groups.getD · 0))).map count
 
-/-- A child's hints (`gen_verify`): its proof stream, padded; its claim's value; the Merkle caps;
+/-- A child's hints (`gen_verify`): its proof stream, padded; the Merkle caps;
 the tables' log heights; the two layout orders; and every query's leaf and path. -/
 def childHints (bytecode : List K) (seed : Digest) (c : Child) : List (String × Entry) :=
   match announcedLayoutAndRate bytecode c.proof.stream with
   | none => []
   | some (layout, _) =>
-    let (queries, caps, active) := merkleHints (childQueries bytecode seed c) c.proof.openings
+    let queries := merkleHints true (childQueries bytecode seed c) c.proof.openings
     [("stream", c.proof.stream ++ List.replicate (childStreamCap - c.proof.stream.length) 0),
-      ("bytecode_val", [c.freshClaim.bytecodeValue]),
-      ("merkle_caps", caps), ("merkle_cap_active", active),
       ("zc_tau_max", [count (layout.tableLogHeights.foldl max 0)]),
       ("table_logs", layout.tableLogHeights.map count),
       ("col_group_order", colGroupOrder layout), ("block_group_order", blockGroupOrder layout)] ++
@@ -442,7 +458,7 @@ def slotGaps : ℕ → List ℕ → List ℕ
 
 /-- A child's slots in one scheme's region, if any: the split, then, strictly increasing, the
 flag `1` and the gaps (`child_claim_list_mono`), else the flag `0` and the slots
-(`aggregation/node.rs:243-262`). -/
+(`aggregation/node.rs:245-264`). -/
 def childSlotPushes (offsets : List ℕ) : List (String × Entry) :=
   if offsets = [] then [] else
     ("signers_split", listSplit offsets.length) ::
@@ -450,13 +466,14 @@ def childSlotPushes (offsets : List ℕ) : List (String × Entry) :=
         ("child_mono", [count 1]) :: (slotGaps 0 offsets).map fun d ↦ ("child_claim_gap", [count d])
       else ("child_mono", [count 0]) :: offsets.map fun o ↦ ("child_claim_index", [count o])
 
-/-- The batching's hints: the sumcheck's rounds and the bytecode's value at its end. -/
+/-- The batching's hints: the proof of work's nonce, the sumcheck's rounds and the bytecode's value at
+its end. -/
 def batchPushes (h : BatchingHints) : List (String × Entry) :=
-  [("bc_sumcheck_msgs", h.sumcheckMessages.flatMap fun r ↦ [r.1, r.2]),
+  [("bc_sumcheck_msgs", h.lambdaGrindNonce :: h.sumcheckMessages.flatMap fun r ↦ [r.1, r.2]),
     ("bc_star_hint", [h.finalBytecodeValue])]
 
 /-- The DA digest the node publishes, as the slot of `da_digests` it picks (`da_pick`,
-`aggregation/node.rs:87-103`): its own (`n`, the children's count) when it checks a matrix or
+`aggregation/node.rs:88-104`): its own (`n`, the children's count) when it checks a matrix or
 publishes zeros, else the first child whose DA digest it publishes. -/
 def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
   if w.daMatrix.isSome || s.claims.daDigest == zeroDigest then w.children.length

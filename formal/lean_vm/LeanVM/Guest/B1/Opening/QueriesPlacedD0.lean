@@ -25,30 +25,36 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 /-- **`opening_queries` deeper is `CompleteAtB`.** -/
 theorem oqMain0_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
-    {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd)
-    {name wlk loop : String} (hW : WalkFn wlk s.pd s.cd) {fm fl : Fn}
+    {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb0 : s.base = 0) (hpd1 : 1 ≤ s.pd)
+    (hcd : 2 ≤ s.cd) {name wlk loop : String} (hW : WalkFn coreProgram wlk s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
-    (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
+    (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
     (hbm : fm.body = oqMainT s 0 wlk loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop0T s wlk loop) (hlp : coreProgram.loop loop = true)
-    {Lin : Main.Layout} {N : ℕ} (hN : N + 1 < ordG) {ecap eflags eqp ewp : ℕ} {lam lamN : E}
-    (hlam : lam ≠ 0) {w : ℕ → E} {eb qs : ℕ → ℕ} {rows : ℕ → List K} {sibs : ℕ → List Digest}
-    (hst : ∀ k < N, qs k < 2 ^ (s.pd + s.cd) ∧ (rows k).length = s.R ∧ (sibs k).length = s.pd)
-    (hreg : OqLinReg (RegionL Lin) s ecap eflags eqp ewp eb qs N)
+    {Lin : Main.Layout} {N : ℕ} (hN : N + 1 < ordG) {ecap eflags ecoefs ehs epos eqp : ℕ}
+    {lamInv : E} {rounds : List FoldRound} {hsv : List E} (hrl : rounds.length = s.folds)
+    (hhl : s.final = 1 → hsv.length = s.nHs) {eb qs : ℕ → ℕ} {rows : ℕ → List K}
+    {sibs : ℕ → List Digest}
+    (hst : OqStatic s rounds hsv qs rows sibs N)
+    (hreg : OqLinReg (RegionL Lin) s ecap eflags ecoefs ehs epos eqp eb qs N)
     (hmem : ∀ rd, LowDef κ rd → MemL rd Lin →
       OqLinMem rd s (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex eflags))
-        (ofK (Parameters.addressOfIndex ewp)) (ofK (Parameters.addressOfIndex eqp)) w eb qs rows
-            sibs N) :
+        (ofK (Parameters.addressOfIndex ecoefs)) (ofK (Parameters.addressOfIndex ehs))
+        (ofK (Parameters.addressOfIndex epos)) (ofK (Parameters.addressOfIndex eqp)) rounds hsv eb
+        qs rows sibs N) :
     CompleteAtB fs cert κ name Lin
-      [ofK (Parameters.addressOfIndex ecap), ofK (Parameters.addressOfIndex eflags), lam, lamN,
-        ofK (Parameters.addressOfIndex eqp), ofK (Parameters.addressOfIndex ewp), gen ^ N]
-      (Returns [oqChain 0 s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN])
+      [ofK (Parameters.addressOfIndex ecap), ofK (Parameters.addressOfIndex eflags), lamInv,
+        ofK (Parameters.addressOfIndex ecoefs), ofK (Parameters.addressOfIndex ehs),
+        ofK (Parameters.addressOfIndex epos), ofK (Parameters.addressOfIndex eqp), gen ^ N]
+      (Returns [if s.final = 1 then 0 else
+        oqChain 0 s.base lamInv (fun k ↦ foldRow (lanesOf s.base (rows k)) (K.ofBits (qs k)) rounds) N])
       (fs name + (N + 1) + (N + 1) * fs loop + N * fs wlk) := by
   intro fp
-  set ds : ℕ → E := fun k ↦ rowDot s.base s.I (rows k) w with hds
+  set W := oqW qs rows sibs with hWd
+  set ds : ℕ → E := fun k ↦ oqResV s rounds (W k) with hds
   obtain ⟨chainL, hchainL⟩ : ∃ L : Main.Layout,
-      L = [(fp + fs name, oqChainVals 0 s.base lam ds N)] := ⟨_, rfl⟩
+      L = [(fp + fs name, oqChainVals 0 s.base lamInv ds N)] := ⟨_, rfl⟩
   have wChain : Within chainL (fp + fs name) (N + 1) := by
     intro x hx
     simp only [hchainL, List.mem_singleton] at hx
@@ -61,28 +67,28 @@ theorem oqMain0_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     by simpa using dAll, le_of_eq (by rw [hn]; ring), fun rd hlow hm ↦ ?_⟩
   rw [List.nil_append, Main.memL_append] at hm
   obtain ⟨hmChain, hmLin⟩ := hm
-  obtain ⟨hw, hk⟩ := hmem rd hlow hmLin
+  have hk := hmem rd hlow hmLin
   have hch : ∀ i ≤ N, LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) i
-      (oqChain 0 s.base lam⁻¹ ds i) := by
+      (oqChain 0 s.base lamInv ds i) := by
     intro i hi
-    have := hmChain (fp + fs name, oqChainVals 0 s.base lam ds N) (by rw [hchainL]; simp) i
+    have := hmChain (fp + fs name, oqChainVals 0 s.base lamInv ds N) (by rw [hchainL]; simp) i
       (by simp [oqChainVals]; omega)
     simpa [oqChainVals] using this
   refine relAtIn_dmono (D := fun _ ↦ False) ?_ (fun i hi ↦ absurd hi (regionL_nil i))
-  refine oqMain0_placed (hNv := oqChain 0 s.base lam⁻¹ ds N)
-    (r := rows) (w := fun _ ↦ w) (q := qs) (sb := sibs)
-    (bp := fun j ↦ ofK (Parameters.addressOfIndex (eb j))) (v := fun j ↦ oqChain 0 s.base
-        lam⁻¹ ds j)
-    coreProgram_wf fs cert hs hpd1 hcd hW hfm hpm hbm hfl hpl hbl hlp hN hlam
-    (by simpa [oqChain] using hch 0 (by omega)) (hch N le_rfl) (fun j hj ↦ ?_)
-  obtain ⟨a1, a2, a3, a4, a5⟩ := hk j hj
-  obtain ⟨qa, ra, sa⟩ := hst j hj
-  refine ⟨qdOk_of_mem ra sa qa a2 hw a3 a4 a5, a1, hch j (by omega), ?_,
-    ⟨eqp + j, ?_, Or.inl (hreg.2 j hj).1⟩,
-    (oqQReg_of hreg hj).mono fun i hi ↦ Or.inl hi, fun e he ↦ ?_⟩
+  rw [← oqRet_eq s 0 lamInv rounds qs rows sibs N]
+  refine oqMain0_placed (rounds := rounds) (hsv := hsv) (hNv := oqChain 0 s.base lamInv ds N)
+    (w := W) (bp := fun j ↦ ofK (Parameters.addressOfIndex (eb j)))
+    (v := fun j ↦ oqChain 0 s.base lamInv ds j)
+    coreProgram_wf fs cert hs hfin hpd1 hcd hW hfm hpm hbm hfl hpl hbl hlp hN
+    (by simpa [oqChain] using hch 0 (by omega)) (fun _ ↦ hch N le_rfl) (fun j hj ↦ ?_)
+  obtain ⟨xa, ba, -⟩ := hk.2.2 j hj
+  refine ⟨qdOk_of_lin hrl hhl hst hk hj _ _ _, xa, ba, fun _ ↦ ⟨hch j (by omega), ?_⟩,
+    ⟨epos + j, ?_, Or.inl (hreg.2.2 j hj).1⟩, ⟨eqp + j, ?_, Or.inl (hreg.2.2 j hj).2.1⟩,
+    (oqQReg_of hreg hj).mono fun i hi ↦ Or.inl hi, fun _ e he ↦ ?_⟩
   · have := hch (j + 1) (by omega)
     rw [oqChain_succ_zero hb0] at this
     exact this
+  · rw [addr_gpow, Nat.add_zero]
   · rw [addr_gpow, Nat.add_zero]
   · refine ⟨fp + fs name + (j + e), ?_, Or.inr ⟨by omega, by omega⟩⟩
     rw [addr_gpow, Nat.add_assoc]

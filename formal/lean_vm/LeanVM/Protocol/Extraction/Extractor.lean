@@ -48,13 +48,17 @@ linear in the bytecode; it is infeasible at deployed sizes except on a word with
    and column `v` of the word is the leaf holding the values of the `64` lanes at the domain point
    `x_v = K.ofBits v`, in reverse order (`whir.rs:198-207`, `row.iter().rev()`): the binary
    Reed–Solomon code of Annex B, §B.2 (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
-   and the encoder of Annex D, `def:enc` (`doc/leanvm/body/d-novel-basis.tex`). The candidates are
-   the stacks whose encoding agrees with the word on at least the Johnson threshold of columns
+   and the encoder of Annex D, `def:enc` (`doc/leanvm/body/d-novel-basis.tex`). Level 0's list is
+   at its degree `2^(μ−6) − 1 + 6` (Annex B: every fold round of a level is analysed at the
+   level's final degree), so the candidates are the low parts (the first `2^(μ−6)` novel-basis
+   coefficients of each lane) of the `64`-lane tuples of polynomials of degree below
+   `2^(μ−6) + 6` that agree with the word on at least the Johnson threshold of columns
    (`johnsonThreshold`), at most `2^12` at every admissible shape. The extractor lists them: it
-   decodes each lane with the Guruswami–Sudan list decoder over `K` (`gsLaneAt`), and extends
-   prefixes of lanes one lane at a time, keeping a prefix while its lanes agree with the word on at
-   least the threshold of common columns (`pruneUpTo`). Every candidate is listed (proved). A word
-   without errors, an honest prover's, is decoded first by interpolation alone (`fastStacks`).
+   decodes each lane with the Guruswami–Sudan list decoder over `K` at that degree (`gsLaneAt`),
+   and extends prefixes of lanes one lane at a time, keeping a prefix while its lanes agree with
+   the word on at least the threshold of common columns (`pruneUpTo`); a surviving tuple's stack
+   is its lanes' low parts (`stackOf`). Every candidate is listed (proved). A word without errors,
+   an honest prover's, is decoded first by interpolation alone (`fastStacks`).
 4. **The execution** (`candidateExecutionIn`): a listed stack's memory image run from the initial
    state for at most as many steps as the announced tables have rows (`stepCap`; a halting run
    never repeats a state and each of its steps takes a row of its own, so a valid execution a
@@ -62,9 +66,10 @@ linear in the bytecode; it is infeasible at deployed sizes except on a word with
    the public input at its boundary, a valid execution; `none` if there is none.
 
 **Cost**, in operations of `K`, 64-bit words and byte comparisons; `N` the number of evaluations
-given, `n = 2^(κ+R)` the columns (`κ = μ − 6 ≤ 22`, `R ≤ 4`), `k = 2^κ`, `L` the list size (at most
+given, `n = 2^(κ+R)` the columns (`κ = μ − 6 ≤ 22`, `R ≤ 4`), `k = 2^κ + 6` the message length,
+`L` the list size (at most
 `2^12` candidates, `LeanVM.candidates_ncard_le`, and at most `2^12` prefixes kept after any number
-of lanes, `pruneUpTo_length_le`), `m ≤ 256` the decoder's multiplicity, `ℓ ≤ 513` its
+of lanes, `pruneUpTo_length_le`), `m ≤ 90` the decoder's multiplicity, `ℓ ≤ 129` its
 `Y`-degree, `w = m·A − 1` its weighted degree and `|Q| ≈ n·m(m+1)/2` its coefficients
 (`gsMultiplicityAt`), `M = 2^logMemory`, `B = 2^logBytecode`. The figures are at the worst shape
 over all 64 lanes, from `lean_vm/scripts/extractor-cost` (a model of the code, not a proof):
@@ -74,10 +79,10 @@ over all 64 lanes, from `lean_vm/scripts/extractor-cost` (a model of the code, n
 | sizes and root (`afterRoot`) | the stream's first `10` scalars; the bytecode's length | |
 | the evaluations (`keccakEvaluationsOfTranscript`, `lookupEvaluation`) | linear lookups on byte strings: a chain of `N` padded blocks makes `136·N³/6` byte comparisons | in `N` |
 | Merkle inversion (`committedLeaves`) | `N` evaluations, then `2^(height+1)` scans of `N` pairs | `2^27·N` |
-| interpolation (`gsLaneAt`: Lee–O'Sullivan, Mulders–Storjohann) | `(ℓ+1)³·(m·n)²` per lane | `2^88.6` |
-| roots (Roth–Ruckenstein, `substituteYRootPlusXY`) | per substitution, `|Q|·ℓ/2` monomials added one by one to a dense accumulator (`|Q|²·ℓ/2`) and as many bignum binomials; `k` substitutions per path, `1` to `ℓ` paths | `2^103.6` to `2^110.6` |
-| final root check (`isRootYDegreeLtBool`) | `ℓ·(w + ℓ·k)²` per candidate (quadratic `mulRaw`), at most `ℓ` per lane | `2^79.7` |
-| distance filter, novel coefficients (`toNovel`, `novelInv`, `novelFwd`) | `n·k` per candidate; `κ·2^(κ+R)` butterflies | `2^60.9` |
+| interpolation (`gsLaneAt`: Lee–O'Sullivan, Mulders–Storjohann) | `(ℓ+1)³·(m·n)²` per lane | `2^89.1` |
+| roots (Roth–Ruckenstein, `substituteYRootPlusXY`) | per substitution, `|Q|·ℓ/2` monomials added one by one to a dense accumulator (`|Q|²·ℓ/2`) and as many bignum binomials; `k` substitutions per path, `1` to `ℓ` paths | `2^104.1` to `2^111.1` |
+| final root check (`isRootYDegreeLtBool`) | `ℓ·(w + ℓ·k)²` per candidate (quadratic `mulRaw`), at most `ℓ` per lane | `2^80.1` |
+| distance filter, novel coefficients (`toNovel`, `novelInv`, `novelFwd`) | `n·k` per candidate; `(κ+1)·2^(κ+R)` butterflies | `2^61.0` |
 | pruning (`pruneUpTo`), 64 lanes | `64·L²·n` comparisons | `2^56` |
 | a candidate's execution | `M + B` to index the addresses, at most `stepCap ≤ 2^μ` steps of a fetch and at most 26 reads | `2^52` for all |
 
@@ -96,17 +101,16 @@ products by the additive FFT) and is proved to list the same stacks
 algorithm with Mulders and Storjohann's reduction, is no longer compiled). It substitutes in
 Roth–Ruckenstein by a
 Taylor shift with binomials by parity, modulo `X^(k−depth)` with an exact fallback at repeated
-roots (`ℓ²·k/2` per substitution, `2^68.8` in all), skips the final root check where the
+roots (`ℓ²·k/2` per substitution), skips the final root check where the
 Guruswami–Sudan lemma makes it redundant, looks up addresses by binary search in sorted tables,
 and keeps the replay, the first answers and the preimages in sorted maps (`O(log² N)` comparisons
 per lookup, worst-case, keeping evaluations of at most `L = max(64, 8·width)` bytes). Compiled to
 the cost machine of `Statement/CostMachine.lean` (`Cost/Extractor/Top.lean`), it is the program
 `compiledKnowledgeExtractor` (`Cost/ExtractorProgram.lean`) of the end statement:
 `knowledgeExtractorOf extractorProgram = transcriptExtractor` (`Cost/Efficient.lean`). Its price is
-proved (`LeanVM.Cost.Bounds.extractorC_cost`): at most about `2^94.07` at the worst shape for at
-most
-`2^40` queries, the list decoder dominating (`extractorPrice_28_4`), and `2^156.69` for `2^128`
-queries, the transcript's index dominating (`extractorPrice_28_4_2_128`).
+proved (`LeanVM.Cost.Bounds.extractorC_cost`): at the largest stack, `(μ, R) = (30, 4)`, at most
+about `2^82` for at most `2^40` queries, the list decoder dominating (`extractorPrice_30_4`), and
+`2^156.86` for `2^128` queries, the transcript's index dominating (`extractorPrice_30_4_2_128`).
 Each lane's list is sorted (`laneListAt`, `coeffsLE`), so it depends only on the set the decoder
 returns, whichever interpolation computes it.
 
@@ -118,7 +122,7 @@ boundary (`powIndex`, `gLogIn`, `boundaryOK`, `Statement/Prover/Witness.lean`), 
 statement keeps for the honest prover. The budget reads the announced shape off the stream
 (`announced`, `Statement/LeanVmVerifier.lean`), the shape `afterRoot` returns.
 
-The Annexes are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
+The Annexes are cited at `leanvm-rev`.
 
 **Credits.** The list decoder over `K` is CompPoly's (github.com/Verified-zkEVM/CompPoly at
 `572f997390aa4fc131ef30b1186fa1dcf292ca10`, Apache-2.0, "Copyright (c) 2026 CompPoly
@@ -167,7 +171,7 @@ exponent, and the state, whose first root is the stack's; `none` if the steps re
 and the rate are the ones the stream announces (`announced`, which the statement's budget reads):
 `LeanVM.Extraction.Fast.announced_of_afterRoot`. -/
 def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × VerifierProgramState) :=
-  runPure (announceSizesAndRoot bytecode) ⟨⟨default, []⟩, π.stream, π.openings, []⟩
+  runPure (announceSizesAndRoot bytecode) ⟨⟨default, [], none⟩, π.stream, π.openings, []⟩
 
 /-! ### 2. The committed word -/
 
@@ -232,43 +236,42 @@ def leafAt (leaves : Array (List K)) (height width v : ℕ) : List K :=
 exactly on `U_i = {x_v | v < 2^i}`. -/
 def subspacePoly (i : ℕ) (a : K) : K := ∏ v ∈ Finset.range (2 ^ i), (a + K.ofBits v)
 
-/-- Level 0's Johnson slacks, `η = e / 2^22`: entry `[R − 1][μ − 15]` for the stack size `μ` and
-the rate exponent `R`. The soundness proof certifies the opening's `2^-128` per query at these
-slacks, each the largest at which every group of level 0 is at most `2^-128` (chosen offline by
-`lean_vm/scripts/whir-params/gen.py`): a larger slack means a smaller list of candidates and a
-smaller multiplicity, so a cheaper decoder. The table is copied from the proof's certificates,
-and the proof checks the copy against them for every admissible shape (`certOf_e_eq`,
-`thrOf_eq_johnsonThreshold` in `LeanVM.Protocol.EndToEnd.Sound`). -/
+/-- Level 0's Johnson slacks, `η = e / 2^30`: entry `[R − 1][μ − 16]` for the stack size `μ` and
+the rate exponent `R`, above the Johnson radius at level 0's degree `2^(μ−6) − 1 + 6`. Each is the
+smallest slack whose threshold is the deployed level 0's,
+`A₀ = A_end − k` of the WHIR parameters' certificate (`AffineCombiner.foldTable`, exported from
+`derive_config_with_log_inv_rate`), at which the soundness proof bounds every group of the opening
+by `2^-125` after its grind. The table is copied from that certificate, and the proof checks the
+copy against it for every admissible shape (`Whir.Params.johnsonThreshold_eq_thr0Of`). -/
 def johnsonSlack : List (List ℕ) := [
-  [6676, 7275, 5527, 5165, 4984, 4765, 4720,
-    9241, 9214, 9200, 9198, 9194, 13737, 13737],
-  [2049, 14336, 13824, 13312, 13184, 13120, 13056,
-    13040, 13032, 13024, 13022, 13021, 13020, 13019],
-  [22794, 21557, 21195, 20886, 20796, 20750, 20728,
-    20716, 20707, 20704, 20703, 20701, 20701, 20700],
-  [14336, 13824, 13440, 13248, 13152, 13104, 13080,
-    13068, 13064, 13062, 13061, 13060, 13059, 13059]]
+  [10126143, 7119110, 5091727, 3684926, 2588336, 1843440, 1323537, 1231522,
+    1232619, 1234191, 1233953, 1234090, 1234287, 1234257, 1234274],
+  [9438781, 6816144, 4784228, 3407897, 2424839, 2105346, 2105345, 2109441,
+    2109441, 2109441, 2109441, 2109441, 2109441, 2109473, 2109473],
+  [7815584, 5525635, 3889352, 2759967, 2727768, 2728056, 2730249, 2731345,
+    2731382, 2731656, 2731665, 2731733, 2731736, 2731737, 2731745],
+  [5964575, 4194504, 3162162, 3170317, 3174404, 3176449, 3176449, 3176449,
+    3176449, 3176449, 3176513, 3176545, 3176561, 3176561, 3176565]]
 
-/-- Level 0's slack `e` (`η = e/2^22`) for a stack of `2^μ` words at rate `2^-R`. -/
+/-- Level 0's slack `e` (`η = e/2^30`) for a stack of `2^μ` words at rate `2^-R`. -/
 def johnsonSlackOf (μ R : ℕ) : ℕ := (johnsonSlack.getD (R - 1) []).getD (μ - minLogStack) 0
 
 /-- `⌈√x⌉` on natural numbers. -/
 def ceilSqrt (x : ℕ) : ℕ := if Nat.sqrt x * Nat.sqrt x = x then Nat.sqrt x else Nat.sqrt x + 1
 
 /-- **The Johnson threshold** of level 0 for a stack of `2^μ` words at rate `2^-R`: with
-`κ = μ − 6` message variables, `n = 2^(κ+R)` columns and the degree bound `D = 2^κ − 1`, the
-agreement `⌈(√(D/n) + η)·n⌉`, the Johnson radius `√(D/n)` plus the slack `η = e/2^22`
-(`johnsonSlackOf`), computed exactly in natural numbers: `(√(D/n) + η)·n = (√X + e·n)/2^22` with
-`X = 2^44·D·n`, and `⌈(√X + b)/c⌉ = ⌈(⌈√X⌉ + b)/c⌉` (the real form is equal,
+`κ = μ − 6` message variables, `n = 2^(κ+R)` columns and level 0's degree `D = 2^κ − 1 + 6`, the
+agreement `⌈(√(D/n) + η)·n⌉`, the Johnson radius `√(D/n)` plus the slack `η = e/2^30`
+(`johnsonSlackOf`), computed exactly in natural numbers: `(√(D/n) + η)·n = (√X + e·n)/2^30` with
+`X = 2^60·D·n`, and `⌈(√X + b)/c⌉ = ⌈(⌈√X⌉ + b)/c⌉` (the real form is equal,
 `johnsonThreshold_eq_real` in `LeanVM.Extraction`). The table's default `0` is never read: the
 extractor reaches the threshold only after `readAnnouncedSizes` accepted the sizes, so `1 ≤ R ≤ 4`
-and
-`15 ≤ μ ≤ 28`, the table's range. -/
+and `16 ≤ μ ≤ 30`, the table's range. -/
 def johnsonThreshold (μ R : ℕ) : ℕ :=
   let κ := μ - initialFold
   let n := 2 ^ (κ + R)
-  let D := 2 ^ κ - 1
-  (ceilSqrt (2 ^ 44 * D * n) + johnsonSlackOf μ R * n + 2 ^ 22 - 1) / 2 ^ 22
+  let D := 2 ^ κ - 1 + initialFold
+  (ceilSqrt (2 ^ 60 * D * n) + johnsonSlackOf μ R * n + 2 ^ 30 - 1) / 2 ^ 30
 
 /-! ### 4. Novel-basis coefficients and evaluations
 
@@ -638,11 +641,12 @@ def laneSymbol (W : ℕ → List K) (u v : ℕ) : K := (W v).reverse.getD u 0
 def lanePoints (n : ℕ) (W : ℕ → List K) (u : ℕ) : Array (K × K) :=
   Array.ofFn fun v : Fin n ↦ (K.ofBits v.val, laneSymbol W u v.val)
 
-/-- **The lane decoder**: Guruswami–Sudan over `K` on lane `u` of `W`, for messages of `2^κ`
-coefficients on `2^(κ+R)` columns, at agreement `A`: every polynomial of degree `< 2^κ` that
-agrees with the lane on at least `A` columns (when `A² > (2^κ − 1)·2^(κ+R)`). -/
+/-- **The lane decoder**: Guruswami–Sudan over `K` on lane `u` of `W`, for messages of
+`2^κ + 6` coefficients (level 0's degree `2^κ − 1 + 6`) on `2^(κ+R)` columns, at agreement `A`:
+every polynomial of degree `< 2^κ + 6` that agrees with the lane on at least `A` columns (when
+`A² > (2^κ + 5)·2^(κ+R)`). -/
 def gsLaneAt (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) : Array (CPolynomial K) :=
-  GuruswamiSudan.decodeWithParams gsContext (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A)
+  GuruswamiSudan.decodeWithParams gsContext (gsParamsFor (2 ^ κ + initialFold) (2 ^ (κ + R)) A)
     ⟨lanePoints (2 ^ (κ + R)) W u⟩
 
 /-- Lexicographic order on lists of natural numbers. -/
@@ -655,11 +659,11 @@ def lexLE : List ℕ → List ℕ → Bool
 def coeffsLE (a b : Array K) : Bool :=
   lexLE (a.toList.map fun x ↦ x.lane.toNat) (b.toList.map fun x ↦ x.lane.toNat)
 
-/-- The lane decoder's list as novel-basis coefficients, without duplicates, in increasing order
-(`coeffsLE`): it depends only on the set of polynomials the decoder returns, not on their
-order. -/
+/-- The lane decoder's list as novel-basis coefficients, `2^(κ+1)` of them (the polynomials have
+degree `< 2^κ + 6 ≤ 2^(κ+1)`), without duplicates, in increasing order (`coeffsLE`): it depends
+only on the set of polynomials the decoder returns, not on their order. -/
 def laneListAt (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) : List (Array K) :=
-  (((gsLaneAt κ R A W u).toList.map (toNovel κ)).dedup).mergeSort coeffsLE
+  (((gsLaneAt κ R A W u).toList.map (toNovel (κ + 1))).dedup).mergeSort coeffsLE
 
 /-! ### 6. The 64 lanes: prefix pruning -/
 
@@ -673,9 +677,10 @@ def pruneStep (A : ℕ) (sym : ℕ → K) (L : List (Array K × Array K))
     let S' := s.2.filter fun v ↦ decide (ce.2.getD v 0 = sym v)
     if A ≤ S'.length then some (s.1 ++ [ce.1], S') else none
 
-/-- Lane `u`'s list with each element's encoding on the `2^(κ+R)` columns. -/
+/-- Lane `u`'s list with each element's encoding on the `2^(κ+R)` columns (its `2^(κ+1)`
+coefficients at rate `2^-(R−1)`, `R ≥ 1`). -/
 def laneEncodedAt (κ R A : ℕ) (W : ℕ → List K) (u : ℕ) : List (Array K × Array K) :=
-  (laneListAt κ R A W u).map fun c ↦ (c, novelFwd κ R c)
+  (laneListAt κ R A W u).map fun c ↦ (c, novelFwd (κ + 1) (R - 1) c)
 
 /-- The survivors after lanes `0, …, U − 1`; a lane is decoded only while survivors remain. -/
 def pruneUpTo (κ R A : ℕ) (W : ℕ → List K) (U : ℕ) : List (List (Array K) × List ℕ) :=
@@ -685,12 +690,13 @@ def pruneUpTo (κ R A : ℕ) (W : ℕ → List K) (U : ℕ) : List (List (Array 
     [([], List.range (2 ^ (κ + R)))]
 
 /-- The stack of `2^μ` words whose lane `u` is `cs[u]`: cell `i` is entry `i mod 2^κ` of lane
-`⌊i / 2^κ⌋`, `κ = μ − 6`. -/
+`⌊i / 2^κ⌋`, `κ = μ − 6` (of a decoded lane's `2^(κ+1)` coefficients, its low part). -/
 def stackOf (μ : ℕ) (cs : List (Array K)) : Vector K (2 ^ μ) :=
   Vector.ofFn fun i ↦
     (cs.getD (i.val / 2 ^ (μ - initialFold)) #[]).getD (i.val % 2 ^ (μ - initialFold)) 0
 
-/-- The decoded stacks at agreement `A`: the survivors of all `2^6` lanes, as stacks. -/
+/-- The decoded stacks at agreement `A`: the survivors of all `2^6` lanes, as stacks (their lanes'
+low parts). -/
 def decodeStacksAt (μ R A : ℕ) (W : ℕ → List K) : List (Vector K (2 ^ μ)) :=
   (pruneUpTo (μ - initialFold) R A W (2 ^ initialFold)).map fun s ↦ stackOf μ s.1
 
@@ -712,13 +718,13 @@ def fastStacks (μ R : ℕ) (W : ℕ → List K) : List (Vector K (2 ^ μ)) :=
 
 /-! ### 7. The execution -/
 
-/-- **The memory image of a stack**: `2^logMemory` words, word `i` the three limbs at cell `i` of
-the memory columns `MEMORY_0`, `MEMORY_1`, `MEMORY_2` (`layout.rs:72-74`), each at its placement's
-offset on the stack. -/
+/-- **The memory image of a stack**: `2^logMemory` words, word `i` the two limbs at cell `i` of
+the memory columns `MEMORY_0`, `MEMORY_1` (`layout.rs`), each at its placement's offset on the
+stack. -/
 def memoryImage (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : MemoryImage layout.logMemory :=
   fun i ↦
     let limb (column : ℕ) : K := q.getD ((layout.placement column).index + i) 0
-    E.ofLimbs (limb memory0) (limb memory1) (limb memory2)
+    E.ofLimbs (limb memory0) (limb memory1)
 
 /-- One step (`step`, computed) with the memory index `memIdx` and the bytecode index `codeIdx`:
 fetch the instruction at `pc`, then execute it (`executeWith`), reading the memory through

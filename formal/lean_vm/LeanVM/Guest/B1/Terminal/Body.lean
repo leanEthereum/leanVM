@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Terminal.Template
+public import LeanVM.Guest.CoreData
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -17,9 +18,9 @@ open LeanVM.Guest.Core LeanVM.Guest.B1
 /-- The function's parameters. -/
 def termParams : List V :=
   [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
-      .n 13, .n 14, .n 15, .n 16, .n 17]
+      .n 13, .n 14, .n 15, .n 16, .n 17, .n 18, .n 19]
 
-/-- The function, found by name, has the eighteen parameters and the template's body. -/
+/-- The function, found by name, has the twenty parameters and the template's body. -/
 noncomputable def termCheck : Bool :=
   match coreProgram.find? "check_opening_terminal" with
   | some fn => decide (fn.params = termParams) && stmtsEqb fn.body termT
@@ -37,8 +38,8 @@ theorem termFound : ∃ fn : Fn, coreProgram.find? "check_opening_terminal" = so
     exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
-/-- The template's claims end at value `1746`, the sum at `1744`, `lam_out` at `1745`. -/
-theorem termClaims_end : termClaims.2 = (1766, 1764, 1765) := by
+/-- The template's claims end at value `1694`, the sum at `1692`, `lam_out` at `1693`. -/
+theorem termClaims_end : termClaims.2 = (1694, 1692, 1693) := by
   decide +kernel
 
 end

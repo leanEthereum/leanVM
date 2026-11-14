@@ -1,14 +1,14 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsBytes
 
-  `sp_from_bytes` (`lean_ethereum.py:3735-3745` at leanVM 40f877dc) is sound: on a memory image of
+  `sp_from_bytes` (`lean_ethereum.py:3927-3937`) is sound: on a memory image of
   at most `2^32` words holding the byte table, its value is a word below `256^n`.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsDigestT
-public import LeanVM.Guest.B1.Sig.Interface
+public import LeanVM.Guest.B1.Sig.InterfaceP
 
 /-!
 # `sp_from_bytes`, sound
@@ -83,7 +83,7 @@ theorem sByte_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} {mark : V}
   rw [← word_eq_eOfNat]
   exact (Option.some.inj hl).symm
 
-theorem word256_eq : word 256 0 0 = eOfNat (2 ^ 8) := word_eq_eOfNat 256
+theorem word256_eq : word 256 0 = eOfNat (2 ^ 8) := word_eq_eOfNat 256
 
 /-- **The bytes after the top one, folded**: from a word below `M`, a word below `M · 256^n`. -/
 theorem sFromBytesRest_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
@@ -93,11 +93,11 @@ theorem sFromBytesRest_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
       ∃ N', σ (sFromBytesRest ms b val).2.2 = eOfNat N' ∧ N' < M * 256 ^ ms.length
   | [], _, _, N, M, hv, hN, _, _ => ⟨N, hv, by simpa using hN⟩
   | m :: ms, b, val, N, M, hv, hN, hM, h => by
-      have h' : AtomsHold L.read σ (sByte m b ++ [cst (b + 6) (word 256 0 0),
+      have h' : AtomsHold L.read σ (sByte m b ++ [cst (b + 6) (word 256 0),
           mulS (.n (b + 7)) val (.n (b + 6)), addS (.n (b + 8)) (.n (b + 5)) (.n (b + 7))] ++
           (sFromBytesRest ms (b + 9) (.n (b + 8))).1) := h
       obtain ⟨e, he, hb, -⟩ := sByte_sound hκ hbb h'.left.left
-      have c : σ (.n (b + 6)) = word 256 0 0 :=
+      have c : σ (.n (b + 6)) = word 256 0 :=
         h'.left.right.atom (a := .const (.n (b + 6)) _) (by simp [cst])
       have mu : σ (.n (b + 7)) = σ val * σ (.n (b + 6)) :=
         h'.left.right.atom (a := .mul (.n (b + 7)) val (.n (b + 6))) (by simp [mulS])
