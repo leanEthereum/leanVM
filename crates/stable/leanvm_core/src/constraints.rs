@@ -71,6 +71,12 @@ pub fn xi_offsets(n_constraints: impl Iterator<Item = usize>) -> Vec<usize> {
 /// Vectors of eight rows per parallel task of a round.
 const CHUNK: usize = 1 << 7;
 
+/// Vectors of eight rows per task of a pass over `n` of them: all of them below [`crate::SERIAL_BELOW`], so that a
+/// small pass runs on the calling thread.
+fn chunk(n: usize) -> usize {
+    if n < crate::SERIAL_BELOW { n.max(1) } else { CHUNK }
+}
+
 /// A linear form over a table's columns, as `(column, coefficient)` terms.
 type Lin = Vec<(usize, F128)>;
 
@@ -144,11 +150,12 @@ fn add2(a: [F128; 2], b: [F128; 2]) -> [F128; 2] {
 /// `Σ_b f(b)` over the vectors `0..blocks`, a chunk of them a task, reduced once per task.
 fn sum_blocks(blocks: usize, f: impl Fn(usize, &mut [Acc8; 2]) + Sync) -> [F128; 2] {
     parallel::map_reduce(
-        blocks.div_ceil(CHUNK),
+        blocks.div_ceil(chunk(blocks)),
         || [F128::ZERO; 2],
         |task| {
             let mut acc = [Acc8::ZERO; 2];
-            for b in task * CHUNK..blocks.min((task + 1) * CHUNK) {
+            let chunk = chunk(blocks);
+            for b in task * chunk..blocks.min((task + 1) * chunk) {
                 f(b, &mut acc);
             }
             acc.map(Acc8::sum)
@@ -234,9 +241,14 @@ fn join(form: &Form, cols: &[&[F64]], r: F128, half: usize) -> State {
     let rights: Vec<_> = form.groups.iter().map(|(_, right)| pair(right)).collect();
     let r = F128x8::splat(r);
     let blocks = half.div_ceil(8);
-    let mut state = parallel::filled(blocks * width, F128x8::ZERO);
-    parallel::chunks_mut(&mut state, CHUNK * width, |task, out| {
-        for (b, out) in (task * CHUNK..).zip(out.chunks_exact_mut(width)) {
+    let mut state = if blocks >= crate::SERIAL_BELOW {
+        parallel::filled(blocks * width, F128x8::ZERO)
+    } else {
+        vec![F128x8::ZERO; blocks * width]
+    };
+    let chunk = chunk(blocks);
+    parallel::chunks_mut(&mut state, chunk * width, |task, out| {
+        for (b, out) in (task * chunk..).zip(out.chunks_exact_mut(width)) {
             let (i, n) = (8 * b, (half - 8 * b).min(8));
             let lo = |c: usize| load_k(cols[c], i, n);
             let sum = |c: usize| lo(c) + load_k(cols[c], i + half, n);
@@ -272,8 +284,9 @@ fn fold_state(state: &mut State, r: F128, half: usize) {
     let r = F128x8::splat(r);
     let n = state.len() / 2;
     let (lows, highs) = state.split_at_mut(n);
-    parallel::chunks_mut(lows, CHUNK, |task, lows| {
-        for (lo, &hi) in lows.iter_mut().zip(&highs[task * CHUNK..]) {
+    let chunk = chunk(n);
+    parallel::chunks_mut(lows, chunk, |task, lows| {
+        for (lo, &hi) in lows.iter_mut().zip(&highs[task * chunk..]) {
             *lo += r * (*lo + hi);
         }
     });

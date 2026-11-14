@@ -14,10 +14,16 @@
 use crate::leaf::N_BUS_TREES as TREES;
 use crate::transcript::ProverState;
 use primitives::field::{Acc8, F128, F128x8};
-use primitives::multilinear::{eq_table, interp};
+use primitives::multilinear::{eq_table_serial, interp};
 
 /// Groups of eight pairs per parallel task.
 const CHUNK: usize = 1 << 7;
+
+/// Groups per task of a pass over `n` groups: all of them below [`crate::SERIAL_BELOW`], so that a small pass runs on
+/// the calling thread.
+fn chunk(n: usize) -> usize {
+    if n < crate::SERIAL_BELOW { n.max(1) } else { CHUNK }
+}
 
 /// The result of a batched grand-product proof: the leaf evaluations, all reduced to one shared point.
 pub struct Products {
@@ -60,11 +66,19 @@ fn padded<const N: usize>(values: &[F128], start: usize) -> [F128; N] {
 /// The level above `values`: `out[i] = ∏ values[4i..4i + 4]`, the values past the end being the identity.
 fn next_level(values: &[F128]) -> Vec<F128> {
     let n = values.len().div_ceil(4);
-    let mut next = parallel::map_collect(n.div_ceil(8), |k| {
+    let products = |k: usize| {
         let v: [F128; 32] = padded(values, 32 * k);
+        if identity(&v) {
+            return [F128::ONE; 8];
+        }
         let child = |c: usize| lanes(|p| v[4 * p + c]);
         ((child(0) * child(1)) * (child(2) * child(3))).to_array()
-    })
+    };
+    let mut next = if n < 8 * crate::SERIAL_BELOW {
+        (0..n.div_ceil(8)).map(products).collect::<Vec<_>>()
+    } else {
+        parallel::map_collect(n.div_ceil(8), products)
+    }
     .into_flattened();
     next.truncate(n);
     next
@@ -74,11 +88,17 @@ fn next_level(values: &[F128]) -> Vec<F128> {
 /// `g[4 + c]` of its upper.
 type Group = [F128x8; 8];
 
-/// Group `k` of a layer, the identity past its end.
+/// Eight pairs of rows held in order, as a group.
 #[inline(always)]
-fn group(values: &[F128], k: usize) -> Group {
-    let v: [F128; 64] = padded(values, 64 * k);
+fn group(v: &[F128; 64]) -> Group {
     std::array::from_fn(|j| lanes(|p| v[8 * p + j]))
+}
+
+/// Whether every value is the identity. The padding rows of the bus's blocks make long runs of such values, and
+/// their products, folds and message terms are known: the identity, the identity and nothing.
+#[inline(always)]
+fn identity(values: &[F128]) -> bool {
+    values.iter().all(|&v| v == F128::ONE)
 }
 
 /// Add eight pairs' terms of `q(X) = eq·∏_c (a_c + s_c·X)` to `acc`, as `[q(0) + q(1), c2, c3, c4]`. The weight
@@ -108,38 +128,131 @@ fn add_message(g: &Group, eq: F128x8, acc: &mut [Acc8; 4]) {
     acc[3] += c4;
 }
 
-/// The round polynomial `q(X) = Σ_p eq[p]·∏_c V(c, 2p + X)` of a layer whose row `r` holds its four children at
-/// `values[4r..4r + 4]`, as `[q(0) + q(1), c2, c3, c4]`. The pairs past `values` are identity pairs, which add
-/// nothing.
-fn round_message(values: &[F128], eq: &[F128]) -> [F128; 4] {
-    let groups = values.len().div_ceil(64);
-    parallel::map_reduce(
-        groups.div_ceil(CHUNK),
-        || [F128::ZERO; 4],
-        |task| {
-            let mut acc = [Acc8::ZERO; 4];
-            for k in task * CHUNK..groups.min((task + 1) * CHUNK) {
-                let eq = lanes(|p| eq.get(8 * k + p).copied().unwrap_or(F128::ZERO));
-                add_message(&group(values, k), eq, &mut acc);
+/// The round polynomials `q_t(X) = Σ_p eq[p]·∏_c V_t(c, 2p + X)` of every tree's layer, row `r` of a layer holding
+/// its four children at `values[4r..4r + 4]`, as `[q(0) + q(1), c2, c3, c4]`. The pairs past a layer's values are
+/// identity pairs, which add nothing. One dispatch for the three trees.
+fn round_messages(trees: &[Vec<F128>; TREES], eq: &SplitEq) -> [[F128; 4]; TREES] {
+    let groups = trees.each_ref().map(|values| values.len().div_ceil(64));
+    let total = groups.iter().sum();
+    let chunk = chunk(total);
+    let tasks = groups.map(|g| g.div_ceil(chunk));
+    let message = |task: usize| {
+        let (mut t, mut task) = (0, task);
+        while task >= tasks[t] {
+            task -= tasks[t];
+            t += 1;
+        }
+        let mut acc = [Acc8::ZERO; 4];
+        for k in task * chunk..groups[t].min((task + 1) * chunk) {
+            let v = padded(&trees[t], 64 * k);
+            if !identity(&v) {
+                add_message(&group(&v), eq.lanes(k), &mut acc);
             }
-            acc.map(Acc8::sum)
-        },
-        add4,
-    )
+        }
+        let mut messages = [[F128::ZERO; 4]; TREES];
+        messages[t] = acc.map(Acc8::sum);
+        messages
+    };
+    let n_tasks = tasks.iter().sum();
+    if total < crate::SERIAL_BELOW {
+        (0..n_tasks).map(message).fold([[F128::ZERO; 4]; TREES], add_messages)
+    } else {
+        parallel::map_reduce(n_tasks, || [[F128::ZERO; 4]; TREES], message, add_messages)
+    }
 }
 
-/// Bind the lowest row variable to `r`: row `i` becomes `interp(row 2i, row 2i + 1, r)`, child by child. The
-/// output is padded with identity rows to whole groups of eight values.
-fn fold(values: &[F128], r: F128) -> Vec<F128> {
+/// Bind every tree's lowest row variable to `r`: row `i` becomes `interp(row 2i, row 2i + 1, r)`, child by child,
+/// written over the tree's `spare` buffer, which then holds the layer it replaces. The output is padded with
+/// identity rows to whole groups. With `eq`, also the next round's messages, from the folded rows while they are at
+/// hand. One dispatch for the three trees.
+fn fold(
+    trees: &mut [Vec<F128>; TREES],
+    spares: &mut [Vec<F128>; TREES],
+    r: F128,
+    eq: Option<&SplitEq>,
+) -> [[F128; 4]; TREES] {
+    for (values, spare) in trees.iter().zip(spares.iter_mut()) {
+        // Every input group of 64 values folds to half an output group.
+        let len = values.len().div_ceil(128) * 64;
+        if spare.len() < len {
+            *spare = parallel::filled(len, F128::ONE);
+        }
+        spare.truncate(len);
+    }
+    let chunk = chunk(spares.iter().map(|spare| spare.len() / 64).sum());
     let r = F128x8::splat(r);
-    parallel::map_collect(values.len().div_ceil(16), |k| {
-        // Rows `2k` and `2k + 1` of the output, from pairs `2k` and `2k + 1`.
-        let v: [F128; 16] = padded(values, 16 * k);
-        let lo = lanes(|i| v[8 * (i / 4) + i % 4]);
-        let hi = lanes(|i| v[8 * (i / 4) + 4 + i % 4]);
-        (lo + r * (lo + hi)).to_array()
-    })
-    .into_flattened()
+    let [a, b, c] = spares.each_mut().map(|spare| spare.as_mut_slice());
+    let messages = parallel::map_reduce_chunks_mut(
+        [a, b, c],
+        [64 * chunk; TREES],
+        || (),
+        || [[F128::ZERO; 4]; TREES],
+        |_, messages, task, outs| {
+            for (t, out) in outs.into_iter().enumerate() {
+                let mut acc = [Acc8::ZERO; 4];
+                for (j, out) in out.as_chunks_mut::<64>().0.iter_mut().enumerate() {
+                    let k = task * chunk + j;
+                    // Output rows `2i` and `2i + 1` from input pairs `2i` and `2i + 1`.
+                    for (i, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                        let v: [F128; 16] = padded(&trees[t], 128 * k + 16 * i);
+                        if identity(&v) {
+                            *out = [F128::ONE; 8];
+                            continue;
+                        }
+                        let lo = lanes(|l| v[8 * (l / 4) + l % 4]);
+                        let hi = lanes(|l| v[8 * (l / 4) + 4 + l % 4]);
+                        (lo + r * (lo + hi)).store(out);
+                    }
+                    if let Some(eq) = eq
+                        && !identity(out)
+                    {
+                        add_message(&group(out), eq.lanes(k), &mut acc);
+                    }
+                }
+                messages[t] = add4(messages[t], acc.map(Acc8::sum));
+            }
+        },
+        add_messages,
+    );
+    std::mem::swap(trees, spares);
+    messages
+}
+
+fn add_messages(a: [[F128; 4]; TREES], b: [[F128; 4]; TREES]) -> [[F128; 4]; TREES] {
+    std::array::from_fn(|t| add4(a[t], b[t]))
+}
+
+/// `eq(point, ·)` as the product of a table over its low variables, at least three of them where there are, and one
+/// over the rest, so that no table of a round's size is built.
+struct SplitEq {
+    lo: Vec<F128>,
+    hi: Vec<F128>,
+    lo_bits: usize,
+}
+
+impl SplitEq {
+    /// Variables of the low table, a few kilobytes.
+    const LO_BITS: usize = 10;
+
+    fn new(point: &[F128]) -> Self {
+        let lo_bits = point.len().min(Self::LO_BITS);
+        Self {
+            lo: eq_table_serial(&point[..lo_bits]),
+            hi: eq_table_serial(&point[lo_bits..]),
+            lo_bits,
+        }
+    }
+
+    /// `eq` at pairs `8k..8k + 8`, zero past the table.
+    #[inline(always)]
+    fn lanes(&self, k: usize) -> F128x8 {
+        let (block, at) = ((8 * k) >> self.lo_bits, (8 * k) & (self.lo.len() - 1));
+        match (self.hi.get(block), self.lo.get(at..at + 8)) {
+            (Some(&hi), Some(lo)) => F128x8::load(lo) * F128x8::splat(hi),
+            (Some(&hi), None) => lanes(|p| self.lo.get(at + p).map_or(F128::ZERO, |&lo| lo * hi)),
+            (None, _) => F128x8::ZERO,
+        }
+    }
 }
 
 /// Prove the bus's identity-padded grand products as one RLC-batched radix-four GKR: push, pull, then count. Push
@@ -196,10 +309,13 @@ pub(crate) fn prove_products(leaves: [Vec<F128>; TREES], ps: &mut ProverState) -
         let mut trees = levels.each_mut().map(|levels| levels.pop().unwrap());
         let round_count = mu - layer;
         let mut round_point = Vec::with_capacity(round_count);
+        let mut spares: [Vec<F128>; TREES] = Default::default();
+        // Round `j` weights its pairs by `eq(point[1 + j..], ·)`.
+        let mut messages = match round_count {
+            0 => [[F128::ZERO; 4]; TREES],
+            _ => round_messages(&trees, &SplitEq::new(&point[1..])),
+        };
         for round in 0..round_count {
-            // Round `j` weights its pairs by `eq(point[1 + j..], ·)`.
-            let eq = eq_table(&point[1 + round..]);
-            let messages = trees.each_ref().map(|tree| round_message(tree, &eq));
             // `Σ_t λ^t message_t`, by Horner.
             let mut coeffs: [F128; 4] = std::array::from_fn(|k| {
                 messages
@@ -213,7 +329,8 @@ pub(crate) fn prove_products(leaves: [Vec<F128>; TREES], ps: &mut ProverState) -
             ps.grind(ROUND_GRIND);
             let challenge = ps.sample();
             round_point.push(challenge);
-            trees = trees.map(|tree| fold(&tree, challenge));
+            let eq = (round + 1 < round_count).then(|| SplitEq::new(&point[2 + round..]));
+            messages = fold(&mut trees, &mut spares, challenge, eq.as_ref());
         }
 
         for tree in &mut trees {
@@ -241,6 +358,7 @@ pub(crate) fn prove_products(leaves: [Vec<F128>; TREES], ps: &mut ProverState) -
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::multilinear::eq_table;
 
     fn mle_eval_e(table: &[F128], point: &[F128]) -> F128 {
         assert_eq!(table.len(), 1 << point.len());
@@ -261,11 +379,11 @@ mod tests {
 
     #[test]
     fn quartic_round_message_matches_direct_evaluation() {
-        for width in [2, 4, 8, 16, 1 << 11] {
+        for width in [2, 4, 8, 16, 1 << 13] {
             let below: Vec<F128> = (0..4 * width).map(|i| element(i, width)).collect();
             let point: Vec<F128> = (0..width.ilog2() - 1).map(|i| element(31 * i as usize, 5)).collect();
             let equality = eq_table(&point);
-            let message = round_message(&below, &equality);
+            let message = round_messages(&[below.clone(), below.clone(), below.clone()], &SplitEq::new(&point))[2];
             let direct = |x: F128| {
                 (0..width / 2)
                     .map(|row| {

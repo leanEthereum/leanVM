@@ -49,6 +49,9 @@ pub(crate) use primitives::{log2_ceil_usize, log2_strict_usize};
 
 use primitives::field::{F64, F64x8, F128, F128x8};
 
+/// Vectors of eight rows below which a pass runs on the calling thread: waking the pool would cost more than it saves.
+pub(crate) const SERIAL_BELOW: usize = 1 << 10;
+
 /// `values[i..i + n]` as lanes, zero past `n` (`n` at least eight takes eight).
 #[inline(always)]
 pub(crate) fn load_k(values: &[F64], i: usize, n: usize) -> F64x8 {
