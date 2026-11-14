@@ -90,19 +90,13 @@ impl EthereumProof {
 
     /// Verify that this proves `claims`: the lists are sorted, the deferred claim holds, and the stark
     /// proof is valid.
-    ///
-    /// `formal/` proves this for one node only (`formal/statement.tex`, "What is not proved").
     pub fn verify(&self, claims: &EthereumClaims) -> Result<(), AggregateVerifyError> {
         check_signer_set(claims)?;
-        let _s = tracing::info_span!("Recompute deferred claims").entered();
         let defer = DeferredBytecodeClaim::recompute_scalar(self.defer.bytecode_point.clone())?;
-        drop(_s);
         if defer != self.defer {
             return Err(AggregateVerifyError::MalformedClaim);
         }
-        let _s = tracing::info_span!("Statement digest").entered();
         let pi = public_input(claims, &self.defer);
-        drop(_s);
         verifier::verify_execution(scalar_bytecode(), &public_input_bytes(&pi), &scalar_proof(&self.proof))
             .map(|_| ())
             .map_err(|e| AggregateVerifyError::Snark(StarkVerifyError(e)))

@@ -49,7 +49,6 @@ impl DeferredBytecodeClaim {
     /// [`Self::recompute`] in the `verifier` crate: scalar and single threaded, what a received aggregate is checked with.
     pub(super) fn recompute_scalar(bytecode_point: Vec<F128>) -> Result<Self, AggregateVerifyError> {
         Self::evaluate(bytecode_point, |point| {
-            let _span = tracing::info_span!("bytecode mle").entered();
             let scalars: Vec<_> = point.iter().map(to_scalar).collect();
             from_scalar(
                 scalar_bytecode()
