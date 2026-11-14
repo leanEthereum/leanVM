@@ -13,8 +13,12 @@ namespace LeanVM.Guest.Backend.B2
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- **The certificate data of functions `892` to `972` agree with the back end's.** -/
-theorem dataOk_11 : (List.range' 892 81).all dataOk = true := by decide +kernel
+/-- **The certificate data of functions `892` to `932` agree with the back end's.** -/
+theorem dataOk_11a : (List.range' 892 41).all dataOk = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- **The certificate data of functions `933` to `972` agree with the back end's.** -/
+theorem dataOk_11b : (List.range' 933 40).all dataOk = true := by decide +kernel
 
 end
 end LeanVM.Guest.Backend.B2
