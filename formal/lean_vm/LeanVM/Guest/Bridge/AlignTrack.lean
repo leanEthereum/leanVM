@@ -32,6 +32,7 @@ theorem atPc_step {X : AlignCtx} {body : List Stmt} {code : List OffsetInstructi
     (hent : ent e.I.t.name = X.entry) (hal : ∀ off, al e.I.t.name off = alignAt X body code d off)
     (hat : AtPc ent al e pc) (done : List Pop) (st : List Ent) :
     ∃ off ins z tabs r, ∃ as : List Atom, pc = X.entry + off ∧ code[off]? = some ins ∧ ZOk body z ∧
+      (∃ bs : List Atom, e.pos = bs.map Stmt.atom ++ z.pos) ∧
       List.Forall₂ (Pairs X) (as.filter flowAtom) (((d.2.2.lookup pc).getD []).filter isaFlowHint) ∧
       insStep X off ins tabs z = some r ∧ ∃ e', Relation.ReflTransGen (Move P rd Is) (done, e :: st)
         (done ++ as.flatMap (fun a ↦ a.pops rd e.σ), e' :: st) ∧ e'.I = e.I ∧ e'.fn = e.fn ∧ e'.pos = z.pos ∧
@@ -40,7 +41,7 @@ theorem atPc_step {X : AlignCtx} {body : List Stmt} {code : List OffsetInstructi
         (∀ p ∈ r.2, alignAt X body code d p.1 = some p.2.pos) ∧
         ∀ oc od of x arms ss a, ins = .jump oc od of → z.cur = .match_ x arms :: ss → X.zeroAt oc = false →
           fwdJ X off oc od of = false → Check.getF X.arms od = some a →
-          ∀ j < arms.length, ∃ t, Check.getF X.jt (a.2 + j) = some t ∧ ∃ c',
+          ∀ j < arms.length, ∃ t, Check.getF X.jt (a.2 + j) = some t ∧ X.entry + off < t ∧ ∃ c',
             normZ X.fuel (z.enter (.match_ x arms) ss j) = some c' ∧
             alignAt X body code d (t - X.entry) = some c'.pos := by
   obtain ⟨off, hpc, p, hal', as0, hpops, hpos0⟩ := hat
@@ -52,7 +53,8 @@ theorem atPc_step {X : AlignCtx} {body : List Stmt} {code : List OffsetInstructi
   have h0 : as0.flatMap (fun a ↦ a.pops rd e.σ) = [] :=
     List.flatMap_eq_nil_iff.mpr fun a ha ↦ hpops a ha rd e.σ
   rw [List.flatMap_append, h0, List.nil_append] at hm
-  refine ⟨off, ins, z, tabs, r, as, hpc, hins, hz, by rw [hpc]; exact hpair, hr, e', hm, hI, hfn, hp, hnb,
+  refine ⟨off, ins, z, tabs, r, as, hpc, hins, hz, ⟨as0 ++ as, by rw [hpos0, hpos, List.map_append, List.append_assoc]⟩,
+    by rw [hpc]; exact hpair, hr, e', hm, hI, hfn, hp, hnb,
     fun hnj ↦ ?_, h1, h2, h3⟩
   have hr1 : r = (some z, []) := by
     cases ins

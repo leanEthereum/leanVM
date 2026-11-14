@@ -246,6 +246,8 @@ def align(F, body, A, locs, plumb_cells, pows, jt, ents, cuts=()):
             if loc(s[1]) != oc or not self_(of):
                 raise Fail(f'ite at {i}')
             return norm(enter(z, 0)), [(fwd(i, t), norm(enter(z, 1)))]
+        if s[0] in ('match', 'call', 'dispatch', 'ret') and not nz(oc):
+            raise Fail(f'{s[0]} at {i} on a cell not a nonzero constant')
         if s[0] == 'match':
             a = F['arms'].get(od)
             if not self_(of) or a is None or a[0] != s[1]:
@@ -273,7 +275,7 @@ def align(F, body, A, locs, plumb_cells, pows, jt, ents, cuts=()):
             return ca, []
         if s[0] == 'dispatch':
             si = site(of, s[3], s[4])
-            if si is None or si[4] != od:
+            if si is None or si[4] != od or od == 0:
                 raise Fail(f'dispatch at {i}')
             return None, [(fwd(i, si[3]), norm(nxt(z)))]
         if s[0] == 'ret':

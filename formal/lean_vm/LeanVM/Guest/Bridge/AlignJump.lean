@@ -70,15 +70,16 @@ theorem ite_step {i oc od of : ℕ} {tabs : List (ℕ × Zip × ℕ)} {z : Zip} 
 theorem call_step {i oc od of : ℕ} {tabs : List (ℕ × Zip × ℕ)} {z : Zip} {f : String} {args rets : List V}
     {ss : List Stmt} {r : Option Zip × List (ℕ × Zip)} (hr : insStep X i (.jump oc od of) tabs z = some r)
     (hz : z.cur = .call f args rets :: ss) (hzero : X.zeroAt oc = false) (hfwd : fwdJ X i oc od of = false) :
-    ∃ s t c o, X.siteAt of args rets = some s ∧ X.pcAt od = some t ∧ X.entOk t f = true ∧
+    X.nzAt oc = true ∧ ∃ s t c o, X.siteAt of args rets = some s ∧ X.pcAt od = some t ∧ X.entOk t f = true ∧
       normZ X.fuel (z.next ss) = some c ∧ X.fwdOff i s.r = some o ∧ r = (none, [(o, c)]) := by
   simp only [insStep, jumpStep, hzero, hfwd, Bool.cond_false, headStep, hz] at hr
   split at hr
   · rename_i s t c hs ht hc
-    cases he : X.entOk t f <;> simp only [he, Bool.cond_true, Bool.cond_false] at hr
+    cases he : (X.nzAt oc && X.entOk t f) <;> simp only [he, Bool.cond_true, Bool.cond_false] at hr
     · cases hr
+    simp only [Bool.and_eq_true] at he
     obtain ⟨o, ho, rfl⟩ := Option.map_eq_some_iff.mp hr
-    exact ⟨s, t, c, o, hs, ht, he, hc, ho, rfl⟩
+    exact ⟨he.1, s, t, c, o, hs, ht, he.2, hc, ho, rfl⟩
   · cases hr
 
 /-- A conditional call: on its condition's cell, the callee's entry the destination, the rest falling
@@ -116,19 +117,40 @@ theorem callIf_step {i oc od of : ℕ} {tabs : List (ℕ × Zip × ℕ)} {z : Zi
 theorem ret_step {i oc od of : ℕ} {tabs : List (ℕ × Zip × ℕ)} {z : Zip} {vs : List V} {ss : List Stmt}
     {r : Option Zip × List (ℕ × Zip)} (hr : insStep X i (.jump oc od of) tabs z = some r)
     (hz : z.cur = .ret vs :: ss) (hzero : X.zeroAt oc = false) (hfwd : fwdJ X i oc od of = false) :
-    r = (none, []) ∧ (if X.main then X.selfAt of = true ∧ X.pcAt od = some X.halt else od = 0 ∧ of = 1) := by
+    r = (none, []) ∧ X.nzAt oc = true ∧
+      (if X.main then X.selfAt of = true ∧ X.pcAt od = some X.halt else od = 0 ∧ of = 1) := by
   simp only [insStep, jumpStep, hzero, hfwd, Bool.cond_false, headStep, hz] at hr
   cases hm : X.main <;> simp only [hm, Bool.cond_true, Bool.cond_false] at hr
-  · cases hb : (Nat.beq od 0 && Nat.beq of 1) <;> simp only [hb, Bool.cond_true, Bool.cond_false] at hr
+  · cases hb : (X.nzAt oc && Nat.beq od 0 && Nat.beq of 1) <;> simp only [hb, Bool.cond_true, Bool.cond_false] at hr
     · cases hr
     cases hr
     simp only [Bool.and_eq_true, Nat.beq_eq] at hb
-    exact ⟨rfl, by simpa using hb⟩
-  · cases hb : (X.selfAt of && X.pcAt od == some X.halt) <;> simp only [hb, Bool.cond_true, Bool.cond_false] at hr
+    exact ⟨rfl, hb.1.1, by simpa using hb.1.2, hb.2⟩
+  · cases hb : (X.nzAt oc && X.selfAt of && X.pcAt od == some X.halt) <;>
+      simp only [hb, Bool.cond_true, Bool.cond_false] at hr
     · cases hr
     cases hr
     simp only [Bool.and_eq_true, beq_iff_eq] at hb
-    exact ⟨rfl, by simpa using hb⟩
+    exact ⟨rfl, hb.1.1, by simpa using ⟨hb.1.2, hb.2⟩⟩
+
+/-- A dispatch: on a nonzero constant, its site's target cell the destination, the rest at the site's
+return pc. -/
+theorem dispatch_step {i oc od of : ℕ} {tabs : List (ℕ × Zip × ℕ)} {z : Zip} {x : V} {fs : List String}
+    {args rets : List V} {ss : List Stmt} {r : Option Zip × List (ℕ × Zip)}
+    (hr : insStep X i (.jump oc od of) tabs z = some r) (hz : z.cur = .dispatch x fs args rets :: ss)
+    (hzero : X.zeroAt oc = false) (hfwd : fwdJ X i oc od of = false) :
+    X.nzAt oc = true ∧ od ≠ 0 ∧ ∃ s c o, X.siteAt of args rets = some s ∧ s.tgt = od ∧
+      normZ X.fuel (z.next ss) = some c ∧ X.fwdOff i s.r = some o ∧ r = (none, [(o, c)]) := by
+  simp only [insStep, jumpStep, hzero, hfwd, Bool.cond_false, headStep, hz] at hr
+  split at hr
+  · rename_i s c hs hc
+    cases he : (X.nzAt oc && Nat.beq s.tgt od && !Nat.beq od 0) <;>
+      simp only [he, Bool.cond_true, Bool.cond_false] at hr
+    · cases hr
+    simp only [Bool.and_eq_true, Nat.beq_eq, Bool.not_eq_true'] at he
+    obtain ⟨o, ho, rfl⟩ := Option.map_eq_some_iff.mp hr
+    exact ⟨he.1.1, fun h0 ↦ by simp [h0] at he, s, c, o, hs, he.1.2, hc, ho, rfl⟩
+  · cases hr
 
 /-! ## The frame's move on the side its path takes -/
 

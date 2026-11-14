@@ -16,7 +16,7 @@ A **cursor** `(up, k)` names a body position: index `k` of the innermost block, 
 
 The pass carries a cursor with its statements, a **zipper** (`Zip`): each enclosing level's index, sub-block and statements after it, and the innermost block's statements from `k`, so a step reads the head and never walks from the body's root. `Zip.pos` is the position. `normZ` pops finished blocks and skips the atoms that pop nothing (neither witness nor computed hints), so two arrivals at one offset agree when their cursors (`Zip.keyEq`) are equal.
 
-`alignGo`: a forward pass over the code's offsets (`stepI`), each reached one with its zipper (by fall-through, or from an earlier jump; arrivals at one offset must have one cursor). The flow hints at an offset consume the head flow hint atoms, each compiling its own (`compiles` under the cell map `AlignCtx.locAt`, the certificate's cells but for the hint-only ones); a non-jump instruction falls through. A `JUMP oc od of` is, by its cells (`stat`: the frame's fixed cells, `sites`: the call sites by callee frame cell, `arms`: the table jumps by target cell, the chained `match`es' among them, `pows`: the powers of `g` the constants name, `jt`: the jump table, `ents`: the callees by entry): a jump never taken (`oc` the constant `0`); a forward jump in the frame (`oc` a nonzero constant, `of` the own frame, `od` a constant pc of the function past this one); else by the head statement: an `ite c` (`oc` the cell of `c`; the zero side falls through, the other at `od`'s pc), a `match x` (its table jump through `od`, of selector `x` and table base `base`; arm `j` at the jump table's target of slot `base + j`), a `call` (its site's callee frame `of`, `od` the callee's entry; the rest at the site's return pc), a `callIf c` (`oc` the cell of `c`: a conditional call at its site returning to the next offset, or a loop's tail call to the next frame `fp·g^S` before the closing `ret []`; the rest falls through), a `dispatch` (its site's callee frame and target cells; the rest at the return pc), a `ret` (`od = 0`, `of = 1`; `main`: the halting jump). `alignOk`: the advice's pcs increase from the entry, and the pass reaches the end with no fall-through past it and nothing pending. `alignAt`: the position at each offset reached.
+`alignGo`: a forward pass over the code's offsets (`stepI`), each reached one with its zipper (by fall-through, or from an earlier jump; arrivals at one offset must have one cursor). The flow hints at an offset consume the head flow hint atoms, each compiling its own (`compiles` under the cell map `AlignCtx.locAt`, the certificate's cells but for the hint-only ones); a non-jump instruction falls through. A `JUMP oc od of` is, by its cells (`stat`: the frame's fixed cells, `sites`: the call sites by callee frame cell, `arms`: the table jumps by target cell, the chained `match`es' among them, `pows`: the powers of `g` the constants name, `jt`: the jump table, `ents`: the callees by entry): a jump never taken (`oc` the constant `0`); a forward jump in the frame (`oc` a nonzero constant, `of` the own frame, `od` a constant pc of the function past this one); else by the head statement: an `ite c` (`oc` the cell of `c`; the zero side falls through, the other at `od`'s pc), a `match x` (its table jump through `od`, of selector `x` and table base `base`; arm `j` at the jump table's target of slot `base + j`), a `call` (its site's callee frame `of`, `od` the callee's entry; the rest at the site's return pc), a `callIf c` (`oc` the cell of `c`: a conditional call at its site returning to the next offset, or a loop's tail call to the next frame `fp·g^S` before the closing `ret []`; the rest falls through), a `dispatch` (its site's callee frame and target cells, the target not cell `0`; the rest at the return pc), a `ret` (`od = 0`, `of = 1`; `main`: the halting jump); the unconditional ones (`match`, `call`, `dispatch`, `ret`) on a nonzero constant `oc`. `alignOk`: the advice's pcs increase from the entry, and the pass reaches the end with no fall-through past it and nothing pending. `alignAt`: the position at each offset reached.
 
 The kernel evaluates by substitution, sharing nothing between a term's copies, so the pass is written for it: the context's tables are tries (`Check.getF`) built once and handed on evaluated (`AlignCtx.seq`), the certificate's cells packed `2^20`-ary, 64 to a chunk (`packGo`), the chunks a trie built by halves (`buildT`); arrivals pending are kept by offset (`insP`), so an offset takes its own from the front (`spanP`); and each recursive walk is a recursor, its state passed on evaluated.
 -/
@@ -279,7 +279,7 @@ noncomputable def headStep (X : AlignCtx) (i oc od of : ℕ) (tabs : List (ℕ �
       | _, _, _ => none
     else none
   | s@(.match_ x arms) :: ss =>
-    bif X.selfAt of then
+    bif X.nzAt oc && X.selfAt of then
       match getF X.arms od with
       | some a => bif Nat.beq a.1 x.idx then
           bif tabHit tabs a.2 z i then some (none, []) else (armZs X i z s ss a.2 0 arms).map fun l ↦ (none, l)
@@ -289,7 +289,7 @@ noncomputable def headStep (X : AlignCtx) (i oc od of : ℕ) (tabs : List (ℕ �
   | .call f args rets :: ss =>
     match X.siteAt of args rets, X.pcAt od, normZ X.fuel (z.next ss) with
     | some s, some t, some c =>
-      bif X.entOk t f then (X.fwdOff i s.r).map fun o ↦ (none, [(o, c)]) else none
+      bif X.nzAt oc && X.entOk t f then (X.fwdOff i s.r).map fun o ↦ (none, [(o, c)]) else none
     | _, _, _ => none
   | .callIf c f args :: ss =>
     bif Nat.beq (X.locAt c.idx) oc then
@@ -306,12 +306,12 @@ noncomputable def headStep (X : AlignCtx) (i oc od of : ℕ) (tabs : List (ℕ �
     else none
   | .dispatch _ _ args rets :: ss =>
     match X.siteAt of args rets, normZ X.fuel (z.next ss) with
-    | some s, some c => bif Nat.beq s.tgt od then (X.fwdOff i s.r).map fun o ↦ (none, [(o, c)]) else none
+    | some s, some c => bif X.nzAt oc && Nat.beq s.tgt od && !Nat.beq od 0 then (X.fwdOff i s.r).map fun o ↦ (none, [(o, c)]) else none
     | _, _ => none
   | .ret _ :: _ =>
     bif X.main then
-      bif X.selfAt of && X.pcAt od == some X.halt then some (none, []) else none
-    else bif Nat.beq od 0 && Nat.beq of 1 then some (none, []) else none
+      bif X.nzAt oc && X.selfAt of && X.pcAt od == some X.halt then some (none, []) else none
+    else bif X.nzAt oc && Nat.beq od 0 && Nat.beq of 1 then some (none, []) else none
   | _ => none
 
 /-- **A `JUMP oc od of` at offset `i`**, the zipper `z`: the zipper falling through, and the offsets

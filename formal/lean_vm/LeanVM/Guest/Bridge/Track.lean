@@ -176,6 +176,22 @@ theorem kidsValid_drop {P : Core.Program} {rd : Reader} {σ : Val} :
     rw [List.length_cons, List.drop_succ_cons]
     exact kidsValid_drop (cs1 := cs1) h.2.2
 
+/-- Atoms, then the closing `ret []`. -/
+theorem walk_atoms_ret (σ : Val) : ∀ as : List Atom,
+    walk σ (as.map Stmt.atom ++ [.ret []]) = .ret (as.map Ev.atom) []
+  | [] => by simp only [List.map_nil, List.nil_append]; exact walk_ret_cons [] []
+  | a :: as => by
+    rw [List.map_cons, List.cons_append, walk_atom_cons, walk_atoms_ret σ as]
+    rfl
+
+/-- Atoms that pop nothing splice to nothing. -/
+theorem splice_atoms_nil {rd : Reader} {σ : Val} : ∀ {as : List Atom}, (∀ a ∈ as, ∀ rd σ, a.pops rd σ = []) →
+    ∀ ks : List (List Pop), splice rd σ (as.map Ev.atom) ks = []
+  | [], _, ks => by simp [splice]
+  | a :: as, h, ks => by
+    simp only [List.map_cons, splice, h a List.mem_cons_self, List.nil_append]
+    exact splice_atoms_nil (fun b hb ↦ h b (List.mem_cons_of_mem _ hb)) ks
+
 /-! ## Frames -/
 
 /-- **A frame of the track**: a placed instance, its function, its body position, the events of its
@@ -253,7 +269,8 @@ inductive Move (Is : List Inst) : List Pop × List Ent → List Pop × List Ent 
       Move Is (done, e :: st) (done, Ent.enter P J fn :: e.adv ps 2 :: st)
   | tail {done : List Pop} {e : Ent} {st : List Ent} {c : V} {f : String} {args : List V}
       {ps : List Stmt} {J : Inst} {fn : Fn} :
-      e.pos = .callIf c f args :: ps → e.σ c ≠ 0 → e.es.drop 2 = [] → J ∈ Is →
+      e.pos = .callIf c f args :: ps → e.σ c ≠ 0 →
+      (∃ as : List Atom, (∀ a ∈ as, ∀ rd σ, a.pops rd σ = []) ∧ ps = as.map Stmt.atom ++ [.ret []]) → J ∈ Is →
       e.I.t.kids[e.nc]? = some J.t → e.I.kidFps[e.nc]? = some J.fp → P.find? J.t.name = some fn →
       Move Is (done, e :: st) (done, Ent.enter P J fn :: st)
   | dispatch {done : List Pop} {e : Ent} {st : List Ent} {x : V} {fs : List String}
@@ -465,10 +482,16 @@ theorem TrackOk.move {T : Tree} {s s' : List Pop × List Ent} (h : TrackOk P rd 
     obtain ⟨hJ', hr⟩ := call_rem (h.ents e List.mem_cons_self) (ps := ps) he rfl rfl hJ hk hf
       fun k ↦ by simp [splice]
     refine trackOk_cons h hJ' ?_
-    have : (e.adv ps 2).rem P rd = [] := by
-      simp only [Ent.rem, Ent.adv]
-      rw [hnil]
-      rfl
+    obtain ⟨as, has, rfl⟩ := hnil
+    have hok2 := hok
+    rw [show [Ev.inK c, Ev.call f args []].length = 2 from rfl] at hok2
+    have : (e.adv (as.map Stmt.atom ++ [.ret []]) 2).rem P rd = [] := by
+      obtain ⟨vs, -, hw⟩ := hok2.path
+      change walk e.σ (as.map Stmt.atom ++ [.ret []]) = .ret (e.es.drop 2) vs at hw
+      rw [walk_atoms_ret] at hw
+      change splice rd e.σ (e.es.drop 2) _ = []
+      rw [← (Out.ret.inj hw).1]
+      exact splice_atoms_nil has _
     rw [hr, show [Ev.inK c, Ev.call f args []].length = 2 from rfl, this, List.append_nil]
   | @dispatch done e st x fs args rets ps i J fn hi hpos hp hJ hk _ hf =>
     obtain ⟨he, hok⟩ := top_adv (evs := [.call fs[i] args rets]) (ps := ps) h fun vs hw ↦ by

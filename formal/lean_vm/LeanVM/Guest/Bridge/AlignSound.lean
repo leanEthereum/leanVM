@@ -285,7 +285,7 @@ theorem fwdOff_eq {X : AlignCtx} {i t o : ℕ} (h : X.fwdOff i t = some o) : o =
 theorem armZs_arr (X : AlignCtx) (i : ℕ) (z : Zip) (s : Stmt) (ss : List Stmt) (base : ℕ) :
     ∀ (as : List (List Stmt)) (j : ℕ) {l : List (ℕ × Zip)}, armZs X i z s ss base j as = some l →
       ∀ k < as.length, ∃ t c, getF X.jt (base + (j + k)) = some t ∧ normZ X.fuel (z.enter s ss (j + k)) = some c ∧
-        (t - X.entry, c) ∈ l
+        (t - X.entry, c) ∈ l ∧ X.entry + i < t
   | [], _, _, _, k, hk => absurd hk (Nat.not_lt_zero _)
   | _ :: as, j, l, h, k, hk => by
     simp only [armZs] at h
@@ -296,12 +296,12 @@ theorem armZs_arr (X : AlignCtx) (i : ℕ) (z : Zip) (s : Stmt) (ss : List Stmt)
         cases h
         cases k with
         | zero =>
-          refine ⟨t, c, ht, hc, ?_⟩
+          refine ⟨t, c, ht, hc, ?_, (fwdOff_eq ho).2⟩
           rw [← (fwdOff_eq ho).1]
           exact List.mem_cons_self
         | succ k =>
-          obtain ⟨t', c', h1, h2, h3⟩ := armZs_arr X i z s ss base as (j + 1) hl k (by simpa using hk)
-          refine ⟨t', c', by rw [← h1]; congr 1; omega, by rw [← h2]; congr 2; omega, List.mem_cons_of_mem _ h3⟩
+          obtain ⟨t', c', h1, h2, h3, h4⟩ := armZs_arr X i z s ss base as (j + 1) hl k (by simpa using hk)
+          refine ⟨t', c', by rw [← h1]; congr 1; omega, by rw [← h2]; congr 2; omega, List.mem_cons_of_mem _ h3, h4⟩
       · cases h
     · cases h
 
@@ -310,15 +310,16 @@ theorem jump_match {X : AlignCtx} {i oc od of : ℕ} {tabs : List (ℕ × Zip ×
     {arms : List (List Stmt)} {ss : List Stmt} {a : ℕ × ℕ} {r : Option Zip × List (ℕ × Zip)}
     (h : insStep X i (.jump oc od of) tabs z = some r) (hz : z.cur = .match_ x arms :: ss)
     (hzero : X.zeroAt oc = false) (hfwd : fwdJ X i oc od of = false) (ha : getF X.arms od = some a) :
-    X.selfAt of = true ∧ a.1 = x.idx ∧
+    X.nzAt oc = true ∧ X.selfAt of = true ∧ a.1 = x.idx ∧
       ((tabHit tabs a.2 z i = true ∧ r = (none, [])) ∨
         (tabHit tabs a.2 z i = false ∧ armZs X i z (.match_ x arms) ss a.2 0 arms = some r.2 ∧ r.1 = none)) := by
   simp only [insStep, jumpStep, hzero, hfwd, Bool.cond_false, headStep, hz] at h
-  cases hs : X.selfAt of <;> simp only [hs, Bool.cond_true, Bool.cond_false, ha] at h
+  cases hs : (X.nzAt oc && X.selfAt of) <;> simp only [hs, Bool.cond_true, Bool.cond_false, ha] at h
   · cases h
+  simp only [Bool.and_eq_true] at hs
   cases hx : Nat.beq a.1 x.idx <;> simp only [hx, Bool.cond_true, Bool.cond_false] at h
   · cases h
-  refine ⟨rfl, Nat.beq_eq.mp hx, ?_⟩
+  refine ⟨hs.1, hs.2, Nat.beq_eq.mp hx, ?_⟩
   cases ht : tabHit tabs a.2 z i <;> simp only [ht, Bool.cond_true, Bool.cond_false] at h
   · obtain ⟨l, hl, rfl⟩ := Option.map_eq_some_iff.mp h
     exact Or.inr ⟨rfl, hl, rfl⟩
@@ -384,11 +385,11 @@ theorem stepI_inv {X : AlignCtx} {body : List Stmt} {hs0 : List (ℕ × List Pro
           · simp only [insStep, jumpStep, hz0, Bool.cond_true, Option.some.injEq] at hr
             subst hr
             exact absurd rfl hne
-        obtain ⟨-, -, hc⟩ := jump_match hr hz hzero hf ha
+        obtain ⟨-, -, -, hc⟩ := jump_match hr hz hzero hf ha
         rcases hc with ⟨-, rfl⟩ | ⟨-, hl, -⟩
         · exact absurd rfl hne
         refine ⟨x, arms, ss, hz, fun j hj ↦ ?_⟩
-        obtain ⟨t, c, h1, h2, h3⟩ := armZs_arr X _ z _ ss a.2 arms 0 hl j hj
+        obtain ⟨t, c, h1, h2, h3, -⟩ := armZs_arr X _ z _ ss a.2 arms 0 hl j hj
         simp only [Nat.zero_add] at h1 h2
         exact ⟨t, c, h1, h2, minOff_le _ h3, mem_mergeP _ _ (Or.inl h3)⟩
   · refine hsInv_step h.hs _ hi ?_
@@ -436,7 +437,7 @@ theorem alignRun_step {X : AlignCtx} {body : List Stmt} {code : List OffsetInstr
       ∀ oc od of x arms ss a, ins = .jump oc od of → z.cur = .match_ x arms :: ss → X.zeroAt oc = false →
         fwdJ X i oc od of = false → getF X.arms od = some a →
         ∀ j < arms.length, ∃ t c', getF X.jt (a.2 + j) = some t ∧
-          normZ X.fuel (z.enter (.match_ x arms) ss j) = some c' ∧ Arr l (t - X.entry) c' := by
+          normZ X.fuel (z.enter (.match_ x arms) ss j) = some c' ∧ Arr l (t - X.entry) c' ∧ X.entry + i < t := by
   simp only [alignRun] at h
   obtain ⟨⟨st', acc'⟩, hgo, hend⟩ := Option.bind_eq_some_iff.mp h
   simp only [alignEnd, Bool.cond_eq_ite, Bool.and_eq_true, Option.isNone_iff_eq_none, List.isEmpty_iff] at hend
@@ -475,7 +476,7 @@ theorem alignRun_step {X : AlignCtx} {body : List Stmt} {code : List OffsetInstr
     exact hpend q (mem_mergeP _ _ (Or.inl hq))
   · intro oc od of x arms ss a hins hzc hzero hfwd ha j hj
     subst hins
-    obtain ⟨-, hx, hcase⟩ := jump_match hr hzc hzero hfwd ha
+    obtain ⟨-, -, hx, hcase⟩ := jump_match hr hzc hzero hfwd ha
     rcases hcase with ⟨hhit, -⟩ | ⟨-, hl, -⟩
     · simp only [tabHit, List.any_eq_true, Bool.and_eq_true, Nat.beq_eq, Nat.blt_eq] at hhit
       obtain ⟨t, ht, ⟨hb, hk⟩, hlt⟩ := hhit
@@ -486,13 +487,13 @@ theorem alignRun_step {X : AlignCtx} {body : List Stmt} {code : List OffsetInstr
       obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hz'
       obtain ⟨tg, c', h1, h2, h3, h4⟩ := hj' j hj
       rw [hb, hteq] at *
-      refine ⟨tg, c', h1, h2, hpend (tg - X.entry, c') (mem_mergeP _ _ (Or.inr ?_))⟩
+      refine ⟨tg, c', h1, h2, hpend (tg - X.entry, c') (mem_mergeP _ _ (Or.inr ?_)), by omega⟩
       rcases spanP_split sti.i sti.pend h4 with ⟨-, he⟩ | h5
       · simp only at he; omega
       · exact h5
-    · obtain ⟨t, c', h1, h2, h3⟩ := armZs_arr X _ z _ ss a.2 arms 0 hl j hj
+    · obtain ⟨t, c', h1, h2, h3, h4⟩ := armZs_arr X _ z _ ss a.2 arms 0 hl j hj
       simp only [Nat.zero_add] at h1 h2
-      exact ⟨t, c', h1, h2, hpend _ (mem_mergeP _ _ (Or.inl h3))⟩
+      exact ⟨t, c', h1, h2, hpend _ (mem_mergeP _ _ (Or.inl h3)), h4⟩
 
 
 /-! ## Positions -/
@@ -667,8 +668,8 @@ theorem alignAt_step {X : AlignCtx} {body : List Stmt} {code : List OffsetInstru
       (∀ p ∈ r.2, alignAt X body code d p.1 = some p.2.pos) ∧
       ∀ oc od of x arms ss a, ins = .jump oc od of → z.cur = .match_ x arms :: ss → X.zeroAt oc = false →
         fwdJ X i oc od of = false → getF X.arms od = some a →
-        ∀ j < arms.length, ∃ t, getF X.jt (a.2 + j) = some t ∧ ∃ c', normZ X.fuel (z.enter (.match_ x arms) ss j) = some c' ∧
-          alignAt X body code d (t - X.entry) = some c'.pos := by
+        ∀ j < arms.length, ∃ t, getF X.jt (a.2 + j) = some t ∧ X.entry + i < t ∧ ∃ c',
+          normZ X.fuel (z.enter (.match_ x arms) ss j) = some c' ∧ alignAt X body code d (t - X.entry) = some c'.pos := by
   rw [alignOk, AlignCtx.seq_eq] at hok
   change (alignPre X d && (alignRun X body code d).isSome) = true at hok
   simp only [Bool.and_eq_true] at hok
@@ -689,8 +690,8 @@ theorem alignAt_step {X : AlignCtx} {body : List Stmt} {code : List OffsetInstru
     rw [List.filter_append, hf, List.nil_append]
     exact hf2
   · intro oc od of x arms ss a hi hzc hzero hfwd ha j hj
-    obtain ⟨t, c', ht, hc', harr⟩ := h3 oc od of x arms ss a hi hzc hzero hfwd ha j hj
-    exact ⟨t, ht, c', hc', alignAt_of_arr hpre hl harr (normZ_ok _ (hzok.enter hzc j) hc')⟩
+    obtain ⟨t, c', ht, hc', harr, hlt⟩ := h3 oc od of x arms ss a hi hzc hzero hfwd ha j hj
+    exact ⟨t, ht, hlt, c', hc', alignAt_of_arr hpre hl harr (normZ_ok _ (hzok.enter hzc j) hc')⟩
 
 end
 

@@ -6,14 +6,14 @@
 
 module
 
-public import LeanVM.Guest.Bridge.RefTrace
+public import LeanVM.Guest.Bridge.StepRule
 public import LeanVM.Guest.Bridge.TrackHonest
 public import LeanVM.Prover.ExecuteComplete
 
 /-!
 # The tree track against the deployed guest's reference run
 
-`ref_deployed`: under `MainCompleteP`, the honest memory's tree `T` and its extension `img` (`honestX`, as `honest_of_mainP`) are a valid execution of `n` steps on the statement's digest; the run passes `main`'s entry (`regs mainEntry 0`) after the prologue's `k0` steps and reaches the final registers `n - k0` steps later (`run_after`); for any alignment `al` putting `main`'s body at offset `0`, the track at `main`'s instance is at those registers (`refOk_init`), and under a step rule for `RefOk` there is a trace of track states along the run from there (`refTrace`), the `k`-th at the registers of the executor's step `k0 + k`.
+`ref_deployed`: under `MainCompleteP`, the honest memory's tree `T` and its extension `img` (`honestX`, as `honest_of_mainP`) are a valid execution of `n` steps on the statement's digest; the run passes `main`'s entry (`regs mainEntry 0`) after the prologue's `k0` steps and reaches the final registers `n - k0` steps later (`run_after`); for any entries `ent` putting `main` at `mainEntry` and alignment `al` putting `main`'s body at offset `0`, the track at `main`'s instance is at those registers (`refOk_init`), and under a step rule for `RefOk` there is a trace of track states along the run from there (`refTrace`), the `k`-th at the registers of the executor's step `k0 + k`. `trace_deployed`: that trace, for alignments of the program's functions (`ProgAl`), the step rule being `stepRule_of`'s, where each state's top frame has its jumps' cells (`JumpCells`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -21,7 +21,6 @@ namespace LeanVM.Guest.Bridge
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Node
 open LeanVM.Guest.End (Budget work hdrOf bytecode mainEntry publicInputOf reach_jumpTables)
 open LeanVM.Guest.Budget (MainCompleteP)
-open LeanVM.Prover.Exec (refMem)
 
 public section
 
@@ -35,8 +34,8 @@ theorem ref_deployed {b : Budget} (hm : MainCompleteP B2C.fs B2C.cert B2C.cnt b)
       ∃ (rd rd0 : Reader) (T : Tree) (X : List Write) (I : Inst) (fn : Fn) (n k0 : ℕ),
         HonestAt coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T B2C.cert rd [] [] ∧
         HonestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T rd [] [] X ∧
-        T.name = "main" ∧ I.t = T ∧ I.fp = 0 ∧ I.hdr = hdrOf (statementDigest seed s) ∧
-        ValidExecution guestProgram (publicInputOf (statementDigest seed s))
+        T.name = "main" ∧ coreProgram.find? "main" = some fn ∧ I.t = T ∧ I.fp = 0 ∧
+        I.hdr = hdrOf (statementDigest seed s) ∧ ValidExecution guestProgram (publicInputOf (statementDigest seed s))
           ⟨_, honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X, n⟩ ∧
         k0 ≤ n ∧
         run guestProgram (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X) k0
@@ -45,22 +44,22 @@ theorem ref_deployed {b : Budget} (hm : MainCompleteP B2C.fs B2C.cert B2C.cnt b)
           (regs mainEntry 0) = some (Registers.final guestProgram) ∧
         SameStreams (T.pops coreProgram rd0)
           ((Hints.honestPushes bytecode seed s w).filter (·.1 != Hints.heapSizeStream)) ∧
-        ∀ al : String → ℕ → Option (List Stmt), al "main" 0 = some fn.body →
+        ∀ (ent : String → ℕ) (al : String → ℕ → Option (List Stmt)), ent "main" = mainEntry →
+          al "main" 0 = some fn.body →
           RefOk coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T) T
-            (refMem (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X)) B2C.entryOf al
+            (memOf (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X)) ent al
             mainEntry 0 ([], [Ent.enter coreProgram I fn]) ∧
           (StepRule guestProgram (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X)
               (Move coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T))
               (RefOk coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T) T
-                (refMem (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X)) B2C.entryOf
-                al) →
+                (memOf (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X)) ent al) →
             ∃ tr : ℕ → ℕ × ℕ × (List Pop × List Ent), tr 0 = (mainEntry, 0, ([], [Ent.enter coreProgram I fn])) ∧
               (∀ k < n - k0, run guestProgram
                   (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X) k
                   (regs mainEntry 0) = some (regs (tr k).1 (tr k).2.1) ∧
                 RefOk coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T) T
-                  (refMem (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X))
-                  B2C.entryOf al (tr k).1 (tr k).2.1 (tr k).2.2) ∧
+                  (memOf (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X))
+                  ent al (tr k).1 (tr k).2.1 (tr k).2.2) ∧
               ∀ k, k + 1 < n - k0 →
                 Relation.ReflTransGen
                   (Move coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T))
@@ -93,12 +92,52 @@ theorem ref_deployed {b : Budget} (hm : MainCompleteP B2C.fs B2C.cert B2C.cnt b)
   have hk0' : run guestProgram img k0 (regs 0 0) = some (regs mainEntry 0) := hk0
   have hrest := run_after hn0 rfl hk0'
   rw [regs_initial] at hk0'
-  have hmain : B2C.entryOf I.t.name = mainEntry := by rw [hIt, hname]; exact B2C.entryOf_main
-  refine ⟨rd, rd0, T, X, I, fn, n, k0, hH, hX, hname, hIt, hfp, hhdr, hv', hrest.1, hk0', hrest.2, hss,
-    fun al hal ↦ ?_⟩
-  have h0 := refOk_init (M := refMem img) (ent := B2C.entryOf) (al := al) htr hfp (by rw [hIt, hname]; exact hal)
-  rw [hmain] at h0
+  refine ⟨rd, rd0, T, X, I, fn, n, k0, hH, hX, hname, by rw [← hname, ← hIt]; exact hf, hIt, hfp, hhdr, hv',
+    hrest.1, hk0', hrest.2, hss,
+    fun ent al hent hal ↦ ?_⟩
+  have h0 := refOk_init (M := memOf img) (ent := ent) (al := al) htr hfp (by rw [hIt, hname]; exact hal)
+  rw [hIt, hname, hent] at h0
   exact ⟨h0, fun hR ↦ refTrace hR hrest.2 h0⟩
+
+/-- **The trace along the deployed guest's reference run**, at the registers of each step after the
+prologue: for alignments of the program's functions (`ProgAl`) with `main` at its entry, where the
+top frame of each state of the track against the run has its jumps' cells (`JumpCells`). -/
+theorem trace_deployed {b : Budget} (hm : MainCompleteP B2C.fs B2C.cert B2C.cnt b) {A : String → FnAl}
+    (hP : ProgAl guestProgram coreProgram A) (hmain : entOf A "main" = mainEntry) :
+    ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
+      b.size (work s w) ≤ 2 ^ 30 →
+      ∃ (rd rd0 : Reader) (T : Tree) (X : List Write) (I : Inst) (fn : Fn) (n k0 : ℕ),
+        HonestAt coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T B2C.cert rd [] [] ∧
+        HonestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T rd [] [] X ∧
+        T.name = "main" ∧ I.t = T ∧ I.fp = 0 ∧ k0 ≤ n ∧
+        run guestProgram (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X) k0
+          Registers.initial = some (regs mainEntry 0) ∧
+        SameStreams (T.pops coreProgram rd0)
+          ((Hints.honestPushes bytecode seed s w).filter (·.1 != Hints.heapSizeStream)) ∧
+        ((∀ pc fp done e st, RefOk coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T)
+            T (memOf (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X)) (entOf A) (alOf A)
+            pc fp (done, e :: st) →
+          JumpCells (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X) A e) →
+        ∃ tr : ℕ → ℕ × ℕ × (List Pop × List Ent), tr 0 = (mainEntry, 0, ([], [Ent.enter coreProgram I fn])) ∧
+          (∀ k < n - k0, run guestProgram
+              (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X) k
+              (regs mainEntry 0) = some (regs (tr k).1 (tr k).2.1) ∧
+            RefOk coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T) T
+              (memOf (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X))
+              (entOf A) (alOf A) (tr k).1 (tr k).2.1 (tr k).2.2) ∧
+          ∀ k, k + 1 < n - k0 →
+            Relation.ReflTransGen
+              (Move coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T))
+              (tr k).2.2 (tr (k + 1)).2.2) := by
+  intro seed s w hrel hlim hok hbs
+  obtain ⟨rd, rd0, T, X, I, fn, n, k0, hH, hX, hname, hf, hIt, hfp, -, -, hk, hk0, -, hss, hal⟩ :=
+    ref_deployed hm seed s w hrel hlim hok hbs
+  have hal0 : alOf A "main" 0 = some fn.body := by
+    change alignAt (A "main").X (A "main").body (A "main").code (A "main").d 0 = some fn.body
+    rw [alignAt_zero (hP.ok _ _ hf), hP.body _ _ hf]
+  obtain ⟨-, htr⟩ := hal (entOf A) (alOf A) hmain hal0
+  exact ⟨rd, rd0, T, X, I, fn, n, k0, hH, hX, hname, hIt, hfp, hk, hk0, hss, fun hC ↦
+    htr (stepRule_of hP honest_closed hC)⟩
 
 end
 
