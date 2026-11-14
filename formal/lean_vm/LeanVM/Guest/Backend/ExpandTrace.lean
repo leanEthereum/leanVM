@@ -141,13 +141,15 @@ def ctx : M Ctx := return (← get).ctx
 /-- A fresh value at the current position. -/
 def fresh (kind : Kind := .cell) : M V := do
   let st ← get
-  set { st with tag := st.tag + 1, trace := st.trace.push (.alloc ⟨st.path, st.tag, 0⟩ 1 kind) }
+  set { st with tag := st.tag + 1, trace := st.trace.push (.alloc [⟨st.path, st.tag, 0⟩] kind) }
   return ⟨st.path, st.tag, 0⟩
 
 /-- `n` fresh consecutive cells (`alloc_stack`). -/
 def freshRun (n : Nat) (kind : Kind := .cell) : M (List V) := do
   let st ← get
-  set { st with tag := st.tag + 1, trace := st.trace.push (.alloc ⟨st.path, st.tag, 0⟩ n kind) }
+  set { st with
+    tag := st.tag + 1
+    trace := st.trace.push (.alloc ((List.range n).map fun k => ⟨st.path, st.tag, k⟩) kind) }
   return (List.range n).map fun k => ⟨st.path, st.tag, k⟩
 
 /-- Emit a statement: it carries instructions, so a pending hint fires on it. -/
@@ -1918,10 +1920,11 @@ def expandQueue (p : Program) : Nat → Nat → Array Func → Nat → Array Bac
           if f.hasConstParams || f.inline then expandQueue p budget (i + 1) queue loopCtr out
           else do
             let (fn, queue, loopCtr, trace) ← expandFn p f queue loopCtr
-            expandQueue p budget (i + 1) queue loopCtr (out.push ⟨f, fn, trace⟩)
+            expandQueue p budget (i + 1) queue loopCtr (out.push
+              ⟨fn, trace, (f.returnShapes.map Shape.cells).sum, Backend.loopSource f⟩)
 
-/-- Every function the compiler lowers, in its order, `main` first: its source as queued, its
-core function and its trace. -/
+/-- Every function the compiler lowers, in its order, `main` first: its core function, its trace
+and what the back end reads of its source as queued. -/
 def expandProgram (p : Program) : Except String (List Backend.TracedFn) := do
   let some main := p.funcs.find? (·.name == "main") | throw "program needs a `main`"
   if main.hasConstParams then throw "main cannot take Const parameters"

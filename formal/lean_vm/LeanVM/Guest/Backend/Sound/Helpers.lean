@@ -452,14 +452,14 @@ theorem forall₂_cells {L : MemoryImage κ} {vs : List V} {cs : List Cell}
   | nil => rfl
   | cons h _ ih => simp [h, ih]
 
-theorem bindRun_spec (v : V) (len : ℕ) (base : Cell) :
-    Spec Γ fp F ctx (bindRun v len base) (fun _ => True) := fun _ =>
+theorem bindRun_spec (vs : List V) (base : Cell) :
+    Spec Γ fp F ctx (bindRun vs base) (fun _ => True) := fun _ =>
   SpecAt.lastT (forM_spec (fun _ => bindTo_spec _ _) _)
 
-theorem takeRun_spec (v : V) (len : ℕ) : Spec Γ fp F ctx (takeRun v len) (fun _ => True) := by
+theorem takeRun_spec (vs : List V) : Spec Γ fp F ctx (takeRun vs) (fun _ => True) := by
   intro st
   unfold takeRun
-  refine SpecAt.get_bind (SpecAt.bindT (bindRun_spec v len _ st) fun _ _ => ?_)
+  refine SpecAt.get_bind (SpecAt.bindT (bindRun_spec vs _ st) fun _ _ => ?_)
   exact SpecAt.modify quiet
 
 end
