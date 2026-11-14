@@ -160,3 +160,11 @@ srcDir = "cli"
 name = "test-runs"
 root = "TestRuns"
 srcDir = "cli"
+
+# The guest's back end in Lean (`LeanVM/Guest/Backend/`), compiled (cli/GuestBackend.lean): the
+# guest's source through `Expand` and the back end to leanISA bytecode and prover hints, compared
+# with `Statement/Data/` or written out for the Rust comparison; not a default target.
+[[lean_exe]]
+name = "guest-backend"
+root = "GuestBackend"
+srcDir = "cli"
