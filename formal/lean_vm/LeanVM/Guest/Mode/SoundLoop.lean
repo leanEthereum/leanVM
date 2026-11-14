@@ -28,44 +28,58 @@ open LeanVM.Prover.Exec
 /-! ## Termination -/
 
 /-- **A tail call's counters**: the next iteration's counter is this one's times `g^t`, `t > 0`, its
-bound the same word. -/
+bound the same exponent. -/
 theorem termStep_sound {s sN : St} {A : Abs} {e : ℕ} {G : Sig} (hA : Holds s A)
     (F : Frames s sN (.own e)) (h : termStep A e G = true) :
-    ∀ p ∈ G.term, ∃ a b t, p = (.ex a 0, .ex b 0) ∧ 0 < t ∧
+    ∀ p ∈ G.term, ∃ a t, p.1 = .ex a 0 ∧ 0 < t ∧
       (∀ u, BaseVal sN a u ↔ ∃ u', BaseVal s a u' ∧ u = ofK (g ^ t) * u') ∧
-      ∀ u, BaseVal sN b u ↔ BaseVal s b u := by
+      ∀ x, IdxVal sN p.2 x ↔ IdxVal s p.2 x := by
   intro p hp
   have := List.all_eq_true.mp h p hp
-  rcases p with ⟨_ | ⟨a, _ | _⟩, _ | ⟨b, _ | _⟩⟩ <;> try (simp at this; done)
-  simp only [Bool.and_eq_true] at this
-  obtain ⟨h1, h2⟩ := this
-  split at h1
-  · rename_i a' ha'
+  have hcnt : ∀ a, (match idxUp A (.own e) (.ex a 0) with
+      | some a' => match (Idx.ex a 0).off a' with
+        | some t => decide (0 < t)
+        | none => false
+      | none => false) = true → ∃ t, 0 < t ∧
+        ∀ u, BaseVal sN a u ↔ ∃ u', BaseVal s a u' ∧ u = ofK (g ^ t) * u' := by
+    intro a h1
     split at h1
-    · rename_i t ht
-      obtain ⟨k, hk, -⟩ := idxUp_some ha'
-      rcases trIdxK_ex hk with ⟨-, k', -, -, rfl⟩ | ⟨-, y, hb, rfl⟩
-      · simp [Idx.off] at ht
-      simp only [Idx.off, Bool.and_eq_true, decide_eq_true_eq] at ht
-      split_ifs at ht with hc
-      cases ht
-      obtain rfl := Base.beq_eq hc.1
-      simp only [decide_eq_true_eq] at h1
-      split at h2
-      · rename_i b' hb'
-        obtain rfl := Idx.beq_eq h2
-        obtain ⟨k2, hk2, -⟩ := idxUp_some hb'
-        rcases trIdxK_ex hk2 with ⟨-, k', -, -, he⟩ | ⟨-, y2, hb2, he⟩
-        · cases he
-        · simp only [Idx.ex.injEq] at he
-          obtain ⟨rfl, he⟩ := he
-          obtain rfl : k2 = 0 := by omega
-          refine ⟨a, b, k, rfl, by omega, fun u ↦ ?_, fun u ↦ ?_⟩
-          · rw [trBase_iff F hA hb u, MonoVal.base1]
-          · rw [trBase_iff F hA hb2 u, MonoVal.single]
-      · cases h2
+    · rename_i a' ha'
+      split at h1
+      · rename_i t ht
+        obtain ⟨k, hk, -⟩ := idxUp_some ha'
+        rcases trIdxK_ex hk with ⟨-, k', -, -, rfl⟩ | ⟨-, y, hb, rfl⟩
+        · simp [Idx.off] at ht
+        simp only [Idx.off, Bool.and_eq_true, decide_eq_true_eq] at ht
+        split_ifs at ht with hc
+        cases ht
+        obtain rfl := Base.beq_eq hc.1
+        simp only [decide_eq_true_eq] at h1
+        exact ⟨k, by omega, fun u ↦ by rw [trBase_iff F hA hb u, MonoVal.base1]⟩
+      · cases h1
     · cases h1
-  · cases h1
+  rcases p with ⟨_ | ⟨a, _ | _⟩, _ | ⟨b, _ | _⟩⟩ <;> try (simp at this; done)
+  · simp only [Bool.and_eq_true] at this
+    obtain ⟨t, ht, hiff⟩ := hcnt a this.1
+    exact ⟨a, t, rfl, ht, hiff, fun x ↦ Iff.rfl⟩
+  · simp only [Bool.and_eq_true] at this
+    obtain ⟨h1, h2⟩ := this
+    obtain ⟨t, ht, hiff⟩ := hcnt a h1
+    refine ⟨a, t, rfl, ht, hiff, fun x ↦ ?_⟩
+    split at h2
+    · rename_i b' hb'
+      obtain rfl := Idx.beq_eq h2
+      obtain ⟨k2, hk2, -⟩ := idxUp_some hb'
+      rcases trIdxK_ex hk2 with ⟨-, k', -, -, he⟩ | ⟨-, y2, hb2, he⟩
+      · cases he
+      · simp only [Idx.ex.injEq] at he
+        obtain ⟨rfl, he⟩ := he
+        obtain rfl : k2 = 0 := by omega
+        have hbv := fun u ↦ (trBase_iff F hA hb2 u).trans MonoVal.single
+        constructor
+        · rintro ⟨v, e', h1, h2, h3, h4⟩; exact ⟨v, e', (hbv v).mp h1, h2, h3, h4⟩
+        · rintro ⟨v, e', h1, h2, h3, h4⟩; exact ⟨v, e', (hbv v).mpr h1, h2, h3, h4⟩
+    · cases h2
 
 /-- The counters' exponents increasing, the last one's naming the bound: every earlier one is below
 it. -/
@@ -90,13 +104,13 @@ theorem lt_of_exit {c : ℕ → ℕ} {J en : ℕ} (hinc : ∀ j < J, c j < c (j 
 /-- **Termination gives the entry inequalities**: iterations `j < J`, iteration `j`'s counter the
 word `g^(c j)` and its bound `g^en`, the counters increasing and the loop exiting when the counter
 names the bound: each iteration's entry has its termination fact. -/
-theorem term_holds {s : ℕ → St} {a b : Base} {c : ℕ → ℕ} {J en : ℕ}
+theorem term_holds {s : ℕ → St} {a : Base} {b : Idx} {c : ℕ → ℕ} {J en : ℕ}
     (hinc : ∀ j < J, c j < c (j + 1)) (hJ : c J < 2 ^ 63) (hen : en < 2 ^ 62)
     (hexit : g ^ c J = g ^ en) (ha : ∀ j < J, BaseVal (s j) a (ofK (g ^ c j)))
-    (hb : ∀ j < J, BaseVal (s j) b (ofK (g ^ en))) : ∀ j < J, LTF (s j) (.ex a 0) (.ex b 0) := by
+    (hb : ∀ j < J, IdxVal (s j) b en) : ∀ j < J, LTF (s j) (.ex a 0) b := by
   intro j hj
   have hlt := lt_of_exit hinc hJ hen hexit j hj
-  exact ⟨c j, en, ⟨_, c j, ha j hj, rfl, by omega, rfl⟩, ⟨_, en, hb j hj, rfl, hen, rfl⟩, hlt⟩
+  exact ⟨c j, en, ⟨_, c j, ha j hj, rfl, by omega, rfl⟩, hb j hj, hlt⟩
 
 /-! ## Accumulated runs -/
 

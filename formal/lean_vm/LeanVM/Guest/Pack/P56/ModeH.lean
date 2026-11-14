@@ -11,8 +11,24 @@ public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P56».Mode0
 public import LeanVM.Guest.Pack.«P56».Mode1
 public import LeanVM.Guest.Pack.«P56».Mode2
+public import LeanVM.Guest.Pack.«P56».Mode3
 
 set_option Elab.async false
+
+namespace LeanVM.Guest.Fn.«ring_switch_target»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `ring_switch_target`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 14) (d := Data.adviceFn14) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«ring_switch_target»
 
 namespace LeanVM.Guest.Fn.«verify_bus_gkr_loop1»
 

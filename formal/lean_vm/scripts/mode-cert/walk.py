@@ -76,16 +76,18 @@ COST = [0]
 
 
 class Abs:
-    __slots__ = ('w', 'v', 'nz', 'hv', 'h', 'r', 'lt', 'pr', 'xs', 'p')
+    __slots__ = ('w', 'v', 'nz', 'hv', 'h', 'r', 'lt', 'pr', 'xs', 'p', 'c')
 
     def __init__(s):
         s.w = set(); s.v = {}; s.nz = set(); s.hv = {}; s.h = set(); s.r = set(); s.lt = set(); s.pr = []
         s.xs = {}
         s.p = set()
+        s.c = {}
 
     def copy(s):
         t = Abs(); t.w = set(s.w); t.v = dict(s.v); t.nz = set(s.nz); t.hv = dict(s.hv); t.h = set(s.h)
         t.r = set(s.r); t.lt = set(s.lt); t.pr = list(s.pr); t.xs = dict(s.xs); t.p = set(s.p)
+        t.c = dict(s.c)
         return t
 
     def addV(s, o, x):
@@ -159,17 +161,82 @@ class Abs:
         COST[0] += len(s.h) + 40 * len(s.r)
         d = ownCell(k)
         if d is not None: return d in s.w
+        if s.coveredHR(k) or s.coveredHR(s.pinned(k)): return True
+        # a cell of a run of pointers, or one past a pointer such a cell holds
+        if any(s.inRng(k, r) for r, os in s.p): return True
+        if k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and k[2][0][0][0] == 'hp':
+            _, q, d = k[2][0][0]
+            kq = (0, d, ((('fr', q), 1),))
+            if any(k[1] in os and s.inRng(kq, r) for r, os in s.p): return True
+        # a table read at a bounded index: every cell the index can name
+        return s.tabCovered(k)
+
+    def coveredHR(s, k):
+        """`k` a known heap cell or in a known run (`Abs.coveredHR`)."""
         return k in s.h or any(s.inRng(k, r) for r in s.r)
+
+    def knownH(s, m):
+        """Every base of `m` has a word, by `w`, `h` and `r` alone (`Abs.knownH`)."""
+        return all(b[1] in s.w if b[0] == 'fr' else (b[1] in s.w and s.coveredHR((0, b[2], ((('fr', b[1]), 1),)))) for b, e in m[2])
+
+    def entR(s, r):
+        """Run `r`'s points, at most 64, each known by `h` and `r` alone (`Abs.entR`)."""
+        q, lo, hi, S, d = r
+        if lo[0] != 'num': return False
+        b = s.bound(hi)
+        if b is None: return False
+        n = max(0, b - lo[1])
+        return n <= 64 and s.knownH(q) and all(s.coveredHR(shift(q, S * (lo[1] + j) + d)) for j in range(n))
+
+    def tabCovered(s, k):
+        """`k = q·x^e·g^c`, `x`'s exponent below a known bound, every cell `q·g^(e·j + c)` below it known
+        (`Abs.tabCovered`)."""
+        if k[0] != 0: return False
+        for b, e in k[2]:
+            q = (0, 0, tuple(x for x in k[2] if x[0] != b))
+            if s.entR((q, ('num', 0), ('ex', b, 1), e, k[1])): return True
+        return False
+
+    def pin(s, b):
+        """The exponent of base `b`, when known exactly, the least such (`Abs.pin`)."""
+        best = None
+        for p, q in s.lt:
+            if p == ('ex', b, 0) and q[0] == 'num' and q[1] > 0 and (('num', q[1] - 1), ('ex', b, 1)) in s.lt:
+                best = q[1] - 1 if best is None else min(best, q[1] - 1)
+        return best
+
+    def pinned(s, k):
+        """The product, each base of known exponent made a power of `g` (`Abs.pinned`)."""
+        fp, kk, bs = k; rest = []
+        for b, e in bs:
+            c = s.pin(b)
+            if c is None: rest.append((b, e))
+            else: kk += c * e
+        return (fp, kk, tuple(rest))
 
     def coveredR(s, r):
         q, lo, hi, S, d = r
         for (q2, lo2, hi2, S2, d2) in s.r:
             if q2 == q and S2 == S and d2 == d and s.le(lo2, lo) and s.le(hi, hi2) and s.hasIdx(lo) and s.hasIdx(hi):
                 return True
-        if lo[0] == 'num' and hi[0] == 'num':
-            n = max(0, hi[1] - lo[1])
-            return n <= 4096 and all(b[0] == 'fr' and b[1] in s.w for b, e in q[2]) and all(s.covered(shift(q, S * (lo[1] + j) + d)) for j in range(n))
+        if lo[0] == 'num':
+            b = s.bound(hi)
+            if b is None: return False
+            n = max(0, b - lo[1])
+            return n <= 4096 and s.known(q) and all(s.covered(shift(q, S * (lo[1] + j) + d)) for j in range(n))
         return False
+
+    def bound(s, hi):
+        """A constant `hi` is at most: itself, or a known bound."""
+        if hi[0] == 'num': return hi[1]
+        best = None
+        for p, q in s.lt:
+            if q[0] != 'num': continue
+            t = ioff(p, hi)
+            if t is not None:
+                v = max(0, q[1] + t - 1)
+                best = v if best is None else min(best, v)
+        return best
 
     def ptrAt(s, k, os):
         x = s.hvGet(k)
@@ -180,12 +247,19 @@ class Abs:
         for ((q2, lo2, hi2, S2, d2), os2) in s.p:
             if q2 == q and S2 == S and d2 == d and s.le(lo2, lo) and s.le(hi, hi2) and s.hasIdx(lo) and s.hasIdx(hi) and set(os) <= set(os2):
                 return True
-        if hi == isucc(lo) and s.hasIdx(lo) and s.ptrAt(first(r), os):
+        if hi == isucc(lo) and s.hasIdx(lo) and s.ptrIn(first(r), os):
             return True
-        if lo[0] == 'num' and hi[0] == 'num':
-            n = max(0, hi[1] - lo[1])
-            return n <= 4096 and all(b[0] == 'fr' and b[1] in s.w for b, e in q[2]) and all(s.ptrAt(shift(q, S * (lo[1] + j) + d), os) for j in range(n))
+        if lo[0] == 'num':
+            b = s.bound(hi)
+            if b is None: return False
+            n = max(0, b - lo[1])
+            return n <= 4096 and s.known(q) and all(s.ptrIn(shift(q, S * (lo[1] + j) + d), os) for j in range(n))
         return False
+
+    def ptrIn(s, k, os):
+        """The heap cell `k` holds a pointer with the cells `os` past it written: known, or in a run of
+        pointers (`Abs.ptrIn`)."""
+        return s.ptrAt(k, os) or any(set(os) <= set(os2) and s.inRng(k, r) for r, os2 in s.p)
 
 
 def idxOf(r, k):
@@ -211,10 +285,53 @@ def inter(A, B):
     t.v = {o: x for o, x in A.v.items() if B.v.get(o) == x}
     t.nz = A.nz & B.nz
     t.hv = {k: x for k, x in A.hv.items() if B.hv.get(k) == x}
-    t.h = A.h & B.h; t.r = A.r & B.r; t.lt = A.lt & B.lt; t.pr = []
+    t.h = A.h & B.h
+    t.r = (A.r & B.r) | {r for r in A.r - B.r if B.entR(r)} | {r for r in B.r - A.r if A.entR(r)}
+    t.lt = A.lt & B.lt; t.pr = []
     t.xs = {c: p for c, p in A.xs.items() if B.xs.get(c) == p}
     t.p = A.p & B.p
+    t.c = {}
+    for key, F in A.c.items():
+        G = B.c.get(key)
+        if G is not None:
+            H = (F[0] & G[0], F[1] & G[1], F[2] & G[2], F[3] & G[3], {k: x for k, x in F[4].items() if G[4].get(k) == x})
+            if any(H): t.c[key] = H
     return t
+
+
+def addLtC(A, x, b):
+    """Frame cell `x`'s exponent below `b`, and so its word's base's, when it is one base (`Abs.addLtC`)."""
+    A.lt.add((('ex', ('fr', x), 0), b))
+    m = A.mono(x)
+    if m is not None and m[0] == 0 and m[1] == 0 and len(m[2]) == 1 and m[2][0][1] == 1:
+        A.lt.add((('ex', m[2][0][0], 0), b))
+
+
+def exitOk(A, p, q):
+    """At a loop's return, its bound is its counter's next exponent (`exitOk`)."""
+    if p[0] != 'ex' or p[2] != 0: return False
+    if q[0] == 'num':
+        return q[1] >= 1 and A.le(q, isucc(p)) and A.le(isucc(p), q)
+    if q[2] != 0 or q[1][0] != 'fr': return False
+    return A.v.get(q[1][1]) == ('m', (0, 1, ((p[1], 1),)))
+
+
+def assume(A, x, j):
+    """`A`, base `x`'s exponent `j`: its facts under that condition, and the exponent's bounds."""
+    B = A.copy()
+    F = A.c.get((x, j))
+    if F is not None:
+        B.h |= F[0]; B.r |= F[1]; B.p |= F[2]; B.lt |= F[3]
+        for k, y in F[4].items(): B.hv.setdefault(k, y)
+    B.lt.add((('ex', x, 0), ('num', j + 1)))
+    B.lt.add((('num', j), ('ex', x, 1)))
+    return B
+
+
+def condOf(B, X, x, j):
+    """The facts of `X` not in `B`, under `x`'s exponent `j`."""
+    return (frozenset(X.h - B.h), frozenset(X.r - B.r), frozenset(X.p - B.p), frozenset(X.lt - B.lt),
+            {k: y for k, y in X.hv.items() if B.hv.get(k) != y})
 
 # ---------------------------------------------------------------- the walk
 
@@ -303,12 +420,12 @@ class Walk:
                 m = A.mono(z)
                 if m is not None:
                     if m[0] == 0 and not m[2]:
-                        if m[1] < 2 ** 62: A.lt.add((('ex', ('fr', x), 0), ('num', m[1] + 1)))
+                        if m[1] < 2 ** 62: addLtC(A, x, ('num', m[1] + 1))
                     elif m[0] == 0 and len(m[2]) == 1 and m[2][0][1] == 1:
                         if m[1] == 0 or (m[1] < 2 ** 62 and A.ltI(('ex', m[2][0][0], 0), ('num', MAXCELLS))):
-                            A.lt.add((('ex', ('fr', x), 0), ('ex', m[2][0][0], m[1] + 1)))
+                            addLtC(A, x, ('ex', m[2][0][0], m[1] + 1))
                         elif m[1] == 2 ** 64 - 2:
-                            A.lt.add((('ex', ('fr', x), 0), ('ex', m[2][0][0], 0)))
+                            addLtC(A, x, ('ex', m[2][0][0], 0))
 
     def stepOp(self, i, A, op, a):
         pc = self.entry + i
@@ -557,7 +674,9 @@ class Walk:
             if k is not None: A.addH(k)
         for r in G.postR + G.postL:
             r2 = self.trRngUp(A, mq, r)
-            if r2 is not None: A.r.add(r2)
+            if r2 is not None:
+                A.r.add(r2)
+                extR(A, r2)
         for r, os in G.postP + G.postLP:
             r2 = self.trRngUp(A, mq, r)
             if r2 is not None: A.p.add((r2, os))
@@ -575,10 +694,12 @@ class Walk:
             self.need(k is not None and A.covered(k), 'loop', i, r, A)
         for r, os in self.sig.postLP:
             k = self.trMono(A, own(0), first(r))
-            self.need(k is not None and A.ptrAt(k, os), 'loopP', i, r, os, A)
+            self.need(k is not None and A.ptrIn(k, os), 'loopP', i, r, os, A)
 
     def retOk(self, A, i):
         self.loopOk(A, i)
+        # a loop exits when its next counter is its bound
+        for p, q in self.sig.term: self.need(exitOk(A, p, q), 'exit', i, p, q, A)
         for o in self.sig.ret: self.need(o in A.w, 'retW', i, o, A)
         for o, m in self.sig.retV:
             x = A.mono(o)
@@ -650,8 +771,11 @@ class Walk:
                 self.entryOk(A, own(e), G, i, ('tail', md[1]))
                 for r in G.postL + [r for r, os in G.postLP]:
                     self.need(self.trRngUp(A, own(e), r) == (r[0], isucc(r[1]), r[2], r[3], r[4]), 'stride', i, r, A)
+                # the next frame's header is this one's
+                for o in (0, 1):
+                    self.need(o in A.w and A.hvGet(shift(own(e), o)) == ('m', A.mono(o)), 'header', i, o, A)
                 for p, q in G.term:
-                    ok = p[0] == 'ex' and p[2] == 0 and q[0] == 'ex' and q[2] == 0
+                    ok = p[0] == 'ex' and p[2] == 0 and (q[0] == 'num' or q[2] == 0)
                     if ok:
                         a2, b2 = self.idxUp(A, own(e), p), self.idxUp(A, own(e), q)
                         t = ioff(p, a2) if a2 is not None else None
@@ -669,9 +793,27 @@ class Walk:
             A = A.copy()
             Gs = self.calleesOf(A, i, d)
             if not Gs: raise Fail(('callees', i))
+            if not (self.entry + i < r < self.entry + self.len): raise Fail(('callret', i))
+            v = A.v.get(d)
+            if True:
+                # each arm from what holds when it is taken; what follows each, a condition on the selector
+                x = v[1] if v[0] == 'tab' else None
+                Bs = []
+                for j, G in enumerate(Gs):
+                    Aj = assume(A, x, j) if x is not None else A.copy()
+                    self.atCall(Aj, mq, G)
+                    self.entryOk(Aj, mq, G, i, G.pc)
+                    Bs.append(self.afterCall(Aj, mq, G))
+                B = Bs[0]
+                for X in Bs[1:]: B = inter(B, X)
+                for j, X in enumerate(Bs):
+                    if x is None: break
+                    F = condOf(B, X, x, j)
+                    if any(F): B.c[(x, j)] = F
+                    else: B.c.pop((x, j), None)
+                return ([r - self.entry], B)
             for G in Gs: self.atCall(A, mq, G)
             for G in Gs: self.entryOk(A, mq, G, i, G.pc)
-            if not (self.entry + i < r < self.entry + self.len): raise Fail(('callret', i))
             B = self.afterCall(A, mq, Gs[0])
             for G in Gs[1:]: B = inter(B, self.afterCall(A, mq, G))
             return ([r - self.entry], B)
@@ -759,6 +901,15 @@ def first(r):
     return shift(mul(q, (0, 0, ((lo[1], S),))), S * lo[2] + d)
 
 
+def extR(A, r):
+    """A run at offset `d >= S` and its point one stride below its start: the run from that point
+    (`Abs.extR`)."""
+    q, lo, hi, S, d = r
+    if 0 < S <= d:
+        r2 = (q, lo, isucc(hi), S, d - S)
+        if A.covered(first(r2)): A.r.add(r2)
+
+
 def entryAbs(E, G):
     A = Abs()
     A.w = set(G.entry); A.h = set(G.pre); A.r = {jtRng(E)} | set(G.preR); A.lt = set(G.term)
@@ -775,5 +926,14 @@ def learn0(A, c):
     a, b = p
     B = A.copy()
     if b not in B.v: B.addV(b, B.v.get(a, ('m', root(a))))
-    else: B.addV(a, B.v.get(b, ('m', root(b))))
+    elif a not in B.v: B.addV(a, B.v.get(b, ('m', root(b))))
+    else:
+        # both known: a base's power equal to a constant gives its exponent
+        for x, y in ((B.v[a], B.v[b]), (B.v[b], B.v[a])):
+            if x[0] == 'm' and y[0] == 'm' and x[1][0] == 0 and not x[1][2] and x[1][1] < 2 ** 62:
+                m = y[1]
+                if m[0] == 0 and len(m[2]) == 1 and m[2][0][1] == 1 and m[1] <= x[1][1]:
+                    bx = m[2][0][0]; k = x[1][1] - m[1]
+                    B.lt.add((('ex', bx, 0), ('num', k + 1)))
+                    B.lt.add((('num', k), ('ex', bx, 1)))
     return B

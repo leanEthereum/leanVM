@@ -35,11 +35,12 @@ inductive JumpK (E : Env) (F : Fun) (i : ℕ) (A : Abs) (d f : ℕ) : Go → Abs
   | call (mq : Mono) (r : ℕ) (G : Sig) (Gs : List Sig) : ¬SelfF F A f → A.mono f = some mq →
       A.hvGet (mq.shift 1) = some (.m ⟨1, 0, []⟩) → A.hvGet (mq.shift 0) = some (.m ⟨0, r, []⟩) →
       calleesOf E F A i d = some (G :: Gs) →
-      (∀ G' ∈ G :: Gs, entryOk (foldlA (fun A G ↦ atCall A mq G) A (G :: Gs)) mq G' = true) →
+      (∀ p ∈ (G :: Gs).zipIdx.map (fun p ↦ (p.1, atCall (A.assume (selOf A d) p.2) mq p.1)),
+        entryOk p.2 mq p.1 = true) →
       F.entry + i < r → r < F.entry + F.len →
       JumpK E F i A d f (.to [r - F.entry])
-        (foldlA (fun B G' ↦ B.interS (afterCall (foldlA (fun A G ↦ atCall A mq G) A (G :: Gs)) mq G'))
-          (afterCall (foldlA (fun A G ↦ atCall A mq G) A (G :: Gs)) mq G) Gs)
+        (armsMeet (selOf A d) (((G :: Gs).zipIdx.map fun p ↦
+          (p.1, atCall (A.assume (selOf A d) p.2) mq p.1)).map fun p ↦ afterCall p.2 mq p.1))
 
 /-- **What a taken jump the walk accepts is.** -/
 theorem jumpI_cases {E : Env} {F : Fun} {i : ℕ} {A : Abs} {d f : ℕ} {go : Go} {A' : Abs}

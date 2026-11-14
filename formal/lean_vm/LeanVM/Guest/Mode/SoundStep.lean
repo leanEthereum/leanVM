@@ -140,6 +140,36 @@ theorem Holds.mono_val {s : St} {A : Abs} (h : Holds s A) {o : ℕ} {m : Mono}
     obtain ⟨u, hu⟩ := Mem.get_of_written hw
     exact ⟨u, hu, MonoVal.root hu⟩
 
+theorem MonoVal.base1 {s : St} {k : ℕ} {b : Base} {u : E} :
+    MonoVal s ⟨0, k, [(b, 1)]⟩ u ↔ ∃ p, BaseVal s b p ∧ u = ofK (g ^ k) * p := by
+  constructor
+  · rintro ⟨w, ⟨p, w', hp, hw', rfl⟩, rfl⟩
+    exact ⟨p, hp, by rw [show w' = 1 from hw']; simp⟩
+  · rintro ⟨p, hp, rfl⟩
+    exact ⟨p, ⟨p, 1, hp, rfl, by simp⟩, by simp⟩
+
+theorem MonoVal.base1' {s : St} {b : Base} {u : E} : MonoVal s ⟨0, 0, [(b, 1)]⟩ u ↔ BaseVal s b u := by
+  constructor
+  · rintro ⟨w, ⟨p, w', hp, hw', rfl⟩, rfl⟩
+    rw [show w' = 1 from hw']; simpa using hp
+  · intro h
+    exact ⟨u, ⟨u, 1, h, rfl, by simp⟩, by simp⟩
+
+/-- A frame cell's exponent below `b`, and so its word's base's. -/
+theorem Holds.addLtC {s : St} {A : Abs} (h : Holds s A) {x : ℕ} {b : Idx} (hl : LTF s (.ex (.fr x) 0) b) :
+    Holds s (A.addLtC x b) := by
+  unfold Abs.addLtC
+  have h1 := h.addLt hl
+  split
+  · rename_i y hy
+    obtain ⟨xa, xb, ⟨u, ex, hu, hue, he, hxa⟩, hb, hlt⟩ := hl
+    have hu'' : s.mem.get (s.fp + x) = some u := hu
+    obtain ⟨u', hu', hm⟩ := h.mono_val hy (written_of_get hu'')
+    rw [hu''] at hu'
+    cases hu'
+    exact h1.addLt ⟨xa, xb, ⟨u, ex, MonoVal.base1'.mp hm, hue, he, hxa⟩, hb, hlt⟩
+  · exact h1
+
 /-! ## What instructions write -/
 
 theorem xor_vals {C : Ctx} {s s' : St} {a b c : ℕ} (hs : s.Good)

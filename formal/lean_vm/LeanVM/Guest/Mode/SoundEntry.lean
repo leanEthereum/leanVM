@@ -32,64 +32,16 @@ def HP (s : St) (k : Mono) (os : List ℕ) : Prop :=
 
 /-! ## A cell the walk knows written has a word -/
 
-theorem BsVal.remove_inv {s : St} {b : Base} {e : ℕ} {u : E} (hu : BaseVal s b u) :
-    ∀ {bs rest : List (Base × ℕ)} {w : E}, removeBs (b, e) bs = some rest → BsVal s rest w →
-      BsVal s bs (u ^ e * w)
-  | [], _, _, h, _ => by simp [removeBs] at h
-  | (b', e') :: bs, rest, w, h, hw => by
-    unfold removeBs at h
-    by_cases hq : b.beq b' = true
-    · rw [ite_eq_left hq] at h
-      by_cases he : (e == e') = true
-      · rw [ite_eq_left he] at h
-        cases h
-        obtain rfl := Base.beq_eq hq
-        obtain rfl := beq_iff_eq.mp he
-        exact ⟨u, w, hu, hw, rfl⟩
-      · rw [ite_eq_right he] at h; cases h
-    · rw [ite_eq_right hq] at h
-      obtain ⟨rest', hr, rfl⟩ := Option.map_eq_some_iff.mp h
-      obtain ⟨u', w', h1, h2, rfl⟩ := hw
-      exact ⟨u', u ^ e * w', h1, BsVal.remove_inv hu hr h2, by ring⟩
-
-/-- A product a run names at an exponent with a value has a word. -/
-theorem Rng.idxOf_val {s : St} {r : Rng} {k : Mono} {i : Idx} (h : r.idxOf k = some i) {vq : E}
-    (hq : MonoVal s r.q vq) {xi : ℕ} (hi : IdxVal s i xi) : ∃ vk, MonoVal s k vk := by
-  unfold Rng.idxOf at h
-  by_cases hc : (k.fp == r.q.fp && decide (r.q.k + r.d ≤ k.k) && (k.k - r.q.k - r.d) % r.S == 0 &&
-      decide (0 < r.S)) = true
-  swap
-  · rw [ite_eq_right hc] at h; cases h
-  rw [ite_eq_left hc] at h
-  obtain ⟨wq, hwq, -⟩ := hq
-  by_cases hb : bsBeq k.bs r.q.bs = true
-  · exact ⟨_, wq, by rw [bsBeq_eq hb]; exact hwq, rfl⟩
-  · rw [ite_eq_right hb] at h
-    split at h
-    · rename_i x e _
-      split at h
-      · rename_i rest hr
-        by_cases hrq : bsBeq rest r.q.bs = true
-        · rw [ite_eq_left hrq] at h
-          cases h
-          obtain ⟨v, ex, hv, -, -, -⟩ := hi
-          rw [bsBeq_eq hrq] at hr
-          exact ⟨_, _, BsVal.remove_inv hv hr hwq, rfl⟩
-        · rw [ite_eq_right hrq] at h; cases h
-      · cases h
-    · cases h
-
-theorem inRng1_val {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {r : Rng} (hr : RW s r)
-    (h : (match r.idxOf k with
-      | some i => A.le r.lo i && A.ltI i r.hi
-      | none => false) = true) : ∃ vk, MonoVal s k vk := by
-  split at h
-  · rename_i i hi
-    simp only [Bool.and_eq_true] at h
-    obtain ⟨vq, xlo, xhi, h1, -, h3, -⟩ := hr
-    obtain ⟨xi, hxi, -⟩ := Abs.ltI_sound hA h.2 h3
-    exact Rng.idxOf_val hi h1 hxi
-  · simp at h
+theorem Abs.coveredHR_val {s : St} {A : Abs} (hA : Holds s A) {k : Mono} (h : A.coveredHR k = true) :
+    ∃ vk, MonoVal s k vk := by
+  unfold Abs.coveredHR at h
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  · obtain ⟨k', hm, hb⟩ := List.any_eq_true.mp h
+    obtain rfl := Mono.beq_eq hb
+    obtain ⟨v, -, h1, -⟩ := hA.h _ hm
+    exact ⟨v, h1⟩
+  · obtain ⟨r, hm, hb⟩ := List.any_eq_true.mp h
+    exact inRng_valR hA (hA.r r hm) hb
 
 /-- **A heap cell the walk knows written has a word.** -/
 theorem Abs.covered_val {s : St} {A : Abs} (hA : Holds s A) {k : Mono} (h : A.covered k = true) :
@@ -99,17 +51,18 @@ theorem Abs.covered_val {s : St} {A : Abs} (hA : Holds s A) {k : Mono} (h : A.co
   · rename_i d hd
     obtain ⟨rfl, -⟩ := Mono.ownCell_eq hd
     exact ⟨_, MonoVal.own d⟩
-  · rcases Bool.or_eq_true_iff.mp h with h | h
-    · obtain ⟨k', hm, hb⟩ := List.any_eq_true.mp h
-      obtain rfl := Mono.beq_eq hb
-      obtain ⟨v, -, h1, -⟩ := hA.h _ hm
-      exact ⟨v, h1⟩
-    · obtain ⟨r, hm, hb⟩ := List.any_eq_true.mp h
-      unfold Abs.inRng at hb
-      rcases Bool.or_eq_true_iff.mp hb with hb | hb
-      · exact inRng1_val hA (hA.r r hm) hb
-      · simp only [Bool.and_eq_true] at hb
-        exact inRng1_val hA (hA.r r hm).down hb.2
+  · simp only [Bool.or_eq_true] at h
+    rcases h with (((h | h) | h) | h) | h
+    · exact Abs.coveredHR_val hA h
+    · obtain ⟨v, hv⟩ := Abs.coveredHR_val hA h
+      exact Abs.pinned_ex hA hv
+    · obtain ⟨⟨r, os⟩, hm, hb⟩ := List.any_eq_true.mp h
+      obtain ⟨vq, xlo, xhi, h1, -, h3, -⟩ := hA.p _ hm
+      exact inRng_val' hA h1 h3 hb
+    · split at h
+      · exact (Abs.ptrHp_sound hA h).1
+      · cases h
+    · exact (Abs.tabCovered_sound hA h).1
 
 /-- A heap cell the walk knows written: its word, and the written cell it names. -/
 theorem Abs.covered_cell {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
@@ -166,6 +119,19 @@ theorem PtrW.sub {m : Mem} {x : ℕ} {os os' : List ℕ} (h : PtrW m x os') (hs 
   obtain ⟨p, h1, h2⟩ := h
   exact ⟨p, h1, fun o ho ↦ h2 o (hs o ho)⟩
 
+/-- **A pointer the walk knows**, or one a run of pointers holds. -/
+theorem Abs.ptrIn_sound {s : St} {A : Abs} (hA : Holds s A) (hfp : s.fp < maxCells) (hwf : s.mem.WF)
+    (hu : s.mem.used ≤ maxCells) {k : Mono} {os : List ℕ} (h : A.ptrIn k os = true) : HP s k os := by
+  unfold Abs.ptrIn at h
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  · exact Abs.ptrAt_sound hA hfp hwf hu h
+  · obtain ⟨⟨r, os'⟩, hm, hh⟩ := List.any_eq_true.mp h
+    simp only [Bool.and_eq_true, List.all_eq_true, List.contains_iff_mem] at hh
+    obtain ⟨vq, xlo, xhi, h1, -, h3, -⟩ := hA.p _ hm
+    obtain ⟨vk, hk⟩ := inRng_val' hA h1 h3 hh.2
+    obtain ⟨x, hx, hp⟩ := Abs.inRng_ptr hA (hA.p _ hm) hh.2 hk
+    exact ⟨vk, x, hk, hx, hp.sub hh.1⟩
+
 /-- **A run of pointers the walk knows is.** -/
 theorem Abs.coveredP_sound {s : St} {A : Abs} (hA : Holds s A) (hfp : s.fp < maxCells)
     (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells) {r : Rng} {os : List ℕ}
@@ -191,7 +157,7 @@ theorem Abs.coveredP_sound {s : St} {A : Abs} (hA : Holds s A) (hfp : s.fp < max
     · simp only [Bool.and_eq_true] at h
       obtain ⟨⟨hhi, hlo⟩, hp⟩ := h
       obtain ⟨y, hy⟩ := Abs.hasIdx_sound hA hlo
-      obtain ⟨v, x, hv, hx, hpx⟩ := Abs.ptrAt_sound hA hfp hwf hu hp
+      obtain ⟨v, x, hv, hx, hpx⟩ := Abs.ptrIn_sound hA hfp hwf hu hp
       obtain ⟨vq, hq⟩ := Rng.first_q hv
       refine ⟨vq, y, y + 1, hq, hy, by rw [Idx.beq_eq hhi]; exact Idx.succ_val' hy,
         fun j hj1 hj2 ↦ ?_⟩
@@ -199,14 +165,15 @@ theorem Abs.coveredP_sound {s : St} {A : Abs} (hA : Holds s A) (hfp : s.fp < max
       rw [hv.unique (Rng.first_val hy hq)] at hx
       exact ⟨x, hx, hpx⟩
   · split at h
-    · rename_i a b hlo hhi
+    · rename_i a b hlo hb
       simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-      obtain ⟨⟨-, hbs⟩, hall⟩ := h
-      obtain ⟨w, hw⟩ := BsVal.exists_fr hA hbs
-      refine ⟨_, a, b, ⟨w, hw, rfl⟩, by rw [hlo]; rfl, by rw [hhi]; rfl, fun j hj1 hj2 ↦ ?_⟩
+      obtain ⟨⟨-, hq⟩, hall⟩ := h
+      obtain ⟨vq, hvq⟩ := Abs.known_val hA hwf hu hq
+      obtain ⟨xhi, hxhi, hle⟩ := Abs.bound_sound hA hb
+      refine ⟨vq, a, xhi, hvq, by rw [hlo]; rfl, hxhi, fun j hj1 hj2 ↦ ?_⟩
       have hc := List.all_eq_true.mp hall (j - a) (List.mem_range.mpr (by omega))
-      obtain ⟨v, x, hv, hx, hpx⟩ := Abs.ptrAt_sound hA hfp hwf hu hc
-      rw [hv.unique (MonoVal.shift ⟨w, hw, rfl⟩ _),
+      obtain ⟨v, x, hv, hx, hpx⟩ := Abs.ptrIn_sound hA hfp hwf hu hc
+      rw [hv.unique (hvq.shift _),
         show r.S * (a + (j - a)) + r.d = r.S * j + r.d by congr 2; omega] at hx
       exact ⟨x, hx, hpx⟩
     · simp at h
@@ -234,7 +201,7 @@ theorem entryOk_sound {En : Env} {sC sE : St} {A : Abs} {mq : Mono} {G : Sig} (F
   simp only [Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨hent, hself⟩, hpre⟩, hpreR⟩, hpreP⟩ := h
   have h0 : Holds sE ⟨G.entry.foldl (fun t o ↦ t.set () Exec.envDepth o) .nil, .nil, .nil, [], G.pre,
-      jtRng En :: G.preR, G.term, [], .nil, G.preP⟩ := {
+      jtRng En :: G.preR, G.term, [], .nil, G.preP, []⟩ := {
     w := fun o ho ↦ by
       rcases entry_w ho with ho | ho
       · obtain ⟨ho1, ho2⟩ := hent o ho
@@ -269,7 +236,8 @@ theorem entryOk_sound {En : Env} {sC sE : St} {A : Abs} {mq : Mono} {G : Sig} (F
       split at this
       · rename_i r' hr'
         exact PW.trDown F hA hr' (Abs.coveredP_sound hA F.fpC F.wf F.used this)
-      · cases this }
+      · cases this
+    c := fun _ hc ↦ by simp at hc }
   unfold entryAbs
   rw [foldlT_eq]
   dsimp only
@@ -301,6 +269,38 @@ theorem atCall_sound {sC sE : St} {A : Abs} {mq : Mono} {G : Sig} (F : Frames sC
   · rename_i a b ha hb
     obtain ⟨xa, xb, h1, h2, h3⟩ := hT p hp
     exact hA.addLt ⟨xa, xb, idxUp_val F hA ha h1, idxUp_val F hA hb h2, h3⟩
+  · exact hA
+
+/-- A run from one stride further, and the point at its start. -/
+theorem RW.ext {s : St} {r : Rng} (hS : r.S ≤ r.d) (hn : RW s r) (hp : HW s (⟨r.q, r.lo, r.hi.succ, r.S, r.d - r.S⟩ : Rng).first) :
+    RW s ⟨r.q, r.lo, r.hi.succ, r.S, r.d - r.S⟩ := by
+  obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := hn
+  refine ⟨vq, xlo, xhi + 1, h1, h2, Idx.succ_val' h3, fun j hj1 hj2 ↦ ?_⟩
+  rcases Nat.eq_or_lt_of_le hj1 with rfl | hj1
+  · obtain ⟨v, x, hv, hx, hw⟩ := hp
+    rw [hv.unique (Rng.first_val (r := ⟨r.q, r.lo, r.hi.succ, r.S, r.d - r.S⟩) h2 h1)] at hx
+    exact ⟨x, hx, hw⟩
+  · obtain ⟨x, hx, hw⟩ := h4 (j - 1) (by omega) (by omega)
+    refine ⟨x, ?_, hw⟩
+    rwa [show r.S * (j - 1) + r.d = r.S * j + (r.d - r.S) by
+      rw [Nat.mul_sub, Nat.mul_one]
+      have : r.S ≤ r.S * j := Nat.le_mul_of_pos_right _ (by omega)
+      omega] at hx
+
+theorem Holds.extR {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells)
+    {r : Rng} (hr : RW s r) : Holds s (A.extR r) := by
+  unfold Abs.extR
+  split_ifs with h1
+  · dsimp only
+    split_ifs with h2
+    · simp only [Bool.and_eq_true, decide_eq_true_eq] at h1
+      obtain ⟨v, x, hv, hx, hw⟩ := Abs.covered_cell hA hwf hu h2
+      have hrw := RW.ext h1.2 hr ⟨v, x, hv, hx, hw⟩
+      exact { hA with
+        r := fun r' hm ↦ by
+          rcases List.mem_cons.mp hm with rfl | hm
+          exacts [hrw, hA.r r' hm] }
+    · exact hA
   · exact hA
 
 /-- **After a call**: the caller's state `sC` once the callee, its frame named by `mq` and its state
@@ -345,10 +345,11 @@ theorem afterCall_sound {sC sR : St} {A : Abs} {mq : Mono} {G : Sig} (F : Frames
       have hrw : RW sC r' := RW.trUp F hA hr' (by
         rcases List.mem_append.mp hr with h | h
         exacts [hR.2.2.1 r h, hL r h])
-      exact { hA with
+      have h1 : Holds sC ({ A with r := r' :: A.r } : Abs) := { hA with
         r := fun r'' hm ↦ by
           rcases List.mem_cons.mp hm with rfl | hm
           exacts [hrw, hA.r r'' hm] }
+      exact h1.extR F.wf F.used hrw
     · exact hA
   · intro A q hq hA
     split
@@ -379,7 +380,7 @@ theorem loopOk_sound {s : St} {A : Abs} {G : Sig} (hA : Holds s A) (hfp : s.fp <
   · have := List.all_eq_true.mp h.2 q hq
     split at this
     · rename_i k hk
-      obtain ⟨v, x, hv, hx, hw⟩ := Abs.ptrAt_sound hA hfp hwf hu this
+      obtain ⟨v, x, hv, hx, hw⟩ := Abs.ptrIn_sound hA hfp hwf hu this
       exact ⟨v, x, (trMono_iff F hA hk v).mpr hv, hx, hw⟩
     · cases this
 
@@ -390,7 +391,7 @@ theorem retOk_sound {s : St} {A : Abs} {G : Sig} (hA : Holds s A) (hfp : s.fp < 
   have F := Frames.own hfp hwf hu rfl (Nat.add_zero _).symm hfp
   unfold retOk at h
   simp only [Bool.and_eq_true, List.all_eq_true] at h
-  obtain ⟨⟨⟨⟨⟨hL, hret⟩, hretV⟩, hpost⟩, hpostR⟩, hpostP⟩ := h
+  obtain ⟨⟨⟨⟨⟨⟨hL, -⟩, hret⟩, hretV⟩, hpost⟩, hpostR⟩, hpostP⟩ := h
   refine ⟨⟨fun o ho ↦ hA.written (hret o ho), fun m hm ↦ ?_, fun r hr ↦ ?_, fun q hq ↦ ?_,
     fun p hp ↦ ?_⟩, loopOk_sound hA hfp hwf hu hL⟩
   · have := hpost m hm
@@ -417,6 +418,45 @@ theorem retOk_sound {s : St} {A : Abs} {G : Sig} (hA : Holds s A) (hfp : s.fp < 
       exact ⟨u, hu, (trMono_iff F hA hy u).mpr hmu⟩
     · cases this
 
+/-- **A loop's exit**: at a return the walk accepts, each termination fact's bound is its counter's
+exponent plus one. -/
+theorem exitOk_sound {s : St} {A : Abs} (hA : Holds s A) {a b : Idx} (h : exitOk A a b = true) :
+    ∀ xa xb, IdxVal s a xa → IdxVal s b xb → xb = xa + 1 := by
+  intro xa xb ha hb
+  unfold exitOk at h
+  split at h
+  · rename_i x n
+    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
+    obtain ⟨⟨-, h1⟩, h2⟩ := h
+    have hb' : xb = n := hb
+    obtain ⟨y, hy, hyle⟩ := Abs.le_sound hA h1 (Idx.succ_val' ha)
+    obtain ⟨z, hz, hzle⟩ := Abs.le_sound hA h2 (show IdxVal s (.num n) n from rfl)
+    have hy' : y = n := hy
+    obtain rfl := hz.unique (Idx.succ_val' ha)
+    omega
+  · rename_i x q
+    split at h
+    · rename_i y hy
+      obtain rfl := Base.beq_eq h
+      obtain ⟨u, hu, hok⟩ := hA.v q _ hy
+      obtain ⟨p, hp, hpu⟩ := MonoVal.base1.mp hok
+      obtain ⟨v, e1, hv, hve, he, hxa⟩ := ha
+      obtain ⟨v', e2, hv', hve', he', hxb⟩ := hb
+      have hpv := hp.unique hv
+      have hu' : u = v' := Option.some.inj (hu.symm.trans hv')
+      rw [hu', hve', hpv, hve, ← ofK_mul, ← pow_add] at hpu
+      have := ofK_gpow_inj (by omega) (by omega) hpu
+      omega
+    · cases h
+  · cases h
+
+/-- **A return of a loop**: its termination facts' bounds are its counters' exponents plus one. -/
+theorem retOk_exit {s : St} {A : Abs} {G : Sig} (hA : Holds s A) (h : retOk A G = true) :
+    ∀ p ∈ G.term, ∀ xa xb, IdxVal s p.1 xa → IdxVal s p.2 xb → xb = xa + 1 := by
+  unfold retOk at h
+  simp only [Bool.and_eq_true, List.all_eq_true] at h
+  exact fun p hp ↦ exitOk_sound hA (h.1.1.1.1.1.2 p hp)
+
 /-- **A loop's tail call** into the frame `fp·g^e`: the next iteration's entry state holds, its
 counters are this one's moved up (`termStep`), and each run it accumulates, moved out, is this one's
 from one further. -/
@@ -425,12 +465,25 @@ theorem tailOk_sound {En : Env} {s sE : St} {A : Abs} {e : ℕ} {G : Sig} (hA : 
     (hE : sE.fp = s.fp + e) (hEfp : sE.fp < maxCells) (h : tailOk A e G = true)
     (hjt : RW sE (jtRng En)) (hT : ∀ p ∈ G.term, LTF sE p.1 p.2) :
     Holds sE (entryAbs En G) ∧ termStep A e G = true ∧
+      (∀ o, o < 2 → ∃ u, s.mem.get (s.fp + o) = some u ∧ sE.mem.get (sE.fp + o) = some u) ∧
       ∀ r ∈ G.postL ++ G.postLP.map (·.1),
         ∃ r', trRngUp A (.own e) r = some r' ∧ r' = ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩ := by
   unfold tailOk at h
   simp only [Bool.and_eq_true, List.all_eq_true] at h
-  obtain ⟨⟨hent, hts⟩, hL⟩ := h
-  refine ⟨entryOk_sound (Frames.own hfp hwf hu hm hE hEfp) hA hent hjt hT, hts, fun r hr ↦ ?_⟩
+  obtain ⟨⟨⟨hent, hhd⟩, hts⟩, hL⟩ := h
+  have F := Frames.own hfp hwf hu hm hE hEfp
+  refine ⟨entryOk_sound F hA hent hjt hT, hts, fun o ho ↦ ?_, fun r hr ↦ ?_⟩
+  · unfold headerOk at hhd
+    have hh := List.all_eq_true.mp hhd o (by interval_cases o <;> simp)
+    simp only [Bool.and_eq_true] at hh
+    obtain ⟨hw, hh⟩ := hh
+    split at hh
+    · rename_i x y hx hy
+      obtain rfl := Mono.beq_eq hh
+      obtain ⟨w, hw', hmw⟩ := hvGet_cell F hA (by omega) hx
+      obtain ⟨u, hu', hmu⟩ := hA.mono_val hy (hA.written hw)
+      exact ⟨u, hu', by rw [hw', hmw.unique hmu]⟩
+    · cases hh
   have := hL r hr
   split at this
   · rename_i r' hr'

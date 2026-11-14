@@ -11,18 +11,18 @@ public import LeanVM.Guest.Pack.«P23».ModeD0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L7»
+namespace LeanVM.Guest.Fn.«claim_list_digest_loop1»
 
 open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `verify_merkle_cap__L7`: its walk from offset 0 goes through to its cut at 600. -/
+/-- `__loop16`: its walk from offset 0 goes through to its end. -/
 theorem modeW0 :
-    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 0 600) 0 [Mode.entryAbs modeEnv
-    modeFun.sig] []).isSome = true := by
+    Mode.runRest modeEnv modeFun (Mode.codeAt code.chunks 0) 0 ([Mode.entryAbs modeEnv
+    modeFun.sig], []) = true := by
   decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«verify_merkle_cap__L7»
+end LeanVM.Guest.Fn.«claim_list_digest_loop1»

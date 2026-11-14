@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P41».Mode0
+public import LeanVM.Guest.Pack.«P41».Mode1
 
 set_option Elab.async false
 

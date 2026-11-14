@@ -34098,7 +34098,7 @@ noncomputable def snap2910 : List Mode.Abs × Mode.Pend :=
     .nil .nil)) .nil)))) (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node (some (70, 111)) .nil .nil)) .nil))) (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node (some (70, 113)) .nil .nil)) (.node none (.node (some (70, 93)) .nil
-    .nil) .nil)))))), []⟩], true⟩])
+    .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 5724. -/
 noncomputable def snap5724 : List Mode.Abs × Mode.Pend :=
@@ -34263,7 +34263,7 @@ noncomputable def snap5724 : List Mode.Abs × Mode.Pend :=
     (.node none .nil (.node (some (70, 112)) .nil .nil)) .nil)))) (.node none (.node none .nil
     (.node none .nil (.node none (.node none .nil (.node (some (70, 111)) .nil .nil)) .nil)))
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some (70, 113)) .nil
-    .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), []⟩], true⟩])
+    .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 8539. -/
 noncomputable def snap8539 : List Mode.Abs × Mode.Pend :=
@@ -34433,7 +34433,7 @@ noncomputable def snap8539 : List Mode.Abs × Mode.Pend :=
     (.node none .nil (.node (some (70, 112)) .nil .nil)) .nil)))) (.node none (.node none .nil
     (.node none .nil (.node none (.node none .nil (.node (some (70, 111)) .nil .nil)) .nil)))
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some (70, 113)) .nil
-    .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), []⟩], true⟩])
+    .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 11354. -/
 noncomputable def snap11354 : List Mode.Abs × Mode.Pend :=
@@ -34608,7 +34608,7 @@ noncomputable def snap11354 : List Mode.Abs × Mode.Pend :=
     .nil .nil)) .nil)))) (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node (some (70, 111)) .nil .nil)) .nil))) (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node (some (70, 113)) .nil .nil)) (.node none (.node (some (70, 93)) .nil
-    .nil) .nil)))))), []⟩], true⟩])
+    .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 14169. -/
 noncomputable def snap14169 : List Mode.Abs × Mode.Pend :=
@@ -34785,7 +34785,7 @@ noncomputable def snap14169 : List Mode.Abs × Mode.Pend :=
     .nil .nil)) .nil)))) (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node (some (70, 111)) .nil .nil)) .nil))) (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node (some (70, 113)) .nil .nil)) (.node none (.node (some (70, 93)) .nil
-    .nil) .nil)))))), []⟩], true⟩])
+    .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 16984. -/
 noncomputable def snap16984 : List Mode.Abs × Mode.Pend :=
@@ -34964,7 +34964,7 @@ noncomputable def snap16984 : List Mode.Abs × Mode.Pend :=
     (.node none (.node none .nil (.node (some (70, 112)) .nil .nil)) .nil)))) (.node none (.node
     none .nil (.node none .nil (.node none (.node none .nil (.node (some (70, 111)) .nil .nil))
     .nil))) (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some (70, 113))
-    .nil .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), []⟩], true⟩])
+    .nil .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 19799. -/
 noncomputable def snap19799 : List Mode.Abs × Mode.Pend :=
@@ -35145,7 +35145,7 @@ noncomputable def snap19799 : List Mode.Abs × Mode.Pend :=
     (.node none (.node none .nil (.node (some (70, 112)) .nil .nil)) .nil)))) (.node none (.node
     none .nil (.node none .nil (.node none (.node none .nil (.node (some (70, 111)) .nil .nil))
     .nil))) (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some (70, 113))
-    .nil .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), []⟩], true⟩])
+    .nil .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 22609. -/
 noncomputable def snap22609 : List Mode.Abs × Mode.Pend :=
@@ -35328,7 +35328,7 @@ noncomputable def snap22609 : List Mode.Abs × Mode.Pend :=
     (.node none (.node none .nil (.node (some (70, 112)) .nil .nil)) .nil)))) (.node none (.node
     none .nil (.node none .nil (.node none (.node none .nil (.node (some (70, 111)) .nil .nil))
     .nil))) (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some (70, 113))
-    .nil .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), []⟩], true⟩])
+    .nil .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 25424. -/
 noncomputable def snap25424 : List Mode.Abs × Mode.Pend :=
@@ -35513,7 +35513,7 @@ noncomputable def snap25424 : List Mode.Abs × Mode.Pend :=
     (.node none (.node none .nil (.node (some (70, 112)) .nil .nil)) .nil)))) (.node none (.node
     none .nil (.node none .nil (.node none (.node none .nil (.node (some (70, 111)) .nil .nil))
     .nil))) (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some (70, 113))
-    .nil .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), []⟩], true⟩])
+    .nil .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 28239. -/
 noncomputable def snap28239 : List Mode.Abs × Mode.Pend :=
@@ -35700,7 +35700,7 @@ noncomputable def snap28239 : List Mode.Abs × Mode.Pend :=
     .nil .nil)) .nil)))) (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node (some (70, 111)) .nil .nil)) .nil))) (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node (some (70, 113)) .nil .nil)) (.node none (.node (some (70, 93)) .nil
-    .nil) .nil)))))), []⟩], true⟩])
+    .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 31054. -/
 noncomputable def snap31054 : List Mode.Abs × Mode.Pend :=
@@ -35889,8 +35889,8 @@ noncomputable def snap31054 : List Mode.Abs × Mode.Pend :=
     (.node none .nil (.node none (.node none .nil (.node (some (70, 112)) .nil .nil)) .nil))))
     (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some (70,
     111)) .nil .nil)) .nil))) (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    (some (70, 113)) .nil .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), []⟩],
-    true⟩])
+    (some (70, 113)) .nil .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), [],
+    []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 33869. -/
 noncomputable def snap33869 : List Mode.Abs × Mode.Pend :=
@@ -36082,7 +36082,7 @@ noncomputable def snap33869 : List Mode.Abs × Mode.Pend :=
     (.node none (.node none .nil (.node (some (70, 112)) .nil .nil)) .nil)))) (.node none (.node
     none .nil (.node none .nil (.node none (.node none .nil (.node (some (70, 111)) .nil .nil))
     .nil))) (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some (70, 113))
-    .nil .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), []⟩], true⟩])
+    .nil .nil)) (.node none (.node (some (70, 93)) .nil .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 36684. -/
 noncomputable def snap36684 : List Mode.Abs × Mode.Pend :=
@@ -36278,7 +36278,7 @@ noncomputable def snap36684 : List Mode.Abs × Mode.Pend :=
     .nil .nil)) .nil)))) (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node (some (70, 111)) .nil .nil)) .nil))) (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node (some (70, 113)) .nil .nil)) (.node none (.node (some (70, 93)) .nil
-    .nil) .nil)))))), []⟩], true⟩])
+    .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 39499. -/
 noncomputable def snap39499 : List Mode.Abs × Mode.Pend :=
@@ -36477,7 +36477,7 @@ noncomputable def snap39499 : List Mode.Abs × Mode.Pend :=
     .nil .nil)) .nil)))) (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node (some (70, 111)) .nil .nil)) .nil))) (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node (some (70, 113)) .nil .nil)) (.node none (.node (some (70, 93)) .nil
-    .nil) .nil)))))), []⟩], true⟩])
+    .nil) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 41355. -/
 noncomputable def snap41355 : List Mode.Abs × Mode.Pend :=
@@ -36810,7 +36810,7 @@ noncomputable def snap41355 : List Mode.Abs × Mode.Pend :=
     (some (70, 113)) .nil (.node none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil)))
     (.node none (.node (some (70, 93)) (.node none .nil (.node none (.node (some (635, 200)) .nil
     .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil)))
-    .nil)))))), []⟩], false⟩])
+    .nil)))))), [], []⟩], false⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 44327. -/
 noncomputable def snap44327 : List Mode.Abs × Mode.Pend :=
@@ -37137,12 +37137,12 @@ noncomputable def snap44327 : List Mode.Abs × Mode.Pend :=
     (some (70, 113)) .nil (.node none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil)))
     (.node none (.node (some (70, 93)) (.node none .nil (.node none (.node (some (635, 200)) .nil
     .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil)))
-    .nil)))))), []⟩], false⟩, ⟨[50311], [⟨(.node (some ()) (.node (some ()) (.node (some ()) (.node
-    (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node
-    (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node
-    none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none
-    (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil)
+    .nil)))))), [], []⟩], false⟩, ⟨[50311], [⟨(.node (some ()) (.node (some ()) (.node (some ())
+    (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ())
+    (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ())
+    (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil)
     .nil)))) (.node (some ()) (.node (some ()) (.node (some ()) (.node none .nil (.node (some ())
     .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some
     ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node
@@ -37477,7 +37477,7 @@ noncomputable def snap44327 : List Mode.Abs × Mode.Pend :=
     (.node none .nil (.node (some (780, 781)) .nil .nil)) .nil) .nil) (.node (some (70, 113)) .nil
     (.node none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node
     (some (70, 93)) (.node none .nil (.node none (.node (some (635, 200)) .nil .nil) .nil)) (.node
-    none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩], true⟩])
+    none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 47302. -/
 noncomputable def snap47302 : List Mode.Abs × Mode.Pend :=
@@ -37797,12 +37797,12 @@ noncomputable def snap47302 : List Mode.Abs × Mode.Pend :=
     (some (70, 113)) .nil (.node none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil)))
     (.node none (.node (some (70, 93)) (.node none .nil (.node none (.node (some (635, 200)) .nil
     .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil)))
-    .nil)))))), []⟩], false⟩, ⟨[50311], [⟨(.node (some ()) (.node (some ()) (.node (some ()) (.node
-    (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node none .nil (.node
-    (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node
-    (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node
-    none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none
-    (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil)
+    .nil)))))), [], []⟩], false⟩, ⟨[50311], [⟨(.node (some ()) (.node (some ()) (.node (some ())
+    (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node none .nil
+    (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ())
+    (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ())
+    (.node none (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node
+    none (.node (some ()) (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil)
     .nil)))) (.node (some ()) (.node (some ()) (.node (some ()) (.node none .nil (.node (some ())
     .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some
     ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node
@@ -38136,7 +38136,7 @@ noncomputable def snap47302 : List Mode.Abs × Mode.Pend :=
     .nil (.node (some (780, 781)) .nil .nil)) .nil) .nil) (.node (some (70, 113)) .nil (.node none
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none .nil (.node none (.node (some (635, 200)) .nil .nil) .nil)) (.node none .nil
-    (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩], true⟩])
+    (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 50302. -/
 noncomputable def snap50302 : List Mode.Abs × Mode.Pend :=
@@ -38480,7 +38480,7 @@ noncomputable def snap50302 : List Mode.Abs × Mode.Pend :=
     (some (659, 233)) .nil .nil) .nil)) .nil))) (.node none (.node none .nil (.node (some (70,
     113)) .nil (.node none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node
     none (.node (some (70, 93)) (.node none .nil (.node none (.node (some (635, 200)) .nil .nil)
-    .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))),
+    .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [],
     []⟩], [⟨[50311], [⟨(.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node
     (some ()) (.node (some ()) (.node none (.node none (.node none .nil (.node (some ()) .nil
     .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) .nil
@@ -38820,7 +38820,7 @@ noncomputable def snap50302 : List Mode.Abs × Mode.Pend :=
     .nil (.node (some (780, 781)) .nil .nil)) .nil) .nil) (.node (some (70, 113)) .nil (.node none
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none .nil (.node none (.node (some (635, 200)) .nil .nil) .nil)) (.node none .nil
-    (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩], true⟩])
+    (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 53289. -/
 noncomputable def snap53289 : List Mode.Abs × Mode.Pend :=
@@ -39182,7 +39182,7 @@ noncomputable def snap53289 : List Mode.Abs × Mode.Pend :=
     (.node none .nil (.node (some (780, 781)) .nil .nil)) .nil) .nil) (.node (some (70, 113)) .nil
     (.node none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node
     (some (70, 93)) (.node none .nil (.node none (.node (some (635, 200)) .nil .nil) .nil)) (.node
-    none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩], false⟩,
+    none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩], false⟩,
     ⟨[59273], [⟨(.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some
     ()) (.node (some ()) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
     (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) .nil (.node
@@ -39555,7 +39555,7 @@ noncomputable def snap53289 : List Mode.Abs × Mode.Pend :=
     .nil) (.node (some (70, 113)) .nil (.node none (.node none (.node (some (592, 137)) .nil .nil)
     .nil) .nil))) (.node none (.node (some (70, 93)) (.node none (.node none .nil (.node (some
     (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) .nil)) (.node none .nil
-    (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩], true⟩])
+    (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 56264. -/
 noncomputable def snap56264 : List Mode.Abs × Mode.Pend :=
@@ -39911,7 +39911,7 @@ noncomputable def snap56264 : List Mode.Abs × Mode.Pend :=
     (.node none .nil (.node (some (780, 781)) .nil .nil)) .nil) .nil) (.node (some (70, 113)) .nil
     (.node none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node
     (some (70, 93)) (.node none .nil (.node none (.node (some (635, 200)) .nil .nil) .nil)) (.node
-    none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩], false⟩,
+    none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩], false⟩,
     ⟨[59273], [⟨(.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some
     ()) (.node (some ()) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
     (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node (some ()) .nil (.node
@@ -40283,7 +40283,7 @@ noncomputable def snap56264 : List Mode.Abs × Mode.Pend :=
     .nil) (.node (some (70, 113)) .nil (.node none (.node none (.node (some (592, 137)) .nil .nil)
     .nil) .nil))) (.node none (.node (some (70, 93)) (.node none (.node none .nil (.node (some
     (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) .nil)) (.node none .nil
-    (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩], true⟩])
+    (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 59264. -/
 noncomputable def snap59264 : List Mode.Abs × Mode.Pend :=
@@ -40658,7 +40658,7 @@ noncomputable def snap59264 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], [⟨[59273], [⟨(.node (some ()) (.node (some ()) (.node (some ())
+    .nil))) .nil)))))), [], []⟩], [⟨[59273], [⟨(.node (some ()) (.node (some ()) (.node (some ())
     (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node none .nil
     (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ())
     (.node (some ()) .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil)
@@ -41029,7 +41029,7 @@ noncomputable def snap59264 : List Mode.Abs × Mode.Pend :=
     .nil) (.node (some (70, 113)) .nil (.node none (.node none (.node (some (592, 137)) .nil .nil)
     .nil) .nil))) (.node none (.node (some (70, 93)) (.node none (.node none .nil (.node (some
     (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) .nil)) (.node none .nil
-    (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩], true⟩])
+    (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 61489. -/
 noncomputable def snap61489 : List Mode.Abs × Mode.Pend :=
@@ -41473,7 +41473,7 @@ noncomputable def snap61489 : List Mode.Abs × Mode.Pend :=
     .nil)) .nil) .nil) (.node (some (70, 113)) .nil (.node none (.node none (.node (some (592,
     137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70, 93)) (.node none (.node none .nil
     (.node (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩],
+    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩],
     false⟩, ⟨(List.flatten [[62142, 62158, 62174, 62189, 62203, 62219, 62234, 62248, 62261, 62276,
     62290, 62303, 62315, 62329, 62342, 62354], [62365, 62381, 62396, 62410, 62423, 62438, 62452,
     62465, 62477, 62491, 62504, 62516, 62527, 62540, 62552, 62563], [62573, 62588, 62602, 62615,
@@ -41933,7 +41933,7 @@ noncomputable def snap61489 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 63626. -/
 noncomputable def snap63626 : List Mode.Abs × Mode.Pend :=
@@ -42385,7 +42385,7 @@ noncomputable def snap63626 : List Mode.Abs × Mode.Pend :=
     .nil)) .nil) .nil) (.node (some (70, 113)) .nil (.node none (.node none (.node (some (592,
     137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70, 93)) (.node none (.node none .nil
     (.node (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩],
+    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩],
     true⟩, ⟨(List.flatten [[64956, 64972, 64988, 65003, 65017, 65033, 65048, 65062, 65075, 65090,
     65104, 65117, 65129, 65143, 65156, 65168], [65179, 65195, 65210, 65224, 65237, 65252, 65266,
     65279, 65291, 65305, 65318, 65330, 65341, 65354, 65366, 65377], [65387, 65402, 65416, 65429,
@@ -42849,7 +42849,7 @@ noncomputable def snap63626 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 64956. -/
 noncomputable def snap64956 : List Mode.Abs × Mode.Pend :=
@@ -43315,7 +43315,7 @@ noncomputable def snap64956 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 67150. -/
 noncomputable def snap67150 : List Mode.Abs × Mode.Pend :=
@@ -43766,7 +43766,7 @@ noncomputable def snap67150 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩, ⟨(List.flatten [[67771, 67787, 67803, 67818, 67832, 67848,
+    .nil))) .nil)))))), [], []⟩], true⟩, ⟨(List.flatten [[67771, 67787, 67803, 67818, 67832, 67848,
     67863, 67877, 67890, 67905, 67919, 67932, 67944, 67958, 67971, 67983], [67994, 68010, 68025,
     68039, 68052, 68067, 68081, 68094, 68106, 68120, 68133, 68145, 68156, 68169, 68181, 68192],
     [68202, 68217, 68231, 68244, 68256, 68270, 68283, 68295, 68306, 68319, 68331, 68342, 68352,
@@ -44231,7 +44231,7 @@ noncomputable def snap67150 : List Mode.Abs × Mode.Pend :=
     .nil)) .nil) .nil) (.node (some (70, 113)) .nil (.node none (.node none (.node (some (592,
     137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70, 93)) (.node none (.node none .nil
     (.node (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩],
+    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩],
     true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 69264. -/
@@ -44691,7 +44691,7 @@ noncomputable def snap69264 : List Mode.Abs × Mode.Pend :=
     .nil)) .nil) .nil) (.node (some (70, 113)) .nil (.node none (.node none (.node (some (592,
     137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70, 93)) (.node none (.node none .nil
     (.node (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩],
+    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩],
     true⟩, ⟨(List.flatten [[70586, 70602, 70618, 70633, 70647, 70663, 70678, 70692, 70705, 70720,
     70734, 70747, 70759, 70773, 70786, 70798], [70809, 70825, 70840, 70854, 70867, 70882, 70896,
     70909, 70921, 70935, 70948, 70960, 70971, 70984, 70996, 71007], [71017, 71032, 71046, 71059,
@@ -45160,7 +45160,7 @@ noncomputable def snap69264 : List Mode.Abs × Mode.Pend :=
     none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some
     (70, 93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node
     (some (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil
-    .nil) .nil))) .nil)))))), []⟩], true⟩])
+    .nil) .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 70586. -/
 noncomputable def snap70586 : List Mode.Abs × Mode.Pend :=
@@ -45632,7 +45632,7 @@ noncomputable def snap70586 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 72756. -/
 noncomputable def snap72756 : List Mode.Abs × Mode.Pend :=
@@ -46089,7 +46089,7 @@ noncomputable def snap72756 : List Mode.Abs × Mode.Pend :=
     none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some
     (70, 93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node
     (some (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil
-    .nil) .nil))) .nil)))))), []⟩], true⟩, ⟨(List.flatten [[73401, 73417, 73433, 73448, 73462,
+    .nil) .nil))) .nil)))))), [], []⟩], true⟩, ⟨(List.flatten [[73401, 73417, 73433, 73448, 73462,
     73478, 73493, 73507, 73520, 73535, 73549, 73562, 73574, 73588, 73601, 73613], [73624, 73640,
     73655, 73669, 73682, 73697, 73711, 73724, 73736, 73750, 73763, 73775, 73786, 73799, 73811,
     73822], [73832, 73847, 73861, 73874, 73886, 73900, 73913, 73925, 73936, 73949, 73961, 73972,
@@ -46561,7 +46561,7 @@ noncomputable def snap72756 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 74833. -/
 noncomputable def snap74833 : List Mode.Abs × Mode.Pend :=
@@ -47027,7 +47027,7 @@ noncomputable def snap74833 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩, ⟨(List.flatten [[76215, 76231, 76247, 76262, 76276, 76292,
+    .nil))) .nil)))))), [], []⟩], true⟩, ⟨(List.flatten [[76215, 76231, 76247, 76262, 76276, 76292,
     76307, 76321, 76334, 76349, 76363, 76376, 76388, 76402, 76415, 76427], [76438, 76454, 76469,
     76483, 76496, 76511, 76525, 76538, 76550, 76564, 76577, 76589, 76600, 76613, 76625, 76636],
     [76646, 76661, 76675, 76688, 76700, 76714, 76727, 76739, 76750, 76763, 76775, 76786, 76796,
@@ -47500,7 +47500,7 @@ noncomputable def snap74833 : List Mode.Abs × Mode.Pend :=
     .nil)) .nil) .nil) (.node (some (70, 113)) .nil (.node none (.node none (.node (some (592,
     137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70, 93)) (.node none (.node none .nil
     (.node (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩],
+    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩],
     true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 76215. -/
@@ -47978,7 +47978,7 @@ noncomputable def snap76215 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 78357. -/
 noncomputable def snap78357 : List Mode.Abs × Mode.Pend :=
@@ -48441,7 +48441,7 @@ noncomputable def snap78357 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩, ⟨(List.flatten [[79029, 79045, 79060, 79074, 79088, 79104,
+    .nil))) .nil)))))), [], []⟩], true⟩, ⟨(List.flatten [[79029, 79045, 79060, 79074, 79088, 79104,
     79119, 79133, 79146, 79161, 79175, 79188, 79200, 79213, 79226, 79238], [79249, 79265, 79280,
     79294, 79307, 79322, 79336, 79349, 79361, 79375, 79388, 79400, 79411, 79424, 79436, 79447],
     [79457, 79472, 79485, 79498, 79510, 79524, 79537, 79549, 79560, 79573, 79585, 79596, 79606,
@@ -48917,7 +48917,7 @@ noncomputable def snap78357 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 80391. -/
 noncomputable def snap80391 : List Mode.Abs × Mode.Pend :=
@@ -49388,7 +49388,7 @@ noncomputable def snap80391 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩, ⟨(List.flatten [[81838, 81854, 81870, 81885, 81899, 81915,
+    .nil))) .nil)))))), [], []⟩], true⟩, ⟨(List.flatten [[81838, 81854, 81870, 81885, 81899, 81915,
     81930, 81944, 81957, 81972, 81986, 81999, 82011, 82025, 82038, 82050], [82061, 82077, 82092,
     82106, 82119, 82134, 82148, 82161, 82173, 82187, 82200, 82212, 82223, 82236, 82248, 82259],
     [82269, 82284, 82298, 82311, 82323, 82337, 82350, 82362, 82373, 82386, 82398, 82409, 82419,
@@ -49866,7 +49866,7 @@ noncomputable def snap80391 : List Mode.Abs × Mode.Pend :=
     none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some
     (70, 93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node
     (some (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil
-    .nil) .nil))) .nil)))))), []⟩], true⟩])
+    .nil) .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 81838. -/
 noncomputable def snap81838 : List Mode.Abs × Mode.Pend :=
@@ -50347,7 +50347,7 @@ noncomputable def snap81838 : List Mode.Abs × Mode.Pend :=
     none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some
     (70, 93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node
     (some (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil
-    .nil) .nil))) .nil)))))), []⟩], true⟩])
+    .nil) .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 83954. -/
 noncomputable def snap83954 : List Mode.Abs × Mode.Pend :=
@@ -50814,7 +50814,7 @@ noncomputable def snap83954 : List Mode.Abs × Mode.Pend :=
     none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some
     (70, 93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node
     (some (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil
-    .nil) .nil))) .nil)))))), []⟩], true⟩, ⟨(List.flatten [[84653, 84669, 84685, 84700, 84714,
+    .nil) .nil))) .nil)))))), [], []⟩], true⟩, ⟨(List.flatten [[84653, 84669, 84685, 84700, 84714,
     84730, 84745, 84759, 84772, 84787, 84801, 84814, 84826, 84840, 84853, 84865], [84876, 84892,
     84907, 84921, 84934, 84949, 84963, 84976, 84988, 85002, 85015, 85027, 85038, 85051, 85063,
     85074], [85084, 85099, 85113, 85126, 85138, 85152, 85165, 85177, 85188, 85201, 85213, 85224,
@@ -51294,7 +51294,7 @@ noncomputable def snap83954 : List Mode.Abs × Mode.Pend :=
     none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some
     (70, 93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node
     (some (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil
-    .nil) .nil))) .nil)))))), []⟩], true⟩])
+    .nil) .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 85971. -/
 noncomputable def snap85971 : List Mode.Abs × Mode.Pend :=
@@ -51770,7 +51770,7 @@ noncomputable def snap85971 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩, ⟨(List.flatten [[87468, 87484, 87500, 87515, 87529, 87545,
+    .nil))) .nil)))))), [], []⟩], true⟩, ⟨(List.flatten [[87468, 87484, 87500, 87515, 87529, 87545,
     87560, 87574, 87587, 87602, 87616, 87629, 87641, 87655, 87668, 87680], [87691, 87707, 87722,
     87736, 87749, 87764, 87778, 87791, 87803, 87817, 87830, 87842, 87853, 87866, 87878, 87889],
     [87899, 87914, 87928, 87941, 87953, 87967, 87980, 87992, 88003, 88016, 88028, 88039, 88049,
@@ -52254,7 +52254,7 @@ noncomputable def snap85971 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 87468. -/
 noncomputable def snap87468 : List Mode.Abs × Mode.Pend :=
@@ -52741,7 +52741,7 @@ noncomputable def snap87468 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 89564. -/
 noncomputable def snap89564 : List Mode.Abs × Mode.Pend :=
@@ -53214,7 +53214,7 @@ noncomputable def snap89564 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩, ⟨(List.flatten [[90283, 90299, 90315, 90330, 90344, 90360,
+    .nil))) .nil)))))), [], []⟩], true⟩, ⟨(List.flatten [[90283, 90299, 90315, 90330, 90344, 90360,
     90375, 90389, 90402, 90417, 90431, 90444, 90456, 90470, 90483, 90495], [90506, 90522, 90537,
     90551, 90564, 90579, 90593, 90606, 90618, 90632, 90645, 90657, 90668, 90681, 90693, 90704],
     [90714, 90729, 90743, 90756, 90768, 90782, 90795, 90807, 90818, 90831, 90843, 90854, 90864,
@@ -53700,7 +53700,7 @@ noncomputable def snap89564 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 91545. -/
 noncomputable def snap91545 : List Mode.Abs × Mode.Pend :=
@@ -54181,7 +54181,7 @@ noncomputable def snap91545 : List Mode.Abs × Mode.Pend :=
     none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some
     (70, 93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node
     (some (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil
-    .nil) .nil))) .nil)))))), []⟩], true⟩, ⟨(List.flatten [[93098, 93114, 93130, 93145, 93159,
+    .nil) .nil))) .nil)))))), [], []⟩], true⟩, ⟨(List.flatten [[93098, 93114, 93130, 93145, 93159,
     93175, 93190, 93204, 93217, 93232, 93246, 93259, 93271, 93285, 93298, 93310], [93321, 93337,
     93352, 93366, 93379, 93394, 93408, 93421, 93433, 93447, 93460, 93472, 93483, 93496, 93508,
     93519], [93529, 93544, 93558, 93571, 93583, 93597, 93610, 93622, 93633, 93646, 93658, 93669,
@@ -54670,7 +54670,7 @@ noncomputable def snap91545 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 93098. -/
 noncomputable def snap93098 : List Mode.Abs × Mode.Pend :=
@@ -55162,7 +55162,7 @@ noncomputable def snap93098 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 95161. -/
 noncomputable def snap95161 : List Mode.Abs × Mode.Pend :=
@@ -55640,7 +55640,7 @@ noncomputable def snap95161 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩, ⟨(List.flatten [[95913, 95929, 95945, 95960, 95974, 95990,
+    .nil))) .nil)))))), [], []⟩], true⟩, ⟨(List.flatten [[95913, 95929, 95945, 95960, 95974, 95990,
     96005, 96019, 96032, 96047, 96061, 96074, 96086, 96100, 96113, 96125], [96136, 96152, 96167,
     96181, 96194, 96209, 96223, 96236, 96248, 96262, 96275, 96287, 96298, 96311, 96323, 96334],
     [96344, 96359, 96373, 96386, 96398, 96412, 96425, 96437, 96448, 96461, 96473, 96484, 96494,
@@ -56130,7 +56130,7 @@ noncomputable def snap95161 : List Mode.Abs × Mode.Pend :=
     .nil)) .nil) .nil) (.node (some (70, 113)) .nil (.node none (.node none (.node (some (592,
     137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70, 93)) (.node none (.node none .nil
     (.node (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩],
+    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩],
     true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 97112. -/
@@ -56617,7 +56617,7 @@ noncomputable def snap97112 : List Mode.Abs × Mode.Pend :=
     .nil)) .nil) .nil) (.node (some (70, 113)) .nil (.node none (.node none (.node (some (592,
     137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70, 93)) (.node none (.node none .nil
     (.node (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩],
+    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩],
     true⟩, ⟨(List.flatten [[98728, 98737, 98746, 98754, 98761, 98770, 98778, 98785, 98791, 98799,
     98806, 98812, 98817, 98824, 98830, 98835], [98839, 98848, 98857, 98865, 98872, 98881, 98889,
     98896, 98902, 98910, 98917, 98923, 98928, 98935, 98941, 98946], [98950, 98959, 98968, 98976,
@@ -57112,7 +57112,7 @@ noncomputable def snap97112 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70,
     93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some
     (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil .nil)
-    .nil))) .nil)))))), []⟩], true⟩])
+    .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 98728. -/
 noncomputable def snap98728 : List Mode.Abs × Mode.Pend :=
@@ -57609,7 +57609,7 @@ noncomputable def snap98728 : List Mode.Abs × Mode.Pend :=
     .nil)) .nil) .nil) (.node (some (70, 113)) .nil (.node none (.node none (.node (some (592,
     137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70, 93)) (.node none (.node none .nil
     (.node (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩],
+    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩],
     true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 100204. -/
@@ -58090,7 +58090,7 @@ noncomputable def snap100204 : List Mode.Abs × Mode.Pend :=
     .nil)) .nil) .nil) (.node (some (70, 113)) .nil (.node none (.node none (.node (some (592,
     137)) .nil .nil) .nil) .nil))) (.node none (.node (some (70, 93)) (.node none (.node none .nil
     (.node (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), []⟩],
+    (.node none .nil (.node none (.node (some (699, 272)) .nil .nil) .nil))) .nil)))))), [], []⟩],
     true⟩, ⟨[100503], [⟨(.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node
     (some ()) (.node (some ()) (.node none (.node none (.node none (.node none (.node (some ())
     .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))
@@ -58565,7 +58565,7 @@ noncomputable def snap100204 : List Mode.Abs × Mode.Pend :=
     none (.node none (.node (some (592, 137)) .nil .nil) .nil) .nil))) (.node none (.node (some
     (70, 93)) (.node none (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node
     (some (635, 200)) .nil .nil) .nil)) (.node none .nil (.node none (.node (some (699, 272)) .nil
-    .nil) .nil))) .nil)))))), []⟩], true⟩])
+    .nil) .nil))) .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 103203. -/
 noncomputable def snap103203 : List Mode.Abs × Mode.Pend :=
@@ -59163,7 +59163,7 @@ noncomputable def snap103203 : List Mode.Abs × Mode.Pend :=
     (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) (.node none
     (.node (some (1403, 975)) .nil .nil) .nil))) (.node none (.node none .nil (.node none (.node
     (some (1339, 906)) .nil .nil) .nil)) (.node none (.node (some (699, 272)) .nil .nil) .nil)))
-    .nil)))))), []⟩], false⟩, ⟨[109537], [⟨(.node (some ()) (.node (some ()) (.node (some ())
+    .nil)))))), [], []⟩], false⟩, ⟨[109537], [⟨(.node (some ()) (.node (some ()) (.node (some ())
     (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node none (.node
     none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node (some
     ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node (some
@@ -59770,7 +59770,8 @@ noncomputable def snap103203 : List Mode.Abs × Mode.Pend :=
     (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil
     .nil) (.node none (.node (some (1403, 975)) .nil .nil) .nil))) (.node none (.node none .nil
     (.node none (.node (some (1339, 906)) .nil .nil) .nil)) (.node none (.node (some (699, 272))
-    .nil .nil) (.node none (.node (some (1500, 1501)) .nil .nil) .nil)))) .nil)))))), []⟩], true⟩])
+    .nil .nil) (.node none (.node (some (1500, 1501)) .nil .nil) .nil)))) .nil)))))), [], []⟩],
+    true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 106178. -/
 noncomputable def snap106178 : List Mode.Abs × Mode.Pend :=
@@ -60361,7 +60362,7 @@ noncomputable def snap106178 : List Mode.Abs × Mode.Pend :=
     (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) (.node none
     (.node (some (1403, 975)) .nil .nil) .nil))) (.node none (.node none .nil (.node none (.node
     (some (1339, 906)) .nil .nil) .nil)) (.node none (.node (some (699, 272)) .nil .nil) .nil)))
-    .nil)))))), []⟩], false⟩, ⟨[109537], [⟨(.node (some ()) (.node (some ()) (.node (some ())
+    .nil)))))), [], []⟩], false⟩, ⟨[109537], [⟨(.node (some ()) (.node (some ()) (.node (some ())
     (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node none (.node
     none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node (some
     ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node (some
@@ -60967,7 +60968,7 @@ noncomputable def snap106178 : List Mode.Abs × Mode.Pend :=
     (635, 200)) .nil .nil) (.node none (.node (some (1403, 975)) .nil .nil) .nil))) (.node none
     (.node none .nil (.node none (.node (some (1339, 906)) .nil .nil) .nil)) (.node none (.node
     (some (699, 272)) .nil .nil) (.node none (.node (some (1500, 1501)) .nil .nil) .nil))))
-    .nil)))))), []⟩], true⟩])
+    .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 109153. -/
 noncomputable def snap109153 : List Mode.Abs × Mode.Pend :=
@@ -61550,7 +61551,7 @@ noncomputable def snap109153 : List Mode.Abs × Mode.Pend :=
     (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil .nil) (.node none
     (.node (some (1403, 975)) .nil .nil) .nil))) (.node none (.node none .nil (.node none (.node
     (some (1339, 906)) .nil .nil) .nil)) (.node none (.node (some (699, 272)) .nil .nil) .nil)))
-    .nil)))))), []⟩], false⟩, ⟨[109537], [⟨(.node (some ()) (.node (some ()) (.node (some ())
+    .nil)))))), [], []⟩], false⟩, ⟨[109537], [⟨(.node (some ()) (.node (some ()) (.node (some ())
     (.node (some ()) (.node (some ()) (.node (some ()) (.node none (.node none (.node none (.node
     none (.node (some ()) .nil .nil) .nil) (.node (some ()) .nil .nil)) (.node none (.node (some
     ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node (some
@@ -62156,7 +62157,7 @@ noncomputable def snap109153 : List Mode.Abs × Mode.Pend :=
     (635, 200)) .nil .nil) (.node none (.node (some (1403, 975)) .nil .nil) .nil))) (.node none
     (.node none .nil (.node none (.node (some (1339, 906)) .nil .nil) .nil)) (.node none (.node
     (some (699, 272)) .nil .nil) (.node none (.node (some (1500, 1501)) .nil .nil) .nil))))
-    .nil)))))), []⟩], true⟩])
+    .nil)))))), [], []⟩], true⟩])
 
 /-- `__loop2`: the paths and pending edges at its cut at offset 112153. -/
 noncomputable def snap112153 : List Mode.Abs × Mode.Pend :=
@@ -62782,12 +62783,12 @@ noncomputable def snap112153 : List Mode.Abs × Mode.Pend :=
     (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil
     .nil) (.node none (.node (some (1403, 975)) .nil .nil) .nil))) (.node none (.node none .nil
     (.node none (.node (some (1339, 906)) .nil .nil) .nil)) (.node none (.node (some (699, 272))
-    .nil .nil) (.node none (.node (some (1500, 1501)) .nil .nil) .nil)))) .nil)))))), []⟩], false⟩,
-    ⟨[114150], [⟨(.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some
-    ()) (.node (some ()) (.node none (.node none (.node none (.node none (.node (some ()) .nil
-    .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node (some ())
-    .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node (some ())
-    .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil
+    .nil .nil) (.node none (.node (some (1500, 1501)) .nil .nil) .nil)))) .nil)))))), [], []⟩],
+    false⟩, ⟨[114150], [⟨(.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node
+    (some ()) (.node (some ()) (.node none (.node none (.node none (.node none (.node (some ())
+    .nil .nil) (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node none (.node (some
+    ()) .nil .nil) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ()) (.node (some
+    ()) .nil (.node (some ()) (.node (some ()) .nil .nil) .nil)) (.node none (.node (some ()) .nil
     .nil) .nil))) (.node (some ()) (.node none (.node (some ()) .nil (.node (some ()) .nil .nil))
     (.node none (.node (some ()) .nil .nil) (.node (some ()) (.node (some ()) .nil .nil) .nil)))
     (.node none (.node (some ()) (.node (some ()) .nil .nil) (.node none (.node (some ()) .nil
@@ -63402,7 +63403,8 @@ noncomputable def snap112153 : List Mode.Abs × Mode.Pend :=
     (.node none .nil (.node (some (796, 797)) .nil .nil)) (.node none (.node (some (635, 200)) .nil
     .nil) (.node none (.node (some (1403, 975)) .nil .nil) .nil))) (.node none (.node none .nil
     (.node none (.node (some (1339, 906)) .nil .nil) .nil)) (.node none (.node (some (699, 272))
-    .nil .nil) (.node none (.node (some (1500, 1501)) .nil .nil) .nil)))) .nil)))))), []⟩], true⟩])
+    .nil .nil) (.node none (.node (some (1500, 1501)) .nil .nil) .nil)))) .nil)))))), [], []⟩],
+    true⟩])
 
 /-- `__loop2`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=

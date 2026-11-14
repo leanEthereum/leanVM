@@ -88,6 +88,25 @@ for f in fns.values():
     if f['name'] in calls[f['name']]: isloop.add(f['name'])
 
 
+def loopBound(f):
+    """A loop's bound: the exponent its next counter meets at the exit, a parameter's or a constant."""
+    c = f['ops']
+    sets = {a[0]: a[1] for op, a in c if op == 'set' and a[2] == 0}
+    muls = {a[2]: a for op, a in c if op == 'mul'}
+    for op, a in c:
+        if op == 'jump' and a[1] in sets and POWS.get(sets[a[1]]) == f['entry']:
+            for x, y, z in (a2 for op2, a2 in c if op2 == 'xor' and a2[2] == a[0]):
+                for nx, b in ((x, y), (y, x)):
+                    m = muls.get(nx)
+                    if m is not None and 2 in m[:2] and POWS.get(sets.get(m[1] if m[0] == 2 else m[0])) == 1:
+                        if b in sets and POWS.get(sets[b]) is not None: return ('num', POWS[sets[b]])
+                        return ('ex', ('fr', b), 0)
+    return ('ex', ('fr', 3), 0)
+
+
+BOUND = {n: loopBound(fns[n]) for n in isloop}
+
+
 def params(f): return set(range(2, 2 + f.get('nargs', 0)))
 
 
@@ -121,7 +140,11 @@ class Infer:
             name, m, k, A = rest
             if isinstance(name, tuple) and name[0] == 'tail':
                 return False
-            if k is not None: return self.key(k, i, A)
+            if k is None: return False
+            if self.key(k, i, A): return True
+            # a heap cell linked to frame cells loaded from unknown cells: those loads' cells
+            for c in self.w.lnks.get(k, []):
+                if c in self.w.lnk and c not in A.w and self.key(self.w.lnk[c][0], self.w.lnk[c][1], A): return True
             return False
         if kind == 'preP':
             name, r, os, r2, A = rest
@@ -176,7 +199,7 @@ class Infer:
                     self.addP(((0, 0, Q), ('num', 0), hi, e, k2[1]), (o,), A); return True
         return False
 
-    def key(self, k, i0, A):
+    def key(self, k, i0, A, depth=0):
         f = self.f
         if k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and k[2][0][0][0] == 'fr' and self.w is not None:
             c = k[2][0][0][1]
@@ -191,6 +214,19 @@ class Infer:
             A.lt.add((r[1], r[2])); return True
         if k[0] == 0 and k[2] and ifaceMono(f, k):
             self.pre.add(k); self.new = True; A.h.add(k); return True
+        # a bounded table read: the loads its uncovered cells were linked to
+        if self.w is not None and k[0] == 0 and depth < 4:
+            got = False
+            for b, e in k[2]:
+                q = (0, 0, tuple(x for x in k[2] if x[0] != b))
+                n = A.bound(('ex', b, 1))
+                if n is None or n > 64: continue
+                for j in range(n):
+                    pt = shift(q, e * j + k[1])
+                    if A.covered(pt): continue
+                    for c in self.w.lnks.get(pt, []):
+                        if c in self.w.lnk and self.key(self.w.lnk[c][0], self.w.lnk[c][1], A, depth + 1): got = True
+            if got: A.h.add(k); return True
         if k[0] != 0 or not k[2]: return False
         for (x, e) in k[2]:
             if x[0] != 'fr': continue
@@ -229,7 +265,7 @@ def mkSig(f, pre, preR, ret=(), post=(), postR=(), postL=(), preP=None, postP=()
     if f['name'].startswith('verify_merkle_cap'): pre, preR = compact(pre, preR)
     post, postR = compact(post, postR)
     loop = f['name'] in isloop
-    term = [(('ex', ('fr', 2), 0), ('ex', ('fr', 3), 0))] if loop else []
+    term = [(('ex', ('fr', 2), 0), BOUND[f['name']])] if loop else []
     preP = sorted((r, tuple(sorted(os))) for r, os in (preP or {}).items())
     return Sig(f['entry'], list(range(2 + f.get('nargs', 0))), selfc.get(f['entry']), sorted(pre), sorted(preR), term,
                ret, sorted(post), sorted(postR), sorted(postL), preP, sorted(postP), sorted(postLP), sorted(retV))
@@ -247,6 +283,30 @@ def renameRet(f, A, m):
     return (m[0], m[1], bs)
 
 
+def ptrRuns(f, A):
+    """Runs of pointers the heap words show: consecutive cells over one interface product, each
+    holding a word with the same leading cells past it written."""
+    by = collections.defaultdict(dict)
+    for k, x in A.hv.items():
+        if x[0] != 'm': continue
+        k2 = renameRet(f, A, k)
+        if not okIface(f, (k2[0], 0, k2[2])): continue
+        n = 0
+        while n < 64 and A.covered(shift(x[1], n)): n += 1
+        if n: by[(k2[0], k2[2])][k2[1]] = n
+    out = set()
+    for (fp, bs), d in by.items():
+        ks = sorted(d); i = 0
+        while i < len(ks):
+            j = i
+            while j + 1 < len(ks) and ks[j + 1] == ks[j] + 1: j += 1
+            if j > i:
+                n = min(d[k] for k in ks[i:j + 1])
+                out.add((((0, 0, bs), ('num', ks[i]), ('num', ks[j] + 1), 1, 0), tuple(range(n))))
+            i = j + 1
+    return out
+
+
 def okIface(f, m):
     rets = set(range(2 + f.get('nargs', 0), 2 + f.get('nargs', 0) + f.get('nret', 0)))
     return m[0] == 0 and m[2] and all(b[1] in params(f) or (b[0] == 'fr' and b[1] in rets) for b, e in m[2])
@@ -256,7 +316,7 @@ def infer(n):
     f = fns[n]
     I = Infer(f)
     main = n == 'main'
-    for it in range(40):
+    for it in range(200):
         sig = mkSig(f, I.pre, I.preR, preP=I.preP)
         E.sigs[f['entry']] = sig
         I.new = False
@@ -270,7 +330,7 @@ def infer(n):
                 if n in isloop and e.args[0][0] == 'preP' and isinstance(e.args[0][2], tuple):
                     r = e.args[0][3]
                     if r in I.preP and r[1] == ('ex', ('fr', 2), 0) and r[2] == ('ex', ('fr', 2), 1):
-                        I.preP[(r[0], r[1], ('ex', ('fr', 3), 0), r[3], r[4])] = I.preP.pop(r)
+                        I.preP[(r[0], r[1], BOUND[n], r[3], r[4])] = I.preP.pop(r)
                         continue
                 # loop transport: generalize uncovered pre points over the counter
                 if n in isloop and e.args[0][0] == 'pre' and isinstance(e.args[0][2], tuple):
@@ -279,7 +339,7 @@ def infer(n):
                     if S:
                         Q = tuple((b, x) for b, x in m[2] if b != ('fr', 2))
                         I.pre.discard(m)
-                        I.preR.add(((0, 0, Q), ('ex', ('fr', 2), 0), ('ex', ('fr', 3), 0), S, m[1]))
+                        I.preR.add(((0, 0, Q), ('ex', ('fr', 2), 0), BOUND[n], S, m[1]))
                         continue
                 raise
             continue
@@ -315,6 +375,7 @@ def infer(n):
         for (q, lo, hi, S, d), os in A.p:
             q2 = renameRet(f, A, q)
             if okIface(f, q2) and ifaceIdx(f, lo) and ifaceIdx(f, hi): ps.add(((q2, lo, hi, S, d), os))
+        ps |= ptrRuns(f, A)
         postP = ps if postP is None else postP & ps
     postP = postP or set()
     postL = set(); postLP = set()
@@ -323,14 +384,21 @@ def infer(n):
         cand = None
         for A in ends:
             ks = {k for k in A.h if k[0] == 0 and dict(k[2]).get(('fr', 2)) and ifaceMono(f, k)}
+            # the points of a run over a product with the counter
+            for (q, lo, hi, S, d) in A.r:
+                if q[0] == 0 and dict(q[2]).get(('fr', 2)) and ifaceMono(f, q) and lo[0] == 'num' and hi[0] == 'num' and hi[1] - lo[1] <= 64:
+                    ks |= {shift(q, S * j + d) for j in range(lo[1], hi[1])}
             cand = ks if cand is None else cand & ks
         for k in cand or ():
             S = dict(k[2])[('fr', 2)]
             Q = tuple((b, x) for b, x in k[2] if b != ('fr', 2))
-            if Q: postL.add(((0, 0, Q), ('ex', ('fr', 2), 0), ('ex', ('fr', 3), 0), S, k[1]))
+            if Q: postL.add(((0, 0, Q), ('ex', ('fr', 2), 0), BOUND[n], S, k[1]))
         pcand = None
         for A in ends:
             ks = {}
+            for (q, lo, hi, S, d), os in A.p:
+                if q[0] == 0 and dict(q[2]).get(('fr', 2)) and ifaceMono(f, q) and lo[0] == 'num' and hi[0] == 'num' and hi[1] - lo[1] <= 64:
+                    for j in range(lo[1], hi[1]): ks[shift(q, S * j + d)] = set(os)
             for k, x in A.hv.items():
                 if k[0] == 0 and dict(k[2]).get(('fr', 2)) and ifaceMono(f, k) and x[0] == 'm':
                     m = x[1]
@@ -338,10 +406,12 @@ def infer(n):
                     os = {o for o in os if o < 2 ** 30 and A.covered(shift(m, o))}
                     if os: ks[k] = os
             pcand = ks if pcand is None else {k: pcand[k] & ks[k] for k in pcand if k in ks and pcand[k] & ks[k]}
+        for A in ends:
+            pass
         for k, os in (pcand or {}).items():
             S = dict(k[2])[('fr', 2)]
             Q = tuple((b, x) for b, x in k[2] if b != ('fr', 2))
-            if Q: postLP.add((((0, 0, Q), ('ex', ('fr', 2), 0), ('ex', ('fr', 3), 0), S, k[1]), tuple(sorted(os))))
+            if Q: postLP.add((((0, 0, Q), ('ex', ('fr', 2), 0), BOUND[n], S, k[1]), tuple(sorted(os))))
         post = set(); postR = set(); postP = set()
     sig = mkSig(f, I.pre, I.preR, ret, post, postR, postL, I.preP, postP, postLP, retV)
     E.sigs[f['entry']] = sig

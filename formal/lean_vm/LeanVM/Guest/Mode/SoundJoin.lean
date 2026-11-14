@@ -26,13 +26,6 @@ theorem Val.beq_eq {a b : Val} (h : a.beq b = true) : a = b := by
     | (rw [Base.beq_eq h.1, h.2])
     | exact absurd h (by simp)
 
-theorem Idx.beq_eq {a b : Idx} (h : a.beq b = true) : a = b := by
-  cases a <;> cases b <;> simp only [Idx.beq, Bool.and_eq_true, beq_iff_eq] at h
-  · rw [h]
-  · simp at h
-  · simp at h
-  · rw [Base.beq_eq h.1, h.2]
-
 theorem Rng.beq_eq {a b : Rng} (h : a.beq b = true) : a = b := by
   obtain ⟨q, lo, hi, S, d⟩ := a
   obtain ⟨q', lo', hi', S', d'⟩ := b
@@ -61,20 +54,6 @@ theorem agree_forall₂ {α : Type} {eq : α → α → Bool} : ∀ {a b : List 
     · simp only [List.take_succ_cons]
       exact List.Forall₂.cons he agree_forall₂
     · simp
-
-/-- **A join is sound**: what both know holds where the first holds. -/
-theorem Holds.inter {s : St} {A B : Abs} (hA : Holds s A) : Holds s (A.inter B) where
-  w o ho := hA.w o (Exec.Trie.get_inter (fun _ _ _ ↦ rfl) ho).1
-  v o x ho := hA.v o x (Exec.Trie.get_inter (fun _ _ h ↦ Val.beq_eq h) ho).1
-  nz o ho := hA.nz o (Exec.Trie.get_inter (fun _ _ _ ↦ rfl) ho).1
-  hv p hp := hA.hv p (mem_interT hp)
-  h k hk := hA.h k (mem_interT hk)
-  r r hr := hA.r r (mem_interT hr)
-  lt p hp := hA.lt p (mem_interT hp)
-  pr _ hp := nomatch hp
-  xs c a b ho := hA.xs c a b (Exec.Trie.get_inter (fun p q h ↦ by
-    simp only [Bool.and_eq_true, beq_iff_eq] at h; exact Prod.ext h.1 h.2) ho).1
-  p q hq := hA.p q (mem_interT hq)
 
 theorem mem_interL_right {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y)
     {a b : List α} {x : α} (h : x ∈ interL eq a b) : x ∈ b := by
@@ -107,6 +86,93 @@ theorem pair_beq_eq {α β : Type} {ea : α → α → Bool} {eb : β → β →
   simp only [Bool.and_eq_true] at h
   exact Prod.ext (ha _ _ h.1) (hb _ _ h.2)
 
+theorem mem_interR {A B : Abs} {r : Rng} (h : r ∈ interR A B) : r ∈ A.r ∨ A.entR r = true := by
+  unfold interR at h
+  simp only [List.mem_append, List.mem_filter, Bool.and_eq_true, Bool.not_eq_true'] at h
+  rcases h with (⟨h, -⟩ | h) | ⟨-, -, h⟩
+  · exact Or.inl (List.mem_of_mem_take h)
+  · exact Or.inl (List.mem_of_mem_drop h)
+  · exact Or.inr h
+
+theorem mem_interR_right {A B : Abs} {r : Rng} (h : r ∈ interR A B) : r ∈ B.r ∨ B.entR r = true := by
+  unfold interR at h
+  simp only [List.mem_append, List.mem_filter, Bool.and_eq_true, Bool.not_eq_true',
+    Bool.or_eq_true] at h
+  rcases h with (⟨-, h | h⟩ | h) | ⟨h, -⟩
+  · obtain ⟨y, hy, he⟩ := List.any_eq_true.mp h
+    rw [Rng.beq_eq he]; exact Or.inl hy
+  · exact Or.inr h
+  · have hx : r ∈ A.r.reverse.take (agree Rng.beq A.r.reverse B.r.reverse) := by
+      rw [List.take_reverse]; exact List.mem_reverse.mpr h
+    obtain ⟨y, hy, he⟩ := forall₂_mem agree_forall₂ hx
+    rw [Rng.beq_eq he]
+    exact Or.inl (List.mem_reverse.mp (List.mem_of_mem_take hy))
+  · exact Or.inl (List.mem_of_mem_take h)
+
+/-- Facts under a condition, each among another's under the same condition. -/
+def CndLe (d c : Cnd) : Prop :=
+  d.x = c.x ∧ d.j = c.j ∧ (∀ k ∈ d.h, k ∈ c.h) ∧ (∀ r ∈ d.r, r ∈ c.r) ∧ (∀ q ∈ d.p, q ∈ c.p) ∧
+    (∀ p ∈ d.lt, p ∈ c.lt) ∧ ∀ p ∈ d.hv, p ∈ c.hv
+
+theorem CndHolds.le {s : St} {c d : Cnd} (h : CndHolds s c) (hl : CndLe d c) : CndHolds s d := by
+  obtain ⟨hx, hj, hh, hr, hp, hlt, hhv⟩ := hl
+  obtain ⟨hb, hc⟩ := h
+  refine ⟨by rw [hx]; exact hb, fun hi ↦ ?_⟩
+  rw [hx, hj] at hi
+  obtain ⟨h1, h2, h3, h4, h5⟩ := hc hi
+  exact ⟨fun k hk ↦ h1 k (hh k hk), fun r hr' ↦ h2 r (hr r hr'), fun q hq ↦ h3 q (hp q hq),
+    fun p hp' ↦ h4 p (hlt p hp'), fun p hp' ↦ h5 p (hhv p hp')⟩
+
+theorem ptrBeq_eq (p q : Rng × List ℕ) (h : ptrBeq p q = true) : p = q := by
+  simp only [ptrBeq, Bool.and_eq_true, beq_iff_eq] at h
+  exact Prod.ext (Rng.beq_eq h.1) h.2
+
+theorem ltBeq_eq (p q : Idx × Idx) (h : ltBeq p q = true) : p = q := by
+  simp only [ltBeq, Bool.and_eq_true] at h
+  exact Prod.ext (Idx.beq_eq h.1) (Idx.beq_eq h.2)
+
+theorem hvBeq_eq (p q : Mono × Val) (h : hvBeq p q = true) : p = q := by
+  simp only [hvBeq, Bool.and_eq_true] at h
+  exact Prod.ext (Mono.beq_eq h.1) (Val.beq_eq h.2)
+
+theorem mem_interC {a b : List Cnd} {d : Cnd} (h : d ∈ interC a b) :
+    (∃ c ∈ a, CndLe d c) ∧ ∃ c ∈ b, CndLe d c := by
+  unfold interC at h
+  obtain ⟨c, hc, hd⟩ := List.mem_filterMap.mp h
+  split at hd
+  · rename_i c' hc'
+    dsimp only at hd
+    split_ifs at hd
+    cases hd
+    have hm' := List.mem_of_find?_eq_some hc'
+    have hk := List.find?_some hc'
+    simp only [Bool.and_eq_true, beq_iff_eq] at hk
+    obtain ⟨hx, hj⟩ := hk
+    refine ⟨⟨c, hc, rfl, rfl, fun _ h ↦ mem_interL h, fun _ h ↦ mem_interL h, fun _ h ↦ mem_interL h,
+      fun _ h ↦ mem_interL h, fun _ h ↦ mem_interL h⟩, ⟨c', hm', (Base.beq_eq hx).symm, hj.symm,
+      fun _ h ↦ mem_interL_right (fun _ _ h ↦ Mono.beq_eq h) h,
+      fun _ h ↦ mem_interL_right (fun _ _ h ↦ Rng.beq_eq h) h,
+      fun _ h ↦ mem_interL_right ptrBeq_eq h, fun _ h ↦ mem_interL_right ltBeq_eq h,
+      fun _ h ↦ mem_interL_right hvBeq_eq h⟩⟩
+  · cases hd
+
+/-- **A join is sound**: what both know holds where the first holds. -/
+theorem Holds.inter {s : St} {A B : Abs} (hA : Holds s A) : Holds s (A.inter B) where
+  w o ho := hA.w o (Exec.Trie.get_inter (fun _ _ _ ↦ rfl) ho).1
+  v o x ho := hA.v o x (Exec.Trie.get_inter (fun _ _ h ↦ Val.beq_eq h) ho).1
+  nz o ho := hA.nz o (Exec.Trie.get_inter (fun _ _ _ ↦ rfl) ho).1
+  hv p hp := hA.hv p (mem_interT hp)
+  h k hk := hA.h k (mem_interT hk)
+  r r hr := (mem_interR hr).elim (hA.r r) (Abs.entR_sound hA)
+  lt p hp := hA.lt p (mem_interT hp)
+  pr _ hp := nomatch hp
+  xs c a b ho := hA.xs c a b (Exec.Trie.get_inter (fun p q h ↦ by
+    simp only [Bool.and_eq_true, beq_iff_eq] at h; exact Prod.ext h.1 h.2) ho).1
+  p q hq := hA.p q (mem_interT hq)
+  c d hd := by
+    obtain ⟨c, hc, hl⟩ := (mem_interC hd).1
+    exact (hA.c c hc).le hl
+
 /-- **A join is sound**, from its second side. -/
 theorem Holds.inter_right {s : St} {A B : Abs} (hB : Holds s B) : Holds s (A.inter B) where
   w o ho := hB.w o (Exec.Trie.get_inter (fun _ _ _ ↦ rfl) ho).2
@@ -115,7 +181,7 @@ theorem Holds.inter_right {s : St} {A B : Abs} (hB : Holds s B) : Holds s (A.int
   hv p hp := hB.hv p (mem_interT_right
     (pair_beq_eq (fun _ _ h ↦ Mono.beq_eq h) (fun _ _ h ↦ Val.beq_eq h)) hp)
   h k hk := hB.h k (mem_interT_right (fun _ _ h ↦ Mono.beq_eq h) hk)
-  r r hr := hB.r r (mem_interT_right (fun _ _ h ↦ Rng.beq_eq h) hr)
+  r r hr := (mem_interR_right hr).elim (hB.r r) (Abs.entR_sound hB)
   lt p hp := hB.lt p (mem_interT_right
     (pair_beq_eq (fun _ _ h ↦ Idx.beq_eq h) (fun _ _ h ↦ Idx.beq_eq h)) hp)
   pr _ hp := nomatch hp
@@ -123,6 +189,9 @@ theorem Holds.inter_right {s : St} {A B : Abs} (hB : Holds s B) : Holds s (A.int
     simp only [Bool.and_eq_true, beq_iff_eq] at h; exact Prod.ext h.1 h.2) ho).2
   p q hq := hB.p q (mem_interT_right
     (pair_beq_eq (fun _ _ h ↦ Rng.beq_eq h) (fun _ _ h ↦ beq_iff_eq.mp h)) hq)
+  c d hd := by
+    obtain ⟨c, hc, hl⟩ := (mem_interC hd).2
+    exact (hB.c c hc).le hl
 
 /-- Paths met: what all know holds where any holds. -/
 theorem Holds.foldl_inter {s : St} : ∀ {A X : Abs} {l : List Abs}, X ∈ A :: l → Holds s X →
@@ -166,7 +235,7 @@ theorem mem_of_any_beq {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq 
 theorem Holds.sub {s : St} {S A : Abs} (hA : Holds s A) (h : S.sub A = true) : Holds s S := by
   unfold Abs.sub at h
   simp only [Bool.and_eq_true, List.all_eq_true] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hw, hv⟩, hnz⟩, hhv⟩, hh⟩, hr⟩, hlt⟩, hpr⟩, hxs⟩, hp⟩ := h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hw, hv⟩, hnz⟩, hhv⟩, hh⟩, hr⟩, hlt⟩, hpr⟩, hxs⟩, hp⟩, hc⟩ := h
   exact {
     w := fun o ho ↦ hA.w o (Exec.Trie.get_of_sub (fun _ _ _ ↦ rfl) hw ho)
     v := fun o x ho ↦ hA.v o x (Exec.Trie.get_of_sub (fun _ _ h ↦ Val.beq_eq h) hv ho)
@@ -186,7 +255,39 @@ theorem Holds.sub {s : St} {S A : Abs} (hA : Holds s A) (h : S.sub A = true) : H
     xs := fun c a b ho ↦ hA.xs c a b (Exec.Trie.get_of_sub (fun p q h ↦ by
       simp only [Bool.and_eq_true, beq_iff_eq] at h; exact Prod.ext h.1 h.2) hxs ho)
     p := fun q hq ↦ hA.p q (mem_of_any_beq
-      (pair_beq_eq (fun _ _ h ↦ Rng.beq_eq h) (fun _ _ h ↦ beq_iff_eq.mp h)) (hp q hq)) }
+      (pair_beq_eq (fun _ _ h ↦ Rng.beq_eq h) (fun _ _ h ↦ beq_iff_eq.mp h)) (hp q hq))
+    c := fun d hd ↦ by
+      obtain ⟨c, hc, hs⟩ := List.any_eq_true.mp (hc d hd)
+      unfold Cnd.sub at hs
+      simp only [Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hs
+      obtain ⟨⟨⟨⟨⟨⟨hx, hj⟩, hh⟩, hr⟩, hp⟩, hlt⟩, hhv⟩ := hs
+      exact (hA.c c hc).le ⟨Base.beq_eq hx, hj,
+        fun k hk ↦ mem_of_any_beq (eq := fun x y ↦ y.beq x) (fun _ _ h ↦ (Mono.beq_eq h).symm) (hh k hk),
+        fun r hr' ↦ mem_of_any_beq (eq := fun x y ↦ y.beq x) (fun _ _ h ↦ (Rng.beq_eq h).symm) (hr r hr'),
+        fun q hq ↦ mem_of_any_beq ptrBeq_eq (hp q hq), fun p hp' ↦ mem_of_any_beq ltBeq_eq (hlt p hp'),
+        fun p hp' ↦ mem_of_any_beq hvBeq_eq (hhv p hp')⟩ }
+
+/-- Two cells holding one word, known as `g^k` and as a base's word times `g^c`: the base's exponent. -/
+theorem Holds.pinEq {s : St} {A : Abs} (hA : Holds s A) {x y : Val} {u : E} (hx : ValOk s x u)
+    (hy : ValOk s y u) : Holds s (A.pinEq x y) := by
+  unfold Abs.pinEq
+  split
+  · rename_i k c b
+    split_ifs with hc
+    · simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
+      have hu : u = ofK (g ^ k) := pow_val hx
+      obtain ⟨p, hp, hpu⟩ := MonoVal.base1.mp hy
+      have hpk : p = ofK (g ^ (k - c)) := by
+        rw [hu] at hpu
+        have : ofK (g ^ k) = ofK (g ^ c) * ofK (g ^ (k - c)) := by
+          rw [← ofK_mul, ← pow_add, show c + (k - c) = k by omega]
+        rw [this] at hpu
+        exact (mul_left_cancel₀ (ofK_gpow_ne_zero c) hpu).symm
+      have hi : IdxVal s (.ex b 0) (k - c) := ⟨p, k - c, hp, hpk, by omega, rfl⟩
+      exact (hA.addLt (a := .ex b 0) (b := .num (k - c + 1)) ⟨k - c, k - c + 1, hi, rfl, by omega⟩).addLt
+        (a := .num (k - c)) (b := .ex b 1) ⟨k - c, k - c + 1, rfl, ⟨p, k - c, hp, hpk, by omega, rfl⟩, by omega⟩
+    · exact hA
+  · exact hA
 
 /-- **The fall-through of a `JUMP` on `[c]`** is sound, `[c]` being `0`. -/
 theorem Holds.learn0 {s : St} {A : Abs} (hA : Holds s A) {c : ℕ}
@@ -209,6 +310,12 @@ theorem Holds.learn0 {s : St} {A : Abs} (hA : Holds s A) {c : ℕ}
     split
     · exact hA.addV ⟨va, hb, key a ha⟩
     · exact hA.addV ⟨va, ha, key b hb⟩
+    · rename_i y x hy hx
+      have hxv : ValOk s x va := by
+        obtain ⟨u, hu, hok⟩ := hA.v a x hx; rw [ha] at hu; cases hu; exact hok
+      have hyv : ValOk s y va := by
+        obtain ⟨u, hu, hok⟩ := hA.v b y hy; rw [hb] at hu; cases hu; exact hok
+      exact (hA.pinEq hxv hyv).pinEq hyv hxv
   · exact hA
 
 /-- The hints at a pc, in order: each reads written cells, and the state after them holds the
@@ -287,6 +394,34 @@ theorem BsVal.exists_fr {s : St} {A : Abs} (hA : Holds s A) :
       exact ⟨u ^ e * w, u, w, hu, hw, rfl⟩
     | hp => simp at h
 
+/-- A product `known` knows has a word. -/
+theorem Abs.known_val {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells)
+    {m : Mono} (h : A.known m = true) : ∃ v, MonoVal s m v := by
+  have key : ∀ (bs : List (Base × ℕ)), (bs.all fun p ↦ A.knownB p.1) = true → ∃ w, BsVal s bs w := by
+    intro bs
+    induction bs with
+    | nil => intro _; exact ⟨1, rfl⟩
+    | cons p bs ih =>
+      intro h
+      simp only [List.all_cons, Bool.and_eq_true] at h
+      obtain ⟨w, hw⟩ := ih h.2
+      obtain ⟨b, e⟩ := p
+      cases b with
+      | fr o =>
+        obtain ⟨u, hu⟩ := Mem.get_of_written (hA.written (h.1 : A.hasW o = true))
+        exact ⟨u ^ e * w, u, w, hu, hw, rfl⟩
+      | hp q d =>
+        have h1 : (A.hasW q && A.covered ⟨0, d, [(.fr q, 1)]⟩) = true := h.1
+        simp only [Bool.and_eq_true] at h1
+        obtain ⟨pq, hpq⟩ := Mem.get_of_written (hA.written h1.1)
+        have hmq : MonoVal s ⟨0, d, [(.fr q, 1)]⟩ (pq * ofK (g ^ d)) :=
+          ⟨pq, ⟨pq, 1, hpq, rfl, by rw [pow_one, mul_one]⟩, by simp only [pow_zero, one_mul]; ring⟩
+        obtain ⟨x, hx, hwx⟩ := Abs.covered_ex hA hwf hu h1.2 hmq
+        obtain ⟨u, hu'⟩ := Mem.get_of_written hwx
+        exact ⟨u ^ e * w, u, w, ⟨pq, x, hpq, hx, hu'⟩, hw, rfl⟩
+  obtain ⟨w, hw⟩ := key m.bs h
+  exact ⟨_, w, hw, rfl⟩
+
 /-- **A run the walk knows written is.** -/
 theorem Abs.coveredR_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
     (hu : s.mem.used ≤ maxCells) {r : Rng} (h : A.coveredR r = true) : RW s r := by
@@ -306,13 +441,14 @@ theorem Abs.coveredR_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
     exact ⟨vq, xlo, xhi, h1, hxlo, hxhi, fun j hj1 hj2 ↦ by
       rw [← hS, ← hd]; exact h4 j (by omega) (by omega)⟩
   · split at h
-    · rename_i a b hlo hhi
+    · rename_i a b hlo hb
       simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-      obtain ⟨⟨-, hbs⟩, hall⟩ := h
-      obtain ⟨w, hw⟩ := BsVal.exists_fr hA hbs
-      refine ⟨_, a, b, ⟨w, hw, rfl⟩, by rw [hlo]; rfl, by rw [hhi]; rfl, fun j hj1 hj2 ↦ ?_⟩
+      obtain ⟨⟨-, hq⟩, hall⟩ := h
+      obtain ⟨vq, hvq⟩ := Abs.known_val hA hwf hu hq
+      obtain ⟨xhi, hxhi, hle⟩ := Abs.bound_sound hA hb
+      refine ⟨vq, a, xhi, hvq, by rw [hlo]; rfl, hxhi, fun j hj1 hj2 ↦ ?_⟩
       have hc := List.all_eq_true.mp hall (j - a) (List.mem_range.mpr (by omega))
-      have := Abs.covered_ex hA hwf hu hc (MonoVal.shift ⟨w, hw, rfl⟩ _)
+      have := Abs.covered_ex hA hwf hu hc (hvq.shift _)
       rwa [show r.S * (a + (j - a)) + r.d = r.S * j + r.d by congr 2; omega] at this
     · simp at h
 

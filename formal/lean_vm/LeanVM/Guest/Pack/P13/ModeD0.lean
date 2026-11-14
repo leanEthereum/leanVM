@@ -437,7 +437,7 @@ noncomputable def snap600 : List Mode.Abs × Mode.Pend :=
     .nil)) .nil) (.node none (.node (some (173, 8)) .nil .nil) (.node none (.node (some (365, 8))
     .nil .nil) .nil))) (.node none (.node none .nil (.node (some (221, 8)) .nil .nil)) (.node (some
     (125, 8)) (.node none (.node (some (317, 8)) .nil .nil) (.node (some (445, 8)) .nil .nil))
-    .nil))))))), []⟩], [])
+    .nil))))))), [], []⟩], [])
 
 /-- `da_factors__L7_L8_L128`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=

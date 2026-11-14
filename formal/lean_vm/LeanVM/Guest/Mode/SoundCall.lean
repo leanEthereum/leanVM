@@ -24,11 +24,6 @@ theorem MonoVal.single {s : St} {b : Base} {v : E} : MonoVal s ⟨0, 0, [(b, 1)]
   · intro h
     exact ⟨v, ⟨v, 1, h, rfl, by simp⟩, by simp⟩
 
-theorem MonoVal.unshift {s : St} {m : Mono} {o : ℕ} {v : E} (h : MonoVal s (m.shift o) v) :
-    ∃ u, MonoVal s m u ∧ v = u * ofK (g ^ o) := by
-  obtain ⟨w, hw, rfl⟩ := h
-  exact ⟨_, ⟨w, hw, rfl⟩, by simp only [Mono.shift, pow_add, ofK_mul]; ring⟩
-
 theorem Mono.rootCell_eq {m : Mono} {q : ℕ} (h : m.rootCell = some q) : m = .root q := by
   unfold Mono.rootCell at h
   split at h
@@ -341,14 +336,6 @@ theorem trMono_iff {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA 
     exact ⟨wb, h2, rfl⟩
 
 /-! ## Exponents and runs, translated -/
-
-theorem MonoVal.base1 {s : St} {k : ℕ} {b : Base} {u : E} :
-    MonoVal s ⟨0, k, [(b, 1)]⟩ u ↔ ∃ p, BaseVal s b p ∧ u = ofK (g ^ k) * p := by
-  constructor
-  · rintro ⟨w, ⟨p, w', hp, hw', rfl⟩, rfl⟩
-    exact ⟨p, hp, by rw [show w' = 1 from hw']; simp⟩
-  · rintro ⟨p, hp, rfl⟩
-    exact ⟨p, ⟨p, 1, hp, rfl, by simp⟩, by simp⟩
 
 theorem trIdxK_ex {A : Abs} {mq : Mono} {x : Base} {c : ℕ} {j : Idx} {k : ℕ}
     (h : trIdxK A mq (.ex x c) = some (j, k)) :

@@ -151,7 +151,8 @@ theorem writeRun_sound {s : St} {A : Abs} (hH : Holds s A) (_hfp : s.fp < maxCel
         rw [hp, ← ofK_mul, ← pow_add]; simp
       show Holds s { A with r := ⟨m, .num pos, .num (pos + n), 1, 0⟩ :: A.r }
       exact ⟨hH.w, hH.v, hH.nz, hH.hv, hH.h,
-        fun r hr ↦ (List.mem_cons.mp hr).elim (fun e ↦ e ▸ hrw) (hH.r r), hH.lt, hH.pr, hH.xs, hH.p⟩
+        fun r hr ↦ (List.mem_cons.mp hr).elim (fun e ↦ e ▸ hrw) (hH.r r), hH.lt, hH.pr, hH.xs, hH.p,
+        hH.c⟩
   · refine foldl_range_holds _ A n hH fun B k hk hB ↦ ?_
     obtain ⟨v, hv, hb⟩ := hst base rfl k hk
     have h1 := hB.addW (o := base + pos + k) (written_of_get hv)

@@ -8,24 +8,18 @@
 module
 
 public import LeanVM.Guest.Pack.«P13».ModeD1W0
-public import LeanVM.Guest.Pack.«P13».ModeD1W1
-public import LeanVM.Guest.Pack.«P13».ModeD1W2
-public import LeanVM.Guest.Pack.«P13».ModeD1W3
 
-namespace LeanVM.Guest.Fn.«walk_path__L24_L2»
+namespace LeanVM.Guest.Fn.«aggregate_claims_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `walk_path__L24_L2`: its mode walk accepts its code, window by window. -/
+/-- `__loop33`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 2336) (by decide +kernel) [591, 1170, 1749]
-    ⟨by decide, by decide, by decide +kernel, modeW0,
-    ⟨by decide, by decide, by decide +kernel, modeW1,
-    ⟨by decide, by decide, by decide +kernel, modeW2,
-    modeW3⟩⟩⟩
+  Mode.walk_of_wins (n := 228) (by decide +kernel) []
+    modeW0
 
 end
 
-end LeanVM.Guest.Fn.«walk_path__L24_L2»
+end LeanVM.Guest.Fn.«aggregate_claims_loop0»

@@ -154,7 +154,7 @@ theorem rangeFact_sound {s : St} {A : Abs} (hH : Holds s A) {y : ℕ} {base : �
       split
       · rename_i k hz'
         split_ifs with hk
-        · refine hH.addLt ⟨e', k + 1, ⟨_, e', hx, hvx, he', rfl⟩, rfl, ?_⟩
+        · refine hH.addLtC ⟨e', k + 1, ⟨_, e', hx, hvx, he', rfl⟩, rfl, ?_⟩
           have := pow_val (hzm _ hz')
           rw [hvx, ← ofK_mul, ← pow_add] at this
           have := ofK_gpow_inj (by unfold maxCells at hexlt hb; omega) (by omega) this
@@ -170,12 +170,12 @@ theorem rangeFact_sound {s : St} {A : Abs} (hH : Holds s A) {y : ℕ} {base : �
           · obtain rfl := beq_iff_eq.mp hk
             rw [pow_zero, h1, one_mul] at h4
             have hu3 : u3 = ofK (g ^ (e' + base)) := by rw [← h4, hvx, ← ofK_mul, ← pow_add]
-            exact hH.addLt ⟨e', e' + base + (0 + 1), ⟨_, e', hx, hvx, he', rfl⟩,
+            exact hH.addLtC ⟨e', e' + base + (0 + 1), ⟨_, e', hx, hvx, he', rfl⟩,
               ⟨u3, e' + base, h3, hu3, by unfold maxCells at hexlt hb; omega, rfl⟩, by omega⟩
           · simp only [Bool.and_eq_true, decide_eq_true_eq] at hk
             obtain ⟨eb, ⟨ub, eb', hub, hub', heb', hbe⟩, heblt⟩ :=
               Abs.ltI_sound hH hk.2 (show IdxVal s (.num maxCells) maxCells from rfl)
-            refine hH.addLt ⟨e', eb' + (k + 1), ⟨_, e', hx, hvx, he', rfl⟩,
+            refine hH.addLtC ⟨e', eb' + (k + 1), ⟨_, e', hx, hvx, he', rfl⟩,
               ⟨ub, eb', hub, hub', heb', rfl⟩, ?_⟩
             obtain rfl := h3.unique hub
             rw [hub'] at h4
@@ -188,7 +188,7 @@ theorem rangeFact_sound {s : St} {A : Abs} (hH : Holds s A) {y : ℕ} {base : �
             have h5 : u3 = vx * ofK (g ^ base) * ofK g := by
               rw [h4, mul_comm (ofK _) u3, mul_assoc, ← ofK_mul, gpow_ginv_mul, h1, mul_one]
             rw [h5, hvx, ← ofK_mul, ← ofK_mul, ← pow_add, ← pow_succ]
-          refine hH.addLt ⟨e', e' + base + 1, ⟨_, e', hx, hvx, he', rfl⟩,
+          refine hH.addLtC ⟨e', e' + base + 1, ⟨_, e', hx, hvx, he', rfl⟩,
             ⟨u3, e' + base + 1, h3, hu3, by unfold maxCells at hexlt hb; omega, rfl⟩, by omega⟩
         · exact hH
       · exact hH

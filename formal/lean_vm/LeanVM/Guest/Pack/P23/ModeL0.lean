@@ -8,22 +8,18 @@
 module
 
 public import LeanVM.Guest.Pack.«P23».ModeD0W0
-public import LeanVM.Guest.Pack.«P23».ModeD0W1
-public import LeanVM.Guest.Pack.«P23».ModeD0W2
 
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L7»
+namespace LeanVM.Guest.Fn.«claim_list_digest_loop1»
 
 open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `verify_merkle_cap__L7`: its mode walk accepts its code, window by window. -/
+/-- `__loop16`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 1402) (by decide +kernel) [600, 1197]
-    ⟨by decide, by decide, by decide +kernel, modeW0,
-    ⟨by decide, by decide, by decide +kernel, modeW1,
-    modeW2⟩⟩
+  Mode.walk_of_wins (n := 203) (by decide +kernel) []
+    modeW0
 
 end
 
-end LeanVM.Guest.Fn.«verify_merkle_cap__L7»
+end LeanVM.Guest.Fn.«claim_list_digest_loop1»

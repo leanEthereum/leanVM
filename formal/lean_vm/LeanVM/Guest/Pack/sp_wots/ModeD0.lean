@@ -3629,7 +3629,7 @@ noncomputable def snap2242 : List Mode.Abs × Mode.Pend :=
     (.num 268435456)), ((.ex (.fr 224) 0), (.num 268435456)), ((.ex (.fr 248) 0), (.num 64)), ((.ex
     (.fr 248) 0), (.num 268435456)), ((.ex (.fr 249) 0), (.num 268435456)), ((.ex (.fr 277) 0),
     (.num 64)), ((.ex (.fr 277) 0), (.num 268435456)), ((.ex (.fr 278) 0), (.num 268435456))], [],
-    .nil, []⟩], false⟩])
+    .nil, [], []⟩], false⟩])
 
 /-- `sp_wots`: the paths and pending edges at its cut at offset 4490. -/
 noncomputable def snap4490 : List Mode.Abs × Mode.Pend :=
@@ -3731,7 +3731,7 @@ noncomputable def snap4490 : List Mode.Abs × Mode.Pend :=
     277) 0), (.num 268435456)), ((.ex (.fr 278) 0), (.num 268435456)), ((.ex (.fr 306) 0), (.num
     64)), ((.ex (.fr 306) 0), (.num 268435456)), ((.ex (.fr 307) 0), (.num 268435456)), ((.ex (.fr
     335) 0), (.num 64)), ((.ex (.fr 335) 0), (.num 268435456)), ((.ex (.fr 336) 0), (.num
-    268435456))], [], .nil, []⟩], false⟩])
+    268435456))], [], .nil, [], []⟩], false⟩])
 
 /-- `sp_wots`: the paths and pending edges at its cut at offset 6738. -/
 noncomputable def snap6738 : List Mode.Abs × Mode.Pend :=
@@ -3850,7 +3850,8 @@ noncomputable def snap6738 : List Mode.Abs × Mode.Pend :=
     268435456)), ((.ex (.fr 335) 0), (.num 64)), ((.ex (.fr 335) 0), (.num 268435456)), ((.ex (.fr
     336) 0), (.num 268435456))], [((.ex (.fr 364) 0), (.num 64)), ((.ex (.fr 364) 0), (.num
     268435456)), ((.ex (.fr 365) 0), (.num 268435456)), ((.ex (.fr 393) 0), (.num 64)), ((.ex (.fr
-    393) 0), (.num 268435456)), ((.ex (.fr 394) 0), (.num 268435456))]]), [], .nil, []⟩], false⟩])
+    393) 0), (.num 268435456)), ((.ex (.fr 394) 0), (.num 268435456))]]), [], .nil, [], []⟩],
+    false⟩])
 
 /-- `sp_wots`: the paths and pending edges at its cut at offset 8986. -/
 noncomputable def snap8986 : List Mode.Abs × Mode.Pend :=
@@ -3989,7 +3990,7 @@ noncomputable def snap8986 : List Mode.Abs × Mode.Pend :=
     (.num 64)), ((.ex (.fr 393) 0), (.num 268435456)), ((.ex (.fr 394) 0), (.num 268435456)), ((.ex
     (.fr 422) 0), (.num 64)), ((.ex (.fr 422) 0), (.num 268435456)), ((.ex (.fr 423) 0), (.num
     268435456)), ((.ex (.fr 451) 0), (.num 64)), ((.ex (.fr 451) 0), (.num 268435456)), ((.ex (.fr
-    452) 0), (.num 268435456))]]), [], .nil, []⟩], false⟩])
+    452) 0), (.num 268435456))]]), [], .nil, [], []⟩], false⟩])
 
 /-- `sp_wots`: the paths and pending edges at its cut at offset 11233. -/
 noncomputable def snap11233 : List Mode.Abs × Mode.Pend :=
@@ -4147,7 +4148,7 @@ noncomputable def snap11233 : List Mode.Abs × Mode.Pend :=
     268435456)), ((.ex (.fr 452) 0), (.num 268435456)), ((.ex (.fr 480) 0), (.num 64)), ((.ex (.fr
     480) 0), (.num 268435456)), ((.ex (.fr 481) 0), (.num 268435456)), ((.ex (.fr 509) 0), (.num
     64))], [((.ex (.fr 509) 0), (.num 268435456)), ((.ex (.fr 510) 0), (.num 268435456))]]), [],
-    .nil, []⟩], false⟩])
+    .nil, [], []⟩], false⟩])
 
 /-- `sp_wots`: the paths and pending edges at its cut at offset 13481. -/
 noncomputable def snap13481 : List Mode.Abs × Mode.Pend :=
@@ -4324,7 +4325,7 @@ noncomputable def snap13481 : List Mode.Abs × Mode.Pend :=
     509) 0), (.num 64))], [((.ex (.fr 509) 0), (.num 268435456)), ((.ex (.fr 510) 0), (.num
     268435456)), ((.ex (.fr 538) 0), (.num 64)), ((.ex (.fr 538) 0), (.num 268435456)), ((.ex (.fr
     539) 0), (.num 268435456)), ((.ex (.fr 567) 0), (.num 64)), ((.ex (.fr 567) 0), (.num
-    268435456)), ((.ex (.fr 568) 0), (.num 268435456))]]), [], .nil, []⟩], false⟩])
+    268435456)), ((.ex (.fr 568) 0), (.num 268435456))]]), [], .nil, [], []⟩], false⟩])
 
 /-- `sp_wots`: the paths and pending edges at its cut at offset 15729. -/
 noncomputable def snap15729 : List Mode.Abs × Mode.Pend :=
@@ -4519,7 +4520,7 @@ noncomputable def snap15729 : List Mode.Abs × Mode.Pend :=
     (.fr 567) 0), (.num 64)), ((.ex (.fr 567) 0), (.num 268435456)), ((.ex (.fr 568) 0), (.num
     268435456)), ((.ex (.fr 596) 0), (.num 64)), ((.ex (.fr 596) 0), (.num 268435456)), ((.ex (.fr
     597) 0), (.num 268435456)), ((.ex (.fr 625) 0), (.num 64)), ((.ex (.fr 625) 0), (.num
-    268435456)), ((.ex (.fr 626) 0), (.num 268435456))]]), [], .nil, []⟩], false⟩])
+    268435456)), ((.ex (.fr 626) 0), (.num 268435456))]]), [], .nil, [], []⟩], false⟩])
 
 /-- `sp_wots`: the paths and pending edges at its cut at offset 17977. -/
 noncomputable def snap17977 : List Mode.Abs × Mode.Pend :=
@@ -4732,7 +4733,7 @@ noncomputable def snap17977 : List Mode.Abs × Mode.Pend :=
     64)), ((.ex (.fr 625) 0), (.num 268435456)), ((.ex (.fr 626) 0), (.num 268435456)), ((.ex (.fr
     654) 0), (.num 64)), ((.ex (.fr 654) 0), (.num 268435456))], [((.ex (.fr 655) 0), (.num
     268435456)), ((.ex (.fr 683) 0), (.num 64)), ((.ex (.fr 683) 0), (.num 268435456)), ((.ex (.fr
-    684) 0), (.num 268435456))]]), [], .nil, []⟩], false⟩])
+    684) 0), (.num 268435456))]]), [], .nil, [], []⟩], false⟩])
 
 /-- `sp_wots`: the paths and pending edges at its cut at offset 20225. -/
 noncomputable def snap20225 : List Mode.Abs × Mode.Pend :=
@@ -4962,7 +4963,7 @@ noncomputable def snap20225 : List Mode.Abs × Mode.Pend :=
     (.fr 683) 0), (.num 64)), ((.ex (.fr 683) 0), (.num 268435456)), ((.ex (.fr 684) 0), (.num
     268435456)), ((.ex (.fr 712) 0), (.num 64)), ((.ex (.fr 712) 0), (.num 268435456)), ((.ex (.fr
     713) 0), (.num 268435456)), ((.ex (.fr 741) 0), (.num 64)), ((.ex (.fr 741) 0), (.num
-    268435456)), ((.ex (.fr 742) 0), (.num 268435456))]]), [], .nil, []⟩], false⟩])
+    268435456)), ((.ex (.fr 742) 0), (.num 268435456))]]), [], .nil, [], []⟩], false⟩])
 
 /-- `sp_wots`: the paths and pending edges at its cut at offset 22473. -/
 noncomputable def snap22473 : List Mode.Abs × Mode.Pend :=
@@ -5211,7 +5212,7 @@ noncomputable def snap22473 : List Mode.Abs × Mode.Pend :=
     64)), ((.ex (.fr 741) 0), (.num 268435456)), ((.ex (.fr 742) 0), (.num 268435456)), ((.ex (.fr
     770) 0), (.num 64)), ((.ex (.fr 770) 0), (.num 268435456)), ((.ex (.fr 771) 0), (.num
     268435456)), ((.ex (.fr 799) 0), (.num 64)), ((.ex (.fr 799) 0), (.num 268435456)), ((.ex (.fr
-    800) 0), (.num 268435456))]]), [], .nil, []⟩], false⟩])
+    800) 0), (.num 268435456))]]), [], .nil, [], []⟩], false⟩])
 
 /-- `sp_wots`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=

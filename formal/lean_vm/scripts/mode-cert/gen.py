@@ -205,7 +205,16 @@ def absLit(A):
         trie({o: 1 for o in A.w}, unit), trie(A.v, val), trie({o: 1 for o in A.nz}, unit),
         lst(sorted(A.hv.items()), lambda p: '(%s, %s)' % (mono(p[0]), val(p[1]))), lst(sorted(A.h), mono),
         lst(sorted(A.r), rng), lst(sorted(A.lt), lambda p: '(%s, %s)' % (idx(p[0]), idx(p[1]))),
-        lst(A.pr, lambda t: '(%d, %d, %d)' % t), trie(A.xs, lambda p: '(%d, %d)' % p), lst(sorted(A.p), ptr)])
+        lst(A.pr, lambda t: '(%d, %d, %d)' % t), trie(A.xs, lambda p: '(%d, %d)' % p), lst(sorted(A.p), ptr),
+        lst(sorted(A.c.items()), cnd)])
+
+
+def cnd(kv):
+    """A conditional fact of `walk.py` as a literal `Mode.Cnd`."""
+    (x, j), (h, r, p, lt, hv) = kv
+    return '⟨%s, %d, %s, %s, %s, %s, %s⟩' % (base(x), j, lst(sorted(h), mono), lst(sorted(r), rng),
+        lst(sorted(p), ptr), lst(sorted(lt), lambda q: '(%s, %s)' % (idx(q[0]), idx(q[1]))),
+        lst(sorted(hv.items()), lambda q: '(%s, %s)' % (mono(q[0]), val(q[1]))))
 
 
 def snapLit(S):

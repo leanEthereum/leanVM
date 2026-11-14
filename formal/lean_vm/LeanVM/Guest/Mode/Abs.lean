@@ -196,6 +196,17 @@ structure Rng where
 def Rng.beq (a b : Rng) : Bool :=
   a.q.beq b.q && a.lo.beq b.lo && a.hi.beq b.hi && a.S == b.S && a.d == b.d
 
+/-- Facts that hold when base `x`'s exponent is `j`: heap cells written, runs, runs of pointers,
+exponents in order, heap words. -/
+structure Cnd where
+  x : Base
+  j : ℕ
+  h : List Mono
+  r : List Rng
+  p : List (Rng × List ℕ)
+  lt : List (Idx × Idx)
+  hv : List (Mono × Val)
+
 /-! ## The state -/
 
 /-- What the walk knows at an instruction. -/
@@ -221,12 +232,14 @@ structure Abs where
   /-- Runs of pointers: each cell of the run holds a word naming a cell whose cells `os` past it are
   written. -/
   p : List (Rng × List ℕ)
+  /-- Facts under a condition on a base's exponent (a table call's arms). -/
+  c : List Cnd
 
 /-- `k A`, `A` and its tries evaluated first. -/
 def Abs.force {β : Type} (A : Abs) (k : Abs → β) : β :=
   match A with
-  | ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩ =>
-    w.seq fun w ↦ v.seq fun v ↦ nz.seq fun nz ↦ xs.seq fun xs ↦ k ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩
+  | ⟨w, v, nz, hv, h, r, lt, pr, xs, p, c⟩ =>
+    w.seq fun w ↦ v.seq fun v ↦ nz.seq fun nz ↦ xs.seq fun xs ↦ k ⟨w, v, nz, hv, h, r, lt, pr, xs, p, c⟩
 
 /-- `l.foldl f A`, each state evaluated before the next step. -/
 noncomputable def foldlA {α : Type} (f : Abs → α → Abs) (A : Abs) (l : List α) : Abs :=
@@ -327,11 +340,73 @@ def Abs.inRng (A : Abs) (k : Mono) (r : Rng) : Bool :=
     | none => false
   at1 r || (0 < r.S && r.S ≤ r.d && at1 r.down)
 
-/-- The heap cell `k` is known written. -/
+/-- The heap cell `k` is a known one or in a known run. -/
+def Abs.coveredHR (A : Abs) (k : Mono) : Bool := A.h.any (·.beq k) || A.r.any (A.inRng k)
+
+/-- Every base of `m` has a word, by the written frame cells and `coveredHR` alone. -/
+def Abs.knownH (A : Abs) (m : Mono) : Bool :=
+  m.bs.all fun p ↦ match p.1 with
+    | .fr o => A.hasW o
+    | .hp q d => A.hasW q && A.coveredHR ⟨0, d, [(.fr q, 1)]⟩
+
+/-- The least of two bounds. -/
+def minO : Option ℕ → ℕ → Option ℕ
+  | none, b => some b
+  | some a, b => some (min a b)
+
+/-- A constant the exponent `hi` is at most: its own, or the least a known `p < q` gives, `hi = p + t`
+and `q` a constant. -/
+def Abs.bound (A : Abs) (hi : Idx) : Option ℕ :=
+  match hi with
+  | .num n => some n
+  | .ex _ _ => A.lt.foldl (fun acc p ↦ match p.2, p.1.off hi with
+      | .num q, some t => minO acc (q + t - 1)
+      | _, _ => acc) none
+
+/-- Every cell of run `r`, from a constant to a known bound at most 64 further, is known by
+`coveredHR`: a run another state entails at a join. -/
+def Abs.entR (A : Abs) (r : Rng) : Bool :=
+  match r.lo, A.bound r.hi with
+  | .num a, some b => decide (b - a ≤ 64) && A.knownH r.q &&
+      (List.range (b - a)).all fun j ↦ A.coveredHR (r.q.shift (r.S * (a + j) + r.d))
+  | _, _ => false
+
+/-- The exponent of base `b`, when known exactly (the least such, if several). -/
+def Abs.pin (A : Abs) (b : Base) : Option ℕ :=
+  A.lt.foldl (fun acc p ↦ match p with
+    | (.ex b' 0, .num q) =>
+      if b'.beq b && 0 < q && A.lt.any (fun p' ↦ p'.1.beq (.num (q - 1)) && p'.2.beq (.ex b 1)) then
+        minO acc (q - 1)
+      else acc
+    | _ => acc) none
+
+/-- A base's power moved into a product: a power of `g` when its exponent is known. -/
+def Abs.pinStep (A : Abs) (m : Mono) (p : Base × ℕ) : Mono :=
+  match A.pin p.1 with
+  | some c => m.shift (c * p.2)
+  | none => ⟨m.fp, m.k, m.bs ++ [p]⟩
+
+/-- The product, each base of known exponent made a power of `g`. -/
+def Abs.pinned (A : Abs) (k : Mono) : Mono := k.bs.foldl A.pinStep ⟨k.fp, k.k, []⟩
+
+/-- `k = q·x^e·g^c` with `x`'s exponent below a known bound, every cell `q·g^(e·j + c)` below it
+known (`entR`): a table read at a bounded index. -/
+def Abs.tabCovered (A : Abs) (k : Mono) : Bool :=
+  k.fp == 0 && k.bs.any fun p ↦ match removeBs p k.bs with
+    | some rest => A.entR ⟨⟨0, 0, rest⟩, .num 0, .ex p.1 1, p.2, k.k⟩
+    | none => false
+
+/-- The heap cell `k` is known written: a frame cell, a known cell or one in a known run, as it is or
+with its bases of known exponent made powers of `g`, a cell of a run of pointers, a cell past a
+pointer such a run holds, or a table read at a bounded index. -/
 def Abs.covered (A : Abs) (k : Mono) : Bool :=
   match k.ownCell with
   | some d => A.hasW d
-  | none => A.h.any (·.beq k) || A.r.any (A.inRng k)
+  | none => A.coveredHR k || A.coveredHR (A.pinned k) || A.p.any (fun q ↦ A.inRng k q.1) ||
+      (match k with
+        | ⟨0, o, [(.hp q d, 1)]⟩ => A.p.any fun p ↦ p.2.contains o && A.inRng ⟨0, d, [(.fr q, 1)]⟩ p.1
+        | _ => false) ||
+      A.tabCovered k
 
 /-- The base an exponent reads has a known exponent: some inequality mentions it. -/
 def Idx.base? : Idx → Option Base
@@ -345,15 +420,22 @@ def Abs.hasIdx (A : Abs) (i : Idx) : Bool :=
   | .ex b _ => A.lt.any fun p ↦ (match p.1.base? with | some x => x.beq b | none => false) ||
       (match p.2.base? with | some x => x.beq b | none => false)
 
+/-- A base whose word is known to exist: a written frame cell, or a cell past a written pointer
+cell that the walk knows written. -/
+def Abs.knownB (A : Abs) : Base → Bool
+  | .fr o => A.hasW o
+  | .hp q d => A.hasW q && A.covered ⟨0, d, [(.fr q, 1)]⟩
+
+/-- A product whose word is known to exist. -/
+def Abs.known (A : Abs) (m : Mono) : Bool := m.bs.all fun p ↦ A.knownB p.1
+
 /-- Every cell of run `r` is known written: a known run holds it, or each of its (at most `2^12`)
-points is known written. -/
+points, from a constant to a known bound, is known written. -/
 def Abs.coveredR (A : Abs) (r : Rng) : Bool :=
   A.r.any (fun r' ↦ r'.q.beq r.q && r'.S == r.S && r'.d == r.d && A.le r'.lo r.lo &&
     A.le r.hi r'.hi && A.hasIdx r.lo && A.hasIdx r.hi) ||
-  match r.lo, r.hi with
-  | .num a, .num b => b - a ≤ 4096 && r.q.bs.all (fun p ↦ match p.1 with
-      | .fr o => A.hasW o
-      | .hp _ _ => false) &&
+  match r.lo, A.bound r.hi with
+  | .num a, some b => decide (b - a ≤ 4096) && A.known r.q &&
       (List.range (b - a)).all fun j ↦ A.covered (r.q.shift (r.S * (a + j) + r.d))
   | _, _ => false
 
@@ -369,17 +451,21 @@ def Abs.ptrAt (A : Abs) (k : Mono) (os : List ℕ) : Bool :=
   | some (.m m) => os.all fun o ↦ A.covered (m.shift o)
   | _ => false
 
+/-- The heap cell `k` holds a pointer with the cells `os` past it written: a known word, or a cell of
+a run of pointers naming them. -/
+def Abs.ptrIn (A : Abs) (k : Mono) (os : List ℕ) : Bool :=
+  A.ptrAt k os || A.p.any fun q ↦ os.all (q.2.contains ·) && A.inRng k q.1
+
 /-- Every cell of run `r` is known to hold a pointer with the cells `os` past it written: a known run
-of pointers holds it, or it is one point, or each of its (at most `2^12`) points is known. -/
+of pointers holds it, or it is one point, or each of its (at most `2^12`) points, from a constant to a
+known bound, is known. -/
 def Abs.coveredP (A : Abs) (r : Rng) (os : List ℕ) : Bool :=
   A.p.any (fun q ↦ q.1.q.beq r.q && q.1.S == r.S && q.1.d == r.d && A.le q.1.lo r.lo &&
     A.le r.hi q.1.hi && A.hasIdx r.lo && A.hasIdx r.hi && os.all (q.2.contains ·)) ||
-  (r.hi.beq r.lo.succ && A.hasIdx r.lo && A.ptrAt r.first os) ||
-  match r.lo, r.hi with
-  | .num a, .num b => b - a ≤ 4096 && r.q.bs.all (fun p ↦ match p.1 with
-      | .fr o => A.hasW o
-      | .hp _ _ => false) &&
-      (List.range (b - a)).all fun j ↦ A.ptrAt (r.q.shift (r.S * (a + j) + r.d)) os
+  (r.hi.beq r.lo.succ && A.hasIdx r.lo && A.ptrIn r.first os) ||
+  match r.lo, A.bound r.hi with
+  | .num a, some b => decide (b - a ≤ 4096) && A.known r.q &&
+      (List.range (b - a)).all fun j ↦ A.ptrIn (r.q.shift (r.S * (a + j) + r.d)) os
   | _, _ => false
 
 /-! ## Intersection -/
@@ -398,21 +484,53 @@ def interT {α : Type} (eq : α → α → Bool) (a b : List α) : List α :=
   let t := agree eq a.reverse b.reverse
   interL eq (a.take (a.length - t)) b ++ a.drop (a.length - t)
 
+/-- Runs both states know: those both hold, their common tail kept whole, and those one holds and the
+other entails (`entR`). -/
+def interR (A B : Abs) : List Rng :=
+  let t := agree Rng.beq A.r.reverse B.r.reverse
+  (A.r.take (A.r.length - t)).filter (fun r ↦ B.r.any (Rng.beq r) || B.entR r) ++
+    A.r.drop (A.r.length - t) ++
+    (B.r.take (B.r.length - t)).filter (fun r ↦ !(A.r.any (Rng.beq r)) && A.entR r)
+
+/-- Equality of pairs of exponents, as a `Bool`. -/
+def ltBeq (p q : Idx × Idx) : Bool := p.1.beq q.1 && p.2.beq q.2
+
+/-- Equality of heap words, as a `Bool`. -/
+def hvBeq (p q : Mono × Val) : Bool := p.1.beq q.1 && p.2.beq q.2
+
+/-- Equality of runs of pointers, as a `Bool`. -/
+def ptrBeq (p q : Rng × List ℕ) : Bool := p.1.beq q.1 && p.2 == q.2
+
+/-- The conditional facts both lists hold, under the same condition. -/
+def interC (a b : List Cnd) : List Cnd :=
+  a.filterMap fun c ↦ match b.find? (fun c' ↦ c'.x.beq c.x && c'.j == c.j) with
+    | some c' =>
+      let d : Cnd := ⟨c.x, c.j, interL Mono.beq c.h c'.h, interL Rng.beq c.r c'.r, interL ptrBeq c.p c'.p,
+        interL ltBeq c.lt c'.lt, interL hvBeq c.hv c'.hv⟩
+      if d.h.isEmpty && d.r.isEmpty && d.p.isEmpty && d.lt.isEmpty && d.hv.isEmpty then none else some d
+    | none => none
+
 /-- What two states both know. -/
 noncomputable def Abs.inter (A B : Abs) : Abs :=
   ⟨Trie.inter (fun _ _ ↦ true) A.w B.w, Trie.inter Val.beq A.v B.v,
     Trie.inter (fun _ _ ↦ true) A.nz B.nz,
-    interT (fun p q ↦ p.1.beq q.1 && p.2.beq q.2) A.hv B.hv, interT Mono.beq A.h B.h,
-    interT Rng.beq A.r B.r, interT (fun p q ↦ p.1.beq q.1 && p.2.beq q.2) A.lt B.lt, [],
+    interT hvBeq A.hv B.hv, interT Mono.beq A.h B.h,
+    interR A B, interT ltBeq A.lt B.lt, [],
     Trie.inter (fun p q ↦ p.1 == q.1 && p.2 == q.2) A.xs B.xs,
-    interT (fun p q ↦ p.1.beq q.1 && p.2 == q.2) A.p B.p⟩
+    interT ptrBeq A.p B.p, interC A.c B.c⟩
 
 /-- `A.inter B`, its lists' spines evaluated. -/
 noncomputable def Abs.interS (A B : Abs) : Abs :=
   match A.inter B with
-  | ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩ =>
+  | ⟨w, v, nz, hv, h, r, lt, pr, xs, p, c⟩ =>
     listSeq hv fun hv ↦ listSeq h fun h ↦ listSeq r fun r ↦ listSeq lt fun lt ↦ listSeq p fun p ↦
-      ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩
+      ⟨w, v, nz, hv, h, r, lt, pr, xs, p, c⟩
+
+/-- Every fact of `S` is one of `A`'s, under the same condition. -/
+def Cnd.sub (S A : Cnd) : Bool :=
+  S.x.beq A.x && S.j == A.j && S.h.all (fun k ↦ A.h.any (·.beq k)) && S.r.all (fun r ↦ A.r.any (·.beq r)) &&
+    S.p.all (fun p ↦ A.p.any (ptrBeq p)) && S.lt.all (fun p ↦ A.lt.any (ltBeq p)) &&
+    S.hv.all (fun p ↦ A.hv.any (hvBeq p))
 
 /-- Every fact of `S` is one of `A`'s. -/
 noncomputable def Abs.sub (S A : Abs) : Bool :=
@@ -421,7 +539,8 @@ noncomputable def Abs.sub (S A : Abs) : Bool :=
   S.r.all (fun r ↦ A.r.any (·.beq r)) && S.lt.all (fun p ↦ A.lt.any fun q ↦ p.1.beq q.1 && p.2.beq q.2) &&
   S.pr.all (fun p ↦ A.pr.any fun q ↦ p.1 == q.1 && p.2.1 == q.2.1 && p.2.2 == q.2.2) &&
   Trie.sub (fun p q ↦ p.1 == q.1 && p.2 == q.2) S.xs A.xs &&
-  S.p.all (fun p ↦ A.p.any fun q ↦ p.1.beq q.1 && p.2 == q.2)
+  S.p.all (fun p ↦ A.p.any fun q ↦ p.1.beq q.1 && p.2 == q.2) &&
+  S.c.all (fun c ↦ A.c.any c.sub)
 
 /-- Pending edges into later offsets: each target of `ts` (increasing) is entered by every state of
 `Bs`; `m`: `Bs` is one state, the meet of at least three. -/
@@ -571,6 +690,13 @@ noncomputable def ptrLoad (A : Abs) (k : Mono) (c : ℕ) (B : Abs) : Abs :=
       | none => B
     else B) B A.p
 
+/-- Frame cell `x`'s exponent below `b`, and so its word's base's, when its word is one base. -/
+def Abs.addLtC (A : Abs) (x : ℕ) (b : Idx) : Abs :=
+  let A' := A.addLt (.ex (.fr x) 0) b
+  match A.mono x with
+  | some ⟨0, 0, [(y, 1)]⟩ => A'.addLt (.ex y 0) b
+  | _ => A'
+
 /-- The range check `DEREF *(x); MUL [z] = [x]·[y]; DEREF *(y)` with `[z] = g^k`, a base's word
 times `g^k`, or a base's word over `g`, ending at the `DEREF` through `y`: `x`'s exponent is at most
 `z`'s. -/
@@ -579,11 +705,11 @@ def rangeFact (A : Abs) (y : ℕ) : Abs :=
   | (x, y', z) :: _ =>
     if y' == y && A.ltI (.ex (.fr x) 0) (.num maxCells) then
       match A.mono z with
-      | some ⟨0, k, []⟩ => if k < 2 ^ 62 then A.addLt (.ex (.fr x) 0) (.num (k + 1)) else A
+      | some ⟨0, k, []⟩ => if k < 2 ^ 62 then A.addLtC x (.num (k + 1)) else A
       | some ⟨0, k, [(b, 1)]⟩ =>
         if k == 0 || (k < 2 ^ 62 && A.ltI (.ex b 0) (.num maxCells)) then
-          A.addLt (.ex (.fr x) 0) (.ex b (k + 1))
-        else if k == 2 ^ 64 - 2 then A.addLt (.ex (.fr x) 0) (.ex b 0)
+          A.addLtC x (.ex b (k + 1))
+        else if k == 2 ^ 64 - 2 then A.addLtC x (.ex b 0)
         else A
       | _ => A
     else A
@@ -822,15 +948,6 @@ def trRngUp (A : Abs) (mq : Mono) (r : Rng) : Option Rng := trRngBy A mq (idxUp 
 /-- A callee's run, moving in. -/
 def trRngDown (A : Abs) (mq : Mono) (r : Rng) : Option Rng := trRngBy A mq (idxDown A mq) r
 
-/-- A base whose word is known to exist: a written frame cell, or a cell past a written pointer
-cell that the walk knows written. -/
-def Abs.knownB (A : Abs) : Base → Bool
-  | .fr o => A.hasW o
-  | .hp q d => A.hasW q && A.covered ⟨0, d, [(.fr q, 1)]⟩
-
-/-- A product whose word is known to exist. -/
-def Abs.known (A : Abs) (m : Mono) : Bool := m.bs.all fun p ↦ A.knownB p.1
-
 /-- The caller holds what callee `G` needs at entry, its frame named by `mq`. -/
 def entryOk (A : Abs) (mq : Mono) (G : Sig) : Bool :=
   G.entry.all (fun o ↦ decide (o < 2 ^ 30) && A.covered (mq.shift o)) &&
@@ -855,6 +972,14 @@ noncomputable def atCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
     | some a, some b => A.addLt a b
     | _, _ => A) A G.term
 
+/-- A run at offset `d ≥ S` and its point one stride below its start give the run from that point:
+a loop's run, met with what precedes it, covering the loop that ran no iteration. -/
+def Abs.extR (A : Abs) (r : Rng) : Abs :=
+  if 0 < r.S && r.S ≤ r.d then
+    let r' : Rng := ⟨r.q, r.lo, r.hi.succ, r.S, r.d - r.S⟩
+    if A.covered r'.first then { A with r := r' :: A.r } else A
+  else A
+
 /-- What the caller knows after callee `G` returns. -/
 noncomputable def afterCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
   let A := foldlA (fun A o ↦ A.addH (mq.shift o)) A G.ret
@@ -865,7 +990,7 @@ noncomputable def afterCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
     | some k => A.addH k
     | none => A) A G.post
   let A := foldlA (fun A r ↦ match trRngUp A mq r with
-    | some r => { A with r := r :: A.r }
+    | some r => ({ A with r := r :: A.r } : Abs).extR r
     | none => A) A (G.postR ++ G.postL)
   let A := foldlA (fun A q ↦ match trRngUp A mq q.1 with
     | some r => { A with p := (r, q.2) :: A.p }
@@ -875,7 +1000,7 @@ noncomputable def afterCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
 /-- The walk's state at a function's entry. -/
 noncomputable def entryAbs (E : Env) (G : Sig) : Abs :=
   let A : Abs := ⟨foldlT .nil G.entry, .nil, .nil, [], G.pre,
-    jtRng E :: G.preR, G.term, [], .nil, G.preP⟩
+    jtRng E :: G.preR, G.term, [], .nil, G.preP, []⟩
   match G.self with
   | some o => ((A.addW o).addV o (.m (.own 0))).addNz o
   | none => A
@@ -886,12 +1011,22 @@ def loopOk (A : Abs) (G : Sig) : Bool :=
     | some k => A.covered k
     | none => false) &&
   G.postLP.all fun q ↦ match trMono A (.own 0) q.1.first with
-    | some k => A.ptrAt k q.2
+    | some k => A.ptrIn k q.2
     | none => false
+
+/-- At a loop's return, its bound is its counter's next exponent: a constant the counter's exponent
+plus one is known equal to, or a frame cell known to hold the counter's word times `g`. -/
+def exitOk (A : Abs) : Idx → Idx → Bool
+  | .ex x 0, .num n => decide (1 ≤ n) && A.le (.num n) (.ex x 1) && A.le (.ex x 1) (.num n)
+  | .ex x 0, .ex (.fr q) 0 =>
+    match A.v.get q with
+    | some (.m ⟨0, 1, [(y, 1)]⟩) => y.beq x
+    | _ => false
+  | _, _ => false
 
 /-- What the function guarantees holds at a return. -/
 def retOk (A : Abs) (G : Sig) : Bool :=
-  loopOk A G &&
+  loopOk A G && G.term.all (fun p ↦ exitOk A p.1 p.2) &&
   G.ret.all A.hasW &&
   G.retV.all (fun p ↦ A.hasW p.1 && match A.mono p.1, trMono A (.own 0) p.2 with
     | some x, some y => x.beq y
@@ -905,6 +1040,49 @@ def retOk (A : Abs) (G : Sig) : Bool :=
   G.postP.all fun q ↦ match trRngDown A (.own 0) q.1 with
     | some r => A.coveredP r q.2
     | none => false
+
+/-! ## Table calls -/
+
+/-- The base a table call through target cell `t` dispatches on. -/
+def selOf (A : Abs) (t : ℕ) : Option Base :=
+  match A.v.get t with
+  | some (.tab x _) => some x
+  | _ => none
+
+/-- What holds when base `x`'s exponent is `j`: the facts under that condition, and the exponent. -/
+def Abs.assume (A : Abs) : Option Base → ℕ → Abs
+  | none, _ => A
+  | some x, j =>
+    let A := (A.addLt (.ex x 0) (.num (j + 1))).addLt (.num j) (.ex x 1)
+    match A.c.find? (fun c ↦ c.x.beq x && c.j == j) with
+    | some c =>
+      { A with
+        h := c.h ++ A.h
+        r := c.r ++ A.r
+        p := c.p ++ A.p
+        lt := c.lt ++ A.lt
+        hv := A.hv ++ c.hv.filter (fun p ↦ !(A.hv.any fun q ↦ q.1.beq p.1)) }
+    | none => A
+
+/-- The facts of `X` not in `B`, under base `x`'s exponent `j`, if any. -/
+def condDiff (B X : Abs) (x : Base) (j : ℕ) : Option Cnd :=
+  let d : Cnd := ⟨x, j, X.h.filter (fun k ↦ !(B.h.any (Mono.beq k))), X.r.filter (fun r ↦ !(B.r.any (Rng.beq r))),
+    X.p.filter (fun p ↦ !(B.p.any (ptrBeq p))), X.lt.filter (fun p ↦ !(B.lt.any (ltBeq p))),
+    X.hv.filter (fun p ↦ !(B.hv.any (hvBeq p)))⟩
+  if d.h.isEmpty && d.r.isEmpty && d.p.isEmpty && d.lt.isEmpty && d.hv.isEmpty then none else some d
+
+/-- What the caller knows after one of a call's arms returns, each arm's state given: what all know,
+and, for a table call on base `x`, what each knows beyond it, under `x`'s exponent its index. -/
+noncomputable def armsMeet (sel : Option Base) : List Abs → Abs
+  | [] => ⟨.nil, .nil, .nil, [], [], [], [], [], .nil, [], []⟩
+  | B :: Bs =>
+    let M := foldlA Abs.interS B Bs
+    match sel with
+    | none => M
+    | some x =>
+      { M with
+        c := ((B :: Bs).zipIdx.filterMap fun p ↦ condDiff M p.1 x p.2) ++
+          M.c.filter (fun c ↦ !(c.x.beq x && decide (c.j < Bs.length + 1))) }
 
 /-! ## Jumps -/
 
@@ -944,7 +1122,7 @@ noncomputable def armsOf (E : Env) (F : Fun) (A : Abs) (i t : ℕ) : Option (Lis
 power of `g` and keeps its bound. -/
 def termStep (A : Abs) (e : ℕ) (G : Sig) : Bool :=
   G.term.all fun p ↦ match p with
-    | (.ex _ 0, .ex _ 0) =>
+    | (.ex _ 0, .ex _ 0) | (.ex _ 0, .num _) =>
       (match idxUp A (.own e) p.1 with
         | some a => match p.1.off a with
           | some t => decide (0 < t)
@@ -955,10 +1133,16 @@ def termStep (A : Abs) (e : ℕ) (G : Sig) : Bool :=
         | none => false)
     | _ => false
 
-/-- A loop's tail call into frame `fp·g^e` of callee `G`: its entry from this state, its counters
-moved up, and each run it accumulates the next iteration's from one further. -/
+/-- The frame `fp·g^e`'s header is this frame's: its cells `0` and `1` hold this frame's words. -/
+def headerOk (A : Abs) (e : ℕ) : Bool :=
+  [0, 1].all fun o ↦ A.hasW o && match A.hvGet ((Mono.own e).shift o), A.mono o with
+    | some (.m x), some y => x.beq y
+    | _, _ => false
+
+/-- A loop's tail call into frame `fp·g^e` of callee `G`: its entry from this state, its header this
+frame's, its counters moved up, and each run it accumulates the next iteration's from one further. -/
 def tailOk (A : Abs) (e : ℕ) (G : Sig) : Bool :=
-  entryOk A (.own e) G && termStep A e G && (G.postL ++ G.postLP.map (·.1)).all fun r ↦
+  entryOk A (.own e) G && headerOk A e && termStep A e G && (G.postL ++ G.postLP.map (·.1)).all fun r ↦
     match trRngUp A (.own e) r with
     | some r' => r'.beq ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩
     | none => false
@@ -995,10 +1179,9 @@ noncomputable def jumpI (E : Env) (F : Fun) (i : ℕ) (A : Abs) (d f : ℕ) :
       | some (.m ⟨1, 0, []⟩), some (.m ⟨0, r, []⟩) =>
         match calleesOf E F A i d with
         | some (G :: Gs) =>
-          let A := foldlA (fun A G ↦ atCall A mq G) A (G :: Gs)
-          if (G :: Gs).all (entryOk A mq) && F.entry + i < r && r < F.entry + F.len then
-            some (.to [r - F.entry], foldlA (fun B G ↦ B.interS (afterCall A mq G))
-              (afterCall A mq G) Gs)
+          let As := (G :: Gs).zipIdx.map fun p ↦ (p.1, atCall (A.assume (selOf A d) p.2) mq p.1)
+          if As.all (fun p ↦ entryOk p.2 mq p.1) && F.entry + i < r && r < F.entry + F.len then
+            some (.to [r - F.entry], armsMeet (selOf A d) (As.map fun p ↦ afterCall p.2 mq p.1))
           else none
         | _ => none
       | _, _ => none
@@ -1015,12 +1198,23 @@ def condOf (A : Abs) (c : ℕ) : Option Bool :=
 
 /-! ## The pass -/
 
-/-- The fall-through of a `JUMP` on `[c]`: `[c] = 0`, so a sum `[c] = [a] + [b]` gives `[a] = [b]`. -/
+/-- Two frame cells holding one word, known as the constant `g^k` and as a base's word times `g^c`:
+the base's exponent is `k - c`. -/
+def Abs.pinEq (A : Abs) : Val → Val → Abs
+  | .m ⟨0, k, []⟩, .m ⟨0, c, [(b, 1)]⟩ =>
+    if k < 2 ^ 62 && c ≤ k then (A.addLt (.ex b 0) (.num (k - c + 1))).addLt (.num (k - c)) (.ex b 1)
+    else A
+  | _, _ => A
+
+/-- The fall-through of a `JUMP` on `[c]`: `[c] = 0`, so a sum `[c] = [a] + [b]` gives `[a] = [b]`: the
+word of one known for the other, or, both known, the exponent of a base equal to a constant. -/
 noncomputable def Abs.learn0 (A : Abs) (c : ℕ) : Abs :=
   match A.xs.get c with
   | some (a, b) =>
-    if (A.v.get b).isNone then A.addV b ((A.v.get a).getD (.m (.root a)))
-    else A.addV a ((A.v.get b).getD (.m (.root b)))
+    match A.v.get b, A.v.get a with
+    | none, _ => A.addV b ((A.v.get a).getD (.m (.root a)))
+    | some _, none => A.addV a ((A.v.get b).getD (.m (.root b)))
+    | some y, some x => (A.pinEq x y).pinEq y x
   | none => A
 
 /-- At most two paths apart: more are met into one. -/

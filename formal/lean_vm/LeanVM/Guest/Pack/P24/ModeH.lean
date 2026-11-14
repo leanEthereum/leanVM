@@ -11,23 +11,9 @@ public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P24».Mode0
 public import LeanVM.Guest.Pack.«P24».Mode1
 public import LeanVM.Guest.Pack.«P24».Mode2
+public import LeanVM.Guest.Pack.«P24».ModeD0
 
 set_option Elab.async false
-
-namespace LeanVM.Guest.Fn.«da_vector»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `da_vector`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 32) (d := Data.adviceFn32) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«da_vector»
 
 namespace LeanVM.Guest.Fn.«main_loop3»
 
@@ -343,3 +329,18 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«level_residual__L19_L7_L4_L2_loop0»
+
+namespace LeanVM.Guest.Fn.«da_vector»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `da_vector`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 32) (d := Data.adviceFn32) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«da_vector»
