@@ -73,12 +73,11 @@ theorem poolOK_init {κ : ℕ} {L : MemoryImage κ} {fp : K} {loops : Loops} {ta
       exact hself hreg
     · cases h
 
-/-- **Placement of a function is sound**, on any trace with no `chain` event. -/
+/-- **Placement of a function is sound**, on any trace. -/
 theorem placeFn_sound {loops : Loops} {sigs : Std.HashMap String (Nat × Nat)} {tables : Tables}
-    {tf : TracedFn} (hnc : NoChain tf) : PlaceFnSound loops sigs tables tf := by
+    {tf : TracedFn} : PlaceFnSound loops sigs tables tf := by
   intro pf tables' h κ Γ fp C U slots N kj kretP khalt kret env hfill hent hself hsem hobl hret
   obtain ⟨st', hrun, rfl, rfl, -, hr0, vs, hvs⟩ := placeFn_ok h
-  have hnc' : ∀ e ∈ (ctxOf loops sigs tf).trace.toList, e.isChain = false := hnc
   have key : wpP (placeBody tf) (ctxOf loops sigs tf) (initSt loops tables tf) (fun _ st₃ =>
       Lays Γ fp st'.locs (ctxOf loops sigs tf) slots (blockSize st'.out.toList) True
         (initSt loops tables tf) st₃
@@ -92,9 +91,9 @@ theorem placeFn_sound {loops : Loops} {sigs : Std.HashMap String (Nat × Nat)} {
     have e1 := forM_spec (Γ := Γ) (fp := fp) (F := st'.locs) (ctx := ctxOf loops sigs tf)
       (R := fun b : V × ℕ => valP Γ.L fp st'.locs b.1 = locVal Γ.L fp (.cell (2 + b.2)))
       (fun b => bindTo_spec b.1 (.cell (2 + b.2))) _ _ _ st1 he1
-    obtain ⟨-, l2⟩ := placeBlock_lays env hnc' tf.core.body st1
-      (Plain.of_same ⟨rfl, rfl⟩ e1.same) _ st2 he2
-    have e3 := flush_spec (Γ := Γ) (fp := fp) (F := st'.locs) hnc' [] st2 _ st3 he3
+    obtain ⟨-, l2⟩ := placeBlock_lays env tf.core.body st1
+      (Plain.of_same ⟨rfl⟩ e1.same) _ st2 he2
+    have e3 := flush_spec (Γ := Γ) (fp := fp) (F := st'.locs) [] st2 _ st3 he3
     have l := Lays.prefix e1 ((l2.suffix e3).weaken fun _ => trivial).withH
     split
     · exact wp_failP
@@ -111,6 +110,61 @@ theorem placeFn_sound {loops : Loops} {sigs : Std.HashMap String (Nat × Nat)} {
   have := hres.1.2 (tf.core.params[k], k) (List.mem_iff_getElem.mpr ⟨k, by simpa using hk, by simp⟩)
   simp only [List.getElem_map, frameWords, List.getElem_range]
   exact this
+
+/-- **(a), placement, for every trace.** -/
+theorem placeSound : PlaceSoundStmt := fun _ _ _ _ => placeFn_sound
+
+/-! ## Where the parameters are -/
+
+theorem wp_bindTo {ctx : Ctx} {st : St} {v : V} {l : Loc} {Q : Unit → St → Prop}
+    (h : st.locs.contains v = false → Q () { st with locs := st.locs.insert v l }) :
+    wpP (bindTo v l) ctx st Q := by
+  unfold bindTo
+  refine wp_bind.mpr (wp_get.mpr ?_)
+  dsimp only
+  split
+  · exact wp_bind.mpr wp_failP
+  · next hc => exact wp_modify.mpr (h (by simpa using hc))
+
+/-- Placing the parameters puts each in its argument cell. -/
+theorem forM_bindTo_wp {ctx : Ctx} : ∀ (ps : List (V × ℕ)) (st : St),
+    wpP (ps.forM fun b => bindTo b.1 (.cell (2 + b.2))) ctx st (fun _ st' =>
+      st'.chainIn = st.chainIn ∧ Sub st.locs st'.locs ∧
+        ∀ b ∈ ps, st'.locs[b.1]? = some (.cell (2 + b.2)))
+  | [], _ => wp_pure.mpr ⟨rfl, Sub.refl _, fun _ h => nomatch h⟩
+  | b :: ps, st => by
+      show wpP (bindTo b.1 (.cell (2 + b.2)) >>= fun _ => ps.forM _) ctx st _
+      refine wp_bind.mpr (wp_bindTo fun hnc => ?_)
+      refine wp_mono (forM_bindTo_wp ps _) fun _ st' ⟨hci, hsub, hall⟩ =>
+        ⟨hci, (Sub.insert _ hnc).trans hsub, fun b' hb' => ?_⟩
+      rcases List.mem_cons.mp hb' with rfl | hm
+      · exact hsub _ _ (by simp)
+      · exact hall b' hm
+
+/-- **A function's walk puts parameter `k` in cell `2 + k`**, and places only grow. -/
+theorem placeBody_params {κ : ℕ} (L : MemoryImage κ) {tf : TracedFn} {ctx : Ctx} {st₀ st' : St}
+    (h0 : st₀.chainIn = none) (h : placeBody tf ctx st₀ = .ok ((), st')) :
+    ∀ k (hk : k < tf.core.params.length), st'.locs[tf.core.params[k]]? = some (.cell (2 + k)) := by
+  let Γ : Site κ := ⟨L, ⟨{}, {}, 0, 0, gpowTable 0⟩, 0, 0, fun _ _ => True, fun _ _ => True⟩
+  have env : PlaceEnv Γ 1 ctx (fun _ _ _ => True) (fun _ _ => True) #[] 0 :=
+    ⟨⟨0, rfl⟩, fun _ _ _ hs => by simp at hs, by simp [Γ], by norm_num [Γ], by norm_num [Γ],
+      fun _ => rfl, fun _ _ _ _ => by simp [Γ, Site.ent], fun _ _ _ _ _ _ _ => trivial,
+      fun _ _ _ _ _ _ => trivial⟩
+  suffices hw : wpP (placeBody tf) ctx st₀ (fun _ st' => ∀ k (hk : k < tf.core.params.length),
+      st'.locs[tf.core.params[k]]? = some (.cell (2 + k))) from hw _ _ h
+  unfold placeBody
+  refine wp_bind.mpr (wp_mono (forM_bindTo_wp _ st₀) fun _ st1 ⟨hci, _, hall⟩ => ?_)
+  refine wp_bind.mpr fun _ st2 he2 => ?_
+  obtain ⟨-, -, -, hl2, -, -⟩ := placeBlock_lays (F := {}) env tf.core.body st1
+    ⟨hci.trans h0⟩ _ st2 he2
+  refine wp_bind.mpr fun _ st3 he3 => ?_
+  obtain ⟨-, -, -, hl3, -, -⟩ :=
+    flush_spec (Γ := Γ) (fp := 1) (F := {}) (ctx := ctx) [] st2 _ st3 he3
+  refine wp_bind.mpr (wp_get.mpr ?_)
+  split
+  · exact wp_failP
+  · exact wp_pure.mpr fun k hk => (hl2.trans hl3) _ _
+      (hall (tf.core.params[k], k) (List.mem_iff_getElem.mpr ⟨k, by simpa using hk, by simp⟩))
 
 end
 end LeanVM.Guest.Backend

@@ -45,7 +45,7 @@ theorem emitJumpZero_spec {H : Prop} {st : St} {oc od of : ℕ} (hz : H → wd �
     SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (emitOp (.jump oc od of))
       (fun _ => IsInK (wd Γ.L fp od) ∧ IsInK (wd Γ.L fp of)) :=
   wp_bind.mpr (wp_modifyGet.mpr (wp_modify.mpr
-    (Emits.jumpZero (fun h _ => hz h) rfl rfl ⟨rfl, rfl, rfl⟩ rfl)))
+    (Emits.jumpZero (fun h _ => hz h) rfl rfl ⟨rfl, rfl⟩ rfl)))
 
 theorem char2 (a : E) : a + a = 0 := CharTwo.add_self_eq_zero a
 
@@ -72,7 +72,7 @@ theorem place_const (d : V) (c : E) :
         (Γ.R (.set o (.const (limbsOf c).1 (limbsOf c).2)))) → valP Γ.L fp F d = c :=
       fun hd hs => by rw [valP_of_cell hd, holds_set_const hs.choose_spec, word_limbsOf]
     split
-    · exact SpecAt.learn rfl rfl ⟨rfl, rfl, rfl⟩
+    · exact SpecAt.learn rfl rfl ⟨rfl, rfl⟩
         (fun h hp => hp.insertConstIfNew (holds_set_const h.2.choose_spec))
         (fun h => fin h.1.2 h.2)
     · exact SpecAt.pure fun h _ _ => fin h.1.2 h.2

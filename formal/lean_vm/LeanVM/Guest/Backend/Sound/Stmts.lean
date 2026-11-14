@@ -51,19 +51,17 @@ theorem retWords_eq {cells : List Cell}
 section
 
 variable (env : PlaceEnv Γ fp ctx C U slots B)
-  (hnc : ∀ e ∈ ctx.trace.toList, e.isChain = false)
 
-include env hnc in
+include env in
 /-- An atom. -/
 theorem atom_lays (a : Atom) (rest : List Stmt) (st : St) :
     LaysAt Γ fp F ctx slots B True st (placeStmt (.atom a) rest)
       (Obl C U Γ.L.read (valP Γ.L fp F) (.atom a))
       (StmtS C Γ.L.read (valP Γ.L fp F) (.atom a) rest) := by
   rw [placeStmt]
-  exact LaysAt.callT (beginStmt_spec hnc _) fun _ _ =>
+  exact LaysAt.callT (beginStmt_spec _) fun _ _ =>
     LaysAt.ofSpec (placeAtom_spec env.main a _) fun _ _ ha g next kret hG hn _ => ⟨ha, hn (hG ha)⟩
 
-include hnc in
 /-- `return`: the frame's return cells are the returned values, and the frame returns (or, in
 `main`, halts). -/
 theorem ret_lays (vs : List V) (rest : List Stmt) (st : St) :
@@ -71,7 +69,7 @@ theorem ret_lays (vs : List V) (rest : List Stmt) (st : St) :
       (Obl C U Γ.L.read (valP Γ.L fp F) (.ret vs))
       (StmtS C Γ.L.read (valP Γ.L fp F) (.ret vs) rest) := by
   rw [placeStmt]
-  refine LaysAt.callT (beginStmt_spec hnc _) fun _ _ => ?_
+  refine LaysAt.callT (beginStmt_spec _) fun _ _ => ?_
   refine LaysAt.read_bind ?_
   refine LaysAt.call (mapM_spec cellAt_spec vs) fun cells _ => ?_
   refine LaysAt.guard fun hc => ?_
@@ -156,14 +154,14 @@ theorem placeCall_lays {H : Prop} {st : St} {f : String} {argVs : List V} {args 
 theorem forall₂_len {α β : Type} {R : α → β → Prop} {l₁ : List α} {l₂ : List β}
     (h : List.Forall₂ R l₁ l₂) : l₁.length = l₂.length := (forall₂_getElem h).1
 
-include env hnc in
+include env in
 /-- A call. -/
 theorem call_lays (f : String) (args rets : List V) (rest : List Stmt) (st : St) :
     LaysAt Γ fp F ctx slots B True st (placeStmt (.call f args rets) rest)
       (Obl C U Γ.L.read (valP Γ.L fp F) (.call f args rets))
       (StmtS C Γ.L.read (valP Γ.L fp F) (.call f args rets) rest) := by
   rw [placeStmt]
-  refine LaysAt.callT (beginStmt_spec hnc _) fun _ _ => ?_
+  refine LaysAt.callT (beginStmt_spec _) fun _ _ => ?_
   refine LaysAt.read_bind ?_
   refine LaysAt.guard fun hcal => ?_
   have hcal' : isCallee ctx.sigs args.length rets.length f = true := by simpa using hcal
@@ -204,14 +202,14 @@ theorem callIf_finish {c : V} {f : String} {args : List V} {lc : Cell} {las : Li
     | true => exact hesc rfl hk
     | false => exact hnext hk (hg fun _ => hC)
 
-include env hnc in
+include env in
 /-- The conditional call ending a loop helper. -/
 theorem callIf_lays (c : V) (f : String) (args : List V) (rest : List Stmt) (st : St) :
     LaysAt Γ fp F ctx slots B True st (placeStmt (.callIf c f args) rest)
       (Obl C U Γ.L.read (valP Γ.L fp F) (.callIf c f args))
       (StmtS C Γ.L.read (valP Γ.L fp F) (.callIf c f args) rest) := by
   rw [placeStmt]
-  refine LaysAt.callT (beginStmt_spec hnc _) fun _ _ => ?_
+  refine LaysAt.callT (beginStmt_spec _) fun _ _ => ?_
   refine LaysAt.read_bind ?_
   refine LaysAt.guard fun hcal => ?_
   have hcal' : isCallee ctx.sigs args.length 0 f = true := by simpa using hcal
@@ -274,15 +272,15 @@ theorem sharedTable_wp (fs : List String) (st : St) :
   refine wp_bind.mpr (wp_get.mpr ?_)
   split
   · next cs first hfind =>
-    refine wp_pure.mpr ⟨⟨rfl, Sub.refl _, rfl, TablesLe.refl _, rfl, rfl⟩, ?_⟩
+    refine wp_pure.mpr ⟨⟨rfl, Sub.refl _, rfl, TablesLe.refl _, rfl⟩, ?_⟩
     have hmem := List.mem_of_find?_eq_some hfind
     have hcs : cs = fs := by simpa using List.find?_some hfind
     exact hcs ▸ hmem
   · extract_lets first
     exact wp_bind.mpr (wp_set.mpr (wp_pure.mpr ⟨⟨rfl, Sub.refl _, rfl,
-      ⟨fun _ hp => List.mem_cons_of_mem _ hp⟩, rfl, rfl⟩, List.mem_cons_self⟩))
+      ⟨fun _ hp => List.mem_cons_of_mem _ hp⟩, rfl⟩, List.mem_cons_self⟩))
 
-include env hnc in
+include env in
 /-- A fused `match` of calls. -/
 theorem dispatch_lays (x : V) (fs : List String) (args rets : List V) (rest : List Stmt)
     (st : St) :
@@ -290,7 +288,7 @@ theorem dispatch_lays (x : V) (fs : List String) (args rets : List V) (rest : Li
       (Obl C U Γ.L.read (valP Γ.L fp F) (.dispatch x fs args rets))
       (StmtS C Γ.L.read (valP Γ.L fp F) (.dispatch x fs args rets) rest) := by
   rw [placeStmt]
-  refine LaysAt.callT (beginStmt_spec hnc _) fun _ _ => ?_
+  refine LaysAt.callT (beginStmt_spec _) fun _ _ => ?_
   refine LaysAt.read_bind ?_
   refine LaysAt.guard fun hreg => ?_
   refine LaysAt.guard fun hcal => ?_

@@ -29,13 +29,12 @@ structure Eqv (st st' : St) : Prop where
   scope : st'.scope = st.scope
   tables : st'.tables = st.tables
   chainIn : st'.chainIn = st.chainIn
-  chain : st'.chain = st.chain
 
 theorem Eqv.emits {st st' : St} (h : Eqv st st') : Emits Γ fp F True st st' True :=
-  Emits.frame h.out h.locs ⟨h.tables, h.chainIn, h.chain⟩ fun _ _ hp => h.scope ▸ hp
+  Emits.frame h.out h.locs ⟨h.tables, h.chainIn⟩ fun _ _ hp => h.scope ▸ hp
 
 theorem Eqv.same {st st' : St} (h : Eqv st st') : Same st st' :=
-  ⟨h.tables, h.chainIn, h.chain⟩
+  ⟨h.tables, h.chainIn⟩
 
 /-- Passing an event moves the trace position only. -/
 theorem wp_expect {st : St} {e : Event → Bool} {what : String} {Q : Unit → St → Prop}
@@ -44,7 +43,7 @@ theorem wp_expect {st : St} {e : Event → Bool} {what : String} {Q : Unit → S
   refine wp_bind.mpr (wp_peek.mpr ?_)
   split
   · split
-    · exact wp_modify.mpr (h _ ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩)
+    · exact wp_modify.mpr (h _ ⟨rfl, rfl, rfl, rfl, rfl⟩)
     · exact wp_failP
   · exact wp_failP
 
@@ -58,8 +57,8 @@ theorem inBlock_finish {st st1 s5 : St} {Gb : Prop → Prop} {Sb : Prop → (Lis
       Means Γ fp F ctx slots B True s5.locs st.scope st.scope s5.tables s5.out.toList Gb Sb := by
   obtain ⟨ps, ho, hl, ht, hmn⟩ := L
   have hps : s5.out.toList = ps := by simpa using ho
-  refine ⟨⟨hpl5.chainIn, hpl5.chain⟩, ⟨h1.out, h1.locs ▸ hl, h1.scope, h1.tables ▸ ht,
-    hpl5.chainIn.trans hpl.chainIn.symm, hpl5.chain.trans hpl.chain.symm⟩, ?_⟩
+  refine ⟨⟨hpl5.chainIn⟩, ⟨h1.out, h1.locs ▸ hl, h1.scope, h1.tables ▸ ht,
+    hpl5.chainIn.trans hpl.chainIn.symm⟩, ?_⟩
   · rw [hps]
     intro pos N kj kretP khalt g next kret hH hF hp hB hfill hent hsem hG hnext hret
     exact hmn pos N kj kretP khalt g next kret hH hF (h1.scope ▸ hp) hB hfill hent
@@ -67,9 +66,6 @@ theorem inBlock_finish {st st1 s5 : St} {Gb : Prop → Prop} {Sb : Prop → (Lis
 
 section
 
-variable (hnc : ∀ e ∈ ctx.trace.toList, e.isChain = false)
-
-include hnc in
 /-- **A block of its own**: the statements and the pools of the state are as before, and the
 statements returned mean what the block's walk lays. -/
 theorem inBlock_spec {m : P Unit} {Gb : Prop → Prop} {Sb : Prop → (List E → Prop) → Prop}
@@ -83,9 +79,9 @@ theorem inBlock_spec {m : P Unit} {Gb : Prop → Prop} {Sb : Prop → (List E �
   refine wp_bind.mpr (wp_set.mpr ?_)
   refine wp_bind.mpr fun _ st2 he2 => ?_
   obtain ⟨hp2, l2⟩ := hm { st1 with out := #[] }
-    ⟨h1.chainIn.trans hpl.chainIn, h1.chain.trans hpl.chain⟩ _ st2 he2
+    ⟨h1.chainIn.trans hpl.chainIn⟩ _ st2 he2
   refine wp_bind.mpr fun _ st3 he3 => ?_
-  have e3 := flush_spec (Γ := Γ) (fp := fp) (F := F) hnc [] st2 _ st3 he3
+  have e3 := flush_spec (Γ := Γ) (fp := fp) (F := F) [] st2 _ st3 he3
   refine wp_bind.mpr (wp_expect fun st4 h4 => ?_)
   have l4 := (l2.suffix e3).suffix h4.emits
   have hp4 : Plain st4 := (hp2.of_same e3.same).of_same h4.same
@@ -100,7 +96,6 @@ theorem inBlock_spec {m : P Unit} {Gb : Prop → Prop} {Sb : Prop → (List E �
   · refine wp_bind.mpr (wp_get.mpr (wp_bind.mpr (wp_set.mpr (wp_pure.mpr ?_))))
     exact inBlock_finish hpl hp4 h1 l4
 
-include hnc in
 /-- A block of its own, then the rest knowing what the block means. -/
 theorem LaysAt.block {H : Prop} {st : St} {β : Type} {m : P Unit} {f : List PStmt → P β}
     {Gb G : Prop → Prop} {Sb S : Prop → (List E → Prop) → Prop}
@@ -109,7 +104,7 @@ theorem LaysAt.block {H : Prop} {st : St} {β : Type} {m : P Unit} {f : List PSt
       (f blk) G S) :
     LaysAt Γ fp F ctx slots B H st (inBlock m >>= f) G S :=
   LaysAt.plain fun hpl => LaysAt.step
-    (wp_mono (inBlock_spec hnc hm st hpl) fun _ _ ⟨_, hq, hmn⟩ =>
+    (wp_mono (inBlock_spec hm st hpl) fun _ _ ⟨_, hq, hmn⟩ =>
       ⟨hq, fun hent hF hp => hmn.blockSem hF hp hent⟩) hf
 
 end
@@ -183,9 +178,7 @@ theorem ite_means_noelse {H : Prop} {locs : Std.HashMap V Loc} {sc : Scope} {t :
       (fun hN hg => hnext hp hN hg) hret
   · exact hnext hp (htaken hne hbd hsfp) (hGnz hne)
 
-variable (hnc : ∀ e ∈ ctx.trace.toList, e.isChain = false)
-
-include env hnc in
+include env in
 /-- `if`, its blocks' placement sound. -/
 theorem ite_lays (c : V) (z nz rest : List Stmt) (st : St)
     (ihz : ∀ st₀, LaysAt Γ fp F ctx slots B True st₀ (placeBlock z)
@@ -198,17 +191,17 @@ theorem ite_lays (c : V) (z nz rest : List Stmt) (st : St)
       (Obl C U Γ.L.read (valP Γ.L fp F) (.ite c z nz))
       (StmtS C Γ.L.read (valP Γ.L fp F) (.ite c z nz) rest) := by
   rw [placeStmt]
-  refine LaysAt.callT (flush_spec hnc []) fun _ _ => ?_
+  refine LaysAt.callT (flush_spec []) fun _ _ => ?_
   refine LaysAt.call (cellOf_spec c) fun lc _ => ?_
   refine LaysAt.call (selfFp_spec env.main) fun sfp _ => ?_
   refine LaysAt.call oneCell_spec fun one _ => ?_
   refine LaysAt.callT fresh_spec fun bdest _ => ?_
   refine LaysAt.callT takeHints_spec fun hints _ => ?_
-  refine LaysAt.block hnc ihz fun zeroBlk _ => ?_
+  refine LaysAt.block ihz fun zeroBlk _ => ?_
   refine LaysAt.peek_bind ?_
   split
   · refine LaysAt.callT fresh_spec fun edest _ => ?_
-    refine LaysAt.block hnc ihnz fun nonzero _ => ?_
+    refine LaysAt.block ihnz fun nonzero _ => ?_
     refine LaysAt.callT (expect_spec _ _) fun _ _ => ?_
     exact LaysAt.push (ite_means_else env fun h =>
       ⟨h.1.1.1.1.2, h.1.1.1.2, h.1.1.2, h.1.2, h.2⟩)
@@ -423,17 +416,14 @@ theorem chain_means {H : Prop} {locs : Std.HashMap V Loc} {sc : Scope} {t : Tabl
 end
 
 theorem Quiet.of_eqv {st st' : St} (h : Eqv st st') : Quiet st st' :=
-  ⟨h.out, h.locs ▸ Sub.refl _, h.scope, TablesLe.of_eq h.tables, h.chainIn, h.chain⟩
+  ⟨h.out, h.locs ▸ Sub.refl _, h.scope, TablesLe.of_eq h.tables, h.chainIn⟩
 
 theorem Quiet.trans {st st' st'' : St} (h₁ : Quiet st st') (h₂ : Quiet st' st'') : Quiet st st'' :=
   ⟨h₂.out.trans h₁.out, h₁.locs.trans h₂.locs, h₂.scope.trans h₁.scope, h₁.tables.trans h₂.tables,
-    h₂.chainIn.trans h₁.chainIn, h₂.chain.trans h₁.chain⟩
+    h₂.chainIn.trans h₁.chainIn⟩
 
 section
 
-variable (hnc : ∀ e ∈ ctx.trace.toList, e.isChain = false)
-
-include hnc in
 /-- **The arms of a `match`**, each a block of its own from one cell on. -/
 theorem placeArms_wp (join one sfp : Cell) (n base : ℕ) : ∀ (arms : List (List Stmt)) (j : ℕ)
     (st : St), (∀ arm ∈ arms, ∀ st₀, LaysAt Γ fp F ctx slots B True st₀ (placeBlock arm)
@@ -444,59 +434,83 @@ theorem placeArms_wp (join one sfp : Cell) (n base : ℕ) : ∀ (arms : List (Li
         PoolOK Γ.L fp st.scope → ArmsSem Γ fp F ctx C U slots B join one sfp n arms blocks j))
   | [], j, st, _, hpl => by
       rw [placeArms]
-      exact wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ⟨⟨hpl.chainIn, hpl.chain⟩,
-        Quiet.of_eqv ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, fun _ _ _ => trivial⟩))
+      exact wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ⟨⟨hpl.chainIn⟩,
+        Quiet.of_eqv ⟨rfl, rfl, rfl, rfl, rfl⟩, fun _ _ _ => trivial⟩))
   | arm :: more, j, st, ih, hpl => by
       rw [placeArms]
       refine wp_bind.mpr (wp_modify.mpr ?_)
       refine wp_bind.mpr fun blk st1 he1 => ?_
-      obtain ⟨hp1, hq1, hm1⟩ := inBlock_spec hnc (ih arm List.mem_cons_self)
-        { st with next := base } ⟨hpl.chainIn, hpl.chain⟩ blk st1 he1
+      obtain ⟨hp1, hq1, hm1⟩ := inBlock_spec (ih arm List.mem_cons_self)
+        { st with next := base } ⟨hpl.chainIn⟩ blk st1 he1
       refine wp_bind.mpr (wp_pure.mpr ?_)
       refine wp_bind.mpr (wp_get.mpr ?_)
       refine wp_bind.mpr fun blocks st2 he2 => ?_
       obtain ⟨hp2, hq2, ha2⟩ := placeArms_wp join one sfp n base more (j + 1) st1
         (fun a ha => ih a (List.mem_cons_of_mem _ ha)) hp1 blocks st2 he2
       refine wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ?_))
-      have hq0 : Quiet st { st with next := base } := Quiet.of_eqv ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
-      refine ⟨⟨hp2.chainIn, hp2.chain⟩, ((hq0.trans hq1).trans hq2).trans
-        (Quiet.of_eqv ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩), fun hent hF hp => ?_⟩
+      have hq0 : Quiet st { st with next := base } := Quiet.of_eqv ⟨rfl, rfl, rfl, rfl, rfl⟩
+      refine ⟨⟨hp2.chainIn⟩, ((hq0.trans hq1).trans hq2).trans
+        (Quiet.of_eqv ⟨rfl, rfl, rfl, rfl, rfl⟩), fun hent hF hp => ?_⟩
       exact ⟨⟨blk, rfl, hm1.blockSem (hq2.locs.trans hF) hp (hent.of_le hq2.tables)⟩,
         ha2 hent hF (hq1.scope ▸ hp)⟩
 
+theorem matchCells_false (x : V) (rest : List Stmt) :
+    matchCells x rest false = (do
+      let lx ← cellOf x
+      let sfp ← selfFp
+      let one ← oneCell
+      pure (lx, none, sfp, one)) := by
+  unfold matchCells
+  simp only [Bool.false_eq_true, ↓reduceIte, pure_bind]
+
+theorem matchCells_true (x x' : V) (arms' : List (List Stmt)) (rest' : List Stmt) :
+    matchCells x (.match_ x' arms' :: rest') true = (do
+      let lx ← cellOf x
+      let lx' ← cellOf x'
+      let sfp ← selfFp
+      let one ← oneCell
+      pure (lx, some (lx', arms'.length), sfp, one)) := by
+  unfold matchCells
+  simp only [↓reduceIte, pure_bind]
+
+/-- A chained `match` is followed by a `match`. -/
+theorem matchCells_true_fail (x : V) (rest : List Stmt)
+    (h : ∀ x' arms' rest', rest ≠ .match_ x' arms' :: rest') (st : St) {Q : _ → St → Prop} :
+    wpP (matchCells x rest true) ctx st Q := by
+  unfold matchCells
+  refine wp_bind.mpr fun lx s1 _ => ?_
+  simp only [↓reduceIte]
+  exact wp_bind.mpr wp_failP
+
 variable (env : PlaceEnv Γ fp ctx C U slots B)
 
-include env hnc in
-/-- `match`, not chained, its arms' placement sound. -/
-theorem match_lays (x : V) (arms : List (List Stmt)) (rest : List Stmt) (st : St)
+include env in
+/-- A `match` that is no stage of a chain, its arms' placement sound. -/
+theorem placeMatch_plain_lays (x : V) (arms : List (List Stmt)) (rest : List Stmt) (st : St)
     (ih : ∀ arm ∈ arms, ∀ st₀, LaysAt Γ fp F ctx slots B True st₀ (placeBlock arm)
       (OblList C U Γ.L.read (valP Γ.L fp F) arm)
       (fun next kret => Stmt.HoldsList C Γ.L.read (valP Γ.L fp F) arm next kret)) :
-    LaysAt Γ fp F ctx slots B True st (placeStmt (.match_ x arms) rest)
+    LaysAt Γ fp F ctx slots B True st (placeMatch x arms.length rest none false fun base exit =>
+        placeArms arms 0 arms.length base exit)
       (Obl C U Γ.L.read (valP Γ.L fp F) (.match_ x arms))
       (StmtS C Γ.L.read (valP Γ.L fp F) (.match_ x arms) rest) := by
-  rw [placeStmt]
-  refine LaysAt.callT (flush_spec hnc []) fun _ st₁ => ?_
-  refine LaysAt.plain fun hpl => ?_
-  refine LaysAt.get_bind ?_
-  simp only [hpl.chainIn, hpl.chain, Bool.false_eq_true, ↓reduceIte, pure_bind]
-  refine LaysAt.step (R := fun _ => True) (wp_set.mpr
-    ⟨Quiet.of_eqv ⟨rfl, rfl, rfl, rfl, hpl.chainIn.symm, hpl.chain.symm⟩,
-      fun _ _ _ => trivial⟩) fun _ _ => ?_
+  unfold placeMatch
+  rw [matchCells_false]
+  simp only [bind_assoc, pure_bind]
   refine LaysAt.call (cellOf_spec x) fun lx _ => ?_
   refine LaysAt.call (selfFp_spec env.main) fun sfp _ => ?_
   refine LaysAt.call oneCell_spec fun one _ => ?_
   refine LaysAt.callT fresh_spec fun join _ => ?_
   refine LaysAt.callT takeHints_spec fun hints st₂ => ?_
   refine LaysAt.step (R := fun _ => True) (wp_modifyGet.mpr
-    ⟨⟨rfl, Sub.refl _, rfl, ⟨fun _ h => h⟩, rfl, rfl⟩, fun _ _ _ => trivial⟩)
+    ⟨⟨rfl, Sub.refl _, rfl, ⟨fun _ h => h⟩, rfl⟩, fun _ _ _ => trivial⟩)
     fun first _ => ?_
   refine LaysAt.callT fresh_spec fun entry st₃ => ?_
   refine LaysAt.get_bind ?_
   refine LaysAt.plain fun hpl' => ?_
   refine LaysAt.step (R := fun blocks => ArmsSem Γ fp F ctx C U slots B join one sfp arms.length
       arms blocks 0)
-    (wp_mono (placeArms_wp hnc join one sfp arms.length st₃.next arms 0 st₃ ih hpl')
+    (wp_mono (placeArms_wp join one sfp arms.length st₃.next arms 0 st₃ ih hpl')
       fun _ _ ⟨_, hq, ha⟩ => ⟨hq, ha⟩) fun blocks _ => ?_
   refine LaysAt.callT (expect_spec _ _) fun _ _ => ?_
   refine fun hpl'' => wp_bind.mpr (wp_mono (LaysAt.push (chain_means env fun h =>

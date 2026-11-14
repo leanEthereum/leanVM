@@ -16,8 +16,7 @@ The trace is advice: nothing here gives a fact a core relation is proved from. R
 (`flushN`, `onAlloc`, `expect`) places values, each once, and may make the product of an address
 the next statement wants in a cell (`materialize`, whose instructions keep the pools true); a
 hint only queues what the prover is told. So each is a walk of straight-line instructions with
-no guarantee (`Spec … True`), whatever the trace holds. The one thing asked of a trace is here:
-without a `chain` event (`NoChain`), no `match` is marked as chained.
+no guarantee (`Spec … True`), whatever the trace holds.
 -/
 
 namespace LeanVM.Guest.Backend
@@ -78,48 +77,35 @@ theorem onAlloc_spec (v : V) (len : ℕ) (kind : Kind) (up : List Stmt) :
   have h1 := @spongeInPlace_spec κ Γ fp F ctx
   straight
 
-theorem mem_of_getElem? {a : Array Event} {i : ℕ} {e : Event} (h : a[i]? = some e) :
-    e ∈ a.toList := by
-  rw [← Array.getElem?_toList] at h
-  exact List.mem_of_getElem? h
-
 theorem discard_spec {m : P α} {Q : α → Prop} (hm : Spec Γ fp F ctx m Q) :
     Spec Γ fp F ctx (discard m) (fun _ => True) := by
   intro st
   rw [Functor.discard, map_const, Function.comp_apply, map_eq_pure_bind]
   exact SpecAt.bindTT (SpecAt.lastT hm) fun _ _ => SpecAt.pure fun _ _ _ => trivial
 
-/-- **Reading the trace up to the next statement**: values are placed, an address wanted in a
-cell is made, and with no `chain` event no `match` is marked chained. -/
-theorem flushN_spec (hnc : ∀ e ∈ ctx.trace.toList, e.isChain = false) (up : List Stmt) :
+/-- **Reading the trace up to the next statement**: values are placed and an address wanted in
+a cell is made, whatever the trace holds. -/
+theorem flushN_spec (up : List Stmt) :
     ∀ fuel, Spec Γ fp F ctx (flushN up fuel) (fun _ => True)
   | 0 => fun st => SpecAt.pure fun _ _ _ => trivial
   | fuel + 1 => fun st => by
       rw [flushN]
       have h1 := @onAlloc_spec κ Γ fp F ctx
-      have h2 := flushN_spec hnc up fuel
+      have h2 := flushN_spec up fuel
       have h3 : ∀ n e, Spec Γ fp F ctx (discard (materialize n e)) (fun _ => True) :=
         fun n e => discard_spec (materialize_spec n e)
       refine SpecAt.peek_bind ?_
-      split
-      · straight
-      · straight
-      · straight
-      · next heq => exact absurd (hnc _ (mem_of_getElem? heq)) (by simp [Event.isChain])
-      · straight
-      · straight
+      split <;> straight
 
-theorem flush_spec (hnc : ∀ e ∈ ctx.trace.toList, e.isChain = false) (up : List Stmt) :
-    Spec Γ fp F ctx (flush up) (fun _ => True) := by
+theorem flush_spec (up : List Stmt) : Spec Γ fp F ctx (flush up) (fun _ => True) := by
   intro st
   unfold flush
-  exact SpecAt.read_bind (SpecAt.lastT (flushN_spec hnc up _))
+  exact SpecAt.read_bind (SpecAt.lastT (flushN_spec up _))
 
-theorem beginStmt_spec (hnc : ∀ e ∈ ctx.trace.toList, e.isChain = false) (up : List Stmt) :
-    Spec Γ fp F ctx (beginStmt up) (fun _ => True) := by
+theorem beginStmt_spec (up : List Stmt) : Spec Γ fp F ctx (beginStmt up) (fun _ => True) := by
   intro st
   unfold beginStmt
-  exact SpecAt.bindTT (SpecAt.lastT (flush_spec hnc up)) fun _ _ => SpecAt.lastT (expect_spec _ _)
+  exact SpecAt.bindTT (SpecAt.lastT (flush_spec up)) fun _ _ => SpecAt.lastT (expect_spec _ _)
 
 /-! ## Hints -/
 

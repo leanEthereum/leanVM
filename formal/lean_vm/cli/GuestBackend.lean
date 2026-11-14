@@ -291,17 +291,17 @@ def hasSelList : List Stmt → Bool
   | s :: ss => hasSel s || hasSelList ss
 end
 
-/-- What the back end's correctness theorem covers of the guest: the functions whose trace has
-no `chain` event (`Backend.NoChain`, the hypothesis of `fn_sound`), and those with no `match`
-and no `dispatch`, which have no selector obligation. -/
+/-- What the back end's correctness theorem covers of the guest: every function, since
+`fn_sound` asks nothing of the trace (`Backend.placeSound`); those with no `match` and no
+`dispatch` have no selector obligation. -/
 def coverage : IO UInt32 := do
   let P ← guestCore
   let chained := P.filter fun tf => tf.trace.any fun e => match e with
     | .chain => true
     | _ => false
   let sel := P.filter fun tf => hasSelList tf.core.body
-  IO.println s!"functions: {P.length}"
-  IO.println s!"with a chain of matches (not covered by fn_sound): {chained.length}"
+  IO.println s!"functions: {P.length}, none outside the theorem (fn_sound; main by program_sound)"
+  IO.println s!"with a chain of matches: {chained.length}"
   IO.println s!"  {chained.map (·.core.name)}"
   IO.println s!"with a match or a dispatch (a selector obligation): {sel.length}"
   IO.println s!"with neither (fn_sound_plain, no obligation but the callees'): {P.length - sel.length}"

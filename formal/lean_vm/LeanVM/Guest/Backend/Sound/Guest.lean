@@ -51,19 +51,22 @@ theorem guestWorld_prog {κ : ℕ} {traced : List TracedFn} {fns : List Lowered}
   simp only [World.prog, Assembled.program, guestWorld, h.2.2.1]
   rfl
 
-/-- **(d) At the guest**: given `GuestCompiles`, every function's placement sound and every
-function's obligations holding, a halting run of the statement's `guestProgram` from `(g^0, 1)`
-makes `main`'s core body hold at frame `1`. -/
+/-- **(d) At the guest**: given `GuestCompiles` and every function's obligations holding, a
+halting run of the statement's `guestProgram` from `(g^0, 1)` makes `main`'s core body hold at
+frame `1`. -/
 theorem guest_program_sound {κ : ℕ} {traced : List TracedFn} {fns : List Lowered}
     {slots : Array KVal} (h : GuestCompiles traced fns slots) (L : MemoryImage κ) (hκ : κ < 64)
     (U : String → List E → Prop)
-    (hpl : ∀ tf ∈ traced, (guestWorld traced fns slots L U).PlacedSoundly tf)
     (hobl : ∀ tf ∈ traced, (guestWorld traced fns slots L U).Obligations tf)
     (hU : ∀ tf ∈ traced, tf.core.name = "main" → U "main" (frameWords L 1 2 (sigOf tf).1))
     {k : ℕ} (hs : Safe guestProgram L k ⟨addressOfIndex 0, 1⟩) :
     (guestWorld traced fns slots L U).MainHolds :=
-  program_sound_of (W := guestWorld traced fns slots L U) ⟨h.2.1, h.2.2.2⟩ hκ hpl hobl hU
+  program_sound (W := guestWorld traced fns slots L U) ⟨h.2.1, h.2.2.2⟩ hκ hobl hU
     (guestWorld_prog h L U ▸ hs)
 
 end
 end LeanVM.Guest.Backend
+
+/-- info: 'LeanVM.Guest.Backend.guest_program_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Backend.guest_program_sound
