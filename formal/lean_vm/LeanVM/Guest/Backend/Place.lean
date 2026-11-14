@@ -118,6 +118,8 @@ structure Ctx where
   isMain : Bool
   /-- Its argument cells (`Abi::arg_cells`). -/
   argCells : Nat
+  /-- Its return cells. -/
+  retCells : Nat
   loops : Loops
   trace : Array Event
 
@@ -190,11 +192,14 @@ def emitOp (o : LOp) : P Unit := do
   let hints ← takeHints
   push (.op hints o)
 
+/-- Give a value its place. A value is placed once: its place never changes. -/
+def bindTo (v : V) (l : Loc) : P Unit := do
+  if (← get).locs.contains v then failP "a value placed twice"
+  modify fun s => { s with locs := s.locs.insert v l }
+
 /-- Place the `len` values of a run in the cells from `base`. -/
 def bindRun (v : V) (len : Nat) (base : Cell) : P Unit :=
-  modify fun s => { s with
-    locs := (List.range len).foldl (init := s.locs) fun m k =>
-      m.insert ⟨v.path, v.tag, k⟩ (.cell (base + k)) }
+  (List.range len).forM fun k => bindTo ⟨v.path, v.tag, k⟩ (.cell (base + k))
 
 /-- Place a run in the next free cells (`alloc_stack`). -/
 def takeRun (v : V) (len : Nat) : P Unit := do
@@ -208,10 +213,6 @@ def cellAt (v : V) : P Cell := do
   | some (.cell n) => pure n
   | _ => failP "a value with no cell"
 
-/-- Give a value its place. -/
-def bindTo (v : V) (l : Loc) : P Unit :=
-  modify fun s => { s with locs := s.locs.insert v l }
-
 /-- Whether the statement being placed makes this value (`Kind.pooled`, `Kind.addr`). -/
 def isLazy (v : V) (kind : Kind) : P Bool :=
   return (← get).lazy == some (v, kind)
@@ -220,6 +221,10 @@ def isLazy (v : V) (kind : Kind) : P Bool :=
 
 /-- The sorted pair of a commutative operation's operands. -/
 def sorted (a b : Cell) : Nat × Nat := (min a b, max a b)
+
+/-- Whether the cells are the consecutive ones from `base`. -/
+def consecutiveFrom (base : Cell) (cs : List Cell) : Bool :=
+  cs.zipIdx.all fun (c, k) => c == base + k
 
 /-- A cell holding the constant of these limbs (`const_cell`). -/
 def constCell (k : Nat × Nat) : P Cell := do
@@ -267,6 +272,11 @@ def selfFp : P Cell := do
       modify fun s => { s with scope.selfFp := some o }
       pure o
 
+/-- Whether cell `n` is the one the scope reads this frame's pointer from (`selfFp`). -/
+def isSelfFp (n : Cell) : P Bool := do
+  if (← read).isMain then return (← get).scope.consts.get? (1, 0) == some n
+  return (← get).scope.selfFp == some n
+
 /-- The limbs of `g^e`. -/
 def gpowLimbs (e : Nat) : Nat × Nat := ((gpowK e).toBitVec.toNat, 0)
 
@@ -278,6 +288,7 @@ product made before, or a product from `c` or the nearest shifted pointer below 
 a constant already set. -/
 def materialize (c : Cell) (exp : Nat) : P Cell := do
   if exp = 0 then return c
+  if 2 ^ 128 ≤ exp then failP "a shift past the compiler's exponents"
   let sc := (← get).scope
   let mats := (sc.mats.get? c).getD []
   if let some (_, o) := mats.find? (·.1 == exp) then return o
@@ -535,7 +546,10 @@ def placeAtom (a : Atom) : P Unit := do
         emitOp (.mul la lb (← cellAt d))
   | .copy d s =>
       let ls ← cellOf s
-      if (← get).aliasRun == some (d.path, d.tag) then return
+      if (← get).aliasRun == some (d.path, d.tag) then
+        -- The copy is dropped: both values are one cell.
+        if (← cellAt d) != ls then failP "a dropped copy between two cells"
+        return
       let one ← oneCell
       emitOp (.mul ls one (← cellAt d))
   | .load d p off =>
@@ -574,23 +588,34 @@ def placeAtom (a : Atom) : P Unit := do
       emitOp (.jump zeroAt la lb)
   | .keccak ins outs inOdd outOdd =>
       let cs ← ins.mapM cellOf
-      let some out := outs.head? | failP "a KECCAK with no output"
-      let outCells : KeccakOutputCells :=
-        if outs.length == 1 then .one else if outs.length == 2 then .two else .all
+      let los ← outs.mapM cellAt
+      let some out := los.head? | failP "a KECCAK with no output"
       let c := fun (i : Nat) => cs.getD i 0
-      emitOp (.keccak (c 0) (c 1) (c 2) (c 3) (c 4) (c 8) (c 9) (← cellAt out) inOdd outOdd outCells)
+      -- The instruction reads the runs from `tail` and `cap` and writes the run from `out`.
+      if !(cs.length == 13 && consecutiveFrom (c 4) ((cs.drop 4).take 4) &&
+          consecutiveFrom (c 9) ((cs.drop 9).take 4) && consecutiveFrom out los &&
+          (los.length == 1 || los.length == 2 || los.length == 13)) then
+        failP "a KECCAK whose cells are not its runs"
+      let outCells : KeccakOutputCells :=
+        if los.length == 1 then .one else if los.length == 2 then .two else .all
+      emitOp (.keccak (c 0) (c 1) (c 2) (c 3) (c 4) (c 8) (c 9) out inOdd outOdd outCells)
   | .frameAddr p run =>
       if ← isLazy p .addr then
         -- `addr(run)`: the address stays symbolic (`stack_addr`).
         let some r0 := run.head? | failP "addr of no cell"
         let base ← cellAt r0
+        if !consecutiveFrom base (← run.mapM cellAt) then failP "addr of cells that are no run"
         bindTo p (.shifted (← selfFp) base)
       else
         -- An `addr` pointer shifted, as a value (`materialize`).
         match (← get).shift with
         | some (c, exp) =>
             match (← get).locs[c]? with
-            | some (.shifted n e) => bindTo p (.cell (← materialize n (e + exp)))
+            | some (.shifted n e) =>
+                if !(← isSelfFp n) then failP "a shifted pointer that is no frame address"
+                if !consecutiveFrom (e + exp) (← run.mapM cellAt) then
+                  failP "addr of cells that are no run"
+                bindTo p (.cell (← materialize n (e + exp)))
             | _ => failP "a shifted pointer that is no address"
         | none => failP "an address with no pointer"
   | .hint h => placeHint h
@@ -709,6 +734,7 @@ def placeStmt : Stmt → List Stmt → P Unit
           expect isEmit "a branch"
           push (.ite hints lc bdest sfp zeroBlk true edest one nonzero)
       | _ =>
+          if !nz.isEmpty then failP "an else block the trace does not enter"
           expect isEmit "a branch"
           push (.ite hints lc bdest sfp zeroBlk false 0 0 [])
   | .match_ x arms, rest => do
@@ -763,6 +789,12 @@ def placeStmt : Stmt → List Stmt → P Unit
       let las ← args.mapM cellOf
       let ctx ← read
       let self := f == ctx.name
+      if self then
+        -- The callee returns for this frame: nothing but the `return` may follow.
+        match rest with
+        | [.ret []] => pure ()
+        | _ => failP "a loop's closing call that does not end its function"
+        if ctx.retCells != 0 then failP "a loop helper that returns cells"
       if self && (ctx.loops[f]?).any (·.registered) then
         -- The next frame of the run (`lower_call`, the loop arm).
         let ownFp ← selfFp
@@ -777,6 +809,9 @@ def placeStmt : Stmt → List Stmt → P Unit
       else placeCall f args las [] (some lc) self
   | .dispatch x fs args rets, rest => do
       beginStmt (.dispatch x fs args rets :: rest)
+      let loops := (← read).loops
+      if fs.any (fun f => (loops[f]?).any (·.registered)) then
+        failP "a dispatch into a registered loop"
       let las ← args.mapM cellOf
       let lrs ← rets.mapM cellAt
       let lx ← cellOf x
@@ -789,6 +824,9 @@ def placeStmt : Stmt → List Stmt → P Unit
       push (.dispatch hints fs nfp joinCell lx entry one first las lrs)
   | .ret vs, rest => do
       beginStmt (.ret vs :: rest)
+      let ctx ← read
+      if (← vs.mapM cellAt) != (List.range ctx.retCells).map (2 + ctx.argCells + ·) then
+        failP "a return of cells that are not the return area"
       let one ← oneCell
       if (← read).isMain then
         let dest ← fresh
@@ -835,14 +873,19 @@ def placeFn (loops : Loops) (tables : Tables) (tf : TracedFn) :
   let f := tf.core
   let loopFrame := (loops[f.name]?).any (·.registered)
   let argCells := f.params.length
-  let abiEnd := 2 + argCells + (tf.src.returnShapes.map Source.Shape.cells).sum
-  let locs : Std.HashMap V Loc := f.params.zipIdx.foldl (init := {}) fun m (v, k) =>
-    m.insert v (.cell (2 + k))
+  let retCells := (tf.src.returnShapes.map Source.Shape.cells).sum
+  let abiEnd := 2 + argCells + retCells
+  if loopFrame && retCells != 0 then throw s!"in {f.name}: a loop helper that returns cells"
+  match f.body.getLast? with
+  | some (.ret _) => pure ()
+  | _ => throw s!"in {f.name}: a body that does not end in a return"
   let st : St := {
-    next := abiEnd + (if loopFrame then 1 else 0), locs, tables,
+    next := abiEnd + (if loopFrame then 1 else 0), tables,
     scope := { selfFp := if loopFrame then some abiEnd else none } }
-  let ctx : Ctx := { name := f.name, isMain := f.name == "main", argCells, loops, trace := tf.trace }
+  let ctx : Ctx := {
+    name := f.name, isMain := f.name == "main", argCells, retCells, loops, trace := tf.trace }
   let walk : P Unit := do
+    f.params.zipIdx.forM fun (v, k) => bindTo v (.cell (2 + k))
     placeBlock f.body
     flush []
     if (← get).pos != tf.trace.size then failP "the trace goes on past the function"
