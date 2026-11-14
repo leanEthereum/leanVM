@@ -88,7 +88,7 @@ def hCover : List E :=
 /-! ## The oracle and the buffers -/
 
 /-- A DA claim's four cells: its root's, then its challenge's rate cells with the tag `0`
-(`fs_pack(z_cells, 0, z, 0)`, `lean_ethereum.py:4300`). -/
+(`fs_pack(z_cells, 0, z, 0)`, `lean_ethereum.py`). -/
 def daCells (c : DaClaim) : List E := B1.Digest.digestCells c.daRoot ++ [c.membershipChallenge]
 
 /-- The own DA digest: the checked claim's, or zeros. -/
@@ -123,7 +123,7 @@ def hOwn : List (List E) :=
     (List.range 256).map fun v => word v 0,
     (w.children.map (·.statement.claims.daDigest) ++ [hOwnDa w]).flatMap B1.Digest.digestCells,
     w.children.flatMap (fun c => B1.Digest.digestCells (statementDigest seed c.statement)),
-    w.children.flatMap (fun c => DeferredClaim.cells c.freshClaim),
+    w.children.flatMap (fun c => DeferredBytecodeClaim.cells c.freshClaim),
     w.children.flatMap (fun c => c.statement.deferredClaim.cells),
     (List.range (w.children.length + 1)).map (fun c => gen ^ hW s w c),
     s.deferredClaim.cells]

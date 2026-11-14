@@ -13,12 +13,15 @@ public import LeanVM.Guest.B1.Da.VerifyMath
 public import LeanVM.Guest.B1.Main.LoopsC
 public import LeanVM.Guest.B1.Main.Facts
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # `da_verify`, sound
 
 `da_verify_sound_w`: under a call relation that unfolds at a frame map `Vm` and lies below
-`coreProgram.Rel`, with the exponent table, a run of `da_verify` returns the cells of a root and
+`coreProgram.Rel`, a run of `da_verify` returns the cells of a root and
 a challenge `z` that the witness `dvWit σ Vm` opens (`opens_of`); with
 `coreProgram.Rel` and a frame map by choice, `da_verify_holds : da_verify_sound_Spec`. The
 witness's rows are the symbols of the cell checks' frames (`colSyms`, at the calls
@@ -142,21 +145,21 @@ theorem l20_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «da_verify
 
 /-- Column `h`'s call's words. -/
 def dvColArgs (σ : Val) (h : ℕ) : List E :=
-  [gen ^ h, σ (.n 1), σ (.n 22), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9)]
+  [gen ^ h, σ (.n 0), σ (.n 19), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6)]
 
 /-- Cell `(i, h)`'s symbols: its cell check's. -/
-def dvSyms (σ : Val) (Vm : FrameMap) (i h : ℕ) : List K := colSyms Vm (dvColArgs σ h) i
+def dvSyms (σ : Val) (Vm : FrameMap) (i h : ℕ) : List E := colSyms Vm (dvColArgs σ h) i
 
-/-- The number of rows: the shape's count, at most `LeanDa.maxRows = 1024` (`da_verify` asserts
-it, so on its runs the clamp is the count; it bounds the witness on every memory). -/
-noncomputable def dvRows (σ : Val) : ℕ := min (gLog (σ (.n 1))) 1024
+/-- The number of rows: the hinted count, at most `DA_MAX_ROWS` (`da_padding` asserts it, so on
+its runs the clamp is the count; it bounds the witness on every memory). -/
+noncomputable def dvRows (σ : Val) : ℕ := min (gLog (σ (.n 0))) (guest_const% DA_MAX_ROWS)
 
 /-- The symbols, padded outside the matrix. -/
-noncomputable def dvSymsP (σ : Val) (Vm : FrameMap) (i h : ℕ) : List K :=
-  if i < dvRows σ ∧ h < 128 then dvSyms σ Vm i h else List.replicate 256 0
+noncomputable def dvSymsP (σ : Val) (Vm : FrameMap) (i h : ℕ) : List E :=
+  if i < dvRows σ ∧ h < 128 then dvSyms σ Vm i h else List.replicate 128 0
 
-/-- **`da_verify`'s witness**: the rows of the cells' symbols, as many as the shape's count (at
-most `1024`, `dvRows`). -/
+/-- **`da_verify`'s witness**: the rows of the cells' symbols, as many as the hinted count (at
+most `DA_MAX_ROWS`, `dvRows`). -/
 noncomputable def dvWit (σ : Val) (Vm : FrameMap) : LeanVM.Da.MatrixWitness :=
   ⟨daRows (dvRows σ) (dvSymsP σ Vm)⟩
 
@@ -222,52 +225,40 @@ theorem l18_stepW (hVm : UnfoldsV rd C Vm) {x : E} {ps : List E} (h : C name% «
 /-! ## The body -/
 
 /-- **`da_verify`, soundly, its witness named**: under a call relation that unfolds at `Vm` and
-lies below `coreProgram.Rel`, on a memory image with the exponent table at its argument, the
-returned words are the cells of a root and a challenge `z` that `dvWit σ Vm` opens. -/
+lies below `coreProgram.Rel`, on a memory image, the returned words are the cells of a root and a
+challenge `z` that `dvWit σ Vm` opens. -/
 theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel rd))
-    (hm : MemOk rd) {σ : Val} {gsq : E} {rets : List E} (hpar0 : (fn% «da_verify»).params.map σ =
-        [gsq])
-    (hb : Stmt.HoldsList C rd σ (Fn.body fn% «da_verify») False (fun rs => rs = rets))
-    (hsq0 : SquaresAt rd gsq) :
+    (hm : MemOk rd) {σ : Val} {rets : List E}
+    (hb : Stmt.HoldsList C rd σ (Fn.body fn% «da_verify») False (fun rs => rs = rets)) :
     ∃ (root : Digest) (z : E), (dvWit σ Vm).Opens root z ∧ rets = digestCells root ++ [z] := by
   have hok := dv_ok
   unfold dvOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hparams, hbody⟩, hflat⟩, hcrs⟩, hcv⟩, hg17⟩, hc36⟩, hc18⟩, hm38⟩, hg19⟩,
-    hg20⟩, hdisp⟩, hcp48⟩, hcp49⟩, hcp50⟩ := hok
-  have hσ0 : σ (.n 0) = gsq := by
-    rw [hparams] at hpar0
-    simpa using hpar0
-  have hsq : SquaresAt rd (σ (.n 0)) := by rw [hσ0]; exact hsq0
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, hbody⟩, hflat⟩, hpd⟩, hcv⟩, hg17⟩, hc23⟩, hc18⟩, hg19⟩, hg20⟩, hdl⟩,
+    hcp34⟩, hcp35⟩, hcp36⟩ := hok
   rw [stmtsEqb_sound hbody, holdsList_append] at hb
   obtain ⟨hallC, hret⟩ := holdsList_flat dvP hflat _ _ hb
   have hall : ∀ s ∈ dvP, Stmt.Holds (coreProgram.Rel rd) rd σ s True (fun rs => rs = rets) :=
     fun s hs => holds_mono hle s id (fun _ h => h) (hallC s hs)
   simp only [Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hret
   have hat := atoms_of_flat hall
-  -- the shape
-  have hrs := da_row_shape_holds rd hm _ _ (call_of_flat hall hcrs)
-  simp only [List.map_cons, List.map_nil, MeaningDaRowShape] at hrs
-  obtain ⟨r, L, hr1, hr, hL, h1, h2, hnp, h34⟩ := hrs hsq
-  simp only [List.cons.injEq, and_true] at h34
-  obtain ⟨h3, h4⟩ := h34
-  unfold LeanDa.maxRows at hr
-  have hL2 : 2 ^ L ≤ 1024 := by
-    calc 2 ^ L ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
-      _ = 1024 := by norm_num
-  have hrL : r ≤ 2 ^ L := by
-    rw [hnp, LeanDa.paddedRowCount, LeanDa.logPaddedRowCount]; exact Nat.le_pow_clog (by norm_num) r
+  -- the blob count and the padding rows'
+  have hpad := da_padding_holds rd hm _ _ (call_of_flat hall hpd)
+  simp only [List.map_cons, List.map_nil, MeaningDaPadding] at hpad
+  obtain ⟨r, hr1, hr, h1, h4⟩ := hpad
+  simp only [List.cons.injEq, and_true] at h4
+  rw [maxRows_eq] at hr h4
   have hr' : r < ordG := ordG_of (by omega)
-  have hg' : 2 ^ L - r < ordG := ordG_of (by omega)
+  have hg' : guest_const% DA_MAX_ROWS - r < ordG := ordG_of (by omega)
   -- the challenge
-  set z := σ (.n 5)
+  set z := σ (.n 2)
   -- the dual codeword's builders
   have hvec := da_vector_holds rd _ _ (call_of_flat hall hcv)
   simp only [List.map_cons, List.map_nil] at hvec
   -- the regions
-  have L17 : ∀ i < r, LoadHolds rd (σ (.n 22) * gen ^ i) 0 (σ (.n 21) * (gen ^ i) ^ 641) ∧
-      LoadHolds rd (σ (.n 21) * (gen ^ i) ^ 641) 512 0 :=
-    loop_sound (f := name% «da_verify_loop0») (ps := [σ (.n 1), σ (.n 21), σ (.n 22)]) hr' h1
+  have L17 : ∀ i < r, LoadHolds rd (σ (.n 19) * gen ^ i) 0 (σ (.n 18) * (gen ^ i) ^ 641) ∧
+      LoadHolds rd (σ (.n 18) * (gen ^ i) ^ 641) 512 0 :=
+    loop_sound (f := name% «da_verify_loop0») (ps := [σ (.n 0), σ (.n 18), σ (.n 19)]) hr' h1
       (fun y hy => by
         obtain ⟨k1, k2⟩ := l17_step hy
         exact ⟨k1 _ _ _ rfl, k2⟩)
@@ -275,23 +266,23 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
   -- the columns
   have c18 := call_of_flat hallC hc18
   simp only [List.map_cons, List.map_nil] at c18
-  rw [const_sound hc36 hat, word_one, ← pow_zero gen] at c18
+  rw [const_sound hc23 hat, word_one, ← pow_zero gen] at c18
   have Cc : ∀ h < 128, C "da_verify_column" (dvColArgs σ h) [] := fun h hh =>
     loop_fromC (C := C) (f := name% «da_verify_loop1») (N := gen ^ 128) (m := 128) (a := 0)
         (ordG_of (by omega))
       rfl (fun x hx => by
         obtain ⟨k1, k2⟩ := l18_stepW hVm hx
         exact ⟨k1, by rw [← word_g128]; exact k2⟩) c18 h (Nat.zero_le _) hh
-  have hcargs : ∀ h, dvColArgs σ h = [gen ^ h, gen ^ r, σ (.n 22), σ (.n 6), σ (.n 7),
-      σ (.n 8), σ (.n 9)] := fun h => by rw [dvColArgs, h1]
-  have colF : ∀ h i, ∃ a : E, h < 128 → i < r → (dvSyms σ Vm i h).length = 256 ∧
-      LoadHolds rd (σ (.n 21) * (gen ^ i) ^ 641) (2 * h)
-        (digestHalves (keccak256 ((dvSyms σ Vm i h).flatMap K.toBytes))).1 ∧
-      LoadHolds rd (σ (.n 21) * (gen ^ i) ^ 641) (2 * h + 1)
-        (digestHalves (keccak256 ((dvSyms σ Vm i h).flatMap K.toBytes))).2 ∧
-      LoadHolds rd (σ (.n 21) * (gen ^ i) ^ 641) (h + 512) a ∧
-      LoadHolds rd (σ (.n 21) * (gen ^ i) ^ 641) (h + 513)
-        (a + ∑ e ∈ Finset.range 256, dualAt z (256 * h + e) * ofK ((dvSyms σ Vm i h).getD e 0)) := by
+  have hcargs : ∀ h, dvColArgs σ h = [gen ^ h, gen ^ r, σ (.n 19), σ (.n 3), σ (.n 4),
+      σ (.n 5), σ (.n 6)] := fun h => by rw [dvColArgs, h1]
+  have colF : ∀ h i, ∃ a : E, h < 128 → i < r → (dvSyms σ Vm i h).length = 128 ∧
+      LoadHolds rd (σ (.n 18) * (gen ^ i) ^ 641) (2 * h)
+        (digestHalves (keccak256 ((dvSyms σ Vm i h).flatMap E.toBytes))).1 ∧
+      LoadHolds rd (σ (.n 18) * (gen ^ i) ^ 641) (2 * h + 1)
+        (digestHalves (keccak256 ((dvSyms σ Vm i h).flatMap E.toBytes))).2 ∧
+      LoadHolds rd (σ (.n 18) * (gen ^ i) ^ 641) (h + 512) a ∧
+      LoadHolds rd (σ (.n 18) * (gen ^ i) ^ 641) (h + 513)
+        (a + ∑ e ∈ Finset.range 128, dualAt z (128 * h + e) * (dvSyms σ Vm i h).getD e 0) := by
     intro h i
     by_cases hhi : h < 128 ∧ i < r
     · have hc := Cc h hhi.1
@@ -300,8 +291,8 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
         col_stepW hVm hle col_ok l21_ok l21_idx hhi.1 hr' hvec hc i hhi.2
       have e := loadHolds_unique hb0 (L17 i hhi.2).1
       rw [e] at k0 k1 k2 k3
-      have hs : dvSyms σ Vm i h = colSyms Vm [gen ^ h, gen ^ r, σ (.n 22), σ (.n 6), σ (.n 7),
-          σ (.n 8), σ (.n 9)] i := by rw [dvSyms, hcargs]
+      have hs : dvSyms σ Vm i h = colSyms Vm [gen ^ h, gen ^ r, σ (.n 19), σ (.n 3), σ (.n 4),
+          σ (.n 5), σ (.n 6)] i := by rw [dvSyms, hcargs]
       rw [hs]
       exact ⟨a, fun _ _ => ⟨hl, k0, k1, k2, k3⟩⟩
     · exact ⟨0, fun a b => absurd ⟨a, b⟩ hhi⟩
@@ -309,30 +300,30 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
   -- the witness's symbols, padded outside the run's ranges
   have hrows : dvRows σ = r := by
     rw [dvRows, h1, gLog_gen_pow (by omega)]; omega
-  let symsP : ℕ → ℕ → List K := dvSymsP σ Vm
+  let symsP : ℕ → ℕ → List E := dvSymsP σ Vm
   have hsP : ∀ i h, i < r → h < 128 → symsP i h = dvSyms σ Vm i h := fun i h hi hh => by
     simp only [symsP, dvSymsP, hrows, hi, hh, and_self, ite_true]
-  have hsL : ∀ i h, (symsP i h).length = 256 := fun i h => by
+  have hsL : ∀ i h, (symsP i h).length = 128 := fun i h => by
     by_cases hc : i < r ∧ h < 128
     · rw [hsP i h hc.1 hc.2]; exact (hcell h i hc.2 hc.1).1
     · simp only [symsP, dvSymsP, hrows, hc, ite_false, List.length_replicate]
   -- the blobs' sums and roots
-  have L19 : ∀ i < r, ∃ base c0 c1, LoadHolds rd (σ (.n 22) * gen ^ i) 0 base ∧
+  have L19 : ∀ i < r, ∃ base c0 c1, LoadHolds rd (σ (.n 19) * gen ^ i) 0 base ∧
       LoadHolds rd base 640 0 ∧ coreProgram.Rel rd "da_levels__L128_L7" [base] [c0, c1] ∧
-      LoadHolds rd (σ (.n 29) * (gen ^ i) ^ 2) 0 c0 ∧ LoadHolds rd (σ (.n 29) * (gen ^ i) ^ 2) 1 c1 :=
-    loop_sound (f := name% «da_verify_loop2») (ps := [σ (.n 1), σ (.n 22), σ (.n 29)]) hr' h1
+      LoadHolds rd (σ (.n 25) * (gen ^ i) ^ 2) 0 c0 ∧ LoadHolds rd (σ (.n 25) * (gen ^ i) ^ 2) 1 c1 :=
+    loop_sound (f := name% «da_verify_loop2») (ps := [σ (.n 0), σ (.n 19), σ (.n 25)]) hr' h1
       (fun y hy => by
         obtain ⟨k1, k2⟩ := l19_step hy
         exact ⟨k1 _ _ _ rfl, k2⟩)
       (fun hne => by simpa using guardK_sound hg19 hall hne)
-  have hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
-      dualAt z (256 * h + e) * ofK ((symsP i h).getD e 0) = 0 := by
+  have hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
+      dualAt z (128 * h + e) * (symsP i h).getD e 0 = 0 := by
     intro i hi
     obtain ⟨base, c0, c1, hb0, h640, -, -, -⟩ := L19 i hi
     rw [loadHolds_unique hb0 (L17 i hi).1] at h640
-    have run : ∀ h ≤ 128, LoadHolds rd (σ (.n 21) * (gen ^ i) ^ 641) (h + 512)
-        (∑ h' ∈ Finset.range h, ∑ e ∈ Finset.range 256,
-          dualAt z (256 * h' + e) * ofK ((symsP i h').getD e 0)) := by
+    have run : ∀ h ≤ 128, LoadHolds rd (σ (.n 18) * (gen ^ i) ^ 641) (h + 512)
+        (∑ h' ∈ Finset.range h, ∑ e ∈ Finset.range 128,
+          dualAt z (128 * h' + e) * (symsP i h').getD e 0) := by
       intro h
       induction h with
       | zero => intro _; simpa using (L17 i hi).2
@@ -343,12 +334,12 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
         rw [Finset.sum_range_succ, show h + 1 + 512 = h + 513 by ring]
         exact k3
     exact loadHolds_unique (run 128 le_rfl) h640
-  have hblob : ∀ i < r, LoadHolds rd (σ (.n 29)) (2 * i) (digestHalves (blobLeaf r symsP i)).1 ∧
-      LoadHolds rd (σ (.n 29)) (2 * i + 1) (digestHalves (blobLeaf r symsP i)).2 := by
+  have hblob : ∀ i < r, LoadHolds rd (σ (.n 25)) (2 * i) (digestHalves (blobLeaf r symsP i)).1 ∧
+      LoadHolds rd (σ (.n 25)) (2 * i + 1) (digestHalves (blobLeaf r symsP i)).2 := by
     intro i hi
     obtain ⟨base, c0, c1, hb0, -, hlv, k0, k1⟩ := L19 i hi
     rw [loadHolds_unique hb0 (L17 i hi).1] at hlv
-    have hroot := levels_root_of (k := 7) (L := 7) (g := cellD symsP i) (by norm_num) (by norm_num)
+    have hroot := levels_root_of (k := 7) (L := 7) (g := cellD symsP i) (Or.inr rfl) (by norm_num)
       (gen_pow_eq_ofK 7).symm hlv fun h hh => by
         obtain ⟨-, k0, k1, -, -⟩ := hcell h i (by simpa using hh) hi
         simp only [cellD, hsP i h hi (by simpa using hh)]
@@ -359,30 +350,29 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
     rw [← hroot.1, ← hroot.2]
     exact ⟨by simpa using k0, k1⟩
   -- the padding blobs
-  have L20 : ∀ d < 2 ^ L - r, LoadHolds rd (σ (.n 29) * σ (.n 1) ^ 2 * (gen ^ d) ^ 2) 0
+  have L20 : ∀ d < guest_const% DA_MAX_ROWS - r, LoadHolds rd (σ (.n 25) * σ (.n 0) ^ 2 * (gen ^ d) ^ 2) 0
         (digestHalves daPadBlobDigest).1 ∧
-      LoadHolds rd (σ (.n 29) * σ (.n 1) ^ 2 * (gen ^ d) ^ 2) 1 (digestHalves daPadBlobDigest).2 :=
-    loop_sound (f := name% «da_verify_loop3») (ps := [σ (.n 4), σ (.n 29), σ (.n 1)]) hg' h4
+      LoadHolds rd (σ (.n 25) * σ (.n 0) ^ 2 * (gen ^ d) ^ 2) 1 (digestHalves daPadBlobDigest).2 :=
+    loop_sound (f := name% «da_verify_loop3») (ps := [σ (.n 1), σ (.n 25), σ (.n 0)]) hg' h4
       (fun y hy => by
         obtain ⟨k1, k2⟩ := l20_step hy
         exact ⟨k1 _ _ _ rfl, k2⟩)
       (fun hne => by simpa using guardK_sound hg20 hall hne)
   -- the root
-  have hrt : (σ (.n 36), σ (.n 37)) = digestHalves (daRoot r L symsP) := by
-    obtain ⟨k, hk, hk2, hrel⟩ := dispatch_of_flat hall hdisp
-    simp only [dlNames, List.length_map, List.length_range] at hk
-    simp only [dlNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil] at hrel
-    refine levels_root_of hk hL (by rw [← hk2, h2]) hrel fun i hi => ?_
+  have hrt : (σ (.n 32), σ (.n 33)) = digestHalves (daRoot r (guest_const% DA_LOG_MAX_ROWS) symsP) := by
+    have hrel := call_of_flat hall hdl
+    simp only [List.map_cons, List.map_nil] at hrel
+    refine levels_root_of (Or.inl rfl) (by norm_num) (gen_pow_eq_ofK _).symm hrel fun i hi => ?_
     by_cases hir : i < r
     · exact hblob i hir
-    · obtain ⟨g0, g1⟩ := L20 (i - r) (by omega)
+    · obtain ⟨g0, g1⟩ := L20 (i - r) (by norm_num at hi ⊢; omega)
       rw [h1, ← pow_mul, shift, show r * 2 + 2 * (i - r) = 2 * i by omega] at g0 g1
       simp only [blobLeaf, hir, ite_false]
       exact ⟨by simpa using g0, g1⟩
-  refine ⟨daRoot r L symsP, z, ?_, ?_⟩
+  refine ⟨daRoot r (guest_const% DA_LOG_MAX_ROWS) symsP, z, ?_, ?_⟩
   · rw [dvWit, hrows]
-    exact opens_of hr1 (by unfold LeanDa.maxRows; exact hr) hnp.symm hrL hsL hdot
-  rw [← hret, copy_sound hcp48 hat, copy_sound hcp49 hat, copy_sound hcp50 hat]
+    exact opens_of hr1 (by rw [maxRows_eq]; exact hr) (by rw [maxRows_eq]; norm_num) hsL hdot
+  rw [← hret, copy_sound hcp34 hat, copy_sound hcp35 hat, copy_sound hcp36 hat]
   simp only [Prod.ext_iff] at hrt
   simp [digestCells, ← hrt.1, ← hrt.2, z]
 
@@ -391,13 +381,11 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
 theorem da_verify_holds : da_verify_sound_Spec := by
   intro rd hm args rets hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_verify _ _).mp hrel
-  have hp : (fn% «da_verify»).params.map σ = [σ (.n 0)] := rfl
+  have hp : (fn% «da_verify»).params.map σ = [] := rfl
   rw [hp] at hpar
   subst hpar
   simp only [MeaningDaVerify]
-  intro hsq
-  obtain ⟨root, z, ho, hr⟩ :=
-    da_verify_sound_w (unfoldsV_rel rd) (fun _ _ _ h => h) hm hp hb hsq
+  obtain ⟨root, z, ho, hr⟩ := da_verify_sound_w (unfoldsV_rel rd) (fun _ _ _ h => h) hm hb
   exact ⟨_, root, z, ho, hr⟩
 end
 end LeanVM.Guest.B1.Da

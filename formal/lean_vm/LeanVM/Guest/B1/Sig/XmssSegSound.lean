@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegSound
 
-  The leanXMSS check inline in `main_loop2` (`verify_lean_xmss`, `lean_ethereum.py:3848-3920`) is
+  The leanXMSS check inline in `main_loop2` (`verify_lean_xmss`, `lean_ethereum.py`) is
   sound: whenever its statements hold, the rest holds, and with the carried chain indices held the
   signature its valuation holds verifies the claim at its pointer (`verify_lean_xmss_sound_holds`).
 -/

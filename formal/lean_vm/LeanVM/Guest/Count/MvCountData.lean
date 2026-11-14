@@ -19,20 +19,20 @@ set_option maxRecDepth 100000
 
 @[expose] public section
 
-/-- `da_verify`'s statically bounded callees but the DA levels by `L`. -/
-def dvStNames : List String := ["da_row_shape", "da_vector", "da_expand__L7_L8"]
+/-- `da_verify`'s statically bounded callees but the tree over the blob roots. -/
+def dvStNames : List String := ["da_padding", "da_vector", "da_expand__L6_L7"]
 
 /-- Their core indices. -/
-def dvStJ : List ℕ := [28, 31, 418]
+def dvStJ : List ℕ := [28, 31, 408]
 
 /-- `da_verify`'s row loops and its columns' row loop. -/
 def dvLpNames : List String := ["__loop21", "__loop23", "__loop24", "__loop25"]
 
 /-- Their core indices. -/
-def dvLpJ : List ℕ := [403, 405, 406, 419]
+def dvLpJ : List ℕ := [403, 405, 406, 409]
 
-/-- The core indices of the DA levels `B1.Da.dlNames`, by `L`. -/
-def dlJ : List ℕ := [407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417]
+/-- The core index of the tree over the blob roots, `B1.Da.dlTop`. -/
+def dlJ : ℕ := 407
 
 /-- The core indices of `claim_list_last__L{k}`, `k < 17`. -/
 def clJ : List ℕ := [348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364]
@@ -51,30 +51,30 @@ def mvOmJ : List ℕ := [27, 404, 29, 23]
 
 /-- The instructions of `dvStNames`. -/
 def kcDvStT : Opcode → List ℕ
-  | .xor => [1, 1786, 510]
-  | .mulNative => [12, 2367, 513]
-  | .setConstant => [6, 951, 3]
-  | .deref => [9, 3750, 273]
+  | .xor => [1, 1531, 254]
+  | .mulNative => [4, 2358, 257]
+  | .setConstant => [3, 817, 3]
+  | .deref => [2, 3230, 143]
   | .jump => [1, 270, 1]
   | .keccak => [0, 0, 0]
 
 /-- The instructions of `dvLpNames` per iteration. -/
 def kcDvLpT : Opcode → List ℕ
-  | .xor => [1, 135, 1, 514]
-  | .mulNative => [22, 1727, 13, 401]
-  | .setConstant => [5, 1354, 6, 13]
-  | .deref => [2, 815, 2, 267]
-  | .jump => [2, 265, 2, 132]
+  | .xor => [1, 135, 1, 258]
+  | .mulNative => [22, 1727, 13, 145]
+  | .setConstant => [5, 1354, 6, 11]
+  | .deref => [2, 815, 2, 139]
+  | .jump => [2, 265, 2, 4]
   | .keccak => [0, 127, 0, 16]
 
-/-- The DA levels' instructions, by `L`. -/
-def kcDlT : Opcode → List ℕ
-  | .xor => [0, 2, 5, 10, 19, 36, 69, 134, 263, 520, 1033]
-  | .mulNative => [0, 13, 40, 94, 202, 418, 850, 1714, 3442, 6898, 13810]
-  | .setConstant => [1, 13, 36, 80, 166, 336, 674, 1348, 2694, 5384, 10762]
-  | .deref => [2, 14, 32, 62, 116, 218, 416, 806, 1580, 3122, 6200]
-  | .jump => [1, 4, 9, 18, 35, 68, 133, 262, 519, 1032, 2057]
-  | .keccak => [0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023]
+/-- The instructions of the tree over the blob roots. -/
+def kcDl : Opcode → ℕ
+  | .xor => 36
+  | .mulNative => 418
+  | .setConstant => 336
+  | .deref => 218
+  | .jump => 68
+  | .keccak => 31
 
 /-- `claim_list_last__L{k}`'s instructions, by `k`. -/
 def kcClT : Opcode → List ℕ
@@ -97,28 +97,28 @@ def kcClLpT : Opcode → List ℕ
 /-- The frame weights of `mvOmNames`. -/
 def mvOmT : Opcode → List ℕ
   | .xor => [2, 1, 1, 3]
-  | .mulNative => [16, 12, 5, 40]
-  | .setConstant => [8, 6, 3, 9]
-  | .deref => [51, 9, 17, 42]
+  | .mulNative => [14, 12, 6, 40]
+  | .setConstant => [9, 6, 3, 9]
+  | .deref => [47, 9, 17, 42]
   | .jump => [8, 3, 3, 6]
   | .keccak => [0, 0, 0, 1]
 
-/-- `da_verify`'s instructions on `r` rows padded to `2^L` within `kcDvA + kcDvR · r + kcDvP · 2^L`: the constant. -/
+/-- `da_verify`'s instructions on `r` rows padded to `DA_MAX_ROWS` within `kcDvA + kcDvR · r + kcDvP · DA_MAX_ROWS`: the constant. -/
 def kcDvA : Opcode → ℕ
-  | .xor => 67325
-  | .mulNative => 70235
-  | .setConstant => 2501
-  | .deref => 42082
+  | .xor => 34302
+  | .mulNative => 37576
+  | .setConstant => 2365
+  | .deref => 24911
   | .jump => 1175
   | .keccak => 0
 
 /-- `da_verify`'s instructions: per row. -/
 def kcDvR : Opcode → ℕ
-  | .xor => 65927
-  | .mulNative => 53064
-  | .setConstant => 3017
-  | .deref => 34991
-  | .jump => 17161
+  | .xor => 33159
+  | .mulNative => 20296
+  | .setConstant => 2761
+  | .deref => 18607
+  | .jump => 777
   | .keccak => 2175
 
 /-- `da_verify`'s instructions: per padded row. -/
@@ -126,7 +126,7 @@ def kcDvP : Opcode → ℕ
   | .xor => 3
   | .mulNative => 27
   | .setConstant => 17
-  | .deref => 10
+  | .deref => 9
   | .jump => 5
   | .keccak => 1
 
@@ -154,8 +154,7 @@ noncomputable def mvTabOk (op : Opcode) : Bool :=
     kvSBJ op (dvStJ.getD i 0) == (kcDvStT op).getD i 0) &&
   (List.range 4).all (fun i => kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
     kvSKJ op (dvLpJ.getD i 0) == (kcDvLpT op).getD i 0) &&
-  (List.range 11).all (fun L => kvOkB op (dlJ.getD L 0) (B1.Da.dlNames.getD L "") &&
-    kvSBJ op (dlJ.getD L 0) == (kcDlT op).getD L 0) &&
+  (kvOkB op dlJ B1.Da.dlTop && kvSBJ op dlJ == kcDl op) &&
   (List.range 17).all (fun k => kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
     kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) &&
   (List.range 2).all (fun i => kvOkK op (clLpJ.getD i 0) (clLpNames.getD i "") &&

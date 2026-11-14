@@ -106,17 +106,18 @@ theorem leaves_of_reads {tree : E} {n : ℕ} {leaves : List (E × E)} {f : ℕ �
   exact Prod.ext (loadHolds_unique r1 f1) (loadHolds_unique r2 f2)
 
 /-- **A dispatched `da_levels` run over digests' cells returns the root's cells.** -/
-theorem levels_root_of {tree c0 c1 : E} {k L : ℕ} (hk : k < 11) (hL : L ≤ 10)
+theorem levels_root_of {tree c0 c1 : E} {k L : ℕ} (hk : DlDepth k) (hL : L ≤ 10)
     (hkL : ofK (Parameters.addressOfIndex k) = gen ^ L)
     (hrel : coreProgram.Rel rd (daLevelsName k) [tree] [c0, c1]) {g : ℕ → Digest}
     (hf : ∀ i < 2 ^ L, LoadHolds rd tree (2 * i) (digestHalves (g i)).1 ∧
       LoadHolds rd tree (2 * i + 1) (digestHalves (g i)).2) :
     (c0, c1) = digestHalves (mRoot L g) := by
+  have hk11 : k < 11 := by unfold DlDepth at hk; omega
   have hkl : k = L := by
     rw [← gen_pow_eq_ofK] at hkL
     exact gen_pow_inj (by omega) (by omega) hkL
   subst hkl
-  obtain ⟨leaves, hl, hr, hrets⟩ := da_levels_holds k (by omega) rd _ _ hrel
+  obtain ⟨leaves, hl, hr, hrets⟩ := da_levels_holds k hk rd _ _ hrel
   have := leaves_of_reads (f := fun i => digestHalves (g i)) hl hr hf
   simp only [List.cons.injEq, and_true] at hrets
   rw [hrets.1, hrets.2, this, cellRoot_mRoot]

@@ -2,8 +2,8 @@
   LeanVM.Guest.NZProgram
 
   The verifier refusing what makes the guest divide by zero: a zero fold challenge `α`, a zero
-  closing-round challenge and a zero batching challenge `λ` of a non-final level (G:1651, 1766,
-  1753; G = `lean_ethereum.py` at the pin), as copies of the verifier's programs with a `require`
+  closing-round challenge and a zero batching challenge `λ` of a non-final level (1765,
+  1753; G = `lean_ethereum.py`), as copies of the verifier's programs with a `require`
   at each. The statement's honest child refuses a zero challenge anywhere (`verifierRefusingZero`,
   `Statement/LeanVmGuestCompleteness.lean`).
 -/
@@ -27,7 +27,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 namespace Limits
 
 /-- `foldRound` refusing a zero `α`: the guest divides by the `α`s past level 0 in its residual
-pass (G:1766). -/
+pass. -/
 def foldRoundNZ (s : WhirState) : VerifierProgram (WhirState × FoldRound) := do
   let u0 ← VerifierProgram.readScalar
   let w ← VerifierProgram.readScalar
@@ -50,7 +50,7 @@ def foldRoundsNZ : ℕ → WhirState → VerifierProgram (WhirState × List Fold
     return (s, round :: rounds)
 
 /-- `sumcheck` refusing a zero challenge: the closing rounds' challenges, which the residual pass
-divides by (G:1772). -/
+divides by. -/
 def sumcheckNZ (claim : E) (count : ℕ) : List (Option E) → VerifierProgram (List E × E)
   | [] => return ([], claim)
   | equality :: equalities => do

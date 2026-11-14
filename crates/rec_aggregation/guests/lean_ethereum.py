@@ -538,8 +538,8 @@ MAX_RECURSIONS = MAX_RECURSIONS_PLACEHOLDER
 
 
 # ---------------------------------- LeanDA ------------------------------------------
-# Blob and cell widths are fixed. The row count is hinted and bounded by DA_MAX_ROWS;
-# the tree over the blob roots dispatches on the checked log of its padded value.
+# Blob and cell widths are fixed. The blob count is hinted and bounded by DA_MAX_ROWS;
+# zero rows pad the matrix to DA_MAX_ROWS.
 DA_LOG_K = DA_LOG_K_PLACEHOLDER
 DA_LOG_CELL = DA_LOG_CELL_PLACEHOLDER
 DA_MAX_ROWS = DA_MAX_ROWS_PLACEHOLDER
@@ -557,8 +557,6 @@ DA_LOG_M = DA_LOG_K + 1                         # log of the symbols per encoded
 DA_CELL = 2 ** DA_LOG_CELL                      # symbols in a cell
 DA_BLOCK_BITS = DA_LOG_M - DA_LOG_CELL          # log of the cells per row
 DA_CELLS = 2 ** DA_BLOCK_BITS                   # cells per row
-DA_PACKED = DA_CELL // 2                        # packed 128-bit cells in one cell
-DA_TREE_ARMS = DA_LOG_MAX_ROWS + 1              # tree depths the row count can dispatch to
 DA_SUM = 4 * DA_CELLS                           # where a blob's running sum starts, past its tree
 DA_REGION = DA_SUM + DA_CELLS + 1               # cells of one blob's tree and running sum
 
@@ -4506,15 +4504,12 @@ def child_claim_list_last(state, entries_ptr, region, marks, last_g, k: Const):
 # recursion preserves both.
 
 
-def da_verify(g_squares):
+def da_verify():
     # Returns the commitment root, two cells, and the membership challenge, one.
-    # Only the tree over the blob roots walks the padded count; a padding blob's root
-    # is a constant, which the gap loop writes without hashing anything.
-    shape = StackBuf(2)
-    hint_witness(shape, "da_shape")  # n_blob, then log2 of the padded count
-    n_blob_g = shape[0]
-    g_log_pad = shape[1]
-    n_pad_g, gap_g = da_row_shape(n_blob_g, g_log_pad, g_squares)
+    # The matrix always has DA_MAX_ROWS rows: a padding row's root is a constant, which
+    # the gap loop writes without hashing anything.
+    n_blob_g = hint_witness("da_n_blobs")
+    gap_g = da_padding(n_blob_g)
 
     # The challenge, hashed below as its two lanes and two zero ones.
     z = hint_witness("da_challenge")
@@ -4531,7 +4526,7 @@ def da_verify(g_squares):
     for xb in mul_range(1, GEN ** DA_CELLS):
         da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets)
 
-    roots = HeapBuf(n_pad_g ** 4)
+    roots = HeapBuf(GEN ** (4 * DA_MAX_ROWS))
     for xi in mul_range(1, n_blob_g):
         base = rowbase[xi]
         assert base[GEN ** (DA_SUM + DA_CELLS)] == 0
@@ -4543,20 +4538,15 @@ def da_verify(g_squares):
         pad = roots * (n_blob_g ** 2) * (xd ** 2)
         pad[1] = DA_PAD_BLOB_0
         pad[GEN] = DA_PAD_BLOB_1
-    r0, r1 = match(log(g_log_pad), range(0, DA_TREE_ARMS), lambda k: da_levels(roots, 2 ** k, k))
+    r0, r1 = da_levels(roots, DA_MAX_ROWS, DA_LOG_MAX_ROWS)
     return r0, r1, z
 
 
-def da_row_shape(n_blob_g, g_log_pad, g_squares):
+def da_padding(n_blob_g):
+    # g^(DA_MAX_ROWS - n) padding rows, for n_blob_g = g^n with 1 <= n <= DA_MAX_ROWS.
     assert n_blob_g != 1
     assert log(n_blob_g) < DA_MAX_ROWS + 1
-    assert log(g_log_pad) < DA_LOG_MAX_ROWS + 1
-    n_pad_g = g_squares[g_log_pad]
-    # n_blob <= n_pad < 2*n_blob: both differences must be nonnegative.
-    gap_g = n_pad_g / n_blob_g
-    assert log(gap_g) < DA_MAX_ROWS + 1
-    assert log(n_blob_g * n_blob_g / (n_pad_g * GEN)) < DA_MAX_ROWS
-    return n_pad_g, gap_g
+    return GEN ** DA_MAX_ROWS / n_blob_g
 
 
 def da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets):
@@ -4577,17 +4567,14 @@ def da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offset
 
 
 def da_verify_cell(lvals):
-    # Packing checks that each symbol used by both the hash and dot product is in K.
+    # A symbol is a word of E, so the hash and the inner product read the hinted cell as is.
     sym = StackBuf(DA_CELL)
     hint_witness(sym, "da_symbols")
-    packed = StackBuf(DA_PACKED)
     s = 0
-    for e in unroll(0, DA_PACKED):
-        packed[e] = pack64x2(sym[2 * e], sym[2 * e + 1])
-        s = s + lvals[GEN ** (2 * e)] * sym[2 * e]
-        s = s + lvals[GEN ** (2 * e + 1)] * sym[2 * e + 1]
+    for e in unroll(0, DA_CELL):
+        s = s + lvals[GEN ** e] * sym[e]
     st = StackBuf(2)
-    keccak_cells(packed, st)
+    keccak_cells(sym, st)
     return st[0], st[1], s
 
 
@@ -4785,7 +4772,7 @@ def main():
     da_digests = HeapBuf((n_children_g * GEN) ** 2)
     own_da = da_digests * n_children_g ** 2
     if n_direct_da_g == GEN:
-        root_0, root_1, z = da_verify(g_squares)
+        root_0, root_1, z = da_verify()
         keccak([root_0, root_1], [z, 0], own_da[0:2])
     else:
         own_da[1] = 0

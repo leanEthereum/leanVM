@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Bits.MeaningP
 public import LeanVM.Guest.B1.Whir.Flat
 
 /-!
-# `opening_round` (`lean_ethereum.py:1212-1229`, G below)
+# `opening_round` (`lean_ethereum.py`, G below)
 
 One fold round of CWYZ26's affine combiner (`foldRound`, `Statement/LeanVmVerifier.lean`): the
 four scalars `u0, w, c0, c1`, a grind and `α`, then `β`; `α` stored for the point and, with
@@ -36,7 +36,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## The template -/
 
-/-- `opening_round`'s body (G:1212-1229): the capacity copied, the four scalars `u0, w, c0, c1`
+/-- `opening_round`'s body: the capacity copied, the four scalars `u0, w, c0, c1`
 and their permutation, the grind's nonce and permutation, `α`, the squeeze of `β`, the stores,
 the claim. -/
 def roundBody : List Stmt :=
@@ -65,11 +65,11 @@ def rdS2 (fs : List E) (m : List E) : Fs := (⟨fs, []⟩ : Fs).absorbAll m dsOb
 def rdG2 (fs : List E) (m : List E) (n2 : E) : E × Fs :=
   (rdS2 fs m).grindSqueeze _root_.LeanVM.Parameters.Whir.foldGrindingBits n2
 
-/-- The fold round's claim (G:1227-1228): `u0 + β c0 + α (u0 + claim + α w + β (c0 + c1))`. -/
+/-- The fold round's claim: `u0 + β c0 + α (u0 + claim + α w + β (c0 + c1))`. -/
 def roundClaim (claim alpha beta u0 w c0 c1 : E) : E :=
   u0 + beta * c0 + alpha * (u0 + claim + alpha * w + beta * (c0 + c1))
 
-/-- **`opening_round(fs0..fs4, cursor, claim, tabs, alphas, coefs)`** (G:1212-1229): the five
+/-- **`opening_round(fs0..fs4, cursor, claim, tabs, alphas, coefs)`**: the five
 stream words at the cursor `u0, w, c0, c1, n2`; from the carried capacity with nothing waiting,
 the four scalars are absorbed, the grind passes and draws `α`, then `β` is squeezed; `α` is stored
 at `alphas`, `α, β` at `coefs`; the function returns the capacity after `β`, the cursor five words

@@ -51,13 +51,12 @@ mod statement;
 #[cfg(test)]
 mod tests;
 
-pub use error::{AggregateVerifyError, AggregationError, SnarkProveError, SnarkVerifyError};
+pub use error::{AggregateProveError, AggregateVerifyError, StarkProveError, StarkVerifyError};
 pub use guest::{unified_guest, warm_up};
+use lean_sphincs::LeanSphincsPublicKey;
+use lean_xmss::LeanXmssPublicKey;
 pub use node::{aggregate, aggregate_with_stats};
 pub use proof::{EthereumClaims, EthereumProof};
-use signatures::lean_sphincs::LeanSphincsPublicKey;
-use signatures::lean_xmss::LeanXmssPublicKey;
-use signatures::{lean_sphincs, lean_xmss};
 
 /// One leanXMSS claim: a pubkey, and the message it signed at whatever leaf index its
 /// signature carries.

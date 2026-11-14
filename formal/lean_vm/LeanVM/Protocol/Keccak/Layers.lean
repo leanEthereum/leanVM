@@ -12,7 +12,7 @@ public import LeanVM.Protocol.Keccak.Start
 /-!
 # The layers
 
-`keccakLayers logSteps (List.range 12)` (`crates/verifier/src/keccak.rs:264-267`) runs
+`keccakLayers logSteps (List.range 12)` (`crates/verifier/src/keccak.rs`) runs
 `verifyKeccakLayer` at steps `0, …, 11`. On a candidate's column `qk q`, the states at depth `d` are
 `statesAt … d` (`12 - d` rounds into each segment), and depth `d` is the round of depth `d + 1`
 (`claimTrue_round`), so `layerSpec` chains (`layersSpec`): from doom of the claim at depth `d` to

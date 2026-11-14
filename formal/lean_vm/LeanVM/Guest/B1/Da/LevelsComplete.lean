@@ -9,11 +9,6 @@ module
 
 public import LeanVM.Guest.B1.Da.LevelsCChk0
 public import LeanVM.Guest.B1.Da.LevelsCChk1
-public import LeanVM.Guest.B1.Da.LevelsCChk2
-public import LeanVM.Guest.B1.Da.LevelsCChk3
-public import LeanVM.Guest.B1.Da.LevelsCChk4
-public import LeanVM.Guest.B1.Da.LevelsCChk5
-public import LeanVM.Guest.B1.Da.LevelsCChk6
 public import LeanVM.Guest.B1.Da.LevelsSound
 public import LeanVM.Guest.B1.Digest.LoopComplete
 public import LeanVM.Guest.B1.Digest.PairComplete
@@ -44,7 +39,7 @@ variable {rd : Reader}
 
 /-- `da_levels`' meaning, for a tree whose levels are in memory, gives its core IR. -/
 def da_levels_complete_Spec : Prop :=
-  ∀ k ≤ 10, ∀ (rd : Reader) (tree : E) (leaves : List (E × E)), leaves.length = 2 ^ k →
+  ∀ k, DlDepth k → ∀ (rd : Reader) (tree : E) (leaves : List (E × E)), leaves.length = 2 ^ k →
     TreeMem rd tree k leaves →
       coreProgram.Rel rd (daLevelsName k) [tree] [(cellRoot k leaves).1, (cellRoot k leaves).2]
 
@@ -261,7 +256,7 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, List.isEmpty_iff, List.all_eq_true,
     List.mem_range] at hcok
   obtain ⟨⟨⟨⟨c', hchk⟩, hst⟩, hbody⟩, hcloops⟩ := hcok
-  set e := dlTab.getD k (0, "", 0, [])
+  set e := dlEntry k
   set fn := coreProgram.getD e.2.2.1 default
   have hf := find_of_idx hidx hlt
   rw [← hname]
@@ -369,18 +364,10 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
 /-- **`da_levels` is complete.** -/
 theorem da_levels_complete : da_levels_complete_Spec := by
   intro k hk
-  interval_cases k
-  · exact dl_complete (by omega) dl_ok0 dlc_ok0
-  · exact dl_complete (by omega) dl_ok1 dlc_ok1
-  · exact dl_complete (by omega) dl_ok2 dlc_ok2
-  · exact dl_complete (by omega) dl_ok3 dlc_ok3
-  · exact dl_complete (by omega) dl_ok4 dlc_ok4
+  unfold DlDepth at hk
+  rcases hk with rfl | rfl
   · exact dl_complete (by omega) dl_ok5 dlc_ok5
-  · exact dl_complete (by omega) dl_ok6 dlc_ok6
   · exact dl_complete (by omega) dl_ok7 dlc_ok7
-  · exact dl_complete (by omega) dl_ok8 dlc_ok8
-  · exact dl_complete (by omega) dl_ok9 dlc_ok9
-  · exact dl_complete (by omega) dl_ok10 dlc_ok10
 
 end
 end LeanVM.Guest.B1.Da

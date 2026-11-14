@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Verifier
 /-!
 # Forms as values
 
-`Form.evaluate f column` (`crates/verifier/src/layout.rs:38-44` at leanVM `40f877dc`) is the sum
+`Form.evaluate f column` (`crates/verifier/src/layout.rs` at leanVM `40f877dc`) is the sum
 over the form's terms of the coefficient times the product of the monomial's columns. It is linear:
 
 * `Form.evaluate_addScaled`: `evaluate (f.add_scaled(g, w)) = evaluate f + w · evaluate g`, whatever

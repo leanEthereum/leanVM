@@ -209,7 +209,7 @@ theorem mainGoalSt {bytecode : List K} (hR : NodeRelation bytecode seed s w)
   have hlen : s.deferredClaim.cells.length = 24 := by
     have h1 : s.deferredClaim.bytecodePoint.length = Nat.log2 bytecode.length := hR.hasBytecodeShape
     rw [hbl, Nat.log2_two_pow] at h1
-    simp [DeferredClaim.cells, h1, bytecodeVars]
+    simp [DeferredBytecodeClaim.cells, h1, bytecodeVars]
   refine statement_completeAt fs cert fun rd h => ?_
   have h9 := mf_reads fs fp seed s w h (i := 9) (by omega)
   exact ⟨s.deferredClaim.cells, hlen, h9, congrArg digestCells (statementDigest_of_parts

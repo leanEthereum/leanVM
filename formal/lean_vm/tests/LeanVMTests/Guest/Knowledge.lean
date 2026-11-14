@@ -92,4 +92,4 @@ example (seed : Digest) (v : E) (hints : BatchingHints) :
   unfold NodeRelation SignatureClaimsHeld DaDigestHeld ChildrenProven DeferredClaimBatched
   refine ⟨⟨by simp, by simp, by simp [emptyStatement], by simp [emptyStatement]⟩,
     by simp [emptyStatement], by simp, ?_⟩
-  simp [emptyStatement, DeferredClaim.HasZeroPoint, hlog]
+  simp [emptyStatement, DeferredBytecodeClaim.HasZeroPoint, hlog]

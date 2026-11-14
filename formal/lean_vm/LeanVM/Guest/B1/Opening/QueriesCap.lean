@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesPath
 
 /-!
-# A query's cap leaf (`walk_path`, lean_ethereum.py:1329-1339 at 40f877dc)
+# A query's cap leaf (`walk_path`, lean_ethereum.py at 40f877dc)
 
 The last two windows of the position are `wb = g^b`, `b` its bit `pd`, and `q = g^Q`,
 `Q = pos / 2^(pd+1)` (the parent's index among the cap's internal nodes at the level above the

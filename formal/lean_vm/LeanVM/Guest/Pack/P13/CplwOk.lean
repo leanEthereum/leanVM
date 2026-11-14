@@ -9,19 +9,19 @@ module
 
 public import LeanVM.Guest.B2C.CplCheck
 public import Mathlib.Tactic.IntervalCases
-public import LeanVM.Guest.Pack.«P13».Cplw2
-public import LeanVM.Guest.Pack.«P13».Cplw3
+public import LeanVM.Guest.Pack.«P13».Cplw0
+public import LeanVM.Guest.Pack.«P13».Cplw1
 
-namespace LeanVM.Guest.Fn.«walk_path__L24_L2»
+namespace LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `walk_path__L24_L2`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«walk_path__L24_L2».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(973, Fn.«verify_merkle_cap__L7».sig), (1267, Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
-  have hc : (cert.withPows Data.powTree).cuts.length = 4 := by decide +kernel
+  have hc : (cert.withPows Data.powTree).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nPartsD parts 0 = 1 := by decide +kernel
@@ -32,19 +32,7 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«walk_path_
     rw [hn] at hk
     interval_cases k
     · exact cw1_0
-  · have hn : nPartsD parts 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw2_0
-  · have hn : nPartsD parts 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw3_0
-  · have hn : nPartsD parts 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw4_0
 
 end
-end LeanVM.Guest.Fn.«walk_path__L24_L2»
+end LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0»
 

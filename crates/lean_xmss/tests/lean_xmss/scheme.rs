@@ -1,0 +1,78 @@
+use lean_xmss::*;
+use rand::{Rng, SeedableRng, rngs::StdRng};
+
+fn test_message() -> Message {
+    std::array::from_fn(|i| (i * 3 + 7) as u8)
+}
+
+/// A full key: the whole top tree, and signatures in two bottom trees, prepared at
+/// once on two threads, each with its own top-layer signature. The leaf index rides
+/// the signature, so the verifier hashes at it: moved to a neighbour, or the message
+/// changed, the signature no longer verifies.
+#[test]
+fn full_key_signs_and_verifies() {
+    let (sk, pk) = key_gen([1; SECRET_KEY_LEN]);
+    let message = test_message();
+    let other = (7 << LAYER_HEIGHT) + 3;
+    std::thread::scope(|s| {
+        s.spawn(|| sk.prepare(other));
+        sk.prepare(5);
+    });
+    let first = sign(&sk, &message, 5);
+    assert!(verify(&pk, &message, &first));
+    let other_tree = sign(&sk, &message, other);
+    assert!(verify(&pk, &message, &other_tree));
+    assert_ne!(first.__top(), other_tree.__top());
+    assert_eq!(sign(&sk, &message, 5), first, "signing is deterministic");
+    let mut bytes = first.to_bytes();
+    bytes[..4].copy_from_slice(&4u32.to_le_bytes());
+    assert!(!verify(&pk, &message, &LeanXmssSignature::from_bytes(&bytes)));
+    let mut other_message = message;
+    other_message[0] ^= 1;
+    assert!(!verify(&pk, &other_message, &first));
+}
+
+/// Pins a full key's public key and one signature's bytes, so that a change to the
+/// seed derivation, the addresses, the hash inputs or the serialization cannot pass
+/// unnoticed. An implementation of `doc/lean_xmss` written from the text alone gives
+/// the same bytes.
+#[test]
+fn known_answer() {
+    let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+    let seed: SecretKey = std::array::from_fn(|i| (i as u8).wrapping_mul(37).wrapping_add(11));
+    let (sk, pk) = key_gen(seed);
+    let message: Message = std::array::from_fn(|i| (i * 7 + 3) as u8);
+    let signature = sign(&sk, &message, 0xA5C3_7E19);
+    assert_eq!(
+        hex(&pk.to_bytes()),
+        "4066673001949b6ff8b9299fd4ea17d28787ad501aafe4b64e2488107b5e3ec3"
+    );
+    assert_eq!(
+        hex(&primitives::hash::hash(&signature.to_bytes())),
+        "f10d62beec95e64e1477028252c2c8683695eab9d8787ad8fa722f47b5fd5234"
+    );
+}
+
+/// The address layout, and `Th` as the leanVM hash of `P | A | M`.
+#[test]
+fn address_layout() {
+    let tw = tweak(TWEAK_NODE, layer_hi(1, 0x12), 0x89abcdef).step(5);
+    assert_eq!(address(&tw)[..8], [0xef, 0xcd, 0xab, 0x89, 0x12, 0x00, 0x80, 0xa3]);
+    assert_eq!(address(&tw)[8..], [0; 8]);
+    let pp: PublicParam = std::array::from_fn(|i| i as u8 + 1);
+    let payload = [9u8; N];
+    let input = [&pp[..], &address(&tw), &payload].concat();
+    assert_eq!(th(&pp, &tw, &payload)[..], primitives::hash::hash(&input)[..N]);
+}
+
+/// Detect changes to the encoding predicate through its grinding cost.
+#[test]
+#[ignore]
+fn encoding_grinding_bits() {
+    let n = 1 << 26;
+    let mut rng = StdRng::seed_from_u64(0);
+    let hits = (0..n).filter(|_| codeword(&rng.random()).is_some()).count();
+    let bits = (n as f64 / hits as f64).log2();
+    println!("Average grinding bits: {bits:.1}");
+    assert!((19.0..21.0).contains(&bits), "grinding cost moved: {bits:.2} bits");
+}

@@ -16,9 +16,9 @@ public import Clean.Utils.Tactics.CircuitProofStart
 /-!
 # The `SET_CONSTANT` table
 
-At `leanvm-rev` and Clean pin `b41c196b`. The columns
-are `crates/leanvm_core/src/tables.rs:538-548` (`mod set`, in that order) and the flushes
-`tables.rs:558-571` (`SetTable::flushes`), matching specification §7.3
+At Clean pin `b41c196b`. The columns
+are `crates/leanvm_core/src/tables.rs` (`mod set`, in that order) and the flushes
+`tables.rs` (`SetTable::flushes`), matching specification §7.3
 (`doc/leanvm/body/07-instruction-tables.tex`). There is no constraint.
 
 **The row** `SetRow` is the column list: `pc, fp`; the operand `o`; the immediate `k` as two
@@ -63,7 +63,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `SET_CONSTANT` columns, in the order of `tables.rs:538-548`. -/
+/-- The `SET_CONSTANT` columns, in the order of `tables.rs`. -/
 structure SetRow (F : Type) where
   /-- The program counter. -/
   pc : F
@@ -125,11 +125,11 @@ private theorem setConstant_entry (o k0 k1 : K) :
 
 /-! ## The table -/
 
-/-- The `SET_CONSTANT` table (specification §7.3; `tables.rs:536-590`): state step, bytecode
+/-- The `SET_CONSTANT` table (specification §7.3; `tables.rs`): state step, bytecode
 read of `(SET, o, k₀, k₁, 0, 0, 0, 0)`, and the read of `fp·o` carrying the immediate. Returns
 the pushed successor `(g·pc, fp)`. -/
 def setTable : GeneralFormalCircuit K SetRow Registers where
-  -- The table's name in leanVM (`TABLES`, `cpu/mod.rs:391`), unique in the ensemble (Clean keys
+  -- The table's name in leanVM (`TABLES`, `cpu/mod.rs`), unique in the ensemble (Clean keys
   -- the prover data by it).
   name := "SET"
   main r := do

@@ -66,7 +66,7 @@ def Cubic.add (a b : Cubic) : Cubic :=
 /-! ## A table's polynomial -/
 
 /-- `JUMP`'s constraints batched by `cp`, as monomials: `cp₀·(b + cond·w) + cp₁·cond·(b + 1)`
-(`jump_constraints`, `crates/verifier/src/layout.rs:296-299`; `jumpConstraints`). -/
+(`jump_constraints`, `crates/verifier/src/layout.rs`; `jumpConstraints`). -/
 def jumpTerms (cp : List E) : List (List ℕ × E) :=
   let c := columnIndexByName jumpColumns
   [([c "b"], cp.getD 0 0), ([c "v_cond", c "w"], cp.getD 0 0),
@@ -162,11 +162,11 @@ def tableEvals (st : TableState) : List E :=
   (List.range 6).flatMap fun t ↦ finalEvals (st.cols.getD t #[])
 
 /-- The number of powers of `ξ`: the constraints' and one per side (`n_xi_powers`,
-`crates/leanvm_core/src/cpu/mod.rs`; `crates/verifier/src/lib.rs:272-280`). -/
+`crates/leanvm_core/src/cpu/mod.rs`; `crates/verifier/src/lib.rs`). -/
 def xiCount : ℕ := (tables.map Table.nConstraints).sum + nTrees
 
 /-- The constraint powers of `ξ` and its form powers, one per side
-(`crates/verifier/src/lib.rs:278-280`). -/
+(`crates/verifier/src/lib.rs`). -/
 def xiPowers (xi : E) : List E × List E :=
   let nc := (tables.map Table.nConstraints).sum
   ((powers xi xiCount).take nc, (powers xi xiCount).drop nc)

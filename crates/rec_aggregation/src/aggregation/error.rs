@@ -1,6 +1,6 @@
 //! Errors of aggregation and verification.
 
-use lean_da::{DA_LOG_K, DA_MAX_ROWS};
+use lean_da::DA_MAX_ROWS;
 use leanvm_core::cpu::ProveError;
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 
@@ -13,35 +13,35 @@ pub enum AggregateVerifyError {
     /// The bytes are not a valid encoding of an aggregate.
     MalformedEncoding,
     /// The snark did not verify. From [`aggregate`](super::aggregate), which does not verify its children, it means a child's proof could not be read.
-    Snark(SnarkVerifyError),
+    Snark(StarkVerifyError),
 }
 
 /// Why a proof did not verify. Opaque: its message is for debugging.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SnarkVerifyError(pub(super) verifier::VerifierError);
+pub struct StarkVerifyError(pub(super) verifier::VerifierError);
 
-impl std::fmt::Display for SnarkVerifyError {
+impl std::fmt::Display for StarkVerifyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl std::error::Error for SnarkVerifyError {}
+impl std::error::Error for StarkVerifyError {}
 
 /// Why the prover made no proof. Opaque: its message is for debugging.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SnarkProveError(pub(super) ProveError);
+pub struct StarkProveError(pub(super) ProveError);
 
-impl std::fmt::Display for SnarkProveError {
+impl std::fmt::Display for StarkProveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl std::error::Error for SnarkProveError {}
+impl std::error::Error for StarkProveError {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AggregationError {
+pub enum AggregateProveError {
     /// A child's statement is malformed, or its proof cannot be walked. The walk fails on most tampering, the openings having to sit at query positions the transcript draws, so a statement that does not match the proof usually lands here as a Merkle opening error. Any other child that does not verify is a [`Self::ProofError`]: the guest's run fails on it.
     InvalidChild(AggregateVerifyError),
     /// No signature claims or DA root to publish.
@@ -54,8 +54,8 @@ pub enum AggregationError {
     MalformedRawSignature,
     /// More than [`MAX_RECURSIONS`](super::MAX_RECURSIONS) children.
     TooLarge,
-    /// The payload has a partial row or exceeds [`DA_MAX_ROWS`].
-    InvalidBlobSize { symbols: usize },
+    /// More than [`DA_MAX_ROWS`] blobs.
+    InvalidBlobCount { blobs: usize },
     /// The requested DA commitment is not a child's.
     BlobNotCovered,
     /// A node with blobs was asked to publish a DA commitment other than their matrix's.
@@ -67,7 +67,7 @@ pub enum AggregationError {
     /// The prover made no proof of this node: the guest rejects its input (a
     /// forged signature fails the guest's run), or its witness is larger than any
     /// verifier accepts (too many signatures for one proof).
-    ProofError(SnarkProveError),
+    ProofError(StarkProveError),
 }
 
 impl std::fmt::Display for AggregateVerifyError {
@@ -83,13 +83,13 @@ impl std::fmt::Display for AggregateVerifyError {
 
 impl std::error::Error for AggregateVerifyError {}
 
-impl From<lean_da::BlobSizeError> for AggregationError {
-    fn from(error: lean_da::BlobSizeError) -> Self {
-        Self::InvalidBlobSize { symbols: error.symbols }
+impl From<lean_da::BlobCountError> for AggregateProveError {
+    fn from(error: lean_da::BlobCountError) -> Self {
+        Self::InvalidBlobCount { blobs: error.blobs }
     }
 }
 
-impl std::fmt::Display for AggregationError {
+impl std::fmt::Display for AggregateProveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidChild(_) => write!(f, "invalid child aggregate"),
@@ -99,13 +99,7 @@ impl std::fmt::Display for AggregationError {
             Self::TooLarge => {
                 write!(f, "too many children")
             }
-            Self::InvalidBlobSize { symbols } => {
-                write!(
-                    f,
-                    "{symbols} blob symbols do not form 1..={DA_MAX_ROWS} rows of {} symbols",
-                    1 << DA_LOG_K
-                )
-            }
+            Self::InvalidBlobCount { blobs } => write!(f, "{blobs} blobs: expected at most {DA_MAX_ROWS}"),
             Self::BlobNotCovered => write!(f, "the requested blob commitment is not carried by any child"),
             Self::BlobsUnpublished => write!(f, "a node with blobs publishes their matrix's root"),
             Self::InvalidRate { log_inv_rate } => {
@@ -126,7 +120,7 @@ impl std::fmt::Display for AggregationError {
     }
 }
 
-impl std::error::Error for AggregationError {
+impl std::error::Error for AggregateProveError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::InvalidChild(e) => Some(e),

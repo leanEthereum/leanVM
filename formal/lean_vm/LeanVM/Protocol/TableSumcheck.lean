@@ -18,7 +18,7 @@ import Mathlib.Algebra.BigOperators.Fin
 /-!
 # The table sumcheck phase
 
-Specification §5.5 (`doc/leanvm/body/05-arithmetization.tex:125-150` at leanVM
+Specification §5.5 (`doc/leanvm/body/05-arithmetization.tex` at leanVM
 `127510d14c98ade4e8a97646c44fa7f1ff5e752d`), over an abstract instance `I`.
 
 The bus phase ends at a point `ζ` and leaves two kinds of claim on the rows of the *sumcheck
@@ -69,8 +69,8 @@ had a true claim and a true invariant before it, or a challenge among the round 
 agreements with the honest one or the zero test's one root.
 
 Written from the specification; the order of the powers, the shared side powers, the weights and
-the order of the final values are checked against `crates/leanvm_core/src/cpu/mod.rs:388-406`,
-`crates/verifier/src/lib.rs:229-247` and `crates/verifier/src/bus.rs:211-260` at the pin.
+the order of the final values are checked against `crates/leanvm_core/src/cpu/mod.rs`,
+`crates/verifier/src/lib.rs` and `crates/verifier/src/bus.rs`.
 -/
 
 namespace LeanVM.Protocol

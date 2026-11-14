@@ -27,7 +27,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 variable {C : CallRel} {σ : Val}
 
-/-- **The call of `open_stacked`** (G:3691-3698): the stack log's arm on the rate's selector; its
+/-- **The call of `open_stacked`**: the stack log's arm on the rate's selector; its
 returns are `OpenOutW` at the witness of the frame map `V`. -/
 theorem vs_dispatch (hos : Whir.open_stacked_sound_w_Spec Whir.open_stacked_osW) {κ : ℕ}
     (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L : MemoryImage κ) {V : FrameMap}

@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Whir.Round
 public import LeanVM.Guest.B1.Whir.Loops
 
 /-!
-# The fold rounds (TRIAGE G #35, #42; G:1538-1541)
+# The fold rounds (TRIAGE G #35, #42)
 
 The guest's running values, read through a valuation `σ` (`OsSt.F`, `OsSt.cur`): the sponge it
 carries (its five capacity cells, nothing waiting), the cursor `cb·g^co`. `osRound_sound`: one
@@ -72,7 +72,7 @@ theorem fs_five (st : OsSt) (hfs : st.fs.length = 5) :
   match h : st.fs, hfs with
   | [f0, f1, f2, f3, f4], _ => exact ⟨f0, f1, f2, f3, f4, rfl⟩
 
-/-- **One `opening_round` call** (G:1540-1541) runs `foldRound` from a Spec state whose claim is
+/-- **One `opening_round` call** runs `foldRound` from a Spec state whose claim is
 the guest's plus `D`: the five words at the cursor; the new claim the guest's plus `α·D`; `α`
 stored at `fold_challenges·g^i`, `α, β` at `round_coefs·g^(2i)`. -/
 theorem osRound_sound

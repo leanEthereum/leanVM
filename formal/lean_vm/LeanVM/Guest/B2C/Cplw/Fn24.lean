@@ -10,45 +10,41 @@ module
 public import LeanVM.Guest.B2C.Cpl
 import LeanVM.Guest.Checked.Fn24
 import LeanVM.Guest.Checked.Link12
-import LeanVM.Guest.Pack.«P33».Cplw5
-import LeanVM.Guest.Pack.«P51».Cplw2
-import LeanVM.Guest.Pack.«P6».Cplw2
-import LeanVM.Guest.Pack.«P25».Cplw2
-import LeanVM.Guest.Pack.«P17».Cplw3
-import LeanVM.Guest.Pack.«P62».Cplw3
+import LeanVM.Guest.Pack.«P50».Cplw2
+import LeanVM.Guest.Pack.«P43».Cplw2
+import LeanVM.Guest.Pack.«P24».Cplw3
+import LeanVM.Guest.Pack.«P40».Cplw2
+import LeanVM.Guest.Pack.«P39».Cplw3
+import LeanVM.Guest.Pack.«P20».Cplw3
+import LeanVM.Guest.Pack.«P60».Cplw2
+import LeanVM.Guest.Pack.«P15».Cplw2
+import LeanVM.Guest.Pack.«P26».Cplw2
+import LeanVM.Guest.Pack.«P45».Cplw4
+import LeanVM.Guest.Pack.«P13».Cplw1
+import LeanVM.Guest.Pack.«P58».Cplw2
 import LeanVM.Guest.Pack.«P25».Cplw3
 import LeanVM.Guest.Pack.«P57».Cplw2
-import LeanVM.Guest.Pack.«P38».Cplw2
-import LeanVM.Guest.Pack.«P16».Cplw4
-import LeanVM.Guest.Pack.«P35».Cplw3
-import LeanVM.Guest.Pack.«P42».Cplw6
-import LeanVM.Guest.Pack.«P61».Cplw2
-import LeanVM.Guest.Pack.«P0».Cplw2
-import LeanVM.Guest.Pack.«P19».Cplw3
-import LeanVM.Guest.Pack.«P44».Cplw2
-import LeanVM.Guest.Pack.«P63».Cplw2
-import LeanVM.Guest.Pack.«P55».Cplw3
-import LeanVM.Guest.Pack.«P36».Cplw3
-import LeanVM.Guest.Pack.«P53».Cplw2
-import LeanVM.Guest.Pack.«P34».Cplw3
-import LeanVM.Guest.Pack.«P50».Cplw2
-import LeanVM.Guest.Pack.«P5».Cplw2
-import LeanVM.Guest.Pack.«P3».Cplw4
-import LeanVM.Guest.Pack.«P48».Cplw2
-import LeanVM.Guest.Pack.«P50».Cplw3
-import LeanVM.Guest.Pack.«P59».Cplw3
-import LeanVM.Guest.Pack.«P21».Cplw4
-import LeanVM.Guest.Pack.«P23».Cplw3
-import LeanVM.Guest.Pack.«verify_merkle_cap__L8».CplwOk
+import LeanVM.Guest.Pack.«P17».Cplw3
+import LeanVM.Guest.Pack.«P47».Cplw3
 import LeanVM.Guest.Pack.«P46».Cplw3
-import LeanVM.Guest.Pack.«P9».CplwOk
-import LeanVM.Guest.Pack.«P20».Cplw3
-import LeanVM.Guest.Pack.«P18».Cplw2
-import LeanVM.Guest.Pack.«P11».Cplw2
-import LeanVM.Guest.Pack.«P22».Cplw3
-import LeanVM.Guest.Pack.«P53».Cplw3
-import LeanVM.Guest.Pack.«P11».Cplw3
 import LeanVM.Guest.Pack.«P37».Cplw4
+import LeanVM.Guest.Pack.«P8».Cplw2
+import LeanVM.Guest.Pack.«P51».Cplw2
+import LeanVM.Guest.Pack.«P22».Cplw3
+import LeanVM.Guest.Pack.«P44».Cplw2
+import LeanVM.Guest.Pack.«P16».Cplw4
+import LeanVM.Guest.Pack.«P53».Cplw3
+import LeanVM.Guest.Pack.«P10».Cplw2
+import LeanVM.Guest.Pack.«P6».Cplw3
+import LeanVM.Guest.Pack.«P30».Cplw2
+import LeanVM.Guest.Pack.«P49».Cplw2
+import LeanVM.Guest.Pack.«P54».Cplw3
+import LeanVM.Guest.Pack.«P9».Cplw3
+import LeanVM.Guest.Pack.«P41».Cplw1
+import LeanVM.Guest.Pack.«P34».CplwOk
+import LeanVM.Guest.Pack.«P56».Cplw2
+import LeanVM.Guest.Pack.«P11».Cplw3
+import LeanVM.Guest.Pack.«P18».Cplw2
 
 namespace LeanVM.Guest.B2C.Cplw
 
@@ -57,154 +53,154 @@ open LeanVM.Guest.Checked
 @[expose] public section
 
 theorem ok1201 : CplOk 1201 :=
-  cplOk_of_link link1201 plumbEq1201 fsEq1201 partsEq1201 armsEq1201 rfl Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».cplOk
+  cplOk_of_link link1201 plumbEq1201 fsEq1201 partsEq1201 armsEq1201 rfl Fn.«level_residual__L44_L15_L4_L2_loop1».cplOk
 
 theorem ok1202 : CplOk 1202 :=
-  cplOk_of_link link1202 plumbEq1202 fsEq1202 partsEq1202 armsEq1202 rfl Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».cplOk
+  cplOk_of_link link1202 plumbEq1202 fsEq1202 partsEq1202 armsEq1202 rfl Fn.«level_residual__L37_L15_L4_L2_loop0».cplOk
 
 theorem ok1203 : CplOk 1203 :=
-  cplOk_of_link link1203 plumbEq1203 fsEq1203 partsEq1203 armsEq1203 rfl Fn.«level_residual__L218_L18_L6_L3_loop0».cplOk
+  cplOk_of_link link1203 plumbEq1203 fsEq1203 partsEq1203 armsEq1203 rfl Fn.«level_residual__L37_L15_L4_L2_loop1».cplOk
 
 theorem ok1204 : CplOk 1204 :=
-  cplOk_of_link link1204 plumbEq1204 fsEq1204 partsEq1204 armsEq1204 rfl Fn.«level_residual__L218_L18_L6_L3_loop1».cplOk
+  cplOk_of_link link1204 plumbEq1204 fsEq1204 partsEq1204 armsEq1204 rfl Fn.«level_residual__L32_L15_L4_L2_loop0».cplOk
 
 theorem ok1205 : CplOk 1205 :=
-  cplOk_of_link link1205 plumbEq1205 fsEq1205 partsEq1205 armsEq1205 rfl Fn.«level_residual__L109_L18_L6_L3_loop0».cplOk
+  cplOk_of_link link1205 plumbEq1205 fsEq1205 partsEq1205 armsEq1205 rfl Fn.«level_residual__L28_L11_L4_L2_loop0».cplOk
 
 theorem ok1206 : CplOk 1206 :=
-  cplOk_of_link link1206 plumbEq1206 fsEq1206 partsEq1206 armsEq1206 rfl Fn.«level_residual__L109_L18_L6_L3_loop1».cplOk
+  cplOk_of_link link1206 plumbEq1206 fsEq1206 partsEq1206 armsEq1206 rfl Fn.«level_residual__L28_L11_L4_L2_loop1».cplOk
 
 theorem ok1207 : CplOk 1207 :=
-  cplOk_of_link link1207 plumbEq1207 fsEq1207 partsEq1207 armsEq1207 rfl Fn.«level_residual__L73_L18_L6_L3_loop0».cplOk
+  cplOk_of_link link1207 plumbEq1207 fsEq1207 partsEq1207 armsEq1207 rfl Fn.«level_residual__L25_L11_L4_L2_loop0».cplOk
 
 theorem ok1208 : CplOk 1208 :=
-  cplOk_of_link link1208 plumbEq1208 fsEq1208 partsEq1208 armsEq1208 rfl Fn.«level_residual__L73_L18_L6_L3_loop1».cplOk
+  cplOk_of_link link1208 plumbEq1208 fsEq1208 partsEq1208 armsEq1208 rfl Fn.«level_residual__L25_L11_L4_L2_loop1».cplOk
 
 theorem ok1209 : CplOk 1209 :=
-  cplOk_of_link link1209 plumbEq1209 fsEq1209 partsEq1209 armsEq1209 rfl Fn.«level_residual__L55_L18_L6_L3_loop0».cplOk
+  cplOk_of_link link1209 plumbEq1209 fsEq1209 partsEq1209 armsEq1209 rfl Fn.«level_residual__L23_L11_L4_L2_loop0».cplOk
 
 theorem ok1210 : CplOk 1210 :=
-  cplOk_of_link link1210 plumbEq1210 fsEq1210 partsEq1210 armsEq1210 rfl Fn.«level_residual__L55_L18_L6_L3_loop1».cplOk
+  cplOk_of_link link1210 plumbEq1210 fsEq1210 partsEq1210 armsEq1210 rfl Fn.«level_residual__L23_L11_L4_L2_loop1».cplOk
 
 theorem ok1211 : CplOk 1211 :=
-  cplOk_of_link link1211 plumbEq1211 fsEq1211 partsEq1211 armsEq1211 rfl Fn.«level_residual__L55_L14_L4_L2_loop0».cplOk
+  cplOk_of_link link1211 plumbEq1211 fsEq1211 partsEq1211 armsEq1211 rfl Fn.«level_residual__L21_L7_L4_L2_loop0».cplOk
 
 theorem ok1212 : CplOk 1212 :=
-  cplOk_of_link link1212 plumbEq1212 fsEq1212 partsEq1212 armsEq1212 rfl Fn.«level_residual__L55_L14_L4_L2_loop1».cplOk
+  cplOk_of_link link1212 plumbEq1212 fsEq1212 partsEq1212 armsEq1212 rfl Fn.«level_residual__L21_L7_L4_L2_loop1».cplOk
 
 theorem ok1213 : CplOk 1213 :=
-  cplOk_of_link link1213 plumbEq1213 fsEq1213 partsEq1213 armsEq1213 rfl Fn.«level_residual__L44_L14_L4_L2_loop0».cplOk
+  cplOk_of_link link1213 plumbEq1213 fsEq1213 partsEq1213 armsEq1213 rfl Fn.«level_residual__L19_L7_L4_L2_loop0».cplOk
 
 theorem ok1214 : CplOk 1214 :=
-  cplOk_of_link link1214 plumbEq1214 fsEq1214 partsEq1214 armsEq1214 rfl Fn.«level_residual__L44_L14_L4_L2_loop1».cplOk
+  cplOk_of_link link1214 plumbEq1214 fsEq1214 partsEq1214 armsEq1214 rfl Fn.«level_residual__L19_L7_L4_L2_loop1».cplOk
 
 theorem ok1215 : CplOk 1215 :=
-  cplOk_of_link link1215 plumbEq1215 fsEq1215 partsEq1215 armsEq1215 rfl Fn.«level_residual__L37_L14_L4_L2_loop0».cplOk
+  cplOk_of_link link1215 plumbEq1215 fsEq1215 partsEq1215 armsEq1215 rfl Fn.«level_residual__L18_L7_L4_L2_loop0».cplOk
 
 theorem ok1216 : CplOk 1216 :=
-  cplOk_of_link link1216 plumbEq1216 fsEq1216 partsEq1216 armsEq1216 rfl Fn.«level_residual__L37_L14_L4_L2_loop1».cplOk
+  cplOk_of_link link1216 plumbEq1216 fsEq1216 partsEq1216 armsEq1216 rfl Fn.«level_residual__L18_L7_L4_L2_loop1».cplOk
 
 theorem ok1217 : CplOk 1217 :=
-  cplOk_of_link link1217 plumbEq1217 fsEq1217 partsEq1217 armsEq1217 rfl Fn.«level_residual__L32_L14_L4_L2_loop0».cplOk
+  cplOk_of_link link1217 plumbEq1217 fsEq1217 partsEq1217 armsEq1217 rfl Fn.«level_positions__L37_L21_L3_loop0».cplOk
 
 theorem ok1218 : CplOk 1218 :=
-  cplOk_of_link link1218 plumbEq1218 fsEq1218 partsEq1218 armsEq1218 rfl Fn.«level_residual__L28_L10_L4_L2_loop0».cplOk
+  cplOk_of_link link1218 plumbEq1218 fsEq1218 partsEq1218 armsEq1218 rfl Fn.«level_positions__L22_L22_L4_loop0».cplOk
 
 theorem ok1219 : CplOk 1219 :=
-  cplOk_of_link link1219 plumbEq1219 fsEq1219 partsEq1219 armsEq1219 rfl Fn.«level_residual__L28_L10_L4_L2_loop1».cplOk
+  cplOk_of_link link1219 plumbEq1219 fsEq1219 partsEq1219 armsEq1219 rfl Fn.«level_positions__L15_L23_L5_loop0».cplOk
 
 theorem ok1220 : CplOk 1220 :=
-  cplOk_of_link link1220 plumbEq1220 fsEq1220 partsEq1220 armsEq1220 rfl Fn.«level_residual__L25_L10_L4_L2_loop0».cplOk
+  cplOk_of_link link1220 plumbEq1220 fsEq1220 partsEq1220 armsEq1220 rfl Fn.«decode_query_windows__L24_L6».cplOk
 
 theorem ok1221 : CplOk 1221 :=
-  cplOk_of_link link1221 plumbEq1221 fsEq1221 partsEq1221 armsEq1221 rfl Fn.«level_residual__L25_L10_L4_L2_loop1».cplOk
+  cplOk_of_link link1221 plumbEq1221 fsEq1221 partsEq1221 armsEq1221 rfl Fn.«level_positions__L11_L24_L6_loop0».cplOk
 
 theorem ok1222 : CplOk 1222 :=
-  cplOk_of_link link1222 plumbEq1222 fsEq1222 partsEq1222 armsEq1222 rfl Fn.«level_residual__L23_L10_L4_L2_loop0».cplOk
+  cplOk_of_link link1222 plumbEq1222 fsEq1222 partsEq1222 armsEq1222 rfl Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».cplOk
 
 theorem ok1223 : CplOk 1223 :=
-  cplOk_of_link link1223 plumbEq1223 fsEq1223 partsEq1223 armsEq1223 rfl Fn.«level_residual__L23_L10_L4_L2_loop1».cplOk
+  cplOk_of_link link1223 plumbEq1223 fsEq1223 partsEq1223 armsEq1223 rfl Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».cplOk
 
 theorem ok1224 : CplOk 1224 :=
-  cplOk_of_link link1224 plumbEq1224 fsEq1224 partsEq1224 armsEq1224 rfl Fn.«level_residual__L21_L6_L4_L2_loop0».cplOk
+  cplOk_of_link link1224 plumbEq1224 fsEq1224 partsEq1224 armsEq1224 rfl Fn.«level_positions__L8_L21_L3_loop0».cplOk
 
 theorem ok1225 : CplOk 1225 :=
-  cplOk_of_link link1225 plumbEq1225 fsEq1225 partsEq1225 armsEq1225 rfl Fn.«level_residual__L21_L6_L4_L2_loop1».cplOk
+  cplOk_of_link link1225 plumbEq1225 fsEq1225 partsEq1225 armsEq1225 rfl Fn.«level_positions__L8_L22_L4_loop0».cplOk
 
 theorem ok1226 : CplOk 1226 :=
-  cplOk_of_link link1226 plumbEq1226 fsEq1226 partsEq1226 armsEq1226 rfl Fn.«level_residual__L19_L6_L4_L2_loop0».cplOk
+  cplOk_of_link link1226 plumbEq1226 fsEq1226 partsEq1226 armsEq1226 rfl Fn.«level_positions__L7_L23_L5_loop0».cplOk
 
 theorem ok1227 : CplOk 1227 :=
-  cplOk_of_link link1227 plumbEq1227 fsEq1227 partsEq1227 armsEq1227 rfl Fn.«level_residual__L19_L6_L4_L2_loop1».cplOk
+  cplOk_of_link link1227 plumbEq1227 fsEq1227 partsEq1227 armsEq1227 rfl Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».cplOk
 
 theorem ok1228 : CplOk 1228 :=
-  cplOk_of_link link1228 plumbEq1228 fsEq1228 partsEq1228 armsEq1228 rfl Fn.«level_residual__L18_L6_L4_L2_loop0».cplOk
+  cplOk_of_link link1228 plumbEq1228 fsEq1228 partsEq1228 armsEq1228 rfl Fn.«level_positions__L5_L21_L3_loop0».cplOk
 
 theorem ok1229 : CplOk 1229 :=
-  cplOk_of_link link1229 plumbEq1229 fsEq1229 partsEq1229 armsEq1229 rfl Fn.«level_residual__L18_L6_L4_L2_loop1».cplOk
+  cplOk_of_link link1229 plumbEq1229 fsEq1229 partsEq1229 armsEq1229 rfl Fn.«level_positions__L5_L22_L4_loop0».cplOk
 
 theorem ok1230 : CplOk 1230 :=
-  cplOk_of_link link1230 plumbEq1230 fsEq1230 partsEq1230 armsEq1230 rfl Fn.«decode_query_windows__L20_L8».cplOk
+  cplOk_of_link link1230 plumbEq1230 fsEq1230 partsEq1230 armsEq1230 rfl Fn.«level_positions__L3_L21_L3_loop0».cplOk
 
 theorem ok1231 : CplOk 1231 :=
-  cplOk_of_link link1231 plumbEq1231 fsEq1231 partsEq1231 armsEq1231 rfl Fn.«level_positions__L37_L20_L8_loop0».cplOk
+  cplOk_of_link link1231 plumbEq1231 fsEq1231 partsEq1231 armsEq1231 rfl Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1».cplOk
 
 theorem ok1232 : CplOk 1232 :=
-  cplOk_of_link link1232 plumbEq1232 fsEq1232 partsEq1232 armsEq1232 rfl Fn.«level_positions__L19_L21_L3_loop0».cplOk
+  cplOk_of_link link1232 plumbEq1232 fsEq1232 partsEq1232 armsEq1232 rfl Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1».cplOk
 
 theorem ok1233 : CplOk 1233 :=
-  cplOk_of_link link1233 plumbEq1233 fsEq1233 partsEq1233 armsEq1233 rfl Fn.«level_positions__L15_L22_L4_loop0».cplOk
+  cplOk_of_link link1233 plumbEq1233 fsEq1233 partsEq1233 armsEq1233 rfl Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».cplOk
 
 theorem ok1234 : CplOk 1234 :=
-  cplOk_of_link link1234 plumbEq1234 fsEq1234 partsEq1234 armsEq1234 rfl Fn.«decode_query_windows__L23_L5».cplOk
+  cplOk_of_link link1234 plumbEq1234 fsEq1234 partsEq1234 armsEq1234 rfl Fn.«level_residual__L218_L20_L6_L3_loop0».cplOk
 
 theorem ok1235 : CplOk 1235 :=
-  cplOk_of_link link1235 plumbEq1235 fsEq1235 partsEq1235 armsEq1235 rfl Fn.«level_positions__L11_L23_L5_loop0».cplOk
+  cplOk_of_link link1235 plumbEq1235 fsEq1235 partsEq1235 armsEq1235 rfl Fn.«level_residual__L218_L20_L6_L3_loop1».cplOk
 
 theorem ok1236 : CplOk 1236 :=
-  cplOk_of_link link1236 plumbEq1236 fsEq1236 partsEq1236 armsEq1236 rfl Fn.«verify_merkle_cap__L8».cplOk
+  cplOk_of_link link1236 plumbEq1236 fsEq1236 partsEq1236 armsEq1236 rfl Fn.«level_residual__L109_L20_L6_L3_loop0».cplOk
 
 theorem ok1237 : CplOk 1237 :=
-  cplOk_of_link link1237 plumbEq1237 fsEq1237 partsEq1237 armsEq1237 rfl Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».cplOk
+  cplOk_of_link link1237 plumbEq1237 fsEq1237 partsEq1237 armsEq1237 rfl Fn.«level_residual__L109_L20_L6_L3_loop1».cplOk
 
 theorem ok1238 : CplOk 1238 :=
-  cplOk_of_link link1238 plumbEq1238 fsEq1238 partsEq1238 armsEq1238 rfl Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».cplOk
+  cplOk_of_link link1238 plumbEq1238 fsEq1238 partsEq1238 armsEq1238 rfl Fn.«level_residual__L73_L20_L6_L3_loop0».cplOk
 
 theorem ok1239 : CplOk 1239 :=
-  cplOk_of_link link1239 plumbEq1239 fsEq1239 partsEq1239 armsEq1239 rfl Fn.«level_positions__L8_L20_L2_loop0».cplOk
+  cplOk_of_link link1239 plumbEq1239 fsEq1239 partsEq1239 armsEq1239 rfl Fn.«level_residual__L73_L20_L6_L3_loop1».cplOk
 
 theorem ok1240 : CplOk 1240 :=
-  cplOk_of_link link1240 plumbEq1240 fsEq1240 partsEq1240 armsEq1240 rfl Fn.«level_positions__L7_L21_L3_loop0».cplOk
+  cplOk_of_link link1240 plumbEq1240 fsEq1240 partsEq1240 armsEq1240 rfl Fn.«level_residual__L55_L20_L6_L3_loop0».cplOk
 
 theorem ok1241 : CplOk 1241 :=
-  cplOk_of_link link1241 plumbEq1241 fsEq1241 partsEq1241 armsEq1241 rfl Fn.«level_positions__L7_L22_L4_loop0».cplOk
+  cplOk_of_link link1241 plumbEq1241 fsEq1241 partsEq1241 armsEq1241 rfl Fn.«level_residual__L55_L20_L6_L3_loop1».cplOk
 
 theorem ok1242 : CplOk 1242 :=
-  cplOk_of_link link1242 plumbEq1242 fsEq1242 partsEq1242 armsEq1242 rfl Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».cplOk
+  cplOk_of_link link1242 plumbEq1242 fsEq1242 partsEq1242 armsEq1242 rfl Fn.«level_residual__L55_L16_L4_L2_loop0».cplOk
 
 theorem ok1243 : CplOk 1243 :=
-  cplOk_of_link link1243 plumbEq1243 fsEq1243 partsEq1243 armsEq1243 rfl Fn.«level_positions__L5_L20_L2_loop0».cplOk
+  cplOk_of_link link1243 plumbEq1243 fsEq1243 partsEq1243 armsEq1243 rfl Fn.«level_residual__L55_L16_L4_L2_loop1».cplOk
 
 theorem ok1244 : CplOk 1244 :=
-  cplOk_of_link link1244 plumbEq1244 fsEq1244 partsEq1244 armsEq1244 rfl Fn.«level_positions__L4_L21_L3_loop0».cplOk
+  cplOk_of_link link1244 plumbEq1244 fsEq1244 partsEq1244 armsEq1244 rfl Fn.«level_residual__L44_L16_L4_L2_loop0».cplOk
 
 theorem ok1245 : CplOk 1245 :=
-  cplOk_of_link link1245 plumbEq1245 fsEq1245 partsEq1245 armsEq1245 rfl Fn.«level_positions__L3_L20_L2_loop0».cplOk
+  cplOk_of_link link1245 plumbEq1245 fsEq1245 partsEq1245 armsEq1245 rfl Fn.«level_residual__L44_L16_L4_L2_loop1».cplOk
 
 theorem ok1246 : CplOk 1246 :=
-  cplOk_of_link link1246 plumbEq1246 fsEq1246 partsEq1246 armsEq1246 rfl Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1».cplOk
+  cplOk_of_link link1246 plumbEq1246 fsEq1246 partsEq1246 armsEq1246 rfl Fn.«level_residual__L37_L16_L4_L2_loop0».cplOk
 
 theorem ok1247 : CplOk 1247 :=
-  cplOk_of_link link1247 plumbEq1247 fsEq1247 partsEq1247 armsEq1247 rfl Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1».cplOk
+  cplOk_of_link link1247 plumbEq1247 fsEq1247 partsEq1247 armsEq1247 rfl Fn.«level_residual__L37_L16_L4_L2_loop1».cplOk
 
 theorem ok1248 : CplOk 1248 :=
-  cplOk_of_link link1248 plumbEq1248 fsEq1248 partsEq1248 armsEq1248 rfl Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».cplOk
+  cplOk_of_link link1248 plumbEq1248 fsEq1248 partsEq1248 armsEq1248 rfl Fn.«level_residual__L32_L16_L4_L2_loop0».cplOk
 
 theorem ok1249 : CplOk 1249 :=
-  cplOk_of_link link1249 plumbEq1249 fsEq1249 partsEq1249 armsEq1249 rfl Fn.«level_residual__L218_L19_L6_L3_loop0».cplOk
+  cplOk_of_link link1249 plumbEq1249 fsEq1249 partsEq1249 armsEq1249 rfl Fn.«level_residual__L28_L12_L4_L2_loop0».cplOk
 
 theorem ok1250 : CplOk 1250 :=
-  cplOk_of_link link1250 plumbEq1250 fsEq1250 partsEq1250 armsEq1250 rfl Fn.«level_residual__L218_L19_L6_L3_loop1».cplOk
+  cplOk_of_link link1250 plumbEq1250 fsEq1250 partsEq1250 armsEq1250 rfl Fn.«level_residual__L28_L12_L4_L2_loop1».cplOk
 
 end
 end LeanVM.Guest.B2C.Cplw

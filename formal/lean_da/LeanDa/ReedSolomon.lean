@@ -8,14 +8,16 @@ public import Mathlib.LinearAlgebra.Dimension.Constructions
 /-!
 # The additive Reed-Solomon code at rate one half is self-dual
 
-`doc/leanvm/body/d-novel-basis.tex` §sec:ntt-duality on the crate's domain: the `2^15` points
-`point b`, the span of `e_0 … e_14`. Lemma lem:domain-sum (`sum_eval_eq_zero`): over a finite
-additive subgroup `D` of a field, the coefficient of `X^(|D|-1)` of a polynomial of degree below
-`|D|` is its sum over `D` divided by `∏_(d ∈ D, d ≠ 0) d`, by Lagrange interpolation, so a
-polynomial of degree at most `|D| - 2` sums to zero. Corollary cor:rs-dual (`orthogonal_rsCode`):
-two codewords of degree below `2^14` are orthogonal, and the dimensions add up, so the code is
-its own dual. With the novel basis spanning the polynomials of degree below `2^14`, a word
-orthogonal to every `Xⱼ` on the domain is a codeword (`mem_rsCode_of_orthogonal`).
+`doc/leanvm/body/d-novel-basis.tex` §sec:ntt-duality on the crate's domain: the `2^14` points
+`point b` of `K`, the span of `e_0 … e_13`, embedded in `E`, where the symbols live. Lemma
+lem:domain-sum (`sum_eval_eq_zero`): over a finite additive subgroup `D` of a field, the
+coefficient of `X^(|D|-1)` of a polynomial of degree below `|D|` is its sum over `D` divided by
+`∏_(d ∈ D, d ≠ 0) d`, by Lagrange interpolation, so a polynomial of degree at most `|D| - 2` sums
+to zero. Corollary cor:rs-dual (`orthogonal_rsCode`): two codewords of degree below `2^13` are
+orthogonal, and the dimensions add up, so the code is its own dual. The novel basis spans the
+polynomials of `K[X]` of degree below `2^13` over `K`, so their monomials, which span those of
+`E[X]` over `E`: a word orthogonal to every `Xⱼ` on the domain is a codeword
+(`mem_rsCode_of_orthogonal`).
 
 The code is also the image of the systematic encoder (`range_encodeRow`).
 
@@ -86,24 +88,24 @@ instance : Fact (LinearIndependent (ZMod 2) basis) := ⟨basis_linearIndependent
 
 theorem point_add (a b : ℕ) : point a + point b = point (a ^^^ b) := ofBits_add a b
 
-theorem point_injective : Function.Injective fun b : Fin (2 ^ 15) ↦ point b := by
+theorem point_injective : Function.Injective fun b : Fin (2 ^ 14) ↦ ι (point b) := by
   intro a b h
-  exact Fin.ext (ofBits_inj (by omega) (by omega) h)
+  exact Fin.ext (ofBits_inj (by omega) (by omega) (ι.injective h))
 
-/-- The domain `S_15`, the span of `e_0 … e_14`. -/
-noncomputable def domain : Finset K := Finset.univ.image fun b : Fin (2 ^ 15) ↦ point b
+/-- The domain `S_14`, the span of `e_0 … e_13`, in `E`. -/
+noncomputable def domain : Finset E := Finset.univ.image fun b : Fin (2 ^ 14) ↦ ι (point b)
 
-theorem card_domain : domain.card = 2 ^ 15 := by
+theorem card_domain : domain.card = 2 ^ 14 := by
   rw [domain, Finset.card_image_of_injective _ point_injective, Finset.card_univ, Fintype.card_fin]
 
-theorem sub_mem_domain {x y : K} (hx : x ∈ domain) (hy : y ∈ domain) : x - y ∈ domain := by
+theorem sub_mem_domain {x y : E} (hx : x ∈ domain) (hy : y ∈ domain) : x - y ∈ domain := by
   simp only [domain, Finset.mem_image, Finset.mem_univ, true_and] at hx hy ⊢
   obtain ⟨a, rfl⟩ := hx
   obtain ⟨b, rfl⟩ := hy
   refine ⟨⟨a ^^^ b, Nat.xor_lt_two_pow a.isLt b.isLt⟩, ?_⟩
-  rw [CharTwo.sub_eq_add, point_add]
+  rw [← map_sub, CharTwo.sub_eq_add, point_add]
 
-theorem sum_domain (f : K → K) : ∑ x ∈ domain, f x = ∑ b : Fin (2 ^ 15), f (point b) := by
+theorem sum_domain (f : E → E) : ∑ x ∈ domain, f x = ∑ b : Fin (2 ^ 14), f (ι (point b)) := by
   rw [domain, Finset.sum_image fun a _ b _ h ↦ point_injective h]
 
 /-! ## Lemma lem:domain-sum -/
@@ -142,21 +144,21 @@ theorem sum_eval_eq_zero {F : Type*} [Field F] [DecidableEq F] (S : Finset F)
 /-! ## The code -/
 
 /-- Evaluation on the domain, in domain order. -/
-noncomputable def evalDomain : K[X] →ₗ[K] Row where
-  toFun P b := P.eval (point b)
+noncomputable def evalDomain : E[X] →ₗ[E] Row where
+  toFun P b := P.eval (ι (point b))
   map_add' P Q := by ext b; simp
   map_smul' a P := by ext b; simp
 
-/-- **The Reed-Solomon code** `RS[K, S_15, 2^14]`: the values of the polynomials of degree below
-`2^14` on the domain. -/
-noncomputable def rsCode : Submodule K Row :=
-  LinearMap.range (evalDomain.domRestrict (degreeLT K (2 ^ 14)))
+/-- **The Reed-Solomon code** `RS[E, S_14, 2^13]`: the values of the polynomials of degree below
+`2^13` on the domain. -/
+noncomputable def rsCode : Submodule E Row :=
+  LinearMap.range (evalDomain.domRestrict (degreeLT E (2 ^ 13)))
 
-theorem mem_rsCode {w : Row} : w ∈ rsCode ↔ ∃ P ∈ degreeLT K (2 ^ 14), evalDomain P = w := by
+theorem mem_rsCode {w : Row} : w ∈ rsCode ↔ ∃ P ∈ degreeLT E (2 ^ 13), evalDomain P = w := by
   simp [rsCode]
 
 /-- The dot product of rows. -/
-noncomputable def dotForm : LinearMap.BilinForm K Row := dotProductBilin K K
+noncomputable def dotForm : LinearMap.BilinForm E Row := dotProductBilin E E
 
 theorem dotForm_apply (u v : Row) : dotForm u v = ∑ b, u b * v b := by
   simp only [dotForm, dotProductBilin_apply_apply, dotProduct]
@@ -166,7 +168,7 @@ theorem dotForm_nondegenerate : dotForm.Nondegenerate := by
   · simpa [dotForm_apply, Pi.single_apply] using hu (Pi.single b 1)
   · simpa [dotForm_apply, Pi.single_apply] using hu (Pi.single b 1)
 
-theorem evalDomain_injOn {P : K[X]} (hP : P ∈ degreeLT K (2 ^ 14)) (h : evalDomain P = 0) :
+theorem evalDomain_injOn {P : E[X]} (hP : P ∈ degreeLT E (2 ^ 13)) (h : evalDomain P = 0) :
     P = 0 := by
   rw [mem_degreeLT] at hP
   refine Polynomial.eq_zero_of_degree_lt_of_eval_finset_eq_zero domain ?_ ?_
@@ -176,15 +178,15 @@ theorem evalDomain_injOn {P : K[X]} (hP : P ∈ degreeLT K (2 ^ 14)) (h : evalDo
     obtain ⟨b, rfl⟩ := hx
     exact congrFun h b
 
-theorem finrank_rsCode : finrank K rsCode = 2 ^ 14 := by
+theorem finrank_rsCode : finrank E rsCode = 2 ^ 13 := by
   rw [rsCode, LinearMap.finrank_range_of_inj]
-  · rw [(degreeLTEquiv K (2 ^ 14)).finrank_eq, finrank_fin_fun]
+  · rw [(degreeLTEquiv E (2 ^ 13)).finrank_eq, finrank_fin_fun]
   · intro P Q h
-    have hPQ : evalDomain ((P : K[X]) - Q) = 0 := by
+    have hPQ : evalDomain ((P : E[X]) - Q) = 0 := by
       rw [map_sub, sub_eq_zero]; exact h
     exact Subtype.ext (sub_eq_zero.mp (evalDomain_injOn (Submodule.sub_mem _ P.2 Q.2) hPQ))
 
-theorem dotForm_evalDomain (P Q : K[X]) :
+theorem dotForm_evalDomain (P Q : E[X]) :
     dotForm (evalDomain P) (evalDomain Q) = ∑ x ∈ domain, (P * Q).eval x := by
   rw [dotForm_apply, sum_domain]
   simp [evalDomain]
@@ -200,11 +202,11 @@ theorem rsCode_le_orthogonal : rsCode ≤ dotForm.orthogonal rsCode := by
   rw [dotForm_evalDomain]
   refine sum_eval_eq_zero domain (fun x hx y hy ↦ sub_mem_domain hx hy) ?_
   rw [card_domain]
-  have hP' : P.natDegree < 2 ^ 14 := by
+  have hP' : P.natDegree < 2 ^ 13 := by
     rcases eq_or_ne P 0 with rfl | h
     · simp
     · exact (natDegree_lt_iff_degree_lt h).mpr (mem_degreeLT.mp hP)
-  have hQ' : Q.natDegree < 2 ^ 14 := by
+  have hQ' : Q.natDegree < 2 ^ 13 := by
     rcases eq_or_ne Q 0 with rfl | h
     · simp
     · exact (natDegree_lt_iff_degree_lt h).mpr (mem_degreeLT.mp hQ)
@@ -221,33 +223,61 @@ theorem orthogonal_rsCode : dotForm.orthogonal rsCode = rsCode := by
 /-! ## The novel basis -/
 
 /-- The novel basis polynomial `Xⱼ = ∏_i Ŵ_i^(j_i)` (Annex D, Definition def:enc). -/
-noncomputable abbrev novelX (u : Fin (2 ^ 14)) : K[X] :=
-  AdditiveNTT.Xⱼ (ZMod 2) basis 14 (by norm_num) u
+noncomputable abbrev novelX (u : Fin (2 ^ 13)) : K[X] :=
+  AdditiveNTT.Xⱼ (ZMod 2) basis 13 (by norm_num) u
 
-/-- A word orthogonal on the domain to every novel basis polynomial is a codeword. -/
+/-- A word's products with a polynomial of `K[X]` on the domain. -/
+noncomputable def pairingSum (w : Row) (Q : K[X]) : E := ∑ b : Fin (2 ^ 14), ι (Q.eval (point b)) * w b
+
+/-- `pairingSum`, `K`-linear in the polynomial. -/
+noncomputable def pairing (w : Row) : K[X] →ₗ[K] E where
+  toFun := pairingSum w
+  map_add' P Q := by simp only [pairingSum, eval_add, map_add, add_mul, Finset.sum_add_distrib]
+  map_smul' a P := by
+    simp only [pairingSum, RingHom.id_apply, Finset.smul_sum]
+    refine Finset.sum_congr rfl fun b _ ↦ ?_
+    rw [eval_smul, smul_eq_mul, map_mul, Algebra.smul_def, mul_assoc]
+
+theorem pairing_apply (w : Row) (Q : K[X]) : pairing w Q = pairingSum w Q := by
+  simp only [pairing, LinearMap.coe_mk, AddHom.coe_mk]
+
+/-- A word orthogonal on the domain to every novel basis polynomial is a codeword: it is then
+orthogonal to every monomial below `2^13`, and the polynomials of `E[X]` of degree below `2^13`
+are their combinations. -/
 theorem mem_rsCode_of_orthogonal {w : Row}
-    (h : ∀ u : Fin (2 ^ 14), ∑ b : Fin (2 ^ 15), (novelX u).eval (point b) * w b = 0) :
+    (h : ∀ u : Fin (2 ^ 13), ∑ b : Fin (2 ^ 14), ι ((novelX u).eval (point b)) * w b = 0) :
     w ∈ rsCode := by
   rw [← orthogonal_rsCode, LinearMap.BilinForm.mem_orthogonal_iff]
   intro v hv
   obtain ⟨P, hP, rfl⟩ := mem_rsCode.mp hv
-  let φ : degreeLT K (2 ^ 14) →ₗ[K] K :=
-    (dotForm.flip w).comp (evalDomain.comp (degreeLT K (2 ^ 14)).subtype)
-  have hφ : φ = 0 := by
-    refine (AdditiveNTT.novelPolynomialBasis (ZMod 2) basis 14 (by norm_num)).ext fun u ↦ ?_
+  have hφ : (pairing w).comp (degreeLT K (2 ^ 13)).subtype = 0 := by
+    refine (AdditiveNTT.novelPolynomialBasis (ZMod 2) basis 13 (by norm_num)).ext fun u ↦ ?_
     simp only [AdditiveNTT.novelPolynomialBasis, Basis.coe_mk, LinearMap.zero_apply]
-    simpa [φ, dotForm_apply, evalDomain, AdditiveNTT.basisVectors] using h u
-  have := LinearMap.congr_fun hφ ⟨P, hP⟩
-  simpa [φ] using this
+    simpa [pairing_apply, pairingSum, AdditiveNTT.basisVectors] using h u
+  have hX : ∀ i < 2 ^ 13, ∑ b : Fin (2 ^ 14), ι (point b) ^ i * w b = 0 := fun i hi ↦ by
+    have := LinearMap.congr_fun hφ ⟨X ^ i, mem_degreeLT.mpr (by rw [degree_X_pow]; exact_mod_cast hi)⟩
+    rw [LinearMap.comp_apply, Submodule.subtype_apply, LinearMap.zero_apply, pairing_apply,
+      pairingSum] at this
+    simpa only [eval_pow, eval_X, map_pow] using this
+  have hP' : P.natDegree < 2 ^ 13 := by
+    rcases eq_or_ne P 0 with rfl | hne
+    · simp
+    · exact (natDegree_lt_iff_degree_lt hne).mpr (mem_degreeLT.mp hP)
+  change dotForm (evalDomain P) w = 0
+  rw [dotForm_apply]
+  simp only [evalDomain, LinearMap.coe_mk, AddHom.coe_mk, eval_eq_sum_range' hP', Finset.sum_mul]
+  rw [Finset.sum_comm]
+  refine Finset.sum_eq_zero fun i hi ↦ ?_
+  simp only [mul_assoc, ← Finset.mul_sum, hX i (Finset.mem_range.mp hi), mul_zero]
 
 /-! ## The systematic encoder -/
 
 theorem point_injOn :
-    Set.InjOn (fun a : Fin (2 ^ 14) ↦ point a) ↑(Finset.univ : Finset (Fin (2 ^ 14))) := by
+    Set.InjOn (fun a : Fin (2 ^ 13) ↦ ι (point a)) ↑(Finset.univ : Finset (Fin (2 ^ 13))) := by
   intro a _ b _ h
-  exact Fin.ext (ofBits_inj (by omega) (by omega) h)
+  exact Fin.ext (ofBits_inj (by omega) (by omega) (ι.injective h))
 
-theorem interpolate_mem (p : Payload) : interpolate p ∈ degreeLT K (2 ^ 14) := by
+theorem interpolate_mem (p : Payload) : interpolate p ∈ degreeLT E (2 ^ 13) := by
   rw [mem_degreeLT]
   refine (Lagrange.degree_interpolate_lt (s := Finset.univ) (r := p) point_injOn).trans_eq ?_
   rw [Finset.card_univ, Fintype.card_fin]
@@ -256,7 +286,7 @@ theorem encodeRow_mem (p : Payload) : encodeRow p ∈ rsCode :=
   mem_rsCode.mpr ⟨interpolate p, interpolate_mem p, rfl⟩
 
 /-- The payload is the codeword's first half. -/
-theorem encodeRow_systematic (p : Payload) (a : Fin (2 ^ 14)) :
+theorem encodeRow_systematic (p : Payload) (a : Fin (2 ^ 13)) :
     encodeRow p (Fin.castLE (by norm_num) a) = p a := by
   simp only [encodeRow, interpolate, Fin.val_castLE]
   exact Lagrange.eval_interpolate_at_node p point_injOn (Finset.mem_univ a)

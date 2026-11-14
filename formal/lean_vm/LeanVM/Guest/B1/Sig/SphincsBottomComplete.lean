@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsBottomComplete
 
-  The first stages of `verify_sig_lean_sphincs` (`lean_ethereum.py:4143-4228`)
+  The first stages of `verify_sig_lean_sphincs` (`lean_ethereum.py`)
   are complete for an honest signature: the message digest, the bottom key's address, FORS.
 -/
 
@@ -13,8 +13,8 @@ public import LeanVM.Guest.B1.Sig.SphincsStagesComplete
 # The digest and FORS, complete
 
 `G` is `lean_ethereum.py`. From the arguments (`n0` the claim, `n1` the byte table) to `n5249`,
-the body is `sDigestBlock` (`G:4143-4216`), `sForsAddrs` (`G:4220-4221`) and `sForsB`
-(`G:4223-4228`). `sBottom_complete`: for a claim of `pk` and `m` and a signature `sig`, under the
+the body is `sDigestBlock`, `sForsAddrs` and `sForsB`
+. `sBottom_complete`: for a claim of `pk` and `m` and a signature `sig`, under the
 blocks' completeness, they complete with the padding run, `PK.seed`, `PK.root`, the digest's number
 `digestT pk m sig` (`DigestAt`), the byte table's pointers, the bottom key's `A0` and `A1`, and the
 FORS key cell (`forsKeyCell`, whose value is the statement's FORS key, `sForsKeyOf_eq`). The

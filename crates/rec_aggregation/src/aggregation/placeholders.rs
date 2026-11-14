@@ -11,16 +11,16 @@ use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use fiat_shamir::merkle::hash_to_scalars;
 use lean_compiler::f128_literal;
-use lean_da::{CELLS_PER_ROW, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
+use lean_da::{CELLS_PER_ROW, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, LOG_CELL_SYMBOLS, LOG_CODEWORD_SYMBOLS};
 use leanvm_core::constraints::xi_offsets;
 use leanvm_core::cpu::{KeccakLane, keccak_value};
 use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
+use pcs::ntt::AdditiveNttF64;
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 use pcs::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
 use primitives::field::{F64, F128, g_pow};
-use signatures::{lean_sphincs, lean_xmss};
 use std::collections::BTreeMap;
 use std::ops::Range;
 
@@ -920,36 +920,53 @@ fn bytecode_placeholders(kbc: usize, nbcv: usize, ps: &mut impl FnMut(&str, Stri
     ps("STMT_HEADER", STATEMENT_HEADER.to_string());
 }
 
+/// `Vhat_j` at the domain point whose bits above `j` are `y`'s, `Σ_l bit_l(y) · β_(j+1+l)`:
+/// the NTT's twiddles. `Vhat_j(β_j) = 1` and the bits below `j` vanish, so `Vhat_j` at point
+/// `i` is `bit_j(i)` plus this at `i >> (j + 1)`: the factors the guest builds `L` from.
+fn subspace_above() -> impl Fn(usize, usize) -> F64 {
+    let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
+    move |j, y| {
+        assert!(
+            j <= LOG_BLOB_SYMBOLS && y >> (LOG_BLOB_SYMBOLS - j) == 0,
+            "bits above {j} only"
+        );
+        ntt.twiddle(LOG_BLOB_SYMBOLS - j, y)
+    }
+}
+
 /// LeanDA (`doc/leanvm` §sec:leanda).
 fn da_placeholders(ps: &mut impl FnMut(&str, String)) {
-    let pad_blob = hash_to_scalars(&lean_da::padding_root());
-    ps("DA_LOG_K", DA_LOG_K.to_string());
-    ps("DA_LOG_CELL", DA_LOG_CELL.to_string());
+    let pad_blob = hash_to_scalars(&lean_da::root_of_padding_blob());
+    ps("DA_LOG_K", LOG_BLOB_SYMBOLS.to_string());
+    ps("DA_LOG_CELL", LOG_CELL_SYMBOLS.to_string());
     ps("DA_MAX_ROWS", DA_MAX_ROWS.to_string());
     ps("DA_LOG_MAX_ROWS", DA_MAX_ROWS.ilog2().to_string());
     ps("DA_PAD_BLOB_0", f128_literal(pad_blob[0]));
     ps("DA_PAD_BLOB_1", f128_literal(pad_blob[1]));
     // `Vhat_j` at each parent node `n` of a product tree over bits `top, top - 1, ...`, in heap
     // order: `j` the bit `n` splits, the point its path's bits make.
-    let vhat = lean_da::subspace_above();
+    let vhat = subspace_above();
     let tree = |top: usize, depth: usize| -> Vec<u64> {
         (0..1usize << depth)
             .map(|n| n.checked_ilog2().map_or(0, |d| vhat(top - d as usize, n - (1 << d)).0))
             .collect()
     };
     let cell_bits = CELLS_PER_ROW.ilog2() as usize;
-    let (top_tree, cell_tree) = (tree(DA_LOG_K, cell_bits), tree(DA_LOG_CELL - 1, DA_LOG_CELL));
+    let (top_tree, cell_tree) = (
+        tree(LOG_BLOB_SYMBOLS, cell_bits),
+        tree(LOG_CELL_SYMBOLS - 1, LOG_CELL_SYMBOLS),
+    );
     ps("DA_VHAT", literals(top_tree.into_iter().chain(cell_tree)));
-    // `Vhat_j(beta_(DA_LOG_CELL + b))` for each factor `j` inside a cell and bit `b` of the cell index.
-    let column = (0..cell_bits).flat_map(|b| (0..DA_LOG_CELL).map(move |j| (j, b)));
+    // `Vhat_j(beta_(LOG_CELL_SYMBOLS + b))` for each factor `j` inside a cell and bit `b` of the cell index.
+    let column = (0..cell_bits).flat_map(|b| (0..LOG_CELL_SYMBOLS).map(move |j| (j, b)));
     ps(
         "DA_VHAT_COLUMN",
-        literals(column.map(|(j, b)| vhat(j, 1 << (DA_LOG_CELL - 1 - j + b)).0)),
+        literals(column.map(|(j, b)| vhat(j, 1 << (LOG_CELL_SYMBOLS - 1 - j + b)).0)),
     );
 }
 
 // A leanSPHINCS chain step's address is WOTS_HASH's, the type the guest leaves zero.
-const _: () = assert!(signatures::lean_sphincs::WOTS_HASH == 0);
+const _: () = assert!(lean_sphincs::WOTS_HASH == 0);
 
 /// Both signature schemes and the coverage caps.
 fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {

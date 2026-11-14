@@ -47,13 +47,13 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 def CapAt (rd : Reader) (rec : E) (off stride : ℕ) (cap : List E) : Prop :=
   cap.length = 5 ∧ ∀ j (hj : j < cap.length), LoadHolds rd rec (off + j * stride) cap[j]
 
-/-! ## `sumcheck_round4` (G:1090-1106, TRIAGE #30) -/
+/-! ## `sumcheck_round4` (TRIAGE #30) -/
 
 /-- **`sumcheck_round4(rd, msg_cursor, claim, tabs)`**: the record at `rd` carries the sponge's
 capacity; the three stream words at the cursor are the round polynomial's
 `c0, c2, c3` (`sumcheckRoundPoly 4 claim none`: `c1 = claim + c2 + c3`), absorbed, then the
 challenge `y` squeezed; the next record (`rd·g^7`) carries the sponge after it; the function
-returns the cursor three words on, the polynomial at `y` (`polyEval`, V:297) and `y`. -/
+returns the cursor three words on, the polynomial at `y` (`polyEval`) and `y`. -/
 def MeaningSumcheckRound4 (rd : Reader) : List E → List E → Prop
   | [rec, cur, claim, _], rets =>
       ∃ (cap : List E) (c0 c2 c3 : E), CapAt rd rec 0 1 cap ∧ ReadsAt rd cur [c0, c2, c3] ∧
@@ -68,7 +68,7 @@ def sumcheck_round4_SpecP (P : Program) : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     P.Rel rd "sumcheck_round4" args rets ↔ MeaningSumcheckRound4 rd args rets
 
-/-! ## `gkr_rounds` (G:1109-1133, TRIAGE #31) -/
+/-! ## `gkr_rounds` (TRIAGE #31) -/
 
 /-- `GKR_ROUNDS_CAP`: the stride of a GKR round record's fields. -/
 abbrev gkrRoundsCap : ℕ := guest_const% GKR_ROUNDS_CAP
@@ -106,12 +106,12 @@ def MeaningGkrRounds (n : ℕ) (rd : Reader) : List E → List E → Prop
         LoadHolds rd rec (n + 6 * gkrRoundsCap) res.2.1
   | _, _ => False
 
-/-- `gkr_rounds__L0` (G:1113, `if const(n != 0)` false): it returns `0` and does nothing else. -/
+/-- `gkr_rounds__L0` (`if const(n != 0)` false): it returns `0` and does nothing else. -/
 def MeaningGkrRounds0 : List E → List E → Prop
   | [_, _, _], rets => rets = [0]
   | _, _ => False
 
-/-- The rounds' counts with a specialization of their own, `gkr_rounds__L{n}` (G:1108-1131: the
+/-- The rounds' counts with a specialization of their own, `gkr_rounds__L{n}` (the
 odd round, and `2 r`, `r < 4`, after the loop's eight-round steps). -/
 def gkrRoundsCounts : List ℕ := [1, 2, 4, 6]
 
@@ -132,7 +132,7 @@ def gkr_rounds_SpecP (P : Program) : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     P.Rel rd "gkr_rounds__L0" args rets ↔ MeaningGkrRounds0 args rets
 
-/-! ## `batch_sumcheck` (G:1136-1150, TRIAGE #32) -/
+/-! ## `batch_sumcheck` (TRIAGE #32) -/
 
 /-- `Node.batchRounds` on the carried sponge: per round `g(1)`, `g(∞)` absorbed, the challenge
 squeezed, the degree-2 round folded. The challenges, the final claim, the final sponge. -/

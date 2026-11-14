@@ -20,7 +20,7 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 @[expose] public section
 
 /-- **A child's announced stack log and rate** (`readAnnouncedSizes`,
-`Verifier.announcedLayoutAndRate`): the opening arm its `verify_sub` dispatches to (G:3466-3468);
+`Verifier.announcedLayoutAndRate`): the opening arm its `verify_sub` dispatches to;
 `(0, 0)` if its stream announces none, which no child of a node within `Limits`, its caps agreeing
 and no zero challenge, does (`B1.Main.childShape_bounds`). -/
 def childShape (bytecode : List K) (c : Child) : ℕ × ℕ :=
@@ -69,7 +69,7 @@ noncomputable def work (s : NodeStatement) (w : NodeWitness) : Work where
   rawSphincs := w.sphincsSignatures.length
   rawDa := (w.daMatrix.map fun _ ↦ 1).getD 0
   rawDaRows := (w.daMatrix.map fun p ↦ p.2.rows.length).getD 0
-  rawDaPad := (w.daMatrix.map fun p ↦ LeanDa.paddedRowCount p.2.rows.length).getD 0
+  rawDaPad := (w.daMatrix.map fun _ ↦ LeanDa.maxRows).getD 0
   children := w.children.length
   childClaims := (w.children.map fun c ↦ c.statement.claims.xmss.length +
     c.statement.claims.sphincs.length).sum

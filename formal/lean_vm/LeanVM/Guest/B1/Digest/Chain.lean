@@ -15,12 +15,12 @@ public import LeanVM.Guest.B1.Digest.Basic
 # `KECCAK` chains, checked by evaluation
 
 The compiler lowers `keccak(...)` and `keccak_cells(...)` (`emit_keccak_message`,
-`crates/lean_compiler/src/lower/builtins.rs:275-335` at leanVM `40f877dc`) to one `KECCAK` per block
+`crates/lean_compiler/src/lower/builtins.rs` at leanVM `40f877dc`) to one `KECCAK` per block
 of `136` bytes: block `k` reads nine message cells from cell `17k/2` XORed into the previous output
 (or the zero state, or a `state=` run), its four capacity cells the previous output's, and the
 padding bytes `0x01`, `0x80` XORed in as constants (folded into a `Zero` cell, or one `XOR` with a
 constant cell; with `pad_tail=1` the `0x01` is instead `SET` into the tail's cell beforehand,
-`pad_tail_in_place`, `builtins.rs:78-107`). The value names vary with the caller; the shape does
+`pad_tail_in_place`, `builtins.rs`). The value names vary with the caller; the shape does
 not.
 
 A `ChainSpec` names the message cells (`some v`, a value, or `none`, a zero cell), the length in

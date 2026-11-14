@@ -73,7 +73,7 @@ structure Theorems
   statementDigestBinds : LeanVM.Node.StatementDigestBinds
   /-- The leanISA guest program is complete, in at most `2^30` committed words, on every node within
   the deployed limits (`DeployedLimits`: at most `16` children holding `2^17` claims in all, `2048`
-  leanXMSS and `512` leanSPHINCS signatures, a blob matrix of `32` rows), under the deployed seed,
+  leanXMSS and `512` leanSPHINCS signatures, a blob matrix of `LeanDa.maxRows` rows), under the deployed seed,
   wherever every child carries the honest prover's proof (`HonestChild`)
   (`LeanVmGuestCompleteness.lean`). -/
   guestCompleteOnHonestChildren : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren

@@ -30,6 +30,8 @@ open scoped ENNReal
 
 namespace LeanDa
 
+attribute [local irreducible] logMaxRows
+
 /-! ## The commitment hashes only short strings -/
 
 section Congr
@@ -240,7 +242,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Membe
 
 /-- The permutation calls of the relation's check: at most `2176` per padded row (`128` cells of
 `16` calls and `128` pairs of one). -/
-abbrev relCalls (r : ℕ) : ℕ := 2176 * paddedRowCount r
+abbrev relCalls (_r : ℕ) : ℕ := 2176 * maxRows
 
 theorem isWeightBound_ksPost (crs : Crs) (out : (Unit × Common.DigestBytes × MembershipChallenge) ×
     Proof) :

@@ -14,9 +14,9 @@ public import LeanVM.Guest.B1.Common.Run
 
 * `runsTo_roundPolyNone`, `runsTo_roundPolySome`: `sumcheckRoundPoly` reads its coefficients,
   absorbing each, its grind zero bits (`runsTo_grind0`).
-* `sumcheck_round4_run`: `MeaningSumcheckRound4`'s values are `sumcheck claim 4 [none]` (V:1398).
-* `gkrRun_run`: `gkrRun` is `sumcheck claim 5 (es.map some)`, the rounds of `gkrStep 2` (V:1435).
-* `batchRounds_run`: `bsRun` is `Node.batchRounds` (N:226) on a sponge it carries.
+* `sumcheck_round4_run`: `MeaningSumcheckRound4`'s values are `sumcheck claim 4 [none]`.
+* `gkrRun_run`: `gkrRun` is `sumcheck claim 5 (es.map some)`, the rounds of `gkrStep 2`.
+* `batchRounds_run`: `bsRun` is `Node.batchRounds` on a sponge it carries.
 -/
 
 namespace LeanVM.Guest.B1

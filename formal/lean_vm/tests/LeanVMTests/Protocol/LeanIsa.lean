@@ -8,7 +8,7 @@ import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
   every column's offset (a `KECCAK` input lane or a column riding a spare slot: `QKECCAK`'s offset
   plus its slot times the table's height; an output lane, derived: none) equal the placement indices
   of the verifier's `build_layout` as the statement transcribes it (`placementsOf`,
-  `crates/verifier/src/layout.rs:531-553`), for a program of four `XOR` instructions; the first
+  `crates/verifier/src/layout.rs`), for a program of four `XOR` instructions; the first
   offsets are pinned too. The first has a table as tall
   as the memory and three more, and a `KECCAK` table of `2^16` rows: ties go to the lower global
   index, the shared columns first. The second mixes heights and has a `KECCAK` table of eight rows,

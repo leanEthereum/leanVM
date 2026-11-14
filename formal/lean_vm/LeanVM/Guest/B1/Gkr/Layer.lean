@@ -12,7 +12,7 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
 
 /-!
-# A layer of two levels (`verify_bus_gkr_loop0`, G:1997-2041)
+# A layer of two levels (`verify_bus_gkr_loop0`)
 
 `verify_bus_gkr_loop0`'s body is the core IR's (`(fn% «verify_bus_gkr_loop0»).body`); its arguments
 are `[x, bound, start_g, layers, tabs, rounds, claim, odd_g, g_bus_mu, k_mod_next]`. From the layer
@@ -79,7 +79,7 @@ def GkSlot (rd : Reader) (layers : E) (L : ℕ) (s : Fs) (cur : E) (st : GkrStat
     LoadHolds rd layers (13 * L + 10) pos ∧ LoadHolds rd layers (13 * L + 11) half ∧
     LoadHolds rd layers (13 * L + 12) parity
 
-/-- The table `k_mod_next` (G:1912-1915): at `g^r`, `r < 4`, the next layer index's
+/-- The table `k_mod_next`: at `g^r`, `r < 4`, the next layer index's
 `g^((r + 1) % 4)`, and at `g^(4 + r)` its carry into `half`, `g^((r + 1) / 4)`. -/
 def KModNext (rd : Reader) (kmn : E) : Prop :=
   ∀ r < 4, LoadHolds rd kmn (4 + r) (gen ^ ((r + 1) / 4)) ∧ LoadHolds rd kmn r (gen ^ ((r + 1) % 4))

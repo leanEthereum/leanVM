@@ -14,7 +14,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.Flushes
 /-!
 # The table blocks
 
-The verifier program's bus blocks (`busBlocks`, `crates/verifier/src/layout.rs:513-527` at leanVM
+The verifier program's bus blocks (`busBlocks`, `crates/verifier/src/layout.rs` at leanVM
 `40f877dc`) are, per table in opcode order, one block per pushed
 tuple, one per pulled tuple, and one per count column, each of the table's height and row count.
 Their honest leaves are, on an executed row, `β` plus the fingerprint of the flushed tuple

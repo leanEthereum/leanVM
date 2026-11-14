@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Da.ColumnDefs
 
   The checks of `da_verify_column`'s body and of its blob loop `da_verify_column_loop0`
-  (G:4562-4576).
+  (`lean_ethereum.py`).
 -/
 
 module
@@ -45,10 +45,10 @@ noncomputable def colOk : Bool :=
   decide ((fn% «da_verify_column»).params = (List.range 7).map V.n) &&
   stmtsEqb (Fn.body fn% «da_verify_column») (P ++ [.ret []]) && P.all Stmt.flat &&
   isMul A (.n 7) (.n 4) (.n 0) && A.any (isLoadAt (.n 8) (.n 7) 0) &&
-  monoIs A (.n 12) (.n 6) (.n 0) 8 &&
-  hasCall P "da_expand__L7_L8" [.n 8, .n 5, .n 3, .n 12] [.n 13] &&
-  isMul A (.n 14) (.n 0) (.n 0) &&
-  guardOk P (.n 16) name% «da_verify_column_loop0» (.n 17) (.n 1) [.n 13, .n 2, .n 0, .n 14]
+  monoIs A (.n 13) (.n 6) (.n 0) 7 &&
+  hasCall P "da_expand__L6_L7" [.n 8, .n 5, .n 3, .n 13] [.n 14] &&
+  isMul A (.n 15) (.n 0) (.n 0) &&
+  guardOk P (.n 17) name% «da_verify_column_loop0» (.n 18) (.n 1) [.n 14, .n 2, .n 0, .n 15]
 
 /-! ## A blob's step and the frames -/
 
@@ -66,12 +66,12 @@ def CellStepW (C : CallRel) (rd : Reader) (σr : Val) (lv rowbase xb xb2 x : E) 
 (`[g^h, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets]`), at the frame map `Vm`. -/
 def colRowV (Vm : FrameMap) (cargs : List E) (i : ℕ) : Val :=
   Vm name% «da_verify_column_loop0» [gen ^ i, cargs.getD 1 0,
-      Vm "da_verify_column" cargs [] (.n 13), cargs.getD 2 0,
-    cargs.getD 0 0, Vm "da_verify_column" cargs [] (.n 14)] []
+      Vm "da_verify_column" cargs [] (.n 14), cargs.getD 2 0,
+    cargs.getD 0 0, Vm "da_verify_column" cargs [] (.n 15)] []
 
 /-- The symbols of blob `i`'s cell in the column called with `cargs`: its cell check's. -/
-def colSyms (Vm : FrameMap) (cargs : List E) (i : ℕ) : List K :=
-  cellSymsOf (Vm "da_verify_cell" [Vm "da_verify_column" cargs [] (.n 13)]
+def colSyms (Vm : FrameMap) (cargs : List E) (i : ℕ) : List E :=
+  cellSymsOf (Vm "da_verify_cell" [Vm "da_verify_column" cargs [] (.n 14)]
     [colRowV Vm cargs i (.n 6), colRowV Vm cargs i (.n 7), colRowV Vm cargs i (.n 8)])
 
 end

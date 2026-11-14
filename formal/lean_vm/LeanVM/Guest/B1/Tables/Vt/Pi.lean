@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Evals
 public import LeanVM.Guest.B1.Bits.Templates
 
 /-!
-# The public input's binding (G:2678-2691)
+# The public input's binding
 
 `vt_pi`: `rm` is the squeeze after the 153 evaluations; `split_limbs` splits the public input's
 two words (`splitLimbsT`), and the pool's last two claims are the lines through their limbs `0`

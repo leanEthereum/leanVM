@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Whir.Sound.Candidates
 # The starting relation
 
 The opening's input (`verify_whir(log_n, log_inv_rate, target, root, evaluate_basis)`,
-`crates/verifier/src/whir.rs:141-149` at leanVM `40f877dc`) is the
+`crates/verifier/src/whir.rs` at leanVM `40f877dc`) is the
 level-0 commitment `W₀`, a weight function `w` (the batched `evaluate_basis`, a function of a point
 of the stack's cube, bit `0` first) and a target `t`. Its relation, in the terms of
 `LeanVM.Protocol.EndToEnd.Candidates`: **every candidate `q` of `W₀` at the Johnson threshold

@@ -17,11 +17,11 @@ public import Clean.Utils.Tactics.CircuitProofStart
 /-!
 # The `XOR` table
 
-At `leanvm-rev` and Clean pin `b41c196b`. The columns
-are `crates/leanvm_core/src/tables.rs:460-478` (`mod arith`, in that order), the flushes
-`tables.rs:504-516` (`Arith::flushes` with `is_xor`), the result coordinates `tables.rs:483-494`
+At Clean pin `b41c196b`. The columns
+are `crates/leanvm_core/src/tables.rs` (`mod arith`, in that order), the flushes
+`tables.rs` (`Arith::flushes` with `is_xor`), the result coordinates `tables.rs`
 (`arith_result`, the lane-wise sum), all matching specification §7.1
-(`doc/leanvm/body/07-instruction-tables.tex:9-26`). There is no constraint: the bus balance is
+(`doc/leanvm/body/07-instruction-tables.tex`). There is no constraint: the bus balance is
 the assertion `[o_C] = [o_A] + [o_B]` (§5, "M3").
 
 **The row** `XorRow` is the column list: `pc, fp`; the operands `o_A, o_B, o_C`; the two read
@@ -37,7 +37,7 @@ is the bindings together with `exec_eq : execute mem ⟨pc, fp⟩ (.xor o_A o_B 
 registers to `next`: the relation an `XOR` row refines, stated over the image itself, so that
 execution and witness proofs state their obligations over theirs. The program is not in it:
 the table is program-free, as leanVM's `XOR` AIR is (its bytecode flush is the constant opcode
-and its own operand columns, `tables.rs:147-156`), and which instruction the program holds at
+and its own operand columns, `tables.rs`), and which instruction the program holds at
 the row's counter is the bus's to bind (`Arithmetization.Channels`, `Soundness.BytecodeChannel`).
 `xor_refines_iff` expands it into the opcode's equation, the word at `fp·o_C` is the sum of the
 two words in `E` (addition in `E`, whose limbs are bitwise `XOR` in `K`, never integer
@@ -113,7 +113,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `XOR` columns, in the order of `tables.rs:460-478`. -/
+/-- The `XOR` columns, in the order of `tables.rs`. -/
 structure XorRow (F : Type) where
   /-- The program counter. -/
   pc : F
@@ -195,11 +195,11 @@ private theorem xor_entry (a b c : K) :
 
 /-! ## The table -/
 
-/-- The `XOR` table (specification §7.1; `tables.rs:456-532`): state step, bytecode read of
+/-- The `XOR` table (specification §7.1; `tables.rs`): state step, bytecode read of
 `(XOR, o_A, o_B, o_C, 0, 0, 0, 0)`, the two operand reads, and the result read carrying the
 limb-wise sum. Returns the pushed successor `(g·pc, fp)`. -/
 def xorTable : GeneralFormalCircuit K XorRow Registers where
-  -- The table's name in leanVM (`TABLES`, `cpu/mod.rs:391`), unique in the ensemble (Clean keys
+  -- The table's name in leanVM (`TABLES`, `cpu/mod.rs`), unique in the ensemble (Clean keys
   -- the prover data by it).
   name := "XOR"
   main r := do

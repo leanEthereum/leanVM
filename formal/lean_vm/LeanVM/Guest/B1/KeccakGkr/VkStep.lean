@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkStep
 
-  A step of `verify_keccak` (G:2950-2980): the claim's segment weights, its `ι` term, the layer.
+  A step of `verify_keccak`: the claim's segment weights, its `ι` term, the layer.
 -/
 
 module
@@ -93,7 +93,7 @@ theorem addChainT_holds {vs : List ℕ} (hne : vs ≠ []) {b : ℕ} {next : Prop
 
 /-! ## The `ι` term from the flips -/
 
-/-- **The `ι` term** (G:2971-2976): per segment the flips of its bits summed, times the segment's
+/-- **The `ι` term**: per segment the flips of its bits summed, times the segment's
 weight (the values `w0`, `w1`). -/
 theorem iotaSegT_holds {s b c w0 w1 : ℕ} (hs : s < 12) {F : ℕ → E} {g0 g1 : E}
     (hF : ∀ i ∈ iotaUsed s, σ (.n (flipOf s b i)) = F i)
@@ -130,7 +130,7 @@ theorem filterMap_ite_eq {p : ℕ → Bool} (f : ℕ → E) (l : List ℕ) :
   | nil => rfl
   | cons a l ih => by_cases h : p a <;> simp [h, ih]
 
-/-- **`keccakIota`** (V:1990-1995) through the bit positions `2^i - 1` of the round constants. -/
+/-- **`keccakIota`** through the bit positions `2^i - 1` of the round constants. -/
 theorem keccakIota_eq {τ s : ℕ} (hs : s < 12) (hτ : 4 ≤ τ) {c : KeccakClaim}
     (hpt : c.point.length = τ - 3) :
     keccakIota τ s c = (eqKernel [c.point.getD (τ - 4) 0]).getD 0 0 *
@@ -169,7 +169,7 @@ theorem flipOf_mem {s b i : ℕ} (hi : i ∈ iotaUsed s) :
 theorem iotaUsed_lt {s i : ℕ} (hi : i ∈ iotaUsed s) : i < 7 :=
   List.mem_range.1 (List.mem_filter.1 hi).1
 
-/-- **The first claim's flips** (G:2966-2967): lane `0`'s weight times `x^(2^i - 1)`. -/
+/-- **The first claim's flips**: lane `0`'s weight times `x^(2^i - 1)`. -/
 theorem flipsT_holds0 {b : ℕ} {L0 : E} (hL : ∀ v, LoadHolds rd (σ (.n 234)) 30 v → v = L0)
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (flipsT 0 b) next kret) :
     (∀ i ∈ iotaUsed 0, σ (.n (flipOf 0 b i)) = L0 * gen ^ (2 ^ i - 1)) ∧ next := by
@@ -188,7 +188,7 @@ theorem flipsT_holds0 {b : ℕ} {L0 : E} (hL : ∀ v, LoadHolds rd (σ (.n 234))
   rw [e, flipV, show flipSz 0 = 3 from rfl, show b + 3 * (iotaUsed 0).idxOf i + 3 - 1 =
     b + 3 * (iotaUsed 0).idxOf i + 2 by omega, m, c, hL _ l, word_two_pow hz]
 
-/-- **A later claim's flips** (G:2968-2970): its weights at `2^i - 1`, read from its record's
+/-- **A later claim's flips**: its weights at `2^i - 1`, read from its record's
 `KC_FLIPS` table. -/
 theorem flipsT_holdsL {s b : ℕ} (hs : s ≠ 0) {fl : E} {ws : List E}
     (hfl : LoadHolds rd (σ (.n 161)) (22 * s + 5) fl) (hws : ReadsAt rd fl (flipsOf ws))
@@ -215,7 +215,7 @@ theorem flipsT_holdsL {s b : ℕ} (hs : s ≠ 0) {fl : E} {ws : List E}
 theorem claimRec_loads {P : ℕ} {k : ℕ} {v : E} (h : LoadHolds rd (σ (.n 161) * gen ^ (22 * k)) P v) :
     LoadHolds rd (σ (.n 161)) (22 * k + P) v := (loadHolds_mul_gen_pow rd _ _ _ _).1 h
 
-/-- The step's segment weights (`eqtree_frame` of one coordinate, G:2953-2955): the claim's last
+/-- The step's segment weights (`eqtree_frame` of one coordinate): the claim's last
 coordinate `r` read through `pt·pack_g`, `1 + r` and `r` at `b + 4`, `b + 5`. -/
 theorem stepSeg_holds {b off : ℕ} {pp : E} {pt : List E} {τ : ℕ} (hτ : 4 ≤ τ)
     (hptL : pt.length = τ - 3) (hpt : ReadsAt rd pp pt) (h17 : σ (.n 18) = gen ^ (τ - 4))
@@ -242,7 +242,7 @@ theorem stepSeg_holds {b off : ℕ} {pp : E} {pt : List E} {τ : ℕ} (hτ : 4 �
     rw [eqKernel_getD]
     simpa using this
 
-/-- **Step `s ≥ 1`** (G:2950-2980): the claim at `claims·g^(22 s)` (`cb·g^22`), its `ι` term, and
+/-- **Step `s ≥ 1`**: the claim at `claims·g^(22 s)` (`cb·g^22`), its `ι` term, and
 `keccak_layer` on it, writing the next claim at `claims·g^(22 (s + 1))` (`pn·g^22`, the value
 `stepEnd s b - 7`). -/
 theorem stepT_holdsL {s b : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) {c0 c1 c2 c3 c4 cur cb pn : ℕ}
@@ -304,7 +304,7 @@ theorem stepT_holdsL {s b : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) {c0 c1 c2 c3 c4 c
 
 /-! ## The first step -/
 
-/-- **Step `0`** (G:2950-2980): the first claim, its `ι` term, and `keccak_layer` with the
+/-- **Step `0`**: the first claim, its `ι` term, and `keccak_layer` with the
 committed outputs' value waiting in the sponge, writing the next claim at `claims·g^22`. -/
 theorem stepT_holds0 {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n 18) = gen ^ (τ - 4))
     (h33 : σ (.n 34) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n 48) = gen ^ ((τ - 3) % krStep))

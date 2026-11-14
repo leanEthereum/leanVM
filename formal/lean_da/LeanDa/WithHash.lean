@@ -34,8 +34,8 @@ open LeanVM.Protocol.KeccakHash (keccak256With littleEndianLane)
 
 /-! ## The challenge's sponge as the proofs read it
 
-`lean_da`'s proofs read the membership challenge's duplex (`verifier/src/transcript.rs:34-90` at
-`../../leanvm-rev`) in this form, LeanDA's own transcription: the tags in `K`, the root's words as
+`lean_da`'s proofs read the membership challenge's duplex (`verifier/src/transcript.rs`)
+in this form, LeanDA's own transcription: the tags in `K`, the root's words as
 symbols of its bytes. The challenge needs only the sponge's seeding and its grind: the root is its
 public input, no scalar is observed, and each nonce is absorbed into a copy of the seeded sponge
 and permuted (`nonceInput`), the answer's lane `2` its proof of work and lanes `0, 1` the
@@ -81,7 +81,7 @@ def freshSpongeInput (iv publicInput : DigestBytes) : KeccakState :=
     else if (i : ℕ) < 8 then (digestWord publicInput (i - 4)).lane
     else 0
 
-/-- `DS_POW_NONCE`, the tag of a grinding nonce (`transcript.rs:18`). -/
+/-- `DS_POW_NONCE`, the tag of a grinding nonce (`transcript.rs`). -/
 def powTag : K := K.ofBits 4
 
 /-- **The state a nonce is permuted from** (`absorb_nonce` on a copy of the seeded sponge whose
@@ -102,7 +102,7 @@ def Sponge.newWith (iv publicInput : DigestBytes) : m Sponge := do
   pure ⟨state, []⟩
 
 /-- **The nonce search** from the seeded state `y`, from `nonce` with `fuel` nonces left
-(`membership_challenge`, `verifier/src/da.rs:28-33`): the first nonce whose answer's lane `2` has
+(`membership_challenge`, `verifier/src/da.rs`): the first nonce whose answer's lane `2` has
 a valid proof of work gives the challenge its answer draws; past the last nonce, none. -/
 def grindMWithHash (y : KeccakState) : ℕ → ℕ → m (Option E)
   | _, 0 => pure none
@@ -120,7 +120,7 @@ abbrev hashOver (π : KeccakState → KeccakState) (bytes : List UInt8) : Digest
   Id.run (keccakDigestBytes π bytes)
 
 /-- Cell `j` of a codeword given as a list of symbols. -/
-def listCell (row : List K) (j : ℕ) : List K := (row.drop (j * cellSymbols)).take cellSymbols
+def listCell (row : List E) (j : ℕ) : List E := (row.drop (j * cellSymbols)).take cellSymbols
 
 section Pure
 
@@ -133,7 +133,7 @@ def cellDigestWithHash (x : Cell) : DigestBytes := H (cellBytes x)
 def upWithHash (f : ℕ → DigestBytes) (i : ℕ) : DigestBytes :=
   H (pairBytes (f (2 * i)) (f (2 * i + 1)))
 
-/-- The root of the Merkle tree over the leaves `f 0 … f (2^d - 1)` (`tree_from_leaves`). -/
+/-- The root of the Merkle tree over the leaves `f 0 … f (2^d - 1)` (`merkle_nodes_from_leaves`). -/
 def merkleRootWithHash : ℕ → (ℕ → DigestBytes) → DigestBytes
   | 0, f => f 0
   | d + 1, f => merkleRootWithHash d (upWithHash H f)
@@ -143,29 +143,29 @@ def merklePathWithHash : ℕ → (ℕ → DigestBytes) → ℕ → List DigestBy
   | 0, _, _ => []
   | d + 1, f, idx => f (sibling idx) :: merklePathWithHash d (upWithHash H f) (idx / 2)
 
-/-- The leaves of padded row `i`'s tree: its `128` cell digests (`blob_trees`). -/
+/-- The leaves of padded row `i`'s tree: its `128` cell digests (`blob_merkle_nodes`). -/
 def cellLeavesWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i j : ℕ) : DigestBytes :=
   cellDigestWithHash H (paddedCell c i j)
 
-/-- The blob root of padded row `i`: the Merkle root of its cell digests (`blob_trees`). -/
+/-- The blob root of padded row `i`: the Merkle root of its cell digests (`blob_merkle_nodes`). -/
 def blobRootWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : DigestBytes :=
   merkleRootWithHash H 7 (cellLeavesWithHash H c i)
 
-/-- **The root of a matrix** (`commit_codewords`): the Merkle root of the padded rows' blob roots. -/
+/-- **The root of a matrix** (`DaWitness::build`): the Merkle root of the padded rows' blob roots. -/
 def commitCellsWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
-  merkleRootWithHash H (logPaddedRowCount r) (blobRootWithHash H c)
+  merkleRootWithHash H logMaxRows (blobRootWithHash H c)
 
 /-- The honest opening of a position: the cell's path in its blob's tree, then its blob root's in
 the tree over the blob roots. -/
 def openCellWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : CellOpening :=
   ⟨merklePathWithHash H 7 (cellLeavesWithHash H c (positionRow p)) (positionCell p) ++
-    merklePathWithHash H (logPaddedRowCount r) (blobRootWithHash H c) (positionRow p)⟩
+    merklePathWithHash H logMaxRows (blobRootWithHash H c) (positionRow p)⟩
 
-/-- One level of a Merkle tree: the digests of neighbouring pairs (`tree_from_leaves`). -/
+/-- One level of a Merkle tree: the digests of neighbouring pairs (`merkle_nodes_from_leaves`). -/
 def treeLevelWithHash (nodes : List DigestBytes) : List DigestBytes :=
   (List.range (nodes.length / 2)).map (upWithHash H fun i ↦ nodes.getD i default)
 
-/-- The root of the Merkle tree over a power-of-two number of digests (`tree_from_leaves`; on
+/-- The root of the Merkle tree over a power-of-two number of digests (`merkle_nodes_from_leaves`; on
 other lengths, which `commitCodewords` never passes, the crate panics). -/
 def treeRootWithHash (nodes : List DigestBytes) : DigestBytes :=
   if nodes.length ≤ 1 then nodes.headD default else treeRootWithHash (treeLevelWithHash H nodes)
@@ -173,36 +173,36 @@ termination_by nodes.length
 decreasing_by simp only [treeLevelWithHash, List.length_map, List.length_range]; omega
 
 /-- The digest of cell `j` of a codeword (`hash_cells`). -/
-def listCellDigestWithHash (row : List K) (j : ℕ) : DigestBytes :=
-  H ((listCell row j).flatMap K.toBytes)
+def listCellDigestWithHash (row : List E) (j : ℕ) : DigestBytes :=
+  H ((listCell row j).flatMap E.toBytes)
 
 /-- The blob root of a codeword: the Merkle root of its `128` cell digests, built level by level
-(`blob_trees`, `fill_levels`). -/
-def listBlobRootWithHash (row : List K) : DigestBytes :=
+(`blob_merkle_nodes`, `fill_levels`). -/
+def listBlobRootWithHash (row : List E) : DigestBytes :=
   treeRootWithHash H ((List.range cellsPerRow).map (listCellDigestWithHash H row))
 
-/-- The digest of the zero cell (`padding_tree`'s leaves). -/
-def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap K.toBytes)
+/-- The digest of the zero cell (`padding_merkle_nodes`'s leaves). -/
+def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap E.toBytes)
 
 /-- The blob root of the zero codeword, which pads the tree over the blob roots
-(`padding_root`, `commit.rs:70-78`). -/
+(`root_of_padding_blob`, `commit.rs`). -/
 def paddingBlobRootWithHash : DigestBytes :=
   treeRootWithHash H (List.replicate cellsPerRow (paddingCellWithHash H))
 
-/-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`): the
-rows padded to a power of two with zero codewords, the tree over their blob roots. -/
-def commitCodewordsWithHash (rows : List (List K)) : DigestBytes :=
+/-- **The root of a matrix of codewords, as the crate computes it** (`DaWitness::build`): the
+rows padded to `maxRows` with zero codewords, the tree over their blob roots. -/
+def commitCodewordsWithHash (rows : List (List E)) : DigestBytes :=
   treeRootWithHash H (rows.map (listBlobRootWithHash H) ++
-    List.replicate (paddedRowCount rows.length - rows.length) (paddingBlobRootWithHash H))
+    List.replicate (maxRows - rows.length) (paddingBlobRootWithHash H))
 
 end Pure
 
-/-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`,
-`commit.rs:52-125`), over a permutation `π`: on codewords of `2^15` symbols it is the statement's
+/-- **The root of a matrix of codewords, as the crate computes it** (`DaWitness::build`,
+`commit.rs`), over a permutation `π`: on codewords of `2^14` symbols it is the statement's
 `commitCells π (cellsOfRows rows)` (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). The
 blob roots in the crate's order, each tree built level by level, as compiled code computes it
 fast. -/
-def commitCodewords (π : KeccakState → KeccakState) (rows : List (List K)) : DigestBytes :=
+def commitCodewords (π : KeccakState → KeccakState) (rows : List (List E)) : DigestBytes :=
   commitCodewordsWithHash (hashOver π) rows
 
 section Monadic
@@ -210,7 +210,7 @@ section Monadic
 variable {m : Type → Type} [Monad m] (H : List UInt8 → m DigestBytes)
   (P : KeccakState → m KeccakState)
 
-/-- **The challenge `z` of a root** (`membership_challenge`, `verifier/src/da.rs:20-34`): the
+/-- **The challenge `z` of a root** (`membership_challenge`, `verifier/src/da.rs`): the
 transcript's sponge seeded with the hash of the label as its IV and the root as its public input
 (`Sponge::new`), then the nonce search (`grindMWithHash`). -/
 def membershipChallengeMWithHash (root : DigestBytes) : m (Option E) := do
@@ -225,13 +225,13 @@ def walkMWithHash : ℕ → DigestBytes → List DigestBytes → m DigestBytes
     let d ← H (if idx % 2 = 0 then pairBytes node s else pairBytes s node)
     walkMWithHash (idx / 2) d rest
 
-/-- **Verification of a cell opening**: a path of `7 + ⌈log₂ r⌉` siblings that climbs from the
+/-- **Verification of a cell opening**: a path of `7 + logMaxRows` siblings that climbs from the
 cell's digest, at index `128 i + j` (the position), to the commitment. -/
 def verifyCellMWithHash (r : ℕ) (com : DigestBytes) (p : Fin (r * 128)) (x : Cell)
     (τ : CellOpening) : m Bool := do
   let d ← H (cellBytes x)
   let root ← walkMWithHash H (p : ℕ) d τ.path
-  pure (decide (τ.path.length = 7 + logPaddedRowCount r) && decide (root = com))
+  pure (decide (τ.path.length = 7 + logMaxRows) && decide (root = com))
 
 /-- One level up a Merkle tree over an oracle (`up`). -/
 def upMWithHash (f : ℕ → m DigestBytes) (i : ℕ) : m DigestBytes := do
@@ -254,7 +254,7 @@ def blobRootMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : m Diges
 
 /-- **The root of a matrix over an oracle** (`commitCells`): the tree over the blob roots. -/
 def commitCellsMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootMWithHash H (logPaddedRowCount r) (blobRootMWithHash H c)
+  merkleRootMWithHash H logMaxRows (blobRootMWithHash H c)
 
 end Monadic
 
@@ -339,7 +339,7 @@ noncomputable def completenessExperimentWithHash (π : Equiv.Perm KeccakState)
     (openCellWithHash (keccak256WithPermutation π) c p)))
 
 /-- **LeanDA is perfectly complete in the random-permutation model, for every permutation.**
-For any number `r` of rows, every permutation `π` of the Keccak state, and every argument `ps`
+For at most `maxRows` rows, every permutation `π` of the Keccak state, and every argument `ps`
 perfectly complete for LeanDA's relation for every permutation (`relationForPermutation`, the hash
 Keccak-256 over `π` and the challenge the deployed duplex over `π`; the argument's prover and
 verifier answered by `π`): every position `p` of the honest commitment to every message `msg`
@@ -348,7 +348,7 @@ for every outcome of the binding statements' uniformly random permutation. The p
 completeness proof, transferred. Proved by `LeanDa.leanDa_perfectlyComplete_rpm`. -/
 abbrev PerfectlyCompleteRpmWithHash : Prop :=
   ∀ (r : ℕ) (π : Equiv.Perm KeccakState) {Crs Proof : Type} (ps : LeanDaArgument r Crs Proof),
-    ps.PerfectlyComplete (relationForPermutationWithHash r) →
+    r ≤ maxRows → ps.PerfectlyComplete (relationForPermutationWithHash r) →
       ∀ (msg : Fin r → Payload) (p : Fin (r * 128)),
         Pr{let b ← completenessExperimentWithHash r π ps msg p}[b = true] = 1
 
@@ -368,21 +368,21 @@ abbrev PositionBindingRpmWithHash : Prop :=
 
 /-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
 it** (Benedikt Wagner's framework and games, moved to the random-permutation model, with a
-straight-line argument in place of his forking lemma). For `1 ≤ r ≤ 1024` rows (`maxRows`, the
-crate's bound), every argument `ps` (its prover and verifier querying the model's oracles) and
+straight-line argument in place of his forking lemma). For `1 ≤ r ≤ maxRows` rows (the crate's
+bound), every argument `ps` (its prover and verifier querying the model's oracles) and
 straight-line extractor `ext` (reading the adversary's transcript): if every adversary whose
 knowledge-soundness game (`knowledgeSoundnessGame`, the argument's verifier and the relation's check
 included) makes at most `q ≤ 2^128` permutation calls (`permutationCallCost`) wins it with
 probability at most `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications
 included, makes at most `Q` calls breaks code binding with probability at most
 
-`(Q + c + 2^65) · 2^-k + (Q + 2^11) · 2^-125 + (Q + 2^22)² · 2^-247`.
+`(Q + c + 2^65) · 2^-k + (Q + 2^10) · 2^-125 + (Q + 2^22)² · 2^-247`.
 
 The first term is the argument's knowledge soundness against the code-binding adversary itself,
 its transcript handed to the extractor (at most `Q + 2^65` calls with the relation's check, the
 nonce search's `2^64 + 2` on the worst path among them). The second is the membership test with its
-grind: `2^-11 · (2^14 - 1) / 2^128 ≤ 2^-125` for each of the adversary's calls, and
-`(2^14 - 1) / 2^128` for the verifier's one search. The third gathers the transfer to the
+grind: `2^-10 · (2^13 - 1) / 2^128 ≤ 2^-125` for each of the adversary's calls, and
+`(2^13 - 1) / 2^128` for the verifier's one search. The third gathers the transfer to the
 two-oracle model and the duplex lemma, of the two games, and the hash's bad events among at most
 `2 Q + 2^20` hash queries: a collision, or a fresh answer that is a digest an earlier input or a
 root with a drawn challenge already carries; it exceeds one before `Q = 2^124`.
@@ -404,7 +404,7 @@ abbrev CodeBindingRpmWithHash : Prop :=
     ∀ (A : CodeBindingAdversary r Crs Proof) (Q : ℕ),
       QueryCostAtMost (codeBindingGameWithHash r ps A) permutationCallCost Q →
         Pr{let b ← runWithRandomPermutation (codeBindingGameWithHash r ps A)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 11) *
+          ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) *
             (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 

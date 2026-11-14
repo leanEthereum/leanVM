@@ -23,17 +23,17 @@ public import LeanVM.Protocol.WithHash
 /-!
 # The honest prover and the completeness of the compilation
 
-The prover is transcribed from leanVM at `leanvm-rev`:
+The prover is transcribed from leanVM:
 
 * the Fiat-Shamir sponge is the one `run` checks (`crates/fiat_shamir/src/lib.rs`, `observe`,
   `sample`): a scalar sent is absorbed with tag `1`, a challenge squeezed by a permutation;
 * the proof of work is `grind`: the smallest `u64` nonce `n`, as the scalar with limbs
   `(n, 0)`, which absorbed as a nonce makes the next challenge's low `bits` bits zero. Here the search is bounded by a `fuel`: nonces
   `0, …, fuel - 1` (`findNonce`);
-* a commitment is the Merkle tree of `merkle_tree` (`crates/pcs/src/merkle.rs:50-61`): the
-  `2^height` rows of the word hashed as the little-endian bytes of their `K` words (`:401-404`),
+* a commitment is the Merkle tree of `merkle_tree` (`crates/pcs/src/merkle.rs`): the
+  `2^height` rows of the word hashed as the little-endian bytes of their `K` words,
   each parent the hash of the 64 bytes of its children, left first
-  (`crates/fiat_shamir/src/merkle.rs:21-34`);
+  (`crates/fiat_shamir/src/merkle.rs`);
   its root goes on the stream as two scalars (`digestHalves`, `hash_to_scalars`);
 * an opening is the position, the row at the position's low `height` bits and its
   authentication path, leaf level first, one per queried position, one phase per query, in the

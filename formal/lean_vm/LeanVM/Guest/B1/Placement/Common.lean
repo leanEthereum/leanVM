@@ -18,7 +18,7 @@ Ported from the BLAKE2s-era `B1/Tables/Common` (branch `mumbai`), prefixed `tb`:
   words, `μ ≤ 32` (`rangeCheck_iff`), with a choice of the gadget's auxiliary words for an honest
   valuation.
 * `tb_gen_pow_eq_mul`: products of small g-powers are g-powers of the sums.
-* `tb_stackFold_*`, `tb_stackOffsets_fst`: the fold of `stackOffsets` (V:830) over an order without
+* `tb_stackFold_*`, `tb_stackOffsets_fst`: the fold of `stackOffsets` over an order without
   repeats sets each index to the sum of the sizes before it (`tbPrefixSize`).
 * `tb_group_stack_cert`: runs of columns of one size each (groups), named by ranks in
   `stackOffsets`'s order group by group, with each column at `g^` the sizes before it, are laid
@@ -88,7 +88,7 @@ theorem tb_gen_pow_eq_mul {a b d : ℕ} (ha : a < 2 ^ 62) (hb : b < 2 ^ 62) (hd 
 
 /-! ## Stack offsets -/
 
-/-- The fold of `stackOffsets` (V:877-884). -/
+/-- The fold of `stackOffsets`. -/
 def tbStackStep (size : ℕ → ℕ) (acc : List ℕ × ℕ) (i : ℕ) : List ℕ × ℕ :=
   (acc.1.set i acc.2, acc.2 + 2 ^ size i)
 
@@ -128,7 +128,7 @@ theorem tb_stackFold_take (size : ℕ → ℕ) (n : ℕ) (ord : List ℕ) (hnd :
         rw [List.getD_eq_getElem _ _ hmo, List.getD_eq_getElem?_getD, List.getElem?_set_self
           (by rw [hl]; exact hin), Option.getD_some, h2]
 
-/-- **`stackOffsets`'s offsets** (V:877-884): along its order, entry `order[r]` is the sum of the
+/-- **`stackOffsets`'s offsets**: along its order, entry `order[r]` is the sum of the
 sizes before it, and the total is their sum. -/
 theorem tb_stackOffsets_fst (sizes : List ℕ) (r : ℕ)
     (hr : r < sizes.length) :
@@ -174,7 +174,7 @@ theorem word_g33 : word 8589934592 0 = ofK (Parameters.addressOfIndex 33) := by
   show ofK (K.ofBits 8589934592) = ofK (Parameters.addressOfIndex 33)
   rw [show K.ofBits 8589934592 = Parameters.addressOfIndex 33 by decide +kernel]
 
-/-- `stackOffsets`'s order of the sizes `κs` (V:878-879): larger first, ties by index. -/
+/-- `stackOffsets`'s order of the sizes `κs`: larger first, ties by index. -/
 def tbStackOrder (κs : List ℕ) : List ℕ :=
   (List.range κs.length).mergeSort (stackLe (κs.getD · 0))
 

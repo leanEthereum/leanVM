@@ -24,7 +24,7 @@ certificates of the compiled functions (`B2C`), do not import them.
 
 | offsets | words | readers |
 | --- | --- | --- |
-| `j < 34` | `g^(2^j)` | `log2_ceil_in_the_exponent`, `verify_sub`, `certify_placement`, `da_row_shape` |
+| `j < 34` | `g^(2^j)` | `log2_ceil_in_the_exponent`, `verify_sub`, `certify_placement` |
 | `34 + 16 j + u`, `j < 9`, `u < 16` | `g^(u·16^j)`, the nibble shares | `assert_small_g_power`, `check_opening_terminal` |
 | `178 + k`, `k < 34` | `g^(k·247)`, the rank keys | `verify_tables`, `certify_placement` |
 | `212 + gi`, `gi < 24` | `E(s)`, block group `gi`'s side `s` | `verify_tables` |
@@ -40,16 +40,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Protocol LeanVM
 /-- `SIZE_BITS`: the squares' section's length. -/
 abbrev sizeBits : ℕ := guest_const% SIZE_BITS
 
-/-- `SEL_TAB_NIBBLES = (SIZE_BITS + 3) // 4` (`lean_ethereum.py:314`). -/
+/-- `SEL_TAB_NIBBLES = (SIZE_BITS + 3) // 4` (`lean_ethereum.py`). -/
 abbrev selTabNibbles : ℕ := 9
 
-/-- `RANK_KEYS_AT = SIZE_BITS + 16 SEL_TAB_NIBBLES` (`lean_ethereum.py:316`). -/
+/-- `RANK_KEYS_AT = SIZE_BITS + 16 SEL_TAB_NIBBLES` (`lean_ethereum.py`). -/
 abbrev rankKeysAt : ℕ := 178
 
-/-- `RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS = 153 + 94` (`lean_ethereum.py:317`, deployed). -/
+/-- `RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS = 153 + 94` (`lean_ethereum.py`, deployed). -/
 abbrev rankStride : ℕ := 247
 
-/-- `SIDE_TAB_AT = RANK_KEYS_AT + SIZE_BITS` (`lean_ethereum.py:319`). -/
+/-- `SIDE_TAB_AT = RANK_KEYS_AT + SIZE_BITS` (`lean_ethereum.py`). -/
 abbrev sideTabAt : ℕ := 212
 
 /-- `SIDE_GROUP_START` (deployed): side `s`'s first bus block group, then `N_BLOCK_GROUPS = 24`. -/
@@ -61,7 +61,7 @@ abbrev nGkrSides : ℕ := guest_const% N_GKR_SIDES
 /-- `N_BLOCK_GROUPS`. -/
 abbrev nBlockGroups : ℕ := guest_const% N_BLOCK_GROUPS
 
-/-- **The exponent table at `q`** (`exponent_tables`, `lean_ethereum.py:698-723`): the squares
+/-- **The exponent table at `q`** (`exponent_tables`, `lean_ethereum.py`): the squares
 `q[g^j] = g^(2^j)`, `j < 34`; the nibble shares `q[g^(34 + 16j + u)] = g^(u·16^j)`, `j < 9`,
 `u < 16`; the rank keys `q[g^(178 + k)] = g^(k·247)`, `k < 34`; and each bus block group's side,
 `q[g^(212 + gi)] = E(s)` for the groups `gi` of side `s`. -/

@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.CFinEval
 public import LeanVM.Guest.B1.Whir.Point
 
 /-!
-# The point, honestly (G:1706-1730)
+# The point, honestly
 
 `osPtBlks_complete`: the point's entries, each loaded from its source (`osPtSrc`) and stored in
 `point` and, plus one, in `point1`, on memory holding the honest words there.

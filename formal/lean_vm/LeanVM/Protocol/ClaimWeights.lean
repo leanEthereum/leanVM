@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Spine.Seams
 The opening argument works on one kind of claim, `⟨W, q⟩ = c` for a weight `W` on the stack. A
 claim `P̃(z) = c` on a column joins that pool through the stacking identity: with `p` the point
 `z` lifted through the layout, `P̃(z) = q̃(p) = Σ_w eq(p, w) q(w)` (specification §4.1,
-`doc/leanvm/body/04-committing-the-witness.tex:12-22`). `eqWeight p` is that weight, with the
+`doc/leanvm/body/04-committing-the-witness.tex`). `eqWeight p` is that weight, with the
 closed form of its extension the verifier evaluates, and `ColumnClaim.holds_iff_weighted` is the
 step, for any instance and any column read off the stack (a derived column, `I.derived c ≠
 none`, is not on the stack). It uses the reading law of the instance's

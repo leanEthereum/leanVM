@@ -85,13 +85,13 @@ theorem hOwn_lengths (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation b
     simp [hData]
   · rw [length_flatMap_const _ _ 2 fun c _ => by simp [B1.Digest.digestCells]]
     simp [hData]
-  · rw [length_flatMap_const _ _ 24 fun c hc => by simp [DeferredClaim.cells, hf c hc]]
+  · rw [length_flatMap_const _ _ 24 fun c hc => by simp [DeferredBytecodeClaim.cells, hf c hc]]
     simp [hData]
   · rw [length_flatMap_const _ _ 24 fun c hc => by
-      simp [DeferredClaim.cells, Eq.trans (hch c hc).1 hlog]]
+      simp [DeferredBytecodeClaim.cells, Eq.trans (hch c hc).1 hlog]]
     simp [hData]
   · simp [hData]
-  · simp [DeferredClaim.cells, Eq.trans hsd hlog]
+  · simp [DeferredBytecodeClaim.cells, Eq.trans hsd hlog]
 
 theorem hOwn_fit (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytecode seed s w)
     (hf : FreshShaped w) :
@@ -311,7 +311,7 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytec
     have hz' : s.deferredClaim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0 := hz
     rw [hlog] at hz'
     have := hR 9 (by omega)
-    simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero, DeferredClaim.cells, hz'] at this
+    simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero, DeferredBytecodeClaim.cells, hz'] at this
     exact this
 end
 end LeanVM.Guest.B1.Main

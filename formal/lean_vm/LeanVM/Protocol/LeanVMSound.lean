@@ -24,7 +24,7 @@ This page proves knowledge soundness in the two-oracle random-oracle model of
 `LeanVM.Protocol.LeanVM` proves completeness there, and `LeanVM.Protocol.LeanVMRpm` moves both to
 the random-permutation model.
 
-The verifier is leanVM's at the commit `leanvm-rev` names (`crates/verifier`), its
+The verifier is leanVM's (`crates/verifier`), its
 Fiat-Shamir sponge a duplex sponge over Keccak-f[1600] and its Merkle hash Keccak-256. Both are
 modelled as independent random oracles (`HashSpec = (Bytes →ₒ Digest) + (KState →ₒ KState)`).
 

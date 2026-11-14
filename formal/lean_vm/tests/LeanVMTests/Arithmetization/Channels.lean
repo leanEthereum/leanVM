@@ -6,8 +6,8 @@ import Clean.Air.Balance
 # Tests: the bus channels
 
 A classic test for kernel evaluation. The six channels' separators and directions are pinned
-against specification §5.1 and `tables.rs:91-93`, the three element orders against §6.1, §6.2,
-§6.4 and the flush builders of `tables.rs:128-178`, on literal messages, and the sixteen-slot
+against specification §5.1 and `tables.rs`, the three element orders against §6.1, §6.2,
+§6.4 and the flush builders of `tables.rs`, on literal messages, and the sixteen-slot
 tuples against §5.1. The read gadgets are checked to emit a `pull` then a `push` with the count
 advanced by `g`. `imageOf` is read off a two-row prover data, which is `WellShapedData`, and a
 correct memory read satisfies `MemPull.Guarantees` while a wrong word does not; a three-row
@@ -27,7 +27,7 @@ namespace LeanVMTests.Arithmetization
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization
 
-/-! ## Separators and directions (specification §5.1; `tables.rs:91-93`) -/
+/-! ## Separators and directions (specification §5.1; `tables.rs`) -/
 
 #guard channelSep StatePull.toRaw = addressOfIndex 0
 #guard channelSep StatePush.toRaw = addressOfIndex 0
@@ -68,7 +68,7 @@ def foreign : RawChannel K where
 #guard channelDir foreign = .push
 example : channelSep foreign ≠ channelSep MemPull.toRaw := by decide +kernel
 
-/-! ## Element orders (specification §6.1, §6.2, §6.4; `tables.rs:128-178`) -/
+/-! ## Element orders (specification §6.1, §6.2, §6.4; `tables.rs`) -/
 
 def st : Registers K := ⟨addressOfIndex 3, addressOfIndex 5⟩
 def mm : MemMsg K := ⟨addressOfIndex 3 * addressOfIndex 5, addressOfIndex 2, #v[K.ofBits 7, K.ofBits

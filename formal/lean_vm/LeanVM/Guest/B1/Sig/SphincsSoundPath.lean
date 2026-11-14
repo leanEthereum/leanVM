@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundPath
 
-  `sp_path` (`lean_ethereum.py:4105-4125`) is sound: whatever children are
+  `sp_path` (`lean_ethereum.py`) is sound: whatever children are
   hinted, the node a path reaches is the tree's fold of the hinted siblings; with the pieces the
   FORS trees share (`is_child`, `sp_be16`, a node's 80-byte hash).
 -/
@@ -77,7 +77,7 @@ theorem nIter_congr_lt {node node' : Nat → E → E} : ∀ (m l : Nat) (v : E),
 
 /-! ## Address words -/
 
-/-- Limb `1` of an address cell `A1` (`G:505-513`): the height (or chain index) `h` at bit `24`,
+/-- Limb `1` of an address cell `A1`: the height (or chain index) `h` at bit `24`,
 the index `i`'s high byte at bit `48` and its low byte at bit `56` (FIPS 205's bytes `27`, `30`,
 `31`, big endian). -/
 def a1Hi (h i : Nat) : Nat := 2 ^ 24 * h + 2 ^ 48 * (i / 256) + 2 ^ 56 * (i % 256)
@@ -126,7 +126,7 @@ theorem eOfNat_mul_word_hi' {a s : Nat} (h : 2 ^ s * a < 2 ^ 64) :
 
 variable {rd : Reader} {σ : Val}
 
-/-- **`sp_be16`'s multiplier**: `g^8 · 2^120 + 2^112`, the `y` limb's `g^64` reduced (`G:4010`). -/
+/-- **`sp_be16`'s multiplier**: `g^8 · 2^120 + 2^112`, the `y` limb's `g^64` reduced. -/
 theorem be16HiW_eq : be16HiW = eOfNat 256 * lit (2 ^ 120) + lit (2 ^ 112) := by
   rw [show lit (2 ^ 120) = word 0 (2 ^ 56) by norm_num [lit],
     show lit (2 ^ 112) = word 0 (2 ^ 48) by norm_num [lit], be16HiW, mul_comm, eOfNat, word,
@@ -359,7 +359,7 @@ def sPathSib (σ : Val) (bit : Nat → V) (off : Nat) : Nat → Nat → Nat → 
   | m + 1, z, x, j => if j = z then siblingOf σ (bit (off + z)) x
       else sPathSib σ bit off m (z + 1) (x + pathWidth m) j
 
-/-- A path level's address (`G:4117-4121`) from base `x`, `m` levels after it: below the root the
+/-- A path level's address from base `x`, `m` levels after it: below the root the
 index `val (off + z + 1)` (`sBe16`) plus the constant, at the root the constant alone. The
 statements, the next base and the address. -/
 def sPathAddr (val : Nat → V) (off z m x : Nat) : List Stmt × Nat × V :=

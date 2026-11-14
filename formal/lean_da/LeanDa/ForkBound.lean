@@ -34,6 +34,8 @@ open scoped ENNReal
 
 namespace LeanDa
 
+attribute [local irreducible] logMaxRows
+
 section Fork
 
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
@@ -157,9 +159,9 @@ def colPairAt (r : ℕ) (c c' : Fin (r * 128) → Cell) (i : Fin (r * 128)) :
     OracleComp (unifSpec + XS) (List UInt8 × List UInt8) := do
   let τ ← openCellM hS c i
   let τ' ← openCellM hS c' i
-  let l₁ ← hashInputsM hS i (cellBytes (c i)) (τ.path.take (7 + logPaddedRowCount r))
-  let l₂ ← hashInputsM hS i (cellBytes (c' i)) (τ'.path.take (7 + logPaddedRowCount r))
-  findCollisionM hS l₁ (l₂.take (8 + logPaddedRowCount r))
+  let l₁ ← hashInputsM hS i (cellBytes (c i)) (τ.path.take (7 + logMaxRows))
+  let l₂ ← hashInputsM hS i (cellBytes (c' i)) (τ'.path.take (7 + logMaxRows))
+  findCollisionM hS l₁ (l₂.take (8 + logMaxRows))
 
 /-- The same with `H` as queries. -/
 def colPairX (r : ℕ) [NeZero r] (vv : (Fin (r * 128) → Cell) × (Fin (r * 128) → Cell)) :
@@ -226,7 +228,7 @@ theorem colPairX_eval (r : ℕ) [NeZero r] (h : HTab)
       pure_bind]
     congr 1
     have e1 : ∀ (c : Fin (r * 128) → Cell) (i : Fin (r * 128)),
-        (openCellWithHash (Hh h) c i).path.take (7 + logPaddedRowCount r) = (openCellWithHash (Hh h) c i).path := fun c i ↦
+        (openCellWithHash (Hh h) c i).path.take (7 + logMaxRows) = (openCellWithHash (Hh h) c i).path := fun c i ↦
       List.take_of_length_le (by simp [openCellWithHash, length_merklePath])
     simp only [openingsCollision, e1]
     rw [List.take_of_length_le (by rw [length_hashInputs]; simp [openCellWithHash, length_merklePath])]
@@ -296,10 +298,10 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Membe
   (A : CodeBindingAdvB r Crs Proof)
 
 /-- The hash calls of an honest opening over `H` as queries (at most). -/
-abbrev openCalls (r : ℕ) : ℕ := 256 * paddedRowCount r
+abbrev openCalls (_r : ℕ) : ℕ := 256 * maxRows
 
 /-- The hash calls of the commitment over `H` as queries (at most). -/
-abbrev commitCalls (r : ℕ) : ℕ := 256 * paddedRowCount r
+abbrev commitCalls (_r : ℕ) : ℕ := 256 * maxRows
 
 set_option maxRecDepth 4000 in
 theorem isWeightBound_commitCellsM_hS {ι : Type} {Ψ : OracleSpec ι} (c : Fin (r * 128) → Cell) :
@@ -315,7 +317,7 @@ theorem isWeightBound_openCellM_hS {ι : Type} {Ψ : OracleSpec ι} (c : Fin (r 
   have := isWeightBound_openCellM (hS (Ψ := Ψ)) xCalls 1 1
     (fun a b ↦ isWeightBound_hS (Ψ := Ψ) (pairBytes a b))
     (fun x ↦ isWeightBound_hS (Ψ := Ψ) (cellBytes x)) c i
-  rwa [show paddedRowCount r * (128 * 1 + 128 * 1) = openCalls r by unfold openCalls; ring] at this
+  rwa [show maxRows * (128 * 1 + 128 * 1) = openCalls r by unfold openCalls; ring] at this
 
 theorem isWeightBound_winX (out : Common.DigestBytes × (Fin (r * 128) → Cell) ×
     MembershipChallenge) :
@@ -343,15 +345,15 @@ theorem isWeightBound_mainX (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r 
 
 theorem isWeightBound_colPairAt (c c' : Fin (r * 128) → Cell) (i : Fin (r * 128)) :
     QueryCostAtMost (colPairAt r c c' i) xCalls
-      (2 * openCalls r + 2 * (7 + logPaddedRowCount r + 1) + 2 * (9 + logPaddedRowCount r)) := by
+      (2 * openCalls r + 2 * (7 + logMaxRows + 1) + 2 * (9 + logMaxRows)) := by
   have hI : ∀ idx a (path : List Common.DigestBytes), QueryCostAtMost
-      (hashInputsM (hS (Ψ := unifSpec)) idx a (path.take (7 + logPaddedRowCount r))) xCalls
-        (7 + logPaddedRowCount r + 1) :=
+      (hashInputsM (hS (Ψ := unifSpec)) idx a (path.take (7 + logMaxRows))) xCalls
+        (7 + logMaxRows + 1) :=
     fun idx a path ↦ (isWeightBound_hashInputsM (hS (Ψ := unifSpec)) xCalls
       (fun _ ↦ isWeightBound_hS _) _ idx a).mono (by simp only [List.length_take]; omega)
   have hF : ∀ l₁ (l₂ : List (List UInt8)), QueryCostAtMost
-      (findCollisionM (hS (Ψ := unifSpec)) l₁ (l₂.take (8 + logPaddedRowCount r)))
-        xCalls (2 * (9 + logPaddedRowCount r)) :=
+      (findCollisionM (hS (Ψ := unifSpec)) l₁ (l₂.take (8 + logMaxRows)))
+        xCalls (2 * (9 + logMaxRows)) :=
     fun l₁ l₂ ↦ (isWeightBound_findCollisionM (hS (Ψ := unifSpec)) xCalls
       (fun _ ↦ isWeightBound_hS _) l₁ _).mono (by simp only [List.length_take]; omega)
   unfold colPairAt
@@ -360,7 +362,7 @@ theorem isWeightBound_colPairAt (c c' : Fin (r * 128) → Cell) (i : Fin (r * 12
 
 theorem isWeightBound_colPairX [NeZero r] (vv : (Fin (r * 128) → Cell) × (Fin (r * 128) → Cell)) :
     QueryCostAtMost (colPairX r vv) xCalls
-      (2 * openCalls r + 2 * (7 + logPaddedRowCount r + 1) + 2 * (9 + logPaddedRowCount r)) := by
+      (2 * openCalls r + 2 * (7 + logMaxRows + 1) + 2 * (9 + logMaxRows)) := by
   unfold colPairX
   split
   · exact isWeightBound_pure _ _ _
@@ -373,7 +375,7 @@ noncomputable def forkZ [NeZero r] (Q : ℕ) :
 
 /-- Its hash calls. -/
 abbrev forkCalls (r Q : ℕ) : ℕ :=
-  2 * (Q + 1 + commitCalls r) + (2 * openCalls r + 2 * (7 + logPaddedRowCount r + 1) + 2 * (9 + logPaddedRowCount r))
+  2 * (Q + 1 + commitCalls r) + (2 * openCalls r + 2 * (7 + logMaxRows + 1) + 2 * (9 + logMaxRows))
 
 theorem isWeightBound_forkZ [NeZero r] (Q : ℕ)
     (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :

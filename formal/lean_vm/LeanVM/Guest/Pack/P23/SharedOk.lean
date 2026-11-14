@@ -70,35 +70,14 @@ theorem shareOk : ShareOkD Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0�
 end
 end LeanVM.Guest.Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0»
 
-namespace LeanVM.Guest.Fn.«verify_merkle_cap__L7»
+namespace LeanVM.Guest.Fn.«da_levels__L128_L7_loop5»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `verify_merkle_cap__L7`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«verify_merkle_cap__L7».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 4 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-  · exact sw1
-  · exact sw2
-  · exact sw3
-  · exact sw4
-⟩
-
-end
-end LeanVM.Guest.Fn.«verify_merkle_cap__L7»
-
-namespace LeanVM.Guest.Fn.«level_positions__L15_L22_L4_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `__loop270`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_positions__L15_L22_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+/-- `__loop457`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«da_levels__L128_L7_loop5».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
@@ -106,7 +85,7 @@ theorem shareOk : ShareOkD Fn.«level_positions__L15_L22_L4_loop0».core (cert.w
 ⟩
 
 end
-end LeanVM.Guest.Fn.«level_positions__L15_L22_L4_loop0»
+end LeanVM.Guest.Fn.«da_levels__L128_L7_loop5»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0_loop0»
 
@@ -114,7 +93,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop508`: its static sharing check and every window's. -/
+/-- `__loop465`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 2 := by decide +kernel
   rw [hc] at hi

@@ -2,7 +2,7 @@
 
 use super::cells::count;
 use super::deferred::DeferredSubproof;
-use super::error::AggregationError;
+use super::error::AggregateProveError;
 use super::hints::SubHints;
 use fiat_shamir::merkle::hash_to_scalars;
 use leanvm_core::cpu::{Program, from_scalar};
@@ -78,7 +78,7 @@ pub(super) fn gen_verify(
     proof: &leanvm_core::cpu::Proof,
     summary: &verifier::Summary,
     bytecode_value: F128,
-) -> Result<(SubHints, DeferredSubproof), AggregationError> {
+) -> Result<(SubHints, DeferredSubproof), AggregateProveError> {
     let layout = program.layout(
         summary.log_memory,
         std::array::from_fn(|t| summary.table_rows[t] as usize),
@@ -92,7 +92,7 @@ pub(super) fn gen_verify(
     // SHAPE-INDEPENDENT (the definition of generic). A child that verifies fits them.
     let fits = side_layouts.iter().all(|side| side.mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
     if !fits {
-        return Err(AggregationError::ChildOutOfRange {
+        return Err(AggregateProveError::ChildOutOfRange {
             log_committed: layout.shape.mu,
         });
     }

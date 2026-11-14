@@ -43,9 +43,9 @@ A point is a `Vector R n`, and `z ++ s` puts `z` in the low coordinates.
 
 Derived from Verified-zkEVM/leanth `leanth-project` at 23929f8c, by Aristotle (Harmonic),
 Stefano Rocca and Elias Judin, ported to CompPoly's tables and little-endian indexing: the
-partition of unity (`Polynomial/Multilinear.lean:213`, `eqTilde_sum_cube`), the collapse of a
-sum onto one slice (`ProofSystem/ZeroCheck.lean:836-886`, `sum_prefix_collapse`), and the
-selection identity (`ProofSystem/Stacking.lean:603`, `eval_MLE_stack_block`). The proofs are new:
+partition of unity (`Polynomial/Multilinear.lean`, `eqTilde_sum_cube`), the collapse of a
+sum onto one slice (`ProofSystem/ZeroCheck.lean`, `sum_prefix_collapse`), and the
+selection identity (`ProofSystem/Stacking.lean`, `eval_MLE_stack_block`). The proofs are new:
 they go through `eval_mle_eq_eval`, the dot product with `lagrangeBasis`, and one lemma,
 `lagrangeBasis_cubeIndex`.
 

@@ -59,7 +59,7 @@ theorem osHsCoefs_val (src dst : ℕ) (sc : ℕ → ℕ) (si di : ℕ) :
         exact ⟨_, l, by rw [m, cs] at st; exact st⟩
     · exact osHsCoefs_val src dst sc si di n (i + 1) _ hok.2 c (by omega) (by omega)
 
-/-- **A non-final level's high part, normalized** (G:1659-1666): coefficient `c` of the high part
+/-- **A non-final level's high part, normalized**: coefficient `c` of the high part
 read from `sent` past the root, stored in `level_hs` times its normalizer. -/
 theorem osHsMid_sound {lvl : ℕ} {lv : OsLv} {st : OsSt} (hok : AllOk C rd σ (osHsMid lvl lv st).1) :
     (∀ c < lv.folds, ∃ v, LoadHolds rd (σ (.n st.sent)) (2 + c) v ∧
@@ -68,7 +68,7 @@ theorem osHsMid_sound {lvl : ℕ} {lv : OsLv} {st : OsSt} (hok : AllOk C rd σ (
       (osHsMid lvl lv st).2 = { st with k := (osHsMid lvl lv st).2.k } :=
   ⟨fun c hc ↦ osHsCoefs_val _ _ _ _ _ _ _ _ hok c (Nat.zero_le _) (by omega), rfl⟩
 
-/-- **The final lane, normalized** (G:1648-1658): coefficient `c` read from `final_msg`, stored in
+/-- **The final lane, normalized**: coefficient `c` read from `final_msg`, stored in
 a fresh `hs` times its normalizer. -/
 theorem osHsFinal_sound {c : OsCfg} {lv : OsLv} {st : OsSt}
     (hok : AllOk C rd σ (osHsFinal c lv st).1) :

@@ -75,7 +75,7 @@ structure MainGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) p.Ps
   dv : (hm fs fp seed s w).nd = 1 →
-    CompleteAtDT fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtDT fs cert 20 "da_verify" (hLmain fs fp seed s w) []
       (Returns (hm fs fp seed s w).daR) p.Pd
   ag : (hm fs fp seed s w).nc ≠ 0 →
     CompleteAtDT fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)

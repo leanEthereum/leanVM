@@ -14,7 +14,7 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
 
 /-!
-# `verify_bus_gkr` is sound (G:1867-2048)
+# `verify_bus_gkr` is sound
 
 The body (`vbgPre`, the core IR's): the range check of `g_bus_mu = g^depth` (`depth ≤ 32`), the
 two roots read and the count asserted nonzero, the combiner drawn from the two roots waiting

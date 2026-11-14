@@ -278,7 +278,7 @@ tracked, then a fixed fact. -/
 noncomputable def restSpec {M : ℕ} {bytecode : List K}
     (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) {cs : List ChildClaims}
     (hn : cs.length < M) (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c) (hg : SomeGap bytecode cs) :
-    Spec (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs) (fun h ↦ h = [])
+    Spec (batchingAfterChildren (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs) (fun h ↦ h = [])
       (fun b _ ↦ b = false) (batchε M) (batchε M) 0 :=
   ((Spec.grindPos (Post := fun _ _ ↦ ∃ g ∈ gapsB bytecode cs, g ≠ 0) (by decide) (fun _ h ↦ h)
       (grind_lam_le_batchε M)).bind'

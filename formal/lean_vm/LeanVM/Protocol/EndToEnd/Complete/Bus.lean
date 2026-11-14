@@ -16,8 +16,8 @@ public import LeanVM.Protocol.EndToEnd.Front.BusPadding
 /-!
 # The bus phase
 
-The verifier program's bus phase (`verifyBusBalance`, `crates/verifier/src/bus.rs:130-247` at
-leanVM at `leanvm-rev`), against the honest prover of a stack `q`
+The verifier program's bus phase (`verifyBusBalance`, `crates/verifier/src/bus.rs` at
+leanVM), against the honest prover of a stack `q`
 satisfying the leanISA instance's relation with honest padding (`M3Honest`). The prover passes
 the grind for the push tree's depth, then receives the fingerprint: sixteen slot weights `w` and
 `β`.

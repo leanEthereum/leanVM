@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.VtC.BGlue
 public import LeanVM.Guest.B1.Tables.Vt.BcShare
 
 /-!
-# The bytecode share, honestly (G:2422-2469)
+# The bytecode share, honestly
 
 The honest share from the sponge `F0` after the four framework words and the ten words `w` the
 stream holds after them (`S`, the first round's `c0`, `c2`, the three tail rounds' two words each,

@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Gkr.Loop7C
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `verify_bus_gkr_loop0`, completely (G:1997-2041)
+# `verify_bus_gkr_loop0`, completely
 
 `ly_iter`: from the slot of `L = 2j + 2 - sh` (`GkSlot`), one step of two levels
 (`GkStepD.Ok`), its words at the cursor, its round records (`RecsAt`) and the slot of `L + 2` the

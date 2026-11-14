@@ -1,5 +1,5 @@
 # usage: python3 -I gensort.py  — writes Tables/Vt/SortT.lean (verify_tables' block-group
-# certification, G:2240-2277 at the commit in leanvm-rev) from vt_ir.txt (dump.py).
+# certification) from vt_ir.txt (dump.py).
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import IR, parse_atom, VT_LEAN
@@ -92,7 +92,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Base
 public import LeanVM.Guest.B1.Tables.InterfaceP
 
 /-!
-# The block certification's statements (G:2240-2277)
+# The block certification's statements
 
 * `vt_grp{gi}`: block group `gi`'s rank key and size (`VtGrpFacts`), push groups `0 .. 8` and
   count groups `18 .. 23`;

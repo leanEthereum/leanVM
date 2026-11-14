@@ -215,7 +215,7 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
   have hb : bytecodeVars = 23 := rfl
   have hmem := List.getElem_mem hc
   have hdl : w.children[c].statement.deferredClaim.cells.length = 24 := by
-    simp [DeferredClaim.cells, (hsh _ hmem).2, hb]
+    simp [DeferredBytecodeClaim.cells, (hsh _ hmem).2, hb]
   have hpi := hKid_pi seed (s := s) hc
   have hW1 : hW s w (c + 1) = hW s w c + (hEx w c + hEs w c) := by
     simp only [hW]
@@ -228,7 +228,7 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     have p4 := readsAt_flatMap_of (w := 2) _ (fun _ _ => rfl) r4 c (by simp; omega)
     have p5 := readsAt_flatMap_of (w := 2) w.children (fun _ _ => rfl) r5 c hc
     have p7 := readsAt_flatMap_of (w := 24) w.children
-      (fun a ha => by simp [DeferredClaim.cells, (hsh a ha).2, hb]) r7 c hc
+      (fun a ha => by simp [DeferredBytecodeClaim.cells, (hsh a ha).2, hb]) r7 c hc
     have e4 : (w.children.map (·.statement.claims.daDigest) ++ [hOwnDa w])[c]'(by simp; omega) =
         w.children[c].statement.claims.daDigest := by
       rw [List.getElem_append_left (by simpa using hc), List.getElem_map]

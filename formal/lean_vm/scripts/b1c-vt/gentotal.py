@@ -1,6 +1,6 @@
 import os, sys
 # usage: python3 -I gentotal.py  writes Tables/Vt/{PushPad,PushFw,PullTotal,CountTotal}.lean: the three
-# sides' totals (`bus_table_total`, G:2471-2530) from verify_tables' second loop over the sides.
+# sides' totals (`bus_table_total`) from verify_tables' second loop over the sides.
 # First run: python3 -I dump.py ../../LeanVM/Guest/Data vt_ir.txt (from this directory).
 import re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -250,7 +250,7 @@ theorem vt_push_sel {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) : σ (.n {sel0}
 ''')
     write('PushPad', "`verify_tables`' push side's padding sum and total: the tables' blocks' padding terms, the\n  selector sum and the GKR leaf value.",
           'LeanVM.Guest.B1.Tables.Vt.SelFw',
-          "# The push side's padding and total (G:2471-2530)\n\n`vtPushPadData` lists the push side's table blocks with their table, the value of their eq weight's\ncopy (`block_eq_hi[b]`) and their nonzero `COORD_PADDING` terms (slot, value). `vt_push_pad`: the\npadding sum is `Σ_t pad_weight[t]·Σ_b eq_b·(β + 1 + Σ w_i·pad_i)`; `vt_push_total`:\n`bus_table_total[PUSH]` is the framework accumulator, the padding sum, `1 + selector_sum` and the\nGKR push leaf value.",
+          "# The push side's padding and total\n\n`vtPushPadData` lists the push side's table blocks with their table, the value of their eq weight's\ncopy (`block_eq_hi[b]`) and their nonzero `COORD_PADDING` terms (slot, value). `vt_push_pad`: the\npadding sum is `Σ_t pad_weight[t]·Σ_b eq_b·(β + 1 + Σ w_i·pad_i)`; `vt_push_total`:\n`bus_table_total[PUSH]` is the framework accumulator, the padding sum, `1 + selector_sum` and the\nGKR push leaf value.",
           '\n'.join(body))
 
 FW_NOTE = "The framework blocks' coordinate values are the first loop's (`coord_vals`): constants, the index\nextensions and the stream words."
@@ -268,7 +268,7 @@ def gen_rest():
         extra_rw='  simp only [tb_word_one, tb_word_gen, vt_word4]\n')
     write('PushFw', "`verify_tables`' push side's framework blocks: their fingerprints' accumulator and the\n  bytecode share's public term.",
           'LeanVM.Guest.B1.Tables.Vt.PushPad',
-          "# The push side's framework blocks (G:2476-2489)\n\n`vt_push_fw`: the accumulator after the state, memory and bytecode blocks is\n`Σ_f eq_f·(β + Σ_i w_i·coord_i)`, the bytecode block's public slots left out, plus\n`public_eq·S`. " + FW_NOTE,
+          "# The push side's framework blocks\n\n`vt_push_fw`: the accumulator after the state, memory and bytecode blocks is\n`Σ_f eq_f·(β + Σ_i w_i·coord_i)`, the bytecode block's public slots left out, plus\n`public_eq·S`. " + FW_NOTE,
           'theorem vt_word4 : word 4 0 = gen ^ 2 := by\n  rw [show (4 : ℕ) = 2 ^ 2 by norm_num, tb_word_two_pow (by norm_num)]\n\n' + fwP)
     # ---- PullTotal ----
     fwQ_leaves = {14, 1294, 1299, 1313, 1301, 1305, 1307, 1309, 1315, 1319, 1436, 1843}
@@ -297,7 +297,7 @@ theorem vt_pull_total {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) :
         '\n  rw [' + ', '.join(f'a{p}' for p in sorted(tot, reverse=True)) + ', tb_word_one]\n')
     write('PullTotal', "`verify_tables`' pull side total: its framework blocks' fingerprints (with the final memory and\n  bytecode counts), the push side's padding sum, the selector sum and the GKR pull value.",
           'LeanVM.Guest.B1.Tables.Vt.PushFw',
-          "# The pull side's total (G:2471-2530)\n\nThe pull side's blocks mirror the push side's: their eq weights are the push blocks' copies, and\ntheir padding sum is the push side's. `vt_pull_total`: `bus_table_total[PULL]`. " + FW_NOTE,
+          "# The pull side's total\n\nThe pull side's blocks mirror the push side's: their eq weights are the push blocks' copies, and\ntheir padding sum is the push side's. `vt_pull_total`: `bus_table_total[PULL]`. " + FW_NOTE,
           '/-- `g^(2^19 - 1)`, the final `pc`, as the data writes it. -/\nabbrev vtWFinalPc : E := word 12261764870545049476 0\n\n' + '\n'.join([fwQ, sumQ, totQ]))
     # ---- CountTotal ----
     leavesC = {c for _, _, c, _ in count_data} | set(PW)
@@ -325,7 +325,7 @@ theorem vt_count_sel {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) : σ (.n {sel2
 ''')
     write('CountTotal', "`verify_tables`' count side total: the padding sum over its blocks (counts alone, at `β = 0`),\n  the selector sum and the GKR count value.",
           'LeanVM.Guest.B1.Tables.Vt.PullTotal',
-          "# The count side's total (G:2471-2530)\n\n`vtCountPadData` lists the count side's blocks with their table and copy. `vt_count_total`:\n`bus_table_total[COUNT]` is the padding sum, `1 + selector_sum` and the GKR count value.",
+          "# The count side's total\n\n`vtCountPadData` lists the count side's blocks with their table and copy. `vt_count_total`:\n`bus_table_total[COUNT]` is the padding sum, `1 + selector_sum` and the GKR count value.",
           '\n'.join(body))
 
 if __name__ == '__main__':

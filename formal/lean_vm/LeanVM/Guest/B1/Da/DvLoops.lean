@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.DvLoops
 
-  `da_verify`'s loops on its honest buffers (G:4290-4311): the regions' bases (`da_verify_loop0`), a
+  `da_verify`'s loops on its honest buffers: the regions' bases (`da_verify_loop0`), a
   column's cells (`da_verify_column_loop0`), the blobs' trees (`da_verify_loop2`), the padding
   blobs' roots (`da_verify_loop3`), and the tree over the blobs' roots (`da_levels` at the padded
   count).
@@ -15,6 +15,9 @@ public import LeanVM.Guest.B1.Da.DvHonest
 public import LeanVM.Guest.B1.Da.LoopsComplete
 public import LeanVM.Guest.B1.Digest.Steps
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The loops, on the honest buffers
@@ -33,7 +36,7 @@ open LeanVM.Guest.B1.Digest
 
 @[expose] public section
 
-variable {rd : Reader} {r L : ℕ} {syms : ℕ → ℕ → List K} {z : E} {bb bR bT : ℕ}
+variable {rd : Reader} {r L : ℕ} {syms : ℕ → ℕ → List E} {z : E} {bb bR bT : ℕ}
 
 /-- **Region `i`'s words**, at its base. -/
 theorem hreg (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z)) {i : ℕ} (hi : i < r) {k : ℕ}
@@ -51,8 +54,6 @@ theorem hbase (hR : ReadsAt rd (gen ^ bR) (rowbaseCells r bb)) {i : ℕ} (hi : i
 
 theorem gen_pow_pow (i k : ℕ) : (gen ^ i) ^ k = gen ^ (k * i) := by rw [← pow_mul, mul_comm]
 
-theorem hr64 {r : ℕ} (hr : r ≤ 1024) : r < 2 ^ 64 - 1 := by omega
-
 /-- **The regions' bases** (`da_verify_loop0`): each base, each running sum's first word zero. -/
 theorem l17_rel (hr1 : 1 ≤ r) (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z))
     (hR : ReadsAt rd (gen ^ bR) (rowbaseCells r bb)) :
@@ -68,7 +69,7 @@ theorem l17_rel (hr1 : 1 ≤ r) (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z
 /-- **Column `h`'s cells** (`da_verify_column_loop0`): each blob's cell checked, its running sum's
 step, its
 digest at its tree's leaf `h`, the weights read at `g^lv`. -/
-theorem l21_rel (hr1 : 1 ≤ r) {h : ℕ} (hh : h < 128) (hsl : ∀ i j, (syms i j).length = 256)
+theorem l21_rel (hr1 : 1 ≤ r) {h : ℕ} (hh : h < 128) (hsl : ∀ i j, (syms i j).length = 128)
     (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z))
     (hR : ReadsAt rd (gen ^ bR) (rowbaseCells r bb)) {lv : ℕ}
     (hlv : ReadsAt rd (gen ^ lv) (colWs z h)) :
@@ -117,8 +118,8 @@ root
 written among the roots' leaves. -/
 theorem l19_rel (hr1 : 1 ≤ r) (hrL : r ≤ 2 ^ L) (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z))
     (hR : ReadsAt rd (gen ^ bR) (rowbaseCells r bb)) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L syms))
-    (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
-      dualAt z (256 * h + e) * ofK ((syms i h).getD e 0) = 0) :
+    (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
+      dualAt z (128 * h + e) * (syms i h).getD e 0 = 0) :
     coreProgram.Rel rd name% «da_verify_loop2» [1, gen ^ r, gen ^ bR, gen ^ bT] [] := by
   have := loopF_complete (rd := rd) find_l19 dv_loops_shape.2.1.1 (N := gen ^ r) (rest := [gen ^ bR, gen ^ bT])
     (m := r) rfl (fun i hi => ?_) 0 hr1
@@ -126,7 +127,7 @@ theorem l19_rel (hr1 : 1 ≤ r) (hrL : r ≤ 2 ^ L) (hB : ReadsAt rd (gen ^ bb) 
   have hlen := length_blobLeaves syms i
   have hregR := readsAt_block (length_regionCells syms z) hB hi
   rw [regionCells, List.append_assoc, readsAt_append] at hregR
-  have hc := da_levels_complete 7 (by norm_num) rd (gen ^ (bb + 641 * i)) (blobLeaves syms i)
+  have hc := da_levels_complete 7 (Or.inr rfl) rd (gen ^ (bb + 641 * i)) (blobLeaves syms i)
     (by rw [hlen]; norm_num) (treeMem_of_reads (by rw [hlen]; norm_num)
       hregR.1)
   have hroot : cellRoot 7 (blobLeaves syms i) = digestHalves (blobLeaf r syms i) := by
@@ -162,10 +163,10 @@ theorem l20_rel (hrL : r < 2 ^ L) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L sy
     exact loadHolds_of_reads hT (by rw [length_rootsCells]; omega) hl2
 
 /-- **The tree over the roots** returns `daRoot`'s cells. -/
-theorem dl_rel (hL : L ≤ 10) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L syms)) :
+theorem dl_rel (hL : L = guest_const% DA_LOG_MAX_ROWS) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L syms)) :
     coreProgram.Rel rd (daLevelsName L) [gen ^ bT] (digestCells (daRoot r L syms)) := by
   rw [rootsCells, readsAt_append] at hT
-  have hc := da_levels_complete L hL rd (gen ^ bT) (rootLeaves r L syms) (length_rootLeaves r L syms)
+  have hc := da_levels_complete L (Or.inl hL) rd (gen ^ bT) (rootLeaves r L syms) (length_rootLeaves r L syms)
     (treeMem_of_reads (length_rootLeaves r L syms) hT.1)
   rw [rootLeaves, cellRoot_mRoot] at hc
   exact hc

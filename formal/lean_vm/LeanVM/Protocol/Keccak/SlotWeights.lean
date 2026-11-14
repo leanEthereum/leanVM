@@ -18,7 +18,7 @@ segment `seg < count` and position `j = z + 64ℓ`, the weight `eq(point_P, seg)
 is `slotW … o z`, the weight of segment `o / 25 - first` at position `64·(o mod 25) + z` on the rows
 `25·first ≤ o < 25·(first + count)`, `0` elsewhere. `foldAll_eq`: `keccakOpen`'s fold of the rows
 along the slot challenges is the rows' multilinear extension at the slot point, column by column,
-which the Rust `open` (`crates/verifier/src/keccak.rs:198-223`) computes directly, weighting each
+which the Rust `open` (`crates/verifier/src/keccak.rs`) computes directly, weighting each
 slot's row by `eq_kernel(slot)`.
 -/
 
@@ -241,7 +241,7 @@ theorem foldAll_eq : ∀ (pt : List E) (rows : List (List E)), rows.length = 2 ^
     simp only [e1, e2, e3, e4, ite_true, zero_ne_one, ite_false]
     ring
 
-/-- `keccakOpen` (`open`, `keccak.rs:198-223`), with the fold named. -/
+/-- `keccakOpen` (`open`, `keccak.rs`), with the fold named. -/
 theorem keccakOpen_eq (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
     keccakOpen logSteps claim first count value =
       sumcheck value 3 (List.replicate qkeccakSlotBits none) >>= fun x ↦

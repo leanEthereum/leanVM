@@ -1,54 +1,37 @@
 //! The aggregate, its wire format and its native verification.
 
-use super::deferred::{DeferredClaim, scalar_bytecode};
-use super::error::{AggregateVerifyError, SnarkVerifyError};
+use super::deferred::{DeferredBytecodeClaim, bytecode_vars, scalar_bytecode};
+use super::error::{AggregateVerifyError, StarkVerifyError};
 use super::statement::statement_digest;
 use super::{LeanSphincsClaim, LeanXmssClaim};
 use leanvm_core::cpu::{public_input_bytes, scalar_proof};
 use primitives::field::F128;
 
-/// What an aggregate attests: every `(pubkey, message)` in [`Self::lean_xmss`] is backed by a valid
-/// leanXMSS signature, at a leaf index the statement does not record, every one in
-/// [`Self::lean_sphincs`] by a valid leanSPHINCS signature, and the [`Self::da_commitment`], if any,
-/// commits to blob rows that are valid Reed-Solomon codewords.
+/// What an aggregate attests: each `(pubkey, message)` in [`Self::lean_xmss`] and
+/// [`Self::lean_sphincs`] has a valid signature under that scheme, and [`Self::da_commitment`], if
+/// any, commits to blobs that are valid Reed-Solomon codewords.
 ///
-/// The two lists remain separate because the proof says which scheme verified which claim (the
-/// module docs give the coverage argument). A proof's lists are each strictly sorted and deduplicated
-/// on the whole `(pubkey, message)` pair, and [`EthereumProof::from_proof_bytes`] and
-/// [`EthereumProof::verify`] reject claims that are not. Either list
-/// may be empty, and both are in a blob-only proof.
-///
-/// **Neither length counts signers, only claims.** One pubkey may appear under several messages, so a
-/// committee threshold has to count distinct pubkeys itself.
+/// Each list must be strictly sorted (so without duplicates), or [`EthereumProof::verify`] rejects
+/// it. Either may be empty.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct EthereumClaims {
     pub lean_xmss: Vec<LeanXmssClaim>,
     pub lean_sphincs: Vec<LeanSphincsClaim>,
-    /// `None` makes no blob claim. The statement carries its [`verifier::da::digest`].
+    /// `None` for no blobs.
     pub da_commitment: Option<[u8; 32]>,
 }
 
-/// A proof of its [`EthereumClaims`], established directly or carried from verified child proofs.
-///
-/// Until [`Self::verify`] returns `Ok` they are claims, not attestation. A receiver that decoded the
-/// proof with [`Self::from_proof_bytes`] supplied them itself; otherwise, as for [`super::aggregate`]'s
-/// output, they are the prover's choice, and a caller has to compare them against what it expected.
+/// A proof of some [`EthereumClaims`], which travel separately: [`Self::verify`] checks it against
+/// the claims the receiver expects.
 #[derive(Clone, Debug)]
 pub struct EthereumProof {
-    pub(super) claims: EthereumClaims,
-    /// What this aggregate defers to whoever discharges it: its parent, in
-    /// circuit, or [`Self::verify`], natively.
-    pub(super) defer: DeferredClaim,
+    /// The point of the deferred bytecode claim; its value is computed from it.
+    pub(super) bytecode_point: Vec<F128>,
     pub(super) proof: leanvm_core::cpu::Proof,
 }
 
-// The wire format: the deferred point as a little-endian u64 count of limb pairs `c0, c1`,
-// each a little-endian u64, then the VM proof in its own encoding, to the end. The claims are not
-// sent: the receiver knows what it expects a proof to attest, and supplies it.
-//
-// Given the claims, every byte string decodes to at most one aggregate and back to itself: the VM
-// proof's decoder rejects trailing bytes. Otherwise anything downstream that dedupes or indexes on the
-// serialized bytes could be made to see one aggregate as many.
+// Wire format: the deferred point (a u64 count, then each element as two u64 limbs, all little-endian),
+// then the VM proof. The encoding is canonical: the VM proof's decoder rejects trailing bytes.
 
 pub(super) fn encode(point: &[F128], proof: &[u8]) -> Vec<u8> {
     let mut out = (point.len() as u64).to_le_bytes().to_vec();
@@ -57,8 +40,7 @@ pub(super) fn encode(point: &[F128], proof: &[u8]) -> Vec<u8> {
     out
 }
 
-/// The deferred point and the VM proof's bytes. The point's limbs are cut from the input before
-/// any is read, so a forged count allocates nothing.
+/// The deferred point and the VM proof's bytes. A forged count allocates nothing.
 pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F128>, &[u8])> {
     let (count, rest) = bytes.split_first_chunk::<8>()?;
     let count = usize::try_from(u64::from_le_bytes(*count)).ok()?;
@@ -69,11 +51,7 @@ pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F128>, &[u8])> {
     Some((point, proof))
 }
 
-/// Reject a signer set that the coverage argument does not cover: strict sorting
-/// within each list is what stops one claim being counted many times, so each
-/// list's length is a count of distinct `(pubkey, message)` claims. Either list may be
-/// empty; both may be empty for a blob proof. Their sizes are the guest's to bound, by its
-/// memory.
+/// Each list must be strictly sorted, so that no claim counts twice.
 pub(super) fn check_signer_set(claims: &EthereumClaims) -> Result<(), AggregateVerifyError> {
     if !claims.lean_xmss.windows(2).all(|w| w[0] < w[1]) || !claims.lean_sphincs.windows(2).all(|w| w[0] < w[1]) {
         return Err(AggregateVerifyError::MalformedSignerSet);
@@ -82,83 +60,42 @@ pub(super) fn check_signer_set(claims: &EthereumClaims) -> Result<(), AggregateV
 }
 
 impl EthereumClaims {
-    /// The signature claims, as many as the coverage table's declared slots.
-    ///
-    /// NOT a count of distinct signers: a pubkey of either scheme may hold several
-    /// claims, one per message it signed. A caller that wants signers has to
-    /// deduplicate by pubkey itself.
+    /// The number of `(pubkey, message)` claims, not of distinct signers: a pubkey may sign
+    /// several messages.
     pub fn num_signature_claims(&self) -> usize {
         self.lean_xmss.len() + self.lean_sphincs.len()
     }
 }
 
+/// The VM's public input: the digest of the claims and the deferred claim.
+pub(super) fn public_input(claims: &EthereumClaims, defer: &DeferredBytecodeClaim) -> [F128; 2] {
+    let da = verifier::da::digest(claims.da_commitment);
+    statement_digest(&claims.lean_xmss, &claims.lean_sphincs, da, defer)
+}
+
 impl EthereumProof {
-    /// The VM's public input for this aggregate: the digest of its claims and its deferred claim.
-    pub(super) fn vm_public_input(&self) -> [F128; 2] {
-        let da = verifier::da::digest(self.claims.da_commitment);
-        statement_digest(&self.claims.lean_xmss, &self.claims.lean_sphincs, da, &self.defer)
+    pub fn to_bytes(&self) -> Vec<u8> {
+        encode(&self.bytecode_point, &self.proof.to_bytes())
     }
 
-    /// What this aggregate claims, which [`Self::verify`] checks.
-    pub fn claims(&self) -> &EthereumClaims {
-        &self.claims
-    }
-
-    /// What goes on the wire: the deferred point and the VM proof. Neither the claims nor the
-    /// deferred claim's value is transmitted: the receiver supplies the claims to
-    /// [`Self::from_proof_bytes`], which recomputes the value, so there is nothing to lie about.
-    pub fn proof_bytes(&self) -> Vec<u8> {
-        encode(&self.defer.bytecode_point, &self.proof.to_bytes())
-    }
-
-    /// The aggregate `bytes` encode, as a proof of `claims`: what the receiver expects it to attest.
-    /// Claims other than the aggregated ones fail [`Self::verify`].
-    ///
-    /// WARNING: Parsing does NOT verify: the proof is untouched, only shapes are checked.
-    /// Call [`Self::verify`] before believing any of it.
-    pub fn from_proof_bytes(bytes: &[u8], claims: EthereumClaims) -> Result<Self, AggregateVerifyError> {
+    /// Decode a proof. This does not verify: call [`Self::verify`].
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, AggregateVerifyError> {
         let (bytecode_point, proof) = decode(bytes).ok_or(AggregateVerifyError::MalformedEncoding)?;
-        // Cheap rejections first. `recompute_scalar` below is a pass over the whole stacked
-        // bytecode, on a point a peer chose, so anything decidable without it has to be
-        // decided before it.
-        check_signer_set(&claims)?;
-        let proof = leanvm_core::cpu::Proof::from_bytes(proof).ok_or(AggregateVerifyError::MalformedEncoding)?;
-        Ok(Self {
-            claims,
-            // The wire carries no value, only the point to derive it from.
-            defer: DeferredClaim::recompute_scalar(bytecode_point)?,
-            proof,
-        })
-    }
-
-    /// Verify the aggregate's internal consistency: the signer set is well
-    /// formed, the deferred bytecode claim holds at its
-    /// transmitted point, and the VM proof satisfies the statement built from
-    /// all of it.
-    ///
-    /// What `formal/` proves of it, in the random-permutation model, is one node: the guest ran on these claims, each
-    /// a signature it verified itself or a claim of a child proof it verified. That the children's claims are valid
-    /// signatures in turn, and that the `da_commitment`, if any, commits to a well-formed blob matrix, are not proved
-    /// (`formal/statement.tex`, "What is not proved"). The claims are the receiver's own after
-    /// [`Self::from_proof_bytes`]; which leaf index each leanXMSS signature used is not part of the claim.
-    ///
-    /// Every field operation, the proof check and its Merkle hashing run in the `verifier` crate: one thread, no explicit SIMD.
-    pub fn verify(&self) -> Result<(), AggregateVerifyError> {
-        check_signer_set(&self.claims)?;
-        // Discharging the deferred claim IS recomputing it: its value has
-        // to be the true evaluation, or the recursion below proves nothing about
-        // the bytecode.
-        let _s = tracing::info_span!("Recompute deferred claims").entered();
-        let defer = DeferredClaim::recompute_scalar(self.defer.bytecode_point.clone())?;
-        drop(_s);
-        if defer != self.defer {
+        if bytecode_point.len() != bytecode_vars() {
             return Err(AggregateVerifyError::MalformedClaim);
         }
-        let _s = tracing::info_span!("Statement digest").entered();
-        let pi = self.vm_public_input();
-        drop(_s);
+        let proof = leanvm_core::cpu::Proof::from_bytes(proof).ok_or(AggregateVerifyError::MalformedEncoding)?;
+        Ok(Self { bytecode_point, proof })
+    }
+
+    /// Verify that this proves `claims`: the lists are sorted, the deferred claim holds, and the stark
+    /// proof is valid.
+    pub fn verify(&self, claims: &EthereumClaims) -> Result<(), AggregateVerifyError> {
+        check_signer_set(claims)?;
+        let defer = DeferredBytecodeClaim::recompute_scalar(self.bytecode_point.clone())?;
+        let pi = public_input(claims, &defer);
         verifier::verify_execution(scalar_bytecode(), &public_input_bytes(&pi), &scalar_proof(&self.proof))
             .map(|_| ())
-            .map_err(|e| AggregateVerifyError::Snark(SnarkVerifyError(e)))
+            .map_err(|e| AggregateVerifyError::Snark(StarkVerifyError(e)))
     }
 }

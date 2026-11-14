@@ -14,7 +14,7 @@ public import LeanVM.Protocol.ToArkLib.Whir.Interleaved
 # The level-0 list and the candidates
 
 The level-0 oracle of the deployed WHIR opening (`verify_whir` level `0`,
-`crates/verifier/src/whir.rs:141-232` at leanVM `40f877dc`)
+`crates/verifier/src/whir.rs` at leanVM `40f877dc`)
 is the committed word read lane by lane: lane `u` of column `v` is `laneOf W u v`, word `63 − u`
 of leaf `v` (the program's `row.reverse.map ofK`), `laneWord μ R W`.
 

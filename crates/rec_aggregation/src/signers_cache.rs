@@ -15,11 +15,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 
+use lean_xmss::*;
 use primitives::{pretty_f64, pretty_integer};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use signatures::lean_xmss::*;
-use signatures::{lean_sphincs, lean_xmss};
 
 /// A cached leanXMSS signer, as the aggregation API takes it: the key, the message
 /// it signed, the signature.
@@ -78,19 +77,19 @@ fn leaf_index_of(index: usize, message_id: u32) -> LeafIndex {
     (BOTTOM_TREE << LAYER_HEIGHT) + (index / NUM_KEYS) as LeafIndex * MESSAGE_IDS + message_id
 }
 
-fn key_seed(k: usize) -> Seed {
-    let mut seed = [10; SEED_LEN];
+fn key_seed(k: usize) -> SecretKey {
+    let mut seed = [10; SECRET_KEY_LEN];
     seed[..8].copy_from_slice(&(k as u64).to_le_bytes());
     seed
 }
 
 /// The [`NUM_KEYS`] keys, each generated, with [`BOTTOM_TREE`] prepared, when first used.
-type Keys = [OnceLock<(LeanXmssSecretKey, LeanXmssPublicKey)>; NUM_KEYS];
+type Keys = [OnceLock<(LeanXmssExpandedSecretKey, LeanXmssPublicKey)>; NUM_KEYS];
 
-fn key(keys: &Keys, k: usize) -> &(LeanXmssSecretKey, LeanXmssPublicKey) {
+fn key(keys: &Keys, k: usize) -> &(LeanXmssExpandedSecretKey, LeanXmssPublicKey) {
     keys[k].get_or_init(|| {
-        let (sk, pk) = key_gen_from_seed(key_seed(k));
-        sk.prepare(BOTTOM_TREE << LAYER_HEIGHT).expect("prepare");
+        let (sk, pk) = key_gen(key_seed(k));
+        sk.prepare(BOTTOM_TREE << LAYER_HEIGHT);
         (sk, pk)
     })
 }
@@ -98,7 +97,7 @@ fn key(keys: &Keys, k: usize) -> &(LeanXmssSecretKey, LeanXmssPublicKey) {
 fn compute_signer(keys: &Keys, index: usize, message_id: u32) -> LeanXmssSigner {
     let (sk, pk) = key(keys, index % NUM_KEYS);
     let message = signer_message(index, message_id);
-    let sig = sign(sk, &message, leaf_index_of(index, message_id)).expect("sign");
+    let sig = sign(sk, &message, leaf_index_of(index, message_id));
     (*pk, message, sig)
 }
 
@@ -134,7 +133,7 @@ fn try_load_cache(path: &Path, message_id: u32) -> Option<Vec<LeanXmssSigner>> {
         let message = signer_message(index, message_id);
         if index >= NUM_KEYS && pk != signers[index % NUM_KEYS].0
             || sig.leaf_index() != leaf_index_of(index, message_id)
-            || lean_xmss::verify(&pk, &message, &sig).is_err()
+            || !lean_xmss::verify(&pk, &message, &sig)
         {
             eprintln!(
                 "warning: signers cache {} is stale at signer {index}; regenerating from there",
@@ -249,9 +248,10 @@ const LEAN_SPHINCS_RECORD: usize = lean_sphincs::PUB_KEY_SIZE + lean_sphincs::ME
 
 fn compute_lean_sphincs_signer(index: usize) -> CachedSphincsSignature {
     let mut rng = StdRng::seed_from_u64(0x5F1A_C500 ^ index as u64);
-    let (secret_key, public_key) = lean_sphincs::key_gen_from_seed(rng.random());
+    let secret_key: lean_sphincs::SecretKey = rng.random();
+    let public_key = lean_sphincs::key_gen(&secret_key);
     let message = lean_sphincs_message(index);
-    let signature = lean_sphincs::sign(&secret_key, &message).expect("sign");
+    let signature = lean_sphincs::sign(&secret_key, &message);
     (public_key, message, signature)
 }
 
@@ -286,7 +286,7 @@ fn try_load_lean_sphincs_cache() -> Option<Vec<CachedSphincsSignature>> {
         let public_key = lean_sphincs::LeanSphincsPublicKey::from_bytes(key_bytes.try_into().unwrap());
         let message: lean_sphincs::Message = message_bytes.try_into().unwrap();
         let signature = lean_sphincs::LeanSphincsSignature::from_bytes(signature_bytes.try_into().unwrap());
-        if lean_sphincs::verify(&public_key, &message, &signature).is_err() {
+        if !lean_sphincs::verify(&public_key, &message, &signature) {
             eprintln!(
                 "warning: signers cache {} is stale (signer {} no longer verifies); regenerating from there",
                 lean_sphincs_cache_path().display(),

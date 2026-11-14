@@ -28,12 +28,13 @@ import LeanVM.Guest.Pack.«P59».Shared0
 import LeanVM.Guest.Pack.«P40».Shared0
 import LeanVM.Guest.Pack.«P45».Shared0
 import LeanVM.Guest.Pack.«P26».Shared0
-import LeanVM.Guest.Pack.«P7».Shared1
+import LeanVM.Guest.Pack.«P7».SharedOk
 import LeanVM.Guest.Pack.«P52».Shared0
 import LeanVM.Guest.Pack.«P9».Shared0
 import LeanVM.Guest.Pack.«P54».SharedOk
 import LeanVM.Guest.Pack.«P24».Shared0
 import LeanVM.Guest.Pack.«P45».Shared1
+import LeanVM.Guest.Pack.«P7».Shared1
 import LeanVM.Guest.Pack.«P54».Shared1
 import LeanVM.Guest.Pack.«P9».Shared1
 import LeanVM.Guest.Pack.«P3».Shared1
@@ -46,7 +47,7 @@ import LeanVM.Guest.Pack.«P53».Shared0
 import LeanVM.Guest.Pack.«P34».Shared0
 import LeanVM.Guest.Pack.«P27».Shared0
 import LeanVM.Guest.Pack.«P8».Shared0
-import LeanVM.Guest.Pack.«P8».Shared1
+import LeanVM.Guest.Pack.«P8».SharedOk
 
 namespace LeanVM.Guest.B2C.Shared
 

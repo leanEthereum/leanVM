@@ -6,11 +6,10 @@ public import Statement.Prover.Script
 # The additive NTT and the committed words
 
 The encoder of leanVM's binary Reed-Solomon code in the novel basis (Annex D,
-`doc/leanvm/body/d-novel-basis.tex:2-46`: `Enc(g)(x_p) = Σ_u g(u)·X_⟨u⟩(x_p)`,
+`doc/leanvm/body/d-novel-basis.tex`: `Enc(g)(x_p) = Σ_u g(u)·X_⟨u⟩(x_p)`,
 `X_j = ∏_i Ŵ_i^{j_i}`, `Ŵ_i` the normalized subspace polynomials, `x_p = K.ofBits p`) for all
 `2^(κ+R)` domain points at once, in `O((κ+R)·2^(κ+R))` operations
-(`AdditiveNttF64`, `crates/pcs/src/ntt/twiddles.rs:52`, and its `standard`, `:92`, at leanVM
-`afe891a73456bfa693a309bfda944079a3075ca9`, `leanvm-rev`).
+(`AdditiveNttF64`, `crates/pcs/src/ntt/twiddles.rs`, and its `standard`).
 `Ŵ_i(x_p)` depends only on `p >>> i` (`Ŵ_i` is additive and vanishes on `U_i`), so the transform
 folds the message's variables from the top, a stage the butterfly
 `(u, v) ↦ (u + t·v, u + (t + 1)·v)` with the twiddle `t = Ŵ_i(x_{b·2^(i+1)})` of the block `b`;

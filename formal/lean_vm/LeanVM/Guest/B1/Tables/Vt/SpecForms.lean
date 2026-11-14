@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Tables.Vt.FormsTie4
 public import LeanVM.Guest.B1.Tables.Vt.FormsTie5
 
 /-!
-# The forms (V:623-638, 664-673)
+# The forms
 
 `accumulateSide` adds each block's form, scaled by its selector, to its owner's form of the side
 (`accFold_spec`): evaluated at a table's row, the owner's form is the sum over its blocks of the

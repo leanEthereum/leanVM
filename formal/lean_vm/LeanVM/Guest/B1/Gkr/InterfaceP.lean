@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Gkr.Fs
 # `verify_bus_gkr`: the interface
 
 `verify_bus_gkr(fs0, …, fs4, cursor, g_bus_mu, zeta, tabs)` (`lean_ethereum.py` at leanVM
-`010cfb18`, G below, G:1892-2073) runs the bus's one GKR grand product over the push, pull and
+`010cfb18`, G below) runs the bus's one GKR grand product over the push, pull and
 count trees (`verifyGkrGrandProducts`): it reads the shared root and the count root (asserted
 nonzero), runs the root-most layer on its own (binary at an odd depth, else radix four, with
 `gkr_children`, `gkr_product_check`), then the radix-four layers of `verify_bus_gkr_loop0`
@@ -34,7 +34,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The GKR walk and the count root's check (V:1488-1490): what `verify_bus_gkr` runs. -/
+/-- The GKR walk and the count root's check: what `verify_bus_gkr` runs. -/
 def gkrPhase (depth : ℕ) : VerifierProgram (E × List E × List E) := do
   let r ← verifyGkrGrandProducts depth
   VerifierProgram.require (r.1 ≠ 0)

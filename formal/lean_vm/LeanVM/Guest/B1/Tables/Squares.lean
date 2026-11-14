@@ -27,7 +27,7 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Guest.Value
 
 @[expose] public section
 
-/-- `SIZE_BITS` (G:52). -/
+/-- `SIZE_BITS`. -/
 abbrev tbSizeBits : ℕ := guest_const% SIZE_BITS
 
 /-- `n` successive tbSquares from `x`: `x, x², x⁴, …`, as `sq_run *= sq_run` computes them. -/

@@ -154,7 +154,7 @@ noncomputable def completenessExpRpmH (π : Equiv.Perm KeccakState) (ps : Argume
 /-! ### The end statements, in the model with the hash oracle -/
 
 /-- **LeanDA is perfectly complete in the random-permutation model, for every permutation.**
-For any number `r` of rows, every permutation `π` of the Keccak state, and every argument `ps`
+For at most `maxRows` rows, every permutation `π` of the Keccak state, and every argument `ps`
 perfectly complete for LeanDA's relation for every permutation (`relationForPermutation`, the hash
 Keccak-256 over `π` and the challenges the deployed duplex over `π`; the argument's prover and
 verifier answered by `π`): every position `p` of the honest commitment to every message `msg`
@@ -163,7 +163,7 @@ for every outcome of the binding statements' uniformly random permutation. The p
 completeness proof, transferred. Proved by `LeanDa.leanDa_perfectlyComplete_rpmH`. -/
 abbrev PerfectlyCompleteRpmH : Prop :=
   ∀ (r : ℕ) (π : Equiv.Perm KeccakState) {Crs Proof : Type} (ps : ArgumentRpmH r Crs Proof),
-    ps.PerfectlyComplete (relationForPermutationWithHash r) →
+    r ≤ maxRows → ps.PerfectlyComplete (relationForPermutationWithHash r) →
       ∀ (msg : Fin r → Payload) (p : Fin (r * 128)),
         Pr{let b ← completenessExpRpmH r π ps msg p}[b = true] = 1
 
@@ -182,21 +182,21 @@ abbrev PositionBindingRpmH : Prop :=
 
 /-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
 it** (Benedikt Wagner's framework and games, moved to the random-permutation model, with a
-straight-line argument in place of his forking lemma). For `1 ≤ r ≤ 1024` rows (`maxRows`, the
-crate's bound), every argument `ps` (its prover and verifier querying the model's oracles) and
+straight-line argument in place of his forking lemma). For `1 ≤ r ≤ maxRows` rows (the crate's
+bound), every argument `ps` (its prover and verifier querying the model's oracles) and
 straight-line extractor `ext` (reading the adversary's transcript): if every adversary whose
 knowledge-soundness game (`ksGameH`, the argument's verifier and the relation's check included)
 makes at most `q ≤ 2^128` permutation calls (`permCallsH`) wins it with probability at most
 `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications included, makes at
 most `Q` calls breaks code binding with probability at most
 
-`(Q + c + 2^65) · 2^-k + (Q + 2^11) · 2^-125 + (Q + 2^22)² · 2^-247`.
+`(Q + c + 2^65) · 2^-k + (Q + 2^10) · 2^-125 + (Q + 2^22)² · 2^-247`.
 
 The first term is the argument's knowledge soundness against the code-binding adversary itself,
 its transcript handed to the extractor (at most `Q + 2^65` calls with the relation's check, the
 nonce search's `2^64 + 2` on the worst path among them). The second is the membership test with its
-grind: `2^-11 · (2^14 - 1) / 2^128 ≤ 2^-125` for each of the adversary's calls, and
-`(2^14 - 1) / 2^128` for the verifier's one search. The third gathers the transfer to the
+grind: `2^-10 · (2^13 - 1) / 2^128 ≤ 2^-125` for each of the adversary's calls, and
+`(2^13 - 1) / 2^128` for the verifier's one search. The third gathers the transfer to the
 two-oracle model and the duplex lemma, of the two games, and the hash's bad events among at most
 `2 Q + 2^20` hash queries: a collision, or a fresh answer that is a digest an earlier input or a
 root with a drawn challenge already carries; it exceeds one before `Q = 2^124`.
@@ -216,7 +216,7 @@ abbrev CodeBindingRpmH : Prop :=
     ∀ (A : CodeBindingAdvRpmH r Crs Proof) (Q : ℕ),
       QueryCostAtMost (codeBindingGameH r ps A) permCallsH Q →
         Pr{let b ← runKH (codeBindingGameH r ps A)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 11) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+          ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 
 end LeanDa

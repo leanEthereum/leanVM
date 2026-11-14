@@ -15,7 +15,8 @@ pcs.workspace = true
 keccak_gkr.workspace = true
 leanvm_core.workspace = true
 lean_compiler.workspace = true
-signatures.workspace = true
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
 lean_da.workspace = true
 verifier.workspace = true
 rand = { workspace = true, optional = true }

@@ -44,7 +44,7 @@ import LeanVM.Guest.Pack.«P57».Shared0
 import LeanVM.Guest.Pack.«P38».SharedOk
 import LeanVM.Guest.Pack.«P55».SharedOk
 import LeanVM.Guest.Pack.«P52».Shared1
-import LeanVM.Guest.Pack.«P7».Shared2
+import LeanVM.Guest.Pack.«P7».SharedOk
 import LeanVM.Guest.Pack.«P26».Shared1
 import LeanVM.Guest.Pack.«P40».Shared1
 import LeanVM.Guest.Pack.«P59».Shared1

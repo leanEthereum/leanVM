@@ -84,7 +84,7 @@ def MainGoalL4 : Prop :=
 
 def MainGoalDv : Prop :=
   (hm fs fp seed s w).nd = 1 →
-    CompleteAtD fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtD fs cert 20 "da_verify" (hLmain fs fp seed s w) []
       (Returns (hm fs fp seed s w).daR)
 
 def MainGoalL5 : Prop :=

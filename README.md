@@ -99,17 +99,17 @@ aggregation, 500 leanSPHINCS signatures
 ### data availability
 
 ```bash
-cargo leanvm aggregate --blobs 16 --log-inv-rate 1 --repeat 3
+cargo leanvm aggregate --blobs 32 --log-inv-rate 1 --repeat 3
 ```
 
 ```
-aggregation, 16 blobs
-  cycles (VM steps)           : 3,020,842 = 2^21.527
-    details                   : XOR 2^20.098 (37.1%)  MUL 2^19.811 (30.4%)  DEREF 2^19.206 (20.0%)  JUMP 2^18.052 (9.0%)  SET 2^16.043 (2.2%)  KECCAK 2^15.088 (1.2%)  MEMORY 2^21.799  BYTECODE 2^18.812  TOTAL_COMMITTED 2^26.306
-  proof size                  : 289.9 KiB
-  proving time                : 0.608 s ± 3.4%      peak memory 4.279 GiB
-  blob throughput             : 26.299 blobs/s, 3.287 MiB/s
-  verifying                   : 5.714 ms
+aggregation, 32 blobs
+  cycles (VM steps)           : 2,602,234 = 2^21.311
+    details                   : XOR 2^20.063 (42.1%)  MUL 2^19.392 (26.4%)  DEREF 2^19.25 (24.0%)  SET 2^16.717 (4.1%)  KECCAK 2^16.088 (2.7%)  JUMP 2^14.14 (0.7%)  MEMORY 2^21.88  BYTECODE 2^18.801  TOTAL_COMMITTED 2^26.291
+  proof size                  : 289.8 KiB
+  proving time                : 0.643 s ± 2.6%      peak memory 4.28 GiB
+  blob throughput             : 49.757 blobs/s, 6.22 MiB/s
+  verifying                   : 5.466 ms
 ```
 
 ### recursion

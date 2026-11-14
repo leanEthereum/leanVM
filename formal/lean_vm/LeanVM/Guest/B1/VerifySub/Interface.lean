@@ -25,21 +25,21 @@ public import LeanVM.Facts.Verifier
 /-!
 # `verify_sub` (TRIAGE G #71): the interface
 
-`verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out)` (G:3506-3705) runs
-`verifyDeferredWith` (V:2328) on one child's proof: the seed `keccakF (seedInput iv pi)` by
+`verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out)` runs
+`verifyDeferredWith` on one child's proof: the seed `keccakF (seedInput iv pi)` by
 `keccak_cells(…, final=0)`, the announced sizes (`readAnnouncedSizes`), the stack's root
 (`commitStack`), the bus challenges and GKR (`verify_bus_gkr`), the bus leaves, the table
 sumcheck and the public input (`verify_tables`), the Keccak reduction (`verify_keccak`), the
 ring switch (`ring_switch_target`, `c_table`), the batching challenge, the placement
 (`certify_placement`), the stacked opening (`open_stacked__L{j}`) and its terminal
 (`check_opening_terminal`); it stores the claim on the bytecode the run leaves at `defer_out`
-(`Node.DeferredClaim.cells`: the bus point's `BYTECODE_LOG = 19` row coordinates, the four bus challenges,
+(`Node.DeferredBytecodeClaim.cells`: the bus point's `BYTECODE_LOG = 19` row coordinates, the four bus challenges,
 the value).
 
 * `MeaningVerifySub bytecode`: the cells are a seed and a public input, and for some claim `c` on
   the bytecode of the guest's shape (`23` coordinates) and some proof `π`, the deferring verifier
-  accepts `π` for the public input under the seed (`verifyDeferred`, V:2344), with
-  `DeferredClaim.cells c` at `defer_out`;
+  accepts `π` for the public input under the seed (`verifyDeferred`), with
+  `DeferredBytecodeClaim.cells c` at `defer_out`;
 * `VerifySubPre`: `g_squares` holds the exponent table and its window section (`ExpTables`,
   `ExpWinTab`);
 * `verify_sub_Spec bytecode`: on a memory image of at most `2^32` words, under `VerifySubPre`, the
@@ -62,14 +62,14 @@ abbrev bytecodeVars : ℕ := 23
 
 /-- **`verify_sub`'s meaning** on `[pi_0, pi_1, seed_0, seed_1, g_squares, defer_out]`: the cells of a seed `seed` and a public input `pi`, and for some claim `c` on the
 bytecode with `23` coordinates and some proof `π`, the deferring verifier accepts `π` for `pi`
-under `seed` (`verifyDeferred`, V:2344), with `DeferredClaim.cells c` at `defer_out`; it returns
+under `seed` (`verifyDeferred`), with `DeferredBytecodeClaim.cells c` at `defer_out`; it returns
 nothing. -/
 def MeaningVerifySub (bytecode : List K) (rd : Reader) : List E → List E → Prop
   | [pi0, pi1, s0, s1, _, out], rets =>
       rets = [] ∧ ∃ (seed pi : Digest) (c : BytecodeClaim) (π : Proof),
         (s0, s1) = digestHalves seed ∧ (pi0, pi1) = digestHalves pi ∧
         verifyDeferred bytecode seed pi c π = true ∧ c.bytecodePoint.length = bytecodeVars ∧
-        ReadsAt rd out (Node.DeferredClaim.cells c)
+        ReadsAt rd out (Node.DeferredBytecodeClaim.cells c)
   | _, _ => False
 
 /-- What `verify_sub`'s callers establish: the exponent table at `g_squares` with its window
@@ -78,7 +78,7 @@ def VerifySubPre (rd : Reader) : List E → Prop
   | [_, _, _, _, sq, _] => ExpTables rd sq ∧ ExpWinTab rd sq
   | _ => False
 
-/-- **`verify_sub` is sound** (G:3506-3705; TRIAGE #71): on a memory image of at most `2^32`
+/-- **`verify_sub` is sound** (TRIAGE #71): on a memory image of at most `2^32`
 words holding the exponent tables, for a bytecode of `2^23` words. -/
 def verify_sub_Spec (bytecode : List K) : Prop :=
   bytecode.length = 2 ^ bytecodeVars →

@@ -191,7 +191,7 @@ def cells : Column 3 :=
 #guard (strided.extend 1 #v[u, u + 1]).toList = [1, u, u + 1]
 
 /-- The verifier's `Placement::stack_point` at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`
-(at the pin `40f877dc`, `crates/verifier/src/multilinear.rs:122-125`, it has no low coordinates,
+(at the pin `40f877dc`, `crates/verifier/src/multilinear.rs`, it has no low coordinates,
 `low = 0`): the bits of `index` as a point of
 `stackLog` coordinates, low bit first; the low `low` of them, then the claim's point, then the
 bits above the window. -/

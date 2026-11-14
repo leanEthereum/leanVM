@@ -18,7 +18,7 @@ public import LeanVM.Guest.Value.Tower
 node splitting bit `j`, the factor's point (the bits above `j`), the shift's (the bits of the
 cell index) and the bit `j` itself make up the point (`wK_level`). So leaf `e` of column `h`'s
 tree, `da_expand` from the top leaf `h` with the cell factors and the column's shifts, is
-`dualAt z (256 h + e)` (`cellLeaf_eq`), and leaf `h` of the tree over the cell index is `topLeaf z h`
+`dualAt z (128 h + e)` (`cellLeaf_eq`), and leaf `h` of the tree over the cell index is `topLeaf z h`
 (`topLeaf_eq`).
 -/
 
@@ -30,10 +30,10 @@ open LeanVM.Parameters LeanVM.Guest.Value
 
 /-! ## `wK` on bits -/
 
-theorem omegaK_self : ∀ j < 14, omegaK j j = 1 := by decide +kernel
+theorem omegaK_self : ∀ j < 13, omegaK j j = 1 := by decide +kernel
 
 /-- `wK j` reads only the bits from `j` up. -/
-theorem wK_congr {j x x' : ℕ} (h : ∀ c < 15, j ≤ c → x.testBit c = x'.testBit c) :
+theorem wK_congr {j x x' : ℕ} (h : ∀ c < 14, j ≤ c → x.testBit c = x'.testBit c) :
     wK j x = wK j x' := by
   unfold wK
   refine congrArg _ (List.map_congr_left fun c hc ↦ ?_)
@@ -58,14 +58,14 @@ theorem sum_range_single (f : ℕ → K) {j : ℕ} :
 
 /-- **One level**: the bits of `x` above `j` are those of `A` and `B`, disjoint, both without
 bits up to `j`; then `wK j x` is theirs and bit `j` of `x`. -/
-theorem wK_level {j x A B : ℕ} (hj : j < 14)
-    (hab : ∀ c < 15, j < c → x.testBit c = (A.testBit c || B.testBit c) ∧
+theorem wK_level {j x A B : ℕ} (hj : j < 13)
+    (hab : ∀ c < 14, j < c → x.testBit c = (A.testBit c || B.testBit c) ∧
       ¬(A.testBit c = true ∧ B.testBit c = true))
-    (hA : ∀ c < 15, c ≤ j → A.testBit c = false) (hB : ∀ c < 15, c ≤ j → B.testBit c = false) :
+    (hA : ∀ c < 14, c ≤ j → A.testBit c = false) (hB : ∀ c < 14, c ≤ j → B.testBit c = false) :
     wK j x = wK j A + wK j B + if x.testBit j then 1 else 0 := by
   have hbit : (if x.testBit j then (1 : K) else 0) =
-      ((List.range 15).map fun c ↦ if c = j then (if x.testBit j then omegaK j c else 0) else 0).sum := by
-    rw [sum_range_single (fun c ↦ if x.testBit j then omegaK j c else 0) 15 (by omega),
+      ((List.range 14).map fun c ↦ if c = j then (if x.testBit j then omegaK j c else 0) else 0).sum := by
+    rw [sum_range_single (fun c ↦ if x.testBit j then omegaK j c else 0) 14 (by omega),
       omegaK_self j hj]
   rw [hbit]
   unfold wK
@@ -79,13 +79,13 @@ theorem wK_level {j x A B : ℕ} (hj : j < 14)
     rw [hx]
     cases ha : A.testBit c <;> cases hb : B.testBit c <;> simp_all [show c ≠ j by omega]
 
-theorem testBit_256_mul_add {h e c : ℕ} (he : e < 256) :
-    (256 * h + e).testBit c = if c < 8 then e.testBit c else h.testBit (c - 8) := by
-  rw [show 256 * h + e = 2 ^ 8 * h + e by norm_num, Nat.testBit_two_pow_mul_add h (by norm_num [he])]
+theorem testBit_128_mul_add {h e c : ℕ} (he : e < 128) :
+    (128 * h + e).testBit c = if c < 7 then e.testBit c else h.testBit (c - 7) := by
+  rw [show 128 * h + e = 2 ^ 7 * h + e by norm_num, Nat.testBit_two_pow_mul_add h (by norm_num [he])]
 
-theorem testBit_256_mul {h c : ℕ} :
-    (256 * h).testBit c = (decide (c ≥ 8) && h.testBit (c - 8)) := by
-  rw [show 256 * h = 2 ^ 8 * h by norm_num, Nat.testBit_two_pow_mul]
+theorem testBit_128_mul {h c : ℕ} :
+    (128 * h).testBit c = (decide (c ≥ 7) && h.testBit (c - 7)) := by
+  rw [show 128 * h = 2 ^ 7 * h by norm_num, Nat.testBit_two_pow_mul]
 
 theorem testBit_high_mul {m j c : ℕ} :
     (m * 2 ^ (j + 1)).testBit c = (decide (j + 1 ≤ c) && m.testBit (c - (j + 1))) :=
@@ -114,108 +114,108 @@ theorem prod_range_reflect' (f : ℕ → E) (n : ℕ) :
   exact Finset.prod_range_reflect f n
 
 /-- **A column's tree computes the dual codeword**: leaf `e` of `da_expand` from the top leaf
-`h`, with the cell factors and the shifts `z_j Ŵ_j(256 h)`, is `dualAt z (256 h + e)`. -/
-theorem cellLeaf_eq (z : E) {h e : ℕ} (he : e < 256) :
-    expandLeaf (topLeaf z h) (factorAt (zsVal z) 7) (zsVal z)
-      (fun j ↦ zsVal z j * ofK (wK j (256 * h))) 7 8 e = dualAt z (256 * h + e) := by
-  have hterm : ∀ k < 8, factorAt (zsVal z) 7 (2 ^ k + e >>> (8 - k)) +
-      zsVal z (7 - k) * ofK (wK (7 - k) (256 * h)) +
-      (if e.testBit (8 - 1 - k) then zsVal z (7 - k) else 0) = dualFactor z (256 * h + e) (7 - k) := by
+`h`, with the cell factors and the shifts `z_j Ŵ_j(128 h)`, is `dualAt z (128 h + e)`. -/
+theorem cellLeaf_eq (z : E) {h e : ℕ} (he : e < 128) :
+    expandLeaf (topLeaf z h) (factorAt (zsVal z) 6) (zsVal z)
+      (fun j ↦ zsVal z j * ofK (wK j (128 * h))) 6 7 e = dualAt z (128 * h + e) := by
+  have hterm : ∀ k < 7, factorAt (zsVal z) 6 (2 ^ k + e >>> (7 - k)) +
+      zsVal z (6 - k) * ofK (wK (6 - k) (128 * h)) +
+      (if e.testBit (7 - 1 - k) then zsVal z (6 - k) else 0) = dualFactor z (128 * h + e) (6 - k) := by
     intro k hk
-    have hm : e >>> (8 - k) < 2 ^ k := by
+    have hm : e >>> (7 - k) < 2 ^ k := by
       rw [Nat.shiftRight_eq_div_pow]
       exact Nat.div_lt_of_lt_mul (by
-        rw [← pow_add, show 8 - k + k = 8 by omega]; exact lt_of_lt_of_eq he (by norm_num))
-    rw [factorAt_node _ hm, show 7 - k + 1 = 8 - k by omega, show 8 - 1 - k = 7 - k by omega]
-    simp only [zsVal, show 7 - k < 14 by omega, ↓reduceIte]
-    have hl := wK_level (j := 7 - k) (x := 256 * h + e) (A := e >>> (8 - k) * 2 ^ (8 - k))
-      (B := 256 * h) (by omega) ?_ ?_ ?_
-    · rw [dualFactor, hl, testBit_256_mul_add he]
-      simp only [show 7 - k < 8 by omega, ↓reduceIte]
+        rw [← pow_add, show 7 - k + k = 7 by omega]; exact lt_of_lt_of_eq he (by norm_num))
+    rw [factorAt_node _ hm, show 6 - k + 1 = 7 - k by omega, show 7 - 1 - k = 6 - k by omega]
+    simp only [zsVal, show 6 - k < 13 by omega, ↓reduceIte]
+    have hl := wK_level (j := 6 - k) (x := 128 * h + e) (A := e >>> (7 - k) * 2 ^ (7 - k))
+      (B := 128 * h) (by omega) ?_ ?_ ?_
+    · rw [dualFactor, hl, testBit_128_mul_add he]
+      simp only [show 6 - k < 7 by omega, ↓reduceIte]
       rw [ofK_add, ofK_add]
       split_ifs <;> simp only [ofK_one, ofK_zero] <;> ring
     · intro c hc hjc
-      rw [testBit_256_mul_add he, show 8 - k = 7 - k + 1 by omega, testBit_high_mul,
-        testBit_256_mul, Nat.testBit_shiftRight]
-      by_cases c8 : c < 8
-      · simp [c8, show 7 - k + 1 ≤ c by omega, show 7 - k + 1 + (c - (7 - k + 1)) = c by omega]
-      · have : e.testBit c = false := testBit_lt_eq_false (n := 8) (by omega) (by omega)
-        simp [c8, show 7 - k + 1 ≤ c by omega, show 7 - k + 1 + (c - (7 - k + 1)) = c by omega,
-          this, show c ≥ 8 by omega]
+      rw [testBit_128_mul_add he, show 7 - k = 6 - k + 1 by omega, testBit_high_mul,
+        testBit_128_mul, Nat.testBit_shiftRight]
+      by_cases c7 : c < 7
+      · simp [c7, show 6 - k + 1 ≤ c by omega, show 6 - k + 1 + (c - (6 - k + 1)) = c by omega]
+      · have : e.testBit c = false := testBit_lt_eq_false (n := 7) (by omega) (by omega)
+        simp [c7, show 6 - k + 1 ≤ c by omega, show 6 - k + 1 + (c - (6 - k + 1)) = c by omega,
+          this, show c ≥ 7 by omega]
     · intro c _ hcj
-      rw [show 8 - k = 7 - k + 1 by omega, testBit_high_mul]
-      simp [show ¬ (7 - k + 1 ≤ c) by omega]
+      rw [show 7 - k = 6 - k + 1 by omega, testBit_high_mul]
+      simp [show ¬ (6 - k + 1 ≤ c) by omega]
     · intro c _ hcj
-      rw [testBit_256_mul]
-      simp [show ¬ (c ≥ 8) by omega]
-  have hcell : ((List.range 8).map fun k ↦ factorAt (zsVal z) 7 (2 ^ k + e >>> (8 - k)) +
-      (fun j ↦ zsVal z j * ofK (wK j (256 * h))) (7 - k) +
-      if e.testBit (8 - 1 - k) then zsVal z (7 - k) else 0).prod =
-      ((List.range 8).map (dualFactor z (256 * h + e))).prod := by
-    rw [← prod_range_reflect' (dualFactor z (256 * h + e)) 8]
+      rw [testBit_128_mul]
+      simp [show ¬ (c ≥ 7) by omega]
+  have hcell : ((List.range 7).map fun k ↦ factorAt (zsVal z) 6 (2 ^ k + e >>> (7 - k)) +
+      (fun j ↦ zsVal z j * ofK (wK j (128 * h))) (6 - k) +
+      if e.testBit (7 - 1 - k) then zsVal z (6 - k) else 0).prod =
+      ((List.range 7).map (dualFactor z (128 * h + e))).prod := by
+    rw [← prod_range_reflect' (dualFactor z (128 * h + e)) 7]
     exact congrArg _ (List.map_congr_left fun k hk ↦ hterm k (List.mem_range.mp hk))
-  have htop : topLeaf z h = ((List.range 6).map fun i ↦ dualFactor z (256 * h + e) (8 + i)).prod := by
+  have htop : topLeaf z h = ((List.range 6).map fun i ↦ dualFactor z (128 * h + e) (7 + i)).prod := by
     unfold topLeaf
     refine congrArg _ (List.map_congr_left fun i hi ↦ ?_)
     have hi6 := List.mem_range.mp hi
-    rw [dualFactor, wK_congr (x := 256 * h + e) (x' := 256 * h) fun c _ hc ↦ by
-      rw [testBit_256_mul_add he, testBit_256_mul]
-      simp [show ¬ c < 8 by omega, show c ≥ 8 by omega]]
+    rw [dualFactor, wK_congr (x := 128 * h + e) (x' := 128 * h) fun c _ hc ↦ by
+      rw [testBit_128_mul_add he, testBit_128_mul]
+      simp [show ¬ c < 7 by omega, show c ≥ 7 by omega]]
   rw [expandLeaf, hcell, htop, dualAt, LeanDa.prod_map_range, LeanDa.prod_map_range,
-    LeanDa.prod_map_range, show (14 : ℕ) = 8 + 6 from rfl, Finset.prod_range_add, mul_comm]
+    LeanDa.prod_map_range, show (13 : ℕ) = 7 + 6 from rfl, Finset.prod_range_add, mul_comm]
   rfl
 
 /-! ## The top leaves -/
 
 /-- **The tree over the cell index computes the top leaves**: leaf `h` of `da_expand` from `1`
-with the top factors, no shifts and `z_14 = 0`, is `topLeaf z h`. -/
+with the top factors, no shifts and `z_13 = 0`, is `topLeaf z h`. -/
 theorem topLeaf_eq (z : E) {h : ℕ} (hh : h < 128) :
-    expandLeaf 1 (factorAt (zsVal z) 14) (zsVal z) (fun _ ↦ 0) 14 7 h = topLeaf z h := by
-  have hterm : ∀ k < 6, factorAt (zsVal z) 14 (2 ^ (k + 1) + h >>> (7 - (k + 1))) + 0 +
-      (if h.testBit (7 - 1 - (k + 1)) then zsVal z (14 - (k + 1)) else 0) =
-      dualFactor z (256 * h) (8 + (6 - 1 - k)) := by
+    expandLeaf 1 (factorAt (zsVal z) 13) (zsVal z) (fun _ ↦ 0) 13 7 h = topLeaf z h := by
+  have hterm : ∀ k < 6, factorAt (zsVal z) 13 (2 ^ (k + 1) + h >>> (7 - (k + 1))) + 0 +
+      (if h.testBit (7 - 1 - (k + 1)) then zsVal z (13 - (k + 1)) else 0) =
+      dualFactor z (128 * h) (7 + (6 - 1 - k)) := by
     intro k hk
     have hm : h >>> (7 - (k + 1)) < 2 ^ (k + 1) := by
       rw [Nat.shiftRight_eq_div_pow]
       exact Nat.div_lt_of_lt_mul (by
         rw [← pow_add, show 7 - (k + 1) + (k + 1) = 7 by omega]; exact lt_of_lt_of_eq hh (by norm_num))
-    rw [factorAt_node _ hm, show 14 - (k + 1) = 8 + (6 - 1 - k) by omega,
-      show 8 + (6 - 1 - k) + 1 = 7 - (k + 1) + 8 by omega]
-    simp only [zsVal, show 8 + (6 - 1 - k) < 14 by omega, ↓reduceIte]
-    have hl := wK_level (j := 8 + (6 - 1 - k)) (x := 256 * h)
-      (A := h >>> (7 - (k + 1)) * 2 ^ (7 - (k + 1) + 8)) (B := 0) (by omega) ?_ ?_ ?_
-    · rw [dualFactor, hl, testBit_256_mul, show 7 - 1 - (k + 1) = 8 + (6 - 1 - k) - 8 by omega]
-      simp only [show 8 + (6 - 1 - k) ≥ 8 by omega, decide_true, Bool.true_and]
-      have h0 : wK (8 + (6 - 1 - k)) 0 = 0 := by
+    rw [factorAt_node _ hm, show 13 - (k + 1) = 7 + (6 - 1 - k) by omega,
+      show 7 + (6 - 1 - k) + 1 = 7 - (k + 1) + 7 by omega]
+    simp only [zsVal, show 7 + (6 - 1 - k) < 13 by omega, ↓reduceIte]
+    have hl := wK_level (j := 7 + (6 - 1 - k)) (x := 128 * h)
+      (A := h >>> (7 - (k + 1)) * 2 ^ (7 - (k + 1) + 7)) (B := 0) (by omega) ?_ ?_ ?_
+    · rw [dualFactor, hl, testBit_128_mul, show 7 - 1 - (k + 1) = 7 + (6 - 1 - k) - 7 by omega]
+      simp only [show 7 + (6 - 1 - k) ≥ 7 by omega, decide_true, Bool.true_and]
+      have h0 : wK (7 + (6 - 1 - k)) 0 = 0 := by
         unfold wK; refine List.sum_eq_zero fun v hv ↦ ?_
         obtain ⟨c, _, rfl⟩ := List.mem_map.mp hv; simp
       rw [h0, ofK_add, ofK_add, ofK_zero]
       split_ifs <;> simp only [ofK_one, ofK_zero] <;> ring
     · intro c hc hjc
-      rw [show 7 - (k + 1) + 8 = 8 + (6 - 1 - k) + 1 by omega, testBit_high_mul, testBit_256_mul,
+      rw [show 7 - (k + 1) + 7 = 7 + (6 - 1 - k) + 1 by omega, testBit_high_mul, testBit_128_mul,
         Nat.testBit_shiftRight, Nat.zero_testBit]
-      simp [show 8 + (6 - 1 - k) + 1 ≤ c by omega, show c ≥ 8 by omega]
+      simp [show 7 + (6 - 1 - k) + 1 ≤ c by omega, show c ≥ 7 by omega]
       congr 1
       omega
     · intro c _ hcj
-      rw [show 7 - (k + 1) + 8 = 8 + (6 - 1 - k) + 1 by omega, testBit_high_mul]
-      simp [show ¬ (8 + (6 - 1 - k) + 1 ≤ c) by omega]
+      rw [show 7 - (k + 1) + 7 = 7 + (6 - 1 - k) + 1 by omega, testBit_high_mul]
+      simp [show ¬ (7 + (6 - 1 - k) + 1 ≤ c) by omega]
     · intro c _ _
       exact Nat.zero_testBit c
-  have hwk : ∀ i < 6, dualFactor z (256 * h) (8 + i) = 1 + z ^ 2 ^ (8 + i) * ofK (wK (8 + i) (256 * h)) :=
+  have hwk : ∀ i < 6, dualFactor z (128 * h) (7 + i) = 1 + z ^ 2 ^ (7 + i) * ofK (wK (7 + i) (128 * h)) :=
     fun _ _ ↦ rfl
   rw [expandLeaf, one_mul, List.range_succ_eq_map, List.map_cons, List.prod_cons, List.map_map]
-  have h0 : factorAt (zsVal z) 14 (2 ^ 0 + h >>> (7 - 0)) + (fun _ ↦ (0 : E)) (14 - 0) +
-      (if h.testBit (7 - 1 - 0) then zsVal z (14 - 0) else 0) = 1 := by
+  have h0 : factorAt (zsVal z) 13 (2 ^ 0 + h >>> (7 - 0)) + (fun _ ↦ (0 : E)) (13 - 0) +
+      (if h.testBit (7 - 1 - 0) then zsVal z (13 - 0) else 0) = 1 := by
     have h7 : h >>> 7 = 0 := by
       rw [Nat.shiftRight_eq_div_pow]; exact Nat.div_eq_of_lt (lt_of_lt_of_eq hh (by norm_num))
     simp [factorAt, zsVal, h7]
   rw [h0, one_mul]
-  have hmap : ((List.range 6).map ((fun k ↦ factorAt (zsVal z) 14 (2 ^ k + h >>> (7 - k)) +
-      (fun _ ↦ (0 : E)) (14 - k) + if h.testBit (7 - 1 - k) then zsVal z (14 - k) else 0) ∘
-      Nat.succ)).prod = ((List.range 6).map fun k ↦ dualFactor z (256 * h) (8 + (6 - 1 - k))).prod :=
+  have hmap : ((List.range 6).map ((fun k ↦ factorAt (zsVal z) 13 (2 ^ k + h >>> (7 - k)) +
+      (fun _ ↦ (0 : E)) (13 - k) + if h.testBit (7 - 1 - k) then zsVal z (13 - k) else 0) ∘
+      Nat.succ)).prod = ((List.range 6).map fun k ↦ dualFactor z (128 * h) (7 + (6 - 1 - k))).prod :=
     congrArg _ (List.map_congr_left fun k hk ↦ hterm k (List.mem_range.mp hk))
-  rw [hmap, prod_range_reflect' (fun i ↦ dualFactor z (256 * h) (8 + i)) 6, topLeaf]
+  rw [hmap, prod_range_reflect' (fun i ↦ dualFactor z (128 * h) (7 + i)) 6, topLeaf]
   exact congrArg _ (List.map_congr_left fun i hi ↦ (hwk i (List.mem_range.mp hi)).symm)
 
 end

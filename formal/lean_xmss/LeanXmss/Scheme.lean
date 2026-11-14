@@ -9,7 +9,7 @@ public import Common.WithHash
 /-!
 # leanXMSS
 
-The scheme of `crates/signatures/src/lean_xmss`, specified in `doc/lean_xmss`: two layers of XMSS of height 16 over
+The scheme of `crates/lean_xmss/src`, specified in `doc/lean_xmss`: two layers of XMSS of height 16 over
 WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`; a leaf index
 `idx < 2^32` signs with bottom key `idx`, in bottom tree `idx / 2^16`.
 

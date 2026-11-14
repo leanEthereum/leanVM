@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Fresh
 public import LeanVM.Guest.B1.Tables.Vt.Sort
 
 /-!
-# The table sumcheck's rounds (G:2535-2545)
+# The table sumcheck's rounds
 
 `g_zc_n` is hinted; every `τ_t` is at most `n` (a range-checked quotient), some `τ_t` is `n` (the
 product of `g^n + g^τ_t` is zero), and `n ≤ μ` (`vt_zc_n`).

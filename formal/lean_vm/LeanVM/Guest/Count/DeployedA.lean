@@ -17,8 +17,8 @@ open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A
 
 @[expose] public section
 
-/-- The DA levels' words per padded row, the largest over the levels. -/
-theorem dlK_eq : dlK wSB = 58 := by decide +kernel
+/-- The words of the tree over the blob roots, per row of the padded matrix. -/
+theorem dlK_eq : dlK wSB = 41 := by decide +kernel
 
 end
 end LeanVM.Guest.Count

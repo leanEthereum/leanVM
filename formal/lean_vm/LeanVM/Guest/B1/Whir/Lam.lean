@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Squeezes
 
 /-!
-# The batching challenge (G:1593-1603)
+# The batching challenge
 
 `squeeze`: the query message's last squeeze, a permutation of the carried capacity (the zero
 run's cells for the rate), `λ` its cell `0` and `1/λ` constrained by `λ·μ = 1`. `osLam_sound`:
@@ -38,7 +38,7 @@ structure LamOut (σ : Val) (st st' : OsSt) : Prop where
   co : st'.co = st.co
   claim : st'.claim = st.claim
 
-/-- **A non-final level's batching challenge, soundly** (G:1593-1603). -/
+/-- **A non-final level's batching challenge, soundly**. -/
 theorem osLam_sound {st : OsSt} (hfs : st.fs.length = 5)
     (hpad : PadOk σ st.pad) (hok : AllOk C rd σ (osLam st).1) : LamOut σ st (osLam st).2 := by
   obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fs_five st hfs

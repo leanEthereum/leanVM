@@ -12,10 +12,10 @@
 
 use super::*;
 use crate::signers_cache::{get_lean_sphincs_signers, get_signers};
-use lean_da::{BLOB_SYMBOLS, CODEWORD_SYMBOLS};
+use lean_da::BLOB_SYMBOLS;
 use leanvm_core::cpu::{public_input_bytes, scalar_proof};
-use signatures::lean_sphincs::LeanSphincsSignature;
-use signatures::lean_xmss::LeanXmssSignature;
+use lean_sphincs::LeanSphincsSignature;
+use lean_xmss::LeanXmssSignature;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::fmt::Write as _;
@@ -70,29 +70,29 @@ impl Out {
         }
     }
 
-    fn deferred(&mut self, c: &DeferredClaim) {
+    fn deferred(&mut self, c: &DeferredBytecodeClaim) {
         self.tag("defer");
         self.es(&c.bytecode_point);
         self.e(c.bytecode_value);
     }
 
     /// `NodeStatement`: the claims, the DA digest (`verifier::da::digest`), and the deferred claim.
-    fn statement(&mut self, p: &EthereumProof) {
+    fn statement(&mut self, claims: &EthereumClaims, defer: &DeferredBytecodeClaim) {
         self.tag("xmss");
-        self.n(p.claims.lean_xmss.len());
-        for (pk, m) in &p.claims.lean_xmss {
+        self.n(claims.lean_xmss.len());
+        for (pk, m) in &claims.lean_xmss {
             self.bytes(&pk.to_bytes());
             self.bytes(m);
         }
         self.tag("sphincs");
-        self.n(p.claims.lean_sphincs.len());
-        for (pk, m) in &p.claims.lean_sphincs {
+        self.n(claims.lean_sphincs.len());
+        for (pk, m) in &claims.lean_sphincs {
             self.bytes(&pk.to_bytes());
             self.bytes(m);
         }
         self.tag("da");
-        self.bytes(&verifier::da::digest(p.claims.da_commitment));
-        self.deferred(&p.defer);
+        self.bytes(&verifier::da::digest(claims.da_commitment));
+        self.deferred(defer);
     }
 
     /// The leaf index, then each layer, bottom first, its randomizer, chain values and path: read off the
@@ -148,13 +148,13 @@ impl<'a> Cursor<'a> {
 /// Aggregate, and write the case: the statement, the witness, the installed streams.
 fn export(
     name: &str,
-    children: Vec<EthereumProof>,
+    children: Vec<(EthereumClaims, EthereumProof)>,
     raw_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
-    blobs: &[u64],
-) -> EthereumProof {
+    blobs: &[lean_da::Blob],
+) -> (EthereumClaims, EthereumProof) {
     capture_next();
-    let node = aggregate(
+    let (claims, node) = aggregate(
         &children,
         raw_xmss.clone(),
         raw_sphincs.clone(),
@@ -163,28 +163,30 @@ fn export(
         LOG_INV_RATE,
     )
     .expect("node aggregates");
-    node.verify().expect("node verifies");
+    node.verify(&claims).expect("node verifies");
     let streams = INSTALLED.with(|i| i.take());
     let stream = |name: &str| streams.iter().find(|(n, _)| n == name).map(|(_, e)| e.as_slice());
 
-    let mut out = Out(format!("leanvm-guest-diff 4\ncase {name}"));
+    let mut out = Out(format!("leanvm-guest-diff 5\ncase {name}"));
     out.tag("seed");
     let seed = leanvm_core::cpu::fs_seed(unified_guest());
     out.bytes(&cell_bytes(seed));
     out.tag("log_memory");
     out.n(node.proof.stream[0].c0 as usize);
     out.tag("public_input");
-    out.es(&node.vm_public_input());
+    let defer = DeferredBytecodeClaim::recompute(node.bytecode_point.clone()).expect("a well-formed point");
+    out.es(&public_input(&claims, &defer));
     out.tag("statement");
-    out.statement(&node);
+    out.statement(&claims, &defer);
 
     out.tag("children");
     out.n(children.len());
     let bytecode = scalar_bytecode();
-    for child in &children {
+    for (child_claims, child) in &children {
         out.tag("child");
-        out.statement(child);
-        let pi = child.vm_public_input();
+        let defer = DeferredBytecodeClaim::recompute(child.bytecode_point.clone()).expect("a well-formed point");
+        out.statement(child_claims, &defer);
+        let pi = public_input(child_claims, &defer);
         let scalar = scalar_proof(&child.proof);
         let summary =
             verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar).expect("the child replays");
@@ -215,7 +217,7 @@ fn export(
     }
 
     // The raw signatures with their claims, as `aggregate` uses them: sorted on the claim,
-    // deduplicated (`aggregation/node.rs:109-113`).
+    // deduplicated (`aggregation/node.rs`).
     let mut raw_xmss = raw_xmss;
     raw_xmss.sort_by_key(|(pk, message, _)| (*pk, *message));
     raw_xmss.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
@@ -237,19 +239,19 @@ fn export(
         out.sphincs_signature(sig);
     }
     // The directly held matrix: its root, its membership challenge and its rows.
-    let direct = (!blobs.is_empty()).then(|| lean_da::commit(blobs).expect("a whole number of blob rows"));
+    let direct = (!blobs.is_empty()).then(|| lean_da::DaWitness::build(blobs).expect("1 to DA_MAX_ROWS blobs"));
     out.tag("da_witness");
     match &direct {
-        Some((root, witness)) => {
+        Some(witness) => {
+            let root = &witness.top_root();
             out.0.push_str("direct ");
             out.bytes(root);
             out.e(from_scalar(verifier::da::membership_challenge(root)));
-            let rows: Vec<&[u64]> = witness.codewords.chunks(CODEWORD_SYMBOLS).collect();
-            out.n(rows.len());
-            for row in rows {
+            out.n(witness.n_blobs());
+            for row in (0..witness.n_blobs()).filter_map(|i| witness.row(i)) {
                 out.n(row.len());
-                for w in row {
-                    write!(out.0, "{w:x} ").unwrap();
+                for &w in row {
+                    out.e(F128::new(w as u64, (w >> 64) as u64));
                 }
             }
         }
@@ -275,14 +277,15 @@ fn export(
     let dir = std::path::Path::new(&dir);
     std::fs::create_dir_all(dir).unwrap();
     std::fs::write(dir.join(format!("{name}.txt")), out.0).unwrap();
-    node
+    (claims, node)
 }
 
 const LOG_INV_RATE: usize = leanvm_core::pcs::TEST_LOG_INV_RATE;
 
-fn blob(seed: u64) -> Vec<u64> {
+fn blob(seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = StdRng::seed_from_u64(seed);
-    (0..BLOB_SYMBOLS).map(|_| rng.random()).collect()
+    let symbols: Vec<u128> = (0..BLOB_SYMBOLS).map(|_| rng.random()).collect();
+    symbols.as_chunks().0.to_vec()
 }
 
 /// Two leaves, one of both schemes with a blob, one whose leanXMSS list is longer than a group of its digest

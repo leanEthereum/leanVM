@@ -99,11 +99,11 @@ def batchSeedWith : m KeccakState := do
 
 /-- **`batch` with the permutation `F`, from the sponge state `s0`** (deployed: `batchSeed`). -/
 def batchWith (s0 : KeccakState) (children : List ChildClaims) (h : BatchingHints) :
-    m (Option DeferredClaim) :=
+    m (Option DeferredBytecodeClaim) :=
   go.run' ⟨s0, [], none⟩
 where
   /-- The transcript. -/
-  go : ChainWith (m := m) (Option DeferredClaim) := do
+  go : ChainWith (m := m) (Option DeferredBytecodeClaim) := do
     for x in padToRate [gpow children.length] do observeWith F x
     for c in children do
       for x in padToRate c.words do observeWith F x

@@ -15,7 +15,7 @@ public import LeanVM.Protocol.BusSecurity
 /-!
 # The bus phase on doom
 
-`verifyBusBalance layout` (`crates/verifier/src/bus.rs:130-247`) is the oracle protocol's `busPhase`
+`verifyBusBalance layout` (`crates/verifier/src/bus.rs`) is the oracle protocol's `busPhase`
 (`LeanVM.Protocol.Bus`) on the wire, with two parts the protocol does not have: the grind before
 the fingerprint challenges (`busGrindingBits`, the challenges' error `2^{μ_bus}/|E|` discounted by
 it) and the bytecode share's sumcheck (`BusShare`), which returns only the true share, the
@@ -24,7 +24,7 @@ on the protocol's relations, in the calculus of verifier programs:
 
 * `alwaysSpec`: a sub-program from a fact that already decides its postcondition (the count root
   `0`, which the later `require` rejects);
-* `gkrSpec`: `verify_gkr_grand_products` (`bus.rs:14-51`), from doom on the relation after
+* `gkrSpec`: `verify_gkr_grand_products` (`bus.rs`), from doom on the relation after
   the fingerprint challenges (`Bus.afterChallenge`) to "the count root is `0`, or doom on the
   argument's output relation": the roots' message is the protocol's (`Bus.rootsSecurity`), the
   roots are the layer-`0` statement (`Gkr.relIn_iff_layerRel_zero`), and the walk, each step
@@ -238,7 +238,7 @@ variable {εmax : ℝ≥0∞}
 
 open Classical in
 /-- **The fingerprint challenges** (`weights = samples(2^BUS_BITS)`, `beta = sample()`,
-`bus.rs:139-142`): one group of seventeen challenges, the protocol's one challenge `(α, β)`,
+`bus.rs`): one group of seventeen challenges, the protocol's one challenge `(α, β)`,
 escaping the commitment's doom with probability at most `L₀ · 2^{μ_bus} / |E|`. -/
 noncomputable def abSpec (hI : Bus.Conditions I) {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     (hcard : ∀ W, (cands W).ncard ≤ L₀) (hlt : abError I L₀ < 1) {T : ℝ≥0∞} :
@@ -566,7 +566,7 @@ noncomputable def busTailSpec {β : Type} {k : BusWit → VerifierProgram β}
         le_rfl le_rfl).mono (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl zero_le le_rfl
   else specOfFalse fun _ hp ↦ hl hp.1
 
-/-- **The bus phase, then a continuation** (`verify_bus_balance`, `bus.rs:130-247`): from the
+/-- **The bus phase, then a continuation** (`verify_bus_balance`, `bus.rs`): from the
 commitment's doom (no candidate satisfies `M3Holds`, `Seam.commit`) to the bus seam at what was
 read, then `f` of the result, specified from there by `K`, at the depth `μ_bus` of the push side.
 The fingerprint challenges are charged `L₀ · 2^{μ_bus} / |E|`, after the grind of

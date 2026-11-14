@@ -23,12 +23,12 @@ to `d` and passes the membership test on its challenge, is a codeword.
 * **A fresh draw keeps a cache good** unless the search would select it, a valid proof of work
   after no valid cached one, and its challenge accepts the one matrix committed to the root (`H`
   injective: `commit_unique`), fixed before, which is not a codeword: a valid proof of work and an
-  accepting challenge are independent, at most `2^-11 · (2^14 - 1) / 2^128` (`prob_insertG_le`).
+  accepting challenge are independent, at most `2^-10 · (2^13 - 1) / 2^128` (`prob_insertG_le`).
 * So a run of `Q₁` queries, `Q₂` of them of draws, ends in a bad cache with probability at most
-  `Q₁ · 65 N / 2^256 + Q₂ · 2^-11 · (2^14 - 1) / 2^128` (`prob_run_not_good_le`, by the bad-event
+  `Q₁ · 65 N / 2^256 + Q₂ · 2^-10 · (2^13 - 1) / 2^128` (`prob_run_not_good_le`, by the bad-event
   budget with two weights, `prEvent_run_bad_le₂`).
 * **The verifier's reading of a root's draws**, label by label as the nonce search tries the
-  nonces, spoils a good cache with probability at most `(2^14 - 1) / 2^128` in all
+  nonces, spoils a good cache with probability at most `(2^13 - 1) / 2^128` in all
   (`prob_readVec_not_good_le`): it stops selecting at its first valid draw, whose challenge is
   uniform whatever the proofs of work.
 * A coin-free computation's run is read off its final cache (`replay_of_mem_support`): replayed
@@ -440,11 +440,11 @@ theorem prob_insertH_le {r : ℕ} {c : GCache} (hc : Good r c) (hfin : GFin c) {
 
 /-- **A fresh draw spoils a good cache** only if the nonce search would select it and its
 challenge accepts the one non-codeword matrix committed to the root: a valid proof of work and an
-accepting challenge, at most `2^-11 · (2^14 - 1) / 2^128` (`prob_valid_accept_le`). -/
-theorem prob_insertG_le {r : ℕ} {c : GCache} (hc : Good r c) {d : Common.DigestBytes}
+accepting challenge, at most `2^-10 · (2^13 - 1) / 2^128` (`prob_valid_accept_le`). -/
+theorem prob_insertG_le {r : ℕ} (hr : r ≤ maxRows) {c : GCache} (hc : Good r c) {d : Common.DigestBytes}
     {j : Fin nLabels} (hfresh : c (.inr (d, j)) = none) :
     Pr{let x ← ($ᵗ Draw : ProbComp Draw)}[¬ Good r (c.cacheQuery (.inr (d, j)) x)] ≤
-      (2 ^ 14 - 1) / 2 ^ 139 := by
+      (2 ^ 13 - 1) / 2 ^ 138 := by
   classical
   by_cases hS : ∃ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c ∧
       commitCellsWithHash (fOf c) w = d ∧ w ∉ (leanDaErasureCode r).code
@@ -456,29 +456,29 @@ theorem prob_insertG_le {r : ℕ} {c : GCache} (hc : Good r c) {d : Common.Diges
           refine prEvent_mono _ _ _ fun x hx ↦ ?_
           by_contra hck
           refine hx (good_insertG hc hfresh fun hnew w hw hd hm ↦ ?_)
-          have hw0 : w = w₀ := commit_unique hc.1 hw hw₀ (hd.trans hd₀.symm)
+          have hw0 : w = w₀ := commit_unique hr hc.1 hw hw₀ (hd.trans hd₀.symm)
           rw [hw0] at hm
           exfalso
           apply hck
           refine ⟨hnew.2.1, ?_⟩
           rw [mem_acceptSet]
           exact (membershipCheck_iff x.1 w₀).mp hm i
-      _ ≤ (2 ^ 14 - 1) / 2 ^ 139 := prob_valid_accept_le (card_acceptSet_le hi)
+      _ ≤ (2 ^ 13 - 1) / 2 ^ 138 := prob_valid_accept_le (card_acceptSet_le hi)
   · push Not at hS
     refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ fun x _ hx ↦
       hx (good_insertG hc hfresh fun _ w hw hd _ ↦ hS w hw hd)) zero_le
 
 /-- **The budget of a run of the world**: from a good cache of at most `N - Q₁` cached inputs and
 roots, a run of at most `Q₁` queries, `Q₂` of them of draws, ends in a bad cache with probability
-at most `Q₁ · 65 N / 2^256 + Q₂ · 2^-11 · (2^14 - 1) / 2^128`. -/
-theorem prob_run_not_good_le (r : ℕ) {α : Type} (Y : OracleComp (unifSpec + GW) α) (c₀ : GCache)
+at most `Q₁ · 65 N / 2^256 + Q₂ · 2^-10 · (2^13 - 1) / 2^128`. -/
+theorem prob_run_not_good_le (r : ℕ) (hr : r ≤ maxRows) {α : Type} (Y : OracleComp (unifSpec + GW) α) (c₀ : GCache)
     (hg : Good r c₀) (hf : GFin c₀) (N Q₁ Q₂ : ℕ) (h1 : QueryCostAtMost Y hgCalls Q₁)
     (h2 : QueryCostAtMost Y gwCalls Q₂) (hN : gSize c₀ + Q₁ ≤ N) :
     Pr{let z ← (simulateQ GW.romImpl Y).run c₀}[¬ Good r z.2] ≤
-      Q₁ * (65 * N / 2 ^ 256) + Q₂ * ((2 ^ 14 - 1) / 2 ^ 139) := by
+      Q₁ * (65 * N / 2 ^ 256) + Q₂ * ((2 ^ 13 - 1) / 2 ^ 138) := by
   classical
   have h := prEvent_run_bad_le₂ GW.romImpl (fun c ↦ ¬ Good r c) GFin hgCalls gwCalls gSize N
-    (65 * N / 2 ^ 256) ((2 ^ 14 - 1) / 2 ^ 139) (fun t c hc z hz ↦ gFin_step t c hc hz)
+    (65 * N / 2 ^ 256) ((2 ^ 13 - 1) / 2 ^ 138) (fun t c hc z hz ↦ gFin_step t c hc hz)
     (fun t c hc z hz ↦ gSize_step t c hc hz) ?_ Y Q₁ Q₂ h1 h2 c₀ hf hN
   · refine h.trans (le_of_eq ?_)
     simp [hg]
@@ -505,7 +505,7 @@ theorem prob_run_not_good_le (r : ℕ) {α : Type} (Y : OracleComp (unifSpec + G
       rcases h : c (.inr e) with _ | x
       · rw [roStep_of_none h, bind_pure_comp, prEvent_map]
         obtain ⟨d, j⟩ := e
-        refine (prob_insertG_le hgood h).trans ?_
+        refine (prob_insertG_le hr hgood h).trans ?_
         simp [hgCalls, gwCalls, gCalls]
       · rw [roStep_of_some h]
         simp only [prEvent_pure]
@@ -539,14 +539,14 @@ tries the nonces. A fresh draw spoils a good cache only if it is the one the sea
 valid proof of work after invalid ones, and its challenge accepts the one non-codeword matrix
 committed to the root; the search stops at its first valid draw, so along the reading at most one
 fresh draw is selected, and its challenge is uniform whatever the proofs of work: the reading
-spoils a good cache with probability at most `(2^14 - 1) / 2^128` (`prob_readVec_not_good_le`),
+spoils a good cache with probability at most `(2^13 - 1) / 2^128` (`prob_readVec_not_good_le`),
 however many draws it samples. -/
 
 /-- **The draws that can spoil a good cache**: if a fresh draw spoils it, the search would select
-it and its challenge lies in a set of at most `2^14 - 1` challenges. -/
-theorem not_good_insertG_sub {r : ℕ} {c : GCache} (hc : Good r c) {d : Common.DigestBytes}
+it and its challenge lies in a set of at most `2^13 - 1` challenges. -/
+theorem not_good_insertG_sub {r : ℕ} (hr : r ≤ maxRows) {c : GCache} (hc : Good r c) {d : Common.DigestBytes}
     {j : Fin nLabels} (hfresh : c (.inr (d, j)) = none) :
-    ∃ A : Finset E, A.card ≤ 2 ^ 14 - 1 ∧ ∀ x : Draw,
+    ∃ A : Finset E, A.card ≤ 2 ^ 13 - 1 ∧ ∀ x : Draw,
       ¬ Good r (c.cacheQuery (.inr (d, j)) x) → NewFirst c d j x ∧ x.1 ∈ A := by
   classical
   by_cases hS : ∃ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c ∧
@@ -556,7 +556,7 @@ theorem not_good_insertG_sub {r : ℕ} {c : GCache} (hc : Good r c) {d : Common.
     refine ⟨acceptSet (matrixRow w₀ i), card_acceptSet_le hi, fun x hx ↦ ?_⟩
     by_contra hck
     refine hx (good_insertG hc hfresh fun hnew w hw hd hm ↦ ?_)
-    have hw0 : w = w₀ := commit_unique hc.1 hw hw₀ (hd.trans hd₀.symm)
+    have hw0 : w = w₀ := commit_unique hr hc.1 hw hw₀ (hd.trans hd₀.symm)
     rw [hw0] at hm
     exfalso
     apply hck
@@ -601,18 +601,18 @@ theorem prEvent_bind_le_tsum {α β : Type} (mx : ProbComp α) (f : α → ProbC
   · gcongr; exact hg x hx
   · simp [prEvent_eq_zero_of_not_mem_support mx hx]
 
-/-- **A fresh draw at label `k`, then the rest of the reading**: at most `(2^14 - 1) / 2^128` when
+/-- **A fresh draw at label `k`, then the rest of the reading**: at most `(2^13 - 1) / 2^128` when
 no earlier nonce's draw is valid, nothing otherwise. -/
-theorem prob_fresh_step_le {β : Type} {r : ℕ} {c : GCache} (hc : Good r c) {d : Common.DigestBytes}
+theorem prob_fresh_step_le {β : Type} {r : ℕ} (hr : r ≤ maxRows) {c : GCache} (hc : Good r c) {d : Common.DigestBytes}
     {j : Fin nLabels} (hfresh : c (.inr (d, j)) = none) (F : Draw → ProbComp (β × GCache))
     (hF : ∀ x, Good r (c.cacheQuery (.inr (d, j)) x) →
       Pr{let z ← F x}[¬ Good r z.2] ≤
-        if OpenBelow (c.cacheQuery (.inr (d, j)) x) d (j.val + 1) then (2 ^ 14 - 1) / 2 ^ 128 else 0) :
+        if OpenBelow (c.cacheQuery (.inr (d, j)) x) d (j.val + 1) then (2 ^ 13 - 1) / 2 ^ 128 else 0) :
     Pr{let z ← ($ᵗ Draw : ProbComp Draw) >>= F}[¬ Good r z.2] ≤
-      if OpenBelow c d j.val then (2 ^ 14 - 1) / 2 ^ 128 else 0 := by
+      if OpenBelow c d j.val then (2 ^ 13 - 1) / 2 ^ 128 else 0 := by
   classical
-  obtain ⟨A, hA, hsub⟩ := not_good_insertG_sub hc hfresh
-  set ε : ℝ≥0∞ := (2 ^ 14 - 1) / 2 ^ 128
+  obtain ⟨A, hA, hsub⟩ := not_good_insertG_sub hr hc hfresh
+  set ε : ℝ≥0∞ := (2 ^ 13 - 1) / 2 ^ 128
   -- the continuation's bound
   let g : Draw → ℝ≥0∞ := fun x ↦
     (if NewFirst c d j x ∧ x.1 ∈ A then 1 else 0) +
@@ -668,8 +668,8 @@ theorem prob_fresh_step_le {β : Type} {r : ℕ} {c : GCache} (hc : Good r c) {d
       have hAε : (A.card : ℝ≥0∞) / Fintype.card E ≤ ε := by
         rw [card_E, Nat.cast_pow, Nat.cast_ofNat]
         refine ENNReal.div_le_div_right ?_ _
-        calc (A.card : ℝ≥0∞) ≤ ((2 ^ 14 - 1 : ℕ) : ℝ≥0∞) := Nat.cast_le.mpr hA
-          _ = 2 ^ 14 - 1 := by rw [ENNReal.natCast_sub]; norm_num
+        calc (A.card : ℝ≥0∞) ≤ ((2 ^ 13 - 1 : ℕ) : ℝ≥0∞) := Nat.cast_le.mpr hA
+          _ = 2 ^ 13 - 1 := by rw [ENNReal.natCast_sub]; norm_num
       have hone : Pr{let x ← ($ᵗ Draw : ProbComp Draw)}[powValid x.2.lane = true] +
           Pr{let x ← ($ᵗ Draw : ProbComp Draw)}[¬ powValid x.2.lane = true] ≤ 1 := by
         rw [OracleComp.prEvent_not_eq_one_sub, add_tsub_cancel_of_le (prEvent_le_one _)]
@@ -701,13 +701,13 @@ theorem run_gaP (d : Common.DigestBytes) (j : Fin nLabels) (c : GCache) :
   run_hq (hs := GW) (.inr (d, j)) c
 
 /-- **Reading root `d`'s draws from label `k` on** spoils a good cache whose labels below `k` are
-cached with probability at most `(2^14 - 1) / 2^128` if no earlier nonce's draw is valid, and
+cached with probability at most `(2^13 - 1) / 2^128` if no earlier nonce's draw is valid, and
 not at all otherwise. -/
-theorem prob_readFrom_le (r : ℕ) (d : Common.DigestBytes) : ∀ (m k : ℕ), k + m = nLabels →
+theorem prob_readFrom_le (r : ℕ) (hr : r ≤ maxRows) (d : Common.DigestBytes) : ∀ (m k : ℕ), k + m = nLabels →
     ∀ c : GCache, Good r c → CoveredBelow c d k →
       Pr{let z ← (simulateQ GW.romImpl (((List.finRange nLabels).drop k).mapM
           (gaP (Msg := List UInt8) (Dg := DigestBytes) d))).run c}[¬ Good r z.2] ≤
-        if OpenBelow c d k then (2 ^ 14 - 1) / 2 ^ 128 else 0
+        if OpenBelow c d k then (2 ^ 13 - 1) / 2 ^ 128 else 0
   | 0, k, hk, c, hc, _ => by
     classical
     rw [List.drop_of_length_le (by simp only [List.length_finRange]; omega), List.mapM_nil,
@@ -727,9 +727,9 @@ theorem prob_readFrom_le (r : ℕ) (d : Common.DigestBytes) : ∀ (m k : ℕ), k
     · -- a fresh draw
       rw [roStep_of_none hcj, bind_assoc]
       simp only [pure_bind]
-      refine prob_fresh_step_le hc hcj _ fun x hgx ↦ ?_
+      refine prob_fresh_step_le hr hc hcj _ fun x hgx ↦ ?_
       rw [prEvent_run_bind_pure]
-      refine prob_readFrom_le r d m (k + 1) (by omega) _ hgx fun i hi ↦ ?_
+      refine prob_readFrom_le r hr d m (k + 1) (by omega) _ hgx fun i hi ↦ ?_
       rw [gcache_inr_inr]
       split_ifs
       · simp
@@ -739,7 +739,7 @@ theorem prob_readFrom_le (r : ℕ) (d : Common.DigestBytes) : ∀ (m k : ℕ), k
           omega)
     · -- a cached draw
       rw [roStep_of_some hcj, pure_bind, prEvent_run_bind_pure]
-      refine (prob_readFrom_le r d m (k + 1) (by omega) c hc fun i hi ↦ ?_).trans ?_
+      refine (prob_readFrom_le r hr d m (k + 1) (by omega) c hc fun i hi ↦ ?_).trans ?_
       · by_cases hik : i.val = k
         · rw [show i = j from Fin.ext hik, hcj]; simp
         · exact hcov i (by omega)
@@ -748,12 +748,12 @@ theorem prob_readFrom_le (r : ℕ) (d : Common.DigestBytes) : ∀ (m k : ℕ), k
         · simp [h1]
 
 /-- **The verifier's reading of the root's draws spoils a good cache** with probability at most
-`(2^14 - 1) / 2^128`: one fresh try, however many nonces it tries. -/
-theorem prob_readVec_not_good_le (r : ℕ) (d : Common.DigestBytes) (c : GCache) (hc : Good r c) :
+`(2^13 - 1) / 2^128`: one fresh try, however many nonces it tries. -/
+theorem prob_readVec_not_good_le (r : ℕ) (hr : r ≤ maxRows) (d : Common.DigestBytes) (c : GCache) (hc : Good r c) :
     Pr{let z ← (simulateQ GW.romImpl (readVec (Msg := List UInt8) (Dg := DigestBytes)
-        (n := nLabels) d)).run c}[¬ Good r z.2] ≤ (2 ^ 14 - 1) / 2 ^ 128 := by
+        (n := nLabels) d)).run c}[¬ Good r z.2] ≤ (2 ^ 13 - 1) / 2 ^ 128 := by
   rw [readVec, simulateQ_map, StateT.run_map, prEvent_map]
-  have h := prob_readFrom_le r d nLabels 0 (by omega) c hc fun i hi ↦ absurd hi (Nat.not_lt_zero _)
+  have h := prob_readFrom_le r hr d nLabels 0 (by omega) c hc fun i hi ↦ absurd hi (Nat.not_lt_zero _)
   rw [List.drop_zero] at h
   refine h.trans ?_
   split_ifs <;> simp

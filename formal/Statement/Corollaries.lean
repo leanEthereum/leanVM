@@ -35,7 +35,7 @@ open OracleComp OracleSpec in
 /-- **The outer verifier's acceptance, explained.** In the random-permutation experiment of
 `LeanVm.lean`, the adversary, querying `π` and `π⁻¹`, outputs a proof. The event: the verifier
 accepts it as a proof of `guest` on the digest, under the deployed seed, of a statement `statement`
-whose deferred claim holds of the guest program's bytecode (`DeferredClaim.HoldsWithShape`, as the
+whose deferred claim holds of the guest program's bytecode (`DeferredBytecodeClaim.HoldsWithShape`, as the
 deployed outer verifier checks by recomputing it), and yet the execution the knowledge extractor
 `extractor` reads off the adversary's transcript and the proof does not explain `statement`: no
 execution is extracted, or the decoder program `guestWitnessDecoder`, run on it within its budget

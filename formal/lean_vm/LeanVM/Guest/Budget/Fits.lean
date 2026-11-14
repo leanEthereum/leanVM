@@ -12,6 +12,9 @@ public import LeanVM.Guest.Count.Deployed
 public import Statement.Corollaries
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.B1.Main.Plan
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The nodes within the deployed limits
@@ -76,24 +79,23 @@ theorem work_fields (hlim : DeployedLimits s w) :
       (work s w).rawSphincs = w.sphincsSignatures.length ∧
       (work s w).rawDa = (w.daMatrix.map fun _ ↦ 1).getD 0 ∧
       (work s w).rawDaRows = (w.daMatrix.map fun p ↦ p.2.rows.length).getD 0 ∧
-      (work s w).rawDaPad = (w.daMatrix.map fun p ↦ LeanDa.paddedRowCount p.2.rows.length).getD 0 ∧
+      (work s w).rawDaPad = (w.daMatrix.map fun _ ↦ LeanDa.maxRows).getD 0 ∧
       (work s w).children = w.children.length ∧
       (work s w).childClaims = (w.children.map fun child ↦
         child.statement.claims.xmss.length + child.statement.claims.sphincs.length).sum ∧
       (work s w).childShapes.length = w.children.length :=
   ⟨rfl, B1.Main.planSlots_eq hlim, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by simp [work]⟩
 
-/-- The blob matrix checked directly: at most one, of at most `32` rows, padded to at most `32`. -/
+/-- The blob matrix checked directly: at most one, of at most `DA_MAX_ROWS` rows (`LeanDa.maxRows`),
+padded to `DA_MAX_ROWS`. -/
 theorem da_le (hlim : DeployedLimits s w) :
     (w.daMatrix.map fun _ ↦ 1).getD 0 ≤ 1 ∧
-      (w.daMatrix.map fun p ↦ p.2.rows.length).getD 0 ≤ 32 ∧
-      (w.daMatrix.map fun p ↦ LeanDa.paddedRowCount p.2.rows.length).getD 0 ≤ 32 := by
+      (w.daMatrix.map fun p ↦ p.2.rows.length).getD 0 ≤ guest_const% DA_MAX_ROWS ∧
+      (w.daMatrix.map fun _ ↦ LeanDa.maxRows).getD 0 ≤ guest_const% DA_MAX_ROWS := by
   rcases h : w.daMatrix with _ | p
   · simp
-  · have hr := hlim.atMost32Rows p (Option.mem_def.mpr h)
-    refine ⟨le_rfl, hr, ?_⟩
-    show 2 ^ Nat.clog 2 p.2.rows.length ≤ 2 ^ 5
-    exact Nat.pow_le_pow_right (by norm_num) (Nat.clog_le_of_le_pow hr)
+  · have hr : p.2.rows.length ≤ guest_const% DA_MAX_ROWS := hlim.atMostMaxRows p (Option.mem_def.mpr h)
+    exact ⟨le_rfl, hr, by simp [LeanDa.maxRows, LeanDa.logMaxRows]⟩
 
 /-- The coverage table at the caps. -/
 theorem coverageSlots_le (hlim : DeployedLimits s w) : coverageSlots w ≤ 2048 + 512 + 2 ^ 17 := by

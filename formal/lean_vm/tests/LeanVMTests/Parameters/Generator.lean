@@ -7,7 +7,7 @@ meta import LeanVM.Parameters.Generator
 # Tests: the generator
 
 `gpow k` is bit `k` for `k < 64`, pinning `g = x`, and `gpow 64` is the reduction tail
-`x^4 + x^3 + x + 1 = K.ofBits 0x1b` of the modulus (`crates/primitives/src/field/gf2_64.rs:13`,
+`x^4 + x^3 + x + 1 = K.ofBits 0x1b` of the modulus (`crates/primitives/src/field/gf2_64.rs`,
 `R64`). Nearby false statements follow: `g^3` has order
 `(2^64 - 1)/3` and fails the `3`-check, and `gpow` wraps at the order.
 -/

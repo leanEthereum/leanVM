@@ -126,14 +126,14 @@ theorem sig_name_inj {j j' : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) (h1' : 1 ≤ j'
 
 theorem vs_cuts : (certOf (fn_idx% «verify_sub»)).cuts.length = 3 := by decide +kernel
 
-/-- The bound of entry `c` of `kappa_base` (`lean_ethereum.py:3561-3569`): `kb[0] = g^0`, the
+/-- The bound of entry `c` of `kappa_base` (`lean_ethereum.py`): `kb[0] = g^0`, the
 memory's log and the six tables' heights `kb[1..6]` below `g^31`, and `kb[7]`, keccak's `τ`,
 below `g^25` (`τ + 6` is a column's log, at most `30`). -/
 def vsKbBound (c : ℕ) : ℕ := [1, 31, 31, 31, 31, 31, 31, 25].getD c 0
 
 /-- `verify_sub`'s bound of the memory's log: entry `0` of `dims_g` (the value `vsDims`) among `g^e`,
 `e < 34`, which `verify_tables` dispatches on (the tables' logs, entries `1` to `6`, are range
-checked in `verify_tables` itself, `lean_ethereum.py:2153`). -/
+checked in `verify_tables` itself, `lean_ethereum.py`). -/
 def vsDimsKnown (c : ℕ) : List (ℕ × ℕ × ℕ) := [(c, 0, 34)]
 
 /-- `verify_sub`'s second window starts at its call of `verify_tables` (statement `vsDimsAt`) and

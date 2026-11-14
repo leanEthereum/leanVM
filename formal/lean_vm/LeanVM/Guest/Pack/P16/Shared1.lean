@@ -15,6 +15,25 @@ public import LeanVM.Guest.Pack.«P16».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«rs_eq_rows__L7»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `rs_eq_rows__L7`, window 3. -/
+theorem sw3 : shareWinD Fn.«rs_eq_rows__L7».core (cert.withPows Data.powTree) plumb fs snaps 3 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `rs_eq_rows__L7`, window 4. -/
+theorem sw4 : shareWinD Fn.«rs_eq_rows__L7».core (cert.withPows Data.powTree) plumb fs snaps 4 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«rs_eq_rows__L7»
+
 namespace LeanVM.Guest.Fn.«index_mle__L15»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +114,4 @@ theorem shareOk : ShareOkD Fn.«squeeze_point_from__L23».core (cert.withPows Da
 
 end
 end LeanVM.Guest.Fn.«squeeze_point_from__L23»
-
-namespace LeanVM.Guest.Fn.«claim_list_last__L1»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `claim_list_last__L1`, once. -/
-theorem st : shareStaticD Fn.«claim_list_last__L1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `claim_list_last__L1`, window 0. -/
-theorem sw0 : shareWinD Fn.«claim_list_last__L1».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `claim_list_last__L1`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«claim_list_last__L1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«claim_list_last__L1»
 

@@ -29,7 +29,7 @@ public import LeanVM.Protocol.WithHash
 * **`committedWordC_keys_congr`**: two covering key lists give the same word (no injectivity
   needed); the RPM bridge rewrites the answer function and then changes the keys.
 
-`AnswersInj` is a verbatim copy of leanerVM `lean_vm/LeanVM/Protocol/Compile/Rom/Log.lean:369`
+`AnswersInj` is a verbatim copy of leanerVM `lean_vm/LeanVM/Protocol/Compile/Rom/Log.lean`
 (`mumbai`, `935b9d40`).
 -/
 
@@ -222,7 +222,7 @@ theorem flatMap_kBytes_bytesWords (w : ℕ) (b : Bytes) (hb : b.length = 8 * w) 
 /-! ## The answer table -/
 
 /-- No two byte strings have the same answer (verbatim, leanerVM
-`lean_vm/LeanVM/Protocol/Compile/Rom/Log.lean:369`). -/
+`lean_vm/LeanVM/Protocol/Compile/Rom/Log.lean`). -/
 @[expose] def AnswersInj (H : Bytes → Option Digest) : Prop :=
   ∀ x y v, H x = some v → H y = some v → x = y
 

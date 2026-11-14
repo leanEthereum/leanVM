@@ -39,7 +39,7 @@ def hDvNH (w : NodeWitness) : Tree → Prop :=
 def MainGoalDvT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) : Prop :=
   (hm fs fp seed s w).nd = 1 →
-    CompleteAtDT fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtDT fs cert 20 "da_verify" (hLmain fs fp seed s w) []
       (Returns (hm fs fp seed s w).daR) (hDvNH w)
 
 theorem MainGoalDvT.goal {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest}

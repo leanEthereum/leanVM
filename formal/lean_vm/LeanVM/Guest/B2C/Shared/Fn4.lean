@@ -24,10 +24,9 @@ import LeanVM.Guest.Pack.«P35».SharedOk
 import LeanVM.Guest.Pack.«P16».Shared1
 import LeanVM.Guest.Pack.«P9».Shared1
 import LeanVM.Guest.Pack.«P54».Shared1
-import LeanVM.Guest.Pack.«P7».SharedOk
+import LeanVM.Guest.Pack.«P7».Shared1
 import LeanVM.Guest.Pack.«P52».Shared0
 import LeanVM.Guest.Pack.«P52».Shared1
-import LeanVM.Guest.Pack.«P7».Shared2
 import LeanVM.Guest.Pack.«P26».Shared0
 import LeanVM.Guest.Pack.«P45».Shared1
 import LeanVM.Guest.Pack.«P40».Shared1

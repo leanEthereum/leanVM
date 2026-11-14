@@ -17,7 +17,7 @@ import LeanVM.Protocol.LeanIsa.Sound
   pinned verifier's `build_layout` places `QKECCAK` at offset `4194304` with a `KECCAK` table of
   `2^9` rows, and input lane `l` of row `x` is read at the stack's cell
   `4194304 + 512 l + x` (checked at every lane and every bit of `x`) (the lane is `QKECCAK`'s column at slot `l`, `slot << kappa`,
-  `crates/verifier/src/layout.rs:531-553`);
+  `crates/verifier/src/layout.rs`);
   a read with the slot in the low coordinates would fail this.
 -/
 

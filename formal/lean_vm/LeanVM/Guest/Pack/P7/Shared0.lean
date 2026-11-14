@@ -42,33 +42,6 @@ theorem shareOk : ShareOkD Fn.«rs_eq_run».core (cert.withPows Data.powTree) pl
 end
 end LeanVM.Guest.Fn.«rs_eq_run»
 
-namespace LeanVM.Guest.Fn.«da_row_shape»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `da_row_shape`, once. -/
-theorem st : shareStaticD Fn.«da_row_shape».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_row_shape`, window 0. -/
-theorem sw0 : shareWinD Fn.«da_row_shape».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `da_row_shape`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«da_row_shape».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«da_row_shape»
-
 namespace LeanVM.Guest.Fn.«da_verify_cell»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -90,11 +63,56 @@ set_option maxRecDepth 100000 in
 theorem sw1 : shareWinD Fn.«da_verify_cell».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, window 2. -/
-theorem sw2 : shareWinD Fn.«da_verify_cell».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
-  decide +kernel
+/-- `da_verify_cell`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«da_verify_cell».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+  · exact sw1
+⟩
 
 end
 end LeanVM.Guest.Fn.«da_verify_cell»
+
+namespace LeanVM.Guest.Fn.«eq_prefix_run__L30»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run__L30`, once. -/
+theorem st : shareStaticD Fn.«eq_prefix_run__L30».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run__L30`, window 0. -/
+theorem sw0 : shareWinD Fn.«eq_prefix_run__L30».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run__L30`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«eq_prefix_run__L30».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run__L30»
+
+namespace LeanVM.Guest.Fn.«padding_weight__L26»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `padding_weight__L26`, once. -/
+theorem st : shareStaticD Fn.«padding_weight__L26».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«padding_weight__L26»
 

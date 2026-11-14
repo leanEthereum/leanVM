@@ -13,7 +13,7 @@ public import LeanVM.Protocol.Keccak.Multilinear
 /-!
 # The embedding
 
-`RMFE_EMBED` and `RMFE_PROJECT` (`crates/verifier/src/keccak.rs:22-46`, `rmfe`) are sixteen binary
+`RMFE_EMBED` and `RMFE_PROJECT` (`crates/verifier/src/keccak.rs`, `rmfe`) are sixteen binary
 polynomials `emb_a` of degree at most `23` (`rmfeEmbed`) and sixteen masks over the `47`
 coefficients of a product (`rmfeProject`); the lemma of `doc/leanvm` §`keccak:rmfe-proof` is that
 the parity of `mask_i ∧ (emb(u)·emb(v))` is `u_i ∧ v_i`. By bilinearity it is enough on unit
@@ -40,11 +40,11 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.EndToEnd.Complet
 
 /-! ## The literals -/
 
-/-- `RMFE_EMBED` (`keccak.rs:25-28`), in decimal. -/
+/-- `RMFE_EMBED` (`keccak.rs`), in decimal. -/
 def embedLit : List ℕ := [4244747, 8354290, 4935178, 7500812, 5461978, 1907870, 310894, 7885382,
   621788, 1089150, 2036820, 2178300, 5045448, 7821168, 1602438, 8489494]
 
-/-- `RMFE_PROJECT` (`keccak.rs:29-46`), in decimal. -/
+/-- `RMFE_PROJECT` (`keccak.rs`), in decimal. -/
 def projectLit : List ℕ := [1, 140737488355327, 43218598786281, 32136906789799, 111925089164473,
   101951566367639, 112771593653537, 102871349771039, 126754541004432, 60819261648545,
   20682647020959, 30409630824272, 11891857888673, 6939470531743, 76314673122000, 70368744177664]
@@ -292,7 +292,7 @@ theorem sumE_zip_filterMap (p : ℕ → Prop) [DecidablePred p] :
   | [], _ :: _, h => by simp at h
   | _ :: _, [], h => by simp at h
 
-/-- **The verifier's projected value** (`keccak.rs:125-132`): `Σ_c (Σ_{i ∋ c} μ_i) · G_c` is
+/-- **The verifier's projected value** (`keccak.rs`): `Σ_c (Σ_{i ∋ c} μ_i) · G_c` is
 `Σ_i μ_i · projE_i(G)`, for coefficients `G_c = product[c]`. -/
 theorem projected_eq (mu product : List E) (hmu : mu.length = 16) (G : E[X])
     (hG : ∀ c < 47, product.getD c 0 = G.coeff c) :

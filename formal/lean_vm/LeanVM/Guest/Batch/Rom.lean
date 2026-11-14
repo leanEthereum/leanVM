@@ -134,7 +134,7 @@ theorem after_readCount {M n : ℕ} (hM : M ≤ 2 ^ 64 - 1) (hn : n < M) :
 theorem after_batchAny {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K} {cs : List ChildClaims}
     (hn : cs.length < M) (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c) (l : List Ev) :
     (boundedBatchingProgram M bytecode).after ((cellsBeforeChallenge cs).map Ev.read ++ l) =
-      (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs).after l := by
+      (batchingAfterChildren (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs).after l := by
   rw [cellsBeforeChallenge, List.map_append, List.append_assoc]
   exact (VerifierProgram.after_bind_append _ (after_readCount hM hn) _).trans
     (VerifierProgram.after_bind_append _ (after_readChildren hs) l)
@@ -192,7 +192,7 @@ theorem movesOK_require (q : Prop) (inst : Decidable q) : BMoves (@VerifierProgr
   (Moves.require q).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) fun _ h ↦ h
 
 theorem movesOK_batchRest (bytecode : List K) (cs : List ChildClaims) :
-    BMoves (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs) := by
+    BMoves (batchingAfterChildren (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs) := by
   unfold batchingAfterChildren
   refine Moves.seq (Moves.grindP fun _ ↦ by decide) (fun _ _ ↦ ?_)
     (fun _ _ _ ↦ Moves.startsSample_sampleChallenge _)
@@ -224,11 +224,11 @@ def hist (p : BatchPre M bytecode) : List Ev := (cellsBeforeChallenge p.cs).map 
 
 /-- The certificate of the batching after a prefix's children: `restSpec`'s. -/
 noncomputable def cert (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
-    (p : BatchPre M bytecode) : Cert (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode p.cs) :=
+    (p : BatchPre M bytecode) : Cert (batchingAfterChildren (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode p.cs) :=
   (restSpec hb p.lt p.shaped p.gap).toCertOfLead
 
 theorem after_hist (hM : M ≤ 2 ^ 64 - 1) (p : BatchPre M bytecode) :
-    (boundedBatchingProgram M bytecode).after p.hist = some (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode p.cs) := by
+    (boundedBatchingProgram M bytecode).after p.hist = some (batchingAfterChildren (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode p.cs) := by
   rw [hist, ← List.append_nil (List.map _ _), after_batchAny hM p.lt p.shaped]
   simp [VerifierProgram.after]
 
@@ -351,7 +351,7 @@ theorem batchCert_bound (hM : M ≤ 2 ^ 64 - 1) (h : List Ev) :
   · obtain ⟨p, h', rfl⟩ := hx
     show _ * batchCertε hb _ ≤ _
     rw [batchCertε_eq hb hM, p.grindBits_hist]
-    by_cases hr : (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode p.cs).Reachable h'
+    by_cases hr : (batchingAfterChildren (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode p.cs).Reachable h'
     · rw [min_eq_left ((movesOK_batchRest bytecode p.cs).grindBits_le hr)]
       exact Spec.toCertOfLead_bound _ le_rfl h'
     · simp only [BatchPre.cert, Spec.toCertOfLead, Spec.toCert_ε, hr, false_and, ↓reduceIte,
@@ -414,7 +414,7 @@ theorem costs_roundsProg : ∀ (k : ℕ) (claim : E), Costs 0 (sumcheckRoundsPro
 /-- The batching after its children costs `5` for the proof of work, `4` for the challenge, `6`
 per round, and the final read. -/
 theorem costs_batchRest (bytecode : List K) (cs : List ChildClaims) :
-    CostLE 0 (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs)
+    CostLE 0 (batchingAfterChildren (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs)
       (5 + 4 + 6 * Nat.log2 bytecode.length + 1) := by
   unfold batchingAfterChildren
   refine Costs.seq (Costs.grindP _) (fun _ _ ↦ ?_) (by omega)
@@ -488,7 +488,7 @@ theorem doomed_of_falseChildren (hb : bytecode.length = 2 ^ Nat.log2 bytecode.le
   refine ⟨p.hist, ?_, Nat.zero_le _, ?_, ?_⟩
   · obtain ⟨seed, s, -, hxr⟩ := xrun_of_verify_from [] hv
     have ha : (boundedBatchingProgram M bytecode).after ((cellsBeforeChallenge cs).map Ev.read) =
-        some (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs) := p.after_hist hM
+        some (batchingAfterChildren (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs) := p.after_hist hM
     have h := xrun_reads _ _ _ _ _ [] ha hpre hxr
     rw [List.nil_append] at h
     exact h

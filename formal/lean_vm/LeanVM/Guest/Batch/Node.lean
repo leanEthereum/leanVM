@@ -82,7 +82,7 @@ theorem length_rounds_flat (rounds : List (E × E)) :
   | cons g rest ih => simp [ih]; ring
 
 /-- The run of the batching from its seed, with the count's and the children's cells read. -/
-theorem runD_batchOf (check : DeferredClaim → Prop) {bytecode : List K} {cs : List ChildClaims}
+theorem runD_batchOf (check : DeferredBytecodeClaim → Prop) {bytecode : List K} {cs : List ChildClaims}
     (rest : List E) :
     runD (nodeBatchingProgram check bytecode cs)
         ⟨⟨batchSeed, [], none⟩, cellsBeforeChallenge cs ++ rest, [], []⟩ =
@@ -116,7 +116,7 @@ theorem runD_tail_accepts {c : E → Prop} {dc : DecidablePred c} {sp : Sponge} 
 
 /-- **An accepting run reads the hints' rounds as the program's**: the hints have
 `log₂ |bytecode|` rounds. -/
-theorem rounds_length_of_accepts {check : DeferredClaim → Prop} {bytecode : List K}
+theorem rounds_length_of_accepts {check : DeferredBytecodeClaim → Prop} {bytecode : List K}
     {cs : List ChildClaims} {h : BatchingHints}
     (hacc : Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram check bytecode cs)
       ⟨batchingStream cs h, []⟩) = true) :
@@ -147,7 +147,7 @@ theorem rounds_length_of_accepts {check : DeferredClaim → Prop} {bytecode : Li
 `log₂ |bytecode|` rounds, the program accepts the stream exactly where `batch`
 defers `d`. -/
 theorem batchRun_iff_of_rounds {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
-    {d : DeferredClaim}
+    {d : DeferredBytecodeClaim}
     (hr : h.sumcheckMessages.length = Nat.log2 bytecode.length) :
     Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram (· = d) bytecode cs)
       ⟨batchingStream cs h, []⟩) = true ↔ batch cs h = some d := by
@@ -170,29 +170,29 @@ theorem batchRun_iff_of_rounds {bytecode : List K} {cs : List ChildClaims} {h : 
   · simp only [hp, Bool.false_eq_true, ↓reduceIte, reduceCtorEq]
 
 /-- `batch` defers a claim at a point of as many coordinates as the hints have rounds. -/
-theorem batch_point_length {cs : List ChildClaims} {h : BatchingHints} {d : DeferredClaim}
+theorem batch_point_length {cs : List ChildClaims} {h : BatchingHints} {d : DeferredBytecodeClaim}
     (hb : batch cs h = some d) : d.bytecodePoint.length = h.sumcheckMessages.length := by
   have e := hb
   rw [batch_eq'] at e
   split_ifs at e
-  have := congrArg (fun c : DeferredClaim ↦ c.bytecodePoint.length) (Option.some.inj e)
+  have := congrArg (fun c : DeferredBytecodeClaim ↦ c.bytecodePoint.length) (Option.some.inj e)
   simp only [rsRun_length] at this
   exact this.symm
 
 /-- **An accepting batching defers a claim of the bytecode's shape**: the sumcheck's
 `log₂ |bytecode|` challenges. -/
 theorem shape_of_batchRun {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
-    {d : DeferredClaim}
+    {d : DeferredBytecodeClaim}
     (hacc : Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600
       (nodeBatchingProgram (· = d) bytecode cs) ⟨batchingStream cs h, []⟩) = true) :
     d.HasBytecodeShape bytecode := by
   have hr := rounds_length_of_accepts hacc
-  rw [DeferredClaim.HasBytecodeShape, batch_point_length ((batchRun_iff_of_rounds hr).mp hacc), hr]
+  rw [DeferredBytecodeClaim.HasBytecodeShape, batch_point_length ((batchRun_iff_of_rounds hr).mp hacc), hr]
 
 /-- **A node's batching is `Node.batch`**: for a deferred claim of the bytecode's shape, the
 program accepts the stream exactly where `batch` defers that claim. -/
 theorem batchRun_batchOf_iff {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
-    {d : DeferredClaim} (hd : d.HasBytecodeShape bytecode) :
+    {d : DeferredBytecodeClaim} (hd : d.HasBytecodeShape bytecode) :
     Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram (· = d) bytecode cs)
       ⟨batchingStream cs h, []⟩) = true ↔ batch cs h = some d := by
   constructor
@@ -227,8 +227,8 @@ theorem _root_.LeanVM.Node.DeferredClaimBatched.hasBytecodeShape {bytecode : Lis
     (hb : DeferredClaimBatched bytecode seed s w) : s.deferredClaim.HasBytecodeShape bytecode := by
   unfold DeferredClaimBatched at hb
   split at hb
-  · unfold DeferredClaim.HasZeroPoint at hb
-    rw [DeferredClaim.HasBytecodeShape, hb, List.length_replicate]
+  · unfold DeferredBytecodeClaim.HasZeroPoint at hb
+    rw [DeferredBytecodeClaim.HasBytecodeShape, hb, List.length_replicate]
   · dsimp only at hb
     rw [LeanVM.Guest.Batch.runBatching_deployed] at hb
     exact shape_of_batchRun hb

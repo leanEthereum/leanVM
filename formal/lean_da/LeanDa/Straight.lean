@@ -28,8 +28,8 @@ or else whether the first opening that disagrees with `w` verifies.
   check is on every challenge, which only codewords pass), or `H` collides (the disagreeing
   opening verifies, `verifyCell_agree`), or a fresh answer of `H` hit a digest already carried
   (the matrix's tree completed after the root's draws).
-* **The bad cache's probability** is at most `N · 65 N / 2^256 + Q · 2^-11 · (2^14 - 1) / 2^128 +
-  (2^14 - 1) / 2^128` (`LeanDa.StraightBound`), `N = 2 Q + 2^20`.
+* **The bad cache's probability** is at most `N · 65 N / 2^256 + Q · 2^-10 · (2^13 - 1) / 2^128 +
+  (2^13 - 1) / 2^128` (`LeanDa.StraightBound`), `N = 2 Q + 2^20`.
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA. The
@@ -44,6 +44,8 @@ open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
 namespace LeanDa
+
+attribute [local irreducible] logMaxRows
 
 /-- A code-binding adversary's output: a commitment with its proof, and the opened cells. -/
 abbrev CbOut (r : ℕ) (Proof : Type) := (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)
@@ -75,7 +77,7 @@ noncomputable def tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallen
     if ext crs ((), out.1.1, l) out.1.2 ∈ (leanDaErasureCode r).code then
       match firstBad r (ext crs ((), out.1.1, l) out.1.2) out.2 with
       | some o =>
-        if o.2.2.path.length = 7 + logPaddedRowCount r then verifyCellMWithHash hH r out.1.1 o.1 o.2.1 o.2.2
+        if o.2.2.path.length = 7 + logMaxRows then verifyCellMWithHash hH r out.1.1 o.1 o.2.1 o.2.2
         else pure false
       | none => pure false
     else pure true
@@ -91,7 +93,7 @@ noncomputable def tailP (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Member
     if ext crs ((), out.1.1, l) out.1.2 ∈ (leanDaErasureCode r).code then
       match firstBad r (ext crs ((), out.1.1, l) out.1.2) out.2 with
       | some o =>
-        if o.2.2.path.length = 7 + logPaddedRowCount r then verifyCell (Hh h) r out.1.1 o.1 o.2.1 o.2.2
+        if o.2.2.path.length = 7 + logMaxRows then verifyCell (Hh h) r out.1.1 o.1 o.2.1 o.2.2
         else false
       | none => false
     else true
@@ -133,7 +135,7 @@ theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Members
     · rw [ite_eq_left hw, ite_eq_left hw]
       rcases firstBad r w out.2 with _ | o
       · simp only [hp]; rfl
-      · by_cases hlen : o.2.2.path.length = 7 + logPaddedRowCount r
+      · by_cases hlen : o.2.2.path.length = 7 + logMaxRows
         · simp only [ite_eq_left hlen]
           rw [verifyCellM_map (fun x ↦ simulateQ (phiG h ∘ₛ embG) x) hp hb, verifyCellM_congr hHs,
             verifyCellM_pure]
@@ -174,7 +176,7 @@ theorem postP_imp (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipCh
     · simp only [firstBad] at hfb
       have ho := List.mem_of_find?_eq_some hfb
       have hv := hall o ho
-      have hlen : o.2.2.path.length = 7 + logPaddedRowCount r := by
+      have hlen : o.2.2.path.length = 7 + logMaxRows := by
         simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq] at hv
         exact hv.1
       simp only [ite_eq_left hlen]
@@ -361,7 +363,7 @@ noncomputable def tailL (L : List (Fin nLabels)) (crs : Crs) (out : CbOut r Proo
   readL L out.1.1 >>= fun l ↦ simulateQ embG (tailH r ps ext crs out l)
 
 /-- **A true verdict leaves a bad cache**, the draws read at all labels. -/
-theorem not_good_of_tail (L : List (Fin nLabels)) (hlen : L.length = nLabels)
+theorem not_good_of_tail (hr : r ≤ maxRows) (L : List (Fin nLabels)) (hlen : L.length = nLabels)
     (hidx : ∀ i (hi : i < L.length), (L[i]).val = i) (crs : Crs) (out : CbOut r Proof)
     (c : GCache) {z : Bool × GCache}
     (hz : z ∈ support ((simulateQ GW.romImpl (tailL r ps ext L crs out)).run c))
@@ -410,11 +412,11 @@ theorem not_good_of_tail (L : List (Fin nLabels)) (hlen : L.length = nLabels)
     rcases hfb : firstBad r w out.2 with _ | o
     · simp [hfb, hpO] at hrep
     · simp only [hfb] at hrep
-      by_cases hlen' : o.2.2.path.length = 7 + logPaddedRowCount r
+      by_cases hlen' : o.2.2.path.length = 7 + logMaxRows
       · rw [ite_eq_left hlen', verifyCellM_map (fun x ↦ simulateQ (lookupH z.2) x) hpO hbO] at hrep
         simp only [hHg] at hrep
         obtain ⟨hb, hvin⟩ := verifyCellM_some (fOf z.2) hg out.1.1 o.1 o.2.1 o.2.2 true hrep
-        have hag := verifyCell_agree hgood.1 hin' (fun a ha ↦ hvin a ha)
+        have hag := verifyCell_agree hr hgood.1 hin' (fun a ha ↦ hvin a ha)
           (by rw [← hroot', hc.2.1]; exact hb.symm)
         have hne := List.find?_some (by simpa only [firstBad] using hfb)
         simp only [decide_eq_true_eq] at hne

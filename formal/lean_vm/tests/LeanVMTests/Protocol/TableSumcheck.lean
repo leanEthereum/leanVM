@@ -16,7 +16,7 @@ totals those forms reach on the honest stack.
 * **Sizes and positions.** `τ_max = 2`, `B = 3`, two final values; the constraints are numbered
   table by table and the columns too (`constraintPos`, `columnPos`, `position_val`).
 * **The weights.** A table's weight at a point is `∏_{m<τ_t} (1 + ζ_m + r_m) · ∏_{m≥τ_t} r_m`,
-  the deployed verifier's `weights[index]` (`crates/verifier/src/bus.rs:224-230` at leanVM
+  the deployed verifier's `weights[index]` (`crates/verifier/src/bus.rs` at leanVM
   `127510d1`).
 * **The target** (`tableSummand_target`). On the honest stack the sum of the summand over the
   cube is `Σ_s ξ^(B + s) · total_s`, the batch of the claimed values, nonzero; the true values are

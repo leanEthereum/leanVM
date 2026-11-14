@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Verifier
 /-!
 # The table sumcheck's final values
 
-`tableTerms` (`crates/verifier/src/bus.rs:239-257`) reads each table's row evaluations, in table
+`tableTerms` (`crates/verifier/src/bus.rs`) reads each table's row evaluations, in table
 order, and accumulates the final check's value and the column claims. `refTableTerms` is the same
 computation on the evaluations read, a pure function; `tableTermsSpec` says the loop reads them (one
 list per table, of the table's width) and returns `refTableTerms` of them, keeping any property of
