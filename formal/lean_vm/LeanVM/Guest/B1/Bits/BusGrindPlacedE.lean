@@ -12,8 +12,9 @@ public import LeanVM.Guest.B1.Tables.FlatAtTE
 /-!
 # `bus_grind_check`, placed and exact
 
-`bus_grind_check_completeDTBRE`: `bus_grind_check_completeB_of`'s statement within its frame and any bound `Bg` of
-its `grind_check`'s trees, by a tree of honest shape (`busGrindHonest`) whose every node is exact on the memory: its
+`bus_grind_check_completeDTBRG`: `bus_grind_check_completeB_of`'s statement within its frame and a bound `Bg` of
+its `grind_check`'s trees (`bus_grind_check_completeDTBRE` from a bound on its valid trees, `bus_grind_check_completeDTBRF`
+its frame), by a tree of honest shape (`busGrindHonest`) whose every node is exact on the memory: its
 callee by `grind_check_completeDTBR_of` (`completeAt_flatDTBRR`), its own body without a computed hint
 (`bgBody_pinned`), so `CompleteAtDTBR.nodeEvery`.
 -/
@@ -41,8 +42,10 @@ def busGrindHonest (d : ℕ) (rd : Reader) : Tree → Prop :=
 
 /-- **`bus_grind_check__L{d}`, placed, within its frame and a bound `Bg` of its callee's trees, exact at every
 node.** -/
-theorem bus_grind_check_completeDTBRE {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ) {Bg : ℕ}
-    (hT : TotalLe coreProgram fs (grindCheckName (busGrindBits d)) fun _ => Bg) {args rets : List E}
+theorem bus_grind_check_completeDTBRG {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ) {Bg : ℕ}
+    (hG : ∀ {Lin : Layout} {w tabs : E}, (∀ rd, LowDef κ rd → MemL rd Lin → grindPre (busGrindBits d) rd [w, tabs] []) →
+      CompleteAtDTBR fs cert κ (grindCheckName (busGrindBits d)) Lin [w, tabs] (Returns [])
+        (fun rd t => t.pops coreProgram rd = [] ∧ t.Every (ExactAt coreProgram rd)) Bg) {args rets : List E}
     {Lin : Layout} (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → busGrindPre d rd args rets) :
     CompleteAtDTBR fs cert κ (busGrindName d) Lin args (Returns rets)
       (fun rd t => busGrindHonest d rd t ∧ t.Every (ExactAt coreProgram rd)) (fs (busGrindName d) + Bg) := by
@@ -67,7 +70,7 @@ theorem bus_grind_check_completeDTBRE {d : ℕ} (hd : d ∈ busGrindDeployed) {�
     (pre := bgPre d) (vs := [.n 2]) (by rw [hbody]; rfl) rfl rfl [] (fun _ => [])
     (fun _ => List.Forall₂.nil) (fun _ => [kid]) (fun _ _ => True)
     (fun rd => [fun t => t.Every (ExactAt coreProgram rd)]) [Bg] Bg
-    (fun _ => ⟨fun _ => (grind_check_completeDTBR_of (busGrindBits_mem d hd) hκ hT hgp).mono le_rfl
+    (fun _ => ⟨fun _ => (hG hgp).mono le_rfl
       fun _ _ h => h.2, trivial⟩)
     (fun _ => by simp [kidsBoundL, kid]) (fun _ _ => le_rfl)
     (fun _ k hk _ i hi => by
@@ -108,6 +111,23 @@ theorem bus_grind_check_completeDTBRE {d : ℕ} (hd : d ∈ busGrindDeployed) {�
     rfl
   · intro q hq
     simp [bgPre, loadsEv, Stmt.loadS] at hq
+
+/-- **`bus_grind_check__L{d}`, placed, within its frame and a bound `Bg` of its callee's trees, exact at every
+node.** -/
+theorem bus_grind_check_completeDTBRE {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ) {Bg : ℕ}
+    (hT : TotalLe coreProgram fs (grindCheckName (busGrindBits d)) fun _ => Bg) {args rets : List E}
+    {Lin : Layout} (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → busGrindPre d rd args rets) :
+    CompleteAtDTBR fs cert κ (busGrindName d) Lin args (Returns rets)
+      (fun rd t => busGrindHonest d rd t ∧ t.Every (ExactAt coreProgram rd)) (fs (busGrindName d) + Bg) :=
+  bus_grind_check_completeDTBRG hd hκ (fun hgp => grind_check_completeDTBR_of (busGrindBits_mem d hd) hκ hT hgp) hpre
+
+/-- **`bus_grind_check__L{d}`, placed, within its frame and its callee's, exact at every node.** -/
+theorem bus_grind_check_completeDTBRF {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ) {args rets : List E}
+    {Lin : Layout} (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → busGrindPre d rd args rets) :
+    CompleteAtDTBR fs cert κ (busGrindName d) Lin args (Returns rets)
+      (fun rd t => busGrindHonest d rd t ∧ t.Every (ExactAt coreProgram rd))
+      (fs (busGrindName d) + fs (grindCheckName (busGrindBits d))) :=
+  bus_grind_check_completeDTBRG hd hκ (fun hgp => grind_check_completeDTBR (busGrindBits_mem d hd) hκ hgp) hpre
 
 end
 end LeanVM.Guest.B1

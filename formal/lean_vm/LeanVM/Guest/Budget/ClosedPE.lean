@@ -11,6 +11,8 @@ public import LeanVM.Guest.Budget.ClosedP
 public import LeanVM.Guest.Budget.FinalPE
 public import LeanVM.Guest.B1.Main.MainLoop3E
 public import LeanVM.Guest.Exact.MainLoop2
+public import LeanVM.Guest.B1.Main.L5E
+public import LeanVM.Guest.B1.Main.VsDeployedE
 
 /-!
 # `main` within the deployed budget, every node exact
@@ -22,6 +24,10 @@ whose every node is exact (`MainGoalsRE`). `mainCompletePE_deployed`: `mainCompl
 `MainExactHypL5`: `MainExactHyp`'s children's loop alone. `mainExactHyp_of_l5`: `main_loop2` is exact for free
 (`main_loop2_exactFree`, checked by chunks) and `main_loop3` by `mainGoalsRE_l4`, so `MainExactHyp` follows;
 `mainCompletePE_deployedL5`: `mainCompletePE_deployed` from it.
+
+`VsExactHyp`: each child's `verify_sub` call at the deployed instance by a tree also exact; `mainExactHypL5_of_vs`:
+`MainExactHypL5` from it (`mainGoalsRR_l5E`); `vsExactHyp_of`: `VsExactHyp` from `verify_sub`'s callees with computed
+hints exact (`VsKidsExact`, `verifySubGoalsTBR_deployedE`).
 -/
 
 namespace LeanVM.Guest.Budget
@@ -108,6 +114,30 @@ theorem mainExactHyp_of_l5 (h : MainExactHypL5) : MainExactHyp := fun seed s w h
 theorem mainCompletePE_deployedL5 (h : MainExactHypL5) :
     MainCompletePE B2C.fs B2C.cert B2C.cnt (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
   mainCompletePE_deployed (mainExactHyp_of_l5 h)
+
+/-- **Each child's `verify_sub` call at the deployed instance, every node exact**: `verifySubGoalsTBR_deployed`'s trees
+also exact on the memory. -/
+def VsExactHyp : Prop :=
+  ∀ seed s w, NodeRelation bytecode seed s w → ChildrenOk bytecode seed w →
+    VerifySubGoalsTBR B2C.fs B2C.cert 0 seed s w
+      (fun rd c t ↦ (deployedVsT w c t ∧ SameStreams (t.pops coreProgram rd) (pvH bytecode seed w c)) ∧
+        t.Every (ExactAt coreProgram rd))
+      (B1.Main.childBv (vsBoundAt Count.vsWordsOs vkBound) w)
+
+/-- **The children's loop, every node exact**, given each child's `verify_sub` call's trees exact. -/
+theorem mainExactHypL5_of_vs (h : VsExactHyp) : MainExactHypL5 := fun seed s w hr hl hok =>
+  B1.Main.mainGoalsRR_l5E bytecode_length hr hl Count.mainStatics (h seed s w hr hok)
+    (childListPopsHyp _ _ _ hr hl) fun _ => rfl
+
+/-- **`VsExactHyp` from `verify_sub`'s callees with computed hints exact** at `B2C.fs`. -/
+theorem vsExactHyp_of
+    (hK : B1.VerifySub.VsKidsExact B2C.fs B2C.cert 16 Count.vsWordsOs vkBound) : VsExactHyp :=
+  fun _ _ _ hr hok => B1.Main.verifySubGoalsTBR_deployedE hK hr hok
+
+/-- **The children's loop, every node exact**, given `verify_sub`'s callees with computed hints exact. -/
+theorem mainExactHypL5_of_kids
+    (hK : B1.VerifySub.VsKidsExact B2C.fs B2C.cert 16 Count.vsWordsOs vkBound) : MainExactHypL5 :=
+  mainExactHypL5_of_vs (vsExactHyp_of hK)
 
 end
 end LeanVM.Guest.Budget
