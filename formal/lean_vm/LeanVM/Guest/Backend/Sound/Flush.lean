@@ -39,8 +39,8 @@ macro "straight_step" : tactic => `(tactic| first
   | with_reducible exact SpecAt.lastT (pointer_spec _ _)
   | with_reducible exact SpecAt.lastT (pushHint_spec _)
   | with_reducible exact SpecAt.lastT (materialize_spec _ _)
-  | with_reducible exact SpecAt.lastT (takeRun_spec _ _)
-  | with_reducible exact SpecAt.lastT (bindRun_spec _ _ _)
+  | with_reducible exact SpecAt.lastT (takeRun_spec _)
+  | with_reducible exact SpecAt.lastT (bindRun_spec _ _)
   | with_reducible exact SpecAt.lastT advance_spec
   | with_reducible exact SpecAt.lastT fresh_spec
   | with_reducible exact SpecAt.lastT (by apply_assumption)
@@ -61,8 +61,8 @@ theorem expect_spec (e : Event → Bool) (what : String) :
   unfold expect
   straight
 
-theorem spongeInPlace_spec (v : V) (len : ℕ) (up : List Stmt) :
-    Spec Γ fp F ctx (spongeInPlace v len up) (fun _ => True) := by
+theorem spongeInPlace_spec (vs : List V) (up : List Stmt) :
+    Spec Γ fp F ctx (spongeInPlace vs up) (fun _ => True) := by
   intro st
   unfold spongeInPlace
   refine SpecAt.get_bind ?_
@@ -70,8 +70,8 @@ theorem spongeInPlace_spec (v : V) (len : ℕ) (up : List Stmt) :
   clear_value srcs
   cases srcs <;> exact SpecAt.pure fun _ _ _ => trivial
 
-theorem onAlloc_spec (v : V) (len : ℕ) (kind : Kind) (up : List Stmt) :
-    Spec Γ fp F ctx (onAlloc v len kind up) (fun _ => True) := by
+theorem onAlloc_spec (vs : List V) (kind : Kind) (up : List Stmt) :
+    Spec Γ fp F ctx (onAlloc vs kind up) (fun _ => True) := by
   intro st
   unfold onAlloc
   have h1 := @spongeInPlace_spec κ Γ fp F ctx

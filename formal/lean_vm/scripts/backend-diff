@@ -9,7 +9,9 @@
 #    statement's program (`Data.functions`, and every slot of `assemble Data.functions`); the back
 #    end's invariants hold of it, and the traced expansion's core functions are `Expand`'s.
 # 3. `lake exe guest-backend export programs … --check`: the test programs' checked-in exports
-#    (`crates/lean_compiler/tests/suite/lean_backend/`) are current.
+#    (`crates/lean_compiler/tests/suite/lean_backend/`) are current; `lake exe guest-traced --check`:
+#    the guest's traced input (`Backend/Guest/`) is current, and the back end compiles it to the
+#    statement's program.
 # 4. `cargo test -p lean_compiler --test suite lean_backend`: each is the Rust compiler's program,
 #    hints included, and runs on the Rust VM.
 # 5. `lake exe guest-backend export guest DIR/guest.txt`, then `rec_aggregation`'s ignored test
@@ -26,6 +28,8 @@ python3 -I scripts/expand-trace --check
 lake build guest-backend
 lake exe guest-backend check
 lake exe guest-backend export programs ../../crates/lean_compiler/tests/suite/lean_backend --check
+lake build guest-traced
+lake exe guest-traced --check
 lake exe guest-backend export guest "$dir/guest.txt"
 cd ../..
 cargo test --release -p lean_compiler --test suite lean_backend
