@@ -846,7 +846,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             })
             .collect();
         let enforced = values.iter().zip(&weights).map(|(&v, &wt)| v * wt).sum();
-        let basis = induce_basis_auto(mu, block_len.ilog2() as usize - mu, &queries, &weights);
+        let basis = induce_basis(mu, block_len.ilog2() as usize - mu, &queries, &weights);
         drop(span);
         let pending = [(eq, y), (basis, enforced)];
         tracing::info_span!("Glue", level).in_scope(|| glue(&mut w, &mut claim, pending, lambda));
@@ -878,24 +878,6 @@ mod tests {
         // And log_n = 12 is below the production ladder's feasibility floor, so
         // the tests there use the default_config fallback.
         assert!(config_for_rate(12, LOG_INV_RATE_0).is_err());
-    }
-
-    /// At log_n = 18 the production profile's L0 has log_msg_cols = 12 and
-    /// enough queries to trip the sparse transposed-NTT dispatch; the smaller
-    /// shape stays on the dense path (cols < 12).
-    #[test]
-    fn induce_dispatch_follows_the_shape() {
-        let pc = config_for_rate(18, LOG_INV_RATE_0).expect("Johnson profile feasible at log_n = 18");
-        assert!(
-            induce_use_ntt_heuristic(18 - pc.initial_k, pc.log_inv_rates[0], pc.queries[0]),
-            "shape must select the sparse transposed-NTT induce at L0"
-        );
-        let pc16 = config_for_rate(16, LOG_INV_RATE_0).unwrap();
-        assert!(!induce_use_ntt_heuristic(
-            16 - pc16.initial_k,
-            pc16.log_inv_rates[0],
-            pc16.queries[0]
-        ));
     }
 
     /// Committing only the lanes that carry data must be indistinguishable from
@@ -945,40 +927,6 @@ mod tests {
                 assert_eq!(root_trunc, root_full, "root differs at n_lanes = {n_lanes}");
                 assert_eq!(fs_trunc, fs_full, "the proofs differ at n_lanes = {n_lanes}");
             }
-        }
-    }
-
-    /// The sparse transposed-NTT induce must be byte-identical to the dense
-    /// LCH-expansion induce. Covers a domain
-    /// of a single window (`log_msg_cols` of 10 or less), and the ones of 2 to 6
-    /// layers above the windows of the second pass (`log_msg_cols` 12 to 16).
-    #[test]
-    fn induce_via_ntt_matches_dense() {
-        let mut rng = Rng::new(9);
-        for (log_msg_cols, log_inv_rate, n_queries) in [
-            (12usize, 1usize, 130usize),
-            (12, 2, 130),
-            (6, 2, 40),
-            (7, 3, 40),
-            (14, 2, 130),
-            (13, 3, 100),
-            (16, 1, 130),
-        ] {
-            let block_len = 1usize << (log_msg_cols + log_inv_rate);
-            // Distinct sorted query positions.
-            let mut qs: Vec<usize> = Vec::new();
-            let mut seen = std::collections::HashSet::new();
-            while qs.len() < n_queries {
-                let q = (rng.next_u64() as usize) % block_len;
-                if seen.insert(q) {
-                    qs.push(q);
-                }
-            }
-            qs.sort_unstable();
-            let weights = powers(rng.ext(), n_queries);
-            let dense = induce_basis(log_msg_cols, &eval_sk_at_vks(log_msg_cols), &qs, &weights);
-            let via_ntt = induce_basis_via_ntt(log_msg_cols, log_inv_rate, &qs, &weights);
-            assert_eq!(dense, via_ntt, "basis_poly mismatch at log_msg_cols = {log_msg_cols}");
         }
     }
 

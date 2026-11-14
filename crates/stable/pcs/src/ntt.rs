@@ -116,31 +116,56 @@ impl AdditiveNttF64 {
     /// While a layer has fewer blocks than the pool has tasks, each of its butterflies is split across the pool.
     /// Then every block of the layer runs the rest on its own, depth first, so a block's last layers run in cache.
     pub(crate) fn transform(&self, data: &mut [F64], num_ntts: usize, start: usize) {
+        let (log_d, split) = self.split(data, num_ntts, start);
+        for layer in start..split {
+            self.layer(data, num_ntts, log_d, layer, butterfly);
+        }
+        parallel::chunks_mut(data, num_ntts << (log_d - split), |b, block| {
+            self.transform_block(block, num_ntts, split, b);
+        });
+    }
+
+    /// The transpose of [`Self::transform`] from layer 0: the transposed layers, last to first.
+    pub(crate) fn transpose_transform(&self, data: &mut [F64], num_ntts: usize) {
+        let (log_d, split) = self.split(data, num_ntts, 0);
+        parallel::chunks_mut(data, num_ntts << (log_d - split), |b, block| {
+            self.transpose_block(block, num_ntts, split, b);
+        });
+        for layer in (0..split).rev() {
+            self.layer(data, num_ntts, log_d, layer, transpose_butterfly);
+        }
+    }
+
+    /// `log_d`, and the first layer from `start` with as many blocks as the pool has tasks, `start` for a buffer too
+    /// small to share out.
+    fn split(&self, data: &[F64], num_ntts: usize, start: usize) -> (usize, usize) {
         let log_d = log2_strict_usize(data.len() / num_ntts);
         assert!(log_d <= self.dim && start <= log_d);
-        let tasks = 4 * parallel::num_threads();
-        let mut layer = start;
-        while layer < log_d && 1 << layer < tasks {
-            let half = num_ntts << (log_d - layer - 1);
-            for (b, block) in data.chunks_exact_mut(2 * half).enumerate() {
-                let (top, bot) = block.split_at_mut(half);
-                let t = self.twiddle(layer, b);
-                let chunk = CHUNK.min(half);
-                parallel::map_reduce_chunks_mut(
-                    [top, bot],
-                    [chunk; 2],
-                    || (),
-                    || (),
-                    |(), (), _, [top, bot]| butterfly(top, bot, t),
-                    |(), ()| (),
-                );
-            }
-            layer += 1;
+        if data.len() < CHUNK {
+            return (log_d, start);
         }
-        if layer < log_d {
-            parallel::chunks_mut(data, num_ntts << (log_d - layer), |b, block| {
-                self.transform_block(block, num_ntts, layer, b);
-            });
+        let tasks = 4 * parallel::num_threads();
+        (
+            log_d,
+            (start..log_d).find(|&layer| 1 << layer >= tasks).unwrap_or(log_d),
+        )
+    }
+
+    /// One layer, each block's butterfly split across the pool.
+    fn layer(&self, data: &mut [F64], num_ntts: usize, log_d: usize, layer: usize, f: fn(&mut [F64], &mut [F64], F64)) {
+        let half = num_ntts << (log_d - layer - 1);
+        for (b, block) in data.chunks_exact_mut(2 * half).enumerate() {
+            let (top, bot) = block.split_at_mut(half);
+            let t = self.twiddle(layer, b);
+            let chunk = CHUNK.min(half);
+            parallel::map_reduce_chunks_mut(
+                [top, bot],
+                [chunk; 2],
+                || (),
+                || (),
+                |(), (), _, [top, bot]| f(top, bot, t),
+                |(), ()| (),
+            );
         }
     }
 
@@ -153,6 +178,17 @@ impl AdditiveNttF64 {
         butterfly(top, bot, self.twiddle(layer, index));
         self.transform_block(top, num_ntts, layer + 1, 2 * index);
         self.transform_block(bot, num_ntts, layer + 1, 2 * index + 1);
+    }
+
+    /// The transpose of [`Self::transform_block`]: the halves first, then the block's own butterfly.
+    fn transpose_block(&self, block: &mut [F64], num_ntts: usize, layer: usize, index: usize) {
+        if block.len() == num_ntts {
+            return;
+        }
+        let (top, bot) = block.split_at_mut(block.len() / 2);
+        self.transpose_block(top, num_ntts, layer + 1, 2 * index);
+        self.transpose_block(bot, num_ntts, layer + 1, 2 * index + 1);
+        transpose_butterfly(top, bot, self.twiddle(layer, index));
     }
 
     /// RS-encode the row-major message in the first `2^-log_inv_rate` of `data`, `num_ntts` lanes a row: every coset
@@ -271,6 +307,21 @@ mod tests {
                 ntt.inverse_transform(&mut got);
                 assert_eq!(got, msg, "inverse, {context}");
             }
+        }
+    }
+
+    /// The transposed transform is the transform's adjoint: `<F x, y> = <x, F^T y>`.
+    #[test]
+    fn transpose_transform_is_the_adjoint() {
+        let ntt = AdditiveNttF64::standard(15);
+        let mut rng = Rng::new(0x7A);
+        let dot = |a: &[F64], b: &[F64]| a.iter().zip(b).map(|(&a, &b)| a * b).sum::<F64>();
+        for (log_d, lanes) in [(1usize, 1usize), (5, 3), (13, 2), (15, 1)] {
+            let (x, y) = (random(&mut rng, lanes << log_d), random(&mut rng, lanes << log_d));
+            let (mut fx, mut fty) = (x.clone(), y.clone());
+            ntt.transform(&mut fx, lanes, 0);
+            ntt.transpose_transform(&mut fty, lanes);
+            assert_eq!(dot(&fx, &y), dot(&x, &fty), "log_d={log_d}, lanes={lanes}");
         }
     }
 
