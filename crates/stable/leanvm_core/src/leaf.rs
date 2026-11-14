@@ -202,9 +202,9 @@ fn leaf(constant: F128, terms: &[Term], cols: &[&[F64]], z: usize, index: F64) -
     })
 }
 
-/// Build every tree's leaves, `2^μ` of them: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the
-/// tree's fingerprint weights `w`, and every other leaf, a padding row's or one past the blocks, the
-/// identity `1`. The row-invariant weights and constant coordinates are folded once per block into its
+/// Build every tree's leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the tree's fingerprint weights
+/// `w`, and a padding row's leaf the identity `1`, as do the leaves past the blocks up to `2^μ`, which are left
+/// out. The row-invariant weights and constant coordinates are folded once per block into its
 /// constant.
 pub(crate) fn build_leaves(
     sides: [(&[Block], &Layout, &[F128], F128); N_BUS_TREES],
@@ -212,7 +212,9 @@ pub(crate) fn build_leaves(
 ) -> [Vec<F128>; N_BUS_TREES] {
     const CHUNK: usize = 1 << 12;
     sides.map(|(blocks, lay, w, beta)| {
-        let mut leaves = vec![F128::ONE; 1 << lay.mu];
+        // The blocks tile the leaves from zero ([`crate::witness::stack_offsets`]).
+        let len = blocks.iter().map(|blk| 1 << blk.kappa).sum::<usize>().max(1);
+        let mut leaves = vec![F128::ONE; len];
         for (blk, &offset) in blocks.iter().zip(&lay.offsets) {
             let mut constant = beta;
             let mut terms = Vec::with_capacity(blk.coords.len());
@@ -675,7 +677,8 @@ mod tests {
 
     /// The leaves by their definition, every block at its offset.
     fn naive_leaves(blocks: &[Block], lay: &Layout, cols: &[&[F64]], w: &[F128], beta: F128) -> Vec<F128> {
-        let mut leaves = vec![F128::ONE; 1 << lay.mu];
+        let len = blocks.iter().map(|blk| 1 << blk.kappa).sum::<usize>().max(1);
+        let mut leaves = vec![F128::ONE; len];
         for (b, blk) in blocks.iter().enumerate() {
             for z in 0..blk.rows {
                 leaves[lay.offsets[b] + z] = blk

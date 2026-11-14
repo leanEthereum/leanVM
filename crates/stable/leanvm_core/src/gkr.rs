@@ -5,6 +5,11 @@
 //! sumcheck has degree four. An odd-depth tree starts with one binary layer.
 //! Leaves and every layer are `E`-valued (the bus fingerprints mix `K`-columns
 //! into `E` upstream, [`crate::leaf`]).
+//!
+//! A tree's leaves are a prefix of its `2^μ`, the rest the identity, and every level is held the same way: the
+//! values up to the last non-identity one, rounded up to whole pairs of rows. An identity pair of rows adds only
+//! its eq weight to a round polynomial's constant, which never travels, and folds to an identity row, so no
+//! round reads or writes past the held prefix.
 
 use crate::leaf::N_BUS_TREES as TREES;
 use crate::transcript::ProverState;
@@ -37,36 +42,33 @@ fn add5(a: [F128; 5], b: [F128; 5]) -> [F128; 5] {
     std::array::from_fn(|i| a[i] + b[i])
 }
 
-/// The level above `values`: `out[i] = ∏ values[4i..4i + 4]`.
+/// The level above `values`: `out[i] = ∏ values[4i..4i + 4]`, the values past the end being the identity.
 fn next_level(values: &[F128]) -> Vec<F128> {
-    let mut next = vec![F128::ZERO; values.len() / 4];
-    parallel::chunks_mut(&mut next, CHUNK, |task, out| {
-        let src = values[4 * task * CHUNK..].as_chunks::<4>().0;
-        for (slot, four) in out.iter_mut().zip(src) {
-            *slot = four.iter().copied().product();
-        }
-    });
-    next
+    parallel::map_collect(values.len().div_ceil(4), |i| {
+        values[4 * i..values.len().min(4 * i + 4)].iter().copied().product()
+    })
 }
 
 /// The coefficients of `∏_c (a_c + s_c·X)` for four lines `[a_c, s_c]`.
+///
+/// Karatsuba throughout: in characteristic two, `x_i·y_j + x_j·y_i = (x_i + x_j)·(y_i + y_j) + x_i·y_i + x_j·y_j`.
 fn product_of_lines(lines: [[F128; 2]; 4]) -> [F128; 5] {
-    let quadratic = |[a, s]: [F128; 2], [b, t]: [F128; 2]| [a * b, a * t + s * b, s * t];
+    let quadratic = |[a, s]: [F128; 2], [b, t]: [F128; 2]| {
+        let (low, high) = (a * b, s * t);
+        [low, (a + s) * (b + t) + low + high, high]
+    };
     let (p, q) = (quadratic(lines[0], lines[1]), quadratic(lines[2], lines[3]));
-    let mut out = [F128::ZERO; 5];
-    for i in 0..3 {
-        for j in 0..3 {
-            out[i + j] += p[i] * q[j];
-        }
-    }
-    out
+    let m = [0, 1, 2].map(|i| p[i] * q[i]);
+    let cross = |i: usize, j: usize| (p[i] + p[j]) * (q[i] + q[j]) + m[i] + m[j];
+    [m[0], cross(0, 1), cross(0, 2) + m[1], cross(1, 2), m[2]]
 }
 
 /// The round polynomial `q(X) = Σ_p eq[p]·∏_c V(c, 2p + X)` of a layer whose row `r` holds its four children at
-/// `values[4r..4r + 4]`, as its five coefficients, constant first.
+/// `values[4r..4r + 4]`, as its five coefficients, constant first, but for the pairs past `values`, identity pairs,
+/// whose terms are the constants `eq[p]`.
 fn round_message(values: &[F128], eq: &[F128]) -> [F128; 5] {
     let pairs = values.len() / 8;
-    debug_assert_eq!(eq.len(), pairs);
+    debug_assert!(pairs <= eq.len());
     let pair = |p: usize| {
         let (lo, hi) = (&values[8 * p..8 * p + 4], &values[8 * p + 4..8 * p + 8]);
         let mut lines: [[F128; 2]; 4] = std::array::from_fn(|c| [lo[c], lo[c] + hi[c]]);
@@ -87,16 +89,10 @@ fn round_message(values: &[F128], eq: &[F128]) -> [F128; 5] {
 
 /// Bind the lowest row variable to `r`: row `i` becomes `interp(row 2i, row 2i + 1, r)`, child by child.
 fn fold(values: &[F128], r: F128) -> Vec<F128> {
-    let mut next = vec![F128::ZERO; values.len() / 2];
-    parallel::chunks_mut(&mut next, 4 * CHUNK, |task, out| {
-        let src = values[8 * task * CHUNK..].as_chunks::<8>().0;
-        for (row, pair) in out.as_chunks_mut::<4>().0.iter_mut().zip(src) {
-            for c in 0..4 {
-                row[c] = interp(pair[c], pair[4 + c], r);
-            }
-        }
-    });
-    next
+    parallel::map_collect(values.len() / 2, |i| {
+        let (row, c) = (i / 4, i % 4);
+        interp(values[8 * row + c], values[8 * row + 4 + c], r)
+    })
 }
 
 /// Prove the bus's identity-padded grand products as one RLC-batched radix-four GKR: push, pull, then count. Push
@@ -110,18 +106,20 @@ pub(crate) fn prove_products(leaves: [Vec<F128>; TREES], ps: &mut ProverState) -
         leaves.iter().all(|lane| !lane.is_empty() && lane.len() <= 1 << mu),
         "batched trees must be nonempty prefixes of the first tree's logical tree"
     );
-    // Levels `0, 2, 4, …` of each tree, its leaves padded with the identity to `2^μ`. The last has one node, or
-    // two when `μ` is odd.
-    let mut levels: [Vec<Vec<F128>>; TREES] = leaves.map(|mut values| {
-        values.resize(1 << mu, F128::ONE);
+    // Levels `0, 2, 4, …` of each tree. The last has one node, or two when `μ` is odd.
+    let mut levels: [Vec<Vec<F128>>; TREES] = leaves.map(|values| {
         let mut levels = vec![values];
-        while levels.last().unwrap().len() >= 4 {
+        for _ in 0..mu / 2 {
             let next = next_level(levels.last().unwrap());
             levels.push(next);
         }
         levels
     });
-    let tops = levels.each_mut().map(|levels| levels.pop().unwrap());
+    let tops = levels.each_mut().map(|levels| {
+        let mut top = levels.pop().unwrap();
+        top.resize(1 << (mu % 2), F128::ONE);
+        top
+    });
     let roots: [F128; TREES] = tops.each_ref().map(|top| top.iter().copied().product());
     assert_eq!(roots[0], roots[1], "push and pull products must agree");
     ps.add_scalar(roots[0]);
@@ -152,6 +150,9 @@ pub(crate) fn prove_products(leaves: [Vec<F128>; TREES], ps: &mut ProverState) -
         let round_count = mu - layer;
         let mut round_point = Vec::with_capacity(round_count);
         for round in 0..round_count {
+            for tree in &mut trees {
+                tree.resize(tree.len().next_multiple_of(8), F128::ONE);
+            }
             // Round `j` weights its pairs by `eq(point[1 + j..], ·)`.
             let eq = eq_table(&point[1 + round..]);
             let messages = trees.each_ref().map(|tree| round_message(tree, &eq));
@@ -170,7 +171,8 @@ pub(crate) fn prove_products(leaves: [Vec<F128>; TREES], ps: &mut ProverState) -
             trees = trees.map(|tree| fold(&tree, challenge));
         }
 
-        for tree in &trees {
+        for tree in &mut trees {
+            tree.resize(4, F128::ONE);
             ps.add_scalars(tree);
         }
         ps.grind(y_grind(2, layer == 2));
