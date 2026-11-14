@@ -92,16 +92,14 @@ impl Memory {
 
     /// The word in cell `i`.
     pub fn word(&self, i: usize) -> F128 {
-        self.page(i >> PAGE_LOG).map_or(F128::ZERO, |p| p[i & (PAGE - 1)].word)
+        self.cell(i).word
     }
 
-    /// Page `p`'s cells, `None` past the last one.
-    pub(crate) fn page(&self, p: usize) -> Option<&[Cell]> {
-        self.pages.get(p).map(|p| &p[..])
-    }
-
-    pub(crate) fn page_log() -> usize {
-        PAGE_LOG
+    /// Cell `i`, unwritten past the last page.
+    pub(crate) fn cell(&self, i: usize) -> Cell {
+        self.pages
+            .get(i >> PAGE_LOG)
+            .map_or(Cell::UNWRITTEN, |p| p[i & (PAGE - 1)])
     }
 }
 

@@ -25,7 +25,6 @@ pub mod hints;
 mod isa;
 pub mod layout;
 mod trace;
-pub(crate) use execute::Cell;
 pub use execute::{ExecError, Execution, Fault, Memory};
 pub use isa::{DerefMode, Op, OutCells};
 pub use layout::*;

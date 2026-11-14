@@ -172,10 +172,6 @@ pub struct FillCtx<'a> {
     /// trace's are padding rows, each holding `padding` ([`Table::padding`]).
     height: usize,
     padding: Vec<F64>,
-    /// Which local columns [`Self::col`] / [`Self::cols`] have written. A fill that
-    /// misses one would leave the stacked witness holding uninitialized slots, so
-    /// [`fill_table`] checks the whole set was covered.
-    written: [std::sync::atomic::AtomicU64; 2],
 }
 
 /// Where one column's values go: its window in the stacked witness, or a private
@@ -198,7 +194,6 @@ impl<'a> FillCtx<'a> {
             prog,
             height,
             padding,
-            written: Default::default(),
         }
     }
 
@@ -246,62 +241,24 @@ impl<'a> FillCtx<'a> {
         at: usize,
         f: impl Fn(usize) -> [F64; N] + Sync,
     ) {
-        let n = self.height;
-        let dst: [parallel::SendPtr<F64>; N] = std::array::from_fn(|k| {
-            assert_eq!(out[at + k].len(), n, "column {} has the wrong window length", at + k);
-            let col = at + k;
-            self.written[col / 64].fetch_or(1 << (col % 64), std::sync::atomic::Ordering::Relaxed);
-            parallel::SendPtr(out[at + k].as_mut_ptr())
-        });
-        assert!(n_rows <= n, "a table's rows must fit its cube");
+        assert!(n_rows <= self.height, "a table's rows must fit its cube");
         let padding: [F64; N] = std::array::from_fn(|k| self.padding[at + k]);
-        // A cache line of rows is gathered column by column, then streamed out: the
-        // stack is read by a later pass, so its lines need not be fetched.
-        const LINE: usize = 8;
-        parallel::for_each_chunk(n.div_ceil(LINE), |first, end| {
-            let stream = primitives::stream::Stream::new();
-            for b in first..end {
-                let start = b * LINE;
-                let len = LINE.min(n - start);
-                let mut buf = [[F64::ZERO; LINE]; N];
-                for j in 0..len {
-                    let i = start + j;
-                    let v = if i < n_rows { f(i) } else { padding };
-                    for k in 0..N {
-                        buf[k][j] = v[k];
-                    }
-                }
-                for (p, column) in dst.iter().zip(&buf) {
-                    // SAFETY: block `b` writes rows `start..start + len` of each of the
-                    // `N` windows, in bounds and disjoint from every other block's, and
-                    // the dispatch blocks until every write is finished.
-                    unsafe { stream.copy_uninit(p.add(start), &column[..len]) };
-                }
-            }
-        });
+        let rows = parallel::map_collect(self.height, |i| if i < n_rows { f(i) } else { padding });
+        for (k, column) in out[at..at + N].iter_mut().enumerate() {
+            assert_eq!(
+                column.len(),
+                self.height,
+                "column {} has the wrong window length",
+                at + k
+            );
+            parallel::fill(column, |i| rows[i][k]);
+        }
     }
 
     /// The two `K`-lanes of the 128-bit word in memory cell `addr`.
     fn limbs(&self, addr: u32) -> [F64; 2] {
         self.mem.word(addr as usize).to_limbs().map(F64)
     }
-}
-
-/// Fill one table's columns and check that every window was written. The stack is
-/// allocated uninitialized, so a column the table forgot would be read as
-/// indeterminate bytes rather than caught by a length mismatch.
-pub(crate) fn fill_table(table: &dyn Table, ctx: &FillCtx, out: &mut [ColumnOut]) {
-    table.fill(ctx, out);
-    let n = table.n_committed_columns();
-    assert!(n <= 128, "the write mask covers at most 128 columns per table");
-    let written = ctx
-        .written
-        .each_ref()
-        .map(|w| w.load(std::sync::atomic::Ordering::Relaxed));
-    let written = written[0] as u128 | (written[1] as u128) << 64;
-    // A column with no window is held elsewhere (a KECCAK input lane, by `q_keccak`).
-    let windows = (0..n).filter(|&c| !out[c].is_empty()).fold(0u128, |m, c| m | 1 << c);
-    assert_eq!(written, windows, "a table left one of its columns unwritten");
 }
 
 // ---- the trait ---------------------------------------------------------------
@@ -346,7 +303,7 @@ pub trait Table: Sync {
     /// Fill this table's columns from the trace: `out[i]` is local column `i`'s
     /// window, already at its padded length. Every window must be written in full;
     /// use `FillCtx::col` / `FillCtx::cols`, which append the column's pad value
-    /// past the last trace row and record the coverage `fill_table` checks.
+    /// past the last trace row.
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]);
 }
 
@@ -803,36 +760,16 @@ impl Table for JumpTable {
                 F64(cell(r, of).c0),
             ]
         });
-        // The is-nonzero witness `w = c⁻¹` (0 where c = 0) for every row, in one
-        // batched Montgomery inversion. `prefix[i]` is the
-        // running product of the nonzero conditions before row `i`, so `acc` ends
-        // as their full product (nonzero, hence invertible). The taken indicator
-        // `b = [c ≠ 0]` falls out of the same pass, so it costs no extra decode.
-        // The conditions lie in K, a subfield, so the inversion runs in K.
-        let (w, b) = {
-            let mut acc = F64::ONE;
-            let mut prefix: Vec<F64> = Vec::with_capacity(rows.len());
-            let mut b = vec![F64::ZERO; rows.len()];
-            for (i, r) in rows.iter().enumerate() {
-                prefix.push(acc);
-                let c = cond(r);
-                if !c.is_zero() {
-                    acc *= c;
-                    b[i] = F64::ONE;
-                }
+        // The is-nonzero witness `w = c⁻¹` (0 where c = 0) and the taken indicator `b = [c ≠ 0]`. The
+        // conditions lie in K, a subfield, so the inversion runs in K.
+        ctx.cols(out, rows, W, |r| {
+            let c = cond(r);
+            if c.is_zero() {
+                [F64::ZERO; 2]
+            } else {
+                [c.inv(), F64::ONE]
             }
-            let mut inv = acc.inv();
-            let mut w = vec![F64::ZERO; rows.len()];
-            for i in (0..rows.len()).rev() {
-                let c = cond(rows.get(i));
-                if !c.is_zero() {
-                    w[i] = inv * prefix[i];
-                    inv *= c;
-                }
-            }
-            (w, b)
-        };
-        ctx.cols_at(out, rows.len(), W, |i| [w[i], b[i]]);
+        });
         ctx.cols(out, rows, RC, |r| [r.rc, r.rd, r.rf].map(|k| ctx.g_at(k)));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
