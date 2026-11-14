@@ -4,7 +4,7 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert mode bridge memory whir count tables decoder
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert mode bridge memory res whir count tables decoder
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
@@ -29,7 +29,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export core changes vt cert mode bridge memory whir count tables decoder)
+steps=(export core changes vt cert mode bridge memory res whir count tables decoder)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
@@ -61,6 +61,7 @@ parts_cert=(cert) targets_cert=(guest-cert)
 parts_mode=(mode) targets_mode=()
 parts_bridge=(bridge) targets_bridge=()
 parts_memory=(memory) targets_memory=(guest-memory)
+parts_res=(res) targets_res=()
 parts_whir=(whir_data whir_mat_plan walk_known whir_queries) targets_whir=(guest-core)
 parts_count=(count_gen count_vsos) targets_count=()
 parts_tables=(tables) targets_tables=(LeanVM.Guest.Fast.WhirTemplate LeanVM.Guest.B1.Opening.QueriesT
@@ -135,6 +136,13 @@ part_bridge() {
 part_memory() {
   step "memory: the memory layer's checks (guest-memory)"
   gen guest-memory
+}
+
+part_res() {
+  step "res: the loop helpers' entries (scripts/res-cert/loops.py)"
+  python3 -I scripts/res-cert/loops.py "${check[@]}"
+  step "res: the certificates' termination facts (scripts/res-cert/term.py)"
+  python3 -I scripts/res-cert/term.py "${check[@]}"
 }
 
 part_whir_data() {
