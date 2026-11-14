@@ -651,9 +651,6 @@ dependencies = [
 [[package]]
 name = "stable_parallel"
 version = "0.1.0"
-dependencies = [
- "libc",
-]
 
 [[package]]
 name = "stable_pcs"

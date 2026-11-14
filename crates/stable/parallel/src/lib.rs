@@ -12,11 +12,20 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Mutex, Once, OnceLock};
 use std::thread::Thread;
 
-mod topology;
-
-pub use topology::num_threads;
-pub(crate) use topology::topology;
-use topology::{Qos, set_qos};
+/// Worker count including the dispatcher: `LEANVM_NUM_THREADS` when set, `1` being strictly sequential, else the
+/// parallelism the platform reports.
+#[must_use]
+#[inline]
+pub fn num_threads() -> usize {
+    static NUM_THREADS: OnceLock<usize> = OnceLock::new();
+    *NUM_THREADS.get_or_init(|| {
+        std::env::var("LEANVM_NUM_THREADS")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .filter(|&n| n > 0)
+            .unwrap_or_else(|| std::thread::available_parallelism().map_or(1, |n| n.get()))
+    })
+}
 
 /// Idle spins before a worker parks: long enough to stay hot across back-to-back
 /// dispatches, short enough to yield the core during a sequential stretch.
@@ -138,10 +147,7 @@ pub fn init() {
 fn pool() -> &'static Pool {
     static POOL: OnceLock<&'static Pool> = OnceLock::new();
     POOL.get_or_init(|| {
-        let topo = topology();
-        let n = topo.total().max(1);
-        // The dispatcher is worker 0 and runs on a performance core.
-        set_qos(Qos::Interactive);
+        let n = num_threads();
         let pool_ref: &'static Pool = Box::leak(Box::new(Pool {
             job: UnsafeCell::new(None),
             generation: Line(AtomicUsize::new(0)),
@@ -158,21 +164,18 @@ fn pool() -> &'static Pool {
             panic: Mutex::new(None),
         }));
         for id in 1..n {
-            // Ids past the performance count are the efficiency workers.
-            let qos = if id < topo.perf { Qos::Interactive } else { Qos::Utility };
             std::thread::Builder::new()
                 .name(format!("parallel-{id}"))
-                .spawn(move || worker_main(pool_ref, id, qos))
+                .spawn(move || worker_main(pool_ref, id))
                 .expect("failed to spawn a pool worker");
         }
         pool_ref
     })
 }
 
-fn worker_main(pool: &'static Pool, id: usize, qos: Qos) {
+fn worker_main(pool: &'static Pool, id: usize) {
     WORKER_ID.set(id);
     IN_TASK.set(true); // a worker only ever runs tasks
-    set_qos(qos);
     let _ = pool.workers[id].handle.set(std::thread::current());
     let mut last_generation = 0usize;
     loop {
