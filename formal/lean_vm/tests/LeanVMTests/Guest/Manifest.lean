@@ -23,6 +23,6 @@ def functionCount : Nat := 1602
 def opcodeCounts : List Nat := [98582, 125110, 124187, 76788, 20568, 79053]
 
 /-- `fs_seed`: the guest's Fiat-Shamir IV, two cells as `(c0, c1)` limbs. -/
-def fsSeed : List (Nat × Nat) := [(17040330849245079682, 12090102696081141315), (6559048062462863380, 14318111402291645334)]
+def fsSeed : List (Nat × Nat) := [(1649513263726507043, 16763923311304793065), (10840922469011849459, 6514493794229082428)]
 
 end LeanVMTests.Guest.Manifest

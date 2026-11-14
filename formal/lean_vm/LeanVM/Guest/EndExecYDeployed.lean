@@ -17,9 +17,8 @@ public import LeanVM.Guest.EndExecJumpCells
 
 `hintWitness_alignA`: `ExecGaps.ofX`'s `hintWitness` for any `Y` implying `YCur alignA`, given the
 witness atoms' destination cells (`WitCells`) and the honest pushes' independence of the bytecode
-but its length (`PushShape`). `keepY_alignA`: each step keeps `YCur alignA`, given the chained
-`match`es' arms (`ChainArmAt`) and the `DEREF` pointers (`DerefPow`). `InitY (YCur alignA)` is
-`initY_cur`.
+but its length (`PushShape`). `keepY_alignA`: each step keeps `YCur alignA`, given the `DEREF`
+pointers (`DerefPow`). `InitY (YCur alignA)` is `initY_cur`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -40,12 +39,12 @@ theorem hintWitness_alignA (hW : WitCells alignA) (hSh : PushShape) {Y : Ref →
   hintWitness_cur progAl advAl_alignA hW hSh hY
 
 /-- **Each step keeps the witness streams' track**, on the deployed alignment. -/
-theorem keepY_alignA (hCh : ChainArmAt) {Y : Ref → St → Prop} (hD : DerefPow Y)
+theorem keepY_alignA {Y : Ref → St → Prop} (hD : DerefPow Y)
     (hY : ∀ r s, Y r s → YCur alignA r s) :
     ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s op s1 s', OnRun (XOf Y) r s →
       C.ops[s.pc]? = some op → ((C.hints[s.pc]?).getD []).foldlM (runHint C) s = .ok s1 →
       Moves (refMem r.img) s s1 → runOp C s1 op = .ok s' → YCur alignA r { s' with steps := s'.steps + 1 } :=
-  keepY_cur progAl alignA_main (jumpCells_at hCh) alLayout_alignA advAl_alignA hD hY
+  keepY_cur progAl alignA_main jumpCells_at alLayout_alignA advAl_alignA hD hY
 
 end
 

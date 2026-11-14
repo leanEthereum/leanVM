@@ -6,13 +6,12 @@
 
 module
 
-public import LeanVM.Guest.EndExecXTrace
-public import LeanVM.Guest.Bridge.JumpCellsDeployed
+public import LeanVM.Guest.EndExecChain
 
 /-!
 # The jumps' cells on every node's reference run
 
-`ChainArmAt`: the chained `match`es' arms (`Bridge.ChainArm`) on every node's reference run, only `main_loop2`'s. `jumpCells_at`: from it, the top frame of every state of the track against a node's run holds what its jumps read (`Bridge.jumpCells_deployed`), what `EndExecX.JumpCellsAt alignA` asks once it reads the frame's pc. `alLayout_alignA`: the deployed alignment's entries are the compiled functions', its code theirs (`AlLayout`).
+`jumpCells_at`: from the chained `match`es' arms on every node's reference run (`chainArmAt`), the top frame of every state of the track against a node's run holds what its jumps read (`Bridge.jumpCells_deployed`), what `EndExecX.JumpCellsAt alignA` asks once it reads the frame's pc. `alLayout_alignA`: the deployed alignment's entries are the compiled functions', its code theirs (`AlLayout`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -21,15 +20,11 @@ open LeanVM.Guest LeanVM.Guest.Memory LeanVM.Guest.Bridge
 
 public section
 
-/-- **The chained `match`es' arms on every node's reference run.** -/
-def ChainArmAt : Prop :=
-  ∀ r : Ref, r.Ok → ChainArm r.rd0 (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) r.T (memOf r.img) alignA
-
-/-- **The jumps' cells on every node's reference run**, the chained `match`es' arms given. -/
-theorem jumpCells_at (hCh : ChainArmAt) : ∀ r : Ref, r.Ok → ∀ pc fp done e st,
+/-- **The jumps' cells on every node's reference run.** -/
+theorem jumpCells_at : ∀ r : Ref, r.Ok → ∀ pc fp done e st,
     RefTrack alignA r pc fp (done, e :: st) → JumpCells r.img alignA e pc := fun r hr _ _ _ _ _ h ↦ by
   obtain ⟨rd, hH, hX⟩ := hr.honest
-  exact jumpCells_deployed hr.name hH hX.covers (hCh r hr) h
+  exact jumpCells_deployed hr.name hH hX.covers (chainArmAt r hr) h
 
 /-- **The deployed alignment's layout**: each function's entry its compiled function's, its code
 theirs. -/

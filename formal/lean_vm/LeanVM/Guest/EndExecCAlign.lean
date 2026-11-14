@@ -17,7 +17,7 @@ public import LeanVM.Guest.Bridge.JumpCellsPack
 /-!
 # The computed hints on the deployed alignment
 
-`hintsAl_alignA`: each function's alignment reads its advice `adviceOf j`, entry `j` of `Data.adviceFns` from its entry over its code's length (`Bridge.PairJ`), whose hints at its pcs are the advice's (`Mode.hintsAt_fns`). `pairOk_alignA`: every function's computed hints pass the data check (`Bridge.PairChk.pairJ_all`). `hintComputed_alignA`: so `ExecGaps.hintComputed` holds on the deployed guest for every `Y`, given the chained `match`es' arms (`ChainArmAt`, for the jump cells) and the reference holding the hint-only cells' values (`ExtraRef`). `ExecGaps.ofXC`: `ExecGaps.ofX` on the deployed alignment, with `hintComputed` so discharged and `DerefPow` from the reference step (`derefPow_all`).
+`hintsAl_alignA`: each function's alignment reads its advice `adviceOf j`, entry `j` of `Data.adviceFns` from its entry over its code's length (`Bridge.PairJ`), whose hints at its pcs are the advice's (`Mode.hintsAt_fns`). `pairOk_alignA`: every function's computed hints pass the data check (`Bridge.PairChk.pairJ_all`). `hintComputed_alignA`: so `ExecGaps.hintComputed` holds on the deployed guest for every `Y`, given the reference holding the hint-only cells' values (`ExtraRef`). `ExecGaps.ofXC`: `ExecGaps.ofX` on the deployed alignment, with `hintComputed` so discharged and `DerefPow` from the reference step (`derefPow_all`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -74,17 +74,17 @@ theorem hintsAl_alignA : HintsAl alignA := fun f fn hf off hoff ↦ by
   rw [Mode.adviceHints_eq, Mode.hintsAt_fns Mode.adviceFns_ok (List.mem_of_getElem? ha) (by omega) (by omega),
     hintsAt_eq_lookup]
 
-/-- **`ExecGaps.hintComputed` on the deployed guest**, for every `Y`, given the chained `match`es'
-arms and the reference holding the hint-only cells' values. -/
-theorem hintComputed_alignA {Y : Ref → St → Prop} (hCh : ChainArmAt) (hXR : ExtraRef alignA) :
+/-- **`ExecGaps.hintComputed` on the deployed guest**, for every `Y`, given the reference holding
+the hint-only cells' values. -/
+theorem hintComputed_alignA {Y : Ref → St → Prop} (hXR : ExtraRef alignA) :
     ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s h, OnRun (XOf Y) r s →
       h ∈ (C.hints[s.pc]?).getD [] → isAllocHint h = false → isWitnessHint h = false → ∀ s1,
       Moves (refMem r.img) s s1 → Mode.HintIn s1 h → HintOk C (refMem r.img) s1 h :=
-  hintComputed_X Bridge.progAl Bridge.alignA_main (jumpCells_at hCh) alLayout_alignA hintsAl_alignA pairOk_alignA
+  hintComputed_X Bridge.progAl Bridge.alignA_main jumpCells_at alLayout_alignA hintsAl_alignA pairOk_alignA
     hXR
 
 /-- **`ExecGaps` on the deployed alignment**: `ExecGaps.ofX` with the alignment's premises proved,
-`hintComputed` from the chained `match`es' arms and the hint-only cells' values on the reference, and
+`hintComputed` from the hint-only cells' values on the reference, and
 `DerefPow` from the reference step. -/
 theorem ExecGaps.ofXC {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {Y : Ref → St → Prop}
     (certs : ModeCerts Ks Km E0) (main : MainOk Km E0) (mainExact : Budget.MainExactHyp)
@@ -95,11 +95,11 @@ theorem ExecGaps.ofXC {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {Y 
       (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
       Moves (refMem r.img) s s1 → isWitnessHint h = true → Mode.HintIn s1 h → HintOk C (refMem r.img) s1 h)
     (res : ∀ r, r.Ok → Mode.ResRef guestProgram r.img r.n Ks (XOf Y r)) (termInst : TermInst Ks)
-    (entries : ∀ K ∈ Ks, K.F.entry ≠ 0) (chainArm : ChainArmAt) (extraRef : ExtraRef alignA)
+    (entries : ∀ K ∈ Ks, K.F.entry ≠ 0) (extraRef : ExtraRef alignA)
     (hintsUsed : HintsUsed Y) (keepY : KeepY Y) (initY : InitY Y) :
     ExecGaps Ks Km E0 (XOf Y) (fun _ ↦ ProAt) :=
-  ExecGaps.ofX certs main mainExact hintAlloc hintWitness (hintComputed_alignA chainArm extraRef) res termInst
-    Bridge.progAl Bridge.alignA_main alLayout_alignA (jumpCells_at chainArm) entries (derefPow_all Y)
+  ExecGaps.ofX certs main mainExact hintAlloc hintWitness (hintComputed_alignA extraRef) res termInst
+    Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at entries (derefPow_all Y)
     hintsUsed keepY initY
 
 end

@@ -707,6 +707,11 @@ impl FnLower<'_> {
     /// of the slot, then a `JUMP` to what it holds, with frame `of`.
     pub(super) fn table_jump(&mut self, xo: Off, first: usize, one: Off, of: Off) {
         let entry = self.fresh();
+        self.table_jump_via(entry, xo, first, one, of);
+    }
+
+    /// [`Self::table_jump`] through the given `entry` cell.
+    fn table_jump_via(&mut self, entry: Off, xo: Off, first: usize, one: Off, of: Off) {
         self.emit(LOp::Slot {
             x: xo,
             first: first as u32,
@@ -759,15 +764,17 @@ impl FnLower<'_> {
             first
         });
         // The arm blocks, each exiting to the join (the last falls through), or into the
-        // next match's dispatch.
+        // next match's dispatch, every arm through one entry cell (one arm runs, so it is
+        // written once).
+        let next_entry = next.as_ref().map(|_| self.fresh());
         let arms_base = self.next;
         let mut arms_end = arms_base;
         for j in 0..n {
             self.next = arms_base;
             self.tables.slots[first + j] = KVal::At(name.clone(), self.code.len() as u32);
             body(self, j);
-            if let (Some(nx), Some(nf)) = (&next, next_first) {
-                self.table_jump(nx.xo, nf, one, sfp);
+            if let (Some(nx), Some(nf), Some(entry)) = (&next, next_first, next_entry) {
+                self.table_jump_via(entry, nx.xo, nf, one, sfp);
             } else if j + 1 != n {
                 self.emit(LOp::Jump {
                     oc: one,

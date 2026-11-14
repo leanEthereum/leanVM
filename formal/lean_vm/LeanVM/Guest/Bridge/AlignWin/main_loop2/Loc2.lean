@@ -19,7 +19,7 @@ public section
 
 /-- `main_loop2`: its cells' piece 2 packs from the state before it to the one after, its cells within `2^20`. -/
 theorem alignLoc2 :
-    Bridge.packSt (List.flatten [Fn.«main_loop2».cert_w18_0, Fn.«main_loop2».cert_w19_0, Fn.«main_loop2».cert_w20_0, Fn.«main_loop2».cert_w21_0, Fn.«main_loop2».cert_w22_0, Fn.«main_loop2».cert_w23_0]) 9 1153125890165919012349109087662524219078954369155856 = (alignPack2, 13, 1939999928938166603155227679075616160698873434641191412216289787636694910026) ∧
+    Bridge.packSt (List.flatten [Fn.«main_loop2».cert_w18_0, Fn.«main_loop2».cert_w19_0, Fn.«main_loop2».cert_w20_0, Fn.«main_loop2».cert_w21_0, Fn.«main_loop2».cert_w22_0, Fn.«main_loop2».cert_w23_0]) 9 1153125890165919012349109087662524219078954369155856 = (alignPack2, 13, 1941766777687941654183258460745415048342689102138875508637147948810957227083) ∧
       (List.flatten [Fn.«main_loop2».cert_w18_0, Fn.«main_loop2».cert_w19_0, Fn.«main_loop2».cert_w20_0, Fn.«main_loop2».cert_w21_0, Fn.«main_loop2».cert_w22_0, Fn.«main_loop2».cert_w23_0]).all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) = true := by
   decide +kernel
 

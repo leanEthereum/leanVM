@@ -19,7 +19,7 @@ public section
 
 /-- `main_loop2`: its cells' piece 0 packs from the state before it to the one after, its cells within `2^20`. -/
 theorem alignLoc0 :
-    Bridge.packSt (List.flatten [Fn.«main_loop2».cert_w0_0, Fn.«main_loop2».cert_w1_0, Fn.«main_loop2».cert_w2_0, Fn.«main_loop2».cert_w3_0, Fn.«main_loop2».cert_w4_0, Fn.«main_loop2».cert_w5_0, Fn.«main_loop2».cert_w6_0, Fn.«main_loop2».cert_w7_0, Fn.«main_loop2».cert_w8_0]) 0 0 = (alignPack0, 34, 1961468825719700154000700591350936885631075455016721551931168228781991993894594972519770860704532280580222532151074839333998505236838824590023602922197362050918677845591123435373102999426602173139517850) ∧
+    Bridge.packSt (List.flatten [Fn.«main_loop2».cert_w0_0, Fn.«main_loop2».cert_w1_0, Fn.«main_loop2».cert_w2_0, Fn.«main_loop2».cert_w3_0, Fn.«main_loop2».cert_w4_0, Fn.«main_loop2».cert_w5_0, Fn.«main_loop2».cert_w6_0, Fn.«main_loop2».cert_w7_0, Fn.«main_loop2».cert_w8_0]) 0 0 = (alignPack0, 34, 1966252896015204582600627214675894696535842978149300326078775407161997697404087365846665224604516453123558993816149545885329918783474682267907011007896114369819937841085294389433719692505907023610642843) ∧
       (List.flatten [Fn.«main_loop2».cert_w0_0, Fn.«main_loop2».cert_w1_0, Fn.«main_loop2».cert_w2_0, Fn.«main_loop2».cert_w3_0, Fn.«main_loop2».cert_w4_0, Fn.«main_loop2».cert_w5_0, Fn.«main_loop2».cert_w6_0, Fn.«main_loop2».cert_w7_0, Fn.«main_loop2».cert_w8_0]).all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) = true := by
   decide +kernel
 
