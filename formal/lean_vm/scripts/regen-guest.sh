@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Regenerates every file written from the guest, in dependency order, after a change to the guest
-# (`crates/experimental/rec_aggregation/guests/`) or to its compiler:
+# (`guests/`) or to its compiler:
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale

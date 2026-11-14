@@ -42,7 +42,7 @@ const LOOP_STEPS: usize = 16_384;
 pub(crate) fn chain(loop_steps: usize) -> (Program, [F128; 2]) {
     let replacements = BTreeMap::from([("LOOP_STEPS_PLACEHOLDER".to_string(), loop_steps.to_string())]);
     let ast = parse_with_replacements(SOURCE, &replacements).expect("parse zkDSL program");
-    (compile(&ast), public_input(loop_steps))
+    (Program::from(compile(&ast)), public_input(loop_steps))
 }
 
 fn public_input(loop_steps: usize) -> [F128; 2] {

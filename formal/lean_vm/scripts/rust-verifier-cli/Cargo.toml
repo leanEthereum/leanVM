@@ -1,5 +1,5 @@
 # The deployed Rust verifier (leanVM `crates/verifier`) on a proof's structured files or its wire
-# encoding (`crates/experimental/fiat_shamir/src/wire.rs`, `Proof::from_bytes`). The crates are this
+# encoding (`crates/stable/fiat_shamir/src/wire.rs`, `Proof::from_bytes`). The crates are this
 # repository's.
 [package]
 name = "leanvm-rust-verify"
@@ -12,7 +12,7 @@ publish = false
 
 [dependencies]
 verifier = { path = "../../../../crates/verifier" }
-fiat_shamir = { package = "experimental_fiat_shamir", path = "../../../../crates/experimental/fiat_shamir" }
+fiat_shamir = { package = "stable_fiat_shamir", path = "../../../../crates/stable/fiat_shamir" }
 
 [profile.release]
 codegen-units = 1

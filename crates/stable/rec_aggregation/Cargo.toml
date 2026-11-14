@@ -14,9 +14,9 @@ parallel = { package = "stable_parallel", path = "../parallel" }
 pcs = { package = "stable_pcs", path = "../pcs" }
 keccak_gkr = { package = "stable_keccak_gkr", path = "../keccak_gkr" }
 leanvm_core = { package = "stable_leanvm_core", path = "../leanvm_core" }
-lean_compiler = { package = "stable_lean_compiler", path = "../lean_compiler" }
-lean_xmss = { package = "stable_lean_xmss", path = "../lean_xmss" }
-lean_sphincs = { package = "stable_lean_sphincs", path = "../lean_sphincs" }
+lean_compiler.workspace = true
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
 lean_da = { package = "stable_lean_da", path = "../lean_da" }
 verifier.workspace = true
 rand = { workspace = true, optional = true }

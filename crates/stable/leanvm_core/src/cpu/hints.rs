@@ -1,12 +1,10 @@
-//! Runtime hint machinery shared by the interpreter and the compiler: the
-//! resolved hint ops a [`super::Program`] carries ([`RHint`]), and the g-power
-//! table + reverse index the hint interpreter grows on demand.
+//! Runtime hint machinery: the resolved hint ops a [`super::Program`] carries ([`RHint`], from the `isa` crate the
+//! compiler shares), and the g-power table + reverse index the hint interpreter grows on demand.
 
 use primitives::field::{F64, div_by_g, mul_by_g};
 use std::collections::HashMap;
 
-/// Frame-relative offset operand (matches the compiler's `ir::Off`).
-pub type Off = u32;
+pub use isa::{BitsDest, Off, RHint};
 
 /// The cells a provable run can address, which the [`GPow`] index covers: a memory of `2^29`
 /// cells would overflow the `2^30` stack with its three columns, so no larger one can be committed.
@@ -158,87 +156,6 @@ pub(crate) fn bounded_dlog(x: F64, nbits: u32) -> Option<u128> {
         y *= *giant;
     }
     None
-}
-
-/// Where a computed-advice bit buffer lives. Frame cells are ordinary memory, so
-/// a run of them serves as well as a heap region and costs no `DEREF` to index at
-/// a compile-time offset; the heap form stays for a buffer indexed at run time.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum BitsDest {
-    /// Frame cells `fp+base+k`.
-    Stack(Off),
-    /// Heap cells `m[fp+ptr]·g^k`, the pointer read at run time.
-    Heap(Off),
-}
-
-/// A hint resolved to concrete offsets/sizes, keyed by global program counter.
-#[derive(Clone, Debug)]
-pub enum RHint {
-    /// Announce a pointer into a reserved run of frames.
-    FrameAddress { offset: Off },
-    /// Reserve `log_g(m[end] * start_inverse)` consecutive frames of `size` cells,
-    /// then the `tail` cells the final, untaken call writes of one more.
-    AllocFrames {
-        ptr: Off,
-        size: u32,
-        end: Off,
-        start_inverse: F64,
-        tail: u32,
-    },
-    /// Allocate a fresh region of `size` cells and write `g^{base}` to the cell.
-    Alloc { ptr: Off, size: u32 },
-    /// `Alloc` with the cell count read at runtime as the g-power exponent of
-    /// `m[fp+size]`.
-    AllocDyn { ptr: Off, size: Off },
-    /// Pop stream `name`'s next entry (`len` values) into frame cells `fp+base+k`.
-    WitnessStack { name: String, base: Off, len: u32 },
-    /// Pop stream `name`'s next entry (`len` values) into heap cells `m[fp+ptr]·g^{lo+k}`.
-    WitnessHeap { name: String, ptr: Off, lo: u32, len: u32 },
-    /// Write `g^max(log2_ceil(value), floor)` into `fp+dst`, where `value` is the
-    /// integer reconstructed from the `nbits` bits at `bits`.
-    Log2Ceil {
-        bits: BitsDest,
-        dst: Off,
-        nbits: u32,
-        floor: u32,
-    },
-    /// Write the low `nbits` bits of `m[fp+value]` into `bits`.
-    BitDecompose { value: Off, bits: BitsDest, nbits: u32 },
-    /// Write the `nbits` bits of `n`, where `m[fp+value] = g^n` (a bounded
-    /// discrete log at witness generation), into `bits`.
-    BitDecomposeExp { value: Off, bits: BitsDest, nbits: u32 },
-    /// Write `g^d_j` for the `ndigits` base-`2^digit_bits` digits `d_j` of `n >> s` into
-    /// `dst`, where `m[fp+value] = g^n` with `n < 2^nbits` and `s` is `start` or, given
-    /// `start_cell`, the exponent of `m[fp+start_cell]`.
-    DigitDecomposeExp {
-        value: Off,
-        dst: BitsDest,
-        nbits: u32,
-        ndigits: u32,
-        digit_bits: u32,
-        start: u32,
-        start_cell: Option<Off>,
-    },
-    /// Write `count` windows of `width` bits of `m[fp+value]`, from bit `start` on, into
-    /// `dest` from cell `at` on, as g-powers: window `i` is `g^n` for `n` its bits read as an integer.
-    WindowsExp {
-        value: Off,
-        dest: BitsDest,
-        at: u32,
-        start: u32,
-        width: u32,
-        count: u32,
-    },
-    /// Write the first `len` K-coordinate limbs of `m[fp+value]` to
-    /// `m[fp+base..]`. Computed advice; callers constrain the result.
-    FieldLimbs { value: Off, base: Off, len: u32 },
-    /// Write `m[fp+value]⁻¹` to `m[fp+dst]`, or `0` when the value is zero.
-    /// Untrusted: `assert a != b` multiplies the two back together and asserts
-    /// `1`, which a zero value cannot satisfy (`FnLower::lower_assert_ne`).
-    Inverse { value: Off, dst: Off },
-    /// Prover-side debug print (`print(...)` in the zkDSL): display the value
-    /// of `m[fp+cell]` at this program point. Witness generation only.
-    Print { label: String, cell: Off },
 }
 
 #[cfg(test)]

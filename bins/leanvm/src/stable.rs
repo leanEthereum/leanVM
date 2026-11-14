@@ -4,11 +4,8 @@ crate::prover!(
     stable_rec_aggregation,
     stable_leanvm_core,
     stable_parallel,
-    stable_lean_compiler,
     stable_lean_da,
     stable_keccak_gkr,
-    stable_lean_xmss,
-    stable_lean_sphincs,
     stable_primitives
 );
 

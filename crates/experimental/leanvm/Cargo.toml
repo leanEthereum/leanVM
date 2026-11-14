@@ -11,6 +11,6 @@ rec_aggregation = { package = "experimental_rec_aggregation", path = "../rec_agg
 leanvm_core = { package = "experimental_leanvm_core", path = "../leanvm_core" }
 parallel = { package = "experimental_parallel", path = "../parallel" }
 lean_da = { package = "experimental_lean_da", path = "../lean_da" }
-lean_xmss = { package = "experimental_lean_xmss", path = "../lean_xmss" }
-lean_sphincs = { package = "experimental_lean_sphincs", path = "../lean_sphincs" }
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
 

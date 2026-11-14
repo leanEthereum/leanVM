@@ -79,7 +79,7 @@ pub fn files(guest: &Program) -> Vec<File> {
     assert!(code_len < prog.len());
     for op in &prog[code_len..] {
         assert!(
-            matches!(*op, Op::Set { o: 0, k } if k == F128::ZERO),
+            matches!(*op, Op::Set { o: 0, k } if k == verifier::E::new(0, 0)),
             "the padding is not `SET fp[0] = 0`"
         );
     }

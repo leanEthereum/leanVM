@@ -580,7 +580,7 @@ impl Table for SetTable {
         let rows = &ctx.trace.set;
         // The offset and the stored immediate are the instruction's.
         let imm = |r: &Srow| match ctx.prog[r.pc as usize] {
-            Op::Set { o, k } => (o, k),
+            Op::Set { o, k } => (o, crate::cpu::from_scalar(k)),
             op => unreachable!("a SET row's pc {} holds {op:?}", r.pc),
         };
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
@@ -681,8 +681,8 @@ impl Table for DerefTable {
                 ctx.g_at(o1),
                 ctx.g_at(o2),
                 ctx.g_at(o3),
-                mode.f_pc(),
-                mode.f_fp(),
+                F64(u64::from(mode.f_pc())),
+                F64(u64::from(mode.f_fp())),
                 F64(ctx.mem.word((r.fp + o1) as usize).c0),
                 v3[0],
                 v3[1],

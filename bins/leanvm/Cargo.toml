@@ -20,16 +20,13 @@ stable_leanvm_core = { path = "../../crates/stable/leanvm_core" }
 experimental_leanvm_core = { path = "../../crates/experimental/leanvm_core" }
 stable_parallel = { path = "../../crates/stable/parallel" }
 experimental_parallel = { path = "../../crates/experimental/parallel" }
-stable_lean_compiler = { path = "../../crates/stable/lean_compiler" }
-experimental_lean_compiler = { path = "../../crates/experimental/lean_compiler" }
+lean_compiler.workspace = true
 stable_lean_da = { path = "../../crates/stable/lean_da" }
 experimental_lean_da = { path = "../../crates/experimental/lean_da" }
 stable_keccak_gkr = { path = "../../crates/stable/keccak_gkr", features = ["bench"] }
 experimental_keccak_gkr = { path = "../../crates/experimental/keccak_gkr", features = ["bench"] }
-stable_lean_xmss = { path = "../../crates/stable/lean_xmss" }
-experimental_lean_xmss = { path = "../../crates/experimental/lean_xmss" }
-stable_lean_sphincs = { path = "../../crates/stable/lean_sphincs" }
-experimental_lean_sphincs = { path = "../../crates/experimental/lean_sphincs" }
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
 stable_primitives = { path = "../../crates/stable/primitives" }
 experimental_primitives = { path = "../../crates/experimental/primitives" }
 bench.workspace = true

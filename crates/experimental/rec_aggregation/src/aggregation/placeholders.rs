@@ -10,7 +10,6 @@ use super::deferred::RECURSION_AGG_LABEL;
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use fiat_shamir::merkle::hash_to_scalars;
-use lean_compiler::f128_literal;
 use lean_da::{CELLS_PER_ROW, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, LOG_CELL_SYMBOLS, LOG_CODEWORD_SYMBOLS};
 use leanvm_core::constraints::xi_offsets;
 use leanvm_core::cpu::{KeccakLane, keccak_value};
@@ -23,6 +22,11 @@ use pcs::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BIT
 use primitives::field::{F64, F128, g_pow};
 use std::collections::BTreeMap;
 use std::ops::Range;
+
+/// [`lean_compiler::f128_literal`] of a prover word.
+fn f128_literal(x: F128) -> String {
+    lean_compiler::f128_literal(leanvm_core::cpu::to_scalar(&x))
+}
 
 struct CoordinateDescriptor {
     kind: usize,

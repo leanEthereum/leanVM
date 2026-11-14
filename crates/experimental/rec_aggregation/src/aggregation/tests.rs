@@ -272,9 +272,7 @@ fn aggregate_one_key_two_messages() {
 #[test]
 fn guest_column_selectors_match_native_eq() {
     parallel::init();
-    let (helpers, _) = include_str!("../../guests/lean_ethereum.py")
-        .split_once("\ndef main():")
-        .unwrap();
+    let (helpers, _) = super::guest::GUEST_SOURCE.split_once("\ndef main():").unwrap();
     let source = format!(
         r#"{helpers}
 def main():
@@ -298,7 +296,9 @@ def main():
 "#
     );
     let kbc = 18;
-    let guest = compile(&parse_with_replacements(&source, &placeholder_map(kbc)).unwrap());
+    let guest = leanvm_core::cpu::Program::from(compile(
+        &parse_with_replacements(&source, &placeholder_map(kbc)).unwrap(),
+    ));
     let run = |point: &[F128], offset: usize, kappa: usize, expected: F128| {
         let mut hints = Hints::default();
         hints.push("point", point.to_vec());
@@ -608,9 +608,7 @@ fn forged_opening_hints_are_rejected() {
 /// `list_split` itself, not reach the dispatch as a wild jump.
 #[test]
 fn list_split_rejects_a_negative_rest() {
-    let (helpers, _) = include_str!("../../guests/lean_ethereum.py")
-        .split_once("\ndef main():")
-        .unwrap();
+    let (helpers, _) = super::guest::GUEST_SOURCE.split_once("\ndef main():").unwrap();
     let source = format!(
         r#"{helpers}
 def main():
@@ -622,7 +620,9 @@ def main():
     return
 "#
     );
-    let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
+    let guest = leanvm_core::cpu::Program::from(compile(
+        &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
+    ));
     let run = |body: F128, rest: F128| {
         let mut hints = Hints::default();
         hints.push("n", vec![count(6)]);
@@ -646,9 +646,7 @@ def main():
 /// is checked, so this pins that a set bit below the window fails and one at or above it passes.
 #[test]
 fn grind_check_reads_the_low_bits() {
-    let (helpers, _) = include_str!("../../guests/lean_ethereum.py")
-        .split_once("\ndef main():")
-        .unwrap();
+    let (helpers, _) = super::guest::GUEST_SOURCE.split_once("\ndef main():").unwrap();
     let source = format!(
         r#"{helpers}
 def main():
@@ -657,7 +655,9 @@ def main():
     return
 "#
     );
-    let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
+    let guest = leanvm_core::cpu::Program::from(compile(
+        &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
+    ));
     let run = |lane: u64| {
         let mut hints = Hints::default();
         hints.push("w", vec![F128::new(lane, 0x0123_4567_89AB_CDEF)]);
@@ -678,9 +678,7 @@ def main():
 #[test]
 fn da_guest_checks_codeword_membership() {
     parallel::init();
-    let (helpers, _) = include_str!("../../guests/lean_ethereum.py")
-        .split_once("\ndef main():")
-        .unwrap();
+    let (helpers, _) = super::guest::GUEST_SOURCE.split_once("\ndef main():").unwrap();
     let source = format!(
         r#"{helpers}
 def main():
@@ -693,7 +691,9 @@ def main():
     return
 "#
     );
-    let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
+    let guest = leanvm_core::cpu::Program::from(compile(
+        &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
+    ));
     let blobs = da_rows(3, 101);
     let witness = lean_da::BlobMatrix::build(&blobs).unwrap();
     let rows: Vec<Codeword> = (0..blobs.len()).map(|i| *witness.row(i).unwrap()).collect();
@@ -935,9 +935,7 @@ fn aggregate_overlapping_signers() {
 /// would not see it: only the gap's `assert_gpow` does.
 #[test]
 fn a_child_walk_cannot_step_back() {
-    let (helpers, _) = include_str!("../../guests/lean_ethereum.py")
-        .split_once("\ndef main():")
-        .unwrap();
+    let (helpers, _) = super::guest::GUEST_SOURCE.split_once("\ndef main():").unwrap();
     let source = format!(
         r#"{helpers}
 def main():
@@ -952,7 +950,9 @@ def main():
     return
 "#
     );
-    let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
+    let guest = leanvm_core::cpu::Program::from(compile(
+        &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
+    ));
     let claim = |i: u64| [1, 2, 3, 4].map(|k| F128::new(i * 7919 + k, k));
     let table: Vec<F128> = [claim(0), claim(1)].concat();
     let run = |child: &[[F128; 4]], gaps: &[F128]| {

@@ -5,6 +5,10 @@ use super::placeholders::placeholder_map;
 use lean_compiler::{compile, parse_with_replacements};
 use leanvm_core::cpu::Program;
 
+/// The aggregation guest's zkDSL source, which both provers compile.
+pub(crate) const GUEST_SOURCE: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../guests/lean_ethereum.py"));
+
 /// Build the guest bytecode and the stacked table its claims are about. Both are
 /// cached, so this only moves the cost out of the first prove or verify.
 pub fn warm_up() {
@@ -45,10 +49,9 @@ pub(super) fn compile_guest(kbc: usize) -> Program {
         let dump: String = replacements.iter().map(|(k, v)| format!("{k} = {v}\n")).collect();
         std::fs::write(&path, dump).expect("write DBG_PLACEHOLDERS");
     }
-    let guest = compile(
-        &parse_with_replacements(include_str!("../../guests/lean_ethereum.py"), &replacements)
-            .expect("the repository aggregation guest must parse"),
-    );
+    let guest = Program::from(compile(
+        &parse_with_replacements(GUEST_SOURCE, &replacements).expect("the repository aggregation guest must parse"),
+    ));
     // `DBG_DISASM=path`: dump the guest's disassembly, to read alongside a
     // `DBG_PROF_DUMP` per-pc profile. Function boundaries lead the dump, so the
     // pc a failed guest check reports can be resolved to a source function

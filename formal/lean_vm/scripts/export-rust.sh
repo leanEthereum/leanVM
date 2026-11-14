@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prove small guest programs with the leanVM Rust prover and write each proof in the formats the
 # verifiers read (the Lean verifier, `cli/LeanvmVerify.lean`; `crates/verifier`'s `Proof`, as
-# `scripts/rust-verifier-cli` reads it; `crates/experimental/fiat_shamir/src/wire.rs`, `Proof::to_bytes`).
+# `scripts/rust-verifier-cli` reads it; `crates/stable/fiat_shamir/src/wire.rs`, `Proof::to_bytes`).
 #
 # Usage: scripts/export-rust.sh fixtures|traces <output dir> [--corpus]
 # (`export-verifier-fixtures-rust.sh` and `export-prover-traces-rust.sh` name the two modes.)
@@ -27,8 +27,8 @@
 #
 # The proof is the honest proof of the Rust `prove`, its Merkle paths unpruned
 # (`leanvm_core::cpu::scalar_proof`). The guests (`fixed`) are the program of
-# crates/experimental/leanvm_core/tests/verifiers/fixture.rs at 4, 300 and 1000 loop steps,
-# crates/experimental/lean_compiler/tests/programs/fibonacci.py, and eight more programs of that suite, three
+# crates/stable/leanvm_core/tests/verifiers/fixture.rs at 4, 300 and 1000 loop steps,
+# crates/lean_compiler/tests/programs/fibonacci.py, and eight more programs of that suite, three
 # at each of the four rates, read from the source tree. Every proof is verified by the Rust
 # `cpu::verify` before it is written, and `Proof::from_bytes` must give it back from `proof.wire`.
 # In `fixtures` mode `scripts/rust-verifier-cli` must also accept it from the written files before
@@ -36,7 +36,7 @@
 # and the Rust verifier on them and on mutations of them. In `traces` mode a program the Rust
 # interpreter or prover refuses is skipped.
 #
-# With `--corpus`, the cases are instead every program of crates/experimental/lean_compiler/tests/programs
+# With `--corpus`, the cases are instead every program of crates/lean_compiler/tests/programs
 # that declares its public input (with its `# witness` annotations), and the chain at 16, 1000 and
 # 5000 loop steps, each at the four rates: the differential fuzzing corpus (not committed).
 #
@@ -67,11 +67,11 @@ edition = "2024"
 [workspace]
 
 [dependencies]
-leanvm_core = { package = "experimental_leanvm_core", path = "$checkout/crates/experimental/leanvm_core" }
-lean_compiler = { package = "experimental_lean_compiler", path = "$checkout/crates/experimental/lean_compiler" }
-primitives = { package = "experimental_primitives", path = "$checkout/crates/experimental/primitives" }
+leanvm_core = { package = "stable_leanvm_core", path = "$checkout/crates/stable/leanvm_core" }
+lean_compiler = { path = "$checkout/crates/lean_compiler" }
+primitives = { package = "stable_primitives", path = "$checkout/crates/stable/primitives" }
 verifier = { path = "$checkout/crates/verifier" }
-fiat_shamir = { package = "experimental_fiat_shamir", path = "$checkout/crates/experimental/fiat_shamir" }
+fiat_shamir = { package = "stable_fiat_shamir", path = "$checkout/crates/stable/fiat_shamir" }
 
 [profile.release]
 lto = "thin"
@@ -81,10 +81,10 @@ EOF
 # The chain program and the suite's header readers, from the tests that define them.
 cat > "$work/src/main.rs" <<EOF
 #[allow(dead_code)]
-#[path = "$checkout/crates/experimental/leanvm_core/tests/verifiers/fixture.rs"]
+#[path = "$checkout/crates/stable/leanvm_core/tests/verifiers/fixture.rs"]
 mod fixture;
 #[allow(dead_code, unused_imports)]
-#[path = "$checkout/crates/experimental/lean_compiler/tests/suite/py_source.rs"]
+#[path = "$checkout/crates/lean_compiler/tests/suite/py_source.rs"]
 mod py_source;
 EOF
 
@@ -95,12 +95,12 @@ use leanvm_core::cpu::{Program, prove, public_input_bytes, scalar_proof, verify}
 use primitives::field::F128;
 use std::path::Path;
 
-// A program of crates/experimental/lean_compiler/tests/programs with its `# public_input:` and `# witness`
+// A program of crates/lean_compiler/tests/programs with its `# public_input:` and `# witness`
 // annotations; `None` for a program without a declared public input.
 fn suite_program(path: &Path) -> Option<(Program, [F128; 2])> {
     let source = std::fs::read_to_string(path).expect("read suite program");
     let public_input = py_source::public_input(&source)?;
-    let mut program = compile(&parse(&source).expect("parse suite program"));
+    let mut program = Program::from(compile(&parse(&source).expect("parse suite program")));
     for (stream, entries) in py_source::witness(&source) {
         program.set_witness(stream, entries);
     }
@@ -111,7 +111,7 @@ fn suite_program(path: &Path) -> Option<(Program, [F128; 2])> {
 // at the four rates.
 fn corpus(checkout: &Path) -> Vec<(String, (Program, [F128; 2]), usize)> {
     let mut programs: Vec<(String, Box<dyn Fn() -> (Program, [F128; 2])>)> = Vec::new();
-    let directory = checkout.join("crates/experimental/lean_compiler/tests/programs");
+    let directory = checkout.join("crates/lean_compiler/tests/programs");
     let mut paths: Vec<_> = std::fs::read_dir(&directory)
         .expect("suite programs")
         .map(|entry| entry.expect("directory entry").path())
@@ -141,7 +141,7 @@ fn corpus(checkout: &Path) -> Vec<(String, (Program, [F128; 2]), usize)> {
 // (`heapbuf_dyn`) and unroll (`unroll`).
 fn fixed(checkout: &Path) -> Vec<(String, (Program, [F128; 2]), usize)> {
     let suite = |name: &str| {
-        suite_program(&checkout.join(format!("crates/experimental/lean_compiler/tests/programs/{name}.py")))
+        suite_program(&checkout.join(format!("crates/lean_compiler/tests/programs/{name}.py")))
             .expect("a suite program with a declared public input")
     };
     vec![

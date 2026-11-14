@@ -5,7 +5,7 @@ file formats, read without hashing, and the running of their child processes.
     every number little-endian: the `u32` phase count; per phase its `u32` path count; per path its
     `u64` position, its `u32` leaf length and that many `u64` words, its `u32` sibling count and
     that many 32-byte digests (`parse_phases`);
-  * `proof.wire`, the one wire encoding (`Proof::to_bytes`, `crates/experimental/fiat_shamir/src/wire.rs`): the
+  * `proof.wire`, the one wire encoding (`Proof::to_bytes`, `crates/stable/fiat_shamir/src/wire.rs`): the
     `u32` stream length and the stream, 16 bytes a scalar; the `u32` phase count; per phase its
     `u32` query count and positions, its `u32` height, leaf width and row width, the row of every
     distinct position, ascending, and the carried siblings (`parse_wire`, `Wire`, `Phase`).

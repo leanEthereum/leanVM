@@ -500,7 +500,7 @@ impl Program {
                                 start_inverse,
                                 tail,
                             } => {
-                                let span = in_k("loop bound", m.get(fp + end)).map_err(fail)? * start_inverse;
+                                let span = in_k("loop bound", m.get(fp + end)).map_err(fail)? * F64(start_inverse.0);
                                 if span.is_zero() {
                                     return Err(fail(Fault::NotAGPower {
                                         what: "loop bound",
@@ -761,7 +761,7 @@ impl Program {
                 }
                 Op::Set { o, k } => {
                     let a = at(fp, o)?;
-                    m.put(a, k)?;
+                    m.put(a, super::from_scalar(k))?;
                     let r = m.bump_access_count(a);
                     set.push(Srow {
                         pc,

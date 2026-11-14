@@ -1,0 +1,11 @@
+[package]
+name = "keccak"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+sha3.workspace = true

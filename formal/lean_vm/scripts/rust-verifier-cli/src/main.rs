@@ -9,7 +9,7 @@
 //!   its path count (`u32`); per path its `leaf_index` (`u64`), its leaf's length (`u32`) and
 //!   words (`u64` each), its sibling count (`u32`) and siblings (32 bytes each). Bytes left over,
 //!   or too few, are a rejection;
-//! * the wire: `Proof::to_bytes`'s one encoding (`crates/experimental/fiat_shamir/src/wire.rs`), decoded by
+//! * the wire: `Proof::to_bytes`'s one encoding (`crates/stable/fiat_shamir/src/wire.rs`), decoded by
 //!   `Proof::from_bytes`, which unprunes the paths (`None` is a rejection), then verified.
 //!
 //! The bytecode is read as little-endian 64-bit words (a length that is not a multiple of 8 is

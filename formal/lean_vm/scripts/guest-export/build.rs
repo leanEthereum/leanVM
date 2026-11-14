@@ -1,5 +1,5 @@
 //! The overlay: leanVM's `rec_aggregation` sources, copied verbatim into `OUT_DIR` (the guest
-//! with them, so their `include_str!("../guests/lean_ethereum.py")` still resolves), with one
+//! with them, its `include_str!` pointed at the copy), with one
 //! line appended to `aggregation.rs` that declares this crate's `src/export/` as its child
 //! module `lean_export`. Nothing under `crates/` is written.
 
@@ -89,12 +89,18 @@ fn main() {
     let leanvm = leanvm
         .canonicalize()
         .unwrap_or_else(|e| panic!("leanVM's tree {}: {e}", leanvm.display()));
-    let crate_dir = leanvm.join("crates/experimental/rec_aggregation");
+    let crate_dir = leanvm.join("crates/stable/rec_aggregation");
     let out = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("rec_aggregation");
     // A fresh copy: a file leanVM moved or removed must not linger from an earlier pin.
     let _ = std::fs::remove_dir_all(&out);
     copy_dir(&crate_dir.join("src"), &out.join("src"));
-    copy_dir(&crate_dir.join("guests"), &out.join("guests"));
+    copy_dir(&leanvm.join("guests"), &out.join("guests"));
+    // The guest source sits at the repository's root, three levels above the crate: the copy reads it beside itself.
+    let guest = out.join("src/aggregation/guest.rs");
+    let text = std::fs::read_to_string(&guest).unwrap();
+    let from = r#"include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../guests/lean_ethereum.py"))"#;
+    assert!(text.contains(from), "the guest source is included from the repository's root");
+    std::fs::write(&guest, text.replace(from, r#"include_str!("../../guests/lean_ethereum.py")"#)).unwrap();
 
     let export = manifest.join("src/export/mod.rs");
     // `aggregation` is a directory module (`aggregation/mod.rs`) since leanVM #670.
@@ -146,7 +152,7 @@ fn main() {
     // copied, `lib.rs` as the module's `mod.rs`, and `crate::` paths pointed at the module.
     let compiler = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("compiler_overlay");
     let _ = std::fs::remove_dir_all(&compiler);
-    copy_dir(&leanvm.join("crates/experimental/lean_compiler/src"), &compiler);
+    copy_dir(&leanvm.join("crates/lean_compiler/src"), &compiler);
     std::fs::rename(compiler.join("lib.rs"), compiler.join("mod.rs")).unwrap();
     let mut files = Vec::new();
     rust_files(&compiler, &mut files);

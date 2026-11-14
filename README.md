@@ -63,7 +63,7 @@ The Rust prover exists twice, proving the same protocol with the same proof byte
  * `crates/stable`: plain, portable, safe code, as short as the protocol allows, slower
  * `crates/experimental`: the optimized prover (NEON, AVX2, AVX-512, cache-aware kernels), where performance work lands
 
-Both are verified by the one verifier in `crates/verifier`. The benchmarks below are the experimental prover's; add `--prover stable` to any command for the other.
+Both are verified by the one verifier in `crates/verifier`, and share the zkDSL compiler, the aggregation guest and the signature schemes. The benchmarks below are the experimental prover's; add `--prover stable` to any command for the other.
 
 ## benchmarks
 

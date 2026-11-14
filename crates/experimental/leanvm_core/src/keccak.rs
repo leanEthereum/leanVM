@@ -50,10 +50,7 @@ pub fn qkeccak_kappa(n_steps: usize) -> usize {
     shape(n_steps).stack_log()
 }
 
-/// Cells a sponge state occupies.
-pub const STATE_CELLS: usize = 13;
-/// The rate cells of a state, the nine a block of a message laid out in cells covers.
-pub const RATE_CELLS: usize = 9;
+pub use isa::{RATE_CELLS, STATE_CELLS};
 /// Cells one `KECCAK` row flushes: thirteen read, thirteen written or, past what it writes, cancelled.
 pub(crate) const ROW_CELLS: usize = 2 * STATE_CELLS;
 

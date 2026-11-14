@@ -12,7 +12,7 @@ public import LeanVM.Guest.Source
 /-!
 # The aggregation guest's source
 
-`crates/rec_aggregation/guests/lean_ethereum.py` as `lean_compiler::parse_with_replacements` returns it with
+`guests/lean_ethereum.py` as `lean_compiler::parse_with_replacements` returns it with
 the deployed placeholders (`placeholder_map`, at the bytecode's log size `bytecodeLog`): one definition
 per function, then the constant arrays and the program. The global constants come first, `const_NAME`, the
 literals the compiler substitutes for them.

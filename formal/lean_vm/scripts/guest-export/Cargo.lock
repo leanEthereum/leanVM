@@ -9,14 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
-name = "fiat_shamir"
-version = "0.1.0"
-dependencies = [
- "parallel",
- "primitives",
-]
-
-[[package]]
 name = "getrandom"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -29,76 +21,56 @@ dependencies = [
 ]
 
 [[package]]
-name = "keccak_gkr"
+name = "isa"
 version = "0.1.0"
 dependencies = [
- "fiat_shamir",
- "parallel",
- "pcs",
- "primitives",
- "tracing",
+ "verifier",
 ]
+
+[[package]]
+name = "keccak"
+version = "0.1.0"
 
 [[package]]
 name = "lean_compiler"
 version = "0.1.0"
 dependencies = [
- "leanvm_core",
- "primitives",
-]
-
-[[package]]
-name = "lean_da"
-version = "0.1.0"
-dependencies = [
- "fiat_shamir",
- "pcs",
- "primitives",
- "tracing",
+ "isa",
+ "keccak",
+ "verifier",
 ]
 
 [[package]]
 name = "lean_sphincs"
 version = "0.1.0"
 dependencies = [
- "primitives",
+ "keccak",
 ]
 
 [[package]]
 name = "lean_xmss"
 version = "0.1.0"
 dependencies = [
- "primitives",
+ "keccak",
 ]
 
 [[package]]
 name = "leanvm-guest-export"
 version = "0.0.0"
 dependencies = [
- "fiat_shamir",
- "keccak_gkr",
+ "isa",
+ "keccak",
  "lean_compiler",
- "lean_da",
  "lean_sphincs",
  "lean_xmss",
- "leanvm_core",
- "parallel",
- "pcs",
- "primitives",
  "rand",
- "tracing",
- "verifier",
-]
-
-[[package]]
-name = "leanvm_core"
-version = "0.1.0"
-dependencies = [
- "fiat_shamir",
- "keccak_gkr",
- "parallel",
- "pcs",
- "primitives",
+ "stable_fiat_shamir",
+ "stable_keccak_gkr",
+ "stable_lean_da",
+ "stable_leanvm_core",
+ "stable_parallel",
+ "stable_pcs",
+ "stable_primitives",
  "tracing",
  "verifier",
 ]
@@ -116,23 +88,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
-name = "parallel"
-version = "0.1.0"
-dependencies = [
- "libc",
-]
-
-[[package]]
-name = "pcs"
-version = "0.1.0"
-dependencies = [
- "fiat_shamir",
- "parallel",
- "primitives",
- "tracing",
-]
-
-[[package]]
 name = "pin-project-lite"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -145,13 +100,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
 dependencies = [
  "zerocopy",
-]
-
-[[package]]
-name = "primitives"
-version = "0.1.0"
-dependencies = [
- "parallel",
 ]
 
 [[package]]
@@ -205,6 +153,71 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76afc826de14238e6e8c374ddcc1fa19e374fd8dd986b0d2af0d02377261d83c"
 dependencies = [
  "getrandom",
+]
+
+[[package]]
+name = "stable_fiat_shamir"
+version = "0.1.0"
+dependencies = [
+ "stable_parallel",
+ "stable_primitives",
+]
+
+[[package]]
+name = "stable_keccak_gkr"
+version = "0.1.0"
+dependencies = [
+ "stable_fiat_shamir",
+ "stable_parallel",
+ "stable_pcs",
+ "stable_primitives",
+ "tracing",
+]
+
+[[package]]
+name = "stable_lean_da"
+version = "0.1.0"
+dependencies = [
+ "stable_fiat_shamir",
+ "stable_pcs",
+ "stable_primitives",
+ "tracing",
+]
+
+[[package]]
+name = "stable_leanvm_core"
+version = "0.1.0"
+dependencies = [
+ "isa",
+ "stable_fiat_shamir",
+ "stable_keccak_gkr",
+ "stable_parallel",
+ "stable_pcs",
+ "stable_primitives",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "stable_parallel"
+version = "0.1.0"
+
+[[package]]
+name = "stable_pcs"
+version = "0.1.0"
+dependencies = [
+ "stable_fiat_shamir",
+ "stable_parallel",
+ "stable_primitives",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "stable_primitives"
+version = "0.1.0"
+dependencies = [
+ "stable_parallel",
 ]
 
 [[package]]

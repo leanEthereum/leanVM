@@ -16,7 +16,7 @@ pub fn run_fibonacci(n: usize, log_inv_rate: usize, plan: Plan) {
     let trace_span = tracing::info_span!("Fibonacci", n, log_inv_rate).entered();
 
     let (src, pi) = fibonacci_program(n);
-    let program = compile(&parse(&src).unwrap());
+    let program = leanvm_core::cpu::Program::from(compile(&parse(&src).unwrap()));
 
     // Only the final measured pass of each stage is traced (see `run_aggregation`).
     let ((proof, stats), prove_time) = plan.warm_then_measure(|last| {

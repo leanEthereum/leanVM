@@ -19,7 +19,7 @@ build = "build.rs"
 # The overlay's sources (`build.rs` copies `rec_aggregation` into `OUT_DIR`) use these, which
 # cargo-machete, reading this crate's own sources, cannot see.
 [package.metadata.cargo-machete]
-ignored = ["fiat_shamir", "keccak_gkr", "parallel", "pcs", "tracing"]
+ignored = ["fiat_shamir", "isa", "keccak", "keccak_gkr", "parallel", "pcs", "tracing"]
 
 [workspace]
 
@@ -31,18 +31,21 @@ name = "guest-export"
 path = "src/main.rs"
 
 [dependencies]
-# rec_aggregation's own dependencies (crates/experimental/rec_aggregation/Cargo.toml), by path.
-primitives = { package = "experimental_primitives", path = "../../../../crates/experimental/primitives" }
-fiat_shamir = { package = "experimental_fiat_shamir", path = "../../../../crates/experimental/fiat_shamir" }
-parallel = { package = "experimental_parallel", path = "../../../../crates/experimental/parallel" }
-pcs = { package = "experimental_pcs", path = "../../../../crates/experimental/pcs" }
-keccak_gkr = { package = "experimental_keccak_gkr", path = "../../../../crates/experimental/keccak_gkr" }
-leanvm_core = { package = "experimental_leanvm_core", path = "../../../../crates/experimental/leanvm_core" }
-lean_compiler = { package = "experimental_lean_compiler", path = "../../../../crates/experimental/lean_compiler" }
-lean_xmss = { package = "experimental_lean_xmss", path = "../../../../crates/experimental/lean_xmss" }
-lean_sphincs = { package = "experimental_lean_sphincs", path = "../../../../crates/experimental/lean_sphincs" }
-lean_da = { package = "experimental_lean_da", path = "../../../../crates/experimental/lean_da" }
+# rec_aggregation's own dependencies (crates/stable/rec_aggregation/Cargo.toml), by path.
+primitives = { package = "stable_primitives", path = "../../../../crates/stable/primitives" }
+fiat_shamir = { package = "stable_fiat_shamir", path = "../../../../crates/stable/fiat_shamir" }
+parallel = { package = "stable_parallel", path = "../../../../crates/stable/parallel" }
+pcs = { package = "stable_pcs", path = "../../../../crates/stable/pcs" }
+keccak_gkr = { package = "stable_keccak_gkr", path = "../../../../crates/stable/keccak_gkr" }
+leanvm_core = { package = "stable_leanvm_core", path = "../../../../crates/stable/leanvm_core" }
+lean_compiler = { path = "../../../../crates/lean_compiler" }
+lean_xmss = { path = "../../../../crates/lean_xmss" }
+lean_sphincs = { path = "../../../../crates/lean_sphincs" }
+lean_da = { package = "stable_lean_da", path = "../../../../crates/stable/lean_da" }
 verifier = { path = "../../../../crates/verifier" }
+# The compiler overlay's own dependencies.
+isa = { path = "../../../../crates/isa" }
+keccak = { path = "../../../../crates/keccak" }
 rand = "0.9"
 tracing = "0.1.26"
 

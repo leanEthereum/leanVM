@@ -299,12 +299,18 @@ pub(crate) fn bytecode_columns(prog: &[Op]) -> BytecodeColumns {
                 if matches!(op, Op::Xor { .. }) { OP_XOR } else { OP_MUL }
             }
             Op::Set { o, k } => {
-                let [k0, k1] = k.to_limbs().map(F64);
+                let [k0, k1] = [F64(k.c0), F64(k.c1)];
                 put(&[g_at(o), k0, k1]);
                 OP_SET
             }
             Op::Deref { o1, o2, o3, mode } => {
-                put(&[g_at(o1), g_at(o2), g_at(o3), mode.f_pc(), mode.f_fp()]);
+                put(&[
+                    g_at(o1),
+                    g_at(o2),
+                    g_at(o3),
+                    F64(u64::from(mode.f_pc())),
+                    F64(u64::from(mode.f_fp())),
+                ]);
                 OP_DEREF
             }
             Op::Jump { oc, od, of } => {

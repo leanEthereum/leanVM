@@ -1,0 +1,19 @@
+[package]
+name = "lean_compiler"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+isa.workspace = true
+keccak.workspace = true
+verifier.workspace = true
+
+[dev-dependencies]
+leanvm_core = { package = "stable_leanvm_core", path = "../stable/leanvm_core" }
+parallel = { package = "stable_parallel", path = "../stable/parallel" }
+primitives = { package = "stable_primitives", path = "../stable/primitives" }
+

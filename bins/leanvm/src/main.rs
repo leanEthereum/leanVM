@@ -11,18 +11,19 @@ use clap::{Parser, Subcommand};
 
 mod report;
 
-/// The aliases one prover module gives the benchmarks, which name its crates as `rec_aggregation`, `leanvm_core`, ...
+/// The aliases one prover module gives the benchmarks, which name its crates as `rec_aggregation`, `leanvm_core`, ...,
+/// beside the crates both provers share.
 macro_rules! prover {
-    ($agg:ident, $core:ident, $par:ident, $comp:ident, $da:ident, $gkr:ident, $xmss:ident, $sphincs:ident, $prim:ident) => {
+    ($agg:ident, $core:ident, $par:ident, $da:ident, $gkr:ident, $prim:ident) => {
+        pub use ::lean_compiler;
+        pub use ::lean_sphincs;
+        pub use ::lean_xmss;
         pub use ::$agg as rec_aggregation;
-        pub use ::$comp as lean_compiler;
         pub use ::$core as leanvm_core;
         pub use ::$da as lean_da;
         pub use ::$gkr as keccak_gkr;
         pub use ::$par as parallel;
         pub use ::$prim as primitives;
-        pub use ::$sphincs as lean_sphincs;
-        pub use ::$xmss as lean_xmss;
 
         /// The `hash` subcommand: the Keccak GKR alone, on `2^log_n` permutations.
         pub fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan) {

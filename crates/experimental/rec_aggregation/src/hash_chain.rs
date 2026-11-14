@@ -11,7 +11,7 @@ use primitives::{
 };
 
 fn instruction_counts(source: &str, public_input: [F128; 2]) -> [usize; leanvm_core::cpu::Stats::TABLES.len()] {
-    compile(&parse(source).expect("parse"))
+    leanvm_core::cpu::Program::from(compile(&parse(source).expect("parse")))
         .execute(public_input)
         .unwrap()
         .rows()
@@ -79,7 +79,7 @@ fn keccak_hash_chain() {
     let public_input = [F128::new(digest[0].0, digest[1].0), F128::new(digest[2].0, digest[3].0)];
 
     let source = chain_source(steps, unroll);
-    let program = compile(&parse(&source).expect("parse"));
+    let program = leanvm_core::cpu::Program::from(compile(&parse(&source).expect("parse")));
 
     let started = Instant::now();
     let (proof, stats) = prove(&program, public_input, leanvm_core::pcs::TEST_LOG_INV_RATE).expect("proves");

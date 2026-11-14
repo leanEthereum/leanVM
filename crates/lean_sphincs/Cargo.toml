@@ -1,0 +1,12 @@
+[package]
+name = "lean_sphincs"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+keccak.workspace = true
+

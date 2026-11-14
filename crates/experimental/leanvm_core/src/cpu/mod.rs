@@ -112,6 +112,16 @@ pub struct Program {
 /// `to_le_bytes` image only on a little-endian target.
 const _: () = assert!(cfg!(target_endian = "little"));
 
+/// A compiled program, assembled: its IV and bytecode columns computed, its debug information kept.
+impl From<::isa::CompiledProgram> for Program {
+    fn from(compiled: ::isa::CompiledProgram) -> Self {
+        let mut program = Self::assemble(compiled.prog, compiled.hints, compiled.main_frame);
+        program.fn_ranges = compiled.fn_ranges;
+        program.src_lines = compiled.src_lines;
+        program
+    }
+}
+
 impl Program {
     /// Assemble a [`Program`], computing its Fiat-Shamir IV
     /// from `prog`. The single funnel for construction, so the digest is always
@@ -658,6 +668,11 @@ fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
 mod tests {
     use super::*;
 
+    /// `SET` of a prover word.
+    fn set(o: u32, k: F128) -> Op {
+        Op::Set { o, k: to_scalar(&k) }
+    }
+
     /// A K-embedded immediate (extension limb zero).
     fn w(x: u64) -> F128 {
         F128::new(x, 0)
@@ -669,16 +684,13 @@ mod tests {
     /// the odd layout and writes 26..39 in the even one. Two filler SETs step the pc to 15, whose
     /// slot is the never-executed sentinel.
     fn keccak_program(a: F128, b: F128, tail: [F128; 4], b8: F128) -> Program {
-        let mut prog = vec![Op::Set { o: 2, k: a }, Op::Set { o: 3, k: b }];
+        let mut prog = vec![set(2, a), set(3, b)];
         for (i, &t) in tail.iter().enumerate() {
-            prog.push(Op::Set { o: 4 + i as u32, k: t });
+            prog.push(set(4 + i as u32, t));
         }
-        prog.push(Op::Set { o: 8, k: b8 });
+        prog.push(set(8, b8));
         for c in 0..4u32 {
-            prog.push(Op::Set {
-                o: 9 + c,
-                k: F128::ZERO,
-            });
+            prog.push(set(9 + c, F128::ZERO));
         }
         prog.push(Op::Keccak {
             m: [2, 3, 2, 3],
@@ -701,10 +713,7 @@ mod tests {
             out_cells: OutCells::All,
         });
         for k in 0..2u32 {
-            prog.push(Op::Set {
-                o: 39 + k,
-                k: F128::ONE,
-            });
+            prog.push(set(39 + k, F128::ONE));
         }
         prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
         assert_eq!(prog.len(), 16);
@@ -714,12 +723,9 @@ mod tests {
     /// Two KECCAK rows over one input that write only part of their output: the first its cell 0 at 13, the
     /// second its cells 0 and 1 at 26. An XOR reads cells 13 and 27 into 40.
     fn partial_keccak_program() -> Program {
-        let mut prog = vec![Op::Set { o: 2, k: w(3) }, Op::Set { o: 3, k: w(4) }];
+        let mut prog = vec![set(2, w(3)), set(3, w(4))];
         for c in 4..13u32 {
-            prog.push(Op::Set {
-                o: c,
-                k: w(u64::from(c)),
-            });
+            prog.push(set(c, w(u64::from(c))));
         }
         for (out, out_cells) in [(13, OutCells::One), (26, OutCells::Two)] {
             prog.push(Op::Keccak {
@@ -734,7 +740,7 @@ mod tests {
             });
         }
         prog.push(Op::Xor { a: 13, b: 27, c: 40 });
-        prog.push(Op::Set { o: 41, k: F128::ONE });
+        prog.push(set(41, F128::ONE));
         prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
         assert_eq!(prog.len(), 16);
         Program::from_bytecode(prog, 64)
@@ -808,9 +814,9 @@ mod tests {
         // The last slot is reached at `fp = g`, which is not main's, so it runs like any other.
         let program = |last| {
             let code = vec![
-                Op::Set { o: 2, k: F128::ONE },   // the jump condition, and main's fp
-                Op::Set { o: 3, k: last_pc },     // the last slot's pc
-                Op::Set { o: 4, k: other_fp },    // a frame pointer other than main's
+                set(2, F128::ONE),                // the jump condition, and main's fp
+                set(3, last_pc),                  // the last slot's pc
+                set(4, other_fp),                 // a frame pointer other than main's
                 Op::Jump { oc: 2, od: 3, of: 4 }, // -> (g^7, g)
                 fill,
                 fill,
@@ -829,10 +835,7 @@ mod tests {
 
         // With the compiler's SET in the last slot the run has nowhere to go from there, its
         // successor g^8 being no bytecode address.
-        let err = program(Op::Set { o: 5, k: F128::ONE })
-            .execute(pi)
-            .err()
-            .expect("the run must fail");
+        let err = program(set(5, F128::ONE)).execute(pi).err().expect("the run must fail");
         assert!(matches!(err.fault, Fault::HaltOutsideMain { fp: 1 }), "{err}");
     }
 
@@ -842,8 +845,8 @@ mod tests {
         let x = F128::new(0x0123_4567_89ab_cdef, 0xfeed_face_dead_beef);
         let y = F128::new(0x9999_aaaa_bbbb_cccc, 0x1357_9bdf_2468_ace0);
         let prog = vec![
-            Op::Set { o: 2, k: x },
-            Op::Set { o: 3, k: y },
+            set(2, x),
+            set(3, y),
             Op::Mul { a: 2, b: 3, c: 4 },
             Op::Xor { a: 0, b: 0, c: 0 }, // sentinel (never executed)
         ];

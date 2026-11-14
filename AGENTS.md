@@ -14,16 +14,28 @@ A minimal virtual machine and recursive SNARK for signature aggregation and blob
 - `formal/`: Lean 4 proofs, vendored from [Verified-zkEVM/leanerVM](https://github.com/Verified-zkEVM/leanerVM), in the random-permutation model, that the verifier is knowledge sound and complete, that the guest is sound and complete for one node (not across recursion levels), that leanXMSS and leanSPHINCS are strongly unforgeable, and that LeanDA's commitments are position binding, and code binding for a knowledge-sound argument whose relation is evaluated over the model's permutation (not the guest's in-circuit DA check), as separate single-node, single-key statements (`formal/statement.tex` says what they do not compose to). What is proved is in `formal/Statement/`; `formal/AGENTS.md` and `formal/README.md` say how to build (`formal/check-all.sh lean`, several CPU-hours cold). The statement transcribes the verifier (`formal/Statement/LeanVmVerifier.lean`, the reference), the guest and the schemes' hash inputs, and `formal/lean_vm/LeanVM/Wire/Encoding.lean` the wire encoding (outside the statement: no end theorem is about it), of this tree: the Lean and the Rust are always in sync, so a change to any of them in the crates lands with its `formal/` change in the same PR, and CI's Lean job (`lean-vm-formalization`) fails on every change to `crates/` until it does; `formal/check-all.sh vectors` compares the Lean with this tree's Rust.
 - `crates/lean_compiler/zkDSL.md`: the zkDSL, a Python subset that compiles to the ISA.
 
-The fields are `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^2 + x*y + 1)` (`primitives::field::F128`, two `K` limbs); a VM word is one `E` element. The one hash function is Ethereum's Keccak-256 (FIPS 202 but for the padding's first byte, `hash::PAD_FIRST`), in `primitives::hash`. The VM's `KECCAK` opcode, one permutation of a state held in thirteen memory cells (`keccak::cell_lanes`), is proven by `crates/keccak_gkr`: its crate docs describe the prover, Annex C the protocol.
+The fields are `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^2 + x*y + 1)` (`primitives::field::F128`, two `K` limbs); a VM word is one `E` element. The one hash function is Ethereum's Keccak-256 (FIPS 202 but for the padding's first byte, `PAD_FIRST`), in each tree's `primitives::hash` and, portable, in the shared `keccak` crate. The VM's `KECCAK` opcode, one permutation of a state held in thirteen memory cells (`keccak::cell_lanes`), is proven by `crates/keccak_gkr`: its crate docs describe the prover, Annex C the protocol.
 
 ## Layout
 
-The root `Cargo.toml` is workspace-only: libraries in `crates/`, the CLI in `bins/`. The prover exists twice, in two trees that share no crate:
+The root `Cargo.toml` is workspace-only: libraries in `crates/`, the CLI in `bins/`. The prover exists twice, in two trees that share no prover crate:
 
 - `crates/stable/` (packages `stable_*`): the reference prover. Plain, portable, safe code, as short as the protocol allows: no `core::arch` but the one scalar carry-less multiply, no `cfg(target_feature)`, no uninitialized buffers, no non-temporal stores, no per-machine tuning. It is slower than experimental, and that is accepted; an optimization enters it only where leaving it out costs a whole-proof factor and the simple form of it stays short.
 - `crates/experimental/` (packages `experimental_*`): the optimized prover, where performance work lands first. The conventions below about NEON, AVX-512, streaming stores and the like are about this tree.
 
-Both prove the same protocol and give the same proof bytes, pinned by `bins/leanvm/tests/identical_proofs.rs`; a protocol change lands in both trees, the three verifiers and `formal/`, while an optimization lands in experimental alone. Only `crates/verifier` (the protocol) and `crates/bench` (the harness) are shared. `formal/`'s Rust helpers build against the experimental tree. Within a tree, crates name each other through Cargo renames (`pcs = { package = "stable_pcs", path = "../pcs" }`), so sources say `pcs::`; an integration test reaches its own crate with `extern crate stable_pcs as pcs;`, and a doctest names it in full. Each tree holds, in dependency order, leaves first:
+Both prove the same protocol and give the same proof bytes, pinned by `bins/leanvm/tests/identical_proofs.rs`; a protocol change lands in both trees, the three verifiers and `formal/`, while an optimization lands in experimental alone. What is not prover code exists once and depends on neither tree (table below), the guest included (`guests/lean_ethereum.py`). `formal/`'s Rust helpers build against the stable tree, but for `whir-fold-table`, which exports the WHIR security search that only experimental's `pcs` keeps (stable reads the verifier's table). Within a tree, crates name each other through Cargo renames (`pcs = { package = "stable_pcs", path = "../pcs" }`), so sources say `pcs::`; an integration test reaches its own crate with `extern crate stable_pcs as pcs;`, and a doctest names it in full. The shared crates, leaves first:
+
+| crate             | role                                                                   |
+| ----------------- | ---------------------------------------------------------------------- |
+| `verifier`        | the one native verifier (below), and the field `E`/`K` the others take their words from |
+| `keccak`          | portable Keccak-256, for the crates below (each tree has its own, faster one) |
+| `isa`             | the instruction set: `Op`, the hints, `CompiledProgram`, the `KECCAK` cell counts |
+| `lean_compiler`   | zkDSL → ISA; its tests run the stable prover                           |
+| `lean_xmss`       | leanXMSS over Keccak-256                                               |
+| `lean_sphincs`    | leanSPHINCS over Keccak-256                                            |
+| `bench`           | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output, the jemalloc allocator); never linked by a prover |
+
+Each tree holds, in dependency order, leaves first:
 
 | crate             | role                                                                   |
 | ----------------- | ---------------------------------------------------------------------- |
@@ -32,17 +44,12 @@ Both prove the same protocol and give the same proof bytes, pinned by `bins/lean
 | `fiat_shamir`     | the duplex sponge transcript and the prover's side of the proof transport |
 | `pcs`             | additive NTT, Merkle, ring switch, stacked WHIR: commit and open, no verifier |
 | `keccak_gkr`      | the prover of the VM's `KECCAK` argument                               |
-| `leanvm_core`     | arithmetization: tables, bus, constraints, `cpu::prove`; `cpu::verify` wraps `verifier` |
-| `lean_compiler`   | zkDSL → ISA                                                            |
-| `lean_xmss`       | leanXMSS over Keccak-256                                               |
-| `lean_sphincs`    | leanSPHINCS over Keccak-256                                            |
+| `leanvm_core`     | arithmetization: tables, bus, constraints, `cpu::prove`; `cpu::verify` wraps `verifier`; `cpu::Program` from a `CompiledProgram` |
 | `lean_da`         | additive Reed-Solomon blob encoding, commitments, membership vectors   |
-| `rec_aggregation` | recursive signature and DA aggregation: the guest and public entry points |
+| `rec_aggregation` | recursive signature and DA aggregation: the guest's witness and public entry points |
 | `leanvm`          | the public API                                                         |
 
-and the shared crates are `verifier`, the one native verifier (below), and `bench`, the benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output, the jemalloc allocator), never linked by a prover.
-
-Paths below such as `crates/leanvm` or `crates/rec_aggregation/guests/` mean the crate in either tree. `crates/leanvm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/leanvm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. Guests are zkDSL under `crates/rec_aggregation/guests/`. The CLI is `bins/leanvm`, run with `cargo leanvm [--prover stable|experimental] <subcommand>` (`aggregate`, `recursion`, `fibonacci`, `hash`; experimental by default), each prover driving its own copy of the benchmarks.
+Paths below such as `crates/leanvm` mean the crate in either tree. `crates/leanvm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/leanvm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. The guest is zkDSL, `guests/lean_ethereum.py`. The CLI is `bins/leanvm`, run with `cargo leanvm [--prover stable|experimental] <subcommand>` (`aggregate`, `recursion`, `fibonacci`, `hash`; experimental by default), each prover driving its own copy of the benchmarks.
 
 ## Building and testing
 
@@ -105,7 +112,7 @@ The verification algorithm is written out three times, and any change to the pro
 
 1. **Rust**, `crates/verifier`: the one native verifier, what `AggregateProof::verify` and `cpu::verify` run. It must stay portable by construction: no dependencies, no `unsafe`, no `core::arch`, no `cfg(target_arch)`, no threads. Pinned by `leanvm_core/tests/verifiers/portable_verifier.rs` and every test that verifies.
 2. **Lean**, `formal/Statement/LeanVmVerifier.lean`: the reference for reading, and the trusted statement the knowledge-soundness proof in `formal/` is about. Pinned against the Rust by `formal/`'s differential tests (`formal/check-all.sh vectors`: the verifier fuzz, the wire encoding, the prover), which CI runs on every change to `crates/`.
-3. **Recursive**, `crates/rec_aggregation/guests/lean_ethereum.py`: zkDSL, so proving its execution gives a proof of child proofs. Its size and instruction mix are what the recursion benchmark reports first.
+3. **Recursive**, `guests/lean_ethereum.py`: zkDSL, so proving its execution gives a proof of child proofs. Its size and instruction mix are what the recursion benchmark reports first.
 
 The prover's crates contain no verifier, in tests either: a prover test checks against a reference, and a test that needs a verdict goes through `crates/verifier`.
 
