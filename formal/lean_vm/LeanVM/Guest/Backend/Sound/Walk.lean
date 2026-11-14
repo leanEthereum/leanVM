@@ -393,6 +393,18 @@ theorem SpecAt.withSub {m : P α} {Q : α → Prop}
   exact ⟨ops, ho, hs, hl, ht, fun pos N kj kret khalt hH hF hp hsem =>
     hf pos N kj kret khalt ⟨hH, hl.trans hF⟩ hF hp hsem⟩
 
+/-- A last step that only teaches the pools an entry the facts so far justify. -/
+theorem SpecAt.learn {g : St → St} {Q : Prop} (ho : (g st).out = st.out)
+    (hl : (g st).locs = st.locs) (ht : Same st (g st))
+    (hsc : H → PoolOK Γ.L fp st.scope → PoolOK Γ.L fp (g st).scope) (hq : H → Q) :
+    SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st (modify g) (fun _ => Q) :=
+  wp_modify.mpr ((Emits.frame ho hl ht fun h _ hp => hsc h hp).imp fun h _ _ _ => hq h)
+
+/-- A last step with a guarantee, the facts so far known. -/
+theorem SpecAt.lastH {m : P α} {Q₁ Q₂ : α → Prop} (hm : Spec Γ fp F ctx m Q₁)
+    (hq : ∀ a, H → Q₁ a → Q₂ a) : SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st m Q₂ :=
+  SpecAt.last hm hq
+
 /-- A weaker postcondition. -/
 theorem SpecAt.mono {m : P α} {Q Q' : α → Prop}
     (h : SpecAt (Γ := Γ) (fp := fp) (F := F) H ctx st m Q) (hq : ∀ a, H → Q a → Q' a) :
