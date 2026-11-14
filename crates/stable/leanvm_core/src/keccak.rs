@@ -17,7 +17,6 @@
 //! the lanes the VM reads, and the output is the permutation's, written as it is.
 
 use crate::transcript::ProverState;
-use keccak_gkr::witness::{BLOCK, block_lanes};
 use keccak_gkr::{Openings, OutputClaim, Shape, Witness};
 use primitives::field::{F64, F128};
 use primitives::hash::STATE_LANES;
@@ -120,7 +119,7 @@ pub(crate) fn permute_cells(cells: &[F128; STATE_CELLS], in_odd: bool, out_odd: 
 /// What the reduction needs beside the committed column.
 ///
 /// Its witness, every round's state of every step, is rebuilt from the column's input states.
-/// Held from the run instead, it would sit beside the bus's trees, at the prover's peak.
+/// Held from the witness build instead, it would sit beside the bus's trees, at the prover's peak.
 pub(crate) struct Reduction {
     shape: Shape,
     steps: usize,
@@ -135,87 +134,20 @@ impl Reduction {
     }
 }
 
-/// The committed lanes of the steps a program ran, built while it ran: every block of steps,
-/// slot after slot.
-pub(crate) struct Blocks {
-    lanes: Vec<Vec<u64>>,
-    steps: usize,
-}
-
-/// Run `run`, which reports the lanes of each step it executes, and compute the committed lanes
-/// behind it: executing is one thread's work, so the others take each block of steps as it
-/// completes instead of waiting for the last.
-pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LANES])) -> R) -> (R, Blocks) {
-    type Job = (usize, Vec<[u64; STATE_LANES]>);
-    let (jobs, queue) = std::sync::mpsc::channel::<Job>();
-    let queue = std::sync::Mutex::new(queue);
-    // More workers than this slow the executing thread by more than they finish early.
-    let workers = parallel::num_threads() / 2;
-    let (result, lanes, steps) = std::thread::scope(|scope| {
-        let handles: Vec<_> = (0..workers)
-            .map(|_| {
-                scope.spawn(|| {
-                    let mut done = Vec::new();
-                    loop {
-                        let job = queue.lock().expect("a worker panicked").recv();
-                        let Ok((g, steps)) = job else { break };
-                        done.push((g, block_lanes(DEPTH, &steps)));
-                    }
-                    done
-                })
-            })
-            .collect();
-
-        let mut inline = Vec::new();
-        let mut pending = Vec::with_capacity(BLOCK);
-        let mut blocks = 0;
-        let mut steps = 0;
-        let mut dispatch = |pending: &mut Vec<[u64; STATE_LANES]>, last: bool| {
-            let block = std::mem::replace(pending, Vec::with_capacity(BLOCK));
-            if workers == 0 || last {
-                inline.push((blocks, block_lanes(DEPTH, &block)));
-            } else {
-                jobs.send((blocks, block)).expect("the workers outlive the run");
-            }
-            blocks += 1;
-        };
-        let result = run(&mut |state| {
-            pending.push(*state);
-            steps += 1;
-            if pending.len() == BLOCK {
-                dispatch(&mut pending, false);
-            }
-        });
-        if !pending.is_empty() {
-            dispatch(&mut pending, true);
-        }
-        drop(jobs);
-        let mut lanes = inline;
-        for handle in handles {
-            lanes.extend(handle.join().expect("a witness worker panicked"));
-        }
-        lanes.sort_unstable_by_key(|&(g, _)| g);
-        let lanes = lanes.into_iter().map(|(_, lanes)| lanes).collect();
-        (result, lanes, steps)
-    });
-    (result, Blocks { lanes, steps })
-}
-
-impl Blocks {
-    /// Write the committed states of the `steps` steps these blocks hold, padded with
-    /// all-zero steps. `q_keccak` is the states' part of the committed block, its first [`SLOTS`]
-    /// slots: the spare slots past them belong to the columns that ride there and are written by
-    /// their own fill.
-    pub(crate) fn place(self, steps: usize, q_keccak: &mut [F64]) -> Reduction {
-        assert_eq!(self.steps, steps, "the blocks are of another run");
-        let shape = shape(self.steps);
-        assert_eq!(
-            q_keccak.len(),
-            shape.slots() * shape.n(),
-            "the committed states are the wrong size"
-        );
-        Witness::write_committed(shape, &self.lanes, q_keccak);
-        Reduction { shape, steps }
+/// Write the committed states of the steps `inputs`, padded with all-zero steps, into `q_keccak`, the states'
+/// part of the committed block, its first [`SLOTS`] slots: the spare slots past them belong to the columns that
+/// ride there and are written by their own fill.
+pub(crate) fn place(inputs: &[[u64; STATE_LANES]], q_keccak: &mut [F64]) -> Reduction {
+    let shape = shape(inputs.len());
+    assert_eq!(
+        q_keccak.len(),
+        shape.slots() * shape.n(),
+        "the committed states are the wrong size"
+    );
+    Witness::generate(shape, inputs, q_keccak);
+    Reduction {
+        shape,
+        steps: inputs.len(),
     }
 }
 
@@ -242,22 +174,16 @@ mod tests {
             .collect()
     }
 
-    /// The lanes committed behind a run, and the witness rebuilt from them, are what a single
-    /// pass over its steps builds: the same committed column and the same reduction, whether the steps fill whole blocks, leave a
-    /// partial one, or leave blocks of the batch with no step at all.
+    /// The witness the reduction rebuilds from the committed column proves as the one built in one pass, whether
+    /// the steps fill whole blocks, leave a partial one, or leave blocks of the batch with no step at all.
     #[test]
-    fn blocks_built_while_executing_match_one_pass() {
+    fn rebuilt_witness_matches_one_pass() {
         for n in [0, 1, 511, 512, 513, 1500, 4099] {
             let instances = sample_instances(n);
             let (expected, reference) = build_qkeccak(&instances);
-            let ((), blocks) = while_executing(|step| {
-                for state in &instances {
-                    step(state);
-                }
-            });
             let mut q_keccak = vec![f(0xdead_beef); expected.len()];
             let states = SLOTS * (1 << n_steps_log(n));
-            let witness = blocks.place(n, &mut q_keccak[..states]);
+            let witness = place(&instances, &mut q_keccak[..states]);
             assert_eq!(q_keccak[..states], expected[..states], "{n} steps");
             // What the columns riding the spare slots left there is none of the reduction's
             // business, but both openings fold it, so the two runs have to see the same.

@@ -39,25 +39,18 @@ impl Execution {
     }
 }
 
-/// `log2` of the cells a [`Memory`] page holds.
-const PAGE_LOG: usize = 16;
-const PAGE: usize = 1 << PAGE_LOG;
-
 /// A cell's write state. A cell not `Written` holds ZERO; a `DEREF` between two
 /// unwritten cells links them, and a write to either reaches the other at once.
 #[derive(Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
 enum State {
-    Unwritten = 0,
+    Unwritten,
     Linked,
     Written,
 }
 
 /// One cell: its word, its access count as an exponent (the column holds `g^count`),
-/// and its write state, side by side so one access touches one line. All zero is an
-/// unwritten cell holding ZERO, never accessed.
+/// and its write state.
 #[derive(Clone, Copy)]
-#[repr(C)]
 pub(crate) struct Cell {
     pub(crate) word: F128,
     pub(crate) count: u32,
@@ -72,11 +65,10 @@ impl Cell {
     };
 }
 
-/// The write-once data memory: `len` cells, a power of two, in pages, so that the
-/// image grows without moving what it holds. Cells past the last page are unwritten
-/// and never accessed.
+/// The write-once data memory: `len` cells, a power of two. Cells past those the run
+/// touched are unwritten and never accessed.
 pub struct Memory {
-    pages: Vec<Box<[Cell]>>,
+    cells: Vec<Cell>,
     len: usize,
 }
 
@@ -92,16 +84,12 @@ impl Memory {
 
     /// The word in cell `i`.
     pub fn word(&self, i: usize) -> F128 {
-        self.page(i >> PAGE_LOG).map_or(F128::ZERO, |p| p[i & (PAGE - 1)].word)
+        self.cell(i).word
     }
 
-    /// Page `p`'s cells, `None` past the last one.
-    pub(crate) fn page(&self, p: usize) -> Option<&[Cell]> {
-        self.pages.get(p).map(|p| &p[..])
-    }
-
-    pub(crate) fn page_log() -> usize {
-        PAGE_LOG
+    /// Cell `i`.
+    pub(crate) fn cell(&self, i: usize) -> Cell {
+        self.cells.get(i).copied().unwrap_or(Cell::UNWRITTEN)
     }
 }
 
@@ -219,8 +207,7 @@ fn in_k(what: &'static str, v: F128) -> Result<F64, Fault> {
     v.as_base().ok_or(Fault::NotInK { what, value: v })
 }
 
-/// A named witness stream and the next entry `hint_witness` pops from it. Resolved
-/// once per run, so a pop indexes it rather than hashing its name.
+/// A named witness stream and the next entry `hint_witness` pops from it.
 struct Stream<'a> {
     name: &'a str,
     entries: Option<&'a [Vec<F128>]>,
@@ -228,6 +215,15 @@ struct Stream<'a> {
 }
 
 impl<'a> Stream<'a> {
+    /// Stream `name` of `witness`, at its first entry.
+    fn new(witness: &'a HashMap<String, Vec<Vec<F128>>>, name: &'a str) -> Self {
+        Self {
+            name,
+            entries: witness.get(name).map(Vec::as_slice),
+            next: 0,
+        }
+    }
+
     fn pop(&mut self, len: u32) -> Result<&'a [F128], Fault> {
         let name = self.name;
         let entries = self
@@ -259,16 +255,6 @@ impl Program {
     /// Compilation yields the `Program`; executing it (here) and proving it are
     /// separate later phases.
     pub fn execute(&self, public_input: [F128; 2]) -> Result<Execution, ExecError> {
-        self.execute_with(public_input, &mut |_| {})
-    }
-
-    /// [`Self::execute`], handing `keccak_step` the lanes each `KECCAK` row reads, in row order
-    /// and as the row runs.
-    pub(crate) fn execute_with(
-        &self,
-        public_input: [F128; 2],
-        keccak_step: &mut dyn FnMut(&[u64; primitives::hash::STATE_LANES]),
-    ) -> Result<Execution, ExecError> {
         use super::hints::{BitsDest, GPow, RHint};
 
         let ending_pc = (self.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
@@ -283,8 +269,7 @@ impl Program {
         // The write-once data memory, each cell's access count and write state with its word.
         let n0 = self.main_frame.max(2) as usize;
         let mut m = Mem {
-            pages: Vec::new(),
-            used: 0,
+            cells: Vec::new(),
             counts: 0,
             links: HashMap::new(),
             unwritten_reads: Vec::new(),
@@ -303,35 +288,12 @@ impl Program {
         let mut next_free = self.main_frame;
         let (mut pc, mut fp) = (0u32, 0u32);
         let mut steps = 0usize;
-        // Witness streams, resolved by name once so a pop indexes one.
-        let mut streams: Vec<Stream> = Vec::new();
-        let mut stream_of: HashMap<&str, u32> = HashMap::new();
-        // Per-pc hint index. `self.hints` is keyed by pc, so probing it each step
-        // costs a hash of the counter for what is almost always a miss; the
-        // program has one bytecode slot per pc, so flatten the map into a dense
-        // table: 0 = no hints, otherwise the 1-based index into `hint_lists`, whose
-        // entries pair a pc's hints with where their streams start in `hint_streams`.
-        let mut hint_at = vec![0u32; self.prog.len()];
-        let mut hint_lists: Vec<(&[RHint], usize)> = Vec::with_capacity(self.hints.len());
-        let mut hint_streams: Vec<u32> = Vec::new();
+        // Witness streams by name, each with its next entry.
+        let mut streams: HashMap<&str, Stream> = HashMap::new();
+        // Each pc's hints, indexed by pc: a map lookup on every step costs more than most steps.
+        let mut hints: Vec<&[RHint]> = vec![&[]; self.prog.len()];
         for (&hpc, hs) in &self.hints {
-            hint_lists.push((hs.as_slice(), hint_streams.len()));
-            hint_at[hpc as usize] = hint_lists.len() as u32;
-            for h in hs {
-                let (RHint::WitnessStack { name, .. } | RHint::WitnessHeap { name, .. }) = h else {
-                    hint_streams.push(u32::MAX);
-                    continue;
-                };
-                let s = *stream_of.entry(name).or_insert_with(|| {
-                    streams.push(Stream {
-                        name,
-                        entries: self.witness.get(name).map(Vec::as_slice),
-                        next: 0,
-                    });
-                    streams.len() as u32 - 1
-                });
-                hint_streams.push(s);
-            }
+            hints[hpc as usize] = hs;
         }
         // `DBG_PROF=1`: per-pc step counts, printed as a per-function cycle
         // profile after the run (needs `fn_ranges`, i.e. a compiled program).
@@ -339,20 +301,17 @@ impl Program {
 
         // Per-opcode trace rows, accumulated during the walk and assembled into the
         // `Trace` once the run finishes (alongside the final count columns).
-        let mut xor: Rows<Xrow> = Rows::new();
-        let mut mul: Rows<Xrow> = Rows::new();
-        let mut set: Rows<Srow> = Rows::new();
-        let mut deref: Rows<Drow> = Rows::new();
-        let mut jump: Rows<Jrow> = Rows::new();
-        let mut keccak: Rows<Krow> = Rows::new();
+        let mut xor: Vec<Xrow> = Vec::new();
+        let mut mul: Vec<Xrow> = Vec::new();
+        let mut set: Vec<Srow> = Vec::new();
+        let mut deref: Vec<Drow> = Vec::new();
+        let mut jump: Vec<Jrow> = Vec::new();
+        let mut keccak: Vec<Krow> = Vec::new();
 
-        // The memory's pages, grown as the run reaches them. Every method on the hot
-        // path is `#[inline(always)]`: they sit in the interpreter's opcode loop.
+        // The memory, grown as the run reaches it.
         struct Mem<'a> {
-            pages: Vec<Box<[Cell]>>,
-            /// One past the highest cell accessed or reserved: every cell below it is
-            /// in a page.
-            used: usize,
+            /// Every cell up to the highest accessed or reserved.
+            cells: Vec<Cell>,
             /// The highest access count any cell reached.
             counts: u32,
             /// The cells a `DEREF` linked each cell to.
@@ -363,55 +322,31 @@ impl Program {
             program: &'a Program,
             /// The pc of the currently executing instruction, and the name of the
             /// computed-advice hint if the write comes from one, so a write-once
-            /// conflict can report where it happened. Plain fields rather than
-            /// thread-locals: this is written on every step, and a thread-local
-            /// costs a lazy-init check each time.
+            /// conflict can report where it happened.
             dbg_pc: u32,
             dbg_hint: Option<&'static str>,
         }
         impl Mem<'_> {
-            // Cover cell `idx`. All accessed cells satisfy cell < next_free after
-            // their frame's allocation, so this only ever extends.
-            #[inline(always)]
+            // Cover cell `idx`.
             fn ensure(&mut self, idx: usize) {
-                if idx >= self.used {
-                    self.grow(idx);
-                }
-            }
-            #[cold]
-            #[inline(never)]
-            fn grow(&mut self, idx: usize) {
-                self.used = idx + 1;
-                while self.pages.len() <= idx >> PAGE_LOG {
-                    // SAFETY: all zero is a valid `Cell`, the unwritten one.
-                    self.pages
-                        .push(unsafe { Box::<[Cell]>::new_zeroed_slice(PAGE).assume_init() });
+                if idx >= self.cells.len() {
+                    self.cells.resize(idx + 1, Cell::UNWRITTEN);
                 }
             }
             /// Cell `c`, which `ensure` has covered.
-            #[inline(always)]
             fn at(&mut self, c: u32) -> &mut Cell {
-                let c = c as usize;
-                &mut self.pages[c >> PAGE_LOG][c & (PAGE - 1)]
+                &mut self.cells[c as usize]
             }
-            #[inline(always)]
-            fn covered(&self, c: u32) -> Option<&Cell> {
-                let c = c as usize;
-                (c < self.used).then(|| &self.pages[c >> PAGE_LOG][c & (PAGE - 1)])
-            }
-            #[inline(always)]
             fn written(&self, cell: u32) -> bool {
-                self.covered(cell).is_some_and(|c| c.state == State::Written)
+                self.cells.get(cell as usize).is_some_and(|c| c.state == State::Written)
             }
             // A hint's read, which writes nothing: what a hint computes is advice the
             // instructions go on to check.
-            #[inline(always)]
             fn get(&self, cell: u32) -> F128 {
-                self.covered(cell).map_or(F128::ZERO, |c| c.word)
+                self.cells.get(cell as usize).map_or(F128::ZERO, |c| c.word)
             }
             // An instruction's read. An unwritten cell reads as ZERO, which is then written
             // there: the row is filled from the final image, which has to agree.
-            #[inline(always)]
             fn read(&mut self, cell: u32) -> F128 {
                 self.ensure(cell as usize);
                 let c = self.at(cell);
@@ -423,7 +358,6 @@ impl Program {
                 word
             }
             // Write-once store, carried to every cell linked to this one.
-            #[inline(always)]
             fn put(&mut self, cell: u32, v: F128) -> Result<(), ExecError> {
                 if self.store(cell, v)? {
                     self.spread(cell, v)?;
@@ -431,7 +365,6 @@ impl Program {
                 Ok(())
             }
             // `put` on one cell; whether it was linked.
-            #[inline(always)]
             fn store(&mut self, cell: u32, v: F128) -> Result<bool, ExecError> {
                 self.ensure(cell as usize);
                 let c = self.at(cell);
@@ -477,7 +410,6 @@ impl Program {
             }
             // Read the running access count and advance it: the column's `×g`, on the
             // exponent. A run makes fewer than `2^32` accesses in all, so it cannot wrap.
-            #[inline(always)]
             fn bump_access_count(&mut self, cell: u32) -> u32 {
                 self.ensure(cell as usize);
                 let c = self.at(cell);
@@ -534,235 +466,237 @@ impl Program {
             }
 
             // Apply the hints scheduled before this instruction.
-            if hint_at[pc as usize] != 0 {
-                let (hs, first) = hint_lists[hint_at[pc as usize] as usize - 1];
-                for (h, &stream) in hs.iter().zip(&hint_streams[first..]) {
-                    m.dbg_hint = Some(match h {
-                        RHint::FrameAddress { .. } => "FrameAddress",
-                        RHint::AllocFrames { .. } => "AllocFrames",
-                        RHint::Alloc { .. } => "Alloc",
-                        RHint::AllocDyn { .. } => "AllocDyn",
-                        RHint::WitnessStack { .. } => "WitnessStack",
-                        RHint::WitnessHeap { .. } => "WitnessHeap",
-                        RHint::Log2Ceil { .. } => "Log2Ceil",
-                        RHint::BitDecompose { .. } => "BitDecompose",
-                        RHint::BitDecomposeExp { .. } => "BitDecomposeExp",
-                        RHint::DigitDecomposeExp { .. } => "DigitDecomposeExp",
-                        RHint::WindowsExp { .. } => "WindowsExp",
-                        RHint::FieldLimbs { .. } => "FieldLimbs",
-                        RHint::Inverse { .. } => "Inverse",
-                        RHint::Print { .. } => "Print",
-                    });
-                    match h {
-                        RHint::FrameAddress { offset } => {
-                            g.note(at(fp, *offset)? as usize);
-                        }
-                        // A fresh region: write its base `g^{next_free}` into the
-                        // pointer cell (once) and reserve `size` cells. `AllocDyn`
-                        // reads the size from a cell at runtime.
-                        RHint::Alloc { .. } | RHint::AllocDyn { .. } | RHint::AllocFrames { .. } => {
-                            let (ptr, size) = match *h {
-                                RHint::Alloc { ptr, size } => (ptr, size),
-                                RHint::AllocFrames {
-                                    ptr,
-                                    size,
-                                    end,
-                                    start_inverse,
-                                    tail,
-                                } => {
-                                    let span = in_k("loop bound", m.get(fp + end)).map_err(fail)? * start_inverse;
-                                    if span.is_zero() {
-                                        return Err(fail(Fault::NotAGPower {
-                                            what: "loop bound",
-                                            value: span,
-                                        }));
-                                    }
-                                    let n = g.log(span).ok_or_else(|| {
-                                        fail(Fault::NotAGPower {
-                                            what: "loop bound",
-                                            value: span,
-                                        })
-                                    })?;
-                                    let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
-                                    (ptr, cells.ok_or_else(|| fail(Fault::OutOfMemory))?)
+            for h in hints[pc as usize] {
+                m.dbg_hint = Some(match h {
+                    RHint::FrameAddress { .. } => "FrameAddress",
+                    RHint::AllocFrames { .. } => "AllocFrames",
+                    RHint::Alloc { .. } => "Alloc",
+                    RHint::AllocDyn { .. } => "AllocDyn",
+                    RHint::WitnessStack { .. } => "WitnessStack",
+                    RHint::WitnessHeap { .. } => "WitnessHeap",
+                    RHint::Log2Ceil { .. } => "Log2Ceil",
+                    RHint::BitDecompose { .. } => "BitDecompose",
+                    RHint::BitDecomposeExp { .. } => "BitDecomposeExp",
+                    RHint::DigitDecomposeExp { .. } => "DigitDecomposeExp",
+                    RHint::WindowsExp { .. } => "WindowsExp",
+                    RHint::FieldLimbs { .. } => "FieldLimbs",
+                    RHint::Inverse { .. } => "Inverse",
+                    RHint::Print { .. } => "Print",
+                });
+                match h {
+                    RHint::FrameAddress { offset } => {
+                        g.note(at(fp, *offset)? as usize);
+                    }
+                    // A fresh region: write its base `g^{next_free}` into the
+                    // pointer cell (once) and reserve `size` cells. `AllocDyn`
+                    // reads the size from a cell at runtime.
+                    RHint::Alloc { .. } | RHint::AllocDyn { .. } | RHint::AllocFrames { .. } => {
+                        let (ptr, size) = match *h {
+                            RHint::Alloc { ptr, size } => (ptr, size),
+                            RHint::AllocFrames {
+                                ptr,
+                                size,
+                                end,
+                                start_inverse,
+                                tail,
+                            } => {
+                                let span = in_k("loop bound", m.get(fp + end)).map_err(fail)? * start_inverse;
+                                if span.is_zero() {
+                                    return Err(fail(Fault::NotAGPower {
+                                        what: "loop bound",
+                                        value: span,
+                                    }));
                                 }
-                                // A runtime size is carried in the exponent:
-                                // the cell holds g^k, allocate k cells.
-                                RHint::AllocDyn { ptr, size } => {
-                                    let sz = in_k("HeapBuf size", m.get(fp + size)).map_err(fail)?;
-                                    let cells = g.log(sz).ok_or_else(|| {
-                                        fail(Fault::NotAGPower {
-                                            what: "HeapBuf size",
-                                            value: sz,
-                                        })
-                                    })?;
-                                    (ptr, cells)
-                                }
-                                _ => unreachable!(),
-                            };
-                            let cell = fp + ptr;
-                            if !m.written(cell) {
-                                let base = next_free;
-                                next_free = at(base, size)?;
-                                g.grow_to(next_free as usize);
-                                // The base is about to become a pointer in memory.
-                                g.note(base as usize);
-                                if next_free > base {
-                                    m.ensure(next_free as usize - 1);
-                                }
-                                m.put(cell, F128::from(g.pow(base as usize)))?;
+                                let n = g.log(span).ok_or_else(|| {
+                                    fail(Fault::NotAGPower {
+                                        what: "loop bound",
+                                        value: span,
+                                    })
+                                })?;
+                                let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
+                                (ptr, cells.ok_or_else(|| fail(Fault::OutOfMemory))?)
                             }
-                        }
-                        RHint::Print { label, cell } => {
-                            let c = fp + cell;
-                            if m.written(c) {
-                                let v = m.get(c);
-                                // Small integers and small g-powers overlap (8 = x^3
-                                // = g^3): show every reading that applies. Only a
-                                // K-valued word (extension limb 0) can be a g-power. Read
-                                // without growing the address table.
-                                let k = v.as_base().and_then(|lo| bounded_dlog(lo, MAX_INDEX.ilog2()));
-                                let small = v.as_base().is_some_and(|lo| lo.0 < 1 << 32);
-                                match (k, small) {
-                                    (Some(k), true) => eprintln!(
-                                        "[print] {label} = {} (g^{})",
-                                        pretty_integer(v.c0),
-                                        pretty_integer(k)
-                                    ),
-                                    (Some(k), false) => {
-                                        eprintln!("[print] {label} = g^{}", pretty_integer(k))
-                                    }
-                                    (None, true) => {
-                                        eprintln!("[print] {label} = {}", pretty_integer(v.c0))
-                                    }
-                                    (None, false) => {
-                                        eprintln!("[print] {label} = {:#x}:{:#x}", v.c1, v.c0)
-                                    }
-                                }
-                            } else {
-                                eprintln!("[print] {label} = <unwritten>");
+                            // A runtime size is carried in the exponent:
+                            // the cell holds g^k, allocate k cells.
+                            RHint::AllocDyn { ptr, size } => {
+                                let sz = in_k("HeapBuf size", m.get(fp + size)).map_err(fail)?;
+                                let cells = g.log(sz).ok_or_else(|| {
+                                    fail(Fault::NotAGPower {
+                                        what: "HeapBuf size",
+                                        value: sz,
+                                    })
+                                })?;
+                                (ptr, cells)
                             }
-                        }
-                        RHint::WitnessStack { base, len, .. } => {
-                            let values = streams[stream as usize].pop(*len).map_err(fail)?;
-                            for (k, &value) in values.iter().enumerate() {
-                                m.put(fp + base + k as u32, value)?;
+                            _ => unreachable!(),
+                        };
+                        let cell = fp + ptr;
+                        if !m.written(cell) {
+                            let base = next_free;
+                            next_free = at(base, size)?;
+                            g.grow_to(next_free as usize);
+                            // The base is about to become a pointer in memory.
+                            g.note(base as usize);
+                            if next_free > base {
+                                m.ensure(next_free as usize - 1);
                             }
-                        }
-                        RHint::WitnessHeap { ptr, lo, len, .. } => {
-                            let b = heap_base(&m, &mut g, fp + ptr, "hint_witness heap pointer").map_err(fail)?;
-                            let values = streams[stream as usize].pop(*len).map_err(fail)?;
-                            for (k, &value) in values.iter().enumerate() {
-                                m.put(b + lo + k as u32, value)?;
-                            }
-                        }
-                        RHint::Log2Ceil {
-                            bits,
-                            dst,
-                            nbits,
-                            floor,
-                        } => {
-                            let b = bits_base(&m, &mut g, fp, *bits, "log2_ceil pointer").map_err(fail)?;
-                            let mut word: u128 = 0;
-                            for j in 0..*nbits {
-                                if !m.get(b + j).is_zero() {
-                                    word |= 1u128 << j;
-                                }
-                            }
-                            let cl = if word <= 1 {
-                                0
-                            } else {
-                                u128::BITS - (word - 1).leading_zeros()
-                            };
-                            let mu = cl.max(*floor);
-                            m.put(fp + dst, F128::from(primitives::field::g_pow(mu as usize)))?;
-                        }
-                        RHint::BitDecompose { value, bits, nbits } => {
-                            assert!(*nbits <= 128, "a machine word has 128 bits");
-                            let v = u128::from(m.get(fp + value));
-                            let bb = bits_base(&m, &mut g, fp, *bits, "decompose pointer").map_err(fail)?;
-                            for j in 0..*nbits {
-                                m.put(bb + j, F128::from((v >> j) & 1))?;
-                            }
-                        }
-                        RHint::BitDecomposeExp { value, bits, nbits } => {
-                            const WHAT: &str = "hint_decompose_bits_exponent value";
-                            let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
-                            let n = bounded_dlog(x, *nbits)
-                                .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
-                            let bb = bits_base(&m, &mut g, fp, *bits, "hint_decompose_bits_exponent pointer")
-                                .map_err(fail)?;
-                            for j in 0..*nbits {
-                                let bit = ((n >> j) & 1) as u64;
-                                m.put(bb + j, F128::new(bit, 0))?;
-                            }
-                        }
-                        RHint::WindowsExp {
-                            value,
-                            dest,
-                            at,
-                            start,
-                            width,
-                            count,
-                        } => {
-                            assert!(start + width * count <= 128, "a machine word has 128 bits");
-                            let v = u128::from(m.get(fp + value));
-                            let bb = bits_base(&m, &mut g, fp, *dest, "windows pointer").map_err(fail)?;
-                            for i in 0..*count {
-                                let mut n = 0usize;
-                                for j in 0..*width {
-                                    n |= (((v >> (start + i * width + j)) & 1) as usize) << j;
-                                }
-                                m.put(bb + at + i, F128::from(primitives::field::g_pow(n)))?;
-                            }
-                        }
-                        RHint::DigitDecomposeExp {
-                            value,
-                            dst,
-                            nbits,
-                            ndigits,
-                            digit_bits,
-                            start,
-                            start_cell,
-                        } => {
-                            const WHAT: &str = "hint_decompose_digits_exponent value";
-                            let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
-                            let n = bounded_dlog(x, *nbits)
-                                .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
-                            let s = match start_cell {
-                                None => *start,
-                                Some(c) => {
-                                    const WHAT: &str = "hint_decompose_digits_exponent start";
-                                    let y = in_k(WHAT, m.get(fp + c)).map_err(fail)?;
-                                    bounded_dlog(y, 7)
-                                        .ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: y }))?
-                                        as u32
-                                }
-                            };
-                            let bb = bits_base(&m, &mut g, fp, *dst, "hint_decompose_digits_exponent pointer")
-                                .map_err(fail)?;
-                            let mask = (1u128 << digit_bits) - 1;
-                            for j in 0..*ndigits {
-                                let at = s + digit_bits * j;
-                                let d = if at >= 128 { 0 } else { (n >> at) & mask };
-                                m.put(bb + j, F128::from(primitives::field::g_pow(d as usize)))?;
-                            }
-                        }
-                        RHint::FieldLimbs { value, base, len } => {
-                            assert!((1..=2).contains(len), "an F128 value has two K limbs");
-                            let v = m.get(fp + value);
-                            let limbs = v.to_limbs();
-                            for j in 0..*len {
-                                m.put(fp + base + j, F128::new(limbs[j as usize], 0))?;
-                            }
-                        }
-                        RHint::Inverse { value, dst } => {
-                            let v = m.get(fp + value);
-                            m.put(fp + dst, if v.is_zero() { F128::ZERO } else { v.inv() })?;
+                            m.put(cell, F128::from(g.pow(base as usize)))?;
                         }
                     }
-                    m.dbg_hint = None;
+                    RHint::Print { label, cell } => {
+                        let c = fp + cell;
+                        if m.written(c) {
+                            let v = m.get(c);
+                            // Small integers and small g-powers overlap (8 = x^3
+                            // = g^3): show every reading that applies. Only a
+                            // K-valued word (extension limb 0) can be a g-power. Read
+                            // without growing the address table.
+                            let k = v.as_base().and_then(|lo| bounded_dlog(lo, MAX_INDEX.ilog2()));
+                            let small = v.as_base().is_some_and(|lo| lo.0 < 1 << 32);
+                            match (k, small) {
+                                (Some(k), true) => {
+                                    eprintln!("[print] {label} = {} (g^{})", pretty_integer(v.c0), pretty_integer(k))
+                                }
+                                (Some(k), false) => {
+                                    eprintln!("[print] {label} = g^{}", pretty_integer(k))
+                                }
+                                (None, true) => {
+                                    eprintln!("[print] {label} = {}", pretty_integer(v.c0))
+                                }
+                                (None, false) => {
+                                    eprintln!("[print] {label} = {:#x}:{:#x}", v.c1, v.c0)
+                                }
+                            }
+                        } else {
+                            eprintln!("[print] {label} = <unwritten>");
+                        }
+                    }
+                    RHint::WitnessStack { name, base, len } => {
+                        let values = streams
+                            .entry(name.as_str())
+                            .or_insert_with(|| Stream::new(&self.witness, name))
+                            .pop(*len)
+                            .map_err(fail)?;
+                        for (k, &value) in values.iter().enumerate() {
+                            m.put(fp + base + k as u32, value)?;
+                        }
+                    }
+                    RHint::WitnessHeap { name, ptr, lo, len } => {
+                        let b = heap_base(&m, &mut g, fp + ptr, "hint_witness heap pointer").map_err(fail)?;
+                        let values = streams
+                            .entry(name.as_str())
+                            .or_insert_with(|| Stream::new(&self.witness, name))
+                            .pop(*len)
+                            .map_err(fail)?;
+                        for (k, &value) in values.iter().enumerate() {
+                            m.put(b + lo + k as u32, value)?;
+                        }
+                    }
+                    RHint::Log2Ceil {
+                        bits,
+                        dst,
+                        nbits,
+                        floor,
+                    } => {
+                        let b = bits_base(&m, &mut g, fp, *bits, "log2_ceil pointer").map_err(fail)?;
+                        let mut word: u128 = 0;
+                        for j in 0..*nbits {
+                            if !m.get(b + j).is_zero() {
+                                word |= 1u128 << j;
+                            }
+                        }
+                        let cl = if word <= 1 {
+                            0
+                        } else {
+                            u128::BITS - (word - 1).leading_zeros()
+                        };
+                        let mu = cl.max(*floor);
+                        m.put(fp + dst, F128::from(primitives::field::g_pow(mu as usize)))?;
+                    }
+                    RHint::BitDecompose { value, bits, nbits } => {
+                        assert!(*nbits <= 128, "a machine word has 128 bits");
+                        let v = u128::from(m.get(fp + value));
+                        let bb = bits_base(&m, &mut g, fp, *bits, "decompose pointer").map_err(fail)?;
+                        for j in 0..*nbits {
+                            m.put(bb + j, F128::from((v >> j) & 1))?;
+                        }
+                    }
+                    RHint::BitDecomposeExp { value, bits, nbits } => {
+                        const WHAT: &str = "hint_decompose_bits_exponent value";
+                        let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
+                        let n =
+                            bounded_dlog(x, *nbits).ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
+                        let bb =
+                            bits_base(&m, &mut g, fp, *bits, "hint_decompose_bits_exponent pointer").map_err(fail)?;
+                        for j in 0..*nbits {
+                            let bit = ((n >> j) & 1) as u64;
+                            m.put(bb + j, F128::new(bit, 0))?;
+                        }
+                    }
+                    RHint::WindowsExp {
+                        value,
+                        dest,
+                        at,
+                        start,
+                        width,
+                        count,
+                    } => {
+                        assert!(start + width * count <= 128, "a machine word has 128 bits");
+                        let v = u128::from(m.get(fp + value));
+                        let bb = bits_base(&m, &mut g, fp, *dest, "windows pointer").map_err(fail)?;
+                        for i in 0..*count {
+                            let mut n = 0usize;
+                            for j in 0..*width {
+                                n |= (((v >> (start + i * width + j)) & 1) as usize) << j;
+                            }
+                            m.put(bb + at + i, F128::from(primitives::field::g_pow(n)))?;
+                        }
+                    }
+                    RHint::DigitDecomposeExp {
+                        value,
+                        dst,
+                        nbits,
+                        ndigits,
+                        digit_bits,
+                        start,
+                        start_cell,
+                    } => {
+                        const WHAT: &str = "hint_decompose_digits_exponent value";
+                        let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
+                        let n =
+                            bounded_dlog(x, *nbits).ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
+                        let s = match start_cell {
+                            None => *start,
+                            Some(c) => {
+                                const WHAT: &str = "hint_decompose_digits_exponent start";
+                                let y = in_k(WHAT, m.get(fp + c)).map_err(fail)?;
+                                bounded_dlog(y, 7).ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: y }))?
+                                    as u32
+                            }
+                        };
+                        let bb =
+                            bits_base(&m, &mut g, fp, *dst, "hint_decompose_digits_exponent pointer").map_err(fail)?;
+                        let mask = (1u128 << digit_bits) - 1;
+                        for j in 0..*ndigits {
+                            let at = s + digit_bits * j;
+                            let d = if at >= 128 { 0 } else { (n >> at) & mask };
+                            m.put(bb + j, F128::from(primitives::field::g_pow(d as usize)))?;
+                        }
+                    }
+                    RHint::FieldLimbs { value, base, len } => {
+                        assert!((1..=2).contains(len), "an F128 value has two K limbs");
+                        let v = m.get(fp + value);
+                        let limbs = v.to_limbs();
+                        for j in 0..*len {
+                            m.put(fp + base + j, F128::new(limbs[j as usize], 0))?;
+                        }
+                    }
+                    RHint::Inverse { value, dst } => {
+                        let v = m.get(fp + value);
+                        m.put(fp + dst, if v.is_zero() { F128::ZERO } else { v.inv() })?;
+                    }
                 }
+                m.dbg_hint = None;
             }
             // Cover the g-powers this step may index (g²·pc return target, g^fp).
             g.grow_to((pc as usize + 2).max(fp as usize));
@@ -941,7 +875,6 @@ impl Program {
                     // by the Keccak reduction, §keccak); the interpreter still computes it so
                     // the output cells are consistent for any later read.
                     let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
-                    keccak_step(&lanes);
                     primitives::hash::keccak_f(&mut lanes);
                     let written = STATE_CELLS + k.out_cells.cells();
                     let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
@@ -967,45 +900,7 @@ impl Program {
         }
 
         if let Some(p) = &prof {
-            let mut rows: Vec<(String, u64)> = self
-                .fn_ranges
-                .iter()
-                .map(|(name, entry, len)| {
-                    let total: u64 = p[*entry as usize..(*entry + *len) as usize].iter().sum();
-                    (name.clone(), total)
-                })
-                .collect();
-            rows.sort_by_key(|(_, c)| std::cmp::Reverse(*c));
-            // `DBG_PROF_DUMP=path`: also write the raw per-pc counts plus the
-            // function table, so an offline pass can attribute the straight-line
-            // cycles of one big function to its source regions (the call sites of
-            // the lowered `for` helpers are the landmarks).
-            if let Ok(path) = std::env::var("DBG_PROF_DUMP") {
-                let mut out = format!("# steps {steps}\n");
-                for (name, entry, len) in &self.fn_ranges {
-                    out += &format!("F {name} {entry} {len}\n");
-                }
-                for (pc, c) in p.iter().enumerate() {
-                    if *c > 0 {
-                        out += &format!("{pc} {c}\n");
-                    }
-                }
-                let path = if std::path::Path::new(&path).exists() {
-                    format!("{path}.{}", std::process::id())
-                } else {
-                    path
-                };
-                std::fs::write(&path, out).expect("write DBG_PROF_DUMP");
-                eprintln!("== DBG_PROF: per-pc counts written to {path}");
-            }
-            eprintln!("== DBG_PROF: cycles by function ({} total) ==", pretty_integer(steps));
-            for (name, c) in rows.iter().filter(|(_, c)| *c > 0) {
-                eprintln!(
-                    "  {:>13}  {:>7}%  {name}",
-                    pretty_integer(c),
-                    pretty_f64(100.0 * *c as f64 / steps as f64)
-                );
-            }
+            self.report_profile(p, steps);
         }
 
         let counts = bytecode_count.iter().copied().max().unwrap_or(0).max(m.counts) as usize + 1;
@@ -1021,12 +916,11 @@ impl Program {
         };
         // The memory announced: the least power of two covering every cell the run touched
         // (the boundary tables read a dense image).
-        let mem_used = m.used;
-        let cells = mem_used.next_power_of_two();
+        let mem_used = m.cells.len();
         Ok(Execution {
             mem: Memory {
-                pages: m.pages,
-                len: cells,
+                cells: m.cells,
+                len: mem_used.next_power_of_two(),
             },
             cycles: steps,
             mem_used,
@@ -1034,5 +928,47 @@ impl Program {
             trace,
             gpow: g.into_powers(),
         })
+    }
+
+    /// The `DBG_PROF=1` report: the cycles of each compiled function, from the per-pc counts `p`, and with
+    /// `DBG_PROF_DUMP=path` the raw per-pc counts plus the function table, so an offline pass can attribute the
+    /// straight-line cycles of one big function to its source regions (the call sites of the lowered `for`
+    /// helpers are the landmarks).
+    fn report_profile(&self, p: &[u64], steps: usize) {
+        let mut rows: Vec<(String, u64)> = self
+            .fn_ranges
+            .iter()
+            .map(|(name, entry, len)| {
+                let total: u64 = p[*entry as usize..(*entry + *len) as usize].iter().sum();
+                (name.clone(), total)
+            })
+            .collect();
+        rows.sort_by_key(|(_, c)| std::cmp::Reverse(*c));
+        if let Ok(path) = std::env::var("DBG_PROF_DUMP") {
+            let mut out = format!("# steps {steps}\n");
+            for (name, entry, len) in &self.fn_ranges {
+                out += &format!("F {name} {entry} {len}\n");
+            }
+            for (pc, c) in p.iter().enumerate() {
+                if *c > 0 {
+                    out += &format!("{pc} {c}\n");
+                }
+            }
+            let path = if std::path::Path::new(&path).exists() {
+                format!("{path}.{}", std::process::id())
+            } else {
+                path
+            };
+            std::fs::write(&path, out).expect("write DBG_PROF_DUMP");
+            eprintln!("== DBG_PROF: per-pc counts written to {path}");
+        }
+        eprintln!("== DBG_PROF: cycles by function ({} total) ==", pretty_integer(steps));
+        for (name, c) in rows.iter().filter(|(_, c)| *c > 0) {
+            eprintln!(
+                "  {:>13}  {:>7}%  {name}",
+                pretty_integer(c),
+                pretty_f64(100.0 * *c as f64 / steps as f64)
+            );
+        }
     }
 }

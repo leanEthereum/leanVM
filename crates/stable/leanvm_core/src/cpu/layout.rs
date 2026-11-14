@@ -342,17 +342,12 @@ pub(crate) fn bytecode_columns(prog: &[Op]) -> BytecodeColumns {
         };
         row
     };
-    // One pass writes all thirteen columns.
-    // SAFETY: the pass below writes every slot of every column.
-    let mut columns: [Vec<F64>; 1 + BYTECODE_OPERANDS] =
-        std::array::from_fn(|_| unsafe { primitives::uninit_vec(prog.len()) });
-    let dst = columns.each_mut().map(|c| parallel::SendPtr(c.as_mut_ptr()));
-    parallel::for_each(prog.len(), |i| {
-        for (column, value) in dst.iter().zip(row(&prog[i])) {
-            // SAFETY: instruction `i` writes slot `i` of each column, in bounds and once.
-            unsafe { column.add(i).write(value) };
+    let mut columns: [Vec<F64>; 1 + BYTECODE_OPERANDS] = std::array::from_fn(|_| Vec::with_capacity(prog.len()));
+    for op in prog {
+        for (column, value) in columns.iter_mut().zip(row(op)) {
+            column.push(value);
         }
-    });
+    }
     columns.map(Arc::new)
 }
 
@@ -489,8 +484,7 @@ pub(crate) fn table_logs(rows: [usize; tables::N_TABLES]) -> [usize; tables::N_T
 }
 
 impl Program {
-    /// `keccak_blocks` is what [`crate::keccak::while_executing`] built behind `exec`'s run.
-    pub(crate) fn build(&self, exec: &Execution, l: Layout, keccak_blocks: crate::keccak::Blocks) -> Witness {
+    pub(crate) fn build(&self, exec: &Execution, l: Layout) -> Witness {
         assert!(exec.mem.len().is_power_of_two());
         // The trace was emitted in the same walk as the memory image (no re-walk).
         let tr = &exec.trace;
@@ -513,25 +507,15 @@ impl Program {
         // and the verifier share it; it fixes each table's height `2^tau`, which lets every
         // column be allocated at its final length in one pass.
 
-        // The stacked witness is written exactly ONCE: allocate it, carve one window
-        // per committed column, and have every fill write its column straight into
-        // place. Copying columns in afterwards would move the whole witness a second
-        // time for no gain: nothing folds the K-columns
-        // in place, so the stack can be their only home.
-        //
-        // SAFETY: the allocation is uninitialized. `split_stack` zeroes the pad tail
-        // and hands out windows tiling the rest; `fill_table` checks that each table
-        // wrote every window it was given, and the shared columns below write theirs.
-        let mut q = unsafe { witness::alloc_stack(l.shape) };
+        // Every fill writes its column straight into its window of the stack.
+        let mut q = vec![F64::ZERO; l.shape.committed_len()];
         // An output lane is neither in the stack nor in `q_keccak`, so its values need
         // storage of their own: it carries data for the bus. Every other column `q_keccak`
         // carries ([`Witness::columns`]) is filled through the slot window handed out below.
         let steps = 1 << l.taus[tables::KECCAK_TABLE];
         let mut virt: Vec<(usize, Vec<F64>)> = (0..sch.n)
             .filter(|&i| matches!(keccak_value(i), Some(KeccakLane::Output(_))))
-            // SAFETY: `FillCtx::cols_at` writes every row of every window it is given, and
-            // `fill_table` asserts each table wrote all of its windows.
-            .map(|i| (i, unsafe { primitives::uninit_vec::<F64>(steps) }))
+            .map(|i| (i, vec![F64::ZERO; steps]))
             .collect();
         let mut windows = witness::split_stack(&mut q, &l.placements);
         for (i, buf) in virt.iter_mut() {
@@ -552,66 +536,29 @@ impl Program {
             for (t, table) in tables::tables().iter().enumerate() {
                 let (base, n) = (sch.base[t], table.n_committed_columns());
                 let ctx = FillCtx::new(tr, &exec.mem, &gpow, &self.prog, 1 << l.taus[t], table.padding());
-                tables::fill_table(*table, &ctx, &mut windows[base..base + n]);
+                table.fill(&ctx, &mut windows[base..base + n]);
             }
-            // Shared columns. The 128-bit memory image splits into two K-limbs.
-            // These four plus `QKECCAK` below are every shared column, and each has to
-            // be written: the stack is uninitialized, so one left out would be read
-            // as indeterminate bytes rather than caught by a length mismatch.
+            // Shared columns. The 128-bit memory image splits into two K-limbs, and each cell's count
+            // ended at g^{A[i]}.
             const _: () = assert!(N_SHARED == 5, "a new shared column needs a fill here");
-            // One pass over the image fills all three of its columns, streamed out a
-            // cache line of each at a time: nothing reads them before the commitment.
-            const LINE: usize = 8;
-            const BLOCK: usize = 1 << 10;
-            let page_log = Memory::page_log();
-            let image = [MEM_LO, MEM_HI, MFCNT].map(|c| {
+            for c in [MEM_LO, MEM_HI, MFCNT] {
                 assert_eq!(windows[c].len(), cells, "a memory column spans the image");
-                parallel::SendPtr(windows[c].as_mut_ptr())
-            });
-            // Cell `i`'s two limbs and its count, which ended at g^{A[i]}.
-            let values = |page: Option<&[Cell]>, i: usize| {
-                let cell = page.map_or(&Cell::UNWRITTEN, |p| &p[i & ((1 << page_log) - 1)]);
-                let limbs = cell.word.to_limbs().map(F64);
-                [limbs[0], limbs[1], gpow[cell.count as usize]]
-            };
-            if cells < BLOCK {
-                // A memory smaller than a block, cell by cell.
-                let page = exec.mem.page(0);
-                for i in 0..cells {
-                    for (column, value) in image.iter().zip(values(page, i)) {
-                        // SAFETY: `i` is below `cells`, every column's length.
-                        unsafe { column.add(i).write(value) };
-                    }
-                }
-            } else {
-                parallel::for_each_chunk(cells / BLOCK, |first, end| {
-                    let stream = primitives::stream::Stream::new();
-                    for b in first..end {
-                        let at = b * BLOCK;
-                        let page = exec.mem.page(at >> page_log);
-                        for line in (at..at + BLOCK).step_by(LINE) {
-                            let mut buf = [[F64::ZERO; LINE]; 3];
-                            for j in 0..LINE {
-                                let [lo, hi, count] = values(page, line + j);
-                                buf[0][j] = lo;
-                                buf[1][j] = hi;
-                                buf[2][j] = count;
-                            }
-                            for (column, values) in image.iter().zip(&buf) {
-                                // SAFETY: block `b` owns cells `b·BLOCK..(b+1)·BLOCK` of every
-                                // column, in bounds as `cells` is a whole number of blocks.
-                                unsafe { stream.copy_uninit(column.add(line), values) };
-                            }
-                        }
-                    }
-                });
             }
+            parallel::fill(windows[MEM_LO], |i| F64(exec.mem.cell(i).word.c0));
+            parallel::fill(windows[MEM_HI], |i| F64(exec.mem.cell(i).word.c1));
+            parallel::fill(windows[MFCNT], |i| gpow[exec.mem.cell(i).count as usize]);
             parallel::fill(windows[BFCNT], |i| gpow[tr.bytecode_count[i] as usize]); // … at g^{A[pc]}
         });
         // The committed Keccak states q_keccak, ALWAYS in this same stack: built from
-        // the executed KECCAK rows in order (row j = step j).
+        // the executed KECCAK rows in order (row j = step j), each step's input read back from
+        // the final memory image, which is write-once.
         let keccak_reduction = crate::stage!("Build q_keccak", || {
-            keccak_blocks.place(tr.keccak.len(), windows[QKECCAK])
+            let inputs = parallel::map_collect(tr.keccak.len(), |i| {
+                let row = &tr.keccak[i];
+                let op = tables::KeccakOp::of(&self.prog[row.pc as usize]);
+                crate::keccak::state_of_cells(op.in_odd, |c| exec.mem.word(op.cell(row.fp, c) as usize))
+            });
+            crate::keccak::place(&inputs, windows[QKECCAK])
         });
 
         // (`execute` already asserts the run halts at the sentinel (pc, fp) =

@@ -25,11 +25,10 @@ pub mod hints;
 mod isa;
 pub mod layout;
 mod trace;
-pub(crate) use execute::Cell;
 pub use execute::{ExecError, Execution, Fault, Memory};
 pub use isa::{DerefMode, Op, OutCells};
 pub use layout::*;
-pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
+pub(crate) use trace::{Drow, Jrow, Krow, Srow, Trace, Xrow};
 
 /// The data memory's size bounds (doc §Memory): `2^h` cells, `MIN_LOG_MEMORY ≤ h ≤ MAX_LOG_MEMORY`.
 pub use verifier::{MAX_LOG_MEMORY, MIN_LOG_MEMORY};
@@ -108,10 +107,6 @@ pub struct Program {
     pub src_lines: Vec<u32>,
 }
 
-/// The IV reinterprets the stacked bytecode table as bytes, which is its
-/// `to_le_bytes` image only on a little-endian target.
-const _: () = assert!(cfg!(target_endian = "little"));
-
 impl Program {
     /// Assemble a [`Program`], computing its Fiat-Shamir IV
     /// from `prog`. The single funnel for construction, so the digest is always
@@ -129,13 +124,10 @@ impl Program {
         let bytecode_columns = layout::bytecode_columns(&prog);
         let fiat_shamir_iv = {
             let table = layout::stack_columns(&bytecode_columns);
-            // SAFETY: F64 is #[repr(transparent)] over u64, so the slice's byte image is
-            // exactly the concatenation of its `to_le_bytes` on little-endian targets.
-            let bytes: &[u8] =
-                unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
+            let bytes: Vec<u8> = table.iter().flat_map(|word| word.0.to_le_bytes()).collect();
             primitives::hash::Hasher::new()
                 .update(verifier::TAG)
-                .update(bytes)
+                .update(&bytes)
                 .finalize()
         };
         Self {
@@ -415,10 +407,7 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
-    let (exec, keccak_blocks) = crate::stage!("Execute program", || {
-        crate::keccak::while_executing(|step| program.execute_with(public_input, step))
-    });
-    let exec = exec.map_err(ProveError::Execution)?;
+    let exec = crate::stage!("Execute program", || program.execute(public_input)).map_err(ProveError::Execution)?;
     // A live value that came from outside the constraint system would make the proof
     // about a weaker statement than the program text, so it is refused here, on the one
     // path every proof takes, rather than left to whichever test happens to look.
@@ -438,7 +427,7 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
         });
     }
     let cycles = exec.cycles;
-    let mut w = crate::stage!("Build witness", || program.build(&exec, layout, keccak_blocks));
+    let mut w = crate::stage!("Build witness", || program.build(&exec, layout));
     let mem_used = exec.mem_used;
     drop(exec);
     let committed_size = w.committed_size();

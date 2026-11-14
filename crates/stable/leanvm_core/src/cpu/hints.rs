@@ -3,6 +3,7 @@
 //! table + reverse index the hint interpreter grows on demand.
 
 use primitives::field::{F64, div_by_g, mul_by_g};
+use std::collections::HashMap;
 
 /// Frame-relative offset operand (matches the compiler's `ir::Off`).
 pub type Off = u32;
@@ -20,36 +21,20 @@ pub(crate) const MAX_INDEX: usize = 1 << verifier::MAX_LOG_BYTECODE;
 ///
 /// The interpreter needs both directions: a cell index becomes the address `g^k`,
 /// and a pointer word read back out of memory must be inverted to the index it
-/// addresses. Three things keep this cheap.
-///
-/// The reverse index holds nothing but the exponent, confirming a candidate slot
-/// against the forward table, so a slot is four bytes where a `HashMap` bucket is
-/// sixteen plus a control byte. Keys are field elements, hence effectively
-/// uniform, which is all the placement asks for: one multiplicative mix, then
-/// linear probing. The table stays at most half full to keep probing short.
-///
-/// It indexes only the exponents [`Self::note`] announces, or a lookup resolved:
-/// a run addresses millions of cells but stores only the few thousand bases of
-/// its frames and buffers, and one random write per addressable cell into a table
-/// far too large for cache is what building the whole inverse costs.
-///
-/// A lookup that misses divides the address by `g` until it meets a coarse index
-/// of every `STRIDE`th exponent, then announces the result, so an address the
-/// interpreter could not label, a jump target or a pointer into a buffer, costs at
-/// most `STRIDE` probes once. One past the table, a hinted g-power or a range
-/// check's complement, is found by `bounded_dlog` below the caller's bound, and the
-/// table grows to cover it.
+/// addresses. The reverse index holds the exponents [`Self::note`] announces, the
+/// bases of the frames and buffers the run stores as pointers, and every `STRIDE`th
+/// one: a lookup that misses divides by `g` until it meets one of those, then
+/// announces the result. Past the table, a hinted g-power or a range check's
+/// complement, it falls back to `bounded_dlog` below the caller's bound.
 pub struct GPow {
     pow: Vec<F64>,
-    /// `k + 1` at the slot `g^k` mixes to, for the announced `k`; 0 marks an empty
-    /// slot. Power-of-two length.
-    index: Vec<u32>,
-    announced: usize,
+    /// `g^k ↦ k` for the announced `k`.
+    index: HashMap<u64, u32>,
     /// The same for every multiple `k` of `STRIDE` that `pow` covers.
-    coarse: Vec<u32>,
+    coarse: HashMap<u64, u32>,
 }
 
-/// Spacing of the coarse index, and so the most probes a missed lookup costs.
+/// Spacing of the coarse index, and so the most divisions a missed lookup costs.
 const STRIDE: usize = 64;
 
 impl GPow {
@@ -57,11 +42,10 @@ impl GPow {
     pub fn new(upto: usize) -> Self {
         let mut g = Self {
             pow: vec![F64::ONE],
-            index: vec![0; 1 << 13],
-            announced: 0,
-            coarse: Vec::new(),
+            index: HashMap::new(),
+            coarse: HashMap::from([(F64::ONE.0, 0)]),
         };
-        g.extend(upto);
+        g.grow_to(upto);
         g
     }
 
@@ -77,7 +61,6 @@ impl GPow {
 
     /// `g^k`. Panics past the grown range, which is the honest outcome: every
     /// index the interpreter reads has been covered by a [`Self::grow_to`].
-    #[inline(always)]
     pub fn pow(&self, k: usize) -> F64 {
         self.pow[k]
     }
@@ -88,80 +71,39 @@ impl GPow {
     }
 
     /// Extend the forward table to cover index `upto`.
-    #[inline]
     pub fn grow_to(&mut self, upto: usize) {
-        if upto >= self.pow.len() {
-            self.extend(upto);
+        if upto < self.pow.len() {
+            return;
         }
-    }
-
-    #[cold]
-    fn extend(&mut self, upto: usize) {
         assert!(upto < MAX_INDEX, "address space overflow (program too large)");
-        // At least double, and a quarter more than a large jump asks: the small
-        // extends that follow fill spare capacity instead of copying the table.
-        let n = self.pow.len();
-        if upto >= self.pow.capacity() {
-            let target = (2 * self.pow.capacity())
-                .max(upto + 1 + (upto + 1) / 4)
-                .min((MAX_CELLS as usize).max(upto + 1));
-            self.pow.reserve_exact(target - n);
-        }
-        // ×g is ×x = `mul_by_g` (shift+fold), not a PMULL.
-        let mut p = *self.pow.last().unwrap();
-        self.pow.extend((n..=upto).map(|_| {
-            p = mul_by_g(p);
-            p
-        }));
-        let (mut from, to) = (n.div_ceil(STRIDE), self.pow.len().div_ceil(STRIDE));
-        if 2 * to > self.coarse.len() {
-            self.coarse = vec![0; (2 * to).next_power_of_two()];
-            from = 0;
-        }
-        for j in from..to {
-            insert(&mut self.coarse, self.pow[j * STRIDE], j * STRIDE);
+        // ×g is ×x = `mul_by_g` (shift+fold), not a full product.
+        for k in self.pow.len()..=upto {
+            let p = mul_by_g(self.pow[k - 1]);
+            self.pow.push(p);
+            if k.is_multiple_of(STRIDE) {
+                self.coarse.insert(p.0, k as u32);
+            }
         }
     }
 
     /// Announce that `g^k` may come back for inversion, because the interpreter
-    /// is about to store it in memory as an address. Covers `k` first. Idempotent.
+    /// is about to store it in memory as an address. Covers `k` first.
     pub fn note(&mut self, k: usize) {
         self.grow_to(k);
-        if find(&self.index, &self.pow, self.pow[k]).is_some() {
-            return;
-        }
-        if 2 * (self.announced + 1) > self.index.len() {
-            let wider = vec![0; 2 * self.index.len()];
-            let old = std::mem::replace(&mut self.index, wider);
-            for e in old.into_iter().filter(|&e| e != 0) {
-                insert(&mut self.index, self.pow[e as usize - 1], e as usize - 1);
-            }
-        }
-        insert(&mut self.index, self.pow[k], k);
-        self.announced += 1;
+        self.index.insert(self.pow[k].0, k as u32);
     }
 
     /// The discrete log of `x`, if it is a g-power below `MAX_CELLS`, covering it.
-    #[inline]
     pub fn log(&mut self, x: F64) -> Option<u32> {
         self.log_below(x, MAX_CELLS as usize)
     }
 
     /// The discrete log of `x`, if it is a g-power below `bound` (at most `MAX_INDEX`), covering it.
-    #[inline]
     pub(crate) fn log_below(&mut self, x: F64, bound: usize) -> Option<u32> {
         debug_assert!(bound <= MAX_INDEX);
-        match self.lookup(x) {
-            Some(k) => ((k as usize) < bound).then_some(k),
-            None => self.log_miss(x, bound),
+        if let Some(k) = self.lookup(x) {
+            return ((k as usize) < bound).then_some(k);
         }
-    }
-
-    /// `log_below` for an exponent not announced: the coarse index, else a bounded discrete
-    /// log, then cover and announce it.
-    #[cold]
-    #[inline(never)]
-    fn log_miss(&mut self, x: F64, bound: usize) -> Option<u32> {
         let k = self
             .resolve(x)
             .or_else(|| bounded_dlog(x, crate::log2_ceil_usize(bound) as u32).map(|k| k as usize))?;
@@ -172,9 +114,8 @@ impl GPow {
     }
 
     /// The exponent of `x` if announced: any covered one, for a table built by [`Self::dense`].
-    #[inline]
     pub(crate) fn lookup(&self, x: F64) -> Option<u32> {
-        find(&self.index, &self.pow, x)
+        self.index.get(&x.0).copied()
     }
 
     /// The exponent of `x` if it is not announced: divide by `g` down to a multiple of
@@ -183,7 +124,7 @@ impl GPow {
     fn resolve(&self, x: F64) -> Option<usize> {
         let mut y = x;
         for j in 0..STRIDE {
-            if let Some(k) = find(&self.coarse, &self.pow, y) {
+            if let Some(&k) = self.coarse.get(&y.0) {
                 return Some(k as usize + j);
             }
             y = div_by_g(y);
@@ -217,38 +158,6 @@ pub(crate) fn bounded_dlog(x: F64, nbits: u32) -> Option<u128> {
         y *= *giant;
     }
     None
-}
-
-/// The `k` of a slot of `table` that holds `x = pow[k]`.
-#[inline]
-fn find(table: &[u32], pow: &[F64], x: F64) -> Option<u32> {
-    let mask = table.len() - 1;
-    let mut i = slot_of(x.0, mask);
-    while table[i] != 0 {
-        let k = table[i] - 1;
-        if pow[k as usize] == x {
-            return Some(k);
-        }
-        i = (i + 1) & mask;
-    }
-    None
-}
-
-/// Put `k` in the first free slot of `table` from where `g^k = key` mixes to.
-fn insert(table: &mut [u32], key: F64, k: usize) {
-    let mask = table.len() - 1;
-    let mut i = slot_of(key.0, mask);
-    while table[i] != 0 {
-        i = (i + 1) & mask;
-    }
-    table[i] = k as u32 + 1;
-}
-
-/// Bits 32..64 of the mix are the well-distributed ones; the mask keeps as many
-/// of them as the table is wide.
-#[inline(always)]
-fn slot_of(key: u64, mask: usize) -> usize {
-    (key.wrapping_mul(0x9E37_79B9_7F4A_7C15) >> 32) as usize & mask
 }
 
 /// Where a computed-advice bit buffer lives. Frame cells are ordinary memory, so
