@@ -15,9 +15,16 @@ use core::ops::{Add, AddAssign, Mul, MulAssign};
 
 use super::{F64, F128};
 
-mod portable;
-
-pub use portable::{Acc8, F64x8, F128x8, clmul8};
+cfg_select! {
+    all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq") => {
+        mod x86;
+        pub use x86::{Acc8, F64x8, F128x8, clmul8};
+    }
+    _ => {
+        mod portable;
+        pub use portable::{Acc8, F64x8, F128x8, clmul8};
+    }
+}
 
 impl F64x8 {
     /// The eight elements of `src`, which holds exactly eight.
