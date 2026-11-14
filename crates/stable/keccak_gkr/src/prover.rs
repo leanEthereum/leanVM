@@ -341,7 +341,7 @@ fn fold_rows(summand: &Summand, table: &[F128], challenge: F128, eq: &[F128]) ->
 }
 
 /// The tables a tail round folds on the calling thread, in rows.
-const SERIAL_ROWS: usize = 64;
+const SERIAL_ROWS: usize = 8;
 
 /// A round of the sumcheck over bit positions, on small tables: the coefficients of
 /// `sum_j w (kappa t0 + (kappa + t1) t2)` in the variable being bound.

@@ -3,7 +3,7 @@
 
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8, clmul8_low};
 
-use crate::keccak::row_positions;
+use crate::keccak::{BITS, row_positions};
 
 use crate::rmfe::RMFE;
 use crate::witness::{BLOCK_WORDS, words};
@@ -115,6 +115,8 @@ fn extend(packs: &[Run; PACKS], out: &mut [Run; SLOTS]) {
 /// [`AtS::poly`]: crate::poly::AtS::poly
 pub(crate) struct SkipBlock {
     acc: Vec<Acc8>,
+    /// The block's packs embedded, pack by pack: position `j` of pack `q` at `BITS * q + j`.
+    packs: Vec<u32>,
     extended: Vec<[Run; SLOTS]>,
 }
 
@@ -122,22 +124,25 @@ impl SkipBlock {
     pub fn new() -> Self {
         Self {
             acc: vec![Acc8::ZERO; 2 * TERNARY],
+            packs: vec![0; PACKS * BITS],
             extended: vec![[[0; 8]; SLOTS]; 5],
         }
     }
 
     pub fn run(&mut self, block: &[u64], weights: &[F128]) {
         self.acc.fill(Acc8::ZERO);
+        for j in 0..BITS {
+            for (q, &e) in embed(words(block, j)).iter().enumerate() {
+                self.packs[BITS * q + j] = e;
+            }
+        }
         let ones = [RMFE.ones as u64; 8];
         for r in 0..5 {
             for z in (0..64).step_by(8) {
                 let js = row_positions(r, z);
                 for (extended, &j) in self.extended.iter_mut().zip(&js) {
-                    let packs: [[u32; PACKS]; 8] = std::array::from_fn(|i| embed(words(block, j + i)));
-                    extend(
-                        &std::array::from_fn(|q| std::array::from_fn(|i| packs[i][q] as u64)),
-                        extended,
-                    );
+                    let run = |q: usize| std::array::from_fn(|i| self.packs[BITS * q + j + i] as u64);
+                    extend(&std::array::from_fn(run), extended);
                 }
                 let w: [F128x8; 5] = js.map(|j| F128x8::load(&weights[j..][..8]));
                 let e = &self.extended;
