@@ -669,7 +669,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             })
             .collect();
         let enforced = values.iter().zip(&weights).map(|(&v, &wt)| v * wt).sum();
-        let basis = induce_basis(mu, block_len.ilog2() as usize - mu, &queries, &weights);
+        let basis = induce_basis(mu, &queries, &weights);
         drop(span);
         let pending = [(eq, y), (basis, enforced)];
         tracing::info_span!("Glue", level).in_scope(|| glue(&mut w, &mut claim, pending, lambda));

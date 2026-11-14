@@ -180,8 +180,8 @@ struct Ring {
 pub(crate) struct Terms {
     /// Bits of a lane block.
     lane_vars: usize,
-    /// `gamma(h)` of every claim, a block each.
-    gamma: Vec<F128>,
+    /// `gamma(h)` of every claim over every block.
+    gamma: Vec<Vec<F128>>,
     /// The blocks a claim's `gamma` is nonzero on.
     ranges: Vec<std::ops::Range<usize>>,
     patterns: Vec<Pattern>,
@@ -195,7 +195,7 @@ impl Terms {
 
     /// `gamma(h)` of claim `c` for every block.
     fn gamma(&self, c: usize) -> &[F128] {
-        &self.gamma[c * self.n_blocks()..][..self.n_blocks()]
+        &self.gamma[c]
     }
 
     pub(crate) fn n_terms(&self) -> usize {
@@ -312,10 +312,15 @@ impl Terms {
                 (weight, ring.x_offset, 1usize << vars)
             })
             .collect();
-        let mut b = vec![F128::ZERO; 1 << self.lane_vars];
+        let mut b = parallel::filled(1 << self.lane_vars, F128::ZERO);
         parallel::chunks_mut(&mut b, BLOCK, |h, out| {
             for pattern in &self.patterns {
-                let g: F128 = pattern.claims.iter().map(|&c| a[c] * self.gamma(c)[h]).sum();
+                let g: F128 = pattern
+                    .claims
+                    .iter()
+                    .filter(|&&c| self.ranges[c].contains(&h))
+                    .map(|&c| a[c] * self.gamma(c)[h])
+                    .sum();
                 if g != F128::ZERO {
                     let g = F128x8::splat(g);
                     for (o, pi) in out.as_chunks_mut::<8>().0.iter_mut().zip(&pattern.pi) {
@@ -362,12 +367,23 @@ pub(super) fn initial_basis(
     };
     // The claims' lane weights, then the rings', each `1 << lane_bits` long.
     let mut lanes: Vec<F128> = Vec::new();
-    for (c, claim) in claims.iter().enumerate() {
-        let StackClaim::Point { offset, low_point, .. } = claim;
-        let factors = point_factors(low_point, *offset, log_n);
+    let factors: Vec<Vec<Factor>> = claims
+        .iter()
+        .map(|StackClaim::Point { offset, low_point, .. }| point_factors(low_point, *offset, log_n))
+        .collect();
+    // Each claim's `gamma` and the blocks it is nonzero on.
+    for (gamma, range) in parallel::map_collect(claims.len(), |c| {
+        let gamma = table(&factors[c][LOW_VARS..lane_vars]);
+        let first = gamma.iter().position(|g| *g != F128::ZERO).unwrap_or(0);
+        let end = gamma.iter().rposition(|g| *g != F128::ZERO).map_or(0, |h| h + 1);
+        (gamma, first..end)
+    }) {
+        terms.gamma.push(gamma);
+        terms.ranges.push(range);
+    }
+    for (c, factors) in factors.iter().enumerate() {
         let (low, rest) = factors.split_at(LOW_VARS);
-        let (mid, lane) = rest.split_at(lane_vars - LOW_VARS);
-        extend_table(&mut terms.gamma, mid);
+        let lane = &rest[lane_vars - LOW_VARS..];
         let at = lanes.len();
         extend_table(&mut lanes, lane);
         lanes[at..].iter_mut().for_each(|l| *l *= lambdas[c]);
@@ -382,15 +398,11 @@ pub(super) fn initial_basis(
         }
     }
     let n_blocks = terms.n_blocks();
-    for gamma in terms.gamma.chunks_exact(n_blocks) {
-        let first = gamma.iter().position(|g| *g != F128::ZERO).unwrap_or(0);
-        let end = gamma.iter().rposition(|g| *g != F128::ZERO).map_or(0, |h| h + 1);
-        terms.ranges.push(first..end);
-    }
     for pattern in &mut terms.patterns {
-        pattern.active = (0..n_blocks)
-            .map(|h| pattern.claims.iter().any(|&c| terms.ranges[c].contains(&h)))
-            .collect();
+        pattern.active = vec![false; n_blocks];
+        for &c in &pattern.claims {
+            pattern.active[terms.ranges[c].clone()].fill(true);
+        }
     }
     for (i, weight) in rings.iter().enumerate() {
         let factors = point_factors(weight.point(), ring.offset, log_n);

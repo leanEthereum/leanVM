@@ -6,8 +6,8 @@
 //! The LCH novel basis over `K` (standard basis `v_i = x^i`), and the induction of a level's query weights onto the
 //! message's coefficients.
 
-use crate::ntt::{AdditiveNttF64, words_mut};
-use primitives::field::{F64, F128};
+use crate::whir::store_prefix;
+use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
 
 fn next_s(s: F64, s_at_root: F64) -> F64 {
     s * s + s_at_root * s
@@ -41,18 +41,43 @@ pub fn eval_sk_at_vks(log_n: usize) -> Vec<F64> {
 /// `basis_poly[j] = sum_i w_i X_j(q_i)` over the `2^log_msg_cols` coefficients `j`: the queries' column weights,
 /// batched by `weights`.
 ///
-/// The codeword at `q` is the forward transform of the zero-padded message, so this is the transposed transform of
-/// the weights scattered onto their positions, cut to the message's coefficients.
-pub(crate) fn induce_basis(log_msg_cols: usize, log_inv_rate: usize, queries: &[usize], weights: &[F128]) -> Vec<F128> {
-    let log_d = log_msg_cols + log_inv_rate;
-    let _span = tracing::info_span!("NTT", kind = "transpose induce", log_domain = log_d).entered();
-    let mut data = parallel::filled(1 << log_d, F128::ZERO);
-    for (&q, &w) in queries.iter().zip(weights) {
-        data[q] += w;
+/// `X_j` is the product of `W-hat_k` over the bits `k` of `j`, so it splits into a factor `L(j_lo)` on the low bits
+/// and `H(j_hi)` on the high ones, and a run of coefficients that share `j_hi` is `sum_i (w_i H_i(j_hi)) L_i(j_lo)`.
+pub(crate) fn induce_basis(log_msg_cols: usize, queries: &[usize], weights: &[F128]) -> Vec<F128> {
+    assert_eq!(queries.len(), weights.len());
+    let lo = log_msg_cols / 2;
+    let tables = parallel::map_collect(queries.len(), |i| {
+        let what = novel_basis_at(F64(queries[i] as u64), log_msg_cols);
+        let mut low = tensor(&what[..lo]);
+        // Whole lanes of eight, zero past the table.
+        low.resize(low.len().next_multiple_of(8), F64::ZERO);
+        (low, tensor(&what[lo..log_msg_cols]))
+    });
+    let mut basis = parallel::filled(1 << log_msg_cols, F128::ZERO);
+    parallel::chunks_mut(&mut basis, 1 << lo, |j_hi, out| {
+        let mut acc = vec![Acc8::ZERO; out.len().div_ceil(8)];
+        for ((low, high), &w) in tables.iter().zip(weights) {
+            let scale = F128x8::splat(w.mul_base(high[j_hi]));
+            for (acc, low) in acc.iter_mut().zip(low.as_chunks::<8>().0) {
+                *acc += scale.mul_base_unreduced(F64x8::from_array(low));
+            }
+        }
+        for (o, acc) in out.chunks_mut(8).zip(acc) {
+            store_prefix(acc.reduce(), o);
+        }
+    });
+    basis
+}
+
+/// `t[j] = prod_k s[k]^(bit k of j)`.
+fn tensor(s: &[F64]) -> Vec<F64> {
+    let mut t = vec![F64::ONE];
+    for &x in s {
+        t.extend_from_within(..);
+        let half = t.len() / 2;
+        t[half..].iter_mut().for_each(|v| *v *= x);
     }
-    AdditiveNttF64::standard(log_d).transpose_transform(words_mut(&mut data), 2);
-    data.truncate(1 << log_msg_cols);
-    data
+    t
 }
 
 /// `W-hat_i(x) = s_i(x) / s_i(v_i)` for `i <= mu`.
@@ -114,7 +139,7 @@ mod tests {
                 })
                 .collect();
             assert_eq!(
-                induce_basis(log_msg_cols, log_inv_rate, &queries, &weights),
+                induce_basis(log_msg_cols, &queries, &weights),
                 want,
                 "log_msg_cols={log_msg_cols}, rate={log_inv_rate}"
             );
