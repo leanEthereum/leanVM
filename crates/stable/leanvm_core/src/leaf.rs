@@ -294,15 +294,6 @@ mod lanes {
     pub(super) const N: usize = 4;
 }
 
-/// `dst[i] = ∏ src[4i..4i+4]`, an incomplete last four-tuple padded with the identity.
-fn padded_products(src: &[F128], dst: &mut [F128]) {
-    let full = src.len() / 4;
-    gkr::products_into(&src[..4 * full], &mut dst[..full]);
-    if full < dst.len() {
-        dst[full] = src[4 * full..].iter().product();
-    }
-}
-
 /// Build every tree's leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the
 /// tree's fingerprint weights `w`, followed implicitly by the identity `1`
 /// up to `2^μ`. The row-invariant weights and constant coordinates are folded once
@@ -310,26 +301,23 @@ fn padded_products(src: &[F128], dst: &mut [F128]) {
 ///
 /// The blocks of one height and row count (a table's push, pull and count blocks,
 /// which read the same columns) are built together, a chunk of rows at a time, so a
-/// column is read from memory once however many blocks flush it. Each chunk's four- and sixteen-tuple products, the GKR's levels two and four,
-/// are formed while it is in cache.
+/// column is read from memory once however many blocks flush it.
 pub(crate) fn build_leaves(
     sides: [(&[Block], &Layout, &[F128], F128); N_BUS_TREES],
     cols: &[&[F64]],
-) -> [gkr::Leaves; N_BUS_TREES] {
-    /// Rows staged at a time: one block's chunk stays in L1 while its products are formed.
+) -> [Vec<F128>; N_BUS_TREES] {
+    /// Rows staged at a time: one block's chunk stays in L1.
     const CHUNK: usize = 1 << 11;
     /// Leaves per task, whatever the group's block count, so that tasks balance.
     const TASK_LEAVES: usize = 1 << 15;
-    /// Blocks below this height are left to a serial pass, being too small to own
-    /// whole sixteen-tuples.
+    /// Blocks below this height are left to a serial pass.
     const CHUNKED: usize = 4;
 
     let mut blocks: Vec<LeafBlock> = Vec::new();
     let mut lens = [1usize; N_BUS_TREES];
     for (side, &(side_blocks, lay, w, beta)) in sides.iter().enumerate() {
         // `stack_offsets` packs the power-of-two blocks contiguously from zero,
-        // largest first, so they tile `0..len`, and the blocks of height `CHUNKED` or
-        // more precede the smaller ones.
+        // largest first, so they tile `0..len`.
         if !side_blocks.is_empty() {
             lens[side] = side_blocks.iter().map(|blk| 1usize << blk.kappa).sum();
         }
@@ -355,13 +343,7 @@ pub(crate) fn build_leaves(
         debug_assert!(lens[side] <= 1usize << lay.mu);
     }
 
-    // SAFETY: the blocks write every leaf of `0..n` (one identity leaf for a side
-    // without blocks, below) before anything reads it.
-    let mut values: [Vec<F128>; N_BUS_TREES] = lens.map(|n| unsafe { gkr::level(n) });
-    // SAFETY: the chunks write the products of the tuples inside blocks of height
-    // `CHUNKED` or more, and the serial pass below the rest.
-    let mut fours: [Vec<F128>; N_BUS_TREES] = lens.map(|n| unsafe { gkr::level(n.div_ceil(4)) });
-    let mut sixteens: [Vec<F128>; N_BUS_TREES] = lens.map(|n| unsafe { gkr::level(n.div_ceil(16)) });
+    let mut values: [Vec<F128>; N_BUS_TREES] = lens.map(|n| vec![F128::ONE; n]);
 
     let mut shapes: Vec<(usize, usize)> = blocks
         .iter()
@@ -380,78 +362,33 @@ pub(crate) fn build_leaves(
         .enumerate()
         .flat_map(|(g, (&(kappa, _), group))| {
             let height = 1usize << kappa;
-            // At least one sixteen per task, or its `sixteens` would go unwritten.
             let rows = (TASK_LEAVES / group.len()).next_power_of_two().clamp(16, height);
             (0..height).step_by(rows).map(move |z| (g, z..z + rows))
         })
         .collect();
-    let ptrs = [&mut values, &mut fours, &mut sixteens]
-        .map(|level| level.each_mut().map(|v| parallel::SendPtr(v.as_mut_ptr())));
+    let ptrs = values.each_mut().map(|v| parallel::SendPtr(v.as_mut_ptr()));
     parallel::for_each(tasks.len(), |task| {
         let (group, ref rows) = tasks[task];
         let mut stage = [F128::ZERO; CHUNK];
-        let mut stage4 = [F128::ZERO; CHUNK / 4];
-        let mut stage16 = [F128::ZERO; CHUNK / 16];
-        // The GKR reads all three levels long after this pass has evicted them.
         let stream = primitives::stream::Stream::new();
         for z0 in rows.clone().step_by(CHUNK) {
             let len = CHUNK.min(rows.len());
-            let (leaves, fours, sixteens) = (&mut stage[..len], &mut stage4[..len / 4], &mut stage16[..len / 16]);
+            let leaves = &mut stage[..len];
             for blk in &groups[group] {
                 blk.fill(z0, leaves, cols);
-                // Past the block's real rows every leaf, and so every tuple's product, is the identity.
-                let live = if gkr::SKIP_IDENTITY {
-                    blk.rows.saturating_sub(z0).next_multiple_of(16).min(len)
-                } else {
-                    len
-                };
-                gkr::products_into(&leaves[..live], &mut fours[..live / 4]);
-                gkr::products_into(&fours[..live / 4], &mut sixteens[..live / 16]);
-                fours[live / 4..].fill(F128::ONE);
-                sixteens[live / 16..].fill(F128::ONE);
                 let at = blk.offset + z0;
-                // SAFETY: a block's chunks are disjoint ranges of its side's leaves, blocks
-                // are disjoint, and a chunk owns the tuples it starts, `at` being a multiple
-                // of sixteen.
-                unsafe {
-                    stream.copy(ptrs[0][blk.side].slice(at, len), leaves);
-                    stream.copy(ptrs[1][blk.side].slice(at / 4, len / 4), fours);
-                    stream.copy(ptrs[2][blk.side].slice(at / 16, len / 16), sixteens);
-                }
+                // SAFETY: a block's chunks are disjoint ranges of its side's leaves, and blocks are disjoint.
+                unsafe { stream.copy(ptrs[blk.side].slice(at, len), leaves) };
             }
         }
     });
 
     for (side, v) in values.iter_mut().enumerate() {
-        let mut tail = lens[side];
         for blk in blocks.iter().filter(|b| b.side == side && b.kappa < CHUNKED) {
             blk.fill(0, &mut v[blk.offset..blk.offset + (1 << blk.kappa)], cols);
-            tail = tail.min(blk.offset);
         }
-        if sides[side].0.is_empty() {
-            v[0] = F128::ONE;
-        }
-        // The tuples among the smallest blocks, the last ones padded with the identity.
-        padded_products(&v[tail..], &mut fours[side][tail / 4..]);
-        padded_products(&fours[side][tail / 4..], &mut sixteens[side][tail / 16..]);
     }
-    let mut levels = values.into_iter().zip(fours).zip(sixteens).enumerate();
-    std::array::from_fn(|_| {
-        let (side, ((values, fours), sixteens)) = levels.next().expect("one level triple per tree");
-        // The padding rows of the chunked blocks, by offset.
-        let mut ones: Vec<_> = blocks
-            .iter()
-            .filter(|blk| blk.side == side && blk.kappa >= CHUNKED && blk.rows < 1 << blk.kappa)
-            .map(|blk| blk.offset + blk.rows..blk.offset + (1 << blk.kappa))
-            .collect();
-        ones.sort_unstable_by_key(|r| r.start);
-        gkr::Leaves {
-            values,
-            fours,
-            sixteens,
-            ones,
-        }
-    })
+    values
 }
 
 /// One table's bus contribution on one side, as a form over that table's committed
@@ -1007,7 +944,6 @@ fn tables_and_prods_at(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gkr::{Leaves, prove_products};
 
     /// A coordinate's value at row `z`, from its definition.
     fn coord_value(c: &Coord, cols: &[&[F64]], z: usize) -> F64 {
@@ -1038,8 +974,7 @@ mod tests {
         leaves
     }
 
-    /// The builder's leaves and products are their definitions, and its identity runs
-    /// leave the proof as it is.
+    /// The builder's leaves are their definitions.
     #[test]
     fn built_leaves_match_the_definition() {
         let mut seed = 0x9E37_79B9_7F4A_7C15u64;
@@ -1094,32 +1029,6 @@ mod tests {
         );
         let want = sides.map(|(blocks, lay, w, beta)| naive_leaves(blocks, lay, &cols, w, beta));
 
-        let built = build_leaves(sides, &cols);
-        for (got, want) in built.iter().zip(&want) {
-            let reference = Leaves::new(want.clone());
-            assert_eq!(
-                (&got.values, &got.fours, &got.sixteens),
-                (&reference.values, &reference.fours, &reference.sixteens)
-            );
-            assert!(
-                got.ones
-                    .iter()
-                    .flat_map(Clone::clone)
-                    .all(|i| got.values[i] == F128::ONE)
-            );
-        }
-        assert!(built.iter().all(|leaves| !leaves.ones.is_empty()));
-        // The GKR wants its first two products equal, so each side is paired with itself.
-        let reference = want.map(Leaves::new);
-        for side in [0, 1] {
-            let pick = |l: &[Leaves; N_BUS_TREES]| [l[side].clone(), l[side].clone(), l[2].clone()];
-            let mut proofs = [ProverState::from_label(b"leaves"), ProverState::from_label(b"leaves")];
-            let [ps0, ps1] = &mut proofs;
-            let planned = prove_products(pick(&built), ps0);
-            let reference = prove_products(pick(&reference), ps1);
-            assert_eq!((planned.point, planned.values), (reference.point, reference.values));
-            let [a, b] = proofs.map(|ps| ps.into_proof().stream);
-            assert_eq!(a, b);
-        }
+        assert_eq!(build_leaves(sides, &cols), want);
     }
 }

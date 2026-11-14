@@ -36,10 +36,6 @@ pub mod witness;
 /// grinds `fiat_shamir::grinding_bits(N)` bits.
 pub use fiat_shamir::SECURITY_BITS;
 
-/// Below this many parallelizable items a pass runs serially: the fan-out
-/// overhead is not worth it for small inputs. Shared by [`constraints`], [`gkr`], [`leaf`].
-pub(crate) const PAR_THRESHOLD: usize = 1 << 11;
-
 /// `stage!("Commit", || …)`: one named prover stage, run inside its `tracing` span,
 /// which is what the CLI's `--tracing` tree shows.
 macro_rules! stage {
