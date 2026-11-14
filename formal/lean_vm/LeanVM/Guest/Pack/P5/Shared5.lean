@@ -22,28 +22,9 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop248`, once. -/
-theorem st : shareStaticD Fn.«level_residual__L44_L15_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop248`, window 0. -/
-theorem sw0 : shareWinD Fn.«level_residual__L44_L15_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop248`, window 1. -/
+/-- `__loop238`, window 1. -/
 theorem sw1 : shareWinD Fn.«level_residual__L44_L15_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
-
-/-- `__loop248`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_residual__L44_L15_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-  · exact sw1
-⟩
 
 end
 end LeanVM.Guest.Fn.«level_residual__L44_L15_L4_L2_loop0»
@@ -55,16 +36,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop427`, once. -/
+/-- `__loop417`, once. -/
 theorem st : shareStaticD Fn.«level_positions__L8_L27_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop427`, window 0. -/
+/-- `__loop417`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_positions__L8_L27_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop427`: its static sharing check and every window's. -/
+/-- `__loop417`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_positions__L8_L27_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -82,21 +63,21 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop449`, once. -/
+/-- `__loop439`, once. -/
 theorem st : shareStaticD Fn.«level_residual__L25_L16_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop449`, window 0. -/
+/-- `__loop439`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_residual__L25_L16_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop449`, window 1. -/
+/-- `__loop439`, window 1. -/
 theorem sw1 : shareWinD Fn.«level_residual__L25_L16_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
-/-- `__loop449`: its static sharing check and every window's. -/
+/-- `__loop439`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L25_L16_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 1 := by decide +kernel
   rw [hc] at hi
@@ -107,4 +88,23 @@ theorem shareOk : ShareOkD Fn.«level_residual__L25_L16_L4_L2_loop0».core (cert
 
 end
 end LeanVM.Guest.Fn.«level_residual__L25_L16_L4_L2_loop0»
+
+namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `__loop521`, once. -/
+theorem st : shareStaticD Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop521`, window 0. -/
+theorem sw0 : shareWinD Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0»
 

@@ -140,8 +140,8 @@ theorem dvColArgs_cost (hP : Includes P Decoder.dvColArgsC.costDeps) (j : ℕ)
   rw [Decoder.dvColArgsC.costEq P hP σ σV hσ]
   have := powSqE_cost_lt P (by includes) LeanVM.Protocol.Verifier.gen j 7 (by norm_num)
     (by norm_num) (by omega)
-  have := hS (.n 1); have := hS (.n 22); have := hS (.n 6); have := hS (.n 7)
-  have := hS (.n 8); have := hS (.n 9)
+  have := hS (.n 0); have := hS (.n 19); have := hS (.n 3); have := hS (.n 4)
+  have := hS (.n 5); have := hS (.n 6)
   omega
 
 /-- **Column `j`'s valuation** (`dvColVNC`) at `a`, `j < 128`: `F + 8·S + 4378`. -/
@@ -198,8 +198,8 @@ theorem dvRowVW_cost (hP : Includes P Decoder.dvRowVWC.costDeps) (cw : E × E) (
   rw [Decoder.dvRowVWC.costEq P hP σ σV hσ Vn VnV hVn]
   have := powSqK_cost_lt P (by includes) Parameters.g i k hk0 (by omega) hi
   have := powSqK_cost_lt P (by includes) Parameters.g j 7 (by norm_num) (by norm_num) (by omega)
-  have := hS (.n 1); have := hS (.n 22)
-  have := hF (fn_idx% da_verify_column_loop0) [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 22), ofK (Parameters.g ^ j),
+  have := hS (.n 0); have := hS (.n 19)
+  have := hF (fn_idx% da_verify_column_loop0) [ofK (Parameters.g ^ i), σ (.n 0), cw.1, σ (.n 19), ofK (Parameters.g ^ j),
     cw.2] [] a (by norm_num) (by simp)
   omega
 
@@ -300,14 +300,14 @@ one logarithm, the count clamped to `DA_MAX_ROWS` (`daRowCount`), then the rows:
 `S + G + dvWitNRowsPrice k F S + 22`. -/
 theorem dvWitN_cost_of_le (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     (hP : Includes P Decoder.dvWitNC.costDeps) (hG : GLogBound P D G) (k : ℕ) (hk0 : 0 < k)
-    (hk : k ≤ 34) (hr : Decoder.daRowCount (Decoder.gLogD D (σ (.n 1))) ≤ 2 ^ k) :
+    (hk : k ≤ 34) (hr : Decoder.daRowCount (Decoder.gLogD D (σ (.n 0))) ≤ 2 ^ k) :
     machineCost P Decoder.dvWitNC.costIdx [encodeValue D, σV, VnV] ≤
       S + G + dvWitNRowsPrice k F S + 22 := by
   rw [Decoder.dvWitNC.costEq P hP D σ σV hσ Vn VnV hVn]
-  have := hG (σ (.n 1))
-  have := hS (.n 1)
-  have := daRowCount_cost P (by includes) (Decoder.gLogD D (σ (.n 1)))
-    (by have := gLogD_lt D (σ (.n 1)); omega)
+  have := hG (σ (.n 0))
+  have := hS (.n 0)
+  have := daRowCount_cost P (by includes) (Decoder.gLogD D (σ (.n 0)))
+    (by have := gLogD_lt D (σ (.n 0)); omega)
   have := dvWitNAt_cost P hVn hF hσ hS (by includes) k _ hk0 hk hr
   omega
 

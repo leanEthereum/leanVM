@@ -141,11 +141,11 @@ theorem cellLeaves_position {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r *
   omega
 
 /-- **An honest opening verifies.** -/
-theorem verifyCell_openCell {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
+theorem verifyCell_openCell {r : ℕ} (hr : r ≤ maxRows) (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
     verifyCell H r (commitCellsWithHash H c) p (c p) (openCellWithHash H c p) = true := by
   simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq]
-  have hrow : (positionRow p : ℕ) < 2 ^ logPaddedRowCount r :=
-    lt_of_lt_of_le (positionRow p).isLt (le_nPad r)
+  have hrow : (positionRow p : ℕ) < maxRows :=
+    lt_of_lt_of_le (positionRow p).isLt hr
   refine ⟨by simp only [openCellWithHash, List.length_append, length_merklePath], ?_⟩
   simp only [openCellWithHash]
   rw [walk_append, length_merklePath, walk_mod H (merklePathWithHash H 7 _ _) (p : ℕ), length_merklePath,

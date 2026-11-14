@@ -12,7 +12,7 @@ module
 public import LeanVM.Guest.B1.Da.DvAt
 public import LeanVM.Guest.B1.Da.Witness
 public import LeanVM.Guest.Data.NameStrings
-public import LeanVM.Guest.B1.Da.RowShapeComplete
+public import LeanVM.Guest.B1.Da.PaddingComplete
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
@@ -44,13 +44,13 @@ theorem clB_mono {f : String} {Bc Bc' t : ℕ} (h : Bc ≤ Bc') : clB fs f Bc t 
   omega
 
 /-- **`da_verify`'s callees' bounds within `dvKB`**, on the static bounds. -/
-theorem dvBs_le (hS : DvStaticB fs SB SK) {r L : ℕ} (hL : L ≤ guest_const% DA_LOG_MAX_ROWS) :
+theorem dvBs_le (hS : DvStaticB fs SB SK) {r L : ℕ} :
     (dvBs fs SB SK r L).sum ≤ dvKB fs SB SK r L := by
   have hv : vecB fs SK ≤ SB "da_vector" := hS.vec
   have hc : clB fs name% «da_verify_loop1» (colBf fs SK r) 128 ≤ clB fs name% «da_verify_loop1»
       (colB fs SB SK r) 128 :=
     clB_mono (by unfold colBf colB; have := hS.exp; omega)
-  simp only [dvBs, dvKB, List.sum_cons, List.sum_nil, dlNames_bang hL]
+  simp only [dvBs, dvKB, List.sum_cons, List.sum_nil]
   omega
 
 variable (fs) (cert : String → V → ℕ)
@@ -58,20 +58,18 @@ variable (fs) (cert : String → V → ℕ)
 /-- **`da_verify` is complete, placed, on a witness, by a tree of its honest shape, within
 `dvB`.** -/
 theorem da_verify_completeAtTB (hrf : Lift.RunsFit fs cert) {w : LeanVM.Da.MatrixWitness}
-    {root : Digest} {z : E} (hw : w.Opens root z) (s : ℕ) (hS : DvStaticB fs SB SK) :
-    CompleteAtDTB fs cert 16 "da_verify" [(s + wLog w, [gen ^ 2 ^ wLog w])] [gen ^ s]
+    {root : Digest} {z : E} (hw : w.Opens root z) (hS : DvStaticB fs SB SK) :
+    CompleteAtDTB fs cert 16 "da_verify" [] []
       (Returns (digestCells root ++ [z]))
       (dvNH w.rows.length (wLog w)) (dvB fs SB SK w.rows.length (wLog w)) := by
   have hr1 := hw.1
   have hr := hw.2.1
-  have hL : 2 ^ wLog w = LeanDa.paddedRowCount w.rows.length := rfl
-  have hLm := log_le_of_rows hr1 hr hL
+  have hL : 2 ^ wLog w = LeanDa.maxRows := rfl
   rw [opens_eq hw]
-  refine (dv_completeAtB fs cert hrf hS.off hS.l17 hS.l19 hS.l20 hS.l21
-    (by rw [← dlNames_bang hLm]; exact hS.dl _ hLm) hr1 hr hL (wSyms_len hw) (wDot hw) s).mono
-    ?_ fun _ h => h
-  have := dvBs_le hS (r := w.rows.length) hLm
-  unfold dvB
+  refine (dv_completeAtB fs cert hrf hS.off hS.l17 hS.l19 hS.l20 hS.l21 hS.dl hr1 hr hL
+    (wSyms_len hw) (wDot hw)).mono ?_ fun _ h => h
+  have := dvBs_le hS (r := w.rows.length) (L := 5)
+  simp only [dvB, wLog, LeanDa.logMaxRows]
   omega
 
 end

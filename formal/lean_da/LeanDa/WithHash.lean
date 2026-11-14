@@ -92,14 +92,6 @@ def nonceInput (y : KeccakState) (nonce : ℕ) : KeccakState :=
 /-- The challenge an answer draws: its lanes `0, 1` (`E::new(state[0], state[1])`). -/
 def chalOfState (y : KeccakState) : E := ofLimbs (K.ofLane y[0]) (K.ofLane y[1])
 
-/-- An allowed row count's padded log is at most `logMaxRows`. -/
-theorem logPaddedRowCount_le_logMaxRows {r : ℕ} (hr : r ≤ maxRows) : logPaddedRowCount r ≤ logMaxRows :=
-  Nat.clog_le_of_le_pow hr
-
-/-- **An allowed row count pads to at most `maxRows`**, a power of two. -/
-theorem paddedRowCount_le_maxRows {r : ℕ} (hr : r ≤ maxRows) : paddedRowCount r ≤ maxRows :=
-  Nat.pow_le_pow_right (by norm_num) (logPaddedRowCount_le_logMaxRows hr)
-
 section Duplex
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
@@ -161,13 +153,13 @@ def blobRootWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : DigestBy
 
 /-- **The root of a matrix** (`DaWitness::build`): the Merkle root of the padded rows' blob roots. -/
 def commitCellsWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
-  merkleRootWithHash H (logPaddedRowCount r) (blobRootWithHash H c)
+  merkleRootWithHash H logMaxRows (blobRootWithHash H c)
 
 /-- The honest opening of a position: the cell's path in its blob's tree, then its blob root's in
 the tree over the blob roots. -/
 def openCellWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : CellOpening :=
   ⟨merklePathWithHash H 7 (cellLeavesWithHash H c (positionRow p)) (positionCell p) ++
-    merklePathWithHash H (logPaddedRowCount r) (blobRootWithHash H c) (positionRow p)⟩
+    merklePathWithHash H logMaxRows (blobRootWithHash H c) (positionRow p)⟩
 
 /-- One level of a Merkle tree: the digests of neighbouring pairs (`merkle_nodes_from_leaves`). -/
 def treeLevelWithHash (nodes : List DigestBytes) : List DigestBytes :=
@@ -198,10 +190,10 @@ def paddingBlobRootWithHash : DigestBytes :=
   treeRootWithHash H (List.replicate cellsPerRow (paddingCellWithHash H))
 
 /-- **The root of a matrix of codewords, as the crate computes it** (`DaWitness::build`): the
-rows padded to a power of two with zero codewords, the tree over their blob roots. -/
+rows padded to `maxRows` with zero codewords, the tree over their blob roots. -/
 def commitCodewordsWithHash (rows : List (List E)) : DigestBytes :=
   treeRootWithHash H (rows.map (listBlobRootWithHash H) ++
-    List.replicate (paddedRowCount rows.length - rows.length) (paddingBlobRootWithHash H))
+    List.replicate (maxRows - rows.length) (paddingBlobRootWithHash H))
 
 end Pure
 
@@ -233,13 +225,13 @@ def walkMWithHash : ℕ → DigestBytes → List DigestBytes → m DigestBytes
     let d ← H (if idx % 2 = 0 then pairBytes node s else pairBytes s node)
     walkMWithHash (idx / 2) d rest
 
-/-- **Verification of a cell opening**: a path of `7 + ⌈log₂ r⌉` siblings that climbs from the
+/-- **Verification of a cell opening**: a path of `7 + logMaxRows` siblings that climbs from the
 cell's digest, at index `128 i + j` (the position), to the commitment. -/
 def verifyCellMWithHash (r : ℕ) (com : DigestBytes) (p : Fin (r * 128)) (x : Cell)
     (τ : CellOpening) : m Bool := do
   let d ← H (cellBytes x)
   let root ← walkMWithHash H (p : ℕ) d τ.path
-  pure (decide (τ.path.length = 7 + logPaddedRowCount r) && decide (root = com))
+  pure (decide (τ.path.length = 7 + logMaxRows) && decide (root = com))
 
 /-- One level up a Merkle tree over an oracle (`up`). -/
 def upMWithHash (f : ℕ → m DigestBytes) (i : ℕ) : m DigestBytes := do
@@ -262,7 +254,7 @@ def blobRootMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : m Diges
 
 /-- **The root of a matrix over an oracle** (`commitCells`): the tree over the blob roots. -/
 def commitCellsMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootMWithHash H (logPaddedRowCount r) (blobRootMWithHash H c)
+  merkleRootMWithHash H logMaxRows (blobRootMWithHash H c)
 
 end Monadic
 
@@ -347,7 +339,7 @@ noncomputable def completenessExperimentWithHash (π : Equiv.Perm KeccakState)
     (openCellWithHash (keccak256WithPermutation π) c p)))
 
 /-- **LeanDA is perfectly complete in the random-permutation model, for every permutation.**
-For any number `r` of rows, every permutation `π` of the Keccak state, and every argument `ps`
+For at most `maxRows` rows, every permutation `π` of the Keccak state, and every argument `ps`
 perfectly complete for LeanDA's relation for every permutation (`relationForPermutation`, the hash
 Keccak-256 over `π` and the challenge the deployed duplex over `π`; the argument's prover and
 verifier answered by `π`): every position `p` of the honest commitment to every message `msg`
@@ -356,7 +348,7 @@ for every outcome of the binding statements' uniformly random permutation. The p
 completeness proof, transferred. Proved by `LeanDa.leanDa_perfectlyComplete_rpm`. -/
 abbrev PerfectlyCompleteRpmWithHash : Prop :=
   ∀ (r : ℕ) (π : Equiv.Perm KeccakState) {Crs Proof : Type} (ps : LeanDaArgument r Crs Proof),
-    ps.PerfectlyComplete (relationForPermutationWithHash r) →
+    r ≤ maxRows → ps.PerfectlyComplete (relationForPermutationWithHash r) →
       ∀ (msg : Fin r → Payload) (p : Fin (r * 128)),
         Pr{let b ← completenessExperimentWithHash r π ps msg p}[b = true] = 1
 

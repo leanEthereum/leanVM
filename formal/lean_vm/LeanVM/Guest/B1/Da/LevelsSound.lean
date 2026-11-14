@@ -8,8 +8,6 @@ module
 
 public import LeanVM.Guest.B1.Da.LevelsChk0
 public import LeanVM.Guest.B1.Da.LevelsChk1
-public import LeanVM.Guest.B1.Da.LevelsChk2
-public import LeanVM.Guest.B1.Da.LevelsChk3
 
 /-!
 # `da_levels`, sound
@@ -160,14 +158,8 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
 theorem da_levels_holds : da_levels_sound_Spec := by
   intro k hk
   unfold DlDepth at hk
-  rcases hk with hk | rfl
-  · interval_cases k
-    · exact dl_sound (by norm_num) dl_ok0
-    · exact dl_sound (by norm_num) dl_ok1
-    · exact dl_sound (by norm_num) dl_ok2
-    · exact dl_sound (by norm_num) dl_ok3
-    · exact dl_sound (by norm_num) dl_ok4
-    · exact dl_sound (by norm_num) dl_ok5
+  rcases hk with rfl | rfl
+  · exact dl_sound (by norm_num) dl_ok5
   · exact dl_sound (by norm_num) dl_ok7
 
 end

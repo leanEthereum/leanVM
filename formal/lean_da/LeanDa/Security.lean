@@ -419,9 +419,9 @@ theorem prob_valid_accept_eq (A : Finset E) :
 
 /-! ## The vector commitment -/
 
-theorem merkleVC_perfectlyComplete (r : ℕ) (H : List UInt8 → Common.DigestBytes) :
+theorem merkleVC_perfectlyComplete (r : ℕ) (hr : r ≤ maxRows) (H : List UInt8 → Common.DigestBytes) :
     (merkleVC r H).PerfectlyComplete :=
-  fun _ _ c p ↦ verifyCell_openCell H c p
+  fun _ _ c p ↦ verifyCell_openCell H hr c p
 
 /-- **Position binding of the Merkle commitment**, by reduction to an `H` collision. -/
 theorem posBindingExp_le_hashCollisionExp (r : ℕ) (H : List UInt8 → Common.DigestBytes)

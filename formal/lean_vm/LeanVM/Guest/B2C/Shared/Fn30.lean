@@ -10,50 +10,51 @@ module
 public import LeanVM.Guest.B2C.Share
 import LeanVM.Guest.Checked.Fn30
 import LeanVM.Guest.Checked.Link15
-import LeanVM.Guest.Pack.«P18».Shared6
-import LeanVM.Guest.Pack.«P28».Shared7
-import LeanVM.Guest.Pack.«P30».Shared5
 import LeanVM.Guest.Pack.«P62».Shared6
-import LeanVM.Guest.Pack.«P59».SharedOk
-import LeanVM.Guest.Pack.«P8».Shared6
-import LeanVM.Guest.Pack.«P0».SharedOk
-import LeanVM.Guest.Pack.«P26».SharedOk
-import LeanVM.Guest.Pack.«P52».Shared6
-import LeanVM.Guest.Pack.«P38».SharedOk
-import LeanVM.Guest.Pack.«P52».SharedOk
-import LeanVM.Guest.Pack.«P12».Shared5
-import LeanVM.Guest.Pack.«P54».SharedOk
-import LeanVM.Guest.Pack.«P38».Shared6
-import LeanVM.Guest.Pack.«P62».SharedOk
 import LeanVM.Guest.Pack.«P40».Shared9
-import LeanVM.Guest.Pack.«P62».Shared7
+import LeanVM.Guest.Pack.«P62».SharedOk
 import LeanVM.Guest.Pack.«P19».Shared7
 import LeanVM.Guest.Pack.«P45».SharedOk
-import LeanVM.Guest.Pack.«P16».Shared10
+import LeanVM.Guest.Pack.«P16».SharedOk
 import LeanVM.Guest.Pack.«P60».Shared7
 import LeanVM.Guest.Pack.«P28».SharedOk
 import LeanVM.Guest.Pack.«P54».Shared8
 import LeanVM.Guest.Pack.«P40».SharedOk
 import LeanVM.Guest.Pack.«P19».SharedOk
-import LeanVM.Guest.Pack.«P50».SharedOk
+import LeanVM.Guest.Pack.«P52».SharedOk
+import LeanVM.Guest.Pack.«P50».Shared6
+import LeanVM.Guest.Pack.«P62».Shared7
 import LeanVM.Guest.Pack.«P28».Shared8
-import LeanVM.Guest.Pack.«P50».Shared7
+import LeanVM.Guest.Pack.«P50».SharedOk
 import LeanVM.Guest.Pack.«P15».Shared6
 import LeanVM.Guest.Pack.«P49».Shared5
 import LeanVM.Guest.Pack.«P7».SharedOk
 import LeanVM.Guest.Pack.«P32».SharedOk
 import LeanVM.Guest.Pack.«P56».Shared6
-import LeanVM.Guest.Pack.«P58».SharedOk
+import LeanVM.Guest.Pack.«P58».Shared5
 import LeanVM.Guest.Pack.«P27».Shared5
 import LeanVM.Guest.Pack.«P61».Shared10
 import LeanVM.Guest.Pack.«P47».SharedOk
 import LeanVM.Guest.Pack.«P13».SharedOk
 import LeanVM.Guest.Pack.«P4».SharedOk
-import LeanVM.Guest.Pack.«P5».Shared6
-import LeanVM.Guest.Pack.«P15».Shared7
+import LeanVM.Guest.Pack.«P54».SharedOk
+import LeanVM.Guest.Pack.«P5».SharedOk
+import LeanVM.Guest.Pack.«P15».SharedOk
 import LeanVM.Guest.Pack.«P33».SharedOk
+import LeanVM.Guest.Pack.«P58».SharedOk
 import LeanVM.Guest.Pack.«P42».SharedOk
-import LeanVM.Guest.Pack.«P62».Shared8
+import LeanVM.Guest.Pack.«P31».SharedOk
+import LeanVM.Guest.Pack.«P21».Shared10
+import LeanVM.Guest.Pack.«P35».Shared8
+import LeanVM.Guest.Pack.«P43».SharedOk
+import LeanVM.Guest.Pack.«P27».SharedOk
+import LeanVM.Guest.Pack.«P36».SharedOk
+import LeanVM.Guest.Pack.«P44».Shared6
+import LeanVM.Guest.Pack.«P57».SharedOk
+import LeanVM.Guest.Pack.«P27».Shared9
+import LeanVM.Guest.Pack.«P17».Shared8
+import LeanVM.Guest.Pack.«P10».SharedOk
+import LeanVM.Guest.Pack.«P29».SharedOk
 
 namespace LeanVM.Guest.B2C.Shared
 
@@ -62,154 +63,151 @@ open LeanVM.Guest.Checked
 @[expose] public section
 
 theorem ok1501 : ShareOk 1501 :=
-  shareOk_of_link link1501 plumbEq1501 fsEq1501 snapsEq1501 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1_loop0».shareOk
+  shareOk_of_link link1501 plumbEq1501 fsEq1501 snapsEq1501 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1_loop0».shareOk
 
 theorem ok1502 : ShareOk 1502 :=
-  shareOk_of_link link1502 plumbEq1502 fsEq1502 snapsEq1502 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».shareOk
+  shareOk_of_link link1502 plumbEq1502 fsEq1502 snapsEq1502 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0».shareOk
 
 theorem ok1503 : ShareOk 1503 :=
-  shareOk_of_link link1503 plumbEq1503 fsEq1503 snapsEq1503 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0».shareOk
+  shareOk_of_link link1503 plumbEq1503 fsEq1503 snapsEq1503 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».shareOk
 
 theorem ok1504 : ShareOk 1504 :=
-  shareOk_of_link link1504 plumbEq1504 fsEq1504 snapsEq1504 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1504 plumbEq1504 fsEq1504 snapsEq1504 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1505 : ShareOk 1505 :=
-  shareOk_of_link link1505 plumbEq1505 fsEq1505 snapsEq1505 rfl (fun h ↦ nomatch h) Fn.«walk_path__L18_L3».shareOk
+  shareOk_of_link link1505 plumbEq1505 fsEq1505 snapsEq1505 rfl (fun h ↦ nomatch h) Fn.«walk_path__L18_L5».shareOk
 
 theorem ok1506 : ShareOk 1506 :=
-  shareOk_of_link link1506 plumbEq1506 fsEq1506 snapsEq1506 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1506 plumbEq1506 fsEq1506 snapsEq1506 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1507 : ShareOk 1507 :=
-  shareOk_of_link link1507 plumbEq1507 fsEq1507 snapsEq1507 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1507 plumbEq1507 fsEq1507 snapsEq1507 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1508 : ShareOk 1508 :=
-  shareOk_of_link link1508 plumbEq1508 fsEq1508 snapsEq1508 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L5_L15_L36_L6_L1_loop0».shareOk
+  shareOk_of_link link1508 plumbEq1508 fsEq1508 snapsEq1508 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».shareOk
 
 theorem ok1509 : ShareOk 1509 :=
-  shareOk_of_link link1509 plumbEq1509 fsEq1509 snapsEq1509 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1_loop0».shareOk
+  shareOk_of_link link1509 plumbEq1509 fsEq1509 snapsEq1509 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».shareOk
 
 theorem ok1510 : ShareOk 1510 :=
-  shareOk_of_link link1510 plumbEq1510 fsEq1510 snapsEq1510 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».shareOk
+  shareOk_of_link link1510 plumbEq1510 fsEq1510 snapsEq1510 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».shareOk
 
 theorem ok1511 : ShareOk 1511 :=
-  shareOk_of_link link1511 plumbEq1511 fsEq1511 snapsEq1511 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1_loop0».shareOk
+  shareOk_of_link link1511 plumbEq1511 fsEq1511 snapsEq1511 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1512 : ShareOk 1512 :=
-  shareOk_of_link link1512 plumbEq1512 fsEq1512 snapsEq1512 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1512 plumbEq1512 fsEq1512 snapsEq1512 rfl (fun h ↦ nomatch h) Fn.«walk_path__L18_L6».shareOk
 
 theorem ok1513 : ShareOk 1513 :=
-  shareOk_of_link link1513 plumbEq1513 fsEq1513 snapsEq1513 rfl (fun h ↦ nomatch h) Fn.«walk_path__L18_L4».shareOk
+  shareOk_of_link link1513 plumbEq1513 fsEq1513 snapsEq1513 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1514 : ShareOk 1514 :=
-  shareOk_of_link link1514 plumbEq1514 fsEq1514 snapsEq1514 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1514 plumbEq1514 fsEq1514 snapsEq1514 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1515 : ShareOk 1515 :=
-  shareOk_of_link link1515 plumbEq1515 fsEq1515 snapsEq1515 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1515 plumbEq1515 fsEq1515 snapsEq1515 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».shareOk
 
 theorem ok1516 : ShareOk 1516 :=
-  shareOk_of_link link1516 plumbEq1516 fsEq1516 snapsEq1516 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1_loop0».shareOk
+  shareOk_of_link link1516 plumbEq1516 fsEq1516 snapsEq1516 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1_loop0».shareOk
 
 theorem ok1517 : ShareOk 1517 :=
-  shareOk_of_link link1517 plumbEq1517 fsEq1517 snapsEq1517 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0».shareOk
+  shareOk_of_link link1517 plumbEq1517 fsEq1517 snapsEq1517 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0».shareOk
 
 theorem ok1518 : ShareOk 1518 :=
-  shareOk_of_link link1518 plumbEq1518 fsEq1518 snapsEq1518 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».shareOk
+  shareOk_of_link link1518 plumbEq1518 fsEq1518 snapsEq1518 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1519 : ShareOk 1519 :=
-  shareOk_of_link link1519 plumbEq1519 fsEq1519 snapsEq1519 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1519 plumbEq1519 fsEq1519 snapsEq1519 rfl (fun h ↦ nomatch h) Fn.«walk_path__L18_L7».shareOk
 
 theorem ok1520 : ShareOk 1520 :=
-  shareOk_of_link link1520 plumbEq1520 fsEq1520 snapsEq1520 rfl (fun h ↦ nomatch h) Fn.«walk_path__L18_L5».shareOk
+  shareOk_of_link link1520 plumbEq1520 fsEq1520 snapsEq1520 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1521 : ShareOk 1521 :=
-  shareOk_of_link link1521 plumbEq1521 fsEq1521 snapsEq1521 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1521 plumbEq1521 fsEq1521 snapsEq1521 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1522 : ShareOk 1522 :=
-  shareOk_of_link link1522 plumbEq1522 fsEq1522 snapsEq1522 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1522 plumbEq1522 fsEq1522 snapsEq1522 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1_loop0».shareOk
 
 theorem ok1523 : ShareOk 1523 :=
-  shareOk_of_link link1523 plumbEq1523 fsEq1523 snapsEq1523 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».shareOk
+  shareOk_of_link link1523 plumbEq1523 fsEq1523 snapsEq1523 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0».shareOk
 
 theorem ok1524 : ShareOk 1524 :=
-  shareOk_of_link link1524 plumbEq1524 fsEq1524 snapsEq1524 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».shareOk
+  shareOk_of_link link1524 plumbEq1524 fsEq1524 snapsEq1524 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».shareOk
 
 theorem ok1525 : ShareOk 1525 :=
-  shareOk_of_link link1525 plumbEq1525 fsEq1525 snapsEq1525 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».shareOk
+  shareOk_of_link link1525 plumbEq1525 fsEq1525 snapsEq1525 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1526 : ShareOk 1526 :=
-  shareOk_of_link link1526 plumbEq1526 fsEq1526 snapsEq1526 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1526 plumbEq1526 fsEq1526 snapsEq1526 rfl (fun h ↦ nomatch h) Fn.«walk_path__L24_L2».shareOk
 
 theorem ok1527 : ShareOk 1527 :=
-  shareOk_of_link link1527 plumbEq1527 fsEq1527 snapsEq1527 rfl (fun h ↦ nomatch h) Fn.«walk_path__L18_L6».shareOk
+  shareOk_of_link link1527 plumbEq1527 fsEq1527 snapsEq1527 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1528 : ShareOk 1528 :=
-  shareOk_of_link link1528 plumbEq1528 fsEq1528 snapsEq1528 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1528 plumbEq1528 fsEq1528 snapsEq1528 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1529 : ShareOk 1529 :=
-  shareOk_of_link link1529 plumbEq1529 fsEq1529 snapsEq1529 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1529 plumbEq1529 fsEq1529 snapsEq1529 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».shareOk
 
 theorem ok1530 : ShareOk 1530 :=
-  shareOk_of_link link1530 plumbEq1530 fsEq1530 snapsEq1530 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».shareOk
+  shareOk_of_link link1530 plumbEq1530 fsEq1530 snapsEq1530 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0».shareOk
 
 theorem ok1531 : ShareOk 1531 :=
-  shareOk_of_link link1531 plumbEq1531 fsEq1531 snapsEq1531 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1_loop0».shareOk
+  shareOk_of_link link1531 plumbEq1531 fsEq1531 snapsEq1531 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0».shareOk
 
 theorem ok1532 : ShareOk 1532 :=
-  shareOk_of_link link1532 plumbEq1532 fsEq1532 snapsEq1532 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0».shareOk
+  shareOk_of_link link1532 plumbEq1532 fsEq1532 snapsEq1532 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1533 : ShareOk 1533 :=
-  shareOk_of_link link1533 plumbEq1533 fsEq1533 snapsEq1533 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1533 plumbEq1533 fsEq1533 snapsEq1533 rfl (fun h ↦ nomatch h) Fn.«walk_path__L24_L3».shareOk
 
 theorem ok1534 : ShareOk 1534 :=
-  shareOk_of_link link1534 plumbEq1534 fsEq1534 snapsEq1534 rfl (fun h ↦ nomatch h) Fn.«walk_path__L18_L7».shareOk
+  shareOk_of_link link1534 plumbEq1534 fsEq1534 snapsEq1534 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1535 : ShareOk 1535 :=
-  shareOk_of_link link1535 plumbEq1535 fsEq1535 snapsEq1535 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1535 plumbEq1535 fsEq1535 snapsEq1535 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1536 : ShareOk 1536 :=
-  shareOk_of_link link1536 plumbEq1536 fsEq1536 snapsEq1536 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1536 plumbEq1536 fsEq1536 snapsEq1536 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».shareOk
 
 theorem ok1537 : ShareOk 1537 :=
-  shareOk_of_link link1537 plumbEq1537 fsEq1537 snapsEq1537 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1_loop0».shareOk
+  shareOk_of_link link1537 plumbEq1537 fsEq1537 snapsEq1537 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0».shareOk
 
 theorem ok1538 : ShareOk 1538 :=
-  shareOk_of_link link1538 plumbEq1538 fsEq1538 snapsEq1538 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0».shareOk
+  shareOk_of_link link1538 plumbEq1538 fsEq1538 snapsEq1538 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0».shareOk
 
 theorem ok1539 : ShareOk 1539 :=
-  shareOk_of_link link1539 plumbEq1539 fsEq1539 snapsEq1539 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0».shareOk
+  shareOk_of_link link1539 plumbEq1539 fsEq1539 snapsEq1539 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1540 : ShareOk 1540 :=
-  shareOk_of_link link1540 plumbEq1540 fsEq1540 snapsEq1540 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1540 plumbEq1540 fsEq1540 snapsEq1540 rfl (fun h ↦ nomatch h) Fn.«walk_path__L24_L4».shareOk
 
 theorem ok1541 : ShareOk 1541 :=
-  shareOk_of_link link1541 plumbEq1541 fsEq1541 snapsEq1541 rfl (fun h ↦ nomatch h) Fn.«walk_path__L24_L2».shareOk
+  shareOk_of_link link1541 plumbEq1541 fsEq1541 snapsEq1541 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1542 : ShareOk 1542 :=
-  shareOk_of_link link1542 plumbEq1542 fsEq1542 snapsEq1542 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1542 plumbEq1542 fsEq1542 snapsEq1542 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».shareOk
 
 theorem ok1543 : ShareOk 1543 :=
-  shareOk_of_link link1543 plumbEq1543 fsEq1543 snapsEq1543 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1543 plumbEq1543 fsEq1543 snapsEq1543 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».shareOk
 
 theorem ok1544 : ShareOk 1544 :=
-  shareOk_of_link link1544 plumbEq1544 fsEq1544 snapsEq1544 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».shareOk
+  shareOk_of_link link1544 plumbEq1544 fsEq1544 snapsEq1544 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».shareOk
 
 theorem ok1545 : ShareOk 1545 :=
-  shareOk_of_link link1545 plumbEq1545 fsEq1545 snapsEq1545 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0».shareOk
+  shareOk_of_link link1545 plumbEq1545 fsEq1545 snapsEq1545 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».shareOk
 
 theorem ok1546 : ShareOk 1546 :=
-  shareOk_of_link link1546 plumbEq1546 fsEq1546 snapsEq1546 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0».shareOk
+  shareOk_of_link link1546 plumbEq1546 fsEq1546 snapsEq1546 rfl (fun h ↦ nomatch h) Fn.«walk_path__L12_L2».shareOk
 
 theorem ok1547 : ShareOk 1547 :=
-  shareOk_of_link link1547 plumbEq1547 fsEq1547 snapsEq1547 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1547 plumbEq1547 fsEq1547 snapsEq1547 rfl (fun h ↦ nomatch h) Fn.«walk_path__L6_L7».shareOk
 
 theorem ok1548 : ShareOk 1548 :=
-  shareOk_of_link link1548 plumbEq1548 fsEq1548 snapsEq1548 rfl (fun h ↦ nomatch h) Fn.«walk_path__L24_L3».shareOk
+  shareOk_of_link link1548 plumbEq1548 fsEq1548 snapsEq1548 rfl (fun h ↦ nomatch h) Fn.«walk_path__L6_L6».shareOk
 
 theorem ok1549 : ShareOk 1549 :=
-  shareOk_of_link link1549 plumbEq1549 fsEq1549 snapsEq1549 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».shareOk
-
-theorem ok1550 : ShareOk 1550 :=
-  shareOk_of_link link1550 plumbEq1550 fsEq1550 snapsEq1550 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».shareOk
+  shareOk_of_link link1549 plumbEq1549 fsEq1549 snapsEq1549 rfl (fun h ↦ nomatch h) Fn.«walk_path__L12_L8».shareOk
 
 end
 end LeanVM.Guest.B2C.Shared

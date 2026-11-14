@@ -114,7 +114,7 @@ noncomputable def preOk : Bool :=
 noncomputable def daOk : Bool :=
   let D := mDa
   D.all Stmt.flat &&
-  hasCall D "da_verify" [.n 28] [.n 369, .n 370, .n 371] &&
+  hasCall D "da_verify" [] [.n 369, .n 370, .n 371] &&
   (atomsIn D).any (isConstAt (.n 373) 0 0) &&
   pairHashOk (atomsIn D) (.n 369) (.n 370) (.n 371) (.n 373) (.n 366)
 

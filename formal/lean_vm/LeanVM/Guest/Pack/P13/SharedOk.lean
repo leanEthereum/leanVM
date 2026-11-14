@@ -41,7 +41,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop98`: its static sharing check and every window's. -/
+/-- `__loop88`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_positions__L10_L19_L7_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -58,7 +58,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop339`: its static sharing check and every window's. -/
+/-- `__loop329`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_positions__L22_L24_L6_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi

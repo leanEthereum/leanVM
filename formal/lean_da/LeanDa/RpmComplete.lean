@@ -42,7 +42,7 @@ satisfy the relation for `π` (they commit to the root, and a codeword passes th
 on every challenge, `checker_complete`), so the argument's honest proof verifies with probability
 one; and the honest opening verifies (`verifyCell_openCell`, `verifyCellM_id`). -/
 theorem leanDa_perfectlyComplete_rpmH : PerfectlyCompleteRpmH := by
-  intro r π Crs Proof ps hps msg p
+  intro r π Crs Proof ps hr hps msg p
   rw [OracleComp.prEvent_eq_one_iff]
   intro b hb
   simp only [completenessExpRpmH, support_bind, Set.mem_iUnion, support_pure,
@@ -61,6 +61,6 @@ theorem leanDa_perfectlyComplete_rpmH : PerfectlyCompleteRpmH := by
   have h1 := hps π crs hcrs _ _ hrel
   rw [OracleComp.prEvent_eq_one_iff] at h1
   rw [h1 ok hok, Bool.true_and, verifyCellM_id]
-  exact verifyCell_openCell (keccak256WithPermutation π) c p
+  exact verifyCell_openCell (keccak256WithPermutation π) hr c p
 
 end LeanDa

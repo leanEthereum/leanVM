@@ -29,7 +29,7 @@ def c0 : List OffsetInstruction := [
   (.mul 14 2 15),
   (.mul 8 15 16),
   (.set 19 1 0),
-  (.set 18 15749851289696020712 0),
+  (.set 18 4372567778165497617 0),
   (.deref 17 2 11 .cell),
   (.deref 17 3 7 .cell),
   (.deref 17 4 5 .cell),
@@ -39,7 +39,7 @@ def c0 : List OffsetInstruction := [
   (.jump 19 18 17),
   (.deref 17 6 9 .cell),
   (.xor 19 3 20),
-  (.set 22 17609944042294375246 0),
+  (.set 22 10658056365878791413 0),
   (.deref 21 2 19 .cell),
   (.deref 21 3 3 .cell),
   (.deref 21 4 9 .cell),
@@ -52,9 +52,9 @@ def c0 : List OffsetInstruction := [
   (.jump 20 22 21),
   (.jump 19 0 1)]
 
-/-- `da_verify_column`: pc 61649 to 61678. -/
+/-- `da_verify_column`: pc 61619 to 61648. -/
 def code : CompiledFunction :=
-  ⟨"da_verify_column", 61649, 30, [c0]⟩
+  ⟨"da_verify_column", 61619, 30, [c0]⟩
 
 /-- `da_verify_column`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := [2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 9, 12, 19, 20, 19]
@@ -66,7 +66,7 @@ noncomputable def cert : Check.Cert where
   cells := [cert_w0_0]
   ins := [[]]
   nret := 0
-  callees := [414, 415]
+  callees := [409, 410]
   pre := []
   post := []
   mem := []
@@ -76,8 +76,8 @@ noncomputable def cert : Check.Cert where
   entered := []
 /-- `da_verify_column`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(18, (.k 15749851289696020712 0)), (19, (.k 1 0)), (22, (.k 17609944042294375246 0))]
-  sites := [⟨[8, 5, 3, 13], [14], 17, 61665, 0⟩, ⟨[18, 1, 14, 2, 0, 15], [], 21, 61678, 0⟩]
+  stat := [(18, (.k 4372567778165497617 0)), (19, (.k 1 0)), (22, (.k 10658056365878791413 0))]
+  sites := [⟨[8, 5, 3, 13], [14], 17, 61635, 0⟩, ⟨[18, 1, 14, 2, 0, 15], [], 21, 61648, 0⟩]
   arms := []
   tmps := []
   runs := []
@@ -122,9 +122,9 @@ def c0 : List OffsetInstruction := [
   (.set 6 1 0),
   (.jump 38 0 1)]
 
-/-- `padding_weight__L0`: pc 188312 to 188321. -/
+/-- `padding_weight__L0`: pc 188282 to 188291. -/
 def code : CompiledFunction :=
-  ⟨"padding_weight__L0", 188312, 10, [c0]⟩
+  ⟨"padding_weight__L0", 188282, 10, [c0]⟩
 
 /-- `padding_weight__L0`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := [2, 3, 7, 39, 40, 39, 38, 4, 5, 6]
@@ -322,9 +322,9 @@ def c0 : List OffsetInstruction := [
   (.mul 149 144 6),
   (.jump 144 0 1)]
 
-/-- `padding_weight__L15`: pc 189434 to 189573. -/
+/-- `padding_weight__L15`: pc 189404 to 189543. -/
 def code : CompiledFunction :=
-  ⟨"padding_weight__L15", 189434, 140, [c0]⟩
+  ⟨"padding_weight__L15", 189404, 140, [c0]⟩
 
 /-- `padding_weight__L15`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 7 :: 8 :: 9 :: 10 :: 11 :: 12 :: 13 :: 14 :: 15 :: 16 :: 17 :: 18 :: 19 :: 20 :: 21 :: 22 :: 23 :: 24 :: 40 :: 41 :: 42 :: 43 :: 44 :: 45 :: 46 :: 47 :: 48 :: 49 :: 50 :: 51 :: 52 :: 53 :: 54 :: 55 :: 56 :: 57 :: 58 :: 59 :: 60 :: 61 :: 62 :: 63 :: 64 :: 65 :: 66 :: 67 :: 68 :: 69 :: 70 :: 71 :: 72 :: 73 :: 74 :: 75 :: 76 :: 77 :: 78 :: 79 :: 80 :: 81 :: 82 :: 83 :: 84 :: 85 :: 86 :: 87 :: 88 :: 89 :: 90 :: 91 :: 92 :: 93 :: 94 :: 95 :: 96 :: 97 :: 98 :: 99 :: 100 :: 101 :: 102 :: 103 :: 104 :: 105 :: 106 :: 107 :: 108 :: 109 :: 110 :: 111 :: 112 :: 113 :: 114 :: 115 :: 116 :: 114 :: 117 :: 118 :: 114 :: 119 :: 120 :: 114 :: 121 :: 122 :: 114 :: 123 :: 124 :: 114 :: 125 :: 126 :: 114 :: 127 :: 128 :: 114 :: 129 :: 130 :: 114 :: 131 :: 132 :: 114 :: 133 :: 134 :: 114 :: 135 :: 136 :: 114 :: 137 :: 138 :: 114 :: 139 :: 140 :: 141 :: 142 :: 143 :: 144 :: 145 :: 146 :: 147 :: 148 :: 149 :: 150 :: 151 :: 152 :: 7 :: 153 :: 154 :: 155 :: 144 :: 145 :: 4 :: 5 :: 6 :: [])
@@ -466,9 +466,9 @@ def c0 : List OffsetInstruction := [
   (.mul 86 87 6),
   (.jump 87 0 1)]
 
-/-- `block_selector_tab__L29`: pc 204199 to 204282. -/
+/-- `block_selector_tab__L29`: pc 204169 to 204252. -/
 def code : CompiledFunction :=
-  ⟨"block_selector_tab__L29", 204199, 84, [c0]⟩
+  ⟨"block_selector_tab__L29", 204169, 84, [c0]⟩
 
 /-- `block_selector_tab__L29`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 4 :: 7 :: 8 :: 9 :: 10 :: 11 :: 12 :: 13 :: 14 :: 15 :: 16 :: 8 :: 17 :: 18 :: 19 :: 20 :: 21 :: 22 :: 23 :: 24 :: 25 :: 26 :: 8 :: 27 :: 28 :: 29 :: 30 :: 31 :: 32 :: 33 :: 34 :: 35 :: 36 :: 8 :: 37 :: 38 :: 39 :: 40 :: 41 :: 42 :: 43 :: 44 :: 45 :: 46 :: 8 :: 47 :: 48 :: 49 :: 50 :: 51 :: 52 :: 53 :: 54 :: 55 :: 56 :: 8 :: 57 :: 58 :: 59 :: 60 :: 61 :: 62 :: 63 :: 64 :: 65 :: 66 :: 8 :: 67 :: 68 :: 69 :: 70 :: 71 :: 72 :: 73 :: 74 :: 75 :: 76 :: 77 :: 78 :: 79 :: 80 :: 81 :: 82 :: 83 :: 84 :: 85 :: 86 :: 5 :: 6 :: [])
@@ -634,9 +634,9 @@ def c0 : List OffsetInstruction := [
   (.mul 9 174 7),
   (.jump 174 0 1)]
 
-/-- `child_claim_list_mono_last__L5`: pc 244060 to 244167. -/
+/-- `child_claim_list_mono_last__L5`: pc 244030 to 244137. -/
 def code : CompiledFunction :=
-  ⟨"child_claim_list_mono_last__L5", 244060, 108, [c0]⟩
+  ⟨"child_claim_list_mono_last__L5", 244030, 108, [c0]⟩
 
 /-- `child_claim_list_mono_last__L5`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 4 :: 5 :: 80 :: 81 :: 82 :: 83 :: 84 :: 85 :: 86 :: 87 :: 10 :: 11 :: 12 :: 13 :: 88 :: 89 :: 90 :: 91 :: 92 :: 93 :: 14 :: 15 :: 16 :: 17 :: 94 :: 95 :: 96 :: 97 :: 98 :: 99 :: 18 :: 19 :: 20 :: 21 :: 100 :: 101 :: 102 :: 103 :: 104 :: 105 :: 22 :: 23 :: 24 :: 25 :: 106 :: 107 :: 108 :: 109 :: 110 :: 111 :: 26 :: 27 :: 28 :: 29 :: 112 :: 78 :: 113 :: 79 :: 114 :: 115 :: 116 :: 117 :: 118 :: 119 :: 120 :: 121 :: 122 :: 123 :: 124 :: 125 :: 126 :: 140 :: 141 :: 142 :: 143 :: 144 :: 145 :: 146 :: 147 :: 148 :: 127 :: 128 :: 129 :: 130 :: 131 :: 132 :: 133 :: 134 :: 135 :: 136 :: 137 :: 138 :: 139 :: 162 :: 163 :: 164 :: 165 :: 166 :: 167 :: 168 :: 169 :: 170 :: 149 :: 150 :: 151 :: 152 :: 153 :: 154 :: 155 :: 156 :: 157 :: 158 :: 159 :: 160 :: 161 :: 171 :: 172 :: 173 :: 174 :: 175 :: 175 :: 175 :: 175 :: 179 :: 180 :: 181 :: 8 :: 9 :: 182 :: 183 :: 184 :: 185 :: 6 :: 7 :: [])
@@ -771,9 +771,9 @@ def c0 : List OffsetInstruction := [
   (.set 5 0 0),
   (.jump 25 0 1)]
 
-/-- `gkr_rounds__L2`: pc 252182 to 252258. -/
+/-- `gkr_rounds__L2`: pc 252032 to 252108. -/
 def code : CompiledFunction :=
-  ⟨"gkr_rounds__L2", 252182, 77, [c0]⟩
+  ⟨"gkr_rounds__L2", 252032, 77, [c0]⟩
 
 /-- `gkr_rounds__L2`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 4 :: 7 :: 8 :: 9 :: 10 :: 11 :: 12 :: 13 :: 24 :: 14 :: 15 :: 28 :: 16 :: 17 :: 31 :: 18 :: 19 :: 34 :: 20 :: 21 :: 39 :: 40 :: 41 :: 42 :: 43 :: 44 :: 45 :: 46 :: 47 :: 48 :: 49 :: 50 :: 51 :: 36 :: 52 :: 53 :: 54 :: 55 :: 56 :: 57 :: 58 :: 59 :: 60 :: 61 :: 62 :: 63 :: 64 :: 65 :: 76 :: 66 :: 67 :: 79 :: 68 :: 69 :: 82 :: 70 :: 71 :: 85 :: 72 :: 73 :: 90 :: 91 :: 92 :: 93 :: 94 :: 95 :: 96 :: 97 :: 98 :: 99 :: 100 :: 101 :: 102 :: 87 :: 103 :: 104 :: 105 :: 106 :: 107 :: 108 :: 109 :: 110 :: 111 :: 112 :: 113 :: 114 :: 115 :: 116 :: 117 :: 118 :: 5 :: [])
@@ -837,7 +837,7 @@ def c0 : List OffsetInstruction := [
   (.deref 17 8 6 .cell),
   (.deref 17 9 7 .cell),
   (.set 20 1 0),
-  (.set 19 15503119394523109740 0),
+  (.set 19 3298973788254176994 0),
   (.deref 18 2 2 .cell),
   (.deref 18 3 8 .cell),
   (.deref 18 4 9 .cell),
@@ -848,7 +848,7 @@ def c0 : List OffsetInstruction := [
   (.set 21 2 0),
   (.set 22 16 0),
   (.xor 21 22 23),
-  (.set 25 17194986631505981725 0),
+  (.set 25 14589728240229761337 0),
   (.deref 24 2 21 .cell),
   (.deref 24 3 22 .cell),
   (.deref 24 4 17 .cell),
@@ -873,9 +873,9 @@ def c0 : List OffsetInstruction := [
   (.mul 33 20 15),
   (.jump 20 0 1)]
 
-/-- `level_positions__L4_L14_L2`: pc 254723 to 254764. -/
+/-- `level_positions__L4_L14_L2`: pc 254573 to 254614. -/
 def code : CompiledFunction :=
-  ⟨"level_positions__L4_L14_L2", 254723, 42, [c0]⟩
+  ⟨"level_positions__L4_L14_L2", 254573, 42, [c0]⟩
 
 /-- `level_positions__L4_L14_L2`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := [2, 3, 4, 5, 6, 7, 8, 9, 10, 16, 17, 21, 22, 23, 21, 22, 27, 28, 29, 30, 31, 32, 33, 11, 12, 13, 14, 15]
@@ -887,7 +887,7 @@ noncomputable def cert : Check.Cert where
   cells := [cert_w0_0]
   ins := [[]]
   nret := 5
-  callees := [973, 985]
+  callees := [958, 970]
   pre := []
   post := []
   mem := []
@@ -897,8 +897,8 @@ noncomputable def cert : Check.Cert where
   entered := []
 /-- `level_positions__L4_L14_L2`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(16, (.k 33554432 0)), (19, (.k 15503119394523109740 0)), (20, (.k 1 0)), (21, (.k 2 0)), (22, (.k 16 0)), (25, (.k 17194986631505981725 0)), (27, (.k 1048576 0))]
-  sites := [⟨[0, 6, 7, 8], [], 18, 254738, 0⟩, ⟨[14, 15, 10, 6, 7, 8], [], 24, 254752, 0⟩]
+  stat := [(16, (.k 33554432 0)), (19, (.k 3298973788254176994 0)), (20, (.k 1 0)), (21, (.k 2 0)), (22, (.k 16 0)), (25, (.k 14589728240229761337 0)), (27, (.k 1048576 0))]
+  sites := [⟨[0, 6, 7, 8], [], 18, 254588, 0⟩, ⟨[14, 15, 10, 6, 7, 8], [], 24, 254602, 0⟩]
   arms := []
   tmps := []
   runs := []
@@ -935,7 +935,7 @@ def c0 : List OffsetInstruction := [
   (.set 12 69649 0),
   (.set 14 27 0),
   (.set 20 1 0),
-  (.set 19 14037112292613792232 0),
+  (.set 19 15601060253648787080 0),
   (.deref 18 2 13 .cell),
   (.deref 18 3 15 .cell),
   (.deref 18 1 0 .fp),
@@ -944,7 +944,7 @@ def c0 : List OffsetInstruction := [
   (.deref 18 4 16 .cell),
   (.deref 18 5 17 .cell),
   (.set 22 268435456 0),
-  (.set 24 1608166860493575870 0),
+  (.set 24 18052055737988755086 0),
   (.deref 23 2 13 .cell),
   (.deref 23 3 15 .cell),
   (.deref 23 4 3 .cell),
@@ -969,9 +969,9 @@ def c0 : List OffsetInstruction := [
   (.mul 30 20 11),
   (.jump 20 0 1)]
 
-/-- `level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0`: pc 262262 to 262297. -/
+/-- `level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0`: pc 262112 to 262147. -/
 def code : CompiledFunction :=
-  ⟨"level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0", 262262, 36, [c0]⟩
+  ⟨"level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0", 262112, 36, [c0]⟩
 
 /-- `level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := [2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17]
@@ -986,20 +986,20 @@ noncomputable def cert : Check.Cert where
   cells := [cert_w0_0, cert_w1_0]
   ins := [[], [(0, 2, 0), (1, 3, 0), (2, 4, 0), (3, 5, 0), (4, 6, 0), (5, 7, 0), (7, 13, 0), (9, 15, 0), (10, 16, 0), (11, 17, 0)]]
   nret := 4
-  callees := [971, 1033]
+  callees := [956, 1018]
   pre := []
   post := []
   mem := []
   sem := [(3941428, [7])]
-  cuts := [⟨11, [(12, (.gp 256)), (14, (.gp 64)), (19, (.gp 277220)), (20, (.gp 0))], 7,
-      [(13, (.instr 262266 (.deref 18 2 13 .cell))), (15, (.instr 262267 (.deref 18 3 15 .cell))), (18, (.instr 262268 (.deref 18 1 0 .fp)))],
+  cuts := [⟨11, [(12, (.gp 256)), (14, (.gp 64)), (19, (.gp 276728)), (20, (.gp 0))], 7,
+      [(13, (.instr 262116 (.deref 18 2 13 .cell))), (15, (.instr 262117 (.deref 18 3 15 .cell))), (18, (.instr 262118 (.deref 18 1 0 .fp)))],
       [], [], [], [(9223372045444719668, [7, 22])]⟩]
   ends := [11]
   entered := []
 /-- `level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(12, (.k 69649 0)), (14, (.k 27 0)), (19, (.k 14037112292613792232 0)), (20, (.k 1 0)), (22, (.k 268435456 0)), (24, (.k 1608166860493575870 0))]
-  sites := [⟨[7, 9], [10, 11], 18, 262271, 0⟩, ⟨[7, 9, 1, 2, 3, 4, 5, 12], [13], 23, 262286, 0⟩]
+  stat := [(12, (.k 69649 0)), (14, (.k 27 0)), (19, (.k 15601060253648787080 0)), (20, (.k 1 0)), (22, (.k 268435456 0)), (24, (.k 18052055737988755086 0))]
+  sites := [⟨[7, 9], [10, 11], 18, 262121, 0⟩, ⟨[7, 9, 1, 2, 3, 4, 5, 12], [13], 23, 262136, 0⟩]
   arms := []
   tmps := []
   runs := []
@@ -1045,7 +1045,7 @@ def c0 : List OffsetInstruction := [
   (.set 11 1 0),
   (.set 12 4 0),
   (.xor 11 12 13),
-  (.set 15 1596951625181186239 0),
+  (.set 15 3395311559788844371 0),
   (.deref 14 2 11 .cell),
   (.deref 14 3 12 .cell),
   (.deref 14 4 2 .cell),
@@ -1066,7 +1066,7 @@ def c0 : List OffsetInstruction := [
   (.mul 2 20 21),
   (.set 22 8 0),
   (.xor 11 22 23),
-  (.set 25 753137027500706818 0),
+  (.set 25 15440135617751673964 0),
   (.deref 24 2 11 .cell),
   (.deref 24 3 22 .cell),
   (.deref 24 4 19 .cell),
@@ -1084,9 +1084,9 @@ def c0 : List OffsetInstruction := [
   (.mul 27 11 7),
   (.jump 11 0 1)]
 
-/-- `level_residual__L19_L7_L4_L2`: pc 264871 to 264915. -/
+/-- `level_residual__L19_L7_L4_L2`: pc 264721 to 264765. -/
 def code : CompiledFunction :=
-  ⟨"level_residual__L19_L7_L4_L2", 264871, 45, [c0]⟩
+  ⟨"level_residual__L19_L7_L4_L2", 264721, 45, [c0]⟩
 
 /-- `level_residual__L19_L7_L4_L2`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := [2, 3, 4, 5, 8, 9, 10, 10, 11, 12, 13, 11, 12, 16, 17, 18, 19, 20, 21, 11, 22, 23, 11, 22, 26, 27, 6, 7]
@@ -1098,7 +1098,7 @@ noncomputable def cert : Check.Cert where
   cells := [cert_w0_0]
   ins := [[]]
   nret := 2
-  callees := [1228, 1229]
+  callees := [1213, 1214]
   pre := []
   post := []
   mem := []
@@ -1108,8 +1108,8 @@ noncomputable def cert : Check.Cert where
   entered := []
 /-- `level_residual__L19_L7_L4_L2`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(8, (.k 64 0)), (10, (.k 0 0)), (11, (.k 1 0)), (12, (.k 4 0)), (15, (.k 1596951625181186239 0)), (18, (.k 256 0)), (20, (.k 65536 0)), (22, (.k 8 0)), (25, (.k 753137027500706818 0))]
-  sites := [⟨[11, 12, 0, 5, 1, 2, 3], [], 14, 264890, 0⟩, ⟨[22, 23, 16, 18, 1, 2, 3], [], 24, 264911, 0⟩]
+  stat := [(8, (.k 64 0)), (10, (.k 0 0)), (11, (.k 1 0)), (12, (.k 4 0)), (15, (.k 3395311559788844371 0)), (18, (.k 256 0)), (20, (.k 65536 0)), (22, (.k 8 0)), (25, (.k 15440135617751673964 0))]
+  sites := [⟨[11, 12, 0, 5, 1, 2, 3], [], 14, 264740, 0⟩, ⟨[22, 23, 16, 18, 1, 2, 3], [], 24, 264761, 0⟩]
   arms := []
   tmps := []
   runs := []
@@ -1146,7 +1146,7 @@ def c0 : List OffsetInstruction := [
   (.set 12 65536 0),
   (.set 14 16 0),
   (.set 20 1 0),
-  (.set 19 9661368174629016834 0),
+  (.set 19 7539196393094062258 0),
   (.deref 18 2 13 .cell),
   (.deref 18 3 15 .cell),
   (.deref 18 1 0 .fp),
@@ -1155,7 +1155,7 @@ def c0 : List OffsetInstruction := [
   (.deref 18 4 16 .cell),
   (.deref 18 5 17 .cell),
   (.set 22 2097152 0),
-  (.set 24 11110879952731865630 0),
+  (.set 24 12163135741320276444 0),
   (.deref 23 2 13 .cell),
   (.deref 23 3 15 .cell),
   (.deref 23 4 3 .cell),
@@ -1180,9 +1180,9 @@ def c0 : List OffsetInstruction := [
   (.mul 30 20 11),
   (.jump 20 0 1)]
 
-/-- `level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0`: pc 267402 to 267437. -/
+/-- `level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0`: pc 267252 to 267287. -/
 def code : CompiledFunction :=
-  ⟨"level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0", 267402, 36, [c0]⟩
+  ⟨"level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0", 267252, 36, [c0]⟩
 
 /-- `level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := [2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17]
@@ -1197,20 +1197,20 @@ noncomputable def cert : Check.Cert where
   cells := [cert_w0_0, cert_w1_0]
   ins := [[], [(0, 2, 0), (1, 3, 0), (2, 4, 0), (3, 5, 0), (4, 6, 0), (5, 7, 0), (7, 13, 0), (9, 15, 0), (10, 16, 0), (11, 17, 0)]]
   nret := 4
-  callees := [978, 1113]
+  callees := [963, 1098]
   pre := []
   post := []
   mem := []
   sem := [(3483668, [7])]
-  cuts := [⟨11, [(12, (.gp 16)), (14, (.gp 4)), (19, (.gp 278759)), (20, (.gp 0))], 7,
-      [(13, (.instr 267406 (.deref 18 2 13 .cell))), (15, (.instr 267407 (.deref 18 3 15 .cell))), (18, (.instr 267408 (.deref 18 1 0 .fp)))],
+  cuts := [⟨11, [(12, (.gp 16)), (14, (.gp 4)), (19, (.gp 278267)), (20, (.gp 0))], 7,
+      [(13, (.instr 267256 (.deref 18 2 13 .cell))), (15, (.instr 267257 (.deref 18 3 15 .cell))), (18, (.instr 267258 (.deref 18 1 0 .fp)))],
       [], [], [], [(72057602627872788, [7, 22])]⟩]
   ends := [11]
   entered := []
 /-- `level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(12, (.k 65536 0)), (14, (.k 16 0)), (19, (.k 9661368174629016834 0)), (20, (.k 1 0)), (22, (.k 2097152 0)), (24, (.k 11110879952731865630 0))]
-  sites := [⟨[7, 9], [10, 11], 18, 267411, 0⟩, ⟨[7, 9, 1, 2, 3, 4, 5, 12], [13], 23, 267426, 0⟩]
+  stat := [(12, (.k 65536 0)), (14, (.k 16 0)), (19, (.k 7539196393094062258 0)), (20, (.k 1 0)), (22, (.k 2097152 0)), (24, (.k 12163135741320276444 0))]
+  sites := [⟨[7, 9], [10, 11], 18, 267261, 0⟩, ⟨[7, 9, 1, 2, 3, 4, 5, 12], [13], 23, 267276, 0⟩]
   arms := []
   tmps := []
   runs := []
@@ -1252,7 +1252,7 @@ def c0 : List OffsetInstruction := [
   (.set 12 27 0),
   (.set 14 65536 0),
   (.set 20 1 0),
-  (.set 19 16368771357422602760 0),
+  (.set 19 7990848921156919415 0),
   (.deref 18 2 13 .cell),
   (.deref 18 3 15 .cell),
   (.deref 18 1 0 .fp),
@@ -1261,7 +1261,7 @@ def c0 : List OffsetInstruction := [
   (.deref 18 4 16 .cell),
   (.deref 18 5 17 .cell),
   (.set 22 2097152 0),
-  (.set 24 4983703888318742140 0),
+  (.set 24 5181789537496042858 0),
   (.deref 23 2 13 .cell),
   (.deref 23 3 15 .cell),
   (.deref 23 4 3 .cell),
@@ -1286,9 +1286,9 @@ def c0 : List OffsetInstruction := [
   (.mul 30 20 11),
   (.jump 20 0 1)]
 
-/-- `level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0`: pc 270968 to 271003. -/
+/-- `level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0`: pc 270818 to 270853. -/
 def code : CompiledFunction :=
-  ⟨"level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0", 270968, 36, [c0]⟩
+  ⟨"level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0", 270818, 36, [c0]⟩
 
 /-- `level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := [2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17]
@@ -1303,20 +1303,20 @@ noncomputable def cert : Check.Cert where
   cells := [cert_w0_0, cert_w1_0]
   ins := [[], [(0, 2, 0), (1, 3, 0), (2, 4, 0), (3, 5, 0), (4, 6, 0), (5, 7, 0), (7, 13, 0), (9, 15, 0), (10, 16, 0), (11, 17, 0)]]
   nret := 4
-  callees := [967, 1198]
+  callees := [952, 1183]
   pre := []
   post := []
   mem := []
   sem := [(3484708, [7])]
-  cuts := [⟨11, [(12, (.gp 64)), (14, (.gp 16)), (19, (.gp 276064)), (20, (.gp 0))], 7,
-      [(13, (.instr 270972 (.deref 18 2 13 .cell))), (15, (.instr 270973 (.deref 18 3 15 .cell))), (18, (.instr 270974 (.deref 18 1 0 .fp)))],
+  cuts := [⟨11, [(12, (.gp 64)), (14, (.gp 16)), (19, (.gp 275572)), (20, (.gp 0))], 7,
+      [(13, (.instr 270822 (.deref 18 2 13 .cell))), (15, (.instr 270823 (.deref 18 3 15 .cell))), (18, (.instr 270824 (.deref 18 1 0 .fp)))],
       [], [], [], [(72057602627873828, [7, 22])]⟩]
   ends := [11]
   entered := []
 /-- `level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(12, (.k 27 0)), (14, (.k 65536 0)), (19, (.k 16368771357422602760 0)), (20, (.k 1 0)), (22, (.k 2097152 0)), (24, (.k 4983703888318742140 0))]
-  sites := [⟨[7, 9], [10, 11], 18, 270977, 0⟩, ⟨[7, 9, 1, 2, 3, 4, 5, 12], [13], 23, 270992, 0⟩]
+  stat := [(12, (.k 27 0)), (14, (.k 65536 0)), (19, (.k 7990848921156919415 0)), (20, (.k 1 0)), (22, (.k 2097152 0)), (24, (.k 5181789537496042858 0))]
+  sites := [⟨[7, 9], [10, 11], 18, 270827, 0⟩, ⟨[7, 9, 1, 2, 3, 4, 5, 12], [13], 23, 270842, 0⟩]
   arms := []
   tmps := []
   runs := []
@@ -1353,7 +1353,7 @@ set_option linter.all false
 
 @[expose] public section
 
-/-- `__loop92`: chunk 0. -/
+/-- `__loop82`: chunk 0. -/
 def c0 : List OffsetInstruction := [
   (.mul 4 2 10),
   (.mul 10 2 11),
@@ -1419,7 +1419,7 @@ def c0 : List OffsetInstruction := [
   (.xor 83 3 84),
   (.set 85 452984832 0),
   (.mul 9 85 86),
-  (.set 87 16385452866901724416 0),
+  (.set 87 8691025405865340973 0),
   (.mul 83 19 90),
   (.mul 3 19 91),
   (.mul 4 19 92),
@@ -1433,21 +1433,21 @@ def c0 : List OffsetInstruction := [
   (.jump 84 87 86),
   (.jump 19 0 1)]
 
-/-- `__loop92`: pc 287811 to 287887. -/
+/-- `__loop82`: pc 287319 to 287395. -/
 def code : CompiledFunction :=
-  ⟨"__loop92", 287811, 77, [c0]⟩
+  ⟨"__loop82", 287319, 77, [c0]⟩
 
-/-- `__loop92`: window 0's cells, of values 0 on. -/
+/-- `__loop82`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 4 :: 5 :: 6 :: 7 :: 8 :: 10 :: 11 :: 14 :: 15 :: 16 :: 20 :: 21 :: 19 :: 22 :: 17 :: 23 :: 24 :: 25 :: 26 :: 27 :: 18 :: 28 :: 29 :: 30 :: 31 :: 32 :: 33 :: 34 :: 35 :: 36 :: 37 :: 38 :: 39 :: 40 :: 41 :: 42 :: 43 :: 44 :: 45 :: 46 :: 47 :: 48 :: 49 :: 50 :: 51 :: 69 :: 70 :: 71 :: 53 :: 72 :: 73 :: 74 :: 54 :: 75 :: 57 :: 13 :: 76 :: 77 :: 78 :: 79 :: 80 :: 81 :: 82 :: 83 :: 84 :: 82 :: 83 :: [])
 
-/-- `__loop92`. -/
+/-- `__loop82`. -/
 noncomputable def cert : Check.Cert where
   facts := { env := [(9, (.fpg 0))], fpOne := false, arms := [], scaled := [9] }
   los := [0]
   cells := [cert_w0_0]
   ins := [[]]
   nret := 0
-  callees := [1019]
+  callees := [1004]
   pre := []
   post := []
   mem := []
@@ -1455,9 +1455,9 @@ noncomputable def cert : Check.Cert where
   cuts := []
   ends := []
   entered := []
-/-- `__loop92`. -/
+/-- `__loop82`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(9, (.fpg 0)), (19, (.k 1 0)), (26, (.k 6 0)), (31, (.k 360 0)), (37, (.k 18245760 0)), (43, (.k 78274681211224091 0)), (49, (.k 8244804748658156366 0)), (82, (.k 2 0)), (85, (.k 452984832 0)), (86, (.fpg 88)), (87, (.k 16385452866901724416 0))]
+  stat := [(9, (.fpg 0)), (19, (.k 1 0)), (26, (.k 6 0)), (31, (.k 360 0)), (37, (.k 18245760 0)), (43, (.k 78274681211224091 0)), (49, (.k 8244804748658156366 0)), (82, (.k 2 0)), (85, (.k 452984832 0)), (86, (.fpg 88)), (87, (.k 8691025405865340973 0))]
   sites := []
   arms := []
   tmps := []
@@ -1466,16 +1466,16 @@ noncomputable def plumb : B2C.Plumb where
   sh := [82, 83]
   nv := 0x1fffffffffffffffff
 
-/-- `__loop92`: its frame size (`B2C.fsN`). -/
+/-- `__loop82`: its frame size (`B2C.fsN`). -/
 def fs : ℕ := 88
 
-/-- `__loop92`: its completeness walk's parts (`Data.cplParts`). -/
+/-- `__loop82`: its completeness walk's parts (`Data.cplParts`). -/
 def parts : List (List (List ℕ)) := []
 
-/-- `__loop92`: no `match` with its arms counted apart (`Data.cplArms`). -/
+/-- `__loop82`: no `match` with its arms counted apart (`Data.cplArms`). -/
 def arms : List (ℕ × List (List ℕ)) := []
 
-/-- `__loop92`'s windows after the first start from these (`B2C.snapsOf`). -/
+/-- `__loop82`'s windows after the first start from these (`B2C.snapsOf`). -/
 noncomputable def snaps : List B2C.Snap := []
 
 end
@@ -1490,7 +1490,7 @@ set_option linter.all false
 
 @[expose] public section
 
-/-- `__loop161`: chunk 0. -/
+/-- `__loop151`: chunk 0. -/
 def c0 : List OffsetInstruction := [
   (.mul 2 2 9),
   (.mul 9 9 10),
@@ -1517,7 +1517,7 @@ def c0 : List OffsetInstruction := [
   (.mul 49 49 50),
   (.mul 5 50 51),
   (.mul 6 50 52),
-  (.set 54 18339670983824504679 0),
+  (.set 54 14831983344536988670 0),
   (.deref 53 2 48 .cell),
   (.deref 53 3 51 .cell),
   (.deref 53 4 52 .cell),
@@ -1530,7 +1530,7 @@ def c0 : List OffsetInstruction := [
   (.xor 56 3 57),
   (.set 58 2305843009213693952 0),
   (.mul 8 58 59),
-  (.set 60 16974723844726147614 0),
+  (.set 60 7816121485461194708 0),
   (.mul 56 43 63),
   (.mul 3 43 64),
   (.mul 4 43 65),
@@ -1543,21 +1543,21 @@ def c0 : List OffsetInstruction := [
   (.jump 57 60 59),
   (.jump 43 0 1)]
 
-/-- `__loop161`: pc 305939 to 305988. -/
+/-- `__loop151`: pc 305447 to 305496. -/
 def code : CompiledFunction :=
-  ⟨"__loop161", 305939, 50, [c0]⟩
+  ⟨"__loop151", 305447, 50, [c0]⟩
 
-/-- `__loop161`: window 0's cells, of values 0 on. -/
+/-- `__loop151`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 4 :: 5 :: 6 :: 7 :: 9 :: 10 :: 11 :: 12 :: 14 :: 15 :: 16 :: 17 :: 18 :: 43 :: 44 :: 45 :: 46 :: 47 :: 30 :: 31 :: 32 :: 33 :: 34 :: 35 :: 36 :: 37 :: 38 :: 39 :: 40 :: 41 :: 42 :: 48 :: 9 :: 49 :: 50 :: 51 :: 52 :: 55 :: 56 :: 57 :: 55 :: 56 :: [])
 
-/-- `__loop161`. -/
+/-- `__loop151`. -/
 noncomputable def cert : Check.Cert where
   facts := { env := [(8, (.fpg 0))], fpOne := false, arms := [], scaled := [8] }
   los := [0]
   cells := [cert_w0_0]
   ins := [[]]
   nret := 0
-  callees := [1065, 1104]
+  callees := [1050, 1089]
   pre := []
   post := []
   mem := []
@@ -1565,10 +1565,10 @@ noncomputable def cert : Check.Cert where
   cuts := []
   ends := []
   entered := []
-/-- `__loop161`. -/
+/-- `__loop151`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(8, (.fpg 0)), (43, (.k 1 0)), (44, (.k 0 0)), (45, (.k 0 0)), (46, (.k 0 0)), (47, (.k 0 0)), (54, (.k 18339670983824504679 0)), (55, (.k 2 0)), (58, (.k 2305843009213693952 0)), (59, (.fpg 61)), (60, (.k 16974723844726147614 0))]
-  sites := [⟨[33, 37, 38, 5], [], 53, 305972, 0⟩]
+  stat := [(8, (.fpg 0)), (43, (.k 1 0)), (44, (.k 0 0)), (45, (.k 0 0)), (46, (.k 0 0)), (47, (.k 0 0)), (54, (.k 14831983344536988670 0)), (55, (.k 2 0)), (58, (.k 2305843009213693952 0)), (59, (.fpg 61)), (60, (.k 7816121485461194708 0))]
+  sites := [⟨[33, 37, 38, 5], [], 53, 305480, 0⟩]
   arms := []
   tmps := []
   runs := []
@@ -1576,16 +1576,16 @@ noncomputable def plumb : B2C.Plumb where
   sh := [9, 55, 56]
   nv := 0xfffffffffdf
 
-/-- `__loop161`: its frame size (`B2C.fsN`). -/
+/-- `__loop151`: its frame size (`B2C.fsN`). -/
 def fs : ℕ := 61
 
-/-- `__loop161`: its completeness walk's parts (`Data.cplParts`). -/
+/-- `__loop151`: its completeness walk's parts (`Data.cplParts`). -/
 def parts : List (List (List ℕ)) := []
 
-/-- `__loop161`: no `match` with its arms counted apart (`Data.cplArms`). -/
+/-- `__loop151`: no `match` with its arms counted apart (`Data.cplArms`). -/
 def arms : List (ℕ × List (List ℕ)) := []
 
-/-- `__loop161`'s windows after the first start from these (`B2C.snapsOf`). -/
+/-- `__loop151`'s windows after the first start from these (`B2C.snapsOf`). -/
 noncomputable def snaps : List B2C.Snap := []
 
 end
@@ -1600,7 +1600,7 @@ set_option linter.all false
 
 @[expose] public section
 
-/-- `__loop186`: chunk 0. -/
+/-- `__loop176`: chunk 0. -/
 def c0 : List OffsetInstruction := [
   (.mul 4 2 10),
   (.mul 10 2 11),
@@ -1684,7 +1684,7 @@ def c0 : List OffsetInstruction := [
   (.xor 101 3 102),
   (.set 103 118747255799808 0),
   (.mul 9 103 104),
-  (.set 105 12518476665095494732 0),
+  (.set 105 13668350235660092945 0),
   (.mul 101 19 108),
   (.mul 3 19 109),
   (.mul 4 19 110),
@@ -1698,21 +1698,21 @@ def c0 : List OffsetInstruction := [
   (.jump 102 105 104),
   (.jump 19 0 1)]
 
-/-- `__loop186`: pc 314168 to 314262. -/
+/-- `__loop176`: pc 313676 to 313770. -/
 def code : CompiledFunction :=
-  ⟨"__loop186", 314168, 95, [c0]⟩
+  ⟨"__loop176", 313676, 95, [c0]⟩
 
-/-- `__loop186`: window 0's cells, of values 0 on. -/
+/-- `__loop176`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 4 :: 5 :: 6 :: 7 :: 8 :: 10 :: 11 :: 14 :: 15 :: 16 :: 20 :: 21 :: 19 :: 22 :: 17 :: 23 :: 24 :: 25 :: 26 :: 27 :: 18 :: 28 :: 29 :: 30 :: 31 :: 32 :: 33 :: 34 :: 35 :: 36 :: 37 :: 38 :: 39 :: 40 :: 41 :: 42 :: 43 :: 44 :: 45 :: 46 :: 47 :: 48 :: 49 :: 50 :: 51 :: 52 :: 53 :: 54 :: 55 :: 56 :: 57 :: 58 :: 59 :: 60 :: 61 :: 62 :: 63 :: 64 :: 65 :: 66 :: 67 :: 68 :: 69 :: 87 :: 88 :: 89 :: 71 :: 90 :: 91 :: 92 :: 72 :: 93 :: 75 :: 13 :: 94 :: 95 :: 96 :: 97 :: 98 :: 99 :: 100 :: 101 :: 102 :: 100 :: 101 :: [])
 
-/-- `__loop186`. -/
+/-- `__loop176`. -/
 noncomputable def cert : Check.Cert where
   facts := { env := [(9, (.fpg 0))], fpOne := false, arms := [], scaled := [9] }
   los := [0]
   cells := [cert_w0_0]
   ins := [[]]
   nret := 0
-  callees := [1137]
+  callees := [1122]
   pre := []
   post := []
   mem := []
@@ -1720,9 +1720,9 @@ noncomputable def cert : Check.Cert where
   cuts := []
   ends := []
   entered := []
-/-- `__loop186`. -/
+/-- `__loop176`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(9, (.fpg 0)), (19, (.k 1 0)), (26, (.k 6 0)), (31, (.k 360 0)), (37, (.k 18245760 0)), (43, (.k 78274681211224091 0)), (49, (.k 8244804748658156366 0)), (55, (.k 8749050644146709186 0)), (61, (.k 1085473640648473244 0)), (67, (.k 7640059558905957125 0)), (100, (.k 2 0)), (103, (.k 118747255799808 0)), (104, (.fpg 106)), (105, (.k 12518476665095494732 0))]
+  stat := [(9, (.fpg 0)), (19, (.k 1 0)), (26, (.k 6 0)), (31, (.k 360 0)), (37, (.k 18245760 0)), (43, (.k 78274681211224091 0)), (49, (.k 8244804748658156366 0)), (55, (.k 8749050644146709186 0)), (61, (.k 1085473640648473244 0)), (67, (.k 7640059558905957125 0)), (100, (.k 2 0)), (103, (.k 118747255799808 0)), (104, (.fpg 106)), (105, (.k 13668350235660092945 0))]
   sites := []
   arms := []
   tmps := []
@@ -1731,16 +1731,16 @@ noncomputable def plumb : B2C.Plumb where
   sh := [100, 101]
   nv := 0x7fffffffffffffffffffff
 
-/-- `__loop186`: its frame size (`B2C.fsN`). -/
+/-- `__loop176`: its frame size (`B2C.fsN`). -/
 def fs : ℕ := 106
 
-/-- `__loop186`: its completeness walk's parts (`Data.cplParts`). -/
+/-- `__loop176`: its completeness walk's parts (`Data.cplParts`). -/
 def parts : List (List (List ℕ)) := []
 
-/-- `__loop186`: no `match` with its arms counted apart (`Data.cplArms`). -/
+/-- `__loop176`: no `match` with its arms counted apart (`Data.cplArms`). -/
 def arms : List (ℕ × List (List ℕ)) := []
 
-/-- `__loop186`'s windows after the first start from these (`B2C.snapsOf`). -/
+/-- `__loop176`'s windows after the first start from these (`B2C.snapsOf`). -/
 noncomputable def snaps : List B2C.Snap := []
 
 end
@@ -1755,7 +1755,7 @@ set_option linter.all false
 
 @[expose] public section
 
-/-- `__loop197`: chunk 0. -/
+/-- `__loop187`: chunk 0. -/
 def c0 : List OffsetInstruction := [
   (.mul 2 2 9),
   (.mul 9 9 10),
@@ -1782,7 +1782,7 @@ def c0 : List OffsetInstruction := [
   (.mul 49 49 50),
   (.mul 5 50 51),
   (.mul 6 50 52),
-  (.set 54 2908027952939296631 0),
+  (.set 54 2252999587758121502 0),
   (.deref 53 2 48 .cell),
   (.deref 53 3 51 .cell),
   (.deref 53 4 52 .cell),
@@ -1795,7 +1795,7 @@ def c0 : List OffsetInstruction := [
   (.xor 56 3 57),
   (.set 58 2305843009213693952 0),
   (.mul 8 58 59),
-  (.set 60 13479294613628551162 0),
+  (.set 60 15415423143309879695 0),
   (.mul 56 43 63),
   (.mul 3 43 64),
   (.mul 4 43 65),
@@ -1808,21 +1808,21 @@ def c0 : List OffsetInstruction := [
   (.jump 57 60 59),
   (.jump 43 0 1)]
 
-/-- `__loop197`: pc 316211 to 316260. -/
+/-- `__loop187`: pc 315719 to 315768. -/
 def code : CompiledFunction :=
-  ⟨"__loop197", 316211, 50, [c0]⟩
+  ⟨"__loop187", 315719, 50, [c0]⟩
 
-/-- `__loop197`: window 0's cells, of values 0 on. -/
+/-- `__loop187`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 4 :: 5 :: 6 :: 7 :: 9 :: 10 :: 11 :: 12 :: 14 :: 15 :: 16 :: 17 :: 18 :: 43 :: 44 :: 45 :: 46 :: 47 :: 30 :: 31 :: 32 :: 33 :: 34 :: 35 :: 36 :: 37 :: 38 :: 39 :: 40 :: 41 :: 42 :: 48 :: 9 :: 49 :: 50 :: 51 :: 52 :: 55 :: 56 :: 57 :: 55 :: 56 :: [])
 
-/-- `__loop197`. -/
+/-- `__loop187`. -/
 noncomputable def cert : Check.Cert where
   facts := { env := [(8, (.fpg 0))], fpOne := false, arms := [], scaled := [8] }
   los := [0]
   cells := [cert_w0_0]
   ins := [[]]
   nret := 0
-  callees := [1105, 1151]
+  callees := [1090, 1136]
   pre := []
   post := []
   mem := []
@@ -1830,10 +1830,10 @@ noncomputable def cert : Check.Cert where
   cuts := []
   ends := []
   entered := []
-/-- `__loop197`. -/
+/-- `__loop187`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(8, (.fpg 0)), (43, (.k 1 0)), (44, (.k 0 0)), (45, (.k 0 0)), (46, (.k 0 0)), (47, (.k 0 0)), (54, (.k 2908027952939296631 0)), (55, (.k 2 0)), (58, (.k 2305843009213693952 0)), (59, (.fpg 61)), (60, (.k 13479294613628551162 0))]
-  sites := [⟨[33, 37, 38, 5], [], 53, 316244, 0⟩]
+  stat := [(8, (.fpg 0)), (43, (.k 1 0)), (44, (.k 0 0)), (45, (.k 0 0)), (46, (.k 0 0)), (47, (.k 0 0)), (54, (.k 2252999587758121502 0)), (55, (.k 2 0)), (58, (.k 2305843009213693952 0)), (59, (.fpg 61)), (60, (.k 15415423143309879695 0))]
+  sites := [⟨[33, 37, 38, 5], [], 53, 315752, 0⟩]
   arms := []
   tmps := []
   runs := []
@@ -1841,16 +1841,16 @@ noncomputable def plumb : B2C.Plumb where
   sh := [9, 55, 56]
   nv := 0xfffffffffdf
 
-/-- `__loop197`: its frame size (`B2C.fsN`). -/
+/-- `__loop187`: its frame size (`B2C.fsN`). -/
 def fs : ℕ := 61
 
-/-- `__loop197`: its completeness walk's parts (`Data.cplParts`). -/
+/-- `__loop187`: its completeness walk's parts (`Data.cplParts`). -/
 def parts : List (List (List ℕ)) := []
 
-/-- `__loop197`: no `match` with its arms counted apart (`Data.cplArms`). -/
+/-- `__loop187`: no `match` with its arms counted apart (`Data.cplArms`). -/
 def arms : List (ℕ × List (List ℕ)) := []
 
-/-- `__loop197`'s windows after the first start from these (`B2C.snapsOf`). -/
+/-- `__loop187`'s windows after the first start from these (`B2C.snapsOf`). -/
 noncomputable def snaps : List B2C.Snap := []
 
 end
@@ -1865,7 +1865,7 @@ set_option linter.all false
 
 @[expose] public section
 
-/-- `__loop278`: chunk 0. -/
+/-- `__loop268`: chunk 0. -/
 def c0 : List OffsetInstruction := [
   (.mul 4 2 10),
   (.mul 10 2 11),
@@ -2022,7 +2022,7 @@ def c0 : List OffsetInstruction := [
   (.xor 171 3 172),
   (.set 173 91479367430963200 0),
   (.mul 9 173 174),
-  (.set 175 14705872772662110171 0),
+  (.set 175 2266132561776185658 0),
   (.mul 171 19 178),
   (.mul 3 19 179),
   (.mul 4 19 180),
@@ -2036,21 +2036,21 @@ def c0 : List OffsetInstruction := [
   (.jump 172 175 174),
   (.jump 19 0 1)]
 
-/-- `__loop278`: pc 343257 to 343424. -/
+/-- `__loop268`: pc 342765 to 342932. -/
 def code : CompiledFunction :=
-  ⟨"__loop278", 343257, 168, [c0]⟩
+  ⟨"__loop268", 342765, 168, [c0]⟩
 
-/-- `__loop278`: window 0's cells, of values 0 on. -/
+/-- `__loop268`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 4 :: 5 :: 6 :: 7 :: 8 :: 10 :: 11 :: 14 :: 15 :: 16 :: 20 :: 21 :: 19 :: 22 :: 17 :: 23 :: 24 :: 25 :: 26 :: 27 :: 18 :: 28 :: 29 :: 30 :: 31 :: 32 :: 33 :: 34 :: 35 :: 36 :: 37 :: 38 :: 39 :: 40 :: 41 :: 42 :: 43 :: 44 :: 45 :: 46 :: 47 :: 48 :: 49 :: 50 :: 51 :: 52 :: 53 :: 54 :: 55 :: 56 :: 57 :: 58 :: 59 :: 60 :: 61 :: 62 :: 63 :: 64 :: 65 :: 66 :: 67 :: 68 :: 69 :: 70 :: 71 :: 72 :: 73 :: 74 :: 75 :: 76 :: 77 :: 78 :: 79 :: 80 :: 81 :: 82 :: 83 :: 84 :: 85 :: 86 :: 87 :: 88 :: 89 :: 90 :: 91 :: 92 :: 93 :: 94 :: 95 :: 96 :: 97 :: 98 :: 99 :: 100 :: 101 :: 102 :: 103 :: 104 :: 105 :: 106 :: 107 :: 108 :: 109 :: 110 :: 111 :: 112 :: 113 :: 114 :: 115 :: 116 :: 117 :: 118 :: 119 :: 120 :: 121 :: 122 :: 123 :: 124 :: 125 :: 126 :: 127 :: 128 :: 129 :: 130 :: 131 :: 132 :: 133 :: 134 :: 135 :: 153 :: 154 :: 155 :: 137 :: 156 :: 157 :: 158 :: 138 :: 159 :: 160 :: 161 :: 139 :: 162 :: 145 :: 146 :: 163 :: 149 :: 13 :: 164 :: 165 :: 166 :: 167 :: 168 :: 169 :: 170 :: 171 :: 172 :: 170 :: 171 :: [])
 
-/-- `__loop278`. -/
+/-- `__loop268`. -/
 noncomputable def cert : Check.Cert where
   facts := { env := [(9, (.fpg 0))], fpOne := false, arms := [], scaled := [9] }
   los := [0]
   cells := [cert_w0_0]
   ins := [[]]
   nret := 0
-  callees := [1252]
+  callees := [1237]
   pre := []
   post := []
   mem := []
@@ -2058,9 +2058,9 @@ noncomputable def cert : Check.Cert where
   cuts := []
   ends := []
   entered := []
-/-- `__loop278`. -/
+/-- `__loop268`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(9, (.fpg 0)), (19, (.k 1 0)), (26, (.k 6 0)), (31, (.k 360 0)), (37, (.k 18245760 0)), (43, (.k 78274681211224091 0)), (49, (.k 8244804748658156366 0)), (55, (.k 8749050644146709186 0)), (61, (.k 1085473640648473244 0)), (67, (.k 7640059558905957125 0)), (73, (.k 15191009085390685913 0)), (79, (.k 7878391778441664005 0)), (85, (.k 15027479999479429674 0)), (91, (.k 45258276057990961 0)), (97, (.k 4327488829911782419 0)), (103, (.k 436120406283855025 0)), (109, (.k 12258566772772131633 0)), (115, (.k 4173344427556738922 0)), (121, (.k 9379383436311302198 0)), (127, (.k 12815162240740981585 0)), (133, (.k 12781823355040158032 0)), (170, (.k 2 0)), (173, (.k 91479367430963200 0)), (174, (.fpg 176)), (175, (.k 14705872772662110171 0))]
+  stat := [(9, (.fpg 0)), (19, (.k 1 0)), (26, (.k 6 0)), (31, (.k 360 0)), (37, (.k 18245760 0)), (43, (.k 78274681211224091 0)), (49, (.k 8244804748658156366 0)), (55, (.k 8749050644146709186 0)), (61, (.k 1085473640648473244 0)), (67, (.k 7640059558905957125 0)), (73, (.k 15191009085390685913 0)), (79, (.k 7878391778441664005 0)), (85, (.k 15027479999479429674 0)), (91, (.k 45258276057990961 0)), (97, (.k 4327488829911782419 0)), (103, (.k 436120406283855025 0)), (109, (.k 12258566772772131633 0)), (115, (.k 4173344427556738922 0)), (121, (.k 9379383436311302198 0)), (127, (.k 12815162240740981585 0)), (133, (.k 12781823355040158032 0)), (170, (.k 2 0)), (173, (.k 91479367430963200 0)), (174, (.fpg 176)), (175, (.k 2266132561776185658 0))]
   sites := []
   arms := []
   tmps := []
@@ -2069,16 +2069,16 @@ noncomputable def plumb : B2C.Plumb where
   sh := [170, 171]
   nv := 0xffffffffffffffffffffffffffffffffffffffff
 
-/-- `__loop278`: its frame size (`B2C.fsN`). -/
+/-- `__loop268`: its frame size (`B2C.fsN`). -/
 def fs : ℕ := 176
 
-/-- `__loop278`: its completeness walk's parts (`Data.cplParts`). -/
+/-- `__loop268`: its completeness walk's parts (`Data.cplParts`). -/
 def parts : List (List (List ℕ)) := []
 
-/-- `__loop278`: no `match` with its arms counted apart (`Data.cplArms`). -/
+/-- `__loop268`: no `match` with its arms counted apart (`Data.cplArms`). -/
 def arms : List (ℕ × List (List ℕ)) := []
 
-/-- `__loop278`'s windows after the first start from these (`B2C.snapsOf`). -/
+/-- `__loop268`'s windows after the first start from these (`B2C.snapsOf`). -/
 noncomputable def snaps : List B2C.Snap := []
 
 end
@@ -2093,7 +2093,7 @@ set_option linter.all false
 
 @[expose] public section
 
-/-- `__loop291`: chunk 0. -/
+/-- `__loop281`: chunk 0. -/
 def c0 : List OffsetInstruction := [
   (.mul 4 2 10),
   (.mul 10 2 11),
@@ -2195,7 +2195,7 @@ def c0 : List OffsetInstruction := [
   (.xor 119 3 120),
   (.set 121 12682136550675316763 0),
   (.mul 9 121 122),
-  (.set 123 5706432673160021377 0),
+  (.set 123 10274501220162734101 0),
   (.mul 119 19 126),
   (.mul 3 19 127),
   (.mul 4 19 128),
@@ -2209,21 +2209,21 @@ def c0 : List OffsetInstruction := [
   (.jump 120 123 122),
   (.jump 19 0 1)]
 
-/-- `__loop291`: pc 349096 to 349208. -/
+/-- `__loop281`: pc 348604 to 348716. -/
 def code : CompiledFunction :=
-  ⟨"__loop291", 349096, 113, [c0]⟩
+  ⟨"__loop281", 348604, 113, [c0]⟩
 
-/-- `__loop291`: window 0's cells, of values 0 on. -/
+/-- `__loop281`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 4 :: 5 :: 6 :: 7 :: 8 :: 10 :: 11 :: 14 :: 15 :: 16 :: 20 :: 21 :: 19 :: 22 :: 17 :: 23 :: 24 :: 25 :: 26 :: 27 :: 18 :: 28 :: 29 :: 30 :: 31 :: 32 :: 33 :: 34 :: 35 :: 36 :: 37 :: 38 :: 39 :: 40 :: 41 :: 42 :: 43 :: 44 :: 45 :: 46 :: 47 :: 48 :: 49 :: 50 :: 51 :: 52 :: 53 :: 54 :: 55 :: 56 :: 57 :: 58 :: 59 :: 60 :: 61 :: 62 :: 63 :: 64 :: 65 :: 66 :: 67 :: 68 :: 69 :: 70 :: 71 :: 72 :: 73 :: 74 :: 75 :: 76 :: 77 :: 78 :: 79 :: 80 :: 81 :: 82 :: 83 :: 84 :: 85 :: 86 :: 87 :: 105 :: 106 :: 107 :: 89 :: 108 :: 109 :: 110 :: 90 :: 111 :: 93 :: 13 :: 112 :: 113 :: 114 :: 115 :: 116 :: 117 :: 118 :: 119 :: 120 :: 118 :: 119 :: [])
 
-/-- `__loop291`. -/
+/-- `__loop281`. -/
 noncomputable def cert : Check.Cert where
   facts := { env := [(9, (.fpg 0))], fpOne := false, arms := [], scaled := [9] }
   los := [0]
   cells := [cert_w0_0]
   ins := [[]]
   nret := 0
-  callees := [1265]
+  callees := [1250]
   pre := []
   post := []
   mem := []
@@ -2231,9 +2231,9 @@ noncomputable def cert : Check.Cert where
   cuts := []
   ends := []
   entered := []
-/-- `__loop291`. -/
+/-- `__loop281`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(9, (.fpg 0)), (19, (.k 1 0)), (26, (.k 6 0)), (31, (.k 360 0)), (37, (.k 18245760 0)), (43, (.k 78274681211224091 0)), (49, (.k 8244804748658156366 0)), (55, (.k 8749050644146709186 0)), (61, (.k 1085473640648473244 0)), (67, (.k 7640059558905957125 0)), (73, (.k 15191009085390685913 0)), (79, (.k 7878391778441664005 0)), (85, (.k 15027479999479429674 0)), (118, (.k 2 0)), (121, (.k 12682136550675316763 0)), (122, (.fpg 124)), (123, (.k 5706432673160021377 0))]
+  stat := [(9, (.fpg 0)), (19, (.k 1 0)), (26, (.k 6 0)), (31, (.k 360 0)), (37, (.k 18245760 0)), (43, (.k 78274681211224091 0)), (49, (.k 8244804748658156366 0)), (55, (.k 8749050644146709186 0)), (61, (.k 1085473640648473244 0)), (67, (.k 7640059558905957125 0)), (73, (.k 15191009085390685913 0)), (79, (.k 7878391778441664005 0)), (85, (.k 15027479999479429674 0)), (118, (.k 2 0)), (121, (.k 12682136550675316763 0)), (122, (.fpg 124)), (123, (.k 10274501220162734101 0))]
   sites := []
   arms := []
   tmps := []
@@ -2242,16 +2242,16 @@ noncomputable def plumb : B2C.Plumb where
   sh := [118, 119]
   nv := 0x1ffffffffffffffffffffffffff
 
-/-- `__loop291`: its frame size (`B2C.fsN`). -/
+/-- `__loop281`: its frame size (`B2C.fsN`). -/
 def fs : ℕ := 124
 
-/-- `__loop291`: its completeness walk's parts (`Data.cplParts`). -/
+/-- `__loop281`: its completeness walk's parts (`Data.cplParts`). -/
 def parts : List (List (List ℕ)) := []
 
-/-- `__loop291`: no `match` with its arms counted apart (`Data.cplArms`). -/
+/-- `__loop281`: no `match` with its arms counted apart (`Data.cplArms`). -/
 def arms : List (ℕ × List (List ℕ)) := []
 
-/-- `__loop291`'s windows after the first start from these (`B2C.snapsOf`). -/
+/-- `__loop281`'s windows after the first start from these (`B2C.snapsOf`). -/
 noncomputable def snaps : List B2C.Snap := []
 
 end
@@ -2266,7 +2266,7 @@ set_option linter.all false
 
 @[expose] public section
 
-/-- `__loop388`: chunk 0. -/
+/-- `__loop378`: chunk 0. -/
 def c0 : List OffsetInstruction := [
   (.mul 2 2 9),
   (.mul 9 9 10),
@@ -2291,7 +2291,7 @@ def c0 : List OffsetInstruction := [
   (.deref 12 9 42 .cell),
   (.mul 5 11 49),
   (.mul 6 11 50),
-  (.set 52 13956011345221573018 0),
+  (.set 52 1363058255055414647 0),
   (.deref 51 2 48 .cell),
   (.deref 51 3 49 .cell),
   (.deref 51 4 50 .cell),
@@ -2304,7 +2304,7 @@ def c0 : List OffsetInstruction := [
   (.xor 54 3 55),
   (.set 56 576460752303423488 0),
   (.mul 8 56 57),
-  (.set 58 7354023506265760566 0),
+  (.set 58 15230358844968611330 0),
   (.mul 54 43 61),
   (.mul 3 43 62),
   (.mul 4 43 63),
@@ -2317,21 +2317,21 @@ def c0 : List OffsetInstruction := [
   (.jump 55 58 57),
   (.jump 43 0 1)]
 
-/-- `__loop388`: pc 379201 to 379248. -/
+/-- `__loop378`: pc 378709 to 378756. -/
 def code : CompiledFunction :=
-  ⟨"__loop388", 379201, 48, [c0]⟩
+  ⟨"__loop378", 378709, 48, [c0]⟩
 
-/-- `__loop388`: window 0's cells, of values 0 on. -/
+/-- `__loop378`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 4 :: 5 :: 6 :: 7 :: 9 :: 10 :: 11 :: 12 :: 14 :: 15 :: 16 :: 17 :: 18 :: 43 :: 44 :: 45 :: 46 :: 47 :: 30 :: 31 :: 32 :: 33 :: 34 :: 35 :: 36 :: 37 :: 38 :: 39 :: 40 :: 41 :: 42 :: 48 :: 9 :: 10 :: 11 :: 49 :: 50 :: 53 :: 54 :: 55 :: 53 :: 54 :: [])
 
-/-- `__loop388`. -/
+/-- `__loop378`. -/
 noncomputable def cert : Check.Cert where
   facts := { env := [(8, (.fpg 0))], fpOne := false, arms := [], scaled := [8] }
   los := [0]
   cells := [cert_w0_0]
   ins := [[]]
   nret := 0
-  callees := [1190, 1380]
+  callees := [1175, 1365]
   pre := []
   post := []
   mem := []
@@ -2339,10 +2339,10 @@ noncomputable def cert : Check.Cert where
   cuts := []
   ends := []
   entered := []
-/-- `__loop388`. -/
+/-- `__loop378`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(8, (.fpg 0)), (43, (.k 1 0)), (44, (.k 0 0)), (45, (.k 0 0)), (46, (.k 0 0)), (47, (.k 0 0)), (52, (.k 13956011345221573018 0)), (53, (.k 2 0)), (56, (.k 576460752303423488 0)), (57, (.fpg 59)), (58, (.k 7354023506265760566 0))]
-  sites := [⟨[33, 37, 38, 5], [], 51, 379232, 0⟩]
+  stat := [(8, (.fpg 0)), (43, (.k 1 0)), (44, (.k 0 0)), (45, (.k 0 0)), (46, (.k 0 0)), (47, (.k 0 0)), (52, (.k 1363058255055414647 0)), (53, (.k 2 0)), (56, (.k 576460752303423488 0)), (57, (.fpg 59)), (58, (.k 15230358844968611330 0))]
+  sites := [⟨[33, 37, 38, 5], [], 51, 378740, 0⟩]
   arms := []
   tmps := []
   runs := []
@@ -2350,16 +2350,16 @@ noncomputable def plumb : B2C.Plumb where
   sh := [9, 10, 11, 53, 54]
   nv := 0xfffffffffdf
 
-/-- `__loop388`: its frame size (`B2C.fsN`). -/
+/-- `__loop378`: its frame size (`B2C.fsN`). -/
 def fs : ℕ := 59
 
-/-- `__loop388`: its completeness walk's parts (`Data.cplParts`). -/
+/-- `__loop378`: its completeness walk's parts (`Data.cplParts`). -/
 def parts : List (List (List ℕ)) := []
 
-/-- `__loop388`: no `match` with its arms counted apart (`Data.cplArms`). -/
+/-- `__loop378`: no `match` with its arms counted apart (`Data.cplArms`). -/
 def arms : List (ℕ × List (List ℕ)) := []
 
-/-- `__loop388`'s windows after the first start from these (`B2C.snapsOf`). -/
+/-- `__loop378`'s windows after the first start from these (`B2C.snapsOf`). -/
 noncomputable def snaps : List B2C.Snap := []
 
 end
@@ -2374,7 +2374,7 @@ set_option linter.all false
 
 @[expose] public section
 
-/-- `__loop411`: chunk 0. -/
+/-- `__loop401`: chunk 0. -/
 def c0 : List OffsetInstruction := [
   (.mul 4 2 10),
   (.mul 10 2 11),
@@ -2494,7 +2494,7 @@ def c0 : List OffsetInstruction := [
   (.xor 137 3 138),
   (.set 139 5324800 0),
   (.mul 9 139 140),
-  (.set 141 17643435841523100100 0),
+  (.set 141 13709991573182598427 0),
   (.mul 137 19 144),
   (.mul 3 19 145),
   (.mul 4 19 146),
@@ -2508,21 +2508,21 @@ def c0 : List OffsetInstruction := [
   (.jump 138 141 140),
   (.jump 19 0 1)]
 
-/-- `__loop411`: pc 389703 to 389833. -/
+/-- `__loop401`: pc 389211 to 389341. -/
 def code : CompiledFunction :=
-  ⟨"__loop411", 389703, 131, [c0]⟩
+  ⟨"__loop401", 389211, 131, [c0]⟩
 
-/-- `__loop411`: window 0's cells, of values 0 on. -/
+/-- `__loop401`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 4 :: 5 :: 6 :: 7 :: 8 :: 10 :: 11 :: 14 :: 15 :: 16 :: 20 :: 21 :: 19 :: 22 :: 17 :: 23 :: 24 :: 25 :: 26 :: 27 :: 18 :: 28 :: 29 :: 30 :: 31 :: 32 :: 33 :: 34 :: 35 :: 36 :: 37 :: 38 :: 39 :: 40 :: 41 :: 42 :: 43 :: 44 :: 45 :: 46 :: 47 :: 48 :: 49 :: 50 :: 51 :: 52 :: 53 :: 54 :: 55 :: 56 :: 57 :: 58 :: 59 :: 60 :: 61 :: 62 :: 63 :: 64 :: 65 :: 66 :: 67 :: 68 :: 69 :: 70 :: 71 :: 72 :: 73 :: 74 :: 75 :: 76 :: 77 :: 78 :: 79 :: 80 :: 81 :: 82 :: 83 :: 84 :: 85 :: 86 :: 87 :: 88 :: 89 :: 90 :: 91 :: 92 :: 93 :: 94 :: 95 :: 96 :: 97 :: 98 :: 99 :: 100 :: 101 :: 102 :: 103 :: 104 :: 105 :: 123 :: 124 :: 125 :: 107 :: 126 :: 127 :: 128 :: 108 :: 129 :: 111 :: 13 :: 130 :: 131 :: 132 :: 133 :: 134 :: 135 :: 136 :: 137 :: 138 :: 136 :: 137 :: [])
 
-/-- `__loop411`. -/
+/-- `__loop401`. -/
 noncomputable def cert : Check.Cert where
   facts := { env := [(9, (.fpg 0))], fpOne := false, arms := [], scaled := [9] }
   los := [0]
   cells := [cert_w0_0]
   ins := [[]]
   nret := 0
-  callees := [1406]
+  callees := [1391]
   pre := []
   post := []
   mem := []
@@ -2530,9 +2530,9 @@ noncomputable def cert : Check.Cert where
   cuts := []
   ends := []
   entered := []
-/-- `__loop411`. -/
+/-- `__loop401`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(9, (.fpg 0)), (19, (.k 1 0)), (26, (.k 6 0)), (31, (.k 360 0)), (37, (.k 18245760 0)), (43, (.k 78274681211224091 0)), (49, (.k 8244804748658156366 0)), (55, (.k 8749050644146709186 0)), (61, (.k 1085473640648473244 0)), (67, (.k 7640059558905957125 0)), (73, (.k 15191009085390685913 0)), (79, (.k 7878391778441664005 0)), (85, (.k 15027479999479429674 0)), (91, (.k 45258276057990961 0)), (97, (.k 4327488829911782419 0)), (103, (.k 436120406283855025 0)), (136, (.k 2 0)), (139, (.k 5324800 0)), (140, (.fpg 142)), (141, (.k 17643435841523100100 0))]
+  stat := [(9, (.fpg 0)), (19, (.k 1 0)), (26, (.k 6 0)), (31, (.k 360 0)), (37, (.k 18245760 0)), (43, (.k 78274681211224091 0)), (49, (.k 8244804748658156366 0)), (55, (.k 8749050644146709186 0)), (61, (.k 1085473640648473244 0)), (67, (.k 7640059558905957125 0)), (73, (.k 15191009085390685913 0)), (79, (.k 7878391778441664005 0)), (85, (.k 15027479999479429674 0)), (91, (.k 45258276057990961 0)), (97, (.k 4327488829911782419 0)), (103, (.k 436120406283855025 0)), (136, (.k 2 0)), (139, (.k 5324800 0)), (140, (.fpg 142)), (141, (.k 13709991573182598427 0))]
   sites := []
   arms := []
   tmps := []
@@ -2541,16 +2541,16 @@ noncomputable def plumb : B2C.Plumb where
   sh := [136, 137]
   nv := 0x7ffffffffffffffffffffffffffffff
 
-/-- `__loop411`: its frame size (`B2C.fsN`). -/
+/-- `__loop401`: its frame size (`B2C.fsN`). -/
 def fs : ℕ := 142
 
-/-- `__loop411`: its completeness walk's parts (`Data.cplParts`). -/
+/-- `__loop401`: its completeness walk's parts (`Data.cplParts`). -/
 def parts : List (List (List ℕ)) := []
 
-/-- `__loop411`: no `match` with its arms counted apart (`Data.cplArms`). -/
+/-- `__loop401`: no `match` with its arms counted apart (`Data.cplArms`). -/
 def arms : List (ℕ × List (List ℕ)) := []
 
-/-- `__loop411`'s windows after the first start from these (`B2C.snapsOf`). -/
+/-- `__loop401`'s windows after the first start from these (`B2C.snapsOf`). -/
 noncomputable def snaps : List B2C.Snap := []
 
 end
@@ -2565,7 +2565,7 @@ set_option linter.all false
 
 @[expose] public section
 
-/-- `__loop465`: chunk 0. -/
+/-- `__loop455`: chunk 0. -/
 def c0 : List OffsetInstruction := [
   (.set 6 476952263 0),
   (.mul 4 6 7),
@@ -2593,7 +2593,7 @@ def c0 : List OffsetInstruction := [
   (.xor 27 3 28),
   (.set 29 4294967296 0),
   (.mul 5 29 30),
-  (.set 31 6235170302664996559 0),
+  (.set 31 4009227014310934877 0),
   (.mul 27 20 34),
   (.mul 3 20 35),
   (.mul 4 20 36),
@@ -2603,21 +2603,21 @@ def c0 : List OffsetInstruction := [
   (.jump 28 31 30),
   (.jump 20 0 1)]
 
-/-- `__loop465`: pc 407475 to 407509. -/
+/-- `__loop455`: pc 406983 to 407017. -/
 def code : CompiledFunction :=
-  ⟨"__loop465", 407475, 35, [c0]⟩
+  ⟨"__loop455", 406983, 35, [c0]⟩
 
-/-- `__loop465`: window 0's cells, of values 0 on. -/
+/-- `__loop455`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := [2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 8, 13, 14, 15, 16, 17, 20, 21, 22, 23, 24, 25, 18, 19, 26, 27, 28, 26, 27]
 
-/-- `__loop465`. -/
+/-- `__loop455`. -/
 noncomputable def cert : Check.Cert where
   facts := { env := [(5, (.fpg 0))], fpOne := false, arms := [], scaled := [5] }
   los := [0]
   cells := [cert_w0_0]
   ins := [[]]
   nret := 0
-  callees := [1467]
+  callees := [1452]
   pre := []
   post := []
   mem := []
@@ -2625,9 +2625,9 @@ noncomputable def cert : Check.Cert where
   cuts := []
   ends := []
   entered := []
-/-- `__loop465`. -/
+/-- `__loop455`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(5, (.fpg 0)), (6, (.k 476952263 0)), (11, (.k 2048494371338190848 0)), (20, (.k 1 0)), (21, (.k 0 0)), (22, (.k 0 0)), (23, (.k 0 0)), (24, (.k 0 0)), (25, (.k 9223372036854775808 0)), (26, (.k 2 0)), (29, (.k 4294967296 0)), (30, (.fpg 32)), (31, (.k 6235170302664996559 0))]
+  stat := [(5, (.fpg 0)), (6, (.k 476952263 0)), (11, (.k 2048494371338190848 0)), (20, (.k 1 0)), (21, (.k 0 0)), (22, (.k 0 0)), (23, (.k 0 0)), (24, (.k 0 0)), (25, (.k 9223372036854775808 0)), (26, (.k 2 0)), (29, (.k 4294967296 0)), (30, (.fpg 32)), (31, (.k 4009227014310934877 0))]
   sites := []
   arms := []
   tmps := []
@@ -2636,16 +2636,16 @@ noncomputable def plumb : B2C.Plumb where
   sh := [8, 26, 27]
   nv := 0x1fffffff
 
-/-- `__loop465`: its frame size (`B2C.fsN`). -/
+/-- `__loop455`: its frame size (`B2C.fsN`). -/
 def fs : ℕ := 32
 
-/-- `__loop465`: its completeness walk's parts (`Data.cplParts`). -/
+/-- `__loop455`: its completeness walk's parts (`Data.cplParts`). -/
 def parts : List (List (List ℕ)) := []
 
-/-- `__loop465`: no `match` with its arms counted apart (`Data.cplArms`). -/
+/-- `__loop455`: no `match` with its arms counted apart (`Data.cplArms`). -/
 def arms : List (ℕ × List (List ℕ)) := []
 
-/-- `__loop465`'s windows after the first start from these (`B2C.snapsOf`). -/
+/-- `__loop455`'s windows after the first start from these (`B2C.snapsOf`). -/
 noncomputable def snaps : List B2C.Snap := []
 
 end
@@ -2660,7 +2660,7 @@ set_option linter.all false
 
 @[expose] public section
 
-/-- `__loop521`: chunk 0. -/
+/-- `__loop511`: chunk 0. -/
 def c0 : List OffsetInstruction := [
   (.mul 4 2 13),
   (.mul 13 2 14),
@@ -2803,7 +2803,7 @@ def c0 : List OffsetInstruction := [
   (.set 286 0 9223372036854775808),
   (.xor 264 286 287),
   (.keccak 278 279 280 281 282 287 265 148 true false .two),
-  (.set 289 13841097396380992851 0),
+  (.set 289 11614107145609600492 0),
   (.deref 288 2 148 .cell),
   (.deref 288 3 149 .cell),
   (.deref 288 4 19 .cell),
@@ -3091,7 +3091,7 @@ def c0 : List OffsetInstruction := [
   (.xor 616 229 638),
   (.xor 617 286 639),
   (.keccak 631 632 633 634 635 639 618 508 true false .two),
-  (.set 641 13841097396380992851 0),
+  (.set 641 11614107145609600492 0),
   (.deref 640 2 508 .cell),
   (.deref 640 3 509 .cell),
   (.deref 640 4 379 .cell),
@@ -3250,7 +3250,7 @@ def c0 : List OffsetInstruction := [
   (.xor 724 3 725),
   (.set 726 6155922978765799973 0),
   (.mul 12 726 727),
-  (.set 728 10236493219774673314 0),
+  (.set 728 13662196963040726065 0),
   (.mul 724 229 731),
   (.mul 3 229 732),
   (.mul 4 229 733),
@@ -3267,44 +3267,44 @@ def c0 : List OffsetInstruction := [
   (.jump 725 728 727),
   (.jump 229 0 1)]
 
-/-- `__loop521`: pc 437055 to 437658. -/
+/-- `__loop511`: pc 436563 to 437166. -/
 def code : CompiledFunction :=
-  ⟨"__loop521", 437055, 604, [c0]⟩
+  ⟨"__loop511", 436563, 604, [c0]⟩
 
-/-- `__loop521`: window 0's cells, of values 0 on. -/
+/-- `__loop511`: window 0's cells, of values 0 on. -/
 def cert_w0_0 : List ℕ := (2 :: 3 :: 4 :: 5 :: 6 :: 7 :: 8 :: 9 :: 10 :: 11 :: 13 :: 14 :: 15 :: 16 :: 18 :: 19 :: 20 :: 21 :: 22 :: 23 :: 24 :: 25 :: 26 :: 27 :: 28 :: 29 :: 30 :: 31 :: 32 :: 33 :: 34 :: 35 :: 36 :: 37 :: 38 :: 39 :: 40 :: 41 :: 42 :: 43 :: 44 :: 45 :: 46 :: 47 :: 48 :: 49 :: 50 :: 51 :: 52 :: 53 :: 54 :: 55 :: 56 :: 57 :: 58 :: 59 :: 60 :: 61 :: 62 :: 63 :: 64 :: 65 :: 66 :: 67 :: 68 :: 69 :: 70 :: 71 :: 72 :: 73 :: 74 :: 75 :: 76 :: 77 :: 78 :: 79 :: 80 :: 81 :: 82 :: 83 :: 183 :: 184 :: 150 :: 183 :: 185 :: 151 :: 183 :: 186 :: 152 :: 183 :: 187 :: 153 :: 183 :: 188 :: 154 :: 183 :: 189 :: 155 :: 183 :: 190 :: 156 :: 183 :: 191 :: 157 :: 183 :: 192 :: 158 :: 183 :: 193 :: 159 :: 183 :: 194 :: 160 :: 183 :: 195 :: 161 :: 183 :: 196 :: 162 :: 183 :: 197 :: 163 :: 183 :: 198 :: 164 :: 183 :: 199 :: 165 :: 183 :: 200 :: 166 :: 183 :: 201 :: 167 :: 183 :: 202 :: 168 :: 183 :: 203 :: 169 :: 183 :: 204 :: 170 :: 183 :: 205 :: 171 :: 183 :: 206 :: 172 :: 183 :: 207 :: 173 :: 183 :: 208 :: 174 :: 183 :: 209 :: 175 :: 183 :: 210 :: 176 :: 183 :: 211 :: 177 :: 183 :: 212 :: 178 :: 183 :: 213 :: 179 :: 183 :: 214 :: 180 :: 183 :: 215 :: 181 :: 229 :: 230 :: 231 :: 232 :: 233 :: 216 :: 217 :: 218 :: 219 :: 220 :: 221 :: 222 :: 223 :: 224 :: 225 :: 226 :: 227 :: 228 :: 247 :: 248 :: 249 :: 250 :: 251 :: 252 :: 253 :: 254 :: 255 :: 234 :: 235 :: 236 :: 237 :: 238 :: 239 :: 240 :: 241 :: 242 :: 243 :: 244 :: 245 :: 246 :: 269 :: 270 :: 271 :: 272 :: 273 :: 274 :: 275 :: 276 :: 277 :: 256 :: 257 :: 258 :: 259 :: 260 :: 261 :: 262 :: 263 :: 264 :: 265 :: 266 :: 267 :: 268 :: 278 :: 279 :: 280 :: 281 :: 282 :: 283 :: 284 :: 285 :: 286 :: 287 :: 148 :: 149 :: [])
 
-/-- `__loop521`: window 1's cells, of values 250 on. -/
+/-- `__loop511`: window 1's cells, of values 250 on. -/
 def cert_w1_0 : List ℕ := (290 :: 291 :: 292 :: 293 :: 294 :: 84 :: 295 :: 85 :: 296 :: 86 :: 297 :: 87 :: 298 :: 88 :: 299 :: 89 :: 300 :: 90 :: 301 :: 91 :: 302 :: 92 :: 303 :: 93 :: 304 :: 94 :: 305 :: 95 :: 306 :: 96 :: 307 :: 97 :: 308 :: 98 :: 309 :: 99 :: 310 :: 100 :: 311 :: 101 :: 312 :: 102 :: 313 :: 103 :: 314 :: 104 :: 315 :: 105 :: 316 :: 106 :: 317 :: 107 :: 318 :: 108 :: 319 :: 109 :: 320 :: 110 :: 321 :: 111 :: 322 :: 112 :: 323 :: 113 :: 324 :: 114 :: 325 :: 115 :: 326 :: 327 :: 328 :: 329 :: 330 :: 116 :: 331 :: 117 :: 332 :: 118 :: 333 :: 119 :: 334 :: 120 :: 335 :: 121 :: 336 :: 122 :: 337 :: 123 :: 338 :: 124 :: 339 :: 125 :: 340 :: 126 :: 341 :: 127 :: 342 :: 128 :: 343 :: 129 :: 344 :: 130 :: 345 :: 131 :: 346 :: 347 :: 348 :: 349 :: 350 :: 132 :: 351 :: 133 :: 352 :: 134 :: 353 :: 135 :: 354 :: 136 :: 355 :: 137 :: 356 :: 138 :: 357 :: 139 :: 358 :: 359 :: 360 :: 361 :: 362 :: 140 :: 363 :: 141 :: 364 :: 142 :: 365 :: 143 :: 366 :: 367 :: 368 :: 369 :: 370 :: 144 :: 371 :: 145 :: 372 :: 373 :: 374 :: 375 :: 376 :: 146 :: 378 :: 379 :: 380 :: 381 :: 382 :: 383 :: 384 :: 385 :: 386 :: 387 :: 388 :: 389 :: 390 :: 391 :: 392 :: 393 :: 394 :: 395 :: 396 :: 397 :: 398 :: 399 :: 400 :: 401 :: 402 :: 403 :: 404 :: 405 :: 406 :: 407 :: 408 :: 409 :: 410 :: 411 :: 412 :: 413 :: 414 :: 415 :: 416 :: 417 :: 418 :: 419 :: 420 :: 421 :: 422 :: 423 :: 424 :: 425 :: 426 :: 427 :: 428 :: 429 :: 430 :: 431 :: 432 :: 433 :: 434 :: 435 :: 436 :: 437 :: 438 :: 439 :: 440 :: 441 :: 442 :: 443 :: 183 :: 542 :: 510 :: 183 :: 543 :: 511 :: 183 :: 544 :: 512 :: 183 :: 545 :: 513 :: 183 :: 546 :: 514 :: 183 :: 547 :: 515 :: 183 :: 548 :: 516 :: 183 :: 549 :: 517 :: 183 :: 550 :: 518 :: 183 :: 551 :: 519 :: 183 :: 552 :: 520 :: 183 :: 553 :: 521 :: 183 :: 554 :: 522 :: 183 :: 555 :: 523 :: 183 :: 556 :: 524 :: 183 :: 557 :: 525 :: 183 :: 558 :: 526 :: 183 :: 559 :: 527 :: 183 :: 560 :: 528 :: 183 :: 561 :: 529 :: 183 :: 562 :: 530 :: 183 :: 563 :: 531 :: 183 :: 564 :: 532 :: 183 :: 565 :: 533 :: 183 :: 566 :: 534 :: 183 :: 567 :: 535 :: 183 :: 568 :: 536 :: 183 :: 569 :: 537 :: 183 :: 570 :: 538 :: 183 :: 571 :: 539 :: 183 :: 572 :: 540 :: 183 :: 573 :: 541 :: 574 :: 575 :: 576 :: 577 :: 578 :: 579 :: 580 :: 581 :: 582 :: 583 :: 584 :: 585 :: 586 :: 600 :: 601 :: 602 :: 603 :: 604 :: 605 :: 606 :: 607 :: 608 :: 587 :: 588 :: 589 :: 590 :: 591 :: 592 :: 593 :: 594 :: 595 :: 596 :: 597 :: 598 :: 599 :: 622 :: 623 :: 624 :: 625 :: 626 :: 627 :: 628 :: 629 :: 630 :: 609 :: 610 :: 611 :: 612 :: 613 :: 614 :: 615 :: 616 :: 617 :: 618 :: 619 :: 620 :: 621 :: 631 :: 632 :: 633 :: 634 :: 635 :: 636 :: 637 :: 638 :: 286 :: 639 :: 508 :: 509 :: [])
 
-/-- `__loop521`: window 2's cells, of values 631 on. -/
+/-- `__loop511`: window 2's cells, of values 631 on. -/
 def cert_w2_0 : List ℕ := (290 :: 291 :: 642 :: 643 :: 644 :: 444 :: 645 :: 445 :: 646 :: 446 :: 647 :: 447 :: 648 :: 448 :: 649 :: 449 :: 650 :: 450 :: 651 :: 451 :: 652 :: 452 :: 653 :: 453 :: 654 :: 454 :: 655 :: 455 :: 656 :: 456 :: 657 :: 457 :: 658 :: 458 :: 659 :: 459 :: 660 :: 460 :: 661 :: 461 :: 662 :: 462 :: 663 :: 463 :: 664 :: 464 :: 665 :: 465 :: 666 :: 466 :: 667 :: 467 :: 668 :: 468 :: 669 :: 469 :: 670 :: 470 :: 671 :: 471 :: 672 :: 472 :: 673 :: 473 :: 674 :: 474 :: 675 :: 475 :: 326 :: 327 :: 676 :: 677 :: 678 :: 476 :: 679 :: 477 :: 680 :: 478 :: 681 :: 479 :: 682 :: 480 :: 683 :: 481 :: 684 :: 482 :: 685 :: 483 :: 686 :: 484 :: 687 :: 485 :: 688 :: 486 :: 689 :: 487 :: 690 :: 488 :: 691 :: 489 :: 692 :: 490 :: 693 :: 491 :: 346 :: 347 :: 694 :: 695 :: 696 :: 492 :: 697 :: 493 :: 698 :: 494 :: 699 :: 495 :: 700 :: 496 :: 701 :: 497 :: 702 :: 498 :: 703 :: 499 :: 358 :: 359 :: 704 :: 705 :: 706 :: 500 :: 707 :: 501 :: 708 :: 502 :: 709 :: 503 :: 366 :: 367 :: 710 :: 711 :: 712 :: 504 :: 713 :: 505 :: 372 :: 373 :: 714 :: 715 :: 716 :: 506 :: 717 :: 718 :: 719 :: 720 :: 721 :: 722 :: 717 :: 723 :: 724 :: 725 :: 723 :: 724 :: [])
 
-/-- `__loop521`. -/
+/-- `__loop511`. -/
 noncomputable def cert : Check.Cert where
   facts := { env := [(12, (.fpg 0))], fpOne := false, arms := [], scaled := [12] }
   los := [0, 250, 631, 793]
   cells := [cert_w0_0, cert_w1_0, cert_w2_0, []]
   ins := [[], [(4, 6, 0), (5, 7, 0), (6, 8, 0), (11, 14, 0), (13, 16, 0), (14, 18, 0), (15, 19, 0), (16, 20, 0), (17, 21, 0), (18, 22, 0), (19, 23, 0), (20, 24, 0), (21, 25, 0), (22, 26, 0), (23, 27, 0), (24, 28, 0), (25, 29, 0), (26, 30, 0), (27, 31, 0), (28, 32, 0), (29, 33, 0), (30, 34, 0), (31, 35, 0), (32, 36, 0), (33, 37, 0), (34, 38, 0), (35, 39, 0), (36, 40, 0), (37, 41, 0), (38, 42, 0), (39, 43, 0), (40, 44, 0), (41, 45, 0), (42, 46, 0), (43, 47, 0), (44, 48, 0), (45, 49, 0), (46, 50, 0), (47, 51, 0), (48, 52, 0), (49, 53, 0), (50, 54, 0), (51, 55, 0), (52, 56, 0), (53, 57, 0), (54, 58, 0), (55, 59, 0), (56, 60, 0), (57, 61, 0), (58, 62, 0), (59, 63, 0), (60, 64, 0), (61, 65, 0), (62, 66, 0), (63, 67, 0), (64, 68, 0), (65, 69, 0), (66, 70, 0), (67, 71, 0), (68, 72, 0), (69, 73, 0), (70, 74, 0), (71, 75, 0), (72, 76, 0), (73, 77, 0), (74, 78, 0), (75, 79, 0), (76, 80, 0), (77, 81, 0), (78, 82, 0), (79, 83, 0), (176, 229, 0), (177, 230, 0), (178, 231, 0), (179, 232, 0), (180, 233, 0), (248, 148, 0), (249, 149, 0)], [(0, 2, 0), (1, 3, 0), (4, 6, 0), (5, 7, 0), (6, 8, 0), (8, 10, 0), (9, 11, 0), (399, 146, 1), (400, 378, 1), (401, 379, 1), (402, 380, 1), (403, 381, 1), (404, 382, 1), (405, 383, 1), (406, 384, 1), (407, 385, 1), (408, 386, 1), (409, 387, 1), (410, 388, 1), (411, 389, 1), (412, 390, 1), (413, 391, 1), (414, 392, 1), (415, 393, 1), (416, 394, 1), (417, 395, 1), (418, 396, 1), (419, 397, 1), (420, 398, 1), (421, 399, 1), (422, 400, 1), (423, 401, 1), (424, 402, 1), (425, 403, 1), (426, 404, 1), (427, 405, 1), (428, 406, 1), (429, 407, 1), (430, 408, 1), (431, 409, 1), (432, 410, 1), (433, 411, 1), (434, 412, 1), (435, 413, 1), (436, 414, 1), (437, 415, 1), (438, 416, 1), (439, 417, 1), (440, 418, 1), (441, 419, 1), (442, 420, 1), (443, 421, 1), (444, 422, 1), (445, 423, 1), (446, 424, 1), (447, 425, 1), (448, 426, 1), (449, 427, 1), (450, 428, 1), (451, 429, 1), (452, 430, 1), (453, 431, 1), (454, 432, 1), (455, 433, 1), (456, 434, 1), (457, 435, 1), (458, 436, 1), (459, 437, 1), (460, 438, 1), (461, 439, 1), (462, 440, 1), (463, 441, 1), (464, 442, 1), (465, 443, 1), (629, 508, 1), (630, 509, 1)], [(1, 3, 0), (2, 4, 0), (3, 5, 0), (4, 6, 0), (5, 7, 0), (6, 8, 0), (7, 9, 0), (8, 10, 0), (9, 11, 0), (790, 725, 2), (792, 724, 2)]]
   nret := 0
-  callees := [1513, 1533]
+  callees := [1498, 1518]
   pre := []
   post := []
   mem := []
   sem := [(11299, [5, 2, 3]), (1, [2, 3])]
   cuts := [⟨141, [(12, (.fpg 0)), (182, .zero), (229, (.gp 0)), (230, .zero), (231, .zero), (232, .zero), (233, .zero)], 172,
-      [(19, (.instr 437060 (.deref 16 0 19 .cell))), (183, (.instr 437063 (.set 183 0 1))), (286, (.instr 437193 (.set 286 0 9223372036854775808))), (148, (.instr 437195 (.keccak 278 279 280 281 282 287 265 148 true false .two))), (15, (.instr 437057 (.mul 5 2 15))), (16, (.instr 437058 (.mul 15 2 16)))],
-      [], [], [], [(11302, [19])]⟩, ⟨429, [(12, (.fpg 0)), (182, .zero), (229, (.gp 0)), (230, .zero), (231, .zero), (232, .zero), (233, .zero), (289, (.gp 427135))], 486,
-      [(6, (.instr 437200 (.deref 288 5 6 .cell))), (7, (.instr 437201 (.deref 288 6 7 .cell))), (290, (.instr 437205 (.deref 8 0 290 .cell))), (291, (.instr 437206 (.deref 8 1 291 .cell))), (326, (.instr 437273 (.deref 8 2 326 .cell))), (327, (.instr 437274 (.deref 8 3 327 .cell))), (346, (.instr 437309 (.deref 8 4 346 .cell))), (347, (.instr 437310 (.deref 8 5 347 .cell))), (358, (.instr 437329 (.deref 8 6 358 .cell))), (359, (.instr 437330 (.deref 8 7 359 .cell))), (366, (.instr 437341 (.deref 8 8 366 .cell))), (367, (.instr 437342 (.deref 8 9 367 .cell))), (372, (.instr 437349 (.deref 8 10 372 .cell))), (373, (.instr 437350 (.deref 8 11 373 .cell))), (379, (.instr 437356 (.deref 16 1 379 .cell))), (508, (.instr 437483 (.keccak 631 632 633 634 635 639 618 508 true false .two))), (15, (.instr 437057 (.mul 5 2 15))), (16, (.instr 437058 (.mul 15 2 16))), (288, (.instr 437202 (.deref 288 1 0 .fp)))],
-      [], [], [], [(11302, [19]), (11302, [379])]⟩, ⟨586, [(12, (.fpg 0)), (182, .zero), (229, (.gp 0)), (230, .zero), (231, .zero), (232, .zero), (233, .zero), (289, (.gp 427135)), (641, (.gp 427135)), (723, (.gp 1))], 650,
-      [(6, (.instr 437200 (.deref 288 5 6 .cell))), (7, (.instr 437201 (.deref 288 6 7 .cell))), (6, (.instr 437488 (.deref 640 5 6 .cell))), (7, (.instr 437489 (.deref 640 6 7 .cell))), (724, (.instr 437639 (.mul 2 723 724))), (725, (.instr 437640 (.xor 724 3 725))), (288, (.instr 437202 (.deref 288 1 0 .fp))), (640, (.instr 437490 (.deref 640 1 0 .fp))), (723, (.instr 437638 (.set 723 2 0)))],
+      [(19, (.instr 436568 (.deref 16 0 19 .cell))), (183, (.instr 436571 (.set 183 0 1))), (286, (.instr 436701 (.set 286 0 9223372036854775808))), (148, (.instr 436703 (.keccak 278 279 280 281 282 287 265 148 true false .two))), (15, (.instr 436565 (.mul 5 2 15))), (16, (.instr 436566 (.mul 15 2 16)))],
+      [], [], [], [(11302, [19])]⟩, ⟨429, [(12, (.fpg 0)), (182, .zero), (229, (.gp 0)), (230, .zero), (231, .zero), (232, .zero), (233, .zero), (289, (.gp 426643))], 486,
+      [(6, (.instr 436708 (.deref 288 5 6 .cell))), (7, (.instr 436709 (.deref 288 6 7 .cell))), (290, (.instr 436713 (.deref 8 0 290 .cell))), (291, (.instr 436714 (.deref 8 1 291 .cell))), (326, (.instr 436781 (.deref 8 2 326 .cell))), (327, (.instr 436782 (.deref 8 3 327 .cell))), (346, (.instr 436817 (.deref 8 4 346 .cell))), (347, (.instr 436818 (.deref 8 5 347 .cell))), (358, (.instr 436837 (.deref 8 6 358 .cell))), (359, (.instr 436838 (.deref 8 7 359 .cell))), (366, (.instr 436849 (.deref 8 8 366 .cell))), (367, (.instr 436850 (.deref 8 9 367 .cell))), (372, (.instr 436857 (.deref 8 10 372 .cell))), (373, (.instr 436858 (.deref 8 11 373 .cell))), (379, (.instr 436864 (.deref 16 1 379 .cell))), (508, (.instr 436991 (.keccak 631 632 633 634 635 639 618 508 true false .two))), (15, (.instr 436565 (.mul 5 2 15))), (16, (.instr 436566 (.mul 15 2 16))), (288, (.instr 436710 (.deref 288 1 0 .fp)))],
+      [], [], [], [(11302, [19]), (11302, [379])]⟩, ⟨586, [(12, (.fpg 0)), (182, .zero), (229, (.gp 0)), (230, .zero), (231, .zero), (232, .zero), (233, .zero), (289, (.gp 426643)), (641, (.gp 426643)), (723, (.gp 1))], 650,
+      [(6, (.instr 436708 (.deref 288 5 6 .cell))), (7, (.instr 436709 (.deref 288 6 7 .cell))), (6, (.instr 436996 (.deref 640 5 6 .cell))), (7, (.instr 436997 (.deref 640 6 7 .cell))), (724, (.instr 437147 (.mul 2 723 724))), (725, (.instr 437148 (.xor 724 3 725))), (288, (.instr 436710 (.deref 288 1 0 .fp))), (640, (.instr 436998 (.deref 640 1 0 .fp))), (723, (.instr 437146 (.set 723 2 0)))],
       [], [], [], [(11302, [19]), (11302, [379]), (11299, [5, 724, 3])]⟩]
   ends := [141, 429, 586]
   entered := []
-/-- `__loop521`. -/
+/-- `__loop511`. -/
 noncomputable def plumb : B2C.Plumb where
-  stat := [(12, (.fpg 0)), (182, (.k 0 0)), (183, (.k 0 1)), (229, (.k 1 0)), (230, (.k 0 0)), (231, (.k 0 0)), (232, (.k 0 0)), (233, (.k 0 0)), (286, (.k 0 9223372036854775808)), (289, (.k 13841097396380992851 0)), (641, (.k 13841097396380992851 0)), (723, (.k 2 0)), (726, (.k 6155922978765799973 0)), (727, (.fpg 729)), (728, (.k 10236493219774673314 0))]
-  sites := [⟨[248, 249, 15, 4, 5], [], 288, 437205, 0⟩, ⟨[629, 630, 401, 4, 5], [], 640, 437493, 0⟩]
+  stat := [(12, (.fpg 0)), (182, (.k 0 0)), (183, (.k 0 1)), (229, (.k 1 0)), (230, (.k 0 0)), (231, (.k 0 0)), (232, (.k 0 0)), (233, (.k 0 0)), (286, (.k 0 9223372036854775808)), (289, (.k 11614107145609600492 0)), (641, (.k 11614107145609600492 0)), (723, (.k 2 0)), (726, (.k 6155922978765799973 0)), (727, (.fpg 729)), (728, (.k 13662196963040726065 0))]
+  sites := [⟨[248, 249, 15, 4, 5], [], 288, 436713, 0⟩, ⟨[629, 630, 401, 4, 5], [], 640, 437001, 0⟩]
   arms := []
   tmps := []
   runs := []
@@ -3312,31 +3312,31 @@ noncomputable def plumb : B2C.Plumb where
   sh := [183, 286, 290, 291, 326, 327, 346, 347, 358, 359, 366, 367, 372, 373, 717, 723, 724]
   nv := 0x1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff4f
 
-/-- `__loop521`: its frame size (`B2C.fsN`). -/
+/-- `__loop511`: its frame size (`B2C.fsN`). -/
 def fs : ℕ := 729
 
-/-- `__loop521`: its completeness walk's parts (`Data.cplParts`). -/
+/-- `__loop511`: its completeness walk's parts (`Data.cplParts`). -/
 def parts : List (List (List ℕ)) := [[],
    [[0, 0, 59, 36, 8, 2, 32, 4, 0]],
    [[0, 0, 187, 137, 9, 23, 65, 8, 497323236409786642155382248146820840100456150797347717440463976893159497012533375533056]],
    [[0, 0, 259, 210, 11, 32, 66, 8, 4562440617622195218641171605700291324893228507248559930579192517899275167208677386505912811317371399778642806896830817097330860103623584819092761775873011535969435138337158109579886725622136832]]]
 
-/-- `__loop521`: no `match` with its arms counted apart (`Data.cplArms`). -/
+/-- `__loop511`: no `match` with its arms counted apart (`Data.cplArms`). -/
 def arms : List (ℕ × List (List ℕ)) := []
 
-/-- `__loop521`'s window 1 starts from this. -/
+/-- `__loop511`'s window 1 starts from this. -/
 noncomputable def snap_1 : B2C.Snap :=
   ⟨172, 1, 2515137431974506208220300071713377926041690015025154444321737494461043707162562275137053996684927050469560684471234807087133860828459053054627942825737561965535244228002418052425008936043634849784952097694083270926270460, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 176, 177, 178, 179, 180, 248, 249], [(183, 0, 1), (229, 1, 0), (230, 0, 0), (231, 0, 0), (232, 0, 0), (233, 0, 0), (286, 0, 9223372036854775808), (723, 2, 0)], [(286, 0, [264, 287])]⟩
 
-/-- `__loop521`'s window 2 starts from this. -/
+/-- `__loop511`'s window 2 starts from this. -/
 noncomputable def snap_2 : B2C.Snap :=
   ⟨486, 2, 2515137431974506208220300076275818543663885233666326050022028819353434226415500793397568565442082827725929635523180184769925794671908938090181855255793267458487657502829716827554054717725399019320116029952010162681020412, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 629, 630], [(723, 2, 0)], [(290, 0, [292, 293]), (290, 56, [8]), (291, 57, [8]), (326, 0, [328, 329]), (326, 58, [8]), (327, 59, [8]), (346, 0, [348, 349]), (346, 60, [8]), (347, 61, [8]), (358, 0, [360, 361]), (358, 62, [8]), (359, 63, [8]), (366, 0, [368, 369]), (366, 64, [8]), (367, 65, [8]), (372, 0, [374, 375]), (372, 66, [8]), (373, 67, [8])]⟩
 
-/-- `__loop521`'s window 3 starts from this. -/
+/-- `__loop511`'s window 3 starts from this. -/
 noncomputable def snap_3 : B2C.Snap :=
   ⟨650, 3, 2824013958708217496949108837642187245729158693210405918983110605969046329114827863167319714814760897070736440982304263635829189862118496552873085462667976919687402194232420179251547063887941921461323885003491059383009276, [1, 2, 3, 4, 5, 6, 7, 8, 9, 790, 792], [], [(724, 1, [2, 723]), (724, 0, [3, 725]), (724, 1, [2, 723])]⟩
 
-/-- `__loop521`'s windows after the first start from these (`B2C.snapsOf`). -/
+/-- `__loop511`'s windows after the first start from these (`B2C.snapsOf`). -/
 noncomputable def snaps : List B2C.Snap := [snap_1, snap_2, snap_3]
 
 end

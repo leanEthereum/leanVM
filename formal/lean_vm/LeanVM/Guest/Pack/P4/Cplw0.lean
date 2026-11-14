@@ -28,11 +28,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `aggregate_claims`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(426, Fn.«aggregate_claims_loop0».sig), (427, Fn.«grind_check__L2».sig), (428, Fn.«aggregate_claims_loop1».sig), (429, Fn.«batch_sumcheck__L23».sig), (430, Fn.«aggregate_claims_loop2».sig)]) Data.jtTrie globSem) code Fn.«aggregate_claims».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(421, Fn.«aggregate_claims_loop0».sig), (422, Fn.«grind_check__L2».sig), (423, Fn.«aggregate_claims_loop1».sig), (424, Fn.«batch_sumcheck__L23».sig), (425, Fn.«aggregate_claims_loop2».sig)]) Data.jtTrie globSem) code Fn.«aggregate_claims».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `aggregate_claims`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(426, Fn.«aggregate_claims_loop0».sig), (427, Fn.«grind_check__L2».sig), (428, Fn.«aggregate_claims_loop1».sig), (429, Fn.«batch_sumcheck__L23».sig), (430, Fn.«aggregate_claims_loop2».sig)]) Data.jtTrie globSem) code Fn.«aggregate_claims».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(421, Fn.«aggregate_claims_loop0».sig), (422, Fn.«grind_check__L2».sig), (423, Fn.«aggregate_claims_loop1».sig), (424, Fn.«batch_sumcheck__L23».sig), (425, Fn.«aggregate_claims_loop2».sig)]) Data.jtTrie globSem) code Fn.«aggregate_claims».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

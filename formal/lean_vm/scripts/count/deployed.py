@@ -6,6 +6,7 @@ from core import L
 import vscount
 
 DL = vscount.MV_DL
+DA_ROWS = vscount.DA_ROWS
 CL = ['claim_list_last__L%d' % k for k in range(17)]
 CCL = ['child_claim_list_last__L%d' % k for k in range(17)]
 KS = 13  # `KECCAK_STATE`: a claim list's chain record
@@ -57,9 +58,9 @@ def numbers(g, certs):
         """`wSK`: the run's phantom frame charged to each iteration (`SKt` and `fs` once at a call
         site, `B1.Main.iterK`, but for `aggregate_claims`' loops)."""
         c = w.get(n); return c[3][0] + fs(n) if c and c[0] == 'loop' else 0
-    for n in DL + CL + CCL: assert n in g.by, n
+    for n in [DL] + CL + CCL: assert n in g.by, n
     v = {}
-    v['dlK'] = max(-(-SB(n) // 2 ** j) for j, n in enumerate(DL))
+    v['dlK'] = -(-SB(DL) // DA_ROWS)
     v['cl'] = sum(SB(n) for n in CL)
     v['ccl'] = sum(fs(n) for n in CCL)
     # A list of `n = 136·bigs + 17·groups + rest` claims (`groups < 8`), as `B1.Main.clC`/`clS`: the
@@ -67,14 +68,14 @@ def numbers(g, certs):
     # claim `13` words and a `__loop15` iteration per `136` claims, `13` and a `__loop16` iteration
     # per `17`.
     v['clC'] = (fs('claim_list_digest') + KS + SB('list_split') + fs(L('claim_list_digest_loop0')) + fs(L('claim_list_digest_loop1')) + v['cl'])
-    # `da_verify`: its frame, `da_row_shape`'s, `da_vector`'s words, the column loop's 128
+    # `da_verify`: its frame, `da_padding`'s, `da_vector`'s words, the column loop's 128
     # iterations (each its frame, the column's, the weights' expansion's and the row loop's
     # phantom) and its untaken tail call's frame, the regions', the trees' and the padding loop's
     # phantoms (the padding loop's frame when it does not run); per row its region (641), its base
     # (1), the regions' loop, the column's row loop in each of the 128 columns and the trees' loop
     # past the padding loop; per padded row the roots (4), the padding loop and the levels: each
     # static loop's iteration at `SKt`, its run's phantom in the constant.
-    v['dvC'] = (fs('da_verify') + fs('da_row_shape') + SB('da_vector') + fs(L('da_verify_loop0'))
+    v['dvC'] = (fs('da_verify') + fs('da_padding') + SB('da_vector') + fs(L('da_verify_loop0'))
                 + 128 * (fs(L('da_verify_loop1')) + fs('da_verify_column') + SB('da_expand__L6_L7') + fs(L('da_verify_column_loop0')))
                 + fs(L('da_verify_loop1')) + fs(L('da_verify_loop2')) + fs(L('da_verify_loop3')))
     v['dvS'] = 642 + SKt(L('da_verify_loop0')) + 128 * SKt(L('da_verify_column_loop0')) + max(0, SKt(L('da_verify_loop2')) - SKt(L('da_verify_loop3')))
@@ -145,7 +146,7 @@ def write(g, certs, ops):
         open(os.path.join(D, name + '.lean'), 'w', encoding='utf-8').write(HDR % (name, doc, imports, body))
     imp0 = 'public import LeanVM.Guest.Budget.DeployedBudget\n'
     mod('DeployedA', 'The DA levels\' words per padded row (`B1.Main.dlK`).', imp0, '''
-/-- The DA levels' words per padded row, the largest over the levels. -/
+/-- The words of the tree over the blob roots, per row of the padded matrix. -/
 theorem dlK_eq : dlK wSB = %d := by decide +kernel
 ''' % v['dlK'])
     mod('DeployedA2', 'The claim lists\' last digests\' words over the name lists of `B1.Main.clC`, `B1.Main.ccC`.',
@@ -162,7 +163,7 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
         return ('theorem %s : %s = %d := by\n  unfold %s\n  rw [%s]\n  decide +kernel\n'
                 % (name, lhs, val, unf, steps))
     dvc = thm('dvC_eq', 'dvC B2C.fs wSB', v['dvC'], 'dvC', [],
-              fs=['da_verify', 'da_row_shape', L('da_verify_loop0'), L('da_verify_loop1'), 'da_verify_column', L('da_verify_column_loop0'),
+              fs=['da_verify', 'da_padding', L('da_verify_loop0'), L('da_verify_loop1'), 'da_verify_column', L('da_verify_column_loop0'),
                   L('da_verify_loop2'), L('da_verify_loop3')],
               sb=['da_vector', 'da_expand__L6_L7'])
     dvs = thm('dvS_eq', 'dvS B2C.fs wSK', v['dvS'], 'dvS B1.Main.iterK', [],

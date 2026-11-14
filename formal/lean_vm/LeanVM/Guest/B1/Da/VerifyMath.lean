@@ -15,7 +15,7 @@ public import LeanVM.Guest.Value.KeccakConst
 /-!
 # The claim `da_verify` returns is opened
 
-Given `r` rows (`1 ≤ r ≤ LeanDa.maxRows`, padded to `2^L = LeanDa.paddedRowCount r`) and the symbols of
+Given `r` rows (`1 ≤ r ≤ LeanDa.maxRows`, padded to `2^L = LeanDa.maxRows`) and the symbols of
 cell `(i, h)` (`syms i h`, `128` symbols of `E`), with every row orthogonal to the dual codeword
 of `z` (`Σ_h Σ_e dualAt z (128 h + e) · sym i h e = 0`), `opens_of` builds the witness: the rows the
 cells concatenate (`daRows`). It opens the root `daRoot`, the tree over the blob roots
@@ -114,7 +114,7 @@ theorem keccak_eq (l : List UInt8) :
 
 /-- **The witness opens the claim.** -/
 theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List E} {z : E} (hr1 : 1 ≤ r)
-    (hr : r ≤ LeanDa.maxRows) (hL : LeanDa.paddedRowCount r = 2 ^ L) (hrL : r ≤ 2 ^ L)
+    (hr : r ≤ LeanDa.maxRows) (hL : LeanDa.maxRows = 2 ^ L)
     (hsyms : ∀ i h, (syms i h).length = 128)
     (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
       dualAt z (128 * h + e) * (syms i h).getD e 0 = 0) :
@@ -139,7 +139,9 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List E} {z : E} (hr1 : 1 �
     rfl
   refine ⟨by rw [hlen]; exact hr1, by rw [hlen]; exact hr, hrows, ?_, ?_⟩
   · -- the commitment
-    rw [LeanVM.Da.commitCells_keccakF1600 _ hrows, LeanDa.commitCodewordsWithHash, hlen, hL]
+    have hrL : r ≤ 2 ^ L := hL ▸ hr
+    rw [LeanVM.Da.commitCells_keccakF1600 _ hrows (by rw [hlen]; exact hr), LeanDa.commitCodewordsWithHash,
+      hlen, hL]
     have hlist : (daRows r syms).map (LeanDa.listBlobRootWithHash LeanVM.Da.keccak256Bytes) ++
         List.replicate (2 ^ L - r) (LeanDa.paddingBlobRootWithHash LeanVM.Da.keccak256Bytes) =
         (List.range (2 ^ L)).map (LeanVM.Protocol.Digest.toBytes ∘ blobLeaf r syms) := by

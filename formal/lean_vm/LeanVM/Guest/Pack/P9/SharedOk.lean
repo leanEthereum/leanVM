@@ -58,7 +58,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop280`: its static sharing check and every window's. -/
+/-- `__loop270`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L73_L20_L6_L3_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi

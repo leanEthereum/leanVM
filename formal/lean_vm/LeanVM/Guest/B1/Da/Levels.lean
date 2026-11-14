@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Da.RowShape
+public import LeanVM.Guest.B1.Da.Padding
 
 /-!
 # `da_levels`

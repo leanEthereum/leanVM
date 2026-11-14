@@ -68,9 +68,9 @@ $\nblob$ & $1$ to $32$ & dynamic parameter\\
 \hline
 \end{tabular}
 \end{center}
-Zero codewords pad the row count to the next power of two. The root binds this padded matrix.
+The matrix always has $32$ rows: zero codewords pad the $\nblob$ blobs, and the root binds this padded matrix.
 
-Let $H$ denote the hash and $e_{i,j}$ the hash of cell $j$ in row $i$, its symbols in order, each as its two little-endian $64$-bit limbs. Each row has a Merkle tree of its own: its leaves are $e_{i,0},\ldots,e_{i,127}$, each inner node is the hash of its two children, and its root is $\dablob{i}$. The left child of $\dablob{i}$ covers the first $\kdim/\cellsz$ cells, the original blob. The commitment $\daroot$ is the root of the Merkle tree whose leaves are the row roots of the padded matrix, each padding row having the zero codeword's root (Figure~\ref{fig:da-hashing}). A sampled cell is authenticated by its path to its row's root, then that root's path to $\daroot$.
+Let $H$ denote the hash and $e_{i,j}$ the hash of cell $j$ in row $i$, its symbols in order, each as its two little-endian $64$-bit limbs. Each row has a Merkle tree of its own: its leaves are $e_{i,0},\ldots,e_{i,127}$, each inner node is the hash of its two children, and its root is $\dablob{i}$. The left child of $\dablob{i}$ covers the first $\kdim/\cellsz$ cells, the original blob. The commitment $\daroot$ is the root of the Merkle tree whose leaves are the row roots of the padded matrix, each padding row having the zero codeword's root (Figure~\ref{fig:da-hashing}). A sampled cell is authenticated by its path to its row's root, then that root's path to $\daroot$: $7+5=12$ siblings, whatever $\nblob$.
 
 \begin{figure}[htbp]
 \centering
@@ -131,7 +131,7 @@ Let $H$ denote the hash and $e_{i,j}$ the hash of cell $j$ in row $i$, its symbo
 \draw[blobedge] (blob) -- (row);
 \draw[edge] (redundancy) -- (row);
 \end{tikzpicture}
-\caption{The commitment to 4 encoded blobs.}
+\caption{The commitment, drawn with $4$ rows instead of $32$.}
 \label{fig:da-hashing}
 \end{figure}
 

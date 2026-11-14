@@ -26,9 +26,8 @@ honest words `hLmain`:
   (`hMarkX_raw`, `hMarkS_raw`) and whose table entry is its claim;
 * `mainGoalL3`, `mainGoalL4`: `main_loop2`, `main_loop3` from the counter `1 = g^0`
   (`rawX_completeAt`, `rawS_completeAt`), the regions below `2^16` by `Limits.coverage`;
-* `checked_da`: the checked DA claim's witness opens it, `da_verify`'s returns its cells;
-  `wLog_lt`: its padded count's log is below `34` (`da_verify` reads `exponent_tables`' second
-  table there; its completeness is `MainGoalsDvTB.mainGoalDvTB`).
+* `checked_da`: the checked DA claim's witness opens it, `da_verify`'s returns its cells (its
+  completeness is `MainGoalsDvTB.mainGoalDvTB`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -51,17 +50,6 @@ theorem regions_lt (hl : GuestLimits s w) : rX s w + rY s w < 2 ^ 23 := by
   rw [coverage_eq] at this
   simp only [List.length_append] at this
   simp only [rX, rY]
-  omega
-
-/-- The padded count's log is below `34`: at most `LeanDa.maxRows` rows. -/
-theorem wLog_lt {x : LeanVM.Da.MatrixWitness} {r : Digest} {v : E} (hw : x.Opens r v) : wLog x < 34 := by
-  obtain ⟨h1, h2, -⟩ := hw
-  have hb := (Da.nPad_bounds h1).2
-  rw [Da.maxRows_eq] at h2
-  by_contra hc
-  have : 2 ^ 34 ≤ LeanDa.paddedRowCount x.rows.length := by
-    unfold LeanDa.paddedRowCount
-    exact Nat.pow_le_pow_right (by norm_num) (by unfold wLog at hc; omega)
   omega
 
 /-! ## The raw claims' slots -/

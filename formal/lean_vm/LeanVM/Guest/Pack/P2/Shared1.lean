@@ -69,33 +69,6 @@ theorem shareOk : ShareOkD Fn.«child_claim_list_last__L0».core (cert.withPows 
 end
 end LeanVM.Guest.Fn.«child_claim_list_last__L0»
 
-namespace LeanVM.Guest.Fn.«da_levels__L1_L0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `da_levels__L1_L0`, once. -/
-theorem st : shareStaticD Fn.«da_levels__L1_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_levels__L1_L0`, window 0. -/
-theorem sw0 : shareWinD Fn.«da_levels__L1_L0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `da_levels__L1_L0`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«da_levels__L1_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«da_levels__L1_L0»
-
 namespace LeanVM.Guest.Fn.«da_column_offsets_loop3»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -122,4 +95,31 @@ theorem shareOk : ShareOkD Fn.«da_column_offsets_loop3».core (cert.withPows Da
 
 end
 end LeanVM.Guest.Fn.«da_column_offsets_loop3»
+
+namespace LeanVM.Guest.Fn.«grind_check__L28»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `grind_check__L28`, once. -/
+theorem st : shareStaticD Fn.«grind_check__L28».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `grind_check__L28`, window 0. -/
+theorem sw0 : shareWinD Fn.«grind_check__L28».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `grind_check__L28`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«grind_check__L28».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«grind_check__L28»
 

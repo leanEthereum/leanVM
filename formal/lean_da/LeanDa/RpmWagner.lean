@@ -616,6 +616,7 @@ theorem prT_codeBindingExpG (A : CodeBindingAdvB r Crs Proof) :
       fun crs hcrs ↦ (cbIdealG_evalDistEq r ps A hcrs).prEvent_eq _]
   exact (EvalDistEq.bind_bind_swap _ _ _).prEvent_eq _
 
+attribute [local irreducible] logMaxRows in
 /-- **Wagner's world for the table `h`** is his code-binding experiment for LeanDA with the hash
 `Hh h`, against `advH h`. -/
 theorem prT_gameW (A : CodeBindingAdvB r Crs Proof) (h : HTab) :

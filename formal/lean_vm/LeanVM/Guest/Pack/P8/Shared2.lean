@@ -15,20 +15,6 @@ public import LeanVM.Guest.Pack.«P8».Bundle
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«da_factors__L13_L7_L0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `da_factors__L13_L7_L0`, window 1. -/
-theorem sw1 : shareWinD Fn.«da_factors__L13_L7_L0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«da_factors__L13_L7_L0»
-
 namespace LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -115,4 +101,18 @@ theorem shareOk : ShareOkD Fn.«level_residual__L109_L18_L6_L3».core (cert.with
 
 end
 end LeanVM.Guest.Fn.«level_residual__L109_L18_L6_L3»
+
+namespace LeanVM.Guest.Fn.«level_positions__L15_L23_L5»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L15_L23_L5`, once. -/
+theorem st : shareStaticD Fn.«level_positions__L15_L23_L5».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«level_positions__L15_L23_L5»
 

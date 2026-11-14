@@ -42,6 +42,33 @@ theorem shareOk : ShareOkD Fn.«child_claim_list_digest».core (cert.withPows Da
 end
 end LeanVM.Guest.Fn.«child_claim_list_digest»
 
+namespace LeanVM.Guest.Fn.«da_padding»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `da_padding`, once. -/
+theorem st : shareStaticD Fn.«da_padding».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_padding`, window 0. -/
+theorem sw0 : shareWinD Fn.«da_padding».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `da_padding`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«da_padding».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«da_padding»
+
 namespace LeanVM.Guest.Fn.«rs_eq_rows__L7»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -67,28 +94,6 @@ set_option maxRecDepth 100000 in
 /-- `rs_eq_rows__L7`, window 2. -/
 theorem sw2 : shareWinD Fn.«rs_eq_rows__L7».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
   decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L7`, window 3. -/
-theorem sw3 : shareWinD Fn.«rs_eq_rows__L7».core (cert.withPows Data.powTree) plumb fs snaps 3 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L7`, window 4. -/
-theorem sw4 : shareWinD Fn.«rs_eq_rows__L7».core (cert.withPows Data.powTree) plumb fs snaps 4 = true := by
-  decide +kernel
-
-/-- `rs_eq_rows__L7`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«rs_eq_rows__L7».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 4 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-  · exact sw1
-  · exact sw2
-  · exact sw3
-  · exact sw4
-⟩
 
 end
 end LeanVM.Guest.Fn.«rs_eq_rows__L7»

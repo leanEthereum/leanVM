@@ -8,18 +8,19 @@
 //! root's challenge determines, with high probability over that challenge. The
 //! aggregation guest proves this check together with the commitment.
 //!
-//! The tree over the blob roots pads the row count with zero rows, to the next power of two.
+//! The matrix always has [`DA_MAX_ROWS`] rows: zero rows pad the blobs, so every cell's Merkle path
+//! has [`MERKLE_PATH_LEN`] siblings.
 
 mod commit;
 mod encode;
 
-pub use commit::{BlobCountError, DaWitness, root_of_padding_blob, verify_cell};
+pub use commit::{BlobCountError, DaWitness, MERKLE_PATH_LEN, root_of_padding_blob, verify_cell};
 
 /// Each blob is 128 KiB = 2^LOG_BLOB_SYMBOLS symbols in GF(2^128).
 pub const LOG_BLOB_SYMBOLS: usize = 13;
 /// Each encoded blob (256 KiB) = 2^LOG_CELL_SYMBOLS 'cells' of 2 KiB each.
 pub const LOG_CELL_SYMBOLS: usize = 7;
-/// We support at most DA_MAX_ROWS rows.
+/// The matrix's height: at most this many blobs, padded to it with zero rows.
 pub const DA_MAX_ROWS: usize = 32;
 
 /// How many GF(2^128) symbols in one blob.

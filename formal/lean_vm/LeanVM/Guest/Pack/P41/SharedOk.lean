@@ -31,14 +31,14 @@ theorem shareOk : ShareOkD Fn.«level_positions__L10_L21_L3».core (cert.withPow
 end
 end LeanVM.Guest.Fn.«level_positions__L10_L21_L3»
 
-namespace LeanVM.Guest.Fn.«level_residual__L55_L20_L6_L3_loop1»
+namespace LeanVM.Guest.Fn.«level_positions__L4_L22_L4_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop282`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_residual__L55_L20_L6_L3_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+/-- `__loop300`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«level_positions__L4_L22_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
@@ -46,5 +46,5 @@ theorem shareOk : ShareOkD Fn.«level_residual__L55_L20_L6_L3_loop1».core (cert
 ⟩
 
 end
-end LeanVM.Guest.Fn.«level_residual__L55_L20_L6_L3_loop1»
+end LeanVM.Guest.Fn.«level_positions__L4_L22_L4_loop0»
 

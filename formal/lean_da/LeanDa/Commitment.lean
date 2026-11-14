@@ -53,9 +53,6 @@ theorem treeRoot_map_range (d : ℕ) (f : ℕ → Common.DigestBytes) :
 
 /-! ## The leaves -/
 
-/-- The padded row count bounds the row count. -/
-theorem le_nPad (r : ℕ) : r ≤ paddedRowCount r := Nat.le_pow_clog (by norm_num) r
-
 theorem listCell_eq {row : List E} (hrow : row.length = 2 ^ logM) {j : ℕ} (hj : j < 128) :
     listCell row j = List.ofFn fun s : Fin 128 ↦ row.getD (128 * j + s) 0 := by
   have hlen : (listCell row j).length = 128 := by
@@ -111,12 +108,12 @@ theorem paddingBlobRoot_eq {rows : List (List E)} {i : ℕ} (hi : rows.length �
 
 /-- The crate's blob roots, then the padding rows', are the model's leaves of the tree over the
 blob roots. -/
-theorem blobRoots_eq (rows : List (List E)) (hrows : ∀ row ∈ rows, row.length = 2 ^ logM) :
+theorem blobRoots_eq (rows : List (List E)) (hrows : ∀ row ∈ rows, row.length = 2 ^ logM)
+    (hle : rows.length ≤ maxRows) :
     rows.map (listBlobRootWithHash H) ++
-        List.replicate (paddedRowCount rows.length - rows.length) (paddingBlobRootWithHash H) =
-      (List.range (2 ^ logPaddedRowCount rows.length)).map (blobRootWithHash H (cellsOfRows rows)) := by
-  have hle := le_nPad rows.length
-  change _ = (List.range (paddedRowCount rows.length)).map _
+        List.replicate (maxRows - rows.length) (paddingBlobRootWithHash H) =
+      (List.range (2 ^ logMaxRows)).map (blobRootWithHash H (cellsOfRows rows)) := by
+  change _ = (List.range maxRows).map _
   refine List.ext_getElem (by simp only [List.length_append, List.length_map,
     List.length_replicate, List.length_range]; omega) fun i h₁ h₂ ↦ ?_
   rw [List.getElem_map, List.getElem_range]
@@ -130,8 +127,8 @@ theorem blobRoots_eq (rows : List (List E)) (hrows : ∀ row ∈ rows, row.lengt
 /-- **The deployed commitment is the model's**: on codewords of `2^14` symbols, `commitCodewords`
 is `commitCells` of the matrix they form. -/
 theorem commitCodewords_eq_commitCells (rows : List (List E))
-    (hrows : ∀ row ∈ rows, row.length = 2 ^ logM) :
+    (hrows : ∀ row ∈ rows, row.length = 2 ^ logM) (hle : rows.length ≤ maxRows) :
     commitCodewordsWithHash H rows = commitCellsWithHash H (cellsOfRows rows) := by
-  rw [commitCodewordsWithHash, commitCellsWithHash, blobRoots_eq H rows hrows, treeRoot_map_range]
+  rw [commitCodewordsWithHash, commitCellsWithHash, blobRoots_eq H rows hrows hle, treeRoot_map_range]
 
 end LeanDa

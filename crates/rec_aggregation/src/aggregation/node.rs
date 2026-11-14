@@ -293,10 +293,7 @@ pub fn aggregate_with_stats(
             "da_challenge",
             vec![from_scalar(verifier::da::membership_challenge(&commitment))],
         );
-        hints.push(
-            "da_shape",
-            vec![count(n_rows), count(n_rows.next_power_of_two().ilog2() as usize)],
-        );
+        hints.push("da_n_blobs", vec![count(n_rows)]);
         // Padding rows are constants the guest bakes, so only the real rows'
         // symbols ride the stream.
         for j in 0..CELLS_PER_ROW {

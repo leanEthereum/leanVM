@@ -21,10 +21,6 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `walk_path__L24_L3`, window 3, part 0. -/
-theorem cw3_0 : cplWinD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«walk_path__L24_L3».core (cert.withPows Data.powTree) plumb fs parts arms false 3 0 = true := by
-  decide +kernel
-
 /-- `walk_path__L24_L3`, window 4, part 0. -/
 theorem cw4_0 : cplWinD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«walk_path__L24_L3».core (cert.withPows Data.powTree) plumb fs parts arms false 4 0 = true := by
   decide +kernel

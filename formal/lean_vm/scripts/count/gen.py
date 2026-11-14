@@ -52,7 +52,7 @@ ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
 # `claim_list_digest` and `da_verify`, whose trees' shapes count them (`vscount.MV_*`).
 def VROOTS(g):
     return (g.os_names() + vscount.vs_st(g) + ['list_split'] + g.family('log2_ceil_in_the_exponent__L') +
-            vscount.CC_LP + vscount.CCL + vscount.CCM + vscount.MV_ST + vscount.MV_LP + vscount.MV_DL +
+            vscount.CC_LP + vscount.CCL + vscount.CCM + vscount.MV_ST + vscount.MV_LP + [vscount.MV_DL] +
             vscount.MV_CL + vscount.CL_LP)
 # `verify_tables`' and `check_opening_terminal`'s statically bounded callees, `verify_tables`' rounds
 # loop, `shared_selector_tables`' callees and the terminal's `__loop14`, which bound those two

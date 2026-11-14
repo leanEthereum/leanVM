@@ -163,7 +163,7 @@ theorem l20_rel (hrL : r < 2 ^ L) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L sy
     exact loadHolds_of_reads hT (by rw [length_rootsCells]; omega) hl2
 
 /-- **The tree over the roots** returns `daRoot`'s cells. -/
-theorem dl_rel (hL : L ≤ guest_const% DA_LOG_MAX_ROWS) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L syms)) :
+theorem dl_rel (hL : L = guest_const% DA_LOG_MAX_ROWS) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L syms)) :
     coreProgram.Rel rd (daLevelsName L) [gen ^ bT] (digestCells (daRoot r L syms)) := by
   rw [rootsCells, readsAt_append] at hT
   have hc := da_levels_complete L (Or.inl hL) rd (gen ^ bT) (rootLeaves r L syms) (length_rootLeaves r L syms)

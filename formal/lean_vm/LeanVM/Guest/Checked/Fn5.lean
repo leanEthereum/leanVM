@@ -346,12 +346,12 @@ theorem ok266 : CheckOk 266 := checkOk_one (by decide +kernel) w266_0
 
 theorem plain266 : Plain 266 := plain_of_nil (by decide +kernel)
 
-theorem link267 : Link 267 (Glob.ofSigs ([(438, Fn.«grind_check__L3».sig), (439, Fn.«keccak_layer__L1_loop0».sig), (440, Fn.«keccak_layer__L1_loop1».sig)]) Data.jtTrie globSem)
+theorem link267 : Link 267 (Glob.ofSigs ([(433, Fn.«grind_check__L3».sig), (434, Fn.«keccak_layer__L1_loop0».sig), (435, Fn.«keccak_layer__L1_loop1».sig)]) Data.jtTrie globSem)
     Fn.«keccak_layer__L1».code Fn.«keccak_layer__L1».core (Fn.«keccak_layer__L1».cert.withPows Data.powTree) :=
   Link.of code267 core267 cert267 
-    (SigsOk.cons sig438 rfl 
-    (SigsOk.cons sig439 rfl 
-    (SigsOk.cons sig440 rfl SigsOk.nil)))
+    (SigsOk.cons sig433 rfl 
+    (SigsOk.cons sig434 rfl 
+    (SigsOk.cons sig435 rfl SigsOk.nil)))
     (by decide +kernel)
 
 theorem w267_0 : WinOk 267 0 := link267.win rfl Fn.«keccak_layer__L1».w0
@@ -372,12 +372,12 @@ theorem plain267 : Plain 267 := by
   unfold Plain
   decide +kernel
 
-theorem link268 : Link 268 (Glob.ofSigs ([(438, Fn.«grind_check__L3».sig), (441, Fn.«keccak_layer__L0_loop0».sig), (442, Fn.«keccak_layer__L0_loop1».sig)]) Data.jtTrie globSem)
+theorem link268 : Link 268 (Glob.ofSigs ([(433, Fn.«grind_check__L3».sig), (436, Fn.«keccak_layer__L0_loop0».sig), (437, Fn.«keccak_layer__L0_loop1».sig)]) Data.jtTrie globSem)
     Fn.«keccak_layer__L0».code Fn.«keccak_layer__L0».core (Fn.«keccak_layer__L0».cert.withPows Data.powTree) :=
   Link.of code268 core268 cert268 
-    (SigsOk.cons sig438 rfl 
-    (SigsOk.cons sig441 rfl 
-    (SigsOk.cons sig442 rfl SigsOk.nil)))
+    (SigsOk.cons sig433 rfl 
+    (SigsOk.cons sig436 rfl 
+    (SigsOk.cons sig437 rfl SigsOk.nil)))
     (by decide +kernel)
 
 theorem w268_0 : WinOk 268 0 := link268.win rfl Fn.«keccak_layer__L0».w0

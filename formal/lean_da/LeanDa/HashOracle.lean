@@ -154,7 +154,7 @@ noncomputable def completenessExpRpmH (π : Equiv.Perm KeccakState) (ps : Argume
 /-! ### The end statements, in the model with the hash oracle -/
 
 /-- **LeanDA is perfectly complete in the random-permutation model, for every permutation.**
-For any number `r` of rows, every permutation `π` of the Keccak state, and every argument `ps`
+For at most `maxRows` rows, every permutation `π` of the Keccak state, and every argument `ps`
 perfectly complete for LeanDA's relation for every permutation (`relationForPermutation`, the hash
 Keccak-256 over `π` and the challenges the deployed duplex over `π`; the argument's prover and
 verifier answered by `π`): every position `p` of the honest commitment to every message `msg`
@@ -163,7 +163,7 @@ for every outcome of the binding statements' uniformly random permutation. The p
 completeness proof, transferred. Proved by `LeanDa.leanDa_perfectlyComplete_rpmH`. -/
 abbrev PerfectlyCompleteRpmH : Prop :=
   ∀ (r : ℕ) (π : Equiv.Perm KeccakState) {Crs Proof : Type} (ps : ArgumentRpmH r Crs Proof),
-    ps.PerfectlyComplete (relationForPermutationWithHash r) →
+    r ≤ maxRows → ps.PerfectlyComplete (relationForPermutationWithHash r) →
       ∀ (msg : Fin r → Payload) (p : Fin (r * 128)),
         Pr{let b ← completenessExpRpmH r π ps msg p}[b = true] = 1
 

@@ -36,8 +36,8 @@ theorem all_of_drop {α : Type} (p : α → Bool) (l : List α) (a n : ℕ)
   exact ⟨h1, h2⟩
 
 set_option maxRecDepth 100000 in
-/-- The table of frame cells ends after `1565` functions. -/
-theorem guestLocsList_drop_end : guestLocsList.drop 1565 = [] := rfl
+/-- The table of frame cells ends after `1550` functions. -/
+theorem guestLocsList_drop_end : guestLocsList.drop 1550 = [] := rfl
 
 /-- Every frame cell is below `2^20`: the chunks' evaluations combined. -/
 theorem guestLocsList_lt : guestLocsList.all (fun l ↦ l.all (· < 2 ^ 20)) = true := by
@@ -46,15 +46,15 @@ theorem guestLocsList_lt : guestLocsList.all (fun l ↦ l.all (· < 2 ^ 20)) = t
   refine all_of_drop _ _ 20 17 guestLocsChunk1_lt ?_
   refine all_of_drop _ _ 37 1 guestLocsChunk2_lt ?_
   refine all_of_drop _ _ 38 299 guestLocsChunk3_lt ?_
-  refine all_of_drop _ _ 337 92 guestLocsChunk4_lt ?_
-  refine all_of_drop _ _ 429 615 guestLocsChunk5_lt ?_
-  refine all_of_drop _ _ 1044 129 guestLocsChunk6_lt ?_
-  refine all_of_drop _ _ 1173 123 guestLocsChunk7_lt ?_
-  refine all_of_drop _ _ 1296 102 guestLocsChunk8_lt ?_
-  refine all_of_drop _ _ 1398 80 guestLocsChunk9_lt ?_
-  refine all_of_drop _ _ 1478 56 guestLocsChunk10_lt ?_
-  refine all_of_drop _ _ 1534 31 guestLocsChunk11_lt ?_
-  show (guestLocsList.drop 1565).all _ = true
+  refine all_of_drop _ _ 337 87 guestLocsChunk4_lt ?_
+  refine all_of_drop _ _ 424 605 guestLocsChunk5_lt ?_
+  refine all_of_drop _ _ 1029 129 guestLocsChunk6_lt ?_
+  refine all_of_drop _ _ 1158 123 guestLocsChunk7_lt ?_
+  refine all_of_drop _ _ 1281 102 guestLocsChunk8_lt ?_
+  refine all_of_drop _ _ 1383 80 guestLocsChunk9_lt ?_
+  refine all_of_drop _ _ 1463 56 guestLocsChunk10_lt ?_
+  refine all_of_drop _ _ 1519 31 guestLocsChunk11_lt ?_
+  show (guestLocsList.drop 1550).all _ = true
   rw [guestLocsList_drop_end]
   rfl
 

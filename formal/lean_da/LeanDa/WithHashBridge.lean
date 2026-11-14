@@ -60,7 +60,7 @@ theorem blobRootWith_pureIn {r : ℕ} (c : Fin (r * 128) → Cell) :
 
 theorem commitCells_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) :
     commitCells π c = commitCellsWithHash (hashOver π) c := by
-  show Id.run (merkleRootWith (pureIn π) (logPaddedRowCount r) (blobRootWith (pureIn π) c)) = _
+  show Id.run (merkleRootWith (pureIn π) logMaxRows (blobRootWith (pureIn π) c)) = _
   rw [blobRootWith_pureIn, merkleRootWith_id]
   rfl
 
@@ -68,7 +68,7 @@ theorem openCell_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r 
     openCell π c p = openCellWithHash (hashOver π) c p := by
   show (⟨Id.run (merklePathWith (pureIn π) 7
       (fun j ↦ pure (cellLeavesWithHash (hashOver π) c (positionRow p) j)) (positionCell p)) ++
-    Id.run (merklePathWith (pureIn π) (logPaddedRowCount r) (blobRootWith (pureIn π) c)
+    Id.run (merklePathWith (pureIn π) logMaxRows (blobRootWith (pureIn π) c)
       (positionRow p))⟩ : CellOpening) = _
   rw [blobRootWith_pureIn, merklePathWith_id, merklePathWith_id]
   rfl
@@ -237,9 +237,9 @@ theorem completenessExperiment_eq_withHash (π : Equiv.Perm KeccakState) (msg : 
 /-- **Perfect completeness, from the hash-parameter form.** -/
 theorem perfectlyCompleteRpm_of_withHash (h : PerfectlyCompleteRpmWithHash) :
     LeanDaPerfectlyComplete := by
-  intro r π Crs Proof ps hps msg p
+  intro r π Crs Proof ps hr hps msg p
   rw [completenessExperiment_eq_withHash]
-  exact h r π ps (relationForPermutation_eq_withHash r ▸ hps) msg p
+  exact h r π ps hr (relationForPermutation_eq_withHash r ▸ hps) msg p
 
 /-- **Position binding, from the hash-parameter form.** -/
 theorem positionBindingRpm_of_withHash (h : PositionBindingRpmWithHash) :

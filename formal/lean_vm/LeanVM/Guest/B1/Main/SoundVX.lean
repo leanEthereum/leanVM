@@ -83,9 +83,9 @@ theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap �
     obtain ⟨e0, e1⟩ := hp
     rw [e0, e1] at ho
     exact ho hbb
-  · intro gsq rets h hsq
-    obtain ⟨hp, hbd⟩ := body_ofV hV Da.find_da_verify h
-    exact Da.da_verify_sound_w hV hle hm hp hbd hsq
+  · intro rets h
+    obtain ⟨-, hbd⟩ := body_ofV hV Da.find_da_verify h
+    exact Da.da_verify_sound_w hV hle hm hbd
   · intro pi0 pi1 s0 s1 gsq out h hexp
     obtain ⟨hp, hbv⟩ := body_ofV hV find_verify_sub h
     obtain ⟨-, ho⟩ := hv hbl L hκ C V hV hle _ _ hbv (by rw [hp]; exact hexp)

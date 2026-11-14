@@ -86,7 +86,7 @@ structure MainFacts (C : CallRel) (rd : Reader) (σ : Val) : Prop where
     (σ (.n 47)) (gen ^ j)
   own : σ (.n 366) = σ (.n 364) * gen ^ (2 * lg σ 6)
   da : lg σ 7 = 1 →
-    C "da_verify" [σ (.n 28)] [σ (.n 369), σ (.n 370), σ (.n 371)] ∧
+    C "da_verify" [] [σ (.n 369), σ (.n 370), σ (.n 371)] ∧
     LoadHolds rd (σ (.n 366)) 0
       (digestHalves (keccak256 (cellsBytes [σ (.n 369), σ (.n 370), σ (.n 371), 0]))).1 ∧
     LoadHolds rd (σ (.n 366)) 1

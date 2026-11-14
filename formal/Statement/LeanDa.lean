@@ -118,7 +118,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   prop:ntt); they are not transcribed here.
 * **Cells** (`lib.rs`). A codeword is `128` cells of `128` symbols; cell `j` of row `i` is at
   position `128 i + j`, the positions of the erasure code commitment.
-* **The commitment** (`commit.rs`). The rows are padded to `2^⌈log₂ r⌉` with zero codewords. A
+* **The commitment** (`commit.rs`). The rows are padded to `maxRows` with zero codewords. A
   cell's digest is the hash of its symbols' bytes, each symbol its two limbs' little-endian bytes,
   `y^0` first (`blob_merkle_nodes`). Each
   padded row, a blob, has the Merkle root of its `128` cell digests (`blobRootWith`), and the
@@ -127,9 +127,8 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   zero codeword (`root_of_padding_blob`), so the root is the commitment to the padded matrix.
 * **Openings.** A cell is opened by its authentication path in its blob's tree, then its blob
   root's in the tree over the blob roots: the path of leaf `128 i + j` in the one tree of depth
-  `7 + ⌈log₂ r⌉` that the two make. The crate keeps the codewords and the root (`DaWitness`,
-  `commit.rs`) but builds and verifies no path: `verifyCellWith` is the check these paths
-  determine.
+  `7 + logMaxRows` that the two make (`DaWitness::merkle_path_for_cell`, `openCellWith`), checked
+  by `verify_cell` (`verifyCellWith`).
 * **Membership** (`verifier/src/da.rs`, the guest program's `da_vector`). One challenge `z ∈ E` gives
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
   at the challenges `z^(2^j)`), with `Ŵ_j` the normalized subspace polynomial of the span of
@@ -146,7 +145,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
 
 The row count `r` is a parameter: the crate takes `1 ≤ r ≤ maxRows` (`DaWitness::build` rejects any
 other count with a `BlobCountError`, `commit.rs`, `lib.rs`);
-completeness and position binding hold for every `r`, code binding for
+position binding holds for every `r`, completeness for `r ≤ maxRows`, code binding for
 `1 ≤ r ≤ maxRows`. The algorithms take a permutation `π` of the Keccak state as a parameter and hash with
 Keccak-256 over it (`keccakDigestBytes`, the hash `H` below): the crate's is Keccak-f[1600], the
 hash Keccak-256 (`verifier/src/hash.rs`); in the end statements `π` is the random
@@ -239,13 +238,7 @@ def cellBytes (cell : Cell) : List UInt8 := (List.ofFn cell).flatMap E.toBytes
 /-- The 64 bytes of a pair of digests (`hash_pair`, `fill_levels`). -/
 def pairBytes (a b : DigestBytes) : List UInt8 := a.toList ++ b.toList
 
-/-- `⌈log₂ r⌉`: the padded row count `2^⌈log₂ r⌉` is `r.next_power_of_two()`. -/
-def logPaddedRowCount (r : ℕ) : ℕ := Nat.clog 2 r
-
-/-- The padded row count. -/
-def paddedRowCount (r : ℕ) : ℕ := 2 ^ logPaddedRowCount r
-
-/-- Cell `j` of row `i` of the padded matrix: zero below the `r` rows. -/
+/-- Cell `j` of row `i` of the matrix padded to `maxRows` rows: zero below the `r` rows. -/
 def paddedCell {r : ℕ} (cells : Fin (r * 128) → Cell) (i j : ℕ) : Cell :=
   if h : i < r ∧ j < 128 then cells (cellPosition ⟨i, h.1⟩ ⟨j, h.2⟩) else 0
 
@@ -255,7 +248,7 @@ def sibling (index : ℕ) : ℕ := if index % 2 = 0 then index + 1 else index - 
 /-- The opening of a cell: its path in its blob's tree, then its blob root's in the tree over the
 blob roots. -/
 structure CellOpening where
-  /-- The siblings from the cell's leaf up to the commitment, `7 + ⌈log₂ r⌉` of them. -/
+  /-- The siblings from the cell's leaf up to the commitment, `7 + logMaxRows` of them (`MERKLE_PATH_LEN`). -/
   path : List DigestBytes
 deriving Inhabited
 
@@ -303,13 +296,13 @@ def blobRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : m Digest
 /-- **The root of a matrix** (`DaWitness::build`): the Merkle root of the padded rows' blob
 roots. -/
 def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootWith π (logPaddedRowCount r) (blobRootWith π cells)
+  merkleRootWith π logMaxRows (blobRootWith π cells)
 
 /-- The honest opening of a position (`DaWitness::merkle_path_for_cell`): the cell's path in its blob's tree, then
 its blob root's in the tree over the blob roots. -/
 def openCellWith {r : ℕ} (cells : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m CellOpening := do
   let low ← merklePathWith π 7 (cellLeavesWith π cells (positionRow p)) (positionCell p)
-  let high ← merklePathWith π (logPaddedRowCount r) (blobRootWith π cells) (positionRow p)
+  let high ← merklePathWith π logMaxRows (blobRootWith π cells) (positionRow p)
   pure ⟨low ++ high⟩
 
 /-- Climb from `node` at index `index` along the siblings `path`. -/
@@ -319,14 +312,15 @@ def climbWith : ℕ → DigestBytes → List DigestBytes → m DigestBytes
     let d ← keccakDigestBytes π (if index % 2 = 0 then pairBytes node s else pairBytes s node)
     climbWith (index / 2) d rest
 
-/-- **Verification of a cell opening** (`verify_cell`): a path of `7 + ⌈log₂ r⌉` siblings that climbs from the
+/-- **Verification of a cell opening** (`verify_cell`): a path of `7 + logMaxRows` siblings that climbs from the
 cell's digest, at index `128 i + j` (the position: `j` in its blob's tree, then `i` in the tree
-over the blob roots), to the commitment. -/
+over the blob roots), to the commitment. The crate also refuses `i ≥ maxRows`, which no position of
+`r ≤ maxRows` rows has. -/
 def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * 128)) (cell : Cell)
     (opening : CellOpening) : m Bool := do
   let d ← keccakDigestBytes π (cellBytes cell)
   let root ← climbWith π position d opening.path
-  pure (decide (opening.path.length = 7 + logPaddedRowCount r) && decide (root = commitment))
+  pure (decide (opening.path.length = 7 + logMaxRows) && decide (root = commitment))
 
 /-! ### The membership challenge (`verifier/src/da.rs`)
 
@@ -561,7 +555,7 @@ noncomputable def completenessExperiment (π : Equiv.Perm KeccakState)
 /-! ### The end statements -/
 
 /-- **LeanDA is perfectly complete in the random-permutation model, for every permutation.**
-For any number `r` of rows, every permutation `π` of the Keccak state, and every argument `argument`
+For at most `maxRows` rows, every permutation `π` of the Keccak state, and every argument `argument`
 perfectly complete for LeanDA's relation for every permutation (`relationForPermutation`, the hash
 Keccak-256 over `π` and the challenge the deployed duplex over `π`; the argument's prover and
 verifier answered by `π`): every position `position` of the honest commitment to every message
@@ -570,7 +564,7 @@ it holds for every outcome of the binding statements' uniformly random permutati
 Wagner's completeness proof, transferred. Proved by `LeanDa.leanDa_perfectlyComplete_rpm`. -/
 abbrev LeanDaPerfectlyComplete : Prop :=
   ∀ (r : ℕ) (π : Equiv.Perm KeccakState) {Crs Proof : Type} (argument : LeanDaArgument r Crs Proof),
-    argument.PerfectlyComplete (relationForPermutation r) →
+    r ≤ maxRows → argument.PerfectlyComplete (relationForPermutation r) →
       ∀ (message : Fin r → Payload) (position : Fin (r * 128)),
         Pr{let b ← completenessExperiment r π argument message position}[b = true] = 1
 

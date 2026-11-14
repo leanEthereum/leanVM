@@ -24,7 +24,7 @@ certificates of the compiled functions (`B2C`), do not import them.
 
 | offsets | words | readers |
 | --- | --- | --- |
-| `j < 34` | `g^(2^j)` | `log2_ceil_in_the_exponent`, `verify_sub`, `certify_placement`, `da_row_shape` |
+| `j < 34` | `g^(2^j)` | `log2_ceil_in_the_exponent`, `verify_sub`, `certify_placement` |
 | `34 + 16 j + u`, `j < 9`, `u < 16` | `g^(u·16^j)`, the nibble shares | `assert_small_g_power`, `check_opening_terminal` |
 | `178 + k`, `k < 34` | `g^(k·247)`, the rank keys | `verify_tables`, `certify_placement` |
 | `212 + gi`, `gi < 24` | `E(s)`, block group `gi`'s side `s` | `verify_tables` |

@@ -10,7 +10,7 @@
 module
 
 public import LeanVM.Guest.B1.Da.VerifyMath
-public import LeanVM.Guest.B1.Da.RowShapeComplete
+public import LeanVM.Guest.B1.Da.PaddingComplete
 public import LeanVM.Protocol.KeccakHash
 
 /-!
@@ -33,8 +33,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier
 def wSyms (w : LeanVM.Da.MatrixWitness) (i j : ℕ) : List E :=
   if i < w.rows.length ∧ j < 128 then LeanDa.listCell (w.rows.getD i []) j else List.replicate 128 0
 
-/-- The padded count's log. -/
-def wLog (w : LeanVM.Da.MatrixWitness) : ℕ := LeanDa.logPaddedRowCount w.rows.length
+/-- The padded count's log: every matrix has `LeanDa.maxRows` rows. -/
+def wLog (_w : LeanVM.Da.MatrixWitness) : ℕ := LeanDa.logMaxRows
 
 /-- A list of `128` blocks of `128` is the flattening of its blocks. -/
 theorem flatMap_blocks {α : Type} (l : List α) (d : α) (hl : l.length = 128 * 128) (f : ℕ → List α)
@@ -116,8 +116,7 @@ theorem wDot {w : LeanVM.Da.MatrixWitness} {root : Digest} {z : E} (hw : w.Opens
 /-- **The root a witness opens** is the tree `da_verify` builds over its cells. -/
 theorem opens_eq {w : LeanVM.Da.MatrixWitness} {root : Digest} {z : E} (hw : w.Opens root z) :
     root = daRoot w.rows.length (wLog w) (wSyms w) := by
-  obtain ⟨hlo, -⟩ := nPad_bounds hw.1
-  have ho := opens_of (z := z) hw.1 hw.2.1 rfl hlo (wSyms_len hw) (wDot hw)
+  have ho := opens_of (z := z) hw.1 hw.2.1 rfl (wSyms_len hw) (wDot hw)
   rw [← witness_eq hw] at ho
   exact toBytes_inj (hw.2.2.2.1.symm.trans ho.2.2.2.1)
 

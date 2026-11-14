@@ -69,7 +69,7 @@ noncomputable def work (s : NodeStatement) (w : NodeWitness) : Work where
   rawSphincs := w.sphincsSignatures.length
   rawDa := (w.daMatrix.map fun _ ↦ 1).getD 0
   rawDaRows := (w.daMatrix.map fun p ↦ p.2.rows.length).getD 0
-  rawDaPad := (w.daMatrix.map fun p ↦ LeanDa.paddedRowCount p.2.rows.length).getD 0
+  rawDaPad := (w.daMatrix.map fun _ ↦ LeanDa.maxRows).getD 0
   children := w.children.length
   childClaims := (w.children.map fun c ↦ c.statement.claims.xmss.length +
     c.statement.claims.sphincs.length).sum

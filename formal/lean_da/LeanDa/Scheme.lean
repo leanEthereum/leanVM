@@ -22,16 +22,15 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   `128 j … 128 j + 127`. A matrix of `r` codewords has `128 r` cells, cell `j` of row `i` at
   position `128 i + j`: the positions of the erasure code commitment are the cells sampling
   opens.
-* **The commitment** (`commit.rs`). The rows are padded to `2^⌈log₂ r⌉` with zero
+* **The commitment** (`commit.rs`). The rows are padded to `maxRows` with zero
   codewords. A cell's digest is the hash of its symbols' little-endian bytes. Each padded row, a
   blob, has the Merkle root of its `128` cell digests (`blob_merkle_nodes`), and the commitment is the
   Merkle root of the padded rows' blob roots (`DaWitness::build`); a padding row's blob root is
   the zero codeword's (`root_of_padding_blob`). A tree hashes neighbours in pairs, level by level
   (`fill_levels`).
 * **Openings.** A cell is opened by its path in its blob's tree, then its blob root's in the tree
-  over the blob roots: the path of leaf `128 i + j` in the one tree of depth `7 + ⌈log₂ r⌉` the
-  two make. The crate keeps the codewords and the root (`DaWitness`, `commit.rs`) but
-  builds and verifies no path.
+  over the blob roots: the path of leaf `128 i + j` in the one tree of depth `7 + logMaxRows` the
+  two make (`DaWitness::merkle_path_for_cell`), checked by `verify_cell`.
 * **Membership** (`verifier/src/da.rs`, the guest program's `da_vector`). One challenge `z ∈ E` gives
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
   at the challenges `z^(2^j)`), with `Ŵ_j` the normalized subspace polynomial of the span of
@@ -52,7 +51,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
 
 The row count `r` is a parameter. The crate takes `1 ≤ r ≤ maxRows` (`DaWitness::build` rejects any other
 count with a `BlobCountError`, `commit.rs`, `lib.rs`);
-the statements hold for every `r ≥ 1`. So are the hash `H` and the sponge's permutation `P`: the
+the statements hold for `1 ≤ r ≤ maxRows`. So are the hash `H` and the sponge's permutation `P`: the
 crate's are Keccak-256 (Ethereum's: rate `136` bytes, padding `0x01 ‖ 0^* ‖ 0x80`,
 `verifier/src/hash.rs`) and the Keccak-f[1600] it is built on, which `lean_vm` supplies,
 and the statements hold for every `H` and `P`.

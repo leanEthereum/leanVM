@@ -598,7 +598,7 @@ fn da_guest_checks_codeword_membership() {
     let source = format!(
         r#"{helpers}
 def main():
-    r0, r1, z = da_verify(exponent_tables())
+    r0, r1, z = da_verify()
     digest = StackBuf(2)
     keccak([r0, r1], [z, 0], digest)
     public = GEN ** 0
@@ -619,13 +619,7 @@ def main():
             "da_challenge",
             vec![from_scalar(verifier::da::membership_challenge(&commitment))],
         );
-        hints.push(
-            "da_shape",
-            vec![
-                count(rows.len()),
-                count(rows.len().next_power_of_two().ilog2() as usize),
-            ],
-        );
+        hints.push("da_n_blobs", vec![count(rows.len())]);
         for j in 0..CELLS_PER_ROW {
             for row in rows {
                 let cell = &row.as_chunks::<CELL_SYMBOLS>().0[j];
@@ -660,7 +654,7 @@ fn da_root(rows: &[Codeword]) -> Hash {
         .iter()
         .map(|row| root(row.chunks(CELL_SYMBOLS).map(cell_digest).collect()))
         .collect();
-    blob_roots.resize(rows.len().next_power_of_two(), lean_da::root_of_padding_blob());
+    blob_roots.resize(DA_MAX_ROWS, lean_da::root_of_padding_blob());
     root(blob_roots)
 }
 
@@ -673,15 +667,14 @@ fn too_many_blobs_are_rejected() {
     ));
 }
 
-/// The row count is a run-time parameter, so payloads of different heights
+/// The blob count is a run-time parameter, so payloads of different heights
 /// must prove against the *same* bytecode and each reach its own committer's
-/// root. Powers of two and the counts between them alike: 3 pads to 4 and 5 to
-/// 8, exercising two different arms of the tree dispatch and a non-empty gap.
+/// root, the padding gap empty or not.
 #[test]
 fn da_row_count_is_a_run_time_parameter() {
     parallel::init();
     let signers = get_signers(SMALL_LEAF_SIZE);
-    for n_rows in [1usize, 3, 4, 5] {
+    for n_rows in [1usize, 3, DA_MAX_ROWS] {
         let rows = da_rows(n_rows, 200 + n_rows as u64);
         let node = aggregate(&[], signers.clone(), vec![], &rows, None, LOG_INV_RATE).expect("node aggregates");
         node.verify().expect("node verifies");

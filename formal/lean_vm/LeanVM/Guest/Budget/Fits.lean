@@ -79,7 +79,7 @@ theorem work_fields (hlim : DeployedLimits s w) :
       (work s w).rawSphincs = w.sphincsSignatures.length ∧
       (work s w).rawDa = (w.daMatrix.map fun _ ↦ 1).getD 0 ∧
       (work s w).rawDaRows = (w.daMatrix.map fun p ↦ p.2.rows.length).getD 0 ∧
-      (work s w).rawDaPad = (w.daMatrix.map fun p ↦ LeanDa.paddedRowCount p.2.rows.length).getD 0 ∧
+      (work s w).rawDaPad = (w.daMatrix.map fun _ ↦ LeanDa.maxRows).getD 0 ∧
       (work s w).children = w.children.length ∧
       (work s w).childClaims = (w.children.map fun child ↦
         child.statement.claims.xmss.length + child.statement.claims.sphincs.length).sum ∧
@@ -87,17 +87,15 @@ theorem work_fields (hlim : DeployedLimits s w) :
   ⟨rfl, B1.Main.planSlots_eq hlim, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by simp [work]⟩
 
 /-- The blob matrix checked directly: at most one, of at most `DA_MAX_ROWS` rows (`LeanDa.maxRows`),
-padded to at most `DA_MAX_ROWS`. -/
+padded to `DA_MAX_ROWS`. -/
 theorem da_le (hlim : DeployedLimits s w) :
     (w.daMatrix.map fun _ ↦ 1).getD 0 ≤ 1 ∧
       (w.daMatrix.map fun p ↦ p.2.rows.length).getD 0 ≤ guest_const% DA_MAX_ROWS ∧
-      (w.daMatrix.map fun p ↦ LeanDa.paddedRowCount p.2.rows.length).getD 0 ≤ guest_const% DA_MAX_ROWS := by
+      (w.daMatrix.map fun _ ↦ LeanDa.maxRows).getD 0 ≤ guest_const% DA_MAX_ROWS := by
   rcases h : w.daMatrix with _ | p
   · simp
   · have hr : p.2.rows.length ≤ guest_const% DA_MAX_ROWS := hlim.atMostMaxRows p (Option.mem_def.mpr h)
-    refine ⟨le_rfl, hr, ?_⟩
-    show 2 ^ Nat.clog 2 p.2.rows.length ≤ 2 ^ guest_const% DA_LOG_MAX_ROWS
-    exact Nat.pow_le_pow_right (by norm_num) (Nat.clog_le_of_le_pow hr)
+    exact ⟨le_rfl, hr, by simp [LeanDa.maxRows, LeanDa.logMaxRows]⟩
 
 /-- The coverage table at the caps. -/
 theorem coverageSlots_le (hlim : DeployedLimits s w) : coverageSlots w ≤ 2048 + 512 + 2 ^ 17 := by

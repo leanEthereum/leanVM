@@ -336,7 +336,7 @@ $128\,r$ positions.
 
 \paragraph{The commitment.} The committer hashes each row's $128$ cells into a Merkle tree, the
 row's \emph{blob root} (\lean{blobRootWith}), and publishes the root of the Merkle tree over the
-blob roots, the rows padded to a power of two with zero codewords (\lean{commitCells}). To
+blob roots, the rows padded to \lean{maxRows} with zero codewords (\lean{commitCells}), so every path has $7 + \lean{logMaxRows}$ siblings. To
 \emph{open} a position, it gives the cell and its path, in its blob's tree and then in the tree over
 the blob roots; the opening verifies if they hash back to the root (\lean{verifyCellWith}).
 
@@ -361,7 +361,7 @@ relation asks every row to be a codeword (\lean{membershipCheckOpt}), which keep
 in the relation for every $\pi$.
 
 \paragraph{Completeness} (\lean{LeanDa.LeanDaPerfectlyComplete}). If the argument is perfectly
-complete, every position of an honest commitment opens and verifies, with probability $1$, for
+complete, every position of an honest commitment to at most \lean{maxRows} rows opens and verifies, with probability $1$, for
 every permutation $\pi$ (\lean{LeanDa.leanDa_perfectlyComplete_rpm}).
 
 \paragraph{Position binding} (\lean{LeanDa.LeanDaPositionBinding}). No adversary can open one
@@ -641,9 +641,9 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 30$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
-\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $570410$)
-limits any program; it is the compiled decoder's size, $569980$ (proved
-at most that, measured exactly; the guest's frame-cell table is $517729$ of it), and a slack of
+\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $569815$)
+limits any program; it is the compiled decoder's size, $569385$ (proved
+at most that, measured exactly; the guest's frame-cell table is $517343$ of it), and a slack of
 $430$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: the frame-cell table

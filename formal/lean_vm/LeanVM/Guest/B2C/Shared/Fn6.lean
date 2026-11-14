@@ -50,6 +50,7 @@ import LeanVM.Guest.Pack.«open_stacked__L9».SharedOk
 import LeanVM.Guest.Pack.«open_stacked__L10».SharedOk
 import LeanVM.Guest.Pack.«P4».Shared1
 import LeanVM.Guest.Pack.«P23».Shared1
+import LeanVM.Guest.Pack.«P16».Shared2
 
 namespace LeanVM.Guest.B2C.Shared
 

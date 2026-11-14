@@ -17,24 +17,21 @@ import LeanVM.Guest.Pack.«P59».Shared1
 import LeanVM.Guest.Pack.«P40».Shared1
 import LeanVM.Guest.Pack.«P33».SharedOk
 import LeanVM.Guest.Pack.«P14».Shared1
-import LeanVM.Guest.Pack.«P2».Shared1
-import LeanVM.Guest.Pack.«P10».Shared2
-import LeanVM.Guest.Pack.«P37».Shared1
-import LeanVM.Guest.Pack.«P62».Shared1
-import LeanVM.Guest.Pack.«P58».Shared1
 import LeanVM.Guest.Pack.«P29».Shared2
 import LeanVM.Guest.Pack.«P24».Shared3
-import LeanVM.Guest.Pack.«P8».SharedOk
+import LeanVM.Guest.Pack.«P8».Shared1
 import LeanVM.Guest.Pack.«P29».SharedOk
 import LeanVM.Guest.Pack.«P61».Shared1
 import LeanVM.Guest.Pack.«P47».Shared2
 import LeanVM.Guest.Pack.«P28».SharedOk
 import LeanVM.Guest.Pack.«P21».Shared1
+import LeanVM.Guest.Pack.«P2».Shared1
 import LeanVM.Guest.Pack.«P35».Shared2
 import LeanVM.Guest.Pack.«P16».Shared2
 import LeanVM.Guest.Pack.«P9».Shared2
 import LeanVM.Guest.Pack.«P13».Shared1
 import LeanVM.Guest.Pack.«P14».Shared2
+import LeanVM.Guest.Pack.«P58».Shared1
 import LeanVM.Guest.Pack.«P38».Shared1
 import LeanVM.Guest.Pack.«P39».Shared2
 import LeanVM.Guest.Pack.«P45».SharedOk
@@ -53,6 +50,7 @@ import LeanVM.Guest.Pack.«P57».Shared1
 import LeanVM.Guest.Pack.«P38».Shared2
 import LeanVM.Guest.Pack.«P52».Shared1
 import LeanVM.Guest.Pack.«P7».Shared2
+import LeanVM.Guest.Pack.«P40».Shared2
 
 namespace LeanVM.Guest.B2C.Shared
 
@@ -82,133 +80,133 @@ theorem ok407 : ShareOk 407 :=
   shareOk_of_link link407 plumbEq407 fsEq407 snapsEq407 rfl (fun h ↦ nomatch h) Fn.«da_verify_loop3».shareOk
 
 theorem ok408 : ShareOk 408 :=
-  shareOk_of_link link408 plumbEq408 fsEq408 snapsEq408 rfl (fun h ↦ nomatch h) Fn.«da_levels__L1_L0».shareOk
+  shareOk_of_link link408 plumbEq408 fsEq408 snapsEq408 rfl (fun h ↦ nomatch h) Fn.«da_levels__L32_L5».shareOk
 
 theorem ok409 : ShareOk 409 :=
-  shareOk_of_link link409 plumbEq409 fsEq409 snapsEq409 rfl (fun h ↦ nomatch h) Fn.«da_levels__L2_L1».shareOk
+  shareOk_of_link link409 plumbEq409 fsEq409 snapsEq409 rfl (fun h ↦ nomatch h) Fn.«da_expand__L6_L7».shareOk
 
 theorem ok410 : ShareOk 410 :=
-  shareOk_of_link link410 plumbEq410 fsEq410 snapsEq410 rfl (fun h ↦ nomatch h) Fn.«da_levels__L4_L2».shareOk
+  shareOk_of_link link410 plumbEq410 fsEq410 snapsEq410 rfl (fun h ↦ nomatch h) Fn.«da_verify_column_loop0».shareOk
 
 theorem ok411 : ShareOk 411 :=
-  shareOk_of_link link411 plumbEq411 fsEq411 snapsEq411 rfl (fun h ↦ nomatch h) Fn.«da_levels__L8_L3».shareOk
+  shareOk_of_link link411 plumbEq411 fsEq411 snapsEq411 rfl (fun h ↦ nomatch h) Fn.«da_factors__L13_L7_L0».shareOk
 
 theorem ok412 : ShareOk 412 :=
-  shareOk_of_link link412 plumbEq412 fsEq412 snapsEq412 rfl (fun h ↦ nomatch h) Fn.«da_levels__L16_L4».shareOk
+  shareOk_of_link link412 plumbEq412 fsEq412 snapsEq412 rfl (fun h ↦ nomatch h) Fn.«da_expand__L13_L7».shareOk
 
 theorem ok413 : ShareOk 413 :=
-  shareOk_of_link link413 plumbEq413 fsEq413 snapsEq413 rfl (fun h ↦ nomatch h) Fn.«da_levels__L32_L5».shareOk
+  shareOk_of_link link413 plumbEq413 fsEq413 snapsEq413 rfl (fun h ↦ nomatch h) Fn.«da_factors__L6_L7_L128».shareOk
 
 theorem ok414 : ShareOk 414 :=
-  shareOk_of_link link414 plumbEq414 fsEq414 snapsEq414 rfl (fun h ↦ nomatch h) Fn.«da_expand__L6_L7».shareOk
+  shareOk_of_link link414 plumbEq414 fsEq414 snapsEq414 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop0».shareOk
 
 theorem ok415 : ShareOk 415 :=
-  shareOk_of_link link415 plumbEq415 fsEq415 snapsEq415 rfl (fun h ↦ nomatch h) Fn.«da_verify_column_loop0».shareOk
+  shareOk_of_link link415 plumbEq415 fsEq415 snapsEq415 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop1».shareOk
 
 theorem ok416 : ShareOk 416 :=
-  shareOk_of_link link416 plumbEq416 fsEq416 snapsEq416 rfl (fun h ↦ nomatch h) Fn.«da_factors__L13_L7_L0».shareOk
+  shareOk_of_link link416 plumbEq416 fsEq416 snapsEq416 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop2».shareOk
 
 theorem ok417 : ShareOk 417 :=
-  shareOk_of_link link417 plumbEq417 fsEq417 snapsEq417 rfl (fun h ↦ nomatch h) Fn.«da_expand__L13_L7».shareOk
+  shareOk_of_link link417 plumbEq417 fsEq417 snapsEq417 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop3».shareOk
 
 theorem ok418 : ShareOk 418 :=
-  shareOk_of_link link418 plumbEq418 fsEq418 snapsEq418 rfl (fun h ↦ nomatch h) Fn.«da_factors__L6_L7_L128».shareOk
+  shareOk_of_link link418 plumbEq418 fsEq418 snapsEq418 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop4».shareOk
 
 theorem ok419 : ShareOk 419 :=
-  shareOk_of_link link419 plumbEq419 fsEq419 snapsEq419 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop0».shareOk
+  shareOk_of_link link419 plumbEq419 fsEq419 snapsEq419 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop5».shareOk
 
 theorem ok420 : ShareOk 420 :=
-  shareOk_of_link link420 plumbEq420 fsEq420 snapsEq420 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop1».shareOk
+  shareOk_of_link link420 plumbEq420 fsEq420 snapsEq420 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop6».shareOk
 
 theorem ok421 : ShareOk 421 :=
-  shareOk_of_link link421 plumbEq421 fsEq421 snapsEq421 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop2».shareOk
+  shareOk_of_link link421 plumbEq421 fsEq421 snapsEq421 rfl (fun h ↦ nomatch h) Fn.«aggregate_claims_loop0».shareOk
 
 theorem ok422 : ShareOk 422 :=
-  shareOk_of_link link422 plumbEq422 fsEq422 snapsEq422 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop3».shareOk
+  shareOk_of_link link422 plumbEq422 fsEq422 snapsEq422 rfl (fun h ↦ nomatch h) Fn.«grind_check__L2».shareOk
 
 theorem ok423 : ShareOk 423 :=
-  shareOk_of_link link423 plumbEq423 fsEq423 snapsEq423 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop4».shareOk
+  shareOk_of_link link423 plumbEq423 fsEq423 snapsEq423 rfl (fun h ↦ nomatch h) Fn.«aggregate_claims_loop1».shareOk
 
 theorem ok424 : ShareOk 424 :=
-  shareOk_of_link link424 plumbEq424 fsEq424 snapsEq424 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop5».shareOk
+  shareOk_of_link link424 plumbEq424 fsEq424 snapsEq424 rfl (fun h ↦ nomatch h) Fn.«batch_sumcheck__L23».shareOk
 
 theorem ok425 : ShareOk 425 :=
-  shareOk_of_link link425 plumbEq425 fsEq425 snapsEq425 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop6».shareOk
+  shareOk_of_link link425 plumbEq425 fsEq425 snapsEq425 rfl (fun h ↦ nomatch h) Fn.«aggregate_claims_loop2».shareOk
 
 theorem ok426 : ShareOk 426 :=
-  shareOk_of_link link426 plumbEq426 fsEq426 snapsEq426 rfl (fun h ↦ nomatch h) Fn.«aggregate_claims_loop0».shareOk
+  shareOk_of_link link426 plumbEq426 fsEq426 snapsEq426 rfl (fun h ↦ nomatch h) Fn.«rs_eq_rows__L8».shareOk
 
 theorem ok427 : ShareOk 427 :=
-  shareOk_of_link link427 plumbEq427 fsEq427 snapsEq427 rfl (fun h ↦ nomatch h) Fn.«grind_check__L2».shareOk
+  shareOk_of_link link427 plumbEq427 fsEq427 snapsEq427 rfl (fun h ↦ nomatch h) Fn.«verify_bus_gkr_loop0_loop0».shareOk
 
 theorem ok428 : ShareOk 428 :=
-  shareOk_of_link link428 plumbEq428 fsEq428 snapsEq428 rfl (fun h ↦ nomatch h) Fn.«aggregate_claims_loop1».shareOk
+  shareOk_of_link link428 plumbEq428 fsEq428 snapsEq428 rfl (fun h ↦ nomatch h) Fn.«gkr_rounds__L0».shareOk
 
 theorem ok429 : ShareOk 429 :=
-  shareOk_of_link link429 plumbEq429 fsEq429 snapsEq429 rfl (fun h ↦ nomatch h) Fn.«batch_sumcheck__L23».shareOk
+  shareOk_of_link link429 plumbEq429 fsEq429 snapsEq429 rfl (fun h ↦ nomatch h) Fn.«gkr_rounds__L2».shareOk
 
 theorem ok430 : ShareOk 430 :=
-  shareOk_of_link link430 plumbEq430 fsEq430 snapsEq430 rfl (fun h ↦ nomatch h) Fn.«aggregate_claims_loop2».shareOk
+  shareOk_of_link link430 plumbEq430 fsEq430 snapsEq430 rfl (fun h ↦ nomatch h) Fn.«gkr_rounds__L4».shareOk
 
 theorem ok431 : ShareOk 431 :=
-  shareOk_of_link link431 plumbEq431 fsEq431 snapsEq431 rfl (fun h ↦ nomatch h) Fn.«rs_eq_rows__L8».shareOk
+  shareOk_of_link link431 plumbEq431 fsEq431 snapsEq431 rfl (fun h ↦ nomatch h) Fn.«gkr_rounds__L6».shareOk
 
 theorem ok432 : ShareOk 432 :=
-  shareOk_of_link link432 plumbEq432 fsEq432 snapsEq432 rfl (fun h ↦ nomatch h) Fn.«verify_bus_gkr_loop0_loop0».shareOk
+  shareOk_of_link link432 plumbEq432 fsEq432 snapsEq432 rfl (fun h ↦ nomatch h) Fn.«gkr_rounds__L1».shareOk
 
 theorem ok433 : ShareOk 433 :=
-  shareOk_of_link link433 plumbEq433 fsEq433 snapsEq433 rfl (fun h ↦ nomatch h) Fn.«gkr_rounds__L0».shareOk
+  shareOk_of_link link433 plumbEq433 fsEq433 snapsEq433 rfl (fun h ↦ nomatch h) Fn.«grind_check__L3».shareOk
 
 theorem ok434 : ShareOk 434 :=
-  shareOk_of_link link434 plumbEq434 fsEq434 snapsEq434 rfl (fun h ↦ nomatch h) Fn.«gkr_rounds__L2».shareOk
+  shareOk_of_link link434 plumbEq434 fsEq434 snapsEq434 rfl (fun h ↦ nomatch h) Fn.«keccak_layer__L1_loop0».shareOk
 
 theorem ok435 : ShareOk 435 :=
-  shareOk_of_link link435 plumbEq435 fsEq435 snapsEq435 rfl (fun h ↦ nomatch h) Fn.«gkr_rounds__L4».shareOk
+  shareOk_of_link link435 plumbEq435 fsEq435 snapsEq435 rfl (fun h ↦ nomatch h) Fn.«keccak_layer__L1_loop1».shareOk
 
 theorem ok436 : ShareOk 436 :=
-  shareOk_of_link link436 plumbEq436 fsEq436 snapsEq436 rfl (fun h ↦ nomatch h) Fn.«gkr_rounds__L6».shareOk
+  shareOk_of_link link436 plumbEq436 fsEq436 snapsEq436 rfl (fun h ↦ nomatch h) Fn.«keccak_layer__L0_loop0».shareOk
 
 theorem ok437 : ShareOk 437 :=
-  shareOk_of_link link437 plumbEq437 fsEq437 snapsEq437 rfl (fun h ↦ nomatch h) Fn.«gkr_rounds__L1».shareOk
+  shareOk_of_link link437 plumbEq437 fsEq437 snapsEq437 rfl (fun h ↦ nomatch h) Fn.«keccak_layer__L0_loop1».shareOk
 
 theorem ok438 : ShareOk 438 :=
-  shareOk_of_link link438 plumbEq438 fsEq438 snapsEq438 rfl (fun h ↦ nomatch h) Fn.«grind_check__L3».shareOk
+  shareOk_of_link link438 plumbEq438 fsEq438 snapsEq438 rfl (fun h ↦ nomatch h) Fn.«grind_check__L17».shareOk
 
 theorem ok439 : ShareOk 439 :=
-  shareOk_of_link link439 plumbEq439 fsEq439 snapsEq439 rfl (fun h ↦ nomatch h) Fn.«keccak_layer__L1_loop0».shareOk
+  shareOk_of_link link439 plumbEq439 fsEq439 snapsEq439 rfl (fun h ↦ nomatch h) Fn.«grind_check__L18».shareOk
 
 theorem ok440 : ShareOk 440 :=
-  shareOk_of_link link440 plumbEq440 fsEq440 snapsEq440 rfl (fun h ↦ nomatch h) Fn.«keccak_layer__L1_loop1».shareOk
+  shareOk_of_link link440 plumbEq440 fsEq440 snapsEq440 rfl (fun h ↦ nomatch h) Fn.«grind_check__L19».shareOk
 
 theorem ok441 : ShareOk 441 :=
-  shareOk_of_link link441 plumbEq441 fsEq441 snapsEq441 rfl (fun h ↦ nomatch h) Fn.«keccak_layer__L0_loop0».shareOk
+  shareOk_of_link link441 plumbEq441 fsEq441 snapsEq441 rfl (fun h ↦ nomatch h) Fn.«grind_check__L20».shareOk
 
 theorem ok442 : ShareOk 442 :=
-  shareOk_of_link link442 plumbEq442 fsEq442 snapsEq442 rfl (fun h ↦ nomatch h) Fn.«keccak_layer__L0_loop1».shareOk
+  shareOk_of_link link442 plumbEq442 fsEq442 snapsEq442 rfl (fun h ↦ nomatch h) Fn.«grind_check__L21».shareOk
 
 theorem ok443 : ShareOk 443 :=
-  shareOk_of_link link443 plumbEq443 fsEq443 snapsEq443 rfl (fun h ↦ nomatch h) Fn.«grind_check__L17».shareOk
+  shareOk_of_link link443 plumbEq443 fsEq443 snapsEq443 rfl (fun h ↦ nomatch h) Fn.«grind_check__L22».shareOk
 
 theorem ok444 : ShareOk 444 :=
-  shareOk_of_link link444 plumbEq444 fsEq444 snapsEq444 rfl (fun h ↦ nomatch h) Fn.«grind_check__L18».shareOk
+  shareOk_of_link link444 plumbEq444 fsEq444 snapsEq444 rfl (fun h ↦ nomatch h) Fn.«grind_check__L23».shareOk
 
 theorem ok445 : ShareOk 445 :=
-  shareOk_of_link link445 plumbEq445 fsEq445 snapsEq445 rfl (fun h ↦ nomatch h) Fn.«grind_check__L19».shareOk
+  shareOk_of_link link445 plumbEq445 fsEq445 snapsEq445 rfl (fun h ↦ nomatch h) Fn.«grind_check__L24».shareOk
 
 theorem ok446 : ShareOk 446 :=
-  shareOk_of_link link446 plumbEq446 fsEq446 snapsEq446 rfl (fun h ↦ nomatch h) Fn.«grind_check__L20».shareOk
+  shareOk_of_link link446 plumbEq446 fsEq446 snapsEq446 rfl (fun h ↦ nomatch h) Fn.«grind_check__L25».shareOk
 
 theorem ok447 : ShareOk 447 :=
-  shareOk_of_link link447 plumbEq447 fsEq447 snapsEq447 rfl (fun h ↦ nomatch h) Fn.«grind_check__L21».shareOk
+  shareOk_of_link link447 plumbEq447 fsEq447 snapsEq447 rfl (fun h ↦ nomatch h) Fn.«grind_check__L26».shareOk
 
 theorem ok448 : ShareOk 448 :=
-  shareOk_of_link link448 plumbEq448 fsEq448 snapsEq448 rfl (fun h ↦ nomatch h) Fn.«grind_check__L22».shareOk
+  shareOk_of_link link448 plumbEq448 fsEq448 snapsEq448 rfl (fun h ↦ nomatch h) Fn.«grind_check__L27».shareOk
 
 theorem ok449 : ShareOk 449 :=
-  shareOk_of_link link449 plumbEq449 fsEq449 snapsEq449 rfl (fun h ↦ nomatch h) Fn.«grind_check__L23».shareOk
+  shareOk_of_link link449 plumbEq449 fsEq449 snapsEq449 rfl (fun h ↦ nomatch h) Fn.«grind_check__L28».shareOk
 
 theorem ok450 : ShareOk 450 :=
-  shareOk_of_link link450 plumbEq450 fsEq450 snapsEq450 rfl (fun h ↦ nomatch h) Fn.«grind_check__L24».shareOk
+  shareOk_of_link link450 plumbEq450 fsEq450 snapsEq450 rfl (fun h ↦ nomatch h) Fn.«grind_check__L29».shareOk
 
 end
 end LeanVM.Guest.B2C.Shared

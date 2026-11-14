@@ -86,7 +86,7 @@ theorem leanDa_positionBinding
 `(Pr[code-bind] - (ε_ks + ε₁))² ≤ (Q + 2) (ε₂ + (2^13 - 1) / 2^128 + 2^-192)`, with `ε_ks` the success of
 the reduction against the argument's knowledge soundness and `ε₁`, `ε₂` those of two explicit
 reductions finding collisions of `H`. -/
-theorem leanDa_codeBinding [NeZero r]
+theorem leanDa_codeBinding [NeZero r] (hrM : r ≤ maxRows)
     (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell)
         Crs Proof)
     (A : ErasureCodeCommitment.CodeBindingAdv (OracleComp (unifSpec + (Common.DigestBytes →ₒ MembershipChallenge))) Cell
@@ -103,7 +103,7 @@ theorem leanDa_codeBinding [NeZero r]
           (2 ^ 13 - 1) / 2 ^ 128 + (2 ^ 192)⁻¹) := by
   have h := scheme_codeBinding_concrete_posBinding (leanDaErasureCode r) (merkleVC r H)
       (checker r) ps
-    ext A (merkleVC_perfectlyComplete r H) (checker_sound r) hA
+    ext A (merkleVC_perfectlyComplete r hrM H) (checker_sound r) hA
   have hcard : (Fintype.card MembershipChallenge : ℝ≥0∞)⁻¹ ≤ (2 ^ 192)⁻¹ := by
     refine ENNReal.inv_le_inv.mpr ?_
     have hc : (2 ^ 192 : ℕ) ≤ Fintype.card MembershipChallenge := by
@@ -145,7 +145,7 @@ Wagner's reduction against the knowledge soundness of `ps` for the relation with
 `Q²/2^508` is the two-oracle transfer, `2(Q+2^64+2)²/2^576` the duplex lemma (the challenges' sponge
 is a random oracle of the roots unless two of at most `Q + 2^64 + 2` states share their 576-bit
 capacity), and the rest is Wagner's bound for each `h`, averaged over `h`. -/
-theorem leanDa_codeBinding_avg [NeZero r]
+theorem leanDa_codeBinding_avg [NeZero r] (hrM : r ≤ maxRows)
     (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell)
         Crs Proof)
     (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
@@ -166,7 +166,7 @@ theorem leanDa_codeBinding_avg [NeZero r]
   have hW : (prT cb - (εks + ε₁)) ^ 2 ≤ ((Q : ℝ≥0∞) + 2) * (ε₂ + ((2 ^ 13 - 1) / 2 ^ 128 + (2 ^ 192)⁻¹)) := by
     refine sq_tsub_avg_le _ _ _ _ _ _ _ fun h ↦ ?_
     rw [prT_gameW r ps A h, ← add_assoc]
-    exact leanDa_codeBinding r (Hh h) (argH r ps (Hh h)) ext (advH r ps A h)
+    exact leanDa_codeBinding r (Hh h) (argH r ps (Hh h)) hrM ext (advH r ps A h)
       (hashQueryBound_advH r ps A Q hQ h)
   -- the RPM game against the simulated world
   have hG := codeBindingExpRpm_le_G r ps A Q hQ
@@ -199,7 +199,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Membe
 /-- **Code binding with Wagner's three terms bounded**: the knowledge-soundness term by the RPM
 knowledge-soundness experiment of `ksAdv A` and the transfer and duplex terms of its game, and the
 two collision terms by birthday bounds. -/
-theorem leanDa_codeBinding_core [NeZero r]
+theorem leanDa_codeBinding_core [NeZero r] (hrM : r ≤ maxRows)
     (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell)
         Crs Proof)
     (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
@@ -211,7 +211,7 @@ theorem leanDa_codeBinding_core [NeZero r]
             ((wpbCalls r Q + 2 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 256))) ^ 2 ≤
       ((Q : ℝ≥0∞) + 2) *
         (((forkCalls r Q + 2 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 256 + (2 ^ 13 - 1) / 2 ^ 128 + (2 ^ 192)⁻¹) := by
-  have h := leanDa_codeBinding_avg r ps ext A Q hQ
+  have h := leanDa_codeBinding_avg r ps hrM ext A Q hQ
   have hks : Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= ksExpH r ps ext A}[b = true] ≤
       Pr{let b ← ksExpRpm r ps ext (ksAdv r A)}[b = true] + ((ksCalls r Q) ^ 2 : ℝ≥0∞) / 2 ^ 508 +
         2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 := by
@@ -249,9 +249,8 @@ theorem leanDa_codeBinding_fork (r : ℕ) {Crs Proof : Type}
       ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 56 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 158 := by
   have : NeZero r := ⟨by omega⟩
-  have hL := logPaddedRowCount_le_logMaxRows hrM
-  have hN := paddedRowCount_le_maxRows hrM
-  norm_num [maxRows, logMaxRows] at hL hN
+  have hL : logMaxRows = 5 := rfl
+  have hN : maxRows = 32 := rfl
   have hK : ksCalls r Q ≤ Q + 2 ^ 65 := by unfold ksCalls relCalls nLabels nonceCount; omega
   have hK' : ksCalls r Q ≤ 2 ^ 43 * (Q + 2 ^ 22) := hK.trans (by omega)
   have hD : Q + nLabels + 1 ≤ 2 ^ 43 * (Q + 2 ^ 22) := by unfold nLabels nonceCount; omega
@@ -269,7 +268,7 @@ theorem leanDa_codeBinding_fork (r : ℕ) {Crs Proof : Type}
       generalize ksCalls r Q = K at this ⊢
       omega
     exact_mod_cast hK2
-  have hP := le_of_sq_tsub_le (leanDa_codeBinding_core r ps ext A Q hQ)
+  have hP := le_of_sq_tsub_le (leanDa_codeBinding_core r ps hrM ext A Q hQ)
     (fork_sq_le Q (forkCalls r Q + 2) hF)
   refine hP.trans ?_
   have hR := rest_le Q (ksCalls r Q) (wpbCalls r Q + 2) (Q + nLabels + 1) (Q + 2 ^ 20) (Q + 2 ^ 22)

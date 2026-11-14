@@ -9,8 +9,6 @@ module
 
 public import LeanVM.Guest.B1.Da.LevelsCChk0
 public import LeanVM.Guest.B1.Da.LevelsCChk1
-public import LeanVM.Guest.B1.Da.LevelsCChk2
-public import LeanVM.Guest.B1.Da.LevelsCChk3
 public import LeanVM.Guest.B1.Da.LevelsSound
 public import LeanVM.Guest.B1.Digest.LoopComplete
 public import LeanVM.Guest.B1.Digest.PairComplete
@@ -367,14 +365,8 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
 theorem da_levels_complete : da_levels_complete_Spec := by
   intro k hk
   unfold DlDepth at hk
-  rcases hk with hk | rfl
-  · interval_cases k
-    · exact dl_complete (by omega) dl_ok0 dlc_ok0
-    · exact dl_complete (by omega) dl_ok1 dlc_ok1
-    · exact dl_complete (by omega) dl_ok2 dlc_ok2
-    · exact dl_complete (by omega) dl_ok3 dlc_ok3
-    · exact dl_complete (by omega) dl_ok4 dlc_ok4
-    · exact dl_complete (by omega) dl_ok5 dlc_ok5
+  rcases hk with rfl | rfl
+  · exact dl_complete (by omega) dl_ok5 dlc_ok5
   · exact dl_complete (by omega) dl_ok7 dlc_ok7
 
 end

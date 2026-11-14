@@ -143,7 +143,7 @@ theorem ok28 : ShareOk 28 :=
   shareOk_of_link link28 plumbEq28 fsEq28 snapsEq28 rfl (fun h ↦ nomatch h) Fn.«da_verify».shareOk
 
 theorem ok29 : ShareOk 29 :=
-  shareOk_of_link link29 plumbEq29 fsEq29 snapsEq29 rfl (fun h ↦ nomatch h) Fn.«da_row_shape».shareOk
+  shareOk_of_link link29 plumbEq29 fsEq29 snapsEq29 rfl (fun h ↦ nomatch h) Fn.«da_padding».shareOk
 
 theorem ok30 : ShareOk 30 :=
   shareOk_of_link link30 plumbEq30 fsEq30 snapsEq30 rfl (fun h ↦ nomatch h) Fn.«da_verify_column».shareOk

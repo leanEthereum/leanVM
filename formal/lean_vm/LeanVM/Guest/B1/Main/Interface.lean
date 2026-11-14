@@ -161,10 +161,10 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : List E → LeanXmss.S
   /-- A leanSPHINCS check with the byte table: the signature `wS p` verifies the claim at `p`. -/
   sphincs : ∀ p bb, coreProgram.Rel rd "verify_sig_lean_sphincs" [p, bb] [] →
     Sig.ByteBits rd bb → Sig.SphincsOut rd p (wS p)
-  /-- The DA check with the exponent table: the matrix `wD args rets` opens the returned claim,
-  the root's cells and the challenge (`Da.MeaningDaVerify`). -/
-  da : ∀ gsq rets, coreProgram.Rel rd "da_verify" [gsq] rets → Da.SquaresAt rd gsq →
-    ∃ (root : Digest) (z : E), (wD [gsq] rets).Opens root z ∧ rets = digestCells root ++ [z]
+  /-- The DA check: the matrix `wD [] rets` opens the returned claim, the root's cells and the
+  challenge (`Da.MeaningDaVerify`). -/
+  da : ∀ rets, coreProgram.Rel rd "da_verify" [] rets →
+    ∃ (root : Digest) (z : E), (wD [] rets).Opens root z ∧ rets = digestCells root ++ [z]
   /-- A child proof's check with the exponent and window tables: the proof `wV args`. -/
   sub : ∀ pi0 pi1 s0 s1 gsq out,
     coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] →
@@ -312,7 +312,7 @@ noncomputable def decWit (σ : Val) (rd : Reader) (wX : List E → LeanXmss.Sign
     (List.range (nRawX σ)).map (rawXmss rd σ wX),
     (List.range (nRawS σ)).map (rawSphincs rd σ wS),
     if nDirect σ = 1 then
-      some (dvClaim σ, wD [σ (.n 28)] [σ (.n 369), σ (.n 370), σ (.n 371)])
+      some (dvClaim σ, wD [] [σ (.n 369), σ (.n 370), σ (.n 371)])
     else none,
     wA [σ (.n 6), σ (.n 383), σ (.n 389), σ (.n 395), σ (.n 416), σ (.n 444)]⟩
 

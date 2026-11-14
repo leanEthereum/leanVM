@@ -22,20 +22,20 @@ with its bodies `deps`:
 * its size is exactly the bodies' sizes and two per index without a body (a literal `0`), the
   indices being distinct (`size_ofList_add_length`, `decoderProgramOf_size_le_of_increasing`): at
   most a measured number, then `guestWitnessDecoderSizeBound`. The guest's frame cells' literal
-  (`guestLocsTableC`, `517729`: the table's `517728` and one for its `Term.literal` node) is
+  (`guestLocsTableC`, `517343`: the table's `517342` and one for its `Term.literal` node) is
   measured by chunks of rows, each evaluation in a module of its own (`DecoderSize/Rows*.lean`,
   `Names*.lean`, summed in `DecoderSize/Locs.lean`: one evaluation of the whole table takes over
   `18` GB), its body picked out by its index (`decoderProgramBodies_filter_locs`, by unfolding); the
   other bodies' sizes by `decide +kernel`, which reads the literal's index alone.
 
-For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`568726`: the frame
-cells' `517729` and the others', the entry's among them, `50997`, each exact) plus two per index
+For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`568131`: the frame
+cells' `517343` and the others', the entry's among them, `50788`, each exact) plus two per index
 without a body, the indices up to the top's, `decTopC`'s own (the last index allocated), less the
 bodies (`costIdx - costDeps.length`; so the bound names no index, which moves when a module before
-it in the chain gains a function): `569980` at index `1062` with `435` bodies besides the entry, the
+it in the chain gains a function): `569385` at index `1062` with `435` bodies besides the entry, the
 program's exact size (`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame cells
-(`guestLocs`, a literal held once, `guestLocsTable`) are `517728`. The frame cells (below `2^20`
-each), packed three to a limb, would take about a third of their `517728`. -/
+(`guestLocs`, a literal held once, `guestLocsTable`) are `517342`. The frame cells (below `2^20`
+each), packed three to a limb, would take about a third of their `517342`. -/
 
 namespace LeanVM.Cost
 
@@ -50,7 +50,7 @@ theorem decoderProgram_indices_increasing :
 
 /-- **The guest's frame cells' literal**: its size, its rows' (`guestLocsList_rowSize`, the
 chunks of `DecoderSize/Locs.lean`), the array's and `Term.literal`'s. -/
-theorem guestLocsTable_size : guestLocsTableC.costBody.size = 517729 := by
+theorem guestLocsTable_size : guestLocsTableC.costBody.size = 517343 := by
   have h : guestLocsTableC.costBody = Term.literal (MachineValue.array
       (guestLocsList.map fun r ↦ MachineValue.array (r.map encodeValue).toArray).toArray) := rfl
   rw [h, literal_size, guestLocsList_rowSize]
@@ -90,9 +90,9 @@ per index without a body: the indices up to the top's, `decTopC.costIdx + 1`, le
 the entry and `decTopC.costDeps`. -/
 theorem decoderProgram_size_le_measured :
     (decoderProgramOf decTopC.costIdx decTopC.costDeps).size ≤
-      568726 + 2 * (decTopC.costIdx - decTopC.costDeps.length) :=
+      568131 + 2 * (decTopC.costIdx - decTopC.costDeps.length) :=
   decoderProgramOf_size_le_of_increasing decoderProgram_indices_increasing
-    (bodies_size_bound_of_split _ guestLocsTableC.costIdx decTopC.costIdx 517729 50997 568726
+    (bodies_size_bound_of_split _ guestLocsTableC.costIdx decTopC.costIdx 517343 50788 568131
       decTopC.costDeps.length _ decoderProgramBodies_filter_locs guestLocsTable_size
       (by decide +kernel) (by decide +kernel) rfl (by decide +kernel))
 

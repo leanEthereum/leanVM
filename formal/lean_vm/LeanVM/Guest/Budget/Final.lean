@@ -148,7 +148,7 @@ theorem dvNH_weight {ω fs : String → ℕ} (H : MainCounts ω fs) {seed : Dige
   have er : (work s w).rawDaRows = p.2.rows.length := by
     simp [work, hp]
   have ep : (work s w).rawDaPad = 2 ^ B1.Da.wLog p.2 := by
-    simp [work, hp, LeanDa.paddedRowCount, B1.Da.wLog]
+    simp [work, hp, LeanDa.maxRows, B1.Da.wLog]
   unfold hDvNH at hT
   rw [hp] at hT
   simp only [Option.map_some, Option.getD_some] at hT

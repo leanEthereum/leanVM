@@ -71,7 +71,7 @@ structure MainCounts (ω fs : String → ℕ) : Type where
   dvP : ℕ
   dv : ∀ (rd : Reader) (t : Tree) (args rets : List E) (r L : ℕ), t.name = "da_verify" →
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram → B1.Da.dvNH r L t → 1 ≤ r →
-    r ≤ LeanDa.maxRows → 2 ^ L = LeanDa.paddedRowCount r → t.weight ω ≤ dvA + dvR * r + dvP * 2 ^ L
+    r ≤ LeanDa.maxRows → 2 ^ L = LeanDa.maxRows → t.weight ω ≤ dvA + dvR * r + dvP * 2 ^ L
 
 variable {ω fs : String → ℕ}
 

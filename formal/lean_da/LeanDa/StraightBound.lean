@@ -156,7 +156,7 @@ theorem prT_codeBindingExpG_le (A : CodeBindingAdvB r Crs Proof) :
 /-! ## The verdict in the straight-line world -/
 
 /-- **The verdict is at most a bad cache**, the draws read at all labels. -/
-theorem prT_tailL_le (A : CodeBindingAdvB r Crs Proof) (crs : Crs) (L : List (Fin nLabels))
+theorem prT_tailL_le (hr : r ≤ maxRows) (A : CodeBindingAdvB r Crs Proof) (crs : Crs) (L : List (Fin nLabels))
     (hlen : L.length = nLabels) (hidx : ∀ i (hi : i < L.length), (L[i]).val = i) :
     Pr{let b ← (simulateQ GW.romImpl (advSim r A crs >>= tailL r ps ext L crs)).run' ∅}[b = true] ≤
       Pr{let z ← (simulateQ GW.romImpl (advSim r A crs >>= tailL r ps ext L crs)).run ∅}[
@@ -165,7 +165,7 @@ theorem prT_tailL_le (A : CodeBindingAdvB r Crs Proof) (crs : Crs) (L : List (Fi
   refine prEvent_mono_of_support _ _ _ fun z hz hz1 ↦ ?_
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hz
   obtain ⟨w, -, hz⟩ := hz
-  exact not_good_of_tail r ps ext L hlen hidx crs w.1 w.2 hz hz1
+  exact not_good_of_tail r ps ext hr L hlen hidx crs w.1 w.2 hz hz1
 
 /-! ## The world's queries -/
 
@@ -199,7 +199,7 @@ theorem isWeightBound_verifyCellM {ι : Type} {spec : OracleSpec.{0, 0} ι}
 
 set_option maxRecDepth 4000 in
 theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge) :
-    QueryCostAtMost (tailH r ps ext crs out l) tCount (commitCalls r + (9 + logPaddedRowCount r)) := by
+    QueryCostAtMost (tailH r ps ext crs out l) tCount (commitCalls r + (9 + logMaxRows)) := by
   classical
   have h1 : ∀ a, QueryCostAtMost (LeanDa.hH a) tCount 1 := fun a ↦
     isWeightBound_query (spec := unifSpec + roSpec (List UInt8) DigestBytes) tCount (.inr a)
@@ -272,7 +272,7 @@ theorem isWeightBound_advSim (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
 /-- **A bad cache after the adversary, the reading of its root's draws and the verdict**: the
 adversary's queries (at most `Q₁` of `H` or the draws, `Q₂` of the draws), then one fresh try
 for the reading, then the verdict's queries of `H`. -/
-theorem prob_world_not_good_le (A : CodeBindingAdvB r Crs Proof) (crs : Crs)
+theorem prob_world_not_good_le (hr : r ≤ maxRows) (A : CodeBindingAdvB r Crs Proof) (crs : Crs)
     (L : List (Fin nLabels))
     (hread : ∀ d c, Good r c → Pr{let z ← (simulateQ GW.romImpl (readL L d)).run c}[¬ Good r z.2] ≤
       (2 ^ 13 - 1) / 2 ^ 128)
@@ -288,7 +288,7 @@ theorem prob_world_not_good_le (A : CodeBindingAdvB r Crs Proof) (crs : Crs)
   have hs0 : gSize ∅ = 0 := by simp [gSize, domH, domG]
   rw [simulateQ_bind, StateT.run_bind]
   refine (prEvent_bind_le_of_good _ _ (fun p ↦ ¬ Good r p.2) _ _ fun p hp hgp ↦ ?_).trans
-    (add_le_add (prob_run_not_good_le r _ ∅ (good_empty r) hf0 N Q₁ Q₂ ha hg (by omega)) le_rfl)
+    (add_le_add (prob_run_not_good_le r hr _ ∅ (good_empty r) hf0 N Q₁ Q₂ ha hg (by omega)) le_rfl)
   simp only [not_not] at hgp
   obtain ⟨hfp, hsp⟩ := run_gFin_gSize _ Q₁ ha ∅ hf0 p hp
   rw [tailL, simulateQ_bind, StateT.run_bind]
@@ -296,7 +296,7 @@ theorem prob_world_not_good_le (A : CodeBindingAdvB r Crs Proof) (crs : Crs)
     (add_le_add (hread _ _ hgp) le_rfl)
   simp only [not_not] at hgq
   obtain ⟨hfq, hsq⟩ := readL_gFin_gSize L _ p.2 hfp hq
-  refine (prob_run_not_good_le r _ q.2 hgq hfq N Q₃ 0 (ht p.1 q.1)
+  refine (prob_run_not_good_le r hr _ q.2 hgq hfq N Q₃ 0 (ht p.1 q.1)
     (isWeightBound_embG_g _) (by omega)).trans (le_of_eq ?_)
   simp
 
@@ -313,33 +313,32 @@ theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r 
     prT (idealT r A crs (tailH r ps ext crs)) ≤
       ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
         (Q * ((2 ^ 13 - 1) / 2 ^ 138) + (2 ^ 13 - 1) / 2 ^ 128) := by
-  have hL := logPaddedRowCount_le_logMaxRows hr
-  have hN := paddedRowCount_le_maxRows hr
-  norm_num [maxRows, logMaxRows] at hL hN
+  have hL : logMaxRows = 5 := rfl
+  have hN : maxRows = 32 := rfl
   have hread : ∀ d c, Good r c →
       Pr{let z ← (simulateQ GW.romImpl (readL (List.finRange nLabels) d)).run c}[¬ Good r z.2] ≤
         (2 ^ 13 - 1) / 2 ^ 128 := fun d c hc ↦ by
-    rw [← readVec_eq_readL]; exact prob_readVec_not_good_le r d c hc
+    rw [← readVec_eq_readL]; exact prob_readVec_not_good_le r hr d c hc
   have hT : idealT r A crs (tailH r ps ext crs) =
       (simulateQ GW.romImpl (advSim r A crs >>=
         tailL r ps ext (List.finRange nLabels) crs)).run' ∅ := by
     unfold idealT tailL
     simp only [readVec_eq_readL]
-  have h1 := prT_tailL_le r ps ext A crs (List.finRange nLabels) (List.length_finRange)
+  have h1 := prT_tailL_le r ps ext hr A crs (List.finRange nLabels) (List.length_finRange)
     (finRange_getElem_val nLabels)
-  have h2 := prob_world_not_good_le r ps ext A crs (List.finRange nLabels) hread
-    (2 * Q + 2 ^ 20) (2 * Q + 1) Q (commitCalls r + (9 + logPaddedRowCount r)) ha hg
+  have h2 := prob_world_not_good_le r ps ext hr A crs (List.finRange nLabels) hread
+    (2 * Q + 2 ^ 20) (2 * Q + 1) Q (commitCalls r + (9 + logMaxRows)) ha hg
     (fun out l ↦ isWeightBound_embG_h (isWeightBound_tailH r ps ext crs out l))
     (by unfold commitCalls; omega)
   rw [prT, hT]
   refine h1.trans (h2.trans ?_)
   set x : ℝ≥0∞ := 65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256
-  have hQ : ((2 * Q + 1 : ℕ) : ℝ≥0∞) + ((commitCalls r + (9 + logPaddedRowCount r) : ℕ) : ℝ≥0∞) ≤
+  have hQ : ((2 * Q + 1 : ℕ) : ℝ≥0∞) + ((commitCalls r + (9 + logMaxRows) : ℕ) : ℝ≥0∞) ≤
       ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) := by
     rw [← Nat.cast_add]; exact_mod_cast (by unfold commitCalls; omega)
   calc ((2 * Q + 1 : ℕ) : ℝ≥0∞) * x + (Q : ℝ≥0∞) * ((2 ^ 13 - 1) / 2 ^ 138) +
-        ((2 ^ 13 - 1) / 2 ^ 128 + ((commitCalls r + (9 + logPaddedRowCount r) : ℕ) : ℝ≥0∞) * x)
-      = (((2 * Q + 1 : ℕ) : ℝ≥0∞) + ((commitCalls r + (9 + logPaddedRowCount r) : ℕ) : ℝ≥0∞)) * x +
+        ((2 ^ 13 - 1) / 2 ^ 128 + ((commitCalls r + (9 + logMaxRows) : ℕ) : ℝ≥0∞) * x)
+      = (((2 * Q + 1 : ℕ) : ℝ≥0∞) + ((commitCalls r + (9 + logMaxRows) : ℕ) : ℝ≥0∞)) * x +
           ((Q : ℝ≥0∞) * ((2 ^ 13 - 1) / 2 ^ 138) + (2 ^ 13 - 1) / 2 ^ 128) := by ring
     _ ≤ _ := by gcongr
 

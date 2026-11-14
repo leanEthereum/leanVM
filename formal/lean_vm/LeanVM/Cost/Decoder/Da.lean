@@ -55,7 +55,7 @@ def dvCols (σ : Val) (Vn : NFrames) : Array (E × E) := ((List.range 128).map (
 
 /-- Blob `i`'s iteration of column `h`'s blob loop (`dvRowVN`), the column's words `cw` given. -/
 def dvRowVW (σ : Val) (Vn : NFrames) (cw : E × E) (i h : ℕ) : Val :=
-  Vn (fn_idx% da_verify_column_loop0) [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 22), ofK (Parameters.g ^ h), cw.2] []
+  Vn (fn_idx% da_verify_column_loop0) [ofK (Parameters.g ^ i), σ (.n 0), cw.1, σ (.n 19), ofK (Parameters.g ^ h), cw.2] []
 
 /-- A cell's symbols off `da_verify_cell`'s frame, the blob loop's valuation given. -/
 def cellSymsAt (Vn : NFrames) (c14 : E) (row : Val) : List E :=
@@ -112,7 +112,7 @@ theorem daRowCount_le (r : ℕ) : daRowCount r ≤ guest_const% DA_MAX_ROWS := b
 /-- **`da_verify`'s witness** (`dvWitN`), the logarithm's tables `D` given: its rows counted
 once, at most `DA_MAX_ROWS` (`daRowCount`). -/
 def dvWitND (D : DiscreteLogTables) (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=
-  dvWitNAt (daRowCount (gLogD D (σ (.n 1)))) σ Vn
+  dvWitNAt (daRowCount (gLogD D (σ (.n 0)))) σ Vn
 
 theorem dvWitND_tables : dvWitND discreteLogTables = dvWitN := by
   funext σ Vn

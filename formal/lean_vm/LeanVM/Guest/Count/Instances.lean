@@ -49,8 +49,8 @@ theorem mainStaticsMain : B1.Main.MainStaticsMain B2C.fs wSB wSK where
   l4 := iterK_totalLeOn (j := idx% main_loop3) (by decide +kernel)
   st := wSB_totalLe (j := wIdx "statement_digest") (by decide +kernel)
 
-/-- `da_levels__L{2^k}_L{k}`, one per arm of `da_verify`'s dispatch, checked. -/
-theorem dlNames_ok : (List.range guest_const% DA_TREE_ARMS).all (fun k => wOkB (wIdx B1.Da.dlNames[k]!) B1.Da.dlNames[k]!) = true := by
+/-- The tree over the blob roots, `da_levels__L32_L5`, checked. -/
+theorem dlTop_ok : wOkB (wIdx B1.Da.dlTop) B1.Da.dlTop = true := by
   decide +kernel
 
 /-- The column offsets' doubling loops `da_column_offsets_loop{b}`, checked. -/
@@ -78,7 +78,7 @@ theorem dvStatic : B1.Da.DvStaticB B2C.fs wSB wSK where
   l20 := iterK_totalLeOn (j := idx% da_verify_loop3) (by decide +kernel)
   l21 := iterK_totalLeOn (j := idx% da_verify_column_loop0) (by decide +kernel)
   off := fun _ hb => iterK_totalLeOn (all_range_get offLoops_ok hb)
-  dl := fun _ hk => wSB_totalLe (all_range_get dlNames_ok (Nat.lt_succ_of_le hk))
+  dl := wSB_totalLe dlTop_ok
   vec := vec_le
   exp := exp_le
 

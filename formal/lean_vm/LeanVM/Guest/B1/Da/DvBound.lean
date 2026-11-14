@@ -45,23 +45,23 @@ def clB (fs : String → ℕ) (f : String) (Bc t : ℕ) : ℕ := t * (fs f + Bc)
 
 /-- `da_verify`'s callees' bounds, in call order. -/
 def dvKBs (fs : String → ℕ) (SB SK : String → ℕ) (r L : ℕ) : List ℕ :=
-  [fs "da_row_shape", SB "da_vector", r * iterK fs SK name% «da_verify_loop0» + fs
+  [fs "da_padding", SB "da_vector", r * iterK fs SK name% «da_verify_loop0» + fs
       name% «da_verify_loop0»,
     clB fs name% «da_verify_loop1» (colB fs SB SK r) 128, r * iterK fs SK name% «da_verify_loop2» +
         fs name% «da_verify_loop2»,
-    (2 ^ L - r) * iterK fs SK name% «da_verify_loop3» + fs name% «da_verify_loop3», SB dlNames[L]!]
+    (2 ^ L - r) * iterK fs SK name% «da_verify_loop3» + fs name% «da_verify_loop3», SB (daLevelsName L)]
 
 /-- **`da_verify`'s callees' words bound**: their total as `kidsBoundL` counts it
 (`da_verify_loop3`'s
 frame when it does not run). -/
 def dvKB (fs : String → ℕ) (SB SK : String → ℕ) (r L : ℕ) : ℕ :=
-  fs "da_row_shape" + (SB "da_vector" + ((r * iterK fs SK name% «da_verify_loop0» + fs
+  fs "da_padding" + (SB "da_vector" + ((r * iterK fs SK name% «da_verify_loop0» + fs
       name% «da_verify_loop0») +
     (clB fs name% «da_verify_loop1» (colB fs SB SK r) 128 + ((r * iterK fs SK
         name% «da_verify_loop2» + fs name% «da_verify_loop2») +
     ((if 2 ^ L - r ≠ 0 then (2 ^ L - r) * iterK fs SK name% «da_verify_loop3» + fs
         name% «da_verify_loop3» else fs name% «da_verify_loop3») +
-      SB dlNames[L]!)))))
+      SB (daLevelsName L))))))
 
 /-- **`da_verify`'s words bound** on `r` blobs padded to `2^L`. -/
 def dvB (fs : String → ℕ) (SB SK : String → ℕ) (r L : ℕ) : ℕ :=

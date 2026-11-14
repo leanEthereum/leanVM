@@ -500,11 +500,11 @@ theorem ok80 : CheckOk 80 := checkOk_one (by decide +kernel) w80_0
 
 theorem plain80 : Plain 80 := plain_of_nil (by decide +kernel)
 
-theorem link81 : Link 81 (Glob.ofSigs ([(81, Fn.«rs_eq_run_loop0».sig), (431, Fn.«rs_eq_rows__L8».sig)]) Data.jtTrie globSem)
+theorem link81 : Link 81 (Glob.ofSigs ([(81, Fn.«rs_eq_run_loop0».sig), (426, Fn.«rs_eq_rows__L8».sig)]) Data.jtTrie globSem)
     Fn.«rs_eq_run_loop0».code Fn.«rs_eq_run_loop0».core (Fn.«rs_eq_run_loop0».cert.withPows Data.powTree) :=
   Link.of code81 core81 cert81 
     (SigsOk.cons sig81 rfl 
-    (SigsOk.cons sig431 rfl SigsOk.nil))
+    (SigsOk.cons sig426 rfl SigsOk.nil))
     (by decide +kernel)
 
 theorem w81_0 : WinOk 81 0 := link81.win rfl Fn.«rs_eq_run_loop0».w0
@@ -651,16 +651,16 @@ theorem ok90 : CheckOk 90 := checkOk_one (by decide +kernel) w90_0
 
 theorem plain90 : Plain 90 := plain_of_nil (by decide +kernel)
 
-theorem link91 : Link 91 (Glob.ofSigs ([(91, Fn.«verify_bus_gkr_loop0».sig), (432, Fn.«verify_bus_gkr_loop0_loop0».sig), (433, Fn.«gkr_rounds__L0».sig), (434, Fn.«gkr_rounds__L2».sig), (435, Fn.«gkr_rounds__L4».sig), (436, Fn.«gkr_rounds__L6».sig), (437, Fn.«gkr_rounds__L1».sig)]) Data.jtTrie globSem)
+theorem link91 : Link 91 (Glob.ofSigs ([(91, Fn.«verify_bus_gkr_loop0».sig), (427, Fn.«verify_bus_gkr_loop0_loop0».sig), (428, Fn.«gkr_rounds__L0».sig), (429, Fn.«gkr_rounds__L2».sig), (430, Fn.«gkr_rounds__L4».sig), (431, Fn.«gkr_rounds__L6».sig), (432, Fn.«gkr_rounds__L1».sig)]) Data.jtTrie globSem)
     Fn.«verify_bus_gkr_loop0».code Fn.«verify_bus_gkr_loop0».core (Fn.«verify_bus_gkr_loop0».cert.withPows Data.powTree) :=
   Link.of code91 core91 cert91 
     (SigsOk.cons sig91 rfl 
-    (SigsOk.cons sig432 rfl 
-    (SigsOk.cons sig433 rfl 
-    (SigsOk.cons sig434 rfl 
-    (SigsOk.cons sig435 rfl 
-    (SigsOk.cons sig436 rfl 
-    (SigsOk.cons sig437 rfl SigsOk.nil)))))))
+    (SigsOk.cons sig427 rfl 
+    (SigsOk.cons sig428 rfl 
+    (SigsOk.cons sig429 rfl 
+    (SigsOk.cons sig430 rfl 
+    (SigsOk.cons sig431 rfl 
+    (SigsOk.cons sig432 rfl SigsOk.nil)))))))
     (by decide +kernel)
 
 theorem w91_0 : WinOk 91 0 := link91.win rfl Fn.«verify_bus_gkr_loop0».w0

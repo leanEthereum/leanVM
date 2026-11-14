@@ -269,7 +269,7 @@ theorem da_rel {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E 
   have hown := MF.own
   by_cases hd : lg σ 7 = 1
   · have hdec : (decWit σ rd wX wS wD wV wA).daMatrix =
-        some (dvClaim σ, wD [σ (.n 28)] [σ (.n 369), σ (.n 370), σ (.n 371)]) := by
+        some (dvClaim σ, wD [] [σ (.n 369), σ (.n 370), σ (.n 371)]) := by
       unfold decWit; simp only [nDirect_eq, hd, ↓reduceIte]
     refine ⟨fun c m h => ?_, fun h => (by rw [hdec] at h; cases h)⟩
     rw [hdec, Option.some.injEq, Prod.mk.injEq] at h
@@ -277,7 +277,7 @@ theorem da_rel {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E 
     obtain ⟨hcall, l0, l1⟩ := MF.da hd
     rw [hown, loadHolds_gen_pow_iff, Nat.add_zero] at l0
     rw [hown, loadHolds_gen_pow_iff] at l1
-    obtain ⟨root, z, hop, hrets⟩ := cw.da _ _ hcall (fun j hj => MF.exp.1 j hj)
+    obtain ⟨root, z, hop, hrets⟩ := cw.da _ hcall
     simp only [digestCells, List.cons_append, List.nil_append, List.cons.injEq] at hrets
     obtain ⟨r0, r1, r2, -⟩ := hrets
     have hdv : dvClaim σ = ⟨root, z⟩ := by

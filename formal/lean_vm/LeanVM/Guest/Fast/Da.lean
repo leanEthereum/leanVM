@@ -25,7 +25,7 @@ def dvColVN (σ : Val) (Vn : NFrames) (h : ℕ) : Val := Vn (fn_idx% da_verify_c
 /-- Blob `i`'s iteration of column `h`'s blob loop (`da_verify_column_loop0`), its valuation
 (`colRowV`). -/
 def dvRowVN (σ : Val) (Vn : NFrames) (i h : ℕ) : Val :=
-  Vn (fn_idx% da_verify_column_loop0) [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 14), σ (.n 22), gen ^ h, dvColVN σ Vn h (.n 15)] []
+  Vn (fn_idx% da_verify_column_loop0) [gen ^ i, σ (.n 0), dvColVN σ Vn h (.n 14), σ (.n 19), gen ^ h, dvColVN σ Vn h (.n 15)] []
 
 /-- The symbols, padded outside the matrix (`dvSymsP`), the cell check function's. -/
 noncomputable def dvSymsPN (σ : Val) (Vn : NFrames) (i h : ℕ) : List E :=

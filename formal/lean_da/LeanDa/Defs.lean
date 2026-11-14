@@ -141,10 +141,10 @@ def walk : ℕ → Common.DigestBytes → List Common.DigestBytes → Common.Dig
     walk (idx / 2) (if idx % 2 = 0 then H (pairBytes node s) else H (pairBytes s node)) rest
 
 /-- **Verification of a cell opening** with a pure hash (`verifyCellWith` over `Id`): a path of
-`7 + ⌈log₂ r⌉` siblings that climbs from the cell's digest, at index the position, to the
+`7 + logMaxRows` siblings that climbs from the cell's digest, at index the position, to the
 commitment. -/
 def verifyCell (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) : Bool :=
-  decide (τ.path.length = 7 + logPaddedRowCount r) &&
+  decide (τ.path.length = 7 + logMaxRows) &&
     decide (walk H p (cellDigestWithHash H x) τ.path = com)
 
 /-- The hash inputs from a cell's bytes `a` at index `idx` up to the root, the last one the

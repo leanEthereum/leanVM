@@ -1038,15 +1038,12 @@ memory bounds they take from named obligations. `verify_tables` dispatches on `g
 `log2_ceil_in_the_exponent`'s returned power (cell 4); `claim_list_digest` and
 `child_claim_list_any`/`child_claim_list_mono` on `list_split`'s `rest` (its cell 5, below
 `CLAIM_GROUP = 17`; their argument 6);
-`da_verify` (its tree's `match` on the padded count's log) on `da_row_shape`'s checked argument
-(below `DA_TREE_ARMS`);
 `check_opening_terminal` on `kb[i] = kappa_base[g^i]` (argument 8, cell 10) and on `kb[0]·g^19`,
 `kb[7]·g^6`, which `verify_sub` knows from an obligation: `kb[0] = g^0`, `kb[1..6] < g^31`,
 `kb[7] < g^25` (`lean_ethereum.py`). -/
 def bounds (name : String) :
     List (ℕ × ℕ) × List (ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) :=
-  if name == "da_row_shape" then ([], [(3, LeanVM.Guest.Data.const_DA_TREE_ARMS)], [], [])
-  else if name == "list_split" then ([], [(5, 17)], [], [])
+  if name == "list_split" then ([], [(5, 17)], [], [])
   else if name == "child_claim_list_any" || name == "child_claim_list_mono" then ([(8, 17)], [], [], [])
   else if name == "verify_tables" then ([(11, 34)], [], [(12, 0, 34)], [])
   else if name == "log2_ceil_in_the_exponent__L0_L34" ||
