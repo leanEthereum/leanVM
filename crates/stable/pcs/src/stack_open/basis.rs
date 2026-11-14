@@ -95,6 +95,66 @@ fn point_factors(point: &[F128], offset: usize, bits: usize) -> Vec<Factor> {
         .collect()
 }
 
+/// `sum_i a[i] * b[i]`, reduced once.
+fn dot_ext(a: &[F128], b: &[F128]) -> F128 {
+    let ((a8, a1), (b8, b1)) = (a.as_chunks::<8>(), b.as_chunks::<8>());
+    let acc = a8.iter().zip(b8).fold(Acc8::ZERO, |acc, (a, b)| {
+        acc + F128x8::from_array(a).mul_unreduced(F128x8::from_array(b))
+    });
+    a1.iter().zip(b1).fold(acc.sum(), |sum, (&a, &b)| sum + a * b)
+}
+
+/// A slot's run of equal blocks, which share their dots and their folds: a ring sums its fold once per run, weighted
+/// by the run's mass, the sum of `e_hi` over its blocks.
+struct Run {
+    words: Option<[F64; BLOCK]>,
+    /// The run's block as byte columns, once a ring has needed them.
+    cols: Option<[[u8; BLOCK]; BLOCK / 8]>,
+    dots: Vec<Option<F128>>,
+    folds: Vec<Option<[F128x8; LANES]>>,
+    masses: Vec<F128>,
+    /// Each ring's sums of bit rows over the runs before.
+    sigmas: Vec<[Acc8; LANES]>,
+}
+
+impl Run {
+    fn new(n_patterns: usize, n_rings: usize) -> Self {
+        Self {
+            words: None,
+            cols: None,
+            dots: vec![None; n_patterns],
+            folds: vec![None; n_rings],
+            masses: vec![F128::ZERO; n_rings],
+            sigmas: vec![[Acc8::ZERO; LANES]; n_rings],
+        }
+    }
+
+    /// Starts a run at `words` unless they continue this one.
+    fn feed(&mut self, words: &[F64]) {
+        if self.words.as_ref().is_some_and(|w| w[..] == *words) {
+            return;
+        }
+        self.flush();
+        self.words = Some(words.try_into().expect("a block"));
+        self.cols = None;
+        self.dots.fill(None);
+    }
+
+    /// Adds each ring's fold of the run, weighted by its mass, to its sums.
+    fn flush(&mut self) {
+        for ((fold, mass), sigma) in self.folds.iter_mut().zip(&mut self.masses).zip(&mut self.sigmas) {
+            if let Some(fold) = fold.take() {
+                let mass = F128x8::splat(*mass);
+                sigma
+                    .iter_mut()
+                    .zip(fold)
+                    .for_each(|(s, f)| *s += f.mul_unreduced(mass));
+            }
+            *mass = F128::ZERO;
+        }
+    }
+}
+
 /// The claims that share one low factor list, its table `pi`, and the blocks where one of them is nonzero.
 struct Pattern {
     factors: Vec<Factor>,
@@ -175,33 +235,33 @@ impl Terms {
             let (lane, k) = (t / n_ranges, t % n_ranges);
             let blocks = k * per..((k + 1) * per).min(n_blocks);
             let mut out = vec![F128::ZERO; slots * n_terms];
-            // Per slot: each pattern's dot with every block of the range, and each ring's sums of bit rows.
+            // Per slot: each pattern's dot with every block of the range, and the run the slot is in.
             let mut q = vec![F128::ZERO; slots * patterns.len() * blocks.len()];
-            let mut sigmas = vec![[Acc8::ZERO; LANES]; slots * rings.len()];
+            let mut runs: Vec<Run> = (0..slots).map(|_| Run::new(patterns.len(), rings.len())).collect();
             task(lane, blocks.clone(), &mut |slot, h, words| {
+                let run = &mut runs[slot];
+                run.feed(words);
                 for (p, pattern) in patterns.iter().enumerate().filter(|(_, pattern)| pattern.active[h]) {
-                    let dot = dot_block(&pattern.pi, words);
+                    let dot = *run.dots[p].get_or_insert_with(|| dot_block(&pattern.pi, words));
                     q[(slot * patterns.len() + p) * blocks.len() + h - blocks.start] = dot;
                 }
-                let mut cols = None;
-                for (ring, sigma) in rings.iter().zip(&mut sigmas[slot * rings.len()..]) {
+                for (r, ring) in rings.iter().enumerate() {
                     if ring.e_hi[h] == F128::ZERO {
                         continue;
                     }
-                    let e_hi = F128x8::splat(ring.e_hi[h]);
-                    let cols = cols.get_or_insert_with(|| {
-                        let mut cols = [[0u8; BLOCK]; BLOCK / 8];
-                        for (col, group) in cols.iter_mut().zip(primitives::cast_slice::<F64, [u8; 64]>(words)) {
-                            bit_transpose_64bytes(group, col);
-                        }
-                        cols
-                    });
-                    let mut folded = [F128::ZERO; BLOCK];
-                    ring.fold.fold_columns(cols, &mut folded);
-                    sigma
-                        .iter_mut()
-                        .zip(in_lanes(&folded))
-                        .for_each(|(s, f)| *s += f.mul_unreduced(e_hi));
+                    run.masses[r] += ring.e_hi[h];
+                    if run.folds[r].is_none() {
+                        let cols = run.cols.get_or_insert_with(|| {
+                            let mut cols = [[0u8; BLOCK]; BLOCK / 8];
+                            for (col, group) in cols.iter_mut().zip(primitives::cast_slice::<F64, [u8; 64]>(words)) {
+                                bit_transpose_64bytes(group, col);
+                            }
+                            cols
+                        });
+                        let mut folded = [F128::ZERO; BLOCK];
+                        ring.fold.fold_columns(cols, &mut folded);
+                        run.folds[r] = Some(in_lanes(&folded));
+                    }
                 }
             });
             for (slot, row) in out.chunks_exact_mut(n_terms).enumerate() {
@@ -210,10 +270,15 @@ impl Terms {
                     let q = &q[(slot * patterns.len() + p) * blocks.len()..][..blocks.len()];
                     for &c in &pattern.claims {
                         let range = self.ranges[c].start.max(blocks.start)..self.ranges[c].end.min(blocks.end);
-                        row[c] = range.map(|h| self.gamma(c)[h] * q[h - blocks.start]).sum();
+                        if !range.is_empty() {
+                            let q = &q[range.start - blocks.start..range.end - blocks.start];
+                            row[c] = dot_ext(&self.gamma(c)[range], q);
+                        }
                     }
                 }
-                for (ring, sigma) in rings.iter().zip(&sigmas[slot * rings.len()..]) {
+                let run = &mut runs[slot];
+                run.flush();
+                for (ring, sigma) in rings.iter().zip(&run.sigmas) {
                     let sigma: [[F128; 8]; LANES] = sigma.map(|s| s.reduce().to_array());
                     let sigma = sigma.as_flattened().try_into().expect("a block");
                     for (slot, k) in row[ring.first..].iter_mut().zip(transpose_s_hat(sigma)) {
