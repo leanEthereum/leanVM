@@ -241,18 +241,32 @@ impl<'a> FillCtx<'a> {
         at: usize,
         f: impl Fn(usize) -> [F64; N] + Sync,
     ) {
+        /// Rows per task.
+        const CHUNK: usize = 1 << 12;
         assert!(n_rows <= self.height, "a table's rows must fit its cube");
         let padding: [F64; N] = std::array::from_fn(|k| self.padding[at + k]);
-        let rows = parallel::map_collect(self.height, |i| if i < n_rows { f(i) } else { padding });
-        for (k, column) in out[at..at + N].iter_mut().enumerate() {
-            assert_eq!(
-                column.len(),
-                self.height,
-                "column {} has the wrong window length",
-                at + k
-            );
-            parallel::fill(column, |i| rows[i][k]);
-        }
+        let window: &mut [ColumnOut; N] = (&mut out[at..at + N]).try_into().unwrap();
+        let columns = window.each_mut().map(|column| {
+            assert_eq!(column.len(), self.height, "a column's window is the table's height");
+            &mut **column
+        });
+        // All `N` columns in one pass, each row's values computed once.
+        parallel::map_reduce_chunks_mut(
+            columns,
+            [CHUNK; N],
+            || (),
+            || (),
+            |_, _, task, mut chunks| {
+                for i in 0..chunks[0].len() {
+                    let row = task * CHUNK + i;
+                    let values = if row < n_rows { f(row) } else { padding };
+                    for (column, value) in chunks.iter_mut().zip(values) {
+                        column[i] = value;
+                    }
+                }
+            },
+            |_, _| (),
+        );
     }
 
     /// The two `K`-lanes of the 128-bit word in memory cell `addr`.

@@ -46,3 +46,28 @@ macro_rules! stage {
 pub(crate) use stage;
 
 pub(crate) use primitives::{log2_ceil_usize, log2_strict_usize};
+
+use primitives::field::{F64, F64x8, F128, F128x8};
+
+/// Vectors of eight rows below which a pass runs on the calling thread: waking the pool would cost more than it saves.
+pub(crate) const SERIAL_BELOW: usize = 1 << 10;
+
+/// `values[i..i + n]` as lanes, zero past `n` (`n` at least eight takes eight).
+#[inline(always)]
+pub(crate) fn load_k(values: &[F64], i: usize, n: usize) -> F64x8 {
+    if n >= 8 {
+        F64x8::load(&values[i..i + 8])
+    } else {
+        F64x8::from_array(&std::array::from_fn(|p| if p < n { values[i + p] } else { F64::ZERO }))
+    }
+}
+
+/// `values[i..i + n]` as lanes, zero past `n` (`n` at least eight takes eight).
+#[inline(always)]
+pub(crate) fn load_e(values: &[F128], i: usize, n: usize) -> F128x8 {
+    if n >= 8 {
+        F128x8::load(&values[i..i + 8])
+    } else {
+        F128x8::from_array(&std::array::from_fn(|p| if p < n { values[i + p] } else { F128::ZERO }))
+    }
+}
