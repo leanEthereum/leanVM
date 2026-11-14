@@ -187,10 +187,8 @@ impl Witness {
         first.value += committed_value;
 
         let mut claim = first.clone();
-        let mut scratch = prover::Scratch::new(shape);
         for step in 0..shape.depth {
-            claim = tracing::info_span!("Layer", step)
-                .in_scope(|| prover::prove_layer(ps, self, &mut scratch, step, &claim));
+            claim = tracing::info_span!("Layer", step).in_scope(|| prover::prove_layer(ps, self, step, &claim));
         }
         let _span = tracing::info_span!("Openings").entered();
         let outputs =

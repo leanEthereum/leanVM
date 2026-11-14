@@ -65,9 +65,8 @@ fn layers_round_trip(n_instances: usize, depth: usize) {
     let (r_low, point, r_lane) = (ps.sample_vec(4), ps.sample_vec(shape.y_vars()), ps.sample_vec(5));
     let mut claim = first_claim(shape, &r_low, point, &r_lane);
     claim.value = evaluate(shape, &outputs, &claim);
-    let mut scratch = crate::prover::Scratch::new(shape);
     for step in 0..depth {
-        claim = prove_layer(&mut ps, &witness, &mut scratch, step, &claim);
+        claim = prove_layer(&mut ps, &witness, step, &claim);
     }
     assert_eq!(
         claim.value,
