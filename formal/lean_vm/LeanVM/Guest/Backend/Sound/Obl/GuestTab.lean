@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.Backend.Sound.Obl.Check
+public import LeanVM.Guest.Renumber
 
 /-!
 # The guest's table
@@ -84,6 +85,37 @@ def guestTab : Tab where
     ("walk_path__L24_L3", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64), (2, 3, 64)] }),
     ("walk_path__L24_L4", { mem := [(2, 0, 64), (2, 1, 64), (2, 2, 64), (2, 3, 64)] })]
   pows := [(9223372036854810629, 255)]
+
+/-- The functions (by index in `coreProgram`) whose obligations the analysis does not discharge
+with the table: `verify_bus_gkr` (9) and `verify_bus_gkr_loop0` (compiled `__loop6`, 90), whose
+selector a GKR layer relation bounds (B1's `GkrPar`), and the 90 callers of `walk_path__*` (the
+`opening_queries__L1_*` specializations and the loop helpers of the `opening_queries__L0_*`),
+whose path words are bounded by the Merkle walk's relations (B1's `WalkKnown`). -/
+def guestRestIdx : List Nat :=
+  [9, 90, 1009, 1011, 1013, 1015, 1071, 1111, 1151, 1191, 1237, 1281, 1325, 1368, 1418, 1465,
+    1508, 1510, 1512, 1514, 1515, 1516, 1517, 1518, 1519, 1520, 1521, 1522, 1523, 1524, 1526,
+    1527, 1528, 1529, 1530, 1531, 1532, 1534, 1535, 1536, 1537, 1538, 1539, 1540, 1542, 1543,
+    1544, 1545, 1546, 1547, 1548, 1550, 1551, 1552, 1553, 1554, 1555, 1557, 1558, 1559, 1560,
+    1561, 1562, 1564, 1565, 1566, 1567, 1568, 1569, 1571, 1572, 1573, 1574, 1575, 1576, 1578,
+    1579, 1580, 1581, 1582, 1583, 1585, 1586, 1587, 1588, 1589, 1590, 1592, 1593, 1594, 1595, 1596]
+
+/-- `verify_sub`, whose calls of `verify_tables` and `check_opening_terminal` take B1's bounds on
+`dims_g` and `kappa_base` as facts (`vsFacts`). -/
+def vsIdx : Nat := 18
+
+/-- The functions the analysis without facts does not cover. -/
+def guestSkip (j : Nat) : Bool := j == vsIdx || guestRestIdx.contains j
+
+/-- `kappa_base`'s bounds (`lean_ethereum.py:3561-3569`): `kb[0] = g^0`, the memory's log and the
+six tables' heights below `g^31`, keccak's `τ` below `g^25`. -/
+def kbBound (c : Nat) : Nat := [1, 31, 31, 31, 31, 31, 31, 25].getD c 0
+
+/-- **`verify_sub`'s facts from B1**: before its call of `verify_tables` (statement `333`) the word
+at `dims_g` (value `71`) is below `g^34` (`vsDimsKnown0_holds`); before its call of
+`check_opening_terminal` (statement `1545`) the eight words at `kappa_base` (value `83`) are below
+`kbBound` (`vsKnown_holds`). -/
+def vsFacts : List (Nat × Hyp) :=
+  (333, .mem (.n 71) 0 34) :: (List.range 8).map fun c => (1545, .mem (.n 83) c (kbBound c))
 
 end
 end LeanVM.Guest.Backend.Obl
