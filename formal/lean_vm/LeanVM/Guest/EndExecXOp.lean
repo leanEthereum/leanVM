@@ -14,7 +14,7 @@ public import LeanVM.Prover.ExecuteComplete
 # An executor instruction along the reference
 
 `reads_of_runOp`: an instruction the executor completes found the cells it reads written (`Reads`:
-for a `MUL` solved backwards, its known operand nonzero). `runOp_used`: on a state agreeing with
+for a `MUL` solved backwards, its known operand nonzero, `ZNz`). `runOp_used`: on a state agreeing with
 the reference memory of a memory image of at most `2^28` words, an instruction the reference step
 executes from the state's registers touches only cells it reads, so it keeps the cells used within
 the image (`put_used`, `link_used`: what a write or a link adds to `used`).
@@ -107,22 +107,23 @@ theorem reads_of_runOp {C : Ctx} {s s' : St} {op : Op} (e : runOp C s op = .ok s
     obtain ⟨rfl, -⟩ := cellAt_ok hca
     obtain ⟨rfl, -⟩ := cellAt_ok hcb
     obtain ⟨rfl, -⟩ := cellAt_ok hcc
-    have hnz : ∀ o, s.mem.written (s.fp + o) = true → s.mem.peek (s.fp + o) ≠ 0 → NzAt s o := fun o hw hne ↦ by
+    have hnz : ∀ o, s.mem.written (s.fp + o) = true → s.mem.peek (s.fp + o) ≠ 0 →
+        s.mem.written (s.fp + c) = true → ZNz s o c := fun o hw hne hwc ↦ by
       obtain ⟨u, hu⟩ := Mem.get_of_written hw
-      exact ⟨u, hu, by rw [Mem.peek_of_get hu] at hne; exact hne⟩
+      exact ZNz.of_nzAt ⟨u, hu, by rw [Mem.peek_of_get hu] at hne; exact hne⟩ hwc
     by_cases hwa : s.mem.written (s.fp + a) = true <;> by_cases hwb : s.mem.written (s.fp + b) = true
     · exact Or.inl ⟨hwa, hwb⟩
     · by_cases hwc : s.mem.written (s.fp + c) = true
       · by_cases h0 : s.mem.peek (s.fp + a) = 0
         · simp [hwa, hwb, hwc, h0, bind_ok] at hm
-        · exact Or.inr (Or.inl ⟨hwc, hwa, hnz _ hwa h0⟩)
+        · exact Or.inr (Or.inl ⟨hwc, hwa, hnz _ hwa h0 hwc⟩)
       · simp only [hwc, Bool.false_and, Bool.false_eq_true, ↓reduceIte, bind_ok, pure_ok] at hm
         obtain ⟨m1, rfl, va, hva, vb, hvb, -⟩ := hm
         exact absurd (written_of_get (Mem.read_ok hvb)) hwb
     · by_cases hwc : s.mem.written (s.fp + c) = true
       · by_cases h0 : s.mem.peek (s.fp + b) = 0
         · simp [hwa, hwb, hwc, h0, bind_ok] at hm
-        · exact Or.inr (Or.inr ⟨hwc, hwb, hnz _ hwb h0⟩)
+        · exact Or.inr (Or.inr ⟨hwc, hwb, hnz _ hwb h0 hwc⟩)
       · simp only [hwc, Bool.false_and, Bool.false_eq_true, ↓reduceIte, bind_ok, pure_ok] at hm
         obtain ⟨m1, rfl, va, hva, -⟩ := hm
         exact absurd (written_of_get (Mem.read_ok hva)) hwa
@@ -272,28 +273,27 @@ theorem runOp_used {C : Ctx} {s s' : St} {op : Op} {ins : LeanIsaInstruction} {�
     split_ifs at e with hl1
     · simp [bind_ok] at e
     simp only [bind_ok] at e
-    obtain ⟨⟨base, s2⟩, hlog, a2, ha2, a3, ha3, s3, hs3, e⟩ := e
+    obtain ⟨⟨a2, s2⟩, hlog, a3, ha3, s3, hs3, e⟩ := e
     simp only [pure_ok] at e; subst e
-    obtain ⟨f2, hgb, -⟩ := St.logOr_ok hgood hlog
-    have hmem := logOr_mem hlog
+    obtain ⟨-, hgb, ha2'⟩ := St.derefCell_ok hgood hlog
+    obtain ⟨D, rfl⟩ := St.derefCell_dl hlog
+    dsimp only at ha3 hs3
     obtain ⟨m', hm', rfl⟩ := St.withMem_ok hs3
     obtain ⟨rfl, ha1'⟩ := cellAt_ok ha1
-    obtain ⟨rfl, ha2'⟩ := cellAt_ok ha2
     obtain ⟨rfl, ha3'⟩ := cellAt_ok ha3
     rw [← pow_add] at hp h3
     have hpp : p' = p := by
       rw [← hs.agree.get _ _ (Mem.read_ok hp')]
       exact ((refRd_img hκ img) _ _ (by unfold maxCells at ha1'; omega) hp).2
     rw [hpp] at hgb
-    rw [← hgb, ← pow_add] at h2
+    rw [← hgb] at h2
     have h1 := hr _ _ ha1' hp
     have h2' := hr _ _ ha2' h2
-    have h3' := hr _ _ (f2.fp ▸ ha3') h3
-    have hfin : ∀ m0 : Mem, m0.used ≤ max s.mem.used (max (base + o2 + 1) (s.fp + o3 + 1)) →
-        (((m0.ensure (s.fp + o1)).ensure (base + o2)).ensure (s.fp + o3)).used ≤ 2 ^ κ := fun m0 h0 ↦ by
+    have h3' := hr _ _ ha3' h3
+    have hfin : ∀ m0 : Mem, m0.used ≤ max s.mem.used (max (a2 + 1) (s.fp + o3 + 1)) →
+        (((m0.ensure (s.fp + o1)).ensure a2).ensure (s.fp + o3)).used ≤ 2 ^ κ := fun m0 h0 ↦ by
       simp only [Mem.ensure_used]; omega
     simp only at hm'
-    rw [hmem, f2.fp] at hm'
     cases mode with
     | cell =>
       simp only at hm'

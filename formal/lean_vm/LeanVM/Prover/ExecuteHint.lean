@@ -91,6 +91,57 @@ theorem St.logOr_ok {s s' : St} {x : K} {b k : ℕ} {f : Fault} (hs : s.Good)
     exact ⟨⟨⟨hs.wf, hok⟩, Mem.le_refl _, rfl, rfl, rfl⟩, hk k' h1⟩
   · simp at h
 
+theorem St.logOr_dl {s s' : St} {x : K} {b k : ℕ} {f : Fault} (h : s.logOr x b f = .ok (k, s')) :
+    ∃ D, s' = { s with dl := D } := by
+  unfold St.logOr at h
+  rw [St.log_eq] at h
+  split at h
+  · rename_i k' s1 hp
+    simp only [pure_ok, Prod.mk.injEq] at h
+    obtain ⟨-, rfl⟩ := h
+    simp only [Prod.mk.injEq] at hp
+    obtain ⟨-, rfl⟩ := hp
+    exact ⟨_, rfl⟩
+  · simp at h
+
+/-- A `DEREF`'s cell changes only the logarithm table. -/
+theorem St.derefCell_dl {s s' : St} {p : K} {o a : ℕ} {f : Fault} (h : s.derefCell p o f = .ok (a, s')) :
+    ∃ D, s' = { s with dl := D } := by
+  unfold St.derefCell at h
+  rw [St.log_eq] at h
+  split at h
+  · rename_i b s1 hp
+    simp only [Prod.mk.injEq] at hp
+    obtain ⟨-, rfl⟩ := hp
+    split_ifs at h
+    · simp only [pure_ok, Prod.mk.injEq] at h
+      obtain ⟨-, rfl⟩ := h
+      exact ⟨_, rfl⟩
+    · obtain ⟨D, rfl⟩ := St.logOr_dl h
+      exact ⟨D, rfl⟩
+  · exact St.logOr_dl h
+
+/-- **A `DEREF`'s cell** is the one below `maxCells` whose power is the pointer's product with
+`g^o`. -/
+theorem St.derefCell_ok {s s' : St} {p : K} {o a : ℕ} {f : Fault} (hs : s.Good)
+    (h : s.derefCell p o f = .ok (a, s')) : St.Follows s s' ∧ g ^ a = p * g ^ o ∧ a < maxCells := by
+  unfold St.derefCell at h
+  rw [St.log_eq] at h
+  obtain ⟨hok, hk⟩ := Dlog.log_ok hs.dl p maxCells
+  split at h
+  · rename_i b s1 hp
+    simp only [Prod.mk.injEq] at hp
+    obtain ⟨hb, rfl⟩ := hp
+    have f1 : St.Follows s { s with dl := (s.dl.log p maxCells).2 } :=
+      ⟨⟨hs.wf, hok⟩, Mem.le_refl _, rfl, rfl, rfl⟩
+    split_ifs at h with hlt
+    · simp only [pure_ok, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      exact ⟨f1, by rw [pow_add, (hk b hb).1], hlt⟩
+    · obtain ⟨f2, h2, h3⟩ := St.logOr_ok f1.good h
+      exact ⟨f1.trans f2, h2, h3⟩
+  · exact St.logOr_ok hs h
+
 theorem pop_follows {C : Ctx} {s s' : St} {name : String} {len : ℕ} {v : List E} (hs : s.Good)
     (h : pop C s name len = .ok (v, s')) : St.Follows s s' := by
   unfold pop at h

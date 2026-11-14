@@ -82,6 +82,7 @@ theorem onRef_next {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {img : Me
 theorem RefOk.congr {M : ℕ → E} {s s1 : St} (hfp : s1.fp = s.fp) {op : Op} (h : RefOk M s op) :
     RefOk M s1 op := by
   cases op with
+  | mul a b c => simpa only [RefOk, hfp] using h
   | deref a o c mode => simpa only [RefOk, hfp] using h
   | jump c d f => simpa only [RefOk, hfp] using h
   | _ => trivial

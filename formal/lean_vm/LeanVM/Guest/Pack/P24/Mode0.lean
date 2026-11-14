@@ -204,8 +204,8 @@ noncomputable def modeFun : Mode.Fun :=
     none (.node none (.node (some [(.alloc 20 68)]) .nil .nil) .nil) .nil) (.node none .nil (.node
     none (.node (some [(.cellAddress 24 25)]) .nil .nil) .nil))) (.node none .nil (.node none
     (.node none (.node none (.node (some [(.alloc 34 68)]) .nil .nil) .nil) .nil) .nil))), (.node
-    none .nil (.node none (.node none (.node none (.node none (.node (some [(.nz 32)]) .nil .nil)
-    .nil) .nil) (.node (some [(.nz 2)]) .nil .nil)) .nil)), .nil, false, .nil⟩
+    none .nil (.node none (.node none .nil (.node (some [(.nz 2)]) .nil .nil)) .nil)), .nil, false,
+    .nil⟩
 
 /-- `log2_ceil_in_the_exponent__L16_L34`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

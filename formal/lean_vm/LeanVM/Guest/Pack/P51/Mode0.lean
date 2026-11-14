@@ -40,22 +40,18 @@ noncomputable def modeFun : Mode.Fun :=
     (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 5), 1)]⟩, (.num 0), (.num 1), 1,
     0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr
     124), 1), ((.hp 123 7), 1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 8),
-    1)]⟩, (.num 0), (.num 1), 1, 0⟩])]) .nil .nil) .nil) .nil) .nil)) .nil)) (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none (.node (some [(.nz 248)]) .nil .nil)
-    .nil) (.node (some [(.nz 188)]) .nil .nil)) (.node none (.node (some [(.nz 158)]) .nil .nil)
-    (.node (some [(.nz 218)]) .nil .nil))) (.node none (.node none .nil (.node (some [(.nz 203)])
-    .nil .nil)) (.node none (.node (some [(.nz 173)]) .nil .nil) (.node (some [(.nz 233)]) .nil
-    .nil))))) .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
-    none (.node (some [(.nz 141)]) .nil .nil) .nil) .nil))) .nil) (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 0, [((.fr
-    124), 1)]⟩, (.num 0), (.num 9), 1, 0⟩ [⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 0), 1)]⟩, (.num 0),
-    (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 1), 1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0,
-    0, [((.fr 124), 1), ((.hp 123 2), 1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124), 1),
-    ((.hp 123 3), 1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 4), 1)]⟩,
-    (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 5), 1)]⟩, (.num 0), (.num 1), 1,
-    0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr
-    124), 1), ((.hp 123 7), 1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 8),
-    1)]⟩, (.num 0), (.num 1), 1, 0⟩])]) .nil .nil)) .nil) .nil))) .nil))), .nil, false, .nil⟩
+    1)]⟩, (.num 0), (.num 1), 1, 0⟩])]) .nil .nil) .nil) .nil) .nil)) .nil)) .nil) (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some [(.nz 141)])
+    .nil .nil) .nil) .nil))) .nil) (.node none (.node none .nil (.node none .nil (.node none (.node
+    none (.node none .nil (.node (some [(.sub ⟨⟨0, 0, [((.fr 124), 1)]⟩, (.num 0), (.num 9), 1, 0⟩
+    [⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 0), 1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124),
+    1), ((.hp 123 1), 1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 2), 1)]⟩,
+    (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 3), 1)]⟩, (.num 0), (.num 1), 1,
+    0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 4), 1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr
+    124), 1), ((.hp 123 5), 1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 6),
+    1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 7), 1)]⟩, (.num 0), (.num
+    1), 1, 0⟩, ⟨⟨0, 0, [((.fr 124), 1), ((.hp 123 8), 1)]⟩, (.num 0), (.num 1), 1, 0⟩])]) .nil
+    .nil)) .nil) .nil))) .nil))), .nil, false, .nil⟩
 
 /-- `certify_placement`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

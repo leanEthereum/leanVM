@@ -82,9 +82,8 @@ noncomputable def snap591 : List Mode.Abs × Mode.Pend :=
     .nil .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) .nil))), [], [⟨0,
     0, [((.fr 4), 1)]⟩, ⟨0, 1, [((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 4), 1)]⟩, ⟨0, 3, [((.fr 4), 1)]⟩, ⟨0,
     4, [((.fr 4), 1)]⟩, ⟨0, 5, [((.fr 4), 1)]⟩], [⟨⟨0, 0, []⟩, (.num 430), (.num 14367), 1, 0⟩],
-    [((.ex (.fr 4) 0), (.num 268435456)), ((.ex (.fr 103) 0), (.num 268435456)), ((.ex (.fr 112)
-    0), (.num 268435456)), ((.ex (.fr 128) 0), (.num 268435456)), ((.ex (.hp 4 0) 0), (.num 64)),
-    ((.ex (.hp 4 1) 0), (.num 64))], [], .nil, [], []⟩], false⟩])
+    [((.ex (.fr 4) 0), (.num 268435456)), ((.ex (.fr 112) 0), (.num 268435456)), ((.ex (.hp 4 0)
+    0), (.num 64)), ((.ex (.hp 4 1) 0), (.num 64))], [], .nil, [], []⟩], false⟩])
 
 /-- `walk_path__L24_L4`: the paths and pending edges at its cut at offset 1170. -/
 noncomputable def snap1170 : List Mode.Abs × Mode.Pend :=
@@ -161,10 +160,9 @@ noncomputable def snap1170 : List Mode.Abs × Mode.Pend :=
     .nil))) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) .nil))), [], [⟨0, 0,
     [((.fr 4), 1)]⟩, ⟨0, 1, [((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 4), 1)]⟩, ⟨0, 3, [((.fr 4), 1)]⟩, ⟨0, 4,
     [((.fr 4), 1)]⟩, ⟨0, 5, [((.fr 4), 1)]⟩], [⟨⟨0, 0, []⟩, (.num 430), (.num 14367), 1, 0⟩],
-    [((.ex (.fr 4) 0), (.num 268435456)), ((.ex (.fr 103) 0), (.num 268435456)), ((.ex (.fr 112)
-    0), (.num 268435456)), ((.ex (.fr 128) 0), (.num 268435456)), ((.ex (.fr 145) 0), (.num
-    268435456)), ((.ex (.hp 4 0) 0), (.num 64)), ((.ex (.hp 4 1) 0), (.num 64)), ((.ex (.hp 4 2)
-    0), (.num 64))], [], .nil, [], []⟩], false⟩])
+    [((.ex (.fr 4) 0), (.num 268435456)), ((.ex (.fr 112) 0), (.num 268435456)), ((.ex (.hp 4 0)
+    0), (.num 64)), ((.ex (.hp 4 1) 0), (.num 64)), ((.ex (.hp 4 2) 0), (.num 64))], [], .nil, [],
+    []⟩], false⟩])
 
 /-- `walk_path__L24_L4`: the paths and pending edges at its cut at offset 1749. -/
 noncomputable def snap1749 : List Mode.Abs × Mode.Pend :=
@@ -251,10 +249,9 @@ noncomputable def snap1749 : List Mode.Abs × Mode.Pend :=
     none .nil (.node (some ()) .nil .nil)) .nil)) .nil))), [], [⟨0, 0, [((.fr 4), 1)]⟩, ⟨0, 1,
     [((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 4), 1)]⟩, ⟨0, 3, [((.fr 4), 1)]⟩, ⟨0, 4, [((.fr 4), 1)]⟩, ⟨0, 5,
     [((.fr 4), 1)]⟩], [⟨⟨0, 0, []⟩, (.num 430), (.num 14367), 1, 0⟩], [((.ex (.fr 4) 0), (.num
-    268435456)), ((.ex (.fr 103) 0), (.num 268435456)), ((.ex (.fr 112) 0), (.num 268435456)),
-    ((.ex (.fr 128) 0), (.num 268435456)), ((.ex (.fr 145) 0), (.num 268435456)), ((.ex (.fr 162)
-    0), (.num 268435456)), ((.ex (.hp 4 0) 0), (.num 64)), ((.ex (.hp 4 1) 0), (.num 64)), ((.ex
-    (.hp 4 2) 0), (.num 64)), ((.ex (.hp 4 3) 0), (.num 64))], [], .nil, [], []⟩], false⟩])
+    268435456)), ((.ex (.fr 112) 0), (.num 268435456)), ((.ex (.hp 4 0) 0), (.num 64)), ((.ex (.hp
+    4 1) 0), (.num 64)), ((.ex (.hp 4 2) 0), (.num 64)), ((.ex (.hp 4 3) 0), (.num 64))], [], .nil,
+    [], []⟩], false⟩])
 
 /-- `walk_path__L24_L4`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=

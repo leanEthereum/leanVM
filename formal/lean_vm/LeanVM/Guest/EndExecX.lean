@@ -29,7 +29,8 @@ function's entry is an instance of it, `trackAt_X` the track's state at a state'
 
 What is left, besides the fields `ExecGaps.ofParts` leaves to other tracks: the program's
 alignments (`ProgAl`, `AlLayout`), the jumps' cells on the track (`JumpCellsAt`), no certificate at
-pc `0`, a `DEREF`'s pointer a power (`DerefPow`), the hints' cells within the reference
+pc `0`, a `DEREF`'s address (`DerefPow`, what the reference step reads: `derefPow_all`), the
+hints' cells within the reference
 (`HintsUsed`), and `Y` initially and kept (`InitY`, `KeepY`; trivial for `Y` true).
 -/
 
@@ -65,10 +66,12 @@ premise, at the reference run. -/
 def JumpCellsAt (A : String → FnAl) : Prop :=
   ∀ r : Ref, r.Ok → ∀ pc fp done e st, RefTrack A r pc fp (done, e :: st) → JumpCells r.img A e pc
 
-/-- **A `DEREF`'s pointer is a power** on the reference, at each state of the tracks. -/
+/-- **A `DEREF`'s pointer times `g^o` is a power below `maxCells`** on the reference, at each state
+of the tracks. -/
 def DerefPow (Y : Ref → St → Prop) : Prop :=
   ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s a o c mode, OnRun (XOf Y) r s →
-    C.ops[s.pc]? = some (.deref a o c mode) → PowWord (refMem r.img (s.fp + a))
+    C.ops[s.pc]? = some (.deref a o c mode) →
+      ∃ b < maxCells, (refMem r.img (s.fp + a)).limb 0 * Parameters.g ^ o = Parameters.g ^ b
 
 /-- **The hints keep the cells used within the reference's `2^κ`**, from each state of the tracks. -/
 def HintsUsed (Y : Ref → St → Prop) : Prop :=
@@ -167,16 +170,14 @@ theorem step_ref {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {img : Memo
 
 /-! ## The pointers -/
 
-/-- **The pointers each instruction follows are powers**, at each state of the tracks: a
-`DEREF`'s by `DerefPow`, a taken `JUMP`'s frame the next frame of the tree track, an honest
-instance's. -/
+/-- **A taken `JUMP`'s frame is a power**, at each state of the tracks: the next frame of the tree
+track, an honest instance's. -/
 theorem ptrPow_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A)
-    (hmain : entOf A "main" = mainEntry) (hJ : JumpCellsAt A) (hD : DerefPow Y) {r : Ref} (hr : r.Ok) {C : Ctx}
+    (hmain : entOf A "main" = mainEntry) (hJ : JumpCellsAt A) {r : Ref} (hr : r.Ok) {C : Ctx}
     (hC : Ctx.of guestProgram r.adv = .ok C) {s : St} {op : Op} (hon : OnRun (XOf Y) r s)
     (hop : C.ops[s.pc]? = some op) : PtrPow (refMem r.img) s op := by
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   cases op with
-  | deref a o c mode => exact hD r hr C hC s a o c mode hon hop
   | jump c d f =>
     intro hnz
     rcases hon.1.1 with ⟨hlt, hpc, -⟩ | ⟨hge, hrun⟩
@@ -203,9 +204,12 @@ theorem ptrPow_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : ProgAl gu
 theorem refOk_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A)
     (hmain : entOf A "main" = mainEntry) (hJ : JumpCellsAt A) (hD : DerefPow Y) {r : Ref} (hr : r.Ok) {C : Ctx}
     (hC : Ctx.of guestProgram r.adv = .ok C) {s : St} {op : Op} (hon : OnRun (XOf Y) r s)
-    (hop : C.ops[s.pc]? = some op) : RefOk (refMem r.img) s op :=
-  refOk_of_pow (logMemorySize_le_28 (e := r.exec) hr.size) hC hon.2.1 hon.2.2 hop
-    (ptrPow_X hP hmain hJ hD hr hC hon hop)
+    (hop : C.ops[s.pc]? = some op) : RefOk (refMem r.img) s op := by
+  cases op with
+  | deref a o c mode => exact hD r hr C hC s a o c mode hon hop
+  | _ =>
+    exact refOk_of_pow (logMemorySize_le_28 (e := r.exec) hr.size) hC hon.2.1 hon.2.2 hop
+      (ptrPow_X hP hmain hJ hr hC hon hop)
 
 /-! ## The step -/
 
@@ -337,7 +341,7 @@ theorem ExecGaps.ofX {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     ExecGaps Ks Km E0 (XOf Y) (fun _ ↦ ProAt) :=
   ExecGaps.ofParts certs main mainExact hintAlloc hintWitness hintComputed res termInst
     (entryInst_X certs entries progAl mainAt jumpCells layout)
-    (fun _ hr _ hC _ _ hon hop ↦ ptrPow_X progAl mainAt jumpCells derefPow hr hC hon hop)
+    (fun _ hr _ hC _ _ hon hop ↦ ptrPow_X progAl mainAt jumpCells hr hC hon hop)
     (fun _ hr _ hC _ _ _ _ hon hop e1 hm e ↦
       keep_X progAl mainAt jumpCells derefPow hintsUsed keepY hr hC hon hop e1 hm e)
     (fun _ hr _ _ hC hm ↦ init_X initY hr hC hm) (fun _ _ _ hX ↦ hX.2.1)

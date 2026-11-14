@@ -128,8 +128,8 @@ pub enum Fault {
         new: F128,
         hint: Option<&'static str>,
     },
-    /// A `DEREF` through a word that is no g-power below `MAX_CELLS`: a wild pointer, a
-    /// failed range check, or an address past any memory a stack can hold.
+    /// A `DEREF` whose address, the pointer times `g^o2`, is no g-power below `MAX_CELLS`: a wild
+    /// pointer, a failed range check, or an address past any memory a stack can hold.
     WildPointer { value: F128 },
     /// A word that has to be in `K` is not: a `JUMP` operand, or one a hint reads.
     NotInK { what: &'static str, value: F128 },
@@ -195,7 +195,7 @@ impl std::fmt::Display for Fault {
             }
             Self::WildPointer { value } => write!(
                 f,
-                "DEREF pointer is not a g-power below 2^{}: a wild pointer, a failed range check, or past any memory a stack can hold (value {})",
+                "DEREF address is not a g-power below 2^{}: a wild pointer, a failed range check, or past any memory a stack can hold (pointer {})",
                 MAX_CELLS.ilog2(),
                 word(*value)
             ),
@@ -906,8 +906,15 @@ impl Program {
                     let a1 = at(fp, o1)?;
                     let p = m.read(a1);
                     let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
-                    let base = g.log(p_addr).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
-                    let a2 = at(base, o2)?;
+                    // The AIR reads the cell at the product `p·g^o2`, so `p` need be no address:
+                    // the pointer's log when it has one in range (an allocation notes it), else
+                    // the product's.
+                    let a2 = match g.log(p_addr).map(|b| u64::from(b) + u64::from(o2)) {
+                        Some(c) if c < u64::from(MAX_CELLS) => c as u32,
+                        _ => g
+                            .log(p_addr * F64::G.pow(u128::from(o2)))
+                            .ok_or_else(|| fail(Fault::WildPointer { value: p }))?,
+                    };
                     let a3 = at(fp, o3)?;
                     match mode {
                         // Equality m[a2] == m[a3]: carry a written side to the other

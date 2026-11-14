@@ -438,6 +438,16 @@ class Walk:
                         elif m[1] == 2 ** 64 - 2:
                             addLtC(A, x, ('ex', m[2][0][0], 0))
 
+    def zNz(self, A, b, c):
+        """`[b] = 0` makes `[c]` nonzero (`Abs.zNz`)."""
+        if b in A.nz or c in A.nz: return True
+        s = A.xs.get(c)
+        if s is None: return False
+        def one(o): return A.v.get(o) == ('m', ONE)
+        def zImp(x):
+            return b == x or any(r == b and ((p == x and q in A.nz) or (q == x and p in A.nz)) for p, q, r in A.pr)
+        return (one(s[0]) and zImp(s[1])) or (one(s[1]) and zImp(s[0]))
+
     def stepOp(self, i, A, op, a):
         pc = self.entry + i
         if op == 'xor':
@@ -465,9 +475,9 @@ class Walk:
                 return
             for kn, un in ((x, y), (y, x)):
                 if z in A.w and kn in A.w:
-                    if kn not in A.nz:
+                    if not self.zNz(A, kn, z):
                         self.need(False, 'nz', i, kn, A)
-                        A.nz.add(kn)
+                    A.nz.add(kn)
                     A.w.add(un)
                     if z in A.nz: A.nz.add(un)
                     A.pr = [(x, y, z)]
@@ -477,7 +487,7 @@ class Walk:
         if op == 'set':
             o, k0, k1 = a
             A.w.add(o); A.addV(o, self.valOfImm(k0, k1))
-            if self.valOfImm(k0, k1)[0] == 'm': A.nz.add(o)
+            if self.valOfImm(k0, k1)[0] == 'm' or (0 < k0 < 2 ** 64) or (0 < k1 < 2 ** 64): A.nz.add(o)
             if A.pr:
                 x, inv, p = A.pr[0]
                 if p == o and k0 == 1 and k1 == 0: A.nz.add(x); A.nz.add(inv)
@@ -495,8 +505,11 @@ class Walk:
             cv = A.v.get(c, ('m', root(c)))
             lv = self.loadVal(A, k)
             pr = A.pr
-            A.nz.add(p); A.lt.add((('ex', ('fr', p), 0), ('num', MAXCELLS)))
-            if o == 0: self.rangeFact(A, p)
+            A.nz.add(p)
+            # at offset 0 the pointer is the address, a power below `maxCells`
+            if o == 0:
+                A.lt.add((('ex', ('fr', p), 0), ('num', MAXCELLS)))
+                self.rangeFact(A, p)
             if mode == '.pc':
                 A.addH(k); A.addHv(k, ('m', gp(pc + 2))); A.pr = []; return
             if mode == '.fp':

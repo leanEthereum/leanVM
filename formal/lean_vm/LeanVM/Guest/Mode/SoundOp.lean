@@ -90,6 +90,94 @@ theorem pow_val {s : St} {e : ℕ} {u : E} (h : MonoVal s ⟨0, e, []⟩ u) : u 
 theorem ofK_gpow_ne_zero (e : ℕ) : ofK (g ^ e) ≠ 0 :=
   (map_ne_zero (algebraMap K E)).mpr (pow_ne_zero _ g_ne_zero)
 
+theorem Abs.isOne_sound {s : St} {A : Abs} (hH : Holds s A) {o : ℕ} (h : A.isOne o = true) :
+    s.mem.get (s.fp + o) = some 1 := by
+  unfold Abs.isOne at h
+  split at h
+  · rename_i hv
+    obtain ⟨u, hu, hok⟩ := hH.v o _ hv
+    rw [pow_val hok, pow_zero, show ofK (1 : K) = 1 from map_one (algebraMap K E)] at hu
+    exact hu
+  · cases h
+
+theorem Abs.zImp_sound {s : St} {A : Abs} (hH : Holds s A) {b x : ℕ} (h : A.zImp b x = true) {u w : E}
+    (hb : s.mem.get (s.fp + b) = some u) (hx : s.mem.get (s.fp + x) = some w) (hu : u = 0) : w = 0 := by
+  unfold Abs.zImp at h
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  · obtain rfl := beq_iff_eq.mp h
+    obtain rfl := Option.some.inj (hb.symm.trans hx)
+    exact hu
+  · obtain ⟨⟨p, q, r⟩, hm, hc⟩ := List.any_eq_true.mp h
+    simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq] at hc
+    obtain ⟨vx, vy, h1, h2, h3⟩ := hH.pr _ hm
+    obtain ⟨rfl, hc⟩ := hc
+    obtain rfl := Option.some.inj (hb.symm.trans h3)
+    rcases hc with ⟨rfl, hq⟩ | ⟨rfl, hp⟩
+    · obtain ⟨u', hu', hne⟩ := hH.nzAt hq
+      obtain rfl := Option.some.inj (h2.symm.trans hu')
+      obtain rfl := Option.some.inj (h1.symm.trans hx)
+      exact (mul_eq_zero.mp hu).resolve_right hne
+    · obtain ⟨u', hu', hne⟩ := hH.nzAt hp
+      obtain rfl := Option.some.inj (h1.symm.trans hu')
+      obtain rfl := Option.some.inj (h2.symm.trans hx)
+      exact (mul_eq_zero.mp hu).resolve_left hne
+
+/-- **A back-solve's divisor**: where the walk's `zNz` holds, the divisor zero makes the product
+nonzero. -/
+theorem Abs.zNz_sound {s : St} {A : Abs} (hH : Holds s A) {b c : ℕ} (hb : s.mem.written (s.fp + b) = true)
+    (hc : s.mem.written (s.fp + c) = true) (h : A.zNz b c = true) : ZNz s b c := by
+  obtain ⟨u, hu⟩ := Mem.get_of_written hb
+  obtain ⟨v, hv⟩ := Mem.get_of_written hc
+  refine ⟨u, v, hu, hv, fun hu0 ↦ ?_⟩
+  unfold Abs.zNz at h
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  · rcases Bool.or_eq_true_iff.mp h with h | h
+    · obtain ⟨u', hu', hne⟩ := hH.nzAt h
+      obtain rfl := Option.some.inj (hu.symm.trans hu')
+      exact absurd hu0 hne
+    · obtain ⟨v', hv', hne⟩ := hH.nzAt h
+      obtain rfl := Option.some.inj (hv.symm.trans hv')
+      exact hne
+  · split at h
+    · rename_i o x hx
+      obtain ⟨vo, vx, ho, hx', hc'⟩ := hH.xs c o x hx
+      obtain rfl := Option.some.inj (hv.symm.trans hc')
+      rcases Bool.or_eq_true_iff.mp h with h | h
+      · simp only [Bool.and_eq_true] at h
+        obtain rfl := Option.some.inj (ho.symm.trans (Abs.isOne_sound hH h.1))
+        rw [Abs.zImp_sound hH h.2 hu hx' hu0, add_zero]
+        exact one_ne_zero
+      · simp only [Bool.and_eq_true] at h
+        obtain rfl := Option.some.inj (hx'.symm.trans (Abs.isOne_sound hH h.1))
+        rw [Abs.zImp_sound hH h.2 hu ho hu0, zero_add]
+        exact one_ne_zero
+    · cases h
+
+/-- A back-solved `MUL`'s divisor is nonzero after it. -/
+theorem ZNz.ne {s : St} {m' : Mem} {x c : ℕ} (hz : ZNz s x c) (hle : s.mem ≤ m') {vx vy : E}
+    (hx : m'.get (s.fp + x) = some vx) (hc : m'.get (s.fp + c) = some (vx * vy)) : vx ≠ 0 := by
+  obtain ⟨u, v, hu, hv, huv⟩ := hz
+  obtain rfl := Option.some.inj ((hle.get _ _ hu).symm.trans hx)
+  obtain rfl := Option.some.inj ((hle.get _ _ hv).symm.trans hc)
+  exact fun h0 ↦ huv h0 (by rw [h0, zero_mul])
+
+theorem ofBits_ne_zero_of {n : ℕ} (h0 : n ≠ 0) (hn : n < 2 ^ 64) : K.ofBits n ≠ 0 := fun h ↦ by
+  have h' : K.ofBits n = K.ofBits 0 := h.trans (by decide +kernel)
+  have := congrArg (fun z : K ↦ z.toBitVec.toNat) h'
+  simp only [K.ofBits, BF64.toBitVec_ofBitVec, BitVec.toNat_ofNat] at this
+  rw [Nat.mod_eq_of_lt hn] at this
+  exact h0 (by simpa using this)
+
+theorem immNz_ne {k0 k1 : ℕ} (h : immNz k0 k1 = true) : OffsetInstruction.immediateWord k0 k1 ≠ 0 := by
+  intro hz
+  have h0 := congrArg (fun x : E ↦ x.limb 0) hz
+  have h1 := congrArg (fun x : E ↦ x.limb 1) hz
+  simp only [OffsetInstruction.immediateWord, limb_ofLimbs, limb_zero] at h0 h1
+  simp only [immNz, Bool.or_eq_true, Bool.and_eq_true, bne_iff_ne, ne_eq, decide_eq_true_eq] at h
+  rcases h with ⟨a, b⟩ | ⟨a, b⟩
+  · exact ofBits_ne_zero_of a b (by simpa using h0)
+  · exact ofBits_ne_zero_of a b (by simpa using h1)
+
 /-- **An `XOR`, `MUL`, `SET` or `KECCAK` the walk accepts.** -/
 theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : OffsetInstruction}
     (hs : s.Good) (hfp : s.fp < maxCells) (hpc : s.pc < C.ops.size) (hE : EnvOk s En)
@@ -168,16 +256,18 @@ theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : Off
           rw [g3.get _ _ hu] at hb; cases hb; exact hne
       · rw [ite_eq_right hn]; exact hV
     rw [ite_eq_right h1] at h
-    by_cases h2 : (A.hasW c && A.hasW a && A.hasNz a) = true
+    by_cases h2 : (A.hasW c && A.hasW a && A.zNz a c) = true
     · rw [ite_eq_left h2] at h
       obtain rfl := Option.some.inj h
       simp only [Bool.and_eq_true] at h2
-      refine ⟨Or.inr (Or.inl ⟨hH.written h2.1.1, hH.written h2.1.2, hH.nzAt h2.2⟩), fun e ↦ ?_⟩
+      have hz := Abs.zNz_sound hH (hH.written h2.1.2) (hH.written h2.1.1) h2.2
+      refine ⟨Or.inr (Or.inl ⟨hH.written h2.1.1, hH.written h2.1.2, hz⟩), fun e ↦ ?_⟩
       obtain ⟨g1, g2, g3⟩ := runOp_next hs hfp hpc e (fun _ _ _ ↦ nofun) (fun _ _ _ _ _ ↦ nofun)
       obtain ⟨va, vb, ha, hb, hc⟩ := mul_vals hs e
+      have hva := hz.ne g3 ha hc
       rw [← g2] at ha hb hc
       have hm := hH.mono g3 g2
-      have hW := hm.addW (o := b) (written_of_get hb)
+      have hW := (hm.addW (o := b) (written_of_get hb)).addNz ⟨va, ha, hva⟩
       refine Holds.setPr ?_ (fun p hp ↦ by
         rcases List.mem_singleton.mp hp with rfl
         exact ⟨va, vb, ha, hb, hc⟩)
@@ -189,16 +279,18 @@ theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : Off
         rw [g3.get _ _ hu, hz, mul_zero] at hc; cases hc; exact hne rfl
       · rw [ite_eq_right hn]; exact hW
     rw [ite_eq_right h2] at h
-    by_cases h3 : (A.hasW c && A.hasW b && A.hasNz b) = true
+    by_cases h3 : (A.hasW c && A.hasW b && A.zNz b c) = true
     · rw [ite_eq_left h3] at h
       obtain rfl := Option.some.inj h
       simp only [Bool.and_eq_true] at h3
-      refine ⟨Or.inr (Or.inr ⟨hH.written h3.1.1, hH.written h3.1.2, hH.nzAt h3.2⟩), fun e ↦ ?_⟩
+      have hz := Abs.zNz_sound hH (hH.written h3.1.2) (hH.written h3.1.1) h3.2
+      refine ⟨Or.inr (Or.inr ⟨hH.written h3.1.1, hH.written h3.1.2, hz⟩), fun e ↦ ?_⟩
       obtain ⟨g1, g2, g3⟩ := runOp_next hs hfp hpc e (fun _ _ _ ↦ nofun) (fun _ _ _ _ _ ↦ nofun)
       obtain ⟨va, vb, ha, hb, hc⟩ := mul_vals hs e
+      have hvb := hz.ne g3 hb (by rw [mul_comm]; exact hc)
       rw [← g2] at ha hb hc
       have hm := hH.mono g3 g2
-      have hW := hm.addW (o := a) (written_of_get ha)
+      have hW := (hm.addW (o := a) (written_of_get ha)).addNz ⟨vb, hb, hvb⟩
       refine Holds.setPr ?_ (fun p hp ↦ by
         rcases List.mem_singleton.mp hp with rfl
         exact ⟨va, vb, ha, hb, hc⟩)
@@ -223,16 +315,20 @@ theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : Off
     have hA := (hm.addW (written_of_get hv)).addV (o := o) ⟨_, hv, hok⟩
     have hB : Holds s' (match valOfImm En k0 k1 with
         | .m _ => ((A.addW o).addV o (valOfImm En k0 k1)).addNz o
-        | _ => (A.addW o).addV o (valOfImm En k0 k1)) := by
+        | _ => if immNz k0 k1 then ((A.addW o).addV o (valOfImm En k0 k1)).addNz o
+          else (A.addW o).addV o (valOfImm En k0 k1)) := by
       split
       · rename_i x hx
         exact hA.addNz ⟨_, hv, hnz ⟨x, hx⟩⟩
-      · exact hA
+      · split_ifs with hi
+        · exact hA.addNz ⟨_, hv, immNz_ne hi⟩
+        · exact hA
     refine Holds.setPr ?_ (fun _ h ↦ nomatch h)
     split
     · rename_i x i p l hpr
-      split_ifs with hc
-      · simp only [Bool.and_eq_true, beq_iff_eq] at hc
+      by_cases hc : (p == o && k0 == 1 && k1 == 0) = true
+      · rw [ite_eq_left hc]
+        simp only [Bool.and_eq_true, beq_iff_eq] at hc
         obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hc
         obtain ⟨vx, vi, hx, hi, hp⟩ := hH.pr _ (by rw [hpr]; exact List.mem_cons_self ..)
         simp only at hx hi hp
@@ -243,7 +339,7 @@ theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : Off
         have h1 : vx * vi = 1 := Option.some.inj hv
         exact (hB.addNz ⟨vx, by rw [g2]; exact g3.get _ _ hx, left_ne_zero_of_mul_eq_one h1⟩).addNz
           ⟨vi, by rw [g2]; exact g3.get _ _ hi, right_ne_zero_of_mul_eq_one h1⟩
-      · exact hB
+      · rw [ite_eq_right hc]; exact hB
     · exact hB
   | deref a o c mode => exact absurd rfl (hk a o c mode)
   | jump c d f => exact absurd rfl (hj c d f)

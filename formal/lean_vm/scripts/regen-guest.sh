@@ -128,6 +128,8 @@ part_bridge() {
   python3 -I scripts/bridge-cert/jumpcells.py "${check[@]}"
   step "bridge: the computed hints paired (scripts/bridge-cert/pair.py)"
   python3 -I scripts/bridge-cert/pair.py "${check[@]}"
+  step "bridge: the witness cells checked (scripts/bridge-cert/wit.py)"
+  python3 -I scripts/bridge-cert/wit.py "${check[@]}"
 }
 
 part_memory() {

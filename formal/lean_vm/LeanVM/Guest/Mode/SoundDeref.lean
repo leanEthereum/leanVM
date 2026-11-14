@@ -8,8 +8,8 @@ public import LeanVM.Guest.Mode.SoundOp
 `stepOp_sound_deref`: through a pointer cell the walk knows written, whose word it knows as a
 product `m`, a `DEREF` stores (frame side known written), loads (heap side known written: its
 word from `loadVal`, and, through a run of pointers, the cells past it the run promises,
-`ptrLoad_sound`), or links; the pointer is nonzero and a power below `maxCells` after it, and
-the range-check gadget's bound follows (`rangeFact_sound`).
+`ptrLoad_sound`), or links; the pointer is nonzero after it, and at offset `0` it is a power below
+`maxCells` and the range-check gadget's bound follows (`rangeFact_sound`).
 -/
 
 namespace LeanVM.Guest.Mode
@@ -212,35 +212,47 @@ theorem stepOp_sound_deref {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {a o c 
   · cases h
   rename_i m hm
   obtain ⟨g1, g2, g3⟩ := runOp_next hs hfp hpc e (fun _ _ _ ↦ nofun) (fun _ _ _ _ _ ↦ nofun)
-  obtain ⟨p, base, hp, hpb, hbo, hpc', hfp', hcell⟩ := deref_vals hs e
+  obtain ⟨p, x, hp, hpK, hX, hpc', hfp', hcell⟩ := deref_vals hs e
   have hmv : MonoVal s m p := by
     obtain ⟨u, h1, h2⟩ := hH.mono_val hm (hH.written ha)
     rw [hp] at h1; cases h1; exact h2
   have hkv : MonoVal s (m.shift o) (p * ofK (g ^ o)) := hmv.shift o
-  have hX : Names (p * ofK (g ^ o)) (base + o) := names_shift (by rw [hpb]; simp) hbo
   have hm' := hH.mono g3 g2
-  -- the pointer: nonzero, a power below `maxCells`
+  -- the pointer: nonzero, and at offset `0` a power below `maxCells`
   have hp' : s'.mem.get (s'.fp + a) = some p := by rw [g2]; exact g3.get _ _ hp
-  have hA0 : Holds s' ((A.addNz a).addLt (.ex (.fr a) 0) (.num maxCells)) :=
-    (hm'.addNz ⟨p, hp', by rw [hpb]; exact ofK_gpow_ne_zero _⟩).addLt
-      ⟨base, maxCells, ⟨p, base, hp', hpb, by unfold maxCells at hbo; omega, rfl⟩, rfl,
-        by omega⟩
+  have hpnz : p ≠ 0 := by
+    rintro rfl
+    have h1 := hX.1
+    rw [zero_mul, limb_zero] at h1
+    exact pow_ne_zero _ g_ne_zero h1.symm
   have hA1 : Holds s' (if (o == 0) = true then rangeFact ((A.addNz a).addLt (.ex (.fr a) 0)
-      (.num maxCells)) a else (A.addNz a).addLt (.ex (.fr a) 0) (.num maxCells)) := by
-    split_ifs
-    · exact rangeFact_sound hA0 (by rw [hp', hpb]) (by omega)
-    · exact hA0
+      (.num maxCells)) a else A.addNz a) := by
+    split_ifs with ho
+    · obtain rfl := beq_iff_eq.mp ho
+      have hpx : p = ofK (g ^ x) := by
+        have h1 := hX.1
+        rw [pow_zero, show ofK (1 : K) = 1 from map_one (algebraMap K E), mul_one] at h1
+        refine E.ext fun i ↦ ?_
+        fin_cases i
+        · simp [h1]
+        · simpa using hpK
+      have hxl := hX.2
+      have hA0 : Holds s' ((A.addNz a).addLt (.ex (.fr a) 0) (.num maxCells)) :=
+        (hm'.addNz ⟨p, hp', hpnz⟩).addLt
+          ⟨x, maxCells, ⟨p, x, hp', hpx, by unfold maxCells at hxl; omega, rfl⟩, rfl, by omega⟩
+      exact rangeFact_sound hA0 (by rw [hp', hpx]) hxl
+    · exact hm'.addNz ⟨p, hp', hpnz⟩
   have hA2 := Holds.setPr hA1 (l := A.pr) (fun q hq ↦ hm'.pr q hq)
   have hkv' : MonoVal s' (m.shift o) (p * ofK (g ^ o)) := hkv.mono g3 g2
-  have hown : ∀ d, (m.shift o).ownCell = some d → base + o = s'.fp + d := fun d hd ↦ by
+  have hown : ∀ d, (m.shift o).ownCell = some d → x = s'.fp + d := fun d hd ↦ by
     rw [g2]; exact own_names hfp hd hkv hX
   cases mode with
   | pc =>
     cases h
     have hw := hpc' rfl
     refine Holds.setPr ?_ (fun _ h ↦ nomatch h)
-    refine (hA2.addH ⟨_, base + o, hkv', hX, written_of_get hw⟩ fun d hd ↦ ?_).addHv
-      ⟨_, base + o, _, hkv', hX, hw, MonoVal.gp _⟩ fun d hd ↦ ⟨_, by rw [← hown d hd]; exact hw,
+    refine (hA2.addH ⟨_, x, hkv', hX, written_of_get hw⟩ fun d hd ↦ ?_).addHv
+      ⟨_, x, _, hkv', hX, hw, MonoVal.gp _⟩ fun d hd ↦ ⟨_, by rw [← hown d hd]; exact hw,
         MonoVal.gp _⟩
     rw [← hown d hd]; exact written_of_get hw
   | fp =>
@@ -250,8 +262,8 @@ theorem stepOp_sound_deref {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {a o c 
       have := MonoVal.own (s := s') 0
       rw [g2, Nat.add_zero] at this; exact this
     refine Holds.setPr ?_ (fun _ h ↦ nomatch h)
-    refine (hA2.addH ⟨_, base + o, hkv', hX, written_of_get hw⟩ fun d hd ↦ ?_).addHv
-      ⟨_, base + o, _, hkv', hX, hw, hval⟩ fun d hd ↦ ⟨_, by rw [← hown d hd]; exact hw, hval⟩
+    refine (hA2.addH ⟨_, x, hkv', hX, written_of_get hw⟩ fun d hd ↦ ?_).addHv
+      ⟨_, x, _, hkv', hX, hw, hval⟩ fun d hd ↦ ⟨_, by rw [← hown d hd]; exact hw, hval⟩
     rw [← hown d hd]; exact written_of_get hw
   | cell =>
     obtain ⟨hld, hst⟩ := hcell rfl
@@ -270,8 +282,8 @@ theorem stepOp_sound_deref {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {a o c 
           obtain ⟨u, h1, h2⟩ := hH.v c y hx
           rw [hvc] at h1; cases h1; exact h2.mono g3 g2
       refine Holds.setPr ?_ (fun q hq ↦ hm'.pr q hq)
-      refine (hA2.addH ⟨_, base + o, hkv', hX, written_of_get hw⟩ fun d hd ↦ ?_).addHv
-        ⟨_, base + o, _, hkv', hX, hw, hval⟩ fun d hd ↦ ⟨_, by rw [← hown d hd]; exact hw, hval⟩
+      refine (hA2.addH ⟨_, x, hkv', hX, written_of_get hw⟩ fun d hd ↦ ?_).addHv
+        ⟨_, x, _, hkv', hX, hw, hval⟩ fun d hd ↦ ⟨_, by rw [← hown d hd]; exact hw, hval⟩
       rw [← hown d hd]; exact written_of_get hw
     rw [ite_eq_right hc] at h
     by_cases hcov : A.covered (m.shift o) = true

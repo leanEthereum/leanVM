@@ -63,7 +63,6 @@ public import LeanVM.Guest.Pack.«P59».Mode4
 public import LeanVM.Guest.Pack.«P61».Mode0
 public import LeanVM.Guest.Pack.«P63».Mode0
 public import LeanVM.Guest.Pack.«P63».ModeD0
-public import LeanVM.Guest.Pack.«P7».Mode0
 public import LeanVM.Guest.Pack.«P7».Mode4
 public import LeanVM.Guest.Pack.«P9».Mode0
 public import LeanVM.Guest.Pack.«P9».Mode3
@@ -84,23 +83,6 @@ open LeanVM.Guest
 noncomputable def nzFns : List (Fun × List OffsetInstruction) := [
   (Fn.«certify_placement».modeFun, Fn.«certify_placement».code.chunks.flatten),
   (Fn.«child_claim_list_mono_last__L0».modeFun, Fn.«child_claim_list_mono_last__L0».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L1».modeFun, Fn.«child_claim_list_mono_last__L1».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L10».modeFun, Fn.«child_claim_list_mono_last__L10».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L11».modeFun, Fn.«child_claim_list_mono_last__L11».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L12».modeFun, Fn.«child_claim_list_mono_last__L12».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L13».modeFun, Fn.«child_claim_list_mono_last__L13».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L14».modeFun, Fn.«child_claim_list_mono_last__L14».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L15».modeFun, Fn.«child_claim_list_mono_last__L15».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L16».modeFun, Fn.«child_claim_list_mono_last__L16».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L2».modeFun, Fn.«child_claim_list_mono_last__L2».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L3».modeFun, Fn.«child_claim_list_mono_last__L3».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L4».modeFun, Fn.«child_claim_list_mono_last__L4».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L5».modeFun, Fn.«child_claim_list_mono_last__L5».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L6».modeFun, Fn.«child_claim_list_mono_last__L6».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L7».modeFun, Fn.«child_claim_list_mono_last__L7».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L8».modeFun, Fn.«child_claim_list_mono_last__L8».code.chunks.flatten),
-  (Fn.«child_claim_list_mono_last__L9».modeFun, Fn.«child_claim_list_mono_last__L9».code.chunks.flatten),
-  (Fn.«da_row_shape».modeFun, Fn.«da_row_shape».code.chunks.flatten),
   (Fn.«log2_ceil_in_the_exponent__L0_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L0_L34».code.chunks.flatten),
   (Fn.«log2_ceil_in_the_exponent__L16_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L16_L34».code.chunks.flatten),
   (Fn.«verify_tables_loop0».modeFun, Fn.«verify_tables_loop0».code.chunks.flatten)]
@@ -186,7 +168,6 @@ noncomputable def famFns : List (Fun × List OffsetInstruction) := [
   (Fn.«child_claim_list_mono_last__L8».modeFun, Fn.«child_claim_list_mono_last__L8».code.chunks.flatten),
   (Fn.«child_claim_list_mono_last__L9».modeFun, Fn.«child_claim_list_mono_last__L9».code.chunks.flatten),
   (Fn.«child_claim_list_mono_loop1».modeFun, Fn.«child_claim_list_mono_loop1».code.chunks.flatten),
-  (Fn.«da_row_shape».modeFun, Fn.«da_row_shape».code.chunks.flatten),
   (Fn.«log2_ceil_in_the_exponent__L0_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L0_L34».code.chunks.flatten),
   (Fn.«log2_ceil_in_the_exponent__L16_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L16_L34».code.chunks.flatten),
   (Fn.«verify_tables_loop0».modeFun, Fn.«verify_tables_loop0».code.chunks.flatten),

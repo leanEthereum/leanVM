@@ -358,6 +358,15 @@ def Mem.empty : Mem := ⟨#[], #[], #[], #[], 0⟩
   | (some k, s) => pure (k, s)
   | (none, _) => throw fault
 
+/-- The cell a `DEREF` through pointer `p` reads at offset `o`: the `a < maxCells` with
+`g^a = p · g^o`, unique since logarithms below `maxCells` are. It is `b + o` when `p = g^b` with
+`b + o < maxCells` (an allocation notes `b`), else the product's logarithm (`execute.rs`,
+`Op::Deref`). -/
+def St.derefCell (s : St) (p : K) (o : ℕ) (fault : Fault) : Except Fault (ℕ × St) :=
+  match s.log p maxCells with
+  | (some b, s') => if b + o < maxCells then pure (b + o, s') else s'.logOr (p * g ^ o) maxCells fault
+  | (none, _) => s.logOr (p * g ^ o) maxCells fault
+
 /-- Write `vs` from cell `b`. -/
 def putRun (b : ℕ) (vs : List E) (m : Mem) : Except Fault Mem :=
   vs.zipIdx.foldlM (fun m (v, k) ↦ m.put (b + k) v) m
@@ -516,8 +525,8 @@ def runOp (C : Ctx) (s : St) : Op → Except Fault St
     let a1 ← cellAt s.fp o1
     let p ← s.mem.read a1
     if p.limb 1 ≠ 0 then throw (.wildPointer p)
-    let (base, s) ← s.logOr (p.limb 0) maxCells (.wildPointer p)
-    let (a2, a3) := (← cellAt base o2, ← cellAt s.fp o3)
+    let (a2, s) ← s.derefCell (p.limb 0) o2 (.wildPointer p)
+    let a3 ← cellAt s.fp o3
     let (pc, fp) := (s.pc, s.fp)
     let s ← s.withMem fun m ↦ do
       let m ← match mode with

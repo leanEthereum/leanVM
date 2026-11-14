@@ -17,9 +17,9 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `__loop2`: its walk from offset 93098 goes through to its cut at 95161. -/
+/-- `__loop2`: its walk from offset 93098 goes through to its cut at 95173. -/
 theorem modeW39 :
-    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 93098 95161) 93098 (Mode.cutOf modeFun
+    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 93098 95173) 93098 (Mode.cutOf modeFun
     93098).1 (Mode.cutOf modeFun 93098).2).isSome = true := by
   decide +kernel
 

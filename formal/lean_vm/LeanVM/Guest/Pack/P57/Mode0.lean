@@ -109,9 +109,8 @@ noncomputable def modeFun : Mode.Fun :=
     6 5), (.bitDecomposeExp 2 (.heap 6) 34), (.log2Ceil (.heap 6) 7 34 0)]) .nil (.node none (.node
     none (.node none (.node (some [(.alloc 33 68)]) .nil .nil) .nil) .nil) .nil)) (.node none
     (.node none .nil (.node none (.node (some [(.cellAddress 23 24)]) .nil .nil) .nil)) (.node none
-    .nil (.node (some [(.alloc 20 68)]) .nil .nil)))), (.node none (.node none (.node none (.node
-    none (.node none (.node (some [(.nz 31)]) .nil .nil) .nil) .nil) .nil) .nil) (.node none (.node
-    none .nil (.node (some [(.nz 2)]) .nil .nil)) .nil)), .nil, false, .nil⟩
+    .nil (.node (some [(.alloc 20 68)]) .nil .nil)))), (.node none .nil (.node none (.node none
+    .nil (.node (some [(.nz 2)]) .nil .nil)) .nil)), .nil, false, .nil⟩
 
 /-- `log2_ceil_in_the_exponent__L0_L34`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

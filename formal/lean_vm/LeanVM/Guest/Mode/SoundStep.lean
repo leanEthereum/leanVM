@@ -225,50 +225,32 @@ theorem set_vals {C : Ctx} {s s' : St} {o : ℕ} {k : E} (hs : s.Good)
   obtain ⟨rfl, -⟩ := cellAt_ok hca
   exact hput
 
-/-- What a `DEREF` through frame cell `a` leaves: the pointer `p = g^base`, and the heap side
-`base + o` and the frame side `fp + c` per its mode. -/
+/-- What a `DEREF` through frame cell `a` leaves: the pointer `p`, a word of `K` whose product with
+`g^o` names cell `x`, and the heap side `x` and the frame side `fp + c` per its mode. -/
 theorem deref_vals {C : Ctx} {s s' : St} {a o c : ℕ} {mode : DerefMode} (hs : s.Good)
     (e : runOp C s (.deref a o c mode) = .ok s') :
-    ∃ p base, s.mem.get (s.fp + a) = some p ∧ p = ofK (g ^ base) ∧ base + o < maxCells ∧
-      (mode = .pc → s'.mem.get (base + o) = some (ofK (g ^ (s.pc + 2)))) ∧
-      (mode = .fp → s'.mem.get (base + o) = some (ofK (g ^ s.fp))) ∧
-      (mode = .cell → (∀ v, s.mem.get (base + o) = some v → s'.mem.get (s.fp + c) = some v) ∧
-        (∀ v, s.mem.get (s.fp + c) = some v → s'.mem.get (base + o) = some v)) := by
+    ∃ p x, s.mem.get (s.fp + a) = some p ∧ p.limb 1 = 0 ∧ Names (p * ofK (g ^ o)) x ∧
+      (mode = .pc → s'.mem.get x = some (ofK (g ^ (s.pc + 2)))) ∧
+      (mode = .fp → s'.mem.get x = some (ofK (g ^ s.fp))) ∧
+      (mode = .cell → (∀ v, s.mem.get x = some v → s'.mem.get (s.fp + c) = some v) ∧
+        (∀ v, s.mem.get (s.fp + c) = some v → s'.mem.get x = some v)) := by
   simp only [runOp, bind_ok] at e
   obtain ⟨a1, ha1, p, hp, e⟩ := e
   split_ifs at e with hl1
   · simp [bind_ok] at e
   simp only [bind_ok] at e
-  obtain ⟨⟨base, s2⟩, hlog, a2, ha2, a3, ha3, s3, hs3, e⟩ := e
+  obtain ⟨⟨x, s2⟩, hlog, a3, ha3, s3, hs3, e⟩ := e
   simp only [pure_ok] at e; subst e
-  obtain ⟨f2, hgb, hbl⟩ := St.logOr_ok hs hlog
+  obtain ⟨-, hgx, hxl⟩ := St.derefCell_ok hs hlog
+  obtain ⟨D, rfl⟩ := St.derefCell_dl hlog
   obtain ⟨m', hm', rfl⟩ := St.withMem_ok hs3
   obtain ⟨rfl, -⟩ := cellAt_ok ha1
-  obtain ⟨rfl, ha2l⟩ := cellAt_ok ha2
   obtain ⟨rfl, -⟩ := cellAt_ok ha3
-  have hmem : s2.mem = s.mem ∧ s2.pc = s.pc := by
-    unfold St.logOr at hlog; rw [St.log_eq] at hlog
-    split at hlog
-    · rename_i k' s1 hk
-      simp only [pure_ok, Prod.mk.injEq] at hlog
-      obtain ⟨-, rfl⟩ := hlog
-      simp only [Prod.mk.injEq] at hk
-      obtain ⟨-, rfl⟩ := hk
-      exact ⟨rfl, rfl⟩
-    · simp at hlog
-  have hfp2 : s2.fp = s.fp := f2.fp
-  have hwf : s2.mem.WF := f2.good.wf
-  have hp' : p = ofK (g ^ base) := by
-    refine E.ext fun i ↦ ?_
-    fin_cases i
-    · simp [hgb]
-    · simpa using not_not.mp hl1
-  refine ⟨p, base, Mem.read_ok hp, hp', ha2l, ?_⟩
-  have hens : ∀ m : Mem, m ≤ ((m.ensure (s.fp + a)).ensure (base + o)).ensure (s2.fp + c) :=
+  have hwf : s.mem.WF := hs.wf
+  refine ⟨p, x, Mem.read_ok hp, not_not.mp hl1, ⟨by rw [limb_mul_ofK]; exact hgx.symm, hxl⟩, ?_⟩
+  have hens : ∀ m : Mem, m ≤ ((m.ensure (s.fp + a)).ensure x).ensure (s.fp + c) :=
     fun m ↦ Mem.le_trans (Mem.le_trans (Mem.le_ensure _ _) (Mem.le_ensure _ _)) (Mem.le_ensure _ _)
-  rw [hfp2] at hm' ⊢
-  rw [hmem.1] at hm' hwf
-  rw [hmem.2] at hm'
+  dsimp only at hm' ⊢
   cases mode with
   | cell =>
     refine ⟨nofun, nofun, fun _ ↦ ?_⟩

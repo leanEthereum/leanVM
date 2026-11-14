@@ -229,6 +229,43 @@ theorem St.logOr_complete {s : St} (hD : s.dl.Ok) (hS : s.dl.Small) {k b : ℕ} 
   rw [St.log_eq, h]
   rfl
 
+theorem Dlog.log_small {D : Dlog} (hS : D.Small) (x : K) {b : ℕ} (hb : b ≤ 2 ^ 30) :
+    (D.log x b).2.Small := by
+  unfold Dlog.log
+  split
+  · exact hS
+  · split
+    · split_ifs with h
+      · exact hS.note (by omega)
+      · exact hS
+    · exact hS
+
+/-- `derefCell` finds the cell whose power is the pointer's product with `g^o`. -/
+theorem St.derefCell_complete {s : St} (hD : s.dl.Ok) (hS : s.dl.Small) {p : K} {o a : ℕ} {f : Fault}
+    (ha : a < maxCells) (hpa : p * g ^ o = g ^ a) :
+    ∃ D', s.derefCell p o f = .ok (a, { s with dl := D' }) ∧ D'.Ok ∧ D'.Small := by
+  have hmc : maxCells ≤ 2 ^ 30 := by unfold maxCells; norm_num
+  unfold St.derefCell
+  rw [St.log_eq]
+  obtain ⟨hok, hk⟩ := Dlog.log_ok hD p maxCells
+  have hsm := Dlog.log_small hS p hmc
+  generalize s.dl.log p maxCells = L at hok hk hsm
+  obtain ⟨k, D1⟩ := L
+  cases k with
+  | some b =>
+    obtain ⟨hgb, hb⟩ := hk b rfl
+    dsimp only
+    split_ifs with hlt
+    · obtain rfl : b + o = a := gpow_inj (by unfold maxCells at hlt; omega)
+        (by unfold maxCells at ha; omega) (by rw [pow_add, hgb, hpa])
+      exact ⟨D1, rfl, hok, hsm⟩
+    · rw [hpa]
+      exact St.logOr_complete (s := { s with dl := D1 }) hok hsm ha hmc
+  | none =>
+    dsimp only
+    rw [hpa]
+    exact St.logOr_complete hD hS ha hmc
+
 /-! ## Decoding -/
 
 /-- An operand that is a power below `2^28`. -/

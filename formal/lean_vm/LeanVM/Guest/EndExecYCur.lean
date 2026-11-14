@@ -241,11 +241,12 @@ theorem runOp_cursor {C : Ctx} {s s' : St} {op : Op} (e : runOp C s op = .ok s')
     obtain ⟨_, -, p, -, e⟩ := e
     split_ifs at e
     · exact absurd e (by intro h; cases h)
-    obtain ⟨⟨base, s1⟩, h1, e⟩ := bind_ok.mp e
+    obtain ⟨⟨a2, s1⟩, h1, e⟩ := bind_ok.mp e
     simp only [bind_ok, pure_ok] at e
-    obtain ⟨_, -, _, -, s2, h2, rfl⟩ := e
+    obtain ⟨_, -, s2, h2, rfl⟩ := e
     have := cur_withMem h2
-    exact this.trans (cur_logOr h1)
+    obtain ⟨D, rfl⟩ := St.derefCell_dl h1
+    exact this
   | jump c d f =>
     simp only [runOp, bind_ok] at e
     obtain ⟨_, -, _, -, _, -, _, -, vc, -, _, -, vd, -, _, -, vf, -, s1, h1, e⟩ := e

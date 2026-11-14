@@ -124,9 +124,9 @@ theorem Mem.get_of_written {m : Mem} {c : ℕ} (h : m.written c = true) : ∃ v,
 theorem Mem.get_of_not_written {m : Mem} {c : ℕ} (h : ¬ m.written c = true) : m.get c = none :=
   Option.not_isSome_iff_eq_none.mp h
 
-theorem deref_exec {rd : K → Option E} {pc fp a b c base : ℕ} {mode : DerefMode} {p v2 v3 : E}
-    (hp : rd (g ^ (fp + a)) = some p) (hpK : p.limb 1 = 0) (hgb : g ^ base = p.limb 0)
-    (h3 : rd (g ^ (fp + c)) = some v3) (h2 : rd (g ^ (base + b)) = some v2)
+theorem deref_exec {rd : K → Option E} {pc fp a b c a2 : ℕ} {mode : DerefMode} {p v2 v3 : E}
+    (hp : rd (g ^ (fp + a)) = some p) (hpK : p.limb 1 = 0) (hgb : g ^ a2 = p.limb 0 * g ^ b)
+    (h3 : rd (g ^ (fp + c)) = some v3) (h2 : rd (g ^ a2) = some v2)
     (hv : v2 = derefSource mode ⟨g ^ pc, g ^ fp⟩ v3) :
     executeWith rd ⟨g ^ pc, g ^ fp⟩ (.deref (g ^ a) (g ^ b) (g ^ c) mode) =
       some ⟨g ^ (pc + 1), g ^ fp⟩ := by
@@ -142,12 +142,11 @@ theorem deref_spec {C : Ctx} {s s' : St} {a b c : ℕ} {mode : DerefMode} (hs : 
   split_ifs at e with hpk
   · simp [bind_ok] at e
   simp only [bind_ok] at e
-  obtain ⟨⟨base, s2⟩, hlog, a2, ha2, a3, ha3, s3, hs3, e⟩ := e
+  obtain ⟨⟨a2, s2⟩, hlog, a3, ha3, s3, hs3, e⟩ := e
   simp only [pure_ok] at e; subst e
-  obtain ⟨f2, hgb, -⟩ := St.logOr_ok hs hlog
+  obtain ⟨f2, hgb, -⟩ := St.derefCell_ok hs hlog
   obtain ⟨m', hm', rfl⟩ := St.withMem_ok hs3
   obtain ⟨rfl, -⟩ := cellAt_ok ha1
-  obtain ⟨rfl, -⟩ := cellAt_ok ha2
   obtain ⟨rfl, -⟩ := cellAt_ok ha3
   have hpK : p.limb 1 = 0 := not_not.mp hpk
   have hp' := Mem.read_ok hp
@@ -155,9 +154,9 @@ theorem deref_spec {C : Ctx} {s s' : St} {a b c : ℕ} {mode : DerefMode} (hs : 
   have hfp2 := f2.fp
   have hwf2 := f2.good.wf
   have key : ∃ m0, s2.mem ≤ m0 ∧ m0.WF ∧
-      m' = ((m0.ensure (s.fp + a)).ensure (base + b)).ensure (s2.fp + c) ∧
-      ∀ M rd, m0 ≤ M → Final M rd → (s2.fp + c < M.used → (base + b) < M.used →
-        ∃ v2 v3, rd (g ^ (s2.fp + c)) = some v3 ∧ rd (g ^ (base + b)) = some v2 ∧
+      m' = ((m0.ensure (s.fp + a)).ensure a2).ensure (s2.fp + c) ∧
+      ∀ M rd, m0 ≤ M → Final M rd → (s2.fp + c < M.used → a2 < M.used →
+        ∃ v2 v3, rd (g ^ (s2.fp + c)) = some v3 ∧ rd (g ^ a2) = some v2 ∧
           v2 = derefSource mode ⟨g ^ s2.pc, g ^ s2.fp⟩ v3) := by
     cases mode with
     | cell =>
@@ -184,7 +183,7 @@ theorem deref_spec {C : Ctx} {s s' : St} {a b c : ℕ} {mode : DerefMode} (hs : 
         obtain ⟨h1, h2, h3, -, -⟩ :=
           Mem.link_ok hwf2 (Mem.get_of_not_written hw2) (Mem.get_of_not_written hw3)
         refine ⟨_, h1, h2, rfl, fun M rd hM hF hu3 hu2 ↦
-          ⟨M.peek (base + b), M.peek (s2.fp + c), hF.read _ hu3, hF.read _ hu2, ?_⟩⟩
+          ⟨M.peek a2, M.peek (s2.fp + c), hF.read _ hu3, hF.read _ hu2, ?_⟩⟩
         exact hF.links _ (hM.links _ h3)
     | pc =>
       simp only [bind_ok, pure_ok] at hm'
@@ -198,7 +197,7 @@ theorem deref_spec {C : Ctx} {s s' : St} {a b c : ℕ} {mode : DerefMode} (hs : 
       obtain ⟨h1, h2, h3⟩ := Mem.put_ok hwf2 hm0
       exact ⟨m0, h1, h2, rfl, fun M rd hM hF hu3 _ ↦ ⟨_, _, hF.read _ hu3, hF.get hM h3, rfl⟩⟩
   obtain ⟨m0, hle0, hwf0, rfl, hval⟩ := key
-  have hle1 : m0 ≤ ((m0.ensure (s.fp + a)).ensure (base + b)).ensure (s2.fp + c) :=
+  have hle1 : m0 ≤ ((m0.ensure (s.fp + a)).ensure a2).ensure (s2.fp + c) :=
     Mem.le_trans (Mem.le_trans (Mem.le_ensure _ _) (Mem.le_ensure _ _)) (Mem.le_ensure _ _)
   refine ⟨⟨((hwf0.ensure _).ensure _).ensure _, f2.good.dl⟩,
     Mem.le_trans f2.le (Mem.le_trans hle0 hle1),

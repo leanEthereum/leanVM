@@ -28,8 +28,7 @@ noncomputable def modeEnv : Mode.Env :=
 /-- `da_row_shape`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨61625, 29, Fn.«da_row_shape».modeSig, (.node none .nil (.node (some [(.inverse 8 9)]) .nil
-    .nil)), (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some [(.nz 28)])
-    .nil .nil) .nil)))), .nil, false, .nil⟩
+    .nil)), .nil, .nil, false, .nil⟩
 
 /-- `da_row_shape`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

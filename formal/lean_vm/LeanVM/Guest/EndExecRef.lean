@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.Bridge.TrackHonest
 public import LeanVM.Guest.Budget.ClosedPE
 public import LeanVM.Guest.Executor
+public import LeanVM.Guest.Memory.GuestExtra
 
 /-!
 # The reference run of a node
@@ -18,7 +19,8 @@ public import LeanVM.Guest.Executor
 `Ref`: a node and the reference run built for it, `Ref.Ok` what is proved of it (`ref_exists`):
 the honest memory of a re-choice of the temporaries of a tree valid on a memory `rd0`, every node of
 that tree exact on `rd0` (`ExactAt`), extended by the words its hints write to the heap
-(`honestX`, read off `rd0`); a valid execution of the guest on the statement's digest within
+(`honestX`, read off `rd0`) and by the values only hints read, at their cells (`refExtra`,
+`extraWrites`); a valid execution of the guest on the statement's digest within
 `2^30` committed cells; the tree's pops on `rd0` the honest pushes but the advised sizes, stream by
 stream. `ref_exists` is `End.refX_valid_of_main` and `Bridge.honest_of_mainP` on one tree, under
 `MainCompletePE` (`Budget.mainCompletePE_deployed`, given `Budget.MainExactHyp`).
@@ -36,7 +38,8 @@ open LeanVM.Prover.Exec (Advice)
 @[expose] public section
 
 /-- **A node and its reference run**: the seed, statement and witness; the memory `rd0` B1's tree is
-valid on; the honest tree `T`; the heap words `X` its hints write; the run's steps. -/
+valid on; the honest tree `T`; the words `X` its hints write beyond its frames' cells; the run's
+steps. -/
 structure Ref where
   seed : Digest
   s : NodeStatement
@@ -86,6 +89,10 @@ structure Ref.Ok (r : Ref) : Prop where
   /-- The extension holds each heap word the tree's hints write, as `rd0` does. -/
   hintWords : ∀ a ∈ hintWords coreProgram B2C.fs B2C.H r.hdr r.T, ∃ v, r.rd0 a = some v ∧
     r.img.read a = some v
+  /-- The extension holds each value only hints read, at its hint-only cell. -/
+  extra : ∀ I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
+    ∀ v ∈ (I.t.events coreProgram).flatMap Ev.uses, ∀ c, (refExtra f).lookup v.idx = some c →
+      I.fp + c < 2 ^ 30 ∧ r.img.read (Parameters.addressOfIndex (I.fp + c)) = some (σ v)
   /-- The tree pops the honest pushes, but the advised sizes, stream by stream. -/
   pops : SameStreams (r.T.pops coreProgram r.rd0)
     ((Hints.honestPushes bytecode r.seed r.s r.w).filter (·.1 != Hints.heapSizeStream))
@@ -139,7 +146,7 @@ theorem ref_exists (hE : Budget.MainExactHyp) :
       run := hkf.run
       tmp := hkf.tmp
       keep := hkf.keep }
-  obtain ⟨ν, hν, hX, hsub, hrd⟩ := honestX_retempH hd hhint
+  obtain ⟨ν, hν, hX, hsub, hrd⟩ := honestX_retempE hd (extraFresh_guest hdr t) hhint
   have hname : (t.retemp coreProgram B2C.fs ν (0, t.block B2C.fs coreProgram.loop)).name = "main" := by
     rw [name_retemp]; exact hn
   have hw : (t.retemp coreProgram B2C.fs ν (0, t.block B2C.fs coreProgram.loop)).total B2C.fs ≤
@@ -153,7 +160,8 @@ theorem ref_exists (hE : Budget.MainExactHyp) :
     (b2_completeL b2Hyps _ _ _ hname hν _ hX.covers)
   obtain ⟨n, hvx⟩ := validExecution_of_reach hb' hreach
   refine ⟨⟨seed, s, w, M.read, t.retemp coreProgram B2C.fs ν (0, t.block B2C.fs coreProgram.loop),
-    readerWrites M.read (hintWords coreProgram B2C.fs B2C.H hdr t), n⟩, rfl, rfl, rfl,
+    readerWrites M.read (hintWords coreProgram B2C.fs B2C.H hdr t) ++ extraWrites coreProgram B2C.fs B2C.H hdr t refExtra,
+    n⟩, rfl, rfl, rfl,
     { rel := hrel
       lim := hlim
       kids := hok
@@ -163,6 +171,7 @@ theorem ref_exists (hE : Budget.MainExactHyp) :
       valid := hvx
       size := ?_
       hintWords := fun a ha => ?_
+      extra := extra_read hd (extraFresh_guest hdr t) hX extraUses_guest
       pops := by rw [Bridge.pops_retemp coreProgram_fresh]; exact hss }⟩
   · show Execution.committedSize ⟨_, _, n⟩ ≤ 2 ^ 30
     rw [committedSize_eq_sizeOf]
@@ -170,7 +179,7 @@ theorem ref_exists (hE : Budget.MainExactHyp) :
       (b2_countL b2Hyps _ _ _ hname hν _ hX.covers n hvx.2 op).trans (hc op)).trans hbs
   · obtain ⟨v, hrv⟩ := hrd a (hsub ha)
     refine ⟨v, hrv, ?_⟩
-    have := hX.read_X (List.mem_map_of_mem (f := fun a => (a, (M.read a).getD 0)) (hsub ha))
+    have := hX.read_X (List.mem_append_left _ (List.mem_map_of_mem (f := fun a => (a, (M.read a).getD 0)) (hsub ha)))
     rw [hrv, Option.getD_some] at this
     exact this
 

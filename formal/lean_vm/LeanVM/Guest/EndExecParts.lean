@@ -17,8 +17,8 @@ public import LeanVM.Guest.Pack.P8.ModeSig
 `ExecGaps.ofParts`: `ExecGaps Ks Km E0 X (fun _ ↦ ProAt)` from the fields the prologue and the
 reference step do not give, `pro` and the prologue's part of `init` from `pro_step` and `pro_init`
 (given `MainOk`, which `mainOk_of` reads off `main`'s signature), and `ref` from `refOk_of_pow`,
-given that the pointers each instruction follows are powers below `2^62` on the reference (`PtrPow`,
-what the honest memory's pointer cells hold).
+given that a taken `JUMP`'s frame is a power below `2^62` on the reference (`PtrPow`, what the
+honest memory's frame cells hold).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -64,8 +64,8 @@ theorem termRef_of {Ks : List Mode.Cert} {X : Ref → St → Prop} (hT : TermIns
   rw [← hfp] at hin ⊢
   exact hT r hr K hK I hI hn p hp hin
 
-/-- **`ExecGaps` from its parts**: the prologue and `RefOk` discharged, the pointers each instruction
-follows powers below `2^62` on the reference. -/
+/-- **`ExecGaps` from its parts**: the prologue and `RefOk` discharged, a taken `JUMP`'s frame a
+power below `2^62` on the reference. -/
 theorem ExecGaps.ofParts {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {X : Ref → St → Prop}
     (certs : ModeCerts Ks Km E0) (main : MainOk Km E0) (mainExact : Budget.MainExactHyp)
     (hintAlloc : ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun X r s → ∀ pre h post,

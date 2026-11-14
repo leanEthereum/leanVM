@@ -8,8 +8,8 @@ public import LeanVM.Prover.ExecuteKeccak
 
 `RefRd rd M`: the reference reader reads `M` at every power below `2^62` it reads, those cells
 lying below `maxCells`. `OpModed M s op`: the cells instruction `op` reads at state `s` are written
-(for a `MUL`, both operands, or the result and one operand, nonzero in `M`), a `DEREF`'s pointer is
-a power below `maxCells` and so is a taken `JUMP`'s frame. Then, if the reference executes the
+(for a `MUL`, both operands, or the result and one operand, nonzero in `M`), a `DEREF`'s pointer
+times `g^o` is a power below `maxCells`, and so is a taken `JUMP`'s frame. Then, if the reference executes the
 instruction at the state's registers on `M` to registers whose `pc` is in the program, the
 executor's instruction succeeds, keeps `Fine`, extends the memory and moves to those registers
 (`runOp_complete`).
@@ -35,8 +35,8 @@ def OpModed (M : ℕ → E) (s : St) : Op → Prop
     (s.mem.written (s.fp + c) = true ∧ s.mem.written (s.fp + a) = true ∧ M (s.fp + a) ≠ 0) ∨
     (s.mem.written (s.fp + c) = true ∧ s.mem.written (s.fp + b) = true ∧ M (s.fp + b) ≠ 0)
   | .set _ _ => True
-  | .deref a _ _ _ => s.mem.written (s.fp + a) = true ∧
-    ∃ b < maxCells, (M (s.fp + a)).limb 0 = g ^ b
+  | .deref a o _ _ => s.mem.written (s.fp + a) = true ∧
+    ∃ b < maxCells, (M (s.fp + a)).limb 0 * g ^ o = g ^ b
   | .jump c d f => s.mem.written (s.fp + c) = true ∧ s.mem.written (s.fp + d) = true ∧
     s.mem.written (s.fp + f) = true ∧
     (M (s.fp + c) ≠ 0 → ∃ k < maxCells, (M (s.fp + f)).limb 0 = g ^ k)
@@ -220,19 +220,18 @@ theorem deref_complete {C : Ctx} {M : ℕ → E} {s : St} {rd : K → Option E} 
   obtain ⟨p, hp, u, hu, v3, h3, v2, h2, hg⟩ := hex
   simp [guard] at hu hg
   obtain ⟨hv, hr⟩ := hg
-  obtain ⟨ho1, ho2, ho3⟩ := hsm
+  obtain ⟨ho1, -, ho3⟩ := hsm
   obtain ⟨w1, b, hb, hpb⟩ := hmo
   obtain ⟨a1u, hM1⟩ := hrd.at hs.fp ho1 hp
   obtain ⟨a3u, hM3⟩ := hrd.at hs.fp ho3 h3
   rw [hM1] at hpb
   rw [hpb] at h2
-  obtain ⟨a2u, hM2⟩ := hrd.at hb ho2 h2
+  obtain ⟨a2u, hM2⟩ := hrd b v2 (by unfold maxCells at hb; omega) h2
   have hpK : p.limb 1 = 0 := hu
-  obtain ⟨D', eD, hD1, hD2⟩ := St.logOr_complete hs.dl hs.small (f := .wildPointer p) hb
-    (by unfold maxCells; norm_num)
+  obtain ⟨D', eD, hD1, hD2⟩ := St.derefCell_complete hs.dl hs.small (f := .wildPointer p) hb hpb
   have fin : ∀ m0, s.mem ≤ m0 → Agree m0 M →
       runOp C s (.deref o1 o2 o3 mode) = .ok { s with
-        mem := ((m0.ensure (s.fp + o1)).ensure (b + o2)).ensure (s.fp + o3), dl := D',
+        mem := ((m0.ensure (s.fp + o1)).ensure b).ensure (s.fp + o3), dl := D',
         pc := s.pc + 1 } →
       ∃ s', runOp C s (.deref o1 o2 o3 mode) = .ok s' ∧ OpDone C M s s' r' := fun m0 le h e ↦
     ⟨_, e, next_done ⟨((h.ensure a1u).ensure a2u).ensure a3u, hD1, hD2, hs.fp⟩
@@ -246,17 +245,17 @@ theorem deref_complete {C : Ctx} {M : ℕ → E} {s : St} {rd : K → Option E} 
     rw [St.withMem_eq (s := { s with dl := D' }) (m := X) hF, ok_bind]; rfl
   cases mode with
   | cell =>
-    have hM23 : M (b + o2) = M (s.fp + o3) := by rw [hM2, hM3]; exact hv
-    by_cases w2 : s.mem.written (b + o2) = true
-    · obtain ⟨m0, e0, h0, le0, -⟩ := hs.agree.put (v := s.mem.peek (b + o2))
+    have hM23 : M b = M (s.fp + o3) := by rw [hM2, hM3]; exact hv
+    by_cases w2 : s.mem.written b = true
+    · obtain ⟨m0, e0, h0, le0, -⟩ := hs.agree.put (v := s.mem.peek b)
         (by rw [hs.agree.peek w2, hM23]) a3u
       refine fin m0 le0 h0 ?_
       simp only [runOp]
       rw [cellAt_eq a1u, ok_bind, hs.agree.read w1, hM1, ok_bind]
-      simp only [ne_eq, hpK, not_true_eq_false, ↓reduceIte, hpb]
+      simp only [ne_eq, hpK, not_true_eq_false, ↓reduceIte]
       rw [eD, ok_bind]
       dsimp only
-      rw [cellAt_eq a2u, ok_bind, cellAt_eq a3u, ok_bind]
+      rw [cellAt_eq a3u, ok_bind]
       refine hpre _ _ ?_
       simp only [w2, ↓reduceIte]; rw [e0, ok_bind]; rfl
     · by_cases w3 : s.mem.written (s.fp + o3) = true
@@ -265,10 +264,10 @@ theorem deref_complete {C : Ctx} {M : ℕ → E} {s : St} {rd : K → Option E} 
         refine fin m0 le0 h0 ?_
         simp only [runOp]
         rw [cellAt_eq a1u, ok_bind, hs.agree.read w1, hM1, ok_bind]
-        simp only [ne_eq, hpK, not_true_eq_false, ↓reduceIte, hpb]
+        simp only [ne_eq, hpK, not_true_eq_false, ↓reduceIte]
         rw [eD, ok_bind]
         dsimp only
-        rw [cellAt_eq a2u, ok_bind, cellAt_eq a3u, ok_bind]
+        rw [cellAt_eq a3u, ok_bind]
         refine hpre _ _ ?_
         simp only [w2, w3, Bool.false_eq_true, ↓reduceIte]; rw [e0, ok_bind]; rfl
       · have g2 := Mem.get_of_not_written w2
@@ -276,10 +275,10 @@ theorem deref_complete {C : Ctx} {M : ℕ → E} {s : St} {rd : K → Option E} 
         refine fin _ (Mem.link_ok hs.agree.wf g2 g3).1 (hs.agree.link g2 g3 hM23 a2u a3u) ?_
         simp only [runOp]
         rw [cellAt_eq a1u, ok_bind, hs.agree.read w1, hM1, ok_bind]
-        simp only [ne_eq, hpK, not_true_eq_false, ↓reduceIte, hpb]
+        simp only [ne_eq, hpK, not_true_eq_false, ↓reduceIte]
         rw [eD, ok_bind]
         dsimp only
-        rw [cellAt_eq a2u, ok_bind, cellAt_eq a3u, ok_bind]
+        rw [cellAt_eq a3u, ok_bind]
         refine hpre _ _ ?_
         simp only [w2, w3, Bool.false_eq_true, ↓reduceIte]; rfl
   | pc =>
@@ -288,10 +287,10 @@ theorem deref_complete {C : Ctx} {M : ℕ → E} {s : St} {rd : K → Option E} 
     refine fin m0 le0 h0 ?_
     simp only [runOp]
     rw [cellAt_eq a1u, ok_bind, hs.agree.read w1, hM1, ok_bind]
-    simp only [ne_eq, hpK, not_true_eq_false, ↓reduceIte, hpb]
+    simp only [ne_eq, hpK, not_true_eq_false, ↓reduceIte]
     rw [eD, ok_bind]
     dsimp only
-    rw [cellAt_eq a2u, ok_bind, cellAt_eq a3u, ok_bind]
+    rw [cellAt_eq a3u, ok_bind]
     refine hpre _ _ ?_
     rw [e0, ok_bind]; rfl
   | fp =>
@@ -299,10 +298,10 @@ theorem deref_complete {C : Ctx} {M : ℕ → E} {s : St} {rd : K → Option E} 
     refine fin m0 le0 h0 ?_
     simp only [runOp]
     rw [cellAt_eq a1u, ok_bind, hs.agree.read w1, hM1, ok_bind]
-    simp only [ne_eq, hpK, not_true_eq_false, ↓reduceIte, hpb]
+    simp only [ne_eq, hpK, not_true_eq_false, ↓reduceIte]
     rw [eD, ok_bind]
     dsimp only
-    rw [cellAt_eq a2u, ok_bind, cellAt_eq a3u, ok_bind]
+    rw [cellAt_eq a3u, ok_bind]
     refine hpre _ _ ?_
     rw [e0, ok_bind]; rfl
 

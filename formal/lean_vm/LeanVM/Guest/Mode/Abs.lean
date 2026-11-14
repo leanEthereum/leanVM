@@ -686,6 +686,9 @@ def valOfImm (E : Env) (k0 k1 : ℕ) : Val :=
       | none => .imm k0 k1
   else .imm k0 k1
 
+/-- A `SET` immediate with a nonzero limb below `2^64`: a nonzero word. -/
+def immNz (k0 k1 : ℕ) : Bool := (k0 != 0 && decide (k0 < 2 ^ 64)) || (k1 != 0 && decide (k1 < 2 ^ 64))
+
 /-- The word a load from the heap cell `k` gives: known, or the jump table's, or the base
 `hp q d` for a cell `d` past frame cell `q`'s. -/
 def loadVal (E : Env) (A : Abs) (k : Mono) : Option Val :=
@@ -742,6 +745,24 @@ noncomputable def addSum (t : Trie (ℕ × ℕ)) (c a b : ℕ) : Trie (ℕ × �
   | some _ => t
   | none => t.set (a, b) envDepth c
 
+/-- Frame cell `o` holds `1`. -/
+def Abs.isOne (A : Abs) (o : ℕ) : Bool :=
+  match A.v.get o with
+  | some (.m ⟨0, 0, []⟩) => true
+  | _ => false
+
+/-- `[b] = 0` makes `[x] = 0`: `b` is `x`, or the last product `[x]·[k]`, `k` nonzero. -/
+def Abs.zImp (A : Abs) (b x : ℕ) : Bool :=
+  b == x || A.pr.any fun (p, q, r) ↦ r == b && ((p == x && A.hasNz q) || (q == x && A.hasNz p))
+
+/-- `[b] = 0` makes `[c]` nonzero: one of them nonzero, or `[c] = 1 + [x]` with `[b] = 0` making
+`[x] = 0` (a division by a challenge `x` of `1 + x`). -/
+def Abs.zNz (A : Abs) (b c : ℕ) : Bool :=
+  A.hasNz b || A.hasNz c ||
+    match A.xs.get c with
+    | some (o, x) => (A.isOne o && A.zImp b x) || (A.isOne x && A.zImp b o)
+    | none => false
+
 /-- **One instruction** at pc `pc`, its operands as offsets. -/
 noncomputable def stepOp (E : Env) (pc : ℕ) (A : Abs) : OffsetInstruction → Option Abs
   | .xor a b c =>
@@ -761,18 +782,19 @@ noncomputable def stepOp (E : Env) (pc : ℕ) (A : Abs) : OffsetInstruction → 
         | _, _ => A'
       let A' := if A.hasNz a && A.hasNz b then A'.addNz c else A'
       some { A' with pr := [(a, b, c)] }
-    else if A.hasW c && A.hasW a && A.hasNz a then
-      let A' := A.addW b
+    -- a back-solve: the executor's known operand is then nonzero
+    else if A.hasW c && A.hasW a && A.zNz a c then
+      let A' := (A.addW b).addNz a
       some { (if A.hasNz c then A'.addNz b else A') with pr := [(a, b, c)] }
-    else if A.hasW c && A.hasW b && A.hasNz b then
-      let A' := A.addW a
+    else if A.hasW c && A.hasW b && A.zNz b c then
+      let A' := (A.addW a).addNz b
       some { (if A.hasNz c then A'.addNz a else A') with pr := [(a, b, c)] }
     else none
   | .set o k0 k1 =>
     let A' := (A.addW o).addV o (valOfImm E k0 k1)
     let A' := match valOfImm E k0 k1 with
       | .m _ => A'.addNz o
-      | _ => A'
+      | _ => if immNz k0 k1 then A'.addNz o else A'
     -- the `!=` gadget: `MUL [p] = [x]·[inv]; SET [p] = 1`
     let A' := match A.pr with
       | (x, i, p) :: _ => if p == o && k0 == 1 && k1 == 0 then (A'.addNz x).addNz i else A'
@@ -784,8 +806,9 @@ noncomputable def stepOp (E : Env) (pc : ℕ) (A : Abs) : OffsetInstruction → 
       | none => none
       | some m =>
         let k := m.shift o
-        let A0 := (A.addNz a).addLt (.ex (.fr a) 0) (.num maxCells)
-        let A0 := if o == 0 then rangeFact A0 a else A0
+        -- at offset `0` the pointer is the address, a power below `maxCells`
+        let A0 := if o == 0 then rangeFact ((A.addNz a).addLt (.ex (.fr a) 0) (.num maxCells)) a
+          else A.addNz a
         let A0 := { A0 with pr := A.pr }
         match mode with
         | .pc => some { (A0.addH k).addHv k (.m (.gp (pc + 2))) with pr := [] }

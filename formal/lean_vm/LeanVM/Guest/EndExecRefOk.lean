@@ -1,8 +1,9 @@
 /-
   LeanVM.Guest.EndExecRefOk
 
-  The reference's part of each instruction's modedness (`RefOk`) from the reference step: a
-  `DEREF`'s pointer and a taken `JUMP`'s frame, powers of `g` below `2^62`, are below `maxCells`.
+  The reference's part of each instruction's modedness (`RefOk`) from the reference step: a `MUL`
+  holds, and a `DEREF`'s address and a taken `JUMP`'s frame, when a power of `g` below `2^62`, are
+  below `maxCells`.
 -/
 
 module
@@ -12,12 +13,14 @@ public import LeanVM.Guest.EndExec
 /-!
 # `RefOk` from the reference step
 
-`RefOk` asks a `DEREF`'s pointer and a taken `JUMP`'s frame to be `g^b`, `b < maxCells`. The reference
-step reads a cell past each: the `DEREF` the cell its pointer names past its offset, and the step
-after a taken `JUMP` a cell of its new frame (`step_reads`), or the run halts in frame `g^0`. A read
-names a cell below `2^κ ≤ 2^28`, so a word `g^e`, `e < 2^62` (`PowWord`), read past an offset below
-`2^28` has `e < 2^28` (`pow_lt_of_read`). `refOk_of_pow`: so `RefOk` holds wherever those words are
-such powers (`PtrPow`), which is what the honest memory's pointer cells hold.
+`RefOk` asks a `MUL` to hold, and a `DEREF`'s pointer times `g^o` and a taken `JUMP`'s frame to be
+`g^b`, `b < maxCells`; the reference step checks the `MUL`.
+The reference step reads a cell at each: the `DEREF` the cell at its pointer times `g^o`, which so
+is `g^b`, `b < 2^κ ≤ 2^28`, and the step after a taken `JUMP` a cell of its new frame
+(`step_reads`), or the run halts in frame `g^0`. A read names a cell below `2^κ`, so a word `g^e`,
+`e < 2^62` (`PowWord`), read past an offset below `2^28` has `e < 2^28` (`pow_lt_of_read`).
+`refOk_of_pow`: so `RefOk` holds wherever a taken `JUMP`'s frame is such a power (`PtrPow`), which
+is what the honest memory's frame cells hold.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -30,10 +33,8 @@ open LeanVM.Prover.Exec
 /-- A word whose first limb is `g^e`, `e < 2^62`. -/
 def PowWord (v : E) : Prop := ∃ e < 2 ^ 62, v.limb 0 = Parameters.g ^ e
 
-/-- **The pointers an instruction follows are powers**: a `DEREF`'s pointer, a taken `JUMP`'s
-frame. -/
+/-- **The frame a taken `JUMP` moves to is a power.** -/
 def PtrPow (M : ℕ → E) (s : St) : Op → Prop
-  | .deref a _ _ _ => PowWord (M (s.fp + a))
   | .jump c _ f => M (s.fp + c) ≠ 0 → PowWord (M (s.fp + f))
   | _ => True
 
@@ -97,7 +98,7 @@ theorem step_reads {prog : LeanIsaProgram} {adv : Advice} {C : Ctx} (hC : Ctx.of
     rw [← hk] at hv
     exact ⟨k, hsm.1 k (by simp), v, hv⟩
 
-/-- **`RefOk` from the reference step**, the pointers it follows powers below `2^62`. -/
+/-- **`RefOk` from the reference step**, a taken `JUMP`'s frame a power below `2^62`. -/
 theorem refOk_of_pow {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {img : MemoryImage κ}
     {C : Ctx} (hκ : κ ≤ 28) (hC : Ctx.of prog adv = .ok C) {s : St} (hs : Fine (refMem img) s)
     (hon : OnRef prog img n s) {op : Op} (hop : C.ops[s.pc]? = some op)
@@ -125,11 +126,21 @@ theorem refOk_of_pow {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {img : 
     obtain ⟨rfl, rfl, rfl, rfl⟩ := hdec
     simp only [executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff] at hstep
     obtain ⟨p, hp1, -, -, v3, -, v2, hv2, -⟩ := hstep
-    have hpM := (hrd.at hs.fp hsm.1 hp1).2
-    change PowWord (refMem img (s.fp + a)) at hp
-    show ∃ b < maxCells, (refMem img (s.fp + a)).limb 0 = Parameters.g ^ b
-    rw [hpM] at hp ⊢
-    exact pow_lt_of_read hκ hp hsm.2.1 hv2
+    show ∃ b < maxCells, (refMem img (s.fp + a)).limb 0 * Parameters.g ^ o = Parameters.g ^ b
+    rw [(hrd.at hs.fp hsm.1 hp1).2]
+    obtain ⟨i, hi, -⟩ := (MemoryImage.read_eq_some_iff (by omega) img).mp hv2
+    have hi' : (i : ℕ) < 2 ^ 28 := lt_of_lt_of_le i.isLt (Nat.pow_le_pow_right (by norm_num) hκ)
+    exact ⟨i, by unfold maxCells; omega, by rw [hi]⟩
+  | mul a b c =>
+    cases ins <;> simp only [OpOf] at hdec
+    obtain ⟨rfl, rfl, rfl⟩ := hdec
+    simp only [executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff] at hstep
+    obtain ⟨va, ha, vb, hb, vc, hc, u, hg, -⟩ := hstep
+    show refMem img (s.fp + a) * refMem img (s.fp + b) = refMem img (s.fp + c)
+    rw [(hrd.at hs.fp hsm.1 ha).2, (hrd.at hs.fp hsm.2.1 hb).2, (hrd.at hs.fp hsm.2.2 hc).2]
+    simp only [guard] at hg
+    split_ifs at hg with hv
+    exact hv.symm
   | jump c d f =>
     cases ins <;> simp only [OpOf] at hdec
     obtain ⟨rfl, rfl, rfl⟩ := hdec

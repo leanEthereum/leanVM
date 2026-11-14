@@ -505,8 +505,7 @@ noncomputable def snap600 : List Mode.Abs × Mode.Pend :=
     250), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 2 378), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0,
     [((.hp 2 506), 1)]⟩)) .nil .nil))))))))), (.node none .nil (.node (some ()) .nil .nil)), [],
     [], [⟨⟨0, 0, []⟩, (.num 430), (.num 14367), 1, 0⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 4), (.num
-    1024), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 2), (.num 256), 1, 0⟩], [((.ex (.fr 2) 0), (.num
-    268435456))], [], .nil, [], []⟩], [])
+    1024), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 2), (.num 256), 1, 0⟩], [], [], .nil, [], []⟩], [])
 
 /-- `verify_merkle_cap__L8`: the paths and pending edges at its cut at offset 1193. -/
 noncomputable def snap1193 : List Mode.Abs × Mode.Pend :=
@@ -1403,9 +1402,8 @@ noncomputable def snap1193 : List Mode.Abs × Mode.Pend :=
     .nil) .nil) .nil) .nil) .nil) .nil)) (.node none (.node none .nil (.node none (.node none
     (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil) .nil)) .nil))))), [], [],
     [⟨⟨0, 0, []⟩, (.num 430), (.num 14367), 1, 0⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 4), (.num 1024),
-    1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 2), (.num 256), 1, 0⟩], [((.ex (.fr 2) 0), (.num
-    268435456)), ((.ex (.fr 3) 0), (.num 268435456)), ((.ex (.fr 1035) 0), (.num 268435456))], [],
-    .nil, [], []⟩], [])
+    1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 2), (.num 256), 1, 0⟩], [((.ex (.fr 1035) 0), (.num
+    268435456))], [], .nil, [], []⟩], [])
 
 /-- `verify_merkle_cap__L8`: the paths and pending edges at its cut at offset 1608. -/
 noncomputable def snap1608 : List Mode.Abs × Mode.Pend :=
@@ -2432,9 +2430,8 @@ noncomputable def snap1608 : List Mode.Abs × Mode.Pend :=
     none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) .nil)) (.node none (.node
     none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) .nil))))))), [], [],
     [⟨⟨0, 0, []⟩, (.num 430), (.num 14367), 1, 0⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 4), (.num 1024),
-    1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 2), (.num 256), 1, 0⟩], [((.ex (.fr 2) 0), (.num
-    268435456)), ((.ex (.fr 3) 0), (.num 268435456)), ((.ex (.fr 1035) 0), (.num 268435456))], [],
-    .nil, [], []⟩], [])
+    1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 2), (.num 256), 1, 0⟩], [((.ex (.fr 1035) 0), (.num
+    268435456))], [], .nil, [], []⟩], [])
 
 /-- `verify_merkle_cap__L8`: the paths and pending edges at its cut at offset 1992. -/
 noncomputable def snap1992 : List Mode.Abs × Mode.Pend :=
@@ -3572,8 +3569,7 @@ noncomputable def snap1992 : List Mode.Abs × Mode.Pend :=
     (.node none (.node none .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))
     .nil))))))), [], [], [⟨⟨0, 0, []⟩, (.num 430), (.num 14367), 1, 0⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩,
     (.num 4), (.num 1024), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 2), (.num 256), 1, 0⟩], [((.ex
-    (.fr 2) 0), (.num 268435456)), ((.ex (.fr 3) 0), (.num 268435456)), ((.ex (.fr 1035) 0), (.num
-    268435456))], [], .nil, [], []⟩], [])
+    (.fr 1035) 0), (.num 268435456))], [], .nil, [], []⟩], [])
 
 /-- `verify_merkle_cap__L8`: the paths and pending edges at its cut at offset 2292. -/
 noncomputable def snap2292 : List Mode.Abs × Mode.Pend :=
@@ -4813,8 +4809,8 @@ noncomputable def snap2292 : List Mode.Abs × Mode.Pend :=
     (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none .nil
     (.node none (.node (some ()) .nil .nil) .nil)) .nil)))))))), [], [], [⟨⟨0, 0, []⟩, (.num 430),
     (.num 14367), 1, 0⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 4), (.num 1024), 1, 0⟩, ⟨⟨0, 0, [((.fr 3),
-    1)]⟩, (.num 2), (.num 256), 1, 0⟩], [((.ex (.fr 2) 0), (.num 268435456)), ((.ex (.fr 3) 0),
-    (.num 268435456)), ((.ex (.fr 1035) 0), (.num 268435456))], [], .nil, [], []⟩], [])
+    1)]⟩, (.num 2), (.num 256), 1, 0⟩], [((.ex (.fr 1035) 0), (.num 268435456))], [], .nil, [],
+    []⟩], [])
 
 /-- `verify_merkle_cap__L8`: the paths and pending edges at its cut at offset 2568. -/
 noncomputable def snap2568 : List Mode.Abs × Mode.Pend :=
@@ -6154,8 +6150,7 @@ noncomputable def snap2568 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node none .nil (.node none
     (.node (some ()) .nil .nil) .nil)) .nil)))))))), [], [], [⟨⟨0, 0, []⟩, (.num 430), (.num
     14367), 1, 0⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 4), (.num 1024), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩,
-    (.num 2), (.num 256), 1, 0⟩], [((.ex (.fr 2) 0), (.num 268435456)), ((.ex (.fr 3) 0), (.num
-    268435456)), ((.ex (.fr 1035) 0), (.num 268435456))], [], .nil, [], []⟩], [])
+    (.num 2), (.num 256), 1, 0⟩], [((.ex (.fr 1035) 0), (.num 268435456))], [], .nil, [], []⟩], [])
 
 /-- `verify_merkle_cap__L8`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
