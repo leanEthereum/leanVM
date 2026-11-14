@@ -185,11 +185,7 @@ impl Layer<'_> {
         let shape = self.witness.shape;
         let (nb, written) = (shape.n_blocks(), self.witness.written());
         let rows = |block: &[u64], out: &mut [F128]| {
-            for (half, row) in out.as_chunks_mut::<BITS>().0.iter_mut().enumerate() {
-                for (j, t) in row.iter_mut().enumerate() {
-                    *t = fold.value(block, half, j, 0);
-                }
-            }
+            fold.rows(block, out);
             summand.pair(&out[..BITS], &out[BITS..])
         };
         let padding: Vec<(Vec<F128>, (F128, F128))> = self
@@ -248,18 +244,16 @@ impl PackFold {
         Self { tables }
     }
 
-    /// Entry `b` of position `j` of group `half` of a block: the sum over the bound assignments
-    /// `a` of pack `a + 2^bound * b`, weighted.
-    fn value(&self, block: &[u64], half: usize, j: usize, b: usize) -> F128 {
-        let words = words(block, j);
-        let bound = self.tables.len();
-        let mut acc = F128::ZERO;
-        for (a, tables) in self.tables.iter().enumerate() {
-            let q = GROUP * half + a + bound * b;
-            let pack = (words[q / 4] >> (16 * (q % 4))) as usize & 0xffff;
-            acc += tables[0][pack & 0xff] + tables[1][pack >> 8];
+    /// Both groups of a block, folded: entry `BITS * half + j` of `out` is position `j` of group
+    /// `half`. A pack at a time over every position, so that pack's tables stay in cache.
+    fn rows(&self, block: &[u64], out: &mut [F128]) {
+        out.fill(F128::ZERO);
+        for (q, tables) in self.tables.iter().cycle().take(PACKS).enumerate() {
+            for (j, out) in out[BITS * (q / GROUP)..][..BITS].iter_mut().enumerate() {
+                let pack = (words(block, j)[q / 4] >> (16 * (q % 4))) as usize & 0xffff;
+                *out += tables[0][pack & 0xff] + tables[1][pack >> 8];
+            }
         }
-        acc
     }
 }
 
