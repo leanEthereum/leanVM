@@ -128,7 +128,7 @@ abbrev hashOver (π : KeccakState → KeccakState) (bytes : List UInt8) : Digest
   Id.run (keccakDigestBytes π bytes)
 
 /-- Cell `j` of a codeword given as a list of symbols. -/
-def listCell (row : List K) (j : ℕ) : List K := (row.drop (j * cellSymbols)).take cellSymbols
+def listCell (row : List E) (j : ℕ) : List E := (row.drop (j * cellSymbols)).take cellSymbols
 
 section Pure
 
@@ -181,16 +181,16 @@ termination_by nodes.length
 decreasing_by simp only [treeLevelWithHash, List.length_map, List.length_range]; omega
 
 /-- The digest of cell `j` of a codeword (`hash_cells`). -/
-def listCellDigestWithHash (row : List K) (j : ℕ) : DigestBytes :=
-  H ((listCell row j).flatMap K.toBytes)
+def listCellDigestWithHash (row : List E) (j : ℕ) : DigestBytes :=
+  H ((listCell row j).flatMap E.toBytes)
 
 /-- The blob root of a codeword: the Merkle root of its `128` cell digests, built level by level
 (`blob_trees`, `fill_levels`). -/
-def listBlobRootWithHash (row : List K) : DigestBytes :=
+def listBlobRootWithHash (row : List E) : DigestBytes :=
   treeRootWithHash H ((List.range cellsPerRow).map (listCellDigestWithHash H row))
 
 /-- The digest of the zero cell (`padding_tree`'s leaves). -/
-def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap K.toBytes)
+def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap E.toBytes)
 
 /-- The blob root of the zero codeword, which pads the tree over the blob roots
 (`padding_root`, `commit.rs:70-78`). -/
@@ -199,18 +199,18 @@ def paddingBlobRootWithHash : DigestBytes :=
 
 /-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`): the
 rows padded to a power of two with zero codewords, the tree over their blob roots. -/
-def commitCodewordsWithHash (rows : List (List K)) : DigestBytes :=
+def commitCodewordsWithHash (rows : List (List E)) : DigestBytes :=
   treeRootWithHash H (rows.map (listBlobRootWithHash H) ++
     List.replicate (paddedRowCount rows.length - rows.length) (paddingBlobRootWithHash H))
 
 end Pure
 
 /-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`,
-`commit.rs:52-125`), over a permutation `π`: on codewords of `2^15` symbols it is the statement's
+`commit.rs`), over a permutation `π`: on codewords of `2^14` symbols it is the statement's
 `commitCells π (cellsOfRows rows)` (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). The
 blob roots in the crate's order, each tree built level by level, as compiled code computes it
 fast. -/
-def commitCodewords (π : KeccakState → KeccakState) (rows : List (List K)) : DigestBytes :=
+def commitCodewords (π : KeccakState → KeccakState) (rows : List (List E)) : DigestBytes :=
   commitCodewordsWithHash (hashOver π) rows
 
 section Monadic
@@ -384,13 +384,13 @@ included) makes at most `q ≤ 2^128` permutation calls (`permutationCallCost`) 
 probability at most `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications
 included, makes at most `Q` calls breaks code binding with probability at most
 
-`(Q + c + 2^65) · 2^-k + (Q + 2^11) · 2^-125 + (Q + 2^22)² · 2^-247`.
+`(Q + c + 2^65) · 2^-k + (Q + 2^10) · 2^-125 + (Q + 2^22)² · 2^-247`.
 
 The first term is the argument's knowledge soundness against the code-binding adversary itself,
 its transcript handed to the extractor (at most `Q + 2^65` calls with the relation's check, the
 nonce search's `2^64 + 2` on the worst path among them). The second is the membership test with its
-grind: `2^-11 · (2^14 - 1) / 2^128 ≤ 2^-125` for each of the adversary's calls, and
-`(2^14 - 1) / 2^128` for the verifier's one search. The third gathers the transfer to the
+grind: `2^-10 · (2^13 - 1) / 2^128 ≤ 2^-125` for each of the adversary's calls, and
+`(2^13 - 1) / 2^128` for the verifier's one search. The third gathers the transfer to the
 two-oracle model and the duplex lemma, of the two games, and the hash's bad events among at most
 `2 Q + 2^20` hash queries: a collision, or a fresh answer that is a digest an earlier input or a
 root with a drawn challenge already carries; it exceeds one before `Q = 2^124`.
@@ -412,7 +412,7 @@ abbrev CodeBindingRpmWithHash : Prop :=
     ∀ (A : CodeBindingAdversary r Crs Proof) (Q : ℕ),
       QueryCostAtMost (codeBindingGameWithHash r ps A) permutationCallCost Q →
         Pr{let b ← runWithRandomPermutation (codeBindingGameWithHash r ps A)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 11) *
+          ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) *
             (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 

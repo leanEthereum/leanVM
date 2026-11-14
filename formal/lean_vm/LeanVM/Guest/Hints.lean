@@ -282,14 +282,14 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphi
 /-! ## LeanDA -/
 
 /-- A blob matrix's hints: the claim's membership challenge, the row count and its padded log, and
-every row's cells, column by column (`aggregation/node.rs:292-317`). The Rust pushes the root's
-challenge (`membership_challenge`, `crates/verifier/src/da.rs:14-17`), the claim's on an honest
-node. -/
+every row's cells, column by column (`aggregate_with_stats`, `aggregation/node.rs`). The Rust
+pushes the root's challenge (`membership_challenge`, `crates/verifier/src/da.rs`), the claim's on
+an honest node. -/
 def daHints (c : DaClaim) (w : Da.MatrixWitness) : List (String × Entry) :=
   [("da_challenge", [c.membershipChallenge]),
     ("da_shape", [count w.rows.length, count (LeanDa.logPaddedRowCount w.rows.length)])] ++
     (List.range LeanDa.cellsPerRow).flatMap fun j ↦
-      w.rows.map fun row ↦ ("da_symbols", (LeanDa.listCell row j).map ofK)
+      w.rows.map fun row ↦ ("da_symbols", LeanDa.listCell row j)
 
 /-! ## A child (`gen_verify`) -/
 

@@ -15,7 +15,7 @@ use super::{LeanSphincsClaim, LeanXmssClaim, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
 use lean_da::CELLS_PER_ROW;
 use leanvm_core::cpu::{from_scalar, prove, public_input_bytes, scalar_proof};
-use primitives::field::{F64, F128};
+use primitives::field::F128;
 use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use signatures::{lean_sphincs, lean_xmss};
@@ -26,9 +26,8 @@ use signatures::{lean_sphincs, lean_xmss};
 /// - `raw_lean_xmss`: list of `(public_key, message, signature)`, any order, each signature at
 ///   the leaf index it carries.
 /// - `raw_lean_sphincs`: list of `(public_key, message, signature)`, any order.
-/// - `blobs`: concatenated blobs, each containing [`BLOB_SYMBOLS`] little-endian `u64` symbols;
-///   at most [`lean_da::DA_MAX_ROWS`] blobs. A node with blobs publishes their matrix's root, and none
-///   of its children's.
+/// - `blobs`: at most [`lean_da::DA_MAX_ROWS`] blobs, each a [`lean_da::Blob`] of 128-bit symbols.
+///   A node with blobs publishes their matrix's root, and none of its children's.
 /// - `declare`: `None` keeps all signature claims and publishes the blob matrix's root, or else
 ///   the first child's that has one; `Some` specifies exactly the signatures and DA root to
 ///   publish, which must be the blob matrix's if there are blobs. Every declared claim must be
@@ -303,7 +302,10 @@ pub fn aggregate_with_stats(
         // symbols ride the stream.
         for j in 0..CELLS_PER_ROW {
             for cell in witness.column(j).expect("a column below CELLS_PER_ROW") {
-                hints.push("da_symbols", cell.iter().map(|&w| F128::from(F64(w))).collect());
+                hints.push(
+                    "da_symbols",
+                    cell.iter().map(|&w| F128::new(w as u64, (w >> 64) as u64)).collect(),
+                );
             }
         }
     }

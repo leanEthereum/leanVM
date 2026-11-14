@@ -16,8 +16,8 @@ public import LeanVM.Guest.Value.KeccakConst
 # The claim `da_verify` returns is opened
 
 Given `r` rows (`1 ≤ r ≤ LeanDa.maxRows`, padded to `2^L = LeanDa.paddedRowCount r`) and the symbols of
-cell `(i, h)` (`syms i h`, `256`), with every row orthogonal to the dual codeword of `z`
-(`Σ_h Σ_e dualAt z (256 h + e) · sym i h e = 0`), `opens_of` builds the witness: the rows the
+cell `(i, h)` (`syms i h`, `128` symbols of `E`), with every row orthogonal to the dual codeword
+of `z` (`Σ_h Σ_e dualAt z (128 h + e) · sym i h e = 0`), `opens_of` builds the witness: the rows the
 cells concatenate (`daRows`). It opens the root `daRoot`, the tree over the blob roots
 (`blobLeaf`: a row's tree over its cell digests `cellD`, or the padding blob root), and `z`:
 LeanDA's commitment (`LeanDa.commitCodewords`, Benedikt Wagner's LeanDA as `lean_da` transcribes
@@ -91,10 +91,10 @@ theorem sum_range_mul (g : ℕ → E) (m : ℕ) : ∀ n,
 /-! ## The digests -/
 
 section
-variable (r L : ℕ) (syms : ℕ → ℕ → List K)
+variable (r L : ℕ) (syms : ℕ → ℕ → List E)
 
 /-- Cell `(i, h)`'s digest. -/
-def cellD (i h : ℕ) : Digest := keccak256 ((syms i h).flatMap K.toBytes)
+def cellD (i h : ℕ) : Digest := keccak256 ((syms i h).flatMap E.toBytes)
 
 /-- Blob `i`'s root among the padded rows: its tree over its cell digests, or the padding blob's. -/
 def blobLeaf (i : ℕ) : Digest := if i < r then mRoot 7 (cellD syms i) else daPadBlobDigest
@@ -103,7 +103,7 @@ def blobLeaf (i : ℕ) : Digest := if i < r then mRoot 7 (cellD syms i) else daP
 def daRoot : Digest := mRoot L (blobLeaf r syms)
 
 /-- The rows: each the concatenation of its `128` cells. -/
-def daRows : List (List K) := (List.range r).map fun i => (List.range 128).flatMap (syms i)
+def daRows : List (List E) := (List.range r).map fun i => (List.range 128).flatMap (syms i)
 
 end
 
@@ -113,16 +113,16 @@ theorem keccak_eq (l : List UInt8) :
     LeanVM.Da.keccak256Bytes l = LeanVM.Protocol.Digest.toBytes (keccak256 l) := rfl
 
 /-- **The witness opens the claim.** -/
-theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {z : E} (hr1 : 1 ≤ r)
+theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List E} {z : E} (hr1 : 1 ≤ r)
     (hr : r ≤ LeanDa.maxRows) (hL : LeanDa.paddedRowCount r = 2 ^ L) (hrL : r ≤ 2 ^ L)
-    (hsyms : ∀ i h, (syms i h).length = 256)
-    (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
-      dualAt z (256 * h + e) * ofK ((syms i h).getD e 0) = 0) :
+    (hsyms : ∀ i h, (syms i h).length = 128)
+    (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
+      dualAt z (128 * h + e) * (syms i h).getD e 0 = 0) :
     (⟨daRows r syms⟩ : LeanVM.Da.MatrixWitness).Opens (daRoot r L syms) z := by
   have hrow : ∀ i, ((List.range 128).flatMap (syms i)).length = 2 ^ LeanDa.logM := fun i => by
-    rw [length_flatMap_range _ 256 _ (hsyms i)]; rfl
+    rw [length_flatMap_range _ 128 _ (hsyms i)]; rfl
   have hcell : ∀ i, ∀ h < 128, LeanDa.listCell ((List.range 128).flatMap (syms i)) h = syms i h :=
-    fun i h hh => block_eq (syms i) 256 (hsyms i) hh 0
+    fun i h hh => block_eq (syms i) 128 (hsyms i) hh 0
   have hlen : (daRows r syms).length = r := by simp [daRows]
   have hrows : ∀ row ∈ daRows r syms, row.length = 2 ^ LeanDa.logM := by
     intro row hrow'
@@ -157,17 +157,17 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {z : E} (hr1 : 1 �
     obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hrow'
     have hi' := List.mem_range.mp hi
     rw [LeanDa.innerProduct]
-    have hfun : ∀ b : Fin (2 ^ 15), LeanDa.dualCodewordAt z b *
-        LeanDa.ι (((List.range 128).flatMap (syms i)).getD b 0) =
-        dualAt z b * ofK (((List.range 128).flatMap (syms i)).getD b 0) := fun b => by
-      rw [dualAt_eq]; rfl
+    have hfun : ∀ b : Fin (2 ^ 14), LeanDa.dualCodewordAt z b *
+        ((List.range 128).flatMap (syms i)).getD b 0 =
+        dualAt z b * ((List.range 128).flatMap (syms i)).getD b 0 := fun b => by
+      rw [dualAt_eq]
     rw [Finset.sum_congr rfl fun b _ => hfun b, Fin.sum_univ_eq_sum_range (fun b => dualAt z b *
-      ofK (((List.range 128).flatMap (syms i)).getD b 0)) (2 ^ 15),
-      show 2 ^ 15 = 128 * 256 by norm_num, sum_range_mul _ 256 128]
+      ((List.range 128).flatMap (syms i)).getD b 0) (2 ^ 14),
+      show 2 ^ 14 = 128 * 128 by norm_num, sum_range_mul _ 128 128]
     refine (Finset.sum_congr rfl fun h hh => Finset.sum_congr rfl fun e he => ?_).trans (hdot i hi')
     have hh' := Finset.mem_range.mp hh
     have he' := Finset.mem_range.mp he
-    rw [flatMap_getD (syms i) 256 (hsyms i) 0 128 h e hh' he']
+    rw [flatMap_getD (syms i) 128 (hsyms i) 0 128 h e hh' he']
 
 end
 end LeanVM.Guest.B1.Da

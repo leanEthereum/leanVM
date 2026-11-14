@@ -12,6 +12,7 @@ public import LeanVM.Guest.Data.Pows
 public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P2».Core
 public import LeanVM.Guest.Pack.«P2».Bundle
+public import LeanVM.Guest.Pack.«P2».Sig
 
 set_option Elab.async false
 
@@ -183,18 +184,18 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«da_levels_
 end
 end LeanVM.Guest.Fn.«da_levels__L1_L0»
 
-namespace LeanVM.Guest.Fn.«da_expand__L14_L7»
+namespace LeanVM.Guest.Fn.«da_column_offsets_loop3»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `da_expand__L14_L7`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«da_expand__L14_L7».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `__loop29`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(422, Fn.«da_column_offsets_loop3».sig)]) Data.jtTrie globSem) code Fn.«da_column_offsets_loop3».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `da_expand__L14_L7`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«da_expand__L14_L7».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `__loop29`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(422, Fn.«da_column_offsets_loop3».sig)]) Data.jtTrie globSem) code Fn.«da_column_offsets_loop3».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -205,5 +206,5 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«da_expand_
     · exact cw0_0
 
 end
-end LeanVM.Guest.Fn.«da_expand__L14_L7»
+end LeanVM.Guest.Fn.«da_column_offsets_loop3»
 

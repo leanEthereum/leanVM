@@ -18,8 +18,8 @@ public import LeanVM.Guest.B1.Tables.FlatAtT
 /-!
 # `da_column_offsets`, placed
 
-The buffers at `b0 = fp + fs f`: the offsets (`offCells Z`, `1024` words), then bit `b`'s steps
-(`stepCells Z b`) at `b0 + 1024 + 8 b`. `offLoop_rel`: bit `b`'s loop runs to its end on them
+The buffers at `b0 = fp + fs f`: the offsets (`offCells Z`, `896` words), then bit `b`'s steps
+(`stepCells Z b`) at `b0 + 896 + 7 b`. `offLoop_rel`: bit `b`'s loop runs to its end on them
 (`off_block`, `wK_two_pow_add`). The body is evaluated (`Fwd.ev`); its loads read `zs`, its stores
 find the zeros and the steps. `off_completeAtB`: complete, placed, within its frame, its buffers
 and `offKB fs SK`, its loops' `2^b` iterations each and their runs' phantom frames, returning
@@ -37,35 +37,35 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 @[expose] public section
 
 /-- `da_column_offsets`' `HeapBuf`s' sizes. -/
-def offSizes : List ℕ := [1024, 8, 8, 8, 8, 8, 8, 8]
+def offSizes : List ℕ := [896, 7, 7, 7, 7, 7, 7, 7]
 
 /-- Their honest words: the offsets, each bit's steps. -/
 def offOwn (Z : ℕ → E) : List (List E) := offCells Z :: (List.range 7).map (stepCells Z)
 
 /-- Bit `b`'s loop, on the offsets at `b0` and its steps after them. -/
 def offKid (Z : ℕ → E) (b0 b : ℕ) : Kid :=
-  ⟨offLoopName b, true, [1, gen ^ 2 ^ b, gen ^ b0, gen ^ (b0 + 1024 + 8 * b)],
-    [(b0, offCells Z), (b0 + 1024 + 8 * b, stepCells Z b)], Returns []⟩
+  ⟨offLoopName b, true, [1, gen ^ 2 ^ b, gen ^ b0, gen ^ (b0 + 896 + 7 * b)],
+    [(b0, offCells Z), (b0 + 896 + 7 * b, stepCells Z b)], Returns []⟩
 
 /-- **The loops' words bound**: bit `b`'s `2^b` iterations and its run's phantom frame. -/
 def offKB (fs SK : String → ℕ) : ℕ :=
   ((List.range 7).map fun b => 2 ^ b * iterK fs SK (offLoopName b) + fs (offLoopName b)).sum
 
 theorem bufL_off (Z : ℕ → E) (b0 : ℕ) : bufL b0 offSizes (offOwn Z) =
-    (b0, offCells Z) :: (List.range 7).map fun b => (b0 + 1024 + 8 * b, stepCells Z b) := by
+    (b0, offCells Z) :: (List.range 7).map fun b => (b0 + 896 + 7 * b, stepCells Z b) := by
   simp [bufL, bases, offSizes, offOwn, List.range_succ, Nat.add_assoc]
 
-theorem offCells_get {Z : ℕ → E} {k : ℕ} (hk : k < 1024) :
-    (offCells Z)[k]'(by simp [offCells]; exact hk) = Z (k % 8) * ofK (wK (k % 8) (256 * (k / 8))) := by
+theorem offCells_get {Z : ℕ → E} {k : ℕ} (hk : k < 896) :
+    (offCells Z)[k]'(by simp [offCells]; exact hk) = Z (k % 7) * ofK (wK (k % 7) (128 * (k / 7))) := by
   simp [offCells]
 
-theorem stepCells_get {Z : ℕ → E} {b j : ℕ} (hj : j < 8) :
-    (stepCells Z b)[j]'(by simp [stepCells]; exact hj) = Z j * ofK (wK j (2 ^ (8 + b))) := by
+theorem stepCells_get {Z : ℕ → E} {b j : ℕ} (hj : j < 7) :
+    (stepCells Z b)[j]'(by simp [stepCells]; exact hj) = Z j * ofK (wK j (2 ^ (7 + b))) := by
   simp [stepCells]
 
-theorem pow8_eq (j : ℕ) : gen ^ j * gen ^ j * (gen ^ j * gen ^ j) * (gen ^ j * gen ^ j * (gen ^ j * gen ^ j)) =
-    gen ^ (8 * j) := by
-  rw [show 8 * j = j + j + (j + j) + (j + j + (j + j)) by ring]
+theorem pow7_eq (j : ℕ) : gen ^ j * gen ^ j * gen ^ j * (gen ^ j * gen ^ j * gen ^ j) * gen ^ j =
+    gen ^ (7 * j) := by
+  rw [show 7 * j = j + j + j + (j + j + j) + j by ring]
   simp only [pow_add]
 
 variable {rd : Reader}
@@ -82,22 +82,22 @@ theorem offLoop_rel {b : ℕ} (hb : b < 7) {Z : ℕ → E} {b0 bs : ℕ}
       b) default) (gen ^ j)
       (gen ^ 2 ^ b) [gen ^ b0, gen ^ bs] := by
     intro j hj
-    have hl : ∀ i < 8, 8 * j + i < 1024 := fun i hi => by omega
-    have hl' : ∀ i < 8, 8 * j + (8 * 2 ^ b + i) < 1024 := fun i hi => by omega
-    refine off_block hb (fun i => Z i * ofK (wK i (256 * j)))
-      (fun i => Z i * ofK (wK i (2 ^ (8 + b)))) (fun i hi => ?_) (fun i hi => ?_) (fun i hi => ?_)
-    · rw [pow8_eq, loadHolds_mul_gen_pow]
-      have := h1 (8 * j + i) (by simp [offCells]; exact hl i hi)
-      rwa [offCells_get (hl i hi), show (8 * j + i) % 8 = i by omega,
-        show (8 * j + i) / 8 = j by omega] at this
+    have hl : ∀ i < 7, 7 * j + i < 896 := fun i hi => by omega
+    have hl' : ∀ i < 7, 7 * j + (7 * 2 ^ b + i) < 896 := fun i hi => by omega
+    refine off_block hb (fun i => Z i * ofK (wK i (128 * j)))
+      (fun i => Z i * ofK (wK i (2 ^ (7 + b)))) (fun i hi => ?_) (fun i hi => ?_) (fun i hi => ?_)
+    · rw [pow7_eq, loadHolds_mul_gen_pow]
+      have := h1 (7 * j + i) (by simp [offCells]; exact hl i hi)
+      rwa [offCells_get (hl i hi), show (7 * j + i) % 7 = i by omega,
+        show (7 * j + i) / 7 = j by omega] at this
     · have := h2 i (by simp [stepCells]; exact hi)
       rwa [stepCells_get hi] at this
-    · rw [pow8_eq, loadHolds_mul_gen_pow]
-      have := h1 (8 * j + (8 * 2 ^ b + i)) (by simp [offCells]; exact hl' i hi)
-      rw [offCells_get (hl' i hi), show (8 * j + (8 * 2 ^ b + i)) % 8 = i by omega,
-        show (8 * j + (8 * 2 ^ b + i)) / 8 = j + 2 ^ b by omega] at this
-      have hw : wK i (256 * (j + 2 ^ b)) = wK i (256 * j) + wK i (2 ^ (8 + b)) := by
-        rw [show 256 * (j + 2 ^ b) = 2 ^ (8 + b) + 256 * j by rw [pow_add]; ring]
+    · rw [pow7_eq, loadHolds_mul_gen_pow]
+      have := h1 (7 * j + (7 * 2 ^ b + i)) (by simp [offCells]; exact hl' i hi)
+      rw [offCells_get (hl' i hi), show (7 * j + (7 * 2 ^ b + i)) % 7 = i by omega,
+        show (7 * j + (7 * 2 ^ b + i)) / 7 = j + 2 ^ b by omega] at this
+      have hw : wK i (128 * (j + 2 ^ b)) = wK i (128 * j) + wK i (2 ^ (7 + b)) := by
+        rw [show 128 * (j + 2 ^ b) = 2 ^ (7 + b) + 128 * j by rw [pow_add]; ring]
         exact wK_two_pow_add i (by rw [pow_add]; omega)
       rwa [hw, ofK_add, mul_add] at this
   have := loopF_complete (find_off hb) hok.1.1 (N := gen ^ 2 ^ b) (rest := [gen ^ b0, gen ^ bs])
@@ -105,7 +105,7 @@ theorem offLoop_rel {b : ℕ} (hb : b < 7) {Z : ℕ → E} {b0 bs : ℕ}
   rwa [pow_zero] at this
 
 theorem isOffLoad_spec {d p : V} {off : ℕ} (h : isOffLoad d p off = true) :
-    off < 8 ∧ ((p = .n 1 ∧ d = .n (2 + off)) ∨ (p = .n 0 ∧ ∃ b < 7, d = .n (offB b + 1 + 3 * off)) ∨
+    off < 7 ∧ ((p = .n 1 ∧ d = .n (2 + off)) ∨ (p = .n 0 ∧ ∃ b < 7, d = .n (offB b + 1 + 3 * off)) ∨
       ∃ b < 7, p = .n (offB b) ∧ d = .n (offB b + 1 + 3 * off + 2)) := by
   simp only [isOffLoad, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq, List.any_eq_true,
     List.mem_range] at h
@@ -132,12 +132,12 @@ set_option maxRecDepth 4000 in
 /-- **`da_column_offsets` is complete, placed, within its frame, its buffers and `offKB fs SK`**,
 returning its offsets, the powers `Z` read at `g^c`. -/
 theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
-    (hzs : ∀ rd, MemL rd Lin → ∀ j < 8, LoadHolds rd (gen ^ c) j (Z j))
-    (hzr : ∀ j < 8, RegionL Lin (c + j)) {SK : String → ℕ}
+    (hzs : ∀ rd, MemL rd Lin → ∀ j < 7, LoadHolds rd (gen ^ c) j (Z j))
+    (hzr : ∀ j < 7, RegionL Lin (c + j)) {SK : String → ℕ}
     (hT : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b))) :
     CompleteAtDTB fs cert 16 "da_column_offsets" Lin [gen ^ c] (offOut Z) (fun _ => True)
-      (fs "da_column_offsets" + 1080 + offKB fs SK) := by
+      (fs "da_column_offsets" + 945 + offKB fs SK) := by
   have hok := off_ok
   unfold offOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at hok
@@ -153,7 +153,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     rw [word_eOfNat, eOfNat, hN b hb', gen_pow_eq_ofK]
   have hKB : ((List.range 7).map fun b => 2 ^ b * iterK fs SK (offLoopName b) +
       fs (offLoopName b)).sum = offKB fs SK := rfl
-  rw [show 1080 = offSizes.sum from rfl, ← hKB]
+  rw [show 945 = offSizes.sum from rfl, ← hKB]
   refine (completeAt_flatOutDTB (fs := fs) (cert := cert) find_da_column_offsets
     (by rw [Program.loop_of_find? find_da_column_offsets]; decide +kernel) 16 Lin [gen ^ c]
     (fun fp ↦ [ofK (addressOfIndex (fp + fs "da_column_offsets"))]) (offOut Z) hb hflat haddr
@@ -195,9 +195,9 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
   set b0 := fp + fs "da_column_offsets" with hb0
   rw [bufL_off] at hB
   have hRo : ReadsAt rd (gen ^ b0) (offCells Z) := reads_of_memL hB List.mem_cons_self
-  have hRs : ∀ b < 7, ReadsAt rd (gen ^ (b0 + 1024 + 8 * b)) (stepCells Z b) := fun b hb' =>
+  have hRs : ∀ b < 7, ReadsAt rd (gen ^ (b0 + 896 + 7 * b)) (stepCells Z b) := fun b hb' =>
     reads_of_memL hB (List.mem_cons_of_mem _ (List.mem_map.mpr ⟨b, List.mem_range.mpr hb', rfl⟩))
-  let w : ℕ → E := fun i => if i = 1 then gen ^ b0 else gen ^ (b0 + 1024 + 8 * ((i - 10) / 30))
+  let w : ℕ → E := fun i => if i = 1 then gen ^ b0 else gen ^ (b0 + 896 + 7 * ((i - 9) / 27))
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd w [gen ^ c] offP) := ⟨_, rfl⟩
   obtain ⟨-, -, hgs⟩ := ev_spec rd w offP [gen ^ c] hchk
   rw [show [gen ^ c].length = 1 from rfl, hS, ← hσ] at hgs
@@ -205,19 +205,19 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
   have e0 : σ (.n 0) = gen ^ c := by rw [hσ]; exact ev_params rd w (l := [gen ^ c]) hchk (by simp)
   -- the buffers' pointers
   have e1 : σ (.n 1) = gen ^ b0 := by
-    have := hgA (.hint (.alloc (.n 1) 1024)) (List.mem_append_left _ (List.mem_append_left _
+    have := hgA (.hint (.alloc (.n 1) 896)) (List.mem_append_left _ (List.mem_append_left _
       List.mem_cons_self))
     simpa [Good, w] using this
-  have eB : ∀ b < 7, σ (.n (offB b)) = gen ^ (b0 + 1024 + 8 * b) := by
+  have eB : ∀ b < 7, σ (.n (offB b)) = gen ^ (b0 + 896 + 7 * b) := by
     intro b hb'
-    have := hgA (.hint (.alloc (.n (offB b)) 8)) (mem_offP_block hb' List.mem_cons_self)
+    have := hgA (.hint (.alloc (.n (offB b)) 7)) (mem_offP_block hb' List.mem_cons_self)
     simp only [Good] at this
     rw [this]
-    simp only [w, offB, show 10 + 30 * b ≠ 1 by omega, ↓reduceIte,
-      show (10 + 30 * b - 10) / 30 = b by omega]
+    simp only [w, offB, show 9 + 27 * b ≠ 1 by omega, ↓reduceIte,
+      show (9 + 27 * b - 9) / 27 = b by omega]
   -- the steps' words
-  have hstep : ∀ b < 7, ∀ j < 8, σ (.n (offB b + 1 + 3 * j)) = Z j ∧
-      σ (.n (offB b + 1 + 3 * j + 2)) = Z j * ofK (wK j (2 ^ (8 + b))) := by
+  have hstep : ∀ b < 7, ∀ j < 7, σ (.n (offB b + 1 + 3 * j)) = Z j ∧
+      σ (.n (offB b + 1 + 3 * j + 2)) = Z j * ofK (wK j (2 ^ (7 + b))) := by
     intro b hb' j hj
     have e := fun a (ha : a ∈ offStepA b j) => hgA a (mem_offP_block hb' (mem_offBlock_step hj ha))
     have l1 := e (.load (.n (offB b + 1 + 3 * j)) (.n 0) j) (by simp [offStepA])
@@ -236,20 +236,20 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
         rfl
     exact ⟨hz, by rw [m1, c1, hz, offC_word]⟩
   -- the guards
-  have hguard : ∀ b < 7, σ (.n (offB b + 27)) = 1 + gen ^ 2 ^ b ∧ σ (.n (offB b + 28)) = 1 ∧
-      σ (.n (offB b + 29)) = gen ^ 2 ^ b := by
+  have hguard : ∀ b < 7, σ (.n (offB b + 24)) = 1 + gen ^ 2 ^ b ∧ σ (.n (offB b + 25)) = 1 ∧
+      σ (.n (offB b + 26)) = gen ^ 2 ^ b := by
     intro b hb'
     have e := fun a (ha : Stmt.atom a ∈ offBlockS b) => hgA a (mem_offP_block hb' ha)
+    have c22 := e (.const (.n (offB b + 22)) (word 1 0)) (by simp [offBlockS])
+    have c23 := e (.const (.n (offB b + 23)) (word (offN b) 0)) (by simp [offBlockS])
+    have a24 := e (.add (.n (offB b + 24)) (.n (offB b + 22)) (.n (offB b + 23))) (by simp [offBlockS])
     have c25 := e (.const (.n (offB b + 25)) (word 1 0)) (by simp [offBlockS])
     have c26 := e (.const (.n (offB b + 26)) (word (offN b) 0)) (by simp [offBlockS])
-    have a27 := e (.add (.n (offB b + 27)) (.n (offB b + 25)) (.n (offB b + 26))) (by simp [offBlockS])
-    have c28 := e (.const (.n (offB b + 28)) (word 1 0)) (by simp [offBlockS])
-    have c29 := e (.const (.n (offB b + 29)) (word (offN b) 0)) (by simp [offBlockS])
-    simp only [Good] at c25 c26 a27 c28 c29
+    simp only [Good] at c22 c23 a24 c25 c26
     rw [hNb b hb', word_one] at *
-    exact ⟨by rw [a27, c25, c26], c28, c29⟩
-  have hcopy : σ (.n 220) = σ (.n 1) :=
-    hgA (.copy (.n 220) (.n 1)) (List.mem_append_right _ (List.mem_singleton_self _))
+    exact ⟨by rw [a24, c22, c23], c25, c26⟩
+  have hcopy : σ (.n 198) = σ (.n 1) :=
+    hgA (.copy (.n 198) (.n 1)) (List.mem_append_right _ (List.mem_singleton_self _))
   -- the atoms
   have hat : ∀ a ∈ offAtoms, a.Holds rd σ := by
     refine atoms_holds (S := offStores) (w := w) (fun a ha => ?_) fun a ha hns => Or.inl ?_
@@ -269,7 +269,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
         show LoadHolds rd (σ (.n 1)) off (σ (.n (2 + off)))
         rw [e1, hc, word_zero]
         have := hRo off (by simp [offCells]; omega)
-        rwa [offCells_get (by omega), show off / 8 = 0 by omega, Nat.mul_zero, wK_zero, ofK_zero,
+        rwa [offCells_get (by omega), show off / 7 = 0 by omega, Nat.mul_zero, wK_zero, ofK_zero,
           mul_zero] at this
       · show LoadHolds rd (σ (.n 0)) off (σ (.n (offB b + 1 + 3 * off)))
         rw [e0, (hstep b hb' off ho8).1]
@@ -281,7 +281,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     | _ => simp [atomLoad?] at hld
   -- the loops
   have hrel : ∀ b < 7, coreProgram.Rel rd (offLoopName b)
-      [1, gen ^ 2 ^ b, gen ^ b0, gen ^ (b0 + 1024 + 8 * b)] [] := fun b hb' =>
+      [1, gen ^ 2 ^ b, gen ^ b0, gen ^ (b0 + 896 + 7 * b)] [] := fun b hb' =>
     offLoop_rel hb' hRo (hRs b hb')
   have hne : ∀ b < 7, (1 : E) + gen ^ 2 ^ b ≠ 0 := fun b hb' =>
     one_add_gen_pow_ne_zero (Nat.two_pow_pos b) (by
@@ -333,7 +333,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
             rw [bufL_off]
             exact regionL_of_mem List.mem_cons_self (by simp [offCells]; omega))⟩
         · exact ⟨c + off, by rw [e0, limb0_gen_pow_mul], Or.inl (hzr off ho8)⟩
-        · exact ⟨b0 + 1024 + 8 * b + off, by rw [eB b hb', limb0_gen_pow_mul], Or.inr (by
+        · exact ⟨b0 + 896 + 7 * b + off, by rw [eB b hb', limb0_gen_pow_mul], Or.inr (by
             rw [bufL_off]
             exact regionL_of_mem (List.mem_cons_of_mem _ (List.mem_map.mpr
               ⟨b, List.mem_range.mpr hb', rfl⟩)) (by simp [stepCells]; omega))⟩

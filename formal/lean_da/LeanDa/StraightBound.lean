@@ -275,15 +275,15 @@ for the reading, then the verdict's queries of `H`. -/
 theorem prob_world_not_good_le (A : CodeBindingAdvB r Crs Proof) (crs : Crs)
     (L : List (Fin nLabels))
     (hread : ∀ d c, Good r c → Pr{let z ← (simulateQ GW.romImpl (readL L d)).run c}[¬ Good r z.2] ≤
-      (2 ^ 14 - 1) / 2 ^ 128)
+      (2 ^ 13 - 1) / 2 ^ 128)
     (N Q₁ Q₂ Q₃ : ℕ) (ha : QueryCostAtMost (advSim r A crs) hgCalls Q₁)
     (hg : QueryCostAtMost (advSim r A crs) gwCalls Q₂)
     (ht : ∀ out l, QueryCostAtMost (simulateQ (embG (Root := Common.DigestBytes) (Z := Draw)
       (n := nLabels)) (tailH r ps ext crs out l)) hgCalls Q₃) (hN : Q₁ + 1 + Q₃ ≤ N) :
     Pr{let z ← (simulateQ GW.romImpl (advSim r A crs >>= tailL r ps ext L crs)).run ∅}[
         ¬ Good r z.2] ≤
-      Q₁ * (65 * N / 2 ^ 256) + Q₂ * ((2 ^ 14 - 1) / 2 ^ 139) +
-        ((2 ^ 14 - 1) / 2 ^ 128 + Q₃ * (65 * N / 2 ^ 256)) := by
+      Q₁ * (65 * N / 2 ^ 256) + Q₂ * ((2 ^ 13 - 1) / 2 ^ 138) +
+        ((2 ^ 13 - 1) / 2 ^ 128 + Q₃ * (65 * N / 2 ^ 256)) := by
   have hf0 : GFin ∅ := ⟨by simp [domH], by simp [domG]⟩
   have hs0 : gSize ∅ = 0 := by simp [gSize, domH, domG]
   rw [simulateQ_bind, StateT.run_bind]
@@ -304,7 +304,7 @@ theorem finRange_getElem_val (n : ℕ) : ∀ i (hi : i < (List.finRange n).lengt
     ((List.finRange n)[i]).val = i := fun i hi ↦ by simp
 
 /-- **The straight-line verdict's probability**, for an adversary of `Q` permutation calls and
-`r ≤ maxRows` rows: at most `N · 65 N / 2^256 + Q · 2^-11 · (2^14 - 1) / 2^128 + (2^14 - 1) / 2^128`
+`r ≤ maxRows` rows: at most `N · 65 N / 2^256 + Q · 2^-10 · (2^13 - 1) / 2^128 + (2^13 - 1) / 2^128`
 for `N = 2 Q + 2^20`: the hash's bad events, a fresh draw the adversary's call makes selected and
 accepting, and the one fresh try of the verifier's nonce search. -/
 theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r ≤ maxRows)
@@ -312,13 +312,13 @@ theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r 
     (hg : QueryCostAtMost (advSim r A crs) gwCalls Q) :
     prT (idealT r A crs (tailH r ps ext crs)) ≤
       ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-        (Q * ((2 ^ 14 - 1) / 2 ^ 139) + (2 ^ 14 - 1) / 2 ^ 128) := by
+        (Q * ((2 ^ 13 - 1) / 2 ^ 138) + (2 ^ 13 - 1) / 2 ^ 128) := by
   have hL := logPaddedRowCount_le_logMaxRows hr
   have hN := paddedRowCount_le_maxRows hr
   norm_num [maxRows, logMaxRows] at hL hN
   have hread : ∀ d c, Good r c →
       Pr{let z ← (simulateQ GW.romImpl (readL (List.finRange nLabels) d)).run c}[¬ Good r z.2] ≤
-        (2 ^ 14 - 1) / 2 ^ 128 := fun d c hc ↦ by
+        (2 ^ 13 - 1) / 2 ^ 128 := fun d c hc ↦ by
     rw [← readVec_eq_readL]; exact prob_readVec_not_good_le r d c hc
   have hT : idealT r A crs (tailH r ps ext crs) =
       (simulateQ GW.romImpl (advSim r A crs >>=
@@ -337,10 +337,10 @@ theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r 
   have hQ : ((2 * Q + 1 : ℕ) : ℝ≥0∞) + ((commitCalls r + (9 + logPaddedRowCount r) : ℕ) : ℝ≥0∞) ≤
       ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) := by
     rw [← Nat.cast_add]; exact_mod_cast (by unfold commitCalls; omega)
-  calc ((2 * Q + 1 : ℕ) : ℝ≥0∞) * x + (Q : ℝ≥0∞) * ((2 ^ 14 - 1) / 2 ^ 139) +
-        ((2 ^ 14 - 1) / 2 ^ 128 + ((commitCalls r + (9 + logPaddedRowCount r) : ℕ) : ℝ≥0∞) * x)
+  calc ((2 * Q + 1 : ℕ) : ℝ≥0∞) * x + (Q : ℝ≥0∞) * ((2 ^ 13 - 1) / 2 ^ 138) +
+        ((2 ^ 13 - 1) / 2 ^ 128 + ((commitCalls r + (9 + logPaddedRowCount r) : ℕ) : ℝ≥0∞) * x)
       = (((2 * Q + 1 : ℕ) : ℝ≥0∞) + ((commitCalls r + (9 + logPaddedRowCount r) : ℕ) : ℝ≥0∞)) * x +
-          ((Q : ℝ≥0∞) * ((2 ^ 14 - 1) / 2 ^ 139) + (2 ^ 14 - 1) / 2 ^ 128) := by ring
+          ((Q : ℝ≥0∞) * ((2 ^ 13 - 1) / 2 ^ 138) + (2 ^ 13 - 1) / 2 ^ 128) := by ring
     _ ≤ _ := by gcongr
 
 /-- **The simulated code-binding experiment**: the knowledge-soundness one plus the straight-line
@@ -351,7 +351,7 @@ theorem codeBindingExpG_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r �
       QueryCostAtMost (advSim r A crs) gwCalls Q) :
     prT (codeBindingExpG r ps A) ≤ prT (ps.setup >>= ksIdealG r ps ext A) +
       (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-        (Q * ((2 ^ 14 - 1) / 2 ^ 139) + (2 ^ 14 - 1) / 2 ^ 128)) :=
+        (Q * ((2 ^ 13 - 1) / 2 ^ 138) + (2 ^ 13 - 1) / 2 ^ 128)) :=
   (prT_codeBindingExpG_le r ps ext A).trans (add_le_add le_rfl
     (prEvent_bind_le_of_support _ _ _ _ fun crs hcrs ↦
       prT_idealT_tailH_le r ps ext A Q hr crs (hA crs hcrs).1 (hA crs hcrs).2))
@@ -368,18 +368,18 @@ noncomputable abbrev dupTerm (Q : ℕ) : ℝ≥0∞ :=
   ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹)
 
 /-- **The terms besides the argument's knowledge soundness**: the two transfers, the two duplex
-lemmas and the straight-line verdict, at most `(Q + 2^11) · 2^-125 + (Q + 2^22)² · 2^-247` for
+lemmas and the straight-line verdict, at most `(Q + 2^10) · 2^-125 + (Q + 2^22)² · 2^-247` for
 `K ≤ Q + 2^65` calls of the knowledge-soundness game. -/
 theorem straight_rest_le (Q K : ℕ) (hK : K ≤ Q + 2 ^ 65) :
     (K : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q +
         (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-          ((Q : ℝ≥0∞) * ((2 ^ 14 - 1) / 2 ^ 139) + (2 ^ 14 - 1) / 2 ^ 128)) +
+          ((Q : ℝ≥0∞) * ((2 ^ 13 - 1) / 2 ^ 138) + (2 ^ 13 - 1) / 2 ^ 128)) +
         ((Q : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q) ≤
-      ((Q : ℝ≥0∞) + 2 ^ 11) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+      ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247 := by
   calc _ ≤ (K : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q +
         (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-          ((Q : ℝ≥0∞) * (2 ^ 14 / 2 ^ 139) + 2 ^ 14 / 2 ^ 128)) +
+          ((Q : ℝ≥0∞) * (2 ^ 13 / 2 ^ 138) + 2 ^ 13 / 2 ^ 128)) +
         ((Q : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q) := by
         gcongr <;> exact tsub_le_self
     _ ≤ _ := ?_
@@ -392,8 +392,8 @@ theorem straight_rest_le (Q K : ℕ) (hK : K ≤ Q + 2 ^ 65) :
     or_self, not_false_eq_true, ENNReal.mul_eq_top, pow_eq_zero_iff, OfNat.ofNat_ne_zero,
     ENNReal.add_eq_top, ENNReal.inv_eq_top, ENNReal.inv_eq_zero]
   push_cast
-  have t5 : (Q : ℝ) * (2 ^ 14 / 2 ^ 139) = Q * (2 : ℝ)⁻¹ ^ 125 := by norm_num
-  have t6 : (2 : ℝ) ^ 14 / 2 ^ 128 = 2 ^ 11 * (2 : ℝ)⁻¹ ^ 125 := by norm_num
+  have t5 : (Q : ℝ) * (2 ^ 13 / 2 ^ 138) = Q * (2 : ℝ)⁻¹ ^ 125 := by norm_num
+  have t6 : (2 : ℝ) ^ 13 / 2 ^ 128 = 2 ^ 10 * (2 : ℝ)⁻¹ ^ 125 := by norm_num
   have hA : (2 : ℝ) ^ 86 * 2 ^ 256 ≤ 2 ^ 508 := by
     rw [← pow_add]; exact pow_le_pow_right₀ (by norm_num) (by norm_num)
   have hB : (2 : ℝ) ^ 88 * 2 ^ 256 ≤ 2 ^ 576 := by
@@ -449,13 +449,13 @@ theorem straight_rest_le (Q K : ℕ) (hK : K ≤ Q + 2 ^ 65) :
 
 /-- **The straight-line bound is below the forking route's** for every `Q`. -/
 theorem straight_le_fork (Q c k : ℕ) :
-    ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 11) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+    ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247 ≤
       ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 56 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 158 := by
-  have hlin : ((Q : ℝ≥0∞) + 2 ^ 11) * (2 : ℝ≥0∞)⁻¹ ^ 125 ≤
+  have hlin : ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 ≤
       ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 56 :=
-    mul_le_mul' (add_le_add le_rfl (show (2 : ℝ≥0∞) ^ 11 ≤ 2 ^ 20 from
+    mul_le_mul' (add_le_add le_rfl (show (2 : ℝ≥0∞) ^ 10 ≤ 2 ^ 20 from
       pow_le_pow_right₀ (by norm_num) (by norm_num)))
       (pow_le_pow_of_le_one zero_le (by norm_num) (by norm_num))
   have hquad : ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247 ≤

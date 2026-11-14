@@ -28,7 +28,7 @@ import LeanVM.Guest.Data.Source
 # `da_verify`'s and the claim lists' instructions
 
 `colW op r`: a column's instructions of `op` on `r` blobs: its frame's weight, its weights'
-expansion's (`da_expand__L7_L8`), its row loop's `r` iterations (`col_weight_le`, on a tree of
+expansion's (`da_expand__L6_L7`), its row loop's `r` iterations (`col_weight_le`, on a tree of
 `Da.colNH r`). `l18From_weight_le`: the column loop's `n` iterations, each its frame and a column.
 `dvW op r L`: `da_verify`'s on `r` blobs padded to `2^L`: its frame, the row shape's and
 `da_vector`'s, the regions' bases' `r` iterations, `128` columns, the blobs' trees' `r`, the

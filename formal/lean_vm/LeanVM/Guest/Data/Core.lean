@@ -141,8 +141,8 @@ noncomputable def coreFunctions : List Core.Fn :=
   Fn.«child_claim_list_mono_loop0».core :: Fn.«child_claim_list_mono_loop1».core :: Fn.«child_claim_list_mono_last__L0».core :: Fn.«child_claim_list_mono_last__L1».core :: Fn.«child_claim_list_mono_last__L2».core :: Fn.«child_claim_list_mono_last__L3».core :: Fn.«child_claim_list_mono_last__L4».core :: Fn.«child_claim_list_mono_last__L5».core ::
   Fn.«child_claim_list_mono_last__L6».core :: Fn.«child_claim_list_mono_last__L7».core :: Fn.«child_claim_list_mono_last__L8».core :: Fn.«child_claim_list_mono_last__L9».core :: Fn.«child_claim_list_mono_last__L10».core :: Fn.«child_claim_list_mono_last__L11».core :: Fn.«child_claim_list_mono_last__L12».core :: Fn.«child_claim_list_mono_last__L13».core ::
   Fn.«child_claim_list_mono_last__L14».core :: Fn.«child_claim_list_mono_last__L15».core :: Fn.«child_claim_list_mono_last__L16».core :: Fn.«da_verify_loop0».core :: Fn.«da_verify_loop1».core :: Fn.«da_verify_loop2».core :: Fn.«da_verify_loop3».core :: Fn.«da_levels__L1_L0».core ::
-  Fn.«da_levels__L2_L1».core :: Fn.«da_levels__L4_L2».core :: Fn.«da_levels__L8_L3».core :: Fn.«da_levels__L16_L4».core :: Fn.«da_levels__L32_L5».core :: Fn.«da_expand__L7_L8».core :: Fn.«da_verify_column_loop0».core :: Fn.«da_factors__L14_L7_L0».core ::
-  Fn.«da_expand__L14_L7».core :: Fn.«da_factors__L7_L8_L128».core :: Fn.«da_column_offsets_loop0».core :: Fn.«da_column_offsets_loop1».core :: Fn.«da_column_offsets_loop2».core :: Fn.«da_column_offsets_loop3».core :: Fn.«da_column_offsets_loop4».core :: Fn.«da_column_offsets_loop5».core ::
+  Fn.«da_levels__L2_L1».core :: Fn.«da_levels__L4_L2».core :: Fn.«da_levels__L8_L3».core :: Fn.«da_levels__L16_L4».core :: Fn.«da_levels__L32_L5».core :: Fn.«da_expand__L6_L7».core :: Fn.«da_verify_column_loop0».core :: Fn.«da_factors__L13_L7_L0».core ::
+  Fn.«da_expand__L13_L7».core :: Fn.«da_factors__L6_L7_L128».core :: Fn.«da_column_offsets_loop0».core :: Fn.«da_column_offsets_loop1».core :: Fn.«da_column_offsets_loop2».core :: Fn.«da_column_offsets_loop3».core :: Fn.«da_column_offsets_loop4».core :: Fn.«da_column_offsets_loop5».core ::
   Fn.«da_column_offsets_loop6».core :: Fn.«aggregate_claims_loop0».core :: Fn.«grind_check__L2».core :: Fn.«aggregate_claims_loop1».core :: Fn.«batch_sumcheck__L23».core :: Fn.«aggregate_claims_loop2».core :: Fn.«rs_eq_rows__L8».core :: Fn.«verify_bus_gkr_loop0_loop0».core ::
   Fn.«gkr_rounds__L0».core :: Fn.«gkr_rounds__L2».core :: Fn.«gkr_rounds__L4».core :: Fn.«gkr_rounds__L6».core :: Fn.«gkr_rounds__L1».core :: Fn.«grind_check__L3».core :: Fn.«keccak_layer__L1_loop0».core :: Fn.«keccak_layer__L1_loop1».core ::
   Fn.«keccak_layer__L0_loop0».core :: Fn.«keccak_layer__L0_loop1».core :: Fn.«grind_check__L17».core :: Fn.«grind_check__L18».core :: Fn.«grind_check__L19».core :: Fn.«grind_check__L20».core :: Fn.«grind_check__L21».core :: Fn.«grind_check__L22».core ::
@@ -1115,16 +1115,16 @@ noncomputable abbrev core411 : Core.Fn := Fn.«da_levels__L16_L4».core
 noncomputable abbrev core411.body : List Core.Stmt := Fn.«da_levels__L16_L4».core.body
 noncomputable abbrev core412 : Core.Fn := Fn.«da_levels__L32_L5».core
 noncomputable abbrev core412.body : List Core.Stmt := Fn.«da_levels__L32_L5».core.body
-noncomputable abbrev core413 : Core.Fn := Fn.«da_expand__L7_L8».core
-noncomputable abbrev core413.body : List Core.Stmt := Fn.«da_expand__L7_L8».core.body
+noncomputable abbrev core413 : Core.Fn := Fn.«da_expand__L6_L7».core
+noncomputable abbrev core413.body : List Core.Stmt := Fn.«da_expand__L6_L7».core.body
 noncomputable abbrev core414 : Core.Fn := Fn.«da_verify_column_loop0».core
 noncomputable abbrev core414.body : List Core.Stmt := Fn.«da_verify_column_loop0».core.body
-noncomputable abbrev core415 : Core.Fn := Fn.«da_factors__L14_L7_L0».core
-noncomputable abbrev core415.body : List Core.Stmt := Fn.«da_factors__L14_L7_L0».core.body
-noncomputable abbrev core416 : Core.Fn := Fn.«da_expand__L14_L7».core
-noncomputable abbrev core416.body : List Core.Stmt := Fn.«da_expand__L14_L7».core.body
-noncomputable abbrev core417 : Core.Fn := Fn.«da_factors__L7_L8_L128».core
-noncomputable abbrev core417.body : List Core.Stmt := Fn.«da_factors__L7_L8_L128».core.body
+noncomputable abbrev core415 : Core.Fn := Fn.«da_factors__L13_L7_L0».core
+noncomputable abbrev core415.body : List Core.Stmt := Fn.«da_factors__L13_L7_L0».core.body
+noncomputable abbrev core416 : Core.Fn := Fn.«da_expand__L13_L7».core
+noncomputable abbrev core416.body : List Core.Stmt := Fn.«da_expand__L13_L7».core.body
+noncomputable abbrev core417 : Core.Fn := Fn.«da_factors__L6_L7_L128».core
+noncomputable abbrev core417.body : List Core.Stmt := Fn.«da_factors__L6_L7_L128».core.body
 noncomputable abbrev core418 : Core.Fn := Fn.«da_column_offsets_loop0».core
 noncomputable abbrev core418.body : List Core.Stmt := Fn.«da_column_offsets_loop0».core.body
 noncomputable abbrev core419 : Core.Fn := Fn.«da_column_offsets_loop1».core

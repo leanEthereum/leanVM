@@ -557,7 +557,6 @@ DA_LOG_M = DA_LOG_K + 1                         # log of the symbols per encoded
 DA_CELL = 2 ** DA_LOG_CELL                      # symbols in a cell
 DA_BLOCK_BITS = DA_LOG_M - DA_LOG_CELL          # log of the cells per row
 DA_CELLS = 2 ** DA_BLOCK_BITS                   # cells per row
-DA_PACKED = DA_CELL // 2                        # packed 128-bit cells in one cell
 DA_TREE_ARMS = DA_LOG_MAX_ROWS + 1              # tree depths the row count can dispatch to
 DA_SUM = 4 * DA_CELLS                           # where a blob's running sum starts, past its tree
 DA_REGION = DA_SUM + DA_CELLS + 1               # cells of one blob's tree and running sum
@@ -4577,17 +4576,14 @@ def da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offset
 
 
 def da_verify_cell(lvals):
-    # Packing checks that each symbol used by both the hash and dot product is in K.
+    # A symbol is a word of E, so the hash and the inner product read the hinted cell as is.
     sym = StackBuf(DA_CELL)
     hint_witness(sym, "da_symbols")
-    packed = StackBuf(DA_PACKED)
     s = 0
-    for e in unroll(0, DA_PACKED):
-        packed[e] = pack64x2(sym[2 * e], sym[2 * e + 1])
-        s = s + lvals[GEN ** (2 * e)] * sym[2 * e]
-        s = s + lvals[GEN ** (2 * e + 1)] * sym[2 * e + 1]
+    for e in unroll(0, DA_CELL):
+        s = s + lvals[GEN ** e] * sym[e]
     st = StackBuf(2)
-    keccak_cells(packed, st)
+    keccak_cells(sym, st)
     return st[0], st[1], s
 
 

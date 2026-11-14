@@ -83,7 +83,7 @@ frames, the padding loop's (or its frame when it does not run): a static loop he
 charged its phantom frame once, here, and `iterK fs SK g` per iteration. -/
 def dvC : ℕ :=
   fs "da_verify" + fs "da_row_shape" + SB "da_vector" + fs name% «da_verify_loop0» +
-    128 * (fs name% «da_verify_loop1» + fs "da_verify_column" + SB "da_expand__L7_L8" + fs
+    128 * (fs name% «da_verify_loop1» + fs "da_verify_column" + SB "da_expand__L6_L7" + fs
         name% «da_verify_column_loop0») +
     fs name% «da_verify_loop1» + fs name% «da_verify_loop2» + fs name% «da_verify_loop3»
 
@@ -115,10 +115,10 @@ theorem dvB_le {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < guest_const% DA_TREE_ARM
   have e : r * (642 + k21 + 128 * k25 + (k23 - k24)) =
       642 * r + r * k21 + 128 * (r * k25) + r * (k23 - k24) := by ring
   have e' : 2 ^ L * (4 + k24 + dlK SB) = 4 * 2 ^ L + 2 ^ L * k24 + dlK SB * 2 ^ L := by ring
-  have e'' : 128 * (fs name% «da_verify_loop1» + (fs "da_verify_column" + SB "da_expand__L7_L8" +
+  have e'' : 128 * (fs name% «da_verify_loop1» + (fs "da_verify_column" + SB "da_expand__L6_L7" +
       (r * k25 + fs name% «da_verify_column_loop0»))) = 128 * (fs name% «da_verify_loop1» + fs
           "da_verify_column" +
-      SB "da_expand__L7_L8" + fs name% «da_verify_column_loop0») + 128 * (r * k25) := by ring
+      SB "da_expand__L6_L7" + fs name% «da_verify_column_loop0») + 128 * (r * k25) := by ring
   omega
 
 /-! ## The claim lists

@@ -80,24 +80,24 @@ theorem dv_cok : dvCOk = true := by decide +kernel
 noncomputable def dvVb (z : E) (pv : List (List E × Layout)) : ℕ × ℕ × ℕ × ℕ :=
   outB (fun (q : ℕ × ℕ × ℕ × ℕ) rets Lo => rets = [gen ^ q.1, gen ^ (q.2.1 + 2 ^ 7), gen ^ q.2.2.1,
     gen ^ q.2.2.2] ∧ (q.1, zsCells z) ∈ Lo ∧ (q.2.1, topRun z) ∈ Lo ∧
-    (q.2.2.1, facCells (zsVal z) 7 8) ∈ Lo ∧ (q.2.2.2, offCells (zsVal z)) ∈ Lo) (pv.getD 1 ([], []))
+    (q.2.2.1, facCells (zsVal z) 6 7) ∈ Lo ∧ (q.2.2.2, offCells (zsVal z)) ∈ Lo) (pv.getD 1 ([], []))
 
 theorem dvVb_spec {z : E} {pv : List (List E × Layout)} (h : vecOut z (pv.getD 1 ([], [])).1 (pv.getD 1 ([], [])).2) :
     (pv.getD 1 ([], [])).1 = [gen ^ (dvVb z pv).1, gen ^ ((dvVb z pv).2.1 + 2 ^ 7),
       gen ^ (dvVb z pv).2.2.1, gen ^ (dvVb z pv).2.2.2] ∧
     ((dvVb z pv).1, zsCells z) ∈ (pv.getD 1 ([], [])).2 ∧ ((dvVb z pv).2.1, topRun z) ∈ (pv.getD 1 ([], [])).2 ∧
-    ((dvVb z pv).2.2.1, facCells (zsVal z) 7 8) ∈ (pv.getD 1 ([], [])).2 ∧
+    ((dvVb z pv).2.2.1, facCells (zsVal z) 6 7) ∈ (pv.getD 1 ([], [])).2 ∧
     ((dvVb z pv).2.2.2, offCells (zsVal z)) ∈ (pv.getD 1 ([], [])).2 := by
   obtain ⟨bz, bt, bc, bo, h1, h2, h3, h4, h5⟩ := h
   exact outB_spec (P := fun (q : ℕ × ℕ × ℕ × ℕ) rets Lo => rets = [gen ^ q.1, gen ^ (q.2.1 + 2 ^ 7),
     gen ^ q.2.2.1, gen ^ q.2.2.2] ∧ (q.1, zsCells z) ∈ Lo ∧ (q.2.1, topRun z) ∈ Lo ∧
-    (q.2.2.1, facCells (zsVal z) 7 8) ∈ Lo ∧ (q.2.2.2, offCells (zsVal z)) ∈ Lo)
+    (q.2.2.1, facCells (zsVal z) 6 7) ∈ Lo ∧ (q.2.2.2, offCells (zsVal z)) ∈ Lo)
     ⟨(bz, bt, bc, bo), h1, h2, h3, h4, h5⟩
 
 /-- A column's words bound, its callees' frames and its row loop's `r` iterations and phantom
 frame. -/
 def colBf (fs : String → ℕ) (SK : String → ℕ) (r : ℕ) : ℕ :=
-  fs "da_verify_column" + (fs "da_expand__L7_L8" + (r * iterK fs SK name% «da_verify_column_loop0»
+  fs "da_verify_column" + (fs "da_expand__L6_L7" + (r * iterK fs SK name% «da_verify_column_loop0»
       + fs name% «da_verify_column_loop0»))
 
 /-- `da_verify`'s callees' bounds, in call order, at the frame sizes. -/
@@ -111,7 +111,7 @@ def dvBs (fs : String → ℕ) (SB SK : String → ℕ) (r L : ℕ) : List ℕ :
     SB (daLevelsName L)]
 
 /-- `da_verify`'s callees, on its buffers at `bb`. -/
-noncomputable def dvKids (r L : ℕ) (syms : ℕ → ℕ → List K) (z : E) (s bb : ℕ) : List KidD :=
+noncomputable def dvKids (r L : ℕ) (syms : ℕ → ℕ → List E) (z : E) (s bb : ℕ) : List KidD :=
   [fun _ => ⟨"da_row_shape", true, [gen ^ r, gen ^ L, gen ^ s], [(s + L, [gen ^ 2 ^ L])],
       Returns [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]⟩,
     fun _ => ⟨"da_vector", true, [z], [], vecOut z⟩,
@@ -256,9 +256,9 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
           name% «da_verify_column_loop0»))
     {r L : ℕ} (hdl : TotalLe coreProgram fs (daLevelsName L) (fun _ => SB (daLevelsName L)))
     (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.paddedRowCount r)
-    {syms : ℕ → ℕ → List K} (hsl : ∀ i j, (syms i j).length = 256)
-    {z : E} (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
-      dualAt z (256 * h + e) * ofK ((syms i h).getD e 0) = 0) (s : ℕ) :
+    {syms : ℕ → ℕ → List E} (hsl : ∀ i j, (syms i j).length = 128)
+    {z : E} (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
+      dualAt z (128 * h + e) * (syms i h).getD e 0 = 0) (s : ℕ) :
     CompleteAtDTB fs cert 16 "da_verify" [(s + L, [gen ^ 2 ^ L])] [gen ^ s]
       (Returns (digestCells (daRoot r L syms) ++ [z])) (dvNH r L)
       (fs "da_verify" + (dvSizes r L).sum + (dvBs fs SB SK r L).sum) := by

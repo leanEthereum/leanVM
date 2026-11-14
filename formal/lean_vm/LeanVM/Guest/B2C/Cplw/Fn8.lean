@@ -22,22 +22,23 @@ import LeanVM.Guest.Pack.«P10».Cplw1
 import LeanVM.Guest.Pack.«P37».Cplw0
 import LeanVM.Guest.Pack.«P62».Cplw0
 import LeanVM.Guest.Pack.«P58».Cplw0
-import LeanVM.Guest.Pack.«P49».Cplw0
+import LeanVM.Guest.Pack.«P29».Cplw1
+import LeanVM.Guest.Pack.«P8».Cplw0
 import LeanVM.Guest.Pack.«P61».Cplw0
-import LeanVM.Guest.Pack.«P13».Cplw0
 import LeanVM.Guest.Pack.«P47».Cplw1
 import LeanVM.Guest.Pack.«P28».Cplw1
 import LeanVM.Guest.Pack.«P21».Cplw0
-import LeanVM.Guest.Pack.«P2».Cplw1
 import LeanVM.Guest.Pack.«P35».Cplw1
 import LeanVM.Guest.Pack.«P16».Cplw1
 import LeanVM.Guest.Pack.«P9».Cplw1
+import LeanVM.Guest.Pack.«P13».Cplw0
 import LeanVM.Guest.Pack.«P14».Cplw1
 import LeanVM.Guest.Pack.«P38».Cplw0
 import LeanVM.Guest.Pack.«P39».Cplw1
 import LeanVM.Guest.Pack.«P45».Cplw1
 import LeanVM.Guest.Pack.«P54».Cplw1
 import LeanVM.Guest.Pack.«P11».Cplw0
+import LeanVM.Guest.Pack.«P49».Cplw0
 import LeanVM.Guest.Pack.«P23».Cplw0
 import LeanVM.Guest.Pack.«P56».Cplw0
 import LeanVM.Guest.Pack.«P26».Cplw0
@@ -95,19 +96,19 @@ theorem ok413 : CplOk 413 :=
   cplOk_of_link link413 plumbEq413 fsEq413 partsEq413 armsEq413 rfl Fn.«da_levels__L32_L5».cplOk
 
 theorem ok414 : CplOk 414 :=
-  cplOk_of_link link414 plumbEq414 fsEq414 partsEq414 armsEq414 rfl Fn.«da_expand__L7_L8».cplOk
+  cplOk_of_link link414 plumbEq414 fsEq414 partsEq414 armsEq414 rfl Fn.«da_expand__L6_L7».cplOk
 
 theorem ok415 : CplOk 415 :=
   cplOk_of_link link415 plumbEq415 fsEq415 partsEq415 armsEq415 rfl Fn.«da_verify_column_loop0».cplOk
 
 theorem ok416 : CplOk 416 :=
-  cplOk_of_link link416 plumbEq416 fsEq416 partsEq416 armsEq416 rfl Fn.«da_factors__L14_L7_L0».cplOk
+  cplOk_of_link link416 plumbEq416 fsEq416 partsEq416 armsEq416 rfl Fn.«da_factors__L13_L7_L0».cplOk
 
 theorem ok417 : CplOk 417 :=
-  cplOk_of_link link417 plumbEq417 fsEq417 partsEq417 armsEq417 rfl Fn.«da_expand__L14_L7».cplOk
+  cplOk_of_link link417 plumbEq417 fsEq417 partsEq417 armsEq417 rfl Fn.«da_expand__L13_L7».cplOk
 
 theorem ok418 : CplOk 418 :=
-  cplOk_of_link link418 plumbEq418 fsEq418 partsEq418 armsEq418 rfl Fn.«da_factors__L7_L8_L128».cplOk
+  cplOk_of_link link418 plumbEq418 fsEq418 partsEq418 armsEq418 rfl Fn.«da_factors__L6_L7_L128».cplOk
 
 theorem ok419 : CplOk 419 :=
   cplOk_of_link link419 plumbEq419 fsEq419 partsEq419 armsEq419 rfl Fn.«da_column_offsets_loop0».cplOk

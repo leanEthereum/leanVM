@@ -23,7 +23,7 @@ import LeanVM.Guest.Pack.«P11».Cplw4
 import LeanVM.Guest.Pack.«P56».Cplw3
 import LeanVM.Guest.Pack.«P14».Cplw2
 import LeanVM.Guest.Pack.«P30».Cplw3
-import LeanVM.Guest.Pack.«P49».Cplw3
+import LeanVM.Guest.Pack.«P49».Cplw2
 import LeanVM.Guest.Pack.«P4».Cplw2
 import LeanVM.Guest.Pack.«P23».Cplw3
 import LeanVM.Guest.Pack.«P9».Cplw3
@@ -39,11 +39,10 @@ import LeanVM.Guest.Pack.«P59».Cplw4
 import LeanVM.Guest.Pack.«P12».Cplw2
 import LeanVM.Guest.Pack.«P22».Cplw4
 import LeanVM.Guest.Pack.«P60».Cplw3
-import LeanVM.Guest.Pack.«P2».CplwOk
 import LeanVM.Guest.Pack.«P21».CplwOk
 import LeanVM.Guest.Pack.«P7».Cplw4
 import LeanVM.Guest.Pack.«P46».CplwOk
-import LeanVM.Guest.Pack.«P8».CplwOk
+import LeanVM.Guest.Pack.«P8».Cplw3
 import LeanVM.Guest.Pack.«P54».Cplw3
 import LeanVM.Guest.Pack.«P40».Cplw3
 import LeanVM.Guest.Pack.«P58».CplwOk

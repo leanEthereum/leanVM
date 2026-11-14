@@ -70,11 +70,6 @@ theorem w0 : checkWinCF (Glob.ofSigs [] Data.jtTrie globSem) code
     Fn.«da_verify_cell».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
-/-- `da_verify_cell`, window 1. -/
-theorem w1 : checkWinCF (Glob.ofSigs [] Data.jtTrie globSem) code
-    Fn.«da_verify_cell».core (cert.withPows Data.powTree) false 1 = true := by
-  decide +kernel
-
 end
 end LeanVM.Guest.Fn.«da_verify_cell»
 

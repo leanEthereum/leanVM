@@ -47,22 +47,22 @@ A node with $n$ children combines the claim each child carries with the new clai
 
 Erasure coding makes data recoverable from a subset of its encoded symbols. Sampling checks whether those symbols can be retrieved, but does not establish that they form a valid encoding. An approach using leanVM was introduced in \href{https://frisitano.github.io/slides/presentations/leanvm-fold-in-circuit-das-2026-05-08/index.html}{Risitano's presentation} and developed in LeanDA~\cite{LeanDA} by Meng, Wagner, Kadianakis and Risitano: commit to an encoded matrix and prove every row is a codeword, then sample authenticated cells. A formal security proof can be found in \cite{LeanDASecurity}.
 
-Our construction uses Keccak-256 and the additive Reed-Solomon encoder over $\K$ already used by the PCS, with a different commitment (\S\ref{sec:da-commit}) and codeword membership test (\S\ref{sec:da-membership}) from LeanDA's. The polynomial basis, transform, and membership lemmas are collected in Annex~\ref{app:ntt}.
+Our construction uses Keccak-256 and the additive Reed-Solomon encoder of the PCS, on symbols of $\E$, one VM word each, with a different commitment (\S\ref{sec:da-commit}) and codeword membership test (\S\ref{sec:da-membership}) from LeanDA's. The polynomial basis, transform, and membership lemmas are collected in Annex~\ref{app:ntt}.
 
 
 \subsubsection{The commitment}\label{sec:da-commit}
 
-A blob is a polynomial in $\K[X]$ of degree less than $\kdim$, represented by its $\kdim$ evaluations on $\subsp_{\log_2\kdim}$. Its Reed-Solomon encoding is the vector of evaluations on the larger domain $\dom=\subsp_{\log_2\blen}$, where $\blen=2\kdim$. The first $\kdim$ symbols are the original blob, so the encoding is systematic; the remaining symbols provide redundancy. Any $\kdim$ encoded evaluations recover the blob.
+A blob is a polynomial in $\E[X]$ of degree less than $\kdim$, represented by its $\kdim$ evaluations on $\subsp_{\log_2\kdim}$. Its Reed-Solomon encoding is the vector of evaluations on the larger domain $\dom=\subsp_{\log_2\blen}$, where $\blen=2\kdim$: a codeword of $\RS[\E,\dom,\kdim]$ (Definition~\ref{def:rs-code}). The first $\kdim$ symbols are the original blob, so the encoding is systematic; the remaining symbols provide redundancy. Any $\kdim$ encoded evaluations recover the blob. The domain and the novel basis lie in $\K$, so the two limbs of a blob are polynomials in $\K[X]$ encoded apart: the codeword is two codewords of $\RS[\K,\dom,\kdim]$ interleaved, with the same rate and distance.
 
 One commitment covers a nonempty matrix of $\nblob$ encoded blobs, one per row.
 
-Split each encoded row into cells of $\cellsz$ symbols. The guest fixes these dimensions, matching the byte sizes of an \href{https://eips.ethereum.org/EIPS/eip-4844}{EIP-4844} blob and an \href{https://eips.ethereum.org/EIPS/eip-7594}{EIP-7594} sampling cell:
+Split each encoded row into cells of $\cellsz$ symbols, a symbol being $16$ bytes. The guest fixes these dimensions, matching the byte sizes of an \href{https://eips.ethereum.org/EIPS/eip-4844}{EIP-4844} blob and an \href{https://eips.ethereum.org/EIPS/eip-7594}{EIP-7594} sampling cell:
 \begin{center}
 \begin{tabular}{@{}rll@{}}
 \hline
-$\kdim$ & $2^{14}$ symbols & $128$ KiB of payload per row\\
-$\blen$ & $2^{15}$ symbols & $256$ KiB per encoded row\\
-$\cellsz$ & $2^8$ symbols & $2$ KiB per cell\\
+$\kdim$ & $2^{13}$ symbols & $128$ KiB of payload per row\\
+$\blen$ & $2^{14}$ symbols & $256$ KiB per encoded row\\
+$\cellsz$ & $2^7$ symbols & $2$ KiB per cell\\
 $\blen/\cellsz$ & $128$ cells & any $64$ reconstruct a row\\
 $\nblob$ & $1$ to $32$ & dynamic parameter\\
 \hline
@@ -70,7 +70,7 @@ $\nblob$ & $1$ to $32$ & dynamic parameter\\
 \end{center}
 Zero codewords pad the row count to the next power of two. The root binds this padded matrix.
 
-Let $H$ denote the hash and $e_{i,j}$ the hash of cell $j$ in row $i$. Each row has a Merkle tree of its own: its leaves are $e_{i,0},\ldots,e_{i,127}$, each inner node is the hash of its two children, and its root is $\dablob{i}$. The left child of $\dablob{i}$ covers the first $\kdim/\cellsz$ cells, the original blob. The commitment $\daroot$ is the root of the Merkle tree whose leaves are the row roots of the padded matrix, each padding row having the zero codeword's root (Figure~\ref{fig:da-hashing}). A sampled cell is authenticated by its path to its row's root, then that root's path to $\daroot$.
+Let $H$ denote the hash and $e_{i,j}$ the hash of cell $j$ in row $i$, its symbols in order, each as its two little-endian $64$-bit limbs. Each row has a Merkle tree of its own: its leaves are $e_{i,0},\ldots,e_{i,127}$, each inner node is the hash of its two children, and its root is $\dablob{i}$. The left child of $\dablob{i}$ covers the first $\kdim/\cellsz$ cells, the original blob. The commitment $\daroot$ is the root of the Merkle tree whose leaves are the row roots of the padded matrix, each padding row having the zero codeword's root (Figure~\ref{fig:da-hashing}). A sampled cell is authenticated by its path to its row's root, then that root's path to $\daroot$.
 
 \begin{figure}[htbp]
 \centering
@@ -139,7 +139,7 @@ Let $H$ denote the hash and $e_{i,j}$ the hash of cell $j$ in row $i$. Each row 
 
 A row is valid exactly when it consists of evaluations of a polynomial of degree less than $\kdim$. On our additive domain at rate $1/2$, such rows are orthogonal to every codeword, and this condition also characterizes them: the code is self-dual (Corollary~\ref{cor:rs-dual}). This gives an efficient membership test.
 
-The challenge is one element $\dachal\in\E$, drawn from the VM's transcript (\S\ref{sec:e2e-fiat-shamir}) with the hash of \texttt{leanDA/rs-membership/v1} as IV and $\daroot$ as public input, after an $11$-bit grind (\S\ref{sec:grinding}) whose nonce is not sent: the transcript absorbs the smallest valid nonce, which anyone deriving $\dachal$ finds. It defines $\dual$ by \eqref{eq:dual-product} and $\davec=(\dual(x))_{x\in\dom}$. The statement carries $H(\daroot,\dachal)$, $\dachal$ serialized as its two little-endian $64$-bit limbs and two zero words.
+The challenge is one element $\dachal\in\E$, drawn from the VM's transcript (\S\ref{sec:e2e-fiat-shamir}) with the hash of \texttt{leanDA/rs-membership/v1} as IV and $\daroot$ as public input, after a $10$-bit grind (\S\ref{sec:grinding}) whose nonce is not sent: the transcript absorbs the smallest valid nonce, which anyone deriving $\dachal$ finds. It defines $\dual$ by \eqref{eq:dual-product} and $\davec=(\dual(x))_{x\in\dom}$. The statement carries $H(\daroot,\dachal)$, $\dachal$ serialized as its two little-endian $64$-bit limbs and two zero words.
 
 The guest recomputes $\daroot$, takes $\dachal$ as a hint, computes $\davec$ and checks
 \[
@@ -147,8 +147,8 @@ The guest recomputes $\daroot$, takes $\dachal$ as a hint, computes $\davec$ and
   =\sum_{x\in\dom}\dual(x)w_i(x)
   \;\qeq\;0
 \]
-for every row $w_i$. Factor $j$ of \eqref{eq:dual-product} depends only on the bits of $x$ from $j$ up, so $\davec$ is a product tree over those bits, built once for all rows.
+for every row $w_i$. A symbol is one VM word, so the guest hashes and multiplies it as it is, with no check of its own. Factor $j$ of \eqref{eq:dual-product} depends only on the bits of $x$ from $j$ up, so $\davec$ is a product tree over those bits, built once for all rows.
 
 The native verifier derives $\dachal$ from $\daroot$ outside the SNARK, as the security proof requires, and checks the proof against $H(\daroot,\dachal)$. A node passing on a child's root passes its digest unchanged.
 
-Every valid row passes. Under a uniform challenge, a fixed invalid matrix passes with probability at most $(\kdim-1)/|\E|<2^{-114}$ (Proposition~\ref{prop:rs-membership}), which the $11$-bit grind brings to $2^{-125}$ per permutation call of a prover trying roots (\S\ref{sec:grinding}); the root it finally submits adds one untried $2^{-114}$.
+Every valid row passes. Under a uniform challenge, a fixed invalid matrix passes with probability at most $(\kdim-1)/|\E|<2^{-115}$ (Proposition~\ref{prop:rs-membership}), which the $10$-bit grind brings to $2^{-125}$ per permutation call of a prover trying roots (\S\ref{sec:grinding}); the root it finally submits adds one untried $2^{-115}$.

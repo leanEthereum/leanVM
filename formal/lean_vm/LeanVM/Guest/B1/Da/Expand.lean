@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.Expand
 
-  `da_expand`'s template and its meaning (G:4638-4651).
+  `da_expand`'s template and its meaning.
 -/
 
 module
@@ -9,14 +9,14 @@ module
 public import LeanVM.Guest.B1.Da.Factors
 
 /-!
-# `da_expand` (G:4638-4651)
+# `da_expand`
 
-`da_expand(root, factors, zs, shifts, top, D)` (`da_expand__L7_L8`; `da_expand__L14_L7`): the tree's
+`da_expand(root, factors, zs, shifts, top, D)` (`da_expand__L6_L7`; `da_expand__L13_L7`): the tree's
 nodes are values, node `1` the root (`.n 4`); depth `d` loads its power and shift (`.n (expB d)`,
 `.n (expB d + 1)`), and node `2^d + y` its factor (`.n s`, `s = expB d + 2 + 5y`), adds the shift,
 and makes its children `node · (factor + shift)` (`s + 2`) and that plus `node · z` (`s + 4`)
 (`expDepthA`). The nodes are the frame run `nodes` (a fresh word, the nodes in heap order, fresh
-words up to `512`), and the function returns `nodes · g^(2^D)`, its leaves (`expT`, `expOk`, checked
+words up to `256`), and the function returns `nodes · g^(2^D)`, its leaves (`expT`, `expOk`, checked
 by kernel evaluation in `ExpandChk`). `exp_node`: node `2^d + y` is `expandLeaf … d y`;
 `da_expand_val`: the meaning.
 -/
@@ -54,12 +54,12 @@ def expDepthA (top d : ℕ) : List Atom :=
 /-- The nodes of depths below `D`, in heap order. -/
 def nodesBelow (D : ℕ) : List V := (List.range D).flatMap fun d ↦ (List.range (2 ^ d)).map (V.n ∘ nodeAt d)
 
-/-- The frame run `nodes`: a fresh word, the nodes, fresh words up to `512`. -/
+/-- The frame run `nodes`: a fresh word, the nodes, fresh words up to `256`. -/
 def expRun (D : ℕ) : List V :=
-  .n (expB D + 1) :: nodesBelow (D + 1) ++ (List.range (512 - 2 ^ (D + 1))).map fun i ↦ .n (expB D + 2 + i)
+  .n (expB D + 1) :: nodesBelow (D + 1) ++ (List.range (256 - 2 ^ (D + 1))).map fun i ↦ .n (expB D + 2 + i)
 
 /-- The value of the leaves' offset. -/
-def expC (D : ℕ) : ℕ := expB D + 2 + (512 - 2 ^ (D + 1))
+def expC (D : ℕ) : ℕ := expB D + 2 + (256 - 2 ^ (D + 1))
 
 /-- `da_expand`'s computing atoms: the root's copy, then the depths. -/
 def expBodyA (top D : ℕ) : List Atom := .copy (.n 4) (.n 0) :: (List.range D).flatMap (expDepthA top)
@@ -168,7 +168,7 @@ theorem exp_node {top D : ℕ} (hat : ∀ a ∈ expBodyA top D, a.Holds rd σ) (
 
 /-- **`da_expand`'s body gives its meaning.** -/
 theorem da_expand_val {fn : Fn} {top D W : ℕ} (hok : expOk fn top D W = true) (hD : D ≤ top + 1)
-    (hD9 : D ≤ 8) {C : CallRel} {args rets : List E} (hpar : fn.params.map σ = args)
+    (hD9 : D ≤ 7) {C : CallRel} {args rets : List E} (hpar : fn.params.map σ = args)
     (hb : Stmt.HoldsList C rd σ fn.body False (fun rs ↦ rs = rets)) :
     MeaningDaExpand top D rd args rets := by
   unfold expOk at hok
@@ -214,19 +214,19 @@ theorem da_expand_val {fn : Fn} {top D W : ℕ} (hok : expOk fn top D W = true) 
       rw [hmul, hcst, hw]
       refine ⟨isInK_mul hfk (ofK_isInK _), fun k hk w hr ↦ ?_⟩
       rw [limb0_mul_ofK _ _, mul_assoc, addressOfIndex, addressOfIndex, ← pow_add] at hr
-      have hlen : (expRun D).length = 512 := by
+      have hlen : (expRun D).length = 256 := by
         simp only [expRun, List.length_cons, List.length_append, List.length_map, List.length_range,
           length_nodesBelow]
-        have : 2 ^ (D + 1) ≤ 512 := by
-          calc 2 ^ (D + 1) ≤ 2 ^ 9 := Nat.pow_le_pow_right (by norm_num) (by omega)
-            _ = 512 := by norm_num
+        have : 2 ^ (D + 1) ≤ 256 := by
+          calc 2 ^ (D + 1) ≤ 2 ^ 8 := Nat.pow_le_pow_right (by norm_num) (by omega)
+            _ = 256 := by norm_num
         have := Nat.one_le_two_pow (n := D + 1)
         omega
       have hidx : 2 ^ D + k < (expRun D).length := by
         rw [hlen]
-        have : 2 ^ D ≤ 256 := by
-          calc 2 ^ D ≤ 2 ^ 8 := Nat.pow_le_pow_right (by norm_num) hD9
-            _ = 256 := by norm_num
+        have : 2 ^ D ≤ 128 := by
+          calc 2 ^ D ≤ 2 ^ 7 := Nat.pow_le_pow_right (by norm_num) hD9
+            _ = 128 := by norm_num
         omega
       rw [hfr (2 ^ D + k) hidx w (by rw [addressOfIndex]; exact hr), expRun_leaf hk hidx]
       exact exp_node hatB hD D le_rfl k hk

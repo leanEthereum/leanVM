@@ -7,7 +7,7 @@
 use fiat_shamir::merkle::Hash;
 use primitives::hash::{OUT_LEN, hash, hash_many};
 
-use crate::{Blob, BlobCountError, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, encode::encode_rows};
+use crate::{Blob, BlobCountError, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Symbol, encode::encode_rows};
 
 /// Digests in one blob's flat tree.
 const BLOB_TREE: usize = 2 * CELLS_PER_ROW - 1;
@@ -31,7 +31,7 @@ impl DaWitness {
 
     /// Column `j`, what a sample reads: cell `j` of each blob, `CELL_SYMBOLS` symbols each, or
     /// `None` if `j` is not below `CELLS_PER_ROW`.
-    pub fn column(&self, j: usize) -> Option<impl Iterator<Item = &[u64; CELL_SYMBOLS]>> {
+    pub fn column(&self, j: usize) -> Option<impl Iterator<Item = &[Symbol; CELL_SYMBOLS]>> {
         (j < CELLS_PER_ROW).then(|| self.codewords.iter().map(move |row| &row.as_chunks().0[j]))
     }
 
@@ -71,7 +71,7 @@ pub fn padding_root() -> Hash {
 
 /// The tree of a padding blob, over `ℓ` copies of the zero cell's digest.
 fn padding_tree() -> Vec<Hash> {
-    tree_from_leaves(vec![hash(&[0u8; CELL_SYMBOLS * size_of::<u64>()]); CELLS_PER_ROW])
+    tree_from_leaves(vec![hash(&[0u8; CELL_SYMBOLS * size_of::<Symbol>()]); CELLS_PER_ROW])
 }
 
 /// Every blob's tree, its leaves `e_{i,j} = H(W_{i,j})`, a padding blob's copied in.
@@ -84,7 +84,7 @@ fn blob_trees(codewords: &[Codeword]) -> Vec<Hash> {
         if i < n_rows {
             hash_many(
                 as_bytes(&codewords[i]),
-                CELL_SYMBOLS * size_of::<u64>(),
+                CELL_SYMBOLS * size_of::<Symbol>(),
                 tree[..CELLS_PER_ROW].as_flattened_mut(),
             );
             fill_levels(tree);
@@ -120,7 +120,7 @@ fn fill_levels(tree: &mut [Hash]) {
     }
 }
 
-fn as_bytes(data: &[u64]) -> &[u8] {
+fn as_bytes(data: &[Symbol]) -> &[u8] {
     const { assert!(cfg!(target_endian = "little"), "digests use little-endian symbols") };
     primitives::cast_slice(data)
 }
@@ -132,7 +132,7 @@ mod tests {
     use fiat_shamir::merkle::hash_pair;
     use rand::{Rng, SeedableRng, rngs::StdRng};
 
-    fn payload(n_rows: usize, seed: u64) -> Vec<u64> {
+    fn payload(n_rows: usize, seed: u64) -> Vec<Symbol> {
         let mut rng = StdRng::seed_from_u64(seed);
         (0..n_rows * BLOB_SYMBOLS).map(|_| rng.random()).collect()
     }
@@ -176,8 +176,8 @@ mod tests {
         }
         assert!(witness.row(n_rows).is_none());
         for j in [0, CELLS_PER_ROW - 1] {
-            let column: Vec<&[u64]> = witness.column(j).unwrap().map(|cell| &cell[..]).collect();
-            let cells: Vec<&[u64]> = codewords
+            let column: Vec<&[Symbol]> = witness.column(j).unwrap().map(|cell| &cell[..]).collect();
+            let cells: Vec<&[Symbol]> = codewords
                 .iter()
                 .map(|row| &row[j * CELL_SYMBOLS..(j + 1) * CELL_SYMBOLS])
                 .collect();

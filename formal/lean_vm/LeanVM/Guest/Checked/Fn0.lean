@@ -1304,7 +1304,7 @@ theorem ok29 : CheckOk 29 := checkOk_one (by decide +kernel) w29_0
 
 theorem plain29 : Plain 29 := plain_of_nil (by decide +kernel)
 
-theorem link30 : Link 30 (Glob.ofSigs ([(414, Fn.«da_expand__L7_L8».sig), (415, Fn.«da_verify_column_loop0».sig)]) Data.jtTrie globSem)
+theorem link30 : Link 30 (Glob.ofSigs ([(414, Fn.«da_expand__L6_L7».sig), (415, Fn.«da_verify_column_loop0».sig)]) Data.jtTrie globSem)
     Fn.«da_verify_column».code Fn.«da_verify_column».core (Fn.«da_verify_column».cert.withPows Data.powTree) :=
   Link.of code30 core30 cert30 
     (SigsOk.cons sig414 rfl 
@@ -1324,20 +1324,11 @@ theorem link31 : Link 31 (Glob.ofSigs [] Data.jtTrie globSem)
 
 theorem w31_0 : WinOk 31 0 := link31.win rfl Fn.«da_verify_cell».w0
 
-theorem w31_1 : WinOk 31 1 := link31.win rfl Fn.«da_verify_cell».w1
+theorem ok31 : CheckOk 31 := checkOk_one (by decide +kernel) w31_0
 
-theorem ok31 : CheckOk 31 := fun i hi ↦ by
-  have h : (certOf 31).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w31_0
-  · exact w31_1
+theorem plain31 : Plain 31 := plain_of_nil (by decide +kernel)
 
-theorem plain31 : Plain 31 := by
-  unfold Plain
-  decide +kernel
-
-theorem link32 : Link 32 (Glob.ofSigs ([(33, Fn.«da_column_offsets».sig), (416, Fn.«da_factors__L14_L7_L0».sig), (417, Fn.«da_expand__L14_L7».sig), (418, Fn.«da_factors__L7_L8_L128».sig)]) Data.jtTrie globSem)
+theorem link32 : Link 32 (Glob.ofSigs ([(33, Fn.«da_column_offsets».sig), (416, Fn.«da_factors__L13_L7_L0».sig), (417, Fn.«da_expand__L13_L7».sig), (418, Fn.«da_factors__L6_L7_L128».sig)]) Data.jtTrie globSem)
     Fn.«da_vector».code Fn.«da_vector».core (Fn.«da_vector».cert.withPows Data.powTree) :=
   Link.of code32 core32 cert32 
     (SigsOk.cons sig33 rfl 

@@ -98,19 +98,19 @@ theorem w0 : checkWinCF (Glob.ofSigs [] Data.jtTrie globSem) code
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L1»
 
-namespace LeanVM.Guest.Fn.«da_factors__L14_L7_L0»
+namespace LeanVM.Guest.Fn.«da_factors__L6_L7_L128»
 
 open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `da_factors__L14_L7_L0`, window 0. -/
+/-- `da_factors__L6_L7_L128`, window 0. -/
 theorem w0 : checkWinCF (Glob.ofSigs [] Data.jtTrie globSem) code
-    Fn.«da_factors__L14_L7_L0».core (cert.withPows Data.powTree) false 0 = true := by
+    Fn.«da_factors__L6_L7_L128».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
 end
-end LeanVM.Guest.Fn.«da_factors__L14_L7_L0»
+end LeanVM.Guest.Fn.«da_factors__L6_L7_L128»
 
 namespace LeanVM.Guest.Fn.«gkr_rounds__L6»
 

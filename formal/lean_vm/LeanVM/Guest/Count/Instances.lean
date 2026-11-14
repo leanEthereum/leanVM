@@ -60,16 +60,16 @@ theorem offLoops_ok :
 
 /-- **`da_vector`'s words within its static bound**: its frame and buffers, its callees' frames
 and buffers, the doublings' iterations and their runs' phantom frames. -/
-theorem vec_le : B2C.fs "da_vector" + 30 + (B2C.fs "da_factors__L14_L7_L0" + 256 +
-    (B2C.fs "da_expand__L14_L7" + (B2C.fs "da_factors__L7_L8_L128" + 256 +
-      (B2C.fs "da_column_offsets" + 1080 +
+theorem vec_le : B2C.fs "da_vector" + 28 + (B2C.fs "da_factors__L13_L7_L0" + 128 +
+    (B2C.fs "da_expand__L13_L7" + (B2C.fs "da_factors__L6_L7_L128" + 128 +
+      (B2C.fs "da_column_offsets" + 945 +
         ((List.range 7).map fun b => 2 ^ b * B1.Main.iterK B2C.fs wSK (B1.Da.offLoopName b) +
           B2C.fs (B1.Da.offLoopName b)).sum + 0)))) ≤
     wSB "da_vector" := by
   unfold B1.Main.iterK
   decide +kernel
 
-theorem exp_le : B2C.fs "da_expand__L7_L8" ≤ wSB "da_expand__L7_L8" := by decide +kernel
+theorem exp_le : B2C.fs "da_expand__L6_L7" ≤ wSB "da_expand__L6_L7" := by decide +kernel
 
 /-- **`da_verify`'s static bounds**, at the deployed frame sizes. -/
 theorem dvStatic : B1.Da.DvStaticB B2C.fs wSB wSK where

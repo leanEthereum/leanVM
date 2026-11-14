@@ -164,8 +164,8 @@ open LeanVM.Parameters
 
 /-- What holds a DA claim: a matrix of codewords. -/
 structure MatrixWitness where
-  /-- The codewords, one per row. -/
-  rows : List (List K)
+  /-- The codewords, one per row, their symbols in `E`. -/
+  rows : List (List E)
 
 end LeanVM.Da
 
@@ -259,7 +259,7 @@ def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
       ∃ child ∈ witness.children, child.statement.claims.daDigest = statement.claims.daDigest
 
 /-- **The matrix opens the DA claim `⟨root, z⟩`** (`da_verify`, `lean_ethereum.py:4509-4547`):
-`1` to `LeanDa.maxRows` codewords of `2^15` symbols commit to `root` (the root of the matrix they form,
+`1` to `LeanDa.maxRows` codewords of `2^14` symbols commit to `root` (the root of the matrix they form,
 `LeanDa.commitCells`, over Keccak-f[1600] with LeanDA's digests as 32 bytes), and each is
 orthogonal to the dual codeword of `z`, `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` (`LeanDa.dualCodewordAt`,
 which the guest program builds from `z`: `da_vector`, `lean_ethereum.py:4605-4669`). Only where
@@ -455,14 +455,14 @@ open LeanVM.Parameters LeanVM.Semantics
 `statement.tex` (*Soundness*, the decoder's budget and size bound) has their measurements and
 limits. -/
 
-/-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `572751`, the
-compiled decoder's size (`572321`: `lean_vm`'s `Cost/DecoderSize.lean` proves it at most that) and a
+/-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `570410`, the
+compiled decoder's size (`569980`: `lean_vm`'s `Cost/DecoderSize.lean` proves it at most that) and a
 slack of `430`, room for one leanXMSS signature's encoding (`309`) but not two, so no useful table
 of witnesses (hard-coded signatures, matrices or proofs that would mask a bug of the guest program
 on finitely many statements) fits beside the compiled decoder's code. The size counts in full the
 guest program's per-function tables, literals of the compiled decoder; a program written differently
 could hold more. -/
-def guestWitnessDecoderSizeBound : ℕ := 572751
+def guestWitnessDecoderSizeBound : ℕ := 570410
 
 /-- **The guest decoder's budget** on an execution of `program` of `steps` steps on a memory of
 `2^κ` words: the most the decoder's run may cost, in the machine's price (so also the most steps it

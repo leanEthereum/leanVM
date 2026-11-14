@@ -30,29 +30,29 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- A witness's cells: cell `j` of codeword `i`, padded outside the matrix. -/
-def wSyms (w : LeanVM.Da.MatrixWitness) (i j : ℕ) : List K :=
-  if i < w.rows.length ∧ j < 128 then LeanDa.listCell (w.rows.getD i []) j else List.replicate 256 0
+def wSyms (w : LeanVM.Da.MatrixWitness) (i j : ℕ) : List E :=
+  if i < w.rows.length ∧ j < 128 then LeanDa.listCell (w.rows.getD i []) j else List.replicate 128 0
 
 /-- The padded count's log. -/
 def wLog (w : LeanVM.Da.MatrixWitness) : ℕ := LeanDa.logPaddedRowCount w.rows.length
 
-/-- A list of `128` blocks of `256` is the flattening of its blocks. -/
-theorem flatMap_blocks {α : Type} (l : List α) (d : α) (hl : l.length = 128 * 256) (f : ℕ → List α)
-    (hf : ∀ j, (f j).length = 256) (hfj : ∀ j < 128, f j = (l.drop (256 * j)).take 256) :
+/-- A list of `128` blocks of `128` is the flattening of its blocks. -/
+theorem flatMap_blocks {α : Type} (l : List α) (d : α) (hl : l.length = 128 * 128) (f : ℕ → List α)
+    (hf : ∀ j, (f j).length = 128) (hfj : ∀ j < 128, f j = (l.drop (128 * j)).take 128) :
     (List.range 128).flatMap f = l := by
-  have hlen := length_flatMap_range f 256 128 hf
+  have hlen := length_flatMap_range f 128 128 hf
   refine List.ext_getElem (by rw [hlen, hl]) fun k h1 h2 => ?_
-  have hk : k = 256 * (k / 256) + k % 256 := by omega
+  have hk : k = 128 * (k / 128) + k % 128 := by omega
   rw [← List.getD_eq_getElem _ d h1, ← List.getD_eq_getElem _ d h2]
   conv_lhs => rw [hk]
-  rw [flatMap_getD f 256 hf d 128 (k / 256) (k % 256) (by omega) (by omega), hfj _ (by omega)]
+  rw [flatMap_getD f 128 hf d 128 (k / 128) (k % 128) (by omega) (by omega), hfj _ (by omega)]
   simp only [List.getD_eq_getElem?_getD, List.getElem?_take, List.getElem?_drop]
   rw [ite_pos' (by omega)]
   congr 2
   omega
 
 theorem wSyms_length (w : LeanVM.Da.MatrixWitness)
-    (hrow : ∀ row ∈ w.rows, row.length = 2 ^ LeanDa.logM) (i j : ℕ) : (wSyms w i j).length = 256 := by
+    (hrow : ∀ row ∈ w.rows, row.length = 2 ^ LeanDa.logM) (i j : ℕ) : (wSyms w i j).length = 128 := by
   unfold wSyms
   split
   · rename_i h
@@ -76,7 +76,7 @@ theorem witness_eq {w : LeanVM.Da.MatrixWitness} {root : Digest} {z : E} (hw : w
   refine (flatMap_blocks rows[i] 0 (by rw [hl]; norm_num) _ (wSyms_length ⟨rows⟩ hrow i)
     fun j hj => ?_).symm
   simp only [wSyms, h1, hj, and_self, ite_true, LeanDa.listCell, LeanDa.cellSymbols,
-    List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h1, Option.getD_some, mul_comm j 256]
+    List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h1, Option.getD_some, mul_comm j 128]
 
 theorem toBytes_inj {d d' : Digest}
     (h : LeanVM.Protocol.Digest.toBytes d = LeanVM.Protocol.Digest.toBytes d') : d = d' := by
@@ -85,13 +85,13 @@ theorem toBytes_inj {d d' : Digest}
   simpa [LeanVM.Protocol.Digest.toBytes] using this
 
 theorem wSyms_len {w : LeanVM.Da.MatrixWitness} {root : Digest} {z : E} (hw : w.Opens root z)
-    (i j : ℕ) : (wSyms w i j).length = 256 := wSyms_length w hw.2.2.1 i j
+    (i j : ℕ) : (wSyms w i j).length = 128 := wSyms_length w hw.2.2.1 i j
 
 set_option maxRecDepth 20000 in
 /-- **A witness's rows are orthogonal to the dual codeword**, cell by cell. -/
 theorem wDot {w : LeanVM.Da.MatrixWitness} {root : Digest} {z : E} (hw : w.Opens root z) :
-    ∀ i < w.rows.length, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
-      dualAt z (256 * h + e) * ofK ((wSyms w i h).getD e 0) = 0 := by
+    ∀ i < w.rows.length, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
+      dualAt z (128 * h + e) * (wSyms w i h).getD e 0 = 0 := by
   intro i hi
   have hw' := hw
   rw [witness_eq hw] at hw'
@@ -100,18 +100,18 @@ theorem wDot {w : LeanVM.Da.MatrixWitness} {root : Digest} {z : E} (hw : w.Opens
     (List.getElem_mem _)
   have he : (daRows w.rows.length (wSyms w))[i]'(by rw [hlen]; exact hi) =
       (List.range 128).flatMap (wSyms w i) := by simp [daRows]
-  have hfun : ∀ b : Fin (2 ^ 15), LeanDa.dualCodewordAt z b *
-      LeanDa.ι (((List.range 128).flatMap (wSyms w i)).getD b 0) =
-      dualAt z b * ofK (((List.range 128).flatMap (wSyms w i)).getD b 0) := fun b => by
-    rw [dualAt_eq]; rfl
+  have hfun : ∀ b : Fin (2 ^ 14), LeanDa.dualCodewordAt z b *
+      ((List.range 128).flatMap (wSyms w i)).getD b 0 =
+      dualAt z b * ((List.range 128).flatMap (wSyms w i)).getD b 0 := fun b => by
+    rw [dualAt_eq]
   rw [he, LeanDa.innerProduct, Finset.sum_congr rfl fun b _ => hfun b,
     Fin.sum_univ_eq_sum_range (fun b => dualAt z b *
-      ofK (((List.range 128).flatMap (wSyms w i)).getD b 0)) (2 ^ 15),
-    show 2 ^ 15 = 128 * 256 by norm_num, sum_range_mul _ 256 128] at hrow
+      ((List.range 128).flatMap (wSyms w i)).getD b 0) (2 ^ 14),
+    show 2 ^ 14 = 128 * 128 by norm_num, sum_range_mul _ 128 128] at hrow
   refine (Finset.sum_congr rfl fun j hj => Finset.sum_congr rfl fun e he => ?_).trans hrow
   have hj' := Finset.mem_range.mp hj
   have he' := Finset.mem_range.mp he
-  rw [flatMap_getD (wSyms w i) 256 (wSyms_len hw i) 0 128 j e hj' he']
+  rw [flatMap_getD (wSyms w i) 128 (wSyms_len hw i) 0 128 j e hj' he']
 
 /-- **The root a witness opens** is the tree `da_verify` builds over its cells. -/
 theorem opens_eq {w : LeanVM.Da.MatrixWitness} {root : Digest} {z : E} (hw : w.Opens root z) :

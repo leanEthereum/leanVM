@@ -36,16 +36,16 @@ open LeanVM.Guest.B1.Da LeanVM.Extraction.Fast LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- The symbols, padded outside the matrix of `r` rows (`dvSymsPN`, `r` its logarithm). -/
-def dvSymsPNAt (r : ℕ) (σ : Val) (Vn : NFrames) (i h : ℕ) : List K :=
+def dvSymsPNAt (r : ℕ) (σ : Val) (Vn : NFrames) (i h : ℕ) : List E :=
   if i < r ∧ h < 128 then
-    cellSymsOf (Vn (fn_idx% da_verify_cell) [dvColVN σ Vn h (.n 13)]
+    cellSymsOf (Vn (fn_idx% da_verify_cell) [dvColVN σ Vn h (.n 14)]
       [dvRowVN σ Vn i h (.n 6), dvRowVN σ Vn i h (.n 7), dvRowVN σ Vn i h (.n 8)])
-  else List.replicate 256 0
+  else List.replicate 128 0
 
 /-! ## Each frame once -/
 
-/-- A column's two words its blob loop reads (`13`, `14`), off its valuation. -/
-def colWordsOf (v : Val) : E × E := (v (.n 13), v (.n 14))
+/-- A column's two words its blob loop reads (`14`, `15`), off its valuation. -/
+def colWordsOf (v : Val) : E × E := (v (.n 14), v (.n 15))
 
 /-- Column `h`'s two words, its frame looked up once. -/
 def dvColWords (σ : Val) (Vn : NFrames) (h : ℕ) : E × E := colWordsOf (dvColVN σ Vn h)
@@ -58,16 +58,16 @@ def dvRowVW (σ : Val) (Vn : NFrames) (cw : E × E) (i h : ℕ) : Val :=
   Vn (fn_idx% da_verify_column_loop0) [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 22), ofK (Parameters.g ^ h), cw.2] []
 
 /-- A cell's symbols off `da_verify_cell`'s frame, the blob loop's valuation given. -/
-def cellSymsAt (Vn : NFrames) (c13 : E) (row : Val) : List K :=
-  cellSymsOf (Vn (fn_idx% da_verify_cell) [c13] [row (.n 6), row (.n 7), row (.n 8)])
+def cellSymsAt (Vn : NFrames) (c14 : E) (row : Val) : List E :=
+  cellSymsOf (Vn (fn_idx% da_verify_cell) [c14] [row (.n 6), row (.n 7), row (.n 8)])
 
 /-- Cell `(i, h)`'s symbols, the column's words given: its blob loop's frame looked up once. -/
-def dvSymsCell (σ : Val) (Vn : NFrames) (cw : E × E) (i h : ℕ) : List K :=
+def dvSymsCell (σ : Val) (Vn : NFrames) (cw : E × E) (i h : ℕ) : List E :=
   cellSymsAt Vn cw.1 (dvRowVW σ Vn cw i h)
 
 /-- The symbols, padded outside the matrix of `r` rows, the columns' words given. -/
-def dvSymsCols (r : ℕ) (σ : Val) (Vn : NFrames) (cols : Array (E × E)) (i h : ℕ) : List K :=
-  if i < r ∧ h < 128 then dvSymsCell σ Vn (cols.getD h (0, 0)) i h else List.replicate 256 0
+def dvSymsCols (r : ℕ) (σ : Val) (Vn : NFrames) (cols : Array (E × E)) (i h : ℕ) : List E :=
+  if i < r ∧ h < 128 then dvSymsCell σ Vn (cols.getD h (0, 0)) i h else List.replicate 128 0
 
 /-- `da_verify`'s witness, its `r` rows and its columns' words given. -/
 def dvWitNCols (r : ℕ) (σ : Val) (Vn : NFrames) (cols : Array (E × E)) : LeanVM.Da.MatrixWitness :=
@@ -78,7 +78,7 @@ def dvWitNAt (r : ℕ) (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=
   dvWitNCols r σ Vn (dvCols σ Vn)
 
 theorem dvCols_getD (σ : Val) (Vn : NFrames) {h : ℕ} (hh : h < 128) :
-    (dvCols σ Vn).getD h (0, 0) = (dvColVN σ Vn h (.n 13), dvColVN σ Vn h (.n 14)) := by
+    (dvCols σ Vn).getD h (0, 0) = (dvColVN σ Vn h (.n 14), dvColVN σ Vn h (.n 15)) := by
   simp [dvCols, dvColWords, colWordsOf, Array.getD_eq_getD_getElem?, hh]
 
 theorem dvSymsCols_eq (r : ℕ) (σ : Val) (Vn : NFrames) (i h : ℕ) :

@@ -6,7 +6,7 @@ module
 
 public import LeanVM.Cost.Decoder.GuestTables
 
-/-! Bound: the guest's frame cells of functions `418` to `1039` (`39533` cells) below `2^20`, a
+/-! Bound: the guest's frame cells of functions `429` to `1043` (`39880` cells) below `2^20`, a
 kernel evaluation of their certificates' cells in a module of its own (`GuestTablesFirewall.lean`
 checks that it imports the tables alone). -/
 
@@ -17,7 +17,7 @@ open LeanVM.Cost.Decoder
 public section
 
 theorem guestLocsChunk5_lt :
-    ((guestLocsList.drop 418).take 622).all (fun l ↦ l.all (· < 2 ^ 20)) = true := by
+    ((guestLocsList.drop 429).take 615).all (fun l ↦ l.all (· < 2 ^ 20)) = true := by
   decide +kernel
 
 end

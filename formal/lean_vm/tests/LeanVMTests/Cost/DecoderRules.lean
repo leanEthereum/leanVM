@@ -58,7 +58,7 @@ def raws (c : LeanXmssClaim) (σ : LeanXmss.Signature) : List (LeanXmssClaim × 
   [(c, σ), (c, σ)]
 cost_compile raws := raws
 
-def mkDa (r : LeanVM.Protocol.Digest) (z : E) (rows : List (List K)) :
+def mkDa (r : LeanVM.Protocol.Digest) (z : E) (rows : List (List E)) :
     Option (DaClaim × LeanVM.Da.MatrixWitness) := some (⟨r, z⟩, ⟨rows⟩)
 cost_compile mkDa := mkDa
 
@@ -135,8 +135,8 @@ def xsig : LeanXmss.Signature := ⟨⟨12345, by decide⟩, fun _ ↦ layer⟩
 #guard runOn raws.costDeps raws.costIdx [encodeValue (mkKey r p, m), encodeValue xsig] ==
   some (encodeValue (raws (mkKey r p, m) xsig))
 
-def da : Option (DaClaim × LeanVM.Da.MatrixWitness) := mkDa digest x [[K.ofLane 1]]
-#guard runOn mkDa.costDeps mkDa.costIdx [encodeValue digest, encodeValue x, encodeValue [[K.ofLane 1]]] ==
+def da : Option (DaClaim × LeanVM.Da.MatrixWitness) := mkDa digest x [[x]]
+#guard runOn mkDa.costDeps mkDa.costIdx [encodeValue digest, encodeValue x, encodeValue [[x]]] ==
   some (encodeValue da)
 
 def witness : NodeWitness := mkWitness [child] (raws (mkKey r p, m) xsig) [] da x [(x, x)] x

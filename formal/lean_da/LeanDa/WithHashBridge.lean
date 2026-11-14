@@ -73,7 +73,7 @@ theorem openCell_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r 
   rw [blobRootWith_pureIn, merklePathWith_id, merklePathWith_id]
   rfl
 
-theorem commitCodewords_eq_withHash (rows : List (List K)) :
+theorem commitCodewords_eq_withHash (rows : List (List E)) :
     commitCodewords π rows = commitCodewordsWithHash (hashOver π) rows := rfl
 
 end Pure

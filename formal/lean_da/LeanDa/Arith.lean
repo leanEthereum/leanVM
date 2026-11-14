@@ -10,7 +10,7 @@ public import Mathlib.Tactic
 
 From Benedikt Wagner's squared bound `(P - T)² ≤ (Q + 2) (ε₂ + δ)` with the collision term
 `ε₂ ≤ F² / 2^256` (`F ≤ 2 (Q + 2^20)`) and the membership test's
-`δ = (2^14 - 1) / 2^128 + 2^-192`, the code-binding probability `P` is at most `T` plus
+`δ = (2^13 - 1) / 2^128 + 2^-192`, the code-binding probability `P` is at most `T` plus
 `x / 2^95 + x² / 2^159 + (Q + 2) / 2^57` for `x = Q + 2^20` (`le_of_sq_tsub_le`, `fork_sq_le`):
 `(Q + 2) F² / 2^256 ≤ 4 x³ / 2^256 ≤ (x / 2^95 + x² / 2^159)²` (the arithmetic and geometric
 means), and `(Q + 2) δ ≤ (Q + 2) / 2^114 ≤ ((Q + 2) / 2^57)²`.
@@ -36,23 +36,25 @@ theorem toReal_natCast_div_pow (n k : ℕ) :
 /-- **The forking term**: for `F ≤ 2 (Q + 2^20)`, the right side of Wagner's squared bound is at
 most the square of `x / 2^95 + x² / 2^159 + (Q + 2) / 2^57`, `x = Q + 2^20`. -/
 theorem fork_sq_le (Q F : ℕ) (hF : F ≤ 2 * (Q + 2 ^ 20)) :
-    ((Q : ℝ≥0∞) + 2) * ((F : ℝ≥0∞) ^ 2 / 2 ^ 256 + (2 ^ 14 - 1) / 2 ^ 128 + (2 ^ 192)⁻¹) ≤
+    ((Q : ℝ≥0∞) + 2) * ((F : ℝ≥0∞) ^ 2 / 2 ^ 256 + (2 ^ 13 - 1) / 2 ^ 128 + (2 ^ 192)⁻¹) ≤
       (((Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 95 + ((Q + 2 ^ 20 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 159 +
         ((Q + 2 : ℕ) : ℝ≥0∞) / 2 ^ 57) ^ 2 := by
-  have hδ : ((2 : ℝ≥0∞) ^ 14 - 1) / 2 ^ 128 + (2 ^ 192)⁻¹ ≤ 1 / 2 ^ 114 := by
+  have hδ : ((2 : ℝ≥0∞) ^ 13 - 1) / 2 ^ 128 + (2 ^ 192)⁻¹ ≤ 1 / 2 ^ 114 := by
     have h1 : ((2 : ℝ≥0∞) ^ 192)⁻¹ ≤ (2 ^ 128)⁻¹ :=
       ENNReal.inv_le_inv.mpr (pow_le_pow_right₀ (by norm_num) (by norm_num))
-    have h2 : ((2 : ℝ≥0∞) ^ 14 - 1) + 1 = 2 ^ 14 :=
+    have h2 : ((2 : ℝ≥0∞) ^ 13 - 1) + 1 = 2 ^ 13 :=
       tsub_add_cancel_of_le (one_le_pow₀ (by norm_num))
-    calc ((2 : ℝ≥0∞) ^ 14 - 1) / 2 ^ 128 + (2 ^ 192)⁻¹
-        ≤ ((2 : ℝ≥0∞) ^ 14 - 1) / 2 ^ 128 + 1 / 2 ^ 128 := by rw [one_div]; exact add_le_add le_rfl h1
-      _ = 2 ^ 14 / 2 ^ 128 := by rw [ENNReal.div_add_div_same, h2]
+    calc ((2 : ℝ≥0∞) ^ 13 - 1) / 2 ^ 128 + (2 ^ 192)⁻¹
+        ≤ ((2 : ℝ≥0∞) ^ 13 - 1) / 2 ^ 128 + 1 / 2 ^ 128 := by rw [one_div]; exact add_le_add le_rfl h1
+      _ = 2 ^ 13 / 2 ^ 128 := by rw [ENNReal.div_add_div_same, h2]
+      _ ≤ 2 ^ 14 / 2 ^ 128 :=
+          ENNReal.div_le_div_right (pow_le_pow_right₀ (by norm_num) (by norm_num)) _
       _ = 1 / 2 ^ 114 := by
           rw [ENNReal.div_eq_div_iff (by positivity) (by simp) (by positivity) (by simp), mul_one,
             ← pow_add]
   have hF2 : (F : ℝ≥0∞) ^ 2 ≤ (2 * ((Q + 2 ^ 20 : ℕ) : ℝ≥0∞)) ^ 2 := by
     gcongr; exact_mod_cast hF
-  calc ((Q : ℝ≥0∞) + 2) * ((F : ℝ≥0∞) ^ 2 / 2 ^ 256 + (2 ^ 14 - 1) / 2 ^ 128 + (2 ^ 192)⁻¹)
+  calc ((Q : ℝ≥0∞) + 2) * ((F : ℝ≥0∞) ^ 2 / 2 ^ 256 + (2 ^ 13 - 1) / 2 ^ 128 + (2 ^ 192)⁻¹)
       ≤ ((Q + 2 : ℕ) : ℝ≥0∞) * ((2 * ((Q + 2 ^ 20 : ℕ) : ℝ≥0∞)) ^ 2 / 2 ^ 256 + 1 / 2 ^ 114) := by
         rw [add_assoc]
         push_cast

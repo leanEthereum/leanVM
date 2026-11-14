@@ -75,7 +75,7 @@ def numbers(g, certs):
     # past the padding loop; per padded row the roots (4), the padding loop and the levels: each
     # static loop's iteration at `SKt`, its run's phantom in the constant.
     v['dvC'] = (fs('da_verify') + fs('da_row_shape') + SB('da_vector') + fs(L('da_verify_loop0'))
-                + 128 * (fs(L('da_verify_loop1')) + fs('da_verify_column') + SB('da_expand__L7_L8') + fs(L('da_verify_column_loop0')))
+                + 128 * (fs(L('da_verify_loop1')) + fs('da_verify_column') + SB('da_expand__L6_L7') + fs(L('da_verify_column_loop0')))
                 + fs(L('da_verify_loop1')) + fs(L('da_verify_loop2')) + fs(L('da_verify_loop3')))
     v['dvS'] = 642 + SKt(L('da_verify_loop0')) + 128 * SKt(L('da_verify_column_loop0')) + max(0, SKt(L('da_verify_loop2')) - SKt(L('da_verify_loop3')))
     v['dvP'] = 4 + SKt(L('da_verify_loop3')) + v['dlK']
@@ -164,7 +164,7 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
     dvc = thm('dvC_eq', 'dvC B2C.fs wSB', v['dvC'], 'dvC', [],
               fs=['da_verify', 'da_row_shape', L('da_verify_loop0'), L('da_verify_loop1'), 'da_verify_column', L('da_verify_column_loop0'),
                   L('da_verify_loop2'), L('da_verify_loop3')],
-              sb=['da_vector', 'da_expand__L7_L8'])
+              sb=['da_vector', 'da_expand__L6_L7'])
     dvs = thm('dvS_eq', 'dvS B2C.fs wSK', v['dvS'], 'dvS B1.Main.iterK', [],
               fs=[L('da_verify_loop0'), L('da_verify_loop2'), L('da_verify_loop3'), L('da_verify_column_loop0')],
               sk=[L('da_verify_loop0'), L('da_verify_loop2'), L('da_verify_loop3'), L('da_verify_column_loop0')])

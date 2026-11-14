@@ -11,7 +11,6 @@ public import LeanVM.Cost.DecoderSize.Rows2
 public import LeanVM.Cost.DecoderSize.Rows3
 public import LeanVM.Cost.DecoderSize.Rows4
 public import LeanVM.Cost.DecoderSize.Rows5
-public import LeanVM.Cost.DecoderSize.Rows6
 public import LeanVM.Cost.DecoderSize.Names0
 public import LeanVM.Cost.DecoderSize.Names1
 
@@ -25,7 +24,7 @@ namespace LeanVM.Cost.Decoder
 
 set_option maxRecDepth 100000 in
 /-- **The rows' sizes**, summed. -/
-theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 520070 := by
+theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 517727 := by
   have hl : guestLocsList.length = 1565 := by decide +kernel
   have hn : guestLocsRow37.length = 41 := by decide +kernel
   rw [sum_rowSize_eq_rowsSize, hl]
@@ -34,16 +33,14 @@ theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 520070 := by
   have s1 := rowsSize_split 37 1 1527 38 1528 rfl rfl
   have s2 := rowsSize_split 38 347 1180 385 1527 rfl rfl
   have c2 := rowsSize_38_347
-  have s3 := rowsSize_split 385 715 465 1100 1180 rfl rfl
-  have c3 := rowsSize_385_715
-  have s4 := rowsSize_split 1100 210 255 1310 465 rfl rfl
-  have c4 := rowsSize_1100_210
-  have s5 := rowsSize_split 1310 167 88 1477 255 rfl rfl
-  have c5 := rowsSize_1310_167
-  have s6 := rowsSize_split 1477 86 2 1563 88 rfl rfl
-  have c6 := rowsSize_1477_86
-  have s7 := rowsSize_split 1563 2 0 1565 2 rfl rfl
-  have c7 := rowsSize_1563_2
+  have s3 := rowsSize_split 385 726 454 1111 1180 rfl rfl
+  have c3 := rowsSize_385_726
+  have s4 := rowsSize_split 1111 204 250 1315 454 rfl rfl
+  have c4 := rowsSize_1111_204
+  have s5 := rowsSize_split 1315 167 83 1482 250 rfl rfl
+  have c5 := rowsSize_1315_167
+  have s6 := rowsSize_split 1482 83 0 1565 83 rfl rfl
+  have c6 := rowsSize_1482_83
   have e := rowsSize_zero 1565
   have g : guestLocsList.getD 37 [] = guestLocsRow37.flatten := rfl
   have r := rowsSize_one (a := 37) (by omega)

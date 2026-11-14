@@ -20,7 +20,7 @@ The building blocks of `PqDas`, instantiated with LeanDA (`LeanDa.Scheme`) for `
   (`merkleVC_perfectlyComplete`), and its position binding reduces to finding an `H` collision
   through the explicit `merkleCollider` (`posBindingExp_le_hashCollisionExp`);
 * the code checker `checker r`: the membership test, complete (`checker_complete`) and
-  `(2^14 - 1) / 2^128`-sound over a uniform `z ∈ E` (`checker_sound`).
+  `(2^13 - 1) / 2^128`-sound over a uniform `z ∈ E` (`checker_sound`).
 
 `leanDa r H ps` is the scheme with the hash `H` and an argument of knowledge `ps` for the relation
 `Relation r H`: the cells commit to the root and pass the membership test on the challenge.
@@ -61,9 +61,9 @@ theorem encodeMatrix_firstHalf {r : ℕ} (c : Fin (r * 128) → Cell) (h : ∀ i
   rw [show firstHalf (matrixRow c (positionRow p)) =
       fun a ↦ matrixRow c (positionRow p) (Fin.castLE (by norm_num) a) from rfl, encodeRow_firstHalf (h _)]
   simp only [matrixRow]
-  have h1 : (⟨(256 * (positionCell p : ℕ) + s) / 256, by omega⟩ : Fin 128) = positionCell p :=
+  have h1 : (⟨(128 * (positionCell p : ℕ) + s) / 128, by omega⟩ : Fin 128) = positionCell p :=
     Fin.ext (by simp only; omega)
-  have h2 : (⟨(256 * (positionCell p : ℕ) + s) % 256, by omega⟩ : Fin 256) = s :=
+  have h2 : (⟨(128 * (positionCell p : ℕ) + s) % 128, by omega⟩ : Fin 128) = s :=
     Fin.ext (by simp only; omega)
   rw [h1, h2, pos_posRow_posCell]
 
@@ -261,13 +261,13 @@ theorem prob_sel_le {N : ℕ} (hN : 0 < N) (sel : (Fin N → K) → Fin N) (A : 
       Fintype.card E * (Fintype.card K ^ N * Fintype.card E ^ (N - 1)) by ring,
     ENNReal.mul_div_mul_right _ _ hK hK']
 
-/-- **The membership test is `(2^14 - 1) / 2^128`-sound**: a fixed matrix that is not a codeword
-passes for at most `2^14 - 1` of the `|E| = 2^128` values of the deployed challenge
+/-- **The membership test is `(2^13 - 1) / 2^128`-sound**: a fixed matrix that is not a codeword
+passes for at most `2^13 - 1` of the `|E| = 2^128` values of the deployed challenge
 (`membership.rs:12-15`), which the nonce search reads off one label of uniform draws: the label
 it selects depends on the proofs of work alone (`selectChal_some`, `prob_sel_le`). Without a valid
 nonce the check is on every challenge, which a non-codeword fails. -/
 theorem checker_sound (r : ℕ) :
-    (checker r).Sound (leanDaErasureCode r) ((2 ^ 14 - 1) / 2 ^ 128) := by
+    (checker r).Sound (leanDaErasureCode r) ((2 ^ 13 - 1) / 2 ^ 128) := by
   intro c hc
   rw [mem_code_iff] at hc
   push Not at hc
@@ -297,12 +297,12 @@ theorem checker_sound (r : ℕ) :
             exact (membershipCheck_iff z c).mp hl i
     _ ≤ (acceptSet (matrixRow c i)).card / Fintype.card E :=
         prob_sel_le (by simp) selIdx _
-    _ ≤ (2 ^ 14 - 1) / 2 ^ 128 := by
+    _ ≤ (2 ^ 13 - 1) / 2 ^ 128 := by
         rw [card_E, Nat.cast_pow, Nat.cast_ofNat]
         refine ENNReal.div_le_div_right ?_ _
-        calc ((acceptSet (matrixRow c i)).card : ℝ≥0∞) ≤ ((2 ^ 14 - 1 : ℕ) : ℝ≥0∞) :=
+        calc ((acceptSet (matrixRow c i)).card : ℝ≥0∞) ≤ ((2 ^ 13 - 1 : ℕ) : ℝ≥0∞) :=
               Nat.cast_le.mpr hcard
-          _ = 2 ^ 14 - 1 := by rw [ENNReal.natCast_sub]; norm_num
+          _ = 2 ^ 13 - 1 := by rw [ENNReal.natCast_sub]; norm_num
 
 /-! ### The grind's draws -/
 
@@ -314,7 +314,7 @@ theorem not_mem_code_row {r : ℕ} {c : Fin (r * 128) → Cell} (h : c ∉ (lean
   exact h
 
 /-- **A matrix every challenge accepts is a codeword**: a row that is not a codeword is accepted
-by at most `2^14 - 1 < |E|` challenges. -/
+by at most `2^13 - 1 < |E|` challenges. -/
 theorem mem_code_of_forall_check {r : ℕ} {c : Fin (r * 128) → Cell}
     (h : ∀ z : E, membershipCheck z c = true) : c ∈ (leanDaErasureCode r).code := by
   by_contra hc
@@ -331,37 +331,37 @@ theorem mem_code_of_forall_check {r : ℕ} {c : Fin (r * 128) → Cell}
 theorem lane_injective : Function.Injective K.lane := fun _ _ h ↦
   BF64.toBitVec_injective (congrArg UInt64.toBitVec h)
 
-/-- **Valid proofs of work**: at most `2^53` of the `2^64` lanes have `11` low zero bits. -/
+/-- **Valid proofs of work**: at most `2^54` of the `2^64` lanes have `10` low zero bits. -/
 theorem card_valid_le :
-    (Finset.univ.filter fun k : K ↦ powValid k.lane = true).card ≤ 2 ^ 53 := by
+    (Finset.univ.filter fun k : K ↦ powValid k.lane = true).card ≤ 2 ^ 54 := by
   classical
   have hv : ∀ k : K, k ∈ Finset.univ.filter (fun k : K ↦ powValid k.lane = true) →
-      k.lane.toNat % 2 ^ 11 = 0 := fun k hk ↦ by
+      k.lane.toNat % 2 ^ 10 = 0 := fun k hk ↦ by
     have := (Finset.mem_filter.mp hk).2
     unfold powValid membershipGrindingBits at this
     exact of_decide_eq_true this
-  calc _ ≤ (Finset.range (2 ^ 53)).card := by
-        refine Finset.card_le_card_of_injOn (fun k ↦ k.lane.toNat / 2 ^ 11) (fun k _ ↦ ?_)
+  calc _ ≤ (Finset.range (2 ^ 54)).card := by
+        refine Finset.card_le_card_of_injOn (fun k ↦ k.lane.toNat / 2 ^ 10) (fun k _ ↦ ?_)
           (fun a ha b hb hab ↦ ?_)
         · have := k.lane.toNat_lt
-          show k.lane.toNat / 2 ^ 11 ∈ (Finset.range (2 ^ 53) : Set ℕ)
+          show k.lane.toNat / 2 ^ 10 ∈ (Finset.range (2 ^ 54) : Set ℕ)
           rw [Finset.mem_coe, Finset.mem_range]
           omega
         · have ha' := hv a (Finset.mem_coe.mp ha)
           have hb' := hv b (Finset.mem_coe.mp hb)
-          have hab' : a.lane.toNat / 2 ^ 11 = b.lane.toNat / 2 ^ 11 := hab
+          have hab' : a.lane.toNat / 2 ^ 10 = b.lane.toNat / 2 ^ 10 := hab
           have e : a.lane.toNat = b.lane.toNat := by
-            have h1 := Nat.div_add_mod a.lane.toNat (2 ^ 11)
-            have h2 := Nat.div_add_mod b.lane.toNat (2 ^ 11)
+            have h1 := Nat.div_add_mod a.lane.toNat (2 ^ 10)
+            have h2 := Nat.div_add_mod b.lane.toNat (2 ^ 10)
             omega
           exact lane_injective (UInt64.toNat_inj.mp e)
-    _ = 2 ^ 53 := Finset.card_range _
+    _ = 2 ^ 54 := Finset.card_range _
 
 /-- **A uniform draw has a valid proof of work and a challenge in `A`** with probability at most
-`2^-11 · |A| / 2^128`: the two parts of a draw are independent. -/
-theorem prob_valid_accept_le {A : Finset E} (hA : A.card ≤ 2 ^ 14 - 1) :
+`2^-10 · |A| / 2^128`: the two parts of a draw are independent. -/
+theorem prob_valid_accept_le {A : Finset E} (hA : A.card ≤ 2 ^ 13 - 1) :
     Pr{let x ← ($ᵗ Draw : ProbComp Draw)}[powValid x.2.lane = true ∧ x.1 ∈ A] ≤
-      (2 ^ 14 - 1) / 2 ^ 139 := by
+      (2 ^ 13 - 1) / 2 ^ 138 := by
   classical
   rw [SampleableType.prEvent_uniformSample]
   have hf : (Finset.univ.filter fun x : Draw ↦ powValid x.2.lane = true ∧ x.1 ∈ A) =
@@ -372,11 +372,11 @@ theorem prob_valid_accept_le {A : Finset E} (hA : A.card ≤ 2 ^ 14 - 1) :
   have hV := card_valid_le
   calc ((A.card * (Finset.univ.filter fun k : K ↦ powValid k.lane = true).card : ℕ) : ℝ≥0∞) /
         ((2 ^ 128 * 2 ^ 64 : ℕ) : ℝ≥0∞)
-      ≤ (((2 ^ 14 - 1) * 2 ^ 53 : ℕ) : ℝ≥0∞) / ((2 ^ 128 * 2 ^ 64 : ℕ) : ℝ≥0∞) := by
+      ≤ (((2 ^ 13 - 1) * 2 ^ 54 : ℕ) : ℝ≥0∞) / ((2 ^ 128 * 2 ^ 64 : ℕ) : ℝ≥0∞) := by
         gcongr
-    _ = (2 ^ 14 - 1) / 2 ^ 139 := by
-        rw [show (2 ^ 128 * 2 ^ 64 : ℕ) = 2 ^ 53 * 2 ^ 139 by norm_num,
-          show ((2 ^ 14 - 1) * 2 ^ 53 : ℕ) = 2 ^ 53 * (2 ^ 14 - 1) by ring, Nat.cast_mul,
+    _ = (2 ^ 13 - 1) / 2 ^ 138 := by
+        rw [show (2 ^ 128 * 2 ^ 64 : ℕ) = 2 ^ 54 * 2 ^ 138 by norm_num,
+          show ((2 ^ 13 - 1) * 2 ^ 54 : ℕ) = 2 ^ 54 * (2 ^ 13 - 1) by ring, Nat.cast_mul,
           Nat.cast_mul, ENNReal.mul_div_mul_left _ _ (by simp) (by simp), ENNReal.natCast_sub]
         norm_num
 

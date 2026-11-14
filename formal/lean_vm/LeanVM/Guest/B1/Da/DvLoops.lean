@@ -36,7 +36,7 @@ open LeanVM.Guest.B1.Digest
 
 @[expose] public section
 
-variable {rd : Reader} {r L : ℕ} {syms : ℕ → ℕ → List K} {z : E} {bb bR bT : ℕ}
+variable {rd : Reader} {r L : ℕ} {syms : ℕ → ℕ → List E} {z : E} {bb bR bT : ℕ}
 
 /-- **Region `i`'s words**, at its base. -/
 theorem hreg (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z)) {i : ℕ} (hi : i < r) {k : ℕ}
@@ -69,7 +69,7 @@ theorem l17_rel (hr1 : 1 ≤ r) (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z
 /-- **Column `h`'s cells** (`da_verify_column_loop0`): each blob's cell checked, its running sum's
 step, its
 digest at its tree's leaf `h`, the weights read at `g^lv`. -/
-theorem l21_rel (hr1 : 1 ≤ r) {h : ℕ} (hh : h < 128) (hsl : ∀ i j, (syms i j).length = 256)
+theorem l21_rel (hr1 : 1 ≤ r) {h : ℕ} (hh : h < 128) (hsl : ∀ i j, (syms i j).length = 128)
     (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z))
     (hR : ReadsAt rd (gen ^ bR) (rowbaseCells r bb)) {lv : ℕ}
     (hlv : ReadsAt rd (gen ^ lv) (colWs z h)) :
@@ -118,8 +118,8 @@ root
 written among the roots' leaves. -/
 theorem l19_rel (hr1 : 1 ≤ r) (hrL : r ≤ 2 ^ L) (hB : ReadsAt rd (gen ^ bb) (blobsCells r syms z))
     (hR : ReadsAt rd (gen ^ bR) (rowbaseCells r bb)) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L syms))
-    (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
-      dualAt z (256 * h + e) * ofK ((syms i h).getD e 0) = 0) :
+    (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
+      dualAt z (128 * h + e) * (syms i h).getD e 0 = 0) :
     coreProgram.Rel rd name% «da_verify_loop2» [1, gen ^ r, gen ^ bR, gen ^ bT] [] := by
   have := loopF_complete (rd := rd) find_l19 dv_loops_shape.2.1.1 (N := gen ^ r) (rest := [gen ^ bR, gen ^ bT])
     (m := r) rfl (fun i hi => ?_) 0 hr1

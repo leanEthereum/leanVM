@@ -204,8 +204,8 @@ noncomputable def plumbs : List B2C.Plumb :=
   Fn.«child_claim_list_mono_last__L13».plumb :: Fn.«child_claim_list_mono_last__L14».plumb :: Fn.«child_claim_list_mono_last__L15».plumb :: Fn.«child_claim_list_mono_last__L16».plumb ::
   Fn.«da_verify_loop0».plumb :: Fn.«da_verify_loop1».plumb :: Fn.«da_verify_loop2».plumb :: Fn.«da_verify_loop3».plumb ::
   Fn.«da_levels__L1_L0».plumb :: Fn.«da_levels__L2_L1».plumb :: Fn.«da_levels__L4_L2».plumb :: Fn.«da_levels__L8_L3».plumb ::
-  Fn.«da_levels__L16_L4».plumb :: Fn.«da_levels__L32_L5».plumb :: Fn.«da_expand__L7_L8».plumb :: Fn.«da_verify_column_loop0».plumb ::
-  Fn.«da_factors__L14_L7_L0».plumb :: Fn.«da_expand__L14_L7».plumb :: Fn.«da_factors__L7_L8_L128».plumb :: Fn.«da_column_offsets_loop0».plumb ::
+  Fn.«da_levels__L16_L4».plumb :: Fn.«da_levels__L32_L5».plumb :: Fn.«da_expand__L6_L7».plumb :: Fn.«da_verify_column_loop0».plumb ::
+  Fn.«da_factors__L13_L7_L0».plumb :: Fn.«da_expand__L13_L7».plumb :: Fn.«da_factors__L6_L7_L128».plumb :: Fn.«da_column_offsets_loop0».plumb ::
   Fn.«da_column_offsets_loop1».plumb :: Fn.«da_column_offsets_loop2».plumb :: Fn.«da_column_offsets_loop3».plumb :: Fn.«da_column_offsets_loop4».plumb ::
   Fn.«da_column_offsets_loop5».plumb :: Fn.«da_column_offsets_loop6».plumb :: Fn.«aggregate_claims_loop0».plumb :: Fn.«grind_check__L2».plumb ::
   Fn.«aggregate_claims_loop1».plumb :: Fn.«batch_sumcheck__L23».plumb :: Fn.«aggregate_claims_loop2».plumb :: Fn.«rs_eq_rows__L8».plumb ::

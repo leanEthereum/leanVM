@@ -15,7 +15,7 @@ import LeanVM.Guest.Pack.«P16».Cplw1
 import LeanVM.Guest.Pack.«P11».Cplw1
 import LeanVM.Guest.Pack.«P39».Cplw1
 import LeanVM.Guest.Pack.«P36».CplwOk
-import LeanVM.Guest.Pack.«P8».CplwOk
+import LeanVM.Guest.Pack.«P8».Cplw1
 import LeanVM.Guest.Pack.«P59».Cplw1
 import LeanVM.Guest.Pack.«P44».Cplw1
 import LeanVM.Guest.Pack.«P26».Cplw1

@@ -70,7 +70,7 @@ theorem hashOver_keccakF1600 : LeanDa.hashOver keccakF1600 = keccak256Bytes := r
 
 /-- The statement's commitment to the matrix of codewords `rows` is the crate's, computed level by
 level (`LeanDa.commitCodewords_eq_commitCells`). -/
-theorem commitCells_keccakF1600 (rows : List (List K))
+theorem commitCells_keccakF1600 (rows : List (List E))
     (hrows : ∀ row ∈ rows, row.length = 2 ^ LeanDa.logM) :
     LeanDa.commitCells keccakF1600 (LeanDa.cellsOfRows rows) =
       LeanDa.commitCodewordsWithHash keccak256Bytes rows := by

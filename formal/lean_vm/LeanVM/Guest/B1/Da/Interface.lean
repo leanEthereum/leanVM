@@ -98,14 +98,14 @@ def da_row_shape_sound_Spec : Prop :=
 
 /-! ## `da_verify_cell` (G:4579-4591, TRIAGE #92) -/
 
-/-- **`da_verify_cell(lvals)`**: some `256` symbols of `K` (the hint), their digest's two cells
-(LeanDA's cell digest, eight bytes a symbol) and their dot product with the `256` weights at
+/-- **`da_verify_cell(lvals)`**: some `128` symbols of `E` (the hint), their digest's two cells
+(LeanDA's cell digest, sixteen bytes a symbol) and their dot product with the `128` weights at
 `lvals`. -/
 def MeaningDaVerifyCell (rd : Reader) : List E → List E → Prop
-  | [lv], rets => ∃ (syms : List K) (ws : List E), syms.length = LeanDa.cellSymbols ∧
+  | [lv], rets => ∃ (syms ws : List E), syms.length = LeanDa.cellSymbols ∧
       ReadsAt rd lv ws ∧ ws.length = LeanDa.cellSymbols ∧
-      rets = digestCells (keccak256 (syms.flatMap K.toBytes)) ++
-        [((List.range LeanDa.cellSymbols).map fun e ↦ ws.getD e 0 * ofK (syms.getD e 0)).sum]
+      rets = digestCells (keccak256 (syms.flatMap E.toBytes)) ++
+        [((List.range LeanDa.cellSymbols).map fun e ↦ ws.getD e 0 * syms.getD e 0).sum]
   | _, _ => False
 
 /-- `da_verify_cell`'s core IR gives its meaning. -/
@@ -173,24 +173,24 @@ theorem find_da_column_offsets :
   coreProgram_find?_at (j := idx% «da_column_offsets») rfl
 
 set_option maxRecDepth 100000 in
-theorem find_da_expand_L7_L8 :
-    coreProgram.find? name% «da_expand__L7_L8» = some fn% «da_expand__L7_L8» :=
-  coreProgram_find?_at (j := idx% «da_expand__L7_L8») rfl
+theorem find_da_expand_L6_L7 :
+    coreProgram.find? name% «da_expand__L6_L7» = some fn% «da_expand__L6_L7» :=
+  coreProgram_find?_at (j := idx% «da_expand__L6_L7») rfl
 
 set_option maxRecDepth 100000 in
-theorem find_da_factors_L14_L7_L0 :
-    coreProgram.find? name% «da_factors__L14_L7_L0» = some fn% «da_factors__L14_L7_L0» :=
-  coreProgram_find?_at (j := idx% «da_factors__L14_L7_L0») rfl
+theorem find_da_factors_L13_L7_L0 :
+    coreProgram.find? name% «da_factors__L13_L7_L0» = some fn% «da_factors__L13_L7_L0» :=
+  coreProgram_find?_at (j := idx% «da_factors__L13_L7_L0») rfl
 
 set_option maxRecDepth 100000 in
-theorem find_da_expand_L14_L7 :
-    coreProgram.find? name% «da_expand__L14_L7» = some fn% «da_expand__L14_L7» :=
-  coreProgram_find?_at (j := idx% «da_expand__L14_L7») rfl
+theorem find_da_expand_L13_L7 :
+    coreProgram.find? name% «da_expand__L13_L7» = some fn% «da_expand__L13_L7» :=
+  coreProgram_find?_at (j := idx% «da_expand__L13_L7») rfl
 
 set_option maxRecDepth 100000 in
-theorem find_da_factors_L7_L8_L128 :
-    coreProgram.find? name% «da_factors__L7_L8_L128» = some fn% «da_factors__L7_L8_L128» :=
-  coreProgram_find?_at (j := idx% «da_factors__L7_L8_L128») rfl
+theorem find_da_factors_L6_L7_L128 :
+    coreProgram.find? name% «da_factors__L6_L7_L128» = some fn% «da_factors__L6_L7_L128» :=
+  coreProgram_find?_at (j := idx% «da_factors__L6_L7_L128») rfl
 
 end
 end LeanVM.Guest.B1.Da

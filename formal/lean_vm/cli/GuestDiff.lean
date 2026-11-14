@@ -148,7 +148,7 @@ def rawSphincsR : R (LeanSphincsClaim × Sphincs.Signature) := do
   let ((p, r), m) ← claimR
   return (((⟨p, r⟩ : Sphincs.PublicKey), m), ← sphincsSigR)
 
-def daWitnessR : R LeanVM.Da.MatrixWitness := do return ⟨← many (many kR)⟩
+def daWitnessR : R LeanVM.Da.MatrixWitness := do return ⟨← many (many eR)⟩
 
 /-- The blob matrix checked directly, with the DA claim it opens (`NodeWitness.daMatrix`): `direct`, the
 root, the membership challenge, the rows; or `none`. -/
@@ -210,7 +210,7 @@ def readCase (path : System.FilePath) : IO Case := do
 def bytecode : List K := List.replicate (2 ^ (Data.logSize + busBits)) 0
 
 /-- `MatrixWitness.Opens`, its dot products computed and its commitment computed level by level as
-the crate does (`lean_da`'s `LeanDa.commitCodewords`, on codewords of `2^15` symbols the statement's
+the crate does (`lean_da`'s `LeanDa.commitCodewords`, on codewords of `2^14` symbols the statement's
 `commitCells` of the matrix they form: `LeanDa.commitCodewords_eq_commitCells`), the dual codeword
 of `z` as `dualAt` (`LeanDa.dualCodewordAt`: `Guest.B1.Da.dualAt_eq`). -/
 def daOpens (root : Digest) (z : E) (w : LeanVM.Da.MatrixWitness) : Bool :=
@@ -218,7 +218,7 @@ def daOpens (root : Digest) (z : E) (w : LeanVM.Da.MatrixWitness) : Bool :=
   1 ≤ w.rows.length && w.rows.length ≤ LeanDa.maxRows &&
     w.rows.all (·.length == 2 ^ LeanDa.logM) &&
     (LeanDa.commitCodewords keccakF1600 w.rows).toList == (LeanVM.Protocol.Digest.toBytes root).toList &&
-    w.rows.all fun row => (dual.zip row).foldl (fun acc (v, x) => acc + v * ofK x) 0 == 0
+    w.rows.all fun row => (dual.zip row).foldl (fun acc (v, x) => acc + v * x) 0 == 0
 
 /-- Every raw signature of a kind verifies, and every claim of the kind is a raw signature's or in
 a child's list, each by name. -/

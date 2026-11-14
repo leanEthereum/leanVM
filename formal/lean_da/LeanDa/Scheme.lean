@@ -12,14 +12,14 @@ The erasure code commitment of `crates/lean_da`,
 specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 
-* **The code** (`encode.rs:13-37`). A row's payload is `2^14` symbols of `K`, the evaluations on
-  the domain points `0 … 2^14 - 1` of the polynomial of degree below `2^14` they determine. Its
-  codeword is that polynomial's evaluations on all `2^15` points (`encodeRow`): the inverse
-  additive NTT interpolates, the forward one evaluates, so the payload is the codeword's first
-  half. Both transforms compute these maps (Annex D, Proposition prop:ntt); they are not
-  transcribed here.
-* **Cells** (`lib.rs:23-38`). A codeword is `128` cells of `256` symbols, cell `j` its symbols
-  `256 j … 256 j + 255`. A matrix of `r` codewords has `128 r` cells, cell `j` of row `i` at
+* **The code** (`encode.rs`). A row's payload is `2^13` symbols of `E`, the evaluations on the
+  domain points `0 … 2^13 - 1` (in `K`) of the polynomial of `E[X]` of degree below `2^13` they
+  determine. Its codeword is that polynomial's evaluations on all `2^14` points (`encodeRow`): the
+  inverse additive NTT interpolates, the forward one evaluates, each on both limbs, so the payload
+  is the codeword's first half. The transforms compute these maps (Annex D, Proposition
+  prop:ntt); they are not transcribed here.
+* **Cells** (`lib.rs`). A codeword is `128` cells of `128` symbols, cell `j` its symbols
+  `128 j … 128 j + 127`. A matrix of `r` codewords has `128 r` cells, cell `j` of row `i` at
   position `128 i + j`: the positions of the erasure code commitment are the cells sampling
   opens.
 * **The commitment** (`commit.rs:1-130`). The rows are padded to `2^⌈log₂ r⌉` with zero
@@ -70,8 +70,8 @@ namespace LeanDa
 
 /-- The tensor `⊗_j (1, z_j)`: coefficient `u` is the product of the `z_j` over the bits of `u`;
 at `z_j = z^(2^j)` it is `z^u`. -/
-def tensor (z : Fin 14 → E) (u : Fin (2 ^ 14)) : E :=
-  ∏ j : Fin 14, if (u : ℕ).testBit j then z j else 1
+def tensor (z : Fin 13 → E) (u : Fin (2 ^ 13)) : E :=
+  ∏ j : Fin 13, if (u : ℕ).testBit j then z j else 1
 
 /-! ## The challenge (`verifier/src/da.rs:14-17`)
 
@@ -99,13 +99,13 @@ def subspaceRow : ℕ → List K
     (previous.drop 1).map fun value ↦ value * (value + previous.headD 0)
 
 /-- Row `i` of the subspace evaluations, scaled so that its first entry is one: `Ŵ_i` at
-`e_i … e_14` (`generate_evals_from_subspace`; `LeanDa.Subspace`'s `subspaceEvaluations_eq`). -/
+`e_i … e_13` (`generate_evals_from_subspace`; `LeanDa.Subspace`'s `subspaceEvaluations_eq`). -/
 def subspaceEvaluations (i : ℕ) : List K :=
   (subspaceRow i).map (· * ((subspaceRow i).headD 0)⁻¹)
 
 /-- **`Ŵ_j` at the point whose bits above `j` are `y`'s**, `Σ_l bit_l(y) · Ŵ_j(e_(j+1+l))`
-(`subspace_above`, `membership.rs:22-31`: the NTT's twiddle of block `y` at layer `14 - j`, a
-subset sum of row `j`, `twiddle`, `pcs/src/ntt/twiddles.rs:103-115`). For `y < 2^(14 - j)` it is
+(`subspace_above`, `membership.rs`: the NTT's twiddle of block `y` at layer `13 - j`, a
+subset sum of row `j`, `twiddle`, `pcs/src/ntt/twiddles.rs:103-115`). For `y < 2^(13 - j)` it is
 `Ŵ_j(point (y · 2^(j+1)))` (`LeanDa.Subspace`'s `subspaceAbove_eq`). -/
 def subspaceAbove (j y : ℕ) : K :=
   ((List.range (logK - j)).filter y.testBit).foldl
@@ -117,7 +117,7 @@ def subspaceAt (j i : ℕ) : K :=
   (if i.testBit j then 1 else 0) + subspaceAbove j (i >>> (j + 1))
 
 /-- **The dual codeword of `z` as the guest builds it** (`dual_codeword`, `membership.rs:41-56`;
-the guest program's `da_vector`): at each of the `2^15` points `i`, `∏_j (1 + z^(2^j) Ŵ_j(i))`.
+the guest program's `da_vector`): at each of the `2^14` points `i`, `∏_j (1 + z^(2^j) Ŵ_j(i))`.
 It is `dualCodewordAt z` (`LeanDa.Subspace`'s
 `dualCodeword_eq_dualCodewordAt`). -/
 def dualCodeword (z : E) : List E :=

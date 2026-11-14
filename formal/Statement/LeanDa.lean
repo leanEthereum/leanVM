@@ -109,16 +109,18 @@ The erasure code commitment of `crates/lean_da`,
 specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 
-* **The code** (`encode.rs:13-41`). A row's payload is `2^14` symbols of `K`, the evaluations on
-  the domain points `0 … 2^14 - 1` of the polynomial of degree below `2^14` they determine. Its
-  codeword is that polynomial's evaluations on all `2^15` points (`encodeRow`): the inverse
-  additive NTT interpolates, the forward one evaluates, so the payload is the codeword's first
-  half. Both transforms compute these maps (Annex D, Proposition prop:ntt); they are not
-  transcribed here.
-* **Cells** (`lib.rs:23-38`). A codeword is `128` cells of `256` symbols; cell `j` of row `i` is
-  at position `128 i + j`, the positions of the erasure code commitment.
-* **The commitment** (`commit.rs:1-134`). The rows are padded to `2^⌈log₂ r⌉` with zero
-  codewords. A cell's digest is the hash of its symbols' little-endian bytes (`blob_trees`). Each
+* **The code** (`encode.rs`). A row's payload is `2^13` symbols of `E`, the evaluations on the
+  domain points `0 … 2^13 - 1` (in `K`) of the polynomial of `E[X]` of degree below `2^13` they
+  determine. Its codeword is that polynomial's evaluations on all `2^14` points (`encodeRow`): the
+  inverse additive NTT interpolates, the forward one evaluates, so the payload is the codeword's
+  first half. The points and the novel basis lie in `K`, so the crate runs both transforms on the
+  symbols' two limbs apart, as two lanes. The transforms compute these maps (Annex D, Proposition
+  prop:ntt); they are not transcribed here.
+* **Cells** (`lib.rs`). A codeword is `128` cells of `128` symbols; cell `j` of row `i` is at
+  position `128 i + j`, the positions of the erasure code commitment.
+* **The commitment** (`commit.rs`). The rows are padded to `2^⌈log₂ r⌉` with zero codewords. A
+  cell's digest is the hash of its symbols' bytes, each symbol its two limbs' little-endian bytes,
+  `y^0` first (`blob_trees`). Each
   padded row, a blob, has the Merkle root of its `128` cell digests (`blobRootWith`), and the
   commitment is the Merkle root of the padded rows' blob roots (`commit_codewords`). A tree hashes
   neighbours in pairs, level by level (`fill_levels`). A padding row's blob root is that of the
@@ -127,14 +129,14 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   root's in the tree over the blob roots: the path of leaf `128 i + j` in the one tree of depth
   `7 + ⌈log₂ r⌉` that the two make. The crate keeps the trees for this (`DaWitness::blob_tree`,
   `commit.rs:15-36`) but verifies no sample: `verifyCellWith` is the check these paths determine.
-* **Membership** (`membership.rs:1-16`, `verifier/src/da.rs:1-34`). One challenge `z ∈ E` gives
+* **Membership** (`membership.rs`, `verifier/src/da.rs`). One challenge `z ∈ E` gives
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
   at the challenges `z^(2^j)`), with `Ŵ_j` the normalized subspace polynomial of the span of
   `e_0 … e_(j-1)`. A matrix passes when every row is orthogonal to `L` (the guest program's
-  `da_verify`; the crate's test `check_membership`, `membership.rs:59-66`). The challenge is drawn
+  `da_verify`; the crate's test `check_membership`). The challenge is drawn
   from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs:20-34`): its
   sponge over Keccak-f[1600] seeded with the label's hash as its IV and the root as its public
-  input (`verifier/src/transcript.rs:34-49`, `Field.lean`'s `Sponge`), then an `11`-bit grind
+  input (`verifier/src/transcript.rs:34-49`, `Field.lean`'s `Sponge`), then a `10`-bit grind
   whose nonce is the smallest valid one, not sent, and the ground challenge it draws
   (`absorbNonce`, `transcript.rs:82-89`); the end statements draw it by this duplex over the
   permutation (`membershipChallengeWith`). A root none of whose `2^64` nonces is valid has no
@@ -153,13 +155,13 @@ permutation. A digest is 32 bytes, `DigestBytes` (`fiat_shamir::merkle::Hash`).
 /-! ### Shapes (`lib.rs:23-38`) -/
 
 /-- Payload symbols per row, as a logarithm (`LOG_BLOB_SYMBOLS`). -/
-def logK : ℕ := 14
+def logK : ℕ := 13
 
 /-- Codeword symbols per row, as a logarithm: rate one half (`LOG_CODEWORD_SYMBOLS`). -/
-def logM : ℕ := 15
+def logM : ℕ := 14
 
 /-- Symbols per cell (`CELL_SYMBOLS`). -/
-def cellSymbols : ℕ := 256
+def cellSymbols : ℕ := 128
 
 /-- Cells per codeword (`CELLS_PER_ROW`). -/
 def cellsPerRow : ℕ := 128
@@ -170,28 +172,29 @@ def logMaxRows : ℕ := 5
 /-- The most rows the crate commits to (`DA_MAX_ROWS`), a power of two. -/
 def maxRows : ℕ := 2 ^ logMaxRows
 
-/-- A row's payload. -/
-abbrev Payload := Fin (2 ^ 14) → K
+/-- A row's payload: symbols of `E` (`Symbol`, a 128-bit word whose low and high halves are the
+limbs `c0`, `c1` of `c0 + c1·y`). -/
+abbrev Payload := Fin (2 ^ 13) → E
 
 /-- A codeword, in domain order. -/
-abbrev Row := Fin (2 ^ 15) → K
+abbrev Row := Fin (2 ^ 14) → E
 
 /-- A sampling cell. -/
-abbrev Cell := Fin 256 → K
+abbrev Cell := Fin 128 → E
 
 /-! ### The code (`encode.rs`) -/
 
-/-- The polynomial of degree below `2^14` taking the payload's values on the points
-`0 … 2^14 - 1` (`inverse_transform`). -/
-noncomputable def interpolate (p : Payload) : K[X] :=
-  Lagrange.interpolate Finset.univ (fun a : Fin (2 ^ 14) ↦ point a) p
+/-- The polynomial of `E[X]` of degree below `2^13` taking the payload's values on the points
+`0 … 2^13 - 1` (`inverse_transform`, on each limb). -/
+noncomputable def interpolate (p : Payload) : E[X] :=
+  Lagrange.interpolate Finset.univ (fun a : Fin (2 ^ 13) ↦ ι (point a)) p
 
 /-- **The systematic encoding of a payload** (`encode_rows`): its polynomial's values on all
-`2^15` points (`encode_interleaved_in_place`). -/
-noncomputable def encodeRow (p : Payload) : Row := fun b ↦ (interpolate p).eval (point b)
+`2^14` points (`encode_interleaved_in_place`, on each limb). -/
+noncomputable def encodeRow (p : Payload) : Row := fun b ↦ (interpolate p).eval (ι (point b))
 
-/-- Cell `j` of a codeword: its symbols `256 j … 256 j + 255`. -/
-def rowCell (row : Row) (j : Fin 128) : Cell := fun s ↦ row ⟨256 * j + s, by omega⟩
+/-- Cell `j` of a codeword: its symbols `128 j … 128 j + 127`. -/
+def rowCell (row : Row) (j : Fin 128) : Cell := fun s ↦ row ⟨128 * j + s, by omega⟩
 
 /-- The position of cell `j` of row `i`. -/
 def cellPosition {r : ℕ} (i : Fin r) (j : Fin 128) : Fin (r * 128) := ⟨128 * i + j, by omega⟩
@@ -208,12 +211,12 @@ noncomputable def encodeMatrix {r : ℕ} (message : Fin r → Payload) : Fin (r 
 
 /-- Row `i` of a matrix given by its cells. -/
 def matrixRow {r : ℕ} (cells : Fin (r * 128) → Cell) (i : Fin r) : Row :=
-  fun b ↦ cells (cellPosition i ⟨b / 256, by omega⟩) ⟨b % 256, by omega⟩
+  fun b ↦ cells (cellPosition i ⟨b / 128, by omega⟩) ⟨b % 128, by omega⟩
 
 /-- The cells of the matrix whose rows are `rows`, codewords as lists of symbols: cell `j` of row
 `i` at position `128 i + j`. -/
-def cellsOfRows (rows : List (List K)) : Fin (rows.length * 128) → Cell :=
-  fun p s ↦ (rows.getD (p / 128) []).getD (256 * (p % 128) + s) 0
+def cellsOfRows (rows : List (List E)) : Fin (rows.length * 128) → Cell :=
+  fun p s ↦ (rows.getD (p / 128) []).getD (128 * (p % 128) + s) 0
 
 /-- **LeanDA's hash** over a permutation `π` of the Keccak state in any monad: Keccak-256 over `π`
 (`keccak256With`), its digest's 32 bytes (`Digest.toBytes`). The crate's is Keccak-256 over
@@ -228,8 +231,9 @@ The commitment, the openings and their check, and the membership challenge over 
 in any monad, the hash Keccak-256 over `π`: the games' oracles, or over `Id` the deployed
 algorithms (`commitCells`, `openCell`). -/
 
-/-- A cell's bytes: its symbols' eight little-endian bytes in order (`as_bytes`). -/
-def cellBytes (cell : Cell) : List UInt8 := (List.ofFn cell).flatMap K.toBytes
+/-- A cell's bytes: its symbols' sixteen bytes in order, each symbol its two limbs' little-endian
+bytes, `y^0` first (`as_bytes`). -/
+def cellBytes (cell : Cell) : List UInt8 := (List.ofFn cell).flatMap E.toBytes
 
 /-- The 64 bytes of a pair of digests (`hash_pair`, `fill_levels`). -/
 def pairBytes (a b : DigestBytes) : List UInt8 := a.toList ++ b.toList
@@ -330,10 +334,10 @@ Drawn from the root by the duplex sponge of the leanVM verifier (`Field.lean`: `
 (`verifier/src/transcript.rs:34-90`), after a grind whose nonce is not sent: the smallest valid
 one, which anyone deriving the challenge finds. -/
 
-/-- `MEMBERSHIP_GRINDING_BITS` (`verifier/src/da.rs:17-18`): `grinding_bits(2^14 - 1)`, the bits
-that bring the membership test's error `(2^14 - 1) / 2^128` to `2^-125`,
-`⌈log₂ (2^14 - 1)⌉ - (128 - 125) = 11` (`transcript.rs:92-104`). -/
-def membershipGrindingBits : ℕ := 11
+/-- `MEMBERSHIP_GRINDING_BITS` (`verifier/src/da.rs:17-18`): `grinding_bits(2^13 - 1)`, the bits
+that bring the membership test's error `(2^13 - 1) / 2^128` to `2^-125`,
+`⌈log₂ (2^13 - 1)⌉ - (128 - 125) = 10` (`transcript.rs:92-104`). -/
+def membershipGrindingBits : ℕ := 10
 
 /-- A nonce's proof of work is valid when its low `membershipGrindingBits` bits are zero
 (`& mask == 0`, `verifier/src/da.rs:27-31`). -/
@@ -386,16 +390,16 @@ def openCell (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * 128)
 
 /-- The normalized subspace polynomial `Ŵ_j`, vanishing on the span of `e_0 … e_(j-1)` and one
 at `e_j` (CompPoly's `normalizedW`; `subspace_above` tabulates it, the NTT's twiddles). -/
-noncomputable def normalizedSubspacePolynomial (j : Fin 14) : K[X] :=
+noncomputable def normalizedSubspacePolynomial (j : Fin 13) : K[X] :=
   AdditiveNTT.normalizedW (ZMod 2) basis (Fin.castLE (by omega) j)
 
-/-- **The dual codeword of the challenge `z`** (`membership.rs:7-10`, the guest program's
+/-- **The dual codeword of the challenge `z`** (`membership.rs`, the guest program's
 `da_vector`): `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain. -/
-noncomputable def dualCodewordAt (z : E) (b : Fin (2 ^ 15)) : E :=
-  ∏ j : Fin 14, (1 + z ^ 2 ^ (j : ℕ) * ι ((normalizedSubspacePolynomial j).eval (point b)))
+noncomputable def dualCodewordAt (z : E) (b : Fin (2 ^ 14)) : E :=
+  ∏ j : Fin 13, (1 + z ^ 2 ^ (j : ℕ) * ι ((normalizedSubspacePolynomial j).eval (point b)))
 
 /-- The inner product of the dual codeword with a row: `Σ_x L(x) row(x)` (`check_membership`). -/
-noncomputable def innerProduct (L : Fin (2 ^ 15) → E) (row : Row) : E := ∑ b, L b * ι (row b)
+noncomputable def innerProduct (L : Fin (2 ^ 14) → E) (row : Row) : E := ∑ b, L b * row b
 
 /-- **The membership check**: every row is orthogonal to the dual codeword of `z`. -/
 noncomputable def membershipCheck {r : ℕ} (z : E) (cells : Fin (r * 128) → Cell) : Bool :=
@@ -592,18 +596,18 @@ included) makes at most `q ≤ 2^128` permutation calls (`permutationCallCost`) 
 probability at most `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications
 included, makes at most `Q` calls breaks code binding with probability at most
 
-`(Q + c + 2^65) · 2^-k + (Q + 2^11) · 2^-125 + (Q + 2^22)² · 2^-247`.
+`(Q + c + 2^65) · 2^-k + (Q + 2^10) · 2^-125 + (Q + 2^22)² · 2^-247`.
 
 The first term is the argument's knowledge soundness against the code-binding adversary itself,
 its transcript handed to the extractor: its game makes at most `Q + 2^65` calls with the
 relation's check, the commitment's hashes (fewer than `2^22`) and, on the worst path, the nonce
 search's `2^64 + 2` (the label's hash, the seeded sponge and every `u64` nonce). The second is the
 membership test with its grind: the inner product of `L` with a row that is not a codeword is a
-nonzero polynomial in `z` of degree below `2^14` (`membership.rs:11-15`), so a challenge accepts it
-with probability at most `(2^14 - 1) / 2^128`; a permutation call of the adversary draws a valid
-proof of work and an accepting challenge at once with probability at most `2^-11` of that,
+nonzero polynomial in `z` of degree below `2^13` (`membership.rs`), so a challenge accepts it
+with probability at most `(2^13 - 1) / 2^128`; a permutation call of the adversary draws a valid
+proof of work and an accepting challenge at once with probability at most `2^-10` of that,
 `2^-125`, and the verifier's own search for the root, however many nonces it tries, stops at its
-first valid draw, one fresh try: `(2^14 - 1) / 2^128 ≤ 2^11 · 2^-125`. The third gathers the
+first valid draw, one fresh try: `(2^13 - 1) / 2^128 ≤ 2^10 · 2^-125`. The third gathers the
 transfer to the two-oracle model and the duplex lemma, of the two games, and the hash's bad events
 among at most `2 Q + 2^20` hash queries: a collision, or a fresh answer that is a digest an earlier
 input or a root with a drawn challenge already carries; it exceeds one before `Q = 2^124`.
@@ -632,7 +636,7 @@ abbrev LeanDaCodeBinding : Prop :=
       QueryCostAtMost (codeBindingGame r argument adversary) permutationCallCost Q →
         Pr{let b ← runWithRandomPermutation (codeBindingGame r argument adversary)}[b = true] ≤
           ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k +
-            ((Q : ℝ≥0∞) + 2 ^ 11) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+            ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 
 end LeanDa

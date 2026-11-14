@@ -20,7 +20,7 @@ set_option maxRecDepth 100000
 @[expose] public section
 
 /-- `da_verify`'s statically bounded callees but the DA levels by `L`. -/
-def dvStNames : List String := ["da_row_shape", "da_vector", "da_expand__L7_L8"]
+def dvStNames : List String := ["da_row_shape", "da_vector", "da_expand__L6_L7"]
 
 /-- Their core indices. -/
 def dvStJ : List ℕ := [28, 31, 413]
@@ -51,20 +51,20 @@ def mvOmJ : List ℕ := [27, 404, 29, 23]
 
 /-- The instructions of `dvStNames`. -/
 def kcDvStT : Opcode → List ℕ
-  | .xor => [1, 1786, 510]
-  | .mulNative => [12, 2367, 513]
-  | .setConstant => [6, 951, 3]
-  | .deref => [9, 3750, 273]
+  | .xor => [1, 1531, 254]
+  | .mulNative => [12, 2358, 257]
+  | .setConstant => [6, 817, 3]
+  | .deref => [9, 3230, 143]
   | .jump => [1, 270, 1]
   | .keccak => [0, 0, 0]
 
 /-- The instructions of `dvLpNames` per iteration. -/
 def kcDvLpT : Opcode → List ℕ
-  | .xor => [1, 135, 1, 514]
-  | .mulNative => [22, 1727, 13, 401]
-  | .setConstant => [5, 1354, 6, 13]
-  | .deref => [2, 815, 2, 267]
-  | .jump => [2, 265, 2, 132]
+  | .xor => [1, 135, 1, 258]
+  | .mulNative => [22, 1727, 13, 145]
+  | .setConstant => [5, 1354, 6, 11]
+  | .deref => [2, 815, 2, 139]
+  | .jump => [2, 265, 2, 4]
   | .keccak => [0, 127, 0, 16]
 
 /-- The DA levels' instructions, by `L`. -/
@@ -97,7 +97,7 @@ def kcClLpT : Opcode → List ℕ
 /-- The frame weights of `mvOmNames`. -/
 def mvOmT : Opcode → List ℕ
   | .xor => [2, 1, 1, 3]
-  | .mulNative => [16, 12, 5, 40]
+  | .mulNative => [16, 12, 6, 40]
   | .setConstant => [8, 6, 3, 9]
   | .deref => [51, 9, 17, 42]
   | .jump => [8, 3, 3, 6]
@@ -105,20 +105,20 @@ def mvOmT : Opcode → List ℕ
 
 /-- `da_verify`'s instructions on `r` rows padded to `2^L` within `kcDvA + kcDvR · r + kcDvP · 2^L`: the constant. -/
 def kcDvA : Opcode → ℕ
-  | .xor => 67325
-  | .mulNative => 70235
-  | .setConstant => 2501
-  | .deref => 42082
+  | .xor => 34302
+  | .mulNative => 37586
+  | .setConstant => 2367
+  | .deref => 24922
   | .jump => 1175
   | .keccak => 0
 
 /-- `da_verify`'s instructions: per row. -/
 def kcDvR : Opcode → ℕ
-  | .xor => 65927
-  | .mulNative => 53064
-  | .setConstant => 3017
-  | .deref => 34991
-  | .jump => 17161
+  | .xor => 33159
+  | .mulNative => 20296
+  | .setConstant => 2761
+  | .deref => 18607
+  | .jump => 777
   | .keccak => 2175
 
 /-- `da_verify`'s instructions: per padded row. -/

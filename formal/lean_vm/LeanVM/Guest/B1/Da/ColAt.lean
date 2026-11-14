@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Da.ColAt
 
-  `da_verify_column` placed (G:4562-4576): column `h` of every blob, its weights expanded from the
-  top leaf `h` (`da_expand__L7_L8`, its run in its frame), then every blob's cell checked against
+  `da_verify_column` placed: column `h` of every blob, its weights expanded from the
+  top leaf `h` (`da_expand__L6_L7`, its run in its frame), then every blob's cell checked against
   them and joined to its running sum and its tree (`da_verify_column_loop0`), within its frame and
   its callees' bounds, by a tree of its honest shape (`colNH r`).
 
@@ -24,7 +24,7 @@ import LeanVM.Guest.Data.Source
 # The column, placed
 
 The column reads its top leaf `topRun z [128 + h] = topLeaf z h` (`topLeaf_eq`), expands the cell's
-weights from it (`exp8_completeAtB`: the cell factors, `zs`, the offsets of the cell `h`), whose
+weights from it (`expCell_completeAtB`: the cell factors, `zs`, the offsets of the cell `h`), whose
 leaves are the dual codeword on the cell (`cellLeaf_eq`), then runs `da_verify_column_loop0` over
 the blobs (`l21_rel`). `colLin`: what it reads; `colNH r`: its honest shape (its counter's bound
 `g^r` and its loop's start `1`); `col_completeAtB`: complete within `colB`, when the static bounds
@@ -48,8 +48,8 @@ noncomputable def colPre : List Stmt := (Fn.body fn% «da_verify_column»).dropL
 
 /-- Its calls. -/
 def colCallsS : List (Option V × String × List V × List V) :=
-  [(none, "da_expand__L7_L8", [.n 8, .n 5, .n 3, .n 12], [.n 13]),
-    (some (.n 16), name% «da_verify_column_loop0», [.n 17, .n 1, .n 13, .n 2, .n 0, .n 14], [])]
+  [(none, "da_expand__L6_L7", [.n 8, .n 5, .n 3, .n 13], [.n 14]),
+    (some (.n 17), name% «da_verify_column_loop0», [.n 18, .n 1, .n 14, .n 2, .n 0, .n 15], [])]
 
 /-- **Its shape** (kernel evaluation). -/
 noncomputable def colCOk : Bool :=
@@ -62,41 +62,42 @@ theorem col_cok : colCOk = true := by decide +kernel
 
 /-- **What a column reads**: `zs`, the top tree's run, the cell factors, the offsets, the regions
 and their bases. -/
-def colLin (r : ℕ) (syms : ℕ → ℕ → List K) (z : E) (bz bt bc bo bb bR : ℕ) : Layout :=
-  [(bz, zsCells z), (bt, topRun z), (bc, facCells (zsVal z) 7 8), (bo, offCells (zsVal z)),
+def colLin (r : ℕ) (syms : ℕ → ℕ → List E) (z : E) (bz bt bc bo bb bR : ℕ) : Layout :=
+  [(bz, zsCells z), (bt, topRun z), (bc, facCells (zsVal z) 6 7), (bo, offCells (zsVal z)),
     (bb, blobsCells r syms z), (bR, rowbaseCells r bb)]
 
 /-- Column `h`'s shifts: the offsets of the cell `h`. -/
-def colShift (z : E) (h : ℕ) : ℕ → E := fun j => zsVal z j * ofK (wK j (256 * h))
+def colShift (z : E) (h : ℕ) : ℕ → E := fun j => zsVal z j * ofK (wK j (128 * h))
 
 /-- Column `h`'s expansion's run. -/
-def colRun (z : E) (h : ℕ) : List E := expRunVals (topLeaf z h) (factorAt (zsVal z) 7) (zsVal z) (colShift z h) 7 8
+def colRun (z : E) (h : ℕ) : List E := expRunVals (topLeaf z h) (factorAt (zsVal z) 6) (zsVal z) (colShift z h) 6 7
 
 /-- The expansion's run's base, read off its result. -/
 noncomputable def colRb (z : E) (h : ℕ) (pv : List (List E × Layout)) : ℕ :=
-  outB (fun b rets Lo => rets = [gen ^ (b + 2 ^ 8)] ∧ (b, colRun z h) ∈ Lo) (pv.headD ([], []))
+  outB (fun b rets Lo => rets = [gen ^ (b + 2 ^ 7)] ∧ (b, colRun z h) ∈ Lo) (pv.headD ([], []))
 
 /-- A column's callees. -/
-noncomputable def colKids (r : ℕ) (syms : ℕ → ℕ → List K) (z : E) (bz bc bo bb bR h : ℕ) : List KidD :=
-  [fun _ => ⟨"da_expand__L7_L8", true, [topLeaf z h, gen ^ bc, gen ^ bz, gen ^ (bo + 8 * h)],
-      [(bz, zsCells z), (bc, facCells (zsVal z) 7 8), (bo, offCells (zsVal z))],
-      expOut (topLeaf z h) (factorAt (zsVal z) 7) (zsVal z) (colShift z h) 7 8⟩,
-    fun pv => ⟨name% «da_verify_column_loop0», true, [1, gen ^ r, gen ^ (colRb z h pv + 256),
+noncomputable def colKids (r : ℕ) (syms : ℕ → ℕ → List E) (z : E) (bz bc bo bb bR h : ℕ) : List KidD :=
+  [fun _ => ⟨"da_expand__L6_L7", true, [topLeaf z h, gen ^ bc, gen ^ bz, gen ^ (bo + 7 * h)],
+      [(bz, zsCells z), (bc, facCells (zsVal z) 6 7), (bo, offCells (zsVal z))],
+      expOut (topLeaf z h) (factorAt (zsVal z) 6) (zsVal z) (colShift z h) 6 7⟩,
+    fun pv => ⟨name% «da_verify_column_loop0», true, [1, gen ^ r, gen ^ (colRb z h pv + 128),
         gen ^ bR, gen ^ h, gen ^ h * gen ^ h],
       [(bb, blobsCells r syms z), (bR, rowbaseCells r bb), (colRb z h pv, colRun z h)], Returns []⟩]
 
 /-- A column's valuation. -/
-def colVals (r : ℕ) (z : E) (bz bt bc bo bR h : ℕ) (r13 : E) : List E :=
+def colVals (r : ℕ) (z : E) (bz bt bc bo bR h : ℕ) (r14 : E) : List E :=
   [gen ^ h, gen ^ r, gen ^ bR, gen ^ bz, gen ^ (bt + 2 ^ 7), gen ^ bc, gen ^ bo,
-    gen ^ (bt + 2 ^ 7) * gen ^ h, topLeaf z h, gen ^ h * gen ^ h, gen ^ h * gen ^ h * (gen ^ h * gen ^ h),
-    gen ^ h * gen ^ h * (gen ^ h * gen ^ h) * (gen ^ h * gen ^ h * (gen ^ h * gen ^ h)),
-    gen ^ bo * (gen ^ h * gen ^ h * (gen ^ h * gen ^ h) * (gen ^ h * gen ^ h * (gen ^ h * gen ^ h))),
-    r13, gen ^ h * gen ^ h, 1, 1 + gen ^ r, 1]
+    gen ^ (bt + 2 ^ 7) * gen ^ h, topLeaf z h, gen ^ h * gen ^ h, gen ^ h * gen ^ h * gen ^ h,
+    gen ^ h * gen ^ h * gen ^ h * (gen ^ h * gen ^ h * gen ^ h),
+    gen ^ h * gen ^ h * gen ^ h * (gen ^ h * gen ^ h * gen ^ h) * gen ^ h,
+    gen ^ bo * (gen ^ h * gen ^ h * gen ^ h * (gen ^ h * gen ^ h * gen ^ h) * gen ^ h),
+    r14, gen ^ h * gen ^ h, 1, 1 + gen ^ r, 1]
 
 theorem col_flatCalls (σ : Val) : flatCalls colPre σ = colCallsS.map (Main.mkCall σ) := rfl
 
 /-- **A column's honest shape**: its counter's bound `g^r`, its loop started at `1`. -/
-def colQ (r : ℕ) (σ : Val) : Prop := σ (.n 1) = gen ^ r ∧ σ (.n 17) = 1
+def colQ (r : ℕ) (σ : Val) : Prop := σ (.n 1) = gen ^ r ∧ σ (.n 18) = 1
 
 /-- **A column's honest tree**. -/
 def colNH (r : ℕ) : Tree → Prop :=
@@ -130,29 +131,29 @@ theorem namedP_forall₂ {fs : String → ℕ} : ∀ (names : List String) (Bs :
   | _ :: _, _ :: _, [], h1, _ => by simp at h1
 
 theorem length_expRunVals {root : E} {F Z S : ℕ → E} {top D : ℕ} :
-    (expRunVals root F Z S top D).length = 512 := by
+    (expRunVals root F Z S top D).length = 256 := by
   simp [expRunVals]
 
 set_option maxRecDepth 8000 in
-theorem length_topRun (z : E) : (topRun z).length = 512 := length_expRunVals
+theorem length_topRun (z : E) : (topRun z).length = 256 := length_expRunVals
 
-theorem length_colRun (z : E) (h : ℕ) : (colRun z h).length = 512 := length_expRunVals
+theorem length_colRun (z : E) (h : ℕ) : (colRun z h).length = 256 := length_expRunVals
 
 theorem topRun_leaf (z : E) {h : ℕ} (hh : h < 128) :
     (topRun z).getD (128 + h) 0 = topLeaf z h := by
-  have hk : 128 + h < 512 := by omega
+  have hk : 128 + h < 256 := by omega
   unfold topRun
   rw [List.getD_eq_getElem _ _ (by rw [length_expRunVals]; exact hk), expRunVals_get hk, ite_pos' ⟨by omega, by norm_num; omega⟩,
     show Nat.log 2 (128 + h) = 7 from log_two_pow_add (k := 7) hh, show (2 : ℕ) ^ 7 = 128 by norm_num,
     Nat.add_sub_cancel_left, topLeaf_eq z hh]
 
 set_option maxRecDepth 8000 in
-theorem colRun_leaf (z : E) (h : ℕ) {e : ℕ} (he : e < 256) :
-    (colRun z h).getD (256 + e) 0 = dualAt z (256 * h + e) := by
-  have hk : 256 + e < 512 := by omega
+theorem colRun_leaf (z : E) (h : ℕ) {e : ℕ} (he : e < 128) :
+    (colRun z h).getD (128 + e) 0 = dualAt z (128 * h + e) := by
+  have hk : 128 + e < 256 := by omega
   unfold colRun
   rw [List.getD_eq_getElem _ _ (by rw [length_expRunVals]; exact hk), expRunVals_get hk, ite_pos' ⟨by omega, by norm_num; omega⟩,
-    show Nat.log 2 (256 + e) = 8 from log_two_pow_add (k := 8) he, show (2 : ℕ) ^ 8 = 256 by norm_num,
+    show Nat.log 2 (128 + e) = 7 from log_two_pow_add (k := 7) he, show (2 : ℕ) ^ 7 = 128 by norm_num,
     Nat.add_sub_cancel_left]
   exact cellLeaf_eq z he
 
@@ -161,14 +162,14 @@ theorem one_add_gen_isInK (r : ℕ) : IsInK (1 + gen ^ r) := by
 
 set_option maxRecDepth 20000 in
 /-- **A column's statements hold** on its valuation, its top leaf read. -/
-theorem col_sholds {rd : Reader} (r : ℕ) (z : E) (bz bt bc bo bR h : ℕ) (r13 : E)
+theorem col_sholds {rd : Reader} (r : ℕ) (z : E) (bz bt bc bo bR h : ℕ) (r14 : E)
     (htop : LoadHolds rd (gen ^ (bt + 2 ^ 7) * gen ^ h) 0 (topLeaf z h)) :
-    ∀ s ∈ colPre, SHolds (fun _ _ _ => True) rd (Val.ofArgs (colVals r z bz bt bc bo bR h r13)) s := by
+    ∀ s ∈ colPre, SHolds (fun _ _ _ => True) rd (Val.ofArgs (colVals r z bz bt bc bo bR h r14)) s := by
   intro s hs
   simp only [colPre, core_eq% «da_verify_column», core_eq% «da_verify_column» body,
       List.dropLast_cons_cons, List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
-  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals simp only [SHolds, Atom.Holds, ofArgs_n, colVals, List.getD_cons_succ,
     List.getD_cons_zero, word_one]
   all_goals first | exact htop | exact ⟨one_add_gen_isInK r, fun _ => True.intro⟩
@@ -183,12 +184,12 @@ theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
     (h21 : TotalLeOn coreProgram fs name% «da_verify_column_loop0» LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs
           name% «da_verify_column_loop0»))
-    {r : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ guest_const% DA_MAX_ROWS) {syms : ℕ → ℕ → List K} (hsl : ∀ i j, (syms i j).length = 256)
+    {r : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ guest_const% DA_MAX_ROWS) {syms : ℕ → ℕ → List E} (hsl : ∀ i j, (syms i j).length = 128)
     {z : E} {bz bt bc bo bb bR h : ℕ} (hh : h < 128) :
     CompleteAtDTB fs cert 16 "da_verify_column" (colLin r syms z bz bt bc bo bb bR)
       [gen ^ h, gen ^ r, gen ^ bR, gen ^ bz, gen ^ (bt + 2 ^ 7), gen ^ bc, gen ^ bo] (Returns [])
       (colNH r)
-      (fs "da_verify_column" + (fs "da_expand__L7_L8" + (r * iterK fs SK
+      (fs "da_verify_column" + (fs "da_expand__L6_L7" + (r * iterK fs SK
           name% «da_verify_column_loop0» + fs name% «da_verify_column_loop0»))) := by
   have hcok := col_cok
   unfold colCOk at hcok
@@ -196,7 +197,7 @@ theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
   obtain ⟨⟨⟨⟨⟨⟨hflat, hnd⟩, hni⟩, haddr⟩, halloc⟩, hcalls⟩, hloads⟩ := hcok
   have hb : Fn.body fn% «da_verify_column» = colPre ++ [.ret []] := rfl
   have hLz : ∀ {rd : Reader} {L : Layout}, (bz, zsCells z) ∈ L → MemL rd L →
-      ∀ j < 15, LoadHolds rd (gen ^ bz) j (zsVal z j) := fun hq hm j hj => by
+      ∀ j < 14, LoadHolds rd (gen ^ bz) j (zsVal z j) := fun hq hm j hj => by
     have := reads_of_memL hm hq j (by simp [zsCells]; exact hj)
     rwa [zsCells_get hj] at this
   refine ((completeAt_flatDepRet (fs := fs) (cert := cert) find_da_verify_column
@@ -204,9 +205,9 @@ theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
     (colLin r syms z bz bt bc bo bb bR)
     [gen ^ h, gen ^ r, gen ^ bR, gen ^ bz, gen ^ (bt + 2 ^ 7), gen ^ bc, gen ^ bo]
     (fun _ _ => []) [] hb hflat haddr hni [] (fun _ => []) (fun _ => .nil)
-    (fun _ => colKids r syms z bz bc bo bb bR h) ["da_expand__L7_L8",
+    (fun _ => colKids r syms z bz bc bo bb bR h) ["da_expand__L6_L7",
         name% «da_verify_column_loop0»]
-    [fs "da_expand__L7_L8", r * iterK fs SK name% «da_verify_column_loop0» + fs
+    [fs "da_expand__L6_L7", r * iterK fs SK name% «da_verify_column_loop0» + fs
         name% «da_verify_column_loop0»] [fun _ => True, fun _ => True]
     (colQ r)
     (fun _ => .cons (fun _ => rfl) (.cons (fun _ => rfl) .nil))
@@ -216,31 +217,31 @@ theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
   · -- the callees
     refine ⟨fun pv => ⟨fun _ => ?_, fun h => absurd h (by simp)⟩,
       fun pv => ⟨fun _ => ?_, fun h => absurd h (by simp)⟩, trivial⟩
-    · refine exp8_completeAtB fs cert hrf (fun rd hm n h1 h2 => ?_)
+    · refine expCell_completeAtB fs cert hrf (fun rd hm n h1 h2 => ?_)
         (fun rd hm d hd => hLz List.mem_cons_self hm _ (by omega)) (fun rd hm d hd => ?_)
         (fun n h1 h2 => regionL_of_mem (List.mem_cons_of_mem _ List.mem_cons_self)
           (by simp [facCells]; omega))
         (fun d hd => regionL_of_mem List.mem_cons_self (by simp [zsCells]; omega))
         (fun d hd => by
-          have := regionL_of_mem (L := [(bz, zsCells z), (bc, facCells (zsVal z) 7 8),
-            (bo, offCells (zsVal z))]) (k := 8 * h + (7 - d)) (List.mem_cons_of_mem _
+          have := regionL_of_mem (L := [(bz, zsCells z), (bc, facCells (zsVal z) 6 7),
+            (bo, offCells (zsVal z))]) (k := 7 * h + (6 - d)) (List.mem_cons_of_mem _
             (List.mem_cons_of_mem _ List.mem_cons_self)) (by simp [offCells]; omega)
           rwa [← Nat.add_assoc] at this)
       · have := reads_of_memL hm (List.mem_cons_of_mem _ List.mem_cons_self) n
           (by simp [facCells]; omega)
         rwa [facCells_get h1 h2 (by norm_num)] at this
       · have := reads_of_memL hm (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-          List.mem_cons_self)) (8 * h + (7 - d)) (by simp [offCells]; omega)
-        rw [offCells_get (by omega), show (8 * h + (7 - d)) % 8 = 7 - d by omega,
-          show (8 * h + (7 - d)) / 8 = h by omega] at this
+          List.mem_cons_self)) (7 * h + (6 - d)) (by simp [offCells]; omega)
+        rw [offCells_get (by omega), show (7 * h + (6 - d)) % 7 = 6 - d by omega,
+          show (7 * h + (6 - d)) / 7 = h by omega] at this
         rw [pow_add, loadHolds_mul_gen_pow]
         exact this
     · refine pureB_loop daPure (by simp [daPureSet]) (fun rd hm => ?_) h21 (by omega) (by omega)
-      have hlv : ReadsAt rd (gen ^ (colRb z h pv + 256)) (colWs z h) := by
+      have hlv : ReadsAt rd (gen ^ (colRb z h pv + 128)) (colWs z h) := by
         intro e he
-        have he' : e < 256 := by simpa [colWs] using he
+        have he' : e < 128 := by simpa [colWs] using he
         have := reads_of_memL hm (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-          List.mem_cons_self)) (256 + e) (by rw [length_colRun]; omega)
+          List.mem_cons_self)) (128 + e) (by rw [length_colRun]; omega)
         rw [← List.getD_eq_getElem _ 0, colRun_leaf z h he'] at this
         rw [pow_add, loadHolds_mul_gen_pow]
         simpa [colWs, he'] using this
@@ -250,7 +251,7 @@ theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
     match outs, ho with
     | [], _ => trivial
     | o1 :: os, ho =>
-      have hf := outB_spec (P := fun b rets Lo => rets = [gen ^ (b + 2 ^ 8)] ∧ (b, colRun z h) ∈ Lo)
+      have hf := outB_spec (P := fun b rets Lo => rets = [gen ^ (b + 2 ^ 7)] ∧ (b, colRun z h) ∈ Lo)
         (o := o1) (ho.1 rfl)
       have hL : ∀ {xs : List E} {b : ℕ}, (b, xs) ∈ colLin r syms z bz bt bc bo bb bR → ∀ i,
           RegionL [(b, xs)] i → RegionL (colLin r syms z bz bt bc bo bb bR) i :=
@@ -275,7 +276,7 @@ theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
     match outs, ho with
     | [], _ => simp [kidsAt, B1.Kid.lins] at hq
     | o1 :: os, ho =>
-      have hf := outB_spec (P := fun b rets Lo => rets = [gen ^ (b + 2 ^ 8)] ∧ (b, colRun z h) ∈ Lo)
+      have hf := outB_spec (P := fun b rets Lo => rets = [gen ^ (b + 2 ^ 7)] ∧ (b, colRun z h) ∈ Lo)
         (o := o1) (ho.1 rfl)
       have hrq : (colRb z h [o1], colRun z h) ∈ outsL (kidsAt (colKids r syms z bz bc bo bb bR h) [] (o1 :: os))
           (o1 :: os) := by
@@ -292,13 +293,13 @@ theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
     match outs, hlen, ho with
     | [o1, o2], _, ho =>
       obtain ⟨h1, h2, -⟩ := ho
-      have hf := outB_spec (P := fun b rets Lo => rets = [gen ^ (b + 2 ^ 8)] ∧ (b, colRun z h) ∈ Lo)
+      have hf := outB_spec (P := fun b rets Lo => rets = [gen ^ (b + 2 ^ 7)] ∧ (b, colRun z h) ∈ Lo)
         (o := o1) (h1 rfl)
       obtain ⟨b1, e1, -⟩ := h1 rfl
-      have hrb : gen ^ (colRb z h [o1] + 256) = gen ^ (b1 + 2 ^ 8) := by
+      have hrb : gen ^ (colRb z h [o1] + 128) = gen ^ (b1 + 2 ^ 7) := by
         have := hf.1.symm.trans e1
         simpa [colRb] using this
-      obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = Val.ofArgs (colVals r z bz bt bc bo bR h (gen ^ (b1 + 2 ^ 8))) :=
+      obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = Val.ofArgs (colVals r z bz bt bc bo bR h (gen ^ (b1 + 2 ^ 7))) :=
         ⟨_, rfl⟩
       have htop : LoadHolds rd (gen ^ (bt + 2 ^ 7) * gen ^ h) 0 (topLeaf z h) := by
         have := loadHolds_of_reads (reads_of_memL hLin (List.mem_cons_of_mem _ List.mem_cons_self))
@@ -306,7 +307,7 @@ theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
         rw [← pow_add, show bt + 2 ^ 7 + h = bt + (128 + h) by norm_num; ring, pow_add,
           loadHolds_mul_gen_pow, Nat.add_zero]
         exact this
-      have hall := col_sholds (rd := rd) r z bz bt bc bo bR h (gen ^ (b1 + 2 ^ 8)) htop
+      have hall := col_sholds (rd := rd) r z bz bt bc bo bR h (gen ^ (b1 + 2 ^ 7)) htop
       rw [← hσ] at hall
       have hcs : colPre.filterMap (Stmt.callSF σ) = colCallsS := by
         rw [← hcalls]

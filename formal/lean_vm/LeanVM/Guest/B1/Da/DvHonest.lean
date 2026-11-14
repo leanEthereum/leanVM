@@ -19,9 +19,9 @@ public import LeanVM.Guest.B1.Da.Help
 /-!
 # `da_verify`'s honest words
 
-For `r` blobs of cells `syms i h` (`256` symbols each) padded to `2^L`, the challenge `z`:
+For `r` blobs of cells `syms i h` (`128` symbols each) padded to `2^L`, the challenge `z`:
 
-* `colWs z h`: column `h`'s weights, the dual codeword on the cell `h` (`dualAt z (256 h + e)`);
+* `colWs z h`: column `h`'s weights, the dual codeword on the cell `h` (`dualAt z (128 h + e)`);
   `cellDot syms z i h`: cell `(i, h)`'s dot product with them; `runSum syms z i h`: blob `i`'s
   running sum after `h` columns.
 * `blobLeaves syms i`: blob `i`'s leaves, its cells' digests; `regionCells syms z i`: its region,
@@ -41,14 +41,14 @@ open LeanVM.Guest.B1.Digest
 @[expose] public section
 
 section
-variable (r L : ℕ) (syms : ℕ → ℕ → List K) (z : E)
+variable (r L : ℕ) (syms : ℕ → ℕ → List E) (z : E)
 
 /-- Column `h`'s weights: the dual codeword on the cell `h`. -/
-def colWs (h : ℕ) : List E := (List.range 256).map fun e => dualAt z (256 * h + e)
+def colWs (h : ℕ) : List E := (List.range 128).map fun e => dualAt z (128 * h + e)
 
 /-- Cell `(i, h)`'s dot product with its column's weights. -/
 def cellDot (i h : ℕ) : E :=
-  ((List.range LeanDa.cellSymbols).map fun e => (colWs z h).getD e 0 * ofK ((syms i h).getD e 0)).sum
+  ((List.range LeanDa.cellSymbols).map fun e => (colWs z h).getD e 0 * (syms i h).getD e 0).sum
 
 /-- Blob `i`'s running sum after `h` columns. -/
 def runSum (i h : ℕ) : E := ((List.range h).map (cellDot syms z i)).sum
@@ -74,23 +74,23 @@ def rootsCells : List E := treeCells (rootLeaves r L syms) L ++ [0, 0]
 
 end
 
-theorem length_blobLeaves (syms : ℕ → ℕ → List K) (i : ℕ) : (blobLeaves syms i).length = 128 := by
+theorem length_blobLeaves (syms : ℕ → ℕ → List E) (i : ℕ) : (blobLeaves syms i).length = 128 := by
   simp [blobLeaves]
 
-theorem length_regionCells (syms : ℕ → ℕ → List K) (z : E) (i : ℕ) :
+theorem length_regionCells (syms : ℕ → ℕ → List E) (z : E) (i : ℕ) :
     (regionCells syms z i).length = 641 := by
   rw [regionCells, List.length_append, List.length_append,
     length_treeCells (by rw [length_blobLeaves]; norm_num)]
   simp
 
-theorem length_blobsCells (r : ℕ) (syms : ℕ → ℕ → List K) (z : E) :
+theorem length_blobsCells (r : ℕ) (syms : ℕ → ℕ → List E) (z : E) :
     (blobsCells r syms z).length = 641 * r := by
   rw [blobsCells, length_flatMap_range _ 641 r (length_regionCells syms z), mul_comm]
 
-theorem length_rootLeaves (r L : ℕ) (syms : ℕ → ℕ → List K) : (rootLeaves r L syms).length = 2 ^ L := by
+theorem length_rootLeaves (r L : ℕ) (syms : ℕ → ℕ → List E) : (rootLeaves r L syms).length = 2 ^ L := by
   simp [rootLeaves]
 
-theorem length_rootsCells (r L : ℕ) (syms : ℕ → ℕ → List K) : (rootsCells r L syms).length = 4 * 2 ^ L := by
+theorem length_rootsCells (r L : ℕ) (syms : ℕ → ℕ → List E) : (rootsCells r L syms).length = 4 * 2 ^ L := by
   rw [rootsCells, List.length_append, length_treeCells (length_rootLeaves r L syms)]
   have := Nat.one_le_two_pow (n := L)
   simp only [List.length_cons, List.length_nil]
@@ -127,7 +127,7 @@ theorem loadHolds_of_reads {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p
 /-! ## The running sums -/
 
 section
-variable {syms : ℕ → ℕ → List K} {z : E}
+variable {syms : ℕ → ℕ → List E} {z : E}
 
 theorem runSum_zero (i : ℕ) : runSum syms z i 0 = 0 := by simp [runSum]
 
@@ -136,8 +136,8 @@ theorem runSum_succ (i h : ℕ) : runSum syms z i (h + 1) = runSum syms z i h + 
 
 /-- **A blob orthogonal to the dual codeword has running sum zero after its `128` columns.** -/
 theorem runSum_full {i : ℕ}
-    (hdot : ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
-      dualAt z (256 * h + e) * ofK ((syms i h).getD e 0) = 0) :
+    (hdot : ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
+      dualAt z (128 * h + e) * (syms i h).getD e 0 = 0) :
     runSum syms z i 128 = 0 := by
   rw [runSum, list_sum_range]
   refine (Finset.sum_congr rfl fun h hh => ?_).trans hdot

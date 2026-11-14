@@ -210,8 +210,8 @@ noncomputable def certs : List Check.Cert :=
   Fn.«child_claim_list_mono_last__L13».cert :: Fn.«child_claim_list_mono_last__L14».cert :: Fn.«child_claim_list_mono_last__L15».cert :: Fn.«child_claim_list_mono_last__L16».cert ::
   Fn.«da_verify_loop0».cert :: Fn.«da_verify_loop1».cert :: Fn.«da_verify_loop2».cert :: Fn.«da_verify_loop3».cert ::
   Fn.«da_levels__L1_L0».cert :: Fn.«da_levels__L2_L1».cert :: Fn.«da_levels__L4_L2».cert :: Fn.«da_levels__L8_L3».cert ::
-  Fn.«da_levels__L16_L4».cert :: Fn.«da_levels__L32_L5».cert :: Fn.«da_expand__L7_L8».cert :: Fn.«da_verify_column_loop0».cert ::
-  Fn.«da_factors__L14_L7_L0».cert :: Fn.«da_expand__L14_L7».cert :: Fn.«da_factors__L7_L8_L128».cert :: Fn.«da_column_offsets_loop0».cert ::
+  Fn.«da_levels__L16_L4».cert :: Fn.«da_levels__L32_L5».cert :: Fn.«da_expand__L6_L7».cert :: Fn.«da_verify_column_loop0».cert ::
+  Fn.«da_factors__L13_L7_L0».cert :: Fn.«da_expand__L13_L7».cert :: Fn.«da_factors__L6_L7_L128».cert :: Fn.«da_column_offsets_loop0».cert ::
   Fn.«da_column_offsets_loop1».cert :: Fn.«da_column_offsets_loop2».cert :: Fn.«da_column_offsets_loop3».cert :: Fn.«da_column_offsets_loop4».cert ::
   Fn.«da_column_offsets_loop5».cert :: Fn.«da_column_offsets_loop6».cert :: Fn.«aggregate_claims_loop0».cert :: Fn.«grind_check__L2».cert ::
   Fn.«aggregate_claims_loop1».cert :: Fn.«batch_sumcheck__L23».cert :: Fn.«aggregate_claims_loop2».cert :: Fn.«rs_eq_rows__L8».cert ::

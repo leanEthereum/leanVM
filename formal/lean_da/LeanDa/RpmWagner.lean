@@ -148,7 +148,7 @@ variable {m : Type → Type} [Monad m] [LawfulMonad m]
 
 theorem length_cellBytes (x : Cell) : (cellBytes x).length = 2048 := by
   rw [cellBytes, List.length_flatMap]
-  simp only [length_kBytes, List.map_const', List.length_ofFn, List.sum_replicate, smul_eq_mul]
+  simp only [length_eBytes, List.map_const', List.length_ofFn, List.sum_replicate, smul_eq_mul]
 
 theorem length_pairBytes (a b : Common.DigestBytes) : (pairBytes a b).length = 64 := by
   simp [pairBytes]

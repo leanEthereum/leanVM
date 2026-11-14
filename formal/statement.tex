@@ -330,8 +330,8 @@ Benedikt Wagner's framework, theorems and proofs, ported and instantiated with L
 queries $\pi$ and $\pi^{-1}$ alone and hashes with Keccak-256 over $\pi$.
 
 \paragraph{The matrix.} The matrix has $r$ rows, $1 \le r \le$ \lean{maxRows}, one blob each. A blob is a
-payload of $2^{14}$ field elements, Reed-Solomon encoded to $2^{15}$
-(\texttt{leanDaErasureCode r}). Each encoded row is cut into $128$ \emph{cells}, so the matrix has
+payload of $2^{13}$ elements of $\mathbb{E}$, Reed-Solomon encoded to $2^{14}$ on a domain in
+$\mathbb{K}$ (\texttt{leanDaErasureCode r}), so each of a row's two limbs is a codeword over $\mathbb{K}$. Each encoded row is cut into $128$ \emph{cells}, so the matrix has
 $128\,r$ positions.
 
 \paragraph{The commitment.} The committer hashes each row's $128$ cells into a Merkle tree, the
@@ -347,15 +347,15 @@ prover and a verifier that may query the oracles), that the cells satisfy LeanDA
 \begin{itemize}
 \item the cells hash to the root, and
 \item every row passes the \emph{membership test}: from the root, the duplex derives one
-challenge $z \in \mathbb{E}$, which defines a codeword $L(x) = \prod_{j<14} (1 + z^{2^j}\,\widehat{W}_j(x))$ of the
+challenge $z \in \mathbb{E}$, which defines a codeword $L(x) = \prod_{j<13} (1 + z^{2^j}\,\widehat{W}_j(x))$ of the
 dual code (\lean{dualCodewordAt}); every row must be orthogonal to $L$. A row that is not a codeword
-passes with probability at most $(2^{14}-1)/2^{128} < 2^{-114}$: its inner product with $L$ is a
-nonzero polynomial in $z$ of degree below $2^{14}$.
+passes with probability at most $(2^{13}-1)/2^{128} < 2^{-115}$: its inner product with $L$ is a
+nonzero polynomial in $z$ of degree below $2^{13}$.
 \end{itemize}
 The challenge is ground (\lean{membershipChallengeWith}): the duplex seeded with the root absorbs
 the nonces $0, 1, \dots$ of $64$ bits, each into a copy of the seeded sponge, and the first whose
-permutation's third lane has $11$ low zero bits gives $z$, the first two lanes of that permutation.
-The nonce is not sent; anyone deriving $z$ finds it, about $2^{11}$ permutations per root. If no
+permutation's third lane has $10$ low zero bits gives $z$, the first two lanes of that permutation.
+The nonce is not sent; anyone deriving $z$ finds it, about $2^{10}$ permutations per root. If no
 $64$-bit nonce is valid, the Rust search never ends; the statement then has no challenge and the
 relation asks every row to be a codeword (\lean{membershipCheckOpt}), which keeps honest matrices
 in the relation for every $\pi$.
@@ -395,7 +395,7 @@ probability at most $(q + c)\cdot 2^{-k}$, for some constants $c$ and $k$.
 \emph{The theorem.} Under this assumption, an adversary making $Q$ calls (any $Q$, verifications
 included) wins the code-binding game with probability at most
 \[
-\boxed{\ (Q + c + 2^{65})\cdot 2^{-k} + (Q + 2^{11})\cdot 2^{-125} + (Q + 2^{22})^2\cdot 2^{-247}\ }
+\boxed{\ (Q + c + 2^{65})\cdot 2^{-k} + (Q + 2^{10})\cdot 2^{-125} + (Q + 2^{22})^2\cdot 2^{-247}\ }
 \]
 (\lean{LeanDa.leanDa_codeBinding_rpm_bound}). At $Q = 2^{64}$ the last two terms are about
 $2^{-61}$ and $2^{-119}$. The offset $2^{65}$ of the first term is the knowledge-soundness game's
@@ -410,9 +410,9 @@ the first term.
 \item $c^*$ satisfies the relation but has a row that is not a codeword. Then it passed the
 membership test by luck: the second term. The grind makes luck cost permutation calls. A call of
 the adversary on one of a root's nonces gives a valid proof of work and an accepting challenge at
-once with probability at most $2^{-11}\cdot(2^{14}-1)/2^{128} < 2^{-125}$, the two independent;
+once with probability at most $2^{-10}\cdot(2^{13}-1)/2^{128} < 2^{-125}$, the two independent;
 the verifier's own search for the root, however many nonces it tries, stops at its first valid
-one, so it is a single fresh try, $(2^{14}-1)/2^{128} < 2^{11}\cdot 2^{-125}$.
+one, so it is a single fresh try, $(2^{13}-1)/2^{128} < 2^{10}\cdot 2^{-125}$.
 \item $c^*$ is a codeword. Every opened cell hashes to the same root as $c^*$, so unless Keccak-256
 has a collision, each opened cell is $c^*$'s cell, and the codeword $c^*$ agrees with all of them:
 the adversary loses. Collisions and other bad hash events give the third term.
@@ -464,7 +464,7 @@ data-availability claim (\lean{DaClaim}, \lean{daClaimDigest}), a matrix root $\
 (\lean{daRoot}) and a membership challenge $z \in \mathbb{E}$ (\lean{membershipChallenge}, as its
 two limbs and two zero words), or $32$ zero bytes without one (\lean{zeroDigest};
 \texttt{verifier::da::digest}, \texttt{crates/verifier/src/da.rs:36-43}). The claim: some matrix of
-$1$ to $1024$ encoded blobs with root $\rho$ has every row orthogonal to the dual codeword $L$ of $z$
+$1$ to \lean{LeanDa.maxRows} encoded blobs with root $\rho$ has every row orthogonal to the dual codeword $L$ of $z$
 (\lean{Da.MatrixWitness.Opens}), which the guest program builds from $z$. The outer verifier holds
 $\rho$, derives $z$ from $\rho$ (Section~\ref{sec:schemes}) and checks $\mathit{da} = H(\rho \,\|\, z)$; that
 this derivation makes the rows codewords is not proved (Section~\ref{sec:notgive});
@@ -641,9 +641,9 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 30$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
-\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $572751$)
-limits any program; it is the compiled decoder's size, $572321$ (proved
-at most that, measured exactly; the guest's frame-cell table is $520072$ of it), and a slack of
+\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $570410$)
+limits any program; it is the compiled decoder's size, $569980$ (proved
+at most that, measured exactly; the guest's frame-cell table is $517729$ of it), and a slack of
 $430$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: the frame-cell table

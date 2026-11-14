@@ -337,7 +337,7 @@ fn aggregate_two_to_one() {
 
 fn da_rows(n_rows: usize, seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(seed);
-    let symbols: Vec<u64> = (0..n_rows * BLOB_SYMBOLS)
+    let symbols: Vec<u128> = (0..n_rows * BLOB_SYMBOLS)
         .map(|_| rand::Rng::random(&mut rng))
         .collect();
     symbols.as_chunks().0.to_vec()

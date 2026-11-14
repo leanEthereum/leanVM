@@ -22,25 +22,44 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L12_L6`, once. -/
-theorem st : shareStaticD Fn.«walk_path__L12_L6».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `walk_path__L12_L6`, window 0. -/
-theorem sw0 : shareWinD Fn.«walk_path__L12_L6».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `walk_path__L12_L6`, window 1. -/
-theorem sw1 : shareWinD Fn.«walk_path__L12_L6».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
 /-- `walk_path__L12_L6`, window 2. -/
 theorem sw2 : shareWinD Fn.«walk_path__L12_L6».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
   decide +kernel
 
+set_option maxRecDepth 100000 in
+/-- `walk_path__L12_L6`, window 3. -/
+theorem sw3 : shareWinD Fn.«walk_path__L12_L6».core (cert.withPows Data.powTree) plumb fs snaps 3 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `walk_path__L12_L6`, window 4. -/
+theorem sw4 : shareWinD Fn.«walk_path__L12_L6».core (cert.withPows Data.powTree) plumb fs snaps 4 = true := by
+  decide +kernel
+
 end
 end LeanVM.Guest.Fn.«walk_path__L12_L6»
+
+namespace LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `__loop482`, once. -/
+theorem st : shareStaticD Fn.«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop482`, window 0. -/
+theorem sw0 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop482`, window 1. -/
+theorem sw1 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»
 

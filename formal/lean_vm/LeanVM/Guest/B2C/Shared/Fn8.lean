@@ -22,25 +22,25 @@ import LeanVM.Guest.Pack.«P10».Shared2
 import LeanVM.Guest.Pack.«P37».Shared1
 import LeanVM.Guest.Pack.«P62».Shared1
 import LeanVM.Guest.Pack.«P58».Shared1
-import LeanVM.Guest.Pack.«P49».Shared1
+import LeanVM.Guest.Pack.«P29».Shared2
 import LeanVM.Guest.Pack.«P24».Shared3
+import LeanVM.Guest.Pack.«P8».SharedOk
+import LeanVM.Guest.Pack.«P29».SharedOk
 import LeanVM.Guest.Pack.«P61».Shared1
-import LeanVM.Guest.Pack.«P2».SharedOk
-import LeanVM.Guest.Pack.«P13».Shared1
 import LeanVM.Guest.Pack.«P47».Shared2
 import LeanVM.Guest.Pack.«P28».SharedOk
 import LeanVM.Guest.Pack.«P21».Shared1
-import LeanVM.Guest.Pack.«P2».Shared2
 import LeanVM.Guest.Pack.«P35».Shared2
 import LeanVM.Guest.Pack.«P16».Shared2
 import LeanVM.Guest.Pack.«P9».Shared2
+import LeanVM.Guest.Pack.«P13».Shared1
 import LeanVM.Guest.Pack.«P14».Shared2
 import LeanVM.Guest.Pack.«P38».Shared1
 import LeanVM.Guest.Pack.«P39».Shared2
 import LeanVM.Guest.Pack.«P45».SharedOk
 import LeanVM.Guest.Pack.«P54».Shared2
 import LeanVM.Guest.Pack.«P11».Shared1
-import LeanVM.Guest.Pack.«P49».Shared2
+import LeanVM.Guest.Pack.«P49».Shared1
 import LeanVM.Guest.Pack.«P23».Shared1
 import LeanVM.Guest.Pack.«P56».Shared1
 import LeanVM.Guest.Pack.«P33».Shared3
@@ -52,7 +52,7 @@ import LeanVM.Guest.Pack.«P36».Shared2
 import LeanVM.Guest.Pack.«P57».Shared1
 import LeanVM.Guest.Pack.«P38».Shared2
 import LeanVM.Guest.Pack.«P52».Shared1
-import LeanVM.Guest.Pack.«P7».SharedOk
+import LeanVM.Guest.Pack.«P7».Shared2
 
 namespace LeanVM.Guest.B2C.Shared
 
@@ -100,19 +100,19 @@ theorem ok413 : ShareOk 413 :=
   shareOk_of_link link413 plumbEq413 fsEq413 snapsEq413 rfl (fun h ↦ nomatch h) Fn.«da_levels__L32_L5».shareOk
 
 theorem ok414 : ShareOk 414 :=
-  shareOk_of_link link414 plumbEq414 fsEq414 snapsEq414 rfl (fun h ↦ nomatch h) Fn.«da_expand__L7_L8».shareOk
+  shareOk_of_link link414 plumbEq414 fsEq414 snapsEq414 rfl (fun h ↦ nomatch h) Fn.«da_expand__L6_L7».shareOk
 
 theorem ok415 : ShareOk 415 :=
   shareOk_of_link link415 plumbEq415 fsEq415 snapsEq415 rfl (fun h ↦ nomatch h) Fn.«da_verify_column_loop0».shareOk
 
 theorem ok416 : ShareOk 416 :=
-  shareOk_of_link link416 plumbEq416 fsEq416 snapsEq416 rfl (fun h ↦ nomatch h) Fn.«da_factors__L14_L7_L0».shareOk
+  shareOk_of_link link416 plumbEq416 fsEq416 snapsEq416 rfl (fun h ↦ nomatch h) Fn.«da_factors__L13_L7_L0».shareOk
 
 theorem ok417 : ShareOk 417 :=
-  shareOk_of_link link417 plumbEq417 fsEq417 snapsEq417 rfl (fun h ↦ nomatch h) Fn.«da_expand__L14_L7».shareOk
+  shareOk_of_link link417 plumbEq417 fsEq417 snapsEq417 rfl (fun h ↦ nomatch h) Fn.«da_expand__L13_L7».shareOk
 
 theorem ok418 : ShareOk 418 :=
-  shareOk_of_link link418 plumbEq418 fsEq418 snapsEq418 rfl (fun h ↦ nomatch h) Fn.«da_factors__L7_L8_L128».shareOk
+  shareOk_of_link link418 plumbEq418 fsEq418 snapsEq418 rfl (fun h ↦ nomatch h) Fn.«da_factors__L6_L7_L128».shareOk
 
 theorem ok419 : ShareOk 419 :=
   shareOk_of_link link419 plumbEq419 fsEq419 snapsEq419 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets_loop0».shareOk

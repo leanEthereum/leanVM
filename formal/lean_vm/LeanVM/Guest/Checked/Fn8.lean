@@ -67,14 +67,14 @@ public import LeanVM.Guest.Pack.«P5».Sig
 public import LeanVM.Guest.Pack.«P50».Sig
 public import LeanVM.Guest.Pack.«P22».Sig
 public import LeanVM.Guest.Pack.«P34».Sig
-public import LeanVM.Guest.Pack.«P49».Core
-public import LeanVM.Guest.Pack.«P49».Bundle
+public import LeanVM.Guest.Pack.«P29».Core
+public import LeanVM.Guest.Pack.«P29».Bundle
 public import LeanVM.Guest.Pack.«P7».Sig
 public import LeanVM.Guest.Pack.«P24».Sig
+public import LeanVM.Guest.Pack.«P8».Core
+public import LeanVM.Guest.Pack.«P8».Bundle
 public import LeanVM.Guest.Pack.«P61».Core
 public import LeanVM.Guest.Pack.«P61».Bundle
-public import LeanVM.Guest.Pack.«P13».Core
-public import LeanVM.Guest.Pack.«P13».Bundle
 public import LeanVM.Guest.Pack.«P47».Core
 public import LeanVM.Guest.Pack.«P47».Bundle
 public import LeanVM.Guest.Pack.«P47».Sig
@@ -94,6 +94,8 @@ public import LeanVM.Guest.Pack.«P16».Sig
 public import LeanVM.Guest.Pack.«P9».Core
 public import LeanVM.Guest.Pack.«P9».Bundle
 public import LeanVM.Guest.Pack.«P9».Sig
+public import LeanVM.Guest.Pack.«P13».Core
+public import LeanVM.Guest.Pack.«P13».Bundle
 public import LeanVM.Guest.Pack.«P13».Sig
 public import LeanVM.Guest.Pack.«P58».Sig
 public import LeanVM.Guest.Pack.«P38».Core
@@ -108,6 +110,8 @@ public import LeanVM.Guest.Pack.«P54».Bundle
 public import LeanVM.Guest.Pack.«P54».Sig
 public import LeanVM.Guest.Pack.«P11».Core
 public import LeanVM.Guest.Pack.«P11».Bundle
+public import LeanVM.Guest.Pack.«P49».Core
+public import LeanVM.Guest.Pack.«P49».Bundle
 public import LeanVM.Guest.Pack.«P23».Core
 public import LeanVM.Guest.Pack.«P23».Bundle
 public import LeanVM.Guest.Pack.«P56».Core
@@ -141,20 +145,22 @@ import LeanVM.Guest.Pack.«P10».Checked
 import LeanVM.Guest.Pack.«P37».Checked
 import LeanVM.Guest.Pack.«P62».Checked
 import LeanVM.Guest.Pack.«P58».Checked
-import LeanVM.Guest.Pack.«P49».Checked
+import LeanVM.Guest.Pack.«P29».Checked
+import LeanVM.Guest.Pack.«P8».Checked
 import LeanVM.Guest.Pack.«P61».Checked
-import LeanVM.Guest.Pack.«P13».Checked
 import LeanVM.Guest.Pack.«P47».Checked
 import LeanVM.Guest.Pack.«P28».Checked
 import LeanVM.Guest.Pack.«P21».Checked
 import LeanVM.Guest.Pack.«P35».Checked
 import LeanVM.Guest.Pack.«P16».Checked
 import LeanVM.Guest.Pack.«P9».Checked
+import LeanVM.Guest.Pack.«P13».Checked
 import LeanVM.Guest.Pack.«P38».Checked
 import LeanVM.Guest.Pack.«P39».Checked
 import LeanVM.Guest.Pack.«P45».Checked
 import LeanVM.Guest.Pack.«P54».Checked
 import LeanVM.Guest.Pack.«P11».Checked
+import LeanVM.Guest.Pack.«P49».Checked
 import LeanVM.Guest.Pack.«P23».Checked
 import LeanVM.Guest.Pack.«P56».Checked
 import LeanVM.Guest.Pack.«P26».Checked
@@ -336,24 +342,15 @@ theorem ok413 : CheckOk 413 := checkOk_one (by decide +kernel) w413_0
 theorem plain413 : Plain 413 := plain_of_nil (by decide +kernel)
 
 theorem link414 : Link 414 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«da_expand__L7_L8».code Fn.«da_expand__L7_L8».core (Fn.«da_expand__L7_L8».cert.withPows Data.powTree) :=
+    Fn.«da_expand__L6_L7».code Fn.«da_expand__L6_L7».core (Fn.«da_expand__L6_L7».cert.withPows Data.powTree) :=
   Link.of code414 core414 cert414 SigsOk.nil
     (by decide +kernel)
 
-theorem w414_0 : WinOk 414 0 := link414.win rfl Fn.«da_expand__L7_L8».w0
+theorem w414_0 : WinOk 414 0 := link414.win rfl Fn.«da_expand__L6_L7».w0
 
-theorem w414_1 : WinOk 414 1 := link414.win rfl Fn.«da_expand__L7_L8».w1
+theorem ok414 : CheckOk 414 := checkOk_one (by decide +kernel) w414_0
 
-theorem ok414 : CheckOk 414 := fun i hi ↦ by
-  have h : (certOf 414).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w414_0
-  · exact w414_1
-
-theorem plain414 : Plain 414 := by
-  unfold Plain
-  decide +kernel
+theorem plain414 : Plain 414 := plain_of_nil (by decide +kernel)
 
 theorem link415 : Link 415 (Glob.ofSigs ([(31, Fn.«da_verify_cell».sig), (415, Fn.«da_verify_column_loop0».sig)]) Data.jtTrie globSem)
     Fn.«da_verify_column_loop0».code Fn.«da_verify_column_loop0».core (Fn.«da_verify_column_loop0».cert.withPows Data.powTree) :=
@@ -369,46 +366,37 @@ theorem ok415 : CheckOk 415 := checkOk_one (by decide +kernel) w415_0
 theorem plain415 : Plain 415 := plain_of_nil (by decide +kernel)
 
 theorem link416 : Link 416 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«da_factors__L14_L7_L0».code Fn.«da_factors__L14_L7_L0».core (Fn.«da_factors__L14_L7_L0».cert.withPows Data.powTree) :=
+    Fn.«da_factors__L13_L7_L0».code Fn.«da_factors__L13_L7_L0».core (Fn.«da_factors__L13_L7_L0».cert.withPows Data.powTree) :=
   Link.of code416 core416 cert416 SigsOk.nil
     (by decide +kernel)
 
-theorem w416_0 : WinOk 416 0 := link416.win rfl Fn.«da_factors__L14_L7_L0».w0
+theorem w416_0 : WinOk 416 0 := link416.win rfl Fn.«da_factors__L13_L7_L0».w0
 
 theorem ok416 : CheckOk 416 := checkOk_one (by decide +kernel) w416_0
 
 theorem plain416 : Plain 416 := plain_of_nil (by decide +kernel)
 
 theorem link417 : Link 417 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«da_expand__L14_L7».code Fn.«da_expand__L14_L7».core (Fn.«da_expand__L14_L7».cert.withPows Data.powTree) :=
+    Fn.«da_expand__L13_L7».code Fn.«da_expand__L13_L7».core (Fn.«da_expand__L13_L7».cert.withPows Data.powTree) :=
   Link.of code417 core417 cert417 SigsOk.nil
     (by decide +kernel)
 
-theorem w417_0 : WinOk 417 0 := link417.win rfl Fn.«da_expand__L14_L7».w0
+theorem w417_0 : WinOk 417 0 := link417.win rfl Fn.«da_expand__L13_L7».w0
 
 theorem ok417 : CheckOk 417 := checkOk_one (by decide +kernel) w417_0
 
 theorem plain417 : Plain 417 := plain_of_nil (by decide +kernel)
 
 theorem link418 : Link 418 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«da_factors__L7_L8_L128».code Fn.«da_factors__L7_L8_L128».core (Fn.«da_factors__L7_L8_L128».cert.withPows Data.powTree) :=
+    Fn.«da_factors__L6_L7_L128».code Fn.«da_factors__L6_L7_L128».core (Fn.«da_factors__L6_L7_L128».cert.withPows Data.powTree) :=
   Link.of code418 core418 cert418 SigsOk.nil
     (by decide +kernel)
 
-theorem w418_0 : WinOk 418 0 := link418.win rfl Fn.«da_factors__L7_L8_L128».w0
+theorem w418_0 : WinOk 418 0 := link418.win rfl Fn.«da_factors__L6_L7_L128».w0
 
-theorem w418_1 : WinOk 418 1 := link418.win rfl Fn.«da_factors__L7_L8_L128».w1
+theorem ok418 : CheckOk 418 := checkOk_one (by decide +kernel) w418_0
 
-theorem ok418 : CheckOk 418 := fun i hi ↦ by
-  have h : (certOf 418).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w418_0
-  · exact w418_1
-
-theorem plain418 : Plain 418 := by
-  unfold Plain
-  decide +kernel
+theorem plain418 : Plain 418 := plain_of_nil (by decide +kernel)
 
 theorem link419 : Link 419 (Glob.ofSigs ([(419, Fn.«da_column_offsets_loop0».sig)]) Data.jtTrie globSem)
     Fn.«da_column_offsets_loop0».code Fn.«da_column_offsets_loop0».core (Fn.«da_column_offsets_loop0».cert.withPows Data.powTree) :=

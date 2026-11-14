@@ -15,7 +15,7 @@ import LeanVM.Guest.Pack.«P28».Shared7
 import LeanVM.Guest.Pack.«P30».Shared5
 import LeanVM.Guest.Pack.«P62».Shared6
 import LeanVM.Guest.Pack.«P59».SharedOk
-import LeanVM.Guest.Pack.«P8».SharedOk
+import LeanVM.Guest.Pack.«P8».Shared6
 import LeanVM.Guest.Pack.«P0».SharedOk
 import LeanVM.Guest.Pack.«P26».SharedOk
 import LeanVM.Guest.Pack.«P52».Shared6
@@ -39,7 +39,7 @@ import LeanVM.Guest.Pack.«P50».SharedOk
 import LeanVM.Guest.Pack.«P28».Shared8
 import LeanVM.Guest.Pack.«P50».Shared7
 import LeanVM.Guest.Pack.«P15».Shared6
-import LeanVM.Guest.Pack.«P49».Shared6
+import LeanVM.Guest.Pack.«P49».Shared5
 import LeanVM.Guest.Pack.«P7».SharedOk
 import LeanVM.Guest.Pack.«P32».SharedOk
 import LeanVM.Guest.Pack.«P56».Shared6

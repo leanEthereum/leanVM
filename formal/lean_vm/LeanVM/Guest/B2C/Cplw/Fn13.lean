@@ -13,8 +13,8 @@ import LeanVM.Guest.Checked.Link6
 import LeanVM.Guest.Pack.«P11».Cplw1
 import LeanVM.Guest.Pack.«P34».Cplw1
 import LeanVM.Guest.Pack.«P12».Cplw0
-import LeanVM.Guest.Pack.«P49».Cplw1
-import LeanVM.Guest.Pack.«P2».CplwOk
+import LeanVM.Guest.Pack.«P49».CplwOk
+import LeanVM.Guest.Pack.«P2».Cplw1
 import LeanVM.Guest.Pack.«P31».CplwOk
 import LeanVM.Guest.Pack.«P36».Cplw2
 import LeanVM.Guest.Pack.«P62».Cplw1
@@ -38,8 +38,7 @@ import LeanVM.Guest.Pack.«P60».Cplw0
 import LeanVM.Guest.Pack.«P7».Cplw1
 import LeanVM.Guest.Pack.«P23».Cplw1
 import LeanVM.Guest.Pack.«P45».Cplw2
-import LeanVM.Guest.Pack.«P13».Cplw1
-import LeanVM.Guest.Pack.«P7».Cplw2
+import LeanVM.Guest.Pack.«P13».Cplw0
 import LeanVM.Guest.Pack.«P35».Cplw1
 import LeanVM.Guest.Pack.«P38».Cplw1
 import LeanVM.Guest.Pack.«P6».Cplw1

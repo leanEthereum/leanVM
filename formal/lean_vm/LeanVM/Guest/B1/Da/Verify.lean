@@ -148,15 +148,15 @@ def dvColArgs (σ : Val) (h : ℕ) : List E :=
   [gen ^ h, σ (.n 1), σ (.n 22), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9)]
 
 /-- Cell `(i, h)`'s symbols: its cell check's. -/
-def dvSyms (σ : Val) (Vm : FrameMap) (i h : ℕ) : List K := colSyms Vm (dvColArgs σ h) i
+def dvSyms (σ : Val) (Vm : FrameMap) (i h : ℕ) : List E := colSyms Vm (dvColArgs σ h) i
 
 /-- The number of rows: the shape's count, at most `DA_MAX_ROWS` (`da_verify` asserts it, so on
 its runs the clamp is the count; it bounds the witness on every memory). -/
 noncomputable def dvRows (σ : Val) : ℕ := min (gLog (σ (.n 1))) (guest_const% DA_MAX_ROWS)
 
 /-- The symbols, padded outside the matrix. -/
-noncomputable def dvSymsP (σ : Val) (Vm : FrameMap) (i h : ℕ) : List K :=
-  if i < dvRows σ ∧ h < 128 then dvSyms σ Vm i h else List.replicate 256 0
+noncomputable def dvSymsP (σ : Val) (Vm : FrameMap) (i h : ℕ) : List E :=
+  if i < dvRows σ ∧ h < 128 then dvSyms σ Vm i h else List.replicate 128 0
 
 /-- **`da_verify`'s witness**: the rows of the cells' symbols, as many as the shape's count (at
 most `DA_MAX_ROWS`, `dvRows`). -/
@@ -287,14 +287,14 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
         exact ⟨k1, by rw [← word_g128]; exact k2⟩) c18 h (Nat.zero_le _) hh
   have hcargs : ∀ h, dvColArgs σ h = [gen ^ h, gen ^ r, σ (.n 22), σ (.n 6), σ (.n 7),
       σ (.n 8), σ (.n 9)] := fun h => by rw [dvColArgs, h1]
-  have colF : ∀ h i, ∃ a : E, h < 128 → i < r → (dvSyms σ Vm i h).length = 256 ∧
+  have colF : ∀ h i, ∃ a : E, h < 128 → i < r → (dvSyms σ Vm i h).length = 128 ∧
       LoadHolds rd (σ (.n 21) * (gen ^ i) ^ 641) (2 * h)
-        (digestHalves (keccak256 ((dvSyms σ Vm i h).flatMap K.toBytes))).1 ∧
+        (digestHalves (keccak256 ((dvSyms σ Vm i h).flatMap E.toBytes))).1 ∧
       LoadHolds rd (σ (.n 21) * (gen ^ i) ^ 641) (2 * h + 1)
-        (digestHalves (keccak256 ((dvSyms σ Vm i h).flatMap K.toBytes))).2 ∧
+        (digestHalves (keccak256 ((dvSyms σ Vm i h).flatMap E.toBytes))).2 ∧
       LoadHolds rd (σ (.n 21) * (gen ^ i) ^ 641) (h + 512) a ∧
       LoadHolds rd (σ (.n 21) * (gen ^ i) ^ 641) (h + 513)
-        (a + ∑ e ∈ Finset.range 256, dualAt z (256 * h + e) * ofK ((dvSyms σ Vm i h).getD e 0)) := by
+        (a + ∑ e ∈ Finset.range 128, dualAt z (128 * h + e) * (dvSyms σ Vm i h).getD e 0) := by
     intro h i
     by_cases hhi : h < 128 ∧ i < r
     · have hc := Cc h hhi.1
@@ -312,10 +312,10 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
   -- the witness's symbols, padded outside the run's ranges
   have hrows : dvRows σ = r := by
     rw [dvRows, h1, gLog_gen_pow (by omega)]; omega
-  let symsP : ℕ → ℕ → List K := dvSymsP σ Vm
+  let symsP : ℕ → ℕ → List E := dvSymsP σ Vm
   have hsP : ∀ i h, i < r → h < 128 → symsP i h = dvSyms σ Vm i h := fun i h hi hh => by
     simp only [symsP, dvSymsP, hrows, hi, hh, and_self, ite_true]
-  have hsL : ∀ i h, (symsP i h).length = 256 := fun i h => by
+  have hsL : ∀ i h, (symsP i h).length = 128 := fun i h => by
     by_cases hc : i < r ∧ h < 128
     · rw [hsP i h hc.1 hc.2]; exact (hcell h i hc.2 hc.1).1
     · simp only [symsP, dvSymsP, hrows, hc, ite_false, List.length_replicate]
@@ -328,14 +328,14 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
         obtain ⟨k1, k2⟩ := l19_step hy
         exact ⟨k1 _ _ _ rfl, k2⟩)
       (fun hne => by simpa using guardK_sound hg19 hall hne)
-  have hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
-      dualAt z (256 * h + e) * ofK ((symsP i h).getD e 0) = 0 := by
+  have hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
+      dualAt z (128 * h + e) * (symsP i h).getD e 0 = 0 := by
     intro i hi
     obtain ⟨base, c0, c1, hb0, h640, -, -, -⟩ := L19 i hi
     rw [loadHolds_unique hb0 (L17 i hi).1] at h640
     have run : ∀ h ≤ 128, LoadHolds rd (σ (.n 21) * (gen ^ i) ^ 641) (h + 512)
-        (∑ h' ∈ Finset.range h, ∑ e ∈ Finset.range 256,
-          dualAt z (256 * h' + e) * ofK ((symsP i h').getD e 0)) := by
+        (∑ h' ∈ Finset.range h, ∑ e ∈ Finset.range 128,
+          dualAt z (128 * h' + e) * (symsP i h').getD e 0) := by
       intro h
       induction h with
       | zero => intro _; simpa using (L17 i hi).2

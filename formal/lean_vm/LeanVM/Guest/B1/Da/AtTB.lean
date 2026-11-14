@@ -47,7 +47,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 /-- **The static bounds `da_verify` rests on**: its loop helpers' runs, `iterK fs SK g` words per
 iteration and the run's phantom frame `fs g` once (`TotalLeOn … LoopPre`: the regions' bases, the
 blobs' trees, the padding, a column's cells, the column offsets' doublings), the DA levels' words
-(`TotalLe`), and the statically bounded callees `da_vector` and `da_expand__L7_L8` within their
+(`TotalLe`), and the statically bounded callees `da_vector` and `da_expand__L6_L7` within their
 static words (`vecB`, a frame). -/
 structure DvStaticB (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
   l17 : TotalLeOn coreProgram fs name% «da_verify_loop0» LoopPre
@@ -62,11 +62,11 @@ structure DvStaticB (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
   off : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
     (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b))
   dl : ∀ j ≤ guest_const% DA_LOG_MAX_ROWS, TotalLe coreProgram fs dlNames[j]! (fun _ => SB dlNames[j]!)
-  vec : fs "da_vector" + 30 + (fs "da_factors__L14_L7_L0" + 256 + (fs "da_expand__L14_L7" +
-    (fs "da_factors__L7_L8_L128" + 256 + (fs "da_column_offsets" + 1080 +
+  vec : fs "da_vector" + 28 + (fs "da_factors__L13_L7_L0" + 128 + (fs "da_expand__L13_L7" +
+    (fs "da_factors__L6_L7_L128" + 128 + (fs "da_column_offsets" + 945 +
       ((List.range 7).map fun b => 2 ^ b * iterK fs SK (offLoopName b) + fs (offLoopName b)).sum +
         0)))) ≤ SB "da_vector"
-  exp : fs "da_expand__L7_L8" ≤ SB "da_expand__L7_L8"
+  exp : fs "da_expand__L6_L7" ≤ SB "da_expand__L6_L7"
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 

@@ -225,7 +225,7 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
 # the claim lists' last digests by the last group's size, their loops (`CL_LP`). `da_verify`'s column loop
 # `__loop22` and `da_verify_column` are counted by their frames: the column loop's 128 iterations,
 # each a column, its weights' expansion and its row loop's `r` iterations.
-MV_ST = ['da_row_shape', 'da_vector', 'da_expand__L7_L8']
+MV_ST = ['da_row_shape', 'da_vector', 'da_expand__L6_L7']
 MV_LP = [L('da_verify_loop0'), L('da_verify_loop2'), L('da_verify_loop3'), L('da_verify_column_loop0')]
 DA_ARMS = guest_const('DA_TREE_ARMS')  # the DA levels `L = 0 ..` `DA_LOG_MAX_ROWS`
 MV_DL = ['da_levels__L%d_L%d' % (2 ** L, L) for L in range(DA_ARMS)]

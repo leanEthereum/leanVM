@@ -249,8 +249,8 @@ fn export(
             out.n(rows.len());
             for row in rows {
                 out.n(row.len());
-                for w in row {
-                    write!(out.0, "{w:x} ").unwrap();
+                for &w in row {
+                    out.e(F128::new(w as u64, (w >> 64) as u64));
                 }
             }
         }
@@ -283,7 +283,7 @@ const LOG_INV_RATE: usize = leanvm_core::pcs::TEST_LOG_INV_RATE;
 
 fn blob(seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = StdRng::seed_from_u64(seed);
-    let symbols: Vec<u64> = (0..BLOB_SYMBOLS).map(|_| rng.random()).collect();
+    let symbols: Vec<u128> = (0..BLOB_SYMBOLS).map(|_| rng.random()).collect();
     symbols.as_chunks().0.to_vec()
 }
 

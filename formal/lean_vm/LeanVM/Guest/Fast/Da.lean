@@ -25,14 +25,14 @@ def dvColVN (σ : Val) (Vn : NFrames) (h : ℕ) : Val := Vn (fn_idx% da_verify_c
 /-- Blob `i`'s iteration of column `h`'s blob loop (`da_verify_column_loop0`), its valuation
 (`colRowV`). -/
 def dvRowVN (σ : Val) (Vn : NFrames) (i h : ℕ) : Val :=
-  Vn (fn_idx% da_verify_column_loop0) [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 13), σ (.n 22), gen ^ h, dvColVN σ Vn h (.n 14)] []
+  Vn (fn_idx% da_verify_column_loop0) [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 14), σ (.n 22), gen ^ h, dvColVN σ Vn h (.n 15)] []
 
 /-- The symbols, padded outside the matrix (`dvSymsP`), the cell check function's. -/
-noncomputable def dvSymsPN (σ : Val) (Vn : NFrames) (i h : ℕ) : List K :=
+noncomputable def dvSymsPN (σ : Val) (Vn : NFrames) (i h : ℕ) : List E :=
   if i < dvRows σ ∧ h < 128 then
-    cellSymsOf (Vn (fn_idx% da_verify_cell) [dvColVN σ Vn h (.n 13)]
+    cellSymsOf (Vn (fn_idx% da_verify_cell) [dvColVN σ Vn h (.n 14)]
       [dvRowVN σ Vn i h (.n 6), dvRowVN σ Vn i h (.n 7), dvRowVN σ Vn i h (.n 8)])
-  else List.replicate 256 0
+  else List.replicate 128 0
 
 /-- **`da_verify`'s witness** (`dvWit`), its frames numbered. -/
 noncomputable def dvWitN (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=

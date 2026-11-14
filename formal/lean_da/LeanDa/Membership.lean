@@ -6,14 +6,14 @@ public import LeanDa.ReedSolomon
 # The membership test
 
 Proposition prop:rs-membership of `doc/leanvm/body/d-novel-basis.tex` for the crate's code, with
-one challenge (`membership.rs:7-15`). The dual codeword of challenges
-`z_0 … z_13` is the encoding of the tensor `⊗_j (1, z_j)` (`dual_eq_sum`); the deployed one takes
+one challenge (`membership.rs`). The dual codeword of challenges
+`z_0 … z_12` is the encoding of the tensor `⊗_j (1, z_j)` (`dual_eq_sum`); the deployed one takes
 `z_j = z^(2^j)` (`dualCodewordAt_eq`), whose tensor is `(z^u)_u` (`tensor_powers`). So the inner
 product with a row `w` is the polynomial `Σ_u ⟨Xᵤ, w⟩ z^u` in `z` (`eval_membershipPoly`), of
-degree below `2^14`, its exponents distinct. A codeword is orthogonal to every `Xᵤ`
+degree below `2^13`, its exponents distinct. A codeword is orthogonal to every `Xᵤ`
 (`rsCode_le_orthogonal`), so it passes for every `z` (`dot_dual_eq_zero`). A row that is not a
 codeword is not orthogonal to some `Xᵤ` (`mem_rsCode_of_orthogonal`), so the polynomial is
-nonzero and has at most `2^14 - 1` roots (`card_acceptSet_le`): at most `2^14 - 1` of the
+nonzero and has at most `2^13 - 1` roots (`card_acceptSet_le`): at most `2^13 - 1` of the
 `|E| = 2^128` challenges accept it.
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
@@ -29,14 +29,14 @@ namespace LeanDa
 /-! ## Bits of a coefficient index -/
 
 /-- The bits of `u`. -/
-def bitsOf (u : Fin (2 ^ 14)) : Finset (Fin 14) := Finset.univ.filter fun j ↦ (u : ℕ).testBit j
+def bitsOf (u : Fin (2 ^ 13)) : Finset (Fin 13) := Finset.univ.filter fun j ↦ (u : ℕ).testBit j
 
-theorem eq_of_testBit_eq {u v : Fin (2 ^ 14)} (h : ∀ j : Fin 14, (u : ℕ).testBit j = (v : ℕ).testBit j) :
+theorem eq_of_testBit_eq {u v : Fin (2 ^ 13)} (h : ∀ j : Fin 13, (u : ℕ).testBit j = (v : ℕ).testBit j) :
     u = v := by
   refine Fin.ext (Nat.eq_of_testBit_eq fun i ↦ ?_)
-  by_cases hi : i < 14
+  by_cases hi : i < 13
   · exact h ⟨i, hi⟩
-  · have hle : 2 ^ 14 ≤ 2 ^ i := Nat.pow_le_pow_right (by norm_num) (by omega)
+  · have hle : 2 ^ 13 ≤ 2 ^ i := Nat.pow_le_pow_right (by norm_num) (by omega)
     rw [Nat.testBit_eq_false_of_lt (by omega), Nat.testBit_eq_false_of_lt (by omega)]
 
 theorem bitsOf_injective : Function.Injective bitsOf := by
@@ -50,10 +50,10 @@ theorem bitsOf_bijective : Function.Bijective bitsOf :=
   (Fintype.bijective_iff_injective_and_card bitsOf).mpr
     ⟨bitsOf_injective, by simp [Fintype.card_finset]⟩
 
-theorem tensor_eq (z : Fin 14 → E) (u : Fin (2 ^ 14)) : tensor z u = ∏ j ∈ bitsOf u, z j := by
+theorem tensor_eq (z : Fin 13 → E) (u : Fin (2 ^ 13)) : tensor z u = ∏ j ∈ bitsOf u, z j := by
   rw [tensor, bitsOf, Finset.prod_filter]
 
-theorem novelX_eval (u : Fin (2 ^ 14)) (x : K) :
+theorem novelX_eval (u : Fin (2 ^ 13)) (x : K) :
     (novelX u).eval x = ∏ j ∈ bitsOf u, (normalizedSubspacePolynomial j).eval x := by
   unfold novelX AdditiveNTT.Xⱼ normalizedSubspacePolynomial
   rw [eval_prod, bitsOf, Finset.prod_filter]
@@ -61,18 +61,18 @@ theorem novelX_eval (u : Fin (2 ^ 14)) (x : K) :
   rw [eval_pow, Nat.getBit_eq_testBit]
   split_ifs <;> simp
 
-/-- The dual codeword of challenges `z_0 … z_13`: `∏_j (1 + z_j Ŵ_j(x))` on the domain. -/
-noncomputable def dualTensorAt (z : Fin 14 → E) (b : Fin (2 ^ 15)) : E :=
-  ∏ j : Fin 14, (1 + z j * ι ((normalizedSubspacePolynomial j).eval (point b)))
+/-- The dual codeword of challenges `z_0 … z_12`: `∏_j (1 + z_j Ŵ_j(x))` on the domain. -/
+noncomputable def dualTensorAt (z : Fin 13 → E) (b : Fin (2 ^ 14)) : E :=
+  ∏ j : Fin 13, (1 + z j * ι ((normalizedSubspacePolynomial j).eval (point b)))
 
 /-- The challenges `z^(2^j)` of one challenge `z`. -/
-def powersOf (z : E) (j : Fin 14) : E := z ^ 2 ^ (j : ℕ)
+def powersOf (z : E) (j : Fin 13) : E := z ^ 2 ^ (j : ℕ)
 
 /-- The deployed dual codeword is that of the challenges `z^(2^j)`. -/
 theorem dualCodewordAt_eq (z : E) : dualCodewordAt z = dualTensorAt (powersOf z) := rfl
 
 /-- **The dual codeword is the encoding of the tensor**: `L(x) = Σ_u (⊗_j (1, z_j))_u Xᵤ(x)`. -/
-theorem dual_eq_sum (z : Fin 14 → E) (b : Fin (2 ^ 15)) :
+theorem dual_eq_sum (z : Fin 13 → E) (b : Fin (2 ^ 14)) :
     dualTensorAt z b = ∑ u, tensor z u * ι ((novelX u).eval (point b)) := by
   rw [dualTensorAt, Finset.prod_one_add, Finset.powerset_univ,
     ← bitsOf_bijective.sum_comp fun t ↦ ∏ j ∈ t, z j * ι ((normalizedSubspacePolynomial j).eval (point b))]
@@ -89,27 +89,27 @@ theorem sum_testBit_pow (u : ℕ) :
     rcases Nat.mod_two_eq_zero_or_one (u / 2 ^ n) with h | h <;> simp [h]
 
 /-- **The tensor of the powers `z^(2^j)` is `(z^u)_u`.** -/
-theorem tensor_powers (z : E) (u : Fin (2 ^ 14)) : tensor (powersOf z) u = z ^ (u : ℕ) := by
-  have h : ∀ j : Fin 14, (if (u : ℕ).testBit j then powersOf z j else 1) =
+theorem tensor_powers (z : E) (u : Fin (2 ^ 13)) : tensor (powersOf z) u = z ^ (u : ℕ) := by
+  have h : ∀ j : Fin 13, (if (u : ℕ).testBit j then powersOf z j else 1) =
       z ^ (if (u : ℕ).testBit j then 2 ^ (j : ℕ) else 0) := fun j ↦ by
     split_ifs <;> simp [powersOf]
   rw [tensor, Finset.prod_congr rfl fun j _ ↦ h j, Finset.prod_pow_eq_pow_sum,
-    Fin.sum_univ_eq_sum_range (fun j ↦ if (u : ℕ).testBit j then 2 ^ j else 0) 14,
+    Fin.sum_univ_eq_sum_range (fun j ↦ if (u : ℕ).testBit j then 2 ^ j else 0) 13,
     sum_testBit_pow, Nat.mod_eq_of_lt u.isLt]
 
 /-! ## The membership polynomial -/
 
 /-- The coefficients `⟨Xᵤ, w⟩` of a row on the domain. -/
-noncomputable def novelCoeff (w : Row) (u : Fin (2 ^ 14)) : K :=
-  ∑ b : Fin (2 ^ 15), (novelX u).eval (point b) * w b
+noncomputable def novelCoeff (w : Row) (u : Fin (2 ^ 13)) : E :=
+  ∑ b : Fin (2 ^ 14), ι ((novelX u).eval (point b)) * w b
 
 /-- `⟨L, w⟩` as a polynomial in the challenge: `Σ_u ⟨Xᵤ, w⟩ z^u`. -/
 noncomputable def membershipPoly (w : Row) : E[X] :=
-  ∑ u : Fin (2 ^ 14), C (ι (novelCoeff w u)) * X ^ (u : ℕ)
+  ∑ u : Fin (2 ^ 13), C (novelCoeff w u) * X ^ (u : ℕ)
 
-theorem dot_dual_eq_sum (w : Row) (z : Fin 14 → E) :
-    innerProduct (dualTensorAt z) w = ∑ u, ι (novelCoeff w u) * tensor z u := by
-  simp only [innerProduct, dual_eq_sum, Finset.sum_mul, novelCoeff, map_sum, map_mul]
+theorem dot_dual_eq_sum (w : Row) (z : Fin 13 → E) :
+    innerProduct (dualTensorAt z) w = ∑ u, novelCoeff w u * tensor z u := by
+  simp only [innerProduct, dual_eq_sum, Finset.sum_mul, novelCoeff]
   rw [Finset.sum_comm]
   refine Finset.sum_congr rfl fun u _ ↦ Finset.sum_congr rfl fun b _ ↦ ?_
   ring
@@ -120,8 +120,8 @@ theorem eval_membershipPoly (w : Row) (z : E) :
   refine Finset.sum_congr rfl fun u _ ↦ ?_
   rw [tensor_powers, eval_mul, eval_C, eval_pow, eval_X]
 
-theorem coeff_membershipPoly (w : Row) (u : Fin (2 ^ 14)) :
-    (membershipPoly w).coeff u = ι (novelCoeff w u) := by
+theorem coeff_membershipPoly (w : Row) (u : Fin (2 ^ 13)) :
+    (membershipPoly w).coeff u = novelCoeff w u := by
   rw [membershipPoly, finsetSum_coeff, Finset.sum_eq_single u]
   · simp
   · intro v _ hv
@@ -130,14 +130,14 @@ theorem coeff_membershipPoly (w : Row) (u : Fin (2 ^ 14)) :
   · intro hu
     exact absurd (Finset.mem_univ u) hu
 
-theorem membershipPoly_ne_zero {w : Row} {u₀ : Fin (2 ^ 14)} (h : novelCoeff w u₀ ≠ 0) :
+theorem membershipPoly_ne_zero {w : Row} {u₀ : Fin (2 ^ 13)} (h : novelCoeff w u₀ ≠ 0) :
     membershipPoly w ≠ 0 := by
   intro h0
   have := coeff_membershipPoly w u₀
   rw [h0, coeff_zero] at this
-  exact (map_ne_zero_iff ι ι.injective).mpr h this.symm
+  exact h this.symm
 
-theorem natDegree_membershipPoly_le (w : Row) : (membershipPoly w).natDegree ≤ 2 ^ 14 - 1 := by
+theorem natDegree_membershipPoly_le (w : Row) : (membershipPoly w).natDegree ≤ 2 ^ 13 - 1 := by
   rw [membershipPoly]
   refine natDegree_sum_le_of_forall_le _ _ fun u _ ↦ ?_
   refine (natDegree_C_mul_X_pow_le _ _).trans ?_
@@ -147,19 +147,23 @@ theorem natDegree_membershipPoly_le (w : Row) : (membershipPoly w).natDegree ≤
 /-! ## Completeness and soundness -/
 
 /-- **A codeword passes for all challenges.** -/
-theorem dot_dualTensor_eq_zero {w : Row} (hw : w ∈ rsCode) (z : Fin 14 → E) :
+theorem dot_dualTensor_eq_zero {w : Row} (hw : w ∈ rsCode) (z : Fin 13 → E) :
     innerProduct (dualTensorAt z) w = 0 := by
   rw [dot_dual_eq_sum]
   refine Finset.sum_eq_zero fun u _ ↦ ?_
   have horth := rsCode_le_orthogonal hw
   rw [LinearMap.BilinForm.mem_orthogonal_iff] at horth
-  have hX : evalDomain (novelX u) ∈ rsCode :=
-    mem_rsCode.mpr ⟨novelX u, (AdditiveNTT.basisVectors (ZMod 2) basis 14 (by norm_num) u).2, rfl⟩
+  have hdeg : (novelX u).map ι ∈ degreeLT E (2 ^ 13) := by
+    rw [mem_degreeLT, degree_map]
+    exact mem_degreeLT.mp (AdditiveNTT.basisVectors (ZMod 2) basis 13 (by norm_num) u).2
+  have hX : evalDomain ((novelX u).map ι) ∈ rsCode := mem_rsCode.mpr ⟨_, hdeg, rfl⟩
   have h0 : novelCoeff w u = 0 := by
     have := horth _ hX
-    change dotForm (evalDomain (novelX u)) w = 0 at this
-    rwa [dotForm_apply] at this
-  simp [h0]
+    change dotForm (evalDomain ((novelX u).map ι)) w = 0 at this
+    rw [dotForm_apply] at this
+    simpa only [novelCoeff, evalDomain, LinearMap.coe_mk, AddHom.coe_mk, eval_map, eval₂_hom]
+      using this
+  rw [h0, zero_mul]
 
 /-- **A codeword passes for every challenge.** -/
 theorem dot_dual_eq_zero {w : Row} (hw : w ∈ rsCode) (z : E) :
@@ -184,9 +188,9 @@ theorem card_filter_le_natDegree {F : Type*} [Field F] [Fintype F] [DecidableEq 
     exact hf z (Finset.mem_filter.mp hz).2
   exact (Finset.card_le_card hsub).trans ((Multiset.toFinset_card_le _).trans (card_roots' _))
 
-/-- **A row that is not a codeword is orthogonal to the dual codeword for at most `2^14 - 1`
-challenges**, the roots of its membership polynomial (`membership.rs:12-14`). -/
-theorem card_acceptSet_le {w : Row} (hw : w ∉ rsCode) : (acceptSet w).card ≤ 2 ^ 14 - 1 := by
+/-- **A row that is not a codeword is orthogonal to the dual codeword for at most `2^13 - 1`
+challenges**, the roots of its membership polynomial (`membership.rs`). -/
+theorem card_acceptSet_le {w : Row} (hw : w ∉ rsCode) : (acceptSet w).card ≤ 2 ^ 13 - 1 := by
   obtain ⟨u₀, hu₀⟩ : ∃ u, novelCoeff w u ≠ 0 := by
     by_contra h
     push Not at h

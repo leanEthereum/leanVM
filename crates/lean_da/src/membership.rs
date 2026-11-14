@@ -2,7 +2,8 @@
 //!
 //! For an additive domain `D` of size `m`, `Σ_{x∈D} h(x) = 0` when
 //! `deg(h) <= m-2`. Pairing codewords and comparing dimensions therefore gives
-//! `RS_k(D)^⊥ = RS_{m-k}(D)`. At rate 1/2 the code is self-dual.
+//! `RS_k(D)^⊥ = RS_{m-k}(D)`, over `E` as over `K` since `D` lies in `K`. At rate 1/2 the code is
+//! self-dual.
 //!
 //! The check uses `L(X) = ∏_{j < log2(k)} (1 + z^(2^j) · Vhat_j(X))` for one challenge `z`,
 //! where `Vhat_j = X_{2^j}` is the normalized subspace polynomial of degree `2^j`.
@@ -59,11 +60,19 @@ mod tests {
             .collect()
     }
 
+    fn symbol(w: u128) -> F128 {
+        F128::new(w as u64, (w >> 64) as u64)
+    }
+
+    fn dot(a: &[u128], b: &[u128]) -> F128 {
+        a.iter().zip(b).map(|(&x, &y)| symbol(x) * symbol(y)).sum()
+    }
+
     /// Test every row against the vector of a random challenge.
-    fn check_membership(z: F128, codewords: &[u64]) -> bool {
+    fn check_membership(z: F128, codewords: &[u128]) -> bool {
         let dual = dual_codeword(z);
         codewords.chunks(CODEWORD_SYMBOLS).all(|row| {
-            let residual = dual.iter().zip(row).map(|(&l, &w)| l.mul_base(F64(w))).sum::<F128>();
+            let residual = dual.iter().zip(row).map(|(&l, &w)| l * symbol(w)).sum::<F128>();
             residual == F128::ZERO
         })
     }
@@ -73,11 +82,11 @@ mod tests {
     }
 
     /// The codewords of flat payload rows, flat.
-    fn encode_flat(rows: &[u64]) -> Vec<u64> {
+    fn encode_flat(rows: &[u128]) -> Vec<u128> {
         encode_rows(rows.as_chunks().0).into_flattened()
     }
 
-    fn random_rows(rng: &mut StdRng, n: usize) -> Vec<u64> {
+    fn random_rows(rng: &mut StdRng, n: usize) -> Vec<u128> {
         (0..n).map(|_| rng.random()).collect()
     }
 
@@ -90,8 +99,7 @@ mod tests {
         for _ in 0..4 {
             let a = encode_flat(&random_rows(&mut rng, BLOB_SYMBOLS));
             let b = encode_flat(&random_rows(&mut rng, BLOB_SYMBOLS));
-            let dot = a.iter().zip(&b).map(|(&x, &y)| F64(x) * F64(y)).sum::<F64>();
-            assert_eq!(dot, F64::ZERO);
+            assert_eq!(dot(&a, &b), F128::ZERO);
         }
     }
 
@@ -127,12 +135,14 @@ mod tests {
         assert!(check_membership(z, &codewords));
 
         for &position in &[0usize, 1, BLOB_SYMBOLS - 1, BLOB_SYMBOLS, CODEWORD_SYMBOLS - 1] {
-            let mut corrupted = codewords.clone();
-            corrupted[3 * CODEWORD_SYMBOLS + position] ^= 1;
-            assert!(
-                !check_membership(z, &corrupted),
-                "a flip at {position} passed the membership check"
-            );
+            for bit in [0, 64] {
+                let mut corrupted = codewords.clone();
+                corrupted[3 * CODEWORD_SYMBOLS + position] ^= 1 << bit;
+                assert!(
+                    !check_membership(z, &corrupted),
+                    "a flip of bit {bit} at {position} passed the membership check"
+                );
+            }
         }
     }
 
@@ -147,7 +157,7 @@ mod tests {
         let mut codewords = encode_flat(&rows);
         let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
         let mut full = random_rows(&mut rng, CODEWORD_SYMBOLS);
-        ntt.encode_interleaved_in_place(primitives::cast_slice_mut::<u64, F64>(&mut full), 1, 0);
+        ntt.encode_interleaved_in_place(primitives::cast_slice_mut::<u128, F64>(&mut full), 2, 0);
         codewords[..CODEWORD_SYMBOLS].copy_from_slice(&full);
 
         assert!(!check_membership(random_challenge(&mut rng), &codewords));

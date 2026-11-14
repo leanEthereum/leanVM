@@ -12,9 +12,9 @@ public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P24».Core
 public import LeanVM.Guest.Pack.«P24».Bundle
 public import LeanVM.Guest.Pack.«P42».Sig
+public import LeanVM.Guest.Pack.«P8».Sig
+public import LeanVM.Guest.Pack.«P29».Sig
 public import LeanVM.Guest.Pack.«P61».Sig
-public import LeanVM.Guest.Pack.«P2».Sig
-public import LeanVM.Guest.Pack.«P13».Sig
 public import LeanVM.Guest.Pack.«P24».Sig
 public import LeanVM.Guest.Pack.«P35».Sig
 public import LeanVM.Guest.Pack.«P26».Sig
@@ -36,7 +36,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `da_vector`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(33, Fn.«da_column_offsets».sig), (416, Fn.«da_factors__L14_L7_L0».sig), (417, Fn.«da_expand__L14_L7».sig), (418, Fn.«da_factors__L7_L8_L128».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(33, Fn.«da_column_offsets».sig), (416, Fn.«da_factors__L13_L7_L0».sig), (417, Fn.«da_expand__L13_L7».sig), (418, Fn.«da_factors__L6_L7_L128».sig)]) Data.jtTrie globSem) code
     Fn.«da_vector».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 

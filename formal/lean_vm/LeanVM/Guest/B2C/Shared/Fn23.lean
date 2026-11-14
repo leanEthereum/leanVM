@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B2C.Share
 import LeanVM.Guest.Checked.Fn23
 import LeanVM.Guest.Checked.Link11
-import LeanVM.Guest.Pack.«P49».Shared4
+import LeanVM.Guest.Pack.«P49».SharedOk
 import LeanVM.Guest.Pack.«P27».Shared3
 import LeanVM.Guest.Pack.«P39».Shared5
 import LeanVM.Guest.Pack.«P53».Shared4

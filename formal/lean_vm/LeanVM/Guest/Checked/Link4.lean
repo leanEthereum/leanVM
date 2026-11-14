@@ -47,15 +47,15 @@ public import LeanVM.Guest.Pack.«P62».Core
 public import LeanVM.Guest.Pack.«P58».Bundle
 public import LeanVM.Guest.Pack.«P58».Sig
 public import LeanVM.Guest.Pack.«P58».Core
-public import LeanVM.Guest.Pack.«P49».Bundle
-public import LeanVM.Guest.Pack.«P49».Sig
-public import LeanVM.Guest.Pack.«P49».Core
+public import LeanVM.Guest.Pack.«P29».Bundle
+public import LeanVM.Guest.Pack.«P29».Sig
+public import LeanVM.Guest.Pack.«P29».Core
+public import LeanVM.Guest.Pack.«P8».Bundle
+public import LeanVM.Guest.Pack.«P8».Sig
+public import LeanVM.Guest.Pack.«P8».Core
 public import LeanVM.Guest.Pack.«P61».Bundle
 public import LeanVM.Guest.Pack.«P61».Sig
 public import LeanVM.Guest.Pack.«P61».Core
-public import LeanVM.Guest.Pack.«P13».Bundle
-public import LeanVM.Guest.Pack.«P13».Sig
-public import LeanVM.Guest.Pack.«P13».Core
 public import LeanVM.Guest.Pack.«P47».Bundle
 public import LeanVM.Guest.Pack.«P47».Sig
 public import LeanVM.Guest.Pack.«P47».Core
@@ -74,6 +74,9 @@ public import LeanVM.Guest.Pack.«P16».Core
 public import LeanVM.Guest.Pack.«P9».Bundle
 public import LeanVM.Guest.Pack.«P9».Sig
 public import LeanVM.Guest.Pack.«P9».Core
+public import LeanVM.Guest.Pack.«P13».Bundle
+public import LeanVM.Guest.Pack.«P13».Sig
+public import LeanVM.Guest.Pack.«P13».Core
 public import LeanVM.Guest.Pack.«P38».Bundle
 public import LeanVM.Guest.Pack.«P38».Sig
 public import LeanVM.Guest.Pack.«P38».Core
@@ -89,6 +92,9 @@ public import LeanVM.Guest.Pack.«P54».Core
 public import LeanVM.Guest.Pack.«P11».Bundle
 public import LeanVM.Guest.Pack.«P11».Sig
 public import LeanVM.Guest.Pack.«P11».Core
+public import LeanVM.Guest.Pack.«P49».Bundle
+public import LeanVM.Guest.Pack.«P49».Sig
+public import LeanVM.Guest.Pack.«P49».Core
 public import LeanVM.Guest.Pack.«P23».Bundle
 public import LeanVM.Guest.Pack.«P23».Sig
 public import LeanVM.Guest.Pack.«P23».Core
@@ -146,9 +152,6 @@ public import LeanVM.Guest.Pack.«P5».Core
 public import LeanVM.Guest.Pack.«P44».Bundle
 public import LeanVM.Guest.Pack.«P44».Sig
 public import LeanVM.Guest.Pack.«P44».Core
-public import LeanVM.Guest.Pack.«P29».Bundle
-public import LeanVM.Guest.Pack.«P29».Sig
-public import LeanVM.Guest.Pack.«P29».Core
 public import LeanVM.Guest.Pack.«P15».Bundle
 public import LeanVM.Guest.Pack.«P15».Sig
 public import LeanVM.Guest.Pack.«P15».Core
@@ -443,25 +446,25 @@ kernel_rfl armsEq413 : listElementOrDefault Data.cplArms 413 [] = Fn.«da_levels
 
 kernel_rfl snapsEq413 : B2C.snapsOf 413 = Fn.«da_levels__L32_L5».snaps
 
-kernel_rfl code414 : fnOf 414 = Fn.«da_expand__L7_L8».code
+kernel_rfl code414 : fnOf 414 = Fn.«da_expand__L6_L7».code
 
-kernel_rfl core414 : coreOf 414 = Fn.«da_expand__L7_L8».core
+kernel_rfl core414 : coreOf 414 = Fn.«da_expand__L6_L7».core
 
-kernel_rfl cert414 : certOf 414 = (Fn.«da_expand__L7_L8».cert.withPows Data.powTree)
+kernel_rfl cert414 : certOf 414 = (Fn.«da_expand__L6_L7».cert.withPows Data.powTree)
 
-kernel_rfl sigBody414 : sigFrom Fn.«da_expand__L7_L8».code Fn.«da_expand__L7_L8».core (Fn.«da_expand__L7_L8».cert.withPows Data.powTree) = Fn.«da_expand__L7_L8».sig
+kernel_rfl sigBody414 : sigFrom Fn.«da_expand__L6_L7».code Fn.«da_expand__L6_L7».core (Fn.«da_expand__L6_L7».cert.withPows Data.powTree) = Fn.«da_expand__L6_L7».sig
 
-theorem sig414 : glob.sig 414 = Fn.«da_expand__L7_L8».sig := sig_of_link code414 core414 cert414 sigBody414
+theorem sig414 : glob.sig 414 = Fn.«da_expand__L6_L7».sig := sig_of_link code414 core414 cert414 sigBody414
 
-kernel_rfl plumbEq414 : B2C.plumbOf 414 = Fn.«da_expand__L7_L8».plumb
+kernel_rfl plumbEq414 : B2C.plumbOf 414 = Fn.«da_expand__L6_L7».plumb
 
-kernel_rfl fsEq414 : B2C.fsN 414 = Fn.«da_expand__L7_L8».fs
+kernel_rfl fsEq414 : B2C.fsN 414 = Fn.«da_expand__L6_L7».fs
 
-kernel_rfl partsEq414 : B2C.cplPartsOf 414 = Fn.«da_expand__L7_L8».parts
+kernel_rfl partsEq414 : B2C.cplPartsOf 414 = Fn.«da_expand__L6_L7».parts
 
-kernel_rfl armsEq414 : listElementOrDefault Data.cplArms 414 [] = Fn.«da_expand__L7_L8».arms
+kernel_rfl armsEq414 : listElementOrDefault Data.cplArms 414 [] = Fn.«da_expand__L6_L7».arms
 
-kernel_rfl snapsEq414 : B2C.snapsOf 414 = Fn.«da_expand__L7_L8».snaps
+kernel_rfl snapsEq414 : B2C.snapsOf 414 = Fn.«da_expand__L6_L7».snaps
 
 kernel_rfl code415 : fnOf 415 = Fn.«da_verify_column_loop0».code
 
@@ -483,65 +486,65 @@ kernel_rfl armsEq415 : listElementOrDefault Data.cplArms 415 [] = Fn.«da_verify
 
 kernel_rfl snapsEq415 : B2C.snapsOf 415 = Fn.«da_verify_column_loop0».snaps
 
-kernel_rfl code416 : fnOf 416 = Fn.«da_factors__L14_L7_L0».code
+kernel_rfl code416 : fnOf 416 = Fn.«da_factors__L13_L7_L0».code
 
-kernel_rfl core416 : coreOf 416 = Fn.«da_factors__L14_L7_L0».core
+kernel_rfl core416 : coreOf 416 = Fn.«da_factors__L13_L7_L0».core
 
-kernel_rfl cert416 : certOf 416 = (Fn.«da_factors__L14_L7_L0».cert.withPows Data.powTree)
+kernel_rfl cert416 : certOf 416 = (Fn.«da_factors__L13_L7_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody416 : sigFrom Fn.«da_factors__L14_L7_L0».code Fn.«da_factors__L14_L7_L0».core (Fn.«da_factors__L14_L7_L0».cert.withPows Data.powTree) = Fn.«da_factors__L14_L7_L0».sig
+kernel_rfl sigBody416 : sigFrom Fn.«da_factors__L13_L7_L0».code Fn.«da_factors__L13_L7_L0».core (Fn.«da_factors__L13_L7_L0».cert.withPows Data.powTree) = Fn.«da_factors__L13_L7_L0».sig
 
-theorem sig416 : glob.sig 416 = Fn.«da_factors__L14_L7_L0».sig := sig_of_link code416 core416 cert416 sigBody416
+theorem sig416 : glob.sig 416 = Fn.«da_factors__L13_L7_L0».sig := sig_of_link code416 core416 cert416 sigBody416
 
-kernel_rfl plumbEq416 : B2C.plumbOf 416 = Fn.«da_factors__L14_L7_L0».plumb
+kernel_rfl plumbEq416 : B2C.plumbOf 416 = Fn.«da_factors__L13_L7_L0».plumb
 
-kernel_rfl fsEq416 : B2C.fsN 416 = Fn.«da_factors__L14_L7_L0».fs
+kernel_rfl fsEq416 : B2C.fsN 416 = Fn.«da_factors__L13_L7_L0».fs
 
-kernel_rfl partsEq416 : B2C.cplPartsOf 416 = Fn.«da_factors__L14_L7_L0».parts
+kernel_rfl partsEq416 : B2C.cplPartsOf 416 = Fn.«da_factors__L13_L7_L0».parts
 
-kernel_rfl armsEq416 : listElementOrDefault Data.cplArms 416 [] = Fn.«da_factors__L14_L7_L0».arms
+kernel_rfl armsEq416 : listElementOrDefault Data.cplArms 416 [] = Fn.«da_factors__L13_L7_L0».arms
 
-kernel_rfl snapsEq416 : B2C.snapsOf 416 = Fn.«da_factors__L14_L7_L0».snaps
+kernel_rfl snapsEq416 : B2C.snapsOf 416 = Fn.«da_factors__L13_L7_L0».snaps
 
-kernel_rfl code417 : fnOf 417 = Fn.«da_expand__L14_L7».code
+kernel_rfl code417 : fnOf 417 = Fn.«da_expand__L13_L7».code
 
-kernel_rfl core417 : coreOf 417 = Fn.«da_expand__L14_L7».core
+kernel_rfl core417 : coreOf 417 = Fn.«da_expand__L13_L7».core
 
-kernel_rfl cert417 : certOf 417 = (Fn.«da_expand__L14_L7».cert.withPows Data.powTree)
+kernel_rfl cert417 : certOf 417 = (Fn.«da_expand__L13_L7».cert.withPows Data.powTree)
 
-kernel_rfl sigBody417 : sigFrom Fn.«da_expand__L14_L7».code Fn.«da_expand__L14_L7».core (Fn.«da_expand__L14_L7».cert.withPows Data.powTree) = Fn.«da_expand__L14_L7».sig
+kernel_rfl sigBody417 : sigFrom Fn.«da_expand__L13_L7».code Fn.«da_expand__L13_L7».core (Fn.«da_expand__L13_L7».cert.withPows Data.powTree) = Fn.«da_expand__L13_L7».sig
 
-theorem sig417 : glob.sig 417 = Fn.«da_expand__L14_L7».sig := sig_of_link code417 core417 cert417 sigBody417
+theorem sig417 : glob.sig 417 = Fn.«da_expand__L13_L7».sig := sig_of_link code417 core417 cert417 sigBody417
 
-kernel_rfl plumbEq417 : B2C.plumbOf 417 = Fn.«da_expand__L14_L7».plumb
+kernel_rfl plumbEq417 : B2C.plumbOf 417 = Fn.«da_expand__L13_L7».plumb
 
-kernel_rfl fsEq417 : B2C.fsN 417 = Fn.«da_expand__L14_L7».fs
+kernel_rfl fsEq417 : B2C.fsN 417 = Fn.«da_expand__L13_L7».fs
 
-kernel_rfl partsEq417 : B2C.cplPartsOf 417 = Fn.«da_expand__L14_L7».parts
+kernel_rfl partsEq417 : B2C.cplPartsOf 417 = Fn.«da_expand__L13_L7».parts
 
-kernel_rfl armsEq417 : listElementOrDefault Data.cplArms 417 [] = Fn.«da_expand__L14_L7».arms
+kernel_rfl armsEq417 : listElementOrDefault Data.cplArms 417 [] = Fn.«da_expand__L13_L7».arms
 
-kernel_rfl snapsEq417 : B2C.snapsOf 417 = Fn.«da_expand__L14_L7».snaps
+kernel_rfl snapsEq417 : B2C.snapsOf 417 = Fn.«da_expand__L13_L7».snaps
 
-kernel_rfl code418 : fnOf 418 = Fn.«da_factors__L7_L8_L128».code
+kernel_rfl code418 : fnOf 418 = Fn.«da_factors__L6_L7_L128».code
 
-kernel_rfl core418 : coreOf 418 = Fn.«da_factors__L7_L8_L128».core
+kernel_rfl core418 : coreOf 418 = Fn.«da_factors__L6_L7_L128».core
 
-kernel_rfl cert418 : certOf 418 = (Fn.«da_factors__L7_L8_L128».cert.withPows Data.powTree)
+kernel_rfl cert418 : certOf 418 = (Fn.«da_factors__L6_L7_L128».cert.withPows Data.powTree)
 
-kernel_rfl sigBody418 : sigFrom Fn.«da_factors__L7_L8_L128».code Fn.«da_factors__L7_L8_L128».core (Fn.«da_factors__L7_L8_L128».cert.withPows Data.powTree) = Fn.«da_factors__L7_L8_L128».sig
+kernel_rfl sigBody418 : sigFrom Fn.«da_factors__L6_L7_L128».code Fn.«da_factors__L6_L7_L128».core (Fn.«da_factors__L6_L7_L128».cert.withPows Data.powTree) = Fn.«da_factors__L6_L7_L128».sig
 
-theorem sig418 : glob.sig 418 = Fn.«da_factors__L7_L8_L128».sig := sig_of_link code418 core418 cert418 sigBody418
+theorem sig418 : glob.sig 418 = Fn.«da_factors__L6_L7_L128».sig := sig_of_link code418 core418 cert418 sigBody418
 
-kernel_rfl plumbEq418 : B2C.plumbOf 418 = Fn.«da_factors__L7_L8_L128».plumb
+kernel_rfl plumbEq418 : B2C.plumbOf 418 = Fn.«da_factors__L6_L7_L128».plumb
 
-kernel_rfl fsEq418 : B2C.fsN 418 = Fn.«da_factors__L7_L8_L128».fs
+kernel_rfl fsEq418 : B2C.fsN 418 = Fn.«da_factors__L6_L7_L128».fs
 
-kernel_rfl partsEq418 : B2C.cplPartsOf 418 = Fn.«da_factors__L7_L8_L128».parts
+kernel_rfl partsEq418 : B2C.cplPartsOf 418 = Fn.«da_factors__L6_L7_L128».parts
 
-kernel_rfl armsEq418 : listElementOrDefault Data.cplArms 418 [] = Fn.«da_factors__L7_L8_L128».arms
+kernel_rfl armsEq418 : listElementOrDefault Data.cplArms 418 [] = Fn.«da_factors__L6_L7_L128».arms
 
-kernel_rfl snapsEq418 : B2C.snapsOf 418 = Fn.«da_factors__L7_L8_L128».snaps
+kernel_rfl snapsEq418 : B2C.snapsOf 418 = Fn.«da_factors__L6_L7_L128».snaps
 
 kernel_rfl code419 : fnOf 419 = Fn.«da_column_offsets_loop0».code
 

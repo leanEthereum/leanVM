@@ -13,7 +13,7 @@ of the dual codeword rests on (`membership.rs:22-56`):
   (`wHat_two_pow_self`), and `Ŵ_j` is additive (`wHat_add`), so at a point it is the sum of its
   values at the basis elements its bits pick (`wHat_point_eq_sum`, `map_point_mul`).
 * **The table.** `subspaceRow i` tabulates `W_i`, the subspace polynomial of the span of
-  `e_0 … e_(i-1)`, on `e_i … e_14` by `W_(i+1)(x) = W_i(x) (W_i(x) + W_i(e_i))`
+  `e_0 … e_(i-1)`, on `e_i … e_13` by `W_(i+1)(x) = W_i(x) (W_i(x) + W_i(e_i))`
   (`subspaceRow_eq`), so `subspaceEvaluations i` tabulates `Ŵ_i` (`subspaceEvaluations_eq`), and
   its subset sums `subspaceAbove j y` (`subspace_above`, the NTT's twiddles) are `Ŵ_j` at the point
   whose bits above `j` are `y`'s (`subspaceAbove_eq`).
@@ -33,7 +33,7 @@ namespace LeanDa
 
 /-! ## The normalized subspace polynomials -/
 
-/-- `Ŵ_s` as a function on `K`, indexed by a natural number: `normW s` for `s < 14`
+/-- `Ŵ_s` as a function on `K`, indexed by a natural number: `normW s` for `s < 13`
 (`normW_eval`). -/
 noncomputable def wHat (s : ℕ) (x : K) : K :=
   (AdditiveNTT.normalizedW (ZMod 2) basis (Fin.ofNat 16 s)).eval x
@@ -47,7 +47,7 @@ theorem basis_ofNat {c : ℕ} (hc : c < 16) : basis (Fin.ofNat 16 c) = point (2 
   simp [basis, point, Nat.mod_eq_of_lt hc]
 
 /-- `normW j` is `Ŵ_j`. -/
-theorem normW_eval (j : Fin 14) (x : K) : (normalizedSubspacePolynomial j).eval x = wHat j x := by
+theorem normW_eval (j : Fin 13) (x : K) : (normalizedSubspacePolynomial j).eval x = wHat j x := by
   have h : Fin.castLE (by omega) j = Fin.ofNat 16 j :=
     Fin.ext (by simp [Nat.mod_eq_of_lt (by omega : (j : ℕ) < 16)])
   rw [normalizedSubspacePolynomial, wHat, h]
@@ -157,23 +157,23 @@ theorem wSub_succ {i : ℕ} (hi : i < 15) (x : K) :
   simp only [wSub, h, eval_add, eval_pow, eval_mul, eval_C, CharTwo.sub_eq_add]
   ring
 
-/-- `subspaceRow i` is `W_i` at `e_i … e_14`. -/
-theorem subspaceRow_eq : ∀ {i : ℕ}, i ≤ 14 →
-    subspaceRow i = (List.range (15 - i)).map fun k ↦ wSub i (point (2 ^ (i + k)))
+/-- `subspaceRow i` is `W_i` at `e_i … e_13`. -/
+theorem subspaceRow_eq : ∀ {i : ℕ}, i ≤ 13 →
+    subspaceRow i = (List.range (14 - i)).map fun k ↦ wSub i (point (2 ^ (i + k)))
   | 0, _ => by simp [subspaceRow, logM, wSub_zero, point]
   | i + 1, hi => by
-    rw [subspaceRow, subspaceRow_eq (by omega), show 15 - i = 14 - i + 1 by omega,
-      List.range_succ_eq_map, show 15 - (i + 1) = 14 - i by omega]
+    rw [subspaceRow, subspaceRow_eq (by omega), show 14 - i = 13 - i + 1 by omega,
+      List.range_succ_eq_map, show 14 - (i + 1) = 13 - i by omega]
     simp only [List.map_cons, List.map_map, List.headD_cons, List.drop_succ_cons, List.drop_zero,
       add_zero]
     refine List.map_congr_left fun k _ ↦ ?_
     simp only [Function.comp, Nat.succ_eq_add_one]
     rw [wSub_succ (by omega), show i + (k + 1) = i + 1 + k by ring]
 
-/-- `subspaceEvaluations i` is `Ŵ_i` at `e_i … e_14`. -/
-theorem subspaceEvaluations_eq {i : ℕ} (hi : i ≤ 14) :
-    subspaceEvaluations i = (List.range (15 - i)).map fun k ↦ wHat i (point (2 ^ (i + k))) := by
-  rw [subspaceEvaluations, subspaceRow_eq hi, show 15 - i = 14 - i + 1 by omega,
+/-- `subspaceEvaluations i` is `Ŵ_i` at `e_i … e_13`. -/
+theorem subspaceEvaluations_eq {i : ℕ} (hi : i ≤ 13) :
+    subspaceEvaluations i = (List.range (14 - i)).map fun k ↦ wHat i (point (2 ^ (i + k))) := by
+  rw [subspaceEvaluations, subspaceRow_eq hi, show 14 - i = 13 - i + 1 by omega,
     List.range_succ_eq_map]
   simp only [List.map_cons, List.map_map, List.headD_cons, add_zero]
   rw [wHat_eq i (by omega)]
@@ -189,11 +189,11 @@ theorem foldl_add_eq_sum {M : Type*} [AddCommMonoid M] (g : ℕ → M) :
     rw [List.foldl_cons, foldl_add_eq_sum g l, List.map_cons, List.sum_cons, add_assoc]
 
 /-- **`subspaceAbove j y` is `Ŵ_j` at the point whose bits above `j` are `y`'s**: the twiddle of
-block `y` of layer `14 - j` is `Ŵ_j` at the block's first point. -/
-theorem subspaceAbove_eq {s b : ℕ} (hs : s ≤ 14) (hb : b < 2 ^ (14 - s)) :
+block `y` of layer `13 - j` is `Ŵ_j` at the block's first point. -/
+theorem subspaceAbove_eq {s b : ℕ} (hs : s ≤ 13) (hb : b < 2 ^ (13 - s)) :
     subspaceAbove s b = wHat s (point (b * 2 ^ (s + 1))) := by
-  rw [subspaceAbove, show logK - s = 14 - s from rfl, foldl_add_eq_sum, zero_add, ← wHatHom_apply,
-    map_point_mul (wHatHom s) (s + 1) (14 - s) b hb]
+  rw [subspaceAbove, show logK - s = 13 - s from rfl, foldl_add_eq_sum, zero_add, ← wHatHom_apply,
+    map_point_mul (wHatHom s) (s + 1) (13 - s) b hb]
   refine congrArg _ (List.map_congr_left fun k hk ↦ ?_)
   simp only [List.mem_filter, List.mem_range] at hk
   rw [subspaceEvaluations_eq hs, List.getD_eq_getElem?_getD, List.getElem?_drop,
@@ -221,9 +221,9 @@ theorem wHat_point_mod {j : ℕ} (hj : j < 16) (i : ℕ) :
     simp
 
 /-- **`subspaceAt j i` is `Ŵ_j` at point `i`.** -/
-theorem subspaceAt_eq {j i : ℕ} (hj : j < 14) (hi : i < 2 ^ 15) :
+theorem subspaceAt_eq {j i : ℕ} (hj : j < 13) (hi : i < 2 ^ 14) :
     subspaceAt j i = wHat j (point i) := by
-  have hy : i >>> (j + 1) < 2 ^ (14 - j) := by
+  have hy : i >>> (j + 1) < 2 ^ (13 - j) := by
     rw [Nat.shiftRight_eq_div_pow]
     refine Nat.div_lt_of_lt_mul (lt_of_lt_of_eq hi ?_)
     rw [← pow_add]
@@ -243,8 +243,8 @@ theorem foldl_mul_eq_prod {M : Type*} [CommMonoid M] (g : ℕ → M) :
   | k :: l, c => by
     rw [List.foldl_cons, foldl_mul_eq_prod g l, List.map_cons, List.prod_cons, mul_assoc]
 
-/-- The guest's dual codeword has `2^15` entries. -/
-theorem length_dualCodeword (z : E) : (dualCodeword z).length = 2 ^ 15 := by
+/-- The guest's dual codeword has `2^14` entries. -/
+theorem length_dualCodeword (z : E) : (dualCodeword z).length = 2 ^ 14 := by
   simp [dualCodeword, logM]
 
 /-- A product over `List.range` is one over `Finset.range`. -/
@@ -257,19 +257,19 @@ theorem prod_map_range {M : Type*} [CommMonoid M] (f : ℕ → M) :
     simp
 
 /-- **The guest's dual codeword is the dual codeword of `z`** (`membership.rs:41-56`). -/
-theorem dualCodeword_eq_dualCodewordAt (z : E) (b : Fin (2 ^ 15)) :
+theorem dualCodeword_eq_dualCodewordAt (z : E) (b : Fin (2 ^ 14)) :
     (dualCodeword z).getD b 0 = dualCodewordAt z b := by
-  have hfac : ∀ j : Fin 14,
+  have hfac : ∀ j : Fin 13,
       1 + z ^ 2 ^ (j : ℕ) * ι ((normalizedSubspacePolynomial j).eval (point b)) =
         (fun j : ℕ ↦ 1 + z ^ 2 ^ j * ι (wHat j (point b))) j := fun j ↦ by
     rw [normW_eval]
   rw [dualCodewordAt, Finset.prod_congr rfl fun j _ ↦ hfac j,
-    Fin.prod_univ_eq_prod_range (fun j : ℕ ↦ 1 + z ^ 2 ^ j * ι (wHat j (point b))) 14,
+    Fin.prod_univ_eq_prod_range (fun j : ℕ ↦ 1 + z ^ 2 ^ j * ι (wHat j (point b))) 13,
     ← prod_map_range, dualCodeword, List.getD_eq_getElem?_getD, List.getElem?_map,
     List.getElem?_range (show (b : ℕ) < 2 ^ logM from b.isLt), Option.map_some, Option.getD_some,
-    foldl_mul_eq_prod, one_mul, show logK = 14 from rfl]
+    foldl_mul_eq_prod, one_mul, show logK = 13 from rfl]
   refine congrArg _ (List.map_congr_left fun j hj ↦ ?_)
-  have hj : j < 14 := List.mem_range.mp hj
+  have hj : j < 13 := List.mem_range.mp hj
   rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hj, Option.map_some,
     Option.getD_some, subspaceAt_eq hj b.isLt]
   rfl

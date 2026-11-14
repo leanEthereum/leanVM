@@ -11,7 +11,7 @@ use signatures::{lean_sphincs, lean_xmss};
 
 fn blobs(n: usize, seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = StdRng::seed_from_u64(seed);
-    let symbols: Vec<u64> = (0..n * lean_da::BLOB_SYMBOLS).map(|_| rng.random()).collect();
+    let symbols: Vec<u128> = (0..n * lean_da::BLOB_SYMBOLS).map(|_| rng.random()).collect();
     symbols.as_chunks().0.to_vec()
 }
 
@@ -124,7 +124,7 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
         );
     }
     if n_blobs > 0 {
-        let payload_mib = (blobs.len() * size_of::<u64>()) as f64 / (1 << 20) as f64;
+        let payload_mib = size_of_val(blobs.as_slice()) as f64 / (1 << 20) as f64;
         println!(
             "  blob throughput             : {} blobs/s, {} MiB/s",
             pretty_f64(n_blobs as f64 / prove_time.mean()),

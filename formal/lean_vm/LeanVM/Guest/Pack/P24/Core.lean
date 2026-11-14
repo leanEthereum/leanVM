@@ -743,7 +743,7 @@ namespace core
 
 /-- `da_vector`: the body. -/
 noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.alloc (.n 1) 15)) ::
+  .atom (.hint (.alloc (.n 1) 14)) ::
   .atom (.load (.n 0) (.n 1) 0) ::
   .atom (.mul (.n 2) (.n 0) (.n 0)) ::
   .atom (.load (.n 2) (.n 1) 1) ::
@@ -770,35 +770,33 @@ noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 13) (.n 12) (.n 12)) ::
   .atom (.load (.n 13) (.n 1) 12) ::
   .atom (.mul (.n 14) (.n 13) (.n 13)) ::
-  .atom (.load (.n 14) (.n 1) 13) ::
-  .atom (.mul (.n 15) (.n 14) (.n 14)) ::
-  .atom (.const (.n 16) (word 0 0)) ::
-  .atom (.load (.n 16) (.n 1) 14) ::
-  .atom (.hint (.alloc (.n 17) 15)) ::
+  .atom (.const (.n 15) (word 0 0)) ::
+  .atom (.load (.n 15) (.n 1) 13) ::
+  .atom (.hint (.alloc (.n 16) 14)) ::
+  .atom (.const (.n 17) (word 0 0)) ::
+  .atom (.load (.n 17) (.n 16) 7) ::
   .atom (.const (.n 18) (word 0 0)) ::
-  .atom (.load (.n 18) (.n 17) 8) ::
+  .atom (.load (.n 18) (.n 16) 8) ::
   .atom (.const (.n 19) (word 0 0)) ::
-  .atom (.load (.n 19) (.n 17) 9) ::
+  .atom (.load (.n 19) (.n 16) 9) ::
   .atom (.const (.n 20) (word 0 0)) ::
-  .atom (.load (.n 20) (.n 17) 10) ::
+  .atom (.load (.n 20) (.n 16) 10) ::
   .atom (.const (.n 21) (word 0 0)) ::
-  .atom (.load (.n 21) (.n 17) 11) ::
+  .atom (.load (.n 21) (.n 16) 11) ::
   .atom (.const (.n 22) (word 0 0)) ::
-  .atom (.load (.n 22) (.n 17) 12) ::
+  .atom (.load (.n 22) (.n 16) 12) ::
   .atom (.const (.n 23) (word 0 0)) ::
-  .atom (.load (.n 23) (.n 17) 13) ::
-  .atom (.const (.n 24) (word 0 0)) ::
-  .atom (.load (.n 24) (.n 17) 14) ::
-  .call "da_factors__L14_L7_L0" [.n 1] [.n 25] ::
-  .atom (.const (.n 26) (word 1 0)) ::
-  .call "da_expand__L14_L7" [.n 26, .n 25, .n 1, .n 17] [.n 27] ::
-  .call "da_factors__L7_L8_L128" [.n 1] [.n 28] ::
-  .call "da_column_offsets" [.n 1] [.n 29] ::
-  .atom (.copy (.n 30) (.n 1)) ::
+  .atom (.load (.n 23) (.n 16) 13) ::
+  .call "da_factors__L13_L7_L0" [.n 1] [.n 24] ::
+  .atom (.const (.n 25) (word 1 0)) ::
+  .call "da_expand__L13_L7" [.n 25, .n 24, .n 1, .n 16] [.n 26] ::
+  .call "da_factors__L6_L7_L128" [.n 1] [.n 27] ::
+  .call "da_column_offsets" [.n 1] [.n 28] ::
+  .atom (.copy (.n 29) (.n 1)) ::
+  .atom (.copy (.n 30) (.n 26)) ::
   .atom (.copy (.n 31) (.n 27)) ::
   .atom (.copy (.n 32) (.n 28)) ::
-  .atom (.copy (.n 33) (.n 29)) ::
-  .ret [.n 30, .n 31, .n 32, .n 33] ::
+  .ret [.n 29, .n 30, .n 31, .n 32] ::
   [])
 
 end core

@@ -320,47 +320,44 @@ namespace core
 /-- `da_column_offsets_loop5`: the body. -/
 noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 4) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 5) (.n 4) (.n 4)) ::
+  .atom (.mul (.n 5) (.n 4) (.n 0)) ::
   .atom (.mul (.n 6) (.n 5) (.n 5)) ::
-  .atom (.mul (.n 7) (.n 2) (.n 6)) ::
-  .atom (.load (.n 8) (.n 7) 0) ::
-  .atom (.load (.n 9) (.n 3) 0) ::
-  .atom (.add (.n 10) (.n 8) (.n 9)) ::
-  .atom (.load (.n 10) (.n 7) 256) ::
-  .atom (.load (.n 11) (.n 7) 1) ::
-  .atom (.load (.n 12) (.n 3) 1) ::
-  .atom (.add (.n 13) (.n 11) (.n 12)) ::
-  .atom (.load (.n 13) (.n 7) 257) ::
-  .atom (.load (.n 14) (.n 7) 2) ::
-  .atom (.load (.n 15) (.n 3) 2) ::
-  .atom (.add (.n 16) (.n 14) (.n 15)) ::
-  .atom (.load (.n 16) (.n 7) 258) ::
-  .atom (.load (.n 17) (.n 7) 3) ::
-  .atom (.load (.n 18) (.n 3) 3) ::
-  .atom (.add (.n 19) (.n 17) (.n 18)) ::
-  .atom (.load (.n 19) (.n 7) 259) ::
-  .atom (.load (.n 20) (.n 7) 4) ::
-  .atom (.load (.n 21) (.n 3) 4) ::
-  .atom (.add (.n 22) (.n 20) (.n 21)) ::
-  .atom (.load (.n 22) (.n 7) 260) ::
-  .atom (.load (.n 23) (.n 7) 5) ::
-  .atom (.load (.n 24) (.n 3) 5) ::
-  .atom (.add (.n 25) (.n 23) (.n 24)) ::
-  .atom (.load (.n 25) (.n 7) 261) ::
-  .atom (.load (.n 26) (.n 7) 6) ::
-  .atom (.load (.n 27) (.n 3) 6) ::
-  .atom (.add (.n 28) (.n 26) (.n 27)) ::
-  .atom (.load (.n 28) (.n 7) 262) ::
-  .atom (.load (.n 29) (.n 7) 7) ::
-  .atom (.load (.n 30) (.n 3) 7) ::
-  .atom (.add (.n 31) (.n 29) (.n 30)) ::
-  .atom (.load (.n 31) (.n 7) 263) ::
-  .atom (.const (.n 32) (word 2 0)) ::
-  .atom (.mul (.n 33) (.n 0) (.n 32)) ::
-  .atom (.add (.n 34) (.n 33) (.n 1)) ::
-  .atom (.const (.n 35) (word 2 0)) ::
-  .atom (.mul (.n 36) (.n 0) (.n 35)) ::
-  .callIf (.n 34) "__loop31" [.n 36, .n 1, .n 2, .n 3] ::
+  .atom (.mul (.n 7) (.n 6) (.n 0)) ::
+  .atom (.mul (.n 8) (.n 2) (.n 7)) ::
+  .atom (.load (.n 9) (.n 8) 0) ::
+  .atom (.load (.n 10) (.n 3) 0) ::
+  .atom (.add (.n 11) (.n 9) (.n 10)) ::
+  .atom (.load (.n 11) (.n 8) 224) ::
+  .atom (.load (.n 12) (.n 8) 1) ::
+  .atom (.load (.n 13) (.n 3) 1) ::
+  .atom (.add (.n 14) (.n 12) (.n 13)) ::
+  .atom (.load (.n 14) (.n 8) 225) ::
+  .atom (.load (.n 15) (.n 8) 2) ::
+  .atom (.load (.n 16) (.n 3) 2) ::
+  .atom (.add (.n 17) (.n 15) (.n 16)) ::
+  .atom (.load (.n 17) (.n 8) 226) ::
+  .atom (.load (.n 18) (.n 8) 3) ::
+  .atom (.load (.n 19) (.n 3) 3) ::
+  .atom (.add (.n 20) (.n 18) (.n 19)) ::
+  .atom (.load (.n 20) (.n 8) 227) ::
+  .atom (.load (.n 21) (.n 8) 4) ::
+  .atom (.load (.n 22) (.n 3) 4) ::
+  .atom (.add (.n 23) (.n 21) (.n 22)) ::
+  .atom (.load (.n 23) (.n 8) 228) ::
+  .atom (.load (.n 24) (.n 8) 5) ::
+  .atom (.load (.n 25) (.n 3) 5) ::
+  .atom (.add (.n 26) (.n 24) (.n 25)) ::
+  .atom (.load (.n 26) (.n 8) 229) ::
+  .atom (.load (.n 27) (.n 8) 6) ::
+  .atom (.load (.n 28) (.n 3) 6) ::
+  .atom (.add (.n 29) (.n 27) (.n 28)) ::
+  .atom (.load (.n 29) (.n 8) 230) ::
+  .atom (.const (.n 30) (word 2 0)) ::
+  .atom (.mul (.n 31) (.n 0) (.n 30)) ::
+  .atom (.add (.n 32) (.n 31) (.n 1)) ::
+  .atom (.const (.n 33) (word 2 0)) ::
+  .atom (.mul (.n 34) (.n 0) (.n 33)) ::
+  .callIf (.n 32) "__loop31" [.n 34, .n 1, .n 2, .n 3] ::
   .ret [] ::
   [])
 

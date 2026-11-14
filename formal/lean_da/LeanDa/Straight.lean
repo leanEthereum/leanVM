@@ -28,8 +28,8 @@ or else whether the first opening that disagrees with `w` verifies.
   check is on every challenge, which only codewords pass), or `H` collides (the disagreeing
   opening verifies, `verifyCell_agree`), or a fresh answer of `H` hit a digest already carried
   (the matrix's tree completed after the root's draws).
-* **The bad cache's probability** is at most `N · 65 N / 2^256 + Q · 2^-11 · (2^14 - 1) / 2^128 +
-  (2^14 - 1) / 2^128` (`LeanDa.StraightBound`), `N = 2 Q + 2^20`.
+* **The bad cache's probability** is at most `N · 65 N / 2^256 + Q · 2^-10 · (2^13 - 1) / 2^128 +
+  (2^13 - 1) / 2^128` (`LeanDa.StraightBound`), `N = 2 Q + 2^20`.
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA. The
