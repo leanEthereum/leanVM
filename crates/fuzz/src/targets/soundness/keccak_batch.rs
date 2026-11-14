@@ -73,6 +73,12 @@ fn prove(batch: &Batch, lie: Lie, src: &mut Source) -> Option<Proof> {
     let mut ps = ProverState::new(fiat_shamir::digest_words(&primitives::hash::hash(LABEL)), statement);
     let (commitment, prover_data) = commit(&committed, mu, INITIAL_FOLDING_FACTOR, batch.rate);
     ps.add_root(&commitment.root);
+    // The batch's transcript, as `batch_bench` builds it and `verifier::verify_keccak_batch` reads it:
+    // the root, then the commitment's OOD sample (grind, point, value), then the instance grind,
+    // then the instance point. Skipping any of these moves the verifier's OOD nonce onto another
+    // scalar and the honest proof dies at `GrindingNonce`.
+    let ood = pcs::ood::ood_sample(&mut ps, &committed, mu);
+    ps.grind(fiat_shamir::grinding_bits(shape.n_log() as u128));
     let instance = ps.sample_vec(shape.n_log());
     let output = if lie == Lie::Claim {
         let mut other = batch.inputs.clone();
@@ -85,7 +91,7 @@ fn prove(batch: &Batch, lie: Lie, src: &mut Source) -> Option<Proof> {
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, &committed, &output);
     let (ring, outputs) = openings.into_pcs_claims(0);
-    let points: Vec<_> = outputs.into_iter().collect();
+    let points: Vec<_> = outputs.into_iter().chain([ood]).collect();
     pcs::stack_open::open_batch_mixed_whir_stacked(&mut ps, mu, committed, prover_data, &config, &points, &ring);
     Some(ps.into_proof())
 }
