@@ -74,6 +74,8 @@ theorem word_gpow {e : ℕ} (he : e < 2 ^ 128) :
   rw [Guest.word, gpowLimbs, ofBits_toNat, gpowK_eq he, ofK_eq_ofLimbs]
   rfl
 
+theorem ofK_one : ofK (1 : K) = 1 := map_one (algebraMap K E)
+
 theorem isInK_ofK (a : K) : IsInK (ofK a) := (isInK_iff _).mpr ⟨a, rfl⟩
 
 theorem isInK_mul {x z : E} (hx : IsInK x) (hz : IsInK z) : IsInK (x * z) := by
