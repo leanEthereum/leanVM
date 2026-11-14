@@ -194,10 +194,7 @@ pub fn store_at<T: Plain, A: Plain>(dst: &mut [T], i: usize, v: A) {
     unsafe { rest.as_mut_ptr().cast::<A>().write_unaligned(v) }
 }
 
-/// `N` vectors of the given lengths, filled in place by `fill`.
-///
-/// It skips the zero-fill, which would cost one more pass over memory. Only plain data is allowed, so
-/// dropping an element runs no code:
+/// `N` zeroed vectors of the given lengths, filled in place by `fill`. Only plain data is allowed:
 ///
 /// ```compile_fail
 /// unsafe { stable_primitives::filled_vecs([1], |_: [&mut [String]; 1]| {}) };
@@ -205,44 +202,40 @@ pub fn store_at<T: Plain, A: Plain>(dst: &mut [T], i: usize, v: A) {
 ///
 /// # Safety
 ///
-/// `fill` receives one slice per vector of uninitialized elements, and must write every element
-/// before it reads it.
+/// None: the vectors start zeroed. The contract callers keep, that `fill` writes every element before it
+/// reads it, is what lets them skip the zeroing.
 #[must_use]
 pub unsafe fn filled_vecs<T: Plain, const N: usize>(lens: [usize; N], fill: impl FnOnce([&mut [T]; N])) -> [Vec<T>; N] {
-    // SAFETY: `fill` writes each element before reading it, by the caller's contract.
-    let mut vs = lens.map(|len| unsafe { uninit_vec(len) });
+    let mut vs = lens.map(zeroed_vec);
     fill(vs.each_mut().map(|v| &mut v[..]));
     vs
 }
 
-/// One vector of `len` elements, filled in place by `fill`: [`filled_vecs`] with `N = 1`.
+/// One zeroed vector of `len` elements, filled in place by `fill`: [`filled_vecs`] with `N = 1`.
 ///
 /// # Safety
 ///
-/// As [`filled_vecs`]: `fill` must write every element before it reads it.
+/// None, as [`filled_vecs`].
 #[must_use]
 pub unsafe fn filled_vec<T: Plain>(len: usize, fill: impl FnOnce(&mut [T])) -> Vec<T> {
-    // SAFETY: forwarded to the caller's contract.
-    let [v] = unsafe { filled_vecs([len], |[s]| fill(s)) };
+    let mut v = zeroed_vec(len);
+    fill(&mut v);
     v
 }
 
-/// A vector of `len` uninitialized elements, for a fill that outlives one scope.
-///
-/// Prefer [`filled_vec`], which keeps the fill next to the allocation.
+/// A vector of `len` zeroed elements.
 ///
 /// # Safety
 ///
-/// Every element must be written before it is read.
+/// None, as [`filled_vecs`].
 #[must_use]
-#[expect(clippy::uninit_vec, reason = "the caller writes every element before reading it")]
 pub unsafe fn uninit_vec<T: Plain>(len: usize) -> Vec<T> {
-    // Exactly `len` slots, so the vector never reallocates while it is filled.
-    let mut v = Vec::with_capacity(len);
+    zeroed_vec(len)
+}
 
-    // SAFETY: the capacity holds `len` elements, and the caller writes each one before reading it.
-    unsafe { v.set_len(len) };
-    v
+fn zeroed_vec<T: Plain>(len: usize) -> Vec<T> {
+    // SAFETY: every bit pattern of a `Plain` type is a valid value, all zeros included.
+    vec![unsafe { core::mem::zeroed() }; len]
 }
 
 #[cfg(test)]
