@@ -1,10 +1,7 @@
 // CREDIT: https://github.com/binius-zk/binius64, Apache-2.0.
 //! The base field `K = GF(2)[x] / (x^64 + x^4 + x^3 + x + 1)`, in which `x` has order `2^64 - 1`.
 //!
-//! A product is one carry-less 64x64 multiplication followed by a reduction.
-//! The reduction folds the high word back with shifts and XORs ([`reduce`]), except in the scalar products
-//! (`x86_64::mul`, `aarch64::mul_shift_tail`), which fold it with two more carry-less multiplications by `0x1B`
-//! and so never leave the vector register.
+//! A product is one carry-less 64x64 multiplication ([`mul_wide`]) followed by a reduction ([`reduce`]).
 
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Mul, MulAssign};
@@ -30,21 +27,9 @@ impl F64 {
         self.0 == 0
     }
 
-    /// Squaring, as a bit spread followed by one reduction.
-    ///
-    /// Cross terms vanish in characteristic 2, so the square moves bit `i` to bit `2i`.
-    /// On aarch64 it is the product with itself instead: its PMULL folds stay in the vector register,
-    /// where [`reduce`] would cross to integer registers and back.
     #[inline]
     pub fn square(self) -> Self {
-        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-        {
-            self * self
-        }
-        #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
-        {
-            Self(reduce(square_wide(self.0)))
-        }
+        self * self
     }
 
     /// `self^e` by square-and-multiply, low bit first: `O(log e)` products.
@@ -65,83 +50,9 @@ impl F64 {
     }
 
     /// Multiplicative inverse `x^(2^64 - 2)`, mapping zero to zero.
-    ///
-    /// Itoh-Tsujii: with `t_k = x^(2^k - 1)`, the inverse is `t_63^2`.
-    /// Step `t_(a+b) = t_a^(2^b) * t_b` costs `b` squarings and one multiply.
-    /// The addition chain 1, 2, 3, 6, 12, 24, 48, 60, 63 spends 63 squarings and 8 multiplies.
-    /// The runs of 6, 12 and 24 squarings are one nibble-table map each: 16 independent lookups
-    /// in place of that many dependent squarings.
     pub fn inv(self) -> Self {
-        // Square `v` a total of `n` times.
-        let sq = |mut v: Self, n: u32| {
-            for _ in 0..n {
-                v = v.square();
-            }
-            v
-        };
-        let [sq6, sq12, sq24] = &FROBENIUS;
-        // Each step reads t_k = x^(2^k - 1).
-        let t1 = self;
-        let t2 = sq(t1, 1) * t1;
-        let t3 = sq(t2, 1) * t1;
-        let t6 = sq(t3, 3) * t3;
-        let t12 = frobenius(t6, sq6) * t6;
-        let t24 = frobenius(t12, sq12) * t12;
-        let t48 = frobenius(t24, sq24) * t24;
-        let t60 = frobenius(t48, sq12) * t12;
-        let t63 = sq(t60, 3) * t3;
-        // (x^(2^63 - 1))^2 = x^(2^64 - 2).
-        sq(t63, 1)
+        self.pow((1 << 64) - 2)
     }
-}
-
-/// `v^(2^k)` for `k` = 6, 12, 24: squaring is GF(2)-linear, so its `k`-fold power is too, and
-/// `FROBENIUS[_][p][n]` is the image of nibble value `n` at nibble `p`.
-static FROBENIUS: [[[u64; 16]; 16]; 3] = [frobenius_table(6), frobenius_table(12), frobenius_table(24)];
-
-const fn frobenius_table(k: u32) -> [[u64; 16]; 16] {
-    let mut basis = [0u64; 64];
-    let mut i = 0;
-    while i < 64 {
-        let mut v = 1u64 << i;
-        let mut s = 0;
-        while s < k {
-            v = reduce(software::clmul(v, v));
-            s += 1;
-        }
-        basis[i] = v;
-        i += 1;
-    }
-    let mut table = [[0u64; 16]; 16];
-    let mut p = 0;
-    while p < 16 {
-        let mut n = 1;
-        while n < 16 {
-            let mut b = 0;
-            while b < 4 {
-                if (n >> b) & 1 != 0 {
-                    table[p][n] ^= basis[4 * p + b];
-                }
-                b += 1;
-            }
-            n += 1;
-        }
-        p += 1;
-    }
-    table
-}
-
-/// The linear map `table` holds, applied to `v`: one lookup per nibble. The table's length is
-/// hidden, so the lookups keep bounds checks the compiler cannot discharge, which stop it turning
-/// them into AVX-512 gathers that lose to the scalar loads.
-#[inline]
-fn frobenius(v: F64, table: &[[u64; 16]; 16]) -> F64 {
-    let flat: &[u64] = core::hint::black_box(table.as_flattened());
-    let mut acc = [0u64; 2];
-    for p in 0..16 {
-        acc[p & 1] ^= flat[16 * p + ((v.0 >> (4 * p)) as usize & 15)];
-    }
-    F64(acc[0] ^ acc[1])
 }
 
 #[allow(clippy::suspicious_arithmetic_impl)]
@@ -165,23 +76,7 @@ impl Mul for F64 {
     type Output = Self;
     #[inline]
     fn mul(self, rhs: Self) -> Self {
-        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-        {
-            // SAFETY: aes target feature is enabled at compile time.
-            unsafe { aarch64::mul_shift_tail(self, rhs) }
-        }
-        #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
-        {
-            // SAFETY: pclmulqdq is enabled at compile time.
-            unsafe { Self(x86_64::mul(self.0, rhs.0)) }
-        }
-        #[cfg(not(any(
-            all(target_arch = "aarch64", target_feature = "aes"),
-            all(target_arch = "x86_64", target_feature = "pclmulqdq")
-        )))]
-        {
-            Self(reduce(mul_wide(self.0, rhs.0)))
-        }
+        Self(reduce(mul_wide(self.0, rhs.0)))
     }
 }
 
@@ -220,40 +115,44 @@ impl<'a> Product<&'a F64> for F64 {
     }
 }
 
-/// The carry-less product of two 64-bit polynomials, as a 128-bit polynomial.
+/// The carry-less product of two 64-bit polynomials, as a 128-bit polynomial: one PMULL on aarch64, one
+/// PCLMULQDQ on x86-64, and [`clmul_portable`] elsewhere.
 #[inline]
 pub fn mul_wide(a: u64, b: u64) -> u128 {
     #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
     {
-        // SAFETY: aes is enabled at compile time; the reinterpret is between 128-bit values.
-        unsafe { core::mem::transmute::<core::arch::aarch64::uint64x2_t, u128>(aarch64::pmull(a, b)) }
+        // SAFETY: the `aes` target feature, which carries PMULL, is enabled at compile time.
+        unsafe { core::arch::aarch64::vmull_p64(a, b) }
     }
     #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
     {
-        // SAFETY: pclmulqdq is enabled at compile time.
-        unsafe { x86_64::clmul(a, b) }
+        use core::arch::x86_64::{__m128i, _mm_clmulepi64_si128, _mm_cvtsi64_si128};
+        // SAFETY: `pclmulqdq` is enabled at compile time, and both sides of the transmute are 128 plain bits.
+        unsafe {
+            let p = _mm_clmulepi64_si128::<0x00>(_mm_cvtsi64_si128(a as i64), _mm_cvtsi64_si128(b as i64));
+            core::mem::transmute::<__m128i, u128>(p)
+        }
     }
     #[cfg(not(any(
         all(target_arch = "aarch64", target_feature = "aes"),
         all(target_arch = "x86_64", target_feature = "pclmulqdq")
     )))]
     {
-        software::clmul(a, b)
+        clmul_portable(a, b)
     }
 }
 
-/// The carry-less square of a 64-bit polynomial: bit `i` moves to bit `2i`.
-#[inline]
-pub fn square_wide(a: u64) -> u128 {
-    #[cfg(all(target_arch = "x86_64", target_feature = "bmi2"))]
-    {
-        // SAFETY: bmi2 is enabled at compile time.
-        unsafe { x86_64::spread(a) }
+/// The carry-less product by schoolbook: XOR in `b * x^i` for every set bit `i` of `a`.
+pub const fn clmul_portable(a: u64, b: u64) -> u128 {
+    let mut acc = 0u128;
+    let mut i = 0;
+    while i < 64 {
+        if (a >> i) & 1 != 0 {
+            acc ^= (b as u128) << i;
+        }
+        i += 1;
     }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "bmi2")))]
-    {
-        mul_wide(a, a)
-    }
+    acc
 }
 
 /// Reduce a 128-bit carry-less product modulo `x^64 + x^4 + x^3 + x + 1`.
@@ -271,11 +170,8 @@ pub fn square_wide(a: u64) -> u128 {
 /// The two folds merge into one because the truncated map `f` is GF(2)-linear.
 #[inline]
 pub const fn reduce(p: u128) -> u64 {
-    // Split the product into its low and high words.
     let (lo, hi) = (p as u64, (p >> 64) as u64);
-    // The bits of `hi * 0x1B` shifted past x^63, which wrap around as `spill * 0x1B`.
     let spill = (hi >> 63) ^ (hi >> 61) ^ (hi >> 60);
-    // Fold `hi` and `spill` together: both are multiplied by the same constant.
     let v = hi ^ spill;
     lo ^ v ^ (v << 1) ^ (v << 3) ^ (v << 4)
 }
@@ -413,84 +309,6 @@ pub mod aarch64 {
     }
 }
 
-/// The x86-64 products.
-#[cfg(target_arch = "x86_64")]
-pub mod x86_64 {
-    use super::R64;
-    use core::arch::x86_64::*;
-
-    /// One field product: the carry-less product, then two carry-less folds of its high word by `0x1B`.
-    ///
-    /// The whole product stays in one vector register. [`super::reduce`] would move both words to integer
-    /// registers and back, and on Zen 4 that round trip and its shift chain cost more than the two folds.
-    ///
-    /// Credit: binius64 <https://github.com/binius-zk/binius64>
-    /// (`crates/arith-bench/src/monbijou/clmul.rs::reduce`).
-    ///
-    /// # Safety
-    ///
-    /// Requires the `pclmulqdq` target feature.
-    #[inline]
-    #[target_feature(enable = "pclmulqdq")]
-    pub unsafe fn mul(a: u64, b: u64) -> u64 {
-        let r = _mm_cvtsi64_si128(R64 as i64);
-        let p = _mm_clmulepi64_si128::<0x00>(_mm_cvtsi64_si128(a as i64), _mm_cvtsi64_si128(b as i64));
-        // hi * 0x1B, at most 68 bits.
-        let t = _mm_clmulepi64_si128::<0x01>(p, r);
-        // Its spill past x^63, times 0x1B: at most 8 bits.
-        let u = _mm_clmulepi64_si128::<0x01>(t, r);
-        _mm_cvtsi128_si64(_mm_xor_si128(_mm_xor_si128(p, t), u)) as u64
-    }
-
-    /// 64x64 carry-less product.
-    ///
-    /// # Safety
-    ///
-    /// Requires the `pclmulqdq` target feature.
-    #[inline]
-    #[target_feature(enable = "pclmulqdq")]
-    pub unsafe fn clmul(a: u64, b: u64) -> u128 {
-        // Move both operands into the low qword of a vector register.
-        let (a, b) = (_mm_cvtsi64_si128(a as i64), _mm_cvtsi64_si128(b as i64));
-        // SAFETY: both types are 128 bits wide with no invalid bit patterns.
-        unsafe { core::mem::transmute::<__m128i, u128>(_mm_clmulepi64_si128::<0x00>(a, b)) }
-    }
-
-    /// Carry-less square by bit deposit: `pdep` spreads each 32-bit half onto the even bits of one word.
-    ///
-    /// Zen 1 and Zen 2 microcode `pdep`, so there this is slower than a carry-less multiply.
-    ///
-    /// # Safety
-    ///
-    /// Requires the `bmi2` target feature.
-    #[inline]
-    #[target_feature(enable = "bmi2")]
-    pub unsafe fn spread(a: u64) -> u128 {
-        // Bits 0, 2, 4, ...: where a square puts the input bits.
-        const EVEN: u64 = 0x5555_5555_5555_5555;
-        // Low half of `a` into the low word, high half into the high word.
-        let lo = _pdep_u64(a, EVEN);
-        let hi = _pdep_u64(a >> 32, EVEN);
-        lo as u128 | (hi as u128) << 64
-    }
-}
-
-pub mod software {
-    /// Portable 64x64 carry-less product, used by fallback paths and as the reference.
-    pub const fn clmul(a: u64, b: u64) -> u128 {
-        let mut acc = 0u128;
-        let mut i = 0;
-        // Schoolbook: XOR in `b * x^i` for every set bit `i` of `a`.
-        while i < 64 {
-            if (a >> i) & 1 != 0 {
-                acc ^= (b as u128) << i;
-            }
-            i += 1;
-        }
-        acc
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -508,7 +326,7 @@ mod tests {
 
     /// Reference product: schoolbook multiply, then bit-by-bit long division by the modulus.
     fn reference_mul(a: u64, b: u64) -> u64 {
-        let mut p = software::clmul(a, b);
+        let mut p = clmul_portable(a, b);
         // Clear bits 127..64 from the top, each with one shifted copy of x^64 + 0x1B.
         for bit in (64..128).rev() {
             if (p >> bit) & 1 != 0 {
@@ -534,13 +352,12 @@ mod tests {
         let corners = CORNERS.iter().flat_map(|&a| CORNERS.iter().map(move |&b| (a, b)));
         for (a, b) in random.chain(corners) {
             let want = reference_mul(a, b);
-            // The dispatched product and the portable composition agree with the reference.
+            // The product and the portable composition agree with the reference.
             assert_eq!((F64(a) * F64(b)).0, want);
-            assert_eq!(reduce(software::clmul(a, b)), want);
-            // The widening product is the carry-less product on every backend.
-            assert_eq!(mul_wide(a, b), software::clmul(a, b));
-            // The bit spread is the carry-less square, and squaring is the self-product.
-            assert_eq!(square_wide(a), software::clmul(a, a));
+            assert_eq!(reduce(clmul_portable(a, b)), want);
+            // The widening product is the carry-less product.
+            assert_eq!(mul_wide(a, b), clmul_portable(a, b));
+            // Squaring is the self-product.
             assert_eq!(F64(a).square(), F64(reference_mul(a, a)));
         }
     }
