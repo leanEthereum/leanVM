@@ -292,6 +292,11 @@ def Post (g : String) (fp : K) : Prop :=
     W.Entered g fp (frameWords W.L fp 2 (sigOf tf).1)
       (frameWords W.L fp (2 + (sigOf tf).1) (sigOf tf).2)
 
+/-- The placement of a function is sound, from whatever jump tables the functions before it
+left. -/
+def PlacedSoundly (tf : TracedFn) : Prop :=
+  ∀ tables, PlaceFnSound (loopTable W.p) (sigTable W.p) tables tf
+
 /-- **A function's obligations**: at every frame where its precondition's `U` holds, its
 selectors are in range and its callees' `U` hold, each given what precedes it on its path. -/
 def Obligations (tf : TracedFn) : Prop :=
@@ -310,6 +315,12 @@ def FnSound (tf : TracedFn) : Prop :=
 def MainHolds : Prop := ∃ tf ∈ W.p, tf.core.name = "main" ∧ W.BodyHolds tf 1
 
 end World
+
+/-- **(a), placement, for every trace**: `placeFn` is sound whatever the trace. Proved for the
+traces with no `chain` event (`placeSound_noChain`); a chain of `match`es is what remains. -/
+def PlaceSoundStmt : Prop :=
+  ∀ (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : Tables) (tf : TracedFn),
+    PlaceFnSound loops sigs tables tf
 
 /-- **(b), for every program**: every function other than `main` of a compiled program whose
 obligations hold is compiled correctly. -/
