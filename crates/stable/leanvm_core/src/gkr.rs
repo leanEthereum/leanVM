@@ -128,11 +128,30 @@ fn add_message(g: &Group, eq: F128x8, acc: &mut [Acc8; 4]) {
     acc[3] += c4;
 }
 
+/// Group `k` of `values` folded by `r`, the identity past the end of `values`: output row `i` is
+/// `interp(row 2i, row 2i + 1, r)`, child by child.
+#[inline(always)]
+fn fold_group(values: &[F128], k: usize, r: F128x8) -> [F128; 64] {
+    let mut out = [F128::ONE; 64];
+    // Output rows `2i` and `2i + 1` from input pairs `2i` and `2i + 1`.
+    for (i, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+        let v: [F128; 16] = padded(values, 128 * k + 16 * i);
+        if !identity(&v) {
+            let lo = lanes(|l| v[8 * (l / 4) + l % 4]);
+            let hi = lanes(|l| v[8 * (l / 4) + 4 + l % 4]);
+            (lo + r * (lo + hi)).store(out);
+        }
+    }
+    out
+}
+
 /// The round polynomials `q_t(X) = Σ_p eq[p]·∏_c V_t(c, 2p + X)` of every tree's layer, row `r` of a layer holding
 /// its four children at `values[4r..4r + 4]`, as `[q(0) + q(1), c2, c3, c4]`. The pairs past a layer's values are
-/// identity pairs, which add nothing. One dispatch for the three trees.
-fn round_messages(trees: &[Vec<F128>; TREES], eq: &SplitEq) -> [[F128; 4]; TREES] {
-    let groups = trees.each_ref().map(|values| values.len().div_ceil(64));
+/// identity pairs, which add nothing. With `fold`, of the layer its rows bound to `fold`, folded on the fly as
+/// [`fold`] would. One dispatch for the three trees.
+fn round_messages(trees: &[Vec<F128>; TREES], eq: &SplitEq, fold: Option<F128>) -> [[F128; 4]; TREES] {
+    let per_group = if fold.is_some() { 128 } else { 64 };
+    let groups = trees.each_ref().map(|values| values.len().div_ceil(per_group));
     let total = groups.iter().sum();
     let chunk = chunk(total);
     let tasks = groups.map(|g| g.div_ceil(chunk));
@@ -144,7 +163,10 @@ fn round_messages(trees: &[Vec<F128>; TREES], eq: &SplitEq) -> [[F128; 4]; TREES
         }
         let mut acc = [Acc8::ZERO; 4];
         for k in task * chunk..groups[t].min((task + 1) * chunk) {
-            let v = padded(&trees[t], 64 * k);
+            let v = match fold {
+                Some(r) => fold_group(&trees[t], k, F128x8::splat(r)),
+                None => padded(&trees[t], 64 * k),
+            };
             if !identity(&v) {
                 add_message(&group(&v), eq.lanes(k), &mut acc);
             }
@@ -161,19 +183,21 @@ fn round_messages(trees: &[Vec<F128>; TREES], eq: &SplitEq) -> [[F128; 4]; TREES
     }
 }
 
-/// Bind every tree's lowest row variable to `r`: row `i` becomes `interp(row 2i, row 2i + 1, r)`, child by child,
-/// written over the tree's `spare` buffer, which then holds the layer it replaces. The output is padded with
-/// identity rows to whole groups. With `eq`, also the next round's messages, from the folded rows while they are at
-/// hand. One dispatch for the three trees.
+/// Bind every tree's lowest row variable to `r`, after binding it to `first` if given: row `i` becomes
+/// `interp(row 2i, row 2i + 1, r)`, child by child, written over the tree's `spare` buffer, which then holds the
+/// layer it replaces. The output is padded with identity rows to whole groups. With `eq`, also the next round's
+/// messages, from the folded rows while they are at hand. One dispatch for the three trees.
 fn fold(
     trees: &mut [Vec<F128>; TREES],
     spares: &mut [Vec<F128>; TREES],
+    first: Option<F128>,
     r: F128,
     eq: Option<&SplitEq>,
 ) -> [[F128; 4]; TREES] {
+    // Input values per output group.
+    let per_group = if first.is_some() { 256 } else { 128 };
     for (values, spare) in trees.iter().zip(spares.iter_mut()) {
-        // Every input group of 64 values folds to half an output group.
-        let len = values.len().div_ceil(128) * 64;
+        let len = values.len().div_ceil(per_group) * 64;
         if spare.len() < len {
             *spare = if len < 8 * crate::SERIAL_BELOW {
                 vec![F128::ONE; len]
@@ -184,7 +208,7 @@ fn fold(
         spare.truncate(len);
     }
     let chunk = chunk(spares.iter().map(|spare| spare.len() / 64).sum());
-    let r = F128x8::splat(r);
+    let (first, r) = (first.map(F128x8::splat), F128x8::splat(r));
     let [a, b, c] = spares.each_mut().map(|spare| spare.as_mut_slice());
     let messages = parallel::map_reduce_chunks_mut(
         [a, b, c],
@@ -196,17 +220,16 @@ fn fold(
                 let mut acc = [Acc8::ZERO; 4];
                 for (j, out) in out.as_chunks_mut::<64>().0.iter_mut().enumerate() {
                     let k = task * chunk + j;
-                    // Output rows `2i` and `2i + 1` from input pairs `2i` and `2i + 1`.
-                    for (i, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-                        let v: [F128; 16] = padded(&trees[t], 128 * k + 16 * i);
-                        if identity(&v) {
-                            *out = [F128::ONE; 8];
-                            continue;
+                    *out = match first {
+                        Some(first) => {
+                            let mut both = [F128::ONE; 128];
+                            for (h, half) in both.as_chunks_mut::<64>().0.iter_mut().enumerate() {
+                                *half = fold_group(&trees[t], 2 * k + h, first);
+                            }
+                            fold_group(&both, 0, r)
                         }
-                        let lo = lanes(|l| v[8 * (l / 4) + l % 4]);
-                        let hi = lanes(|l| v[8 * (l / 4) + 4 + l % 4]);
-                        (lo + r * (lo + hi)).store(out);
-                    }
+                        None => fold_group(&trees[t], k, r),
+                    };
                     if let Some(eq) = eq
                         && !identity(out)
                     {
@@ -317,8 +340,11 @@ pub(crate) fn prove_products(leaves: [Vec<F128>; TREES], ps: &mut ProverState) -
         // Round `j` weights its pairs by `eq(point[1 + j..], ·)`.
         let mut messages = match round_count {
             0 => [[F128::ZERO; 4]; TREES],
-            _ => round_messages(&trees, &SplitEq::new(&point[1..])),
+            _ => round_messages(&trees, &SplitEq::new(&point[1..]), None),
         };
+        // A layer's first two challenges fold its rows at once, the second round's messages computed from rows folded
+        // on the fly: the layer is read three times and written once, at a quarter of its size.
+        let mut first = None;
         for round in 0..round_count {
             // `Σ_t λ^t message_t`, by Horner.
             let mut coeffs: [F128; 4] = std::array::from_fn(|k| {
@@ -334,7 +360,13 @@ pub(crate) fn prove_products(leaves: [Vec<F128>; TREES], ps: &mut ProverState) -
             let challenge = ps.sample();
             round_point.push(challenge);
             let eq = (round + 1 < round_count).then(|| SplitEq::new(&point[2 + round..]));
-            messages = fold(&mut trees, &mut spares, challenge, eq.as_ref());
+            messages = match (round, &eq) {
+                (0, Some(eq)) => {
+                    first = Some(challenge);
+                    round_messages(&trees, eq, first)
+                }
+                _ => fold(&mut trees, &mut spares, first.take(), challenge, eq.as_ref()),
+            };
         }
 
         for tree in &mut trees {
@@ -387,7 +419,11 @@ mod tests {
             let below: Vec<F128> = (0..4 * width).map(|i| element(i, width)).collect();
             let point: Vec<F128> = (0..width.ilog2() - 1).map(|i| element(31 * i as usize, 5)).collect();
             let equality = eq_table(&point);
-            let message = round_messages(&[below.clone(), below.clone(), below.clone()], &SplitEq::new(&point))[2];
+            let message = round_messages(
+                &[below.clone(), below.clone(), below.clone()],
+                &SplitEq::new(&point),
+                None,
+            )[2];
             let direct = |x: F128| {
                 (0..width / 2)
                     .map(|row| {
