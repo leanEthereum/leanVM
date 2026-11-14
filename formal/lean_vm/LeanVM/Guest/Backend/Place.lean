@@ -929,22 +929,28 @@ def placeFn (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : T
               st.locs⟩, st.tables)
     | _ => .error s!"in {tf.core.name}: a body that does not end in a return"
 
-/-- Place the functions in order: the jump tables grow as the lowering reaches each `match`. -/
+/-- Place the functions in order: the jump tables grow as the lowering reaches each `match`,
+and a shared table once made stays. -/
 def placeFns (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) :
     List TracedFn → Tables → Except String (List Placed × Tables)
-  | [], tables => pure ([], tables)
-  | tf :: rest, tables => do
-      let (pf, tables) ← placeFn loops sigs tables tf
-      let (pfs, tables) ← placeFns loops sigs rest tables
-      pure (pf :: pfs, tables)
+  | [], tables => .ok ([], tables)
+  | tf :: rest, tables =>
+      match placeFn loops sigs tables tf with
+      | .error e => .error e
+      | .ok (pf, tables') =>
+          if !tables.shared.isSuffixOf tables'.shared then .error "a shared jump table was dropped"
+          else
+            match placeFns loops sigs rest tables' with
+            | .error e => .error e
+            | .ok (pfs, tables'') => .ok (pf :: pfs, tables'')
 
 /-- Place a program, `main` first, its functions of distinct names. -/
-def placeProgram (p : List TracedFn) : Except String (List Placed × Tables) := do
-  let names := p.map (·.core.name)
-  if names.head? != some "main" then throw "the first function is not main"
-  if names.contains "__jump_tables" then throw "a function named __jump_tables"
-  if !decide names.Nodup then throw "two functions of one name"
-  placeFns (loopTable p) (sigTable p) p {}
+def placeProgram (p : List TracedFn) : Except String (List Placed × Tables) :=
+  if (p.map (·.core.name)).head? != some "main" then .error "the first function is not main"
+  else if (p.map (·.core.name)).contains "__jump_tables" then
+    .error "a function named __jump_tables"
+  else if !decide (p.map (·.core.name)).Nodup then .error "two functions of one name"
+  else placeFns (loopTable p) (sigTable p) p {}
 
 end
 end LeanVM.Guest.Backend

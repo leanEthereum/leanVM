@@ -32,18 +32,22 @@ namespace LeanVM.Guest.Backend
 
 /-- The jump tables hold what was written: every slot an arm filled names that arm, and every
 slot of a shared table its callee. A slot written twice fails here. -/
-def slotsHold (slots : Array KVal) (fills : List Fill) (entries : List (Nat × String)) : Bool :=
+def slotsHold (slots : Array KVal) (fills : List Fill) (shared : List (List String × Nat)) :
+    Bool :=
   (fills.all fun x => decide (slots[x.1]? = some x.2)) &&
-    entries.all fun x => decide (slots[x.1]? = some (.entry x.2))
+    shared.all fun p => p.1.zipIdx.all fun x => decide (slots[p.2 + x.2]? = some (.entry x.1))
+
+/-- The jump table slots the placed functions fill, in order. -/
+def fillsOf (fns : List Placed) : List Fill := fns.flatMap fun pf => (emitFn pf.fn).2.toList
 
 /-- The labelled code of a program's functions, in order, and the jump tables' slots. -/
-def lowerProgram (p : List TracedFn) : Except String (List Lowered × Array KVal) := do
-  let (fns, tables) ← placeProgram p
-  let emitted := fns.map fun pf => emitFn pf.fn
-  let fills := emitted.flatMap (·.2.toList)
-  let slots := tableSlots tables.len fills.toArray tables.entries
-  if !slotsHold slots fills tables.entries.toList then throw "a jump table slot written twice"
-  return (emitted.map (·.1), slots)
+def lowerProgram (p : List TracedFn) : Except String (List Lowered × Array KVal) :=
+  match placeProgram p with
+  | .error e => .error e
+  | .ok (fns, tables) =>
+      let slots := tableSlots tables.len (fillsOf fns).toArray tables.entries
+      if !slotsHold slots (fillsOf fns) tables.shared then .error "a jump table slot written twice"
+      else .ok (fns.map fun pf => (emitFn pf.fn).1, slots)
 
 /-- The back end: the core functions of a program, each with its source and its trace, to the
 assembled program. -/

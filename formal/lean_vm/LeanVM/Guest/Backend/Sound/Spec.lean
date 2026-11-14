@@ -152,14 +152,9 @@ def JTHolds {κ : ℕ} (L : MemoryImage κ) (l : Layout) (slots : Array KVal) : 
 def FillsIn (slots : Array KVal) (fills : List Fill) : Prop :=
   ∀ x ∈ fills, slots[x.1]? = some x.2
 
-/-- The slots hold these shared tables' callees. -/
-def EntriesIn (slots : Array KVal) (t : Tables) : Prop :=
-  ∀ x ∈ t.entries.toList, slots[x.1]? = some (.entry x.2)
-
-/-- Every shared table's callees are among the entries: what the jump tables' state holds
-between two functions. -/
-def TablesOK (t : Tables) : Prop :=
-  ∀ p ∈ t.shared, ∀ j (h : j < p.1.length), (p.2 + j, p.1[j]) ∈ t.entries.toList
+/-- The slots hold the callees of these jump tables' shared tables. -/
+def SharedIn (slots : Array KVal) (t : Tables) : Prop :=
+  ∀ p ∈ t.shared, ∀ j (h : j < p.1.length), slots[p.2 + j]? = some (.entry p.1[j])
 
 /-! ## Placement -/
 
@@ -188,8 +183,7 @@ structure PlaceEnv {κ : ℕ} (Γ : Site κ) (fp : K) (ctx : Ctx) (C : CallRel)
   post : ∀ g a r fp', isCallee ctx.sigs a r g = true → Γ.Post g fp' →
     C g (frameWords Γ.L fp' 2 a) (frameWords Γ.L fp' (2 + a) r)
 
-/-- **Placement is sound** at one function: whenever `placeFn` succeeds, on any trace, from
-jump tables whose shared tables are among the entries, a memory
+/-- **Placement is sound** at one function: whenever `placeFn` succeeds, on any trace, a memory
 that has the meaning of the placed body at a frame (`PStmt.SemList`), with the program around as
 `PlaceEnv` says and the function's obligations, satisfies the core body under the valuation by
 places, and the parameters are the argument words. `kret` receives the return words where the
@@ -198,11 +192,11 @@ body returns: the run went on from the frame's return registers (`kretP`), or th
 def PlaceFnSound (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : Tables)
     (tf : TracedFn) : Prop :=
   ∀ (pf : Placed) (tables' : Tables), placeFn loops sigs tables tf = .ok (pf, tables') →
-    TablesOK tables → ∀ {κ : ℕ} (Γ : Site κ) (fp : K) (C : CallRel) (U : String → List E → Prop)
+    ∀ {κ : ℕ} (Γ : Site κ) (fp : K) (C : CallRel) (U : String → List E → Prop)
       (slots : Array KVal) (N : Prop) (kj : E → E → Prop) (kretP : Prop) (khalt : E → E → Prop)
       (kret : List E → Prop),
       PlaceEnv Γ fp (ctxOf loops sigs tf) C U slots (blockSize pf.fn.body) →
-      FillsIn slots (blockFills tf.core.name pf.fn.body 0) → EntriesIn slots tables' →
+      FillsIn slots (blockFills tf.core.name pf.fn.body 0) → SharedIn slots tables' →
       ((loops[tf.core.name]?).any (·.registered) = true →
         wd Γ.L fp (2 + (sigOf tf).1) = ofK fp) →
       PStmt.SemList Γ fp pf.fn.body 0 N kj kretP khalt →
