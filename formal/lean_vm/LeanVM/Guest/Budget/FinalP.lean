@@ -180,10 +180,8 @@ theorem mainComplete_of_mainP (fs : String → ℕ) (cert : String → V → ℕ
     obtain ⟨σ, bufs, ks, rfl, hMV, hT, hc, -⟩ := hTt
     have e := main_tree_popsR (hData_bounds hlim fs 0) hv hMV _ _ hT hc
     have hg := hseg seed s w hrel hlim rd
-    rw [e]
-    refine (main_pops_honest fs 0 hlim rfl rfl hg.cx hg.cs hg.d0 hg.d1 hg.r2 hg.r3 hg.da hg.kids hg.agg).sameStreams ?_
-    rw [← e]
-    exact B1.Main.pops_noHeap _ hv
+    exact ((B1.Main.sameStreamsBut_of e).trans (main_pops_honest fs 0 hlim rfl rfl hg.cx hg.cs hg.d0 hg.d1 hg.r2
+      hg.r3 hg.da hg.kids hg.agg)).sameStreams (B1.Main.pops_noHeap _ hv)
 
 /-- **`main` is complete within `mainBudget`, with its pops.** -/
 theorem mainComplete_budgetP (fs : String → ℕ) (cert : String → V → ℕ) (cnt : Tree → Opcode → ℕ)

@@ -13,9 +13,9 @@ public import LeanVM.Guest.B1.Main.MainNoWit
 /-!
 # `main`'s callees' entries
 
-* `PopsOf rd σ cs Ts pss`: each entered call's valid tree satisfying its predicate pops its entries, a skipped call's are `[]`; `popsKids_of_popsOf`: then the callees pop `pss`.
+* `PopsOf rd σ cs Ts pss`: each entered call's valid tree satisfying its predicate pops its entries, stream by stream, a skipped call's are `[]`; `popsKids_of_popsOf`: then the callees pop `pss`, each stream by stream; `spliceS_sameStreams`: a skeleton splices such entries stream by stream.
 * `mainKidPopsR m q rd`: `mainKidPops` at `q`'s entries, a loop not entered popping `[]`, `exponent_tables` and `statement_digest` `[]` (no witness hint); `main_popsOf`: `main`'s calls at a valuation with its honest values pop them.
-* `main_tree_popsR`: a valid node of `main` whose callees' trees satisfy `mTsR m (p.withPops q)` pops `mainOwnPops` at them.
+* `main_tree_popsR`: a valid node of `main` whose callees' trees satisfy `mTsR m (p.withPops q)` pops `mainOwnPops` at them, stream by stream.
 * `mTsR_imp`, `kidsT_imp`: the predicates `p.withPops q` imply `p`'s.
 -/
 
@@ -26,10 +26,11 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- **A call's entries**: its valid tree satisfying `T`, when entered, pops `p`; `p` is `[]` when skipped. -/
+/-- **A call's entries**: its valid tree satisfying `T`, when entered, pops `p`, stream by stream; `p` is `[]` when
+skipped. -/
 def PopOk (rd : Reader) (σ : Val) (c : Call) (T : Tree → Prop) (p : List Pop) : Prop :=
   (c.taken = true → ∀ t : Tree, t.name = c.f → t.Valid coreProgram rd (c.args.map σ) (c.rets.map σ) → T t →
-    t.pops coreProgram rd = p) ∧ (c.taken = false → p = [])
+    SameStreams (t.pops coreProgram rd) p) ∧ (c.taken = false → p = [])
 
 /-- **Each call's entries** (`PopOk`). -/
 def PopsOf (rd : Reader) (σ : Val) : List Call → List (Tree → Prop) → List (List Pop) → Prop
@@ -46,19 +47,21 @@ theorem PopsOf.append : ∀ {cs Ts pss cs' Ts' pss'}, PopsOf rd σ cs Ts pss →
   | [], _ :: _, _, _, _, _, h, _ | [], [], _ :: _, _, _, _, h, _ | _ :: _, [], _, _, _, _, h, _
   | _ :: _, _ :: _, [], _, _, _, h, _ => h.elim
 
-/-- **The callees pop their entries.** -/
+/-- **The callees pop their entries**, stream by stream. -/
 theorem popsKids_of_popsOf : ∀ {cs : List Call} {Ts : List (Tree → Prop)} {pss : List (List Pop)} {ks : List Tree},
     Tree.KidsValid coreProgram rd σ cs ks → KidsT cs Ts ks → PopsOf rd σ cs Ts pss →
-    Tree.popsKids coreProgram rd ks = pss
-  | [], [], [], [], _, _, _ => by rw [Tree.popsKids]
+    List.Forall₂ SameStreams (Tree.popsKids coreProgram rd ks) pss
+  | [], [], [], [], _, _, _ => by rw [Tree.popsKids]; exact .nil
   | c :: cs, T :: Ts, p :: pss, k :: ks, ⟨hn, hc, hv⟩, hT, ⟨⟨h1, h2⟩, ho⟩ => by
-      rw [Tree.popsKids, popsKids_of_popsOf hv hT.2 ho]
+      rw [Tree.popsKids]
+      refine .cons ?_ (popsKids_of_popsOf hv hT.2 ho)
       by_cases ht : c.taken = true
       · rw [ite_eq_left ht] at hc
-        rw [h1 ht k hn hc (hT.1 ht)]
+        exact h1 ht k hn hc (hT.1 ht)
       · rw [ite_eq_right ht] at hc
         obtain ⟨⟨f, σ', rfl⟩, -⟩ := hc
         rw [h2 (by simpa using ht), Tree.pops]
+        exact SameStreams.refl _
   | [], _, _, _ :: _, h, _, _ | _ :: _, _, _, [], h, _, _ => h.elim
   | [], _ :: _, _, [], _, _, h | [], [], _ :: _, [], _, _, h | _ :: _, [], _, _ :: _, _, _, h
   | _ :: _, _ :: _, [], _ :: _, _, _, h => h.elim
@@ -71,19 +74,25 @@ def mainKidPopsR (m : MainIn) (q : MainPops) (rd : Reader) : List (List Pop) :=
 
 theorem popOk_true {c : Call} {T : Tree → Prop} {p : List Pop} (hc : c.taken = true)
     (h : ∀ t : Tree, T t → t.pops coreProgram rd = p) : PopOk rd σ c T p :=
-  ⟨fun _ t _ _ hT => h t hT, fun h' => by rw [hc] at h'; cases h'⟩
+  ⟨fun _ t _ _ hT => SameStreams.of_eq (h t hT), fun h' => by rw [hc] at h'; cases h'⟩
 
 theorem popOk_noWit {c : Call} {T : Tree → Prop} (hg : NoWitG c.f) : PopOk rd σ c T [] :=
-  ⟨fun _ _ hn hv _ => pops_nil_of_noWitness hg hv hn rd, fun _ => rfl⟩
+  ⟨fun _ _ hn hv _ => SameStreams.of_eq (pops_nil_of_noWitness hg hv hn rd), fun _ => rfl⟩
+
+/-- A loop entered when its count is not zero, its tree popping `p` stream by stream. -/
+theorem popOk_loopS {c : Call} {n : ℕ} {T : Tree → Prop} {p : List Pop} (hc : c.taken = decide (n ≠ 0))
+    (h : ∀ t : Tree, T t → SameStreams (t.pops coreProgram rd) p) : PopOk rd σ c T (if n = 0 then [] else p) := by
+  refine ⟨fun ht t _ _ hT => ?_, fun ht => ?_⟩
+  · rw [hc, decide_eq_true_iff] at ht
+    rw [ite_eq_right ht]
+    exact h t hT
+  · rw [hc, decide_eq_false_iff_not, not_not] at ht
+    rw [ite_eq_left ht]
 
 /-- A loop entered when its count is not zero. -/
 theorem popOk_loop {c : Call} {n : ℕ} {T : Tree → Prop} {p : List Pop} (hc : c.taken = decide (n ≠ 0))
-    (h : ∀ t : Tree, T t → t.pops coreProgram rd = p) : PopOk rd σ c T (if n = 0 then [] else p) := by
-  refine ⟨fun ht t _ _ hT => ?_, fun ht => ?_⟩
-  · rw [hc, decide_eq_true_iff] at ht
-    rw [ite_eq_right ht, h t hT]
-  · rw [hc, decide_eq_false_iff_not, not_not] at ht
-    rw [ite_eq_left ht]
+    (h : ∀ t : Tree, T t → t.pops coreProgram rd = p) : PopOk rd σ c T (if n = 0 then [] else p) :=
+  popOk_loopS hc fun t hT => SameStreams.of_eq (h t hT)
 
 /-- **`main`'s calls pop their entries**, at a valuation with `main`'s honest values. -/
 theorem main_popsOf {m : MainIn} (hb : MainBounds (2 ^ 23) m) (hv : MVals rd σ m) (p : MainPreds) (q : MainPops) :
@@ -106,28 +115,45 @@ theorem main_popsOf {m : MainIn} (hb : MainBounds (2 ^ 23) m) (hv : MVals rd σ 
   · split
     · exact ⟨popOk_true rfl fun _ h => h.2, trivial⟩
     · trivial
-  · exact ⟨popOk_loop e5 fun _ h => h.2, trivial⟩
+  · exact ⟨popOk_loopS e5 fun _ h => h.2, trivial⟩
   · split
     · trivial
     · exact ⟨popOk_true rfl fun _ h => h.2, trivial⟩
   · exact ⟨popOk_noWit statement_digest_noWit, trivial⟩
 
-/-- **A valid node of `main` pops its entries**, its callees' trees satisfying `p.withPops q`. -/
+/-- **A skeleton splices entries agreeing stream by stream into entries agreeing so.** -/
+theorem spliceS_sameStreams : ∀ (xs : List (Option (String × Dest))) {ks ks' : List (List Pop)},
+    List.Forall₂ SameStreams ks ks' → SameStreams (spliceS rd σ xs ks) (spliceS rd σ xs ks')
+  | [], _, _, _ => SameStreams.refl _
+  | some (_, _) :: xs, _, _, h => fun s => by
+      simp only [spliceS, List.filter_cons]
+      rw [spliceS_sameStreams xs h s]
+  | none :: xs, [], [], _ => by
+      simp only [spliceS]
+      exact (SameStreams.refl _).append (spliceS_sameStreams xs .nil)
+  | none :: xs, _ :: _, _ :: _, .cons h hs => by
+      simp only [spliceS, List.headD_cons, List.tail_cons]
+      exact h.append (spliceS_sameStreams xs hs)
+
+/-- **A valid node of `main` pops its entries**, stream by stream, its callees' trees satisfying `p.withPops q`. -/
 theorem main_tree_popsR {m : MainIn} (hb : MainBounds (2 ^ 23) m) {bufs : List ℕ} {ks : List Tree}
     (hval : (Memory.Tree.node "main" σ bufs ks).Valid coreProgram rd [] []) (hv : MVals rd σ m) (p : MainPreds)
     (q : MainPops) (hT : KidsT (mCalls σ m) ((fun _ => True) :: mTsR m (p.withPops q) rd) ks)
     (hc : calls (mEvs σ) = mCalls σ m) :
-    (Memory.Tree.node "main" σ bufs ks).pops coreProgram rd =
-      mainOwnPops m [] (q.px rd) (q.ps rd) (if m.nxd = 0 then [] else q.p0 rd) (if m.nsd = 0 then [] else q.p1 rd)
+    SameStreams ((Memory.Tree.node "main" σ bufs ks).pops coreProgram rd)
+      (mainOwnPops m [] (q.px rd) (q.ps rd) (if m.nxd = 0 then [] else q.p0 rd) (if m.nsd = 0 then [] else q.p1 rd)
         (if m.nrx = 0 then [] else q.p2 rd) (if m.nrs = 0 then [] else q.p3 rd) (q.pd rd)
-        (if m.nc = 0 then [] else q.p5 rd) (q.pa rd) [] := by
-  obtain ⟨fn, hf, -, es, vs, hw, -, -, hkv⟩ := hval
+        (if m.nc = 0 then [] else q.p5 rd) (q.pa rd) []) := by
+  have hval' := hval
+  obtain ⟨fn, hf, -, es, vs, hw, -, -, hkv⟩ := hval'
   rw [find_main] at hf
   cases hf
   rw [walk_main σ] at hw
   cases hw
   rw [hc] at hkv
-  exact main_pops hb.nd hb.nc hv (popsKids_of_popsOf hkv hT (main_popsOf hb hv p q))
+  have hk := popsKids_of_popsOf hkv hT (main_popsOf hb hv p q)
+  rw [Tree.pops_node find_main (walk_main σ), splice_mEvs]
+  exact (spliceS_sameStreams _ hk).trans (SameStreams.of_eq (main_spliceS hb.nd hb.nc hv _ _ _ _ _ _ _ _ _ _ _))
 
 /-! ## Forgetting the pops -/
 

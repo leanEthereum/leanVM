@@ -135,11 +135,13 @@ theorem mlc_core {k : ℕ} (hk : k < 17) {rec region mark limit entries : E} {rP
           [rec, region, mark, limit] ∧
       (∀ a ∈ mlAtoms k, a.Holds rd σ) ∧
       vs.map σ = digestCells (keccak256 (pre ++ cellsBytes cells)) ∧
-      ∀ q ∈ (mlAtoms k).filterMap Memory.atomLoad?,
+      (∀ q ∈ (mlAtoms k).filterMap Memory.atomLoad?,
         (∃ c < 15, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (rP + c)) ∨
         (∃ i < k, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (rg + o (s + i))) ∨
         (∃ i < k, ∃ c < 4,
-          (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * o (s + i) + c)) := by
+          (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * o (s + i) + c))) ∧
+      ∀ a ∈ mlAtoms k, Good rd (storesOf 4 (coreProgram.getD (idx% «child_claim_list_mono_last__L0» + k) default).body)
+        (fun i => gen ^ mGap o (s + (i - 6) / 10)) σ a := by
   obtain ⟨hS, h13, h14⟩ := hR
   have hok := ml_all k hk
   have hcok := mlc_all hk
@@ -280,7 +282,7 @@ theorem mlc_core {k : ℕ} (hk : k < 17) {rec region mark limit entries : E} {rP
       rw [this, List.take_of_length_le (by simp only [mlSpec]; omega)]
     rw [hv] at hd
     simp only [retOk, Bool.and_eq_true] at hret
-    refine ⟨[r0, r1], σ, hbody, ?_, hat, ?_, fun q hq => ?_⟩
+    refine ⟨[r0, r1], σ, hbody, ?_, hat, ?_, fun q hq => ?_, hg⟩
     · rw [hpar]
       simp only [List.map_cons, List.map_nil, e0, e1, e2, e3]
     · rw [List.map_cons, List.map_cons, List.map_nil, copy_sound hret.1 hat, copy_sound hret.2 hat,
@@ -339,7 +341,7 @@ theorem mlc_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k :
     B1.disj_nil, fun rd hlow hm => ?_⟩
   simp only [List.append_nil, List.nil_append] at hm
   obtain ⟨hR, hrec⟩ := hmem rd hm
-  obtain ⟨vs, σ, hb, hp, hat, hr, hload⟩ := mlc_core hk hrc hen hrg hlim hpre hR hl hinc hrec hend
+  obtain ⟨vs, σ, hb, hp, hat, hr, hload, -⟩ := mlc_core hk hrc hen hrg hlim hpre hR hl hinc hrec hend
     (boundMem_of_low hlow (by omega))
   refine RelAtIn.relAtInT (relAtIn_atoms (ml_name hk) hb (ml_loop hk) (ml_na hk) hp hat hr
     (fun q hq => by rw [ml_addr hk] at hq; exact absurd hq List.not_mem_nil) (fun q hq => ?_)

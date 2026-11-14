@@ -105,7 +105,7 @@ theorem anyLoop_blocks {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
   have hr := recMem_group hrec (s := m * q) (k := m) hmq
   rw [show 4 * (m * q) = 4 * m * q by ring, show base * gen ^ (m * q) = base * (gen ^ q) ^ m by
     rw [gen_pow_pow]] at hr
-  obtain ⟨σ, hp, hat, hload⟩ := any_core hok hhd hedge hrecs hnb (x := gen ^ q) (N := gen ^ M)
+  obtain ⟨σ, hp, hat, hload, -⟩ := any_core hok hhd hedge hrecs hnb (x := gen ^ q) (N := gen ^ M)
     rfl hch hen hrg hpre (by rw [gen_pow_pow]; exact hS0)
     (cells := (cells.drop (4 * m * q)).take (4 * m))
     (by simp only [List.length_take, List.length_drop]; omega)

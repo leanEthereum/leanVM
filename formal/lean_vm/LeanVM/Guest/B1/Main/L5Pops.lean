@@ -45,7 +45,7 @@ theorem l5_chk : l5Pre.all Digest.Stmt.flat = true ∧ monoIs (atomsIn l5Pre) (.
   decide +kernel
 
 /-- A heap destination through `g^a` of a run the memory holds reads the run. -/
-theorem words_of_reads (σ : Val) {p : V} {a : ℕ} (hp : σ p = gen ^ a) {L : List E} (h : ReadsAt rd (gen ^ a) L) :
+theorem l5_words_of_reads (σ : Val) {p : V} {a : ℕ} (hp : σ p = gen ^ a) {L : List E} (h : ReadsAt rd (gen ^ a) L) :
     Dest.words rd σ (.heap p 0 L.length) = L := by
   rw [words_heap σ hp]
   refine List.ext_getElem (by simp) fun k h1 h2 => ?_
@@ -158,9 +158,9 @@ theorem l5From_pops {ex es : ℕ → ℕ} {Pxs Pss Pvs : ℕ → Tree → Prop} 
     show [σ (.n 18), σ (.n 19)] = _
     rw [h18, h19]
   have w2 : Dest.words rd σ (.heap (.n 33) 0 24) = defer c := by
-    rw [← hdl]; exact words_of_reads σ h33 hdef
+    rw [← hdl]; exact l5_words_of_reads σ h33 hdef
   have w3 : Dest.words rd σ (.heap (.n 35) 0 2) = [(da c).1, (da c).2] :=
-    words_of_reads σ h35 hda
+    l5_words_of_reads σ h35 hda
   rw [w1, w2, w3]
   simp only [List.append_assoc, List.cons_append, List.nil_append, List.append_nil]
 

@@ -150,11 +150,11 @@ theorem mPath_popS {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : MVa
   rw [mPath, List.filterMap_append, List.filterMap_append, List.filterMap_append, List.filterMap_append, b1, e1, b3,
     e2, b6]
 
-/-- **`main`'s node pops its entries**, at a valuation with `main`'s honest values, its callees popping theirs. -/
-theorem main_pops {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : MVals rd σ m) {bufs : List ℕ}
-    {ks : List Tree} {pe px ps p0 p1 p2 p3 pd p5 pa pst : List Pop}
-    (hk : Tree.popsKids coreProgram rd ks = mainKidPops m pe px ps p0 p1 p2 p3 pd p5 pa pst) :
-    (Memory.Tree.node "main" σ bufs ks).pops coreProgram rd = mainOwnPops m pe px ps p0 p1 p2 p3 pd p5 pa pst := by
+/-- **`main`'s path splices its callees' entries into its own**, at a valuation with `main`'s honest values. -/
+theorem main_spliceS {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : MVals rd σ m)
+    (pe px ps p0 p1 p2 p3 pd p5 pa pst : List Pop) :
+    spliceS rd σ ((mPath σ).filterMap Stmt.popS) (mainKidPops m pe px ps p0 p1 p2 p3 pd p5 pa pst) =
+      mainOwnPops m pe px ps p0 p1 p2 p3 pd p5 pa pst := by
   have hO : ∀ {j : ℕ}, j ∈ mOrcIdx → σ (.n j) = mOrc m j := fun hj => hv.orc _ hj
   have w1 : Dest.words rd σ (.stack ((List.range 8).map V.n)) = m.cnt.map (gen ^ ·) := by
     show [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7)] = _
@@ -173,10 +173,17 @@ theorem main_pops {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : MVal
     show [σ (.n 419)] = _
     rw [hO (by decide)]
     rfl
-  rw [Tree.pops_node find_main (walk_main σ), splice_mEvs, mPath_popS hnd hnc hv, hk, mainKidPops, mainOwnPops]
+  rw [mPath_popS hnd hnc hv, mainKidPops, mainOwnPops]
   by_cases a : m.nd = 1 <;> by_cases b : m.nc = 0 <;>
     simp only [a, b, ↓reduceIte, List.cons_append, List.nil_append, List.append_nil,
       spliceS, List.headD_cons, List.tail_cons, w1, w2, w3, w4]
+
+/-- **`main`'s node pops its entries**, at a valuation with `main`'s honest values, its callees popping theirs. -/
+theorem main_pops {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : MVals rd σ m) {bufs : List ℕ}
+    {ks : List Tree} {pe px ps p0 p1 p2 p3 pd p5 pa pst : List Pop}
+    (hk : Tree.popsKids coreProgram rd ks = mainKidPops m pe px ps p0 p1 p2 p3 pd p5 pa pst) :
+    (Memory.Tree.node "main" σ bufs ks).pops coreProgram rd = mainOwnPops m pe px ps p0 p1 p2 p3 pd p5 pa pst := by
+  rw [Tree.pops_node find_main (walk_main σ), splice_mEvs, hk, main_spliceS hnd hnc hv]
 
 end
 end LeanVM.Guest.B1.Main

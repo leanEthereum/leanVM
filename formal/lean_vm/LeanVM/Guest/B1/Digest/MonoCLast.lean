@@ -102,11 +102,13 @@ theorem mono_core {j : ℕ} {f : String} {m p0 st0 cw ew nb : ℕ}
     (h29 : LoadHolds rd (chain * x ^ 15) 29 (entries * gen ^ (4 * mStart o (s + m)))) :
     ∃ σ : Val, (coreProgram.getD j default).params.map σ = [x, N, chain, mark] ∧
       (∀ a ∈ atomsIn (loopPre (coreProgram.getD j default)), a.Holds rd σ) ∧
-      ∀ q ∈ (loopPre (coreProgram.getD j default)).filterMap B1.Stmt.loadS,
+      (∀ q ∈ (loopPre (coreProgram.getD j default)).filterMap B1.Stmt.loadS,
         (∃ c < 30, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (chP + 15 * xj + c)) ∨
         (∃ i < m, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (rg + o (s + i))) ∨
         (∃ i < m, ∃ c < 4,
-          (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * o (s + i) + c)) := by
+          (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * o (s + i) + c))) ∧
+      ∀ a ∈ atomsIn (loopPre (coreProgram.getD j default)),
+        Good rd (storesOf 4 (coreProgram.getD j default).body) (fun i => gen ^ mGap o (s + (i - 13) / 10)) σ a := by
   set fn := coreProgram.getD j default
   set A := loopAtoms fn with hAdef
   set S := storesOf 4 fn.body with hSdef
@@ -254,7 +256,8 @@ theorem mono_core {j : ℕ} {f : String} {m p0 st0 cw ew nb : ℕ}
         · exact hedgeS h1 _ ha haS h'
   have h15g : chain * x ^ 15 = gen ^ (chP + 15 * xj) := by
     rw [hch, hx, ← pow_mul, ← pow_add, mul_comm xj 15]
-  refine ⟨σ, ?_, fun a ha => hat a (by rwa [heqA'] at ha), fun q hq => ?_⟩
+  refine ⟨σ, ?_, fun a ha => hat a (by rwa [heqA'] at ha), fun q hq => ?_,
+    fun a ha => hg a (by rwa [heqA'] at ha)⟩
   · rw [hpar]
     simp only [List.map_cons, List.map_nil]
     rw [e0, par 1 (by omega), e2, e3]
@@ -391,7 +394,7 @@ theorem monoLoop_blocks {j : ℕ} {f : String} {m p0 st0 cw ew nb : ℕ}
     rw [gen_pow_pow, mul_assoc, ← pow_add]; ring_nf
   rw [e15, loadHolds_mul_gen_pow] at h28 h29
   rw [show s0 + m * (q + 1) = s0 + m * q + m by ring] at h28 h29
-  obtain ⟨σ, hp, hat, hload⟩ := mono_core hok hc hcw hew hnb hm0 (x := gen ^ q) (N := gen ^ M)
+  obtain ⟨σ, hp, hat, hload, -⟩ := mono_core hok hc hcw hew hnb hm0 (x := gen ^ q) (N := gen ^ M)
     (mark := mark) (s := s0 + m * q) (o := o) (L := L) rfl hch hen hrg hpre
     (by rw [gen_pow_pow]; exact hS0) (by rw [gen_pow_pow]; exact h13)
     (by rw [gen_pow_pow]; exact h14)

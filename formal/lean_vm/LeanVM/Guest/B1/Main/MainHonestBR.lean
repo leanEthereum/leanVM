@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Main.MainAtR
 
 `MainPredsR`: a predicate of the memory for each of `main`'s callees after `exponent_tables`; `mTsR`: aligned with `mKids`. `MainGoalsTBR`: each callee within its bound (`mBs`) by trees of its predicate (`CompleteAtDTBR`); `mainKidsDTBR`: `KidsDTBR`. `main_honest_relAtInTBR`: `main_honest_relAtInTB` with them.
 
-`MainPops`: the entries of the callees that pop any; `MainPreds.withPops p q`: `p`'s predicates (none on the static loops) with the trees popping `q`'s entries.
+`MainPops`: the entries of the callees that pop any; `MainPreds.withPops p q`: `p`'s predicates (none on the static loops) with the trees popping `q`'s entries, the children's loop's stream by stream (`verify_sub`'s are known so).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -55,12 +55,12 @@ structure MainPops where
   p5 : Reader → List Pop
   pa : Reader → List Pop
 
-/-- **`p`'s predicates, the trees popping `q`'s entries.** -/
+/-- **`p`'s predicates, the trees popping `q`'s entries**, the children's loop's stream by stream. -/
 def MainPreds.withPops (p : MainPreds) (q : MainPops) : MainPredsR :=
   ⟨fun rd t => p.Px t ∧ t.pops coreProgram rd = q.px rd, fun rd t => p.Ps t ∧ t.pops coreProgram rd = q.ps rd,
     fun rd t => t.pops coreProgram rd = q.p0 rd, fun rd t => t.pops coreProgram rd = q.p1 rd,
     fun rd t => t.pops coreProgram rd = q.p2 rd, fun rd t => t.pops coreProgram rd = q.p3 rd,
-    fun rd t => p.Pd t ∧ t.pops coreProgram rd = q.pd rd, fun rd t => p.T5 t ∧ t.pops coreProgram rd = q.p5 rd,
+    fun rd t => p.Pd t ∧ t.pops coreProgram rd = q.pd rd, fun rd t => p.T5 t ∧ SameStreams (t.pops coreProgram rd) (q.p5 rd),
     fun rd t => p.Pa t ∧ t.pops coreProgram rd = q.pa rd, fun _ _ => True⟩
 
 variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest) (s : NodeStatement)
