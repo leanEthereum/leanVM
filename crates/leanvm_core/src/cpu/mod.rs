@@ -24,6 +24,7 @@ mod execute;
 pub mod hints;
 mod isa;
 pub mod layout;
+mod text;
 mod trace;
 pub(crate) use execute::Cell;
 pub use execute::{ExecError, Execution, Fault, Memory};
