@@ -8,9 +8,7 @@
 //! root's challenge determines, with high probability over that challenge (`membership`). The
 //! aggregation guest proves this check together with the commitment.
 //!
-//! Row and cell widths are powers of two. The tree over the blob roots pads the row
-//! count with zero rows. A root binds this padded matrix, not the original row count:
-//! a trailing zero row is indistinguishable from padding within the same padded height.
+//! The tree over the blob roots pads the row count with zero rows, to the next power of two.
 
 mod commit;
 mod encode;
@@ -19,31 +17,29 @@ mod membership;
 pub use commit::{DaWitness, commit, padding_root};
 pub use membership::subspace_above;
 
-/// Payload symbols per blob, as a logarithm (128 KiB).
+/// Each blob is 128 KiB = 2^LOG_BLOB_SYMBOLS symbols in GF(2^128).
 pub const LOG_BLOB_SYMBOLS: usize = 13;
-/// Symbols per sampling cell, as a logarithm (2 KiB).
+/// Each encoded blob (256 KiB) = 2^LOG_CELL_SYMBOLS 'cells' of 2 KiB each.
 pub const LOG_CELL_SYMBOLS: usize = 7;
-/// Maximum blobs in one commitment, a power of two: the matrix pads its rows to one.
+/// We support at most DA_MAX_ROWS rows.
 pub const DA_MAX_ROWS: usize = 32;
-const _: () = assert!(DA_MAX_ROWS.is_power_of_two());
 
-/// Symbols in one payload blob.
+/// How many GF(2^128) symbols in one blob.
 pub const BLOB_SYMBOLS: usize = 1 << LOG_BLOB_SYMBOLS;
-/// Symbols in one encoded blob.
+/// How many GF(2^128) symbols in one encoded blob.
 pub const CODEWORD_SYMBOLS: usize = 2 * BLOB_SYMBOLS;
-/// Symbols in one sampling cell.
+/// How many 2 KiB cells in one encoded blob.
 pub const CELL_SYMBOLS: usize = 1 << LOG_CELL_SYMBOLS;
-/// Sampling cells in one encoded blob.
+/// How many cells in one encoded blob.
 pub const CELLS_PER_ROW: usize = CODEWORD_SYMBOLS / CELL_SYMBOLS;
+/// How many GF(2^128) symbols in one encoded row.
 const LOG_CODEWORD_SYMBOLS: usize = LOG_BLOB_SYMBOLS + 1;
 
-/// A symbol: the element `c0 + c1·y` of `E`, its low 64 bits `c0` and its high 64 bits `c1`.
-/// Every bit pattern is a symbol, and its bytes are the 128-bit word's, little-endian.
 pub type Symbol = u128;
-/// A payload blob: [`BLOB_SYMBOLS`] symbols.
 pub type Blob = [Symbol; BLOB_SYMBOLS];
-/// An encoded blob: [`CODEWORD_SYMBOLS`] symbols, the blob's own first.
 pub type Codeword = [Symbol; CODEWORD_SYMBOLS];
+
+const _: () = assert!(DA_MAX_ROWS.is_power_of_two());
 
 /// The number of blobs is not 1 to [`DA_MAX_ROWS`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
