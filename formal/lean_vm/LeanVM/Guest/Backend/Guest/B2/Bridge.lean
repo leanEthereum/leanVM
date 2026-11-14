@@ -14,6 +14,7 @@ public import LeanVM.Guest.Backend.Guest.B2.Agree
 public import LeanVM.Guest.Backend.Guest.B2.DataAll
 public import LeanVM.Guest.Backend.Guest.B2.Facts
 public import LeanVM.Guest.Backend.Guest.B2.Pow
+public import LeanVM.Guest.Backend.Guest.B2.Eval.Res
 
 /-!
 # B2 from the back end
@@ -24,12 +25,13 @@ certificate's cells, calls located by `Check.EnteredAt`, its promised bounds), a
 holds at frame `1` under its certificate's cells. `b2SoundL_backend` proves it from the back end's
 contracts (`contracts`, `guest_main_body`) on the guest's world `guestEnd`, reading only the
 certificates' data (`sigOf`, `certOf j`'s cells, `post`, `env`, `nret`; the test `dataOk`), with
-two hypotheses beside `GuestCompiles`:
+one hypothesis beside `GuestCompiles`:
 
 * `LocsAgree`: function `j`'s places (the back end's placement of the guest, `gLocs`) compare with
-  its certificate's cells (`Agree.fnOk`, decidable, one test per function);
-* `ResidualFacts`: at a frame where the run from function `j`'s entry halts, the residual values'
-  cells hold what the residual table says (`Agree.ResHolds`).
+  its certificate's cells (`Agree.fnOk`, decidable, one test per function).
+
+The residual values `fnOk` admits hold at every frame where the run from the function's entry
+halts (`residualFacts`, `B2/Prologue.lean`), and every frame the contracts quantify over is one.
 
 The steps: a frame the back end's located relation enters is one `Check.EnteredAt` enters, and
 there the callee's parameters and body carry over from places to cells (`entered_cert`), so the
@@ -72,22 +74,18 @@ theorem vf_eq {κ : ℕ} {fns : List Lowered} {slots : Array KVal} {L : MemoryIm
   rw [world_locs]
   rfl
 
-/-- Function `j`'s places `locs` against its certificate's cells and its residual entries. -/
-noncomputable def agreeWith (locs : VMap Loc) (j : ℕ) : Agree :=
-  ⟨fun v => locs[v]?, (certOf j).locs, resOf (coreOf j).name⟩
-
 /-- **Every function's places compare with its certificate's cells** (`Agree.fnOk`), one test per
 function on its placed locations. -/
 def LocsAgree : Prop :=
   ∀ j, 1 ≤ j → j < nFns → (agreeWith (gLocs (coreOf j).name) j).fnOk (coreOf j) = true
 
-/-- **The residual values' cells hold what the residual table says**, at every frame where the run
-from the function's entry halts. -/
-def ResidualFacts : Prop :=
-  ∀ {κ : ℕ} (L : MemoryImage κ) (j k : ℕ) (fp : K), 1 ≤ j → j < nFns →
-    Safe guestProgram L k ⟨addressOfIndex (fnOf j).entryPc, fp⟩ →
-    ∀ p ∈ resOf (coreOf j).name,
-      (agreeWith (gLocs (coreOf j).name) j).ResHolds L fp (valP L fp (gLocs (coreOf j).name)) p.1 p.2
+/-- `LocsAgree` from `locsOkAt` of each entry of the back end's input on its placed locations. -/
+theorem locsAgree_of (h : ∀ i < coreProgram.length, locsOkAt i (gLocs (coreOf (i + 1)).name) = true) :
+    LocsAgree := by
+  intro j h1 h2
+  have := h (j - 1) (by have := coreProgram_length_succ; omega)
+  simp only [locsOkAt, Nat.sub_add_cancel h1] at this
+  exact this
 
 /-! ## Places to cells -/
 
@@ -101,7 +99,7 @@ theorem valC_eq {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) (locs : VMap Loc) (fp :
 
 /-- **Function `j`'s parameters and body carry over from places to cells** at a frame where the
 run from its entry halts. -/
-theorem transport (hagree : LocsAgree) (hres : ResidualFacts) {j k : ℕ} {fp : K} (h1 : 1 ≤ j)
+theorem transport (hagree : LocsAgree) {j k : ℕ} {fp : K} (h1 : 1 ≤ j)
     (h2 : j < nFns) (hs : Safe guestProgram L k ⟨addressOfIndex (fnOf j).entryPc, fp⟩) :
     (coreOf j).params.map (valP L fp (gLocs (coreOf j).name)) =
         (coreOf j).params.map (Check.frameVal L certByName (coreOf j).name fp) ∧
@@ -109,7 +107,7 @@ theorem transport (hagree : LocsAgree) (hres : ResidualFacts) {j k : ℕ} {fp : 
         Stmt.HoldsList C rd (valP L fp (gLocs (coreOf j).name)) (coreOf j).body N kret →
           Stmt.HoldsList C rd (Check.frameVal L certByName (coreOf j).name fp) (coreOf j).body N kret := by
   have := Agree.fnOk_sound (A := agreeWith (gLocs (coreOf j).name) j) (L := L) (fp := fp)
-    (locs := gLocs (coreOf j).name) (fun _ => rfl) (hres L j k fp h1 h2 hs) (hagree j h1 h2)
+    (locs := gLocs (coreOf j).name) (fun _ => rfl) (residualFacts L j k fp h1 h2 hs) (hagree j h1 h2)
   rwa [valC_eq h1 h2] at this
 
 /-! ## Entry environments -/
@@ -197,7 +195,7 @@ theorem jtHolds_glob {k : ℕ} (hs : Safe guestProgram L k ⟨addressOfIndex 0, 
 /-- **A frame the back end's located relation enters**, on a run from `(g^0, 1)` that halts, is one
 `Check.EnteredAt` enters, and there the callee's parameters and body carry over from places to
 cells. -/
-theorem entered_cert (h : GuestCompiles fns slots) (hagree : LocsAgree) (hres : ResidualFacts)
+theorem entered_cert (h : GuestCompiles fns slots) (hagree : LocsAgree)
     {k0 : ℕ} (hs0 : Safe guestProgram L k0 ⟨addressOfIndex 0, 1⟩) {f : String} {fp : K}
     {a r : List E} (hE : (WG).Entered f fp a r) :
     ∃ j, 2 ≤ j ∧ j < nFns ∧ (coreOf j).name = f ∧ Check.EnteredAt glob L f fp a r ∧
@@ -218,7 +216,7 @@ theorem entered_cert (h : GuestCompiles fns slots) (hagree : LocsAgree) (hres : 
   have hent := ent_eq (L := L) (U := guestU L.read) h h1 h2
   rw [guestProgram_eq h, hent] at hreach
   obtain ⟨k, hk⟩ := safe_of_reach hs0 hreach
-  obtain ⟨hpar, hbody⟩ := transport (L := L) hagree hres h1 h2 hk
+  obtain ⟨hpar, hbody⟩ := transport (L := L) hagree h1 h2 hk
   rw [vf_eq]
   refine ⟨j, hj2, h2, rfl, ⟨hin, j, rfl, ?_, hreach, rfl, ?_⟩, hpar, fun C N kret => hbody C L.read N kret⟩
   · obtain ⟨hb, hm, hsm⟩ := cert_of_u (G := glob) rfl hsig hU
@@ -231,7 +229,7 @@ theorem entered_cert (h : GuestCompiles fns slots) (hagree : LocsAgree) (hres : 
 
 /-- **The back end's located relation is below the certificates'** on a memory where a run from
 `(g^0, 1)` halts. -/
-theorem C_le (h : GuestCompiles fns slots) (hagree : LocsAgree) (hres : ResidualFacts) {k0 : ℕ}
+theorem C_le (h : GuestCompiles fns slots) (hagree : LocsAgree) {k0 : ℕ}
     (hs0 : Safe guestProgram L k0 ⟨addressOfIndex 0, 1⟩) : CallRel.Le (WG).C (Located.RLg L) := by
   have hc : (WG).C = coreProgram.RelL L.read (WG).vf (WG).Entered := by
     show (guestWorld fns slots L (guestU L.read)).core.RelL _ _ _ = _
@@ -239,7 +237,7 @@ theorem C_le (h : GuestCompiles fns slots) (hagree : LocsAgree) (hres : Residual
     rfl
   rw [hc]
   refine relL_le_of fun f fp a r fn hf hA => ?_
-  obtain ⟨j, hj2, h2, rfl, hEA, hpar, hbody⟩ := entered_cert h hagree hres hs0 hA
+  obtain ⟨j, hj2, h2, rfl, hEA, hpar, hbody⟩ := entered_cert h hagree hs0 hA
   obtain rfl : fn = coreOf j := Option.some.inj (hf.symm.trans (coreOf_find (by omega) h2))
   exact ⟨hEA, hpar, hbody⟩
 
@@ -319,13 +317,13 @@ theorem sigPost_of (h : GuestCompiles fns slots) (hκ : minLogMem ≤ κ ∧ κ 
   exact (World.post_of_chk hW guestTab_pows (hκ.2.trans maxLogMem_le) rfl hP hxp f a r hC).1
 
 /-- **The back end's postcondition gives `Check.Post`**, on a run from `(g^0, 1)` that halts. -/
-theorem post_cert (h : GuestCompiles fns slots) (hagree : LocsAgree) (hres : ResidualFacts)
+theorem post_cert (h : GuestCompiles fns slots) (hagree : LocsAgree)
     (hκ : minLogMem ≤ κ ∧ κ ≤ maxLogMem) {k0 : ℕ} (hs0 : Safe guestProgram L k0 ⟨addressOfIndex 0, 1⟩)
     {i : ℕ} (h1 : 1 ≤ i) (h2 : i < nFns) {fp : K} (hpost : (WG).Post (coreOf i).name fp) :
     Check.Post coreProgram glob L certByName (Check.EnteredAt glob L) i fp := by
   obtain ⟨tf, htf, hn, ⟨hpar, hbody⟩, hE⟩ := hpost
   obtain rfl := tf_eq L h htf h1 h2 hn
-  obtain ⟨j, hj2, hj, hjn, hEA, hpar', hbody'⟩ := entered_cert h hagree hres hs0 hE
+  obtain ⟨j, hj2, hj, hjn, hEA, hpar', hbody'⟩ := entered_cert h hagree hs0 hE
   obtain rfl := coreOf_name_inj (by omega) hj h1 h2 hjn
   obtain ⟨-, hnret, -, hpo, -, -⟩ := dataOk_spec (dataOk_all h1 h2)
   have hr : (glob.sig j).nret = (infoOf j).2.1 := hnret
@@ -338,7 +336,7 @@ theorem post_cert (h : GuestCompiles fns slots) (hagree : LocsAgree) (hres : Res
   · show Stmt.HoldsList _ L.read _ (coreOf j).body False
       (fun rs => rs = Backend.frameWords L fp (2 + (coreOf j).params.length) (glob.sig j).nret)
     rw [hr]
-    exact holdsList_mono (C_le h hagree hres hs0) _ id (fun _ h => h) (hbody' _ _ _ hbody)
+    exact holdsList_mono (C_le h hagree hs0) _ id (fun _ h => h) (hbody' _ _ _ hbody)
   · show Check.EnteredAt glob L (coreOf j).name fp (Backend.frameWords L fp 2 (coreOf j).params.length)
       (Backend.frameWords L fp (2 + (coreOf j).params.length) (glob.sig j).nret)
     rw [hr]
@@ -348,9 +346,9 @@ theorem post_cert (h : GuestCompiles fns slots) (hagree : LocsAgree) (hres : Res
 /-! ## The end theorem -/
 
 /-- **B2 from the back end**: given that the back end compiles the guest to the statement's
-bytecode, that every function's places compare with its certificate's cells, and the residual
-values' facts, `B2SoundL` holds, with no certificate check. -/
-theorem b2SoundL_backend (h : GuestCompiles fns slots) (hagree : LocsAgree) (hres : ResidualFacts) :
+bytecode and that every function's places compare with its certificate's cells, `B2SoundL`
+holds, with no certificate check. -/
+theorem b2SoundL_backend (h : GuestCompiles fns slots) (hagree : LocsAgree) :
     End.B2SoundL where
   step := by
     intro κ L h16 h32 n _ i fp k _ hpre hsafe
@@ -361,16 +359,16 @@ theorem b2SoundL_backend (h : GuestCompiles fns slots) (hagree : LocsAgree) (hre
     have hc := contracts hW (lt_of_le_of_lt h32 maxLogMem_lt) hobl (coreOf i).name
     rw [guestProgram_eq h, ent_eq h (by omega) hin] at hc
     obtain ⟨k', hk', r, hr, hpost, hs'⟩ := hc fp k hWpre hsafe
-    exact ⟨k', hk', r, hr, post_cert h hagree hres ⟨h16, h32⟩ hs0 (by omega) hin hpost, hs'⟩
+    exact ⟨k', hk', r, hr, post_cert h hagree ⟨h16, h32⟩ hs0 (by omega) hin hpost, hs'⟩
   mainL := by
     intro κ L h16 h32 _ k _ hsafe
     obtain ⟨k0, hs0⟩ := safe_of_reach_back hsafe.2 hsafe.1
     have hm := guest_main_body h κ L h16 h32 k0 hs0
     rw [vf_eq, ← core0_main.1, ← coreOf_one] at hm
     have hT := Agree.fnOk_sound (A := agreeWith (gLocs (coreOf 1).name) 1) (L := L) (fp := 1)
-      (locs := gLocs (coreOf 1).name) (fun _ => rfl) (hres L 1 k 1 le_rfl (by decide) hsafe.1)
+      (locs := gLocs (coreOf 1).name) (fun _ => rfl) (residualFacts L 1 k 1 le_rfl (by decide) hsafe.1)
       (hagree 1 le_rfl (by decide))
-    exact holdsList_mono (C_le h hagree hres hs0) _ id (fun _ h => h) (hT.2 _ _ _ _ hm)
+    exact holdsList_mono (C_le h hagree hs0) _ id (fun _ h => h) (hT.2 _ _ _ _ hm)
 
 end
 end LeanVM.Guest.Backend.B2

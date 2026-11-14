@@ -29,10 +29,10 @@ end
 constants whose cells no earlier constant on the path set. -/
 def residualOf (A : Agree) (f : Fn) : List (V × Res) :=
   let vs := f.params ++ Stmt.valsList f.body
-  let addrs := (vs.filter fun v => !A.eqv v && match A.pl v with
-    | some (.shifted _ _) => true
-    | _ => false).foldl (fun acc v => if acc.contains v then acc else acc ++ [v]) []
-  addrs.map (·, .addr) ++ (failL A [] f.body).map fun (v, c) => (v, .konst (limbsOf c).1 (limbsOf c).2)
+  let addrs := (vs.filterMap fun v => if A.eqv v then none else match A.pl v with
+    | some (.shifted n e) => some (v, Res.addr n e)
+    | _ => none).foldl (fun acc p => if acc.contains p then acc else acc ++ [p]) []
+  addrs ++ (failL A [] f.body).map fun (v, c) => (v, .konst (limbsOf c).1 (limbsOf c).2)
 
 def main (args : List String) : IO UInt32 := do
   let some path := args.head? | IO.eprintln "usage: b2-residual.lean CELLS"; return 1
@@ -52,7 +52,7 @@ def main (args : List String) : IO UInt32 := do
     | .ok (pl, _) =>
       let mut failed := 0
       let mut nres := 0
-      for (pf, tf) in pl.zip tr do
+      for ((pf, tf), i) in (pl.zip tr).zipIdx do
         let f := tf.core
         let cl := cells.getD f.name []
         let A : Agree := ⟨fun v => pf.locs[v]?, cl, []⟩
@@ -65,7 +65,7 @@ def main (args : List String) : IO UInt32 := do
         nres := nres + res.length
         let items := res.map fun (v, r) => match r with
           | .konst c0 c1 => s!"(.n {v.idx}, .konst {c0} {c1})"
-          | .addr => s!"(.n {v.idx}, .addr)"
-        IO.println s!"res {f.name} {String.intercalate "; " items}"
+          | .addr n e => s!"(.n {v.idx}, .addr {n} {e})"
+        IO.println s!"res {f.name} {i + 1} {String.intercalate "; " items}"
       IO.println s!"stats: functions {pl.length} residual-values {nres} failing {failed}"
       return (if failed == 0 then 0 else 1)
