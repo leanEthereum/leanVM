@@ -178,6 +178,16 @@ impl Terms {
         self.n_claims() + DEGREE_E * self.rings.len()
     }
 
+    /// Marks the ring claims' terms. A ring weighs few lanes, so its terms are worth projecting only on the lanes
+    /// whose rows of `A` need them.
+    pub(crate) fn ring_terms(&self) -> Vec<bool> {
+        let mut out = vec![false; self.n_terms()];
+        for ring in &self.rings {
+            out[ring.first..ring.first + DEGREE_E].fill(true);
+        }
+        out
+    }
+
     /// The patterns and rings some term `live` marks needs.
     fn live<'a>(&'a self, live: &[bool]) -> Live<'a> {
         Live {
@@ -194,22 +204,22 @@ impl Terms {
         }
     }
 
-    /// Projections of `n_lanes` lanes, `slots` rows of [`Self::n_terms`] each, for the terms `live` marks, a range of
-    /// blocks per task: `task(lane, blocks, feed)` hands `feed` a slot, the first block of some words of the range,
-    /// the words and their repeat tags, in order of blocks per slot, [`SWEEP`] blocks or more at a time.
+    /// Projections of `n_lanes` lanes, `slots` rows of [`Self::n_terms`] each, for the terms `live(lane, slot)` marks, a
+    /// range of blocks per task: `task(lane, blocks, feed)` hands `feed` a slot, the first block of some words of the
+    /// range, the words and their repeat tags, in order of blocks per slot, [`SWEEP`] blocks or more at a time. A slot
+    /// that projects no term ignores its words.
     ///
     /// A repeat tag says a block equals the block fed before it to its slot, and means nothing on the slot's first
     /// block. Tags may be empty.
-    pub(crate) fn project_rows(
+    pub(crate) fn project_rows<'m>(
         &self,
         n_lanes: usize,
         slots: usize,
-        live: &[bool],
+        live: impl Fn(usize, usize) -> &'m [bool] + Sync,
         task: impl Fn(usize, std::ops::Range<usize>, &mut dyn FnMut(usize, usize, &[F64], &[bool])) + Sync,
     ) -> Vec<F128> {
         let n_terms = self.n_terms();
         let n_blocks = 1usize << (self.lane_vars - self.low_vars);
-        let live = self.live(live);
         // Enough tasks to balance the pool, each at least one sweep of blocks where the lane allows.
         let want = (8 * parallel::num_threads()).div_ceil(n_lanes.max(1));
         let per = (n_blocks / want.next_power_of_two()).max(SWEEP.min(n_blocks));
@@ -217,16 +227,21 @@ impl Terms {
         let parts = parallel::map_collect(n_lanes * n_ranges, |t| {
             let (lane, k) = (t / n_ranges, t % n_ranges);
             let blocks = k * per..((k + 1) * per).min(n_blocks);
+            let lives: Vec<Live> = (0..slots).map(|slot| self.live(live(lane, slot))).collect();
             let mut projections: Vec<Option<Projection>> = (0..slots).map(|_| None).collect();
             task(lane, blocks.clone(), &mut |slot, start, words, repeats| {
+                let live = &lives[slot];
+                if live.patterns.is_empty() && live.rings.is_empty() {
+                    return;
+                }
                 projections[slot]
-                    .get_or_insert_with(|| Projection::new(&live, blocks.clone()))
-                    .feed(self, &live, start, words, repeats);
+                    .get_or_insert_with(|| Projection::new(live, blocks.clone()))
+                    .feed(self, live, start, words, repeats);
             });
             let mut out = vec![F128::ZERO; slots * n_terms];
-            for (projection, row) in projections.into_iter().zip(out.chunks_exact_mut(n_terms)) {
+            for ((projection, live), row) in projections.into_iter().zip(&lives).zip(out.chunks_exact_mut(n_terms)) {
                 if let Some(projection) = projection {
-                    projection.finish(self, &live, row);
+                    projection.finish(self, live, row);
                 }
             }
             out
