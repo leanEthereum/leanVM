@@ -16,23 +16,22 @@ mod encode;
 
 pub use commit::{BlobCountError, BlobMatrix, MERKLE_PATH_LEN, root_of_padding_blob, verify_cell};
 
-/// Each blob is 128 KiB = 2^LOG_BLOB_SYMBOLS symbols in GF(2^128).
+/// Symbols in one blob, as a logarithm: a blob is 128 KiB.
 pub const LOG_BLOB_SYMBOLS: usize = 13;
-/// Each encoded blob (256 KiB) = 2^LOG_CELL_SYMBOLS 'cells' of 2 KiB each.
+/// Symbols in one cell, as a logarithm: a cell is 2 KiB.
 pub const LOG_CELL_SYMBOLS: usize = 7;
 /// The matrix's height: at most this many blobs, padded to it with zero rows.
 pub const DA_MAX_ROWS: usize = 32;
 
-/// How many GF(2^128) symbols in one blob.
+/// Symbols in one blob.
 pub const BLOB_SYMBOLS: usize = 1 << LOG_BLOB_SYMBOLS;
-/// How many GF(2^128) symbols in one encoded blob.
+/// Symbols in one encoded blob: rate one half.
 pub const CODEWORD_SYMBOLS: usize = 2 * BLOB_SYMBOLS;
-/// How many 2 KiB cells in one encoded blob.
+/// Symbols in one cell.
 pub const CELL_SYMBOLS: usize = 1 << LOG_CELL_SYMBOLS;
-/// How many cells in one encoded blob.
+/// Cells in one encoded blob.
 pub const CELLS_PER_ROW: usize = CODEWORD_SYMBOLS / CELL_SYMBOLS;
-/// How many GF(2^128) symbols in one encoded row.
-/// Symbols in one encoded blob, as a logarithm: rate one half.
+/// Symbols in one encoded blob, as a logarithm.
 pub const LOG_CODEWORD_SYMBOLS: usize = LOG_BLOB_SYMBOLS + 1;
 
 pub type Symbol = u128;
