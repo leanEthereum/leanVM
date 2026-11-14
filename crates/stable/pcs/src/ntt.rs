@@ -315,12 +315,12 @@ impl AdditiveNttF64 {
         self.encode_rows(&rows, n_lanes, log_inv_rate, out, done)
     }
 
-    /// Recover novel-basis coefficients from evaluations with a scalar inverse NTT.
-    pub fn inverse_transform(&self, data: &mut [F64]) {
-        let log_d = log2_strict_usize(data.len());
+    /// Recover novel-basis coefficients from evaluations, `num_ntts` lanes a row, on one thread.
+    pub fn inverse_transform(&self, data: &mut [F64], num_ntts: usize) {
+        let log_d = log2_strict_usize(data.len() / num_ntts);
         assert!(log_d <= self.dim);
         for layer in (0..log_d).rev() {
-            let half = 1usize << (log_d - layer - 1);
+            let half = num_ntts << (log_d - layer - 1);
             for (b, block) in data.chunks_exact_mut(2 * half).enumerate() {
                 let t = self.twiddle(layer, b);
                 let (top, bot) = block.split_at_mut(half);
@@ -407,7 +407,7 @@ mod tests {
             assert_eq!(held, want, "held apart, {context}");
 
             if lanes == 1 && rate == 0 {
-                ntt.inverse_transform(&mut got);
+                ntt.inverse_transform(&mut got, 1);
                 assert_eq!(got, msg, "inverse, {context}");
             }
         }

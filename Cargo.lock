@@ -620,6 +620,7 @@ version = "0.1.0"
 dependencies = [
  "rand",
  "stable_fiat_shamir",
+ "stable_parallel",
  "stable_pcs",
  "stable_primitives",
  "tracing",

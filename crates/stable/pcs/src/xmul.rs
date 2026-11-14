@@ -101,7 +101,7 @@ mod tests {
         for (q, v) in data.iter_mut().enumerate() {
             *v *= F64(q as u64);
         }
-        ntt.inverse_transform(&mut data);
+        ntt.inverse_transform(&mut data, 1);
         data
     }
 
