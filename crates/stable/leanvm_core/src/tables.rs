@@ -243,6 +243,9 @@ impl<'a> FillCtx<'a> {
     ) {
         /// Rows per task.
         const CHUNK: usize = 1 << 12;
+        /// Rows staged at a time. A row's values go to `N` windows a power of two apart, which share cache sets, so
+        /// they are written a column's run at a time rather than a row at a time.
+        const STAGE: usize = 64;
         assert!(n_rows <= self.height, "a table's rows must fit its cube");
         let padding: [F64; N] = std::array::from_fn(|k| self.padding[at + k]);
         let window: &mut [ColumnOut; N] = (&mut out[at..at + N]).try_into().unwrap();
@@ -257,11 +260,17 @@ impl<'a> FillCtx<'a> {
             || (),
             || (),
             |_, _, task, mut chunks| {
-                for i in 0..chunks[0].len() {
-                    let row = task * CHUNK + i;
-                    let values = if row < n_rows { f(row) } else { padding };
-                    for (column, value) in chunks.iter_mut().zip(values) {
-                        column[i] = value;
+                for start in (0..chunks[0].len()).step_by(STAGE) {
+                    let len = STAGE.min(chunks[0].len() - start);
+                    let mut staged = [[F64::ZERO; N]; STAGE];
+                    for (i, values) in staged[..len].iter_mut().enumerate() {
+                        let row = task * CHUNK + start + i;
+                        *values = if row < n_rows { f(row) } else { padding };
+                    }
+                    for (k, column) in chunks.iter_mut().enumerate() {
+                        for (slot, values) in column[start..start + len].iter_mut().zip(&staged) {
+                            *slot = values[k];
+                        }
                     }
                 }
             },
@@ -931,12 +940,18 @@ impl Table for KeccakTable {
                 free,
             ]
         });
-        ctx.cols(out, rows, V_OUT, |r| {
-            let k = op(r);
-            let mut lanes = state_of_cells(k.in_odd, |c| ctx.mem.word(k.cell(r.fp, c) as usize));
-            primitives::hash::keccak_f(&mut lanes);
-            lanes.map(F64)
-        });
+        // The permutations eight at a time, with the batched one.
+        let outputs = parallel::map_collect(rows.len().div_ceil(8), |g| {
+            let mut states = [[0; primitives::hash::STATE_LANES]; 8];
+            for (state, r) in states.iter_mut().zip(&rows[8 * g..]) {
+                let k = op(r);
+                *state = state_of_cells(k.in_odd, |c| ctx.mem.word(k.cell(r.fp, c) as usize));
+            }
+            primitives::hash::keccak_f_many(&mut states);
+            states
+        })
+        .into_flattened();
+        ctx.cols_at(out, rows.len(), V_OUT, |i| outputs[i].map(F64));
         ctx.cols(out, rows, R0, |r| r.r.map(|k| ctx.g_at(k)));
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
