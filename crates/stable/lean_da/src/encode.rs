@@ -7,10 +7,10 @@
 //! `K`-codeword of its own: the transforms run on the two limbs as two lanes.
 
 use pcs::ntt::AdditiveNttF64;
+use primitives::cast_slice_mut;
 use primitives::field::F64;
-use primitives::{cast_slice_mut, filled_vec};
 
-use crate::{BLOB_SYMBOLS, Blob, Codeword, LOG_BLOB_SYMBOLS, LOG_CODEWORD_SYMBOLS};
+use crate::{BLOB_SYMBOLS, Blob, CODEWORD_SYMBOLS, Codeword, LOG_BLOB_SYMBOLS, LOG_CODEWORD_SYMBOLS};
 
 /// Encode each blob into its codeword, the blob unchanged in its first half.
 ///
@@ -20,31 +20,26 @@ pub(crate) fn encode_rows(blobs: &[Blob]) -> Vec<Codeword> {
     let interpolation = AdditiveNttF64::standard(LOG_BLOB_SYMBOLS);
     let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
     let mut limbs = vec![F64::ZERO; 2 * BLOB_SYMBOLS];
+    let mut codewords: Vec<Codeword> = vec![[0; CODEWORD_SYMBOLS]; blobs.len()];
 
     // One row at a time: the transform dispatches internally at any row worth
     // encoding, and the pool panics on a nested dispatch, so the row loop must stay
     // sequential and let the NTT own the parallelism.
-    // SAFETY: each codeword is written in full, the coefficients then zeros, before the transform reads it.
-    unsafe {
-        filled_vec(blobs.len(), |codewords: &mut [Codeword]| {
-            for (blob, codeword) in blobs.iter().zip(codewords) {
-                let (c0, c1) = limbs.split_at_mut(BLOB_SYMBOLS);
-                for ((&symbol, l0), l1) in blob.iter().zip(&mut *c0).zip(&mut *c1) {
-                    (*l0, *l1) = (F64(symbol as u64), F64((symbol >> 64) as u64));
-                }
-                interpolation.inverse_transform(c0);
-                interpolation.inverse_transform(c1);
-                // A symbol's words in memory are its limbs, low first (little-endian, `commit::as_bytes`).
-                let words = cast_slice_mut::<u128, F64>(codeword);
-                let (low, high) = words.split_at_mut(2 * BLOB_SYMBOLS);
-                for ((pair, &l0), &l1) in low.as_chunks_mut::<2>().0.iter_mut().zip(&*c0).zip(&*c1) {
-                    *pair = [l0, l1];
-                }
-                high.fill(F64::ZERO);
-                ntt.encode_interleaved_in_place(words, 2, 1);
-            }
-        })
+    for (blob, codeword) in blobs.iter().zip(&mut codewords) {
+        let (c0, c1) = limbs.split_at_mut(BLOB_SYMBOLS);
+        for ((&symbol, l0), l1) in blob.iter().zip(&mut *c0).zip(&mut *c1) {
+            (*l0, *l1) = (F64(symbol as u64), F64((symbol >> 64) as u64));
+        }
+        interpolation.inverse_transform(c0);
+        interpolation.inverse_transform(c1);
+        // A symbol's words in memory are its limbs, low first (little-endian, `commit::as_bytes`).
+        let words = cast_slice_mut::<u128, F64>(codeword);
+        for ((pair, &l0), &l1) in words.as_chunks_mut::<2>().0.iter_mut().zip(&*c0).zip(&*c1) {
+            *pair = [l0, l1];
+        }
+        ntt.encode_interleaved_in_place(words, 2, 1);
     }
+    codewords
 }
 
 #[cfg(test)]

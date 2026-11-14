@@ -342,17 +342,12 @@ pub(crate) fn bytecode_columns(prog: &[Op]) -> BytecodeColumns {
         };
         row
     };
-    // One pass writes all thirteen columns.
-    // SAFETY: the pass below writes every slot of every column.
-    let mut columns: [Vec<F64>; 1 + BYTECODE_OPERANDS] =
-        std::array::from_fn(|_| unsafe { primitives::uninit_vec(prog.len()) });
-    let dst = columns.each_mut().map(|c| parallel::SendPtr(c.as_mut_ptr()));
-    parallel::for_each(prog.len(), |i| {
-        for (column, value) in dst.iter().zip(row(&prog[i])) {
-            // SAFETY: instruction `i` writes slot `i` of each column, in bounds and once.
-            unsafe { column.add(i).write(value) };
+    let mut columns: [Vec<F64>; 1 + BYTECODE_OPERANDS] = std::array::from_fn(|_| Vec::with_capacity(prog.len()));
+    for op in prog {
+        for (column, value) in columns.iter_mut().zip(row(op)) {
+            column.push(value);
         }
-    });
+    }
     columns.map(Arc::new)
 }
 

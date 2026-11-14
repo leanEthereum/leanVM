@@ -47,23 +47,14 @@ pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 /// The committed stack's log-size bounds, the protocol's.
 pub use verifier::{MAX_STACKED_LOG, MIN_STACKED_LOG};
 
-/// The shared WHIR config for a `2^μ`-word witness, memoized per `(μ, log_inv_rate)`.
-fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {
-    use std::collections::HashMap;
-    use std::sync::{Arc, Mutex, OnceLock};
-    type Cache = Mutex<HashMap<(usize, usize), Arc<ProverConfig>>>;
-    static CACHE: OnceLock<Cache> = OnceLock::new();
-    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let mut map = cache.lock().expect("whir config cache poisoned");
-    Arc::clone(map.entry((mu, log_inv_rate)).or_insert_with(|| {
-        assert!(
-            mu >= MIN_STACKED_LOG,
-            "witness must be ≥ 2^{MIN_STACKED_LOG} elements (padded by placements_of)"
-        );
-        let config = config_for_rate(mu, log_inv_rate)
-            .unwrap_or_else(|e| panic!("whir config for mu={mu}, log_inv_rate={log_inv_rate}: {e}"));
-        Arc::new(config)
-    }))
+/// The WHIR config for a `2^μ`-word witness.
+fn whir_config(mu: usize, log_inv_rate: usize) -> ProverConfig {
+    assert!(
+        mu >= MIN_STACKED_LOG,
+        "witness must be ≥ 2^{MIN_STACKED_LOG} elements (padded by placements_of)"
+    );
+    config_for_rate(mu, log_inv_rate)
+        .unwrap_or_else(|e| panic!("whir config for mu={mu}, log_inv_rate={log_inv_rate}: {e}"))
 }
 
 /// A committed `K`-valued witness plus the data needed to open it. The witness

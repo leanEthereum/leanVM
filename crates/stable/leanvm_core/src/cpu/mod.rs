@@ -107,10 +107,6 @@ pub struct Program {
     pub src_lines: Vec<u32>,
 }
 
-/// The IV reinterprets the stacked bytecode table as bytes, which is its
-/// `to_le_bytes` image only on a little-endian target.
-const _: () = assert!(cfg!(target_endian = "little"));
-
 impl Program {
     /// Assemble a [`Program`], computing its Fiat-Shamir IV
     /// from `prog`. The single funnel for construction, so the digest is always
@@ -128,13 +124,10 @@ impl Program {
         let bytecode_columns = layout::bytecode_columns(&prog);
         let fiat_shamir_iv = {
             let table = layout::stack_columns(&bytecode_columns);
-            // SAFETY: F64 is #[repr(transparent)] over u64, so the slice's byte image is
-            // exactly the concatenation of its `to_le_bytes` on little-endian targets.
-            let bytes: &[u8] =
-                unsafe { core::slice::from_raw_parts(table.as_ptr().cast::<u8>(), core::mem::size_of_val(&table[..])) };
+            let bytes: Vec<u8> = table.iter().flat_map(|word| word.0.to_le_bytes()).collect();
             primitives::hash::Hasher::new()
                 .update(verifier::TAG)
-                .update(bytes)
+                .update(&bytes)
                 .finalize()
         };
         Self {
