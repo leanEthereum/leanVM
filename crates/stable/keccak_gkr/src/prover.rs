@@ -89,11 +89,11 @@ impl Layer<'_> {
         let tasks = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
         let buckets = parallel::map_reduce_with_state(
             self.n_tasks(),
-            || vec![[F128::ZERO; 256]; PROD_BYTES],
-            || vec![[F128Unreduced::ZERO; 256]; PROD_BYTES],
+            || Box::new([[F128::ZERO; 256]; PROD_BYTES]),
+            || vec![Acc8::ZERO; 256 * PROD_BYTES / 8],
             |block_buckets, buckets, task| {
                 let (_, _, block) = self.block(task);
-                block_buckets.fill([F128::ZERO; 256]);
+                **block_buckets = [[F128::ZERO; 256]; PROD_BYTES];
                 for r in 0..5 {
                     for z in 0..64 {
                         let js = row_positions(r, z);
@@ -101,30 +101,31 @@ impl Layer<'_> {
                         for x in 0..5 {
                             let p = products(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]);
                             for (&p, &w) in p.iter().zip(&weights[js[x]]) {
-                                for (b, bucket) in block_buckets.iter_mut().enumerate() {
-                                    bucket[(p >> (8 * b)) as usize & 0xff] += w;
+                                let bytes = p.to_le_bytes();
+                                for (bucket, &byte) in block_buckets.iter_mut().zip(&bytes) {
+                                    bucket[byte as usize] += w;
                                 }
                             }
                         }
                     }
                 }
-                for (total, local) in buckets.iter_mut().zip(block_buckets.iter()) {
-                    for (total, &local) in total.iter_mut().zip(local) {
-                        *total ^= local.mul_unreduced(tasks[task]);
-                    }
+                let weight = F128x8::splat(tasks[task]);
+                for (total, local) in buckets.iter_mut().zip(block_buckets.as_flattened().as_chunks::<8>().0) {
+                    *total += F128x8::from_array(local).mul_unreduced(weight);
                 }
             },
             |mut a, b| {
-                for (a, b) in a.as_flattened_mut().iter_mut().zip(b.as_flattened()) {
-                    *a ^= *b;
+                for (a, b) in a.iter_mut().zip(b) {
+                    *a += b;
                 }
                 a
             },
         );
+        let buckets: Vec<F128> = buckets.into_iter().flat_map(|b| b.reduce().to_array()).collect();
         std::array::from_fn(|c| {
             (0..256)
                 .filter(|v| v >> (c % 8) & 1 == 1)
-                .map(|v| buckets[c / 8][v].reduce())
+                .map(|v| buckets[256 * (c / 8) + v])
                 .sum()
         })
     }
