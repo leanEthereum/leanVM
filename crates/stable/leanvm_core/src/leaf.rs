@@ -11,9 +11,8 @@
 
 use crate::gkr;
 use crate::transcript::ProverState;
-use primitives::field::{F64, F128, Weights8, dot_base, g_pow, index_mle, mul_by_g};
-use primitives::multilinear::{eq_eval, eq_table, interp, mle_eval, mle_eval_par};
-use std::collections::HashMap;
+use primitives::field::{F64, F128, g_pow, index_mle, mul_by_g};
+use primitives::multilinear::{eq_eval, eq_table, interp, mle_eval_par};
 use std::sync::Arc;
 
 /// One tuple coordinate as a function of the block's row `z`.
@@ -343,24 +342,24 @@ fn accumulate_form(c: &Coord, w: F128, base: usize, form: &mut BusForm) {
 
 /// Walk one side's blocks. A block owned by table `t` (with column base `base`)
 /// accumulates into `forms[t]`; the framework blocks are decomposed into per-column
-/// claims as before, `fresh` supplying values not already in `claims`. Returns the
-/// framework blocks' contribution to `Ṽ₀(ζ)` plus the padding mass, so the caller
-/// can settle the side once the zerocheck has proven the tables' forms.
+/// claims, each value not already in `claims` evaluated from the columns, written onto the stream and recorded
+/// (block/coord order). Returns the framework blocks' contribution to `Ṽ₀(ζ)` plus the padding mass, so the
+/// caller can settle the side once the zerocheck has proven the tables' forms.
 ///
 /// A table's form is summed over all its rows, padding rows included, where the leaf
 /// holds `1` instead: the difference, `padding_weight · (β + fingerprint(pad) + 1)`, is
 /// public, so it joins the padding mass.
-fn decompose_formula<F: FnMut(usize, &[F128]) -> F128>(
+fn decompose(
     blocks: &[Block],
     lay: &Layout,
+    cols: &[&[F64]],
     zeta: &[F128],
     w: &[F128],
     beta: F128,
     owners: &[Option<(usize, usize)>],
     forms: &mut [BusForm],
     claims: &mut Vec<ColumnClaim>,
-    public: &mut PublicEvals,
-    mut fresh: F,
+    ps: &mut ProverState,
 ) -> F128 {
     assert_eq!(zeta.len(), lay.mu);
     let mut acc = F128::ZERO;
@@ -400,7 +399,8 @@ fn decompose_formula<F: FnMut(usize, &[F128]) -> F128>(
             if let Some(v) = known_claim(claims, i, zeta_lo) {
                 return v;
             }
-            let v = fresh(i, zeta_lo);
+            let v = mle_eval_par(cols[i], zeta_lo);
+            ps.add_scalar(v);
             claims.push(ColumnClaim {
                 col: i,
                 point: zeta_lo.to_vec(),
@@ -418,7 +418,7 @@ fn decompose_formula<F: FnMut(usize, &[F128]) -> F128>(
                 Coord::Prod(..) | Coord::Sum(..) => {
                     unreachable!("only a table's bus block carries a degree-2 coordinate")
                 }
-                Coord::Public(vals) => public_eval(vals, zeta_lo, public),
+                Coord::Public(vals) => mle_eval_par(vals, zeta_lo),
             };
             inner += w[i] * coord_val;
         }
@@ -436,88 +436,6 @@ fn known_claim(claims: &[ColumnClaim], col: usize, point: &[F128]) -> Option<F12
         .iter()
         .find(|c| c.col == col && c.point == point)
         .map(|c| c.value)
-}
-
-// One bus GKR point per cache; its prefixes are keyed by length and shared column identity.
-type PublicEvals = HashMap<(usize, usize), F128>;
-
-fn public_eval(vals: &Arc<Vec<F64>>, point: &[F128], cache: &mut PublicEvals) -> F128 {
-    *cache
-        .entry((Arc::as_ptr(vals) as usize, point.len()))
-        .or_insert_with(|| primitives::multilinear::mle_eval_par(vals, point))
-}
-
-/// Prover-side decomposition: reads the real columns, writing each FRESH
-/// committed value onto the stream and recording the matching claim
-/// (block/coord order); duplicates reuse the recorded value.
-///
-/// The fresh column MLE evaluations run in a parallel first pass: within one
-/// `decompose_formula` call no challenge is sampled between claims (`zeta`,
-/// `alpha`, `beta` are fixed arguments and each claim's point is
-/// `zeta[..kappa]` of its block), so the values are independent of the
-/// transcript and only their `add_scalar` ORDER matters. The second pass
-/// replays them through the transcript in the original block/coord order,
-/// keeping the stream byte-identical to the serial form.
-fn decompose_prove(
-    blocks: &[Block],
-    lay: &Layout,
-    cols: &[&[F64]],
-    zeta: &[F128],
-    w: &[F128],
-    beta: F128,
-    owners: &[Option<(usize, usize)>],
-    forms: &mut [BusForm],
-    claims: &mut Vec<ColumnClaim>,
-    public: &mut PublicEvals,
-    ps: &mut ProverState,
-) -> F128 {
-    // Pass 1: enumerate the FRESH committed coords exactly as `decompose_formula`
-    // visits them (blocks in order, coords in order, Col/GCol only, first
-    // occurrence per `(col, point)`, the same dedup as `known_claim`), then
-    // evaluate the column MLEs in parallel.
-    let mut jobs: Vec<(usize, usize)> = Vec::new();
-    for (b, blk) in blocks.iter().enumerate() {
-        if owners[b].is_some() {
-            continue;
-        }
-        for c in &blk.coords {
-            if let Coord::Col(i) | Coord::GCol(i, _) = c {
-                let fresh = known_claim(claims, *i, &zeta[..blk.kappa]).is_none() && !jobs.contains(&(*i, blk.kappa));
-                if fresh {
-                    jobs.push((*i, blk.kappa));
-                }
-            }
-        }
-    }
-    // One evaluation at a time, each across the whole pool: a few long columns, one
-    // per worker, would leave the rest of it idle.
-    let vals: Vec<F128> = jobs
-        .iter()
-        .map(|&(col, kappa)| mle_eval_par(cols[col], &zeta[..kappa]))
-        .collect();
-
-    // Pass 2: replay in the original order; duplicates reuse the recorded claim.
-    let mut fresh_iter = jobs.iter().zip(vals.iter());
-    decompose_formula(
-        blocks,
-        lay,
-        zeta,
-        w,
-        beta,
-        owners,
-        forms,
-        claims,
-        public,
-        |col, zeta_lo| {
-            let (&(jc, jk), &v) = fresh_iter
-                .next()
-                .expect("job enumeration matches decompose_formula's col_val order");
-            debug_assert_eq!((jc, jk), (col, zeta_lo.len()), "job/coord order drift");
-            debug_assert_eq!(v, mle_eval(cols[col], zeta_lo), "job/coord order drift");
-            ps.add_scalar(v);
-            v
-        },
-    )
 }
 
 /// Selector bits of the stacked bytecode polynomial: the public encoding
@@ -552,8 +470,8 @@ fn sides<'a>(
 /// stacked bytecode `P` (§sec:e2e-bc), reduced to one evaluation of `P`. The stream: `S`, a
 /// sumcheck of [`N_TUPLE_BITS`] degree-two rounds over `x`, the low bit bound first, ending at
 /// `r⃗`, then `P(ζ_lo, r⃗)`, whose product with `α̃(r⃗)` the verifier checks against the last round.
-/// Every value comes off the public columns' evaluations at `ζ_lo`, which the decomposition cached.
-fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], public: &mut PublicEvals, ps: &mut ProverState) {
+/// Every value comes off the public columns' evaluations at `ζ_lo`.
+fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], ps: &mut ProverState) {
     let block = push
         .iter()
         .find(|blk| blk.coords.iter().any(|c| matches!(c, Coord::Public(_))))
@@ -561,7 +479,7 @@ fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], public: &mut 
     let zeta_lo = &zeta[..block.kappa];
     let mut slots: Vec<F128> = (0..1 << N_TUPLE_BITS)
         .map(|x| match block.coords.get(x) {
-            Some(Coord::Public(vals)) => public_eval(vals, zeta_lo, public),
+            Some(Coord::Public(vals)) => mle_eval_par(vals, zeta_lo),
             _ => F128::ZERO,
         })
         .collect();
@@ -642,10 +560,9 @@ pub(crate) fn prove_balance(
     // solved to satisfy, and would settle nothing.
     let mut forms = std::array::from_fn(|_| tables.iter().map(|&(_, n)| BusForm::new(n)).collect::<Vec<_>>());
     let mut frameworks = [F128::ZERO; N_BUS_TREES];
-    let mut public = PublicEvals::new();
     crate::stage!("Bus decompose", || {
         for (s, &(blocks, lay, a, g)) in sides.iter().enumerate() {
-            frameworks[s] = decompose_prove(
+            frameworks[s] = decompose(
                 blocks,
                 lay,
                 cols,
@@ -655,11 +572,10 @@ pub(crate) fn prove_balance(
                 &owners[s],
                 &mut forms[s],
                 &mut claims,
-                &mut public,
                 ps,
             );
         }
-        prove_bytecode_share(push, &bus_gkr.point, &w, &mut public, ps);
+        prove_bytecode_share(push, &bus_gkr.point, &w, ps);
     });
     let (table_evals, prod_sums) = crate::stage!("Bus tables", || tables_and_prods_at(
         cols,
@@ -692,65 +608,25 @@ pub(crate) fn prove_balance(
     }
 }
 
-/// `Σ_z eq(point, z)·c(z)` for every column `c`, then `Σ_z eq(point, z)·a(z)·b(z)` for
-/// every pair `(a, b)`, all in one parallel pass over the rows.
-///
-/// `eq` factors into a table over the low variables, packed for [`dot_base`] and
-/// held in L1, and one over the rest that weights each block's reduced inner sums,
-/// so every column moves only its own eight bytes a row and no `E` table of its
-/// length is ever written.
-fn eq_sums(point: &[F128], columns: &[&[F64]], pairs: &[(&[F64], &[F64])]) -> Vec<F128> {
-    const LOW: usize = 10;
-    if point.len() < 3 {
-        let eq = eq_table(point);
-        let dot = |f: &dyn Fn(usize) -> F64| eq.iter().enumerate().map(|(z, &w)| w.mul_base(f(z))).sum();
-        return columns
-            .iter()
-            .map(|c| dot(&|z| c[z]))
-            .chain(pairs.iter().map(|(a, b)| dot(&|z| a[z] * b[z])))
-            .collect();
-    }
-    let low_vars = point.len().min(LOW);
-    let low: Vec<Weights8> = eq_table(&point[..low_vars])
-        .as_chunks::<8>()
-        .0
-        .iter()
-        .map(Weights8::new)
-        .collect();
-    let high = eq_table(&point[low_vars..]);
-    let width = 1usize << low_vars;
-    parallel::fold_reduce(
-        high.len(),
-        || vec![F128::ZERO; columns.len() + pairs.len()],
-        |acc, row| {
-            let span = row * width..(row + 1) * width;
-            let (singles, products) = acc.split_at_mut(columns.len());
-            for (slot, c) in singles.iter_mut().zip(columns) {
-                *slot += high[row] * dot_base(&low, &c[span.clone()]).reduce();
-            }
-            let mut product = [F64::ZERO; 1 << LOW];
-            for (slot, (a, b)) in products.iter_mut().zip(pairs) {
-                for ((p, &x), &y) in product.iter_mut().zip(&a[span.clone()]).zip(&b[span.clone()]) {
-                    *p = x * y;
-                }
-                *slot += high[row] * dot_base(&low, &product[..width]).reduce();
-            }
+/// `Σ_z eq[z]·f(z)`.
+fn eq_dot(eq: &[F128], f: impl Fn(usize) -> F64 + Sync) -> F128 {
+    const CHUNK: usize = 1 << 12;
+    parallel::map_reduce(
+        eq.len().div_ceil(CHUNK),
+        || F128::ZERO,
+        |task| {
+            (task * CHUNK..eq.len().min((task + 1) * CHUNK))
+                .map(|z| eq[z].mul_base(f(z)))
+                .sum()
         },
-        |mut left, right| {
-            for (slot, part) in left.iter_mut().zip(right) {
-                *slot += part;
-            }
-            left
-        },
+        |a, b| a + b,
     )
 }
 
-/// Every table's committed columns at `ζ[..τ_t]`, and, for every column pair its
-/// forms multiply, `Σ_z eq(ζ[..τ], z)·col_a(z)·col_b(z)`, in one pass per table
-/// ([`eq_sums`]). Pairs are deduped across the trees and the several blocks
-/// that carry the same address, so an address costs one product however often it is
-/// flushed. `tables[t] = (base, n_cols)` in the global schema; a pair names LOCAL
-/// column indices.
+/// Every table's committed columns at `ζ[..τ_t]`, as `Σ_z eq(ζ[..τ], z)·col(z)`, and, for every column pair its
+/// forms multiply, `Σ_z eq(ζ[..τ], z)·col_a(z)·col_b(z)`. Pairs are deduped across the trees and the several blocks
+/// that carry the same address, so an address costs one product however often it is flushed.
+/// `tables[t] = (base, n_cols)` in the global schema; a pair names LOCAL column indices.
 #[allow(clippy::type_complexity)]
 fn tables_and_prods_at(
     cols: &[&[F64]],
@@ -762,23 +638,20 @@ fn tables_and_prods_at(
         .iter()
         .enumerate()
         .map(|(t, &(base, n_cols))| {
-            let tau = crate::log2_strict_usize(cols[base].len());
+            let columns = &cols[base..base + n_cols];
+            let eq = eq_table(&zeta[..crate::log2_strict_usize(columns[0].len())]);
             let mut pairs: Vec<(usize, usize)> = forms
                 .iter()
                 .flat_map(|side| side[t].prods.iter().map(|&(a, b, _)| (a, b)))
                 .collect();
             pairs.sort_unstable();
             pairs.dedup();
-            let columns = &cols[base..base + n_cols];
-            let products: Vec<(&[F64], &[F64])> = pairs.iter().map(|&(a, b)| (columns[a], columns[b])).collect();
-            let mut sums = eq_sums(&zeta[..tau], columns, &products);
+            let evals = columns.iter().map(|c| eq_dot(&eq, |z| c[z])).collect();
             let prods = pairs
-                .iter()
-                .zip(&sums[n_cols..])
-                .map(|(&(a, b), &s)| (a, b, s))
+                .into_iter()
+                .map(|(a, b)| (a, b, eq_dot(&eq, |z| columns[a][z] * columns[b][z])))
                 .collect();
-            sums.truncate(n_cols);
-            (sums, prods)
+            (evals, prods)
         })
         .unzip()
 }
