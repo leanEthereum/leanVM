@@ -19,12 +19,13 @@
 //!   deeper-level (E-valued) encodes use K-twiddles via the mixed product
 //!   [`F128::mul_base`] instead of a full E multiplication.
 
-use crate::merkle::{Hash, MerkleTree};
+use crate::merkle::{Hash, LeafHasher, MerkleTree};
 use crate::ntt::{AdditiveNttF64, words};
 use crate::stack_open::Terms;
 use fiat_shamir::merkle::MerklePath;
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{Acc8, F64, F128, F128x8, powers};
+use primitives::hash::OUT_LEN;
 use primitives::multilinear::eq_table;
 
 use super::whir_config::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS};
@@ -142,10 +143,15 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     );
     let k_code = log_rows + log_inv_rate;
     let ntt = AdditiveNttF64::standard(k_code);
-    let words = tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = n_lanes)
-        .in_scope(|| ntt.encode_lane_major(message, n_lanes, log_inv_rate));
-    let merkle_tree =
-        tracing::info_span!("Merkle").in_scope(|| MerkleTree::build(&words, n_lanes, 1 << log_batch_size));
+    // Each block of rows is hashed into its leaves as soon as the encode has finished it.
+    let hasher = LeafHasher::new(n_lanes, 1 << log_batch_size);
+    let mut leaves = parallel::filled(1 << k_code, [0u8; OUT_LEN]);
+    let words = tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = n_lanes).in_scope(|| {
+        ntt.encode_lane_major(message, n_lanes, log_inv_rate, &mut leaves, |rows, out| {
+            hasher.hash(rows, out)
+        })
+    });
+    let merkle_tree = tracing::info_span!("Merkle").in_scope(|| MerkleTree::from_leaves(leaves));
     let root = merkle_tree.root();
     let codeword = Codeword {
         words,
@@ -202,14 +208,20 @@ pub(crate) fn ligero_commit_ext(
 
     // One leaf per row, its F128s as K words.
     let row_words = 2 * num_interleaved;
+    let hasher = LeafHasher::new(row_words, row_words);
+    let mut leaves = parallel::filled(block_len, [0u8; OUT_LEN]);
     let words = tracing::info_span!(
         "NTT",
         kind = "extension encode",
         log_domain = log_block_len,
         lanes = num_interleaved
     )
-    .in_scope(|| ntt.encode_rows(words(poly), row_words, log_inv_rate));
-    let tree = tracing::info_span!("Merkle").in_scope(|| MerkleTree::build(&words, row_words, row_words));
+    .in_scope(|| {
+        ntt.encode_rows(words(poly), row_words, log_inv_rate, &mut leaves, |rows, out| {
+            hasher.hash(rows, out)
+        })
+    });
+    let tree = tracing::info_span!("Merkle").in_scope(|| MerkleTree::from_leaves(leaves));
 
     LigeroWitness {
         codeword: Codeword { words, row_words },
