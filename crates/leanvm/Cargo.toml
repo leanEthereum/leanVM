@@ -1,0 +1,16 @@
+[package]
+name = "leanvm"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+isa.workspace = true
+rec_aggregation.workspace = true
+lean_da.workspace = true
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
+stable_leanvm_core = { path = "../stable/leanvm_core" }
+experimental_leanvm_core = { path = "../experimental/leanvm_core" }

@@ -2,9 +2,9 @@
 //! n→1 recursion step over leaves of that size (`recursion`). Aggregation accepts
 //! signature counts and a blob count; recursion accepts these counts per leaf.
 
-use super::{lean_da, lean_sphincs, lean_xmss, leanvm_core, rec_aggregation};
 use crate::report::{pretty_f64, pretty_integer};
 use bench::{Plan, Timing};
+use isa::{Prover, Stats};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use rec_aggregation::{AggregateClaims, AggregateProof, OutputClaims, aggregate, aggregate_with_stats, signers_cache};
@@ -40,14 +40,14 @@ fn lean_sphincs_signers(from: usize, to: usize) -> Vec<RawLeanSphincs> {
 }
 
 /// Report the shape and cost of one aggregation node.
-fn report(label: &str, stats: &leanvm_core::cpu::Stats, sig: &AggregateProof, prove_time: &Timing) {
+fn report(label: &str, stats: &Stats, sig: &AggregateProof, prove_time: &Timing) {
     println!("{label}");
     println!(
         "  cycles (VM steps)           : {} = {}",
         pretty_integer(stats.cycles),
         crate::report::pow(stats.cycles)
     );
-    println!("    details                   : {}", stats.details());
+    println!("    details                   : {}", crate::report::details(stats));
     crate::report::print_proof_size(sig.to_bytes().len());
     // The whole `aggregate` call, not just `cpu::prove`: for a node that also
     // covers replaying each child and batching the deferred claims, which are
@@ -61,8 +61,8 @@ fn report(label: &str, stats: &leanvm_core::cpu::Stats, sig: &AggregateProof, pr
 }
 
 /// The blobs' matrix, `None` for no blobs.
-fn matrix(blobs: &[lean_da::Blob]) -> Option<lean_da::BlobMatrix> {
-    (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build(blobs).expect("at most DA_MAX_ROWS blobs"))
+fn matrix<P: Prover>(blobs: &[lean_da::Blob]) -> Option<lean_da::BlobMatrix> {
+    (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build::<P>(blobs).expect("at most DA_MAX_ROWS blobs"))
 }
 
 /// How a benchmark names a leaf of either scheme or of both.
@@ -79,13 +79,19 @@ fn describe(n_lean_xmss: usize, n_lean_sphincs: usize) -> String {
 /// Proving runs one discarded warmup pass followed by `plan.repeat` measured
 /// passes; see [`bench`] for why the first pass is not
 /// representative and why the cooldown matters.
-pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize, log_inv_rate: usize, plan: Plan) {
+pub fn run_aggregation<P: Prover>(
+    n_lean_xmss: usize,
+    n_lean_sphincs: usize,
+    n_blobs: usize,
+    log_inv_rate: usize,
+    plan: Plan,
+) {
     assert!(
         n_lean_xmss > 0 || n_lean_sphincs > 0 || n_blobs > 0,
         "a leaf needs signatures or blobs"
     );
     let trace_span = tracing::info_span!("aggregation", n_lean_xmss, n_lean_sphincs, n_blobs, log_inv_rate).entered();
-    rec_aggregation::warm_up();
+    rec_aggregation::warm_up::<P>();
     let raw_lean_xmss = signers(0, n_lean_xmss);
     let raw_lean_sphincs = lean_sphincs_signers(0, n_lean_sphincs);
     let blobs = blobs(n_blobs, 0);
@@ -93,11 +99,11 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
     // proof the reported timings are about, instead of repeating itself per pass.
     let ((claims, sig, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        aggregate_with_stats(
+        aggregate_with_stats::<P>(
             &[],
             raw_lean_xmss.clone(),
             raw_lean_sphincs.clone(),
-            matrix(&blobs).as_ref(),
+            matrix::<P>(&blobs).as_ref(),
             OutputClaims::All,
             log_inv_rate,
         )
@@ -145,7 +151,7 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
 /// Prove `n` leaves with signatures and distinct blob payloads at `leaf_log_inv_rate`, then
 /// aggregate them in one recursion step at `log_inv_rate` and verify the result. The leaves are
 /// built once, in a process of their own; only the recursion step is measured.
-pub fn run_recursion(
+pub fn run_recursion<P: Prover>(
     n: usize,
     per_leaf: usize,
     lean_sphincs_per_leaf: usize,
@@ -166,9 +172,9 @@ pub fn run_recursion(
     let started = std::time::Instant::now();
     let guest_instructions = rec_aggregation::aggregation::unified_guest().code_len();
     let compile_time = started.elapsed();
-    rec_aggregation::warm_up();
+    rec_aggregation::warm_up::<P>();
     if let Some(out) = std::env::var_os(LEAVES_OUT) {
-        return write_leaves(
+        return write_leaves::<P>(
             n,
             per_leaf,
             lean_sphincs_per_leaf,
@@ -184,7 +190,8 @@ pub fn run_recursion(
     }
     let ((claims, sig, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        aggregate_with_stats(&children, vec![], vec![], None, OutputClaims::All, log_inv_rate).expect("node aggregates")
+        aggregate_with_stats::<P>(&children, vec![], vec![], None, OutputClaims::All, log_inv_rate)
+            .expect("node aggregates")
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
@@ -234,7 +241,7 @@ pub fn run_recursion(
 
 /// Prove a recursion step's `n` leaves and write them to `out`: each leaf's claims, then its proof's
 /// bytes after their length.
-fn write_leaves(
+fn write_leaves<P: Prover>(
     n: usize,
     per_leaf: usize,
     lean_sphincs_per_leaf: usize,
@@ -246,11 +253,11 @@ fn write_leaves(
     let all_lean_sphincs = lean_sphincs_signers(0, n * lean_sphincs_per_leaf);
     let mut bytes = Vec::new();
     for k in 0..n {
-        let leaf = aggregate(
+        let leaf = aggregate::<P>(
             &[],
             all[k * per_leaf..(k + 1) * per_leaf].to_vec(),
             all_lean_sphincs[k * lean_sphincs_per_leaf..(k + 1) * lean_sphincs_per_leaf].to_vec(),
-            matrix(&blobs(blobs_per_leaf, k as u64)).as_ref(),
+            matrix::<P>(&blobs(blobs_per_leaf, k as u64)).as_ref(),
             OutputClaims::All,
             log_inv_rate,
         )

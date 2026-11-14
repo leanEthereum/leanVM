@@ -8,10 +8,8 @@ use super::{
     cells::*, child::*, claim_pool::*, coverage::*, deferred::*, error::*, guest::*, hints::*, node::*,
     placeholders::*, proof::*, statement::*,
 };
-use leanvm_core::cpu::{Program, from_scalar};
-use primitives::field::F128;
-use primitives::multilinear::mle_eval_par;
 use std::collections::BTreeMap;
+use verifier::E;
 
 pub mod bytecode;
 #[cfg(test)]
@@ -27,7 +25,7 @@ pub struct File {
 }
 
 /// The compiled guest at its self-consistent size.
-pub fn guest() -> &'static Program {
+pub fn guest() -> &'static Guest {
     unified_guest()
 }
 

@@ -89,16 +89,16 @@ fn main() {
     let leanvm = leanvm
         .canonicalize()
         .unwrap_or_else(|e| panic!("leanVM's tree {}: {e}", leanvm.display()));
-    let crate_dir = leanvm.join("crates/stable/rec_aggregation");
+    let crate_dir = leanvm.join("crates/rec_aggregation");
     let out = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("rec_aggregation");
     // A fresh copy: a file leanVM moved or removed must not linger from an earlier pin.
     let _ = std::fs::remove_dir_all(&out);
     copy_dir(&crate_dir.join("src"), &out.join("src"));
     copy_dir(&leanvm.join("guests"), &out.join("guests"));
-    // The guest source sits at the repository's root, three levels above the crate: the copy reads it beside itself.
+    // The guest source sits at the repository's root, two levels above the crate: the copy reads it beside itself.
     let guest = out.join("src/aggregation/guest.rs");
     let text = std::fs::read_to_string(&guest).unwrap();
-    let from = r#"include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../guests/lean_ethereum.py"))"#;
+    let from = r#"include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../guests/lean_ethereum.py"))"#;
     assert!(text.contains(from), "the guest source is included from the repository's root");
     std::fs::write(&guest, text.replace(from, r#"include_str!("../../guests/lean_ethereum.py")"#)).unwrap();
 
@@ -165,9 +165,11 @@ fn main() {
     println!("cargo:rustc-env=LEANVM_DIR={}", leanvm.display());
 
     let overlay = format!(
-        "#[path = {:?}]\npub mod aggregation;\n\n#[cfg(feature = \"signers-cache\")]\n#[path = {:?}]\npub mod signers_cache;\n\n#[path = {:?}]\npub mod compiler_overlay;\n",
+        "#[path = {:?}]\npub mod aggregation;\n\n#[cfg(feature = \"signers-cache\")]\n#[path = {:?}]\npub mod signers_cache;\n\n#[path = {:?}]\nmod protocol;\n\n#[path = {:?}]\nmod wire;\n\n#[path = {:?}]\npub mod compiler_overlay;\n",
         aggregation.display().to_string(),
         out.join("src/signers_cache.rs").display().to_string(),
+        out.join("src/protocol.rs").display().to_string(),
+        out.join("src/wire.rs").display().to_string(),
         compiler.join("mod.rs").display().to_string()
     );
     std::fs::write(out.join("overlay.rs"), overlay).unwrap();

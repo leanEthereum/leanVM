@@ -13,7 +13,8 @@
 use super::*;
 use crate::signers_cache::{get_lean_sphincs_signers, get_signers};
 use lean_da::BLOB_SYMBOLS;
-use leanvm_core::cpu::{public_input_bytes, scalar_proof};
+use isa::Prover;
+use stable_leanvm_core::Stable;
 use lean_sphincs::LeanSphincsSignature;
 use lean_xmss::LeanXmssSignature;
 use rand::rngs::StdRng;
@@ -22,7 +23,7 @@ use std::fmt::Write as _;
 
 thread_local! {
     /// The streams of the last node this thread aggregated, as the `FORGE` hook saw them.
-    static INSTALLED: std::cell::RefCell<Vec<(String, Vec<Vec<F128>>)>> = const { std::cell::RefCell::new(Vec::new()) };
+    static INSTALLED: std::cell::RefCell<Vec<(String, Vec<Vec<E>>)>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
 /// Have the next node this thread aggregates record its streams in `INSTALLED`, unchanged.
@@ -45,11 +46,11 @@ impl Out {
         write!(self.0, "{n} ").unwrap();
     }
 
-    fn e(&mut self, x: F128) {
+    fn e(&mut self, x: E) {
         write!(self.0, "{:x} {:x} ", x.c0, x.c1).unwrap();
     }
 
-    fn es(&mut self, xs: &[F128]) {
+    fn es(&mut self, xs: &[E]) {
         self.n(xs.len());
         for &x in xs {
             self.e(x);
@@ -154,9 +155,10 @@ fn export(
     raw_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: &[lean_da::Blob],
 ) -> (AggregateClaims, AggregateProof) {
-    let direct = (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build(blobs).expect("1 to DA_MAX_ROWS blobs"));
+    let direct =
+        (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build::<Stable>(blobs).expect("1 to DA_MAX_ROWS blobs"));
     capture_next();
-    let (claims, node) = aggregate(
+    let (claims, node) = aggregate::<Stable>(
         &children,
         raw_xmss.clone(),
         raw_sphincs.clone(),
@@ -171,12 +173,12 @@ fn export(
 
     let mut out = Out(format!("leanvm-guest-diff 5\ncase {name}"));
     out.tag("seed");
-    let seed = leanvm_core::cpu::fs_seed(unified_guest());
+    let seed = fs_seed();
     out.bytes(&cell_bytes(seed));
     out.tag("log_memory");
     out.n(node.proof.stream[0].c0 as usize);
     out.tag("public_input");
-    let defer = DeferredBytecodeClaim::recompute(node.bytecode_point.clone()).expect("a well-formed point");
+    let defer = DeferredBytecodeClaim::recompute_scalar(node.bytecode_point.clone()).expect("a well-formed point");
     out.es(&public_input(&claims, &defer));
     out.tag("statement");
     out.statement(&claims, &defer);
@@ -186,19 +188,19 @@ fn export(
     let bytecode = scalar_bytecode();
     for (child_claims, child) in &children {
         out.tag("child");
-        let defer = DeferredBytecodeClaim::recompute(child.bytecode_point.clone()).expect("a well-formed point");
+        let defer = DeferredBytecodeClaim::recompute_scalar(child.bytecode_point.clone()).expect("a well-formed point");
         out.statement(child_claims, &defer);
         let pi = public_input(child_claims, &defer);
-        let scalar = scalar_proof(&child.proof);
+        let scalar = child.proof.clone();
         let summary =
             verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar).expect("the child replays");
         // The fresh claim's value, which the caller evaluates (`aggregate_with_stats` off its batch's sums).
-        let fresh_point: Vec<F128> = summary.bytecode_point.iter().copied().map(from_scalar).collect();
-        let fresh_value = mle_eval_par(stacked_bytecode(), &fresh_point);
+        let fresh_point: Vec<E> = summary.bytecode_point.clone();
+        let fresh_value = scalar_bytecode().evaluate(&fresh_point).unwrap();
         let (_, fresh) =
-            gen_verify(unified_guest(), pi, &child.proof, &summary, fresh_value).expect("the child fits");
+            gen_verify(kbc(), pi, &child.proof, &summary, fresh_value).expect("the child fits");
         out.tag("fresh");
-        let point: Vec<F128> = fresh.bytecode_point.clone();
+        let point: Vec<E> = fresh.bytecode_point.clone();
         out.es(&point);
         out.e(fresh.bytecode_value);
         out.tag("proof");
@@ -247,12 +249,12 @@ fn export(
             let root = &matrix.top_root();
             out.0.push_str("direct ");
             out.bytes(root);
-            out.e(from_scalar(verifier::da::membership_challenge(root)));
+            out.e(verifier::da::membership_challenge(root));
             out.n(matrix.n_blobs());
             for row in (0..matrix.n_blobs()).filter_map(|i| matrix.row(i)) {
                 out.n(row.len());
                 for &w in row {
-                    out.e(F128::new(w as u64, (w >> 64) as u64));
+                    out.e(E::new(w as u64, (w >> 64) as u64));
                 }
             }
         }
@@ -261,7 +263,7 @@ fn export(
     out.tag("batch");
     let rounds = |name: &str| stream(name).map_or(vec![], |e| e[0].clone());
     out.es(&rounds("bc_sumcheck_msgs"));
-    out.es(&stream("bc_star_hint").map_or(vec![F128::ZERO], |e| e[0].clone()));
+    out.es(&stream("bc_star_hint").map_or(vec![E::new(0, 0)], |e| e[0].clone()));
 
     out.tag("streams");
     out.n(streams.len());
@@ -281,7 +283,12 @@ fn export(
     (claims, node)
 }
 
-const LOG_INV_RATE: usize = leanvm_core::pcs::TEST_LOG_INV_RATE;
+const LOG_INV_RATE: usize = stable_leanvm_core::pcs::TEST_LOG_INV_RATE;
+
+/// The guest's log size.
+fn kbc() -> usize {
+    unified_guest().prog().len().trailing_zeros() as usize
+}
 
 fn blob(seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = StdRng::seed_from_u64(seed);
@@ -297,7 +304,7 @@ fn blob(seed: u64) -> Vec<lean_da::Blob> {
 #[test]
 #[ignore]
 fn guest_diff() {
-    parallel::init();
+    Stable::init();
     let wide = CLAIM_GROUP + 3;
     let xmss = get_signers(wide + 2);
     let sphincs = get_lean_sphincs_signers(3);
@@ -312,6 +319,6 @@ fn guest_diff() {
 #[test]
 #[ignore]
 fn guest_diff_leaf() {
-    parallel::init();
+    Stable::init();
     export("leaf", vec![], get_signers(1), vec![], &[]);
 }

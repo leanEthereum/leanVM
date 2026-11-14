@@ -206,7 +206,7 @@ fn render(ast: &Ast, consts: &[(String, String)], kbc: usize) -> String {
     out
 }
 
-fn word(x: F128) -> String {
+fn word(x: E) -> String {
     format!("({}, {})", x.c0, x.c1)
 }
 
@@ -234,15 +234,15 @@ fn render_programs() -> String {
         let file = path.file_stem().unwrap().to_string_lossy().into_owned();
         let src = std::fs::read_to_string(&path).unwrap();
         let ast = parse(&src).unwrap();
-        let mut public = vec![F128::ZERO; 2];
-        let mut streams: BTreeMap<String, Vec<Vec<F128>>> = BTreeMap::new();
+        let mut public = vec![E::new(0, 0); 2];
+        let mut streams: BTreeMap<String, Vec<Vec<E>>> = BTreeMap::new();
         for line in src.lines().map(str::trim) {
             if let Some(rest) = line.strip_prefix("# public_input:") {
-                public = rest.split(',').map(|s| from_scalar(parse_const(s).unwrap())).collect();
+                public = rest.split(',').map(|s| parse_const(s).unwrap()).collect();
             }
             if let Some(rest) = line.strip_prefix("# witness ") {
                 let (name, vals) = rest.split_once(':').unwrap();
-                let entry = vals.split(',').map(|s| from_scalar(parse_const(s).unwrap())).collect();
+                let entry = vals.split(',').map(|s| parse_const(s).unwrap()).collect();
                 streams.entry(name.trim().to_string()).or_default().push(entry);
             }
         }

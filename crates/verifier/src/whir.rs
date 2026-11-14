@@ -29,10 +29,10 @@ const WHIR_QUERIES: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; 4] = [
     [&[56,33,27], &[55,32,25], &[55,32,24], &[55,32,23], &[55,32,23,20], &[55,32,23,19], &[55,32,23,18], &[55,32,23,18], &[55,32,23,18,16], &[55,32,23,18,15], &[55,32,23,18,15], &[55,32,23,18,15], &[55,32,23,18,15,14], &[55,32,23,18,16,14], &[55,32,23,18,16,14]],
 ];
 
-struct WhirConfig {
-    log_inv_rates: Vec<usize>,
-    folds: Vec<usize>,
-    queries: &'static [usize],
+pub struct WhirConfig {
+    pub log_inv_rates: Vec<usize>,
+    pub folds: Vec<usize>,
+    pub queries: &'static [usize],
 }
 
 /// The tabulated query counts at stacked size `log_n` and rate, `None` outside the admitted shapes.
@@ -45,7 +45,7 @@ pub fn whir_queries(log_n: usize, log_inv_rate: usize) -> Option<&'static [usize
 }
 
 /// The opening shape at this size and rate: the ladder geometry, then the tabulated query counts.
-fn derive_config(log_n: usize, log_inv_rate: usize) -> Result<WhirConfig, VerifierError> {
+pub fn derive_config(log_n: usize, log_inv_rate: usize) -> Result<WhirConfig, VerifierError> {
     let queries = whir_queries(log_n, log_inv_rate).ok_or(VerifierError::WhirShape)?;
     let mut folds = vec![INITIAL_FOLDING_FACTOR];
     let mut log_inv_rates = vec![log_inv_rate];
@@ -89,7 +89,7 @@ fn sample_queries(transcript: &mut Transcript, block_length: u64, count: usize) 
 }
 
 /// The subspace polynomials' normalizers. The subspaces are spanned by powers of x, so every one lies in K.
-fn subspace_roots(log_n: usize) -> Vec<K> {
+pub fn subspace_roots(log_n: usize) -> Vec<K> {
     let mut roots = vec![K(1)];
     let mut layer: Vec<K> = (1..=log_n).map(|i| K(1 << i)).collect();
     for _ in 0..log_n {
@@ -103,20 +103,20 @@ fn subspace_roots(log_n: usize) -> Vec<K> {
 }
 
 /// The normalized subspace polynomials `What_i = W_i / W_i(beta_i)` for `i <= mu`, at points of the RS domain.
-struct Subspace {
+pub struct Subspace {
     roots: Vec<K>,
     inverses: Vec<K>,
 }
 
 impl Subspace {
-    fn new(mu: usize) -> Self {
+    pub fn new(mu: usize) -> Self {
         let roots = subspace_roots(mu);
         let inverses = roots.iter().map(|value| value.inv()).collect();
         Self { roots, inverses }
     }
 
     /// `What_i(x)` for `i <= mu`, by `W_(i+1) = W_i^2 + W_i(beta_i) W_i`.
-    fn at(&self, x: K) -> Vec<K> {
+    pub fn at(&self, x: K) -> Vec<K> {
         let mut basis = x;
         let mut values = Vec::with_capacity(self.roots.len());
         for (&root, &inverse) in self.roots.iter().zip(&self.inverses) {

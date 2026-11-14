@@ -1,0 +1,17 @@
+[package]
+name = "lean_da"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+isa.workspace = true
+keccak256.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+rand.workspace = true
+stable_leanvm_core = { path = "../stable/leanvm_core" }

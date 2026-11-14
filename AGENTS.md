@@ -23,17 +23,22 @@ The root `Cargo.toml` is workspace-only: libraries in `crates/`, the CLI in `bin
 - `crates/stable/` (packages `stable_*`, but for the public API, `leanvm`): the reference prover, written to be read: plain, safe code, as short as the protocol allows, within about 1.5x of experimental's speed. Architecture-specific code lives in one SIMD layer, `primitives::field::lanes` (eight field elements at a time: `F128x8`, `F64x8`, `Acc8`, `clmul8`, with NEON, AVX2+VPCLMULQDQ and AVX-512+VPCLMULQDQ arms and the portable one), and in the shared `keccak256`'s multi-way permutation; the hot loops are written over them and nothing else in stable has `core::arch` or `cfg(target_feature)`. No uninitialized buffers, no non-temporal stores, no cache-tiled pass plans, no per-machine tuning. It keeps the whole level-0 codeword and every Merkle level, so its peak memory at the largest stacks is a multiple of experimental's on x86. An optimization enters it only where leaving it out costs a measurable share of a proof and its simple form stays short.
 - `crates/experimental/` (packages `experimental_*`): the optimized prover, where performance work lands first. The conventions below about NEON, AVX-512, streaming stores and the like are about this tree.
 
-Both prove the same protocol and give the same proof bytes, pinned by `bins/leanvm/tests/identical_proofs.rs`; a protocol change lands in both trees, the three verifiers and `formal/`, while an optimization lands in experimental alone. What is not prover code exists once and depends on neither tree (table below), the guest included (`guests/lean_ethereum.py`). `formal/`'s Rust helpers build against the stable tree, but for `whir-fold-table`, which exports the WHIR security search that only experimental's `pcs` keeps (stable reads the verifier's table). Within a tree, crates name each other through Cargo renames (`pcs = { package = "stable_pcs", path = "../pcs" }`), so sources say `pcs::`; an integration test reaches its own crate with `extern crate stable_pcs as pcs;`, and a doctest names it in full. The shared crates, leaves first:
+Both prove the same protocol and give the same proof bytes, pinned by `bins/leanvm/tests/identical_proofs.rs`; a protocol change lands in both trees, the three verifiers and `formal/`, while an optimization lands in experimental alone. What is not prover code exists once and depends on neither tree (table below), the guest and the whole aggregation included (`guests/lean_ethereum.py`, `crates/rec_aggregation`): the shared crates reach a prover only through `isa::Prover`, which each tree implements once beside `cpu::prove` (`leanvm_core::Stable`, `leanvm_core::Experimental`): assembling and proving a program, its thread pool, and the few field kernels whose speed a proof feels (the deferred claims' batching, LeanDA's encoding). `formal/`'s Rust helpers build against the stable tree, but for `whir-fold-table`, which exports the WHIR security search that only experimental's `pcs` keeps (stable reads the verifier's table). Within a tree, crates name each other through Cargo renames (`pcs = { package = "stable_pcs", path = "../pcs" }`), so sources say `pcs::`; an integration test reaches its own crate with `extern crate stable_pcs as pcs;`, and a doctest names it in full. The shared crates, leaves first:
 
 | crate             | role                                                                   |
 | ----------------- | ---------------------------------------------------------------------- |
 | `verifier`        | the one native verifier (below), and the field `E`/`K` the others take their words from |
 | `keccak256`       | Keccak-256 and its multi-way permutation (AVX-512, AVX2, NEON backends), for the crates below and the stable prover |
-| `isa`             | the instruction set: `Op`, the hints, `CompiledProgram`, the `KECCAK` cell counts |
+| `isa`             | the instruction set: `Op`, the hints, `CompiledProgram`, the `KECCAK` cell counts; the `Prover` trait |
 | `lean_compiler`   | zkDSL → ISA; its tests run the stable prover                           |
 | `lean_xmss`       | leanXMSS over Keccak-256                                               |
 | `lean_sphincs`    | leanSPHINCS over Keccak-256                                            |
 | `bench`           | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output, the jemalloc allocator); never linked by a prover |
+| `lean_da`         | additive Reed-Solomon blob encoding (through the prover), commitments, membership vectors |
+| `rec_aggregation` | recursive signature and DA aggregation, generic over the prover: the guest's constants and witness, and the entry points |
+| `leanvm`          | the public API, both provers' types re-exported                        |
+
+`rec_aggregation` derives the guest's constants and a child's witness from the verifier (`verifier::layout`, the WHIR table, the Keccak shape) and from its own `protocol` module, which restates the one thing the verifier does not keep: each bus coordinate as the prover writes it, whose term order the guest's arrays follow. Its tests pin `protocol`, the opening shapes and the proof encoding (`wire`) against the stable tree's.
 
 Each tree holds, in dependency order, leaves first:
 
@@ -44,12 +49,9 @@ Each tree holds, in dependency order, leaves first:
 | `fiat_shamir`     | the duplex sponge transcript and the prover's side of the proof transport |
 | `pcs`             | additive NTT, Merkle, ring switch, stacked WHIR: commit and open, no verifier |
 | `keccak_gkr`      | the prover of the VM's `KECCAK` argument                               |
-| `leanvm_core`     | arithmetization: tables, bus, constraints, `cpu::prove`; `cpu::verify` wraps `verifier`; `cpu::Program` from a `CompiledProgram` |
-| `lean_da`         | additive Reed-Solomon blob encoding, commitments, membership vectors   |
-| `rec_aggregation` | recursive signature and DA aggregation: the guest's witness and public entry points |
-| `leanvm`          | the public API                                                         |
+| `leanvm_core`     | arithmetization: tables, bus, constraints, `cpu::prove`; `cpu::verify` wraps `verifier`; `cpu::Program` from a `CompiledProgram`; the tree's `isa::Prover` |
 
-Paths below such as `crates/leanvm` mean the crate in either tree. `crates/leanvm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/leanvm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. The guest is zkDSL, `guests/lean_ethereum.py`. The CLI is `bins/leanvm`, run with `cargo leanvm [--prover stable|experimental] <subcommand>` (`aggregate`, `recursion`, `fibonacci`, `hash`; experimental by default), each prover driving its own copy of the benchmarks.
+Paths below such as `crates/leanvm_core` mean the crate in either tree. `crates/leanvm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/leanvm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. The guest is zkDSL, `guests/lean_ethereum.py`. The CLI is `bins/leanvm`, run with `cargo leanvm [--prover stable|experimental] <subcommand>` (`aggregate`, `recursion`, `fibonacci`, `hash`; experimental by default), the benchmarks generic over the prover.
 
 ## Building and testing
 
@@ -100,7 +102,7 @@ The prover's buffers are plain `Vec`s and the libraries impose no allocator. A p
 
 ## The thread pool (`parallel`)
 
-No rayon. Every parallel site is "N independent items, each writing its own disjoint slice", so the pool is a claim counter: `NUM_THREADS - 1` workers plus the dispatcher, both core clusters sharing one queue. Do not add a second pool to a tree (each tree has its own, and a process starts only the one it proves with). Experimental's workers spin then park; stable's wait on a condvar.
+No rayon. Every parallel site is "N independent items, each writing its own disjoint slice", so the pool is a claim counter: `NUM_THREADS - 1` workers plus the dispatcher, both core clusters sharing one queue. Do not add a second pool to a tree (each tree has its own, and a process starts only the one it proves with); the shared crates dispatch through `isa::Prover::map_collect`, on the pool of the prover they are given. Experimental's workers spin then park; stable's wait on a condvar.
 
 - Nested dispatch panics, because it would deadlock the dispatch lock.
 - One experimental site runs beside the pool: `keccak::while_executing` spawns half the pool's count of plain threads while a program executes, gone before the next dispatch. Stable builds the Keccak witness after execution, in the pool.

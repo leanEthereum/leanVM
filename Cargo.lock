@@ -209,29 +209,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "experimental_lean_da"
-version = "0.1.0"
-dependencies = [
- "experimental_fiat_shamir",
- "experimental_pcs",
- "experimental_primitives",
- "rand",
- "tracing",
-]
-
-[[package]]
-name = "experimental_leanvm"
-version = "0.1.0"
-dependencies = [
- "experimental_lean_da",
- "experimental_leanvm_core",
- "experimental_parallel",
- "experimental_rec_aggregation",
- "lean_sphincs",
- "lean_xmss",
-]
-
-[[package]]
 name = "experimental_leanvm_core"
 version = "0.1.0"
 dependencies = [
@@ -274,25 +251,6 @@ dependencies = [
  "experimental_primitives",
  "rand",
  "sha3",
-]
-
-[[package]]
-name = "experimental_rec_aggregation"
-version = "0.1.0"
-dependencies = [
- "experimental_fiat_shamir",
- "experimental_keccak_gkr",
- "experimental_lean_da",
- "experimental_leanvm_core",
- "experimental_parallel",
- "experimental_pcs",
- "experimental_primitives",
- "lean_compiler",
- "lean_sphincs",
- "lean_xmss",
- "rand",
- "tracing",
- "verifier",
 ]
 
 [[package]]
@@ -377,6 +335,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "lean_da"
+version = "0.1.0"
+dependencies = [
+ "isa",
+ "keccak256",
+ "rand",
+ "stable_leanvm_core",
+ "tracing",
+]
+
+[[package]]
 name = "lean_sphincs"
 version = "0.1.0"
 dependencies = [
@@ -395,12 +364,13 @@ dependencies = [
 name = "leanvm"
 version = "0.1.0"
 dependencies = [
+ "experimental_leanvm_core",
+ "isa",
+ "lean_da",
  "lean_sphincs",
  "lean_xmss",
- "stable_lean_da",
+ "rec_aggregation",
  "stable_leanvm_core",
- "stable_parallel",
- "stable_rec_aggregation",
 ]
 
 [[package]]
@@ -410,22 +380,18 @@ dependencies = [
  "bench",
  "clap",
  "experimental_keccak_gkr",
- "experimental_lean_da",
  "experimental_leanvm_core",
- "experimental_parallel",
- "experimental_primitives",
- "experimental_rec_aggregation",
+ "isa",
  "lean_compiler",
+ "lean_da",
  "lean_sphincs",
  "lean_xmss",
  "rand",
+ "rec_aggregation",
  "stable_keccak_gkr",
- "stable_lean_da",
  "stable_leanvm_core",
- "stable_parallel",
- "stable_primitives",
- "stable_rec_aggregation",
  "tracing",
+ "verifier",
 ]
 
 [[package]]
@@ -545,6 +511,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "rec_aggregation"
+version = "0.1.0"
+dependencies = [
+ "isa",
+ "keccak256",
+ "lean_compiler",
+ "lean_da",
+ "lean_sphincs",
+ "lean_xmss",
+ "rand",
+ "stable_leanvm_core",
+ "stable_pcs",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
 name = "regex-automata"
 version = "0.4.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -615,18 +598,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "stable_lean_da"
-version = "0.1.0"
-dependencies = [
- "rand",
- "stable_fiat_shamir",
- "stable_parallel",
- "stable_pcs",
- "stable_primitives",
- "tracing",
-]
-
-[[package]]
 name = "stable_leanvm_core"
 version = "0.1.0"
 dependencies = [
@@ -666,25 +637,6 @@ dependencies = [
  "rand",
  "stable_parallel",
  "stable_primitives",
-]
-
-[[package]]
-name = "stable_rec_aggregation"
-version = "0.1.0"
-dependencies = [
- "lean_compiler",
- "lean_sphincs",
- "lean_xmss",
- "rand",
- "stable_fiat_shamir",
- "stable_keccak_gkr",
- "stable_lean_da",
- "stable_leanvm_core",
- "stable_parallel",
- "stable_pcs",
- "stable_primitives",
- "tracing",
- "verifier",
 ]
 
 [[package]]
