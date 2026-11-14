@@ -77,20 +77,23 @@ pub(crate) const MIXED_POINTS: [[usize; 3]; MIXED] = {
 
 /// A block position's packs at every point of `{0, 1, infinity}^SKIP` of each group, at their
 /// slots: along a variable, the value at infinity is the sum of the two others.
-pub fn extend(packs: &[u32; PACKS]) -> [u64; SLOTS] {
-    let mut out = [0u64; SLOTS];
+pub fn extend(packs: &[u32; PACKS], out: &mut [u64; SLOTS]) {
+    // Both groups at once, group `half` in bits `32 * half ..` of each value.
+    let mut values = [0u64; TERNARY];
+    for q in 0..GROUP {
+        values[ternary(q)] = packs[q] as u64 | (packs[GROUP + q] as u64) << 32;
+    }
+    for &[t, zero, one] in &MIXED_POINTS {
+        values[t] = values[zero] ^ values[one];
+    }
     for half in 0..2 {
-        let mut values = [0u32; TERNARY];
         for q in 0..GROUP {
-            values[ternary(q)] = packs[GROUP * half + q];
             out[GROUP * half + q] = packs[GROUP * half + q] as u64;
         }
-        for (i, &[t, zero, one]) in MIXED_POINTS.iter().enumerate() {
-            values[t] = values[zero] ^ values[one];
-            out[2 * GROUP + MIXED * half + i] = values[t] as u64;
+        for (i, &[t, ..]) in MIXED_POINTS.iter().enumerate() {
+            out[2 * GROUP + MIXED * half + i] = values[t] >> (32 * half) & 0xffff_ffff;
         }
     }
-    out
 }
 
 /// One row of five positions, which `chi` mixes cyclically: per slot, the sum over the row of

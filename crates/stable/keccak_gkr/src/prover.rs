@@ -145,16 +145,18 @@ impl Layer<'_> {
             [0, 1].map(|half| self.task_weights(&eq.iter().skip(half).step_by(2).copied().collect::<Vec<_>>()));
         let sums = parallel::map_reduce_with_state(
             self.n_tasks(),
-            SkipAcc::new,
+            || (SkipAcc::new(), Box::new([[0u64; SLOTS]; 5])),
             || [F128Unreduced::ZERO; TERNARY],
-            |acc, sums, task| {
+            |(acc, e), sums, task| {
                 let (_, _, block) = self.block(task);
                 acc.clear();
                 for r in 0..5 {
                     for z in 0..64 {
                         let js = row_positions(r, z);
-                        let e: [[u64; SLOTS]; 5] = std::array::from_fn(|x| extend(&embed(words(block, js[x]))));
-                        skip_row(acc, &e, js.map(|j| weights[j]));
+                        for (e, &j) in e.iter_mut().zip(&js) {
+                            extend(&embed(words(block, j)), e);
+                        }
+                        skip_row(acc, e, js.map(|j| weights[j]));
                     }
                 }
                 for (half, groups) in groups.iter().enumerate() {
@@ -229,36 +231,43 @@ impl Layer<'_> {
 }
 
 /// The packs of a group folded at the skip's challenges: a pack's value at `s` is the sum of the
-/// instance weights of its set bits, two byte lookups, and a folded one is their `eq`-weighted sum.
+/// instance weights of its set bits, and `eq` of the four challenges is that of the low two times
+/// that of the high two. So each run of four packs is a sum of byte lookups, from tables weighted
+/// by the low `eq`, and the four runs meet the high `eq` as lanes.
 struct PackFold {
-    /// The subset sums of the instance weights of a pack's low byte and of its high byte.
-    bytes: [[F128; 256]; 2],
-    eq: [F128x8; GROUP],
+    /// Per pack of a run, its low `eq` weight times the subset sums of the instance weights of its
+    /// low byte and of its high byte.
+    bytes: [[[F128; 256]; 2]; 4],
+    high: [F128x8; 4],
 }
 
 impl PackFold {
     fn new(mu: &[F128; PACK], challenges: &[F128]) -> Self {
-        let eq = eq_table(challenges);
+        let (low, high) = (eq_table(&challenges[..2]), eq_table(&challenges[2..]));
         Self {
-            bytes: [0, 1].map(|k| byte_sums(&std::array::from_fn(|t| mu[8 * k + t]))),
-            eq: std::array::from_fn(|a| F128x8::splat(eq[a])),
+            bytes: std::array::from_fn(|b| [0, 1].map(|k| byte_sums(&std::array::from_fn(|t| low[b] * mu[8 * k + t])))),
+            high: std::array::from_fn(|a| F128x8::splat(high[a])),
         }
     }
 
     /// Both groups of a block, folded: entry `BITS * half + j` of `out` is position `j` of group
-    /// `half`. Eight positions at a time, each pack's values a run of lanes.
+    /// `half`. Eight positions at a time.
     fn rows(&self, block: &[u64], out: &mut [F128]) {
         for j in (0..BITS).step_by(8) {
-            let values: [F128x8; PACKS] = std::array::from_fn(|q| {
-                F128x8::from_array(&std::array::from_fn(|i| {
-                    let pack = (words(block, j + i)[q / 4] >> (16 * (q % 4))) as usize & 0xffff;
-                    self.bytes[0][pack & 0xff] + self.bytes[1][pack >> 8]
-                }))
-            });
-            for (half, values) in values.as_chunks::<GROUP>().0.iter().enumerate() {
+            for half in 0..2 {
                 let mut acc = Acc8::ZERO;
-                for (&v, &eq) in values.iter().zip(&self.eq) {
-                    acc += v.mul_unreduced(eq);
+                for (a, &high) in self.high.iter().enumerate() {
+                    let run = std::array::from_fn(|i| {
+                        let words = words(block, j + i);
+                        let mut sum = F128::ZERO;
+                        for (b, bytes) in self.bytes.iter().enumerate() {
+                            let q = GROUP * half + 4 * a + b;
+                            let pack = (words[q / 4] >> (16 * (q % 4))) as usize & 0xffff;
+                            sum += bytes[0][pack & 0xff] + bytes[1][pack >> 8];
+                        }
+                        sum
+                    });
+                    acc += F128x8::from_array(&run).mul_unreduced(high);
                 }
                 acc.reduce().store(&mut out[BITS * half + j..][..8]);
             }
