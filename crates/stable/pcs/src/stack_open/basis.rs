@@ -15,7 +15,7 @@
 
 use primitives::bit_fold::BitFold;
 use primitives::bits::bit_transpose_64bytes;
-use primitives::field::{F64, F128};
+use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
 
 use super::{RingSwitchOpen, StackClaim};
 use crate::ring_switch::{RingWeight, coordinate_basis};
@@ -25,6 +25,24 @@ use crate::whir::InitialBasis;
 /// Bits of a block's low part: a block is the 64 bit rows a ring claim folds at once.
 pub(crate) const LOW_VARS: usize = 6;
 const BLOCK: usize = 1 << LOW_VARS;
+/// A block in lanes of eight.
+const LANES: usize = BLOCK / 8;
+
+/// A block's `E` values, eight to a lane.
+fn in_lanes(v: &[F128]) -> [F128x8; LANES] {
+    let v: &[F128; BLOCK] = v.try_into().expect("a block");
+    core::array::from_fn(|i| F128x8::load(&v[8 * i..][..8]))
+}
+
+/// `sum_x pi[x] * words[x]` over a block, reduced once.
+fn dot_block(pi: &[F128x8; LANES], words: &[F64]) -> F128 {
+    let words: &[F64; BLOCK] = words.try_into().expect("a block");
+    let mut acc = Acc8::ZERO;
+    for (p, w) in pi.iter().zip(words.as_chunks::<8>().0) {
+        acc += p.mul_base_unreduced(F64x8::from_array(w));
+    }
+    acc.sum()
+}
 
 /// What a weight does to one bit of the stack index.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -81,7 +99,7 @@ fn point_factors(point: &[F128], offset: usize, bits: usize) -> Vec<Factor> {
 struct Pattern {
     factors: Vec<Factor>,
     claims: Vec<usize>,
-    pi: Vec<F128>,
+    pi: [F128x8; LANES],
     active: Vec<bool>,
 }
 
@@ -159,18 +177,18 @@ impl Terms {
             let mut out = vec![F128::ZERO; slots * n_terms];
             // Per slot: each pattern's dot with every block of the range, and each ring's sums of bit rows.
             let mut q = vec![F128::ZERO; slots * patterns.len() * blocks.len()];
-            let mut sigmas = vec![[F128::ZERO; BLOCK]; slots * rings.len()];
+            let mut sigmas = vec![[Acc8::ZERO; LANES]; slots * rings.len()];
             task(lane, blocks.clone(), &mut |slot, h, words| {
                 for (p, pattern) in patterns.iter().enumerate().filter(|(_, pattern)| pattern.active[h]) {
-                    let dot = pattern.pi.iter().zip(words).map(|(&w, &x)| w.mul_base(x)).sum();
+                    let dot = dot_block(&pattern.pi, words);
                     q[(slot * patterns.len() + p) * blocks.len() + h - blocks.start] = dot;
                 }
                 let mut cols = None;
                 for (ring, sigma) in rings.iter().zip(&mut sigmas[slot * rings.len()..]) {
-                    let e_hi = ring.e_hi[h];
-                    if e_hi == F128::ZERO {
+                    if ring.e_hi[h] == F128::ZERO {
                         continue;
                     }
+                    let e_hi = F128x8::splat(ring.e_hi[h]);
                     let cols = cols.get_or_insert_with(|| {
                         let mut cols = [[0u8; BLOCK]; BLOCK / 8];
                         for (col, group) in cols.iter_mut().zip(primitives::cast_slice::<F64, [u8; 64]>(words)) {
@@ -180,7 +198,10 @@ impl Terms {
                     });
                     let mut folded = [F128::ZERO; BLOCK];
                     ring.fold.fold_columns(cols, &mut folded);
-                    sigma.iter_mut().zip(folded).for_each(|(s, f)| *s += e_hi * f);
+                    sigma
+                        .iter_mut()
+                        .zip(in_lanes(&folded))
+                        .for_each(|(s, f)| *s += f.mul_unreduced(e_hi));
                 }
             });
             for (slot, row) in out.chunks_exact_mut(n_terms).enumerate() {
@@ -193,6 +214,8 @@ impl Terms {
                     }
                 }
                 for (ring, sigma) in rings.iter().zip(&sigmas[slot * rings.len()..]) {
+                    let sigma: [[F128; 8]; LANES] = sigma.map(|s| s.reduce().to_array());
+                    let sigma = sigma.as_flattened().try_into().expect("a block");
                     for (slot, k) in row[ring.first..].iter_mut().zip(transpose_s_hat(sigma)) {
                         *slot = F128::from(k);
                     }
@@ -229,7 +252,10 @@ impl Terms {
             for pattern in &self.patterns {
                 let g: F128 = pattern.claims.iter().map(|&c| a[c] * self.gamma(c)[h]).sum();
                 if g != F128::ZERO {
-                    out.iter_mut().zip(&pattern.pi).for_each(|(o, &pi)| *o += g * pi);
+                    let g = F128x8::splat(g);
+                    for (o, pi) in out.as_chunks_mut::<8>().0.iter_mut().zip(&pattern.pi) {
+                        (F128x8::load(o) + *pi * g).store(o);
+                    }
                 }
             }
             for (weight, offset, len) in &rings {
@@ -283,7 +309,7 @@ pub(super) fn initial_basis(
         match terms.patterns.iter_mut().find(|p| p.factors == low) {
             Some(pattern) => pattern.claims.push(c),
             None => terms.patterns.push(Pattern {
-                pi: table(low),
+                pi: in_lanes(&table(low)),
                 factors: low.to_vec(),
                 claims: vec![c],
                 active: Vec::new(),

@@ -46,7 +46,7 @@ pub fn eval_sk_at_vks(log_n: usize) -> Vec<F64> {
 pub(crate) fn induce_basis(log_msg_cols: usize, log_inv_rate: usize, queries: &[usize], weights: &[F128]) -> Vec<F128> {
     let log_d = log_msg_cols + log_inv_rate;
     let _span = tracing::info_span!("NTT", kind = "transpose induce", log_domain = log_d).entered();
-    let mut data = vec![F128::ZERO; 1 << log_d];
+    let mut data = parallel::filled(1 << log_d, F128::ZERO);
     for (&q, &w) in queries.iter().zip(weights) {
         data[q] += w;
     }
