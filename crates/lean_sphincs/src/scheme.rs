@@ -8,8 +8,6 @@
 
 use crate::*;
 
-/// Ordered lexicographically on [`Self::to_bytes`], which is what an aggregate's
-/// signer list is sorted and deduplicated by.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct LeanSphincsPublicKey {
     pub(crate) pk_seed: PkSeed,
@@ -43,7 +41,6 @@ impl LeanSphincsPublicKey {
     }
 }
 
-/// `SK.seed`, all of the key: [`expand_key`] derives the rest.
 #[derive(Clone)]
 pub struct LeanSphincsSecretKey {
     sk_seed: Seed,
@@ -56,7 +53,6 @@ impl std::fmt::Debug for LeanSphincsSecretKey {
 }
 
 impl LeanSphincsSecretKey {
-    /// The public key, rebuilt as key generation builds it: the whole top tree.
     pub fn public_key(&self) -> LeanSphincsPublicKey {
         keygen(&expand_key(&self.sk_seed)).0
     }
@@ -185,40 +181,6 @@ impl LeanSphincsSignature {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum LeanSphincsSignError {
-    /// `C_max` counters in a row failed to encode.
-    NoAdmissibleEncoding,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum LeanSphincsVerifyError {
-    /// A counter does not encode what its layer signs.
-    InadmissibleEncoding,
-    RootMismatch,
-}
-
-impl std::fmt::Display for LeanSphincsSignError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NoAdmissibleEncoding => write!(f, "no admissible encoding within C_max attempts"),
-        }
-    }
-}
-
-impl std::error::Error for LeanSphincsSignError {}
-
-impl std::fmt::Display for LeanSphincsVerifyError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InadmissibleEncoding => write!(f, "a counter does not encode what its layer signs"),
-            Self::RootMismatch => write!(f, "the walk does not reach the key's root"),
-        }
-    }
-}
-
-impl std::error::Error for LeanSphincsVerifyError {}
-
 /// The index and the FORS leaves a digest spells (FIPS 205 Algorithm 19): the
 /// first [`MD_BYTES`] give each tree's leaf, `a` bits a tree most significant
 /// first (`base_2b`), the next [`TREE_INDEX_BYTES`] the tree, and the last
@@ -294,17 +256,20 @@ pub fn key_gen() -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
     key_gen_from_seed(rand::random())
 }
 
-/// `Sign`. Deterministic and stateless: the digest picks the FORS instance,
-/// which opens the message, and each layer signs what the layer below gives. A
-/// key signs at most `2^30` messages (`doc/lean_sphincs`).
-pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
+/// `Sign`. Deterministic and stateless. A key signs at most `2^30` messages (`doc/lean_sphincs`).
+///
+/// # Panics
+///
+/// Where the specification's `Sign` fails: when all `C_max` encoding counters of a layer miss a
+/// codeword, which happens with probability below `2^-378193`: impossible in practice.
+pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> LeanSphincsSignature {
     sign_with(&expand_key(&sk.sk_seed), message)
 }
 
 /// `slh_sign_internal`, deterministic (`opt_rand = PK.seed`). It builds the top
 /// tree for `PK.root` and the top path, then the FORS instance and the two trees
 /// below.
-fn sign_with(sk: &ExpandedKey, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
+fn sign_with(sk: &ExpandedKey, message: &Message) -> LeanSphincsSignature {
     let (pk, mut top) = keygen(sk);
     let r = prf_msg(&sk.sk_prf, &sk.pk_seed, message);
     let (idx, leaves) = message_digest(&pk, &r, message);
@@ -316,7 +281,7 @@ fn sign_with(sk: &ExpandedKey, message: &Message) -> Result<LeanSphincsSignature
     let mut paths = [[0; N]; H];
     for (layer, signature) in layers.iter_mut().enumerate() {
         let key = OtsKey::of_index(layer, idx);
-        let (counter, wots) = wots_sign(sk, &key, &signed).ok_or(LeanSphincsSignError::NoAdmissibleEncoding)?;
+        let (counter, wots) = wots_sign(sk, &key, &signed).expect("a codeword within C_max counters (see `sign`)");
         *signature = LayerSignature { counter, wots };
         let levels = if layer == LAYERS - 1 {
             std::mem::take(&mut top)
@@ -328,12 +293,12 @@ fn sign_with(sk: &ExpandedKey, message: &Message) -> Result<LeanSphincsSignature
         }
         signed = levels[LAYER_HEIGHTS[layer]][0];
     }
-    Ok(LeanSphincsSignature {
+    LeanSphincsSignature {
         randomizer: r,
         fors,
         layers,
         paths,
-    })
+    }
 }
 
 /// `Tree.fold`: the root a key's leaf and its path reach, showing `visit` the two
@@ -350,26 +315,19 @@ pub fn tree_fold(
     })
 }
 
-/// `Ver`.
-pub fn verify(
-    pk: &LeanSphincsPublicKey,
-    message: &Message,
-    signature: &LeanSphincsSignature,
-) -> Result<(), LeanSphincsVerifyError> {
+/// `Ver`: whether `signature` is `pk`'s on `message`.
+pub fn verify(pk: &LeanSphincsPublicKey, message: &Message, signature: &LeanSphincsSignature) -> bool {
     let pk_seed = &pk.pk_seed;
     let (idx, leaves) = message_digest(pk, &signature.randomizer, message);
     let mut signed = fors_recover(pk_seed, idx, &leaves, &signature.fors, |_| ());
     for (layer, layer_sig) in signature.layers.iter().enumerate() {
         let key = OtsKey::of_index(layer, idx);
-        let (_, leaf) = wots_leaf(pk_seed, &key, &signed, layer_sig.counter, &layer_sig.wots)
-            .ok_or(LeanSphincsVerifyError::InadmissibleEncoding)?;
+        let Some((_, leaf)) = wots_leaf(pk_seed, &key, &signed, layer_sig.counter, &layer_sig.wots) else {
+            return false;
+        };
         signed = tree_fold(pk_seed, &key, leaf, signature.__path(layer), |_| ());
     }
-    if signed == pk.root {
-        Ok(())
-    } else {
-        Err(LeanSphincsVerifyError::RootMismatch)
-    }
+    signed == pk.root
 }
 
 #[cfg(test)]
@@ -393,8 +351,8 @@ mod tests {
         let pk = keygen(&sk).0;
         let message: Message = std::array::from_fn(|i| (7 * i + 3) as u8);
         assert_eq!(pk.to_bytes()[..], pk_bytes[..]);
-        let signature = sign_with(&sk, &message).unwrap();
+        let signature = sign_with(&sk, &message);
         assert_eq!(signature.to_bytes()[..], sig_bytes[..]);
-        assert_eq!(verify(&pk, &message, &signature), Ok(()));
+        assert!(verify(&pk, &message, &signature));
     }
 }

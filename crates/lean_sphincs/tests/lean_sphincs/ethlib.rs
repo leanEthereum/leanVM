@@ -151,7 +151,6 @@ fn sign_matches_ethlib() {
         ) {
             (Some(seed), Some(message)) => Value::Bytes(
                 sign(&LeanSphincsSecretKey::from_bytes(&seed), &message)
-                    .unwrap()
                     .to_bytes()
                     .to_vec(),
             ),
@@ -169,14 +168,11 @@ fn verify_matches_ethlib() {
             exact::<MESSAGE_LEN>(case.bytes("message")),
             exact::<SIG_SIZE>(case.bytes("signature")),
         ) {
-            (Some(pk), Some(message), Some(sig)) => Value::Bool(
-                verify(
-                    &LeanSphincsPublicKey::from_bytes(&pk),
-                    &message,
-                    &LeanSphincsSignature::from_bytes(&sig),
-                )
-                .is_ok(),
-            ),
+            (Some(pk), Some(message), Some(sig)) => Value::Bool(verify(
+                &LeanSphincsPublicKey::from_bytes(&pk),
+                &message,
+                &LeanSphincsSignature::from_bytes(&sig),
+            )),
             _ => Value::Null,
         };
         assert_eq!(output, case.output, "{}", case.name);

@@ -29,7 +29,7 @@ fn public_api_end_to_end() {
     for signer in 0..3u8 {
         let (secret_key, pub_key) = lean_sphincs::key_gen();
         let message = [signer; lean_sphincs::MESSAGE_LEN];
-        let signature = lean_sphincs::sign(&secret_key, &message).unwrap();
+        let signature = lean_sphincs::sign(&secret_key, &message);
         lean_sphincs_input.push((pub_key, message, signature));
     }
 

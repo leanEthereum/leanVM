@@ -17,17 +17,17 @@ fn signatures_verify_and_tampered_ones_do_not() {
     assert_eq!(pk.__pk_seed(), &expanded.pk_seed);
     assert_eq!(LeanSphincsSecretKey::from_bytes(&sk.to_bytes()).public_key(), pk);
     let message: Message = std::array::from_fn(|i| (3 + i) as u8);
-    let signature = sign(&sk, &message).unwrap();
-    assert_eq!(verify(&pk, &message, &signature), Ok(()));
+    let signature = sign(&sk, &message);
+    assert!(verify(&pk, &message, &signature));
     assert_eq!(LeanSphincsSignature::from_bytes(&signature.to_bytes()), signature);
 
     let mut other = message;
     other[0] ^= 1;
-    assert!(verify(&pk, &other, &signature).is_err());
+    assert!(!verify(&pk, &other, &signature));
     let mut bytes = pk.to_bytes();
     bytes[0] ^= 1;
     let key = LeanSphincsPublicKey::from_bytes(&bytes);
-    assert!(verify(&key, &message, &signature).is_err());
+    assert!(!verify(&key, &message, &signature));
     // Every value of the signature is bound: a flipped bit in any of them, or in
     // a counter, is refused.
     let bytes = signature.to_bytes();
@@ -41,6 +41,6 @@ fn signatures_verify_and_tampered_ones_do_not() {
         let mut bad = bytes;
         bad[at] ^= 1;
         let bad = LeanSphincsSignature::from_bytes(&bad);
-        assert!(verify(&pk, &message, &bad).is_err(), "byte {at}");
+        assert!(!verify(&pk, &message, &bad), "byte {at}");
     }
 }

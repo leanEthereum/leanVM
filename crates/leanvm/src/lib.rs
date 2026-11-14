@@ -26,8 +26,8 @@ pub mod lean_xmss {
 
 pub mod lean_sphincs {
     pub use lean_sphincs::{
-        LeanSphincsPublicKey, LeanSphincsSecretKey, LeanSphincsSignError, LeanSphincsSignature, LeanSphincsVerifyError,
-        MESSAGE_LEN, Message, PUB_KEY_SIZE, SEED_LEN, SIG_SIZE, Seed, key_gen, key_gen_from_seed, sign, verify,
+        LeanSphincsPublicKey, LeanSphincsSecretKey, LeanSphincsSignature, MESSAGE_LEN, Message, PUB_KEY_SIZE, SEED_LEN,
+        SIG_SIZE, Seed, key_gen, key_gen_from_seed, sign, verify,
     };
 }
 

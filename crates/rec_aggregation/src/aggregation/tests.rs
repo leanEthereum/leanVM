@@ -239,7 +239,7 @@ fn aggregate_one_key_two_messages() {
         .into_iter()
         .map(|tag| {
             let signed: lean_sphincs::Message = std::array::from_fn(|i| tag.wrapping_mul(i as u8 + 1));
-            let signature = lean_sphincs::sign(&secret_key, &signed).expect("signs");
+            let signature = lean_sphincs::sign(&secret_key, &signed);
             (public_key, signed, signature)
         })
         .collect();
@@ -1049,7 +1049,7 @@ fn malformed_raw_lean_sphincs_signature_is_an_error() {
     let mut bytes = signature.to_bytes();
     bytes[lean_sphincs::N + lean_sphincs::FORS_TREES * lean_sphincs::FORS_OPENING_SIZE] ^= 1;
     let signature = LeanSphincsSignature::from_bytes(&bytes);
-    assert!(lean_sphincs::verify(&public_key, &signed, &signature).is_err());
+    assert!(!lean_sphincs::verify(&public_key, &signed, &signature));
     let raw = vec![(public_key, signed, signature)];
     assert_eq!(
         aggregate(&[], vec![], raw, &[], None, LOG_INV_RATE).err(),
