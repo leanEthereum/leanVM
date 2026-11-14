@@ -34,8 +34,9 @@
 
 use crate::leaf::BusForm;
 use crate::transcript::ProverState;
-use primitives::field::{F64, F128};
+use primitives::field::{F64, F128, F128Unreduced};
 use primitives::multilinear::{eq_table, interp, interp_k, mle_eval, poly_eval, shrink_eq_high};
+use std::ops::Add;
 
 /// One table's involved columns' evaluations at its table-sumcheck point.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -74,8 +75,9 @@ const CHUNK: usize = 1 << 10;
 struct Form {
     constant: F128,
     lin: Vec<(usize, F128)>,
-    /// Each pair once, its coefficients summed.
-    prods: Vec<(usize, usize, F128)>,
+    /// The products grouped by their lesser column `a`, as `Σ_a v[a]·Σ_b q_ab·v[b]`, each pair once: a table's
+    /// products share few columns (a flag, `fp`), so a group costs one product beside its linear inner sum.
+    prods: Vec<(usize, Vec<(usize, F128)>)>,
     /// Whether a term reads column `c`.
     used: Vec<bool>,
 }
@@ -89,21 +91,28 @@ impl Form {
             .enumerate()
             .filter(|(_, c)| !c.is_zero())
             .collect();
-        let mut prods: Vec<(usize, usize, F128)> = Vec::new();
-        for &(a, b, q) in &form.prods {
-            let (a, b) = (a.min(b), a.max(b));
-            match prods.iter_mut().find(|p| (p.0, p.1) == (a, b)) {
-                Some(p) => p.2 += q,
-                None => prods.push((a, b, q)),
+        let mut pairs: Vec<(usize, usize, F128)> =
+            form.prods.iter().map(|&(a, b, q)| (a.min(b), a.max(b), q)).collect();
+        pairs.sort_unstable_by_key(|&(a, b, _)| (a, b));
+        let mut prods: Vec<(usize, Vec<(usize, F128)>)> = Vec::new();
+        for (a, b, q) in pairs {
+            match prods.last_mut() {
+                Some((left, right)) if *left == a => match right.last_mut() {
+                    Some(last) if last.0 == b => last.1 += q,
+                    _ => right.push((b, q)),
+                },
+                _ => prods.push((a, vec![(b, q)])),
             }
         }
-        prods.retain(|p| !p.2.is_zero());
         let mut used = vec![false; form.coeffs.len()];
         for &(c, _) in &lin {
             used[c] = true;
         }
-        for &(a, b, _) in &prods {
-            (used[a], used[b]) = (true, true);
+        for (a, right) in &prods {
+            used[*a] = true;
+            for &(b, _) in right {
+                used[b] = true;
+            }
         }
         Self {
             constant: form.constant,
@@ -113,43 +122,65 @@ impl Form {
         }
     }
 
-    /// `P(v) - constant`.
-    fn eval(&self, v: impl Fn(usize) -> F128) -> F128 {
-        self.lin.iter().map(|&(c, w)| w * v(c)).sum::<F128>() + self.quadratic(v)
+    /// `P(v) - constant`, unreduced.
+    fn eval<V: Value>(&self, v: impl Fn(usize) -> V) -> F128Unreduced {
+        let quadratic = self.quadratic(&v);
+        self.lin.iter().fold(quadratic, |acc, &(c, w)| acc ^ v(c).times(w))
     }
 
-    /// `Q(v)`.
-    fn quadratic(&self, v: impl Fn(usize) -> F128) -> F128 {
-        self.prods.iter().map(|&(a, b, q)| q * v(a) * v(b)).sum()
+    /// `Q(v)`, unreduced.
+    fn quadratic<V: Value>(&self, v: impl Fn(usize) -> V) -> F128Unreduced {
+        self.prods.iter().fold(F128Unreduced::ZERO, |acc, (a, right)| {
+            let right = right
+                .iter()
+                .fold(F128Unreduced::ZERO, |sum, &(b, q)| sum ^ v(b).times(q));
+            acc ^ v(*a).times(right.reduce())
+        })
+    }
+}
+
+/// A column value: in `K` until its table joins, in `E` after.
+trait Value: Copy + Add<Output = Self> {
+    /// `w·self`, unreduced, so that a sum of such products is reduced once.
+    fn times(self, w: F128) -> F128Unreduced;
+}
+
+impl Value for F64 {
+    fn times(self, w: F128) -> F128Unreduced {
+        w.mul_base_unreduced(self)
+    }
+}
+
+impl Value for F128 {
+    fn times(self, w: F128) -> F128Unreduced {
+        w.mul_unreduced(self)
     }
 }
 
 /// The message of the round binding the variable of weight `half`, column `c` row `i` being `value(c, i)`:
 /// `[Σ_i eqr[i]·P(end_i), Σ_i eqr[i]·Q(lo_i + hi_i)]`, `end` the upper rows when `at_one` and the lower ones
 /// otherwise. `eqr` sums to one, so the form's constant is added once.
-fn message(
+fn message<V: Value>(
     form: &Form,
-    value: impl Fn(usize, usize) -> F128 + Sync,
+    value: impl Fn(usize, usize) -> V + Sync,
     eqr: &[F128],
     half: usize,
     at_one: bool,
 ) -> [F128; 2] {
     let row = |i: usize| {
-        let end = form.eval(|c| value(c, if at_one { i + half } else { i }));
-        let slope = form.quadratic(|c| value(c, i) + value(c, i + half));
-        [eqr[i] * end, eqr[i] * slope]
+        let end = form.eval(|c| value(c, if at_one { i + half } else { i })).reduce();
+        let slope = form.quadratic(|c| value(c, i) + value(c, i + half)).reduce();
+        [eqr[i].mul_unreduced(end), eqr[i].mul_unreduced(slope)]
+    };
+    let task = |task: usize| {
+        let rows = task * CHUNK..half.min((task + 1) * CHUNK);
+        let [end, slope] = rows
+            .map(row)
+            .fold([F128Unreduced::ZERO; 2], |a, b| [a[0] ^ b[0], a[1] ^ b[1]]);
+        [end.reduce(), slope.reduce()]
     };
     let add = |a: [F128; 2], b: [F128; 2]| [a[0] + b[0], a[1] + b[1]];
-    let [end, slope] = parallel::map_reduce(
-        half.div_ceil(CHUNK),
-        || [F128::ZERO; 2],
-        |task| {
-            (task * CHUNK..half.min((task + 1) * CHUNK))
-                .map(row)
-                .fold([F128::ZERO; 2], add)
-        },
-        add,
-    );
+    let [end, slope] = parallel::map_reduce(half.div_ceil(CHUNK), || [F128::ZERO; 2], task, add);
     [end + form.constant, slope]
 }
 
@@ -170,7 +201,7 @@ impl Table<'_> {
     fn message(&self, eqr: &[F128], m: usize, at_one: bool) -> [F128; 2] {
         match &self.state {
             Some(state) => message(&self.form, |c, i| state[c][i], eqr, 1 << m, at_one),
-            None => message(&self.form, |c, i| F128::from(self.cols[c][i]), eqr, 1 << m, at_one),
+            None => message(&self.form, |c, i| self.cols[c][i], eqr, 1 << m, at_one),
         }
     }
 
@@ -324,15 +355,23 @@ mod tests {
         let mut s = 1;
         let pows: Vec<F128> = (0..3).map(|_| random_e(&mut s)).collect();
         let form = Form::new(&synth(&pows));
+        let pairs: Vec<(usize, usize)> = form
+            .prods
+            .iter()
+            .flat_map(|(a, r)| r.iter().map(|&(b, _)| (*a, b)))
+            .collect();
         assert_eq!(
-            form.prods.len(),
-            4,
+            pairs,
+            [(0, 1), (0, 3), (0, 4), (5, 5)],
             "the pair named twice, either way round, is one product"
         );
         for _ in 0..4 {
             let v: Vec<F128> = (0..COLS).map(|_| random_e(&mut s)).collect();
-            assert_eq!(form.quadratic(|c| v[c]), synth(&pows).eval(&v, true));
-            assert_eq!(form.constant + form.eval(|c| v[c]), synth(&pows).eval(&v, false));
+            assert_eq!(form.quadratic(|c| v[c]).reduce(), synth(&pows).eval(&v, true));
+            assert_eq!(
+                form.constant + form.eval(|c| v[c]).reduce(),
+                synth(&pows).eval(&v, false)
+            );
         }
     }
 
