@@ -14,7 +14,9 @@ public import LeanVM.Guest.Backend.Sound.Obl.CheckSound
 `post_relL`: in a program whose every function with a postcondition the analysis accepts, a call
 in the located relation (`Program.RelL`) meets its callee's postcondition, its frames meeting the
 preconditions (`A`). The callee's body holds at some frame with a `return`; `holdsList_post`
-bounds what it returns from the callee's own hypotheses, by induction on the depth of calls.
+bounds what it returns from the callee's own hypotheses, by induction on the depth of calls. The
+relations a signature's `xpost` names are not the analysis': they come from a fact about the
+unlocated relation (`hxp`).
 -/
 
 namespace LeanVM.Guest.Backend.Obl
@@ -57,13 +59,14 @@ end
 
 end Reach
 
-variable {T : Tab} {κ : ℕ} {L : MemoryImage κ}
+variable {R : Nat → Reader → E → Prop} {T : Tab} {κ : ℕ} {L : MemoryImage κ}
 
 /-- **Calls of the located relation of depth `n` meet their callees' postconditions.** -/
 theorem post_locN (hT : PowsOk T) (hκ : κ ≤ 32) {P : Program} {vf : String → K → Val}
     {A : String → K → List E → List E → Prop}
     (hP : ∀ fn ∈ P, (T.sig fn.name).post ≠ [] → chkFn T fn = true)
-    (hA : ∀ f fp a r, A f fp a r → SigPre L.read (T.sig f) a) :
+    (hA : ∀ f fp a r, A f fp a r → SigPre R L.read (T.sig f) a)
+    (hxp : ∀ f a r, P.Rel L.read f a r → XPost R L.read (T.sig f) (a ++ r)) :
     ∀ (n : Nat) (f : String) (a r : List E), P.locN L.read vf A n f a r →
       SigPost (T.sig f) (a ++ r)
   | 0, _, _, _, h => h.elim
@@ -78,23 +81,27 @@ theorem post_locN (hT : PowsOk T) (hκ : κ ≤ 32) {P : Program} {vf : String �
       have hchk := hP fn (List.mem_of_find?_eq_some hf) (by rwa [hname])
       unfold chkFn at hchk
       rw [hname] at hchk
-      have hpre : SigPre L.read (T.sig f) (fn.params.map (vf f fp)) := hp ▸ hA f fp a r hAf
-      have hh := holdsList_post hT hκ (post_locN hT hκ hP hA n) ⟨fn.params, (T.sig f).post⟩
-        fn.body _ False False _ (entry_holds hpre) hchk id hb
+      have hpre : SigPre R L.read (T.sig f) (fn.params.map (vf f fp)) := hp ▸ hA f fp a r hAf
+      have hh := holdsList_post hT hκ (fun f' a' r' h' => ⟨post_locN hT hκ hP hA hxp n f' a' r' h',
+          hxp f' a' r' (relN_le_rel P n f' a' r' (locN_le_relN P n f' a' r' h'))⟩)
+        ⟨fn.params, (T.sig f).post⟩ fn.body _ False False _ (entry_holds hpre) hchk id hb
       rcases reach_l fn.body hh with hF | ⟨rs, rfl, hpo⟩
       · exact hF.elim
       · intro p hp' hl
         have := hpo p hp' (by simpa [hp] using hl)
         simpa [hp] using this
 
-/-- **Calls of the located relation meet their callees' postconditions.** -/
+/-- **Calls of the located relation meet their callees' postconditions**, those the analysis
+checks and, from the unlocated relation, the relations `xpost` says. -/
 theorem post_relL (hT : PowsOk T) (hκ : κ ≤ 32) {P : Program} {vf : String → K → Val}
     {A : String → K → List E → List E → Prop}
     (hP : ∀ fn ∈ P, (T.sig fn.name).post ≠ [] → chkFn T fn = true)
-    (hA : ∀ f fp a r, A f fp a r → SigPre L.read (T.sig f) a) (f : String) (a r : List E)
-    (h : P.RelL L.read vf A f a r) : SigPost (T.sig f) (a ++ r) :=
+    (hA : ∀ f fp a r, A f fp a r → SigPre R L.read (T.sig f) a)
+    (hxp : ∀ f a r, P.Rel L.read f a r → XPost R L.read (T.sig f) (a ++ r)) (f : String)
+    (a r : List E) (h : P.RelL L.read vf A f a r) :
+    SigPost (T.sig f) (a ++ r) ∧ XPost R L.read (T.sig f) (a ++ r) :=
   let ⟨n, hn⟩ := h
-  post_locN hT hκ hP hA n f a r hn
+  ⟨post_locN hT hκ hP hA hxp n f a r hn, hxp f a r (relL_le_rel P f a r ⟨n, hn⟩)⟩
 
 end
 end LeanVM.Guest.Backend.Obl
