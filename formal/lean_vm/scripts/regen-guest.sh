@@ -147,6 +147,8 @@ part_res() {
   python3 -I scripts/res-cert/term.py "${check[@]}"
   step "res: the residuals' families (scripts/res-cert/sel.py)"
   python3 -I scripts/res-cert/sel.py "${check[@]}"
+  step "res: the claim lists' table reads linked to their callers (scripts/res-cert/link.py)"
+  python3 -I scripts/res-cert/link.py "${check[@]}"
 }
 
 part_whir_data() {
