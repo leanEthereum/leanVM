@@ -900,27 +900,34 @@ def placeBody (tf : TracedFn) : P Unit := do
   flush []
   if (← get).pos != tf.trace.size then failP "the trace goes on past the function"
 
-/-- Place a function (`lower_func`): cells `0` and `1` hold the return target, then the
+/-- The context a function is walked in. -/
+def ctxOf (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tf : TracedFn) : Ctx :=
+  { name := tf.core.name, isMain := tf.core.name == "main", argCells := (sigOf tf).1,
+    retCells := (sigOf tf).2, loops, sigs, trace := tf.trace }
+
+/-- The state a function's walk starts from: cells `0` and `1` hold the return target, then the
 arguments, then the return cells, then a registered loop's own frame pointer, then the locals. -/
-def placeFn (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : Tables)
-    (tf : TracedFn) : Except String (Placed × Tables) := do
-  let f := tf.core
-  let loopFrame := (loops[f.name]?).any (·.registered)
-  let (argCells, retCells) := sigOf tf
-  let abiEnd := 2 + argCells + retCells
-  if loopFrame && retCells != 0 then throw s!"in {f.name}: a loop helper that returns cells"
-  match f.body.getLast? with
-  | some (.ret _) => pure ()
-  | _ => throw s!"in {f.name}: a body that does not end in a return"
-  let st : St := {
-    next := abiEnd + (if loopFrame then 1 else 0), tables,
+def initSt (loops : Loops) (tables : Tables) (tf : TracedFn) : St :=
+  let loopFrame := (loops[tf.core.name]?).any (·.registered)
+  let abiEnd := 2 + (sigOf tf).1 + (sigOf tf).2
+  { next := abiEnd + (if loopFrame then 1 else 0), tables,
     scope := { selfFp := if loopFrame then some abiEnd else none } }
-  let ctx : Ctx := {
-    name := f.name, isMain := f.name == "main", argCells, retCells, loops, sigs,
-    trace := tf.trace }
-  let ((), st) ← (placeBody tf).run ctx |>.run st
-  if 2 ^ 64 ≤ st.next then throw s!"in {f.name}: a frame past the address space"
-  return (⟨{ name := f.name, body := st.out.toList, frameSize := st.next }, st.locs⟩, st.tables)
+
+/-- Place a function (`lower_func`). -/
+def placeFn (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : Tables)
+    (tf : TracedFn) : Except String (Placed × Tables) :=
+  if (loops[tf.core.name]?).any (·.registered) && (sigOf tf).2 != 0 then
+    .error s!"in {tf.core.name}: a loop helper that returns cells"
+  else
+    match tf.core.body.getLast? with
+    | some (.ret _) =>
+        match placeBody tf (ctxOf loops sigs tf) (initSt loops tables tf) with
+        | .error e => .error e
+        | .ok ((), st) =>
+            if 2 ^ 64 ≤ st.next then .error s!"in {tf.core.name}: a frame past the address space"
+            else .ok (⟨{ name := tf.core.name, body := st.out.toList, frameSize := st.next },
+              st.locs⟩, st.tables)
+    | _ => .error s!"in {tf.core.name}: a body that does not end in a return"
 
 /-- Place the functions in order: the jump tables grow as the lowering reaches each `match`. -/
 def placeFns (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) :

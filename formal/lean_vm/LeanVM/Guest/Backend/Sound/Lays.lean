@@ -37,10 +37,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 variable {α β : Type}
 
-/-- Every shared table's callees are among the entries. -/
-def TablesOK (t : Tables) : Prop :=
-  ∀ p ∈ t.shared, ∀ j (h : j < p.1.length), (p.2 + j, p.1[j]) ∈ t.entries.toList
-
 /-- The jump tables only grew. -/
 structure TablesLe (t t' : Tables) : Prop where
   entries : ∀ x ∈ t.entries.toList, x ∈ t'.entries.toList
@@ -182,6 +178,14 @@ theorem Lays.imp {G' : Prop → Prop} {S' : Prop → (List E → Prop) → Prop}
   exact ⟨ps, ho, hl, ht, fun hok pos N kj kretP khalt g next kret hH hF hp hB hfill hent hsem hG'
     hnext hret => hS next kret (hm hok pos N kj kretP khalt g next kret hH hF hp hB hfill hent
       hsem (hG g hG') hnext hret)⟩
+
+/-- What was assumed, with the relation. -/
+theorem Lays.withH (h : Lays Γ fp F ctx slots B H st st' G S) :
+    Lays Γ fp F ctx slots B H st st' G (fun next kret => H ∧ S next kret) := by
+  obtain ⟨ps, ho, hl, ht, hm⟩ := h
+  exact ⟨ps, ho, hl, ht, fun hok pos N kj kretP khalt g next kret hH hF hp hB hfill hent hsem hG
+    hnext hret => ⟨hH, hm hok pos N kj kretP khalt g next kret hH hF hp hB hfill hent hsem hG hnext
+      hret⟩⟩
 
 theorem Lays.weaken {H' : Prop} (h : Lays Γ fp F ctx slots B H st st' G S) (hH : H' → H) :
     Lays Γ fp F ctx slots B H' st st' G S := by
