@@ -11,6 +11,7 @@ import LeanVM.Prover.ExecuteSound
 import LeanVM.Prover.ExecuteComplete
 import LeanVM.Prover.ExecuteCompleteX
 import LeanVM.Guest.HonestChildren
+import LeanVM.Guest.EndExecHonest
 import XmssSecurity.Rpm
 import Sphincs.Security
 import LeanDa
@@ -92,6 +93,14 @@ random-permutation model where an adversary is involved, except the memory-decod
 * `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuestCompleteness.lean`): the
   recursion step, the batching of the children's deferred claims run outside the circuit, sound in
   the random-permutation model (from `batch_rpm`).
+
+**The executor on the guest, conditional.** `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children :
+ExecGaps Ks Km E0 X Pro → GuestExecutionComplete guestAdvice` (`LeanVM/Guest/EndExecHonest.lean`): the executor
+`LeanVM.Prover.Exec.execute` runs the guest program to completion on the guest's advice
+(`LeanVM.Guest.guestAdvice`), within `2^30` committed cells, on every node `GuestCompleteOnHonestChildren`
+admits, given the pieces not yet proved (`ExecGaps`, `LeanVM/Guest/EndExec.lean`); with it the composed
+prover's proof is accepted (`guest_prover_complete`, `aggregate_complete_exec`). Not a field of
+`Statement.Theorems` until `ExecGaps` is discharged (`notes/exec-statement.md`).
 
 The other theorems pinned below are steps or corollaries: the bounds' numbers (the soundness and
 completeness errors, and the compiled extractor's price, `LeanVM.Cost.Bounds.extractorC_cost`,
@@ -234,6 +243,26 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 /-- info: 'LeanVM.Guest.Completeness.guest_complete_on_honest_children' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Completeness.guest_complete_on_honest_children
+
+/-- info: 'LeanVM.Guest.EndExec.execute_guest_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.execute_guest_complete
+
+/-- info: 'LeanVM.Guest.EndExec.aggregate_complete_exec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.aggregate_complete_exec
+
+/--
+info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children
+
+/-- info: 'LeanVM.Guest.EndExec.guest_prover_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.guest_prover_complete
 
 /-- info: 'LeanVM.Guest.Completeness.honest_proof_rarely_refused' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
