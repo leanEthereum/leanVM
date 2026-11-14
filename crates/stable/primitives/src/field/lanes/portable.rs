@@ -4,6 +4,8 @@
 use crate::field::gf2_64::mul_wide;
 use crate::field::{F64, F128, F128Unreduced};
 
+pub use super::bytes::{map_bytes, map_fields, transpose_bits, transpose_bytes, transpose_words};
+
 /// Eight `K` elements.
 #[derive(Clone, Copy, Debug)]
 pub struct F64x8([F64; 8]);
@@ -107,6 +109,30 @@ impl F128x8 {
     #[inline(always)]
     pub(super) fn product(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|i| self.0[i] * rhs.0[i]))
+    }
+}
+
+/// Eight sums of 128-bit carry-less products.
+#[derive(Clone, Copy, Debug)]
+pub struct Wide8([u128; 8]);
+
+impl Wide8 {
+    pub const ZERO: Self = Self([0; 8]);
+
+    /// The eight carry-less products `a[i] * b[i]`.
+    #[inline(always)]
+    pub fn mul(a: [u64; 8], b: [u64; 8]) -> Self {
+        Self(clmul8(a, b))
+    }
+
+    #[inline(always)]
+    pub fn to_array(self) -> [u128; 8] {
+        self.0
+    }
+
+    #[inline(always)]
+    pub(super) fn xor(self, rhs: Self) -> Self {
+        Self(core::array::from_fn(|i| self.0[i] ^ rhs.0[i]))
     }
 }
 

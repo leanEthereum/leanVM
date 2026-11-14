@@ -6,8 +6,11 @@
 use core::arch::aarch64::*;
 use core::mem::transmute;
 
+use super::ByteMap;
 use crate::field::gf2_64::R64;
 use crate::field::{F64, F128, F128Unreduced};
+
+pub use super::bytes::{map_fields, transpose_bits, transpose_bytes, transpose_words};
 
 type V = uint64x2_t;
 
@@ -122,6 +125,24 @@ pub fn clmul8_low(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
     unsafe { transmute::<[V; 4], [u64; 8]>(p) }
 }
 
+/// Every byte of `x` through `m`: a table lookup per nibble.
+#[inline(always)]
+pub fn map_bytes(m: &ByteMap, x: [u64; 8]) -> [u64; 8] {
+    // SAFETY: NEON is part of the aarch64 baseline; the loads read the two 16-byte tables, and both sides of each
+    // transmute are plain bits of one size.
+    unsafe {
+        let (low, high) = (vld1q_u8(m.nibbles[0].as_ptr()), vld1q_u8(m.nibbles[1].as_ptr()));
+        let x = transmute::<[u64; 8], [uint8x16_t; 4]>(x);
+        let y = x.map(|x| {
+            veorq_u8(
+                vqtbl1q_u8(low, vandq_u8(x, vdupq_n_u8(15))),
+                vqtbl1q_u8(high, vshrq_n_u8::<4>(x)),
+            )
+        });
+        transmute::<[uint8x16_t; 4], [u64; 8]>(y)
+    }
+}
+
 impl F64x8 {
     pub const ZERO: Self = Self([ZERO; 4]);
 
@@ -214,6 +235,35 @@ impl F128x8 {
     #[inline(always)]
     pub(super) fn product(self, rhs: Self) -> Self {
         self.mul_unreduced(rhs).reduce()
+    }
+}
+
+/// Eight sums of 128-bit carry-less products, one to a register.
+#[derive(Clone, Copy, Debug)]
+pub struct Wide8([V; 8]);
+
+impl Wide8 {
+    pub const ZERO: Self = Self([ZERO; 8]);
+
+    /// The eight carry-less products `a[i] * b[i]`.
+    #[inline(always)]
+    pub fn mul(a: [u64; 8], b: [u64; 8]) -> Self {
+        let (a, b) = (F64x8::from_array(&a.map(F64)).0, F64x8::from_array(&b.map(F64)).0);
+        Self(core::array::from_fn(|i| {
+            let q = i / 2;
+            if i % 2 == 0 { lo(a[q], b[q]) } else { hi(a[q], b[q]) }
+        }))
+    }
+
+    #[inline(always)]
+    pub fn to_array(self) -> [u128; 8] {
+        // SAFETY: both sides are plain bits of one size.
+        unsafe { transmute::<[V; 8], [u128; 8]>(self.0) }
+    }
+
+    #[inline(always)]
+    pub(super) fn xor(self, rhs: Self) -> Self {
+        Self(core::array::from_fn(|i| xor(self.0[i], rhs.0[i])))
     }
 }
 

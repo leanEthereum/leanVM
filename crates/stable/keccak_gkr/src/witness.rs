@@ -15,12 +15,6 @@ pub(crate) const BLOCK_WORDS: usize = 8;
 /// Words one block of one state takes.
 pub(crate) const BLOCK_LEN: usize = BITS * BLOCK_WORDS;
 
-/// The eight words of position `j` of a sliced block.
-#[inline(always)]
-pub(crate) fn words(block: &[u64], j: usize) -> &[u64; BLOCK_WORDS] {
-    block[j * BLOCK_WORDS..][..BLOCK_WORDS].try_into().expect("eight words")
-}
-
 /// Built only by [`Shape::new`], which bounds its sizes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Shape {

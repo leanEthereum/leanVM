@@ -18,6 +18,8 @@ pub const EMBED_BITS: usize = 24;
 /// Coefficients of a product of two embeddings.
 pub const PROD_BITS: usize = 2 * EMBED_BITS - 1;
 
+use primitives::field::lanes::Linear16;
+
 /// The moduli, with the number of bits each one holds.
 const FACTORS: [(u64, usize); 7] = [
     (0b10, 1),
@@ -32,9 +34,8 @@ const FACTORS: [(u64, usize); 7] = [
 pub struct Rmfe {
     /// `embed` of each unit vector.
     pub emb: [u32; PACK],
-    /// `embed` of a low byte and of a high byte.
-    pub(crate) emb_lo: [u32; 256],
-    pub(crate) emb_hi: [u32; 256],
+    /// `embed`, for the lanes.
+    pub embedding: Linear16,
     /// Bit `i` of `project(p)` is the parity of `p & proj[i]`.
     pub proj: [u64; PACK],
     /// `embed` of all ones.
@@ -74,23 +75,6 @@ const fn pdivmod(mut a: u64, f: u64) -> (u64, u64) {
 
 const fn pmod(a: u64, f: u64) -> u64 {
     pdivmod(a, f).1
-}
-
-/// The embedding of each value of the byte at bit `shift` of the input.
-const fn byte_table(emb: &[u32; PACK], shift: usize) -> [u32; 256] {
-    let mut table = [0u32; 256];
-    let mut byte = 0;
-    while byte < 256 {
-        let mut t = 0;
-        while t < 8 {
-            if byte >> t & 1 == 1 {
-                table[byte] ^= emb[shift + t];
-            }
-            t += 1;
-        }
-        byte += 1;
-    }
-    table
 }
 
 impl Rmfe {
@@ -156,19 +140,23 @@ impl Rmfe {
         emb[PACK - 1] = modulus as u32;
         proj[PACK - 1] = 1 << (PROD_BITS - 1);
 
-        let (emb_lo, emb_hi) = (byte_table(&emb, 0), byte_table(&emb, 8));
+        let mut ones = 0;
+        let mut t = 0;
+        while t < PACK {
+            ones ^= emb[t];
+            t += 1;
+        }
         Self {
             emb,
-            emb_lo,
-            emb_hi,
+            embedding: Linear16::new(emb),
             proj,
-            ones: emb_lo[255] ^ emb_hi[255],
+            ones,
         }
     }
 
     #[inline(always)]
     pub fn embed(&self, a: u16) -> u32 {
-        self.emb_lo[a as usize & 0xff] ^ self.emb_hi[a as usize >> 8]
+        self.embedding.apply(a)
     }
 
     #[cfg(test)]

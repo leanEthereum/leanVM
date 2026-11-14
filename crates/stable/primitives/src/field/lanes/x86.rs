@@ -5,8 +5,19 @@
 //!
 //! The kernels below are written once over the register type `V` and the few width-specific moves in `v`.
 
+use core::arch::x86_64::*;
+use core::mem::transmute;
+
+use super::Linear16;
 use crate::field::gf2_64::reduce;
 use crate::field::{F64, F128, F128Unreduced};
+
+cfg_select! {
+    target_feature = "gfni" => {}
+    _ => {
+        pub use super::bytes::{map_bytes, transpose_bits};
+    }
+}
 
 /// 128-bit lanes in a register.
 const W: usize = size_of::<V>() / 16;
@@ -77,7 +88,6 @@ fn karatsuba(a: V, b: V) -> [V; 2] {
 /// One product, the scalar [`F128`] multiply: [`karatsuba`] and [`reduce_pair`] on a single 128-bit lane.
 #[inline(always)]
 pub(crate) fn mul(a: F128, b: F128) -> F128 {
-    use core::arch::x86_64::*;
     // SAFETY: the module's cfg enables vpclmulqdq and avx2, which imply pclmulqdq and ssse3; each transmute is of 16
     // plain bytes.
     unsafe {
@@ -134,6 +144,138 @@ pub fn clmul8_low(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
     let out: [V; Q] = core::array::from_fn(|q| v::unpacklo(clmul::<0x00>(a[q], b[q]), clmul::<0x11>(a[q], b[q])));
     // SAFETY: as above.
     unsafe { core::mem::transmute::<[V; Q], [u64; 8]>(out) }
+}
+
+/// Every byte of `x` through `m`: one affine byte map per register.
+#[cfg(target_feature = "gfni")]
+#[inline(always)]
+pub fn map_bytes(m: &super::ByteMap, x: [u64; 8]) -> [u64; 8] {
+    let matrix = v::splat(m.matrix, m.matrix);
+    // SAFETY: both sides of each transmute are plain bits of one size.
+    unsafe { transmute::<[V; Q], [u64; 8]>(transmute::<[u64; 8], [V; Q]>(x).map(|x| v::affine(x, matrix))) }
+}
+
+/// The low byte of every 16-bit field.
+const LOW_BYTES: u64 = 0x00ff_00ff_00ff_00ff;
+
+/// `m` of each 16-bit field of each lane, by nibble lookups: per output byte, the low and the high byte of every
+/// field looked up in place, the high one's moved onto the low one, then the four bytes of each image gathered by
+/// unpacking.
+#[inline(always)]
+pub fn map_fields(m: &Linear16, x: [u64; 8]) -> [[u64; 8]; 4] {
+    let (nibble, low_bytes) = (
+        v::splat(0x0f0f_0f0f_0f0f_0f0f, 0x0f0f_0f0f_0f0f_0f0f),
+        v::splat(LOW_BYTES, LOW_BYTES),
+    );
+    // SAFETY: both sides are plain bits of one size.
+    let x = unsafe { transmute::<[u64; 8], [V; Q]>(x) };
+    let mut out = [[v::zero(); Q]; 4];
+    for (q, &x) in x.iter().enumerate() {
+        let (lo, hi) = (v::and(x, nibble), v::and(v::shr::<4>(x), nibble));
+        // Byte `o` of each field's image, at the field's low byte.
+        let s: [V; 4] = core::array::from_fn(|o| {
+            let t = &m.nibbles[o];
+            let low = v::xor(v::lookup(t[0], lo), v::lookup(t[1], hi));
+            let high = v::xor(v::lookup(t[2], lo), v::lookup(t[3], hi));
+            v::and(v::xor(low, v::shr::<8>(high)), low_bytes)
+        });
+        let (s01, s23) = (v::or(s[0], v::shl::<8>(s[1])), v::or(s[2], v::shl::<8>(s[3])));
+        // Per 128-bit lane, the images of its first word's four fields, then of its second word's.
+        let (first, second) = (v::unpacklo16(s01, s23), v::unpackhi16(s01, s23));
+        let (f01, f23) = (v::unpacklo32(first, second), v::unpackhi32(first, second));
+        let z = v::zero();
+        out[0][q] = v::unpacklo32(f01, z);
+        out[1][q] = v::unpackhi32(f01, z);
+        out[2][q] = v::unpacklo32(f23, z);
+        out[3][q] = v::unpackhi32(f23, z);
+    }
+    // SAFETY: both sides are plain bits of one size.
+    unsafe { transmute::<[[V; Q]; 4], [[u64; 8]; 4]>(out) }
+}
+
+/// The 4 by 4 transpose of the words of four registers.
+#[inline(always)]
+fn transpose4(a: [__m256i; 4]) -> [__m256i; 4] {
+    // SAFETY: the module's cfg enables avx2.
+    unsafe {
+        let (t0, t1) = (_mm256_unpacklo_epi64(a[0], a[1]), _mm256_unpackhi_epi64(a[0], a[1]));
+        let (t2, t3) = (_mm256_unpacklo_epi64(a[2], a[3]), _mm256_unpackhi_epi64(a[2], a[3]));
+        [
+            _mm256_permute2x128_si256::<0x20>(t0, t2),
+            _mm256_permute2x128_si256::<0x20>(t1, t3),
+            _mm256_permute2x128_si256::<0x31>(t0, t2),
+            _mm256_permute2x128_si256::<0x31>(t1, t3),
+        ]
+    }
+}
+
+/// Eight rows of eight words transposed, as four 4 by 4 blocks.
+#[inline(always)]
+pub fn transpose_words(rows: &[[u64; 8]; 8]) -> [[u64; 8]; 8] {
+    // SAFETY: both sides are plain bits of one size.
+    let r = unsafe { transmute::<[[u64; 8]; 8], [[__m256i; 2]; 8]>(*rows) };
+    let mut out = [[r[0][0]; 2]; 8];
+    for (rb, cb) in [(0, 0), (0, 1), (1, 0), (1, 1)] {
+        let t = transpose4(core::array::from_fn(|k| r[4 * rb + k][cb]));
+        for (c, t) in t.into_iter().enumerate() {
+            out[4 * cb + c][rb] = t;
+        }
+    }
+    // SAFETY: as above.
+    unsafe { transmute::<[[__m256i; 2]; 8], [[u64; 8]; 8]>(out) }
+}
+
+/// The 8 by 64 bit matrix of `rows` transposed: bit `k` of byte `n` is bit `n` of `rows[k]`. A byte transpose
+/// gathers word `c`'s bytes from the rows, last row first, and an affine byte map with each word as its matrix
+/// transposes its bits.
+#[cfg(target_feature = "gfni")]
+#[inline(always)]
+pub fn transpose_bits(rows: [u64; 8]) -> [u64; 8] {
+    /// In each 128-bit lane, byte `c` of its second word then byte `c` of its first, for each `c`.
+    const PAIRS: [u8; 16] = [8, 0, 9, 1, 10, 2, 11, 3, 12, 4, 13, 5, 14, 6, 15, 7];
+    /// The bytes of the affine map's source: byte `i` is bit `i` alone.
+    const UNITS: u64 = 0x8040_2010_0804_0201;
+    // SAFETY: the module's cfg enables avx2 and gfni; both sides of each transmute are plain bits of one size.
+    unsafe {
+        let [r0, r1] = transmute::<[u64; 8], [__m256i; 2]>(rows);
+        let pairs = _mm256_broadcastsi128_si256(transmute::<[u8; 16], __m128i>(PAIRS));
+        // Rows 6, 7 | 2, 3 and 4, 5 | 0, 1, each 16-bit field `c` then holding byte `c` of a lane's two rows.
+        let p = _mm256_shuffle_epi8(_mm256_permute2x128_si256::<0x31>(r1, r0), pairs);
+        let q = _mm256_shuffle_epi8(_mm256_permute2x128_si256::<0x20>(r1, r0), pairs);
+        let order = _mm256_setr_epi32(0, 4, 1, 5, 2, 6, 3, 7);
+        let words = [_mm256_unpacklo_epi16(p, q), _mm256_unpackhi_epi16(p, q)].map(|w| {
+            _mm256_gf2p8affine_epi64_epi8::<0>(_mm256_set1_epi64x(UNITS as i64), _mm256_permutevar8x32_epi32(w, order))
+        });
+        transmute::<[__m256i; 2], [u64; 8]>(words)
+    }
+}
+
+/// Sixteen rows of 64 bytes transposed: byte `b` of output `n` is byte `n` of `rows[b]`. Within each 128-bit lane,
+/// four rounds of unpacks pair registers 8, 4, 2 and 1 apart; fed the rows in bit-reversed order, they leave
+/// register `i` holding column `i`.
+#[inline(always)]
+pub fn transpose_bytes(rows: &[[u64; 8]; 16]) -> [u128; 64] {
+    // SAFETY: both sides are plain bits of one size.
+    let r = unsafe { transmute::<[[u64; 8]; 16], [[V; Q]; 16]>(*rows) };
+    let mut out = [[[0u128; W]; 16]; Q];
+    for (h, out) in out.iter_mut().enumerate() {
+        let mut a: [V; 16] = core::array::from_fn(|b| r[(b as u8).reverse_bits() as usize >> 4][h]);
+        for stride in [8, 4, 2, 1] {
+            let b = a;
+            for i in (0..16).filter(|i| i & stride == 0) {
+                (a[i], a[i + stride]) = match stride {
+                    8 => (v::unpacklo8(b[i], b[i + 8]), v::unpackhi8(b[i], b[i + 8])),
+                    4 => (v::unpacklo16(b[i], b[i + 4]), v::unpackhi16(b[i], b[i + 4])),
+                    2 => (v::unpacklo32(b[i], b[i + 2]), v::unpackhi32(b[i], b[i + 2])),
+                    _ => (v::unpacklo(b[i], b[i + 1]), v::unpackhi(b[i], b[i + 1])),
+                };
+            }
+        }
+        // SAFETY: both sides are plain bits of one size.
+        *out = unsafe { transmute::<[V; 16], [[u128; W]; 16]>(a) };
+    }
+    // Lane `l` of register `i` of part `h` is column `16 (W h + l) + i`.
+    core::array::from_fn(|n| out[n / 16 / W][n % 16][n / 16 % W])
 }
 
 impl F64x8 {
@@ -222,6 +364,39 @@ impl F128x8 {
     #[inline(always)]
     pub(super) fn product(self, rhs: Self) -> Self {
         self.mul_unreduced(rhs).reduce()
+    }
+}
+
+/// Eight sums of 128-bit carry-less products: register pair `q` holds those of the even and of the odd lanes of the
+/// words register `q` of [`F64x8`] holds, interleaved only when read.
+#[derive(Clone, Copy, Debug)]
+pub struct Wide8([[V; 2]; Q]);
+
+impl Wide8 {
+    pub const ZERO: Self = Self([[v::ZERO; 2]; Q]);
+
+    /// The eight carry-less products `a[i] * b[i]`.
+    #[inline(always)]
+    pub fn mul(a: [u64; 8], b: [u64; 8]) -> Self {
+        // SAFETY: both sides of each transmute are plain bits of one size.
+        let (a, b) = unsafe { (transmute::<[u64; 8], [V; Q]>(a), transmute::<[u64; 8], [V; Q]>(b)) };
+        Self(core::array::from_fn(|q| {
+            [clmul::<0x00>(a[q], b[q]), clmul::<0x11>(a[q], b[q])]
+        }))
+    }
+
+    #[inline(always)]
+    pub fn to_array(self) -> [u128; 8] {
+        let out: [[V; 2]; Q] = self.0.map(|[even, odd]| v::interleave(even, odd));
+        // SAFETY: both sides are plain bits of one size.
+        unsafe { transmute::<[[V; 2]; Q], [u128; 8]>(out) }
+    }
+
+    #[inline(always)]
+    pub(super) fn xor(self, rhs: Self) -> Self {
+        Self(core::array::from_fn(|q| {
+            [v::xor(self.0[q][0], rhs.0[q][0]), v::xor(self.0[q][1], rhs.0[q][1])]
+        }))
     }
 }
 
@@ -322,6 +497,62 @@ mod v {
                 b,
             )
         }
+    }
+
+    #[inline(always)]
+    pub fn and(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx512f.
+        unsafe { _mm512_and_si512(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn or(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx512f.
+        unsafe { _mm512_or_si512(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn unpacklo8(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx512bw.
+        unsafe { _mm512_unpacklo_epi8(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn unpackhi8(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx512bw.
+        unsafe { _mm512_unpackhi_epi8(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn unpacklo16(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx512bw.
+        unsafe { _mm512_unpacklo_epi16(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn unpackhi16(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx512bw.
+        unsafe { _mm512_unpackhi_epi16(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn unpacklo32(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx512f.
+        unsafe { _mm512_unpacklo_epi32(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn unpackhi32(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx512f.
+        unsafe { _mm512_unpackhi_epi32(a, b) }
+    }
+
+    /// Each byte through the matrix of its word in `m`.
+    #[cfg(target_feature = "gfni")]
+    #[inline(always)]
+    pub fn affine(x: V, m: V) -> V {
+        // SAFETY: the module's cfg enables avx512f, this function's gfni.
+        unsafe { _mm512_gf2p8affine_epi64_epi8::<0>(x, m) }
     }
 
     /// The qwords of each 128-bit lane swapped.
@@ -449,6 +680,62 @@ mod v {
                 b,
             )
         }
+    }
+
+    #[inline(always)]
+    pub fn and(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx2.
+        unsafe { _mm256_and_si256(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn or(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx2.
+        unsafe { _mm256_or_si256(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn unpacklo8(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx2.
+        unsafe { _mm256_unpacklo_epi8(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn unpackhi8(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx2.
+        unsafe { _mm256_unpackhi_epi8(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn unpacklo16(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx2.
+        unsafe { _mm256_unpacklo_epi16(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn unpackhi16(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx2.
+        unsafe { _mm256_unpackhi_epi16(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn unpacklo32(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx2.
+        unsafe { _mm256_unpacklo_epi32(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn unpackhi32(a: V, b: V) -> V {
+        // SAFETY: the module's cfg enables avx2.
+        unsafe { _mm256_unpackhi_epi32(a, b) }
+    }
+
+    /// Each byte through the matrix of its word in `m`.
+    #[cfg(target_feature = "gfni")]
+    #[inline(always)]
+    pub fn affine(x: V, m: V) -> V {
+        // SAFETY: the module's cfg enables avx2, this function's gfni.
+        unsafe { _mm256_gf2p8affine_epi64_epi8::<0>(x, m) }
     }
 
     /// The qwords of each 128-bit lane swapped.

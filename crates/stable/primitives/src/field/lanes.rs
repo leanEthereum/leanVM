@@ -6,7 +6,10 @@
 //! - [`Acc8`]: eight unreduced `E` sums, what products land in before one reduction per lane ([`Acc8::reduce`]) or
 //!   one for the whole sum ([`Acc8::sum`]), or read as they are ([`Acc8::to_array`]).
 //! - [`clmul8`]: eight carry-less 64x64 products, and [`clmul8_low`] their low halves, for products known to fit 64
-//!   bits.
+//!   bits; [`Wide8`], sums of such products.
+//! - 64 bytes at a time: [`map_bytes`], a GF(2)-linear map of bytes ([`ByteMap`]); [`map_fields`], one from 16 bits
+//!   to 32 ([`Linear16`]) on the 16-bit fields of eight words; and the transposes [`transpose_words`],
+//!   [`transpose_bits`] and [`transpose_bytes`].
 //!
 //! Every operation is lane by lane and agrees bit for bit with the scalar one ([`F128`], [`F64`]) on each lane, on
 //! every target. A backend defines the types and their core methods; this module adds the operators, the slice
@@ -16,21 +19,124 @@ use core::ops::{Add, AddAssign, Mul, MulAssign};
 
 use super::{F64, F128};
 
+mod bytes;
+
 cfg_select! {
     all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq") => {
         mod x86;
-        pub use x86::{Acc8, F64x8, F128x8, clmul8, clmul8_low};
-        pub(crate) use x86::mul;
+        use x86 as backend;
     }
     all(target_arch = "aarch64", target_feature = "aes") => {
         mod neon;
-        pub use neon::{Acc8, F64x8, F128x8, clmul8, clmul8_low};
-        pub(crate) use neon::mul;
+        use neon as backend;
     }
     _ => {
         mod portable;
-        pub use portable::{Acc8, F64x8, F128x8, clmul8, clmul8_low};
-        pub(crate) use portable::mul;
+        use portable as backend;
+    }
+}
+pub(crate) use backend::mul;
+pub use backend::{
+    Acc8, F64x8, F128x8, Wide8, clmul8, clmul8_low, map_bytes, map_fields, transpose_bits, transpose_bytes,
+    transpose_words,
+};
+
+/// A GF(2)-linear map of bytes, held in the one form its backend applies: where x86 has GFNI, GF2P8AFFINEQB's
+/// matrix, bit `c` of byte `7 - k` being bit `k` of the image of bit `c`; elsewhere the images of the sixteen values
+/// of the low nibble and of the high one.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ByteMap {
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "vpclmulqdq",
+        target_feature = "gfni"
+    ))]
+    matrix: u64,
+    #[cfg(not(all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "vpclmulqdq",
+        target_feature = "gfni"
+    )))]
+    nibbles: [[u8; 16]; 2],
+}
+
+impl ByteMap {
+    /// The map sending bit `c` to `images[c]`.
+    pub const fn new(images: [u8; 8]) -> Self {
+        cfg_select! {
+            all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq", target_feature = "gfni") => {
+                let mut matrix = 0u64;
+                let mut c = 0;
+                while c < 8 {
+                    let mut k = 0;
+                    while k < 8 {
+                        matrix |= ((images[c] >> k & 1) as u64) << (c + 8 * (7 - k));
+                        k += 1;
+                    }
+                    c += 1;
+                }
+                Self { matrix }
+            }
+            _ => {
+                let mut nibbles = [[0u8; 16]; 2];
+                let mut c = 0;
+                while c < 8 {
+                    let mut v = 0;
+                    while v < 16 {
+                        if v >> (c % 4) & 1 == 1 {
+                            nibbles[c / 4][v] ^= images[c];
+                        }
+                        v += 1;
+                    }
+                    c += 1;
+                }
+                Self { nibbles }
+            }
+        }
+    }
+}
+
+/// A GF(2)-linear map from 16 bits to 32, held in the forms the backends apply it in.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Linear16 {
+    /// The images of the 256 values of the low byte and of the high one.
+    bytes: [[u32; 256]; 2],
+    /// Byte `o` of the images of the sixteen values of nibble `n`, at `[o][n]`.
+    nibbles: [[[u8; 16]; 4]; 4],
+}
+
+impl Linear16 {
+    /// The map sending bit `t` to `images[t]`.
+    pub const fn new(images: [u32; 16]) -> Self {
+        let mut bytes = [[0u32; 256]; 2];
+        let mut nibbles = [[[0u8; 16]; 4]; 4];
+        let mut t = 0;
+        while t < 16 {
+            let mut v = 0;
+            while v < 256 {
+                if v >> (t % 8) & 1 == 1 {
+                    bytes[t / 8][v] ^= images[t];
+                }
+                if v < 16 && v >> (t % 4) & 1 == 1 {
+                    let mut o = 0;
+                    while o < 4 {
+                        nibbles[o][t / 4][v] ^= (images[t] >> (8 * o)) as u8;
+                        o += 1;
+                    }
+                }
+                v += 1;
+            }
+            t += 1;
+        }
+        Self { bytes, nibbles }
+    }
+
+    /// The image of `x`.
+    #[inline(always)]
+    pub fn apply(&self, x: u16) -> u32 {
+        self.bytes[0][x as usize & 0xff] ^ self.bytes[1][x as usize >> 8]
     }
 }
 
@@ -89,7 +195,15 @@ macro_rules! additive {
         }
     )*};
 }
-additive!(F64x8, F128x8, Acc8);
+additive!(F64x8, F128x8, Acc8, Wide8);
+
+impl Wide8 {
+    /// The sum of the eight lanes.
+    #[inline(always)]
+    pub fn sum(self) -> u128 {
+        self.to_array().into_iter().fold(0, |a, b| a ^ b)
+    }
+}
 
 macro_rules! multiplicative {
     ($($t:ty),*) => {$(
@@ -197,6 +311,48 @@ mod tests {
             let (p, q) = (k.map(|k| k.0), l.map(|l| l.0));
             assert_eq!(clmul8(p, q), lanes(|i| clmul_portable(p[i], q[i])));
             assert_eq!(clmul8_low(p, q), lanes(|i| clmul_portable(p[i], q[i]) as u64));
+            let wide = Wide8::mul(p, q) + Wide8::mul(q, q);
+            let want = lanes(|i| clmul_portable(p[i], q[i]) ^ clmul_portable(q[i], q[i]));
+            assert_eq!((wide.to_array(), wide.sum()), (want, want.iter().fold(0, |a, b| a ^ b)));
+        }
+    }
+
+    /// The byte operations against their definitions, bit by bit.
+    #[test]
+    fn byte_operations_match_their_definitions() {
+        let mut rng = Rng::new(0xB17E5);
+        let word = |rng: &mut Rng| -> [u64; 8] { core::array::from_fn(|_| rng.next_u64()) };
+        let bytes = |x: &[u64; 8]| -> [u8; 64] { core::array::from_fn(|n| (x[n / 8] >> (8 * (n % 8))) as u8) };
+        for _ in 0..200 {
+            let images: [u8; 8] = core::array::from_fn(|_| rng.next_u64() as u8);
+            let x = word(&mut rng);
+            let image = |b: u8| (0..8).filter(|c| b >> c & 1 == 1).fold(0, |a, c| a ^ images[c]);
+            assert_eq!(bytes(&map_bytes(&ByteMap::new(images), x)), bytes(&x).map(image));
+
+            let images: [u32; 16] = core::array::from_fn(|_| rng.next_u64() as u32);
+            let image = |v: u64| (0..16).filter(|t| v >> t & 1 == 1).fold(0, |a, t| a ^ images[t]);
+            let m = Linear16::new(images);
+            assert_eq!(
+                map_fields(&m, x),
+                core::array::from_fn(|f| x.map(|w| u64::from(image(w >> (16 * f) & 0xffff))))
+            );
+
+            let rows: [[u64; 8]; 8] = core::array::from_fn(|_| word(&mut rng));
+            assert_eq!(
+                transpose_words(&rows),
+                core::array::from_fn(|c| core::array::from_fn(|r| rows[r][c]))
+            );
+
+            let t = bytes(&transpose_bits(x));
+            for (n, k) in (0..64).flat_map(|n| (0..8).map(move |k| (n, k))) {
+                assert_eq!(t[n] >> k & 1, (x[k] >> n & 1) as u8, "bit {k} of byte {n}");
+            }
+
+            let rows: [[u64; 8]; 16] = core::array::from_fn(|_| word(&mut rng));
+            let t = transpose_bytes(&rows);
+            for (n, b) in (0..64).flat_map(|n| (0..16).map(move |b| (n, b))) {
+                assert_eq!((t[n] >> (8 * b)) as u8, bytes(&rows[b])[n], "byte {b} of {n}");
+            }
         }
     }
 
