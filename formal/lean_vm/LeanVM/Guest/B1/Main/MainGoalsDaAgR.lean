@@ -20,7 +20,8 @@ public import LeanVM.Guest.B1.Da.DvAtP
 * `CompleteAtDTBR.with_total`: the tree's words within the bound, in the predicate;
 * `mainGoalDvTBP`: `mainGoalDvTB` by trees whose valid instances pop `daPopsH w` (`Da.da_verify_completeAtTBP`);
 * `mainGoalAgTBR`: `mainGoalAgTB` by trees popping the batching's hints (`aggregate_claims_completeAtTBR`);
-* `mainGoalsRR_dv`, `mainGoalsRR_ag`: `MainGoalsRR`'s fields for them, `q` popping those entries.
+* `mainGoalsRR_dv`, `mainGoalsRR_ag`: `MainGoalsRR`'s fields for them, `q` popping those entries;
+* `mainGoalAgTBRE`, `mainGoalsRR_agE`: the same with every node exact (`aggregate_claims_completeAtTBRE`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -93,6 +94,47 @@ theorem mainGoalsRR_dv (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit
     fun rd _ _ _ _ hv hT => hT.1.2 rd _ _ hv).mono le_rfl fun rd _ h => ⟨⟨h.1.1.1, h.1.2⟩, h.2.trans (hq rd).symm⟩
 
 /-- **`main`'s honest `aggregate_claims` call within `aggB`, by a tree of honest shape popping the batching's
+hints, every node exact.** -/
+theorem mainGoalAgTBRE (SB SK : String → ℕ)
+    (hGr : TotalLe coreProgram fs "grind_check__L2" (fun _ => SB "grind_check__L2"))
+    (h25 : TotalLeOn coreProgram fs name% «aggregate_claims_loop0» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs
+          name% «aggregate_claims_loop0»))
+    (h26 : TotalLeOn coreProgram fs name% «aggregate_claims_loop1» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop1» + fs
+          name% «aggregate_claims_loop1»))
+    (h27 : TotalLeOn coreProgram fs name% «aggregate_claims_loop2» LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop2» + fs
+          name% «aggregate_claims_loop2»))
+    (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23"))
+    (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
+    (hl : GuestLimits s w) : (hm fs fp seed s w).nc ≠ 0 →
+      CompleteAtDTBR fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)
+        [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
+          (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
+          (hm fs fp seed s w).et * word 133823759239872512 0] (Returns [])
+        (fun rd t => (aggHonest (hm fs fp seed s w).nc t ∧
+          t.pops coreProgram rd = Hints.batchPushes w.batchingHints) ∧ t.Every (ExactAt coreProgram rd))
+        (aggB fs SB SK (hm fs fp seed s w).nc) := by
+  intro hnc
+  have hnc' : w.children.length ≠ 0 := hnc
+  have hne : w.children ≠ [] := fun h => hnc' (by rw [h, List.length_nil])
+  have hb := (nodeRel_iff.mp hrel).2.2.2.2
+  simp only [hne, ↓reduceIte] at hb
+  have hlog : Nat.log2 bytecode.length = bytecodeVars := by rw [hbl, Nat.log2_two_pow]
+  have hrl : w.batchingHints.sumcheckMessages.length = 23 := by
+    have hpt : s.deferredClaim.bytecodePoint.length = 23 := by rw [hrel.hasBytecodeShape, hlog]
+    rw [(batch_out hb).1, aggOut, aggRun, bsRun_len] at hpt
+    exact hpt
+  have hdst := mem_hLmain fs fp seed s w (i := 9) (by omega)
+  simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at hdst
+  have := aggregate_claims_completeAtTBRE fs cert SB SK hGr h25 h26 h27 hbs
+    (m := w.children.length) (by omega) hl.atMostSixteenChildren (cs := hKids seed w)
+    (by rw [List.length_map]) hrl hb (fun rd hM => hkids_words fs fp hbl hrel hM)
+    (fun rd _ hM => hLmain_winTabs fs fp hM) hdst
+  exact this.lowMono (by norm_num)
+
+/-- **`main`'s honest `aggregate_claims` call within `aggB`, by a tree of honest shape popping the batching's
 hints.** -/
 theorem mainGoalAgTBR (SB SK : String → ℕ)
     (hGr : TotalLe coreProgram fs "grind_check__L2" (fun _ => SB "grind_check__L2"))
@@ -113,24 +155,8 @@ theorem mainGoalAgTBR (SB SK : String → ℕ)
           (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
           (hm fs fp seed s w).et * word 133823759239872512 0] (Returns [])
         (fun rd t => aggHonest (hm fs fp seed s w).nc t ∧ t.pops coreProgram rd = Hints.batchPushes w.batchingHints)
-        (aggB fs SB SK (hm fs fp seed s w).nc) := by
-  intro hnc
-  have hnc' : w.children.length ≠ 0 := hnc
-  have hne : w.children ≠ [] := fun h => hnc' (by rw [h, List.length_nil])
-  have hb := (nodeRel_iff.mp hrel).2.2.2.2
-  simp only [hne, ↓reduceIte] at hb
-  have hlog : Nat.log2 bytecode.length = bytecodeVars := by rw [hbl, Nat.log2_two_pow]
-  have hrl : w.batchingHints.sumcheckMessages.length = 23 := by
-    have hpt : s.deferredClaim.bytecodePoint.length = 23 := by rw [hrel.hasBytecodeShape, hlog]
-    rw [(batch_out hb).1, aggOut, aggRun, bsRun_len] at hpt
-    exact hpt
-  have hdst := mem_hLmain fs fp seed s w (i := 9) (by omega)
-  simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at hdst
-  have := aggregate_claims_completeAtTBR fs cert SB SK hGr h25 h26 h27 hbs
-    (m := w.children.length) (by omega) hl.atMostSixteenChildren (cs := hKids seed w)
-    (by rw [List.length_map]) hrl hb (fun rd hM => hkids_words fs fp hbl hrel hM)
-    (fun rd _ hM => hLmain_winTabs fs fp hM) hdst
-  exact this.lowMono (by norm_num)
+        (aggB fs SB SK (hm fs fp seed s w).nc) := fun h0 =>
+  (mainGoalAgTBRE fs cert fp SB SK hGr h25 h26 h27 hbs hbl hrel hl h0).mono le_rfl fun _ _ h => h.1
 
 /-- **`MainGoalsRR.ag`**, `q` popping the batching's hints. -/
 theorem mainGoalsRR_ag (hbl : bytecode.length = 2 ^ 23) (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
@@ -143,6 +169,19 @@ theorem mainGoalsRR_ag (hbl : bytecode.length = 2 ^ 23) (hn : NodeRelation bytec
       (mainPredsHP fs SB SK Bv Pvs s w q).Pa (mainBsH fs SB SK Bv s w).Ba := fun h0 =>
   (mainGoalAgTBR fs cert fp SB SK hS.gr hS.l25 hS.l26 hS.l27 hS.bs hbl hn hl h0).with_total.mono le_rfl
     fun rd _ h => ⟨⟨h.1.1, h.2⟩, h.1.2.trans (hq rd).symm⟩
+
+/-- **`MainGoalsRR.ag`, every node exact**, `q` popping the batching's hints. -/
+theorem mainGoalsRR_agE (hbl : bytecode.length = 2 ^ 23) (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
+    {SB SK : String → ℕ} {Bv : ℕ → ℕ} {Pvs : ℕ → Tree → Prop} {q : MainPops} (hS : MainStatics fs SB SK)
+    (hq : ∀ rd, q.pa rd = Hints.batchPushes w.batchingHints) : (hm fs fp seed s w).nc ≠ 0 →
+    CompleteAtDTBR fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)
+      [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
+        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
+          (hm fs fp seed s w).et * word 133823759239872512 0] (Returns [])
+      (fun rd t => (mainPredsHP fs SB SK Bv Pvs s w q).Pa rd t ∧ t.Every (ExactAt coreProgram rd))
+      (mainBsH fs SB SK Bv s w).Ba := fun h0 =>
+  (mainGoalAgTBRE fs cert fp SB SK hS.gr hS.l25 hS.l26 hS.l27 hS.bs hbl hn hl h0).with_total.mono le_rfl
+    fun rd _ h => ⟨⟨⟨h.1.1.1, h.2⟩, h.1.1.2.trans (hq rd).symm⟩, h.1.2⟩
 
 end
 end LeanVM.Guest.B1.Main

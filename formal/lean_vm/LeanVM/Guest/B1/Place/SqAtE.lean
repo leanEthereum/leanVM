@@ -56,6 +56,30 @@ theorem evs_noHint {σ : Val} {pre : List Stmt} (h : pre.filterMap hintS = []) :
     · split <;> exact ⟨trivial, fun _ => trivial⟩
   | _ => simp [Main.slEvs] at he
 
+/-- **A straight run whose hints are none computed** is exact, on every reader. -/
+theorem evs_exact_of_hints {σ : Val} {pre : List Stmt}
+    (h : ∀ x ∈ pre.filterMap hintS, isComputed (.hint x) = false) :
+    ∀ e ∈ pre.flatMap (Main.slEvs σ), ∀ rd, e.Exact rd σ := by
+  intro e he rd
+  obtain ⟨s, hs, he⟩ := List.mem_flatMap.mp he
+  cases s with
+  | atom a =>
+    simp only [Main.slEvs, List.mem_singleton] at he
+    subst he
+    cases a with
+    | hint x => exact exact_of_not_computed (h x (List.mem_filterMap.mpr ⟨_, hs, rfl⟩))
+    | _ => trivial
+  | call f args rets =>
+    simp only [Main.slEvs, List.mem_singleton] at he
+    subst he
+    trivial
+  | callIf c f args =>
+    simp only [Main.slEvs, List.mem_cons, List.not_mem_nil, or_false] at he
+    rcases he with rfl | rfl
+    · trivial
+    · split <;> trivial
+  | _ => simp [Main.slEvs] at he
+
 theorem sqLoopPre_hints (lv : OsLv) (name : String) : (sqLoopPre lv name).filterMap hintS = [] := by
   simp only [sqLoopPre, sqLoopA, List.filterMap_append,
     fm_pow_nil hintS (fun _ _ _ => rfl),

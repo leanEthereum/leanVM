@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Place.Lp
 public import LeanVM.Guest.B1.Bits.QueryWindowsAtAll
+public import LeanVM.Guest.Memory.PopsNil
 public import LeanVM.Guest.B1.Whir.Commit
 public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Whir.HelperAll
@@ -118,6 +119,9 @@ theorem lpPreB_calls (S d cd : ℕ) (loop : String) :
       [(none, dqwName d cd, [.n 0, .n 6, .n 7, .n 8], []),
         (some (.n 13), loop, [.n 14, .n 15, .n 10, .n 6, .n 7, .n 8], [])] := rfl
 
+theorem lpPreB_hints (S d cd : ℕ) (loop : String) :
+    (lpPreB S d cd loop).filterMap hintS = [.allocDyn (.n 10) (.n 9)] := rfl
+
 theorem lpPreB_loads (S d cd : ℕ) (loop : String) :
     (lpPreB S d cd loop).filterMap Stmt.loadS =
       ((List.range 5).map fun i ↦ ((.n 10 : V), 5 + i)) ++
@@ -151,12 +155,13 @@ theorem lp_notLoop {S d cd : ℕ} {name loop : String} {fn : Fn} (hf : coreProgr
 
 /-! ## Placed -/
 
-/-- **`level_positions` at one specialization, placed at `fp`.** -/
-theorem lp_placed (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {name loop : String}
+/-- **`level_positions` at one specialization, placed at `fp`, exact**: by a tree popping nothing whose every node is
+exact on the memory. -/
+theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {name loop : String}
     {S d cd : ℕ} (hlp : FnIs name (osParams 9) (lpBody S d cd loop))
     (hl : FnIs loop (osParams 6) (lpLoopBody d cd loop)) (hS : 0 < S) (hSo : S < ordG) (hSB : S ≤ 64)
     (hpw : digitsVal (osPowDigits (128 / d)) 1 = 128 / d)
-    (hdec : QwDecodeAtD fs cert κ d cd (dqwName d cd))
+    (hdec : QwDecodeAtDE fs cert κ d cd (dqwName d cd))
     {w0 : E} {cap : List E} {ep ew : ℕ} {tabs : E} {Lin : Layout} (hcl : cap.length = 5) (fp : ℕ)
     (hreg : ∀ k < S * (128 / d), RegionL Lin (ep + k) ∧ RegionL Lin (ew + k))
     (hregt : ∀ t < 128, ∃ i, tabs.limb 0 * addressOfIndex t = addressOfIndex i ∧ RegionL Lin i)
@@ -167,10 +172,10 @@ theorem lp_placed (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
       Within (lpRuns fs cert name loop S d cd w0 cap fp ++ Lown) fp (lpN fs name loop S d cd) ∧
       DisjL (lpRuns fs cert name loop S d cd w0 cap fp ++ Lown) ∧
       ∀ rd, LowDef κ rd → MemL rd (lpRuns fs cert name loop S d cd w0 cap fp ++ Lown ++ Lin) →
-        RelAtIn coreProgram fs cert rd (RegionL Lin)
+        RelAtInPE coreProgram fs cert rd (ExactAt coreProgram rd) (RegionL Lin)
           (RegionL (lpRuns fs cert name loop S d cd w0 cap fp)) fp (lpN fs name loop S d cd) name
           (w0 :: cap ++ [ofK (addressOfIndex ep), ofK (addressOfIndex ew), tabs])
-          ((⟨cap, []⟩ : Fs).squeezeN (S - 1)).2.cap := by
+          ((⟨cap, []⟩ : Fs).squeezeN (S - 1)).2.cap [] := by
   obtain ⟨fnL, hfL, hpL, hbL⟩ := hl
   obtain ⟨fn, hf, hps, hb⟩ := hlp
   have hll : coreProgram.loop loop = true := lpLoop_isLoop hfL hbL
@@ -179,7 +184,7 @@ theorem lp_placed (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
   have hpo : lv.posOff = 0 := rfl
   have hit : SqIterC lv := by
     have := sqIterC'_holds lv hpw (by rw [hpo]; unfold u128Bound; norm_num); exact this
-  have hdec' : QwDecodeAtD fs cert κ lv.depth lv.capDepth (sqDecName lv) := hdec
+  have hdec' : QwDecodeAtDE fs cert κ lv.depth lv.capDepth (sqDecName lv) := hdec
   set P := 128 / d with hP
   set b := lpKidsAt fs name S fp with hbdef
   set sqzE := fp + fs name with hsqzE
@@ -205,7 +210,7 @@ theorem lp_placed (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     rw [← pow_mul, loadHolds_mul_gen_pow, show j * 5 + i = 5 * j + i by ring]
     exact h
   -- the group
-  have hgroup := os_sq_group fs cert κ hfL hpL hbL hll hit hdec' (n := S) (by omega) hSo
+  have hgroup := os_sq_groupE fs cert κ hfL hpL hbL hll hit hdec' (n := S) (by omega) hSo
     (w := w) (cap := lpRow cap) (fun j ↦ lpRow_length hcl j)
     (fun j hj ↦ (lpRow_squeeze hj).2 w0) (sqz := sqz) (tabs := tabs) (eqp := ep) (eq := ew)
     (Lk := Lk)
@@ -376,7 +381,10 @@ theorem lp_placed (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
         left
         have := (hreg (i - ew) (by rw [hsp] at h2; omega)).2
         rwa [show ew + (i - ew) = i by omega] at this))
-  have hrel := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
+  have hnw := walk_noWit (σ := σ) fn.body (by rw [hb]; rfl)
+  rw [hwalk] at hnw
+  have hrel := relAtInPE_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
+    (Q := ExactAt coreProgram rd) (pss := [[], []]) (ps := [])
     (R := RegionL Lin) (D := RegionL runs) (Dk := RegionL runs)
     (N := fs (sqDecName lv) + sqTot fs lv loop (S - 1) 0) (fp := fp)
     (args := w0 :: cap ++ [qpos, qbp, tabs]) (rets := last)
@@ -400,10 +408,35 @@ theorem lp_placed (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
       · refine ⟨sqzE + S * 5 + i, ?_, Or.inl ?_⟩
         · rw [h17, hsqz, lp_addr]
         · rw [Nat.add_assoc]; exact hown _ (by omega))
-    (fun i hi => Or.inr hi)
+    (fun i hi => Or.inr hi) (splice_nil_of _ _ hnw (by simp))
+    (exactAt_of_walk hf hwalk fun e he => evs_exact_of_hints (σ := σ) (pre := lpPreB S d cd loop)
+      (fun x hx => by rw [lpPreB_hints] at hx; simp only [List.mem_singleton] at hx; subst hx; rfl) e he rd)
   rw [hal] at hrel
   simp only [List.sum_cons, List.sum_nil, Nat.add_zero] at hrel
   exact hrel
+
+/-- **`level_positions` at one specialization, placed at `fp`** (`lp_placedE`). -/
+theorem lp_placed (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {name loop : String}
+    {S d cd : ℕ} (hlp : FnIs name (osParams 9) (lpBody S d cd loop))
+    (hl : FnIs loop (osParams 6) (lpLoopBody d cd loop)) (hS : 0 < S) (hSo : S < ordG) (hSB : S ≤ 64)
+    (hpw : digitsVal (osPowDigits (128 / d)) 1 = 128 / d)
+    (hdec : QwDecodeAtDE fs cert κ d cd (dqwName d cd))
+    {w0 : E} {cap : List E} {ep ew : ℕ} {tabs : E} {Lin : Layout} (hcl : cap.length = 5) (fp : ℕ)
+    (hreg : ∀ k < S * (128 / d), RegionL Lin (ep + k) ∧ RegionL Lin (ew + k))
+    (hregt : ∀ t < 128, ∃ i, tabs.limb 0 * addressOfIndex t = addressOfIndex i ∧ RegionL Lin i)
+    (hmem : ∀ rd, LowDef κ rd → MemL rd Lin →
+      LpMem cert S d cd (lpDecPos fs name loop S d cd fp) w0 cap (ofK (addressOfIndex ep))
+        (ofK (addressOfIndex ew)) tabs rd) :
+    ∃ Lown : Layout,
+      Within (lpRuns fs cert name loop S d cd w0 cap fp ++ Lown) fp (lpN fs name loop S d cd) ∧
+      DisjL (lpRuns fs cert name loop S d cd w0 cap fp ++ Lown) ∧
+      ∀ rd, LowDef κ rd → MemL rd (lpRuns fs cert name loop S d cd w0 cap fp ++ Lown ++ Lin) →
+        RelAtIn coreProgram fs cert rd (RegionL Lin)
+          (RegionL (lpRuns fs cert name loop S d cd w0 cap fp)) fp (lpN fs name loop S d cd) name
+          (w0 :: cap ++ [ofK (addressOfIndex ep), ofK (addressOfIndex ew), tabs])
+          ((⟨cap, []⟩ : Fs).squeezeN (S - 1)).2.cap := by
+  obtain ⟨Lown, hW, hD, hR⟩ := lp_placedE fs cert κ hlp hl hS hSo hSB hpw hdec hcl fp hreg hregt hmem
+  exact ⟨Lown, hW, hD, fun rd hl hm => RelAtInT.relAtIn (hR rd hl hm)⟩
 
 /-! ## Every specialization -/
 
@@ -419,7 +452,7 @@ theorem level_positions_completeAt : level_positions_completeAt_Spec := by
   intro fs cert κ hfit hcons hκ e he
   obtain ⟨hlp, hl⟩ := lpTable_ok e he
   obtain ⟨hS, hSo, hSB, hpw, hmem⟩ := lpTable_facts e he
-  have hdec := qwDecodeAtD_holds hfit hcons hκ _ hmem
+  have hdec := qwDecodeAtDE_holds hfit hcons hκ _ hmem
   intro w0 cap ep ew tabs Lin hcl hreg hregt hmemL fp
   obtain ⟨Lown, hW, hD, hR⟩ := lp_placed fs cert κ hlp hl hS hSo hSB hpw hdec hcl fp
     (fun k hk ↦ hreg fp k hk) (hregt fp) (fun rd hlow hm ↦ hmemL fp rd hlow hm)

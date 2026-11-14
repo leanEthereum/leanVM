@@ -302,6 +302,21 @@ theorem grind_check_completeDTBR {bits : ℕ} (hb : bits ∈ grindBitsDeployed) 
   fun fp => ⟨fs (grindCheckName bits), [], rets, [], le_rfl, ⟨rfl, rfl⟩, by simp [Within], disj_nil,
     fun _ hl hL => grind_relAtInE hb hκ hpre fp hl (by simpa using hL)⟩
 
+/-- **`grind_check__L{bits}`, placed and exact, within any bound on its valid trees.** -/
+theorem grind_check_completeDTBR_of {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ} (hκ : 11 ≤ κ) {B : ℕ}
+    (hT : TotalLe coreProgram fs (grindCheckName bits) fun _ => B) {args rets : List E} {Lin : Main.Layout}
+    (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → grindPre bits rd args rets) :
+    CompleteAtDTBR fs cert κ (grindCheckName bits) Lin args (Returns rets)
+      (fun rd t => t.pops coreProgram rd = [] ∧ t.Every (ExactAt coreProgram rd)) B := by
+  intro fp
+  by_cases hex : ∃ rd, LowDef κ rd ∧ MemL rd Lin
+  · obtain ⟨rd0, h0, hL0⟩ := hex
+    obtain ⟨t, ⟨hn, hv, hbo, -, ht, -⟩, -⟩ := grind_relAtInE (fs := fs) (cert := cert) hb hκ hpre fp h0 hL0
+    exact ⟨fs (grindCheckName bits), [], rets, [], ht ▸ hT rd0 t _ _ hn hv hbo, ⟨rfl, rfl⟩, by simp [Within],
+      disj_nil, fun _ hl hL => grind_relAtInE hb hκ hpre fp hl (by simpa using hL)⟩
+  · exact ⟨0, [], rets, [], Nat.zero_le _, ⟨rfl, rfl⟩, by simp [Within], disj_nil,
+      fun rd hl hL => absurd ⟨rd, hl, by simpa using hL⟩ hex⟩
+
 /-- **`grind_check__L{bits}`, placed and bounded by its frame.** -/
 theorem grind_check_completeB {bits : ℕ} (hb : bits ∈ grindBitsDeployed) {κ : ℕ}
     (hκ : 11 ≤ κ) :
