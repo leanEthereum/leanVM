@@ -10,18 +10,20 @@ module
 public import LeanVM.Guest.EndComplete
 public import LeanVM.Guest.B2C.B2Final
 public import LeanVM.Guest.Memory.DischargeX
+public import LeanVM.Guest.B1.Main.HintsX
 
 /-!
 # Completeness on the extended honest memory
 
 The executor writes every heap word a hint writes, which the honest memory lacks where nothing
-loads it. `MainCompleteX` is `MainComplete` with every heap hint word of the tree in its data
-(`Tree.HintsIn`, the region empty). Under it, `honest_of_mainX` gives, beside `honest_of_main`'s
-tree, the extension `honestX` of its honest memory by the hints' words read off the memory B1's
-tree is valid on (`honestX_retemp`), holding each of them. B2 runs on any memory covering the
-honest writes (`b2_completeL`, `b2_countL`), so on the extension too: `refX_valid`, at the
-deployed instance, is a valid execution of the guest on the statement's digest, within the
-committed size, on the extension.
+loads it. `honest_of_mainH` gives, beside `honest_of_main`'s tree, the extension `honestX` of its
+honest memory by the hints' words read off the memory B1's tree is valid on (`honestX_retempH`),
+holding each of them: the tree's heap hints are in its data or its header (`B1.Main.main_hintsIn`).
+B2 runs on any memory covering the honest writes (`b2_completeL`, `b2_countL`), so on the extension
+too: `refX_valid_of_main`, at the deployed instance and under `MainComplete` alone, is a valid
+execution of the guest on the statement's digest, within the committed size, on the extension.
+`MainCompleteX` is `MainComplete` with every heap hint word of the tree in its data; the
+statements under it (`honest_of_mainX`, `refX_valid`) are corollaries.
 -/
 
 namespace LeanVM.Guest.End
@@ -60,8 +62,9 @@ theorem MainCompleteX.mainComplete (h : MainCompleteX fs cert cnt b) : MainCompl
 
 /-- **The `honest` piece on the extended memory**: `honest_of_main`'s tree `T`, a re-choice of
 the temporaries of a tree valid on a memory `rd0`, is `HonestX` with the words its hints write to
-the heap, read off `rd0`, which the extension holds. -/
-theorem honest_of_mainX (hm : MainCompleteX fs cert cnt b) (hk : KFactsAll fs H C cert)
+the heap, read off `rd0`, which the extension holds; its heap hints are placed
+(`B1.Main.main_hintsIn`). -/
+theorem honest_of_mainH (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C cert)
     (hc : CntRetemp fs cnt) :
     ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 30 →
       ∃ (rd rd0 : Reader) (T : Tree) (X : List Write),
@@ -84,8 +87,9 @@ theorem honest_of_mainX (hm : MainCompleteX fs cert cnt b) (hk : KFactsAll fs H 
   obtain ⟨hh0, hh1⟩ := B1.Main.imageOf_hdr h64 (le_trans (by decide) (twentyThree_le_logMem N)) L hdr
   have e0 : (1 : K) = Parameters.addressOfIndex 0 := by simp [Parameters.addressOfIndex]
   have e1 : Parameters.g = Parameters.addressOfIndex 1 := by simp [Parameters.addressOfIndex]
-  obtain ⟨t, hn, hv, hb, hp, ht, hl, hhint, hcntT⟩ := hrelL M.read hlow hL (by rw [e0]; exact hh0)
+  obtain ⟨t, hn, hv, hb, hp, ht, hl, hcntT⟩ := hrelL M.read hlow hL (by rw [e0]; exact hh0)
     (by rw [e1]; exact hh1)
+  have hhint := B1.Main.main_hintsIn (logMem_le_maxLogMem hN) hn hv hb hp hl
   subst ht
   have hkf := hk hdr t hn
   have hd : DischargeHyps coreProgram fs cert H C hdr t (fun i => i < 2) M [] [] :=
@@ -110,7 +114,7 @@ theorem honest_of_mainX (hm : MainCompleteX fs cert cnt b) (hk : KFactsAll fs H 
       run := hkf.run
       tmp := hkf.tmp
       keep := hkf.keep }
-  obtain ⟨ν, hν, hX, hsub, hrd⟩ := honestX_retemp hd hhint
+  obtain ⟨ν, hν, hX, hsub, hrd⟩ := honestX_retempH hd hhint
   refine ⟨_, M.read, _, _, ⟨t, ν, hv, rfl⟩, by rw [name_retemp]; exact hn, hν, hX,
     by rw [total_retemp]; exact hNb, fun op => ?_, fun a ha => ?_⟩
   · rw [hc]
@@ -121,16 +125,30 @@ theorem honest_of_mainX (hm : MainCompleteX fs cert cnt b) (hk : KFactsAll fs H 
     rw [hrv, Option.getD_some] at this
     exact this
 
+/-- `honest_of_mainH` under `MainCompleteX`. -/
+theorem honest_of_mainX (hm : MainCompleteX fs cert cnt b) (hk : KFactsAll fs H C cert)
+    (hc : CntRetemp fs cnt) :
+    ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 30 →
+      ∃ (rd rd0 : Reader) (T : Tree) (X : List Write),
+        (∃ (t : Tree) (ν : ℕ → String → Val → V → E), t.Valid coreProgram rd0 [] [] ∧ T = t.retemp coreProgram fs ν (0, t.block fs coreProgram.loop)) ∧
+        T.name = "main" ∧
+        HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
+        HonestX coreProgram fs H C (hdrOf (statementDigest seed s)) T rd [] [] X ∧
+        T.total fs ≤ b.words.eval (work s w) ∧ (∀ op, cnt T op ≤ (b.instrs op).eval (work s w)) ∧
+        ∀ a ∈ hintWords coreProgram fs H (hdrOf (statementDigest seed s)) T, ∃ v, rd0 a = some v ∧
+          (honestX coreProgram fs H C (hdrOf (statementDigest seed s)) T X).read a = some v :=
+  honest_of_mainH hm.mainComplete hk hc
+
 section Deployed
 
 open B2C
 
 /-- **The reference memory is a valid execution** at the deployed instance: under `main`'s
-completeness with its heap hints placed, the honest memory of the honest tree extended by the
+completeness, the honest memory of the honest tree extended by the
 words its hints write (read off the memory `rd0` B1's tree is valid on) is a valid execution of
 the guest on the statement's digest, within the committed size `2^30`, and holds each of those
 words. -/
-theorem refX_valid {b : Budget} (hm : MainCompleteX B2C.fs B2C.cert B2C.cnt b) :
+theorem refX_valid_of_main {b : Budget} (hm : MainComplete B2C.fs B2C.cert B2C.cnt b) :
     ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 30 →
       ∃ (rd0 : Reader) (T : Tree) (X : List Write) (n : ℕ),
         (∃ (t : Tree) (ν : ℕ → String → Val → V → E), t.Valid coreProgram rd0 [] [] ∧ T = t.retemp coreProgram B2C.fs ν (0, t.block B2C.fs coreProgram.loop)) ∧
@@ -143,7 +161,7 @@ theorem refX_valid {b : Budget} (hm : MainCompleteX B2C.fs B2C.cert B2C.cnt b) :
           (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X).read a = some v := by
   intro seed s w hrel hlim hok hbs
   obtain ⟨rd, rd0, T, X, ht, hname, hH, hX, hw, hc, hhw⟩ :=
-    honest_of_mainX hm kFactsAll (cntRetemp coreProgram_fresh) seed s w hrel hlim hok hbs
+    honest_of_mainH hm kFactsAll (cntRetemp coreProgram_fresh) seed s w hrel hlim hok hbs
   have hb := hX.publicBoundary (prog := guestProgram)
   have hreach := (reach_jumpTables (jumpTables_cover hH.toHonest hX.covers hname)).trans
     (b2_completeL b2Hyps _ rd T hname hH _ hX.covers)
@@ -152,6 +170,20 @@ theorem refX_valid {b : Budget} (hm : MainCompleteX B2C.fs B2C.cert B2C.cnt b) :
   rw [committedSize_eq_sizeOf]
   exact (sizeOf_mono hw fun op =>
     (b2_countL b2Hyps _ rd T hname hH _ hX.covers n hv.2 op).trans (hc op)).trans hbs
+
+/-- `refX_valid_of_main` under `MainCompleteX`. -/
+theorem refX_valid {b : Budget} (hm : MainCompleteX B2C.fs B2C.cert B2C.cnt b) :
+    ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 30 →
+      ∃ (rd0 : Reader) (T : Tree) (X : List Write) (n : ℕ),
+        (∃ (t : Tree) (ν : ℕ → String → Val → V → E), t.Valid coreProgram rd0 [] [] ∧ T = t.retemp coreProgram B2C.fs ν (0, t.block B2C.fs coreProgram.loop)) ∧
+        T.name = "main" ∧
+        ValidExecution guestProgram (publicInputOf (statementDigest seed s))
+          ⟨_, honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X, n⟩ ∧
+        (⟨_, honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X, n⟩ :
+          Execution guestProgram).committedSize ≤ 2 ^ 30 ∧
+        ∀ a ∈ hintWords coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T, ∃ v, rd0 a = some v ∧
+          (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X).read a = some v :=
+  refX_valid_of_main hm.mainComplete
 
 end Deployed
 

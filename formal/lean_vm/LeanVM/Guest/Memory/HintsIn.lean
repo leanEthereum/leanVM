@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Memory.Regions
 public import LeanVM.Guest.Memory
 public import LeanVM.Guest.Memory.Fresh
+public import LeanVM.Guest.Memory.HintsCheck
 
 /-!
 # Hint regions
@@ -27,20 +28,6 @@ namespace LeanVM.Guest.Memory
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
 
 @[expose] public section
-
-/-- The destination a hint writes, the computed ones' with destinations included. -/
-def hintDest? : Hint → Option Dest
-  | .witness _ d => some d
-  | .bits _ _ _ d => some d
-  | .bitsExp _ _ d => some d
-  | .digitsExp _ _ _ _ _ _ d => some d
-  | .windowsExp _ _ _ _ d => some d
-  | _ => none
-
-/-- A heap destination's pointer, offset and length. -/
-def destHeap? : Dest → Option (V × ℕ × ℕ)
-  | .heap p off len => some (p, off, len)
-  | .stack _ => none
 
 /-- The words an event's hint writes to the heap. -/
 def Ev.hintAddrs (σ : Val) : Ev → List K
