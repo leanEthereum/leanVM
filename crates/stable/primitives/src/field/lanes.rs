@@ -20,6 +20,10 @@ cfg_select! {
         mod x86;
         pub use x86::{Acc8, F64x8, F128x8, clmul8};
     }
+    all(target_arch = "aarch64", target_feature = "aes") => {
+        mod neon;
+        pub use neon::{Acc8, F64x8, F128x8, clmul8};
+    }
     _ => {
         mod portable;
         pub use portable::{Acc8, F64x8, F128x8, clmul8};
