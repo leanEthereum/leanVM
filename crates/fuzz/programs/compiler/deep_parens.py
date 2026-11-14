@@ -1,5 +1,5 @@
-# expect: ok
-# Very deep parentheses: the parser must return an error or parse it, never overflow its stack.
+# expect: compile-error an expression nested more than
+# Very deep parentheses: the parser refuses them cleanly, past its nesting bound, never overflowing its stack.
 from snark_lib import *
 
 def main():

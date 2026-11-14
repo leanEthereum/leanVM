@@ -16,9 +16,30 @@
 
 use super::*;
 
+/// How deep parentheses and bracketed structure may nest in one expression. Each level is one `parse_expr` frame
+/// on the stack, and a line is attacker-scale input in the zkDSL, so past this the parser refuses the line instead of
+/// letting its recursion reach the stack's end.
+const MAX_DEPTH: u32 = 512;
+
+thread_local! {
+    static DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
 /// Parse an expression with `+` (lowest) then `*`, atoms being integer literals,
 /// variables, calls `f(args)`, and parenthesised sub-expressions.
 pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
+    let depth = DEPTH.with(|d| d.get());
+    if depth >= MAX_DEPTH {
+        return Err(format!("an expression nested more than {MAX_DEPTH} levels deep"));
+    }
+    DEPTH.with(|d| d.set(depth + 1));
+    // The depth is restored on every path, `?` included.
+    let out = parse_expr_at_depth(s);
+    DEPTH.with(|d| d.set(depth));
+    out
+}
+
+fn parse_expr_at_depth(s: &str) -> Result<Expr, String> {
     let s = s.trim();
     // `+` / `-` at top level (lowest precedence), left-associative. `-` is
     // compile-time integer subtraction (field subtraction is `+` = XOR).
