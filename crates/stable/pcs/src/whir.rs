@@ -27,7 +27,7 @@ use crate::ntt::{AdditiveNttF64, words};
 use crate::stack_open::Terms;
 use fiat_shamir::merkle::MerklePath;
 use fiat_shamir::transcript::ProverState;
-use primitives::field::{Acc8, F64, F128, F128Unreduced, F128x8, fold_pairs8_ext, msg_terms8_ext, powers};
+use primitives::field::{F64, F128, powers};
 use primitives::multilinear::{eq_table, interp};
 
 use super::whir_config::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS};
@@ -45,17 +45,38 @@ use crate::whir_lanes;
 // Multilinear helpers over E
 // ===================================================================
 
+/// Elements a task of a parallel pass takes.
+const CHUNK: usize = 1 << 12;
+
 /// Mixed inner product `Σ_i b[i] · witness[i]` (E x K via `mul_base`). The
 /// evaluation-claim `target` for a K-witness against an E-basis.
 pub fn inner_product_base_ext(witness: &[F64], b: &[F128]) -> F128 {
     assert_eq!(witness.len(), b.len());
-    if witness.len() < PAR_THRESHOLD {
-        return witness.iter().zip(b.iter()).map(|(&w, &e)| e.mul_base(w)).sum();
-    }
     parallel::map_reduce(
-        witness.len(),
+        witness.len().div_ceil(CHUNK),
         || F128::ZERO,
-        |i| b[i].mul_base(witness[i]),
+        |t| {
+            let at = t * CHUNK..((t + 1) * CHUNK).min(b.len());
+            witness[at.clone()]
+                .iter()
+                .zip(&b[at])
+                .map(|(&w, &e)| e.mul_base(w))
+                .sum()
+        },
+        |a, v| a + v,
+    )
+}
+
+/// `Σ_i a[i] · b[i]` over E.
+fn inner_product(a: &[F128], b: &[F128]) -> F128 {
+    assert_eq!(a.len(), b.len());
+    parallel::map_reduce(
+        a.len().div_ceil(CHUNK),
+        || F128::ZERO,
+        |t| {
+            let at = t * CHUNK..((t + 1) * CHUNK).min(a.len());
+            a[at.clone()].iter().zip(&b[at]).map(|(&x, &y)| x * y).sum()
+        },
         |a, v| a + v,
     )
 }
@@ -251,187 +272,19 @@ impl RoundQuad {
     }
 }
 
-/// `out[j] = interp(x[2j], x[2j + 1], r)`.
-#[inline]
-fn fold_adjacent(out: &mut [F128], x: &[F128], r: F128) {
-    let (o8, o_r) = out.as_chunks_mut::<8>();
-    let (x16, x_r) = x.as_chunks::<16>();
-    for (d, c) in o8.iter_mut().zip(x16) {
-        let (even, odd) = deinterleave(c);
-        *d = fold_pairs8_ext(&even, &odd, r);
+/// The round message of `f` against `b` over the adjacent pairs `(f[2j], f[2j + 1])`.
+fn round_msg(f: &[F128], b: &[F128]) -> SumcheckMessage {
+    let (mut u_0, mut u_2) = (F128::ZERO, F128::ZERO);
+    for (&[f0, f1], &[b0, b1]) in f.as_chunks::<2>().0.iter().zip(b.as_chunks::<2>().0) {
+        u_0 += f0 * b0;
+        u_2 += (f0 + f1) * (b0 + b1);
     }
-    for (d, p) in o_r.iter_mut().zip(x_r.as_chunks::<2>().0.iter()) {
-        *d = interp(p[0], p[1], r);
-    }
+    SumcheckMessage { u_0, u_2 }
 }
 
-/// The even and the odd elements of sixteen consecutive ones.
-#[inline]
-fn deinterleave(x: &[F128; 16]) -> ([F128; 8], [F128; 8]) {
-    let [lo, hi] = x.as_chunks::<8>().0 else { unreachable!() };
-    let (even, odd) = F128x8::even_odd(F128x8::from_array(lo), F128x8::from_array(hi));
-    (even.to_array(), odd.to_array())
-}
-
-/// `(sum f0*b0, sum (f0+f1)*(b0+b1))` over the adjacent pairs `(f[2j], f[2j + 1])`, unreduced. A trailing odd
-/// element contributes nothing.
-#[inline]
-pub(crate) fn adjacent_dots(f: &[F128], b: &[F128]) -> (Acc8, Acc8) {
-    let (f16, f_r) = f.as_chunks::<16>();
-    let (b16, b_r) = b.as_chunks::<16>();
-    let (mut u_0, mut u_2) = (Acc8::ZERO, Acc8::ZERO);
-    for (x, y) in f16.iter().zip(b16) {
-        let ((f0, f1), (b0, b1)) = (deinterleave(x), deinterleave(y));
-        let (t_0, t_2) = msg_terms8_ext(&f0, &f1, &b0, &b1);
-        u_0 ^= t_0;
-        u_2 ^= t_2;
-    }
-    // Fewer than eight pairs are left: scalar products, summed before they enter an accumulator.
-    let (mut r_0, mut r_2) = (F128Unreduced::ZERO, F128Unreduced::ZERO);
-    for (p, q) in f_r.as_chunks::<2>().0.iter().zip(b_r.as_chunks::<2>().0.iter()) {
-        r_0 ^= p[0].mul_unreduced(q[0]);
-        r_2 ^= (p[0] + p[1]).mul_unreduced(q[0] + q[1]);
-    }
-    u_0 ^= Acc8::from(r_0);
-    u_2 ^= Acc8::from(r_2);
-    (u_0, u_2)
-}
-
-/// The round message of `f` against `b`.
-fn round_msg_lsb(f: &[F128], b: &[F128]) -> SumcheckMessage {
-    let n = f.len();
-    debug_assert!(n.is_power_of_two() && n >= 2);
-    debug_assert_eq!(b.len(), n);
-
-    // `ROUND_CHUNK` is even, so no pair straddles two tasks.
-    let dots = |c: usize| {
-        let at = c * ROUND_CHUNK..(c * ROUND_CHUNK + ROUND_CHUNK).min(n);
-        adjacent_dots(&f[at.clone()], &b[at])
-    };
-    let add = |(mut a0, mut a2): (Acc8, Acc8), (c0, c2): (Acc8, Acc8)| {
-        a0 ^= c0;
-        a2 ^= c2;
-        (a0, a2)
-    };
-    let (n_tasks, zero) = (n.div_ceil(ROUND_CHUNK), (Acc8::ZERO, Acc8::ZERO));
-    let (u_0, u_2) = if n / 2 < PAR_THRESHOLD {
-        (0..n_tasks).map(dots).fold(zero, add)
-    } else {
-        parallel::map_reduce(n_tasks, || zero, dots, add)
-    };
-    SumcheckMessage {
-        u_0: u_0.reduce(),
-        u_2: u_2.reduce(),
-    }
-}
-
-/// Outputs a fused fold writes before its message reads them, so the reads hit settled stores rather than stores
-/// still in flight.
-const FOLD_STAGE: usize = 256;
-
-/// Fused fold + next-round message: the witness and the basis fold, and the
-/// next-round message is built over the freshly folded values in the same pass.
-fn fold_and_msg_lsb(f: &[F128], b: &[F128], r: F128) -> (Vec<F128>, Vec<F128>, SumcheckMessage) {
-    let n = f.len();
-    debug_assert!(n.is_power_of_two() && n >= 2);
-    debug_assert_eq!(b.len(), n);
-    let half = n / 2;
-
-    // `half` is a power of two and so are `ROUND_CHUNK` and `FOLD_STAGE`: every window has even
-    // length and starts at an even index, so no message pair straddles one.
-    let task = |ci: usize, fc: &mut [F128], bc: &mut [F128]| {
-        let base = ci * ROUND_CHUNK;
-        let len = fc.len();
-        let mut acc = (Acc8::ZERO, Acc8::ZERO);
-        let fold = |fo: &mut [F128], bo: &mut [F128], at: std::ops::Range<usize>| {
-            fold_adjacent(fo, &f[at.clone()], r);
-            fold_adjacent(bo, &b[at], r);
-            adjacent_dots(fo, bo)
-        };
-        for s in (0..len).step_by(FOLD_STAGE) {
-            let k = FOLD_STAGE.min(len - s);
-            let at = 2 * (base + s)..2 * (base + s + k);
-            let (u_0, u_2) = fold(&mut fc[s..s + k], &mut bc[s..s + k], at);
-            acc.0 ^= u_0;
-            acc.1 ^= u_2;
-        }
-        acc
-    };
-    // One output per input pair, so the tasks write every slot of `nf` and `nb`.
-    let mut msg = (Acc8::ZERO, Acc8::ZERO);
-    // SAFETY: the fill writes every element before it reads any.
-    let [nf, nb] = unsafe {
-        primitives::filled_vecs([half; 2], |[nf, nb]| {
-            msg = accumulate_msg_chunks(nf, nb, ROUND_CHUNK, task)
-        })
-    };
-    let (u_0, u_2) = msg;
-    (
-        nf,
-        nb,
-        SumcheckMessage {
-            u_0: u_0.reduce(),
-            u_2: u_2.reduce(),
-        },
-    )
-}
-
-/// Below this many items a pass runs on the calling thread: a dispatch costs more than it saves.
-const PAR_THRESHOLD: usize = 4096;
-
-/// Elements per task wherever a round is chunked.
-const ROUND_CHUNK: usize = 2048;
-
-/// Sum the per-task `(u_0, u_2)` accumulators of `task(i, ..)`, which fills chunk `i` of two output tables,
-/// sequentially for the small instances where dispatch costs more than the work. Unreduced accumulators
-/// combine by XOR and `reduce` is linear, so both paths land on the same message.
-#[inline]
-fn accumulate_msg_chunks(
-    f: &mut [F128],
-    b: &mut [F128],
-    chunk: usize,
-    task: impl Fn(usize, &mut [F128], &mut [F128]) -> (Acc8, Acc8) + Sync,
-) -> (Acc8, Acc8) {
-    if f.len() < PAR_THRESHOLD {
-        let (mut u_0, mut u_2) = (Acc8::ZERO, Acc8::ZERO);
-        for (t, (fc, bc)) in f.chunks_mut(chunk).zip(b.chunks_mut(chunk)).enumerate() {
-            let (t0, t2) = task(t, fc, bc);
-            u_0 ^= t0;
-            u_2 ^= t2;
-        }
-        (u_0, u_2)
-    } else {
-        parallel::map_reduce_chunks_mut(
-            [f, b],
-            [chunk; 2],
-            || (),
-            || (Acc8::ZERO, Acc8::ZERO),
-            |(), acc, t, [fc, bc]| {
-                let (t0, t2) = task(t, fc, bc);
-                acc.0 ^= t0;
-                acc.1 ^= t2;
-            },
-            |(mut a0, mut a2), (c0, c2)| {
-                a0 ^= c0;
-                a2 ^= c2;
-                (a0, a2)
-            },
-        )
-    }
-}
-
-/// `acc[j] += s * v[j]`, eight at a time where the multiplier is wide.
-#[inline]
-fn add_scaled(acc: &mut [F128], v: &[F128], s: F128) {
-    let (a8, a_r) = acc.as_chunks_mut::<8>();
-    let (v8, v_r) = v.as_chunks::<8>();
-    let s8 = F128x8::splat(s);
-    for (a, v) in a8.iter_mut().zip(v8) {
-        *a = (F128x8::from_array(a) + s8 * F128x8::from_array(v)).to_array();
-    }
-    for (a, &v) in a_r.iter_mut().zip(v_r) {
-        *a += s * v;
-    }
+/// `interp(x[2j], x[2j + 1], r)` for every pair.
+fn fold_pairs(x: &[F128], r: F128) -> Vec<F128> {
+    x.as_chunks::<2>().0.iter().map(|&[a, b]| interp(a, b, r)).collect()
 }
 
 // ===================================================================
@@ -503,13 +356,10 @@ pub(crate) struct Dense {
     pub(crate) stride: usize,
 }
 
-/// Elements per task of a dense fold round.
-const DENSE_CHUNK: usize = 1 << 12;
-
 impl Dense {
     /// Columns per task.
     fn cols_per_task(&self) -> usize {
-        (DENSE_CHUNK / self.stride).max(1)
+        (CHUNK / self.stride).max(1)
     }
 
     /// The round's table.
@@ -519,34 +369,28 @@ impl Dense {
         let (f, w) = (&self.f, &self.w);
         let low = w.len() / s;
         let per = self.cols_per_task();
-        let sums = parallel::map_reduce(
+        parallel::map_reduce(
             low.div_ceil(per),
-            || [F128Unreduced::ZERO; 4],
+            || [F128::ZERO; 4],
             |t| {
                 let cols = t * per..((t + 1) * per).min(low);
-                // SAFETY: `mul_x` writes every element.
-                let mut xf = unsafe { primitives::uninit_vec(cols.len() * pairs) };
+                let mut xf = vec![F128::ZERO; cols.len() * pairs];
                 crate::xmul::mul_x(f, s, 2, cols.start, &mut xf);
-                let mut acc = [F128Unreduced::ZERO; 4];
-                for (i, xf) in xf.chunks_exact(pairs).enumerate() {
-                    let c = cols.start + i;
+                let mut acc = [F128::ZERO; 4];
+                for (c, xf) in cols.zip(xf.chunks_exact(pairs)) {
                     let (lanes, w) = (&f[c * s..][..s], &w[c * s..][..s]);
                     for m in 0..pairs {
-                        let (w0, w1, f, g, xf) = (w[2 * m], w[2 * m + 1], lanes[2 * m], lanes[2 * m + 1], xf[m]);
-                        acc[0] ^= w0.mul_unreduced(g);
-                        acc[1] ^= (w0 + w1).mul_unreduced(f);
-                        acc[2] ^= w0.mul_unreduced(xf);
-                        acc[3] ^= w1.mul_unreduced(xf);
+                        let (w0, w1, f, g) = (w[2 * m], w[2 * m + 1], lanes[2 * m], lanes[2 * m + 1]);
+                        acc[0] += w0 * g;
+                        acc[1] += (w0 + w1) * f;
+                        acc[2] += w0 * xf[m];
+                        acc[3] += w1 * xf[m];
                     }
                 }
                 acc
             },
-            |mut a, b| {
-                a.iter_mut().zip(b).for_each(|(a, b)| *a ^= b);
-                a
-            },
-        );
-        sums.map(F128Unreduced::reduce)
+            |a, b| std::array::from_fn(|i| a[i] + b[i]),
+        )
     }
 
     /// The round's fold: lanes `P = G + alpha F + beta X F`, one column longer, and the weight at `alpha`.
@@ -556,37 +400,22 @@ impl Dense {
         let per = self.cols_per_task();
         let FoldChallenges { alpha, beta } = *ch;
         let f = &self.f;
-        // SAFETY: the fill writes every element before it reads any.
-        let next = unsafe {
-            primitives::filled_vec((n_cols + 1) * pairs, |out| {
-                parallel::chunks_mut(out, per * pairs, |t, out| {
-                    let first = t * per;
-                    crate::xmul::mul_x(f, s, 2, first, out);
-                    for (i, out) in out.chunks_exact_mut(pairs).enumerate() {
-                        let c = first + i;
-                        if c == n_cols {
-                            out.iter_mut().for_each(|o| *o = beta * *o);
-                            continue;
-                        }
-                        let lanes = &f[c * s..][..s];
-                        for (m, o) in out.iter_mut().enumerate() {
-                            *o = lanes[2 * m + 1] + alpha * lanes[2 * m] + beta * *o;
-                        }
-                    }
-                })
-            })
-        };
-        let w = &self.w;
-        // SAFETY: the fill writes every element before it reads any.
-        let next_w = unsafe {
-            primitives::filled_vec(w.len() / 2, |out| {
-                parallel::chunks_mut(out, ROUND_CHUNK, |i, out| {
-                    let at = 2 * i * ROUND_CHUNK..2 * (i * ROUND_CHUNK + out.len());
-                    fold_adjacent(out, &w[at], alpha);
-                })
-            })
-        };
-        (self.f, self.w, self.stride) = (next, next_w, pairs);
+        let mut next = vec![F128::ZERO; (n_cols + 1) * pairs];
+        parallel::chunks_mut(&mut next, per * pairs, |t, out| {
+            let first = t * per;
+            crate::xmul::mul_x(f, s, 2, first, out);
+            for (c, out) in (first..).zip(out.chunks_exact_mut(pairs)) {
+                for (m, o) in out.iter_mut().enumerate() {
+                    let (f, g) = if c < n_cols {
+                        (f[c * s + 2 * m], f[c * s + 2 * m + 1])
+                    } else {
+                        (F128::ZERO, F128::ZERO)
+                    };
+                    *o = g + alpha * f + beta * *o;
+                }
+            }
+        });
+        (self.f, self.w, self.stride) = (next, fold_pairs(&self.w, alpha), pairs);
     }
 }
 
@@ -627,11 +456,11 @@ fn glue<const N: usize>(w: &mut [F128], claim: &mut F128, pending: [(Vec<F128>, 
         assert_eq!(b_new.len(), w.len());
         *claim += scalar * *value;
     }
-    let chunk = parallel::recommended_chunk_size(w.len());
-    parallel::chunks_mut(w, chunk, |i, acc| {
-        let at = i * chunk..i * chunk + acc.len();
+    parallel::chunks_mut(w, CHUNK, |i, acc| {
         for ((b_new, _), &scalar) in pending.iter().zip(scalars) {
-            add_scaled(acc, &b_new[at.clone()], scalar);
+            for (a, &b) in acc.iter_mut().zip(&b_new[i * CHUNK..]) {
+                *a += scalar * b;
+            }
         }
     });
 }
@@ -639,18 +468,12 @@ fn glue<const N: usize>(w: &mut [F128], claim: &mut F128, pending: [(Vec<F128>, 
 /// The tail sumcheck on `<w, f> = claim` over the low variables first, each round's message sent before its
 /// challenge. Returns the claim it ends on, with `f` and `w` folded to one value each.
 fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>, mut claim: F128) -> (F128, F128, F128) {
-    let rounds = f.len().ilog2();
-    let mut msg = round_msg_lsb(&f, &w);
-    for j in 0..rounds {
-        let _span = tracing::info_span!("Tail round", round = j).entered();
+    while f.len() > 1 {
+        let msg = round_msg(&f, &w);
         send_msg(ps, msg);
         let r = ps.sample();
         claim = RoundQuad::from_msg(msg, claim).eval(r);
-        if f.len() > 2 {
-            (f, w, msg) = fold_and_msg_lsb(&f, &w, r);
-        } else {
-            (f, w) = (vec![interp(f[0], f[1], r)], vec![interp(w[0], w[1], r)]);
-        }
+        (f, w) = (fold_pairs(&f, r), fold_pairs(&w, r));
     }
     (claim, f[0], w[0])
 }
@@ -789,15 +612,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         // claim stays pending until the level's batching challenge, which the query message draws last.
         ps.grind(OOD_GRINDING_BITS);
         let eq = eq_table(&ps.sample_vec(mu));
-        let y = parallel::map_reduce(
-            p.len().div_ceil(ROUND_CHUNK),
-            || F128::ZERO,
-            |t| {
-                let at = t * ROUND_CHUNK..((t + 1) * ROUND_CHUNK).min(p.len());
-                p[at.clone()].iter().zip(&eq[at]).map(|(&a, &b)| a * b).sum()
-            },
-            |a, b| a + b,
-        );
+        let y = inner_product(&p, &eq);
         ps.add_scalar(y);
 
         ps.grind(QUERY_GRINDING_BITS);
@@ -1032,52 +847,6 @@ mod tests {
                 let low = folded + novel_sum_at(&p[1 << mu..], 1 << mu, &novel_basis_at(x, mu));
                 assert_eq!(low, eval_at(&p[..1 << mu], x), "low part, k {k}, mu {mu}, position {q}");
             }
-        }
-    }
-
-    /// Scalar `(u_0, u_2)` over adjacent pairs; a trailing odd element is ignored.
-    fn msg_ref(f: &[F128], b: &[F128]) -> SumcheckMessage {
-        let (mut u_0, mut u_2) = (F128::ZERO, F128::ZERO);
-        for (p, q) in f.as_chunks::<2>().0.iter().zip(b.as_chunks::<2>().0.iter()) {
-            u_0 += p[0] * q[0];
-            u_2 += (p[0] + p[1]) * (q[0] + q[1]);
-        }
-        SumcheckMessage { u_0, u_2 }
-    }
-
-    /// The adjacent-pair round kernels agree with scalar references, at the sizes the rounds run.
-    #[test]
-    fn adjacent_round_kernels_match_scalar() {
-        let mut rng = Rng::new(0xADD);
-        let r = rng.ext();
-        for log in [1usize, 2, 3, 4, 5, 6, 8, 12, 13, 14] {
-            let n = 1usize << log;
-            let (f, b) = (rng.ext_vec(n), rng.ext_vec(n));
-            assert_eq!(round_msg_lsb(&f, &b), msg_ref(&f, &b), "round_msg_lsb, n={n}");
-
-            let fold =
-                |x: &[F128]| -> Vec<F128> { x.as_chunks::<2>().0.iter().map(|p| interp(p[0], p[1], r)).collect() };
-            let (nb_ref, nf_ref) = (fold(&b), fold(&f));
-            let (nf, nb, msg) = fold_and_msg_lsb(&f, &b, r);
-            assert_eq!(
-                (&nf, &nb, msg),
-                (&nf_ref, &nb_ref, msg_ref(&nf_ref, &nb_ref)),
-                "fold, n={n}"
-            );
-        }
-    }
-
-    /// `add_scaled` is `acc += s * v` at every length, remainders included.
-    #[test]
-    fn add_scaled_matches_scalar() {
-        let mut rng = Rng::new(0x5CA1E);
-        let s = rng.ext();
-        for n in [1usize, 2, 7, 8, 9, 16, 18, 64, 4099] {
-            let (acc, v) = (rng.ext_vec(n), rng.ext_vec(n));
-            let mut got = acc.clone();
-            add_scaled(&mut got, &v, s);
-            let want: Vec<F128> = acc.iter().zip(&v).map(|(&a, &v)| a + s * v).collect();
-            assert_eq!(got, want, "n={n}");
         }
     }
 }
