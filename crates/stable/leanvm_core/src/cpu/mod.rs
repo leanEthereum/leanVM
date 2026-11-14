@@ -28,7 +28,7 @@ mod trace;
 pub use execute::{ExecError, Execution, Fault, Memory};
 pub use isa::{DerefMode, Op, OutCells};
 pub use layout::*;
-pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
+pub(crate) use trace::{Drow, Jrow, Krow, Srow, Trace, Xrow};
 
 /// The data memory's size bounds (doc §Memory): `2^h` cells, `MIN_LOG_MEMORY ≤ h ≤ MAX_LOG_MEMORY`.
 pub use verifier::{MAX_LOG_MEMORY, MIN_LOG_MEMORY};

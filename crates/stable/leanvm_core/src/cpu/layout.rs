@@ -559,7 +559,7 @@ impl Program {
         // the final memory image, which is write-once.
         let keccak_reduction = crate::stage!("Build q_keccak", || {
             let inputs = parallel::map_collect(tr.keccak.len(), |i| {
-                let row = tr.keccak.get(i);
+                let row = &tr.keccak[i];
                 let op = tables::KeccakOp::of(&self.prog[row.pc as usize]);
                 crate::keccak::state_of_cells(op.in_odd, |c| exec.mem.word(op.cell(row.fp, c) as usize))
             });

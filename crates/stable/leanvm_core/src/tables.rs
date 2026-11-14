@@ -14,7 +14,7 @@
 //! so a relation on machine words is written out lane by lane. A table hands its
 //! identities to the table sumcheck as a degree-2 form ([`Table::constraint`]).
 
-use crate::cpu::{Drow, Jrow, Krow, Memory, Op, Rows, Srow, Trace};
+use crate::cpu::{Drow, Jrow, Krow, Memory, Op, Srow, Trace};
 use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
 use primitives::field::{F64, F128, mul_by_g};
@@ -214,7 +214,7 @@ impl<'a> FillCtx<'a> {
 
     /// Write local column `at`: `f` over the trace rows, then its padding value to the
     /// end of the window.
-    fn col<R: Sync>(&self, out: &mut [ColumnOut], rows: &Rows<R>, at: usize, f: impl Fn(&R) -> F64 + Sync) {
+    fn col<R: Sync>(&self, out: &mut [ColumnOut], rows: &[R], at: usize, f: impl Fn(&R) -> F64 + Sync) {
         self.cols(out, rows, at, |r| [f(r)]);
     }
 
@@ -225,11 +225,11 @@ impl<'a> FillCtx<'a> {
     fn cols<const N: usize, R: Sync>(
         &self,
         out: &mut [ColumnOut],
-        rows: &Rows<R>,
+        rows: &[R],
         at: usize,
         f: impl Fn(&R) -> [F64; N] + Sync,
     ) {
-        self.cols_at(out, rows.len(), at, |i| f(rows.get(i)));
+        self.cols_at(out, rows.len(), at, |i| f(&rows[i]));
     }
 
     /// [`Self::cols`] over row indices, for values held in a side buffer rather

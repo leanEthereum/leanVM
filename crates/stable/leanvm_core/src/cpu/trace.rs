@@ -55,55 +55,13 @@ pub(crate) struct Krow {
     pub(crate) bytecode_read: u32,
 }
 
-/// Rows in fixed-size chunks, so the trace grows without ever moving what it holds:
-/// a `Vec` would copy every row written so far each time it doubled.
-pub(crate) struct Rows<T> {
-    chunks: Vec<Vec<T>>,
-    len: usize,
-}
-
-const CHUNK_LOG: usize = 14;
-const CHUNK: usize = 1 << CHUNK_LOG;
-
-impl<T> Rows<T> {
-    pub(crate) fn new() -> Self {
-        Self {
-            chunks: Vec::new(),
-            len: 0,
-        }
-    }
-
-    #[inline(always)]
-    pub(crate) fn push(&mut self, row: T) {
-        if self.len & (CHUNK - 1) == 0 {
-            self.chunks.push(Vec::with_capacity(CHUNK));
-        }
-        // SAFETY: a chunk was pushed whenever the last one filled, so there is one.
-        unsafe { self.chunks.last_mut().unwrap_unchecked() }.push(row);
-        self.len += 1;
-    }
-
-    pub(crate) fn len(&self) -> usize {
-        self.len
-    }
-
-    #[inline(always)]
-    pub(crate) fn get(&self, i: usize) -> &T {
-        &self.chunks[i >> CHUNK_LOG][i & (CHUNK - 1)]
-    }
-
-    pub(crate) fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
-        self.chunks.iter().flatten()
-    }
-}
-
 pub(crate) struct Trace {
-    pub(crate) xor: Rows<Xrow>,
-    pub(crate) mul: Rows<Xrow>,
-    pub(crate) set: Rows<Srow>,
-    pub(crate) deref: Rows<Drow>,
-    pub(crate) jump: Rows<Jrow>,
-    pub(crate) keccak: Rows<Krow>,
+    pub(crate) xor: Vec<Xrow>,
+    pub(crate) mul: Vec<Xrow>,
+    pub(crate) set: Vec<Srow>,
+    pub(crate) deref: Vec<Drow>,
+    pub(crate) jump: Vec<Jrow>,
+    pub(crate) keccak: Vec<Krow>,
     pub(crate) bytecode_count: Vec<u32>, // per-pc execution count; the column holds g^{A[pc]}
     /// One past the highest access count, of a cell or a pc: the `g`-powers a fill looks up.
     pub(crate) counts: usize,
