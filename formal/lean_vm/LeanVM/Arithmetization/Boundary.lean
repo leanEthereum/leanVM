@@ -21,15 +21,15 @@ public import Clean.Utils.Tactics.CircuitProofStart
 # The boundary blocks
 
 At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `b41c196b`. The three
-blocks are `crates/leanvm_core/src/cpu/layout.rs:351-394` (the "shared blocks" of `layout`),
-matching specification §6.1 (`doc/leanvm/body/06-bus-interactions.tex:8`, the state boundary),
-§6.2 "Flush rules" (`:44-46`, seed and finalize), §6.4 (the bytecode array), §6.5 (`:98`, the
-index column), and §8.6 (`08-end-to-end-protocol.tex:105`: "three blocks per side belong to no
+blocks are `crates/leanvm_core/src/cpu/layout.rs` (the "shared blocks" of `layout`),
+matching specification §6.1 (`doc/leanvm/body/06-bus-interactions.tex`, the state boundary),
+§6.2 "Flush rules" (seed and finalize), §6.4 (the bytecode array), §6.5 (the
+index column), and §8.6 (`08-end-to-end-protocol.tex`: "three blocks per side belong to no
 table"). The committed
-columns are `MEM_LO, MEM_HI, MFCNT` and `BFCNT` (`layout.rs:14-17`); the bytecode entry
-rides eight *public* columns (`bytecode_columns`, `layout.rs:228-289`, `Bytecode`'s `entry`); the
+columns are `MEM_LO, MEM_HI, MFCNT` and `BFCNT` (`layout.rs`); the bytecode entry
+rides eight *public* columns (`bytecode_columns`, `layout.rs`, `Bytecode`'s `entry`); the
 sentinel counter `g^(N_prog - 1)` is derived from the public program's length and written into the
-state block as a constant (`layout.rs:334`, `final_pc`; `:356`, `Const(g_pow(final_pc))`).
+state block as a constant (`layout.rs`, `final_pc`, `Const(g_pow(final_pc))`).
 
 **The three blocks.** Every row of an opcode table pulls its state and pushes its successor,
 and reads its cells and its instruction through the counted lookup of §6.2. What closes the
@@ -137,7 +137,7 @@ def PublicIO.ofInput (input : PublicInput) : PublicIO K :=
 /-! ## The memory block -/
 
 /-- A row of the memory block: the word's two limbs (`MEM_LO, MEM_HI`;
-`layout.rs:14-15`), the address `g^i` (the index column of §6.5, a fixed column), and the finalize
+`layout.rs`), the address `g^i` (the index column of §6.5, a fixed column), and the finalize
 count `g^(A[i])` (`MFCNT`). The limbs come first, as the committed columns do, so that the prover
 data Clean derives from the block, its rows cut at two cells (`memRows`), is the image. -/
 structure MemRow (F : Type) where
@@ -159,7 +159,7 @@ structure MemBindings {κ : ℕ} (mem : MemoryImage κ) (r : MemRow K) : Prop wh
 def MemSpec (r : MemRow K) (data : ProverData K) : Prop :=
   MemBindings (imageOf data).2 r
 
-/-- The memory block (specification §6.2, seed and finalize; `layout.rs:431-440`): push
+/-- The memory block (specification §6.2, seed and finalize; `layout.rs`): push
 `(idx, 1, m)`, pull `(idx, cntFin, m)`. -/
 def memTable : GeneralFormalCircuit K MemRow unit where
   -- Clean keys the prover data by component name: the block's rows are the `"mem"` table.
@@ -216,7 +216,7 @@ theorem mem_word_complete {data : ProverData K} (i : Fin (2 ^ (imageOf data).1))
 
 /-- A row of the bytecode block: the counter `g^i` (the index column), the finalize count
 `g^(A[i])` (`BFCNT`), and the `entry` at that slot, the opcode and the twelve operand slots (the
-thirteen public columns of `bytecode_columns`, `cpu/layout.rs:292-366` at leanVM main
+thirteen public columns of `bytecode_columns`, `cpu/layout.rs` at leanVM main
 `40f877dc`). -/
 structure BytecodeRow (F : Type) where
   /-- The counter, `g^i` for row `i`. -/
@@ -244,7 +244,7 @@ structure BytecodeBindings (prog : LeanIsaProgram) (r : BytecodeRow K) : Prop wh
   /-- The program fetches at `idx` the instruction the row's entry decodes to. -/
   entry_eq : ∃ ins, prog.fetch r.idx = some ins ∧ decode (#v[r.opcode] ++ r.op) = some ins
 
-/-- The bytecode block (specification §6.2 and §6.4, seed and finalize; `layout.rs:382-394`):
+/-- The bytecode block (specification §6.2 and §6.4, seed and finalize; `layout.rs`):
 push `(idx, 1, opcode, op)`, pull `(idx, cntFin, opcode, op)`. Program-free: the entry columns
 are the program's by the statement's conjunct, not by anything here. -/
 def bytecodeTable : GeneralFormalCircuit K BytecodeRow unit where
@@ -422,9 +422,9 @@ theorem bytecodeMode_fixedAt (prog : LeanIsaProgram) {i : UInt64} (hi : i.toNat 
 /-! ## The verifier -/
 
 /-- The verifier's state boundary for the public program `prog` (specification §6.1;
-`layout.rs:351-357`): push the initial state `(1, 1)`, pull the final state
+`layout.rs`): push the initial state `(1, 1)`, pull the final state
 `(g^(N_prog - 1), 1)`, the counter a constant of the program as `Const(g_pow(final_pc))` is
-(`layout.rs:334`, `:356`). `Spec` is `True`: the state pull carries no guarantee, and the
+(`layout.rs`). `Spec` is `True`: the state pull carries no guarantee, and the
 run the boundary closes is `exists_run_of_balanced`. -/
 def leanIsaVerifier (prog : LeanIsaProgram) : Verifier.Program K PublicIO where
   main _ := do

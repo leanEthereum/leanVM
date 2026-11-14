@@ -7,7 +7,7 @@ public import LeanDa.ReedSolomon
 
 The facts about `Ŵ_j`, the normalized subspace polynomial of the span of `e_0 … e_(j-1)`
 (`normalizedSubspacePolynomial`, CompPoly's `normalizedW`), that the guest program's construction
-of the dual codeword rests on (`membership.rs:24-61`):
+of the dual codeword rests on (`membership.rs`):
 
 * **`Ŵ_j` at the basis.** `Ŵ_j(e_c) = 0` for `c < j` (`wHat_two_pow_of_lt`), `Ŵ_j(e_j) = 1`
   (`wHat_two_pow_self`), and `Ŵ_j` is additive (`wHat_add`), so at a point it is the sum of its
@@ -256,7 +256,7 @@ theorem prod_map_range {M : Type*} [CommMonoid M] (f : ℕ → M) :
       Finset.prod_range_succ]
     simp
 
-/-- **The guest's dual codeword is the dual codeword of `z`** (`membership.rs:45-61`). -/
+/-- **The guest's dual codeword is the dual codeword of `z`** (`membership.rs`). -/
 theorem dualCodeword_eq_dualCodewordAt (z : E) (b : Fin (2 ^ 14)) :
     (dualCodeword z).getD b 0 = dualCodewordAt z b := by
   have hfac : ∀ j : Fin 13,

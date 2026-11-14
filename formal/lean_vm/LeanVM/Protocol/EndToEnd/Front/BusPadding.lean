@@ -12,7 +12,7 @@ public import LeanVM.Protocol.Bus
 /-!
 # The padding weight
 
-The verifier (`crates/verifier/src/multilinear.rs:88-96` at leanVM `40f877dc`) computes
+The verifier (`crates/verifier/src/multilinear.rs` at leanVM `40f877dc`) computes
 `pad_n(point)`, the multilinear extension of `[x ≥ n]` on the cube of `point`'s length, in one pass
 from the low bit (`paddingWeight`); the bus phase writes it as the extension of the indicator table
 (`Bus.padWeight`). They agree for every `n ≤ 2^|point|` (`paddingWeight_eq_padWeight`), which is

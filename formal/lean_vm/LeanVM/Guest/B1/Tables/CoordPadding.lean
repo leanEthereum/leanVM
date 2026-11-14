@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.InterfaceP
 public import LeanVM.Guest.Value.KeccakConst
 
 /-!
-# The padding row (V:1139-1145)
+# The padding row
 
 A table's padding row is zero but for the `KECCAK` table's output lanes, `keccakF` of the zero
 state. `paddingRow` is the row with that value written out; `padding_eq` (`keccakF_zero`). The

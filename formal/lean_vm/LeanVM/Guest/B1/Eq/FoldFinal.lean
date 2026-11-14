@@ -13,9 +13,9 @@ public import LeanVM.Guest.B1.Common.Find
 /-!
 # `fold_final_msg` (TRIAGE #24)
 
-`fold_final_msg(msg, point, log_len)` (G:931-947) reads `log_len` coordinates, keeps the weights
+`fold_final_msg(msg, point, log_len)` reads `log_len` coordinates, keeps the weights
 `1 + p_j` and `p_j`, folds the `2^log_len` message words pairwise at `p_0`, then each level at
-`p_j`, and returns the last value: `multilinearEval msg point` (V:687). Its expansion: `ffW j`
+`p_j`, and returns the last value: `multilinearEval msg point`. Its expansion: `ffW j`
 per weight, `ff0` per pair of the first level (with its loads), `ffPairs` per later level
 (threaded by `ffLevels`); `ffBody L fin` is equal to the four specializations by kernel
 evaluation.

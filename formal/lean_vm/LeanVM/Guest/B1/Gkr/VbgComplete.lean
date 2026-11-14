@@ -229,7 +229,7 @@ theorem gkSl0_off (cap0 xs : List E) (sh : ℕ) :
 
 /-! ## The buffers' honest words -/
 
-/-- **The table `k_mod_next`'s eight words** (G:1752-1755): at `r < 4` the next layer index's
+/-- **The table `k_mod_next`'s eight words**: at `r < 4` the next layer index's
 `g^((r + 1) % 4)`, at `4 + r` its carry `g^((r + 1) / 4)`. -/
 def kmnWords : List E :=
   (List.range 8).map fun i ↦ if i < 4 then gen ^ ((i + 1) % 4) else gen ^ ((i - 4 + 1) / 4)

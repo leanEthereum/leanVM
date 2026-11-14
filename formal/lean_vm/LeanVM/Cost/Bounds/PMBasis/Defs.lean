@@ -6,7 +6,7 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 # PM-basis's price: the definitions
 
 The price of CompPoly's divide-and-conquer approximant basis (`pmBasisWithFuelCore`,
-`CompPoly/LinearAlgebra/PolynomialMatrix/Approximant/PMBasis/Recursion.lean:82`) as a function of
+`CompPoly/LinearAlgebra/PolynomialMatrix/Approximant/PMBasis/Recursion.lean`) as a function of
 the problem's maximal order, for a node price `N` and a leaf price `L` given as functions, and the
 per-operation price model the compiled code's bounds are stated in. Here, apart from their proofs
 (`Bounds/PMBasis/Tree.lean`, `Recursion.lean`), so that the shape checks

@@ -13,7 +13,7 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
 
 /-!
-# A layer's rounds and children (`verify_bus_gkr_loop0`, G:1996-2040)
+# A layer's rounds and children (`verify_bus_gkr_loop0`)
 
 * `ly_rounds`: `verify_bus_gkr_loop0_loop0`, then `gkr_rounds__L{2r}` at the layer index's `r = k %
   4`, then `gkr_rounds__L1` at an odd depth, run the `L = 2k + sh` rounds from the layer's first

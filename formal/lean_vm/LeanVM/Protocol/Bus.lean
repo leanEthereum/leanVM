@@ -69,11 +69,11 @@ it this way.
 The phase's side conditions (`Conditions`): the degree bound is at least one (a count column's
 form is its variable); a table with a constraint fits in the leaf stacks' depth, so that `ζ` has
 a point for it (the verifier reads `ζ` at every variable below the tallest table's height,
-`crates/verifier/src/bus.rs:221-230`; its explicit rejection of a shorter `ζ`,
-`crates/lean_vm/src/constraints.rs:250-253` at `a386121f`, is removed at `127510d1`); and the pull
+`crates/verifier/src/bus.rs`; its explicit rejection of a shorter `ζ`,
+`crates/lean_vm/src/constraints.rs` at `a386121f`, is removed at `127510d1`); and the pull
 and count sides fit in `2 ^ μ_bus`, the push side's depth, which the deployed prover asserts of
-its layouts (`crates/leanvm_core/src/leaf.rs:115-130`, called at `:628`; the verifier's own call,
-`leaf.rs:875` at `a386121f`, is removed at `127510d1`).
+its layouts (`crates/leanvm_core/src/leaf.rs`; the verifier's own call,
+`leaf.rs` at `a386121f`, is removed at `127510d1`).
 
 Perfect completeness (`busComplete`), from `Seam.commitHonest` to `Seam.bus`: on a stack
 satisfying `M3Holds` with honest padding rows (their leaves `1`), the products of the push and
@@ -82,10 +82,10 @@ are nonzero), every rider is zero (constraints vanish, lines and Keccak predicat
 the end the honest values make every claim true and the forms sum to the totals.
 
 Written from the specification; the layout and its tie order, the count blocks and the order of
-the messages are transcribed from `crates/leanvm_core/src/leaf.rs` (the layout
-`:141-148`, the leaves `:179-255`, the decomposition `:381-451`), the verifier
-`crates/verifier/src/bus.rs:107-209` (`verify_bus_balance`), the prover's grand product
-`crates/leanvm_core/src/gkr.rs:299-418` and its verifier `crates/verifier/src/bus.rs:12-49`.
+the messages are transcribed from `crates/leanvm_core/src/leaf.rs` (the layout,
+the leaves, the decomposition), the verifier
+`crates/verifier/src/bus.rs` (`verify_bus_balance`), the prover's grand product
+`crates/leanvm_core/src/gkr.rs` and its verifier `crates/verifier/src/bus.rs`.
 -/
 
 namespace LeanVM.Protocol
@@ -883,7 +883,7 @@ def coordValue (vals : Vector E I.busClaims) {κ : ℕ} : Coord I.toShape κ →
   | .committed c _, _ => valueOf vals c
 
 /-- The part of a block the verifier evaluates itself, from the values sent: a boundary block's leaf
-extension, a table block's padding term (`padding_rows`, `crates/verifier/src/bus.rs:187-200`). -/
+extension, a table block's padding term (`padding_rows`, `crates/verifier/src/bus.rs`). -/
 def Source.publicValue (α : Fin 16 → E) (β : E) (vals : Vector E I.busClaims) :
     (src : Source I) → Vector E src.κ → E
   | .boundary b, z =>

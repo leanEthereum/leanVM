@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Whir.Sound.Weights
 # Lanes and folds
 
 The deployed verifier (`LeanVM.Protocol.Verifier`, leanVM `40f877dc`,
-`crates/verifier/src/whir.rs:199-213`, `multilinear.rs:6-19, 45-59`)
+`crates/verifier/src/whir.rs`, `multilinear.rs`)
 reduces an opened row of `2^ℓ` lanes with the equality kernel of the level's fold challenges,
 `dot(row, eq_kernel(folds))`, and evaluates the final residual table with `multilinear_eval`.
 Both are the integer-indexed fold `foldsN`, the first

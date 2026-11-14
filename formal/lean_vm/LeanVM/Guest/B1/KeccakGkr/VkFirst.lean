@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkFirst
 
-  `verify_keccak`'s first claim record (G:2929-2947) and the dot products it uses.
+  `verify_keccak`'s first claim record and the dot products it uses.
 -/
 
 module
@@ -85,7 +85,7 @@ theorem eqtreeT_last {p o : V} {po b n : ℕ} (hn : 1 ≤ n) {rs : List E} (hrs 
 theorem word_2p30 : word 1073741824 0 = gen ^ 30 := by
   rw [show (1073741824 : ℕ) = 2 ^ 30 from rfl]; exact word_two_pow (by decide)
 
-/-- **The first claim's record** (G:2929-2947). -/
+/-- **The first claim's record**. -/
 theorem vkFirstT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) {chis outs rl : List E} {r0 : E}
     (hchi : τ ≤ chis.length) (hzv : ∀ i < 4, LoadHolds rd (σ (.n 9)) i (chis.getD i 0))
     (hrl : rl.length = 5) (hrlL : ∀ i < 5, LoadHolds rd (σ (.n 87)) i (rl.getD i 0))

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildList
 
-  B1 for `child_claim_list_any` (G:4118-4180, 4254-4269; TRIAGE #89): a child's claim list
+  B1 for `child_claim_list_any` (TRIAGE #89): a child's claim list
   rebuilt from this node's table through hinted slots, each marked in the coverage table, and its
   digest.
 -/
@@ -20,7 +20,7 @@ public import LeanVM.Guest.Data.NameStrings
 # `child_claim_list_any`
 
 As `claim_list_digest`, but claim `j` of a frame is read at a hinted slot `o` of the table
-(`child_claims`, G:4353-4367): `o` passes a range check against `last = limit · g⁻¹`, the region's
+(`child_claims`): `o` passes a range check against `last = limit · g⁻¹`, the region's
 coverage slot `region · g^o` holds the mark `marks · g^j` (the marks stepped by `g`), and the four
 cells are read at `entries · g^(4o)`. `claimOk` checks one such record in a list of atoms, by
 evaluation, and `claimOk_sound` gives it on a memory image. The records sit at fixed value offsets
@@ -499,7 +499,7 @@ theorem find_child_claim_list_any :
     coreProgram.find? "child_claim_list_any" = some fn% «child_claim_list_any» :=
   coreProgram_find?_at (j := idx% «child_claim_list_any») rfl
 
-/-- **`child_claim_list_any`** (G:4394-4414): on `bigs = g^a`, `groups = g^b`, `rest = g^c`, the
+/-- **`child_claim_list_any`**: on `bigs = g^a`, `groups = g^b`, `rest = g^c`, the
 `136a + 17b + c` claims read at hinted slots of the region below the log of `limit`, marked
 `base · g^j`, and their digest. -/
 theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : List E}

@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Whir.Sound.Group
 /-!
 # The fold rounds
 
-`foldRounds ℓ s` (`LeanVM.Protocol.Verifier.foldRounds`, `crates/verifier/src/whir.rs:233-242`)
+`foldRounds ℓ s` (`LeanVM.Protocol.Verifier.foldRounds`, `crates/verifier/src/whir.rs`)
 runs the level's affine fold rounds (`foldRound`): four scalars, a grind and `(α, β)`, the claim
 folded at `α` (`foldClaim`).
 

@@ -11,7 +11,7 @@ proof's scalars and Merkle openings: a script's scalar is absorbed at each `read
 challenge squeezed at each `sample`; a `grind` takes the smallest nonce below `fuel` that passes
 (`grind`, `crates/fiat_shamir/src/lib.rs`), the proof failing if none does, absorbs it and permutes
 (`absorbNonce`), the permutation's challenge kept for the next `sample`; a `commit`
-builds the matrix's Merkle tree once (`MerkleBuilder`, `crates/pcs/src/merkle.rs:39-176`) and sends
+builds the matrix's Merkle tree once (`MerkleBuilder`, `crates/pcs/src/merkle.rs`) and sends
 its root;
 a `query` gives the script the rows at the positions and puts their openings, read off the tree,
 in the proof as one phase. Where the script's move is not the program's, the run sends `0`,
@@ -41,7 +41,7 @@ def sibling (i : ℕ) : ℕ := if i % 2 = 0 then i + 1 else i - 1
 /-- The root of a tree. -/
 def Tree.root (t : Tree) : Digest := (t.levels.getD t.height #[]).getD 0 default
 
-/-- The opening of a tree at position `q` (`open`, `crates/fiat_shamir/src/merkle.rs:51-68`): the
+/-- The opening of a tree at position `q` (`open`, `crates/fiat_shamir/src/merkle.rs`): the
 position, the row at `q`'s low `height` bits and its authentication path, leaf level first. -/
 def Tree.opening (t : Tree) (q : ℕ) : Opening :=
   let i := q % 2 ^ t.height
@@ -90,7 +90,7 @@ def searchM (bits : ℕ) (sp : Sponge) : ℕ → ℕ → m (Option E)
     let r ← absorbNonce F sp (nonceOf n)
     if powOk bits r.1 then pure (some (nonceOf n)) else searchM bits sp (n + 1) count
 
-/-- The proof-of-work search (`FiatShamirState::grind`, `crates/fiat_shamir/src/lib.rs:172-217`):
+/-- The proof-of-work search (`FiatShamirState::grind`, `crates/fiat_shamir/src/lib.rs`):
 the smallest nonce below `fuel` that passes, if one does. The Rust's parallel search returns the
 smallest passing nonce too: the first matching batch of the first matching block, and its first
 match. -/

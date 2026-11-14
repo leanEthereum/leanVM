@@ -27,19 +27,18 @@ public import Clean.Air.FlatEnsemble
 
 At leanVM pin `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` and Clean pin `b41c196b`. The
 statement itself is written from the specification, as what the M3 model means by an
-accepted instance (specification §5, `doc/leanvm/body/05-arithmetization.tex:4`: "an instance
+accepted instance (specification §5, `doc/leanvm/body/05-arithmetization.tex`: "an instance
 is accepted exactly when every table's constraints hold and the bus balances", the balance
-being the multiset equality of `:14`), and what the verifier checks of an announced instance
-is transcribed: the caps (`crates/verifier/src/lib.rs:227-245` and
-`crates/verifier/src/layout.rs:478-489`, the
+being its multiset equality), and what the verifier checks of an announced instance
+is transcribed: the caps (`crates/verifier/src/lib.rs` and
+`crates/verifier/src/layout.rs`, the
 announcement checks of `walk` and `build_layout`, which replace `read_public` of `a386121f`;
-§6.2 "Instance caps", `06-bus-interactions.tex:80`), the nonzero count product (§6.2 "The count
-product", `:78`; `cpu/layout.rs:136`, the count channel of the six tables' read-count columns,
-`:396-412`), the public words against the committed memory (§8.2,
-`08-end-to-end-protocol.tex:27-37`), the public parts of the bus the verifier forms itself, the
-index column and the program's share of the bytecode blocks (§8.6, `:105`; §6.5,
-`06-bus-interactions.tex:98`), and the `KECCAK` validity the Keccak reduction proves
-(`walk` step 6, `verifier/src/lib.rs:283-300` at `40f877dc`). This file is the accept relation of
+§6.2 "Instance caps", `06-bus-interactions.tex`), the nonzero count product (§6.2 "The count
+product"; `cpu/layout.rs`, the count channel of the six tables' read-count columns), the public words against the committed memory (§8.2,
+`08-end-to-end-protocol.tex`), the public parts of the bus the verifier forms itself, the
+index column and the program's share of the bytecode blocks (§8.6; §6.5,
+`06-bus-interactions.tex`), and the `KECCAK` validity the Keccak reduction proves
+(`walk` step 6, `verifier/src/lib.rs` at `40f877dc`). This file is the accept relation of
 the M3 constraint system and its ensemble, a statement with no soundness or completeness theorem:
 it is what `constraintSoundness` and `constraintCompleteness` are about.
 
@@ -67,7 +66,7 @@ exactly as the component's constraints read it (`memRowAt`, `keccakRowAt`: Clean
 `Component.rowInput`, the first `size Row` cells of the row, a missing cell `0`).
 
 **Balance.** `BalancedPair w pull push` says the messages pushed on `push` and the messages
-pulled on `pull` form the same multiset (§5.1 "Balance", `05-arithmetization.tex:14`): a
+pulled on `pull` form the same multiset (§5.1 "Balance", `05-arithmetization.tex`): a
 `List.Perm`, counted in `ℕ`. It is never a field sum, Clean's LogUp `Balance`:
 `ringChar K = 2`, so a message pushed twice and never pulled has field-sum balance `2 = 0`.
 Balance counts every interaction once, whatever its multiplicity, as the M3 bus flushes it and
@@ -80,24 +79,24 @@ direction Clean now tags every interaction with agrees (a `*.pull` channel carri
 
 **The verifier's checks.** `CountsNonzero w` is the nonzero count product: every read pull of
 the six tables carries a nonzero count, message index `1` (bus coordinate 2) of a memory or
-bytecode tuple (§6.2 "The count product"; `layout.rs:136` and `:463-479`, the count channel
+bytecode tuple (§6.2 "The count product"; `layout.rs`, the count channel
 stacks the read-count columns of the six tables and nothing else, so the finalize counts of
 the two blocks are outside it, as §6.2 "Nothing checks the finalize counts" says). `Caps w` is
 the M3 part of the announcement checks (`read_public` at `a386121f`; `walk` and
-`build_layout`, `verifier/src/lib.rs:243-261` and `verifier/src/layout.rs:483-494`, behind the
-wrapper `crates/leanvm_core/src/cpu/mod.rs:627-639`), which make eight checks: (1) the
-announced sizes have zero upper limbs (`verifier/src/lib.rs:248-252`, the transcript format) and
-(2) the two public words are two-limb words (`cpu/mod.rs:627`, `[F128; 2]`), both by type here
+`build_layout`, `verifier/src/lib.rs` and `verifier/src/layout.rs`, behind the
+wrapper `crates/leanvm_core/src/cpu/mod.rs`), which make eight checks: (1) the
+announced sizes have zero upper limbs (`verifier/src/lib.rs`, the transcript format) and
+(2) the two public words are two-limb words (`cpu/mod.rs`, `[F128; 2]`), both by type here
 (`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^32`
-(`cpu/mod.rs:629`, `verifier/src/layout.rs:488` and `:492`), `Program`'s by type
+(`cpu/mod.rs`, `verifier/src/layout.rs`), `Program`'s by type
 (`LeanIsaProgram.logSize_le`); (4) the memory log-size is within
-`[MIN_LOG_MEM, MAX_LOG_MEM] = [16, 32]` (`verifier/src/layout.rs:490`); (5) every table has at most
-`2^MAX_LOG_ROWS` rows (`verifier/src/layout.rs:491`; the prover announces each table's row count, the rows
+`[MIN_LOG_MEM, MAX_LOG_MEM] = [16, 32]` (`verifier/src/layout.rs`); (5) every table has at most
+`2^MAX_LOG_ROWS` rows (`verifier/src/layout.rs`; the prover announces each table's row count, the rows
 past it in the table's height being padding rows, which the bus never sees, so the witness's tables
 are the executed rows only); (6) the `KECCAK` table's height floor (`TABLE_LOG_FLOORS`) is the
 protocol layer's, its padding rows being outside the bus; (7) the WHIR rate
-(`verifier/src/lib.rs:256`) and (8) the stacked size `mu ∈ [MIN_MU, MAX_MU]`
-(`verifier/src/lib.rs:258-261`) are parameters of the commitment, left to the protocol layer, which
+(`verifier/src/lib.rs`) and (8) the stacked size `mu ∈ [MIN_MU, MAX_MU]`
+(`verifier/src/lib.rs`) are parameters of the commitment, left to the protocol layer, which
 reads them off the same announcement. `Caps` transcribes (4), on the announced `κ`, and (5). That
 the prover data is well shaped (`WellShapedData`, so that `imageOf` drops no row) is no longer a
 hypothesis: the data is the memory block's `2^κ` rows (`Caps.well_shaped`). These caps are what
@@ -107,14 +106,14 @@ keeps the total read count below `2^64 - 1`, the bound the bus argument of `Soun
 **The fixed columns and the derived data** (Clean PR #446, which the statement anticipated; until
 it, three hypotheses of `SatisfiedBy`). The memory block's index column is fixed to `g^i`, so
 `IndexColumnsAreRowIndices w` is a theorem (§6.5, the index column the verifier computes;
-`layout.rs:431` and `:442`, `Index`). The prover data is derived from the rows, and the memory
+`layout.rs`, `Index`). The prover data is derived from the rows, and the memory
 block, named `"mem"`, holds the limbs in its first two cells, so the image the data names *is* the
 block (`memRows_data`) and `SeedRowsAreTheImage w` is a theorem (§6.2 "Seed" and "Finalize";
-`cpu/layout.rs:431-440`, `MEM_LO, MEM_HI` and `MFCNT`, the index and finalize
+`cpu/layout.rs`, `MEM_LO, MEM_HI` and `MFCNT`, the index and finalize
 columns free).
 The bytecode block's counter and entry columns are fixed to the program's, so
 `BytecodeRowsAreTheProgram prog w` is a theorem (§8.6 Bus 4: the verifier forms "the program's
-whole share of the two bytecode blocks" itself; `layout.rs:354-356` and `:449-461`,
+whole share of the two bytecode blocks" itself; `layout.rs`,
 `Coord::Public` and `BFCNT`). The three keep their names as projections of `SatisfiedBy`
 (`SatisfiedBy.index_columns`, `seed_rows`, `bytecode_rows`); their per-row readings are
 `memRowOf_bindings` and `BytecodeBindings prog`.
@@ -123,7 +122,7 @@ whole share of the two bytecode blocks" itself; `layout.rs:354-356` and `:449-46
 `KeccakRelation` (the component's `Assumptions`: its output lanes are Keccak-f[1600] of its input
 lanes), is the one conjunct the verifier enforces outside the bus: the table has no constraint on
 its lanes, and the permutation is proved by the Keccak reduction on the input lanes committed in
-`q_keccak` and the output lanes the table's claims hand it (`lib.rs:283-300` at `40f877dc`).
+`q_keccak` and the output lanes the table's claims hand it (`lib.rs` at `40f877dc`).
 Clean's `EnsembleWitness.Constraints` does not include a component's `Assumptions`, and its
 `AssumptionsConsistency` sources them from the public input alone, so the fact is a conjunct of the
 statement, and `assumptions_of_keccakRowsValid` turns it into the `w.Assumptions` that Clean's
@@ -133,7 +132,7 @@ region.
 **The statement.** `SatisfiedBy prog input w` is the relation the proof system proves and
 extracts (issue #13), a structure with named fields so that the soundness and completeness
 proofs project the conjunct they consume by name. Its `constraints` field is Clean's; only
-the `JUMP` table emits an assertion (`tables.rs:762-769`; the other seven components and the
+the `JUMP` table emits an assertion (`tables.rs`; the other seven components and the
 verifier have none), so the field reduces to the `JUMP` residuals on every `JUMP` row.
 The `public_input_eq` field is read by no component: the lanes bind the run through
 `word0_eq` and `word1_eq`, the two public words at `g^0` and `g^1` of the image the data
@@ -209,7 +208,7 @@ def opcodeComponent {Row : TypeMap} [ProvableType Row] (c : GeneralFormalCircuit
 /-- The leanISA ensemble of the public program `prog` with a memory of `2^κ` words (`κ` the
 announced `log_mem`): the six opcode tables, the memory and bytecode blocks, preallocated with
 their index and entry columns fixed, the six channels, and the verifier `leanIsaVerifier prog`
-(`layout.rs:418-461`). The instance is a function of the program and `log_mem`, as leanVM's
+(`layout.rs`). The instance is a function of the program and `log_mem`, as leanVM's
 `layout(prog, log_mem, …)` is. -/
 def leanIsaEnsemble (prog : LeanIsaProgram) (κ : ℕ) : Ensemble K PublicIO where
   tables := [opcodeComponent xorTable, opcodeComponent mulTable, opcodeComponent setTable,
@@ -307,7 +306,7 @@ def BalancedPair (w : EnsembleWitness (leanIsaEnsemble prog κ)) (pull push : Ra
 
 /-- Every read pull of the six tables carries a nonzero count, message index `1` (bus
 coordinate 2) of the memory and bytecode tuples: the nonzero count product (§6.2 "The count
-product"; `layout.rs:136`, `:463-479`). The finalize counts of the two blocks are outside it
+product"; `layout.rs`). The finalize counts of the two blocks are outside it
 (§6.2). Both tuples have at least two coordinates (`MemMsg`, `BytecodeMsg`), so the
 bound is never the reason the conjunct holds. -/
 def CountsNonzero (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
@@ -316,16 +315,16 @@ def CountsNonzero (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
       ∀ h : 1 < i.msg.size, i.msg[1] ≠ 0
 
 /-- The M3 checks of the announced instance, two of the verifier's announcement checks
-(`crates/verifier/src/layout.rs:489-494`; §6.2 "Instance caps"): the window of the announced memory
+(`crates/verifier/src/layout.rs`; §6.2 "Instance caps"): the window of the announced memory
 log-size `κ` and the row cap. The bytecode length and the public words' two limbs are checked by
 type (`Program`, `PublicInput`); the WHIR rate and the stacked size are the protocol layer's (see
 the module docstring). -/
 structure Caps (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop where
-  /-- `MIN_LOG_MEM ≤ log_mem` (`:490`). -/
+  /-- `MIN_LOG_MEM ≤ log_mem`. -/
   minLogMem_le_logMem : minLogMem ≤ κ
-  /-- `log_mem ≤ MAX_LOG_MEM` (`:490`). -/
+  /-- `log_mem ≤ MAX_LOG_MEM`. -/
   logMem_le_maxLogMem : κ ≤ maxLogMem
-  /-- Every table has at most `2^MAX_LOG_ROWS` rows (`rows <= 1 << MAX_TABLE_LOG`, `layout.rs:491`
+  /-- Every table has at most `2^MAX_LOG_ROWS` rows (`rows <= 1 << MAX_TABLE_LOG`, `layout.rs`
  ; the rows are the executed ones, announced as counts). The verifier is not among
   `w.tables`. -/
   heights : ∀ t ∈ w.tables, t.table.length ≤ 2 ^ maxLogRows
@@ -337,13 +336,13 @@ data (Clean PR #446); they are now theorems (`SatisfiedBy.index_columns`, `Satis
 `SatisfiedBy.bytecode_rows`). -/
 
 /-- The `idx` column of row `i` of the memory block is `g^i`: the index column the verifier
-computes (§6.5; `layout.rs:431`, `:442`). -/
+computes (§6.5; `layout.rs`). -/
 def IndexColumnsAreRowIndices (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
   ∀ i (hi : i < (memBlockRows w).length), (memRowAt w (memBlockRows w)[i]).idx = addressOfIndex i
 
 /-- The memory block's rows are the words of the image the prover data names, in order, for
 some index column `idx` and finalize-count column `cntFin`: the committed columns `MEM_LO,
-MEM_HI` are the image (§6.2 "Seed" and "Finalize"; `cpu/layout.rs:431-440`). -/
+MEM_HI` are the image (§6.2 "Seed" and "Finalize"; `cpu/layout.rs`). -/
 def SeedRowsAreTheImage (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
   ∃ idx cntFin : Fin (2 ^ (imageOf w.data).1) → K,
     memBlockRows w = List.ofFn fun i ↦
@@ -364,7 +363,7 @@ def BytecodeRowsAreTheProgram (prog : LeanIsaProgram)
 
 /-- Every row of the `KECCAK` table satisfies the permutation relation on its lanes
 (`KeccakRelation`, the component's `Assumptions`): what the Keccak reduction proves
-(`lib.rs:283-300` at `40f877dc`). The one conjunct enforced outside the bus; the proof system
+(`lib.rs` at `40f877dc`). The one conjunct enforced outside the bus; the proof system
 discharges it from the Keccak region. -/
 def KeccakRowsValid (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
   ∀ row ∈ keccakRows w, KeccakRelation (keccakRowAt w row)

@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.EvalsT
 public import LeanVM.Guest.B1.Gkr.Root
 
 /-!
-# The table evaluations (G:2593-2604, 2683)
+# The table evaluations
 
 `vt_eval`: evaluation `k`'s read at `col_eval_words` (the cursor `σ 2647`), packing and copy.
 `vt_evals_fs`: from the last round's sponge, the 153 words absorbed leave the sponge whose

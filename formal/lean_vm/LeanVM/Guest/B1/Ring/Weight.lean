@@ -14,11 +14,11 @@ public import LeanVM.Guest.B1.Eq.RsEqRun
 /-!
 # `ring_switch_weight` (TRIAGE G #66)
 
-`ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)` (G:3297-3306, `fn% «ring_switch_weight»`)
+`ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)` (`fn% «ring_switch_weight»`)
 writes a row of `64` ones (`rswInit`), calls `rs_eq_run` on it, whose last row holds `ringRow 1 r p
 k` (`Π (r_n^(2^k) + p_n)`, B1-a's `MeaningRsEqRun`), and sums `c_table[k] · row[k]` (`rswTerm`).
 With `p = 1 + r'` the factor is `1 + r_n^(2^k) + r'_n`, so the sum is
-`ringWeight r r' c_table` (V:2109; `ringWeight_eq`).
+`ringWeight r r' c_table` (`ringWeight_eq`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -51,7 +51,7 @@ theorem gsum_cons (t : ℕ → E) : ∀ n, gsum t (n + 1) = t 0 + gsum (fun k �
   | 0 => by rw [gsum_succ, gsum_zero, gsum_zero, zero_add, add_zero]
   | n + 1 => by rw [gsum_succ, gsum_cons t n, gsum_succ, add_assoc]
 
-/-- One product of `ringWeight` (V:2109): `c · Π (1 + v_n + r'_n)`. -/
+/-- One product of `ringWeight`: `c · Π (1 + v_n + r'_n)`. -/
 def rwProd (vs rP : List E) (c : E) : E :=
   (List.zip vs rP).foldl (fun product (value, challenge) ↦ product * (1 + value + challenge)) c
 

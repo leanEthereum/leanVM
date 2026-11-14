@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Whir.CFinR
 public import LeanVM.Guest.B1.Whir.Residuals
 
 /-!
-# The residuals, honestly (G:1776-1811)
+# The residuals, honestly
 
 `rcC`: a level's chains' buffer, the two chains `h ← (h + P(p))·μ`, `hh ← (hh + H(p))·μ` over the
 first `8j` positions at entries `2j`, `2j + 1`. `resB_complete`: the level's sums stored into

@@ -24,7 +24,7 @@ public import LeanVM.Facts.ClaimBytes
 
 `statementDigest seed s` hashes the seed, the two claim lists' digests, the DA digest and the
 deferred claim's cells, each as its two lanes (`statement_digest`,
-`aggregation/statement.rs:81-102`). Every encoding on the way is injective at a fixed width
+`aggregation/statement.rs`). Every encoding on the way is injective at a fixed width
 (`digestBytes`, 32 bytes; `claimBytesOf`, 64; `E.toBytes`, 16). So
 two statements with the same digest are equal, or one of the three Keccak-256
 hashes on the way was given two different inputs with the same output: the pairs

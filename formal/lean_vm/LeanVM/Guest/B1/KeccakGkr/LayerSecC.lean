@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerSecC
 
-  `keccak_layer`'s tail (G:2641-2669): the final check, the squeeze of `β`, the next claim's
+  `keccak_layer`'s tail: the final check, the squeeze of `β`, the next claim's
   record, the return.
 -/
 
@@ -55,7 +55,7 @@ theorem lflipBlk_noRet (lp : V) (sl : ℕ → ℕ) (top top1 i b : ℕ) (s : Stm
   · rw [noRetList_append, noRetList_flatten_map _ (fun k ↦ rfl)]
     rfl
 
-/-- **The tail** (G:2763-2824). -/
+/-- **The tail**. -/
 theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
     (hloc : ReadsAt rd (σ (.n (o + 748))) locPt)
     (hf : ∀ i < 25, σ (.n (laneW o i)) = eqAt (locPt.drop 6) i)

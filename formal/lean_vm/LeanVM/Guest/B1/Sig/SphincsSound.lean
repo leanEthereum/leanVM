@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSound
 
-  `verify_sig_lean_sphincs` (`lean_ethereum.py:4142-4243`) is sound: under a
+  `verify_sig_lean_sphincs` (`lean_ethereum.py`) is sound: under a
   call relation that unfolds at a frame map, on a memory image of at most `2^32` words, whenever
   its body holds it returns no words, and with the byte table at its second argument the signature
   read off its valuation and its three `sp_wots` frames verifies the claim at its first

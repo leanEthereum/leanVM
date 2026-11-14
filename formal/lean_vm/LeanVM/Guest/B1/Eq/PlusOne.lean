@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
 
 /-!
-# `plus_one_run` (G:1011-1014, TRIAGE #27)
+# `plus_one_run` (TRIAGE #27)
 
 `plus_one_run__L{n}` (core function `116 + n`) writes `out[k] = 1 + src[k]`, `k < n` (`poBlk k`),
 and returns `0`.

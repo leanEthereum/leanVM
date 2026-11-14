@@ -48,7 +48,7 @@ rows that are steps of a semantics `S` of `KECCAK`: the deployed one under the `
   except through the walk; the rows not on the run are closed walks.
 * No row is excluded at the last slot: the machine halts in the final state, `(g^(N_prog - 1), 1)`,
   and a row at the last slot in another frame is a step of the program, which a valid execution
-  may take (leanVM's `halts_in_the_final_state`, `crates/leanvm_core/src/cpu/mod.rs:826-864`).
+  may take (leanVM's `halts_in_the_final_state`, `crates/leanvm_core/src/cpu/mod.rs`).
 -/
 
 namespace LeanVM.Arithmetization

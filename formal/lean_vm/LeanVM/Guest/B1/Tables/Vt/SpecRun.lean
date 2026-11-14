@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Gkr.Spec
 public import LeanVM.Protocol.EndToEnd.Complete.Table
 
 /-!
-# Runs of the table loop (V:664-673)
+# Runs of the table loop
 
 * `vt_runsTo_const`: a program that leaves every state as it is and returns `a` runs to `a`,
   reading nothing (the check of the bytecode's value, `BytecodeAt`);

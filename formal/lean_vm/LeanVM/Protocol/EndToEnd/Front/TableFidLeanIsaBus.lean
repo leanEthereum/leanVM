@@ -22,7 +22,7 @@ public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
 
 The table phase's identities (`TableFid`, `LeanVM.Protocol.EndToEnd.Front.TablePhase`) compare the
 verifier program's bus result, `BusWit.result` (`verify_bus_balance`,
-`crates/verifier/src/bus.rs:130-247`), with the oracle protocol's output on the
+`crates/verifier/src/bus.rs`), with the oracle protocol's output on the
 same reads, `Bus.busOut`. This module proves the two agree at the leanISA instance and the
 verifier's layout, for every read whose GKR point has `μ_bus` coordinates, whose memory values are
 two, whose slot weights are sixteen and whose share is the bytecode's:
@@ -1141,7 +1141,7 @@ section Padding
 
 variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
 
-/-- The verifier's padding term of a block (`padding_rows`, `bus.rs:197-199`): the padding weight
+/-- The verifier's padding term of a block (`padding_rows`, `bus.rs`): the padding weight
 of its owner's rows times its form at the owner's padding row, plus one. -/
 def refPad (w : List E) (β : E) (p : List E) (b : BusBlock) : E :=
   paddingWeight (p.take b.logRows) b.rows *

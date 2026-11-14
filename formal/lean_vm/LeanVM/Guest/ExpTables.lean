@@ -40,16 +40,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Protocol LeanVM
 /-- `SIZE_BITS`: the squares' section's length. -/
 abbrev sizeBits : ℕ := guest_const% SIZE_BITS
 
-/-- `SEL_TAB_NIBBLES = (SIZE_BITS + 3) // 4` (`lean_ethereum.py:314`). -/
+/-- `SEL_TAB_NIBBLES = (SIZE_BITS + 3) // 4` (`lean_ethereum.py`). -/
 abbrev selTabNibbles : ℕ := 9
 
-/-- `RANK_KEYS_AT = SIZE_BITS + 16 SEL_TAB_NIBBLES` (`lean_ethereum.py:316`). -/
+/-- `RANK_KEYS_AT = SIZE_BITS + 16 SEL_TAB_NIBBLES` (`lean_ethereum.py`). -/
 abbrev rankKeysAt : ℕ := 178
 
-/-- `RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS = 153 + 94` (`lean_ethereum.py:317`, deployed). -/
+/-- `RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS = 153 + 94` (`lean_ethereum.py`, deployed). -/
 abbrev rankStride : ℕ := 247
 
-/-- `SIDE_TAB_AT = RANK_KEYS_AT + SIZE_BITS` (`lean_ethereum.py:319`). -/
+/-- `SIDE_TAB_AT = RANK_KEYS_AT + SIZE_BITS` (`lean_ethereum.py`). -/
 abbrev sideTabAt : ℕ := 212
 
 /-- `SIDE_GROUP_START` (deployed): side `s`'s first bus block group, then `N_BLOCK_GROUPS = 24`. -/
@@ -61,7 +61,7 @@ abbrev nGkrSides : ℕ := guest_const% N_GKR_SIDES
 /-- `N_BLOCK_GROUPS`. -/
 abbrev nBlockGroups : ℕ := guest_const% N_BLOCK_GROUPS
 
-/-- **The exponent table at `q`** (`exponent_tables`, `lean_ethereum.py:697-722`): the squares
+/-- **The exponent table at `q`** (`exponent_tables`, `lean_ethereum.py`): the squares
 `q[g^j] = g^(2^j)`, `j < 34`; the nibble shares `q[g^(34 + 16j + u)] = g^(u·16^j)`, `j < 9`,
 `u < 16`; the rank keys `q[g^(178 + k)] = g^(k·247)`, `k < 34`; and each bus block group's side,
 `q[g^(212 + gi)] = E(s)` for the groups `gi` of side `s`. -/

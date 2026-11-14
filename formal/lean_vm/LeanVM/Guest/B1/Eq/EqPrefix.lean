@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
 
 /-!
-# `eq_prefix_run`, `eq_prefix_chain` (G:991-1007, TRIAGE #25, #26)
+# `eq_prefix_run`, `eq_prefix_chain` (TRIAGE #25, #26)
 
 `eq_prefix_run__L{n}` (core function `39 + n`) stores the seed at `chain[0]`, then per coordinate
 `k < n` (`epBlk k`) reads `a[k]`, `b1[k]`, multiplies the running product by their sum and stores

@@ -23,7 +23,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 @[expose] public section
 
-/-- The two cases of `qkeccak_slot` (`layout.rs:413-423`) are disjoint: no spare-carrying committed
+/-- The two cases of `qkeccak_slot` (`layout.rs`) are disjoint: no spare-carrying committed
 column is an input lane. -/
 theorem keccakSlotOf_disjoint :
     ∀ l ∈ keccakCommitted.take qkeccakSpare, ¬ (keccakIn ≤ l ∧ l < keccakIn + 25) := by
@@ -48,7 +48,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
 /-- `E(0, 1)`, the generator `y` of `E` over `K`, `y^2 = x·y + 1`. -/
 def yE : E := E.ofLimbs 0 1
 
-/-- `PACK_BITS` (`crates/verifier/src/keccak.rs:14`): a pack is `2 ^ PACK_BITS` consecutive
+/-- `PACK_BITS` (`crates/verifier/src/keccak.rs`): a pack is `2 ^ PACK_BITS` consecutive
 steps. -/
 def packBits : ℕ := 4
 

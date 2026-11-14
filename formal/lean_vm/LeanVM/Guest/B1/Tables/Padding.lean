@@ -14,11 +14,11 @@ public import LeanVM.Guest.CoreData
 /-!
 # `padding_weight` (TRIAGE G #51)
 
-`padding_weight(rows, zeta, tau)` (G:2182-2213, the same source as the BLAKE2s-era guest's) hints
+`padding_weight(rows, zeta, tau)` (the same source as the BLAKE2s-era guest's) hints
 the `τ + 1` bits of the word `W = rows + (2^τ - 1)`, pins them Boolean, reconstructs `W` from them
 and checks that the top bit `n_τ` is set only alone: that is `rows = E(n)` for an integer
 `n ≤ 2^τ`, the `τ` low bits being `n`'s complements (`pw_bits`). From the complements it folds
-`paddingWeight` (V:679) over `zeta[..τ]`, and it returns two words, `lead` and `rest`, with
+`paddingWeight` over `zeta[..τ]`, and it returns two words, `lead` and `rest`, with
 `lead = 1 ∧ rest ≠ 0` exactly when `τ = log2Ceil n` (`lead_rest_iff`), which `verify_tables`
 asserts.
 
@@ -145,7 +145,7 @@ theorem sum_testBit_gen_pow (W j : ℕ) (hj : j ≤ 64) :
     rw [coordBasis_of_lt (by have := Finset.mem_range.mp hk; omega),
       gen_pow_eq_eOfNat (by have := Finset.mem_range.mp hk; omega)]
 
-/-- **The hinted bits are `n`'s** (G:1546-1569): Boolean `b_k` reconstructing
+/-- **The hinted bits are `n`'s**: Boolean `b_k` reconstructing
 `rows + E(2^τ - 1)`, the top one set only with every bit below it, make `rows = E(n)` with
 `n ≤ 2^τ`, `b_k` bit `k` of `pwW τ n`. -/
 theorem pw_bits {τ : ℕ} (hτ : τ < 63) {b : ℕ → E} (hb : ∀ k ≤ τ, b k * b k = b k) {rows : E}
@@ -238,7 +238,7 @@ theorem zipIdx_take_succ {α : Type} (l : List α) (m : ℕ) (hm : m < l.length)
   rw [List.take_add_one, List.getElem?_eq_getElem hm, Option.toList_some, List.zipIdx_append]
   simp [List.length_take, Nat.min_eq_left (Nat.le_of_lt hm)]
 
-/-- `paddingWeight` (V:713) is the guest's fold over the complements, times the top's
+/-- `paddingWeight` is the guest's fold over the complements, times the top's
 complement. -/
 theorem paddingWeight_eq (zs : List E) (n : ℕ) :
     paddingWeight zs n = (1 + bitE (n.testBit zs.length)) *
@@ -267,8 +267,8 @@ abbrev pwLead (τ n : ℕ) : E := PadLead τ n
 /-- `rest`: the top bit and the bits below `τ - 1`. -/
 abbrev pwRest (τ n : ℕ) : E := PadRest τ n
 
-/-- **`lead = 1 ∧ rest ≠ 0` certifies the height** (G:1653-1655): for `n ≤ 2^τ`, `τ` is the
-least height holding `n` rows, `log2Ceil n` (V:695). -/
+/-- **`lead = 1 ∧ rest ≠ 0` certifies the height**: for `n ≤ 2^τ`, `τ` is the
+least height holding `n` rows, `log2Ceil n`. -/
 theorem lead_rest_iff {τ n : ℕ} (hτ : τ < 64) (hn : n ≤ 2 ^ τ) :
     pwLead τ n = 1 ∧ pwRest τ n ≠ 0 ↔ log2Ceil n = τ := by
   rcases Nat.eq_zero_or_pos τ with rfl | hτ0
@@ -313,9 +313,9 @@ theorem lead_rest_iff {τ n : ℕ} (hτ : τ < 64) (hn : n ≤ 2 ^ τ) :
 
 /-! ## The meaning -/
 
-/-- **`padding_weight(rows, zeta, τ)`** (G:1401-1425; TRIAGE #38): `rows` is a row count
+/-- **`padding_weight(rows, zeta, τ)`** (TRIAGE #38): `rows` is a row count
 `n ≤ 2^τ`, the `τ` words `zs` lie at `zeta`, and the function returns `paddingWeight zs n`
-(V:713) with `lead` and `rest` (`lead_rest_iff`). -/
+ with `lead` and `rest` (`lead_rest_iff`). -/
 def MeaningPaddingWeight (τ : ℕ) (rd : Reader) : List E → List E → Prop
   | [rows, zeta], rets => ∃ n zs, n ≤ 2 ^ τ ∧ rows = eOfNat n ∧ zs.length = τ ∧
       TbReadsAt rd zeta zs ∧ rets = [paddingWeight zs n, pwLead τ n, pwRest τ n]

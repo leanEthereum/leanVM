@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerSecB
 
-  `keccak_layer`'s middle sections (G:2695-2762): the product at `s` (Horner), the pack rounds'
+  `keccak_layer`'s middle sections: the product at `s` (Horner), the pack rounds'
   first record and their two loops, and the last record read.
 -/
 
@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerT
 /-!
 # The pack rounds' records
 
-`hornerT_holds`: the Horner chain is `polyEval` of the product at `s` (V:1998). `packSetupT_holds`:
+`hornerT_holds`: the Horner chain is `polyEval` of the product at `s`. `packSetupT_holds`:
 the first record (`RoundRec`, the capacity after `s`, the cursor past the product and the nonce, the product at
 `s`, the scale `1`), the two loops' calls (`LayerW.h0`, `hloop`, `hrem`). `lastT_holds`: the
 record `rounds·step_g·rem_g` read.
@@ -32,7 +32,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 /-- The value after `j` steps of the chain. -/
 def hornerV (a : ℕ → ℕ) (b j : ℕ) : ℕ := if j = 0 then a 46 else b + 2 * j - 1
 
-/-- **Horner** (G:2695-2697): the chain's last value is the product at `s`. -/
+/-- **Horner**: the chain's last value is the product at `s`. -/
 theorem hornerT_holds {a : ℕ → ℕ} {s b : ℕ} {cs : List E} (hl : cs.length = 47)
     (hc : ∀ k < 47, σ (.n (a k)) = cs.getD k 0) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (hornerT a s b) next kret) :
@@ -69,7 +69,7 @@ theorem hornerT_holds {a : ℕ → ℕ} {s b : ℕ} {cs : List E} (hl : cs.lengt
 theorem gen48 : word 281474976710656 0 = gen ^ 48 := by
   rw [show (281474976710656 : ℕ) = 2 ^ 48 from rfl]; exact word_two_pow (by decide)
 
-/-- **The pack rounds' setup** (G:2699-2739): the first record at `rounds` (value `o + 720`), the
+/-- **The pack rounds' setup**: the first record at `rounds` (value `o + 720`), the
 eight-round loop's call, and the remainder loop's on `rounds·step_g`, `prev_point·step_g⁸`,
 `point·step_g⁸`, both passed `tabs`. -/
 theorem packSetupT_holds {o first : ℕ} {next : Prop} {kret : List E → Prop}
@@ -108,7 +108,7 @@ theorem packSetupT_holds {o first : ℕ} {next : Prop} {kret : List E → Prop}
   · have := hcall' (by rw [e37']; exact hne)
     rwa [e38, word_one, e27, e31, h8, e35, h8'] at this
 
-/-- **The last record** (G:2758-2762): `rounds·step_g·rem_g` (value `o + 739`) and its capacity,
+/-- **The last record**: `rounds·step_g·rem_g` (value `o + 739`) and its capacity,
 cursor, claim and scale. -/
 theorem lastT_holds {o : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (lastT o) next kret) :

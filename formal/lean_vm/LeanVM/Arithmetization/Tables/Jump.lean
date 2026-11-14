@@ -19,15 +19,15 @@ public import Mathlib.Algebra.CharP.Two
 # The `JUMP` table
 
 At Clean pin `b41c196b`. The columns are
-`crates/leanvm_core/src/tables.rs:694-718` (`mod jump`, in that order), the two identities
-`tables.rs:741-748` (`JumpTable::constraint`, weighted `pows[0]` and `pows[1]`), the flushes
-`tables.rs:749-769` (`JumpTable::flushes`), matching specification §7.5
+`crates/leanvm_core/src/tables.rs` (`mod jump`, in that order), the two identities
+`tables.rs` (`JumpTable::constraint`, weighted `pows[0]` and `pows[1]`), the flushes
+`tables.rs` (`JumpTable::flushes`), matching specification §7.5
 (`doc/leanvm/body/07-instruction-tables.tex`).
 
 **The row** `JumpRow` is the column list: `pc, fp`; the operands `o_c, o_d, o_f`; the condition
 `v_cond`, the destination `v_pc` and the frame `v_fp`, each a single `K` limb; the memory counts
 `r_c, r_d, r_f`; the bytecode count `r_bc`. The inverse `w` and the taken indicator `b` are
-local witnesses of the component (`tables.rs:713-717`, "local witness columns"): the honest
+local witnesses of the component (`tables.rs`, "local witness columns"): the honest
 prover sets `w = v_cond⁻¹` when `v_cond ≠ 0` and `0` otherwise, and `b = [v_cond ≠ 0]`.
 
 **The constraints** are the two residuals `b + v_cond·w = 0` and `v_cond·(b + 1) = 0`. Together
@@ -89,7 +89,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `JUMP` columns, in the order of `tables.rs:694-718`; the witnesses `w` and `b` are
+/-- The `JUMP` columns, in the order of `tables.rs`; the witnesses `w` and `b` are
 local to the component. -/
 structure JumpRow (F : Type) where
   /-- The program counter. -/
@@ -191,12 +191,12 @@ private theorem jump_entry (a b c : K) :
 
 /-! ## The table -/
 
-/-- The `JUMP` table (specification §7.5; `tables.rs:692-833`): the witnesses `w`, `b`, the two
+/-- The `JUMP` table (specification §7.5; `tables.rs`): the witnesses `w`, `b`, the two
 residual constraints, the state pull and the push of the derived successor, the bytecode read
 of `(JMP, o_c, o_d, o_f, 0, 0, 0, 0)`, and the three single-limb reads. Returns the pushed
 successor. -/
 def jumpTable : GeneralFormalCircuit K JumpRow Registers where
-  -- The table's name in leanVM (`TABLES`, `cpu/mod.rs:391`), unique in the ensemble (Clean keys
+  -- The table's name in leanVM (`TABLES`, `cpu/mod.rs`), unique in the ensemble (Clean keys
   -- the prover data by it).
   name := "JUMP"
   main r := do

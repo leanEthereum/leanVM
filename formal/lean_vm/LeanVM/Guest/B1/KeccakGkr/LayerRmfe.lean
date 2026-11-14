@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerRmfe
 
-  The instance weights in `keccak_layer` (G:2678-2697): the powers of `s`, the RMFE embeddings
+  The instance weights in `keccak_layer`: the powers of `s`, the RMFE embeddings
   evaluated at `s` as products of small factors, their sum, and their stores in the next claim.
 -/
 
@@ -19,7 +19,7 @@ The two specializations of `keccak_layer` share this block up to an offset `o` o
 embeddings stored (`KECCAK_EMB_OUT`) and summed. Its values are binary polynomials in `s` (`Mask`); by
 kernel evaluation (`rmfeCheck`) the sixteen stored at `out[6 + i]` are the embeddings
 `RMFE_EMBED[i]` and the one stored at `out[1]` their sum, which `rmfeBlock_holds` turns into
-`keccakInstanceWeights s` (V:1960) and its sum.
+`keccakInstanceWeights s` and its sum.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -208,7 +208,7 @@ theorem sumE_keccakInstanceWeights (s : E) :
   rw [keccakInstanceWeights_pe, LeanVM.Protocol.KeccakGkr.sumE_eq_sum, embedXor, pe_foldl_xor,
     pe_zero, zero_add]
 
-/-- **The instance weights, stored** (G:2460-2559 against V:1960): if the block holds, the next
+/-- **The instance weights, stored**: if the block holds, the next
 claim's record holds `keccakInstanceWeights s` at `out[6 + i]` and their sum at `out[1]`. -/
 theorem rmfeBlock_holds {o : ℕ} (ho : LayOff o) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (rmfeBlockT o) next kret) :

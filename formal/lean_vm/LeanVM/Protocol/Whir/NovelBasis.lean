@@ -16,8 +16,8 @@ public import ArkLib.Data.CodingTheory.ReedSolomon
 
 The leanVM specification at leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`: Annex B §B.2
 "Reed-Solomon codes over binary fields" (`sec:binary-rs`,
-`doc/leanvm/body/b-polynomial-commitment-scheme.tex:87-94`) and Annex D Definition `def:enc`
-(`doc/leanvm/body/d-novel-basis.tex:40-46`; in Annex B until `127510d1`). The
+`doc/leanvm/body/b-polynomial-commitment-scheme.tex`) and Annex D Definition `def:enc`
+(`doc/leanvm/body/d-novel-basis.tex`; in Annex B until `127510d1`). The
 definitions are the Annex's and the claims of `def:enc` are proved here.
 
 * Cube points `u : Fin κ → Bool` are read bit `0` first: `bitsToNat u = ⟨u⟩ = Σ_i u_i 2^i`, and

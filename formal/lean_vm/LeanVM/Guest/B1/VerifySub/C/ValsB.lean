@@ -64,7 +64,7 @@ theorem vsMapsT_split : vsMapsT =
   rw [vsMapsT, ← List.range_eq_range']
   rfl
 
-/-- **The ring map's challenges** (G:3635-3652): the nonce `n` at `verify_keccak`'s cursor,
+/-- **The ring map's challenges**: the nonce `n` at `verify_keccak`'s cursor,
 the grind's permutation `vsMapSt`, its cell `1` for `grind_check`, `tabs`, the sixteen
 challenges `vsRchs` at `vsCh i`, and the capacity after them at `840 .. 844`. -/
 theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 595) 0 n) :
@@ -156,7 +156,7 @@ theorem vsCtabBlock_mem {b : ℕ} (hb : b < 8) {s : Stmt} (hs : s ∈ vsCtabBloc
   rw [vsCtabT]
   exact List.mem_append_left _ (List.mem_cons_of_mem _ (List.mem_flatMap.2 ⟨b, List.mem_range.2 hb, hs⟩))
 
-/-- **`c_table`'s products** (G:3654-3662): `c[8 p + b] = f_p · g_b^(2^(8 p))`, the challenges
+/-- **`c_table`'s products**: `c[8 p + b] = f_p · g_b^(2^(8 p))`, the challenges
 `f = vsCh 0 .. 7`, `g = vsCh 8 .. 15`. -/
 theorem vs_ctabV (hl : args.length = 6) {b : ℕ} (hb : b < 8) :
     ∀ p < 8, ς (.n (vsCtabD b p)) = ς (.n (vsCh p)) * ς (.n (vsCh (8 + b))) ^ 2 ^ (8 * p) := by
@@ -207,7 +207,7 @@ theorem vs_ctabV (hl : args.length = 6) {b : ℕ} (hb : b < 8) :
 theorem vs_word_gen1 : word 2 0 = gen := by
   rw [show (2 : ℕ) = 2 ^ 1 from rfl, word_two_pow (by norm_num), pow_one]
 
-/-- `rate_sel = g^(rate - 1)` (G:3549-3551). -/
+/-- `rate_sel = g^(rate - 1)`. -/
 theorem vs_rateSel (hl : args.length = 6) {rate : ℕ} (hr : 1 ≤ rate) (h64 : w 64 = gen ^ rate) :
     ς (.n 66) = gen ^ (rate - 1) := by
   have hG := vsSizesT_good (rd := rd) (w := w) hl
@@ -259,7 +259,7 @@ theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (
         (List.mem_map.2 ⟨t, List.mem_range.2 ht, rfl⟩)))) (by interval_cases t <;> decide +kernel),
       vs_w hl (by decide)]
 
-/-- **The stack's log's selector** (G:3590-3593): `g^(m - 20)` and its bound `g^10`. -/
+/-- **The stack's log's selector**: `g^(m - 20)` and its bound `g^10`. -/
 theorem vs_placeV (hl : args.length = 6) {m : ℕ} (hm : 20 ≤ m) (h276 : w 276 = gen ^ m) :
     ς (.n 278) = gen ^ (m - 20) ∧ ς (.n 279) = gen ^ 10 := by
   have hG := vsPlaceT_good (rd := rd) (w := w) hl
@@ -287,7 +287,7 @@ theorem vsPushStep_ld (b : ℕ) :
   unfold vsPushStep vsPushP vsPushD
   split <;> simp_all
 
-/-- **The push blocks' pointers** (G:3571-3575): `g_squares · kb[src]`. -/
+/-- **The push blocks' pointers**: `g_squares · kb[src]`. -/
 theorem vs_pushP (hl : args.length = 6) {b : ℕ} (hb : b < 54) :
     ς (.n (vsPushP b)) = ς (.n 4) * ς (.n (84 + Tables.blockKappaSrc.getD b 0)) := by
   have hm : vsMul (vsPushP b) 4 (84 + Tables.blockKappaSrc.getD b 0) ∈ vsPushT := by
@@ -299,7 +299,7 @@ theorem vs_pushP (hl : args.length = 6) {b : ℕ} (hb : b < 54) :
 
 /-! ## The tail -/
 
-/-- **The tail's values** (G:3690-3698): the stream's pointer past `verify_keccak`'s cursor,
+/-- **The tail's values**: the stream's pointer past `verify_keccak`'s cursor,
 `tabs`. -/
 theorem vs_tailV (hl : args.length = 6) :
     ς (.n 1919) = w 595 * gen ∧ ς (.n 1921) = ς (.n 4) * gen ^ winTabAt := by
@@ -363,7 +363,7 @@ theorem vsLamT_loads {d p : V} {off : ℕ} (h : Stmt.atom (.load d p off) ∈ vs
   · exact Or.inl ⟨i, hi, h.1, h.2.1, h.2.2⟩
   · exact Or.inr h
 
-/-- **`λ` and the target** (G:3671-3686): `λ` squeezed from the ring map's capacity, and the
+/-- **`λ` and the target**: `λ` squeezed from the ring map's capacity, and the
 target `dot (powers λ 137)` of `ring_switch_target`'s value, the claims kept (not an output
 lane's), the Keccak reduction's word and the out-of-domain value. -/
 theorem vs_lam (hl : args.length = 6) {claims : List ColumnClaim} (hcl : claims.length = 159)

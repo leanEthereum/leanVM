@@ -449,8 +449,8 @@ $\mathbb{E} = \mathbb{F}[y]/(y^2+xy+1)$, the field of $2^{128}$ elements. Its \e
 \[
 iv_G = \mathrm{IV}(B) = H(\mathit{TAG} \,\|\, \bar B), \qquad \mathit{TAG} = \texttt{leanvm-v1}
 \]
-(\lean{deployedSeed}, \lean{fiatShamirIvWith}, \texttt{crates/verifier/src/layout.rs:68},
-\texttt{bytecode.rs:46-53}), the hash of the proof system's $9$-byte version tag and the bytecode's
+(\lean{deployedSeed}, \lean{fiatShamirIvWith}, \texttt{crates/verifier/src/layout.rs},
+\texttt{bytecode.rs}), the hash of the proof system's $9$-byte version tag and the bytecode's
 words as $8$-byte little-endian strings, is the Fiat-Shamir initial value prover and verifier
 derive from the bytecode; a test run by the gate (\texttt{lake exe node-vectors}) checks it against
 leanVM's \texttt{fs\_seed}.
@@ -463,7 +463,7 @@ meaning ``$pk$ signed $m$'';
 data-availability claim (\lean{DaClaim}, \lean{daClaimDigest}), a matrix root $\rho$
 (\lean{daRoot}) and a membership challenge $z \in \mathbb{E}$ (\lean{membershipChallenge}, as its
 two limbs and two zero words), or $32$ zero bytes without one (\lean{zeroDigest};
-\texttt{verifier::da::digest}, \texttt{crates/verifier/src/da.rs:36-43}). The claim: some matrix of
+\texttt{verifier::da::digest}, \texttt{crates/verifier/src/da.rs}). The claim: some matrix of
 $1$ to \lean{LeanDa.maxRows} encoded blobs with root $\rho$ has every row orthogonal to the dual codeword $L$ of $z$
 (\lean{Da.MatrixWitness.Opens}), which the guest program builds from $z$. The outer verifier holds
 $\rho$, derives $z$ from $\rho$ (Section~\ref{sec:schemes}) and checks $\mathit{da} = H(\rho \,\|\, z)$; that
@@ -474,14 +474,14 @@ satisfies $\widehat{B}(\zeta) = v$ (\lean{DeferredClaim.HoldsWithShape}).
 \end{itemize}
 
 \paragraph{The statement's digest} under a seed $\sigma$ (\lean{statementDigest},
-\texttt{aggregation/statement.rs:81-102}) is
+\texttt{aggregation/statement.rs}) is
 \[
 \mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(\enc(\Cx)) \,\|\, H(\enc(\Cs)) \,\|\, \mathit{da} \,\|\, \enc(c)\big),
 \]
 where $\enc(\Cx)$ concatenates, per claim, the key's bytes, a leanXMSS key's root ($16$ bytes)
 then its parameter ($16$), and the message ($32$); $\enc(\Cs)$ likewise, a leanSPHINCS key's bytes
 being $\mathrm{PK.seed}$ then $\mathrm{PK.root}$ (\lean{claimListDigest},
-\texttt{aggregation/statement.rs:32-56}); and $\enc(c)$ is the $16$-byte encodings of
+\texttt{aggregation/statement.rs}); and $\enc(c)$ is the $16$-byte encodings of
 $z_1, \dots, z_{23}, v$. The lists' lengths are bound by Keccak's padding;
 the deferred claim's encoding carries no length, so deferred claims are told apart only at one
 shape. The guest program's public input is this $32$-byte digest.
@@ -511,7 +511,7 @@ under its claim's key and message (Keccak-256 as the schemes' hash, at any leaf 
 claim of $s$ is a raw signature's claim or occurs in the corresponding list of some child's $s_i$.
 \item The DA digest is accounted for (\lean{DaDigestHeld}): with a direct matrix,
 $\mathit{da} = H(\rho \,\|\, z)$ of the claim it opens; without one, $\mathit{da}$ is zero or
-some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4824-4827}).
+some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py}).
 \item Every child is proven (\lean{ChildrenProven}): its deferred claim has the bytecode's shape,
 and the \emph{deferring verifier} accepts its proof: $\mathrm{verifyDeferred}(B, \sigma,
 \mathrm{dig}_\sigma(s_i), f_i, p_i) = \mathsf{true}$. The deferring verifier is the zkVM verifier
@@ -536,7 +536,7 @@ Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coo
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:146-163})
+\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs})
 additionally checks that the DA digest is that of its root with the root's membership
 challenge, that the deferred claim holds ($\widehat{B}(\zeta) = v$), and the lists' form
 (sorted, no repeats). Of these, \lean{AggregateSound} below

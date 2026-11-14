@@ -10,12 +10,12 @@ to reduce there; they do from a plain file and not from a `module`.
 Nothing here evaluates `addressIndex?`: every fetch and read is `LeanIsaProgram.fetch_gpow` or
 `MemoryImage.read_gpow` at a literal index, or one of the failure lemmas.
 
-Fixtures, from leanVM's executor tests: `mul_128bit_word` (`crates/leanvm_core/src/cpu/mod.rs:853-869`,
+Fixtures, from leanVM's executor tests: `mul_128bit_word` (`crates/leanvm_core/src/cpu/mod.rs`,
 the operands the test's and the product as its executor's `F128` arithmetic
 computes it, checked against `crates/primitives/src/field/gf2_64x2.rs`'s reference) as a
 `ValidExecution`; the first `KECCAK` row of
-`keccak_permutes_in_both_layouts` (`cpu/mod.rs:835-868`) on that test's cells, with a mutation;
-`halts_in_the_final_state` (`cpu/mod.rs:878-916`): the machine halts in the final state
+`keccak_permutes_in_both_layouts` (`cpu/mod.rs`) on that test's cells, with a mutation;
+`halts_in_the_final_state` (`cpu/mod.rs`): the machine halts in the final state
 `(g^(N_prog - 1), 1)`, so a `JUMP` in the last slot, reached in another frame, is a step of a valid
 execution, and a `SET_CONSTANT` there leaves no valid execution, whatever the memory. Also a taken
 `JUMP`; a `DEREF` in `pc` mode; the rejections of failed reads, a step from the final state, the
@@ -72,7 +72,7 @@ example : (1: K) + 1 = 0 := by decide
 /-- Register equality decides in the kernel on a product against a power. -/
 example : Registers.next ⟨1, 1⟩ = ⟨addressOfIndex 1, 1⟩ := by decide +kernel
 
-/-! ## `mul_128bit_word` (`cpu/mod.rs:853-869`) -/
+/-! ## `mul_128bit_word` (`cpu/mod.rs`) -/
 
 -- The operands and product of the executor test `mul_128bit_word`.
 def mulX : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfeedfacedeadbeef)
@@ -391,7 +391,7 @@ example : ∀ n, run haltProg ctlImage n Registers.initial ≠ some (Registers.f
           (by decide +kernel) n, halt_past]
     exact fun h ↦ Option.some_ne_none _ h.symm
 
-/-! ## `KECCAK` (`keccak_permutes_in_both_layouts`, `cpu/mod.rs:835-868`) -/
+/-! ## `KECCAK` (`keccak_permutes_in_both_layouts`, `cpu/mod.rs`) -/
 
 -- The input cells of the executor test `keccak_permutes_in_both_layouts` at leanVM `990b9352`:
 -- the words `a, b` (each read twice through the aliased `m` pairs), the padding's first byte in
@@ -403,7 +403,7 @@ def kEnd : E := E.ofLimbs (K.ofBits 0x8000000000000000) (K.ofBits 0x5555)
 
 /-- The thirteen output cells in the odd layout, `permute_cells(input, false, true)` as the
 pinned verifier's `keccak_f` and `keccak_cell_lanes` compute it
-(`crates/verifier/src/hash.rs:50-69`, `layout.rs:299-309`, computed outside Lean; their first four
+(`crates/verifier/src/hash.rs`, `layout.rs`, computed outside Lean; their first four
 lanes are the Keccak-256 digest
 `456db617edafbf8d35b9f83bbe63fd305a2a1a857a7d16775e00d9e0374917d9` of the 64 message bytes, the
 test's own check). -/
@@ -551,7 +551,7 @@ example (w : E) : step (oneStep keccakIns1) (keccakImage1 (kOut 0 + ofK 1) w) �
   rw [keccak_reads_one]
   decide +kernel
 
-/-! ## `halts_in_the_final_state` (`cpu/mod.rs:878-916`)
+/-! ## `halts_in_the_final_state` (`cpu/mod.rs`)
 
 The machine halts in the final state `(g^7, 1)`, not at the last slot: leanVM's eight-slot program
 sets cell `2` to `1`, cell `3` to `g^7` and cell `4` to `g`, jumps to `(g^7, g)`, the last slot in

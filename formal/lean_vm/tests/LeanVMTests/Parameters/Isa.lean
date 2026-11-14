@@ -6,8 +6,8 @@ public import LeanVM.Parameters.Isa
 # Tests: opcode codes and instance caps
 
 Kernel checks that the six codes are the words `1, 2, 4, 8, 16, 32`, bits `0` to `5` since `g = x`,
-in the order of `crates/leanvm_core/src/tables.rs:96-101`, and that the caps carry the values of
-`cpu/mod.rs:41-50`, `crates/verifier/src/layout.rs:501` and `crates/flock/src/hash.rs:281-284`. The
+in the order of `crates/leanvm_core/src/tables.rs`, and that the caps carry the values of
+`cpu/mod.rs`, `crates/verifier/src/layout.rs` and `crates/flock/src/hash.rs`. The
 caps are checked against each other so that an announcement at the floor is admissible.
 -/
 

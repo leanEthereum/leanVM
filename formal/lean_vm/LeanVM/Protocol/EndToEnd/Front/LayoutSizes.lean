@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Verifier.Phases
 /-!
 # The announced sizes
 
-Step 1 of the verifier program (`readAnnouncedSizes`, `crates/verifier/src/lib.rs:219-233` at leanVM
+Step 1 of the verifier program (`readAnnouncedSizes`, `crates/verifier/src/lib.rs` at leanVM
 `40f877dc`) reads eight scalars, the memory's log-size, the six
 tables' row counts and the WHIR rate, checks them, and builds the layout. For the program's bytecode
 (`bytecodeWords prog`):
@@ -22,8 +22,8 @@ tables' row counts and the WHIR rate, checks them, and builds the layout. For th
 * `readSizes_ret`: what the program checks, on the history it read;
 * `readSizes_ret_sizes`: it returns `(layout, ρ)` only after reading `announce s ρ` for sizes
   `s` with `Sizes.Admissible prog s` (the Rust verifier's checks,
-  `crates/verifier/src/layout.rs:381-395` and `crates/verifier/src/lib.rs:213-218`; until
-  `127510d1` they were `read_public`'s, `crates/lean_vm/src/cpu/mod.rs:157-176` at `a386121f`)
+  `crates/verifier/src/layout.rs` and `crates/verifier/src/lib.rs`; until
+  `127510d1` they were `read_public`'s, `crates/lean_vm/src/cpu/mod.rs` at `a386121f`)
   and a rate with `validRate ρ`, and `layout = verifierLayout prog s`; so its `stackLog` is
   `leanIsaμ prog s` (`stackLog_verifierLayout`) and its placements are the instance's.
 

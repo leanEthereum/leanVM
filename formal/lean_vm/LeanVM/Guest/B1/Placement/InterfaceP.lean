@@ -15,19 +15,19 @@ import LeanVM.Guest.Data.Source
 /-!
 # `certify_placement` (TRIAGE G #67): the interface
 
-`certify_placement(kappa_base, g_squares)` (G:3309-3353) groups the committed columns into the
+`certify_placement(kappa_base, g_squares)` groups the committed columns into the
 runs sharing one `kappa_base` source (`COL_GROUP_START`, here `colGroupStart`; a column's `g^κ`
 is `kappa_base[COL_KAPPA_SRC]·g^COL_KAPPA_ADJ`, `colKappaSrc`, `colKappaAdj`, over
 `kappa_base = [1, g^log_mem, g^τ_0, …, g^τ_5]`), keys each group by `g^(κ·RANK_STRIDE - c₀)`
 (`RANK_STRIDE = 247`, from the rank keys `exponent_tables` keeps at `g_squares·g^178`,
 `rankKeysList`), reads the hinted group order `col_group_order`, certifies its keys strictly
-descending (descending `κ`, then ascending first column: `stackOffsets`'s order, V:649), stores
+descending (descending `κ`, then ascending first column: `stackOffsets`'s order), stores
 each group's base offset write-once, and lays every column out from its group's base. It returns
 `g^(Σ 2^κ)` over the committed columns and the buffer of their `g^offset`.
 
-The committed columns are `placementsOf`'s (V:1128-1146): every global column but the `KECCAK`
+The committed columns are `placementsOf`'s: every global column but the `KECCAK`
 value lanes, `94` of the `158` (`committedCols`), in global order. `columnKappas log_mem 19 τ`
-(V:1118) are the sizes of all `158`; the bytecode's log size is the guest's own, `19`
+ are the sizes of all `158`; the bytecode's log size is the guest's own, `19`
 (`BYTECODE_LOG`).
 
 * `PCtx rd kappas off`: `off` holds `g^offset` per committed column;
@@ -45,7 +45,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The committed columns, in global order (`placementsOf`'s `blockCols`, V:1129): every column
+/-- The committed columns, in global order (`placementsOf`'s `blockCols`): every column
 but the `KECCAK` value lanes. -/
 def committedCols (n : ℕ) : List ℕ :=
   (List.range n).filter fun c ↦ (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
@@ -80,12 +80,11 @@ def colGroupStart : List ℕ := [0, 3, 4, 5, 18, 31, 38, 52, 66, 94]
 /-- `RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS`: above any block or column index. -/
 abbrev rankStride : ℕ := 247
 
-/-- The rank keys `exponent_tables` keeps at `g_squares·g^RANK_KEYS_AT` (`RANK_KEYS_AT = 178`,
-G:734-735): `g^(k·RANK_STRIDE)` for `k < SIZE_BITS = 34`. -/
+/-- The rank keys `exponent_tables` keeps at `g_squares·g^RANK_KEYS_AT` (`RANK_KEYS_AT = 178`): `g^(k·RANK_STRIDE)` for `k < SIZE_BITS = 34`. -/
 def rankKeysList : List E := (List.range 34).map fun k ↦ gen ^ (k * rankStride)
 
 /-- **What `certify_placement` hands `check_opening_terminal`**: `kappas` are the `158` columns'
-sizes and `off` holds `g^offset` per committed column, the offsets `stackOffsets`'s (V:649). -/
+sizes and `off` holds `g^offset` per committed column, the offsets `stackOffsets`'s. -/
 def PCtx (rd : Reader) (kappas : List ℕ) (off : E) : Prop :=
   kappas.length = 158 ∧ TbReadsAt rd off ((stackOffsets (committedKappas kappas)).1.map (gen ^ ·))
 

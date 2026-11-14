@@ -34,7 +34,7 @@ open LeanVM.Protocol.KeccakHash (keccak256With littleEndianLane)
 
 /-! ## The challenge's sponge as the proofs read it
 
-`lean_da`'s proofs read the membership challenge's duplex (`verifier/src/transcript.rs:34-90`)
+`lean_da`'s proofs read the membership challenge's duplex (`verifier/src/transcript.rs`)
 in this form, LeanDA's own transcription: the tags in `K`, the root's words as
 symbols of its bytes. The challenge needs only the sponge's seeding and its grind: the root is its
 public input, no scalar is observed, and each nonce is absorbed into a copy of the seeded sponge
@@ -81,7 +81,7 @@ def freshSpongeInput (iv publicInput : DigestBytes) : KeccakState :=
     else if (i : ℕ) < 8 then (digestWord publicInput (i - 4)).lane
     else 0
 
-/-- `DS_POW_NONCE`, the tag of a grinding nonce (`transcript.rs:18`). -/
+/-- `DS_POW_NONCE`, the tag of a grinding nonce (`transcript.rs`). -/
 def powTag : K := K.ofBits 4
 
 /-- **The state a nonce is permuted from** (`absorb_nonce` on a copy of the seeded sponge whose
@@ -110,7 +110,7 @@ def Sponge.newWith (iv publicInput : DigestBytes) : m Sponge := do
   pure ⟨state, []⟩
 
 /-- **The nonce search** from the seeded state `y`, from `nonce` with `fuel` nonces left
-(`membership_challenge`, `verifier/src/da.rs:28-33`): the first nonce whose answer's lane `2` has
+(`membership_challenge`, `verifier/src/da.rs`): the first nonce whose answer's lane `2` has
 a valid proof of work gives the challenge its answer draws; past the last nonce, none. -/
 def grindMWithHash (y : KeccakState) : ℕ → ℕ → m (Option E)
   | _, 0 => pure none
@@ -193,7 +193,7 @@ def listBlobRootWithHash (row : List E) : DigestBytes :=
 def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap E.toBytes)
 
 /-- The blob root of the zero codeword, which pads the tree over the blob roots
-(`padding_root`, `commit.rs:67-75`). -/
+(`padding_root`, `commit.rs`). -/
 def paddingBlobRootWithHash : DigestBytes :=
   treeRootWithHash H (List.replicate cellsPerRow (paddingCellWithHash H))
 
@@ -218,7 +218,7 @@ section Monadic
 variable {m : Type → Type} [Monad m] (H : List UInt8 → m DigestBytes)
   (P : KeccakState → m KeccakState)
 
-/-- **The challenge `z` of a root** (`membership_challenge`, `verifier/src/da.rs:20-34`): the
+/-- **The challenge `z` of a root** (`membership_challenge`, `verifier/src/da.rs`): the
 transcript's sponge seeded with the hash of the label as its IV and the root as its public input
 (`Sponge::new`), then the nonce search (`grindMWithHash`). -/
 def membershipChallengeMWithHash (root : DigestBytes) : m (Option E) := do

@@ -40,7 +40,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # (Lean opcode, family letter, index in `Opcode`'s order)
 OPS = [('xor', 'X', 0), ('mulNative', 'M', 1), ('setConstant', 'S', 2), ('deref', 'D', 3),
        ('jump', 'J', 4), ('keccak', 'K', 5)]
-XMSS = L('main_loop2')  # leanXMSS's check, inline in __loop2 (lean_ethereum.py:4443-4448)
+XMSS = L('main_loop2')  # leanXMSS's check, inline in __loop2 (lean_ethereum.py)
 # `main`'s statically bounded callees: the exponent tables, the statement's digest, and its four
 # loops (the two duplicate-claim regions, the raw leanXMSS and leanSPHINCS signatures).
 CONST_ROOTS = [('Exp', 'exponent_tables'), ('Sd', 'statement_digest')]

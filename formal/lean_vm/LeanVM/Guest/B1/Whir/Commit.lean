@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Fs.Message
 public import LeanVM.Guest.B1.Whir.SqLoop
 
 /-!
-# The level's message (G:1542-1566)
+# The level's message
 
 `osCommit_sound`: `opening_message` reads the next root's two cells, the high part and the OOD
 nonce at the cursor, stores the words in `sent` (the root also in `level_roots`), absorbs them and
@@ -86,7 +86,7 @@ def oodPt (F : Fs) (xs : List E) (n1 : E) (mu : ℕ) : List E × Fs :=
 def oodQ (F : Fs) (xs : List E) (n1 : E) (mu : ℕ) (y0 nn : E) : KeccakState :=
   ((oodPt F xs n1 mu).2.absorbAll [y0] dsObserve).nonceState nn
 
-/-- What a non-final level's message leaves (G:1544-1562): the root's two cells `x0, x1` and the
+/-- What a non-final level's message leaves: the root's two cells `x0, x1` and the
 high part read at the cursor, stored at `sent` and the root in `level_roots`; the OOD nonce `n1`
 read past them, its grind passing; the OOD point squeezed from its permutation and stored in
 `ood_z`; the value `y0` and the query nonce `nn` read past it; the query nonce's permutation. -/
@@ -112,7 +112,7 @@ structure CommitOut (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (st st' : O
   co : st'.co = 2
   pad : PadOk σ st'.pad
 
-/-- **A non-final level's message, soundly** (G:1544-1566). -/
+/-- **A non-final level's message, soundly**. -/
 theorem osCommit_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
     (hom : ∀ a r, C ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L1") a r →
       MeaningOpeningMessage (2 + lv.folds) 1 rd a r)
@@ -249,7 +249,7 @@ theorem osCommit_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
     subst hq'
     exact ⟨z1, z2, z3, z4⟩
 
-/-- What the final level's message leaves (G:1547-1548): the lane `xs` read at the cursor and
+/-- What the final level's message leaves: the lane `xs` read at the cursor and
 stored in `final_msg`, the nonce `nn` after it, the nonce's permutation `S` leaving the first
 query word and the proof of work in its cells `0`, `1` and the sponge's capacity. -/
 structure FinalOut (rd : Reader) (σ : Val) (n : ℕ) (st st' : OsSt) (xs : List E) (nn : E) : Prop where
@@ -265,7 +265,7 @@ structure FinalOut (rd : Reader) (σ : Val) (n : ℕ) (st st' : OsSt) (xs : List
   co : st'.co = 0
   pad : st'.pad = st.pad
 
-/-- **The final level's message, soundly** (G:1547-1548). -/
+/-- **The final level's message, soundly**. -/
 theorem osFinalMsg_sound {c : OsCfg} {lv : OsLv} {st : OsSt}
     (hom : ∀ a r, C ("opening_message__L" ++ natStr (c.yrLen + lv.folds) ++ "_L1") a r →
       MeaningOpeningMessage (c.yrLen + lv.folds) 1 rd a r)

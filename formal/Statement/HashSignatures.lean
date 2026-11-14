@@ -23,7 +23,7 @@ namespace HashSig
 
 /-! ## The sizes and types both schemes share -/
 
-/-- `n`: a digest's bits (`128`, `16` bytes: `N`, `crates/signatures/src/lib.rs:14`, both schemes'
+/-- `n`: a digest's bits (`128`, `16` bytes: `N`, `crates/signatures/src/lib.rs`, both schemes'
 `N`). -/
 def digestBits : Nat := 128
 /-- `w`: the bits of a Winternitz digit (`2`). -/
@@ -49,13 +49,13 @@ abbrev ChainStep := Fin (chainLength - 1)
 /-- A hash call's input bytes. -/
 abbrev HashInput := List UInt8
 
-/-- `Truncate_16` (`truncate`, `crates/signatures/src/lib.rs:46-49`): keep the first 16 bytes of a
+/-- `Truncate_16` (`truncate`, `crates/signatures/src/lib.rs`): keep the first 16 bytes of a
 hash output, the low 128 bits of the little-endian bit vector. -/
 def truncateHash (output : HashOutput) : Digest :=
   output.extractLsb' 0 digestBits
 
 /-- leanXMSS's public key `pk = (root, P)` (`LeanXmssPublicKey`,
-`crates/signatures/src/lean_xmss/scheme.rs:13-16`); leanSPHINCS's is `Sphincs.PublicKey`. -/
+`crates/signatures/src/lean_xmss/scheme.rs`); leanSPHINCS's is `Sphincs.PublicKey`. -/
 structure PublicKey where
   /-- The Merkle root over the key's one-time public keys. -/
   root : Digest
@@ -79,7 +79,7 @@ def digestDigits {n : Nat} (digest : Digest) (i : Fin n) : WinternitzDigit :=
 
 /-- `prefix || address || payload`: the input of both schemes' tweakable hash
 `Truncate_16(H(prefix || address || payload))`, the bytes a `hasher(prefix, address)` absorbs before
-the payload (`hasher`, `lib.rs:16-23`). The prefix is a scheme's 16-byte public value (leanXMSS's
+the payload (`hasher`, `lib.rs`). The prefix is a scheme's 16-byte public value (leanXMSS's
 public parameter `P`), the address each scheme's own. -/
 def hasherInput (hashPrefix : PublicParameter) (address payload : HashInput) : HashInput :=
   littleEndianBytes 16 hashPrefix ++ address ++ payload
@@ -123,7 +123,7 @@ def nodePayload (left right : Digest) : HashInput :=
 /-- Fold the leaf at index `leafIndex` and its path, the sibling at level `l` being
 `siblingAtLevel l`, up `levels` levels: the node at level `l + 1` is
 `node l (leafIndex / 2^(l + 1))` of its children in index order (`path_fold`,
-`crates/signatures/src/lib.rs:25-44`, both schemes' Merkle paths). -/
+`crates/signatures/src/lib.rs`, both schemes' Merkle paths). -/
 def foldPath {m : Type → Type} [Monad m] (node : Nat → Nat → HashInput → m Digest)
     (leafIndex : Nat) (siblingAtLevel : Nat → Digest) : Nat → Digest → m Digest
   | 0, value => pure value

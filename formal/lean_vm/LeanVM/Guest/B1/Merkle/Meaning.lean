@@ -13,14 +13,13 @@ public import LeanVM.Guest.B1.Common.Sponge
 # Merkle caps: meanings (TRIAGE G #33, #34)
 
 The guest (`lean_ethereum.py`, G below) opens a WHIR commitment in two
-parts: each query climbs its leaf's hash up `depth - cap_depth` levels (`walk_path`,
-G:1302-1337, called by `opening_query`) to a node of the cap, a hinted top of the tree whose
+parts: each query climbs its leaf's hash up `depth - cap_depth` levels (`walk_path`, called by `opening_query`) to a node of the cap, a hinted top of the tree whose
 node `k` (`1 ≤ k < 2^(cap_depth+1)`, node `1` the root, `2k`, `2k + 1` its children) sits at the
 cap's cells `2k`, `2k + 1`; the query writes the node it reached there and flags the node's
-parent. `verify_merkle_cap(cap, flags, depth)` (G:1155-1198) then hashes every flagged node of
+parent. `verify_merkle_cap(cap, flags, depth)` then hashes every flagged node of
 the cap, and the root always; an unflagged internal node pins its children's flags to zero, so
-every flagged node's ancestors are hashed. Together they are `climb` (V:492) to the root, the
-root being what `openOne` (V:501) compares (`B1/Merkle/Climb.lean`).
+every flagged node's ancestors are hashed. Together they are `climb` to the root, the
+root being what `openOne` compares (`B1/Merkle/Climb.lean`).
 
 * `HashesPair l0 l1 r0 r1 p0 p1`: the four child cells are canonical and the parent's cells are
   the digest of their 64 bytes (`keccak(…)` of two two-cell digests, `keccak_one`), which for
@@ -39,7 +38,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 def HashesPair (l0 l1 r0 r1 p0 p1 : E) : Prop :=
   (p0, p1) = digestHalves (keccak256 (Keccak.cellsBytes [l0, l1, r0, r1]))
 
-/-- **`verify_merkle_cap(cap, flags, D)`** (G:1155-1198; TRIAGE #34): the cap's cells `cell k`,
+/-- **`verify_merkle_cap(cap, flags, D)`** (TRIAGE #34): the cap's cells `cell k`,
 `2 ≤ k < 2^(D+2)` (node `k / 2`'s cell `k % 2`), are in memory; the flags `fl k` of the internal
 nodes `2 ≤ k < 2^D` are in memory and in `K`; the root and every flagged internal node hash their
 children; an unflagged internal node whose children are internal has their flags zero; the

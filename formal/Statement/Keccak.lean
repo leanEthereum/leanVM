@@ -13,8 +13,8 @@ at index `x + 5y`.
 
 The source is `crates/verifier/src/hash.rs` (also `crates/primitives/src/hash.rs`): the round
 constants, rotation offsets and lane permutation (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`,
-`hash.rs:10-48`), the permutation `keccak_f` (`hash.rs:49-68`) and the hash `keccak_hash`
-(`hash.rs:76-96`, its rate `:7`): Keccak-256 as Ethereum computes it, rate `136` bytes, the
+`hash.rs`), the permutation `keccak_f` (`hash.rs`) and the hash `keccak_hash`
+(`hash.rs`, its rate `RATE`): Keccak-256 as Ethereum computes it, rate `136` bytes, the
 message padded with `0x01 ‖ 0^* ‖ 0x80` (FIPS 202's SHA3-256 would put `0x06` first).
 -/
 
@@ -22,7 +22,7 @@ message padded with `0x01 ‖ 0^* ‖ 0x80` (FIPS 202's SHA3-256 would put `0x06
 
 namespace LeanVM.Parameters
 
-/-- `KECCAK_RC` (`hash.rs:10-35`): the round constants of the `24` rounds. -/
+/-- `KECCAK_RC` (`hash.rs`): the round constants of the `24` rounds. -/
 def keccakRC : List UInt64 := [
   0x0000000000000001, 0x0000000000008082, 0x800000000000808A, 0x8000000080008000,
   0x000000000000808B, 0x0000000080000001, 0x8000000080008081, 0x8000000000008009,
@@ -31,11 +31,11 @@ def keccakRC : List UInt64 := [
   0x8000000000008002, 0x8000000000000080, 0x000000000000800A, 0x800000008000000A,
   0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008]
 
-/-- `KECCAK_RHO` (`hash.rs:36-38`): the rotation of each lane, by index `x + 5y`. -/
+/-- `KECCAK_RHO` (`hash.rs`): the rotation of each lane, by index `x + 5y`. -/
 def keccakRho : List ℕ :=
   [0, 1, 62, 28, 27, 36, 44, 6, 55, 20, 3, 10, 43, 25, 39, 41, 45, 15, 21, 8, 18, 2, 61, 56, 14]
 
-/-- `KECCAK_PI` (`hash.rs:39-48`): where lane `i = x + 5y` lands,
+/-- `KECCAK_PI` (`hash.rs`): where lane `i = x + 5y` lands,
 `⌊i/5⌋ + 5 · ((2 · (i % 5) + 3 · ⌊i/5⌋) % 5)`. -/
 def keccakPi (i : ℕ) : ℕ := i / 5 + 5 * ((2 * (i % 5) + 3 * (i / 5)) % 5)
 
@@ -59,7 +59,7 @@ def lane (a : KeccakState) (i : ℕ) : UInt64 := a.toArray.getD i 0
 def rot (x : UInt64) (n : ℕ) : UInt64 :=
   if n = 0 then x else (x <<< n.toUInt64) ||| (x >>> (64 - n).toUInt64)
 
-/-- One round of `keccak_f` with the round constant `rc` (`hash.rs:51-66`): θ, then ρ and π
+/-- One round of `keccak_f` with the round constant `rc` (`hash.rs`): θ, then ρ and π
 (`b[KECCAK_PI[i]] = a[i].rotate_left(KECCAK_RHO[i])`), then χ and ι. -/
 def round (a : KeccakState) (rc : UInt64) : KeccakState :=
   let c : Vector UInt64 5 := Vector.ofFn fun x ↦
@@ -81,7 +81,7 @@ def round (a : KeccakState) (rc : UInt64) : KeccakState :=
 
 end Keccak
 
-/-- **Keccak-f[1600]** (`keccak_f`, `hash.rs:49-68`): the `24` rounds. -/
+/-- **Keccak-f[1600]** (`keccak_f`, `hash.rs`): the `24` rounds. -/
 def keccakF1600 (a : KeccakState) : KeccakState := keccakRC.foldl Keccak.round a
 
 end LeanVM.Semantics
@@ -91,12 +91,12 @@ namespace LeanVM.Protocol
 open LeanVM.Parameters LeanVM.Semantics
 
 /-- A Keccak-256 digest: its `32` bytes as four little-endian 64-bit words, the first four lanes of
-the last state (`Digest::words`, `hash.rs:104-106`). -/
+the last state (`Digest::words`, `hash.rs`). -/
 abbrev Digest := Vector UInt64 4
 
 namespace KeccakHash
 
-/-! ### Keccak-256 (its constants and `keccak_hash`, `hash.rs:7`, `:76-96`) -/
+/-! ### Keccak-256 (its constants and `keccak_hash`, `hash.rs`) -/
 
 /-- `RATE`: a block is `136` bytes, `17` lanes. -/
 def rate : ℕ := 136
@@ -108,7 +108,7 @@ def padFirst : UInt8 := 0x01
 def padLast : UInt8 := 0x80
 
 /-- The little-endian 64-bit word of bytes `8i` to `8i + 7` of a byte string, missing bytes `0`
-(`u64::from_le_bytes`, `hash.rs:70-74`). -/
+(`u64::from_le_bytes`, `hash.rs`). -/
 def littleEndianLane (bytes : List UInt8) (i : ℕ) : UInt64 :=
   (List.range 8).foldl (fun acc k ↦ acc ||| ((bytes.getD (8 * i + k) 0).toUInt64 <<<
       (8 * k).toUInt64)) 0
@@ -118,14 +118,14 @@ section With
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- Absorb one block of `136` bytes with the permutation `π`: XOR its `17` lanes into the rate,
-then permute (`hash.rs:81-84`). -/
+then permute (`hash.rs`). -/
 def absorbBlockWith (state : KeccakState) (block : List UInt8) : m KeccakState :=
   π (Vector.ofFn fun i ↦
     if i.val < 17 then Keccak.lane state i ^^^ littleEndianLane block i else Keccak.lane state i)
 
 /-- The last block: the remaining `0` to `135` bytes, `PAD_FIRST` after them, zeros, and
 `PAD_LAST` XORed into the block's last byte (one byte `0x81` when `135` bytes remain)
-(`hash.rs:85-88`). -/
+(`hash.rs`). -/
 def padBlock (remainingBytes : List UInt8) : List UInt8 :=
   ((remainingBytes ++ List.replicate (rate - remainingBytes.length) 0).modify
       remainingBytes.length (· ^^^ padFirst)).modify (rate - 1) (· ^^^ padLast)
@@ -138,7 +138,7 @@ def absorbWith : (wholeBlockCount : ℕ) → KeccakState → List UInt8 → m Ke
     let state ← absorbBlockWith π state (data.take rate)
     absorbWith wholeBlockCount state (data.drop rate)
 
-/-- **Keccak-256 over a permutation `π`**, in any monad (`keccak_hash`, `hash.rs:78-96`, with
+/-- **Keccak-256 over a permutation `π`**, in any monad (`keccak_hash`, `hash.rs`, with
 `π` for Keccak-f[1600]): `⌊len/136⌋` whole blocks, then the padded last one, from the zero state;
 the digest is the first four lanes. -/
 def keccak256With (data : List UInt8) : m Digest := do
@@ -157,7 +157,7 @@ def keccak256 (data : List UInt8) : Digest :=
 def wordBytes (w : UInt64) : List UInt8 :=
   (List.range 8).map fun k ↦ (w >>> (8 * k).toUInt64).toUInt8
 
-/-- The 32 bytes of a digest: its words, little-endian (`hash.rs:91-95`). -/
+/-- The 32 bytes of a digest: its words, little-endian (`hash.rs`). -/
 def digestBytes (digest : Digest) : List UInt8 := digest.toList.flatMap wordBytes
 
 end KeccakHash

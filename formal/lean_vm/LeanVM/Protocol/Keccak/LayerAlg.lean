@@ -71,7 +71,7 @@ theorem claimSum_congr {st st' : States} (P : ℕ)
     (Finset.sum_congr rfl fun j hj ↦ ?_))
   rw [stAt, stAt, h _ _ _ hm (Finset.mem_range.1 hj)]
 
-/-- The round constant of segment `m` at layer `step` (`crates/verifier/src/keccak.rs:137`): round
+/-- The round constant of segment `m` at layer `step` (`crates/verifier/src/keccak.rs`): round
 `12(m + 1) - step - 1`. -/
 def layerRC (step m : ℕ) : UInt64 := keccakRC.getD (keccakDepth * (m + 1) - step - 1) 0
 
@@ -230,7 +230,7 @@ theorem claimSum_round (T : States) (step P : ℕ) (point mu w : List E)
     exact Finset.sum_congr rfl fun z _ ↦ by ring
   rw [e1, p1, p2]
 
-/-- **The verifier's `iota`** (`keccak.rs:133-139`). -/
+/-- **The verifier's `iota`** (`keccak.rs`). -/
 theorem iota_eq (step P : ℕ) (point w : List E) (hpt : point.length = P + 1) :
     sumE ((List.range keccakSegments).map fun segment ↦
       (eqKernel (point.drop P)).getD segment 0 *

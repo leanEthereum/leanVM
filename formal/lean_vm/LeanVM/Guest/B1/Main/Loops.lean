@@ -18,13 +18,13 @@ Each helper's body (`loopPre`) is checked by evaluation (`l3Ok`, `l4Ok`, `l5Ok`)
 `x` gives one iteration's facts (`LoopsC`: `RawXStepC`, `RawSStepC`, `KidStepC`) and the run at
 `x·g` (`loop_stepF`).
 
-* `main_loop2` (G:4531-4540): a raw leanXMSS signature `i`: a slot `s` below the leanXMSS region,
+* `main_loop2`: a raw leanXMSS signature `i`: a slot `s` below the leanXMSS region,
   `cover[g^s] = g^i`, the leanXMSS segment (`verify_lean_xmss(lx_table · g^(4s), lx_tags)`,
   inline) on the signer `lx_table · g^(4s)` and the carried tags;
-* `main_loop3` (G:4541-4545): a raw leanSPHINCS signature `j`: a slot `s` below the leanSPHINCS
+* `main_loop3`: a raw leanSPHINCS signature `j`: a slot `s` below the leanSPHINCS
   region, `sp_cover[g^s] = n_raw_x · g^j` (`sp_cover = cover · lx_slots`),
   `verify_sig_lean_sphincs(ls_table · g^(4s), byte_bits)`;
-* `main_loop4` (G:4587-4611): child `c`, its two counts addresses of the memory (`assert_gpow`), its
+* `main_loop4`: child `c`, its two counts addresses of the memory (`assert_gpow`), its
   DA digest hinted at `da_digests · c^2`.
 -/
 

@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Tables.Interface
 public import LeanVM.Guest.CoreData
 
 /-!
-# A side's block offsets (G:2232-2274)
+# A side's block offsets
 
 `vt_rank0`, `vt_rank`: what a rank's template gives (`VtRankFacts`). `vt_side_cert`: when every
 group's key is `g^(247 κ - b0)` and its size `g^(len·2^κ)`, the ranks of a side certify its groups'
@@ -280,7 +280,7 @@ section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
-/-- **`verify_tables`' block certification** (G:2232-2274): with `kappa_base` the memory's log-size
+/-- **`verify_tables`' block certification**: with `kappa_base` the memory's log-size
 and the tables' heights and the exponent tables in place, the push side's `54` blocks and the
 count side's `45` hold `g^` the `stackOffsets` offsets of their side's log-sizes in `block_off`. -/
 theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (hlm : lm ≤ 32)

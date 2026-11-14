@@ -38,7 +38,7 @@ bytes. A phase travels pruned: the queries' positions, the height, the leaf widt
 the leaf at each distinct position as its last row-width words (the words before are zero in every
 leaf of the phase), and the siblings no other path of the phase gives, bottom level first and left
 to right; decoding recomputes the others by hashing, Keccak-256 over `π` as the verifier hashes
-(`hash_words`, `hash_pair`, `crates/fiat_shamir/src/merkle.rs:25-38`). Decoding verifies nothing: it
+(`hash_words`, `hash_pair`, `crates/fiat_shamir/src/merkle.rs`). Decoding verifies nothing: it
 refuses everything but the one encoding of a proof within the bounds below.
 
 The Rust hashes a phase's shared nodes while it reads the phase's siblings; which siblings it reads
@@ -48,16 +48,16 @@ has hashed some nodes, which changes nothing it returns. Sizes are natural numbe
 a 64-bit host in the Rust, where no product of the decoding overflows.
 -/
 
-/-- `MAX_PHASES`: the most phases a decoded proof has (`wire.rs:11`). -/
+/-- `MAX_PHASES`: the most phases a decoded proof has (`wire.rs`). -/
 def wireMaxPhases : ℕ := 8
 
-/-- `MAX_QUERIES`: the most queries a decoded phase has (`wire.rs:12`). -/
+/-- `MAX_QUERIES`: the most queries a decoded phase has (`wire.rs`). -/
 def wireMaxQueries : ℕ := 256
 
-/-- `MAX_LEAF_WORDS`: the most words a decoded leaf has (`wire.rs:13`). -/
+/-- `MAX_LEAF_WORDS`: the most words a decoded leaf has (`wire.rs`). -/
 def wireMaxLeafWords : ℕ := 64
 
-/-- `MAX_HEIGHT`: the greatest height of a decoded phase's tree (`wire.rs:14`). -/
+/-- `MAX_HEIGHT`: the greatest height of a decoded phase's tree (`wire.rs`). -/
 def wireMaxHeight : ℕ := 32
 
 /-- `dedup_by_key`: keep the first of each run of consecutive elements with the same key. -/
@@ -77,16 +77,16 @@ def levelNodes (positions : List ℕ) (level : ℕ) : List ℕ :=
   dedupByKey id (positions.map fun position ↦ position >>> level)
 
 /-- The nodes of a level whose sibling a phase carries: those whose sibling `node ^^^ 1` is not a
-node of the level, in order (`wire.rs:84-91`, `wire.rs:134-137`). -/
+node of the level, in order (`wire.rs`, `wire.rs`). -/
 def carriedSiblings (nodes : List ℕ) : List ℕ :=
   nodes.filter fun node ↦ node ^^^ 1 ∉ nodes
 
 /-- The leaf of `leafWords` words whose words after the leading zeros are `row` (`padded`,
-`crates/fiat_shamir/src/merkle.rs:70-74`). -/
+`crates/fiat_shamir/src/merkle.rs`). -/
 def paddedLeaf (row : List K) (leafWords : ℕ) : List K :=
   List.replicate (leafWords - row.length) 0 ++ row
 
-/-! ### Reading (`Reader`, `wire.rs:155-183`): each read gives the bytes left or `none` -/
+/-! ### Reading (`Reader`, `wire.rs`): each read gives the bytes left or `none` -/
 
 /-- `Reader::bytes`: the first `length` bytes and the rest. -/
 def readBytes (length : ℕ) (input : Bytes) : Option (Bytes × Bytes) :=
@@ -132,7 +132,7 @@ def readRows (rowWords : ℕ) : (count : ℕ) → Bytes → Option (List (List K
     some (row :: rows, input)
 
 /-- The siblings a phase carries, from level `level` up for `remaining` levels: at each level, the
-sibling of each node of `carriedSiblings` in order, keyed by its node (`wire.rs:130-137`). -/
+sibling of each node of `carriedSiblings` in order, keyed by its node (`wire.rs`). -/
 def readCarriedSiblings (positions : List ℕ) :
     (level remaining : ℕ) → Bytes → Option (List (List (ℕ × Digest)) × Bytes)
   | _, 0, input => some ([], input)
@@ -159,7 +159,7 @@ structure PrunedPhase where
   /-- Level by level from the leaves, the siblings the phase carries, keyed by their node. -/
   carried : List (List (ℕ × Digest))
 
-/-- `read_phase` up to the hashing (`wire.rs:97-124`): the queries' count, at most
+/-- `read_phase` up to the hashing (`wire.rs`): the queries' count, at most
 `wireMaxQueries`, and positions; the height, the leaf width and the row width; refused unless the
 height is at most `wireMaxHeight`, the leaf width at most `wireMaxLeafWords`, the row width at most
 the leaf width, and some query's position is below `2 ^ height`, every one being; the rows at
@@ -189,7 +189,7 @@ def readPhases : (count : ℕ) → Bytes → Option (List PrunedPhase × Bytes)
     let (phases, input) ← readPhases count input
     some (phase :: phases, input)
 
-/-- `Proof::from_bytes` up to the hashing (`wire.rs:41-54`): the stream's length and its elements,
+/-- `Proof::from_bytes` up to the hashing (`wire.rs`): the stream's length and its elements,
 each two words `c0, c1` (`F128::new`); the number of phases, at most `wireMaxPhases`, and the
 phases; refused unless no byte is left. -/
 def readProof (bytes : Bytes) : Option (List E × List PrunedPhase) := do
@@ -207,7 +207,7 @@ section Unprune
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
-/-- One level of the climb (`wire.rs:130-145`), from the level's nodes ascending with their
+/-- One level of the climb (`wire.rs`), from the level's nodes ascending with their
 digests and the siblings the phase carries at the level: each node's sibling, the level's node at
 `node ^^^ 1` if there is one, else the carried one; and the parents ascending, each hashed once, at
 its first child, the left child's digest first (`hash_pair`). -/
@@ -232,7 +232,7 @@ def climbLevels : List (List (ℕ × Digest)) → List (ℕ × Digest) → m (Li
     let rest ← climbLevels above parents
     pure (siblings :: rest)
 
-/-- Unprune a phase back into its paths (`wire.rs:125-148`): hash the leaves (`hash_words`), in
+/-- Unprune a phase back into its paths (`wire.rs`): hash the leaves (`hash_words`), in
 order, climb the levels, and give each query the opening at its position: the leaf there and, at
 each level, the sibling of the node its position is under. -/
 def unprunePhase (phase : PrunedPhase) : m (List Opening) := do
@@ -243,7 +243,7 @@ def unprunePhase (phase : PrunedPhase) : m (List Opening) := do
       (List.range phase.height).map fun level ↦
         ((siblings.getD level []).lookup (query >>> level)).getD default⟩)
 
-/-- **The proof the bytes encode** (`Proof::from_bytes`, `wire.rs:40-54`), over the permutation `π`:
+/-- **The proof the bytes encode** (`Proof::from_bytes`, `wire.rs`), over the permutation `π`:
 the bytes read (`readProof`), then each phase unpruned, in order; `none` unless the bytes are
 exactly one proof's encoding within the bounds. Nothing is verified. -/
 def Proof.fromBytes (bytes : Bytes) : m (Option Proof) :=
@@ -261,7 +261,7 @@ namespace LeanVM.Prover
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 
-/-! ## The proof's wire encoding (`Proof::to_bytes`, `crates/fiat_shamir/src/wire.rs:16-93`)
+/-! ## The proof's wire encoding (`Proof::to_bytes`, `crates/fiat_shamir/src/wire.rs`)
 
 The one encoding of a proof, which `Proof.fromBytes` (above) decodes. It hashes
 nothing: a phase is pruned into the fewest siblings that authenticate all its paths together, a
@@ -271,12 +271,12 @@ first path of a phase gives its height and leaf width (none for no path, where t
 -/
 
 open LeanVM.Protocol.KeccakHash in
-/-- `write_u32`: the four little-endian bytes of a count, modulo `2^32` (`wire.rs:151-153`). -/
+/-- `write_u32`: the four little-endian bytes of a count, modulo `2^32` (`wire.rs`). -/
 def u32Bytes (value : ℕ) : List UInt8 :=
   (List.range 4).map fun k ↦ UInt8.ofNat (value / 256 ^ k)
 
 open LeanVM.Protocol.KeccakHash in
-/-- `write_phase` (`wire.rs:57-93`): the queries' count and positions, in sampling order; the
+/-- `write_phase` (`wire.rs`): the queries' count and positions, in sampling order; the
 height, the leaf width and the row width, the leaf width less the leading zero words every distinct
 leaf has; the leaf at each distinct position, ascending (the first path at it), as its last
 row-width words; then, level by level from the leaves, the sibling of each node the distinct paths
@@ -297,7 +297,7 @@ def phaseToBytes (paths : List Opening) : List UInt8 :=
       (nodes.filter fun (node, _) ↦ node ^^^ 1 ∉ nodes.map Prod.fst).flatMap
         fun (_, sibling) ↦ digestBytes sibling
 
-/-- **The proof's one encoding** (`Proof::to_bytes`, `wire.rs:26-38`): the stream's length, then
+/-- **The proof's one encoding** (`Proof::to_bytes`, `wire.rs`): the stream's length, then
 each element as its two words; the number of phases, then each phase pruned (`phaseToBytes`). -/
 def _root_.LeanVM.Protocol.Compile.Proof.toBytes (proof : Proof) : List UInt8 :=
   u32Bytes proof.stream.length ++ proof.stream.flatMap E.toBytes ++

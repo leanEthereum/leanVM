@@ -11,7 +11,7 @@ public import LeanVM.Guest.Core
 public import Statement.Field
 
 /-!
-# The walk's windows (lean_ethereum.py:795-906, 1302-1338, 1387-1411 at 40f877dc)
+# The walk's windows (lean_ethereum.py at 40f877dc)
 
 A position of shape `(d, cd)` is hinted in `qwN d cd` windows (`qwWin`: offset and width; the
 path's six bits at a time, the last the remainder, the cap child bit, the cap parent index).

@@ -36,7 +36,7 @@ theorem keccak_layer_holds_of (rd : Reader)
   · exact layer_sound (first := 1) (by decide) (weightOk_one _) find_layer264 layer_body264 rfl rd
       hgr args rets h
 
-/-- **`keccak_layer`** (G:2849-3032; TRIAGE #60): its two specializations compute their meanings
+/-- **`keccak_layer`** (TRIAGE #60): its two specializations compute their meanings
 on a memory image, given `grind_check`'s meaning at `3` bits. -/
 theorem keccak_layer_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ' : winTabBits ≤ κ) (L : MemoryImage κ)
     (hg : grind_check_Spec 3) : keccak_layer_Spec L.read :=

@@ -10,7 +10,7 @@ public import Mathlib.Algebra.Order.Floor.Ring
 
 * `ceil_sqrt_eq_ceilSqrt`: `⌈√x⌉₊ = ceilSqrt x`.
 * `johnsonThreshold_eq_real`: the natural `johnsonThreshold` equals its real form
-  `⌈(√(D/n) + η)·n⌉₊` (`johnsonThresholdReal`, the form of `Statement/Extractor.lean:157` at
+  `⌈(√(D/n) + η)·n⌉₊` (`johnsonThresholdReal`, the form of `Statement/Extractor.lean` at
   `8e8e4d2f`, the slack's denominator now `2^30`).
 * `gsNumVars_eq`, `gsNumConstraints_eq`, `gsPass_iff`: the closed forms are ArkLib's
   `numVars`, `numConstraints`, and the check is `GSParamCert`.
@@ -76,7 +76,7 @@ theorem ceil_sqrt_eq_ceilSqrt (x : ℕ) : ⌈√(x : ℝ)⌉₊ = ceilSqrt x := 
 /-! ## The threshold, real and natural -/
 
 /-- The real-valued threshold, the statement's form before the extractor became computable
-(`Statement/Extractor.lean:157-162` at `8e8e4d2f`) with the slack's denominator `2^30`, at level
+(`Statement/Extractor.lean` at `8e8e4d2f`) with the slack's denominator `2^30`, at level
 0's degree `D = 2^κ − 1 + 6`. -/
 @[expose] noncomputable def johnsonThresholdReal (μ R : ℕ) : ℕ :=
   let κ := μ - initialFold

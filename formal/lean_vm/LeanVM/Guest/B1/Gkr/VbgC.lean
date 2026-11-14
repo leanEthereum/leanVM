@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Selectors.LayoutBasic
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `verify_bus_gkr`'s body, completely (G:1866-2047)
+# `verify_bus_gkr`'s body, completely
 
 `vbg_body_of`: the body evaluated forward (`vbgEvL`, the allocations answered by the buffers'
 pointers, `vbgW`), its regions `vbR1 .. vbR9`: the range check of `g^depth` (the memory defined
@@ -64,7 +64,7 @@ def vbR3 : List Stmt :=
     .atom (.mul (.n 62) (.n 59) (.n 61)), .atom (.add (.n 63) (.n 31) (.n 62)),
     .atom (.hint (.alloc (.n 64) 8))]
 
-/-- The table `k_mod_next` at `g^r` and `g^(4 + r)` (G:1911-1914). -/
+/-- The table `k_mod_next` at `g^r` and `g^(4 + r)`. -/
 def vbKmn (r : ℕ) : List Stmt :=
   [.atom (.const (.n (65 + 2 * r)) (word (2 ^ ((r + 1) % 4)) 0)),
     .atom (.load (.n (65 + 2 * r)) (.n 64) r),

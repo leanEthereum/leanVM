@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.Final
 
-  B1 for `main` (G:4671-4847; TRIAGE #96): `main_sound_w`, a run of `main` establishes `NodeRelation` of
+  B1 for `main` (TRIAGE #96): `main_sound_w`, a run of `main` establishes `NodeRelation` of
   what its decoders read.
 -/
 
@@ -101,7 +101,7 @@ theorem kid_sub {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E
   exact hvd
 
 /-- **`main`, soundly, its witness decoded, under a call relation `C`** that unfolds and lies
-below `coreProgram.Rel` (G:4671-4847, TRIAGE #96), given the callees' contracts on `C`'s calls. -/
+below `coreProgram.Rel` (TRIAGE #96), given the callees' contracts on `C`'s calls. -/
 theorem main_sound_C {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hm : MemOk rd) (hCu : Unfolds rd C) (hle : CallRel.Le C (coreProgram.Rel rd))
     {wX : List E → LeanXmss.Signature} {wS : E → Sphincs.Signature}

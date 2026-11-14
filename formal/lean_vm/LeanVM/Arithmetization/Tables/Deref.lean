@@ -19,8 +19,8 @@ public import Mathlib.Algebra.CharP.Two
 # The `DEREF` table
 
 At Clean pin `b41c196b`. The columns
-are `crates/leanvm_core/src/tables.rs:596-618` (`mod deref`, in that order), the store coordinates
-`tables.rs:625-632` (`deref_store`), the flushes `tables.rs:642-652` (`DerefTable::flushes`),
+are `crates/leanvm_core/src/tables.rs` (`mod deref`, in that order), the store coordinates
+`tables.rs` (`deref_store`), the flushes `tables.rs` (`DerefTable::flushes`),
 matching specification §7.4 (`doc/leanvm/body/07-instruction-tables.tex`). There is no
 constraint enforcing Boolean flags. Local soundness instead requires the bytecode pull's
 canonical-entry guarantee, whose decoder (`decode`) admits only the three flag pairs. The typed
@@ -67,7 +67,7 @@ prover data, from the execution alone.
 
 ## Wrong readings excluded
 
-* The pointer read carries a literal zero above its low limb (`memory_k`, `tables.rs:155-157`),
+* The pointer read carries a literal zero above its low limb (`memory_k`, `tables.rs`),
   so a pointer word outside `K` cannot balance the bus; `step` asserts `IsInK p` the same way.
 * The local cell is read in every mode, `pc` and `fp` modes included:
   `memRead (fp·o₃)` is unconditional, as is the third read of `execute`, and `DerefBindings`
@@ -85,7 +85,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `DEREF` columns, in the order of `tables.rs:596-618`. -/
+/-- The `DEREF` columns, in the order of `tables.rs`. -/
 structure DerefRow (F : Type) where
   /-- The program counter. -/
   pc : F
@@ -118,7 +118,7 @@ structure DerefRow (F : Type) where
 /-! ## The store coordinates -/
 
 /-- The store coordinates evaluate to `derefSource` at each flag setting
-(specification §7.4; `tables.rs:625-632`): the local word in `cell` mode, `g²·pc` in `pc` mode,
+(specification §7.4; `tables.rs`): the local word in `cell` mode, `g²·pc` in `pc` mode,
 `fp` in `fp` mode. -/
 theorem storeCoords_eval (mode : DerefMode) (pc fp v30 v31 : K) :
     E.ofLimbs
@@ -198,13 +198,13 @@ private theorem deref_tuple (c o1 o2 o3 fpc ffp : K) :
 
 /-! ## The table -/
 
-/-- The `DEREF` table (specification §7.4; `tables.rs:594-688`): state step, bytecode read of
+/-- The `DEREF` table (specification §7.4; `tables.rs`): state step, bytecode read of
 `(DRF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)`, the pointer read `(p, 0)` at `fp·o₁`, the target read
 at `p·o₂` carrying the flag-selected source, and the local read at `fp·o₃`, in the order of
-`tables.rs:646-651` and of `flushes_deref` (`crates/verifier/src/layout.rs:243-265`), which
+`tables.rs` and of `flushes_deref` (`crates/verifier/src/layout.rs`), which
 fixes the order of the bus blocks. Returns the pushed successor `(g·pc, fp)`. -/
 def derefTable : GeneralFormalCircuit K DerefRow Registers where
-  -- The table's name in leanVM (`TABLES`, `cpu/mod.rs:391`), unique in the ensemble (Clean keys
+  -- The table's name in leanVM (`TABLES`, `cpu/mod.rs`), unique in the ensemble (Clean keys
   -- the prover data by it).
   name := "DEREF"
   main r := do

@@ -15,11 +15,11 @@ import Mathlib.Tactic.NormNum.Prime
 # The generator `g` and exponent addressing
 
 `g = x`, the word
-`0x2`, is transcribed from `crates/primitives/src/field/gf2_64.rs:25` (`F64::G = F64(2)`, "with
+`0x2`, is transcribed from `crates/primitives/src/field/gf2_64.rs` (`F64::G = F64(2)`, "with
 `ord(x) = 2^64 - 1`") at leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`, cross-checked
-against `crates/verifier/src/field.rs:113` (`GEN: E = E::new(2, 0)`).
+against `crates/verifier/src/field.rs` (`GEN: E = E::new(2, 0)`).
 Specification §2
-(`02-vm-specification.tex:12`) fixes a generator of `K^×` of order `2^64 - 1` without naming it.
+(`02-vm-specification.tex`) fixes a generator of `K^×` of order `2^64 - 1` without naming it.
 The value appears exactly once, in `g` (`Statement.Field`), and is symbolic everywhere else.
 
 The order is certified, not asserted. `|K^×| = 2^64 - 1 = 3·5·17·257·641·65537·6700417`;

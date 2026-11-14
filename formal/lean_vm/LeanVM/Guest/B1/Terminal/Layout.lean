@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Placement.Kappas
 /-!
 # The layout
 
-`placementsOf kappas` (V:1128-1140) places the committed columns (`committedCols`, all but the
+`placementsOf kappas` places the committed columns (`committedCols`, all but the
 `KECCAK` columns with a `q_keccak` slot and its output lanes) at `stackOffsets`'s offsets and each
 slotted column at `q_keccak`'s offset plus its slot's `2^κ` words (`placement_committed`,
 `placement_slot`). Every offset is below
@@ -33,7 +33,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 theorem keccakOutputColumns_eq : keccakOutputColumns = (List.range 25).map (106 + ·) := by
   decide +kernel
 
-/-- The `q_keccak` slots of the global columns (`keccakSlot`, V:1105): the input lanes
+/-- The `q_keccak` slots of the global columns (`keccakSlot`): the input lanes
 `81 .. 105` at slots `0 .. 24`, `KECCAK`'s fourteen operand and flag columns `66 .. 79` at slots
 `50 .. 63`. -/
 def slotOfCol (c : ℕ) : Option ℕ :=

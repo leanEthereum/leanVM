@@ -39,11 +39,11 @@ a wrong but canonical word, consistently in row and image, is locally complete (
 `completeness`) and fails `KeccakRelation` and `KeccakSpec`, the failure the Keccak reduction
 (the verifier's GKR over the rounds) enforces.
 
-The `MUL_NATIVE` row reproduces the executor's `mul_128bit_word` product (`cpu/mod.rs:873-890`)
+The `MUL_NATIVE` row reproduces the executor's `mul_128bit_word` product (`cpu/mod.rs`)
 from the twelve-product coordinates (test at leanVM `a386121f`), and the `KECCAK` row the first
-permutation of the executor's `keccak_permutes_in_both_layouts` (`cpu/mod.rs:842-875` at leanVM
+permutation of the executor's `keccak_permutes_in_both_layouts` (`cpu/mod.rs` at leanVM
 `4af2cddd`): even layout in, odd layout out, the output lanes Keccak-f[1600] as the pinned
-verifier's `keccak_f` (`crates/verifier/src/hash.rs:50-69`) computes it.
+verifier's `keccak_f` (`crates/verifier/src/hash.rs`) computes it.
 -/
 
 namespace LeanVMTests.Arithmetization.Tables
@@ -52,7 +52,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization
 
 /-! ## The fixture: one image -/
 
--- The executor test `mul_128bit_word` (`cpu/mod.rs:853-869`): the operands `x`, `y`
+-- The executor test `mul_128bit_word` (`cpu/mod.rs`): the operands `x`, `y`
 -- and the product `x · y`.
 def x0 : K := (K.ofBits 0x0123456789abcdef)
 def x1 : K := (K.ofBits 0xfeedfacedeadbeef)
@@ -507,7 +507,7 @@ example (w b : K) (h1 : b + 0 * w = 0) (h2 : 0 * (b + 1) = 0) : b = 0 := by
 
 -- The executor test `keccak_permutes_in_both_layouts` at leanVM 4af2cddd, its first permutation:
 -- the input lanes (the words `a, b, a, b`, the padding's first byte in lane `8`, its last bit in
--- lane `16`, a zero capacity), and their image under `keccak_f` (`hash.rs:50-69`, computed
+-- lane `16`, a zero capacity), and their image under `keccak_f` (`hash.rs`, computed
 -- outside Lean).
 def kLin : Vector K 25 :=
   #v[K.ofBits 0x123456789abcdef, K.ofBits 0xfedcba9876543210, K.ofBits 0xdeadbeefcafebabe,

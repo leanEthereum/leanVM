@@ -168,7 +168,7 @@ theorem width_opIdx (j : Fin 6) : width (opIdx j) = (tables.getD j default).widt
 
 /-! ## The layout -/
 
-/-- The checks `build_layout` makes of the sizes (`layout.rs:497-503`) for the program's
+/-- The checks `build_layout` makes of the sizes (`layout.rs`) for the program's
 bytecode: the memory window `[1, 30]` and the row cap `2 ^ 30`. The bytecode's checks hold by
 construction (`LeanIsaProgram.logSize_le`). -/
 def LayoutOk (s : Sizes) : Prop :=
@@ -440,7 +440,7 @@ theorem stackOffsets_snd (prog : LeanIsaProgram) (s : Sizes) :
 /-! ## The placements -/
 
 /-- The verifier's offset of a global column's block (`offsets` in `build_layout`,
-`layout.rs:556-562`). -/
+`layout.rs`). -/
 def refOffset (prog : LeanIsaProgram) (s : Sizes) (column : ℕ) : ℕ :=
   let blockCols := (List.range (refKappas prog s).length).filter fun c ↦
     (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
@@ -651,7 +651,7 @@ theorem bytecodeColumnEval_eq_entries (prog : LeanIsaProgram) (z : Vector E prog
     simp [encodeSlots_getElem _ _ s.isLt, hs']
 
 /-- **The bytecode fingerprint**: the verifier's evaluation of the bytecode at `(low, alphas)`
-(`crates/verifier/src/bus.rs:139-145`) is the sum over the instance's thirteen entry coordinates
+(`crates/verifier/src/bus.rs`) is the sum over the instance's thirteen entry coordinates
 (`entryColumn`, coordinates `3 to 15` of the bytecode boundary blocks) of the fingerprint weight
 times the column's extension at `low`. Added to the weighted separator, index and count (slots
 `0 to 2`), it is the instance's fingerprint of the bytecode block at `low`. -/

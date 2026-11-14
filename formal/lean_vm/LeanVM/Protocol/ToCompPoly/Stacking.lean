@@ -38,9 +38,9 @@ its evaluation. The request it answers is tracked upstream as
 source.
 
 Derived from Verified-zkEVM/leanth `leanth-project` at 23929f8c, by Aristotle (Harmonic),
-Stefano Rocca and Elias Judin: the layout is `ProofSystem/Stacking.lean:48` (`AlignedLayout`),
-alignment is `pow_height_dvd_offset` (:388), the window lemmas are :397 and :409, the selection
-identity is `eval_MLE_stack_block` (:603), and reading a block is `unstack` (:724-777), restated
+Stefano Rocca and Elias Judin: the layout is `ProofSystem/Stacking.lean` (`AlignedLayout`),
+alignment is `pow_height_dvd_offset`, the selection
+identity is `eval_MLE_stack_block`, and reading a block is `unstack`, restated
 little-endian. The proofs are new.
 
 ## Wrong readings excluded

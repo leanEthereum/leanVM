@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkOut
 
-  `verify_keccak`'s committed outputs' opening (G:2982-2997).
+  `verify_keccak`'s committed outputs' opening.
 -/
 
 module
@@ -62,7 +62,7 @@ theorem plain_call {n k0 : ℕ} (hk : k0 < 2) (hn : n = plainCount k0) {cap : Li
     subst hn
     exact ⟨ms, hl, hr, fun w hw ↦ hall w hw⟩
 
-/-- **The committed outputs' opening** (G:2982-2997). -/
+/-- **The committed outputs' opening**. -/
 theorem vkOutT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h6 : σ (.n 6) = gen ^ τ)
     (h17 : σ (.n 18) = gen ^ (τ - 4)) {L : ℕ → E}
     (hL : ∀ lane < 25, ∀ v, LoadHolds rd (σ (.n 234)) (30 + lane) v → v = L lane)

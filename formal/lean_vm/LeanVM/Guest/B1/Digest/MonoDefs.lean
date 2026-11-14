@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.MonoDefs
 
-  The checks `child_claim_list_mono`'s proof evaluates (G:4183-4251; TRIAGE #89): a claim of the
+  The checks `child_claim_list_mono`'s proof evaluates (TRIAGE #89): a claim of the
   gap walk (`child_claims_mono`), the walk's records, the frame loops' bodies, the specializations
   `child_claim_list_mono_last__L{k}`, and the windows of the 64-block frame loop
   `child_claim_list_mono_loop0`.
@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Digest.ChildListDefs
 /-!
 # `child_claim_list_mono`: the checks
 
-`child_claims_mono` (G:4418-4436) walks a list by hinted gaps: claim `j`'s gap `g^e` is a power
+`child_claims_mono` walks a list by hinted gaps: claim `j`'s gap `g^e` is a power
 of `g` (`assert_gpow`, a touch through it), the coverage pointer moves on to `cov · g^e` and the
 table pointer to `ent · g^(4e)`, the mark is written at `cov · g^j` and the four cells read at
 `ent · g^(4j + c)`. Its eleven atoms sit at `p0 + 11 j` with the gap at `.n (g0 + 10 j)`
@@ -22,7 +22,7 @@ table pointer to `ent · g^(4e)`, the mark is written at `cov · g^j` and the fo
 = 15 cells: the sponge state, the coverage pointer at 13, the table pointer at 14) is at
 `chain · x^15` (`.n 10`); the frame writes the next record at offset 15 (`monoOk`). The last
 `k < 17` claims (`mlOk`) end with the bound: the walk's end pointer `cov_end = t · region` with
-`t` range-checked against `limit` (G:4250).
+`t` range-checked against `limit`.
 -/
 
 namespace LeanVM.Guest.B1.Digest

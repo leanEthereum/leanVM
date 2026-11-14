@@ -17,7 +17,7 @@ public import LeanVM.Protocol.ToCompPoly.Multilinear
 
 Two parts, both against leanVM pin `40f877dc2c858f013c5974ab71ca594b31a7aec9`.
 
-**Annex D**, Lemma `lem:colweight` (`doc/leanvm/body/d-novel-basis.tex:99-117`; in
+**Annex D**, Lemma `lem:colweight` (`doc/leanvm/body/d-novel-basis.tex`; in
 Annex B until `127510d1`): for `x ∈ D_{κ,R}` the weight
 `W_x(u) = ∏_i Ŵ_i(x)^{u_i}` (`colWeight`) satisfies
 
@@ -30,14 +30,14 @@ Annex B until `127510d1`): for `x ∈ D_{κ,R}` the weight
 (`LeanVM.Protocol.ToArkLib.InnerProduct`), whose evaluator is the product; `enc_eq_pair` reads
 a codeword entry as `Weight.pair` against the message table `msgTable g`.
 
-**The verifier**, `crates/verifier/src/whir.rs:91-125`: `subspaceRoots` transcribes
+**The verifier**, `crates/verifier/src/whir.rs`: `subspaceRoots` transcribes
 `subspace_roots` and `inducedWeight` transcribes `induced_weight`, line by line: the roots
 `W_i(e_i)` by the layer recurrence `value ← value² + root·value`, their inverses (zero kept as
 zero), and per query the running product `product ← product·(1 + p_i·(1 + basis·inverse_i))` with
 `basis ← basis² + root_i·basis` starting from `basis = K(query)`, i.e. `x_query`. The Rust's
 `require` on the point's length is the `none` branch, and so is a length mismatch of the queries
 and their weights, which the Rust's `zip` would truncate (it never sees one: the weights are
-`powers(lam, queries.len())`, `whir.rs:193`).
+`powers(lam, queries.len())`, `whir.rs`).
 
 * `subspaceRoots_eq`: `subspace_roots(n)` is `[W_0(e_0), …, W_n(e_n)]`;
 * `inducedWeight_eq`: on well-formed input, `induced_weight(n, qs, ws, p)` is
@@ -121,7 +121,7 @@ def colWeightE (κ : ℕ) (x : K) : Weight E κ where
 
 /-! ## The verifier's induced weight -/
 
-/-- `subspace_roots(log_n)` (`whir.rs:91-103`):
+/-- `subspace_roots(log_n)` (`whir.rs`):
 
 ```rust
 let mut roots = vec![K(1)];
@@ -145,7 +145,7 @@ where
       let layer := layer.map fun value ↦ value ^ 2 + roots.getLastD 0 * value
       loop k (roots ++ [layer.headD 0]) layer.tail
 
-/-- `induced_weight(message_log, queries, query_weights, point)` (`whir.rs:105-125`):
+/-- `induced_weight(message_log, queries, query_weights, point)` (`whir.rs`):
 
 ```rust
 require(point.len() == message_log, VerifierError::InducedBasisDimensions)?;

@@ -33,12 +33,12 @@ meaning, and `…_complete_Spec`, the meaning (with what memory an honest run ho
 relation. A `…_Spec` is a definition (a `Prop`); its proof is the theorem `…_holds` of the
 family's modules.
 
-| function | G | meaning |
-| --- | --- | --- |
-| `statement_digest` | 4250-4274 | Keccak-256 of the eight header cells and the 24 deferred cells, two limbs each (`statementDigest`) |
-| `list_split` | 4291-4306 | `n = 136 · bigs + 17 · groups + rest`, `bigs < 2^20`, `groups < 8`, `rest < 17` |
-| `claim_list_digest` | 4309-4340 | Keccak-256 of the `4n` cells of the list (`claimListDigest`, N:172-180) |
-| `child_claim_list_digest` | 4371-4392 | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table (by hinted indices, `child_claim_list_any`, or by hinted gaps, `child_claim_list_mono`) |
+| function | meaning |
+| --- | --- |
+| `statement_digest` | Keccak-256 of the eight header cells and the 24 deferred cells, two limbs each (`statementDigest`) |
+| `list_split` | `n = 136 · bigs + 17 · groups + rest`, `bigs < 2^20`, `groups < 8`, `rest < 17` |
+| `claim_list_digest` | Keccak-256 of the `4n` cells of the list (`claimListDigest`) |
+| `child_claim_list_digest` | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table (by hinted indices, `child_claim_list_any`, or by hinted gaps, `child_claim_list_mono`) |
 
 **Cells and bytes.** A cell holds sixteen bytes, its two limbs (`Value.Keccak.cellsBytes`, the
 cell's `E.toBytes`). A digest's two cells are `digestHalves` (`digestCells`).
@@ -70,7 +70,7 @@ def BelowLog (b : E) (e : ℕ) : Prop := e < 2 ^ 32 ∧ ∃ e' < 2 ^ 32, b = gen
 /-- `g⁻¹`, the word a runtime range bound is multiplied by (`assert log x < log b`). -/
 abbrev ginvW : E := word 9223372036854775821 0
 
-/-! ## `statement_digest` (G:4249-4273, TRIAGE #86) -/
+/-! ## `statement_digest` (TRIAGE #86) -/
 
 /-- `DEFER_STMT_CELLS`: the cells of a statement's deferred claim, `BYTECODE_VARS = 23`
 coordinates and the value. -/
@@ -99,7 +99,7 @@ def statement_digest_complete_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     MeaningStatementDigest rd args rets → coreProgram.Rel rd "statement_digest" args rets
 
-/-! ## `list_split` (G:4290-4305, TRIAGE #87) -/
+/-! ## `list_split` (TRIAGE #87) -/
 
 /-- `CLAIM_GROUP`: claims hashed a loop frame of a list's rest. -/
 abbrev claimGroup : ℕ := guest_const% CLAIM_GROUP
@@ -139,7 +139,7 @@ def list_split_complete_Spec : Prop :=
   ∀ (rd : Reader), (∀ i < 2 ^ 20, (rd (addressOfIndex i)).isSome) → ∀ (args rets : List E),
     MeaningListSplitC args rets → coreProgram.Rel rd "list_split" args rets
 
-/-! ## `claim_list_digest` (G:4308-4350, TRIAGE #88) -/
+/-! ## `claim_list_digest` (TRIAGE #88) -/
 
 /-- `rets` is the two cells of the Keccak-256 digest of the `4n` cells of `n` claims at `entries`
 (an empty list: the empty string's). -/
@@ -158,7 +158,7 @@ def claim_list_digest_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "claim_list_digest" args rets → MeaningClaimListDigest rd args rets
 
-/-! ## `child_claim_list_digest` (G:4370-4505, TRIAGE #89) -/
+/-! ## `child_claim_list_digest` (TRIAGE #89) -/
 
 /-- The slot `e` lies below the log of the region's size `b`: `b = g^L`, `e < L < 2^33`. -/
 def SlotBelow (b : E) (e : ℕ) : Prop := ∃ L < 2 ^ 33, b = gen ^ L ∧ e < L

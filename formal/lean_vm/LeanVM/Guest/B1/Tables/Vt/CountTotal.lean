@@ -12,7 +12,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.PullTotal
 
 /-!
-# The count side's total (G:2470-2529)
+# The count side's total
 
 `vtCountPadData` lists the count side's blocks with their table and copy. `vt_count_total`:
 `bus_table_total[COUNT]` is the padding sum, `1 + selector_sum` and the GKR count value.

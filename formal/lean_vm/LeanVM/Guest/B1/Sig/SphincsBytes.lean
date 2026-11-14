@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsBytes
 
-  `sp_from_bytes` (`lean_ethereum.py:3926-3936`) is sound: on a memory image of
+  `sp_from_bytes` (`lean_ethereum.py`) is sound: on a memory image of
   at most `2^32` words holding the byte table, its value is a word below `256^n`.
 -/
 

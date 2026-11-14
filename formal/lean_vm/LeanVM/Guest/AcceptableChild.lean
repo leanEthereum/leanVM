@@ -24,9 +24,7 @@ child, defined here: `ChildrenProven`'s two conditions, a stack log at least `20
 stream of at most `STREAM_CAP = 8192` scalars, its openings agreeing in the guest program's Merkle
 caps, and no zero challenge (`AcceptableChild`). `GuestCompleteOnAcceptableChildren` is the guest
 program's completeness on nodes within the deployed limits whose children are acceptable, for every seed, and
-`GuestChildComplete` says that an honest proof is an acceptable child (`G:N` is line `N` of
-`crates/rec_aggregation/guests/lean_ethereum.py`, `aggregation/<module>.rs:N` of
-`crates/rec_aggregation/src/aggregation/<module>.rs`).
+`GuestChildComplete` says that an honest proof is an acceptable child.
 -/
 
 @[expose] public section
@@ -38,7 +36,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 namespace Coverage
 
-/-- `STREAM_CAP` (`aggregation/child.rs:268`): a child's proof stream is zero-padded to it. -/
+/-- `STREAM_CAP` (`aggregation/child.rs`): a child's proof stream is zero-padded to it. -/
 def childStreamCap : ℕ := guest_const% STREAM_CAP
 
 /-- The least stack log the guest program has an opening arm for (`min_execution_stacked_log` of
@@ -111,7 +109,7 @@ def siblingHeapIndex (depth leafPosition level : ℕ) : ℕ :=
   2 * merkleHeapIndex depth leafPosition (level + 1) + (!leafPosition.testBit level).toNat
 
 /-- The digest of a Merkle leaf: Keccak-256 of its words as bytes (`hash_leaf`,
-`crates/verifier/src/merkle.rs:13-15`), the leaf an opening's climb starts from. -/
+`crates/verifier/src/merkle.rs`), the leaf an opening's climb starts from. -/
 def _root_.LeanVM.Protocol.KeccakHash.merkleLeafDigest (words : List K) : Digest :=
   keccak256 (words.flatMap K.toBytes)
 
@@ -140,14 +138,14 @@ end Limits
 /-- **A child the guest program accepts** under the seed `seed`: what the guest program asks of
 each child, `ChildrenProven`'s two conditions and the deployed ones:
 * its stack log is at least `20`: the guest program has one opening arm per stack log in
-  `[20, 30]` (G:3687-3690); the verifier admits stack logs from `Whir.minLogStack`;
-* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3523-3524);
+  `[20, 30]`; the verifier admits stack logs from `Whir.minLogStack`;
+* its proof stream is at most `STREAM_CAP = 8192` scalars;
 * its openings agree in the guest program's Merkle caps: at every query step of its deferring
   verifier, run under the node's seed, the step's openings agree wherever they meet (one tree's
   openings, the honest prover's, agree);
 * no zero challenge: the deferring verifier refusing a zero challenge anywhere accepts its proof
   (`verifyDeferredRefusingZero`), as the guest program divides by some (the WHIR fold and tail
-  challenges and each level's batching challenge `λ`, G:1650, 1765, 1771). -/
+  challenges and each level's batching challenge `λ`). -/
 structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : Prop where
   /-- Its deferred claim has the bytecode's shape. -/
   deferredClaimShaped : child.statement.deferredClaim.HasBytecodeShape bytecode

@@ -14,7 +14,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.Flushes
 # The verifier's tables at values in `E`
 
 `LeanVM.Protocol.EndToEnd.Complete.Flushes` compares the verifier's instruction tables
-(`crates/verifier/src/layout.rs:134-469` at leanVM `40f877dc`) with the leanISA instance's on rows
+(`crates/verifier/src/layout.rs` at leanVM `40f877dc`) with the leanISA instance's on rows
 in `K`. The table sumcheck's terminal check evaluates them at the claimed column values, which lie
 in `E`; this module lifts the comparison to `E`:
 

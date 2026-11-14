@@ -12,7 +12,7 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
 
 /-!
-# `verify_bus_gkr_loop0_loop0` (G:1979-2000)
+# `verify_bus_gkr_loop0_loop0`
 
 `for x8 in mul_range(1, half)` in a layer of `verify_bus_gkr`: the record at
 `rd = rounds·pos·x8^8`, the point row `pt = point_row·x8^8`, eight rounds (`gkRoundT`, from values

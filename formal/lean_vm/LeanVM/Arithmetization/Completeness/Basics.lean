@@ -30,7 +30,7 @@ them back and its proofs are unchanged.
   are their seed push and finalize pull on the row's variables.
 * `xor_constraints` and its six siblings: the components with no constraint satisfy their
   constraints on every row, in every environment, since only the `JUMP` table asserts anything
-  (`tables.rs:770-777`).
+  (`tables.rs`).
 
 ## Wrong readings excluded
 

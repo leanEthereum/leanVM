@@ -16,7 +16,7 @@ public import LeanVM.Protocol.LeanIsa.Bus
 # The framework blocks
 
 The bus phase (`verify_bus_balance`, `crates/verifier/src/bus.rs`)
-evaluates the three framework blocks of each side itself (`fingerprints`, `bus.rs:189-198`): the
+evaluates the three framework blocks of each side itself (`fingerprints`, `bus.rs`): the
 state boundary, the memory's `2^logMemory` rows and the bytecode's `2^logBytecode` rows. The honest
 leaves of these blocks are, row by row, `β` plus the fingerprint of the row's tuple (`stateTab`,
 `memTab`, `bcTab`). This module proves

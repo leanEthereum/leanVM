@@ -14,7 +14,7 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `check_opening_terminal`, as a template
 
-The guest unrolls the selectors' loop (G:3434-3438) and the claims' loop (G:3442-3476) at compile
+The guest unrolls the selectors' loop and the claims' loop at compile
 time on its tables `COL_KAPPA_SRC`, `COL_KAPPA_ADJ` (`Tables.colKappaSrc`, `Tables.colKappaAdj`),
 `CLAIM_POINT_BUF`, `CLAIM_COMMITTED_COL`, `CLAIM_KAPPA_SRC`, `CLAIM_KAPPA_ADJ` and
 `CLAIM_QKECCAK_SLOT_BITS`; here they are `termKind`, `termCol`, `claimKappaSrc`, `claimKappaAdj` and
@@ -24,7 +24,7 @@ buffer: `0` the bus point at `zeta`, `1` the table point at `chi`, `2` the publi
 lane, which the opening skips.
 
 Every claim's source and adjustment are its column's, so the guest emits no length check
-(G:3470-3474), nor `q_keccak`'s (G:3484-3488); a low length `kb[s]·g^a` is `kb[s]` itself at `a = 0`
+, nor `q_keccak`'s; a low length `kb[s]·g^a` is `kb[s]` itself at `a = 0`
 (`kapT`). The running power of `λ` starts at `lam_cl` itself and is multiplied by it after each kept
 claim; the tail adds the ring switch's and the outputs' claims, at `q_keccak`'s selector, then the
 out-of-domain claim's chain seeded with the next power.
@@ -60,7 +60,7 @@ def termSlot (j : ℕ) : ℕ := ((List.range 6).map fun k ↦ if slotBit j k the
 /-- The selectors' specializations, `column_selector__L{κ}`, `κ < 31`. -/
 def colSelNames : List String := (List.range 31).map (Tables.lName "column_selector")
 
-/-- The value holding `kappa_base[i]`, read in the head (G:3429-3431). -/
+/-- The value holding `kappa_base[i]`, read in the head. -/
 abbrev kbV (i : ℕ) : ℕ := 35 + i
 
 /-- `kb[src]·g^adj` from value `r`: the statements, the value holding it and the next value; at
@@ -80,7 +80,7 @@ def selKap (c : ℕ) : List Stmt × ℕ × ℕ :=
 /-- The value of committed column `c`'s selector. -/
 def selV (c : ℕ) : ℕ := (selKap c).2.2 + 2
 
-/-- The head (G:3414-3432): the chains at `zeta` (`20`) and `chi` (`22`), the slot points (`24`,
+/-- The head: the chains at `zeta` (`20`) and `chi` (`22`), the slot points (`24`,
 `25`), the public input's chain (`26`, its loop `check_opening_terminal_loop0`) and its value
 (`34`), the base
 `kappa_base` (`35 .. 42`), the selector tables (`43`). -/
@@ -103,7 +103,7 @@ def termHeadT : List Stmt :=
     .atom (.load (.n 41) (.n 8) 6), .atom (.load (.n 42) (.n 8) 7),
     .call "selector_tables" [.n 13, .n 14] [.n 43]]
 
-/-- Committed column `c`'s selector (G:3435-3438): its offset, its `g^κ`, `sel_g = g_squares·g^34`
+/-- Committed column `c`'s selector: its offset, its `g^κ`, `sel_g = g_squares·g^34`
 and the dispatch on `κ`. -/
 def selBlockT (c : ℕ) : List Stmt :=
   [.atom (.load (.n (selStart c)) (.n 10) c)] ++ (selKap c).1 ++
@@ -179,7 +179,7 @@ def claimsT : List ℕ → ℕ → ℕ → ℕ → List Stmt × ℕ × ℕ × �
       let rest := claimsT js b.2.1 b.2.2.1 b.2.2.2
       (b.1 ++ rest.1, rest.2)
 
-/-- The tail (G:3483-3496) from value `b`, the claims' sum at `acc`, `lam_out` at `lo`: the
+/-- The tail from value `b`, the claims' sum at `acc`, `lam_out` at `lo`: the
 outputs' chain, the ring switch's weight, both at `q_keccak`'s selector, the out-of-domain claim's
 chain seeded with `lam_out·lam_cl`, the terminal check. -/
 def termTailT (b acc lo : ℕ) : List Stmt :=

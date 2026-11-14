@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Tables.Vt.FormsT5
 public import LeanVM.Guest.B1.Tables.Vt.PullSels
 
 /-!
-# The evaluations and the forms' values (V:664-673)
+# The evaluations and the forms' values
 
 `vtEvT σ t`: table `t`'s `width_t` evaluations, the guest's values at `vtEvB (base_t + c)`;
 `vtEvsT σ`: the six lists, whose concatenation is the `153` words read (`vt_evsT_flatten`).

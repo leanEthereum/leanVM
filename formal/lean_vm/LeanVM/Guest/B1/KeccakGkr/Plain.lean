@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Common.Find
 /-!
 # `keccak_plain_rounds`
 
-`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, tabs, n, k0)` (G:3035-3061): its
+`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, tabs, n, k0)`: its
 specializations `__L6_L0` (`fn% «keccak_plain_rounds__L6_L0»`) and `__L4_L1` (`fn%
 «keccak_plain_rounds__L4_L1»`) copy the capacity, run `n` rounds, each a template `plainRoundT`
 (`c₀`, `c₂` read and packed by `fs_next`, one `KECCAK` atom on the waiting scalars' rate cells and

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerSecA
 
-  `keccak_layer`'s first sections (G:2643-2675): the head, the readers, the product read and
+  `keccak_layer`'s first sections: the head, the readers, the product read and
   absorbed, the projection check, and the squeeze of `s`.
 -/
 
@@ -13,10 +13,10 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerT
 # The product and `s`
 
 `layerA_holds`: if `headT ++ prodT ++ checkT ++ sqT` holds, the product (the table's coefficients)
-is read at the cursor, its projection plus `ι·κ` is the claim's value (`projectedOf`, V:1985-1996),
+is read at the cursor, its projection plus `ι·κ` is the claim's value (`projectedOf`),
 the nonce at the cursor's word `47` passes the grind of `3` bits, and `s` (value
 `layOff first + 544`) with the capacity after it (from `layOff first + 539`) is `layerSq` of the
-sponge the layer starts from (V:1997). The readers (`headT`, a straight line of sums over the
+sponge the layer starts from. The readers (`headT`, a straight line of sums over the
 instance weights) are, by kernel evaluation of their masks, the projection's (`reader_proj`).
 -/
 
@@ -251,7 +251,7 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF 
     obtain ⟨hok, hsq⟩ := grind_sq (s := s) (n := σ (.n 543)) (b := 551) hout hg' hch
     exact ⟨hl, hok, hsq, hn⟩
 
-/-- **The product and `s`** (G:2643-2675 against V:1983-1997). -/
+/-- **The product and `s`**. -/
 theorem layerA_holds {first : ℕ} (hf : first < 2) {y : ℕ} {c : KeccakClaim} {w : E}
     (hcr : ClaimRec rd (first = 1) (σ (.n 11)) c y)
     (hw : first = 1 → (σ (.n 5), σ (.n 6)) = Keccak.scalarCells w dsObserve)

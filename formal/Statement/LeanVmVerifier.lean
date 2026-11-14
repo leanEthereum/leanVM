@@ -7,8 +7,8 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 # The leanVM verifier
 
 The readable reference of the deployed Rust verifier (`crates/verifier`), which the differential
-tests compare it with. Every citation `<file>.rs:N` is a line of the Rust in this tree,
-its file named with its path at its first citation. The Lean is the Rust's
+tests compare it with. Every citation names an item of the Rust in this tree and its file,
+with its path at its first citation. The Lean is the Rust's
 checked walk, `verify_execution`; `replay_unchecked`, the same walk with the checks left out, is
 not transcribed. Part 1 fixes the WHIR parameters. Part 2 is the transcript: a program
 `VerifierProgram` of a small language, which `runProof` reads on a proof over a permutation
@@ -31,9 +31,8 @@ aggregate's in-circuit verifier of its children does
 ### The WHIR parameters
 
 The Rust verifier carries its WHIR constants, the ladder geometry (`derive_config`) and the query
-counts (`WHIR_QUERIES`) itself (`crates/verifier/src/whir.rs:10-70`); they are the prover's
-(`crates/pcs/src/whir_config.rs:32-88`, its ladder `derive_ladder` and `derive_ladder_shape`,
-`:265-316`), as the tests `whir_query_table_matches_the_search` and
+counts (`WHIR_QUERIES`) itself (`crates/verifier/src/whir.rs`); they are the prover's
+(`crates/pcs/src/whir_config.rs`, its ladder `derive_ladder` and `derive_ladder_shape`), as the tests `whir_query_table_matches_the_search` and
 `grinding_constants_match_the_prover` (`crates/leanvm_core/tests/verifiers/whir_query_table.rs`)
 check, the latter on this file's constants too. The stacking window is `MIN_STACKED_LOG` and
 `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs`). The specification describes the protocol these
@@ -49,55 +48,55 @@ fold round grinds `foldGrindingBits = 7` bits before its challenges; each level 
 positions after `queryGrindingBits = 17` bits of grinding; every level but the last commits its
 folded lane and draws its batching challenge right after its query positions, in the same message;
 every commitment, the stack's and each level's, takes one out-of-domain point after
-`oodGrindingBits = 15` bits (`read_ood`, `crates/verifier/src/lib.rs:156-163`), and the stacked
+`oodGrindingBits = 15` bits (`read_ood`, `crates/verifier/src/lib.rs`), and the stacked
 opening's batching grinds `batchGrindingBits = 13` bits.
 
 The query counts are the Rust's *output*, not its derivation: the prover's search (`search_level`,
-`whir_config.rs:597-628`) minimises the queries of each level subject to the round-by-round target
+`whir_config.rs`) minimises the queries of each level subject to the round-by-round target
 `2^-125` of Annex B's Theorem `thm:rbr`, through an exact integer check of each count
-(`query_count`, `whir_config.rs:547-560`), and this module does not restate that search. The table is the Rust
-verifier's `WHIR_QUERIES` (`whir.rs:24-30`), indexed by rate exponent `1..4` and stack size
+(`query_count`, `whir_config.rs`), and this module does not restate that search. The table is the Rust
+verifier's `WHIR_QUERIES` (`whir.rs`), indexed by rate exponent `1..4` and stack size
 `16..30`; outside that window `ladder` is `none`, as the verifier rejects (`whir_queries`,
-`whir.rs:38-45`; the prover's `validate_log_inv_rate`, `whir_config.rs:44-52`). `ladder` takes
+`whir.rs`; the prover's `validate_log_inv_rate`, `whir_config.rs`). `ladder` takes
 the stack size `μ`, as the verifier's `derive_config` does (the PCS crate's API takes
-`m = μ + LOG_PACKING`, `crates/pcs/src/pack.rs:5`), and the rate exponent is announced with the
+`m = μ + LOG_PACKING`, `crates/pcs/src/pack.rs`), and the rate exponent is announced with the
 sizes.
 -/
 
 namespace LeanVM.Parameters.Whir
 
-/-- Variables folded at level 0: the lane fold (`INITIAL_FOLDING_FACTOR`, `whir.rs:10`). -/
+/-- Variables folded at level 0: the lane fold (`INITIAL_FOLDING_FACTOR`, `whir.rs`). -/
 def initialFold : ℕ := 6
 
-/-- Variables folded at every later level (`SUBSEQUENT_FOLDING_FACTOR`, `whir.rs:11`). -/
+/-- Variables folded at every later level (`SUBSEQUENT_FOLDING_FACTOR`, `whir.rs`). -/
 def subsequentFold : ℕ := 4
 
 /-- Bits the Reed-Solomon domain shrinks by after level 0, so that the rate exponent rises by
-`initialFold - initialReduction` (`RS_DOMAIN_INITIAL_REDUCTION_FACTOR`, `whir.rs:12`). -/
+`initialFold - initialReduction` (`RS_DOMAIN_INITIAL_REDUCTION_FACTOR`, `whir.rs`). -/
 def initialReduction : ℕ := 3
 
 /-- Bits the domain shrinks by after every later level (`RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR`,
-`whir.rs:13`). -/
+`whir.rs`). -/
 def subsequentReduction : ℕ := 1
 
 /-- Folding stops once at most this many variables remain; the final level closes them with a
-sumcheck (`RESIDUAL_MAX_LOG`, `whir.rs:14`). -/
+sumcheck (`RESIDUAL_MAX_LOG`, `whir.rs`). -/
 def residualMaxLog : ℕ := 5
 
 /-- Grinding bits before each level's query positions are sampled (`QUERY_GRINDING_BITS`,
-`whir.rs:15`). -/
+`whir.rs`). -/
 def queryGrindingBits : ℕ := 17
 
-/-- Grinding bits before each fold round's `(α, β)` (`FOLD_GRINDING_BITS`, `whir.rs:16-17`). -/
+/-- Grinding bits before each fold round's `(α, β)` (`FOLD_GRINDING_BITS`, `whir.rs`). -/
 def foldGrindingBits : ℕ := 7
 
 /-- Grinding bits before the stacked opening's batching: the ring-switching map and `λ`
-(`BATCH_GRINDING_BITS`, `whir.rs:18-20`). A non-final level's `λ` is drawn with its query
+(`BATCH_GRINDING_BITS`, `whir.rs`). A non-final level's `λ` is drawn with its query
 positions, after their grind. -/
 def batchGrindingBits : ℕ := 13
 
 /-- Grinding bits before every commitment's out-of-domain point, the stack's and each later
-level's (`OOD_GRINDING_BITS`, `whir.rs:21-22`). -/
+level's (`OOD_GRINDING_BITS`, `whir.rs`). -/
 def oodGrindingBits : ℕ := 15
 
 /-- The smallest stack the PCS commits, a smaller witness padded up to it: `MIN_STACKED_LOG`
@@ -122,9 +121,8 @@ structure Level where
 
 /-- The levels after the first, as pairs (fold, rate exponent): while more than `residualMaxLog`
 variables remain, fold `subsequentFold` of them (or all that remain) at the rate exponent the
-previous level's fold and the pending domain reduction give (`derive_config`, `whir.rs:52-63`;
-the prover's `derive_ladder`, `whir_config.rs:244-283`, with `derive_ladder_shape`'s rate rule,
-`:285-298`). `fuel` bounds the
+previous level's fold and the pending domain reduction give (`derive_config`, `whir.rs`;
+the prover's `derive_ladder`, `whir_config.rs`, with `derive_ladder_shape`'s rate rule). `fuel` bounds the
 recursion; every level folds at least one variable, so `remaining` fuel is enough. -/
 def levelsFrom : (fuel remaining prevFold prevRate reduction : ℕ) → List (ℕ × ℕ)
   | 0, _, _, _, _ => []
@@ -136,12 +134,12 @@ def levelsFrom : (fuel remaining prevFold prevRate reduction : ℕ) → List (�
       (fold, rate) :: levelsFrom fuel (remaining - fold) fold rate subsequentReduction
 
 /-- The ladder geometry of a `μ`-variable stack at rate exponent `logInvRate`: level 0 folds
-`initialFold` at that rate, then `levelsFrom` (`derive_config`, `whir.rs:48-63`). -/
+`initialFold` at that rate, then `levelsFrom` (`derive_config`, `whir.rs`). -/
 def ladderShape (μ logInvRate : ℕ) : List (ℕ × ℕ) :=
   (initialFold, logInvRate) ::
     levelsFrom μ (μ - initialFold) initialFold logInvRate initialReduction
 
-/-- The query counts `WHIR_QUERIES` of `whir.rs:24-30`, verbatim: row `R - 1` for the rate
+/-- The query counts `WHIR_QUERIES` of `whir.rs`, verbatim: row `R - 1` for the rate
 exponent `R`, entry `μ - 16` for the stack size `μ`, one count per level. -/
 def queryTable : List (List (List ℕ)) := [
   [[230, 60, 42], [225, 58, 38], [222, 57, 35], [220, 56, 34], [219, 55, 33, 27],
@@ -162,7 +160,7 @@ def queryTable : List (List (List ℕ)) := [
    [55, 32, 23, 18, 16, 14]]]
 
 /-- The window the parameters are defined on: the stacking window and the rate range `1..4`
-(`whir_queries`, `whir.rs:38-45`; the rate also `lib.rs:256` and `whir_config.rs:44-52`). -/
+(`whir_queries`, `whir.rs`; the rate also `lib.rs` and `whir_config.rs`). -/
 def Admissible (μ logInvRate : ℕ) : Prop :=
   minLogStack ≤ μ ∧ μ ≤ maxLogStack ∧ 1 ≤ logInvRate ∧ logInvRate ≤ 4
 
@@ -170,9 +168,9 @@ instance {μ logInvRate : ℕ} : Decidable (Admissible μ logInvRate) :=
   inferInstanceAs (Decidable (_ ∧ _ ∧ _ ∧ _))
 
 /-- The ladder of an admissible stack size and rate (`derive_config(log_n, log_inv_rate)`,
-`whir.rs:47-70`): the geometry of `ladderShape` paired with the tabulated query counts, level by
+`whir.rs`): the geometry of `ladderShape` paired with the tabulated query counts, level by
 level. `none` outside the window (`WhirShape`), and `none` if the table did not have one count per
-level (`QueryCountLadder`, `whir.rs:64`), so that no level is silently dropped. -/
+level (`QueryCountLadder`, `whir.rs`), so that no level is silently dropped. -/
 def ladder (μ logInvRate : ℕ) : Option (List Level) :=
   if Admissible μ logInvRate then
     let geometry := ladderShape μ logInvRate
@@ -187,7 +185,7 @@ end LeanVM.Parameters.Whir
 /-! # Part 2: the transcript
 
 The verifier touches the proof through five operations of its `Transcript`
-(`crates/verifier/src/transcript.rs:106-250`): `next_scalar`, `sample`, `grind_check`, a root read
+(`crates/verifier/src/transcript.rs`): `next_scalar`, `sample`, `grind_check`, a root read
 as two scalars, and `merkle`. It computes everything else from their results; `VerifierProgram α`
 is the free monad over them, run (`run`, `runProof`) as the deployed non-interactive verifier: the
 challenges squeezed out of a duplex sponge and the rows authenticated by Merkle paths.
@@ -196,16 +194,16 @@ The sponge is the duplex of `Field.lean` (`Sponge`, `absorb`, `squeeze`, `absorb
 `seedInput`), over Keccak-f[1600] in the deployed verifier. A proof of work absorbs its nonce with
 the tag `4` and permutes at once; the permutation's third lane is the proof of work, and its first
 two lanes the challenge the next `sample` returns (`ground`). The Rust asserts that nothing is
-absorbed while that challenge waits (`Sponge::absorb`, `transcript.rs:62-69`); `run` rejects there.
+absorbed while that challenge waits (`Sponge::absorb`, `transcript.rs`); `run` rejects there.
 Merkle openings come from a separate channel that the sponge does not absorb: each query's
 opening is its position, the leaf's words, hashed as bytes, then one sibling per level, the
 position's bit at the level choosing the side.
 
-The proof is the Rust verifier's `Proof` (`transcript.rs:9-15`): the scalar stream, and the Merkle
+The proof is the Rust verifier's `Proof` (`transcript.rs`): the scalar stream, and the Merkle
 openings grouped in phases, one phase per opened commitment, each query's opening (`MerklePath`,
-`crates/verifier/src/merkle.rs:17-25`: position, leaf, siblings) in the order the verifier samples
+`crates/verifier/src/merkle.rs`: position, leaf, siblings) in the order the verifier samples
 the queries; the proof's wire encoding (`wire.rs`, a compression layer formalized in `lean_vm`)
-needs the phases. A phase is checked as `Transcript::merkle` checks it (`transcript.rs:179-212`):
+needs the phases. A phase is checked as `Transcript::merkle` checks it (`transcript.rs`):
 its shape, then its positions, then its roots.
 -/
 
@@ -214,13 +212,13 @@ namespace LeanVM.Protocol.Compile
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash
 
 /-- `SECURITY_BITS`: every verifier message's round-by-round error, after its grind, is at most
-`2^-125` (`transcript.rs:92-93`). -/
+`2^-125` (`transcript.rs`). -/
 def securityBits : ℕ := 125
 
 /-- `grinding_bits(numerator)`: the grind before a verifier message whose round-by-round error is
 `numerator / |E|`, `|E| = 2^128`, the fewest bits that bring it to `2^-securityBits`: the bit
 length of `numerator - 1` (`0` for `numerator ≤ 1`), less `128 - securityBits`, saturating
-(`transcript.rs:95-104`; `fiat_shamir::grinding_bits`). -/
+(`transcript.rs`; `fiat_shamir::grinding_bits`). -/
 def grindingBits (numerator : ℕ) : ℕ :=
   (if numerator ≤ 1 then 0 else Nat.log2 (numerator - 1) + 1) - (128 - securityBits)
 
@@ -285,7 +283,7 @@ def sampleChallenges : ℕ → VerifierProgram (List E)
     let xs ← sampleChallenges n
     return x :: xs
 
-/-- Check a proof of work of `bits` bits (`Transcript::grind_check`, `transcript.rs:164-177`). A
+/-- Check a proof of work of `bits` bits (`Transcript::grind_check`, `transcript.rs`). A
 grind of zero bits is nothing: no nonce, no permutation, no step of the program. -/
 def grindProofOfWork (bits : ℕ) : VerifierProgram Unit :=
   if bits = 0 then ret () else grind bits (ret ())
@@ -297,7 +295,7 @@ def readCommitment (height width : ℕ) : VerifierProgram Unit := commit height 
 def queryOpenings (i : ℕ) (positions : List ℕ) : VerifierProgram (List (List K)) := query i
     positions ret
 
-/-- Reject unless `c` holds (`require`, `lib.rs:122-124`). -/
+/-- Reject unless `c` holds (`require`, `lib.rs`). -/
 def require (c : Prop) [Decidable c] : VerifierProgram Unit := if c then ret () else fail
 
 end VerifierProgram
@@ -308,11 +306,11 @@ abbrev Bytes : Type := List UInt8
 /-! ## Proofs and the run -/
 
 /-- The proof-of-work predicate on the third lane of the permutation that absorbed the nonce: its
-low `bits` bits are zero (`Transcript::grind_check`, `transcript.rs:170-175`, the mask all ones
+low `bits` bits are zero (`Transcript::grind_check`, `transcript.rs`, the mask all ones
 from `64` bits on). -/
 def powOk (bits : ℕ) (pow : UInt64) : Bool := decide (pow.toNat % 2 ^ bits = 0)
 
-/-- One Merkle opening (`MerklePath`, `crates/verifier/src/merkle.rs:17-25`): the position it
+/-- One Merkle opening (`MerklePath`, `crates/verifier/src/merkle.rs`): the position it
 opens, the leaf's words and the siblings from the leaf up. -/
 structure Opening where
   /-- The position of the leaf (`leaf_index`). -/
@@ -322,7 +320,7 @@ structure Opening where
   /-- The siblings from the leaf up. -/
   path : List Digest
 
-/-- A proof (`Proof`, `crates/verifier/src/transcript.rs:9-15`): the scalar stream, and the Merkle
+/-- A proof (`Proof`, `crates/verifier/src/transcript.rs`): the scalar stream, and the Merkle
 openings, one phase per commitment opened, each query's opening in the order the verifier samples
 the queries. -/
 structure Proof where
@@ -348,7 +346,7 @@ section Run
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- Climb a Merkle path from `node` at position `q`: at each level the position's low bit says
-whether `node` is the left child (`MerklePath::root`, `merkle.rs:28-38`). -/
+whether `node` is the left child (`MerklePath::root`, `merkle.rs`). -/
 def climb : Digest → ℕ → List Digest → m Digest
   | node, _, [] => pure node
   | node, q, s :: ss => do
@@ -357,8 +355,8 @@ def climb : Digest → ℕ → List Digest → m Digest
     climb parent (q / 2) ss
 
 /-- Check one opening against a root of the given shape at position `position`: its shape
-(`transcript.rs:197-202`), then its leaf hashed and climbed to the root (`hash_leaf` and
-`MerklePath::root`, `merkle.rs:13-15, 28-38`). -/
+(`transcript.rs`), then its leaf hashed and climbed to the root (`hash_leaf` and
+`MerklePath::root`, `merkle.rs`). -/
 def openOne (root : Digest) (height width position : ℕ) (opening : Opening) : m Bool :=
   if opening.leaf.length = width ∧ opening.path.length = height then do
     let leafDigest ← keccak256With π (opening.leaf.flatMap K.toBytes)
@@ -379,7 +377,7 @@ def openAll (root : Digest) (height width : ℕ) :
     else pure none
 
 /-- Open one phase of a commitment of the given shape at `positions` (`Transcript::merkle`,
-`crates/verifier/src/transcript.rs:179-212`): reject unless every leaf is `width` words and every
+`crates/verifier/src/transcript.rs`): reject unless every leaf is `width` words and every
 path `height` siblings, then unless the phase's positions are `positions`, in order, then unless
 each path climbs to `root`, in order (at its position, which is the query's). The leaves. -/
 def openPhase (root : Digest) (height width : ℕ) (positions : List ℕ) (phase : List Opening) :
@@ -394,10 +392,10 @@ def openPhase (root : Digest) (height width : ℕ) (positions : List ℕ) (phase
 /-- The compiled reading of a program: run it on the state, every challenge squeezed out of the
 sponge and every opening authenticated; `none` on rejection. What absorbs (a read, a commitment's
 two halves, a proof of work's nonce) rejects while a grind's challenge waits, where the Rust's
-`Sponge::absorb` asserts (`transcript.rs:63`); a sample returns that challenge. A proof of work
+`Sponge::absorb` asserts (`transcript.rs`); a sample returns that challenge. A proof of work
 reads its nonce (`next`, unobserved), absorbs it with its tag and permutes (`absorbNonce`), and
-checks the permutation's third lane (`grind_check`, `transcript.rs:164-177`). A commitment's root
-is its two halves' digest (`Digest::from_halves`, `crates/verifier/src/hash.rs:114-125`). -/
+checks the permutation's third lane (`grind_check`, `transcript.rs`). A commitment's root
+is its two halves' digest (`Digest::from_halves`, `crates/verifier/src/hash.rs`). -/
 def run {α : Type} : VerifierProgram α → VerifierProgramState → m (Option (α ×
     VerifierProgramState))
   | .ret a, s => pure (some (a, s))
@@ -430,7 +428,7 @@ def run {α : Type} : VerifierProgram α → VerifierProgramState → m (Option 
     | _, _ => pure none
 
 /-- Run a program on a proof from a seed state, and accept when it returns `true` with the
-stream and the openings fully consumed (`Transcript::finish`, `transcript.rs:239-249`). -/
+stream and the openings fully consumed (`Transcript::finish`, `transcript.rs`). -/
 def runProof (program : VerifierProgram Bool) (seed : KeccakState) (proof : Proof) : m Bool := do
   match ← run π program ⟨⟨seed, [], none⟩, proof.stream, proof.openings, []⟩ with
   | some (true, s) => pure (s.stream.isEmpty && s.openings.isEmpty)
@@ -456,7 +454,7 @@ where it is visible (`foldl` from `1` or `0`), although `E` is a field and neith
 the grouping changes a value. The Rust's `E::new(n, 0)` for an integer `n < 2^64` is
 `eOfNat n`: the natural-number cast of `E` is the characteristic-two one (`(2 : E) = 0`) and is
 never used for a wire integer. A `K` value that the Rust lifts into `E` (`E::from`,
-`field.rs:165-169`) is `ofK`.
+`field.rs`) is `ofK`.
 
 **Preconditions the Rust checks and the verifier always meets.** `multilinear_eval` rejects a
 table not of `2^|point|` entries, and `eq_eval` and `dot` assert equal lengths. At every call site
@@ -469,7 +467,7 @@ coordinates the caller passes), so these functions are total here: an excess ent
 def kToNat (a : K) : ℕ := a.toBitVec.toNat
 
 /-- The two limbs of `e` as one 128-bit integer, limb `0` lowest: the bits `sample_queries`
-reads (`whir.rs:83`). -/
+reads (`whir.rs`). -/
 def eToNat (e : E) : ℕ :=
   kToNat (e.limb 0) + 2 ^ 64 * kToNat (e.limb 1)
 
@@ -477,11 +475,11 @@ def eToNat (e : E) : ℕ :=
 same power in `K`, in limb `0`. -/
 def gpow (index : ℕ) : E := gen ^ index
 
-/-- `E::sum(values)`: the sum from `ZERO`, left to right (`field.rs:125-127`). -/
+/-- `E::sum(values)`: the sum from `ZERO`, left to right (`field.rs`). -/
 def sumE (values : List E) : E := values.foldl (· + ·) 0
 
 /-- The product from `ONE`, left to right, as the GKR step takes a child's
-(`crates/verifier/src/bus.rs:54-57`). -/
+(`crates/verifier/src/bus.rs`). -/
 def prodE (values : List E) : E := values.foldl (· * ·) 1
 
 /-- `acc, acc·base, acc·base², …`, `count` terms. -/
@@ -489,11 +487,11 @@ def powersFrom (acc base : E) : ℕ → List E
   | 0 => []
   | count + 1 => acc :: powersFrom (acc * base) base count
 
-/-- `powers(base, count)`: `1, base, base², …`, `count` terms (`field.rs:255-264`). -/
+/-- `powers(base, count)`: `1, base, base², …`, `count` terms (`field.rs`). -/
 def powers (base : E) (count : ℕ) : List E := powersFrom 1 base count
 
 /-- `eq_kernel(point)`: the `2^|point|` equality weights, the first coordinate the lowest bit
-(`multilinear.rs:6-19`). -/
+(`multilinear.rs`). -/
 def eqKernel (point : List E) : List E :=
   point.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) [1]
 
@@ -503,7 +501,7 @@ def foldPairs (r : E) : List E → List E
   | _ => []
 
 /-- `multilinear_eval(mle, point)`: the multilinear extension of the table at the point, the
-first coordinate folding adjacent entries (`multilinear.rs:45-59`). A table of the wrong size,
+first coordinate folding adjacent entries (`multilinear.rs`). A table of the wrong size,
 which the Rust rejects, never reaches it (see the section note); `0` for an empty result. -/
 def multilinearEval (mle point : List E) : E :=
   (point.foldl (fun cur r ↦ foldPairs r cur) mle).headD 0
@@ -511,25 +509,25 @@ def multilinearEval (mle point : List E) : E :=
 /-- The bit length of a natural number, `0` at `0`. -/
 def bitLength (n : ℕ) : ℕ := if n = 0 then 0 else Nat.log2 n + 1
 
-/-- `log2_ceil(value)`: the bit length of `value - 1`, saturating (`multilinear.rs:61-63`); `0`
+/-- `log2_ceil(value)`: the bit length of `value - 1`, saturating (`multilinear.rs`); `0`
 at `value = 0`, the height of a table with no row. -/
 def log2Ceil (value : ℕ) : ℕ := bitLength (value - 1)
 
 /-- `log2_strict(value)`: the exponent of a power of two, `none` otherwise
-(`multilinear.rs:65-68`). -/
+(`multilinear.rs`). -/
 def log2Strict (value : ℕ) : Option ℕ :=
   if 0 < value ∧ value &&& (value - 1) = 0 then some (bitLength value - 1) else none
 
-/-- `eq_eval(left, right) = Π (1 + x + y)` (`multilinear.rs:70-77`). -/
+/-- `eq_eval(left, right) = Π (1 + x + y)` (`multilinear.rs`). -/
 def eqEval (left right : List E) : E :=
   (List.zipWith (fun x z ↦ 1 + x + z) left right).foldl (· * ·) 1
 
-/-- `dot(left, right) = Σ x·y` (`multilinear.rs:79-86`). -/
+/-- `dot(left, right) = Σ x·y` (`multilinear.rs`). -/
 def dot (left right : List E) : E :=
   (List.zipWith (· * ·) left right).foldl (· + ·) 0
 
 /-- `padding_weight(point, n)`: `pad_n(point)`, the multilinear extension of `[z ≥ n]` for
-`n ≤ 2^|point|`, unrolled from the low bit (`multilinear.rs:88-96`; `doc/leanvm`, Lemma
+`n ≤ 2^|point|`, unrolled from the low bit (`multilinear.rs`; `doc/leanvm`, Lemma
 `lem:suffix`). -/
 def paddingWeight (point : List E) (n : ℕ) : E :=
   (1 + eOfNat ((n >>> point.length) % 2)) *
@@ -538,28 +536,28 @@ def paddingWeight (point : List E) (n : ℕ) : E :=
       (1 + b) * r + (1 + b + r) * pad) 1
 
 /-- `index_mle(point)`: the multilinear extension of `[1, g, g², …]` at an LSB-first point,
-`Π (1 + r_i·(1 + g^(2^i)))` (`multilinear.rs:98-107`). -/
+`Π (1 + r_i·(1 + g^(2^i)))` (`multilinear.rs`). -/
 def indexMleFrom (generatorPower : E) : List E → E → E
   | [], acc => acc
   | r :: rs, acc => indexMleFrom (generatorPower ^ 2) rs (acc * (1 + r * (1 + generatorPower)))
 
-/-- `index_mle(point)` (`multilinear.rs:98-107`). -/
+/-- `index_mle(point)` (`multilinear.rs`). -/
 def indexMle (point : List E) : E := indexMleFrom gen point 1
 
 /-- `poly_eval(coefficients, point)`: Horner's rule over the coefficients, constant first
-(`multilinear.rs:109-112`). -/
+(`multilinear.rs`). -/
 def polyEval (coefficients : List E) (point : E) : E :=
   coefficients.foldr (fun c acc ↦ acc * point + c) 0
 
 /-- `selector_point(selector, length)`: the low `length` bits of `selector` as `0/1` elements,
-lowest first (`multilinear.rs:146-148`). -/
+lowest first (`multilinear.rs`). -/
 def selectorPoint (selector length : ℕ) : List E :=
   (List.range length).map fun bit ↦ eOfNat ((selector >>> bit) % 2)
 
-/-! ## The verifier's layout (`multilinear.rs:114-148`, `layout.rs`, `bus.rs:77-117`) -/
+/-! ## The verifier's layout (`multilinear.rs`, `layout.rs`, `bus.rs`) -/
 
 /-! ### Constants (`layout.rs`;
-`crates/verifier/src/keccak.rs:18-20, 55-67`) -/
+`crates/verifier/src/keccak.rs`) -/
 
 /-- `BUS_BITS`: the bus communicates tuples of `2^BUS_BITS` field elements (`layout.rs`). -/
 def busBits : ℕ := 4
@@ -586,14 +584,14 @@ def kBits : ℕ := 64
 def keccakDepth : ℕ := 12
 
 /-- `KeccakShape::segments`, `ROUNDS / depth` at `depth = KECCAK_DEPTH`, `ROUNDS = 24`
-(`keccak.rs:56-58`). -/
+(`keccak.rs`). -/
 def keccakSegments : ℕ := 24 / keccakDepth
 
-/-- The bits of a segment index, `log2_ceil(shape.segments())` (`keccak.rs:252`). -/
+/-- The bits of a segment index, `log2_ceil(shape.segments())` (`keccak.rs`). -/
 def keccakSegmentBits : ℕ := log2Ceil keccakSegments
 
 /-- `KeccakShape::slot_bits`, `log2_ceil(STATE_LANES * segments)`, `STATE_LANES = 25`
-(`keccak.rs:64-67`): lane `l` of the state after `KECCAK_DEPTH · m` rounds is slot `25m + l`; the
+(`keccak.rs`): lane `l` of the state after `KECCAK_DEPTH · m` rounds is slot `25m + l`; the
 `2^6 - 50` slots above the states carry `KECCAK` columns (`keccakSlot`). -/
 def qkeccakSlotBits : ℕ := log2Ceil (25 * keccakSegments)
 
@@ -601,13 +599,13 @@ def qkeccakSlotBits : ℕ := log2Ceil (25 * keccakSegments)
 (`layout.rs`). -/
 def keccakMinStepsLog : ℕ := 9
 
-/-- `BITS = 64 * STATE_LANES`: a state's bits (`keccak.rs:18`). -/
+/-- `BITS = 64 * STATE_LANES`: a state's bits (`keccak.rs`). -/
 def keccakBits : ℕ := 1600
 
-/-- `LOCAL_BITS`: a bit position is `z + 64 · lane`, in a cube of `2^11` (`keccak.rs:19`). -/
+/-- `LOCAL_BITS`: a bit position is `z + 64 · lane`, in a cube of `2^11` (`keccak.rs`). -/
 def keccakLocalBits : ℕ := 11
 
-/-- `LANE_BITS`: the bits of a lane's index, `25 ≤ 2^5` (`keccak.rs:20`). -/
+/-- `LANE_BITS`: the bits of a lane's index, `25 ≤ 2^5` (`keccak.rs`). -/
 def keccakLaneBits : ℕ := 5
 
 /-- The bus separators `SEP_STATE`, `SEP_MEM`, `SEP_BYTECODE` (`layout.rs`). -/
@@ -624,7 +622,7 @@ def opDeref : ℕ := 3
 def opJump : ℕ := 4
 def opKeccak : ℕ := 5
 
-/-! ### Placements (`Placement`, `multilinear.rs:114-148`) -/
+/-! ### Placements (`Placement`, `multilinear.rs`) -/
 
 /-- Where something sits in the stacked cube: a claim's point fills the low `variableCount`
 coordinates, the bits of the selector `index` fixing the rest. -/
@@ -635,18 +633,18 @@ structure Placement where
   index : ℕ
   deriving Inhabited, DecidableEq
 
-/-- `Placement::stack_point`: the point on the stacked cube (`multilinear.rs:122-125`). -/
+/-- `Placement::stack_point`: the point on the stacked cube (`multilinear.rs`). -/
 def Placement.stackPoint (p : Placement) (point : List E) (stackLog : ℕ) : List E :=
   point ++ selectorPoint (p.index >>> p.variableCount) (stackLog - p.variableCount)
 
 /-- `Placement::eq_above`: the equality weight of the coordinates above the window
-(`multilinear.rs:127-131`). -/
+(`multilinear.rs`). -/
 def Placement.eqAbove (p : Placement) (point : List E) : E :=
   eqEval (selectorPoint (p.index >>> p.variableCount) (point.length - p.variableCount))
     (point.drop p.variableCount)
 
 /-- `stack_offsets(sizes)`: blocks of `2^size` laid end to end, largest first, ties by index;
-their offsets, and the log-size of the total (`multilinear.rs:134-144`). -/
+their offsets, and the log-size of the total (`multilinear.rs`). -/
 def stackOffsets (sizes : List ℕ) : List ℕ × ℕ :=
   let size := fun i ↦ sizes.getD i 0
   let order := (List.range sizes.length).mergeSort fun i j ↦
@@ -1008,7 +1006,7 @@ def globalColumnBases : List ℕ :=
 `KECCAK`, the Keccak reduction's block of steps. -/
 def tableLogFloors : List ℕ := [0, 0, 0, 0, 0, keccakMinStepsLog]
 
-/-! ### The bus layout (`layout.rs`, `bus.rs:77-117`, `lib.rs:130-131`) -/
+/-! ### The bus layout (`layout.rs`, `bus.rs`, `lib.rs`) -/
 
 /-- One block of a bus side, owned by a table (`BusBlock`, `layout.rs`). -/
 structure BusBlock where
@@ -1024,7 +1022,7 @@ structure BusBlock where
   deriving Inhabited
 
 /-- Where a side's blocks sit in the stacked leaf cube: its log-size, the framework blocks'
-placements, and the table blocks', in the side's block order (`BusLayout`, `bus.rs:77-83`). -/
+placements, and the table blocks', in the side's block order (`BusLayout`, `bus.rs`). -/
 structure BusLayout where
   /-- The log-size of the stacked leaf cube. -/
   depth : ℕ
@@ -1033,7 +1031,7 @@ structure BusLayout where
   /-- The table blocks' placements, in the side's block order. -/
   tables : List Placement
 
-/-- `bus_layout(framework_log_rows, blocks)` (`bus.rs:85-103`). -/
+/-- `bus_layout(framework_log_rows, blocks)` (`bus.rs`). -/
 def busLayout (frameworkLogRows : List ℕ) (blocks : List BusBlock) : BusLayout :=
   let sizes := frameworkLogRows ++ blocks.map (·.logRows)
   let (offsets, depth) := stackOffsets sizes
@@ -1042,7 +1040,7 @@ def busLayout (frameworkLogRows : List ℕ) (blocks : List BusBlock) : BusLayout
   ⟨depth, placements.take frameworkLogRows.length, placements.drop frameworkLogRows.length⟩
 
 /-- A column claim: the global column's multilinear extension at `point` (over the column's own
-variables) is `value` (`ColumnClaim`, `bus.rs:105-109`). -/
+variables) is `value` (`ColumnClaim`, `bus.rs`). -/
 structure ColumnClaim where
   /-- The global column. -/
   column : ℕ
@@ -1053,7 +1051,7 @@ structure ColumnClaim where
   deriving Inhabited
 
 /-- A claim on the stack: the weight it puts on the stack, and the value it claims for it
-(`StackClaim`, `lib.rs:130-131`). -/
+(`StackClaim`, `lib.rs`). -/
 abbrev StackClaim : Type := (List E → E) × E
 
 /-! ### `build_layout` (`layout.rs`) -/
@@ -1084,7 +1082,7 @@ of `MEMORY_0` and `QKECCAK`. -/
 def Layout.placement (layout : Layout) (column : ℕ) : Placement :=
   (layout.placements.getD column none).getD default
 
-/-- `ColumnClaim::on_stack` (`bus.rs:111-117`): the claim as an equality weight on the
+/-- `ColumnClaim::on_stack` (`bus.rs`): the claim as an equality weight on the
 stack; `none` for a column nothing commits (a `KECCAK` output lane), whose claim never reaches
 the stack. -/
 def ColumnClaim.onStack (c : ColumnClaim) (layout : Layout) : Option StackClaim :=
@@ -1110,7 +1108,7 @@ def keccakSlot (column : ℕ) : Option ℕ :=
 
 /-- The global columns of the `KECCAK` output lanes, in lane order (`outputs`,
 `layout.rs`; the columns of `values[KECCAK_OUT..KECCAK_OUT + STATE_LANES]`,
-`lib.rs:324`). -/
+`lib.rs`). -/
 def keccakOutputColumns : List ℕ :=
   (List.range 25).map (globalColumnBases.getD opKeccak 0 + keccakOut + ·)
 
@@ -1166,7 +1164,7 @@ def buildLayout (bytecode : List K) (logMemory : ℕ) (tableRows : List ℕ) : O
 open LeanVM.Protocol.Compile
 
 /-!
-## Sumcheck rounds (`transcript.rs:214-266`)
+## Sumcheck rounds (`transcript.rs`)
 
 A round polynomial of `count` coefficients is sent with one coefficient left out, which the
 verifier derives from the running claim: in plain mode (`eq_factor = None`) `q(0) + q(1) = claim`
@@ -1183,7 +1181,7 @@ def liftOption {α : Type} : Option α → VerifierProgram α
 
 /-- `Transcript::sumcheck_round_poly(count, claim, eq_factor)`: read a round polynomial of `count`
 coefficients, deriving the one the claim fixes, then grind for its degree; its coefficients,
-constant first (`transcript.rs:214-237`). -/
+constant first (`transcript.rs`). -/
 def sumcheckRoundPoly (count : ℕ) (claim : E) : Option E → VerifierProgram (List E)
   | none => do
     let constant ← VerifierProgram.readScalar
@@ -1197,7 +1195,7 @@ def sumcheckRoundPoly (count : ℕ) (claim : E) : Option E → VerifierProgram (
 
 /-- `sumcheck(transcript, claim, count, equalities)`: one round per entry of `equalities`, each
 reading its polynomial and sampling its challenge; the challenges in order, and the final claim
-(`transcript.rs:252-266`). -/
+(`transcript.rs`). -/
 def sumcheck (claim : E) (count : ℕ) : List (Option E) → VerifierProgram (List E × E)
   | [] => return ([], claim)
   | equality :: equalities => do
@@ -1207,7 +1205,7 @@ def sumcheck (claim : E) (count : ℕ) : List (Option E) → VerifierProgram (Li
     return (challenge :: point, final)
 
 /-!
-## The bus phase (`bus.rs:14-247`)
+## The bus phase (`bus.rs`)
 
 After a grind for the push tree's depth, the fingerprint is sixteen independent slot weights and
 `β`. The three GKR trees (push, pull, count) are batched, their roots read as `shared, count`
@@ -1219,12 +1217,12 @@ framework blocks are evaluated outright, its table blocks accumulate into the ow
 side, and the side's total is the GKR value less the framework and the padding.
 -/
 
-/-- `N_TREES`: the trees the bus GKR batches, push, pull and count (`bus.rs:20-21`). -/
+/-- `N_TREES`: the trees the bus GKR batches, push, pull and count (`bus.rs`). -/
 def nTrees : ℕ := 3
 
 /-- `bus_grinding_bits(mu)`: the grind before the fingerprint, unequal push and pull multisets
 passing the product check with probability at most `2^mu / |E|`, `mu` the push depth
-(`bus.rs:14-18`). -/
+(`bus.rs`). -/
 def busGrindingBits (mu : ℕ) : ℕ := grindingBits (2 ^ mu)
 
 /-- The state of the GKR walk: the push, pull and count trees' values at `point`. -/
@@ -1234,7 +1232,7 @@ structure GkrState where
   /-- The point they are at. -/
   point : List E
 
-/-- One step of `step` levels of the GKR walk (`bus.rs:39-71`): a grind and the combiner, the
+/-- One step of `step` levels of the GKR walk (`bus.rs`): a grind and the combiner, the
 sumcheck, every tree's children, then a grind for the children's degree `step` in `y`, doubled on
 the `last` layer, whose `y` the table sumcheck's zerocheck reads too. -/
 def gkrStep (step : ℕ) (last : Bool) (state : GkrState) : VerifierProgram GkrState := do
@@ -1269,14 +1267,14 @@ def gkrLayers : ℕ → GkrState → VerifierProgram GkrState
       gkrLayers n s
 
 /-- `verify_gkr_grand_products(depth)`: the count root, the GKR point, and the three trees'
-values there (`bus.rs:29-75`). -/
+values there (`bus.rs`). -/
 def verifyGkrGrandProducts (depth : ℕ) : VerifierProgram (E × List E × List E) := do
   let shared ← VerifierProgram.readScalar
   let count ← VerifierProgram.readScalar
   let s ← gkrLayers depth ⟨[shared, shared, count], []⟩
   return (count, s.point, s.values)
 
-/-- `BusResult` (`bus.rs:122-128`): the framework columns' claims, the point the bytecode sumcheck
+/-- `BusResult` (`bus.rs`): the framework columns' claims, the point the bytecode sumcheck
 leaves the stacked bytecode at (the summary's `bytecode_point`, the claim an aggregate defers), the
 GKR point (which the table sumcheck reuses), each table's form per side (`forms[table][side]`), and
 the three sides' totals. -/
@@ -1293,8 +1291,8 @@ structure BusResult where
   totals : List E
   deriving Inhabited
 
-/-- The three framework fingerprints of a side (`framework`, `bus.rs:189-198`; the Rust hoists
-`memory_index` and `bytecode_index`, `bus.rs:165-166`, pure values inlined here), each its tuple's
+/-- The three framework fingerprints of a side (`framework`, `bus.rs`; the Rust hoists
+`memory_index` and `bytecode_index`, `bus.rs`, pure values inlined here), each its tuple's
 coordinates weighted by the slot weights: the boundary state, the memory cell (the two limbs of
 `memory`), and the bytecode tuple, the program's share of it `bytecodeShare`. -/
 def fingerprints (weights memory memoryLow bytecodeLow : List E) (bytecodeShare : E)
@@ -1304,13 +1302,13 @@ def fingerprints (weights memory memoryLow bytecodeLow : List E) (bytecodeShare 
     dot (weights.take 3) [sepBytecode, indexMle bytecodeLow, bytecodeCount] + bytecodeShare]
 
 /-- One table block's form on a side: `side_beta` plus the block's fingerprint, one tuple slot at
-a time (`bus.rs:226-229`). -/
+a time (`bus.rs`). -/
 def blockForm (block : BusBlock) (sideWeights : List E) (sideBeta : E) : Form :=
   block.coordinates.zipIdx.foldl
     (fun form (coordinate, slot) ↦ form.addScaled coordinate (sideWeights.getD slot 0))
     (Form.const sideBeta)
 
-/-- One side of the leaf decomposition (`bus.rs:215-238`): the forms with the side's table
+/-- One side of the leaf decomposition (`bus.rs`): the forms with the side's table
 blocks added, and the side's total. A table's form is summed over its padding rows too, whose
 leaves hold `1` instead: the difference, `padding_rows`, is public. -/
 def accumulateSide (forms : List (List Form)) (side : ℕ) (blocks : List BusBlock)
@@ -1329,7 +1327,7 @@ def accumulateSide (forms : List (List Form)) (side : ℕ) (blocks : List BusBlo
   let onesPadding := sumE (frameworkSelectors ++ tableSelectors) + 1
   (forms, treeValue + known + onesPadding + paddingRows)
 
-/-- The bytecode's share and its sumcheck (`bus.rs:168-184`): the program's share of a bytecode
+/-- The bytecode's share and its sumcheck (`bus.rs`): the program's share of a bytecode
 leaf, `Σ_x weights[x]·P(bytecode_low, x)` over the stacked bytecode's slots, reduced by a
 sumcheck over `x`, its low bit first, to one value of `P`, read from the proof. The share, the
 point `(bytecode_low, x)` and the value; the sumcheck's end is checked here (`BytecodeShare`), the
@@ -1341,9 +1339,9 @@ def bytecodeShare (weights bytecodeLow : List E) : VerifierProgram (E × List E 
   VerifierProgram.require (claim = dot (eqKernel slotPoint) weights * value)
   return (share, bytecodeLow ++ slotPoint, value)
 
-/-- `verify_bus_balance(layout, transcript)` (`bus.rs:130-247`). **Where the verifier meets the
+/-- `verify_bus_balance(layout, transcript)` (`bus.rs`). **Where the verifier meets the
 fixed polynomial**, the stacked bytecode's multilinear extension: the proof claims its value at the
-point the bytecode sumcheck leaves (`bus.rs:173-183`), and `bytecodeValue` checks the claim. The
+point the bytecode sumcheck leaves (`bus.rs`), and `bytecodeValue` checks the claim. The
 deployed verifier evaluates the polynomial (`computedBytecodeValue`); the verifier inside an
 aggregate holds the point and the value to a claim it hands on (`claimedBytecodeValue`). -/
 def verifyBusBalance (bytecodeValue : List K → List E → E → VerifierProgram Unit)
@@ -1381,14 +1379,14 @@ def verifyBusBalance (bytecodeValue : List K → List E → E → VerifierProgra
   return ⟨claims, bytecodePoint, point, forms3, [total0, total1, total2]⟩
 
 /-!
-## The table sumcheck (`bus.rs:249-297`)
+## The table sumcheck (`bus.rs`)
 
 One plain-mode sumcheck over `max` of the tables' log-heights, its challenges reversed the point;
 the terminal claim is `Σ weight · (constraints + forms)`, and a table of log-height `h` has its
 evaluations at the point's first `h` coordinates.
 -/
 
-/-- The tables' weights at the point (`bus.rs:269-275`): coordinate `v` contributes
+/-- The tables' weights at the point (`bus.rs`): coordinate `v` contributes
 `1 + equality_point[v] + r_v` to a table taller than `v`, and `r_v` to the others. -/
 def tableWeights (heights : List ℕ) (equalityPoint point : List E) : List E :=
   point.zipIdx.foldl (fun weights (challenge, coord) ↦
@@ -1396,7 +1394,7 @@ def tableWeights (heights : List ℕ) (equalityPoint point : List E) : List E :=
     List.zipWith (fun weight height ↦ weight * if coord < height then equality else challenge)
       weights heights) (heights.map fun _ ↦ 1)
 
-/-- The per-table loops of `table_sumcheck` (`bus.rs:277-295`): read each table's row
+/-- The per-table loops of `table_sumcheck` (`bus.rs`): read each table's row
 evaluations, add its weighted terms to `final`, and collect its point and evaluations. The Rust
 reads every table's evaluations before it sums the terms: the same reads, in the same order. -/
 def tableTerms (constraintPowers formPowers point : List E) :
@@ -1413,7 +1411,7 @@ def tableTerms (constraintPowers formPowers point : List E) :
     return (final, (point.take height, evaluations) :: rows)
 
 /-- `table_sumcheck(tables, table_log_heights, bus_forms, constraint_powers, form_powers,
-equality_point, target, transcript)` (`bus.rs:256-297`): each table's point and its columns'
+equality_point, target, transcript)` (`bus.rs`): each table's point and its columns'
 evaluations there. -/
 def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E) : VerifierProgram
@@ -1428,7 +1426,7 @@ def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
   return evaluations
 
 /-!
-## The WHIR opening (`whir.rs`, `lib.rs:126-163`)
+## The WHIR opening (`whir.rs`, `lib.rs`)
 
 The opening of [CWYZ26]'s affine folds (Annex B, `fig:protocol`): a level's rounds fold its
 lanes by the affine combiner `G + (α + β·X)·F`, the claim carried by four scalars a round
@@ -1438,8 +1436,8 @@ each opened row folded as the lanes were and corrected by the high part. The fin
 whole folded lane, checks the queries against it, and closes with a sumcheck over the low part.
 
 **Commitments.** The Rust reads a Merkle root as two scalars (`Digest::from_halves` of
-`next_scalars(2)`, `whir.rs:292-293`) and opens it a level later with
-`transcript.merkle(current_root, block_length, &queries, leaf_words)` (`whir.rs:265, 301`). The
+`next_scalars(2)`, `whir.rs`) and opens it a level later with
+`transcript.merkle(current_root, block_length, &queries, leaf_words)` (`whir.rs`). The
 language's `commit height width` fixes the matrix shape when the root is read, so the shape is
 computed from the ladder there:
 
@@ -1454,18 +1452,18 @@ raw words; the level-0 reversal and the regrouping of deeper rows into `E` (`ext
 program's.
 
 `derive_config` is `LeanVM.Parameters.Whir.ladder`. `induced_weight` requires
-`point.len() == message_log` (`InducedBasisDimensions`, `whir.rs:181`); every glued claim is
+`point.len() == message_log` (`InducedBasisDimensions`, `whir.rs`); every glued claim is
 evaluated at `point[fold_start..]`, the `α`s from `fold_start` on and then the tail's, of length
 `log_n − fold_start = μ` of its level, so the check always holds and is not repeated. The error
-after the level loop (`WhirNoTerminalLevel`, `whir.rs:328`) is `VerifierProgram.fail` on an empty
+after the level loop (`WhirNoTerminalLevel`, `whir.rs`) is `VerifierProgram.fail` on an empty
 ladder, which `derive_config` never returns. `novel_basis` asserts it has a basis element for every
-coefficient (`whir.rs:140-143`): on the final level `2^μ + fold` coefficients against `2^(μ+1)`
+coefficient (`whir.rs`): on the final level `2^μ + fold` coefficients against `2^(μ+1)`
 elements, which holds as the ladder leaves the final level `μ ≥ 2` variables and folds at most `4`;
 here a missing element would leave its coefficient out.
 -/
 
 /-- The loop of `sample_queries`: each sample yields up to `128 / depth` positions of `depth`
-bits, low bits first, from the 128-bit integer of its two limbs (`whir.rs:81-86`). -/
+bits, low bits first, from the 128-bit integer of its two limbs (`whir.rs`). -/
 def sampleQueriesAux (depth : ℕ) : ℕ → ℕ → VerifierProgram (List ℕ)
   | 0, _ => return []
   | fuel + 1, remaining =>
@@ -1477,21 +1475,21 @@ def sampleQueriesAux (depth : ℕ) : ℕ → ℕ → VerifierProgram (List ℕ)
       let rest ← sampleQueriesAux depth fuel (remaining - n)
       return chunk ++ rest
 
-/-- `sample_queries(transcript, 2^depth, count)` (`whir.rs:77-89`), from the block's log-length
+/-- `sample_queries(transcript, 2^depth, count)` (`whir.rs`), from the block's log-length
 `depth` (the Rust recovers it from the length by `log2_strict`, which cannot fail).
 `count` rounds of fuel suffice: each yields `min(128 / depth, remaining) ≥ 1` positions, as
 `depth ≤ 64`. -/
 def sampleQueries (depth count : ℕ) : VerifierProgram (List ℕ) := sampleQueriesAux depth count count
 
 /-- `ext_row(words)`: a deeper level's leaf words regrouped into the `E` values they encode, two
-per lane (`whir.rs:72-75`). A trailing odd word, which the leaf width rules out, is dropped, as
+per lane (`whir.rs`). A trailing odd word, which the leaf width rules out, is dropped, as
 the Rust drops it. -/
 def extRow : List K → List E
   | c0 :: c1 :: rest => E.ofLimbs c0 c1 :: extRow rest
   | _ => []
 
 /-- The layers of `subspace_roots`: square-and-shift the layer by the last root, pop the next
-root (`whir.rs:95-101`). -/
+root (`whir.rs`). -/
 def subspaceRootsAux : ℕ → K → List K → List K
   | 0, _, _ => []
   | n + 1, last, layer =>
@@ -1500,7 +1498,7 @@ def subspaceRootsAux : ℕ → K → List K → List K
     | root :: rest => root :: subspaceRootsAux n root rest
 
 /-- `subspace_roots(log_n)`: `1`, then the `log_n` subspace polynomials' normalizers, the
-subspaces spanned by powers of `x`, so in `K` (`whir.rs:91-103`). -/
+subspaces spanned by powers of `x`, so in `K` (`whir.rs`). -/
 def subspaceRoots (logN : ℕ) : List K :=
   1 :: subspaceRootsAux logN 1 ((List.range logN).map fun i ↦ K.ofBits (2 ^ (i + 1)))
 
@@ -1511,23 +1509,23 @@ def subspaceAtAux : List (K × K) → K → List K
     basis * inverse :: subspaceAtAux rest (basis * basis + root * basis)
 
 /-- `Subspace::new(mu).at(x)`: the normalized subspace polynomials `What_i(x) = W_i(x) / W_i(β_i)`
-for `i ≤ mu` (`whir.rs:111-127`; `K::inv` maps zero to zero, as `⁻¹` does). -/
+for `i ≤ mu` (`whir.rs`; `K::inv` maps zero to zero, as `⁻¹` does). -/
 def subspaceAt (mu : ℕ) (x : K) : List K :=
   subspaceAtAux ((subspaceRoots mu).map fun root ↦ (root, root⁻¹)) x
 
 /-- `novel_basis(what, count)`: `X_c(x) = Π_{c_i = 1} What_i(x)` for every `c < count`, doubling
-the basis by each `What_i` until it has `count` elements (`whir.rs:130-146`; Annex D's novel
+the basis by each `What_i` until it has `count` elements (`whir.rs`; Annex D's novel
 basis). -/
 def novelBasis (what : List K) (count : ℕ) : List K :=
   (what.foldl (fun basis value ↦
     if count ≤ basis.length then basis else basis ++ basis.map (· * value)) [1]).take count
 
-/-- `novel_eval(coefficients, what)`: `P(x) = Σ_c p_c·X_c(x)` (`whir.rs:148-152`). -/
+/-- `novel_eval(coefficients, what)`: `P(x) = Σ_c p_c·X_c(x)` (`whir.rs`). -/
 def novelEval (coefficients : List E) (what : List K) : E :=
   sumE (List.zipWith (fun p b ↦ p * ofK b) coefficients (novelBasis what coefficients.length))
 
 /-- The challenges of one fold round that act on the oracle, `P = G + (α + β·X)·F`
-(`FoldRound`, `whir.rs:154-159`). -/
+(`FoldRound`, `whir.rs`). -/
 structure FoldRound where
   /-- `α`, the combiner's constant term. -/
   alpha : E
@@ -1541,7 +1539,7 @@ def foldLanes (x : K) (round : FoldRound) : List E → List E
   | _ => []
 
 /-- `fold_row(values, x, rounds)`: an opened row, its lanes in `eq_kernel` order, folded at its
-domain point `x` round by round as the prover folds the lanes (`whir.rs:161-173`; the pairing of
+domain point `x` round by round as the prover folds the lanes (`whir.rs`; the pairing of
 [CWYZ26], Theorem 5.2). The Rust asserts one value is left, one round per lane variable, which
 the level's shape always gives; `0` otherwise. -/
 def foldRow (values : List E) (x : K) (rounds : List FoldRound) : E :=
@@ -1549,7 +1547,7 @@ def foldRow (values : List E) (x : K) (rounds : List FoldRound) : E :=
 
 /-- `induced_weight(message_log, queries, query_weights, point)`: the level's batched query
 claims as one weight at `point`, `Σ_q w_q Π_k (1 + p_k (1 + What_k(x_q)))`, the novel-basis
-column weight of Annex D, Lemma `lem:colweight` (`whir.rs:175-193`). -/
+column weight of Annex D, Lemma `lem:colweight` (`whir.rs`). -/
 def inducedWeight (messageLog : ℕ) (queries : List ℕ) (queryWeights point : List E) : E :=
   (List.zip queryWeights queries).foldl (fun total (weight, query) ↦
     let what := subspaceAt messageLog (K.ofBits query)
@@ -1557,7 +1555,7 @@ def inducedWeight (messageLog : ℕ) (queries : List ℕ) (queryWeights point : 
       (fun product (challenge, value) ↦ product * (1 + challenge * ofK (1 + value))) weight) 0
 
 /-- `GluedClaim`: a claim glued into the running claim, and the weight it owes back
-(`whir.rs:197-206`). -/
+(`whir.rs`). -/
 structure GluedClaim where
   /-- The power of the level's `λ` it was glued with. -/
   scalar : E
@@ -1566,7 +1564,7 @@ structure GluedClaim where
   /-- Its weight at the terminal point, restricted to the level's message coordinates. -/
   weightAt : List E → E
 
-/-! ### The level loop (`whir.rs:231-328`) -/
+/-! ### The level loop (`whir.rs`) -/
 
 /-- The running state of `verify_whir`: the running `claim`, every fold round's `α` so far, and
 the glued claims so far. -/
@@ -1578,7 +1576,7 @@ structure WhirState where
   /-- `glued`: the glued claims so far. -/
   glued : List GluedClaim
 
-/-- One fold round (`whir.rs:233-242`): the four scalars `u0, w, c0, c1`
+/-- One fold round (`whir.rs`): the four scalars `u0, w, c0, c1`
 (`⟨W₀, G⟩, ⟨W₀ + W₁, F⟩, ⟨W₀, XF⟩, ⟨W₁, XF⟩`); a grind and `α, β`; the claim folded at `α`,
 `u0 + α (u0 + claim) + α² w + β c0 + α β (c0 + c1)`. -/
 def foldRound (s : WhirState) : VerifierProgram (WhirState × FoldRound) := do
@@ -1606,7 +1604,7 @@ variables left after the level's folds. -/
 def levelShape (messageLogBefore : ℕ) (level : Whir.Level) (width : ℕ) : ℕ × ℕ :=
   (messageLogBefore - level.fold + level.logInvRate, width)
 
-/-- Glue a non-final level's claims into the running claim (`whir.rs:311-324`): the
+/-- Glue a non-final level's claims into the running claim (`whir.rs`): the
 out-of-domain claim with `λ`, its weight `eq(point, ·)`, then the query batch with `λ²`, its
 weight the induced one. -/
 def glueLevel (s : WhirState) (lam : E) (mu : ℕ) (oodPoint : List E) (oodValue : E)
@@ -1615,7 +1613,7 @@ def glueLevel (s : WhirState) (lam : E) (mu : ℕ) (oodPoint : List E) (oodValue
            glued := s.glued ++ [⟨lam, s.alphas.length, fun x ↦ eqEval oodPoint x⟩,
              ⟨lam * lam, s.alphas.length, inducedWeight mu queries queryWeights⟩] }
 
-/-- One level of `verify_whir` and every level after it (`whir.rs:231-326`). `index` is the
+/-- One level of `verify_whir` and every level after it (`whir.rs`). `index` is the
 level's index, which is also the index of the commitment it opens; `laneFolds` is
 `config.folds[0]`. -/
 def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
@@ -1626,12 +1624,12 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     let mu := logN - s.alphas.length
     let depth := mu + level.logInvRate
     -- The opened rows' lanes in `eq_kernel` order: level 0's leaf image reversed, a deeper
-    -- level's regrouped (`whir.rs:252-259`).
+    -- level's regrouped (`whir.rs`).
     let lanesOf : List K → List E := fun row ↦
       if index = 0 then row.reverse.map ofK else extRow row
     match rest with
     | [] => do
-      -- The final level (`whir.rs:261-289`).
+      -- The final level (`whir.rs`).
       let folded ← VerifierProgram.readScalars (2 ^ mu + level.fold)
       VerifierProgram.grindProofOfWork Whir.queryGrindingBits
       let queries ← sampleQueries depth level.queries
@@ -1646,11 +1644,11 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
         (evaluateBasis (point.drop laneFolds ++ point.take laneFolds))
       VerifierProgram.require (weight * multilinearEval (folded.take (2 ^ mu)) tail = claim)
     | next :: _ => do
-      -- A non-final level (`whir.rs:292-325`).
+      -- A non-final level (`whir.rs`).
       let (height, width) := levelShape mu next (2 * 2 ^ next.fold)
       VerifierProgram.readCommitment height width
       let high ← VerifierProgram.readScalars level.fold
-      -- Its out-of-domain point (`read_ood`, `lib.rs:156-163`).
+      -- Its out-of-domain point (`read_ood`, `lib.rs`).
       VerifierProgram.grindProofOfWork Whir.oodGrindingBits
       let oodPoint ← VerifierProgram.sampleChallenges mu
       let oodValue ← VerifierProgram.readScalar
@@ -1669,13 +1667,13 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
       whirLevels logN laneFolds evaluateBasis (index + 1) rest s
 
 /-- `verify_whir(transcript, log_n, log_inv_rate, target, root, evaluate_basis)`, the root being
-commitment `0` (`whir.rs:215-329`). -/
+commitment `0` (`whir.rs`). -/
 def verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) : VerifierProgram
     Unit := do
   let config ← liftOption (Whir.ladder logN logInvRate)
   whirLevels logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config ⟨target, [], []⟩
 
-/-- Read the stack's root (`verify_execution`, step 2, `lib.rs:263-265`): commitment `0`, the
+/-- Read the stack's root (`verify_execution`, step 2, `lib.rs`): commitment `0`, the
 shape level `0` opens it at. -/
 def commitStack (logN logInvRate : ℕ) : VerifierProgram Unit := do
   let config ← liftOption (Whir.ladder logN logInvRate)
@@ -1688,7 +1686,7 @@ def commitStack (logN logInvRate : ℕ) : VerifierProgram Unit := do
 /-- `read_ood(transcript, stack_log, OOD_GRINDING_BITS)`: the stack commitment's out-of-domain
 sample, read right after its root, outside the PCS: a grind, a point `z` of the stack's variables,
 then the stack's multilinear at `z`; its claim `eq(z, ·)` is the last of the stacked opening's
-(`lib.rs:156-163`). A later level reads its point the same way, inline in `whirLevels`. -/
+(`lib.rs`). A later level reads its point the same way, inline in `whirLevels`. -/
 def readOod (stackLog : ℕ) : VerifierProgram StackClaim := do
   VerifierProgram.grindProofOfWork Whir.oodGrindingBits
   let z ← VerifierProgram.sampleChallenges stackLog
@@ -1696,12 +1694,12 @@ def readOod (stackLog : ℕ) : VerifierProgram StackClaim := do
   return (fun x ↦ eqEval z x, value)
 
 /-- `MAX_STACKED_CLAIMS`: the stacked opening's batching is accounted for up to this many claims,
-the ring-switched one included (`lib.rs:126-128`; the prover's `whir_config.rs:317`). -/
+the ring-switched one included (`lib.rs`; the prover's `whir_config.rs`). -/
 def maxStackedClaims : ℕ := 512
 
 /-- `verify_stacked_opening(transcript, root, stack_log, log_inv_rate, claims)`: at most
 `maxStackedClaims` claims (`StackedClaims`), batched with the powers of one challenge into one
-WHIR opening (`lib.rs:133-154`). The challenge takes no grind of its own: it is drawn right after
+WHIR opening (`lib.rs`). The challenge takes no grind of its own: it is drawn right after
 the ring switch's map, one verifier message under that grind. -/
 def verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) : VerifierProgram
     Unit := do
@@ -1714,7 +1712,7 @@ def verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) 
 ## Keccak, by GKR over its rounds (`keccak.rs`)
 
 The protocol is `doc/leanvm/body/c-keccak-gkr.tex`; `KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`
-(`crates/verifier/src/hash.rs:10-48`) are `keccakRC`, `keccakRho`, `keccakPi` of `Keccak.lean`.
+(`crates/verifier/src/hash.rs`) are `keccakRC`, `keccakRho`, `keccakPi` of `Keccak.lean`.
 A claim is a weighted sum of the bits of one state per segment, the weight of bit `j` of instance
 `i` of pack `y` (sixteen consecutive steps) in segment `m` being
 `eq(point, (y, m)) · weights[j] · mu[i]`; each layer turns a claim on the states after a round into
@@ -1722,7 +1720,7 @@ one on the states before it.
 
 **Representation.**
 
-* The Rust tabulates the embedding, `RMFE_EMBED` and `RMFE_PROJECT` (`keccak.rs:22-46`); it is
+* The Rust tabulates the embedding, `RMFE_EMBED` and `RMFE_PROJECT` (`keccak.rs`); it is
   derived here (`rmfe`), from integer polynomials over `GF(2)` as natural numbers, bit `i` the
   coefficient of `x^i`. Their loops are bounded by fuel: `carryless a b` by `b` (each step halves
   `b`), `carrylessDivmod a f` by the bit length of `a` plus one (each step lowers the bit length of
@@ -1733,20 +1731,20 @@ one on the states before it.
 * The weight array `g` of `linear_transpose` is an array here, set where the Rust sets it.
 -/
 
-/-! ### Constants (`keccak.rs:14-17`) -/
+/-! ### Constants (`keccak.rs`) -/
 
-/-- `EMBED_BITS`: a pack's bits embed in a polynomial of `24` coefficients (`keccak.rs:16`). -/
+/-- `EMBED_BITS`: a pack's bits embed in a polynomial of `24` coefficients (`keccak.rs`). -/
 def embedBits : ℕ := 24
 
 /-- `PRODUCT_BITS = 2 · EMBED_BITS − 1`: the product of two embeddings has `47` coefficients
-(`keccak.rs:17`). -/
+(`keccak.rs`). -/
 def productBits : ℕ := 2 * embedBits - 1
 
 /-- The moduli the embedding is glued from, with the bits each holds. -/
 def rmfeFactors : List (ℕ × ℕ) :=
   [(0b10, 1), (0b11, 1), (0b1011, 2), (0b1101, 2), (0b100101, 3), (0b101001, 3), (0b101111, 3)]
 
-/-! ### The embedding (`RMFE_EMBED`, `RMFE_PROJECT`, `keccak.rs:22-46`) -/
+/-! ### The embedding (`RMFE_EMBED`, `RMFE_PROJECT`, `keccak.rs`) -/
 
 /-- The loop of `carryless`: while `b ≠ 0`, add `a` if `b`'s low bit is set, then shift. -/
 def carrylessAux : (fuel a b out : ℕ) → ℕ
@@ -1803,7 +1801,7 @@ def rmfeFactor (modulus f bits : ℕ) : List ℕ × List ℕ :=
     (List.replicate bits 0)
   (embed, masks)
 
-/-- The embedding (`keccak.rs:22-24`): sixteen bits embed in a binary polynomial of degree at
+/-- The embedding (`keccak.rs`): sixteen bits embed in a binary polynomial of degree at
 most `23`, and a product of two embeddings projects to the AND of what they embed. Each unit
 vector's embedding, and per bit of the projection the product coefficients it is the parity of;
 the last bit rides the leading coefficient, which the residues do not see. -/
@@ -1813,15 +1811,15 @@ def rmfe : List ℕ × List ℕ :=
     (acc.1 ++ e, acc.2 ++ p)) ([], [])
   (embed ++ [rmfeModulus], project ++ [1 <<< (productBits - 1)])
 
-/-- `RMFE_EMBED` (`keccak.rs:25-28`). -/
+/-- `RMFE_EMBED` (`keccak.rs`). -/
 def rmfeEmbed : List ℕ := rmfe.1
 
-/-- `RMFE_PROJECT` (`keccak.rs:29-46`). -/
+/-- `RMFE_PROJECT` (`keccak.rs`). -/
 def rmfeProject : List ℕ := rmfe.2
 
-/-! ### Claims and the round's linear map (`keccak.rs:70-113`) -/
+/-! ### Claims and the round's linear map (`keccak.rs`) -/
 
-/-- `Claim` (`keccak.rs:70-75`): a claim's value, the weight of each instance of a pack, its point
+/-- `Claim` (`keccak.rs`): a claim's value, the weight of each instance of a pack, its point
 (a pack index, then a segment index), and the weight of each bit position. -/
 structure KeccakClaim where
   /-- The claimed value. -/
@@ -1835,13 +1833,13 @@ structure KeccakClaim where
   deriving Inhabited
 
 /-- `along(j, k)`: the position `k` columns along from `j`, in the same row and slice
-(`keccak.rs:77-81`). -/
+(`keccak.rs`). -/
 def keccakAlong (j k : ℕ) : ℕ :=
   let lane := j / 64
   let z := j % 64
   64 * ((lane % 5 + k) % 5 + 5 * (lane / 5)) + z
 
-/-- `linear_transpose(w)` (`keccak.rs:83-101`): the transpose of θ, ρ, π on weight
+/-- `linear_transpose(w)` (`keccak.rs`): the transpose of θ, ρ, π on weight
 vectors, `⟨w, L(a)⟩ = ⟨Lᵀ(w), a⟩`. `g` is the weight each position of θ's output carries. -/
 def keccakLinearTranspose (w : List E) : List E :=
   let w := w.toArray
@@ -1855,7 +1853,7 @@ def keccakLinearTranspose (w : List E) : List E :=
     g.getD (64 * lane + z) 0 + columns.getD (64 * ((lane % 5 + 1) % 5) + z) 0 +
       columns.getD (64 * ((lane % 5 + 4) % 5) + (z + 1) % 64) 0
 
-/-- `instance_weights(s)` (`keccak.rs:103-113`): the instance weights of a claim made
+/-- `instance_weights(s)` (`keccak.rs`): the instance weights of a claim made
 at the polynomial point `s`, each unit vector's embedding at `s`. -/
 def keccakInstanceWeights (s : E) : List E :=
   let sPowers := powers s embedBits
@@ -1863,9 +1861,9 @@ def keccakInstanceWeights (s : E) : List E :=
     sumE ((List.range embedBits).filterMap fun b ↦
       if e.testBit b then some (sPowers.getD b 0) else none)
 
-/-! ### A layer (`keccak.rs:115-200`) -/
+/-! ### A layer (`keccak.rs`) -/
 
-/-- Step 3 of a layer, the pack and the segment (`keccak.rs:154-163`): an equality-mode round
+/-- Step 3 of a layer, the pack and the segment (`keccak.rs`): an equality-mode round
 per coordinate of the claim's point, the value scaled by `1 + r + challenge`. The new value, the
 product of the scales, and the challenges. -/
 def keccakPackRounds : List E → E → E → VerifierProgram (E × E × List E)
@@ -1877,9 +1875,9 @@ def keccakPackRounds : List E → E → E → VerifierProgram (E × E × List E)
       ((1 + r + challenge) * polyEval message challenge) (scale * (1 + r + challenge))
     return (value, scale, challenge :: point)
 
-/-- `verify_layer(transcript, shape, step, claim)` (`keccak.rs:115-200`): a claim on the states
+/-- `verify_layer(transcript, shape, step, claim)` (`keccak.rs`): a claim on the states
 `step` layers below the committed outputs becomes one on the states a layer further down. The Rust
-splits `eq(local, j)`, `j = 64 · lane + z`, into `eq_z[z] · eq_lane[lane]` (`keccak.rs:168-182`);
+splits `eq(local, j)`, `j = 64 · lane + z`, into `eq_z[z] · eq_lane[lane]` (`keccak.rs`);
 here it is the one kernel `eqKernel localPoint`, the same values. -/
 def verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) : VerifierProgram KeccakClaim := do
   let packBits := logSteps - 4
@@ -1920,16 +1918,16 @@ def verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) : VerifierProg
     eq.getD j 0 + beta * (eq.getD (keccakAlong j 4) 0 + beta * eq.getD (keccakAlong j 3) 0)
   return ⟨t0 + beta * (t1 + beta * t2), mu, point, keccakLinearTranspose weights⟩
 
-/-- The layers, `step` from `0` to `KECCAK_DEPTH - 1` (`keccak.rs:271-274`). -/
+/-- The layers, `step` from `0` to `KECCAK_DEPTH - 1` (`keccak.rs`). -/
 def keccakLayers (logSteps : ℕ) : List ℕ → KeccakClaim → VerifierProgram KeccakClaim
   | [], claim => return claim
   | step :: steps, claim => do
     let claim ← verifyKeccakLayer logSteps step claim
     keccakLayers logSteps steps claim
 
-/-! ### Opening `q_keccak` (`keccak.rs:202-301`) -/
+/-! ### Opening `q_keccak` (`keccak.rs`) -/
 
-/-- The weights of `open` (`keccak.rs:212-225`): the weight a claim puts on each
+/-- The weights of `open` (`keccak.rs`): the weight a claim puts on each
 `(slot, z)`, its position weights on the slots of the states it speaks of, scaled by the segment;
 `first` is the state segment `0` claims, and only the first `count` segments' states are committed.
 The slots above the states (`qkeccakSlots …`), which carry `KECCAK` columns, weigh nothing. -/
@@ -1943,7 +1941,7 @@ def keccakSlotWeights (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ)
     (Array.replicate (2 ^ qkeccakSlotBits) (Array.replicate 64 0))
   rows.toList.map Array.toList
 
-/-- `open(transcript, shape, claim, first, count, value)` (`keccak.rs:202-227`): a sumcheck over
+/-- `open(transcript, shape, claim, first, count, value)` (`keccak.rs`): a sumcheck over
 the slot; the point it ends on, the weight the claim puts on each slice there, and what is left to
 match. The sumcheck draws nothing from the weights, so computing them after it, as the Rust does,
 or before is the same. The Rust sums each slot's row scaled by `eq(slot, ·)` (`eq_kernel(&slot)`);
@@ -1957,7 +1955,7 @@ def keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value
         (rows.getD (2 * i + 1) [])) (keccakSlotWeights logSteps claim first count)
   return (slot, rows.headD [], value)
 
-/-- The first claim of `verify_keccak` (`keccak.rs:251-270`), on every segment's output at
+/-- The first claim of `verify_keccak` (`keccak.rs`), on every segment's output at
 `instance` and the segment `segment`: the last segment's output is the permutation's, claimed by
 the table's lanes `output`, the others' `committed`; the lanes are combined as words at
 `lanePoint`, bit `z` of a word weighing `x^z`. -/
@@ -1967,12 +1965,12 @@ def keccakFirstClaim (inst segment lanePoint output : List E) (committed : E) : 
   let last := (eqKernel segment).getD (keccakSegments - 1) 0 * dot (lanes.take 25) output
   ⟨committed + last, eqKernel (inst.take 4), inst.drop 4 ++ segment, weights⟩
 
-/-- `verify_keccak(transcript, shape, instance, output)` (`keccak.rs:236-301`): the reduction, a
+/-- `verify_keccak(transcript, shape, instance, output)` (`keccak.rs`): the reduction, a
 random claim on every segment's output at `instance`, `KECCAK_DEPTH` layers down to the committed
 inputs. The last segment's output is the permutation's, claimed by the table's lanes `output` at
 `instance`; the others are committed. It leaves openings of `q_keccak`: the committed outputs as
 words at one point (column claims), and the column's 64 slices at another (the point and the
-slices, for ring switching). The Rust first checks the shape (`keccak.rs:247-250`), which the
+slices, for ring switching). The Rust first checks the shape (`keccak.rs`), which the
 `KECCAK` table's point and lanes always meet, its log-height at least `keccakMinStepsLog`. -/
 def verifyKeccak (logSteps : ℕ) (inst output : List E) : VerifierProgram
     (List ColumnClaim × List E × List E) := do
@@ -2009,19 +2007,19 @@ of the inner stage `Ψ(v) = Σ_b g_b v^(2^b)`, sixteen challenges, `f` then `g` 
 -/
 
 /-- `RING_MAP_WIDTH`: `Φ`'s challenges come in two rows of this many, `f_p` then `g_b`
-(`ring_switch.rs:10-11`). -/
+(`ring_switch.rs`). -/
 def ringMapWidth : ℕ := 8
 
-/-- `frobenius_8(value, p)`: `value^(2^(8p))`, by `8p` squarings (`ring_switch.rs:13-16`). -/
+/-- `frobenius_8(value, p)`: `value^(2^(8p))`, by `8p` squarings (`ring_switch.rs`). -/
 def frobenius8 (value : E) (p : ℕ) : E := value ^ 2 ^ (ringMapWidth * p)
 
-/-- `ring_psi(value, g)`: the inner stage `Ψ(v) = Σ_b g_b v^(2^b)` (`ring_switch.rs:18-27`). -/
+/-- `ring_psi(value, g)`: the inner stage `Ψ(v) = Σ_b g_b v^(2^b)` (`ring_switch.rs`). -/
 def ringPsi (value : E) (g : List E) : E :=
   (g.foldl (fun (acc : E × E) gB ↦ (acc.1 + gB * acc.2, acc.2 * acc.2)) (0, value)).1
 
 /-- `ring_target(s, f, g)`: `T = Σ_i x^i Φ(s_i) = Σ_p f_p (Σ_i z_p^i Ψ(s_i))^(2^(8p))`, with
 `z_p = x^(2^(64 - 8p))`, `p` from `7` down to `0`, `z` squared eight times a step from `x`
-(`ring_switch.rs:29-40`). -/
+(`ring_switch.rs`). -/
 def ringTarget (s f g : List E) : E :=
   let images := s.map (ringPsi · g)
   ((List.range ringMapWidth).reverse.foldl (fun (acc : E × E) p ↦
@@ -2029,20 +2027,20 @@ def ringTarget (s f g : List E) : E :=
     (acc.1 + f.getD p 0 * frobenius8 (polyEval images z) p, z)) (0, gen)).1
 
 /-- `ring_coefficients(f, g)`: the same map as a Frobenius sum, `Φ(v) = Σ_{k < 64} c_k v^(2^k)`,
-`c_(8p+b) = f_p · g_b^(2^(8p))` (`ring_switch.rs:42-51`). -/
+`c_(8p+b) = f_p · g_b^(2^(8p))` (`ring_switch.rs`). -/
 def ringCoefficients (f g : List E) : List E :=
   (f.foldl (fun (acc : List E × List E) fP ↦
     (acc.1 ++ acc.2.map (fP * ·), acc.2.map (frobenius8 · 1))) ([], g)).1
 
 /-- `ring_weight(r, r_prime, coefficients)`: `W(u) = Φ(eq(r, u))` at the opening's point,
-`Σ_k c_k Π_n (1 + r_n^(2^k) + r'_n)` (`ring_switch.rs:53-68`). -/
+`Σ_k c_k Π_n (1 + r_n^(2^k) + r'_n)` (`ring_switch.rs`). -/
 def ringWeight (r rPrime coefficients : List E) : E :=
   (coefficients.foldl (fun (acc : E × List E) c ↦
     let product := (List.zip acc.2 rPrime).foldl
       (fun product (value, challenge) ↦ product * (1 + value + challenge)) c
     (acc.1 + product, acc.2.map fun value ↦ value * value)) (0, r)).1
 
-/-- `ring_switch(point, s, transcript)` (`ring_switch.rs:70-87`): one grind for the map's sixteen
+/-- `ring_switch(point, s, transcript)` (`ring_switch.rs`): one grind for the map's sixteen
 challenges and the stacked opening's batching challenge drawn next, the map, and the target `T`
 and the weight `W(u) = Φ(eq(point, u))` as a function of the opening point. -/
 def ringSwitch (point s : List E) : VerifierProgram (E × (List E → E)) := do
@@ -2057,7 +2055,7 @@ def ringSwitch (point s : List E) : VerifierProgram (E × (List E → E)) := do
 open LeanVM.Semantics LeanVM.Protocol.KeccakHash
 
 /-!
-## The leanVM verifier (`lib.rs:178-193, 243-363`; `layout.rs`; `transcript.rs:34-49`)
+## The leanVM verifier (`lib.rs`; `layout.rs`; `transcript.rs`)
 
 `leanVmVerifierProgram bytecode publicInput` is `verify_execution` in the verifier language, one
 `VerifierProgram` function per numbered step of the Rust's `walk` (the steps of `verifyExecution`).
@@ -2073,7 +2071,7 @@ same kind. This is harmless for the end statements, which are proved for exactly
 -/
 
 /-- The announced sizes, read and checked, and the layout they give
-(`lib.rs:247-261`): the layout and the WHIR rate exponent. -/
+(`lib.rs`): the layout and the WHIR rate exponent. -/
 def readAnnouncedSizes (bytecode : List K) : VerifierProgram (Layout × ℕ) := do
   let announced ← VerifierProgram.readScalars (2 + tables.length)
   VerifierProgram.require (announced.all fun value ↦ value.limb 1 = 0)
@@ -2085,7 +2083,7 @@ def readAnnouncedSizes (bytecode : List K) : VerifierProgram (Layout × ℕ) := 
   VerifierProgram.require (Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack)
   return (layout, logInverseRate)
 
-/-- Step 4, the table sumcheck at the bus point (`lib.rs:272-291`): a grind for the batch's degree
+/-- Step 4, the table sumcheck at the bus point (`lib.rs`): a grind for the batch's degree
 in `xi`, its `n_constraints + N_TREES` powers less one, then `xi`; each table's point and
 evaluations. -/
 def tablePhase (layout : Layout) (bus : BusResult) : VerifierProgram (List (List E × List E)) := do
@@ -2099,13 +2097,13 @@ def tablePhase (layout : Layout) (bus : BusResult) : VerifierProgram (List (List
   let target := dot formPowers bus.totals
   tableSumcheck layout.tableLogHeights bus.forms constraintPowers formPowers bus.point target
 
-/-- The tables' column claims (`lib.rs:292-299`): each table's evaluations at its point,
+/-- The tables' column claims (`lib.rs`): each table's evaluations at its point,
 on the table's global columns. -/
 def tableColumnClaims (evaluations : List (List E × List E)) : List ColumnClaim :=
   (globalColumnBases.zip evaluations).flatMap fun (base, point, values) ↦
     values.zipIdx.map fun (value, column) ↦ ⟨base + column, point, value⟩
 
-/-- Step 5, binding the public input (`lib.rs:301-314`): a challenge, with no grind (a line has
+/-- Step 5, binding the public input (`lib.rs`): a challenge, with no grind (a line has
 error `1/|E|`), and claims on the two memory columns at `(challenge, 0, …, 0)`, each limb's claim
 the line through that limb of the public input's two halves, evaluated at the challenge by the
 verifier itself. The prover sends nothing. -/
@@ -2120,7 +2118,7 @@ def publicInputPhase (layout : Layout) (publicInput : Digest) : VerifierProgram
   return List.zipWith (fun column value ↦ ⟨column, publicPoint, value⟩)
     [memory0, memory1] publicLimbs
 
-/-- Step 6, `KECCAK`'s validity (`lib.rs:316-333`): the `KECCAK` table's point and its
+/-- Step 6, `KECCAK`'s validity (`lib.rs`): the `KECCAK` table's point and its
 output lanes' evaluations, `values[KECCAK_OUT..KECCAK_OUT + STATE_LANES]`, are the Keccak
 reduction's claim on the permutation's output. The reduction's column claims, and the point and
 slices of `q_keccak` it leaves for ring switching. -/
@@ -2131,13 +2129,13 @@ def keccakPhase (layout : Layout) (evaluations : List (List E × List E)) : Veri
     ((List.range 25).map fun lane ↦ values.getD (keccakOut + lane) 0)
 
 /-- Step 7's ring-switching claim on the stack: supported on `q_keccak`'s region, its weight
-carries the placement's selector (`lib.rs:338-344`). -/
+carries the placement's selector (`lib.rs`). -/
 def ringSwitchClaim (layout : Layout) (target : E) (weight : List E → E) : StackClaim :=
   let qkeccakPlacement := layout.placement qkeccak
   (fun x ↦ qkeccakPlacement.eqAbove x * weight (x.take qkeccakPlacement.variableCount), target)
 
 /-- `verify_execution(bytecode, public_input, proof)` without its `finish` (`walk`,
-`lib.rs:243-363`), the fixed polynomial's claimed value checked by `bytecodeValue`. The stacked
+`lib.rs`), the fixed polynomial's claimed value checked by `bytecodeValue`. The stacked
 opening's claims are the ring-switched one, every column claim with a placement, then the stack
 commitment's out-of-domain claim. -/
 def verifyExecution (bytecodeValue : List K → List E → E → VerifierProgram Unit)
@@ -2166,13 +2164,13 @@ def verifyExecution (bytecodeValue : List K → List E → E → VerifierProgram
 /-! ### The fixed polynomial's value -/
 
 /-- The deployed verifier evaluates the fixed polynomial at the point and checks the claimed value
-(`BytecodeValue`, `bus.rs:180-183`; `Bytecode::evaluate`, `crates/verifier/src/bytecode.rs:97-138`,
+(`BytecodeValue`, `bus.rs`; `Bytecode::evaluate`, `crates/verifier/src/bytecode.rs`,
 the same value by a sparse sum). -/
 def computedBytecodeValue (words : List K) (point : List E) (value : E) : VerifierProgram Unit :=
   VerifierProgram.require (multilinearEval (words.map ofK) point = value)
 
 /-- What a proof claims of the fixed polynomial, for a verifier that does not evaluate it: the
-bytecode's value at its point, the walk's `bytecode_point` (`Summary`, `lib.rs:172-173`). -/
+bytecode's value at its point, the walk's `bytecode_point` (`Summary`, `lib.rs`). -/
 structure BytecodeClaim where
   bytecodePoint : List E
   bytecodeValue : E
@@ -2215,12 +2213,12 @@ section Hash
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- The IV over the permutation `π`: Keccak-256 over `π` of the tag, then the bytecode as its
-little-endian words (`Bytecode::new`, `bytecode.rs:46-53`). -/
+little-endian words (`Bytecode::new`, `bytecode.rs`). -/
 def fiatShamirIvWith (bytecode : List K) : m Digest :=
   keccak256With π (versionTag ++ bytecode.flatMap K.toBytes)
 
 /-- The sponge's initial state over the permutation `π`: `π` of the IV's and the public input's
-words, the other lanes zero (`Sponge::new`, `transcript.rs:36-49`). -/
+words, the other lanes zero (`Sponge::new`, `transcript.rs`). -/
 def spongeSeedWith (bytecode : List K) (publicInput : Digest) : m KeccakState := do
   let fiatShamirIv ← fiatShamirIvWith π bytecode
   π (seedInput fiatShamirIv publicInput)

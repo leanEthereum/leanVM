@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Placement.Common
 
 /-!
-# Certification by groups (G:2118-2145, at 40f877dc)
+# Certification by groups (at 40f877dc)
 
 `verify_tables` (and `certify_placement`) certify the native order (descending log-size, then
 ascending index) by groups: runs of consecutive entries sharing one log-size, ordered by a hinted

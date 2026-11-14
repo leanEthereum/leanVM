@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.KFormMath
 
-  `keccak_form`'s identity (G:2810-2836): a later claim's weights at the local point, through the
+  `keccak_form`'s identity: a later claim's weights at the local point, through the
   transpose of θ, ρ, π, factor as lane weights times shift sums of the slice weights.
 -/
 
@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Algebra
 /-!
 # `keccak_form` as math
 
-`later_dot`: `⟨eq(l), Lᵀ(lanes ⊗ eq(a₆))⟩`, the dot the verifier takes (V:2016-2019, `laterWeights`),
+`later_dot`: `⟨eq(l), Lᵀ(lanes ⊗ eq(a₆))⟩`, the dot the verifier takes (`laterWeights`),
 is `formVal` of the local point's lane weights `eq(l₆..₁₀, ·)`, the lanes at `π`, and the shift
 sums `S(r) = Σ_z eq(a₆, z + r)·eq(l₀..₅, z)`: `Σ_lane f·lane·S(ρ) + Σ_x f_col(x)·(col(x + 1) +
 col'(x - 1))`, `col` the column of `lane·S(ρ)` and `col'` of `lane·S(ρ + 1)`.
@@ -81,7 +81,7 @@ theorem colL_later (lanes a6 : List E) (ha : a6.length = 6) {x z' : ℕ} (hx : x
   have := Finset.mem_range.1 hy
   exact gOf_later lanes a6 ha (by omega) hz
 
-/-- **`keccak_form`'s identity** (G:2810-2836 against V:2016-2019). -/
+/-- **`keccak_form`'s identity**. -/
 theorem later_dot (locPt a6 lanes : List E) (hl : locPt.length = 11) (ha : a6.length = 6) :
     dot ((eqKernel locPt).take keccakBits) (laterWeights lanes (eqKernel a6)) =
       formVal (eqAt (locPt.drop 6)) (kLane lanes) (kS a6 (locPt.take 6)) := by

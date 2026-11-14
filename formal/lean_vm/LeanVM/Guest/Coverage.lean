@@ -13,10 +13,10 @@ public import Statement.LeanVmGuestCompleteness
 /-!
 # The coverage plan
 
-The guest program (`G:N`, lines of `crates/rec_aggregation/guests/lean_ethereum.py`)
+The guest program (`crates/rec_aggregation/guests/lean_ethereum.py`)
 writes every claim a node makes, its raw signatures' then its children's, into a slot of its
 scheme's region of the coverage table: the declared claims' slots, then duplicate slots
-(G:4181-4187, 4205-4219, 4537-4538, 4542-4543). An honest run takes, for each claim in order, its declared
+. An honest run takes, for each claim in order, its declared
 slot if free, else the next duplicate slot (`takeSlot`, `coveragePlan`); the table's slots are
 `planSlots`, under `DeployedLimits` the number of claims made (`coverageSlots`, `B1/Main/Plan.lean`'s
 `planSlots_eq`).
@@ -33,9 +33,9 @@ namespace LeanVM.Guest
 
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Node
 
-/-- **The coverage table's slots** (`n_total`, G:4711): one for each raw signature and each entry
-of a child's signature lists, every slot written once (G:4745-4750: the writes G:4770, 4775, 4363,
-4229, counted by `written`, G:4794-4795, 4820-4821). -/
+/-- **The coverage table's slots** (`n_total`): one for each raw signature and each entry
+of a child's signature lists, every slot written once (written by `main` and
+`child_claims`, counted by `written`). -/
 def coverageSlots (witness : NodeWitness) : ℕ :=
   witness.xmssSignatures.length + witness.sphincsSignatures.length +
     (witness.children.map fun child ↦
@@ -87,7 +87,7 @@ def coveragePlan {α : Type} [BEq α] (declared raw : List α) (children : List 
   let (children, slotState) := takeSlotsAll declared slotState children
   ⟨slotState.2, raw, children⟩
 
-/-- **The coverage table's slots as an honest run lays them out** (`n_total`, G:4711): each
+/-- **The coverage table's slots as an honest run lays them out** (`n_total`): each
 region's declared claims and its duplicates, as `coveragePlan` assigns them. Under
 `DeployedLimits`, `coverageSlots` (`B1/Main/Plan.lean`'s `planSlots_eq`). -/
 def planSlots (statement : NodeStatement) (witness : NodeWitness) : ℕ :=

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkSpec
 
-  `verifyKeccak` (V:2061-2087) as a run on the carried sponge, from its parts.
+  `verifyKeccak` as a run on the carried sponge, from its parts.
 -/
 
 module
@@ -78,7 +78,7 @@ theorem runsTo_keccakLayers_cons {L a : ℕ} {rest : List ℕ} {c c' c'' : Kecca
 theorem runsTo_keccakLayers_nil (L : ℕ) (c : KeccakClaim) (s : Fs) :
     RunsTo (keccakLayers L [] c) s [] c s := runsTo_ret _ _
 
-/-- The first claim (V:2068-2072, `keccakFirstClaim`): the committed outputs' part and the last
+/-- The first claim (`keccakFirstClaim`): the committed outputs' part and the last
 segment's, the instance weights at the low coordinates, the point, a word's position weights. -/
 def vkFirst (inst outs : List E) (committed : E) (seg rl : List E) : KeccakClaim :=
   ⟨committed + (eqKernel seg).getD (keccakSegments - 1) 0 * dot ((eqKernel rl).take 25) outs,
@@ -105,7 +105,7 @@ theorem verifyKeccak_eq (τ : ℕ) (inst outs : List E) :
         (pure ([⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ o.1, word⟩], x.1 ++ claim.point.take (τ - 4) ++ y.1,
           slices) : VerifierProgram (List ColumnClaim × List E × List E))) := rfl
 
-/-- **`verifyKeccak` on the carried sponge** (V:2061-2087): it ends with the 64 slices absorbed,
+/-- **`verifyKeccak` on the carried sponge**: it ends with the 64 slices absorbed,
 a full queue. -/
 theorem vk_runsTo (τ : ℕ) (inst outs : List E) {s0 s1 s2 s3 s4 s5 s6 : Fs} {seg rl : List E}
     {committed word valO valL valI : E} {claim : KeccakClaim} {xsL slotO low slotI slices : List E}

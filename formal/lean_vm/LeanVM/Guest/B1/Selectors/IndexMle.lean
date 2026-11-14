@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.Squares
 /-!
 # `index_mle` (TRIAGE G #44)
 
-`index_mle(zeta, n)` (G:2050-2059) multiplies `1 + zeta[g^t]·INDEX_MLE_FACTORS[t]` over `t < n`,
+`index_mle(zeta, n)` multiplies `1 + zeta[g^t]·INDEX_MLE_FACTORS[t]` over `t < n`,
 `INDEX_MLE_FACTORS[t] = 1 + g^(2^t)` (`imFactor_eq`). Its specialization `index_mle__L{n}` is
 `imBody n`: block `t` from value `6t` (`imBlk`), the first without the product, then a copy of
 the last product (`imFound`, by kernel evaluation for all `n < 34`). The products are

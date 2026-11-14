@@ -144,13 +144,13 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 def oracleHashWithHash (input : HashInput) : m HashOutput :=
   HasQuery.query (spec := HashSpec) (m := m) input
 
-/-- `Th(P, A, M) = Truncate_n(H(P || A || M))` (`th`, `lean_xmss/hash.rs:95-97`). -/
+/-- `Th(P, A, M) = Truncate_n(H(P || A || M))` (`th`, `lean_xmss/hash.rs`). -/
 def thWithHash (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
     m Digest := do
   return truncateHash (← oracleHashWithHash (thInput parameter fields payload))
 
 /-- `H(P || A || M)`, untruncated: two secrets for one hash (`th_pair`,
-`lean_xmss/hash.rs:105-108`). -/
+`lean_xmss/hash.rs`). -/
 def thPairWithHash (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
     m HashOutput :=
   oracleHashWithHash (thInput parameter fields payload)

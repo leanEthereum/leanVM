@@ -24,7 +24,7 @@ public import LeanVM.Protocol.WithHash
 # Perfect completeness of the leanVM verifier
 
 The verifier is the program `leanVmVerifierProgram` (`LeanVM.Protocol.Verifier`), the transcription
-(`Statement/LeanVmVerifier.lean`) of `verify_execution`, `crates/verifier/src/lib.rs:243-363` at
+(`Statement/LeanVmVerifier.lean`) of `verify_execution`, `crates/verifier/src/lib.rs` at
 leanVM. Its honest prover (`honestStrategy`) is assembled
 (`Complete.Assemble`) from the phases' honest scripts: the announcement, the commitment and its
 out-of-domain sample (`Complete.Sizes`), the bus (`Complete.Bus`, its depth below `64` by

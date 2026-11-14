@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.InterfaceP
 public import LeanVM.Guest.B1.Tables.Vt.FormsPad
 
 /-!
-# The layout (V:957-997)
+# The layout
 
 For the row counts `rows` (six of them) and a bytecode of `2^23` words, `layoutOf`'s bytecode
 log-size is `19`, its heights are `vtHt rows`, and each side's blocks are the tables' flushes in

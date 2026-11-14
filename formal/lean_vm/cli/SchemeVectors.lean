@@ -56,11 +56,11 @@ def field (text : String) (key : String) : Option String :=
 def publicKeyOf (bytes : List Nat) : PublicKey := ⟨digestAt bytes 0, digestAt bytes 16⟩
 
 /-- A leanSPHINCS public key: `PK.seed`, then `PK.root` (`from_bytes`,
-`lean_sphincs/scheme.rs:36-41`). -/
+`lean_sphincs/scheme.rs`). -/
 def sphincsPublicKeyOf (bytes : List Nat) : Sphincs.PublicKey :=
   ⟨digestAt bytes 0, digestAt bytes 16⟩
 
-/-- A leanSPHINCS signature (`from_bytes`, `lean_sphincs/scheme.rs:146-173`): the randomizer, 24
+/-- A leanSPHINCS signature (`from_bytes`, `lean_sphincs/scheme.rs`): the randomizer, 24
 FORS openings of a secret and 10 path nodes, then the bottom, middle and top layers, each a 4-byte
 big-endian counter, 64 chain values and its tree's siblings. -/
 def sphincsSignatureOf (bytes : List Nat) : Sphincs.Signature :=
@@ -117,7 +117,7 @@ def runCase (kind : String) (text : String) : Verdict := Id.run do
     return if (xmssSignatureOf sig).leafIndex.val == output.toNat?.getD 0 then .pass else .fail
   | _ => return .fail
 
-/-- The known answer's message `m[i] = 7 i + 3` (`known_answer`, `lean_sphincs/scheme.rs:370-390`;
+/-- The known answer's message `m[i] = 7 i + 3` (`known_answer`, `lean_sphincs/scheme.rs`;
 its key's `SK.seed[i] = 37 i + 11`), from the file's line count, so that the compiler does not
 evaluate it as a closed term at start-up. -/
 def knownAnswerMessage (lineCount : Nat) : BitVec 256 :=

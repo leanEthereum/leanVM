@@ -16,7 +16,7 @@ public import LeanVM.Protocol.Field
 # Weighted claims and the sumcheck step
 
 The deployed verifier (`LeanVM.Protocol.Verifier.verifyWhir`, a transcription of
-`verify_whir`, `crates/verifier/src/whir.rs:141-265` at leanVM `40f877dc`) holds its weights as
+`verify_whir`, `crates/verifier/src/whir.rs` at leanVM `40f877dc`) holds its weights as
 functions `List E → E`, evaluated at points of the remaining variables (`GluedClaim.weightAt`,
 `evaluate_basis`), and its running claim as a value. This module gives these the meaning of Annex B
 (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`, Theorem `thm:rbr`):

@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.VtC.ZBase
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# The table sumcheck's setup, completely (G:2545-2586)
+# The table sumcheck's setup, completely
 
 Helpers for the honest valuation: a read of a word the memory holds (`z_read`), a product read
 as a quotient (`z_div`), a passing range check (`z_rc`, `z_rcd`), a `KECCAK` (`z_keccak`).
@@ -135,7 +135,7 @@ noncomputable def zRest : List Stmt := [
     .call "eq_prefix_chain" [.n 2651, .n 2652, .n 16, .n 699, .n 2544] []]
 
 set_option maxRecDepth 100000 in
-/-- **Statements `2591 ..< 2685`, completely** (G:2545-2586): the hinted `g^n` with `n` the
+/-- **Statements `2591 ..< 2685`, completely**: the hinted `g^n` with `n` the
 largest `τ_t` (at most `m = |point|`), the squeeze `ξ` (`XI_GRIND_BITS = 0`) of the sponge `S`
 with the bytecode's value waiting, the target, the first record, `verify_tables_loop0`'s rounds on
 the honest buffers (records, running products, `chi`) and words `xs` at the cursor one past the

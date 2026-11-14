@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.LevelLast
 
 /-!
-# The levels (G:1534-1704)
+# The levels
 
 `LevelsOk`: every non-final level's facts and callees (`MidFacts`, `MidCalls`), then the final
 level's (`FinFacts`, `FinCalls`). `osLevels_sound`: from a level's `LvIn`, the template's levels

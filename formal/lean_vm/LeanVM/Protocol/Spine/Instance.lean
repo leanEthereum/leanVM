@@ -166,7 +166,7 @@ def bitTable {n : ℕ} (c : Column n) (i : Fin 64) : CMlPolynomialEval E n :=
 
 /-- Where the Keccak reduction's committed column sits: a column of height `2 ^ (h + 6)`, `64`
 slots of `2^h` words, slot `l < 25` lane `l` of each step's input state and slot `25 + l` lane `l`
-of its state after twelve rounds (`QKECCAK`, `crates/verifier/src/layout.rs:77-83`). -/
+of its state after twelve rounds (`QKECCAK`, `crates/verifier/src/layout.rs`). -/
 structure KeccakRegion (S : Shape) where
   /-- The column. -/
   col : S.ColumnId
@@ -339,11 +339,11 @@ def pushLeaves : ℕ :=
       ((I.flushes j).filter fun f ↦ decide (f.1 = .push)).length * 2 ^ I.τ j).sum
 
 /-- The log-height of the bus's leaf stacks: the push side's leaves, stacked largest first at
-aligned offsets with no floor on the depth (`leaf.rs:141-148`). The pull and count trees take
-the same depth, which the deployed prover asserts of its layouts (`leaf.rs:115-138`, the count
-tree padded to it at `:654`; the verifier's own check, `leaf.rs:875-882` at `a386121f`, is removed
+aligned offsets with no floor on the depth (`leaf.rs`). The pull and count trees take
+the same depth, which the deployed prover asserts of its layouts (`leaf.rs`, the count
+tree padded to it; the verifier's own check, `leaf.rs` at `a386121f`, is removed
 at `127510d1`, whose verifier walks the three trees at the push side's depth,
-`crates/verifier/src/bus.rs:116`) and an instance does not guarantee: the bus phase assumes it of
+`crates/verifier/src/bus.rs`) and an instance does not guarantee: the bus phase assumes it of
 the instance. -/
 def μBus : ℕ := Nat.clog 2 I.pushLeaves
 

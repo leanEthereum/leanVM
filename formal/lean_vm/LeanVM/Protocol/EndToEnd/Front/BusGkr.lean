@@ -17,7 +17,7 @@ public import LeanVM.Protocol.Verifier
 /-!
 # The grand-product walk on doom
 
-The verifier program's `gkrStep step last s` (`crates/verifier/src/bus.rs:39-71`) is one layer
+The verifier program's `gkrStep step last s` (`crates/verifier/src/bus.rs`) is one layer
 step of the oracle protocol's
 `layerStep` (`LeanVM.Protocol.ToArkLib.GrandProduct`) at radix `2 ^ step`: both draw the
 combiner first. Its state `s` (`GkrState`: three values, the point) is the protocol's layer
@@ -436,7 +436,7 @@ variable {I : M3Instance} {X : Type} {μ : ℕ}
   (cands : Word → Set (∀ i, TheOracle I i)) (data : X)
 
 /-- The radix exponent of the next step with `n` layers left: `1` when `n` is odd, `2`
-otherwise (`bus.rs:22`, the protocol's odd first step and radix-four steps). -/
+otherwise (`bus.rs`, the protocol's odd first step and radix-four steps). -/
 def ρOf (n : ℕ) : ℕ := if n % 2 = 1 then 1 else 2
 
 theorem ρOf_le {n : ℕ} (hn : n ≠ 0) : ρOf n ≤ n := by
@@ -533,7 +533,7 @@ theorem layersPre_congr {n n' m m' : ℕ} (hn : n = n') (hm : m = m') {h : m + n
   exact hp
 
 /-- **The wire's GKR walk** (`gkrLayers`, the `while layer > 0` loop of
-`verify_gkr_grand_products`, `bus.rs:20-48`) with `n` layers left at layer `m`: from the
+`verify_gkr_grand_products`, `bus.rs`) with `n` layers left at layer `m`: from the
 walk's doom to doom on the argument's output relation. Its lead is the first step's combiner. -/
 noncomputable def gkrLayersSpec {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     (hcard : ∀ W, (cands W).ncard ≤ L₀) (he : roundError L₀ 4 ≤ εmax)

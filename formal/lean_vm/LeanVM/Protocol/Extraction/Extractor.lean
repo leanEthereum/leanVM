@@ -34,19 +34,19 @@ linear in the bytecode; it is infeasible at deployed sizes except on a word with
 (`fastStacks`). The cost table below is read off its loops, not proved.
 
 1. **The announced sizes and the stack's root** (`afterRoot`): read off the proof as the
-   verifier's steps 1 and 2 read them (`crates/verifier/src/lib.rs:219-237`), with every hash and
+   verifier's steps 1 and 2 read them (`crates/verifier/src/lib.rs`), with every hash and
    permutation answered by a constant (`runPure`): what they read does not depend on the sponge.
 2. **The committed word** (`committedLeaves`, `leafAt`): the Merkle tree under the root inverted
    through the evaluations, top down: a node's children are the two digests its unique answered
    64-byte preimage holds, a leaf the words of its unique answered preimage; an unanswered node
    gives zero leaves. Proved, when no two answered strings share a digest: leaf `v` is the leaf of
    any opening at position `v` that climbs to the root through the evaluations (the check of
-   `Transcript::merkle`, `crates/verifier/src/transcript.rs:153-186`).
+   `Transcript::merkle`, `crates/verifier/src/transcript.rs`).
 3. **The candidates** (`decodeStacks`). Level 0 commits the stack (the committed columns, stacked,
    `2^μ` words of `K`) in `2^6` lanes: lane `u` is the stack's block `u`, its cells
    `j + 2^(μ−6)·u` for `j < 2^(μ−6)`, read as coefficients in the novel polynomial basis `X_j`,
    and column `v` of the word is the leaf holding the values of the `64` lanes at the domain point
-   `x_v = K.ofBits v`, in reverse order (`whir.rs:198-207`, `row.iter().rev()`): the binary
+   `x_v = K.ofBits v`, in reverse order (`whir.rs`, `row.iter().rev()`): the binary
    Reed–Solomon code of Annex B, §B.2 (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
    and the encoder of Annex D, `def:enc` (`doc/leanvm/body/d-novel-basis.tex`). Level 0's list is
    at its degree `2^(μ−6) − 1 + 6` (Annex B: every fold round of a level is analysed at the
@@ -159,7 +159,7 @@ open CompPoly CompPoly.GuruswamiSudan CompPoly.CPolynomial.Roots.FiniteField
 
 /-! ### 1. The announced sizes and the stack's root -/
 
-/-- `verify_execution`'s steps 1 and 2 (`lib.rs:219-237`): read the announced sizes, then
+/-- `verify_execution`'s steps 1 and 2 (`lib.rs`): read the announced sizes, then
 the stack's root; the layout and the WHIR rate exponent. -/
 def announceSizesAndRoot (bytecode : List K) : VerifierProgram (Layout × ℕ) := do
   let (layout, logInverseRate) ← readAnnouncedSizes bytecode

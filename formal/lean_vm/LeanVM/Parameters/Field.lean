@@ -16,7 +16,7 @@ import Mathlib.Tactic.LinearCombination
 # The fields `K` and `E`
 
 The moduli and the limb order are transcribed from specification §2,
-`doc/leanvm/body/02-vm-specification.tex:5-14`; `K` is CompPoly's `BF64`
+`doc/leanvm/body/02-vm-specification.tex`; `K` is CompPoly's `BF64`
 and `E` CompPoly's extension framework at `Statement.Field`'s parameters `eParams`:
 
 ```text
@@ -25,7 +25,7 @@ E = K[y]/(y^2 + x·y + 1),  |E| = 2^128       eParams_poly, ePoly_irreducible (S
 ```
 
 `K` wraps a `BitVec 64` whose bit `i` is the coefficient of `x^i`
-(`crates/primitives/src/field/gf2_64.rs:16-19`, `F64`); `E` is a `Vector K 2` whose limb `i` is
+(`crates/primitives/src/field/gf2_64.rs`, `F64`); `E` is a `Vector K 2` whose limb `i` is
 the coefficient of `y^i` (`crates/primitives/src/field/gf2_64x2.rs`, `F128`). The definitions are
 in `Statement.Field`; this module proves lemmas about them. The limb arithmetic under
 "Load-bearing lemmas" (`add_limbs`, `mul_limbs`, the `K`-word lemmas) is what the opcode tables
@@ -180,7 +180,7 @@ theorem add_limbs (a0 a1 b0 b1 : K) :
 
 /-- The product of two words, limb by limb: the four limb products, `a₁b₁·y^2` folded by
 `y^2 = x·y + 1` into both lanes (the `MUL_NATIVE` table's result coordinates, specification §7.2;
-`TOWER_LANES`, `crates/leanvm_core/src/tables.rs:29-33`). -/
+`TOWER_LANES`, `crates/leanvm_core/src/tables.rs`). -/
 theorem mul_limbs (a0 a1 b0 b1 : K) :
     E.ofLimbs a0 a1 * E.ofLimbs b0 b1 =
       E.ofLimbs (a0 * b0 + a1 * b1) (a0 * b1 + a1 * b0 + g * (a1 * b1)) := by

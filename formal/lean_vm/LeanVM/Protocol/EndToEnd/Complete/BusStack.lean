@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Whir.Complete.Tables
 /-!
 # Stacked leaves
 
-The bus phase of the verifier program (`verifyBusBalance`, `crates/verifier/src/bus.rs:61-213`
+The bus phase of the verifier program (`verifyBusBalance`, `crates/verifier/src/bus.rs`
 at leanVM `40f877dc`) reads each side of the bus as one grand
 product over a cube of leaves: the side's blocks placed by `stack_offsets` (`bus_layout`), the
 rest of the cube filled with ones. This module is that placement, for any block sizes and any

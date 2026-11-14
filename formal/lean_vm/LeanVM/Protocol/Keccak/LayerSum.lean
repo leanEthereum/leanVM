@@ -224,7 +224,7 @@ theorem Tk_shift (c p : List E) {k k' : ℕ} (hk : k + k' = 5) :
         (fun j _ ↦ keccakAlong_along (by omega)) (fun j _ ↦ keccakAlong_along hk)
         (fun j ↦ eqAt p (keccakAlong j k') * Shat T P s j c)
 
-/-- The verifier's batched weights (`crates/verifier/src/keccak.rs:184-189`). -/
+/-- The verifier's batched weights (`crates/verifier/src/keccak.rs`). -/
 def batchW (p : List E) (beta : E) : List E :=
   (List.range keccakBits).map fun j ↦ (eqKernel p).getD j 0 +
     beta * ((eqKernel p).getD (keccakAlong j 4) 0 + beta * (eqKernel p).getD (keccakAlong j 3) 0)

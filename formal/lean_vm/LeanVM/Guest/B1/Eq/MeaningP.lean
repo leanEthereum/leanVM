@@ -15,19 +15,19 @@ public import LeanVM.Guest.B1.Common.Basic
 For each function of the guest (`lean_ethereum.py`, G below) its meaning
 on its argument and return words, and `…_Spec`, the statement that its core IR relation is that
 meaning (proved as `…_holds`). The inline helpers `eqtree`, `eqtree_frame`
-(G:953-989) have no core function of their own; their expansions are templates of
+ have no core function of their own; their expansions are templates of
 `B1/Eq/Templates.lean`.
 
-| function | G | meaning |
-| --- | --- | --- |
-| `eq_prefix_run__L{n}` | 1003-1009 | `chain[j] = seed · Π_{k<j} (a_k + b1_k)`, `j ≤ n` |
-| `eq_prefix_chain` | 993-1000 | `count = g^n`, `n < 41`, and `eq_prefix_run__L{n}` |
-| `plus_one_run__L{n}` | 1012-1015 | `out[k] = 1 + src[k]`, `k < n` |
-| `rs_eq_rows__L{n}` | 1018-1037 | one row of `ringWeight`'s products over `n ≤ 8` coordinates |
-| `rs_eq_run` | 1040-1066 | the rows of `ringWeight`'s products (V:2171), eight coordinates a row |
-| `fold_final_msg__L{n}` | 1069-1087 | `multilinearEval` (V:653) |
+| function | meaning |
+| --- | --- |
+| `eq_prefix_run__L{n}` | `chain[j] = seed · Π_{k<j} (a_k + b1_k)`, `j ≤ n` |
+| `eq_prefix_chain` | `count = g^n`, `n < 41`, and `eq_prefix_run__L{n}` |
+| `plus_one_run__L{n}` | `out[k] = 1 + src[k]`, `k < n` |
+| `rs_eq_rows__L{n}` | one row of `ringWeight`'s products over `n ≤ 8` coordinates |
+| `rs_eq_run` | the rows of `ringWeight`'s products, eight coordinates a row |
+| `fold_final_msg__L{n}` | `multilinearEval` |
 
-With `b1_k = 1 + b_k`, `a_k + b1_k` is the factor `1 + a_k + b_k` of `eqEval` (V:669).
+With `b1_k = 1 + b_k`, `a_k + b1_k` is the factor `1 + a_k + b_k` of `eqEval`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -116,11 +116,11 @@ def plus_one_run_SpecP (P : Program) : Prop :=
 /-! ## `rs_eq_run` (TRIAGE #28) -/
 
 /-- Row entry `k` after the coordinates `i < j`: `c · Π_{i<j} (z_i^(2^k) + p_i)`, left to right
-(`p_i = 1 + r'_i`, the factor `1 + r_i^(2^k) + r'_i` of `ringWeight`, V:2171). -/
+(`p_i = 1 + r'_i`, the factor `1 + r_i^(2^k) + r'_i` of `ringWeight`). -/
 def ringRow (c : E) (zs ps : List E) (k : ℕ) : E :=
   (List.zipWith (fun z p ↦ z ^ 2 ^ k + p) zs ps).foldl (· * ·) c
 
-/-- **`rs_eq_rows(row, zs, ps, n)`** (G:1017-1036): at `n = 0` it
+/-- **`rs_eq_rows(row, zs, ps, n)`**: at `n = 0` it
 returns `row`; otherwise the `n` words `zs`, `ps` at `zs`, `ps` and the 64 words `c` at `row`; the
 next row, from `row·g^64`, holds `ringRow c[k] zs ps k` at `k < 64`, and it returns `row·g^64`. -/
 def MeaningRsEqRows (n : ℕ) (rd : Reader) : List E → List E → Prop
@@ -141,7 +141,7 @@ def rs_eq_rows_SpecP (P : Program) : Prop :=
   ∀ n ≤ 8, ∀ (rd : Reader) (args rets : List E),
     P.Rel rd (rsEqRowsNames.getD n "") args rets ↔ MeaningRsEqRows n rd args rets
 
-/-- **`rs_eq_run(chain, z_vals, point1, count_g)`** (G:1039-1065):
+/-- **`rs_eq_run(chain, z_vals, point1, count_g)`**:
 `count_g = g^count`, `count < 64`; the words `zs`, `ps` at `z_vals`, `point1` below `count`; row
 `h` of `chain` (64 words from `chain·g^(64·h)`), `1 ≤ h ≤ ⌈count/8⌉`, is row `0` times the
 products over the first `min(8h, count)` coordinates (`RS_CHUNK = 8` coordinates a row, the
@@ -165,7 +165,7 @@ def rs_eq_run_SpecP (P : Program) : Prop :=
 /-! ## `fold_final_msg` (TRIAGE #29) -/
 
 /-- **`fold_final_msg(msg, point, n)`**: the `2^n` words at `msg` folded at the `n` words at
-`point`: `multilinearEval` (V:653). -/
+`point`: `multilinearEval`. -/
 def MeaningFoldFinalMsg (n : ℕ) (rd : Reader) : List E → List E → Prop
   | [msg, point], rets => ∃ m ps : List E, m.length = 2 ^ n ∧ ps.length = n ∧ ReadsAt rd msg m ∧
       ReadsAt rd point ps ∧ rets = [multilinearEval m ps]

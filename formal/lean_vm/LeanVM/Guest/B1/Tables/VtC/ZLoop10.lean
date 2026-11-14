@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Rounds
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `verify_tables_loop0`, completely (G:2348-2361)
+# `verify_tables_loop0`, completely
 
 `l10_complete`: when every iteration `j < n` has its facts (`L10B`: the round on the record
 `rounds·g^(7j)` with the tables `tabs`, the next record's cursor and claim, the challenge in `chi`, the running product

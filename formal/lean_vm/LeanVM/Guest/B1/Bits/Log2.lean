@@ -10,14 +10,14 @@ module
 public import LeanVM.Guest.B1.Bits.SmallGPower
 
 /-!
-# `log2_ceil_in_the_exponent` (lean_ethereum.py:781-796)
+# `log2_ceil_in_the_exponent` (lean_ethereum.py)
 
 `log2_ceil_in_the_exponent(g_N, g_squares, floor, 34)` hints `N`'s bits into a fresh run (only
 the hint reads them) and the log `g^L`, range checks `L < 34` and `L - floor < 34`, and asserts
 `g^(2^L) / g_N` a small g-power (`assert_small_g_power`, an exponent below `2^36`); unless
 `L = floor` also `g_N · g⁻¹ / g^(2^(L-1))`. It returns `g^L` (`MeaningLog2CeilExp`,
 `log2_holds`). On `g_N = g^N`, `N < 2^60`, the two bounds are `N ≤ 2^L` and `2^(L-1) < N`, so
-`L = max floor (log2Ceil N)` (`meaningLog2CeilExp_pow`, V:661).
+`L = max floor (log2Ceil N)` (`meaningLog2CeilExp_pow`).
 
 The expansion is `lcBody floor` (`lcMin` the check above the floor), equal to both
 specializations (`__L0_L34`, `__L16_L34`) by kernel evaluation.
@@ -115,7 +115,7 @@ theorem lc_unfold {name : String} {f : Fn} (fl : ℕ) (hfind : coreProgram.find?
 
 /-! ## The meaning on `g^N` -/
 
-/-- **On `g_N = g^N`, the meaning is `max floor (log2Ceil N)`** (V:661), for `N < 2^60` (any
+/-- **On `g_N = g^N`, the meaning is `max floor (log2Ceil N)`**, for `N < 2^60` (any
 count the guest sums: below the order of `g` with room for the small exponents). -/
 theorem meaningLog2CeilExp_pow {fl N : ℕ} (hfl : fl < 34) (hN : N < 2 ^ 60) (q : E)
     (rets : List E) :

@@ -32,7 +32,7 @@ fresh coordinate keeps a failing test failing except at one value at most
 `3/|E|`.
 
 Written from the specification (the Keccak reduction's first claim, `verify_keccak` in
-`crates/verifier/src/keccak.rs:247-263` at leanVM `40f877dc`); nothing here transcribes Rust.
+`crates/verifier/src/keccak.rs` at leanVM `40f877dc`); nothing here transcribes Rust.
 -/
 
 namespace LeanVM.Protocol

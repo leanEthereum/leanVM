@@ -15,7 +15,7 @@ import LeanVM.Cli.Common
 `lake exe guest-diff <case>...` reads cases written by the exporter's ignored test `guest_diff`
 (`scripts/guest-export/src/export/guest_diff.rs`, format `leanvm-guest-diff 5`): a real
 aggregation's statement `s`, seed, node witness `w`, the streams `aggregate` installed (captured
-through the test-only `FORGE` hook, `aggregation/hints.rs:53`) and its public input. For each
+through the test-only `FORGE` hook, `aggregation/hints.rs`) and its public input. For each
 case it checks
 
 * that `w` holds `s` (`NodeRelation`'s computable parts: every child's proof verifies, every raw

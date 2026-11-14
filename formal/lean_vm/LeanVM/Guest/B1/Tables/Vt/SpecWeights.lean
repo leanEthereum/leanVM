@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.Vt.SpecWeights
 
-  The specification's table weights (`tableWeights`, V:658-662) are the guest's: the running
+  The specification's table weights (`tableWeights`) are the guest's: the running
   product of the high challenges times the prefix equality weight of the low ones.
 -/
 
@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.SpecPad
 public import LeanVM.Protocol.EndToEnd.Complete.TableMath
 
 /-!
-# The table weights (V:658-662)
+# The table weights
 
 The table sumcheck's point is its challenges `pts` reversed. A table of height `h ≤ n` weighs
 `Π_{v<h} (1 + e_v + r_v) · Π_{h≤v<n} r_v` (`getD_tableWeights`); the guest computes the product of

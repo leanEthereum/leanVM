@@ -12,7 +12,7 @@ public import LeanVM.Guest.Value.KeccakLayout
 /-!
 # The sponge over message cells
 
-The compiler's `emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs:275-335` at leanVM
+The compiler's `emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs` at leanVM
 `40f877dc`, with `padded` false) absorbs a message held in cells `P` in `B` blocks of `136` bytes,
 one `KECCAK` each: block `k` reads the nine cells from `P[17k/2]` in the layout of `k`'s parity,
 XORed into the previous output (the zero state, or the `state=` run, for the first), and writes its
@@ -217,16 +217,16 @@ def byteCell (pos v : ℕ) : E :=
   else LeanVM.Guest.word 0 (v * 2 ^ (8 * (pos % 16 - 8)))
 
 /-- `xor_byte(cells, pos, v)`: the message cell holding byte `pos` plus `byteCell pos v`
-(`builtins.rs:337-355`; a `Zero` cell becomes the constant, a `Const` the constant's sum, a
+(`builtins.rs`; a `Zero` cell becomes the constant, a `Const` the constant's sum, a
 `Cell` one `XOR` with a constant cell: in each case the sum). -/
 def xorByte (cs : List E) (pos v : ℕ) : List E := cs.modify (pos / 16) (· + byteCell pos v)
 
-/-- The cells the last of the `len / 136 + 1` blocks reads up to (`read`, `builtins.rs:288`). -/
+/-- The cells the last of the `len / 136 + 1` blocks reads up to (`read`, `builtins.rs`). -/
 def padRead (len : ℕ) : ℕ := 17 * (len / rate) / 2 + 9
 
 /-- **`emit_keccak_message`'s cells for a message of `len` bytes**: the cells zero-extended to
 `padRead len`, `0x01` XORed into byte `len` and `0x80` into the last block's last byte
-(`builtins.rs:287-305`). -/
+(`builtins.rs`). -/
 def padCells (cells : List E) (len : ℕ) : List E :=
   xorByte (xorByte (cells ++ List.replicate (padRead len - cells.length) 0) len 0x01)
     (rate * (len / rate + 1) - 1) 0x80
@@ -490,7 +490,7 @@ theorem digestScalars_digestOf (S : KeccakState) :
     digestHalves (digestOf S) = (cellsOfState S false 0, cellsOfState S false 1) := rfl
 
 /-- **A `final` chain computes Keccak-256** (`keccak(...)` and `keccak_cells(...)` with the
-default `final`, `builtins.rs:275-335`). The message is the first `len` bytes of `cells`, its
+default `final`, `builtins.rs`). The message is the first `len` bytes of `cells`, its
 bytes past `len` zero; it is absorbed after `pre`, whole blocks already absorbed into `O 0`
 (the zero state, `pre = []`, or a `state=` run); the chain is `keccak_chain`'s over
 `padCells cells len`, `len / 136 + 1` blocks. Then the last output is the cells of the state, and

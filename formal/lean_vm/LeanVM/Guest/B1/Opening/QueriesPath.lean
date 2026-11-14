@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Merkle.Climb
 public import LeanVM.Guest.B1.Opening.QueriesFlat
 
 /-!
-# A query's Merkle path (`walk_path`, `walk_window`, lean_ethereum.py:1287-1338 at 40f877dc)
+# A query's Merkle path (`walk_path`, `walk_window`, lean_ethereum.py at 40f877dc)
 
 `oqPair_hash`: one `keccak(a, b, out)` of two two-cell digests (the padding run as its tail and
 capacity, `0x80` as its cell `8`) is `HashesPair` (G3's `keccak_one`).
@@ -21,8 +21,7 @@ capacity, `0x80` as its cell `8`) is `HashesPair` (G3's `keccak_one`).
 side of its order bit (`sibOff`). `oqArm_sound`, `oqWin_sound`: window `i` dispatches on its word
 `g^v` to arm `v`, whose order bits are the position's `6i ..`; its levels climb on (`climbD`).
 `oqPath_sound`: with each window's word the position's, the hinted pairs off the walk's side are
-the cells of siblings `sibs` (`SibAt`) and the node reached is `climbD leaf q sibs` (`climb`,
-V:492).
+the cells of siblings `sibs` (`SibAt`) and the node reached is `climbD leaf q sibs` (`climb`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -229,7 +228,7 @@ theorem oqNd_succ (s : Oq) (kL ch i c : ℕ) : oqNd s kL ch (i + 1) c = oqWT s c
 /-- **The path below the cap** (`walk_path`): with each window's word `g^v`, `v`'s bits the
 position's from level `6i`, and the leaf's digest the first node, the hinted pairs off the walk's
 side hold siblings `sibs` and the node reached, the cap leaf's, is `climbD leaf q sibs`
-(`climb`, V:492). -/
+(`climb`). -/
 theorem oqPath_sound {s : Oq} {bp : V} {pr kL ch q : ℕ} {leaf : Digest}
     (hA : BlockOk rd σ (oqPathT s bp pr kL ch))
     (hpad : σ (.n pr) = word 1 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0)

@@ -16,8 +16,8 @@ public import LeanVM.Protocol.Whir.Complete.Script
 /-!
 # Completeness of ring switching
 
-About the transcription of `crates/verifier/src/ring_switch.rs:10-87` (`ring_psi`,
-`ring_target`, `ring_coefficients`, `ring_weight`, `ring_switch`) and `lib.rs:338-344` (the ring
+About the transcription of `crates/verifier/src/ring_switch.rs` (`ring_psi`,
+`ring_target`, `ring_coefficients`, `ring_weight`, `ring_switch`) and `lib.rs` (the ring
 claim on the stack) (`Verifier.ringSwitch`, `Verifier.ringSwitchClaim`;
 `crates/pcs/src/ring_switch.rs`).
 

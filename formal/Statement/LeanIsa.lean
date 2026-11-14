@@ -23,7 +23,7 @@ checks a relation on the words it reads, so all nondeterminism is the choice of 
 
 namespace LeanVM.Parameters
 
-/-- The six instructions, in bus-code order (`crates/leanvm_core/src/tables.rs:66-71`). -/
+/-- The six instructions, in bus-code order (`crates/leanvm_core/src/tables.rs`). -/
 inductive Opcode
   /-- `XOR`: an addition in `E`. -/
   | xor
@@ -108,7 +108,7 @@ inductive DerefMode
 
 /-- How many of a `KECCAK`'s thirteen output cells it writes, from the first on: the first, the
 first two (a 256-bit digest), or all thirteen (a state a later block reads) (`OutCells`,
-`crates/leanvm_core/src/cpu/isa.rs:59-67`). The program fixes it, never the prover. -/
+`crates/leanvm_core/src/cpu/isa.rs`). The program fixes it, never the prover. -/
 inductive KeccakOutputCells
   /-- The first output cell. -/
   | one
@@ -119,7 +119,7 @@ inductive KeccakOutputCells
   deriving DecidableEq
 
 /-- The number of output cells written: `1`, `2` or `13` (`OutCells::cells`,
-`crates/leanvm_core/src/cpu/isa.rs:70-77`). -/
+`crates/leanvm_core/src/cpu/isa.rs`). -/
 def KeccakOutputCells.cellCount : KeccakOutputCells → ℕ
   | .one => 1
   | .two => 2
@@ -175,7 +175,7 @@ noncomputable def LeanIsaProgram.fetch (program : LeanIsaProgram) (pc : K) : Opt
 How the 25 lanes of a Keccak state are held in thirteen memory words, two lanes to a word, in the
 words' limbs `0` and `1`, one lane per limb (specification §2, the `KECCAK` paragraph;
 `keccak_cell_lanes`, `layout.rs`; `cell_lanes`,
-`crates/leanvm_core/src/keccak.rs:60-81`):
+`crates/leanvm_core/src/keccak.rs`):
 
 * even layout: cell `c < 8` holds lanes `(2c, 2c + 1)`, cell `8` holds `(16, ·)`;
 * odd layout: cell `0` holds `(·, 0)`, cell `1 ≤ c ≤ 8` holds `(2c − 1, 2c)`;
@@ -193,7 +193,7 @@ def cellLanes (odd : Bool) (c : ℕ) : Option ℕ × Option ℕ :=
   else (some (2 * c), some (2 * c + 1))
 
 /-- The state thirteen cells hold in the layout `odd`: lane `l` is the limb of the cell that holds
-it (`state_of_cells`, `crates/leanvm_core/src/keccak.rs:83-101`). -/
+it (`state_of_cells`, `crates/leanvm_core/src/keccak.rs`). -/
 def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KeccakState :=
   (List.finRange 13).foldl (fun s (c : Fin 13) ↦
     let (lo, hi) := cellLanes odd c.val
@@ -205,7 +205,7 @@ def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KeccakState :=
       | none => s) (Vector.replicate 25 0)
 
 /-- The thirteen cells holding a state in the layout `odd`, a limb holding no lane zero
-(`cells_of_state`, `crates/leanvm_core/src/keccak.rs:103-110`). -/
+(`cells_of_state`, `crates/leanvm_core/src/keccak.rs`). -/
 def cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) : E :=
   let limb := fun (l : Option ℕ) ↦ match l with
     | some l => K.ofLane (Keccak.lane s l)
@@ -214,7 +214,7 @@ def cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) : E :=
 
 /-- What `KECCAK` checks: the first `outCells.cellCount` cells written are those cells, in the layout `outOdd`, of Keccak-f[1600] of
 the state the cells read hold in the layout `inOdd`; nothing is asked of a cell past them, which
-the instruction does not write (`crates/leanvm_core/src/cpu/execute.rs:931-964`). -/
+the instruction does not write (`crates/leanvm_core/src/cpu/execute.rs`). -/
 def KeccakCellsRelation (input : Fin 13 → E) (inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool)
     (outCells : KeccakOutputCells) : Prop :=
   ∀ c : Fin 13, c.val < outCells.cellCount →
@@ -281,8 +281,8 @@ return the next registers; `none` if a read or a check fails. A taken `JUMP` mov
 `(d, f)` of `K`, as in the specification and the verifier; the Rust executor also requires both to
 be powers `g^k`, the target's `k` inside the bytecode and the frame's below `MAX_CELLS = 2^28`, its
 own address space: it finds `k` in its table of powers or by a discrete logarithm bounded below the
-bound (`crates/leanvm_core/src/cpu/execute.rs:887-930`, `cpu/hints.rs:12, 144-172, 195-220`), and
-stops after `MAX_STEPS` (`2^27`, the most steps a committed size of `2^30` holds, `execute.rs:153`)
+bound (`crates/leanvm_core/src/cpu/execute.rs`, `cpu/hints.rs`), and
+stops after `MAX_STEPS` (`2^27`, the most steps a committed size of `2^30` holds, `execute.rs`)
 steps, which nothing here bounds: those are the executor's limits, not the statement's. -/
 def executeWith (read : K → Option E) (registers : Registers K) :
     LeanIsaInstruction → Option (Registers K)
@@ -354,7 +354,7 @@ def Registers.final (program : LeanIsaProgram) : Registers K := ⟨program.pcFin
 
 /-- `n` steps from `r`, halting in the final state: `none` if a step fails or the machine halts
 first. The machine halts when both registers are the final state's, checked before each step, as
-the Rust's loop does (`crates/leanvm_core/src/cpu/execute.rs:506-517`): the last slot reached in
+the Rust's loop does (`crates/leanvm_core/src/cpu/execute.rs`): the last slot reached in
 another frame executes like any other slot, and a step that falls through it, to
 `g^(2^logSize)`, which is no bytecode address, fails. The specification's loop
 (`doc/leanvm/body/02-vm-specification.tex`, §2) executes an instruction before it checks for the
@@ -419,24 +419,24 @@ open LeanVM.Parameters LeanVM.Semantics
 /-! ## The bytecode encoding (specification §8.1) -/
 
 /-- The `DEREF` store-mode flags `(f_pc, f_fp)`: `cell ↦ (0, 0)`, `pc ↦ (1, 0)`, `fp ↦ (0, 1)`
-(`crates/leanvm_core/src/cpu/isa.rs:83-101`; specification §7.4). -/
+(`crates/leanvm_core/src/cpu/isa.rs`; specification §7.4). -/
 def derefFlags : DerefMode → K × K
   | .cell => (0, 0)
   | .pc => (1, 0)
   | .fp => (0, 1)
 
 /-- A layout flag as the bytecode carries it: `0` or `1` (`flag`,
-`crates/leanvm_core/src/cpu/layout.rs:291`). -/
+`crates/leanvm_core/src/cpu/layout.rs`). -/
 def layoutFlagWord (b : Bool) : K := if b then 1 else 0
 
 /-- `KECCAK`'s output flags `(out_two, out_all)`: whether output cell `1` is written, and whether
 cells `2` to `12` are: `one ↦ (0, 0)`, `two ↦ (1, 0)`, `all ↦ (1, 1)` (`OutCells::flags`,
-`crates/leanvm_core/src/cpu/isa.rs:79-82`; `cpu/layout.rs:327-340`). -/
+`crates/leanvm_core/src/cpu/isa.rs`; `cpu/layout.rs`). -/
 def keccakOutputFlags (outCells : KeccakOutputCells) : K × K :=
   (layoutFlagWord (outCells != .one), layoutFlagWord (outCells == .all))
 
 /-- The bus entry of an instruction, `(opcode, op₁, …, op₁₂)`: slots 3 to 15 of specification
-§8.1, the thirteen public columns of `bytecode_columns` (`cpu/layout.rs:282-357`): offsets as
+§8.1, the thirteen public columns of `bytecode_columns` (`cpu/layout.rs`): offsets as
 g-powers, a `SET` immediate as its two limbs, the `DEREF` store-mode flags and `KECCAK`'s
 layout and output flags as `0` or `1`, unused slots zero. -/
 def busEntry : LeanIsaInstruction → Vector K 13
@@ -454,7 +454,7 @@ def busEntry : LeanIsaInstruction → Vector K 13
         (keccakOutputFlags outCells).2]
 
 /-- The sixteen slots of an instruction (specification §8.1; `BYTECODE_PUBLIC_SLOT = 3`,
-`crates/leanvm_core/src/leaf.rs:753`): the entry at slots 3 to 15, zero at slots 0 to 2. -/
+`crates/leanvm_core/src/leaf.rs`): the entry at slots 3 to 15, zero at slots 0 to 2. -/
 def instructionSlots (i : LeanIsaInstruction) : Vector K 16 :=
   let e := busEntry i
   #v[0, 0, 0, e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10], e[11], e[12]]
@@ -472,8 +472,8 @@ def bytecodeWords (program : LeanIsaProgram) : List K :=
     (List.finRange (2 ^ program.logSize)).map fun i ↦ (instructionSlots (program.instructions i))[s]
 
 /-- The public input as the verifier reads it: its four lanes, the digest's four words
-(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:600-609`; `Digest::halves`,
-`crates/verifier/src/hash.rs:110-113`). -/
+(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs`; `Digest::halves`,
+`crates/verifier/src/hash.rs`). -/
 def publicInputDigest (input : PublicInput) : Digest :=
   #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]
 
@@ -506,7 +506,7 @@ inductive OffsetInstruction
   `fp[cap + k]` (`k < 4`), in that order, hold a Keccak state in the layout `inOdd`, and the
   cells `fp[out + k]` (`k < outCells.cellCount`) hold the first `outCells.cellCount` of the
   thirteen cells of its Keccak-f[1600] in the layout `outOdd` (`KeccakCellsRelation`;
-  `Op::Keccak`, `crates/leanvm_core/src/cpu/isa.rs:35-56`). -/
+  `Op::Keccak`, `crates/leanvm_core/src/cpu/isa.rs`). -/
   | keccak (m0 m1 m2 m3 tail b8 cap out : ℕ) (inOdd outOdd : Bool) (outCells : KeccakOutputCells)
   deriving DecidableEq
 

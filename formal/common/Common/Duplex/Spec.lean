@@ -14,7 +14,7 @@ the roots, a root absorbed after it. This one starts each root's derivation at a
 `first r iv` from the label's hash `iv`, and branches from its answer: `y₀ = F (first r iv)`, then
 `y_j = F (next j y₀)` for `j = 1 … n - 1`, each branch's state written over the rate of `y₀` and
 keeping its capacity. LeanDA derives its challenge so (`membership_challenge`,
-`verifier/src/da.rs:20-34`: the transcript seeded with the label's hash and
+`verifier/src/da.rs`: the transcript seeded with the label's hash and
 the root, then a grind whose nonce `j - 1` is absorbed into a copy of the seeded sponge, branch
 `j`). The first states share the capacity of `init iv`. The simulator recognises a root's first
 state from the label's hash (`dec iv x`), which it records when the label is hashed, and the
