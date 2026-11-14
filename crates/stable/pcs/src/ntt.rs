@@ -274,7 +274,10 @@ impl AdditiveNttF64 {
             let mut at = 8 * i % msg.len();
             core::array::from_fn::<_, 8, _>(|_| {
                 let word = msg[at];
-                at = (at + 1) % msg.len();
+                at += 1;
+                if at == msg.len() {
+                    at = 0;
+                }
                 word
             })
         })
@@ -297,22 +300,19 @@ impl AdditiveNttF64 {
     ) -> Vec<F64> {
         let msg_rows = msg.len() / n_lanes;
         assert_eq!(msg.len(), n_lanes * msg_rows, "the message is n_lanes lane blocks");
-        // Eight words at a time, walking rows and lanes from the first, so the buffer is written once.
-        let mut data = parallel::map_collect((msg.len() << log_inv_rate).div_ceil(8), |i| {
-            let (mut r, mut t) = (8 * i / n_lanes % msg_rows, 8 * i % n_lanes);
-            core::array::from_fn::<_, 8, _>(|_| {
-                let word = msg[(n_lanes - 1 - t) * msg_rows + r];
-                t += 1;
-                if t == n_lanes {
-                    (r, t) = ((r + 1) % msg_rows, 0);
+        // Row-major, a task's rows at a time: each lane block is read along its run of rows, as the blocks lie a
+        // power of two apart and reading them across would keep evicting each other from the cache.
+        let rows_per_task = (CHUNK / n_lanes).max(1);
+        let mut rows = parallel::filled(msg.len(), F64::ZERO);
+        parallel::chunks_mut(&mut rows, rows_per_task * n_lanes, |i, out| {
+            let first = i * rows_per_task;
+            for (t, block) in msg.chunks_exact(msg_rows).rev().enumerate() {
+                for (row, &word) in out.chunks_exact_mut(n_lanes).zip(&block[first..]) {
+                    row[t] = word;
                 }
-                word
-            })
-        })
-        .into_flattened();
-        data.truncate(msg.len() << log_inv_rate);
-        self.transform_then(&mut data, n_lanes, log_inv_rate, out, done);
-        data
+            }
+        });
+        self.encode_rows(&rows, n_lanes, log_inv_rate, out, done)
     }
 
     /// Recover novel-basis coefficients from evaluations with a scalar inverse NTT.
