@@ -11,7 +11,7 @@
 
 use crate::gkr;
 use crate::transcript::ProverState;
-use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, index_mle};
+use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, g_pow32_by_lookup, index_mle, mul_by_g};
 use primitives::multilinear::{eq_eval, eq_table, interp, mle_eval_par};
 use std::sync::Arc;
 
@@ -190,79 +190,115 @@ fn push_terms<'a>(c: &'a Coord, w: F128, terms: &mut Vec<Term<'a>>, constant: &m
     }
 }
 
-/// The leaves of rows `z0..z0 + out.len()` of a block whose formula is `constant + Σ terms(z)`, eight rows at a time,
-/// the products of each summed unreduced.
-fn fill_leaves(constant: F128, terms: &[Term], cols: &[&[F64]], z0: usize, out: &mut [F128]) {
-    let coeffs: Vec<F128x8> = terms
-        .iter()
-        .map(|t| match *t {
-            Term::Col(_, c) | Term::Prod(_, _, c) | Term::Index(c) | Term::Public(_, c) => F128x8::splat(c),
-        })
-        .collect();
-    let load = |values: &[F64], z: usize| crate::load_k(values, z, values.len().saturating_sub(z));
-    let mut index = F64x8::from_array(&std::array::from_fn(|i| g_pow(z0 + i)));
-    let step = F64x8::splat(g_pow(8));
-    for (k, slot) in out.chunks_mut(8).enumerate() {
-        let z = z0 + 8 * k;
-        let sum = terms.iter().zip(&coeffs).fold(Acc8::ZERO, |acc, (t, &c)| {
+/// One block's leaf formula `constant + Σ terms(z)`, where its rows sit among the leaves, and how many of them flush.
+struct Formula<'a> {
+    offset: usize,
+    size: usize,
+    rows: usize,
+    constant: F128,
+    terms: Vec<Term<'a>>,
+    /// `terms`' coefficients, splat.
+    coeffs: Vec<F128x8>,
+}
+
+impl Formula<'_> {
+    /// The leaves of rows `z..z + 8`, the products of each summed unreduced, the identity from row `rows` on.
+    #[inline(always)]
+    fn leaves(&self, cols: &[&[F64]], z: usize) -> [F128; 8] {
+        if z >= self.rows {
+            return [F128::ONE; 8];
+        }
+        let n = self.rows - z;
+        let load = |values: &[F64]| crate::load_k(values, z, n);
+        let sum = self.terms.iter().zip(&self.coeffs).fold(Acc8::ZERO, |acc, (t, &c)| {
             acc + c.mul_base_unreduced(match *t {
-                Term::Col(i, _) => load(cols[i], z),
-                Term::Prod(i, j, _) => load(cols[i], z) * load(cols[j], z),
-                Term::Index(_) => index,
-                Term::Public(vals, _) => load(vals, z),
+                Term::Col(i, _) => load(cols[i]),
+                Term::Prod(i, j, _) => load(cols[i]) * load(cols[j]),
+                Term::Index(_) => F64x8::splat(g_pow32_by_lookup(z as u32)) * F64x8::from_array(&G_POWERS),
+                Term::Public(vals, _) => load(vals),
             })
         });
-        let leaves = (sum.reduce() + F128x8::splat(constant)).to_array();
-        slot.copy_from_slice(&leaves[..slot.len()]);
-        index *= step;
+        let mut leaves = (sum.reduce() + F128x8::splat(self.constant)).to_array();
+        leaves[n.min(8)..].fill(F128::ONE);
+        leaves
     }
 }
+
+/// `g^0..g^8`, which step a row's index to the next seven's.
+const G_POWERS: [F64; 8] = {
+    let mut powers = [F64::ONE; 8];
+    let mut i = 1;
+    while i < 8 {
+        powers[i] = mul_by_g(powers[i - 1]);
+        i += 1;
+    }
+    powers
+};
 
 /// Build every tree's leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the tree's fingerprint weights
 /// `w`, and a padding row's leaf the identity `1`, as do the leaves past the blocks up to `2^μ`, which are left
 /// out. The row-invariant weights and constant coordinates are folded once per block into its
-/// constant.
+/// constant. Each leaf is written once, eight at a time.
 pub(crate) fn build_leaves(
     sides: [(&[Block], &Layout, &[F128], F128); N_BUS_TREES],
     cols: &[&[F64]],
 ) -> [Vec<F128>; N_BUS_TREES] {
-    const CHUNK: usize = 1 << 12;
-    // Each block's formula: its constant and its terms.
-    let formulas = sides.map(|(blocks, _, w, beta)| {
-        let formulas = blocks.iter().map(|blk| {
-            let mut constant = beta;
-            let mut terms = Vec::with_capacity(blk.coords.len());
-            for (c, &wi) in blk.coords.iter().zip(w) {
-                push_terms(c, wi, &mut terms, &mut constant);
-            }
-            (constant, terms)
-        });
-        formulas.collect::<Vec<_>>()
-    });
-    // The blocks tile the leaves from zero ([`crate::witness::stack_offsets`]).
-    let mut leaves = sides
-        .map(|(blocks, ..)| parallel::filled(blocks.iter().map(|b| 1 << b.kappa).sum::<usize>().max(1), F128::ONE));
-    // Every block's real rows, a chunk a task, all in one dispatch.
-    let mut tasks = Vec::new();
-    for ((side, &(blocks, lay, ..)), formulas) in leaves.iter_mut().zip(&sides).zip(&formulas) {
-        let mut order: Vec<usize> = (0..blocks.len()).collect();
-        order.sort_unstable_by_key(|&b| lay.offsets[b]);
-        let (mut rest, mut at): (&mut [F128], usize) = (side, 0);
-        for b in order {
-            let (_, tail) = std::mem::take(&mut rest).split_at_mut(lay.offsets[b] - at);
-            let (window, tail) = tail.split_at_mut(1 << blocks[b].kappa);
-            (rest, at) = (tail, lay.offsets[b] + window.len());
-            for (k, chunk) in window[..blocks[b].rows].chunks_mut(CHUNK).enumerate() {
-                tasks.push((&formulas[b], k * CHUNK, chunk));
-            }
+    sides.map(|(blocks, lay, w, beta)| {
+        // The blocks tile the leaves from zero, largest first ([`crate::witness::stack_offsets`]).
+        let mut formulas: Vec<Formula> = blocks
+            .iter()
+            .zip(&lay.offsets)
+            .map(|(blk, &offset)| {
+                let mut constant = beta;
+                let mut terms = Vec::with_capacity(blk.coords.len());
+                for (c, &wi) in blk.coords.iter().zip(w) {
+                    push_terms(c, wi, &mut terms, &mut constant);
+                }
+                let coeffs = terms
+                    .iter()
+                    .map(|t| match *t {
+                        Term::Col(_, c) | Term::Prod(_, _, c) | Term::Index(c) | Term::Public(_, c) => F128x8::splat(c),
+                    })
+                    .collect();
+                Formula {
+                    offset,
+                    size: 1 << blk.kappa,
+                    rows: blk.rows,
+                    constant,
+                    terms,
+                    coeffs,
+                }
+            })
+            .collect();
+        formulas.sort_unstable_by_key(|f| f.offset);
+        if formulas.is_empty() {
+            return vec![F128::ONE];
         }
-    }
-    parallel::for_each_mut(&mut tasks, |_, ((constant, terms), z0, out)| {
-        fill_leaves(*constant, terms, cols, *z0, out);
-    });
-    leaves
+        let len = formulas.iter().map(|f| f.size).sum::<usize>();
+        // The formula of leaf `i`.
+        let at = |i: usize| &formulas[formulas.partition_point(|f| f.offset <= i) - 1];
+        let mut leaves = parallel::map_collect(len.div_ceil(8), |k| {
+            let f = at(8 * k);
+            if f.size >= 8 {
+                // Aligned at its size, the block holds all eight.
+                return f.leaves(cols, 8 * k - f.offset);
+            }
+            // The smallest blocks, of fewer than eight rows, last: a leaf at a time.
+            std::array::from_fn(|i| {
+                let z = 8 * k + i;
+                if z < len {
+                    let f = at(z);
+                    f.leaves(cols, z - f.offset)[0]
+                } else {
+                    F128::ONE
+                }
+            })
+        })
+        .into_flattened();
+        leaves.truncate(len);
+        leaves
+    })
 }
-
 /// One table's bus contribution on one side, as a form over that table's committed
 /// columns: `Σ_c coeffs[c]·col_c(z) + Σ (a,b,c) c·col_a(z)·col_b(z) + constant`.
 /// Every coefficient is a public function of `α`, `β` and the block selectors at
