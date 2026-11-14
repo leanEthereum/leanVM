@@ -19,7 +19,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 /-- What a success of `placeFn` is: its checks passed and the walk of the body succeeded. -/
-theorem placeFn_ok {loops : Loops} {sigs : Std.HashMap String (Nat × Nat)} {tables tables' : Tables}
+theorem placeFn_ok {loops : Loops} {sigs : SMap (Nat × Nat)} {tables tables' : Tables}
     {tf : TracedFn} {pf : Placed} (h : placeFn loops sigs tables tf = .ok (pf, tables')) :
     ∃ st' : St, placeBody tf (ctxOf loops sigs tf) (initSt loops tables tf) = .ok ((), st') ∧
       pf = ⟨{ name := tf.core.name, body := st'.out.toList, frameSize := st'.next }, st'.locs⟩ ∧
@@ -74,7 +74,7 @@ theorem poolOK_init {κ : ℕ} {L : MemoryImage κ} {fp : K} {loops : Loops} {ta
     · cases h
 
 /-- **Placement of a function is sound**, on any trace. -/
-theorem placeFn_sound {loops : Loops} {sigs : Std.HashMap String (Nat × Nat)} {tables : Tables}
+theorem placeFn_sound {loops : Loops} {sigs : SMap (Nat × Nat)} {tables : Tables}
     {tf : TracedFn} : PlaceFnSound loops sigs tables tf := by
   intro pf tables' h κ Γ fp C U slots N kj kretP khalt kret env hfill hent hself hsem hobl hret
   obtain ⟨st', hrun, rfl, rfl, -, hr0, vs, hvs⟩ := placeFn_ok h

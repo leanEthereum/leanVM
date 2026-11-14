@@ -58,14 +58,14 @@ theorem Plain.of_same {st st' : St} (h : Plain st) (hs : Same st st') : Plain st
 
 section
 
-variable {κ : ℕ} (Γ : Site κ) (fp : K) (F : Std.HashMap V Loc) (ctx : Ctx) (slots : Array KVal)
+variable {κ : ℕ} (Γ : Site κ) (fp : K) (F : VMap Loc) (ctx : Ctx) (slots : Array KVal)
   (B : ℕ)
 
 /-- The words a function returns: its frame's return cells. -/
 noncomputable def retWords : List E := frameWords Γ.L fp (2 + ctx.argCells) ctx.retCells
 
 /-- **Placed statements mean a core construct**, of obligations `G` and relation `S`. -/
-def Means (H : Prop) (locs' : Std.HashMap V Loc) (sc sc' : Scope) (t' : Tables)
+def Means (H : Prop) (locs' : VMap Loc) (sc sc' : Scope) (t' : Tables)
     (ps : List PStmt) (G : Prop → Prop) (S : Prop → (List E → Prop) → Prop) : Prop :=
   ∀ (pos : ℕ) (N : Prop) (kj : E → E → Prop) (kretP : Prop) (khalt : E → E → Prop)
     (g next : Prop) (kret : List E → Prop),
@@ -220,7 +220,7 @@ def BlockSem (Γ : Site κ) (fp : K) (ctx : Ctx) (slots : Array KVal) (B : ℕ) 
     FillsIn slots (blockFills ctx.name blk pos) → PStmt.SemList Γ fp blk pos N kj kretP khalt →
     G g → (N → g → next) → (ctx.isMain = true ∨ kretP → kret (retWords Γ fp ctx)) → S next kret
 
-theorem Means.blockSem {locs' : Std.HashMap V Loc} {sc sc' : Scope} {t' : Tables}
+theorem Means.blockSem {locs' : VMap Loc} {sc sc' : Scope} {t' : Tables}
     {blk : List PStmt} (h : Means Γ fp F ctx slots B True locs' sc sc' t' blk G S)
     (hF : Sub locs' F) (hp : PoolOK Γ.L fp sc) (hent : SharedIn slots t') :
     BlockSem Γ fp ctx slots B blk G S :=
@@ -272,7 +272,7 @@ theorem LaysAt.read_bind {f : Ctx → P β}
   fun hpl => wp_bind.mpr (wp_read.mpr (h hpl))
 
 theorem LaysAt.peek_bind {f : Option Event → P β}
-    (h : LaysAt Γ fp F ctx slots B H st (f ctx.trace[st.pos]?) G S) :
+    (h : LaysAt Γ fp F ctx slots B H st (f st.rest.head?) G S) :
     LaysAt Γ fp F ctx slots B H st (peek >>= f) G S :=
   fun hpl => wp_bind.mpr (wp_peek.mpr (h hpl))
 

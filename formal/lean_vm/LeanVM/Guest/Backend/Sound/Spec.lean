@@ -181,7 +181,7 @@ that has the meaning of the placed body at a frame (`PStmt.SemList`), with the p
 places, and the parameters are the argument words. `kret` receives the return words where the
 body returns: the run went on from the frame's return registers (`kretP`), or the function is
 `main`. -/
-def PlaceFnSound (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : Tables)
+def PlaceFnSound (loops : Loops) (sigs : SMap (Nat × Nat)) (tables : Tables)
     (tf : TracedFn) : Prop :=
   ∀ (pf : Placed) (tables' : Tables), placeFn loops sigs tables tf = .ok (pf, tables') →
     ∀ {κ : ℕ} (Γ : Site κ) (fp : K) (C : CallRel) (U : String → List E → Prop)
@@ -240,7 +240,7 @@ def placed : List Placed :=
   | .error _ => []
 
 /-- The places of a function's values. -/
-def locs (g : String) : Std.HashMap V Loc :=
+def locs (g : String) : VMap Loc :=
   match W.placed.find? (·.fn.name == g) with
   | some pf => pf.locs
   | none => {}
@@ -305,7 +305,7 @@ end World
 
 /-- **(a), placement, for every trace**: `placeFn` is sound whatever the trace (`placeSound`). -/
 def PlaceSoundStmt : Prop :=
-  ∀ (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : Tables) (tf : TracedFn),
+  ∀ (loops : Loops) (sigs : SMap (Nat × Nat)) (tables : Tables) (tf : TracedFn),
     PlaceFnSound loops sigs tables tf
 
 /-- **(b), for every program**: every function other than `main` of a compiled program whose

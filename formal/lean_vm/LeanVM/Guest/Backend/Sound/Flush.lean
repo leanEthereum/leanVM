@@ -25,7 +25,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-variable {κ : ℕ} {Γ : Site κ} {fp : K} {F : Std.HashMap V Loc} {ctx : Ctx} {α : Type}
+variable {κ : ℕ} {Γ : Site κ} {fp : K} {F : VMap Loc} {ctx : Ctx} {α : Type}
 
 /-- One step of a walk of straight-line steps with no guarantee. -/
 macro "straight_step" : tactic => `(tactic| first
@@ -34,6 +34,9 @@ macro "straight_step" : tactic => `(tactic| first
   | with_reducible exact SpecAt.pure fun _ _ _ => trivial
   | with_reducible exact SpecAt.modify quiet
   | with_reducible exact SpecAt.modifyGet quiet
+  | with_reducible refine SpecAt.get_bind ?_
+  | with_reducible refine SpecAt.read_bind ?_
+  | with_reducible refine SpecAt.peek_bind ?_
   | with_reducible exact SpecAt.lastT (cellOf_spec _)
   | with_reducible exact SpecAt.lastT (cellAt_spec _)
   | with_reducible exact SpecAt.lastT (pointer_spec _ _)
@@ -44,9 +47,6 @@ macro "straight_step" : tactic => `(tactic| first
   | with_reducible exact SpecAt.lastT advance_spec
   | with_reducible exact SpecAt.lastT fresh_spec
   | with_reducible exact SpecAt.lastT (by apply_assumption)
-  | with_reducible refine SpecAt.get_bind ?_
-  | with_reducible refine SpecAt.read_bind ?_
-  | with_reducible refine SpecAt.peek_bind ?_
   | with_reducible refine SpecAt.guard fun _ => ?_
   | with_reducible refine SpecAt.bindTT ?_ fun _ _ => ?_
   | split
@@ -123,6 +123,7 @@ theorem optionMapM_spec (o : Option V) : Spec Γ fp F ctx (o.mapM cellOf) (fun _
       exact SpecAt.bindTT (SpecAt.lastT (cellOf_spec v)) fun _ _ =>
         SpecAt.pure fun _ _ _ => trivial
 
+set_option maxHeartbeats 400000 in
 /-- A hint queues what the prover is told: no relation of the core IR depends on it. -/
 theorem placeHint_spec (h : Hint) : Spec Γ fp F ctx (placeHint h) (fun _ => True) := by
   intro st
