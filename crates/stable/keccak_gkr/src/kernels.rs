@@ -1,7 +1,7 @@
 //! The bit-level kernels of the layer prover, over one block position at a time: the 32 packs of
 //! one bit position of one block.
 
-use primitives::field::{F128, F128x8, clmul8};
+use primitives::field::{Acc8, F64, F64x8, F128, F128x8, clmul8_low};
 
 use crate::rmfe::RMFE;
 use crate::witness::BLOCK_WORDS;
@@ -24,9 +24,9 @@ pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; P
     for (v, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
         let lanes = |e: &[u32; PACKS]| -> [u64; 8] { std::array::from_fn(|i| e[8 * v + i] as u64) };
         let (a, b, c) = (lanes(a), lanes(b), lanes(c));
-        let linear = clmul8([RMFE.ones as u64; 8], std::array::from_fn(|i| a[i] ^ c[i]));
-        let quadratic = clmul8(b, c);
-        *out = std::array::from_fn(|i| (linear[i] ^ quadratic[i]) as u64);
+        let linear = clmul8_low([RMFE.ones as u64; 8], std::array::from_fn(|i| a[i] ^ c[i]));
+        let quadratic = clmul8_low(b, c);
+        *out = std::array::from_fn(|i| linear[i] ^ quadratic[i]);
     }
     out
 }
@@ -97,48 +97,44 @@ pub fn extend(packs: &[u32; PACKS], out: &mut [u64; SLOTS]) {
 }
 
 /// One row of five positions, which `chi` mixes cyclically: per slot, the sum over the row of
-/// its position's weight times its product, as the two partial products of the weight's words.
-/// A pack's product is the unprojected `chi`; a mixed point's keeps only `u[j + 1] * u[j + 2]`,
-/// the rest being linear, so of degree one in a variable at infinity.
-pub fn skip_row(acc: &mut SkipAcc, e: &[[u64; SLOTS]; 5], weights: [[u64; 2]; 5]) {
+/// its position's weight times its product. A weight is a polynomial in `s` ([`AtS::poly`]), its
+/// two words held as an element's limbs, so its product by a product is a mixed one, unreduced: the
+/// two partial products of its words. A pack's product is the unprojected `chi`; a mixed point's
+/// keeps only `u[j + 1] * u[j + 2]`, the rest being linear, so of degree one in a variable at
+/// infinity.
+///
+/// [`AtS::poly`]: crate::poly::AtS::poly
+pub fn skip_row(acc: &mut SkipAcc, e: &[[u64; SLOTS]; 5], weights: [F128x8; 5]) {
     let xor = |a: [u64; 8], b: [u64; 8]| -> [u64; 8] { std::array::from_fn(|i| a[i] ^ b[i]) };
-    let low = |p: [u128; 8]| -> [u64; 8] { p.map(|p| p as u64) };
-    // A run of carry-less products, as lanes the vector unit adds.
-    let lanes = |p: [u128; 8]| F128x8::from_array(&p.map(F128::from));
     for (v, acc) in acc.0.iter_mut().enumerate() {
         let e: [[u64; 8]; 5] = std::array::from_fn(|x| e[x][8 * v..][..8].try_into().unwrap());
-        let mut sums = [F128x8::ZERO; 2];
-        for (x, w) in weights.iter().enumerate() {
+        let mut sum = Acc8::ZERO;
+        for (x, weight) in weights.iter().enumerate() {
             let (b, c) = (e[(x + 1) % 5], e[(x + 2) % 5]);
-            let mut product = low(clmul8(b, c));
+            let mut product = clmul8_low(b, c);
             if 8 * v < 2 * GROUP {
-                product = xor(product, low(clmul8([RMFE.ones as u64; 8], xor(e[x], c))));
+                product = xor(product, clmul8_low([RMFE.ones as u64; 8], xor(e[x], c)));
             }
-            for (sum, &w) in sums.iter_mut().zip(w) {
-                *sum += lanes(clmul8(product, [w; 8]));
-            }
+            sum += weight.mul_base_unreduced(F64x8::from_array(&product.map(F64)));
         }
-        for (acc, sum) in acc.iter_mut().zip(sums) {
-            *acc += sum;
-        }
+        *acc += sum;
     }
 }
 
-/// Per slot, the two partial products [`skip_row`] sums, eight slots to a run, each product's
-/// bits read as an element.
-pub struct SkipAcc([[F128x8; 2]; SLOTS / 8]);
+/// Per slot, the sums [`skip_row`] takes, eight slots to a run.
+pub struct SkipAcc([Acc8; SLOTS / 8]);
 
 impl SkipAcc {
     pub fn new() -> Box<Self> {
-        Box::new(Self([[F128x8::ZERO; 2]; SLOTS / 8]))
+        Box::new(Self([Acc8::ZERO; SLOTS / 8]))
     }
 
     pub fn clear(&mut self) {
-        self.0 = [[F128x8::ZERO; 2]; SLOTS / 8];
+        self.0 = [Acc8::ZERO; SLOTS / 8];
     }
 
-    /// The two partial products of slot `p`.
+    /// The two partial products of slot `p`: the sums of the products times each word of their weights.
     pub fn get(&self, p: usize) -> [u128; 2] {
-        self.0[p / 8].map(|k| u128::from(k.to_array()[p % 8]))
+        self.0[p / 8].to_array()[p % 8].to_limbs()
     }
 }

@@ -40,11 +40,11 @@ impl AtS {
         }
     }
 
-    /// The polynomial of degree below 128 whose value at `s` is `w`, as two words.
-    pub fn poly(&self, w: F128) -> [u64; 2] {
+    /// The polynomial of degree below 128 whose value at `s` is `w`, its two words as an element's
+    /// limbs.
+    pub fn poly(&self, w: F128) -> F128 {
         let w = u128::from(w);
-        let p = (0..128).filter(|k| w >> k & 1 == 1).fold(0, |p, k| p ^ self.unit[k]);
-        [p as u64, (p >> 64) as u64]
+        F128::from((0..128).filter(|k| w >> k & 1 == 1).fold(0, |p, k| p ^ self.unit[k]))
     }
 
     /// `low + x^64 high` at `s`, for the two partial products of a weight's words.
@@ -80,7 +80,7 @@ mod tests {
         };
         for _ in 0..20 {
             let w = rng.ext();
-            let p = at.poly(w);
+            let p = at.poly(w).to_limbs();
             assert_eq!(eval(&p), w);
             let product = rng.next_u64() >> 17;
             let partial = [mul_wide(product, p[0]), mul_wide(product, p[1])];

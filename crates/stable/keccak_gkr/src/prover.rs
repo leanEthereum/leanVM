@@ -80,8 +80,13 @@ impl Layer<'_> {
     /// weight goes to, and coefficient `8 b + t` sums byte `b`'s buckets whose value has bit `t`.
     /// The buckets of a block meet its weight once, at its end.
     fn product(&self, claim: &Claim) -> [F128; PROD_BITS] {
+        // Per position, its weight times each pack's of a block.
         let packs = eq_table(&claim.point[..SKIP + 1]);
-        let packs: [F128x8; PACKS / 8] = std::array::from_fn(|k| F128x8::load(&packs[8 * k..][..8]));
+        let weights: Vec<[F128; PACKS]> = claim
+            .weights
+            .iter()
+            .map(|&w| std::array::from_fn(|q| packs[q] * w))
+            .collect();
         let tasks = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
         let buckets = parallel::map_reduce_with_state(
             self.n_tasks(),
@@ -96,13 +101,7 @@ impl Layer<'_> {
                         let e: [[u32; PACKS]; 5] = std::array::from_fn(|x| embed(words(block, js[x])));
                         for x in 0..5 {
                             let p = products(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]);
-                            // The position's weight times each pack's.
-                            let mut weights = [F128::ZERO; PACKS];
-                            let w = F128x8::splat(claim.weights[js[x]]);
-                            for (out, &packs) in weights.as_chunks_mut::<8>().0.iter_mut().zip(&packs) {
-                                (w * packs).store(out);
-                            }
-                            for (&p, &w) in p.iter().zip(&weights) {
+                            for (&p, &w) in p.iter().zip(&weights[js[x]]) {
                                 for (b, bucket) in block_buckets.iter_mut().enumerate() {
                                     bucket[(p >> (8 * b)) as usize & 0xff] += w;
                                 }
@@ -139,7 +138,7 @@ impl Layer<'_> {
     /// polynomial in `s` ([`AtS`]), so a block's sums are carry-less products, evaluated at `s`
     /// once per slot.
     fn skip_sums(&self, claim: &Claim, at: &AtS) -> Vec<F128> {
-        let weights: Vec<[u64; 2]> = claim.weights.iter().map(|&w| at.poly(w)).collect();
+        let weights: Vec<F128> = claim.weights.iter().map(|&w| at.poly(w)).collect();
         let eq = eq_table(&claim.point[SKIP..]);
         let groups: [Vec<F128>; 2] =
             [0, 1].map(|half| self.task_weights(&eq.iter().skip(half).step_by(2).copied().collect::<Vec<_>>()));
@@ -156,7 +155,7 @@ impl Layer<'_> {
                         for (e, &j) in e.iter_mut().zip(&js) {
                             extend(&embed(words(block, j)), e);
                         }
-                        skip_row(acc, e, js.map(|j| weights[j]));
+                        skip_row(acc, e, js.map(|j| F128x8::splat(weights[j])));
                     }
                 }
                 for (half, groups) in groups.iter().enumerate() {
@@ -231,45 +230,34 @@ impl Layer<'_> {
 }
 
 /// The packs of a group folded at the skip's challenges: a pack's value at `s` is the sum of the
-/// instance weights of its set bits, and `eq` of the four challenges is that of the low two times
-/// that of the high two. So each run of four packs is a sum of byte lookups, from tables weighted
-/// by the low `eq`, and the four runs meet the high `eq` as lanes.
+/// instance weights of its set bits, so a folded one is a sum of byte lookups.
 struct PackFold {
-    /// Per pack of a run, its low `eq` weight times the subset sums of the instance weights of its
+    /// Per pack of a group, its `eq` weight times each instance weight, as subset sums of the pack's
     /// low byte and of its high byte.
-    bytes: [[[F128; 256]; 2]; 4],
-    high: [F128x8; 4],
+    tables: Vec<[[F128; 256]; 2]>,
 }
 
 impl PackFold {
     fn new(mu: &[F128; PACK], challenges: &[F128]) -> Self {
-        let (low, high) = (eq_table(&challenges[..2]), eq_table(&challenges[2..]));
-        Self {
-            bytes: std::array::from_fn(|b| [0, 1].map(|k| byte_sums(&std::array::from_fn(|t| low[b] * mu[8 * k + t])))),
-            high: std::array::from_fn(|a| F128x8::splat(high[a])),
-        }
+        let tables = eq_table(challenges)
+            .iter()
+            .map(|&e| [0, 1].map(|k| byte_sums(&std::array::from_fn(|t| e * mu[8 * k + t]))))
+            .collect();
+        Self { tables }
     }
 
     /// Both groups of a block, folded: entry `BITS * half + j` of `out` is position `j` of group
-    /// `half`. Eight positions at a time.
+    /// `half`.
     fn rows(&self, block: &[u64], out: &mut [F128]) {
-        for j in (0..BITS).step_by(8) {
-            for half in 0..2 {
-                let mut acc = Acc8::ZERO;
-                for (a, &high) in self.high.iter().enumerate() {
-                    let run = std::array::from_fn(|i| {
-                        let words = words(block, j + i);
-                        let mut sum = F128::ZERO;
-                        for (b, bytes) in self.bytes.iter().enumerate() {
-                            let q = GROUP * half + 4 * a + b;
-                            let pack = (words[q / 4] >> (16 * (q % 4))) as usize & 0xffff;
-                            sum += bytes[0][pack & 0xff] + bytes[1][pack >> 8];
-                        }
-                        sum
-                    });
-                    acc += F128x8::from_array(&run).mul_unreduced(high);
+        for (half, row) in out.as_chunks_mut::<BITS>().0.iter_mut().enumerate() {
+            for (j, out) in row.iter_mut().enumerate() {
+                let words = words(block, j);
+                *out = F128::ZERO;
+                for (a, tables) in self.tables.iter().enumerate() {
+                    let q = GROUP * half + a;
+                    let pack = (words[q / 4] >> (16 * (q % 4))) as usize & 0xffff;
+                    *out += tables[0][pack & 0xff] + tables[1][pack >> 8];
                 }
-                acc.reduce().store(&mut out[BITS * half + j..][..8]);
             }
         }
     }
