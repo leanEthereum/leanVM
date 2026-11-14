@@ -106,6 +106,9 @@ pub fn aggregate_with_stats(
     // verify fails in the guest instead, which verifies every child in the VM,
     // so `prove` below returns the error.
     let _span = tracing::info_span!("Replay children").entered();
+    if !children.iter().all(|(claims, _)| is_sorted(claims)) {
+        return Err(AggregateError::InvalidChild);
+    }
     let carried = children
         .iter()
         .map(|(_, proof)| DeferredBytecodeClaim::recompute(proof.bytecode_point.clone()))
@@ -117,9 +120,6 @@ pub fn aggregate_with_stats(
         .map(|(claims, _)| verifier::da::digest(claims.da_commitment))
         .collect();
     for ((claims, _), defer) in children.iter().zip(&carried) {
-        if !is_sorted(claims) {
-            return Err(AggregateError::InvalidChild);
-        }
         public_inputs.push(public_input(claims, defer));
     }
     // One single-threaded replay per worker: nothing inside dispatches.

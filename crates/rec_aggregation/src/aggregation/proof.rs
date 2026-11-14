@@ -97,6 +97,10 @@ impl AggregateProof {
     /// Whether this proves `claims`: the lists are sorted, the deferred claim holds, and the stark
     /// proof is valid.
     pub fn verify(&self, claims: &AggregateClaims) -> bool {
+        // The cheap check first: the rest evaluates the bytecode at a point the sender chose.
+        if !is_sorted(claims) {
+            return false;
+        }
         let Some(defer) = DeferredBytecodeClaim::recompute_scalar(self.bytecode_point.clone()) else {
             return false;
         };
@@ -106,6 +110,6 @@ impl AggregateProof {
         if let Err(error) = &verdict {
             tracing::debug!(%error, "the proof does not verify");
         }
-        is_sorted(claims) && verdict.is_ok()
+        verdict.is_ok()
     }
 }
