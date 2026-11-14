@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.Bridge.AllocDefs
+public import LeanVM.Guest.Bridge.AllocFrDefs
+public import LeanVM.Guest.Bridge.AllocChk.FrSkip
 
 /-!
 # The allocation check by index
@@ -28,6 +30,11 @@ open LeanVM.Guest LeanVM.Guest.Core
 /-- **Compiled function `j` passes the allocation hints' check.** -/
 def AllocJ (j : ℕ) : Prop :=
   allocChk (ctxOf j) (B2C.fsN j) (coreOf j).loop (B2C.plumbOf j) (coreOf j).body (fnOf j).code (adviceOf j) = true
+
+/-- **Compiled function `j` passes the frame hints' sizes check**, on some list of callees, but the
+frame hints it skips (`AllocChk.frSkipAt`). -/
+def FrJ (j : ℕ) : Prop :=
+  ∃ cs, frChk (ctxOf j) (B2C.fsN j) cs (AllocChk.frSkipAt j) (coreOf j).params (coreOf j).body (adviceOf j) = true
 
 /-- **Compiled function `j` passes the bump pointer's check** (`curChk`). -/
 def CurJ (j : ℕ) : Prop :=
@@ -76,6 +83,20 @@ theorem curJ_of {j : ℕ} {f : CompiledFunction} {cf : Core.Fn} {C : Check.Cert}
   have hl : (certOf j).locs = C.locs := by rw [hC]; cases C; rfl
   rw [CurJ, curChk, ctxOf, hl, hex, hen, hd, hf, hcf, hP, hm, hn, hb, h]
   rfl
+
+/-- **A function's frame sizes check from its pack's**, as `allocJ_of`. -/
+theorem frJ_of {j : ℕ} {f : CompiledFunction} {cf : Core.Fn} {C : Check.Cert} {P : B2C.Plumb}
+    {ex : List (ℕ × ℕ)} {en : List (String × ℕ)} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} {main : Bool}
+    (hf : fnOf j = f) (hcf : coreOf j = cf) (hC : certOf j = C.withPows Data.powTree) (hP : B2C.plumbOf j = P)
+    (ht : (extraOf j, entsOf j, adviceOf j) = (ex, en, d)) (hm : (j == 1) = main) {n : ℕ}
+    (hn : B2C.fsN j = n) {cs : List ℕ}
+    (h : frChk (AlignCtx.ofData C.locs ex f.entryPc main P Data.powTree Data.jtTrie en alignHalt f.instructionCount)
+      n cs (AllocChk.frSkipAt j) cf.params cf.body d = true) : FrJ j := by
+  simp only [Prod.mk.injEq] at ht
+  obtain ⟨hex, hen, hd⟩ := ht
+  have hl : (certOf j).locs = C.locs := by rw [hC]; cases C; rfl
+  refine ⟨cs, ?_⟩
+  rw [ctxOf, hl, hex, hen, hd, hf, hcf, hP, hm, hn, h]
 
 end
 

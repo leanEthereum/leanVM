@@ -19,6 +19,9 @@ open LeanVM.Guest
 
 public section
 
+theorem fok1601 : Bridge.FrJ 1601 :=
+  Bridge.frJ_of Checked.code1601 Checked.core1601 Checked.cert1601 Checked.plumbEq1601 Bridge.ProgAl.tab1601 rfl Checked.fsEq1601 Fn.«walk_path__L12_L8».frOk
+
 theorem aok1601 : Bridge.AllocJ 1601 :=
   Bridge.allocJ_of Checked.code1601 Checked.core1601 Checked.cert1601 Checked.plumbEq1601 Bridge.ProgAl.tab1601 rfl Checked.fsEq1601
     Fn.«walk_path__L12_L8».allocShapeOk Fn.«walk_path__L12_L8».curBodyOk Fn.«walk_path__L12_L8».allocOk

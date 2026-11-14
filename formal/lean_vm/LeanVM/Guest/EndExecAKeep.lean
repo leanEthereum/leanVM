@@ -63,26 +63,26 @@ noncomputable def treeSizes (A : String → FnAl) (e : Ent) (off : ℕ) : List �
       else 0
     | none => 0
 
-/-- **Each hint reserves its `treeSizes` entry**: at a state of the tree track, its frames chained, no
-call before its buffers, the `i`-th hint at its pc, run from the state the hints before it reach,
+/-- **Each hint reserves its `treeSizes` entry**: at a state of the tree track on the reference run, its
+frames chained, no call before its buffers, the `i`-th hint at its pc, run from the state the hints before it reach,
 whose written cells hold the reference's words. -/
 def SizesAt (A : String → FnAl) : Prop :=
   ∀ r : Ref, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ done e st (s : St),
     RefTrack A r s.pc s.fp (done, e :: st) → ChainA A (memOf r.img) (e :: st) →
-    NcTop A e (s.pc - entOf A e.I.t.name) → Fine (refMem r.img) s →
+    NcTop A e (s.pc - entOf A e.I.t.name) → Fine (refMem r.img) s → OnRef guestProgram r.img r.n s →
     ∀ (i : ℕ) (h : Hint) (sx : St), ((C.hints[s.pc]?).getD [])[i]? = some h →
       (((C.hints[s.pc]?).getD []).take i).foldlM (runHint C) s = .ok sx →
       (∀ c v, sx.mem.get c = some v → refMem r.img c = v) →
       rsz C (refMem r.img) sx h = (treeSizes A e (s.pc - entOf A e.I.t.name)).getD i 0
 
 /-- **Each allocation hint is ready where the tree puts the bump pointer**: at a state of the tree
-track, its frames chained, no call before its buffers, the `i`-th hint at its pc, an allocation whose cells it reads are written,
+track on the reference run, its frames chained, no call before its buffers, the `i`-th hint at its pc, an allocation whose cells it reads are written,
 run from the state the hints before it reach, whose bump pointer is the frame's cursor moved by the
 words those hints reserve, has what it needs. -/
 def AllocReady (A : String → FnAl) : Prop :=
   ∀ r : Ref, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ done e st (s : St),
     RefTrack A r s.pc s.fp (done, e :: st) → ChainA A (memOf r.img) (e :: st) →
-    NcTop A e (s.pc - entOf A e.I.t.name) → Fine (refMem r.img) s →
+    NcTop A e (s.pc - entOf A e.I.t.name) → Fine (refMem r.img) s → OnRef guestProgram r.img r.n s →
     ∀ (i : ℕ) (h : Hint) (sx : St), ((C.hints[s.pc]?).getD [])[i]? = some h →
       (((C.hints[s.pc]?).getD []).take i).foldlM (runHint C) s = .ok sx → Moves (refMem r.img) s sx →
       isAllocHint h = true → Mode.HintIn sx h →
@@ -316,7 +316,7 @@ theorem keepY_alloc {A : String → FnAl} (hP : ProgAl guestProgram coreProgram 
   have hlen : ((C.hints[s.pc]?).getD []).length = (treeSizes A e0 (s.pc - entOf A e0.I.t.name)).length := by
     rw [hoff, treeSizes, List.length_map, List.length_range, hhs]
   have hs1 := hints_nextFree _ _ s s1 ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ e1 hm.fine.agree.get hlen
-    fun i h sx hi hx ↦ hS r hr C hC done e0 st0 s htr hch hnc hon.2.1 i h sx hi hx fun c v hv ↦
+    fun i h sx hi hx ↦ hS r hr C hC done e0 st0 s htr hch hnc hon.2.1 hon.2.2 i h sx hi hx fun c v hv ↦
       hm.fine.agree.get c v ((hints_follows _ sx s1 (hints_follows _ s sx ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ hx).good
         (by
           have := e1
@@ -369,7 +369,7 @@ theorem hintAlloc_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
   have hlen := hints_len hP hAd hC htr hpcS
   have hi : ((C.hints[s.pc]?).getD [])[pre.length]? = some h := by rw [hl]; simp
   have htake : ((C.hints[s.pc]?).getD []).take pre.length = pre := by rw [hl]; simp
-  refine hR r hr C hC done e st s htr hch hnc hon.2.1 pre.length h s1 hi (by rw [htake]; exact e1) hm ha hin ?_
+  refine hR r hr C hC done e st s htr hch hnc hon.2.1 hon.2.2 pre.length h s1 hi (by rw [htake]; exact e1) hm ha hin ?_
   have hs1 := hints_nextFree pre ((treeSizes A e (s.pc - entOf A e.I.t.name)).take pre.length) s s1
     ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ e1 hm.fine.agree.get (by
       rw [List.length_take]
@@ -377,7 +377,7 @@ theorem hintAlloc_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
       omega)
     fun j h' sx hj hx ↦ by
       have hjl : j < pre.length := (List.getElem?_eq_some_iff.mp hj).1
-      have h1 := hS r hr C hC done e st s htr hch hnc hon.2.1 j h' sx (by rw [hl, List.getElem?_append_left hjl]; exact hj)
+      have h1 := hS r hr C hC done e st s htr hch hnc hon.2.1 hon.2.2 j h' sx (by rw [hl, List.getElem?_append_left hjl]; exact hj)
         (by rw [hl, List.take_append_of_le_length hjl.le]; exact hx) fun c v hv ↦
         hm.fine.agree.get c v ((hints_follows _ sx s1 (hints_follows _ s sx ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ hx).good
           (by

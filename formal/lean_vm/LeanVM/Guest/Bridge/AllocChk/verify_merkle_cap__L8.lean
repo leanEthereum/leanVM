@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.Bridge.AllocDefs
+public import LeanVM.Guest.Bridge.AllocFrDefs
+public import LeanVM.Guest.Bridge.AllocChk.FrSkip
 public import LeanVM.Guest.Bridge.Align.«verify_merkle_cap__L8»
 public import LeanVM.Guest.Pack.«P6».Core
 public import LeanVM.Guest.Pack.«verify_merkle_cap__L8».Bundle
@@ -25,6 +27,12 @@ theorem allocShapeOk : Bridge.allocShape Fn.«verify_merkle_cap__L8».core.body 
 /-- `verify_merkle_cap__L8`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
     Bridge.curBody alignCtx Fn.«verify_merkle_cap__L8».plumb Fn.«verify_merkle_cap__L8».core.body Fn.«verify_merkle_cap__L8».code.code Data.adviceFn1236 = true := by
+  decide +kernel
+
+/-- `verify_merkle_cap__L8`'s frame hints reserve their callees' frames. -/
+theorem frOk :
+    Bridge.frChk alignCtx Fn.«verify_merkle_cap__L8».fs [] (Bridge.AllocChk.frSkipAt 1236) Fn.«verify_merkle_cap__L8».core.params Fn.«verify_merkle_cap__L8».core.body
+      Data.adviceFn1236 = true := by
   decide +kernel
 
 /-- `verify_merkle_cap__L8`'s allocation hints pass the check. -/

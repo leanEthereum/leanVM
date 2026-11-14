@@ -131,12 +131,15 @@ theorem Move.nc_same {D D' : List Pop} {e e'' : Ent} {st : List Ent} (hE : EntOk
 
 /-- **The step rule at one state, with its offset and what it did there** (`StepOff`): from a state
 of the track at `(pc, fp)`, its top frame's jumps' cells read, a step to registers short of the
-final ones lands at registers of a state of the track. -/
+final ones, or by an instruction no jump through the own frame, lands at registers of a state of the
+track. -/
 theorem stepRule_off (hP : ProgAl prog P A)
     (hIs : ∀ I ∈ Is, ∀ (i : ℕ) (k : Tree), I.t.kids[i]? = some k → ∃ J ∈ Is, J.t = k ∧ I.kidFps[i]? = some J.fp)
     {pc fp : ℕ} {done : List Pop} {e : Ent} {st : List Ent} {r' : Registers K}
     (h : RefOk P rd Is T (memOf img) (entOf A) (alOf A) pc fp (done, e :: st)) (hc : JumpCells img A e pc)
-    (hstep : step prog img (regs pc fp) = some r') (hne' : r' ≠ Registers.final prog) :
+    (hstep : step prog img (regs pc fp) = some r')
+    (hne' : r' ≠ Registers.final prog ∨ ∀ oc od of, (A e.I.t.name).code[pc - entOf A e.I.t.name]? = some (.jump oc od of) →
+      (A e.I.t.name).X.selfAt of = false) :
     ∃ off, pc = entOf A e.I.t.name + off ∧ ∃ pc' fp' s', r' = regs pc' fp' ∧
       RefOk P rd Is T (memOf img) (entOf A) (alOf A) pc' fp' s' ∧ StepOff P Is img A e off st pc' fp' s'.2 := by
   obtain ⟨e0, st0, hst, hE, hfp, hat⟩ := h.top
@@ -425,9 +428,13 @@ theorem stepRule_off (hP : ProgAl prog P A)
       obtain ⟨hself, ht⟩ := hm0
       have hfp0 := hc.main hmain
       exfalso
-      apply hne'
-      rw [hif X.halt e.I.fp (hnz0 hnz) (hsome (hc.pcw od _ ht) hdv) (hsome (hc.self of hself) hfv), hfp0]
-      exact hP.halt _ _ hE.find hmain
+      rcases hne' with hne' | hns
+      · apply hne'
+        rw [hif X.halt e.I.fp (hnz0 hnz) (hsome (hc.pcw od _ ht) hdv) (hsome (hc.self of hself) hfv), hfp0]
+        exact hP.halt _ _ hE.find hmain
+      · have := hns oc od of (by rw [hpcE, Nat.add_sub_cancel_left]; exact hins)
+        rw [this] at hself
+        cases hself
 
 end
 

@@ -15,6 +15,7 @@ import LeanVM.Guest.EndExecYWitCells
 import LeanVM.Guest.EndExecYShape
 import LeanVM.Guest.EndExecACur
 import LeanVM.Guest.EndExecAKeep
+import LeanVM.Guest.EndExecAGaps
 import LeanVM.Guest.EndExecAExtra
 import LeanVM.Guest.EndExecCAlign
 import LeanVM.Guest.Budget.MainExact
@@ -80,12 +81,10 @@ structure OpenGaps : Prop where
   /-- Mode walk track: the walks (`walk … = true`) of the 30 functions the kernel does not check
   and the hints (`HintsOk`) of `main_loop2` and `sp_wots`. False as stated: 12 of the walks fail. -/
   modeHyps : Mode.ModeHyps
-  /-- Allocation track: each hint at a frame's pc reserves the words the honest tree places there
-  (`treeSizes`). -/
-  sizes : SizesAt alignA
-  /-- Allocation track: each allocation hint has what it needs where the tree puts the bump
-  pointer. -/
-  allocReady : AllocReady alignA
+  /-- Allocation track: the allocation facts still open (`AllocOpen`: dynamic sizes are powers,
+  the `heap_sizes` advice, the late hints, the frame hints the check skips, `claim_list_digest`'s
+  buffer). -/
+  alloc : AllocOpen
   /-- Allocation track: the hints at a pc keep the cells used within the reference's `2^κ`. -/
   hintsUsed : HintsUsed YFin
   /-- Residuals track: `certify_placement`'s residuals hold at its honest frames. -/
@@ -97,7 +96,7 @@ structure OpenGaps : Prop where
 theorem execGaps_of (O : OpenGaps) :
     ExecGaps Mode.guestCerts Fn.«main».modeCert Mode.guestE0 (XOf YFin) (fun _ ↦ ProAt) :=
   ExecGaps.ofR (A := alignA) (Mode.modeCerts_guest O.modeHyps) Mode.mainOk_guestCerts Budget.mainExactHyp
-    (hintAlloc_alignA O.sizes O.allocReady fun _ _ h ↦ h.2)
+    (hintAlloc_alignA O.alloc.sizesAt O.alloc.allocReady fun _ _ h ↦ h.2)
     (hintWitness_alignA (witCells_alignA witPtrRes_guest) pushShape fun _ _ h ↦ h.1)
     (hintComputed_alignA extraRef_alignA)
     (resTop_guestF (fun K hK ↦ by
@@ -107,7 +106,7 @@ theorem execGaps_of (O : OpenGaps) :
       · exact O.resCp) nzVal_lce0 nzVal_lce16)
     termNode_guest Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at Mode.guestCerts_entry_ne
     (derefPow_all _) O.hintsUsed
-    (KeepY.and (keepY_alignA (derefPow_all _) fun _ _ h ↦ h) (keepY_allocA_of O.sizes))
+    (KeepY.and (keepY_alignA (derefPow_all _) fun _ _ h ↦ h) (keepY_allocA_of O.alloc.sizesAt))
     (InitY.and (initY_cur alignA) (initY_alloc alignA))
 
 /-- **The executor runs the guest program to completion on the guest's advice**, given the open

@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.Bridge.AllocDefs
+public import LeanVM.Guest.Bridge.AllocFrDefs
+public import LeanVM.Guest.Bridge.AllocChk.FrSkip
 public import LeanVM.Guest.Bridge.Align.«open_stacked__L6»
 public import LeanVM.Guest.Pack.«P3».Core
 public import LeanVM.Guest.Pack.«open_stacked__L6».Bundle
@@ -25,6 +27,12 @@ theorem allocShapeOk : Bridge.allocShape Fn.«open_stacked__L6».core.body = tru
 /-- `open_stacked__L6`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
     Bridge.curBody alignCtx Fn.«open_stacked__L6».plumb Fn.«open_stacked__L6».core.body Fn.«open_stacked__L6».code.code Data.adviceFn342 = true := by
+  decide +kernel
+
+/-- `open_stacked__L6`'s frame hints reserve their callees' frames. -/
+theorem frOk :
+    Bridge.frChk alignCtx Fn.«open_stacked__L6».fs [8, 9, 308, 309, 448, 462, 472, 555, 559, 564, 568, 572, 573, 574, 578, 579, 580, 584, 585, 593, 597, 617, 623, 658, 662, 699, 704, 725, 726, 727, 728, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765] (Bridge.AllocChk.frSkipAt 342) Fn.«open_stacked__L6».core.params Fn.«open_stacked__L6».core.body
+      Data.adviceFn342 = true := by
   decide +kernel
 
 /-- `open_stacked__L6`'s allocation hints pass the check. -/

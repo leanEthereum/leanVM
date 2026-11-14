@@ -205,6 +205,216 @@ def chk(F, body, abody, A, locs, extra, pows, jt, fs, loop):
     return cur, None
 
 
+
+# The frame hints' sizes (`Bridge.frChk`), mirrored to choose each function's listed callees and the
+# frame hints it skips.
+
+def fr_vals(x):
+    """The values of an atom's operand: a value, or a list of them."""
+    if isinstance(x, tuple) and x[0] == 'list':
+        return [v for y in x[1] for v in fr_vals(y)]
+    try:
+        return [data.val(x)]
+    except (ValueError, IndexError, TypeError):
+        return []
+
+
+def fr_atom(e, env):
+    h, a = data.head(e)
+    if h == '.hint':
+        return ('hint', data.core_hint(a[0], env))
+    if h == '.const':
+        w = a[1]
+        return ('const', data.val(a[0]), (w[2][0], w[2][1]) if isinstance(w, tuple) and w[0] == 'app' else None)
+    if h in ('.add', '.mul'):
+        return (h[1:], data.val(a[0]), data.val(a[1]), data.val(a[2]))
+    uses = []
+    for x in a:
+        if isinstance(x, tuple) and x[0] == 'id':
+            try:
+                x = env(x[1])
+            except KeyError:
+                continue
+        uses += fr_vals(x)
+    return ('other', h[1:], uses)
+
+
+def fr_stmt(e, env):
+    h, a = data.head(e)
+    if h == '.atom':
+        return ('atom', fr_atom(a[0], env))
+    if h == '.ite':
+        return ('ite', data.val(a[0]), fr_block(a[1], env), fr_block(a[2], env))
+    if h == '.match_':
+        return ('match', data.val(a[0]), [fr_block(x, env) for x in data.as_list(a[1], env)])
+    if h == '.call':
+        return ('call', a[0][1], data.vals(a[1], env), data.vals(a[2], env))
+    if h == '.callIf':
+        return ('callIf', data.val(a[0]), a[1][1], data.vals(a[2], env))
+    if h == '.dispatch':
+        return ('dispatch', data.val(a[0]), [x[1] for x in data.as_list(a[1], env)], data.vals(a[2], env),
+                data.vals(a[3], env))
+    if h == '.ret':
+        return ('ret', data.vals(a[0], env))
+    raise ValueError(h)
+
+
+def fr_block(e, env):
+    return [fr_stmt(x, env) for x in data.as_list(e, env)]
+
+
+def fr_body(text):
+    ds = data.defs(text[text.index('namespace core'):])
+    cache = {}
+
+    def env(n):
+        if n not in cache:
+            cache[n] = data.parse(ds[n])
+        return cache[n]
+    return fr_block(env('body'), env)
+
+
+def fr_noret(ss):
+    for s in ss:
+        if s[0] == 'ret' or (s[0] == 'ite' and not (fr_noret(s[2]) and fr_noret(s[3]))) or \
+                (s[0] == 'match' and not all(fr_noret(a) for a in s[2])):
+            return False
+    return True
+
+
+def fr_spine(ss):
+    """`Bridge.spine`."""
+    out = []
+    for s in ss:
+        if s[0] == 'atom':
+            out.append(s[1])
+        elif s[0] in ('call', 'callIf', 'dispatch'):
+            pass
+        elif s[0] == 'ite' and fr_noret(s[2]) and fr_noret(s[3]):
+            pass
+        elif s[0] == 'match' and all(fr_noret(a) for a in s[2]):
+            pass
+        else:
+            break
+    return out
+
+
+def fr_stmts(ss):
+    for s in ss:
+        yield s
+        if s[0] == 'ite':
+            yield from fr_stmts(s[2])
+            yield from fr_stmts(s[3])
+        elif s[0] == 'match':
+            for a in s[2]:
+                yield from fr_stmts(a)
+
+
+def fr_uses(a):
+    """`atomUses`, as far as the check reads it."""
+    if a[0] == 'const':
+        return [a[1]]
+    if a[0] in ('add', 'mul'):
+        return [a[1], a[2], a[3]]
+    if a[0] == 'other':
+        return a[2]
+    return []
+
+
+def fr_const_ok(w, e):
+    return w == (2 ** e, 0)
+
+
+def fr_loop_tail(body, name, np):
+    """`(loopTail fn none).isSome`."""
+    if len(body) < 2 or body[-1] != ('ret', []) or body[-2][0] != 'callIf' or np < 1:
+        return False
+    _, c, g, args = body[-2]
+    pre = body[:-2]
+    if g != name or not args or args[1:] != list(range(1, np)):
+        return False
+
+    def defatom(d):
+        for s in pre:
+            if s[0] == 'atom' and s[1][0] in ('const', 'add', 'mul') and s[1][1] == d:
+                return s[1]
+        return None
+
+    def is_step(d):
+        a = defatom(d)
+        if not a or a[0] != 'mul':
+            return False
+        isg = lambda z: (lambda b: b is not None and b[0] == 'const' and fr_const_ok(b[2], 1))(defatom(z))
+        return (a[2] == 0 and isg(a[3])) or (a[3] == 0 and isg(a[2]))
+    a = defatom(c)
+    if not is_step(args[0]) or not a or a[0] != 'add':
+        return False
+    is_end = lambda y: np >= 2 and y == 1
+    return (is_step(a[2]) and is_end(a[3])) or (is_step(a[3]) and is_end(a[2]))
+
+
+def fr_data(F, A, fb, np, locs, extra, fs, cal):
+    """The listed callees and the skipped frame hints' offsets of a function, as `Bridge.frChk` reads them."""
+    loc = lambda v: extra[v] if v in extra else (locs[v] if v < len(locs) else 0)
+    cell = lambda v: v in extra or (v < 1 << 30 and 2 <= loc(v) < fs)
+    frames = [(pc - A['entry'], h) for pc, l in A['hints'] for h in l if h[0] in ALLOC and h[1] in F['sites']]
+    if not frames:
+        return [], []
+    sp = fr_spine(fb)
+
+    def sp_const(v, e):
+        return any(a[0] == 'const' and a[1] == v and fr_const_ok(a[2], e) for a in sp)
+
+    def sp_word(v):
+        return next((a[2] for a in sp if a[0] == 'const' and a[1] == v), None)
+
+    def guard(b, a1, e):
+        for a in sp:
+            if a[0] == 'add' and a[1] == b:
+                x, y = a[2], a[3]
+                if (sp_const(x, e) and y == a1) or (sp_const(y, e) and x == a1):
+                    return True
+                wx, wy = sp_word(x), sp_word(y)
+                if wx is not None and wy is not None and wx != wy:
+                    return True
+        return False
+    cs, skip = set(), set()
+    for st in fr_stmts(fb):
+        if st[0] not in ('call', 'callIf', 'dispatch'):
+            continue
+        args = st[2] if st[0] == 'call' else st[3]
+        rets = st[3] if st[0] == 'call' else (st[4] if st[0] == 'dispatch' else [])
+        for off, h in frames:
+            site = F['sites'][h[1]]
+            if list(site[0]) != list(args) or list(site[1]) != list(rets):
+                continue
+            ok = False
+            if h[0] == 'alloc' and st[0] == 'call':
+                c = cal(st[1])
+                ok = c is not None and c[1] == h[2] and not c[2]
+                if c:
+                    cs.add(c[0])
+            elif h[0] == 'allocArm' and st[0] == 'dispatch':
+                x, sel, sizes = st[1], h[2], h[3]
+                ok = loc(x) == sel and cell(x) and ((x < np and x not in extra) or any(x in fr_uses(a) for a in sp)) and len(sizes) < 2 ** 28
+                for i, f in enumerate(st[2]):
+                    c = cal(f)
+                    ok = ok and c is not None and i < len(sizes) and sizes[i] == c[1] and not c[2]
+                    if c:
+                        cs.add(c[0])
+            elif h[0] == 'allocFrames' and st[0] == 'callIf' and len(st[3]) >= 2:
+                size, stop, tail = h[2], h[3], h[5]
+                b, a0, a1 = st[1], st[3][0], st[3][1]
+                c = cal(st[2])
+                ok = c is not None and c[3] and c[1] == size and tail == size and loc(a1) == stop and cell(a1) and \
+                    ((sp_const(a0, 0) and guard(b, a1, 0)) or (sp_const(a0, 1) and guard(b, a1, 1)))
+                if c:
+                    cs.add(c[0])
+            if not ok:
+                skip.add(off)
+    return sorted(cs), sorted(skip)
+
+
 def run(check):
     ctxs, lk = progal.contexts(), progal.links()
     n = max(lk) + 1
@@ -216,6 +426,15 @@ def run(check):
     pows = align.pow_table()
     jt = align.jump_table(pows)
     passed, failed = {}, {}
+    fbs, byname, nps = {}, {}, {}
+    for j, (k, _, _) in sorted(lk.items()):
+        name = re.search(r'name := "([^"]*)"', cores[k]).group(1)
+        fbs[k] = fr_body(cores[k])
+        np_ = len(re.findall(r'\.n \d+', re.search(r'params := ([^\n]*)', cores[k]).group(1)))
+        nps[k] = np_
+        lpn = name.startswith('__loop')
+        byname[name] = (j, fss[k], lpn, lpn and fr_loop_tail(fbs[k], name, np_))
+    frd = {}
     for j, (k, _, _) in sorted(lk.items()):
         F = dict(fns[k], main=(j == 1))
         extra = {int(a): int(b) for a, b in re.findall(r'\((\d+), (\d+)\)', ctxs[k][0])}
@@ -226,9 +445,11 @@ def run(check):
         if cur:
             sys.exit(f'bridge-cert: `{k}` fails the bump pointer check: {cur}')
         (failed if why else passed)[j] = why or k
+        frd[j] = fr_data(F, adv[F['entry']], fbs[k], nps[k], bund[k]['locs'], extra, fss[k], byname.get)
     files = {}
     shape_mods = {}
     body_mods = {}
+    fr_mods = {}
     by_mod = {}
     for j, (k, _, _) in sorted(lk.items()):
         by_mod.setdefault(ctxs[k][2], []).append((j, k))
@@ -267,8 +488,18 @@ theorem curBodyOk :
 
 '''
 
+        def fr_thm(j, k):
+            cs = '[' + ', '.join(str(c) for c in frd[j][0]) + ']'
+            return f'''/-- `{k}`'s frame hints reserve their callees' frames. -/
+theorem frOk :
+    Bridge.frChk alignCtx Fn.«{k}».fs {cs} (Bridge.AllocChk.frSkipAt {j}) Fn.«{k}».core.params Fn.«{k}».core.body
+      Data.adviceFn{j} = true := by
+  {prf}
+
+'''
+
         def thm(j, k):
-            pre = '' if win else body_thm(j, k)
+            pre = '' if win else body_thm(j, k) + fr_thm(j, k)
             if j in failed:
                 return pre + f'''/-- `{k}`'s allocation hints pass the bump pointer's check on the code. -/
 theorem curCodeOk :
@@ -286,11 +517,20 @@ theorem allocOk :
         body = ''.join(ns(k, thm(j, k)) for j, k in jks)
         files[os.path.join(OUT, mod.split('AllocChk.')[1].strip('«»') + '.lean')] = (
             HEAD.format(mod=mod, what="The kernel's checks that compiled functions' allocation hints pass the check.")
-            + 'public import LeanVM.Guest.Bridge.AllocDefs\n' + f'public import {cm}\n'
+            + 'public import LeanVM.Guest.Bridge.AllocDefs\n'
+            + ('' if win else 'public import LeanVM.Guest.Bridge.AllocFrDefs\npublic import LeanVM.Guest.Bridge.AllocChk.FrSkip\n')
+            + f'public import {cm}\n'
             + ''.join(f'public import {m}\n' for m in imps)
             + '\n' + body.rstrip('\n') + '\n')
         if win:
             for j, k in jks:
+                fmod = f'LeanVM.Guest.Bridge.AllocChk.«F_{k}»'
+                fr_mods[k] = fmod
+                files[os.path.join(OUT, f'F_{k}.lean')] = (
+                    HEAD.format(mod=fmod, what=f"The kernel's check of `{k}`'s frame hints' sizes.")
+                    + 'public import LeanVM.Guest.Bridge.AllocFrDefs\npublic import LeanVM.Guest.Bridge.AllocChk.FrSkip\n'
+                    + f'public import {cm}\n' + ''.join(f'public import {m}\n' for m in imps)
+                    + '\n' + ns(k, fr_thm(j, k)).rstrip('\n') + '\n')
                 bmod = f'LeanVM.Guest.Bridge.AllocChk.«B_{k}»'
                 body_mods[k] = bmod
                 files[os.path.join(OUT, f'B_{k}.lean')] = (
@@ -318,6 +558,7 @@ theorem allocOk :
         imps |= {check_module(ctxs[lk[j][0]][2]) for j in js}
         imps |= {shape_mods[lk[j][0]] for j in js if lk[j][0] in shape_mods}
         imps |= {body_mods[lk[j][0]] for j in js if lk[j][0] in body_mods}
+        imps |= {fr_mods[lk[j][0]] for j in js if lk[j][0] in fr_mods}
         body = []
         for j in js:
             k, _, hp = lk[j]
@@ -326,6 +567,9 @@ theorem allocOk :
             if j not in fsq:
                 body.append(f'kernel_rfl fsEq{j} : B2C.fsN {j} = Fn.«{k}».fs\n')
                 fe = f'fsEq{j}'
+            body.append(f'''theorem fok{j} : Bridge.FrJ {j} :=
+  Bridge.frJ_of Checked.code{j} Checked.core{j} Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe} Fn.«{k}».frOk
+''')
             if j in failed:
                 body.append(f'''theorem cok{j} : Bridge.CurJ {j} :=
   Bridge.curJ_of Checked.code{j} Checked.core{j} Checked.cert{j} {pe} Bridge.ProgAl.tab{j} rfl {fe}
@@ -376,6 +620,12 @@ end LeanVM.Guest.Bridge.AllocChk
 
 ''' for m, (lo, hi) in enumerate(parts))
     ctop = progal.bisect([lo for lo, _ in parts] + [n], lambda a, la, lb: f'(curJ_{a} j {la} {lb})')
+    fpred = 'fun j ↦ Bridge.FrJ j'
+    fthms = ''.join(f'''theorem frJ_{m} : ∀ j, {lo} ≤ j → j < {hi} → Bridge.FrJ j := fun j h1 h2 ↦
+  {progal.bisect(list(range(lo, hi + 1)), lambda a, la, lb: f"(at_of_bounds (P := {fpred}) {la} {lb} fok{lo + a})")}
+
+''' for m, (lo, hi) in enumerate(parts))
+    ftop = progal.bisect([lo for lo, _ in parts] + [n], lambda a, la, lb: f'(frJ_{a} j {la} {lb})')
     why = ''.join(f'\n* `{j}` ({lk[j][0]}): {failed[j]}' for j in excl)
     files[os.path.join(OUT, 'All.lean')] = (
         HEAD.format(mod='LeanVM.Guest.Bridge.AllocChk.All',
@@ -407,6 +657,28 @@ theorem allocJ_all : ∀ j, 1 ≤ j → j < {n} → j ∉ allocExcl → Bridge.A
 theorem curJ_all : ∀ j, 1 ≤ j → j < {n} → Bridge.CurJ j := fun j h1 h2 ↦
   {ctop}
 
+{fthms}/-- **Every compiled function's frame hints pass the sizes check**, but those it skips. -/
+theorem frJ_all : ∀ j, 1 ≤ j → j < {n} → Bridge.FrJ j := fun j h1 h2 ↦
+  {ftop}
+
+end
+
+end LeanVM.Guest.Bridge.AllocChk
+''')
+    skips = [(j, frd[j][1]) for j in sorted(frd) if frd[j][1]]
+    arms = ''.join(f'  | {j} => [{", ".join(str(o) for o in offs)}]\n' for j, offs in skips)
+    files[os.path.join(OUT, 'FrSkip.lean')] = (
+        HEAD.format(mod='LeanVM.Guest.Bridge.AllocChk.FrSkip',
+                    what="The frame hints the frame sizes check skips.")
+        + '''
+namespace LeanVM.Guest.Bridge.AllocChk
+
+@[expose] public section
+
+/-- **The frame hints the frame sizes check skips**, by compiled function: their offsets. -/
+def frSkipAt : Nat → List Nat
+''' + arms + '''  | _ => []
+
 end
 
 end LeanVM.Guest.Bridge.AllocChk
@@ -425,7 +697,7 @@ end LeanVM.Guest.Bridge.AllocChk
         if not check:
             os.remove(path)
     print(f'bridge-cert: the allocation hints of {len(passed)} functions over {len(groups)} link modules, '
-          f'{len(failed)} excluded')
+          f'{len(failed)} excluded; {sum(len(o) for _, o in skips)} frame hints skipped in {len(skips)} functions')
     if check and stale:
         for p in stale:
             print(f'stale: {os.path.relpath(p, data.LEAN_VM)}', file=sys.stderr)

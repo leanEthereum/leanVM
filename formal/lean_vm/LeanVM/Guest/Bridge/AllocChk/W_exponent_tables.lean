@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.Bridge.AllocDefs
+public import LeanVM.Guest.Bridge.AllocFrDefs
+public import LeanVM.Guest.Bridge.AllocChk.FrSkip
 public import LeanVM.Guest.Bridge.AlignWin.«exponent_tables».Ok
 public import LeanVM.Guest.Pack.«P42».Bundle
 public import LeanVM.Guest.Pack.«P42».Core
@@ -25,6 +27,12 @@ theorem allocShapeOk : Bridge.allocShape Fn.«exponent_tables».core.body = true
 /-- `exponent_tables`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
     Bridge.curBody alignCtx Fn.«exponent_tables».plumb Fn.«exponent_tables».core.body Fn.«exponent_tables».code.code Data.adviceFn2 = true := by
+  decide +kernel
+
+/-- `exponent_tables`'s frame hints reserve their callees' frames. -/
+theorem frOk :
+    Bridge.frChk alignCtx Fn.«exponent_tables».fs [] (Bridge.AllocChk.frSkipAt 2) Fn.«exponent_tables».core.params Fn.«exponent_tables».core.body
+      Data.adviceFn2 = true := by
   decide +kernel
 
 /-- `exponent_tables`'s allocation hints pass the check. -/

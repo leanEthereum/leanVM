@@ -59,8 +59,8 @@ open LeanVM.Prover.Exec
 
 @[expose] public section
 
-/-- **The `i`-th hint `h` at a state `s` of the tree track**, top frame `e`, its frames chained, no
-call before its buffers, run from the state `sx` the hints before it reach, whose written cells hold
+/-- **The `i`-th hint `h` at a state `s` of the tree track** on the reference run, top frame `e`, its
+frames chained, no call before its buffers, run from the state `sx` the hints before it reach, whose written cells hold
 the reference's words. -/
 structure HintAt (A : String → FnAl) (r : Ref) (C : Ctx) (e : Ent) (s sx : St) (i : ℕ) (h : Hint) : Prop where
   ok : r.Ok
@@ -68,6 +68,7 @@ structure HintAt (A : String → FnAl) (r : Ref) (C : Ctx) (e : Ent) (s sx : St)
   track : ∃ done st, RefTrack A r s.pc s.fp (done, e :: st) ∧ ChainA A (memOf r.img) (e :: st)
   nc : NcTop A e (s.pc - entOf A e.I.t.name)
   fine : Fine (refMem r.img) s
+  onref : OnRef guestProgram r.img r.n s
   get : ((C.hints[s.pc]?).getD [])[i]? = some h
   pre : (((C.hints[s.pc]?).getD []).take i).foldlM (runHint C) s = .ok sx
   agree : ∀ c v, sx.mem.get c = some v → refMem r.img c = v
@@ -94,27 +95,27 @@ def LateReady (A : String → FnAl) : Prop :=
   ∀ r C e s sx i p b, HintAt A r C e s sx i (.allocLate p b) → sx.mem.written (sx.fp + p) = true ∧ ∃ n, BufOk sx b n
 
 /-- **A callee frame's hint reserves the next callee's block**, and has what it needs where the tree
-puts the bump pointer. -/
+puts the bump pointer, the cells it reads written. -/
 def FrameReady (A : String → FnAl) : Prop :=
   ∀ r C e s sx i h, HintAt A r C e s sx i h → isFrame (A e.I.t.name).X h = true →
     rsz C (refMem r.img) sx h =
         (((e.I.t.kidsC coreProgram.loop)[e.nc]?).map (Tree.block B2C.fs coreProgram.loop)).getD 0 ∧
-      (sx.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) +
+      (Mode.HintIn sx h → sx.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) +
           ((treeSizes A e (s.pc - entOf A e.I.t.name)).take i).sum → HintOk C (refMem r.img) sx h)
 
-/-- **A callee frame's hint reserves `B` words**, its size read off the state: a constant, a dispatch
-arm's by its selector, or a loop chain's by its bound. -/
-def SizeOk (s : St) : Hint → ℕ → Prop
+/-- **A callee frame's hint reserves `B` words**, its size read off `M` at frame `fp`: a constant, a
+dispatch arm's by its selector, or a loop chain's by its bound. -/
+def SizeOk (M : ℕ → E) (fp : ℕ) : Hint → ℕ → Prop
   | .alloc _ n, B => n = B
-  | .allocArm _ sel sizes, B => ∃ k, PtrAt s (s.fp + sel) k ∧ sizes[k]? = some B
-  | .allocFrames _ size stop si tail, B => ∃ v n, s.mem.peek (s.fp + stop) = ofK v ∧ v * si = Parameters.g ^ n ∧ n < maxCells ∧
+  | .allocArm _ sel sizes, B => ∃ k, M (fp + sel) = ofK (Parameters.g ^ k) ∧ k < maxCells ∧ sizes[k]? = some B
+  | .allocFrames _ size stop si tail, B => ∃ v n, M (fp + stop) = ofK v ∧ v * si = Parameters.g ^ n ∧ n < maxCells ∧
       size * n + tail = B
   | _, _ => False
 
-/-- **A callee frame's hint reserves the next callee's block.** -/
+/-- **A callee frame's hint reserves the next callee's block**, its sizes read off the reference. -/
 def FrameSize (A : String → FnAl) : Prop :=
   ∀ r C e s sx i h, HintAt A r C e s sx i h → isFrame (A e.I.t.name).X h = true →
-    SizeOk sx h ((((e.I.t.kidsC coreProgram.loop)[e.nc]?).map (Tree.block B2C.fs coreProgram.loop)).getD 0)
+    SizeOk (refMem r.img) sx.fp h ((((e.I.t.kidsC coreProgram.loop)[e.nc]?).map (Tree.block B2C.fs coreProgram.loop)).getD 0)
 
 /-- **A callee frame's pointer cell holds the next callee's frame**: the instance's cursor past its
 buffers and its callees so far. -/
@@ -364,8 +365,9 @@ theorem loop_calls_ne {fn : Fn} {p : B2C.Plumb} (h : loopChk fn p = true) {σ : 
 alignment, given the facts named. -/
 theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady alignA) (hF : FrameReady alignA)
     (hX : ExclReady alignA) : AllocReady alignA := by
-  intro r hr C hC done e st s htr hch hnc hfine i h sx hget hpre hm halloc hin hnf
-  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hget, hpre, hm.fine.agree.get⟩
+  intro r hr C hC done e st s htr hch hnc hfine hon i h sx hget hpre hm halloc hin hnf
+  have hat : HintAt alignA r C e s sx i h :=
+    ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hon, hget, hpre, hm.fine.agree.get⟩
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
@@ -383,7 +385,7 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
   have hA2 : alignA e.I.t.name = fnAl (i0 + 1) := alignA_of hj
   by_cases hp : (allocPtr h).isSome = true
   · by_cases hfr : isFrame (alignA e.I.t.name).X h = true
-    · exact (hF r C e s sx i h hat hfr).2 (by rw [hoff]; exact hnf)
+    · exact (hF r C e s sx i h hat hfr).2 hin (by rw [hoff]; exact hnf)
     · by_cases hlt : isLate h = true
       · cases h <;> simp only [isLate, Bool.false_eq_true] at hlt
         rename_i p b
@@ -559,8 +561,8 @@ theorem treeSizes_getD (A : String → FnAl) (e : Ent) {off i : ℕ} {h : Hint}
 /-- **Each hint reserves its `treeSizes` entry**, on the deployed alignment, given the facts named. -/
 theorem sizesAt_alignA (hA : AdvNext alignA) (hL : LateReady alignA) (hF : FrameReady alignA) (hX : ExclReady alignA) :
     SizesAt alignA := by
-  intro r hr C hC done e st s htr hch hnc hfine i h sx hget hpre hag
-  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hget, hpre, hag⟩
+  intro r hr C hC done e st s htr hch hnc hfine hon i h sx hget hpre hag
+  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hon, hget, hpre, hag⟩
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
@@ -647,40 +649,36 @@ theorem sizesAt_alignA (hA : AdvNext alignA) (hL : LateReady alignA) (hF : Frame
 
 /-! ## The callee frames -/
 
-/-- **A frame hint's size read off the state is its reserved words.** -/
-theorem rsz_of_sizeOk {C : Ctx} {M : ℕ → E} {s : St} (hag : ∀ c v, s.mem.get c = some v → M c = v) {h : Hint}
-    {B : ℕ} (hS : SizeOk s h B) : rsz C M s h = B := by
-  have hpeek : ∀ c w, s.mem.peek c = w → w ≠ 0 → M c = w := fun c w hp hw ↦ by
-    unfold Mem.peek at hp
-    cases hg : s.mem.get c with
-    | none => rw [hg] at hp; exact absurd hp.symm hw
-    | some v => rw [hg, Option.getD_some] at hp; rw [← hp]; exact hag c v hg
+/-- **A frame hint's size read off `M` is its reserved words.** -/
+theorem rsz_of_sizeOk {C : Ctx} {M : ℕ → E} {s : St} {h : Hint} {B : ℕ} (hS : SizeOk M s.fp h B) :
+    rsz C M s h = B := by
   cases h <;> simp only [SizeOk] at hS
   · rename_i p size stop si tail
     obtain ⟨v, n, hp, hvn, hn, hB⟩ := hS
-    have hv0 : ofK v ≠ 0 := fun h0 ↦ by
-      have : v = 0 := ofK_injective (h0.trans (map_zero (algebraMap K E)).symm)
-      rw [this, zero_mul] at hvn
-      exact Mode.ofK_gpow_ne_zero n (by rw [← hvn]; simp)
-    have hM := hpeek _ _ hp hv0
     simp only [rsz]
-    rw [hM, limb_ofK]
+    rw [hp, limb_ofK]
     simp only [Fin.isValue, Fin.val_zero, ↓reduceIte]
     rw [hvn, logG_spec (by unfold maxCells at hn; omega), hB]
   · exact hS
   · rename_i p sel sizes
-    obtain ⟨k, ⟨hp, hk⟩, hsz⟩ := hS
-    have hM := hpeek _ _ hp (Mode.ofK_gpow_ne_zero _)
+    obtain ⟨k, hp, hk, hsz⟩ := hS
     simp only [rsz]
-    rw [hM, logG_spec (by unfold maxCells at hk; omega), List.getD_eq_getElem?_getD, hsz, Option.getD_some]
+    rw [hp, logG_spec (by unfold maxCells at hk; omega), List.getD_eq_getElem?_getD, hsz, Option.getD_some]
+
+/-- A written cell's word is `M`'s, where `M` agrees with the state. -/
+theorem peek_of_written {M : ℕ → E} {s : St} (hag : ∀ c v, s.mem.get c = some v → M c = v) {c : ℕ}
+    (hw : s.mem.written c = true) : s.mem.peek c = M c := by
+  obtain ⟨v, hv⟩ := Mem.get_of_written hw
+  unfold Mem.peek
+  rw [hv, Option.getD_some, hag c v hv]
 
 /-- **The callee frames' hints**, from their sizes and pointers. -/
 theorem frameReady_of (hS : FrameSize alignA) (hP : FramePtr alignA) : FrameReady alignA := by
   intro r C e s sx i h hat hfr
-  obtain ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hget, hpre, hag⟩ := hat
-  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hget, hpre, hag⟩
+  obtain ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hon, hget, hpre, hag⟩ := hat
+  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hon, hget, hpre, hag⟩
   have hSz := hS r C e s sx i h hat hfr
-  refine ⟨rsz_of_sizeOk hag hSz, fun hnf ↦ ?_⟩
+  refine ⟨rsz_of_sizeOk hSz, fun hin hnf ↦ ?_⟩
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
@@ -783,11 +781,11 @@ theorem frameReady_of (hS : FrameSize alignA) (hP : FramePtr alignA) : FrameRead
   cases h <;> simp only [SizeOk] at hSz <;> simp only [allocPtr, Option.some.injEq] at hp
   · subst hp
     obtain ⟨v, n, h1, h2, h3, h4⟩ := hSz
-    exact ⟨v, n, h1, h2, h3, h4 ▸ hA⟩
+    exact ⟨v, n, by rw [peek_of_written hag hin, h1], h2, h3, h4 ▸ hA⟩
   · subst hp hSz; exact hA
   · subst hp
-    obtain ⟨k, hk, hsz⟩ := hSz
-    exact ⟨k, B, hk, hsz, hA⟩
+    obtain ⟨k, hk, hk', hsz⟩ := hSz
+    exact ⟨k, B, ⟨by rw [peek_of_written hag hin, hk], hk'⟩, hsz, hA⟩
 
 /-! ## Together -/
 

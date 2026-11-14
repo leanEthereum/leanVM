@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.Bridge.AllocDefs
+public import LeanVM.Guest.Bridge.AllocFrDefs
+public import LeanVM.Guest.Bridge.AllocChk.FrSkip
 public import LeanVM.Guest.Bridge.Align.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Core
@@ -25,6 +27,12 @@ theorem allocShapeOk : Bridge.allocShape Fn.«verify_sig_lean_sphincs».core.bod
 /-- `verify_sig_lean_sphincs`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
     Bridge.curBody alignCtx Fn.«verify_sig_lean_sphincs».plumb Fn.«verify_sig_lean_sphincs».core.body Fn.«verify_sig_lean_sphincs».code.code Data.adviceFn21 = true := by
+  decide +kernel
+
+/-- `verify_sig_lean_sphincs`'s frame hints reserve their callees' frames. -/
+theorem frOk :
+    Bridge.frChk alignCtx Fn.«verify_sig_lean_sphincs».fs [20] (Bridge.AllocChk.frSkipAt 21) Fn.«verify_sig_lean_sphincs».core.params Fn.«verify_sig_lean_sphincs».core.body
+      Data.adviceFn21 = true := by
   decide +kernel
 
 /-- `verify_sig_lean_sphincs`'s allocation hints pass the check. -/

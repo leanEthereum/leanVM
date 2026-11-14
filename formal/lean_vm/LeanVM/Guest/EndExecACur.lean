@@ -505,7 +505,7 @@ theorem curArith_alignA : CurArith alignA := by
   have hnode : ∃ f σ bufs kids, e.I.t = .node f σ bufs kids := ⟨_, _, _, _, hIt⟩
   have hwj : walk e.σ (coreOf j).body = .ret (e.pre ++ e.es) vs := by rw [hfn]; exact hw
   obtain ⟨off, hpc, pc', fp', ⟨done', st'⟩, hr', hts', hk⟩ :=
-    stepRule_off progAl honest_closed htr (jumpCells_at r hr _ _ _ _ _ htr) hstep hne'
+    stepRule_off progAl honest_closed htr (jumpCells_at r hr _ _ _ _ _ htr) hstep (.inl hne')
   have hoff : pc - entOf alignA e.I.t.name = off := by omega
   rw [hoff]
   have hstep' := cursor_step alignA e off
