@@ -80,29 +80,104 @@ pub const PI: [usize; STATE_LANES] = {
     p
 };
 
+/// One state lane: a `u64`, or the same lane of [`LANES`] states permuted together, which LLVM vectorizes.
+trait Lane: Copy {
+    fn xor(self, o: Self) -> Self;
+    /// `!self & o`.
+    fn andn(self, o: Self) -> Self;
+    fn rotl(self, n: u32) -> Self;
+    fn xor_u64(self, x: u64) -> Self;
+}
+
+impl Lane for u64 {
+    #[inline(always)]
+    fn xor(self, o: Self) -> Self {
+        self ^ o
+    }
+    #[inline(always)]
+    fn andn(self, o: Self) -> Self {
+        !self & o
+    }
+    #[inline(always)]
+    fn rotl(self, n: u32) -> Self {
+        self.rotate_left(n)
+    }
+    #[inline(always)]
+    fn xor_u64(self, x: u64) -> Self {
+        self ^ x
+    }
+}
+
+impl<const N: usize> Lane for [u64; N] {
+    #[inline(always)]
+    fn xor(mut self, o: Self) -> Self {
+        for i in 0..N {
+            self[i] ^= o[i];
+        }
+        self
+    }
+    #[inline(always)]
+    fn andn(mut self, o: Self) -> Self {
+        for i in 0..N {
+            self[i] = !self[i] & o[i];
+        }
+        self
+    }
+    #[inline(always)]
+    fn rotl(mut self, n: u32) -> Self {
+        for i in 0..N {
+            self[i] = self[i].rotate_left(n);
+        }
+        self
+    }
+    #[inline(always)]
+    fn xor_u64(mut self, x: u64) -> Self {
+        for i in 0..N {
+            self[i] ^= x;
+        }
+        self
+    }
+}
+
 /// The Keccak-f\[1600\] permutation, in place: 24 rounds of θ, ρ, π, χ and ι.
 #[inline]
 pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
+    permute(a);
+}
+
+/// [`keccak_f`] over any lane type.
+#[inline(always)]
+fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
+    let chi = |[b0, b1, b2, b3, b4]: [S; 5]| {
+        [
+            b0.xor(b1.andn(b2)),
+            b1.xor(b2.andn(b3)),
+            b2.xor(b3.andn(b4)),
+            b3.xor(b4.andn(b0)),
+            b4.xor(b0.andn(b1)),
+        ]
+    };
     for &rc in &RC {
-        // θ: XOR each lane with the parities of the two neighbouring columns.
-        let c: [u64; 5] = std::array::from_fn(|x| a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20]);
-        let d: [u64; 5] = std::array::from_fn(|x| c[(x + 4) % 5] ^ c[(x + 1) % 5].rotate_left(1));
-        let t = |i: usize| a[i] ^ d[i % 5];
-        // ρ and π: lane `i` rotated by `RHO[i]` lands at `PI[i]`. Written out, since the rotations
-        // must be constants to compile well.
-        #[rustfmt::skip]
-        let b = [
-            t(0), t(6).rotate_left(44), t(12).rotate_left(43), t(18).rotate_left(21), t(24).rotate_left(14),
-            t(3).rotate_left(28), t(9).rotate_left(20), t(10).rotate_left(3), t(16).rotate_left(45), t(22).rotate_left(61),
-            t(1).rotate_left(1), t(7).rotate_left(6), t(13).rotate_left(25), t(19).rotate_left(8), t(20).rotate_left(18),
-            t(4).rotate_left(27), t(5).rotate_left(36), t(11).rotate_left(10), t(17).rotate_left(15), t(23).rotate_left(56),
-            t(2).rotate_left(62), t(8).rotate_left(55), t(14).rotate_left(39), t(15).rotate_left(41), t(21).rotate_left(2),
+        let col = |x: usize| a[x].xor(a[x + 5]).xor(a[x + 10]).xor(a[x + 15]).xor(a[x + 20]);
+        let c = [col(0), col(1), col(2), col(3), col(4)];
+        let d = [
+            c[4].xor(c[1].rotl(1)),
+            c[0].xor(c[2].rotl(1)),
+            c[1].xor(c[3].rotl(1)),
+            c[2].xor(c[4].rotl(1)),
+            c[3].xor(c[0].rotl(1)),
         ];
-        // χ, row by row, then ι.
-        for (row, b) in a.as_chunks_mut::<5>().0.iter_mut().zip(b.as_chunks::<5>().0) {
-            *row = std::array::from_fn(|x| b[x] ^ (!b[(x + 1) % 5] & b[(x + 2) % 5]));
-        }
-        a[0] ^= rc;
+        let t = |i: usize| a[i].xor(d[i % 5]);
+        #[rustfmt::skip]
+        let rows = [
+            chi([t(0), t(6).rotl(44), t(12).rotl(43), t(18).rotl(21), t(24).rotl(14)]),
+            chi([t(3).rotl(28), t(9).rotl(20), t(10).rotl(3), t(16).rotl(45), t(22).rotl(61)]),
+            chi([t(1).rotl(1), t(7).rotl(6), t(13).rotl(25), t(19).rotl(8), t(20).rotl(18)]),
+            chi([t(4).rotl(27), t(5).rotl(36), t(11).rotl(10), t(17).rotl(15), t(23).rotl(56)]),
+            chi([t(2).rotl(62), t(8).rotl(55), t(14).rotl(39), t(15).rotl(41), t(21).rotl(2)]),
+        ];
+        *a = std::array::from_fn(|i| rows[i / 5][i % 5]);
+        a[0] = a[0].xor_u64(rc);
     }
 }
 
@@ -258,11 +333,12 @@ fn hash_from_state(data: &[u8], state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
 }
 
 // ---------------------------------------------------------------------------
-// Batched entry points: plain loops over the one-input forms.
+// Batched entry points: groups of LANES states permuted together by `keccak_f_many`.
 // ---------------------------------------------------------------------------
 
-/// Inputs a batched entry point handles together: one, since each input is hashed on its own.
-pub const LANES: usize = 1;
+/// States [`keccak_f_many`] permutes together: eight where LLVM vectorizes the permutation over them, into one
+/// AVX-512 register per lane, and one elsewhere, where it would not.
+pub const LANES: usize = if cfg!(target_feature = "avx512f") { 8 } else { 1 };
 
 /// Batched Keccak-256 of `data` split into `len`-byte inputs, writing one 32-byte
 /// digest per input to `out`. Byte-identical to [`hash`] per input.
@@ -275,8 +351,29 @@ pub fn hash_many(data: &[u8], len: usize, out: &mut [u8]) {
 pub fn hash_many_from_state(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
     let n = out.len() / OUT_LEN;
     assert_eq!((data.len(), out.len()), (n * len, n * OUT_LEN));
-    for (i, digest) in out.as_chunks_mut::<OUT_LEN>().0.iter_mut().enumerate() {
-        *digest = hash_from_state(&data[i * len..(i + 1) * len], state);
+    let blocks = len / RATE;
+    for first in (0..n).step_by(LANES) {
+        let group = first..(first + LANES).min(n);
+        let mut states = [*state; LANES];
+        let states = &mut states[..group.len()];
+        // Every input of the group absorbs its block `b`, then the group permutes together.
+        for b in 0..=blocks {
+            for (s, i) in states.iter_mut().zip(group.clone()) {
+                let input = &data[i * len..(i + 1) * len];
+                let block = if b < blocks {
+                    block_of(input[b * RATE..][..RATE].try_into().unwrap())
+                } else {
+                    final_block(&input[blocks * RATE..])
+                };
+                for (s, w) in s.iter_mut().zip(&block) {
+                    *s ^= w;
+                }
+            }
+            keccak_f_many(states);
+        }
+        for (s, i) in states.iter().zip(group) {
+            out[i * OUT_LEN..(i + 1) * OUT_LEN].copy_from_slice(&digest_of(s));
+        }
     }
 }
 
@@ -303,18 +400,30 @@ pub fn final_state(data: &[u8]) -> [u64; STATE_LANES] {
 pub fn digest_halves_from(template: &[u64; STATE_LANES], at: usize, values: &[u128], out: &mut [u128]) {
     // The final block ends in padding, so the value stops before its last lane.
     assert!(at + 2 < RATE_LANES && values.len() == out.len());
-    for (&value, out) in values.iter().zip(out) {
-        let mut state = *template;
-        state[at] ^= value as u64;
-        state[at + 1] ^= (value >> 64) as u64;
-        keccak_f(&mut state);
-        *out = u128::from(state[0]) | u128::from(state[1]) << 64;
+    for (values, out) in values.chunks(LANES).zip(out.chunks_mut(LANES)) {
+        let mut states = [*template; LANES];
+        let states = &mut states[..values.len()];
+        for (s, &v) in states.iter_mut().zip(values) {
+            s[at] ^= v as u64;
+            s[at + 1] ^= (v >> 64) as u64;
+        }
+        keccak_f_many(states);
+        for (o, s) in out.iter_mut().zip(states) {
+            *o = u128::from(s[0]) | u128::from(s[1]) << 64;
+        }
     }
 }
 
-/// Keccak-f\[1600\] of every state in place.
+/// Keccak-f\[1600\] of every state in place, [`LANES`] at a time: the states are transposed so that
+/// each lane of the permutation holds that lane of every state.
 pub fn keccak_f_many(states: &mut [[u64; STATE_LANES]]) {
-    states.iter_mut().for_each(keccak_f);
+    let (groups, rest) = states.as_chunks_mut::<LANES>();
+    for group in groups {
+        let mut lanes: [[u64; LANES]; STATE_LANES] = std::array::from_fn(|i| std::array::from_fn(|l| group[l][i]));
+        permute(&mut lanes);
+        *group = std::array::from_fn(|l| std::array::from_fn(|i| lanes[i][l]));
+    }
+    rest.iter_mut().for_each(keccak_f);
 }
 
 #[cfg(test)]
@@ -386,13 +495,29 @@ mod tests {
             let mut input = pattern(len);
             input[at..at + 16].fill(0);
             let template = final_state(&input);
-            let values: Vec<u128> = (0..5u128).map(|i| (i + 1) * 0x9E37_79B9_7F4A_7C15).collect();
+            let values: Vec<u128> = (0..2 * LANES as u128 + 1)
+                .map(|i| (i + 1) * 0x9E37_79B9_7F4A_7C15)
+                .collect();
             let mut got = vec![0; values.len()];
             digest_halves_from(&template, at % RATE / 8, &values, &mut got);
             for (value, got) in values.iter().zip(got) {
                 input[at..at + 16].copy_from_slice(&value.to_le_bytes());
                 assert_eq!(got.to_le_bytes()[..], hash(&input)[..16], "len {len}");
             }
+        }
+    }
+
+    /// The batched permutation, whole groups and the remainder, against the one-state one.
+    #[test]
+    fn keccak_f_many_matches_keccak_f() {
+        let states: Vec<[u64; STATE_LANES]> = (0..2 * LANES as u64 + 1)
+            .map(|l| std::array::from_fn(|i| (l << 32) ^ (i as u64 * 0x9E37_79B9)))
+            .collect();
+        let mut got = states.clone();
+        keccak_f_many(&mut got);
+        for (mut want, got) in states.into_iter().zip(got) {
+            keccak_f(&mut want);
+            assert_eq!(got, want);
         }
     }
 }
