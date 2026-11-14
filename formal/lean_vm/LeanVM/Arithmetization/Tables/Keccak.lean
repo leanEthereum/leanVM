@@ -19,10 +19,10 @@ public import Mathlib.Algebra.CharP.Two
 /-!
 # The `KECCAK` table
 
-At `leanvm-rev` and Clean pin `b41c196b`. The
-columns are `keccak_columns` (`crates/verifier/src/layout.rs:383-388, 425-434`;
-`crates/leanvm_core/src/tables.rs:856-873`, `keccakt`) and the flushes `flushes_keccak`
-(`layout.rs:324-362`; `tables.rs:919-945`),
+At Clean pin `b41c196b`. The
+columns are `keccak_columns` (`crates/verifier/src/layout.rs`;
+`crates/leanvm_core/src/tables.rs`, `keccakt`) and the flushes `flushes_keccak`
+(`layout.rs`; `tables.rs`),
 matching specification §7.6 (`doc/leanvm/body/07-instruction-tables.tex`). There is no table constraint: the permutation is
 proved by the Keccak reduction (`verify_keccak`) on the input lanes committed to `q_keccak` and
 the output lanes the table's claims hand it.
@@ -33,7 +33,7 @@ the output lanes the table's claims hand it.
 cell, the thirteen read then the thirteen written or cancelled (`cnt`); the bytecode count
 `r_bc`. A cell's
 limb holding lane `a` in the even layout and `b` in the odd one is `a + flag·a + flag·b`
-(`layout_limb`, `layout.rs:306-322`): `a` at `flag = 0`, `b` at `flag = 1`; a cell is exactly
+(`layout_limb`, `layout.rs`): `a` at `flag = 0`, `b` at `flag = 1`; a cell is exactly
 its two limbs.
 
 **The output cells.** Output cell `0` is a read (`memRead`); cell `1` is a read gated by
@@ -68,7 +68,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `KECCAK` columns, in the order of `keccak_columns` (`layout.rs:425-434`). -/
+/-- The `KECCAK` columns, in the order of `keccak_columns` (`layout.rs`). -/
 structure KeccakRow (F : Type) where
   /-- The program counter. -/
   pc : F
@@ -262,13 +262,13 @@ theorem of_gate_all {oc : KeccakOutputCells} (h : (keccakOutputFlags oc).2 = 1) 
 /-! ## The table -/
 
 set_option maxHeartbeats 16000000 in
-/-- The `KECCAK` table (`flushes_keccak`, `layout.rs:324-362`): state step, bytecode read of
+/-- The `KECCAK` table (`flushes_keccak`, `layout.rs`): state step, bytecode read of
 `(KECCAK, o_m₀, …, o_m₃, o_tail, o_b8, o_cap, o_out, odd_in, odd_out, out_two, out_all)`, the
 thirteen cells read, output cell `0` written, cell `1` written as `out_two` says and cells `2..13`
 as `out_all` says (`memReadIf`), each as `(lo, hi)` in its layout. Returns the pushed successor
 `(g·pc, fp)`; sound under `KeccakRelation`. -/
 def keccakTable : GeneralFormalCircuit K KeccakRow Registers where
-  -- The table's name in leanVM (`TABLES`, `cpu/mod.rs:391`), unique in the ensemble (Clean keys
+  -- The table's name in leanVM (`TABLES`, `cpu/mod.rs`), unique in the ensemble (Clean keys
   -- the prover data by it).
   name := "KECCAK"
   main r := do
@@ -462,7 +462,7 @@ noncomputable def keccakInputCells {κ : ℕ} (mem : MemoryImage κ) (fp : K) (o
 /-- The row of an execution of `KECCAK om o_tail o_b8 o_cap o_out inOdd outOdd outCells` from
 `(pc, fp)` over the image `mem`: the registers, the operands, the layout and output flags, the
 input lanes the cells read hold and their free limb, the output lanes Keccak-f[1600] of them (all
-twenty-five, as the Rust fills `V_OUT` with the input permuted again, `tables.rs:977-982`, whatever
+twenty-five, as the Rust fills `V_OUT` with the input permuted again, `tables.rs`, whatever
 `outCells`), and the counts as parameters. Noncomputable: it reads the image. -/
 noncomputable def keccakRowOf {κ : ℕ} (mem : MemoryImage κ) (pc fp : K) (om : Fin 4 → K)
     (otail ob8 ocap oout : K) (inOdd outOdd : Bool) (outCells : KeccakOutputCells)

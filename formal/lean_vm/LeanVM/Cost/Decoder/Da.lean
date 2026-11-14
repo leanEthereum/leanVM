@@ -3,6 +3,9 @@ module
 public import LeanVM.Cost.Decoder.Hints
 public import LeanVM.Guest.Fast.Da
 import LeanVM.Guest.Value.Bits
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The guest decoder's compiled chain: the DA matrix
@@ -12,7 +15,7 @@ import LeanVM.Guest.Value.Bits
 `Guest.Fast.dvWitN_eq`): the rows of the cells' symbols, compiled part by part. Staged, each frame
 looked up once:
 
-* the number of rows (a logarithm, `gLogD D`, the logarithm's tables `D` given, at most `1024`,
+* the number of rows (a logarithm, `gLogD D`, the logarithm's tables `D` given, at most `DA_MAX_ROWS`,
   `daRowCount`, as `Da.dvRows`) computed once by `dvWitND` and passed to `dvWitNAt`;
 * each column's frame (`dvColVN`) looked up once, its two words the rows read (`dvColWords`)
   kept in an array of the `128` columns (`dvCols`), built once by `dvWitNAt` and passed to
@@ -33,16 +36,16 @@ open LeanVM.Guest.B1.Da LeanVM.Extraction.Fast LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- The symbols, padded outside the matrix of `r` rows (`dvSymsPN`, `r` its logarithm). -/
-def dvSymsPNAt (r : ℕ) (σ : Val) (Vn : NFrames) (i h : ℕ) : List K :=
+def dvSymsPNAt (r : ℕ) (σ : Val) (Vn : NFrames) (i h : ℕ) : List E :=
   if i < r ∧ h < 128 then
-    cellSymsOf (Vn (fn_idx% da_verify_cell) [dvColVN σ Vn h (.n 13)]
+    cellSymsOf (Vn (fn_idx% da_verify_cell) [dvColVN σ Vn h (.n 14)]
       [dvRowVN σ Vn i h (.n 6), dvRowVN σ Vn i h (.n 7), dvRowVN σ Vn i h (.n 8)])
-  else List.replicate 256 0
+  else List.replicate 128 0
 
 /-! ## Each frame once -/
 
-/-- A column's two words its blob loop reads (`13`, `14`), off its valuation. -/
-def colWordsOf (v : Val) : E × E := (v (.n 13), v (.n 14))
+/-- A column's two words its blob loop reads (`14`, `15`), off its valuation. -/
+def colWordsOf (v : Val) : E × E := (v (.n 14), v (.n 15))
 
 /-- Column `h`'s two words, its frame looked up once. -/
 def dvColWords (σ : Val) (Vn : NFrames) (h : ℕ) : E × E := colWordsOf (dvColVN σ Vn h)
@@ -52,19 +55,19 @@ def dvCols (σ : Val) (Vn : NFrames) : Array (E × E) := ((List.range 128).map (
 
 /-- Blob `i`'s iteration of column `h`'s blob loop (`dvRowVN`), the column's words `cw` given. -/
 def dvRowVW (σ : Val) (Vn : NFrames) (cw : E × E) (i h : ℕ) : Val :=
-  Vn (fn_idx% da_verify_column_loop0) [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 22), ofK (Parameters.g ^ h), cw.2] []
+  Vn (fn_idx% da_verify_column_loop0) [ofK (Parameters.g ^ i), σ (.n 0), cw.1, σ (.n 19), ofK (Parameters.g ^ h), cw.2] []
 
 /-- A cell's symbols off `da_verify_cell`'s frame, the blob loop's valuation given. -/
-def cellSymsAt (Vn : NFrames) (c13 : E) (row : Val) : List K :=
-  cellSymsOf (Vn (fn_idx% da_verify_cell) [c13] [row (.n 6), row (.n 7), row (.n 8)])
+def cellSymsAt (Vn : NFrames) (c14 : E) (row : Val) : List E :=
+  cellSymsOf (Vn (fn_idx% da_verify_cell) [c14] [row (.n 6), row (.n 7), row (.n 8)])
 
 /-- Cell `(i, h)`'s symbols, the column's words given: its blob loop's frame looked up once. -/
-def dvSymsCell (σ : Val) (Vn : NFrames) (cw : E × E) (i h : ℕ) : List K :=
+def dvSymsCell (σ : Val) (Vn : NFrames) (cw : E × E) (i h : ℕ) : List E :=
   cellSymsAt Vn cw.1 (dvRowVW σ Vn cw i h)
 
 /-- The symbols, padded outside the matrix of `r` rows, the columns' words given. -/
-def dvSymsCols (r : ℕ) (σ : Val) (Vn : NFrames) (cols : Array (E × E)) (i h : ℕ) : List K :=
-  if i < r ∧ h < 128 then dvSymsCell σ Vn (cols.getD h (0, 0)) i h else List.replicate 256 0
+def dvSymsCols (r : ℕ) (σ : Val) (Vn : NFrames) (cols : Array (E × E)) (i h : ℕ) : List E :=
+  if i < r ∧ h < 128 then dvSymsCell σ Vn (cols.getD h (0, 0)) i h else List.replicate 128 0
 
 /-- `da_verify`'s witness, its `r` rows and its columns' words given. -/
 def dvWitNCols (r : ℕ) (σ : Val) (Vn : NFrames) (cols : Array (E × E)) : LeanVM.Da.MatrixWitness :=
@@ -75,7 +78,7 @@ def dvWitNAt (r : ℕ) (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=
   dvWitNCols r σ Vn (dvCols σ Vn)
 
 theorem dvCols_getD (σ : Val) (Vn : NFrames) {h : ℕ} (hh : h < 128) :
-    (dvCols σ Vn).getD h (0, 0) = (dvColVN σ Vn h (.n 13), dvColVN σ Vn h (.n 14)) := by
+    (dvCols σ Vn).getD h (0, 0) = (dvColVN σ Vn h (.n 14), dvColVN σ Vn h (.n 15)) := by
   simp [dvCols, dvColWords, colWordsOf, Array.getD_eq_getD_getElem?, hh]
 
 theorem dvSymsCols_eq (r : ℕ) (σ : Val) (Vn : NFrames) (i h : ℕ) :
@@ -95,21 +98,21 @@ theorem dvWitNAt_eq (r : ℕ) (σ : Val) (Vn : NFrames) :
     funext fun i ↦ funext fun h ↦ dvSymsCols_eq r σ Vn i h
   rw [h1]
 
-/-- A count of rows, at most `1024` (`dvRows`'s clamp). -/
-def daRowCount (r : ℕ) : ℕ := if r ≤ 1024 then r else 1024
+/-- A count of rows, at most `DA_MAX_ROWS` (`dvRows`'s clamp). -/
+def daRowCount (r : ℕ) : ℕ := if r ≤ guest_const% DA_MAX_ROWS then r else guest_const% DA_MAX_ROWS
 
-theorem daRowCount_eq (r : ℕ) : daRowCount r = min r 1024 := by
+theorem daRowCount_eq (r : ℕ) : daRowCount r = min r (guest_const% DA_MAX_ROWS) := by
   unfold daRowCount
   split <;> omega
 
-theorem daRowCount_le (r : ℕ) : daRowCount r ≤ 1024 := by
+theorem daRowCount_le (r : ℕ) : daRowCount r ≤ guest_const% DA_MAX_ROWS := by
   unfold daRowCount
   split <;> omega
 
 /-- **`da_verify`'s witness** (`dvWitN`), the logarithm's tables `D` given: its rows counted
-once, at most `1024` (`daRowCount`). -/
+once, at most `DA_MAX_ROWS` (`daRowCount`). -/
 def dvWitND (D : DiscreteLogTables) (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=
-  dvWitNAt (daRowCount (gLogD D (σ (.n 1)))) σ Vn
+  dvWitNAt (daRowCount (gLogD D (σ (.n 0)))) σ Vn
 
 theorem dvWitND_tables : dvWitND discreteLogTables = dvWitN := by
   funext σ Vn

@@ -100,7 +100,7 @@ def mKids (m : MainIn) (Lin : B1.Main.Layout) : List Kid :=
     ⟨name% «main_loop3», decide (m.nrs ≠ 0), [one, gen ^ m.nrs, gen ^ Y, m.a117 * gen ^ X,
         gen ^ m.nrx,
       m.a80, m.a119], Lin, Returns []⟩] ++
-  (if m.nd = 1 then [⟨"da_verify", true, [m.et], Lin, Returns m.daR⟩] else []) ++
+  (if m.nd = 1 then [⟨"da_verify", true, [], Lin, Returns m.daR⟩] else []) ++
   [⟨name% «main_loop4», decide (m.nc ≠ 0), [one, gen ^ m.nc, m.a409, m.a77, m.a117, gen ^ X, m.a80,
     m.a117 * gen ^ X, gen ^ Y, m.a406, m.aDa, (digestHalves m.seed).1, (digestHalves m.seed).2,
     m.a394, m.et, m.a400], Lin, Returns []⟩] ++

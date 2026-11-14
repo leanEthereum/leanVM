@@ -17,7 +17,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.TableMath
 # The table phase's identities at leanISA
 
 The bus/table bridge (`busTableSpec`, `LeanVM.Protocol.EndToEnd.Front.BusTable`) specifies the
-verifier program's bus phase and table sumcheck (`crates/verifier/src/bus.rs:130-297`) on the oracle protocol's relations, given three facts
+verifier program's bus phase and table sumcheck (`crates/verifier/src/bus.rs`) on the oracle protocol's relations, given three facts
 about the instance and the layout. This module proves them at the leanISA instance
 `leanIsaWith prog s fl` and the verifier's layout `verifierLayout prog s`, for every program
 `prog` and size vector `s`:

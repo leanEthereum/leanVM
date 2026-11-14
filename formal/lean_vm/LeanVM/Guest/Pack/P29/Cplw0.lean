@@ -214,11 +214,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `bus_grind_check__L4`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(452, Fn.«grind_check__L21».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L4».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(442, Fn.«grind_check__L21».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L4».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `bus_grind_check__L4`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(452, Fn.«grind_check__L21».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L4».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(442, Fn.«grind_check__L21».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L4».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

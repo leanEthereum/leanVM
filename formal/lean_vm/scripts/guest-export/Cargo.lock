@@ -52,10 +52,23 @@ name = "lean_da"
 version = "0.1.0"
 dependencies = [
  "fiat_shamir",
- "parallel",
  "pcs",
  "primitives",
  "tracing",
+]
+
+[[package]]
+name = "lean_sphincs"
+version = "0.1.0"
+dependencies = [
+ "primitives",
+]
+
+[[package]]
+name = "lean_xmss"
+version = "0.1.0"
+dependencies = [
+ "primitives",
 ]
 
 [[package]]
@@ -66,12 +79,13 @@ dependencies = [
  "keccak_gkr",
  "lean_compiler",
  "lean_da",
+ "lean_sphincs",
+ "lean_xmss",
  "leanvm_core",
  "parallel",
  "pcs",
  "primitives",
  "rand",
- "signatures",
  "tracing",
  "verifier",
 ]
@@ -191,14 +205,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76afc826de14238e6e8c374ddcc1fa19e374fd8dd986b0d2af0d02377261d83c"
 dependencies = [
  "getrandom",
-]
-
-[[package]]
-name = "signatures"
-version = "0.1.0"
-dependencies = [
- "primitives",
- "rand",
 ]
 
 [[package]]

@@ -11,7 +11,7 @@ import LeanVM.Guest.AcceptableChild
 sit on both sides of the 136-byte block boundary and cover the one-byte padding `0x81` (135
 bytes), a padding block of its own (136, 272) and the multi-block path. The digests are the
 verifier's `keccak_hash` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (at the pin
-`40f877dc`, `crates/verifier/src/hash.rs:77-97`), whose permutation is checked
+`40f877dc`, `crates/verifier/src/hash.rs`), whose permutation is checked
 independently: run with FIPS 202's padding `0x06` it gives `hashlib.sha3_256` on the same ramps
 (script `vectors.py` of the port). Then `keccakF` on the zero state (Keccak-f[1600]'s
 well-known `f1258f79…`) and on the lanes `0 … 24`; `hash_pair` and `hash_words` on known

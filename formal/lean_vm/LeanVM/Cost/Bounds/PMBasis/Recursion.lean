@@ -8,7 +8,7 @@ public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.Recurs
 /-!
 # PM-basis's price on CompPoly's recursion
 
-CompPoly's driver `pmBasisWithFuelCore rt` (`Approximant/PMBasis/Recursion.lean:82`), on any
+CompPoly's driver `pmBasisWithFuelCore rt` (`Approximant/PMBasis/Recursion.lean`), on any
 runtime `rt` (the target, `popovRuntime mulCtx lowCtx 1 c` of `Fast/PMBasis/PopovCore.lean`,
 among them): at fuel `0`, or at a maximal order `o ≤ rt.leafCutoff` or `o ≤ 1`, the leaf;
 otherwise, with `d₁ = o / 2`, `P₁` on the lower orders `min oⱼ d₁` (`pmLower`), the residual

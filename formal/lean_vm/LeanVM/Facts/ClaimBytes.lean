@@ -14,7 +14,7 @@ public import Statement.LeanVmGuest
 The statement hashes a claim as its key's bytes (`xmssPublicKeyBytes`: root, then parameter;
 `Sphincs.PublicKey.toBytes`: `PK.seed`, then `PK.root`) and its message (`claimBytes`). The guest
 holds either scheme's claim as four cells, the key's two halves then the message's two
-(`claim_cells`, `aggregation/statement.rs:39-56`); `claimBytesOf a b m` is those bytes, and
+(`claim_cells`, `aggregation/statement.rs`); `claimBytesOf a b m` is those bytes, and
 `claimBytes_xmss`, `claimBytes_sphincs` restate the statement's at each scheme.
 -/
 

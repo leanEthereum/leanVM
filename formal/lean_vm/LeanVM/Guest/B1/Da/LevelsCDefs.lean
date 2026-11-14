@@ -78,7 +78,7 @@ def lvlCall (lvl : ℕ) (f : String) : Stmt :=
 
 /-- **Entry `k` of `dlTab`, evaluated.** -/
 noncomputable def dlCEntryOk (k : ℕ) : Bool :=
-  let e := dlTab.getD k (0, "", 0, [])
+  let e := dlEntry k
   let fn := coreProgram.getD e.2.2.1 default
   (chk 1 fn.body).isSome && (storesOf 1 fn.body).isEmpty &&
   (match splitRet fn.body with

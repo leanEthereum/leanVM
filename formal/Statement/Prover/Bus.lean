@@ -6,7 +6,7 @@ public import Statement.Prover.Columns
 /-!
 # The bus phase, executable
 
-The prover of `verifyBusBalance` (`crates/verifier/src/bus.rs:130-247`; the Rust's
+The prover of `verifyBusBalance` (`crates/verifier/src/bus.rs`; the Rust's
 `prove_balance`, `crates/leanvm_core/src/leaf.rs`) from the instance's columns `cols` (by global
 column number): the grind and the fingerprint, sixteen slot weights and `β`; the three sides'
 leaves filled straight into arrays, each side's blocks end to end in `stack_offsets`' order
@@ -24,7 +24,7 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 /-! ## Stacking -/
 
 /-- `stack_offsets`' order of blocks of the given log-sizes
-(`crates/verifier/src/multilinear.rs:134-144`): the stable sort of the indices by size, larger
+(`crates/verifier/src/multilinear.rs`): the stable sort of the indices by size, larger
 first. -/
 def blockOrder (sizes : List ℕ) : List ℕ :=
   (List.range sizes.length).mergeSort fun i j ↦ decide (sizes.getD j 0 ≤ sizes.getD i 0)

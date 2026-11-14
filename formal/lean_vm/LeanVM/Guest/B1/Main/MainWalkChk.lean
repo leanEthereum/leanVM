@@ -71,7 +71,7 @@ theorem mPre_calls : mPre.filterMap Main.Stmt.callS =
 
 set_option maxRecDepth 100000 in
 theorem mDa_calls : mDa.filterMap Main.Stmt.callS =
-    [(none, "da_verify", [.n 28], [.n 369, .n 370, .n 371])] := by
+    [(none, "da_verify", [], [.n 369, .n 370, .n 371])] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in

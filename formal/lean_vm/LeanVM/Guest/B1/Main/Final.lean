@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.Final
 
-  B1 for `main` (G:4675-4851; TRIAGE #96): `main_sound_w`, a run of `main` establishes `NodeRelation` of
+  B1 for `main` (TRIAGE #96): `main_sound_w`, a run of `main` establishes `NodeRelation` of
   what its decoders read.
 -/
 
@@ -35,10 +35,10 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 variable {C : CallRel}
 
-theorem deferOfCells_of {d : DeferredClaim} (hl : d.bytecodePoint.length = bytecodeVars) :
+theorem deferOfCells_of {d : DeferredBytecodeClaim} (hl : d.bytecodePoint.length = bytecodeVars) :
     deferOfCells d.cells = d := by
   have hb : bytecodeVars = 23 := rfl
-  unfold deferOfCells DeferredClaim.cells
+  unfold deferOfCells DeferredBytecodeClaim.cells
   rw [List.take_append_of_le_length (by omega), List.take_of_length_le (by omega),
     List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega), hl]
   simp
@@ -71,7 +71,7 @@ theorem kid_sub {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E
     {c : ℕ}
     (hc : c < lg σ 6) :
     (decKid rd σ wV c).freshClaim.bytecodePoint.length = bytecodeVars ∧
-      ReadsAt rd (σ (.n 389) * gen ^ (24 * c)) (DeferredClaim.cells (decKid rd σ wV c).freshClaim) ∧
+      ReadsAt rd (σ (.n 389) * gen ^ (24 * c)) (DeferredBytecodeClaim.cells (decKid rd σ wV c).freshClaim) ∧
       verifyDeferred bytecode (decSeed σ) (statementDigest (decSeed σ) (kidStmt rd σ c))
         (decKid rd σ wV c).freshClaim (decKid rd σ wV c).proof = true := by
   have k := hK c hc
@@ -85,8 +85,8 @@ theorem kid_sub {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E
   have hpi : pi = statementDigest (decSeed σ) (kidStmt rd σ c) := by
     apply digestCells_inj
     rw [← kid_digest MF hK hW hc, digestCells, ← hp]
-  have hlen : (DeferredClaim.cells fresh).length = 24 := by
-    simp [DeferredClaim.cells, hfl, bytecodeVars]
+  have hlen : (DeferredBytecodeClaim.cells fresh).length = 24 := by
+    simp [DeferredBytecodeClaim.cells, hfl, bytecodeVars]
   have hfresh : (decKid rd σ wV c).freshClaim = fresh := by
     show fixedOfCells (readCells rd (σ (.n 389) * gen ^ (24 * c)) 24) = fresh
     rw [readCells_of_readsAt hfr hlen, fixedOfCells_cells hfl]
@@ -101,7 +101,7 @@ theorem kid_sub {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E
   exact hvd
 
 /-- **`main`, soundly, its witness decoded, under a call relation `C`** that unfolds and lies
-below `coreProgram.Rel` (G:4675-4851, TRIAGE #96), given the callees' contracts on `C`'s calls. -/
+below `coreProgram.Rel` (TRIAGE #96), given the callees' contracts on `C`'s calls. -/
 theorem main_sound_C {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hm : MemOk rd) (hCu : Unfolds rd C) (hle : CallRel.Le C (coreProgram.Rel rd))
     {wX : List E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
@@ -171,7 +171,7 @@ theorem main_sound_C {bytecode : List K}
         MF.kids.1
       have hdef : (decStmt σ rd).deferredClaim = out := by
         show deferOfCells (readCells rd (σ (.n 416)) 24) = out
-        rw [readCells_of_readsAt hor (by simp [DeferredClaim.cells, hol, bytecodeVars]),
+        rw [readCells_of_readsAt hor (by simp [DeferredBytecodeClaim.cells, hol, bytecodeVars]),
           deferOfCells_of hol]
       have hch : (decWit σ rd wX wS wD wV wA).children = (List.range (lg σ 6)).map (decKid rd σ wV) := by
         show (List.range (nKids σ)).map _ = _

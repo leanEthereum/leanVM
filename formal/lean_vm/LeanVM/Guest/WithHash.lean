@@ -47,7 +47,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 /-- **The batching transcript run**, for a hash function `H` and a permutation `F` in any monad:
 from the seed `F(H(label) ‖ 0)` (`FiatShamirState::from_label`; the guest program bakes its
-capacity, `AGG_SEED_*`, `aggregation.rs:2719-2722`), the program on the proof. -/
+capacity, `AGG_SEED_*`, `aggregation.rs`), the program on the proof. -/
 noncomputable def runBatchingWithHash {m : Type → Type} [Monad m] (H : Bytes → m Digest)
     (F : KeccakState → m KeccakState) (prog : VerifierProgram Bool) (proof : Proof) : m Bool := do
   let seed ← F (seedInput (← H batchingLabel) (Vector.replicate 4 0))

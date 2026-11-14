@@ -49,7 +49,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## The Merkle path -/
 
-/-- `climb` (V:351) at the deployed hash: the node a path reaches. -/
+/-- `climb` at the deployed hash: the node a path reaches. -/
 def climbD (leaf : Digest) (q : ℕ) (sibs : List Digest) : Digest :=
   Id.run (Compile.climbWithHash (m := Id) keccak256 leaf q sibs)
 

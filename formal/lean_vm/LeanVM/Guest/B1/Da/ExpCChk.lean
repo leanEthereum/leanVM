@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Da.ExpCChk
 
   `da_expand`, evaluated (by kernel evaluation): its computing atoms define their values in order
-  below the run's pointer, with no store; no `HeapBuf`; one `frameAddr`, of its `512`-word run.
+  below the run's pointer, with no store; no `HeapBuf`; one `frameAddr`, of its `256`-word run.
 -/
 
 module
@@ -27,13 +27,13 @@ def expCOk (top D W : ℕ) : Bool :=
   (expBodyA top D).all (fun a => a.vals.all fun v => decide (v.idx < expB D)) &&
   (expT top D W).all (fun a => !atomAllocB a) &&
   decide ((expT top D W).filterMap atomAddr? = [(.n (expB D), .n (expB D + 1))]) &&
-  decide ((expT top D W).filterMap atomRun? = [(.n (expB D + 1), 512)])
+  decide ((expT top D W).filterMap atomRun? = [(.n (expB D + 1), 256)])
 
 set_option maxRecDepth 100000 in
-theorem exp8_cok : expCOk 7 8 69649 = true := by decide +kernel
+theorem expCell_cok : expCOk 6 7 325 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem exp7_cok : expCOk 14 7 325 = true := by decide +kernel
+theorem expTop_cok : expCOk 13 7 325 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Da

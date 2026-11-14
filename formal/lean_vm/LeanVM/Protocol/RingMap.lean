@@ -58,17 +58,17 @@ open scoped ENNReal
 /-! ## The verifier's computations -/
 
 /-- `RING_MAP_WIDTH`: the challenges come in two rows of eight, `f_p` then `g_b`
-(`ring_switch.rs:10`). -/
+(`ring_switch.rs`). -/
 def ringMapWidth : ℕ := 8
 
 /-- `GEN = E::new(2, 0)`, `x` in `E`. -/
 def genE : E := ofK g
 
-/-- `frobenius_8(value, p)`: `value^(2^(8p))` by `8p` squarings (`ring_switch.rs:13-15`). -/
+/-- `frobenius_8(value, p)`: `value^(2^(8p))` by `8p` squarings (`ring_switch.rs`). -/
 def frobenius8 (value : E) (p : ℕ) : E :=
   (List.range (ringMapWidth * p)).foldl (fun v _ ↦ v * v) value
 
-/-- `ring_psi(value, g)`: `Σ_b g_b value^(2^b)` (`ring_switch.rs:18-26`). -/
+/-- `ring_psi(value, g)`: `Σ_b g_b value^(2^b)` (`ring_switch.rs`). -/
 def ringPsi (value : E) (g : List E) : E :=
   (g.foldl (fun (acc : E × E) gb ↦ (acc.1 + gb * acc.2, acc.2 * acc.2)) (0, value)).1
 
@@ -77,7 +77,7 @@ def hornerEval (coefficients : List E) (point : E) : E :=
   coefficients.foldr (fun c acc ↦ acc * point + c) 0
 
 /-- `ring_target(s, f, g)`: `Σ_p f_p (Σ_i z_p^i Ψ(s_i))^(2^(8p))`, `p` from `7` down, `z` squared
-eight times before each (`ring_switch.rs:28-38`). -/
+eight times before each (`ring_switch.rs`). -/
 def ringTarget (s f g : List E) : E :=
   let images := s.map (ringPsi · g)
   ((List.range ringMapWidth).reverse.foldl (fun (acc : E × E) p ↦
@@ -85,7 +85,7 @@ def ringTarget (s f g : List E) : E :=
     (acc.1 + f.getD p 0 * frobenius8 (hornerEval images z) p, z)) (0, genE)).1
 
 /-- `ring_coefficients(f, g)`: `c_(8p + b) = f_p g_b^(2^(8p))`, block `p` after block `p - 1`
-(`ring_switch.rs:40-49`). -/
+(`ring_switch.rs`). -/
 def ringCoefficients (f g : List E) : List E :=
   (f.foldl (fun (acc : List E × List E) fp ↦
     (acc.1 ++ acc.2.map (fp * ·), acc.2.map (frobenius8 · 1))) ([], g)).1

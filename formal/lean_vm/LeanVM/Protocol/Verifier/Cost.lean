@@ -55,7 +55,7 @@ right after a proof of work, which permutes nothing, is charged a permutation.
 ## Deployed behaviour
 
 The bound is a statement on the program `leanVmVerifierProgram` as transcribed in
-`Statement.LeanVmVerifier`, at the commit `leanvm-rev` names; it covers every proof, accepted or
+`Statement.LeanVmVerifier`,; it covers every proof, accepted or
 not, and the deferring program `deferringVerifierProgram` alike (`costLE_deferringProgram`).
 -/
 

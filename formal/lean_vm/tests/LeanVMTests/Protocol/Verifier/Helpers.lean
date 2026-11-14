@@ -3,14 +3,14 @@ import LeanVM.Protocol.Verifier
 /-!
 # Verifier helper tests: differential against the verifier at its pin
 
-Every expected value below is the Rust verifier's (`crates/verifier`) at `leanvm-rev`, on inputs drawn from the word generator `fw`, which the driver mirrors exactly; the
+Every expected value below is the Rust verifier's (`crates/verifier`), on inputs drawn from the word generator `fw`, which the driver mirrors exactly; the
 driver is the verifier crate's sources with their items made crate-visible and a module printing
 each probe, kept in the port's scratch, not in the repository. Values that no change of the
 protocol touched (the RMFE, the carry-less arithmetic, Keccak-f, Keccak-256, the IV and the seed)
 are those of the earlier pins (`4af2cdddd`, `990b93526`), the others the driver's at `afe891a73`
-but `fold_row` (at `71205cca4`) and `derive_config`'s query counts (at the pin): nothing else they
+but `fold_row` (at `71205cca4`) and `derive_config`'s query counts: nothing else they
 read changed since. The line citations are to
-`crates/verifier/src/` at the pin. Compiled checks (`#guard`): `E` multiplication does not reduce
+`crates/verifier/src/`. Compiled checks (`#guard`): `E` multiplication does not reduce
 in the kernel from module files.
 
 Covered: `powers`, `eq_kernel`, `multilinear_eval` (on `E` and on lifted `K` tables), `eq_eval`,
@@ -62,7 +62,7 @@ def sampleRounds : List FoldRound :=
 /-- A domain point outside the small subspaces: the word `fw(3, 7)`. -/
 def samplePoint : K := K.ofBits (fw 3 7)
 
-/-- A sample placement (its two checks printed at the pin, `../leanvm-rev`). -/
+/-- A sample placement (its two checks printed). -/
 def samplePlacement : Placement := { variableCount := 3, index := 0b1011001 }
 
 /-- The sample bytecode: 32 words, so `log_bytecode = 1`. -/
@@ -124,8 +124,8 @@ def transposeProbe : ℕ × List E × E :=
 def sampleClaim : KeccakClaim := ⟨fe 609, fes 640 16, fes 610 6, fes 1000 1600⟩
 
 /-- The slot weights at `log_steps = 9` of `sampleClaim` on `count` segments from `first`: the
-number of rows, whether each is 64 wide, and all of them batched by powers of `fe 620`. At the pin
-they are no function of their own: `open` (`keccak.rs:212-225`) sums them against the slot
+number of rows, whether each is 64 wide, and all of them batched by powers of `fe 620`. In the Rust
+they are no function of their own: `open` (`keccak.rs`) sums them against the slot
 challenges' eq weights; the driver computes them by its loop with the slot weight left out. -/
 def slotProbe (first count : ℕ) : ℕ × Bool × E :=
   let w := keccakSlotWeights 9 sampleClaim first count
@@ -156,7 +156,7 @@ def keccakConstants : List ℕ :=
 #guard sampleLayout.push.all fun b ↦ b.rows == sampleRows.getD b.owner 0
 #guard sampleLayout.placements.length = globalColumnCount + tableWidths.sum
 
-/- Every column a table's flushes name exists (`cols`'s `expect`, `layout.rs:104-111`): a missing
+/- Every column a table's flushes name exists (`cols`'s `expect`, `layout.rs`): a missing
 name would be `columnIndexByName`'s out-of-range index, the table's width. -/
 #guard tables.all fun t ↦ (t.flushes.push ++ t.flushes.pull).all fun tuple ↦
   tuple.all fun f ↦ f.terms.all fun (m, _) ↦ m.all (· < t.width)
@@ -184,7 +184,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
   some [2, 1, 1, 2, 2, 9]
 #guard ((buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 600]).map (·.tableLogHeights)) =
   some [2, 1, 1, 2, 2, 10]
-/- Not one row count per table (the Rust verifier reads exactly `N_TABLES`, `lib.rs:248`). -/
+/- Not one row count per table (the Rust verifier reads exactly `N_TABLES`, `lib.rs`). -/
 #guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 5, 0]).isNone
 #guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3]).isNone
 
@@ -193,8 +193,8 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 #guard (Whir.ladder 15 1).isNone ∧ (Whir.ladder 33 1).isNone
 #guard (Whir.ladder 20 0).isNone ∧ (Whir.ladder 20 5).isNone
 
-/-! ## Field and multilinear arithmetic (`field.rs:255-264`, `multilinear.rs`, `layout.rs:113`;
-`transcript.rs:95-104`) -/
+/-! ## Field and multilinear arithmetic (`field.rs`, `multilinear.rs`, `layout.rs`;
+`transcript.rs`) -/
 
 #guard (powers (fe 1) 6) =
     [(e 0x1 0x0), (e 0x9f9ad90ed849d843 0x71502341a9dcc546),
@@ -248,7 +248,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 #guard ([0, 1, 2, 8, 9, 31, 46, 64, 65, 2 ^ 20].map grindingBits) =
     [0, 0, 0, 0, 1, 2, 3, 3, 4, 17]
 
-/-! ## WHIR helpers (`whir.rs:72-202`) -/
+/-! ## WHIR helpers (`whir.rs`) -/
 
 #guard ((subspaceRoots 12).map kToNat) =
     [0x1, 0x6, 0x168, 0x1166880, 0x11616686880801b, 0x726b6e3c6e39234e, 0x796adf34d64462c2,
@@ -281,7 +281,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
     [(e 0xeba31c864270ea40 0x89da963fc1bb6655), (e 0x28120ff94105e26a 0xc64989b2c0505e7f),
      (e 0x6481036c3f9ada94 0x2b87d25bee556a9)]
 
-/-! ## Ring switching (`ring_switch.rs:10-68`) -/
+/-! ## Ring switching (`ring_switch.rs`) -/
 
 #guard (ringCoefficients (fes 80 8) (fes 88 8)) =
     [(e 0x50a3732d98b25847 0x485783167b605da4), (e 0x6abb07138c18f0f9 0xeac0f214fe325859),
@@ -333,7 +333,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 #guard (frobenius8 (fe 87) 3) =
     (e 0x6d621675ade71890 0xc961818aa4701716)
 
-/-! ## Placements (`multilinear.rs:114-148`) -/
+/-! ## Placements (`multilinear.rs`) -/
 
 #guard (stackOffsets [3, 5, 5, 0, 2, 5, 1]) =
     ([96, 0, 32, 110, 104, 64, 108], 7)
@@ -346,7 +346,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 #guard (samplePlacement.eqAbove (fes 93 9)) =
     (e 0x8e1ca664b6991f1a 0xcae2304f3a4d6e6e)
 
-/-! ## The tables (`layout.rs:129-481`) -/
+/-! ## The tables (`layout.rs`) -/
 
 #guard (tables.map Table.columns) =
     [["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "vb_0", "vb_1", "cnt_a", "cnt_b", "cnt_c",
@@ -443,7 +443,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
     [106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124,
      125, 126, 127, 128, 129, 130]
 
-/-! ## `build_layout` on the sample (`bus.rs:77-103`, `layout.rs:483-567`) -/
+/-! ## `build_layout` on the sample (`bus.rs`, `layout.rs`) -/
 
 #guard (sampleLayout.tableLogHeights) =
     [2, 1, 1, 2, 2, 9]
@@ -669,7 +669,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
       (9, 6144), (9, 6656), (9, 7168), (9, 7680), (9, 8192), (9, 8704), (9, 9216), (9, 9728),
       (9, 10240), (9, 10752), (9, 11264), (9, 11776), (9, 12288), (9, 12800), (9, 13312)])
 
-/-! ## `derive_config` (`whir.rs:24-70`) -/
+/-! ## `derive_config` (`whir.rs`) -/
 
 /-- `derive_config(log_n, rate)` for every admissible pair: folds, rates, queries. -/
 def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
@@ -739,7 +739,7 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
   decide ((Whir.ladder n r).map (fun ls ↦
     (ls.map (·.fold), ls.map (·.logInvRate), ls.map (·.queries))) = some (folds, rates, queries))
 
-/-! ## Keccak GKR and the RMFE (`keccak.rs:14-113`, `:212-225`) -/
+/-! ## Keccak GKR and the RMFE (`keccak.rs`) -/
 
 #guard (alongPairs.map fun (j, k) ↦ keccakAlong j k) =
     [64, 319, 192, 127, 1064, 1535, 1280]
@@ -788,7 +788,7 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
 
 #guard (ringMapWidth) = 8
 
-/-! ## Keccak-f, Keccak-256 and the sponge (`hash.rs:5-98`, `transcript.rs:17-90`) -/
+/-! ## Keccak-f, Keccak-256 and the sponge (`hash.rs`, `transcript.rs`) -/
 
 #guard (keccakRC) =
     [0x1, 0x8082, 0x800000000000808a, 0x8000000080008000, 0x808b, 0x80000001, 0x8000000080008081,
@@ -888,7 +888,7 @@ them first) -/
       0x3c6a117f5daa1975, 0x31c4a9d7468387bd, 0x1b1c4426ba8af87d, 0x2fbc9cb1d64538c,
       0xbfc7c9b13da31fc0], some (e 0x12c2014d119c4383 0xd30e6b61a8acbea6))
 
-/-! ## The tag, the IV and the seed (`layout.rs:68`, `bytecode.rs:45-53`, `transcript.rs:36-49`) -/
+/-! ## The tag, the IV and the seed (`layout.rs`, `bytecode.rs`, `transcript.rs`) -/
 
 #guard (versionTag) =
     [108, 101, 97, 110, 118, 109, 45, 118, 49]

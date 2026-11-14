@@ -1,7 +1,6 @@
 //! The deferred claim on the stacked bytecode and the sumcheck that batches it.
 
 use super::cells::count;
-use super::error::AggregateVerifyError;
 use super::guest::unified_guest;
 use super::hints::SubHints;
 use leanvm_core::cpu::{from_scalar, to_scalar};
@@ -26,12 +25,12 @@ const _: () = assert!(leanvm_core::leaf::N_TUPLE_BITS == leanvm_core::leaf::N_BY
 /// prover that lies about a value changes the statement its proof has to satisfy
 /// rather than the claim anyone checks.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct DeferredClaim {
+pub(crate) struct DeferredBytecodeClaim {
     pub(super) bytecode_point: Vec<F128>,
     pub(super) bytecode_value: F128,
 }
 
-impl DeferredClaim {
+impl DeferredBytecodeClaim {
     /// What a leaf defers: the all-zeros point, where the value is just the
     /// table's first entry.
     pub(super) fn leaf() -> Self {
@@ -39,7 +38,7 @@ impl DeferredClaim {
     }
 
     /// Evaluate the stacked bytecode at `bytecode_point`, on the prover's field kernels and thread pool.
-    pub(super) fn recompute(bytecode_point: Vec<F128>) -> Result<Self, AggregateVerifyError> {
+    pub(super) fn recompute(bytecode_point: Vec<F128>) -> Option<Self> {
         Self::evaluate(bytecode_point, |point| {
             let _span = tracing::info_span!("bytecode mle").entered();
             mle_eval_par(stacked_bytecode(), point)
@@ -47,9 +46,8 @@ impl DeferredClaim {
     }
 
     /// [`Self::recompute`] in the `verifier` crate: scalar and single threaded, what a received aggregate is checked with.
-    pub(super) fn recompute_scalar(bytecode_point: Vec<F128>) -> Result<Self, AggregateVerifyError> {
+    pub(super) fn recompute_scalar(bytecode_point: Vec<F128>) -> Option<Self> {
         Self::evaluate(bytecode_point, |point| {
-            let _span = tracing::info_span!("bytecode mle").entered();
             let scalars: Vec<_> = point.iter().map(to_scalar).collect();
             from_scalar(
                 scalar_bytecode()
@@ -59,12 +57,9 @@ impl DeferredClaim {
         })
     }
 
-    fn evaluate(
-        bytecode_point: Vec<F128>,
-        bytecode_at: impl FnOnce(&[F128]) -> F128,
-    ) -> Result<Self, AggregateVerifyError> {
+    fn evaluate(bytecode_point: Vec<F128>, bytecode_at: impl FnOnce(&[F128]) -> F128) -> Option<Self> {
         if bytecode_point.len() != bytecode_vars() {
-            return Err(AggregateVerifyError::MalformedClaim);
+            return None;
         }
         // Every leaf defers the all-zeros point, where the bytecode polynomial is
         // just its table's first entry. Worth special-casing: the general path is
@@ -74,7 +69,7 @@ impl DeferredClaim {
         } else {
             bytecode_at(&bytecode_point)
         };
-        Ok(Self {
+        Some(Self {
             bytecode_point,
             bytecode_value,
         })
@@ -97,7 +92,7 @@ pub(super) struct DeferredSubproof {
     pub(super) bytecode_value: F128,
 }
 
-/// [`stacked_bytecode`] as the `verifier` crate takes it, hashed once: what [`EthereumProof::verify`](super::EthereumProof::verify) checks proofs against, and [`aggregate`](super::aggregate) reads its children with.
+/// [`stacked_bytecode`] as the `verifier` crate takes it, hashed once: what [`AggregateProof::verify`](super::AggregateProof::verify) checks proofs against, and [`aggregate`](super::aggregate) reads its children with.
 pub(super) fn scalar_bytecode() -> &'static verifier::Bytecode {
     static BYTECODE: std::sync::OnceLock<verifier::Bytecode> = std::sync::OnceLock::new();
     BYTECODE.get_or_init(|| {
@@ -246,13 +241,13 @@ fn absorb_round(
 /// sumcheck over the stacked bytecode.
 ///
 /// Each child brings two claims, the fresh one its verification raised and the one it deferred; `sums` holds their
-/// [`bytecode_sums`] in that order. Returns the guest hints and the single claim they reduce to, or
-/// [`AggregateVerifyError::MalformedClaim`] when a child carried a value that is not the bytecode's evaluation.
+/// [`bytecode_sums`] in that order. Returns the guest hints and the single claim they reduce to, or `None` when a
+/// value is not the bytecode's evaluation.
 pub(super) fn aggregate_deferred_claims(
     subproofs: &[DeferredSubproof],
-    carried_claims: &[&DeferredClaim],
+    carried_claims: &[DeferredBytecodeClaim],
     mut sums: Vec<Vec<F128>>,
-) -> Result<(SubHints, DeferredClaim), AggregateVerifyError> {
+) -> Option<(SubHints, DeferredBytecodeClaim)> {
     let child_count = subproofs.len();
     assert_eq!(child_count, carried_claims.len(), "one carried claim per child");
     let kbcv = bytecode_vars();
@@ -345,14 +340,14 @@ pub(super) fn aggregate_deferred_claims(
     }
     let v_bc = bt[0];
     if brun != v_bc * wt[0] {
-        return Err(AggregateVerifyError::MalformedClaim);
+        return None;
     }
 
     drop(_span);
     let hints = vec![("bc_sumcheck_msgs", bscr), ("bc_star_hint", vec![v_bc])];
-    Ok((
+    Some((
         hints,
-        DeferredClaim {
+        DeferredBytecodeClaim {
             bytecode_point: r_bc,
             bytecode_value: v_bc,
         },

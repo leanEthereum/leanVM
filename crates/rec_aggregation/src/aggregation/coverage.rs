@@ -1,7 +1,7 @@
 //! The coverage table: which slot each raw signature and child claim writes.
 
-use super::error::AggregationError;
-use super::proof::{EthereumClaims, EthereumProof};
+use super::error::AggregateError;
+use super::proof::{AggregateClaims, AggregateProof};
 use super::{LeanSphincsClaim, LeanXmssClaim};
 use std::collections::BTreeSet;
 
@@ -50,7 +50,7 @@ impl<K: Ord + Clone> Region<K> {
         raw: &[K],
         children: impl Iterator<Item = &'a [K]> + Clone,
         declare: Option<&[K]>,
-    ) -> Result<Self, AggregationError>
+    ) -> Result<Self, AggregateError>
     where
         K: 'a,
     {
@@ -64,7 +64,9 @@ impl<K: Ord + Clone> Region<K> {
             let mut wanted: BTreeSet<&K> = declare.iter().collect();
             signers.retain(|claim| wanted.remove(claim));
             if !wanted.is_empty() {
-                return Err(AggregationError::NotCovered);
+                return Err(AggregateError::InvalidInput(
+                    "a requested claim is not covered by the inputs",
+                ));
             }
         }
         let mut claimed = vec![false; signers.len()];
@@ -108,18 +110,18 @@ fn take_slot<K: Ord + Clone>(claims: &[K], claimed: &mut [bool], duplicates: &mu
 pub(super) fn plan_coverage(
     raw_lean_xmss: &[LeanXmssClaim],
     raw_lean_sphincs: &[LeanSphincsClaim],
-    children: &[EthereumProof],
-    declare: Option<&EthereumClaims>,
-) -> Result<Coverage, AggregationError> {
+    children: &[(AggregateClaims, AggregateProof)],
+    declare: Option<&AggregateClaims>,
+) -> Result<Coverage, AggregateError> {
     let cover = Coverage {
         lean_xmss: Region::plan(
             raw_lean_xmss,
-            children.iter().map(|child| child.claims.lean_xmss.as_slice()),
+            children.iter().map(|(claims, _)| claims.lean_xmss.as_slice()),
             declare.map(|claims| claims.lean_xmss.as_slice()),
         )?,
         lean_sphincs: Region::plan(
             raw_lean_sphincs,
-            children.iter().map(|child| child.claims.lean_sphincs.as_slice()),
+            children.iter().map(|(claims, _)| claims.lean_sphincs.as_slice()),
             declare.map(|claims| claims.lean_sphincs.as_slice()),
         )?,
     };

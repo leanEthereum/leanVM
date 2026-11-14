@@ -278,7 +278,6 @@ name = "lean_da"
 version = "0.1.0"
 dependencies = [
  "fiat_shamir",
- "parallel",
  "pcs",
  "primitives",
  "rand",
@@ -286,14 +285,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "lean_sphincs"
+version = "0.1.0"
+dependencies = [
+ "primitives",
+]
+
+[[package]]
+name = "lean_xmss"
+version = "0.1.0"
+dependencies = [
+ "primitives",
+ "rand",
+]
+
+[[package]]
 name = "leanvm"
 version = "0.1.0"
 dependencies = [
  "lean_da",
+ "lean_sphincs",
+ "lean_xmss",
  "leanvm_core",
  "parallel",
  "rec_aggregation",
- "signatures",
 ]
 
 [[package]]
@@ -305,12 +320,13 @@ dependencies = [
  "keccak_gkr",
  "lean_compiler",
  "lean_da",
+ "lean_sphincs",
+ "lean_xmss",
  "leanvm_core",
  "parallel",
  "primitives",
  "rand",
  "rec_aggregation",
- "signatures",
  "tracing",
 ]
 
@@ -482,12 +498,13 @@ dependencies = [
  "keccak_gkr",
  "lean_compiler",
  "lean_da",
+ "lean_sphincs",
+ "lean_xmss",
  "leanvm_core",
  "parallel",
  "pcs",
  "primitives",
  "rand",
- "signatures",
  "tracing",
  "verifier",
 ]
@@ -533,14 +550,6 @@ name = "shlex"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
-
-[[package]]
-name = "signatures"
-version = "0.1.0"
-dependencies = [
- "primitives",
- "rand",
-]
 
 [[package]]
 name = "smallvec"

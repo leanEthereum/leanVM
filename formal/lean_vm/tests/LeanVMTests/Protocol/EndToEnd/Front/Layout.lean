@@ -23,7 +23,7 @@ import LeanVMTests.Runs
 * **The bus flushes.** Every opcode table's pushed and pulled tuples, evaluated on a row, are the
   verifier's `tables` in their order, and its count columns the verifier's `cnt` columns. This is the
   regression for `DEREF`, whose Clean table read the local cell before the store target until it
-  was put in the deployed order (`tables.rs:683-688`): the tie order of equal-height bus blocks
+  was put in the deployed order (`tables.rs`): the tie order of equal-height bus blocks
   follows the flush order, so the leaf decomposition depends on it.
 -/
 
@@ -157,7 +157,7 @@ def refFlushes (j : Fin 6) (push : Bool) : List (List E) :=
       List.replicate (16 - coords.length) 0
 
 -- Every table, `DEREF` included, flushes the verifier's tuples in the verifier's order: the
--- regression for the `DEREF` order (pointer, target, local; `tables.rs:683-688`), which the
+-- regression for the `DEREF` order (pointer, target, local; `tables.rs`), which the
 -- instance had as pointer, local, target, moving two equal-height bus blocks. A run, compiled
 -- (`lake exe test-runs`).
 test_runs runs := [

@@ -13,7 +13,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.Claims
 # The facts an honest run threads
 
 The verifier program's phases (`LeanVM.Protocol.Verifier.verifyExecution`,
-`crates/verifier/src/lib.rs:215-329` at leanVM `40f877dc`) pass data
+`crates/verifier/src/lib.rs` at leanVM `40f877dc`) pass data
 to each other: the bus's `BusResult` to the table sumcheck. Against the honest prover of a stack `q` (`inst prog s`), that data is true of
 `q`; this module names what "true" means, the interface between the phases' completeness proofs.
 

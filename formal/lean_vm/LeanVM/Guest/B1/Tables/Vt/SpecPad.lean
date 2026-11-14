@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.Vt.SpecPad
 
-  The specification's padding rows' sum (`padding_rows`, V:628-635) on each side is the guest's
+  The specification's padding rows' sum (`padding_rows`) on each side is the guest's
   `vtPadSum` of its baked `COORD_PADDING` values.
 -/
 
@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.SpecForms
 
 /-!
-# The padding sums (V:623-638)
+# The padding sums
 
 `accumulateSide`'s `padding_rows` adds, per table block, its selector times the padding weight of
 its owner's rows times its form at the owner's padding row, plus one (`padSum`). By the

@@ -17,11 +17,11 @@ public import Clean.Utils.Tactics.CircuitProofStart
 /-!
 # The `MUL_NATIVE` table
 
-At `leanvm-rev` and Clean pin `b41c196b`. The columns
-are `crates/leanvm_core/src/tables.rs:460-478` (`mod arith`, shared with `XOR`, in that order), the
-flushes `tables.rs:504-516` (`Arith::flushes` with `is_xor = false`), the result coordinates
-`tables.rs:29-33` and `:483-494` (`TOWER_LANES`, `arith_result`; the verifier's
-`crates/verifier/src/layout.rs:221-225`), all matching specification §7.2
+At Clean pin `b41c196b`. The columns
+are `crates/leanvm_core/src/tables.rs` (`mod arith`, shared with `XOR`, in that order), the
+flushes `tables.rs` (`Arith::flushes` with `is_xor = false`), the result coordinates
+`tables.rs` (`TOWER_LANES`, `arith_result`; the verifier's
+`crates/verifier/src/layout.rs`), all matching specification §7.2
 (`doc/leanvm/body/07-instruction-tables.tex`). There is no constraint: the bus
 balance is the assertion `[o_C] = [o_A] · [o_B]` (§5, "M3").
 
@@ -78,7 +78,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `MUL_NATIVE` columns, in the order of `tables.rs:460-478`. -/
+/-- The `MUL_NATIVE` columns, in the order of `tables.rs`. -/
 structure MulRow (F : Type) where
   /-- The program counter. -/
   pc : F
@@ -160,11 +160,11 @@ private theorem mulNative_entry (a b c : K) :
 
 /-! ## The table -/
 
-/-- The `MUL_NATIVE` table (specification §7.2; `tables.rs:456-532`): state step, bytecode read
+/-- The `MUL_NATIVE` table (specification §7.2; `tables.rs`): state step, bytecode read
 of `(MUL, o_A, o_B, o_C, 0, 0, 0, 0)`, the two operand reads, and the result read carrying the
 tower product's two lanes. Returns the pushed successor `(g·pc, fp)`. -/
 def mulTable : GeneralFormalCircuit K MulRow Registers where
-  -- The table's name in leanVM (`TABLES`, `cpu/mod.rs:391`), unique in the ensemble (Clean keys
+  -- The table's name in leanVM (`TABLES`, `cpu/mod.rs`), unique in the ensemble (Clean keys
   -- the prover data by it).
   name := "MUL"
   main r := do
@@ -175,7 +175,7 @@ def mulTable : GeneralFormalCircuit K MulRow Registers where
       #v[r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     memRead (r.fp * r.oA) r.rA r.vA
     memRead (r.fp * r.oB) r.rB r.vB
-    -- `TOWER_LANES` (`tables.rs:29-33`), lane by lane, term by term, `(j, k, e)` as
+    -- `TOWER_LANES` (`tables.rs`), lane by lane, term by term, `(j, k, e)` as
     -- `g^e · v_{A,j} · v_{B,k}`.
     memRead (r.fp * r.oC) r.rC
       #v[r.vA[0] * r.vB[0] + r.vA[1] * r.vB[1],

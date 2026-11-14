@@ -16,7 +16,7 @@
 //! every level of the tree.
 //!
 //! A duplicate slot sits outside the prefix the digest hashes, so a claim in one is
-//! covered and not published. `aggregate`'s `declare` rests on that. A slot holds
+//! covered and not published. `aggregate`'s `OutputClaims::Only` rests on that. A slot holds
 //! four cells, the pubkey and its message, so the guest reads each signature's message
 //! out of the slot it verifies.
 //!
@@ -29,7 +29,7 @@
 //! big to evaluate in-circuit, so each node exports one deferred claim on it
 //! and batches its children's carried claims with the fresh ones its
 //! verifications raise (`doc/leanvm/main.tex` §Deferred evaluation claims). Only
-//! the root's is discharged natively, by [`EthereumProof::verify`].
+//! the root's is discharged natively, by [`AggregateProof::verify`].
 //!
 //! `gen_verify` derives the guest's whole witness for a child from the real
 //! `cpu::layout` of the inner program and the summary the `verifier` crate
@@ -51,13 +51,12 @@ mod statement;
 #[cfg(test)]
 mod tests;
 
-pub use error::{AggregateVerifyError, AggregationError, SnarkProveError, SnarkVerifyError};
+pub use error::AggregateError;
 pub use guest::{unified_guest, warm_up};
+use lean_sphincs::LeanSphincsPublicKey;
+use lean_xmss::LeanXmssPublicKey;
 pub use node::{aggregate, aggregate_with_stats};
-pub use proof::{EthereumClaims, EthereumProof};
-use signatures::lean_sphincs::LeanSphincsPublicKey;
-use signatures::lean_xmss::LeanXmssPublicKey;
-use signatures::{lean_sphincs, lean_xmss};
+pub use proof::{AggregateClaims, AggregateProof, OutputClaims};
 
 /// One leanXMSS claim: a pubkey, and the message it signed at whatever leaf index its
 /// signature carries.
@@ -66,6 +65,5 @@ pub type LeanXmssClaim = (LeanXmssPublicKey, lean_xmss::Message);
 /// One leanSPHINCS claim: a pubkey, and the message it signed.
 pub type LeanSphincsClaim = (LeanSphincsPublicKey, lean_sphincs::Message);
 
-/// The most earlier aggregates one [`aggregate`] call can take, so the arity of
-/// an aggregation tree.
+/// The maximum number of child proofs one [`aggregate`] call can take.
 pub const MAX_RECURSIONS: usize = 16;

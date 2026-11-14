@@ -23,16 +23,16 @@ At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `b41c196b
 
 **The tuples.** Every bus tuple is sixteen `K` slots: a domain separator, then the
 interaction's coordinates, then zeros (specification §5.1,
-`doc/leanvm/body/05-arithmetization.tex:12` and `:16`; `crates/leanvm_core/src/tables.rs:94-96`,
+`doc/leanvm/body/05-arithmetization.tex`; `crates/leanvm_core/src/tables.rs`,
 `SEP_STATE`, `SEP_MEM`, `SEP_BYTECODE`). The three interactions and their coordinate orders:
 
-* state, separator `g^0`: `(pc, fp)` (§6.1, `06-bus-interactions.tex:8`; `tables.rs:131-145`);
+* state, separator `g^0`: `(pc, fp)` (§6.1, `06-bus-interactions.tex`; `tables.rs`);
 * memory, separator `g^1`: `(addr, count, v₀, v₁)`, a read of the word `v` at `addr` with
-  count `count` (§6.2 "Tuple and columns" and "Flush rules", `:40-47`, and §6.3, `:86`;
-  `tables.rs:124-148` at `leanvm-rev`, two limbs);
+  count `count` (§6.2 "Tuple and columns" and "Flush rules", and §6.3;
+  `tables.rs`, two limbs);
 * bytecode, separator `g^2`: `(pc, count, opcode, op₁, …, op₁₂)`, the bytecode `entry` after the
   address and the count, fifteen coordinates, the widest message, filling the sixteen slots (§6.4;
-  `tables.rs:113-122` at leanVM main `40f877dc`).
+  `tables.rs` at leanVM main `40f877dc`).
 
 A typed message is one such coordinate list: the state message is the register pair `Regs` of
 the semantics itself, over `K` when evaluated and over `Expression K` in a row (one structure, one
@@ -44,7 +44,7 @@ channels rather than transcribing the tuples again (issue #13).
 
 **The channels** (specification §6, Theorem 6.4 and Corollary 6.5). A read is
 `pull (addr, count, v)` and `push (addr, g·count, v)` (§6.2 "Flush rules"). A *gated* read
-(`memReadIf`, the Rust's `memory_coords_if`, `tables.rs:132-147` at `40f877dc`, for a `KECCAK`
+(`memReadIf`, the Rust's `memory_coords_if`, `tables.rs` at `40f877dc`, for a `KECCAK`
 output cell past the first) pushes the counter `count + flag·count·g + flag·count` instead: in
 characteristic two that is `g·count` at `flag = 1`, a read, and `count` at `flag = 0`, where the
 push is the pull's own tuple and the pair cancels; its pull is a `Channel.pullIf flag`, so a
@@ -93,11 +93,11 @@ their two limbs, and the derived data is well shaped (`Caps.well_shaped`,
 `SatisfiedBy.seed_rows`).
 
 **The program is public and the channels are program-free.** leanVM's bytecode is "public,
-i.e. not committed, the verifier can evaluate it directly" (§6.4, `06-bus-interactions.tex:96`):
+i.e. not committed, the verifier can evaluate it directly" (§6.4, `06-bus-interactions.tex`):
 the eight entry columns ride the bytecode seed and finalize blocks as `Coord::Public`
-(`cpu/layout.rs:8-11`, `:287-289`, `:382-394`; `leaf.rs:36-39`), and every opcode table's read
+(`cpu/layout.rs`; `leaf.rs`), and every opcode table's read
 is its own constant opcode and its own operand columns, `[Const(BC), Col(pc), Col(count),
-Const(opcode), operands…]` (`tables.rs:147-156`): no table knows the program, and what binds a
+Const(opcode), operands…]` (`tables.rs`): no table knows the program, and what binds a
 row's operands to the program is the bus, Theorem 6.4 applied to the bytecode pair. The Lean
 follows that division of labour. The program is not prover data: Clean's `ProverData` is a
 field of the witness, so a guarantee stated over a program read off it would be about a program
@@ -125,7 +125,7 @@ blocks" itself (§8.6, Bus 4).
   `imageOf` (a three-row store yields a one-bit image, tests) and is not `WellShapedData`; the
   empty store is not either, since its image still has one word.
 * The bytecode guarantee is not `True`: `DEREF`'s constraints are defined at the flag pair
-  `(1, 1)`, which is no store mode's (`tables.rs:621-628`), so its soundness needs the pulled
+  `(1, 1)`, which is no store mode's (`tables.rs`), so its soundness needs the pulled
   entry to decode; that every entry on the bus does is a fact about the public program
   (`decode_entry` on the block's rows), and `Soundness.BytecodeChannel` derives it (tests: the
   pair `(1, 1)` is rejected at every counter).
@@ -242,22 +242,22 @@ def BytecodePush : Channel K BytecodeMsg where
 /-! ## The read gadgets -/
 
 /-- A memory read of the word `v` at `addr` with count `count`: pull `(addr, count, v)`, push
-`(addr, g·count, v)` (specification §6.2 "Flush rules"; `tables.rs:124-148` at `leanvm-rev`). The pull is a
+`(addr, g·count, v)` (specification §6.2 "Flush rules"; `tables.rs`). The pull is a
 `Channel.pull`, so that a soundness proof may assume `MemPull.Guarantees` of it. -/
 def memRead (addr count : Expression K) (v : Vector (Expression K) 2) : Circuit K Unit := do
   MemPull.pull ⟨addr, count, v⟩
   MemPush.push ⟨addr, Expression.const g * count, v⟩
 
 /-- A memory read of the word `v` at `addr` with count `count` when `flag` is `1`
-(`memory_coords_if`, `tables.rs:133-137`, and `memory_if`, `crates/verifier/src/layout.rs:171-176`,
-at `leanvm-rev`): pull `(addr, count, v)` and push `(addr, count + flag·count·g +
+(`memory_coords_if`, `tables.rs`, and `memory_if`, `crates/verifier/src/layout.rs`):
+pull `(addr, count, v)` and push `(addr, count + flag·count·g +
 flag·count, v)`, `g·count` at `flag = 1` and the pull's own tuple at `flag = 0`, where the pair
 cancels. The pull is a `Channel.pullIf flag`: its guarantee is assumed at `flag = 1` only. -/
 def memReadIf (flag addr count : Expression K) (v : Vector (Expression K) 2) : Circuit K Unit := do
   MemPull.pullIf flag ⟨addr, count, v⟩
   MemPush.push ⟨addr, count + Expression.const g * (flag * count) + flag * count, v⟩
 
-/-- The push counter of a gated read (`memReadIf`; `memory_coords_if`, `tables.rs:132-147` at
+/-- The push counter of a gated read (`memReadIf`; `memory_coords_if`, `tables.rs` at
 leanVM main `40f877dc`): `count + g·(flag·count) + flag·count`, the value of `memReadIf`'s push counter, which is `g·count` at
 `flag = 1` (`gatedCount_one`) and `count` at `flag = 0` (`gatedCount_zero`). -/
 def gatedCount (flag c : K) : K := c + g * (flag * c) + flag * c
@@ -273,7 +273,7 @@ theorem gatedCount_zero (c : K) : gatedCount 0 c = c := by
 
 /-- A bytecode read of the entry `(opcode, op)` at counter `pc` with count `count`: pull
 `(pc, count, opcode, op)`, push `(pc, g·count, opcode, op)` (specification §6.2, §6.4;
-`tables.rs:113-122`). -/
+`tables.rs`). -/
 def bytecodeRead (pc count opcode : Expression K) (op : Vector (Expression K) 12) :
     Circuit K Unit := do
   BytecodePull.pull ⟨pc, count, opcode, op⟩
@@ -296,7 +296,7 @@ def channelDir (c : RawChannel K) : Direction :=
   else .push
 
 /-- The domain separator of a channel (specification §5.1 "Domain separation";
-`tables.rs:94-96`): `g^0` for the state pair, `g^1` for memory, `g^2` for bytecode, and `0`,
+`tables.rs`): `g^0` for the state pair, `g^1` for memory, `g^2` for bytecode, and `0`,
 which is no separator, for any other channel. -/
 def channelSep (c : RawChannel K) : K :=
   if c.name = StatePull.name ∨ c.name = StatePush.name then addressOfIndex 0
@@ -305,7 +305,7 @@ def channelSep (c : RawChannel K) : K :=
   else 0
 
 /-- The sixteen-slot bus tuple of a message on a channel: the channel's separator, then the
-message's elements in order, then zeros (specification §5.1, `05-arithmetization.tex:12`). -/
+message's elements in order, then zeros (specification §5.1, `05-arithmetization.tex`). -/
 def busTuple (c : RawChannel K) (msg : List K) : Vector K 16 :=
   let m := fun j : ℕ ↦ msg.getD j 0
   #v[channelSep c, m 0, m 1, m 2, m 3, m 4, m 5, m 6, m 7, m 8, m 9, m 10, m 11, m 12, m 13,

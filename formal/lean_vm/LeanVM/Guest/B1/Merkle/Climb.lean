@@ -16,14 +16,14 @@ public import LeanVM.Protocol.WithHash
 
 * `cellsBytes_digestScalars`: a digest's two cells are its 32 bytes; `hashesPair_digests`:
   `HashesPair` is `hashPair` (`LeanVM/Protocol/KeccakHash.lean`) of the digests the cells encode.
-* `climbD_cons`, `climbD_append`: `climb` (V:492) at the deployed hash, one level and a path in
+* `climbD_cons`, `climbD_append`: `climb` at the deployed hash, one level and a path in
   two parts.
 * `cap_climb`: under `verify_merkle_cap`'s meaning, a digest written at the cap's leaf `p` whose
   parent is flagged climbs, by `D` siblings of the cap, to the root: every flagged node's
   ancestors are flagged (an unflagged one pins its children's flags to zero) and so hashed.
 * `query_opens_root`, `query_openOne`: a query's node below the cap (`QueryOpens`'s facts) climbs
   to the root by its path and the cap's siblings; the opening `⟨row, sibs ++ capSibs⟩` passes
-  `openOne` (V:501) against the root.
+  `openOne` against the root.
 -/
 
 namespace LeanVM.Guest.B1

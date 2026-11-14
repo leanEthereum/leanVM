@@ -13,7 +13,7 @@ public import LeanVM.Protocol.Compile.SpecRules.Basic
 # Grinds
 
 Every verifier message's round-by-round error, after the grind before it, is at most
-`εmsg = 2^-securityBits` (`SECURITY_BITS`, `crates/verifier/src/transcript.rs:92-104`): a message
+`εmsg = 2^-securityBits` (`SECURITY_BITS`, `crates/verifier/src/transcript.rs`): a message
 whose error is `N / |E|` grinds `grindingBits N` bits, and `grindingBits_discount` is the bound
 `2^-grindingBits N · N / |E| ≤ 2^-125` a phase's specification discharges at the boundary after
 that grind (`Spec.grindP`'s side condition, the follower's lead `N / |E|`).

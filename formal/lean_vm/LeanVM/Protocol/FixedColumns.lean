@@ -19,14 +19,14 @@ The two columns both parties know, at leanVM revision
 * **The index column** holds the address `g ^ i` at cell `i`. It is the geometric table of
   `ToCompPoly/BitProductTable.lean` at the generator, so its extension is a product of one
   factor per coordinate, `∏_k (1 + ζ_k (1 + g^(2^k)))` in characteristic two
-  (specification §6.5, `doc/leanvm/body/06-bus-interactions.tex:98-103`).
+  (specification §6.5, `doc/leanvm/body/06-bus-interactions.tex`).
 * **The bytecode column** is the program as one table on `logSize + 4` variables: the
   instruction index in the low `logSize` coordinates, the slot in the high four, low bit first.
   The layout follows specification §8.1
-  (`doc/leanvm/body/08-end-to-end-protocol.tex:4-25`) and
-  `crates/leanvm_core/src/leaf.rs:543-577`; the Rust verifier evaluates the same table at
-  `(zeta, alpha)` (`crates/verifier/src/bus.rs:140-146`, with `bytecode.rs:100-134`; the
-  prover-side `bytecode_claim`, `leaf.rs:627-637` at `a386121f`, is removed at `127510d1`). The
+  (`doc/leanvm/body/08-end-to-end-protocol.tex`) and
+  `crates/leanvm_core/src/leaf.rs`; the Rust verifier evaluates the same table at
+  `(zeta, alpha)` (`crates/verifier/src/bus.rs`, with `bytecode.rs`; the
+  prover-side `bytecode_claim`, `leaf.rs` at `a386121f`, is removed at `127510d1`). The
   content of a slot is `instructionSlots`, the one definition of the encoding, zero slots included.
 
 Every index of the program is encoded, the last one too: the column knows no sentinel. These

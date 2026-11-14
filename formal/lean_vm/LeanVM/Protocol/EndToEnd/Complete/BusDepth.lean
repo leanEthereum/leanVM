@@ -16,7 +16,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
 
 The bus phase (`verify_bus_balance`, `crates/verifier/src/bus.rs`) grinds
 `busGrindingBits(D) = grindingBits(2^D)` bits before its fingerprint, `D` the push tree's depth
-(`bus_grinding_bits`, `bus.rs:14-18`), and requires `D < 64`.
+(`bus_grinding_bits`, `bus.rs`), and requires `D < 64`.
 
 * `blocks_total_eq_sum`: the stack's blocks total `Σ_c 2^κ_c` over the committed columns, grouped by
   table (`committedCount`).

@@ -13,10 +13,10 @@ namespace LeanVM.Guest.B1.Da
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem exp8_ok : expOk fn% «da_expand__L7_L8» 7 8 69649 = true := by decide +kernel
+theorem expCell_ok : expOk fn% «da_expand__L6_L7» 6 7 325 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem exp7_ok : expOk fn% «da_expand__L14_L7» 14 7 325 = true := by decide +kernel
+theorem expTop_ok : expOk fn% «da_expand__L13_L7» 13 7 325 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Da

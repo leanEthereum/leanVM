@@ -18,8 +18,8 @@ import Mathlib.Algebra.CharP.Two
 /-!
 # The public-input phase
 
-Specification §8.2 (`doc/leanvm/body/08-end-to-end-protocol.tex:27-37`, and the paragraph
-"Public input" of the unrolled protocol, `:84-89`, at leanVM
+Specification §8.2 (`doc/leanvm/body/08-end-to-end-protocol.tex`, and the paragraph
+"Public input" of the unrolled protocol, at leanVM
 `127510d14c98ade4e8a97646c44fa7f1ff5e752d`): the public input is the first two memory cells,
 both parties know them, and
 
@@ -43,7 +43,7 @@ reads the transcript and never the stack: it is a front verifier, `verifierWith`
 and the pool, a shape the tests reuse for the verifiers that omit or weaken the check.
 
 The leanISA instance (`LeanVM.Protocol.LeanIsa`) sends no line, as the deployed verifiers do
-(`crates/verifier/src/lib.rs:267-279`): its message is
+(`crates/verifier/src/lib.rs`): its message is
 empty, the check is that it is, and every pooled claim is a value the verifier computes. The
 specification and the deployed verifiers coincide; an earlier deployed check of one equation on
 the two public words, with the two low limbs sent, is gone upstream.

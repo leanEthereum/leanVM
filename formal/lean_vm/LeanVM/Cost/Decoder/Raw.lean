@@ -58,7 +58,7 @@ noncomputable def daWitness (D : DiscreteLogTables) (σ : Val)
     (wD : List E → List E → LeanVM.Da.MatrixWitness) :
     Option (DaClaim × LeanVM.Da.MatrixWitness) :=
   if nDirectD D σ = 1 then
-    some (dvClaim σ, wD [σ (.n 28)] [σ (.n 369), σ (.n 370), σ (.n 371)])
+    some (dvClaim σ, wD [] [σ (.n 369), σ (.n 370), σ (.n 371)])
   else none
 
 /-- `main_loop2`'s arguments after the counter (`l2Args`), read one by one: `n_raw_x`, `lx_slots`,

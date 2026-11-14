@@ -16,7 +16,7 @@ squeezed word's bits in windows, each `g^n` range checked below `2^w` and read b
 `tabs`, and asserts that the positions' windows and the 7-bit windows above them rebuild the word.
 On a memory of at most `2^32` words, with `tabs[g^n] = n` (`WinTabs`, the table `open_stacked`
 writes), its meaning (`MeaningDecodeQueryWindows`): position `j` is the word's `d` bits from
-`j·d` (one chunk of `sampleQueriesAux`, V:1670), stored at `positions[j]`, and its windows
+`j·d` (one chunk of `sampleQueriesAux`), stored at `positions[j]`, and its windows
 (`qwWin`: the path six bits at a time from the bottom, the cap child bit, the cap parent index)
 are `g^`(their bits) in the frame run `p` from `j·qwN`, the pointer `p·g^(j·qwN)` stored at
 `win_ptrs[j]`.

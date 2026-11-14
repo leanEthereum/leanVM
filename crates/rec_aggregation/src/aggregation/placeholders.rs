@@ -11,16 +11,16 @@ use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use fiat_shamir::merkle::hash_to_scalars;
 use lean_compiler::f128_literal;
-use lean_da::{CELLS_PER_ROW, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
+use lean_da::{CELLS_PER_ROW, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, LOG_CELL_SYMBOLS, LOG_CODEWORD_SYMBOLS};
 use leanvm_core::constraints::xi_offsets;
 use leanvm_core::cpu::{KeccakLane, keccak_value};
 use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
+use pcs::ntt::AdditiveNttF64;
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 use pcs::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
 use primitives::field::{F64, F128, g_pow};
-use signatures::{lean_sphincs, lean_xmss};
 use std::collections::BTreeMap;
 use std::ops::Range;
 
@@ -920,74 +920,95 @@ fn bytecode_placeholders(kbc: usize, nbcv: usize, ps: &mut impl FnMut(&str, Stri
     ps("STMT_HEADER", STATEMENT_HEADER.to_string());
 }
 
+/// `Vhat_j` at the domain point whose bits above `j` are `y`'s, `Σ_l bit_l(y) · β_(j+1+l)`:
+/// the NTT's twiddles. `Vhat_j(β_j) = 1` and the bits below `j` vanish, so `Vhat_j` at point
+/// `i` is `bit_j(i)` plus this at `i >> (j + 1)`: the factors the guest builds `L` from.
+fn subspace_above() -> impl Fn(usize, usize) -> F64 {
+    let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
+    move |j, y| {
+        assert!(
+            j <= LOG_BLOB_SYMBOLS && y >> (LOG_BLOB_SYMBOLS - j) == 0,
+            "bits above {j} only"
+        );
+        ntt.twiddle(LOG_BLOB_SYMBOLS - j, y)
+    }
+}
+
 /// LeanDA (`doc/leanvm` §sec:leanda).
 fn da_placeholders(ps: &mut impl FnMut(&str, String)) {
-    let pad_blob = hash_to_scalars(&lean_da::padding_root());
-    ps("DA_LOG_K", DA_LOG_K.to_string());
-    ps("DA_LOG_CELL", DA_LOG_CELL.to_string());
+    let pad_blob = hash_to_scalars(&lean_da::root_of_padding_blob());
+    ps("LOG_BLOB_SYMBOLS", LOG_BLOB_SYMBOLS.to_string());
+    ps("LOG_CELL_SYMBOLS", LOG_CELL_SYMBOLS.to_string());
     ps("DA_MAX_ROWS", DA_MAX_ROWS.to_string());
     ps("DA_LOG_MAX_ROWS", DA_MAX_ROWS.ilog2().to_string());
     ps("DA_PAD_BLOB_0", f128_literal(pad_blob[0]));
     ps("DA_PAD_BLOB_1", f128_literal(pad_blob[1]));
     // `Vhat_j` at each parent node `n` of a product tree over bits `top, top - 1, ...`, in heap
     // order: `j` the bit `n` splits, the point its path's bits make.
-    let vhat = lean_da::subspace_above();
+    let vhat = subspace_above();
     let tree = |top: usize, depth: usize| -> Vec<u64> {
         (0..1usize << depth)
             .map(|n| n.checked_ilog2().map_or(0, |d| vhat(top - d as usize, n - (1 << d)).0))
             .collect()
     };
     let cell_bits = CELLS_PER_ROW.ilog2() as usize;
-    let (top_tree, cell_tree) = (tree(DA_LOG_K, cell_bits), tree(DA_LOG_CELL - 1, DA_LOG_CELL));
+    let (top_tree, cell_tree) = (
+        tree(LOG_BLOB_SYMBOLS, cell_bits),
+        tree(LOG_CELL_SYMBOLS - 1, LOG_CELL_SYMBOLS),
+    );
     ps("DA_VHAT", literals(top_tree.into_iter().chain(cell_tree)));
-    // `Vhat_j(beta_(DA_LOG_CELL + b))` for each factor `j` inside a cell and bit `b` of the cell index.
-    let column = (0..cell_bits).flat_map(|b| (0..DA_LOG_CELL).map(move |j| (j, b)));
+    // `Vhat_j(beta_(LOG_CELL_SYMBOLS + b))` for each factor `j` inside a cell and bit `b` of the cell index.
+    let column = (0..cell_bits).flat_map(|b| (0..LOG_CELL_SYMBOLS).map(move |j| (j, b)));
     ps(
         "DA_VHAT_COLUMN",
-        literals(column.map(|(j, b)| vhat(j, 1 << (DA_LOG_CELL - 1 - j + b)).0)),
+        literals(column.map(|(j, b)| vhat(j, 1 << (LOG_CELL_SYMBOLS - 1 - j + b)).0)),
     );
 }
 
 // A leanSPHINCS chain step's address is WOTS_HASH's, the type the guest leaves zero.
-const _: () = assert!(signatures::lean_sphincs::WOTS_HASH == 0);
+const _: () = assert!(lean_sphincs::internals::WOTS_HASH == 0);
 
 /// Both signature schemes and the coverage caps.
 fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     // Both schemes' WOTS+C: the chain length and the digit sums of a dispatched group.
-    ps("W", lean_xmss::W.to_string());
+    ps("W", lean_xmss::internals::W.to_string());
     ps("DIGIT_GROUP", DIGIT_GROUP.to_string());
     let widest = LX_DIGIT_GROUP.max(DIGIT_GROUP);
-    let digit_sums: Vec<String> = (0..lean_xmss::CHAIN_LEN.pow(widest as u32))
+    let digit_sums: Vec<String> = (0..lean_xmss::internals::CHAIN_LEN.pow(widest as u32))
         .map(|k| {
-            let digits = (0..widest).map(|r| k / lean_xmss::CHAIN_LEN.pow(r as u32) % lean_xmss::CHAIN_LEN);
+            let digits = (0..widest)
+                .map(|r| k / lean_xmss::internals::CHAIN_LEN.pow(r as u32) % lean_xmss::internals::CHAIN_LEN);
             digits.sum::<usize>().to_string()
         })
         .collect();
     ps("DIGIT_SUMS", format!("[{}]", digit_sums.join(", ")));
     // leanXMSS: its hash types as its address lane holds them. Its addresses are
     // derived per signature from the leaf index the signature carries.
-    let address = |tw| f128_literal(pack_16_bytes(&lean_xmss::address(&tw)));
+    let address = |tw| f128_literal(pack_16_bytes(&lean_xmss::internals::address(&tw)));
     for (name, tag) in [
-        ("TW_CHAIN", lean_xmss::TWEAK_CHAIN),
-        ("TW_LEAF", lean_xmss::TWEAK_LEAF),
-        ("TW_NODE", lean_xmss::TWEAK_NODE),
-        ("TW_MSG", lean_xmss::TWEAK_MSG),
+        ("TW_CHAIN", lean_xmss::internals::TWEAK_CHAIN),
+        ("TW_LEAF", lean_xmss::internals::TWEAK_LEAF),
+        ("TW_NODE", lean_xmss::internals::TWEAK_NODE),
+        ("TW_MSG", lean_xmss::internals::TWEAK_MSG),
     ] {
-        ps(name, address(lean_xmss::tweak(tag, 0, 0)));
+        ps(name, address(lean_xmss::internals::tweak(tag, 0, 0)));
     }
-    ps("LX_V", lean_xmss::V.to_string());
-    ps("LX_TARGET_SUM", lean_xmss::TARGET_SUM.to_string());
-    ps("LX_HEIGHT", lean_xmss::LAYER_HEIGHT.to_string());
-    ps("LX_TOP", address(lean_xmss::tweak(0, lean_xmss::TOP, 0)));
+    ps("LX_V", lean_xmss::internals::V.to_string());
+    ps("LX_TARGET_SUM", lean_xmss::internals::TARGET_SUM.to_string());
+    ps("LX_HEIGHT", lean_xmss::internals::LAYER_HEIGHT.to_string());
+    ps(
+        "LX_TOP",
+        address(lean_xmss::internals::tweak(0, lean_xmss::internals::TOP, 0)),
+    );
     ps("LX_WINDOW", LX_WINDOW.to_string());
     ps("LX_DIGIT_GROUP", LX_DIGIT_GROUP.to_string());
-    let sizes =
-        (0..lean_xmss::V.div_ceil(LX_DIGIT_GROUP)).map(|p| LX_DIGIT_GROUP.min(lean_xmss::V - LX_DIGIT_GROUP * p));
+    let sizes = (0..lean_xmss::internals::V.div_ceil(LX_DIGIT_GROUP))
+        .map(|p| LX_DIGIT_GROUP.min(lean_xmss::internals::V - LX_DIGIT_GROUP * p));
     ps("LX_GROUP_SIZES", format!("{:?}", sizes.collect::<Vec<_>>()));
     // A chain index: zero and the powers of two are cells the guest has, the others a
     // slot of the tags it carries.
     let (mut slots, mut logs, mut n_tags) = (Vec::new(), Vec::new(), 0);
-    for i in 0..lean_xmss::V {
+    for i in 0..lean_xmss::internals::V {
         let carried = i != 0 && !i.is_power_of_two();
         n_tags += usize::from(carried);
         slots.push(if carried { n_tags } else { 0 });
@@ -1003,7 +1024,7 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     // The leanSPHINCS instance: its shape, each address type as A1, the address's
     // second cell, holds it, and the cell bit each address field's low bytes start at.
     // The guest derives the rest of every address from the digest.
-    use lean_sphincs::Adrs;
+    use lean_sphincs::internals::Adrs;
     let cell = |adrs: Adrs, half: usize| f128_literal(pack_16_bytes(&adrs.as_bytes()[16 * half..][..16]));
     let at = Adrs::new(0, 0);
     for (name, adrs, half) in [
@@ -1019,20 +1040,20 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     ] {
         ps(name, cell(adrs, half));
     }
-    ps("SP_V", lean_sphincs::V.to_string());
-    ps("SP_TARGET_SUM", lean_sphincs::TARGET_SUM.to_string());
-    for (layer, height) in lean_sphincs::LAYER_HEIGHTS.iter().enumerate() {
+    ps("SP_V", lean_sphincs::internals::V.to_string());
+    ps("SP_TARGET_SUM", lean_sphincs::internals::TARGET_SUM.to_string());
+    for (layer, height) in lean_sphincs::internals::LAYER_HEIGHTS.iter().enumerate() {
         ps(&format!("SP_HEIGHT_{layer}"), height.to_string());
     }
-    ps("SP_FORS_TREES", lean_sphincs::FORS_TREES.to_string());
-    ps("SP_FORS_HEIGHT", lean_sphincs::FORS_HEIGHT.to_string());
-    ps("SP_DIGEST_BYTES", lean_sphincs::DIGEST_BYTES.to_string());
+    ps("SP_FORS_TREES", lean_sphincs::internals::FORS_TREES.to_string());
+    ps("SP_FORS_HEIGHT", lean_sphincs::internals::FORS_HEIGHT.to_string());
+    ps("SP_DIGEST_BYTES", lean_sphincs::internals::DIGEST_BYTES.to_string());
     for (name, t) in [
-        ("SP_WOTS_PK", lean_sphincs::WOTS_PK),
-        ("SP_TREE", lean_sphincs::TREE),
-        ("SP_FORS_TREE", lean_sphincs::FORS_TREE),
-        ("SP_FORS_ROOTS", lean_sphincs::FORS_ROOTS),
-        ("SP_WOTS_ENC", lean_sphincs::WOTS_ENC),
+        ("SP_WOTS_PK", lean_sphincs::internals::WOTS_PK),
+        ("SP_TREE", lean_sphincs::internals::TREE),
+        ("SP_FORS_TREE", lean_sphincs::internals::FORS_TREE),
+        ("SP_FORS_ROOTS", lean_sphincs::internals::FORS_ROOTS),
+        ("SP_WOTS_ENC", lean_sphincs::internals::WOTS_ENC),
     ] {
         ps(name, cell(at.with_type(t), 1));
     }

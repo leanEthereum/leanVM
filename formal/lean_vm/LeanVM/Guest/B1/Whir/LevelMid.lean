@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Level
 
 /-!
-# A non-final level, soundly (G:1531-1669)
+# A non-final level, soundly
 
 `osLevelMid_sound`: from `LvIn`, a non-final level's template runs `foldRounds` then
 `levelNext`, reading `lvWords` words at the cursor and one phase of openings (the witness's,

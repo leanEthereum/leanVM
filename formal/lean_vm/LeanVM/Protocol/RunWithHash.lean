@@ -29,7 +29,7 @@ section Run
 variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
 
 /-- Climb a Merkle path from `node` at position `q`: at each level the position's low bit says
-whether `node` is the left child (`MerklePath::root`, `crates/verifier/src/merkle.rs:28-38`). -/
+whether `node` is the left child (`MerklePath::root`, `crates/verifier/src/merkle.rs`). -/
 def climbWithHash : Digest → ℕ → List Digest → m Digest
   | node, _, [] => pure node
   | node, q, s :: ss => do
@@ -38,7 +38,7 @@ def climbWithHash : Digest → ℕ → List Digest → m Digest
     climbWithHash parent (q / 2) ss
 
 /-- Check one opening against a root of the given shape at position `q`
-(`crates/verifier/src/transcript.rs:197-210`). -/
+(`crates/verifier/src/transcript.rs`). -/
 def openOneWithHash (root : Digest) (height width q : ℕ) (o : Opening) : m Bool :=
   if o.leaf.length = width ∧ o.path.length = height then do
     let leafDigest ← H (o.leaf.flatMap K.toBytes)
@@ -59,7 +59,7 @@ def openAllWithHash (root : Digest) (height width : ℕ) :
     else pure none
 
 /-- Open one phase of a commitment of the given shape at `positions` (`Transcript::merkle`,
-`crates/verifier/src/transcript.rs:179-212`): reject unless every leaf is `width` words and every
+`crates/verifier/src/transcript.rs`): reject unless every leaf is `width` words and every
 path `height` siblings, then unless the phase's positions are `positions`, in order, then unless
 each path climbs to `root`, in order. The leaves. -/
 def openPhaseWithHash (root : Digest) (height width : ℕ) (positions : List ℕ)
@@ -107,7 +107,7 @@ def runWithHash {α : Type} : VerifierProgram α → VerifierProgramState → m 
     | _, _ => pure none
 
 /-- Run a program on a proof from a seed state, and accept when it returns `true` with the
-stream and the openings fully consumed (`finish`, `transcript.rs:239-249`). -/
+stream and the openings fully consumed (`finish`, `transcript.rs`). -/
 def runProofWithHash (P : VerifierProgram Bool) (seed : KeccakState) (π : Proof) : m Bool := do
   match ← runWithHash H F P ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩ with
   | some (true, s) => pure (s.stream.isEmpty && s.openings.isEmpty)
@@ -188,12 +188,12 @@ section Hash
 variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState → m KeccakState)
 
 /-- The IV with the hash `H`: the hash of the tag, then the bytecode as its little-endian words
-(`Bytecode::new`, `crates/verifier/src/bytecode.rs:45-53`). -/
+(`Bytecode::new`, `crates/verifier/src/bytecode.rs`). -/
 def fiatShamirIvWithHash (bytecode : List K) : m Digest :=
   H (versionTag ++ bytecode.flatMap K.toBytes)
 
 /-- The sponge's initial state with the hash `H` and the permutation `F`: `F` of the IV's and the
-public input's words, the other lanes zero (`Sponge::new`, `transcript.rs:36-49`). -/
+public input's words, the other lanes zero (`Sponge::new`, `transcript.rs`). -/
 def seedWithHash (bytecode : List K) (publicInput : Digest) : m KeccakState := do
   let fiatShamirIv ← fiatShamirIvWithHash H bytecode
   F (seedInput fiatShamirIv publicInput)

@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.Column
 
-  `da_verify_column` and its blob loop `da_verify_column_loop0`: what a run of a column establishes
-  (G:4562-4576).
+  `da_verify_column` and its blob loop `da_verify_column_loop0`: what a run of a column establishes.
 -/
 
 module
@@ -13,11 +12,11 @@ public import LeanVM.Guest.B1.Main.LoopsC
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `da_verify_column` (G:4562-4576)
+# `da_verify_column`
 
 `da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets)`, at
-`xb = g^h`: the column's weights `lvals`, `da_expand__L7_L8` from the top leaf `h` with the cell
-factors and the column's shifts `offsets·g^(8h)`, are the dual codeword's entries `256 h + e`
+`xb = g^h`: the column's weights `lvals`, `da_expand__L6_L7` from the top leaf `h` with the cell
+factors and the column's shifts `offsets·g^(7h)`, are the dual codeword's entries `128 h + e`
 (`cellLeaf_eq`); then `da_verify_column_loop0` over the blobs `i < r`: a `da_verify_cell` run on
 `lvals`, its sum added to the blob's running sum (word `512 + h` to `513 + h` of the region at
 `rowbase[i]`), its digest the blob tree's leaf `h` (words `2h`, `2h + 1`). `colOk` and `l21Ok`
@@ -88,7 +87,7 @@ theorem runAt_load {p : E} {n : ℕ} {f : ℕ → E} (hr : RunAt rd p n f) {k : 
 /-- **A column's run** at `g^h`, with `da_vector`'s results for `z`, under a call relation that
 unfolds at `Vm` and lies below `coreProgram.Rel`: for every blob `i < r`, the symbols of its cell
 check's frame (`colSyms`), whose digest is leaf `h` of the region at `rowbase[i]` and whose inner
-product with the dual codeword's entries `256 h + e` steps the region's running sum from word
+product with the dual codeword's entries `128 h + e` steps the region's running sum from word
 `512 + h` to `513 + h`. -/
 theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel rd))
     (hcol : colOk = true) (h21 : l21Ok (coreProgram.getD idx% «da_verify_column_loop0» default) =
@@ -97,20 +96,20 @@ theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel 
         idx% «da_verify_column_loop0») {z zs tl cf off rb : E} {h r : ℕ}
     (hh : h < 128) (hr : r < ordG) (hvec : MeaningDaVector rd [z] [zs, tl, cf, off])
     (hrel : C "da_verify_column" [gen ^ h, gen ^ r, rb, zs, tl, cf, off] []) :
-    ∀ i < r, (colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).length = 256 ∧
+    ∀ i < r, (colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).length = 128 ∧
       ∃ base a : E, LoadHolds rd (rb * gen ^ i) 0 base ∧
       LoadHolds rd base (2 * h) (digestHalves (keccak256
-        ((colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).flatMap K.toBytes))).1 ∧
+        ((colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).flatMap E.toBytes))).1 ∧
       LoadHolds rd base (2 * h + 1) (digestHalves (keccak256
-        ((colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).flatMap K.toBytes))).2 ∧
+        ((colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).flatMap E.toBytes))).2 ∧
       LoadHolds rd base (h + 512) a ∧
-      LoadHolds rd base (h + 513) (a + ∑ e ∈ Finset.range 256, dualAt z (256 * h + e) *
-        ofK ((colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).getD e 0)) := by
+      LoadHolds rd base (h + 513) (a + ∑ e ∈ Finset.range 128, dualAt z (128 * h + e) *
+        (colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).getD e 0) := by
   obtain ⟨hpar, hb⟩ := body_ofV hVm find_da_verify_column hrel
   set σ := Vm "da_verify_column" [gen ^ h, gen ^ r, rb, zs, tl, cf, off] [] with hσ
   unfold colOk at hcol
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcol
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hparams, hbody⟩, hflat⟩, hm7⟩, hl8⟩, hm12⟩, hce⟩, hm14⟩, hg⟩ := hcol
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hparams, hbody⟩, hflat⟩, hm7⟩, hl8⟩, hm13⟩, hce⟩, hm15⟩, hg⟩ := hcol
   rw [hparams] at hpar
   simp only [List.range_succ, List.range_zero, List.nil_append, List.map_cons, List.map_nil,
     List.cons_append, List.cons.injEq, and_true] at hpar
@@ -129,9 +128,9 @@ theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel 
   have hE := (da_expand_holds).2 rd _ _ ce
   simp only [MeaningDaExpand] at hE
   obtain ⟨F, Z, S, hF, hZ, hS, hrun⟩ := hE
-  have p12 : σ (.n 12) = off * (gen ^ h) ^ 8 := by rw [monoIs_sound hm12 hat, h6, h0]
-  have hlv : ∀ e < 256, ∀ w, rd ((σ (.n 13)).limb 0 * addressOfIndex e) = some w →
-      w = dualAt z (256 * h + e) := by
+  have p13 : σ (.n 13) = off * (gen ^ h) ^ 7 := by rw [monoIs_sound hm13 hat, h6, h0]
+  have hlv : ∀ e < 128, ∀ w, rd ((σ (.n 14)).limb 0 * addressOfIndex e) = some w →
+      w = dualAt z (128 * h + e) := by
     intro e he w hw
     rw [hrun.2 e (by norm_num; omega) w hw, e8, ← cellLeaf_eq z he]
     refine expandLeaf_congr (by norm_num; omega) (fun n n1 n2 ↦ ?_) (fun d hd ↦ ?_) (fun d hd ↦ ?_)
@@ -140,29 +139,29 @@ theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel 
     · rw [h3] at hZ
       exact loadHolds_unique (hZ d hd) (hzs _ (by omega))
     · have := hS d hd
-      rw [p12, ← pow_mul, loadHolds_mul_gen_pow] at this
+      rw [p13, ← pow_mul, loadHolds_mul_gen_pow] at this
       exact loadHolds_unique this (by
-        rw [show h * 8 + (7 - d) = 8 * h + (7 - d) by ring]; exact hoff h hh (7 - d) (by omega))
+        rw [show h * 7 + (6 - d) = 7 * h + (6 - d) by ring]; exact hoff h hh (6 - d) (by omega))
   -- the blobs
   have hgs := guard_soundC hg hall
   simp only [List.map_cons, List.map_nil] at hgs
   rw [h1, h2, h0] at hgs
-  have L := loop_soundC (C := C) (f := name% «da_verify_column_loop0») (ps := [gen ^ r, σ (.n 13),
-      rb, gen ^ h, σ (.n 14)])
-    (B := fun x ↦ CellStepW C rd (Vm name% «da_verify_column_loop0» (x :: [gen ^ r, σ (.n 13), rb,
-        gen ^ h, σ (.n 14)]) [])
-      (σ (.n 13)) rb (gen ^ h) (σ (.n 14)) x) hr rfl
+  have L := loop_soundC (C := C) (f := name% «da_verify_column_loop0») (ps := [gen ^ r, σ (.n 14),
+      rb, gen ^ h, σ (.n 15)])
+    (B := fun x ↦ CellStepW C rd (Vm name% «da_verify_column_loop0» (x :: [gen ^ r, σ (.n 14), rb,
+        gen ^ h, σ (.n 15)]) [])
+      (σ (.n 14)) rb (gen ^ h) (σ (.n 15)) x) hr rfl
     (fun x hx ↦ by
       obtain ⟨k1, k2⟩ := l21_stepW hVm h21 hidx hx
       exact ⟨k1 _ _ _ _ _ rfl, k2⟩) hgs
-  have p14 : σ (.n 14) = (gen ^ h) ^ 2 := by rw [isMul_sound hm14 hat, h0, sq]
+  have p15 : σ (.n 15) = (gen ^ h) ^ 2 := by rw [isMul_sound hm15 hat, h0, sq]
   intro i hi
   obtain ⟨hc, base, a, hbase, ha, has, hd0, hd1⟩ := L i hi
   have hrv : colRowV Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i =
-      Vm name% «da_verify_column_loop0» [gen ^ i, gen ^ r, σ (.n 13), rb, gen ^ h,
-          σ (.n 14)] [] := rfl
+      Vm name% «da_verify_column_loop0» [gen ^ i, gen ^ r, σ (.n 14), rb, gen ^ h,
+          σ (.n 15)] [] := rfl
   have hsy : colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i =
-      cellSymsOf (Vm "da_verify_cell" [σ (.n 13)]
+      cellSymsOf (Vm "da_verify_cell" [σ (.n 14)]
         [colRowV Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i (.n 6),
           colRowV Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i (.n 7),
           colRowV Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i (.n 8)]) := rfl
@@ -174,8 +173,8 @@ theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel 
   subst hlv0
   simp only [digestCells, List.cons_append, List.nil_append, List.cons.injEq, and_true] at hrets
   obtain ⟨e0, e1, es⟩ := hrets
-  have q : ∀ k v, LoadHolds rd (base * σ (.n 14)) k v → LoadHolds rd base (2 * h + k) v :=
-    fun k v hk => by rw [p14, shift2] at hk; exact hk
+  have q : ∀ k v, LoadHolds rd (base * σ (.n 15)) k v → LoadHolds rd base (2 * h + k) v :=
+    fun k v hk => by rw [p15, shift2] at hk; exact hk
   rw [loadHolds_mul_gen_pow] at ha has
   refine ⟨hsl, base, a, hbase, ?_, ?_, ha, ?_⟩
   · rw [← e0]; simpa using q 0 _ hd0
@@ -184,10 +183,10 @@ theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel 
     convert has using 2
     rw [← list_sum_range]
     unfold LeanDa.cellSymbols
-    have hwl' : (memRun rd (σ (.n 13)) 256).length = 256 := hwl
+    have hwl' : (memRun rd (σ (.n 14)) 128).length = 128 := hwl
     refine congrArg _ (List.map_congr_left fun e he ↦ ?_)
     have he' := List.mem_range.mp he
-    rw [List.getD_eq_getElem (memRun rd (σ (.n 13)) 256) 0 (show e < _ by omega),
+    rw [List.getD_eq_getElem (memRun rd (σ (.n 14)) 128) 0 (show e < _ by omega),
       hlv e he' _ (hrd e (by omega)).2]
 
 end

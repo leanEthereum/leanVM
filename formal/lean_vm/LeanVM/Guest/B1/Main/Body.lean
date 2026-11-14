@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.Body
 
-  `main`'s body (G:4675-4851): its shape and its facts checked by evaluation.
+  `main`'s body: its shape and its facts checked by evaluation.
 -/
 
 module
@@ -78,7 +78,7 @@ theorem rcDir_sound {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Atom}
   obtain ⟨e, e', he, he', hx, hk⟩ := rc_sound hm ⟨h1, h2, h3⟩
   exact ⟨e, hx, he, e', he', by rw [hk, ← pow_succ]⟩
 
-/-- `lx_tags` (lean_ethereum.py:4528-4531): the `LX_N_TAGS = 51` constants `.n 304 ..< .n 355`,
+/-- `lx_tags` (lean_ethereum.py): the `LX_N_TAGS = 51` constants `.n 304 ..< .n 355`,
 the carried chain indices, passed whole to `main_loop2` after its four parameters. -/
 def lxTagsV : List V := (List.range 51).map fun j => .n (304 + j)
 
@@ -114,7 +114,7 @@ noncomputable def preOk : Bool :=
 noncomputable def daOk : Bool :=
   let D := mDa
   D.all Stmt.flat &&
-  hasCall D "da_verify" [.n 28] [.n 369, .n 370, .n 371] &&
+  hasCall D "da_verify" [] [.n 369, .n 370, .n 371] &&
   (atomsIn D).any (isConstAt (.n 373) 0 0) &&
   pairHashOk (atomsIn D) (.n 369) (.n 370) (.n 371) (.n 373) (.n 366)
 

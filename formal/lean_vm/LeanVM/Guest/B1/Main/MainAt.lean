@@ -145,7 +145,7 @@ def mCalls (σ : Val) (m : MainIn) : List Call :=
           decide (σ (.n 356) ≠ 0)⟩,
       ⟨name% «main_loop3», [.n 360, .n 5, .n 23, .n 46, .n 2, .n 34, .n 47], [],
         decide (σ (.n 359) ≠ 0)⟩] ++
-    (if m.nd = 1 then [(⟨"da_verify", [.n 28], [.n 369, .n 370, .n 371], true⟩ : Call)]
+    (if m.nd = 1 then [(⟨"da_verify", [], [.n 369, .n 370, .n 371], true⟩ : Call)]
       else []) ++
     [⟨name% «main_loop4», [.n 402, .n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23, .n 395,
       .n 364, .n 26, .n 27, .n 383, .n 28, .n 389], [], decide (σ (.n 401) ≠ 0)⟩] ++
@@ -326,7 +326,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     rfl
   -- the calls
   have cDa : (if m.nd = 1 then mDa else mDaZ).filterMap Main.Stmt.callS =
-      if m.nd = 1 then [(none, "da_verify", [.n 28], [.n 369, .n 370, .n 371])]
+      if m.nd = 1 then [(none, "da_verify", [], [.n 369, .n 370, .n 371])]
       else [] := by
     split
     · exact mDa_calls
@@ -393,7 +393,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
               decide (σ (.n 356) ≠ 0)⟩,
           ⟨name% «main_loop3», [.n 360, .n 5, .n 23, .n 46, .n 2, .n 34, .n 47], [],
             decide (σ (.n 359) ≠ 0)⟩] ++
-        (if m.nd = 1 then [(⟨"da_verify", [.n 28], [.n 369, .n 370, .n 371], true⟩ : Call)]
+        (if m.nd = 1 then [(⟨"da_verify", [], [.n 369, .n 370, .n 371], true⟩ : Call)]
           else []) ++
         [⟨name% «main_loop4», [.n 402, .n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23,
             .n 395,
@@ -439,7 +439,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
         obtain rfl := List.eq_nil_of_length_eq_zero lB1
         obtain ⟨r1, -⟩ := hoB
         refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, trivial⟩
-        · show [σ (.n 28)] = _; rw [hO (by decide)]; rfl
+        · rfl
         · rw [(r1 rfl).1]; show [σ (.n 369), σ (.n 370), σ (.n 371)] = _
           rw [hO (by decide), hO (by decide), hO (by decide)]
           have hl4 := hb.daR hnd1

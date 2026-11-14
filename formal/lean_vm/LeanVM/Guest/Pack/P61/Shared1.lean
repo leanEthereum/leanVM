@@ -42,29 +42,29 @@ theorem shareOk : ShareOkD Fn.«child_claim_list_mono_last__L1».core (cert.with
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L1»
 
-namespace LeanVM.Guest.Fn.«da_factors__L14_L7_L0»
+namespace LeanVM.Guest.Fn.«da_factors__L6_L7_L128»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `da_factors__L14_L7_L0`, once. -/
-theorem st : shareStaticD Fn.«da_factors__L14_L7_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+/-- `da_factors__L6_L7_L128`, once. -/
+theorem st : shareStaticD Fn.«da_factors__L6_L7_L128».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_factors__L14_L7_L0`, window 0. -/
-theorem sw0 : shareWinD Fn.«da_factors__L14_L7_L0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+/-- `da_factors__L6_L7_L128`, window 0. -/
+theorem sw0 : shareWinD Fn.«da_factors__L6_L7_L128».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_factors__L14_L7_L0`, window 1. -/
-theorem sw1 : shareWinD Fn.«da_factors__L14_L7_L0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
+/-- `da_factors__L6_L7_L128`, window 1. -/
+theorem sw1 : shareWinD Fn.«da_factors__L6_L7_L128».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
-/-- `da_factors__L14_L7_L0`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«da_factors__L14_L7_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+/-- `da_factors__L6_L7_L128`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«da_factors__L6_L7_L128».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
@@ -73,7 +73,7 @@ theorem shareOk : ShareOkD Fn.«da_factors__L14_L7_L0».core (cert.withPows Data
 ⟩
 
 end
-end LeanVM.Guest.Fn.«da_factors__L14_L7_L0»
+end LeanVM.Guest.Fn.«da_factors__L6_L7_L128»
 
 namespace LeanVM.Guest.Fn.«gkr_rounds__L6»
 

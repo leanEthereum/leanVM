@@ -25,7 +25,7 @@ and it is data: what the adaptor's theorems say of it is in `LeanIsa/Sound.lean`
 **Sizes.** `Sizes` is what the prover announces: the memory log-size and the six opcode tables'
 row counts (`crates/verifier/src/lib.rs`); the bytecode's log-size is the program's. A table's
 log-height is `max(log2_ceil(rows), floor)`, the floor `0` but for `KECCAK`'s `9`
-(`TABLE_LOG_FLOORS`, `crates/verifier/src/layout.rs:489-490`; `KECCAK_MIN_STEPS_LOG`).
+(`TABLE_LOG_FLOORS`, `crates/verifier/src/layout.rs`; `KECCAK_MIN_STEPS_LOG`).
 `Sizes.Admissible prog s` is the part of the verifier's checks on sizes (`build_layout`,
 `crates/verifier/src/layout.rs`, and `lib.rs`): the memory window `[minLogMem, maxLogMem]`
 (`MIN_LOG_MEMORY`, `MAX_LOG_MEMORY`), the row cap `2^maxLogRows` (`MAX_TABLE_LOG`), and the stacked
@@ -33,9 +33,9 @@ size `leanIsaμ prog s ≤ maxMu` (`MAX_STACKED_LOG`; its floor holds by constru
 announcement and used by the commitment, not by the instance.
 
 **The tables.** Nine, in the order of the Rust's global columns
-(`crates/leanvm_core/src/cpu/layout.rs:14-28`): the memory columns `MEMORY_0, MEMORY_1, MFCNT`
+(`crates/leanvm_core/src/cpu/layout.rs`): the memory columns `MEMORY_0, MEMORY_1, MFCNT`
 at height `2^logMem`; the bytecode finalize count `BFCNT` at `2^prog.logSize`; the Keccak
-reduction's column `QKECCAK` at `2^(τ_KECCAK + 6)` (`layout.rs:223`, `SLOT_LOG = 6`); then the six
+reduction's column `QKECCAK` at `2^(τ_KECCAK + 6)` (`layout.rs`, `SLOT_LOG = 6`); then the six
 opcode tables at their log-heights, each `Component.toM3` of its Clean component with leanISA's
 separators, directions and counted channels (`channelSep`, `channelDir`, the memory and bytecode
 pulls). The first three are column groups: no constraint, flush or count, so the table sumcheck
@@ -46,18 +46,18 @@ leanISA's three remaining components: the verifier's state push `(1, 1)` and pul
 `(g^(N - 1), 1)` (`leanIsaVerifier`), the memory block's seed push `(g^i, 1, m_i)` and finalize
 pull `(g^i, MFCNT_i, m_i)` (`memTable`), and the bytecode block's seed push and finalize pull of
 the program's entries (`bytecodeTable`, with the program's thirteen entry columns known to both
-parties, `Coord.known`; `bytecode_columns`, `layout.rs:295`). The index column is the verifier's
+parties, `Coord.known`; `bytecode_columns`, `layout.rs`). The index column is the verifier's
 (`idxColumn`), as the Rust's `Coord::Index` is.
 
-**The stack** (`crates/leanvm_core/src/witness.rs:56-95`). Every committed column has a
+**The stack** (`crates/leanvm_core/src/witness.rs`). Every committed column has a
 log-size, its table's; the `KECCAK` table's columns `0 … 64` but `14` have none (`IsVirtual`: the
 fifty value lanes and the fourteen columns riding `QKECCAK`'s spare slots; `Placement::VIRTUAL`,
-`witness.rs:20`; `layout.rs:228-240`), so `94` of the `158` columns are committed. The committed
+`witness.rs`; `layout.rs`), so `94` of the `158` columns are committed. The committed
 columns, in global order, are sorted by log-size, largest first, ties in global order
 (`stack_offsets`), and laid end to end at aligned offsets (`Blocks.layout`); the stack has
 `μ = max(⌈log₂ total⌉, 16)` variables (`placements_of`). Input lane `l` of the `KECCAK` table is
 read at slot `l` of `QKECCAK`, and its columns `0 … 13` at slots `50 … 63` (`qSlot`,
-`Blocks.sliceLayout`; `qkeccak_slot`, `crates/verifier/src/layout.rs:422-432, 559-563`): cell `x`
+`Blocks.sliceLayout`; `qkeccak_slot`, `crates/verifier/src/layout.rs`): cell `x`
 of the column at slot `k` is cell `x + k · 2^τ_KECCAK` of the region. The output lanes are *derived*
 (`derived`): lane `l` at row `x` is lane `l` of the
 last twelve rounds of Keccak-f[1600] (`keccakSegment 1`) of the state after twelve rounds that
@@ -105,7 +105,7 @@ The layout, the boundary blocks and the sizes are transcribed from `crates/leanv
 
 * The `KECCAK` value lanes are not committed columns: a stack carrying the input lanes twice
   would let a prover commit lanes different from `QKECCAK`'s, and nothing would tie the bus to
-  the permutation (the region is the sole copy, `layout.rs:19-26`). Likewise the spare columns
+  the permutation (the region is the sole copy, `layout.rs`). Likewise the spare columns
   have their one copy in `QKECCAK`'s slots `50 … 63`, as the Rust places them.
 * The output lanes are not free: an instance reading them off the stack would let a prover flush
   any output, since the Keccak reduction proves the permutation of the inputs, not a committed
@@ -165,7 +165,7 @@ structure Sizes where
   rows : Fin 6 → ℕ
 
 /-- An opcode table's log-height: the least `τ` with `rows ≤ 2^τ` (`log2_ceil`), at least the
-table's floor (`TABLE_LOG_FLOORS`, `crates/verifier/src/layout.rs:489-490`): `9` for `KECCAK`, `0`
+table's floor (`TABLE_LOG_FLOORS`, `crates/verifier/src/layout.rs`): `9` for `KECCAK`, `0`
 otherwise. -/
 def Sizes.τ (s : Sizes) (j : Fin 6) : ℕ :=
   max (Nat.clog 2 (s.rows j)) (Verifier.tableLogFloors.getD j 0)
@@ -289,7 +289,7 @@ def inCol (l : Fin 25) : Col := ⟨opIdx 5, ⟨15 + l, by rw [width_keccak]; ome
 def outCol (l : Fin 25) : Col := ⟨opIdx 5, ⟨40 + l, by rw [width_keccak]; omega⟩⟩
 
 /-- The column is a `KECCAK` value lane, input or output: not committed in a block of its own
-(`KECCAK_IN … KECCAK_CNT`, `crates/verifier/src/layout.rs:394-396`; `KeccakLane::Input`/`Output`,
+(`KECCAK_IN … KECCAK_CNT`, `crates/verifier/src/layout.rs`; `KeccakLane::Input`/`Output`,
 `crates/leanvm_core/src/cpu/layout.rs`). -/
 def IsLane (c : Col) : Prop := c.1 = opIdx 5 ∧ 15 ≤ c.2.val ∧ c.2.val < 65
 
@@ -298,15 +298,15 @@ instance (c : Col) : Decidable (IsLane c) := inferInstanceAs (Decidable (_ ∧ _
 /-- The column is one of the `KECCAK` table's first fourteen committed columns (its columns
 `0 … 13`: `pc`, `fp`, the operands, the layout flags and the output flags `out_two`, `out_all`),
 which ride the spare slots `50 … 63` of `QKECCAK` (`qkeccak_slot`,
-`crates/verifier/src/layout.rs:422-432`;
-`KeccakLane::Slot`, `crates/leanvm_core/src/cpu/layout.rs:56-111`). -/
+`crates/verifier/src/layout.rs`;
+`KeccakLane::Slot`, `crates/leanvm_core/src/cpu/layout.rs`). -/
 def IsSpare (c : Col) : Prop := c.1 = opIdx 5 ∧ c.2.val < 14
 
 instance (c : Col) : Decidable (IsSpare c) := inferInstanceAs (Decidable (_ ∧ _))
 
 /-- The column has no block of its own: a `KECCAK` value lane or a column riding a spare slot of
 `QKECCAK`, the `KECCAK` table's columns `0 … 64` but `14` (`free`, committed in a block of its
-own) (the Rust's virtual columns, `keccak_value`, `crates/leanvm_core/src/cpu/layout.rs:228-240`). -/
+own) (the Rust's virtual columns, `keccak_value`, `crates/leanvm_core/src/cpu/layout.rs`). -/
 def IsVirtual (c : Col) : Prop := c.1 = opIdx 5 ∧ c.2.val < 65 ∧ c.2.val ≠ 14
 
 instance (c : Col) : Decidable (IsVirtual c) := inferInstanceAs (Decidable (_ ∧ _))
@@ -351,7 +351,7 @@ variable (prog : LeanIsaProgram) (s : Sizes)
 abbrev kappa (c : Col) : ℕ := height prog s c.1
 
 /-- The committed columns in stacking order: largest first, ties in global order
-(`witness.rs:56-75`; `List.mergeSort` is stable). -/
+(`witness.rs`; `List.mergeSort` is stable). -/
 def stackOrder : List Col :=
   committedColumns.mergeSort fun a b ↦ decide (kappa prog s b ≤ kappa prog s a)
 
@@ -372,14 +372,14 @@ def blocks : Blocks where
       simp only [decide_eq_true_eq] at this
       exact this
 
-/-- The minimum stacked size, `MIN_MU` (`pcs.rs:49`). -/
+/-- The minimum stacked size, `MIN_MU` (`pcs.rs`). -/
 def minMu : ℕ := 16
 
 /-- The maximum stacked size, `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs`). -/
 def maxMu : ℕ := 30
 
 /-- The stack's number of variables: the blocks' total, rounded up to a power of two, at least
-`2 ^ MIN_MU` (`placements_of`, `witness.rs:91`). -/
+`2 ^ MIN_MU` (`placements_of`, `witness.rs`). -/
 def leanIsaμ : ℕ := max (Nat.clog 2 (blocks prog s).total) minMu
 
 /-- The blocks fit on the stack. -/
@@ -415,7 +415,7 @@ theorem size_keccakBlock : (blocks prog s).size (keccakBlock prog s) = s.τ 5 + 
 
 /-- The slot of `QKECCAK` a virtual column is read at: input lane `l`'s is `l`, output lane `l`
 is routed to input lane `l`'s (a reading no one makes, `derived`), and the spare columns `0 … 13`
-are slots `50 … 63` (`qkeccak_slot`, `crates/verifier/src/layout.rs:422-432`); `0` for a column
+are slots `50 … 63` (`qkeccak_slot`, `crates/verifier/src/layout.rs`); `0` for a column
 with no slot. -/
 def qSlot (c : Col) : Fin 64 :=
   ⟨if c.2.val < 14 then 50 + c.2.val else if c.2.val < 65 then (c.2.val - 15) % 25 else 0, by
@@ -487,12 +487,12 @@ def derived (c : Col) : Option (Column (leanIsaμ prog s) → Column (kappa prog
 def coords {S : Shape} {κ : ℕ} (cs : List (Coord S κ)) : Vector (Coord S κ) 16 :=
   Vector.ofFn fun k ↦ cs.getD k (.const 0)
 
-/-- Column `k` of the program's entries, `bytecode_columns` (`layout.rs:295`): the entry's
+/-- Column `k` of the program's entries, `bytecode_columns` (`layout.rs`): the entry's
 coordinate `k` at every slot, coordinate `3 + k` of the bytecode tuple. -/
 def entryColumn (k : Fin 13) : Column prog.logSize :=
   ⟨Vector.ofFn fun i ↦ (busEntry (prog.instructions i))[k]⟩
 
-/-- The six boundary blocks (`layout.rs:425-468`): the state boundary, the memory seed and
+/-- The six boundary blocks (`layout.rs`): the state boundary, the memory seed and
 finalize, the bytecode seed and finalize. -/
 def boundary : List (BoundaryBlock (shape prog s)) :=
   let entries : List (Coord (shape prog s) prog.logSize) :=
@@ -515,7 +515,7 @@ def publicLines (input : PublicInput) : Vector (PublicLine (shape prog s)) 2 :=
     ⟨memCol 1, input.lanes 1, input.lanes 3, false, s.logMem_pos⟩]
 
 /-- The verifier's padding row of a table, in `K` (`Table::padding`,
-`crates/verifier/src/layout.rs:455-460`): zero, but for the `KECCAK` output lanes, which hold
+`crates/verifier/src/layout.rs`): zero, but for the `KECCAK` output lanes, which hold
 Keccak-f[1600] of the zero state. -/
 def padRowK (t : Verifier.Table) : List K :=
   (List.range t.width).map fun i ↦
@@ -621,7 +621,7 @@ def Sizes.Admissible (prog : LeanIsaProgram) (s : Sizes) : Prop :=
 instance (prog : LeanIsaProgram) (s : Sizes) : Decidable (s.Admissible prog) :=
   inferInstanceAs (Decidable (_ ∧ _))
 
-/-- The WHIR rate check (`pcs/src/whir_config.rs:44-56`): the inverse rate's logarithm is in
+/-- The WHIR rate check (`pcs/src/whir_config.rs`): the inverse rate's logarithm is in
 `[1, 4]`. A parameter of the commitment, read off the same announcement. -/
 def validRate (ρ : ℕ) : Prop := 1 ≤ ρ ∧ ρ ≤ 4
 
@@ -901,7 +901,7 @@ def inLaneOf (w : EnsembleWitness (leanIsaEnsemble prog κ)) (x : ℕ) (l : Fin 
   if x < s.rows 5 then cellOf (tableAt w 5) x (15 + l) else 0
 
 /-- The `KECCAK` column spare slot `50 + k` of `QKECCAK` carries: column `k`, the table's first
-fourteen committed columns in order (`spare_local`, `crates/verifier/src/layout.rs:399-404`). -/
+fourteen committed columns in order (`spare_local`, `crates/verifier/src/layout.rs`). -/
 def spareColumn (k : ℕ) : ℕ := k
 
 /-- A spare column's slot is `50` or above, and `spareColumn` names the column back. -/
@@ -916,7 +916,7 @@ theorem qSlot_spare {c : Col} (h : IsSpare c) :
   split_ifs
   omega
 
-/-- `QKECCAK` of a witness (`crates/leanvm_core/src/keccak.rs`, `cpu/layout.rs:56-111`): slot
+/-- `QKECCAK` of a witness (`crates/leanvm_core/src/keccak.rs`, `cpu/layout.rs`): slot
 `l < 25` of step `x` is input lane `l` of row `x`, slot `25 + l` lane `l` of its state after
 twelve rounds, and slot `50 + k` the row's cell of the `KECCAK` column `spareColumn k`. -/
 def keccakWitness (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Vector K (2 ^ (s.τ 5 + 6)) :=

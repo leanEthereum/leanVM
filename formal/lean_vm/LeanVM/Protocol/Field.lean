@@ -28,7 +28,7 @@ leanVM's columns take values in `K` and its challenges in `E`, the quadratic ext
 * `card_E`: `Fintype.card E = 2^128`, the one cardinality fact every error bound rewrites with.
 * `innerProductOracle`: the interface of the one committed oracle, the stack, on `Column n`,
   the value table of a `K`-multilinear on `n` variables. A query is a weight `W : Weight E n`
-  (specification Definition 3.13, `def:ipcs`, `doc/leanvm/body/03-proving-primitives.tex:112-115`
+  (specification Definition 3.13, `def:ipcs`, `doc/leanvm/body/03-proving-primitives.tex`
   at `127510d14c98ade4e8a97646c44fa7f1ff5e752d`): a table over the cube with an evaluator of its
   extension the verifier can run. The answer is `⟨W, q⟩ = Σ_x W(x)·q(x)` in `E`. An evaluation
   `q̃(p)` at a point `p ∈ E^n` is the answer to the equality kernel `eqWeight p`

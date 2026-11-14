@@ -30,7 +30,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier
 
 /-- **The honest prover of the commitment's out-of-domain sample** (`readOod`; `ood_sample`,
-`crates/pcs/src/ood.rs:20-31`): a grind, the point `z` of the stack's `μ` variables, then the
+`crates/pcs/src/ood.rs`): a grind, the point `z` of the stack's `μ` variables, then the
 stack's multilinear at `z`; the point and the value. -/
 def oodFast (μ : ℕ) (stack : Array K) : Script (List E × E) :=
   (Script.grindBits Whir.oodGrindingBits).bind fun _ ↦
@@ -39,7 +39,7 @@ def oodFast (μ : ℕ) (stack : Array K) : Script (List E × E) :=
   (Script.sendE value).bind fun _ ↦ .ret (z, value)
 
 /-- **The honest script** of an execution's witness `W` at the rate `ρ` and the public input
-`publicInput`: the moves of `verify_execution` (its `walk`, `crates/verifier/src/lib.rs:243-363`),
+`publicInput`: the moves of `verify_execution` (its `walk`, `crates/verifier/src/lib.rs`),
 each phase's executable prover beside the verifier's phase (`Script.alongside`), which hands the
 next phase its result. The public-input phase sends nothing; the output lanes' claims, on no
 committed column, do not reach the stack (`ColumnClaim.onStack`); the commitment's out-of-domain

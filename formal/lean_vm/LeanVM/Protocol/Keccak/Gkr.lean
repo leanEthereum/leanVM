@@ -13,7 +13,7 @@ public import LeanVM.Protocol.Keccak.GkrTail
 /-!
 # `verifyKeccak` as a specification
 
-`verify_keccak` (`crates/verifier/src/keccak.rs:235-294`) is `gkrProg` (by `rfl`): the segment and
+`verify_keccak` (`crates/verifier/src/keccak.rs`) is `gkrProg` (by `rfl`): the segment and
 lane challenges, `committed`, twelve layers, the committed outputs' opening and the inputs' opening
 (`inputTail`). Candidates are stacks of type `β`, each with its `q_keccak` column `qk q` (word `n`
 at `qk q n`); `C h` is the set of candidates a history binds (`Stable`, at most `L₀`).
@@ -205,7 +205,7 @@ theorem lead_eq (L₀ : ℕ) :
   ring
 
 open Classical in
-/-- **The Keccak reduction** (`verify_keccak`, `keccak.rs:235-294`), round by round: from
+/-- **The Keccak reduction** (`verify_keccak`, `keccak.rs`), round by round: from
 doom of "the output-lane claims (against the committed middle state) and the middle state's
 claims hold at `inst`" to doom of "the column claims and the `64` slice claims it leaves hold".
 Lead `L₀·6/|E|` (the segment and lane challenges); every other group's lead is at most

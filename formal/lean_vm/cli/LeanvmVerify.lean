@@ -11,7 +11,7 @@ compares them with the Rust verifier (`scripts/rust-verifier-cli`, its two forms
 proofs.
 
 * `lake exe leanvm-verify <bytecode> <public input> <stream> <merkle phases>`: the proof in its
-  structured form, the Rust `Proof` (`crates/verifier/src/transcript.rs:9-15`): the scalars
+  structured form, the Rust `Proof` (`crates/verifier/src/transcript.rs`): the scalars
   (`stream.bin`) and the phases of unpruned Merkle paths (`merkle_phases.bin`, `readPhasesFile`);
   runs `Verifier.verify` (`LeanVM/Facts/Verifier.lean`, the statement's verifier compiled, on the
   program's bytecode words) on it.

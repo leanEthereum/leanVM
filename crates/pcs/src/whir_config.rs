@@ -36,8 +36,9 @@ pub const SECURITY_BITS: usize = fiat_shamir::SECURITY_BITS as usize;
 /// L0 code rate index: `rho_0 = 2^-LOG_INV_RATE_0` (rate 1/2).
 pub const LOG_INV_RATE_0: usize = 1;
 
-/// CLI-selectable L0 rates are `2^-r` for `r = 1, 2, 3, 4`.
+/// The smallest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
 pub const MIN_LOG_INV_RATE: usize = 1;
+/// The largest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
 pub const MAX_LOG_INV_RATE: usize = 4;
 
 /// Validate a production WHIR inverse-rate logarithm.

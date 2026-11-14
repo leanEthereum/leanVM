@@ -13,7 +13,7 @@ public import LeanVM.Protocol.ToCompPoly.Fingerprint
 /-!
 # The equality kernel
 
-The verifier program (`LeanVM.Protocol.Verifier`; `crates/verifier/src/multilinear.rs:6-19` at
+The verifier program (`LeanVM.Protocol.Verifier`; `crates/verifier/src/multilinear.rs` at
 leanVM `40f877dc`) weighs the bus's tuple slots by `eq_kernel(alphas)` (`eqKernel`), built one
 coordinate at a time, the first coordinate the lowest bit; the oracle protocol weighs them by
 CompPoly's `lagrangeBasis` (`fingerprintWeights`).

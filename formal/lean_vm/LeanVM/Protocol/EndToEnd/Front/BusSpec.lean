@@ -25,7 +25,7 @@ keep it. This module specifies, in the calculus of `LeanVM.Protocol.Compile.Spec
 
 * `readNSpec`: reading `n` scalars keeps any property stable under reads;
 * `wireSumcheckSpec`: the verifier program's `sumcheck`
-  (`crates/verifier/src/transcript.rs:214-266`), round by round, from doom on stage `j`
+  (`crates/verifier/src/transcript.rs`), round by round, from doom on stage `j`
   of a sumcheck family to doom on its last stage, each challenge charged `L₀ · d / |E|`: the
   wire's round polynomial (the coefficient the claim fixes left out) is decoded into the
   protocol's message, which passes the protocol's check by construction.
@@ -223,7 +223,7 @@ noncomputable def grindKeepSpec (P : List Ev → Prop) (hP : ∀ h l, P h → P 
 theorem grindLead_le (b : ℕ) (T : ENNReal) : (if b = 0 then T else 0) ≤ T := by
   split_ifs <;> simp
 
-/-- **The wire's round polynomial** (`Transcript::sumcheck_round_poly`, `transcript.rs:214-237`):
+/-- **The wire's round polynomial** (`Transcript::sumcheck_round_poly`, `transcript.rs`):
 reading it keeps doom, and it returns the protocol's message, which passes the check and is
 doomed. The grind for the round's degree that follows it (`grindingBits`, zero bits at every
 round the verifier runs) keeps doom too. It starts with a read, so it ends the group of
@@ -311,7 +311,7 @@ def SumcheckPost (x : X) (m : ℕ) {j : ℕ} (cv : Vector E j) (r : List E × E)
     Prop :=
   j + r.1.length = m ∧ HDoom cands (SumcheckRound.rel Φ m) (x, (vecOf m (cv.toList ++ r.1), r.2)) h
 
-/-- **The wire's sumcheck** (`sumcheck`, `transcript.rs:252-266`) from stage `j`, the rounds' modes
+/-- **The wire's sumcheck** (`sumcheck`, `transcript.rs`) from stage `j`, the rounds' modes
 given by `eqs`: from doom on stage `j` at the challenges `cv` so far and the running claim, to doom
 on the last stage `m`; each challenge charged `L₀ · d / |E|`, every group of challenges being one
 challenge followed by a read. -/

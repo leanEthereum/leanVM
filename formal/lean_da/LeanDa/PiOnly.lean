@@ -193,8 +193,8 @@ end Games
 (`LeanDaPerfectlyComplete`): the argument with the hash oracle that never queries it
 (`liftArg`) is perfectly complete there, and has the same completeness experiment. -/
 theorem leanDa_perfectlyComplete_rpmWithHash : PerfectlyCompleteRpmWithHash := by
-  intro r π Crs Proof ps hps msg p
-  have h := leanDa_perfectlyComplete_rpmH r π (liftArg ps) (fun π crs hcrs stmt wit hrel ↦ by
+  intro r π Crs Proof ps hr hps msg p
+  have h := leanDa_perfectlyComplete_rpmH r π (liftArg ps) hr (fun π crs hcrs stmt wit hrel ↦ by
     rw [simulateQ_permImplH_liftArg]
     exact hps π crs hcrs stmt wit hrel) msg p
   have e : completenessExpRpmH r π (liftArg ps) msg p = completenessExperimentWithHash r π ps msg p := by

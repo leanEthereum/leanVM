@@ -13,7 +13,7 @@ public import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 /-!
 # `stack_offsets` and `stack_point`
 
-Facts about the transcriptions of `crates/verifier/src/multilinear.rs:114-148` at leanVM `40f877dc`
+Facts about the transcriptions of `crates/verifier/src/multilinear.rs` at leanVM `40f877dc`
 (`Placement`, `stack_offsets`, `selector_point`), in the form the layout correspondence uses:
 
 * `stackOffsets_eq`: the order of `stack_offsets`, sorted by "larger first, ties by index", is

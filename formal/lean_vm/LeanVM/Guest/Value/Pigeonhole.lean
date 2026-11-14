@@ -19,16 +19,16 @@ The guest certifies permutations without sorting: each of `N` writers stores a d
 running count, a g-power) into its slot of a write-once table, so two writers of one slot would
 write two values into one cell, which the memory rejects (`writeOnce_injective`); and a count
 says there are as many writers as slots, so the writers fill every slot exactly once
-(`cover_of_writeOnce`). This is the coverage table of `main` (G:4404-4477, with
-`child_claims`, `child_claim_list_digest`, `child_claim_list_last`, G:4031-4174), `sort_order` in
-`verify_tables` (G:1900-1926) and `col_sort_order` in `certify_placement` (G:2929-2953) (G for
+(`cover_of_writeOnce`). This is the coverage table of `main` (with
+`child_claims`, `child_claim_list_digest`, `child_claim_list_last`), `sort_order` in
+`verify_tables` and `col_sort_order` in `certify_placement` (G for
 `crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `542b035`).
 
 The corollaries: a bijection's ranks list `List.range n` up to order
 (`perm_range_of_bijective`); a list of ranks that is a permutation and adjacent-sorted by the
 guest's checks (sizes non-increasing, ties ascending) is `stackOffsets`'s `mergeSort`
-(`eq_mergeSort_of_adjacent`, `stackOffsets`, V:843-848); and a cover holds every claim,
-`List.Forall₂` (`forall₂_of_cover`, the holders of `NodeRelation`, N:354-356).
+(`eq_mergeSort_of_adjacent`, `stackOffsets`); and a cover holds every claim,
+`List.Forall₂` (`forall₂_of_cover`, the holders of `NodeRelation`).
 -/
 
 namespace LeanVM.Guest.Value
@@ -57,7 +57,7 @@ theorem writeOnce_bijective {ι σ α : Type*} [Fintype ι] [Fintype σ] {slot :
 
 /-- **The coverage certificate**, as the guest runs it: `N` writers, writer `i < N` range-checked
 into a slot below `M` and storing a mark distinct from every other writer's into it, with
-`M ≤ N` (the guest's final count, `written == n_total`, G:4477), fill every slot `s < M` exactly
+`M ≤ N` (the guest's final count, `written == n_total`), fill every slot `s < M` exactly
 once. -/
 theorem cover_of_writeOnce {α : Type*} {N M : ℕ} {slot : ℕ → ℕ} {mark : ℕ → α} {mem : ℕ → α}
     (hslot : ∀ i < N, slot i < M) (hmark : ∀ i < N, ∀ j < N, mark i = mark j → i = j)
@@ -101,14 +101,14 @@ theorem pairwise_of_adjacent {α : Type*} {r : α → α → Prop}
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hb
     exact key k hk
 
-/-- `stackOffsets`'s order (V:890-897): larger size first, ties by ascending index. -/
+/-- `stackOffsets`'s order: larger size first, ties by ascending index. -/
 def stackLe (size : ℕ → ℕ) (i j : ℕ) : Bool :=
   decide (size j < size i) || (decide (size i = size j) && decide (i ≤ j))
 
 /-- **The certified order is the specification's**: a permutation of `List.range n` whose
-adjacent entries the guest checks (the size does not increase, G:1917 and G:2948; on equal sizes
-the index does not decrease, G:1918-1921 and G:2949-2952) is `stackOffsets`'s `mergeSort` of
-`List.range n` (V:843-848). -/
+adjacent entries the guest checks (in `certify_placement` and `verify_tables`: the size does not
+increase, and on equal sizes the index does not decrease) is `stackOffsets`'s `mergeSort` of
+`List.range n`. -/
 theorem eq_mergeSort_of_adjacent {n : ℕ} (size : ℕ → ℕ) {ord : List ℕ}
     (hperm : ord.Perm (List.range n))
     (hadj : ∀ i (h : i + 1 < ord.length), size (ord[i + 1]'h) ≤ size (ord[i]'(by omega)) ∧

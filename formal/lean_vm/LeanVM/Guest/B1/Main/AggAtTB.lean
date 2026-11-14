@@ -74,7 +74,7 @@ theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V
           name% «aggregate_claims_loop2»))
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")) {m : ℕ}
     (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
-    {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
+    {out : DeferredBytecodeClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
     {cpi cfresh ccarried tabs : E} {ds : ℕ} {Lin : Main.Layout}
     (hcw : ∀ rd, Main.MemL rd Lin → ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (htabs : ∀ rd, LowDef 16 rd → Main.MemL rd Lin → WinTabs rd tabs)
@@ -293,7 +293,7 @@ theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V
       show (σ (.n 188)).limb 0 * addressOfIndex 0 = _
       rw [hV.v188]; exact limb0_gen_pow_mul _ _
     · have hcl2 : (aggOut cs h).cells.length = 24 := by
-        simp [aggOut, DeferredClaim.cells, aggRun, bsRun_len, hrl]
+        simp [aggOut, DeferredBytecodeClaim.cells, aggRun, bsRun_len, hrl]
       refine ⟨ds + k, ?_, Or.inr (Or.inl (regionL_of_mem hdst (by rw [hcl2]; exact hk)))⟩
       show (σ (.n 4)).limb 0 * addressOfIndex k = _
       rw [hV.e4]; exact limb0_gen_pow_mul _ _

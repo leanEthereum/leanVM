@@ -43,7 +43,7 @@ theorem padRun_ok {P : Nat} (h : AtomsHold rd σ (padRun P)) : PadOK σ P := by
 /-! ## The chain step -/
 
 /-- **`sp_wots`'s chain step on cells**: step `s` of chain `i` on `x`, the first cell of the hash
-of `pp`, `a0`, `a1 + spStepC i s` and `x` (`walk`, `lean_ethereum.py:3532`). -/
+of `pp`, `a0`, `a1 + spStepC i s` and `x` (`walk`, `lean_ethereum.py`). -/
 def spStepCell (pp a0 a1 : E) (i s : Nat) (x : E) : E :=
   (hcell [pp, a0, a1 + lit (spStepC i s), x]).1
 

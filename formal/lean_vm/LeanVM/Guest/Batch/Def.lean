@@ -41,7 +41,7 @@ def grind (bits : ℕ) (nonce : E) : Chain Bool := do
 
 /-- The rounds of a batching sumcheck from the running claim: each round absorbs `g(1)` and
 `g(∞)`, squeezes the challenge, and folds the round polynomial (`batch_sumcheck`,
-`lean_ethereum.py:1128-1145`; `absorb_round`, `aggregation/deferred.rs:222-238`). The challenges and the
+`lean_ethereum.py`; `absorb_round`, `aggregation/deferred.rs`). The challenges and the
 final claim. -/
 def batchRounds : E → List (E × E) → Chain (List E × E)
   | claim, [] => return ([], claim)
@@ -54,7 +54,7 @@ def batchRounds : E → List (E × E) → Chain (List E × E)
 
 /-- The batching transcript's initial state (`FiatShamirState::from_label`): Keccak-f of the
 label's hash in lanes `0..4`, the other lanes zero. The guest program bakes its capacity
-(`AGG_SEED_*`, `aggregation/placeholders.rs:911-914`). -/
+(`AGG_SEED_*`, `aggregation/placeholders.rs`). -/
 def batchSeed : KeccakState := keccakF1600 (seedInput (keccak256 batchingLabel) (Vector.replicate 4 0))
 
 /-- **The batching**: one transcript absorbs the children's count, then every child's public
@@ -63,11 +63,11 @@ input and claims, each group padded to a whole rate; after a proof of work of
 `λ^(2i)`, `λ^(2i+1)` are child `i`'s coefficients (`lambdaPowers`), and one sumcheck reduces every
 child's two claims on the bytecode to one point. The claim deferred there, if the sumcheck
 closes. -/
-def batch (children : List ChildClaims) (h : BatchingHints) : Option DeferredClaim :=
+def batch (children : List ChildClaims) (h : BatchingHints) : Option DeferredBytecodeClaim :=
   go.run' ⟨batchSeed, [], none⟩
 where
   /-- The transcript. -/
-  go : Chain (Option DeferredClaim) := do
+  go : Chain (Option DeferredBytecodeClaim) := do
     for x in padToRate [gpow children.length] do observe x
     for c in children do
       for x in padToRate c.words do observe x

@@ -61,7 +61,7 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
     (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c),
       Limits.OpeningsAgree b.1 b.2)
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
+    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTB fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (vsTsAny fs W Bvk (childShape bytecode c).1 (childShape bytecode c).2)
       (vsBoundAt W Bvk (childShape bytecode c).1 (childShape bytecode c).2) := by
@@ -95,7 +95,7 @@ theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 
     (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c),
       Limits.OpeningsAgree b.1 b.2)
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
+    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTB LeanVM.Guest.B2C.fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (vsTsAny LeanVM.Guest.B2C.fs W vkBound (childShape bytecode c).1 (childShape bytecode c).2)
       (vsBoundAt W vkBound (childShape bytecode c).1 (childShape bytecode c).2) :=

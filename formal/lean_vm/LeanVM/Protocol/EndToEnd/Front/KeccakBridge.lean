@@ -21,7 +21,7 @@ public import LeanVM.Protocol.Keccak.Gkr
 /-!
 # The Keccak phase on doom
 
-Step 6 of `verify_execution` (`keccakPhase`, `crates/verifier/src/lib.rs:283-300` at leanVM
+Step 6 of `verify_execution` (`keccakPhase`, `crates/verifier/src/lib.rs` at leanVM
 `40f877dc`): the table's 25 claims on the `KECCAK` output lanes,
 all at one point `inst`, leave the batch and are the Keccak reduction's claim on the permutation's
 output; the reduction (`verifyKeccak`) adds its claims on `q_keccak` to the batch and leaves a point

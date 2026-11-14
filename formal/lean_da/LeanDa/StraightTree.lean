@@ -245,28 +245,26 @@ variable {r : ℕ}
 
 /-- The padded matrix's cells' bytes. -/
 def cellIn (c : Fin (r * 128) → Cell) : Set (List UInt8) :=
-  {a | ∃ i < paddedRowCount r, ∃ j < 128, a = cellBytes (paddedCell c i j)}
+  {a | ∃ i < maxRows, ∃ j < 128, a = cellBytes (paddedCell c i j)}
 
 /-- The blob trees' inputs: the nodes of each padded row's tree over its cell digests. -/
 def blobIn (c : Fin (r * 128) → Cell) : Set (List UInt8) :=
-  {a | ∃ i < paddedRowCount r, a ∈ merkleIn f 7 (cellLeavesWithHash f c i)}
+  {a | ∃ i < maxRows, a ∈ merkleIn f 7 (cellLeavesWithHash f c i)}
 
 /-- **The inputs a commitment hashes**: the cells', the blob trees' and the tree's over the blob
 roots. -/
 def commitIn (c : Fin (r * 128) → Cell) : Set (List UInt8) :=
-  cellIn c ∪ blobIn f c ∪ merkleIn f (logPaddedRowCount r) (blobRootWithHash f c)
-
-theorem nPad_eq : paddedRowCount r = 2 ^ logPaddedRowCount r := rfl
+  cellIn c ∪ blobIn f c ∪ merkleIn f logMaxRows (blobRootWithHash f c)
 
 theorem cellIn_sub (c : Fin (r * 128) → Cell) : cellIn c ⊆ commitIn f c :=
   fun _ h ↦ Or.inl (Or.inl h)
 
-theorem blobTree_sub (c : Fin (r * 128) → Cell) {i : ℕ} (hi : i < paddedRowCount r) :
+theorem blobTree_sub (c : Fin (r * 128) → Cell) {i : ℕ} (hi : i < maxRows) :
     merkleIn f 7 (cellLeavesWithHash f c i) ⊆ commitIn f c :=
   fun _ h ↦ Or.inl (Or.inr ⟨i, hi, h⟩)
 
 theorem topTree_sub (c : Fin (r * 128) → Cell) :
-    merkleIn f (logPaddedRowCount r) (blobRootWithHash f c) ⊆ commitIn f c :=
+    merkleIn f logMaxRows (blobRootWithHash f c) ⊆ commitIn f c :=
   fun _ h ↦ Or.inr h
 
 theorem cellLeaves_eq (c : Fin (r * 128) → Cell) (i j : ℕ) :
@@ -276,13 +274,13 @@ theorem cellLeaves_eq (c : Fin (r * 128) → Cell) (i j : ℕ) :
 theorem commitIn_congr (f' : List UInt8 → Common.DigestBytes) (c : Fin (r * 128) → Cell)
     (h : ∀ a ∈ commitIn f c, f a = f' a) :
     commitIn f' c = commitIn f c ∧ commitCellsWithHash f' c = commitCellsWithHash f c := by
-  have hblob : ∀ i < paddedRowCount r,
+  have hblob : ∀ i < maxRows,
       merkleIn f' 7 (cellLeavesWithHash f' c i) = merkleIn f 7 (cellLeavesWithHash f c i) ∧
         blobRootWithHash f' c i = blobRootWithHash f c i := fun i hi ↦
     merkleIn_congr f f' 7 _ _
       (fun j hj ↦ h _ (cellIn_sub f c ⟨i, hi, j, by simpa using hj, rfl⟩))
       fun a ha ↦ h a (blobTree_sub f c hi ha)
-  have htop := merkleIn_congr f f' (logPaddedRowCount r) (blobRootWithHash f c)
+  have htop := merkleIn_congr f f' logMaxRows (blobRootWithHash f c)
     (blobRootWithHash f' c) (fun i hi ↦ (hblob i hi).2.symm) fun a ha ↦ h a (topTree_sub f c ha)
   have hblobIn : blobIn f' c = blobIn f c := by
     ext a
@@ -294,7 +292,7 @@ theorem commitIn_congr (f' : List UInt8 → Common.DigestBytes) (c : Fin (r * 12
 
 /-- **A cell's digest is its blob root or a digest an input carries; a blob root is the
 commitment or a digest an input carries.** -/
-theorem blobRoot_parent (c : Fin (r * 128) → Cell) {i : ℕ} (hi : i < paddedRowCount r) :
+theorem blobRoot_parent (c : Fin (r * 128) → Cell) {i : ℕ} (hi : i < maxRows) :
     blobRootWithHash f c i = commitCellsWithHash f c ∨
       ∃ b ∈ commitIn f c, blobRootWithHash f c i ∈ chunks b := by
   rcases leaf_mem f _ (blobRootWithHash f c) i hi with h | ⟨b, hb, h⟩
@@ -304,7 +302,7 @@ theorem blobRoot_parent (c : Fin (r * 128) → Cell) {i : ℕ} (hi : i < paddedR
 /-- **Every input of a commitment but the root's hashes to a digest one of its inputs carries.** -/
 theorem commitIn_parent (c : Fin (r * 128) → Cell) (a : List UInt8) (ha : a ∈ commitIn f c) :
     f a = commitCellsWithHash f c ∨ ∃ b ∈ commitIn f c, f a ∈ chunks b := by
-  have hblobT : ∀ i < paddedRowCount r, ∀ v, (v = merkleRootWithHash f 7 (cellLeavesWithHash f c i) ∨
+  have hblobT : ∀ i < maxRows, ∀ v, (v = merkleRootWithHash f 7 (cellLeavesWithHash f c i) ∨
       ∃ b ∈ merkleIn f 7 (cellLeavesWithHash f c i), v ∈ chunks b) →
         v = commitCellsWithHash f c ∨ ∃ b ∈ commitIn f c, v ∈ chunks b := by
     rintro i hi v (rfl | ⟨b, hb, h⟩)
@@ -330,13 +328,13 @@ theorem paddedCell_pos (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
   omega
 
 /-- **One root, one matrix**, over a hash injective on a set holding both commitments' inputs. -/
-theorem commit_unique {S : Set (List UInt8)} (hinj : Set.InjOn f S) {c c' : Fin (r * 128) → Cell}
+theorem commit_unique (hr : r ≤ maxRows) {S : Set (List UInt8)} (hinj : Set.InjOn f S) {c c' : Fin (r * 128) → Cell}
     (h1 : commitIn f c ⊆ S) (h2 : commitIn f c' ⊆ S) (he : commitCellsWithHash f c = commitCellsWithHash f c') :
     c = c' := by
-  have hb := merkleRoot_inj hinj (logPaddedRowCount r) _ _ (fun a ha ↦ h1 (topTree_sub f c ha))
+  have hb := merkleRoot_inj hinj logMaxRows _ _ (fun a ha ↦ h1 (topTree_sub f c ha))
     (fun a ha ↦ h2 (topTree_sub f c' ha)) he
   funext p
-  have hrow : (positionRow p : ℕ) < paddedRowCount r := lt_of_lt_of_le (positionRow p).isLt (le_nPad r)
+  have hrow : (positionRow p : ℕ) < maxRows := lt_of_lt_of_le (positionRow p).isLt hr
   have hl := merkleRoot_inj hinj 7 _ _ (fun a ha ↦ h1 (blobTree_sub f c hrow ha))
     (fun a ha ↦ h2 (blobTree_sub f c' hrow ha)) (hb _ hrow) (positionCell p)
     (by simp)
@@ -356,19 +354,19 @@ variable {f}
 /-- **An opening that verifies against a matrix's root opens the matrix's cell**, over a hash
 injective on a set holding the commitment's and the check's inputs: its climb meets the tree
 over the blob roots at the cell's blob root, and the cell's blob tree at the cell's digest. -/
-theorem verifyCell_agree {S : Set (List UInt8)} (hinj : Set.InjOn f S)
+theorem verifyCell_agree (hr : r ≤ maxRows) {S : Set (List UInt8)} (hinj : Set.InjOn f S)
     {c : Fin (r * 128) → Cell} {p : Fin (r * 128)} {x : Cell} {τ : CellOpening}
     (hc : commitIn f c ⊆ S) (hv : verifyIn f p x τ ⊆ S)
     (hver : verifyCell f r (commitCellsWithHash f c) p x τ = true) : x = c p := by
   simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq] at hver
   obtain ⟨hlen, hroot⟩ := hver
-  have hrow : (positionRow p : ℕ) < paddedRowCount r := lt_of_lt_of_le (positionRow p).isLt (le_nPad r)
+  have hrow : (positionRow p : ℕ) < maxRows := lt_of_lt_of_le (positionRow p).isLt hr
   have hl1 : (τ.path.take 7).length = 7 := by rw [List.length_take]; omega
-  have hl2 : (τ.path.drop 7).length = logPaddedRowCount r := by rw [List.length_drop]; omega
+  have hl2 : (τ.path.drop 7).length = logMaxRows := by rw [List.length_drop]; omega
   have hin := walkIn_append f (τ.path.take 7) (τ.path.drop 7) p (cellDigestWithHash f x)
   rw [List.take_append_drop, hl1] at hin
   rw [← List.take_append_drop 7 τ.path, walk_append, hl1] at hroot
-  have hblob := walk_eq_leaf hinj (τ.path.drop 7) (logPaddedRowCount r) (blobRootWithHash f c)
+  have hblob := walk_eq_leaf hinj (τ.path.drop 7) logMaxRows (blobRootWithHash f c)
     ((p : ℕ) / 2 ^ 7) _ hl2 hrow
     (fun a ha ↦ hv (Set.mem_insert_of_mem _ (hin ▸ Or.inr ha)))
     (fun a ha ↦ hc (topTree_sub f c ha)) hroot
@@ -458,9 +456,9 @@ theorem commitCellsM_some {r : ℕ} (c : Fin (r * 128) → Cell) (v : Common.Dig
         ∀ a ∈ merkleIn f 7 (cellLeavesWithHash f c i), g a ≠ none := fun i u hu ↦
     merkleRootM_some f hg 7 (cellLeavesMWithHash g c i) (cellLeavesWithHash f c i)
       (fun j u hu ↦ hg _ _ hu) u hu
-  obtain ⟨hv', hbl, htop⟩ := merkleRootM_some f hg (logPaddedRowCount r) (blobRootMWithHash g c)
+  obtain ⟨hv', hbl, htop⟩ := merkleRootM_some f hg logMaxRows (blobRootMWithHash g c)
     (blobRootWithHash f c) (fun i u hu ↦ (hblob i u hu).1) v hv
-  have hblob' : ∀ i < paddedRowCount r, (∀ j < 2 ^ 7, cellLeavesMWithHash g c i j ≠ none) ∧
+  have hblob' : ∀ i < maxRows, (∀ j < 2 ^ 7, cellLeavesMWithHash g c i j ≠ none) ∧
       ∀ a ∈ merkleIn f 7 (cellLeavesWithHash f c i), g a ≠ none := fun i hi ↦ by
     obtain ⟨u, hu⟩ := Option.ne_none_iff_exists'.mp (hbl i hi)
     exact (hblob i u hu).2

@@ -9,9 +9,9 @@ The guest program's completeness on the nodes within the deployed limits (`Deplo
 children carry honest proofs (`GuestCompleteOnHonestChildren`), the honest proof
 rarely refused (`HonestProofRarelyRefused`), and the recursion step, the batching of the
 children's deferred claims, sound in the random-permutation model (`BatchingSound`). The
-soundness side, what a node proves, is `LeanVmGuest.lean`. `lean_ethereum.py:N` is line `N`
-of `crates/rec_aggregation/guests/lean_ethereum.py`, `aggregation/<module>.rs:N` of
-`crates/rec_aggregation/src/aggregation/<module>.rs`, at the pin (`../leanvm-rev`).
+soundness side, what a node proves, is `LeanVmGuest.lean`. `lean_ethereum.py` is
+`crates/rec_aggregation/guests/lean_ethereum.py` and `aggregation/<module>.rs` is
+`crates/rec_aggregation/src/aggregation/<module>.rs`.
 -/
 
 @[expose] public section
@@ -34,16 +34,16 @@ declared claims at most the claims held. -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
   signatures or by entries of the children's lists, each used once: each coverage slot is written
-  once and the declared claims have one slot each (`lean_ethereum.py:4773-4774, 4778-4779`; a
-  child's list by hinted indices, `:4362-4364`, or by strictly increasing hinted gaps, every claim
-  of the list writing one mark, `:4427-4432, 4487`; the count, `:4825`), where `NodeRelation` lets
-  two equal claims share one holder. -/
+  once and the declared claims have one slot each (`main` in `lean_ethereum.py`; a child's list
+  by hinted indices, `child_claims`, or by strictly increasing hinted gaps, every claim of the
+  list writing one mark, `child_claims_mono`; the count of written slots, `main`), where
+  `NodeRelation` lets two equal claims share one holder. -/
   claimsHeldWithMultiplicity :
     statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.xmss)).flatten) ∧
     statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.sphincs)).flatten)
-  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4708`). -/
+  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py`). -/
   atMostSixteenChildren : witness.children.length ≤ 16
   /-- At most `2^17` claims in the children's lists, in all. -/
   atMost2Pow17ChildClaims :
@@ -53,8 +53,8 @@ structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : P
   atMost2048Xmss : witness.xmssSignatures.length ≤ 2048
   /-- At most `512` raw leanSPHINCS signatures. -/
   atMost512Sphincs : witness.sphincsSignatures.length ≤ 512
-  /-- At most `32` rows in the blob matrix checked directly. -/
-  atMost32Rows : ∀ p ∈ witness.daMatrix, p.2.rows.length ≤ 32
+  /-- At most `LeanDa.maxRows` rows in the blob matrix checked directly. -/
+  atMostMaxRows : ∀ p ∈ witness.daMatrix, p.2.rows.length ≤ LeanDa.maxRows
 
 /-! ## The guest program's completeness
 
@@ -71,7 +71,7 @@ nonce within its fuel, a zero where the guest program divides) is bounded in the
 random-permutation model for the same prover and check (`verifierRefusingZero`).
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each non-final level's batching challenge `λ`, `lean_ethereum.py:1651, 1766, 1772`), so a zero
+and each non-final level's batching challenge `λ`, `lean_ethereum.py`), so a zero
 there makes it reject a child the verifier accepts. The honest child's hypothesis refuses a zero
 challenge anywhere (`VerifierProgram.refusingZeroChallenge`, a slightly stronger one, each
 challenge being zero with probability `2^-128`). -/
@@ -199,7 +199,7 @@ def readChildren (bytecodeVariableCount : ℕ) : (childCount : ℕ) → Verifier
     return child :: children
 
 /-- **The batching of `childCount` children read off the stream.** -/
-noncomputable def batchingProgram (deferredClaimCheck : DeferredClaim → Prop) (bytecode : List K)
+noncomputable def batchingProgram (deferredClaimCheck : DeferredBytecodeClaim → Prop) (bytecode : List K)
     (childCount : ℕ) : VerifierProgram Bool := do
   let children ← readChildren (Nat.log2 bytecode.length) childCount
   batchingAfterChildren deferredClaimCheck bytecode children
@@ -217,15 +217,15 @@ noncomputable def readChildCount (childCountBound : ℕ) : VerifierProgram ℕ :
 
 /-- **The batching as a verifier program**, of fewer than `childCountBound` children: the count,
 then the batching of that many, its deferred claim true of `bytecode`, shape and length included
-(`DeferredClaim.HoldsWithShape`). -/
+(`DeferredBytecodeClaim.HoldsWithShape`). -/
 noncomputable def boundedBatchingProgram (childCountBound : ℕ) (bytecode : List K) :
     VerifierProgram Bool := do
   let childCount ← readChildCount childCountBound
-  batchingProgram (DeferredClaim.HoldsWithShape bytecode) bytecode childCount
+  batchingProgram (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode childCount
 
 /-- The proof's stream begins with the count's cells and those of fewer than `childCountBound`
 children of the bytecode's shapes, one of whose claims is false: its proof's claim's value
-(`BytecodeClaim.Holds`) or its statement's claim (`DeferredClaim.HoldsWithShape`; with the shapes
+(`BytecodeClaim.Holds`) or its statement's claim (`DeferredBytecodeClaim.HoldsWithShape`; with the shapes
 given, it adds only that the bytecode's length is a power of two, which `BatchingSound`
 assumes). -/
 def SomeChildClaimFalse (bytecode : List K) (childCountBound : ℕ) (proof : Proof) : Prop :=

@@ -9,7 +9,6 @@ workspace = true
 
 [dependencies]
 primitives.workspace = true
-parallel.workspace = true
 pcs.workspace = true
 fiat_shamir.workspace = true
 tracing.workspace = true

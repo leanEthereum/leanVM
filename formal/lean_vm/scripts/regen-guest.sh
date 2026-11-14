@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Regenerates every file written from the guest, in dependency order, after a change to the guest
-# (`crates/rec_aggregation/guests/`), to its compiler, or to `formal/leanvm-rev`:
+# (`crates/rec_aggregation/guests/`) or to its compiler:
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale

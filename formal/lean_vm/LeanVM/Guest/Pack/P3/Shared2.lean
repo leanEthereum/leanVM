@@ -42,33 +42,6 @@ theorem shareOk : ShareOkD Fn.«plus_one_run__L29».core (cert.withPows Data.pow
 end
 end LeanVM.Guest.Fn.«plus_one_run__L29»
 
-namespace LeanVM.Guest.Fn.«da_levels__L1024_L10»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `da_levels__L1024_L10`, once. -/
-theorem st : shareStaticD Fn.«da_levels__L1024_L10».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_levels__L1024_L10`, window 0. -/
-theorem sw0 : shareWinD Fn.«da_levels__L1024_L10».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `da_levels__L1024_L10`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«da_levels__L1024_L10».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«da_levels__L1024_L10»
-
 namespace LeanVM.Guest.Fn.«grind_check__L30»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -122,4 +95,23 @@ theorem shareOk : ShareOkD Fn.«level_residual__L44_L10_L4_L2».core (cert.withP
 
 end
 end LeanVM.Guest.Fn.«level_residual__L44_L10_L4_L2»
+
+namespace LeanVM.Guest.Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0`, once. -/
+theorem st : shareStaticD Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0`, window 0. -/
+theorem sw0 : shareWinD Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0»
 
