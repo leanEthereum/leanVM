@@ -143,8 +143,8 @@ impl AdditiveNttF64 {
         });
     }
 
-    /// `log_d`, and the first layer from `start` with as many blocks as the pool has tasks, `start` for a buffer too
-    /// small to share out.
+    /// `log_d`, and the first layer from `start` with as many blocks as the pool has tasks and blocks that fit in a
+    /// core's cache, `start` for a buffer too small to share out.
     fn split(&self, data: &[F64], num_ntts: usize, start: usize) -> (usize, usize) {
         let log_d = log2_strict_usize(data.len() / num_ntts);
         assert!(log_d <= self.dim && start <= log_d);
@@ -154,7 +154,9 @@ impl AdditiveNttF64 {
         let tasks = 4 * parallel::num_threads();
         (
             log_d,
-            (start..log_d).find(|&layer| 1 << layer >= tasks).unwrap_or(log_d),
+            (start..log_d)
+                .find(|&layer| 1 << layer >= tasks && data.len() >> layer <= 4 * CHUNK)
+                .unwrap_or(log_d),
         )
     }
 
