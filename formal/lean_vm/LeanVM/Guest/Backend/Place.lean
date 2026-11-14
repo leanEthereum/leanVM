@@ -121,6 +121,8 @@ structure Ctx where
   /-- Its return cells. -/
   retCells : Nat
   loops : Loops
+  /-- The argument and return cells of every function of the program. -/
+  sigs : Std.HashMap String (Nat × Nat)
   trace : Array Event
 
 /-- The jump tables' state, threaded through the program (`JumpTables`). -/
@@ -699,6 +701,11 @@ def placeCall (f : String) (argVs : List V) (args rets : List Cell) (cond : Opti
   let loop ← loopCount f argVs args
   push (.call hints { callee := f, nfp, entry, oc, args, rets, loop, tail })
 
+/-- A callee is a function of the program other than `main`, of this many argument and return
+cells. -/
+def isCallee (sigs : Std.HashMap String (Nat × Nat)) (nargs nrets : Nat) (f : String) : Bool :=
+  f != "main" && decide (sigs[f]? = some (nargs, nrets))
+
 /-- How an arm of a `match` leaves: to the join, or through the next `match`'s table. -/
 inductive ArmExit where
   | join (join one sfp : Cell)
@@ -780,11 +787,13 @@ def placeStmt : Stmt → List Stmt → P Unit
       | .join .. => pure ()
   | .call f args rets, rest => do
       beginStmt (.call f args rets :: rest)
+      if !isCallee (← read).sigs args.length rets.length f then failP s!"a call of {f}, no such function"
       let las ← args.mapM cellOf
       let lrs ← rets.mapM cellAt
       placeCall f args las lrs none false
   | .callIf c f args, rest => do
       beginStmt (.callIf c f args :: rest)
+      if !isCallee (← read).sigs args.length 0 f then failP s!"a call of {f}, no such function"
       let lc ← cellOf c
       let las ← args.mapM cellOf
       let ctx ← read
@@ -809,9 +818,11 @@ def placeStmt : Stmt → List Stmt → P Unit
       else placeCall f args las [] (some lc) self
   | .dispatch x fs args rets, rest => do
       beginStmt (.dispatch x fs args rets :: rest)
-      let loops := (← read).loops
-      if fs.any (fun f => (loops[f]?).any (·.registered)) then
+      let ctx ← read
+      if fs.any (fun f => (ctx.loops[f]?).any (·.registered)) then
         failP "a dispatch into a registered loop"
+      if !fs.all (isCallee ctx.sigs args.length rets.length) then
+        failP "a dispatch into no function"
       let las ← args.mapM cellOf
       let lrs ← rets.mapM cellAt
       let lx ← cellOf x
@@ -866,14 +877,28 @@ structure Placed where
   fn : PFn
   locs : Std.HashMap V Loc
 
+/-- A function's argument and return cells. -/
+def sigOf (tf : TracedFn) : Nat × Nat :=
+  (tf.core.params.length, (tf.src.returnShapes.map Source.Shape.cells).sum)
+
+/-- The argument and return cells of the program's functions. -/
+def sigTable (fns : List TracedFn) : Std.HashMap String (Nat × Nat) :=
+  fns.foldl (init := {}) fun m tf => m.insert tf.core.name (sigOf tf)
+
+/-- The walk of a function: its parameters in the argument cells, then its body. -/
+def placeBody (tf : TracedFn) : P Unit := do
+  tf.core.params.zipIdx.forM fun (v, k) => bindTo v (.cell (2 + k))
+  placeBlock tf.core.body
+  flush []
+  if (← get).pos != tf.trace.size then failP "the trace goes on past the function"
+
 /-- Place a function (`lower_func`): cells `0` and `1` hold the return target, then the
 arguments, then the return cells, then a registered loop's own frame pointer, then the locals. -/
-def placeFn (loops : Loops) (tables : Tables) (tf : TracedFn) :
-    Except String (Placed × Tables) := do
+def placeFn (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) (tables : Tables)
+    (tf : TracedFn) : Except String (Placed × Tables) := do
   let f := tf.core
   let loopFrame := (loops[f.name]?).any (·.registered)
-  let argCells := f.params.length
-  let retCells := (tf.src.returnShapes.map Source.Shape.cells).sum
+  let (argCells, retCells) := sigOf tf
   let abiEnd := 2 + argCells + retCells
   if loopFrame && retCells != 0 then throw s!"in {f.name}: a loop helper that returns cells"
   match f.body.getLast? with
@@ -883,23 +908,28 @@ def placeFn (loops : Loops) (tables : Tables) (tf : TracedFn) :
     next := abiEnd + (if loopFrame then 1 else 0), tables,
     scope := { selfFp := if loopFrame then some abiEnd else none } }
   let ctx : Ctx := {
-    name := f.name, isMain := f.name == "main", argCells, retCells, loops, trace := tf.trace }
-  let walk : P Unit := do
-    f.params.zipIdx.forM fun (v, k) => bindTo v (.cell (2 + k))
-    placeBlock f.body
-    flush []
-    if (← get).pos != tf.trace.size then failP "the trace goes on past the function"
-  let ((), st) ← walk.run ctx |>.run st
+    name := f.name, isMain := f.name == "main", argCells, retCells, loops, sigs,
+    trace := tf.trace }
+  let ((), st) ← (placeBody tf).run ctx |>.run st
+  if 2 ^ 128 ≤ st.next then throw s!"in {f.name}: a frame past the compiler's exponents"
   return (⟨{ name := f.name, body := st.out.toList, frameSize := st.next }, st.locs⟩, st.tables)
 
-/-- Place a program, its functions in order: the jump tables grow as the lowering reaches each
-`match`. -/
+/-- Place the functions in order: the jump tables grow as the lowering reaches each `match`. -/
+def placeFns (loops : Loops) (sigs : Std.HashMap String (Nat × Nat)) :
+    List TracedFn → Tables → Except String (List Placed × Tables)
+  | [], tables => pure ([], tables)
+  | tf :: rest, tables => do
+      let (pf, tables) ← placeFn loops sigs tables tf
+      let (pfs, tables) ← placeFns loops sigs rest tables
+      pure (pf :: pfs, tables)
+
+/-- Place a program, `main` first, its functions of distinct names. -/
 def placeProgram (p : List TracedFn) : Except String (List Placed × Tables) := do
-  let loops := loopTable p
-  let (fns, tables) ← p.foldlM (init := (#[], ({} : Tables))) fun (fns, tables) tf => do
-    let (pf, tables) ← placeFn loops tables tf
-    pure (fns.push pf, tables)
-  return (fns.toList, tables)
+  let names := p.map (·.core.name)
+  if names.head? != some "main" then throw "the first function is not main"
+  if names.contains "__jump_tables" then throw "a function named __jump_tables"
+  if !decide names.Nodup then throw "two functions of one name"
+  placeFns (loopTable p) (sigTable p) p {}
 
 end
 end LeanVM.Guest.Backend

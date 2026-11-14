@@ -54,7 +54,7 @@ inductive KVal where
   | local (i : Nat)
   /-- Instruction `i` of the function `f`: a `match` arm's entry, in a jump-table slot. -/
   | at (f : String) (i : Nat)
-  deriving Repr, BEq, Inhabited
+  deriving Repr, DecidableEq, Inhabited
 
 /-- Where a computed-advice hint writes (`BitsDest`). -/
 inductive BitsDest where
