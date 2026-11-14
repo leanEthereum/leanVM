@@ -38,12 +38,13 @@ fn public_api_end_to_end() {
 
     // 3. Two leaves, then a root over both. Both leaves hold claims on the second message; the root's claims are the union.
     let blobs: Vec<lean_da::Blob> = vec![std::array::from_fn(|i| i as u128)];
-    let commitment = lean_da::DaWitness::build(&blobs).unwrap().top_root();
+    let da = lean_da::DaWitness::build(&blobs).unwrap();
+    let commitment = da.top_root();
     let left = aggregate(
         &[],
         lean_xmss_input[..4].to_vec(),
         lean_sphincs_input[..1].to_vec(),
-        &blobs,
+        Some(&da),
         OutputClaims::All,
         2,
     )
@@ -51,12 +52,13 @@ fn public_api_end_to_end() {
     left.1.verify(&left.0).unwrap();
     assert_eq!(left.0.da_commitment, Some(commitment));
     let other_blobs: Vec<lean_da::Blob> = blobs.iter().map(|blob| blob.map(|x| x ^ 42)).collect();
-    let other_commitment = lean_da::DaWitness::build(&other_blobs).unwrap().top_root();
+    let other_da = lean_da::DaWitness::build(&other_blobs).unwrap();
+    let other_commitment = other_da.top_root();
     let right = aggregate(
         &[],
         lean_xmss_input[4..7].to_vec(),
         lean_sphincs_input[1..].to_vec(),
-        &other_blobs,
+        Some(&other_da),
         OutputClaims::All,
         2,
     )
@@ -67,7 +69,7 @@ fn public_api_end_to_end() {
         &[left, right],
         lean_xmss_input[7..].to_vec(),
         vec![],
-        &[],
+        None,
         OutputClaims::All,
         2,
     )
@@ -97,7 +99,7 @@ fn public_api_end_to_end() {
         &[(claims, received)],
         vec![],
         vec![],
-        &[],
+        None,
         OutputClaims::Only(&retained),
         2,
     )
@@ -111,7 +113,7 @@ fn public_api_end_to_end() {
         da_commitment: None,
         ..retained
     };
-    let dropped = aggregate(&[narrowed], vec![], vec![], &[], OutputClaims::Only(&without_blobs), 2).unwrap();
+    let dropped = aggregate(&[narrowed], vec![], vec![], None, OutputClaims::Only(&without_blobs), 2).unwrap();
     dropped.1.verify(&dropped.0).unwrap();
     assert_eq!(dropped.0, without_blobs);
 }

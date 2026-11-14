@@ -25,7 +25,7 @@ use primitives::field::F128;
 ///
 /// - `children`: at most [`MAX_RECURSIONS`], each with its claims.
 /// - `raw_lean_xmss`, `raw_lean_sphincs`: `(public_key, message, signature)`, in any order.
-/// - `blobs`: at most [`lean_da::DA_MAX_ROWS`].
+/// - `da`: the blobs, if any ([`lean_da::DaWitness::build`]).
 /// - `output`: which covered claims the proof attests.
 /// - `log_inv_rate`: the code rate's log, in [`MIN_LOG_INV_RATE`](pcs::whir::MIN_LOG_INV_RATE)..=[`MAX_LOG_INV_RATE`](pcs::whir::MAX_LOG_INV_RATE);
 ///   higher gives smaller proof size but slower proving time.
@@ -38,11 +38,11 @@ pub fn aggregate(
     children: &[(EthereumClaims, EthereumProof)],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
-    blobs: &[lean_da::Blob],
+    da: Option<&lean_da::DaWitness>,
     output: OutputClaims,
     log_inv_rate: usize,
 ) -> Result<(EthereumClaims, EthereumProof), AggregateProveError> {
-    aggregate_with_stats(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
+    aggregate_with_stats(children, raw_lean_xmss, raw_lean_sphincs, da, output, log_inv_rate)
         .map(|(claims, proof, _)| (claims, proof))
 }
 
@@ -51,7 +51,7 @@ pub fn aggregate_with_stats(
     children: &[(EthereumClaims, EthereumProof)],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
-    blobs: &[lean_da::Blob],
+    da: Option<&lean_da::DaWitness>,
     output: OutputClaims,
     log_inv_rate: usize,
 ) -> Result<(EthereumClaims, EthereumProof, leanvm_core::cpu::Stats), AggregateProveError> {
@@ -67,13 +67,7 @@ pub fn aggregate_with_stats(
     if children.len() > MAX_RECURSIONS {
         return Err(AggregateProveError::TooLarge);
     }
-    let direct = if blobs.is_empty() {
-        None
-    } else {
-        let _span = tracing::info_span!("LeanDA commit").entered();
-        Some(lean_da::DaWitness::build(blobs)?)
-    };
-    let direct_root = direct.as_ref().map(lean_da::DaWitness::top_root);
+    let direct_root = da.map(lean_da::DaWitness::top_root);
     if direct_root.is_some() && declared_root.is_some_and(|declared| declared != direct_root) {
         return Err(AggregateProveError::BlobsUnpublished);
     }
@@ -160,7 +154,7 @@ pub fn aggregate_with_stats(
             count(cover.lean_sphincs.dups.len()),
             count(raw_lean_sphincs.len()),
             count(children.len()),
-            count(usize::from(!blobs.is_empty())),
+            count(usize::from(da.is_some())),
         ],
     );
     let fs_seed = leanvm_core::cpu::fs_seed(guest);
@@ -277,11 +271,11 @@ pub fn aggregate_with_stats(
         reduced
     };
 
-    let mut da = child_da.get(da_pick).copied().unwrap_or_default();
-    if let Some(witness) = direct {
+    let mut da_digest = child_da.get(da_pick).copied().unwrap_or_default();
+    if let Some(witness) = da {
         let commitment = witness.top_root();
-        let n_rows = blobs.len();
-        da = verifier::da::digest(Some(commitment));
+        let n_rows = witness.n_blobs();
+        da_digest = verifier::da::digest(Some(commitment));
         hints.push(
             "da_challenge",
             vec![from_scalar(verifier::da::membership_challenge(&commitment))],
@@ -303,7 +297,7 @@ pub fn aggregate_with_stats(
         return Err(AggregateProveError::Empty);
     }
 
-    let public_input = statement_digest(&cover.lean_xmss.signers, &cover.lean_sphincs.signers, da, &defer);
+    let public_input = statement_digest(&cover.lean_xmss.signers, &cover.lean_sphincs.signers, da_digest, &defer);
     let mut program = guest.clone();
     #[cfg(test)]
     if let Some(forge) = FORGE.with(|forge| forge.borrow_mut().take()) {

@@ -153,12 +153,13 @@ fn export(
     raw_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: &[lean_da::Blob],
 ) -> (EthereumClaims, EthereumProof) {
+    let direct = (!blobs.is_empty()).then(|| lean_da::DaWitness::build(blobs).expect("1 to DA_MAX_ROWS blobs"));
     capture_next();
     let (claims, node) = aggregate(
         &children,
         raw_xmss.clone(),
         raw_sphincs.clone(),
-        blobs,
+        direct.as_ref(),
         OutputClaims::All,
         LOG_INV_RATE,
     )
@@ -239,7 +240,6 @@ fn export(
         out.sphincs_signature(sig);
     }
     // The directly held matrix: its root, its membership challenge and its rows.
-    let direct = (!blobs.is_empty()).then(|| lean_da::DaWitness::build(blobs).expect("1 to DA_MAX_ROWS blobs"));
     out.tag("da_witness");
     match &direct {
         Some(witness) => {

@@ -59,6 +59,11 @@ fn report(label: &str, stats: &leanvm_core::cpu::Stats, sig: &EthereumProof, pro
     );
 }
 
+/// The blobs' witness, `None` for no blobs.
+fn witness(blobs: &[lean_da::Blob]) -> Option<lean_da::DaWitness> {
+    (!blobs.is_empty()).then(|| lean_da::DaWitness::build(blobs).expect("at most DA_MAX_ROWS blobs"))
+}
+
 /// How a benchmark names a leaf of either scheme or of both.
 fn describe(n_lean_xmss: usize, n_lean_sphincs: usize) -> String {
     match (n_lean_xmss, n_lean_sphincs) {
@@ -91,7 +96,7 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
             &[],
             raw_lean_xmss.clone(),
             raw_lean_sphincs.clone(),
-            &blobs,
+            witness(&blobs).as_ref(),
             OutputClaims::All,
             log_inv_rate,
         )
@@ -178,7 +183,7 @@ pub fn run_recursion(
     }
     let ((claims, sig, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        aggregate_with_stats(&children, vec![], vec![], &[], OutputClaims::All, log_inv_rate).expect("node aggregates")
+        aggregate_with_stats(&children, vec![], vec![], None, OutputClaims::All, log_inv_rate).expect("node aggregates")
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
@@ -244,7 +249,7 @@ fn write_leaves(
             &[],
             all[k * per_leaf..(k + 1) * per_leaf].to_vec(),
             all_lean_sphincs[k * lean_sphincs_per_leaf..(k + 1) * lean_sphincs_per_leaf].to_vec(),
-            &blobs(blobs_per_leaf, k as u64),
+            witness(&blobs(blobs_per_leaf, k as u64)).as_ref(),
             OutputClaims::All,
             log_inv_rate,
         )
