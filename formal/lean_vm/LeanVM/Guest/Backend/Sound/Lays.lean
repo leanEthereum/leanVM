@@ -39,13 +39,13 @@ variable {α β : Type}
 
 /-- The shared jump tables only grew. -/
 structure TablesLe (t t' : Tables) : Prop where
-  shared : ∀ p ∈ t.shared, p ∈ t'.shared
+  shared : t.shared <:+ t'.shared
 
-theorem TablesLe.refl (t : Tables) : TablesLe t t := ⟨fun _ h => h⟩
+theorem TablesLe.refl (t : Tables) : TablesLe t t := ⟨List.suffix_refl _⟩
 
 theorem TablesLe.trans {t t' t'' : Tables} (h₁ : TablesLe t t') (h₂ : TablesLe t' t'') :
     TablesLe t t'' :=
-  ⟨fun x h => h₂.shared x (h₁.shared x h)⟩
+  ⟨h₁.shared.trans h₂.shared⟩
 
 theorem TablesLe.of_eq {t t' : Tables} (h : t' = t) : TablesLe t t' := h ▸ TablesLe.refl t
 
@@ -58,14 +58,14 @@ theorem Plain.of_same {st st' : St} (h : Plain st) (hs : Same st st') : Plain st
 
 section
 
-variable {κ : ℕ} (Γ : Site κ) (fp : K) (F : Std.HashMap V Loc) (ctx : Ctx) (slots : Array KVal)
+variable {κ : ℕ} (Γ : Site κ) (fp : K) (F : VMap Loc) (ctx : Ctx) (slots : Array KVal)
   (B : ℕ)
 
 /-- The words a function returns: its frame's return cells. -/
 noncomputable def retWords : List E := frameWords Γ.L fp (2 + ctx.argCells) ctx.retCells
 
 /-- **Placed statements mean a core construct**, of obligations `G` and relation `S`. -/
-def Means (H : Prop) (locs' : Std.HashMap V Loc) (sc sc' : Scope) (t' : Tables)
+def Means (H : Prop) (locs' : VMap Loc) (sc sc' : Scope) (t' : Tables)
     (ps : List PStmt) (G : Prop → Prop) (S : Prop → (List E → Prop) → Prop) : Prop :=
   ∀ (pos : ℕ) (N : Prop) (kj : E → E → Prop) (kretP : Prop) (khalt : E → E → Prop)
     (g next : Prop) (kret : List E → Prop),
@@ -106,7 +106,7 @@ theorem FillsIn.right {a b : List Fill} (h : FillsIn slots (a ++ b)) : FillsIn s
 
 theorem SharedIn.of_le {t t' : Tables} (h : SharedIn slots t') (hle : TablesLe t t') :
     SharedIn slots t :=
-  fun p hp => h p (hle.shared p hp)
+  fun p hp => h p (hle.shared.subset hp)
 
 /-- Straight-line instructions whose facts give the construct. -/
 theorem Lays.ofEmits {Q : Prop} (he : Emits Γ fp F H st st' Q)
@@ -220,7 +220,7 @@ def BlockSem (Γ : Site κ) (fp : K) (ctx : Ctx) (slots : Array KVal) (B : ℕ) 
     FillsIn slots (blockFills ctx.name blk pos) → PStmt.SemList Γ fp blk pos N kj kretP khalt →
     G g → (N → g → next) → (ctx.isMain = true ∨ kretP → kret (retWords Γ fp ctx)) → S next kret
 
-theorem Means.blockSem {locs' : Std.HashMap V Loc} {sc sc' : Scope} {t' : Tables}
+theorem Means.blockSem {locs' : VMap Loc} {sc sc' : Scope} {t' : Tables}
     {blk : List PStmt} (h : Means Γ fp F ctx slots B True locs' sc sc' t' blk G S)
     (hF : Sub locs' F) (hp : PoolOK Γ.L fp sc) (hent : SharedIn slots t') :
     BlockSem Γ fp ctx slots B blk G S :=
@@ -272,7 +272,7 @@ theorem LaysAt.read_bind {f : Ctx → P β}
   fun hpl => wp_bind.mpr (wp_read.mpr (h hpl))
 
 theorem LaysAt.peek_bind {f : Option Event → P β}
-    (h : LaysAt Γ fp F ctx slots B H st (f ctx.trace[st.pos]?) G S) :
+    (h : LaysAt Γ fp F ctx slots B H st (f st.rest.head?) G S) :
     LaysAt Γ fp F ctx slots B H st (peek >>= f) G S :=
   fun hpl => wp_bind.mpr (wp_peek.mpr (h hpl))
 

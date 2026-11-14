@@ -57,22 +57,22 @@ theorem blockSize_append (a b : List PStmt) : blockSize (a ++ b) = blockSize a +
   | nil => simp [blockSize]
   | cons s ss ih => simp [blockSize, ih, Nat.add_assoc]
 
-theorem size_emitStmt (f : String) (s : PStmt) (acc : Array LInstr × Array Fill) :
+theorem size_emitStmt (f : String) (s : PStmt) (acc : Rev LInstr × Rev Fill) :
     (emitStmt f s acc).1.size = acc.1.size + stmtSize s := by
   have h := congrArg List.length (emitStmt_ops f s acc)
-  simpa only [opsOf_length, List.length_append, stmtOps_length] using h
+  simpa only [opsR_length, List.length_append, stmtOps_length] using h
 
-theorem size_emitBlock (f : String) (b : List PStmt) (acc : Array LInstr × Array Fill) :
+theorem size_emitBlock (f : String) (b : List PStmt) (acc : Rev LInstr × Rev Fill) :
     (emitBlock f b acc).1.size = acc.1.size + blockSize b := emitBlockSize f b acc
 
 theorem size_emitArms (f : String) (first : Nat) (as : List (List PStmt)) (j : Nat)
-    (acc : Array LInstr × Array Fill) :
+    (acc : Rev LInstr × Rev Fill) :
     (emitArms f first as j acc).1.size = acc.1.size + armsSize as := by
   have h := congrArg List.length (emitArms_ops f first as j acc)
-  simpa only [opsOf_length, List.length_append, armsOps_length] using h
+  simpa only [opsR_length, List.length_append, armsOps_length] using h
 
 mutual
-theorem emitStmt_fills (f : String) : ∀ (s : PStmt) (acc : Array LInstr × Array Fill),
+theorem emitStmt_fills (f : String) : ∀ (s : PStmt) (acc : Rev LInstr × Rev Fill),
     (emitStmt f s acc).2.toList = acc.2.toList ++ stmtFills f s acc.1.size
   | .op _ _, (code, fills) => by simp [emitStmt, stmtFills]
   | .ite hints c bdest sfp zero hasElse edest one nonzero, (code, fills) => by
@@ -85,26 +85,26 @@ theorem emitStmt_fills (f : String) : ∀ (s : PStmt) (acc : Array LInstr × Arr
       cases hasElse with
       | false =>
           simp only [emitStmt, stmtFills, elseAt, Bool.false_eq_true, ↓reduceIte, Bool.not_false,
-            Nat.add_zero, Array.size_push] at hz ⊢
+            Nat.add_zero, Rev.size_push] at hz ⊢
           rw [hz]
           simp
       | true =>
           have hn := emitBlock_fills f nonzero
           simp only [emitStmt, stmtFills, elseAt, ↓reduceIte, Bool.not_true, Bool.false_eq_true,
-            Array.size_push] at hz hsz ⊢
+            Rev.size_push] at hz hsz ⊢
           rw [hn, hz]
-          simp only [Array.size_push, hsz, List.append_assoc]
+          simp only [Rev.size_push, hsz, List.append_assoc]
   | .chain _ join x entry one sfp firsts stages, (code, fills) => by
       simp only [emitStmt, stmtFills]
       rw [emitStages_fills]
-      simp [Array.size_push]
+      simp [Rev.size_push]
   | .call _ c, (code, fills) => by simp [emitStmt, stmtFills]
   | .loopNext _ _ _ _ _ _ _, (code, fills) => by simp [emitStmt, stmtFills]
   | .dispatch _ _ _ _ _ _ _ _ _ _, (code, fills) => by simp [emitStmt, stmtFills]
   | .ret _ _, (code, fills) => by simp [emitStmt, stmtFills]
   | .halt _ _ _, (code, fills) => by simp [emitStmt, stmtFills]
 
-theorem emitBlock_fills (f : String) : ∀ (b : List PStmt) (acc : Array LInstr × Array Fill),
+theorem emitBlock_fills (f : String) : ∀ (b : List PStmt) (acc : Rev LInstr × Rev Fill),
     (emitBlock f b acc).2.toList = acc.2.toList ++ blockFills f b acc.1.size
   | [], _ => by simp [emitBlock, blockFills]
   | s :: ss, acc => by
@@ -112,7 +112,7 @@ theorem emitBlock_fills (f : String) : ∀ (b : List PStmt) (acc : Array LInstr 
         List.append_assoc]
 
 theorem emitArms_fills (f : String) (first : Nat) : ∀ (as : List (List PStmt)) (j : Nat)
-    (acc : Array LInstr × Array Fill),
+    (acc : Rev LInstr × Rev Fill),
     (emitArms f first as j acc).2.toList = acc.2.toList ++ armsFills f first as j acc.1.size
   | [], _, _ => by simp [emitArms, armsFills]
   | a :: as, j, (code, fills) => by
@@ -120,7 +120,7 @@ theorem emitArms_fills (f : String) (first : Nat) : ∀ (as : List (List PStmt))
       simp
 
 theorem emitStages_fills (f : String) : ∀ (firsts : List Nat) (ss : List (List (List PStmt)))
-    (acc : Array LInstr × Array Fill),
+    (acc : Rev LInstr × Rev Fill),
     (emitStages f firsts ss acc).2.toList = acc.2.toList ++ stagesFills f firsts ss acc.1.size
   | _, [], _ => by simp [emitStages, stagesFills]
   | firsts, s :: ss, acc => by
@@ -130,7 +130,7 @@ end
 
 /-- **Emission records a body's jump table slots.** -/
 theorem emitFn_fills (p : PFn) : (emitFn p).2.toList = blockFills p.name p.body 0 := by
-  have h := emitBlock_fills p.name p.body (#[], #[])
+  have h := emitBlock_fills p.name p.body ({}, {})
   simpa [emitFn] using h
 
 end

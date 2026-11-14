@@ -19,7 +19,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 /-- What a success of `placeFn` is: its checks passed and the walk of the body succeeded. -/
-theorem placeFn_ok {loops : Loops} {sigs : Std.HashMap String (Nat × Nat)} {tables tables' : Tables}
+theorem placeFn_ok {loops : Loops} {sigs : SMap (Nat × Nat)} {tables tables' : Tables}
     {tf : TracedFn} {pf : Placed} (h : placeFn loops sigs tables tf = .ok (pf, tables')) :
     ∃ st' : St, placeBody tf (ctxOf loops sigs tf) (initSt loops tables tf) = .ok ((), st') ∧
       pf = ⟨{ name := tf.core.name, body := st'.out.toList, frameSize := st'.next }, st'.locs⟩ ∧
@@ -74,7 +74,7 @@ theorem poolOK_init {κ : ℕ} {L : MemoryImage κ} {fp : K} {loops : Loops} {ta
     · cases h
 
 /-- **Placement of a function is sound**, on any trace. -/
-theorem placeFn_sound {loops : Loops} {sigs : Std.HashMap String (Nat × Nat)} {tables : Tables}
+theorem placeFn_sound {loops : Loops} {sigs : SMap (Nat × Nat)} {tables : Tables}
     {tf : TracedFn} : PlaceFnSound loops sigs tables tf := by
   intro pf tables' h κ Γ fp C U slots N kj kretP khalt kret env hfill hent hself hsem hobl hret
   obtain ⟨st', hrun, rfl, rfl, -, hr0, vs, hvs⟩ := placeFn_ok h
@@ -130,13 +130,13 @@ theorem wp_bindTo {ctx : Ctx} {st : St} {v : V} {l : Loc} {Q : Unit → St → P
 theorem forM_bindTo_wp {ctx : Ctx} : ∀ (ps : List (V × ℕ)) (st : St),
     wpP (ps.forM fun b => bindTo b.1 (.cell (2 + b.2))) ctx st (fun _ st' =>
       st'.chainIn = st.chainIn ∧ Sub st.locs st'.locs ∧
-        ∀ b ∈ ps, st'.locs[b.1]? = some (.cell (2 + b.2)))
-  | [], _ => wp_pure.mpr ⟨rfl, Sub.refl _, fun _ h => nomatch h⟩
+        (∀ b ∈ ps, st'.locs[b.1]? = some (.cell (2 + b.2))) ∧ st'.tables = st.tables)
+  | [], _ => wp_pure.mpr ⟨rfl, Sub.refl _, (fun _ h => nomatch h), rfl⟩
   | b :: ps, st => by
       show wpP (bindTo b.1 (.cell (2 + b.2)) >>= fun _ => ps.forM _) ctx st _
       refine wp_bind.mpr (wp_bindTo fun hnc => ?_)
-      refine wp_mono (forM_bindTo_wp ps _) fun _ st' ⟨hci, hsub, hall⟩ =>
-        ⟨hci, (Sub.insert _ hnc).trans hsub, fun b' hb' => ?_⟩
+      refine wp_mono (forM_bindTo_wp ps _) fun _ st' ⟨hci, hsub, hall, ht⟩ =>
+        ⟨hci, (Sub.insert _ hnc).trans hsub, fun b' hb' => ?_, ht⟩
       rcases List.mem_cons.mp hb' with rfl | hm
       · exact hsub _ _ (by simp)
       · exact hall b' hm
@@ -153,7 +153,7 @@ theorem placeBody_params {κ : ℕ} (L : MemoryImage κ) {tf : TracedFn} {ctx : 
   suffices hw : wpP (placeBody tf) ctx st₀ (fun _ st' => ∀ k (hk : k < tf.core.params.length),
       st'.locs[tf.core.params[k]]? = some (.cell (2 + k))) from hw _ _ h
   unfold placeBody
-  refine wp_bind.mpr (wp_mono (forM_bindTo_wp _ st₀) fun _ st1 ⟨hci, _, hall⟩ => ?_)
+  refine wp_bind.mpr (wp_mono (forM_bindTo_wp _ st₀) fun _ st1 ⟨hci, _, hall, _⟩ => ?_)
   refine wp_bind.mpr fun _ st2 he2 => ?_
   obtain ⟨-, -, -, hl2, -, -⟩ := placeBlock_lays (F := {}) env tf.core.body st1
     ⟨hci.trans h0⟩ _ st2 he2
@@ -166,5 +166,36 @@ theorem placeBody_params {κ : ℕ} (L : MemoryImage κ) {tf : TracedFn} {ctx : 
   · exact wp_pure.mpr fun k hk => (hl2.trans hl3) _ _
       (hall (tf.core.params[k], k) (List.mem_iff_getElem.mpr ⟨k, by simpa using hk, by simp⟩))
 
+
+/-- **A function's walk only grows the shared jump tables.** -/
+theorem placeBody_tables {κ : ℕ} (L : MemoryImage κ) {tf : TracedFn} {ctx : Ctx} {st₀ st' : St}
+    (h0 : st₀.chainIn = none) (h : placeBody tf ctx st₀ = .ok ((), st')) :
+    TablesLe st₀.tables st'.tables := by
+  let Γ : Site κ := ⟨L, ⟨{}, {}, 0, 0, gpowTable 0⟩, 0, 0, fun _ _ => True, fun _ _ => True⟩
+  have env : PlaceEnv Γ 1 ctx (fun _ _ _ => True) (fun _ _ => True) #[] 0 :=
+    ⟨⟨0, rfl⟩, fun _ _ _ hs => by simp at hs, by simp [Γ], by norm_num [Γ], by norm_num [Γ],
+      fun _ => rfl, fun _ _ _ _ => by simp [Γ, Site.ent], fun _ _ _ _ _ _ _ => trivial,
+      fun _ _ _ _ _ _ => trivial⟩
+  suffices hw : wpP (placeBody tf) ctx st₀ (fun _ st' => TablesLe st₀.tables st'.tables) from
+    hw _ _ h
+  unfold placeBody
+  refine wp_bind.mpr (wp_mono (forM_bindTo_wp _ st₀) fun _ st1 ⟨hci, _, _, ht1⟩ => ?_)
+  refine wp_bind.mpr fun _ st2 he2 => ?_
+  obtain ⟨-, -, -, -, ht2, -⟩ := placeBlock_lays (F := {}) env tf.core.body st1
+    ⟨hci.trans h0⟩ _ st2 he2
+  refine wp_bind.mpr fun _ st3 he3 => ?_
+  obtain ⟨-, -, -, -, hs3, -⟩ :=
+    flush_spec (Γ := Γ) (fp := 1) (F := {}) (ctx := ctx) [] st2 _ st3 he3
+  refine wp_bind.mpr (wp_get.mpr ?_)
+  split
+  · exact wp_failP
+  · exact wp_pure.mpr ((TablesLe.of_eq ht1).trans (ht2.trans (TablesLe.of_eq hs3.tables)))
+
+
+/-- **A function's placement only grows the shared jump tables.** -/
+theorem placeFn_tables {loops : Loops} {sigs : SMap (ℕ × ℕ)} {t t' : Tables} {tf : TracedFn}
+    {pf : Placed} (h : placeFn loops sigs t tf = .ok (pf, t')) : TablesLe t t' := by
+  obtain ⟨st', hrun, -, rfl, -⟩ := placeFn_ok h
+  exact placeBody_tables (κ := 0) default rfl hrun
 end
 end LeanVM.Guest.Backend

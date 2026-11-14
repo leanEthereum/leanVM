@@ -54,16 +54,16 @@ end
 
 /-! ## Signatures -/
 
-theorem sigTable_fold : ∀ (p : List TracedFn) (m : Std.HashMap String (ℕ × ℕ)) (g : String)
+theorem sigTable_fold : ∀ (p : List TracedFn) (m : SMap (ℕ × ℕ)) (g : String)
     (s : ℕ × ℕ), (p.foldl (fun m tf => m.insert tf.core.name (sigOf tf)) m)[g]? = some s →
       m[g]? = some s ∨ ∃ tf ∈ p, tf.core.name = g ∧ sigOf tf = s
   | [], _, _, _, h => Or.inl h
   | tf :: p, m, g, s, h => by
       rcases sigTable_fold p _ g s h with h' | ⟨tf', hm, hn, hs⟩
-      · rw [Std.HashMap.getElem?_insert] at h'
+      · rw [KMap.getElem?_insert] at h'
         split at h'
         · next heq =>
-          exact Or.inr ⟨tf, List.mem_cons_self, eq_of_beq heq, Option.some.inj h'⟩
+          exact Or.inr ⟨tf, List.mem_cons_self, heq.symm, Option.some.inj h'⟩
         · exact Or.inl h'
       · exact Or.inr ⟨tf', List.mem_cons_of_mem _ hm, hn, hs⟩
 
@@ -85,7 +85,7 @@ theorem isCallee_get {p : List TracedFn} {g : String} {a r : ℕ}
 
 /-- Each function was placed, from some state of the jump tables whose shared tables are among
 the program's. -/
-theorem placeFns_spec {loops : Loops} {sigs : Std.HashMap String (ℕ × ℕ)} :
+theorem placeFns_spec {loops : Loops} {sigs : SMap (ℕ × ℕ)} :
     ∀ (l : List TracedFn) (t : Tables) {pls : List Placed} {t' : Tables},
       placeFns loops sigs l t = .ok (pls, t') → TablesLe t t' ∧
         List.Forall₂ (fun tf pf => ∃ ti ti', placeFn loops sigs ti tf = .ok (pf, ti') ∧
@@ -101,18 +101,33 @@ theorem placeFns_spec {loops : Loops} {sigs : Std.HashMap String (ℕ × ℕ)} :
       · next pf t1 hpf =>
         split at h
         · cases h
-        · next hsuf =>
-          split at h
-          · cases h
-          · next pfs t2 hrest =>
-            cases h
-            obtain ⟨hle, hall⟩ := placeFns_spec rest t1 hrest
-            have h01 : TablesLe t t1 := by
-              have hs : t.shared <:+ t1.shared := by
-                rw [← List.isSuffixOf_iff_suffix]
-                simpa using hsuf
-              exact ⟨fun p hp => hs.subset hp⟩
-            exact ⟨h01.trans hle, .cons ⟨t, t1, hpf, hle⟩ hall⟩
+        · next pfs t2 hrest =>
+          cases h
+          obtain ⟨hle, hall⟩ := placeFns_spec rest t1 hrest
+          exact ⟨(placeFn_tables hpf).trans hle, .cons ⟨t, t1, hpf, hle⟩ hall⟩
+
+theorem namesDistinct_go : ∀ (l : List String) (seen : SMap Unit), namesDistinct.go l seen = true →
+    l.Nodup ∧ ∀ n ∈ l, seen.get? n = none
+  | [], _, _ => ⟨List.nodup_nil, fun _ h => nomatch h⟩
+  | n :: ns, seen, h => by
+      simp only [namesDistinct.go, Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true] at h
+      obtain ⟨hn, hrest⟩ := h
+      obtain ⟨hnd, hfresh⟩ := namesDistinct_go ns _ hrest
+      have hn' : seen.get? n = none := by simpa [KMap.contains] using hn
+      refine ⟨List.nodup_cons.mpr ⟨fun hm => ?_, hnd⟩, fun m hm => ?_⟩
+      · have := hfresh n hm
+        rw [KMap.get?_insert, ite_eq_left rfl] at this
+        cases this
+      · rcases List.mem_cons.mp hm with rfl | hm
+        · exact hn'
+        · have := hfresh m hm
+          rw [KMap.get?_insert] at this
+          split at this
+          · cases this
+          · exact this
+
+theorem namesDistinct_nodup {l : List String} (h : namesDistinct l = true) : l.Nodup :=
+  (namesDistinct_go l {} h).1
 
 theorem placeProgram_ok {p : List TracedFn} {placed : List Placed} {tables : Tables}
     (h : placeProgram p = .ok (placed, tables)) :
@@ -132,7 +147,8 @@ theorem placeProgram_ok {p : List TracedFn} {placed : List Placed} {tables : Tab
         split at h
         · cases h
         · next h4 =>
-          exact ⟨by simpa using h1, by simpa using h2, by simpa using h3, by simpa using h4, h⟩
+          exact ⟨by simpa using h1, by simpa using h2,
+            namesDistinct_nodup (by simpa using h3), by simpa using h4, h⟩
 
 theorem slotsHold_spec {slots : Array KVal} {fills : List Fill}
     {shared : List (List String × ℕ)} (h : slotsHold slots fills shared = true) :
@@ -231,14 +247,14 @@ structure FnAt {κ : ℕ} (W : World κ) (tf : TracedFn) (pf : Placed) (pre post
   frame : f.frameSize < 2 ^ 64 + W.slots.size
   locs : W.locs tf.core.name = pf.locs
 
-theorem placeFn_name {loops : Loops} {sigs : Std.HashMap String (ℕ × ℕ)} {t t' : Tables}
+theorem placeFn_name {loops : Loops} {sigs : SMap (ℕ × ℕ)} {t t' : Tables}
     {tf : TracedFn} {pf : Placed} (h : placeFn loops sigs t tf = .ok (pf, t')) :
     pf.fn.name = tf.core.name ∧ pf.fn.frameSize < 2 ^ 64 := by
   obtain ⟨st', -, rfl, -, hlt, -⟩ := placeFn_ok h
   exact ⟨rfl, hlt⟩
 
 /-- The names of the placed functions are the functions' names. -/
-theorem forall₂_names {loops : Loops} {sigs : Std.HashMap String (ℕ × ℕ)} {t' : Tables} :
+theorem forall₂_names {loops : Loops} {sigs : SMap (ℕ × ℕ)} {t' : Tables} :
     ∀ {l : List TracedFn} {pls : List Placed},
       List.Forall₂ (fun tf pf => ∃ ti ti', placeFn loops sigs ti tf = .ok (pf, ti') ∧
         TablesLe ti' t') l pls → pls.map (·.fn.name) = l.map (·.core.name)

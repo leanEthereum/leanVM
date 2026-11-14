@@ -38,7 +38,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-variable {κ : ℕ} {Γ : Site κ} {fp : K} {F : Std.HashMap V Loc} {ctx : Ctx} {C : CallRel}
+variable {κ : ℕ} {Γ : Site κ} {fp : K} {F : VMap Loc} {ctx : Ctx} {C : CallRel}
   {U : String → List E → Prop} {slots : Array KVal} {B : ℕ}
 
 /-- **A table read at a selector in range**: the cell holds the pc of the arm the slot names. -/
@@ -242,7 +242,7 @@ theorem tail_open {join one sfp lx'' : Cell} {nf nf'' : ℕ} {x x'' : V}
 include env in
 /-- **A chain of `match`es**: the table jump at the first selector enters the stages, and the
 statements placed after the chain follow it. -/
-theorem head_means {H : Prop} {locs : Std.HashMap V Loc} {sc sc' : Scope} {t : Tables} {x : V}
+theorem head_means {H : Prop} {locs : VMap Loc} {sc sc' : Scope} {t : Tables} {x : V}
     {arms : List (List Stmt)} {rest' : List Stmt} {hints : List LHint}
     {join lx entry one sfp : Cell} {first : ℕ} {F' : List ℕ} {blocks : List (List PStmt)}
     {Sg : List (List (List PStmt))} {ps : List PStmt}
@@ -321,20 +321,20 @@ theorem placeArms_next_wp (lx' : Cell) (nf : ℕ) (one sfp : Cell) (n base : ℕ
 
 /-- The last placed statement is the chain, when nothing but single instructions was placed after
 it and the last is a chain: nothing was placed after it. -/
-theorem back_chain {out : Array PStmt} {pre ops : List PStmt} {Cn : PStmt}
+theorem back_chain {out : Rev PStmt} {pre ops : List PStmt} {Cn : PStmt}
     (ho : out.toList = pre ++ [Cn] ++ ops) (hops : OpsOnly ops) {h : List LHint}
     {j x e o s : Cell} {f : List ℕ} {sg : List (List (List PStmt))}
     (hb : out.back? = some (.chain h j x e o s f sg)) :
     ops = [] ∧ Cn = .chain h j x e o s f sg ∧
       ∀ node, (out.pop.push node).toList = pre ++ [node] := by
   have hlast : out.toList.getLast? = some (.chain h j x e o s f sg) := by
-    rw [← hb]
-    simp [Array.back?, List.getLast?_eq_getElem?]
+    rw [← Rev.back?_eq]
+    exact hb
   rcases List.eq_nil_or_concat ops with rfl | ⟨ops', o', rfl⟩
   · rw [ho] at hlast
     simp only [List.append_nil, List.getLast?_append, List.getLast?_singleton] at hlast
     refine ⟨rfl, Option.some.inj hlast, fun node => ?_⟩
-    rw [Array.toList_push, Array.toList_pop, ho]
+    rw [Rev.toList_push, Rev.toList_pop, ho]
     simp
   · exfalso
     rw [ho] at hlast
@@ -472,7 +472,7 @@ theorem entered_open_wp (x x'' : V) (arms arms'' : List (List Stmt)) (rest'' : L
       exact hl.trans hq5.locs
     · show TablesLe st.tables s6.tables
       rw [h6.tables]
-      exact (TablesLe.of_eq hs.tables).trans ⟨fun p hp => hq5.tables.shared p hp⟩
+      exact (TablesLe.of_eq hs.tables).trans ⟨hq5.tables.shared⟩
     · have hF5 : Sub s5.locs F := h6.locs ▸ hF
       obtain ⟨hp4, ⟨⟨⟨-, h2q⟩, h3q⟩, h4q⟩, -⟩ := hf 0 True (fun _ _ => True) True
         (fun _ _ => True) trivial (hq5.locs.trans hF5) hp (by simp [PStmt.SemList])
@@ -682,10 +682,10 @@ theorem chain_head_lays {H : Prop} (x x' : V) (arms arms' : List (List Stmt)) (r
   refine LaysAt.callT fresh_spec fun join _ => ?_
   refine LaysAt.callT takeHints_spec fun hints _ => ?_
   refine LaysAt.step (R := fun _ => True) (wp_modifyGet.mpr
-    ⟨⟨rfl, Sub.refl _, rfl, ⟨fun _ h => h⟩, rfl⟩, fun _ _ _ => trivial⟩) fun first _ => ?_
+    ⟨⟨rfl, Sub.refl _, rfl, ⟨List.suffix_refl _⟩, rfl⟩, fun _ _ _ => trivial⟩) fun first _ => ?_
   refine LaysAt.callT fresh_spec fun entry _ => ?_
   refine LaysAt.step (R := fun _ => True) (wp_modifyGet.mpr
-    ⟨⟨rfl, Sub.refl _, rfl, ⟨fun _ h => h⟩, rfl⟩, fun _ _ _ => trivial⟩) fun nf _ => ?_
+    ⟨⟨rfl, Sub.refl _, rfl, ⟨List.suffix_refl _⟩, rfl⟩, fun _ _ _ => trivial⟩) fun nf _ => ?_
   refine LaysAt.get_bind ?_
   refine LaysAt.plain fun hpl => ?_
   refine LaysAt.step (R := fun blocks => ArmsSemN Γ fp F ctx C U slots B lx' nf one sfp arms blocks)

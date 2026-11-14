@@ -29,7 +29,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-variable {κ : ℕ} {Γ : Site κ} {fp : K} {F : Std.HashMap V Loc} {ctx : Ctx} {α : Type}
+variable {κ : ℕ} {Γ : Site κ} {fp : K} {F : VMap Loc} {ctx : Ctx} {α : Type}
 
 /-! ## Pools learn -/
 
@@ -41,11 +41,11 @@ theorem PoolOK.insertConst (h : PoolOK L fp sc) {k : ℕ × ℕ} {o : Cell}
     (ho : wd L fp o = Guest.word k.1 k.2) :
     PoolOK L fp { sc with consts := sc.consts.insert k o } := by
   refine { h with consts := fun k' o' hk => ?_ }
-  rw [Std.TreeMap.get?_eq_getElem?, Std.TreeMap.getElem?_insert] at hk
+  rw [PMap.get?_insert] at hk
   split at hk
   · next heq =>
     cases hk
-    rw [← cmp2_eq_iff.mp heq]
+    rw [heq]
     exact ho
   · exact h.consts k' o' hk
 
@@ -53,11 +53,11 @@ theorem PoolOK.insertConstIfNew (h : PoolOK L fp sc) {k : ℕ × ℕ} {o : Cell}
     (ho : wd L fp o = Guest.word k.1 k.2) :
     PoolOK L fp { sc with consts := sc.consts.insertIfNew k o } := by
   refine { h with consts := fun k' o' hk => ?_ }
-  rw [Std.TreeMap.get?_eq_getElem?, Std.TreeMap.getElem?_insertIfNew] at hk
+  rw [PMap.get?_insertIfNew] at hk
   split at hk
   · next heq =>
     cases hk
-    rw [← cmp2_eq_iff.mp heq.1]
+    rw [heq.1]
     exact ho
   · exact h.consts k' o' hk
 
@@ -65,11 +65,11 @@ theorem PoolOK.insertXor (h : PoolOK L fp sc) {k : ℕ × ℕ} {o : Cell}
     (ho : wd L fp o = wd L fp k.1 + wd L fp k.2) :
     PoolOK L fp { sc with xors := sc.xors.insert k o } := by
   refine { h with xors := fun k' o' hk => ?_ }
-  rw [Std.TreeMap.get?_eq_getElem?, Std.TreeMap.getElem?_insert] at hk
+  rw [PMap.get?_insert] at hk
   split at hk
   · next heq =>
     cases hk
-    rw [← cmp2_eq_iff.mp heq]
+    rw [heq]
     exact ho
   · exact h.xors k' o' hk
 
@@ -77,11 +77,11 @@ theorem PoolOK.insertMul (h : PoolOK L fp sc) {k : ℕ × ℕ} {o : Cell}
     (ho : wd L fp o = wd L fp k.1 * wd L fp k.2) :
     PoolOK L fp { sc with muls := sc.muls.insert k o } := by
   refine { h with muls := fun k' o' hk => ?_ }
-  rw [Std.TreeMap.get?_eq_getElem?, Std.TreeMap.getElem?_insert] at hk
+  rw [PMap.get?_insert] at hk
   split at hk
   · next heq =>
     cases hk
-    rw [← cmp2_eq_iff.mp heq]
+    rw [heq]
     exact ho
   · exact h.muls k' o' hk
 
@@ -90,11 +90,11 @@ theorem PoolOK.insertLoad (h : PoolOK L fp sc) {k : ℕ × ℕ} {o : Cell}
       L.read ((wd L fp k.1).limb 0 * addressOfIndex k.2) = some (wd L fp o)) :
     PoolOK L fp { sc with loads := sc.loads.insertIfNew k o } := by
   refine { h with loads := fun k' o' hk => ?_ }
-  rw [Std.TreeMap.get?_eq_getElem?, Std.TreeMap.getElem?_insertIfNew] at hk
+  rw [PMap.get?_insertIfNew] at hk
   split at hk
   · next heq =>
     cases hk
-    rw [← cmp2_eq_iff.mp heq.1]
+    rw [heq.1]
     exact ho
   · exact h.loads k' o' hk
 
@@ -102,11 +102,11 @@ theorem PoolOK.insertMats (h : PoolOK L fp sc) {c : ℕ} {l : List (ℕ × Cell)
     (hl : ∀ p ∈ l, wd L fp p.2 = wd L fp c * ofK (addressOfIndex p.1)) :
     PoolOK L fp { sc with mats := sc.mats.insert c l } := by
   refine { h with mats := fun c' l' hk => ?_ }
-  rw [Std.TreeMap.get?_eq_getElem?, Std.TreeMap.getElem?_insert] at hk
+  rw [NMap.get?_insert] at hk
   split at hk
   · next heq =>
     cases hk
-    rw [← Std.LawfulEqCmp.compare_eq_iff_eq.mp heq]
+    rw [heq]
     exact hl
   · exact h.mats c' l' hk
 

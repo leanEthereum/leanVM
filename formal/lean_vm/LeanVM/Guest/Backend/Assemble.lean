@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.Backend.Emit
 public import LeanVM.Guest.Word
-public import Std.Data.HashMap
+public import LeanVM.Guest.Backend.Pow
 
 /-!
 # Assembly
@@ -48,8 +48,8 @@ def GpowTableSpec : Prop :=
 /-- The layout of a program: each function's entry and frame size, the tables' base in `main`'s
 frame, the halting pc. -/
 structure Layout where
-  entry : Std.HashMap String Nat
-  frame : Std.HashMap String Nat
+  entry : SMap Nat
+  frame : SMap Nat
   tablesBase : Nat
   sentinel : Nat
   /-- The limbs of the powers of `g` below the padded size. -/
@@ -59,7 +59,7 @@ structure Layout where
 def Layout.pow (l : Layout) (k : Nat) : Nat :=
   match l.gpow[k]? with
   | some x => x
-  | none => (gpowK k).toBitVec.toNat
+  | none => gpowBits k
 
 /-- The smallest power of two that is at least `n`. -/
 def nextPow2 (n : Nat) : Nat :=
@@ -118,8 +118,8 @@ def withTables (fns : List Lowered) (slots : Array KVal) : List Lowered × Nat :
 
 /-- The layout of the functions `fns`, `main`'s frame holding the tables from `tablesBase`. -/
 def layout (fns : List Lowered) (tablesBase : Nat) : Layout × Nat :=
-  let (entry, frame, total) := fns.foldl (init := (({} : Std.HashMap String Nat),
-      ({} : Std.HashMap String Nat), 0)) fun (entry, frame, pc) f =>
+  let (entry, frame, total) := fns.foldl (init := (({} : SMap Nat), ({} : SMap Nat), 0))
+      fun (entry, frame, pc) f =>
     (entry.insert f.name pc, frame.insert f.name f.frameSize, pc + f.code.size)
   let size := nextPow2 (total + 1)
   ({ entry, frame, tablesBase, sentinel := size - 1, gpow := gpowTable size }, size)
@@ -141,6 +141,10 @@ def assembleAt (l : Layout) (size : Nat) (fns : List Lowered) : Assembled :=
       (code.push (resolveOp l pc0 f.frameSize ins.op), hints)
     (code, hints, ranges.push (f.name, start, f.code.size))
   { size, code, hints, mainFrame := l.frame.getD "main" 0, fns := ranges }
+
+/-- A function's resolved code. -/
+def resolvedFn (l : Layout) (pc0 : Nat) (f : Lowered) : List OffsetInstruction :=
+  f.code.toList.map fun ins => resolveOp l pc0 f.frameSize ins.op
 
 /-- Assemble the functions' labelled code, `main` first, with the jump tables' slots. -/
 def assemble (fns : List Lowered) (slots : Array KVal) : Assembled :=
@@ -166,9 +170,9 @@ def Assembled.toFunctions (a : Assembled) : List CompiledFunction :=
 /-- The jump tables' slots, from the fills of the functions' `match`es and the shared tables of
 the dispatched calls. -/
 def tableSlots (len : Nat) (fills : Array Fill) (shared : Array (Nat × String)) : Array KVal :=
-  let slots := Array.replicate len (KVal.const 0 0)
-  let slots := fills.foldl (init := slots) fun s (i, k) => s.setIfInBounds i k
-  shared.foldl (init := slots) fun s (i, c) => s.setIfInBounds i (.entry c)
+  let m : NMap KVal := fills.foldl (init := {}) fun m (i, k) => m.insert i k
+  let m := shared.foldl (init := m) fun m (i, c) => m.insert i (.entry c)
+  ((List.range len).map fun i => (m.get? i).getD (.const 0 0)).toArray
 
 end
 end LeanVM.Guest.Backend

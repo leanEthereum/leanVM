@@ -81,7 +81,7 @@ theorem Layout.ofBits_pow {l : Layout} (hl : l.PowOk) {k : ℕ} (hk : k < u128Bo
       rw [Array.getElem?_eq_none_iff, gpowTable_size]
       omega
     rw [hn, hnone]
-    simp only [ofBits_toNat]
+    simp only [gpowBits_eq, ofBits_toNat]
     exact gpowK_eq hk
 
 /-- A `SET` of `g^k`'s limb writes the word `g^k`. -/
@@ -139,8 +139,8 @@ theorem foldl_size (fns : List Lowered) (a : ℕ) :
   | cons f fs ih => simp [ih, Nat.add_assoc]
 
 /-- One step of `layout`'s fold. -/
-def layoutStep (x : Std.HashMap String Nat × Std.HashMap String Nat × Nat) (f : Lowered) :
-    Std.HashMap String Nat × Std.HashMap String Nat × Nat :=
+def layoutStep (x : SMap Nat × SMap Nat × Nat) (f : Lowered) :
+    SMap Nat × SMap Nat × Nat :=
   (x.1.insert f.name x.2.2, x.2.1.insert f.name f.frameSize, x.2.2 + f.code.size)
 
 theorem layout_eq (fns : List Lowered) (tb : ℕ) :
@@ -150,7 +150,7 @@ theorem layout_eq (fns : List Lowered) (tb : ℕ) :
           sentinel := nextPow2 (r.2.2 + 1) - 1, gpow := gpowTable (nextPow2 (r.2.2 + 1)) },
         nextPow2 (r.2.2 + 1))) := rfl
 
-theorem layout_fold : ∀ (fns : List Lowered) (e fr : Std.HashMap String Nat) (pc : ℕ),
+theorem layout_fold : ∀ (fns : List Lowered) (e fr : SMap Nat) (pc : ℕ),
     (fns.foldl layoutStep (e, fr, pc)).2.2 = pc + totalSize fns ∧
     (∀ n, n ∉ fns.map (·.name) →
       (fns.foldl layoutStep (e, fr, pc)).1[n]? = e[n]? ∧
@@ -167,7 +167,7 @@ theorem layout_fold : ∀ (fns : List Lowered) (e fr : Std.HashMap String Nat) (
       · simp only [List.map_cons, List.mem_cons, not_or] at hn
         obtain ⟨hne, hn⟩ := hn
         rw [layoutStep, (h2 n hn).1, (h2 n hn).2]
-        simp [Std.HashMap.getElem?_insert, Ne.symm hne]
+        simp [hne]
       · cases pre with
         | nil =>
             obtain ⟨rfl, rfl⟩ := List.cons.inj hsplit
@@ -224,10 +224,6 @@ theorem layout_consecutive (fns : List Lowered) (tb : ℕ) (hnd : (fns.map (·.n
   simp
 
 /-! ## The assembled code -/
-
-/-- A function's resolved code. -/
-def resolvedFn (l : Layout) (pc0 : ℕ) (f : Lowered) : List OffsetInstruction :=
-  f.code.toList.map fun ins => resolveOp l pc0 f.frameSize ins.op
 
 /-- The resolved code of the functions laid out from `pc`. -/
 def resolvedFrom (l : Layout) : List Lowered → ℕ → List OffsetInstruction
@@ -395,7 +391,7 @@ theorem assembleAt_fetch {l : Layout} {size : ℕ} {fns pre post : List Lowered}
     rw [toFunctions_eq, hfns]
     simpa using consecutive_ranges a fns 0
   have hgetD : l.entry.getD f.name (totalSize pre) = totalSize pre := by
-    rw [Std.HashMap.getD_eq_getD_getElem?, hent]
+    rw [KMap.getD_eq_getD_getElem?, hent]
     rfl
   have hcode : (a.code.extract (totalSize pre) (totalSize pre + f.code.size)).toList =
       resolvedFn l (totalSize pre) f := by
