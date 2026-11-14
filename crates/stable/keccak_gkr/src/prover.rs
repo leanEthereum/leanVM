@@ -7,18 +7,17 @@
 //!    far;
 //! 3. one field element per half block and position, for the rounds that remain.
 //!
-//! The rounds after those over the packs stay in the power basis of `s` ([`crate::power`])
-//! until the tables are down to one row.
+//! At `s`, a pack's value is the sum of the instance weights of its set bits, so a folded pack is
+//! a sum of byte lookups ([`PackFold`]).
 
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{F128, F128Unreduced};
-use primitives::multilinear::{eq_table, poly_eval};
+use primitives::multilinear::{eq_table, interp, poly_eval};
 
-use crate::basis::{PolyEval, add_mul, byte_sums, carry};
 use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
+use crate::kernels::byte_sums;
 use crate::kernels::{GROUP, PACKS, SKIP, embed, products};
 use crate::open::fold;
-use crate::power::{Element, PowerField, get, set};
 use crate::protocol::{Claim, chi_weights, mu_at};
 use crate::rmfe::{PACK, PROD_BITS};
 use crate::witness::{Shape, Witness, transpose64, words};
@@ -132,8 +131,8 @@ struct Layer<'a> {
     rounds: Vec<usize>,
 }
 
-/// A row of a table in the power basis: two words per position, laid out by word.
-const ROW: usize = 2 * BITS;
+/// A row of a table: a value per position.
+const ROW: usize = BITS;
 
 impl Layer<'_> {
     /// The blocks a segment's tasks walk: those written, then the padding block once, standing
@@ -271,34 +270,31 @@ impl Layer<'_> {
     }
 
     /// The table the remaining rounds fold, a row per group: `T[j]`, the value at `s` of position
-    /// `j`'s embeddings, folded over the group's packs at `challenges`. A block's two groups are
-    /// the first of those rounds' pairs, so its round values are summed while the rows are at hand.
+    /// `j`'s embeddings, folded over the group's packs by `fold`. A block's two groups are the
+    /// first of those rounds' pairs, so its round values are summed while the rows are at hand.
     /// The padding block's groups are one row, its segment's entry of `pads`.
     fn table(
         &self,
-        round: &Round,
-        challenges: &[F128],
+        summand: &Summand,
+        fold: &PackFold,
         eq: &[F128],
         layout: Rows,
-        table: &mut [u64],
-        pads: &mut [u64],
+        table: &mut [F128],
+        pads: &mut [F128],
     ) -> (F128, F128) {
-        let field = round.field;
-        let fold: Vec<Element> = eq_table(challenges).iter().map(|&e| field.to_poly(e)).collect();
-        let fold: [[u64; GROUP]; 2] = std::array::from_fn(|k| std::array::from_fn(|q| fold[q][k]));
         let weights = self.task_weights(eq);
         // Rows of segments that do not exist are zero, and so is their product.
-        table[self.rounds.len() * layout.live * ROW..layout.len() * ROW].fill(0);
-        pads[self.rounds.len() * ROW..].fill(0);
+        table[self.rounds.len() * layout.live * ROW..layout.len() * ROW].fill(F128::ZERO);
+        pads[self.rounds.len() * ROW..].fill(F128::ZERO);
         let (ptr, pads) = (
             parallel::SendPtr(table.as_mut_ptr()),
             parallel::SendPtr(pads.as_mut_ptr()),
         );
         let sums = parallel::map_reduce_with_state(
             self.n_tasks(),
-            || (vec![0u64; 4 * ROW], vec![0u64; 6 * BITS], vec![0u64; 2 * ROW]),
-            RoundSums::default,
-            |(scratch, wide, rows), sums, task| {
+            || vec![F128::ZERO; 2 * ROW],
+            || (F128Unreduced::ZERO, F128Unreduced::ZERO),
+            |rows, sums, task| {
                 let (segment, g, block) = self.block(task);
                 // SAFETY: each task owns its rows: a written block's two, or its segment's padding row.
                 let out = unsafe {
@@ -309,32 +305,18 @@ impl Layer<'_> {
                     }
                 };
                 let rows = &mut rows[..out.len()];
-                let halves = rows.len() / ROW;
-                // Both groups' unreduced sums, three words each and laid out by word, then reduced.
-                for j in 0..BITS {
-                    let sums = crate::kernels::fold_groups(&embed(words(block, j)), &fold);
-                    for (wide, sum) in wide.as_chunks_mut::<{ 3 * BITS }>().0[..halves].iter_mut().zip(&sums) {
-                        let sum: [u64; 3] = carry(sum);
-                        for (k, &word) in sum.iter().enumerate() {
-                            wide[k * BITS + j] = word;
-                        }
+                for (half, row) in rows.as_chunks_mut::<ROW>().0.iter_mut().enumerate() {
+                    for (j, t) in row.iter_mut().enumerate() {
+                        *t = fold.value(block, half, j, 0);
                     }
                 }
-                for (t, wide) in rows
-                    .as_chunks_mut::<ROW>()
-                    .0
-                    .iter_mut()
-                    .zip(wide.as_chunks::<{ 3 * BITS }>().0)
-                {
-                    field.reduce_row(t, wide, BITS);
-                }
-                round.add_pair(sums, scratch, &rows[..ROW], &rows[rows.len() - ROW..], weights[task]);
+                summand.add_pair(sums, &rows[..ROW], &rows[rows.len() - ROW..], weights[task]);
                 // Built in cache for the round values, then published: the next round reads them.
                 primitives::stream::Stream::new().copy(out, rows);
             },
-            RoundSums::merge,
+            merge,
         );
-        round.finish(&sums)
+        finish(sums)
     }
 }
 
@@ -406,105 +388,38 @@ impl Summand {
 }
 
 /// The sums a round accumulates, unreduced: its values at `0` and at infinity.
-#[derive(Clone, Copy, Default)]
-struct RoundSums([u64; 6], [u64; 6]);
+type RoundSums = (F128Unreduced, F128Unreduced);
 
-impl RoundSums {
-    fn merge(mut self, other: Self) -> Self {
-        for i in 0..6 {
-            self.0[i] ^= other.0[i];
-            self.1[i] ^= other.1[i];
-        }
-        self
-    }
+fn merge(a: RoundSums, b: RoundSums) -> RoundSums {
+    (a.0 ^ b.0, a.1 ^ b.1)
 }
 
-/// What a round needs of the claim, by word as a table row is: the position weights, and each
-/// position's constant `kappa * weights[j + 2]`.
-struct Round<'a> {
-    field: &'a PowerField,
-    eval: PolyEval,
-    kappa: Element,
-    weights: Vec<u64>,
-    constant: Vec<u64>,
+fn finish(sums: RoundSums) -> (F128, F128) {
+    (sums.0.reduce(), sums.1.reduce())
 }
 
-impl<'a> Round<'a> {
-    fn new(field: &'a PowerField, claim: &Claim, s: F128, kappa: F128) -> Self {
-        let (mut weights, mut constant) = (vec![0u64; ROW], vec![0u64; ROW]);
-        for j in 0..BITS {
-            set(&mut weights, BITS, j, &field.to_poly(claim.weights[j]));
-            set(
-                &mut constant,
-                BITS,
-                j,
-                &field.to_poly(kappa * claim.weights[along(j, 2)]),
-            );
-        }
-        Self {
-            field,
-            eval: PolyEval::new(s, 48),
-            kappa: field.to_poly(kappa),
-            weights,
-            constant,
-        }
-    }
-
-    /// `B[j] = weights[j] * (kappa + T[j + 1]) + kappa * weights[j + 2]` and `T[j + 2]`, for a
-    /// row `T`.
-    fn factors(&self, t: &[u64], b: &mut [u64], shifted: &mut [u64]) {
-        // `T[j + 1] + kappa`, then `T[j + 2]`: a lane is 64 positions, five lanes to a row.
-        for k in 0..2 {
-            let (src, next) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
-            for lane in 0..BITS / 64 {
-                let at = along(64 * lane, 1);
-                for z in 0..64 {
-                    next[64 * lane + z] = src[at + z] ^ self.kappa[k];
-                }
-            }
-        }
-        self.field.mul_row(b, &self.weights, shifted, &self.constant, BITS);
-        for k in 0..2 {
-            let (src, dst) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
-            for lane in 0..BITS / 64 {
-                dst[64 * lane..][..64].copy_from_slice(&src[along(64 * lane, 2)..][..64]);
-            }
-        }
-    }
-
-    /// Add one pair of rows to a round's sums: the values at `0` and at infinity of
-    /// `sum over positions of B[j] * T[j + 2]`, weighted by `eq`.
-    fn add_pair(&self, sums: &mut RoundSums, scratch: &mut [u64], low: &[u64], high: &[u64], eq: F128) {
-        let (b, shifted) = scratch.split_at_mut(2 * ROW);
-        for (half, t) in [low, high].into_iter().enumerate() {
-            self.factors(t, &mut b[half * ROW..][..ROW], &mut shifted[half * ROW..][..ROW]);
-        }
-        let (zero, infinity) = self
-            .field
-            .dot_pair([&b[..ROW], &b[ROW..]], [&shifted[..ROW], &shifted[ROW..]], BITS);
-        let weight = self.field.to_poly(eq);
-        add_mul(&mut sums.0, &zero, &weight);
-        add_mul(&mut sums.1, &infinity, &weight);
-    }
-
-    fn finish(&self, sums: &RoundSums) -> (F128, F128) {
-        (self.eval.eval(&sums.0), self.eval.eval(&sums.1))
+impl Summand {
+    /// Add one pair of rows to a round's sums, weighted by `eq`.
+    fn add_pair(&self, sums: &mut RoundSums, low: &[F128], high: &[F128], eq: F128) {
+        let (zero, infinity) = self.pair(low, high);
+        sums.0 ^= zero.reduce().mul_unreduced(eq);
+        sums.1 ^= infinity.reduce().mul_unreduced(eq);
     }
 
     /// Fold the rows of `src`, laid out as `from`, in pairs into `dst`, and sum the next round's
     /// values over the pairs of what was just written, weighted by `eq`.
     fn fold(
         &self,
-        src: &[u64],
+        src: &[F128],
         from: Rows,
-        dst: &mut [u64],
-        pads: &[u64],
-        challenge: &Element,
+        dst: &mut [F128],
+        pads: &[F128],
+        challenge: F128,
         eq: &[F128],
     ) -> (F128, F128) {
         let to = from.next();
         let ptr = parallel::SendPtr(dst.as_mut_ptr());
-        let fold = |out: &mut [u64], segment: usize, r: usize| {
+        let fold = |out: &mut [F128], segment: usize, r: usize| {
             let (low, high) = if from.m == 1 {
                 (
                     from.row(src, pads, 2 * segment, 0),
@@ -516,27 +431,28 @@ impl<'a> Round<'a> {
                     from.row(src, pads, segment, 2 * r + 1),
                 )
             };
-            self.field.fold_row(out, low, high, challenge, BITS);
+            for (out, (&l, &h)) in out.iter_mut().zip(low.iter().zip(high)) {
+                *out = interp(l, h, challenge);
+            }
         };
         if to.m == 1 {
             // A row per segment, few enough to fold in place.
             for (segment, out) in dst[..to.len() * ROW].as_chunks_mut::<ROW>().0.iter_mut().enumerate() {
                 fold(out, segment, 0);
             }
-            let mut sums = RoundSums::default();
-            let mut scratch = vec![0u64; 4 * ROW];
+            let mut sums = (F128Unreduced::ZERO, F128Unreduced::ZERO);
             for (pair, &eq) in dst[..to.len() * ROW].as_chunks::<{ 2 * ROW }>().0.iter().zip(eq) {
-                self.add_pair(&mut sums, &mut scratch, &pair[..ROW], &pair[ROW..], eq);
+                self.add_pair(&mut sums, &pair[..ROW], &pair[ROW..], eq);
             }
-            return self.finish(&sums);
+            return finish(sums);
         }
         // A task per pair of rows written, the second of a ragged one being the padding row.
         let (pairs, half) = (to.live.div_ceil(2), to.m / 2);
         let mut sums = parallel::map_reduce_with_state(
             to.segments * pairs,
-            || (vec![0u64; 4 * ROW], vec![0u64; 2 * ROW]),
-            RoundSums::default,
-            |(scratch, rows), sums, task| {
+            || vec![F128::ZERO; 2 * ROW],
+            || (F128Unreduced::ZERO, F128Unreduced::ZERO),
+            |rows, sums, task| {
                 let (segment, t) = (task / pairs, task % pairs);
                 let n = (to.live - 2 * t).min(2);
                 let rows = &mut rows[..n * ROW];
@@ -548,28 +464,27 @@ impl<'a> Round<'a> {
                 } else {
                     &pads[segment * ROW..][..ROW]
                 };
-                self.add_pair(sums, scratch, &rows[..ROW], high, eq[half * segment + t]);
+                self.add_pair(sums, &rows[..ROW], high, eq[half * segment + t]);
                 // SAFETY: each task owns its rows of `dst`.
                 let out = unsafe { ptr.slice((to.live * segment + 2 * t) * ROW, n * ROW) };
                 // Built in cache for the round values, then published: the next round reads them.
                 primitives::stream::Stream::new().copy(out, rows);
             },
-            RoundSums::merge,
+            merge,
         );
         self.add_padding(&mut sums, to, pads, eq);
-        self.finish(&sums)
+        finish(sums)
     }
 
     /// Add the pairs of two padding rows of a table laid out as `layout`, weighted by `eq`: each
     /// segment's padding row, once, at the sum of their weights.
-    fn add_padding(&self, sums: &mut RoundSums, layout: Rows, pads: &[u64], eq: &[F128]) {
+    fn add_padding(&self, sums: &mut RoundSums, layout: Rows, pads: &[F128], eq: &[F128]) {
         let (first, half) = (layout.live.div_ceil(2), layout.m / 2);
         if first == half {
             return;
         }
-        let mut scratch = vec![0u64; 4 * ROW];
         for (pad, eq) in pads.as_chunks::<ROW>().0.iter().zip(eq.chunks_exact(half)) {
-            self.add_pair(sums, &mut scratch, pad, pad, eq[first..].iter().sum());
+            self.add_pair(sums, pad, pad, eq[first..].iter().sum());
         }
     }
 }
@@ -605,7 +520,7 @@ impl Rows {
         }
     }
 
-    fn row<'t>(&self, table: &'t [u64], pads: &'t [u64], segment: usize, r: usize) -> &'t [u64] {
+    fn row<'t>(&self, table: &'t [F128], pads: &'t [F128], segment: usize, r: usize) -> &'t [F128] {
         if r < self.live {
             &table[(self.live * segment + r) * ROW..][..ROW]
         } else {
@@ -614,7 +529,7 @@ impl Rows {
     }
 }
 
-/// A round of the sumcheck over bit positions, on small tables in the standard basis: the
+/// A round of the sumcheck over bit positions, on small tables: the
 /// coefficients of `sum_j w (kappa t0 + (kappa + t1) t2)` in the variable being bound.
 fn local_round(w: &[F128], t: &[Vec<F128>; 3], kappa: F128) -> [F128; 4] {
     let mut h = [F128::ZERO; 4];
@@ -638,9 +553,9 @@ fn local_round(w: &[F128], t: &[Vec<F128>; 3], kappa: F128) -> [F128; 4] {
 /// The table the rounds after the bit-level ones fold, and the half they fold it into: reused
 /// from layer to layer.
 pub struct Scratch {
-    table: Vec<u64>,
+    table: Vec<F128>,
     /// Each segment's padding row.
-    pads: Vec<u64>,
+    pads: Vec<F128>,
 }
 
 impl Scratch {
@@ -648,7 +563,7 @@ impl Scratch {
         let rows = 1usize << (shape.y_vars() - SKIP);
         // SAFETY: every pass writes the rows it reads.
         let table = unsafe { primitives::uninit_vec(rows * ROW + rows * ROW / 2) };
-        let pads = vec![0u64; ROW << shape.seg_log()];
+        let pads = vec![F128::ZERO; ROW << shape.seg_log()];
         Self { table, pads }
     }
 }
@@ -680,7 +595,6 @@ pub fn prove_layer(
     let s = ps.sample();
     let kappa = mu_at(s).iter().sum();
     let mut value = poly_eval(&product, s);
-    let field = PowerField::new(s).expect("the challenge lies in no proper subfield");
 
     // The packs of a group, a pass over the witness per round.
     let mu = mu_at(s);
@@ -697,9 +611,8 @@ pub fn prove_layer(
     }
     drop(skip);
 
-    // The groups, blocks and segments, on a table in the power basis. Each pass over it writes
-    // the rows of one round and sums that round's values over them.
-    let round = Round::new(&field, claim, s, kappa);
+    // The groups, blocks and segments, on a table. Each pass over it writes the rows of one round
+    // and sums that round's values over them.
     let mut layout = Rows {
         m: 2 * shape.n_blocks(),
         live: 2 * witness.written(),
@@ -709,28 +622,24 @@ pub fn prove_layer(
     let pads = &mut scratch.pads;
     let mut values = tracing::info_span!("Tables").in_scope(|| {
         let eq = eq_table(&claim.point[SKIP + 1..]);
-        layer.table(&round, &point, &eq, layout, src, pads)
+        layer.table(&summand, &PackFold::new(&mu, &point), &eq, layout, src, pads)
     });
     let tail = tracing::info_span!("Tail").entered();
     for i in SKIP..claim.point.len() {
         let coeffs = round_coefficients(scale, values.0, values.1, value, claim.point[i]);
         let challenge = bind(ps, &coeffs, claim.point[i], &mut value, &mut scale, &mut point);
         let later = eq_table(claim.point.get(i + 2..).unwrap_or(&[]));
-        values = round.fold(src, layout, dst, pads, &field.to_poly(challenge), &later);
+        values = summand.fold(src, layout, dst, pads, challenge, &later);
         layout = layout.next();
         (src, dst) = (dst, src);
     }
     let table = &src[..ROW];
     drop(tail);
 
-    // The bit positions, in the standard basis.
+    // The bit positions.
     let cube = 1usize << LOCAL_VARS;
-    let standard = |row: &[u64]| -> Vec<F128> {
-        let mut out: Vec<F128> = (0..BITS).map(|j| field.to_field(&get(row, BITS, j))).collect();
-        out.resize(cube, F128::ZERO);
-        out
-    };
-    let t0 = standard(table);
+    let mut t0 = table.to_vec();
+    t0.resize(cube, F128::ZERO);
     let shift = |k: usize| -> Vec<F128> {
         (0..cube)
             .map(|j| if j < BITS { t0[along(j, k)] } else { F128::ZERO })

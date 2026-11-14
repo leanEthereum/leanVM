@@ -1,6 +1,7 @@
 //! The bit-level kernels of the layer prover, over one block position at a time: the 32 packs of
 //! one bit position of one block.
 
+use primitives::field::F128;
 use primitives::field::gf2_64::mul_wide;
 
 use crate::rmfe::RMFE;
@@ -24,10 +25,13 @@ pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; P
     std::array::from_fn(|q| (mul_wide(ones, (a[q] ^ c[q]) as u64) ^ mul_wide(b[q] as u64, c[q] as u64)) as u64)
 }
 
-/// For both groups of a block position, `sum over the group's packs of weights[.][q] * e[q]`,
-/// as two partial products.
-pub fn fold_groups(e: &[u32; PACKS], weights: &[[u64; GROUP]; 2]) -> [[u128; 2]; 2] {
-    std::array::from_fn(|half| {
-        std::array::from_fn(|k| (0..GROUP).fold(0, |acc, q| acc ^ mul_wide(e[GROUP * half + q] as u64, weights[k][q])))
-    })
+/// The sum of every subset of eight weights, indexed by the byte whose bits pick it.
+pub fn byte_sums(weights: &[F128; 8]) -> [F128; 256] {
+    let mut t = [F128::ZERO; 256];
+    for (bit, &w) in weights.iter().enumerate() {
+        for byte in 1usize << bit..2 << bit {
+            t[byte] = t[byte - (1 << bit)] + w;
+        }
+    }
+    t
 }

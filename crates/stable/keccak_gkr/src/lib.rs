@@ -79,9 +79,7 @@
 //! ([`witness`]). A layer walks it six times (`prover`): once for `U`, once for each of the first
 //! four rounds of step 3, over the sixteen packs of half a block, and once to fold those four
 //! rounds' challenges into field elements. At `s`, a pack's value is the sum of the instance
-//! weights of its set bits, so a folded one is a sum of byte lookups. The rounds after those
-//! are arithmetic in the power basis of `s`, where a weighted sum is a carry-less product
-//! (`basis`, `power`).
+//! weights of its set bits, so a folded one is a sum of byte lookups.
 //!
 //! `U`'s weighted bit sums are outer products: the positions grouped by each byte of their weight
 //! (`prover`'s digit buckets).
@@ -92,13 +90,11 @@ use primitives::field::{F64, F128, F128Unreduced};
 use primitives::multilinear::eq_table;
 use protocol::{Claim, dot, first_claim};
 
-mod basis;
 #[cfg(feature = "bench")]
 pub mod batch_bench;
 mod keccak;
 pub mod kernels;
 mod open;
-mod power;
 mod protocol;
 mod prover;
 pub mod rmfe;
