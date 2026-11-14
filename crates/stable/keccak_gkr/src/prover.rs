@@ -15,18 +15,16 @@ use fiat_shamir::transcript::ProverState;
 use primitives::field::{Acc8, F128, F128Unreduced, F128x8};
 use primitives::multilinear::{eq_table, poly_eval};
 
-use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
+use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose};
 use crate::kernels::{
-    GROUP, MIXED, MIXED_POINTS, PACKS, SKIP, SkipBlock, TERNARY, byte_sums, embed, products, ternary,
+    COLUMNS, GROUP, MIXED, MIXED_POINTS, PROD_BYTES, ProductBlock, ProductMaps, SKIP, SkipBlock, TERNARY, byte_sums,
+    ternary,
 };
 use crate::open::fold;
 use crate::poly::AtS;
 use crate::protocol::{Claim, chi_weights, mu_at};
 use crate::rmfe::{PACK, PROD_BITS};
 use crate::witness::{Witness, words};
-
-/// The bytes of a product of two embeddings.
-const PROD_BYTES: usize = PROD_BITS.div_ceil(8);
 
 struct Layer<'a> {
     witness: &'a Witness,
@@ -75,43 +73,22 @@ impl Layer<'_> {
     /// unprojected `chi`.
     ///
     /// Nothing here knows where the polynomials will be evaluated, so each product meets its
-    /// weight bit by bit: byte `b` of a product picks one of 256 buckets of that byte, which the
-    /// weight goes to, and coefficient `8 b + t` sums byte `b`'s buckets whose value has bit `t`.
-    /// The buckets of a block meet its weight once, at its end.
-    fn product(&self, claim: &Claim) -> [F128; PROD_BITS] {
-        // Per position, its weight times each pack's of a block.
-        let packs = eq_table(&claim.point[..SKIP + 1]);
-        let weights: Vec<[F128; PACKS]> = claim
-            .weights
-            .iter()
-            .map(|&w| std::array::from_fn(|q| packs[q] * w))
-            .collect();
+    /// weight bit by bit: a block's sums over positions, per pack and coefficient, are sums of
+    /// weights ([`ProductBlock`]), which meet the block's weight once. The pack weights come last,
+    /// so the sums per pack are returned too.
+    fn product(&self, claim: &Claim) -> ([F128; PROD_BITS], Vec<[F128; PROD_BITS]>) {
+        let maps = ProductMaps::new(&claim.weights);
         let tasks = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
-        let buckets = parallel::map_reduce_with_state(
+        let sums = parallel::map_reduce_with_state(
             self.n_tasks(),
-            || Box::new([[F128::ZERO; 256]; PROD_BYTES]),
-            || vec![Acc8::ZERO; 256 * PROD_BYTES / 8],
-            |block_buckets, buckets, task| {
+            || (ProductBlock::new(), Box::new([0u128; COLUMNS])),
+            || vec![Acc8::ZERO; COLUMNS / 8],
+            |(kernel, values), sums, task| {
                 let (_, _, block) = self.block(task);
-                **block_buckets = [[F128::ZERO; 256]; PROD_BYTES];
-                for r in 0..5 {
-                    for z in 0..64 {
-                        let js = row_positions(r, z);
-                        let e: [[u32; PACKS]; 5] = std::array::from_fn(|x| embed(words(block, js[x])));
-                        for x in 0..5 {
-                            let p = products(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]);
-                            for (&p, &w) in p.iter().zip(&weights[js[x]]) {
-                                let bytes = p.to_le_bytes();
-                                for (bucket, &byte) in block_buckets.iter_mut().zip(&bytes) {
-                                    bucket[byte as usize] += w;
-                                }
-                            }
-                        }
-                    }
-                }
+                kernel.run(&maps, block, values);
                 let weight = F128x8::splat(tasks[task]);
-                for (total, local) in buckets.iter_mut().zip(block_buckets.as_flattened().as_chunks::<8>().0) {
-                    *total += F128x8::from_array(local).mul_unreduced(weight);
+                for (sum, values) in sums.iter_mut().zip(values.as_chunks::<8>().0) {
+                    *sum += F128x8::from_array(&values.map(F128::from)).mul_unreduced(weight);
                 }
             },
             |mut a, b| {
@@ -121,28 +98,33 @@ impl Layer<'_> {
                 a
             },
         );
-        let buckets: Vec<F128> = buckets.into_iter().flat_map(|b| b.reduce().to_array()).collect();
-        std::array::from_fn(|c| {
-            (0..256)
-                .filter(|v| v >> (c % 8) & 1 == 1)
-                .map(|v| buckets[256 * (c / 8) + v])
-                .sum()
-        })
+        let sums: Vec<F128> = sums.into_iter().flat_map(|s| s.reduce().to_array()).collect();
+        let per_pack: Vec<[F128; PROD_BITS]> = sums
+            .as_chunks::<{ 8 * PROD_BYTES }>()
+            .0
+            .iter()
+            .map(|s| s[..PROD_BITS].try_into().expect("a product's coefficients"))
+            .collect();
+        let packs = eq_table(&claim.point[..SKIP + 1]);
+        let total = std::array::from_fn(|c| packs.iter().zip(&per_pack).map(|(&e, p)| e * p[c]).sum());
+        (total, per_pack)
     }
 
     /// The layer's summand at `s` at every point `p` of `{0, 1, infinity}^SKIP`, summed over the
     /// groups: `sum over groups of eq(point[SKIP..], group) * Q(p, group)`, indexed by `p`'s
     /// ternary digits.
     ///
-    /// Every product of a group's extended packs ([`SkipBlock`]) meets its position's weight as a
-    /// polynomial in `s` ([`AtS`]), so a block's sums are carry-less products, evaluated at `s`
-    /// once per slot.
-    fn skip_sums(&self, claim: &Claim, at: &AtS) -> Vec<F128> {
-        let weights: Vec<F128> = claim.weights.iter().map(|&w| at.poly(w)).collect();
+    /// At a mixed point, every product of a group's extended packs ([`SkipBlock`]) meets its
+    /// position's weight as a polynomial in `s` ([`AtS`]), so a block's sums are carry-less products,
+    /// evaluated at `s` once per slot. At a binary one, a pack's, the sum is its product polynomial's
+    /// value at `s`.
+    fn skip_sums(&self, claim: &Claim, at: &AtS, per_pack: &[[F128; PROD_BITS]]) -> Vec<F128> {
+        let polys: Vec<[u64; 2]> = claim.weights.iter().map(|&w| at.poly(w).to_limbs()).collect();
+        let weights = [0, 1].map(|k| polys.iter().map(|p| p[k]).collect::<Vec<u64>>());
         let eq = eq_table(&claim.point[SKIP..]);
         let groups: [Vec<F128>; 2] =
             [0, 1].map(|half| self.task_weights(&eq.iter().skip(half).step_by(2).copied().collect::<Vec<_>>()));
-        let sums = parallel::map_reduce_with_state(
+        let mixed = parallel::map_reduce_with_state(
             self.n_tasks(),
             SkipBlock::new,
             || [F128Unreduced::ZERO; TERNARY],
@@ -151,11 +133,8 @@ impl Layer<'_> {
                 acc.run(block, &weights);
                 for (half, groups) in groups.iter().enumerate() {
                     let weight = groups[task];
-                    for q in 0..GROUP {
-                        sums[ternary(q)] ^= at.eval(acc.get(GROUP * half + q)).mul_unreduced(weight);
-                    }
                     for (i, &[t, ..]) in MIXED_POINTS.iter().enumerate() {
-                        sums[t] ^= at.eval(acc.get(2 * GROUP + MIXED * half + i)).mul_unreduced(weight);
+                        sums[t] ^= at.eval(acc.get(MIXED * half + i)).mul_unreduced(weight);
                     }
                 }
             },
@@ -166,7 +145,14 @@ impl Layer<'_> {
                 a
             },
         );
-        sums.iter().map(|s| s.reduce()).collect()
+        let mut sums: Vec<F128> = mixed.iter().map(|s| s.reduce()).collect();
+        // A pack's sum is its product polynomial's value, weighted by `eq` of the group's half.
+        let half = claim.point[SKIP];
+        for q in 0..GROUP {
+            sums[ternary(q)] =
+                (F128::ONE + half) * poly_eval(&per_pack[q], at.s) + half * poly_eval(&per_pack[GROUP + q], at.s);
+        }
+        sums
     }
 
     /// The table the remaining rounds fold, and the first of those rounds' values, the pair of
@@ -372,7 +358,7 @@ pub fn prove_layer(ps: &mut ProverState, witness: &Witness, step: usize, claim: 
             .collect(),
     };
 
-    let product = tracing::info_span!("Product").in_scope(|| layer.product(claim));
+    let (product, per_pack) = tracing::info_span!("Product").in_scope(|| layer.product(claim));
     ps.add_scalars(&product);
     // `s`: the product polynomial has degree PROD_BITS - 1.
     ps.grind(fiat_shamir::grinding_bits(PROD_BITS as u128 - 1));
@@ -383,7 +369,7 @@ pub fn prove_layer(ps: &mut ProverState, witness: &Witness, step: usize, claim: 
 
     // The packs of a group, from one pass over the witness: the summand at every point the four
     // rounds read, folded at each challenge.
-    let mut sums = tracing::info_span!("Skip").in_scope(|| layer.skip_sums(claim, &AtS::new(s)));
+    let mut sums = tracing::info_span!("Skip").in_scope(|| layer.skip_sums(claim, &AtS::new(s), &per_pack));
     let mut scale = F128::ONE;
     let mut point = Vec::with_capacity(claim.point.len());
     for i in 0..SKIP {

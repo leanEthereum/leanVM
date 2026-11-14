@@ -10,6 +10,7 @@ use crate::kernels::byte_sums;
 const COEFFS: usize = 192;
 
 pub(crate) struct AtS {
+    pub s: F128,
     /// Per bit of an element, a polynomial of degree below 128 whose value at `s` is that bit.
     unit: Vec<u128>,
     /// Per byte of a polynomial, the value at `s` of each of its 256 values.
@@ -35,6 +36,7 @@ impl AtS {
             }
         }
         Self {
+            s,
             unit: rows.iter().map(|row| row.1).collect(),
             bytes: powers.as_chunks::<8>().0.iter().map(byte_sums).collect(),
         }
