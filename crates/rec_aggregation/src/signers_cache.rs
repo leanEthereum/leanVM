@@ -89,7 +89,7 @@ type Keys = [OnceLock<(LeanXmssExpandedSecretKey, LeanXmssPublicKey)>; NUM_KEYS]
 
 fn key(keys: &Keys, k: usize) -> &(LeanXmssExpandedSecretKey, LeanXmssPublicKey) {
     keys[k].get_or_init(|| {
-        let (sk, pk) = key_gen(key_seed(k));
+        let (sk, pk) = key_gen(&key_seed(k));
         sk.prepare(BOTTOM_TREE << LAYER_HEIGHT);
         (sk, pk)
     })

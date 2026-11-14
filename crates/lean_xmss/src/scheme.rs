@@ -123,12 +123,12 @@ struct BottomTree {
 }
 
 /// computes the expanded secret key (for fast signing), and the public key, from a given secret key
-pub fn key_gen(key_seed: SecretKey) -> (LeanXmssExpandedSecretKey, LeanXmssPublicKey) {
-    let seed = scheme_seed(&key_seed);
+pub fn key_gen(key_seed: &SecretKey) -> (LeanXmssExpandedSecretKey, LeanXmssPublicKey) {
+    let seed = scheme_seed(key_seed);
     let public_param = public_param(&seed);
     let top = LayerTree::build(&public_param, &seed, 1, 0);
     let sk = LeanXmssExpandedSecretKey {
-        key_seed,
+        key_seed: *key_seed,
         public_param,
         top,
         bottoms: Mutex::new(VecDeque::with_capacity(MAX_CACHED_BOTTOM_TREES + 1)),
