@@ -3,10 +3,45 @@
 
 pub use fiat_shamir::merkle::{Hash, MerklePath, hash_leaf, hash_pair};
 use primitives::field::F64;
-use primitives::hash::{OUT_LEN, RATE, hash_many, hash_many_from_state, zero_prefix_state};
+use primitives::hash::{OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_from_state, zero_prefix_state};
 
-/// Leaves or nodes a task hashes at a time.
+/// Nodes a task hashes at a time.
 const CHUNK: usize = 1 << 10;
+
+/// Hashes rows into leaf digests, a leaf being `zeros(leaf_words - row_words) ‖ row`.
+///
+/// The leaves' whole blocks of leading zeros are one sponge state, absorbed once for every leaf.
+pub(crate) struct LeafHasher {
+    state: [u64; STATE_LANES],
+    row_bytes: usize,
+    /// The bytes each leaf hashes past the shared prefix: its row, behind the zeros left over.
+    image: usize,
+}
+
+impl LeafHasher {
+    pub(crate) fn new(row_words: usize, leaf_words: usize) -> Self {
+        assert!(0 < row_words && row_words <= leaf_words, "a leaf holds its row");
+        let (row_bytes, leaf_bytes) = (8 * row_words, 8 * leaf_words);
+        let zero_blocks = (leaf_bytes - row_bytes) / RATE;
+        Self {
+            state: zero_prefix_state(zero_blocks),
+            row_bytes,
+            image: leaf_bytes - zero_blocks * RATE,
+        }
+    }
+
+    /// The leaf digests of `rows`, one per row, into `out`.
+    pub(crate) fn hash(&self, rows: &[F64], out: &mut [Hash]) {
+        let (row_bytes, image) = (self.row_bytes, self.image);
+        let rows: &[u8] = primitives::cast_slice(rows);
+        assert_eq!(rows.len(), out.len() * row_bytes);
+        let mut images = vec![0u8; out.len() * image];
+        for (slot, row) in images.chunks_exact_mut(image).zip(rows.chunks_exact(row_bytes)) {
+            slot[image - row_bytes..].copy_from_slice(row);
+        }
+        hash_many_from_state(&images, image, &self.state, out.as_flattened_mut());
+    }
+}
 
 /// A Merkle tree with every level kept, the leaf digests first and the root last.
 pub(crate) struct MerkleTree {
@@ -14,28 +49,9 @@ pub(crate) struct MerkleTree {
 }
 
 impl MerkleTree {
-    /// The tree over `rows`, `row_words` each, a leaf being `zeros(leaf_words - row_words) ‖ row`.
-    ///
-    /// The leaves' whole blocks of leading zeros are one sponge state, absorbed once for every leaf.
-    pub(crate) fn build(rows: &[F64], row_words: usize, leaf_words: usize) -> Self {
-        let num_leaves = rows.len() / row_words;
-        assert!(num_leaves.is_power_of_two() && rows.len() == num_leaves * row_words);
-        assert!(0 < row_words && row_words <= leaf_words, "a leaf holds its row");
-        let (row_bytes, leaf_bytes) = (8 * row_words, 8 * leaf_words);
-        let zero_blocks = (leaf_bytes - row_bytes) / RATE;
-        let state = zero_prefix_state(zero_blocks);
-        // The bytes each leaf hashes past the shared prefix: its row, behind the zeros left over.
-        let image = leaf_bytes - zero_blocks * RATE;
-        let bytes: &[u8] = primitives::cast_slice(rows);
-        let mut leaves = vec![[0u8; OUT_LEN]; num_leaves];
-        parallel::chunks_mut(&mut leaves, CHUNK, |i, out| {
-            let rows = &bytes[i * CHUNK * row_bytes..][..out.len() * row_bytes];
-            let mut images = vec![0u8; out.len() * image];
-            for (slot, row) in images.chunks_exact_mut(image).zip(rows.chunks_exact(row_bytes)) {
-                slot[image - row_bytes..].copy_from_slice(row);
-            }
-            hash_many_from_state(&images, image, &state, out.as_flattened_mut());
-        });
+    /// The tree over its leaf digests.
+    pub(crate) fn from_leaves(leaves: Vec<Hash>) -> Self {
+        assert!(leaves.len().is_power_of_two());
         let mut levels = vec![leaves];
         while let Some(children) = levels.last().filter(|level| level.len() > 1) {
             let mut parents = vec![[0u8; OUT_LEN]; children.len() / 2];
@@ -93,7 +109,9 @@ mod tests {
                     hash_leaf(&image)
                 })
                 .collect();
-            let tree = MerkleTree::build(&rows, row_words, leaf_words);
+            let mut leaves = vec![[0u8; OUT_LEN]; num_leaves];
+            LeafHasher::new(row_words, leaf_words).hash(&rows, &mut leaves);
+            let tree = MerkleTree::from_leaves(leaves);
             let context = format!("num_leaves={num_leaves} row_words={row_words} leaf_words={leaf_words}");
             assert_eq!(tree.levels.len(), num_leaves.ilog2() as usize + 1, "{context}");
             for got in &tree.levels {

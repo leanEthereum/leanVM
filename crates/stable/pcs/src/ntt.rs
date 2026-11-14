@@ -96,6 +96,21 @@ pub(crate) fn words(v: &[F128]) -> &[F64] {
 /// Words a task copies or fills at a time.
 const CHUNK: usize = 1 << 14;
 
+/// Every coset of `data` past the first a copy of the first, which holds the message.
+fn replicate(data: &mut [F64], log_inv_rate: usize) {
+    let (msg, rest) = data.split_at_mut(data.len() >> log_inv_rate);
+    let msg = &*msg;
+    // A chunk of the replicas may straddle two of them: its copy wraps at the message's end.
+    parallel::chunks_mut(rest, CHUNK, |i, mut out| {
+        let mut at = i * CHUNK % msg.len();
+        while !out.is_empty() {
+            let n = out.len().min(msg.len() - at);
+            out[..n].copy_from_slice(&msg[at..at + n]);
+            (out, at) = (&mut out[n..], 0);
+        }
+    });
+}
+
 /// Additive NTT over F_{2^64} on the standard polynomial-basis subspace `{1, x, x^2, ...}`: the integers under
 /// their natural encoding.
 #[derive(Clone, Debug)]
@@ -136,15 +151,36 @@ impl AdditiveNttF64 {
     /// The layers whose blocks are fewer than the pool has tasks run together in one pass ([`Self::top_layers`]).
     /// Then every block of the next layer runs the rest on its own, depth first, so a block's last layers run in cache.
     pub(crate) fn transform(&self, data: &mut [F64], num_ntts: usize, start: usize) {
+        let rows = data.len() / num_ntts;
+        self.transform_then(data, num_ntts, start, &mut vec![(); rows], |_, _| {});
+    }
+
+    /// [`Self::transform`], handing `done` every run of finished rows while it is still in cache, with the run of
+    /// `out`, one element per row, at the same place.
+    pub(crate) fn transform_then<O: Send>(
+        &self,
+        data: &mut [F64],
+        num_ntts: usize,
+        start: usize,
+        out: &mut [O],
+        done: impl Fn(&[F64], &mut [O]) + Sync,
+    ) {
+        assert_eq!(data.len(), out.len() * num_ntts, "one output per row");
         let (log_d, split) = self.split(data, num_ntts, start);
         self.top_layers(data, num_ntts << (log_d - split), start, split);
-        parallel::chunks_mut(data, num_ntts << (log_d - split), |b, block| {
-            self.transform_block(block, num_ntts, split, b);
+        let rows = 1 << (log_d - split);
+        let mut tasks: Vec<_> = data
+            .chunks_exact_mut(rows * num_ntts)
+            .zip(out.chunks_exact_mut(rows))
+            .collect();
+        parallel::chunks_mut(&mut tasks, 1, |b, task| {
+            let (block, out) = &mut task[0];
+            self.transform_block(block, out, num_ntts, split, b, Some(&done));
         });
     }
 
-    /// `log_d`, and the first layer from `start` with as many blocks as the pool has tasks and blocks that fit in a
-    /// core's cache, `start` for a buffer too small to share out.
+    /// `log_d`, and the first layer from `start` with as many blocks as the pool has tasks, `start` for a buffer too
+    /// small to share out.
     fn split(&self, data: &[F64], num_ntts: usize, start: usize) -> (usize, usize) {
         let log_d = log2_strict_usize(data.len() / num_ntts);
         assert!(log_d <= self.dim && start <= log_d);
@@ -154,9 +190,7 @@ impl AdditiveNttF64 {
         let tasks = 4 * parallel::num_threads();
         (
             log_d,
-            (start..log_d)
-                .find(|&layer| 1 << layer >= tasks && data.len() >> layer <= 4 * CHUNK)
-                .unwrap_or(log_d),
+            (start..log_d).find(|&layer| 1 << layer >= tasks).unwrap_or(log_d),
         )
     }
 
@@ -193,80 +227,100 @@ impl AdditiveNttF64 {
         });
     }
 
-    /// Layers `layer..` over block `index` of `layer`, depth first.
-    fn transform_block(&self, block: &mut [F64], num_ntts: usize, layer: usize, index: usize) {
-        if block.len() == num_ntts {
-            return;
+    /// Layers `layer..` over block `index` of `layer`, depth first, `done` taking the first block on the way down that
+    /// fits in a task's [`CHUNK`] once its layers are done.
+    fn transform_block<O>(
+        &self,
+        block: &mut [F64],
+        out: &mut [O],
+        num_ntts: usize,
+        layer: usize,
+        index: usize,
+        done: Option<&impl Fn(&[F64], &mut [O])>,
+    ) {
+        let finish = done.filter(|_| block.len() <= CHUNK || block.len() == num_ntts);
+        if block.len() > num_ntts {
+            let (top, bot) = block.split_at_mut(block.len() / 2);
+            let (out_top, out_bot) = out.split_at_mut(out.len() / 2);
+            butterfly(top, bot, self.twiddle(layer, index));
+            let done = if finish.is_some() { None } else { done };
+            self.transform_block(top, out_top, num_ntts, layer + 1, 2 * index, done);
+            self.transform_block(bot, out_bot, num_ntts, layer + 1, 2 * index + 1, done);
         }
-        let (top, bot) = block.split_at_mut(block.len() / 2);
-        butterfly(top, bot, self.twiddle(layer, index));
-        self.transform_block(top, num_ntts, layer + 1, 2 * index);
-        self.transform_block(bot, num_ntts, layer + 1, 2 * index + 1);
+        if let Some(done) = finish {
+            done(block, out);
+        }
     }
 
     /// RS-encode the row-major message in the first `2^-log_inv_rate` of `data`, `num_ntts` lanes a row: every coset
     /// becomes a copy of it, then the transform runs from layer `log_inv_rate`.
     pub fn encode_interleaved_in_place(&self, data: &mut [F64], num_ntts: usize, log_inv_rate: usize) {
-        let (msg, rest) = data.split_at_mut(data.len() >> log_inv_rate);
-        let msg = &*msg;
-        // A chunk of the replicas may straddle two of them: its copy wraps at the message's end.
-        parallel::chunks_mut(rest, CHUNK, |i, mut out| {
-            let mut at = i * CHUNK % msg.len();
-            while !out.is_empty() {
-                let n = out.len().min(msg.len() - at);
-                out[..n].copy_from_slice(&msg[at..at + n]);
-                (out, at) = (&mut out[n..], 0);
-            }
-        });
+        replicate(data, log_inv_rate);
         self.transform(data, num_ntts, log_inv_rate);
     }
 
-    /// The codeword of a row-major message held apart, `num_ntts` lanes a row.
-    pub(crate) fn encode_rows(&self, msg: &[F64], num_ntts: usize, log_inv_rate: usize) -> Vec<F64> {
+    /// The codeword of a row-major message held apart, `num_ntts` lanes a row, handing its finished rows to `done` as
+    /// [`Self::transform_then`] does.
+    pub(crate) fn encode_rows<O: Send>(
+        &self,
+        msg: &[F64],
+        num_ntts: usize,
+        log_inv_rate: usize,
+        out: &mut [O],
+        done: impl Fn(&[F64], &mut [O]) + Sync,
+    ) -> Vec<F64> {
         // Every coset a copy of the message, eight words at a time, so the buffer is written once.
         let mut data = parallel::map_collect((msg.len() << log_inv_rate).div_ceil(8), |i| {
             let mut at = 8 * i % msg.len();
             core::array::from_fn::<_, 8, _>(|_| {
                 let word = msg[at];
-                at = (at + 1) % msg.len();
-                word
-            })
-        })
-        .into_flattened();
-        data.truncate(msg.len() << log_inv_rate);
-        self.transform(&mut data, num_ntts, log_inv_rate);
-        data
-    }
-
-    /// The codeword of a lane-major message, `n_lanes` blocks of `2^log_rows` words: a row of the codeword holds one
-    /// word of every block, block `n_lanes - 1 - t` in lane `t`.
-    pub(crate) fn encode_lane_major(&self, msg: &[F64], n_lanes: usize, log_inv_rate: usize) -> Vec<F64> {
-        let msg_rows = msg.len() / n_lanes;
-        assert_eq!(msg.len(), n_lanes * msg_rows, "the message is n_lanes lane blocks");
-        // Eight words at a time, walking rows and lanes from the first, so the buffer is written once.
-        let mut data = parallel::map_collect((msg.len() << log_inv_rate).div_ceil(8), |i| {
-            let (mut r, mut t) = (8 * i / n_lanes % msg_rows, 8 * i % n_lanes);
-            core::array::from_fn::<_, 8, _>(|_| {
-                let word = msg[(n_lanes - 1 - t) * msg_rows + r];
-                t += 1;
-                if t == n_lanes {
-                    (r, t) = ((r + 1) % msg_rows, 0);
+                at += 1;
+                if at == msg.len() {
+                    at = 0;
                 }
                 word
             })
         })
         .into_flattened();
         data.truncate(msg.len() << log_inv_rate);
-        self.transform(&mut data, n_lanes, log_inv_rate);
+        self.transform_then(&mut data, num_ntts, log_inv_rate, out, done);
         data
     }
 
-    /// Recover novel-basis coefficients from evaluations with a scalar inverse NTT.
-    pub fn inverse_transform(&self, data: &mut [F64]) {
-        let log_d = log2_strict_usize(data.len());
+    /// The codeword of a lane-major message, `n_lanes` blocks of `2^log_rows` words: a row of the codeword holds one
+    /// word of every block, block `n_lanes - 1 - t` in lane `t`. Its finished rows go to `done` as
+    /// [`Self::transform_then`] hands them.
+    pub(crate) fn encode_lane_major<O: Send>(
+        &self,
+        msg: &[F64],
+        n_lanes: usize,
+        log_inv_rate: usize,
+        out: &mut [O],
+        done: impl Fn(&[F64], &mut [O]) + Sync,
+    ) -> Vec<F64> {
+        let msg_rows = msg.len() / n_lanes;
+        assert_eq!(msg.len(), n_lanes * msg_rows, "the message is n_lanes lane blocks");
+        // Row-major, a task's rows at a time: each lane block is read along its run of rows, as the blocks lie a
+        // power of two apart and reading them across would keep evicting each other from the cache.
+        let rows_per_task = (CHUNK / n_lanes).max(1);
+        let mut rows = parallel::filled(msg.len(), F64::ZERO);
+        parallel::chunks_mut(&mut rows, rows_per_task * n_lanes, |i, out| {
+            let first = i * rows_per_task;
+            for (t, block) in msg.chunks_exact(msg_rows).rev().enumerate() {
+                for (row, &word) in out.chunks_exact_mut(n_lanes).zip(&block[first..]) {
+                    row[t] = word;
+                }
+            }
+        });
+        self.encode_rows(&rows, n_lanes, log_inv_rate, out, done)
+    }
+
+    /// Recover novel-basis coefficients from evaluations, `num_ntts` lanes a row, on one thread.
+    pub fn inverse_transform(&self, data: &mut [F64], num_ntts: usize) {
+        let log_d = log2_strict_usize(data.len() / num_ntts);
         assert!(log_d <= self.dim);
         for layer in (0..log_d).rev() {
-            let half = 1usize << (log_d - layer - 1);
+            let half = num_ntts << (log_d - layer - 1);
             for (b, block) in data.chunks_exact_mut(2 * half).enumerate() {
                 let t = self.twiddle(layer, b);
                 let (top, bot) = block.split_at_mut(half);
@@ -300,6 +354,22 @@ mod tests {
         }
     }
 
+    /// The codeword `encode` returns, checked against the rows its sink was handed: each row once, finished.
+    fn sunk(
+        rows: usize,
+        num_ntts: usize,
+        encode: impl FnOnce(&mut [Vec<F64>], &(dyn Fn(&[F64], &mut [Vec<F64>]) + Sync)) -> Vec<F64>,
+    ) -> Vec<F64> {
+        let mut seen = vec![Vec::new(); rows];
+        let codeword = encode(&mut seen, &|rows, out| {
+            for (row, o) in rows.chunks_exact(num_ntts).zip(out) {
+                *o = row.to_vec();
+            }
+        });
+        assert_eq!(seen.concat(), codeword, "the sink sees every finished row");
+        codeword
+    }
+
     fn random(rng: &mut Rng, n: usize) -> Vec<F64> {
         (0..n).map(|_| F64(rng.next_u64())).collect()
     }
@@ -331,10 +401,13 @@ mod tests {
             got[..msg.len()].copy_from_slice(&msg);
             ntt.encode_interleaved_in_place(&mut got, lanes, rate);
             assert_eq!(got, want, "in place, {context}");
-            assert_eq!(ntt.encode_rows(&msg, lanes, rate), want, "held apart, {context}");
+            let held = sunk(1 << log_d, lanes, |out, done| {
+                ntt.encode_rows(&msg, lanes, rate, out, done)
+            });
+            assert_eq!(held, want, "held apart, {context}");
 
             if lanes == 1 && rate == 0 {
-                ntt.inverse_transform(&mut got);
+                ntt.inverse_transform(&mut got, 1);
                 assert_eq!(got, msg, "inverse, {context}");
             }
         }
@@ -348,7 +421,9 @@ mod tests {
             let ntt = AdditiveNttF64::standard(log_rows + rate);
             let rows = 1usize << log_rows;
             let msg = random(&mut rng, rows * n_lanes);
-            let got = ntt.encode_lane_major(&msg, n_lanes, rate);
+            let got = sunk(rows << rate, n_lanes, |out, done| {
+                ntt.encode_lane_major(&msg, n_lanes, rate, out, done)
+            });
             for t in 0..n_lanes {
                 let block = &msg[(n_lanes - 1 - t) * rows..][..rows];
                 let mut want: Vec<F64> = block.iter().copied().cycle().take(rows << rate).collect();
@@ -381,7 +456,9 @@ mod tests {
                     }
                 }
             }
-            let got = ntt.encode_rows(words(&msg), 2 * lanes, rate);
+            let got = sunk(1 << log_d, 2 * lanes, |out, done| {
+                ntt.encode_rows(words(&msg), 2 * lanes, rate, out, done)
+            });
             assert_eq!(got, words(&want), "log_d={log_d}, lanes={lanes}, rate={rate}");
         }
     }
