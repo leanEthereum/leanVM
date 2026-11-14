@@ -26,7 +26,6 @@
 //! - `Source::InPlace`: each block copies the buffer's own block 0. This is the in-place encode.
 //! - `Source::Rows`: each block copies a row-major message held apart.
 //! - `Source::Lanes`: each block is a lane-major message, transposed through a stage by the first pass.
-//! - With a lane-major message and no kept codeword, the encode runs once per half of the cosets.
 //!
 //! # The components
 //!
@@ -38,7 +37,6 @@
 //!          |       GatheredPass         far layers, one sweep each      -> Stage
 //!          |       DeepPass             near layers, rows to the sink
 //!          |            both run their groups through AdditiveNttF64::run_layers
-//!          +-- AdditiveNttF64::rows(Codeword)  rows read back from what the encode kept
 //! ```
 //!
 //! # Reading order
@@ -50,15 +48,13 @@
 //! 5. `twiddles.rs`: the type, and the points of the domain.
 //! 6. `gathered.rs` and `stage.rs`: the far layers and the lane-major stage.
 //! 7. `deep.rs`: the near layers.
-//! 8. `openings.rs`: the rows read back.
-//! 9. `kernels.rs`, `scratch.rs` and `tests.rs`.
+//! 8. `kernels.rs`, `scratch.rs` and `tests.rs`.
 
 mod deep;
 mod encode;
 mod gathered;
 mod kernels;
 mod layers;
-mod openings;
 mod plan;
 mod scratch;
 mod source;
@@ -68,6 +64,6 @@ mod tests;
 mod twiddles;
 mod window;
 
-pub(crate) use encode::{Codeword, Keep};
+pub(crate) use encode::Codeword;
 pub(crate) use kernels::transpose_butterfly_lanes;
 pub use twiddles::AdditiveNttF64;

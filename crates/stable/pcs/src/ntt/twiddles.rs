@@ -46,8 +46,7 @@ fn span_get(basis: &[F64], idx: usize) -> F64 {
 ///
 /// - It owns the rows of `generate_evals_from_subspace` and the byte tables built from them, so the twiddle of
 ///   every block at every layer.
-/// - The encodes (`encode.rs`), the layer sweeps (`layers.rs`) and the reads of rows an encode left out of its
-///   codeword (`openings.rs`) are its methods.
+/// - The encodes (`encode.rs`) and the layer sweeps (`layers.rs`) are its methods.
 #[derive(Clone, Debug)]
 pub struct AdditiveNttF64 {
     /// The rows of [`generate_evals_from_subspace`], end to end.

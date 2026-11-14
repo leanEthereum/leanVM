@@ -15,7 +15,6 @@ use super::window::Window;
 /// - It owns the sub-block geometry, and the sink that takes each finished sub-block.
 /// - With a separate message, each sub-block is built in scratch and written out once.
 /// - Otherwise the buffer holds the replicas, and the layers run in place.
-/// - With `defer`, an in-place sub-block is finished in scratch and the buffer keeps its pre-deep state.
 /// - Each finished sub-block goes to the sink while it is in L2.
 pub(super) struct DeepPass<'s> {
     plan: Plan,
@@ -23,12 +22,11 @@ pub(super) struct DeepPass<'s> {
     log_task: usize,
     task_len: usize,
     outer: usize,
-    defer: bool,
     sink: Option<&'s RowSink<'s>>,
 }
 
 impl<'s> DeepPass<'s> {
-    pub(super) fn new(plan: &Plan, sink: Option<&'s RowSink<'s>>, defer: bool) -> Self {
+    pub(super) fn new(plan: &Plan, sink: Option<&'s RowSink<'s>>) -> Self {
         let log_task = plan.log_task();
         let outer = plan.log_d - log_task;
         Self {
@@ -36,7 +34,6 @@ impl<'s> DeepPass<'s> {
             log_task,
             task_len: plan.num_ntts << log_task,
             outer,
-            defer,
             sink,
         }
     }
@@ -92,7 +89,7 @@ impl<'s> DeepPass<'s> {
         });
     }
 
-    /// The buffer holds the replicas: run the layers where they are, or in scratch when deferred.
+    /// The buffer holds the replicas: run the layers where they are.
     fn in_place(&self, ntt: &AdditiveNttF64, win: &mut Window) {
         let Plan {
             log_d,
@@ -104,20 +101,9 @@ impl<'s> DeepPass<'s> {
         let first_task = win.first_row() >> log_task;
         parallel::chunks_mut(win.words_mut(), task_len, |local, words| {
             let task = first_task + local;
-            if self.defer {
-                // The rows are hashed from scratch and the buffer keeps its pre-deep state.
-                with_scratch(task_len, |scratch| {
-                    ntt.run_layers(scratch, Some(&*words), log_d, num_ntts, deep_start, outer, task, None);
-                    if let Some(f) = sink {
-                        f(task << log_task, scratch);
-                    }
-                });
-            } else {
-                // The replicas are already in place: run the layers where they are.
-                ntt.run_layers(words, None, log_d, num_ntts, deep_start, outer, task, None);
-                if let Some(f) = sink {
-                    f(task << log_task, words);
-                }
+            ntt.run_layers(words, None, log_d, num_ntts, deep_start, outer, task, None);
+            if let Some(f) = sink {
+                f(task << log_task, words);
             }
         });
     }

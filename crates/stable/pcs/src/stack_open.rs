@@ -132,7 +132,7 @@ impl RingSwitchOpen {
 /// run, reusing the caller's [`super::whir::commit`] output as L0.
 ///
 /// `stack` is the committed message (not stored in [`ProverData`]), consumed: it goes once nothing reads it, after
-/// the first fold round or, when the commit kept no codeword, after the L0 open. It is the `2^log_n`-word stack truncated
+/// the first fold rounds. It is the `2^log_n`-word stack truncated
 /// to the lane blocks that carry data, zero past them. `config.initial_k` / `config.log_inv_rates[0]`
 /// must match the commit's `log_batch_size` / `log_inv_rate` (enforced by shape
 /// asserts inside the WHIR prover).
@@ -343,7 +343,7 @@ mod tests {
                     &ring,
                     &rings,
                 );
-                let mut lanes = LaneRounds::new(stack.clone(), projected, lane_block, false);
+                let mut lanes = LaneRounds::new(stack.clone(), projected, lane_block);
                 let context =
                     format!("lane_vars={lane_vars}, lanes={lanes_count}, qkeccak_vars={qkeccak_vars}, offset={offset}");
                 // The reference: the stack and the weight coefficient by coefficient, lanes interleaved, the stack's
@@ -368,7 +368,7 @@ mod tests {
                     reference.fold(&ch);
                     lanes.fold(&ch);
                 }
-                let (p, w, _) = lanes.finish();
+                let (p, w) = lanes.finish();
                 assert_eq!(p, reference.f, "{context}, lane");
                 assert_eq!(w, reference.w, "{context}, weight");
             }

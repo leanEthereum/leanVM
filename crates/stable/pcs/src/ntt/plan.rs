@@ -9,7 +9,6 @@ use super::stage::LOG_BATCH;
 /// - The far layers `start..deep_start` run as gathered passes of at most `max_g` layers each.
 /// - The near layers `deep_start..log_d` run as one deep pass over L2-sized sub-blocks.
 /// - It holds numbers only and is `Copy`, so an encode can keep it to read rows back.
-/// - [`AdditiveNttF64::rows`](super::AdditiveNttF64::rows) rebuilds a row from it, so it must come from the same pool size as the encode.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Plan {
     pub(super) log_d: usize,
@@ -41,12 +40,6 @@ impl Plan {
         self.start < self.deep_start && self.num_ntts.is_multiple_of(8) && self.log_d - self.start - g >= LOG_BATCH
     }
 
-    /// Whether an opening can rebuild a row from a lane-major message alone: one gathered pass reads it and
-    /// covers every layer before the deep pass.
-    pub(super) fn rebuilds_from_lanes(&self) -> bool {
-        self.reads_lanes() && self.single_gathered_pass()
-    }
-
     /// The gathered passes as `(layer, g)`: each runs layers `layer..layer + g`.
     pub(super) fn gathered(&self) -> impl Iterator<Item = (usize, usize)> + use<> {
         let (deep_start, max_g) = (self.deep_start, self.max_g);
@@ -58,11 +51,6 @@ impl Plan {
                 (layer - g, g)
             })
         })
-    }
-
-    /// Whether one gathered pass covers every layer before the deep pass.
-    pub(super) fn single_gathered_pass(&self) -> bool {
-        self.start < self.deep_start && self.deep_start - self.start <= self.max_g
     }
 
     /// Whether a deep pass has layers to run.
@@ -82,11 +70,6 @@ impl Plan {
         self.log_d - self.deep_start
     }
 
-    /// Words of one deep sub-block.
-    pub(super) fn sub_len(&self) -> usize {
-        self.num_ntts << self.log_sub()
-    }
-
     /// The log of the rows of one deep task: a run of sub-blocks of at least an L2 budget of rows, so a high
     /// rate's tiny sub-blocks still reach the hasher in whole batches.
     pub(super) fn log_task(&self) -> usize {
@@ -97,11 +80,6 @@ impl Plan {
     pub(super) fn log_handover_rows(&self) -> usize {
         let log_tasks = (4 * parallel::num_threads()).next_power_of_two().ilog2() as usize;
         self.log_d - log_tasks.min(self.log_d)
-    }
-
-    /// Words of the buffer the encode left.
-    pub fn words(&self) -> usize {
-        self.num_ntts << self.log_d
     }
 }
 

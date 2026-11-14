@@ -23,7 +23,7 @@
 //! `E`; the committed alphabet remains `K = GF(2^64)`.
 
 use crate::merkle::{self, Hash};
-use crate::ntt::{AdditiveNttF64, Codeword, Keep};
+use crate::ntt::{AdditiveNttF64, Codeword};
 use crate::stack_open::Terms;
 use fiat_shamir::merkle::MerklePath;
 use fiat_shamir::transcript::ProverState;
@@ -83,24 +83,12 @@ pub struct Commitment {
     pub root: Hash,
 }
 
-/// Prover-side state retained after commit for the opening phase. The message
-/// itself is not stored; the caller retains it for opening, and an opening of a
-/// codeword the encode did not keep recomputes the rows a query reads from it.
+/// Prover-side state retained after commit for the opening phase: the codeword, whose rows are the committed lanes
+/// with zero lanes in front up to the vector width, and its Merkle tree.
 pub struct ProverData {
-    ntt: AdditiveNttF64,
     codeword: Codeword,
-    /// Words per codeword row: the committed lanes, with zero lanes in front up to the vector width.
-    row_words: usize,
     pub(crate) merkle_tree: merkle::CutTree,
 }
-
-/// The largest L0 codeword the commit keeps where [`primitives::REBUILD_OVER_STORE`], in bytes.
-///
-/// - Up to it, memory is not the limit: the commit keeps the codeword before its deep layers, which saves the
-///   opening a rebuild from the stack and the encode a second stage fill.
-/// - Above it, the codeword dominates the peak: when one gathered pass covers the layers before the deep pass,
-///   the commit keeps none and encodes half of the cosets at a time; otherwise it keeps them as below.
-const KEEP_CODEWORD_MAX_BYTES: usize = 1 << 30;
 
 /// Commit to the `F64` message of a `2^log_n`-word witness: the message is its
 /// leading `n_lanes` lane blocks of `2^(log_n - log_batch_size)` words each, one
@@ -140,35 +128,17 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     let codeword =
         tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = row_words).in_scope(|| {
             let on_rows = |row, rows: &[F64]| tree.absorb(row, rows);
-            let keep = if !primitives::REBUILD_OVER_STORE {
-                Keep::Whole
-            } else if n_positions * row_words * size_of::<F64>() > KEEP_CODEWORD_MAX_BYTES {
-                Keep::Nothing
-            } else {
-                Keep::BeforeDeep
-            };
-            ntt.encode_lane_major(message, n_lanes, row_words, log_inv_rate, keep, &on_rows)
+            ntt.encode_lane_major(message, n_lanes, row_words, log_inv_rate, &on_rows)
         });
     let merkle_tree = tracing::info_span!("Merkle").in_scope(|| tree.finish());
     let root = merkle_tree.root();
 
-    (
-        Commitment { root },
-        ProverData {
-            ntt,
-            codeword,
-            row_words,
-            merkle_tree,
-        },
-    )
+    (Commitment { root }, ProverData { codeword, merkle_tree })
 }
 
 /// Codeword + Merkle tree for one deeper WHIR commitment level: a row is one position across the
 /// `num_interleaved` lanes, one Merkle leaf of `num_interleaved * 16` bytes.
-///
-/// A codeword kept before its deep layers has them finished on the rows a query opens.
 pub(crate) struct LigeroWitness {
-    ntt: AdditiveNttF64,
     codeword: Codeword,
     pub tree: merkle::CutTree,
     pub block_len: usize,
@@ -176,15 +146,10 @@ pub(crate) struct LigeroWitness {
 }
 
 impl LigeroWitness {
-    /// The rows at the sorted `positions`, back to back, each as the K words its Merkle leaf is hashed from.
-    fn opened_words(&self, positions: &[usize]) -> Vec<F64> {
-        self.ntt.rows(&self.codeword, &[], positions)
-    }
-
     /// The rows at `queries`, in order and back to back, and their paths.
     fn open(&self, queries: &[usize]) -> (Vec<F128>, Vec<MerklePath>) {
         let group = self.tree.group_positions(queries);
-        let group_rows = self.opened_words(&group);
+        let group_rows = self.codeword.rows(&group);
         let row_words = 2 * self.num_interleaved;
         let row = |q| fetched_row(&group, &group_rows, row_words, q);
         let mut rows = Vec::with_capacity(queries.len() * self.num_interleaved);
@@ -231,13 +196,11 @@ pub(crate) fn ligero_commit_ext(
     )
     .in_scope(|| {
         let on_rows = |row, rows: &[F64]| builder.absorb(row, rows);
-        let defer_deep = primitives::REBUILD_OVER_STORE;
-        ntt.encode_interleaved_with(words(poly), row_words, log_inv_rate, defer_deep, &on_rows)
+        ntt.encode_interleaved_with(words(poly), row_words, log_inv_rate, &on_rows)
     });
     let tree = tracing::info_span!("Merkle").in_scope(|| builder.finish());
 
     LigeroWitness {
-        ntt,
         codeword,
         tree,
         block_len,
@@ -369,12 +332,6 @@ fn round_msg_lsb(f: &[F128], b: &[F128]) -> SumcheckMessage {
 /// still in flight.
 const FOLD_STAGE: usize = 256;
 
-/// Fold outputs of at least this many elements (8 MiB) take streaming stores.
-///
-/// An output this large is evicted from a worker's share of the L3 before the next round reads it, so an ordinary
-/// store only adds the line fetch.
-const STREAM_FOLD_MIN: usize = 1 << 19;
-
 /// Fused fold + next-round message: the witness and the basis fold, and the
 /// next-round message is built over the freshly folded values in the same pass.
 fn fold_and_msg_lsb(f: &[F128], b: &[F128], r: F128) -> (Vec<F128>, Vec<F128>, SumcheckMessage) {
@@ -385,7 +342,6 @@ fn fold_and_msg_lsb(f: &[F128], b: &[F128], r: F128) -> (Vec<F128>, Vec<F128>, S
 
     // `half` is a power of two and so are `ROUND_CHUNK` and `FOLD_STAGE`: every window has even
     // length and starts at an even index, so no message pair straddles one.
-    let stream = half >= STREAM_FOLD_MIN;
     let task = |ci: usize, fc: &mut [F128], bc: &mut [F128]| {
         let base = ci * ROUND_CHUNK;
         let len = fc.len();
@@ -395,20 +351,10 @@ fn fold_and_msg_lsb(f: &[F128], b: &[F128], r: F128) -> (Vec<F128>, Vec<F128>, S
             fold_adjacent(bo, &b[at], r);
             adjacent_dots(fo, bo)
         };
-        let (mut sf, mut sb) = ([F128::ZERO; FOLD_STAGE], [F128::ZERO; FOLD_STAGE]);
-        let st = primitives::stream::Stream::new();
         for s in (0..len).step_by(FOLD_STAGE) {
             let k = FOLD_STAGE.min(len - s);
             let at = 2 * (base + s)..2 * (base + s + k);
-            let (u_0, u_2) = if stream {
-                // Folded in L1, then streamed: an output this large is not read back from cache.
-                let d = fold(&mut sf[..k], &mut sb[..k], at);
-                st.copy(&mut fc[s..s + k], &sf[..k]);
-                st.copy(&mut bc[s..s + k], &sb[..k]);
-                d
-            } else {
-                fold(&mut fc[s..s + k], &mut bc[s..s + k], at)
-            };
+            let (u_0, u_2) = fold(&mut fc[s..s + k], &mut bc[s..s + k], at);
             acc.0 ^= u_0;
             acc.1 ^= u_2;
         }
@@ -722,8 +668,7 @@ fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>, mut c
 /// produced by [`commit`] (with `log_batch_size = config.initial_k` and
 /// `log_inv_rate = config.log_inv_rates[0]`).
 ///
-/// `witness` is owned: where the L0 open recomputes the codeword rows it reads, it keeps it until then.
-/// Otherwise round 2's table reads it last (the end of the level-0 rounds if `initial_k` is 1), and the large
+/// `witness` is owned: round 2's table reads it last (the end of the level-0 rounds if `initial_k` is 1), and the large
 /// committed stack is gone before the level-1 commit allocates.
 ///
 /// `witness` may be shorter than `2^log_n`: it is a whole number of lane blocks, zero past them. The level-0 rounds
@@ -765,8 +710,9 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         n_lanes >= 1 && n_lanes <= num_interleaved_0,
         "at most 2^initial_k lanes"
     );
-    assert_eq!(prover_data.codeword.plan().words(), block_len_0 * prover_data.row_words);
-    assert!((n_lanes..=num_interleaved_0).contains(&prover_data.row_words));
+    let row_words = prover_data.codeword.row_words;
+    assert_eq!(prover_data.codeword.words.len(), block_len_0 * row_words);
+    assert!((n_lanes..=num_interleaved_0).contains(&row_words));
 
     // Nothing is absorbed on entry. The commitment was bound by the `add_root` that
     // transmitted it, and the target is `sum_i lambda^i * claim_i` over claim values bound by their
@@ -779,9 +725,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     let mut claim = target;
 
     // Level 0: its rounds run on the weight's terms.
-    // A rebuilding L0 open recomputes its rows from the stack, so that lives until then.
-    let keep_stack = matches!(prover_data.codeword, Codeword::Nothing(..));
-    let mut lanes = whir_lanes::LaneRounds::new(witness, b_initial, lane_block, keep_stack);
+    let mut lanes = whir_lanes::LaneRounds::new(witness, b_initial, lane_block);
     let mut rounds = Vec::with_capacity(initial_k);
     for j in 0..initial_k {
         let _span = tracing::info_span!("Fold round", level = 0, round = j).entered();
@@ -791,7 +735,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         lanes.fold(&ch);
         rounds.push(ch);
     }
-    let (mut p, mut w, mut stack) = lanes.finish();
+    let (mut p, mut w) = lanes.finish();
     let mut prover_data = Some(prover_data);
     let mut wtns_prev: Option<LigeroWitness> = None;
 
@@ -877,9 +821,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             Some(prover_data) => {
                 let l0_tree = &prover_data.merkle_tree;
                 // The tree keeps no leaves: the rows of whole leaf groups are read back and rehashed.
-                let row_words = prover_data.row_words;
                 let group = l0_tree.group_positions(&queries);
-                let group_rows = prover_data.ntt.rows(&prover_data.codeword, &stack, &group);
+                let group_rows = prover_data.codeword.rows(&group);
                 let image = |q| &fetched_row(&group, &group_rows, row_words, q)[row_words - n_lanes..];
                 // Lane `t` of the codeword is stack block `n_lanes-1-t`: reversing the image puts block `b` at index
                 // `b`, and the absent lanes' zeros at the end.
@@ -889,8 +832,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
                     rows.extend(image(q).iter().rev().map(|&k| F128::from(k)).chain(zeros));
                 }
                 ps.hint_merkle(l0_tree.open(&queries, row_words, num_interleaved_0, &group_rows, image));
-                // Nothing reads the L0 codeword, its stack or its tree again.
-                drop((prover_data, std::mem::take(&mut stack)));
+                // Nothing reads the L0 codeword or its tree again.
+                drop(prover_data);
                 rows
             }
             None => {

@@ -40,7 +40,7 @@ pub(crate) fn words_mut(v: &mut [F128]) -> &mut [F64] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ntt::{AdditiveNttF64, Codeword};
+    use crate::ntt::AdditiveNttF64;
     use primitives::log2_strict_usize;
     use primitives::test_rng::Rng;
 
@@ -101,10 +101,9 @@ mod tests {
             let mut want: Vec<F128> = msg.iter().copied().cycle().take(msg.len() << rate).collect();
             forward_scalar(&ntt, &mut want, lanes, rate);
             // Under test: the encode of the message held apart.
-            let codeword = ntt.encode_interleaved_with(words(&msg), 2 * lanes, rate, false, &|_, _| {});
-            let Codeword::Whole(got, _) = codeword else {
-                panic!("an encode not asked to defer keeps its codeword whole")
-            };
+            let got = ntt
+                .encode_interleaved_with(words(&msg), 2 * lanes, rate, &|_, _| {})
+                .words;
             assert_eq!(got, words(&want), "log_d={log_d}, lanes={lanes}, rate={rate}");
         }
     }

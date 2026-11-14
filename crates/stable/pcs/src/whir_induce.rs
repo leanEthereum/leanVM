@@ -238,7 +238,6 @@ fn transpose_forward_ntt_sparse_ext(
     let kept_ptr = parallel::SendPtr(kept.as_mut_ptr());
     parallel::for_each_chunk(window / strip, |first, end| {
         let (mut sum, mut tile) = (vec![F128::ZERO; rows * strip], vec![F128::ZERO; rows * strip]);
-        let stream = primitives::stream::Stream::new();
         for c in first..end {
             let run_replica = |tile: &mut [F128], replica: usize| {
                 for (r, row) in tile.chunks_exact_mut(strip).enumerate() {
@@ -257,7 +256,7 @@ fn transpose_forward_ntt_sparse_ext(
             }
             for (r, src) in sum.chunks_exact(strip).enumerate() {
                 // SAFETY: each (strip, row) pair owns its `strip` elements.
-                unsafe { stream.copy_uninit(kept_ptr.add(r * window + c * strip), src) };
+                unsafe { kept_ptr.slice(r * window + c * strip, strip) }.copy_from_slice(src);
             }
         }
     });

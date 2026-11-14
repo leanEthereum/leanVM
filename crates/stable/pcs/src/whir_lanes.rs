@@ -19,7 +19,6 @@
 
 use primitives::field::{F64, F64x8, F128, F128x8, mul_base_splat8};
 use primitives::multilinear::interp;
-use primitives::stream::Stream;
 
 use crate::stack_open::{SWEEP, Terms};
 use crate::whir::{FoldChallenges, FoldTable, InitialBasis};
@@ -146,9 +145,8 @@ struct Pending {
 }
 
 pub(crate) struct LaneRounds {
-    /// The committed lanes, read until round 2's table (or `finish` after one round), then freed unless `keep_stack`.
+    /// The committed lanes, read until round 2's table (or `finish` after one round), then freed.
     stack: Vec<F64>,
-    keep_stack: bool,
     lane_block: usize,
     n_stack: usize,
     terms: Terms,
@@ -165,7 +163,7 @@ pub(crate) struct LaneRounds {
 }
 
 impl LaneRounds {
-    pub(crate) fn new(stack: Vec<F64>, basis: InitialBasis, lane_block: usize, keep_stack: bool) -> Self {
+    pub(crate) fn new(stack: Vec<F64>, basis: InitialBasis, lane_block: usize) -> Self {
         let InitialBasis { a, n_terms, terms } = basis;
         assert!(lane_block > 0 && stack.len().is_multiple_of(lane_block));
         assert_eq!(lane_block, 1 << terms.lane_vars());
@@ -173,7 +171,6 @@ impl LaneRounds {
         assert!(a.len().is_multiple_of(n_terms) && a.len() >= n_lanes * n_terms);
         Self {
             stack,
-            keep_stack,
             lane_block,
             n_stack: n_lanes,
             terms,
@@ -255,7 +252,6 @@ impl LaneRounds {
         let (fp, gp) = (parallel::SendPtr(f.as_mut_ptr()), parallel::SendPtr(g.as_mut_ptr()));
         let rows = tracing::info_span!("Project", lanes = n_pairs).in_scope(|| {
             terms.project_rows(n_pairs, 2, live, |m, blocks, feed| {
-                let stream = Stream::new();
                 let [mut pa, mut pb, mut xf] = [0; 3].map(|_| vec![F128::ZERO; block]);
                 let mut limbs = [vec![F64::ZERO; SWEEP << low], vec![F64::ZERO; SWEEP << low]];
                 let mut tags = [false; SWEEP];
@@ -280,8 +276,8 @@ impl LaneRounds {
                         }
                         // SAFETY: each task owns its blocks of its pair.
                         unsafe {
-                            stream.copy(fp.slice(m * len + first, block), &pa);
-                            stream.copy(gp.slice(m * len + first, block), &pb);
+                            fp.slice(m * len + first, block).copy_from_slice(&pa);
+                            gp.slice(m * len + first, block).copy_from_slice(&pb);
                         }
                         let outside = |c: usize| match last {
                             Some((before, _)) if c + 1 == first => before,
@@ -332,7 +328,7 @@ impl LaneRounds {
             Some((pairs, ch)) => {
                 let written = self.write_pairs(&self.view(&pairs, ch), &live);
                 // Round 2 read the stack's pairs last.
-                if matches!(pairs, Pairs::Stack) && !self.keep_stack {
+                if matches!(pairs, Pairs::Stack) {
                     self.stack = Vec::new();
                 }
                 written
@@ -383,9 +379,8 @@ impl LaneRounds {
         self.n_lanes = n_pairs;
     }
 
-    /// The one lane left, low coefficients then high, the weight lifted over its low coefficients, and the committed
-    /// lanes if `keep_stack`.
-    pub(crate) fn finish(self) -> (Vec<F128>, Vec<F128>, Vec<F64>) {
+    /// The one lane left, low coefficients then high, and the weight lifted over its low coefficients.
+    pub(crate) fn finish(self) -> (Vec<F128>, Vec<F128>) {
         assert_eq!(
             (self.n_lanes, self.a.len()),
             (1, self.n_terms),
@@ -410,6 +405,6 @@ impl LaneRounds {
             }
         });
         let w = tracing::info_span!("Lift").in_scope(|| self.terms.lift(&self.a));
-        (lane, w, if self.keep_stack { self.stack } else { Vec::new() })
+        (lane, w)
     }
 }
