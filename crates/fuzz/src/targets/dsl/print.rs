@@ -613,7 +613,6 @@ impl Printer<'_> {
         match e {
             Ex::Lit(n) => self.lit(*n, free),
             Ex::Zero => "0".into(),
-            Ex::Fe(x) => (x.c0 as u128 | (x.c1 as u128) << 64).to_string(),
             Ex::GPow(k) => match k {
                 0 if free && self.chance(self.style.litform) => "1".into(),
                 1 if free && self.chance(self.style.litform) => "GEN".into(),

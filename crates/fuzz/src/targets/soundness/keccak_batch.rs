@@ -203,3 +203,38 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
 fn verifier_bounds() -> std::ops::RangeInclusive<usize> {
     leanvm_core::pcs::MIN_STACKED_LOG..=leanvm_core::pcs::MAX_STACKED_LOG
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The target's hand-rolled batch transcript must keep verifying honestly: it mirrors
+    /// `batch_bench` (behind the bench feature) by hand, and nothing but this test pins the
+    /// mirror. The 2026-11 campaign found the cost of drift: a dropped OOD sample and instance
+    /// grind made every honest case die at `GrindingNonce` and buried real regressions in the
+    /// same coarse key.
+    #[test]
+    fn honest_batches_verify_at_every_depth() {
+        let iv = primitives::hash::hash(LABEL);
+        for depth in DEPTHS {
+            if !verifier_bounds().contains(&Shape::new(512, depth).stack_log()) {
+                continue;
+            }
+            for rate in 1..=4usize {
+                let inputs: Vec<[u64; LANES]> = (0..512).map(|_| std::array::from_fn(|_| 0xA5)).collect();
+                let batch = Batch {
+                    shape: Shape::new(512, depth),
+                    inputs,
+                    rate,
+                };
+                let Some(proof) = prove(&batch, Lie::Honest, &mut Source::from_seed(depth as u64 ^ rate as u64))
+                else {
+                    continue;
+                };
+                let proof = leanvm_core::cpu::scalar_proof(&proof);
+                let verdict = verifier::verify_keccak_batch(&iv, 9, depth, rate, &proof);
+                assert!(verdict.is_ok(), "depth {depth}, rate {rate}: {verdict:?}");
+            }
+        }
+    }
+}

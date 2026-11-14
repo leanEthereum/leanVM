@@ -999,7 +999,7 @@ impl Gen<'_> {
     /// constant-array element at a compile-time index, and arithmetic of those.
     fn compile_time(&self, e: &Ex) -> bool {
         match e {
-            Ex::Lit(_) | Ex::Zero | Ex::Fe(_) | Ex::GPow(_) | Ex::ConstInt(_) | Ex::J | Ex::JPow(_) | Ex::KPow(..) => {
+            Ex::Lit(_) | Ex::Zero | Ex::GPow(_) | Ex::ConstInt(_) | Ex::J | Ex::JPow(_) | Ex::KPow(..) => {
                 true
             }
             Ex::Arr(..) => true,

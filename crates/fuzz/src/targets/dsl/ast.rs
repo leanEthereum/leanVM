@@ -13,7 +13,6 @@ pub enum Ex {
     Lit(u128),
     /// A literal `0` that must be spelled as one (a `keccak` cell past `len`).
     Zero,
-    Fe(F128),
     GPow(u64),
     Var(V),
     Add(Box<Ex>, Box<Ex>),

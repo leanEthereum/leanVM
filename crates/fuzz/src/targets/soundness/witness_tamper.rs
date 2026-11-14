@@ -121,6 +121,16 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     ));
     let proof = match proved {
         Err(_) => {
+            // A tampered witness that panics the prover is never judged against the verifier, so
+            // it cannot hide a hole by itself; but an assert that fires only on a MALICIOUS
+            // witness (a prover-side consistency check not gated on `witness_is_honest`) would
+            // silently blind this target from then on. Recorded as a Low so a campaign surfaces it.
+            if relation.is_ok() {
+                return Err(Finding::low(
+                    format!("{kind}: a tampered witness panics the prover"),
+                    format!("the reference check keeps the relation ({relation:?}); a prover-side assert fires only on tampering"),
+                ));
+            }
             ctx.note(format!("{kind} prover panicked"));
             return Ok(());
         }
