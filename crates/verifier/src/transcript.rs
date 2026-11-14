@@ -17,7 +17,7 @@ pub struct Proof {
 const DS_OBSERVE: u64 = 1;
 pub(crate) const DS_POW_NONCE: u64 = 4;
 /// Scalars that wait to be absorbed: four, a scalar taking four rate lanes, its two limbs, a zero lane and a tag.
-const RATE_SCALARS: usize = 4;
+pub const RATE_SCALARS: usize = 4;
 
 /// A duplex sponge over Keccak-f\[1600\], in overwrite mode. The rate is lanes 0..16 and the capacity lanes
 /// 16..25. A permutation writes waiting scalar `i` over lanes `4i..4i+4`, zeroes the rest of the rate and keeps the
@@ -72,6 +72,15 @@ impl Sponge {
         self.absorb(value, DS_OBSERVE);
     }
 
+    /// The capacity lanes, all a later permutation keeps of the state when nothing waits.
+    pub fn capacity(&self) -> &[u64] {
+        assert_eq!(
+            self.n_pending, 0,
+            "the capacity is the whole state only with nothing waiting"
+        );
+        &self.state[16..]
+    }
+
     pub fn sample(&mut self) -> E {
         self.ground.take().unwrap_or_else(|| {
             self.duplex();
@@ -81,7 +90,7 @@ impl Sponge {
 
     /// Absorb a grinding nonce and permute: the output's first two lanes are the next challenge, kept for
     /// [`Self::sample`], and its third lane is returned, the proof of work.
-    pub(crate) fn absorb_nonce(&mut self, nonce: E) -> u64 {
+    pub fn absorb_nonce(&mut self, nonce: E) -> u64 {
         self.absorb(nonce, DS_POW_NONCE);
         self.duplex();
         self.ground = Some(E::new(self.state[0], self.state[1]));

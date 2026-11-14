@@ -89,11 +89,11 @@ impl Layer<'_> {
         let tasks = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
         let buckets = parallel::map_reduce_with_state(
             self.n_tasks(),
-            || vec![[F128::ZERO; 256]; PROD_BYTES],
-            || vec![[F128Unreduced::ZERO; 256]; PROD_BYTES],
+            || Box::new([[F128::ZERO; 256]; PROD_BYTES]),
+            || vec![Acc8::ZERO; 256 * PROD_BYTES / 8],
             |block_buckets, buckets, task| {
                 let (_, _, block) = self.block(task);
-                block_buckets.fill([F128::ZERO; 256]);
+                **block_buckets = [[F128::ZERO; 256]; PROD_BYTES];
                 for r in 0..5 {
                     for z in 0..64 {
                         let js = row_positions(r, z);
@@ -101,30 +101,31 @@ impl Layer<'_> {
                         for x in 0..5 {
                             let p = products(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]);
                             for (&p, &w) in p.iter().zip(&weights[js[x]]) {
-                                for (b, bucket) in block_buckets.iter_mut().enumerate() {
-                                    bucket[(p >> (8 * b)) as usize & 0xff] += w;
+                                let bytes = p.to_le_bytes();
+                                for (bucket, &byte) in block_buckets.iter_mut().zip(&bytes) {
+                                    bucket[byte as usize] += w;
                                 }
                             }
                         }
                     }
                 }
-                for (total, local) in buckets.iter_mut().zip(block_buckets.iter()) {
-                    for (total, &local) in total.iter_mut().zip(local) {
-                        *total ^= local.mul_unreduced(tasks[task]);
-                    }
+                let weight = F128x8::splat(tasks[task]);
+                for (total, local) in buckets.iter_mut().zip(block_buckets.as_flattened().as_chunks::<8>().0) {
+                    *total += F128x8::from_array(local).mul_unreduced(weight);
                 }
             },
             |mut a, b| {
-                for (a, b) in a.as_flattened_mut().iter_mut().zip(b.as_flattened()) {
-                    *a ^= *b;
+                for (a, b) in a.iter_mut().zip(b) {
+                    *a += b;
                 }
                 a
             },
         );
+        let buckets: Vec<F128> = buckets.into_iter().flat_map(|b| b.reduce().to_array()).collect();
         std::array::from_fn(|c| {
             (0..256)
                 .filter(|v| v >> (c % 8) & 1 == 1)
-                .map(|v| buckets[c / 8][v].reduce())
+                .map(|v| buckets[256 * (c / 8) + v])
                 .sum()
         })
     }
@@ -289,10 +290,10 @@ impl Summand {
     }
 }
 
-/// Bind the leading variable of a table of rows of positions at `challenge`, and sum the next
-/// round's values over the rows written while they are at hand, the pair of rows `p` weighted by
-/// `eq[p]`: zero once a single row is left.
-fn fold_rows(summand: &Summand, table: &[F128], challenge: F128, eq: &[F128]) -> (Vec<F128>, (F128, F128)) {
+/// Bind the leading variable of a table of rows of positions at `challenge`, into `out`, half its
+/// length, and sum the next round's values over the rows written while they are at hand, the pair
+/// of rows `p` weighted by `eq[p]`: zero once a single row is left.
+fn fold_rows(summand: &Summand, table: &[F128], out: &mut [F128], challenge: F128, eq: &[F128]) -> (F128, F128) {
     let challenge = F128x8::splat(challenge);
     // Pair `p` of the rows written, from four rows of `table`.
     let pair = |acc: &mut (F128Unreduced, F128Unreduced), p: usize, rows: &mut [F128]| {
@@ -316,27 +317,24 @@ fn fold_rows(summand: &Summand, table: &[F128], challenge: F128, eq: &[F128]) ->
         }
     };
     let zero = (F128Unreduced::ZERO, F128Unreduced::ZERO);
-    let (out, values) = if table.len() <= SERIAL_ROWS * BITS {
+    let values = if table.len() <= SERIAL_ROWS * BITS {
         // Waking the pool would cost more than the work.
-        let mut out = vec![F128::ZERO; table.len() / 2];
         let mut values = zero;
         for (p, rows) in out.chunks_mut(2 * BITS).enumerate() {
             pair(&mut values, p, rows);
         }
-        (out, values)
+        values
     } else {
-        let mut out = parallel::filled(table.len() / 2, F128::ZERO);
-        let values = parallel::map_reduce_chunks_mut(
-            [&mut out],
+        parallel::map_reduce_chunks_mut(
+            [out],
             [2 * BITS],
             || (),
             || zero,
             |_, acc, p, [rows]| pair(acc, p, rows),
             |a, b| (a.0 ^ b.0, a.1 ^ b.1),
-        );
-        (out, values)
+        )
     };
-    (out, (values.0.reduce(), values.1.reduce()))
+    (values.0.reduce(), values.1.reduce())
 }
 
 /// The tables a tail round folds on the calling thread, in rows.
@@ -414,17 +412,22 @@ pub fn prove_layer(ps: &mut ProverState, witness: &Witness, step: usize, claim: 
         layer.table(&summand, &PackFold::new(&mu, &point), &eq)
     });
     let tail = tracing::info_span!("Tail").entered();
+    // Each round folds one table into the other.
+    let mut half = parallel::filled(table.len() / 2, F128::ZERO);
+    let (mut src, mut dst) = (&mut table[..], &mut half[..]);
     for i in SKIP..claim.point.len() {
         let coeffs = round_coefficients(scale, values.0, values.1, value, claim.point[i]);
         let challenge = bind(ps, &coeffs, claim.point[i], &mut value, &mut scale, &mut point);
         let eq = eq_table(claim.point.get(i + 2..).unwrap_or(&[]));
-        (table, values) = fold_rows(&summand, &table, challenge, &eq);
+        let len = src.len() / 2;
+        values = fold_rows(&summand, src, &mut dst[..len], challenge, &eq);
+        (src, dst) = (&mut dst[..len], src);
     }
+    let mut t0 = src.to_vec();
     drop(tail);
 
     // The bit positions.
     let cube = 1usize << LOCAL_VARS;
-    let mut t0 = table;
     t0.resize(cube, F128::ZERO);
     let shift = |k: usize| -> Vec<F128> {
         (0..cube)

@@ -26,6 +26,7 @@ pub mod gkr;
 pub mod keccak;
 pub mod leaf;
 pub mod pcs;
+mod prover;
 pub mod tables;
 pub mod transcript;
 pub mod vmhash;
@@ -35,6 +36,7 @@ pub mod witness;
 /// most `2^-SECURITY_BITS`. Challenges are sampled in F128, so a message whose error is `N/|E|`
 /// grinds `fiat_shamir::grinding_bits(N)` bits.
 pub use fiat_shamir::SECURITY_BITS;
+pub use prover::Stable;
 
 /// `stage!("Commit", || …)`: one named prover stage, run inside its `tracing` span,
 /// which is what the CLI's `--tracing` tree shows.

@@ -12,9 +12,9 @@ use crate::transcript::{Transcript, grinding_bits, sumcheck};
 use crate::{VerifierError, require};
 
 const PACK_BITS: usize = 4;
-const PACK: usize = 1 << PACK_BITS;
-const EMBED_BITS: usize = 24;
-const PRODUCT_BITS: usize = 2 * EMBED_BITS - 1;
+pub const PACK: usize = 1 << PACK_BITS;
+pub const EMBED_BITS: usize = 24;
+pub const PRODUCT_BITS: usize = 2 * EMBED_BITS - 1;
 const BITS: usize = 64 * STATE_LANES;
 const LOCAL_BITS: usize = 11; // a bit position is z + 64 * lane, in a cube of 2048
 const LANE_BITS: usize = 5;
@@ -22,11 +22,11 @@ const LANE_BITS: usize = 5;
 /// Sixteen bits embed in a binary polynomial of degree at most 23, and a product of two embeddings projects to the
 /// AND of what they embed: each unit vector's embedding, and per bit of the projection the product coefficients it is
 /// the parity of. Derived in `formal/Statement/LeanVmVerifier.lean`.
-const RMFE_EMBED: [u32; PACK] = [
+pub const RMFE_EMBED: [u32; PACK] = [
     0x40c50b, 0x7f79f2, 0x4b4e0a, 0x72740c, 0x5357da, 0x1d1c9e, 0x04be6e, 0x785246, 0x097cdc, 0x109e7e, 0x1f1454,
     0x213cfc, 0x4cfcc8, 0x775770, 0x187386, 0x818a16,
 ];
-const RMFE_PROJECT: [u64; PACK] = [
+pub const RMFE_PROJECT: [u64; PACK] = [
     0x1,
     0x7fffffffffff,
     0x274e9d3a74e9,
