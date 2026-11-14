@@ -81,8 +81,8 @@
 //! rounds' challenges into field elements. At `s`, a pack's value is the sum of the instance
 //! weights of its set bits, so a folded one is a sum of byte lookups.
 //!
-//! `U`'s weighted bit sums are outer products: the positions grouped by each byte of their weight
-//! (`prover`'s digit buckets).
+//! `U`'s weighted bit sums go to buckets: each byte of a product picks one of 256, which its
+//! weight is added to, and a coefficient is a sum of buckets.
 
 use fiat_shamir::transcript::ProverState;
 use keccak::LANE_VARS;

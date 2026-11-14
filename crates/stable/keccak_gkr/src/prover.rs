@@ -20,110 +20,10 @@ use crate::kernels::{GROUP, PACKS, SKIP, embed, products};
 use crate::open::fold;
 use crate::protocol::{Claim, chi_weights, mu_at};
 use crate::rmfe::{PACK, PROD_BITS};
-use crate::witness::{Shape, Witness, transpose64, words};
+use crate::witness::{Shape, Witness, words};
 
-/// Digits a weight splits into, and the values of one.
-const DIGIT_BITS: usize = 8;
-const DIGITS: usize = 128 / DIGIT_BITS;
-/// The bits of a block position's products, 48 to each pack.
-pub(crate) const PAYLOAD_BITS: usize = 48 * PACKS;
-/// The packs of a part of a block position, and the words of their products: a quarter, a
-/// block's worth of which stays in cache.
-const PART: usize = 8;
-const PART_WORDS: usize = 48 * PART / 64;
-
-/// The products of a part of a block position's packs, 48 bits each, grouped while every digit
-/// of the weights groups the block's positions.
-#[derive(Clone, Copy)]
-struct Part([u64; PART_WORDS]);
-
-impl Part {
-    const ZERO: Self = Self([0; PART_WORDS]);
-
-    /// Product `q` at bits `48 * q ..`: four products to three words.
-    #[inline(always)]
-    fn pack(products: &[u64; PART]) -> Self {
-        let mut out = [0u64; PART_WORDS];
-        for (out, p) in out.as_chunks_mut::<3>().0.iter_mut().zip(products.as_chunks::<4>().0) {
-            *out = [p[0] | p[1] << 48, p[1] >> 16 | p[2] << 32, p[2] >> 32 | p[3] << 16];
-        }
-        Self(out)
-    }
-
-    #[inline(always)]
-    fn add(&mut self, other: &Self) {
-        for (x, y) in self.0.iter_mut().zip(&other.0) {
-            *x ^= y;
-        }
-    }
-}
-
-/// Digit `d` of a weight.
-#[inline(always)]
-fn digit(weight: F128, d: usize) -> usize {
-    let w = weight.to_limbs();
-    (w[d / 8] >> (DIGIT_BITS * (d % 8))) as usize & ((1 << DIGIT_BITS) - 1)
-}
-
-/// The positions grouped by each digit of their weight: those whose digit `d` is `v` are
-/// `order[d][starts[d][v]..starts[d][v + 1]]`.
-struct Groups {
-    order: Vec<[u16; BITS]>,
-    starts: Vec<[u16; (1 << DIGIT_BITS) + 1]>,
-}
-
-impl Groups {
-    fn new(weights: &[F128]) -> Self {
-        let mut order = vec![[0u16; BITS]; DIGITS];
-        let mut starts = vec![[0u16; (1 << DIGIT_BITS) + 1]; DIGITS];
-        for (d, (order, starts)) in order.iter_mut().zip(&mut starts).enumerate() {
-            let digits: Vec<usize> = weights[..BITS].iter().map(|&w| digit(w, d)).collect();
-            for &v in &digits {
-                starts[v + 1] += 1;
-            }
-            for v in 0..1 << DIGIT_BITS {
-                starts[v + 1] += starts[v];
-            }
-            let mut next = *starts;
-            for (p, &v) in digits.iter().enumerate() {
-                order[next[v] as usize] = p as u16;
-                next[v] += 1;
-            }
-        }
-        Self { order, starts }
-    }
-
-    /// `sum over positions of weight[j] (x) payloads[j]` into `rows`: row `DIGIT_BITS * d + i`
-    /// sums the payloads whose weight has that bit set. Each group is summed in registers, so
-    /// the payloads are only read.
-    fn add_rows(&self, payloads: &[Part; BITS], rows: &mut [Part; 128], sums: &mut [Part; 1 << DIGIT_BITS]) {
-        for (rows, (order, starts)) in rows
-            .as_chunks_mut::<DIGIT_BITS>()
-            .0
-            .iter_mut()
-            .zip(self.order.iter().zip(&self.starts))
-        {
-            for (v, sum) in sums.iter_mut().enumerate() {
-                let mut acc = Part::ZERO;
-                for &p in &order[starts[v] as usize..starts[v + 1] as usize] {
-                    // SAFETY: `order` holds positions.
-                    acc.add(unsafe { payloads.get_unchecked(p as usize) });
-                }
-                *sum = acc;
-            }
-            // Bit `i` of the digit: the sums whose value has it, then fold it away.
-            for (i, row) in rows.iter_mut().enumerate().rev() {
-                let (low, high) = sums[..2 << i].split_at_mut(1 << i);
-                let mut acc = Part::ZERO;
-                for (low, high) in low.iter_mut().zip(&*high) {
-                    acc.add(high);
-                    low.add(high);
-                }
-                *row = acc;
-            }
-        }
-    }
-}
+/// The bytes of a product of two embeddings.
+const PROD_BYTES: usize = PROD_BITS.div_ceil(8);
 
 struct Layer<'a> {
     witness: &'a Witness,
@@ -169,71 +69,64 @@ impl Layer<'_> {
             .collect()
     }
 
-    /// Per pack `q` of a block, the coefficients of
-    /// `sum over blocks and positions of eq(point[5..], block) * weights[j] * product(q, j)`,
+    /// The product polynomial `U`: the coefficients of
+    /// `sum over packs, segments and positions of eq(point, (pack, segment)) * weights[j] * product(pack, j)`,
     /// where the product is `ones * u[j] + (ones + u[j + 1]) * u[j + 2]` on embeddings, the
     /// unprojected `chi`.
     ///
     /// Nothing here knows where the polynomials will be evaluated, so each product meets its
-    /// weight bit by bit. The position weights are the same in every block, so a block's sum
-    /// over positions is taken bit by bit, by digit buckets ([`Groups`]), a part of the packs at
-    /// a time; only that sum meets the block's weight, as field elements.
-    fn pack_products(&self, claim: &Claim) -> Vec<[F128; PROD_BITS]> {
-        let weights = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
-        let groups = Groups::new(&claim.weights);
-        let sums = parallel::map_reduce_with_state(
+    /// weight bit by bit: byte `b` of a product picks one of 256 buckets of that byte, which the
+    /// weight goes to, and coefficient `8 b + t` sums byte `b`'s buckets whose value has bit `t`.
+    /// The buckets of a block meet its weight once, at its end.
+    fn product(&self, claim: &Claim) -> [F128; PROD_BITS] {
+        // Per position, its weight times each pack's of a block.
+        let packs = eq_table(&claim.point[..SKIP + 1]);
+        let weights: Vec<[F128; PACKS]> = claim
+            .weights
+            .iter()
+            .map(|&w| std::array::from_fn(|q| packs[q] * w))
+            .collect();
+        let tasks = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
+        let buckets = parallel::map_reduce_with_state(
             self.n_tasks(),
-            || {
-                (
-                    vec![[Part::ZERO; BITS]; PACKS / PART],
-                    vec![[Part::ZERO; 128]; PACKS / PART],
-                    Box::new([Part::ZERO; 1 << DIGIT_BITS]),
-                )
-            },
-            || vec![F128Unreduced::ZERO; PAYLOAD_BITS],
-            |(payloads, rows, digit_sums), sums, task| {
+            || vec![[F128::ZERO; 256]; PROD_BYTES],
+            || vec![[F128Unreduced::ZERO; 256]; PROD_BYTES],
+            |block_buckets, buckets, task| {
                 let (_, _, block) = self.block(task);
+                block_buckets.fill([F128::ZERO; 256]);
                 for r in 0..5 {
                     for z in 0..64 {
                         let js = row_positions(r, z);
                         let e: [[u32; PACKS]; 5] = std::array::from_fn(|x| embed(words(block, js[x])));
                         for x in 0..5 {
                             let p = products(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]);
-                            for (q, part) in payloads.iter_mut().enumerate() {
-                                part[js[x]] = Part::pack(p[PART * q..][..PART].try_into().unwrap());
+                            for (&p, &w) in p.iter().zip(&weights[js[x]]) {
+                                for (b, bucket) in block_buckets.iter_mut().enumerate() {
+                                    bucket[(p >> (8 * b)) as usize & 0xff] += w;
+                                }
                             }
                         }
                     }
                 }
-                for (payloads, rows) in payloads.iter().zip(rows.iter_mut()) {
-                    groups.add_rows(payloads, rows, digit_sums);
-                }
-                // Row `r` holds bit `r` of each payload bit's weighted sum: transposed, they are
-                // field elements, which the block's weight multiplies.
-                let mut columns = [[0u64; 64]; 2];
-                for m in 0..PAYLOAD_BITS / 64 {
-                    let (q, w) = (m / PART_WORDS, m % PART_WORDS);
-                    for (k, column) in columns.iter_mut().enumerate() {
-                        for (b, word) in column.iter_mut().enumerate() {
-                            *word = rows[q][64 * k + b].0[w];
-                        }
-                        transpose64(column);
-                    }
-                    for (t, sum) in sums[64 * m..][..64].iter_mut().enumerate() {
-                        *sum ^= weights[task].mul_unreduced(F128::new(columns[0][t], columns[1][t]));
+                for (total, local) in buckets.iter_mut().zip(block_buckets.iter()) {
+                    for (total, &local) in total.iter_mut().zip(local) {
+                        *total ^= local.mul_unreduced(tasks[task]);
                     }
                 }
             },
             |mut a, b| {
-                for (x, y) in a.iter_mut().zip(b) {
-                    *x ^= y;
+                for (a, b) in a.as_flattened_mut().iter_mut().zip(b.as_flattened()) {
+                    *a ^= *b;
                 }
                 a
             },
         );
-        (0..PACKS)
-            .map(|q| std::array::from_fn(|c| sums[48 * q + c].reduce()))
-            .collect()
+        std::array::from_fn(|c| {
+            (0..256)
+                .filter(|v| v >> (c % 8) & 1 == 1)
+                .map(|v| buckets[c / 8][v].reduce())
+                .sum()
+        })
     }
 
     /// A round over a variable of the packs of a group, from the witness: its values at `0` and
@@ -585,10 +478,7 @@ pub fn prove_layer(
             .collect(),
     };
 
-    let per_pack = tracing::info_span!("Product").in_scope(|| layer.pack_products(claim));
-    let pack_weights = eq_table(&claim.point[..SKIP + 1]);
-    let product: [F128; PROD_BITS] =
-        std::array::from_fn(|c| (0..PACKS).map(|q| pack_weights[q] * per_pack[q][c]).sum());
+    let product = tracing::info_span!("Product").in_scope(|| layer.product(claim));
     ps.add_scalars(&product);
     // `s`: the product polynomial has degree PROD_BITS - 1.
     ps.grind(fiat_shamir::grinding_bits(PROD_BITS as u128 - 1));
