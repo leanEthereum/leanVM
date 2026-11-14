@@ -13,32 +13,32 @@ pub enum AggregateVerifyError {
     /// The bytes are not a valid encoding of an aggregate.
     MalformedEncoding,
     /// The snark did not verify. From [`aggregate`](super::aggregate), which does not verify its children, it means a child's proof could not be read.
-    Snark(SnarkVerifyError),
+    Snark(StarkVerifyError),
 }
 
 /// Why a proof did not verify. Opaque: its message is for debugging.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SnarkVerifyError(pub(super) verifier::VerifierError);
+pub struct StarkVerifyError(pub(super) verifier::VerifierError);
 
-impl std::fmt::Display for SnarkVerifyError {
+impl std::fmt::Display for StarkVerifyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl std::error::Error for SnarkVerifyError {}
+impl std::error::Error for StarkVerifyError {}
 
 /// Why the prover made no proof. Opaque: its message is for debugging.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SnarkProveError(pub(super) ProveError);
+pub struct StarkProveError(pub(super) ProveError);
 
-impl std::fmt::Display for SnarkProveError {
+impl std::fmt::Display for StarkProveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl std::error::Error for SnarkProveError {}
+impl std::error::Error for StarkProveError {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AggregateProveError {
@@ -67,7 +67,7 @@ pub enum AggregateProveError {
     /// The prover made no proof of this node: the guest rejects its input (a
     /// forged signature fails the guest's run), or its witness is larger than any
     /// verifier accepts (too many signatures for one proof).
-    ProofError(SnarkProveError),
+    ProofError(StarkProveError),
 }
 
 impl std::fmt::Display for AggregateVerifyError {

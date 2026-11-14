@@ -4,7 +4,7 @@ use super::cells::count;
 use super::child::gen_verify;
 use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, aggregate_deferred_claims, bytecode_sums, bytecode_value, scalar_bytecode};
-use super::error::{AggregateProveError, AggregateVerifyError, SnarkProveError, SnarkVerifyError};
+use super::error::{AggregateProveError, AggregateVerifyError, StarkProveError, StarkVerifyError};
 use super::guest::unified_guest;
 #[cfg(test)]
 use super::hints::FORGE;
@@ -137,7 +137,7 @@ pub fn aggregate_with_stats(
     let mut replayed = Vec::with_capacity(children.len());
     for (pi, summary) in public_inputs.into_iter().zip(summaries) {
         let summary =
-            summary.map_err(|e| AggregateProveError::InvalidChild(AggregateVerifyError::Snark(SnarkVerifyError(e))))?;
+            summary.map_err(|e| AggregateProveError::InvalidChild(AggregateVerifyError::Snark(StarkVerifyError(e))))?;
         replayed.push((pi, summary));
     }
 
@@ -318,7 +318,7 @@ pub fn aggregate_with_stats(
     }
     hints.install(&mut program);
     let (proof, stats) =
-        prove(&program, public_input, log_inv_rate).map_err(|e| AggregateProveError::ProofError(SnarkProveError(e)))?;
+        prove(&program, public_input, log_inv_rate).map_err(|e| AggregateProveError::ProofError(StarkProveError(e)))?;
     Ok((
         EthereumProof {
             claims: EthereumClaims {
