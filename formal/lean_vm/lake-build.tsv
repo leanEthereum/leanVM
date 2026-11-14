@@ -48,6 +48,15 @@ LeanVM.Guest.B2C.Shared.H37_6_0	60.0	60.0	2200	800
 LeanVM.Guest.B2C.Shared.H37_7_0	60.0	60.0	2200	800
 LeanVM.Guest.B2C.Shared.H37_8_0	60.0	60.0	2200	800
 LeanVM.Guest.B2C.Shared.H37_9_0	60.0	60.0	2200	800
+LeanVM.Guest.Bridge.Align.verify_sig_lean_sphincs	10.0	10.0	2300	1200
+LeanVM.Guest.Bridge.AlignWin.exponent_tables.W0	10.0	10.0	2100	1100
+LeanVM.Guest.Bridge.AlignWin.sp_wots.W0	10.0	10.0	2600	1500
+LeanVM.Guest.Bridge.AlignWin.sp_wots.W1	10.0	10.0	2700	1600
+LeanVM.Guest.Bridge.AlignWin.sp_wots.W2	10.0	10.0	2700	1700
+LeanVM.Guest.Bridge.AlignWin.sp_wots.W3	10.0	10.0	2800	1700
+LeanVM.Guest.Bridge.AlignWin.sp_wots.W4	10.0	10.0	2900	1800
+LeanVM.Guest.Bridge.AlignWin.sp_wots.W5	10.0	10.0	2800	1700
+LeanVM.Guest.Bridge.AlignWin.verify_tables.W0	10.0	10.0	2300	1200
 LeanVM.Guest.Checked.F12_4	60.0	60.0	3400	2200
 LeanVM.Guest.Checked.G37_17_0	80.0	70.0	2100	1500
 LeanVM.Guest.Checked.G37_19_0	80.0	70.0	2000	1500

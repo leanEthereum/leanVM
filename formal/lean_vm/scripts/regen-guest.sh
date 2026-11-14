@@ -120,6 +120,8 @@ part_mode() {
 part_bridge() {
   step "bridge: the hint bridge's prefix checks (scripts/bridge-cert/gen.py)"
   python3 -I scripts/bridge-cert/gen.py "${check[@]}"
+  step "bridge: the hint bridge's alignment checks (scripts/bridge-cert/align.py)"
+  python3 -I scripts/bridge-cert/align.py "${check[@]}"
 }
 
 part_memory() {
