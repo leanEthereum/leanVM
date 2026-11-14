@@ -152,31 +152,7 @@ pub struct Witness {
 }
 
 /// Transpose a 64 by 64 bit matrix: bit `c` of row `r` becomes bit `r` of row `c`.
-#[inline]
 pub(crate) fn transpose64(a: &mut [u64; 64]) {
-    cfg_select! {
-        all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512vbmi",
-            target_feature = "gfni"
-        ) => {
-            // SAFETY: the features are enabled at compile time.
-            unsafe { x86::transpose64(a) }
-        }
-        all(target_arch = "x86_64", target_feature = "avx2") => {
-            // SAFETY: the feature is enabled at compile time.
-            unsafe { avx2::transpose64(a) }
-        }
-        target_arch = "aarch64" => {
-            // SAFETY: aarch64 always has NEON.
-            unsafe { neon::transpose64(a) }
-        }
-        _ => transpose64_portable(a),
-    }
-}
-
-pub fn transpose64_portable(a: &mut [u64; 64]) {
     let mut j = 32;
     let mut mask = 0x0000_0000_ffff_ffffu64;
     while j != 0 {
@@ -471,187 +447,6 @@ impl Witness {
     }
 }
 
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx512f",
-    target_feature = "avx512vbmi",
-    target_feature = "gfni"
-))]
-mod x86 {
-    use core::arch::x86_64::*;
-
-    use primitives::bits::bit_transpose_64bytes_m512;
-
-    /// The register of group `g` after the word transpose: groups 0, 1, 4, 5, 2, 3, 6, 7.
-    const ORDER: [usize; 8] = [0, 1, 4, 5, 2, 3, 6, 7];
-
-    /// Byte `8 * c + g` of eight output rows: byte `c` of group `g`'s word.
-    const SCATTER: [u8; 64] = {
-        let mut idx = [0u8; 64];
-        let mut i = 0;
-        while i < 64 {
-            idx[i] = (8 * ORDER[i % 8] + i / 8) as u8;
-            i += 1;
-        }
-        idx
-    };
-
-    /// An 8 by 8 grid of 8 by 8 blocks: a block's bytes gathered into a word, its bits
-    /// transposed there by an affine map, then the grid transposed, words across registers and
-    /// bytes within them.
-    #[inline(always)]
-    pub unsafe fn transpose64(a: &mut [u64; 64]) {
-        unsafe {
-            // Word `b` of register `g`: the transposed block of rows `8 * g ..` and byte `b`.
-            let w: [__m512i; 8] =
-                std::array::from_fn(|g| bit_transpose_64bytes_m512(_mm512_loadu_si512(a.as_ptr().add(8 * g).cast())));
-            // Word `b` of every register into register `b`: halves, quarters, then words.
-            let mut r = w;
-            for g in 0..4 {
-                r[g] = _mm512_shuffle_i64x2::<0b01_00_01_00>(w[g], w[g + 4]);
-                r[g + 4] = _mm512_shuffle_i64x2::<0b11_10_11_10>(w[g], w[g + 4]);
-            }
-            let mut q = r;
-            for g in [0, 1, 4, 5] {
-                q[g] = _mm512_shuffle_i64x2::<0b10_00_10_00>(r[g], r[g + 2]);
-                q[g + 2] = _mm512_shuffle_i64x2::<0b11_01_11_01>(r[g], r[g + 2]);
-            }
-            let scatter = _mm512_loadu_si512(SCATTER.as_ptr().cast());
-            for b in (0..8).step_by(2) {
-                let (lo, hi) = (
-                    _mm512_unpacklo_epi64(q[b], q[b + 1]),
-                    _mm512_unpackhi_epi64(q[b], q[b + 1]),
-                );
-                _mm512_storeu_si512(a.as_mut_ptr().add(8 * b).cast(), _mm512_permutexvar_epi8(scatter, lo));
-                _mm512_storeu_si512(
-                    a.as_mut_ptr().add(8 * b + 8).cast(),
-                    _mm512_permutexvar_epi8(scatter, hi),
-                );
-            }
-        }
-    }
-}
-
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx2",
-    not(all(target_feature = "avx512f", target_feature = "avx512vbmi", target_feature = "gfni"))
-))]
-mod avx2 {
-    use core::arch::x86_64::*;
-
-    /// A 4 by 4 transpose of words.
-    #[inline(always)]
-    unsafe fn transpose4([a, b, c, d]: [__m256i; 4]) -> [__m256i; 4] {
-        unsafe {
-            let (ab0, ab1) = (_mm256_unpacklo_epi64(a, b), _mm256_unpackhi_epi64(a, b));
-            let (cd0, cd1) = (_mm256_unpacklo_epi64(c, d), _mm256_unpackhi_epi64(c, d));
-            [
-                _mm256_permute2x128_si256::<0x20>(ab0, cd0),
-                _mm256_permute2x128_si256::<0x20>(ab1, cd1),
-                _mm256_permute2x128_si256::<0x31>(ab0, cd0),
-                _mm256_permute2x128_si256::<0x31>(ab1, cd1),
-            ]
-        }
-    }
-
-    /// The portable form's swaps, which commute, with rows `i + 16 l` in lane `l` of register
-    /// `i`: those of `j` below 16 are across registers, a masked swap by shifts, and those of 16
-    /// and 32 within one, a permutation of its 16- and 32-bit fields.
-    #[inline(always)]
-    pub unsafe fn transpose64(a: &mut [u64; 64]) {
-        unsafe {
-            let mut r = [_mm256_setzero_si256(); 16];
-            for m in 0..4 {
-                let rows = std::array::from_fn(|l| _mm256_loadu_si256(a.as_ptr().add(4 * m + 16 * l).cast()));
-                r[4 * m..][..4].copy_from_slice(&transpose4(rows));
-            }
-            macro_rules! swap {
-                ($j:expr, $mask:expr) => {
-                    let mask = _mm256_set1_epi64x($mask);
-                    for i in (0..16).filter(|i| i & $j == 0) {
-                        let t = _mm256_and_si256(
-                            _mm256_xor_si256(_mm256_srli_epi64::<$j>(r[i]), r[i + $j]),
-                            mask,
-                        );
-                        r[i + $j] = _mm256_xor_si256(r[i + $j], t);
-                        r[i] = _mm256_xor_si256(r[i], _mm256_slli_epi64::<$j>(t));
-                    }
-                };
-            }
-            swap!(8, 0x00ff_00ff_00ff_00ff);
-            swap!(4, 0x0f0f_0f0f_0f0f_0f0f);
-            swap!(2, 0x3333_3333_3333_3333);
-            swap!(1, 0x5555_5555_5555_5555);
-            // Rows `k` and `k + 32` trade the high half of the one for the low half of the other,
-            // and rows `k` and `k + 16` the same of each 32-bit field.
-            let halves = _mm256_setr_epi32(0, 4, 2, 6, 1, 5, 3, 7);
-            let fields =
-                _mm256_broadcastsi128_si256(_mm_setr_epi8(0, 1, 8, 9, 4, 5, 12, 13, 2, 3, 10, 11, 6, 7, 14, 15));
-            for x in &mut r {
-                *x = _mm256_shuffle_epi8(_mm256_permutevar8x32_epi32(*x, halves), fields);
-            }
-            for m in 0..4 {
-                let rows = transpose4(r[4 * m..][..4].try_into().unwrap());
-                for (l, row) in rows.into_iter().enumerate() {
-                    _mm256_storeu_si256(a.as_mut_ptr().add(4 * m + 16 * l).cast(), row);
-                }
-            }
-        }
-    }
-}
-
-#[cfg(target_arch = "aarch64")]
-mod neon {
-    use core::arch::aarch64::*;
-
-    /// The portable form's swaps, two rows to a register: rows `k` and `k + j` exchange the
-    /// `j`-bit halves of each `2j`-bit field. For `j` of 8 and more that is a lane transpose of
-    /// the two registers at width `j`; below, a masked swap by shifts.
-    #[inline(always)]
-    pub unsafe fn transpose64(a: &mut [u64; 64]) {
-        unsafe {
-            let mut v: [uint64x2_t; 32] = std::array::from_fn(|i| vld1q_u64(a.as_ptr().add(2 * i)));
-            // Registers `i` and `i + d` hold rows `2i, 2i + 1` and `2i + 2d, 2i + 2d + 1`.
-            macro_rules! lanes {
-                ($d:expr, $trn1:ident, $trn2:ident, $as:ident, $back:ident) => {
-                    for i in (0..32).filter(|i| i & $d == 0) {
-                        let (x, y) = ($as(v[i]), $as(v[i + $d]));
-                        (v[i], v[i + $d]) = ($back($trn1(x, y)), $back($trn2(x, y)));
-                    }
-                };
-            }
-            lanes!(16, vtrn1q_u32, vtrn2q_u32, vreinterpretq_u32_u64, vreinterpretq_u64_u32);
-            lanes!(8, vtrn1q_u16, vtrn2q_u16, vreinterpretq_u16_u64, vreinterpretq_u64_u16);
-            lanes!(4, vtrn1q_u8, vtrn2q_u8, vreinterpretq_u8_u64, vreinterpretq_u64_u8);
-            macro_rules! swap {
-                ($d:expr, $j:expr, $mask:expr) => {
-                    let mask = vdupq_n_u64($mask);
-                    for i in (0..32).filter(|i| i & $d == 0) {
-                        let t = vandq_u64(veorq_u64(vshrq_n_u64::<$j>(v[i]), v[i + $d]), mask);
-                        v[i + $d] = veorq_u64(v[i + $d], t);
-                        v[i] = veorq_u64(v[i], vshlq_n_u64::<$j>(t));
-                    }
-                };
-            }
-            swap!(2, 4, 0x0f0f_0f0f_0f0f_0f0f);
-            swap!(1, 2, 0x3333_3333_3333_3333);
-            // Rows `2i` and `2i + 1` share a register: swap its halves to pair them across.
-            let mask = vdupq_n_u64(0x5555_5555_5555_5555);
-            for x in &mut v {
-                let partner = vextq_u64::<1>(*x, *x);
-                let t = vandq_u64(veorq_u64(vshrq_n_u64::<1>(*x), partner), mask);
-                // Lane 0 is row `k`, taking `t << 1`; lane 1 is row `k + 1`, taking `t`.
-                let t = vcombine_u64(vget_low_u64(vshlq_n_u64::<1>(t)), vget_low_u64(t));
-                *x = veorq_u64(*x, t);
-            }
-            for (i, x) in v.iter().enumerate() {
-                vst1q_u64(a.as_mut_ptr().add(2 * i), *x);
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -659,16 +454,14 @@ mod tests {
     use primitives::test_rng::Rng;
 
     #[test]
-    fn transpose_matches_the_portable_one() {
+    fn transpose_swaps_rows_and_columns() {
         let mut rng = Rng::new(8);
         let a: [u64; 64] = std::array::from_fn(|_| rng.next_u64());
-        let (mut fast, mut slow) = (a, a);
-        transpose64(&mut fast);
-        transpose64_portable(&mut slow);
-        assert_eq!(fast, slow);
+        let mut t = a;
+        transpose64(&mut t);
         for r in 0..64 {
             for c in 0..64 {
-                assert_eq!(slow[c] >> r & 1, a[r] >> c & 1);
+                assert_eq!(t[c] >> r & 1, a[r] >> c & 1);
             }
         }
     }
