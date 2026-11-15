@@ -152,8 +152,8 @@ lean_da() {
     LeanDa.leanDa_codeBinding_rpm_bound
 }
 
-# The quantum random-permutation model, on VCVio's quantum oracle programs and the statement's
-# scheme definitions. It imports no other proof project, so `together` leaves it out.
+# The quantum random-permutation model, on VCVio's quantum oracle programs, the statement's scheme
+# definitions and leanXMSS's forgery classification; `together` leaves it out.
 quantum() {
   no_escapes quantum
   cache_get quantum

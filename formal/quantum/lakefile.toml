@@ -13,6 +13,12 @@ pp.unicode.fun = true
 name = "statement"
 path = "../Statement"
 
+# leanXMSS's deterministic forgery classification (`XmssSecurity.Proof.ForgeryCases`), reused by the
+# quantum proof; import that module, never the umbrella `XmssSecurity`.
+[[require]]
+name = "lean-xmss-security"
+path = "../lean_xmss"
+
 # Pinned as the statement pins it, ahead of VCVio's inherited one.
 [[require]]
 name = "CompPoly"
