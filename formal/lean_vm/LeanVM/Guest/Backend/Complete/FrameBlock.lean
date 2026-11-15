@@ -321,5 +321,55 @@ theorem FAt.toBlk (hok : OpOK Γ I Ag cl) {ctx : Ctx} {C : (ℕ → E) → Prop}
 
 end Compose
 
+/-! ## Control placement on and off the path -/
+
+section FB
+
+variable {ctx : Ctx} {I : Inst} {C : (ℕ → E) → Prop} {st : St}
+
+theorem FBAt.ofFAt {α : Type} {m : P α} {R : α → ((ℕ → E) → Prop) → St → Prop}
+    (h : FAt ctx I C st m R) : FBAt ctx I C st m R := fun hc =>
+  wp_mono (h hc) fun _ _ ⟨C', h1, h2, h3, h4, _, h6⟩ => ⟨C', h1, h2, h3, h4, h6⟩
+
+theorem FBAt.pure {α : Type} {a : α} {R : α → ((ℕ → E) → Prop) → St → Prop} (h : R a C st) :
+    FBAt ctx I C st (Pure.pure a) R :=
+  fun hc => wp_pure.mpr ⟨C, hc, Stronger.refl C, le_rfl, LocsLe.refl _, h⟩
+
+theorem FBAt.mono {α : Type} {m : P α} {R R' : α → ((ℕ → E) → Prop) → St → Prop}
+    (h : FBAt ctx I C st m R) (hr : ∀ a C' st', Stronger C' C → st.next ≤ st'.next →
+      LocsLe st.locs st'.locs → R a C' st' → R' a C' st') : FBAt ctx I C st m R' := fun hc =>
+  wp_mono (h hc) fun a st' ⟨C', h1, h2, h3, h4, h6⟩ => ⟨C', h1, h2, h3, h4, hr a C' st' h2 h3 h4 h6⟩
+
+theorem FBAt.bind {α β : Type} {m : P α} {f : α → P β} {R₁ : α → ((ℕ → E) → Prop) → St → Prop}
+    {R₂ : β → ((ℕ → E) → Prop) → St → Prop} (hm : FBAt ctx I C st m R₁)
+    (hf : ∀ a st' C', Stronger C' C → st.next ≤ st'.next → LocsLe st.locs st'.locs →
+      R₁ a C' st' → FBAt ctx I C' st' (f a) R₂) :
+    FBAt ctx I C st (m >>= f) R₂ := by
+  intro hc
+  refine wp_bind.mpr fun a st₁ he b st₂ he' => ?_
+  obtain ⟨C₁, hc₁, hs₁, hn₁, hl₁, hr₁⟩ := hm hc a st₁ he
+  obtain ⟨C₂, hc₂, hs₂, hn₂, hl₂, hr₂⟩ := hf a st₁ C₁ hs₁ hn₁ hl₁ hr₁ hc₁ b st₂ he'
+  exact ⟨C₂, hc₂, hs₁.trans hs₂, le_trans hn₁ hn₂, hl₁.trans hl₂, hr₂⟩
+
+theorem FBAt.get_bind {β : Type} {f : St → P β} {R : β → ((ℕ → E) → Prop) → St → Prop}
+    (h : FBAt ctx I C st (f st) R) : FBAt ctx I C st (get >>= f) R :=
+  fun hc => wp_bind.mpr (wp_get.mpr (h hc))
+
+theorem FBAt.read_bind {β : Type} {f : Ctx → P β} {R : β → ((ℕ → E) → Prop) → St → Prop}
+    (h : FBAt ctx I C st (f ctx) R) : FBAt ctx I C st (read >>= f) R :=
+  fun hc => wp_bind.mpr (wp_read.mpr (h hc))
+
+/-- **Off the path** (a branch or an arm not taken): an action that gives the scope back, moves
+the next free cell up and grows the places keeps the constraint as it is. -/
+theorem FBAt.offPath {α : Type} {m : P α} {Q : α → St → Prop}
+    (h : wpP m ctx st fun a st' => st'.scope = st.scope ∧ st.next ≤ st'.next ∧
+      LocsLe st.locs st'.locs ∧ Q a st') :
+    FBAt ctx I C st m fun a C' st' => C' = C ∧ Q a st' := fun hc =>
+  wp_mono h fun a st' ⟨hs, hn, hl, hq⟩ =>
+    ⟨C, ⟨hc.sat, hc.blind.mono hn, fun Ψ hΨ => by rw [hs]; exact (hc.pools Ψ hΨ).grow hl,
+      by rw [hs]; exact hc.cells.mono hn⟩, Stronger.refl C, hn, hl, rfl, hq⟩
+
+end FB
+
 end
 end LeanVM.Guest.Backend.Complete
