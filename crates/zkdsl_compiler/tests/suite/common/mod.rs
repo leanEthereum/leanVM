@@ -1,5 +1,4 @@
 //! Helpers shared by the integration tests, reached as `crate::common::…`.
-#![allow(dead_code)]
 
 use primitives::field::F128;
 use zkdsl_compiler::parse;
@@ -12,11 +11,6 @@ pub fn compile(ast: &zkdsl_compiler::Ast) -> lean_vm_core::cpu::Program {
 /// [`zkdsl_compiler::f128_literal`] of a prover word.
 pub fn f128_literal(x: F128) -> String {
     zkdsl_compiler::f128_literal(lean_vm_core::cpu::to_scalar(&x))
-}
-
-/// [`zkdsl_compiler::parse_const`], as a prover word.
-pub fn parse_const(s: &str) -> Result<F128, String> {
-    zkdsl_compiler::parse_const(s).map(lean_vm_core::cpu::from_scalar)
 }
 
 /// The program's own instruction mix: executed but not proven.
