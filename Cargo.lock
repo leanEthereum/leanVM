@@ -394,6 +394,7 @@ dependencies = [
  "lean_xmss",
  "rand",
  "stable_lean_vm_core",
+ "stable_primitives",
  "tracing",
  "verifier",
  "zkdsl_compiler",

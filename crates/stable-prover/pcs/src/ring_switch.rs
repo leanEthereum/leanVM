@@ -23,7 +23,7 @@
 //! over the coordinate basis `b_w` of `E`: a weighted claim on the packed words, which the stacked opening proves. A
 //! nonzero error in the slices survives with probability at most `2 / |E|` (`coordinate_weights`).
 
-use primitives::bit_fold::{BLOCK, BitFold};
+use primitives::bit_fold::BitFold;
 use primitives::field::{F64, F128};
 use primitives::multilinear::eq_table_serial;
 
@@ -173,19 +173,8 @@ impl RingFold {
             let lo = index % block_len;
             let len = (block_len - lo).min(out.len() - done);
             let e_hi = self.eq_hi[index / block_len];
-            // A block of products at a time through the bit fold.
-            let mut rows = [[0u64; 2]; BLOCK];
-            let mut folded = [F128::ZERO; BLOCK];
-            for (e_lo, out) in self.eq_lo[lo..lo + len]
-                .chunks(BLOCK)
-                .zip(out[done..done + len].chunks_mut(BLOCK))
-            {
-                for (row, &e_lo) in rows.iter_mut().zip(e_lo) {
-                    *row = (e_lo * e_hi).to_limbs();
-                }
-                let rows = primitives::cast_slice::<[u64; 2], [u8; 16]>(&rows);
-                self.fold.fold_block(&rows[..e_lo.len()], &mut folded);
-                out.iter_mut().zip(&folded).for_each(|(o, f)| *o += *f);
+            for (out, &e_lo) in out[done..done + len].iter_mut().zip(&self.eq_lo[lo..lo + len]) {
+                *out += self.fold.fold_row(&u128::from(e_lo * e_hi).to_le_bytes());
             }
             done += len;
         }

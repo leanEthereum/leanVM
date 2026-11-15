@@ -11,7 +11,7 @@
 
 use crate::field::F128;
 
-/// Rows folded per call.
+/// Rows per [`BitFold::fold_columns`].
 pub const BLOCK: usize = 64;
 
 /// The weights of every bit of a row, prepared for folding.
@@ -39,8 +39,7 @@ impl BitFold {
                 // Each entry adds its lowest set bit's weight to an entry already built.
                 for v in 1..256usize {
                     let low = v.isolate_lowest_one();
-                    let [lo, hi] = w[low.trailing_zeros() as usize].to_limbs();
-                    sums[v] = sums[v ^ low] ^ (u128::from(hi) << 64 | u128::from(lo));
+                    sums[v] = sums[v ^ low] ^ u128::from(w[low.trailing_zeros() as usize]);
                 }
                 sums
             })
@@ -50,22 +49,13 @@ impl BitFold {
 
     /// The fold of one row: one lookup per byte.
     #[inline]
-    fn fold_row(&self, row: &[u8]) -> F128 {
+    pub fn fold_row(&self, row: &[u8]) -> F128 {
+        debug_assert_eq!(row.len(), self.tables.len(), "a row's width");
         let sum = row
             .iter()
             .zip(&self.tables)
             .fold(0, |sum, (&v, sums)| sum ^ sums[usize::from(v)]);
-        F128::new(sum as u64, (sum >> 64) as u64)
-    }
-
-    /// Fold up to 64 rows. Rows past the input fold to zero.
-    #[inline]
-    pub fn fold_block<const CHUNKS: usize>(&self, rows: &[[u8; CHUNKS]], out: &mut [F128; BLOCK]) {
-        assert!(CHUNKS == self.tables.len() && rows.len() <= BLOCK);
-        for (o, row) in out.iter_mut().zip(rows) {
-            *o = self.fold_row(row);
-        }
-        out[rows.len()..].fill(F128::ZERO);
+        F128::from(sum)
     }
 
     /// Fold 64 rows given as byte columns: `cols[j][p]` is byte `j` of row `p`.
@@ -77,7 +67,7 @@ impl BitFold {
                 .iter()
                 .zip(&self.tables)
                 .fold(0, |sum, (col, sums)| sum ^ sums[usize::from(col[p])]);
-            *o = F128::new(sum as u64, (sum >> 64) as u64);
+            *o = F128::from(sum);
         }
     }
 }
@@ -95,7 +85,7 @@ mod tests {
             .sum()
     }
 
-    /// Every row width, the rows given whole and as byte columns, full and short blocks.
+    /// Every row width, the rows given whole and as byte columns.
     #[test]
     fn folds_match_definition() {
         fn check<const CHUNKS: usize>(rng: &mut Rng) {
@@ -109,17 +99,7 @@ mod tests {
             fold.fold_columns(&cols, &mut out);
             for (p, row) in rows.iter().enumerate() {
                 assert_eq!(out[p], direct(&weights, row), "CHUNKS={CHUNKS}, column row {p}");
-            }
-            for len in [BLOCK, 5] {
-                fold.fold_block(&rows[..len], &mut out);
-                for p in 0..len {
-                    assert_eq!(
-                        out[p],
-                        direct(&weights, &rows[p]),
-                        "CHUNKS={CHUNKS}, len={len}, row {p}"
-                    );
-                }
-                assert!(out[len..].iter().all(|o| *o == F128::ZERO));
+                assert_eq!(fold.fold_row(row), out[p], "CHUNKS={CHUNKS}, row {p}");
             }
         }
         let mut rng = Rng::new(0xB17_F01D);

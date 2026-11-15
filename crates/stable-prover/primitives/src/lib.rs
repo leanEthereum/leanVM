@@ -20,23 +20,19 @@ pub mod test_rng;
 pub fn pretty_integer(value: impl ToString) -> String {
     let raw = value.to_string();
     let (sign, digits) = raw.split_at(usize::from(raw.starts_with('-')));
-    let separators = digits.len().saturating_sub(1) / 3;
-    let mut out = String::with_capacity(raw.len() + separators);
-    out.push_str(sign);
-    for (i, byte) in digits.bytes().enumerate() {
+    let mut out = String::from(sign);
+    for (i, c) in digits.chars().enumerate() {
         if i != 0 && (digits.len() - i).is_multiple_of(3) {
             out.push(',');
         }
-        out.push(byte as char);
+        out.push(c);
     }
     out
 }
 
-/// Format a finite floating-point value with a grouped integer part and at
-/// most three meaningful fractional digits. Leading zeroes after the decimal
-/// point do not consume that budget, so tiny nonzero values remain visible.
-/// The fractional part is rounded and trailing zeroes are omitted; non-finite
-/// values retain Rust's standard spelling.
+/// A float with a grouped integer part and at most three meaningful fractional digits, leading zeroes after the
+/// point not counted, so tiny nonzero values stay visible; rounded, trailing zeroes trimmed, non-finite values in
+/// Rust's spelling.
 ///
 /// ```
 /// use stable_primitives::pretty_f64;
@@ -48,35 +44,25 @@ pub fn pretty_f64(value: f64) -> String {
     if !value.is_finite() {
         return value.to_string();
     }
-
     let magnitude = value.abs();
     let precision = if magnitude == 0.0 || magnitude >= 1.0 {
         3
     } else {
-        // Keep the first three nonzero-place digits: 0.001234 needs five
-        // decimal places, while 0.000000000012345 needs thirteen.
         ((-magnitude.log10().floor()) as usize).saturating_add(2)
     };
-    let mut raw = format!("{value:.precision$}");
-    while raw.contains('.') && raw.ends_with('0') {
-        raw.pop();
-    }
-    if raw.ends_with('.') {
-        raw.pop();
-    }
+    let raw = format!("{value:.precision$}");
+    let raw = if raw.contains('.') {
+        raw.trim_end_matches('0').trim_end_matches('.')
+    } else {
+        &raw
+    };
     if raw == "-0" {
-        return "0".to_string();
+        return "0".into();
     }
-
-    let (integer, fraction) = raw
-        .split_once('.')
-        .map_or((raw.as_str(), None), |(integer, fraction)| (integer, Some(fraction)));
-    let mut out = pretty_integer(integer);
-    if let Some(fraction) = fraction {
-        out.push('.');
-        out.push_str(fraction);
+    match raw.split_once('.') {
+        Some((integer, fraction)) => format!("{}.{fraction}", pretty_integer(integer)),
+        None => pretty_integer(raw),
     }
-    out
 }
 
 /// `log2` of a power of two (panics otherwise).

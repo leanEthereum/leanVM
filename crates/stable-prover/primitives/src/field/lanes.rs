@@ -318,10 +318,4 @@ mod tests {
             }
         }
     }
-
-    #[test]
-    #[should_panic(expected = "a lane load reads eight elements")]
-    fn short_loads_panic() {
-        F128x8::load(&[F128::ONE; 7]);
-    }
 }

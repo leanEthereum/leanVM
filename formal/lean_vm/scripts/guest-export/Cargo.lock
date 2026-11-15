@@ -304,5 +304,6 @@ version = "0.1.0"
 dependencies = [
  "isa",
  "keccak256",
+ "stable_primitives",
  "verifier",
 ]

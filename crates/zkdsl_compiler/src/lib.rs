@@ -31,6 +31,7 @@ use std::sync::Arc;
 
 use field::{Base, Consts, F64, F128, as_base, g_pow};
 use isa::{BitsDest, CompiledProgram, DerefMode, Op, OutCells, RHint};
+use primitives::pretty_integer;
 
 mod ast;
 pub mod field;
@@ -281,19 +282,6 @@ pub fn disassemble(prog: &[Op]) -> String {
             }
         };
         writeln!(out, "{:>6}  {line}", pretty_integer(pc)).unwrap();
-    }
-    out
-}
-
-/// An integer with comma-separated groups of three digits.
-fn pretty_integer(n: impl ToString) -> String {
-    let digits = n.to_string();
-    let mut out = String::with_capacity(digits.len() + digits.len() / 3);
-    for (i, c) in digits.chars().enumerate() {
-        if i != 0 && (digits.len() - i).is_multiple_of(3) {
-            out.push(',');
-        }
-        out.push(c);
     }
     out
 }

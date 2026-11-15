@@ -1,12 +1,8 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
-//! `K = F64 = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and
-//! `E = F128 = K[y]/(y^2 + x*y + 1)`. Addresses, pc/fp, counters, and physical
-//! committed columns are K-valued. A machine word is `c0 + c1*y ∈ E`
-//! with `c0,c1 ∈ K`; challenges, sumcheck/GKR values, and transcript scalars
-//! are E-valued.
+//! [`F64`] is `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and [`F128`] is `E = K[y]/(y^2 + x*y + 1)`. Addresses,
+//! pc/fp, counters, and physical committed columns are K-valued. A machine word is `c0 + c1*y ∈ E` with
+//! `c0,c1 ∈ K`; challenges, sumcheck/GKR values, and transcript scalars are E-valued.
 //!
-//! - [`F64`]: GF(2^64), polynomial x^64 + x^4 + x^3 + x + 1
-//! - [`F128`]: `K[y]/(y^2 + x*y + 1)`
 //! - [`F128Unreduced`]: its deferred-reduction accumulator, for full and mixed products alike
 //! - [`lanes`]: eight elements at a time, the one SIMD layer
 
@@ -18,11 +14,6 @@ pub use gf2_64::F64;
 use gf2_64::R64;
 pub use gf2_64x2::{F128, F128Unreduced};
 pub use lanes::{Acc8, F64x8, F128x8, clmul8_low};
-
-// ---------------------------------------------------------------------------
-// leanVM g-power helpers: domain separators / opcodes as x^k, and the g-power
-// index encoding (§sec:vm, §sec:e2e-bc).
-// ---------------------------------------------------------------------------
 
 /// Multiply by `x = g` in `K`: a shift, and a fold of bit 64 by `x^64 = x^4 + x^3 + x + 1`.
 /// `const` so table constants (`g^k` separators, opcodes) evaluate at compile time.
@@ -56,20 +47,10 @@ pub fn powers(x: F128, n: usize) -> Vec<F128> {
     out
 }
 
-/// `[g^0, g^1, …, g^{n-1}]`, built in parallel: each chunk seeds with one
-/// [`g_pow`] (`O(log)`) and fills by `mul_by_g`, breaking the serial prefix
-/// chain across cores.
+/// `[g^0, g^1, …, g^{n-1}]`, built in parallel by [`g_pow32_by_lookup`].
 pub fn g_powers(n: usize) -> Vec<F64> {
-    const CHUNK: usize = 1 << 12;
-    let mut v = parallel::filled(n, F64::ZERO);
-    parallel::chunks_mut(&mut v, CHUNK, |ci, chunk| {
-        let mut acc = g_pow(ci * CHUNK);
-        for slot in chunk.iter_mut() {
-            *slot = acc;
-            acc = mul_by_g(acc);
-        }
-    });
-    v
+    assert!(n <= 1 << 32, "a g-power index fits in 32 bits");
+    parallel::map_collect(n, |i| g_pow32_by_lookup(i as u32))
 }
 
 /// `g^i = x^i` in the monomial basis of `K` by square-and-multiply (`O(log i)`):
