@@ -7,10 +7,9 @@ Entry `i` of the back end's input (`guestTraced`, function `i + 1` of `Data.func
 `B2.locsOkAt i (placedLocs i)` (`B2/Locs.lean`, `Guest/Piece/Layout.lean`); the kernel decides it
 for a run of entries in one declaration of at most `MAX_DECL` instructions (the placement is run
 again, so the cost follows the instructions), `MAX_MODULE` instructions a module. The entries `BIG`
-(`__loop2`: its placement is past what one module may take, and not yet cut) are not written: their
-checks are the hypothesis `BigLocs`. The entries `CUT`, which the kernel places in parts, are
+(none now) would not be written, their checks the hypothesis `BigLocs`. The entries `CUT`, which the kernel places in parts, are
 checked on their cut walk's last state (`placedLocs_j`, `Guest/Compiled.lean`), each alone in a
-module. `LocsAll.lean` composes the runs: `locsOk_all (hb : BigLocs)`.
+module. `LocsAll.lean` composes the runs: `locsOk_all`.
 
 The instruction counts are read from `Statement/Data/Bytecode.lean`; the entries `SPLIT` are checked
 by runs of top-level statements, their sizes from `scripts/b2-locs.lean` (`lake env lean --run`,
@@ -18,6 +17,9 @@ needs `LeanVM.Guest.Backend.ExpandTrace` built). `python3 -I scripts/b2-locs`,
 from any directory; `--check` fails when a file differs.
 """
 import argparse
+import importlib.machinery
+import importlib.util
+import os
 import re
 import subprocess
 import sys
@@ -29,15 +31,21 @@ B2 = ROOT / "LeanVM" / "Guest" / "Backend" / "Guest" / "B2"
 MOD = "LeanVM.Guest.Backend.Guest.B2"
 MAX_DECL = 2000
 MAX_MODULE = 16000
-BIG = [36]
+BIG = []
 # Entries the kernel places in parts (`Guest/Piece/C{j}*`): their check reads the last state of
 # the cut walk (`placedLocs_{j}`, `Guest/Compiled.lean`), alone in a module.
-CUT = [11, 19, 20]
+CUT = [11, 19, 20, 36]
 # Entries of `CUT` whose check is also too large for one declaration: checked as its parameters
 # (`locsHeadAt`) and runs of top-level statements (`locsSegAt`) of at most `MAX_SEG` instructions,
 # counted in proportion to the values each statement names (`scripts/b2-locs.lean`).
-SPLIT = [19]
+SPLIT = [19, 36]
 MAX_SEG = 6000
+# Entries of `SPLIT` whose certificate cells are written out as a trie (`Eval/C{j}.lean`, checked
+# once against `certOf`), since building the trie again in every part costs more than a module
+# may take.
+LIT = [36]
+# A written-out trie is cut into definitions below this depth.
+LIT_DEPTH = 7
 
 
 def sizes():
@@ -86,6 +94,71 @@ def weights():
     return out
 
 
+def cert_cells():
+    """The certificates' cells by function name, as `scripts/b2-residual` reads them."""
+    path = str(ROOT / "scripts" / "b2-residual")
+    loader = importlib.machinery.SourceFileLoader("b2_residual", path)
+    spec = importlib.util.spec_from_loader("b2_residual", loader)
+    mod = importlib.util.module_from_spec(spec)
+    loader.exec_module(mod)
+    cwd = os.getcwd()
+    os.chdir(ROOT)
+    try:
+        return mod.cert_cells()
+    finally:
+        os.chdir(cwd)
+
+
+def trie_of(cells):
+    """The trie of `Backend.Trie.set` with key `i` holding `cells[i]`: `[value, left, right]`."""
+    root = None
+    for i, c in enumerate(cells):
+        if root is None:
+            root = [None, None, None]
+        node, n = root, i
+        while n != 0:
+            side = 1 if n % 2 == 1 else 2
+            n = (n - 1) // 2 if side == 1 else n // 2 - 1
+            if node[side] is None:
+                node[side] = [None, None, None]
+            node = node[side]
+        node[0] = c
+    return root
+
+
+def cells_file(j, name, cells):
+    """`Eval/C{j}.lean`: entry `j`'s certificate cells as a trie, checked once."""
+    defs = []
+
+    def term(node, depth, path):
+        if node is None:
+            return ".nil"
+        if depth == LIT_DEPTH:
+            nm = f"cellsT_{j}_{path}"
+            defs.append(f"/-- Part of `cellsT_{j}`. -/\ndef {nm} : Trie ℕ :=\n  {term(node, -10 ** 9, path)}\n")
+            return nm
+        v = "none" if node[0] is None else f"(some {node[0]})"
+        return f"(.node {v} {term(node[1], depth + 1, path + 'l')} {term(node[2], depth + 1, path + 'r')})"
+
+    top = term(trie_of(cells), 0, "")
+    body = HEAD.format(mod=f"{MOD}.Eval.C{j}",
+                       what=f"The certificate cells of entry {j} (`{name}`) as a trie, checked once.")
+    body += f"public import {MOD}.Locs\n\nset_option maxRecDepth 100000\n\nnamespace LeanVM.Guest.Backend.B2\n\n@[expose] public section\n\n"
+    body += "\n".join(defs)
+    body += (f"\n/-- The certificate cells of entry {j} (`{name}`), keyed by position. -/\n"
+             f"def cellsT_{j} : Trie ℕ :=\n  {top}\n"
+             "\nend\nend LeanVM.Guest.Backend.B2\n")
+    ok = HEAD.format(mod=f"{MOD}.Eval.C{j}Ok",
+                     what=f"The trie of entry {j}'s certificate cells holds them.")
+    ok += (f"public import {MOD}.Eval.C{j}\n\nset_option maxRecDepth 100000\n\n"
+           "namespace LeanVM.Guest.Backend.B2\n\n@[expose] public section\n\n"
+           f"/-- **The trie holds the certificate's cells** of entry {j} (`{name}`). -/\n"
+           f"theorem cells_{j}_ok : cellsFrom cellsT_{j} (certOf {j + 1}).locs 0 = true := by\n  decide +kernel\n\n"
+           f"theorem cells_{j}_len : (certOf {j + 1}).locs.length = {len(cells)} := by\n  decide +kernel\n"
+           "\nend\nend LeanVM.Guest.Backend.B2\n")
+    return body, ok
+
+
 def segments(n, ws):
     """Runs `(a, m)` of statements, each at most `MAX_SEG` instructions in proportion to `ws`."""
     budget = MAX_SEG * sum(ws) / n
@@ -99,21 +172,25 @@ def segments(n, ws):
     return out
 
 
-def split_file(k, j, name, n, segs, last, total):
+def split_file(k, j, name, n, segs, last, total, prev):
     body = HEAD.format(mod=f"{MOD}.Eval.L{k:02d}",
                        what=f"The kernel's check that `{name}`'s places agree with its certificate's cells, by parts.")
     body += f"public import {MOD}.Locs\npublic import LeanVM.Guest.Backend.Guest.Compiled\n"
-    if k > 0 and segs and segs[0][0] > 0:
-        body += f"public import {MOD}.Eval.L{k - 1:02d}\n"
+    if j in LIT:
+        body += f"public import {MOD}.Eval.C{j}Ok\n"
+    if last:
+        body += "".join(f"public import {MOD}.Eval.L{p:02d}\n" for p in prev)
     body += "\nset_option Elab.async false\nset_option maxRecDepth 100000\n\nnamespace LeanVM.Guest.Backend.B2\n\nopen GuestPiece\n\n@[expose] public section\n"
     if segs and segs[0][0] == 0:
+        proof = (f" :=\n  locsHeadAt_of_L cells_{j}_ok cells_{j}_len (by rw [placedLocs_{j}]; decide +kernel)\n"
+                 if j in LIT else f" := by\n  rw [placedLocs_{j}]\n  decide +kernel\n")
         body += (f"\n/-- The parameters of entry {j} (`{name}`) agree with the cells. -/\n"
-                 f"theorem locsHead_{j} : locsHeadAt {j} (placedLocs {j}) = true := by\n"
-                 f"  rw [placedLocs_{j}]\n  decide +kernel\n")
+                 f"theorem locsHead_{j} : locsHeadAt {j} (placedLocs {j}) = true{proof}")
     for a, m in segs:
+        proof = (f" :=\n  locsSegAt_of_L cells_{j}_ok cells_{j}_len (by rw [placedLocs_{j}]; decide +kernel)\n"
+                 if j in LIT else f" := by\n  rw [placedLocs_{j}]\n  decide +kernel\n")
         body += (f"\n/-- Statements {a} to {a + m - 1} of entry {j} (`{name}`) agree with the cells. -/\n"
-                 f"theorem locsSeg_{j}_{a}_{m} : locsSegAt {j} {a} {m} (placedLocs {j}) = true := by\n"
-                 f"  rw [placedLocs_{j}]\n  decide +kernel\n")
+                 f"theorem locsSeg_{j}_{a}_{m} : locsSegAt {j} {a} {m} (placedLocs {j}) = true{proof}")
     if last:
         h = f"locsSeg_{j}_{total[-1][0]}_{total[-1][1]}"
         rest = total[-1][1]
@@ -183,13 +260,14 @@ def eval_file(k, ms, fs):
 def all_file(nmods, mods, fs):
     n = len(fs)
     body = HEAD.format(mod=f"{MOD}.LocsAll",
-                       what="Every entry's places agree with its certificate's cells, but the `BIG` entries'.")
+                       what="Every entry's places agree with its certificate's cells" + (", but the `BIG` entries'." if BIG else "."))
     body += "".join(f"public import {MOD}.Eval.L{k:02d}\n" for k in range(nmods))
     body += "\nnamespace LeanVM.Guest.Backend.B2\n\nopen GuestPiece\n\n@[expose] public section\n\n"
-    big = " ∧ ".join(f"locsOkAt {j} (placedLocs {j}) = true" for j in BIG)
-    names = ", ".join(f"`{fs[j][0]}`" for j in BIG)
-    body += (f"/-- **The checks of the entries whose placement one module cannot run** ({names}). -/\n"
-             f"def BigLocs : Prop := {big}\n\n")
+    if BIG:
+        big = " ∧ ".join(f"locsOkAt {j} (placedLocs {j}) = true" for j in BIG)
+        names = ", ".join(f"`{fs[j][0]}`" for j in BIG)
+        body += (f"/-- **The checks of the entries whose placement one module cannot run** ({names}). -/\n"
+                 f"def BigLocs : Prop := {big}\n\n")
     parts = []
     for ms in mods:
         parts += [(a, b, f"locsOk_{a}_{b}") for a, b in ms]
@@ -211,8 +289,9 @@ def all_file(nmods, mods, fs):
     for a, b, t in reversed(parts[:-1]):
         lines.append(f"  have h := range_step {t} (rfl : {a} + {b - a} = {b}) h (rfl : {b - a} + {tot} = {b - a + tot})")
         tot += b - a
-    body += (f"/-- **Every entry's places agree with its certificate's cells**, given `BigLocs`. -/\n"
-             f"theorem locsOk_all (hb : BigLocs) : (List.range' 0 {n}).all (fun i => locsOkAt i (placedLocs i)) = true := by\n"
+    given, hyp = (", given `BigLocs`", " (hb : BigLocs)") if BIG else ("", "")
+    body += (f"/-- **Every entry's places agree with its certificate's cells**{given}. -/\n"
+             f"theorem locsOk_all{hyp} : (List.range' 0 {n}).all (fun i => locsOkAt i (placedLocs i)) = true := by\n"
              + "\n".join(lines) + "\n  exact h\n\nend\nend LeanVM.Guest.Backend.B2\n")
     return body
 
@@ -239,16 +318,24 @@ def main():
                 cur.append((a, m))
                 acc += w
             groups.append(cur)
+            first = k
             for g, part in enumerate(groups):
                 files[B2 / "Eval" / f"L{k:02d}.lean"] = split_file(k, j, fs[j][0], fs[j][1], part,
-                                                                   g == len(groups) - 1, segs)
+                                                                   g == len(groups) - 1, segs,
+                                                                   range(first, k))
                 k += 1
         else:
             files[B2 / "Eval" / f"L{k:02d}.lean"] = eval_file(k, ms, fs)
             k += 1
     nmods = k
     files[B2 / "LocsAll.lean"] = all_file(nmods, mods, fs)
-    stale = sorted(p for p in (B2 / "Eval").glob("L[0-9]*.lean") if p not in files)
+    if LIT:
+        cc = cert_cells()
+        for j in LIT:
+            files[B2 / "Eval" / f"C{j}.lean"], files[B2 / "Eval" / f"C{j}Ok.lean"] = \
+                cells_file(j, fs[j][0], cc[fs[j][0]])
+    stale = sorted(p for p in list((B2 / "Eval").glob("L[0-9]*.lean")) + list((B2 / "Eval").glob("C[0-9]*.lean"))
+                   if p not in files)
     if args.check:
         bad = [str(p) for p, t in files.items() if not p.exists() or p.read_text() != t] + [str(p) for p in stale]
         if bad:

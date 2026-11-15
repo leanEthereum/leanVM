@@ -185,6 +185,80 @@ theorem locsOk_of_segs {i L : ℕ} {locs : VMap Loc} (hh : locsHeadAt i locs = t
   rw [locsSegAt_eq] at hs
   exact Agree.fnOk_of_segs _ hh hs hL
 
+/-! ## The cells as a written-out trie -/
+
+/-- `agreeWith`, its cells read from the trie `cl`, below `len`. -/
+noncomputable def agreeL (locs : VMap Loc) (cl : Trie ℕ) (len j : ℕ) : Agree :=
+  ⟨fun v => locs[v]?, fun n => bif Nat.blt n len then (cl.get n).getD 0 else 0, resOf (coreOf j).name⟩
+
+/-- The trie `t` holds the elements of `l` at their positions from `i`. -/
+noncomputable def cellsFrom (t : Trie ℕ) (l : List ℕ) : ℕ → Bool :=
+  List.rec (motive := fun _ => ℕ → Bool) (fun _ => true)
+    (fun c _ go i => Option.casesOn (motive := fun _ => Bool) (t.get i) false fun d =>
+      Nat.beq d c && Nat.rec (motive := fun _ => Bool) true (fun m _ => go (m + 1)) (i + 1)) l
+
+theorem cellsFrom_spec (t : Trie ℕ) : ∀ (l : List ℕ) (i : ℕ), cellsFrom t l i = true →
+    ∀ k (hk : k < l.length), t.get (i + k) = some l[k]
+  | [], _, _, k, hk => absurd hk (Nat.not_lt_zero _)
+  | c :: l, i, h, k, hk => by
+      have h' : (Option.casesOn (motive := fun _ => Bool) (t.get i) false fun d =>
+          Nat.beq d c && cellsFrom t l (i + 1)) = true := h
+      cases hg : t.get i with
+      | none => rw [hg] at h'; cases h'
+      | some d =>
+          rw [hg] at h'
+          simp only [Bool.and_eq_true, Nat.beq_eq] at h'
+          obtain ⟨rfl, h2⟩ := h'
+          cases k with
+          | zero => simpa using hg
+          | succ k =>
+              have := cellsFrom_spec t l (i + 1) h2 k (by simpa using hk)
+              rw [show i + (k + 1) = i + 1 + k by omega, this]
+              rfl
+
+theorem agreeL_eq {locs : VMap Loc} {t : Trie ℕ} {len j : ℕ}
+    (hc : cellsFrom t (certOf j).locs 0 = true) (hl : (certOf j).locs.length = len) :
+    agreeL locs t len j = agreeWith locs j := by
+  unfold agreeL agreeWith
+  congr 1
+  funext n
+  cases hb : Nat.blt n len with
+  | true =>
+    have h := Nat.blt_eq.mp hb
+    simp only [Bool.cond_true]
+    have := cellsFrom_spec t _ 0 hc n (by omega)
+    rw [Nat.zero_add] at this
+    rw [this, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
+  | false =>
+    have h : ¬ n < len := fun h' => by rw [Nat.blt_eq.mpr h'] at hb; cases hb
+    simp only [Bool.cond_false]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]
+    rfl
+
+/-- `locsHeadAt`, the cells from the trie `t` below `len`. -/
+noncomputable def locsHeadL (i : ℕ) (locs : VMap Loc) (t : Trie ℕ) (len : ℕ) : Bool :=
+  withMap locs fun m => (coreOf (i + 1)).params.all (agreeL m t len (i + 1)).eqv
+
+/-- `locsSegAt`, the cells from the trie `t` below `len`. -/
+noncomputable def locsSegL (i a n : ℕ) (locs : VMap Loc) (t : Trie ℕ) (len : ℕ) : Bool :=
+  withMap locs fun m => (agreeL m t len (i + 1)).segOk (coreOf (i + 1)).body a n
+
+theorem locsHeadAt_of_L {i len : ℕ} {locs : VMap Loc} {t : Trie ℕ}
+    (hc : cellsFrom t (certOf (i + 1)).locs 0 = true) (hl : (certOf (i + 1)).locs.length = len)
+    (h : locsHeadL i locs t len = true) : locsHeadAt i locs = true := by
+  unfold locsHeadL at h
+  rw [withMap_eq, agreeL_eq hc hl] at h
+  rw [locsHeadAt_eq]
+  exact h
+
+theorem locsSegAt_of_L {i a n len : ℕ} {locs : VMap Loc} {t : Trie ℕ}
+    (hc : cellsFrom t (certOf (i + 1)).locs 0 = true) (hl : (certOf (i + 1)).locs.length = len)
+    (h : locsSegL i a n locs t len = true) : locsSegAt i a n locs = true := by
+  unfold locsSegL at h
+  rw [withMap_eq, agreeL_eq hc hl] at h
+  rw [locsSegAt_eq]
+  exact h
+
 theorem range_step {f : ℕ → Bool} {a n b m k : ℕ} (h1 : (List.range' a n).all f = true)
     (hb : a + n = b) (h2 : (List.range' b m).all f = true) (hk : n + m = k) :
     (List.range' a k).all f = true := by

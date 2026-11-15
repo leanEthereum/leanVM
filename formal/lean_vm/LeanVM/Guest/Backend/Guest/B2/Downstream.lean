@@ -18,8 +18,8 @@ public import LeanVM.Guest.Backend.Guest.B2.Final
 Here the same theorems take `b2SoundL_backend h hagree`, so the statement `Bridge.lean` proves is the
 one the assembly consumes. Neither theorem needs the walks' cut obligations (`WalkKnown`): the back
 end's obligations (`guest_obligations`) cover them. `guest_knowledge_compiled` and
-`decode_binds_compiled` take `b2SoundL_compiled`: their hypotheses are `BigPieces` and `BigLocs`
-(and `verify_sub`'s statement).
+`decode_binds_compiled` take `b2SoundL_compiled`: their one hypothesis is `verify_sub`'s
+statement.
 -/
 
 namespace LeanVM.Guest.Backend.B2
@@ -51,23 +51,21 @@ theorem decode_binds_backend (h : GuestCompiles fns slots) (hagree : LocsAgree)
   End.decode_binds_V (b2SoundL_backend h hagree) hv hvt hs₀ hpub
 
 /-- **Soundness of the deployed guest, its witness named**, from the back end's compilation of the
-guest (`BigPieces`, `BigLocs`) and `verify_sub`'s statement. -/
-theorem guest_knowledge_compiled (hbig : BigPieces) (hlocs : BigLocs)
-    (hv : B1.Main.SubSoundW bytecode piOf) :
+guest and `verify_sub`'s statement. -/
+theorem guest_knowledge_compiled (hv : B1.Main.SubSoundW bytecode piOf) :
     MemoryGuestKnowledge guestProgram (End.decodeV piOf) :=
-  End.guest_knowledge_V (b2SoundL_compiled hbig hlocs) hv
+  End.guest_knowledge_V b2SoundL_compiled hv
 
 /-- **What a consumer learns**, from the back end's compilation of the guest and `verify_sub`'s
 statement. -/
-theorem decode_binds_compiled (hbig : BigPieces) (hlocs : BigLocs)
-    (hv : B1.Main.SubSoundW bytecode piOf)
+theorem decode_binds_compiled (hv : B1.Main.SubSoundW bytecode piOf)
     {input : PublicInput} {t : Execution guestProgram} (hvt : ValidExecution guestProgram input t)
     {iv : Digest} {s₀ : NodeStatement} (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode)
     (hpub : publicInputDigest input = statementDigest iv s₀) :
     ((End.decodeV piOf t.memory).seed = iv ∧ (End.decodeV piOf t.memory).statement = s₀) ∨
       HasCollision (collisionCandidates (End.decodeV piOf t.memory).seed
         (End.decodeV piOf t.memory).statement iv s₀) :=
-  End.decode_binds_V (b2SoundL_compiled hbig hlocs) hv hvt hs₀ hpub
+  End.decode_binds_V b2SoundL_compiled hv hvt hs₀ hpub
 
 end
 end LeanVM.Guest.Backend.B2
