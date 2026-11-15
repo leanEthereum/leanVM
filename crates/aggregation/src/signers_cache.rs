@@ -8,11 +8,14 @@ use std::collections::BTreeMap;
 use std::collections::hash_map::DefaultHasher;
 use std::fs;
 use std::hash::{Hash, Hasher};
+use std::io::Write;
 use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
+use isa::{pretty_f64, pretty_integer};
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_xmss::internals::*;
 use lean_xmss::*;
@@ -118,14 +121,13 @@ pub(crate) fn get_signers_for(n: usize, message_id: u32) -> Vec<LeanXmssSigner> 
         |range| {
             // The keys first, one task each: a worker claims a run of signers, whose keys it would otherwise generate
             // one after another. `keys[j]` is the key of signer `range.start + j`.
-            let keys = parallel::map_collect(NUM_KEYS.min(range.len()), |j| {
+            let keys = progress("leanXMSS keys", 0..NUM_KEYS.min(range.len()), |j| {
                 let (sk, pk) = key_gen(&key_seed((range.start + j) % NUM_KEYS));
                 sk.prepare(BOTTOM_TREE << LAYER_HEIGHT);
                 (sk, pk)
             });
-            parallel::map_collect(range.len(), |j| {
-                let (sk, pk) = &keys[j % NUM_KEYS];
-                let index = range.start + j;
+            progress("leanXMSS signatures", range.clone(), |index| {
+                let (sk, pk) = &keys[(index - range.start) % NUM_KEYS];
                 let message = signer_message(index, message_id);
                 (*pk, message, sign(sk, &message, leaf_index_of(index, message_id)))
             })
@@ -171,8 +173,30 @@ pub fn get_lean_sphincs_signers(n: usize) -> Vec<LeanSphincsSigner> {
             lean_sphincs::verify(&pk, &message, &sig).then_some((pk, message, sig))
         },
         |(pk, _, sig)| [&pk.to_bytes()[..], &sig.to_bytes()].concat(),
-        |range| parallel::map_collect(range.len(), |j| lean_sphincs_signer(range.start + j)),
+        |range| progress("leanSPHINCS signatures", range, lean_sphincs_signer),
     )
+}
+
+/// `f` over `range` on the pool, with a progress line naming `what`.
+fn progress<T: Send>(what: &str, range: Range<usize>, f: impl Fn(usize) -> T + Sync) -> Vec<T> {
+    let (total, started, done) = (range.len(), Instant::now(), AtomicUsize::new(0));
+    let generated = parallel::map_collect(total, |k| {
+        let generated = f(range.start + k);
+        let done = done.fetch_add(1, Ordering::Relaxed) + 1;
+        print!(
+            "\r  generating {what}: {}/{}",
+            pretty_integer(done),
+            pretty_integer(total)
+        );
+        let _ = std::io::stdout().flush();
+        generated
+    });
+    println!(
+        "\r  generated {} {what} in {} s                              ",
+        pretty_integer(total),
+        pretty_f64(started.elapsed().as_secs_f64())
+    );
+    generated
 }
 
 fn cache_path(scheme: &str, fingerprint: impl Hash) -> PathBuf {
@@ -215,10 +239,7 @@ fn cached<S: Clone>(
             *pool = disk;
         }
         if pool.len() < n {
-            let started = Instant::now();
-            println!("  generating {} signers into {}", n - pool.len(), path.display());
             pool.extend(generate(pool.len()..n));
-            println!("  generated in {:.1} s", started.elapsed().as_secs_f64());
             let bytes: Vec<u8> = pool.iter().flat_map(save).collect();
             if let Err(error) = fs::create_dir_all(path.parent().unwrap()).and_then(|()| fs::write(&path, bytes)) {
                 eprintln!("warning: could not write signers cache {}: {error}", path.display());
