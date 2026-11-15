@@ -609,6 +609,9 @@ theorem winv_tables {C : (ℕ → E) → Prop} {st : St} {s : SSt} (h : WInv ctx
     (t : Tables) : WInv ctx I C { st with tables := t } s :=
   ⟨h.cok, h.rest, h.vw, h.two, h.abi, h.fuel, h.ret, h.nodup, h.fresh, h.chain, h.pnt, h.lazy⟩
 
+theorem winv_eq {C : (ℕ → E) → Prop} {st st' : St} {s : SSt} (h : WInv ctx I C st s)
+    (he : st = st') : WInv ctx I C st' s := he ▸ h
+
 theorem winv_nochain {C : (ℕ → E) → Prop} {st : St} {s : SSt} (h : WInv ctx I C st s) :
     WInv ctx I C { st with chainIn := none } s :=
   ⟨h.cok, h.rest, h.vw, h.two, h.abi, h.fuel, h.ret, h.nodup, h.fresh, rfl, h.pnt, h.lazy⟩
@@ -1011,6 +1014,400 @@ theorem stage_last (hmono : PlaceMono ctx) (hnew : PlaceNew ctx)
       · exact stagesW_join hjb hj hbj hxj hne hxS hw.symm (hBw.mono hsC')
           (fun _ h => by cases h; exact hBk)
           (hjn_of hFt₈ hA hset hle blk hbj C' fun Ψ h => hs₈ Ψ (hsC' Ψ h))
+      · rw [ho]
+        refine ((hgrow C' st' hsC' hn' hl' (hnw hSz) hrr hRw).append hRk).anti fun v hv => ?_
+        rcases List.mem_append.mp (pathVals_fall hw1' hns₂ v hv) with h | h
+        · exact List.mem_append_left _ (by simpa using pathVals_match hj hsel v h)
+        · exact List.mem_append_right _ h
+
+theorem stage_next (hmono : PlaceMono ctx) (hnew : PlaceNew ctx)
+    (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) (hAg : AgOwn I Ag)
+    {x x' : V} {arms arms' : List (List Stmt)} {rest' tl : List Stmt} (hu : x ∉ I.tmps)
+    (hin : ∀ j (hj : j < arms.length), InBlockW Γ Ag cl ctx I arms[j])
+    (hafa : ∀ j (hj : j < arms.length), ∀ v ∈ pathVals I.σ arms[j] (walk I.σ arms[j]), ∀ run,
+      Atom.frameAddr v run ∉ armsAtoms (arms.drop (j + 1)))
+    (hfa : FaAfter I.σ (.match_ x arms) (.match_ x' arms' :: rest'))
+    {sc' sc'' : SSt} {p₀ : ℕ} {O : List PStmt} {h : List LHint} {join lx entry one sfp : ℕ}
+    (hrec : ∀ (C : (ℕ → E) → Prop) (st : St) (i₀ : ℕ) (o : Out) (firsts : List ℕ)
+      (stages : List (List (List PStmt))) (first : ℕ) (Q : Prop),
+      walk I.σ (.match_ x' arms' :: rest') = o → o ≠ .stuck → (∀ e ∈ outEs o, e ∈ I.es) →
+      (∀ k < (calls (outEs o)).length, cl[i₀ + k]? = (calls (outEs o))[k]?) →
+      (Q → WInv ctx I C { st with chainIn := none } sc') → st.chainIn = some (first, join) →
+      (2 ≤ join ∧ join < st.next ∧ ∀ Ψ, C Ψ → Ψ join = joinW I (p₀ + blockSize O)) →
+      st.out.toList = O ++ [.chain h join lx entry one sfp firsts stages] →
+      firsts.length = stages.length →
+      FBAt ctx I C st (placeBlock (.match_ x' arms' :: rest')) fun _ C' st' =>
+        OpenOut (Γ := Γ) (Ag := Ag) (cl := cl) (ctx := ctx) (I := I) Q O h join lx entry one sfp
+          firsts stages first x' sc'' (.match_ x' arms' :: rest') tl o i₀ p₀ C' st')
+    {Q : Prop}
+    {C C₂ : (ℕ → E) → Prop} {st st₂ : St} {sc s₀ s₁ : SSt} {i₀ : ℕ} {o : Out}
+    {first : ℕ} {firsts : List ℕ}
+    {stages : List (List (List PStmt))}
+    (hinv : WInv ctx I C { st with chainIn := none } sc)
+    (hjw : 2 ≤ join ∧ join < st.next ∧ ∀ Ψ, C Ψ → Ψ join = joinW I (p₀ + blockSize O))
+    (hout : st.out.toList = O ++ [.chain h join lx entry one sfp firsts stages])
+    (hlen : firsts.length = stages.length)
+    (h₀ : flushEdge ctx.retCells sc = .ok s₀)
+    (hx : s₀.live.contains x = true) (hsa : scopeArms ctx.retCells arms s₀ s₀.retDone = .ok s₁)
+    (hem : expectS isEmit "a match" s₁ = .ok sc')
+    (hsc : scopeBlock ctx.retCells (.match_ x' arms' :: rest') sc' = .ok sc'')
+    (hw : walk I.σ (.match_ x arms :: (.match_ x' arms' :: rest')) = o) (hns : o ≠ .stuck)
+    (hes : ∀ e ∈ outEs o, e ∈ I.es)
+    (hcl : ∀ k < (calls (outEs o)).length, cl[i₀ + k]? = (calls (outEs o))[k]?)
+    (hs₂ : Stronger C₂ C) (hop₂ : OpR st st₂)
+    (hn₂ : st.next ≤ st₂.next)
+    (hpk₂ : PK st st₂)
+    (hr₂ : st₂.rest = s₀.rest) (hf₂ : st₂.rest.length ≤ ctx.fuel)
+    (hvw₂ : VW I C₂ st₂ (fun v => s₀.live.contains v = true))
+    (hrb₂ : s₀.retDone = false → RetBlind ctx C₂)
+    (hloc₂ : ∀ v, st₂.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf (flushSeg st.rest))
+    (hch₂ : st₂.chainIn = none) (hz₂ : st₂.lazy = none) :
+    FBAt ctx I C₂ st₂ (placeMatch x arms.length (.match_ x' arms' :: rest') (some (first, join)) true
+        (fun base exit => placeArms arms 0 arms.length base exit) >>= fun _ =>
+          endStmt >>= fun _ => placeBlock (.match_ x' arms' :: rest'))
+      fun _ C' st' => OpenOut (Γ := Γ) (Ag := Ag) (cl := cl) (ctx := ctx) (I := I) Q O h join lx
+        entry one sfp firsts stages first x sc'' (.match_ x arms :: (.match_ x' arms' :: rest')) tl o i₀ p₀ C' st' := by
+  rw [walk] at hw
+  have hst : walk1 I.σ (.match_ x arms) ≠ .stuck := fun h' => hns (by rw [← hw, h']; rfl)
+  have hns' : walkArms I.σ x 0 arms ≠ .stuck := fun h' => hst (by rw [walk1, h'])
+  obtain ⟨j, hj, hxj, hne, hwj, hsel⟩ := walkArms_pick arms 0 hns'
+  simp only [Nat.zero_add] at hxj hne
+  have hw1 : walk1 I.σ (.match_ x arms) = walk I.σ arms[j] := by rw [walk1, hwj]
+  rw [hw1] at hw hst
+  obtain ⟨l₁, hl₁⟩ := seq_es (o₁ := walk I.σ arms[j]) (o₂ := walk I.σ (.match_ x' arms' :: rest')) (by rw [hw]; exact hns)
+  rw [hw] at hl₁
+  have hes₁ : ∀ e ∈ outEs (walk I.σ arms[j]), e ∈ I.es := fun e he =>
+    hes e (by rw [hl₁]; exact List.mem_append_left _ he)
+  have hcl₁ : ∀ k < (calls (outEs (walk I.σ arms[j]))).length,
+      cl[i₀ + k]? = (calls (outEs (walk I.σ arms[j])))[k]? := fun k hk => by
+    rw [hcl k (by rw [hl₁, calls_append', List.length_append]; omega), hl₁, calls_append',
+      List.getElem?_append_left hk]
+  have hxS : ∀ σ', I.Same σ' → σ' x = I.σ x := fun σ' h => h x hu
+  set q := p₀ + blockSize O + 3 + stagesSize stages with hq
+  -- the next stage's selector is known
+  obtain ⟨s₀', h₀', hx'⟩ : ∃ s₀', flushEdge ctx.retCells sc' = .ok s₀' ∧
+      s₀'.live.contains x' = true := by
+    rw [scopeBlock] at hsc
+    split at hsc
+    · cases hsc
+    · next scm hscm =>
+      obtain ⟨s₀', _, h₀', hx', _, _⟩ := scopeMatch_inv hscm
+      exact ⟨s₀', h₀', hx'⟩
+  have hnx' := nextSel_ok (st := { st with chainIn := none }) hinv h₀ hloc₂ hsa hem h₀' hx'
+  have hvwo : VW I C₂ st₂ (fun v => s₀.live.contains v = true ∨ st₂.locs[v]? = none) :=
+    fun v l hv hl => hv.elim (fun h => hvw₂ v l h hl) fun h => by rw [h] at hl; cases hl
+  unfold placeMatch
+  simp only [bind_assoc]
+  refine FBAt.fat_bind (FAt.and_wp (matchCells_fatC (arms' := arms') (rest' := rest') hI hmain hvwo
+      (Or.inl hx) hnx' (le_trans hinv.two hn₂))
+    (wp_and matchCells_pk (wp_and matchCells_lz (wp_and matchCells_keep
+      (wp_and matchCells_op matchCells_placed)))))
+    fun r st₃ C₃ hs₃ hn₃ hl₃ hc₃ hE₃ ⟨⟨⟨lx', hns, hy2, hylt, hyw⟩, hx2, hxlt, hxw, hf2, hflt, hfw,
+      ho2, holt, how, hlo₃, hr₃, hkb₃⟩, hpk₃, hz₃, hk₃, hop₃, hpl₃⟩ => ?_
+  obtain ⟨lx₀, ns, sfp₀, one₀⟩ := r
+  simp only at hns hx2 hxlt hxw hf2 hflt hfw ho2 holt how
+  subst hns
+  simp only [pure_bind, bind_assoc]
+  have hpkS : PK st st₃ := hpk₂.trans hpk₃
+  have hinvS : OutOps I st₃ → WInv ctx I C₃ st₃ s₀ := fun hO =>
+    winv_edge hinv h₀ hc₃ (le_trans hn₂ hn₃) (hr₃.trans hr₂) (hvw₂.step hs₃ hn₃ hlo₃)
+      (fun hr => RetBlind.keep (hrb₂ hr) (le_trans hinv.abi hn₂) hkb₃)
+      (fun v hv => hloc₂ v (by rwa [hlo₃] at hv)) ((show st₃.chainIn = st₂.chainIn from hk₃).trans hch₂)
+      ⟨fun k o' hk => (hpkS.2.1 k o' hk).nt hI hinv.pnt hO,
+        fun c' l hc' p hp => (hpkS.2.2 c' l hc' p hp).nt hI hinv.pnt hO⟩ (hz₃.1.trans hz₂)
+  have hfS : st₃.rest.length ≤ ctx.fuel := by rw [hr₃]; exact hf₂
+  -- the next stage's table
+  refine FBAt.fat_bind (FAt.ofSame (R := fun a C' st' => a = st₃.tables.len ∧ C' = C₃ ∧
+      st' = { st₃ with tables.len := st₃.tables.len + arms'.length })
+    (by unfold allocTable; exact wp_modifyGet.mpr ⟨rfl, rfl, rfl, LocsLe.refl _, rfl, rfl, rfl⟩))
+    fun nf st₄ C₄ _ _ _ hc₄ _ ⟨hnf, hC₄, hst₄⟩ => ?_
+  subst hnf hC₄ hst₄
+  refine FBAt.choose (fun st' => Γ.tgt (nodeT p₀ O (stages.length + 1) (jOf I.σ x') st'))
+    fun we => ?_
+  refine FBAt.get_bind ?_
+  refine FBAt.bind (FBAt.and_wp (arms_fb (q := q) (i₀ := i₀)
+    (exit := .next lx' st₃.tables.len one₀ sfp₀) we hj
+    (hin j hj) hsa (hr₃.trans hr₂) hfS (fun hO => winv_tables (hinvS hO) _) rfl hst hes₁ hcl₁
+    (hafa j hj)) wp_eq)
+    (fun _ _ _ h => h.1.1) ?_
+  rintro bs st₈ C₈ hs₈ hn₈ hl₈ ⟨⟨hc₈, hlenb, hr₈, hsc₈, ho₈, hch₈, hoff₈, hsub₈, ht₈, hpick, -⟩, heq⟩
+  obtain ⟨ev, hev, heS, -, -⟩ := expectS_ok hem
+  refine FBAt.bind (FBAt.ofFAt (expect_fat (hr₈.trans hev) heS)) (fun _ _ _ h => h.1) ?_
+  rintro _ st₉ C₉ - - - ⟨-, rfl, rfl⟩
+  refine FBAt.get_bind ?_
+  obtain ⟨ops, hops, hopo⟩ := hop₂.trans hop₃
+  have hout₉ : st₈.out.toList = O ++ [.chain h join lx entry one sfp firsts stages] ++ ops := by
+    rw [ho₈]
+    exact (show st₃.out.toList = _ from by rw [hops, hout])
+  have hlenb' : bs.length = arms.length := hlenb
+  have hjb : j < bs.length := hlenb' ▸ hj
+  split
+  rotate_left
+  · exact fun _ => wp_bind.mpr wp_failP
+  next h' j' x'' e' o' s' firsts' stages' hb =>
+  have hb' : (O ++ [PStmt.chain h join lx entry one sfp firsts stages] ++ ops).getLast? =
+      some (PStmt.chain h' j' x'' e' o' s' firsts' stages') := by
+    rw [← hout₉, ← Rev.back?_eq]; exact hb
+  obtain ⟨hnil, hnode⟩ := last_chain hopo hb' (fun _ _ h => nomatch h)
+  cases hnode
+  subst hnil
+  have hSo' : (st₈.out.pop.push (PStmt.chain h join lx entry one sfp (firsts ++ [first])
+      (stages ++ [bs]))).toList = O ++ [.chain h join lx entry one sfp (firsts ++ [first])
+      (stages ++ [bs])] := by
+    rw [Rev.toList_push, Rev.toList_pop, hout₉]
+    simp
+  have hst₃o : st₃.out.toList = O ++ [.chain h join lx entry one sfp firsts stages] := by
+    rw [hops, hout, List.append_nil]
+  have hq₂ : p₀ + blockSize O + 3 + stagesSize (stages ++ [bs]) = q + armsSize bs := by
+    simp [stagesSize_append, stagesSize, hq, Nat.add_assoc]
+  have hr₈' : ∀ v ∈ allocsOf sc'.rest, v ∈ allocsOf st₈.rest := fun v hv => by
+    rw [hr₈, hev]
+    simp only [allocsOf, List.flatMap_cons, List.mem_append]
+    exact Or.inr hv
+  have hfinal : ∀ (st' : St) (fs : List ℕ) (more : List (List (List PStmt))) (blk' : List PStmt),
+      st₈.next ≤ st'.next → LocsLe st₈.locs st'.locs →
+      (∀ y ∈ st₈.tables.shared, y ∈ st'.tables.shared) →
+      st'.out.toList = O ++ [.chain h join lx entry one sfp (firsts ++ first :: fs)
+        (stages ++ bs :: more)] ++ blk' → FinAt Γ I Ag p₀ st' →
+      OutOps I st₃ ∧ Fits I st₈ ∧ TabsW Γ Ag st₈ ∧ OpsIn I q (armsOps bs q) ∧
+      (∀ σ' Ψ kh κ (L : MemoryImage κ), Ag σ' Ψ kh κ L →
+        L.read (addressOfIndex (Γ.l.tablesBase + (first + j))) =
+          some (Γ.tgt (q + armsSize (bs.take j)))) ∧
+      FillsIn Γ Ag (q + armsSize (bs.take j)) bs[j] := by
+    intro st' fs more blk' hn' hl' ht' ho' hF
+    obtain ⟨hFt, hOp, hT, hFl⟩ := hF
+    have hOp' := hOp
+    unfold OpsAt at hOp'
+    rw [ho'] at hOp'
+    have hN := opsIn_node hOp'
+    have hFl' := hFl
+    rw [ho'] at hFl'
+    have hFN := fills_node hlen hFl' j hjb
+    refine ⟨fun h₁ o₁ hm => ?_, hFt.back hn' hl', hT.back ht', hN.2.1, hFN.1, hFN.2⟩
+    refine (OpsAt.outOps hOp) h₁ o₁ ?_
+    rw [hst₃o] at hm
+    rw [ho']
+    simp only [List.mem_append, List.mem_singleton] at hm ⊢
+    rcases hm with hm | hm
+    · exact Or.inl (Or.inl hm)
+    · cases hm
+  have hxrw : ∀ (C' : (ℕ → E) → Prop) (st' : St), Stronger C' C₄ → st₃.next ≤ st'.next →
+      LocsLe st₃.locs st'.locs → (∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st₃.rest) →
+      OutOps I st₃ → RW I C' st' [x] := by
+    intro C' st' hsC hn' hl' hsub hO v hv
+    rw [List.mem_singleton] at hv
+    subst hv
+    obtain ⟨l₀, hl₀⟩ := Option.ne_none_iff_exists'.mp hpl₃
+    refine ⟨fun h' => ?_, fun _ l hl => ?_⟩
+    · have := ((hinvS hO).fresh v (hsub v h')).2
+      rw [hx] at this
+      cases this
+    · have h3 : st₃.locs[v]? = some l₀ := by rw [hlo₃]; exact hl₀
+      rw [hl' v l₀ h3] at hl
+      cases hl
+      obtain ⟨b1, b2, b3⟩ := hvw₂ v l₀ hx hl₀
+      exact ⟨b1, lt_of_lt_of_le b2 (le_trans hn₃ hn'), fun Ψ hΨ => b3 Ψ (hs₃ Ψ (hsC Ψ hΨ))⟩
+  suffices H : ∀ S : St, S.next = st₈.next → S.locs = st₈.locs → S.rest = sc'.rest →
+      S.chainIn = some (st₃.tables.len, join) → S.tables = st₈.tables → S.lazy = none →
+      S.out.toList = O ++ [.chain h join lx entry one sfp (firsts ++ [first]) (stages ++ [bs])] →
+      (∀ hO : OutOps I st₃, ∃ blk leave, bs[j]? = some (blk ++ leave) ∧
+        LeaveOK (.next lx' st₃.tables.len one₀ sfp₀) j arms.length leave C₉ we st₃.next st₈.next ∧
+        (∀ es, walk I.σ arms[j] = .fall es → Fits I st₈ →
+          OpsIn I (q + armsSize (bs.take j)) (blockOps blk (q + armsSize (bs.take j))) →
+          TabsW Γ Ag st₈ → FillsIn Γ Ag (q + armsSize (bs.take j)) blk →
+          WInv ctx I C₉ { S with chainIn := none } sc') ∧
+        (Fits I st₈ →
+          OpsIn I (q + armsSize (bs.take j)) (blockOps blk (q + armsSize (bs.take j))) →
+          TabsW Γ Ag st₈ → FillsIn Γ Ag (q + armsSize (bs.take j)) blk →
+          BlkW Γ I ctx Ag cl C₉ blk arms[j] [] (walk I.σ arms[j]) i₀ (q + armsSize (bs.take j)) ∧
+            RW I C₉ st₈ (pathVals I.σ arms[j] (walk I.σ arms[j])))) →
+      FBAt ctx I C₉ S (placeBlock (.match_ x' arms' :: rest')) fun _ C' st' => we = Γ.tgt (nodeT p₀ O
+        (stages.length + 1) (jOf I.σ x') st') → OpenOut (Γ := Γ) (Ag := Ag) (cl := cl)
+        (ctx := ctx) (I := I) Q O h join lx entry one sfp firsts stages first x sc''
+        (.match_ x arms :: (.match_ x' arms' :: rest')) tl o i₀ p₀ C' st' by
+    intro hc
+    refine wp_bind.mpr (wp_set.mpr ?_)
+    refine wp_bind.mpr (wp_modify.mpr ?_)
+    exact H _ (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) (by exact hSo') (fun hO =>
+      let ⟨blk, leave, hbs, hlv, hW, hB⟩ := hpick hO
+      ⟨blk, leave, hbs, hlv, fun es hfe a b c d =>
+        winv_eq (winv_nochain (winv_out (winv_emit (hW es hfe a b c d) hem (PStmt.op [] (.jump 0 0 0))).2
+          (st₈.out.pop.push (PStmt.chain h join lx entry one sfp (firsts ++ [first]) (stages ++ [bs])))))
+          (by cases st₈; rfl),
+        hB⟩) hc
+  intro S hSn hSl hSr hSc' hSt hSz hSo hPick
+  have hSn' : S.next = st₈.next := hSn
+  have hoff := openOff_out hmono (.match_ x' arms' :: rest') S O h join lx entry one sfp st₃.tables.len
+    (firsts ++ [first]) (stages ++ [bs]) join ⟨x', arms', rest', rfl⟩ hSc' hSo
+  have hdead := FBAt.dead (ctx := ctx) (I := I) (C := C₉) (st := S) (m := placeBlock (.match_ x' arms' :: rest'))
+    (Q := fun _ st' => (st'.chainIn = none ∧
+        ∃ (firstsN : List ℕ) (stagesN : List (List (List PStmt))) (blk : List PStmt),
+          st'.out.toList = O ++ [.chain h join lx entry one sfp ((firsts ++ [first]) ++ firstsN)
+            ((stages ++ [bs]) ++ stagesN)] ++ blk ∧ firstsN.head? = some st₃.tables.len ∧
+          firstsN.length = stagesN.length ∧ stagesN.length ≤ (.match_ x' arms' :: rest').length) ∧
+      ((S.lazy = none → ∀ v, st'.locs[v]? ≠ none → S.locs[v]? ≠ none ∨ v ∈ allocsOf S.rest ∨
+        ∃ run, Atom.frameAddr v run ∈ atomsIn (.match_ x' arms' :: rest')) ∧
+      (∀ v ∈ allocsOf st'.rest, v ∈ allocsOf S.rest) ∧
+      ∀ y ∈ S.tables.shared, y ∈ st'.tables.shared))
+    (wp_mono (wp_and (wp_and (hmono (.match_ x' arms' :: rest') S) hoff) (hnew (.match_ x' arms' :: rest') S))
+      fun _ _ ⟨⟨⟨a, b, _⟩, c⟩, d⟩ => ⟨a, b, c, d⟩)
+  have hfin' : ∀ (st' : St) (fs : List ℕ) (more : List (List (List PStmt))) (blk' : List PStmt),
+      S.next ≤ st'.next → LocsLe S.locs st'.locs →
+      (∀ y ∈ S.tables.shared, y ∈ st'.tables.shared) →
+      st'.out.toList = O ++ [.chain h join lx entry one sfp ((firsts ++ [first]) ++ fs)
+        ((stages ++ [bs]) ++ more)] ++ blk' → FinAt Γ I Ag p₀ st' → _ :=
+    fun st' fs more blk' hn' hl' ht' ho' hF =>
+      hfinal st' fs more blk' (by rw [← hSn]; exact hn') (by rw [← hSl]; exact hl')
+        (by rw [hSt] at ht'; exact ht') (by rw [ho']; simp) hF
+  by_cases hO : OutOps I st₃
+  swap
+  · refine FBAt.mono hdead ?_
+    rintro _ C' st' - hn' hl' ⟨-, ⟨hc', fN, sN, blk', hblk', -⟩, -, -, ht'⟩ _
+    exact ⟨hc', fun _ _ hF _ => absurd (hfin' st' fN sN blk' hn' hl' ht' hblk' hF).1 hO,
+      fun hF _ => absurd (hfin' st' fN sN blk' hn' hl' ht' hblk' hF).1 hO⟩
+  obtain ⟨blk, leave, hbs, hlv, hWS, hB⟩ := hPick hO
+  obtain ⟨e, hle₁, hle₂, hlvE, hwe⟩ := hlv
+  have hbj : bs[j] = blk ++ [PStmt.op [] (.slot lx' st₃.tables.len e), .op [] (.jump one₀ e sfp₀)] := by
+    have e1 : bs[j] = blk ++ leave :=
+      Option.some.inj ((List.getElem?_eq_getElem hjb).symm.trans hbs)
+    rw [e1, hlvE]
+  have hfa' : ∀ v ∈ pathVals I.σ arms[j] (walk I.σ arms[j]), ∀ run,
+      Atom.frameAddr v run ∉ atomsIn (.match_ x' arms' :: rest') := fun v hv run =>
+    hfa v (by rw [hw1]; exact pathVals_arm hj hsel v hv) run
+  have hgrow : ∀ (C' : (ℕ → E) → Prop) (st' : St), Stronger C' C₉ → S.next ≤ st'.next →
+      LocsLe S.locs st'.locs →
+      (∀ v, st'.locs[v]? ≠ none → S.locs[v]? ≠ none ∨ v ∈ allocsOf S.rest ∨
+        ∃ run, Atom.frameAddr v run ∈ atomsIn (.match_ x' arms' :: rest')) →
+      (∀ v ∈ allocsOf st'.rest, v ∈ allocsOf S.rest) →
+      RW I C₉ st₈ (pathVals I.σ arms[j] (walk I.σ arms[j])) →
+      RW I C' st' ([x] ++ pathVals I.σ arms[j] (walk I.σ arms[j])) := by
+    intro C' st' hsC hn' hl' hnw hrr hR
+    have hsub : ∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st₈.rest := fun v hv =>
+      hr₈' v (by rw [← hSr]; exact hrr v hv)
+    refine (hxrw C' st' (fun Ψ h => hs₈ Ψ (hsC Ψ h)) (le_trans hn₈ (hSn ▸ hn'))
+      (hl₈.trans (hSl ▸ hl')) (fun v hv => hsub₈ v (hsub v hv)) hO).append
+      (hR.grow hsC (hSn ▸ hn') (hSl ▸ hl') (fun v hv hp => ?_) hsub)
+    rcases hnw v hp with h1 | h1 | ⟨run, h1⟩
+    · exact Or.inl (by rw [← hSl]; exact h1)
+    · exact Or.inr (hr₈' v (by rw [← hSr]; exact h1))
+    · exact absurd h1 (hfa' v hv run)
+  -- the arm's words after its block: the next stage's table read and the jump
+  have hsl_of : Fits I st₈ → OpsIn I q (armsOps bs q) → ∀ (j' T' : ℕ),
+      I.σ x' = ofK (addressOfIndex j') → we = Γ.tgt T' →
+      (∀ σ' Ψ kh κ (L : MemoryImage κ), Ag σ' Ψ kh κ L →
+        L.read (addressOfIndex (Γ.l.tablesBase + (st₃.tables.len + j'))) = some (Γ.tgt T')) →
+      ∀ C' : (ℕ → E) → Prop, Stronger C' C₉ → PremW I ctx → ∀ Ψ, C' Ψ → ∀ σ', I.Same σ' →
+      ∀ kh : ℕ → E × E,
+      HW Γ I.fp (Ag σ' Ψ kh) (Γ.pc0 + (q + armsSize (bs.take j) + blockSize blk))
+        (.slot lx' st₃.tables.len e) ∧
+      JumpTo Γ I.fp I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) one₀ e sfp₀ T' := by
+    intro hFt hA j' T' hσ' hweT hsl C' hsC' _ Ψ hΨ σ' _ kh
+    have hc9 : C₉ Ψ := hsC' Ψ hΨ
+    have hc3 : C₄ Ψ := hs₈ Ψ hc9
+    have hr : Rds (Ag σ' Ψ kh) I.fp I.size (fwd I.hdr ⟨patchT I Ψ σ', kh⟩) :=
+      fun κ L hL m hm => hAg σ' Ψ kh κ L hL m hm
+    have hmem : ∀ o' ∈ blockOps bs[j] (q + armsSize (bs.take j)), o' ∈ I.ops := fun o' ho' =>
+      hA.mem _ (armsOps_mem bs q j hjb _ ho')
+    have hsm : LOp.slot lx' st₃.tables.len e ∈ I.ops :=
+      hmem _ (by rw [hbj, bops_append]; simp [blockOps, stmtOps])
+    have hjm : LOp.jump one₀ e sfp₀ ∈ I.ops :=
+      hmem _ (by rw [hbj, bops_append]; simp [blockOps, stmtOps])
+    have hto : ¬ I.tc one₀ := not_tc_of hI hjm (by simp [opCells]) fun _ h => nomatch h
+    have hts : ¬ I.tc sfp₀ := not_tc_of hI hjm (by simp [opCells]) fun _ h => nomatch h
+    have hte : ¬ I.tc e := not_tc_of hI hjm (by simp [opCells]) fun _ h => nomatch h
+    have htx : ¬ I.tc lx' := not_tc_of hI hsm (by simp [opCells]) fun _ h => nomatch h
+    have hsz : st₈.next ≤ I.size := hFt.1
+    have he2 : 2 ≤ e := le_trans (le_trans hinv.two (le_trans hn₂ hn₃)) hle₁
+    have hfe : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ e = Γ.tgt T' :=
+      (fwd_patchT he2 hte).trans ((hwe Ψ hc9).trans hweT)
+    exact ⟨slot_hw hr (lt_of_lt_of_le hylt (le_trans hn₈ hsz)) (lt_of_lt_of_le hle₂ hsz)
+        ((fwd_patchT hy2 htx).trans ((hyw Ψ hc3).trans hσ'))
+        (fun κ L hL => by rw [hfe]; exact hsl σ' Ψ kh κ L hL),
+      jumpTo_of hr (lt_of_lt_of_le holt (le_trans hn₈ hsz)) (lt_of_lt_of_le hle₂ hsz)
+        (lt_of_lt_of_le hflt (le_trans hn₈ hsz)) ((fwd_patchT ho2 hto).trans (how Ψ hc3)) hfe
+        ((fwd_patchT hf2 hts).trans (hfw Ψ hc3))⟩
+  generalize ho₁ : walk I.σ arms[j] = o₁ at hw hWS hB hgrow hst
+  cases o₁ with
+  | stuck => exact absurd rfl hst
+  | ret es₁ vs =>
+    have ho : o = .ret es₁ vs := by rw [← hw]; rfl
+    have hw1' : walk1 I.σ (.match_ x arms) = .ret es₁ vs := by rw [hw1, ho₁]
+    refine FBAt.mono hdead ?_
+    rintro _ C' st' - hn' hl' ⟨rfl, ⟨hc', fN, sN, blk', hblk', hhd, hl₁', hl₂'⟩, hnw, hrr, ht'⟩ _
+    refine ⟨hc', fun es he _ _ => (by rw [ho] at he; cases he), fun hF _ => ?_⟩
+    obtain ⟨-, hFt, hT, hA, hslot, hFa⟩ := hfin' st' fN sN blk' hn' hl' ht' hblk' hF
+    have hA' := armsOps_in bs q j hjb hA
+    rw [hbj, bops_append] at hA'
+    have hFa' : FillsIn Γ Ag (q + armsSize (bs.take j)) blk := by
+      rw [hbj] at hFa; exact hFa.left
+    obtain ⟨hBw, hRw⟩ := hB hFt hA'.left hT hFa'
+    refine ⟨first :: fN, bs :: sN, blk', j, q + armsSize (bs.take j), by rw [hblk']; simp, rfl,
+      by simp [hl₁'], by simp, by simp; omega, hxj, hne, rfl, hslot, ?_, ?_⟩
+    · exact stagesW_next (T' := 0) hjb hj hbj hxj hne hxS hw.symm hBw (fun _ h => by cases h)
+        (fun _ h => by cases h)
+    · rw [ho, pathVals_ret hw1']
+      exact (hgrow C' st' (Stronger.refl _) hn' hl' (hnw hSz) hrr hRw).anti fun v hv => by
+        simpa using pathVals_match hj hsel v hv
+  | fall es₁ =>
+    have hw1' : walk1 I.σ (.match_ x arms) = .fall es₁ := by rw [hw1, ho₁]
+    have ho : o = (walk I.σ (.match_ x' arms' :: rest')).pre es₁ := by rw [← hw]; rfl
+    have hns₂ : walk I.σ (.match_ x' arms' :: rest') ≠ .stuck := fun h' => hns (by rw [ho, h']; rfl)
+    have hes' : outEs o = es₁ ++ outEs (walk I.σ (.match_ x' arms' :: rest')) := by rw [ho, outEs_pre hns₂]
+    have hc' : calls (outEs o) = calls es₁ ++ calls (outEs (walk I.σ (.match_ x' arms' :: rest'))) := by
+      rw [hes', calls_append']
+    by_cases hF : Fits I st₈ ∧
+        OpsIn I (q + armsSize (bs.take j)) (blockOps blk (q + armsSize (bs.take j))) ∧
+        TabsW Γ Ag st₈ ∧ FillsIn Γ Ag (q + armsSize (bs.take j)) blk
+    swap
+    · refine FBAt.mono hdead ?_
+      rintro _ C' st' - hn' hl' ⟨-, ⟨hc', fN, sN, blk', hblk', -⟩, -, -, ht'⟩ _
+      have hF' : FinAt Γ I Ag p₀ st' → False := fun hFin => by
+        obtain ⟨-, hFt, hT, hA, -, hFa⟩ := hfin' st' fN sN blk' hn' hl' ht' hblk' hFin
+        have hA' := armsOps_in bs q j hjb hA
+        rw [hbj, bops_append] at hA'
+        have hFa' : FillsIn Γ Ag (q + armsSize (bs.take j)) blk := by
+          rw [hbj] at hFa; exact hFa.left
+        exact hF ⟨hFt, hA'.left, hT, hFa'⟩
+      exact ⟨hc', fun _ _ hFin _ => (hF' hFin).elim, fun hFin _ => (hF' hFin).elim⟩
+    obtain ⟨hFt₈, hA₈, hT₈, hFa₈⟩ := hF
+    have hwinv := hWS es₁ rfl hFt₈ hA₈ hT₈ hFa₈
+    obtain ⟨hBw, hRw⟩ := hB hFt₈ hA₈ hT₈ hFa₈
+    have hjwS : 2 ≤ join ∧ join < S.next ∧ ∀ Ψ, C₉ Ψ → Ψ join = joinW I (p₀ + blockSize O) :=
+      ⟨hjw.1, by rw [hSn]; exact lt_of_lt_of_le hjw.2.1 (le_trans hn₂ (le_trans hn₃ hn₈)),
+        fun Ψ hΨ => hjw.2.2 Ψ (hs₂ Ψ (hs₃ Ψ (hs₈ Ψ hΨ)))⟩
+    refine FBAt.mono (FBAt.and_wp (hrec C₉ S (i₀ + (calls es₁).length) _ (firsts ++ [first])
+      (stages ++ [bs]) st₃.tables.len True rfl hns₂
+      (fun e he => hes e (by rw [hes']; exact List.mem_append_right _ he))
+      (fun k hk => by
+        rw [Nat.add_assoc, hcl _ (by rw [hc', List.length_append]; omega), hc',
+          List.getElem?_append_right (by omega)]
+        simp) (fun _ => hwinv) hSc' hjwS hSo (by simp [hlen])) (hnew (.match_ x' arms' :: rest') S)) ?_
+    rintro _ C' st' hsC' hn' hl' ⟨⟨hc', hWo, hWd⟩, hnw, hrr, ht'⟩ hweq
+    refine ⟨hc', fun es he hFin _ => ?_, fun hFin _ => ?_⟩
+    · obtain ⟨es₂, h2⟩ : ∃ es₂, walk I.σ (.match_ x' arms' :: rest') = .fall es₂ := by
+        cases h : walk I.σ (.match_ x' arms' :: rest') with
+        | fall es₂ => exact ⟨es₂, rfl⟩
+        | ret es₂ vs => rw [ho, h] at he; cases he
+        | stuck => exact absurd h hns₂
+      exact hWo es₂ h2 hFin trivial
+    · obtain ⟨fN, sN, blk', j', T', hblk', hhd, hl₁', hsne, hl₂', hσ', hne', hT', hslot', hSW,
+        hRk⟩ := hWd hFin trivial
+      have hblk'' : st'.out.toList = O ++ [.chain h join lx entry one sfp
+          ((firsts ++ [first]) ++ fN) ((stages ++ [bs]) ++ sN)] ++ blk' := hblk'
+      obtain ⟨-, -, -, hA, hslot, -⟩ := hfin' st' fN sN blk' hn' hl' ht' hblk'' hFin
+      obtain ⟨B, more, rfl⟩ : ∃ B more, sN = B :: more := by
+        cases sN with
+        | nil => exact absurd rfl hsne
+        | cons B more => exact ⟨B, more, rfl⟩
+      have hT'' : we = Γ.tgt T' := by
+        rw [hweq, hT', show stages.length + 1 = (stages ++ [bs]).length by simp,
+          nodeT_eq (jOf I.σ x') hblk', jOf_eq hσ' hne']
+        rfl
+      refine ⟨first :: fN, bs :: B :: more, blk', j, q + armsSize (bs.take j), by rw [hblk']; simp,
+        rfl, by simp [hl₁'], by simp, by simp at hl₂' ⊢; omega, hxj, hne, rfl, hslot, ?_, ?_⟩
+      · exact stagesW_next hjb hj hbj hxj hne hxS hw.symm (hBw.mono hsC')
+          (fun _ h => by cases h; rw [← hq₂]; exact hSW)
+          (fun _ h => by cases h; exact hsl_of hFt₈ hA j' T' hσ' hT'' hslot' C' hsC')
       · rw [ho]
         refine ((hgrow C' st' hsC' hn' hl' (hnw hSz) hrr hRw).append hRk).anti fun v hv => ?_
         rcases List.mem_append.mp (pathVals_fall hw1' hns₂ v hv) with h | h
