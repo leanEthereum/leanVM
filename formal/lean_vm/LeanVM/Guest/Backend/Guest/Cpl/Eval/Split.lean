@@ -104,6 +104,21 @@ theorem cplOkAt_of_any {i : ℕ} (h : (placedAt i).any (partsOk [0, 1, 2, 3, 4, 
     rw [hp] at h
     exact cplOkAt_of hp (cplOkWith_of_parts h)
 
+/-- **Entry `i` by two groups of conjuncts**, each placing it. -/
+theorem cplOkAt_of_two {i : ℕ} (h₁ : (placedAt i).any (partsOk [0, 1, 2] i) = true)
+    (h₂ : (placedAt i).any (partsOk [3, 4, 5, 6, 7] i) = true) : cplOkAt i = true :=
+  cplOkAt_of_any (any_app h₁ h₂)
+
+/-- The conjuncts `[4, 5, 6, 7]` one by one. -/
+theorem partsOk_4567 {i : ℕ} {pf : Placed} (h₄ : partsOk [4] i pf = true) (h₅ : partsOk [5] i pf = true)
+    (h₆ : partsOk [6] i pf = true) (h₇ : partsOk [7] i pf = true) : partsOk [4, 5, 6, 7] i pf = true :=
+  partsOk_app h₄ (partsOk_app h₅ (partsOk_app h₆ h₇))
+
+/-- **Entry `i` on its placed function written out**, by two groups of conjuncts. -/
+theorem cplOkAt_of_with_two {i : ℕ} {pf : Placed} (hp : placedAt i = some pf)
+    (h₁ : partsOk [0, 1, 2] i pf = true) (h₂ : partsOk [3, 4, 5, 6, 7] i pf = true) : cplOkAt i = true :=
+  cplOkAt_of hp (cplOkWith_of_parts (partsOk_app h₁ h₂))
+
 /-- **Entry `i` on its placed function written out.** -/
 theorem cplOkAt_of_with {i : ℕ} {pf : Placed} (hp : placedAt i = some pf)
     (h : partsOk [0, 1, 2, 3, 4, 5, 6, 7] i pf = true) : cplOkAt i = true :=
@@ -474,6 +489,133 @@ theorem cplOk_big {j : ℕ} {pf : Placed} {TL : List V} {C : NMap ℕ} {S : SSt}
   exact cplOkAt_of hp (cplOkWith_of_parts (by
     simp only [partsOk, cplParts, List.all_cons, List.all_nil, List.getD_cons_zero,
       List.getD_cons_succ, h0, h1, h2, h3, r4, r5, r6, r7, Bool.and_self]))
+
+/-! ## A `match` of a large function by runs of arms -/
+
+theorem take_one_match {b : List Stmt} {p : ℕ} (hm : isMatchAt b p = true) :
+    (b.drop p).take 1 = [.match_ (selOf (b.getD p default)) (armsOf (b.getD p default))] := by
+  rw [drop_of_isMatchAt hm]
+  rfl
+
+/-- **The test of a run of arms** of a large function's `match`, `L` their temporaries. -/
+def armsOk (c : BigC) (as : List (List Stmt)) (L : List V) : Bool :=
+  decide (Stmt.tmpsArms as = L) && (Stmt.usesArms as).all (useOk c) &&
+    (runVals (Lift.armsAtoms as)).isEmpty && (Lift.armsAtoms as).all (runOk c.locs c.Ts c.n) &&
+    (retA as).all (fun vs => consecFrom c.locs vs (2 + c.np)) && !callsA c.name as
+
+theorem tmpsArms_append : ∀ (a b : List (List Stmt)), Stmt.tmpsArms (a ++ b) = Stmt.tmpsArms a ++ Stmt.tmpsArms b
+  | [], _ => by simp [Stmt.tmpsArms]
+  | s :: ss, b => by simp [Stmt.tmpsArms, tmpsArms_append ss b, List.append_assoc]
+
+theorem usesArms_append : ∀ (a b : List (List Stmt)), Stmt.usesArms (a ++ b) = Stmt.usesArms a ++ Stmt.usesArms b
+  | [], _ => by simp [Stmt.usesArms]
+  | s :: ss, b => by simp [Stmt.usesArms, usesArms_append ss b, List.append_assoc]
+
+theorem armsAtoms_append : ∀ (a b : List (List Stmt)), Lift.armsAtoms (a ++ b) = Lift.armsAtoms a ++ Lift.armsAtoms b
+  | [], _ => by simp [Lift.armsAtoms]
+  | s :: ss, b => by simp [Lift.armsAtoms, armsAtoms_append ss b, List.append_assoc]
+
+theorem retA_append : ∀ (a b : List (List Stmt)), retA (a ++ b) = retA a ++ retA b
+  | [], _ => by simp [retA]
+  | s :: ss, b => by simp [retA, retA_append ss b, List.append_assoc]
+
+theorem callsA_append (f : String) : ∀ (a b : List (List Stmt)), callsA f (a ++ b) = (callsA f a || callsA f b)
+  | [], _ => by simp [callsA]
+  | s :: ss, b => by simp [callsA, callsA_append f ss b, Bool.or_assoc]
+
+theorem armsOk_append {c : BigC} {a b : List (List Stmt)} {La Lb : List V} (ha : armsOk c a La = true)
+    (hb : armsOk c b Lb = true) : armsOk c (a ++ b) (La ++ Lb) = true := by
+  simp only [armsOk, Bool.and_eq_true, decide_eq_true_eq, Bool.not_eq_eq_eq_not, Bool.not_true,
+    List.isEmpty_iff] at ha hb ⊢
+  obtain ⟨⟨⟨⟨⟨a1, a2⟩, a3⟩, a4⟩, a5⟩, a6⟩ := ha
+  obtain ⟨⟨⟨⟨⟨b1, b2⟩, b3⟩, b4⟩, b5⟩, b6⟩ := hb
+  rw [tmpsArms_append, usesArms_append, armsAtoms_append, runVals_append, retA_append,
+    callsA_append, List.all_append, List.all_append, List.all_append, a1, b1, a2, b2, a3, b3, a4, b4,
+    a5, b5, a6, b6]
+  simp
+
+theorem arms_part {c : BigC} {A : List (List Stmt)} {a m : ℕ} {L₁ L₂ : List V}
+    (h₁ : armsOk c ((A.drop a).take m) L₁ = true) (h₂ : armsOk c (A.drop (a + m)) L₂ = true) :
+    armsOk c (A.drop a) (L₁ ++ L₂) = true := by
+  rw [← List.take_append_drop m (A.drop a), drop_drop']
+  exact armsOk_append h₁ h₂
+
+theorem arms_end {c : BigC} {A : List (List Stmt)} {k : ℕ} (hk : A.length ≤ k) :
+    armsOk c (A.drop k) [] = true := by
+  rw [List.drop_eq_nil_of_le hk]
+  rfl
+
+/-- **A `match` statement's run test from its arms'.** -/
+theorem seg_match {c : BigC} {b : List Stmt} {p : ℕ} {L : List V} (hm : isMatchAt b p = true)
+    (hx : useOk c (selOf (b.getD p default)) = true)
+    (ha : armsOk c ((armsOf (b.getD p default)).drop 0) L = true) :
+    segOk c ((b.drop p).take 1) L = true := by
+  rw [take_one_match hm]
+  rw [List.drop_zero] at ha
+  generalize armsOf (b.getD p default) = A at *
+  generalize selOf (b.getD p default) = x at *
+  simp only [armsOk, Bool.and_eq_true, decide_eq_true_eq, Bool.not_eq_eq_eq_not, Bool.not_true,
+    List.isEmpty_iff] at ha
+  obtain ⟨⟨⟨⟨⟨a1, a2⟩, a3⟩, a4⟩, a5⟩, a6⟩ := ha
+  simp [segOk, Stmt.tmpsList, Stmt.tmps, Stmt.usesList, Stmt.uses, Lift.blockAtoms, Lift.stmtAtoms,
+    retL, retS, callsL, callsS, a1, a2, a3, a4, a5, a6, hx]
+
+/-- The arms of a `match` walked from `s`, `acc` whether some arm made the return area. -/
+def armsRun (rc : ℕ) : List (List Stmt) → SSt → Bool → Except String (SSt × Bool)
+  | [], s, acc => .ok (s, acc)
+  | arm :: more, s, acc =>
+    match scopeInner rc (fun s' => scopeBlock rc arm s') s with
+    | .error e => .error e
+    | .ok s₁ => armsRun rc more { s₁ with retDone := s.retDone } (acc || s₁.retDone)
+
+theorem scopeArms_eq (rc : ℕ) : ∀ (arms : List (List Stmt)) (s : SSt) (acc : Bool),
+    scopeArms rc arms s acc = match armsRun rc arms s acc with
+      | .ok (s', a) => .ok { s' with retDone := a }
+      | .error e => .error e
+  | [], s, acc => rfl
+  | arm :: more, s, acc => by
+    rw [scopeArms, armsRun]
+    cases scopeInner rc (fun s' => scopeBlock rc arm s') s with
+    | error e => rfl
+    | ok s₁ => exact scopeArms_eq rc more _ _
+
+theorem armsRun_append (rc : ℕ) : ∀ (a b : List (List Stmt)) (s : SSt) (acc : Bool) {s' : SSt}
+    {acc' : Bool}, armsRun rc a s acc = .ok (s', acc') → armsRun rc (a ++ b) s acc = armsRun rc b s' acc'
+  | [], _, s, acc, s', acc', h => by
+    simp only [armsRun, Except.ok.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    rfl
+  | arm :: more, b, s, acc, s', acc', h => by
+    rw [List.cons_append, armsRun]
+    rw [armsRun] at h
+    cases hs : scopeInner rc (fun s' => scopeBlock rc arm s') s with
+    | error e => rw [hs] at h; cases h
+    | ok s₁ =>
+      rw [hs] at h
+      exact armsRun_append rc more b _ _ h
+
+theorem armsRun_part {rc : ℕ} {A : List (List Stmt)} {a m : ℕ} {S S' S'' : SSt} {acc acc' acc'' : Bool}
+    (h₁ : armsRun rc ((A.drop a).take m) S acc = .ok (S', acc'))
+    (h₂ : armsRun rc (A.drop (a + m)) S' acc' = .ok (S'', acc'')) :
+    armsRun rc (A.drop a) S acc = .ok (S'', acc'') := by
+  rw [← List.take_append_drop m (A.drop a), armsRun_append rc _ _ S acc h₁, drop_drop', h₂]
+
+theorem armsRun_end {rc : ℕ} {A : List (List Stmt)} {k : ℕ} {S : SSt} {acc : Bool} (hk : A.length ≤ k) :
+    armsRun rc (A.drop k) S acc = .ok (S, acc) := by
+  rw [List.drop_eq_nil_of_le hk]
+  rfl
+
+/-- **A `match` statement's scope walk from its parts**: the values made before it, its selector
+in scope, its arms by runs, its own event. -/
+theorem scope_match {rc : ℕ} {b : List Stmt} {p : ℕ} {S S₁ T S₂ : SSt} {acc : Bool}
+    (hm : isMatchAt b p = true) (hpre : flushAt rc S = .ok S₁)
+    (hx : needScope S₁.live [selOf (b.getD p default)] "a match" = .ok ())
+    (harms : armsRun rc ((armsOf (b.getD p default)).drop 0) S₁ S₁.retDone = .ok (T, acc))
+    (hpost : expectS isEmit "a match" { T with retDone := acc } = .ok S₂) :
+    scopeBlock rc ((b.drop p).take 1) S = .ok S₂ := by
+  rw [take_one_match hm]
+  rw [List.drop_zero] at harms
+  simp only [scopeBlock, scopeStmt, hpre, hx, scopeArms_eq, harms, hpost]
 
 end
 end LeanVM.Guest.Backend.CplEval
