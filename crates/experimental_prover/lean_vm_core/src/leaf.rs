@@ -16,7 +16,6 @@ use primitives::field::{F64, F128, F128Unreduced, Weights8, dot_base, g_pow, ind
 use primitives::multilinear::{eq_eval, eq_table, interp, mle_eval, mle_eval_par};
 use std::collections::HashMap;
 use std::ops::Range;
-use std::sync::Arc;
 
 /// One tuple coordinate as a function of the block's row `z`.
 #[derive(Clone, Debug)]
@@ -38,7 +37,7 @@ pub enum Coord {
     /// A public column (the bytecode program, §sec:e2e-bc): not committed; both parties form
     /// its MLE directly, so it raises no claim. Shared rather than owned: push and
     /// pull carry the same thirteen columns ([`isa::Program::columns`]), one `K` word a row.
-    Public(Arc<Vec<u64>>),
+    Public(isa::Column),
     /// A sum of `Const`/`Col`/`GCol`/`Prod` terms: any degree-2 form over the
     /// table's columns, which is all §sec:m3 asks of a coordinate. This is what
     /// carries a value a row DERIVES from its columns (an `XOR`/`MUL` result, a
@@ -657,9 +656,9 @@ fn known_claim(claims: &[ColumnClaim], col: usize, point: &[F128]) -> Option<F12
 // One bus GKR point per cache; its prefixes are keyed by length and shared column identity.
 type PublicEvals = HashMap<(usize, usize), F128>;
 
-fn public_eval(vals: &Arc<Vec<u64>>, point: &[F128], cache: &mut PublicEvals) -> F128 {
+fn public_eval(vals: &[u64], point: &[F128], cache: &mut PublicEvals) -> F128 {
     *cache
-        .entry((Arc::as_ptr(vals) as usize, point.len()))
+        .entry((vals.as_ptr() as usize, point.len()))
         .or_insert_with(|| primitives::multilinear::mle_eval_par(cast_slice(vals), point))
 }
 
@@ -1035,7 +1034,7 @@ mod tests {
         };
         let columns: Vec<Vec<F64>> = (0..6).map(|_| (0..1 << 12).map(|_| F64(next())).collect()).collect();
         let cols: Vec<&[F64]> = columns.iter().map(Vec::as_slice).collect();
-        let public = Arc::new((0..1 << 11).map(|_| next()).collect::<Vec<_>>());
+        let public = isa::Column::from((0..1 << 11).map(|_| next()).collect::<Vec<_>>());
         let block = |kappa: usize, rows: usize, coords: Vec<Coord>| Block {
             kappa,
             rows,

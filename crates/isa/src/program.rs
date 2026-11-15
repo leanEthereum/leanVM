@@ -2,7 +2,7 @@
 //! the one public table, and that table prepared for the verifier.
 
 use crate::{CompiledProgram, Op};
-use std::ops::Deref;
+use std::ops::{Deref, Range};
 use std::sync::{Arc, OnceLock};
 use verifier::K;
 use verifier::layout::{BUS_BITS, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR};
@@ -15,18 +15,44 @@ const OPCODE_SLOT: usize = 3;
 const _: () = assert!(OPCODE_SLOT + 1 + BYTECODE_OPERANDS <= 1 << BUS_BITS);
 
 /// The public columns of a bytecode, one word an instruction: the opcode, then the operand slots.
-pub type BytecodeColumns = [Arc<Vec<u64>>; 1 + BYTECODE_OPERANDS];
+pub type BytecodeColumns = [Column; 1 + BYTECODE_OPERANDS];
+
+/// A run of words in a shared table, cheap to clone: a bytecode column, a slot of [`Program::table`].
+#[derive(Clone, Debug)]
+pub struct Column {
+    table: Arc<[u64]>,
+    words: Range<usize>,
+}
+
+/// The whole of `words`.
+impl From<Vec<u64>> for Column {
+    fn from(words: Vec<u64>) -> Self {
+        Self {
+            words: 0..words.len(),
+            table: words.into(),
+        }
+    }
+}
+
+impl Deref for Column {
+    type Target = [u64];
+
+    fn deref(&self) -> &[u64] {
+        &self.table[self.words.clone()]
+    }
+}
 
 /// A compiled program with its bytecode columns and table, computed once.
 #[derive(Debug)]
 pub struct Program {
     compiled: CompiledProgram,
-    /// One word per instruction for each of the opcode and the operand slots, which the provers' bus reads.
+    /// One word per instruction for each of the opcode and the operand slots, which the provers' bus reads: views
+    /// into `table`.
     columns: BytecodeColumns,
     /// The stacked bytecode polynomial's evaluations: `2^BUS_BITS` slots of `prog.len()` words, slot `s` holding bus
     /// tuple coordinate `s` of every instruction (the columns from [`OPCODE_SLOT`] on, zeros elsewhere). It is what
     /// the Fiat-Shamir IV hashes and what a deferred bytecode claim evaluates.
-    table: Vec<u64>,
+    table: Arc<[u64]>,
     /// The table prepared for the verifier, with the IV.
     bytecode: verifier::Bytecode,
 }
@@ -38,20 +64,21 @@ impl From<CompiledProgram> for Program {
     fn from(compiled: CompiledProgram) -> Self {
         let n = compiled.prog.len();
         assert!(n.is_power_of_two(), "the bytecode must be a power of two long, not {n}");
-        let mut columns: [Vec<u64>; 1 + BYTECODE_OPERANDS] = std::array::from_fn(|_| Vec::with_capacity(n));
-        for op in &compiled.prog {
-            for (column, word) in columns.iter_mut().zip(encode(op)) {
-                column.push(word);
+        let mut table = vec![0; n << BUS_BITS];
+        for (pc, op) in compiled.prog.iter().enumerate() {
+            for (i, word) in encode(op).into_iter().enumerate() {
+                table[(OPCODE_SLOT + i) * n + pc] = word;
             }
         }
-        let mut table = vec![0; n << BUS_BITS];
-        for (slot, column) in table.chunks_exact_mut(n).skip(OPCODE_SLOT).zip(&columns) {
-            slot.copy_from_slice(column);
-        }
+        let table: Arc<[u64]> = table.into();
+        let columns = std::array::from_fn(|i| Column {
+            table: table.clone(),
+            words: (OPCODE_SLOT + i) * n..(OPCODE_SLOT + i + 1) * n,
+        });
         let bytecode = verifier::Bytecode::new(&table);
         Self {
             compiled,
-            columns: columns.map(Arc::new),
+            columns,
             table,
             bytecode,
         }

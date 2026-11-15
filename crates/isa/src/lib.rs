@@ -9,7 +9,7 @@ mod program;
 mod prover;
 
 pub use pretty::{pretty_f64, pretty_integer};
-pub use program::{BytecodeColumns, Program};
+pub use program::{BytecodeColumns, Column, Program};
 pub use prover::{Prover, Stats};
 use std::collections::HashMap;
 use verifier::{E, K};

@@ -13,7 +13,7 @@ use primitives::field::F128;
 /// table, as the prover builds it. It reads the program only through its public columns, which no coordinate the guest
 /// is given depends on, so zero columns of that length serve, one shared by all.
 pub(super) fn execution_layout(kbc: usize, log_mem: usize, rows: [usize; N_TABLES]) -> Layout {
-    let zeros = std::sync::Arc::new(vec![0; 1 << kbc]);
+    let zeros = isa::Column::from(vec![0; 1 << kbc]);
     let columns = std::array::from_fn(|_| zeros.clone());
     lean_vm_core::cpu::layout::layout_of(&columns, log_mem, rows)
 }

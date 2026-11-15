@@ -9,7 +9,6 @@
 //! whose values are sent; a table's blocks become one degree-two [`Form`] over its columns, `B^s_j`, which the table
 //! sumcheck proves ([`crate::constraints`]).
 
-use std::sync::Arc;
 
 use crate::constraints::Form;
 use crate::gkr::{self, Ones};
@@ -37,7 +36,7 @@ pub enum Coord {
     Index,
     /// A public column (the bytecode program, §sec:e2e-bc): not committed, both parties form its MLE. Shared: push and
     /// pull carry the same thirteen columns ([`isa::Program::columns`]), one `K` word a row.
-    Public(Arc<Vec<u64>>),
+    Public(isa::Column),
     /// A sum of `Const`/`Col`/`GCol`/`Prod` terms: a value a row derives from its columns (an `XOR`/`MUL` result, a
     /// `DEREF` store, a `JUMP` successor) without committing it. Only a table's blocks carry one, or a `Prod`: the
     /// table sumcheck settles them, while a boundary block's coordinates must be single columns.
@@ -550,7 +549,7 @@ mod tests {
             .map(|_| (0..1 << 12).map(|_| F64(rng.next_u64())).collect())
             .collect();
         let cols: Vec<&[F64]> = columns.iter().map(Vec::as_slice).collect();
-        let public = Arc::new((0..1 << 11).map(|_| rng.next_u64()).collect::<Vec<_>>());
+        let public = isa::Column::from((0..1 << 11).map(|_| rng.next_u64()).collect::<Vec<_>>());
         let block = |kappa: usize, rows: usize, coords: Vec<Coord>| Block {
             kappa,
             rows,
