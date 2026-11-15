@@ -207,3 +207,10 @@ srcDir = "cli"
 name = "guest-cplguest"
 root = "GuestCplGuest"
 srcDir = "cli"
+
+# The kernel's per-function completeness checks of the guest: writes Guest/Backend/Guest/Cpl/Eval/
+# (`--check` compares). Not a default target.
+[[lean_exe]]
+name = "guest-cpleval"
+root = "GuestCplEval"
+srcDir = "cli"
