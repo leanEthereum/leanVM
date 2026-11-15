@@ -767,8 +767,9 @@ def OpenOut (Q : Prop) (O : List PStmt) (h : List LHint) (join lx entry one sfp 
 dispatches into: `chainIn = some (first, join)`, the output ending in the chain node so far),
 given the block lemma for the smaller good blocks: `OpenOut`. The invariant at its start is had
 only under `Q` (the facts the chain node's final instructions give the stages before it, which
-the final state's `FinAt` gives the caller through `OpenOffW`), and so are its results. With the head stage whose arms
-dispatch into the next (`placeMatch … none true`), it gives `ChainHeadW`. -/
+the final state's `FinAt` gives the caller through `OpenOffW`), and so are its results. The join
+cell holds the word of the chain node's `SET` (its last stage's arms jump to it). With the head
+stage whose arms dispatch into the next (`placeMatch … none true`), it gives `ChainHeadW`. -/
 def OpenW (Good : List Stmt → Prop) : Prop :=
   ∀ x arms rest tl, Good (.match_ x arms :: rest) →
     BlockIH Γ Ag cl ctx I Good (.match_ x arms :: rest) →
@@ -779,6 +780,7 @@ def OpenW (Good : List Stmt → Prop) : Prop :=
     walk I.σ (.match_ x arms :: rest) = o → o ≠ .stuck → (∀ e ∈ outEs o, e ∈ I.es) →
     (∀ k < (calls (outEs o)).length, cl[i₀ + k]? = (calls (outEs o))[k]?) →
     (Q → WInv ctx I C { st with chainIn := none } sc) → st.chainIn = some (first, join) →
+    (2 ≤ join ∧ join < st.next ∧ ∀ Ψ, C Ψ → Ψ join = joinW I (p₀ + blockSize O)) →
     st.out.toList = O ++ [.chain h join lx entry one sfp firsts stages] →
     firsts.length = stages.length →
     FBAt ctx I C st (placeBlock (.match_ x arms :: rest)) fun _ C' st' =>
