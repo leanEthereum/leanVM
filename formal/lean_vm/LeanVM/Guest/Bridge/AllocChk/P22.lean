@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
-public import LeanVM.Guest.Bridge.AllocChk.FrSkip
 public import LeanVM.Guest.Bridge.Align.«P22»
 public import LeanVM.Guest.Pack.«P22».Bundle
 public import LeanVM.Guest.Pack.«P22».Core
@@ -31,7 +30,7 @@ theorem curBodyOk :
 
 /-- `eq_prefix_run__L15`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«eq_prefix_run__L15».fs [] (Bridge.AllocChk.frSkipAt 55) Fn.«eq_prefix_run__L15».core.params Fn.«eq_prefix_run__L15».core.body
+    Bridge.frChk alignCtx Fn.«eq_prefix_run__L15».fs [] Fn.«eq_prefix_run__L15».core.params Fn.«eq_prefix_run__L15».core.body
       Data.adviceFn55 = true := by
   decide +kernel
 
@@ -62,7 +61,7 @@ theorem curBodyOk :
 
 /-- `plus_one_run__L13`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«plus_one_run__L13».fs [] (Bridge.AllocChk.frSkipAt 142) Fn.«plus_one_run__L13».core.params Fn.«plus_one_run__L13».core.body
+    Bridge.frChk alignCtx Fn.«plus_one_run__L13».fs [] Fn.«plus_one_run__L13».core.params Fn.«plus_one_run__L13».core.body
       Data.adviceFn142 = true := by
   decide +kernel
 
@@ -93,7 +92,7 @@ theorem curBodyOk :
 
 /-- `block_selector__L19`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«block_selector__L19».fs [] (Bridge.AllocChk.frSkipAt 182) Fn.«block_selector__L19».core.params Fn.«block_selector__L19».core.body
+    Bridge.frChk alignCtx Fn.«block_selector__L19».fs [] Fn.«block_selector__L19».core.params Fn.«block_selector__L19».core.body
       Data.adviceFn182 = true := by
   decide +kernel
 
@@ -124,7 +123,7 @@ theorem curBodyOk :
 
 /-- `level_positions__L3_L13_L7`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L3_L13_L7».fs [1027, 1036] (Bridge.AllocChk.frSkipAt 492) Fn.«level_positions__L3_L13_L7».core.params Fn.«level_positions__L3_L13_L7».core.body
+    Bridge.frChk alignCtx Fn.«level_positions__L3_L13_L7».fs [1027, 1036] Fn.«level_positions__L3_L13_L7».core.params Fn.«level_positions__L3_L13_L7».core.body
       Data.adviceFn492 = true := by
   decide +kernel
 
@@ -155,7 +154,7 @@ theorem curBodyOk :
 
 /-- `level_residual__L73_L16_L6_L3`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_residual__L73_L16_L6_L3».fs [1128, 1129] (Bridge.AllocChk.frSkipAt 588) Fn.«level_residual__L73_L16_L6_L3».core.params Fn.«level_residual__L73_L16_L6_L3».core.body
+    Bridge.frChk alignCtx Fn.«level_residual__L73_L16_L6_L3».fs [1128, 1129] Fn.«level_residual__L73_L16_L6_L3».core.params Fn.«level_residual__L73_L16_L6_L3».core.body
       Data.adviceFn588 = true := by
   decide +kernel
 
@@ -186,7 +185,7 @@ theorem curBodyOk :
 
 /-- `level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».fs [1032, 1072] (Bridge.AllocChk.frSkipAt 604) Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».core.params Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».core.body
+    Bridge.frChk alignCtx Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».fs [1032, 1072] Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».core.params Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».core.body
       Data.adviceFn604 = true := by
   decide +kernel
 
@@ -217,7 +216,7 @@ theorem curBodyOk :
 
 /-- `level_residual__L32_L9_L4_L2`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_residual__L32_L9_L4_L2».fs [1179] (Bridge.AllocChk.frSkipAt 637) Fn.«level_residual__L32_L9_L4_L2».core.params Fn.«level_residual__L32_L9_L4_L2».core.body
+    Bridge.frChk alignCtx Fn.«level_residual__L32_L9_L4_L2».fs [1179] Fn.«level_residual__L32_L9_L4_L2».core.params Fn.«level_residual__L32_L9_L4_L2».core.body
       Data.adviceFn637 = true := by
   decide +kernel
 
@@ -248,7 +247,7 @@ theorem curBodyOk :
 
 /-- `level_positions__L11_L22_L4`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L11_L22_L4».fs [1189, 1190] (Bridge.AllocChk.frSkipAt 645) Fn.«level_positions__L11_L22_L4».core.params Fn.«level_positions__L11_L22_L4».core.body
+    Bridge.frChk alignCtx Fn.«level_positions__L11_L22_L4».fs [1189, 1190] Fn.«level_positions__L11_L22_L4».core.params Fn.«level_positions__L11_L22_L4».core.body
       Data.adviceFn645 = true := by
   decide +kernel
 
@@ -279,7 +278,7 @@ theorem curBodyOk :
 
 /-- `level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».fs [1011, 1200] (Bridge.AllocChk.frSkipAt 666) Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».core.params Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».core.body
+    Bridge.frChk alignCtx Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».fs [1011, 1200] Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».core.params Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».core.body
       Data.adviceFn666 = true := by
   decide +kernel
 
@@ -310,7 +309,7 @@ theorem curBodyOk :
 
 /-- `level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».fs [1022, 1379] (Bridge.AllocChk.frSkipAt 835) Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».core.params Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».core.body
+    Bridge.frChk alignCtx Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».fs [1022, 1379] Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».core.params Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».core.body
       Data.adviceFn835 = true := by
   decide +kernel
 
@@ -341,7 +340,7 @@ theorem curBodyOk :
 
 /-- `level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».fs [1011, 1429] (Bridge.AllocChk.frSkipAt 883) Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».core.params Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».core.body
+    Bridge.frChk alignCtx Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».fs [1011, 1429] Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».core.params Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».core.body
       Data.adviceFn883 = true := by
   decide +kernel
 
@@ -372,7 +371,7 @@ theorem curBodyOk :
 
 /-- `level_residual__L16_L7_L4_L2`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_residual__L16_L7_L4_L2».fs [1459] (Bridge.AllocChk.frSkipAt 899) Fn.«level_residual__L16_L7_L4_L2».core.params Fn.«level_residual__L16_L7_L4_L2».core.body
+    Bridge.frChk alignCtx Fn.«level_residual__L16_L7_L4_L2».fs [1459] Fn.«level_residual__L16_L7_L4_L2».core.params Fn.«level_residual__L16_L7_L4_L2».core.body
       Data.adviceFn899 = true := by
   decide +kernel
 
@@ -403,7 +402,7 @@ theorem curBodyOk :
 
 /-- `level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».fs [1022, 1423] (Bridge.AllocChk.frSkipAt 913) Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».core.params Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».core.body
+    Bridge.frChk alignCtx Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».fs [1022, 1423] Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».core.params Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».core.body
       Data.adviceFn913 = true := by
   decide +kernel
 
@@ -434,7 +433,7 @@ theorem curBodyOk :
 
 /-- `level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».fs [1011, 1242] (Bridge.AllocChk.frSkipAt 924) Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».core.params Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».core.body
+    Bridge.frChk alignCtx Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».fs [1011, 1242] Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».core.params Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».core.body
       Data.adviceFn924 = true := by
   decide +kernel
 
@@ -465,7 +464,7 @@ theorem curBodyOk :
 
 /-- `da_levels__L32_L5_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«da_levels__L32_L5_loop0».fs [] (Bridge.AllocChk.frSkipAt 956) Fn.«da_levels__L32_L5_loop0».core.params Fn.«da_levels__L32_L5_loop0».core.body
+    Bridge.frChk alignCtx Fn.«da_levels__L32_L5_loop0».fs [] Fn.«da_levels__L32_L5_loop0».core.params Fn.«da_levels__L32_L5_loop0».core.body
       Data.adviceFn956 = true := by
   decide +kernel
 
@@ -496,7 +495,7 @@ theorem curBodyOk :
 
 /-- `da_levels__L1024_L10_loop8`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«da_levels__L1024_L10_loop8».fs [] (Bridge.AllocChk.frSkipAt 999) Fn.«da_levels__L1024_L10_loop8».core.params Fn.«da_levels__L1024_L10_loop8».core.body
+    Bridge.frChk alignCtx Fn.«da_levels__L1024_L10_loop8».fs [] Fn.«da_levels__L1024_L10_loop8».core.params Fn.«da_levels__L1024_L10_loop8».core.body
       Data.adviceFn999 = true := by
   decide +kernel
 
@@ -527,7 +526,7 @@ theorem curBodyOk :
 
 /-- `opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».fs [1512, 1513] (Bridge.AllocChk.frSkipAt 1014) Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».core.params Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».core.body
+    Bridge.frChk alignCtx Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».fs [1512, 1513] Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».core.params Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».core.body
       Data.adviceFn1014 = true := by
   decide +kernel
 
@@ -558,7 +557,7 @@ theorem curBodyOk :
 
 /-- `level_positions__L4_L17_L5_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L4_L17_L5_loop0».fs [1005] (Bridge.AllocChk.frSkipAt 1079) Fn.«level_positions__L4_L17_L5_loop0».core.params Fn.«level_positions__L4_L17_L5_loop0».core.body
+    Bridge.frChk alignCtx Fn.«level_positions__L4_L17_L5_loop0».fs [1005] Fn.«level_positions__L4_L17_L5_loop0».core.params Fn.«level_positions__L4_L17_L5_loop0».core.body
       Data.adviceFn1079 = true := by
   decide +kernel
 
@@ -589,7 +588,7 @@ theorem curBodyOk :
 
 /-- `level_residual__L109_L15_L6_L3_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_residual__L109_L15_L6_L3_loop0».fs [] (Bridge.AllocChk.frSkipAt 1086) Fn.«level_residual__L109_L15_L6_L3_loop0».core.params Fn.«level_residual__L109_L15_L6_L3_loop0».core.body
+    Bridge.frChk alignCtx Fn.«level_residual__L109_L15_L6_L3_loop0».fs [] Fn.«level_residual__L109_L15_L6_L3_loop0».core.params Fn.«level_residual__L109_L15_L6_L3_loop0».core.body
       Data.adviceFn1086 = true := by
   decide +kernel
 
@@ -620,7 +619,7 @@ theorem curBodyOk :
 
 /-- `level_positions__L3_L20_L2_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L3_L20_L2_loop0».fs [1109] (Bridge.AllocChk.frSkipAt 1245) Fn.«level_positions__L3_L20_L2_loop0».core.params Fn.«level_positions__L3_L20_L2_loop0».core.body
+    Bridge.frChk alignCtx Fn.«level_positions__L3_L20_L2_loop0».fs [1109] Fn.«level_positions__L3_L20_L2_loop0».core.params Fn.«level_positions__L3_L20_L2_loop0».core.body
       Data.adviceFn1245 = true := by
   decide +kernel
 
@@ -651,7 +650,7 @@ theorem curBodyOk :
 
 /-- `level_positions__L5_L21_L3_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L5_L21_L3_loop0».fs [1149] (Bridge.AllocChk.frSkipAt 1287) Fn.«level_positions__L5_L21_L3_loop0».core.params Fn.«level_positions__L5_L21_L3_loop0».core.body
+    Bridge.frChk alignCtx Fn.«level_positions__L5_L21_L3_loop0».fs [1149] Fn.«level_positions__L5_L21_L3_loop0».core.params Fn.«level_positions__L5_L21_L3_loop0».core.body
       Data.adviceFn1287 = true := by
   decide +kernel
 
@@ -682,7 +681,7 @@ theorem curBodyOk :
 
 /-- `level_residual__L55_L20_L6_L3_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_residual__L55_L20_L6_L3_loop0».fs [] (Bridge.AllocChk.frSkipAt 1299) Fn.«level_residual__L55_L20_L6_L3_loop0».core.params Fn.«level_residual__L55_L20_L6_L3_loop0».core.body
+    Bridge.frChk alignCtx Fn.«level_residual__L55_L20_L6_L3_loop0».fs [] Fn.«level_residual__L55_L20_L6_L3_loop0».core.params Fn.«level_residual__L55_L20_L6_L3_loop0».core.body
       Data.adviceFn1299 = true := by
   decide +kernel
 
@@ -713,7 +712,7 @@ theorem curBodyOk :
 
 /-- `opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1».fs [1575] (Bridge.AllocChk.frSkipAt 1334) Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1».core.params Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1».core.body
+    Bridge.frChk alignCtx Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1».fs [1575] Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1».core.params Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1».core.body
       Data.adviceFn1334 = true := by
   decide +kernel
 
@@ -744,7 +743,7 @@ theorem curBodyOk :
 
 /-- `level_positions__L3_L22_L4_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L3_L22_L4_loop0».fs [1189] (Bridge.AllocChk.frSkipAt 1377) Fn.«level_positions__L3_L22_L4_loop0».core.params Fn.«level_positions__L3_L22_L4_loop0».core.body
+    Bridge.frChk alignCtx Fn.«level_positions__L3_L22_L4_loop0».fs [1189] Fn.«level_positions__L3_L22_L4_loop0».core.params Fn.«level_positions__L3_L22_L4_loop0».core.body
       Data.adviceFn1377 = true := by
   decide +kernel
 
@@ -775,7 +774,7 @@ theorem curBodyOk :
 
 /-- `opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1».fs [1596] (Bridge.AllocChk.frSkipAt 1476) Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1».core.params Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1».core.body
+    Bridge.frChk alignCtx Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1».fs [1596] Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1».core.params Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1».core.body
       Data.adviceFn1476 = true := by
   decide +kernel
 
@@ -806,7 +805,7 @@ theorem curBodyOk :
 
 /-- `opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0».fs [1598] (Bridge.AllocChk.frSkipAt 1523) Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0».core.params Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0».core.body
+    Bridge.frChk alignCtx Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0».fs [1598] Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0».core.params Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0».core.body
       Data.adviceFn1523 = true := by
   decide +kernel
 

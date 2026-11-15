@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.EndExecAGaps
 
-  What the allocation track still rests on, after the callee frames' pointers and sizes.
+  The allocation track's facts on the deployed alignment, assembled.
 -/
 
 module
@@ -13,11 +13,10 @@ public import LeanVM.Guest.EndExecAExcl
 public import LeanVM.Guest.EndExecHeap
 
 /-!
-# The allocation track's open facts
+# The allocation track's facts, all proved
 
-`AllocOpen.gaps : AllocOpen → AllocGaps`: `AllocGaps`' callee frame facts are proved,
-`framePtr_alignA` and `frameSize_alignA`, the latter but for the frame hints the sizes check skips
-(`FrSkip`), the dynamic sizes' powers, `dynPow_guest`, and the advised sizes, `advNext_alignA`, on the
+`allocGaps_guest : AllocGaps`: the callee frames' pointers and sizes, `framePtr_alignA` and
+`frameSize_alignA`, the dynamic sizes' powers, `dynPow_guest`, the advised sizes, `advNext_alignA`, on the
 `heap_sizes` stream the reference tree's (`heapPops_ref`), the late hints, `lateReady_alignA`, and the
 excluded function's buffer and late hint, `exclReady_alignA` and `lateExcl_guest`.
 -/
@@ -28,20 +27,16 @@ open LeanVM.Guest.Bridge (alignA)
 
 public section
 
-/-- **What the allocation track rests on and does not prove**, on the deployed alignment. -/
-structure AllocOpen : Prop where
-  frSkip : FrSkip
-
-theorem AllocOpen.gaps (G : AllocOpen) : AllocGaps :=
-  ⟨dynPow_guest, advNext_alignA, lateReady_alignA lateExcl_guest, frameSize_alignA G.frSkip, framePtr_alignA,
+theorem allocGaps_guest : AllocGaps :=
+  ⟨dynPow_guest, advNext_alignA, lateReady_alignA lateExcl_guest, frameSize_alignA, framePtr_alignA,
     exclReady_alignA⟩
 
-theorem AllocOpen.allocReady (G : AllocOpen) : AllocReady alignA := G.gaps.allocReady
+theorem allocReady_guest : AllocReady alignA := allocGaps_guest.allocReady
 
-theorem AllocOpen.sizesAt (G : AllocOpen) : SizesAt alignA := G.gaps.sizesAt
+theorem sizesAt_guest : SizesAt alignA := allocGaps_guest.sizesAt
 
 /-- **Each step keeps `YAlloc alignA`.** -/
-theorem AllocOpen.keep (G : AllocOpen) : KeepY (YAlloc alignA) := keepY_allocA_of G.sizesAt heapPops_ref
+theorem keepY_allocA_guest : KeepY (YAlloc alignA) := keepY_allocA_of sizesAt_guest heapPops_ref
 
 end
 

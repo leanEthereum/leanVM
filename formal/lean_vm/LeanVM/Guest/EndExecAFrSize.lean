@@ -2,7 +2,7 @@
   LeanVM.Guest.EndExecAFrSize
 
   A callee frame's hint reserves the next callee's block: `FrameSize alignA`, from the frame size
-  check (`Bridge.frChk`) at the call the hint's site makes, but the hints it skips.
+  check (`Bridge.frChk`) at the call the hint's site makes.
 -/
 
 module
@@ -16,7 +16,7 @@ public import LeanVM.Guest.Bridge.AllocChk.All
 /-!
 # The callee frames' sizes
 
-`frameSize_alignA : FrSkip → FrameSize alignA`. At a frame hint the frame's next call is through the
+`frameSize_alignA : FrameSize alignA`. At a frame hint the frame's next call is through the
 hint's site (`frame_next`); the call comes from a call statement of the body (`walk_callOf`) at that
 site, which fits the hint (`Bridge.frFits`), its callee's facts those of a listed compiled function
 (`calFind_spec`). The facts the statement reads are on the path (`CtxOn`): the spines of the blocks
@@ -28,9 +28,8 @@ enclosing it and their calls' returns (`spine_evs`), the atoms of a path holding
   frame;
 * `allocFrames`: a conditional call of a loop helper ending at its second parameter: entered, its
   run makes `m` iterations from `g^e` (`chainB`), its block `m + 1` frames and the end
-  `g^(e + m)` at the stop cell; not entered, the guard `g^e + end` zero, its block one frame.
-
-`FrSkip` names the frame hints the check skips (`Bridge.AllocChk.frSkipAt`).
+  `g^(e + m)` at the stop cell; not entered, the guard `g^e + end` zero, its block one frame (the
+  guard's end equal to the stop's by `spEq_spec`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -507,8 +506,48 @@ theorem armsFit_spec {tbl : List (String × ℕ × Bool × Option (Option ℕ))}
       obtain ⟨m, ep, hc, hs⟩ := armsFit_spec fs (j0 + 1) h.2 hi
       exact ⟨m, ep, hc, by rw [← hs]; congr 1; omega⟩
 
+theorem spEqPtr_spec {sp : List Atom} {rd : Reader} {σ : Val} (hsp : ∀ a ∈ sp, a.Holds rd σ) {p q : V}
+    (h : spEqPtr sp p q = true) : σ p = σ q := by
+  unfold spEqPtr at h
+  simp only [Bool.or_eq_true, beq_iff_eq, List.any_eq_true] at h
+  rcases h with rfl | ⟨a, ha, hp⟩
+  · rfl
+  cases a with
+  | mul p' u w =>
+    simp only [Bool.and_eq_true, beq_iff_eq, List.any_eq_true] at hp
+    obtain ⟨rfl, c, hc, hq⟩ := hp
+    cases c with
+    | mul q' u' w' =>
+      simp only [Bool.and_eq_true, beq_iff_eq] at hq
+      obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hq
+      exact (hsp _ ha).trans (hsp _ hc).symm
+    | _ => simp at hq
+  | _ => simp at hp
+
+theorem spEq_spec {sp : List Atom} {rd : Reader} {σ : Val} (hsp : ∀ a ∈ sp, a.Holds rd σ) {x y : V}
+    (h : spEq sp x y = true) : σ x = σ y := by
+  unfold spEq at h
+  simp only [Bool.or_eq_true, beq_iff_eq, List.any_eq_true] at h
+  rcases h with rfl | ⟨a, ha, hp⟩
+  · rfl
+  cases a with
+  | load x' p o =>
+    simp only [Bool.and_eq_true, beq_iff_eq, List.any_eq_true] at hp
+    obtain ⟨rfl, c, hc, hq⟩ := hp
+    cases c with
+    | load y' q o' =>
+      simp only [Bool.and_eq_true, beq_iff_eq] at hq
+      obtain ⟨⟨rfl, rfl⟩, hpq⟩ := hq
+      have h1 := (hsp _ ha).2
+      have h2 := (hsp _ hc).2
+      rw [spEqPtr_spec hsp hpq, h2] at h1
+      exact (Option.some.inj h1).symm
+    | _ => simp at hq
+  | _ => simp at hp
+
 theorem guardOk_spec {sp : List Atom} {b a1 : V} {e : ℕ} (h : guardOk sp b a1 e = true) :
-    ∃ x y, Atom.add b x y ∈ sp ∧ ((spConst sp x e = true ∧ y = a1) ∨ (spConst sp y e = true ∧ x = a1) ∨
+    ∃ x y, Atom.add b x y ∈ sp ∧ ((spConst sp x e = true ∧ spEq sp y a1 = true) ∨
+      (spConst sp y e = true ∧ spEq sp x a1 = true) ∨
       ∃ w1 w2, spWord sp x = some w1 ∧ spWord sp y = some w2 ∧ w1 ≠ w2) := by
   unfold guardOk at h
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
@@ -528,27 +567,16 @@ theorem guardOk_spec {sp : List Atom} {b a1 : V} {e : ℕ} (h : guardOk sp b a1 
   | _ => simp at hp
 
 
-/-- **The frame hints the sizes check skips** reserve the next callee's block. -/
-def FrSkip : Prop :=
-  ∀ r C e s sx i h j, HintAt alignA r C e s sx i h → isFrame (alignA e.I.t.name).X h = true →
-    B2C.idxOf e.I.t.name = some j → (s.pc - entOf alignA e.I.t.name) ∈ AllocChk.frSkipAt j →
-    SizeOk (refMem r.img) sx.fp h
-      ((((e.I.t.kidsC coreProgram.loop)[e.nc]?).map (Tree.block B2C.fs coreProgram.loop)).getD 0)
-
-/-- **A callee frame's hint reserves the next callee's block**, but those the check skips. -/
-theorem frameSize_alignA (hS : FrSkip) : FrameSize alignA := by
+/-- **A callee frame's hint reserves the next callee's block.** -/
+theorem frameSize_alignA : FrameSize alignA := by
   intro r C e s sx i h hat hfr
   obtain ⟨p, hp⟩ := Option.isSome_iff_exists.mp (isFrame_ptr hfr)
   obtain ⟨off, c, s0, hpcE, hqm, hc, hsite, hkC⟩ := frame_next hat hfr hp
-  have hat' := hat
   obtain ⟨hr, hC, ⟨done, st, htr, hch, -⟩, -, hfine, -, hget, hpre, hag⟩ := hat
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
   have hE := htr.track.ents e List.mem_cons_self
-  have hoff : s.pc - entOf alignA e.I.t.name = off := by omega
-  by_cases hsk : off ∈ AllocChk.frSkipAt j
-  · exact hS r C e s sx i h j hat' hfr hj (by rw [hoff]; exact hsk)
   have hfpe : e.I.fp = s.fp := htr.linked.top.1
   have hfol := hints_follows _ s sx ⟨hfine.agree.wf, hfine.dl⟩ hpre
   have hsxfp : sx.fp = e.I.fp := hfol.fp.trans hfpe.symm
@@ -574,8 +602,7 @@ theorem frameSize_alignA (hS : FrSkip) : FrameSize alignA := by
   obtain ⟨rd', hpath⟩ := path_holds hr htr
   have hsp : ∀ a ∈ sp', a.Holds rd' e.σ := fun a ha ↦ hpath a (hsp' a ha)
   have hq := List.all_eq_true.mp hP (off, h) hqm
-  have hsk' : (AllocChk.frSkipAt (i0 + 1)).contains (off, h).1 = false := by simpa using hsk
-  simp only [hsk', Bool.false_or, hp] at hq
+  simp only [hp] at hq
   obtain ⟨hargs, hrets⟩ := callOf_args hco
   rw [hargs, hrets] at hq
   change (ctxOf (i0 + 1)).siteAt p c.args c.rets = some s0 at hsite
@@ -745,11 +772,11 @@ theorem frameSize_alignA (hS : FrSkip) : FrameSize alignA := by
         have hadd : e.σ b = e.σ x + e.σ y := hsp _ hxy
         rw [hb0] at hadd
         have hend : e.σ a1 = ofK (addressOfIndex e0) := by
-          rcases hcase with ⟨hx, rfl⟩ | ⟨hy, rfl⟩ | ⟨w1, w2, h1, h2, hne⟩
+          rcases hcase with ⟨hx, hy⟩ | ⟨hy, hx⟩ | ⟨w1, w2, h1, h2, hne⟩
           · obtain ⟨w, hw, rfl⟩ := spConst_spec hx
-            rw [← Res.char2_eq hadd.symm]; exact hsp _ hw
+            rw [← spEq_spec hsp hy, ← Res.char2_eq hadd.symm]; exact hsp _ hw
           · obtain ⟨w, hw, rfl⟩ := spConst_spec hy
-            rw [Res.char2_eq hadd.symm]; exact hsp _ hw
+            rw [← spEq_spec hsp hx, Res.char2_eq hadd.symm]; exact hsp _ hw
           · exact absurd ((hsp _ (spWord_spec h1)).symm.trans ((Res.char2_eq hadd.symm).trans (hsp _ (spWord_spec h2))))
               hne
         refine ⟨addressOfIndex e0, 0, by rw [hend], by simpa using hsi' 0, by unfold maxCells; norm_num, ?_⟩

@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
-public import LeanVM.Guest.Bridge.AllocChk.FrSkip
 public import LeanVM.Guest.Bridge.Align.«open_stacked__L9»
 public import LeanVM.Guest.Pack.«P58».Core
 public import LeanVM.Guest.Pack.«open_stacked__L9».Bundle
@@ -31,7 +30,7 @@ theorem curBodyOk :
 
 /-- `open_stacked__L9`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«open_stacked__L9».fs [8, 9, 308, 312, 448, 462, 472, 512, 521, 530, 537, 542, 662, 683, 687, 694, 698, 700, 703, 704, 707, 710, 718, 721, 724, 741, 745, 785, 822, 826, 830, 854, 855, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 869, 870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887, 888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 899] (Bridge.AllocChk.frSkipAt 345) Fn.«open_stacked__L9».core.params Fn.«open_stacked__L9».core.body
+    Bridge.frChk alignCtx Fn.«open_stacked__L9».fs [8, 9, 308, 312, 448, 462, 472, 512, 521, 530, 537, 542, 662, 683, 687, 694, 698, 700, 703, 704, 707, 710, 718, 721, 724, 741, 745, 785, 822, 826, 830, 854, 855, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 869, 870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887, 888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 899] Fn.«open_stacked__L9».core.params Fn.«open_stacked__L9».core.body
       Data.adviceFn345 = true := by
   decide +kernel
 

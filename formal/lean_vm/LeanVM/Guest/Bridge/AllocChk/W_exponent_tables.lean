@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
-public import LeanVM.Guest.Bridge.AllocChk.FrSkip
 public import LeanVM.Guest.Bridge.AlignWin.«exponent_tables».Ok
 public import LeanVM.Guest.Pack.«P42».Bundle
 public import LeanVM.Guest.Pack.«P42».Core
@@ -31,7 +30,7 @@ theorem curBodyOk :
 
 /-- `exponent_tables`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«exponent_tables».fs [] (Bridge.AllocChk.frSkipAt 2) Fn.«exponent_tables».core.params Fn.«exponent_tables».core.body
+    Bridge.frChk alignCtx Fn.«exponent_tables».fs [] Fn.«exponent_tables».core.params Fn.«exponent_tables».core.body
       Data.adviceFn2 = true := by
   decide +kernel
 

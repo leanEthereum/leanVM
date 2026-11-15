@@ -206,8 +206,7 @@ def chk(F, body, abody, A, locs, extra, pows, jt, fs, loop):
 
 
 
-# The frame hints' sizes (`Bridge.frChk`), mirrored to choose each function's listed callees and the
-# frame hints it skips.
+# The frame hints' sizes (`Bridge.frChk`), mirrored to choose each function's listed callees.
 
 def fr_vals(x):
     """The values of an atom's operand: a value, or a list of them."""
@@ -228,6 +227,8 @@ def fr_atom(e, env):
         return ('const', data.val(a[0]), (w[2][0], w[2][1]) if isinstance(w, tuple) and w[0] == 'app' else None)
     if h in ('.add', '.mul'):
         return (h[1:], data.val(a[0]), data.val(a[1]), data.val(a[2]))
+    if h == '.load':
+        return ('load', data.val(a[0]), data.val(a[1]), a[2])
     uses = []
     for x in a:
         if isinstance(x, tuple) and x[0] == 'id':
@@ -335,6 +336,8 @@ def fr_uses(a):
         return [a[1]]
     if a[0] in ('add', 'mul'):
         return [a[1], a[2], a[3]]
+    if a[0] == 'load':
+        return [a[1], a[2]]
     if a[0] == 'other':
         return a[2]
     if a[0] == 'hint':
@@ -415,7 +418,7 @@ def fr_end_of(body, name, np):
 
 
 def fr_data(F, A, fb, np, locs, extra, fs, cal):
-    """The listed callees and the skipped frame hints' offsets of a function, as `Bridge.frChk` reads them."""
+    """The listed callees of a function, as `Bridge.frChk` reads them, and the offsets of the frame hints it fails."""
     loc = lambda v: extra[v] if v in extra else (locs[v] if v < len(locs) else 0)
     cell = lambda v: v in extra or (v < 1 << 30 and 2 <= loc(v) < fs)
     frames = [(pc - A['entry'], h) for pc, l in A['hints'] for h in l if h[0] in ALLOC and h[1] in F['sites']]
@@ -427,17 +430,25 @@ def fr_data(F, A, fb, np, locs, extra, fs, cal):
     def sp_word(v):
         return next((a[2] for a in sp if a[0] == 'const' and a[1] == v), None)
 
+    def sp_eq_ptr(p, q):
+        return p == q or any(a[0] == 'mul' and a[1] == p and any(
+            c[0] == 'mul' and c[1] == q and c[2:] == a[2:] for c in sp) for a in sp)
+
+    def sp_eq(x, y):
+        return x == y or any(a[0] == 'load' and a[1] == x and any(
+            c[0] == 'load' and c[1] == y and c[3] == a[3] and sp_eq_ptr(a[2], c[2]) for c in sp) for a in sp)
+
     def guard(b, a1, e):
         for a in sp:
             if a[0] == 'add' and a[1] == b:
                 x, y = a[2], a[3]
-                if (sp_const(x, e) and y == a1) or (sp_const(y, e) and x == a1):
+                if (sp_const(x, e) and sp_eq(y, a1)) or (sp_const(y, e) and sp_eq(x, a1)):
                     return True
                 wx, wy = sp_word(x), sp_word(y)
                 if wx is not None and wy is not None and wx != wy:
                     return True
         return False
-    cs, skip = set(), set()
+    cs, bad = set(), set()
     for st, sp, nm in fr_stmts(fb, fr_spine(fb), fr_spine_named(fb)):
         if st[0] not in ('call', 'callIf', 'dispatch'):
             continue
@@ -473,8 +484,8 @@ def fr_data(F, A, fb, np, locs, extra, fs, cal):
                 if c:
                     cs.add(c[0])
             if not ok:
-                skip.add(off)
-    return sorted(cs), sorted(skip)
+                bad.add(off)
+    return sorted(cs), sorted(bad)
 
 
 def run(check):
@@ -508,6 +519,8 @@ def run(check):
             sys.exit(f'bridge-cert: `{k}` fails the bump pointer check: {cur}')
         (failed if why else passed)[j] = why or k
         frd[j] = fr_data(F, adv[F['entry']], fbs[k], nps[k], bund[k]['locs'], extra, fss[k], byname.get)
+        if frd[j][1]:
+            sys.exit(f'bridge-cert: `{k}` fails the frame sizes check at offsets {frd[j][1]}')
     files = {}
     shape_mods = {}
     body_mods = {}
@@ -554,7 +567,7 @@ theorem curBodyOk :
             cs = '[' + ', '.join(str(c) for c in frd[j][0]) + ']'
             return f'''/-- `{k}`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«{k}».fs {cs} (Bridge.AllocChk.frSkipAt {j}) Fn.«{k}».core.params Fn.«{k}».core.body
+    Bridge.frChk alignCtx Fn.«{k}».fs {cs} Fn.«{k}».core.params Fn.«{k}».core.body
       Data.adviceFn{j} = true := by
   {prf}
 
@@ -580,7 +593,7 @@ theorem allocOk :
         files[os.path.join(OUT, mod.split('AllocChk.')[1].strip('«»') + '.lean')] = (
             HEAD.format(mod=mod, what="The kernel's checks that compiled functions' allocation hints pass the check.")
             + 'public import LeanVM.Guest.Bridge.AllocDefs\n'
-            + ('' if win else 'public import LeanVM.Guest.Bridge.AllocFrDefs\npublic import LeanVM.Guest.Bridge.AllocChk.FrSkip\n')
+            + ('' if win else 'public import LeanVM.Guest.Bridge.AllocFrDefs\n')
             + f'public import {cm}\n'
             + ''.join(f'public import {m}\n' for m in imps)
             + '\n' + body.rstrip('\n') + '\n')
@@ -590,7 +603,7 @@ theorem allocOk :
                 fr_mods[k] = fmod
                 files[os.path.join(OUT, f'F_{k}.lean')] = (
                     HEAD.format(mod=fmod, what=f"The kernel's check of `{k}`'s frame hints' sizes.")
-                    + 'public import LeanVM.Guest.Bridge.AllocFrDefs\npublic import LeanVM.Guest.Bridge.AllocChk.FrSkip\n'
+                    + 'public import LeanVM.Guest.Bridge.AllocFrDefs\n'
                     + f'public import {cm}\n' + ''.join(f'public import {m}\n' for m in imps)
                     + '\n' + ns(k, fr_thm(j, k)).rstrip('\n') + '\n')
                 bmod = f'LeanVM.Guest.Bridge.AllocChk.«B_{k}»'
@@ -719,27 +732,9 @@ theorem allocJ_all : ∀ j, 1 ≤ j → j < {n} → j ∉ allocExcl → Bridge.A
 theorem curJ_all : ∀ j, 1 ≤ j → j < {n} → Bridge.CurJ j := fun j h1 h2 ↦
   {ctop}
 
-{fthms}/-- **Every compiled function's frame hints pass the sizes check**, but those it skips. -/
+{fthms}/-- **Every compiled function's frame hints pass the sizes check.** -/
 theorem frJ_all : ∀ j, 1 ≤ j → j < {n} → Bridge.FrJ j := fun j h1 h2 ↦
   {ftop}
-
-end
-
-end LeanVM.Guest.Bridge.AllocChk
-''')
-    skips = [(j, frd[j][1]) for j in sorted(frd) if frd[j][1]]
-    arms = ''.join(f'  | {j} => [{", ".join(str(o) for o in offs)}]\n' for j, offs in skips)
-    files[os.path.join(OUT, 'FrSkip.lean')] = (
-        HEAD.format(mod='LeanVM.Guest.Bridge.AllocChk.FrSkip',
-                    what="The frame hints the frame sizes check skips.")
-        + '''
-namespace LeanVM.Guest.Bridge.AllocChk
-
-@[expose] public section
-
-/-- **The frame hints the frame sizes check skips**, by compiled function: their offsets. -/
-def frSkipAt : Nat → List Nat
-''' + arms + '''  | _ => []
 
 end
 
@@ -759,7 +754,7 @@ end LeanVM.Guest.Bridge.AllocChk
         if not check:
             os.remove(path)
     print(f'bridge-cert: the allocation hints of {len(passed)} functions over {len(groups)} link modules, '
-          f'{len(failed)} excluded; {sum(len(o) for _, o in skips)} frame hints skipped in {len(skips)} functions')
+          f'{len(failed)} excluded')
     if check and stale:
         for p in stale:
             print(f'stale: {os.path.relpath(p, data.LEAN_VM)}', file=sys.stderr)

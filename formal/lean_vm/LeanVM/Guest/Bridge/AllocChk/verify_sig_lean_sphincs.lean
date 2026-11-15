@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
-public import LeanVM.Guest.Bridge.AllocChk.FrSkip
 public import LeanVM.Guest.Bridge.Align.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Bundle
 public import LeanVM.Guest.Pack.«verify_sig_lean_sphincs».Core
@@ -31,7 +30,7 @@ theorem curBodyOk :
 
 /-- `verify_sig_lean_sphincs`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«verify_sig_lean_sphincs».fs [20] (Bridge.AllocChk.frSkipAt 21) Fn.«verify_sig_lean_sphincs».core.params Fn.«verify_sig_lean_sphincs».core.body
+    Bridge.frChk alignCtx Fn.«verify_sig_lean_sphincs».fs [20] Fn.«verify_sig_lean_sphincs».core.params Fn.«verify_sig_lean_sphincs».core.body
       Data.adviceFn21 = true := by
   decide +kernel
 

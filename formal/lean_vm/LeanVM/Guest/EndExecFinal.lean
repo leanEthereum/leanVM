@@ -37,9 +37,9 @@ cursor (`YCur`) and the bump pointer (`YAlloc`), each kept by a step given the o
 (`Budget.mainExactHyp`), the alignment and its jumps (`Bridge.progAl`, `Bridge.alignA_main`,
 `alLayout_alignA`, `jumpCells_at`), the `DEREF` pointers (`derefPow_all`), the computed hints
 (`hintComputed_alignA`, `extraRef_alignA`), the witness hints (`hintWitness_alignA`,
-`witCells_alignA`, `pushShape`), the allocation hints (`hintAlloc_alignA`), the cells the hints use
+`witCells_alignA`, `pushShape`), the allocation hints (`hintAlloc_alignA`, on `allocGaps_guest`), the cells the hints use
 (`hintsUsed_alignA`), the tracks kept
-(`keepY_alignA`, `keepY_allocA_of`) and started (`initY_cur`, `initY_alloc`), the residuals
+(`keepY_alignA`, `keepY_allocA_guest`) and started (`initY_cur`, `initY_alloc`), the residuals
 (`resTop_guestF`) and the termination facts (`termNode_guest`). `guest_prover_complete_of` is
 `guest_prover_complete` from `OpenGaps`.
 -/
@@ -84,9 +84,6 @@ structure OpenGaps : Prop where
   /-- Mode walk track: the walks (`walk … = true`) of the 30 functions the kernel does not check
   and the hints (`HintsOk`) of `main_loop2` and `sp_wots`. False as stated: 12 of the walks fail. -/
   modeHyps : Mode.ModeHyps
-  /-- Allocation track: the allocation facts still open (`AllocOpen`: the frame hint the sizes check skips:
-  `verify_bus_gkr`'s loop, whose guard reloads its end into another value). -/
-  alloc : AllocOpen
 
 /-! ## The assembly -/
 
@@ -94,7 +91,7 @@ structure OpenGaps : Prop where
 theorem execGaps_of (O : OpenGaps) :
     ExecGaps Mode.guestCerts Fn.«main».modeCert Mode.guestE0 (XOf YFin) (fun _ ↦ ProAt) :=
   ExecGaps.ofR (A := alignA) (Mode.modeCerts_guest O.modeHyps) Mode.mainOk_guestCerts Budget.mainExactHyp
-    (hintAlloc_alignA O.alloc.sizesAt O.alloc.allocReady fun _ _ h ↦ h.2)
+    (hintAlloc_alignA sizesAt_guest allocReady_guest fun _ _ h ↦ h.2)
     (hintWitness_alignA (witCells_alignA witPtrRes_guest) pushShape fun _ _ h ↦ h.1)
     (hintComputed_alignA extraRef_alignA)
     (resTop_guestF (fun K hK ↦ by
@@ -104,8 +101,8 @@ theorem execGaps_of (O : OpenGaps) :
       · exact resCp_alignA) nzVal_lce0 nzVal_lce16)
     termNode_guest Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at Mode.guestCerts_entry_ne
     (derefPow_all _)
-    (hintsUsed_alignA O.alloc.sizesAt O.alloc.allocReady (witCells_alignA witPtrRes_guest) fun _ _ h ↦ h)
-    (KeepY.and (keepY_alignA (derefPow_all _) fun _ _ h ↦ h) O.alloc.keep)
+    (hintsUsed_alignA sizesAt_guest allocReady_guest (witCells_alignA witPtrRes_guest) fun _ _ h ↦ h)
+    (KeepY.and (keepY_alignA (derefPow_all _) fun _ _ h ↦ h) keepY_allocA_guest)
     (InitY.and (initY_cur alignA) (initY_alloc alignA))
 
 /-- **The executor runs the guest program to completion on the guest's advice**, given the open

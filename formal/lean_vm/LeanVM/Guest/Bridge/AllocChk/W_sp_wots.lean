@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
-public import LeanVM.Guest.Bridge.AllocChk.FrSkip
 public import LeanVM.Guest.Bridge.AlignWin.«sp_wots».Ok
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
 public import LeanVM.Guest.Pack.«sp_wots».Core
@@ -31,7 +30,7 @@ theorem curBodyOk :
 
 /-- `sp_wots`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«sp_wots».fs [] (Bridge.AllocChk.frSkipAt 20) Fn.«sp_wots».core.params Fn.«sp_wots».core.body
+    Bridge.frChk alignCtx Fn.«sp_wots».fs [] Fn.«sp_wots».core.params Fn.«sp_wots».core.body
       Data.adviceFn20 = true := by
   decide +kernel
 

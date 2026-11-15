@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.Bridge.AllocFrDefs
-public import LeanVM.Guest.Bridge.AllocChk.FrSkip
 public import LeanVM.Guest.Bridge.AlignWin.«main_loop2».Ok
 public import LeanVM.Guest.Pack.«P43».Bundle
 public import LeanVM.Guest.Pack.«main_loop2».Core
@@ -21,7 +20,7 @@ public section
 
 /-- `main_loop2`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«main_loop2».fs [] (Bridge.AllocChk.frSkipAt 37) Fn.«main_loop2».core.params Fn.«main_loop2».core.body
+    Bridge.frChk alignCtx Fn.«main_loop2».fs [] Fn.«main_loop2».core.params Fn.«main_loop2».core.body
       Data.adviceFn37 = true := by
   rw [alignCtxEq]
   decide +kernel

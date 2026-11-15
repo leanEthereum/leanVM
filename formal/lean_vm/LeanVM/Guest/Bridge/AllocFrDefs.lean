@@ -16,8 +16,8 @@ public import LeanVM.Guest.Res.LoopDefs
 /-!
 # The frame hints' sizes
 
-`frChk X n cs skip ps body d`: every call statement of the body (`callsSpL`, nested ones too) at the site a
-frame hint's pointer names fits that hint (`frFits`), but the hints at the offsets `skip`, the callees' frame sizes, loop flags
+`frChk X n cs ps body d`: every call statement of the body (`callsSpL`, nested ones too) at the site a
+frame hint's pointer names fits that hint (`frFits`), the callees' frame sizes, loop flags
 and ends read off the listed compiled functions `cs` (`calTbl`, by name). The atoms `sp` and the values `nm` a statement reads
 facts from are those on every path through it: each enclosing block's spine (`spine`), and the returns of its spine's calls
 (`spineNamed`).
@@ -28,8 +28,8 @@ facts from are those on every path through it: each enclosing block's spine (`sp
   spine atom names or a spine call returns, and arm `j`'s size `sizes[j]` the frame size of `fs[j]`, no loop helper;
 * `allocFrames _ size stop si tail` at a `callIf b f (a0 :: a1 :: _)`: `f` a loop helper ending at its
   second parameter (`loopTail`), of frame size `size = tail`, `stop` the cell of `a1`; the spine sets
-  `a0` to `g^e`, `si` its inverse (`e ≤ 1`), and `b` to `c + a1` with `c` set to `g^e` too, or to the
-  sum of two distinct constants.
+  `a0` to `g^e`, `si` its inverse (`e ≤ 1`), and `b` to `c + a1` with `c` set to `g^e` too (or a value
+  loaded where `a1` is, through an equal product, `spEq`), or to the sum of two distinct constants.
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -159,10 +159,27 @@ def startInv : ℕ → Option K
   | 1 => some gInv
   | _ => none
 
-/-- A loop entry's guard `b`: `c + a1` with `c` set to `g^e`, or the sum of two distinct constants. -/
+/-- `p` and `q` the same value, or products of the same two values by atoms of `sp`. -/
+def spEqPtr (sp : List Atom) (p q : V) : Bool :=
+  p == q || sp.any fun
+    | .mul p' u w => p' == p && sp.any fun
+      | .mul q' u' w' => q' == q && u == u' && w == w'
+      | _ => false
+    | _ => false
+
+/-- `x` and `y` one word on `sp`: the same value, or loads at one offset through equal pointers (`spEqPtr`). -/
+def spEq (sp : List Atom) (x y : V) : Bool :=
+  x == y || sp.any fun
+    | .load x' p o => x' == x && sp.any fun
+      | .load y' q o' => y' == y && o == o' && spEqPtr sp p q
+      | _ => false
+    | _ => false
+
+/-- A loop entry's guard `b`: `c + a1` with `c` set to `g^e` (`a1` up to `spEq`), or the sum of two
+distinct constants. -/
 def guardOk (sp : List Atom) (b a1 : V) (e : ℕ) : Bool :=
   sp.any fun
-    | .add d x y => d == b && ((spConst sp x e && y == a1) || (spConst sp y e && x == a1) ||
+    | .add d x y => d == b && ((spConst sp x e && spEq sp y a1) || (spConst sp y e && spEq sp x a1) ||
         match spWord sp x, spWord sp y with
         | some w1, some w2 => w1 != w2
         | _, _ => false)
@@ -195,12 +212,12 @@ noncomputable def frFits (X : AlignCtx) (n : ℕ) (ps : List V) (sp : List Atom)
     | none => false
   | _, _ => false
 
-/-- **The frame hints' sizes check** of a function: its context, frame size, listed callees, the
-offsets of the frame hints it skips, body and advice. -/
-noncomputable def frChk (X : AlignCtx) (n : ℕ) (cs skip : List ℕ) (ps : List V) (body : List Stmt)
+/-- **The frame hints' sizes check** of a function: its context, frame size, listed callees,
+parameters, body and advice. -/
+noncomputable def frChk (X : AlignCtx) (n : ℕ) (cs : List ℕ) (ps : List V) (body : List Stmt)
     (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
   (frames X d).isEmpty || (cs.all (fun c ↦ Nat.ble 1 c && Nat.blt c nFns) &&
-    callsSpL (fun sp nm st ↦ (frames X d).all fun q ↦ skip.contains q.1 || match allocPtr q.2 with
+    callsSpL (fun sp nm st ↦ (frames X d).all fun q ↦ match allocPtr q.2 with
       | some p => (X.siteAt p (stArgs st) (stRets st)).isNone || frFits X n ps sp nm (calTbl cs) q.2 st
       | none => true) body (spine body) (spineNamed body))
 
